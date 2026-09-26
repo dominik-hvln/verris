@@ -1,6 +1,6 @@
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { Plan, Server, ServerStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service.js';
 import {
   BRAK_SYGNALU_MIN,
   czyWezelMilczy,
@@ -11,7 +11,7 @@ import {
   SWIEZOSC_TELEMETRII_MIN,
   WynikDopasowania,
   zuzycieZProbek,
-} from './node-capacity';
+} from './node-capacity.js';
 
 export interface NodeSelectionContext {
   /** Hint towards co-locating with this region if multiple nodes qualify. */

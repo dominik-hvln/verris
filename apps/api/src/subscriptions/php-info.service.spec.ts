@@ -1,5 +1,5 @@
 import { ConflictException } from '@nestjs/common';
-import { PhpInfoService, konfiguracjaZLogu } from './php-info.service';
+import { PhpInfoService, konfiguracjaZLogu } from './php-info.service.js';
 
 /**
  * B-06 — skrypt węzła sprawdzony lokalnie (serwer PHP): plik o losowej nazwie w katalogu strony,
@@ -8,14 +8,14 @@ import { PhpInfoService, konfiguracjaZLogu } from './php-info.service';
 function stanowisko(zadania: unknown[] = [], wToku: unknown = null) {
   const account = { id: 'a1', serverId: 'n1', status: 'ACTIVE', daUsername: 'klient1' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
     nodeTask: {
-      findFirst: jest.fn(async () => wToku),
-      findMany: jest.fn(async () => zadania),
-      create: jest.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
+      findFirst: vi.fn(async () => wToku),
+      findMany: vi.fn(async () => zadania),
+      create: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
     },
   };
-  const da = { assertDomainOwnedBySubscription: jest.fn(async (_s: string, _u: string, d: string) => d.toLowerCase()) };
+  const da = { assertDomainOwnedBySubscription: vi.fn(async (_s: string, _u: string, d: string) => d.toLowerCase()) };
   return { svc: new PhpInfoService(prisma as never, da as never), prisma };
 }
 

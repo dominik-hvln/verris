@@ -1,4 +1,4 @@
-import { BackupOffsiteService } from './backup-offsite.service';
+import { BackupOffsiteService } from './backup-offsite.service.js';
 import {
   BadRequestException,
   ConflictException,
@@ -8,27 +8,27 @@ import {
   Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service.js';
 import {
   bladWspolczynnika,
   efektywnyOvercommit,
   etykietaSygnalu,
   opiszSygnal,
-} from '../subscriptions/node-capacity';
-import { CryptoService } from '../common/crypto/crypto.service';
-import { AuditService } from '../common/audit/audit.service';
-import { BootstrapTokenService } from './bootstrap-token.service';
-import { DirectAdminService } from './directadmin.service';
-import { NodeDnsService } from './node-dns.service';
-import { NodeTasksService } from './node-tasks.service';
+} from '../subscriptions/node-capacity.js';
+import { CryptoService } from '../common/crypto/crypto.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { BootstrapTokenService } from './bootstrap-token.service.js';
+import { DirectAdminService } from './directadmin.service.js';
+import { NodeDnsService } from './node-dns.service.js';
+import { NodeTasksService } from './node-tasks.service.js';
 import { Prisma, Server, ServerStatus } from '@verris/database';
-import { InitServerDto } from './dto/init-server.dto';
-import { HandshakeDto } from './dto/handshake.dto';
-import { UpdateServerDto } from './dto/update-server.dto';
-import { UpdateDirectAdminConfigDto } from './dto/directadmin-config.dto';
-import { UpdateNameserversDto } from './dto/nameservers.dto';
-import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
-import { renderBootstrapNodeTasksInstallFragment, renderNodeDeploySshKeyBootstrapCall, renderProbesTasksHook } from './node-tasks-agent.install';
+import { InitServerDto } from './dto/init-server.dto.js';
+import { HandshakeDto } from './dto/handshake.dto.js';
+import { UpdateServerDto } from './dto/update-server.dto.js';
+import { UpdateDirectAdminConfigDto } from './dto/directadmin-config.dto.js';
+import { UpdateNameserversDto } from './dto/nameservers.dto.js';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
+import { renderBootstrapNodeTasksInstallFragment, renderNodeDeploySshKeyBootstrapCall, renderProbesTasksHook } from './node-tasks-agent.install.js';
 
 @Injectable()
 export class ServersService {

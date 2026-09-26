@@ -21,8 +21,8 @@ import { join, resolve } from 'path';
  * w Dockerfile. Nie buduje obrazu, więc kosztuje milisekundy.
  */
 
-const KORZEN = resolve(__dirname, '../../../..');
-const API_SRC = resolve(__dirname, '..');
+const KORZEN = resolve(import.meta.dirname, '../../../..');
+const API_SRC = resolve(import.meta.dirname, '..');
 const DOCKERFILE = resolve(KORZEN, 'Dockerfile.api');
 
 function plikiTs(katalog: string): string[] {

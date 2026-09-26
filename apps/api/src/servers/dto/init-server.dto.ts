@@ -1,4 +1,4 @@
-import { KODY_REGIONOW } from '../regiony';
+import { KODY_REGIONOW } from '../regiony.js';
 import { IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class InitServerDto {

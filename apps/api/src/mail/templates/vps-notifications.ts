@@ -1,5 +1,5 @@
-import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
+import type { MailMessage } from '../mailer.interface.js';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell.js';
 
 export interface VpsReadyContext {
   to: string;

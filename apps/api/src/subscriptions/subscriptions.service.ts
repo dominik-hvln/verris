@@ -16,32 +16,32 @@ import {
   SubscriptionStatus,
   WalletTxType,
 } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { WalletLedgerService } from '../billing/wallet-ledger.service';
-import { VatNabywcyService } from '../billing/vat-nabywcy.service';
-import { PromoService } from '../billing/promo.service';
-import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
-import { StripeService } from '../billing/stripe/stripe.service';
-import { getInvoiceClientSecret, getSubscriptionPeriod } from '../billing/stripe/stripe.client';
-import { DirectAdminService } from '../servers/directadmin.service';
-import { ProvisioningService, ProvisionResult } from './provisioning.service';
-import { ProvisioningQueueService } from './provisioning-queue.service';
-import { generateUniqueServiceTag } from './service-tag.util';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
+import { VatNabywcyService } from '../billing/vat-nabywcy.service.js';
+import { PromoService } from '../billing/promo.service.js';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
+import { StripeService } from '../billing/stripe/stripe.service.js';
+import { getInvoiceClientSecret, getSubscriptionPeriod } from '../billing/stripe/stripe.client.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
+import { ProvisioningService, ProvisionResult } from './provisioning.service.js';
+import { ProvisioningQueueService } from './provisioning-queue.service.js';
+import { generateUniqueServiceTag } from './service-tag.util.js';
 import {
   UpdateSubscriptionPreferencesDto,
   CreateSubscriptionDto,
   PreviewSubscriptionPromoDto,
-} from './dto/subscription.dto';
+} from './dto/subscription.dto.js';
 import { ConfigService } from '@nestjs/config';
-import { MailerService } from '../mail/mailer.service';
+import { MailerService } from '../mail/mailer.service.js';
 import {
   subscriptionSuspendedTemplate,
   subscriptionCancelledTemplate,
-} from '../mail/templates/billing-lifecycle-notifications';
-import { accountSuspendedPaymentTemplate } from '../mail/templates/hosting-notifications';
-import { orderReceivedTemplate } from '../mail/templates/order-notifications';
-import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service';
+} from '../mail/templates/billing-lifecycle-notifications.js';
+import { accountSuspendedPaymentTemplate } from '../mail/templates/hosting-notifications.js';
+import { orderReceivedTemplate } from '../mail/templates/order-notifications.js';
+import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service.js';
 
 export type SuspendReason =
   | 'PAYMENT_FAILED'

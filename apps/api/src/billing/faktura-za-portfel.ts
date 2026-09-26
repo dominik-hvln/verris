@@ -8,7 +8,7 @@ import {
   RODZAJ_FAKTURA_VAT,
   type RodzajPrawny,
   type TrybFakturowania,
-} from './tryb-fakturowania';
+} from './tryb-fakturowania.js';
 
 /**
  * Z-01 — kiedy obciążenie portfela zamienia się w fakturę.

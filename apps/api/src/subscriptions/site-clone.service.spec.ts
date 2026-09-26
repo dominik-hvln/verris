@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { SiteCloneService } from './site-clone.service';
+import { SiteCloneService } from './site-clone.service.js';
 
 /**
  * I-13 — skrypt węzła sprawdzony lokalnie: cel odkładany obok (unikalna nazwa, mv -T), WordPress bez
@@ -8,20 +8,20 @@ import { SiteCloneService } from './site-clone.service';
 function stanowisko(wp: boolean) {
   const account = { id: 'a1', serverId: 'n1', status: 'ACTIVE', daUsername: 'klient1' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
     nodeTask: {
-      findFirst: jest.fn(async () => null),
-      findMany: jest.fn(async () => []),
-      create: jest.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
+      findFirst: vi.fn(async () => null),
+      findMany: vi.fn(async () => []),
+      create: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
     },
   };
-  const klient = { createMysqlDatabase: jest.fn(async (o: { name: string }) => ({ database: `klient1_${o.name}`, username: `klient1_${o.name}` })) };
+  const klient = { createMysqlDatabase: vi.fn(async (o: { name: string }) => ({ database: `klient1_${o.name}`, username: `klient1_${o.name}` })) };
   const da = {
-    assertDomainOwnedBySubscription: jest.fn(async (_s: string, _u: string, d: string) => d.toLowerCase()),
-    getClientForHostingAccount: jest.fn(async () => klient),
+    assertDomainOwnedBySubscription: vi.fn(async (_s: string, _u: string, d: string) => d.toLowerCase()),
+    getClientForHostingAccount: vi.fn(async () => klient),
   };
-  const wpSvc = { status: jest.fn(async () => ({ stan: wp ? { version: '6.6' } : null })) };
-  return { svc: new SiteCloneService(prisma as never, { record: jest.fn(async () => undefined) } as never, da as never, wpSvc as never), prisma, klient };
+  const wpSvc = { status: vi.fn(async () => ({ stan: wp ? { version: '6.6' } : null })) };
+  return { svc: new SiteCloneService(prisma as never, { record: vi.fn(async () => undefined) } as never, da as never, wpSvc as never), prisma, klient };
 }
 
 describe('SiteCloneService', () => {

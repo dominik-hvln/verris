@@ -1,6 +1,6 @@
 import { Controller, Headers, HttpCode, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { BillingService } from '../billing.service';
+import { BillingService } from '../billing.service.js';
 
 /**
  * Webhook endpoint for Stripe.

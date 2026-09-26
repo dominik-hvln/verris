@@ -1,17 +1,17 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { FileSearchService, sprawdzZapytanie, wynikZLogu } from './file-search.service';
+import { FileSearchService, sprawdzZapytanie, wynikZLogu } from './file-search.service.js';
 
 /** C-14 — skrypt węzła sprawdzony lokalnie: szuka klient (runuser), bez dowiązań, limit 500, 90 s. */
 function stanowisko(ostatnie: unknown = null, wToku: unknown = null) {
   const account = { id: 'a1', serverId: 'n1', status: 'ACTIVE', daUsername: 'klient1' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
     nodeTask: {
-      findFirst: jest.fn().mockResolvedValueOnce(wToku).mockResolvedValue(ostatnie),
-      create: jest.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
+      findFirst: vi.fn().mockResolvedValueOnce(wToku).mockResolvedValue(ostatnie),
+      create: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
     },
   };
-  const da = { assertDomainOwnedBySubscription: jest.fn(async (_s: string, _u: string, d: string) => d.toLowerCase()) };
+  const da = { assertDomainOwnedBySubscription: vi.fn(async (_s: string, _u: string, d: string) => d.toLowerCase()) };
   return { svc: new FileSearchService(prisma as never, da as never), prisma };
 }
 

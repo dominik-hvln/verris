@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import { AccountDeletionService } from './account-deletion.service';
-import { JwtStrategy } from '../auth/strategies/jwt.strategy';
+import { AccountDeletionService } from './account-deletion.service.js';
+import { JwtStrategy } from '../auth/strategies/jwt.strategy.js';
 
 /**
  * P-02 — anonimizacja konta (art. 17): operacja nieodwracalna. Pilnujemy, co znika, co zostaje
@@ -9,40 +9,40 @@ import { JwtStrategy } from '../auth/strategies/jwt.strategy';
 function stanowisko(opts: { juzZanonimizowany?: boolean; subkonta?: string[] } = {}) {
   const kolejnosc: string[] = [];
   const tx = {
-    subscription: { update: jest.fn(async () => kolejnosc.push('sub')) },
-    subscriptionEvent: { create: jest.fn(async () => ({})) },
-    account: { updateMany: jest.fn(async () => kolejnosc.push('accounts-db')) },
+    subscription: { update: vi.fn(async () => kolejnosc.push('sub')) },
+    subscriptionEvent: { create: vi.fn(async () => ({})) },
+    account: { updateMany: vi.fn(async () => kolejnosc.push('accounts-db')) },
     user: {
-      update: jest.fn(async () => ({})),
-      findMany: jest.fn(async () => (opts.subkonta ?? []).map((id) => ({ id }))),
+      update: vi.fn(async () => ({})),
+      findMany: vi.fn(async () => (opts.subkonta ?? []).map((id) => ({ id }))),
     },
-    paymentMethod: { deleteMany: jest.fn(async () => ({})) },
-    walletAutoTopup: { deleteMany: jest.fn(async () => ({})) },
-    clientWebhookEndpoint: { deleteMany: jest.fn(async () => ({})) },
-    apiToken: { updateMany: jest.fn(async () => ({})) },
-    accountDeletionRequest: { update: jest.fn(async () => ({})) },
-    invoice: { deleteMany: jest.fn() },
+    paymentMethod: { deleteMany: vi.fn(async () => ({})) },
+    walletAutoTopup: { deleteMany: vi.fn(async () => ({})) },
+    clientWebhookEndpoint: { deleteMany: vi.fn(async () => ({})) },
+    apiToken: { updateMany: vi.fn(async () => ({})) },
+    accountDeletionRequest: { update: vi.fn(async () => ({})) },
+    invoice: { deleteMany: vi.fn() },
   };
   const prisma = {
     user: {
-      findUnique: jest.fn(async () => ({
+      findUnique: vi.fn(async () => ({
         id: 'u1', email: 'Jan@Firma.pl', firstName: 'Jan', anonymizedAt: opts.juzZanonimizowany ? new Date() : null,
       })),
     },
-    subscription: { findMany: jest.fn(async () => [{ id: 's1' }]) },
-    account: { findMany: jest.fn(async () => [{ id: 'a1', daUsername: 'jan1', serverId: 'n1' }]) },
-    $transaction: jest.fn(async (fn: (t: typeof tx) => unknown) => {
+    subscription: { findMany: vi.fn(async () => [{ id: 's1' }]) },
+    account: { findMany: vi.fn(async () => [{ id: 'a1', daUsername: 'jan1', serverId: 'n1' }]) },
+    $transaction: vi.fn(async (fn: (t: typeof tx) => unknown) => {
       await fn(tx);
       kolejnosc.push('commit');
     }),
   };
-  const suspend = jest.fn(async () => {
+  const suspend = vi.fn(async () => {
     kolejnosc.push('da-suspend');
     return { success: true };
   });
-  const da = { getClientForServer: jest.fn(async () => ({ suspendAccount: suspend, suspendUser: suspend })) };
-  const audit = { record: jest.fn(async () => undefined) };
-  const mailer = { send: jest.fn(async () => undefined) };
+  const da = { getClientForServer: vi.fn(async () => ({ suspendAccount: suspend, suspendUser: suspend })) };
+  const audit = { record: vi.fn(async () => undefined) };
+  const mailer = { send: vi.fn(async () => undefined) };
   const svc = new AccountDeletionService(prisma as never, audit as never, da as never, mailer as never, { get: () => undefined } as never);
   return { svc, tx, prisma, audit, kolejnosc };
 }
@@ -98,7 +98,7 @@ describe('JwtStrategy — subkonto zanonimizowanego lub zablokowanego właścici
   const strategia = (owner: { anonymizedAt: Date | null; loginBlocked: boolean }) =>
     new JwtStrategy({ get: () => 'sekret-testowy' } as never, {
       user: {
-        findUnique: jest.fn(async () => ({
+        findUnique: vi.fn(async () => ({
           id: 'sk1', email: 'sk@firma.pl', role: 'USER', loginBlocked: false, anonymizedAt: null, tokenVersion: 0,
           customerOwnerId: 'u1', customerPermissions: [], subaccountDisabledAt: null, customerOwner: owner,
         })),

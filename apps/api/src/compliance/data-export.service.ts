@@ -13,13 +13,13 @@ import { tmpdir } from 'os';
 import { ConfigService } from '@nestjs/config';
 import * as archiver from 'archiver';
 import { DataExportStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { RodoActions } from '../common/audit/audit.actions';
-import { MailerService } from '../mail/mailer.service';
-import { dataExportReadyTemplate } from '../mail/templates/data-export-notifications';
-import { ObjectStorageService } from '../storage/object-storage.service';
-import { ObjectBuckets } from '../storage/object-storage.types';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { RodoActions } from '../common/audit/audit.actions.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { dataExportReadyTemplate } from '../mail/templates/data-export-notifications.js';
+import { ObjectStorageService } from '../storage/object-storage.service.js';
+import { ObjectBuckets } from '../storage/object-storage.types.js';
 import type { Readable } from 'stream';
 
 export interface DataExportSummary {

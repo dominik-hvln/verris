@@ -8,9 +8,9 @@ import type {
   ServiceForecastResourceDto,
 } from '@verris/contracts';
 import { createHash } from 'crypto';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { AiProviderService } from './ai-provider.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { AiProviderService } from './ai-provider.service.js';
 
 @Injectable()
 export class AiService {

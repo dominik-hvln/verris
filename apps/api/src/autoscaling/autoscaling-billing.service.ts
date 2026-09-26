@@ -5,13 +5,13 @@ import {
   Prisma,
   WalletTxType,
 } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { WalletLedgerService } from '../billing/wallet-ledger.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
 import {
   hourlyCostBreakdownForCatalogAmounts,
   scaledDiskMbToCatalogGb,
   scaledRamMbToCatalogGb,
-} from './autoscaling-pricing.util';
+} from './autoscaling-pricing.util.js';
 
 /**
  * Length of a single billing block. Autoscaling is billed in whole 15-minute

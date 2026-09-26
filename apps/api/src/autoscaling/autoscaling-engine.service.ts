@@ -12,9 +12,9 @@ import {
   SubscriptionStatus,
   UsageMetric,
 } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { DirectAdminService } from '../servers/directadmin.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
 import {
   deltaJestZerowa,
   deltaKsiegi,
@@ -24,23 +24,23 @@ import {
   PojemnoscFizyczna,
   SWIEZOSC_TELEMETRII_MIN,
   wolneDoZadysponowania,
-} from '../subscriptions/node-capacity';
-import { MailerService } from '../mail/mailer.service';
+} from '../subscriptions/node-capacity.js';
+import { MailerService } from '../mail/mailer.service.js';
 import {
   AutoscalingEndReason,
   AutoscalingResourceDelta,
   autoscalingEndedTemplate,
   autoscalingStartedTemplate,
-} from '../mail/templates/autoscaling-notifications';
+} from '../mail/templates/autoscaling-notifications.js';
 import {
   hourlyCostForCatalogAmounts,
   scaledDiskMbToCatalogGb,
   scaledRamMbToCatalogGb,
-} from './autoscaling-pricing.util';
+} from './autoscaling-pricing.util.js';
 import {
   AutoscalingBillingService,
   BILLING_BLOCK_MINUTES,
-} from './autoscaling-billing.service';
+} from './autoscaling-billing.service.js';
 
 /**
  * Autoscaling engine — scales CPU, RAM and disk when sustained pressure

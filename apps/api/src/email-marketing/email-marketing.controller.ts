@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { EmailMarketingService } from './email-marketing.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { EmailMarketingService } from './email-marketing.service.js';
 import {
   AddEmmContactDto,
   CreateEmmCampaignDto,
@@ -9,7 +9,7 @@ import {
   ImportEmmContactsDto,
   UpdateEmmCampaignDto,
   UpdateEmmListDto,
-} from './dto/email-marketing.dto';
+} from './dto/email-marketing.dto.js';
 
 /**
  * EMM — panel klienta produktu email-marketingu. Każdy endpoint jest

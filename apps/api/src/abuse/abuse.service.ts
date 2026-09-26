@@ -1,14 +1,14 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { MailerService } from '../mail/mailer.service';
-import { AuditService } from '../common/audit/audit.service';
-import type { DecyzjaNaduzyciaDto, ZgloszenieNaduzyciaDto } from './abuse.dto';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import type { DecyzjaNaduzyciaDto, ZgloszenieNaduzyciaDto } from './abuse.dto.js';
 import {
   decyzjaDlaZglaszajacego,
   noweZgloszenieDlaObslugi,
   potwierdzenieZgloszenia,
   uzasadnienieDlaKlienta,
-} from './abuse.templates';
+} from './abuse.templates.js';
 
 /** Host z adresu (bez www., małe litery) albo null, gdy to nie jest adres http(s). */
 export function hostZAdresu(url: string): string | null {

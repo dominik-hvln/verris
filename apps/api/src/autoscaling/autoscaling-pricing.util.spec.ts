@@ -3,7 +3,7 @@ import { Prisma } from '@verris/database';
 import {
   assertUniqueActiveTierThreshold,
   hourlyCostBreakdownForCatalogAmounts,
-} from './autoscaling-pricing.util';
+} from './autoscaling-pricing.util.js';
 
 function rule(
   resource: AutoscalingResource,

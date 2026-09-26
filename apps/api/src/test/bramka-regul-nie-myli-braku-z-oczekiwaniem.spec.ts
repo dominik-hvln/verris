@@ -38,7 +38,7 @@ import { join } from 'path';
  * dopiero zielony deploy — dowód D3.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const BIBLIOTEKA = join(KORZEN, 'ops', 'scripts', 'lib', 'bramka-regul-alertowych.sh');
 const REGULY_YAML = join(
   KORZEN,

@@ -2,17 +2,17 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, Role } from '@verris/database';
-import { PrismaService } from '../../prisma/prisma.service';
-import { MailerService } from '../../mail/mailer.service';
-import { AuditService } from '../../common/audit/audit.service';
-import { BillingService } from '../billing.service';
-import { webhookZacietyTemplate } from '../../mail/templates/ops-notifications';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { MailerService } from '../../mail/mailer.service.js';
+import { AuditService } from '../../common/audit/audit.service.js';
+import { BillingService } from '../billing.service.js';
+import { webhookZacietyTemplate } from '../../mail/templates/ops-notifications.js';
 import {
   czyAlarmowac,
   DNI_PRZECHOWANIA_TRESCI,
   granicaCzyszczeniaTresci,
   kryteriaPodjecia,
-} from './webhook-ewidencja';
+} from './webhook-ewidencja.js';
 
 /**
  * Z-05 — automatyczne ponowienia zdarzeń webhooka Stripe'a.

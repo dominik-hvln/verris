@@ -1,12 +1,12 @@
-import { nadajNumerDokumentu, SERIE_PANELU } from './faktura-za-portfel';
-import { ADNOTACJA_DOKUMENTU_ROZLICZENIOWEGO } from './invoice-pdf.service';
+import { nadajNumerDokumentu, SERIE_PANELU } from './faktura-za-portfel.js';
+import { ADNOTACJA_DOKUMENTU_ROZLICZENIOWEGO } from './invoice-pdf.service.js';
 import {
   ksefDozwolony,
   normalizujTryb,
   rodzajKwalifikujeDoKsef,
   rodzajPrawnyDla,
   toNumerPanelu,
-} from './tryb-fakturowania';
+} from './tryb-fakturowania.js';
 
 /**
  * FAK-01 — panel nie wystawia faktur VAT, dopóki ktoś świadomie nie włączy
@@ -18,7 +18,7 @@ function db(trybWBazie: string | null) {
   const wywolania: unknown[][] = [];
   return {
     wywolania,
-    $queryRaw: jest.fn(async (...args: unknown[]) => {
+    $queryRaw: vi.fn(async (...args: unknown[]) => {
       wywolania.push(args);
       const sql = (args[0] as string[]).join('?');
       if (sql.includes('platform_settings')) {

@@ -1,5 +1,6 @@
+import type { Mock } from 'vitest';
 import { ServiceUnavailableException } from '@nestjs/common';
-import { NodeSelectorService } from './node-selector.service';
+import { NodeSelectorService } from './node-selector.service.js';
 
 /**
  * Z-12 — czy selektor faktycznie KORZYSTA z arytmetyki z node-capacity.
@@ -61,14 +62,14 @@ interface FakeOpts {
 function fakePrisma(o: FakeOpts) {
   return {
     server: {
-      findMany: jest.fn(async ({ where }: never) => {
+      findMany: vi.fn(async ({ where }: never) => {
         const w = where as unknown as { status?: string };
         if (w?.status === 'MAINTENANCE') return [];
         return o.servers;
       }),
     },
     account: {
-      groupBy: jest.fn(async () =>
+      groupBy: vi.fn(async () =>
         Object.entries(o.liczbaKont ?? {}).map(([serverId, n]) => ({
           serverId,
           _count: { _all: n },
@@ -76,7 +77,7 @@ function fakePrisma(o: FakeOpts) {
       ),
     },
     usageMetric: {
-      findMany: jest.fn(async () => o.metryki ?? []),
+      findMany: vi.fn(async () => o.metryki ?? []),
     },
   } as never;
 }
@@ -262,7 +263,7 @@ describe('Z-12 — NodeSelectorService korzysta z nadsubskrypcji', () => {
     await s.pickServerForPlan(PLAN).catch(() => undefined);
 
     const wywolanie = (prisma as unknown as {
-      usageMetric: { findMany: jest.Mock };
+      usageMetric: { findMany: Mock };
     }).usageMetric.findMany.mock.calls[0]![0];
     const od = wywolanie.where.bucketStart.gte as Date;
     const minut = (Date.now() - od.getTime()) / 60_000;

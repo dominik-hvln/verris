@@ -8,7 +8,7 @@ import { join, resolve } from 'path';
  * 2026-09-23 (PB-11): chatid bez cudzysłowu → „cannot unmarshal number into … chatid of type
  * string” → Grafana w pętli restartów, alerty wyłączone do ręcznej poprawki na serwerze.
  */
-const PROV = resolve(__dirname, '../../../../ops/observability/grafana/provisioning');
+const PROV = resolve(import.meta.dirname, '../../../../ops/observability/grafana/provisioning');
 
 function pliki(dir: string): string[] {
   return readdirSync(dir).flatMap((n) => {

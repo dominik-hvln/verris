@@ -1,4 +1,4 @@
-import { rblListed } from './rbl';
+import { rblListed } from './rbl.js';
 
 describe('rblListed — odpowiedź DNSBL', () => {
   it('127.0.0.x to wpis na liście', () => {

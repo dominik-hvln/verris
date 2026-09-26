@@ -4,13 +4,13 @@ import {
   MailerService,
   MAILER_PROVIDER,
   type MailerConfig,
-} from './mailer.service';
-import { DynamicMailerProvider } from './dynamic-mailer.provider';
-import { MailSettingsService } from './mail-settings.service';
-import { MailSettingsAdminController } from './mail-settings.admin.controller';
-import { PrismaModule } from '../prisma/prisma.module';
-import { CryptoModule } from '../common/crypto/crypto.module';
-import { AuditModule } from '../common/audit/audit.module';
+} from './mailer.service.js';
+import { DynamicMailerProvider } from './dynamic-mailer.provider.js';
+import { MailSettingsService } from './mail-settings.service.js';
+import { MailSettingsAdminController } from './mail-settings.admin.controller.js';
+import { PrismaModule } from '../prisma/prisma.module.js';
+import { CryptoModule } from '../common/crypto/crypto.module.js';
+import { AuditModule } from '../common/audit/audit.module.js';
 
 @Global()
 @Module({

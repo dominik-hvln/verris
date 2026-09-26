@@ -6,8 +6,8 @@ export function loadSiteStatsScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/node-site-stats.sh'),
     join(process.cwd(), '../../ops/scripts/node-site-stats.sh'),
-    join(__dirname, '../../../../../ops/scripts/node-site-stats.sh'),
-    join(__dirname, '../../../../ops/scripts/node-site-stats.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/node-site-stats.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/node-site-stats.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) return readFileSync(path, 'utf8');

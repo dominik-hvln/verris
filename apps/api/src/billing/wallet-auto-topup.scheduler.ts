@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { WalletAutoTopupService } from './wallet-auto-topup.service';
+import { WalletAutoTopupService } from './wallet-auto-topup.service.js';
 
 /** C-9 — periodic eligibility check (~10× / h); actual charge settles via Stripe webhook too. */
 @Injectable()

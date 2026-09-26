@@ -8,10 +8,10 @@ import {
   ServiceProbe,
   StatusWebhookEvent,
 } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { ProbeRunResult } from './probe-runner.service';
-import { StatusWebhookService } from './status-webhook.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { ProbeRunResult } from './probe-runner.service.js';
+import { StatusWebhookService } from './status-webhook.service.js';
 
 const FAIL_THRESHOLD = 2;
 const BUCKET_DURATION_S = 60;

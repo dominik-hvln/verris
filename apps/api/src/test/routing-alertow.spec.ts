@@ -33,7 +33,7 @@ import { join } from 'path';
  * a droga kończy się adresem, a nie w połowie.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const OBS = join(KORZEN, 'ops', 'observability');
 const ALERTING = join(OBS, 'grafana', 'provisioning', 'alerting');
 const REGULY = join(ALERTING, 'rules.yaml');

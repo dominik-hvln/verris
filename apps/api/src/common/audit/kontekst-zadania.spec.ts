@@ -1,13 +1,13 @@
 import { lastValueFrom, of, defer } from 'rxjs';
-import { AuditService } from './audit.service';
-import { KontekstZadaniaInterceptor, kontekstZadania } from './kontekst-zadania';
+import { AuditService } from './audit.service.js';
+import { KontekstZadaniaInterceptor, kontekstZadania } from './kontekst-zadania.js';
 
 /** Impersonacja (E-5): wpisy dziennika z żądania operatora „jako klient” niosą impersonatedBy. */
 const ctx = (user?: Record<string, unknown>) => ({ switchToHttp: () => ({ getRequest: () => ({ user }) }) }) as never;
 
 describe('KontekstZadaniaInterceptor + AuditService', () => {
   function audyt() {
-    const create = jest.fn(async () => ({}));
+    const create = vi.fn(async () => ({}));
     return { svc: new AuditService({ auditLog: { create } } as never), create };
   }
 

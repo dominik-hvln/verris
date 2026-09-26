@@ -13,17 +13,17 @@ import {
 import { ArrayMaxSize, ArrayNotEmpty, IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUrl, Max, MaxLength, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ConfigService } from '@nestjs/config';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { AdminNodeActions, ProductOpsActions } from '../common/audit/audit.actions';
-import { CryptoService } from '../common/crypto/crypto.service';
-import { StatusWebhookService } from '../status/status-webhook.service';
-import { assertPublicWebhookUrl } from '../status/status-webhook.service';
-import { StatusService } from '../status/status.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { AdminNodeActions, ProductOpsActions } from '../common/audit/audit.actions.js';
+import { CryptoService } from '../common/crypto/crypto.service.js';
+import { StatusWebhookService } from '../status/status-webhook.service.js';
+import { assertPublicWebhookUrl } from '../status/status-webhook.service.js';
+import { StatusService } from '../status/status.service.js';
 
 class CreateFeatureFlagDto {
   @IsString()

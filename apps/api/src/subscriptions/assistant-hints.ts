@@ -2,7 +2,7 @@
  * PB-17 — asystent v1: dymki na regułach, bez AI i bez kosztów. Czysta logika
  * (dane zbiera AssistantService), żeby każdą regułę dało się przetestować.
  */
-import type { MailAuthSuggestion } from '../deliverability/mail-auth';
+import type { MailAuthSuggestion } from '../deliverability/mail-auth.js';
 
 export type HintSeverity = 'crit' | 'warn';
 

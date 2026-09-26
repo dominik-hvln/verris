@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { DOZWOLONE, STOS_WEZLA, zgodnoscZManifestem, type ManifestStosu } from './stos-wezla';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { DOZWOLONE, STOS_WEZLA, zgodnoscZManifestem, type ManifestStosu } from './stos-wezla.js';
 
 const KLUCZ = 'stack.manifest';
 

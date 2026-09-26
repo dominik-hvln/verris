@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { DbTransferService, bladDlaKlienta, rozmiaryZLogu, wynikZLogu } from './db-transfer.service';
+import { DbTransferService, bladDlaKlienta, rozmiaryZLogu, wynikZLogu } from './db-transfer.service.js';
 
 /**
  * D-12 — zlecanie eksportu/importu bazy. Skrypt na węźle sprawdzony na prawdziwej MariaDB 10.11
@@ -9,15 +9,15 @@ import { DbTransferService, bladDlaKlienta, rozmiaryZLogu, wynikZLogu } from './
 function stanowisko(o: { wToku?: boolean; status?: string } = {}) {
   const account = { id: 'a1', serverId: 'n1', status: o.status ?? 'ACTIVE', daUsername: 'klient1' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
     nodeTask: {
-      findFirst: jest.fn(async () => (o.wToku ? { id: 't0' } : null)),
-      findMany: jest.fn(async () => []),
-      create: jest.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
+      findFirst: vi.fn(async () => (o.wToku ? { id: 't0' } : null)),
+      findMany: vi.fn(async () => []),
+      create: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
     },
   };
-  const audit = { record: jest.fn(async () => undefined) };
-  const da = { listHostingDbTransferFiles: jest.fn(async () => ({ pliki: [], bladPlikow: null })) };
+  const audit = { record: vi.fn(async () => undefined) };
+  const da = { listHostingDbTransferFiles: vi.fn(async () => ({ pliki: [], bladPlikow: null })) };
   return { svc: new DbTransferService(prisma as never, audit as never, da as never), prisma, audit };
 }
 

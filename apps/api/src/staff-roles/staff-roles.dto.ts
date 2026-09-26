@@ -1,5 +1,5 @@
 import { ArrayMaxSize, IsArray, IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
-import { Czesciowy } from '../common/validation/czesciowy';
+import { Czesciowy } from '../common/validation/czesciowy.js';
 
 /** Role i operatorzy obsługi (panel admina). Nazwy, e-mail i uprawnienia dalej czyści serwis. */
 export class RolaObslugiDto {

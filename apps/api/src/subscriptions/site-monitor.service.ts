@@ -15,21 +15,21 @@ import {
   SubscriptionStatus,
   WalletTxType,
 } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
-import { WalletLedgerService } from '../billing/wallet-ledger.service';
-import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
-import { NotificationsService } from '../notifications/notifications.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import * as tls from 'node:tls';
-import { resolvePublicHost } from './migration-net.util';
-import { getBezpiecznie } from '../common/net/webhook-post';
+import { resolvePublicHost } from './migration-net.util.js';
+import { getBezpiecznie } from '../common/net/webhook-post.js';
 import {
   siteDownTemplate,
   siteRecoveredTemplate,
   monitoringPaidLapsedTemplate,
   sslExpiringTemplate,
-} from '../mail/templates/site-monitoring-notifications';
+} from '../mail/templates/site-monitoring-notifications.js';
 
 /** Two consecutive failed checks before we call it DOWN (anti-flap). */
 const FAILS_BEFORE_DOWN = 2;

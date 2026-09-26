@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
-import { OffsiteRestoreService } from './offsite-restore.service';
+import { OffsiteRestoreService } from './offsite-restore.service.js';
 
 /**
  * X-08 — ścieżka odtwarzania z kopii off-site: wejście od klienta trafia do skryptu
@@ -9,16 +9,16 @@ function zbuduj(opts: { wlasciciel?: boolean; wToku?: boolean; zadania?: Array<R
   const konto = { id: 'acc1', status: 'ACTIVE', daUsername: 'klient1', serverId: 'srv1', domain: 'x.pl', server: null };
   const prisma = {
     subscription: {
-      findFirst: jest.fn(async () => (opts.wlasciciel === false ? null : { id: 's1', userId: 'u1', account: konto })),
+      findFirst: vi.fn(async () => (opts.wlasciciel === false ? null : { id: 's1', userId: 'u1', account: konto })),
     },
-    account: { findUnique: jest.fn(async () => konto) },
+    account: { findUnique: vi.fn(async () => konto) },
     nodeTask: {
-      findFirst: jest.fn(async () => (opts.wToku ? { id: 't0' } : null)),
-      create: jest.fn(async ({ data }: { data: Record<string, unknown> }) => ({ id: 't1', ...data })),
-      findMany: jest.fn(async () => opts.zadania ?? []),
+      findFirst: vi.fn(async () => (opts.wToku ? { id: 't0' } : null)),
+      create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({ id: 't1', ...data })),
+      findMany: vi.fn(async () => opts.zadania ?? []),
     },
   };
-  const audit = { record: jest.fn(async () => undefined) };
+  const audit = { record: vi.fn(async () => undefined) };
   return { svc: new OffsiteRestoreService(prisma as never, audit as never), prisma, audit };
 }
 

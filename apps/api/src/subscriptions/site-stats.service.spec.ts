@@ -2,10 +2,10 @@ import { execFileSync } from 'child_process';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { statystykiZLogu } from './site-stats.service';
+import { statystykiZLogu } from './site-stats.service.js';
 
 /** PB-19 — skrypt węzła na prawdziwym formacie logu combined i drzewie WordPressa. */
-const SKRYPT = join(__dirname, '..', '..', '..', '..', 'ops', 'scripts', 'node-site-stats.sh');
+const SKRYPT = join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'scripts', 'node-site-stats.sh');
 const MIES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function uruchom(pliki: Record<string, string>, log: string) {

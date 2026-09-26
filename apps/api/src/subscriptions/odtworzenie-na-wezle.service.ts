@@ -1,9 +1,9 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { NodeTaskKind, NodeTaskStatus, ServerStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { HostingResourceActions } from '../common/audit/audit.actions';
-import { ARCHIVE_RE, SNAPSHOT_RE, archiwaZLogu } from './offsite-restore.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { HostingResourceActions } from '../common/audit/audit.actions.js';
+import { ARCHIVE_RE, SNAPSHOT_RE, archiwaZLogu } from './offsite-restore.service.js';
 
 /**
  * H-16 — odtworzenie konta z kopii off-site na INNYM węźle (awaria/utrata węzła źródłowego).

@@ -15,28 +15,28 @@ import {
   WafMode,
 } from '@verris/database';
 import { ConfigService } from '@nestjs/config';
-import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { CryptoService } from '../common/crypto/crypto.service';
-import { AuditService } from '../common/audit/audit.service';
-import { DirectAdminService } from '../servers/directadmin.service';
-import { BladEtapuProvisioningu } from './provisioning-error';
-import { ServersService } from '../servers/servers.service';
-import { NodeSelectorService } from './node-selector.service';
-import { MailerService } from '../mail/mailer.service';
-import { accountProvisionedTemplate } from '../mail/templates/hosting-notifications';
+import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { CryptoService } from '../common/crypto/crypto.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
+import { BladEtapuProvisioningu } from './provisioning-error.js';
+import { ServersService } from '../servers/servers.service.js';
+import { NodeSelectorService } from './node-selector.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { accountProvisionedTemplate } from '../mail/templates/hosting-notifications.js';
 import {
   DA_DEFAULT_LANGUAGE,
   buildDaPackageSpecFromPlan,
   planResourceFields,
-} from '../servers/da-package-spec';
-import { WafService } from './waf.service';
+} from '../servers/da-package-spec.js';
+import { WafService } from './waf.service.js';
 import {
   deltaKsiegi,
   KONTO_NIEISTNIEJACE,
   ksiegaUpdateData,
   limityEfektywne,
-} from './node-capacity';
+} from './node-capacity.js';
 
 export interface ProvisionResult {
   subscription: Subscription;

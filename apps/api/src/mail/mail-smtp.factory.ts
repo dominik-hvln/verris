@@ -1,7 +1,7 @@
-import { MailerProvider } from './mailer.interface';
-import { LogMailerProvider } from './log-mailer.provider';
-import { SmtpMailerProvider } from './smtp-mailer.provider';
-import type { MailSmtpSecure } from './mail-settings.keys';
+import { MailerProvider } from './mailer.interface.js';
+import { LogMailerProvider } from './log-mailer.provider.js';
+import { SmtpMailerProvider } from './smtp-mailer.provider.js';
+import type { MailSmtpSecure } from './mail-settings.keys.js';
 
 export interface ResolvedSmtpConfig {
   host: string;

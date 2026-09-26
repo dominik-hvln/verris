@@ -2,8 +2,8 @@ import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
 import { ForbiddenException } from '@nestjs/common';
 import { BillingInterval, SubscriptionPaymentSource } from '@verris/database';
-import { CreateSubscriptionDto, CLIENT_PAYMENT_SOURCES } from './dto/subscription.dto';
-import { SubscriptionsService } from './subscriptions.service';
+import { CreateSubscriptionDto, CLIENT_PAYMENT_SOURCES } from './dto/subscription.dto.js';
+import { SubscriptionsService } from './subscriptions.service.js';
 
 /**
  * Z-02 — zamówienie usługi bez opłaty przez klienta.

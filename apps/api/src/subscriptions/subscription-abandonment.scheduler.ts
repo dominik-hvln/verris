@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { SubscriptionsService } from './subscriptions.service';
+import { SubscriptionsService } from './subscriptions.service.js';
 
 /**
  * Usuwa wiszące zamówienia bez płatności (PENDING_PAYMENT, brak konta DA > 48h).

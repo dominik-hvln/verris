@@ -2,11 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { SubscriptionStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
-import { DirectAdminService } from '../servers/directadmin.service';
-import { accountQuotaAlertTemplate } from '../mail/templates/hosting-notifications';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
+import { accountQuotaAlertTemplate } from '../mail/templates/hosting-notifications.js';
 
 const THRESHOLD_PCT = 85; // alert gdy dysk LUB transfer >= 85%
 const COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000; // maks. 1 alert / 3 dni / konto

@@ -1,2 +1,2 @@
-export * from './client';
-export * from './node-circuit';
+export * from './client.js';
+export * from './node-circuit.js';

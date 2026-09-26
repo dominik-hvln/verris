@@ -1,9 +1,9 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { BusinessMetricsService } from './business-metrics.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { BusinessMetricsService } from './business-metrics.service.js';
 
 /** BIZ-1 — metryki biznesowe (MRR/churn/flota) dla panelu admina. */
 @Controller('admin/metrics')

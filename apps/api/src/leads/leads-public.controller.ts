@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Header, HttpCode, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { LeadsService } from './leads.service';
-import { SubmitLeadDto } from './dto/submit-lead.dto';
+import { LeadsService } from './leads.service.js';
+import { SubmitLeadDto } from './dto/submit-lead.dto.js';
 
 /**
  * Publiczne formularze z verris.pl (LP „Zaplanuj migrację" + „Kontakt").

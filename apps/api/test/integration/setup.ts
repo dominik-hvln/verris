@@ -1,5 +1,5 @@
 import { PrismaClient } from '@verris/database';
-import { sprawdzBazeTestowa } from './baza-testowa';
+import { sprawdzBazeTestowa } from './baza-testowa.js';
 
 /**
  * X-04 — wspólna obsługa testów integracyjnych.
@@ -273,20 +273,20 @@ export async function prawdaOWezle(serverId: string) {
 
 /** Atrapy tego, co jest naprawdę na zewnątrz. */
 export const atrapy = {
-  audit: () => ({ record: jest.fn().mockResolvedValue(undefined) }),
+  audit: () => ({ record: vi.fn().mockResolvedValue(undefined) }),
   mailer: () => ({
-    sendMail: jest.fn().mockResolvedValue(undefined),
-    send: jest.fn().mockResolvedValue(undefined),
+    sendMail: vi.fn().mockResolvedValue(undefined),
+    send: vi.fn().mockResolvedValue(undefined),
   }),
   config: (wartosci: Record<string, unknown> = {}) => ({
-    get: jest.fn((k: string) => wartosci[k]),
+    get: vi.fn((k: string) => wartosci[k]),
   }),
   directAdmin: () => ({
-    getClientForServer: jest.fn().mockResolvedValue({
-      setAccountLimits: jest.fn().mockResolvedValue(undefined),
-      suspendAccount: jest.fn().mockResolvedValue(undefined),
-      deleteAccount: jest.fn().mockResolvedValue(undefined),
-      accountExists: jest.fn().mockResolvedValue(true),
+    getClientForServer: vi.fn().mockResolvedValue({
+      setAccountLimits: vi.fn().mockResolvedValue(undefined),
+      suspendAccount: vi.fn().mockResolvedValue(undefined),
+      deleteAccount: vi.fn().mockResolvedValue(undefined),
+      accountExists: vi.fn().mockResolvedValue(true),
     }),
   }),
 };

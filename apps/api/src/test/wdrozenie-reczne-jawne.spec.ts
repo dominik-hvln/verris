@@ -13,7 +13,7 @@ import { join } from 'path';
  * każdy skrypt wdrożeniowy woła ją, ZANIM cokolwiek zmieni na serwerze.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const BIBLIOTEKA = join(KORZEN, 'ops', 'scripts', 'lib', 'bramka-recznego-wdrozenia.sh');
 const SKRYPTY = ['prod-deploy-ghcr.sh', 'prod-deploy-release.sh', 'prod-deploy-rolling.sh'];
 

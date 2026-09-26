@@ -103,7 +103,7 @@ RUN mkdir -p /app/node_modules/@verris && \
     ln -sfn /app/libs/directadmin-sdk /app/node_modules/@verris/directadmin-sdk
 
 # X-20 — Prisma 7: klient bez silnika w Ruście (driver adapter pg), więc nie ma już binariów silnika
-# do dopasowania do obrazu — klient wygenerowany w etapie build przychodzi z node_modules.
+# do dopasowania do obrazu — klient (generator prisma-client, PB-39) jest skompilowany w libs/database/dist/generated.
 # prisma.config.ts: adres bazy dla `prisma migrate deploy` (ops/scripts/prod-migrate-deploy.sh).
 COPY --from=build /workspace/libs/database/prisma.config.ts ./libs/database/prisma.config.ts
 

@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { BootstrapTokenService } from '../bootstrap-token.service';
+import { BootstrapTokenService } from '../bootstrap-token.service.js';
 
 /**
  * Guards a route by requiring a valid X-Bootstrap-Token header.

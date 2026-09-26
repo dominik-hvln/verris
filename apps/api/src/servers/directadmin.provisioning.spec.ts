@@ -1,5 +1,5 @@
 import { DirectAdminClient } from '@verris/directadmin-sdk';
-import { DirectAdminService } from './directadmin.service';
+import { DirectAdminService } from './directadmin.service.js';
 
 /**
  * Operacje administracyjne na węźle w DirectAdminService: klient admina, test klucza,
@@ -12,12 +12,12 @@ import { DirectAdminService } from './directadmin.service';
  */
 function serwis(server: Record<string, unknown> | null, extra: Record<string, unknown> = {}) {
   const prisma = {
-    server: { findUnique: jest.fn(async () => server) },
-    account: { findMany: jest.fn(async () => []) },
-    plan: { findMany: jest.fn(async () => []) },
+    server: { findUnique: vi.fn(async () => server) },
+    account: { findMany: vi.fn(async () => []) },
+    plan: { findMany: vi.fn(async () => []) },
     ...extra,
   };
-  const crypto = { decrypt: jest.fn((v: string) => `plain:${v}`) };
+  const crypto = { decrypt: vi.fn((v: string) => `plain:${v}`) };
   return { svc: new DirectAdminService(prisma as never, crypto as never, {} as never, {} as never), prisma };
 }
 const WEZEL = { id: 'n1', daHost: 'da.wezel.pl', daPort: 2222, daUsername: 'admin', daPasswordEnc: 'enc', daUseTls: true, daAllowInvalidCert: false };
@@ -48,10 +48,10 @@ describe('Test połączenia (zakres klucza)', () => {
   function zKlientem() {
     const { svc } = serwis(WEZEL);
     const c = klient();
-    jest.spyOn(svc, 'getClientForServer').mockResolvedValue(c);
-    const domeny = jest.spyOn(c, 'getDomains').mockResolvedValue(['a.pl', 'b.pl']);
-    const pakiety = jest.spyOn(c, 'listUserPackages').mockResolvedValue(['starter', 'pro']);
-    const konta = jest.spyOn(c, 'listAccounts').mockResolvedValue(['u1']);
+    vi.spyOn(svc, 'getClientForServer').mockResolvedValue(c);
+    const domeny = vi.spyOn(c, 'getDomains').mockResolvedValue(['a.pl', 'b.pl']);
+    const pakiety = vi.spyOn(c, 'listUserPackages').mockResolvedValue(['starter', 'pro']);
+    const konta = vi.spyOn(c, 'listAccounts').mockResolvedValue(['u1']);
     return { svc, domeny, pakiety, konta };
   }
 
@@ -88,21 +88,21 @@ describe('Synchronizacja pakietów DA z planami', () => {
   });
 
   it('upsert dla każdego aktywnego planu w kolejności; tylko aktywne plany', async () => {
-    const plans = { findMany: jest.fn(async () => [plan('starter'), plan('pro')]) };
+    const plans = { findMany: vi.fn(async () => [plan('starter'), plan('pro')]) };
     const { svc } = serwis(WEZEL, { plan: plans });
     const c = klient();
-    jest.spyOn(svc, 'getClientForServer').mockResolvedValue(c);
-    const upsert = jest.spyOn(c, 'upsertUserPackage').mockResolvedValue(undefined);
+    vi.spyOn(svc, 'getClientForServer').mockResolvedValue(c);
+    const upsert = vi.spyOn(c, 'upsertUserPackage').mockResolvedValue(undefined);
     expect(await svc.syncPlanPackagesForServer('n1')).toEqual({ synced: ['starter', 'pro'] });
     expect(plans.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { isActive: true } }));
     expect(upsert.mock.calls.map(([spec]) => spec.name)).toEqual(['starter', 'pro']);
   });
 
   it('błąd DA na pierwszym pakiecie → wyjątek, kolejne nie są wysyłane', async () => {
-    const { svc } = serwis(WEZEL, { plan: { findMany: jest.fn(async () => [plan('starter'), plan('pro')]) } });
+    const { svc } = serwis(WEZEL, { plan: { findMany: vi.fn(async () => [plan('starter'), plan('pro')]) } });
     const c = klient();
-    jest.spyOn(svc, 'getClientForServer').mockResolvedValue(c);
-    const upsert = jest.spyOn(c, 'upsertUserPackage').mockRejectedValue(new Error('DirectAdmin API Error: invalid quota'));
+    vi.spyOn(svc, 'getClientForServer').mockResolvedValue(c);
+    const upsert = vi.spyOn(c, 'upsertUserPackage').mockRejectedValue(new Error('DirectAdmin API Error: invalid quota'));
     await expect(svc.syncPlanPackagesForServer('n1')).rejects.toThrow('invalid quota');
     expect(upsert).toHaveBeenCalledTimes(1);
   });
@@ -110,13 +110,13 @@ describe('Synchronizacja pakietów DA z planami', () => {
 
 describe('Markowe NS na węźle', () => {
   function ns(obecne: { ns1: string; ns2: string }, konta: string[]) {
-    const { svc } = serwis(WEZEL, { account: { findMany: jest.fn(async () => konta.map((daUsername) => ({ daUsername }))) } });
+    const { svc } = serwis(WEZEL, { account: { findMany: vi.fn(async () => konta.map((daUsername) => ({ daUsername }))) } });
     const c = klient();
-    Object.assign(c, { client: { get: jest.fn(async () => ({ data: obecne })), post: jest.fn() } });
-    jest.spyOn(svc, 'getClientForServer').mockResolvedValue(c);
-    const admin = jest.spyOn(c, 'setAdminDefaultNameservers').mockResolvedValue(undefined);
-    const reseller = jest.spyOn(c, 'setResellerDefaultNameservers').mockResolvedValue(undefined);
-    const user = jest.spyOn(c, 'setUserNameservers').mockImplementation(async (u: string) => {
+    Object.assign(c, { client: { get: vi.fn(async () => ({ data: obecne })), post: vi.fn() } });
+    vi.spyOn(svc, 'getClientForServer').mockResolvedValue(c);
+    const admin = vi.spyOn(c, 'setAdminDefaultNameservers').mockResolvedValue(undefined);
+    const reseller = vi.spyOn(c, 'setResellerDefaultNameservers').mockResolvedValue(undefined);
+    const user = vi.spyOn(c, 'setUserNameservers').mockImplementation(async (u: string) => {
       if (u === 'juz') throw new Error('Nameservers already set');
       if (u === 'zly') throw new Error('User is suspended');
     });

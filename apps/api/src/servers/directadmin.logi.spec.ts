@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { DirectAdminClient } from '@verris/directadmin-sdk';
-import { DirectAdminService, interpretujLogDa } from './directadmin.service';
+import { DirectAdminService, interpretujLogDa } from './directadmin.service.js';
 
 /**
  * K-04/K-05 — logi WWW domeny (DA CMD_SHOW_LOG). Pilnujemy, że:
@@ -18,16 +18,16 @@ function stanowisko(log: unknown = '1.2.3.4 - - [24/Sep/2026] "GET / HTTP/1.1" 2
     '/CMD_API_SHOW_USER_CONFIG': 'domain=firma.pl',
     '/CMD_SHOW_LOG': log,
   };
-  const get = jest.fn((path: string, _cfg?: Record<string, unknown>) => odp(trasy[path] ?? ''));
+  const get = vi.fn((path: string, _cfg?: Record<string, unknown>) => odp(trasy[path] ?? ''));
   const klient = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'klient1', loginKey: 'x', secure: true });
-  Object.assign(klient, { client: { get, post: jest.fn() } });
+  Object.assign(klient, { client: { get, post: vi.fn() } });
   const account = { id: 'a1', status: 'SUSPENDED', daUsername: 'klient1', domain: 'firma.pl', daPasswordEnc: 'enc' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
-    account: { update: jest.fn(async () => account) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    account: { update: vi.fn(async () => account) },
   };
-  const svc = new DirectAdminService(prisma as never, {} as never, {} as never, { record: jest.fn() } as never);
-  jest.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue(klient);
+  const svc = new DirectAdminService(prisma as never, {} as never, {} as never, { record: vi.fn() } as never);
+  vi.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue(klient);
   const zapytanieLogu = () => get.mock.calls.find((c) => c[0] === '/CMD_SHOW_LOG')?.[1] as { params: Record<string, string> } | undefined;
   return { svc, get, zapytanieLogu };
 }

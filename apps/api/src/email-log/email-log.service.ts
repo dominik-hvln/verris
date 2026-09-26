@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { EmailCategory, EmailStatus, Prisma } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 export interface EmailLogFilters {
   category?: EmailCategory;

@@ -1,4 +1,4 @@
-import { UsersService } from './users.service';
+import { UsersService } from './users.service.js';
 
 /** G-18 / O-03 — dziennik aktywności: wszystkie działania HOSTING_*, z informacją, kto to zrobił. */
 describe('UsersService.listMyActivity', () => {
@@ -11,8 +11,8 @@ describe('UsersService.listMyActivity', () => {
       { id: '4', action: 'HOSTING_FTP_CREATED', details: {}, createdAt: new Date(), actorUserId: 'u1', impersonatedBy: 'op-1' },
     ];
     const prisma = {
-      auditLog: { findMany: jest.fn(async () => rows) },
-      user: { findMany: jest.fn(async () => [{ id: 'sub', email: 'anna@firma.pl', role: 'USER' }, { id: 'staff', email: 'staff@x', role: 'STAFF' }]) },
+      auditLog: { findMany: vi.fn(async () => rows) },
+      user: { findMany: vi.fn(async () => [{ id: 'sub', email: 'anna@firma.pl', role: 'USER' }, { id: 'staff', email: 'staff@x', role: 'STAFF' }]) },
     };
     const svc = new UsersService(prisma as never, {} as never, {} as never, {} as never, {} as never);
     const r = await svc.listMyActivity('u1');

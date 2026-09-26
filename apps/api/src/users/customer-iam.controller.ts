@@ -9,16 +9,16 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { RateLimit } from '../common/guards/rate-limit.guard';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { CustomerIamService } from './customer-iam.service';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { CustomerIamService } from './customer-iam.service.js';
 import {
   AcceptExistingInviteDto,
   AcceptSubaccountInviteDto,
   InviteSubaccountDto,
   UpdateSubaccountDto,
-} from './customer-iam.dto';
+} from './customer-iam.dto.js';
 
 type CustomerPrincipal = {
   userId: string;

@@ -12,7 +12,7 @@ export default defineConfig({
   schema: 'prisma/schema.prisma',
   migrations: {
     path: 'prisma/migrations',
-    seed: 'ts-node prisma/seed.ts',
+    seed: 'node prisma/seed.ts', // PB-39: Node 24 uruchamia TypeScript bez ts-node (type stripping)
   },
   datasource: {
     // CLI bez DATABASE_URL (np. samo `prisma generate` przy budowie obrazu) nie potrzebuje bazy.

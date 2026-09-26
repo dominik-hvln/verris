@@ -1,5 +1,5 @@
 import { Controller, Get, Header, Query } from '@nestjs/common';
-import { ControlPlaneMailService } from './control-plane-mail.service';
+import { ControlPlaneMailService } from './control-plane-mail.service.js';
 
 @Controller('public/mail')
 export class ControlPlaneMailPublicController {

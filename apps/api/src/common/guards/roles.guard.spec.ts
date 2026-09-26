@@ -1,8 +1,8 @@
 import { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Role } from '@verris/database';
-import { ROLES_KEY } from '../decorators/roles.decorator';
-import { RolesGuard } from './roles.guard';
+import { ROLES_KEY } from '../decorators/roles.decorator.js';
+import { RolesGuard } from './roles.guard.js';
 
 function mockCtx(user: { role: Role } | null): ExecutionContext {
   return {
@@ -17,7 +17,7 @@ function mockCtx(user: { role: Role } | null): ExecutionContext {
 describe('RolesGuard', () => {
   it('allows when no roles are required', () => {
     const reflector = {
-      getAllAndOverride: jest.fn().mockReturnValue(undefined),
+      getAllAndOverride: vi.fn().mockReturnValue(undefined),
     } as unknown as Reflector;
     const guard = new RolesGuard(reflector);
     expect(guard.canActivate(mockCtx({ role: Role.STAFF }))).toBe(true);
@@ -26,7 +26,7 @@ describe('RolesGuard', () => {
 
   it('allows STAFF when handler allows STAFF', () => {
     const reflector = {
-      getAllAndOverride: jest.fn().mockReturnValue([Role.ADMIN, Role.STAFF]),
+      getAllAndOverride: vi.fn().mockReturnValue([Role.ADMIN, Role.STAFF]),
     } as unknown as Reflector;
     const guard = new RolesGuard(reflector);
     expect(guard.canActivate(mockCtx({ role: Role.STAFF }))).toBe(true);
@@ -34,7 +34,7 @@ describe('RolesGuard', () => {
 
   it('denies STAFF when only ADMIN is required', () => {
     const reflector = {
-      getAllAndOverride: jest.fn().mockReturnValue([Role.ADMIN]),
+      getAllAndOverride: vi.fn().mockReturnValue([Role.ADMIN]),
     } as unknown as Reflector;
     const guard = new RolesGuard(reflector);
     expect(guard.canActivate(mockCtx({ role: Role.STAFF }))).toBe(false);
@@ -42,7 +42,7 @@ describe('RolesGuard', () => {
 
   it('denies when user is missing', () => {
     const reflector = {
-      getAllAndOverride: jest.fn().mockReturnValue([Role.STAFF]),
+      getAllAndOverride: vi.fn().mockReturnValue([Role.STAFF]),
     } as unknown as Reflector;
     const guard = new RolesGuard(reflector);
     expect(guard.canActivate(mockCtx(null))).toBe(false);

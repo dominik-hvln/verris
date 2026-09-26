@@ -1,5 +1,5 @@
 import { Prisma } from '@verris/database';
-import { AutoscalingEngineService } from './autoscaling-engine.service';
+import { AutoscalingEngineService } from './autoscaling-engine.service.js';
 
 /**
  * Audit F-01 regression: the 30-day autoscaling spend is stored as NEGATIVE
@@ -10,7 +10,7 @@ describe('AutoscalingEngineService — cap guard (F-01)', () => {
   function buildService(opts: { thirtyDaySumNegative: string }) {
     const prisma = {
       walletTransaction: {
-        aggregate: jest.fn().mockResolvedValue({
+        aggregate: vi.fn().mockResolvedValue({
           _sum: { amount: new Prisma.Decimal(opts.thirtyDaySumNegative) },
         }),
       },

@@ -1,6 +1,7 @@
+import type { Mock } from 'vitest';
 import { ConflictException } from '@nestjs/common';
 import { Prisma, WalletTxType } from '@verris/database';
-import { WalletLedgerService } from './wallet-ledger.service';
+import { WalletLedgerService } from './wallet-ledger.service.js';
 
 /**
  * Audit F-02 regressions:
@@ -19,7 +20,7 @@ describe('WalletLedgerService (F-02)', () => {
   }) {
     const createdRow = { id: 'tx-new', idempotencyKey: 'key-1' };
     const tx = {
-      $queryRaw: jest.fn(async (strings: TemplateStringsArray, ...vals: unknown[]) => {
+      $queryRaw: vi.fn(async (strings: TemplateStringsArray, ...vals: unknown[]) => {
         if (strings.join('?').includes('platform_settings')) {
           return vals[0] === 'faktury.model' && opts.model ? [{ value: opts.model }] : [];
         }
@@ -31,21 +32,21 @@ describe('WalletLedgerService (F-02)', () => {
           },
         ];
       }),
-      user: { update: jest.fn().mockResolvedValue({}) },
+      user: { update: vi.fn().mockResolvedValue({}) },
       walletTransaction: {
-        create: jest.fn().mockResolvedValue(createdRow),
-        update: jest.fn().mockResolvedValue({}),
+        create: vi.fn().mockResolvedValue(createdRow),
+        update: vi.fn().mockResolvedValue({}),
       },
       // Z-01 — księga wystawia fakturę w TEJ SAMEJ transakcji, więc atrapa
       // transakcji musi mieć czym. Brak tego pola nie jest usterką testu,
       // tylko jego prawdziwym wynikiem: obciążenie dotyka teraz faktur.
-      invoice: { create: jest.fn().mockResolvedValue({ id: 'inv-1', number: 'VFV/2026/08/0001' }) },
+      invoice: { create: vi.fn().mockResolvedValue({ id: 'inv-1', number: 'VFV/2026/08/0001' }) },
     };
     const prisma = {
       walletTransaction: {
-        findUnique: jest.fn().mockResolvedValue(opts.existingByKey ?? null),
+        findUnique: vi.fn().mockResolvedValue(opts.existingByKey ?? null),
       },
-      $transaction: jest.fn(async (fn: (t: typeof tx) => Promise<unknown>) => {
+      $transaction: vi.fn(async (fn: (t: typeof tx) => Promise<unknown>) => {
         if (opts.txError) throw opts.txError;
         return fn(tx);
       }),
@@ -152,7 +153,7 @@ describe('WalletLedgerService (F-02)', () => {
     });
     const { prisma } = buildPrismaMock({ balance: '100.00', txError: p2002 });
     // First idempotency lookup (fast path) → null; after the race → winner.
-    (prisma.walletTransaction.findUnique as jest.Mock)
+    (prisma.walletTransaction.findUnique as Mock)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce(winner);
     const service = new WalletLedgerService(prisma as never);

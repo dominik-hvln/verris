@@ -1,10 +1,10 @@
 import { Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Prisma } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { CryptoService } from '../common/crypto/crypto.service';
-import { NodeDnsService } from './node-dns.service';
-import { renderBootstrapScript } from './servers.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { CryptoService } from '../common/crypto/crypto.service.js';
+import { NodeDnsService } from './node-dns.service.js';
+import { renderBootstrapScript } from './servers.service.js';
 
 
 export interface NodeBootstrapEventView {

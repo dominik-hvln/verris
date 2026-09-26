@@ -11,8 +11,8 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { timingSafeEqual } from 'crypto';
-import { VpnService } from './vpn.service';
-import { SkipRateLimit } from '../common/guards/rate-limit.guard';
+import { VpnService } from './vpn.service.js';
+import { SkipRateLimit } from '../common/guards/rate-limit.guard.js';
 
 /**
  * Host-side sync agent auth: static token from env (the sync script runs on

@@ -3,7 +3,7 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "src",
-    "types": ["node", "express", "multer", "jest"],
+    "types": ["node", "express", "multer", "vitest/globals"],
     "declaration": false,
     "declarationMap": false
   },

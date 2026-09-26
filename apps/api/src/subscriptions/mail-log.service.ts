@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { DirectAdminService } from '../servers/directadmin.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
 
 /**
  * E-19 — dziennik dostarczania poczty („gdzie jest mój mail”). Węzeł (zadanie MAIL_LOG,

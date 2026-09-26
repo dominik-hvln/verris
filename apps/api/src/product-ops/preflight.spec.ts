@@ -1,4 +1,4 @@
-import { ProductOpsAdminController, PROVISIONING_DO_NAPRAWY } from './product-ops.admin.controller';
+import { ProductOpsAdminController, PROVISIONING_DO_NAPRAWY } from './product-ops.admin.controller.js';
 
 /**
  * PROD-03 — preflight GO-LIVE blokuje start tylko na tym, co trzeba naprawić.
@@ -7,17 +7,17 @@ import { ProductOpsAdminController, PROVISIONING_DO_NAPRAWY } from './product-op
  */
 describe('PROD-03 — preflight GO-LIVE', () => {
   function kontroler(liczby: { provisioning: number; sla?: string | null; rejestrator?: string }) {
-    const subscriptionCount = jest.fn(async () => liczby.provisioning);
+    const subscriptionCount = vi.fn(async () => liczby.provisioning);
     const prisma = {
       subscription: { count: subscriptionCount },
-      migrationRequest: { count: jest.fn(async () => 0) },
-      probeIncident: { count: jest.fn(async () => 0) },
-      server: { count: jest.fn(async () => 1) },
-      featureFlag: { count: jest.fn(async () => 0) },
-      maintenanceWindow: { count: jest.fn(async () => 0) },
-      platformSetting: { findUnique: jest.fn(async () => (liczby.sla === null ? null : { value: liczby.sla ?? '1' })) },
+      migrationRequest: { count: vi.fn(async () => 0) },
+      probeIncident: { count: vi.fn(async () => 0) },
+      server: { count: vi.fn(async () => 1) },
+      featureFlag: { count: vi.fn(async () => 0) },
+      maintenanceWindow: { count: vi.fn(async () => 0) },
+      platformSetting: { findUnique: vi.fn(async () => (liczby.sla === null ? null : { value: liczby.sla ?? '1' })) },
     };
-    const config = { get: jest.fn(() => (liczby.rejestrator === undefined ? 'openprovider' : liczby.rejestrator)) };
+    const config = { get: vi.fn(() => (liczby.rejestrator === undefined ? 'openprovider' : liczby.rejestrator)) };
     const c = new ProductOpsAdminController(prisma as never, {} as never, {} as never, {} as never, {} as never, config as never);
     return { c, subscriptionCount, prisma };
   }

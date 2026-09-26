@@ -1,6 +1,6 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CryptoService } from '../common/crypto/crypto.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { CryptoService } from '../common/crypto/crypto.service.js';
 import type { BootstrapToken } from '@verris/database';
 
 const TOKEN_PREFIX = 'eko_btk_';

@@ -1,8 +1,8 @@
-import { AuditService } from '../../src/common/audit/audit.service';
-import { NodeTasksService } from '../../src/servers/node-tasks.service';
-import { StosWezlaService } from '../../src/servers/stos-wezla.service';
-import { nastepnyKrokMariadb, stosJakoEnv } from '../../src/servers/stos-wezla';
-import { prisma, rozlacz, utworzWezel, wyczyscBaze } from './setup';
+import { AuditService } from '../../src/common/audit/audit.service.js';
+import { NodeTasksService } from '../../src/servers/node-tasks.service.js';
+import { StosWezlaService } from '../../src/servers/stos-wezla.service.js';
+import { nastepnyKrokMariadb, stosJakoEnv } from '../../src/servers/stos-wezla.js';
+import { prisma, rozlacz, utworzWezel, wyczyscBaze } from './setup.js';
 
 /**
  * PB-33 — wersje stosu w panelu: zapis podbija wersję manifestu, zła wartość odpada,

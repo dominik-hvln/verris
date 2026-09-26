@@ -10,27 +10,27 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { ServersService } from './servers.service';
-import { PolitykaPojemnosciDto, WygaszenieWezlaDto } from './dto/capacity-policy.dto';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
-import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { ServersService } from './servers.service.js';
+import { PolitykaPojemnosciDto, WygaszenieWezlaDto } from './dto/capacity-policy.dto.js';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { Role, NodeTaskStatus } from '@verris/database';
-import { InitServerDto } from './dto/init-server.dto';
-import { UpdateServerDto } from './dto/update-server.dto';
-import { UpdateDirectAdminConfigDto } from './dto/directadmin-config.dto';
-import { UpdateNameserversDto } from './dto/nameservers.dto';
-import { QueueHostingProfileTaskDto } from './dto/queue-hosting-profile.dto';
+import { InitServerDto } from './dto/init-server.dto.js';
+import { UpdateServerDto } from './dto/update-server.dto.js';
+import { UpdateDirectAdminConfigDto } from './dto/directadmin-config.dto.js';
+import { UpdateNameserversDto } from './dto/nameservers.dto.js';
+import { QueueHostingProfileTaskDto } from './dto/queue-hosting-profile.dto.js';
 import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
-import { NodeTasksService } from './node-tasks.service';
-import { NodeAuditService } from './node-audit.service';
-import { DirectAdminService } from './directadmin.service';
-import { NodeStackReadinessService } from './node-stack-readiness.service';
-import { NodeDnsService } from './node-dns.service';
-import { renderNodeTasksAgentInstallScript } from './node-tasks-agent.install';
+import { NodeTasksService } from './node-tasks.service.js';
+import { NodeAuditService } from './node-audit.service.js';
+import { DirectAdminService } from './directadmin.service.js';
+import { NodeStackReadinessService } from './node-stack-readiness.service.js';
+import { NodeDnsService } from './node-dns.service.js';
+import { renderNodeTasksAgentInstallScript } from './node-tasks-agent.install.js';
 import { IsIP } from 'class-validator';
 
 class MaintenanceModeDto {

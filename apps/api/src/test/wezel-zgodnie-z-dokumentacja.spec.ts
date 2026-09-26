@@ -5,7 +5,7 @@ import { join } from 'path';
  * Skrypty węzła po audycie z oficjalną dokumentacją DirectAdmin / CloudLinux (2026-09-25) i poprawce
  * eskalacji przez dowiązania symboliczne w katalogu klienta. Pilnuje, żeby wadliwe wzorce nie wróciły.
  */
-const SKRYPTY = join(__dirname, '..', '..', '..', '..', 'ops', 'scripts');
+const SKRYPTY = join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'scripts');
 // Bez linii komentarzy — opisują, co było wcześniej, i nie są wykonywane.
 const czytaj = (plik: string) =>
   readFileSync(join(SKRYPTY, plik), 'utf8')

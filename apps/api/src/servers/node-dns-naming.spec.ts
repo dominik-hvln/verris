@@ -4,7 +4,7 @@ import {
   isLegacyPerNodeNs,
   nsNumberingStart,
   parseNsIndex,
-} from './node-dns-naming';
+} from './node-dns-naming.js';
 
 describe('node-dns-naming', () => {
   const base = 'verris.pl';

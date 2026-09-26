@@ -1,6 +1,6 @@
 import { ConflictException } from '@nestjs/common';
-import { ProvisioningService } from './provisioning.service';
-import { BladEtapuProvisioningu } from './provisioning-error';
+import { ProvisioningService } from './provisioning.service.js';
+import { BladEtapuProvisioningu } from './provisioning-error.js';
 
 /**
  * X-09 — zakładanie konta DA w ProvisioningService. Pilnujemy kolejności i sprzątania:
@@ -20,46 +20,46 @@ function stanowisko(o: { kontoZDomena?: boolean; limity?: Error; zapis?: Error; 
     plan: PLAN, user: { email: 'jan@firma.pl' }, account: null,
   };
   const daClient = {
-    ensureUserPackage: jest.fn(async () => undefined),
-    createAccount: jest.fn(async () => ({ password: 'HasloDA123' })),
-    setAccountLimits: jest.fn(async () => (o.limity ? Promise.reject(o.limity) : undefined)),
-    deleteAccount: jest.fn(async () => (o.usuniecie ? Promise.reject(o.usuniecie) : undefined)),
+    ensureUserPackage: vi.fn(async () => undefined),
+    createAccount: vi.fn(async () => ({ password: 'HasloDA123' })),
+    setAccountLimits: vi.fn(async () => (o.limity ? Promise.reject(o.limity) : undefined)),
+    deleteAccount: vi.fn(async () => (o.usuniecie ? Promise.reject(o.usuniecie) : undefined)),
   };
   const prisma = {
-    subscription: { findUnique: jest.fn(async () => subscription), update: jest.fn(async () => subscription) },
+    subscription: { findUnique: vi.fn(async () => subscription), update: vi.fn(async () => subscription) },
     account: {
-      findUnique: jest.fn(async (q: { where: { domain?: string } }) => (q.where.domain && o.kontoZDomena ? { id: 'inne' } : null)),
+      findUnique: vi.fn(async (q: { where: { domain?: string } }) => (q.where.domain && o.kontoZDomena ? { id: 'inne' } : null)),
     },
-    siteMonitor: { upsert: jest.fn(async () => undefined) },
-    $transaction: jest.fn(async (fn: (tx: unknown) => unknown) => {
+    siteMonitor: { upsert: vi.fn(async () => undefined) },
+    $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => {
       if (o.zapis) throw o.zapis;
       return fn({
-        account: { create: jest.fn(async () => ({ id: 'acc-1' })) },
-        subscription: { update: jest.fn(async () => ({ ...subscription, status: 'ACTIVE' })) },
-        server: { update: jest.fn(async () => undefined) },
-        subscriptionEvent: { create: jest.fn(async () => undefined) },
-        backupSchedule: { upsert: jest.fn(async () => undefined) },
+        account: { create: vi.fn(async () => ({ id: 'acc-1' })) },
+        subscription: { update: vi.fn(async () => ({ ...subscription, status: 'ACTIVE' })) },
+        server: { update: vi.fn(async () => undefined) },
+        subscriptionEvent: { create: vi.fn(async () => undefined) },
+        backupSchedule: { upsert: vi.fn(async () => undefined) },
       });
     }),
   };
-  const audit = { record: jest.fn(async () => undefined) };
+  const audit = { record: vi.fn(async () => undefined) };
   const svc = new ProvisioningService(
     prisma as never,
     { encrypt: (v: string) => `enc:${v}` } as never,
     audit as never,
-    { pickServerForPlan: jest.fn(async () => ({ id: 'n1', ipAddress: o.ip ?? '0.0.0.0' })) } as never,
+    { pickServerForPlan: vi.fn(async () => ({ id: 'n1', ipAddress: o.ip ?? '0.0.0.0' })) } as never,
     {
-      getClientForServer: jest.fn(async () => daClient),
-      applyEcoModeBackupCronPolicy: jest.fn(),
-      requestLetsEncryptDirect: jest.fn(async () => undefined),
+      getClientForServer: vi.fn(async () => daClient),
+      applyEcoModeBackupCronPolicy: vi.fn(),
+      requestLetsEncryptDirect: vi.fn(async () => undefined),
     } as never,
-    { resolveNameservers: jest.fn(async () => ({ ns1: 'ns1.verris.pl', ns2: 'ns2.verris.pl' })) } as never,
-    { send: jest.fn(async () => undefined) } as never,
+    { resolveNameservers: vi.fn(async () => ({ ns1: 'ns1.verris.pl', ns2: 'ns2.verris.pl' })) } as never,
+    { send: vi.fn(async () => undefined) } as never,
     { get: () => undefined } as never,
-    { safeAward: jest.fn(), awardSubscriptionFirstPaid: jest.fn(), awardOnce: jest.fn() } as never,
-    { setModeForAccount: jest.fn(async () => undefined) } as never,
+    { safeAward: vi.fn(), awardSubscriptionFirstPaid: vi.fn(), awardOnce: vi.fn() } as never,
+    { setModeForAccount: vi.fn(async () => undefined) } as never,
   );
-  jest.spyOn(svc as unknown as { notifyAccountProvisioned: () => Promise<void> }, 'notifyAccountProvisioned').mockResolvedValue();
+  vi.spyOn(svc as unknown as { notifyAccountProvisioned: () => Promise<void> }, 'notifyAccountProvisioned').mockResolvedValue();
   const akcje = () => (audit.record.mock.calls as unknown as Array<[{ action: string; details: Record<string, unknown> }]>).map((c) => c[0]);
   return { svc, daClient, prisma, akcje };
 }

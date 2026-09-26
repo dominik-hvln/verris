@@ -1,12 +1,12 @@
 import { SubscriptionStatus } from '@verris/database';
-import { AuditService } from '../../src/common/audit/audit.service';
-import { WalletLedgerService } from '../../src/billing/wallet-ledger.service';
-import { PromoService } from '../../src/billing/promo.service';
-import { RenewalScheduler } from '../../src/subscriptions/renewal.scheduler';
-import { SubscriptionsService } from '../../src/subscriptions/subscriptions.service';
-import { WarunkiIndywidualneService } from '../../src/subscriptions/warunki-indywidualne.service';
-import { AutoscalingBillingService } from '../../src/autoscaling/autoscaling-billing.service';
-import { prisma, rozlacz, utworzPlan, utworzWezel, wyczyscBaze } from './setup';
+import { AuditService } from '../../src/common/audit/audit.service.js';
+import { WalletLedgerService } from '../../src/billing/wallet-ledger.service.js';
+import { PromoService } from '../../src/billing/promo.service.js';
+import { RenewalScheduler } from '../../src/subscriptions/renewal.scheduler.js';
+import { SubscriptionsService } from '../../src/subscriptions/subscriptions.service.js';
+import { WarunkiIndywidualneService } from '../../src/subscriptions/warunki-indywidualne.service.js';
+import { AutoscalingBillingService } from '../../src/autoscaling/autoscaling-billing.service.js';
+import { prisma, rozlacz, utworzPlan, utworzWezel, wyczyscBaze } from './setup.js';
 
 /**
  * PB-27 / PB-28 — indywidualne warunki i rozliczenie poza Verris na prawdziwej bazie.

@@ -11,7 +11,7 @@ import {
   PROG_ALERTU_MS,
   PROG_ALERTU_PROB,
   WierszZdarzenia,
-} from './webhook-ewidencja';
+} from './webhook-ewidencja.js';
 
 /**
  * Z-05 — decyzja o zdarzeniu webhooka, sprawdzona liczbowo.
@@ -198,7 +198,7 @@ describe('Z-05 — retencja i podejmowanie', () => {
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, relative } from 'path';
 
-const SRC = join(__dirname, '..', '..');
+const SRC = join(import.meta.dirname, '..', '..');
 
 function pliki(kat: string, out: string[] = []): string[] {
   for (const w of readdirSync(kat)) {

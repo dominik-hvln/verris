@@ -6,8 +6,8 @@ export function loadStagingSyncScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/node-staging-sync.sh'),
     join(process.cwd(), '../../ops/scripts/node-staging-sync.sh'),
-    join(__dirname, '../../../../../ops/scripts/node-staging-sync.sh'),
-    join(__dirname, '../../../../ops/scripts/node-staging-sync.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/node-staging-sync.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/node-staging-sync.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) {

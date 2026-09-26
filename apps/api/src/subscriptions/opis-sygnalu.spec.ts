@@ -3,7 +3,7 @@ import {
   czyWezelMilczy,
   etykietaSygnalu,
   opiszSygnal,
-} from './node-capacity';
+} from './node-capacity.js';
 
 /**
  * OPS-01, druga połowa — opis sygnału życia węzła.

@@ -6,9 +6,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, WalletTransaction, WalletTxType, WalletTxStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { trybFaktury, utworzFaktureZaObciazenie, TYPY_SPRZEDAZY, ZNACZNIK_M34 } from './faktura-za-portfel';
-import { odczytajModelFakturowania } from './tryb-fakturowania';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { trybFaktury, utworzFaktureZaObciazenie, TYPY_SPRZEDAZY, ZNACZNIK_M34 } from './faktura-za-portfel.js';
+import { odczytajModelFakturowania } from './tryb-fakturowania.js';
 
 export interface LedgerEntryInput {
   userId: string;

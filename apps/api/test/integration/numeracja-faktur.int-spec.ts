@@ -1,9 +1,9 @@
-import { prisma, rozlacz, wyczyscBaze } from './setup';
+import { prisma, rozlacz, wyczyscBaze } from './setup.js';
 import {
   nadajNumerFaktury,
   SERIA_FAKTURY,
   SERIA_KOREKTY,
-} from '../../src/billing/faktura-za-portfel';
+} from '../../src/billing/faktura-za-portfel.js';
 
 /**
  * M-02 — numeracja faktur.

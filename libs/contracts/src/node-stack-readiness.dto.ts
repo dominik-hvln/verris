@@ -1,4 +1,4 @@
-import type { AuditRecordField, AuditCheckStatus, DocAttestation } from './node-audit.dto';
+import type { AuditRecordField, AuditCheckStatus, DocAttestation } from './node-audit.dto.ts';
 
 /** Pojedyncza usługa / moduł wymagany na węźle hostingowym. */
 export interface NodeStackServiceCheckDto {

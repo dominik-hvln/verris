@@ -1,5 +1,5 @@
 import { IsBoolean, IsString, MinLength, MaxLength, IsOptional, IsIn, IsInt, Min, Max } from 'class-validator';
-import { Czesciowy } from '../common/validation/czesciowy';
+import { Czesciowy } from '../common/validation/czesciowy.js';
 
 export class CreateTicketDto {
   @IsString()

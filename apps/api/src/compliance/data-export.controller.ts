@@ -11,10 +11,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { extractRequestContext } from '../common/decorators/request-context';
-import { DataExportService } from './data-export.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { extractRequestContext } from '../common/decorators/request-context.js';
+import { DataExportService } from './data-export.service.js';
 
 /**
  * GDPR Art. 20 — data subject access request endpoints (Sprint 1, L-06).

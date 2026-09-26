@@ -1,4 +1,4 @@
-import { PrismaClient, BillingInterval, AutoscalingResource, LegalDocumentKind } from '@prisma/client';
+import { PrismaClient, BillingInterval, AutoscalingResource, LegalDocumentKind } from '@verris/database';
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
 import { readFileSync } from 'fs';
@@ -164,7 +164,7 @@ async function main() {
   // `isCurrent=true` zwraca 503 z message „Verris jeszcze nie publikuje
   // panelu" zamiast pozwolić na rejestrację bez podpisanej zgody).
   // ---------------------------------------------------------------------------
-  const draftsDir = join(__dirname, '..', '..', '..', 'docs', 'legal', 'drafts');
+  const draftsDir = join(import.meta.dirname, '..', '..', '..', 'docs', 'legal', 'drafts');
   const legalDrafts = [
     {
       kind: LegalDocumentKind.TERMS,

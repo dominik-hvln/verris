@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { AuditModule } from '../common/audit/audit.module';
-import { AnalyticsSitesService } from './analytics-sites.service';
-import { AnalyticsSitesController } from './analytics-sites.controller';
-import { AnalyticsPublicController } from './analytics-public.controller';
-import { AnalyticsRetentionScheduler } from './analytics-retention.scheduler';
+import { AuditModule } from '../common/audit/audit.module.js';
+import { AnalyticsSitesService } from './analytics-sites.service.js';
+import { AnalyticsSitesController } from './analytics-sites.controller.js';
+import { AnalyticsPublicController } from './analytics-public.controller.js';
+import { AnalyticsRetentionScheduler } from './analytics-retention.scheduler.js';
 
 /**
  * AN — analityka stron klientów (privacy-first). Prisma/Config globalne;

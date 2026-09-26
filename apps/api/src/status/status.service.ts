@@ -8,7 +8,7 @@ import {
   ServerStatus,
   ServiceProbe,
 } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 const CACHE_TTL_MS = 30 * 1000;
 const UPTIME_DEFAULT_DAYS = 30;

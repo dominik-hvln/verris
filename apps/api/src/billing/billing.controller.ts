@@ -15,14 +15,14 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { WalletTxType } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { BillingService } from './billing.service';
-import { CreateTopupCheckoutDto, TopupQuoteDto, PreviewTopupPromoDto } from './dto/checkout.dto';
-import { DoladowanieService } from './doladowanie.service';
-import { RedeemPromoDto, UpsertWalletAutoTopupDto } from './dto/promo.dto';
-import { PromoService } from './promo.service';
-import { WalletAutoTopupService } from './wallet-auto-topup.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { BillingService } from './billing.service.js';
+import { CreateTopupCheckoutDto, TopupQuoteDto, PreviewTopupPromoDto } from './dto/checkout.dto.js';
+import { DoladowanieService } from './doladowanie.service.js';
+import { RedeemPromoDto, UpsertWalletAutoTopupDto } from './dto/promo.dto.js';
+import { PromoService } from './promo.service.js';
+import { WalletAutoTopupService } from './wallet-auto-topup.service.js';
 
 @Controller('billing')
 @UseGuards(JwtAuthGuard)

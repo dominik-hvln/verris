@@ -33,7 +33,7 @@ import { join } from 'path';
  */
 
 const PANEL = join(
-  __dirname, '..', '..', '..', 'client-panel', 'src', 'app', 'dashboard',
+  import.meta.dirname, '..', '..', '..', 'client-panel', 'src', 'app', 'dashboard',
 );
 const DANE = readFileSync(join(PANEL, 'dashboard-data.ts'), 'utf8');
 const WIDOK = readFileSync(join(PANEL, 'dashboard-home.tsx'), 'utf8');

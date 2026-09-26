@@ -1,15 +1,15 @@
 import { UnauthorizedException } from '@nestjs/common';
-import { GrafanaAuthController, bezpiecznaSciezka } from './grafana-auth.controller';
+import { GrafanaAuthController, bezpiecznaSciezka } from './grafana-auth.controller.js';
 
 /** Q-17 — SSO do Grafany: te same bramki sesji co panel (wylogowanie wszędzie, blokada, sesja). */
 function stanowisko(payload: Record<string, unknown>, user: Record<string, unknown> | null, sesja: Record<string, unknown> | null = null) {
-  const jwt = { verify: jest.fn(() => payload) };
+  const jwt = { verify: vi.fn(() => payload) };
   const prisma = {
-    user: { findUnique: jest.fn(async () => user) },
-    userSession: { findUnique: jest.fn(async () => sesja) },
+    user: { findUnique: vi.fn(async () => user) },
+    userSession: { findUnique: vi.fn(async () => sesja) },
   };
   const c = new GrafanaAuthController(jwt as never, prisma as never);
-  const res = { setHeader: jest.fn() };
+  const res = { setHeader: vi.fn() };
   const req = { headers: { authorization: 'Bearer x' }, res } as never;
   return { run: () => c.validate(req), res };
 }
@@ -35,10 +35,10 @@ describe('GrafanaAuthController', () => {
 describe('Grafana SSO — bilet i sesja tylko dla hosta Grafany', () => {
   function zbuduj(user: Record<string, unknown> | null = admin) {
     const jwt = {
-      verify: jest.fn((t: string) => (t === 'sesja-grafany' ? { sub: 'a', tv: 2, purpose: 'grafana' } : { sub: 'a', tv: 2 })),
-      sign: jest.fn(() => 'sesja-grafany'),
+      verify: vi.fn((t: string) => (t === 'sesja-grafany' ? { sub: 'a', tv: 2, purpose: 'grafana' } : { sub: 'a', tv: 2 })),
+      sign: vi.fn(() => 'sesja-grafany'),
     };
-    const prisma = { user: { findUnique: jest.fn(async () => user) }, userSession: { findUnique: jest.fn(async () => null) } };
+    const prisma = { user: { findUnique: vi.fn(async () => user) }, userSession: { findUnique: vi.fn(async () => null) } };
     return { c: new GrafanaAuthController(jwt as never, prisma as never), jwt };
   }
 
@@ -46,7 +46,7 @@ describe('Grafana SSO — bilet i sesja tylko dla hosta Grafany', () => {
     const { c, jwt } = zbuduj();
     const { code } = await c.ticket({ headers: { authorization: 'Bearer tok' } } as never);
     expect(jwt.sign).toHaveBeenCalledWith(expect.objectContaining({ sub: 'a', purpose: 'grafana', tv: 2 }), { expiresIn: 8 * 3600 });
-    const res = { cookie: jest.fn(), redirect: jest.fn() };
+    const res = { cookie: vi.fn(), redirect: vi.fn() };
     await c.sso({ res } as never, code, '/d/verris-ops');
     expect(res.cookie).toHaveBeenCalledWith('grafana_session', 'sesja-grafany', expect.objectContaining({ httpOnly: true, sameSite: 'lax', path: '/' }));
     expect(res.cookie.mock.calls[0][2]).not.toHaveProperty('domain');
@@ -62,7 +62,7 @@ describe('Grafana SSO — bilet i sesja tylko dla hosta Grafany', () => {
 
   it('walidacja nie czyta już ciasteczek sesji paneli (admin_auth_token itd.), tylko grafana_session', async () => {
     const { c } = zbuduj();
-    const res = { setHeader: jest.fn() };
+    const res = { setHeader: vi.fn() };
     await expect(c.validate({ headers: { cookie: 'admin_auth_token=tok; auth_token=tok' }, res } as never)).rejects.toBeInstanceOf(UnauthorizedException);
     await expect(c.validate({ headers: { cookie: 'x=1; grafana_session=sesja-grafany' }, res } as never)).resolves.toMatchObject({ role: 'Admin' });
   });

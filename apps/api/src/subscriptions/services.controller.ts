@@ -11,65 +11,65 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { HostingSslLetsencryptDto, HostingSslPasteDto } from './dto/hosting-ssl.dto';
+import { HostingSslLetsencryptDto, HostingSslPasteDto } from './dto/hosting-ssl.dto.js';
 import {
   CreateMigrationBundleDto,
   DiscoverMigrationSourceDto,
   RequestExternalMigrationDto,
-} from './dto/migration.dto';
-import { RateLimit } from '../common/guards/rate-limit.guard';
-import { MigrationDiscoveryService } from './migration-discovery.service';
-import { MigrationPreflightService } from './migration-preflight.service';
-import { MigrationCutoverService } from './migration-cutover.service';
+} from './dto/migration.dto.js';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
+import { MigrationDiscoveryService } from './migration-discovery.service.js';
+import { MigrationPreflightService } from './migration-preflight.service.js';
+import { MigrationCutoverService } from './migration-cutover.service.js';
 import { Prisma, SubscriptionStatus } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { PrismaService } from '../prisma/prisma.service';
-import { DirectAdminService } from '../servers/directadmin.service';
-import { MigrationOrchestratorService } from './migration-orchestrator.service';
-import { ServiceHealthService } from './service-health.service';
-import { HostingDnsPointingService } from './hosting-dns-pointing.service';
-import { AssistantService } from './assistant.service';
-import { CofniecieNaprawyDto, NaprawaAsystentaDto } from './dto/assistant.dto';
-import { HostingRestoreService } from './hosting-restore.service';
-import { OffsiteRestoreService } from './offsite-restore.service';
-import { DbTransferService } from './db-transfer.service';
-import { FileRestoreService } from './file-restore.service';
-import { SshAccessService } from './ssh-access.service';
-import { WpUpdateService } from './wp-update.service';
-import { DiskUsageService } from './disk-usage.service';
-import { MalwareScanService } from './malware-scan.service';
-import { RedisAccessService } from './redis-access.service';
-import { MailLogService } from './mail-log.service';
-import { GitDeployService } from './git-deploy.service';
-import { SiteCloneService } from './site-clone.service';
-import { HtaccessService } from './htaccess.service';
-import { PhpInfoService } from './php-info.service';
-import { FileSearchService } from './file-search.service';
-import { AppSelectorService } from './app-selector.service';
-import { SlowSqlService } from './slow-sql.service';
-import { PgsqlService } from './pgsql.service';
-import { ObrazyService } from './obrazy.service';
-import { BazaPgsqlDto } from './dto/pgsql.dto';
-import { SiteStatsService } from './site-stats.service';
-import { HostingRestoreDto } from './dto/hosting-restore.dto';
-import { WordpressService } from './wordpress.service';
-import { InstallWordpressDto } from './dto/wordpress.dto';
-import { WafService } from './waf.service';
-import { SetWafModeDto } from './dto/waf.dto';
-import { SiteMonitorService } from './site-monitor.service';
-import { StagingService } from './staging.service';
-import { BackupScheduleService } from './backup-schedule.service';
-import { SetMonitoringDto } from './dto/site-monitor.dto';
-import { DomenaDnssecDto, UsunRekordDnsDto, UtworzRekordDnsDto } from './dto/hosting-dns.dto';
-import { ZadanieCronDto } from './dto/hosting-cron.dto';
-import { UtworzKontoFtpDto, ZmienHasloFtpDto } from './dto/hosting-ftp.dto';
-import { UtworzSkrzynkeDto, ZmienHasloSkrzynkiDto, ZmienRozmiarSkrzynkiDto } from './dto/hosting-email.dto';
-import { EcoReportService } from '../eco/eco-report.service';
-import { DeliverabilityService } from '../deliverability/deliverability.service';
-import { PhpService } from './php.service';
-import { AppInstallService } from './app-install.service';
-import { LogiHostinguQueryDto } from './dto/hosting-logs.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
+import { MigrationOrchestratorService } from './migration-orchestrator.service.js';
+import { ServiceHealthService } from './service-health.service.js';
+import { HostingDnsPointingService } from './hosting-dns-pointing.service.js';
+import { AssistantService } from './assistant.service.js';
+import { CofniecieNaprawyDto, NaprawaAsystentaDto } from './dto/assistant.dto.js';
+import { HostingRestoreService } from './hosting-restore.service.js';
+import { OffsiteRestoreService } from './offsite-restore.service.js';
+import { DbTransferService } from './db-transfer.service.js';
+import { FileRestoreService } from './file-restore.service.js';
+import { SshAccessService } from './ssh-access.service.js';
+import { WpUpdateService } from './wp-update.service.js';
+import { DiskUsageService } from './disk-usage.service.js';
+import { MalwareScanService } from './malware-scan.service.js';
+import { RedisAccessService } from './redis-access.service.js';
+import { MailLogService } from './mail-log.service.js';
+import { GitDeployService } from './git-deploy.service.js';
+import { SiteCloneService } from './site-clone.service.js';
+import { HtaccessService } from './htaccess.service.js';
+import { PhpInfoService } from './php-info.service.js';
+import { FileSearchService } from './file-search.service.js';
+import { AppSelectorService } from './app-selector.service.js';
+import { SlowSqlService } from './slow-sql.service.js';
+import { PgsqlService } from './pgsql.service.js';
+import { ObrazyService } from './obrazy.service.js';
+import { BazaPgsqlDto } from './dto/pgsql.dto.js';
+import { SiteStatsService } from './site-stats.service.js';
+import { HostingRestoreDto } from './dto/hosting-restore.dto.js';
+import { WordpressService } from './wordpress.service.js';
+import { InstallWordpressDto } from './dto/wordpress.dto.js';
+import { WafService } from './waf.service.js';
+import { SetWafModeDto } from './dto/waf.dto.js';
+import { SiteMonitorService } from './site-monitor.service.js';
+import { StagingService } from './staging.service.js';
+import { BackupScheduleService } from './backup-schedule.service.js';
+import { SetMonitoringDto } from './dto/site-monitor.dto.js';
+import { DomenaDnssecDto, UsunRekordDnsDto, UtworzRekordDnsDto } from './dto/hosting-dns.dto.js';
+import { ZadanieCronDto } from './dto/hosting-cron.dto.js';
+import { UtworzKontoFtpDto, ZmienHasloFtpDto } from './dto/hosting-ftp.dto.js';
+import { UtworzSkrzynkeDto, ZmienHasloSkrzynkiDto, ZmienRozmiarSkrzynkiDto } from './dto/hosting-email.dto.js';
+import { EcoReportService } from '../eco/eco-report.service.js';
+import { DeliverabilityService } from '../deliverability/deliverability.service.js';
+import { PhpService } from './php.service.js';
+import { AppInstallService } from './app-install.service.js';
+import { LogiHostinguQueryDto } from './dto/hosting-logs.dto.js';
 import {
   AliasDomenyDto,
   ArchiwumOffsiteDto,
@@ -122,7 +122,7 @@ import {
   ImportBazyDto,
   WersjaPhpDto,
   ZadanieDeployDto,
-} from './dto/hosting-body.dto';
+} from './dto/hosting-body.dto.js';
 
 /**
  * Customer-facing "services" view — denormalized projection over Subscription

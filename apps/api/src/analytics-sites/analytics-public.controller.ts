@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Header, HttpCode, Ip, Post, Headers } from '@nestjs/common';
-import { AnalyticsSitesService } from './analytics-sites.service';
+import { AnalyticsSitesService } from './analytics-sites.service.js';
 
 interface CollectBody {
   k?: string; // siteKey

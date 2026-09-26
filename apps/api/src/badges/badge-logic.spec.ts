@@ -1,4 +1,4 @@
-import { dailyUptime, downIntervals, embeddedOnDomain, sealReason, windowPct } from './badge-logic';
+import { dailyUptime, downIntervals, embeddedOnDomain, sealReason, windowPct } from './badge-logic.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const now = Date.UTC(2026, 8, 23, 12, 0, 0);

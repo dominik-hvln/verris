@@ -1,5 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { DirectAdminService } from './directadmin.service';
+import { DirectAdminService } from './directadmin.service.js';
 
 /**
  * X-09 — zmiana document root (A-06), SSO administratora do węzła, staging i deploy w DirectAdminService.
@@ -8,27 +8,27 @@ import { DirectAdminService } from './directadmin.service';
 function stanowisko(o: { status?: string; katalogi?: { name: string; type: string }[]; config?: string } = {}) {
   const account = { id: 'a1', status: o.status ?? 'ACTIVE', daUsername: 'klient1', daPasswordEnc: 'enc', serverId: 'srv1' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
-    server: { findUnique: jest.fn(async (a: { where: { id: string } }) => (a.where.id === 'srv1' ? { id: 'srv1', name: 'Node-PL-01', hostname: 'n1.verris.pl', ipAddress: null } : null)) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    server: { findUnique: vi.fn(async (a: { where: { id: string } }) => (a.where.id === 'srv1' ? { id: 'srv1', name: 'Node-PL-01', hostname: 'n1.verris.pl', ipAddress: null } : null)) },
   };
-  const audit = { record: jest.fn(async () => undefined) };
+  const audit = { record: vi.fn(async () => undefined) };
   const svc = new DirectAdminService(prisma as never, {} as never, {} as never, audit as never);
 
-  const adminGet = jest.fn(async () => ({ data: new URLSearchParams({ config: o.config ?? '' }).toString() }));
-  const adminPost = jest.fn(async (_p: string, _b?: unknown) => ({ data: 'error=0&text=OK' }));
-  const createOneTimeLoginUrl = jest.fn(async () => 'https://n1.verris.pl:2222/api/login/url?key=jednorazowy');
-  jest.spyOn(svc, 'getClientForServer').mockResolvedValue({ client: { get: adminGet, post: adminPost }, createOneTimeLoginUrl } as never);
+  const adminGet = vi.fn(async () => ({ data: new URLSearchParams({ config: o.config ?? '' }).toString() }));
+  const adminPost = vi.fn(async (_p: string, _b?: unknown) => ({ data: 'error=0&text=OK' }));
+  const createOneTimeLoginUrl = vi.fn(async () => 'https://n1.verris.pl:2222/api/login/url?key=jednorazowy');
+  vi.spyOn(svc, 'getClientForServer').mockResolvedValue({ client: { get: adminGet, post: adminPost }, createOneTimeLoginUrl } as never);
 
-  const kontoPost = jest.fn(async (_p: string, _b?: unknown) => ({ data: 'error=0&text=OK' }));
-  const listDir = jest.fn(async () => o.katalogi ?? []);
-  jest.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue({ listDir, client: { post: kontoPost } } as never);
+  const kontoPost = vi.fn(async (_p: string, _b?: unknown) => ({ data: 'error=0&text=OK' }));
+  const listDir = vi.fn(async () => o.katalogi ?? []);
+  vi.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue({ listDir, client: { post: kontoPost } } as never);
 
-  const wlasna = jest.fn(async (_s: string, _u: string, d: string) => {
+  const wlasna = vi.fn(async (_s: string, _u: string, d: string) => {
     if (d !== 'firma.pl') throw new BadRequestException('Ta domena nie należy do tej usługi.');
     return d;
   });
   Object.assign(svc, { assertDomainOwnedBySubscription: wlasna });
-  jest.spyOn(svc, 'listHostingDomainsForSubscription').mockResolvedValue({ domains: [{ name: 'firma.pl' }], fetchError: null } as never);
+  vi.spyOn(svc, 'listHostingDomainsForSubscription').mockResolvedValue({ domains: [{ name: 'firma.pl' }], fetchError: null } as never);
 
   const configWyslany = () => new URLSearchParams(String(adminPost.mock.calls[0]?.[1] ?? '')).get('config');
   const formularz = (n = 0) => Object.fromEntries(new URLSearchParams(String(kontoPost.mock.calls[n]?.[1] ?? '')));

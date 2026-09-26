@@ -1,4 +1,5 @@
-import { WpPodatnosciService, porownajWersje, wZakresie, wierszeZFeedu } from './wp-podatnosci.service';
+import type { Mock } from 'vitest';
+import { WpPodatnosciService, porownajWersje, wZakresie, wierszeZFeedu } from './wp-podatnosci.service.js';
 
 const rekord = (o: Record<string, unknown> = {}) => ({
   title: 'XSS w Example',
@@ -46,7 +47,7 @@ describe('I-07 — podatności WordPressa (Wordfence Scanner Feed v3)', () => {
 
   it('dopasowanie do stanu strony: tylko wersje w zakresie', async () => {
     const [wiersz] = wierszeZFeedu({ u1: rekord() });
-    const prisma = { wpPodatnosc: { findMany: jest.fn(async () => [wiersz]) } };
+    const prisma = { wpPodatnosc: { findMany: vi.fn(async () => [wiersz]) } };
     const s = new WpPodatnosciService(prisma as never, { get: () => 'k' } as never);
     const stan = (wersja: string) => ({
       version: '6.8',
@@ -59,15 +60,15 @@ describe('I-07 — podatności WordPressa (Wordfence Scanner Feed v3)', () => {
   });
 
   it('odświeżanie: bez klucza nic, z kluczem Bearer; zbyt mały feed nie czyści bazy', async () => {
-    const tx = { wpPodatnosc: { deleteMany: jest.fn(), createMany: jest.fn() } };
-    const prisma = { $transaction: jest.fn(async (f: (t: typeof tx) => Promise<void>) => f(tx)) };
+    const tx = { wpPodatnosc: { deleteMany: vi.fn(), createMany: vi.fn() } };
+    const prisma = { $transaction: vi.fn(async (f: (t: typeof tx) => Promise<void>) => f(tx)) };
     expect(await new WpPodatnosciService(prisma as never, { get: () => undefined } as never).odswiez()).toBeNull();
-    global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ u1: rekord() }) })) as unknown as typeof fetch;
+    global.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ u1: rekord() }) })) as unknown as typeof fetch;
     expect(await new WpPodatnosciService(prisma as never, { get: () => 'wf-key' } as never).odswiez()).toBeNull();
-    expect((global.fetch as jest.Mock).mock.calls[0][1].headers).toEqual({ Authorization: 'Bearer wf-key' });
+    expect((global.fetch as Mock).mock.calls[0][1].headers).toEqual({ Authorization: 'Bearer wf-key' });
     expect(tx.wpPodatnosc.deleteMany).not.toHaveBeenCalled();
     const duzy = Object.fromEntries(Array.from({ length: 1200 }, (_, i) => [`u${i}`, rekord()]));
-    global.fetch = jest.fn(async () => ({ ok: true, json: async () => duzy })) as unknown as typeof fetch;
+    global.fetch = vi.fn(async () => ({ ok: true, json: async () => duzy })) as unknown as typeof fetch;
     expect(await new WpPodatnosciService(prisma as never, { get: () => 'wf-key' } as never).odswiez()).toBe(1200);
     expect(tx.wpPodatnosc.deleteMany).toHaveBeenCalled();
   });

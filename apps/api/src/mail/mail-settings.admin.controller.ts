@@ -1,16 +1,16 @@
 import { Body, Controller, Get, HttpCode, Patch, Post, UseGuards } from '@nestjs/common';
 import { Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { MailSettingsService } from './mail-settings.service';
-import { MailerService } from './mailer.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { MailSettingsService } from './mail-settings.service.js';
+import { MailerService } from './mailer.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import {
   TestMailSettingsDto,
   UpdateMailSettingsDto,
-} from './dto/mail-settings.dto';
+} from './dto/mail-settings.dto.js';
 
 @Controller('admin/mail-settings')
 @UseGuards(JwtAuthGuard, RolesGuard)

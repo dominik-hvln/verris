@@ -1,6 +1,6 @@
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
-import { UtworzRekordDnsDto } from './dto/hosting-dns.dto';
+import { UtworzRekordDnsDto } from './dto/hosting-dns.dto.js';
 
 /** F-01/F-02 — rekord DNS od klienta, zanim trafi do strefy w DirectAdminie. */
 function bledy(body: Record<string, unknown>): string[] {

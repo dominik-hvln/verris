@@ -6,10 +6,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, WalletTxType } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { WalletLedgerService } from '../billing/wallet-ledger.service';
-import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
 
 // COMMISSION_CREDIT istnieje w schemacie/migracji; generowany klient Prisma
 // dostaje go w buildzie prod. W sandboxie rzutujemy string na enum.

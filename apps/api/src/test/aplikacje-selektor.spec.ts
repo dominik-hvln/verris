@@ -8,7 +8,7 @@ import { join } from 'path';
  * wartości klienta idą osobnymi argumentami (bez powłoki), odmowa selektora kończy zadanie
  * jego komunikatem, katalog w public_html jest odrzucany, a lista pokazuje tylko to konto.
  */
-const SKRYPT = join(__dirname, '..', '..', '..', '..', 'ops', 'scripts', 'node-app-selector.sh');
+const SKRYPT = join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'scripts', 'node-app-selector.sh');
 const UZYTKOWNIK = execFileSync('id', ['-un'], { encoding: 'utf8' }).trim();
 // Skrypt działa na węzłach (AlmaLinux + CloudLinux): potrzebuje getent i loginu w formacie DirectAdmina.
 // Na macOS (brak getent) zestaw jest pomijany — w CI (Linux) wykonuje się zawsze.

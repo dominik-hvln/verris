@@ -1,32 +1,33 @@
+import type { Mock } from 'vitest';
 import { EventEmitter } from 'node:events';
 import * as dns from 'dns';
 import * as tls from 'tls';
 import { DomainChecklistStatus, DomainStatus } from '@verris/database';
-import { DomainsService } from './domains.service';
+import { DomainsService } from './domains.service.js';
 
-jest.mock('tls', () => ({
-  connect: jest.fn(),
+vi.mock('tls', () => ({
+  connect: vi.fn(),
 }));
 
 describe('DomainsService', () => {
   const prisma = {
     domain: {
-      findFirst: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      findMany: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      findMany: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
     },
     domainChecklist: {
-      create: jest.fn(),
-      findMany: jest.fn(),
+      create: vi.fn(),
+      findMany: vi.fn(),
     },
   };
   const config = { get: () => 'test-secret' };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   function service() {
@@ -36,10 +37,10 @@ describe('DomainsService', () => {
   it('stores an OK checklist when DNS and TLS are valid', async () => {
     prisma.domain.findFirst.mockResolvedValue({ id: 'dom_1', userId: 'user_1', name: 'example.test' });
     prisma.domainChecklist.create.mockImplementation(async (args) => ({ id: 'chk_1', ...args.data }));
-    jest.spyOn(dns.promises, 'resolve4').mockResolvedValue(['203.0.113.10']);
-    jest.spyOn(dns.promises, 'resolve6').mockResolvedValue([]);
-    jest.spyOn(dns.promises, 'resolveNs').mockResolvedValue(['ns1.example.test']);
-    jest.spyOn(dns.promises, 'resolveMx').mockResolvedValue([{ priority: 10, exchange: 'mx.example.test' }]);
+    vi.spyOn(dns.promises, 'resolve4').mockResolvedValue(['203.0.113.10']);
+    vi.spyOn(dns.promises, 'resolve6').mockResolvedValue([]);
+    vi.spyOn(dns.promises, 'resolveNs').mockResolvedValue(['ns1.example.test']);
+    vi.spyOn(dns.promises, 'resolveMx').mockResolvedValue([{ priority: 10, exchange: 'mx.example.test' }]);
     mockTls({ authorized: true, authorizationError: null, validTo: 'May 18 12:00:00 2027 GMT' });
 
     const result = await service().runChecklist('dom_1', 'user_1');
@@ -57,7 +58,7 @@ describe('DomainsService', () => {
 
   it('A-16: poprawny A/TLS nie wystarcza — bez rekordu TXT domena zostaje PENDING', async () => {
     prisma.domain.findFirst.mockResolvedValue({ id: 'dom_1', userId: 'user_1', name: 'example.test', status: DomainStatus.PENDING });
-    jest.spyOn(dns.promises, 'resolveTxt').mockResolvedValue([['cos-innego']]);
+    vi.spyOn(dns.promises, 'resolveTxt').mockResolvedValue([['cos-innego']]);
     await expect(service().verifyDomain('dom_1', 'user_1')).rejects.toThrow('_verris-challenge.example.test');
     expect(prisma.domain.update).not.toHaveBeenCalled();
   });
@@ -65,10 +66,10 @@ describe('DomainsService', () => {
   it('marks checklist FAILED when DNS and TLS are both missing', async () => {
     prisma.domain.findFirst.mockResolvedValue({ id: 'dom_1', userId: 'user_1', name: 'broken.test' });
     prisma.domainChecklist.create.mockImplementation(async (args) => ({ id: 'chk_fail', ...args.data }));
-    jest.spyOn(dns.promises, 'resolve4').mockRejectedValue(new Error('ENOTFOUND'));
-    jest.spyOn(dns.promises, 'resolve6').mockRejectedValue(new Error('ENOTFOUND'));
-    jest.spyOn(dns.promises, 'resolveNs').mockResolvedValue([]);
-    jest.spyOn(dns.promises, 'resolveMx').mockResolvedValue([]);
+    vi.spyOn(dns.promises, 'resolve4').mockRejectedValue(new Error('ENOTFOUND'));
+    vi.spyOn(dns.promises, 'resolve6').mockRejectedValue(new Error('ENOTFOUND'));
+    vi.spyOn(dns.promises, 'resolveNs').mockResolvedValue([]);
+    vi.spyOn(dns.promises, 'resolveMx').mockResolvedValue([]);
     mockTls({ authorized: false, authorizationError: 'self signed', validTo: 'May 18 12:00:00 2026 GMT' });
 
     const result = await service().runChecklist('dom_1', 'user_1');
@@ -85,10 +86,10 @@ describe('DomainsService', () => {
   it('marks checklist WARNING when DNS resolves but TLS is not ready', async () => {
     prisma.domain.findFirst.mockResolvedValue({ id: 'dom_1', userId: 'user_1', name: 'partial.test' });
     prisma.domainChecklist.create.mockImplementation(async (args) => ({ id: 'chk_warn', ...args.data }));
-    jest.spyOn(dns.promises, 'resolve4').mockResolvedValue(['203.0.113.55']);
-    jest.spyOn(dns.promises, 'resolve6').mockResolvedValue([]);
-    jest.spyOn(dns.promises, 'resolveNs').mockResolvedValue(['ns1.partial.test']);
-    jest.spyOn(dns.promises, 'resolveMx').mockResolvedValue([]);
+    vi.spyOn(dns.promises, 'resolve4').mockResolvedValue(['203.0.113.55']);
+    vi.spyOn(dns.promises, 'resolve6').mockResolvedValue([]);
+    vi.spyOn(dns.promises, 'resolveNs').mockResolvedValue(['ns1.partial.test']);
+    vi.spyOn(dns.promises, 'resolveMx').mockResolvedValue([]);
     mockTls({ authorized: false, authorizationError: 'certificate has expired', validTo: 'May 18 12:00:00 2024 GMT' });
 
     const result = await service().runChecklist('dom_1', 'user_1');
@@ -104,7 +105,7 @@ describe('DomainsService', () => {
     const instance = service();
     const { recordName, recordValue } = instance.verificationRecord(dom);
     expect(recordName).toBe('_verris-challenge.example.test');
-    const spy = jest.spyOn(dns.promises, 'resolveTxt').mockResolvedValue([[recordValue.slice(0, 10), recordValue.slice(10)]]);
+    const spy = vi.spyOn(dns.promises, 'resolveTxt').mockResolvedValue([[recordValue.slice(0, 10), recordValue.slice(10)]]);
     await expect(instance.verifyDomain('dom_1', 'user_1')).resolves.toEqual({ id: 'dom_1', status: DomainStatus.ACTIVE });
     expect(spy).toHaveBeenCalledWith('_verris-challenge.example.test');
     expect(prisma.domain.update).toHaveBeenCalledWith({ where: { id: 'dom_1' }, data: { status: DomainStatus.ACTIVE } });
@@ -142,7 +143,7 @@ function mockTls(opts: {
   authorizationError: Error | string | null;
   validTo: string;
 }) {
-  (tls.connect as unknown as jest.Mock).mockImplementation((options: unknown, cb?: () => void) => {
+  (tls.connect as unknown as Mock).mockImplementation((options: unknown, cb?: () => void) => {
     const socket = new EventEmitter() as EventEmitter & {
       authorized: boolean;
       authorizationError: Error | string | null;
@@ -153,8 +154,8 @@ function mockTls(opts: {
     socket.authorized = opts.authorized;
     socket.authorizationError = opts.authorizationError;
     socket.getPeerCertificate = () => ({ valid_to: opts.validTo });
-    socket.end = jest.fn();
-    socket.destroy = jest.fn();
+    socket.end = vi.fn();
+    socket.destroy = vi.fn();
     queueMicrotask(() => cb?.());
     return socket as unknown as tls.TLSSocket;
   });

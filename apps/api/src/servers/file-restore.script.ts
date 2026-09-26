@@ -6,8 +6,8 @@ export function loadFileRestoreScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/node-file-restore.sh'),
     join(process.cwd(), '../../ops/scripts/node-file-restore.sh'),
-    join(__dirname, '../../../../../ops/scripts/node-file-restore.sh'),
-    join(__dirname, '../../../../ops/scripts/node-file-restore.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/node-file-restore.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/node-file-restore.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) return readFileSync(path, 'utf8');

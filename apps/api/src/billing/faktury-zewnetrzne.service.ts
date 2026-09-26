@@ -5,9 +5,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { RODZAJ_DOKUMENT_ROZLICZENIOWY } from './tryb-fakturowania';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { RODZAJ_DOKUMENT_ROZLICZENIOWY } from './tryb-fakturowania.js';
 
 /**
  * FAK-01 — kolejka dokumentów rozliczeniowych czekających na fakturę z

@@ -3,8 +3,8 @@ import { join } from 'path';
 import {
   categorizeProvisioningError,
   kategoriaBledu,
-} from '../subscriptions/provisioning-queue.service';
-import { BladEtapuProvisioningu } from '../subscriptions/provisioning-error';
+} from '../subscriptions/provisioning-queue.service.js';
+import { BladEtapuProvisioningu } from '../subscriptions/provisioning-error.js';
 
 /**
  * Z-18 — poprawna kontrola, którą się okłamuje.
@@ -56,7 +56,7 @@ import { BladEtapuProvisioningu } from '../subscriptions/provisioning-error';
  * na produkcji. Dowód powstanie przy węźle #1 — w planie sprint 8.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const USLUGA = join(KORZEN, 'apps', 'api', 'src', 'subscriptions', 'provisioning.service.ts');
 const KOLEJKA = join(
   KORZEN,

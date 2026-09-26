@@ -1,4 +1,4 @@
-import { kubelek, ocenFlage, type FlagaDoOceny } from './feature-flags';
+import { kubelek, ocenFlage, type FlagaDoOceny } from './feature-flags.js';
 
 const f = (o: Partial<FlagaDoOceny> = {}): FlagaDoOceny => ({
   key: 'modul.eco', enabledDefault: false, rolloutPercent: 0, startsAt: null, endsAt: null,

@@ -1,24 +1,24 @@
 import { BadRequestException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
-import { AbuseService, hostZAdresu, kandydaciDomeny } from './abuse.service';
-import { ZgloszenieNaduzyciaDto } from './abuse.dto';
+import { AbuseService, hostZAdresu, kandydaciDomeny } from './abuse.service.js';
+import { ZgloszenieNaduzyciaDto } from './abuse.dto.js';
 
 const flush = () => new Promise((r) => setImmediate(r));
 
 function zbuduj(opts: { konto?: object | null; domena?: object | null; raport?: object } = {}) {
   const prisma = {
-    account: { findFirst: jest.fn().mockResolvedValue(opts.konto ?? null) },
-    domain: { findFirst: jest.fn().mockResolvedValue(opts.domena ?? null) },
-    user: { findUnique: jest.fn().mockResolvedValue({ id: 'u1', email: 'klient@example.pl' }) },
+    account: { findFirst: vi.fn().mockResolvedValue(opts.konto ?? null) },
+    domain: { findFirst: vi.fn().mockResolvedValue(opts.domena ?? null) },
+    user: { findUnique: vi.fn().mockResolvedValue({ id: 'u1', email: 'klient@example.pl' }) },
     abuseReport: {
-      create: jest.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'r1', ...data })),
-      findUnique: jest.fn().mockResolvedValue(opts.raport ?? null),
-      update: jest.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'r1', ...data })),
+      create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'r1', ...data })),
+      findUnique: vi.fn().mockResolvedValue(opts.raport ?? null),
+      update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'r1', ...data })),
     },
   };
-  const mailer = { send: jest.fn().mockResolvedValue({}) };
-  const audit = { record: jest.fn().mockResolvedValue(undefined) };
+  const mailer = { send: vi.fn().mockResolvedValue({}) };
+  const audit = { record: vi.fn().mockResolvedValue(undefined) };
   return { s: new AbuseService(prisma as never, mailer as never, audit as never), prisma, mailer, audit };
 }
 

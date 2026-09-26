@@ -1,6 +1,6 @@
 import { Prisma } from '@verris/database';
-import { BillingService } from '../../src/billing/billing.service';
-import { prisma, rozlacz, wyczyscBaze } from './setup';
+import { BillingService } from '../../src/billing/billing.service.js';
+import { prisma, rozlacz, wyczyscBaze } from './setup.js';
 
 /**
  * Z-05 — scenariusz z macierzy, odtworzony na prawdziwej bazie.

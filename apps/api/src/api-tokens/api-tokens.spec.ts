@@ -1,13 +1,13 @@
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import * as bcrypt from 'bcrypt';
-import { ApiTokenGuard } from './api-token.guard';
-import { ApiTokensService } from './api-tokens.service';
-import { API_SCOPE_KEY } from './api-scope.decorator';
-import { PublicApiController } from './public-api.controller';
-import { PublicApiWriteController } from '../subscriptions/public-api-write.controller';
-import { ApiTokensController } from './api-tokens.controller';
-import { ClientWebhooksController } from '../client-webhooks/client-webhooks.controller';
+import { ApiTokenGuard } from './api-token.guard.js';
+import { ApiTokensService } from './api-tokens.service.js';
+import { API_SCOPE_KEY } from './api-scope.decorator.js';
+import { PublicApiController } from './public-api.controller.js';
+import { PublicApiWriteController } from '../subscriptions/public-api-write.controller.js';
+import { ApiTokensController } from './api-tokens.controller.js';
+import { ClientWebhooksController } from '../client-webhooks/client-webhooks.controller.js';
 
 /**
  * L-09 — tokeny API z zakresami: weryfikacja sekretu, wygaśnięcie, unieważnienie, strażnik
@@ -15,14 +15,14 @@ import { ClientWebhooksController } from '../client-webhooks/client-webhooks.con
  */
 function serwis(row: Record<string, unknown> | null) {
   const repo = {
-    findUnique: jest.fn(async () => row),
-    update: jest.fn(async () => row),
-    count: jest.fn(async () => 0),
-    create: jest.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', createdAt: new Date(), lastUsedAt: null, lastUsedIp: null, revokedAt: null, ...a.data })),
-    findFirst: jest.fn(async () => row),
-    findMany: jest.fn(async () => []),
+    findUnique: vi.fn(async () => row),
+    update: vi.fn(async () => row),
+    count: vi.fn(async () => 0),
+    create: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', createdAt: new Date(), lastUsedAt: null, lastUsedIp: null, revokedAt: null, ...a.data })),
+    findFirst: vi.fn(async () => row),
+    findMany: vi.fn(async () => []),
   };
-  const audit = { record: jest.fn(async () => undefined) };
+  const audit = { record: vi.fn(async () => undefined) };
   return { s: new ApiTokensService({ apiToken: repo } as never, audit as never), repo, audit };
 }
 
@@ -72,8 +72,8 @@ describe('ApiTokenGuard (L-09)', () => {
   function straz(opts: { header?: string; verified?: unknown; user?: unknown; h?: unknown } = {}) {
     const req: Record<string, unknown> = { headers: { authorization: opts.header ?? 'Bearer vrs_live_x.y' } };
     const guard = new ApiTokenGuard(
-      { verify: jest.fn(async () => (opts.verified === undefined ? { userId: 'u1', scopes: ['services:read'], tokenId: 't1' } : opts.verified)) } as never,
-      { user: { findUnique: jest.fn(async () => (opts.user === undefined ? { id: 'u1', role: 'USER', loginBlocked: false, anonymizedAt: null } : opts.user)) } } as never,
+      { verify: vi.fn(async () => (opts.verified === undefined ? { userId: 'u1', scopes: ['services:read'], tokenId: 't1' } : opts.verified)) } as never,
+      { user: { findUnique: vi.fn(async () => (opts.user === undefined ? { id: 'u1', role: 'USER', loginBlocked: false, anonymizedAt: null } : opts.user)) } } as never,
       new Reflector(),
     );
     const ctx = { switchToHttp: () => ({ getRequest: () => req }), getHandler: () => opts.h ?? handler, getClass: () => PublicApiController } as never;
@@ -115,7 +115,7 @@ describe('subkonto — zakresy tokenu i zdarzenia webhooków (L-09/L-10)', () =>
   const sk = (...p: string[]) => ({ userId: 'owner', customerOwnerId: 'owner', customerPermissions: p });
 
   it('token: subkonto bez DNS_MANAGE nie nada dns:write; z uprawnieniem — tak; właściciel bez ograniczeń', async () => {
-    const create = jest.fn(async () => ({ token: 't', view: {} }));
+    const create = vi.fn(async () => ({ token: 't', view: {} }));
     const c = new ApiTokensController({ create } as never);
     expect(() => c.create(sk('SETTINGS_MANAGE', 'SERVICES_READ'), { name: 'CI', scopes: ['services:read', 'dns:write'] })).toThrow('dns:write');
     expect(create).not.toHaveBeenCalled();
@@ -125,7 +125,7 @@ describe('subkonto — zakresy tokenu i zdarzenia webhooków (L-09/L-10)', () =>
   });
 
   it('webhook: zdarzenia rozliczeń wymagają BILLING_READ u subkonta', () => {
-    const dodaj = jest.fn(async () => ({}));
+    const dodaj = vi.fn(async () => ({}));
     const c = new ClientWebhooksController({ dodaj } as never);
     expect(() => c.dodaj(sk('SETTINGS_MANAGE'), { url: 'https://x.pl/h', events: ['task.completed', 'invoice.issued'] })).toThrow('invoice.issued');
     void c.dodaj(sk('SETTINGS_MANAGE'), { url: 'https://x.pl/h', events: ['task.completed'] });

@@ -4,7 +4,7 @@ import {
   LegalDocumentsService,
   LegalVersionDto,
   PublicLegalDocumentDto,
-} from './legal-documents.service';
+} from './legal-documents.service.js';
 
 /**
  * Public, no-auth API for `/legal/*` pages and footer links.

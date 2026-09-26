@@ -26,7 +26,7 @@ import { resolve } from 'path';
  * i z odpowiednimi argumentami. To jest rola testu integracyjnego z bazą (X-04).
  */
 
-const KORZEN = resolve(__dirname, '../../../..');
+const KORZEN = resolve(import.meta.dirname, '../../../..');
 
 function zrodlo(rel: string): string {
   return readFileSync(resolve(KORZEN, rel), 'utf-8');

@@ -1,15 +1,15 @@
 import { Body, Controller, Get, HttpCode, Patch, UseGuards } from '@nestjs/common';
 import { Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { PlatformSettingsService } from './platform-settings.service';
-import { UpdatePlatformSettingsDto } from './dto/platform-settings.dto';
-import { UpdateSellerCompanyDto, UpdateKsefSettingsDto } from './dto/company-settings.dto';
-import { UpdateTrialOfferDto } from './dto/trial-offer.dto';
-import { UpdateMonitoringSettingsDto } from './dto/monitoring-settings.dto';
-import { UpdateSlaCreditPolicyDto } from './dto/sla-credit-policy.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { PlatformSettingsService } from './platform-settings.service.js';
+import { UpdatePlatformSettingsDto } from './dto/platform-settings.dto.js';
+import { UpdateSellerCompanyDto, UpdateKsefSettingsDto } from './dto/company-settings.dto.js';
+import { UpdateTrialOfferDto } from './dto/trial-offer.dto.js';
+import { UpdateMonitoringSettingsDto } from './dto/monitoring-settings.dto.js';
+import { UpdateSlaCreditPolicyDto } from './dto/sla-credit-policy.dto.js';
 
 @Controller('admin/platform-settings')
 @UseGuards(JwtAuthGuard, RolesGuard)

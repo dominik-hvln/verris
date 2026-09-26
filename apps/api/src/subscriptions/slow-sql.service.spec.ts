@@ -2,10 +2,10 @@ import { execFileSync } from 'child_process';
 import { mkdtempSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { wynikZLogu } from './slow-sql.service';
+import { wynikZLogu } from './slow-sql.service.js';
 
 /** K-14 — skrypt węzła na prawdziwym formacie slow logu MariaDB: tylko bazy konta, bez wartości z zapytań. */
-const SKRYPT = join(__dirname, '..', '..', '..', '..', 'ops', 'scripts', 'node-slow-sql.sh');
+const SKRYPT = join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'scripts', 'node-slow-sql.sh');
 const LOG = `# Time: 260925 10:00:00
 # User@Host: klient1_wp[klient1_wp] @ localhost []
 # Thread_id: 5  Schema: klient1_wp  QC_hit: No

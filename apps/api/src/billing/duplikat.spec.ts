@@ -1,7 +1,7 @@
 import { Readable } from 'node:stream';
 import { PDFDocument } from 'pdf-lib';
-import { InvoicePdfService, nadrukDuplikatu } from './invoice-pdf.service';
-import { InvoicesService } from './invoices.service';
+import { InvoicePdfService, nadrukDuplikatu } from './invoice-pdf.service.js';
+import { InvoicesService } from './invoices.service.js';
 
 /** M-07 — duplikat dokumentu: ta sama treść + nadruk na każdej stronie, audyt, tylko właściciel. */
 async function oryginal(): Promise<Uint8Array> {
@@ -36,13 +36,13 @@ describe('M-07 duplikat', () => {
     const o = Buffer.from(await oryginal());
     const prisma = {
       invoice: {
-        findFirst: jest.fn(async (a: { where: { userId: string } }) =>
+        findFirst: vi.fn(async (a: { where: { userId: string } }) =>
           a.where.userId === 'u1' ? { storageKey: 'k', number: 'VDR/2026/09/0001', hostedUrl: null } : null,
         ),
       },
     };
-    const audit = { record: jest.fn(async () => undefined) };
-    const storage = { getObjectStream: jest.fn(async () => Readable.from([o.subarray(0, 100), o.subarray(100)])) };
+    const audit = { record: vi.fn(async () => undefined) };
+    const storage = { getObjectStream: vi.fn(async () => Readable.from([o.subarray(0, 100), o.subarray(100)])) };
     const s = new InvoicesService(prisma as never, audit as never, {} as never, {} as never, storage as never, {} as never, {} as never, {} as never, {} as never);
     const { pdf, filename } = await s.renderDuplicate('u1', 'i1');
     expect(filename).toBe('VDR-2026-09-0001-duplikat.pdf');

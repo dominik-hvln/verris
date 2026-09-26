@@ -2,14 +2,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, SubscriptionStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
-import { PromoService } from '../billing/promo.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { PromoService } from '../billing/promo.service.js';
 import {
   subscriptionRenewalReminderTemplate,
   type RenewalReminderWindow,
-} from '../mail/templates/billing-lifecycle-notifications';
+} from '../mail/templates/billing-lifecycle-notifications.js';
 
 interface ReminderWindowSpec {
   window: RenewalReminderWindow;

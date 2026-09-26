@@ -2,10 +2,10 @@ import { createHash, randomBytes } from 'node:crypto';
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { HostingResourceActions } from '../common/audit/audit.actions';
-import { DirectAdminService } from '../servers/directadmin.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { HostingResourceActions } from '../common/audit/audit.actions.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
 
 /**
  * C-25 / C-26 — repozytorium Git strony: klucz wdrożeniowy konta, klonowanie do katalogu strony,

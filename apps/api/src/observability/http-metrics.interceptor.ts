@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { finalize } from 'rxjs/operators';
-import { HttpMetricsService, normalizePath } from './http-metrics.service';
+import { HttpMetricsService, normalizePath } from './http-metrics.service.js';
 
 @Injectable()
 export class HttpMetricsInterceptor implements NestInterceptor {

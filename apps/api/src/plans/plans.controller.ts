@@ -1,5 +1,5 @@
 import { Controller, Get, Param } from '@nestjs/common';
-import { PlansService } from './plans.service';
+import { PlansService } from './plans.service.js';
 import { Plan } from '@verris/database';
 
 /** Public catalog of active plans — no auth required (used on landing/pricing). */

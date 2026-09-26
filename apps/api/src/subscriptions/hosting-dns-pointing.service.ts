@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import * as dns from 'node:dns/promises';
-import { PrismaService } from '../prisma/prisma.service';
-import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
-import { DirectAdminService } from '../servers/directadmin.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
 
 export type DnsPointingStatus = 'ok' | 'partial' | 'fail' | 'pending';
 

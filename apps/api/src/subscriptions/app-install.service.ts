@@ -7,9 +7,9 @@ import {
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { DirectAdminService } from '../servers/directadmin.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
 
 interface AppCatalogEntry {
   slug: string;

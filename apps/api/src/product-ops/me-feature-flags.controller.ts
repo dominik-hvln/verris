@@ -1,9 +1,9 @@
 import { Controller, Get, HttpCode, UseGuards } from '@nestjs/common';
 import { SubscriptionStatus } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { PrismaService } from '../prisma/prisma.service';
-import { ocenFlage } from './feature-flags';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { ocenFlage } from './feature-flags.js';
 
 /** N-12 — flagi funkcji ocenione dla zalogowanego klienta: `{ [klucz]: włączona }`. */
 @Controller('me/feature-flags')

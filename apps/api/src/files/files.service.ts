@@ -6,10 +6,10 @@ import {
   PayloadTooLargeException,
 } from '@nestjs/common';
 import type { DaFileEntry } from '@verris/directadmin-sdk';
-import { PrismaService } from '../prisma/prisma.service';
-import { DirectAdminService } from '../servers/directadmin.service';
-import { AuditService } from '../common/audit/audit.service';
-import { HostingResourceActions } from '../common/audit/audit.actions';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { HostingResourceActions } from '../common/audit/audit.actions.js';
 
 /** Max bytes we will read into the in-panel text editor. */
 const MAX_EDIT_BYTES = 1_000_000; // 1 MB

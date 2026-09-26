@@ -13,7 +13,7 @@ import {
   STAWKA_VAT,
   trybFaktury,
   TYPY_SPRZEDAZY,
-} from './faktura-za-portfel';
+} from './faktura-za-portfel.js';
 
 /**
  * Z-01 — arytmetyka faktury, sprawdzona liczbowo.

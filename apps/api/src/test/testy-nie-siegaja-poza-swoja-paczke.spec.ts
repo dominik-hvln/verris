@@ -35,7 +35,7 @@ import { dirname, join, relative, resolve, sep } from 'path';
  * wykonaniem, musi mieszkać w `libs/`.
  */
 
-const PACZKA = resolve(__dirname, '..', '..');           // apps/api
+const PACZKA = resolve(import.meta.dirname, '..', '..');           // apps/api
 const ZRODLA = join(PACZKA, 'src');
 
 function pliki(katalog: string): string[] {

@@ -5,7 +5,7 @@
  * accidentally run in production with hard-coded fallbacks.
  */
 
-import { sprawdzKonfiguracjeWezlow } from '../servers/podpis-skryptow';
+import { sprawdzKonfiguracjeWezlow } from '../servers/podpis-skryptow.js';
 
 export interface AppConfig {
   nodeEnv: 'development' | 'production' | 'test';

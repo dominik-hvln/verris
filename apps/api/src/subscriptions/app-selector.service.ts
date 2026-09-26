@@ -1,9 +1,9 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { HostingResourceActions } from '../common/audit/audit.actions';
-import { DirectAdminService } from '../servers/directadmin.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { HostingResourceActions } from '../common/audit/audit.actions.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
 
 /**
  * B-08 / B-09 — aplikacje Node.js i Python konta przez CloudLinux Selector (`ops/scripts/node-app-selector.sh`,

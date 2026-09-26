@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
-import { PrismaService } from '../prisma/prisma.service';
-import { MailerService } from '../mail/mailer.service';
-import { newDeviceLoginTemplate } from '../mail/templates/security-notifications';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { newDeviceLoginTemplate } from '../mail/templates/security-notifications.js';
 
 /**
  * Sprint 2.5 — utrwalanie pomyślnych logowań (`LoginEvent`) i wykrywanie

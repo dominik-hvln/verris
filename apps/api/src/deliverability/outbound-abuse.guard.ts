@@ -1,8 +1,8 @@
 import { ForbiddenException, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import IORedis, { type Redis } from 'ioredis';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
+import { Redis } from 'ioredis';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
 
 /**
  * CYBER-3 — ochrona przed nadużyciem wysyłki (outbound spam).
@@ -46,7 +46,7 @@ export class OutboundAbuseGuard implements OnModuleDestroy {
     const url = process.env.REDIS_URL?.trim();
     if (url) {
       try {
-        this.redis = new IORedis(url, { maxRetriesPerRequest: null, lazyConnect: false });
+        this.redis = new Redis(url, { maxRetriesPerRequest: null, lazyConnect: false });
         this.redis.on('error', (e) =>
           this.logger.warn(`Redis (outbound-abuse) error: ${e.message}`),
         );

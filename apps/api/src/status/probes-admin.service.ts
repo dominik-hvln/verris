@@ -13,11 +13,11 @@ import {
   ServiceProbe,
   StatusWebhookEvent,
 } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { CreateProbeDto, UpdateIncidentDto, UpdateProbeDto } from './dto/probe.dto';
-import { StatusService } from './status.service';
-import { StatusWebhookService } from './status-webhook.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { CreateProbeDto, UpdateIncidentDto, UpdateProbeDto } from './dto/probe.dto.js';
+import { StatusService } from './status.service.js';
+import { StatusWebhookService } from './status-webhook.service.js';
 
 @Injectable()
 export class ProbesAdminService {

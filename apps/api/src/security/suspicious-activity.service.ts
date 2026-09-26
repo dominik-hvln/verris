@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
 
 const FAIL_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const FAIL_THRESHOLD = 10;

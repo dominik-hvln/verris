@@ -6,8 +6,8 @@ export function loadRedisScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/node-redis.sh'),
     join(process.cwd(), '../../ops/scripts/node-redis.sh'),
-    join(__dirname, '../../../../../ops/scripts/node-redis.sh'),
-    join(__dirname, '../../../../ops/scripts/node-redis.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/node-redis.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/node-redis.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) return readFileSync(path, 'utf8');

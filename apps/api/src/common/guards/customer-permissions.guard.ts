@@ -1,9 +1,9 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable, Optional } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { CustomerPermission } from '@verris/database';
-import { CUSTOMER_PERMISSIONS_KEY } from '../decorators/customer-permissions.decorator';
-import { wZakresie, ZAKRES_ODMOWA } from './zakres-uslug';
-import { AuditService } from '../audit/audit.service';
+import { CUSTOMER_PERMISSIONS_KEY } from '../decorators/customer-permissions.decorator.js';
+import { wZakresie, ZAKRES_ODMOWA } from './zakres-uslug.js';
+import { AuditService } from '../audit/audit.service.js';
 
 /**
  * Z-04 — uprawnienia subkont klienta.

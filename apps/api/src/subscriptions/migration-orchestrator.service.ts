@@ -7,20 +7,20 @@ import {
   Role,
 } from '@verris/database';
 import * as nodeCrypto from 'node:crypto';
-import { PrismaService } from '../prisma/prisma.service';
-import { CryptoService } from '../common/crypto/crypto.service';
-import { AuditService } from '../common/audit/audit.service';
-import { NotificationsService } from '../notifications/notifications.service';
-import { DirectAdminService } from '../servers/directadmin.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { CryptoService } from '../common/crypto/crypto.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
 import {
   CreateMigrationBundleDto,
   RequestExternalMigrationDto,
   RequestInternalMigrationDto,
   uzupelnijSkrzynke,
-} from './dto/migration.dto';
-import { MigrationPreflightService } from './migration-preflight.service';
-import { MigrationActions } from '../common/audit/audit.actions';
-import { resolvePublicHost } from './migration-net.util';
+} from './dto/migration.dto.js';
+import { MigrationPreflightService } from './migration-preflight.service.js';
+import { MigrationActions } from '../common/audit/audit.actions.js';
+import { resolvePublicHost } from './migration-net.util.js';
 
 type MigrationViewRow = {
   id: string;

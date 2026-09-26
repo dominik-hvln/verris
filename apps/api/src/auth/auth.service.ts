@@ -10,31 +10,31 @@ import { randomBytes } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { User, Role, UserAuthTokenPurpose } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { LoginDto, PasswordResetConfirmDto, PasswordResetRequestDto, RegisterDto } from './auth.dto';
-import { TwoFactorService } from './totp/two-factor.service';
-import { SuspiciousActivityService } from '../security/suspicious-activity.service';
-import { ConsentsService } from '../compliance/consents.service';
-import { MarketingPreferencesService } from '../compliance/marketing-preferences.service';
-import { AuditService } from '../common/audit/audit.service';
-import { RodoActions } from '../common/audit/audit.actions';
-import { LoginEventService } from './login-event.service';
-import { MailerService } from '../mail/mailer.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { LoginDto, PasswordResetConfirmDto, PasswordResetRequestDto, RegisterDto } from './auth.dto.js';
+import { TwoFactorService } from './totp/two-factor.service.js';
+import { SuspiciousActivityService } from '../security/suspicious-activity.service.js';
+import { ConsentsService } from '../compliance/consents.service.js';
+import { MarketingPreferencesService } from '../compliance/marketing-preferences.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { RodoActions } from '../common/audit/audit.actions.js';
+import { LoginEventService } from './login-event.service.js';
+import { MailerService } from '../mail/mailer.service.js';
 import {
   welcomeTemplate,
   passwordResetRequestTemplate,
   emailVerifyTemplate,
   emailVerifiedOkTemplate,
-} from '../mail/templates/auth-notifications';
+} from '../mail/templates/auth-notifications.js';
 import {
   passwordChangedTemplate,
   emailChangeVerifyTemplate,
   emailChangeAlertTemplate,
-} from '../mail/templates/security-notifications';
-import { generateAuthToken, hashAuthToken } from './auth-token.util';
-import { EcoPointsService } from '../eco/eco-points.service';
-import { PasskeyPolicyService } from './passkey-policy.service';
-import { PwnedPasswordService } from './pwned-password.service';
+} from '../mail/templates/security-notifications.js';
+import { generateAuthToken, hashAuthToken } from './auth-token.util.js';
+import { EcoPointsService } from '../eco/eco-points.service.js';
+import { PasskeyPolicyService } from './passkey-policy.service.js';
+import { PwnedPasswordService } from './pwned-password.service.js';
 
 const PASSWORD_RESET_TTL_MINUTES = 15;
 const EMAIL_VERIFICATION_TTL_HOURS = 24;

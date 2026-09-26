@@ -2,11 +2,11 @@ import { Body, Controller, Get, Put, Query, UseGuards } from '@nestjs/common';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
 import { Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { OpiekaZgloszenService, type RodzajAuto } from './opieka-zgloszen.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { OpiekaZgloszenService, type RodzajAuto } from './opieka-zgloszen.service.js';
 
 class UstawienieAutoDto {
   @IsBoolean()

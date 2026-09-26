@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../prisma/prisma.module';
-import { MailModule } from '../mail/mail.module';
-import { AuditModule } from '../common/audit/audit.module';
-import { LeadsService } from './leads.service';
-import { LeadsPublicController } from './leads-public.controller';
+import { PrismaModule } from '../prisma/prisma.module.js';
+import { MailModule } from '../mail/mail.module.js';
+import { AuditModule } from '../common/audit/audit.module.js';
+import { LeadsService } from './leads.service.js';
+import { LeadsPublicController } from './leads-public.controller.js';
 
 /** Leady z verris.pl (formularze LP + kontakt). */
 @Module({

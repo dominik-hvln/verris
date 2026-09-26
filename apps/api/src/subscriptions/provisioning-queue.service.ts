@@ -7,14 +7,14 @@ import {
 } from '@nestjs/common';
 import { Prisma, SubscriptionStatus, WalletTxType } from '@verris/database';
 import { Job, Queue, QueueEvents, UnrecoverableError, Worker } from 'bullmq';
-import IORedis from 'ioredis';
-import { PrismaService } from '../prisma/prisma.service';
-import { WalletLedgerService } from '../billing/wallet-ledger.service';
-import { AuditService } from '../common/audit/audit.service';
-import { ProvisioningActions } from '../common/audit/audit.actions';
-import { ProvisioningService } from './provisioning.service';
-import { BladEtapuProvisioningu } from './provisioning-error';
-import { PromoService } from '../billing/promo.service';
+import { Redis } from 'ioredis';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { ProvisioningActions } from '../common/audit/audit.actions.js';
+import { ProvisioningService } from './provisioning.service.js';
+import { BladEtapuProvisioningu } from './provisioning-error.js';
+import { PromoService } from '../billing/promo.service.js';
 
 export type ProvisionJobData =
   | {
@@ -60,7 +60,7 @@ export type ProvisioningStageValue =
 @Injectable()
 export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ProvisioningQueueService.name);
-  private connection: IORedis | null = null;
+  private connection: Redis | null = null;
   private queue: Queue<ProvisionJobData> | null = null;
   private worker: Worker<ProvisionJobData> | null = null;
   private events: QueueEvents | null = null;
@@ -92,7 +92,7 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
       return;
     }
     const url = process.env.REDIS_URL!.trim();
-    this.connection = new IORedis(url, { maxRetriesPerRequest: null });
+    this.connection = new Redis(url, { maxRetriesPerRequest: null });
     this.queue = new Queue<ProvisionJobData>(QUEUE_NAME, {
       connection: this.connection,
       defaultJobOptions: {

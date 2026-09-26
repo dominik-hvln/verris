@@ -1,16 +1,16 @@
 import { NotFoundException } from '@nestjs/common';
-import { EcoPublicController } from './eco-public.controller';
-import { ECO_BADGE_TRACKING_PIXEL } from './eco-badge.service';
+import { EcoPublicController } from './eco-public.controller.js';
+import { ECO_BADGE_TRACKING_PIXEL } from './eco-badge.service.js';
 
 describe('EcoPublicController', () => {
   const prisma = {
-    user: { findFirst: jest.fn() },
+    user: { findFirst: vi.fn() },
   };
   const ecoBadge = {
-    recordImpression: jest.fn(),
+    recordImpression: vi.fn(),
   };
 
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => vi.clearAllMocks());
 
   function controller() {
     return new EcoPublicController(prisma as never, ecoBadge as never);

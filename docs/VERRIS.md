@@ -12,6 +12,16 @@ nie źródło prawdy). Poza tym zostają tylko dokumenty operacyjne i prawne: `d
 
 ## Decyzje
 
+### 2026-09-26 — API i biblioteki jako ESM (PB-39)
+Decyzja właściciela (formularz): przechodzimy teraz. API (`"type": "module"`, `module/moduleResolution: nodenext`,
+względne importy z `.js`, `import.meta.dirname`), `@verris/database` (generator **`prisma-client`** do
+`src/generated/prisma` — `prisma-client-js` jest wycofany; paczka ma `exports`, seedy importują `@verris/database`
+i biegną w Node 24 bez ts-node), `@verris/directadmin-sdk` (ESM). `@verris/contracts` to źródła TS czytane przez
+bundlery — importy z rozszerzeniem `.ts` (`allowImportingTsExtensions`; Turbopack nie mapuje `.js` → `.ts`).
+Testy API na **Vitest** + unplugin-swc (zalecenie NestJS 12 dla ESM) — koniec z eksperymentalną flagą
+`--experimental-vm-modules`. Build: Rspack z wyjściem ESM; zależności z korzenia `node_modules` zawsze poza paczką
+(obraz ma `nodeLinker: hoisted`). Skrypty ops z `require('@verris/database')` działają dzięki require(esm) w Node 24.
+
 ### 2026-09-26 — zawsze najnowsze stabilne wersje przed startem (PB-38)
 Zasada właściciela: przed startem jedziemy na najnowszych **stabilnych** wersjach (LTS tam, gdzie jest).
 Fala 1 (zrobiona): **Node 24** (Active LTS; Node 26 — gdy zostanie LTS, koniec 10.2026), **TypeScript 6.0**

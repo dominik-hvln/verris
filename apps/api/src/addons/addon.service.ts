@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, WalletTxType } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { WalletLedgerService } from '../billing/wallet-ledger.service';
-import { TicketsService } from '../tickets/tickets.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
+import { TicketsService } from '../tickets/tickets.service.js';
 
 type AddonMode = 'flag' | 'workorder';
 

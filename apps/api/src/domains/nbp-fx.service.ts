@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
-import { parseDomainPricingConfig } from './domain-pricing.util';
+import { parseDomainPricingConfig } from './domain-pricing.util.js';
 
 export interface NbpFxSnapshot {
   usdPln: number;

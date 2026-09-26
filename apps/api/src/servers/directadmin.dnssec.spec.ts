@@ -1,5 +1,6 @@
+import type { Mock } from 'vitest';
 import { BadRequestException } from '@nestjs/common';
-import { DirectAdminService } from './directadmin.service';
+import { DirectAdminService } from './directadmin.service.js';
 
 /**
  * F-06 — DNSSEC przez CMD_API_DNS_ADMIN action=dnssec (docs.directadmin.com: changelog 1.44.2/1.51.0,
@@ -13,24 +14,24 @@ const PODPISANA = new URLSearchParams({
 
 function stanowisko(o: { odpowiedz?: string; status?: string } = {}) {
   const account = { id: 'a1', status: o.status ?? 'ACTIVE', serverId: 'srv1', daUsername: 'klient1', daPasswordEnc: 'enc' };
-  const svc = new DirectAdminService({} as never, {} as never, {} as never, { record: jest.fn(async () => undefined) } as never);
+  const svc = new DirectAdminService({} as never, {} as never, {} as never, { record: vi.fn(async () => undefined) } as never);
   let stan = o.odpowiedz ?? 'error=0';
-  const get = jest.fn(async (_p: string, _c?: unknown) => ({ data: stan }));
-  const post = jest.fn(async (_p: string, body: string) => {
+  const get = vi.fn(async (_p: string, _c?: unknown) => ({ data: stan }));
+  const post = vi.fn(async (_p: string, body: string) => {
     const f = new URLSearchParams(body);
     if (f.get('sign_zone')) stan = PODPISANA;
     if (f.get('remove_dnssec')) stan = 'error=0';
     return { data: 'error=0&text=OK' };
   });
-  jest.spyOn(svc, 'getClientForServer').mockResolvedValue({ client: { get, post } } as never);
+  vi.spyOn(svc, 'getClientForServer').mockResolvedValue({ client: { get, post } } as never);
   Object.assign(svc, {
-    accountClientForSubscription: jest.fn(async () => ({ account, client: {} })),
-    assertDomainOwnedBySubscription: jest.fn(async (_s: string, _u: string, d: string) => {
+    accountClientForSubscription: vi.fn(async () => ({ account, client: {} })),
+    assertDomainOwnedBySubscription: vi.fn(async (_s: string, _u: string, d: string) => {
       if (d !== 'firma.pl') throw new BadRequestException('Ta domena nie należy do tej usługi.');
       return d;
     }),
   });
-  const audit = (svc as unknown as { audit: { record: jest.Mock } }).audit;
+  const audit = (svc as unknown as { audit: { record: Mock } }).audit;
   const kroki = () => post.mock.calls.map((c) => Object.fromEntries(new URLSearchParams(String(c[1]))));
   return { svc, get, post, audit, kroki };
 }

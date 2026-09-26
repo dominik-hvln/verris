@@ -1,14 +1,14 @@
 import { ServiceUnavailableException } from '@nestjs/common';
-import { DomainRegistrarService } from './domain-registrar.service';
+import { DomainRegistrarService } from './domain-registrar.service.js';
 
 describe('DomainRegistrarService', () => {
   const prisma = {};
-  const audit = { record: jest.fn() };
-  const crypto = { encrypt: jest.fn((v: string) => `enc:${v}`) };
-  const wallet = { debit: jest.fn(), credit: jest.fn() };
-  const config = { get: jest.fn(() => '1.0') };
+  const audit = { record: vi.fn() };
+  const crypto = { encrypt: vi.fn((v: string) => `enc:${v}`) };
+  const wallet = { debit: vi.fn(), credit: vi.fn() };
+  const config = { get: vi.fn(() => '1.0') };
   const nbpFx = {
-    getRates: jest.fn().mockResolvedValue({
+    getRates: vi.fn().mockResolvedValue({
       usdPln: 3.65,
       eurPln: 4.32,
       source: 'env',
@@ -17,13 +17,13 @@ describe('DomainRegistrarService', () => {
       fetchedAt: new Date().toISOString(),
     }),
   };
-  const ecoPoints = { safeAward: jest.fn(), awardDomainFirstPaid: jest.fn(), awardDomainRenewal: jest.fn() };
+  const ecoPoints = { safeAward: vi.fn(), awardDomainFirstPaid: vi.fn(), awardDomainRenewal: vi.fn() };
 
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => vi.clearAllMocks());
 
   it('fails closed when registrar provider is not configured', async () => {
     const providerFactory = {
-      get: jest.fn(() => {
+      get: vi.fn(() => {
         throw new ServiceUnavailableException('Registrar provider is not configured.');
       }),
     };
@@ -43,7 +43,7 @@ describe('DomainRegistrarService', () => {
 
   it('checks availability before registering a domain', async () => {
     const provider = {
-      availability: jest.fn().mockResolvedValue({ domain: 'example.pl', available: false }),
+      availability: vi.fn().mockResolvedValue({ domain: 'example.pl', available: false }),
     };
     const service = new DomainRegistrarService(
       prisma as never,

@@ -1,14 +1,14 @@
 import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { Role } from '@verris/database';
 import { IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
-import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { RateLimit } from '../common/guards/rate-limit.guard';
-import { BetaService } from './beta.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
+import { BetaService } from './beta.service.js';
 
 export class ZaproszenieDoTestowDto {
   @IsEmail() @MaxLength(254) email!: string;

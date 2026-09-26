@@ -15,22 +15,22 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { InvoiceStatus, Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
-import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { RequestContext } from '../common/decorators/request-context';
-import type { RequestContextDto } from '../common/decorators/request-context';
-import { InvoicesService } from './invoices.service';
-import { FakturaRecznaDto } from './dto/faktura-reczna.dto';
-import { WystawKorekteDto } from './dto/korekta.dto';
-import { KorektyService } from './korekty.service';
-import { FakturaZewnetrznaDto } from './dto/faktura-zewnetrzna.dto';
-import { FakturyZewnetrzneService } from './faktury-zewnetrzne.service';
-import { AnulowanieService } from './anulowanie.service';
-import { AnulujDokumentDto } from './dto/anuluj.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { RequestContext } from '../common/decorators/request-context.js';
+import type { RequestContextDto } from '../common/decorators/request-context.js';
+import { InvoicesService } from './invoices.service.js';
+import { FakturaRecznaDto } from './dto/faktura-reczna.dto.js';
+import { WystawKorekteDto } from './dto/korekta.dto.js';
+import { KorektyService } from './korekty.service.js';
+import { FakturaZewnetrznaDto } from './dto/faktura-zewnetrzna.dto.js';
+import { FakturyZewnetrzneService } from './faktury-zewnetrzne.service.js';
+import { AnulowanieService } from './anulowanie.service.js';
+import { AnulujDokumentDto } from './dto/anuluj.dto.js';
 
 const VALID_STATUSES: InvoiceStatus[] = [
   InvoiceStatus.DRAFT,

@@ -1,20 +1,20 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { PhpService } from './php.service';
+import { PhpService } from './php.service.js';
 
 /** P-6 / B-04 — zmiana wersji i rozszerzeń PHP zadaniem PHP_APPLY (CloudLinux selectorctl). */
 function stanowisko(o: { phpVersion?: string | null; wToku?: unknown } = {}) {
   const account = { id: 'a1', userId: 'u1', serverId: 'n1', status: 'ACTIVE', daUsername: 'klient1', domain: 'a.pl', phpVersion: o.phpVersion === undefined ? '8.3' : o.phpVersion };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
-    account: { findUnique: jest.fn(async () => account), update: jest.fn(async () => account) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    account: { findUnique: vi.fn(async () => account), update: vi.fn(async () => account) },
     nodeTask: {
-      findFirst: jest.fn(async () => o.wToku ?? null),
-      create: jest.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
+      findFirst: vi.fn(async () => o.wToku ?? null),
+      create: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
     },
-    $transaction: jest.fn(async (ops: unknown[]) => Promise.all(ops)),
+    $transaction: vi.fn(async (ops: unknown[]) => Promise.all(ops)),
   };
-  const audit = { record: jest.fn(async () => undefined) };
-  const settings = { getAvailablePhpVersions: jest.fn(async () => ['8.2', '8.3']) };
+  const audit = { record: vi.fn(async () => undefined) };
+  const settings = { getAvailablePhpVersions: vi.fn(async () => ['8.2', '8.3']) };
   return { svc: new PhpService(prisma as never, audit as never, settings as never), prisma, audit };
 }
 const payload = (s: ReturnType<typeof stanowisko>) =>

@@ -8,7 +8,7 @@
  *
  * USAGE:  ts-node libs/database/prisma/seed-canned.ts
  */
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@verris/database';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 // X-20 — Prisma 7: połączenie przez driver adapter (adres z DATABASE_URL).

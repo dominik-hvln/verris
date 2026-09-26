@@ -1,6 +1,6 @@
 import { Controller, Get, Header, Headers, HttpCode, UnauthorizedException } from '@nestjs/common';
 import { timingSafeEqual } from 'node:crypto';
-import { MetricsService } from './metrics.service';
+import { MetricsService } from './metrics.service.js';
 
 /**
  * F-13: `GET /metrics` — exposed for Prometheus scraping. Authentication is

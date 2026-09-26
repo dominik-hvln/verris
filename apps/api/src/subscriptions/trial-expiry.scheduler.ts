@@ -2,13 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { SubscriptionStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { MailerService } from '../mail/mailer.service';
-import { SubscriptionsService } from './subscriptions.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { SubscriptionsService } from './subscriptions.service.js';
 import {
   trialEndingSoonTemplate,
   trialExpiredTemplate,
-} from '../mail/templates/billing-lifecycle-notifications';
+} from '../mail/templates/billing-lifecycle-notifications.js';
 
 const REMINDER_WINDOW_DAYS = 3;
 

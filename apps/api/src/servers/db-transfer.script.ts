@@ -6,8 +6,8 @@ export function loadDbTransferScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/node-db-transfer.sh'),
     join(process.cwd(), '../../ops/scripts/node-db-transfer.sh'),
-    join(__dirname, '../../../../../ops/scripts/node-db-transfer.sh'),
-    join(__dirname, '../../../../ops/scripts/node-db-transfer.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/node-db-transfer.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/node-db-transfer.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) return readFileSync(path, 'utf8');

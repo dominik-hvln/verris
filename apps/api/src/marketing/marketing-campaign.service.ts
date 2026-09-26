@@ -12,11 +12,11 @@ import {
   MarketingSegment,
   Prisma,
 } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { MailerService } from '../mail/mailer.service';
-import type { MailMessage } from '../mail/mailer.interface';
-import { renderEmailShell } from '../mail/templates/_layouts/email-shell';
-import { AuditService } from '../common/audit/audit.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import type { MailMessage } from '../mail/mailer.interface.js';
+import { renderEmailShell } from '../mail/templates/_layouts/email-shell.js';
+import { AuditService } from '../common/audit/audit.service.js';
 
 /**
  * Sprint 2.6 — silnik kampanii marketingowych.

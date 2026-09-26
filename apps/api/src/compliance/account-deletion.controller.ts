@@ -11,10 +11,10 @@ import {
 } from '@nestjs/common';
 import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import type { Request } from 'express';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { extractRequestContext } from '../common/decorators/request-context';
-import { AccountDeletionService } from './account-deletion.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { extractRequestContext } from '../common/decorators/request-context.js';
+import { AccountDeletionService } from './account-deletion.service.js';
 
 class RequestDeletionDto {
   @IsString()

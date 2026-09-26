@@ -1,11 +1,11 @@
 import { BadRequestException, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../prisma/prisma.service';
-import { MailerService } from '../mail/mailer.service';
-import { AuditService } from '../common/audit/audit.service';
-import { NotificationsService } from '../notifications/notifications.service';
-import { AiService } from '../ai/ai.service';
-import { ticketAutoMessageTemplate } from '../mail/templates/ticket-notifications';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
+import { AiService } from '../ai/ai.service.js';
+import { ticketAutoMessageTemplate } from '../mail/templates/ticket-notifications.js';
 
 /**
  * PB-37 — opieka nad zgłoszeniem (decyzja właściciela 2026-09-26).

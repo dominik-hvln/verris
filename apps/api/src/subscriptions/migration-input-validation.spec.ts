@@ -11,7 +11,7 @@ import {
   MigrationImapSourceDto,
   MigrationMysqlSourceDto,
   RequestExternalMigrationDto,
-} from './dto/migration.dto';
+} from './dto/migration.dto.js';
 
 /**
  * Z-03 — wstrzyknięcie polecenia powłoki przez formularz migracji.
@@ -33,7 +33,7 @@ import {
  *     biblioteki walidacji zatrzymuje worker (fail-closed).
  */
 
-const KORZEN = resolve(__dirname, '../../../..');
+const KORZEN = resolve(import.meta.dirname, '../../../..');
 const GUARD = resolve(KORZEN, 'ops/scripts/lib/migration-input-guard.sh');
 const WORKER = resolve(KORZEN, 'ops/scripts/node-migration-worker.sh');
 

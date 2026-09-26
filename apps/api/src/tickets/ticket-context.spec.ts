@@ -1,4 +1,4 @@
-import { buildDraft, classifyTicket, renderTemplate, templateVars, type TicketDraftContext } from './ticket-context';
+import { buildDraft, classifyTicket, renderTemplate, templateVars, type TicketDraftContext } from './ticket-context.js';
 
 const ctx: TicketDraftContext = {
   firstName: 'Anna',

@@ -1,13 +1,13 @@
 import { Controller, Get, HttpCode, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { PrismaService } from '../prisma/prisma.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import {
   StatusService,
   maintenanceVisibleWhere,
   toPublicMaintenanceDto,
   type PublicMaintenanceDto,
-} from './status.service';
+} from './status.service.js';
 
 /** N-11 — ogłoszenia widać w panelu przez 30 dni od publikacji (albo do expiresAt / archiwizacji). */
 export const ANNOUNCEMENT_VISIBLE_DAYS = 30;

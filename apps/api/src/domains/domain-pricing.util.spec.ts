@@ -1,4 +1,4 @@
-import { roundToNearest99, toCustomerDomainPrice, wholesaleToWalletCurrency } from './domain-pricing.util';
+import { roundToNearest99, toCustomerDomainPrice, wholesaleToWalletCurrency } from './domain-pricing.util.js';
 import { Prisma } from '@verris/database';
 
 const cfg = { markup: 1.3, usdPln: 3.65, eurPln: 4.32, walletCurrency: 'PLN', vatRate: 23 };

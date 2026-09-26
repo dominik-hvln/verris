@@ -9,12 +9,12 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { RenewalScheduler } from './renewal.scheduler';
-import { SubscriptionsService } from './subscriptions.service';
-import { PlanChangeService } from './plan-change.service';
-import { TrialService } from './trial.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { RenewalScheduler } from './renewal.scheduler.js';
+import { SubscriptionsService } from './subscriptions.service.js';
+import { PlanChangeService } from './plan-change.service.js';
+import { TrialService } from './trial.service.js';
 import {
   CancelSubscriptionDto,
   ConvertTrialDto,
@@ -22,10 +22,10 @@ import {
   PreviewSubscriptionPromoDto,
   UpdateAutoscalingDto,
   UpdateSubscriptionPreferencesDto,
-} from './dto/subscription.dto';
-import { StartTrialDto } from './dto/trial.dto';
-import { ChangePlanDto, PreviewPlanChangeDto } from './dto/plan-change.dto';
-import { RateLimit } from '../common/guards/rate-limit.guard';
+} from './dto/subscription.dto.js';
+import { StartTrialDto } from './dto/trial.dto.js';
+import { ChangePlanDto, PreviewPlanChangeDto } from './dto/plan-change.dto.js';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
 
 @Controller('subscriptions')
 @UseGuards(JwtAuthGuard)

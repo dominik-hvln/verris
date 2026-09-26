@@ -1,6 +1,6 @@
-import { LiveReadinessService } from '../../src/admin-readiness/live-readiness.service';
-import { MAKS_WIEK_PROBY_DNI } from '../../src/admin-readiness/proba-odtworzenia';
-import { prisma, rozlacz, wyczyscBaze } from './setup';
+import { LiveReadinessService } from '../../src/admin-readiness/live-readiness.service.js';
+import { MAKS_WIEK_PROBY_DNI } from '../../src/admin-readiness/proba-odtworzenia.js';
+import { prisma, rozlacz, wyczyscBaze } from './setup.js';
 
 /**
  * H-20 — bramka go-live przeciwko prawdziwej bazie.

@@ -5,7 +5,7 @@ import {
   MAKS_OVERCOMMIT,
   pojemnoscSprzedazowa,
   PolitykaPojemnosci,
-} from './node-capacity';
+} from './node-capacity.js';
 
 /**
  * Z-12 — arytmetyka pojemności węzła.

@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AiInteractionStatus, Prisma } from '@verris/database';
-import { buildHints } from '../subscriptions/assistant-hints';
+import { buildHints } from '../subscriptions/assistant-hints.js';
 import { createHash } from 'crypto';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { AiProviderService } from './ai-provider.service';
-import { KnowledgeBaseService } from './knowledge-base.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { AiProviderService } from './ai-provider.service.js';
+import { KnowledgeBaseService } from './knowledge-base.service.js';
 
 export interface ChatTurn {
   role: 'user' | 'assistant';

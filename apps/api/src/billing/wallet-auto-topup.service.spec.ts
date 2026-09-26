@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { Prisma } from '@verris/database';
-import { WalletAutoTopupService } from './wallet-auto-topup.service';
+import { WalletAutoTopupService } from './wallet-auto-topup.service.js';
 
 /**
  * M-22 — auto-doładowanie portfela: kiedy obciążamy kartę (off-session), na ile i czego
@@ -32,24 +32,24 @@ function regula(over: Partial<Record<string, unknown>> = {}, user: Partial<Recor
 function zbuduj(reguly: unknown[], opts: { configured?: boolean; pi?: unknown; piThrows?: Error; pmRow?: unknown } = {}) {
   const prisma = {
     walletAutoTopup: {
-      findMany: jest.fn(async () => reguly),
-      update: jest.fn(async () => ({})),
-      updateMany: jest.fn(async () => ({ count: 1 })),
-      upsert: jest.fn(async (a: unknown) => a),
-      findUnique: jest.fn(async () => null),
+      findMany: vi.fn(async () => reguly),
+      update: vi.fn(async () => ({})),
+      updateMany: vi.fn(async () => ({ count: 1 })),
+      upsert: vi.fn(async (a: unknown) => a),
+      findUnique: vi.fn(async () => null),
     },
-    paymentMethod: { findFirst: jest.fn(async () => opts.pmRow ?? null) },
+    paymentMethod: { findFirst: vi.fn(async () => opts.pmRow ?? null) },
   };
   const stripe = {
-    isConfigured: jest.fn(() => opts.configured ?? true),
-    createOffSessionPaymentIntent: jest.fn(async () => {
+    isConfigured: vi.fn(() => opts.configured ?? true),
+    createOffSessionPaymentIntent: vi.fn(async () => {
       if (opts.piThrows) throw opts.piThrows;
       return opts.pi ?? { id: 'pi_1', status: 'succeeded' };
     }),
   };
-  const audit = { record: jest.fn(async () => undefined) };
-  const mailer = { send: jest.fn(async () => undefined) };
-  const config = { get: jest.fn(() => undefined) };
+  const audit = { record: vi.fn(async () => undefined) };
+  const mailer = { send: vi.fn(async () => undefined) };
+  const config = { get: vi.fn(() => undefined) };
   const svc = new WalletAutoTopupService(prisma as never, stripe as never, audit as never, mailer as never, config as never);
   return { svc, prisma, stripe, audit, mailer };
 }

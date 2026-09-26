@@ -1,6 +1,6 @@
 import { X509Certificate } from 'crypto';
 import { DirectAdminClient } from '@verris/directadmin-sdk';
-import { DirectAdminService } from './directadmin.service';
+import { DirectAdminService } from './directadmin.service.js';
 
 /**
  * SSL w DirectAdminService: wystawienie Let's Encrypt, wklejenie własnego certyfikatu
@@ -19,19 +19,19 @@ function stanowisko(o: { status?: string; get?: Record<string, unknown>; post?: 
     '/CMD_API_SHOW_USER_CONFIG': 'domain=firma.pl',
     ...o.get,
   };
-  const get = jest.fn((path: string, _cfg?: Record<string, unknown>) => odp(trasyGet[path] ?? ''));
-  const post = jest.fn((path: string, _body?: unknown, _cfg?: Record<string, unknown>) =>
+  const get = vi.fn((path: string, _cfg?: Record<string, unknown>) => odp(trasyGet[path] ?? ''));
+  const post = vi.fn((path: string, _body?: unknown, _cfg?: Record<string, unknown>) =>
     odp(o.post?.[path] ?? 'error=0&text=OK'),
   );
   const klient = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'klient1', loginKey: 'x', secure: true });
   Object.assign(klient, { client: { get, post } });
   const account = { id: 'a1', status: o.status ?? 'ACTIVE', daUsername: 'klient1', domain: 'firma.pl', daPasswordEnc: 'enc' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
-    account: { update: jest.fn(async () => account) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    account: { update: vi.fn(async () => account) },
   };
-  const svc = new DirectAdminService(prisma as never, {} as never, {} as never, { record: jest.fn() } as never);
-  jest.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue(klient);
+  const svc = new DirectAdminService(prisma as never, {} as never, {} as never, { record: vi.fn() } as never);
+  vi.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue(klient);
   const wyslane = (n = 0) => Object.fromEntries(new URLSearchParams(String(post.mock.calls[n]?.[1] ?? '')));
   return { svc, get, post, wyslane };
 }
@@ -131,7 +131,7 @@ describe('SSL — własny certyfikat (type=paste)', () => {
 });
 
 describe('SSL — stan certyfikatów (odczyt X.509)', () => {
-  afterEach(() => jest.useRealTimers());
+  afterEach(() => vi.useRealTimers());
   const zCertem = () =>
     stanowisko({ get: { '/CMD_API_SSL': new URLSearchParams({ key: KLUCZ, certificate: PEM }).toString() } });
 
@@ -140,7 +140,7 @@ describe('SSL — stan certyfikatów (odczyt X.509)', () => {
     [5, 'EXPIRING', 5],
     [-1, 'EXPIRED', -1],
   ])('%i dni do końca ważności → %s', async (dni, status, daysLeft) => {
-    jest.useFakeTimers({ now: KONIEC - dni * DZIEN });
+    vi.useFakeTimers({ now: KONIEC - dni * DZIEN });
     const s = zCertem();
     const { rows, fetchError } = await s.svc.listHostingSslCertificates('s1', 'u1');
     expect(fetchError).toBeNull();

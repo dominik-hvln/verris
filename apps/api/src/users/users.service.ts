@@ -14,18 +14,18 @@ import {
 } from '@verris/database';
 import * as bcrypt from 'bcrypt';
 import { randomBytes, createHash } from 'crypto';
-import { PrismaService } from '../prisma/prisma.service';
-import { resolveSidebarQuickLinks, isSidebarTileHref } from './sidebar-quick-links';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { resolveSidebarQuickLinks, isSidebarTileHref } from './sidebar-quick-links.js';
 import {
   UpdateProfileDto,
   ChangePasswordDto,
   ApplyReferralCodeDto,
   RedeemEcoPointsDto,
-} from './users.dto';
-import { MailerService } from '../mail/mailer.service';
-import { passwordChangedTemplate } from '../mail/templates/security-notifications';
-import { EcoBadgeService } from './eco-badge.service';
-import { EcoPointsService, isBillingProfileComplete } from '../eco/eco-points.service';
+} from './users.dto.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { passwordChangedTemplate } from '../mail/templates/security-notifications.js';
+import { EcoBadgeService } from './eco-badge.service.js';
+import { EcoPointsService, isBillingProfileComplete } from '../eco/eco-points.service.js';
 
 @Injectable()
 export class UsersService {

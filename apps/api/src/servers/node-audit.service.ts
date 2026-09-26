@@ -1,5 +1,5 @@
-import { STOS_WEZLA, zgodnoscZManifestem, type ManifestStosu } from './stos-wezla';
-import { StosWezlaService } from './stos-wezla.service';
+import { STOS_WEZLA, zgodnoscZManifestem, type ManifestStosu } from './stos-wezla.js';
+import { StosWezlaService } from './stos-wezla.service.js';
 import {
   BadRequestException,
   Injectable,
@@ -19,15 +19,15 @@ import type {
 } from '@verris/contracts';
 import { Plan, Server, ServerStatus } from '@verris/database';
 import { DirectAdminClient } from '@verris/directadmin-sdk';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { DirectAdminService } from './directadmin.service';
-import { NodeTasksService } from './node-tasks.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { DirectAdminService } from './directadmin.service.js';
+import { NodeTasksService } from './node-tasks.service.js';
 import {
   DA_DEFAULT_LANGUAGE,
   buildDaPackageSpecFromPlan,
   planResourceFields,
-} from './da-package-spec';
+} from './da-package-spec.js';
 
 const WILDCARD_TLS_SAN = '*.verris.pl';
 const HEARTBEAT_FRESH_MS = 5 * 60 * 1000;

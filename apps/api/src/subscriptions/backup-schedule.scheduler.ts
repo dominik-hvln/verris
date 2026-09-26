@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { BackupScheduleService } from './backup-schedule.service';
+import { BackupScheduleService } from './backup-schedule.service.js';
 
 /**
  * PANEL-11 — co godzinę uruchamia zaplanowane backupy kont, których czas właśnie

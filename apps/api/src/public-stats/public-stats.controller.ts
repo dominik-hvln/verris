@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ServerStatus, AccountStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 export interface PublicStatsDto {
   hostedAccounts: number;

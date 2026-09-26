@@ -8,13 +8,13 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service.js';
 import {
   ECO_BADGE_TRACKING_PIXEL,
   EcoBadgeService,
-} from './eco-badge.service';
-import { extractRequestContext } from '../common/decorators/request-context';
-import { ecoTier } from '../badges/badge-logic';
+} from './eco-badge.service.js';
+import { extractRequestContext } from '../common/decorators/request-context.js';
+import { ecoTier } from '../badges/badge-logic.js';
 
 type EcoBadgeVariant = 'classic' | 'compact' | 'mini' | 'statement';
 type EcoBadgeTheme = 'dark' | 'light';

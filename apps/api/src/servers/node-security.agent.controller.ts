@@ -1,9 +1,9 @@
 import { Body, Controller, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
-import { ServerIdentityGuard } from './guards/server-identity.guard';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
+import { ServerIdentityGuard } from './guards/server-identity.guard.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
 
 class SecurityAlertDto {
   @IsString()

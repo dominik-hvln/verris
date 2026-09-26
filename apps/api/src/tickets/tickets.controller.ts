@@ -13,12 +13,12 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { opcjeUploaduDoPamieci } from '../common/upload/multer-limity';
-import { TicketsService } from './tickets.service';
+import { opcjeUploaduDoPamieci } from '../common/upload/multer-limity.js';
+import { TicketsService } from './tickets.service.js';
 import {
   TICKET_UPLOAD_MAX_BYTES,
   TICKET_UPLOAD_MAX_FILES_PER_BATCH,
-} from './ticket-attachment.utils';
+} from './ticket-attachment.utils.js';
 import {
   CreateTicketDto,
   AddTicketReplyDto,
@@ -29,18 +29,18 @@ import {
   RunbookZgloszeniaDto,
   RyzykoZgloszeniaDto,
   ZmianaSzablonuDto,
-} from './tickets.dto';
-import { CannedResponseService } from './canned-response.service';
-import { TicketContextService } from './ticket-context.service';
-import { OpiekaZgloszenService } from './opieka-zgloszen.service';
-import { renderTemplate } from './ticket-context';
+} from './tickets.dto.js';
+import { CannedResponseService } from './canned-response.service.js';
+import { TicketContextService } from './ticket-context.service.js';
+import { OpiekaZgloszenService } from './opieka-zgloszen.service.js';
+import { renderTemplate } from './ticket-context.js';
 import { Delete, HttpCode } from '@nestjs/common';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { Roles } from '../common/decorators/roles.decorator';
-import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
-import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
 
 // SEC-07 — limity multipartu pochodzą z jednego miejsca, razem z fieldArrayIndexLimit.
 const FILES_MEMORY = FilesInterceptor(

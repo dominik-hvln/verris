@@ -1,6 +1,6 @@
 import { execFileSync } from 'child_process';
-import { buildNodeBootstrapOneLiner, buildNodeBootstrapScript } from './node-bootstrap.script';
-import { STOS_WEZLA, stosJakoEnv, zgodnoscZManifestem } from './stos-wezla';
+import { buildNodeBootstrapOneLiner, buildNodeBootstrapScript } from './node-bootstrap.script.js';
+import { STOS_WEZLA, stosJakoEnv, zgodnoscZManifestem } from './stos-wezla.js';
 
 /** PB-29 / PB-30 — bootstrap węzła: bez sekretów w treści, manifest wersji, poprawne wykrywanie CloudLinux. */
 describe('Bootstrap węzła (PB-29 / PB-30)', () => {

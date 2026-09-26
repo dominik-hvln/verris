@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Prisma, Role, WalletTxType } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
-import { InvoicesService } from './invoices.service';
-import { fakturaNiedokonczonaTemplate, progOssTemplate } from '../mail/templates/ops-notifications';
-import { ALARM_OSS_PROCENT, odczytajOss, PROG_OSS_PLN, sprzedazB2cUe } from './vat';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { InvoicesService } from './invoices.service.js';
+import { fakturaNiedokonczonaTemplate, progOssTemplate } from '../mail/templates/ops-notifications.js';
+import { ALARM_OSS_PROCENT, odczytajOss, PROG_OSS_PLN, sprzedazB2cUe } from './vat.js';
 import {
   czyAlarmowacOFakturze,
   DOSTAWCA_PORTFEL,
@@ -19,7 +19,7 @@ import {
   STAWKA_VAT,
   TYPY_SPRZEDAZY,
   ZNACZNIK_M34,
-} from './faktura-za-portfel';
+} from './faktura-za-portfel.js';
 
 /**
  * Z-01 — dwa zadania cykliczne wokół faktur.

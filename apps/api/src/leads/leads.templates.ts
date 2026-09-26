@@ -1,5 +1,5 @@
-import type { MailMessage } from '../mail/mailer.interface';
-import { escapeMarkdown as md, renderEmailShell } from '../mail/templates/_layouts/email-shell';
+import type { MailMessage } from '../mail/mailer.interface.js';
+import { escapeMarkdown as md, renderEmailShell } from '../mail/templates/_layouts/email-shell.js';
 
 type Szablon = Omit<MailMessage, 'fromAddress'>;
 

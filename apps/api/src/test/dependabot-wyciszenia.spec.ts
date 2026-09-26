@@ -18,7 +18,7 @@ import { join } from 'path';
  * skutkiem tego, że nikt nie zajrzał.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const PLIK = join(KORZEN, '.github', 'dependabot.yml');
 
 export interface Wyciszenie {

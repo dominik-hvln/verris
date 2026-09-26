@@ -1,4 +1,4 @@
-import { oblozenieWezla, zuzycieZProbek } from './node-capacity';
+import { oblozenieWezla, zuzycieZProbek } from './node-capacity.js';
 
 /** Z-15 — watchdog ostrzega o realnym zapełnieniu, a sprzedaż liczy względem nadsubskrypcji. */
 describe('oblozenieWezla / zuzycieZProbek', () => {

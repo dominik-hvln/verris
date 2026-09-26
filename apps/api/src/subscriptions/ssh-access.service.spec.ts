@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { SshAccessService, sprawdzKlucze } from './ssh-access.service';
+import { SshAccessService, sprawdzKlucze } from './ssh-access.service.js';
 
 /**
  * C-21/C-22 — strona API. Skrypt węzła sprawdzony lokalnie: bez CageFS odmowa, user.conf i powłoka
@@ -11,14 +11,14 @@ const ED = 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFE8wyG93sBkAeXQeGPkHdudLWhIf+zJ
 function stanowisko() {
   const account = { id: 'a1', serverId: 'n1', status: 'ACTIVE', daUsername: 'klient1' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
     nodeTask: {
-      findFirst: jest.fn(async () => null),
-      findMany: jest.fn(async () => []),
-      create: jest.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
+      findFirst: vi.fn(async () => null),
+      findMany: vi.fn(async () => []),
+      create: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
     },
   };
-  return { svc: new SshAccessService(prisma as never, { record: jest.fn(async () => undefined) } as never), prisma };
+  return { svc: new SshAccessService(prisma as never, { record: vi.fn(async () => undefined) } as never), prisma };
 }
 
 describe('SshAccessService', () => {

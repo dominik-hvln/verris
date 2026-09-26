@@ -47,7 +47,7 @@ import { join } from 'path';
  * nie dostanie o tym sygnału.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 
 /**
  * Polecenia bramkowe. Dwa kształty, bo bramki mają dwa kształty:

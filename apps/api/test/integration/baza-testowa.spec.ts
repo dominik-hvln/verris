@@ -1,4 +1,4 @@
-import { sprawdzBazeTestowa } from './baza-testowa';
+import { sprawdzBazeTestowa } from './baza-testowa.js';
 
 /**
  * X-44 — testy bezpiecznika nazwy bazy.

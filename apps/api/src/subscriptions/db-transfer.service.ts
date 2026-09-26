@@ -6,10 +6,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { HostingResourceActions } from '../common/audit/audit.actions';
-import { DirectAdminService } from '../servers/directadmin.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { HostingResourceActions } from '../common/audit/audit.actions.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
 
 /**
  * D-12 — eksport i import bazy z panelu klienta. DirectAdmin nie ma na to udokumentowanego API,

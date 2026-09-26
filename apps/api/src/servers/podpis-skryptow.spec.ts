@@ -4,8 +4,8 @@ import { createServer, type Server } from 'http';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import type { AddressInfo } from 'net';
-import { linijkaAuthorizedKeys, kluczPublicznyPem, podpisz, renderVerrisFetchScript } from './podpis-skryptow';
-import { renderNodeDeploySshKeyInstallFunctions } from './node-tasks-agent.install';
+import { linijkaAuthorizedKeys, kluczPublicznyPem, podpisz, renderVerrisFetchScript } from './podpis-skryptow.js';
+import { renderNodeDeploySshKeyInstallFunctions } from './node-tasks-agent.install.js';
 
 /**
  * PB-36 — węzeł uruchamia tylko to, co podpisał control-plane. Test przepuszcza prawdziwy

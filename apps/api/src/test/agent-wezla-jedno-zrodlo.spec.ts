@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { renderVerrisTaskRunScript, renderVerrisTasksScript } from '../servers/node-tasks-agent.install';
-import { renderVerrisFetchScript } from '../servers/podpis-skryptow';
+import { renderVerrisTaskRunScript, renderVerrisTasksScript } from '../servers/node-tasks-agent.install.js';
+import { renderVerrisFetchScript } from '../servers/podpis-skryptow.js';
 
 /**
  * Agent zadań węzła ma dwa sposoby instalacji: skrypt bootstrap z API (render w TS) i
@@ -11,7 +11,7 @@ import { renderVerrisFetchScript } from '../servers/podpis-skryptow';
  * HOSTINGU (przekonfigurowanie całego węzła). Jedno źródło: render; pliki w repo muszą być identyczne.
  * Po zmianie w node-tasks-agent.install.ts wygeneruj je ponownie (treść = wynik funkcji render*).
  */
-const OPS = resolve(__dirname, '../../../../ops/scripts');
+const OPS = resolve(import.meta.dirname, '../../../../ops/scripts');
 
 describe('Agent węzła — jedno źródło skryptów', () => {
   it.each([

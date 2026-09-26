@@ -1,6 +1,6 @@
 import { Controller, Get, NotFoundException, Param, Res } from '@nestjs/common';
 import type { Response } from 'express';
-import { ResellerService } from './reseller.service';
+import { ResellerService } from './reseller.service.js';
 
 /**
  * O-09 — logo resellera dla jego klientów (panel i maile), bez logowania.

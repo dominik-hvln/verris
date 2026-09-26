@@ -1,6 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { DirectAdminClient } from '@verris/directadmin-sdk';
-import { DirectAdminService } from './directadmin.service';
+import { DirectAdminService } from './directadmin.service.js';
 
 /**
  * X-09 — cron, FTP, autorespondery i hosty dostępu do bazy w DirectAdminService (dotąd bez testów).
@@ -16,26 +16,26 @@ function stanowisko(o: { status?: string; get?: Record<string, unknown>; post?: 
     '/CMD_API_SHOW_USER_CONFIG': 'domain=firma.pl',
     ...o.get,
   };
-  const get = jest.fn((path: string, _cfg?: Record<string, unknown>) => odp(trasyGet[path] ?? ''));
-  const post = jest.fn((path: string, _body?: unknown, _cfg?: Record<string, unknown>) =>
+  const get = vi.fn((path: string, _cfg?: Record<string, unknown>) => odp(trasyGet[path] ?? ''));
+  const post = vi.fn((path: string, _body?: unknown, _cfg?: Record<string, unknown>) =>
     odp(o.post?.[path] ?? 'error=0&text=OK'),
   );
   const klient = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'klient1', loginKey: 'x', secure: true });
   Object.assign(klient, { client: { get, post } });
   const account = { id: 'a1', status: o.status ?? 'ACTIVE', daUsername: 'klient1', domain: 'firma.pl', daPasswordEnc: 'enc' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
     account: {
-      update: jest.fn(async () => account),
+      update: vi.fn(async () => account),
       // Z-10: domena główna innego klienta.
-      findFirst: jest.fn(async (a: { where: { domain: { in: string[] } } }) => (a.where.domain.in.includes('cudza.pl') ? { id: 'a2' } : null)),
+      findFirst: vi.fn(async (a: { where: { domain: { in: string[] } } }) => (a.where.domain.in.includes('cudza.pl') ? { id: 'a2' } : null)),
     },
-    domain: { findFirst: jest.fn(async (a: { where: { name: { in: string[] } } }) => (a.where.name.in.includes('zarejestrowana.pl') ? { id: 'd2' } : null)) },
+    domain: { findFirst: vi.fn(async (a: { where: { name: { in: string[] } } }) => (a.where.name.in.includes('zarejestrowana.pl') ? { id: 'd2' } : null)) },
   };
-  const audit = { record: jest.fn(async () => undefined) };
-  const platformSettings = { getPhpSlotReleases: jest.fn(async () => o.sloty ?? ['8.3', '8.2', '7.4']) };
+  const audit = { record: vi.fn(async () => undefined) };
+  const platformSettings = { getPhpSlotReleases: vi.fn(async () => o.sloty ?? ['8.3', '8.2', '7.4']) };
   const svc = new DirectAdminService(prisma as never, {} as never, platformSettings as never, audit as never);
-  jest.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue(klient);
+  vi.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue(klient);
   const wyslane = (n = 0) => Object.fromEntries(new URLSearchParams(String(post.mock.calls[n]?.[1] ?? '')));
   return { svc, get, post, audit, wyslane };
 }

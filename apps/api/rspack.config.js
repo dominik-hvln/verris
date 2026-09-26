@@ -7,26 +7,29 @@
  * w try/catch, ale bundler i tak próbuje je rozwiązać i build obrazu pada
  * („Can't resolve '../build/Release/cpufeatures.node'”). Poza paczką ssh2 działa
  * na czystym JS z node_modules obrazu. Strażnik: src/test/natywne-poza-paczka.spec.ts.
+ *
+ * PB-39: API jest ESM, więc zewnętrzne paczki ładujemy importem (`module …`), nie require().
  */
-const path = require('path');
-const nodeExternals = require('webpack-node-externals');
+import { resolve } from 'node:path';
+import nodeExternals from 'webpack-node-externals';
 
-const NATYWNE = ['bcrypt', 'ssh2'];
-module.exports = function (options) {
+export const NATYWNE = ['bcrypt', 'ssh2'];
+
+export default function (options) {
   // Obraz Dockera instaluje zależności z nodeLinker: hoisted — wszystko leży w /workspace/node_modules,
   // a apps/api/node_modules jest puste. Domyślne externals Nesta patrzą tylko tam, więc bez tego
   // do paczki trafiało całe node_modules (z NestJS 12: „Can't resolve '@nestjs/websockets/…'”).
-  const zKorzenia = nodeExternals({ additionalModuleDirs: [path.resolve(__dirname, '../../node_modules')] });
-  const prev = options.externals;
-  const bcryptExternal = ({ request }, callback) => {
+  const zKorzenia = nodeExternals({
+    importType: 'module',
+    additionalModuleDirs: [resolve(import.meta.dirname, '../../node_modules')],
+  });
+  const natywne = ({ request }, callback) => {
     if (NATYWNE.includes(request)) {
-      return callback(undefined, `commonjs ${request}`);
+      return callback(undefined, `module ${request}`);
     }
     callback();
   };
 
-  options.externals = [bcryptExternal, zKorzenia].concat(prev ?? []);
-
+  options.externals = [natywne, zKorzenia].concat(options.externals ?? []);
   return options;
-};
-module.exports.NATYWNE = NATYWNE;
+}

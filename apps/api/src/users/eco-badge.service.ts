@@ -2,9 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
 import { Prisma } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
-import type { RequestContextDto } from '../common/decorators/request-context';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
+import type { RequestContextDto } from '../common/decorators/request-context.js';
 
 export const ECO_BADGE_IMPRESSION_REASON = 'BADGE_IMPRESSION';
 

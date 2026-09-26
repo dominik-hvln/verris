@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
-import { normalizujKatalogDocroot, odczytajDocroot, zapiszDocroot } from './docroot';
-import { DirectAdminService } from './directadmin.service';
+import { normalizujKatalogDocroot, odczytajDocroot, zapiszDocroot } from './docroot.js';
+import { DirectAdminService } from './directadmin.service.js';
 
 describe('A-06 — katalog główny domeny (Custom HTTPD)', () => {
   it.each([
@@ -40,16 +40,16 @@ describe('A-06 — katalog główny domeny (Custom HTTPD)', () => {
 
 describe('DirectAdminService — A-06 docroot', () => {
   function stanowisko(o: { config?: string | null; wpisy?: unknown[] } = {}) {
-    const svc = new DirectAdminService({} as never, {} as never, {} as never, { record: jest.fn() } as never);
-    const post = jest.fn(async () => ({ data: 'error=0&text=ok' }));
-    const get = jest.fn(async () => ({ data: o.config === null ? 'error=0' : `config=${encodeURIComponent(o.config ?? 'SetEnv A b\n')}` }));
-    const listDir = jest.fn(async () => o.wpisy ?? [{ name: 'public', type: 'dir' }]);
-    jest.spyOn(svc, 'assertDomainOwnedBySubscription').mockResolvedValue('a.pl');
-    jest.spyOn(svc as never, 'accountClientForSubscription').mockResolvedValue({
+    const svc = new DirectAdminService({} as never, {} as never, {} as never, { record: vi.fn() } as never);
+    const post = vi.fn(async () => ({ data: 'error=0&text=ok' }));
+    const get = vi.fn(async () => ({ data: o.config === null ? 'error=0' : `config=${encodeURIComponent(o.config ?? 'SetEnv A b\n')}` }));
+    const listDir = vi.fn(async () => o.wpisy ?? [{ name: 'public', type: 'dir' }]);
+    vi.spyOn(svc, 'assertDomainOwnedBySubscription').mockResolvedValue('a.pl');
+    vi.spyOn(svc as unknown as { accountClientForSubscription: () => Promise<unknown> }, 'accountClientForSubscription').mockResolvedValue({
       account: { status: 'ACTIVE', serverId: 'n1', daUsername: 'k1' },
       client: { listDir },
     } as never);
-    jest.spyOn(svc, 'getClientForServer').mockResolvedValue({ client: { get, post } } as never);
+    vi.spyOn(svc, 'getClientForServer').mockResolvedValue({ client: { get, post } } as never);
     return { svc, post, get, listDir };
   }
 

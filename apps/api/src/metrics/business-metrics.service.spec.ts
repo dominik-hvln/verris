@@ -1,5 +1,5 @@
 import { Prisma, SubscriptionStatus } from '@verris/database';
-import { BusinessMetricsService } from './business-metrics.service';
+import { BusinessMetricsService } from './business-metrics.service.js';
 
 /**
  * REL-1 — testy ścieżki finansowej (BIZ-1). Pilnujemy deterministycznego
@@ -10,11 +10,11 @@ describe('BusinessMetricsService.business', () => {
   function makeService() {
     const prisma = {
       subscription: {
-        findMany: jest.fn().mockResolvedValue([
+        findMany: vi.fn().mockResolvedValue([
           { priceAmount: new Prisma.Decimal(100), interval: 'MONTH', plan: { productKind: 'HOSTING' } },
           { priceAmount: new Prisma.Decimal(1200), interval: 'YEAR', plan: { productKind: 'VPS' } },
         ]),
-        count: jest.fn().mockImplementation(({ where }: { where: Record<string, unknown> }) => {
+        count: vi.fn().mockImplementation(({ where }: { where: Record<string, unknown> }) => {
           if (where.isTrial === true) return Promise.resolve(4); // trials
           if (where.createdAt) return Promise.resolve(5); // newThisMonth
           if (where.canceledAt) return Promise.resolve(1); // canceledThisMonth
@@ -22,14 +22,14 @@ describe('BusinessMetricsService.business', () => {
         }),
       },
       user: {
-        findMany: jest.fn().mockResolvedValue([
+        findMany: vi.fn().mockResolvedValue([
           { walletBalance: new Prisma.Decimal(50) },
           { walletBalance: new Prisma.Decimal('25.50') },
           { walletBalance: null },
         ]),
       },
       server: {
-        findMany: jest.fn().mockResolvedValue([
+        findMany: vi.fn().mockResolvedValue([
           {
             totalCpuCores: 10,
             totalMemoryMb: 1000,

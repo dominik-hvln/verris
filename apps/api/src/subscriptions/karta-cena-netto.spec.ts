@@ -1,12 +1,12 @@
 import { BadRequestException } from '@nestjs/common';
-import { SubscriptionsService } from './subscriptions.service';
+import { SubscriptionsService } from './subscriptions.service.js';
 
 /** M-09 — klient rozliczany netto nie kupi usługi kartą (karta = cena brutto z cennika). */
 describe('M-09 — karta a cena netto', () => {
   const plan = { id: 'p1', isActive: true, isPublic: true, productKind: 'HOSTING', priceMonthly: 45, priceYearly: 399 };
   const zbuduj = (cenaNetto: boolean) => {
-    const prisma = { plan: { findUnique: jest.fn(async () => plan) }, user: { findUnique: jest.fn(async () => ({ billingOutside: false })) } };
-    const vat = { ustal: jest.fn(async () => ({ traktowanie: { cenaNetto }, vies: null })) };
+    const prisma = { plan: { findUnique: vi.fn(async () => plan) }, user: { findUnique: vi.fn(async () => ({ billingOutside: false })) } };
+    const vat = { ustal: vi.fn(async () => ({ traktowanie: { cenaNetto }, vies: null })) };
     const n = {} as never;
     return new SubscriptionsService(prisma as never, n, n, n, n, n, n, n, n, n, n, n, vat as never);
   };

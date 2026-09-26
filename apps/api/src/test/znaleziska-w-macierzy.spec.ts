@@ -9,7 +9,7 @@ import { resolve } from 'node:path';
  * zadań, a nieobecna w macierzy, nie trafia do planu ani na tablice — tak
  * 2026-08-26 „zniknęły” PROD-01 i PROD-02.
  */
-const KORZEN = resolve(__dirname, '../../../..');
+const KORZEN = resolve(import.meta.dirname, '../../../..');
 
 function wiersze(plik: string): string[] {
   return readFileSync(resolve(KORZEN, plik), 'utf-8')

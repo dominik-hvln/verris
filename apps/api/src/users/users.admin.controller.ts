@@ -14,15 +14,15 @@ import {
 import type { Request } from 'express';
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 import { Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
-import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { UsersAdminService } from './users.admin.service';
-import { UsersService } from './users.service';
-import { HostingDiagnosticsService } from '../diagnostics/hosting-diagnostics.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { UsersAdminService } from './users.admin.service.js';
+import { UsersService } from './users.service.js';
+import { HostingDiagnosticsService } from '../diagnostics/hosting-diagnostics.service.js';
 import {
   DnsTlsDiagnosticDto,
   AdminCustomerOperationalDto,
@@ -31,7 +31,7 @@ import {
   AdminSetGrafanaAccessDto,
   AdminCreateCustomerDto,
   OcenaZgloszeniaPolecenDto,
-} from './users.admin.dto';
+} from './users.admin.dto.js';
 
 class ImpersonateDto {
   @IsOptional()

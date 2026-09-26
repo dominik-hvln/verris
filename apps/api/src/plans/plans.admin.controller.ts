@@ -11,17 +11,17 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { PlansService } from './plans.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { PlansService } from './plans.service.js';
 import {
   CreatePlanDto,
   UpdatePlanDto,
   ValidateStripePriceDto,
-} from './dto/plan.dto';
-import { StripeService } from '../billing/stripe/stripe.service';
+} from './dto/plan.dto.js';
+import { StripeService } from '../billing/stripe/stripe.service.js';
 
 @Controller('admin/plans')
 @UseGuards(JwtAuthGuard, RolesGuard)

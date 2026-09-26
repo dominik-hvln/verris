@@ -1,13 +1,13 @@
 import { randomUUID } from 'crypto';
-import { NotificationsService } from '../notifications/notifications.service';
-import { StosWezlaService } from './stos-wezla.service';
-import { nastepnyKrokMariadb } from './stos-wezla';
+import { NotificationsService } from '../notifications/notifications.service.js';
+import { StosWezlaService } from './stos-wezla.service.js';
+import { nastepnyKrokMariadb } from './stos-wezla.js';
 import { BadRequestException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
-import { ClientWebhooksService } from '../client-webhooks/client-webhooks.service';
+import { ClientWebhooksService } from '../client-webhooks/client-webhooks.service.js';
 import { AccountStatus, NodeTaskKind, NodeTaskStatus, Prisma, ServerStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { DirectAdminService } from './directadmin.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { DirectAdminService } from './directadmin.service.js';
 
 /** Desired CloudLinux LVE state for a node (consumed by the on-node verris-lve agent). */
 export interface NodeDesiredLve {

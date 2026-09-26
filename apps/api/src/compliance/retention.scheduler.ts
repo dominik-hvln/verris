@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { DataExportService } from './data-export.service';
-import { RodoActions } from '../common/audit/audit.actions';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { DataExportService } from './data-export.service.js';
+import { RodoActions } from '../common/audit/audit.actions.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

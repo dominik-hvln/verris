@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SiteMonitorEventType, SubscriptionStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { PartnersService } from '../partners/partners.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { PartnersService } from '../partners/partners.service.js';
 import {
   SEAL_REASON_LABEL,
   dailyUptime,
@@ -12,8 +12,8 @@ import {
   windowPct,
   type DayUptime,
   type SealReason,
-} from './badge-logic';
-import type { SealData } from './badge-render';
+} from './badge-logic.js';
+import type { SealData } from './badge-render.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CACHE_TTL_MS = 60_000;

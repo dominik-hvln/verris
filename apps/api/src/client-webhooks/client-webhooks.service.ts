@@ -2,11 +2,11 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { NodeTaskKind, Prisma, StatusWebhookDeliveryStatus } from '@verris/database';
 import { createHmac, randomBytes } from 'node:crypto';
-import { PrismaService } from '../prisma/prisma.service';
-import { CryptoService } from '../common/crypto/crypto.service';
-import { AuditService } from '../common/audit/audit.service';
-import { assertPublicWebhookUrl } from '../status/status-webhook.service';
-import { postWebhookBezpiecznie } from '../common/net/webhook-post';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { CryptoService } from '../common/crypto/crypto.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { assertPublicWebhookUrl } from '../status/status-webhook.service.js';
+import { postWebhookBezpiecznie } from '../common/net/webhook-post.js';
 
 /**
  * L-10 — webhooki klienta. Klient podaje adres HTTPS i zdarzenia; dostaje sekret raz, każde

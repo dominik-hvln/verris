@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { AuditModule } from '../common/audit/audit.module';
-import { EmailMarketingService } from './email-marketing.service';
-import { EmailMarketingController } from './email-marketing.controller';
-import { EmailMarketingPublicController } from './email-marketing-public.controller';
-import { EmailMarketingDispatcher } from './email-marketing.dispatcher';
-import { DeliverabilityModule } from '../deliverability/deliverability.module';
+import { AuditModule } from '../common/audit/audit.module.js';
+import { EmailMarketingService } from './email-marketing.service.js';
+import { EmailMarketingController } from './email-marketing.controller.js';
+import { EmailMarketingPublicController } from './email-marketing-public.controller.js';
+import { EmailMarketingDispatcher } from './email-marketing.dispatcher.js';
+import { DeliverabilityModule } from '../deliverability/deliverability.module.js';
 
 /**
  * EMM — produkt email-marketingu (listy/kontakty/kampanie/wysyłka). Mailer i

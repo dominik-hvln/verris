@@ -15,19 +15,19 @@ import {
   SubscriptionStatus,
   WalletTxType,
 } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
-import { WalletLedgerService } from '../billing/wallet-ledger.service';
-import { ProvisioningService } from './provisioning.service';
-import { ProvisioningQueueService } from './provisioning-queue.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
+import { ProvisioningService } from './provisioning.service.js';
+import { ProvisioningQueueService } from './provisioning-queue.service.js';
 import {
   trialStartedTemplate,
   trialConvertedTemplate,
-} from '../mail/templates/billing-lifecycle-notifications';
-import { generateUniqueServiceTag } from './service-tag.util';
-import type { StartTrialDto } from './dto/trial.dto';
-import type { CreatedSubscription } from './subscriptions.service';
+} from '../mail/templates/billing-lifecycle-notifications.js';
+import { generateUniqueServiceTag } from './service-tag.util.js';
+import type { StartTrialDto } from './dto/trial.dto.js';
+import type { CreatedSubscription } from './subscriptions.service.js';
 
 /**
  * O-1 — Free trial.

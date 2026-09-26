@@ -1,13 +1,13 @@
 import { Injectable, Optional, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service.js';
 import {
   type DostawcaAi,
   type KonfiguracjaAi,
   type PoziomAi,
   kosztUsd,
   odczytajKonfiguracjeAi,
-} from './ai-modele';
+} from './ai-modele.js';
 
 /** Klucz ustawienia platformy z konfiguracją AI (JSON, edycja: admin → Ustawienia → Asystent AI). */
 export const KLUCZ_KONFIGURACJI_AI = 'ai.konfiguracja';

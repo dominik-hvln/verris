@@ -3,13 +3,13 @@ import { Prisma } from '@verris/database';
 import type { ServiceHealthCheckDetailDto, ServiceHealthCheckKey } from '@verris/contracts';
 import * as dns from 'node:dns/promises';
 import * as tls from 'node:tls';
-import { PrismaService } from '../prisma/prisma.service';
-import { DirectAdminService } from '../servers/directadmin.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
 import {
   buildHealthCheckDetails,
   fallbackHealthCheckDetails,
   type HealthProbeMeta,
-} from './service-health-hints';
+} from './service-health-hints.js';
 
 const PROBE_TIMEOUT_MS = 8_000;
 const SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;

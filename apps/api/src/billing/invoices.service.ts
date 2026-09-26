@@ -1,15 +1,15 @@
 import { BadRequestException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
-import { ClientWebhooksService } from '../client-webhooks/client-webhooks.service';
+import { ClientWebhooksService } from '../client-webhooks/client-webhooks.service.js';
 import { ConfigService } from '@nestjs/config';
 import { Invoice, InvoiceStatus, Prisma } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
-import { KsefService } from '../ksef/ksef.service';
-import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
-import { ObjectStorageService } from '../storage/object-storage.service';
-import { ObjectBuckets } from '../storage/object-storage.types';
-import { invoiceIssuedTemplate } from '../mail/templates/invoice-notifications';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { KsefService } from '../ksef/ksef.service.js';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
+import { ObjectStorageService } from '../storage/object-storage.service.js';
+import { ObjectBuckets } from '../storage/object-storage.types.js';
+import { invoiceIssuedTemplate } from '../mail/templates/invoice-notifications.js';
 import {
   InvoicePdfService,
   nadrukDuplikatu,
@@ -17,11 +17,11 @@ import {
   type SellerSnapshot,
   type BuyerSnapshot,
   type InvoiceLineItem,
-} from './invoice-pdf.service';
-import { StripeInvoice } from './stripe/stripe.client';
-import { etykietaStawki, rozbicieWgStawki, type VatDokumentu } from './vat';
-import { VatNabywcyService } from './vat-nabywcy.service';
-import { DOSTAWCA_DOLADOWANIE } from './doladowanie';
+} from './invoice-pdf.service.js';
+import { StripeInvoice } from './stripe/stripe.client.js';
+import { etykietaStawki, rozbicieWgStawki, type VatDokumentu } from './vat.js';
+import { VatNabywcyService } from './vat-nabywcy.service.js';
+import { DOSTAWCA_DOLADOWANIE } from './doladowanie.js';
 import {
   DOSTAWCA_RECZNY,
   nadajNumerDokumentu,
@@ -29,13 +29,13 @@ import {
   SERIE_PANELU,
   STAWKA_VAT,
   type PozycjaReczna,
-} from './faktura-za-portfel';
+} from './faktura-za-portfel.js';
 import { randomUUID } from 'crypto';
 import {
   RODZAJ_DOKUMENT_ROZLICZENIOWY,
   toNumerPanelu,
   type RodzajPrawny,
-} from './tryb-fakturowania';
+} from './tryb-fakturowania.js';
 
 const STRIPE_PROVIDER = 'STRIPE';
 /** Stała stawka VAT dla usług hostingowych (PL). */

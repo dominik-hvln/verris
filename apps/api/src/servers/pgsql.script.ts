@@ -6,8 +6,8 @@ export function loadPgsqlScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/node-pgsql.sh'),
     join(process.cwd(), '../../ops/scripts/node-pgsql.sh'),
-    join(__dirname, '../../../../../ops/scripts/node-pgsql.sh'),
-    join(__dirname, '../../../../ops/scripts/node-pgsql.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/node-pgsql.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/node-pgsql.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) return readFileSync(path, 'utf8');

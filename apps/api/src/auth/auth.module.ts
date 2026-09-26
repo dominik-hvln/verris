@@ -2,20 +2,20 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigService, ConfigModule } from '@nestjs/config';
-import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
-import { JwtStrategy } from './strategies/jwt.strategy';
-import { TotpService } from './totp/totp.service';
-import { TwoFactorService } from './totp/two-factor.service';
-import { ComplianceModule } from '../compliance/compliance.module';
-import { AuditModule } from '../common/audit/audit.module';
-import { MailModule } from '../mail/mail.module';
-import { LoginEventService } from './login-event.service';
-import { WebAuthnService } from './webauthn/webauthn.service';
-import { PasskeyPolicyService } from './passkey-policy.service';
-import { CaptchaService } from './captcha.service';
-import { PwnedPasswordService } from './pwned-password.service';
-import { EcoModule } from '../eco/eco.module';
+import { AuthService } from './auth.service.js';
+import { AuthController } from './auth.controller.js';
+import { JwtStrategy } from './strategies/jwt.strategy.js';
+import { TotpService } from './totp/totp.service.js';
+import { TwoFactorService } from './totp/two-factor.service.js';
+import { ComplianceModule } from '../compliance/compliance.module.js';
+import { AuditModule } from '../common/audit/audit.module.js';
+import { MailModule } from '../mail/mail.module.js';
+import { LoginEventService } from './login-event.service.js';
+import { WebAuthnService } from './webauthn/webauthn.service.js';
+import { PasskeyPolicyService } from './passkey-policy.service.js';
+import { CaptchaService } from './captcha.service.js';
+import { PwnedPasswordService } from './pwned-password.service.js';
+import { EcoModule } from '../eco/eco.module.js';
 
 @Module({
   imports: [

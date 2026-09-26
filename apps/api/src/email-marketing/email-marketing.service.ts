@@ -9,11 +9,11 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import type { EmmCampaign, EmmContact, EmmList, Prisma } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
-import { OutboundAbuseGuard } from '../deliverability/outbound-abuse.guard';
-import { escapeMarkdown, renderEmailShell } from '../mail/templates/_layouts/email-shell';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { OutboundAbuseGuard } from '../deliverability/outbound-abuse.guard.js';
+import { escapeMarkdown, renderEmailShell } from '../mail/templates/_layouts/email-shell.js';
 import type {
   AddEmmContactDto,
   CreateEmmCampaignDto,
@@ -21,7 +21,7 @@ import type {
   ImportEmmContactsDto,
   UpdateEmmCampaignDto,
   UpdateEmmListDto,
-} from './dto/email-marketing.dto';
+} from './dto/email-marketing.dto.js';
 
 // ---------------------------------------------------------------------------
 // Minimalne delegate'y Prisma — klient regenerowany w buildzie prod

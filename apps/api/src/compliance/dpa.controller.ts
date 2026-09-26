@@ -1,8 +1,8 @@
 import { Controller, Get, Header, Res, UseGuards } from '@nestjs/common';
-import { Response } from 'express';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { DpaPdfService } from './dpa-pdf.service';
+import type { Response } from 'express';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { DpaPdfService } from './dpa-pdf.service.js';
 
 /**
  * GET /me/dpa.pdf

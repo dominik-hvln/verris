@@ -9,11 +9,11 @@ import {
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
-import { odbierzKodPrzekazania, wydajKodPrzekazania } from '../common/auth/przekazanie-sesji';
+import { odbierzKodPrzekazania, wydajKodPrzekazania } from '../common/auth/przekazanie-sesji.js';
 import type { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 /**
  * F-15: Caddy `forward_auth` integration for Grafana SSO. Caddy forwards the

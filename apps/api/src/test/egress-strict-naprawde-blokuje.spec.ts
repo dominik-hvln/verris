@@ -16,7 +16,7 @@ import { join } from 'path';
  * (niedostępnym na tym jądrze), WARN z kodem 0 i `|| true` w instalatorze.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const SKRYPT = join(KORZEN, 'ops', 'scripts', 'security-control-plane-egress.sh');
 const INSTALATOR = join(KORZEN, 'ops', 'scripts', 'security-install-verris-security.sh');
 const DZIEN = 86400;

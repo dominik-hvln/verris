@@ -9,17 +9,17 @@ import {
   Ip,
   Headers,
 } from '@nestjs/common';
-import { UsersService } from './users.service';
+import { UsersService } from './users.service.js';
 import {
   UpdateProfileDto,
   ChangePasswordDto,
   ApplyReferralCodeDto,
   RedeemEcoPointsDto,
   SilneLogowanieDto,
-} from './users.dto';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { RateLimit } from '../common/guards/rate-limit.guard';
+} from './users.dto.js';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)

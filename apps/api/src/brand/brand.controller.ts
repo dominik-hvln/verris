@@ -1,6 +1,6 @@
 import { Controller, Get, Res } from '@nestjs/common';
 import type { Response } from 'express';
-import { CTA_PATTERN_SVG } from './cta-pattern.svg';
+import { CTA_PATTERN_SVG } from './cta-pattern.svg.js';
 
 /**
  * Publiczny znak Verris dla maili (i innych miejsc). Serwowany jako PNG

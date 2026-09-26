@@ -8,7 +8,7 @@ import { resolve } from 'node:path';
  * węzeł listę plików BEZ node-offsite-backup.sh — onboard po cichu pomijał cały
  * backup. Panel klienta mówi „kopie poza serwerem”, więc to musi być bramka.
  */
-const KORZEN = resolve(__dirname, '../../../..');
+const KORZEN = resolve(import.meta.dirname, '../../../..');
 const onboard = readFileSync(resolve(KORZEN, 'ops/scripts/node-onboard-live.sh'), 'utf8');
 const kreator = readFileSync(resolve(KORZEN, 'apps/admin-panel/src/app/(dashboard)/nodes/wizard/wizard-content.ts'), 'utf8');
 

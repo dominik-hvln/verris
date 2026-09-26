@@ -1,9 +1,9 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { RateLimit } from '../common/guards/rate-limit.guard';
-import { VpsService } from './vps.service';
-import { AddSshKeyDto, OrderVpsDto, VpsPowerDto } from './dto/vps.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
+import { VpsService } from './vps.service.js';
+import { AddSshKeyDto, OrderVpsDto, VpsPowerDto } from './dto/vps.dto.js';
 
 @Controller('vps')
 @UseGuards(JwtAuthGuard)

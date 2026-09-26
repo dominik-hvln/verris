@@ -2,11 +2,11 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcrypt';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
-import { staffInviteTemplate } from '../mail/templates/staff-invite-notification';
-import { STAFF_PERMISSIONS, STAFF_PERMISSION_KEYS, isValidStaffPermission } from './staff-permissions.catalog';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { staffInviteTemplate } from '../mail/templates/staff-invite-notification.js';
+import { STAFF_PERMISSIONS, STAFF_PERMISSION_KEYS, isValidStaffPermission } from './staff-permissions.catalog.js';
 
 export interface StaffRoleRow {
   id: string;

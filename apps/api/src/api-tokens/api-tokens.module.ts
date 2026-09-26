@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ApiTokensService } from './api-tokens.service';
-import { ApiTokensController } from './api-tokens.controller';
-import { PublicApiController } from './public-api.controller';
-import { ApiTokenGuard } from './api-token.guard';
+import { ApiTokensService } from './api-tokens.service.js';
+import { ApiTokensController } from './api-tokens.controller.js';
+import { PublicApiController } from './public-api.controller.js';
+import { ApiTokenGuard } from './api-token.guard.js';
 
 @Module({
   providers: [ApiTokensService, ApiTokenGuard],

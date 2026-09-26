@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { promises as dns } from 'dns';
-import { PrismaService } from '../prisma/prisma.service';
-import { DirectAdminService } from '../servers/directadmin.service';
-import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
-import { rblListed } from './rbl';
-import { buildMailAuthChecks, type CheckStatus, type MailAuthSuggestion, type ZoneRecord } from './mail-auth';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
+import { rblListed } from './rbl.js';
+import { buildMailAuthChecks, type CheckStatus, type MailAuthSuggestion, type ZoneRecord } from './mail-auth.js';
 
 export type { CheckStatus };
 

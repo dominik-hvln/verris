@@ -15,26 +15,26 @@ import {
   Prisma,
   Role,
 } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { ControlPlaneMailActions } from '../common/audit/audit.actions';
-import { PostfixMapSyncService } from './postfix-map-sync.service';
-import { SogoAuthSyncService } from './sogo-auth-sync.service';
-import { MailerService } from '../mail/mailer.service';
-import { generateAuthToken, hashAuthToken } from '../auth/auth-token.util';
-import { mailForwardConfirmTemplate } from '../mail/templates/mail-forward-notifications';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { ControlPlaneMailActions } from '../common/audit/audit.actions.js';
+import { PostfixMapSyncService } from './postfix-map-sync.service.js';
+import { SogoAuthSyncService } from './sogo-auth-sync.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { generateAuthToken, hashAuthToken } from '../auth/auth-token.util.js';
+import { mailForwardConfirmTemplate } from '../mail/templates/mail-forward-notifications.js';
 import {
   CONTROL_PLANE_MAIL_DOMAIN,
   LOCAL_PART_RE,
   RESERVED_LOCAL_PARTS,
-} from './control-plane-mail.constants';
+} from './control-plane-mail.constants.js';
 import type {
   CreateControlPlaneMailboxDto,
   CreateMailAliasDto,
   CreateMailForwardDto,
   UpdateControlPlaneMailboxDto,
   UpdateSystemAddressesDto,
-} from './dto/control-plane-mail.dto';
+} from './dto/control-plane-mail.dto.js';
 
 const MAIL_FORWARD_CONFIRM_TTL_HOURS = 72;
 

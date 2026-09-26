@@ -1,19 +1,19 @@
-import { LoginEventService } from './login-event.service';
+import { LoginEventService } from './login-event.service.js';
 
 /** G-22 — powiadomienie o logowaniu z nowego urządzenia. */
 function zbuduj(opts: { wczesniej: number; znane: boolean; alerty?: boolean | null }) {
   const prisma = {
     loginEvent: {
-      count: jest.fn(async () => opts.wczesniej),
-      findFirst: jest.fn(async () => (opts.znane ? { id: 'e0' } : null)),
-      create: jest.fn(async () => ({})),
+      count: vi.fn(async () => opts.wczesniej),
+      findFirst: vi.fn(async () => (opts.znane ? { id: 'e0' } : null)),
+      create: vi.fn(async () => ({})),
     },
     marketingPreferences: {
-      findUnique: jest.fn(async () => (opts.alerty === undefined || opts.alerty === null ? null : { loginAlertsEmail: opts.alerty })),
+      findUnique: vi.fn(async () => (opts.alerty === undefined || opts.alerty === null ? null : { loginAlertsEmail: opts.alerty })),
     },
   };
-  const mailer = { send: jest.fn(async () => undefined) };
-  const config = { get: jest.fn(() => 'https://panel.test') };
+  const mailer = { send: vi.fn(async () => undefined) };
+  const config = { get: vi.fn(() => 'https://panel.test') };
   const svc = new LoginEventService(prisma as never, mailer as never, config as never);
   const zaloguj = () =>
     svc.record({ userId: 'u1', email: 'jan@firma.pl', firstName: 'Jan', ip: '203.0.113.7', userAgent: 'Mozilla/5.0 Chrome/120.0 Safari/537', loginMethod: 'password' });

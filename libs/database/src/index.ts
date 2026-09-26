@@ -1,4 +1,4 @@
-import { PrismaClient as PrismaClientBazowy } from '@prisma/client';
+import { PrismaClient as PrismaClientBazowy } from './generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 /**
@@ -20,4 +20,5 @@ export class PrismaClient extends PrismaClientBazowy {
   }
 }
 
-export * from '@prisma/client';
+// PB-39: klient z generatora `prisma-client` (ESM, src/generated/prisma) zamiast `@prisma/client`.
+export * from './generated/prisma/client.js';

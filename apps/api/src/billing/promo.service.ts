@@ -6,11 +6,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PromoKind, Prisma, WalletTxType } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { WalletLedgerService } from './wallet-ledger.service';
-import { MailerService } from '../mail/mailer.service';
-import { promoCodeRedeemedTemplate } from '../mail/templates/promo-notifications';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { WalletLedgerService } from './wallet-ledger.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { promoCodeRedeemedTemplate } from '../mail/templates/promo-notifications.js';
 
 @Injectable()
 export class PromoService {

@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { DirectAdminApiError } from '@verris/directadmin-sdk';
-import { AccountDeletionService } from './account-deletion.service';
+import { AccountDeletionService } from './account-deletion.service.js';
 
 /**
  * Usunięcie konta DA po anonimizacji (RODO). Konto w bazie idzie na DELETED (i zwalnia pojemność
@@ -8,14 +8,14 @@ import { AccountDeletionService } from './account-deletion.service';
  */
 function stanowisko(blad?: Error) {
   const acc = { id: 'a1', daUsername: 'klient1', serverId: 'n1', status: 'SUSPENDED', userId: 'u1', cpuLimit: 100, ramLimitMb: 1024, diskLimitMb: 10240 };
-  const tx = { account: { update: jest.fn(async () => ({})) }, server: { update: jest.fn(async () => ({})) } };
+  const tx = { account: { update: vi.fn(async () => ({})) }, server: { update: vi.fn(async () => ({})) } };
   const prisma = {
-    account: { findUnique: jest.fn(async () => acc) },
-    $transaction: jest.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
+    account: { findUnique: vi.fn(async () => acc) },
+    $transaction: vi.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
   };
-  const deleteAccount = jest.fn(async () => (blad ? Promise.reject(blad) : { success: true }));
-  const da = { getClientForServer: jest.fn(async () => ({ deleteAccount })) };
-  const svc = new AccountDeletionService(prisma as never, { record: jest.fn(async () => undefined) } as never, da as never, {} as never, { get: () => undefined } as never);
+  const deleteAccount = vi.fn(async () => (blad ? Promise.reject(blad) : { success: true }));
+  const da = { getClientForServer: vi.fn(async () => ({ deleteAccount })) };
+  const svc = new AccountDeletionService(prisma as never, { record: vi.fn(async () => undefined) } as never, da as never, {} as never, { get: () => undefined } as never);
   return { svc, tx, da };
 }
 

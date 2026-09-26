@@ -1,10 +1,10 @@
 import { Controller, Get, HttpCode, UseGuards } from '@nestjs/common';
 import { Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { PrismaService } from '../prisma/prisma.service';
-import { LiveReadinessService } from './live-readiness.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { LiveReadinessService } from './live-readiness.service.js';
 
 @Controller('admin/live-readiness')
 @UseGuards(JwtAuthGuard, RolesGuard)

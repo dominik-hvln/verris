@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import * as https from 'node:https';
-import { AuditService } from '../common/audit/audit.service';
-import { MigrationActions } from '../common/audit/audit.actions';
-import { assertPublicHost, basicAuth, resolvePublicHost } from './migration-net.util';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MigrationActions } from '../common/audit/audit.actions.js';
+import { assertPublicHost, basicAuth, resolvePublicHost } from './migration-net.util.js';
 
 /**
  * O-2 / #18 — auto-discovery źródła migracji.

@@ -9,7 +9,7 @@ import {
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import type { Request } from 'express';
-import { RuntimeErrorTracker } from './runtime-error-tracker.service';
+import { RuntimeErrorTracker } from './runtime-error-tracker.service.js';
 
 /**
  * CYBER-9 — przechwytuje błędy z pipeline'u żądania i rejestruje 5xx w

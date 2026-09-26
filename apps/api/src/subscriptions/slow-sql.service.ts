@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 /**
  * K-14 — wolne zapytania SQL baz konta (`ops/scripts/node-slow-sql.sh`, zadanie SLOW_SQL). Węzeł czyta

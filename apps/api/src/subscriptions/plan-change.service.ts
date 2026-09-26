@@ -17,26 +17,26 @@ import {
   WalletTxType,
 } from '@verris/database';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { WalletLedgerService } from '../billing/wallet-ledger.service';
-import { StripeService } from '../billing/stripe/stripe.service';
-import { getSubscriptionPeriod } from '../billing/stripe/stripe.client';
-import { DirectAdminService } from '../servers/directadmin.service';
-import { MailerService } from '../mail/mailer.service';
-import { planChangedTemplate } from '../mail/templates/plan-change-notifications';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
+import { StripeService } from '../billing/stripe/stripe.service.js';
+import { getSubscriptionPeriod } from '../billing/stripe/stripe.client.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { planChangedTemplate } from '../mail/templates/plan-change-notifications.js';
 import {
   billingPeriodEndFrom,
   computePlanChangeProration,
   planPriceForInterval,
   type PlanChangeDirection,
-} from './plan-proration.util';
+} from './plan-proration.util.js';
 import {
   deltaJestZerowa,
   deltaKsiegi,
   ksiegaUpdateData,
   limityEfektywne,
-} from './node-capacity';
+} from './node-capacity.js';
 
 type LoadedSub = Subscription & {
   plan: Plan;

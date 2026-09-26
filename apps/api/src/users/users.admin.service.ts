@@ -1,4 +1,4 @@
-import { wydajKodPrzekazania } from '../common/auth/przekazanie-sesji';
+import { wydajKodPrzekazania } from '../common/auth/przekazanie-sesji.js';
 import {
   BadRequestException,
   ConflictException,
@@ -12,15 +12,15 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { Prisma, Role } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { AdminCustomerActions } from '../common/audit/audit.actions';
-import { StatusService } from '../status/status.service';
-import { StripeService } from '../billing/stripe/stripe.service';
-import { MailerService } from '../mail/mailer.service';
-import { passwordChangedTemplate } from '../mail/templates/security-notifications';
-import { accountCreatedByOperatorTemplate } from '../mail/templates/auth-notifications';
-import { generateAuthToken, hashAuthToken } from '../auth/auth-token.util';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { AdminCustomerActions } from '../common/audit/audit.actions.js';
+import { StatusService } from '../status/status.service.js';
+import { StripeService } from '../billing/stripe/stripe.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { passwordChangedTemplate } from '../mail/templates/security-notifications.js';
+import { accountCreatedByOperatorTemplate } from '../mail/templates/auth-notifications.js';
+import { generateAuthToken, hashAuthToken } from '../auth/auth-token.util.js';
 
 /** A-24 — link „ustaw hasło” z konta od operatora (dłuższy niż reset, klient może odebrać mail później). */
 export const OPERATOR_ACCOUNT_LINK_TTL_HOURS = 72;

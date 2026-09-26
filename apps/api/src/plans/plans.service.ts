@@ -6,11 +6,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Plan } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { StripeService } from '../billing/stripe/stripe.service';
-import { PlanStripeSyncService } from './plan-stripe-sync.service';
-import { CreatePlanDto, UpdatePlanDto } from './dto/plan.dto';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { StripeService } from '../billing/stripe/stripe.service.js';
+import { PlanStripeSyncService } from './plan-stripe-sync.service.js';
+import { CreatePlanDto, UpdatePlanDto } from './dto/plan.dto.js';
 
 interface PriceValidationContext {
   /** Walidujemy z planem ile-w-PLN i jakim intervalem powinien się zgadzać. */

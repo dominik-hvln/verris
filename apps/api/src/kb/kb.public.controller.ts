@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Res } from '@nestjs/common';
 import type { Response } from 'express';
-import { KbService } from './kb.service';
-import { renderMarkdown, renderPublicPage, escapeHtml, renderFaq, renderRelated, renderReadingTime } from './kb-render';
+import { KbService } from './kb.service.js';
+import { renderMarkdown, renderPublicPage, escapeHtml, renderFaq, renderRelated, renderReadingTime } from './kb-render.js';
 
 /**
  * KB-PUBLIC — publiczny, indeksowalny widok Bazy Wiedzy (SSR + SEO).

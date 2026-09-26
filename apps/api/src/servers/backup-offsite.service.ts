@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable, Logger, Optional } from '@nestjs/common';
-import { NodeTasksService } from './node-tasks.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { CryptoService } from '../common/crypto/crypto.service';
-import { AuditService } from '../common/audit/audit.service';
+import { NodeTasksService } from './node-tasks.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { CryptoService } from '../common/crypto/crypto.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
 
 /**
  * PB-31 — kopie off-site floty skonfigurowane RAZ w panelu (zamiast `rclone config` na każdym

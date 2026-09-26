@@ -11,10 +11,10 @@ import {
   SubscriptionPaymentSource,
   SubscriptionStatus,
 } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { SubscriptionsService } from './subscriptions.service';
-import type { CreateSubscriptionDto } from './dto/subscription.dto';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { SubscriptionsService } from './subscriptions.service.js';
+import type { CreateSubscriptionDto } from './dto/subscription.dto.js';
 
 /** Usługi, które jeszcze „żyją” — zmiana sposobu rozliczenia dotyczy tylko ich. */
 const ZYWE: SubscriptionStatus[] = [

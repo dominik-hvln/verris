@@ -19,7 +19,7 @@ import { join, relative } from 'path';
  * Ten strażnik pilnuje całej klasy, a nie samego archivera.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 
 function znajdzPackageJson(katalog: string, poziom = 0): string[] {
   if (poziom > 2) return [];
@@ -219,7 +219,7 @@ describe('X-21 — archiver: kod woła API, które runtime faktycznie ma', () =>
            tar: [t.constructor.name, typeof t.directory, typeof t.finalize],
          }));`,
       ],
-      { cwd: join(__dirname, '..', '..'), encoding: 'utf8' },
+      { cwd: join(import.meta.dirname, '..', '..'), encoding: 'utf8' },
     ),
   ) as {
     klucze: string[];
@@ -247,7 +247,7 @@ describe('X-21 — archiver: kod woła API, które runtime faktycznie ma', () =>
   });
 
   it('żadne źródło nie woła archiver.create()', () => {
-    const src = join(__dirname, '..');
+    const src = join(import.meta.dirname, '..');
     const winne: string[] = [];
     const przejdz = (kat: string): void => {
       for (const wpis of readdirSync(kat)) {
@@ -259,7 +259,7 @@ describe('X-21 — archiver: kod woła API, które runtime faktycznie ma', () =>
           // trafiałby sam w siebie. Ta sama pułapka co „jest" w X-17: strażnik
           // widzi własny tekst i melduje awarię, której nie ma. Poprawność
           // samego wykrywania pilnuje test niżej, na spreparowanym wejściu.
-          if (s === __filename) continue;
+          if (s === import.meta.filename) continue;
           if (wolaCreate(readFileSync(s, 'utf8'))) winne.push(relative(src, s));
         }
       }
@@ -325,7 +325,7 @@ describe('X-21 — archiver: kod woła API, które runtime faktycznie ma', () =>
          a.append(Readable.from([Buffer.from('załącznik')]), { name: 'attachments/p.txt' });
          void a.finalize();`,
       ],
-      { cwd: join(__dirname, '..', '..'), encoding: 'utf8' },
+      { cwd: join(import.meta.dirname, '..', '..'), encoding: 'utf8' },
     ),
   ) as {
     blad?: string;

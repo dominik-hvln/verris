@@ -1,36 +1,37 @@
+import type { Mock } from 'vitest';
 import {
   StatusWebhookDeliveryStatus,
   StatusWebhookEvent,
 } from '@verris/database';
 import { createHmac } from 'node:crypto';
-import { assertPublicWebhookUrl, StatusWebhookService } from './status-webhook.service';
-import { postWebhookBezpiecznie } from '../common/net/webhook-post';
+import { assertPublicWebhookUrl, StatusWebhookService } from './status-webhook.service.js';
+import { postWebhookBezpiecznie } from '../common/net/webhook-post.js';
 
-jest.mock('../common/net/webhook-post', () => ({
-  ...jest.requireActual('../common/net/webhook-post'),
-  postWebhookBezpiecznie: jest.fn(),
+vi.mock('../common/net/webhook-post.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  postWebhookBezpiecznie: vi.fn(),
 }));
-const wyslij = postWebhookBezpiecznie as jest.Mock;
+const wyslij = postWebhookBezpiecznie as Mock;
 
 describe('StatusWebhookService', () => {
   const prisma = {
     statusWebhookEndpoint: {
-      findMany: jest.fn(),
+      findMany: vi.fn(),
     },
     statusWebhookDelivery: {
-      createMany: jest.fn(),
-      findMany: jest.fn(),
-      findUnique: jest.fn(),
-      updateMany: jest.fn(),
-      update: jest.fn(),
+      createMany: vi.fn(),
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      updateMany: vi.fn(),
+      update: vi.fn(),
     },
   };
   const crypto = {
-    decrypt: jest.fn((value: string) => value.replace('enc:', '')),
+    decrypt: vi.fn((value: string) => value.replace('enc:', '')),
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('returns zero when no endpoints subscribe to the event', async () => {

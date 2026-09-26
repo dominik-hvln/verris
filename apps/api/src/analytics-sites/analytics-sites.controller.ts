@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { IsBoolean, IsString, MaxLength, MinLength } from 'class-validator';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { AnalyticsSitesService } from './analytics-sites.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { AnalyticsSitesService } from './analytics-sites.service.js';
 
 class CreateSiteDto {
   @IsString() @MinLength(4) @MaxLength(253)

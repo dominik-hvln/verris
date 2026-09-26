@@ -1,6 +1,6 @@
 import { BadRequestException, ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { createHmac } from 'crypto';
-import { StripeService } from './stripe.service';
+import { StripeService } from './stripe.service.js';
 
 type ConfigMap = Record<string, string | undefined>;
 

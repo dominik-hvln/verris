@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { OBIEKT_KOPII_LATEST } from '../storage/object-storage.service';
+import { OBIEKT_KOPII_LATEST } from '../storage/object-storage.service.js';
 
 /**
  * H-21 — nazwa obiektu kopii jest jedna, nie cztery.
@@ -23,7 +23,7 @@ import { OBIEKT_KOPII_LATEST } from '../storage/object-storage.service';
  * To ta sama technika co w X-24 (ścieżki panelu vs trasy API) i w Z-03.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const CRYPTO_SH = join(KORZEN, 'ops', 'lib', 'backup-crypto.sh');
 
 /** Treść bez komentarzy — po raz dziewiąty ta sama lekcja w tym projekcie. */

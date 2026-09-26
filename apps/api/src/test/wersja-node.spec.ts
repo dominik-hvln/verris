@@ -1,7 +1,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const KORZEN = resolve(__dirname, '../../../..');
+const KORZEN = resolve(import.meta.dirname, '../../../..');
 
 /**
  * ENV-01 — jedna wersja Node w czterech miejscach.

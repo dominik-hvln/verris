@@ -10,13 +10,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { PrismaService } from '../prisma/prisma.service';
-import { KbService } from './kb.service';
-import { ArtykulKbDto, BanerKbDto, KategoriaKbDto, ZmianaArtykuluKbDto, ZmianaKategoriiKbDto } from './kb.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { KbService } from './kb.service.js';
+import { ArtykulKbDto, BanerKbDto, KategoriaKbDto, ZmianaArtykuluKbDto, ZmianaKategoriiKbDto } from './kb.dto.js';
 
 /**
  * KB-CMS — autoring Bazy Wiedzy. Dostęp: ADMIN + STAFF (treść pomocy, nieinwazyjne

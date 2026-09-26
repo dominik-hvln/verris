@@ -1,5 +1,5 @@
-import { blokPartnera, typLogo, wstawMarke, ZNACZNIK_PARTNERA_DO, ZNACZNIK_PARTNERA_OD } from './reseller-marka';
-import { renderEmailShell } from '../mail/templates/_layouts/email-shell';
+import { blokPartnera, typLogo, wstawMarke, ZNACZNIK_PARTNERA_DO, ZNACZNIK_PARTNERA_OD } from './reseller-marka.js';
+import { renderEmailShell } from '../mail/templates/_layouts/email-shell.js';
 
 describe('O-09 — marka resellera', () => {
   it('logo rozpoznaje po sygnaturze pliku, SVG i HTML odrzuca', () => {

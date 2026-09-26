@@ -1,13 +1,13 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
-import { ClientWebhooksService } from '../client-webhooks/client-webhooks.service';
+import { ClientWebhooksService } from '../client-webhooks/client-webhooks.service.js';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { SubscriptionStatus, WalletTxType } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { WalletLedgerService } from '../billing/wallet-ledger.service';
-import { PromoService } from '../billing/promo.service';
-import { SubscriptionsService } from './subscriptions.service';
-import { EcoPointsService } from '../eco/eco-points.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
+import { PromoService } from '../billing/promo.service.js';
+import { SubscriptionsService } from './subscriptions.service.js';
+import { EcoPointsService } from '../eco/eco-points.service.js';
 
 const HOURS = 60 * 60 * 1000;
 const DAYS = 24 * HOURS;

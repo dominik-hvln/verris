@@ -2,10 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as net from 'node:net';
 import * as tls from 'node:tls';
 import * as crypto from 'node:crypto';
-import { AuditService } from '../common/audit/audit.service';
-import { MigrationActions } from '../common/audit/audit.actions';
-import { resolvePublicHost } from './migration-net.util';
-import { uzupelnijSkrzynke, type CreateMigrationBundleDto, type MigrationImapSourceDto } from './dto/migration.dto';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MigrationActions } from '../common/audit/audit.actions.js';
+import { resolvePublicHost } from './migration-net.util.js';
+import { uzupelnijSkrzynke, type CreateMigrationBundleDto, type MigrationImapSourceDto } from './dto/migration.dto.js';
 import { Client as SshClient } from 'ssh2';
 
 /**

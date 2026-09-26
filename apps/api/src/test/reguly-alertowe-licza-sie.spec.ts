@@ -41,7 +41,7 @@ import { join } from 'path';
  * łapie wyłącznie bramka we wdrożeniu i tak ma zostać.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const SKRYPT = join(KORZEN, 'ops', 'scripts', 'prod-deploy-ghcr.sh');
 const ZRODLA = join(
   KORZEN,

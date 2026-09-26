@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
-import { ViesService, type WynikVies } from './vies.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
+import { ViesService, type WynikVies } from './vies.service.js';
 import {
   normalizujKraj, numerVatUe, odczytajOss, sprzedazB2cUe, STAWKI_UE, ustalTraktowanieVat, type TraktowanieVat,
-} from './vat';
+} from './vat.js';
 
 /**
  * M-09 — traktowanie VAT dla konkretnego klienta: profil (kraj, NIP/VAT-UE) +

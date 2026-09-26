@@ -6,8 +6,8 @@ export function loadPhpApplyScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/node-php-apply.sh'),
     join(process.cwd(), '../../ops/scripts/node-php-apply.sh'),
-    join(__dirname, '../../../../../ops/scripts/node-php-apply.sh'),
-    join(__dirname, '../../../../ops/scripts/node-php-apply.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/node-php-apply.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/node-php-apply.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) {

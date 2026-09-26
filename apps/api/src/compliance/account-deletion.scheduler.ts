@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { AccountDeletionService } from './account-deletion.service';
+import { AccountDeletionService } from './account-deletion.service.js';
 
 /**
  * GDPR Art. 17 schedulers.

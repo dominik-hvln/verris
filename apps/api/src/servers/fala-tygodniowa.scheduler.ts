@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { NodeTasksService } from './node-tasks.service';
+import { NodeTasksService } from './node-tasks.service.js';
 
 /**
  * PB-35 — cotygodniowa fala aktualizacji floty (decyzja właściciela 26.09): wtorek 4:00 czasu

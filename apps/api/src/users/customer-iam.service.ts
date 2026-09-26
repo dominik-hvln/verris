@@ -14,15 +14,15 @@ import {
 } from '@verris/database';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
-import { iamSubaccountInviteTemplate } from '../mail/templates/iam-invite-notification';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { iamSubaccountInviteTemplate } from '../mail/templates/iam-invite-notification.js';
 import {
   AcceptSubaccountInviteDto,
   InviteSubaccountDto,
   UpdateSubaccountDto,
-} from './customer-iam.dto';
+} from './customer-iam.dto.js';
 
 const INVITE_TTL_DAYS = 7;
 

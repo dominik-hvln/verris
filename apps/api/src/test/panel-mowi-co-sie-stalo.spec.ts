@@ -32,7 +32,7 @@ import { kodBleduSieci, opiszBladSieci } from '@verris/contracts';
  *    i łapie błąd sieciowy zamiast pozwolić mu uciec surowym.
  */
 
-const PANEL = join(__dirname, '..', '..', '..', 'client-panel', 'src', 'lib');
+const PANEL = join(import.meta.dirname, '..', '..', '..', 'client-panel', 'src', 'lib');
 const ZRODLO_API = readFileSync(join(PANEL, 'api.ts'), 'utf8');
 
 /** Błąd w kształcie, w jakim naprawdę rzuca go undici. */

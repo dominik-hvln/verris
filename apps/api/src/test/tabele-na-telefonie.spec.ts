@@ -9,7 +9,7 @@ import { join, relative, resolve } from 'path';
  * 2026-09-23: 5 tabel bez wzorca (zgody RODO, eksport danych, rekordy DNS migracji,
  * menedżer plików, deploy — ten ostatni chował kolumnę „Harmonogram” na telefonie).
  */
-const SRC = resolve(__dirname, '../../../client-panel/src');
+const SRC = resolve(import.meta.dirname, '../../../client-panel/src');
 const WYJATKI = new Set(['components/panel/responsive-data-view.tsx']);
 
 function pliki(dir: string): string[] {

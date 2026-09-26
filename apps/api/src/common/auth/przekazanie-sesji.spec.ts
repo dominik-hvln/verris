@@ -1,5 +1,5 @@
-import { odbierzKodPrzekazania, wydajKodPrzekazania } from './przekazanie-sesji';
-import { AuthController } from '../../auth/auth.controller';
+import { odbierzKodPrzekazania, wydajKodPrzekazania } from './przekazanie-sesji.js';
+import { AuthController } from '../../auth/auth.controller.js';
 
 describe('jednorazowe kody przekazania sesji', () => {
   it('kod wymienia się na token dokładnie raz', () => {

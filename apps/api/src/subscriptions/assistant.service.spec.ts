@@ -1,19 +1,19 @@
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
-import { AssistantService } from './assistant.service';
+import { AssistantService } from './assistant.service.js';
 
 /** PB-17 — naprawy asystenta: tylko odwracalne, z audytem, cofnięcie z danych audytu. */
 function setup(opts: { report?: unknown; log?: unknown; undone?: unknown } = {}) {
   const prisma = {
     auditLog: {
-      create: jest.fn().mockResolvedValue({ id: 'log-1' }),
-      findFirst: jest.fn().mockImplementation(({ where }: { where: { action: string } }) =>
+      create: vi.fn().mockResolvedValue({ id: 'log-1' }),
+      findFirst: vi.fn().mockImplementation(({ where }: { where: { action: string } }) =>
         Promise.resolve(where.action === 'ASSISTANT_FIX_APPLIED' ? (opts.log ?? null) : (opts.undone ?? null)),
       ),
     },
   };
-  const audit = { record: jest.fn() };
-  const da = { createHostingDnsRecord: jest.fn().mockResolvedValue({ ok: true }), deleteHostingDnsRecord: jest.fn().mockResolvedValue({ ok: true }) };
-  const deliverability = { forSubscription: jest.fn().mockResolvedValue(opts.report) };
+  const audit = { record: vi.fn() };
+  const da = { createHostingDnsRecord: vi.fn().mockResolvedValue({ ok: true }), deleteHostingDnsRecord: vi.fn().mockResolvedValue({ ok: true }) };
+  const deliverability = { forSubscription: vi.fn().mockResolvedValue(opts.report) };
   const svc = new (AssistantService as unknown as new (...a: unknown[]) => AssistantService)(prisma, audit, da, deliverability, {});
   return { svc, prisma, audit, da };
 }

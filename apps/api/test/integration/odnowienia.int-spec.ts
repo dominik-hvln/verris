@@ -1,9 +1,9 @@
 import { SubscriptionStatus, WalletTxType } from '@verris/database';
-import { AuditService } from '../../src/common/audit/audit.service';
-import { WalletLedgerService } from '../../src/billing/wallet-ledger.service';
-import { PromoService } from '../../src/billing/promo.service';
-import { RenewalScheduler } from '../../src/subscriptions/renewal.scheduler';
-import { prisma, rozlacz, utworzPlan, wyczyscBaze } from './setup';
+import { AuditService } from '../../src/common/audit/audit.service.js';
+import { WalletLedgerService } from '../../src/billing/wallet-ledger.service.js';
+import { PromoService } from '../../src/billing/promo.service.js';
+import { RenewalScheduler } from '../../src/subscriptions/renewal.scheduler.js';
+import { prisma, rozlacz, utworzPlan, wyczyscBaze } from './setup.js';
 
 /**
  * X-04 — odnowienia z portfela na prawdziwej bazie: obciążenie + przedłużenie okresu w jednym

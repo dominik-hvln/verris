@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, WalletTransaction, WalletTxType } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { WalletLedgerService } from './wallet-ledger.service';
-import type { WynikVies } from './vies.service';
-import { VatNabywcyService } from './vat-nabywcy.service';
-import { kursSredniPrzed } from './kurs-nbp';
-import { odczytajModelFakturowania } from './tryb-fakturowania';
-import { utworzDokumentDoladowania } from './doladowanie';
-import { kredytZaWplate, traktowanieZKodu, type TraktowanieVat } from './vat';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { WalletLedgerService } from './wallet-ledger.service.js';
+import type { WynikVies } from './vies.service.js';
+import { VatNabywcyService } from './vat-nabywcy.service.js';
+import { kursSredniPrzed } from './kurs-nbp.js';
+import { odczytajModelFakturowania } from './tryb-fakturowania.js';
+import { utworzDokumentDoladowania } from './doladowanie.js';
+import { kredytZaWplate, traktowanieZKodu, type TraktowanieVat } from './vat.js';
 
 export type WalutaWplaty = 'PLN' | 'EUR' | 'USD';
 export const WALUTY_WPLATY: readonly WalutaWplaty[] = ['PLN', 'EUR', 'USD'];

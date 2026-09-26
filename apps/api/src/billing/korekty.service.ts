@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Invoice, Prisma, WalletTxType } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { WalletLedgerService } from './wallet-ledger.service';
-import { nadajNumerDokumentu, STAWKA_VAT } from './faktura-za-portfel';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { WalletLedgerService } from './wallet-ledger.service.js';
+import { nadajNumerDokumentu, STAWKA_VAT } from './faktura-za-portfel.js';
 import {
   bladKorygowalnosci,
   korektaFormalna,
@@ -12,7 +12,7 @@ import {
   przeliczKorekte,
   type PozycjaKorekty,
   type RodzajKorekty,
-} from './korekta-faktury';
+} from './korekta-faktury.js';
 
 export interface WystawKorekteInput {
   invoiceId: string;

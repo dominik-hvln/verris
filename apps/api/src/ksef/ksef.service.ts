@@ -2,19 +2,19 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { Invoice, KsefStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
-import { FaXmlValidationError } from './fa-xml.types';
-import { buildFa3Xml } from './fa3-xml.builder';
-import { KsefV2Client } from './ksef-v2.client';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
+import { FaXmlValidationError } from './fa-xml.types.js';
+import { buildFa3Xml } from './fa3-xml.builder.js';
+import { KsefV2Client } from './ksef-v2.client.js';
 import {
   stanTerminu,
   terminPrzeslania,
   type TrybWystawienia,
-} from './ksef-tryby';
-import { RODZAJ_FAKTURA_VAT, rodzajKwalifikujeDoKsef } from '../billing/tryb-fakturowania';
-import { InvoicingProvider } from './invoicing-provider.interface';
+} from './ksef-tryby.js';
+import { RODZAJ_FAKTURA_VAT, rodzajKwalifikujeDoKsef } from '../billing/tryb-fakturowania.js';
+import { InvoicingProvider } from './invoicing-provider.interface.js';
 
 const BATCH_LIMIT = 25;
 

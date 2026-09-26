@@ -33,7 +33,7 @@ import { join } from 'path';
  * wypadek braku gita.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 
 /** Ścieżki wszystkich skryptów .sh w repozytorium, bez node_modules i buildów. */
 function skrypty(): string[] {

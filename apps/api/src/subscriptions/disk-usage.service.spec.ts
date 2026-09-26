@@ -1,15 +1,15 @@
 import { ConflictException } from '@nestjs/common';
-import { DiskUsageService, zajetoscZLogu } from './disk-usage.service';
+import { DiskUsageService, zajetoscZLogu } from './disk-usage.service.js';
 
 /** C-15/K-03 — skrypt węzła sprawdzony lokalnie (du jako klient, dwa poziomy, i-węzły). */
 function stanowisko(opts: { zadania?: unknown[]; wToku?: boolean } = {}) {
   const account = { id: 'a1', serverId: 'n1', status: 'ACTIVE', daUsername: 'klient1' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
     nodeTask: {
-      findFirst: jest.fn(async () => (opts.wToku ? { id: 'x' } : null)),
-      findMany: jest.fn(async () => opts.zadania ?? []),
-      create: jest.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
+      findFirst: vi.fn(async () => (opts.wToku ? { id: 'x' } : null)),
+      findMany: vi.fn(async () => opts.zadania ?? []),
+      create: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
     },
   };
   return { svc: new DiskUsageService(prisma as never), prisma };

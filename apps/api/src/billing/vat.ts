@@ -1,7 +1,7 @@
 import { Prisma } from '@verris/database';
-import type { KlientPrismy } from './faktura-za-portfel';
-import type { KursNbp } from './kurs-nbp';
-import type { WynikVies } from './vies.service';
+import type { KlientPrismy } from './faktura-za-portfel.js';
+import type { KursNbp } from './kurs-nbp.js';
+import type { WynikVies } from './vies.service.js';
 
 /**
  * M-09 — jak opodatkować usługę Verris dla konkretnego nabywcy.

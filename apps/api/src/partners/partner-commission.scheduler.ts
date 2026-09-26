@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { Prisma, WalletTxType } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
 
 /**
  * RESELL — naliczanie prowizji partnerskich.

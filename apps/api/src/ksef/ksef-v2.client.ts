@@ -11,8 +11,8 @@ import {
   InvoiceSendResult,
   InvoiceStatusResult,
   InvoicingProvider,
-} from './invoicing-provider.interface';
-import { FA3_FORM_VALUE, FA3_SCHEMA_VERSION, FA3_SYSTEM_CODE } from './fa3-xml.builder';
+} from './invoicing-provider.interface.js';
+import { FA3_FORM_VALUE, FA3_SCHEMA_VERSION, FA3_SYSTEM_CODE } from './fa3-xml.builder.js';
 
 /**
  * KSEF-2.0-2 — własny klient KSeF 2.0 (API v2) implementujący pełny przepływ

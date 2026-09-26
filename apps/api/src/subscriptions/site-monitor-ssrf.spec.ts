@@ -1,11 +1,12 @@
-import { probeUrl } from './site-monitor.service';
-import { getBezpiecznie } from '../common/net/webhook-post';
+import type { Mock } from 'vitest';
+import { probeUrl } from './site-monitor.service.js';
+import { getBezpiecznie } from '../common/net/webhook-post.js';
 
-jest.mock('../common/net/webhook-post', () => ({
-  ...jest.requireActual('../common/net/webhook-post'),
-  getBezpiecznie: jest.fn(async () => 301),
+vi.mock('../common/net/webhook-post.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getBezpiecznie: vi.fn(async () => 301),
 }));
-const get = getBezpiecznie as jest.Mock;
+const get = getBezpiecznie as Mock;
 
 /**
  * SEC-09 (druga warstwa) — monitor strony nie odpytuje adresów prywatnych,

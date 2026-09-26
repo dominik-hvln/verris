@@ -1,6 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { NodeTaskKind, NodeTaskStatus, ServerStatus } from '@verris/database';
-import { NodeTasksService, ALLOWED_DB_VERSIONS } from './node-tasks.service';
+import { NodeTasksService, ALLOWED_DB_VERSIONS } from './node-tasks.service.js';
 
 /**
  * REL-1 — testy nowej, wrażliwej ścieżki: zlecenie upgrade silnika MariaDB
@@ -42,18 +42,18 @@ describe('NodeTasksService.queueDbUpgrade', () => {
 
     const prisma = {
       server: {
-        findUnique: jest.fn().mockResolvedValue(server),
-        update: jest.fn().mockResolvedValue({}),
+        findUnique: vi.fn().mockResolvedValue(server),
+        update: vi.fn().mockResolvedValue({}),
       },
       nodeTask: {
         // reclaimStaleRunningTasks → brak zawieszonych
-        findMany: jest.fn().mockResolvedValue([]),
-        findFirst: jest.fn().mockResolvedValue(opts.inflight ?? null),
-        create: jest.fn().mockResolvedValue(created),
-        update: jest.fn().mockResolvedValue({}),
+        findMany: vi.fn().mockResolvedValue([]),
+        findFirst: vi.fn().mockResolvedValue(opts.inflight ?? null),
+        create: vi.fn().mockResolvedValue(created),
+        update: vi.fn().mockResolvedValue({}),
       },
     };
-    const audit = { record: jest.fn().mockResolvedValue(undefined) };
+    const audit = { record: vi.fn().mockResolvedValue(undefined) };
     const directAdmin = {};
 
     const service = new NodeTasksService(prisma as never, audit as never, directAdmin as never);

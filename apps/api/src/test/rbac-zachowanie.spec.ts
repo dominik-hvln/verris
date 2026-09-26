@@ -3,9 +3,9 @@ import { Reflector } from '@nestjs/core';
 import { GUARDS_METADATA, METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
-import { STAFF_PERMISSIONS_KEY } from '../common/decorators/staff-permissions.decorator';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { STAFF_PERMISSIONS_KEY } from '../common/decorators/staff-permissions.decorator.js';
 
 /**
  * X-10 — RBAC sprawdzany ZACHOWANIEM, nie metadanymi.
@@ -16,13 +16,10 @@ import { STAFF_PERMISSIONS_KEY } from '../common/decorators/staff-permissions.de
  * (z prawdziwym Reflectorem) i sprawdzamy wynik dla konta klienta, operatora bez
  * uprawnień, operatora z uprawnieniami i administratora.
  */
-// archiver 8 to czysty ESM — ts-jest go nie przetłumaczy; strażnik czyta tylko metadane tras.
-jest.mock('archiver', () => ({}));
-
 type Uzytkownik = { userId: string; role: 'USER' | 'STAFF' | 'ADMIN' };
 type Trasa = { kontroler: string; klasa: Type<unknown>; metoda: string; handler: (...args: unknown[]) => unknown; sciezka: string };
 
-const SRC = resolve(__dirname, '..');
+const SRC = resolve(import.meta.dirname, '..');
 
 function plikiKontrolerow(dir: string): string[] {
   const out: string[] = [];
@@ -34,11 +31,10 @@ function plikiKontrolerow(dir: string): string[] {
   return out;
 }
 
-function trasyAdmina(): Trasa[] {
+async function trasyAdmina(): Promise<Trasa[]> {
   const out: Trasa[] = [];
   for (const plik of plikiKontrolerow(SRC)) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require(plik) as Record<string, unknown>;
+    const mod = (await import(plik)) as Record<string, unknown>;
     for (const [nazwa, klasa] of Object.entries(mod)) {
       if (typeof klasa !== 'function') continue;
       const sciezka = Reflect.getMetadata(PATH_METADATA, klasa) as string | undefined;
@@ -85,7 +81,7 @@ async function wpuszcza(t: Trasa, user: Uzytkownik, uprawnienia: string[] = []):
   return true;
 }
 
-const TRASY = trasyAdmina();
+const TRASY = await trasyAdmina();
 const KLIENT: Uzytkownik = { userId: 'c', role: 'USER' };
 const OPERATOR: Uzytkownik = { userId: 's', role: 'STAFF' };
 const ADMIN: Uzytkownik = { userId: 'a', role: 'ADMIN' };

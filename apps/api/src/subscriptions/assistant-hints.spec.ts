@@ -1,4 +1,4 @@
-import { buildHints, type HintInput } from './assistant-hints';
+import { buildHints, type HintInput } from './assistant-hints.js';
 
 const now = new Date('2026-09-23T12:00:00Z');
 const inDays = (d: number) => new Date(now.getTime() + d * 86_400_000);

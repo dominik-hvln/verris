@@ -1,13 +1,13 @@
 import { BadRequestException, Body, Controller, Get, Header, Headers, HttpCode, Post, Query, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
-import { NodeBootstrapService } from './node-bootstrap.service';
-import { BootstrapTokenService } from './bootstrap-token.service';
-import { buildNodeBootstrapScript } from './node-bootstrap.script';
-import { stosJakoEnv } from './stos-wezla';
-import { StosWezlaService } from './stos-wezla.service';
-import { AuditService } from '../common/audit/audit.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { NodeBootstrapService } from './node-bootstrap.service.js';
+import { BootstrapTokenService } from './bootstrap-token.service.js';
+import { buildNodeBootstrapScript } from './node-bootstrap.script.js';
+import { stosJakoEnv } from './stos-wezla.js';
+import { StosWezlaService } from './stos-wezla.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 class BootstrapReportDto {
   @IsString() @MaxLength(64)

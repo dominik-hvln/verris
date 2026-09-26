@@ -2,10 +2,10 @@ import { BadRequestException, Injectable, Logger, ConflictException, NotFoundExc
 import * as dns from 'dns';
 import { createHmac, timingSafeEqual } from 'crypto';
 import * as tls from 'tls';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { ConfigService } from '@nestjs/config';
 import { DomainChecklistStatus, DomainStatus } from '@verris/database';
-import { CreateDomainDto } from './dto/create-domain.dto';
+import { CreateDomainDto } from './dto/create-domain.dto.js';
 
 /** A-16 — rekord wyzwania: TXT pod `_verris-challenge.<domena>`. */
 export const VERIFY_RECORD_PREFIX = '_verris-challenge';

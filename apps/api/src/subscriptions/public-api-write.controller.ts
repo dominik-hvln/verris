@@ -1,14 +1,14 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { IsOptional } from 'class-validator';
-import { ApiTokenGuard } from '../api-tokens/api-token.guard';
-import { ApiScope } from '../api-tokens/api-scope.decorator';
-import { API_SCOPES } from '../api-tokens/api-scopes';
-import { RateLimit } from '../common/guards/rate-limit.guard';
-import { DirectAdminService } from '../servers/directadmin.service';
-import { GitDeployService } from './git-deploy.service';
-import { UsunRekordDnsDto, UtworzRekordDnsDto } from './dto/hosting-dns.dto';
-import { Linia } from './dto/hosting-body.dto';
+import { ApiTokenGuard } from '../api-tokens/api-token.guard.js';
+import { ApiScope } from '../api-tokens/api-scope.decorator.js';
+import { API_SCOPES } from '../api-tokens/api-scopes.js';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
+import { GitDeployService } from './git-deploy.service.js';
+import { UsunRekordDnsDto, UtworzRekordDnsDto } from './dto/hosting-dns.dto.js';
+import { Linia } from './dto/hosting-body.dto.js';
 
 type ApiAuth = { userId: string };
 const kto = (req: Request) => (req as unknown as { apiAuth: ApiAuth }).apiAuth.userId;

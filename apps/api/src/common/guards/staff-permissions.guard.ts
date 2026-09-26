@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PrismaService } from '../../prisma/prisma.service';
-import { STAFF_PERMISSIONS_KEY } from '../decorators/staff-permissions.decorator';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { STAFF_PERMISSIONS_KEY } from '../decorators/staff-permissions.decorator.js';
 
 /**
  * RBAC — egzekwuje granularne uprawnienia operatorów.

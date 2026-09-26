@@ -4,7 +4,7 @@ import {
   MAKS_KROTNOSC_AUTOSKALOWANIA,
   PolitykaPojemnosci,
   wolneDoZadysponowania,
-} from './node-capacity';
+} from './node-capacity.js';
 
 /**
  * Z-16 — ile węzeł może jeszcze zadysponować i jaka krotność wolno kontu urosnąć.

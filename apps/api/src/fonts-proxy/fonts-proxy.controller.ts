@@ -1,6 +1,6 @@
 import { Controller, Get, Header, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
-import { FontsProxyService } from './fonts-proxy.service';
+import { FontsProxyService } from './fonts-proxy.service.js';
 
 /**
  * FONT-1 — publiczne endpointy proxy/CDN fontów (bez uwierzytelniania):

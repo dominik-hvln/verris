@@ -6,8 +6,8 @@ export function loadDiskUsageScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/node-disk-usage.sh'),
     join(process.cwd(), '../../ops/scripts/node-disk-usage.sh'),
-    join(__dirname, '../../../../../ops/scripts/node-disk-usage.sh'),
-    join(__dirname, '../../../../ops/scripts/node-disk-usage.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/node-disk-usage.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/node-disk-usage.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) return readFileSync(path, 'utf8');

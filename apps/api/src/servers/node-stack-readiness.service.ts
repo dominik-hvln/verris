@@ -9,9 +9,9 @@ import type {
   NodeStackServiceCheckDto,
 } from '@verris/contracts';
 import { NodeTaskKind, Server, ServerStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { DirectAdminService } from './directadmin.service';
-import { NodeTasksService } from './node-tasks.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { DirectAdminService } from './directadmin.service.js';
+import { NodeTasksService } from './node-tasks.service.js';
 
 const PROBE_TIMEOUT_MS = 8_000;
 const CAGEFS_FRESH_MS = 10 * 60 * 1000;

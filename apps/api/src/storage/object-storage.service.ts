@@ -7,7 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Client as MinioClient, type ClientOptions, type ItemBucketMetadata } from 'minio';
 import type { Readable } from 'stream';
-import { ObjectBuckets, type ObjectBucket, type ObjectMetadata } from './object-storage.types';
+import { ObjectBuckets, type ObjectBucket, type ObjectMetadata } from './object-storage.types.js';
 
 /**
  * Nazwa obiektu „latest" w buckecie kopii. Sufiks `.age` bierze się z tego,

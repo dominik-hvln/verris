@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { PublicStatsController } from './public-stats.controller';
+import { PublicStatsController } from './public-stats.controller.js';
 
 /** O-5 — public trust-signal stats. */
 @Module({

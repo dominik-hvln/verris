@@ -6,7 +6,7 @@ import {
   tierPercent,
   totalMinutes,
   type Interval,
-} from './sla-credit.scheduler';
+} from './sla-credit.scheduler.js';
 
 const iv = (startIso: string, endIso: string): Interval => ({
   start: new Date(startIso),

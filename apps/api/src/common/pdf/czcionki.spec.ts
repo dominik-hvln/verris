@@ -1,6 +1,6 @@
-import { fontkitZModulu } from './czcionki';
-import { InvoicePdfService } from '../../billing/invoice-pdf.service';
-import { DpaPdfService } from '../../compliance/dpa-pdf.service';
+import { fontkitZModulu } from './czcionki.js';
+import { InvoicePdfService } from '../../billing/invoice-pdf.service.js';
+import { DpaPdfService } from '../../compliance/dpa-pdf.service.js';
 
 /**
  * Dokumenty PDF z polskimi znakami renderują się bez wyjątku.

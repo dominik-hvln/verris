@@ -1,5 +1,6 @@
+import type { Mock } from 'vitest';
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { WpUpdateService, sprawdzWybor, stanZLogu, zabezpieczeniaZLogu, zmiany } from './wp-update.service';
+import { WpUpdateService, sprawdzWybor, stanZLogu, zabezpieczeniaZLogu, zmiany } from './wp-update.service.js';
 
 /**
  * I-04/I-05 — strona API. Skrypt węzła sprawdzony lokalnie na atrapie wp-cli: kopia (pliki + baza,
@@ -18,22 +19,22 @@ const PO = { ...PRZED, version: '6.6.2', core: [], plugins: [{ ...PRZED.plugins[
 function stanowisko(opts: { zadania?: unknown[]; wToku?: boolean; automaty?: unknown[] } = {}) {
   const account = { id: 'a1', serverId: 'n1', status: 'ACTIVE', daUsername: 'klient1' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
     nodeTask: {
-      findFirst: jest.fn(async () => (opts.wToku ? { id: 'busy' } : null)),
-      findMany: jest.fn(async () => opts.zadania ?? []),
-      create: jest.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
+      findFirst: vi.fn(async () => (opts.wToku ? { id: 'busy' } : null)),
+      findMany: vi.fn(async () => opts.zadania ?? []),
+      create: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
     },
     wpAutoUpdate: {
-      findUnique: jest.fn(async () => null),
-      findMany: jest.fn(async () => opts.automaty ?? []),
-      upsert: jest.fn(async () => undefined),
-      deleteMany: jest.fn(async () => undefined),
-      update: jest.fn(async () => undefined),
+      findUnique: vi.fn(async () => null),
+      findMany: vi.fn(async () => opts.automaty ?? []),
+      upsert: vi.fn(async () => undefined),
+      deleteMany: vi.fn(async () => undefined),
+      update: vi.fn(async () => undefined),
     },
   };
-  const da = { assertDomainOwnedBySubscription: jest.fn(async (_s: string, _u: string, d: string) => d.trim().toLowerCase()) };
-  const svc = new WpUpdateService(prisma as never, { record: jest.fn(async () => undefined) } as never, da as never);
+  const da = { assertDomainOwnedBySubscription: vi.fn(async (_s: string, _u: string, d: string) => d.trim().toLowerCase()) };
+  const svc = new WpUpdateService(prisma as never, { record: vi.fn(async () => undefined) } as never, da as never);
   return { svc, prisma, da };
 }
 
@@ -144,7 +145,7 @@ describe('WpUpdateService — wiele stron naraz (I-14)', () => {
     const z = Buffer.from(JSON.stringify({ edytorPlikow: true, debug: false, uzytkownikAdmin: true, uprawnieniaConfig: '644', sumyRdzenia: 'ok' })).toString('base64');
     const sprawdzenie = { id: 't', status: 'COMPLETED', outputLog: `VERRIS_WP_PRZED=${b64(PRZED)}\nVERRIS_WP_ZABEZPIECZENIA=${z}\n`, createdAt: new Date(), completedAt: new Date(), payload: { mode: 'check', domain: 'a.pl' } };
     const s = stanowisko();
-    (s.da as unknown as { listHostingDomainsForSubscription: jest.Mock }).listHostingDomainsForSubscription = jest.fn(async () => ({ domains: [{ name: 'A.pl' }, { name: 'b.pl' }], fetchError: null }));
+    (s.da as unknown as { listHostingDomainsForSubscription: Mock }).listHostingDomainsForSubscription = vi.fn(async () => ({ domains: [{ name: 'A.pl' }, { name: 'b.pl' }], fetchError: null }));
     s.prisma.nodeTask.findMany.mockImplementation((async (a: { where: { payload?: { equals: string }; status?: unknown } }) => {
       if (a.where.status) return [{ payload: { domain: 'b.pl' } }];
       return a.where.payload?.equals === 'a.pl' ? [sprawdzenie] : [];
@@ -158,7 +159,7 @@ describe('WpUpdateService — wiele stron naraz (I-14)', () => {
 
   it('serwer nie odpowiada → komunikat o niedostępności, nie pusta lista', async () => {
     const s = stanowisko();
-    (s.da as unknown as { listHostingDomainsForSubscription: jest.Mock }).listHostingDomainsForSubscription = jest.fn(async () => ({ domains: [], fetchError: 'x' }));
+    (s.da as unknown as { listHostingDomainsForSubscription: Mock }).listHostingDomainsForSubscription = vi.fn(async () => ({ domains: [], fetchError: 'x' }));
     await expect(s.svc.przeglad('s1', 'u1')).rejects.toThrow('chwilowo niedostępny');
   });
 });

@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InvoiceStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { StripeService } from './stripe/stripe.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { StripeService } from './stripe/stripe.service.js';
 
 const DO_ANULOWANIA: InvoiceStatus[] = [InvoiceStatus.DRAFT, InvoiceStatus.OPEN];
 

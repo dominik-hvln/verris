@@ -1,5 +1,5 @@
 import { UnauthorizedException } from '@nestjs/common';
-import { MetricsController } from './metrics.controller';
+import { MetricsController } from './metrics.controller.js';
 
 /** F-13 — /metrics: token w stałym czasie; produkcja bez tokenu jest zamknięta. */
 describe('MetricsController', () => {
@@ -7,7 +7,7 @@ describe('MetricsController', () => {
   afterEach(() => {
     process.env = { ...env };
   });
-  const kontroler = () => new MetricsController({ getPrometheusMetrics: jest.fn(async () => 'm 1') } as never);
+  const kontroler = () => new MetricsController({ getPrometheusMetrics: vi.fn(async () => 'm 1') } as never);
 
   it('z tokenem: poprawny nagłówek → metryki, zły albo brak → 401', async () => {
     process.env.METRICS_AUTH_TOKEN = 'tajny';

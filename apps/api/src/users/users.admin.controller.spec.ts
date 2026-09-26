@@ -1,9 +1,9 @@
 import { Role } from '@verris/database';
-import { ROLES_KEY } from '../common/decorators/roles.decorator';
-import { STAFF_PERMISSIONS_KEY } from '../common/decorators/staff-permissions.decorator';
-import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { UsersAdminController } from './users.admin.controller';
+import { ROLES_KEY } from '../common/decorators/roles.decorator.js';
+import { STAFF_PERMISSIONS_KEY } from '../common/decorators/staff-permissions.decorator.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { UsersAdminController } from './users.admin.controller.js';
 
 /**
  * RBAC panelu operatorskiego — kontrakt sprawdzany na metadanych dekoratorów,

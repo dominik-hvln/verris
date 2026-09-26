@@ -1,9 +1,9 @@
 import { Body, Controller, Get, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { PrismaService } from '../prisma/prisma.service';
-import { ServerIdentityGuard } from '../servers/guards/server-identity.guard';
-import { NodeProbeBatchDto } from './dto/probe-ingest.dto';
-import { ProbeIngestService } from './probe-ingest.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { ServerIdentityGuard } from '../servers/guards/server-identity.guard.js';
+import { NodeProbeBatchDto } from './dto/probe-ingest.dto.js';
+import { ProbeIngestService } from './probe-ingest.service.js';
 
 /**
  * Node-side probe push endpoint (H-3). The bootstrap agent on each compute

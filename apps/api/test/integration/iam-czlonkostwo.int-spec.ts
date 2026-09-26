@@ -1,9 +1,9 @@
 import { SubscriptionStatus } from '@verris/database';
-import { AuditService } from '../../src/common/audit/audit.service';
-import { CustomerIamService } from '../../src/users/customer-iam.service';
-import { JwtStrategy } from '../../src/auth/strategies/jwt.strategy';
-import { wZakresie } from '../../src/common/guards/zakres-uslug';
-import { prisma, rozlacz, utworzPlan, wyczyscBaze } from './setup';
+import { AuditService } from '../../src/common/audit/audit.service.js';
+import { CustomerIamService } from '../../src/users/customer-iam.service.js';
+import { JwtStrategy } from '../../src/auth/strategies/jwt.strategy.js';
+import { wZakresie } from '../../src/common/guards/zakres-uslug.js';
+import { prisma, rozlacz, utworzPlan, wyczyscBaze } from './setup.js';
 
 /**
  * PB-20 — udostępnianie wybranych usług i dostęp z własnego konta, na prawdziwej bazie.

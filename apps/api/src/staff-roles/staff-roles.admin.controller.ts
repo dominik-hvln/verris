@@ -1,13 +1,13 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { StaffRolesService } from './staff-roles.service';
-import { AktywnoscOperatoraDto, NowyOperatorDto, PrzypisanieRoliDto, RolaObslugiDto, ZmianaRoliObslugiDto } from './staff-roles.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { StaffRolesService } from './staff-roles.service.js';
+import { AktywnoscOperatoraDto, NowyOperatorDto, PrzypisanieRoliDto, RolaObslugiDto, ZmianaRoliObslugiDto } from './staff-roles.dto.js';
 
 type Authed = { userId: string; principalUserId?: string; role: string };
 

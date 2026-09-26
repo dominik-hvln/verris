@@ -7,9 +7,9 @@ import {
 import * as dns from 'node:dns/promises';
 import * as tls from 'node:tls';
 import { Role } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { SupportActions } from '../common/audit/audit.actions';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { SupportActions } from '../common/audit/audit.actions.js';
 
 const OP_TIMEOUT_MS = 12_000;
 

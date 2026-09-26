@@ -1,17 +1,17 @@
 import { UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { UsersService } from './users.service';
+import { UsersService } from './users.service.js';
 
 /** Zmiana hasła: stare hasło wymagane; po zmianie inne urządzenia tracą sesję, bieżące nie. */
 describe('UsersService.changePassword', () => {
   async function stanowisko() {
     const passwordHash = await bcrypt.hash('stare-haslo', 4);
     const prisma = {
-      user: { findUnique: jest.fn(async () => ({ id: 'u1', email: 'k@x.pl', firstName: 'K', passwordHash })), update: jest.fn(async () => ({})) },
-      userSession: { updateMany: jest.fn(async () => ({ count: 2 })) },
+      user: { findUnique: vi.fn(async () => ({ id: 'u1', email: 'k@x.pl', firstName: 'K', passwordHash })), update: vi.fn(async () => ({})) },
+      userSession: { updateMany: vi.fn(async () => ({ count: 2 })) },
     };
-    const svc = new UsersService(prisma as never, {} as never, {} as never, {} as never, { send: jest.fn(async () => undefined) } as never);
-    jest.spyOn(svc as unknown as { notifyPasswordChanged: () => Promise<void> }, 'notifyPasswordChanged').mockResolvedValue(undefined);
+    const svc = new UsersService(prisma as never, {} as never, {} as never, {} as never, { send: vi.fn(async () => undefined) } as never);
+    vi.spyOn(svc as unknown as { notifyPasswordChanged: () => Promise<void> }, 'notifyPasswordChanged').mockResolvedValue(undefined);
     return { svc, prisma };
   }
 

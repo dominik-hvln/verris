@@ -3,9 +3,9 @@ import { resolve } from 'node:path';
 import {
   MAKS_INDEKS_TABLICY_W_POLU,
   opcjeUploaduDoPamieci,
-} from '../common/upload/multer-limity';
+} from '../common/upload/multer-limity.js';
 
-const KORZEN = resolve(__dirname, '../../../..');
+const KORZEN = resolve(import.meta.dirname, '../../../..');
 
 /**
  * SEC-07 — multipart nie kładzie procesu jednym żądaniem.

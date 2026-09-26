@@ -1,5 +1,5 @@
 import { DirectAdminApiError, DirectAdminClient } from '@verris/directadmin-sdk';
-import { DirectAdminService } from './directadmin.service';
+import { DirectAdminService } from './directadmin.service.js';
 
 /**
  * X-09 — domeny w DirectAdminService: DNS, domeny dodatkowe, aliasy, PHP per domena, poddomeny i deploy.
@@ -19,26 +19,26 @@ function stanowisko(o: { status?: string; get?: Record<string, unknown>; post?: 
     '/CMD_API_SHOW_USER_CONFIG': 'domain=firma.pl',
     ...o.get,
   };
-  const get = jest.fn((path: string, _cfg?: Record<string, unknown>) => odp(trasyGet[path] ?? ''));
-  const post = jest.fn((path: string, _body?: unknown, _cfg?: Record<string, unknown>) =>
+  const get = vi.fn((path: string, _cfg?: Record<string, unknown>) => odp(trasyGet[path] ?? ''));
+  const post = vi.fn((path: string, _body?: unknown, _cfg?: Record<string, unknown>) =>
     odp(o.post?.[path] ?? 'error=0&text=OK'),
   );
   const klient = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'klient1', loginKey: 'x', secure: true });
   Object.assign(klient, { client: { get, post } });
   const account = { id: 'a1', status: o.status ?? 'ACTIVE', daUsername: 'klient1', domain: 'firma.pl', daPasswordEnc: 'enc' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
     account: {
-      update: jest.fn(async () => account),
+      update: vi.fn(async () => account),
       // Z-10: domena główna innego klienta.
-      findFirst: jest.fn(async (a: { where: { domain: { in: string[] } } }) => (a.where.domain.in.includes('cudza.pl') ? { id: 'a2' } : null)),
+      findFirst: vi.fn(async (a: { where: { domain: { in: string[] } } }) => (a.where.domain.in.includes('cudza.pl') ? { id: 'a2' } : null)),
     },
-    domain: { findFirst: jest.fn(async (a: { where: { name: { in: string[] } } }) => (a.where.name.in.includes('zarejestrowana.pl') ? { id: 'd2' } : null)) },
+    domain: { findFirst: vi.fn(async (a: { where: { name: { in: string[] } } }) => (a.where.name.in.includes('zarejestrowana.pl') ? { id: 'd2' } : null)) },
   };
-  const audit = { record: jest.fn(async () => undefined) };
-  const platformSettings = { getPhpSlotReleases: jest.fn(async () => o.sloty ?? ['8.3', '8.2', '7.4']) };
+  const audit = { record: vi.fn(async () => undefined) };
+  const platformSettings = { getPhpSlotReleases: vi.fn(async () => o.sloty ?? ['8.3', '8.2', '7.4']) };
   const svc = new DirectAdminService(prisma as never, {} as never, platformSettings as never, audit as never);
-  jest.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue(klient);
+  vi.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue(klient);
   const wyslane = (n = 0) => Object.fromEntries(new URLSearchParams(String(post.mock.calls[n]?.[1] ?? '')));
   return { svc, get, post, audit, wyslane };
 }
@@ -230,7 +230,7 @@ describe('Deploy z Git (cron)', () => {
 
   it('lista: tylko crony ze znacznikiem Verris, częstotliwość z harmonogramu', async () => {
     const s = stanowisko();
-    jest.spyOn(s.svc, 'listHostingCronJobs').mockResolvedValue({
+    vi.spyOn(s.svc, 'listHostingCronJobs').mockResolvedValue({
       rows: [
         { id: '1', schedule: '*/15 * * * *', command: 'cd $HOME/domains/firma.pl/public_html && git pull # verris-deploy d=firma.pl' },
         { id: '2', schedule: '0 * * * *', command: 'php artisan schedule:run' },
@@ -283,7 +283,7 @@ describe('L-06 — wynik ostatniego uruchomienia crona', () => {
   type Czytnik = { readAccountTextFile: (k: unknown, p: string) => Promise<string> };
   it('czyta ~/.verris-cron/<klucz>.log, zwraca koniec długiego wyniku', async () => {
     const s = stanowisko();
-    const spy = jest.spyOn(s.svc as unknown as Czytnik, 'readAccountTextFile').mockResolvedValue('x'.repeat(20_010));
+    const spy = vi.spyOn(s.svc as unknown as Czytnik, 'readAccountTextFile').mockResolvedValue('x'.repeat(20_010));
     const r = await s.svc.getHostingCronOutput('s1', 'u1', 'abc123');
     expect(spy).toHaveBeenCalledWith(expect.anything(), '/.verris-cron/abc123.log');
     expect(r).toMatchObject({ obciete: true });
@@ -293,7 +293,7 @@ describe('L-06 — wynik ostatniego uruchomienia crona', () => {
   it('klucz ze ścieżką → 400; brak katalogu (pierwsze uruchomienie przed nami) → pusty wynik, inny błąd DA → dalej', async () => {
     const s = stanowisko();
     await expect(s.svc.getHostingCronOutput('s1', 'u1', '../x')).rejects.toThrow('Nieprawidłowy klucz');
-    const spy = jest.spyOn(s.svc as unknown as Czytnik, 'readAccountTextFile');
+    const spy = vi.spyOn(s.svc as unknown as Czytnik, 'readAccountTextFile');
     spy.mockRejectedValueOnce(new DirectAdminApiError('x', 'Directory does not exist'));
     await expect(s.svc.getHostingCronOutput('s1', 'u1', 'abc123')).resolves.toMatchObject({ output: '' });
     spy.mockRejectedValueOnce(new DirectAdminApiError('x', 'Permission denied'));
@@ -304,9 +304,9 @@ describe('L-06 — wynik ostatniego uruchomienia crona', () => {
 describe('assertDomainOwnedBySubscription — awaria serwera to nie „cudza domena”', () => {
   it('brak listy domen z powodu błędu serwera → komunikat o niedostępności', async () => {
     const svc = new DirectAdminService({} as never, {} as never, {} as never, {} as never);
-    jest.spyOn(svc, 'listHostingDomainsForSubscription').mockResolvedValue({ domains: [], daUsername: 'k', primaryDomain: 'a.pl', fetchError: 'ECONNREFUSED' });
+    vi.spyOn(svc, 'listHostingDomainsForSubscription').mockResolvedValue({ domains: [], daUsername: 'k', primaryDomain: 'a.pl', fetchError: 'ECONNREFUSED' });
     await expect(svc.assertDomainOwnedBySubscription('s1', 'u1', 'a.pl')).rejects.toThrow('chwilowo niedostępny');
-    jest.spyOn(svc, 'listHostingDomainsForSubscription').mockResolvedValue({ domains: [{ name: 'b.pl' }], daUsername: 'k', primaryDomain: 'b.pl', fetchError: null });
+    vi.spyOn(svc, 'listHostingDomainsForSubscription').mockResolvedValue({ domains: [{ name: 'b.pl' }], daUsername: 'k', primaryDomain: 'b.pl', fetchError: null });
     await expect(svc.assertDomainOwnedBySubscription('s1', 'u1', 'a.pl')).rejects.toThrow('nie należy do tej usługi');
   });
 });

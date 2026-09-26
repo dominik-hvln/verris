@@ -1,9 +1,9 @@
 import { Controller, Get, NotFoundException, Param, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { PrismaService } from '../prisma/prisma.service';
-import { ApiTokenGuard } from './api-token.guard';
-import { ApiScope } from './api-scope.decorator';
-import { API_SCOPES } from './api-scopes';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { ApiTokenGuard } from './api-token.guard.js';
+import { ApiScope } from './api-scope.decorator.js';
+import { API_SCOPES } from './api-scopes.js';
 
 type ApiAuth = { userId: string; scopes: string[]; tokenId: string };
 function auth(req: Request): ApiAuth {

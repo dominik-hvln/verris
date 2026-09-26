@@ -1,7 +1,7 @@
 import { HttpException } from '@nestjs/common';
 import type { ExecutionContext } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
-import { MAX_BUCKETS, RATE_LIMIT_KEY, RATE_LIMIT_SKIP_KEY, RateLimitGuard, type RateLimitOptions } from './rate-limit.guard';
+import { MAX_BUCKETS, RATE_LIMIT_KEY, RATE_LIMIT_SKIP_KEY, RateLimitGuard, type RateLimitOptions } from './rate-limit.guard.js';
 
 /** G-20 — dowód D2 dla strażnika, który chroni logowanie przed atakiem słownikowym. */
 const LOGIN: RateLimitOptions = { limit: 3, windowMs: 60_000, scope: 'auth:login', keyByBodyField: 'email' };
@@ -32,7 +32,7 @@ async function status(g: RateLimitGuard, c: ExecutionContext): Promise<number> {
 }
 
 describe('G-20 RateLimitGuard', () => {
-  afterEach(() => jest.useRealTimers());
+  afterEach(() => vi.useRealTimers());
 
   it('po limicie z jednego IP zwraca 429 z czasem ponowienia', async () => {
     const g = guardWith({ options: LOGIN });
@@ -50,11 +50,11 @@ describe('G-20 RateLimitGuard', () => {
   });
 
   it('okno się resetuje', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     const g = guardWith({ options: LOGIN });
     for (let i = 0; i < 3; i++) await status(g, ctx('2.2.2.2'));
     expect(await status(g, ctx('2.2.2.2'))).toBe(429);
-    jest.advanceTimersByTime(60_001);
+    vi.advanceTimersByTime(60_001);
     expect(await status(g, ctx('2.2.2.2'))).toBe(200);
   });
 
@@ -82,7 +82,7 @@ describe('G-20 RateLimitGuard', () => {
   it('awaria Redisa przełącza na licznik w pamięci zamiast przepuszczać ruch', async () => {
     const g = guardWith({ options: LOGIN });
     const inner = g as unknown as { redis: unknown; redisHealthy: boolean };
-    inner.redis = { incr: jest.fn().mockRejectedValue(new Error('ECONNRESET')), disconnect: jest.fn() };
+    inner.redis = { incr: vi.fn().mockRejectedValue(new Error('ECONNRESET')), disconnect: vi.fn() };
     inner.redisHealthy = true;
     const codes: number[] = [];
     for (let i = 0; i < 4; i++) codes.push(await status(g, ctx('5.5.5.5')));

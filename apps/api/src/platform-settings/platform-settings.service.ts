@@ -1,14 +1,14 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { CryptoService } from '../common/crypto/crypto.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { CryptoService } from '../common/crypto/crypto.service.js';
 import {
   PLATFORM_SETTING_DEFAULTS,
   PLATFORM_SETTING_KEYS,
   type PlatformSettingKey,
-} from './platform-settings.keys';
-import { ksefDozwolony, normalizujTryb } from '../billing/tryb-fakturowania';
-import type { TrialOfferConfig } from './dto/trial-offer.dto';
+} from './platform-settings.keys.js';
+import { ksefDozwolony, normalizujTryb } from '../billing/tryb-fakturowania.js';
+import type { TrialOfferConfig } from './dto/trial-offer.dto.js';
 
 export interface SellerCompanyDto {
   name: string;

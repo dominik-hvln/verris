@@ -1,7 +1,7 @@
 import { Prisma } from '@verris/database';
-import { DoladowanieService } from './doladowanie.service';
-import { WalletLedgerService } from './wallet-ledger.service';
-import { VatNabywcyService } from './vat-nabywcy.service';
+import { DoladowanieService } from './doladowanie.service.js';
+import { WalletLedgerService } from './wallet-ledger.service.js';
+import { VatNabywcyService } from './vat-nabywcy.service.js';
 
 /**
  * M-09/M-10/M-34 — doładowanie: ile K, jaka stawka, dokument przy wpłacie.
@@ -18,7 +18,7 @@ function zbuduj(opts: {
   const wpisy: Array<Record<string, unknown>> = [];
   const dokumenty: Array<Record<string, unknown>> = [];
   const tx = {
-    $queryRaw: jest.fn(async (strings: TemplateStringsArray, ...vals: unknown[]) => {
+    $queryRaw: vi.fn(async (strings: TemplateStringsArray, ...vals: unknown[]) => {
       const sql = strings.join('?');
       if (sql.includes('platform_settings')) {
         const v = ustawienia[String(vals[0])];
@@ -30,32 +30,32 @@ function zbuduj(opts: {
       return [];
     }),
     user: {
-      update: jest.fn(async () => ({})),
-      findUnique: jest.fn(async () => ({ country: opts.kraj ?? 'PL', nip: opts.nip ?? null })),
+      update: vi.fn(async () => ({})),
+      findUnique: vi.fn(async () => ({ country: opts.kraj ?? 'PL', nip: opts.nip ?? null })),
     },
     walletTransaction: {
-      create: jest.fn(async (a: { data: Record<string, unknown> }) => {
+      create: vi.fn(async (a: { data: Record<string, unknown> }) => {
         const w = { id: `w${wpisy.length + 1}`, ...a.data };
         wpisy.push(w);
         return w;
       }),
-      update: jest.fn(async () => ({})),
-      findUnique: jest.fn(async () => null),
+      update: vi.fn(async () => ({})),
+      findUnique: vi.fn(async () => null),
     },
     invoice: {
-      create: jest.fn(async (a: { data: Record<string, unknown> }) => {
+      create: vi.fn(async (a: { data: Record<string, unknown> }) => {
         dokumenty.push(a.data);
         return { id: 'inv1', number: String(a.data.number) };
       }),
     },
   };
-  const prisma = { ...tx, $transaction: jest.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)) };
+  const prisma = { ...tx, $transaction: vi.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)) };
   const ledger = new WalletLedgerService(prisma as never);
-  const vies = { sprawdz: jest.fn(async () => ({ wazny: opts.vies ?? null, kodKraju: 'DE', numer: '1', nazwa: null, data: 'd', identyfikator: 'WAPI', blad: null })) };
-  const ps = { getSellerCompany: jest.fn(async () => ({ nip: '7251234567' })) };
+  const vies = { sprawdz: vi.fn(async () => ({ wazny: opts.vies ?? null, kodKraju: 'DE', numer: '1', nazwa: null, data: 'd', identyfikator: 'WAPI', blad: null })) };
+  const ps = { getSellerCompany: vi.fn(async () => ({ nip: '7251234567' })) };
   const svc = new DoladowanieService(prisma as never, ledger, new VatNabywcyService(prisma as never, vies as never, ps as never));
   const orig = global.fetch;
-  global.fetch = jest.fn(async () => ({
+  global.fetch = vi.fn(async () => ({
     ok: true,
     json: async () => ({ rates: [{ no: '183/A/NBP/2026', effectiveDate: '2026-09-22', mid: opts.kurs ?? 4.25 }] }),
   })) as never;

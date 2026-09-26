@@ -6,8 +6,8 @@ export function loadLveAgentScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/verris-lve.sh'),
     join(process.cwd(), '../../ops/scripts/verris-lve.sh'),
-    join(__dirname, '../../../../../ops/scripts/verris-lve.sh'),
-    join(__dirname, '../../../../ops/scripts/verris-lve.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/verris-lve.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/verris-lve.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) {

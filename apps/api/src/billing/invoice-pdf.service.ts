@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PDFDocument, rgb } from 'pdf-lib';
-import { osadzCzcionki } from '../common/pdf/czcionki';
+import { osadzCzcionki } from '../common/pdf/czcionki.js';
 import { Prisma } from '@verris/database';
 
-import { RODZAJ_DOKUMENT_ROZLICZENIOWY, RODZAJ_PROFORMA } from './tryb-fakturowania';
+import { RODZAJ_DOKUMENT_ROZLICZENIOWY, RODZAJ_PROFORMA } from './tryb-fakturowania.js';
 
 /** FAK-01 — adnotacja na dokumencie rozliczeniowym. */
 export const ADNOTACJA_DOKUMENTU_ROZLICZENIOWEGO: readonly string[] = [

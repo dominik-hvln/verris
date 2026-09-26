@@ -10,7 +10,7 @@ import {
   MaxLength,
 } from 'class-validator';
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
-import { IsStrongPassword } from './password-policy.validator';
+import { IsStrongPassword } from './password-policy.validator.js';
 
 export class RegisterDto {
   @IsEmail()

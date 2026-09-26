@@ -13,7 +13,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { ControlPlaneMailboxKind, ControlPlaneMailboxStatus } from '@verris/database';
-import { LOCAL_PART_RE } from '../control-plane-mail.constants';
+import { LOCAL_PART_RE } from '../control-plane-mail.constants.js';
 
 export class CreateControlPlaneMailboxDto {
   @IsString()

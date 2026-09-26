@@ -1,8 +1,8 @@
-import { AuditService } from '../../src/common/audit/audit.service';
-import { NodeTasksService } from '../../src/servers/node-tasks.service';
-import { NotificationsService } from '../../src/notifications/notifications.service';
-import { FalaTygodniowaScheduler } from '../../src/servers/fala-tygodniowa.scheduler';
-import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } from './setup';
+import { AuditService } from '../../src/common/audit/audit.service.js';
+import { NodeTasksService } from '../../src/servers/node-tasks.service.js';
+import { NotificationsService } from '../../src/notifications/notifications.service.js';
+import { FalaTygodniowaScheduler } from '../../src/servers/fala-tygodniowa.scheduler.js';
+import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } from './setup.js';
 
 /**
  * PB-32 — aktualizacja floty falą na prawdziwej bazie: kanarek (najmniej kont) pierwszy,

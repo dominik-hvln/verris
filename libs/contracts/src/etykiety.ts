@@ -1,5 +1,5 @@
-import type { InvoiceStatus } from './invoice.dto';
-import type { WalletTxStatus, WalletTxType } from './wallet.dto';
+import type { InvoiceStatus } from './invoice.dto.ts';
+import type { WalletTxStatus, WalletTxType } from './wallet.dto.ts';
 
 /**
  * Etykiety enumów z bazy po polsku — jedno źródło dla panelu klienta i panelu

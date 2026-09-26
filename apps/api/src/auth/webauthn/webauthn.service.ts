@@ -19,13 +19,13 @@ import type {
   RegistrationResponseJSON,
 } from '@simplewebauthn/server';
 import { isoBase64URL } from '@simplewebauthn/server/helpers';
-import { PrismaService } from '../../prisma/prisma.service';
-import { EcoPointsService } from '../../eco/eco-points.service';
-import { MailerService } from '../../mail/mailer.service';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { EcoPointsService } from '../../eco/eco-points.service.js';
+import { MailerService } from '../../mail/mailer.service.js';
 import {
   passkeyAddedTemplate,
   passkeyRemovedTemplate,
-} from '../../mail/templates/security-notifications';
+} from '../../mail/templates/security-notifications.js';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 

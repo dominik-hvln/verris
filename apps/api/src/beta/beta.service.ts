@@ -2,10 +2,10 @@ import { randomInt } from 'node:crypto';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, PromoKind } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { MailerService } from '../mail/mailer.service';
-import { AuditService } from '../common/audit/audit.service';
-import { zaproszenieDoTestowTemplate } from './beta.templates';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { zaproszenieDoTestowTemplate } from './beta.templates.js';
 
 /**
  * PB-26 — otwarte testy przed startem (docs/ops/BETA_TESTY.md).

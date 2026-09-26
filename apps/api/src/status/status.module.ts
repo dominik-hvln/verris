@@ -1,15 +1,15 @@
 import { Module } from '@nestjs/common';
-import { StatusService } from './status.service';
-import { StatusController } from './status.controller';
-import { ProbeRunnerService } from './probe-runner.service';
-import { ProbeIngestService } from './probe-ingest.service';
-import { ProbeScheduler } from './probe.scheduler';
-import { ProbesAdminService } from './probes-admin.service';
-import { ProbesAdminController } from './probes-admin.controller';
-import { ProbeIngestController } from './probe-ingest.controller';
-import { MeStatusController } from './me-status.controller';
-import { ServerIdentityGuard } from '../servers/guards/server-identity.guard';
-import { StatusWebhookService } from './status-webhook.service';
+import { StatusService } from './status.service.js';
+import { StatusController } from './status.controller.js';
+import { ProbeRunnerService } from './probe-runner.service.js';
+import { ProbeIngestService } from './probe-ingest.service.js';
+import { ProbeScheduler } from './probe.scheduler.js';
+import { ProbesAdminService } from './probes-admin.service.js';
+import { ProbesAdminController } from './probes-admin.controller.js';
+import { ProbeIngestController } from './probe-ingest.controller.js';
+import { MeStatusController } from './me-status.controller.js';
+import { ServerIdentityGuard } from '../servers/guards/server-identity.guard.js';
+import { StatusWebhookService } from './status-webhook.service.js';
 
 @Module({
   providers: [

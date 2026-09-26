@@ -1,12 +1,12 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { CATALOG } from '../subscriptions/app-install.service';
+import { CATALOG } from '../subscriptions/app-install.service.js';
 
 /**
  * I-01 — katalog aplikacji w API i instalator na węźle mówią jednym głosem, a domyślna strona Verris
  * nie blokuje instalacji ani nie zasłania aplikacji (index.html jest przed index.php w DirectoryIndex).
  */
-const skrypt = (n: string) => readFileSync(join(__dirname, '..', '..', '..', '..', 'ops', 'scripts', n), 'utf8');
+const skrypt = (n: string) => readFileSync(join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'scripts', n), 'utf8');
 
 describe('I-01 — instalator aplikacji', () => {
   const s = skrypt('node-app-install.sh');

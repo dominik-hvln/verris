@@ -46,7 +46,7 @@ import { join } from 'path';
  * żeby usterka nie wróciła tą samą drogą.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const REGULY_YAML = join(
   KORZEN,
   'ops',

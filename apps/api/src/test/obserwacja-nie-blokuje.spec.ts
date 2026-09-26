@@ -27,7 +27,7 @@ import { join } from 'path';
  */
 
 const SKRYPT = readFileSync(
-  join(__dirname, '..', '..', '..', '..', 'ops', 'scripts', 'security-control-plane-egress.sh'),
+  join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'scripts', 'security-control-plane-egress.sh'),
   'utf8',
 );
 

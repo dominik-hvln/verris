@@ -1,4 +1,4 @@
-import type { BillingInterval } from './subscription.dto';
+import type { BillingInterval } from './subscription.dto.ts';
 
 export type PlanChangeDirection = 'none' | 'upgrade' | 'downgrade';
 

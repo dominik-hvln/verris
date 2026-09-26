@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { WpUpdateService } from './wp-update.service';
+import { WpUpdateService } from './wp-update.service.js';
 
 /**
  * I-04 — raz na dobę, w nocy (mały ruch na stronach klientów), zleca automatyczne aktualizacje

@@ -1,4 +1,4 @@
-import { rowsToCsv } from './csv.util';
+import { rowsToCsv } from './csv.util.js';
 
 /** M-28 — eksport historii transakcji: poprawny CSV bez wstrzykiwania formuł do arkusza. */
 describe('rowsToCsv', () => {

@@ -1,12 +1,12 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, SubscriptionStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { PromoService } from './promo.service';
-import { InvoicePdfService } from './invoice-pdf.service';
-import { InvoicesService } from './invoices.service';
-import { etykietaStawki, rozbicieWgStawki, STAWKA_PL } from './vat';
-import { VatNabywcyService } from './vat-nabywcy.service';
-import { RODZAJ_PROFORMA } from './tryb-fakturowania';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { PromoService } from './promo.service.js';
+import { InvoicePdfService } from './invoice-pdf.service.js';
+import { InvoicesService } from './invoices.service.js';
+import { etykietaStawki, rozbicieWgStawki, STAWKA_PL } from './vat.js';
+import { VatNabywcyService } from './vat-nabywcy.service.js';
+import { RODZAJ_PROFORMA } from './tryb-fakturowania.js';
 
 /**
  * Koniec kolejnego okresu rozliczeniowego — ta sama arytmetyka co `addInterval` w

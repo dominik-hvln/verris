@@ -1,7 +1,7 @@
 import { IsInt, IsString, MinLength } from 'class-validator';
 import { validateSync } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
-import { Czesciowy } from './czesciowy';
+import { Czesciowy } from './czesciowy.js';
 
 class Pelny {
   @IsString() @MinLength(2) nazwa!: string;

@@ -5,13 +5,13 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConsentSource, LegalDocumentKind, Prisma, UserConsent } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { LegalDocumentsService } from './legal-documents.service';
-import { RodoActions } from '../common/audit/audit.actions';
-import { MailerService } from '../mail/mailer.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { LegalDocumentsService } from './legal-documents.service.js';
+import { RodoActions } from '../common/audit/audit.actions.js';
+import { MailerService } from '../mail/mailer.service.js';
 import { ConfigService } from '@nestjs/config';
-import { dpaAcceptedTemplate } from '../mail/templates/dpa-notifications';
+import { dpaAcceptedTemplate } from '../mail/templates/dpa-notifications.js';
 
 export interface ConsentRequestContext {
   ipAddress?: string | null;

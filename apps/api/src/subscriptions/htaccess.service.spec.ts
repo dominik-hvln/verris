@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { HtaccessService, sprawdzSciezke, ustawieniaZLogu } from './htaccess.service';
+import { HtaccessService, sprawdzSciezke, ustawieniaZLogu } from './htaccess.service.js';
 
 /**
  * B-17/B-18/G-07 — skrypt węzła sprawdzony lokalnie: blok Verris na początku pliku, reszta bez zmian,
@@ -8,15 +8,15 @@ import { HtaccessService, sprawdzSciezke, ustawieniaZLogu } from './htaccess.ser
 function stanowisko(zadania: unknown[] = [], wToku: unknown = null) {
   const account = { id: 'a1', serverId: 'n1', status: 'ACTIVE', daUsername: 'klient1' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
     nodeTask: {
-      findFirst: jest.fn(async () => wToku),
-      findMany: jest.fn(async () => zadania),
-      create: jest.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
+      findFirst: vi.fn(async () => wToku),
+      findMany: vi.fn(async () => zadania),
+      create: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
     },
   };
-  const da = { assertDomainOwnedBySubscription: jest.fn(async (_s: string, _u: string, d: string) => d.toLowerCase()) };
-  const audit = { record: jest.fn(async () => undefined) };
+  const da = { assertDomainOwnedBySubscription: vi.fn(async (_s: string, _u: string, d: string) => d.toLowerCase()) };
+  const audit = { record: vi.fn(async () => undefined) };
   return { svc: new HtaccessService(prisma as never, audit as never, da as never), prisma, audit };
 }
 const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64');

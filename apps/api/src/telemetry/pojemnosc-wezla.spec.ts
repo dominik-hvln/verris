@@ -1,8 +1,8 @@
-import { TelemetryService } from './telemetry.service';
+import { TelemetryService } from './telemetry.service.js';
 
 /** NODE-03 — pojemność węzła odświeża się z telemetrii, nie tylko przy handshake. */
 function run(node: Record<string, unknown> | undefined) {
-  const update = jest.fn().mockResolvedValue({});
+  const update = vi.fn().mockResolvedValue({});
   const svc = new (TelemetryService as unknown as new (...a: unknown[]) => TelemetryService)({ server: { update } });
   return svc.processLveMetrics({ serverId: 's1', accounts: [], node } as never).then(() => update.mock.calls[0][0].data);
 }

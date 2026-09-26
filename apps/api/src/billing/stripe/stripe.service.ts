@@ -9,7 +9,7 @@ import {
   StripeInvoice,
   StripePrice,
   StripeSubscription,
-} from './stripe.client';
+} from './stripe.client.js';
 
 const SIGNATURE_TOLERANCE_S = 300;
 

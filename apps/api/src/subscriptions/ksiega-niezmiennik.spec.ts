@@ -5,7 +5,7 @@ import {
   ksiegaUpdateData,
   LimityEfektywne,
   limityEfektywne,
-} from './node-capacity';
+} from './node-capacity.js';
 
 /**
  * Niezmiennik księgi pojemności węzła.

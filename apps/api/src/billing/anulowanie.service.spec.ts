@@ -1,19 +1,19 @@
-import { AnulowanieService } from './anulowanie.service';
+import { AnulowanieService } from './anulowanie.service.js';
 
 function setup(inv: Record<string, unknown> | null, opts: { stripeFails?: boolean; raced?: boolean } = {}) {
   const calls: string[] = [];
   const prisma = {
     invoice: {
-      findUnique: jest.fn().mockResolvedValue(inv),
-      updateMany: jest.fn().mockImplementation(async () => {
+      findUnique: vi.fn().mockResolvedValue(inv),
+      updateMany: vi.fn().mockImplementation(async () => {
         calls.push('local');
         return { count: opts.raced ? 0 : 1 };
       }),
     },
   };
-  const audit = { record: jest.fn() };
+  const audit = { record: vi.fn() };
   const stripe = {
-    voidInvoice: jest.fn().mockImplementation(async () => {
+    voidInvoice: vi.fn().mockImplementation(async () => {
       calls.push('stripe');
       if (opts.stripeFails) throw new Error('stripe down');
       return { id: 'in_1', status: 'void' };

@@ -1,6 +1,6 @@
 import { Controller, HttpCode, NotFoundException, Param, Post } from '@nestjs/common';
-import { RateLimit } from '../common/guards/rate-limit.guard';
-import { GitDeployService } from './git-deploy.service';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
+import { GitDeployService } from './git-deploy.service.js';
 
 /**
  * C-27 — publiczny adres webhooka wdrożenia (GitHub/GitLab/Bitbucket: „Push events”).

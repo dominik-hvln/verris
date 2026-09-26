@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as crypto from 'crypto';
-import { MailMessage, MailerProvider } from './mailer.interface';
+import { MailMessage, MailerProvider } from './mailer.interface.js';
 
 /**
  * Default mailer for dev / staging / unconfigured production. Writes the full

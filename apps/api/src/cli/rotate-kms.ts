@@ -22,7 +22,7 @@
  */
 
 import { Prisma, PrismaClient } from '@verris/database';
-import { CryptoService } from '../common/crypto/crypto.service';
+import { CryptoService } from '../common/crypto/crypto.service.js';
 
 const CHUNK_SIZE = 100;
 

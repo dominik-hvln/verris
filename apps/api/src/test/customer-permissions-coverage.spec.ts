@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, resolve } from 'path';
-import { inferCustomerRoutePermissions } from '../common/guards/customer-permissions.guard';
+import { inferCustomerRoutePermissions } from '../common/guards/customer-permissions.guard.js';
 
 /**
  * Z-04 — przemiatanie wszystkich tras API pod kątem subkont.
@@ -19,7 +19,7 @@ import { inferCustomerRoutePermissions } from '../common/guards/customer-permiss
  * Prismy ani kontenera DI.
  */
 
-const API_SRC = resolve(__dirname, '..');
+const API_SRC = resolve(import.meta.dirname, '..');
 
 /**
  * Trasy świadomie zamknięte dla subkont — rzeczy właściciela konta oraz

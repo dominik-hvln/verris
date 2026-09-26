@@ -1,5 +1,5 @@
-import { odczytajUserIni, sprawdzUstawieniaPhp, type UstawieniaPhp } from './php-ini';
-import { normalizujKatalogDocroot, odczytajDocroot, zapiszDocroot } from './docroot';
+import { odczytajUserIni, sprawdzUstawieniaPhp, type UstawieniaPhp } from './php-ini.js';
+import { normalizujKatalogDocroot, odczytajDocroot, zapiszDocroot } from './docroot.js';
 import {
   BadRequestException,
   Injectable,
@@ -33,13 +33,13 @@ type SurowyKlientDa = {
   get(path: string, config?: Record<string, unknown>): Promise<{ data: unknown }>;
   post(path: string, body?: unknown, config?: Record<string, unknown>): Promise<{ data: unknown }>;
 };
-import { PrismaService } from '../prisma/prisma.service';
-import { CryptoService } from '../common/crypto/crypto.service';
-import { AuditService } from '../common/audit/audit.service';
-import { HostingResourceActions } from '../common/audit/audit.actions';
-import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
-import { buildDaPackageSpecFromPlan, planResourceFields } from './da-package-spec';
-import { resolveHostingPrimaryDomain } from './hosting-primary-domain';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { CryptoService } from '../common/crypto/crypto.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { HostingResourceActions } from '../common/audit/audit.actions.js';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
+import { buildDaPackageSpecFromPlan, planResourceFields } from './da-package-spec.js';
+import { resolveHostingPrimaryDomain } from './hosting-primary-domain.js';
 
 export interface WebToolsState {
   redirects: Array<{ from: string; to: string; type: '301' | '302' }>;

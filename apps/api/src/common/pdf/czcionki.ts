@@ -16,7 +16,7 @@ export function fontkitZModulu(modul: unknown): Fontkit {
   throw new Error('@pdf-lib/fontkit: brak funkcji create — nieznany kształt modułu');
 }
 const fontkit = fontkitZModulu(fontkitModul);
-import { DEJAVU_SANS, DEJAVU_SANS_BOLD, DEJAVU_SANS_MONO } from './czcionki.generated';
+import { DEJAVU_SANS, DEJAVU_SANS_BOLD, DEJAVU_SANS_MONO } from './czcionki.generated.js';
 
 /**
  * Czcionki z polskimi znakami dla dokumentów PDF (faktury, proformy, DPA).

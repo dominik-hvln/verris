@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common';
-import { AuditModule } from '../common/audit/audit.module';
-import { SuspiciousActivityService } from './suspicious-activity.service';
+import { AuditModule } from '../common/audit/audit.module.js';
+import { SuspiciousActivityService } from './suspicious-activity.service.js';
 
 @Global()
 @Module({

@@ -1,12 +1,12 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PDFDocument, rgb } from 'pdf-lib';
-import { osadzCzcionki } from '../common/pdf/czcionki';
-import { PrismaService } from '../prisma/prisma.service';
-import { LegalDocumentsService } from './legal-documents.service';
-import { AuditService } from '../common/audit/audit.service';
-import { RodoActions } from '../common/audit/audit.actions';
-import { ObjectStorageService } from '../storage/object-storage.service';
-import { ObjectBuckets } from '../storage/object-storage.types';
+import { osadzCzcionki } from '../common/pdf/czcionki.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { LegalDocumentsService } from './legal-documents.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { RodoActions } from '../common/audit/audit.actions.js';
+import { ObjectStorageService } from '../storage/object-storage.service.js';
+import { ObjectBuckets } from '../storage/object-storage.types.js';
 
 const PAGE_WIDTH = 595.28; // A4 width in points
 const PAGE_HEIGHT = 841.89; // A4 height in points

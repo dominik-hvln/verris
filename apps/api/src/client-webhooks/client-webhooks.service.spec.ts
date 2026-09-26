@@ -1,15 +1,16 @@
+import type { Mock } from 'vitest';
 import { BadRequestException } from '@nestjs/common';
 import { createHmac } from 'node:crypto';
-import { ClientWebhooksService } from './client-webhooks.service';
-import { postWebhookBezpiecznie } from '../common/net/webhook-post';
+import { ClientWebhooksService } from './client-webhooks.service.js';
+import { postWebhookBezpiecznie } from '../common/net/webhook-post.js';
 
-jest.mock('../common/net/webhook-post', () => ({
-  ...jest.requireActual('../common/net/webhook-post'),
-  postWebhookBezpiecznie: jest.fn(),
+vi.mock('../common/net/webhook-post.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  postWebhookBezpiecznie: vi.fn(),
 }));
 
-jest.mock('../status/status-webhook.service', () => ({
-  assertPublicWebhookUrl: jest.fn(async (u: string) => {
+vi.mock('../status/status-webhook.service.js', () => ({
+  assertPublicWebhookUrl: vi.fn(async (u: string) => {
     if (!u.startsWith('https://') || u.includes('127.0.0.1')) throw new Error('Webhook URL must use HTTPS.');
   }),
 }));
@@ -20,29 +21,29 @@ function stanowisko() {
   const deliveries: Record<string, unknown>[] = [];
   const prisma = {
     clientWebhookEndpoint: {
-      count: jest.fn(async () => endpoints.length),
-      create: jest.fn(async (a: { data: Record<string, unknown> }) => { const e = { id: `e${endpoints.length + 1}`, createdAt: new Date(), isActive: true, ...a.data }; endpoints.push(e); return e; }),
-      findMany: jest.fn(async () => endpoints.map((e) => ({ id: e.id }))),
-      findFirst: jest.fn(async () => endpoints[0] ?? null),
-      deleteMany: jest.fn(async () => ({ count: 1 })),
+      count: vi.fn(async () => endpoints.length),
+      create: vi.fn(async (a: { data: Record<string, unknown> }) => { const e = { id: `e${endpoints.length + 1}`, createdAt: new Date(), isActive: true, ...a.data }; endpoints.push(e); return e; }),
+      findMany: vi.fn(async () => endpoints.map((e) => ({ id: e.id }))),
+      findFirst: vi.fn(async () => endpoints[0] ?? null),
+      deleteMany: vi.fn(async () => ({ count: 1 })),
     },
     clientWebhookDelivery: {
-      createMany: jest.fn(async (a: { data: Record<string, unknown>[] }) => { deliveries.push(...a.data); return { count: a.data.length }; }),
-      create: jest.fn(async () => ({})),
-      findMany: jest.fn(async () => [{ id: 'd1' }]),
-      updateMany: jest.fn(async () => ({ count: 1 })),
-      findUnique: jest.fn(async () => ({ id: 'd1', event: 'task.completed', createdAt: new Date(0), payload: { a: 1 }, attempts: 1, endpoint: { url: 'https://hook.example.com/x', secretEnc: 'enc:whsec_test' } })),
-      update: jest.fn(async () => ({})),
+      createMany: vi.fn(async (a: { data: Record<string, unknown>[] }) => { deliveries.push(...a.data); return { count: a.data.length }; }),
+      create: vi.fn(async () => ({})),
+      findMany: vi.fn(async () => [{ id: 'd1' }]),
+      updateMany: vi.fn(async () => ({ count: 1 })),
+      findUnique: vi.fn(async () => ({ id: 'd1', event: 'task.completed', createdAt: new Date(0), payload: { a: 1 }, attempts: 1, endpoint: { url: 'https://hook.example.com/x', secretEnc: 'enc:whsec_test' } })),
+      update: vi.fn(async () => ({})),
     },
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1' })) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1' })) },
   };
   const crypto = { encrypt: (v: string) => `enc:${v}`, decrypt: (v: string) => v.replace(/^enc:/, '') };
-  const svc = new ClientWebhooksService(prisma as never, crypto as never, { record: jest.fn(async () => undefined) } as never);
+  const svc = new ClientWebhooksService(prisma as never, crypto as never, { record: vi.fn(async () => undefined) } as never);
   return { svc, prisma, deliveries };
 }
 
 describe('ClientWebhooksService', () => {
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => vi.restoreAllMocks());
 
   it('dodaje adres z zaszyfrowanym sekretem pokazanym raz; zły adres i zdarzenie → 400', async () => {
     const s = stanowisko();
@@ -64,7 +65,7 @@ describe('ClientWebhooksService', () => {
 
   it('dostawa z podpisem HMAC; błąd HTTP → ponowienie z opóźnieniem', async () => {
     const s = stanowisko();
-    const wyslij = (postWebhookBezpiecznie as jest.Mock).mockResolvedValueOnce(200).mockResolvedValueOnce(500);
+    const wyslij = (postWebhookBezpiecznie as Mock).mockResolvedValueOnce(200).mockResolvedValueOnce(500);
     await s.svc.dostarczaj();
     const [, naglowki, body] = wyslij.mock.calls[0] as [string, Record<string, string>, string];
     expect(naglowki['x-verris-signature']).toBe(createHmac('sha256', 'whsec_test').update(body).digest('hex'));

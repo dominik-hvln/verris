@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { kontekstZadania } from './kontekst-zadania';
-import { PrismaService } from '../../prisma/prisma.service';
+import { kontekstZadania } from './kontekst-zadania.js';
+import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditLog, Prisma } from '@verris/database';
 import {
   ADMIN_OPS_ACTION_SET,
   RODO_ACTION_SET,
-} from './audit.actions';
+} from './audit.actions.js';
 
 /**
  * Sprint 4 — kategorie audytu używane w UI admina (filtr `?category=...`).

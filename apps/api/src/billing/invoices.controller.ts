@@ -11,10 +11,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { InvoicesService } from './invoices.service';
-import { ProformaService } from './proforma.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { InvoicesService } from './invoices.service.js';
+import { ProformaService } from './proforma.service.js';
 
 @Controller('billing/invoices')
 @UseGuards(JwtAuthGuard)

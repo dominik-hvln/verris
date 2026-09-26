@@ -1,22 +1,22 @@
-import { MailSettingsService } from './mail-settings.service';
-import { MAIL_SETTING_KEYS } from './mail-settings.keys';
+import { MailSettingsService } from './mail-settings.service.js';
+import { MAIL_SETTING_KEYS } from './mail-settings.keys.js';
 
 describe('MailSettingsService', () => {
   const prisma = {
     platformSetting: {
-      findMany: jest.fn().mockResolvedValue([]),
-      upsert: jest.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
+      upsert: vi.fn(),
     },
-    $transaction: jest.fn((ops: unknown[]) => Promise.all(ops as Promise<unknown>[])),
+    $transaction: vi.fn((ops: unknown[]) => Promise.all(ops as Promise<unknown>[])),
   };
 
   const crypto = {
-    encrypt: jest.fn((v: string) => `enc:${v}`),
-    decrypt: jest.fn((v: string) => v.replace(/^enc:/, '')),
+    encrypt: vi.fn((v: string) => `enc:${v}`),
+    decrypt: vi.fn((v: string) => v.replace(/^enc:/, '')),
   };
 
   const config = {
-    get: jest.fn((key: string) => {
+    get: vi.fn((key: string) => {
       const map: Record<string, string> = {
         SMTP_HOST: 'localhost',
         SMTP_PORT: '25',
@@ -28,7 +28,7 @@ describe('MailSettingsService', () => {
     }),
   };
 
-  const audit = { record: jest.fn() };
+  const audit = { record: vi.fn() };
 
   function svc() {
     return new MailSettingsService(
@@ -40,7 +40,7 @@ describe('MailSettingsService', () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('resolveSmtpConfig defaults to local Postfix relay', () => {

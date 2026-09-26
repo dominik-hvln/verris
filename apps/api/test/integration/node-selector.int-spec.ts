@@ -1,6 +1,6 @@
 import { ServiceUnavailableException } from '@nestjs/common';
-import { NodeSelectorService } from '../../src/subscriptions/node-selector.service';
-import { PrismaService } from '../../src/prisma/prisma.service';
+import { NodeSelectorService } from '../../src/subscriptions/node-selector.service.js';
+import { PrismaService } from '../../src/prisma/prisma.service.js';
 import {
   dodajProbke,
   prisma,
@@ -9,7 +9,7 @@ import {
   utworzPlan,
   utworzWezel,
   wyczyscBaze,
-} from './setup';
+} from './setup.js';
 
 /**
  * X-04 — placement kont przeciwko PRAWDZIWEJ bazie.

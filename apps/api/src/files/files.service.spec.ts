@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, NotFoundException, PayloadTooLargeException } from '@nestjs/common';
-import { FilesService } from './files.service';
+import { FilesService } from './files.service.js';
 
 /**
  * Menedżer plików (C-01…C-13): piaskownica ścieżek i nazw oraz własność usługi. Dotąd bez testu,
@@ -8,13 +8,13 @@ import { FilesService } from './files.service';
 function stanowisko(o: { konto?: Record<string, unknown> | null; brakUslugi?: boolean; rozmiar?: number } = {}) {
   const account = o.konto === undefined ? { id: 'a1', status: 'ACTIVE', serverId: 'n1', daUsername: 'klient1' } : o.konto;
   const klient = {
-    listDir: jest.fn(async () => [{ name: 'plik.txt', type: 'file', sizeBytes: o.rozmiar ?? 10, modified: null }]),
-    downloadFile: jest.fn(async () => Buffer.from('abc')),
-    client: { get: jest.fn(async () => ({ data: 'STRUMIEN' })) },
+    listDir: vi.fn(async () => [{ name: 'plik.txt', type: 'file', sizeBytes: o.rozmiar ?? 10, modified: null }]),
+    downloadFile: vi.fn(async () => Buffer.from('abc')),
+    client: { get: vi.fn(async () => ({ data: 'STRUMIEN' })) },
   };
-  const prisma = { subscription: { findFirst: jest.fn(async () => (o.brakUslugi ? null : { id: 's1', account })) } };
-  const da = { getClientForServer: jest.fn(async () => ({ asUser: jest.fn(() => klient) })) };
-  const svc = new FilesService(prisma as never, da as never, { record: jest.fn() } as never);
+  const prisma = { subscription: { findFirst: vi.fn(async () => (o.brakUslugi ? null : { id: 's1', account })) } };
+  const da = { getClientForServer: vi.fn(async () => ({ asUser: vi.fn(() => klient) })) };
+  const svc = new FilesService(prisma as never, da as never, { record: vi.fn() } as never);
   return { svc, klient, prisma };
 }
 

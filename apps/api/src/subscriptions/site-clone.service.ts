@@ -1,11 +1,11 @@
 import { randomBytes } from 'node:crypto';
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { HostingResourceActions } from '../common/audit/audit.actions';
-import { DirectAdminService } from '../servers/directadmin.service';
-import { WpUpdateService } from './wp-update.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { HostingResourceActions } from '../common/audit/audit.actions.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
+import { WpUpdateService } from './wp-update.service.js';
 
 /**
  * I-13 — kopia strony na inną domenę konta (`ops/scripts/node-site-clone.sh`, zadanie SITE_CLONE).

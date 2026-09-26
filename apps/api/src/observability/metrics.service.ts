@@ -8,11 +8,11 @@ import {
   SubscriptionStatus,
   WalletTxType,
 } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { ObjectStorageService } from '../storage/object-storage.service';
-import { ProvisioningQueueService } from '../subscriptions/provisioning-queue.service';
-import { HttpMetricsService } from './http-metrics.service';
-import { RuntimeErrorTracker } from './runtime-error-tracker.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { ObjectStorageService } from '../storage/object-storage.service.js';
+import { ProvisioningQueueService } from '../subscriptions/provisioning-queue.service.js';
+import { HttpMetricsService } from './http-metrics.service.js';
+import { RuntimeErrorTracker } from './runtime-error-tracker.service.js';
 
 /**
  * F-13: produces a Prometheus text-format metrics snapshot. We emit a small,

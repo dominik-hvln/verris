@@ -26,7 +26,7 @@ import { join, resolve } from 'path';
  * z osobna wyglądała rozsądnie.
  */
 
-const KORZEN = resolve(__dirname, '..', '..', '..', '..');
+const KORZEN = resolve(import.meta.dirname, '..', '..', '..', '..');
 
 /** Polecenie obejmujące CAŁY workspace, a nie wybrany pakiet. */
 const CALY_WORKSPACE = /(?:^|\s)(?:pnpm\s+(?:run\s+)?test|(?:pnpm\s+)?turbo\s+run\s+test)(?:\s|$)/m;

@@ -7,7 +7,7 @@ import { join } from 'path';
  * dysku serwera, a Caddy dalej kierował ją do forward_auth. Strażnik: reload jest w skrypcie, jest
  * warunkiem sukcesu (błąd = exit 1) i stoi po bramce zdrowia aplikacji.
  */
-const SKRYPT = readFileSync(join(__dirname, '..', '..', '..', '..', 'ops', 'scripts', 'prod-deploy-ghcr.sh'), 'utf8');
+const SKRYPT = readFileSync(join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'scripts', 'prod-deploy-ghcr.sh'), 'utf8');
 
 describe('wdrożenie przeładowuje Caddy', () => {
   it('caddy reload z Caddyfile z repo, porażka kończy wdrożenie błędem', () => {

@@ -1,5 +1,5 @@
 import { Controller, Get, ParseFloatPipe, Query } from '@nestjs/common';
-import { AutoscalingPricingService } from './autoscaling-pricing.service';
+import { AutoscalingPricingService } from './autoscaling-pricing.service.js';
 
 /**
  * Public endpoints for the autoscaling cost calculator and pricing page.

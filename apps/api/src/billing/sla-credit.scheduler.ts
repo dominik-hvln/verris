@@ -9,13 +9,13 @@ import {
   SubscriptionStatus,
   WalletTxType,
 } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
-import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
-import { WalletLedgerService } from './wallet-ledger.service';
-import { slaCreditTemplate } from '../mail/templates/billing-lifecycle-notifications';
-import { NotificationsService } from '../notifications/notifications.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
+import { WalletLedgerService } from './wallet-ledger.service.js';
+import { slaCreditTemplate } from '../mail/templates/billing-lifecycle-notifications.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 /**
  * #11 — automatyczne kredyty SLA za przestój infrastruktury.

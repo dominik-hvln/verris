@@ -11,12 +11,12 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { opcjeUploaduDoPamieci } from '../common/upload/multer-limity';
+import { opcjeUploaduDoPamieci } from '../common/upload/multer-limity.js';
 import type { Response } from 'express';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { RateLimit } from '../common/guards/rate-limit.guard';
-import { FilesService } from './files.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
+import { FilesService } from './files.service.js';
 import {
   NowyKatalogDto,
   PrzeniesPlikiDto,
@@ -27,7 +27,7 @@ import {
   WgrajPlikDto,
   ZapiszPlikDto,
   ZmienNazweDto,
-} from './files.dto';
+} from './files.dto.js';
 
 /** P-4 — in-panel file manager, scoped to a single hosting subscription. */
 @Controller('services/:id/files')

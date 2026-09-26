@@ -3,7 +3,7 @@ import { CustomerPermission } from '@verris/database';
 import {
   CustomerPermissionsGuard,
   inferCustomerRoutePermissions,
-} from './customer-permissions.guard';
+} from './customer-permissions.guard.js';
 
 /**
  * Z-04 — subkonta klienta.
@@ -235,7 +235,7 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
 
 describe('CustomerPermissionsGuard — dziennik odmów (Z-10)', () => {
   it('odmowa subkonta trafia do dziennika właściciela raz na 10 min dla tej samej trasy; przepuszczenie — nie', () => {
-    const record = jest.fn(async () => undefined);
+    const record = vi.fn(async () => undefined);
     const g = new CustomerPermissionsGuard({ getAllAndOverride: () => undefined } as never, { record } as never);
     const ctx = (method: string, path: string, perms: CustomerPermission[]) =>
       ({

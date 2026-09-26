@@ -12,16 +12,16 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { Role, WalletTxType } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
-import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { BillingService } from './billing.service';
-import { AdminCreditWalletDto } from './dto/admin-credit.dto';
-import { PromoService } from './promo.service';
-import { AdminCreatePromoDto } from './dto/promo.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { BillingService } from './billing.service.js';
+import { AdminCreditWalletDto } from './dto/admin-credit.dto.js';
+import { PromoService } from './promo.service.js';
+import { AdminCreatePromoDto } from './dto/promo.dto.js';
 
 @Controller('admin/billing')
 @UseGuards(JwtAuthGuard, RolesGuard)

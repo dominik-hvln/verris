@@ -1,30 +1,31 @@
+import type { Mock } from 'vitest';
 import { NotFoundException } from '@nestjs/common';
 import { CustomerPermission } from '@verris/database';
-import { UsersService } from './users.service';
+import { UsersService } from './users.service.js';
 
 describe('UsersService.getProfile (IAM)', () => {
   const prisma = {
-    user: { findUnique: jest.fn() },
-    subscription: { count: jest.fn() },
-    referralProgramEnrollment: { findUnique: jest.fn() },
+    user: { findUnique: vi.fn() },
+    subscription: { count: vi.fn() },
+    referralProgramEnrollment: { findUnique: vi.fn() },
     // getProfile liczy passkeye (hasPasskey w profilu) — bez tej atrapy test
     // wywala się na `Cannot read properties of undefined (reading 'count')`,
     // co wygląda jak błąd produktu, a jest brakiem w mocku.
-    webAuthnCredential: { count: jest.fn() },
+    webAuthnCredential: { count: vi.fn() },
   };
 
   const service = new UsersService(
     prisma as never,
-    { get: jest.fn() } as never,
+    { get: vi.fn() } as never,
     {} as never,
     {} as never,
-    { safeAward: jest.fn(), awardBillingProfileComplete: jest.fn() } as never,
+    { safeAward: vi.fn(), awardBillingProfileComplete: vi.fn() } as never,
   );
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     prisma.webAuthnCredential.count.mockResolvedValue(0);
-    jest
+    vi
       .spyOn(
         service as unknown as { ensureReferralAndBadgeTokens: () => Promise<unknown> },
         'ensureReferralAndBadgeTokens',
@@ -80,7 +81,7 @@ describe('UsersService.getProfile (IAM)', () => {
   });
 
   it('PB-16: zapisuje widok i motyw panelu — także subkontu (preferencje są osobiste)', async () => {
-    const update = jest.fn().mockResolvedValue({
+    const update = vi.fn().mockResolvedValue({
       id: 'sub-1',
       email: 'ops@firma.pl',
       firstName: 'Ops',
@@ -96,7 +97,7 @@ describe('UsersService.getProfile (IAM)', () => {
       panelViewMode: 'simple',
       panelTheme: 'light',
     });
-    (prisma.user as unknown as { update: jest.Mock }).update = update;
+    (prisma.user as unknown as { update: Mock }).update = update;
     prisma.user.findUnique.mockResolvedValue({
       id: 'sub-1',
       customerOwnerId: 'owner-1',

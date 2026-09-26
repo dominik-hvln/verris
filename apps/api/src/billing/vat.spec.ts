@@ -1,8 +1,8 @@
 import { Prisma } from '@verris/database';
 import {
   etykietaStawki, kredytZaWplate, numerVatUe, rozbicieWgStawki, ustalTraktowanieVat, PROG_OSS_PLN,
-} from './vat';
-import { ViesService } from './vies.service';
+} from './vat.js';
+import { ViesService } from './vies.service.js';
 
 const t = (kraj: string, viesWazny: boolean | null = null, sprzedaz = 0, oss = false) =>
   ustalTraktowanieVat({ kraj, viesWazny, sprzedazB2cUePln: sprzedaz, ossWlaczone: oss });
@@ -54,7 +54,7 @@ describe('ViesService', () => {
   const orig = global.fetch;
   afterEach(() => { global.fetch = orig; });
   const odp = (body: unknown, ok = true) =>
-    (global.fetch = jest.fn(async () => ({ ok, status: ok ? 200 : 500, json: async () => body })) as never);
+    (global.fetch = vi.fn(async () => ({ ok, status: ok ? 200 : 500, json: async () => body })) as never);
 
   it('ważny numer', async () => {
     odp({ valid: true, name: 'ACME GmbH', requestIdentifier: 'WAPI1', requestDate: '2026-09-23' });

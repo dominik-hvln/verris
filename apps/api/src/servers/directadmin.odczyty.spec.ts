@@ -1,5 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
-import { DirectAdminService } from './directadmin.service';
+import { DirectAdminService } from './directadmin.service.js';
 
 /**
  * X-09 — odczyty DirectAdminService (dotąd bez testów): dane dostępowe i limity, adresy panelu, listy domen,
@@ -9,21 +9,21 @@ import { DirectAdminService } from './directadmin.service';
 function stanowisko(o: { konto?: boolean; bezHasla?: boolean; ns?: [string | null, string | null] } = {}) {
   const server = { hostname: 'n1.verris.pl', ipAddress: '203.0.113.7', daHost: null, daPort: 2222, daUseTls: true, ns1: o.ns?.[0] ?? null, ns2: o.ns?.[1] ?? null, ns3: null, dbEngine: 'MariaDB', dbVersion: '11.4.3' };
   const account = o.konto === false ? null : { id: 'a1', daUsername: 'klient1', daPasswordEnc: o.bezHasla ? null : 'enc', server };
-  const findFirst = jest.fn(async (a: { where: { id: string; userId: string } }) => (a.where.userId === 'u1' ? { id: 's1', userId: 'u1', account } : null));
+  const findFirst = vi.fn(async (a: { where: { id: string; userId: string } }) => (a.where.userId === 'u1' ? { id: 's1', userId: 'u1', account } : null));
   const prisma = { subscription: { findFirst } };
-  const platformSettings = { getHostingNameservers: jest.fn(async () => ({ ns1: 'ns1.verris.pl', ns2: 'ns2.verris.pl', ns3: '' })) };
-  const svc = new DirectAdminService(prisma as never, {} as never, platformSettings as never, { record: jest.fn() } as never);
-  const get = jest.fn(async (path: string) => ({
+  const platformSettings = { getHostingNameservers: vi.fn(async () => ({ ns1: 'ns1.verris.pl', ns2: 'ns2.verris.pl', ns3: '' })) };
+  const svc = new DirectAdminService(prisma as never, {} as never, platformSettings as never, { record: vi.fn() } as never);
+  const get = vi.fn(async (path: string) => ({
     data: path === '/CMD_API_SHOW_USER_USAGE' ? 'quota=512&bandwidth=100&nemails=3&nftp=1&nmysql=2&inode=4000' : 'quota=10240&bandwidth=unlimited&nemails=50&nftp=10&nmysql=10&inode=200000&ssh=ON',
   }));
   const klient = {
     client: { get },
-    getDomains: jest.fn(async () => ['firma.pl', 'sklep.pl']),
-    listDbUsers: jest.fn(async () => ['klient1_wp']),
-    listMysqlDatabases: jest.fn(async () => ['klient1_wp', 'klient1_shop']),
+    getDomains: vi.fn(async () => ['firma.pl', 'sklep.pl']),
+    listDbUsers: vi.fn(async () => ['klient1_wp']),
+    listMysqlDatabases: vi.fn(async () => ['klient1_wp', 'klient1_shop']),
   };
-  jest.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue(klient as never);
-  const daGet = jest.fn(async (_s: string, _u: string, path: string, q: Record<string, string>) => {
+  vi.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue(klient as never);
+  const daGet = vi.fn(async (_s: string, _u: string, path: string, q: Record<string, string>) => {
     if (path === '/CMD_API_EMAIL_AUTORESPONDER') return new URLSearchParams('error=0&biuro=szef@firma.pl&urlop=');
     if (path === '/CMD_API_DATABASES') return new URLSearchParams('list0=localhost&list1=198.51.100.4&error=0');
     if (path === '/CMD_API_SUBDOMAINS') return new URLSearchParams(q.domain === 'firma.pl' ? 'list0=staging&list1=dev' : '');
@@ -31,12 +31,12 @@ function stanowisko(o: { konto?: boolean; bezHasla?: boolean; ns?: [string | nul
   });
   Object.assign(svc, {
     daGetForSubscription: daGet,
-    syncPrimaryDomainForSubscription: jest.fn(async () => 'firma.pl'),
-    probeDbEngineVersion: jest.fn(async () => null),
-    assertDomainOwnedBySubscription: jest.fn(async (_s: string, _u: string, d: string) => d),
-    readAccountTextFile: jest.fn(async () => '; BEGIN VERRIS PHP (zarządzane przez panel — nie edytuj ręcznie)\nmemory_limit = 512M\n; END VERRIS PHP\n'),
+    syncPrimaryDomainForSubscription: vi.fn(async () => 'firma.pl'),
+    probeDbEngineVersion: vi.fn(async () => null),
+    assertDomainOwnedBySubscription: vi.fn(async (_s: string, _u: string, d: string) => d),
+    readAccountTextFile: vi.fn(async () => '; BEGIN VERRIS PHP (zarządzane przez panel — nie edytuj ręcznie)\nmemory_limit = 512M\n; END VERRIS PHP\n'),
   });
-  jest.spyOn(svc, 'listHostingDomainsForSubscription').mockResolvedValue({ domains: [{ name: 'firma.pl' }, { name: 'sklep.pl' }], primaryDomain: 'firma.pl', fetchError: null } as never);
+  vi.spyOn(svc, 'listHostingDomainsForSubscription').mockResolvedValue({ domains: [{ name: 'firma.pl' }, { name: 'sklep.pl' }], primaryDomain: 'firma.pl', fetchError: null } as never);
   return { svc, findFirst, klient, daGet, get };
 }
 
@@ -92,7 +92,7 @@ describe('listy z DirectAdmina', () => {
 
   it('użytkownicy bazy przez klienta konta; awaria DA → komunikat', async () => {
     const s = stanowisko();
-    Object.assign(s.svc, { accountClientForSubscription: jest.fn(async () => ({ client: s.klient })) });
+    Object.assign(s.svc, { accountClientForSubscription: vi.fn(async () => ({ client: s.klient })) });
     await expect(s.svc.listHostingDbUsers('s1', 'u1', 'klient1_wp')).resolves.toEqual({ users: ['klient1_wp'], fetchError: null });
     s.klient.listDbUsers.mockRejectedValueOnce(new Error('DA 500'));
     await expect(s.svc.listHostingDbUsers('s1', 'u1', 'klient1_wp')).resolves.toEqual({ users: [], fetchError: 'DA 500' });

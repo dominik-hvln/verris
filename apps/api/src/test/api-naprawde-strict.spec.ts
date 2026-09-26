@@ -13,7 +13,7 @@ import { resolve } from 'path';
  * Etap 2 (2026-09-24): także `noImplicitAny` — 27 miejsc (licznik 221 był zawyżony przez
  * nierozwiązany w środowisku pomiaru moduł SDK, który zamieniał się w kaskadę `any`).
  */
-const PROFIL = resolve(__dirname, '..', '..', '..', '..', 'libs', 'typescript-config', 'nestjs.json');
+const PROFIL = resolve(import.meta.dirname, '..', '..', '..', '..', 'libs', 'typescript-config', 'nestjs.json');
 
 it('profil Nest nie wyłącza żadnego składnika trybu ścisłego', () => {
   const opcje = JSON.parse(readFileSync(PROFIL, 'utf8')).compilerOptions as Record<string, unknown>;

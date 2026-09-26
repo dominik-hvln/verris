@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { ProvisioningActions } from '../common/audit/audit.actions';
+import { ProvisioningActions } from '../common/audit/audit.actions.js';
 
 /**
  * X-32 — alarm kazał posprzątać kolejkę, a nie było czym sprzątać.
@@ -37,7 +37,7 @@ import { ProvisioningActions } from '../common/audit/audit.actions';
  * wprost, bo operator ma prawo założyć inaczej.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const USLUGA = join(
   KORZEN,
   'apps',

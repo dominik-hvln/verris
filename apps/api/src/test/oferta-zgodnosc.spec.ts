@@ -30,7 +30,7 @@ import { join, relative, resolve } from 'path';
  * uruchamiania Next.js ani budowania strony.
  */
 
-const KORZEN = resolve(__dirname, '../../../..');
+const KORZEN = resolve(import.meta.dirname, '../../../..');
 const WWW_SRC = resolve(KORZEN, 'apps/www/src');
 
 /** Zasoby, które są sufitem burst, a nie rezerwacją. */

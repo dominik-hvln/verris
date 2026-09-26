@@ -1,11 +1,11 @@
 import { Body, Controller, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
 import { Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { WafService } from './waf.service';
-import { SetWafModeDto } from './dto/waf.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { WafService } from './waf.service.js';
+import { SetWafModeDto } from './dto/waf.dto.js';
 
 /** B2 — admin: ModSecurity WAF per konto (przegląd per węzeł + zmiana trybu). */
 @Controller('admin/waf')

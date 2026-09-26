@@ -1,5 +1,5 @@
-import { escapeMarkdown, renderEmailShell } from './email-shell';
-import { uzasadnienieDlaKlienta } from '../../../abuse/abuse.templates';
+import { escapeMarkdown, renderEmailShell } from './email-shell.js';
+import { uzasadnienieDlaKlienta } from '../../../abuse/abuse.templates.js';
 
 const baza = { recipientEmail: 'jan@example.pl', panelUrl: 'https://panel.verris.pl' };
 

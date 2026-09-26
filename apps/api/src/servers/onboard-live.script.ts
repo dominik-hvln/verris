@@ -19,8 +19,8 @@ function korzenOps(): string {
   const kandydaci = [
     join(process.cwd(), 'ops'),
     join(process.cwd(), '../../ops'),
-    join(__dirname, '../../../../../ops'),
-    join(__dirname, '../../../../ops'),
+    join(import.meta.dirname, '../../../../../ops'),
+    join(import.meta.dirname, '../../../../ops'),
   ];
   const k = kandydaci.find((p) => existsSync(join(p, 'scripts/node-onboard-live.sh')));
   if (!k) throw new Error('ops/scripts/node-onboard-live.sh not found in monorepo');

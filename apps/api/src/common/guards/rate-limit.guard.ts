@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
-import IORedis, { type Redis } from 'ioredis';
+import { Redis } from 'ioredis';
 
 /**
  * Audit F-09 / CYBER-4: sliding-window rate limiting z pluggable store.
@@ -58,7 +58,7 @@ export class RateLimitGuard implements CanActivate, OnModuleDestroy {
     const url = process.env.REDIS_URL?.trim();
     if (url) {
       try {
-        this.redis = new IORedis(url, { maxRetriesPerRequest: 1, enableOfflineQueue: false });
+        this.redis = new Redis(url, { maxRetriesPerRequest: 1, enableOfflineQueue: false });
         this.redis.on('ready', () => {
           this.redisHealthy = true;
         });

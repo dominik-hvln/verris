@@ -9,15 +9,15 @@ import {
 import * as bcrypt from 'bcrypt';
 import { renderSVG } from 'uqr';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CryptoService } from '../../common/crypto/crypto.service';
-import { AuditService } from '../../common/audit/audit.service';
-import { TotpService } from './totp.service';
-import { MailerService } from '../../mail/mailer.service';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { CryptoService } from '../../common/crypto/crypto.service.js';
+import { AuditService } from '../../common/audit/audit.service.js';
+import { TotpService } from './totp.service.js';
+import { MailerService } from '../../mail/mailer.service.js';
 import {
   twoFactorEnabledTemplate,
   twoFactorDisabledTemplate,
-} from '../../mail/templates/security-notifications';
+} from '../../mail/templates/security-notifications.js';
 
 const ISSUER = 'Verris';
 

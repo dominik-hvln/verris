@@ -2,11 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { DomainStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
-import { domainExpiryReminderTemplate, type DomainExpiryWindow } from '../mail/templates/hosting-notifications';
-import { DomainRegistrarService } from './domain-registrar.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { domainExpiryReminderTemplate, type DomainExpiryWindow } from '../mail/templates/hosting-notifications.js';
+import { DomainRegistrarService } from './domain-registrar.service.js';
 
 const OKNA: { window: DomainExpiryWindow; dni: number; akcja: string }[] = [
   { window: 'T_MINUS_30', dni: 30, akcja: 'DOMAIN_EXPIRY_REMINDER_T30' },

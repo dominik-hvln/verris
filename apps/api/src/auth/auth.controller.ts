@@ -11,7 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { AuthService } from './auth.service';
+import { AuthService } from './auth.service.js';
 import {
   BreakGlassLoginDto,
   ConfirmTwoFactorDto,
@@ -29,23 +29,23 @@ import {
   WebauthnLogowanieDto,
   WebauthnOpcjeLogowaniaDto,
   WebauthnRejestracjaDto,
-} from './auth.dto';
-import { PasskeyPolicyService } from './passkey-policy.service';
-import { CaptchaService } from './captcha.service';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { RateLimit, SkipRateLimit } from '../common/guards/rate-limit.guard';
-import { odbierzKodPrzekazania } from '../common/auth/przekazanie-sesji';
+} from './auth.dto.js';
+import { PasskeyPolicyService } from './passkey-policy.service.js';
+import { CaptchaService } from './captcha.service.js';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { RateLimit, SkipRateLimit } from '../common/guards/rate-limit.guard.js';
+import { odbierzKodPrzekazania } from '../common/auth/przekazanie-sesji.js';
 import { IsString, MaxLength } from 'class-validator';
 
 class KodPrzekazaniaDto {
   @IsString() @MaxLength(64) code!: string;
 }
-import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { Role } from '@verris/database';
-import { TwoFactorService } from './totp/two-factor.service';
-import { WebAuthnService } from './webauthn/webauthn.service';
+import { TwoFactorService } from './totp/two-factor.service.js';
+import { WebAuthnService } from './webauthn/webauthn.service.js';
 
 @Controller('auth')
 export class AuthController {

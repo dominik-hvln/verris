@@ -1,11 +1,11 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { StripeService } from './stripe/stripe.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
-import { walletAutoTopupFailedTemplate } from '../mail/templates/billing-lifecycle-notifications';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { StripeService } from './stripe/stripe.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { walletAutoTopupFailedTemplate } from '../mail/templates/billing-lifecycle-notifications.js';
 
 const COOLDOWN_MS = 60 * 60 * 1000;
 

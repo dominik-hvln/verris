@@ -1,12 +1,12 @@
 import { BadRequestException, ConflictException, ForbiddenException, HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { generateAuthToken, hashAuthToken } from '../auth/auth-token.util';
+import { generateAuthToken, hashAuthToken } from '../auth/auth-token.util.js';
 import { randomBytes } from 'crypto';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
-import { escapeMarkdown as md, renderEmailShell } from '../mail/templates/_layouts/email-shell';
-import { LOGO_MAX_BAJTOW, typLogo } from './reseller-marka';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { escapeMarkdown as md, renderEmailShell } from '../mail/templates/_layouts/email-shell.js';
+import { LOGO_MAX_BAJTOW, typLogo } from './reseller-marka.js';
 
 type ResellerStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED';
 

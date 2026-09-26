@@ -7,7 +7,7 @@ import { KOPIE_OFFSITE_DNI } from '@verris/contracts';
  * wersji faktycznie trzyma węzeł (RETENTION_DAYS w node-offsite-backup.sh). Inna liczba w skrypcie niż
  * w panelu to obietnica bez pokrycia albo kopie, o których klient nie wie.
  */
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 
 describe('kopie poza serwerem — 30 dni', () => {
   it('RETENTION_DAYS w skrypcie węzła = KOPIE_OFFSITE_DNI', () => {

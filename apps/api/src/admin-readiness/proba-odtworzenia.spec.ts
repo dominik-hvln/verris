@@ -8,7 +8,7 @@ import {
   odtworzenieMaDane,
   PRZYPOMNIENIE_PRZED_DNI,
   type ProbaOdtworzenia,
-} from './proba-odtworzenia';
+} from './proba-odtworzenia.js';
 
 /**
  * H-20 — czy warstwa DR jest potwierdzona.
@@ -162,7 +162,7 @@ describe('H-20 — progi wierszy po odtworzeniu', () => {
 
 describe('H-20 — skrypt drilla asertuje i zostawia ślad', () => {
   const SKRYPT = join(
-    __dirname,
+    import.meta.dirname,
     '..',
     '..',
     '..',

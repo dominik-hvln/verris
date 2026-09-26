@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { OvhClient } from './ovh.client';
-import { DirectAdminService } from './directadmin.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { OvhClient } from './ovh.client.js';
+import { DirectAdminService } from './directadmin.service.js';
 import {
   allocateNsPairIndices,
   normalizeGlueFqdn,
@@ -13,7 +13,7 @@ import {
   nsSubdomain,
   parseNsIndex,
   type NsNumberingMode,
-} from './node-dns-naming';
+} from './node-dns-naming.js';
 
 export type NsProvisionStepStatus =
   | 'created'

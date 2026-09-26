@@ -1,4 +1,4 @@
-import { wZakresie } from './zakres-uslug';
+import { wZakresie } from './zakres-uslug.js';
 
 describe('PB-20 — zakres usług subkonta / członkostwa', () => {
   const Z = ['s1'];

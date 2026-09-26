@@ -1,4 +1,4 @@
-import { normalizePath } from './http-metrics.service';
+import { normalizePath } from './http-metrics.service.js';
 
 describe('normalizePath', () => {
   it('replaces UUID segments', () => {

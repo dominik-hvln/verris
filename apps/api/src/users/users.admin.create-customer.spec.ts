@@ -1,21 +1,21 @@
 import { ConflictException } from '@nestjs/common';
-import { UsersAdminService, OPERATOR_ACCOUNT_LINK_TTL_HOURS } from './users.admin.service';
-import { hashAuthToken } from '../auth/auth-token.util';
+import { UsersAdminService, OPERATOR_ACCOUNT_LINK_TTL_HOURS } from './users.admin.service.js';
+import { hashAuthToken } from '../auth/auth-token.util.js';
 
 /** A-24 — operator zakłada konto: bez znanego hasła, bez zgód w imieniu klienta, link 72 h. */
 function zbuduj(opts: { istnieje?: boolean; mailPada?: boolean } = {}) {
   const tx = {
-    user: { create: jest.fn(async ({ data }: { data: Record<string, unknown> }) => ({ id: 'u1', ...data })) },
-    userAuthToken: { create: jest.fn(async (_a: { data: { purpose: string; tokenHash: string; expiresAt: Date } }) => ({})) },
+    user: { create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({ id: 'u1', ...data })) },
+    userAuthToken: { create: vi.fn(async (_a: { data: { purpose: string; tokenHash: string; expiresAt: Date } }) => ({})) },
   };
   const prisma = {
-    user: { findFirst: jest.fn(async () => (opts.istnieje ? { id: 'x' } : null)) },
-    $transaction: jest.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
+    user: { findFirst: vi.fn(async () => (opts.istnieje ? { id: 'x' } : null)) },
+    $transaction: vi.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
   };
-  const audit = { record: jest.fn(async () => undefined) };
-  const config = { get: jest.fn(() => 'https://panel.test') };
+  const audit = { record: vi.fn(async () => undefined) };
+  const config = { get: vi.fn(() => 'https://panel.test') };
   const mailer = {
-    send: jest.fn(async (_m: { text: string; to: string }) => {
+    send: vi.fn(async (_m: { text: string; to: string }) => {
       if (opts.mailPada) throw new Error('smtp');
     }),
   };

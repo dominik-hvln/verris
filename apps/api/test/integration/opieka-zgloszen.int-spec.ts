@@ -1,7 +1,7 @@
-import { AuditService } from '../../src/common/audit/audit.service';
-import { TicketsService } from '../../src/tickets/tickets.service';
-import { OpiekaZgloszenService } from '../../src/tickets/opieka-zgloszen.service';
-import { prisma, rozlacz, wyczyscBaze } from './setup';
+import { AuditService } from '../../src/common/audit/audit.service.js';
+import { TicketsService } from '../../src/tickets/tickets.service.js';
+import { OpiekaZgloszenService } from '../../src/tickets/opieka-zgloszen.service.js';
+import { prisma, rozlacz, wyczyscBaze } from './setup.js';
 
 /**
  * PB-37 — klient nigdy nie zgaduje, czy wiadomość do nas trafiła; agent ma gotowy szkic.

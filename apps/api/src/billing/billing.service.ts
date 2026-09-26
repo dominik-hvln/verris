@@ -9,38 +9,38 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, WalletTxType } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { WalletLedgerService } from './wallet-ledger.service';
-import { DoladowanieService, type WalutaWplaty } from './doladowanie.service';
-import { StripeService } from './stripe/stripe.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { WalletLedgerService } from './wallet-ledger.service.js';
+import { DoladowanieService, type WalutaWplaty } from './doladowanie.service.js';
+import { StripeService } from './stripe/stripe.service.js';
 import {
   getInvoiceSubscriptionId,
   getSubscriptionPeriod,
   StripeInvoice,
   StripeSubscription,
-} from './stripe/stripe.client';
-import { InvoicesService } from './invoices.service';
-import { SubscriptionsService } from '../subscriptions/subscriptions.service';
-import { MailerService } from '../mail/mailer.service';
-import { adminCreditNotificationTemplate } from '../mail/templates/admin-credit-notification';
+} from './stripe/stripe.client.js';
+import { InvoicesService } from './invoices.service.js';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { adminCreditNotificationTemplate } from '../mail/templates/admin-credit-notification.js';
 import {
   subscriptionPaymentFailedTemplate,
   subscriptionRenewedTemplate,
   walletAutoTopupFailedTemplate,
   walletAutoTopupOkTemplate,
   walletTopupOkTemplate,
-} from '../mail/templates/billing-lifecycle-notifications';
-import { rowsToCsv } from './csv.util';
-import { PromoService } from './promo.service';
-import { EcoPointsService } from '../eco/eco-points.service';
+} from '../mail/templates/billing-lifecycle-notifications.js';
+import { rowsToCsv } from './csv.util.js';
+import { PromoService } from './promo.service.js';
+import { EcoPointsService } from '../eco/eco-points.service.js';
 import {
   Decyzja,
   decyzja,
   DNI_PRZECHOWANIA_TRESCI,
   nastepnaProba,
   WierszZdarzenia,
-} from './stripe/webhook-ewidencja';
+} from './stripe/webhook-ewidencja.js';
 
 export interface TransactionsCsvFilters {
   userId?: string;

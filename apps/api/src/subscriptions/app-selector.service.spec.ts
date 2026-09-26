@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { AppSelectorService, aplikacjeZLogu, sprawdzDane, sprawdzKatalog } from './app-selector.service';
+import { AppSelectorService, aplikacjeZLogu, sprawdzDane, sprawdzKatalog } from './app-selector.service.js';
 
 const dane = { interpreter: 'nodejs' as const, root: 'apps/api', domain: 'a.pl', uri: '/api/', version: '22', startup: 'app.js' };
 
@@ -32,13 +32,13 @@ describe('B-08/B-09 — AppSelectorService', () => {
   });
 
   it('zlecenie: domena konta, zmienne w payloadzie, ale nie w dzienniku zdarzeń', async () => {
-    const create = jest.fn(async () => ({ id: 't1' }));
+    const create = vi.fn(async () => ({ id: 't1' }));
     const prisma = {
-      subscription: { findFirst: jest.fn(async () => ({ userId: 'u1', account: { id: 'a1', serverId: 's1', status: 'ACTIVE', daUsername: 'klient' } })) },
-      nodeTask: { findFirst: jest.fn(async () => null), create, findMany: jest.fn(async () => []) },
+      subscription: { findFirst: vi.fn(async () => ({ userId: 'u1', account: { id: 'a1', serverId: 's1', status: 'ACTIVE', daUsername: 'klient' } })) },
+      nodeTask: { findFirst: vi.fn(async () => null), create, findMany: vi.fn(async () => []) },
     };
-    const audit = { record: jest.fn() };
-    const da = { assertDomainOwnedBySubscription: jest.fn(async () => 'a.pl') };
+    const audit = { record: vi.fn() };
+    const da = { assertDomainOwnedBySubscription: vi.fn(async () => 'a.pl') };
     const s = new AppSelectorService(prisma as never, audit as never, da as never);
     await s.utworz('sub', 'u1', { ...dane, env: { DB_PASS: 'tajne' } });
     expect(da.assertDomainOwnedBySubscription).toHaveBeenCalledWith('sub', 'u1', 'a.pl');

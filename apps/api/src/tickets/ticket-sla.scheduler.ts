@@ -1,15 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../prisma/prisma.service';
-import { MailerService } from '../mail/mailer.service';
-import { NotificationsService } from '../notifications/notifications.service';
-import { OpiekaZgloszenService } from './opieka-zgloszen.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
+import { OpiekaZgloszenService } from './opieka-zgloszen.service.js';
 import {
   ticketCustomerReminderTemplate,
   ticketAutoClosedTemplate,
   ticketSlaBreachStaffTemplate,
-} from '../mail/templates/ticket-notifications';
+} from '../mail/templates/ticket-notifications.js';
 
 /**
  * SUP-V2 — pilnowanie SLA i braku odpowiedzi klienta.

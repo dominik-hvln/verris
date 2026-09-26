@@ -1,18 +1,18 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { AutoscalingPriceRule, AutoscalingResource, Prisma } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { CreatePriceRuleDto, UpdatePriceRuleDto } from './dto/price-rule.dto';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { CreatePriceRuleDto, UpdatePriceRuleDto } from './dto/price-rule.dto.js';
 import {
   AUTOSCALING_CATALOG_RESOURCES,
   AUTOSCALING_UNIT_BY_RESOURCE,
   isCatalogAutoscalingResource,
-} from './autoscaling-pricing.constants';
+} from './autoscaling-pricing.constants.js';
 import {
   assertUniqueActiveTierThreshold,
   hourlyCostBreakdownForCatalogAmounts,
   hourlyCostForCatalogAmounts,
-} from './autoscaling-pricing.util';
+} from './autoscaling-pricing.util.js';
 
 @Injectable()
 export class AutoscalingPricingService {

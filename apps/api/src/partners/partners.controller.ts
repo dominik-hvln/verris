@@ -1,8 +1,8 @@
 import { Body, Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { PartnersService } from './partners.service';
-import { BankPayoutDto } from './dto/partner.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { PartnersService } from './partners.service.js';
+import { BankPayoutDto } from './dto/partner.dto.js';
 
 /** RESELL — self-service partnera (afiliacja). */
 @Controller('partners')

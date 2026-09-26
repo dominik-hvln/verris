@@ -1,4 +1,4 @@
-import { resolveHostingPrimaryDomain } from './hosting-primary-domain';
+import { resolveHostingPrimaryDomain } from './hosting-primary-domain.js';
 
 describe('resolveHostingPrimaryDomain', () => {
   it('keeps stored domain when still on DA', () => {

@@ -3,7 +3,7 @@
  * Ramki nie ładują nic z zewnątrz (fonty systemowe, grafika inline), nie
  * ustawiają ciasteczek i nie widzą strony klienta (iframe z sandboxem).
  */
-import type { DayUptime } from './badge-logic';
+import type { DayUptime } from './badge-logic.js';
 
 export type Motyw = 'ciemny' | 'jasny';
 

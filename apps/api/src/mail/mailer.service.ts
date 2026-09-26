@@ -6,15 +6,15 @@ import {
   EmailStatus,
   Prisma,
 } from '@verris/database';
-import type { MailMessage, MailerProvider } from './mailer.interface';
+import type { MailMessage, MailerProvider } from './mailer.interface.js';
 import {
   buildSmtpMailerProvider,
   isLocalSmtpHost,
   resolveSmtpIdentity,
-} from './mail-smtp.factory';
-import type { MailSmtpSecure } from './mail-settings.keys';
-import { PrismaService } from '../prisma/prisma.service';
-import { wstawMarke, ZNACZNIK_PARTNERA_OD } from '../reseller/reseller-marka';
+} from './mail-smtp.factory.js';
+import type { MailSmtpSecure } from './mail-settings.keys.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { wstawMarke, ZNACZNIK_PARTNERA_OD } from '../reseller/reseller-marka.js';
 
 export const MAILER_PROVIDER = Symbol('MAILER_PROVIDER');
 

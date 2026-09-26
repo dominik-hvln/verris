@@ -1,10 +1,10 @@
 import { Body, Controller, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { MetaCapiService } from './meta-capi.service';
-import { MetaCapiPurchaseDto } from './dto/meta-capi.dto';
-import { RateLimit } from '../common/guards/rate-limit.guard';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { MetaCapiService } from './meta-capi.service.js';
+import { MetaCapiPurchaseDto } from './dto/meta-capi.dto.js';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
 
 /**
  * Przekaźnik zdarzeń do Meta Conversions API. Wołany z panelu (server action)

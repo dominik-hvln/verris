@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import * as https from 'https';
 import { randomBytes } from 'crypto';
-import { nodeDownFor, recordNodeFailure, recordNodeSuccess } from './node-circuit';
+import { nodeDownFor, recordNodeFailure, recordNodeSuccess } from './node-circuit.js';
 
 export interface DirectAdminConfig {
   host: string;

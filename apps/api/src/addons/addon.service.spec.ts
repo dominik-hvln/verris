@@ -1,7 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
-import { AddonService } from './addon.service';
-import { PurchaseAddonDto } from './dto/purchase-addon.dto';
+import { AddonService } from './addon.service.js';
+import { PurchaseAddonDto } from './dto/purchase-addon.dto.js';
 
 /**
  * Z-06 — klucz idempotencji obciążenia za dodatek.
@@ -33,10 +33,10 @@ describe('Z-06 — idempotencja zakupu dodatku', () => {
 
     const prisma = {
       purchasedAddon: {
-        findUnique: jest.fn(async ({ where }: { where: { idempotencyKey: string } }) => {
+        findUnique: vi.fn(async ({ where }: { where: { idempotencyKey: string } }) => {
           return zapisane.find((r) => r.idempotencyKey === where.idempotencyKey) ?? null;
         }),
-        create: jest.fn(async ({ data }: { data: Record<string, unknown> }) => {
+        create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
           if (opcje.rzucP2002 && licznik === 0) {
             licznik += 1;
             // Symulacja wyścigu: rekord powstał „w międzyczasie" z innego żądania.
@@ -63,26 +63,26 @@ describe('Z-06 — idempotencja zakupu dodatku', () => {
           return rekord;
         }),
       },
-      user: { update: jest.fn(async () => ({})) },
+      user: { update: vi.fn(async () => ({})) },
       subscription: {
         // Usługi „obca-*” należą do kogoś innego.
-        findFirst: jest.fn(async ({ where }: { where: { id: string } }) => (where.id.startsWith('obca-') ? null : { id: where.id })),
+        findFirst: vi.fn(async ({ where }: { where: { id: string } }) => (where.id.startsWith('obca-') ? null : { id: where.id })),
       },
     };
 
     const wallet = {
-      debit: jest.fn(async (wejscie: { idempotencyKey?: string; amount: unknown }) => {
+      debit: vi.fn(async (wejscie: { idempotencyKey?: string; amount: unknown }) => {
         debety.push(wejscie);
         return { id: 'tx-1' };
       }),
     };
     const tickets = {
-      create: jest.fn(async (_u: string, dto: { subject: string }) => {
+      create: vi.fn(async (_u: string, dto: { subject: string }) => {
         zgloszenia.push(dto);
         return { id: `zgl-${zgloszenia.length}` };
       }),
     };
-    const audit = { record: jest.fn(async () => undefined) };
+    const audit = { record: vi.fn(async () => undefined) };
 
     const service = new AddonService(
       prisma as never,

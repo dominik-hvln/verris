@@ -7,9 +7,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { HostingRestoreStatus, Prisma } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { DirectAdminService } from '../servers/directadmin.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
 
 /** H-09 — jak długo czekamy na kopię bezpieczeństwa, zanim odmówimy nadpisania danych. */
 const SAFETY_BACKUP_TIMEOUT_MS = 15 * 60_000;

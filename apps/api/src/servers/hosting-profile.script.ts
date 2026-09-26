@@ -6,8 +6,8 @@ export function loadHostingProfileScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/node-hosting-profile.sh'),
     join(process.cwd(), '../../ops/scripts/node-hosting-profile.sh'),
-    join(__dirname, '../../../../../ops/scripts/node-hosting-profile.sh'),
-    join(__dirname, '../../../../ops/scripts/node-hosting-profile.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/node-hosting-profile.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/node-hosting-profile.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) {

@@ -1,10 +1,10 @@
 import { BadRequestException } from '@nestjs/common';
 import { DirectAdminApiError } from '@verris/directadmin-sdk';
-import { AllExceptionsFilter } from './all-exceptions.filter';
+import { AllExceptionsFilter } from './all-exceptions.filter.js';
 
 function obsluz(e: unknown) {
-  const json = jest.fn();
-  const status = jest.fn(() => ({ json }));
+  const json = vi.fn();
+  const status = vi.fn(() => ({ json }));
   const host = { switchToHttp: () => ({ getResponse: () => ({ status }), getRequest: () => ({ method: 'POST', url: '/x' }) }) };
   new AllExceptionsFilter().catch(e, host as never);
   return { kod: (status.mock.calls[0] as unknown[])[0], tresc: (json.mock.calls[0] as unknown[])[0] as { message: unknown } };

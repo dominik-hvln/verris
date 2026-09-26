@@ -11,10 +11,10 @@ import {
 import type { Response } from 'express';
 import { Readable } from 'node:stream';
 import { Role } from '@verris/database';
-import { JwtAuthGuard } from '../guards/jwt-auth.guard';
-import { RolesGuard } from '../guards/roles.guard';
-import { Roles } from '../decorators/roles.decorator';
-import { AuditService, AuditCategory, AuditLogWithUsers, AUDIT_CATEGORIES } from './audit.service';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
+import { RolesGuard } from '../guards/roles.guard.js';
+import { Roles } from '../decorators/roles.decorator.js';
+import { AuditService, AuditCategory, AuditLogWithUsers, AUDIT_CATEGORIES } from './audit.service.js';
 
 const VALID_CATEGORIES = new Set<string>(Object.values(AUDIT_CATEGORIES));
 

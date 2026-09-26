@@ -1,6 +1,7 @@
 {
   "name": "@verris/directadmin-sdk",
   "version": "1.0.0",
+  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
@@ -16,5 +17,11 @@
     "@verris/typescript-config": "workspace:*",
     "typescript": "^6.0.3",
     "eslint": "^10.11.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   }
 }

@@ -1,12 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { MigrationStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MigrationActions } from '../common/audit/audit.actions';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MigrationActions } from '../common/audit/audit.actions.js';
 import {
   HostingDnsPointingService,
   type HostingDnsPointingResult,
-} from './hosting-dns-pointing.service';
+} from './hosting-dns-pointing.service.js';
 
 /**
  * Cutover DNS — ostatni krok migracji A→Z.

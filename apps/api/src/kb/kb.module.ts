@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../prisma/prisma.module';
-import { KbService } from './kb.service';
-import { KbAdminController } from './kb.admin.controller';
-import { KbPublicController } from './kb.public.controller';
+import { PrismaModule } from '../prisma/prisma.module.js';
+import { KbService } from './kb.service.js';
+import { KbAdminController } from './kb.admin.controller.js';
+import { KbPublicController } from './kb.public.controller.js';
 
 /**
  * KB-CMS + KB-PUBLIC — Baza Wiedzy: autoring (admin/staff) + publiczny widok SEO.

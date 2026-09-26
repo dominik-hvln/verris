@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'fs';
 import { join, resolve } from 'path';
-import { TwoFactorService } from './two-factor.service';
-import { TotpService } from './totp.service';
+import { TwoFactorService } from './two-factor.service.js';
+import { TotpService } from './totp.service.js';
 
 /**
  * Kod QR do 2FA rysuje API. Do 2026-09-24 trzy panele wstawiały otpauthUri — w nim
@@ -12,8 +12,8 @@ describe('2FA — QR bez obcych serwisów', () => {
   it('startEnrollment zwraca QR jako SVG data URL z tym samym sekretem', async () => {
     const prisma = {
       user: {
-        findUnique: jest.fn().mockResolvedValue({ id: 'u1', email: 'jan@example.pl', isTwoFactorEnabled: false }),
-        update: jest.fn().mockResolvedValue({}),
+        findUnique: vi.fn().mockResolvedValue({ id: 'u1', email: 'jan@example.pl', isTwoFactorEnabled: false }),
+        update: vi.fn().mockResolvedValue({}),
       },
     };
     const crypto = { encrypt: (v: string) => `enc:${v}` };
@@ -28,7 +28,7 @@ describe('2FA — QR bez obcych serwisów', () => {
   });
 
   it('żaden panel nie woła zewnętrznego generatora QR', () => {
-    const KORZEN = resolve(__dirname, '..', '..', '..', '..', '..', 'apps');
+    const KORZEN = resolve(import.meta.dirname, '..', '..', '..', '..', '..', 'apps');
     const zakazane = /qrserver\.com|chart\.googleapis\.com|quickchart\.io|goqr\.me/;
     const trafienia: string[] = [];
     const przejdz = (dir: string) => {

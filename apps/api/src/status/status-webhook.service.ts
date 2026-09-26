@@ -6,11 +6,11 @@ import {
   StatusWebhookEvent,
 } from '@verris/database';
 import { createHmac } from 'node:crypto';
-import { isPrivateOrReservedIp, postWebhookBezpiecznie } from '../common/net/webhook-post';
+import { isPrivateOrReservedIp, postWebhookBezpiecznie } from '../common/net/webhook-post.js';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
-import { PrismaService } from '../prisma/prisma.service';
-import { CryptoService } from '../common/crypto/crypto.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { CryptoService } from '../common/crypto/crypto.service.js';
 
 const MAX_ATTEMPTS = 5;
 const WEBHOOK_LEASE_MS = 2 * 60_000;

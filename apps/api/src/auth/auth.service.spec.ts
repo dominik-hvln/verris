@@ -1,7 +1,7 @@
 import * as bcrypt from 'bcrypt';
 import { BadRequestException, ConflictException, UnauthorizedException } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { hashAuthToken } from './auth-token.util';
+import { AuthService } from './auth.service.js';
+import { hashAuthToken } from './auth-token.util.js';
 
 /**
  * X-06 — pierwsze testy modułu auth. Sprawdzają własności bezpieczeństwa, na których
@@ -12,22 +12,22 @@ import { hashAuthToken } from './auth-token.util';
 function zbuduj(opts: { user?: Record<string, unknown> | null; zablokowanyEmail?: boolean; token?: Record<string, unknown> | null } = {}) {
   const prisma = {
     user: {
-      findUnique: jest.fn(async () => (opts.user === undefined ? null : opts.user)),
-      update: jest.fn(() => 'update-user'),
-      updateMany: jest.fn(() => 'verify-email'),
+      findUnique: vi.fn(async () => (opts.user === undefined ? null : opts.user)),
+      update: vi.fn(() => 'update-user'),
+      updateMany: vi.fn(() => 'verify-email'),
     },
     userAuthToken: {
-      findUnique: jest.fn(async () => opts.token ?? null),
-      update: jest.fn(() => 'use-token'),
-      updateMany: jest.fn(() => 'burn-others'),
-      create: jest.fn(() => 'create-token'),
+      findUnique: vi.fn(async () => opts.token ?? null),
+      update: vi.fn(() => 'use-token'),
+      updateMany: vi.fn(() => 'burn-others'),
+      create: vi.fn(() => 'create-token'),
     },
-    $transaction: jest.fn(async (ops: unknown) => ops),
+    $transaction: vi.fn(async (ops: unknown) => ops),
   };
-  const suspicious = { isEmailLockedOut: jest.fn(async () => !!opts.zablokowanyEmail), recordFailure: jest.fn(async () => undefined) };
-  const mailer = { send: jest.fn(async () => undefined) };
-  const pwned = { assertNotPwned: jest.fn(async () => undefined) };
-  const config = { get: jest.fn(() => 'https://panel.test') };
+  const suspicious = { isEmailLockedOut: vi.fn(async () => !!opts.zablokowanyEmail), recordFailure: vi.fn(async () => undefined) };
+  const mailer = { send: vi.fn(async () => undefined) };
+  const pwned = { assertNotPwned: vi.fn(async () => undefined) };
+  const config = { get: vi.fn(() => 'https://panel.test') };
   const n = {} as never;
   const svc = new AuthService(prisma as never, n, n, suspicious as never, n, n, n, n, mailer as never, config as never, n, n, pwned as never);
   return { svc, prisma, suspicious, mailer };
@@ -133,8 +133,8 @@ describe('AuthService.register — X-06', () => {
 
 describe('AuthService.logoutCurrentSession — G-19', () => {
   function zbudujWyl(count: number) {
-    const prisma = { userSession: { updateMany: jest.fn(async () => ({ count })) } };
-    const audit = { record: jest.fn(async () => undefined) };
+    const prisma = { userSession: { updateMany: vi.fn(async () => ({ count })) } };
+    const audit = { record: vi.fn(async () => undefined) };
     const n = {} as never;
     const svc = new AuthService(prisma as never, n, n, n, n, n, audit as never, n, n, n, n, n, n);
     return { svc, prisma, audit };

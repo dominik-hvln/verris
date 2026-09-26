@@ -1,4 +1,4 @@
-import { DomainExpiryReminderScheduler } from './domain-expiry-reminder.scheduler';
+import { DomainExpiryReminderScheduler } from './domain-expiry-reminder.scheduler.js';
 
 /** Przypomnienia o wygaśnięciu domeny 30/14/7 dni (obietnica z verris.pl). */
 function stanowisko(o: { domeny?: unknown[]; bylo?: boolean; cenaBlad?: boolean } = {}) {
@@ -11,13 +11,13 @@ function stanowisko(o: { domeny?: unknown[]; bylo?: boolean; cenaBlad?: boolean 
     user: { email: 'k@firma.pl', firstName: 'Ala', anonymizedAt: null },
   };
   const prisma = {
-    domain: { findMany: jest.fn(async () => o.domeny ?? [domena]) },
-    auditLog: { findFirst: jest.fn(async () => (o.bylo ? { id: 'a' } : null)) },
+    domain: { findMany: vi.fn(async () => o.domeny ?? [domena]) },
+    auditLog: { findFirst: vi.fn(async () => (o.bylo ? { id: 'a' } : null)) },
   };
-  const mailer = { send: jest.fn(async () => undefined) };
-  const audit = { record: jest.fn(async () => undefined) };
+  const mailer = { send: vi.fn(async () => undefined) };
+  const audit = { record: vi.fn(async () => undefined) };
   const registrar = {
-    renewQuote: jest.fn(async () => {
+    renewQuote: vi.fn(async () => {
       if (o.cenaBlad) throw new Error('rejestrator wyłączony');
       return { priceAmount: '59', currency: 'PLN' };
     }),

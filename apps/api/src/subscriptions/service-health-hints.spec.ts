@@ -1,4 +1,4 @@
-import { buildHealthCheckDetails, opisBleduPolaczenia } from './service-health-hints';
+import { buildHealthCheckDetails, opisBleduPolaczenia } from './service-health-hints.js';
 
 describe('buildHealthCheckDetails', () => {
   const meta = {

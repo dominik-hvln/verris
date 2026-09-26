@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ServerStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { ProbeRunnerService } from './probe-runner.service';
-import { ProbeIngestService } from './probe-ingest.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { ProbeRunnerService } from './probe-runner.service.js';
+import { ProbeIngestService } from './probe-ingest.service.js';
 
 const PROBE_BATCH_LIMIT = 200;
 

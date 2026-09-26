@@ -1,5 +1,5 @@
 import { ConflictException } from '@nestjs/common';
-import { VpsRenewalScheduler } from './vps-renewal.scheduler';
+import { VpsRenewalScheduler } from './vps-renewal.scheduler.js';
 
 /**
  * Odnowienie VPS: tylko brak środków (ConflictException z portfela) uruchamia karencję,
@@ -10,14 +10,14 @@ function stanowisko(blad: Error) {
     id: 'v1', userId: 'u1', name: 'app', status: 'RUNNING', hetznerServerId: 42, priceMonthly: 30,
     currentPeriodEnd: new Date(Date.now() - 30 * 24 * 3600_000), user: { email: 'jan@firma.pl', firstName: null }, plan: { name: 'CX' },
   };
-  const prisma = { vpsInstance: { findMany: jest.fn(async () => [vps]), update: jest.fn(async () => ({})) } };
-  const hetzner = { deleteServer: jest.fn(async () => undefined), powerOff: jest.fn(async () => undefined), powerOn: jest.fn() };
+  const prisma = { vpsInstance: { findMany: vi.fn(async () => [vps]), update: vi.fn(async () => ({})) } };
+  const hetzner = { deleteServer: vi.fn(async () => undefined), powerOff: vi.fn(async () => undefined), powerOn: vi.fn() };
   const svc = new VpsRenewalScheduler(
     prisma as never,
-    { debit: jest.fn(async () => Promise.reject(blad)) } as never,
+    { debit: vi.fn(async () => Promise.reject(blad)) } as never,
     hetzner as never,
-    { send: jest.fn(async () => undefined) } as never,
-    { record: jest.fn(async () => undefined) } as never,
+    { send: vi.fn(async () => undefined) } as never,
+    { record: vi.fn(async () => undefined) } as never,
     { get: () => undefined } as never,
   );
   return { svc, hetzner, prisma };

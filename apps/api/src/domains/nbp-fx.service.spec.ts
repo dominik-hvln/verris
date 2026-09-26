@@ -1,11 +1,11 @@
-import { NbpFxService } from './nbp-fx.service';
+import { NbpFxService } from './nbp-fx.service.js';
 
 describe('NbpFxService', () => {
   const originalFetch = global.fetch;
 
   afterEach(() => {
     global.fetch = originalFetch;
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   function service(env: Record<string, string> = {}) {
@@ -22,7 +22,7 @@ describe('NbpFxService', () => {
   }
 
   it('fetches USD/EUR mid rates from NBP table A', async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => [
         {
@@ -45,7 +45,7 @@ describe('NbpFxService', () => {
   });
 
   it('falls back to env when NBP is unreachable', async () => {
-    global.fetch = jest.fn().mockRejectedValue(new Error('network')) as never;
+    global.fetch = vi.fn().mockRejectedValue(new Error('network')) as never;
     const rates = await service().getRates();
     expect(rates.source).toBe('env');
     expect(rates.usdPln).toBe(3.65);
@@ -53,7 +53,7 @@ describe('NbpFxService', () => {
   });
 
   it('uses env when NBP disabled', async () => {
-    global.fetch = jest.fn() as never;
+    global.fetch = vi.fn() as never;
     const rates = await service({ DOMAIN_FX_NBP_ENABLED: 'false' }).getRates();
     expect(rates.source).toBe('env');
     expect(global.fetch).not.toHaveBeenCalled();

@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { DirectAdminClient } from '@verris/directadmin-sdk';
-import { DirectAdminService } from './directadmin.service';
+import { DirectAdminService } from './directadmin.service.js';
 
 /**
  * Poczta w DirectAdminService: skrzynki, przekierowania, autorespondery, catch-all, antyspam.
@@ -19,20 +19,20 @@ function stanowisko(o: { status?: string; get?: Record<string, unknown>; post?: 
     '/CMD_API_SHOW_USER_CONFIG': 'domain=firma.pl',
     ...o.get,
   };
-  const get = jest.fn((path: string, _cfg?: Record<string, unknown>) => odp(trasyGet[path] ?? ''));
-  const post = jest.fn((path: string, _body?: unknown, _cfg?: Record<string, unknown>) =>
+  const get = vi.fn((path: string, _cfg?: Record<string, unknown>) => odp(trasyGet[path] ?? ''));
+  const post = vi.fn((path: string, _body?: unknown, _cfg?: Record<string, unknown>) =>
     odp(o.post?.[path] ?? 'error=0&text=OK'),
   );
   const klient = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'klient1', loginKey: 'x', secure: true });
   Object.assign(klient, { client: { get, post } });
   const account = { id: 'a1', status: o.status ?? 'ACTIVE', daUsername: 'klient1', domain: 'firma.pl', daPasswordEnc: 'enc' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
-    account: { update: jest.fn(async () => account) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    account: { update: vi.fn(async () => account) },
   };
-  const audit = { record: jest.fn(async () => undefined) };
+  const audit = { record: vi.fn(async () => undefined) };
   const svc = new DirectAdminService(prisma as never, {} as never, {} as never, audit as never);
-  jest.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue(klient);
+  vi.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue(klient);
   /** Pola formularza z n-tego POST (ciało urlencoded → obiekt). */
   const wyslane = (n = 0) => Object.fromEntries(new URLSearchParams(String(post.mock.calls[n]?.[1] ?? '')));
   return { svc, get, post, audit, wyslane };
@@ -96,7 +96,7 @@ describe('Poczta — skrzynki (CMD_API_POP)', () => {
 
   it('zmiana hasła zachowuje bieżący rozmiar skrzynki (DA modify wymaga quota — bez tego by ją wyzerował)', async () => {
     const s = stanowisko();
-    jest.spyOn(s.svc, 'listHostingEmailAccounts').mockResolvedValue({
+    vi.spyOn(s.svc, 'listHostingEmailAccounts').mockResolvedValue({
       rows: [{ id: 'jan@firma.pl', email: 'jan@firma.pl', quotaMb: 250 }], fetchError: null,
     });
     await s.svc.changeHostingEmailPassword('s1', 'u1', { email: 'jan@firma.pl', password: 'NoweHaslo1' });

@@ -2,8 +2,15 @@
   "name": "@verris/database",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "prisma generate && tsc",
     "build:seed": "tsc -p tsconfig.seed.json",
@@ -27,7 +34,6 @@
     "@verris/typescript-config": "workspace:*",
     "bcrypt": "^6.0.0",
     "prisma": "^7.10.0",
-    "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
   }
 }

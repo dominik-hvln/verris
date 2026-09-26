@@ -1,5 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
-import type { StaffPermission } from '../../staff-roles/staff-permissions.catalog';
+import type { StaffPermission } from '../../staff-roles/staff-permissions.catalog.js';
 
 export const STAFF_PERMISSIONS_KEY = 'staffPermissions';
 

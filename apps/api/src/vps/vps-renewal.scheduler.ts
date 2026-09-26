@@ -2,12 +2,12 @@ import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, VpsStatus, WalletTxType } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { MailerService } from '../mail/mailer.service';
-import { AuditService } from '../common/audit/audit.service';
-import { WalletLedgerService } from '../billing/wallet-ledger.service';
-import { HetznerClient } from './hetzner.client';
-import { vpsSuspendedTemplate, vpsTerminatedTemplate } from '../mail/templates/vps-notifications';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
+import { HetznerClient } from './hetzner.client.js';
+import { vpsSuspendedTemplate, vpsTerminatedTemplate } from '../mail/templates/vps-notifications.js';
 
 const GRACE_DAYS = 7;
 const PERIOD_MS = 30 * 24 * 60 * 60 * 1000;

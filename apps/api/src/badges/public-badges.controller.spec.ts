@@ -1,5 +1,5 @@
-import { PublicBadgesController } from './public-badges.controller';
-import { renderLoader } from './badge-render';
+import { PublicBadgesController } from './public-badges.controller.js';
+import { renderLoader } from './badge-render.js';
 
 const seal = {
   domain: 'piekarnia.pl',
@@ -12,11 +12,11 @@ const seal = {
 
 function setup(site: object | null) {
   const badges = {
-    site: jest.fn().mockResolvedValue(site),
+    site: vi.fn().mockResolvedValue(site),
     clientUrl: () => 'https://panel.verris.pl',
     apiBase: () => 'https://api.verris.pl',
   };
-  const eco = { recordImpression: jest.fn() };
+  const eco = { recordImpression: vi.fn() };
   const ctrl = new PublicBadgesController(badges as never, eco as never);
   const headers: Record<string, string> = { 'X-Frame-Options': 'DENY', 'Cross-Origin-Resource-Policy': 'same-site' };
   const res = {

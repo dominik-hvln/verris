@@ -14,9 +14,9 @@ import { join, resolve } from 'path';
  * klienta Prisma ani kontenera DI i działa w każdym środowisku.
  */
 
-const API_SRC = resolve(__dirname, '..');
+const API_SRC = resolve(import.meta.dirname, '..');
 const PANELE = ['client-panel', 'staff-panel', 'admin-panel'].map((p) =>
-  resolve(__dirname, '../../../..', 'apps', p, 'src'),
+  resolve(import.meta.dirname, '../../../..', 'apps', p, 'src'),
 );
 
 /** Ścieżki wołane przez panel, które celowo NIE są trasami NestJS. */

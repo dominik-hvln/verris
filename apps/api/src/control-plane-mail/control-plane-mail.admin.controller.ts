@@ -11,11 +11,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ControlPlaneMailboxKind, ControlPlaneMailboxStatus, Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { ControlPlaneMailService } from './control-plane-mail.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { ControlPlaneMailService } from './control-plane-mail.service.js';
 import {
   CreateControlPlaneMailboxDto,
   CreateMailAliasDto,
@@ -23,7 +23,7 @@ import {
   ImportMailboxesDto,
   UpdateControlPlaneMailboxDto,
   UpdateSystemAddressesDto,
-} from './dto/control-plane-mail.dto';
+} from './dto/control-plane-mail.dto.js';
 
 @Controller('admin/mailboxes')
 @UseGuards(JwtAuthGuard, RolesGuard)

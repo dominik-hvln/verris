@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../prisma/prisma.module';
-import { MailModule } from '../mail/mail.module';
-import { AuditModule } from '../common/audit/audit.module';
-import { AbuseService } from './abuse.service';
-import { AbusePublicController } from './abuse-public.controller';
-import { AbuseStaffController } from './abuse-staff.controller';
+import { PrismaModule } from '../prisma/prisma.module.js';
+import { MailModule } from '../mail/mail.module.js';
+import { AuditModule } from '../common/audit/audit.module.js';
+import { AbuseService } from './abuse.service.js';
+import { AbusePublicController } from './abuse-public.controller.js';
+import { AbuseStaffController } from './abuse-staff.controller.js';
 
 /** N-13 — zgłoszenia nadużyć (DSA art. 16/17). */
 @Module({

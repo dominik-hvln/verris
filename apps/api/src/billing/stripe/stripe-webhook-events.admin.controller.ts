@@ -1,15 +1,15 @@
 import { Controller, Get, HttpCode, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { Prisma, Role, StripeWebhookEventStatus } from '@verris/database';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { StaffPermissionsGuard } from '../../common/guards/staff-permissions.guard';
-import { StaffPerm } from '../../common/decorators/staff-permissions.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { PrismaService } from '../../prisma/prisma.service';
-import { AuditService } from '../../common/audit/audit.service';
-import { BillingService } from '../billing.service';
-import { PROG_ALERTU_PROB } from './webhook-ewidencja';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../../common/guards/roles.guard.js';
+import { Roles } from '../../common/decorators/roles.decorator.js';
+import { StaffPermissionsGuard } from '../../common/guards/staff-permissions.guard.js';
+import { StaffPerm } from '../../common/decorators/staff-permissions.decorator.js';
+import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { AuditService } from '../../common/audit/audit.service.js';
+import { BillingService } from '../billing.service.js';
+import { PROG_ALERTU_PROB } from './webhook-ewidencja.js';
 
 /**
  * Z-05 — podgląd i ręczne ponowienie zdarzeń webhooka Stripe'a.

@@ -6,8 +6,8 @@ export function loadSshAccessScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/node-ssh-access.sh'),
     join(process.cwd(), '../../ops/scripts/node-ssh-access.sh'),
-    join(__dirname, '../../../../../ops/scripts/node-ssh-access.sh'),
-    join(__dirname, '../../../../ops/scripts/node-ssh-access.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/node-ssh-access.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/node-ssh-access.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) return readFileSync(path, 'utf8');

@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { MigrationStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { DirectAdminService } from '../servers/directadmin.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
-import { escapeMarkdown, renderEmailShell } from '../mail/templates/_layouts/email-shell';
-import { MigrationOrchestratorService } from './migration-orchestrator.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { escapeMarkdown, renderEmailShell } from '../mail/templates/_layouts/email-shell.js';
+import { MigrationOrchestratorService } from './migration-orchestrator.service.js';
 
 function formatBytes(value: bigint): string {
   const bytes = Number(value);

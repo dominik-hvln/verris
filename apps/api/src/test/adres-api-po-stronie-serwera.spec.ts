@@ -44,7 +44,7 @@ import { join, relative } from 'path';
  *    nie ustawia, jest gorszy niż jego brak: wygląda na przemyślany.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const PANELE = ['client-panel', 'staff-panel', 'admin-panel', 'status-page'];
 const PUBLICZNA = 'NEXT_PUBLIC_API_URL';
 

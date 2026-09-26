@@ -1,5 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
-import type { ApiScopeValue } from './api-scopes';
+import type { ApiScopeValue } from './api-scopes.js';
 
 export const API_SCOPE_KEY = 'apiScope';
 /** Wymaga konkretnego scope'a na endpoincie publicznego API (vrs_live token). */

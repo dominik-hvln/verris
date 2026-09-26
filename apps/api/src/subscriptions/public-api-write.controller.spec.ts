@@ -1,14 +1,14 @@
 import { ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ApiTokenGuard } from '../api-tokens/api-token.guard';
-import { PublicApiWriteController } from './public-api-write.controller';
+import { ApiTokenGuard } from '../api-tokens/api-token.guard.js';
+import { PublicApiWriteController } from './public-api-write.controller.js';
 
 /** L-08 — zapis przez publiczne API: zakres tokenu pilnuje strażnik, userId tylko z tokenu. */
 function kontekst(handler: (...a: never[]) => unknown, scopes: string[]) {
   const req: Record<string, unknown> = { headers: { authorization: 'Bearer vrs_live_x' } };
   const guard = new ApiTokenGuard(
-    { verify: jest.fn(async () => ({ userId: 'u1', scopes, tokenId: 't1' })) } as never,
-    { user: { findUnique: jest.fn(async () => ({ id: 'u1', role: 'USER', loginBlocked: false, anonymizedAt: null })) } } as never,
+    { verify: vi.fn(async () => ({ userId: 'u1', scopes, tokenId: 't1' })) } as never,
+    { user: { findUnique: vi.fn(async () => ({ id: 'u1', role: 'USER', loginBlocked: false, anonymizedAt: null })) } } as never,
     new Reflector(),
   );
   const ctx = { switchToHttp: () => ({ getRequest: () => req }), getHandler: () => handler, getClass: () => PublicApiWriteController } as never;
@@ -24,7 +24,7 @@ describe('PublicApiWriteController', () => {
   });
 
   it('dns: zapis przez ten sam serwis co panel, z userId z tokenu', async () => {
-    const da = { createHostingDnsRecord: jest.fn(async () => ({ ok: true })) };
+    const da = { createHostingDnsRecord: vi.fn(async () => ({ ok: true })) };
     const c = new PublicApiWriteController(da as never, {} as never);
     const body = { domain: 'a.pl', name: '_acme-challenge', type: 'TXT', value: 'x' };
     await c.dodajDns({ apiAuth: { userId: 'u1' } } as never, 's1', body as never);

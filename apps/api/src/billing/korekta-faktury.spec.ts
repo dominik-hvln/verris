@@ -7,7 +7,7 @@ import {
   opisKorekty,
   przeliczKorekte,
   type StanFaktury,
-} from './korekta-faktury';
+} from './korekta-faktury.js';
 
 /**
  * M-06 — arytmetyka i dopuszczalność korekty.

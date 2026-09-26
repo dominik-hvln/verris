@@ -7,7 +7,7 @@ import {
   TRYBY,
   wymagaKodowQr,
   type TrybWystawienia,
-} from './ksef-tryby';
+} from './ksef-tryby.js';
 
 /**
  * `M-16` — strażnik terminów KSeF.

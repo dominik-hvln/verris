@@ -1,4 +1,4 @@
-import { HostingRestoreService } from './hosting-restore.service';
+import { HostingRestoreService } from './hosting-restore.service.js';
 
 /** H-09 — odtwarzanie rusza dopiero, gdy kopia bezpieczeństwa naprawdę powstała. */
 function setup(lists: Array<{ rows: { fileName: string }[]; fetchError: string | null }>) {
@@ -16,22 +16,22 @@ function setup(lists: Array<{ rows: { fileName: string }[]; fetchError: string |
   const updates: Array<Record<string, unknown>> = [];
   const prisma = {
     hostingRestoreJob: {
-      findFirst: jest.fn().mockResolvedValue(job),
-      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
-      update: jest.fn().mockImplementation(({ data }: { data: Record<string, unknown> }) => {
+      findFirst: vi.fn().mockResolvedValue(job),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      update: vi.fn().mockImplementation(({ data }: { data: Record<string, unknown> }) => {
         updates.push(data);
         return Promise.resolve({});
       }),
     },
-    account: { findUnique: jest.fn().mockResolvedValue({ userId: 'u1', domain: 'firma.pl' }) },
+    account: { findUnique: vi.fn().mockResolvedValue({ userId: 'u1', domain: 'firma.pl' }) },
   };
   let call = 0;
   const da = {
-    listHostingBackups: jest.fn().mockImplementation(() => Promise.resolve(lists[Math.min(call++, lists.length - 1)])),
-    createHostingSiteBackupNow: jest.fn().mockResolvedValue({ ok: true }),
-    restoreHostingBackup: jest.fn().mockResolvedValue({ ok: true }),
+    listHostingBackups: vi.fn().mockImplementation(() => Promise.resolve(lists[Math.min(call++, lists.length - 1)])),
+    createHostingSiteBackupNow: vi.fn().mockResolvedValue({ ok: true }),
+    restoreHostingBackup: vi.fn().mockResolvedValue({ ok: true }),
   };
-  const svc = new (HostingRestoreService as unknown as new (...a: unknown[]) => HostingRestoreService)(prisma, { record: jest.fn() }, da);
+  const svc = new (HostingRestoreService as unknown as new (...a: unknown[]) => HostingRestoreService)(prisma, { record: vi.fn() }, da);
   svc.sleep = () => Promise.resolve();
   return { svc, da, updates };
 }

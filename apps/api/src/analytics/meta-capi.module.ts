@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from '../prisma/prisma.module';
-import { MetaCapiService } from './meta-capi.service';
-import { MetaCapiController } from './meta-capi.controller';
-import { MetaCapiPublicController } from './meta-capi-public.controller';
+import { PrismaModule } from '../prisma/prisma.module.js';
+import { MetaCapiService } from './meta-capi.service.js';
+import { MetaCapiController } from './meta-capi.controller.js';
+import { MetaCapiPublicController } from './meta-capi-public.controller.js';
 
 /** Pomiar server-side (Meta Conversions API). */
 @Module({

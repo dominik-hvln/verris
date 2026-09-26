@@ -2,11 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
-import { walletLowBalanceTemplate } from '../mail/templates/billing-lifecycle-notifications';
-import { NotificationsService } from '../notifications/notifications.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { walletLowBalanceTemplate } from '../mail/templates/billing-lifecycle-notifications.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 const DEFAULT_DAILY_HOUR = 9; // 09:00 in the server's timezone (config trumps).
 

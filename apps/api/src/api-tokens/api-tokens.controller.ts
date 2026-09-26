@@ -1,9 +1,9 @@
 import { Body, Controller, Delete, ForbiddenException, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
 import { IsArray, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { ApiTokensService } from './api-tokens.service';
-import { API_SCOPE_LABELS, ALL_API_SCOPES, UPRAWNIENIE_ZAKRESU, isValidScope } from './api-scopes';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { ApiTokensService } from './api-tokens.service.js';
+import { API_SCOPE_LABELS, ALL_API_SCOPES, UPRAWNIENIE_ZAKRESU, isValidScope } from './api-scopes.js';
 
 class CreateApiTokenDto {
   @IsString() @MinLength(2) @MaxLength(60)

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { HostingRestoreService } from './hosting-restore.service';
+import { HostingRestoreService } from './hosting-restore.service.js';
 
 /**
  * Drains queued hosting-restore jobs. Runs at most one restore at a time

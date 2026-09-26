@@ -1,15 +1,15 @@
 import { Body, Controller, Get, HttpCode, Patch, UseGuards } from '@nestjs/common';
 import { Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { AuditService } from '../common/audit/audit.service';
-import { AdminCustomerActions } from '../common/audit/audit.actions';
-import { PrismaService } from '../prisma/prisma.service';
-import { AiProviderService, FUNKCJE_KLIENTA_AI, KLUCZ_KONFIGURACJI_AI } from './ai-provider.service';
-import { ZNANE_MODELE_AI, odczytajKonfiguracjeAi } from './ai-modele';
-import { UstawieniaAiDto } from './dto/ai.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { AdminCustomerActions } from '../common/audit/audit.actions.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AiProviderService, FUNKCJE_KLIENTA_AI, KLUCZ_KONFIGURACJI_AI } from './ai-provider.service.js';
+import { ZNANE_MODELE_AI, odczytajKonfiguracjeAi } from './ai-modele.js';
+import { UstawieniaAiDto } from './dto/ai.dto.js';
 
 /** L-11 — admin wybiera dostawcę i model każdego poziomu AI, ceny i limit klienta; widzi koszty. */
 @Controller('admin/ai')

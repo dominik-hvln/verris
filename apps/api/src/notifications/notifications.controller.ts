@@ -1,7 +1,7 @@
 import { Controller, Get, HttpCode, Param, Post, Query, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { NotificationsService } from './notifications.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { NotificationsService } from './notifications.service.js';
 
 /** NTF-2 — dzwonek in-app w panelu klienta. */
 @Controller('notifications')

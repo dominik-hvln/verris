@@ -5,9 +5,9 @@ import {
   PLAN_PRODUKCYJNY,
   SLUGI_PLANOW_PROTOTYPOWYCH,
   SUFITY_Z_OFERTY,
-} from './plan-produkcyjny';
-import { krotnoscAutoskalowania } from '../subscriptions/node-capacity';
-import { packagePolicyForSlug } from '../servers/da-package-spec';
+} from './plan-produkcyjny.js';
+import { krotnoscAutoskalowania } from '../subscriptions/node-capacity.js';
+import { packagePolicyForSlug } from '../servers/da-package-spec.js';
 
 /**
  * Z-13 — uzgodnienie trzech warstw, które do 2026-08-22 mówiły trzy różne rzeczy:
@@ -23,7 +23,7 @@ import { packagePolicyForSlug } from '../servers/da-package-spec';
  * bazy ani działającego API, więc kosztuje milisekundy i biegnie w każdym CI.
  */
 
-const KORZEN = resolve(__dirname, '../../../..');
+const KORZEN = resolve(import.meta.dirname, '../../../..');
 const MIGRACJA = resolve(
   KORZEN,
   'libs/database/prisma/migrations/20260822120000_plan_produkcyjny/migration.sql',
@@ -258,7 +258,7 @@ describe('Z-13 — limity liczbowe pakietu DA zgodne z ofertą', () => {
 
 describe('H-02 — kopie w ramach usługi od pierwszego dnia', () => {
   it('provisioning zakłada codzienny harmonogram kopii (7 ostatnich) w tej samej transakcji co konto', () => {
-    const src = readFileSync(resolve(__dirname, '../subscriptions/provisioning.service.ts'), 'utf8');
+    const src = readFileSync(resolve(import.meta.dirname, '../subscriptions/provisioning.service.ts'), 'utf8');
     expect(src).toMatch(/tx\.backupSchedule\.upsert\(\{[\s\S]*?frequency: 'DAILY', enabled: true, retainCount: 7[\s\S]*?update: \{\}/);
   });
 });

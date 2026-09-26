@@ -1,26 +1,26 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { RenewalScheduler } from './renewal.scheduler';
+import { RenewalScheduler } from './renewal.scheduler.js';
 
 /** Z-07 — karencja przy płatności portfelem: doładowanie ratuje usługę przed zawieszeniem. */
 function zbuduj(opts: { saldoOk: boolean; subs: Array<Record<string, unknown>>; bladBazy?: boolean }) {
   const prisma = {
     subscription: {
-      findMany: jest.fn(async () => opts.subs),
-      findFirst: jest.fn(async () => opts.subs[0] ?? null),
-      update: jest.fn(async () => ({})),
+      findMany: vi.fn(async () => opts.subs),
+      findFirst: vi.fn(async () => opts.subs[0] ?? null),
+      update: vi.fn(async () => ({})),
     },
-    subscriptionEvent: { create: jest.fn(async () => ({})) },
+    subscriptionEvent: { create: vi.fn(async () => ({})) },
   };
   const walletLedger = {
-    findByIdempotencyKey: jest.fn(async () => null),
-    debit: jest.fn(async () => {
+    findByIdempotencyKey: vi.fn(async () => null),
+    debit: vi.fn(async () => {
       if (opts.bladBazy) throw new Error("Can't reach database server");
       if (!opts.saldoOk) throw new ConflictException('Insufficient wallet balance for this charge');
     }),
   };
-  const audit = { record: jest.fn(async () => undefined) };
-  const promo = { resolveNextRenewalAmount: jest.fn(async () => 45) };
-  const eco = { safeAward: jest.fn(), awardSubscriptionRenewal: jest.fn() };
+  const audit = { record: vi.fn(async () => undefined) };
+  const promo = { resolveNextRenewalAmount: vi.fn(async () => 45) };
+  const eco = { safeAward: vi.fn(), awardSubscriptionRenewal: vi.fn() };
   const s = new RenewalScheduler(prisma as never, walletLedger as never, {} as never, audit as never, promo as never, eco as never);
   return { s, prisma, walletLedger };
 }

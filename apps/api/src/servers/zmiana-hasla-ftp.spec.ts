@@ -1,13 +1,13 @@
 import { NotFoundException } from '@nestjs/common';
-import { DirectAdminService } from './directadmin.service';
+import { DirectAdminService } from './directadmin.service.js';
 
 /** C-18 — zmiana hasła FTP zachowuje katalog konta i trafia do audytu. */
 function fake(rows: { username: string; path: string }[]) {
   return {
-    accountDomainForSubscription: jest.fn().mockResolvedValue('firma.pl'),
-    listHostingFtpAccounts: jest.fn().mockResolvedValue({ rows, fetchError: null }),
-    daFormForSubscription: jest.fn().mockResolvedValue(new URLSearchParams()),
-    audit: { record: jest.fn() },
+    accountDomainForSubscription: vi.fn().mockResolvedValue('firma.pl'),
+    listHostingFtpAccounts: vi.fn().mockResolvedValue({ rows, fetchError: null }),
+    daFormForSubscription: vi.fn().mockResolvedValue(new URLSearchParams()),
+    audit: { record: vi.fn() },
   };
 }
 const change = (self: ReturnType<typeof fake>, user: string) =>

@@ -12,47 +12,47 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { ServerIdentityGuard } from './guards/server-identity.guard';
-import { NodeTasksService } from './node-tasks.service';
+import { ServerIdentityGuard } from './guards/server-identity.guard.js';
+import { NodeTasksService } from './node-tasks.service.js';
 import {
   buildDefaultHostingPageBundle,
   loadDefaultHostingPageInstallScript,
-} from './default-hosting-page.assets';
-import { loadHostingProfileScript } from './hosting-profile.script';
-import { loadLveAgentScript } from './lve-agent.script';
-import { loadWpInstallScript } from './wp-install.script';
-import { loadWafApplyScript } from './waf-apply.script';
-import { loadStagingSyncScript } from './staging-sync.script';
-import { loadPhpApplyScript } from './php-apply.script';
-import { loadAppInstallScript } from './app-install.script';
-import { loadDbUpgradeScript } from './db-upgrade.script';
-import { loadOffsiteRestoreScript } from './offsite-restore.script';
-import { loadDbTransferScript } from './db-transfer.script';
-import { loadFileRestoreScript } from './file-restore.script';
-import { loadSshAccessScript } from './ssh-access.script';
-import { loadWpUpdateScript } from './wp-update.script';
-import { loadDiskUsageScript } from './disk-usage.script';
-import { loadMalwareScanScript } from './malware-scan.script';
-import { loadRedisScript } from './redis.script';
-import { loadMailLogScript } from './mail-log.script';
-import { loadGitDeployScript } from './git-deploy.script';
-import { loadSiteCloneScript } from './site-clone.script';
-import { loadHtaccessScript } from './htaccess.script';
-import { loadAppSelectorScript } from './app-selector.script';
-import { loadSlowSqlScript } from './slow-sql.script';
-import { loadPgsqlScript } from './pgsql.script';
-import { loadImageOptimizeScript } from './image-optimize.script';
-import { loadMemcachedScript } from './memcached.script';
-import { loadSiteStatsScript } from './site-stats.script';
-import { loadPhpInfoScript } from './php-info.script';
-import { loadFileSearchScript } from './file-search.script';
-import { loadNodeUpdateScript } from './node-update.script';
-import { buildOnboardBundle, loadOnboardLiveScript } from './onboard-live.script';
-import { BackupOffsiteService } from './backup-offsite.service';
+} from './default-hosting-page.assets.js';
+import { loadHostingProfileScript } from './hosting-profile.script.js';
+import { loadLveAgentScript } from './lve-agent.script.js';
+import { loadWpInstallScript } from './wp-install.script.js';
+import { loadWafApplyScript } from './waf-apply.script.js';
+import { loadStagingSyncScript } from './staging-sync.script.js';
+import { loadPhpApplyScript } from './php-apply.script.js';
+import { loadAppInstallScript } from './app-install.script.js';
+import { loadDbUpgradeScript } from './db-upgrade.script.js';
+import { loadOffsiteRestoreScript } from './offsite-restore.script.js';
+import { loadDbTransferScript } from './db-transfer.script.js';
+import { loadFileRestoreScript } from './file-restore.script.js';
+import { loadSshAccessScript } from './ssh-access.script.js';
+import { loadWpUpdateScript } from './wp-update.script.js';
+import { loadDiskUsageScript } from './disk-usage.script.js';
+import { loadMalwareScanScript } from './malware-scan.script.js';
+import { loadRedisScript } from './redis.script.js';
+import { loadMailLogScript } from './mail-log.script.js';
+import { loadGitDeployScript } from './git-deploy.script.js';
+import { loadSiteCloneScript } from './site-clone.script.js';
+import { loadHtaccessScript } from './htaccess.script.js';
+import { loadAppSelectorScript } from './app-selector.script.js';
+import { loadSlowSqlScript } from './slow-sql.script.js';
+import { loadPgsqlScript } from './pgsql.script.js';
+import { loadImageOptimizeScript } from './image-optimize.script.js';
+import { loadMemcachedScript } from './memcached.script.js';
+import { loadSiteStatsScript } from './site-stats.script.js';
+import { loadPhpInfoScript } from './php-info.script.js';
+import { loadFileSearchScript } from './file-search.script.js';
+import { loadNodeUpdateScript } from './node-update.script.js';
+import { buildOnboardBundle, loadOnboardLiveScript } from './onboard-live.script.js';
+import { BackupOffsiteService } from './backup-offsite.service.js';
 import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
-import { stosJakoEnv } from './stos-wezla';
-import { StosWezlaService } from './stos-wezla.service';
-import { linijkaAuthorizedKeys, PodpisOdpowiedziInterceptor } from './podpis-skryptow';
+import { stosJakoEnv } from './stos-wezla.js';
+import { StosWezlaService } from './stos-wezla.service.js';
+import { linijkaAuthorizedKeys, PodpisOdpowiedziInterceptor } from './podpis-skryptow.js';
 
 class OnboardReportDto {
   @IsBoolean()

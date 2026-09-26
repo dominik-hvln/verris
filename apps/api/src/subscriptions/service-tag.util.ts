@@ -1,5 +1,5 @@
 import { randomInt } from 'crypto';
-import type { PrismaService } from '../prisma/prisma.service';
+import type { PrismaService } from '../prisma/prisma.service.js';
 
 /**
  * SVC-TAG — długość handle'a usługi. DirectAdmin ogranicza login konta do 8

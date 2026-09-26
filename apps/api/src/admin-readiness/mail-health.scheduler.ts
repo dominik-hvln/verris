@@ -2,10 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { EmailStatus, Role } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { MailerService } from '../mail/mailer.service';
-import { AuditService } from '../common/audit/audit.service';
-import { mailDeliveryFailureAlertTemplate } from '../mail/templates/ops-notifications';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { mailDeliveryFailureAlertTemplate } from '../mail/templates/ops-notifications.js';
 
 const WINDOW_MINUTES = 30; // okno analizy
 const MIN_SAMPLE = 10; // minimalna liczba maili, żeby liczyć odsetek (unikamy szumu)

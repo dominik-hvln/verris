@@ -1,4 +1,4 @@
-import { linijkaAuthorizedKeys, renderInstalacjaPodpisu } from './podpis-skryptow';
+import { linijkaAuthorizedKeys, renderInstalacjaPodpisu } from './podpis-skryptow.js';
 
 /**
  * Verris node task agent — LIVE install fragments (hosting profile from admin panel).

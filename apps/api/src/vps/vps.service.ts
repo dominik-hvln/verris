@@ -8,14 +8,14 @@ import {
 import { Prisma, VpsStatus, WalletTxType } from '@verris/database';
 import { createHash, randomBytes } from 'crypto';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../prisma/prisma.service';
-import { CryptoService } from '../common/crypto/crypto.service';
-import { AuditService } from '../common/audit/audit.service';
-import { WalletLedgerService } from '../billing/wallet-ledger.service';
-import { MailerService } from '../mail/mailer.service';
-import { vpsReadyTemplate } from '../mail/templates/vps-notifications';
-import { HetznerClient } from './hetzner.client';
-import type { OrderVpsDto } from './dto/vps.dto';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { CryptoService } from '../common/crypto/crypto.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { vpsReadyTemplate } from '../mail/templates/vps-notifications.js';
+import { HetznerClient } from './hetzner.client.js';
+import type { OrderVpsDto } from './dto/vps.dto.js';
 
 function sanitizeName(raw: string): string {
   const base = raw.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
@@ -292,7 +292,7 @@ export class VpsService {
     return this.hetzner.listServerTypes();
   }
 
-  async createPlan(dto: import('./dto/vps.dto').CreateVpsPlanDto, actorUserId: string) {
+  async createPlan(dto: import('./dto/vps.dto.js').CreateVpsPlanDto, actorUserId: string) {
     const existing = await this.prisma.vpsPlan.findUnique({ where: { slug: dto.slug } });
     if (existing) throw new ConflictException(`Plan VPS o slug "${dto.slug}" już istnieje.`);
     const plan = await this.prisma.vpsPlan.create({
@@ -318,7 +318,7 @@ export class VpsService {
     return plan;
   }
 
-  async updatePlan(id: string, dto: Partial<import('./dto/vps.dto').CreateVpsPlanDto>, actorUserId: string) {
+  async updatePlan(id: string, dto: Partial<import('./dto/vps.dto.js').CreateVpsPlanDto>, actorUserId: string) {
     const data: Record<string, unknown> = { ...dto };
     if (dto.priceMonthly != null) data.priceMonthly = new Prisma.Decimal(dto.priceMonthly);
     if (dto.currency) data.currency = dto.currency.toUpperCase();

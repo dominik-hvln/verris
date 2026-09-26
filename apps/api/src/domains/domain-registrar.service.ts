@@ -9,30 +9,30 @@ import {
   WalletTxType,
 } from '@verris/database';
 import { createHash } from 'crypto';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { CryptoService } from '../common/crypto/crypto.service';
-import { WalletLedgerService } from '../billing/wallet-ledger.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { CryptoService } from '../common/crypto/crypto.service.js';
+import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
 import type {
   DomainCustomerPriceDto,
   DomainPeriodQuotesDto,
   DomainSearchResultDto,
 } from '@verris/contracts';
-import { REGISTRAR_TLD_CATALOG } from './registrar-tld-catalog';
-import type { CustomerDomainPrice } from './domain-pricing.util';
+import { REGISTRAR_TLD_CATALOG } from './registrar-tld-catalog.js';
+import type { CustomerDomainPrice } from './domain-pricing.util.js';
 import {
   parseDomainPricingConfig,
   toCustomerDomainPrice,
   type DomainPricingConfig,
-} from './domain-pricing.util';
-import { NbpFxService } from './nbp-fx.service';
+} from './domain-pricing.util.js';
+import { NbpFxService } from './nbp-fx.service.js';
 import {
   Registrant,
   RegistrarOperation,
   RegistrarOrderResult,
   RegistrarProviderFactory,
-} from './registrar.provider';
-import { EcoPointsService } from '../eco/eco-points.service';
+} from './registrar.provider.js';
+import { EcoPointsService } from '../eco/eco-points.service.js';
 
 @Injectable()
 export class DomainRegistrarService {

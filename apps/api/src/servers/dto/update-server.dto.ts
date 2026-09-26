@@ -1,4 +1,4 @@
-import { KODY_REGIONOW } from '../regiony';
+import { KODY_REGIONOW } from '../regiony.js';
 import { IsEnum, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ServerStatus } from '@verris/database';
 

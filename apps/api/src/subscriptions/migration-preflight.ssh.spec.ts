@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import { sshLogin } from './migration-preflight.service';
+import { sshLogin } from './migration-preflight.service.js';
 
 /** I-18 — preflight SFTP/SSH loguje się naprawdę: literówka w haśle to „auth_failed”, nie „reachable”. */
 function fake(zachowanie: (c: EventEmitter & { cfg?: Record<string, unknown> }) => void) {

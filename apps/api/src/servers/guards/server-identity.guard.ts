@@ -7,8 +7,8 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { ServerStatus } from '@verris/database';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CryptoService } from '../../common/crypto/crypto.service';
+import { PrismaService } from '../../prisma/prisma.service.js';
+import { CryptoService } from '../../common/crypto/crypto.service.js';
 
 /**
  * Node agent statuses allowed to talk to agent endpoints. PENDING_APPROVAL is

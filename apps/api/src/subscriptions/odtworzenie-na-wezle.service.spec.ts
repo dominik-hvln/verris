@@ -1,24 +1,24 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { OdtworzenieNaWezleService, prefiks } from './odtworzenie-na-wezle.service';
-import { NodeTasksService } from '../servers/node-tasks.service';
+import { OdtworzenieNaWezleService, prefiks } from './odtworzenie-na-wezle.service.js';
+import { NodeTasksService } from '../servers/node-tasks.service.js';
 
-const skrypt = readFileSync(join(__dirname, '..', '..', '..', '..', 'ops', 'scripts', 'node-account-restore.sh'), 'utf8');
+const skrypt = readFileSync(join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'scripts', 'node-account-restore.sh'), 'utf8');
 
 function zbuduj(o: { cel?: Record<string, unknown> | null; wToku?: unknown } = {}) {
-  const create = jest.fn(async () => ({ id: 't1' }));
+  const create = vi.fn(async () => ({ id: 't1' }));
   const prisma = {
     subscription: {
-      findUnique: jest.fn(async () => ({
+      findUnique: vi.fn(async () => ({
         userId: 'u1',
         account: { id: 'a1', daUsername: 'klient1', serverId: 's-stary', server: { hostname: 'node-pl-01.verris.pl' } },
       })),
     },
-    server: { findUnique: jest.fn(async () => (o.cel === undefined ? { id: 's-nowy', status: 'ACTIVE', ipAddress: '203.0.113.7' } : o.cel)) },
-    nodeTask: { findFirst: jest.fn(async () => o.wToku ?? null), create, findMany: jest.fn(async () => []) },
+    server: { findUnique: vi.fn(async () => (o.cel === undefined ? { id: 's-nowy', status: 'ACTIVE', ipAddress: '203.0.113.7' } : o.cel)) },
+    nodeTask: { findFirst: vi.fn(async () => o.wToku ?? null), create, findMany: vi.fn(async () => []) },
   };
-  const audit = { record: jest.fn() };
+  const audit = { record: vi.fn() };
   return { s: new OdtworzenieNaWezleService(prisma as never, audit as never), create, audit };
 }
 
@@ -67,10 +67,10 @@ describe('H-16 — odtworzenie konta na innym węźle', () => {
       createdAt: new Date(), updatedAt: new Date(), startedAt: null, completedAt: new Date(),
     };
     const prisma = {
-      nodeTask: { findUnique: jest.fn(async () => task), update: jest.fn(async () => task) },
-      account: { findUnique: jest.fn(async () => ({ serverId: 's-stary', userId: 'u1' })), update: jest.fn() },
+      nodeTask: { findUnique: vi.fn(async () => task), update: vi.fn(async () => task) },
+      account: { findUnique: vi.fn(async () => ({ serverId: 's-stary', userId: 'u1' })), update: vi.fn() },
     };
-    const audit = { record: jest.fn() };
+    const audit = { record: vi.fn() };
     await new NodeTasksService(prisma as never, audit as never, {} as never).completeTaskFromNode({ serverId: 's-nowy', taskId: 't1', outputLog: log });
     if (przepiete) {
       expect(prisma.account.update).toHaveBeenCalledWith({ where: { id: 'a1' }, data: { serverId: 's-nowy' } });

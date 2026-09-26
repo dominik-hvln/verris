@@ -15,12 +15,12 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { IncidentStatus, Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { ProbesAdminService } from './probes-admin.service';
-import { CreateProbeDto, UpdateIncidentDto, UpdateProbeDto } from './dto/probe.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { ProbesAdminService } from './probes-admin.service.js';
+import { CreateProbeDto, UpdateIncidentDto, UpdateProbeDto } from './dto/probe.dto.js';
 
 @Controller('admin/status')
 @UseGuards(JwtAuthGuard, RolesGuard)

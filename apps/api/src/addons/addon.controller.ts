@@ -1,9 +1,9 @@
 import { Body, Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { RateLimit } from '../common/guards/rate-limit.guard';
-import { AddonService } from './addon.service';
-import { PurchaseAddonDto } from './dto/purchase-addon.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
+import { AddonService } from './addon.service.js';
+import { PurchaseAddonDto } from './dto/purchase-addon.dto.js';
 
 @Controller('addons')
 @UseGuards(JwtAuthGuard)

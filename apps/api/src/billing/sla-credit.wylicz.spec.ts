@@ -1,5 +1,5 @@
 import { Prisma } from '@verris/database';
-import { SlaCreditScheduler } from './sla-credit.scheduler';
+import { SlaCreditScheduler } from './sla-credit.scheduler.js';
 
 /** N-16 — podgląd liczy to samo co wypłata i niczego nie zapisuje. */
 function setup(enabled: boolean) {
@@ -16,19 +16,19 @@ function setup(enabled: boolean) {
     user: { email: 'a@b.pl', firstName: 'Anna', anonymizedAt: null },
   };
   const prisma = {
-    subscription: { findMany: jest.fn().mockResolvedValue([sub]) },
+    subscription: { findMany: vi.fn().mockResolvedValue([sub]) },
     // sierpień 2026 = 44 640 min; 14 h przestoju = 840 min → 98,12% → próg 25%
     probeIncident: {
-      findMany: jest.fn().mockResolvedValue([
+      findMany: vi.fn().mockResolvedValue([
         { startedAt: new Date('2026-08-10T00:00:00Z'), resolvedAt: new Date('2026-08-10T14:00:00Z'), probe: { serverId: 'srv1' } },
       ]),
     },
-    maintenanceWindow: { findMany: jest.fn().mockResolvedValue([]) },
-    slaCredit: { create: jest.fn().mockImplementation(async () => writes.push('sla')) },
+    maintenanceWindow: { findMany: vi.fn().mockResolvedValue([]) },
+    slaCredit: { create: vi.fn().mockImplementation(async () => writes.push('sla')) },
   };
-  const wallet = { credit: jest.fn().mockImplementation(async () => (writes.push('wallet'), { balanceAfter: '100.00' })) };
-  const settings = { getSlaCreditPolicy: jest.fn().mockResolvedValue({ enabled, graceMinutes: 5, maintenanceCapMinutes: 480 }) };
-  const noop = { record: jest.fn(), create: jest.fn(), send: jest.fn().mockResolvedValue(undefined), get: () => undefined };
+  const wallet = { credit: vi.fn().mockImplementation(async () => (writes.push('wallet'), { balanceAfter: '100.00' })) };
+  const settings = { getSlaCreditPolicy: vi.fn().mockResolvedValue({ enabled, graceMinutes: 5, maintenanceCapMinutes: 480 }) };
+  const noop = { record: vi.fn(), create: vi.fn(), send: vi.fn().mockResolvedValue(undefined), get: () => undefined };
   const s = new SlaCreditScheduler(prisma as never, wallet as never, noop as never, settings as never, noop as never, noop as never, noop as never);
   return { s, writes };
 }

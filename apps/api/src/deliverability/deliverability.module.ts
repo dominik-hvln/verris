@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { OutboundAbuseGuard } from './outbound-abuse.guard';
-import { OutboundCordonAdminController } from './outbound-cordon.admin.controller';
+import { OutboundAbuseGuard } from './outbound-abuse.guard.js';
+import { OutboundCordonAdminController } from './outbound-cordon.admin.controller.js';
 
 /**
  * CYBER-3 — deliverability / ochrona wysyłki. Dostarcza OutboundAbuseGuard

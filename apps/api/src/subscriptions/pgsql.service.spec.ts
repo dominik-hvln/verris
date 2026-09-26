@@ -1,8 +1,8 @@
 import { spawnSync } from 'child_process';
 import { join } from 'path';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
-import { PgsqlService, bazyZLogu } from './pgsql.service';
-import { bezSekretow } from '../servers/node-tasks.service';
+import { PgsqlService, bazyZLogu } from './pgsql.service.js';
+import { bezSekretow } from '../servers/node-tasks.service.js';
 
 /**
  * D-14 — skrypt węzła sprawdzony na prawdziwym PostgreSQL 16 (2026-09-25): rola na bazę, brak CONNECT do
@@ -12,14 +12,14 @@ import { bezSekretow } from '../servers/node-tasks.service';
 function stanowisko(opts: { zadania?: unknown[]; wToku?: boolean } = {}) {
   const account = { id: 'a1', serverId: 'n1', status: 'ACTIVE', daUsername: 'klient1' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
     nodeTask: {
-      findFirst: jest.fn(async () => (opts.wToku ? { id: 'x' } : null)),
-      findMany: jest.fn(async () => opts.zadania ?? []),
-      create: jest.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
+      findFirst: vi.fn(async () => (opts.wToku ? { id: 'x' } : null)),
+      findMany: vi.fn(async () => opts.zadania ?? []),
+      create: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
     },
   };
-  const audit = { record: jest.fn(async () => undefined) };
+  const audit = { record: vi.fn(async () => undefined) };
   return { svc: new PgsqlService(prisma as never, audit as never), prisma, audit };
 }
 
@@ -67,7 +67,7 @@ describe('PgsqlService', () => {
   });
 
   it('skrypt węzła odrzuca złe dane, zanim dotknie bazy', () => {
-    const skrypt = join(__dirname, '../../../../ops/scripts/node-pgsql.sh');
+    const skrypt = join(import.meta.dirname, '../../../../ops/scripts/node-pgsql.sh');
     const uruchom = (env: Record<string, string>) =>
       spawnSync('bash', [skrypt], { env: { PATH: process.env.PATH ?? '', ...env }, encoding: 'utf8' });
     expect(uruchom({ PG_MODE: 'drop', PG_DA_USER: 'klient1' }).stderr).toContain('nieznany tryb');

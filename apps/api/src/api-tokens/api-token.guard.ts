@@ -1,9 +1,9 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PrismaService } from '../prisma/prisma.service';
-import { ApiTokensService } from './api-tokens.service';
-import { API_SCOPE_KEY } from './api-scope.decorator';
-import type { ApiScopeValue } from './api-scopes';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { ApiTokensService } from './api-tokens.service.js';
+import { API_SCOPE_KEY } from './api-scope.decorator.js';
+import type { ApiScopeValue } from './api-scopes.js';
 
 /**
  * Guard publicznego API klienta. Czyta Authorization: Bearer vrs_live_…,

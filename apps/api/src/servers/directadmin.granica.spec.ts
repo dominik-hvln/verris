@@ -1,8 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
-import { DirectAdminService } from './directadmin.service';
-import { ZadanieCronDto } from '../subscriptions/dto/hosting-cron.dto';
+import { DirectAdminService } from './directadmin.service.js';
+import { ZadanieCronDto } from '../subscriptions/dto/hosting-cron.dto.js';
 
 /**
  * X-09 — DirectAdminService (ponad 3 tys. linii, dotąd testowany jeden helper).
@@ -73,7 +73,7 @@ describe('X-09 — blok .htaccess zarządzany przez panel', () => {
 
 describe('X-09 — zapis narzędzi WWW z danych klienta', () => {
   function zapis(input: Record<string, unknown>, o: { listDir?: () => Promise<unknown> } = {}) {
-    const writeFile = jest.fn(async () => undefined);
+    const writeFile = vi.fn(async () => undefined);
     const self = Object.assign(Object.create(DirectAdminService.prototype), {
       prisma: { subscription: { findFirst: async () => ({ id: 's1', account: { id: 'a1' } }) } },
       syncPrimaryDomainForSubscription: async () => 'firma.pl',
@@ -83,7 +83,7 @@ describe('X-09 — zapis narzędzi WWW z danych klienta', () => {
         listDir: o.listDir ?? (async () => [{ name: '.htaccess', type: 'file' }]),
         downloadFile: async () => Buffer.from('Options -Indexes'),
       }),
-      audit: { record: jest.fn(async () => undefined) },
+      audit: { record: vi.fn(async () => undefined) },
     });
     return { run: () => (self as DirectAdminService).saveHostingWebTools('s1', 'u1', input as never), writeFile };
   }
@@ -118,13 +118,13 @@ describe('X-09 — zapis narzędzi WWW z danych klienta', () => {
 
 describe('X-09 — ochrona katalogu hasłem', () => {
   function chron(dir: string, realm?: string) {
-    const writeFile = jest.fn(async () => undefined);
+    const writeFile = vi.fn(async () => undefined);
     const self = Object.assign(Object.create(DirectAdminService.prototype), {
       prisma: { subscription: { findFirst: async () => ({ id: 's1', account: { id: 'a1', daUsername: 'klient1' } }) } },
       syncPrimaryDomainForSubscription: async () => 'firma.pl',
       getHostingWebTools: async () => ({ state: { protectedDirs: [] } }),
       getClientForHostingAccount: async () => ({ writeFile, listDir: async () => [], downloadFile: async () => Buffer.from('') }),
-      audit: { record: jest.fn(async () => undefined) },
+      audit: { record: vi.fn(async () => undefined) },
     });
     const run = () => (self as DirectAdminService).setHostingDirectoryProtection('s1', 'u1', { dir, realm, user: 'admin', password: 'tajne123' });
     return { run, writeFile };
@@ -163,8 +163,8 @@ describe('X-09 / L-03 — cron', () => {
   it('edycja: najpierw nowy wpis, potem usunięcie starego; zły identyfikator — nic nie wysyłamy', async () => {
     const kolejnosc: string[] = [];
     const self = Object.assign(Object.create(DirectAdminService.prototype), {
-      createHostingCronJob: jest.fn(async () => { kolejnosc.push('create'); }),
-      deleteHostingCronJob: jest.fn(async () => { kolejnosc.push('delete'); }),
+      createHostingCronJob: vi.fn(async () => { kolejnosc.push('create'); }),
+      deleteHostingCronJob: vi.fn(async () => { kolejnosc.push('delete'); }),
     }) as DirectAdminService;
     const input = { minute: '0', hour: '4', dayOfMonth: '*', month: '*', dayOfWeek: '*', command: 'php b.php' };
     await self.updateHostingCronJob('s1', 'u1', '7', input);

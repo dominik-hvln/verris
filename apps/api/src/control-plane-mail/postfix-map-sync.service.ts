@@ -2,9 +2,9 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { ControlPlaneMailboxKind, ControlPlaneMailboxStatus } from '@verris/database';
-import { CONTROL_PLANE_MAIL_DOMAIN } from './control-plane-mail.constants';
+import { CONTROL_PLANE_MAIL_DOMAIN } from './control-plane-mail.constants.js';
 
 export interface GeneratedMailMaps {
   virtualMailbox: string;

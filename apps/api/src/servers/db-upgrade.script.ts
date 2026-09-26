@@ -6,8 +6,8 @@ export function loadDbUpgradeScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/node-db-upgrade.sh'),
     join(process.cwd(), '../../ops/scripts/node-db-upgrade.sh'),
-    join(__dirname, '../../../../../ops/scripts/node-db-upgrade.sh'),
-    join(__dirname, '../../../../ops/scripts/node-db-upgrade.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/node-db-upgrade.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/node-db-upgrade.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) {

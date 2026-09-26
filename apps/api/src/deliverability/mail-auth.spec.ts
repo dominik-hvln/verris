@@ -1,4 +1,4 @@
-import { buildMailAuthChecks, hostMatches, mergeSpf, normTxt, recommendedSpf, type MailAuthInput } from './mail-auth';
+import { buildMailAuthChecks, hostMatches, mergeSpf, normTxt, recommendedSpf, type MailAuthInput } from './mail-auth.js';
 
 const IP = '203.0.113.7';
 const base: MailAuthInput = { domain: 'firma.pl', sendingIp: IP, rootTxt: [], dmarcTxt: [], dkimSelector: null, zone: null };

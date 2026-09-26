@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { GitDeployService } from './git-deploy.service';
+import { GitDeployService } from './git-deploy.service.js';
 
 /**
  * C-25/C-26 — skrypt węzła sprawdzony lokalnie: klucz ed25519 0600 jako klient, pull --ff-only z HEAD,
@@ -8,23 +8,23 @@ import { GitDeployService } from './git-deploy.service';
 function stanowisko(zadania: unknown[] = []) {
   const account = { id: 'a1', serverId: 'n1', status: 'ACTIVE', daUsername: 'klient1' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
     gitWebhook: {
-      findMany: jest.fn(async () => []),
-      upsert: jest.fn(async () => undefined),
-      deleteMany: jest.fn(async () => undefined),
-      findUnique: jest.fn(async () => null as unknown),
-      update: jest.fn(async () => undefined),
+      findMany: vi.fn(async () => []),
+      upsert: vi.fn(async () => undefined),
+      deleteMany: vi.fn(async () => undefined),
+      findUnique: vi.fn(async () => null as unknown),
+      update: vi.fn(async () => undefined),
     },
     nodeTask: {
-      findFirst: jest.fn(async () => null),
-      findMany: jest.fn(async () => zadania),
-      create: jest.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
+      findFirst: vi.fn(async () => null),
+      findMany: vi.fn(async () => zadania),
+      create: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
     },
   };
-  const da = { assertDomainOwnedBySubscription: jest.fn(async (_s: string, _u: string, d: string) => d) };
-  const config = { get: jest.fn(() => 'https://api.verris.pl/') };
-  return { svc: new GitDeployService(prisma as never, { record: jest.fn(async () => undefined) } as never, da as never, config as never), prisma };
+  const da = { assertDomainOwnedBySubscription: vi.fn(async (_s: string, _u: string, d: string) => d) };
+  const config = { get: vi.fn(() => 'https://api.verris.pl/') };
+  return { svc: new GitDeployService(prisma as never, { record: vi.fn(async () => undefined) } as never, da as never, config as never), prisma };
 }
 
 describe('GitDeployService', () => {

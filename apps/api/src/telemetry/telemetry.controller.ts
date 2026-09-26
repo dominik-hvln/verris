@@ -1,8 +1,8 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { TelemetryService } from './telemetry.service';
-import { CloudLinuxTelemetryDto } from './telemetry.dto';
-import { ServerIdentityGuard } from '../servers/guards/server-identity.guard';
+import { TelemetryService } from './telemetry.service.js';
+import { CloudLinuxTelemetryDto } from './telemetry.dto.js';
+import { ServerIdentityGuard } from '../servers/guards/server-identity.guard.js';
 
 @Controller('telemetry')
 export class TelemetryController {

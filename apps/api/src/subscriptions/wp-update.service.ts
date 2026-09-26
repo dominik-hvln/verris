@@ -1,10 +1,10 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { HostingResourceActions } from '../common/audit/audit.actions';
-import { DirectAdminService } from '../servers/directadmin.service';
-import { LICENCJA_WORDFENCE, NOTA_WORDFENCE, WpPodatnosciService } from './wp-podatnosci.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { HostingResourceActions } from '../common/audit/audit.actions.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
+import { LICENCJA_WORDFENCE, NOTA_WORDFENCE, WpPodatnosciService } from './wp-podatnosci.service.js';
 
 /**
  * I-04 / I-05 — aktualizacje WordPressa w katalogu głównym domeny.

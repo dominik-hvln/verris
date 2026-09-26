@@ -7,7 +7,7 @@ import { join } from 'path';
  * i „Kontakty”; kopia nocna zapisuje archiwum jako właściciel konta, a kalendarz usuniętej skrzynki
  * idzie do kosza na 30 dni (nowa skrzynka o tym samym adresie nie dostaje cudzych danych).
  */
-const SKRYPTY = join(__dirname, '..', '..', '..', '..', 'ops', 'scripts');
+const SKRYPTY = join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'scripts');
 const profil = readFileSync(join(SKRYPTY, 'node-hosting-profile.sh'), 'utf8');
 const zapora = readFileSync(join(SKRYPTY, 'security-hardening-baseline.sh'), 'utf8');
 

@@ -1,25 +1,25 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../prisma/prisma.service';
-import { CryptoService } from '../common/crypto/crypto.service';
-import { AuditService } from '../common/audit/audit.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { CryptoService } from '../common/crypto/crypto.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
 import {
   MAIL_SETTING_DEFAULTS,
   MAIL_SETTING_KEYS,
   type MailSmtpSecure,
   type MailTransportMode,
-} from './mail-settings.keys';
+} from './mail-settings.keys.js';
 import {
   buildSmtpMailerProvider,
   isLocalSmtpHost,
   resolveSmtpIdentity,
   type ResolvedSmtpConfig,
-} from './mail-smtp.factory';
-import type { MailerProvider } from './mailer.interface';
+} from './mail-smtp.factory.js';
+import type { MailerProvider } from './mailer.interface.js';
 import type {
   AdminMailSettingsResponseDto,
   UpdateMailSettingsDto,
-} from './dto/mail-settings.dto';
+} from './dto/mail-settings.dto.js';
 
 @Injectable()
 export class MailSettingsService {

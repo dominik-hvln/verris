@@ -2,17 +2,17 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { Role, ServerStatus, SubscriptionStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { MailerService } from '../mail/mailer.service';
-import { AuditService } from '../common/audit/audit.service';
-import { LiveReadinessService } from './live-readiness.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { LiveReadinessService } from './live-readiness.service.js';
 import {
   nodeOfflineAlertTemplate,
   nodeRecoveredTemplate,
   nodeCapacityAlertTemplate,
   opsDailyDigestTemplate,
-} from '../mail/templates/ops-notifications';
-import { BRAK_SYGNALU_MIN, oblozenieWezla, SWIEZOSC_TELEMETRII_MIN, zuzycieZProbek } from '../subscriptions/node-capacity';
+} from '../mail/templates/ops-notifications.js';
+import { BRAK_SYGNALU_MIN, oblozenieWezla, SWIEZOSC_TELEMETRII_MIN, zuzycieZProbek } from '../subscriptions/node-capacity.js';
 
 // OPS-01: próg pochodzi z `node-capacity.ts`, żeby watchdog i selektor węzłów
 // nie miały dwóch niezależnych zdań o tym, kiedy węzeł przestaje żyć.

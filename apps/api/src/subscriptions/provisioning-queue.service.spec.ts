@@ -1,7 +1,7 @@
 import { ServiceUnavailableException } from '@nestjs/common';
 import { UnrecoverableError } from 'bullmq';
-import { ProvisioningQueueService, categorizeProvisioningError, kategoriaBledu } from './provisioning-queue.service';
-import { BladEtapuProvisioningu } from './provisioning-error';
+import { ProvisioningQueueService, categorizeProvisioningError, kategoriaBledu } from './provisioning-queue.service.js';
+import { BladEtapuProvisioningu } from './provisioning-error.js';
 
 describe('categorizeProvisioningError', () => {
   it.each([
@@ -39,13 +39,13 @@ describe('kategoriaBledu — status HTTP przed prozą', () => {
 describe('ProvisioningQueueService — twarda porażka kończy job', () => {
   function stanowisko(blad: Error) {
     const prisma = {
-      account: { findUnique: jest.fn(async () => null) },
-      subscription: { update: jest.fn(async () => ({})) },
-      subscriptionEvent: { create: jest.fn(async () => ({})) },
+      account: { findUnique: vi.fn(async () => null) },
+      subscription: { update: vi.fn(async () => ({})) },
+      subscriptionEvent: { create: vi.fn(async () => ({})) },
     };
-    const walletLedger = { credit: jest.fn(async () => ({})) };
-    const audit = { record: jest.fn(async () => undefined) };
-    const provisioning = { provisionForSubscription: jest.fn(async () => Promise.reject(blad)) };
+    const walletLedger = { credit: vi.fn(async () => ({})) };
+    const audit = { record: vi.fn(async () => undefined) };
+    const provisioning = { provisionForSubscription: vi.fn(async () => Promise.reject(blad)) };
     const svc = new ProvisioningQueueService(prisma as never, provisioning as never, walletLedger as never, audit as never, {} as never);
     const job = (attemptsMade: number) => ({
       id: 'j1', attemptsMade,

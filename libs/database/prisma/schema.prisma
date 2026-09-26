@@ -8,8 +8,12 @@
 
 // X-20 — Prisma 7: klient bez silnika w Ruście (połączenie przez @prisma/adapter-pg, patrz src/index.ts),
 // adres bazy dla CLI (migrate, studio) w prisma.config.ts — nie w schemacie.
+// PB-39: generator `prisma-client` (ESM, kod w src/generated — `prisma-client-js` jest wycofany w Prismie 7).
 generator client {
-  provider = "prisma-client-js"
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
 }
 
 datasource db {

@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Plan } from '@verris/database';
-import { StripeService } from '../billing/stripe/stripe.service';
-import type { StripePrice } from '../billing/stripe/stripe.client';
+import { StripeService } from '../billing/stripe/stripe.service.js';
+import type { StripePrice } from '../billing/stripe/stripe.client.js';
 
 export interface PlanStripeRefs {
   stripeProductId: string;

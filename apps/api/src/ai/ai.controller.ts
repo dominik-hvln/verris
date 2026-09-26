@@ -1,15 +1,15 @@
 import { Body, Controller, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { AiService } from './ai.service';
-import { AiChatService } from './ai-chat.service';
-import { AiProviderService } from './ai-provider.service';
-import { KnowledgeBaseService } from './knowledge-base.service';
-import { AiChatRequestDto } from './dto/ai.dto';
-import { KbSuggestDto } from '../tickets/tickets.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { AiService } from './ai.service.js';
+import { AiChatService } from './ai-chat.service.js';
+import { AiProviderService } from './ai-provider.service.js';
+import { KnowledgeBaseService } from './knowledge-base.service.js';
+import { AiChatRequestDto } from './dto/ai.dto.js';
+import { KbSuggestDto } from '../tickets/tickets.dto.js';
 
 /** Tożsamość z JWT: `principalUserId` = człowiek za subkontem albo impersonacją. */
 type Uzytkownik = { userId: string; principalUserId?: string };

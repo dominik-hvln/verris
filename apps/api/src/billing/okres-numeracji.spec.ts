@@ -1,4 +1,4 @@
-import { okresNumeracji, STREFA_NUMERACJI } from './faktura-za-portfel';
+import { okresNumeracji, STREFA_NUMERACJI } from './faktura-za-portfel.js';
 
 /**
  * M-02 — okres numeracji faktur liczony w czasie polskim.

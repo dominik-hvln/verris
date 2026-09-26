@@ -12,7 +12,7 @@ import { join } from 'path';
  * rejestracja IP w DirectAdminie była tylko ostrzeżeniem.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const SKRYPTY = join(KORZEN, 'ops', 'scripts');
 const BIBLIOTEKA = join(SKRYPTY, 'lib', 'przerwij-po-etapie.sh');
 

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { AnalyticsSitesService } from './analytics-sites.service';
+import { AnalyticsSitesService } from './analytics-sites.service.js';
 
 /**
  * AN — retencja zdarzeń analityki. Raz dziennie usuwa zdarzenia starsze niż

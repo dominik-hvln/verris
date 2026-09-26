@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import { ObjectStorageService } from './object-storage.service';
+import { ObjectStorageService } from './object-storage.service.js';
 
 /**
  * Global so any service can inject `ObjectStorageService` without explicitly

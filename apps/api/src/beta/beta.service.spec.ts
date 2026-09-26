@@ -1,34 +1,34 @@
 import { BadRequestException } from '@nestjs/common';
 import { Prisma } from '@verris/database';
-import { BetaService, KREDYT_TESTOW, kodTestera } from './beta.service';
+import { BetaService, KREDYT_TESTOW, kodTestera } from './beta.service.js';
 
 /** PB-26 — zaproszenia do testów: imienny kod 150 K / 1 użycie / 14 dni, mail best-effort, lista testerów. */
 function stanowisko(opts: { aktywne?: boolean; mail?: 'ok' | 'suppressed' | 'throw'; kolizje?: number } = {}) {
   let kolizje = opts.kolizje ?? 0;
   const prisma = {
     betaInvite: {
-      findFirst: jest.fn(async () => (opts.aktywne ? { id: 'x' } : null)),
-      create: jest.fn(async (a: { data: { promoCode: { create: { code: string } } } }) => {
+      findFirst: vi.fn(async () => (opts.aktywne ? { id: 'x' } : null)),
+      create: vi.fn(async (a: { data: { promoCode: { create: { code: string } } } }) => {
         if (kolizje-- > 0) throw new Prisma.PrismaClientKnownRequestError('dup', { code: 'P2002', clientVersion: 't' });
         return { id: 'i1', promoCode: { code: a.data.promoCode.create.code } };
       }),
-      update: jest.fn(async () => undefined),
-      findMany: jest.fn(async () => []),
-      findUnique: jest.fn(async () => ({ id: 'i1', promoCodeId: 'p1' })),
+      update: vi.fn(async () => undefined),
+      findMany: vi.fn(async () => []),
+      findUnique: vi.fn(async () => ({ id: 'i1', promoCodeId: 'p1' })),
     },
-    promoCode: { update: jest.fn(async () => undefined) },
-    promoRedemption: { count: jest.fn(async () => 1) },
-    subscription: { groupBy: jest.fn(async () => []) },
-    ticket: { findMany: jest.fn(async () => []) },
+    promoCode: { update: vi.fn(async () => undefined) },
+    promoRedemption: { count: vi.fn(async () => 1) },
+    subscription: { groupBy: vi.fn(async () => []) },
+    ticket: { findMany: vi.fn(async () => []) },
   };
   const mailer = {
-    send: jest.fn(async () => {
+    send: vi.fn(async () => {
       if (opts.mail === 'throw') throw new Error('smtp down');
       return { delivered: opts.mail !== 'suppressed' };
     }),
   };
-  const config = { get: jest.fn(() => 'https://panel.verris.pl/') };
-  const svc = new BetaService(prisma as never, mailer as never, config as never, { record: jest.fn(async () => undefined) } as never);
+  const config = { get: vi.fn(() => 'https://panel.verris.pl/') };
+  const svc = new BetaService(prisma as never, mailer as never, config as never, { record: vi.fn(async () => undefined) } as never);
   return { svc, prisma, mailer };
 }
 

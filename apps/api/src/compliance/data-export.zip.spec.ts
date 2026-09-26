@@ -3,7 +3,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { Readable } from 'stream';
 import { inflateRawSync } from 'zlib';
-import { DataExportService } from './data-export.service';
+import { DataExportService } from './data-export.service.js';
 
 /**
  * X-22 — eksport danych osobowych (RODO art. 20) sprawdzany end-to-end: prawdziwy
@@ -34,7 +34,7 @@ function rozpakuj(buf: Buffer): Map<string, string> {
 }
 
 function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
-  const lista = <T>(v: T) => jest.fn(async () => v);
+  const lista = <T>(v: T) => vi.fn(async () => v);
   const prisma = {
     user: {
       findUniqueOrThrow: lista({
@@ -60,15 +60,15 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
     dataExportRequest: { findMany: lista([]) },
     accountDeletionRequest: { findMany: lista([]) },
     auditLog: { findMany: lista([]) },
-    $transaction: jest.fn(async (ops: Array<Promise<unknown>>) => Promise.all(ops)),
+    $transaction: vi.fn(async (ops: Array<Promise<unknown>>) => Promise.all(ops)),
   };
   const storage = {
-    getObjectStream: jest.fn(async (_b: string, key: string) => {
+    getObjectStream: vi.fn(async (_b: string, key: string) => {
       if (opts.brakujacyZalacznik && key === 'k2') throw new Error('NoSuchKey');
       return Readable.from([Buffer.from(`zawartosc-${key}`)]);
     }),
   };
-  const config = { get: jest.fn(() => undefined) };
+  const config = { get: vi.fn(() => undefined) };
   const svc = new DataExportService(prisma as never, {} as never, config as never, {} as never, storage as never);
   return { svc };
 }

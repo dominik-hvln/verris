@@ -11,7 +11,7 @@ import {
   normalizeNip,
   partyDisplayName,
   vatRateLabel,
-} from './fa-xml.types';
+} from './fa-xml.types.js';
 
 /**
  * Generator XML e-Faktury w schemacie **FA(3)** — jedynym obowiązującym w

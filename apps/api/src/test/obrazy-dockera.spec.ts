@@ -34,7 +34,7 @@ import { join } from 'path';
  * drzewie zależności.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 
 /** Treść bez komentarzy — po raz ósmy ta sama lekcja w tym projekcie. */
 function kod(sciezka: string): string {

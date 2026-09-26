@@ -1,9 +1,9 @@
 import { Controller, Get, HttpCode, UseGuards } from '@nestjs/common';
 import { Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { PlatformSettingsService } from './platform-settings.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { PlatformSettingsService } from './platform-settings.service.js';
 
 @Controller('platform-settings')
 @UseGuards(JwtAuthGuard)

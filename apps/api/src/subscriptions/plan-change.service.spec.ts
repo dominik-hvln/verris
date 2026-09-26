@@ -1,6 +1,7 @@
+import type { Mock } from 'vitest';
 import { Prisma, Role, SubscriptionPaymentSource, SubscriptionStatus } from '@verris/database';
 import { ForbiddenException } from '@nestjs/common';
-import { PlanChangeService } from './plan-change.service';
+import { PlanChangeService } from './plan-change.service.js';
 
 describe('PlanChangeService (admin)', () => {
   const baseSub = {
@@ -49,28 +50,28 @@ describe('PlanChangeService (admin)', () => {
   };
 
   function createService(overrides: {
-    da?: { setAccountLimits: jest.Mock };
-    wallet?: { debit: jest.Mock; credit: jest.Mock };
-    stripe?: { updateSubscriptionPrice: jest.Mock; retrieveSubscription: jest.Mock };
-    usageMetric?: { findMany: jest.Mock };
+    da?: { setAccountLimits: Mock };
+    wallet?: { debit: Mock; credit: Mock };
+    stripe?: { updateSubscriptionPrice: Mock; retrieveSubscription: Mock };
+    usageMetric?: { findMany: Mock };
   } = {}) {
     const da = {
-      getClientForServer: jest.fn().mockResolvedValue({
-        setAccountLimits: overrides.da?.setAccountLimits ?? jest.fn().mockResolvedValue({}),
+      getClientForServer: vi.fn().mockResolvedValue({
+        setAccountLimits: overrides.da?.setAccountLimits ?? vi.fn().mockResolvedValue({}),
       }),
     };
     const walletLedger = {
-      debit: overrides.wallet?.debit ?? jest.fn(),
-      credit: overrides.wallet?.credit ?? jest.fn(),
+      debit: overrides.wallet?.debit ?? vi.fn(),
+      credit: overrides.wallet?.credit ?? vi.fn(),
     };
     const stripe = {
-      updateSubscriptionPrice: overrides.stripe?.updateSubscriptionPrice ?? jest.fn(),
-      retrieveSubscription: overrides.stripe?.retrieveSubscription ?? jest.fn(),
+      updateSubscriptionPrice: overrides.stripe?.updateSubscriptionPrice ?? vi.fn(),
+      retrieveSubscription: overrides.stripe?.retrieveSubscription ?? vi.fn(),
     };
     const prisma = {
       plan: {
-        findMany: jest.fn().mockResolvedValue([]),
-        findUnique: jest.fn().mockResolvedValue({
+        findMany: vi.fn().mockResolvedValue([]),
+        findUnique: vi.fn().mockResolvedValue({
           id: 'plan-b',
           slug: 'pro',
           name: 'Pro',
@@ -90,28 +91,28 @@ describe('PlanChangeService (admin)', () => {
         }),
       },
       usageMetric: {
-        findMany: overrides.usageMetric?.findMany ?? jest.fn().mockResolvedValue([]),
+        findMany: overrides.usageMetric?.findMany ?? vi.fn().mockResolvedValue([]),
       },
       subscription: {
-        findFirst: jest.fn(),
-        findUnique: jest.fn().mockResolvedValue(baseSub),
-        update: jest.fn(),
+        findFirst: vi.fn(),
+        findUnique: vi.fn().mockResolvedValue(baseSub),
+        update: vi.fn(),
       },
-      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+      $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
         const tx = {
-          account: { update: jest.fn().mockResolvedValue({}) },
-          server: { update: jest.fn().mockResolvedValue({}) },
+          account: { update: vi.fn().mockResolvedValue({}) },
+          server: { update: vi.fn().mockResolvedValue({}) },
           subscription: {
-            update: jest.fn().mockResolvedValue({ id: 'sub-1' }),
+            update: vi.fn().mockResolvedValue({ id: 'sub-1' }),
           },
-          subscriptionEvent: { create: jest.fn().mockResolvedValue({}) },
+          subscriptionEvent: { create: vi.fn().mockResolvedValue({}) },
         };
         return fn(tx);
       }),
     };
-    const audit = { record: jest.fn().mockResolvedValue(undefined) };
-    const mailer = { send: jest.fn().mockResolvedValue(undefined) };
-    const config = { get: jest.fn().mockReturnValue('https://panel.test') };
+    const audit = { record: vi.fn().mockResolvedValue(undefined) };
+    const mailer = { send: vi.fn().mockResolvedValue(undefined) };
+    const config = { get: vi.fn().mockReturnValue('https://panel.test') };
 
     const service = new PlanChangeService(
       prisma as never,
@@ -140,15 +141,15 @@ describe('PlanChangeService (admin)', () => {
   });
 
   it('debits wallet on upgrade for admin with billing enabled', async () => {
-    const debit = jest.fn().mockResolvedValue({ id: 'tx-1' });
-    const { service, walletLedger } = createService({ wallet: { debit, credit: jest.fn() } });
+    const debit = vi.fn().mockResolvedValue({ id: 'tx-1' });
+    const { service, walletLedger } = createService({ wallet: { debit, credit: vi.fn() } });
     await service.changeForAdmin('admin-1', Role.ADMIN, 'sub-1', 'plan-b', 'Upgrade na prośbę', false);
     expect(walletLedger.debit).toHaveBeenCalled();
   });
 
   it('Z-11: klucz zawiera plan źródłowy i stan subskrypcji — ponowna zmiana po zmianie stanu to nowy wpis', async () => {
-    const debit = jest.fn().mockResolvedValue({ id: 'tx-1' });
-    const { service, prisma } = createService({ wallet: { debit, credit: jest.fn() } });
+    const debit = vi.fn().mockResolvedValue({ id: 'tx-1' });
+    const { service, prisma } = createService({ wallet: { debit, credit: vi.fn() } });
     await service.changeForAdmin('admin-1', Role.ADMIN, 'sub-1', 'plan-b', 'Upgrade', false);
     await service.changeForAdmin('admin-1', Role.ADMIN, 'sub-1', 'plan-b', 'Upgrade', false);
     prisma.subscription.findUnique.mockResolvedValue({ ...baseSub, updatedAt: new Date('2027-02-01T10:00:00Z') });
@@ -180,7 +181,7 @@ describe('PlanChangeService (admin)', () => {
     };
     const { service, prisma } = createService({
       usageMetric: {
-        findMany: jest.fn().mockResolvedValue([{ diskUsageMb: 2048 }]),
+        findMany: vi.fn().mockResolvedValue([{ diskUsageMb: 2048 }]),
       },
     });
     prisma.plan.findUnique.mockResolvedValue(targetPlan);

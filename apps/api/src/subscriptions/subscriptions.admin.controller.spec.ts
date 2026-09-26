@@ -1,6 +1,6 @@
 import { Role } from '@verris/database';
-import { ROLES_KEY } from '../common/decorators/roles.decorator';
-import { SubscriptionsAdminController } from './subscriptions.admin.controller';
+import { ROLES_KEY } from '../common/decorators/roles.decorator.js';
+import { SubscriptionsAdminController } from './subscriptions.admin.controller.js';
 
 describe('SubscriptionsAdminController (RBAC metadata)', () => {
   it('defaults class-level roles to ADMIN only', () => {

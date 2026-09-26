@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcrypt';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { ALL_API_SCOPES, isValidScope, type ApiScopeValue } from './api-scopes';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { ALL_API_SCOPES, isValidScope, type ApiScopeValue } from './api-scopes.js';
 
 interface TokenRow {
   id: string;

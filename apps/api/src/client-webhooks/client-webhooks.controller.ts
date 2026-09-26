@@ -1,9 +1,9 @@
 import { Body, Controller, ForbiddenException, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { ArrayMaxSize, IsArray, IsString, MaxLength } from 'class-validator';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { RateLimit } from '../common/guards/rate-limit.guard';
-import { ClientWebhooksService } from './client-webhooks.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
+import { ClientWebhooksService } from './client-webhooks.service.js';
 
 class NowyWebhookDto {
   @IsString() @MaxLength(500) url!: string;

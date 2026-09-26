@@ -1,5 +1,5 @@
-import { TotpService } from './totp.service';
-import { TwoFactorService } from './two-factor.service';
+import { TotpService } from './totp.service.js';
+import { TwoFactorService } from './two-factor.service.js';
 
 /** Kod TOTP jest jednorazowy: ten sam (albo starszy) krok nie zaloguje drugi raz. */
 describe('TwoFactorService.verifyCodeForLogin — ochrona przed ponownym użyciem kodu', () => {
@@ -8,8 +8,8 @@ describe('TwoFactorService.verifyCodeForLogin — ochrona przed ponownym użycie
     let ostatni: number | null = null;
     const prisma = {
       user: {
-        findUnique: jest.fn(async () => ({ twoFactorSecret: 'enc', twoFactorRecoveryCodesEnc: null, isTwoFactorEnabled: true })),
-        updateMany: jest.fn(async (a: { where: { OR: Array<{ twoFactorLastStep: null | { lt: number } }> }; data: { twoFactorLastStep: number } }) => {
+        findUnique: vi.fn(async () => ({ twoFactorSecret: 'enc', twoFactorRecoveryCodesEnc: null, isTwoFactorEnabled: true })),
+        updateMany: vi.fn(async (a: { where: { OR: Array<{ twoFactorLastStep: null | { lt: number } }> }; data: { twoFactorLastStep: number } }) => {
           const krok = a.data.twoFactorLastStep;
           if (ostatni !== null && ostatni >= krok) return { count: 0 };
           ostatni = krok;

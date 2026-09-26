@@ -1,10 +1,10 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { DirectAdminService } from '../servers/directadmin.service';
-import { DeliverabilityService } from '../deliverability/deliverability.service';
-import { HostingDnsPointingService } from './hosting-dns-pointing.service';
-import { buildHints, type AssistantHint } from './assistant-hints';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
+import { DeliverabilityService } from '../deliverability/deliverability.service.js';
+import { HostingDnsPointingService } from './hosting-dns-pointing.service.js';
+import { buildHints, type AssistantHint } from './assistant-hints.js';
 
 export const ASSISTANT_FIX_APPLIED = 'ASSISTANT_FIX_APPLIED';
 export const ASSISTANT_FIX_UNDONE = 'ASSISTANT_FIX_UNDONE';

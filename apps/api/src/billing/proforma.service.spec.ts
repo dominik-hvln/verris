@@ -1,8 +1,8 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@verris/database';
-import { ProformaService, koniecOkresu } from './proforma.service';
-import { InvoicePdfService } from './invoice-pdf.service';
-import { RODZAJ_PROFORMA } from './tryb-fakturowania';
+import { ProformaService, koniecOkresu } from './proforma.service.js';
+import { InvoicePdfService } from './invoice-pdf.service.js';
+import { RODZAJ_PROFORMA } from './tryb-fakturowania.js';
 
 /** M-24 — proforma na odnowienie: ta sama kwota co obciążenie, bez serii VAT, tylko właściciel. */
 function zbuduj(nadpisz: Record<string, unknown> = {}, traktowanie: Record<string, unknown> = { kod: 'PL', stawka: 23, cenaNetto: false, adnotacja: null }) {
@@ -26,21 +26,21 @@ function zbuduj(nadpisz: Record<string, unknown> = {}, traktowanie: Record<strin
   };
   const prisma = {
     subscription: {
-      findFirst: jest.fn(async (a: { where: { id: string; userId: string } }) =>
+      findFirst: vi.fn(async (a: { where: { id: string; userId: string } }) =>
         a.where.userId === sub.userId && a.where.id === sub.id ? sub : null,
       ),
     },
   };
-  const promo = { resolveNextRenewalAmount: jest.fn(async () => new Prisma.Decimal('36.90')) };
+  const promo = { resolveNextRenewalAmount: vi.fn(async () => new Prisma.Decimal('36.90')) };
   const pdf = new InvoicePdfService({ get: () => undefined } as never);
-  const render = jest.spyOn(pdf, 'render');
+  const render = vi.spyOn(pdf, 'render');
   const invoices = {
-    buildSellerSnapshot: jest.fn(async () => ({
+    buildSellerSnapshot: vi.fn(async () => ({
       name: 'Verris', nip: '1234567890', address: 'ul. A 1', city: 'Łódź', postalCode: '90-001', country: 'PL', email: 'k@v.pl',
     })),
-    buildBuyerSnapshot: jest.fn(async () => ({ name: 'Klient', email: 'u1@x.pl' })),
+    buildBuyerSnapshot: vi.fn(async () => ({ name: 'Klient', email: 'u1@x.pl' })),
   };
-  const vat = { ustal: jest.fn(async () => ({ traktowanie, vies: null })) };
+  const vat = { ustal: vi.fn(async () => ({ traktowanie, vies: null })) };
   const s = new ProformaService(prisma as never, promo as never, pdf, invoices as never, vat as never);
   return { s, sub, promo, render };
 }

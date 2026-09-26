@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
-import { PrismaService } from '../prisma/prisma.service';
-import type { StanWp } from './wp-update.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import type { StanWp } from './wp-update.service.js';
 
 /**
  * I-07 — podatności wtyczek, motywów i rdzenia WordPressa. Źródło: Wordfence Intelligence Vulnerability

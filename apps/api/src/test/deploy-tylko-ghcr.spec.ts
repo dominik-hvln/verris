@@ -7,7 +7,7 @@ import { join, resolve } from 'path';
  * Huba (prune przed pull usuwa go przy każdym deployu) — „TLS handshake timeout” do
  * auth.docker.io, potem to samo z mirror.gcr.io. Trzy nieudane deploye z rzędu z jednego powodu.
  */
-const KORZEN = resolve(__dirname, '../../../..');
+const KORZEN = resolve(import.meta.dirname, '../../../..');
 const deploy = readFileSync(join(KORZEN, 'ops/scripts/prod-deploy-ghcr.sh'), 'utf8');
 const migracja = readFileSync(join(KORZEN, 'ops/scripts/prod-migrate-www.sh'), 'utf8');
 const kod = (t: string) => t.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');

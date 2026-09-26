@@ -1,12 +1,12 @@
 import { promises as dns } from 'dns';
-import { DeliverabilityService } from './deliverability.service';
+import { DeliverabilityService } from './deliverability.service.js';
 
 /** E-18 — wynik sprawdzenia blacklist: „nie wiemy” nie może wyglądać jak „czysto”. */
 describe('DeliverabilityService.check — RBL', () => {
   const svc = new DeliverabilityService({} as never, {} as never, {} as never);
   const rbl = async (odpowiedzi: Record<string, string[] | Error>) => {
-    jest.spyOn(dns, 'resolveTxt').mockRejectedValue(Object.assign(new Error('x'), { code: 'ENOTFOUND' }));
-    jest.spyOn(dns, 'resolve4').mockImplementation(async (name: string) => {
+    vi.spyOn(dns, 'resolveTxt').mockRejectedValue(Object.assign(new Error('x'), { code: 'ENOTFOUND' }));
+    vi.spyOn(dns, 'resolve4').mockImplementation(async (name: string) => {
       const zone = Object.keys(odpowiedzi).find((z) => name.endsWith(z));
       const v = zone ? odpowiedzi[zone] : Object.assign(new Error('nx'), { code: 'ENOTFOUND' });
       if (v instanceof Error) throw v;
@@ -15,7 +15,7 @@ describe('DeliverabilityService.check — RBL', () => {
     const r = await svc.check('firma.pl', '203.0.113.7');
     return r.checks.find((c) => c.key === 'rbl')!;
   };
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => vi.restoreAllMocks());
 
   it('brak wpisów wszędzie → ok, z nazwami sprawdzonych list', async () => {
     const c = await rbl({});

@@ -10,8 +10,8 @@ export function loadOffsiteRestoreScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/node-account-restore.sh'),
     join(process.cwd(), '../../ops/scripts/node-account-restore.sh'),
-    join(__dirname, '../../../../../ops/scripts/node-account-restore.sh'),
-    join(__dirname, '../../../../ops/scripts/node-account-restore.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/node-account-restore.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/node-account-restore.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) {

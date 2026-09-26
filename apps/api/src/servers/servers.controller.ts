@@ -8,9 +8,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { ServersService } from './servers.service';
-import { HandshakeDto } from './dto/handshake.dto';
-import { BootstrapTokenGuard } from './guards/bootstrap-token.guard';
+import { ServersService } from './servers.service.js';
+import { HandshakeDto } from './dto/handshake.dto.js';
+import { BootstrapTokenGuard } from './guards/bootstrap-token.guard.js';
 
 /**
  * Public, bootstrap-token-protected endpoint used by node agents during

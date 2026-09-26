@@ -1,7 +1,7 @@
 import { Prisma, WalletTxType } from '@verris/database';
-import { KorektyService } from '../../src/billing/korekty.service';
-import { WalletLedgerService } from '../../src/billing/wallet-ledger.service';
-import { prisma, rozlacz, wyczyscBaze } from './setup';
+import { KorektyService } from '../../src/billing/korekty.service.js';
+import { WalletLedgerService } from '../../src/billing/wallet-ledger.service.js';
+import { prisma, rozlacz, wyczyscBaze } from './setup.js';
 
 /**
  * M-06 — faktura korygująca przeciwko prawdziwej bazie.

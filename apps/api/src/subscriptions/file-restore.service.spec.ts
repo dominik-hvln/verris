@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { FileRestoreService, katalogZLogu, sprawdzSciezke, wpisyZLogu } from './file-restore.service';
+import { FileRestoreService, katalogZLogu, sprawdzSciezke, wpisyZLogu } from './file-restore.service.js';
 
 /**
  * H-10 / H-11 — strona API. Skrypt węzła sprawdzony lokalnie (tar.gz, plik ze spacją, dowiązanie,
@@ -8,14 +8,14 @@ import { FileRestoreService, katalogZLogu, sprawdzSciezke, wpisyZLogu } from './
 function stanowisko() {
   const account = { id: 'a1', serverId: 'n1', status: 'ACTIVE', daUsername: 'klient1' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
     nodeTask: {
-      findFirst: jest.fn(async () => null),
-      findMany: jest.fn(async () => []),
-      create: jest.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
+      findFirst: vi.fn(async () => null),
+      findMany: vi.fn(async () => []),
+      create: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
     },
   };
-  const audit = { record: jest.fn(async () => undefined) };
+  const audit = { record: vi.fn(async () => undefined) };
   return { svc: new FileRestoreService(prisma as never, audit as never), prisma, audit };
 }
 

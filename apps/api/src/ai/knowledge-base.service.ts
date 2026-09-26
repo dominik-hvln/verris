@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AiKnowledgeAudience, AiKnowledgeStatus, Prisma } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { AiProviderService } from './ai-provider.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { AiProviderService } from './ai-provider.service.js';
 
 const CHUNK_SIZE = 900;
 const CHUNK_OVERLAP = 150;

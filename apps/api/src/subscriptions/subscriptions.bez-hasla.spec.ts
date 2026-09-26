@@ -1,4 +1,4 @@
-import { SubscriptionsService } from './subscriptions.service';
+import { SubscriptionsService } from './subscriptions.service.js';
 
 /** Szczegóły usługi dla panelu nie niosą zaszyfrowanego hasła konta hostingowego. */
 it('getForUser: konto bez daPasswordEnc, reszta danych zostaje', async () => {
@@ -6,7 +6,7 @@ it('getForUser: konto bez daPasswordEnc, reszta danych zostaje', async () => {
   Object.assign(svc, {
     prisma: {
       subscription: {
-        findFirst: jest.fn(async () => ({ id: 's1', plan: {}, account: { id: 'a1', daUsername: 'klient1', daPasswordEnc: 'enc:x', domain: 'firma.pl' } })),
+        findFirst: vi.fn(async () => ({ id: 's1', plan: {}, account: { id: 'a1', daUsername: 'klient1', daPasswordEnc: 'enc:x', domain: 'firma.pl' } })),
       },
     },
   });

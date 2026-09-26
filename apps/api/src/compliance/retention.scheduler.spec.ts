@@ -1,4 +1,5 @@
-import { RetentionScheduler } from './retention.scheduler';
+import type { Mock } from 'vitest';
+import { RetentionScheduler } from './retention.scheduler.js';
 
 /**
  * P-08 — retencja: co i po ilu dniach znika albo traci IP. Dotąd zero testów.
@@ -7,17 +8,17 @@ const DAY = 24 * 60 * 60 * 1000;
 
 function zbuduj(liczby: { login?: number; audit?: number; eksporty?: number; stripe?: number; ai?: number } = {}) {
   const prisma = {
-    loginAttempt: { deleteMany: jest.fn(async () => ({ count: liczby.login ?? 0 })) },
-    auditLog: { updateMany: jest.fn(async () => ({ count: liczby.audit ?? 0 })) },
-    stripeWebhookEvent: { deleteMany: jest.fn(async () => ({ count: liczby.stripe ?? 0 })) },
-    aiInteractionLog: { deleteMany: jest.fn(async () => ({ count: liczby.ai ?? 0 })) },
+    loginAttempt: { deleteMany: vi.fn(async () => ({ count: liczby.login ?? 0 })) },
+    auditLog: { updateMany: vi.fn(async () => ({ count: liczby.audit ?? 0 })) },
+    stripeWebhookEvent: { deleteMany: vi.fn(async () => ({ count: liczby.stripe ?? 0 })) },
+    aiInteractionLog: { deleteMany: vi.fn(async () => ({ count: liczby.ai ?? 0 })) },
   };
-  const audit = { record: jest.fn(async () => undefined) };
-  const dataExport = { expireDueExports: jest.fn(async () => liczby.eksporty ?? 0) };
+  const audit = { record: vi.fn(async () => undefined) };
+  const dataExport = { expireDueExports: vi.fn(async () => liczby.eksporty ?? 0) };
   return { s: new RetentionScheduler(prisma as never, audit as never, dataExport as never), prisma, audit, dataExport };
 }
 
-const odcieciePrzed = (mock: jest.Mock) => {
+const odcieciePrzed = (mock: Mock) => {
   const arg = (mock.mock.calls as unknown[][])[0][0] as { where: { createdAt: { lt: Date } } };
   return Math.round((Date.now() - arg.where.createdAt.lt.getTime()) / DAY);
 };

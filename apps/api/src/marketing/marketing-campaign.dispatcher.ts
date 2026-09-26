@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { MarketingCampaignStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { MarketingCampaignService } from './marketing-campaign.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { MarketingCampaignService } from './marketing-campaign.service.js';
 
 /**
  * Sprint 2.6 — cron, który puszcza zaplanowane kampanie.

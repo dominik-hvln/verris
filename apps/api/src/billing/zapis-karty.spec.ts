@@ -1,17 +1,17 @@
-import { BillingService } from './billing.service';
+import { BillingService } from './billing.service.js';
 
 /** M-26 — webhooki Stripe zapisują i sprzątają karty w PaymentMethod. */
 function zbuduj(opts: { user?: { id: string } | null; maDomyslna?: number; wiersz?: Record<string, unknown> | null } = {}) {
   const prisma = {
-    user: { findFirst: jest.fn(async () => (opts.user === undefined ? { id: 'u1' } : opts.user)), updateMany: jest.fn(() => 'u') },
+    user: { findFirst: vi.fn(async () => (opts.user === undefined ? { id: 'u1' } : opts.user)), updateMany: vi.fn(() => 'u') },
     paymentMethod: {
-      count: jest.fn(async () => opts.maDomyslna ?? 0),
-      upsert: jest.fn(async () => ({})),
-      findUnique: jest.fn(async () => opts.wiersz ?? null),
-      delete: jest.fn(() => 'd'),
+      count: vi.fn(async () => opts.maDomyslna ?? 0),
+      upsert: vi.fn(async () => ({})),
+      findUnique: vi.fn(async () => opts.wiersz ?? null),
+      delete: vi.fn(() => 'd'),
     },
-    walletAutoTopup: { updateMany: jest.fn(() => 'w') },
-    $transaction: jest.fn(async (ops: unknown[]) => ops),
+    walletAutoTopup: { updateMany: vi.fn(() => 'w') },
+    $transaction: vi.fn(async (ops: unknown[]) => ops),
   };
   const svc = new BillingService(prisma as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never);
   const wywolaj = (type: string, object: Record<string, unknown>) =>
@@ -55,11 +55,11 @@ describe('M-26 zapis kart z webhooków', () => {
 
 describe('M-27 dodanie karty bez zakupu', () => {
   it('tworzy klienta Stripe w razie potrzeby i zwraca link do Checkout w trybie setup', async () => {
-    const prisma = { user: { findUnique: jest.fn(async () => ({ id: 'u1', email: 'a@b.pl', firstName: null, lastName: null, companyName: null, stripeCustomerId: null })) } };
-    const stripe = { createSetupSession: jest.fn(async () => ({ id: 'cs_1', url: 'https://checkout.stripe.test/cs_1' })) };
-    const subs = { ensureStripeCustomer: jest.fn(async () => 'cus_9') };
-    const audit = { record: jest.fn(async () => undefined) };
-    const config = { get: jest.fn(() => 'https://panel.test/') };
+    const prisma = { user: { findUnique: vi.fn(async () => ({ id: 'u1', email: 'a@b.pl', firstName: null, lastName: null, companyName: null, stripeCustomerId: null })) } };
+    const stripe = { createSetupSession: vi.fn(async () => ({ id: 'cs_1', url: 'https://checkout.stripe.test/cs_1' })) };
+    const subs = { ensureStripeCustomer: vi.fn(async () => 'cus_9') };
+    const audit = { record: vi.fn(async () => undefined) };
+    const config = { get: vi.fn(() => 'https://panel.test/') };
     const n = {} as never;
     const svc = new BillingService(prisma as never, n, stripe as never, audit as never, config as never, n, subs as never, n, n, n, n);
     await expect(svc.startAddCard('u1')).resolves.toEqual({ url: 'https://checkout.stripe.test/cs_1' });

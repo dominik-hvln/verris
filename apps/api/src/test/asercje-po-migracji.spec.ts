@@ -23,7 +23,7 @@ import { join } from 'path';
  * katalog nie wjechał na produkcję.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const SQL = join(KORZEN, 'ops', 'sql');
 
 const NIEZMIENNIKI = join(SQL, 'po-migracji-niezmienniki.sql');

@@ -9,7 +9,7 @@ import { join } from 'path';
  *
  * Statycznie, bo skrypt działa jako root na ścieżkach /home/<konto>.
  */
-const SKRYPT = readFileSync(join(__dirname, '..', '..', '..', '..', 'ops', 'scripts', 'node-staging-sync.sh'), 'utf8');
+const SKRYPT = readFileSync(join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'scripts', 'node-staging-sync.sh'), 'utf8');
 const bezKomentarzy = (s: string) => s.split('\n').filter((l) => !l.trim().startsWith('#')).join('\n');
 const TO_LIVE = bezKomentarzy(SKRYPT.slice(SKRYPT.indexOf('\nTO_LIVE)'), SKRYPT.indexOf('\n  ;;', SKRYPT.indexOf('\nTO_LIVE)'))));
 

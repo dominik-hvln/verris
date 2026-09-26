@@ -1,4 +1,4 @@
-import { QuotaAlertScheduler, udzialPrzyLimicie } from './quota-alert.scheduler';
+import { QuotaAlertScheduler, udzialPrzyLimicie } from './quota-alert.scheduler.js';
 
 /** K-08 — alerty o limitach: dysk/transfer z DA oraz CPU/RAM z próbek LVE. */
 function zbuduj(opts: { subs: number; statsPct?: number; hot?: { all: number; cpu: number; ram: number } }) {
@@ -12,28 +12,28 @@ function zbuduj(opts: { subs: number; statsPct?: number; hot?: { all: number; cp
   const hot = opts.hot ?? { all: 1440, cpu: 0, ram: 0 };
   const prisma = {
     subscription: {
-      findMany: jest.fn(async (a: { take: number; cursor?: { id: string } }) => {
+      findMany: vi.fn(async (a: { take: number; cursor?: { id: string } }) => {
         const od = a.cursor ? wszystkie.findIndex((s) => s.id === a.cursor!.id) + 1 : 0;
         return wszystkie.slice(od, od + a.take);
       }),
     },
-    auditLog: { findMany: jest.fn(async () => []) },
+    auditLog: { findMany: vi.fn(async () => []) },
     usageMetric: {
-      count: jest.fn(async (a: { where: Record<string, unknown> }) =>
+      count: vi.fn(async (a: { where: Record<string, unknown> }) =>
         'cpuUsageAvg' in a.where ? hot.cpu : 'memUsageAvgMb' in a.where ? hot.ram : hot.all,
       ),
     },
   };
   const pct = opts.statsPct ?? 10;
   const da = {
-    getHostingAccountStats: jest.fn(async () => ({
+    getHostingAccountStats: vi.fn(async () => ({
       fetchError: null,
       disk: { usedMb: pct, limitMb: 100 },
       bandwidth: { usedMb: 0, limitMb: 100 },
     })),
   };
-  const mailer = { send: jest.fn(async () => undefined) };
-  const audit = { record: jest.fn(async () => undefined) };
+  const mailer = { send: vi.fn(async () => undefined) };
+  const audit = { record: vi.fn(async () => undefined) };
   const config = { get: () => 'https://panel.test' };
   const s = new QuotaAlertScheduler(prisma as never, da as never, mailer as never, audit as never, config as never);
   return { s, prisma, da, mailer, audit };

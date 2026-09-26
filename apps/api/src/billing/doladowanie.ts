@@ -1,8 +1,8 @@
 import { Prisma } from '@verris/database';
-import { nadajNumerDokumentu, type KlientPrismy, type PozycjaFaktury } from './faktura-za-portfel';
-import type { KursNbp } from './kurs-nbp';
-import { etykietaStawki, rozbicieWgStawki, type TraktowanieVat, type VatDokumentu } from './vat';
-import type { WynikVies } from './vies.service';
+import { nadajNumerDokumentu, type KlientPrismy, type PozycjaFaktury } from './faktura-za-portfel.js';
+import type { KursNbp } from './kurs-nbp.js';
+import { etykietaStawki, rozbicieWgStawki, type TraktowanieVat, type VatDokumentu } from './vat.js';
+import type { WynikVies } from './vies.service.js';
 
 /** Dostawca dokumentów powstających przy doładowaniu portfela (M-34). */
 export const DOSTAWCA_DOLADOWANIE = 'WALLET_TOPUP';

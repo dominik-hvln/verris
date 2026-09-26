@@ -10,14 +10,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
-import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { ProvisioningQueueService } from './provisioning-queue.service';
-import { PowodDecyzjiDto } from './dto/provisioning-queue.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { ProvisioningQueueService } from './provisioning-queue.service.js';
+import { PowodDecyzjiDto } from './dto/provisioning-queue.dto.js';
 
 const ALLOWED_STATES = ['active', 'waiting', 'delayed', 'failed', 'completed'] as const;
 type AllowedState = (typeof ALLOWED_STATES)[number];

@@ -1,29 +1,29 @@
 import { Prisma } from '@verris/database';
-import { EcoBadgeService } from './eco-badge.service';
+import { EcoBadgeService } from './eco-badge.service.js';
 
 describe('EcoBadgeService', () => {
   const tx = {
-    user: { update: jest.fn() },
-    ecoPointsLedgerEntry: { create: jest.fn() },
+    user: { update: vi.fn() },
+    ecoPointsLedgerEntry: { create: vi.fn() },
   };
   const prisma = {
-    user: { findFirst: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
-    ecoBadgeImpressionDedup: { create: jest.fn() },
-    ecoPointsLedgerEntry: { create: jest.fn(), aggregate: jest.fn() },
-    $transaction: jest.fn((fn: (inner: typeof tx) => Promise<void>) => fn(tx)),
+    user: { findFirst: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
+    ecoBadgeImpressionDedup: { create: vi.fn() },
+    ecoPointsLedgerEntry: { create: vi.fn(), aggregate: vi.fn() },
+    $transaction: vi.fn((fn: (inner: typeof tx) => Promise<void>) => fn(tx)),
   };
   const platformSettings = {
-    getClientConfig: jest.fn().mockResolvedValue({ ecoBadgeImpressionsPerPoint: 100 }),
+    getClientConfig: vi.fn().mockResolvedValue({ ecoBadgeImpressionsPerPoint: 100 }),
   };
   const config = {
-    get: jest.fn((key: string) => {
+    get: vi.fn((key: string) => {
       if (key === 'clientPanelUrl') return 'https://panel.verris.pl';
       return null;
     }),
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     prisma.ecoPointsLedgerEntry.aggregate.mockResolvedValue({ _sum: { delta: 2 } });
   });
 

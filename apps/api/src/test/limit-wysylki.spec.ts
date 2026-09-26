@@ -12,7 +12,7 @@ import { HOSTING_MAIL_DAILY_SEND_LIMIT } from '@verris/contracts';
  */
 describe('E-20 — limit wysyłki: panel = węzeł', () => {
   const skrypt = readFileSync(
-    resolve(__dirname, '../../../../ops/scripts/node-hosting-profile.sh'),
+    resolve(import.meta.dirname, '../../../../ops/scripts/node-hosting-profile.sh'),
     'utf-8',
   );
 

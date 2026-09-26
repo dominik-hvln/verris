@@ -1,6 +1,6 @@
-import { AutoscalingEngineService } from '../../src/autoscaling/autoscaling-engine.service';
-import { AccountDeletionService } from '../../src/compliance/account-deletion.service';
-import { PrismaService } from '../../src/prisma/prisma.service';
+import { AutoscalingEngineService } from '../../src/autoscaling/autoscaling-engine.service.js';
+import { AccountDeletionService } from '../../src/compliance/account-deletion.service.js';
+import { PrismaService } from '../../src/prisma/prisma.service.js';
 import {
   atrapy,
   ksiegaWezla,
@@ -11,7 +11,7 @@ import {
   utworzPlan,
   utworzWezel,
   wyczyscBaze,
-} from './setup';
+} from './setup.js';
 
 /**
  * X-04 — cykl życia księgi pojemności na PRAWDZIWEJ bazie.
@@ -135,8 +135,8 @@ describe('X-04 — księga pojemności w cyklu życia konta', () => {
         atrapy.mailer() as never,
         atrapy.config() as never,
         {
-          billDueBlocks: jest.fn().mockResolvedValue(undefined),
-          episodeSpendPln: jest.fn().mockResolvedValue(0),
+          billDueBlocks: vi.fn().mockResolvedValue(undefined),
+          episodeSpendPln: vi.fn().mockResolvedValue(0),
         } as never,
       );
     }
@@ -244,8 +244,8 @@ describe('X-04 — księga pojemności w cyklu życia konta', () => {
         atrapy.mailer() as never,
         atrapy.config() as never,
         {
-          billDueBlocks: jest.fn().mockResolvedValue(undefined),
-          episodeSpendPln: jest.fn().mockResolvedValue(0),
+          billDueBlocks: vi.fn().mockResolvedValue(undefined),
+          episodeSpendPln: vi.fn().mockResolvedValue(0),
         } as never,
       );
 

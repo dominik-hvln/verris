@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ServerStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
-import { LegalDocumentsService } from '../compliance/legal-documents.service';
-import { ocenProby, type ProbaOdtworzenia } from './proba-odtworzenia';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
+import { LegalDocumentsService } from '../compliance/legal-documents.service.js';
+import { ocenProby, type ProbaOdtworzenia } from './proba-odtworzenia.js';
 
 export type ReadinessStatus = 'ok' | 'warn' | 'fail';
 

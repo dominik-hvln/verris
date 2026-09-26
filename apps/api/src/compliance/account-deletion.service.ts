@@ -9,22 +9,22 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { AccountStatus, SubscriptionStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { RodoActions } from '../common/audit/audit.actions';
-import { DirectAdminService } from '../servers/directadmin.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { RodoActions } from '../common/audit/audit.actions.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
 import { DirectAdminApiError } from '@verris/directadmin-sdk';
-import { MailerService } from '../mail/mailer.service';
+import { MailerService } from '../mail/mailer.service.js';
 import { ConfigService } from '@nestjs/config';
 import {
   deletionRequestedTemplate,
   accountAnonymizedTemplate,
-} from '../mail/templates/account-deletion-notifications';
+} from '../mail/templates/account-deletion-notifications.js';
 import {
   deltaKsiegi,
   KONTO_NIEISTNIEJACE,
   ksiegaUpdateData,
-} from '../subscriptions/node-capacity';
+} from '../subscriptions/node-capacity.js';
 
 export interface RequestDeletionInput {
   userId: string;

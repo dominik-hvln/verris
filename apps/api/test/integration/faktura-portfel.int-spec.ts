@@ -1,7 +1,7 @@
 import { Prisma, WalletTxType } from '@verris/database';
-import { WalletLedgerService } from '../../src/billing/wallet-ledger.service';
-import { okresZbiorczy, refZbiorcza } from '../../src/billing/faktura-za-portfel';
-import { prisma, rozlacz, ustawModelFakturowania, ustawTrybFakturowania, wyczyscBaze } from './setup';
+import { WalletLedgerService } from '../../src/billing/wallet-ledger.service.js';
+import { okresZbiorczy, refZbiorcza } from '../../src/billing/faktura-za-portfel.js';
+import { prisma, rozlacz, ustawModelFakturowania, ustawTrybFakturowania, wyczyscBaze } from './setup.js';
 
 /**
  * Z-01 — faktura za płatność portfelem, przeciwko prawdziwej bazie.
@@ -281,7 +281,7 @@ describe('Z-01 — faktura zbiorcza za miesiąc', () => {
     if (wpisy.length === 0) return null;
 
     const { pozycjeZbiorcze, nadajNumerFaktury } = await import(
-      '../../src/billing/faktura-za-portfel'
+      '../../src/billing/faktura-za-portfel.js'
     );
     const { pozycje, suma } = pozycjeZbiorcze(
       wpisy.map((w) => ({ typ: w.type, brutto: w.amount.abs(), opis: w.description })),

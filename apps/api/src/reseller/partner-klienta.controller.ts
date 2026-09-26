@@ -1,7 +1,7 @@
 import { Controller, Delete, Get, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { ResellerKlienciService } from './reseller-klienci.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { ResellerKlienciService } from './reseller-klienci.service.js';
 
 /** O-05/O-09 — strona klienta: kto prowadzi konto i odpięcie się od partnera. */
 @Controller('me/partner')

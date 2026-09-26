@@ -1,10 +1,10 @@
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
-import { CatchAllDto, FiltrSpamuDto, NarzedziaWwwDto } from '../subscriptions/dto/hosting-body.dto';
-import { BanerKbDto } from '../kb/kb.dto';
-import { tylkoHttps } from '../kb/kb-render';
-import { CreateTicketDto } from '../tickets/tickets.dto';
-import { UprawnieniaDto } from '../files/files.dto';
+import { CatchAllDto, FiltrSpamuDto, NarzedziaWwwDto } from '../subscriptions/dto/hosting-body.dto.js';
+import { BanerKbDto } from '../kb/kb.dto.js';
+import { tylkoHttps } from '../kb/kb-render.js';
+import { CreateTicketDto } from '../tickets/tickets.dto.js';
+import { UprawnieniaDto } from '../files/files.dto.js';
 
 /** Te same opcje co globalny ValidationPipe w main.ts. */
 const bledy = (klasa: new () => object, v: object): string[] =>

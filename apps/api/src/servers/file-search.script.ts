@@ -6,8 +6,8 @@ export function loadFileSearchScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/node-file-search.sh'),
     join(process.cwd(), '../../ops/scripts/node-file-search.sh'),
-    join(__dirname, '../../../../../ops/scripts/node-file-search.sh'),
-    join(__dirname, '../../../../ops/scripts/node-file-search.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/node-file-search.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/node-file-search.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) return readFileSync(path, 'utf8');

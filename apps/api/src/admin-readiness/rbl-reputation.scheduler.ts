@@ -3,11 +3,11 @@ import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { promises as dns } from 'dns';
 import { Role, ServerStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { MailerService } from '../mail/mailer.service';
-import { AuditService } from '../common/audit/audit.service';
-import { nodeRblAlertTemplate, nodeRblClearedTemplate } from '../mail/templates/ops-notifications';
-import { rblListed } from '../deliverability/rbl';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { nodeRblAlertTemplate, nodeRblClearedTemplate } from '../mail/templates/ops-notifications.js';
+import { rblListed } from '../deliverability/rbl.js';
 
 // Widely-used DNS blocklists (parytet z DeliverabilityService).
 const RBL_ZONES = ['zen.spamhaus.org', 'bl.spamcop.net', 'b.barracudacentral.org', 'dnsbl.sorbs.net'];

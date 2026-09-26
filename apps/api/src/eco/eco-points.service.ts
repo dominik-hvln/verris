@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { Prisma } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 /** Stałe wartości punktów — źródło prawdy dla API i panelu klienta. */
 export const ECO_POINT_DELTAS = {

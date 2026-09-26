@@ -6,8 +6,8 @@ export function loadMailLogScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/node-mail-log.sh'),
     join(process.cwd(), '../../ops/scripts/node-mail-log.sh'),
-    join(__dirname, '../../../../../ops/scripts/node-mail-log.sh'),
-    join(__dirname, '../../../../ops/scripts/node-mail-log.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/node-mail-log.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/node-mail-log.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) return readFileSync(path, 'utf8');

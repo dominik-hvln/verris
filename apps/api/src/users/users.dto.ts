@@ -1,5 +1,5 @@
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength, IsBoolean } from 'class-validator';
-import { IsStrongPassword } from '../auth/password-policy.validator';
+import { IsStrongPassword } from '../auth/password-policy.validator.js';
 
 export class UpdateProfileDto {
   @IsOptional()

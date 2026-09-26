@@ -13,7 +13,7 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { Czesciowy } from '../common/validation/czesciowy';
+import { Czesciowy } from '../common/validation/czesciowy.js';
 
 /** Autoring Bazy wiedzy (panel admina). Treść Markdown renderuje www — tu kształt i granice. */
 const TYLKO_HTTPS = /^https:\/\/[^\s"'<>]+$/;

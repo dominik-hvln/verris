@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as net from 'net';
 import * as tls from 'tls';
 import * as crypto from 'crypto';
-import { MailMessage, MailerProvider } from './mailer.interface';
+import { MailMessage, MailerProvider } from './mailer.interface.js';
 
 interface SmtpConfig {
   host: string;

@@ -24,9 +24,9 @@ import { join, relative } from 'path';
  * wszystkiego — sprawdzamy kształt ścieżki i metodę, nie wartości.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const PANEL = join(KORZEN, 'apps', 'admin-panel', 'src');
-const API = join(__dirname, '..');
+const API = join(import.meta.dirname, '..');
 
 type Metoda = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 

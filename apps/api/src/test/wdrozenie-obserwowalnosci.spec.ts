@@ -35,7 +35,7 @@ import { join } from 'path';
  * konfiguracji kosztowała miesiąc bez kopii bazy.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const SKRYPT = join(KORZEN, 'ops', 'scripts', 'prod-deploy-ghcr.sh');
 
 /** Treść bez komentarzy — po raz jedenasty ta sama lekcja w tym projekcie. */

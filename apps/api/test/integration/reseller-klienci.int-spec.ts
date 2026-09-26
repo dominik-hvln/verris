@@ -1,8 +1,8 @@
 import { SubscriptionStatus } from '@verris/database';
-import { AuditService } from '../../src/common/audit/audit.service';
-import { ResellerKlienciService } from '../../src/reseller/reseller-klienci.service';
-import { ResellerPrzypomnienieScheduler } from '../../src/reseller/reseller-przypomnienie.scheduler';
-import { prisma, rozlacz, utworzPlan, wyczyscBaze } from './setup';
+import { AuditService } from '../../src/common/audit/audit.service.js';
+import { ResellerKlienciService } from '../../src/reseller/reseller-klienci.service.js';
+import { ResellerPrzypomnienieScheduler } from '../../src/reseller/reseller-przypomnienie.scheduler.js';
+import { prisma, rozlacz, utworzPlan, wyczyscBaze } from './setup.js';
 
 /**
  * O-05 — działania resellera na kontach klientów, na prawdziwej bazie.

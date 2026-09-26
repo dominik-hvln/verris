@@ -6,8 +6,8 @@ export function loadGitDeployScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/node-git-deploy.sh'),
     join(process.cwd(), '../../ops/scripts/node-git-deploy.sh'),
-    join(__dirname, '../../../../../ops/scripts/node-git-deploy.sh'),
-    join(__dirname, '../../../../ops/scripts/node-git-deploy.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/node-git-deploy.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/node-git-deploy.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) return readFileSync(path, 'utf8');

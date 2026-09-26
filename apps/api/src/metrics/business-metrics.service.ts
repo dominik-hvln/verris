@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, SubscriptionStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 export interface BusinessMetricsDto {
   generatedAt: string;

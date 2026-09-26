@@ -12,7 +12,7 @@ import { dirname, join, relative, resolve, sep } from 'node:path';
  * Mail to jedyne miejsce, w którym klient klika link, którego nikt z nas nie
  * klika w testach ręcznych.
  */
-const APPS = resolve(__dirname, '../../..');
+const APPS = resolve(import.meta.dirname, '../../..');
 const PANELE = ['client-panel', 'admin-panel', 'staff-panel'];
 
 function pliki(katalog: string, wzor: RegExp): string[] {
@@ -45,7 +45,7 @@ function istnieje(sciezka: string): boolean {
 }
 
 describe('linki w mailach prowadzą do istniejących stron paneli', () => {
-  const zrodla = pliki(resolve(__dirname, '..'), /\.ts$/).filter((f) => !f.endsWith('.spec.ts'));
+  const zrodla = pliki(resolve(import.meta.dirname, '..'), /\.ts$/).filter((f) => !f.endsWith('.spec.ts'));
   const zle: string[] = [];
   for (const f of zrodla) {
     const kod = readFileSync(f, 'utf-8');

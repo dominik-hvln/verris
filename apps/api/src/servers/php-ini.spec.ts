@@ -1,4 +1,4 @@
-import { odczytajUserIni, sprawdzUstawieniaPhp } from './php-ini';
+import { odczytajUserIni, sprawdzUstawieniaPhp } from './php-ini.js';
 
 const Z = { begin: '; BEGIN VERRIS PHP', end: '; END VERRIS PHP' };
 

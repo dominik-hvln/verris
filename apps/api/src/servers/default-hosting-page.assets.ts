@@ -6,8 +6,8 @@ function resolveOpsRoot(): string {
   const candidates = [
     join(process.cwd(), 'ops'),
     join(process.cwd(), '../../ops'),
-    join(__dirname, '../../../../../ops'),
-    join(__dirname, '../../../../ops'),
+    join(import.meta.dirname, '../../../../../ops'),
+    join(import.meta.dirname, '../../../../ops'),
   ];
   for (const path of candidates) {
     if (existsSync(join(path, 'hosting-default-page/index.html'))) {

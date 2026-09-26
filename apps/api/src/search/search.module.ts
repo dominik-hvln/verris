@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { SearchService } from './search.service';
-import { SearchAdminController } from './search.admin.controller';
+import { SearchService } from './search.service.js';
+import { SearchAdminController } from './search.admin.controller.js';
 
 /** ADM-4 — globalna wyszukiwarka admin/staff. */
 @Module({

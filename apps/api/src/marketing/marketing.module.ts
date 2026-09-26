@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { MarketingAdminController } from './marketing.admin.controller';
-import { MarketingCampaignService } from './marketing-campaign.service';
-import { MarketingCampaignDispatcher } from './marketing-campaign.dispatcher';
-import { AuditModule } from '../common/audit/audit.module';
+import { MarketingAdminController } from './marketing.admin.controller.js';
+import { MarketingCampaignService } from './marketing-campaign.service.js';
+import { MarketingCampaignDispatcher } from './marketing-campaign.dispatcher.js';
+import { AuditModule } from '../common/audit/audit.module.js';
 
 @Module({
   imports: [AuditModule],

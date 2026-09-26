@@ -41,7 +41,7 @@ function maReguly(typ: unknown): boolean {
 }
 
 it('ciała żądań i obiekty query mają DTO z regułami walidacji', async () => {
-  const zrodla = join(__dirname, '..');
+  const zrodla = join(import.meta.dirname, '..');
   const naruszenia: string[] = [];
   let sprawdzone = 0;
 
@@ -72,4 +72,4 @@ it('ciała żądań i obiekty query mają DTO z regułami walidacji', async () =
 
   expect(sprawdzone).toBeGreaterThan(100);
   expect(naruszenia).toEqual([]);
-});
+}, 120_000); // importuje wszystkie kontrolery — pod obciążeniem całego pakietu trwa dłużej

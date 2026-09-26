@@ -2,15 +2,15 @@ import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { Role, User } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { CryptoService } from '../common/crypto/crypto.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
-import { TotpService } from './totp/totp.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { CryptoService } from '../common/crypto/crypto.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { TotpService } from './totp/totp.service.js';
 import {
   breakGlassCodesIssuedTemplate,
   breakGlassUsedAlertTemplate,
-} from '../mail/templates/security-notifications';
+} from '../mail/templates/security-notifications.js';
 
 interface BreakGlassStorage {
   /** SHA-256 hex of each unused break-glass code. Consumed entries removed. */

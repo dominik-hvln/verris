@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { TelemetryController } from './telemetry.controller';
-import { TelemetryService } from './telemetry.service';
-import { ServerIdentityGuard } from '../servers/guards/server-identity.guard';
+import { TelemetryController } from './telemetry.controller.js';
+import { TelemetryService } from './telemetry.service.js';
+import { ServerIdentityGuard } from '../servers/guards/server-identity.guard.js';
 
 @Module({
   controllers: [TelemetryController],

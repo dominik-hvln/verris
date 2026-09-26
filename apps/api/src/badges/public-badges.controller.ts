@@ -1,10 +1,10 @@
 import { Controller, Get, NotFoundException, Param, Query, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { randomBytes } from 'crypto';
-import { EcoBadgeService } from '../users/eco-badge.service';
-import { extractRequestContext } from '../common/decorators/request-context';
-import { BadgesService } from './badges.service';
-import { embeddedOnDomain } from './badge-logic';
+import { EcoBadgeService } from '../users/eco-badge.service.js';
+import { extractRequestContext } from '../common/decorators/request-context.js';
+import { BadgesService } from './badges.service.js';
+import { embeddedOnDomain } from './badge-logic.js';
 import {
   emptyFrame,
   renderEkoSvg,
@@ -15,7 +15,7 @@ import {
   renderVerifyPage,
   type EkoWariant,
   type Motyw,
-} from './badge-render';
+} from './badge-render.js';
 
 const motyw = (v?: string): Motyw => (v === 'jasny' ? 'jasny' : 'ciemny');
 

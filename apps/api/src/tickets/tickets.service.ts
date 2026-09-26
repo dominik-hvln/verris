@@ -5,14 +5,14 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../prisma/prisma.service';
-import { MailerService } from '../mail/mailer.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { MailerService } from '../mail/mailer.service.js';
 import {
   newTicketCreatedTemplate,
   ticketReplyNotificationTemplate,
   ticketStatusChangedTemplate,
   ticketStaffAssignedTemplate,
-} from '../mail/templates/ticket-notifications';
+} from '../mail/templates/ticket-notifications.js';
 import {
   assertAllowedMime,
   makeStorageKey,
@@ -20,16 +20,16 @@ import {
   TICKET_MAX_ATTACHMENTS_PER_TICKET,
   TICKET_UPLOAD_MAX_BYTES,
   TICKET_UPLOAD_MAX_FILES_PER_BATCH,
-} from './ticket-attachment.utils';
-import { CreateTicketDto, AddTicketReplyDto, AdminUpdateTicketDto } from './tickets.dto';
+} from './ticket-attachment.utils.js';
+import { CreateTicketDto, AddTicketReplyDto, AdminUpdateTicketDto } from './tickets.dto.js';
 import type { Prisma } from '@verris/database';
-import { ObjectStorageService } from '../storage/object-storage.service';
-import { ObjectBuckets } from '../storage/object-storage.types';
-import { AuditService } from '../common/audit/audit.service';
-import { TicketOpsActions } from '../common/audit/audit.actions';
-import { NotificationsService } from '../notifications/notifications.service';
+import { ObjectStorageService } from '../storage/object-storage.service.js';
+import { ObjectBuckets } from '../storage/object-storage.types.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { TicketOpsActions } from '../common/audit/audit.actions.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import type { Readable } from 'stream';
-import { OpiekaZgloszenService, opiekunSlownie } from './opieka-zgloszen.service';
+import { OpiekaZgloszenService, opiekunSlownie } from './opieka-zgloszen.service.js';
 
 @Injectable()
 export class TicketsService {

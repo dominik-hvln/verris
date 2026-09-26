@@ -1,32 +1,32 @@
 import { ForbiddenException } from '@nestjs/common';
 import { CustomerPermission, Role } from '@verris/database';
-import { CustomerIamService } from './customer-iam.service';
+import { CustomerIamService } from './customer-iam.service.js';
 
 describe('CustomerIamService', () => {
   const prisma = {
     user: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
     },
     customerSubaccountInvite: {
-      findMany: jest.fn(),
+      findMany: vi.fn(),
     },
     auditLog: {
-      findMany: jest.fn(),
+      findMany: vi.fn(),
     },
     customerMembership: {
-      findMany: jest.fn().mockResolvedValue([]),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     subscription: {
-      findMany: jest.fn().mockResolvedValue([]),
+      findMany: vi.fn().mockResolvedValue([]),
     },
   };
-  const audit = { record: jest.fn() };
-  const mailer = { send: jest.fn() };
-  const config = { get: jest.fn() };
+  const audit = { record: vi.fn() };
+  const mailer = { send: vi.fn() };
+  const config = { get: vi.fn() };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     prisma.customerMembership.findMany.mockResolvedValue([]);
     prisma.subscription.findMany.mockResolvedValue([]);
   });

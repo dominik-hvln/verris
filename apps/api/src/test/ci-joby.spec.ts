@@ -41,7 +41,7 @@ import { resolve } from 'path';
  * bo tak wygląda plik i tak go czyta człowiek.
  */
 
-const KORZEN = resolve(__dirname, '../../../..');
+const KORZEN = resolve(import.meta.dirname, '../../../..');
 const CI = resolve(KORZEN, '.github/workflows/ci.yml');
 
 interface Job {
@@ -154,14 +154,14 @@ describe('X-17 — joby CI budują to, czego ich kroki potrzebują', () => {
     const pkg = JSON.parse(
       readFileSync(resolve(KORZEN, 'apps/api/package.json'), 'utf-8'),
     );
-    expect(pkg.scripts['test:int']).toContain('jest.integration.cjs');
+    expect(pkg.scripts['test:int']).toContain('vitest.integration.config.ts');
   });
 
   it('job integracyjny NIE woła jesta z pominięciem skryptu', () => {
     // Bo wtedy sposób uruchomienia testów znów mieszkałby w dwóch miejscach,
     // a te dwa miejsca rozjechałyby się przy pierwszej zmianie konfiguracji.
     const job = joby().find((j) => j.nazwa === 'integration');
-    expect(job!.tresc).not.toMatch(/jest\s+--config\s+jest\.integration\.cjs/);
+    expect(job!.tresc).not.toMatch(/(jest|vitest)\s+(run\s+)?--config/);
   });
 
   it('kontrola samego strażnika — rozpoznaje job bez budowania', () => {

@@ -1,11 +1,11 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { VpsService } from './vps.service';
-import { CreateVpsPlanDto, UpdateVpsPlanDto } from './dto/vps.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { VpsService } from './vps.service.js';
+import { CreateVpsPlanDto, UpdateVpsPlanDto } from './dto/vps.dto.js';
 
 @Controller('admin/vps')
 @UseGuards(JwtAuthGuard, RolesGuard)

@@ -1,4 +1,4 @@
-import { ryzykoPojemnosci } from './product-ops.admin.controller';
+import { ryzykoPojemnosci } from './product-ops.admin.controller.js';
 
 describe('ryzykoPojemnosci (planer pojemności)', () => {
   it('liczy względem rdzeni i RAM węzła', () => {

@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
-import { MeStatusController } from './me-status.controller';
-import { maintenanceVisibleWhere } from './status.service';
-import { ProductOpsAdminController } from '../product-ops/product-ops.admin.controller';
+import { MeStatusController } from './me-status.controller.js';
+import { maintenanceVisibleWhere } from './status.service.js';
+import { ProductOpsAdminController } from '../product-ops/product-ops.admin.controller.js';
 
 /** N-11 — ogłoszenia i okna serwisowe docierają do klienta i dają się prowadzić z panelu. */
 describe('N-11 ogłoszenia i okna serwisowe', () => {
@@ -18,14 +18,14 @@ describe('N-11 ogłoszenia i okna serwisowe', () => {
 
   it('klient dostaje ogłoszenia dla USER/wszystkich i okna swoich serwerów', async () => {
     const prisma = {
-      account: { findMany: jest.fn(async () => [{ serverId: 's1' }, { serverId: 's1' }]) },
+      account: { findMany: vi.fn(async () => [{ serverId: 's1' }, { serverId: 's1' }]) },
       productAnnouncement: {
-        findMany: jest.fn(async () => [
+        findMany: vi.fn(async () => [
           { id: 'a1', kind: 'PRODUCT_UPDATE', title: 'T', bodyMarkdown: 'B', publishedAt: now },
         ]),
       },
       maintenanceWindow: {
-        findMany: jest.fn(async () => [
+        findMany: vi.fn(async () => [
           { id: 'm1', title: 'PHP', publicMessage: null, status: 'SCHEDULED', scheduledStart: now, scheduledEnd: now, server: { name: 'poz-1' } },
         ]),
       },
@@ -44,15 +44,15 @@ describe('N-11 ogłoszenia i okna serwisowe', () => {
   function adminCtl(status: string) {
     const prisma = {
       maintenanceWindow: {
-        findUnique: jest.fn(async () => ({ id: 'm1', status })),
-        update: jest.fn(async ({ data }: { data: Record<string, unknown> }) => ({
+        findUnique: vi.fn(async () => ({ id: 'm1', status })),
+        update: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({
           id: 'm1', serverId: null, title: 'PHP', scheduledStart: now, scheduledEnd: now, ...data,
         })),
       },
     };
-    const audit = { record: jest.fn(async () => undefined) };
-    const webhooks = { enqueue: jest.fn(async () => undefined) };
-    const st = { invalidate: jest.fn() };
+    const audit = { record: vi.fn(async () => undefined) };
+    const webhooks = { enqueue: vi.fn(async () => undefined) };
+    const st = { invalidate: vi.fn() };
     const c = new ProductOpsAdminController(prisma as never, audit as never, {} as never, webhooks as never, st as never);
     return { c, prisma, webhooks, st };
   }

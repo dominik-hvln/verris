@@ -4,7 +4,7 @@ import {
   AutoscalingBillingService,
   BILLING_BLOCK_MINUTES,
   BillableAccount,
-} from './autoscaling-billing.service';
+} from './autoscaling-billing.service.js';
 
 const BLOCK_MS = BILLING_BLOCK_MINUTES * 60 * 1000;
 
@@ -26,15 +26,15 @@ function rule(resource: string, price: string) {
 
 function buildService(opts?: { debitError?: Error }) {
   const prisma = {
-    account: { update: jest.fn().mockResolvedValue({}) },
-    subscription: { findUnique: jest.fn().mockResolvedValue({ autoscalingDiscountPct: 0, paymentSource: 'WALLET' }) },
-    autoscalingEvent: { create: jest.fn().mockResolvedValue({}) },
-    walletTransaction: { aggregate: jest.fn() },
+    account: { update: vi.fn().mockResolvedValue({}) },
+    subscription: { findUnique: vi.fn().mockResolvedValue({ autoscalingDiscountPct: 0, paymentSource: 'WALLET' }) },
+    autoscalingEvent: { create: vi.fn().mockResolvedValue({}) },
+    walletTransaction: { aggregate: vi.fn() },
   };
   const walletLedger = {
     debit: opts?.debitError
-      ? jest.fn().mockRejectedValue(opts.debitError)
-      : jest.fn().mockResolvedValue({ id: 'tx-1' }),
+      ? vi.fn().mockRejectedValue(opts.debitError)
+      : vi.fn().mockResolvedValue({ id: 'tx-1' }),
   };
   const service = new AutoscalingBillingService(prisma as never, walletLedger as never);
   return { service, prisma, walletLedger };
@@ -74,7 +74,7 @@ describe('AutoscalingBillingService.billDueBlocks', () => {
     expect(result.walletDepleted).toBe(false);
 
     // Deterministic idempotency keys per block start.
-    const keys = walletLedger.debit.mock.calls.map((c: never[]) => (c[0] as { idempotencyKey: string }).idempotencyKey);
+    const keys = walletLedger.debit.mock.calls.map((c: unknown[]) => (c[0] as { idempotencyKey: string }).idempotencyKey);
     expect(new Set(keys).size).toBe(3);
     expect(keys[0]).toBe(`autoscale-block:sub-1:${since.getTime()}`);
 
@@ -100,7 +100,7 @@ describe('AutoscalingBillingService.billDueBlocks', () => {
     expect(result.blocksCharged).toBe(0);
     // No cursor write that would skip the unpaid block.
     const cursorWrites = prisma.account.update.mock.calls.filter(
-      (c: never[]) => (c[0] as { data: { scaledBilledUntil?: unknown } }).data.scaledBilledUntil !== undefined,
+      (c: unknown[]) => (c[0] as { data: { scaledBilledUntil?: unknown } }).data.scaledBilledUntil !== undefined,
     );
     // Only the self-heal write (same value) is allowed — never an advance.
     for (const call of cursorWrites) {

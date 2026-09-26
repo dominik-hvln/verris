@@ -1,9 +1,9 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
-import { DomainRegistrarService } from './domain-registrar.service';
-import { RegisterDomainDto } from './dto/registrar.dto';
-import { opKontakt, type Registrant } from './registrar.provider';
+import { DomainRegistrarService } from './domain-registrar.service.js';
+import { RegisterDomainDto } from './dto/registrar.dto.js';
+import { opKontakt, type Registrant } from './registrar.provider.js';
 
 /**
  * A-13 / A-15 / A-09 (decyzja właściciela 2026-09-23): abonentem domeny jest klient, nie operator.
@@ -19,9 +19,9 @@ function zbuduj(provider: Record<string, unknown>, domena: Record<string, unknow
   id: 'd1', name: 'jan.pl', userId: 'u1', registrarExternalId: '777', transferLock: true,
 }) {
   const prisma = {
-    domain: { findFirst: jest.fn().mockResolvedValue(domena), update: jest.fn().mockResolvedValue({}) },
+    domain: { findFirst: vi.fn().mockResolvedValue(domena), update: vi.fn().mockResolvedValue({}) },
   };
-  const audit = { record: jest.fn() };
+  const audit = { record: vi.fn() };
   const service = new DomainRegistrarService(
     prisma as never, audit as never, {} as never, { get: () => provider } as never,
     {} as never, {} as never, {} as never, {} as never,
@@ -33,11 +33,11 @@ describe('A-13 — abonent domeny to klient', () => {
   it('rejestracja zakłada uchwyt klienta PRZED obciążeniem i rejestruje na niego', async () => {
     const kolejnosc: string[] = [];
     const provider = {
-      availability: jest.fn().mockResolvedValue({ available: true }),
-      createRegistrant: jest.fn(async () => { kolejnosc.push('uchwyt'); throw new Error('stop'); }),
+      availability: vi.fn().mockResolvedValue({ available: true }),
+      createRegistrant: vi.fn(async () => { kolejnosc.push('uchwyt'); throw new Error('stop'); }),
     };
     const { service } = zbuduj(provider);
-    const charge = jest.spyOn(service as never, 'charge' as never).mockImplementation((async () => { kolejnosc.push('portfel'); }) as never);
+    const charge = vi.spyOn(service as unknown as { charge: () => Promise<void> }, 'charge').mockImplementation((async () => { kolejnosc.push('portfel'); }) as never);
     await expect(service.register('u1', 'u1', { name: 'jan.pl', registrant: JAN })).rejects.toThrow('stop');
     expect(provider.createRegistrant).toHaveBeenCalledWith(JAN);
     expect(charge).not.toHaveBeenCalled();
@@ -57,9 +57,9 @@ describe('A-13 — abonent domeny to klient', () => {
 
   it('zmiana adresu/telefonu idzie do uchwytu abonenta; zmiana imienia = cesja → odmowa', async () => {
     const provider = {
-      domainInfo: jest.fn().mockResolvedValue({ ownerHandle: 'JK1-PL', locked: true }),
-      getRegistrant: jest.fn().mockResolvedValue(JAN),
-      updateRegistrant: jest.fn(),
+      domainInfo: vi.fn().mockResolvedValue({ ownerHandle: 'JK1-PL', locked: true }),
+      getRegistrant: vi.fn().mockResolvedValue(JAN),
+      updateRegistrant: vi.fn(),
       operatorHandle: 'OP1-PL',
     };
     const { service, audit } = zbuduj(provider);
@@ -74,8 +74,8 @@ describe('A-13 — abonent domeny to klient', () => {
 
   it('domena na uchwycie operatora: nie edytujemy go (zmieniłby dane wszystkich takich domen)', async () => {
     const provider = {
-      domainInfo: jest.fn().mockResolvedValue({ ownerHandle: 'OP1-PL', locked: true }),
-      getRegistrant: jest.fn(), updateRegistrant: jest.fn(), operatorHandle: 'OP1-PL',
+      domainInfo: vi.fn().mockResolvedValue({ ownerHandle: 'OP1-PL', locked: true }),
+      getRegistrant: vi.fn(), updateRegistrant: vi.fn(), operatorHandle: 'OP1-PL',
     };
     const { service } = zbuduj(provider);
     await expect(service.updateRegistrant('u1', 'u1', 'd1', JAN)).rejects.toThrow(/dane operatora/);
@@ -99,7 +99,7 @@ describe('A-13 — abonent domeny to klient', () => {
 
 describe('A-15 / A-09 — blokada i kod transferu', () => {
   it('blokada: rejestrator + stan w bazie + audyt', async () => {
-    const provider = { setTransferLock: jest.fn() };
+    const provider = { setTransferLock: vi.fn() };
     const { service, prisma, audit } = zbuduj(provider);
     await expect(service.setTransferLock('u1', 'u1', 'd1', false)).resolves.toEqual({ transferLock: false });
     expect(provider.setTransferLock).toHaveBeenCalledWith('777', false);
@@ -108,7 +108,7 @@ describe('A-15 / A-09 — blokada i kod transferu', () => {
   });
 
   it('kod transferu: zwracany klientowi, w audycie tylko fakt wyświetlenia', async () => {
-    const provider = { authCode: jest.fn().mockResolvedValue('S3kr3t!') };
+    const provider = { authCode: vi.fn().mockResolvedValue('S3kr3t!') };
     const { service, audit } = zbuduj(provider);
     await expect(service.authCode('u1', 'u1', 'd1')).resolves.toEqual({ authCode: 'S3kr3t!', transferLock: true });
     expect(JSON.stringify(audit.record.mock.calls)).not.toContain('S3kr3t!');

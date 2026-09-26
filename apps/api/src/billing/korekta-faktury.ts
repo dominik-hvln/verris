@@ -4,7 +4,7 @@ import {
   RozbicieVat,
   rozbicieVat,
   STAWKA_VAT,
-} from './faktura-za-portfel';
+} from './faktura-za-portfel.js';
 
 /**
  * M-06 — faktura korygująca.

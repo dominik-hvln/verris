@@ -1,13 +1,13 @@
 import { Body, Controller, Get, Post, Put, UseGuards } from '@nestjs/common';
 import { IsIn, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 import { Role } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { StosWezlaService } from './stos-wezla.service';
-import { NodeTasksService } from './node-tasks.service';
-import { DOZWOLONE } from './stos-wezla';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { StosWezlaService } from './stos-wezla.service.js';
+import { NodeTasksService } from './node-tasks.service.js';
+import { DOZWOLONE } from './stos-wezla.js';
 
 class ManifestDto {
   @IsIn(DOZWOLONE.daKanal.map((x) => x.v))

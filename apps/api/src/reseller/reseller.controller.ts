@@ -1,10 +1,10 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { IsEmail, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { ResellerService } from './reseller.service';
-import { ResellerKlienciService } from './reseller-klienci.service';
-import { RateLimit } from '../common/guards/rate-limit.guard';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { ResellerService } from './reseller.service.js';
+import { ResellerKlienciService } from './reseller-klienci.service.js';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
 
 class WniosekResellerDto {
   @IsOptional() @IsString() @MaxLength(80) brandName?: string;

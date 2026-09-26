@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { EmailMarketingService } from './email-marketing.service';
+import { EmailMarketingService } from './email-marketing.service.js';
 
 /**
  * EMM — dispatcher kampanii. Co minutę bierze kampanie w stanie SENDING i

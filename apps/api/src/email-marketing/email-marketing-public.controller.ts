@@ -1,5 +1,5 @@
 import { Controller, Get, Header, Post, Query } from '@nestjs/common';
-import { EmailMarketingService } from './email-marketing.service';
+import { EmailMarketingService } from './email-marketing.service.js';
 
 /**
  * EMM — publiczne endpointy bez uwierzytelniania:

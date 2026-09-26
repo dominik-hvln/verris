@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service.js';
 import {
   CATEGORY_LABEL,
   KB_TERMS,
@@ -8,7 +8,7 @@ import {
   templateVars,
   type TicketCategory,
   type TicketDraftContext,
-} from './ticket-context';
+} from './ticket-context.js';
 
 const KB_BASE = () => (process.env.KB_PUBLIC_URL || 'https://pomoc.verris.pl').replace(/\/$/, '');
 const ACTIVE = ['ACTIVE', 'PAST_DUE', 'PROVISIONING', 'SUSPENDED'] as const;

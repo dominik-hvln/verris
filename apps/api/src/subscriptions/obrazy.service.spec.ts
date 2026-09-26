@@ -1,7 +1,7 @@
 import { spawnSync } from 'child_process';
 import { join } from 'path';
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { ObrazyService, wynikZLogu } from './obrazy.service';
+import { ObrazyService, wynikZLogu } from './obrazy.service.js';
 
 /**
  * J-06 — skrypt węzła sprawdzony z jpegoptim i optipng (2026-09-25): 6 obrazów zoptymalizowanych jako
@@ -11,15 +11,15 @@ import { ObrazyService, wynikZLogu } from './obrazy.service';
 function stanowisko(zadania: unknown[] = [], wToku: unknown = null) {
   const account = { id: 'a1', serverId: 'n1', status: 'ACTIVE', daUsername: 'klient1' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
     nodeTask: {
-      findFirst: jest.fn(async () => wToku),
-      findMany: jest.fn(async () => zadania),
-      create: jest.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
+      findFirst: vi.fn(async () => wToku),
+      findMany: vi.fn(async () => zadania),
+      create: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
     },
   };
-  const da = { assertDomainOwnedBySubscription: jest.fn(async (_s: string, _u: string, d: string) => d.toLowerCase()) };
-  return { svc: new ObrazyService(prisma as never, { record: jest.fn(async () => undefined) } as never, da as never), prisma };
+  const da = { assertDomainOwnedBySubscription: vi.fn(async (_s: string, _u: string, d: string) => d.toLowerCase()) };
+  return { svc: new ObrazyService(prisma as never, { record: vi.fn(async () => undefined) } as never, da as never), prisma };
 }
 
 describe('ObrazyService', () => {
@@ -45,7 +45,7 @@ describe('ObrazyService', () => {
   });
 
   it('skrypt węzła odrzuca złe dane', () => {
-    const skrypt = join(__dirname, '../../../../ops/scripts/node-image-optimize.sh');
+    const skrypt = join(import.meta.dirname, '../../../../ops/scripts/node-image-optimize.sh');
     const uruchom = (env: Record<string, string>) =>
       spawnSync('bash', [skrypt], { env: { PATH: process.env.PATH ?? '', ...env }, encoding: 'utf8' });
     expect(uruchom({ IO_DA_USER: "a'x", IO_DOMAIN: 'a.pl' }).stderr).toContain('nieprawidłowy login');

@@ -2,8 +2,8 @@ import { Body, Controller, Get, HttpCode, Param, Post, Req, UseGuards } from '@n
 import { Type } from 'class-transformer';
 import { IsBoolean, IsInt, IsObject, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 import type { Request } from 'express';
-import { ServerIdentityGuard } from '../servers/guards/server-identity.guard';
-import { MigrationOrchestratorService } from './migration-orchestrator.service';
+import { ServerIdentityGuard } from '../servers/guards/server-identity.guard.js';
+import { MigrationOrchestratorService } from './migration-orchestrator.service.js';
 
 class CompleteMigrationWorkerJobDto {
   @Type(() => Number)

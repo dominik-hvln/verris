@@ -6,8 +6,8 @@ export function loadMemcachedScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/node-memcached.sh'),
     join(process.cwd(), '../../ops/scripts/node-memcached.sh'),
-    join(__dirname, '../../../../../ops/scripts/node-memcached.sh'),
-    join(__dirname, '../../../../ops/scripts/node-memcached.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/node-memcached.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/node-memcached.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) return readFileSync(path, 'utf8');

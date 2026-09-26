@@ -9,7 +9,7 @@ import { join, relative } from 'path';
  * Komentarze w kodzie się nie liczą. Wyjątek: kreator migracji, gdzie DirectAdmin to panel
  * u POPRZEDNIEGO dostawcy klienta (cyberFolks, Seohost) — to informacja dla klienta, nie o nas.
  */
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const WYJATKI = new Set(['apps/client-panel/src/app/dashboard/migrations/migration-wizard.tsx']);
 
 function pliki(katalog: string, rozszerzenia: RegExp): string[] {

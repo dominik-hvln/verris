@@ -1,7 +1,7 @@
 import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { MetaCapiService } from './meta-capi.service';
-import { MetaCapiLeadDto } from './dto/meta-capi.dto';
+import { MetaCapiService } from './meta-capi.service.js';
+import { MetaCapiLeadDto } from './dto/meta-capi.dto.js';
 
 /**
  * Publiczny przekaźnik Lead do Meta CAPI (verris.pl nie ma zalogowanego usera).

@@ -6,8 +6,8 @@ export function loadWpInstallScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/node-wp-install.sh'),
     join(process.cwd(), '../../ops/scripts/node-wp-install.sh'),
-    join(__dirname, '../../../../../ops/scripts/node-wp-install.sh'),
-    join(__dirname, '../../../../ops/scripts/node-wp-install.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/node-wp-install.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/node-wp-install.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) {

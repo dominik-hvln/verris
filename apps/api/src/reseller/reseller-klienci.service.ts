@@ -1,11 +1,11 @@
 import { ConflictException, ForbiddenException, HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { SubscriptionStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService } from '../common/audit/audit.service';
-import { MailerService } from '../mail/mailer.service';
-import { SubscriptionsService } from '../subscriptions/subscriptions.service';
-import { generateAuthToken, hashAuthToken } from '../auth/auth-token.util';
-import { escapeMarkdown as md, renderEmailShell } from '../mail/templates/_layouts/email-shell';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
+import { generateAuthToken, hashAuthToken } from '../auth/auth-token.util.js';
+import { escapeMarkdown as md, renderEmailShell } from '../mail/templates/_layouts/email-shell.js';
 
 const WAZNOSC_LINKU_H = 72;
 /** Ponowny link „ustaw hasło” — najwyżej raz na 10 minut na klienta (mail ląduje u klienta, nie u resellera). */

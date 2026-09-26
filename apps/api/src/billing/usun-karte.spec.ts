@@ -1,15 +1,16 @@
+import type { Mock } from 'vitest';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { BillingService } from './billing.service';
+import { BillingService } from './billing.service.js';
 
 /** M-26 — klient usuwa zapisaną kartę. */
-function setup(pm: Record<string, unknown> | null, detach: jest.Mock = jest.fn().mockResolvedValue({})) {
+function setup(pm: Record<string, unknown> | null, detach: Mock = vi.fn().mockResolvedValue({})) {
   const prisma = {
-    paymentMethod: { findFirst: jest.fn().mockResolvedValue(pm), delete: jest.fn().mockReturnValue('del') },
-    user: { updateMany: jest.fn().mockReturnValue('user') },
-    walletAutoTopup: { updateMany: jest.fn().mockReturnValue('auto') },
-    $transaction: jest.fn().mockResolvedValue([]),
+    paymentMethod: { findFirst: vi.fn().mockResolvedValue(pm), delete: vi.fn().mockReturnValue('del') },
+    user: { updateMany: vi.fn().mockReturnValue('user') },
+    walletAutoTopup: { updateMany: vi.fn().mockReturnValue('auto') },
+    $transaction: vi.fn().mockResolvedValue([]),
   };
-  const audit = { record: jest.fn() };
+  const audit = { record: vi.fn() };
   const stripe = { detachPaymentMethod: detach };
   const svc = new (BillingService as unknown as new (...a: unknown[]) => BillingService)(prisma, {}, stripe, audit, {}, {}, {}, {}, {}, {});
   return { svc, prisma, audit, stripe };
@@ -43,13 +44,13 @@ describe('M-26 deleteMyPaymentMethod', () => {
   });
 
   it('karta już odpięta w Stripe → sprzątamy u siebie', async () => {
-    const { svc, prisma } = setup(card, jest.fn().mockRejectedValue(new Error('No such PaymentMethod: pm_123')));
+    const { svc, prisma } = setup(card, vi.fn().mockRejectedValue(new Error('No such PaymentMethod: pm_123')));
     await expect(svc.deleteMyPaymentMethod('u1', 'c1')).resolves.toEqual({ ok: true });
     expect(prisma.$transaction).toHaveBeenCalled();
   });
 
   it('awaria Stripe → błąd, wiersz zostaje (można ponowić)', async () => {
-    const { svc, prisma } = setup(card, jest.fn().mockRejectedValue(new Error('Stripe request failed (500)')));
+    const { svc, prisma } = setup(card, vi.fn().mockRejectedValue(new Error('Stripe request failed (500)')));
     await expect(svc.deleteMyPaymentMethod('u1', 'c1')).rejects.toBeInstanceOf(BadRequestException);
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });

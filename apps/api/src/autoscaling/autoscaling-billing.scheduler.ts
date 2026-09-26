@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { SubscriptionStatus } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { AutoscalingBillingService } from './autoscaling-billing.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AutoscalingBillingService } from './autoscaling-billing.service.js';
 
 /**
  * Settles active autoscaling deltas in 15-minute blocks.

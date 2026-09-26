@@ -1,6 +1,6 @@
-import { MailerService } from './mailer.service';
-import { autoscalingEndedTemplate } from './templates/autoscaling-notifications';
-import { planChangedTemplate } from './templates/plan-change-notifications';
+import { MailerService } from './mailer.service.js';
+import { autoscalingEndedTemplate } from './templates/autoscaling-notifications.js';
+import { planChangedTemplate } from './templates/plan-change-notifications.js';
 
 /**
  * N-10 — powiadomienia operacyjne, które klient może wyłączyć, i te, których wyłączyć nie może.
@@ -9,11 +9,11 @@ import { planChangedTemplate } from './templates/plan-change-notifications';
  * potwierdzenia zmiany planu — a stopka mówiła o „zgodzie na komunikację marketingową”.
  */
 function stanowisko(prefs: Record<string, boolean>) {
-  const provider = { id: 'test', send: jest.fn(async () => ({ providerId: 'test', messageId: 'm1' })) };
+  const provider = { id: 'test', send: vi.fn(async () => ({ providerId: 'test', messageId: 'm1' })) };
   const prisma = {
-    user: { findUnique: jest.fn(async () => ({ id: 'u1', anonymizedAt: null, marketingPreferences: { marketingEmail: false, productUpdatesEmail: false, autoscalingEmail: true, quotaAlertsEmail: true, ...prefs } })) },
-    emailLog: { create: jest.fn(async () => ({ id: 'l1' })), update: jest.fn(async () => ({})) },
-    controlPlaneSystemAddress: { findUnique: jest.fn(async () => null) },
+    user: { findUnique: vi.fn(async () => ({ id: 'u1', anonymizedAt: null, marketingPreferences: { marketingEmail: false, productUpdatesEmail: false, autoscalingEmail: true, quotaAlertsEmail: true, ...prefs } })) },
+    emailLog: { create: vi.fn(async () => ({ id: 'l1' })), update: vi.fn(async () => ({})) },
+    controlPlaneSystemAddress: { findUnique: vi.fn(async () => null) },
   };
   const svc = new MailerService(provider as never, { fromName: 'Verris', swallowErrors: false } as never, prisma as never, { get: () => undefined } as never);
   return { svc, provider };

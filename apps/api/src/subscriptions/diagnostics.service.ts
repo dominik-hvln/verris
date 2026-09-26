@@ -5,8 +5,8 @@ import type {
   ServiceDiagnosticsDto,
   ServiceHealthCheckKey,
 } from '@verris/contracts';
-import { PrismaService } from '../prisma/prisma.service';
-import { ServiceHealthService } from './service-health.service';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { ServiceHealthService } from './service-health.service.js';
 
 /** Węzeł uznajemy za offline, gdy nie raportował telemetrii ponad 10 minut. */
 const NODE_OFFLINE_MS = 10 * 60 * 1000;

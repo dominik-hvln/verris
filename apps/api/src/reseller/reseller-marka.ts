@@ -1,4 +1,4 @@
-import { escapeHtml } from '../mail/templates/_layouts/email-shell';
+import { escapeHtml } from '../mail/templates/_layouts/email-shell.js';
 
 /** O-09 — logo resellera: tylko rastry (SVG może nieść skrypt), najwyżej 100 KB. */
 export const LOGO_MAX_BAJTOW = 100 * 1024;

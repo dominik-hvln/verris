@@ -6,8 +6,8 @@ export function loadWafApplyScript(): string {
   const candidates = [
     join(process.cwd(), 'ops/scripts/node-waf-apply.sh'),
     join(process.cwd(), '../../ops/scripts/node-waf-apply.sh'),
-    join(__dirname, '../../../../../ops/scripts/node-waf-apply.sh'),
-    join(__dirname, '../../../../ops/scripts/node-waf-apply.sh'),
+    join(import.meta.dirname, '../../../../../ops/scripts/node-waf-apply.sh'),
+    join(import.meta.dirname, '../../../../ops/scripts/node-waf-apply.sh'),
   ];
   for (const path of candidates) {
     if (existsSync(path)) {

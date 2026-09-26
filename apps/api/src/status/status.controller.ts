@@ -1,5 +1,5 @@
 import { Controller, Get, Header, HttpCode } from '@nestjs/common';
-import { StatusService } from './status.service';
+import { StatusService } from './status.service.js';
 
 /**
  * Publicly accessible status endpoint. NO authentication — designed for the

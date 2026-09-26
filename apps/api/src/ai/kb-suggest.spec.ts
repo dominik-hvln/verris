@@ -1,5 +1,5 @@
-import { AiChatService } from './ai-chat.service';
-import type { RetrievedChunk } from './knowledge-base.service';
+import { AiChatService } from './ai-chat.service.js';
+import type { RetrievedChunk } from './knowledge-base.service.js';
 
 /**
  * N-05 — podpowiedzi artykułów przy zakładaniu zgłoszenia.
@@ -17,7 +17,7 @@ describe('N-05 — kbSuggest', () => {
   });
 
   function serwis(chunks: RetrievedChunk[]) {
-    const kb = { retrieve: jest.fn(async () => chunks) };
+    const kb = { retrieve: vi.fn(async () => chunks) };
     return new AiChatService({} as never, {} as never, kb as never, {} as never);
   }
 

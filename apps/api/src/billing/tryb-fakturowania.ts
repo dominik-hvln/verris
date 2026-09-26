@@ -1,4 +1,4 @@
-import type { KlientPrismy } from './faktura-za-portfel';
+import type { KlientPrismy } from './faktura-za-portfel.js';
 
 /**
  * FAK-01 — kto wystawia fakturę VAT: panel czy program księgowy.

@@ -1,5 +1,5 @@
 import { DirectAdminClient } from '@verris/directadmin-sdk';
-import { DirectAdminService } from './directadmin.service';
+import { DirectAdminService } from './directadmin.service.js';
 
 /**
  * Kopie zapasowe w DirectAdminService: kopia teraz, odtworzenie, lista, retencja i tryb EKO.
@@ -18,8 +18,8 @@ function stanowisko(o: { status?: string; daPasswordEnc?: string | null; get?: R
     '/CMD_API_SHOW_USER_CONFIG': 'domain=firma.pl',
     ...o.get,
   };
-  const get = jest.fn((path: string, _cfg?: Record<string, unknown>) => odp(trasyGet[path] ?? ''));
-  const post = jest.fn((path: string, _body?: unknown, _cfg?: Record<string, unknown>) =>
+  const get = vi.fn((path: string, _cfg?: Record<string, unknown>) => odp(trasyGet[path] ?? ''));
+  const post = vi.fn((path: string, _body?: unknown, _cfg?: Record<string, unknown>) =>
     odp(o.post?.[path] ?? 'error=0&text=OK'),
   );
   const klient = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'klient1', loginKey: 'x', secure: true });
@@ -29,12 +29,12 @@ function stanowisko(o: { status?: string; daPasswordEnc?: string | null; get?: R
     daPasswordEnc: o.daPasswordEnc === undefined ? 'enc' : o.daPasswordEnc, server: null,
   };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
-    account: { update: jest.fn(async () => account) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    account: { update: vi.fn(async () => account) },
   };
-  const audit = { record: jest.fn(async () => undefined) };
+  const audit = { record: vi.fn(async () => undefined) };
   const svc = new DirectAdminService(prisma as never, {} as never, {} as never, audit as never);
-  jest.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue(klient);
+  vi.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue(klient);
   const wyslane = (n = 0) => Object.fromEntries(new URLSearchParams(String(post.mock.calls[n]?.[1] ?? '')));
   return { svc, get, post, prisma, wyslane };
 }

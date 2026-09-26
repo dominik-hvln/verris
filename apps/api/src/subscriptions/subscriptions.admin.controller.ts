@@ -11,33 +11,33 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Role, SubscriptionStatus } from '@verris/database';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { RolesGuard } from '../common/guards/roles.guard';
-import { Roles } from '../common/decorators/roles.decorator';
-import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
-import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { PrismaService } from '../prisma/prisma.service';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import {
   SubscriptionsService,
   SuspendReason,
-} from './subscriptions.service';
-import { MigrationOrchestratorService } from './migration-orchestrator.service';
-import { PlanChangeService } from './plan-change.service';
-import { DirectAdminService } from '../servers/directadmin.service';
-import { HostingRestoreService } from './hosting-restore.service';
-import { DiagnosticsService } from './diagnostics.service';
-import { HostingRestoreDto, ListaNaWezleDto, OdtworzNaWezleDto } from './dto/hosting-restore.dto';
-import { OdtworzenieNaWezleService } from './odtworzenie-na-wezle.service';
+} from './subscriptions.service.js';
+import { MigrationOrchestratorService } from './migration-orchestrator.service.js';
+import { PlanChangeService } from './plan-change.service.js';
+import { DirectAdminService } from '../servers/directadmin.service.js';
+import { HostingRestoreService } from './hosting-restore.service.js';
+import { DiagnosticsService } from './diagnostics.service.js';
+import { HostingRestoreDto, ListaNaWezleDto, OdtworzNaWezleDto } from './dto/hosting-restore.dto.js';
+import { OdtworzenieNaWezleService } from './odtworzenie-na-wezle.service.js';
 import {
   SuspendSubscriptionDto,
   UnsuspendSubscriptionDto,
-} from './dto/subscription.dto';
-import { RequestInternalMigrationDto } from './dto/migration.dto';
+} from './dto/subscription.dto.js';
+import { RequestInternalMigrationDto } from './dto/migration.dto.js';
 import {
   AdminChangePlanDto,
   AdminPreviewPlanChangeDto,
-} from './dto/admin-plan-change.dto';
+} from './dto/admin-plan-change.dto.js';
 
 const ALLOWED_REASONS: SuspendReason[] = [
   'PAYMENT_FAILED',

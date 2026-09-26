@@ -1,6 +1,6 @@
 import { execFileSync } from 'child_process';
-import { buildOnboardBundle, loadOnboardLiveScript, plikiPakietuOnboardu } from './onboard-live.script';
-import { BackupOffsiteService } from './backup-offsite.service';
+import { buildOnboardBundle, loadOnboardLiveScript, plikiPakietuOnboardu } from './onboard-live.script.js';
+import { BackupOffsiteService } from './backup-offsite.service.js';
 
 /** PB-31 — Onboard LIVE z panelu: pakiet w układzie repo i konfiguracja kopii off-site floty. */
 describe('PB-31 — pakiet Onboard LIVE', () => {

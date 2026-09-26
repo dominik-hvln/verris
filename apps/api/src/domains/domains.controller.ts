@@ -1,14 +1,14 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
-import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { RateLimit } from '../common/guards/rate-limit.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
-import { DomainsService } from './domains.service';
-import { CreateDomainDto } from './dto/create-domain.dto';
-import { DomainRegistrarService } from './domain-registrar.service';
-import { NbpFxService } from './nbp-fx.service';
-import { parseDomainPricingConfig } from './domain-pricing.util';
-import { REGISTRAR_TLD_CATALOG } from './registrar-tld-catalog';
+import { DomainsService } from './domains.service.js';
+import { CreateDomainDto } from './dto/create-domain.dto.js';
+import { DomainRegistrarService } from './domain-registrar.service.js';
+import { NbpFxService } from './nbp-fx.service.js';
+import { parseDomainPricingConfig } from './domain-pricing.util.js';
+import { REGISTRAR_TLD_CATALOG } from './registrar-tld-catalog.js';
 import {
   DomainAvailabilityDto,
   DomainQuoteDto,
@@ -19,7 +19,7 @@ import {
   TransferDomainDto,
   TransferLockDto,
   OkresOdnowieniaDto,
-} from './dto/registrar.dto';
+} from './dto/registrar.dto.js';
 
 /** Tożsamość z JWT: `principalUserId` = człowiek za subkontem albo impersonacją. */
 type Uzytkownik = { userId: string; principalUserId?: string };

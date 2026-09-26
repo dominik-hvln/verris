@@ -1,5 +1,5 @@
-import type { MailMessage } from '../mailer.interface';
-import { escapeMarkdown, renderEmailShell } from './_layouts/email-shell';
+import type { MailMessage } from '../mailer.interface.js';
+import { escapeMarkdown, renderEmailShell } from './_layouts/email-shell.js';
 
 export interface TicketContext {
   ticketId: string;

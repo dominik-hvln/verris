@@ -1,44 +1,45 @@
+import type { Mock } from 'vitest';
 import {
   MigrationStatus,
   MigrationWorkerJobKind,
   MigrationWorkerJobStatus,
 } from '@verris/database';
 import { BadRequestException } from '@nestjs/common';
-import { MigrationOrchestratorService } from './migration-orchestrator.service';
-import { resolvePublicHost } from './migration-net.util';
+import { MigrationOrchestratorService } from './migration-orchestrator.service.js';
+import { resolvePublicHost } from './migration-net.util.js';
 
 // Z-09 — hosty źródłowe są rozwiązywane w DNS; w testach atrapa (domyślnie „publiczny”).
-jest.mock('./migration-net.util', () => ({
-  ...jest.requireActual('./migration-net.util'),
-  resolvePublicHost: jest.fn(async () => '203.0.113.10'),
+vi.mock('./migration-net.util.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  resolvePublicHost: vi.fn(async () => '203.0.113.10'),
 }));
 
 describe('MigrationOrchestratorService', () => {
   const prisma = {
-    subscription: { findFirst: jest.fn() },
+    subscription: { findFirst: vi.fn() },
     migrationRequest: {
-      create: jest.fn(),
-      findUnique: jest.fn(),
-      count: jest.fn().mockResolvedValue(0),
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      count: vi.fn().mockResolvedValue(0),
     },
-    subscriptionEvent: { create: jest.fn() },
-    auditLog: { create: jest.fn() },
+    subscriptionEvent: { create: vi.fn() },
+    auditLog: { create: vi.fn() },
   };
   const crypto = {
-    encrypt: jest.fn((value: string) => `enc:${value}`),
-    decrypt: jest.fn((value: string) => value.replace('enc:', '')),
+    encrypt: vi.fn((value: string) => `enc:${value}`),
+    decrypt: vi.fn((value: string) => value.replace('enc:', '')),
   };
-  const audit = { record: jest.fn() };
-  const notifications = { create: jest.fn().mockResolvedValue(undefined) };
+  const audit = { record: vi.fn() };
+  const notifications = { create: vi.fn().mockResolvedValue(undefined) };
   const directAdmin = {
-    createHostingMysqlDatabase: jest.fn(),
-    assertDomainOwnedBySubscription: jest.fn(async (_s: string, _u: string, d: string) => d),
+    createHostingMysqlDatabase: vi.fn(),
+    assertDomainOwnedBySubscription: vi.fn(async (_s: string, _u: string, d: string) => d),
   };
   const preflight = {
-    sprawdzSkrzynke: jest.fn(async () => ({ kind: 'imap', target: 'imap://x', status: 'ok', message: 'ok', latencyMs: 1 })),
+    sprawdzSkrzynke: vi.fn(async () => ({ kind: 'imap', target: 'imap://x', status: 'ok', message: 'ok', latencyMs: 1 })),
   };
 
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => vi.clearAllMocks());
 
   function service() {
     return new MigrationOrchestratorService(
@@ -193,7 +194,7 @@ describe('MigrationOrchestratorService', () => {
 
   it('Z-09: odrzuca zlecenie, gdy którykolwiek host źródła wskazuje na sieć prywatną', async () => {
     prisma.subscription.findFirst.mockResolvedValue({ id: 'sub_1', userId: 'user_1', account: { domain: 'target.example' } });
-    (resolvePublicHost as jest.Mock).mockImplementation(async (h: string) => {
+    (resolvePublicHost as Mock).mockImplementation(async (h: string) => {
       if (h === '127.0.0.1') throw new BadRequestException('Host wskazuje na sieć prywatną — odrzucono.');
       return '203.0.113.10';
     });
@@ -206,7 +207,7 @@ describe('MigrationOrchestratorService', () => {
     ).rejects.toThrow('sieć prywatną');
     expect(resolvePublicHost).toHaveBeenCalledWith('old.example');
     expect(prisma.migrationRequest.create).not.toHaveBeenCalled();
-    (resolvePublicHost as jest.Mock).mockImplementation(async () => '203.0.113.10');
+    (resolvePublicHost as Mock).mockImplementation(async () => '203.0.113.10');
   });
 
   it('E-21: skrzynka docelowa IMAP musi należeć do domen usługi (inaczej cudza skrzynka na węźle)', async () => {
@@ -308,7 +309,7 @@ describe('MigrationOrchestratorService', () => {
     const fullPrisma = {
       ...prisma,
       migrationWorkerJob: {
-        findMany: jest
+        findMany: vi
           .fn()
           // 1. kandydaci do lease
           .mockResolvedValueOnce([candidate])
@@ -317,11 +318,11 @@ describe('MigrationOrchestratorService', () => {
             { migrationRequestId: 'mig_1', sequence: 10, status: MigrationWorkerJobStatus.COMPLETED },
             { migrationRequestId: 'mig_1', sequence: 20, status: MigrationWorkerJobStatus.QUEUED },
           ]),
-        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
-        findUnique: jest.fn().mockResolvedValue(workerJob),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findUnique: vi.fn().mockResolvedValue(workerJob),
       },
       migrationRequest: {
-        update: jest.fn().mockResolvedValue({}),
+        update: vi.fn().mockResolvedValue({}),
       },
     };
 
@@ -357,17 +358,17 @@ describe('MigrationOrchestratorService', () => {
     const fullPrisma = {
       ...prisma,
       migrationWorkerJob: {
-        findMany: jest
+        findMany: vi
           .fn()
           .mockResolvedValueOnce([candidate])
           .mockResolvedValueOnce([
             { migrationRequestId: 'mig_1', sequence: 10, status: MigrationWorkerJobStatus.FAILED },
             { migrationRequestId: 'mig_1', sequence: 20, status: MigrationWorkerJobStatus.QUEUED },
           ]),
-        updateMany: jest.fn(),
-        findUnique: jest.fn(),
+        updateMany: vi.fn(),
+        findUnique: vi.fn(),
       },
-      migrationRequest: { update: jest.fn() },
+      migrationRequest: { update: vi.fn() },
     };
 
     const leased = await new MigrationOrchestratorService(
@@ -572,30 +573,30 @@ function buildWorkerLifecycleMocks(
   };
   const prisma = {
     migrationWorkerJob: {
-      findUnique: jest.fn().mockResolvedValue(job),
-      update: jest.fn().mockResolvedValue({ id: job.id }),
-      count: jest.fn().mockResolvedValue(remainingJobs),
+      findUnique: vi.fn().mockResolvedValue(job),
+      update: vi.fn().mockResolvedValue({ id: job.id }),
+      count: vi.fn().mockResolvedValue(remainingJobs),
     },
     migrationRequest: {
-      findUnique: jest.fn().mockResolvedValue(requestRow),
-      update: jest.fn().mockResolvedValue({}),
+      findUnique: vi.fn().mockResolvedValue(requestRow),
+      update: vi.fn().mockResolvedValue({}),
     },
-    subscriptionEvent: { create: jest.fn().mockResolvedValue({}) },
-    ticket: { create: jest.fn().mockResolvedValue({ id: 'ticket_1' }) },
-    user: { findMany: jest.fn().mockResolvedValue([]) },
-    $transaction: jest.fn(),
+    subscriptionEvent: { create: vi.fn().mockResolvedValue({}) },
+    ticket: { create: vi.fn().mockResolvedValue({ id: 'ticket_1' }) },
+    user: { findMany: vi.fn().mockResolvedValue([]) },
+    $transaction: vi.fn(),
   };
   // Transakcja wykonuje callback na tym samym mocku — przypięte po utworzeniu obiektu,
   // żeby typ `prisma` nie zależał sam od siebie (noImplicitAny).
   prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => fn(prisma));
   const crypto = {
-    encrypt: jest.fn((value: string) => `enc:${value}`),
-    decrypt: jest.fn((value: string) => value.replace('enc:', '')),
+    encrypt: vi.fn((value: string) => `enc:${value}`),
+    decrypt: vi.fn((value: string) => value.replace('enc:', '')),
   };
-  const audit = { record: jest.fn().mockResolvedValue(undefined) };
-  const notifications = { create: jest.fn().mockResolvedValue(undefined) };
-  const directAdmin = { createHostingMysqlDatabase: jest.fn() };
-  const preflight = { sprawdzSkrzynke: jest.fn() };
+  const audit = { record: vi.fn().mockResolvedValue(undefined) };
+  const notifications = { create: vi.fn().mockResolvedValue(undefined) };
+  const directAdmin = { createHostingMysqlDatabase: vi.fn() };
+  const preflight = { sprawdzSkrzynke: vi.fn() };
   const service = new MigrationOrchestratorService(
     prisma as never,
     crypto as never,

@@ -14,7 +14,7 @@ import { join } from 'path';
  * nie jest jednak wyłączenie bramki, tylko lista świadomych zgód z terminem.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const BRAMKA = join(KORZEN, 'ops', 'ci', 'audyt-bramka.cjs');
 const LISTA = join(KORZEN, 'ops', 'ci', 'podatnosci-dopuszczone.json');
 

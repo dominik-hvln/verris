@@ -1,6 +1,6 @@
 import { DirectAdminClient } from '@verris/directadmin-sdk';
 import * as bcrypt from 'bcrypt';
-import { DirectAdminService } from './directadmin.service';
+import { DirectAdminService } from './directadmin.service.js';
 
 /**
  * X-09 — dotąd nietestowane ścieżki DirectAdminService: ochrona katalogu hasłem, usunięcie aliasu
@@ -20,32 +20,32 @@ function stanowisko(o: { status?: string; get?: Record<string, unknown>; pliki?:
     '/CMD_API_SHOW_USER_CONFIG': 'domain=firma.pl',
     ...o.get,
   };
-  const get = jest.fn((path: string, _cfg?: Record<string, unknown>) => {
+  const get = vi.fn((path: string, _cfg?: Record<string, unknown>) => {
     const v = trasyGet[path];
     return odp(v ?? '');
   });
-  const post = jest.fn((_path: string, _body?: unknown, _cfg?: Record<string, unknown>) => odp('error=0&text=OK'));
+  const post = vi.fn((_path: string, _body?: unknown, _cfg?: Record<string, unknown>) => odp('error=0&text=OK'));
   const klient = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'klient1', loginKey: 'x', secure: true });
   Object.assign(klient, { client: { get, post } });
   const pliki: Record<string, string> = { ...o.pliki };
   const zapisane: Array<{ dir: string; name: string; tresc: string }> = [];
-  jest.spyOn(klient, 'listDir').mockImplementation(async (dir: string) =>
+  vi.spyOn(klient, 'listDir').mockImplementation(async (dir: string) =>
     Object.keys(pliki)
       .filter((p) => p.slice(0, p.lastIndexOf('/')) === dir)
       .map((p) => ({ name: p.slice(p.lastIndexOf('/') + 1), type: 'file' }) as never),
   );
-  jest.spyOn(klient, 'downloadFile').mockImplementation(async (p: string) => Buffer.from(pliki['/' + p.replace(/^\/+/, '')] ?? ''));
-  jest.spyOn(klient, 'writeFile').mockImplementation(async (dir: string, name: string, tresc: string) => {
+  vi.spyOn(klient, 'downloadFile').mockImplementation(async (p: string) => Buffer.from(pliki['/' + p.replace(/^\/+/, '')] ?? ''));
+  vi.spyOn(klient, 'writeFile').mockImplementation(async (dir: string, name: string, tresc: string) => {
     zapisane.push({ dir, name, tresc });
   });
   const account = { id: 'a1', status: o.status ?? 'ACTIVE', daUsername: 'klient1', domain: 'firma.pl', daPasswordEnc: 'enc' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
-    account: { update: jest.fn(async () => account) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    account: { update: vi.fn(async () => account) },
   };
-  const audit = { record: jest.fn(async () => undefined) };
+  const audit = { record: vi.fn(async () => undefined) };
   const svc = new DirectAdminService(prisma as never, {} as never, {} as never, audit as never);
-  jest.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue(klient);
+  vi.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue(klient);
   const wyslane = (n = 0) => Object.fromEntries(new URLSearchParams(String(post.mock.calls[n]?.[1] ?? '')));
   return { svc, klient, get, post, audit, zapisane, wyslane };
 }
@@ -136,7 +136,7 @@ describe('odczyt catch-all i antyspamu', () => {
 describe('lista skrzynek', () => {
   it('adresy z domeną konta i rozmiarem; awaria DA → fetchError', async () => {
     const s = stanowisko();
-    jest.spyOn(s.klient, 'listEmailAccounts').mockResolvedValueOnce([{ localPart: 'biuro', quotaMb: 500 }, { localPart: 'jan@firma.pl', quotaMb: 0 }] as never);
+    vi.spyOn(s.klient, 'listEmailAccounts').mockResolvedValueOnce([{ localPart: 'biuro', quotaMb: 500 }, { localPart: 'jan@firma.pl', quotaMb: 0 }] as never);
     await expect(s.svc.listHostingEmailAccounts('s1', 'u1')).resolves.toEqual({
       rows: [
         { id: 'biuro@firma.pl', email: 'biuro@firma.pl', quotaMb: 500 },
@@ -144,7 +144,7 @@ describe('lista skrzynek', () => {
       ],
       fetchError: null,
     });
-    jest.spyOn(s.klient, 'listEmailAccounts').mockRejectedValueOnce(new Error('DA 500'));
+    vi.spyOn(s.klient, 'listEmailAccounts').mockRejectedValueOnce(new Error('DA 500'));
     await expect(s.svc.listHostingEmailAccounts('s1', 'u1')).resolves.toEqual({ rows: [], fetchError: 'DA 500' });
   });
 });
@@ -170,9 +170,9 @@ describe('DKIM — włączenie (E-16)', () => {
 describe('dane logowania do panelu hostingu (hosting-da-links)', () => {
   function st() {
     const account = { id: 'a1', status: 'ACTIVE', daUsername: 'klient1', domain: 'firma.pl', daPasswordEnc: 'enc:tajne', server: { id: 'n1', hostname: 'n1.verris.pl', ipAddress: '203.0.113.5' } };
-    const prisma = { subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) } };
+    const prisma = { subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) } };
     const svc = new DirectAdminService(prisma as never, { decrypt: (v: string) => v.replace('enc:', '') } as never, {} as never, {} as never);
-    jest.spyOn(svc as unknown as { syncPrimaryDomainForSubscription: () => Promise<string> }, 'syncPrimaryDomainForSubscription').mockResolvedValue('firma.pl');
+    vi.spyOn(svc as unknown as { syncPrimaryDomainForSubscription: () => Promise<string> }, 'syncPrimaryDomainForSubscription').mockResolvedValue('firma.pl');
     return svc;
   }
   it('właściciel (domyślnie) dostaje login i hasło', async () => {

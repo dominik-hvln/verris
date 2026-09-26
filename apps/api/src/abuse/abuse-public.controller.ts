@@ -1,8 +1,8 @@
 import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { RateLimit } from '../common/guards/rate-limit.guard';
-import { AbuseService } from './abuse.service';
-import { ZgloszenieNaduzyciaDto } from './abuse.dto';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
+import { AbuseService } from './abuse.service.js';
+import { ZgloszenieNaduzyciaDto } from './abuse.dto.js';
 
 /** N-13 — publiczny formularz zgłoszeń (verris.pl/zglos-naduzycie). */
 @Controller('public/abuse')

@@ -1,5 +1,5 @@
 import { ConflictException } from '@nestjs/common';
-import { RedisAccessService, gniazdoZLogu } from './redis-access.service';
+import { RedisAccessService, gniazdoZLogu } from './redis-access.service.js';
 
 /**
  * D-15/J-03 — skrypt węzła sprawdzony lokalnie: gniazdo 0700 tylko dla konta (inny użytkownik →
@@ -8,14 +8,14 @@ import { RedisAccessService, gniazdoZLogu } from './redis-access.service';
 function stanowisko(opts: { zadania?: unknown[]; wToku?: boolean } = {}) {
   const account = { id: 'a1', serverId: 'n1', status: 'ACTIVE', daUsername: 'klient1' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
     nodeTask: {
-      findFirst: jest.fn(async () => (opts.wToku ? { id: 'x' } : null)),
-      findMany: jest.fn(async () => opts.zadania ?? []),
-      create: jest.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
+      findFirst: vi.fn(async () => (opts.wToku ? { id: 'x' } : null)),
+      findMany: vi.fn(async () => opts.zadania ?? []),
+      create: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
     },
   };
-  return { svc: new RedisAccessService(prisma as never, { record: jest.fn(async () => undefined) } as never), prisma };
+  return { svc: new RedisAccessService(prisma as never, { record: vi.fn(async () => undefined) } as never), prisma };
 }
 
 describe('RedisAccessService', () => {

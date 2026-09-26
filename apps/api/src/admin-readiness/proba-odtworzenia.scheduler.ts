@@ -2,11 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { Role } from '@verris/database';
-import { PrismaService } from '../prisma/prisma.service';
-import { MailerService } from '../mail/mailer.service';
-import { AuditService } from '../common/audit/audit.service';
-import { probaOdtworzeniaTemplate } from '../mail/templates/ops-notifications';
-import { ocenProby, type ProbaOdtworzenia } from './proba-odtworzenia';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { MailerService } from '../mail/mailer.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { probaOdtworzeniaTemplate } from '../mail/templates/ops-notifications.js';
+import { ocenProby, type ProbaOdtworzenia } from './proba-odtworzenia.js';
 
 /**
  * H-20 — przypominanie o próbie odtworzenia.

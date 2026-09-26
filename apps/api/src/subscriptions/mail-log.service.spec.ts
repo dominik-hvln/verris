@@ -1,4 +1,4 @@
-import { MailLogService, wpisyPocztyZLogu } from './mail-log.service';
+import { MailLogService, wpisyPocztyZLogu } from './mail-log.service.js';
 
 /**
  * E-19 — skrypt węzła sprawdzony lokalnie na próbce logu exima: wiadomość „nasza”, gdy nadawca
@@ -8,14 +8,14 @@ import { MailLogService, wpisyPocztyZLogu } from './mail-log.service';
 function stanowisko() {
   const account = { id: 'a1', serverId: 'n1', status: 'ACTIVE', daUsername: 'klient1' };
   const prisma = {
-    subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
     nodeTask: {
-      findFirst: jest.fn(async () => null),
-      findMany: jest.fn(async () => []),
-      create: jest.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
+      findFirst: vi.fn(async () => null),
+      findMany: vi.fn(async () => []),
+      create: vi.fn(async (a: { data: Record<string, unknown> }) => ({ id: 't1', ...a.data })),
     },
   };
-  const da = { listHostingDomainsForSubscription: jest.fn(async () => ({ domains: [{ name: 'Sklep.pl' }, { name: 'sklep.pl' }, { name: 'blog.pl' }] })) };
+  const da = { listHostingDomainsForSubscription: vi.fn(async () => ({ domains: [{ name: 'Sklep.pl' }, { name: 'sklep.pl' }, { name: 'blog.pl' }] })) };
   return { svc: new MailLogService(prisma as never, da as never), prisma };
 }
 

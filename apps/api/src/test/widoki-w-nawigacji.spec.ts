@@ -16,7 +16,7 @@ import { join, relative, sep } from 'path';
  * Nowa strona bez żadnego z powyższych = czerwony test. Tak ma być.
  */
 
-const KORZEN = join(__dirname, '..', '..', '..', '..');
+const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 
 const PANELE: Record<string, { menu: string[]; wyjatki: Record<string, string> }> = {
   'client-panel': {

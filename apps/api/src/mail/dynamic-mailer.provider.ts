@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { MailMessage, MailerProvider } from './mailer.interface';
-import { MailSettingsService } from './mail-settings.service';
+import { MailMessage, MailerProvider } from './mailer.interface.js';
+import { MailSettingsService } from './mail-settings.service.js';
 
 /**
  * Resolves SMTP config from platform settings (admin) + env on every send so

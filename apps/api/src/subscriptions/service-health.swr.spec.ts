@@ -1,15 +1,15 @@
-import { ServiceHealthService } from './service-health.service';
+import { ServiceHealthService } from './service-health.service.js';
 
 /** Stary wynik zdrowia od razu, nowy w tle — strona usługi nie czeka na sondy. */
 function setup(snapshot: Record<string, unknown> | null) {
   const prisma = {
     subscription: {
-      findFirst: jest.fn().mockResolvedValue({ id: 's1', healthSnapshots: snapshot ? [snapshot] : [] }),
+      findFirst: vi.fn().mockResolvedValue({ id: 's1', healthSnapshots: snapshot ? [snapshot] : [] }),
     },
   };
   const svc = new (ServiceHealthService as unknown as new (...a: unknown[]) => ServiceHealthService)(prisma, {});
-  const compute = jest.spyOn(svc, 'computeAndPersist').mockImplementation(() => new Promise(() => undefined));
-  const fromSnap = jest.spyOn(svc as unknown as { fromSnapshot: (s: unknown) => unknown }, 'fromSnapshot').mockReturnValue({ score: 70 });
+  const compute = vi.spyOn(svc, 'computeAndPersist').mockImplementation(() => new Promise(() => undefined));
+  const fromSnap = vi.spyOn(svc as unknown as { fromSnapshot: (s: unknown) => unknown }, 'fromSnapshot').mockReturnValue({ score: 70 });
   return { svc, compute, fromSnap };
 }
 const old = { computedAt: new Date(Date.now() - 2 * 3_600_000), score: 70 };

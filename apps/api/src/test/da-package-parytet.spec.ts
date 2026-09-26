@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { packagePolicyForSlug } from '../servers/da-package-spec';
+import { packagePolicyForSlug } from '../servers/da-package-spec.js';
 
 /**
  * Pakiety DirectAdmina opisane są w trzech miejscach: API (da-package-spec.ts — tworzy pakiet przy
@@ -8,7 +8,7 @@ import { packagePolicyForSlug } from '../servers/da-package-spec';
  * który nadpisuje pakiety wszystkich aktywnych planów. Do 2026-09-25 skrypt nie znał sprzedawanego planu
  * `verris-hosting` i zapisałby mu limity „starter” (1 domena, 25 skrzynek) — wbrew ofercie „bez limitu”.
  */
-const SKRYPT = readFileSync(join(__dirname, '..', '..', '..', '..', 'ops', 'scripts', 'prod-sync-server-da-packages.sh'), 'utf8');
+const SKRYPT = readFileSync(join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'scripts', 'prod-sync-server-da-packages.sh'), 'utf8');
 const literal = (nazwa: string) => {
   const m = new RegExp(`const ${nazwa} = (\\{[\\s\\S]*?\\n\\}|\\{[^\\n]*\\});`).exec(SKRYPT);
   if (!m) throw new Error(`brak ${nazwa} w skrypcie`);
