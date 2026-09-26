@@ -149,6 +149,10 @@ services:
       ADMIN_PANEL_URL: ${ADMIN_PANEL_URL}
       PUBLIC_API_URL: ${PUBLIC_API_URL}
       VERRIS_NODE_DEPLOY_SSH_PUBKEY: ${VERRIS_NODE_DEPLOY_SSH_PUBKEY:-}
+      # PB-36 — klucz podpisu skryptów dla węzłów (bez niego API nie wystartuje; brak w .env.prod = compose
+      # odmawia od razu, stare kontenery działają dalej) i adresy control-plane dla klucza deploy SSH.
+      VERRIS_SCRIPT_SIGNING_KEY: ${VERRIS_SCRIPT_SIGNING_KEY:?VERRIS_SCRIPT_SIGNING_KEY is required - openssl genpkey -algorithm ed25519 | base64 -w0}
+      VERRIS_CONTROL_PLANE_IPS: ${VERRIS_CONTROL_PLANE_IPS:-}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
       APP_KMS_KEY: ${APP_KMS_KEY:?APP_KMS_KEY is required}
