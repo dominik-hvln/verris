@@ -23,11 +23,11 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
-    "@types/node": "^26.6.2",
+    "@types/node": "^24",
     "@verris/typescript-config": "workspace:*",
     "bcrypt": "^6.0.0",
     "prisma": "^7.10.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.4"
+    "typescript": "^6.0.3"
   }
 }

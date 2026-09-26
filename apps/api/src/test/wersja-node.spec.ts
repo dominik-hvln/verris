@@ -49,7 +49,7 @@ describe('ENV-01 — wersja Node jest jedna we wszystkich deklaracjach', () => {
 
   it('package.json deklaruje wersję Node', () => {
     expect(pkg.engines?.node).toBeDefined();
-    expect(wymaganyMajor).toBe('22');
+    expect(wymaganyMajor).toBe('24');
   });
 
   it('.nvmrc istnieje i zgadza się z engines.node', () => {

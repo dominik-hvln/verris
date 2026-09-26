@@ -16,7 +16,7 @@ set -Eeuo pipefail
 cd "$(dirname "$0")/../.."
 
 ENV_FILE="${ENV_FILE:-.env.prod}"
-NODE_IMAGE="${MIGRATE_NODE_IMAGE:-node:22-bookworm-slim}"
+NODE_IMAGE="${MIGRATE_NODE_IMAGE:-node:24-trixie-slim}"
 
 [ -f "$ENV_FILE" ] || { echo "[migrate-www] brak $ENV_FILE"; exit 1; }
 
@@ -64,7 +64,7 @@ docker run --rm \
   -e PAYLOAD_SECRET="$PL_SECRET" \
   "$NODE_IMAGE" -lc '
     set -e
-    corepack enable
+    command -v pnpm >/dev/null || npm install -g "$(node -p "require(\"/repo/package.json\").packageManager")"
     pnpm install --filter @verris/www... --frozen-lockfile
     pnpm --filter @verris/www exec payload migrate
   '

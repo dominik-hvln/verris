@@ -6,6 +6,7 @@
     "jsx": "react-jsx",
     "lib": ["dom", "dom.iterable", "esnext"],
     "module": "esnext",
+    "moduleResolution": "bundler",
     "target": "es2015",
     "noEmit": true,
     "resolveJsonModule": true,

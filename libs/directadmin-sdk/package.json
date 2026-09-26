@@ -11,10 +11,10 @@
     "axios": "^1.20.0"
   },
   "devDependencies": {
-    "@types/node": "^26.6.2",
+    "@types/node": "^24",
     "@verris/eslint-config": "workspace:*",
     "@verris/typescript-config": "workspace:*",
-    "typescript": "^5.0.0",
+    "typescript": "^6.0.3",
     "eslint": "^9.39.5"
   }
 }

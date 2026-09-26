@@ -2,7 +2,6 @@
   "extends": "@verris/typescript-config/react-library.json",
   "compilerOptions": {
     "outDir": "dist",
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }

@@ -34,7 +34,6 @@ const KORZEN = resolve(__dirname, '../../../..');
  */
 describe('SEC-07 — multipart nie kładzie procesu', () => {
   const lock = readFileSync(resolve(KORZEN, 'pnpm-lock.yaml'), 'utf-8');
-  const pkg = JSON.parse(readFileSync(resolve(KORZEN, 'package.json'), 'utf-8'));
   const pkgApi = JSON.parse(readFileSync(resolve(KORZEN, 'apps/api/package.json'), 'utf-8'));
 
   /** Wszystkie wersje multera, jakie rozwiązał lockfile — z definicji pakietów. */
@@ -48,7 +47,7 @@ describe('SEC-07 — multipart nie kładzie procesu', () => {
           ? ''
           : 'Druga kopia multera to najprawdopodobniej pin 2.2.0 z @nestjs/platform-express. ' +
             'To ta kopia obsługuje multipart — podniesienie zależności bezpośredniej jej nie dotyka. ' +
-            'Napraw przez pnpm.overrides w korzeniu, nie przez bump w apps/api.',
+            'Napraw przez overrides w pnpm-workspace.yaml, nie przez bump w apps/api.',
     }).toEqual({ wersje: expect.arrayContaining([expect.any(String)]), podpowiedz: '' });
     expect(wersjeMultera).toHaveLength(1);
   });
@@ -62,8 +61,11 @@ describe('SEC-07 — multipart nie kładzie procesu', () => {
   });
 
   it('override w korzeniu istnieje — to on wymusza jedną kopię mimo pinu Nesta', () => {
-    expect(pkg.pnpm?.overrides?.multer).toBeDefined();
-    expect(pkg.pnpm.overrides.multer).toMatch(/\^?2\.[3-9]|\^?[3-9]/);
+    // PB-38: od pnpm 11 overrides żyją w pnpm-workspace.yaml (nie w package.json → pnpm).
+    const workspace = readFileSync(resolve(KORZEN, 'pnpm-workspace.yaml'), 'utf-8');
+    const override = /^overrides:\n(?:[ \t]+.*\n)*?[ \t]+"?multer"?:\s*"([^"]+)"/m.exec(workspace)?.[1];
+    expect(override).toBeDefined();
+    expect(override).toMatch(/\^?2\.[3-9]|\^?[3-9]/);
   });
 
   it('opcje uploadu niosą fieldArrayIndexLimit — sama wersja NIE wystarcza', () => {

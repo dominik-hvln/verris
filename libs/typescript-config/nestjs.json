@@ -4,6 +4,7 @@
   "extends": "./base.json",
   "compilerOptions": {
     "module": "CommonJS",
+    "moduleResolution": "bundler",
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
@@ -12,7 +13,6 @@
     "target": "ES2022",
     "sourceMap": true,
     "outDir": "./dist",
-    "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,

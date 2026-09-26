@@ -8,15 +8,19 @@
 # Build context: monorepo root.
 # =============================================================================
 
-# Node 22 LTS — Node 20 osiągnął EOL 30.04.2026 (brak łatek bezpieczeństwa).
-ARG NODE_VERSION=22
+# PB-38 — Node 24 (Active LTS do 20.10.2026, potem Maintenance do 30.04.2028).
+# Node 26 wchodzi, gdy zostanie LTS (koniec października 2026). Debian 13 „trixie” = obecny stable
+# (bookworm od 06.2026 ma już tylko wsparcie LTS).
+ARG NODE_VERSION=24
 ARG APP_NAME=client-panel
 ARG APP_PORT=3001
 
-FROM node:${NODE_VERSION}-bookworm-slim AS base
+FROM node:${NODE_VERSION}-trixie-slim AS base
 ENV PNPM_HOME=/pnpm \
     PATH=/pnpm:$PATH
-RUN corepack enable && corepack prepare pnpm@9.5.0 --activate
+# pnpm w wersji z packageManager (corepack znika z Node 25+, więc bez niego).
+COPY package.json /tmp/pm.json
+RUN npm install -g "$(node -p "require('/tmp/pm.json').packageManager")" && rm /tmp/pm.json
 WORKDIR /workspace
 
 # -----------------------------------------------------------------------------
@@ -30,10 +34,9 @@ COPY libs/contracts/package.json libs/contracts/package.json
 COPY libs/ui/package.json libs/ui/package.json
 COPY libs/typescript-config libs/typescript-config
 COPY libs/eslint-config libs/eslint-config
-RUN echo "node-linker=hoisted" >> .npmrc
+RUN printf '\nnodeLinker: hoisted\n' >> pnpm-workspace.yaml
 RUN --mount=type=cache,id=pnpm,target=/pnpm-store \
-    pnpm config set store-dir /pnpm-store && \
-    pnpm install --frozen-lockfile --filter @verris/${APP_NAME}...
+    pnpm install --store-dir /pnpm-store --frozen-lockfile --filter @verris/${APP_NAME}...
 
 # -----------------------------------------------------------------------------
 # 2. Build
@@ -81,15 +84,14 @@ RUN mkdir -p apps/${APP_NAME}/public
 # i ta sama poprawka; naprawiona jedna kopia, a druga zostawiona, to wzorzec,
 # który dał w tym projekcie Z-12, Z-16 i X-24.
 RUN --mount=type=cache,id=pnpm,target=/pnpm-store \
-    pnpm config set store-dir /pnpm-store && \
-    pnpm install --frozen-lockfile --prefer-offline --filter @verris/${APP_NAME}...
+    pnpm install --store-dir /pnpm-store --frozen-lockfile --prefer-offline --filter @verris/${APP_NAME}...
 
 RUN pnpm --filter @verris/${APP_NAME} build
 
 # -----------------------------------------------------------------------------
 # 3. Runtime
 # -----------------------------------------------------------------------------
-FROM node:${NODE_VERSION}-bookworm-slim AS runtime
+FROM node:${NODE_VERSION}-trixie-slim AS runtime
 ARG APP_NAME
 ARG APP_PORT
 # TZ — daty renderowane na serwerze (komponenty serwerowe) po polsku, jak w przeglądarce klienta.

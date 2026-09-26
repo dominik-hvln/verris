@@ -12,6 +12,17 @@ nie źródło prawdy). Poza tym zostają tylko dokumenty operacyjne i prawne: `d
 
 ## Decyzje
 
+### 2026-09-26 — zawsze najnowsze stabilne wersje przed startem (PB-38)
+Zasada właściciela: przed startem jedziemy na najnowszych **stabilnych** wersjach (LTS tam, gdzie jest).
+Fala 1 (zrobiona): **Node 24** (Active LTS; Node 26 — gdy zostanie LTS, koniec 10.2026), **TypeScript 6.0**
+(7.x, gdy typescript-eslint go obsłuży — dziś peer `<6.1`), **pnpm 12.6** (ustawienia w `pnpm-workspace.yaml`,
+skrypty instalacyjne tylko z `allowBuilds`, minimalny wiek wydania bez wyjątków), obrazy na Debian 13 „trixie”,
+Next 16.3.6, Payload 3.90. Migracja TS 6 bez `ignoreDeprecations`: `moduleResolution: node` → `bundler`, bez
+`baseUrl`/`downlevelIteration`, jawne `rootDir`. Dalej: fala 2 NestJS 12 / ESLint 10 / SimpleWebAuthn 14 /
+GraphQL 17; fala 3 Postgres 18 (procedura z kopią), Redis 8, monitoring; fala 4 Dependabot + strażnik EOL +
+kafelek „wersje”. **MinIO zostaje**, na Hetzner Object Storage przechodzimy razem z węzłem testowym.
+Prisma 8 — po GA (dziś RC; brakuje `increment`, zagnieżdżonych zapisów i kodów P2002, których używamy).
+
 ### 2026-09-22 — faktury VAT wystawia program księgowy (PB-13, FAK-01)
 Panel wystawia **dokument rozliczeniowy** (seria VDR/VDK), fakturę VAT operator wystawia w programie
 księgowym i dopisuje jej numer w panelu admina (`/invoices/czeka-na-fakture`). Przełącznik
@@ -325,87 +336,3 @@ WordPress MCP Adapter (developer.wordpress.org/news/2026/02/…), ClouDNS (cloud
 (openprovider.com/products/security/premium-dns, support.openprovider.eu …vanity-nameservers),
 Cloudflare (developers.cloudflare.com/dns/nameservers/custom-nameservers), Bunny (bunny.net/pricing/dns),
 Hetzner DNS (docs.hetzner.com/networking/dns/…), Route 53 (aws.amazon.com/route53/pricing).
-
-
-## Reseller: działania na klientach i marka (O-05, O-09) — 2026-09-25
-
-- **Granica danych:** reseller widzi u klienta tylko usługi i ich stan (domena, pakiet, status, stan zdrowia, odnowienie, cena detaliczna). Bez plików, baz, poczty, faktur, salda, danych rozliczeniowych, logowań i IP; bez wchodzenia na konto. Lista pól pilnowana w `test/integration/reseller-klienci.int-spec.ts`. Praca przy stronie = dostęp od klienta przez IAM.
-- **Działania:** `GET /reseller/me/clients/:id`, `POST …/password-link` (raz na 10 min), `POST …/service/:id/suspend|resume` (powód `RESELLER`; reseller zdejmuje tylko własną blokadę), `DELETE /reseller/me/clients/:id` (odpięcie). Klient: `GET/DELETE /me/partner` (odpiąć może tylko właściciel). Po 30 dniach wstrzymania przez resellera — powiadomienie dla obsługi (`reseller-przypomnienie.scheduler.ts`).
-- **Marka:** `POST /reseller/me/brand`, `POST/DELETE /reseller/me/logo` (PNG/JPEG/WebP ≤ 100 KB, typ po sygnaturze). Logo publicznie pod `/public/reseller-logo/:code`. Mailer wstawia blok partnera między znaczniki `<!--verris-partner-->` w nagłówku email-shell (wszystkie maile do klientów resellera). Panel: marka w sidebarze i w Ustawieniach, baner „wstrzymana przez partnera” na usłudze.
-- **Zasada w panelu:** baner „czeka na płatność” tylko przy blokadzie za płatność (`powodBlokady()` w `lib/service-events.ts`); wstrzymanie przez partnera albo obsługę ma własny komunikat.
-
-
-## Udostępnianie usług i przełącznik kont (PB-20) — 2026-09-26
-
-- **Zakres:** zaproszenie IAM obejmuje całe konto albo wybrane usługi (`serviceIds`). Subkonto: `User.subaccountServiceIds`; osoba z własnym kontem: `CustomerMembership.serviceIds`. Pusta lista = całe konto (dotychczasowe subkonta bez zmian).
-- **Egzekwowanie:** `common/guards/zakres-uslug.ts` w `CustomerPermissionsGuard` — przy zakresie przechodzą tylko trasy usług z zakresu (`/services/:id`, `/subscriptions/:id`, `/email-marketing/:subscriptionId`, `/analytics-sites/:subscriptionId`), `GET /services` (filtrowane w kontrolerze) i rzeczy osoby (powiadomienia, zgody, pomoc, zgłoszenia, `/users/me`). Portfel, domeny, zamówienia, VPS, dodatki, tokeny API, IAM — odmowa „Masz dostęp tylko do wybranych usług tego konta.”. Nawigacja panelu ukrywa to samo (`client-nav-access.ts`).
-- **Własne konto:** zaproszenie na adres z kontem Verris → strona zaproszenia prosi o zalogowanie tym kontem → `POST /users/iam/invites/accept-existing` tworzy `CustomerMembership`. Przełącznik w menu bocznym: `GET /auth/accounts`, `POST /auth/switch-account` (nowy token z `actingFor`, ta sama sesja `sid` i wersja tokenu). Strategia JWT sprawdza członkostwo przy każdym żądaniu; odebrany dostęp = token wraca do konta dewelopera. Podczas podglądu obsługi (`impersonatedBy`) `actingFor` jest ignorowany.
-- **Właściciel widzi wszystko:** sekcja „Dostęp z własnego konta” w IAM (edycja zakresu, odebranie dostępu), działania członków w audycie IAM (O-03), wpis `CUSTOMER_IAM_ACCOUNT_SWITCH` przy każdym przełączeniu.
-
-## Indywidualne warunki i rozliczenie poza Verris (PB-27, PB-28) — 2026-09-26
-
-- **Kto:** admin albo pracownik z uprawnieniem `CUSTOM_TERMS_MANAGE` („Indywidualne warunki”). Sekcja „Indywidualne warunki i rozliczenie” na karcie klienta w panelu admina (`/customers/:id`) i obsługi (`/crm/:id`); bez uprawnienia sekcja się nie pokazuje.
-- **Własna cena usługi:** pole `Subscription.individualPrice` (cena za okres). Wygrywa z cennikiem, kodami i rabatem startowym — także przy każdym odnowieniu (`PromoService.resolveNextRenewalAmount`). `priceAmount` trzymane zgodnie (panel klienta, MRR, „odwieś z opłatą”). Klient z własną ceną nie zmienia sam planu — robi to obsługa; po zmianie planu przez obsługę cena indywidualna zostaje, trzeba ją świadomie poprawić. Karta cykliczna Stripe (cennik Stripe) — odmowa.
-- **Rabat na autoskalowanie:** `Subscription.autoscalingDiscountPct` (0–100%), obniża każdy 15-minutowy blok, szacunek limitu wydatków i kwotę w mailu o starcie autoskalowania.
-- **Usługa zakładana przez operatora:** `POST /admin/custom-terms/user/:userId/service` — także na planie ukrytym. Zwykły klient: pierwszy okres z portfela; konto poza Verris: bez obciążenia. W audycie autor i powód zamiast oświadczenia konsumenckiego.
-- **Rozliczenie poza Verris:** `User.billingOutside` + wszystkie żywe usługi na `paymentSource = MANUAL` (przełączenie w transakcji; odmowa, gdy jest karta cykliczna). Skutki: okres przedłuża się sam na koniec okresu bez obciążenia i faktury, zaległość znika, brak przypomnień o odnowieniu i maili o niskim saldzie, brak proformy, klient nie widzi portfela/płatności/zamawiania (`client-nav-access.ts`), nowe usługi zamawia u opiekuna (API 403). Autoskalowanie działa bez pobierania — bloki zapisywane jako `AutoscalingEvent` z `reason = outside_block …`, zestawienie za miesiąc w sekcji (do własnej faktury). Wyłączenie wraca usługi na portfel od najbliższego odnowienia.
-- **Poza zakresem:** VPS i domeny dalej rozliczają się z portfela (klient poza Verris nie ma jak go doładować w panelu).
-- **Przy okazji naprawione:** kod rabatowy z opcją „także na odnowienia” nie zapisywał tej opcji (`promo.service.ts`); przebieg odnowień sortuje po dacie końca okresu.
-- **Testy:** `test/integration/warunki-indywidualne.int-spec.ts` (5), `client-nav-access.spec.ts`.
-
-## Węzły: blokery i manifest wersji floty (PB-29, PB-30) — 2026-09-26
-
-- **Przydział kont dopiero po weryfikacji:** selektor węzłów bierze tylko węzły z `onboardVerifiedAt` (zielony raport `node-live-readiness.sh` → `POST /agent/tasks/onboard-report`, wysyłany też przy przerwaniu na bramce) i bez zgłoszonego braku utwardzenia (`hardenedEnabled=false`). Węzły aktywne przed zmianą oznaczone jako zweryfikowane w migracji. Audyt węzła pokazuje „Weryfikacja onboardu”.
-- **Manifest stosu floty:** `apps/api/src/servers/stos-wezla.ts` — DirectAdmin kanał `stable` (+ `DA_COMMIT` po teście D3), PHP 8.3, MariaDB 11.4 (`mariadb1104` dla Governora), LiteSpeed 6.3.x, ModSecurity OWASP. Na węźle jako `/etc/verris-stack.env`: przy bootstrapie (przed instalacją DA — `DA_CHANNEL`, `DA_COMMIT`, `php1_release`, `mysql_inst`, `mariadb`) i co minutę przez agenta zadań. Profil hostingu czyta wersję Governora z manifestu; działającego silnika nie zmienia (upgrade po kolei: `node-db-upgrade`).
-- **MariaDB 11.4, nie 11.8:** 10.6 bez wsparcia od 6.07.2026 (MariaDB.org); CloudLinux opisuje dla Governora słowa kluczowe do `mariadb1104`, 11.8 nie jest tam udokumentowana. 11.4 LTS wspierana do 2029. Profil liczył słowo kluczowe 11.x źle (`mariadb114` zamiast `mariadb1104`) — poprawione.
-- **Zgodność floty:** agent raportuje `stackVersion`, `daVersion`, `lsVersion`, `clVersion`, `phpVersion`; audyt węzła „Zgodność z manifestem floty” pokazuje różnice.
-- **Bootstrap:** klucze licencji poza treścią skryptu i adresem — `POST /agent/nodes/bootstrap/secrets` z nagłówkiem tokenu (wpis w audycie, tylko przed handshake), tylko w pamięci; one-liner z tokenem w nagłówku; po DONE skrypt z tokenem usuwany. CloudLinux wykrywany przez `/proc/lve` + `cldetect` (od CL9 jądro nie ma „lve” w nazwie); DirectAdmin „zainstalowany” = binarka + `directadmin.conf`, nie sam katalog; hostname z kreatora ustawiany w PREFLIGHT; faza `DA` w raportach.
-- **Pakiet onboardu w układzie repo** (`ops/scripts`, `ops/hosting-default-page`, `ops/etc/verris/security`) — wcześniej płaska kopia gubiła security-watch i stronę domyślną.
-- **Do sprawdzenia na węźle testowym (D3):** czy `setup.sh` DirectAdmina przyjmuje `mariadb`/`mysql_inst` z env tak jak `php1_release`; wyjście `cldetect --detect-edition` na CL9/CL10; instalacja Governora `mariadb1104` na świeżym węźle.
-
-## Automatyzacja kreatora węzła i aktualizacje falami (PB-31, PB-32) — 2026-09-26
-
-- **Onboard LIVE z panelu:** zadanie agenta `ONBOARD_LIVE` — pakiet w układzie repo (`GET /agent/tasks/onboard-live/bundle`: skrypty węzła z `lib/`, strona domyślna, listy bezpieczeństwa, unity security-watch; bez skryptów control-plane) rozpakowany do `/opt/verris`, potem `ops/scripts/node-onboard-live.sh`. Przycisk w kreatorze (krok 5) + stan zadania i raport gotowości. Ręczny SSH został jako „awaryjnie”.
-- **Bez ręcznego klucza DA w onboardzie:** skrypt bierze tymczasowy (24 h) klucz admina z oficjalnego `da api-url` (DirectAdmin „API Access” → root). Stały klucz dla control-plane (krok 3) nadal tworzy właściciel w DA z ograniczeniem IP — świadomie, bo `da api-url` daje pełny dostęp bez ograniczeń.
-- **Kopie off-site floty raz w panelu** (kreator → krok 4, tylko admin): Storage Box (SFTP, port 23) + rclone crypt (hasło + sól). Zapis zaszyfrowany (`platform_settings.backup.offsiteEnc`), węzeł pobiera przez `GET /agent/tasks/backup-config` (audyt odczytu) i konfiguruje rclone bez interakcji (`node-backup-config.sh`, `rclone config create … --obscure`). Zmiana hasła/soli w audycie (odcina stare kopie). Pierwszy zapis od razu zleca Onboard LIVE zatwierdzonym, niezweryfikowanym węzłom; zatwierdzenie węzła przy skonfigurowanych kopiach zleca Onboard LIVE zamiast samego profilu.
-- **Rekord A nazwy hosta węzła** zakładany razem z NS w OVH (bez ręcznej wizyty w DNS).
-- **Egress węzła:** SSH/SFTP (22, 23) dozwolone tylko dla procesów roota — wcześniej blokada egress odcinała kopie off-site do Storage Boxa i worker migracji (SFTP); konta klientów dalej zablokowane. Reguły ładowane przy starcie z `/etc/sysconfig/nftables.conf` (RHEL/AlmaLinux — wcześniej pisane do `/etc/nftables.conf`, którego nftables.service na AlmaLinux nie czyta), plik idempotentny.
-- **Aktualizacje falami (PB-32):** „Aktualizuj flotę” = kanarek (węzeł z najmniejszą liczbą kont), potem po jednym; następny dopiero po udanym poprzednim, błąd zatrzymuje falę (`FLEET_UPDATE_STOPPED` w audycie), druga fala w trakcie — odmowa. Skrypt aktualizacji kończy się błędem, gdy krok się nie uda (wcześniej zawsze „ok”). `dnf-automatic` tylko pobiera — instalacja wyłącznie falą z panelu.
-- **Zostaje ręcznie:** instalacja systemu, klucze licencji, stały klucz DA dla control-plane z ograniczeniem IP, zatwierdzenie w panelu, LiteSpeed Per-Client Throttling w WebAdmin.
-- **Do sprawdzenia na D3:** zadanie ONBOARD_LIVE od początku do końca, `da api-url` na aktualnym DA, rclone na Storage Boxie przez egress, nftables razem z firewalld po restarcie.
-
-## Wersje stosu floty w panelu i cotygodniowa fala (PB-33, PB-35) — 2026-09-26
-
-- **Admin → Wersje stosu floty** (`/nodes/stack`, tylko admin): MariaDB (10.11 / 11.4 — tylko wersje opisane dla CloudLinux MySQL Governor), PHP domyślne (8.2–8.5 wg php.net; 8.2 tylko poprawki bezpieczeństwa do 31.12.2026), kanał DirectAdmina (stable/current), build DA (`DA_COMMIT`), linia LiteSpeed (6.3). Zapis w `platform_settings.stack.manifest`, każdy zapis podbija wersję manifestu (RRRR-MM-DD.N) i idzie do audytu (`STACK_MANIFEST_UPDATED`).
-- **Nowe węzły** instalują bieżący manifest od razu (bootstrap), **istniejące** dostają `/etc/verris-stack.env` co minutę; audyt węzła i tabela na stronie pokazują różnice.
-- **„Wyrównaj flotę”**: fala (kanarek → reszta po jednym) w trybie wyrównania — skrypt aktualizacji ustawia `php1_release` z manifestu przed `./build all d`; MariaDB idzie łańcuchem zadań `DB_UPGRADE` po jednym kroku (10.6 → 10.11 → 11.4), każdy z kopią bazy przed zmianą. Zwykła (cotygodniowa) fala wersji nie zmienia — tylko poprawki.
-- **Cotygodniowa fala (PB-35):** wtorek 4:00 czasu polskiego (`FalaTygodniowaScheduler`), nie dubluje trwającej; zatrzymanie fali → powiadomienie w panelu dla adminów.
-- **Testy:** `wersje-stosu.int-spec.ts` (4), `fala-aktualizacji.int-spec.ts` (3).
-
-## Podpisane skrypty węzła i klucz SSH tylko z control-plane (PB-36) — 2026-09-26
-
-- **Podpis:** każda odpowiedź GET z `/agent/tasks/*` ma nagłówki `X-Verris-Signature` (Ed25519) i `X-Verris-Signed-At`. Podpisywana wiadomość: `verris-sig-v1 · ścieżka · id węzła · czas · SHA-256 treści` — nie da się podmienić skryptu, podać go pod inną ścieżką, innemu węzłowi ani powtórzyć po 5 minutach. Klucz prywatny tylko w API: `VERRIS_SCRIPT_SIGNING_KEY` (PKCS#8 PEM lub jego base64; generowany na panelu: `openssl genpkey -algorithm ed25519 | base64 -w0`).
-- **Węzeł:** wszystko, co wykonuje albo wczytuje (skrypty zadań, profil hostingu, pakiet onboardu, strona domyślna, `/etc/verris-stack.env`, konfiguracja kopii, zlecenia, klucz deploy), pobiera wyłącznie przez `/usr/local/bin/verris-fetch` (`openssl pkeyutl -verify -rawin`). Zły lub brakujący podpis = plik nie zostaje zapisany, zadanie kończy się błędem „nieprawidłowy podpis control-plane”. Klucz publiczny `/etc/verris/script-signing.pub` przywozi bootstrap (TLS + jednorazowy token — punkt zaufania) albo instalacja agenta z panelu.
-- **Klucz deploy SSH:** jeden wpis `from="<VERRIS_CONTROL_PLANE_IPS>",no-agent-forwarding,no-port-forwarding,no-X11-forwarding,no-user-rc … verris-control-plane`; agent co minutę **zastępuje** poprzedni (także stary wpis bez ograniczeń), więc rotacja = zmiana env. Bez adresów control-plane klucz nie trafia na węzeł.
-- **Produkcja:** API nie wystartuje bez `VERRIS_SCRIPT_SIGNING_KEY` ani z `VERRIS_NODE_DEPLOY_SSH_PUBKEY` bez `VERRIS_CONTROL_PLANE_IPS`. Dev/test: klucz tymczasowy na czas procesu.
-- **Rotacja klucza podpisu:** nowy klucz w env + ponowna instalacja agenta na węzłach (Admin → węzeł → Pokaż skrypt instalacji). Obecnie ręcznie — przy większej flocie dodać okres przejściowy z dwoma kluczami.
-- **Poza zakresem:** `lve/desired` czyta agent LVE w Pythonie bez weryfikacji (dane limitów, nie kod) — podpis jest w nagłówku, weryfikację dodać przy najbliższej zmianie agenta LVE.
-- **Testy:** `podpis-skryptow.spec.ts` (prawdziwy `verris-fetch` przeciw serwerowi podpisującemu: poprawny / zmieniona treść / inna ścieżka / inny węzeł / stary / bez podpisu / brak klucza / 404; klucz deploy: wpis, rotacja, odmowa bez `from=`, odmowa wstrzyknięcia w adresach) + smoke na lokalnym API (skrypty, pakiety 77 plików, manifest, zlecenie, obcy klucz → odrzucone).
-
-## Opieka nad zgłoszeniem (PB-37) i panel obsługi w nowym wyglądzie (PB-34) — 2026-09-26
-
-- **Automatyczne wiadomości do klienta** (e-mail + wpis w wątku; treść i włączenie: Admin → Ustawienia → Opieka nad zgłoszeniami, zmienne `{{nr}} {{temat}} {{opiekun}} {{termin}} {{imie}} {{link}}`):
-  1. *Potwierdzenie z opiekunem* — od razu: numer, imię opiekuna (najmniej obłożony), termin odpowiedzi wg SLA;
-  2. *„Opiekun się tym zajmuje”* — pierwsze otwarcie przez przypisanego opiekuna (przed odpowiedzią) albo stan „W realizacji”;
-  3. *„Wciąż nad tym pracujemy”* — zgłoszenie czeka na nas dłużej niż połowa czasu odpowiedzi (URGENT 30 min … LOW 12 h), najwyżej raz na dobę; opiekun dostaje przypomnienie (sprawdzane co 5 min);
-  4. *Podziękowanie + ocena* — po zamknięciu przez obsługę (zamiast maila o zmianie stanu), z linkiem do oceny.
-  Automatyczne wiadomości **nie są odpowiedzią**: nie ruszają SLA pierwszej odpowiedzi, stanu, „czeka na klienta” ani metryki czasu odpowiedzi.
-- **Klient**: postęp (przyjęte → opiekun → przeczytane → odpowiedź → rozwiązane), opiekun z imienia i inicjału, kto z obsługi odpisał, ocena opiekuna i obsługi ogólnie (1–5) + „czy rozwiązane” + komentarz, „Otwórz ponownie” do 7 dni. Klient nie widzi notatek wewnętrznych (ryzyko, eskalacja, runbook, szkic asystenta, id pracowników).
-- **Obsługa** (ekran zgłoszenia 1:1 z makietą): blok *Podpowiedzi* — szkic asystenta przygotowany w tle po każdej wiadomości klienta (albo szkic z danych konta), szablony dla sytuacji (Powitanie, Diagnoza, Dłużej niż zwykle, Zalecenia, Zamknięcie), baza wiedzy, `/skrót` w polu odpowiedzi; „Co widzi klient” z zapowiedzią następnej automatycznej wiadomości; „Twoje oceny · 30 dni”; „Wyślij” (sprawa zostaje u nas) vs „Wyślij i czekaj na klienta”.
-- **Szablony**: kategoria + skrót (formularz admina, seed `seed-canned.ts` uzupełnia kategorie istniejących). Podgląd dla obsługi: Wiedza → Baza odpowiedzi.
-- **Oceny opiekunów**: Admin → Opieka nad zgłoszeniami (30/90/365 dni: ocena opiekuna, obsługi, % rozwiązanych); obsługa widzi swoje.
-- **Panel obsługi (PB-34)**: menu i pasek jak w makiecie (ciemne menu, jasna treść domyślnie, przełącznik motywu, menu na telefonie, wyszukiwarka pod „/”), skrzynka od nowa (widoki: wszystkie / Moje / Czeka na klienta, terminy po kolei), pozostałe ekrany przez warstwę `.v2-skin` (jak PB-16). Panele renderują czas po polsku (`TZ=Europe/Warsaw` w obrazie paneli). Panel admina — następny krok PB-34.
-- **Testy**: `opieka-zgloszen.int-spec.ts` (5, PostgreSQL).
-- **Poprawki po teście na produkcji (2026-09-26):** zgłoszenia sprzed SUP-V2 nie miały „kto pisał ostatni” — „wciąż pracujemy” poszło też tam, gdzie ostatnio odpisała obsługa (#f13c887b). Teraz wysyłka tylko przy znanym „ostatni pisał klient”, a migracja `20260926130000_ostatnia_wiadomosc_zgloszenia` uzupełnia stare zgłoszenia z wątku. Nagłówek „Monitoring” w menu obsługi tylko dla osób z dostępem do Grafany.
-- **Wdrożenie:** migracje Prisma idą teraz PRZED podmianą kodu (`compose run` z nowego obrazu) — koniec okna `ColumnNotFound` zaraz po wdrożeniu.
-

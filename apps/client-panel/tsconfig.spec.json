@@ -10,12 +10,13 @@
   "compilerOptions": {
     // Next buduje do ESM z `moduleResolution: bundler`; jest potrzebuje CJS.
     "module": "commonjs",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     // `jsx: preserve` z konfiguracji Next zostawia JSX nieprzetworzony —
     // ts-jest nie ma go czym wykonać. Testów komponentów jeszcze nie ma,
     // ale pierwszy nie powinien się wywalić na konfiguracji.
     "jsx": "react-jsx",
     "noEmit": false,
+    "rootDir": "../..",
     "types": ["jest", "node"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],

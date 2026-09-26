@@ -4,9 +4,10 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "module": "commonjs",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "noEmit": false,
+    "rootDir": "../..",
     "types": ["jest", "node"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],

@@ -11,7 +11,7 @@
     "@radix-ui/react-tabs": "^1.1.21",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
-    "lucide-react": "^1.47.0",
+    "lucide-react": "^1.48.0",
     "radix-ui": "^1.4.3",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
@@ -24,6 +24,6 @@
     "@types/react-dom": "^19.3.0",
     "@verris/typescript-config": "workspace:*",
     "tailwindcss": "^4.1.0",
-    "typescript": "^5.4.3"
+    "typescript": "^6.0.3"
   }
 }

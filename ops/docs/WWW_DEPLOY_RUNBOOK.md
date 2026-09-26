@@ -159,8 +159,8 @@ PSECRET=$(grep '^PAYLOAD_SECRET=' .env.prod | cut -d= -f2-)
 docker run --rm -i --network "$NET" -v "$PWD":/repo -w /repo/apps/www \
   -e DATABASE_URI="postgres://verris:${PGPASS}@postgres:5432/verris_db" \
   -e PAYLOAD_SECRET="${PSECRET}" \
-  node:22-bookworm bash -lc '
-    corepack enable &&
+  node:24-trixie bash -lc '
+    npm install -g pnpm@12.6.0 &&
     pnpm install --filter @verris/www... --frozen-lockfile &&
     pnpm --filter @verris/www exec payload migrate:create initial &&
     pnpm --filter @verris/www exec payload migrate'

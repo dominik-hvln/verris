@@ -4,8 +4,8 @@ Cel: **działający monorepo na Twojej maszynie** (Postgres, Redis, API, panele)
 
 ## Wymagania
 
-- Node **20+**
-- **pnpm** 9 (`corepack enable` lub instalacja globalna)
+- Node **24** (`.nvmrc`; `nvm use`)
+- **pnpm** 12 (`npm i -g pnpm@12.6.0` — wersja z `packageManager`)
 - **Docker** (tylko Postgres + Redis z `docker-compose.yml`)
 
 ## 1. Baza i Redis

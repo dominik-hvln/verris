@@ -5,13 +5,17 @@
 #   docker build -f Dockerfile.api -t verris/api .
 # =============================================================================
 
-# Node 22 LTS — Node 20 osiągnął EOL 30.04.2026 (brak łatek bezpieczeństwa).
-ARG NODE_VERSION=22
+# PB-38 — Node 24 (Active LTS do 20.10.2026, potem Maintenance do 30.04.2028).
+# Node 26 wchodzi, gdy zostanie LTS (koniec października 2026). Debian 13 „trixie” = obecny stable
+# (bookworm od 06.2026 ma już tylko wsparcie LTS).
+ARG NODE_VERSION=24
 
-FROM node:${NODE_VERSION}-bookworm-slim AS base
+FROM node:${NODE_VERSION}-trixie-slim AS base
 ENV PNPM_HOME=/pnpm \
     PATH=/pnpm:$PATH
-RUN corepack enable && corepack prepare pnpm@9.5.0 --activate
+# pnpm w wersji z packageManager (corepack znika z Node 25+, więc bez niego).
+COPY package.json /tmp/pm.json
+RUN npm install -g "$(node -p "require('/tmp/pm.json').packageManager")" && rm /tmp/pm.json
 WORKDIR /workspace
 
 # -----------------------------------------------------------------------------
@@ -26,10 +30,9 @@ COPY libs/directadmin-sdk/package.json libs/directadmin-sdk/package.json
 COPY libs/typescript-config libs/typescript-config
 COPY libs/eslint-config libs/eslint-config
 # pnpm isolated linker + COPY node_modules between stages breaks symlinks; hoisted layout matches Docker COPY.
-RUN echo "node-linker=hoisted" >> .npmrc
+RUN printf '\nnodeLinker: hoisted\n' >> pnpm-workspace.yaml
 RUN --mount=type=cache,id=pnpm,target=/pnpm-store \
-    pnpm config set store-dir /pnpm-store && \
-    pnpm install --frozen-lockfile --filter api... --filter @verris/database...
+    pnpm install --store-dir /pnpm-store --frozen-lockfile --filter api... --filter @verris/database...
 
 # -----------------------------------------------------------------------------
 # 2. Build — generate Prisma client, compile TS, produce dist
@@ -58,8 +61,7 @@ COPY apps/api apps/api
 # występującego w dwóch wersjach. Przy ciepłym magazynie kosztuje kilkanaście
 # sekund.
 RUN --mount=type=cache,id=pnpm,target=/pnpm-store \
-    pnpm config set store-dir /pnpm-store && \
-    pnpm install --frozen-lockfile --prefer-offline --filter api... --filter @verris/database...
+    pnpm install --store-dir /pnpm-store --frozen-lockfile --prefer-offline --filter api... --filter @verris/database...
 
 RUN pnpm --filter @verris/database run db:generate && \
     pnpm --filter @verris/database build && \
@@ -71,7 +73,7 @@ RUN pnpm --filter @verris/database run db:generate && \
 # -----------------------------------------------------------------------------
 # 3. Runtime — minimal image with only production deps and built artifacts
 # -----------------------------------------------------------------------------
-FROM node:${NODE_VERSION}-bookworm-slim AS runtime
+FROM node:${NODE_VERSION}-trixie-slim AS runtime
 ENV NODE_ENV=production \
     PORT=3000
 WORKDIR /app

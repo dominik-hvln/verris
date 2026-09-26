@@ -140,7 +140,7 @@ describe('Lista kopii', () => {
 
 describe('Retencja kopii (pruneHostingBackups) — kasuje pliki', () => {
   const katalog = (wpisy: Array<[string, string, string]>) =>
-    new URLSearchParams(wpisy.map(([n, typ, data]) => [`/backups/${n}`, new URLSearchParams({ type: typ, size: '1', date: data }).toString()])).toString();
+    new URLSearchParams(wpisy.map(([n, typ, data]): [string, string] => [`/backups/${n}`, new URLSearchParams({ type: typ, size: '1', date: data }).toString()])).toString();
   const BACKUPS = katalog([
     ['a.tar.gz', 'file', '2026-09-01T02:00:00Z'],
     ['b.tar.gz', 'file', '2026-09-03T02:00:00Z'],
