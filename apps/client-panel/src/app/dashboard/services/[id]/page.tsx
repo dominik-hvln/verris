@@ -91,9 +91,12 @@ export default function HostingManagerPage() {
   const visibleIds = visibleTabIds({ email: isEmail, kindResolved, simple: simpleMode });
   const visibleTabs = TABS.filter((t) => visibleIds.includes(t.id));
 
-  // Zakładka z adresu; niedostępna w tym typie/trybie → Przegląd.
+  // Zakładka z adresu; niedostępna w tym TYPIE usługi → Przegląd. Tryb prosty tylko chowa pozycje
+  // z menu — jawny link (przycisk „Zużycie zasobów” na przeglądzie, powiadomienie) otwiera zakładkę,
+  // zamiast po cichu zostawić klienta na Przeglądzie.
   const requested = searchParams.get('tab');
-  const activeTab: TabId = isTabId(requested) && visibleIds.includes(requested) ? requested : 'overview';
+  const dostepne = visibleTabIds({ email: isEmail, kindResolved, simple: false });
+  const activeTab: TabId = isTabId(requested) && dostepne.includes(requested) ? requested : 'overview';
   const setActiveTab = (t: TabId) => {
     const q = new URLSearchParams(searchParams.toString());
     q.set('tab', t);

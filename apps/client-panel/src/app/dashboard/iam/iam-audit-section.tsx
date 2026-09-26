@@ -1,5 +1,6 @@
 import { ScrollText } from 'lucide-react';
 import { getIamAudit } from './actions';
+import { pokazEmail } from './constants';
 import { ETYKIETY_DZIENNIKA } from '@/lib/etykiety-dziennika';
 
 /** Z-10 — przy odmowie pokazujemy, czego subkonto próbowało (metoda i trasa API). */
@@ -33,7 +34,7 @@ export async function IamAuditSection() {
                   {ETYKIETY_DZIENNIKA[entry.action] ?? entry.action}
                 </span>
                 {entry.actor?.name && (
-                  <span className="ml-2 text-neutral-500">— {entry.actor.name}</span>
+                  <span className="ml-2 text-neutral-500">— {pokazEmail(entry.actor.name)}</span>
                 )}
                 {entry.action === 'CUSTOMER_IAM_ACCESS_DENIED' && trasaOdmowy(entry.details) ? (
                   <span className="mt-0.5 block font-mono text-xs text-neutral-500">{trasaOdmowy(entry.details)}</span>

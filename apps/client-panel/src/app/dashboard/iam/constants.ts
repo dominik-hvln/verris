@@ -12,3 +12,7 @@ export const PERMISSION_LABELS: Record<string, string> = {
   TICKETS_MANAGE: 'Tickety: zarządzanie',
   SETTINGS_MANAGE: 'Ustawienia konta',
 };
+
+/** Konto usunięte na wniosek (RODO) ma zanonimizowany e-mail — pokazujemy etykietę, nie „deleted-<uuid>@verris.local”. */
+export const pokazEmail = (email: string | null | undefined): string =>
+  email && /^deleted-[0-9a-f-]+@verris\.local$/i.test(email) ? 'Konto usunięte' : (email ?? '');

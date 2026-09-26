@@ -18,7 +18,7 @@ import { IamAuditSection } from './iam-audit-section';
 import { IamNoticeBanner } from './iam-notice-banner';
 import { IamPermissionPicker } from './iam-permission-picker';
 import { IamScopePicker } from './iam-scope-picker';
-import { PERMISSION_LABELS } from './constants';
+import { PERMISSION_LABELS, pokazEmail } from './constants';
 import { PanelFetchError, PanelPageHeader } from '@/components/panel';
 
 export default async function IamPage() {
@@ -98,7 +98,7 @@ export default async function IamPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-medium text-white">{member.firstName} {member.lastName}</p>
-                    <p className="text-sm text-neutral-500">{member.email}</p>
+                    <p className="text-sm text-neutral-500">{pokazEmail(member.email)}</p>
                     {member.subaccountLabel && <p className="mt-1 text-xs text-neutral-500">{member.subaccountLabel}</p>}
                   </div>
                   {member.subaccountDisabledAt ? (
