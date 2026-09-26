@@ -1,9 +1,11 @@
+import { BackupOffsiteService } from './backup-offsite.service';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -42,6 +44,7 @@ export class ServersService {
     private readonly platformSettings: PlatformSettingsService,
     private readonly nodeDns: NodeDnsService,
     private readonly nodeTasks: NodeTasksService,
+    @Optional() private readonly backupOffsite?: BackupOffsiteService,
   ) {}
 
   /**
@@ -337,6 +340,16 @@ export class ServersService {
     // configured or the node already has NS provisioned it no-ops. The admin can
     // also trigger/reconcile this from the node panel.
     await this.nodeDns.tryAutoProvision(serverId);
+
+    // PB-31 — gdy kopie off-site floty są już skonfigurowane w panelu, od razu cały Onboard LIVE
+    // (hardening, egress, kopie, IP/pakiety DA, profil, raport gotowości) — bez SSH na węzeł.
+    const kopie = await this.backupOffsite?.podglad().catch(() => null);
+    if (kopie?.skonfigurowany) {
+      await this.nodeTasks.queueOnboardLive(serverId, actorUserId).catch((err) => {
+        this.logger.warn(`queueOnboardLive failed for server=${serverId}: ${err instanceof Error ? err.message : String(err)}`);
+      });
+      return updated;
+    }
 
     // Post-ACTIVE: profil hostingowy (Governor, CageFS, Exim/Dovecot, FTP) — agent
     // pobiera skrypt z API i uruchamia z --skip-build (bez pełnego rebuild PHP/LS).

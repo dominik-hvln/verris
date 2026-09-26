@@ -58,5 +58,5 @@ PB-27,PRODUKCJA,"na produkcji: usługa z własną ceną dla konta testowego, zmi
 PB-28,PRODUKCJA,"na produkcji: konto testowe poza Verris — brak obciążeń, przedłużenie okresu, panel bez portfela"
 PB-29,OD 29.09,"test na węźle testowym (D3): bootstrap z manifestem, Governor 11.4, raport gotowości, zgodność floty"
 PB-30,OD 29.09,"test na węźle testowym (D3): bootstrap z manifestem, Governor 11.4, raport gotowości, zgodność floty"
-PB-31,KOD,kod automatyzacji kreatora; przejście na węźle testowym po D3
-PB-32,KOD,kod fal aktualizacji; test na dwóch węzłach
+PB-31,OD 29.09,"przejście kreatora na węźle testowym (D3): bootstrap → zatwierdzenie → Onboard LIVE z panelu → zielony raport, bez SSH"
+PB-32,OD 29.09,fala aktualizacji na dwóch węzłach (kanarek + drugi)

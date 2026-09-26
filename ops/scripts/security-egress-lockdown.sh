@@ -75,7 +75,10 @@ else
   EXTRA_TCP="{ 21, 25, 465, 587, 993, 995, 2222, 3306 }"
 fi
 
+# Idempotencja: ponowne uruchomienie nie dokleja reguł (utwórz → usuń → zdefiniuj od nowa).
 cat >"$NFT_CONF" <<EOF
+table inet verris_egress
+delete table inet verris_egress
 table inet verris_egress {
   chain output {
     type filter hook output priority 0; policy drop;
@@ -94,6 +97,10 @@ table inet verris_egress {
 
     # role-specific outbound
     tcp dport ${EXTRA_TCP} accept
+
+    # PB-31 — SSH/SFTP tylko dla procesów roota: kopie off-site (rclone → Storage Box, port 23)
+    # i worker migracji (SFTP do starego hostingu, port 22). Konta klientów (inne UID) dalej zablokowane.
+    meta skuid 0 tcp dport { 22, 23 } accept
 
     # explicit IOC deny (Hetzner/Spamhaus incident)
     ip daddr 216.218.185.162 drop
@@ -117,20 +124,17 @@ EOF
   exit 2
 fi
 
-if [ ! -f /etc/nftables.conf ]; then
-  cat >/etc/nftables.conf <<'EOF'
-#!/usr/sbin/nft -f
-include "/etc/nftables.d/*.nft"
-EOF
-elif ! grep -q 'include "/etc/nftables.d/\*.nft"' /etc/nftables.conf; then
-  cp /etc/nftables.conf "/etc/nftables.conf.bak.$(date -u +%Y%m%dT%H%M%SZ)"
-  cat >/etc/nftables.conf <<'EOF'
-#!/usr/sbin/nft -f
-include "/etc/nftables.d/*.nft"
-EOF
+# Plik ładowany przy starcie przez nftables.service: RHEL/AlmaLinux czyta /etc/sysconfig/nftables.conf
+# (dokumentacja RHEL 9 „Getting started with nftables” → include w tym pliku); Debian — /etc/nftables.conf.
+# Wcześniej pisaliśmy tylko /etc/nftables.conf, więc na AlmaLinux blokada znikała po restarcie.
+BOOT_CONF=/etc/nftables.conf
+[ -f /etc/sysconfig/nftables.conf ] && BOOT_CONF=/etc/sysconfig/nftables.conf
+if ! grep -qF "include \"${NFT_CONF}\"" "$BOOT_CONF" 2>/dev/null; then
+  [ -f "$BOOT_CONF" ] && cp "$BOOT_CONF" "${BOOT_CONF}.bak.$(date -u +%Y%m%dT%H%M%SZ)"
+  printf '\n# Verris egress lockdown\ninclude "%s"\n' "$NFT_CONF" >>"$BOOT_CONF"
 fi
 
-nft -f /etc/nftables.conf
+nft -f "$NFT_CONF"
 systemctl enable --now nftables
 nft list ruleset
 

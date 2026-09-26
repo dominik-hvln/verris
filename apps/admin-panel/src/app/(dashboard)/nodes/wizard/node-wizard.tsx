@@ -45,6 +45,7 @@ import {
   WIZARD_STEPS,
 } from "./wizard-content";
 import { Checkbox } from '@/components/checkbox';
+import { KopieOffsiteFormularz, OnboardLivePanel } from "./onboard-panele";
 
 const WIZARD_STORAGE_KEY = "verris-node-wizard-v1";
 const APPROVE_DA_STEP_INDEX = WIZARD_STEPS.findIndex((s) => s.id === "approve-da");
@@ -319,8 +320,8 @@ export function NodeWizard() {
         <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
           Jedna ścieżka dodania węzła: rekord w panelu → wznawialny bootstrap v2 (CloudLinux, DirectAdmin,
           LiteSpeed, agent) z postępem na żywo → akceptacja i DA API → backup offsite → Onboard LIVE →
-          profil hostingowy → smoke. Klucze licencyjne zapisujemy zaszyfrowane i wstawiamy tylko do
-          jednorazowego skryptu.
+          profil hostingowy → smoke. Klucze licencyjne zapisujemy zaszyfrowane; skrypt pobiera je osobno
+          (wpis w audycie) i nie zapisuje na dysku serwera.
         </p>
       </header>
 
@@ -644,14 +645,18 @@ export function NodeWizard() {
               panelu, że kopie są przechowywane poza serwerem — bez tej konfiguracji to byłaby nieprawda,
               dlatego onboard LIVE zatrzymuje się, dopóki jej nie ma.
             </p>
-            <CopyBlock label="4b) Konfiguracja backupu offsite (root na węźle)" text={BACKUP_OFFSITE_CONF} />
+            <KopieOffsiteFormularz />
+            <details className="rounded-lg border border-white/10 px-3 py-2 text-xs text-zinc-400">
+              <summary className="cursor-pointer text-zinc-300">Awaryjnie: konfiguracja ręczna na węźle</summary>
+              <CopyBlock label="4b) Konfiguracja backupu offsite (root na węźle)" text={BACKUP_OFFSITE_CONF} />
+            </details>
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <Checkbox
                 checked={!!checked.backupOffsite}
                 onChange={() => toggleCheck("backupOffsite")}
                 className="rounded border-white/20"
               />
-              rclone lsd verris-crypt: działa, hasła crypt są w sejfie
+              Konfiguracja zapisana, hasło i sól szyfrowania są w sejfie
             </label>
           </div>
         )}
@@ -677,16 +682,20 @@ export function NodeWizard() {
                 ))}
               </ul>
             </div>
-            <CopyBlock label="5a) Skopiuj bundle na węzeł (scp)" text={ONBOARD_LIVE_SCP} />
-            <CopyBlock label="5b) Uruchom onboarding (root na węźle)" text={ONBOARD_LIVE_RUN} />
-            <CopyBlock label="5c) Weryfikacja" text={ONBOARD_LIVE_VERIFY} />
+            {serverId ? <OnboardLivePanel serverId={serverId} /> : null}
+            <details className="rounded-lg border border-white/10 px-3 py-2 text-xs text-zinc-400">
+              <summary className="cursor-pointer text-zinc-300">Awaryjnie: onboard ręcznie przez SSH</summary>
+              <CopyBlock label="5a) Skopiuj pakiet onboardu na węzeł" text={ONBOARD_LIVE_SCP} />
+              <CopyBlock label="5b) Uruchom onboarding (root na węźle)" text={ONBOARD_LIVE_RUN} />
+              <CopyBlock label="5c) Weryfikacja" text={ONBOARD_LIVE_VERIFY} />
+            </details>
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <Checkbox
                 checked={!!checked.onboardLive}
                 onChange={() => toggleCheck("onboardLive")}
                 className="rounded border-white/20"
               />
-              node-onboard-live.sh zakończony bez [FAIL] (hardening + IP w DA + pakiety planów)
+              Onboard zakończony zielonym raportem (węzeł zweryfikowany)
             </label>
             {serverId && <NodeConfigActions serverId={serverId} />}
           </div>

@@ -35,7 +35,8 @@
 #   --public-ip IP         wymuszenie publicznego IP (domyślnie: auto-detect)
 #
 # Zmienne środowiskowe (opcjonalne, krok DirectAdmin):
-#   DA_HOST, DA_PORT, DA_USER, DA_KEY  — login key admina (Account Manager → Login Keys)
+#   DA_HOST, DA_PORT, DA_USER, DA_KEY  — login key admina; bez nich skrypt bierze tymczasowy
+#                                        klucz z oficjalnego `da api-url` (root na węźle, 24 h)
 #   DA_SECURE=yes|no
 #
 # Po sukcesie — w panelu admin (węzeł Node-XX):
@@ -270,8 +271,16 @@ run_security_hardening() {
   else
     log_fail "node-offsite-backup.sh — instalacja nieudana"
   fi
+  # PB-31 — konfiguracja z panelu (kreator → krok 4): bez rclone config na węźle.
+  if [ "$DRY_RUN" != "1" ] && [ -f "$SCRIPT_DIR/node-backup-config.sh" ] && ! backup_offsite_skonfigurowany; then
+    if bash "$SCRIPT_DIR/node-backup-config.sh"; then
+      log_ok "Backup offsite skonfigurowany z panelu (rclone verris-crypt:)"
+    else
+      log_warn "Konfiguracja kopii z panelu nie powiodła się — szczegóły powyżej"
+    fi
+  fi
   if ! backup_offsite_skonfigurowany; then
-    log_fail "Backup offsite nieskonfigurowany — utwórz /etc/verris-backup.conf (RCLONE_REMOTE, BACKUP_PREFIX) i remote w rclone.conf, potem uruchom onboard ponownie. Instrukcja: kreator węzła → krok „Backup offsite”."
+    log_fail "Backup offsite nieskonfigurowany — utwórz /etc/verris-backup.conf (RCLONE_REMOTE, BACKUP_PREFIX) i remote w rclone.conf, potem uruchom onboard ponownie. Najprościej: kreator węzła → krok „Backup offsite” (zapis w panelu), potem uruchom onboard ponownie."
   fi
 }
 
@@ -308,6 +317,25 @@ ensure_da_ip() {
     # NODE-02: [FAIL], nie [WARN]. Węzeł bez zarejestrowanego IP odrzuca każde zakładanie konta
     # („A valid IP was not provided” — od tego komunikatu zaczęło się Z-18).
     log_fail "IP $PUBLIC_IP nie jest zarejestrowane w DirectAdmin — dodaj je w Admin → IP Manager (Add IP, „Add to device” odznaczone, jeśli IP jest już na interfejsie) i uruchom onboard ponownie"
+  fi
+
+  # PB-31 — bez ręcznego klucza: root na węźle dostaje tymczasowy (24 h) klucz admina z oficjalnego
+  # `da api-url` (DirectAdmin docs, „API Access” → root access). Nic nie trafia do historii powłoki.
+  if [ -z "${DA_KEY:-}" ] && command -v da >/dev/null 2>&1 && [ "$DRY_RUN" != "1" ]; then
+    local api_url parsed
+    api_url="$(da api-url 2>/dev/null | head -1 || true)"
+    if parsed="$(python3 -c '
+import sys, urllib.parse
+u = urllib.parse.urlsplit(sys.argv[1])
+assert u.username and u.password and u.hostname
+print("\t".join([urllib.parse.unquote(u.username), urllib.parse.unquote(u.password), u.hostname, str(u.port or 2222), "no" if u.scheme == "http" else "yes"]))
+' "$api_url" 2>/dev/null)"; then
+      IFS=$'\t' read -r DA_USER DA_KEY DA_HOST DA_PORT DA_SECURE <<<"$parsed"
+      export DA_USER DA_KEY DA_HOST DA_PORT DA_SECURE
+      log_ok "Tymczasowy klucz admina DA z „da api-url” (24 h)"
+    else
+      log_warn "da api-url nie zwróciło adresu — sync pakietów wymaga DA_USER/DA_KEY"
+    fi
   fi
 
   if [ -n "${DA_KEY:-}" ] && [ -n "${DA_USER:-}" ]; then

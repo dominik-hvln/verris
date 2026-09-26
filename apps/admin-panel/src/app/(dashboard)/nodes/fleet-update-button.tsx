@@ -15,13 +15,13 @@ export function FleetUpdateButton() {
   const [pending, start] = useTransition();
 
   const run = async () => {
-    if (!(await potwierdz("Zlecić aktualizację stacku (DA/CloudLinux/LiteSpeed) na WSZYSTKICH aktywnych węzłach? Zalecane po drainie ruchu.", { akcja: 'Zleć aktualizację', niebezpieczne: true }))) {
+    if (!(await potwierdz("Uruchomić falę aktualizacji stacku (DA/CloudLinux/LiteSpeed)? Najpierw węzeł kanarkowy (najmniej kont), potem pozostałe po jednym — każdy następny dopiero po udanej aktualizacji poprzedniego, błąd zatrzymuje falę.", { akcja: 'Uruchom falę', niebezpieczne: true }))) {
       return;
     }
     setMsg(null);
     start(async () => {
       const { data, error } = await updateFleet();
-      if (data) setMsg({ ok: true, text: `Zlecono na ${data.queued} węzłach (pominięto ${data.skipped}).` });
+      if (data) setMsg({ ok: true, text: data.queued ? `Fala ruszyła od węzła kanarkowego; pozostałe pójdą po kolei (pominięto bez agenta: ${data.skipped}).` : `Brak węzłów z agentem (pominięto ${data.skipped}).` });
       else setMsg({ ok: false, text: error ?? "Błąd." });
     });
   };

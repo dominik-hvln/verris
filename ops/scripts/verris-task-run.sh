@@ -143,6 +143,9 @@ elif [ "$TASK_KIND" = "DB_UPGRADE" ]; then
   RUN_BIN="/usr/local/bin/verris-db-upgrade.sh"
   fetch_task_script "/agent/tasks/db-upgrade/script" "$RUN_BIN"
   payload_env "DB" "{'version':'TARGET_VERSION'}"
+elif [ "$TASK_KIND" = "ONBOARD_LIVE" ]; then
+  RUN_BIN="/usr/local/bin/verris-onboard-live.sh"
+  fetch_task_script "/agent/tasks/onboard-live/script" "$RUN_BIN"
 elif [ "$TASK_KIND" = "FLEET_UPDATE" ]; then
   RUN_BIN="/usr/local/bin/verris-node-update.sh"
   fetch_task_script "/agent/tasks/node-update/script" "$RUN_BIN"

@@ -212,6 +212,9 @@ elif [ "$TASK_KIND" = "DB_UPGRADE" ]; then
   RUN_BIN="/usr/local/bin/verris-db-upgrade.sh"
   fetch_task_script "/agent/tasks/db-upgrade/script" "$RUN_BIN"
   payload_env "DB" "{'version':'TARGET_VERSION'}"
+elif [ "$TASK_KIND" = "ONBOARD_LIVE" ]; then
+  RUN_BIN="/usr/local/bin/verris-onboard-live.sh"
+  fetch_task_script "/agent/tasks/onboard-live/script" "$RUN_BIN"
 elif [ "$TASK_KIND" = "FLEET_UPDATE" ]; then
   RUN_BIN="/usr/local/bin/verris-node-update.sh"
   fetch_task_script "/agent/tasks/node-update/script" "$RUN_BIN"
@@ -479,7 +482,7 @@ dispatch_generic() {
 
 case "$KIND" in
   HOSTING_PROFILE) dispatch_hosting_profile ;;
-  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE|DB_TRANSFER|FILE_RESTORE|SSH_ACCESS|WP_UPDATE|DISK_USAGE|MALWARE_SCAN|REDIS_ACCESS|MAIL_LOG|GIT_DEPLOY|SITE_CLONE|HTACCESS|PHP_INFO|FILE_SEARCH|APP_SELECTOR|SLOW_SQL|MEMCACHED_ACCESS|SITE_STATS|PGSQL|IMAGE_OPTIMIZE) dispatch_generic ;;
+  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE|DB_TRANSFER|FILE_RESTORE|SSH_ACCESS|WP_UPDATE|DISK_USAGE|MALWARE_SCAN|REDIS_ACCESS|MAIL_LOG|GIT_DEPLOY|SITE_CLONE|HTACCESS|PHP_INFO|FILE_SEARCH|APP_SELECTOR|SLOW_SQL|MEMCACHED_ACCESS|SITE_STATS|PGSQL|IMAGE_OPTIMIZE|ONBOARD_LIVE) dispatch_generic ;;
   *)
     report_task_fail "Unknown task kind: $KIND"
     exit 1

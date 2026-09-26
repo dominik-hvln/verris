@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { BadRequestException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { ClientWebhooksService } from '../client-webhooks/client-webhooks.service';
 import { AccountStatus, NodeTaskKind, NodeTaskStatus, Prisma, ServerStatus } from '@verris/database';
@@ -42,6 +43,14 @@ export type HostingProfileTaskPayload = {
 /** VER-UPG — dozwolone docelowe wersje MariaDB (aktualne LTS; 10.11 jako krok pośredni przy CloudLinux MySQL Governor). */
 export const ALLOWED_DB_VERSIONS = ['10.11', '11.4', '11.8', '12.3'] as const;
 export type AllowedDbVersion = (typeof ALLOWED_DB_VERSIONS)[number];
+
+/** PB-32 — stan fali aktualizacji niesiony w payloadzie zadania FLEET_UPDATE. */
+export interface FalaAktualizacji {
+  id: string;
+  nr: number;
+  razem: number;
+  kolejka: string[];
+}
 
 @Injectable()
 export class NodeTasksService {
@@ -213,10 +222,42 @@ export class NodeTasksService {
   }
 
   /**
+   * PB-31 — Onboard LIVE z panelu (hardening, egress, IP w DA, pakiety, profil, weryfikacja).
+   * Idempotentne: nie duplikuje zadania, gdy jedno czeka albo trwa.
+   */
+  async queueOnboardLive(serverId: string, actorUserId: string | null) {
+    const server = await this.prisma.server.findUnique({ where: { id: serverId } });
+    if (!server) throw new NotFoundException('Server not found');
+    if (!server.identityToken) {
+      throw new BadRequestException('Węzeł nie ma jeszcze agenta — najpierw bootstrap (krok 2).');
+    }
+    await this.reclaimStaleRunningTasks(serverId);
+    const inflight = await this.prisma.nodeTask.findFirst({
+      where: {
+        serverId,
+        kind: 'ONBOARD_LIVE' as NodeTaskKind,
+        status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] },
+      },
+    });
+    if (inflight) return this.toPublicTask(inflight);
+    const task = await this.prisma.nodeTask.create({
+      data: {
+        serverId,
+        kind: 'ONBOARD_LIVE' as NodeTaskKind,
+        status: NodeTaskStatus.QUEUED,
+        payload: {},
+        requestedById: actorUserId,
+      },
+    });
+    await this.audit.record({ action: 'NODE_ONBOARD_QUEUED', actorUserId: actorUserId ?? undefined, details: { serverId, taskId: task.id } });
+    return this.toPublicTask(task);
+  }
+
+  /**
    * NODE-6 — zleca aktualizację stacku węzła do latest-stable (CustomBuild +
    * yum). Idempotentne: nie duplikuje zadania, gdy jedno już czeka/trwa.
    */
-  async queueNodeUpdate(serverId: string, actorUserId: string) {
+  async queueNodeUpdate(serverId: string, actorUserId: string | null, fala?: FalaAktualizacji) {
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });
     if (!server) throw new NotFoundException('Server not found');
     if (server.status !== ServerStatus.ACTIVE) {
@@ -241,14 +282,14 @@ export class NodeTasksService {
         serverId,
         kind: 'FLEET_UPDATE' as NodeTaskKind,
         status: NodeTaskStatus.QUEUED,
-        payload: {},
+        payload: (fala ? { fala } : {}) as unknown as Prisma.InputJsonValue,
         requestedById: actorUserId,
       },
     });
     await this.audit.record({
       action: 'NODE_FLEET_UPDATE_QUEUED',
-      actorUserId,
-      details: { serverId, taskId: task.id },
+      actorUserId: actorUserId ?? undefined,
+      details: { serverId, taskId: task.id, ...(fala ? { fala: fala.id, nr: fala.nr, razem: fala.razem } : {}) },
     });
     return this.toPublicTask(task);
   }
@@ -258,31 +299,56 @@ export class NodeTasksService {
    * agentem. Rolling z natury: agent każdego węzła leasuje jedno zadanie naraz,
    * a admin może zawczasu zdrainować węzły. Zwraca liczbę zleconych.
    */
-  async queueFleetUpdate(actorUserId: string): Promise<{ queued: number; skipped: number }> {
+  async queueFleetUpdate(actorUserId: string | null): Promise<{ queued: number; skipped: number; kanarek: string | null }> {
+    // PB-32 — fala: najpierw węzeł kanarkowy (najmniej kont = najmniejsze ryzyko), potem reszta
+    // po jednym; każdy następny rusza dopiero po udanej aktualizacji poprzedniego, błąd zatrzymuje falę.
+    const trwa = await this.prisma.nodeTask.findFirst({
+      where: { kind: 'FLEET_UPDATE' as NodeTaskKind, status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] } },
+      select: { id: true },
+    });
+    if (trwa) throw new BadRequestException('Aktualizacja floty już trwa — poczekaj na jej koniec.');
+
     const servers = await this.prisma.server.findMany({
       where: { status: ServerStatus.ACTIVE },
-      select: { id: true, identityToken: true },
+      select: { id: true, identityToken: true, _count: { select: { accounts: true } } },
     });
-    let queued = 0;
-    let skipped = 0;
-    for (const s of servers) {
-      if (!s.identityToken) {
-        skipped++;
-        continue;
-      }
-      try {
-        await this.queueNodeUpdate(s.id, actorUserId);
-        queued++;
-      } catch {
-        skipped++;
-      }
-    }
+    const zAgentem = servers.filter((s) => s.identityToken).sort((a, b) => a._count.accounts - b._count.accounts);
+    const skipped = servers.length - zAgentem.length;
+    if (zAgentem.length === 0) return { queued: 0, skipped, kanarek: null };
+
+    const [kanarek, ...reszta] = zAgentem.map((s) => s.id);
+    const fala: FalaAktualizacji = { id: randomUUID(), nr: 1, razem: zAgentem.length, kolejka: reszta };
+    await this.queueNodeUpdate(kanarek, actorUserId, fala);
     await this.audit.record({
       action: 'FLEET_UPDATE_QUEUED',
-      actorUserId,
-      details: { queued, skipped, total: servers.length },
+      actorUserId: actorUserId ?? undefined,
+      details: { fala: fala.id, kanarek, kolejnosc: [kanarek, ...reszta], skipped },
     });
-    return { queued, skipped };
+    return { queued: 1, skipped, kanarek };
+  }
+
+  /** PB-32 — po udanej aktualizacji węzła z fali zlecamy następny; po błędzie fala staje. */
+  private async dalejFala(task: { serverId: string; payload: Prisma.JsonValue }, udane: boolean, log?: string | null) {
+    const fala = (task.payload as { fala?: FalaAktualizacji } | null)?.fala;
+    if (!fala) return;
+    if (!udane) {
+      await this.audit.record({
+        action: 'FLEET_UPDATE_STOPPED',
+        details: { fala: fala.id, serverId: task.serverId, nr: fala.nr, razem: fala.razem, pozostale: fala.kolejka },
+      });
+      return;
+    }
+    if (/VERRIS_UPDATE_RESULT=needs-reboot/.test(log ?? '')) {
+      await this.audit.record({ action: 'FLEET_UPDATE_NEEDS_REBOOT', details: { fala: fala.id, serverId: task.serverId } });
+    }
+    const [nastepny, ...reszta] = fala.kolejka;
+    if (!nastepny) {
+      await this.audit.record({ action: 'FLEET_UPDATE_FINISHED', details: { fala: fala.id, razem: fala.razem } });
+      return;
+    }
+    await this.queueNodeUpdate(nastepny, null, { ...fala, nr: fala.nr + 1, kolejka: reszta }).catch(async (e: Error) => {
+      await this.audit.record({ action: 'FLEET_UPDATE_STOPPED', details: { fala: fala.id, serverId: nastepny, powod: e.message } });
+    });
   }
 
   /** VER-UPG — historia zleceń upgrade DB dla węzła (panel admina). */
@@ -502,6 +568,8 @@ export class NodeTasksService {
       });
     }
 
+    if (task.kind === NodeTaskKind.FLEET_UPDATE) await this.dalejFala(task, true, log);
+
     if (task.kind === NodeTaskKind.HOSTING_PROFILE) {
       await this.directAdmin.syncPlanPackagesForServer(opts.serverId).catch((err) => {
         this.logger.warn(
@@ -640,6 +708,7 @@ export class NodeTasksService {
       },
     });
     await this.webhooks?.poZadaniu(task, false);
+    if (task.kind === NodeTaskKind.FLEET_UPDATE) await this.dalejFala(task, false);
 
     return this.toPublicTask(updated);
   }

@@ -68,8 +68,8 @@ Skopiuj pakiet onboardu na węzeł — w układzie repo (`ops/scripts` z `lib/`,
 (`security-install-verris-security.sh` potrzebuje `ops/etc/verris/security/*.txt`):
 
 ```bash
-tar czf - ops/scripts ops/hosting-default-page ops/etc/verris/security \
-  | ssh root@WĘZEŁ 'mkdir -p /root/verris && tar xzf - -C /root/verris'
+tar czf - ops/scripts ops/hosting-default-page ops/etc/verris/security ops/systemd \
+  | ssh root@WĘZEŁ 'mkdir -p /opt/verris && tar xzf - -C /opt/verris'
 ```
 
 Uruchom:
@@ -77,7 +77,7 @@ Uruchom:
 ```bash
 export DA_USER=admin
 export DA_KEY='login-key-z-DA-Account-Manager'
-bash /root/verris/ops/scripts/node-onboard-live.sh
+bash /opt/verris/ops/scripts/node-onboard-live.sh
 ```
 
 **PB-29:** na końcu `node-live-readiness.sh` wysyła raport do control-plane (`POST /agent/tasks/onboard-report`,

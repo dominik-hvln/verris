@@ -698,6 +698,7 @@ enum NodeTaskKind {
   SITE_STATS        // PB-19 — widok strony: technologia, ruch 7 dni, 5xx, TTFB z serwera
   PGSQL             // D-14 — bazy PostgreSQL konta (node-pgsql.sh)
   IMAGE_OPTIMIZE    // J-06 — bezstratna optymalizacja obrazów strony (node-image-optimize.sh)
+  ONBOARD_LIVE      // PB-31 — Onboard LIVE z panelu: pakiet do /opt/verris + node-onboard-live.sh
 }
 
 enum WafMode {

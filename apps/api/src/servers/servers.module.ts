@@ -1,3 +1,5 @@
+import { OnboardAdminController } from './onboard.admin.controller';
+import { BackupOffsiteService } from './backup-offsite.service';
 import { Module } from '@nestjs/common';
 import { ServersService } from './servers.service';
 import { ServersController } from './servers.controller';
@@ -23,6 +25,7 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
   imports: [PlatformSettingsModule],
   controllers: [
     ServersController,
+    OnboardAdminController,
     ServersAdminController,
     NodeTasksAgentController,
     NodeSecurityAgentController,
@@ -32,6 +35,7 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
   ],
   providers: [
     ServersService,
+    BackupOffsiteService,
     NodeTasksService,
     NodeAuditService,
     NodeStackReadinessService,

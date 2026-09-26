@@ -4,6 +4,7 @@ import {
   Get,
   Header,
   HttpCode,
+  NotFoundException,
   Param,
   Post,
   Req,
@@ -46,6 +47,8 @@ import { loadSiteStatsScript } from './site-stats.script';
 import { loadPhpInfoScript } from './php-info.script';
 import { loadFileSearchScript } from './file-search.script';
 import { loadNodeUpdateScript } from './node-update.script';
+import { buildOnboardBundle, loadOnboardLiveScript } from './onboard-live.script';
+import { BackupOffsiteService } from './backup-offsite.service';
 import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { stosJakoEnv } from './stos-wezla';
 
@@ -95,7 +98,10 @@ class ProgressNodeTaskDto {
 @Controller('agent/tasks')
 @UseGuards(ServerIdentityGuard)
 export class NodeTasksAgentController {
-  constructor(private readonly tasks: NodeTasksService) {}
+  constructor(
+    private readonly tasks: NodeTasksService,
+    private readonly backup: BackupOffsiteService,
+  ) {}
 
   @Get('deploy-ssh-pubkey')
   deploySshPubkey() {
@@ -315,6 +321,32 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   stagingSyncScript() {
     return loadStagingSyncScript();
+  }
+
+  /** PB-31 — konfiguracja kopii off-site floty dla węzła (sekrety; odczyt w audycie). 404 = nieskonfigurowane. */
+  @Get('backup-config')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  @Header('Cache-Control', 'no-store')
+  async backupConfig(@Req() req: Request & { serverId?: string }) {
+    const tresc = await this.backup.dlaWezla(req.serverId!);
+    if (!tresc) throw new NotFoundException('Kopie off-site nie są skonfigurowane w panelu (kreator węzła → krok 4).');
+    return tresc;
+  }
+
+  /** PB-31 — Onboard LIVE z panelu: skrypt-opakowanie i pakiet w układzie repo. */
+  @Get('onboard-live/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  onboardLiveScript() {
+    return loadOnboardLiveScript();
+  }
+
+  @Get('onboard-live/bundle')
+  async onboardLiveBundle() {
+    const buffer = await buildOnboardBundle();
+    return new StreamableFile(buffer, {
+      type: 'application/gzip',
+      disposition: 'attachment; filename="verris-onboard.tar.gz"',
+    });
   }
 
   @Get('hosting-profile/default-page/script')

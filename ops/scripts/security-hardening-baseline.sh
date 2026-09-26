@@ -138,7 +138,9 @@ Unattended-Upgrade::Automatic-Reboot \"false\";
 EOF"
     run "systemctl enable --now unattended-upgrades || true"
   elif command -v dnf >/dev/null 2>&1; then
-    run "sed -i 's/^apply_updates = .*/apply_updates = yes/' /etc/dnf/automatic.conf || true"
+    # PB-32 — węzły nie aktualizują się same, każdy o innej porze (rozjazd wersji w flocie).
+    # dnf-automatic tylko pobiera; instalacja idzie falą z panelu (kanarek → reszta po jednym).
+    run "sed -i 's/^apply_updates = .*/apply_updates = no/; s/^download_updates = .*/download_updates = yes/' /etc/dnf/automatic.conf || true"
     run "systemctl enable --now dnf-automatic.timer"
   fi
 }

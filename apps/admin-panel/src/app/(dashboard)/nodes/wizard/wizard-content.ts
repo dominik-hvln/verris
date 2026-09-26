@@ -39,12 +39,12 @@ export const WIZARD_STEPS: WizardStep[] = [
   {
     id: "backup-offsite",
     title: "Backup offsite",
-    subtitle: "rclone + /etc/verris-backup.conf — bez tego onboard nie przejdzie",
+    subtitle: "Storage Box i szyfrowanie raz dla floty — węzeł pobierze je sam",
   },
   {
     id: "onboard-live",
-    title: "Onboard LIVE (SSH)",
-    subtitle: "Hardening, egress lockdown, IP w DA, pakiety planów",
+    title: "Onboard LIVE",
+    subtitle: "Z panelu: hardening, egress, kopie, IP i pakiety DA, raport gotowości",
   },
   {
     id: "hosting-profile",
@@ -212,7 +212,7 @@ export const BOOTSTRAP_DOES_NOT = [
  */
 export const ONBOARD_LIVE_SCP = `# 5a) Z repo (stacja robocza) — pakiet onboardu w układzie repo: skrypty z lib/, strona domyślna,
 #     listy bezpieczeństwa (security-watch). Układ ops/… jest wymagany — skrypty szukają plików względem repo.
-tar czf - ops/scripts ops/hosting-default-page ops/etc/verris/security | ssh root@WĘZEŁ 'mkdir -p /root/verris && tar xzf - -C /root/verris'`;
+tar czf - ops/scripts ops/hosting-default-page ops/etc/verris/security ops/systemd | ssh root@WĘZEŁ 'mkdir -p /opt/verris && tar xzf - -C /opt/verris'`;
 
 /** H-19 — konfiguracja kopii poza węzłem; bez niej onboard kończy się [FAIL]. */
 export const BACKUP_OFFSITE_CONF = `# 4b) Na węźle (root) — PRZED onboardem LIVE. Bez tego node-onboard-live.sh zatrzyma się na [FAIL].
@@ -230,10 +230,8 @@ rclone lsd verris-crypt: && echo "OK: remote działa"
 # H-16: TE SAME hasła crypt (i ten sam remote) na każdym węźle floty — inaczej konta z utraconego
 # węzła nie da się odtworzyć na innym (admin → subskrypcja → „Odtworzenie na innym węźle”).`;
 
-export const ONBOARD_LIVE_RUN = `# 5b) Na węźle (root) — login key z DA → Account Manager → Login Keys:
-export DA_USER=admin
-export DA_KEY='login-key-z-DA'
-bash /root/verris/ops/scripts/node-onboard-live.sh
+export const ONBOARD_LIVE_RUN = `# 5b) Na węźle (root). DA_USER/DA_KEY nie są potrzebne — skrypt bierze tymczasowy klucz z „da api-url”.
+bash /opt/verris/ops/scripts/node-onboard-live.sh
 # Log: /var/log/verris-node-onboard.log
 # Wynik trafia do panelu: węzeł dostaje klientów dopiero po zielonym raporcie gotowości (0 × FAIL).
 # Hardening jest domyślnie WŁĄCZONY (--skip-security tylko awaryjnie, NIEZALECANE)`;

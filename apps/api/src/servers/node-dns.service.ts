@@ -166,6 +166,13 @@ export class NodeDnsService {
     } else {
       steps.push({ step: 'AAAA records', status: 'skipped', detail: 'Brak IPv6 dla węzła.' });
     }
+    // PB-31 — rekord nazwy hosta węzła (np. node-pl-02.verris.pl) bez ręcznej wizyty w OVH.
+    const host = server.hostname?.trim().toLowerCase().replace(/\.$/, '');
+    if (host && host.endsWith(`.${base}`) && host !== base) {
+      const hostSub = host.slice(0, -(base.length + 1));
+      await this.ensureZoneRecord(base, hostSub, 'A', ipv4, steps);
+      if (ipv6) await this.ensureZoneRecord(base, hostSub, 'AAAA', ipv6, steps);
+    }
     await this.refreshZone(base, steps);
 
     // 2) Glue records on the base domain (OVH host label, not FQDN).

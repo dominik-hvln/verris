@@ -17,16 +17,18 @@ set -uo pipefail
 log() { echo "[verris-update] $*"; }
 
 REBOOT_NEEDED=0
+BLEDY=0
 OLD_KERNEL="$(uname -r)"
+blad() { log "BŁĄD: $*"; BLEDY=$((BLEDY + 1)); }
 
 # 1) DirectAdmin + LiteSpeed + PHP przez CustomBuild (kanał stable).
 CB=/usr/local/directadmin/custombuild
 if [ -d "$CB" ]; then
   cd "$CB"
   log "CustomBuild: pobieram najnowsze wersje…"
-  ./build update >/dev/null 2>&1 || log "WARN: build update zwrócił błąd"
+  ./build update >/dev/null 2>&1 || blad "build update"
   log "CustomBuild: aktualizuję cały stack (DA/LiteSpeed/PHP)…"
-  ./build all d || log "WARN: build all zwrócił błąd"
+  ./build all d || blad "build all d"
   ./build rewrite_confs >/dev/null 2>&1 || true
 else
   log "Brak CustomBuild — pomijam aktualizację DA/LiteSpeed."
@@ -34,13 +36,13 @@ fi
 
 # 2) DirectAdmin binary (kanał stable), jeśli dostępny.
 if command -v da >/dev/null 2>&1; then
-  da update >/dev/null 2>&1 || log "WARN: da update zwrócił błąd"
+  da update >/dev/null 2>&1 || blad "da update"
 fi
 
 # 3) CloudLinux / pakiety OS (kernel LVE, lve-utils, cagefs itd.).
 if command -v yum >/dev/null 2>&1; then
   log "yum: aktualizuję pakiety systemu (CloudLinux/OS)…"
-  yum -y update >/dev/null 2>&1 || log "WARN: yum update zwrócił błąd"
+  yum -y update >/dev/null 2>&1 || blad "yum update"
 fi
 
 # 4) Czy aktualizacja podmieniła kernel? Jeśli tak — potrzebny reboot.
@@ -51,6 +53,12 @@ if [ -n "$NEW_KERNEL_INSTALLED" ]; then
   if [ -n "$LATEST" ] && [ "$LATEST" != "$OLD_KERNEL" ]; then
     REBOOT_NEEDED=1
   fi
+fi
+
+# PB-32 — błąd kroku kończy zadanie jako FAILED: fala aktualizacji zatrzymuje się na tym węźle.
+if [ "$BLEDY" -gt 0 ]; then
+  echo "VERRIS_UPDATE_RESULT=failed errors=$BLEDY"
+  exit 1
 fi
 
 if [ "$REBOOT_NEEDED" = "1" ]; then
