@@ -249,8 +249,9 @@ export class AdminDashboardService {
         where: { status: 'PROVISIONING', updatedAt: { lt: new Date(teraz - ZAKLADANIE_ZA_DLUGO_MIN * 60_000) } },
       }),
       this.prisma.migrationRequest.count({ where: { status: 'ATTENTION' } }),
-      this.prisma.user.count({ where: { role: Role.USER } }),
-      this.prisma.user.findMany({ where: { role: Role.USER, createdAt: { gte: od7 } }, select: { createdAt: true } }),
+      // Klient = konto USER, które nie jest subkontem ani kontem usuniętym (RODO).
+      this.prisma.user.count({ where: { role: Role.USER, customerOwnerId: null, anonymizedAt: null } }),
+      this.prisma.user.findMany({ where: { role: Role.USER, customerOwnerId: null, anonymizedAt: null, createdAt: { gte: od7 } }, select: { createdAt: true } }),
       this.prisma.subscription.groupBy({ by: ['planId', 'status'], _count: { id: true } }),
       this.prisma.invoice.findMany({
         where: { status: 'PAID', kind: 'VAT', currency: 'PLN', paidAt: { gte: od30 } },

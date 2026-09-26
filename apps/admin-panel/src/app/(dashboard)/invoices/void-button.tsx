@@ -15,7 +15,7 @@ export function VoidButton({ invoiceId, number }: { invoiceId: string; number: s
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-red-200 hover:bg-red-500/20"
+        className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-red-200 hover:bg-red-500/20"
       >
         Anuluj
       </button>

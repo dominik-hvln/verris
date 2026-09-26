@@ -1,4 +1,3 @@
-import { ShieldAlert } from "lucide-react";
 import { listAuditLogs } from "./data";
 import { AuditFiltersBar } from "./filters-bar";
 import { AuditTable } from "./table";
@@ -56,14 +55,10 @@ export default async function AuditLogPage({
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <header className="flex items-start justify-between gap-6 flex-wrap">
         <div>
-          <h1 className="flex items-center gap-3 text-[28px] lg:text-[34px]">
-            <ShieldAlert className="h-7 w-7 text-rose-400" />
-            Logi Bezpieczeństwa
-          </h1>
+          <h1 className="text-[28px] lg:text-[34px]">Dziennik bezpieczeństwa</h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
-            Pełna historia zdarzeń auditowanych: utworzenia/zmiany kont, akcji
-            administracyjnych, zmian planu, suspendów, autoskalowania, prób uwierzytelnienia.
-            Każda zmiana zachowuje aktora (kto), cel (kogo dotyczy) i kontekst (IP, UA).
+            Pełna historia zdarzeń: zakładanie i zmiany kont, działania administracyjne, zmiany planu,
+            wstrzymania, autoskalowanie, logowania. Każdy wpis ma autora (kto), cel (kogo dotyczy) i kontekst (IP, przeglądarka).
           </p>
         </div>
         <ExportCsvButton filters={filters} />

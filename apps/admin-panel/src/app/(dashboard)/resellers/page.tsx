@@ -1,4 +1,4 @@
-import { AlertCircle, Handshake } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { listResellers, type ResellerRow } from "./data";
 import { ResellersClient } from "./resellers-client";
 
@@ -16,10 +16,7 @@ export default async function ResellersPage() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
       <header>
-        <h1 className="flex items-center gap-2 text-[28px] lg:text-[34px]">
-          <Handshake className="h-7 w-7 text-emerald-400" />
-          Resellerzy (white-label)
-        </h1>
+        <h1 className="text-[28px] lg:text-[34px]">Resellerzy</h1>
         <p className="mt-2 text-sm text-muted-foreground max-w-3xl">
           Włącz program white-label dla wybranego klienta — ustal narzut (markup) i nazwę marki.
           Klienci pozyskani jego linkiem zostaną do niego przypisani, a ceny detaliczne policzą się automatycznie.

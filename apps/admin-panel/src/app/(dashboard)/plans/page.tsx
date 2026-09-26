@@ -68,7 +68,7 @@ function PlanRow({ plan }: { plan: AdminPlanRow }) {
       <td className="px-6 py-4 text-right">
         <Link
           href={`/plans/${plan.id}`}
-          className="rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-neutral-200 hover:bg-white/10"
+          className="whitespace-nowrap rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-neutral-200 hover:bg-white/10"
         >
           Edytuj
         </Link>
@@ -197,7 +197,7 @@ export default async function AdminPlansPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-white">
+              <table className="w-full min-w-[1100px] text-left text-sm text-white">
                 <thead className="bg-white/5 border-b border-white/10 text-xs uppercase text-muted-foreground">
                   <tr>
                     <th className="px-6 py-4 font-medium">Plan</th>

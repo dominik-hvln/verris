@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { adminApi, AdminApiError } from "@/lib/api";
+import { listAdminUsers } from "../customers/data";
 
 type Result = { ok: true } | { ok: false; error: string };
 function msg(e: unknown): string {
@@ -13,9 +14,17 @@ export async function enableResellerAction(input: {
   markupPct: number;
   brandName?: string;
 }): Promise<Result> {
-  const userId = input.userId.trim();
-  if (userId.length < 10) return { ok: false, error: "Podaj prawidłowe ID użytkownika (UUID)." };
+  const wpis = input.userId.trim();
+  if (wpis.length < 3) return { ok: false, error: "Podaj e-mail albo ID klienta." };
   try {
+    // E-mail zamiast UUID — ID trzeba było kopiować z karty klienta.
+    let userId = wpis;
+    if (wpis.includes("@")) {
+      const { rows } = await listAdminUsers({ search: wpis, limit: 5 });
+      const klient = rows.find((r) => r.email.toLowerCase() === wpis.toLowerCase() && r.role === "USER");
+      if (!klient) return { ok: false, error: `Nie ma klienta z adresem ${wpis}.` };
+      userId = klient.id;
+    }
     await adminApi(`/admin/reseller/${userId}/enable`, {
       method: "POST",
       body: { markupPct: input.markupPct, brandName: input.brandName || undefined },

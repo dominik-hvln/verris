@@ -52,7 +52,7 @@ export function AuditTable({ rows, page, totalPages, totalRows, limit }: Props) 
       </div>
 
       <div className="rounded-2xl border border-white/5 bg-black/40 overflow-hidden">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[960px] text-sm">
           <thead className="border-b border-white/5 bg-white/[0.02]">
             <tr className="text-left text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
               <th className="px-5 py-3">Data UTC</th>
@@ -153,7 +153,7 @@ function Row({ row }: { row: AuditLogRow }) {
           {row.details ? (
             <button
               onClick={() => setOpen((v) => !v)}
-              className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white hover:bg-white/10"
+              className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white hover:bg-white/10"
             >
               <ChevronDown
                 className={`h-3 w-3 transition-transform ${open ? "rotate-180" : ""}`}

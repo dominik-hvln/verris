@@ -34,7 +34,7 @@ function EnableForm() {
     <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 space-y-4">
       <h2 className="text-lg font-bold text-white flex items-center gap-2"><Plus className="h-5 w-5 text-emerald-400" /> Włącz resellera</h2>
       <div className="grid gap-4 md:grid-cols-3">
-        <Field label="ID użytkownika (UUID)"><input value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="np. 1a2b3c4d-…" className="inp" /></Field>
+        <Field label="E-mail lub ID klienta"><input value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="np. jan@firma.pl" className="inp" /></Field>
         <Field label="Narzut (%)"><input type="number" value={markup} onChange={(e) => setMarkup(e.target.value)} className="inp" /></Field>
         <Field label="Nazwa marki (opcjonalnie)"><input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="np. HostPro" className="inp" /></Field>
       </div>
@@ -43,7 +43,7 @@ function EnableForm() {
       <button onClick={submit} disabled={pending} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Włącz / zapisz
       </button>
-      <p className="text-[11px] text-muted-foreground">ID klienta znajdziesz w sekcji „Klienci”. Ponowne wywołanie z tym samym ID aktualizuje narzut/markę.</p>
+      <p className="text-[11px] text-muted-foreground">Wystarczy e-mail konta klienta. Ponowny zapis dla tego samego klienta aktualizuje narzut i markę.</p>
       <style jsx>{`:global(.inp){width:100%;border-radius:.6rem;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.3);padding:.5rem .7rem;font-size:.875rem;color:#fff;outline:none}`}</style>
     </section>
   );

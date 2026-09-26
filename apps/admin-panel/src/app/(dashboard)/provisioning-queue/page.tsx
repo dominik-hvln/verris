@@ -36,16 +36,16 @@ export default async function ProvisioningQueuePage({
   const sp = await searchParams;
   const state = sp.state ?? "";
   const w = await wynik(listProvisioningQueue(state || undefined));
-  if (!w.ok) return <BladStrony blad={w.blad} tytul="Kolejka provisioningu" />;
+  if (!w.ok) return <BladStrony blad={w.blad} tytul="Kolejka zakładania" />;
   const data = w.dane;
   const nodeTasks = await listNodeTasks().catch(() => []);
 
   return (
     <div className="space-y-6 p-6">
       <header>
-        <h1 className="text-[28px] lg:text-[34px]">Kolejka provisioningu</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Kolejka zakładania</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Sprint 5 / R-11+B-7 — BullMQ joby DA, retry, idempotency, dead-letter.
+          Zakładanie kont na węzłach po zakupie — ponowienia, błędy i odrzucone zadania.
         </p>
       </header>
 
@@ -197,7 +197,7 @@ export default async function ProvisioningQueuePage({
         <div>
           <h2 className="text-lg font-bold tracking-tight">Operacje węzłów</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            #13 — instalacje WP/aplikacji, profil hostingu, WAF, PHP, staging. Nieudane operacje
+            Instalacje WordPressa i aplikacji, profil hostingu, WAF, PHP, staging. Nieudane operacje
             możesz ponowić (agent węzła podejmie je ponownie).
           </p>
         </div>

@@ -66,11 +66,10 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
       <header className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-[28px] lg:text-[34px]">
-            Faktury (admin)
+            Faktury
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Wszystkie faktury Verris (mirror Stripe + własne PDF VFV/...). Filtr
-            po kliencie, statusie i zakresie dat. Dostęp: ADMIN i STAFF.
+            Faktury Verris — własne PDF (VFV/…) i dokumenty ze Stripe. Filtruj po kliencie, statusie i dacie.
           </p>
           {/* Z-01 — droga wewnątrz systemu dla przypadków nietypowych. */}
           <Link
@@ -187,7 +186,7 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-white">
+              <table className="w-full min-w-[1000px] text-left text-sm text-white">
                 <thead className="bg-white/5 border-b border-white/10 text-xs uppercase text-muted-foreground">
                   <tr>
                     <th className="px-6 py-4 font-medium">Numer</th>
@@ -271,7 +270,7 @@ function InvoiceRow({ inv }: { inv: AdminInvoiceRow }) {
       </td>
       <td className="px-6 py-4">
         <span
-          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusTone(
+          className={`inline-flex items-center gap-1.5 whitespace-nowrap px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusTone(
             inv.status,
           )}`}
         >
@@ -286,7 +285,7 @@ function InvoiceRow({ inv }: { inv: AdminInvoiceRow }) {
           {inv.hasVerrisPdf ? (
             <a
               href={`/api/invoices-pdf/${inv.id}`}
-              className="inline-flex items-center gap-1 rounded-md border border-white/15 bg-white/5 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-neutral-200 hover:bg-white/10"
+              className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-white/15 bg-white/5 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-neutral-200 hover:bg-white/10"
             >
               <FileText className="h-3 w-3" />
               PDF VFV
@@ -297,7 +296,7 @@ function InvoiceRow({ inv }: { inv: AdminInvoiceRow }) {
               href={inv.hostedUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-md border border-indigo-500/30 bg-indigo-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-indigo-200 hover:bg-indigo-500/20"
+              className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-indigo-500/30 bg-indigo-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-indigo-200 hover:bg-indigo-500/20"
             >
               <ExternalLink className="h-3 w-3" />
               Stripe Hosted
@@ -309,7 +308,7 @@ function InvoiceRow({ inv }: { inv: AdminInvoiceRow }) {
           {inv.status === "PAID" ? (
             <Link
               href={`/invoices/${inv.id}/korekta`}
-              className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-200 hover:bg-amber-500/20"
+              className="inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-200 hover:bg-amber-500/20"
             >
               Koryguj
             </Link>
