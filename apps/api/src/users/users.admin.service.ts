@@ -176,6 +176,8 @@ export class UsersAdminService {
         // PB-34 — karta klienta admina (makieta AdminKlient): „przez resellera …”, auto-doładowanie.
         resellerOwner: { select: { id: true, email: true, companyName: true, resellerProfile: { select: { brandName: true } } } },
         walletAutoTopup: { select: { enabled: true, threshold: true } },
+        // Subkonto działa na koncie właściciela — karta musi to powiedzieć (usługi, portfel są tam).
+        customerOwner: { select: { id: true, email: true } },
       },
     });
     if (!target) throw new NotFoundException('Użytkownik nie istnieje.');
@@ -352,6 +354,7 @@ export class UsersAdminService {
             }
           : null,
         autoDoladowanie: target.walletAutoTopup?.enabled ? { prog: target.walletAutoTopup.threshold.toString() } : null,
+        subkontoKonta: target.customerOwner ?? null,
       },
       subscriptions: subscriptions.map((s) => ({
         id: s.id,

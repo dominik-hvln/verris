@@ -273,7 +273,7 @@ export class CustomerPermissionsGuard implements CanActivate {
   ) {}
 
   /**
-   * Z-10 — odmowa dla subkonta trafia do dziennika właściciela (IAM → „Ostatnie 50 zdarzeń”): to sygnał
+   * Z-10 — odmowa ZAPISU dla subkonta trafia do dziennika właściciela (IAM → „Ostatnie 50 zdarzeń”): to sygnał
    * w obie strony — próba wyjścia poza nadane uprawnienia albo za ostra klasyfikacja trasy.
    * Ta sama para (subkonto, trasa) najwyżej raz na 10 minut, żeby ekran ładujący kilka sekcji nie zalał dziennika.
    */
@@ -284,6 +284,9 @@ export class CustomerPermissionsGuard implements CanActivate {
     req: { method?: string; route?: { path?: string }; path?: string; ip?: string; user?: { userId?: string; principalUserId?: string } },
     wymagane: WymogTrasy,
   ): void {
+    // Odczyt bez uprawnień to zwykle panel ładujący sekcje (portfel, zgłoszenia) przy wejściu na pulpit —
+    // w dzienniku wyglądałoby to jak próba. Sygnałem jest odmowa zapisu (zakup, zmiana, usunięcie).
+    if ((req.method ?? 'GET').toUpperCase() === 'GET' || req.method?.toUpperCase() === 'HEAD') return;
     const trasa = req.route?.path ?? req.path ?? '';
     const klucz = `${req.user?.principalUserId}|${req.method}|${trasa}`;
     const teraz = Date.now();

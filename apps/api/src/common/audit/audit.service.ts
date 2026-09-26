@@ -88,12 +88,18 @@ export class AuditService {
   constructor(private readonly prisma: PrismaService) {}
 
   async record(payload: AuditPayload): Promise<void> {
+    // O-03 — w żądaniu subkonta „działał właściciel” znaczy: działała osoba z subkonta.
+    const sub = kontekstZadania.getStore()?.subkonto;
+    const actorUserId =
+      sub && payload.userId === sub.wlasciciel && (!payload.actorUserId || payload.actorUserId === sub.wlasciciel)
+        ? sub.osoba
+        : payload.actorUserId ?? null;
     try {
       await this.prisma.auditLog.create({
         data: {
           action: payload.action,
           userId: payload.userId ?? null,
-          actorUserId: payload.actorUserId ?? null,
+          actorUserId,
           impersonatedBy: payload.impersonatedBy ?? kontekstZadania.getStore()?.impersonatedBy ?? null,
           details: payload.details ?? Prisma.JsonNull,
           ipAddress: payload.ipAddress ?? null,

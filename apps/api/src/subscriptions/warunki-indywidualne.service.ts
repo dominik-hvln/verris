@@ -249,10 +249,14 @@ export class WarunkiIndywidualneService {
   private async klient(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, role: true, billingOutside: true, anonymizedAt: true },
+      select: { id: true, role: true, billingOutside: true, anonymizedAt: true, customerOwnerId: true },
     });
     if (!user || user.role !== Role.USER || user.anonymizedAt) {
       throw new NotFoundException('Nie ma takiego klienta.');
+    }
+    // Subkonto działa na usługach właściciela — usługa założona tutaj byłaby niewidoczna dla nikogo.
+    if (user.customerOwnerId) {
+      throw new BadRequestException('To subkonto — usługi i warunki ustawiasz na koncie właściciela.');
     }
     return user;
   }

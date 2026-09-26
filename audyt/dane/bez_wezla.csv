@@ -11,7 +11,7 @@ Q-08,KOD PO STARCIE,snapshoty i rebuild VPS (Hetzner Cloud API)
 G-08,KOD PO STARCIE,sprzedaż certyfikatów DV/OV/EV — plus umowa z dostawcą
 J-05,KOD PO STARCIE,CDN (Cloudflare) — plus konto Cloudflare
 PB-20,PRODUKCJA,"zaproszenie deweloperskiego konta testowego z wybraną usługą, przełączenie, odmowa poza zakresem — na produkcji"
-O-03,PRODUKCJA,działanie subkonta widoczne u właściciela (IAM → Audyt) na produkcji
+O-03,PRODUKCJA,działanie subkonta widoczne u właściciela (IAM → Audyt) na produkcji — po wdrożeniu poprawki autora wpisów (26.09)
 Z-10,PRODUKCJA,odmowa subkonta widoczna w Audycie IAM na produkcji
 L-10,PRODUKCJA,zdarzenie rozliczeń (invoice.issued) przy pierwszej fakturze — ping i podpis sprawdzone 26.09
 N-10,PRODUKCJA,wpis SUPPRESSED przy pierwszym alercie limitu (przełącznik zapisany 26.09; alert wymaga telemetrii węzła)
@@ -49,7 +49,7 @@ SEC-04,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) —
 SEC-06,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
 X-41,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
 PB-27,PRODUKCJA,"odnowienie z ceną indywidualną 22.10.2026 (mailtest-verris.pl, 6 zł) — reszta sprawdzona 26.09"
-PB-28,PRODUKCJA,"na produkcji: konto testowe poza Verris — brak obciążeń, przedłużenie okresu, panel bez portfela"
+PB-28,PRODUKCJA,na produkcji: przedłużenie okresu bez obciążenia przy pierwszym odnowieniu usługi klienta poza Verris; pulpit bez portfela po wdrożeniu (26.09 — konto Smoke Test przełączone)
 PB-29,OD 29.09,"test na węźle testowym (D3): bootstrap z manifestem, Governor 11.4, raport gotowości, zgodność floty"
 PB-30,OD 29.09,"test na węźle testowym (D3): bootstrap z manifestem, Governor 11.4, raport gotowości, zgodność floty"
 PB-31,OD 29.09,"przejście kreatora na węźle testowym (D3): bootstrap → zatwierdzenie → Onboard LIVE z panelu → zielony raport, bez SSH"

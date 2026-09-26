@@ -23,6 +23,8 @@ export interface ProfilKlienta {
     /** PB-34 — klient założony przez resellera. */
     reseller?: { id: string; nazwa: string } | null;
     autoDoladowanie?: { prog: string } | null;
+    /** Subkonto — usługi i portfel są na koncie właściciela. */
+    subkontoKonta?: { id: string; email: string } | null;
   };
   subscriptions: Array<{
     id: string;

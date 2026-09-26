@@ -27,4 +27,19 @@ describe('KontekstZadaniaInterceptor + AuditService', () => {
     expect(create).toHaveBeenLastCalledWith({ data: expect.objectContaining({ impersonatedBy: 'jawny' }) });
     await lastValueFrom(new KontekstZadaniaInterceptor().intercept(ctx(undefined), { handle: () => of(1) }));
   });
+
+  it('O-03 — żądanie subkonta: wpis na koncie właściciela dostaje jako autora osobę z subkonta', async () => {
+    const { svc, create } = audyt();
+    const u = { userId: 'wlasciciel', principalUserId: 'sub-1', customerOwnerId: 'wlasciciel' };
+    const handler = { handle: () => defer(async () => {
+      await svc.record({ action: 'SUBSCRIPTION_CREATED', userId: 'wlasciciel', actorUserId: 'wlasciciel' });
+      await svc.record({ action: 'X', userId: 'wlasciciel' });
+      await svc.record({ action: 'Y', userId: 'wlasciciel', actorUserId: 'operator' });
+      await svc.record({ action: 'Z', userId: 'inny', actorUserId: 'inny' });
+    }) };
+    await lastValueFrom(new KontekstZadaniaInterceptor().intercept(ctx(u), handler));
+    expect((create.mock.calls as unknown as [{ data: { action: string; actorUserId: string } }][]).map(([a]) => [a.data.action, a.data.actorUserId])).toEqual([
+      ['SUBSCRIPTION_CREATED', 'sub-1'], ['X', 'sub-1'], ['Y', 'operator'], ['Z', 'inny'],
+    ]);
+  });
 });

@@ -157,10 +157,15 @@ export class WalletLedgerService {
         // autoscaling block + top-up webhook…) could read the same balance and
         // overwrite each other (lost update under READ COMMITTED).
         const locked = await tx.$queryRaw<
-          Array<{ id: string; walletBalance: Prisma.Decimal; walletCurrency: string }>
-        >`SELECT "id", "walletBalance", "walletCurrency" FROM "User" WHERE "id" = ${input.userId} FOR UPDATE`;
+          Array<{ id: string; walletBalance: Prisma.Decimal; walletCurrency: string; customerOwnerId: string | null }>
+        >`SELECT "id", "walletBalance", "walletCurrency", "customerOwnerId" FROM "User" WHERE "id" = ${input.userId} FOR UPDATE`;
         const user = locked[0];
         if (!user) throw new NotFoundException('User not found');
+        // Subkonto nie ma własnego portfela — działa na portfelu właściciela. Wpis tutaj to pieniądze,
+        // których nikt nie zobaczy ani nie wyda (np. „Dodaj kredyty” w adminie na karcie subkonta).
+        if (user.customerOwnerId) {
+          throw new BadRequestException('To subkonto — portfel należy do właściciela konta.');
+        }
 
         const newBalance = new Prisma.Decimal(user.walletBalance).plus(signedAmount);
         if (newBalance.isNegative()) {

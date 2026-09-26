@@ -104,4 +104,13 @@ describe('X-04 zakup usługi z portfela', () => {
     expect(await saldo(k.id)).toBe(100);
     expect(await prisma().subscription.count({ where: { userId: k.id } })).toBe(0);
   });
+
+  it('subkonto nie ma własnego portfela — uznanie na nim odrzucone, saldo właściciela nietknięte', async () => {
+    const wl = await klient(100);
+    const sub = await klient(0, { customerOwnerId: wl.id });
+    const ledger = new WalletLedgerService(prisma() as never);
+    await expect(ledger.credit({ userId: sub.id, amount: 50, type: WalletTxType.ADJUSTMENT, description: 'test' })).rejects.toThrow('subkonto');
+    expect(await saldo(sub.id)).toBe(0);
+    expect(await saldo(wl.id)).toBe(100);
+  });
 });

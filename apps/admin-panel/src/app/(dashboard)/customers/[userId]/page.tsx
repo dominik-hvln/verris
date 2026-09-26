@@ -171,6 +171,15 @@ export default async function AdminCustomerCardPage({
             Klient od {data(u.createdAt)}
             {u.reseller ? ` · przez resellera ${u.reseller.nazwa}` : ""}
           </Eyebrow>
+          {u.subkontoKonta ? (
+            <p className="text-sm text-amber-300">
+              Subkonto konta{" "}
+              <Link href={`/customers/${u.subkontoKonta.id}`} className="font-mono underline">
+                {u.subkontoKonta.email}
+              </Link>{" "}
+              — usługi, portfel i warunki są na koncie właściciela.
+            </p>
+          ) : null}
           <h1 className="text-[28px] lg:text-[34px]">{nazwa}</h1>
           <div className="flex flex-wrap items-center gap-2 text-sm text-verris-body">
             <span className="break-all font-mono">{u.email}</span>
