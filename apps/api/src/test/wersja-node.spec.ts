@@ -62,7 +62,7 @@ describe('ENV-01 — wersja Node jest jedna we wszystkich deklaracjach', () => {
   // o reszcie, CI budowałby część zadań na innym silniku niż pozostałe — a to
   // objawia się jako „u mnie ten job przechodzi, tamten nie" bez widocznej przyczyny.
   it('każdy krok setup-node w workflowach używa tej samej wersji', () => {
-    const workflowy = ['.github/workflows/ci.yml', '.github/workflows/deploy.yml'];
+    const workflowy = ['.github/workflows/ci.yml', '.github/workflows/deploy.yml', '.github/workflows/raport-wersji.yml'];
     const znalezione: string[] = [];
 
     for (const plik of workflowy) {

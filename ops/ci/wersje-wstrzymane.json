@@ -1,0 +1,33 @@
+{
+  "_opis": "PB-38 — świadomie wstrzymane podniesienia zależności npm (następca reguł `ignore` Dependabota, który nie obsługuje pnpm 11+). Każde ma pozycję w macierzy/planie i termin przeglądu; strażnik apps/api/src/test/wersje-wstrzymane.spec.ts czerwieni CI po terminie. Tygodniowy raport (ops/ci/raport-wersji.mjs) pokazuje je osobno i zgłasza wstrzymania, których przyczyna zniknęła.",
+  "wstrzymane": [
+    {
+      "pakiet": "prisma",
+      "poziom": "major",
+      "pozycja": "PB-38",
+      "przeglad": "2026-11-15",
+      "powod": "Prisma 8 jest w RC; brakuje w niej increment, zagnieżdżonych zapisów i kodów P2002, których używamy — czekamy na wydanie stabilne. @prisma/client i @prisma/adapter-pg idą razem z CLI (strażnik: jedna wersja główna)."
+    },
+    {
+      "pakiet": "typescript",
+      "poziom": "major",
+      "pozycja": "PB-38",
+      "przeglad": "2026-11-15",
+      "powod": "typescript-eslint deklaruje typescript <6.1 — TypeScript 7 wyłączyłby linter."
+    },
+    {
+      "pakiet": "@types/node",
+      "poziom": "major",
+      "pozycja": "PB-38",
+      "przeglad": "2026-11-15",
+      "powod": "Typy idą za wersją Node z .nvmrc (24); 26 po wejściu w LTS (2026-10-28)."
+    },
+    {
+      "pakiet": "graphql",
+      "poziom": "major",
+      "pozycja": "X-21",
+      "przeglad": "2026-12-15",
+      "powod": "Jedynym konsumentem jest Payload (peer graphql ^16.8.1)."
+    }
+  ]
+}
