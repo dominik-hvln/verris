@@ -239,6 +239,61 @@ export class PromoService {
   /**
    * Idempotent per (promo, user). Call after successful provisioning / first charge.
    */
+  /**
+   * X-04 — rezerwacja kodu rabatowego na usługę W CHWILI ZAKUPU. Wcześniej wykorzystanie zapisywało
+   * się dopiero po założeniu usługi (minuty później, z kolejki), więc kod „raz na klienta” działał
+   * na każdej usłudze zamówionej w tym czasie, a limit użyć nie trzymał się przy równoczesnych
+   * zakupach. Teraz: atomowe miejsce w limicie + unikalne (kod, klient) od razu; `zwolnijKodUslugi`
+   * oddaje je, gdy zakup się nie uda.
+   */
+  async zarezerwujKodUslugi(input: {
+    userId: string;
+    promoCodeId: string;
+    listPrice: Prisma.Decimal;
+    chargedAmount: Prisma.Decimal;
+  }): Promise<void> {
+    const promo = await this.prisma.promoCode.findUnique({ where: { id: input.promoCodeId } });
+    if (!promo) throw new NotFoundException('Nieprawidłowy lub nieaktywny kod promocyjny.');
+    const zajete = await this.prisma.promoCode.updateMany({
+      where: {
+        id: promo.id,
+        ...(promo.maxRedemptions != null ? { redemptionCount: { lt: promo.maxRedemptions } } : {}),
+      },
+      data: { redemptionCount: { increment: 1 } },
+    });
+    if (zajete.count === 0) throw new BadRequestException('Ten kod został w pełni wykorzystany.');
+    const oszczednosc = input.listPrice.minus(input.chargedAmount).toDecimalPlaces(2);
+    try {
+      await this.prisma.promoRedemption.create({
+        data: {
+          promoCodeId: promo.id,
+          userId: input.userId,
+          amountCredited: oszczednosc.greaterThan(0) ? oszczednosc : new Prisma.Decimal(0),
+          currency: 'PLN',
+        },
+      });
+    } catch (err) {
+      await this.prisma.promoCode.update({ where: { id: promo.id }, data: { redemptionCount: { decrement: 1 } } });
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new BadRequestException('Już zrealizowałeś ten kod.');
+      }
+      throw err;
+    }
+  }
+
+  /** Oddaje rezerwację kodu na usługę (nieudany zakup, zwrot za niezałożoną usługę). Idempotentne. */
+  async zwolnijKodUslugi(userId: string, promoCodeId: string): Promise<void> {
+    const usuniete = await this.prisma.promoRedemption.deleteMany({
+      where: { promoCodeId, userId, walletTxId: null },
+    });
+    if (usuniete.count > 0) {
+      await this.prisma.promoCode.updateMany({
+        where: { id: promoCodeId, redemptionCount: { gt: 0 } },
+        data: { redemptionCount: { decrement: usuniete.count } },
+      });
+    }
+  }
+
   async recordServicePromoRedemption(input: {
     userId: string;
     promoCodeId: string;
@@ -251,7 +306,13 @@ export class PromoService {
         promoCodeId_userId: { promoCodeId: input.promoCodeId, userId: input.userId },
       },
     });
-    if (existing) return;
+    if (existing) {
+      // Rezerwacja z chwili zakupu (zarezerwujKodUslugi) — dopinamy usługę, licznik już podbity.
+      if (!existing.subscriptionId) {
+        await this.prisma.promoRedemption.update({ where: { id: existing.id }, data: { subscriptionId: input.subscriptionId } });
+      }
+      return;
+    }
 
     const savings = input.listPrice.minus(input.chargedAmount).toDecimalPlaces(2);
     await this.prisma.promoRedemption.create({

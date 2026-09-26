@@ -338,6 +338,20 @@ export class SubscriptionsService {
             op ? undefined : dto.promoCode,
           );
 
+    // X-04 — kod rabatowy rezerwujemy przed utworzeniem usługi (atomowo, raz na klienta).
+    if (pricing.appliedPromoCodeId) {
+      await this.promo.zarezerwujKodUslugi({
+        userId,
+        promoCodeId: pricing.appliedPromoCodeId,
+        listPrice: pricing.listPrice,
+        chargedAmount: pricing.chargeAmount,
+      });
+    }
+    const oddajKod = () =>
+      pricing.appliedPromoCodeId
+        ? this.promo.zwolnijKodUslugi(userId, pricing.appliedPromoCodeId).catch(() => undefined)
+        : Promise.resolve();
+
     // Create subscription row up-front in PENDING_PAYMENT so we can attach
     // the wallet entry / provisioning to it (and recover from failures).
     // SVC-TAG — unikalny handle nadawany od razu przy zakupie (widoczny obok
@@ -424,20 +438,26 @@ export class SubscriptionsService {
 
     switch (dto.paymentSource) {
       case SubscriptionPaymentSource.WALLET: {
-        if (isAppLevel) {
-          return this.activateAppLevelSubscription(subscription.id, dto, userId, {
-            charge: pricing.chargeAmount,
-            appliedPromoCodeId: pricing.appliedPromoCodeId,
-          });
+        try {
+          if (isAppLevel) {
+            return await this.activateAppLevelSubscription(subscription.id, dto, userId, {
+              charge: pricing.chargeAmount,
+              appliedPromoCodeId: pricing.appliedPromoCodeId,
+            });
+          }
+          return await this.payFromWalletAndProvision(
+            subscription.id,
+            pricing.chargeAmount,
+            pricing.listPrice,
+            pricing.appliedPromoCodeId,
+            dto,
+            userId,
+          );
+        } catch (err) {
+          // Brak środków albo zwrot po nieudanym zakładaniu — kod wraca do klienta.
+          await oddajKod();
+          throw err;
         }
-        return this.payFromWalletAndProvision(
-          subscription.id,
-          pricing.chargeAmount,
-          pricing.listPrice,
-          pricing.appliedPromoCodeId,
-          dto,
-          userId,
-        );
       }
       case SubscriptionPaymentSource.MANUAL: {
         if (isAppLevel) {

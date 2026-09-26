@@ -506,6 +506,14 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
           where: { id: d.subscriptionId },
           data: { status: SubscriptionStatus.PENDING_PAYMENT },
         });
+        // X-04 — zwrot za niezałożoną usługę oddaje też zarezerwowany kod rabatowy.
+        // Najlepsza próba — błąd tutaj nie może zatrzymać obsługi zwrotu.
+        try {
+          const zKodem = await this.prisma.subscription.findUnique({ where: { id: d.subscriptionId }, select: { appliedPromoCodeId: true } });
+          if (zKodem?.appliedPromoCodeId) await this.promo.zwolnijKodUslugi(d.userId, zKodem.appliedPromoCodeId);
+        } catch (e) {
+          this.logger.warn(`Nie oddano kodu rabatowego sub=${d.subscriptionId}: ${(e as Error).message}`);
+        }
         this.logger.error(`Wallet provision failed for sub=${d.subscriptionId}: ${msg}`);
       } else if (d.type === 'stripe') {
         this.logger.error(`Stripe provision failed for sub=${d.subscriptionId}: ${msg}`);
