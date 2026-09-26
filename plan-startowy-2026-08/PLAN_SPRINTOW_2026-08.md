@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2603 h** — przy 30 h tygodniowo około **20 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2677 h** — przy 30 h tygodniowo około **21 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (979 h) oraz roadmapę po starcie (1624 h, 82 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1053 h) oraz roadmapę po starcie (1624 h, 82 pozycji) rozpisaną na epiki kwartalne.
 
 - **2027-01-22** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-02-05** — koniec sprintu 23, decyzja GO.
@@ -262,7 +262,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 # Faza 2 — Odzyskanie funkcji-widm i luki pierwszego tygodnia
 
-*Sprinty 9–14 · 172 h · 2026-10-26 – 2026-12-04*
+*Sprinty 9–14 · 194 h · 2026-10-26 – 2026-12-04*
 
 Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. Najlepszy stosunek wartości do pracy w całym backlogu.
 
@@ -365,7 +365,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 ## Sprint 14 — Rozliczenia klienta i pomiar
 
-`2026-11-30 – 2026-12-04` · **34 h** z 30 h pojemności
+`2026-11-30 – 2026-12-04` · **56 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -373,6 +373,8 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 | `C-11` | Spakowanie do archiwum | 6 | ŚREDNIA | 2026-09-23 D1: POST /services/:id/files/compress → files.service compress (nazwa archiwum walidowana) → SDK compressEntries (schowek DA + action=compr |
 | `NODE-03` | Pojemność węzła nigdy się nie odświeża | 6 | ŚREDNIA | 2026-09-23 D1: verris-lve.sh node_capacity (nproc, MemTotal, df /) w każdym raporcie, lve-agent/1.1; telemetry.dto NodeStatusDto.totalCpuCores/totalMe |
 | `PB-08` | Pomiar: Consent Mode v2 + GTM + dedup event_id | 16 | ŚREDNI | Wdrożenie ustaleń z audytu pomiaru: www linkuje, panel działa, deduplikacja po event_id, cookie Domain=.verris.pl. | PRZEGLĄD GTM 2026-09-23 (tylko od |
+| `PB-27` | Indywidualne warunki usługi: cena i autoskalowanie | 12 | WYSOKI | Decyzja właściciela 2026-09-26: operator (admin albo pracownik z uprawnieniem „Indywidualne warunki”) zakłada usługę na istniejącym lub nowym koncie i |
+| `PB-28` | Rozliczenie poza Verris (całe konto) | 10 | WYSOKI | Decyzja właściciela 2026-09-26: klient oznaczony „rozliczany przez właściciela” — system nie pobiera opłat, nie blokuje za brak płatności, sam przedłu |
 
 **Definicja ukończenia**
 
@@ -380,6 +382,8 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 - `C-11` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `NODE-03` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `PB-08` — Zdarzenie zakupu dociera raz, nie dwa. Consent Mode nie blokuje pomiaru po zgodzie. Zweryfikowane w GTM Preview i w raporcie.
+- `PB-27` — Operator zakłada usługę z własną ceną; odnowienie pobiera tę cenę; autoskalowanie liczone z rabatem; każda zmiana w dzienniku audytu z autorem i powodem; test na PostgreSQL.
+- `PB-28` — Flaga na koncie ustawiana z panelu admina/obsługi; testy: brak obciążeń, przedłużanie okresu, brak maili, brak blokady, raport zużycia autoskalowania.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
 **Ryzyko sprintu.** Ostatni sprint kodowy przed blokiem dokumentow. PB-08 (Consent Mode v2 + dedup event_id) jest tu, a nie przy landingu, bo to kod w panelu, nie tresc — landing tylko z niego korzysta. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. NODE-03 (pojemnosc wezla z telemetrii) dolozone tutaj z sprintu 13 dla pojemnosci — kod bez wezla, dowod przy wezle.
