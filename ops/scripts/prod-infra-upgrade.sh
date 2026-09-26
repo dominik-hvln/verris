@@ -221,8 +221,7 @@ compose run --rm --no-deps minio-bootstrap || fail "minio-bootstrap nie przeszed
 
 log "Loki 3 + Alloy (Promtail wycofany)…"
 compose up -d --no-deps loki
-docker ps -aq --filter "label=com.docker.compose.project=$(compose config --format json | sed -n 's/.*"name": *"\([^"]*\)".*/\1/p' | head -1)" \
-  --filter "label=com.docker.compose.service=promtail" | xargs -r docker rm -f >/dev/null
+docker ps -aq --filter "label=com.docker.compose.service=promtail" | xargs -r docker rm -f >/dev/null
 compose up -d --no-deps alloy
 
 log "eksportery i cAdvisor…"
