@@ -588,14 +588,19 @@ def _data_zamkniecia(D, i, typ):
     return m.group(1) if m else None
 
 
+def czeka_na_sprawdzenie(D, i):
+    WZ = D.get("wezel", {})
+    return (i in WZ and WZ[i][0] in ("czeka", "sprawdzone")) or D.get("bez_wezla", {}).get(i, ("",))[0] == "PRODUKCJA"
+
+
 def postep(D, dzis=None):
     dzis = dzis or datetime.date.today()
     start = datetime.date.fromisoformat(D["cfg"]["start"])
     cap = D["cfg"]["sprint_godzin"]
 
-    WZ0 = D.get("wezel", {})
-    # „Kod gotowy” (uzgodnione z PM): zamknięte + gotowe w kodzie i czekające już tylko na test na węźle.
-    na_wezle = lambda i: i in WZ0 and WZ0[i][0] in ("czeka", "sprawdzone")
+    # „Kod gotowy” (uzgodnione z PM): zamknięte + gotowe w kodzie i czekające już tylko na sprawdzenie
+    # na węźle albo na produkcji (bez_wezla: PRODUKCJA). Dotyczy pozycji audytu i zadań PB.
+    na_wezle = lambda i: czeka_na_sprawdzenie(D, i)
     sprinty = []
     for n in sorted(D["sprinty"]):
         poz = pozycje_sprintu(D, n)
@@ -673,11 +678,13 @@ def postep(D, dzis=None):
 
     # Kod gotowy vs. sprawdzone na węźle — żeby było widać całą gotową pracę, a osobno to, co
     # przeszło test na żywym węźle. Nie zmienia „procent” (ten liczy tylko zamknięte wg skali dowodu).
-    h_zakres = {x[0]: x[2] for s in D["sprinty"] for x in pozycje_sprintu(D, s) if x[3] == "audyt"}
+    # Wszystkie pozycje sprintów (audyt + PB) i wybory — do 2026-09-26 liczyły się tu tylko pozycje audytu,
+    # więc zadania PB czekające na węzeł/produkcję nie ruszały „kodu gotowego”.
+    h_zakres = {x[0]: x[2] for s in D["sprinty"] for x in pozycje_sprintu(D, s)}
     h_zakres.update({r[0]: H.get(r[12], 0) for r in wyb})
     WZ = D.get("wezel", {})
-    kod_extra = [i for i, h in h_zakres.items()
-                 if i in WZ and WZ[i][0] in ("czeka", "sprawdzone") and D["wg_id"][i][10] not in ZROBIONE_WERDYKTY]
+    gotowa = lambda i: (i in D["wg_id"] and D["wg_id"][i][10] in ZROBIONE_WERDYKTY) or bool(D["pb"].get(i, {}).get("zamkniete"))
+    kod_extra = [i for i in h_zakres if czeka_na_sprawdzenie(D, i) and not gotowa(i)]
     godz_kod = godz_zrob + sum(h_zakres[i] for i in kod_extra)
     hw = lambda i: h_zakres.get(i, H.get(D["wg_id"][i][12], 0) if i in D["wg_id"] else 0)
     stany = {k: [i for i, (st, _) in WZ.items() if st == k] for k in ("czeka", "sprawdzone", "nie_przeszlo")}

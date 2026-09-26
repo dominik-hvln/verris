@@ -79,3 +79,9 @@ D-14,czeka,,"D3: po profilu węzła `systemctl status postgresql` aktywny, `ss -
 B-03,czeka,,"D3: katalog z własnym index.php (phpinfo) — ustaw w panelu PHP 7.4 dla katalogu, 8.3 dla domeny; katalog pokazuje 7.4, reszta strony 8.3; „Jak domena” przywraca; wersja niezainstalowana → komunikat."
 E-23,czeka,,"D3: po profilu `systemctl status verris-radicale` aktywny, gniazdo Dovecota dostępne dla grupy; iPhone/DAVx5: konto CalDAV/CardDAV https://<węzeł>:5232/ danymi skrzynki — Kalendarz i Kontakty widoczne, wydarzenie z telefonu wraca na drugie urządzenie; złe hasło 5× → blokada IP jak dla IMAP; po nocy archiwum w ~/.verris-dav/ i w kopii DA."
 J-06,czeka,,"D3: strona z kilkuset zdjęciami w wp-content/uploads — optymalizacja w panelu kończy się wynikiem (plików, MB przed/po), obrazy wyglądają tak samo, drugie uruchomienie = 0 plików, nowe zdjęcie → 1 plik; jpegoptim/optipng zainstalowane przez profil."
+PB-29,czeka,,węzeł testowy
+PB-30,czeka,,węzeł testowy
+PB-31,czeka,,węzeł testowy
+PB-32,czeka,,dwa węzły
+PB-33,czeka,,węzły testowe
+PB-36,czeka,,weryfikacja podpisu na węźle
