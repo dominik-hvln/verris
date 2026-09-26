@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2758 h** — przy 30 h tygodniowo około **21 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2788 h** — przy 30 h tygodniowo około **22 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1134 h) oraz roadmapę po starcie (1624 h, 82 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1164 h) oraz roadmapę po starcie (1624 h, 82 pozycji) rozpisaną na epiki kwartalne.
 
 - **2027-01-22** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-02-05** — koniec sprintu 23, decyzja GO.
@@ -147,7 +147,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 # Faza 1 — Rozliczenia i dowód odtworzenia
 
-*Sprinty 4–8 · 270 h · 2026-09-21 – 2026-10-23*
+*Sprinty 4–8 · 300 h · 2026-09-21 – 2026-10-23*
 
 Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podpisane DPA. Koniec tej fazy to kamień milowy: zamknięte wszystkie blokery poza KSeF-em, który świadomie stoi na końcu.
 
@@ -220,7 +220,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 ## Sprint 7 — Ekrany panelu klienta w nowym designie
 
-`2026-10-12 – 2026-10-16` · **112 h** z 30 h pojemności
+`2026-10-12 – 2026-10-16` · **142 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -228,6 +228,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 | `PB-20` | Tryb agencji: przełącznik klienta w menu bocznym | 16 | ŚREDNI | Element makiety („Piekarnia Zdrój · klient · 3 usługi” nad menu): konto agencji/resellera przełącza się między swoimi klientami bez wylogowania. Wymag |
 | `PB-34` | Panele admina i obsługi na poziomie panelu klienta | 40 | WYSOKI | Decyzja właściciela 2026-09-26: najpierw makieta 3–4 kluczowych ekranów (pulpit, węzły/węzeł, karta klienta, zgłoszenie) do akceptacji, potem przenies |
 | `PB-37` | Opieka nad zgłoszeniem: podpowiedzi dla obsługi, automatyczne wiadomości, oceny opiekuna | 16 | WYSOKI | Decyzja właściciela 2026-09-26 (formularz): cztery automatyczne wiadomości (potwierdzenie z opiekunem i terminem, „opiekun się tym zajmuje”, „wciąż na |
+| `PB-38` | Najnowsze stabilne wersje narzędzi i bibliotek przed startem | 30 | WYSOKI | Decyzja właściciela 2026-09-26 (formularz): Node 24 teraz, 26 po wejściu w LTS; TypeScript 6.0 teraz, 7.x gdy typescript-eslint go obsłuży; MinIO zost |
 
 **Definicja ukończenia**
 
@@ -235,6 +236,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 - `PB-20` — Decyzja o modelu zapisana w docs/VERRIS.md; przełącznik widoczny tylko dla kont z klientami; przełączenie zmienia kontekst usług, domen i płatności; guard uprawnień obejmuje nowe trasy (Z-04); testy w CI.
 - `PB-34` — Makieta zaakceptowana; wszystkie ekrany admina i obsługi na v2, bramka a11y zielona.
 - `PB-37` — Klient dostaje potwierdzenie z opiekunem i terminem, widzi „przeczytane” i postęp; po zamknięciu ocenia opiekuna i obsługę; obsługa ma szkic i szablony w jednym bloku.
+- `PB-38` — Bramka (lint, typecheck, testy) i testy integracyjne zielone na nowych wersjach; obrazy budują się w CI; wdrożenie produkcyjne bez błędów; Dependabot i strażnik EOL działają.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
 **Ryzyko sprintu.** Przeniesienie ekranow po akceptacji wzorca z PB-15. Ryzyko: zakres — ekranow jest duzo; kolejnosc od najczesciej uzywanych. | PRZEPLANOWANIE 2026-09-22 (3): decyzja wlasciciela — przed startem design (PB-15/16), asystent v1 (PB-17) i tickety v2 (PB-18); plan wydluza sie o 3 sprinty.
