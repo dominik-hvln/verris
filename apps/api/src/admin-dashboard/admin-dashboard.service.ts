@@ -5,10 +5,9 @@ import { RODZAJ_DOKUMENT_ROZLICZENIOWY } from '../billing/tryb-fakturowania.js';
 import { STOS_WEZLA } from '../servers/stos-wezla.js';
 import {
   ZDARZENIA,
+  flotaZBazy,
   nazwaWezla,
-  pozaPula,
   stanWezla,
-  sygnal,
   uwagaWezlow,
   type SprawaUwagi,
 } from './stan-platformy.js';
@@ -168,8 +167,8 @@ export class AdminDashboardService {
   /** PB-34 — liczniki menu admina (Węzły / Kolejka zakładania / Migracje / Zgłoszenia). */
   async menu() {
     const teraz = Date.now();
-    const [wezly, zakladane, migracje, zgl] = await Promise.all([
-      this.wezly(),
+    const [{ wezly }, zakladane, migracje, zgl] = await Promise.all([
+      flotaZBazy(this.prisma, teraz),
       this.prisma.subscription.count({ where: { status: 'PROVISIONING' } }),
       this.prisma.migrationRequest.count({ where: { status: { in: ['QUEUED', 'RUNNING', 'ATTENTION'] } } }),
       this.zgloszenia(teraz),
@@ -182,27 +181,6 @@ export class AdminDashboardService {
       zgloszeniaPoTerminie: zgl.poTerminie,
       flota: { razem: wezly.filter((w) => w.status !== 'DEPROVISIONING').length, dziala: wezly.filter((w) => stanWezla(w, null, teraz) !== 'crit' && w.status === 'ACTIVE').length },
     };
-  }
-
-  private wezly() {
-    return this.prisma.server.findMany({
-      where: { status: { not: 'DEPROVISIONING' } },
-      orderBy: [{ name: 'asc' }, { ipAddress: 'asc' }],
-      select: {
-        id: true,
-        name: true,
-        hostname: true,
-        ipAddress: true,
-        status: true,
-        acceptsNewAccounts: true,
-        lastHeartbeatAt: true,
-        onboardVerifiedAt: true,
-        onboardReport: true,
-        maintenanceReason: true,
-        totalCpuCores: true,
-        _count: { select: { accounts: true } },
-      },
-    });
   }
 
   private async zgloszenia(teraz: number) {
@@ -225,8 +203,7 @@ export class AdminDashboardService {
     const od30 = new Date(teraz - 30 * DZIEN);
 
     const [
-      wezly,
-      cpu,
+      { wezly, wiersze: flota },
       manifest,
       zgl,
       poTerminieLista,
@@ -242,13 +219,7 @@ export class AdminDashboardService {
       zdarzenia,
       noweUslugi,
     ] = await Promise.all([
-      this.wezly(),
-      // CPU realne: suma % rdzenia kont na węźle w ostatnich 10 min / liczba próbek / rdzenie.
-      this.prisma.$queryRaw<{ serverId: string; cpu: number }[]>`
-        SELECT "serverId", (SUM("cpuUsageAvg") / COUNT(DISTINCT "bucketStart"))::float8 AS cpu
-        FROM "UsageMetric"
-        WHERE "serverId" IS NOT NULL AND "bucketDurationS" <= 300 AND "bucketStart" >= ${new Date(teraz - 10 * 60_000)}
-        GROUP BY "serverId"`,
+      flotaZBazy(this.prisma, teraz),
       this.prisma.platformSetting.findUnique({ where: { key: 'stack.manifest' } }),
       this.zgloszenia(teraz),
       this.prisma.ticket.findMany({
@@ -313,23 +284,6 @@ export class AdminDashboardService {
     ]);
 
     // --- Flota
-    const cpuWg = new Map(cpu.map((c) => [c.serverId, c.cpu]));
-    const flota = wezly.map((w) => {
-      const rdzenie = w.totalCpuCores ?? 0;
-      const surowe = cpuWg.get(w.id);
-      const cpuProc = surowe != null && rdzenie > 0 ? Math.min(100, Math.round(surowe / rdzenie)) : null;
-      return {
-        id: w.id,
-        nazwa: nazwaWezla(w),
-        status: w.status,
-        stan: stanWezla(w, cpuProc, teraz),
-        cpuProc,
-        poza: pozaPula(w),
-        konta: w._count.accounts,
-        sygnal: sygnal(w.lastHeartbeatAt, teraz),
-        naZywo: w.lastHeartbeatAt != null && teraz - w.lastHeartbeatAt.getTime() < 2 * 60_000,
-      };
-    });
     let wersjaManifestu = STOS_WEZLA.wersja;
     try {
       if (manifest?.value) wersjaManifestu = (JSON.parse(manifest.value) as { wersja?: string }).wersja ?? wersjaManifestu;

@@ -1,9 +1,24 @@
 import Link from "next/link";
+import { formatCredits } from "@/lib/credits";
+import { Eyebrow, KARTA, Pigulka, WIERSZ } from "@/components/v2";
 import { listAdminSubscriptions } from "./data";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminSubscriptionsPage() {
+const STAN: Record<string, { t: string; ton: "ok" | "warn" | "crit" | "muted" }> = {
+  ACTIVE: { t: "działa", ton: "ok" },
+  PROVISIONING: { t: "zakładanie", ton: "warn" },
+  PENDING_PAYMENT: { t: "czeka na płatność", ton: "warn" },
+  PAST_DUE: { t: "zaległa płatność", ton: "warn" },
+  SUSPENDED: { t: "zawieszona", ton: "crit" },
+  CANCELED: { t: "anulowana", ton: "muted" },
+  EXPIRED: { t: "wygasła", ton: "muted" },
+};
+const KOLEJNOSC = ["ACTIVE", "PROVISIONING", "PENDING_PAYMENT", "PAST_DUE", "SUSPENDED", "CANCELED", "EXPIRED"];
+
+/** PB-34 — lista usług w języku makiety; filtr stanu w adresie (?stan=), bez JS. */
+export default async function AdminSubscriptionsPage({ searchParams }: { searchParams: Promise<{ stan?: string }> }) {
+  const { stan } = await searchParams;
   let rows: Awaited<ReturnType<typeof listAdminSubscriptions>> = [];
   let error: string | null = null;
   try {
@@ -11,64 +26,72 @@ export default async function AdminSubscriptionsPage() {
   } catch (e) {
     error = e instanceof Error ? e.message : "Nie udało się pobrać listy.";
   }
+  const liczby = rows.reduce<Record<string, number>>((a, r) => ({ ...a, [r.status]: (a[r.status] ?? 0) + 1 }), {});
+  const widoczne = stan && STAN[stan] ? rows.filter((r) => r.status === stan) : rows;
+  const filtr = (href: string, on: boolean, tekst: string) => (
+    <Link
+      key={href}
+      href={href}
+      aria-current={on ? "page" : undefined}
+      className={`rounded-full border px-3 py-1 text-[13px] ${on ? "border-primary bg-data-soft font-semibold text-data-hi" : "border-line-strong text-muted-foreground hover:text-foreground"}`}
+    >
+      {tekst}
+    </Link>
+  );
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-white">Subskrypcje</h1>
-        <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
-          Lista usług hostingu z bazy ({rows.length} rekordów na tej stronie — API zwraca do 200
-          najnowszych).
-        </p>
-      </header>
+    <div className="flex flex-col gap-[22px]">
+      <div className="flex flex-col gap-2">
+        <Eyebrow>Klienci i usługi</Eyebrow>
+        <h1 className="text-[32px] lg:text-[40px]">Usługi</h1>
+        <span className="text-[15px] text-muted-foreground">{rows.length} najnowszych usług (API zwraca do 200)</span>
+      </div>
+
+      <div className="flex flex-wrap gap-2" aria-label="Filtr stanu">
+        {filtr("/subscriptions", !stan || !STAN[stan], `Wszystkie · ${rows.length}`)}
+        {KOLEJNOSC.filter((k) => liczby[k]).map((k) => filtr(`/subscriptions?stan=${k}`, stan === k, `${STAN[k]!.t} · ${liczby[k]}`))}
+      </div>
 
       {error ? (
-        <p className="text-sm text-rose-300">{error}</p>
+        <p className="text-sm text-crit">{error}</p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-white/10 bg-black/35">
-          <table className="w-full text-left text-sm text-white">
-            <thead className="border-b border-white/10 bg-white/5 text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3">Klient</th>
-                <th className="px-4 py-3">Plan</th>
-                <th className="px-4 py-3">Usługa (ID)</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Interval</th>
-                <th className="px-4 py-3 text-right">Cena</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {rows.map((r) => (
-                <tr key={r.id} className="hover:bg-white/[0.03]">
-                  <td className="px-4 py-3">
-                    <p className="font-medium truncate max-w-[14rem]">{r.user.email}</p>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{r.plan.name}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
-                    {r.serviceTag ?? r.account?.daUsername ?? "—"}
-                  </td>
-                  <td className="px-4 py-3">{r.status}</td>
-                  <td className="px-4 py-3">{r.interval}</td>
-                  <td className="px-4 py-3 text-right tabular-nums">
-                    {String(r.priceAmount)} {r.currency}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/subscriptions/${r.id}`}
-                      className="text-xs text-indigo-400 hover:underline"
-                    >
-                      Szczegóły
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {rows.length === 0 ? (
-            <p className="p-8 text-center text-muted-foreground text-sm">Brak subskrypcji w bazie.</p>
-          ) : null}
-        </div>
+        <section className={KARTA} aria-label="Usługi">
+          <div className={`${WIERSZ} !border-t-0 !py-2.5 font-mono text-[10.5px] uppercase tracking-[0.1em] text-muted-foreground`}>
+            <span className="min-w-0 flex-1">Usługa</span>
+            <span className="hidden w-[150px] md:block">Cena</span>
+            <span className="hidden w-[100px] lg:block">Założona</span>
+            <span className="w-[130px]">Stan</span>
+          </div>
+          {widoczne.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak usług.</div> : null}
+          {widoczne.map((r) => {
+            const s = STAN[r.status] ?? { t: r.status, ton: "muted" as const };
+            const klient = [r.user.firstName, r.user.lastName].filter(Boolean).join(" ") || r.user.email;
+            return (
+              <Link key={r.id} href={`/subscriptions/${r.id}`} className={`${WIERSZ} hover:bg-raised`}>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="font-semibold">{r.account?.domain ?? r.serviceTag ?? r.plan.name}</span>
+                  <span className="text-[12.5px] text-muted-foreground">
+                    {[r.plan.name, klient, r.serviceTag ?? r.account?.daUsername].filter(Boolean).join(" · ")}
+                  </span>
+                </span>
+                <span className="hidden w-[150px] flex-col md:flex">
+                  <span className="font-mono text-[13px]">
+                    {r.currency === "PLN" ? formatCredits(String(r.individualPrice ?? r.priceAmount)) : `${String(r.individualPrice ?? r.priceAmount)} ${r.currency}`} / {r.interval === "YEAR" ? "rok" : "mies."}
+                  </span>
+                  {r.individualPrice != null ? <span className="text-xs text-muted-foreground">cena indywidualna</span> : null}
+                </span>
+                <span className="hidden w-[100px] font-mono text-[13px] text-muted-foreground lg:block">
+                  {new Date(r.createdAt).toLocaleDateString("pl-PL", { timeZone: "Europe/Warsaw" })}
+                </span>
+                <span className="w-[130px]">
+                  <Pigulka ton={s.ton} className="!text-xs">
+                    {s.t}
+                  </Pigulka>
+                </span>
+              </Link>
+            );
+          })}
+        </section>
       )}
     </div>
   );

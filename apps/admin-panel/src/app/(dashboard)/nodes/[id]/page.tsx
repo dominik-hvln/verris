@@ -100,7 +100,7 @@ export default async function ServerDetailPage({
           <div className="flex flex-wrap items-center gap-2.5 text-[15px] text-verris-body">
             {p ? (
               <Pigulka ton={p.stan === "crit" ? "crit" : p.poza || p.stan === "warn" ? "warn" : "ok"}>
-                {STATUS[p.status] ?? p.status} · {p.poza ?? "przyjmuje konta"}
+                {STATUS[p.status] ?? p.status} · {p.poza ?? (p.stan === "crit" ? "brak sygnału" : p.stan === "warn" ? "wysokie obciążenie CPU" : "przyjmuje konta")}
               </Pigulka>
             ) : (
               <Pigulka ton="muted">{STATUS[server.status] ?? server.status}</Pigulka>

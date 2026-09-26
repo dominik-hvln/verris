@@ -1,3 +1,5 @@
+import type { PrismaService } from '../prisma/prisma.service.js';
+
 /**
  * PB-34 — pulpit admina „Stan platformy” (makieta Main.dc.html): czyste funkcje bez bazy,
  * żeby reguły „co wymaga uwagi” i „jaki stan ma węzeł” dało się sprawdzić testem jednostkowym.
@@ -159,3 +161,60 @@ export const ZDARZENIA: Record<string, string> = {
   KSEF_INVOICE_REJECTED: 'KSeF odrzucił fakturę',
   STRIPE_WEBHOOK_ZACIETY_ALERT: 'Zdarzenie płatności utknęło',
 };
+
+/**
+ * Węzły floty z CPU realnym (suma % rdzenia kont z 10 min / liczba próbek / rdzenie) — jedno źródło
+ * dla pulpitu, listy węzłów i nagłówka. `wezly` = surowe rekordy (do reguł „Wymaga uwagi”).
+ */
+export async function flotaZBazy(prisma: PrismaService, teraz: number) {
+  const [wezly, cpu] = await Promise.all([
+    prisma.server.findMany({
+      where: { status: { not: 'DEPROVISIONING' } },
+      orderBy: [{ name: 'asc' }, { ipAddress: 'asc' }],
+      select: {
+        id: true,
+        name: true,
+        hostname: true,
+        ipAddress: true,
+        region: true,
+        status: true,
+        acceptsNewAccounts: true,
+        lastHeartbeatAt: true,
+        onboardVerifiedAt: true,
+        onboardReport: true,
+        maintenanceReason: true,
+        totalCpuCores: true,
+        maxAccounts: true,
+        stackVersion: true,
+        _count: { select: { accounts: true } },
+      },
+    }),
+    prisma.$queryRaw<{ serverId: string; cpu: number }[]>`
+      SELECT "serverId", (SUM("cpuUsageAvg") / COUNT(DISTINCT "bucketStart"))::float8 AS cpu
+      FROM "UsageMetric"
+      WHERE "serverId" IS NOT NULL AND "bucketDurationS" <= 300 AND "bucketStart" >= ${new Date(teraz - 10 * 60_000)}
+      GROUP BY "serverId"`,
+  ]);
+  const cpuWg = new Map(cpu.map((c) => [c.serverId, c.cpu]));
+  const wiersze = wezly.map((w) => {
+    const rdzenie = w.totalCpuCores ?? 0;
+    const surowe = cpuWg.get(w.id);
+    const cpuProc = surowe != null && rdzenie > 0 ? Math.min(100, Math.round(surowe / rdzenie)) : null;
+    return {
+      id: w.id,
+      nazwa: nazwaWezla(w),
+      ip: w.ipAddress,
+      region: w.region,
+      status: w.status,
+      stan: stanWezla(w, cpuProc, teraz),
+      cpuProc,
+      poza: pozaPula(w),
+      konta: w._count.accounts,
+      limitKont: w.maxAccounts,
+      manifest: w.stackVersion,
+      sygnal: sygnal(w.lastHeartbeatAt, teraz),
+      naZywo: w.lastHeartbeatAt != null && teraz - w.lastHeartbeatAt.getTime() < 2 * 60_000,
+    };
+  });
+  return { wezly, wiersze };
+}

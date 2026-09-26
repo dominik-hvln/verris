@@ -12,6 +12,8 @@ import {
 import type { Request } from 'express';
 import { ServersService } from './servers.service.js';
 import { PrzegladWezlaService } from './przeglad-wezla.service.js';
+import { flotaZBazy } from '../admin-dashboard/stan-platformy.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { PolitykaPojemnosciDto, WygaszenieWezlaDto } from './dto/capacity-policy.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -78,6 +80,7 @@ export class ServersAdminController {
     private readonly nodeDns: NodeDnsService,
     private readonly directAdmin: DirectAdminService,
     private readonly przegladWezla: PrzegladWezlaService,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -95,6 +98,15 @@ export class ServersAdminController {
   @StaffPerm('NODES_VIEW')
   list() {
     return this.servers.listServers();
+  }
+
+  /** PB-34 — lista węzłów z CPU realnym i stanem (te same reguły co pulpit). Trasa przed :id. */
+  @Get('flota')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_VIEW')
+  flota() {
+    return flotaZBazy(this.prisma, Date.now()).then((f) => f.wiersze);
   }
 
   // #13 — operacje węzłów (NodeTask): lista + ręczne ponowienie nieudanych

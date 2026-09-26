@@ -1,341 +1,155 @@
 import Link from "next/link";
-import { Server, Plus, Cpu, MemoryStick, HardDrive, Clock, AlertCircle, Gauge } from "lucide-react";
-import type { ServerSummaryDto, ServerStatus } from "@verris/contracts";
+import { Plus, Gauge } from "lucide-react";
+import type { ServerSummaryDto } from "@verris/contracts";
+import { adminApi } from "@/lib/api";
+import { plural } from "@/lib/pl";
+import { Eyebrow, KARTA, Pasek, Pigulka, PRZYCISK, PRZYCISK_GLOWNY, WIERSZ } from "@/components/v2";
 import { fetchServers } from "./actions";
 import { FleetUpdateButton } from "./fleet-update-button";
-import { accounts as accountsLabel, days as daysLabel } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
+/** Wiersz `GET /admin/servers/flota` — te same reguły stanu co pulpit („Flota”). */
+interface WierszFloty {
+  id: string;
+  nazwa: string;
+  ip: string;
+  region: string | null;
+  status: string;
+  stan: "ok" | "warn" | "crit";
+  cpuProc: number | null;
+  poza: string | null;
+  konta: number;
+  limitKont: number | null;
+  manifest: string | null;
+  sygnal: string;
+  naZywo: boolean;
+}
+
+const STATUS: Record<string, string> = {
+  ACTIVE: "Aktywny",
+  INIT: "Zakładanie",
+  PENDING_APPROVAL: "Czeka na zatwierdzenie",
+  MAINTENANCE: "Serwis",
+  OFFLINE: "Offline",
+  DEPROVISIONING: "Wycofywany",
+};
+
+const gb = (mb: number | null | undefined) => (mb ? `${Math.round(mb / 1024).toLocaleString("pl-PL")} GB` : null);
+
+/** PB-34 — lista węzłów w języku makiety (tabela jak karta „Flota” na pulpicie). */
 export default async function AdminNodesPage() {
-  const { data: servers, error } = await fetchServers();
+  const [{ data: servers, error }, flota] = await Promise.all([
+    fetchServers(),
+    adminApi<WierszFloty[]>("/admin/servers/flota").catch(() => null),
+  ]);
+  const wg = new Map(servers.map((s) => [s.id, s]));
+  const wiersze: WierszFloty[] =
+    flota ??
+    // API bez /flota (albo błąd) — lista z samych rekordów, bez CPU realnego.
+    servers.map((s) => ({
+      id: s.id,
+      nazwa: s.name || s.ipAddress,
+      ip: s.ipAddress,
+      region: s.region,
+      status: s.status,
+      stan: s.status === "OFFLINE" ? "crit" : s.status === "ACTIVE" ? "ok" : "warn",
+      cpuProc: null,
+      poza: null,
+      konta: s._count?.accounts ?? 0,
+      limitKont: s.maxAccounts,
+      manifest: null,
+      sygnal: s.sygnal?.etykieta ?? "—",
+      naZywo: s.sygnal?.stan === "odpowiada",
+    }));
+  const liczby = servers.reduce<Record<string, number>>((a, s) => ({ ...a, [s.status]: (a[s.status] ?? 0) + 1 }), {});
+  const dziala = wiersze.filter((w) => w.status === "ACTIVE" && w.stan !== "crit").length;
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <header className="flex items-start justify-between gap-6 flex-wrap">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white drop-shadow-md">
-            Węzły &amp; Serwery
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground max-w-xl">
-            Zarządzanie flotą serwerów obliczeniowych: inicjalizacja, akceptacja, konfiguracja
-            DirectAdmin i monitoring obciążenia.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-        <Link
-          href="/nodes/wizard"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-all shadow-[0_0_15px_rgba(99,102,241,0.4)]"
-        >
-          <Plus className="h-4 w-4" />
-          Dodaj węzeł (kreator)
-        </Link>
-        <Link
-          href="/nodes/capacity"
-          className="inline-flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-white border border-white/10 rounded-lg"
-        >
-          <Gauge className="h-4 w-4" />
-          Pojemność floty
-        </Link>
-        <FleetUpdateButton />
-        </div>
-      </header>
-
-      {error && (
-        <div className="flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-          <AlertCircle className="h-4 w-4" />
-          <span>Nie udało się pobrać listy węzłów: {error}</span>
-        </div>
-      )}
-
-      <Summary servers={servers} />
-
-      {servers.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {servers.map((server) => (
-            <ServerCard key={server.id} server={server} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Summary({ servers }: { servers: ServerSummaryDto[] }) {
-  const counts = servers.reduce<Record<ServerStatus, number>>(
-    (acc, s) => {
-      acc[s.status] = (acc[s.status] ?? 0) + 1;
-      return acc;
-    },
-    { INIT: 0, PENDING_APPROVAL: 0, ACTIVE: 0, MAINTENANCE: 0, OFFLINE: 0, DEPROVISIONING: 0 },
-  );
-
-  const items: { label: string; value: number; tone: string }[] = [
-    { label: "Aktywne", value: counts.ACTIVE, tone: "emerald" },
-    { label: "Oczekujące akceptacji", value: counts.PENDING_APPROVAL, tone: "amber" },
-    { label: "Inicjalizowane", value: counts.INIT, tone: "indigo" },
-    { label: "Konserwacja", value: counts.MAINTENANCE, tone: "slate" },
-    { label: "Offline", value: counts.OFFLINE, tone: "rose" },
-  ];
-
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-      {items.map((item) => (
-        <div
-          key={item.label}
-          className="rounded-xl border border-white/5 bg-black/30 backdrop-blur-md p-4"
-        >
-          <p className="text-xs text-muted-foreground">{item.label}</p>
-          <p className={`text-2xl font-semibold mt-1 text-${item.tone}-300`}>{item.value}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="rounded-2xl border border-dashed border-white/10 bg-black/30 backdrop-blur-md p-10 text-center">
-      <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300">
-        <Server className="h-6 w-6" />
-      </div>
-      <h2 className="mt-4 text-lg font-semibold">Nie masz jeszcze żadnych węzłów</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Aby zacząć, dodaj pierwszy węzeł — wygenerujemy jednorazowy skrypt bootstrap, który
-        zainicjalizuje serwer i zarejestruje go w panelu.
-      </p>
-      <Link
-        href="/nodes/wizard"
-        className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors"
-      >
-        <Plus className="h-4 w-4" />
-        Uruchom wizard węzła
-      </Link>
-    </div>
-  );
-}
-
-function ServerCard({ server }: { server: ServerSummaryDto }) {
-  const accent = statusAccent(server.status);
-
-  const ramAlloc = server.totalMemoryMb
-    ? Math.min(100, Math.round((server.allocatedMemory / server.totalMemoryMb) * 100))
-    : 0;
-
-  return (
-    <Link
-      href={`/nodes/${server.id}`}
-      className="group relative overflow-hidden rounded-2xl p-[1px] transition-all hover:scale-[1.01] duration-300"
-    >
-      <div
-        className={`absolute inset-0 bg-linear-to-br ${accent.gradient} rounded-2xl blur-lg opacity-30 group-hover:opacity-50 transition-all`}
-      />
-      <div className="relative flex h-full flex-col gap-5 rounded-2xl bg-black/60 backdrop-blur-xl border border-white/10 p-6 shadow-2xl">
-        <div className="flex justify-between items-start gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className={`h-10 w-10 flex items-center justify-center rounded-xl ${accent.bg}`}>
-              <Server className={`h-5 w-5 ${accent.text}`} />
-            </div>
-            <div className="min-w-0">
-              <h3 className="font-semibold text-white truncate">
-                {server.name ?? "(bez nazwy)"}
-              </h3>
-              <p className="text-xs text-muted-foreground truncate">
-                {server.status === "INIT"
-                  ? "oczekuje na bootstrap"
-                  : server.ipAddress}
-                {server.region ? ` • ${server.region}` : ""}
-              </p>
-            </div>
-          </div>
-          <div className="flex shrink-0 flex-col items-end gap-1">
-            <span
-              className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full border ${accent.badge}`}
-            >
-              {statusLabel(server.status)}
+    <div className="flex flex-col gap-[22px]">
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="flex flex-col gap-2">
+          <Eyebrow>Flota</Eyebrow>
+          <h1 className="text-[32px] lg:text-[40px]">Węzły</h1>
+          <div className="flex flex-wrap items-center gap-2 text-[15px] text-muted-foreground">
+            <span>
+              {plural(wiersze.length, "węzeł", "węzły", "węzłów")} · {dziala} działa
             </span>
-            <ZnacznikSygnalu sygnal={server.sygnal} />
+            {(["PENDING_APPROVAL", "INIT", "MAINTENANCE", "OFFLINE"] as const).map((k) =>
+              liczby[k] ? (
+                <Pigulka key={k} ton={k === "OFFLINE" ? "crit" : "warn"} className="!text-xs">
+                  {STATUS[k]}: {liczby[k]}
+                </Pigulka>
+              ) : null,
+            )}
           </div>
         </div>
-
-        {server.status === "MAINTENANCE" && server.maintenanceReason ? (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-200">
-            <strong className="text-amber-100">Powód maintenance:</strong>{" "}
-            {server.maintenanceReason}
-          </div>
-        ) : null}
-
-        <div className="grid grid-cols-2 gap-3">
-          <Stat
-            icon={<Cpu className="h-3 w-3" />}
-            label="CPU"
-            value={server.totalCpuCores ? `${server.totalCpuCores} rdzeni` : "—"}
-          />
-          <Stat
-            icon={<MemoryStick className="h-3 w-3" />}
-            label="RAM"
-            value={server.totalMemoryMb ? `${formatMb(server.totalMemoryMb)}` : "—"}
-            barPct={ramAlloc}
-          />
-          <Stat
-            icon={<HardDrive className="h-3 w-3" />}
-            label="Dysk"
-            value={server.totalDiskMb ? formatMb(server.totalDiskMb) : "—"}
-          />
-          <Stat
-            icon={<Clock className="h-3 w-3" />}
-            label="Heartbeat"
-            value={formatRelative(server.lastHeartbeatAt)}
-          />
-        </div>
-
-        <div className="border-t border-white/10 pt-4 flex justify-between items-center text-xs">
-          <span className="text-muted-foreground">
-            {accountsLabel(server._count?.accounts ?? 0)} na serwerze
-          </span>
-          <span className="text-indigo-400 group-hover:underline">Szczegóły →</span>
+        <div className="ml-auto flex flex-wrap items-center gap-2.5">
+          <Link href="/nodes/capacity" className={PRZYCISK}>
+            <Gauge className="h-4 w-4" />
+            Pojemność floty
+          </Link>
+          <FleetUpdateButton />
+          <Link href="/nodes/wizard" className={PRZYCISK_GLOWNY}>
+            <Plus className="h-[15px] w-[15px]" strokeWidth={2.4} />
+            Dodaj węzeł
+          </Link>
         </div>
       </div>
-    </Link>
-  );
-}
 
-function Stat({
-  icon,
-  label,
-  value,
-  barPct,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  barPct?: number;
-}) {
-  return (
-    <div className="bg-white/5 border border-white/5 rounded-xl p-3">
-      <p className="text-xs text-muted-foreground flex items-center gap-2">
-        {icon} {label}
-      </p>
-      <p className="text-sm font-medium text-white mt-1 truncate">{value}</p>
-      {typeof barPct === "number" && (
-        <div className="h-1 w-full bg-white/10 rounded-full mt-2">
-          <div
-            className="h-full bg-emerald-500 rounded-full"
-            style={{ width: `${barPct}%` }}
-          />
+      {error ? (
+        <div className="rounded-[10px] border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">Nie udało się pobrać listy węzłów: {error}</div>
+      ) : null}
+
+      <section className={KARTA} aria-label="Węzły">
+        <div className={`${WIERSZ} !border-t-0 !py-2.5 font-mono text-[10.5px] uppercase tracking-[0.1em] text-muted-foreground`}>
+          <span className="min-w-0 flex-1">Węzeł</span>
+          <span className="hidden w-[190px] md:block">Stan</span>
+          <span className="w-[120px] sm:w-[180px]">CPU realne</span>
+          <span className="w-[70px] text-right">Konta</span>
+          <span className="hidden w-[110px] lg:block">Manifest</span>
+          <span className="w-[80px] text-right">Sygnał</span>
         </div>
-      )}
+        {wiersze.length === 0 ? (
+          <div className={`${WIERSZ} flex-col items-start gap-3 py-8`}>
+            <span className="font-semibold">Nie masz jeszcze żadnych węzłów</span>
+            <span className="text-sm text-muted-foreground">Kreator wygeneruje jednorazowy skrypt instalacyjny i przeprowadzi przez zatwierdzenie, kopie i onboard.</span>
+            <Link href="/nodes/wizard" className={PRZYCISK_GLOWNY}>
+              <Plus className="h-4 w-4" /> Uruchom kreator węzła
+            </Link>
+          </div>
+        ) : (
+          wiersze.map((w) => {
+            const s: ServerSummaryDto | undefined = wg.get(w.id);
+            const zasoby = [s?.totalCpuCores ? `${s.totalCpuCores} rdz.` : null, gb(s?.totalMemoryMb) ? `${gb(s?.totalMemoryMb)} RAM` : null].filter(Boolean);
+            return (
+              <Link key={w.id} href={`/nodes/${w.id}`} className={`${WIERSZ} hover:bg-raised`}>
+                <span className="flex min-w-0 flex-1 items-center gap-2.5">
+                  <span className={`h-[7px] w-[7px] shrink-0 rounded-full ${w.stan === "crit" ? "bg-crit" : w.stan === "warn" ? "bg-warn" : "bg-data"}`} />
+                  <span className="flex min-w-0 flex-col">
+                    <span className="font-mono text-[13px] font-semibold">{w.nazwa}</span>
+                    <span className="text-[12.5px] text-muted-foreground">{[w.ip, w.region, ...zasoby].filter(Boolean).join(" · ")}</span>
+                  </span>
+                </span>
+                <span className="hidden w-[190px] md:block">
+                  <Pigulka ton={w.stan === "crit" ? "crit" : w.poza || w.stan === "warn" ? "warn" : "ok"} className="!text-xs">
+                    {w.poza ?? (w.stan === "crit" ? "brak sygnału" : w.stan === "warn" ? "wysokie obciążenie CPU" : STATUS[w.status] ?? w.status)}
+                  </Pigulka>
+                </span>
+                <span className="w-[120px] sm:w-[180px]">
+                  {w.cpuProc == null ? <span className="text-[13px] text-muted-foreground">brak próbek</span> : <Pasek proc={w.cpuProc} ton={w.cpuProc >= 60 ? "warn" : "ok"} />}
+                </span>
+                <span className="w-[70px] text-right font-mono text-[13px]">
+                  {w.konta}
+                  {w.limitKont ? <span className="text-muted-foreground">/{w.limitKont}</span> : null}
+                </span>
+                <span className="hidden w-[110px] font-mono text-xs text-muted-foreground lg:block">{w.manifest ?? "—"}</span>
+                <span className={`w-[80px] text-right text-[13px] ${w.naZywo ? "text-data-hi" : w.stan === "crit" ? "text-crit" : "text-muted-foreground"}`}>{w.sygnal}</span>
+              </Link>
+            );
+          })
+        )}
+      </section>
     </div>
   );
-}
-
-/**
- * OPS-01 — obserwowana żywotność OBOK statusu, nigdy zamiast niego.
- *
- * Do 2026-08-28 karta pokazywała sam `status`, czyli deklarację administratora.
- * Węzeł oznaczony ACTIVE, który nie odezwał się od godziny, wyglądał dokładnie
- * tak samo jak zdrowy — a `ops-watchdog` już wtedy liczył przeterminowane
- * heartbeaty i wysyłał alerty. Wiedza istniała i nie docierała do ekranu.
- *
- * Milczenie krzyczy, odpowiadanie milczy: węzeł działający NIE dostaje
- * znacznika. Znacznik przy każdym węźle byłby szumem, w którym ten jeden
- * czerwony przestałby się rzucać w oczy.
- */
-function ZnacznikSygnalu({ sygnal }: { sygnal?: ServerSummaryDto["sygnal"] }) {
-  // Starsze API nie zna tego pola. Brak danych to nie to samo co „odpowiada" —
-  // w takim wypadku nie twierdzimy niczego (X-39: nie udawać wiedzy).
-  if (!sygnal || sygnal.stan === "odpowiada") return null;
-
-  const nigdy = sygnal.stan === "nigdy-nie-odpowiedzial";
-
-  return (
-    <span
-      title={`Próg: brak sygnału dłużej niż ${sygnal.progMin} min. Węzeł wypada wtedy z wyboru przy zakładaniu kont.`}
-      className={`flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${
-        nigdy
-          ? "border-neutral-500/40 bg-neutral-500/10 text-neutral-300"
-          : "border-red-500/40 bg-red-500/10 text-red-300"
-      }`}
-    >
-      <span
-        aria-hidden
-        className={`h-1.5 w-1.5 rounded-full ${nigdy ? "bg-neutral-400" : "bg-red-400 animate-pulse"}`}
-      />
-      {sygnal.etykieta}
-    </span>
-  );
-}
-
-function statusLabel(status: ServerStatus): string {
-  switch (status) {
-    case "INIT":
-      return "Inicjalizacja";
-    case "PENDING_APPROVAL":
-      return "Czeka na akceptację";
-    case "ACTIVE":
-      return "Aktywny";
-    case "MAINTENANCE":
-      return "Konserwacja";
-    case "OFFLINE":
-      return "Offline";
-    case "DEPROVISIONING":
-      return "Wycofywany";
-  }
-}
-
-function statusAccent(status: ServerStatus) {
-  switch (status) {
-    case "ACTIVE":
-      return {
-        gradient: "from-emerald-500/40 to-teal-600/40",
-        bg: "bg-emerald-500/20 border border-emerald-500/30",
-        text: "text-emerald-400",
-        badge: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
-      };
-    case "PENDING_APPROVAL":
-      return {
-        gradient: "from-amber-500/40 to-orange-600/40",
-        bg: "bg-amber-500/20 border border-amber-500/30",
-        text: "text-amber-400",
-        badge: "border-amber-500/30 bg-amber-500/10 text-amber-300",
-      };
-    case "INIT":
-      return {
-        gradient: "from-indigo-500/40 to-violet-600/40",
-        bg: "bg-indigo-500/20 border border-indigo-500/30",
-        text: "text-indigo-400",
-        badge: "border-indigo-500/30 bg-indigo-500/10 text-indigo-300",
-      };
-    case "MAINTENANCE":
-      return {
-        gradient: "from-sky-500/40 to-blue-600/40",
-        bg: "bg-sky-500/20 border border-sky-500/30",
-        text: "text-sky-400",
-        badge: "border-sky-500/30 bg-sky-500/10 text-sky-300",
-      };
-    case "OFFLINE":
-    case "DEPROVISIONING":
-      return {
-        gradient: "from-rose-500/40 to-red-600/40",
-        bg: "bg-rose-500/20 border border-rose-500/30",
-        text: "text-rose-400",
-        badge: "border-rose-500/30 bg-rose-500/10 text-rose-300",
-      };
-  }
-}
-
-function formatMb(mb: number): string {
-  if (mb >= 1024) return `${(mb / 1024).toFixed(1)} GB`;
-  return `${mb} MB`;
-}
-
-function formatRelative(iso: string | null): string {
-  if (!iso) return "brak";
-  const ms = Date.now() - new Date(iso).getTime();
-  if (ms < 60_000) return "przed chwilą";
-  if (ms < 3_600_000) return `${Math.floor(ms / 60_000)} min temu`;
-  if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)} h temu`;
-  return `${daysLabel(Math.floor(ms / 86_400_000))} temu`;
 }

@@ -7,6 +7,8 @@ export interface AdminSubscriptionRow {
   serviceTag: string | null;
   interval: string;
   priceAmount: unknown;
+  /** PB-27 — cena indywidualna (gdy ustawiona, to ją płaci klient). */
+  individualPrice?: string | null;
   currency: string;
   createdAt: string;
   plan: { slug: string; name: string };
