@@ -45,9 +45,9 @@ PB-07,WŁAŚCICIEL,akceptacja treści i włączenie /specyfikacja
 PB-08,WŁAŚCICIEL,"GTM: wstrzymać zdublowany tag GA4, sprawdzić konwersje w Preview"
 PB-09,WŁAŚCICIEL,seed bazy wiedzy na produkcji (jedno polecenie)
 PB-10,WŁAŚCICIEL,"kampania Google Ads — technicznie bez węzła, ale uruchamiamy przy starcie"
-P-11,DOKUMENT,RCPD istnieje — zamknąć wpisem i ustalić rytm przeglądów
-PB-03,DOKUMENT,dokumenty prawne 1.0.0 — wszystko poza §10 ust. 5 (po teście węzła) i ClouDNS
-PB-24,DOKUMENT,wniosek do wykazu KSC — przygotować; termin: 6 mies. od uruchomienia DNS/domen
+P-11,WŁAŚCICIEL,akceptacja projektu DO_ZATWIERDZENIA_P-11_rcpd-przeglady.md; potem przeniesienie do rcpd.md
+PB-03,WŁAŚCICIEL,akceptacja projektu DO_ZATWIERDZENIA_PB-03_publikacja-1.0.0.md; potem publikacja 1.0.0 przed pierwszym klientem
+PB-24,WŁAŚCICIEL,akceptacja projektu DO_ZATWIERDZENIA_PB-24_wniosek-ksc.md; potem złożenie wniosku na wykaz-ksc.gov.pl
 SEC-01,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
 SEC-02,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
 SEC-03,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
