@@ -26,12 +26,12 @@ w planie startowym** — `P-15` blokował domknięcie blokerów aż do sprintu 1
 
 | Subprocesor | Rola / dane | Jak się zawiera | Status | Transfer poza EOG |
 |---|---|---|---|---|
-| **Hetzner Online** | Control-plane, węzły hostingowe, VPS, backup off-site — **wszystkie dane klientów** | Checkbox „I agree to the agreement" na `accounts.hetzner.com/account/dpa`. **Przed zatwierdzeniem trzeba wypełnić Załącznik 1**: kategorie danych i krąg osób, których dotyczą | ☐ do akceptacji | Nie (DE/FI, EOG) |
+| **Hetzner Online** | Control-plane, węzły hostingowe, VPS, backup off-site — **wszystkie dane klientów** | Checkbox „I agree to the agreement" na `accounts.hetzner.com/account/dpa`. **Przed zatwierdzeniem trzeba wypełnić Załącznik 1**: kategorie danych i krąg osób, których dotyczą | ✅ **zawarta 27.09.2026** — DPA v1.2 (16.02.2026), klient K0265867421; Załącznik 1: 5 kategorii standardowych + treści klientów na serwerach; osoby: klienci, ich pracownicy, **użytkownicy końcowi stron i poczty klientów**, pracownicy/współpracownicy Verris; PDF u właściciela (`dpa-2026-09-27.pdf`) | Nie (DE/FI, EOG) |
 | **Stripe Payments Europe** | Płatności | **Nie wymaga osobnej akceptacji** — DPA „is subject to and forms part of the Agreement", czyli obowiązuje wraz z Stripe Services Agreement | ☑ obowiązuje z mocy umowy | Część infrastruktury US → SCC/DPF w treści DPA |
 | **Amazon Web Services (SES)** | Wysyłka poczty transakcyjnej, region UE | **Nie wymaga podpisu** — AWS GDPR DPA jest częścią AWS Service Terms, SCC stosują się automatycznie | ☑ obowiązuje z mocy umowy | Region UE; SCC automatyczne, gdyby doszło do transferu |
-| **Openprovider** | Rejestracja i transfer domen — dane abonenta | Akceptacja w panelu; po zawarciu dokument leży w `cp.openprovider.eu` → Contracts | ☐ do akceptacji | — |
-| **Cloudflare (Turnstile)** | Anty-bot, adresy IP | DPA odwołuje się do Self-Serve Subscription Agreement, ale **nie opisuje wprost mechanizmu akceptacji dla self-serve** — do potwierdzenia w dashboardzie, a jeśli go tam nie ma, zapytać supportu i zapisać odpowiedź | ☐ do potwierdzenia | USA → SCC |
-| **Streamsoft (Firmino)** | Program księgowy — faktury VAT klientów (Verris jako administrator, nie dotyczy DPA z klientami) | Akceptacja w programie: Ustawienia → RODO → Umowa powierzenia (potwierdzenie umocowania + akceptacja). Przy akceptacji sprawdzić w treści lokalizację serwerów i ewentualne transfery poza EOG — polityka prywatności pisze dziś „nie” | ☐ do akceptacji | do potwierdzenia |
+| **Openprovider** | Rejestracja i transfer domen — dane abonenta | Akceptacja w panelu; po zawarciu dokument leży w `cp.openprovider.eu` → Contracts | ✅ zaakceptowana przy rejestracji konta resellera (potwierdzenie właściciela 27.09.2026; dokładna data w `cp.openprovider.eu` → Contracts) | — |
+| **Cloudflare (Turnstile)** | Anty-bot, adresy IP | DPA odwołuje się do Self-Serve Subscription Agreement, ale **nie opisuje wprost mechanizmu akceptacji dla self-serve** — do potwierdzenia w dashboardzie, a jeśli go tam nie ma, zapytać supportu i zapisać odpowiedź | ✅ DPA wchodzi z Self-Serve Subscription Agreement przy założeniu konta (potwierdzenie właściciela 27.09.2026) | USA → SCC |
+| **Streamsoft (Firmino)** | Program księgowy — faktury VAT klientów (Verris jako administrator, nie dotyczy DPA z klientami) | Akceptacja w programie: Ustawienia → RODO → Umowa powierzenia (potwierdzenie umocowania + akceptacja). Przy akceptacji sprawdzić w treści lokalizację serwerów i ewentualne transfery poza EOG — polityka prywatności pisze dziś „nie” | ✅ zaakceptowana w programie (potwierdzenie właściciela 27.09.2026) | do potwierdzenia |
 | **OpenAI Ireland Ltd** | Asystent AI — poziom szybki, embeddingi (pytania i odpowiedzi, kontekst usługi bez sekretów) | **Nie wymaga osobnego podpisu** — DPA z SCC jest częścią OpenAI Services Agreement i obowiązuje z jej akceptacją (założenie konta API). Wejście/wyjście API do 30 dni, bez trenowania modeli | ☐ przy założeniu konta API | USA → SCC w DPA |
 | **Anthropic Ireland, Limited** | Asystent AI — poziom analiz (prognozy, szkice BOK) | **Nie wymaga osobnego podpisu** — DPA z SCC jest częścią Commercial Terms of Service i obowiązuje z ich akceptacją. Bez trenowania modeli na treści klienta | ☐ przy założeniu konta API | USA → SCC w DPA |
 | Ministerstwo Finansów — KSeF | Faktury | Podstawa ustawowa, nie DPA | n/d | — |
@@ -79,10 +79,10 @@ Właściciel potwierdził akceptację umów powierzenia (Hetzner, Openprovider, 
 
 ## Do zrobienia przed pierwszym płatnym klientem
 
-- [ ] Hetzner — wypełnić Załącznik 1 i zaakceptować DPA w panelu konta
-- [ ] Openprovider — zaakceptować DPA w control panelu, zapisać numer z sekcji Contracts
-- [ ] Cloudflare — potwierdzić mechanizm dla self-serve, zapisać odpowiedź supportu jeśli trzeba
-- [ ] Streamsoft Firmino — zaakceptować umowę powierzenia w programie (Ustawienia → RODO → Umowa powierzenia), potwierdzić lokalizację danych
+- [x] Hetzner — Załącznik 1 wypełniony, DPA zawarta 27.09.2026
+- [x] Openprovider — zaakceptowana przy rejestracji (właściciel, 27.09.2026)
+- [x] Cloudflare — DPA z umową self-serve (właściciel, 27.09.2026)
+- [x] Streamsoft Firmino — zaakceptowana w programie (właściciel, 27.09.2026)
 - [ ] ClouDNS — przy zakupie razem z węzłem (sprint 18): dopisać do listy i polityki (30 dni powiadomienia, jeśli już są klienci)
 - [ ] AI (OpenAI + Anthropic, decyzja właściciela 2026-09-25): konto API u obu dostawców (= DPA z SCC), publikacja Polityki prywatności 1.1.0 (pkt 2.7, 4, 5.1, 6, 8 — gotowa w `drafts/privacy.md`), dopiero potem klucze `AI_API_KEY` / `ANTHROPIC_API_KEY`. Do DPA z klientami (Zał. 2) nie wchodzą — asystent nie dotyka danych powierzonych.
 - [ ] Stripe, AWS — odnotować podstawę (umowa główna), bez akcji
