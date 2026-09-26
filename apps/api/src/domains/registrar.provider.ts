@@ -215,17 +215,37 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
   }
 
   private async batchAvailabilityByFqdn(fqdns: string[]): Promise<RegistrarAvailability[]> {
-    const domains = fqdns.map((fqdn) => {
-      const { name, extension } = splitDomain(fqdn);
-      return { name, extension };
-    });
-    const res = await this.request<{ data: { results: OpReachableResult[] } }>(
-      '/v1/domains/check',
-      { domains, with_price: true },
+    // Paczki po 15: przy 35 końcówkach w jednym zapytaniu panel dostawał same „zajęte” (27.09),
+    // a pojedyncze zapytanie o 2 domeny odpowiadało poprawnie.
+    // ponytail: 15 dobrane ostrożnie, bez potwierdzonego limitu w dokumentacji — podnieść, jeśli OpenProvider go poda.
+    const paczki: string[][] = [];
+    for (let i = 0; i < fqdns.length; i += 15) paczki.push(fqdns.slice(i, i + 15));
+    // Po kolei: pierwsza paczka loguje i zapisuje token, kolejne go używają (równoległe logowałyby się każda osobno).
+    // Błąd jednej paczki (np. końcówka nieobsługiwana) nie gasi całej wyszukiwarki — tylko gdy padną wszystkie.
+    const wyniki: { data: { results: OpReachableResult[] } }[] = [];
+    let blad: unknown = null;
+    for (const p of paczki) {
+      try {
+        wyniki.push(
+          await this.request<{ data: { results: OpReachableResult[] } }>('/v1/domains/check', {
+            domains: p.map((fqdn) => splitDomain(fqdn)),
+            with_price: true,
+          }),
+        );
+      } catch (e) {
+        blad = e;
+      }
+    }
+    if (!wyniki.length && blad) throw blad;
+    // OpenProvider NIE zachowuje kolejności zapytania (27.09: google.com wrócił przed domeną podaną jako
+    // pierwsza) — dopasowanie po nazwie domeny, nie po indeksie.
+    const wgDomeny = new Map(
+      wyniki.flatMap((r) => r.data?.results ?? []).map((r) => [String(r.domain ?? '').toLowerCase(), r]),
     );
-    const results = res.data?.results ?? [];
-    return fqdns.map((fqdn, i) => {
-      const result = results[i];
+    const brak = fqdns.filter((f) => !wgDomeny.has(f.toLowerCase()));
+    if (brak.length) this.logger.warn(`OpenProvider check: brak wyniku dla ${brak.join(', ')}`);
+    return fqdns.map((fqdn) => {
+      const result = wgDomeny.get(fqdn.toLowerCase());
       const price = result?.price?.reseller ?? result?.price?.product;
       return {
         domain: fqdn,
