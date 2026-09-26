@@ -1,6 +1,6 @@
 # Plan sprintów do startu — Verris
 
-**Wygenerowany:** 2026-09-25 z `audyt/dane/` · **nie edytuj ręcznie**  
+**Wygenerowany:** 2026-09-26 z `audyt/dane/` · **nie edytuj ręcznie**  
 **Podstawa:** audyt parytetu funkcji z 2026-08-20  
 **Pojemność:** 1 osoba, pełny etat, **30 h netto na sprint** · sprint = 1 tydzień  
 **Sprint 1:** 2026-08-31 · **Sprint 23:** 2027-02-01–2027-02-05
@@ -147,7 +147,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 # Faza 1 — Rozliczenia i dowód odtworzenia
 
-*Sprinty 4–8 · 198 h · 2026-09-21 – 2026-10-23*
+*Sprinty 4–8 · 214 h · 2026-09-21 – 2026-10-23*
 
 Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podpisane DPA. Koniec tej fazy to kamień milowy: zamknięte wszystkie blokery poza KSeF-em, który świadomie stoi na końcu.
 
@@ -220,15 +220,17 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 ## Sprint 7 — Ekrany panelu klienta w nowym designie
 
-`2026-10-12 – 2026-10-16` · **40 h** z 30 h pojemności
+`2026-10-12 – 2026-10-16` · **56 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `PB-16` | Ekrany panelu klienta w nowym designie + tryb Prosty/Pełny + wyszukiwarka „/” | 40 | WYSOKI | Przeniesienie wszystkich ekranów panelu klienta na komponenty z PB-15. Tryb Prosty (laik) / Pełny (pro) jako gęstość informacji tego samego panelu. Gl |
+| `PB-20` | Tryb agencji: przełącznik klienta w menu bocznym | 16 | ŚREDNI | Element makiety („Piekarnia Zdrój · klient · 3 usługi” nad menu): konto agencji/resellera przełącza się między swoimi klientami bez wylogowania. Wymag |
 
 **Definicja ukończenia**
 
 - `PB-16` — Wszystkie trasy panelu klienta na nowych komponentach; tryb zapamiętany per użytkownik; „/” działa na każdym ekranie; zrzuty mobile/desktop sprawdzone.
+- `PB-20` — Decyzja o modelu zapisana w docs/VERRIS.md; przełącznik widoczny tylko dla kont z klientami; przełączenie zmienia kontekst usług, domen i płatności; guard uprawnień obejmuje nowe trasy (Z-04); testy w CI.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
 **Ryzyko sprintu.** Przeniesienie ekranow po akceptacji wzorca z PB-15. Ryzyko: zakres — ekranow jest duzo; kolejnosc od najczesciej uzywanych. | PRZEPLANOWANIE 2026-09-22 (3): decyzja wlasciciela — przed startem design (PB-15/16), asystent v1 (PB-17) i tickety v2 (PB-18); plan wydluza sie o 3 sprinty.
