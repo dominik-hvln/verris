@@ -101,7 +101,10 @@ log "działający Postgres: ${PG_WERSJA:-?}"
 # -----------------------------------------------------------------------------
 if [ "$PG_WERSJA" = "16" ]; then
   log "kopia szyfrowana bazy (ops/backup-postgres.sh)…"
-  bash ops/backup-postgres.sh || fail "kopia się nie udała — przerywam, nic nie zostało zmienione."
+  # Jak cron (ops/cron/verris-backup.cron): skrypt kopii bierze klucze age i dane MinIO ze środowiska.
+  # shellcheck disable=SC1090
+  ( set -a; . "./$ENV_FILE"; set +a; bash ops/backup-postgres.sh ) \
+    || fail "kopia się nie udała — przerywam, nic nie zostało zmienione."
 fi
 
 # -----------------------------------------------------------------------------
