@@ -18,13 +18,6 @@ N-10,PRODUKCJA,wpis SUPPRESSED przy pierwszym alercie limitu (przełącznik zapi
 O-06,PRODUKCJA,konto klienta założone przez resellera testowego na produkcji
 Q-09,PRODUKCJA,przejście głównych ścieżek na prawdziwym telefonie (produkcja)
 PB-11,PRODUKCJA,alert testowy dociera e-mailem
-A-08,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"
-A-09,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"
-A-10,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"
-A-12,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"
-A-13,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"
-A-15,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"
-A-11,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"
 L-11,WŁAŚCICIEL,klucze AI w .env.prod po publikacji dokumentów 1.1.0 (PB-03)
 L-12,WŁAŚCICIEL,j.w. — prognoza idzie tym samym kluczem
 P-15,WŁAŚCICIEL,"Hetzner: potwierdzić, że accounts.hetzner.com → Data protection pokazuje zawartą umowę powierzenia (data); reszta potwierdzona przez właściciela 27.09"
