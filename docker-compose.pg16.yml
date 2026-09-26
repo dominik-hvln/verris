@@ -3,6 +3,6 @@
 # `!override` (Docker Compose ≥ 2.24.4) zastępuje listę wolumenów zamiast ją scalać.
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     volumes: !override
       - postgres_data:/var/lib/postgresql/data
