@@ -819,6 +819,8 @@ def buduj_dashboard_planu(D):
         "postep": postep(D),
         "wybory": wybrane_przed_startem(D, R),
         "zmiany": ostatnie_zmiany(D),
+        # PB-38 fala 4: kafel „Wersje” — z tygodniowego raportu (node ops/ci/raport-wersji.mjs --zapisz).
+        "wersje": json.load(open(DANE / "wersje.json", encoding="utf-8")) if (DANE / "wersje.json").exists() else None,
         "wygenerowano": datetime.datetime.now(__import__("zoneinfo").ZoneInfo("Europe/Warsaw")).strftime("%d.%m.%Y %H:%M"),
     }
     tpl = (SZAB / "dashboard_plan.html").read_text(encoding="utf-8")

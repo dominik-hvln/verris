@@ -1,0 +1,179 @@
+{
+  "sprawdzono": "2026-09-26",
+  "eol": [
+    {
+      "nazwa": "Node.js",
+      "wersja": "24",
+      "koniec": "2028-04-30",
+      "dni": 581,
+      "zrodlo": "https://github.com/nodejs/Release/blob/main/schedule.json"
+    },
+    {
+      "nazwa": "PostgreSQL",
+      "wersja": "18",
+      "koniec": "2030-11-14",
+      "dni": 1509,
+      "zrodlo": "https://www.postgresql.org/support/versioning/"
+    },
+    {
+      "nazwa": "Debian (obrazy API i paneli)",
+      "wersja": "trixie",
+      "koniec": "2028-08-09",
+      "dni": 682,
+      "zrodlo": "https://www.debian.org/releases/"
+    },
+    {
+      "nazwa": "Alpine (obraz MinIO)",
+      "wersja": "3.24",
+      "koniec": "2028-06-01",
+      "dni": 613,
+      "zrodlo": "https://alpinelinux.org/releases/"
+    }
+  ],
+  "doZrobienia": [
+    {
+      "pakiet": "ts-jest",
+      "obecna": "29.4.13",
+      "najnowsza": "29.4.14",
+      "poziom": "patch",
+      "gdzie": [
+        "@verris/admin-panel",
+        "@verris/client-panel",
+        "@verris/staff-panel"
+      ]
+    }
+  ],
+  "wstrzymane": [
+    {
+      "pakiet": "@types/node",
+      "obecna": "24.13.6",
+      "najnowsza": "26.6.2",
+      "poziom": "major",
+      "gdzie": [
+        "@verris/admin-panel",
+        "api",
+        "@verris/client-panel",
+        "@verris/staff-panel",
+        "@verris/status-page",
+        "@verris/www",
+        "@verris/database",
+        "@verris/directadmin-sdk"
+      ],
+      "powod": "Typy idą za wersją Node z .nvmrc (24); 26 po wejściu w LTS (2026-10-28).",
+      "przeglad": "2026-11-15",
+      "pozycja": "PB-38"
+    },
+    {
+      "pakiet": "graphql",
+      "obecna": "16.14.2",
+      "najnowsza": "17.0.2",
+      "poziom": "major",
+      "gdzie": [
+        "@verris/www"
+      ],
+      "powod": "Jedynym konsumentem jest Payload (peer graphql ^16.8.1).",
+      "przeglad": "2026-12-15",
+      "pozycja": "X-21"
+    },
+    {
+      "pakiet": "typescript",
+      "obecna": "6.0.3",
+      "najnowsza": "7.0.2",
+      "poziom": "major",
+      "gdzie": [
+        "verris",
+        "@verris/admin-panel",
+        "api",
+        "@verris/client-panel",
+        "@verris/staff-panel",
+        "@verris/status-page",
+        "@verris/www",
+        "@verris/database",
+        "@verris/directadmin-sdk",
+        "@verris/eslint-config",
+        "@verris/ui"
+      ],
+      "powod": "typescript-eslint deklaruje typescript <6.1 — TypeScript 7 wyłączyłby linter.",
+      "przeglad": "2026-11-15",
+      "pozycja": "PB-38"
+    }
+  ],
+  "przedpremierowe": [
+    {
+      "pakiet": "prisma",
+      "obecna": "7.10.0",
+      "najnowsza": "8.0.0-rc.17",
+      "poziom": "przedpremierowa",
+      "gdzie": [
+        "@verris/database"
+      ]
+    }
+  ],
+  "zbedneWstrzymania": [],
+  "obrazy": [
+    {
+      "usluga": "postgres",
+      "obraz": "postgres:18.6-alpine"
+    },
+    {
+      "usluga": "redis",
+      "obraz": "valkey/valkey:9.1.2-alpine"
+    },
+    {
+      "usluga": "minio",
+      "obraz": "verris-minio:RELEASE.2025-10-15T17-29-55Z"
+    },
+    {
+      "usluga": "minio-bootstrap",
+      "obraz": "verris-minio:RELEASE.2025-10-15T17-29-55Z"
+    },
+    {
+      "usluga": "postgres-exporter",
+      "obraz": "prometheuscommunity/postgres-exporter:v0.20.1"
+    },
+    {
+      "usluga": "redis-exporter",
+      "obraz": "oliver006/redis_exporter:v1.92.0-alpine"
+    },
+    {
+      "usluga": "node-exporter",
+      "obraz": "prom/node-exporter:v1.12.1"
+    },
+    {
+      "usluga": "cadvisor",
+      "obraz": "ghcr.io/google/cadvisor:v0.60.6"
+    },
+    {
+      "usluga": "loki",
+      "obraz": "grafana/loki:3.7.7"
+    },
+    {
+      "usluga": "alloy",
+      "obraz": "grafana/alloy:v1.20.0"
+    },
+    {
+      "usluga": "prometheus",
+      "obraz": "prom/prometheus:v3.15.0"
+    },
+    {
+      "usluga": "grafana",
+      "obraz": "grafana/grafana:13.2.2"
+    },
+    {
+      "usluga": "caddy",
+      "obraz": "caddy:2.11.4-alpine"
+    },
+    {
+      "usluga": "glitchtip-migrate",
+      "obraz": "glitchtip/glitchtip:6.2.6"
+    },
+    {
+      "usluga": "glitchtip-web",
+      "obraz": "glitchtip/glitchtip:6.2.6"
+    },
+    {
+      "usluga": "glitchtip-worker",
+      "obraz": "glitchtip/glitchtip:6.2.6"
+    }
+  ]
+}

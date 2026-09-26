@@ -140,6 +140,9 @@
   <h2>Ostatnie zmiany</h2>
   <div class="card" id="zmiany"></div>
 
+  <h2>Wersje — narzędzia i biblioteki</h2>
+  <div class="card" id="wersje"></div>
+
   <h2>Postęp — gdzie jesteśmy</h2>
   <div class="card" id="postep"></div>
 
@@ -450,6 +453,31 @@ document.getElementById('oos').innerHTML =
     + `<table><thead><tr><th>Kiedy</th><th>Pozycje</th><th>Co się zmieniło</th></tr></thead><tbody>`
     + Z.map((z,i)=>(i===12?`</tbody></table><details style="margin-top:8px"><summary style="cursor:pointer;font-size:12.5px;color:var(--accent)">Pokaż starsze (${Z.length-12})</summary><table><tbody>`:'')+`<tr><td class="idc">${esc(z[0])}</td><td>${z[2].map(s=>`<div style="white-space:nowrap"><span class="idc">${esc(s[0])}</span> ${s[2]?`<span style="color:${OK(s[2])?'var(--good)':'var(--muted)'};font-size:11.5px">${OK(s[2])?'✓ ':''}${esc(s[2])}</span>`:''}</div>`).join('')}</td><td style="font-size:13px">${esc(z[3])}</td></tr>`).join('')
     + `</tbody></table>` + (Z.length>12?'</details>':'');
+})();
+
+// ---------- wersje (PB-38 fala 4: tygodniowy raport ops/ci/raport-wersji.mjs) ----------
+(function(){
+  const V = (typeof P!=='undefined'?P:{}).wersje;
+  const el = document.getElementById('wersje');
+  if (!el) return;
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const muted = s => `<p style="margin:0 0 10px;font-size:13px;color:var(--ink2)">${s}</p>`;
+  if (!V) { el.innerHTML = muted('Brak raportu — uruchom <code>node ops/ci/raport-wersji.mjs --zapisz</code>.'); return; }
+  const kolor = d => d==null || d < 120 ? 'var(--critical)' : d < 365 ? 'var(--warn)' : 'var(--good)';
+  const zbedne = V.zbedneWstrzymania && V.zbedneWstrzymania.length ? ` · <b>wstrzymania do usunięcia:</b> ${V.zbedneWstrzymania.map(esc).join(', ')}` : '';
+  el.innerHTML = muted(`Raport z ${esc(V.sprawdzono)}. Do podniesienia: <b>${V.doZrobienia.length}</b> · świadomie wstrzymane: ${V.wstrzymane.length}${zbedne}. Zasada: najnowsze wersje stabilne przed startem; wyjątki mają powód i termin przeglądu.`)
+    + `<table><thead><tr><th>Środowisko</th><th>Wersja</th><th>Koniec wsparcia</th><th>Zostało</th></tr></thead><tbody>`
+    + V.eol.map(e=>`<tr><td><b>${esc(e.nazwa)}</b></td><td class="idc">${esc(e.wersja)}</td><td class="idc">${esc(e.koniec||'—')}</td><td style="color:${kolor(e.dni)};font-weight:600">${e.dni==null?'brak danych':e.dni+' dni'}</td></tr>`).join('')
+    + `</tbody></table>`
+    + `<h3 style="margin:16px 0 6px;font-size:14px">Do podniesienia</h3>`
+    + (V.doZrobienia.length
+        ? `<table><thead><tr><th>Paczka</th><th>Obecna</th><th>Najnowsza</th><th>Poziom</th></tr></thead><tbody>`
+          + V.doZrobienia.map(d=>`<tr><td><b>${esc(d.pakiet)}</b></td><td class="idc">${esc(d.obecna)}</td><td class="idc">${esc(d.najnowsza)}</td><td class="idc">${esc(d.poziom)}</td></tr>`).join('') + `</tbody></table>`
+        : muted('Wszystko na najnowszych wersjach stabilnych.'))
+    + (V.wstrzymane.length ? `<h3 style="margin:16px 0 6px;font-size:14px">Świadomie wstrzymane</h3><table><thead><tr><th>Paczka</th><th>Obecna → najnowsza</th><th>Dlaczego</th><th>Przegląd</th></tr></thead><tbody>`
+        + V.wstrzymane.map(w=>`<tr><td><b>${esc(w.pakiet)}</b></td><td class="idc">${esc(w.obecna)} → ${esc(w.najnowsza)}</td><td class="dod">${esc(w.powod)}</td><td class="idc">${esc(w.przeglad)}</td></tr>`).join('') + `</tbody></table>` : '')
+    + `<details style="margin-top:10px"><summary style="cursor:pointer;font-size:12.5px;color:var(--accent)">Obrazy infrastruktury (${V.obrazy.length})</summary><table><tbody>`
+    + V.obrazy.map(o=>`<tr><td class="idc">${esc(o.usluga)}</td><td class="idc">${esc(o.obraz)}</td></tr>`).join('') + `</tbody></table></details>`;
 })();
 </script>
 </body>

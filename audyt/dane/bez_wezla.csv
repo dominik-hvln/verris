@@ -64,5 +64,5 @@ PB-33,OD 29.09,wyrównanie floty na węzłach testowych (PHP + krok MariaDB)
 PB-34,KOD,"makieta do akceptacji, potem port ekranów"
 PB-35,PRODUKCJA,pierwszy wtorek po wdrożeniu: fala ruszyła sama o 4:00
 PB-37,KOD,"auto-wiadomości, podpowiedzi, oceny"
-PB-38,KOD,"fale 3–4: Postgres 18 (procedura z kopią), Redis 8, monitoring, Dependabot + strażnik EOL; GraphQL 17 razem z Payloadem"
+PB-38,KOD,"produkcja: prod-infra-upgrade.sh (Postgres 18, Valkey, monitoring) i pierwszy tygodniowy raport wersji; GraphQL 17 razem z Payloadem"
 PB-39,PRODUKCJA,deploy obrazu API (ESM) i przejście głównych ścieżek po wdrożeniu
