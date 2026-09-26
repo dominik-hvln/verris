@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { CommandPalette } from "./command-palette";
-import { VerrisMark } from "./verris-mark";
+import { VerrisMark, VerrisWordmark } from "./verris-mark";
 import { NotificationBell } from "./notification-bell";
 import { ThemeToggle } from "./theme-toggle";
 import { LogoutButton } from "./logout-button";
@@ -311,8 +311,11 @@ export function AdminShell({
   const menu = (
     <>
       <div className="flex items-center gap-2.5 px-1.5">
-        <VerrisMark className="h-[22px] w-[22px] text-verris-mint" />
-        <span className="font-display text-[22px] font-extrabold tracking-[-0.02em]">verris</span>
+        {/* Ten sam lockup co w panelu klienta (VerrisLockup size="sm"): znak 36 px + wordmark w krzywych 16 px. */}
+        <span className="inline-flex items-center gap-0.5 text-foreground">
+          <VerrisMark className="h-9 w-9 shrink-0" />
+          <VerrisWordmark className="h-4 shrink-0" />
+        </span>
         <span className="ml-auto rounded-[5px] border border-verris-mint/35 px-[7px] py-[2px] font-mono text-[10.5px] tracking-[0.1em] text-verris-mint">
           CORE
         </span>
