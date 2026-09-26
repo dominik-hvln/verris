@@ -210,15 +210,15 @@ function CreateCampaignForm() {
         :global(.input) {
           width: 100%;
           border-radius: 0.75rem;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(0, 0, 0, 0.3);
+          border: 1px solid var(--line-strong);
+          background: var(--background);
           padding: 0.55rem 0.75rem;
           font-size: 0.875rem;
-          color: white;
+          color: var(--foreground);
           outline: none;
         }
         :global(.input:focus) {
-          border-color: rgba(99, 102, 241, 0.6);
+          border-color: var(--primary);
         }
       `}</style>
     </form>

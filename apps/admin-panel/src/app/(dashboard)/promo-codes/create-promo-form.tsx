@@ -96,7 +96,7 @@ export function CreatePromoForm() {
           <Gift className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
           <span>
             <span className="block text-sm font-semibold text-white">Voucher — kredyty na portfel</span>
-            <span className="block text-[11px] text-neutral-400">Dodaje stałą kwotę K po wpisaniu kodu.</span>
+            <span className="block text-[11px] text-foreground">Dodaje stałą kwotę K po wpisaniu kodu.</span>
           </span>
         </button>
         <button
@@ -111,7 +111,7 @@ export function CreatePromoForm() {
           <Percent className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
           <span>
             <span className="block text-sm font-semibold text-white">Rabat na usługę %</span>
-            <span className="block text-[11px] text-neutral-400">Zniżka na zakup usługi w kreatorze.</span>
+            <span className="block text-[11px] text-foreground">Zniżka na zakup usługi w kreatorze.</span>
           </span>
         </button>
       </div>
@@ -173,7 +173,7 @@ export function CreatePromoForm() {
           />
           <span className="text-sm text-white">
             Rabat dotyczy też kolejnych odnowień
-            <span className="block text-[11px] text-neutral-400">
+            <span className="block text-[11px] text-foreground">
               Domyślnie: tylko pierwsza opłata. Zaznacz, by % obowiązywał przy każdym odnowieniu z portfela.
             </span>
           </span>

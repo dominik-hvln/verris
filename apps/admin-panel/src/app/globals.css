@@ -130,7 +130,7 @@
   --data-2: #6cc9a0;
   --data-3: #b5e3cc;
   --data-soft: rgba(31, 168, 113, 0.16);
-  --data-hi: #0e7049; /* tekst: 5:1+ także na --muted */
+  --data-hi: #0b5f3e; /* tekst: 5:1+ także na --muted i na podwójnym --data-soft (admin: zaznaczone opcje w kartach) */
   --warn: #8a570d; /* AA: 5:1+ na każdym tle jasnym (było 4,4:1 na --muted) */
   --warn-soft: rgba(149, 95, 15, 0.13);
   --crit: #b82e4a; /* AA: 4,9:1+ na każdym tle jasnym */

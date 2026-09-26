@@ -123,7 +123,7 @@ export function BreakGlassSection() {
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex items-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-600 disabled:opacity-60 px-4 py-2 text-sm font-medium text-black"
+          className="inline-flex items-center gap-2 rounded-[9px] border border-[color-mix(in_srgb,var(--warn)_45%,transparent)] bg-warn-soft px-4 py-2 text-sm font-semibold text-warn hover:border-warn disabled:opacity-60"
         >
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
           {status && status.remaining > 0 ? "Wygeneruj nowe kody" : "Wygeneruj kody"}
