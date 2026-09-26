@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { PRZYCISK, PRZYCISK_GLOWNY } from "@/components/v2";
 import { ExternalLink, Loader2, TerminalSquare } from "lucide-react";
 import { createNodeSsoUrl } from "./da-sso-actions";
 
@@ -9,7 +10,7 @@ import { createNodeSsoUrl } from "./da-sso-actions";
  *  - „DirectAdmin (SSO)" otwiera panel DA węzła przez jednorazowy link (2 min, 1 użycie),
  *  - obok kopiowalna komenda SSH.
  */
-export function DaSsoButton({ serverId, sshHost }: { serverId: string; sshHost: string | null }) {
+export function DaSsoButton({ serverId, sshHost, srodek, daGotowe = true }: { serverId: string; sshHost: string | null; srodek?: ReactNode; daGotowe?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -44,30 +45,28 @@ export function DaSsoButton({ serverId, sshHost }: { serverId: string; sshHost: 
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => void open()}
-          disabled={busy}
-          title="Jednorazowy link logowania (ważny 2 minuty)"
-          className="inline-flex items-center gap-2 rounded-lg border border-indigo-400/30 bg-indigo-500/15 px-3 py-2 text-sm font-semibold text-indigo-200 hover:bg-indigo-500/25 disabled:opacity-50"
-        >
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
-          DirectAdmin (SSO)
-        </button>
+      <div className="flex flex-wrap items-center justify-end gap-2.5">
         {sshHost ? (
-          <button
-            type="button"
-            onClick={() => void copySsh()}
-            title={`Kopiuj: ssh root@${sshHost}`}
-            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-neutral-200 hover:bg-white/10"
-          >
+          <button type="button" onClick={() => void copySsh()} title={`Kopiuj: ssh root@${sshHost}`} className={PRZYCISK}>
             <TerminalSquare className="h-4 w-4" />
             {copied ? "Skopiowano" : "SSH"}
           </button>
         ) : null}
+        {srodek}
+        {daGotowe ? (
+          <button
+            type="button"
+            onClick={() => void open()}
+            disabled={busy}
+            title="Jednorazowy link logowania (ważny 2 minuty)"
+            className={PRZYCISK_GLOWNY}
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+            Otwórz DirectAdmin
+          </button>
+        ) : null}
       </div>
-      {error ? <p className="text-xs text-rose-300">{error}</p> : null}
+      {error ? <p className="text-xs text-crit">{error}</p> : null}
     </div>
   );
 }

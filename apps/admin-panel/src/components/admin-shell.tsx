@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { CommandPalette } from "./command-palette";
 import { VerrisMark } from "./verris-mark";
@@ -10,6 +10,7 @@ import { NotificationBell } from "./notification-bell";
 import { ThemeToggle } from "./theme-toggle";
 import { LogoutButton } from "./logout-button";
 import { grafanaSsoHref } from "./grafana-ops-link";
+import { Pigulka } from "./v2";
 
 /** Odpowiedź `GET /admin/dashboard/menu` (null = API niedostępne — menu działa, bez liczb). */
 export interface LicznikiMenu {
@@ -238,6 +239,20 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
   ];
 }
 
+/** Nazwa szczegółu w ścieżce (np. „Węzły / node-pl-01”) — ustawia ją strona komponentem <Okruszek>. */
+type Szczegol = { tekst: string; mono?: boolean; dla: string } | null;
+const OkruszekKontekst = createContext<(s: Szczegol) => void>(() => {});
+
+export function Okruszek({ tekst, mono }: { tekst: string; mono?: boolean }) {
+  const ustaw = useContext(OkruszekKontekst);
+  const pathname = usePathname();
+  useEffect(() => {
+    ustaw({ tekst, mono, dla: pathname });
+    return () => ustaw(null);
+  }, [ustaw, tekst, mono, pathname]);
+  return null;
+}
+
 /** Konto operatora (bez uprawnień) — z karty użytkownika w stopce menu. */
 const KONTO: Pod[] = [
   { name: "Twoje konto", href: "/settings" },
@@ -284,7 +299,9 @@ export function AdminShell({
 
   // Pierwsza zakładka to sama pozycja menu („Węzły / node-pl-01”, nie „Węzły / Węzły / …”).
   const okruszki = [aktywna?.name ?? "Panel", ...(podAktywna && podAktywna !== aktywna?.pod[0] ? [podAktywna.name] : [])];
-  if (podAktywna && pathname !== podAktywna.href) okruszki.push("Szczegóły");
+  const [szczegol, setSzczegol] = useState<Szczegol>(null);
+  const nazwaSzczegolu = szczegol?.dla === pathname ? szczegol : null;
+  if (podAktywna && pathname !== podAktywna.href) okruszki.push(nazwaSzczegolu?.tekst ?? "Szczegóły");
 
   const [otwarteDla, setOtwarteDla] = useState<string | null>(null);
   const otwarte = otwarteDla === pathname;
@@ -348,7 +365,8 @@ export function AdminShell({
     </>
   );
 
-  const zakladki = aktywna && aktywna.pod.length > 1 ? aktywna.pod : null;
+  // Na stronie szczegółu (np. węzła) zakładki sekcji menu chowamy — szczegół ma własne (makieta).
+  const zakladki = aktywna && aktywna.pod.length > 1 && podAktywna && pathname === podAktywna.href ? aktywna.pod : null;
 
   return (
     <div className="grid min-h-screen grid-cols-1 bg-verris-page lg:grid-cols-[252px_minmax(0,1fr)]">
@@ -383,9 +401,9 @@ export function AdminShell({
           </button>
           <nav aria-label="Ścieżka" className="flex min-w-0 items-center gap-2 text-[15px]">
             {okruszki.map((s, i) => (
-              <span key={`${s}-${i}`} className="flex items-center gap-2 whitespace-nowrap">
-                {i > 0 ? <span className="text-muted-foreground">/</span> : null}
-                <span className={i === okruszki.length - 1 ? "font-semibold" : "text-muted-foreground"}>{s}</span>
+              <span key={`${s}-${i}`} className={`flex items-center gap-2 whitespace-nowrap ${i < okruszki.length - 1 ? "max-sm:hidden" : ""}`}>
+                {i > 0 ? <span className="text-muted-foreground max-sm:hidden">/</span> : null}
+                <span className={i === okruszki.length - 1 ? `font-semibold ${nazwaSzczegolu?.mono && s === nazwaSzczegolu.tekst ? "font-mono" : ""}` : "text-muted-foreground"}>{s}</span>
               </span>
             ))}
           </nav>
@@ -416,7 +434,7 @@ export function AdminShell({
           </nav>
         ) : null}
         <main id="main" tabIndex={-1} className="flex-1 px-4 py-[26px] outline-none lg:px-8">
-          {children}
+          <OkruszekKontekst.Provider value={setSzczegol}>{children}</OkruszekKontekst.Provider>
         </main>
       </div>
     </div>
@@ -432,17 +450,3 @@ function StatusFloty({ l }: { l: LicznikiMenu | null }) {
   return <Pigulka ton={dziala === 0 ? "crit" : "warn"}>Flota · {dziala}/{razem} działa</Pigulka>;
 }
 
-export function Pigulka({ ton, children, className = "" }: { ton: "ok" | "warn" | "crit" | "muted"; children: React.ReactNode; className?: string }) {
-  const kolor = {
-    ok: "bg-data-soft text-data-hi",
-    warn: "bg-warn-soft text-warn",
-    crit: "bg-[color-mix(in_srgb,var(--crit)_14%,transparent)] text-crit",
-    muted: "bg-raised text-muted-foreground",
-  }[ton];
-  return (
-    <span className={`inline-flex shrink-0 items-center gap-[7px] whitespace-nowrap rounded-full px-[11px] py-1 text-[13px] font-semibold ${kolor} ${className}`}>
-      <span className="h-[7px] w-[7px] rounded-full bg-current" />
-      {children}
-    </span>
-  );
-}

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import type { AdminDashboardOverview } from "@/lib/admin-overview-data";
 import { FleetUpdateButton } from "@/app/(dashboard)/nodes/fleet-update-button";
-import { Pigulka } from "./admin-shell";
+import { Eyebrow, LinkKarty, NaglowekKarty, Pasek, Pigulka } from "./v2";
 import { clients, plForm, plural } from "@/lib/pl";
 
 /**
@@ -33,34 +33,9 @@ function Slupki({ wartosci }: { wartosci: number[] }) {
   );
 }
 
-function Pasek({ proc, ton = "ok" }: { proc: number; ton?: "ok" | "warn" }) {
-  return (
-    <span className="block h-1.5 w-full overflow-hidden rounded-[3px] bg-raised" role="img" aria-label={`${proc}%`}>
-      <span className={`block h-full rounded-[3px] ${ton === "warn" ? "bg-warn" : "bg-data"}`} style={{ width: `${Math.max(2, proc)}%` }} />
-    </span>
-  );
-}
 
-const Eyebrow = ({ children }: { children: React.ReactNode }) => (
-  <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground">{children}</span>
-);
 
-function NaglowekKarty({ id, tytul, children }: { id: string; tytul: string; children?: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-2.5 px-[18px] py-4">
-      <h2 id={id} className="font-display text-[17px] font-bold">
-        {tytul}
-      </h2>
-      {children}
-    </div>
-  );
-}
 
-const LinkKarty = ({ href, children }: { href: string; children: React.ReactNode }) => (
-  <Link href={href} className="ml-auto text-[13px] font-semibold text-data-hi hover:underline">
-    {children}
-  </Link>
-);
 
 const STATUS_USLUGI: Record<string, { t: string; ton: "ok" | "warn" | "crit" | "muted" }> = {
   ACTIVE: { t: "działa", ton: "ok" },

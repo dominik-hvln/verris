@@ -164,13 +164,13 @@ function NodeConfigActions({ serverId }: { serverId: string }) {
         <WizardExternalLink href={`/nodes/${serverId}`} variant="primary">
           Szczegóły węzła
         </WizardExternalLink>
-        <WizardExternalLink href={`/nodes/${serverId}#directadmin`}>
+        <WizardExternalLink href={`/nodes/${serverId}?sekcja=konfiguracja#directadmin`}>
           Konfiguracja DA i test API (scope)
         </WizardExternalLink>
-        <WizardExternalLink href={`/nodes/${serverId}#audyt`}>
+        <WizardExternalLink href={`/nodes/${serverId}?sekcja=audyt`}>
           Audyt i naprawa (pakiety DA, język, TLS)
         </WizardExternalLink>
-        <WizardExternalLink href={`/nodes/${serverId}#hosting-profile`}>
+        <WizardExternalLink href={`/nodes/${serverId}?sekcja=aktualizacje`}>
           Profil hostingowy (LiteSpeed + Governor)
         </WizardExternalLink>
         <WizardExternalLink href="/status/probes">Status probes węzła</WizardExternalLink>
@@ -767,7 +767,7 @@ export function NodeWizard() {
             <div className="flex flex-wrap gap-3">
               <WizardExternalLink href="/nodes">Lista węzłów</WizardExternalLink>
               {serverId && (
-                <WizardExternalLink href={`/nodes/${serverId}#audyt`} variant="primary">
+                <WizardExternalLink href={`/nodes/${serverId}?sekcja=audyt`} variant="primary">
                   Uruchom audyt węzła
                 </WizardExternalLink>
               )}

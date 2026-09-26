@@ -1,4 +1,5 @@
 import { StosWezlaService } from './stos-wezla.service.js';
+import { PrzegladWezlaService } from './przeglad-wezla.service.js';
 import { StosWezlaAdminController } from './stos-wezla.admin.controller.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { FalaTygodniowaScheduler } from './fala-tygodniowa.scheduler.js';
@@ -41,6 +42,7 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
   providers: [
     ServersService,
     StosWezlaService,
+    PrzegladWezlaService,
     FalaTygodniowaScheduler,
     BackupOffsiteService,
     NodeTasksService,

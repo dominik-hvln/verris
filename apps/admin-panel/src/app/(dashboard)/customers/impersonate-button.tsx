@@ -11,7 +11,7 @@ interface Props {
   accountRole: "USER" | "STAFF" | "ADMIN";
 }
 
-export function ImpersonateButton({ userId, email, accountRole }: Props) {
+export function ImpersonateButton({ userId, email, accountRole, className, etykieta }: Props & { className?: string; etykieta?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -38,9 +38,9 @@ export function ImpersonateButton({ userId, email, accountRole }: Props) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-md border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-200 hover:bg-amber-400/20"
+        className={className ?? "inline-flex items-center gap-1.5 rounded-md border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-200 hover:bg-amber-400/20"}
       >
-        <UserCog className="h-3.5 w-3.5" /> Impersonate
+        {etykieta ?? <><UserCog className="h-3.5 w-3.5" /> Impersonate</>}
       </button>
 
       {open && (

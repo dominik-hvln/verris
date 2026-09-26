@@ -172,6 +172,9 @@ export class UsersAdminService {
         loginBlockedReason: true,
         adminInternalNote: true,
         canAccessGrafana: true,
+        // PB-34 — karta klienta admina (makieta AdminKlient): „przez resellera …”, auto-doładowanie.
+        resellerOwner: { select: { id: true, email: true, companyName: true, resellerProfile: { select: { brandName: true } } } },
+        walletAutoTopup: { select: { enabled: true, threshold: true } },
       },
     });
     if (!target) throw new NotFoundException('Użytkownik nie istnieje.');
@@ -224,6 +227,8 @@ export class UsersAdminService {
           priority: true,
           department: true,
           createdAt: true,
+          slaResponseDueAt: true,
+          firstResponseAt: true,
           _count: { select: { replies: true } },
         },
       }),
@@ -336,6 +341,16 @@ export class UsersAdminService {
         adminInternalNote:
           actor.actorRole === Role.ADMIN ? target.adminInternalNote : null,
         canAccessGrafana: target.canAccessGrafana,
+        reseller: target.resellerOwner
+          ? {
+              id: target.resellerOwner.id,
+              nazwa:
+                target.resellerOwner.resellerProfile?.brandName?.trim() ||
+                target.resellerOwner.companyName?.trim() ||
+                target.resellerOwner.email,
+            }
+          : null,
+        autoDoladowanie: target.walletAutoTopup?.enabled ? { prog: target.walletAutoTopup.threshold.toString() } : null,
       },
       subscriptions: subscriptions.map((s) => ({
         id: s.id,
@@ -349,6 +364,10 @@ export class UsersAdminService {
         currentPeriodEnd: s.currentPeriodEnd?.toISOString() ?? null,
         cancelAt: s.cancelAt?.toISOString() ?? null,
         autoscalingEnabled: s.autoscalingEnabled,
+        listPriceAmount: s.listPriceAmount?.toString() ?? null,
+        individualPrice: s.individualPrice?.toString() ?? null,
+        autoscalingDiscountPct: s.autoscalingDiscountPct,
+        individualTermsNote: s.individualTermsNote,
         plan: s.plan,
         account: s.account
           ? {
@@ -374,6 +393,8 @@ export class UsersAdminService {
         priority: t.priority,
         department: t.department,
         createdAt: t.createdAt.toISOString(),
+        slaResponseDueAt: t.slaResponseDueAt?.toISOString() ?? null,
+        firstResponseAt: t.firstResponseAt?.toISOString() ?? null,
         replyCount: t._count.replies,
       })),
       domains: domains.map((d) => ({

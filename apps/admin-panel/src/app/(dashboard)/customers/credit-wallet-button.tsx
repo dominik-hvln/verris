@@ -19,7 +19,7 @@ const REASON_PRESETS = [
   "Doładowanie testowe",
 ];
 
-export function CreditWalletButton({ userId, email, currentBalance }: Props) {
+export function CreditWalletButton({ userId, email, currentBalance, className, etykieta }: Props & { className?: string; etykieta?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("50");
   const [reason, setReason] = useState("");
@@ -64,9 +64,9 @@ export function CreditWalletButton({ userId, email, currentBalance }: Props) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-md border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 text-xs font-medium text-emerald-200 hover:bg-emerald-400/20"
+        className={className ?? "inline-flex items-center gap-1.5 rounded-md border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 text-xs font-medium text-emerald-200 hover:bg-emerald-400/20"}
       >
-        <Coins className="h-3.5 w-3.5" /> Dodaj K
+        {etykieta ?? <><Coins className="h-3.5 w-3.5" /> Dodaj K</>}
       </button>
 
       {open && (

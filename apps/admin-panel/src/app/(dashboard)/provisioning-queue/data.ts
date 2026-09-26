@@ -54,7 +54,10 @@ export interface NodeTaskRow {
   createdAt: string;
 }
 
-export async function listNodeTasks(status?: string): Promise<NodeTaskRow[]> {
-  const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+export async function listNodeTasks(status?: string, serverId?: string): Promise<NodeTaskRow[]> {
+  const q = new URLSearchParams();
+  if (status) q.set("status", status);
+  if (serverId) q.set("serverId", serverId);
+  const qs = q.size ? `?${q}` : "";
   return adminApi<NodeTaskRow[]>(`/admin/servers/node-tasks${qs}`);
 }

@@ -23,6 +23,12 @@ panel obsługi. Pulpit „Stan platformy” liczy wszystko z bazy (`GET /admin/d
 serwis / czeka na zatwierdzenie, zgłoszenia po terminie SLA, zatrzymana fala aktualizacji, wpłaty bez faktury
 z programu księgowego, nieobsłużone webhooki, usługi zakładane > 30 min, migracje czekające na obsługę;
 **CPU realne** z próbek `UsageMetric` z 10 min (nie z przydziału); **Wpływy** = opłacone faktury brutto (PLN).
+**Strona węzła** (makieta AdminWezel): nagłówek z SSH / wstrzymaniem nowych kont / DirectAdmin, zasoby realne
+(`GET /admin/servers/:id/przeglad`), zakładki Przegląd · Konta · Audyt i naprawa · Zadania · Aktualizacje ·
+Konfiguracja · Wycofanie węzła — wszystkie dotychczasowe panele zostały, tylko w zakładkach; doszedł przycisk
+„Aktualizuj ten węzeł” (akcja API istniała bez przycisku). **Karta klienta** (makieta AdminKlient): widok 360°
+jak w panelu obsługi (+ reseller, auto-doładowanie, ceny indywidualne, termin SLA zgłoszeń), zakładki Przegląd ·
+Usługi · Rozliczenia · Warunki indywidualne · Zgłoszenia · Dostępy i bezpieczeństwo · Dziennik.
 
 ### 2026-09-26 — bez telemetrii narzędzi
 Next.js, Turborepo i Prisma domyślnie wysyłają statystyki użycia do producentów. Wyłączone we wszystkich

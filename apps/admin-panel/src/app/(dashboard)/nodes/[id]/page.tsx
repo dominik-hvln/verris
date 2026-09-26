@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Server, AlertCircle, Cpu, MemoryStick, HardDrive, Clock, Globe } from "lucide-react";
+import { ArrowLeft, AlertCircle } from "lucide-react";
 import { fetchServer } from "../actions";
 import { ApproveServerButton } from "./approve-button";
 import { BootstrapScriptPanel } from "./bootstrap-script-panel";
@@ -19,24 +19,58 @@ import { NodeInsightsPanel } from "./node-insights-panel";
 import { NameserversForm } from "./nameservers-form";
 import { RegionForm } from "./region-form";
 import { DaSsoButton } from "./da-sso-button";
+import { NoweKontaButton } from "./nowe-konta-button";
+import { AktualizujWezelButton } from "./aktualizuj-wezel-button";
+import { WezelPrzeglad } from "./wezel-przeglad";
+import { fetchPrzegladWezla } from "./przeglad-data";
+import { listNodeTasks } from "../../provisioning-queue/data";
+import { NodeTasksSection } from "../../provisioning-queue/node-tasks-section";
+import { Okruszek } from "@/components/admin-shell";
+import { Eyebrow, KARTA, Kpi, Pasek, Pigulka, RzadKpi, Zakladki } from "@/components/v2";
 
 export const dynamic = "force-dynamic";
 
+const SEKCJE = ["przeglad", "konta", "audyt", "zadania", "aktualizacje", "konfiguracja", "wycofanie"] as const;
+type Sekcja = (typeof SEKCJE)[number];
+
+const STATUS: Record<string, string> = {
+  ACTIVE: "Aktywny",
+  INIT: "Zakładanie",
+  PENDING_APPROVAL: "Czeka na zatwierdzenie",
+  MAINTENANCE: "Serwis",
+  OFFLINE: "Offline",
+  DEPROVISIONING: "Wycofywany",
+};
+
+/** MB → „41 GB” / „1,2 TB” (jak w makiecie). */
+function rozmiar(mb: number | null | undefined, jednostka?: "GB" | "TB"): string {
+  if (mb == null) return "—";
+  const tb = (jednostka ?? (mb >= 1024 * 1024 ? "TB" : "GB")) === "TB";
+  const v = mb / 1024 / (tb ? 1024 : 1);
+  return v.toLocaleString("pl-PL", { maximumFractionDigits: v < 10 ? 1 : 0 });
+}
+const jednostkaDla = (mb: number | null | undefined) => (mb != null && mb >= 1024 * 1024 ? "TB" : "GB");
+const proc = (a: number | null | undefined, b: number | null | undefined) => (a != null && b ? Math.min(100, Math.round((a / b) * 100)) : 0);
+
 export default async function ServerDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ sekcja?: string }>;
 }) {
   const { id } = await params;
-  const { data: server, error } = await fetchServer(id);
+  const q = await searchParams;
+  const sekcja: Sekcja = (SEKCJE as readonly string[]).includes(q.sekcja ?? "") ? (q.sekcja as Sekcja) : "przeglad";
+  const [{ data: server, error }, p] = await Promise.all([fetchServer(id), fetchPrzegladWezla(id)]);
   if (!server) {
     if (error?.toLowerCase().includes("not found")) notFound();
     return (
       <div className="space-y-4">
-        <Link href="/nodes" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-white">
+        <Link href="/nodes" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" /> Wróć do listy
         </Link>
-        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-rose-200 text-sm flex gap-2 items-center">
+        <div className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200">
           <AlertCircle className="h-4 w-4" /> {error ?? "Nie znaleziono węzła"}
         </div>
       </div>
@@ -45,202 +79,219 @@ export default async function ServerDetailPage({
 
   const isPending = server.status === "PENDING_APPROVAL";
   const canBootstrap = server.status === "INIT" || server.status === "PENDING_APPROVAL";
+  const dziala = server.status === "ACTIVE" || server.status === "MAINTENANCE";
+  const baza = `/nodes/${server.id}`;
+  const nazwa = p?.nazwa ?? server.name ?? server.ipAddress;
+  const z = p?.zasoby;
+  const zadania = sekcja === "zadania" ? await listNodeTasks(undefined, server.id).catch(() => []) : [];
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center gap-3">
-        <Link
-          href="/nodes"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" /> Lista węzłów
-        </Link>
+    <div className="flex flex-col gap-5">
+      <Okruszek tekst={nazwa} mono />
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="flex min-w-0 flex-col gap-2">
+          <Eyebrow>
+            Węzeł{server.region ? ` · ${server.region}` : ""} · {server.status === "INIT" ? "czeka na pierwsze połączenie" : server.ipAddress}
+          </Eyebrow>
+          {/* styl inline: reguła `.v2-skin h1` narzuca krój nagłówków, a makieta ma tu nazwę węzła monospace */}
+          <h1 className="break-all text-[30px] tracking-[-0.02em] lg:text-[38px]" style={{ fontFamily: "var(--font-mono)", fontWeight: 500 }}>
+            {nazwa}
+          </h1>
+          <div className="flex flex-wrap items-center gap-2.5 text-[15px] text-verris-body">
+            {p ? (
+              <Pigulka ton={p.stan === "crit" ? "crit" : p.poza || p.stan === "warn" ? "warn" : "ok"}>
+                {STATUS[p.status] ?? p.status} · {p.poza ?? "przyjmuje konta"}
+              </Pigulka>
+            ) : (
+              <Pigulka ton="muted">{STATUS[server.status] ?? server.status}</Pigulka>
+            )}
+            {p ? (
+              <span className="text-muted-foreground">
+                {[
+                  p.wersje.cloudlinux ? `CloudLinux ${p.wersje.cloudlinux}` : "CloudLinux — brak raportu",
+                  p.wersje.directadmin ? `DirectAdmin ${p.wersje.directadmin}` : null,
+                  `manifest ${p.wersje.manifest ?? "—"}${p.wersje.manifest && p.wersje.manifest !== p.manifestFloty ? ` (flota: ${p.manifestFloty})` : ""}`,
+                  `sygnał ${p.sygnal}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            ) : null}
+          </div>
+        </div>
+        <div className="ml-auto flex flex-wrap items-center gap-2.5">
+          {isPending && <ApproveServerButton serverId={server.id} />}
+          <DaSsoButton
+            serverId={server.id}
+            sshHost={server.hostname ?? server.ipAddress ?? null}
+            daGotowe={Boolean(server.daHost)}
+            srodek={dziala ? <NoweKontaButton serverId={server.id} przyjmuje={server.acceptsNewAccounts} /> : null}
+          />
+        </div>
       </div>
 
-      <header className="flex items-start justify-between gap-6 flex-wrap">
-        <div className="flex items-center gap-4">
-          <div className="h-14 w-14 flex items-center justify-center rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-300">
-            <Server className="h-7 w-7" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white drop-shadow-md">
-              {server.name ?? "(bez nazwy)"}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {server.status === "INIT" ? "Oczekuje na pierwszy handshake" : server.ipAddress}
-              {server.region ? ` • ${server.region}` : ""} • status:{" "}
-              <strong className="text-white">{server.status}</strong>
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {server.daHost ? (
-            <DaSsoButton serverId={server.id} sshHost={server.hostname ?? server.ipAddress ?? null} />
-          ) : null}
-          {isPending && <ApproveServerButton serverId={server.id} />}
-        </div>
-      </header>
-
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <InfoCard
-          icon={<Cpu className="h-4 w-4" />}
-          label="CPU"
-          value={server.totalCpuCores ? `${server.totalCpuCores} rdzeni` : "—"}
-          sub={`alok. ${server.allocatedCpu}%`}
-        />
-        <InfoCard
-          icon={<MemoryStick className="h-4 w-4" />}
-          label="RAM"
-          value={server.totalMemoryMb ? formatMb(server.totalMemoryMb) : "—"}
-          sub={`alok. ${formatMb(server.allocatedMemory)}`}
-        />
-        <InfoCard
-          icon={<HardDrive className="h-4 w-4" />}
-          label="Dysk"
-          value={server.totalDiskMb ? formatMb(server.totalDiskMb) : "—"}
-          sub={`alok. ${formatMb(server.allocatedDisk)}`}
-        />
-        <InfoCard
-          icon={<Clock className="h-4 w-4" />}
-          label="Heartbeat"
-          value={server.lastHeartbeatAt ? new Date(server.lastHeartbeatAt).toLocaleString("pl-PL") : "brak"}
-          sub={server.agentVersion ? `agent ${server.agentVersion}` : undefined}
-        />
-      </section>
-
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md p-5 space-y-3">
-          <div className="flex items-center gap-2 text-sm font-semibold text-white">
-            <Globe className="h-4 w-4 text-indigo-300" /> Tożsamość węzła
-          </div>
-          <DefRow label="ID" value={<code className="font-mono text-xs">{server.id}</code>} />
-          <DefRow label="Hostname" value={server.hostname ?? "—"} />
-          <DefRow
-            label="Ostatni handshake"
-            value={server.lastHandshakeAt ? new Date(server.lastHandshakeAt).toLocaleString("pl-PL") : "brak"}
-          />
-          <DefRow label="Liczba kont" value={String(server._count?.accounts ?? 0)} />
-          {server.notes && <DefRow label="Notatki" value={server.notes} />}
-        </div>
-
-        {canBootstrap && <BootstrapScriptPanel serverId={server.id} />}
-      </section>
-
-      {canBootstrap && (
-        <section id="bootstrap" className="scroll-mt-24">
-          <h2 className="mb-1 text-lg font-bold text-white">Instalacja węzła (bootstrap v2)</h2>
-          <p className="mb-3 text-xs text-muted-foreground">
-            Ten sam krok co „Instalacja” w <Link href={`/nodes/wizard?server=${server.id}&step=bootstrap`} className="underline">kreatorze węzła</Link> —
-            kreator prowadzi dalej przez akceptację, backup offsite, Onboard LIVE i profil hostingowy.
-          </p>
-          <NodeBootstrapProgress serverId={server.id} />
-        </section>
+      {z ? (
+        <RzadKpi etykieta="Zasoby węzła">
+          <Kpi
+            etykieta="CPU realne"
+            wartosc={z.cpu.proc ?? "—"}
+            jednostka={z.cpu.rdzenie ? `% z ${z.cpu.rdzenie} rdzeni` : "% — brak liczby rdzeni"}
+            opis={z.cpu.proc == null ? "brak próbek z ostatnich 10 min" : `sprzedane ${z.cpu.sprzedane?.toLocaleString("pl-PL") ?? "—"}× · limit ${z.cpu.limit.toLocaleString("pl-PL")}×`}
+          >
+            <Pasek proc={z.cpu.proc ?? 0} ton={(z.cpu.proc ?? 0) >= 60 ? "warn" : "ok"} />
+          </Kpi>
+          <Kpi
+            etykieta="RAM"
+            wartosc={rozmiar(z.ram.uzyteMb, jednostkaDla(z.ram.razemMb))}
+            jednostka={`/ ${rozmiar(z.ram.razemMb)} ${jednostkaDla(z.ram.razemMb)}`}
+            opis={`rezerwa na autoskalowanie ${z.ram.rezerwaProc}%`}
+          >
+            <Pasek proc={proc(z.ram.uzyteMb, z.ram.razemMb)} />
+          </Kpi>
+          <Kpi
+            etykieta="Dysk"
+            wartosc={rozmiar(z.dysk.uzyteMb, jednostkaDla(z.dysk.razemMb))}
+            jednostka={`/ ${rozmiar(z.dysk.razemMb)} ${jednostkaDla(z.dysk.razemMb)}`}
+            opis={`przydzielone kontom ${rozmiar(z.dysk.przydzieloneMb)} ${jednostkaDla(z.dysk.przydzieloneMb)}`}
+          >
+            <Pasek proc={proc(z.dysk.uzyteMb, z.dysk.razemMb)} />
+          </Kpi>
+          <Kpi
+            etykieta="Konta"
+            wartosc={z.konta.razem}
+            jednostka={z.konta.limit ? `/ ${z.konta.limit}` : "bez limitu"}
+            opis={`${z.konta.autoskalowane} z autoskalowaniem teraz`}
+          >
+            <Pasek proc={z.konta.limit ? proc(z.konta.razem, z.konta.limit) : 0} />
+          </Kpi>
+        </RzadKpi>
+      ) : (
+        <div className={`${KARTA} p-4 text-sm text-muted-foreground`}>Nie udało się wczytać zasobów węzła z API.</div>
       )}
 
-      {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
-        <div id="zuzycie" className="scroll-mt-24">
-          <NodeInsightsPanel serverId={server.id} />
-        </div>
-      )}
-
-      <NodeStatusPanel serverId={server.id} status={server.status} />
-
-      <MaintenanceToggle
-        serverId={server.id}
-        status={server.status}
-        maintenanceReason={server.maintenanceReason}
-        maintenanceStartedAt={server.maintenanceStartedAt}
+      <Zakladki
+        etykieta="Sekcje węzła"
+        pozycje={[
+          { nazwa: "Przegląd", href: baza, on: sekcja === "przeglad" },
+          { nazwa: `Konta (${server._count?.accounts ?? 0})`, href: `${baza}?sekcja=konta`, on: sekcja === "konta" },
+          { nazwa: "Audyt i naprawa", href: `${baza}?sekcja=audyt`, on: sekcja === "audyt", licznik: p?.doNaprawy },
+          { nazwa: "Zadania", href: `${baza}?sekcja=zadania`, on: sekcja === "zadania" },
+          { nazwa: "Aktualizacje", href: `${baza}?sekcja=aktualizacje`, on: sekcja === "aktualizacje" },
+          { nazwa: "Konfiguracja", href: `${baza}?sekcja=konfiguracja`, on: sekcja === "konfiguracja" },
+          { nazwa: "Wycofanie węzła", href: `${baza}?sekcja=wycofanie`, on: sekcja === "wycofanie" },
+        ]}
       />
 
-      {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
-        <CapacityPolicyPanel
-          serverId={server.id}
-          acceptsNewAccounts={server.acceptsNewAccounts}
-          maxAccounts={server.maxAccounts}
-          reservedHeadroomPercent={server.reservedHeadroomPercent}
-          overcommitCpu={server.overcommitCpu}
-          overcommitRam={server.overcommitRam}
-          overcommitDisk={server.overcommitDisk}
-          accountCount={server._count?.accounts ?? 0}
-        />
-      )}
+      {sekcja === "przeglad" ? (
+        <>
+          {canBootstrap && (
+            <section id="bootstrap" className="flex flex-col gap-3">
+              <BootstrapScriptPanel serverId={server.id} />
+              <h2 className="font-display text-lg font-bold">Instalacja węzła (bootstrap v2)</h2>
+              <p className="text-xs text-muted-foreground">
+                Ten sam krok co „Instalacja” w{" "}
+                <Link href={`/nodes/wizard?server=${server.id}&step=bootstrap`} className="underline">
+                  kreatorze węzła
+                </Link>{" "}
+                — kreator prowadzi dalej przez akceptację, backup offsite, Onboard LIVE i profil hostingowy.
+              </p>
+              <NodeBootstrapProgress serverId={server.id} />
+            </section>
+          )}
+          {p ? <WezelPrzeglad p={p} bazaHref={baza} /> : null}
+        </>
+      ) : null}
 
-      {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
-        <DrainPanel serverId={server.id} acceptsNewAccounts={server.acceptsNewAccounts} />
-      )}
+      {sekcja === "konta" ? <NodeInsightsPanel serverId={server.id} /> : null}
 
-      <div id="directadmin" className="scroll-mt-24">
-        <DirectAdminConfigForm
-          serverId={server.id}
-          initial={{
-            daHost: server.daHost ?? "",
-            daPort: server.daPort ?? 2222,
-            daUsername: server.daUsername ?? "",
-            daUseTls: server.daUseTls,
-            daAllowInvalidCert: server.daAllowInvalidCert ?? false,
-            daPasswordSet: server.daPasswordSet,
-          }}
-        />
-      </div>
+      {sekcja === "audyt" ? (
+        dziala ? (
+          <>
+            <NodeAuditPanel serverId={server.id} serverName={server.name} />
+            <NodeStackReadinessPanel serverId={server.id} serverStatus={server.status} />
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">Audyt i naprawa są dostępne, gdy węzeł jest aktywny albo w serwisie.</p>
+        )
+      ) : null}
 
-      <div id="nameservers" className="scroll-mt-24">
-        <NameserversForm serverId={server.id} />
-      </div>
+      {sekcja === "zadania" ? <NodeTasksSection rows={zadania} /> : null}
 
-      <RegionForm serverId={server.id} region={server.region ?? null} />
+      {sekcja === "aktualizacje" ? (
+        <>
+          {dziala ? <AktualizujWezelButton serverId={server.id} /> : null}
+          {dziala ? (
+            <DbUpgradePanel
+              serverId={server.id}
+              dbEngine={server.dbEngine}
+              dbVersion={server.dbVersion}
+              targetDbVersion={server.targetDbVersion}
+              dbUpgradeRequestedAt={server.dbUpgradeRequestedAt}
+            />
+          ) : null}
+          <HostingProfilePanel serverId={server.id} serverStatus={server.status} />
+        </>
+      ) : null}
 
-      {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
-        <NodeStackReadinessPanel serverId={server.id} serverStatus={server.status} />
-      )}
-
-      {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
-        <div id="baza-danych" className="scroll-mt-24">
-          <DbUpgradePanel
+      {sekcja === "konfiguracja" ? (
+        <>
+          <section className={`${KARTA} flex flex-col gap-2 p-5`} aria-label="Tożsamość węzła">
+            <h2 className="font-display text-[17px] font-bold">Tożsamość węzła</h2>
+            <DefRow label="ID" value={<code className="font-mono text-xs">{server.id}</code>} />
+            <DefRow label="Hostname" value={server.hostname ?? "—"} />
+            <DefRow label="Agent" value={server.agentVersion ?? "—"} />
+            <DefRow label="Ostatni handshake" value={server.lastHandshakeAt ? new Date(server.lastHandshakeAt).toLocaleString("pl-PL") : "brak"} />
+            {server.notes && <DefRow label="Notatki" value={server.notes} />}
+          </section>
+          <NodeStatusPanel serverId={server.id} status={server.status} />
+          <MaintenanceToggle
             serverId={server.id}
-            dbEngine={server.dbEngine}
-            dbVersion={server.dbVersion}
-            targetDbVersion={server.targetDbVersion}
-            dbUpgradeRequestedAt={server.dbUpgradeRequestedAt}
+            status={server.status}
+            maintenanceReason={server.maintenanceReason}
+            maintenanceStartedAt={server.maintenanceStartedAt}
           />
-        </div>
-      )}
+          {dziala && (
+            <CapacityPolicyPanel
+              serverId={server.id}
+              acceptsNewAccounts={server.acceptsNewAccounts}
+              maxAccounts={server.maxAccounts}
+              reservedHeadroomPercent={server.reservedHeadroomPercent}
+              overcommitCpu={server.overcommitCpu}
+              overcommitRam={server.overcommitRam}
+              overcommitDisk={server.overcommitDisk}
+              accountCount={server._count?.accounts ?? 0}
+            />
+          )}
+          <div id="directadmin">
+            <DirectAdminConfigForm
+              serverId={server.id}
+              initial={{
+                daHost: server.daHost ?? "",
+                daPort: server.daPort ?? 2222,
+                daUsername: server.daUsername ?? "",
+                daUseTls: server.daUseTls,
+                daAllowInvalidCert: server.daAllowInvalidCert ?? false,
+                daPasswordSet: server.daPasswordSet,
+              }}
+            />
+          </div>
+          <div id="nameservers">
+            <NameserversForm serverId={server.id} />
+          </div>
+          <RegionForm serverId={server.id} region={server.region ?? null} />
+          <div id="waf">
+            <WafPanel serverId={server.id} />
+          </div>
+        </>
+      ) : null}
 
-      <div id="waf" className="scroll-mt-24">
-        <WafPanel serverId={server.id} />
-      </div>
-
-      <div id="hosting-profile" className="scroll-mt-24">
-        <HostingProfilePanel serverId={server.id} serverStatus={server.status} />
-      </div>
-
-      {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
-        <div id="audyt" className="scroll-mt-24">
-          <NodeAuditPanel serverId={server.id} serverName={server.name} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function InfoCard({
-  icon,
-  label,
-  value,
-  sub,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  sub?: string;
-}) {
-  return (
-    <div className="rounded-xl border border-white/5 bg-black/40 backdrop-blur-md p-4">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        {icon} {label}
-      </div>
-      <p className="mt-2 text-lg font-semibold text-white">{value}</p>
-      {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
+      {sekcja === "wycofanie" ? (
+        dziala ? (
+          <DrainPanel serverId={server.id} acceptsNewAccounts={server.acceptsNewAccounts} />
+        ) : (
+          <p className="text-sm text-muted-foreground">Wycofanie (przeniesienie kont na inne węzły) jest dostępne dla węzła aktywnego albo w serwisie.</p>
+        )
+      ) : null}
     </div>
   );
 }
@@ -254,8 +305,3 @@ function DefRow({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function formatMb(mb: number | null | undefined): string {
-  if (!mb) return "0 MB";
-  if (mb >= 1024) return `${(mb / 1024).toFixed(1)} GB`;
-  return `${mb} MB`;
-}

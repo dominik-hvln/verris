@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { ServersService } from './servers.service.js';
+import { PrzegladWezlaService } from './przeglad-wezla.service.js';
 import { PolitykaPojemnosciDto, WygaszenieWezlaDto } from './dto/capacity-policy.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -76,6 +77,7 @@ export class ServersAdminController {
     private readonly nodeStack: NodeStackReadinessService,
     private readonly nodeDns: NodeDnsService,
     private readonly directAdmin: DirectAdminService,
+    private readonly przegladWezla: PrzegladWezlaService,
   ) {}
 
   /**
@@ -155,6 +157,15 @@ export class ServersAdminController {
   @StaffPerm('NODES_VIEW')
   get(@Param('id') id: string) {
     return this.servers.getServer(id);
+  }
+
+  /** PB-34 — przegląd węzła (makieta AdminWezel): zasoby realne, zgodność, gotowość, obciążone konta, zadania. */
+  @Get(':id/przeglad')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_VIEW')
+  przeglad(@Param('id') id: string) {
+    return this.przegladWezla.przeglad(id);
   }
 
   /** Per-node drill-down: hosting accounts placed on this node + latest telemetry. */

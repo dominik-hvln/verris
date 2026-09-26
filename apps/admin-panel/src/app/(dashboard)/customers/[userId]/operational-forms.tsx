@@ -119,7 +119,7 @@ export function CustomerOperationalForms({ detail }: Props) {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-2xl border border-white/10 bg-black/35 p-6 space-y-4">
+      <section id="blokada" className="scroll-mt-24 rounded-2xl border border-white/10 bg-black/35 p-6 space-y-4">
         <h2 className="text-sm font-bold uppercase tracking-wide text-white">Blokada logowania i notatka</h2>
         <p className="text-xs text-muted-foreground leading-relaxed">
           Zablokowane konto USER nie zaloguje się ani hasłem, ani po 2FA. Impersonacja z panelu nadal działa.
@@ -184,7 +184,7 @@ export function CustomerOperationalForms({ detail }: Props) {
         </button>
       </section>
 
-      <section className="rounded-2xl border border-white/10 bg-black/35 p-6 space-y-4">
+      <section id="email" className="scroll-mt-24 rounded-2xl border border-white/10 bg-black/35 p-6 space-y-4">
         <h2 className="text-sm font-bold uppercase tracking-wide text-white flex items-center gap-2">
           <Mail className="h-4 w-4 text-cyan-400" />
           Zmiana adresu e-mail
@@ -229,7 +229,7 @@ export function CustomerOperationalForms({ detail }: Props) {
         </button>
       </section>
 
-      <section className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-6 space-y-4">
+      <section id="reset" className="scroll-mt-24 rounded-2xl border border-amber-500/25 bg-amber-500/5 p-6 space-y-4">
         <h2 className="text-sm font-bold uppercase tracking-wide text-amber-100 flex items-center gap-2">
           <KeyRound className="h-4 w-4" />
           Reset hasła
@@ -278,7 +278,7 @@ export function CustomerOperationalForms({ detail }: Props) {
         </button>
       </section>
 
-      <section className="rounded-2xl border border-rose-500/30 bg-rose-950/20 p-6 space-y-4">
+      <section id="usuniecie" className="scroll-mt-24 rounded-2xl border border-rose-500/30 bg-rose-950/20 p-6 space-y-4">
         <h2 className="text-sm font-bold uppercase tracking-wide text-rose-100 flex items-center gap-2">
           <ShieldOff className="h-4 w-4" />
           Usunięcie konta (RODO)

@@ -12,13 +12,45 @@ const STATUS_TONE: Record<string, string> = {
   CANCELLED: "text-neutral-500",
 };
 
+/** Te same nazwy co w API (servers/przeglad-wezla.service.ts → ZADANIA). */
+const STATUS_LABEL: Record<string, string> = {
+  QUEUED: "w kolejce",
+  RUNNING: "w toku",
+  COMPLETED: "zakończone",
+  FAILED: "nieudane",
+  CANCELLED: "anulowane",
+};
+
 const KIND_LABEL: Record<string, string> = {
   HOSTING_PROFILE: "Profil hostingu",
-  WP_INSTALL: "Instalacja WordPress",
+  WP_INSTALL: "Instalacja WordPressa",
   WAF_APPLY: "WAF (ModSecurity)",
-  STAGING_SYNC: "Staging (klon/publikacja)",
-  PHP_APPLY: "Zmiana wersji PHP",
+  STAGING_SYNC: "Kopia testowa strony",
+  PHP_APPLY: "Zmiana PHP",
   APP_INSTALL: "Instalacja aplikacji",
+  DB_UPGRADE: "Aktualizacja MariaDB",
+  FLEET_UPDATE: "Aktualizacja floty",
+  OFFSITE_RESTORE: "Odtworzenie z kopii poza serwerem",
+  DB_TRANSFER: "Przeniesienie bazy danych",
+  FILE_RESTORE: "Odtworzenie plików",
+  SSH_ACCESS: "Dostęp SSH",
+  WP_UPDATE: "Aktualizacja WordPressa",
+  DISK_USAGE: "Analiza zajętości dysku",
+  MALWARE_SCAN: "Skan złośliwego kodu",
+  REDIS_ACCESS: "Redis",
+  MAIL_LOG: "Dziennik poczty",
+  GIT_DEPLOY: "Wdrożenie z Gita",
+  SITE_CLONE: "Klon strony",
+  FILE_SEARCH: "Wyszukiwanie plików",
+  PHP_INFO: "Informacje o PHP",
+  HTACCESS: "Reguły .htaccess",
+  APP_SELECTOR: "Aplikacja Node/Python",
+  SLOW_SQL: "Wolne zapytania SQL",
+  MEMCACHED_ACCESS: "Memcached",
+  SITE_STATS: "Statystyki strony",
+  PGSQL: "PostgreSQL",
+  IMAGE_OPTIMIZE: "Optymalizacja obrazów",
+  ONBOARD_LIVE: "Onboard LIVE",
 };
 
 function fmt(iso: string | null): string {
@@ -52,7 +84,7 @@ export function NodeTasksSection({ rows }: { rows: NodeTaskRow[] }) {
             <tr key={t.id}>
               <td className="px-3 py-2 text-neutral-200">{KIND_LABEL[t.kind] ?? t.kind}</td>
               <td className={`px-3 py-2 ${STATUS_TONE[t.status] ?? "text-neutral-300"}`}>
-                {t.status}
+                {STATUS_LABEL[t.status] ?? t.status}
                 {t.errorMessage ? (
                   <p className="mt-0.5 max-w-[320px] truncate text-[11px] text-rose-400/80" title={t.errorMessage}>
                     {t.errorMessage}
