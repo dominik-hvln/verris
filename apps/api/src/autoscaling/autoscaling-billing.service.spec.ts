@@ -27,6 +27,7 @@ function rule(resource: string, price: string) {
 function buildService(opts?: { debitError?: Error }) {
   const prisma = {
     account: { update: jest.fn().mockResolvedValue({}) },
+    subscription: { findUnique: jest.fn().mockResolvedValue({ autoscalingDiscountPct: 0, paymentSource: 'WALLET' }) },
     autoscalingEvent: { create: jest.fn().mockResolvedValue({}) },
     walletTransaction: { aggregate: jest.fn() },
   };

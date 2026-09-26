@@ -94,7 +94,7 @@ const HEALTH: Record<ServiceHealthSummaryDto['label'], { tone: Tone; text: strin
 const PAYMENT_SOURCE: Record<string, string> = {
   WALLET: 'z portfela',
   STRIPE_CARD: 'kartą (automatycznie)',
-  MANUAL: 'przelewem',
+  MANUAL: 'u opiekuna',
 };
 
 export default function ServiceOverviewV2({

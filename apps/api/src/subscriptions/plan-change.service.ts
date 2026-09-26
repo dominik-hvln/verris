@@ -118,6 +118,11 @@ export class PlanChangeService {
         'Ta usługa ma rozliczenie ręczne — zmiana planu wymaga kontaktu z supportem.',
       );
     }
+    if (sub.individualPrice != null) {
+      throw new BadRequestException(
+        'Ta usługa ma indywidualne warunki — zmianę planu ustali z Tobą nasza obsługa.',
+      );
+    }
     return this.executePlanChange(sub, targetPlanId, {
       initiatedBy: 'client',
       actorUserId: userId,

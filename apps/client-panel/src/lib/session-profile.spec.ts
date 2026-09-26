@@ -87,6 +87,7 @@ describe('X-05 fetchSessionProfile', () => {
       email: 'a@b.pl',
       subaccountLabel: null,
       serviceScope: [],
+      billingOutside: false,
     });
   });
 

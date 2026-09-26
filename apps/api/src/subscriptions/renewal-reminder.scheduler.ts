@@ -80,6 +80,8 @@ export class RenewalReminderScheduler {
         // who scheduled cancellation at end of period). Skip those — they
         // get the cancellation email instead.
         cancelAt: null,
+        // PB-28 — rozliczenie poza Verris: nic nie pobieramy, więc nie przypominamy.
+        paymentSource: { not: 'MANUAL' },
         currentPeriodEnd: { gte: lo, lte: hi },
       },
       include: {
@@ -136,6 +138,7 @@ export class RenewalReminderScheduler {
         appliedPromoCodeId: sub.appliedPromoCodeId,
         introDiscountPct: sub.introDiscountPct,
         introDiscountPeriodsLeft: sub.introDiscountPeriodsLeft,
+        individualPrice: sub.individualPrice,
       });
       const amount = renewalDecimal.toFixed(2);
 

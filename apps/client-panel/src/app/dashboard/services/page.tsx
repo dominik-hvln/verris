@@ -104,9 +104,13 @@ export default async function ServicesPage() {
           <div aria-hidden className="verris-pattern-bg pointer-events-none absolute inset-0 opacity-[0.06]" />
           <h2 className="relative font-display text-2xl font-bold text-foreground">Nie masz jeszcze żadnej usługi</h2>
           <p className="relative mx-auto mt-2 max-w-md text-muted-foreground">Wybierz plan dopasowany do Twojej strony — konto założymy w kilka sekund.</p>
-          <Link href="/dashboard/services/new" className="relative mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">
-            <Plus className="h-4 w-4" /> Wybierz plan
-          </Link>
+          {mozeZamawiac ? (
+            <Link href="/dashboard/services/new" className="relative mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">
+              <Plus className="h-4 w-4" /> Wybierz plan
+            </Link>
+          ) : (
+            <p className="relative mt-4 text-sm text-muted-foreground">Nową usługę zamówisz u swojego opiekuna albo właściciela konta.</p>
+          )}
         </div>
       ) : (
         <>

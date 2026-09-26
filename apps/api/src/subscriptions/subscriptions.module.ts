@@ -1,3 +1,5 @@
+import { WarunkiIndywidualneService } from './warunki-indywidualne.service';
+import { WarunkiIndywidualneAdminController } from './warunki-indywidualne.admin.controller';
 import { forwardRef, Module } from '@nestjs/common';
 import { ServersModule } from '../servers/servers.module';
 import { BillingModule } from '../billing/billing.module';
@@ -74,6 +76,7 @@ import { EcoModule } from '../eco/eco.module';
   imports: [ServersModule, PlatformSettingsModule, EcoModule, forwardRef(() => BillingModule), MailModule, NotificationsModule, ApiTokensModule],
   providers: [
     SubscriptionsService,
+    WarunkiIndywidualneService,
     PlanChangeService,
     ProvisioningService,
     ProvisioningQueueService,
@@ -130,6 +133,7 @@ import { EcoModule } from '../eco/eco.module';
   controllers: [
     SubscriptionsController,
     SubscriptionsAdminController,
+    WarunkiIndywidualneAdminController,
     UserServicesController,
     PublicApiWriteController,
     GitWebhookController,

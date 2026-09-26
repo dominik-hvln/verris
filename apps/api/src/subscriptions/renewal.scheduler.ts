@@ -82,6 +82,7 @@ export class RenewalScheduler {
         currentPeriodEnd: { lte: upTo },
       },
       include: { plan: { select: { slug: true } } },
+      orderBy: { currentPeriodEnd: 'asc' },
       take: 200,
     });
 
@@ -105,6 +106,19 @@ export class RenewalScheduler {
         this.logger.error(
           `Failed to finalize scheduled cancellation for sub=${sub.id}: ${(err as Error).message}`,
         );
+      }
+    }
+
+    // PB-28 — rozliczenie poza Verris (MANUAL): okres przedłuża się sam na koniec
+    // okresu, bez obciążenia, faktury i karencji. Klienta rozlicza właściciel.
+    for (const sub of due) {
+      if (sub.paymentSource !== 'MANUAL' || !sub.currentPeriodEnd) continue;
+      if (sub.cancelAt != null && sub.cancelAt <= now2) continue;
+      if (sub.currentPeriodEnd > now2) continue;
+      try {
+        await this.extendPeriod(sub.id, sub.currentPeriodEnd, sub.interval);
+      } catch (err) {
+        this.logger.error(`Przedłużenie usługi poza Verris sub=${sub.id}: ${(err as Error).message}`);
       }
     }
 
@@ -202,6 +216,7 @@ export class RenewalScheduler {
       appliedPromoCodeId: sub.appliedPromoCodeId,
       introDiscountPct: sub.introDiscountPct,
       introDiscountPeriodsLeft: sub.introDiscountPeriodsLeft,
+      individualPrice: sub.individualPrice,
     });
 
     try {

@@ -50,6 +50,9 @@ export class ProformaService {
     ) {
       throw new ConflictException('Ta usługa nie ma zaplanowanego odnowienia — proforma nie jest potrzebna.');
     }
+    if (sub.paymentSource === 'MANUAL') {
+      throw new ConflictException('Tę usługę rozliczasz bezpośrednio ze swoim opiekunem — proforma z panelu nie dotyczy.');
+    }
 
     const brutto = await this.promo.resolveNextRenewalAmount({
       priceAmount: sub.priceAmount,
@@ -57,6 +60,7 @@ export class ProformaService {
       appliedPromoCodeId: sub.appliedPromoCodeId,
       introDiscountPct: sub.introDiscountPct,
       introDiscountPeriodsLeft: sub.introDiscountPeriodsLeft,
+      individualPrice: sub.individualPrice,
     });
     // M-09: stawka nabywcy; klient rozliczany netto płaci K / 1,23 (tyle musi doładować).
     const { traktowanie: t } = await this.vatNabywcy.ustal(userId);

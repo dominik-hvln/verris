@@ -128,11 +128,15 @@ export class AutoscalingBillingService {
       });
     }
 
-    const block = this.blockCostPln(
-      rules,
-      account.scaledCpu,
-      account.scaledRamMb,
-      account.scaledDiskMb,
+    // PB-27/PB-28 — rabat operatora na autoskalowanie i rozliczenie poza Verris.
+    const warunki = await this.prisma.subscription.findUnique({
+      where: { id: account.subscriptionId },
+      select: { autoscalingDiscountPct: true, paymentSource: true },
+    });
+    const poza = warunki?.paymentSource === 'MANUAL';
+    const block = poRabacie(
+      this.blockCostPln(rules, account.scaledCpu, account.scaledRamMb, account.scaledDiskMb),
+      warunki?.autoscalingDiscountPct ?? 0,
     );
 
     let blocksCharged = 0;
@@ -146,7 +150,27 @@ export class AutoscalingBillingService {
       const blockStart = nextBlockStart;
       const amount = roundToCurrency(block.total);
 
-      if (amount >= MIN_CHARGEABLE_PLN) {
+      if (amount >= MIN_CHARGEABLE_PLN && poza) {
+        // Bez obciążenia portfela: blok trafia do zestawienia zużycia, z którego
+        // właściciel wystawia własną fakturę (GET /admin/users/:id/autoscaling-outside).
+        const znacznik = `outside_block ${BILLING_BLOCK_MINUTES}min ${blockStart.toISOString()}`;
+        const juz = await this.prisma.autoscalingEvent.findFirst({
+          where: { subscriptionId: account.subscriptionId, reason: znacznik },
+          select: { id: true },
+        });
+        if (!juz) {
+          await this.prisma.autoscalingEvent.create({
+            data: {
+              subscriptionId: account.subscriptionId,
+              direction: AutoscalingDirection.UP,
+              reason: znacznik,
+              costSnapshot: new Prisma.Decimal(amount),
+            },
+          });
+          amountChargedPln += amount;
+          blocksCharged += 1;
+        }
+      } else if (amount >= MIN_CHARGEABLE_PLN) {
         const share = allocateShares(amount, block);
         const idempotencyKey = `autoscale-block:${account.subscriptionId}:${blockStart.getTime()}`;
         try {
@@ -232,6 +256,12 @@ export class AutoscalingBillingService {
     });
     return Math.abs(Number(sum._sum.amount ?? 0));
   }
+}
+
+/** PB-27 — koszt bloku po rabacie operatora (0–100%). */
+export function poRabacie<T extends Record<string, number>>(koszt: T, rabatPct: number): T {
+  const k = 1 - Math.min(100, Math.max(0, rabatPct)) / 100;
+  return Object.fromEntries(Object.entries(koszt).map(([n, v]) => [n, v * k])) as T;
 }
 
 /**

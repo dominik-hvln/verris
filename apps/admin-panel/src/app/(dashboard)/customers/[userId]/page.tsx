@@ -8,6 +8,9 @@ import { CustomerOperationalForms } from "./operational-forms";
 import { CreditWalletButton } from "../credit-wallet-button";
 import { ImpersonateButton } from "../impersonate-button";
 import { BladStrony } from "@/components/blad-strony";
+import { adminApi } from "@/lib/api";
+import { WarunkiIndywidualne, type PodgladWarunkow } from "./warunki-indywidualne";
+import { rozliczeniePoza, ustawWarunki, zalozUsluge } from "./warunki-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +30,11 @@ export default async function AdminCustomerOperationalPage({
     }
     return <BladStrony blad={e} tytul="Klient" powrot={{ href: "/customers", label: "Klienci" }} />;
   }
+
+  // PB-27 / PB-28 — sekcja tylko dla admina i pracownika z CUSTOM_TERMS_MANAGE (403 = bez sekcji).
+  const warunki = await adminApi<PodgladWarunkow>(`/admin/custom-terms/user/${encodeURIComponent(userId)}`).catch(
+    () => null,
+  );
 
   const title =
     [detail.firstName, detail.lastName].filter(Boolean).join(" ").trim() || detail.email;
@@ -94,6 +102,14 @@ export default async function AdminCustomerOperationalPage({
           </div>
         ) : null}
       </header>
+
+      {warunki ? (
+        <WarunkiIndywidualne
+          userId={detail.id}
+          dane={warunki}
+          akcje={{ zaloz: zalozUsluge, ustaw: ustawWarunki, poza: rozliczeniePoza }}
+        />
+      ) : null}
 
       <CustomerOperationalForms detail={detail} />
 

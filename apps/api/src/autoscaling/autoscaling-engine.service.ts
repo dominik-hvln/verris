@@ -630,12 +630,9 @@ export class AutoscalingEngineService {
         deltas.push({ resource: AutoscalingResource.RAM, toValue: opts.nextScaledRamMb });
       if (opts.nextScaledDiskMb > 0)
         deltas.push({ resource: AutoscalingResource.DISK, toValue: opts.nextScaledDiskMb });
-      const hourlyCostPln = this.estimateHourlyCost(
-        opts.rules,
-        opts.nextScaledCpu,
-        opts.nextScaledRamMb,
-        opts.nextScaledDiskMb,
-      );
+      const hourlyCostPln =
+        this.estimateHourlyCost(opts.rules, opts.nextScaledCpu, opts.nextScaledRamMb, opts.nextScaledDiskMb) *
+        (1 - (sub.autoscalingDiscountPct ?? 0) / 100);
       void this.mailer
         .send(
           autoscalingStartedTemplate({
@@ -817,19 +814,17 @@ export class AutoscalingEngineService {
     nextScaledDiskMb: number,
   ): Promise<{ allowed: true } | { allowed: false; reason: string }> {
     const balance = Number(sub.user.walletBalance);
-    if (balance < this.MIN_WALLET_BALANCE) {
+    // PB-28 — rozliczenie poza Verris: portfel nie jest źródłem płatności.
+    if (sub.paymentSource !== 'MANUAL' && balance < this.MIN_WALLET_BALANCE) {
       return { allowed: false, reason: 'wallet_empty' };
     }
 
     const cap = Number(sub.autoscalingMaxCost);
     if (cap > 0) {
       const spent = await this.thirtyDaySpend(sub.id);
-      const projectedHourly = this.estimateHourlyCost(
-        rules,
-        nextScaledCpu,
-        nextScaledRamMb,
-        nextScaledDiskMb,
-      );
+      const projectedHourly =
+        this.estimateHourlyCost(rules, nextScaledCpu, nextScaledRamMb, nextScaledDiskMb) *
+        (1 - (sub.autoscalingDiscountPct ?? 0) / 100);
       if (spent + projectedHourly > cap) {
         return { allowed: false, reason: 'cap_reached' };
       }

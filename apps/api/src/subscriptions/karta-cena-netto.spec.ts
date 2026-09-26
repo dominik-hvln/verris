@@ -5,7 +5,7 @@ import { SubscriptionsService } from './subscriptions.service';
 describe('M-09 — karta a cena netto', () => {
   const plan = { id: 'p1', isActive: true, isPublic: true, productKind: 'HOSTING', priceMonthly: 45, priceYearly: 399 };
   const zbuduj = (cenaNetto: boolean) => {
-    const prisma = { plan: { findUnique: jest.fn(async () => plan) } };
+    const prisma = { plan: { findUnique: jest.fn(async () => plan) }, user: { findUnique: jest.fn(async () => ({ billingOutside: false })) } };
     const vat = { ustal: jest.fn(async () => ({ traktowanie: { cenaNetto }, vies: null })) };
     const n = {} as never;
     return new SubscriptionsService(prisma as never, n, n, n, n, n, n, n, n, n, n, n, vat as never);

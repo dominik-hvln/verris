@@ -85,6 +85,7 @@ export class WalletLowBalanceScheduler {
         anonymizedAt: null,
         deletionRequestedAt: null, // konto w trakcie usuwania — nie zachęcamy do doładowań
         emailVerifiedAt: { not: null }, // niezweryfikowane = świeże/porzucone konto
+        billingOutside: false, // PB-28 — rozliczany przez właściciela, portfel nie jest używany
         walletBalance: { lt: new Prisma.Decimal(this.defaultThresholdPln) },
         OR: [
           {

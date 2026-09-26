@@ -30,6 +30,8 @@ export interface SidebarUser {
   onboardingHidden: boolean;
   /** PB-20 — zakres usług (pusta lista = całe konto). */
   serviceScope?: string[];
+  /** PB-28 — rozliczenie poza Verris (bez portfela i płatności w panelu). */
+  billingOutside?: boolean;
   /** PB-20 — konto, na którym pracuję z własnego loginu; `null` = moje konto. */
   actingFor?: { ownerUserId: string; nazwa: string; email: string } | null;
 }
@@ -84,6 +86,7 @@ export async function fetchSidebarUserState(): Promise<{ user: SidebarUser | nul
         ? data.customerPermissions.map(String)
         : null,
       serviceScope: Array.isArray(data.serviceScope) ? data.serviceScope.map(String) : [],
+      billingOutside: data.billingOutside === true,
       actingFor: data.actingFor && typeof data.actingFor === 'object' ? data.actingFor : null,
     };
     return { user, unauthorized: false };

@@ -2,7 +2,9 @@ import Link from "next/link";
 import { BladStrony } from "@/components/blad-strony";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, ExternalLink, Mail } from "lucide-react";
-import { StaffApiError } from "@/lib/staff-api";
+import { StaffApiError, staffApi } from "@/lib/staff-api";
+import { WarunkiIndywidualne, type PodgladWarunkow } from "./warunki-indywidualne";
+import { rozliczeniePoza, ustawWarunki, zalozUsluge } from "./warunki-actions";
 import { staffGetCustomerProfile } from "@/lib/crm-profile-data";
 import { StaffImpersonateButton } from "../impersonate-button";
 import { StaffDnsTlsPanel } from "../dns-tls-panel";
@@ -70,6 +72,11 @@ export default async function StaffCustomerProfilePage({
     customerTimeline,
     supportInsights,
   } = profile;
+
+  // PB-27 / PB-28 — tylko z uprawnieniem CUSTOM_TERMS_MANAGE (403 = bez sekcji).
+  const warunki = await staffApi<PodgladWarunkow>(`/admin/custom-terms/user/${encodeURIComponent(userId)}`).catch(
+    () => null,
+  );
 
   const displayName =
     [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || user.email;
@@ -223,6 +230,14 @@ export default async function StaffCustomerProfilePage({
           </ul>
         </div>
       </section>
+
+      {warunki ? (
+        <WarunkiIndywidualne
+          userId={user.id}
+          dane={warunki}
+          akcje={{ zaloz: zalozUsluge, ustaw: ustawWarunki, poza: rozliczeniePoza }}
+        />
+      ) : null}
 
       <section className="rounded-2xl border border-white/10 bg-black/30">
         <h2 className="border-b border-white/10 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white">

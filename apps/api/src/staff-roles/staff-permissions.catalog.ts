@@ -17,6 +17,7 @@ export const STAFF_PERMISSIONS = [
   { key: 'PLANS_MANAGE', area: 'Infrastruktura', label: 'Plany produktowe i VPS' },
   { key: 'PROVISIONING_MANAGE', area: 'Operacje', label: 'Kolejka provisioningu' },
   { key: 'MIGRATIONS_MANAGE', area: 'Operacje', label: 'Migracje (cockpit)' },
+  { key: 'CUSTOM_TERMS_MANAGE', area: 'Finanse', label: 'Indywidualne warunki: własna cena usługi, rabat autoskalowania, rozliczenie poza Verris' },
   { key: 'PROMO_MANAGE', area: 'Marketing', label: 'Kody promocyjne i program partnerski' },
   { key: 'ABUSE_MANAGE', area: 'Bezpieczeństwo', label: 'Nadużycia / abuse' },
   { key: 'AUDIT_VIEW', area: 'Bezpieczeństwo', label: 'Logi bezpieczeństwa (audyt)' },

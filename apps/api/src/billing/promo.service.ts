@@ -162,6 +162,9 @@ export class PromoService {
         currency: 'PLN',
         description: input.description ?? null,
         maxRedemptions: input.maxRedemptions ?? null,
+        // Formularz admina wysyła tę flagę od dawna, ale nie trafiała do bazy —
+        // kod „także na odnowienia” działał tylko przy pierwszym okresie.
+        appliesToRenewals: input.appliesToRenewals ?? false,
         validFrom,
         validTo,
       },
@@ -300,7 +303,10 @@ export class PromoService {
     appliedPromoCodeId: string | null;
     introDiscountPct: number;
     introDiscountPeriodsLeft: number;
+    /** PB-27 — cena ustalona przez operatora wygrywa z cennikiem, kodami i rabatem startowym. */
+    individualPrice?: Prisma.Decimal | null;
   }): Promise<Prisma.Decimal> {
+    if (sub.individualPrice != null) return new Prisma.Decimal(sub.individualPrice);
     if (sub.introDiscountPeriodsLeft > 0 && sub.introDiscountPct > 0) {
       const listPrice = sub.listPriceAmount ?? sub.priceAmount;
       return this.applyPercentDiscount(

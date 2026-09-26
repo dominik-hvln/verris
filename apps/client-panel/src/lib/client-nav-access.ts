@@ -3,6 +3,8 @@ export type ClientNavContext = {
   customerPermissions: string[] | null | undefined;
   /** PB-20 — dostęp tylko do wybranych usług; pusta lista / brak = całe konto. */
   serviceScope?: string[] | null;
+  /** PB-28 — konto rozliczane przez właściciela poza Verris: bez portfela, płatności i zamówień z panelu. */
+  billingOutside?: boolean;
 };
 
 /**
@@ -14,6 +16,9 @@ const W_ZAKRESIE = [
   '/dashboard/cron', '/dashboard/backups', '/dashboard/databases', '/dashboard/ssl', '/dashboard/php',
   '/dashboard/apps', '/dashboard/support', '/dashboard/knowledge', '/dashboard/settings', '/dashboard/notifications',
 ];
+
+/** PB-28 — przy rozliczeniu poza Verris klient nie płaci w panelu i nie zamawia sam nowych usług. */
+const POZA_VERRIS = ['/dashboard/billing', '/dashboard/services/new', '/dashboard/calculator'];
 
 function hasAny(permissions: Set<string>, keys: string[]): boolean {
   return keys.some((key) => permissions.has(key));
@@ -27,6 +32,9 @@ export function canAccessDashboardRoute(
   href: string,
   ctx: ClientNavContext,
 ): boolean {
+  if (ctx.billingOutside && POZA_VERRIS.some((p) => href === p || href.startsWith(`${p}/`) || href.startsWith(`${p}?`))) {
+    return false;
+  }
   if (!ctx.isSubaccount) return true;
 
   const perms = new Set(ctx.customerPermissions ?? []);
@@ -115,6 +123,7 @@ export function canAccessDashboardRoute(
 }
 
 export function canShowWalletBalance(ctx: ClientNavContext): boolean {
+  if (ctx.billingOutside) return false;
   if (!ctx.isSubaccount) return true;
   const perms = new Set(ctx.customerPermissions ?? []);
   return hasAny(perms, ['BILLING_READ', 'BILLING_MANAGE']);
@@ -125,6 +134,7 @@ export function clientNavContextFromSidebar(
     isSubaccount?: boolean;
     customerPermissions?: string[] | null;
     serviceScope?: string[] | null;
+    billingOutside?: boolean;
   } | null,
 ): ClientNavContext | null {
   if (!user) return null;
@@ -132,5 +142,6 @@ export function clientNavContextFromSidebar(
     isSubaccount: Boolean(user.isSubaccount),
     customerPermissions: user.customerPermissions ?? null,
     serviceScope: user.serviceScope ?? null,
+    billingOutside: Boolean(user.billingOutside),
   };
 }

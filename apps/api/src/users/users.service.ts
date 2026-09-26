@@ -200,6 +200,10 @@ export class UsersService {
       serviceScope: dziala ? dzialanie?.serviceScope ?? [] : user.subaccountServiceIds,
       actingFor: dziala ? await this.kontoWlasciciela(accountUserId) : null,
       hasPasskey: passkeyCount > 0,
+      // PB-28 — konto rozliczane przez właściciela poza Verris: panel chowa portfel i płatności.
+      billingOutside:
+        (await this.prisma.user.findUnique({ where: { id: accountUserId }, select: { billingOutside: true } }))
+          ?.billingOutside ?? false,
     };
   }
 

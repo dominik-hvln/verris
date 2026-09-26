@@ -29,7 +29,7 @@ const STATUS_LABELS: Record<SubscriptionStatus, string> = {
 const PAYMENT_LABELS: Record<string, string> = {
   STRIPE_CARD: 'Karta (Stripe)',
   WALLET: 'Portfel Verris',
-  MANUAL: 'Ręczna (operator)',
+  MANUAL: 'u opiekuna (poza panelem)',
 };
 
 const BILLING_EVENT_TYPES = new Set([
@@ -141,13 +141,18 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
         desc="Stan rozliczenia, bieżący okres i rezygnacja."
         action={
           <div className="flex flex-wrap gap-2">
-            <Link href="/dashboard/billing" className={BTN}>
-              <Wallet className="h-[15px] w-[15px]" /> Portfel i faktury
-            </Link>
-            <Link href={`/dashboard/services/${serviceId}/plan`} className={BTN}>
-              Zmiana planu
-            </Link>
-            {(service.status === 'ACTIVE' || service.status === 'PAST_DUE') && !cancelScheduled ? (
+            {/* PB-28 — rozliczenie poza Verris: bez portfela, proformy i samodzielnej zmiany planu. */}
+            {service.paymentSource !== 'MANUAL' ? (
+              <Link href="/dashboard/billing" className={BTN}>
+                <Wallet className="h-[15px] w-[15px]" /> Portfel i faktury
+              </Link>
+            ) : null}
+            {service.paymentSource !== 'MANUAL' ? (
+              <Link href={`/dashboard/services/${serviceId}/plan`} className={BTN}>
+                Zmiana planu
+              </Link>
+            ) : null}
+            {(service.status === 'ACTIVE' || service.status === 'PAST_DUE') && !cancelScheduled && service.paymentSource !== 'MANUAL' ? (
               <a
                 href={`/api/services/${serviceId}/proforma`}
                 className={BTN}

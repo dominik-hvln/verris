@@ -75,3 +75,15 @@ it('PB-20 — przy zakresie usług nie ma zamawiania nowych', () => {
   expect(canAccessDashboardRoute('/dashboard/services/new', ctx)).toBe(false);
   expect(canAccessDashboardRoute('/dashboard/services/new', { ...ctx, serviceScope: [] })).toBe(true);
 });
+
+describe('PB-28 — rozliczenie poza Verris', () => {
+  const ctx = { isSubaccount: false, customerPermissions: null, billingOutside: true };
+  it('chowa portfel, płatności i zamawianie; reszta panelu zostaje', () => {
+    expect(canAccessDashboardRoute('/dashboard/billing', ctx)).toBe(false);
+    expect(canAccessDashboardRoute('/dashboard/billing/invoices', ctx)).toBe(false);
+    expect(canAccessDashboardRoute('/dashboard/services/new', ctx)).toBe(false);
+    expect(canAccessDashboardRoute('/dashboard/services', ctx)).toBe(true);
+    expect(canAccessDashboardRoute('/dashboard/autoscaling', ctx)).toBe(true);
+    expect(canShowWalletBalance(ctx)).toBe(false);
+  });
+});

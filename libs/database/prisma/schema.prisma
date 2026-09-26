@@ -197,6 +197,9 @@ model User {
   adminInternalNote        String?   @db.Text
   /// PROD-03 — konto wewnętrzne (testowe/operatora): poza metrykami biznesowymi i kolejką faktur VAT.
   isInternal               Boolean   @default(false)
+  /// PB-28 — klient rozliczany przez właściciela poza Verris: system nie pobiera opłat,
+  /// nie blokuje za brak płatności i nie wystawia faktur; usługi mają paymentSource MANUAL.
+  billingOutside           Boolean   @default(false)
 
   /// 4 skróty w sidebarze panelu klienta (href z katalogu `SIDEBAR_TILE_OPTIONS`).
   sidebarQuickLinks        String[]  @default([])
@@ -957,6 +960,14 @@ model Subscription {
   // naliczeniu — gdy 0, odnowienia idą pełną kwotą (lub wg kodu, jeśli był).
   introDiscountPct        Int    @default(0)
   introDiscountPeriodsLeft Int   @default(0)
+
+  // PB-27 — indywidualne warunki ustawione przez operatora. Cena za okres
+  // (null = cennik) obowiązuje także przy odnowieniach; rabat % na autoskalowanie.
+  individualPrice         Decimal?  @db.Decimal(10, 2)
+  autoscalingDiscountPct  Int       @default(0)
+  individualTermsNote     String?   @db.Text
+  individualTermsById     String?
+  individualTermsAt       DateTime?
 
   // Payment configuration
   paymentSource        SubscriptionPaymentSource @default(STRIPE_CARD)

@@ -52,6 +52,14 @@ export type SuspendReason =
   /** O-05 — wstrzymane przez resellera klienta; zdjąć może reseller albo obsługa. */
   | 'RESELLER';
 
+/** PB-27 — usługa zakładana przez operatora (admin albo pracownik z CUSTOM_TERMS_MANAGE). */
+export interface OperatorskieZalozenie {
+  actorUserId: string;
+  powod: string;
+  individualPrice?: Prisma.Decimal | null;
+  autoscalingDiscountPct?: number;
+}
+
 export interface CreatedSubscription {
   subscription: Subscription;
   provisioning?: ProvisionResult;
@@ -263,15 +271,24 @@ export class SubscriptionsService {
   async create(
     userId: string,
     dto: CreateSubscriptionDto,
-    opts: { allowManual?: boolean } = {},
+    opts: { allowManual?: boolean; operator?: OperatorskieZalozenie } = {},
   ): Promise<CreatedSubscription> {
     if (dto.paymentSource === SubscriptionPaymentSource.MANUAL && !opts.allowManual) {
       throw new ForbiddenException(
         'Źródło płatności MANUAL jest zarezerwowane dla operatora.',
       );
     }
+    const op = opts.operator;
+    if (!op) {
+      // PB-28 — klient rozliczany przez właściciela zamawia nowe usługi u opiekuna.
+      const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { billingOutside: true } });
+      if (u?.billingOutside) {
+        throw new ForbiddenException('Twoje usługi rozliczasz bezpośrednio ze swoim opiekunem — nową usługę zamówisz u niego.');
+      }
+    }
     const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
-    if (!plan || !plan.isActive || !plan.isPublic) {
+    // Operator może założyć usługę także na planie ukrytym (np. oferta indywidualna).
+    if (!plan || !plan.isActive || (!plan.isPublic && !op)) {
       throw new NotFoundException('Plan not found or unavailable');
     }
     // M-09: klient rozliczany bez polskiego VAT płaci cenę netto — przez portfel
@@ -303,13 +320,23 @@ export class SubscriptionsService {
     }
 
     const listPrice = new Prisma.Decimal(listPriceRaw);
-    const pricing = await this.resolveSubscriptionPricing(
-      userId,
-      listPrice,
-      dto.paymentSource,
-      dto.interval,
-      dto.promoCode,
-    );
+    // PB-27 — cena operatora zastępuje cennik, kody i rabat startowy (także przy odnowieniach).
+    const pricing =
+      op?.individualPrice != null
+        ? {
+            chargeAmount: op.individualPrice,
+            listPrice,
+            appliedPromoCodeId: null,
+            introDiscountPct: 0,
+            introDiscountPeriodsLeft: 0,
+          }
+        : await this.resolveSubscriptionPricing(
+            userId,
+            listPrice,
+            dto.paymentSource,
+            dto.interval,
+            op ? undefined : dto.promoCode,
+          );
 
     // Create subscription row up-front in PENDING_PAYMENT so we can attach
     // the wallet entry / provisioning to it (and recover from failures).
@@ -332,6 +359,15 @@ export class SubscriptionsService {
         paymentSource: dto.paymentSource,
         autoscalingEnabled: dto.autoscalingEnabled ?? false,
         ecoModeEnabled: dto.ecoModeEnabled ?? false,
+        ...(op && (op.individualPrice != null || op.autoscalingDiscountPct)
+          ? {
+              individualPrice: op.individualPrice ?? null,
+              autoscalingDiscountPct: op.autoscalingDiscountPct ?? 0,
+              individualTermsNote: op.powod,
+              individualTermsById: op.actorUserId,
+              individualTermsAt: new Date(),
+            }
+          : {}),
       },
     });
 
@@ -346,19 +382,30 @@ export class SubscriptionsService {
     await this.audit.record({
       action: 'SUBSCRIPTION_CREATED',
       userId,
-      actorUserId: userId,
-      details: {
-        subscriptionId: subscription.id,
-        plan: plan.slug,
-        interval: dto.interval,
-        source: dto.paymentSource,
-        // Dowód oświadczenia konsumenckiego (art. 15 ust. 3 / 21 ust. 2 upk):
-        // klient zażądał rozpoczęcia świadczenia przed upływem terminu
-        // odstąpienia. Walidacja `Equals(true)` w DTO gwarantuje obecność.
-        immediatePerformanceConsent: dto.immediatePerformanceConsent,
-        consentStatement:
-          'Żądam rozpoczęcia świadczenia usługi przed upływem 14-dniowego terminu odstąpienia i przyjmuję do wiadomości obowiązek zapłaty za świadczenia spełnione do chwili odstąpienia (Regulamin §4 ust. 4, §21).',
-      },
+      actorUserId: op?.actorUserId ?? userId,
+      details: op
+        ? {
+            subscriptionId: subscription.id,
+            plan: plan.slug,
+            interval: dto.interval,
+            source: dto.paymentSource,
+            zalozylOperator: op.actorUserId,
+            powod: op.powod,
+            individualPrice: op.individualPrice?.toFixed(2) ?? null,
+            autoscalingDiscountPct: op.autoscalingDiscountPct ?? 0,
+          }
+        : {
+            subscriptionId: subscription.id,
+            plan: plan.slug,
+            interval: dto.interval,
+            source: dto.paymentSource,
+            // Dowód oświadczenia konsumenckiego (art. 15 ust. 3 / 21 ust. 2 upk):
+            // klient zażądał rozpoczęcia świadczenia przed upływem terminu
+            // odstąpienia. Walidacja `Equals(true)` w DTO gwarantuje obecność.
+            immediatePerformanceConsent: dto.immediatePerformanceConsent,
+            consentStatement:
+              'Żądam rozpoczęcia świadczenia usługi przed upływem 14-dniowego terminu odstąpienia i przyjmuję do wiadomości obowiązek zapłaty za świadczenia spełnione do chwili odstąpienia (Regulamin §4 ust. 4, §21).',
+          },
     });
 
     // MAIL-W2 — potwierdzenie zamówienia (fire-and-forget, nie blokuje flow).
@@ -366,7 +413,7 @@ export class SubscriptionsService {
       userId,
       planName: plan.name,
       serviceTag,
-      amount: pricing.chargeAmount,
+      amount: dto.paymentSource === SubscriptionPaymentSource.MANUAL ? null : pricing.chargeAmount,
       currency: plan.currency,
       interval: dto.interval,
       domain: dto.domain ?? null,
@@ -783,11 +830,12 @@ export class SubscriptionsService {
       ? subscription.currentPeriodEnd.toISOString()
       : 'no-period';
     let renewalTxId: string | null = null;
-    if (opts.chargeRenewal) {
+    // PB-28 — usługa rozliczana poza Verris nie pobiera nic z portfela.
+    if (opts.chargeRenewal && subscription.paymentSource !== 'MANUAL') {
       const debit = await this.walletLedger.debit({
         userId: subscription.userId,
         type: WalletTxType.CHARGE_SUBSCRIPTION,
-        amount: subscription.priceAmount,
+        amount: subscription.individualPrice ?? subscription.priceAmount,
         description: `Manual renewal during unsuspend (${subscription.id})`,
         idempotencyKey: `sub-${subscription.id}-manual-renew-${renewAnchor}`,
         subscriptionId: subscription.id,
