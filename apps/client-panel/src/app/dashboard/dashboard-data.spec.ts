@@ -43,6 +43,19 @@ beforeEach(() => {
 });
 
 describe('X-05 getDashboardSnapshot — błędy nie udają zera (X-39)', () => {
+  it('26.09 — subkonto bez uprawnień (403) to nie awaria: brak dostępu zamiast czerwonej ramki', async () => {
+    const zakaz = Object.assign(new Error('Forbidden resource'), { status: 403 });
+    getWalletSummary.mockRejectedValue(zakaz);
+    fetchTickets.mockRejectedValue(zakaz);
+    apiFetch.mockImplementation(async (path: string) => {
+      if (path === '/domains') throw zakaz;
+      return path === '/users/me/eco-program' ? { ecoPoints: 7 } : [];
+    });
+    const s = await getDashboardSnapshot();
+    expect(s.errors).toEqual({});
+    expect(s.bezDostepu).toEqual({ domains: true, wallet: true, tickets: true });
+  });
+
   it('wszystko OK → brak kluczy błędów', async () => {
     const s = await getDashboardSnapshot();
     expect(s.errors).toEqual({});

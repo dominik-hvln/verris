@@ -132,7 +132,10 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
     .sort((a, b) => (b.r.severity === 'critical' ? 1 : 0) - (a.r.severity === 'critical' ? 1 : 0));
   const next = hints[0];
 
-  const walletFoot = (
+  const bez = snapshot.bezDostepu ?? {};
+  const walletFoot = bez.wallet ? (
+    <span>brak uprawnień</span>
+  ) : (
     <>
       <span data-tip={CREDIT_RATE_INFO}>{snapshot.errors.wallet ? 'historia chwilowo niedostępna' : 'wydatki z 12 miesięcy'}</span>
       <Link href="/dashboard/billing" className="text-[12.5px] font-semibold text-primary underline underline-offset-[3px]">
@@ -161,7 +164,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
             {snapshot.errors.services ? (
               <span>Stan usług chwilowo nieznany</span>
             ) : services.length === 0 ? (
-              <span>Nie masz jeszcze usług — zacznij od nowej.</span>
+              <span>{moze('/dashboard/services/new') ? 'Nie masz jeszcze usług — zacznij od nowej.' : 'Brak usług do wyświetlenia.'}</span>
             ) : (
               <>
                 {ok > 0 ? <StatusPill tone="data">{ok === 1 ? '1 usługa działa' : `${ok} usługi działają`}</StatusPill> : null}
@@ -217,8 +220,8 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
           </Kpi>
           <Kpi
             label="Domeny"
-            value={snapshot.errors.domains ? '—' : String(domains.length)}
-            foot={<span>{snapshot.errors.domains ? 'błąd pobierania' : `${domains.filter((d) => d.status === 'ACTIVE').length} aktywnych`}</span>}
+            value={snapshot.errors.domains || bez.domains ? '—' : String(domains.length)}
+            foot={<span>{bez.domains ? 'brak uprawnień' : snapshot.errors.domains ? 'błąd pobierania' : `${domains.filter((d) => d.status === 'ACTIVE').length} aktywnych`}</span>}
           >
             {domains.length > 0 ? (
               <Squares
@@ -231,19 +234,19 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
           </Kpi>
           <Kpi
             label="Saldo portfela"
-            value={snapshot.errors.profile ? '—' : formatCredits(snapshot.profile?.walletBalance ?? 0)}
+            value={snapshot.errors.profile || bez.wallet ? '—' : formatCredits(snapshot.profile?.walletBalance ?? 0)}
             foot={walletFoot}
           >
-            {flow.length > 0 ? (
+            {flow.length > 0 && !bez.wallet ? (
               <MiniBars values={flow.map((p) => p.outflow)} labels={flow.map((p) => p.label)} unit="K wydatków" format={(v) => v.toLocaleString('pl-PL', { maximumFractionDigits: 2 })} />
             ) : null}
           </Kpi>
           <Kpi
             label="Otwarte zgłoszenia"
-            value={snapshot.errors.tickets ? '—' : String(snapshot.openTickets)}
-            foot={<Link href="/dashboard/support" className="hover:text-foreground">Centrum pomocy →</Link>}
+            value={snapshot.errors.tickets || bez.tickets ? '—' : String(snapshot.openTickets)}
+            foot={bez.tickets ? <span>brak uprawnień</span> : <Link href="/dashboard/support" className="hover:text-foreground">Centrum pomocy →</Link>}
           >
-            {snapshot.errors.tickets ? null : <MiniBars values={ticketsPerDay} labels={days7} unit="nowych zgłoszeń" />}
+            {snapshot.errors.tickets || bez.tickets ? null : <MiniBars values={ticketsPerDay} labels={days7} unit="nowych zgłoszeń" />}
           </Kpi>
         </KpiStrip>
       </div>
@@ -262,7 +265,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
               ) : services.length === 0 ? (
                 <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-5">
                   <p className="text-sm text-muted-foreground">Tu pojawią się Twoje usługi: hosting, poczta, newsletter.</p>
-                  <Link href="/dashboard/services/new" className={BTN_PRIMARY}>Zamów pierwszą usługę</Link>
+                  {moze('/dashboard/services/new') ? <Link href="/dashboard/services/new" className={BTN_PRIMARY}>Zamów pierwszą usługę</Link> : null}
                 </div>
               ) : (
                 <table className="v2-stack w-full border-collapse text-sm">
@@ -364,6 +367,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
           )}
 
           {/* Portfel 12 miesięcy */}
+          {bez.wallet ? null : (
           <section>
             <SectionHead title="Portfel · 12 miesięcy" desc="Doładowania i wydatki miesiąc po miesiącu. Najedź na słupek." />
             <div className="rounded-[10px] border border-line bg-card px-4 pb-3 pt-3.5">
@@ -382,6 +386,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
               )}
             </div>
           </section>
+          )}
         </div>
 
         {/* Prawa kolumna */}
@@ -411,7 +416,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
             </div>
           </section>
 
-          {aside}
+          {snapshot.profile?.isSubaccount ? null : aside}
 
           <Box title="Szybkie akcje">
             <div className="p-4 pt-3">
@@ -421,7 +426,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
                   ['Portfel i płatności', 'doładuj, faktury', '/dashboard/billing'],
                   ['Przenieś stronę', 'migracja od innego hostingu', '/dashboard/migrations'],
                   ['Nowe zgłoszenie', 'Centrum pomocy', '/dashboard/support/new'],
-                ].map(([t, d, href]) => (
+                ].filter(([, , href]) => moze(href!)).map(([t, d, href]) => (
                   <Link key={href} href={href!} className="flex flex-col gap-0.5 bg-card px-3.5 py-3 hover:bg-raised">
                     <b className="text-sm font-semibold text-foreground">{t}</b>
                     <small className="text-[12.5px] text-muted-foreground">{d}</small>

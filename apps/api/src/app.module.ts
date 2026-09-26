@@ -34,7 +34,6 @@ import { ComplianceModule } from './compliance/compliance.module.js';
 import { MarketingModule } from './marketing/marketing.module.js';
 import { EmailLogAdminModule } from './email-log/email-log-admin.module.js';
 import { ProductOpsModule } from './product-ops/product-ops.module.js';
-import { CustomerPermissionsGuard } from './common/guards/customer-permissions.guard.js';
 import { RateLimitGuard } from './common/guards/rate-limit.guard.js';
 import { AiModule } from './ai/ai.module.js';
 import { PlatformSettingsModule } from './platform-settings/platform-settings.module.js';
@@ -129,7 +128,7 @@ import { DeliverabilityModule } from './deliverability/deliverability.module.js'
     // Audit F-09: global sliding-window rate limit (per-IP). Registered FIRST
     // so abusive traffic is rejected before any auth/db work happens.
     { provide: APP_GUARD, useClass: RateLimitGuard },
-    { provide: APP_GUARD, useClass: CustomerPermissionsGuard },
+    // Uprawnienia subkonta sprawdza JwtAuthGuard — globalny strażnik działałby przed logowaniem (req.user pusty).
     { provide: APP_INTERCEPTOR, useClass: KontekstZadaniaInterceptor },
   ],
 })

@@ -2,7 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nes
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { ConfigService } from '@nestjs/config';
-import { AuthGuard } from '@nestjs/passport';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { DomainsService } from './domains.service.js';
 import { CreateDomainDto } from './dto/create-domain.dto.js';
 import { DomainRegistrarService } from './domain-registrar.service.js';
@@ -25,7 +25,7 @@ import {
 type Uzytkownik = { userId: string; principalUserId?: string };
 
 @Controller('domains')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(JwtAuthGuard)
 export class DomainsController {
   constructor(
     private readonly domainsService: DomainsService,

@@ -89,6 +89,8 @@ export type DashboardSnapshot = {
     ecoLedger?: string;
     tickets?: string;
   };
+  /** Subkonto bez uprawnienia (API: 403) — to nie awaria, widok chowa dane zamiast straszyć błędem. */
+  bezDostepu: { domains?: true; wallet?: true; tickets?: true };
 };
 
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
@@ -104,13 +106,18 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     ]);
 
   const errors: DashboardSnapshot['errors'] = {};
+  const bezDostepu: DashboardSnapshot['bezDostepu'] = {};
+  const zabronione = (r: DashboardFetchResult<unknown>) => !r.ok && r.status === 403;
   if (!profileRes.ok) errors.profile = profileRes.error;
   if (!servicesRes.ok) errors.services = servicesRes.error;
-  if (!domainsRes.ok) errors.domains = domainsRes.error;
+  if (zabronione(domainsRes)) bezDostepu.domains = true;
+  else if (!domainsRes.ok) errors.domains = domainsRes.error;
   if (!ecoProgramRes.ok) errors.ecoProgram = ecoProgramRes.error;
-  if (!walletRes.ok) errors.wallet = walletRes.error;
+  if (zabronione(walletRes)) bezDostepu.wallet = true;
+  else if (!walletRes.ok) errors.wallet = walletRes.error;
   if (!ecoLedgerRes.ok) errors.ecoLedger = ecoLedgerRes.error;
-  if (!ticketsRes.ok) errors.tickets = ticketsRes.error;
+  if (zabronione(ticketsRes)) bezDostepu.tickets = true;
+  else if (!ticketsRes.ok) errors.tickets = ticketsRes.error;
 
   // Wartości zastępcze zostają — widok musi się wyrenderować. Różnica polega
   // na tym, że teraz obok każdej stoi informacja, czy jest prawdziwa.
@@ -127,5 +134,6 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     // WAITING_CUSTOMER też jest otwarte — czeka na klienta (tak liczy Centrum pomocy).
     openTickets: tickets.filter((t) => t.status === 'OPEN' || t.status === 'IN_PROGRESS' || t.status === 'WAITING_CUSTOMER').length,
     errors,
+    bezDostepu,
   };
 }
