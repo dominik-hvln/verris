@@ -228,7 +228,8 @@ export class OpiekaZgloszenService {
     const kandydaci = await this.prisma.ticket.findMany({
       where: {
         status: { in: ['OPEN', 'IN_PROGRESS'] },
-        OR: [{ lastReplyIsStaff: null }, { lastReplyIsStaff: false }],
+        // tylko gdy ostatnia wiadomość jest od klienta; null (zgłoszenia sprzed SUP-V2) = nie wiemy → nie wysyłamy
+        lastReplyIsStaff: false,
         AND: [{ OR: [{ progressNoticeAt: null }, { progressNoticeAt: { lt: new Date(teraz.getTime() - DOBA_MS) } }] }],
         createdAt: { lt: new Date(teraz.getTime() - (godzinySla('URGENT') / 2) * 3600_000) },
       },

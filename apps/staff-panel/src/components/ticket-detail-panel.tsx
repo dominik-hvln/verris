@@ -238,7 +238,7 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
   // ---- co widzi klient
   const ostatniaKlienta = [ticket.createdAt, ...ticket.replies.filter((r) => !r.isStaff).map((r) => r.createdAt)].sort().at(-1)!;
   const przeczytane = ticket.staffReadAt && new Date(ticket.staffReadAt) >= new Date(ostatniaKlienta) ? ticket.staffReadAt : null;
-  const czekaNaNas = !zamkniete && ticket.status !== "WAITING_CUSTOMER" && ticket.lastReplyIsStaff !== true;
+  const czekaNaNas = !zamkniete && ticket.status !== "WAITING_CUSTOMER" && ticket.lastReplyIsStaff === false;
   const nastepnaAuto = (() => {
     if (!czekaNaNas) return null;
     const od = new Date(ticket.lastReplyAt ?? ticket.createdAt).getTime();
@@ -626,7 +626,7 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
             <Krok stan={assignedId ? "done" : "todo"}>Opiekun: {opiekun}</Krok>
             <Krok stan={przeczytane ? "done" : "todo"}>{przeczytane ? `Przeczytane · ${kd(przeczytane)}` : "Jeszcze nie przeczytane przez opiekuna"}</Krok>
             <Krok stan={zamkniete ? "done" : "now"}>
-              {zamkniete ? "Rozwiązane" : ticket.status === "WAITING_CUSTOMER" ? "Czekamy na odpowiedź klienta" : "Czeka na naszą odpowiedź"}
+              {zamkniete ? "Rozwiązane" : ticket.status === "WAITING_CUSTOMER" ? "Czekamy na odpowiedź klienta" : czekaNaNas ? "Czeka na naszą odpowiedź" : "W toku — ostatnio odpisaliśmy my"}
             </Krok>
             <Krok stan={ticket.csatAt ? "done" : "todo"}>{ticket.csatAt ? "Ocena wystawiona" : "Rozwiązane → podziękowanie i ocena"}</Krok>
             {nastepnaAuto ? (

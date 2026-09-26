@@ -406,4 +406,6 @@ Hetzner DNS (docs.hetzner.com/networking/dns/…), Route 53 (aws.amazon.com/rout
 - **Oceny opiekunów**: Admin → Opieka nad zgłoszeniami (30/90/365 dni: ocena opiekuna, obsługi, % rozwiązanych); obsługa widzi swoje.
 - **Panel obsługi (PB-34)**: menu i pasek jak w makiecie (ciemne menu, jasna treść domyślnie, przełącznik motywu, menu na telefonie, wyszukiwarka pod „/”), skrzynka od nowa (widoki: wszystkie / Moje / Czeka na klienta, terminy po kolei), pozostałe ekrany przez warstwę `.v2-skin` (jak PB-16). Panele renderują czas po polsku (`TZ=Europe/Warsaw` w obrazie paneli). Panel admina — następny krok PB-34.
 - **Testy**: `opieka-zgloszen.int-spec.ts` (5, PostgreSQL).
+- **Poprawki po teście na produkcji (2026-09-26):** zgłoszenia sprzed SUP-V2 nie miały „kto pisał ostatni” — „wciąż pracujemy” poszło też tam, gdzie ostatnio odpisała obsługa (#f13c887b). Teraz wysyłka tylko przy znanym „ostatni pisał klient”, a migracja `20260926130000_ostatnia_wiadomosc_zgloszenia` uzupełnia stare zgłoszenia z wątku. Nagłówek „Monitoring” w menu obsługi tylko dla osób z dostępem do Grafany.
+- **Wdrożenie:** migracje Prisma idą teraz PRZED podmianą kodu (`compose run` z nowego obrazu) — koniec okna `ColumnNotFound` zaraz po wdrożeniu.
 

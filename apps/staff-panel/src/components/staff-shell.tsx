@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { LogOut, Menu, X } from "lucide-react";
-import { GrafanaOpsLink, grafanaSsoHref } from "./grafana-ops-link";
+import { GrafanaOpsLink, canShowGrafanaLink, grafanaSsoHref } from "./grafana-ops-link";
 import { CommandPalette } from "./command-palette";
 import { VerrisMark } from "./verris-mark";
 import { StaffNotificationBell } from "./staff-notification-bell";
@@ -140,7 +140,7 @@ export function StaffShell({
             })}
           </div>
         ))}
-        {grafanaSsoHref() ? (
+        {grafanaSsoHref() && canShowGrafanaLink(session) ? (
           <div className="flex flex-col gap-0.5">
             <div className="px-3 pb-1.5 pt-2.5 font-mono text-[10.5px] uppercase tracking-[0.12em] text-[#7f8a83]">Monitoring</div>
             <div className="px-1">

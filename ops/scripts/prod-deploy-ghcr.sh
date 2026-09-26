@@ -69,13 +69,23 @@ if ! MIGRATE_NODE_IMAGE="${REGISTRY_PREFIX}/verris-api:${IMAGE_TAG}" bash ops/sc
   exit 1
 fi
 
-# 2) Rolling restart na gotowych obrazach (bez budowania). Migracje są wstecznie
-#    kompatybilne (wzorzec expand→contract, migracje idempotentne IF NOT EXISTS),
-#    więc nowy kod może chwilę działać przed `migrate deploy`.
+# 1.6) Migracje Prisma — też PRZED startem nowego kodu, z jednorazowego kontenera NOWEGO obrazu
+#      (stary kod dalej działa: migracje są wyłącznie rozszerzające, expand→contract).
+#      Do 2026-09-26 szły dopiero po `up`: przez pierwsze sekundy nowy kod pytał o kolumny,
+#      których jeszcze nie było (ColumnNotFound: Subscription.individualPrice przy wdrożeniu eb138ab).
+#      Nieudana migracja = przerwanie przed podmianą kodu — nic nie trzeba cofać.
+echo "[deploy] prisma migrate deploy (przed podmianą kodu)…"
+if ! REGISTRY_PREFIX="$REGISTRY_PREFIX" IMAGE_TAG="$IMAGE_TAG" compose run --rm --no-deps -T api \
+    npx prisma migrate deploy --config=libs/database/prisma.config.ts; then
+  echo "[deploy] FAIL: migracje nie przeszły — przerywam przed podmianą kodu (stary kod i schemat działają)."
+  exit 1
+fi
+
+# 2) Rolling restart na gotowych obrazach (bez budowania) — schemat już jest gotowy.
 REGISTRY_PREFIX="$REGISTRY_PREFIX" IMAGE_TAG="$IMAGE_TAG" compose up -d --no-build ${APP_SERVICES}
 
-# 3) Faza release — migracje bazy przez działający kontener api (obraz zawiera
-#    prisma + migracje). Reużywa sprawdzonego skryptu (exec + DATABASE_URL).
+# 3) Kontrola po podmianie — `migrate deploy` przez działający kontener api (po kroku 1.6
+#    zwykle „No pending migrations”; zostaje jako bezpiecznik i punkt odniesienia dla asercji).
 echo "[deploy] prisma migrate deploy…"
 if ! bash ops/scripts/prod-migrate-deploy.sh; then
   echo "[deploy] FAIL: migracje nie przeszły."

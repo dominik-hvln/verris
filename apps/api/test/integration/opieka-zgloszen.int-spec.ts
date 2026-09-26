@@ -99,6 +99,11 @@ describe('PB-37 — opieka nad zgłoszeniem', () => {
     await tickets.adminAddReply(t2.id, agent.id, { message: 'Już patrzę' });
     await prisma().ticket.update({ where: { id: t2.id }, data: { createdAt: temu, lastReplyAt: temu, status: 'IN_PROGRESS' } });
     expect(await opieka.wciazPracujemy()).toBe(0);
+
+    // zgłoszenie sprzed SUP-V2 (nie wiadomo, kto pisał ostatni) — bez automatycznej wiadomości
+    const t3 = await tickets.create(klient.id, { subject: 'Stare', message: 'x', priority: 'URGENT' } as never);
+    await prisma().ticket.update({ where: { id: t3.id }, data: { createdAt: temu, lastReplyAt: temu, lastReplyIsStaff: null } });
+    expect(await opieka.wciazPracujemy()).toBe(0);
   });
 
   it('zamknięcie: podziękowanie z oceną zamiast maila o stanie; ocena opiekuna + supportu; ponowne otwarcie do 7 dni', async () => {
