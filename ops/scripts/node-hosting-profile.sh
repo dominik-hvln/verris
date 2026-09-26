@@ -962,7 +962,6 @@ install_verris_default_page_from_api() {
   : "${VERRIS_SERVER_ID:?missing VERRIS_SERVER_ID}"
   : "${VERRIS_IDENTITY_TOKEN:?missing VERRIS_IDENTITY_TOKEN}"
 
-  local auth_headers=(-H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN")
   local dest="/var/lib/verris/hosting-default-page"
   local install_bin="/usr/local/bin/verris-install-default-page.sh"
   local bundle="/tmp/verris-default-page-bundle.tar.gz"
@@ -970,15 +969,14 @@ install_verris_default_page_from_api() {
   echo ""
   echo "=== Verris — strona domyślna hostingu ==="
 
-  if ! curl -fsS --max-time 120 "${auth_headers[@]}" \
-    "$VERRIS_API_URL/agent/tasks/hosting-profile/default-page/script" -o "$install_bin"; then
+  # PB-36 — pobrania z control-plane tylko z ważnym podpisem (verris-fetch)
+  if ! verris-fetch /agent/tasks/hosting-profile/default-page/script "$install_bin" 120; then
     echo "[VERRIS_DEFAULT_PAGE] status=fail reason=script_download" >&2
     return 1
   fi
   chmod 755 "$install_bin"
 
-  if ! curl -fsS --max-time 180 "${auth_headers[@]}" \
-    "$VERRIS_API_URL/agent/tasks/hosting-profile/default-page/bundle" -o "$bundle"; then
+  if ! verris-fetch /agent/tasks/hosting-profile/default-page/bundle "$bundle" 180; then
     echo "[VERRIS_DEFAULT_PAGE] status=fail reason=bundle_download" >&2
     return 1
   fi

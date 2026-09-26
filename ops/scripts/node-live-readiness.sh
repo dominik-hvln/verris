@@ -69,7 +69,7 @@ require_verris_conf() {
 
 require_scripts() {
   local missing=0
-  for f in node-hosting-profile.sh node-verris-tasks-install.sh verris-tasks.sh verris-task-run.sh; do
+  for f in node-hosting-profile.sh node-verris-tasks-install.sh verris-tasks.sh verris-task-run.sh verris-fetch.sh; do
     if [ ! -f "$SCRIPT_DIR/$f" ]; then
       log_fail "Brak $SCRIPT_DIR/$f — skopiuj cały katalog ops/scripts/verris na węzeł"
       missing=1
@@ -324,8 +324,7 @@ print_final_summary() {
 pobierz_manifest_stosu() {
   # shellcheck disable=SC1091
   . /etc/verris.conf
-  if curl -fsS --max-time 15 -H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \
-      "$VERRIS_API_URL/agent/tasks/stack-env" -o /etc/verris-stack.env.tmp \
+  if verris-fetch /agent/tasks/stack-env /etc/verris-stack.env.tmp 15 \
       && grep -q '^VERRIS_STACK_VERSION=' /etc/verris-stack.env.tmp; then
     chmod 0644 /etc/verris-stack.env.tmp && mv -f /etc/verris-stack.env.tmp /etc/verris-stack.env
     log_ok "Manifest stosu floty: $(sed -n "s/^VERRIS_STACK_VERSION='\(.*\)'/\1/p" /etc/verris-stack.env)"

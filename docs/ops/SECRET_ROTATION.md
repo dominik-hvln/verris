@@ -38,7 +38,8 @@ Zasady przewodnie:
 | `KSEF_TOKEN`, `KSEF_PUBLIC_KEY_PEM_B64` | KSeF (e-faktury) | DB (szyfr. KMS) + env | Wysyłka faktur do KSeF | Wg polityki MF / podejrzenie | Tak (panel admina) |
 | `VPN_SYNC_TOKEN`, `VPN_WG_SERVER_PUBLIC_KEY` | WireGuard control↔nodes | env API + węzły | Łączność VPN floty | 365 dni | Tak (rolling per węzeł) |
 | `VERRIS_TLS_DEPLOY_WEBHOOK` | Webhook deploy TLS | env | Deploy certów | Przy podejrzeniu | Tak |
-| `VERRIS_NODE_DEPLOY_SSH_PUBKEY` | Klucz SSH deploy na węzły | env + `authorized_keys` węzłów | Dostęp deploy do węzłów | 365 dni / odejście osoby | Tak (dodaj nowy klucz → usuń stary) |
+| `VERRIS_NODE_DEPLOY_SSH_PUBKEY` + `VERRIS_CONTROL_PLANE_IPS` | Klucz SSH deploy na węzły (tylko z adresów control-plane, PB-36) | env + `authorized_keys` węzłów | Dostęp deploy do węzłów | 365 dni / odejście osoby | Tak (zmiana env — agent sam zastępuje wpis na węzłach) |
+| `VERRIS_SCRIPT_SIGNING_KEY` | Podpis Ed25519 skryptów i plików dla węzłów (PB-36) | env API; publiczny na węzłach | Wykonanie kodu jako root na całej flocie | Przy podejrzeniu / odejściu osoby z dostępem | Częściowo (nowy klucz + ponowna instalacja agenta na węzłach) |
 | **Token bootstrap węzła** | Pierwszy handshake nowego węzła | generowany per onboarding | Dołączenie węzła do floty | Jednorazowy (TTL) | n/d — krótkożyciowy |
 | **Token agenta węzła** | Autoryzacja agenta `verris-tasks`/probe na węzeł | per węzeł (DB/agent) | Komendy do jednego węzła | 365 dni / kompromitacja węzła | Tak (re-issue per węzeł) |
 | **Hasła kont DA** | DirectAdmin per konto klienta | DB (szyfr. KMS) | Pojedyncze konto | Przy podejrzeniu | Tak (CMD_API modify) |

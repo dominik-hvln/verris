@@ -136,7 +136,7 @@ require_verris_conf() {
 require_bundle_scripts() {
   local missing=0
   for f in node-live-readiness.sh node-hosting-profile.sh node-verris-tasks-install.sh \
-           node-da-sync-plan-packages.sh verris-tasks.sh verris-task-run.sh \
+           node-da-sync-plan-packages.sh verris-tasks.sh verris-task-run.sh verris-fetch.sh \
            node-migration-worker.sh node-offsite-backup.sh node-account-restore.sh \
            security-hardening-baseline.sh security-egress-lockdown.sh; do
     if [ ! -f "$SCRIPT_DIR/$f" ]; then

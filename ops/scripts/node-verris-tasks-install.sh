@@ -10,28 +10,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "=== Verris node task agent install (agent-3) ==="
 
-# Klucz deploy control-plane → authorized_keys (wildcard TLS, ops)
-if [ -r /etc/verris.conf ]; then
-  # shellcheck disable=SC1090
-  source /etc/verris.conf
-  json=$(curl -fsS --max-time 15 \
-    -H "X-Server-Id: $VERRIS_SERVER_ID" \
-    -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \
-    "${VERRIS_API_URL}/agent/tasks/deploy-ssh-pubkey" 2>/dev/null || true)
-  if [ -n "$json" ]; then
-    pubkey=$(printf '%s' "$json" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("publicKey") or "")' 2>/dev/null || true)
-    if [ -n "$pubkey" ]; then
-      mkdir -p /root/.ssh && chmod 700 /root/.ssh
-      touch /root/.ssh/authorized_keys && chmod 600 /root/.ssh/authorized_keys
-      if grep -qF "$pubkey" /root/.ssh/authorized_keys 2>/dev/null; then
-        echo "[OK] Klucz deploy control-plane już w authorized_keys"
-      else
-        echo "$pubkey" >> /root/.ssh/authorized_keys
-        echo "[OK] Dodano klucz deploy control-plane do authorized_keys"
-      fi
-    fi
-  fi
-fi
+# PB-36 — pobrania z control-plane tylko z podpisem; klucz publiczny przywiózł bootstrap / instalacja z panelu.
+# Klucz deploy SSH (z from="<control-plane>") instaluje sam verris-tasks.sh co minutę.
+[ -r /etc/verris/script-signing.pub ] || { echo "[FAIL] Brak /etc/verris/script-signing.pub — uruchom instalację agenta z panelu (Pokaż skrypt instalacji)." >&2; exit 1; }
 
 install_script() {
   local src="$1" dst="$2"
@@ -48,6 +29,7 @@ install_script() {
   echo "[OK] $dst"
 }
 
+install_script "$SCRIPT_DIR/verris-fetch.sh" /usr/local/bin/verris-fetch
 install_script "$SCRIPT_DIR/verris-task-run.sh" /usr/local/bin/verris-task-run.sh
 install_script "$SCRIPT_DIR/verris-tasks.sh" /usr/local/bin/verris-tasks.sh
 
@@ -158,9 +140,8 @@ else
   FAIL=1
 fi
 
-if curl -fsS --max-time 15 -H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \
-  "$VERRIS_API_URL/agent/tasks/hosting-profile/script" -o /dev/null 2>/dev/null; then
-  echo "[OK] API hosting-profile script"
+if verris-fetch /agent/tasks/hosting-profile/script /tmp/verris-profile-check 15 2>/dev/null && rm -f /tmp/verris-profile-check; then
+  echo "[OK] API hosting-profile script (podpis control-plane poprawny)"
 else
   echo "[WARN] API hosting-profile script niedostępne (deploy API?) — profil lokalny nadal działa"
 fi

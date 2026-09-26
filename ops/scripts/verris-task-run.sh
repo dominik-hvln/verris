@@ -92,9 +92,14 @@ RUN_BIN=""
 declare -a RUN_ENV=()
 
 # fetch_task_script <url-path> <dest-bin>
+# PB-36 — skrypt musi mieć ważny podpis control-plane (verris-fetch), inaczej nie zostanie uruchomiony.
 fetch_task_script() {
-  if ! curl -fsS --max-time 30 "${auth_headers[@]}" "$VERRIS_API_URL${1}" -o "${2}" 2>>"$AGENT_LOG"; then
-    report_fail "Nie udało się pobrać skryptu ${1} z API."
+  local rc=0
+  verris-fetch "${1}" "${2}" 60 2>>"$AGENT_LOG" || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    [ "$rc" -eq 3 ] && report_fail "Skrypt ${1} odrzucony: nieprawidłowy podpis control-plane (PB-36)."
+    [ "$rc" -eq 2 ] && report_fail "Brak klucza podpisu control-plane na węźle — uruchom ponownie instalację agenta z panelu."
+    [ "$rc" -eq 3 ] || [ "$rc" -eq 2 ] || report_fail "Nie udało się pobrać skryptu ${1} z API (kod $rc)."
     exit 1
   fi
   chmod 755 "${2}"

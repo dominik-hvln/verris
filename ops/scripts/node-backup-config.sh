@@ -39,14 +39,14 @@ fi
 TMP="$(mktemp)"
 trap 'rm -f "$TMP"' EXIT
 chmod 600 "$TMP"
-code="$(curl -sS --max-time 20 -o "$TMP" -w '%{http_code}' \
-  -H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \
-  "$VERRIS_API_URL/agent/tasks/backup-config" || echo 000)"
-if [ "$code" = "404" ]; then
+# PB-36 — plik jest wczytywany przez bash, więc tylko z ważnym podpisem control-plane.
+rc=0
+verris-fetch /agent/tasks/backup-config "$TMP" 20 || rc=$?
+if [ "$rc" = "4" ]; then
   log "Kopie off-site nie są skonfigurowane w panelu (kreator węzła → krok 4)."
   exit 2
 fi
-[ "$code" = "200" ] || { log "Control-plane odpowiedział $code."; exit 1; }
+[ "$rc" = "0" ] || { log "Nie pobrano konfiguracji kopii z control-plane (verris-fetch kod $rc)."; exit 1; }
 # shellcheck disable=SC1090
 . "$TMP"
 

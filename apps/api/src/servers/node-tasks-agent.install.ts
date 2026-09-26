@@ -1,12 +1,4 @@
-/**
- * Verris node task agent — LIVE install fragments (hosting profile from admin panel).
- *
- * Architecture:
- * - verris-tasks.timer → verris-tasks.sh (poll lease co ~1 min)
- * - verris-task@.service (systemd template) → verris-task-run.sh (profile + raport)
- * - Logi: /var/log/verris-tasks.log (agent) + /var/log/verris-tasks/<task-id>.log (profil)
- * - Heartbeat co 60 s → POST /agent/tasks/:id/progress (log na żywo w panelu)
- */
+import { linijkaAuthorizedKeys, renderInstalacjaPodpisu } from './podpis-skryptow';
 
 /**
  * Verris node task agent — LIVE install fragments (hosting profile from admin panel).
@@ -18,48 +10,52 @@
  * - Heartbeat co 60 s → POST /agent/tasks/:id/progress (log na żywo w panelu)
  */
 
-/** Bash: idempotentnie dodaje klucz deploy control-plane do authorized_keys roota. */
+/**
+ * Bash: jeden wpis klucza deploy control-plane w authorized_keys roota (PB-36) — z from="<control-plane>",
+ * bez przekierowań. Poprzednie wpisy (znacznik verris-control-plane, ten sam klucz bez ograniczeń,
+ * klucz sprzed rotacji z /etc/verris/deploy-key.last) są usuwane, nie dopisywane obok.
+ */
 export function renderNodeDeploySshKeyInstallFunctions(): string {
   return `
 install_verris_deploy_ssh_key() {
-  local key="\${1:-}"
-  if [ -z "$key" ] && [ -n "\${VERRIS_DEPLOY_PUBKEY_B64:-}" ]; then
-    key=$(printf '%s' "$VERRIS_DEPLOY_PUBKEY_B64" | base64 -d 2>/dev/null || true)
+  local line="\${1:-}"
+  if [ -z "$line" ] && [ -n "\${VERRIS_DEPLOY_KEY_LINE_B64:-}" ]; then
+    line=$(printf '%s' "$VERRIS_DEPLOY_KEY_LINE_B64" | base64 -d 2>/dev/null || true)
   fi
-  if [ -z "$key" ] && [ "\${VERRIS_FETCH_DEPLOY_KEY:-0}" = "1" ] && [ -n "\${VERRIS_API_URL:-}" ]; then
-    local json pubkey
-    json=$(curl -fsS --max-time 15 \\
-      -H "X-Server-Id: \${VERRIS_SERVER_ID}" \\
-      -H "X-Server-Token: \${VERRIS_IDENTITY_TOKEN}" \\
-      "\${VERRIS_API_URL}/agent/tasks/deploy-ssh-pubkey" 2>/dev/null || true)
-    if [ -n "$json" ]; then
-      pubkey=$(printf '%s' "$json" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("publicKey") or "")' 2>/dev/null || true)
-      key="$pubkey"
-    fi
+  if [ -z "$line" ] && [ "\${VERRIS_FETCH_DEPLOY_KEY:-0}" = "1" ] && command -v verris-fetch >/dev/null 2>&1; then
+    line=$(verris-fetch /agent/tasks/deploy-ssh-pubkey - 15 2>/dev/null \\
+      | python3 -c 'import json,sys; print(json.load(sys.stdin).get("authorizedKeysLine") or "")' 2>/dev/null || true)
   fi
-  [ -n "$key" ] || return 0
-  mkdir -p /root/.ssh
-  chmod 700 /root/.ssh
-  touch /root/.ssh/authorized_keys
-  chmod 600 /root/.ssh/authorized_keys
-  if grep -qF "$key" /root/.ssh/authorized_keys 2>/dev/null; then
-    echo "[verris] Klucz deploy control-plane już w authorized_keys"
-  else
-    echo "$key" >> /root/.ssh/authorized_keys
-    echo "[verris] Dodano klucz deploy control-plane do authorized_keys (TLS/ops)"
+  [ -n "$line" ] || return 0
+  case "$line" in from=\\"*\\"*' verris-control-plane') ;; *) echo "[verris] Odrzucono wpis klucza deploy bez from=" >&2; return 1 ;; esac
+  local f="\${VERRIS_AUTHORIZED_KEYS:-/root/.ssh/authorized_keys}" last="\${VERRIS_DEPLOY_KEY_LAST:-/etc/verris/deploy-key.last}" body prev=""
+  body=$(printf '%s' "$line" | awk '{ print $(NF-1) }')
+  [ -r "$last" ] && prev=$(cat "$last")
+  mkdir -p "$(dirname "$f")" "$(dirname "$last")"
+  chmod 700 "$(dirname "$f")"
+  touch "$f"
+  chmod 600 "$f"
+  if grep -qxF -- "$line" "$f" && [ "$(grep -cF -e ' verris-control-plane' -e "$body" \${prev:+-e "$prev"} "$f")" = "1" ]; then
+    return 0
   fi
+  { grep -vF -e ' verris-control-plane' -e "$body" \${prev:+-e "$prev"} "$f" || true; printf '%s\\n' "$line"; } > "$f.verris-new"
+  chmod 600 "$f.verris-new"
+  mv -f "$f.verris-new" "$f"
+  printf '%s\\n' "$body" > "$last"
+  echo "[verris] Klucz deploy control-plane w authorized_keys (tylko z adresów control-plane)"
 }`;
 }
 
 export function renderNodeDeploySshKeyBootstrapCall(deployPubKeyB64: string | null): string {
-  if (!deployPubKeyB64) {
+  const linia = deployPubKeyB64 ? linijkaAuthorizedKeys(Buffer.from(deployPubKeyB64, 'base64').toString('utf8')) : null;
+  if (!linia) {
     return `
-# (Brak VERRIS_NODE_DEPLOY_SSH_PUBKEY na control-plane — pomiń auto-SSH)
+# (Brak VERRIS_NODE_DEPLOY_SSH_PUBKEY albo VERRIS_CONTROL_PLANE_IPS na control-plane — pomiń auto-SSH)
 `;
   }
   return `
-# Control-plane → węzeł (wildcard TLS, ops) — klucz deploy w authorized_keys
-VERRIS_DEPLOY_PUBKEY_B64="${deployPubKeyB64}"
+# Control-plane → węzeł (wildcard TLS, ops) — klucz deploy tylko z adresów control-plane (PB-36)
+VERRIS_DEPLOY_KEY_LINE_B64="${Buffer.from(linia, 'utf8').toString('base64')}"
 ${renderNodeDeploySshKeyInstallFunctions()}
 install_verris_deploy_ssh_key
 `;
@@ -161,9 +157,14 @@ RUN_BIN=""
 declare -a RUN_ENV=()
 
 # fetch_task_script <url-path> <dest-bin>
+# PB-36 — skrypt musi mieć ważny podpis control-plane (verris-fetch), inaczej nie zostanie uruchomiony.
 fetch_task_script() {
-  if ! curl -fsS --max-time 30 "\${auth_headers[@]}" "$VERRIS_API_URL\${1}" -o "\${2}" 2>>"$AGENT_LOG"; then
-    report_fail "Nie udało się pobrać skryptu \${1} z API."
+  local rc=0
+  verris-fetch "\${1}" "\${2}" 60 2>>"$AGENT_LOG" || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    [ "$rc" -eq 3 ] && report_fail "Skrypt \${1} odrzucony: nieprawidłowy podpis control-plane (PB-36)."
+    [ "$rc" -eq 2 ] && report_fail "Brak klucza podpisu control-plane na węźle — uruchom ponownie instalację agenta z panelu."
+    [ "$rc" -eq 3 ] || [ "$rc" -eq 2 ] || report_fail "Nie udało się pobrać skryptu \${1} z API (kod $rc)."
     exit 1
   fi
   chmod 755 "\${2}"
@@ -381,7 +382,7 @@ flock -n 9 || exit 0
 auth_headers=(-H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN")
 
 # PB-30 — manifest stosu floty: ten sam plik na każdym węźle, odświeżany co minutę.
-if curl -fsS -m 15 "\${auth_headers[@]}" "$VERRIS_API_URL/agent/tasks/stack-env" -o /etc/verris-stack.env.tmp 2>/dev/null \\
+if verris-fetch /agent/tasks/stack-env /etc/verris-stack.env.tmp 15 2>>"$LOG" \\
   && grep -q '^VERRIS_STACK_VERSION=' /etc/verris-stack.env.tmp; then
   chmod 0644 /etc/verris-stack.env.tmp && mv -f /etc/verris-stack.env.tmp /etc/verris-stack.env
 else
@@ -409,7 +410,8 @@ task_is_running() {
   return 1
 }
 
-LEASE_JSON=$(curl -fsS --max-time 15 "\${auth_headers[@]}" "$VERRIS_API_URL/agent/tasks/lease" 2>/dev/null || true)
+# PB-36 — zlecenie też musi mieć podpis control-plane (verris-fetch), inaczej nic nie ruszy.
+LEASE_JSON=$(verris-fetch /agent/tasks/lease - 15 2>>"$LOG" || true)
 if [ -z "$LEASE_JSON" ] || [ "$LEASE_JSON" = "null" ]; then
   exit 0
 fi
@@ -439,8 +441,8 @@ report_task_fail() {
 }
 
 dispatch_hosting_profile() {
-  if ! curl -fsS --max-time 60 "\${auth_headers[@]}" "$VERRIS_API_URL/agent/tasks/hosting-profile/script" -o "$PROFILE_BIN" 2>>"$LOG"; then
-    report_task_fail "Nie udało się pobrać skryptu profilu z API."
+  if ! verris-fetch /agent/tasks/hosting-profile/script "$PROFILE_BIN" 60 2>>"$LOG"; then
+    report_task_fail "Nie udało się pobrać skryptu profilu z API albo podpis control-plane jest nieprawidłowy."
     exit 1
   fi
   chmod 755 "$PROFILE_BIN"
@@ -502,7 +504,8 @@ fi`;
 
 function renderInstallTaskRunScriptFile(): string {
   const runScript = renderVerrisTaskRunScript();
-  return `TASK_RUN_PATH="/usr/local/bin/verris-task-run.sh"
+  return `${renderInstalacjaPodpisu()}
+TASK_RUN_PATH="/usr/local/bin/verris-task-run.sh"
 cat > "$TASK_RUN_PATH" <<'__VERRIS_TASK_RUN_SCRIPT__'
 ${runScript}__VERRIS_TASK_RUN_SCRIPT__
 chmod 755 "$TASK_RUN_PATH"
@@ -695,11 +698,10 @@ if curl -fsS --max-time 10 -H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Toke
 else
   echo "[WARN] lease endpoint — możliwy brak zadań QUEUED (normalne) lub problem z tokenem"
 fi
-if curl -fsS --max-time 10 -H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \\
-  "$VERRIS_API_URL/agent/tasks/hosting-profile/script" -o /dev/null; then
-  echo "[OK] API hosting-profile script"
+if verris-fetch /agent/tasks/hosting-profile/script /tmp/verris-profile-check 10 && rm -f /tmp/verris-profile-check; then
+  echo "[OK] API hosting-profile script (podpis control-plane poprawny)"
 else
-  echo "[FAIL] hosting-profile script endpoint"
+  echo "[FAIL] hosting-profile script — brak odpowiedzi albo nieprawidłowy podpis"
   FAIL=1
 fi
 if [ -x /usr/local/bin/verris-lve.sh ]; then

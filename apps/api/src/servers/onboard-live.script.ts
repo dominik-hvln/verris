@@ -66,8 +66,8 @@ DIR='${KATALOG_NA_WEZLE}'
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 echo "[onboard-task] Pobieram pakiet onboardu z control-plane…"
-curl -fsS --max-time 120 -H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \\
-  "$VERRIS_API_URL/agent/tasks/onboard-live/bundle" -o "$TMP/pakiet.tgz"
+# PB-36 — pakiet rozpakowujemy tylko z ważnym podpisem control-plane
+verris-fetch /agent/tasks/onboard-live/bundle "$TMP/pakiet.tgz" 180
 mkdir -p "$DIR"
 tar xzf "$TMP/pakiet.tgz" -C "$DIR" --no-same-owner
 chmod 0700 "$DIR"

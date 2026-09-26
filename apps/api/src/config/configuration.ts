@@ -5,6 +5,8 @@
  * accidentally run in production with hard-coded fallbacks.
  */
 
+import { sprawdzKonfiguracjeWezlow } from '../servers/podpis-skryptow';
+
 export interface AppConfig {
   nodeEnv: 'development' | 'production' | 'test';
   port: number;
@@ -82,6 +84,9 @@ export function loadConfig(): AppConfig {
     required: isProd,
     default: isProd ? undefined : 'dev-kms-key-change-me-32-bytes-min!!',
   });
+
+  // PB-36 — węzły: klucz podpisu skryptów i adresy control-plane dla klucza deploy (prod: wymagane)
+  sprawdzKonfiguracjeWezlow(isProd);
 
   if (appKmsKey.length < 32) {
     throw new Error(

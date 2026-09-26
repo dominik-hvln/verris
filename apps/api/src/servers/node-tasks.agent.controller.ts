@@ -8,8 +8,8 @@ import {
   Param,
   Post,
   Req,
-  StreamableFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { ServerIdentityGuard } from './guards/server-identity.guard';
@@ -52,6 +52,7 @@ import { BackupOffsiteService } from './backup-offsite.service';
 import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { stosJakoEnv } from './stos-wezla';
 import { StosWezlaService } from './stos-wezla.service';
+import { linijkaAuthorizedKeys, PodpisOdpowiedziInterceptor } from './podpis-skryptow';
 
 class OnboardReportDto {
   @IsBoolean()
@@ -98,6 +99,7 @@ class ProgressNodeTaskDto {
  */
 @Controller('agent/tasks')
 @UseGuards(ServerIdentityGuard)
+@UseInterceptors(PodpisOdpowiedziInterceptor)
 export class NodeTasksAgentController {
   constructor(
     private readonly tasks: NodeTasksService,
@@ -108,7 +110,8 @@ export class NodeTasksAgentController {
   @Get('deploy-ssh-pubkey')
   deploySshPubkey() {
     const publicKey = (process.env.VERRIS_NODE_DEPLOY_SSH_PUBKEY ?? '').trim() || null;
-    return { publicKey };
+    // PB-36 — węzeł instaluje gotowy wpis z from="<control-plane>" (bez niego klucz nie trafia na węzeł)
+    return { publicKey, authorizedKeysLine: linijkaAuthorizedKeys(publicKey) };
   }
 
   /** PB-30 — manifest stosu floty; agent zadań zapisuje go co minutę do /etc/verris-stack.env. */
@@ -343,12 +346,10 @@ export class NodeTasksAgentController {
   }
 
   @Get('onboard-live/bundle')
-  async onboardLiveBundle() {
-    const buffer = await buildOnboardBundle();
-    return new StreamableFile(buffer, {
-      type: 'application/gzip',
-      disposition: 'attachment; filename="verris-onboard.tar.gz"',
-    });
+  @Header('Content-Type', 'application/gzip')
+  @Header('Content-Disposition', 'attachment; filename="verris-onboard.tar.gz"')
+  onboardLiveBundle() {
+    return buildOnboardBundle();
   }
 
   @Get('hosting-profile/default-page/script')
@@ -358,12 +359,10 @@ export class NodeTasksAgentController {
   }
 
   @Get('hosting-profile/default-page/bundle')
-  async defaultHostingPageBundle() {
-    const buffer = await buildDefaultHostingPageBundle();
-    return new StreamableFile(buffer, {
-      type: 'application/gzip',
-      disposition: 'attachment; filename="verris-default-page.tar.gz"',
-    });
+  @Header('Content-Type', 'application/gzip')
+  @Header('Content-Disposition', 'attachment; filename="verris-default-page.tar.gz"')
+  defaultHostingPageBundle() {
+    return buildDefaultHostingPageBundle();
   }
 
   /** Desired CloudLinux LVE state for the calling node (plans + accounts). */

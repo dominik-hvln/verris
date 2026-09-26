@@ -1,6 +1,7 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { renderVerrisTaskRunScript, renderVerrisTasksScript } from '../servers/node-tasks-agent.install';
+import { renderVerrisFetchScript } from '../servers/podpis-skryptow';
 
 /**
  * Agent zadań węzła ma dwa sposoby instalacji: skrypt bootstrap z API (render w TS) i
@@ -16,6 +17,7 @@ describe('Agent węzła — jedno źródło skryptów', () => {
   it.each([
     ['verris-task-run.sh', renderVerrisTaskRunScript],
     ['verris-tasks.sh', renderVerrisTasksScript],
+    ['verris-fetch.sh', renderVerrisFetchScript],
   ])('ops/scripts/%s = render z node-tasks-agent.install.ts', (plik, render) => {
     expect(readFileSync(resolve(OPS, plik), 'utf8')).toBe(render());
   });

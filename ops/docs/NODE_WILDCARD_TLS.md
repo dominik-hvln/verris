@@ -24,7 +24,13 @@ Control-plane (204.168.174.138)
 
 Wymaga `VERRIS_NODE_DEPLOY_SSH_PUBKEY` w `.env.prod` (pubkey do SSH root@węzły — ten sam co `/root/.ssh/verris_node_deploy.pub`).
 
-Bootstrap węzła **automatycznie** dodaje ten klucz do `/root/.ssh/authorized_keys`. Agent `verris-tasks` utrzymuje go przy każdym pollu.
+Wymaga też `VERRIS_CONTROL_PLANE_IPS` (adresy wyjściowe control-plane, przecinek; IPv4/IPv6/CIDR) — PB-36.
+
+Bootstrap węzła **automatycznie** wpisuje ten klucz do `/root/.ssh/authorized_keys` jako
+`from="<VERRIS_CONTROL_PLANE_IPS>",no-agent-forwarding,no-port-forwarding,no-X11-forwarding,no-user-rc … verris-control-plane`
+— klucz działa tylko z adresów control-plane. Agent `verris-tasks` utrzymuje wpis przy każdym pollu i **zastępuje**
+poprzedni (rotacja klucza = zmiana env, węzły same usuwają stary wpis). Bez `VERRIS_CONTROL_PLANE_IPS` klucz nie trafia
+na węzeł, a API w produkcji nie wystartuje.
 
 ```bash
 # 1) Klucz na control-plane (jednorazowo, jeśli brak) — generowany NA PANELU
