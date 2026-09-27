@@ -30,8 +30,34 @@ export async function fetchSessionProfileState(
   authToken: string,
   forwardedFor?: string | null,
 ): Promise<{ profile: SessionProfile | null; unauthorized: boolean }> {
+  const zapamietany = PAMIEC.get(authToken);
+  if (zapamietany && Date.now() - zapamietany.at < PAMIEC_MS) return { profile: zapamietany.profile, unauthorized: false };
   const profile = await pobierzProfil(authToken, forwardedFor);
-  return profile === 'odrzucona' ? { profile: null, unauthorized: true } : { profile, unauthorized: false };
+  if (profile === 'odrzucona') {
+    PAMIEC.delete(authToken);
+    return { profile: null, unauthorized: true };
+  }
+  if (profile) {
+    if (PAMIEC.size >= PAMIEC_MAX) PAMIEC.delete(PAMIEC.keys().next().value!);
+    PAMIEC.set(authToken, { profile, at: Date.now() });
+  }
+  return { profile, unauthorized: false };
+}
+
+/**
+ * Middleware sprawdza profil przy KAŻDYM żądaniu /dashboard — także przy każdej akcji serwera i
+ * każdym prefetchu linku. Jeden widok pulpitu to ~40 takich żądań, więc bez pamięci podręcznej
+ * sam profil zjadał limit API klienta. Udany profil pamiętamy krótko per token; API i tak
+ * sprawdza uprawnienia przy każdym wywołaniu, więc odebranie uprawnień subkontu dotrze do menu
+ * najpóźniej po PAMIEC_MS.
+ */
+const PAMIEC_MS = 20_000;
+const PAMIEC_MAX = 2_000;
+const PAMIEC = new Map<string, { profile: SessionProfile; at: number }>();
+
+/** Tylko dla testów. */
+export function wyczyscPamiecProfili(): void {
+  PAMIEC.clear();
 }
 
 /**

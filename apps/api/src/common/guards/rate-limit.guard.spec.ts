@@ -1,7 +1,8 @@
 import { HttpException } from '@nestjs/common';
 import type { ExecutionContext } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
-import { MAX_BUCKETS, RATE_LIMIT_KEY, RATE_LIMIT_SKIP_KEY, RateLimitGuard, type RateLimitOptions } from './rate-limit.guard.js';
+import { JwtService } from '@nestjs/jwt';
+import { AUTHENTICATED_LIMIT, MAX_BUCKETS, RATE_LIMIT_KEY, RATE_LIMIT_SKIP_KEY, RateLimitGuard, type RateLimitOptions } from './rate-limit.guard.js';
 
 /** G-20 — dowód D2 dla strażnika, który chroni logowanie przed atakiem słownikowym. */
 const LOGIN: RateLimitOptions = { limit: 3, windowMs: 60_000, scope: 'auth:login', keyByBodyField: 'email' };
@@ -14,12 +15,17 @@ function guardWith(meta: { options?: RateLimitOptions; skip?: boolean }) {
   return new RateLimitGuard(reflector);
 }
 
-const ctx = (ip: string, body: Record<string, unknown> = {}) =>
+const ctx = (ip: string, body: Record<string, unknown> = {}, token?: string) =>
   ({
     getType: () => 'http',
     getHandler: () => null,
     getClass: () => null,
-    switchToHttp: () => ({ getRequest: () => ({ ip, body, method: 'POST', path: '/auth/login', route: { path: '/auth/login' } }) }),
+    switchToHttp: () => ({
+      getRequest: () => ({
+        ip, body, method: 'POST', path: '/auth/login', route: { path: '/auth/login' },
+        headers: token ? { authorization: `Bearer ${token}` } : {},
+      }),
+    }),
   }) as unknown as ExecutionContext;
 
 async function status(g: RateLimitGuard, c: ExecutionContext): Promise<number> {
@@ -87,5 +93,41 @@ describe('G-20 RateLimitGuard', () => {
     const codes: number[] = [];
     for (let i = 0; i < 4; i++) codes.push(await status(g, ctx('5.5.5.5')));
     expect(codes).toEqual([200, 200, 200, 429]);
+  });
+
+  describe('limit globalny: zalogowani per konto, anonimowi per IP', () => {
+    const SEKRET = 'sekret-testowy-rate-limit';
+    beforeAll(() => {
+      process.env.JWT_SECRET = SEKRET;
+    });
+    afterAll(() => {
+      delete process.env.JWT_SECRET;
+    });
+    const token = (sub: string, secret = SEKRET) => new JwtService({ secret }).sign({ sub });
+
+    it('dwie osoby za jednym NAT-em nie zjadają sobie limitu; anonimowy ruch z tego IP ma swój', async () => {
+      const g = guardWith({});
+      for (let i = 0; i < 300; i++) expect(await status(g, ctx('5.5.5.5', {}, token('anna')))).toBe(200);
+      expect(await status(g, ctx('5.5.5.5', {}, token('bartek')))).toBe(200);
+      expect(await status(g, ctx('5.5.5.5'))).toBe(200);
+    });
+
+    it('jedno konto ma swój sufit', async () => {
+      const g = guardWith({});
+      for (let i = 0; i < AUTHENTICATED_LIMIT; i++) await status(g, ctx(`6.6.${i % 250}.1`, {}, token('ta-sama')));
+      expect(await status(g, ctx('7.7.7.7', {}, token('ta-sama')))).toBe(429);
+    });
+
+    it('podrobiony token (zły podpis) liczy się per IP — nie omija limitu', async () => {
+      const g = guardWith({});
+      for (let i = 0; i < 300; i++) await status(g, ctx('8.8.8.8', {}, token(`losowy-${i}`, 'zly-sekret')));
+      expect(await status(g, ctx('8.8.8.8', {}, token('kolejny', 'zly-sekret')))).toBe(429);
+    });
+
+    it('trasa z własnym limitem (logowanie) zostaje per IP także z tokenem', async () => {
+      const g = guardWith({ options: LOGIN });
+      for (let i = 0; i < 3; i++) await status(g, ctx('9.9.9.1', {}, token('anna')));
+      expect(await status(g, ctx('9.9.9.1', {}, token('anna')))).toBe(429);
+    });
   });
 });

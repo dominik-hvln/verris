@@ -9,6 +9,7 @@ import {
   SetMetadata,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
 import { Redis } from 'ioredis';
 
@@ -39,6 +40,14 @@ export const SkipRateLimit = () => SetMetadata(RATE_LIMIT_SKIP_KEY, true);
 
 const DEFAULT_LIMIT = 300;
 const DEFAULT_WINDOW_MS = 60_000;
+/**
+ * Zalogowani (ważny JWT) mają limit globalny liczony per konto, nie per IP. Jeden widok panelu to
+ * kilkadziesiąt wywołań API (akcje serwera, prefetch linków, profil w middleware) i wszystkie idą
+ * z IP klienta — 300/min per IP wyczerpywało się po kilku kliknięciach, a biuro za jednym NAT-em
+ * blokowało się wzajemnie („Panel chwilowo niedostępny”). Podrobiony token nie przechodzi
+ * weryfikacji i liczy się dalej per IP, więc nie da się nim ominąć limitu.
+ */
+export const AUTHENTICATED_LIMIT = 900;
 export const MAX_BUCKETS = 50_000;
 
 interface Bucket {
@@ -53,6 +62,7 @@ export class RateLimitGuard implements CanActivate, OnModuleDestroy {
   private lastSweep = Date.now();
   private redis: Redis | null = null;
   private redisHealthy = false;
+  private readonly jwt = new JwtService({ secret: process.env.JWT_SECRET });
 
   constructor(private readonly reflector: Reflector) {
     const url = process.env.REDIS_URL?.trim();
@@ -92,16 +102,22 @@ export class RateLimitGuard implements CanActivate, OnModuleDestroy {
     ]);
     if (skip) return true;
 
-    const options =
-      this.reflector.getAllAndOverride<RateLimitOptions | undefined>(RATE_LIMIT_KEY, [
-        context.getHandler(),
-        context.getClass(),
-      ]) ?? { limit: DEFAULT_LIMIT, windowMs: DEFAULT_WINDOW_MS, scope: 'global' };
-
+    const custom = this.reflector.getAllAndOverride<RateLimitOptions | undefined>(RATE_LIMIT_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
     const req = context.switchToHttp().getRequest<Request>();
     const ip = req.ip ?? req.socket?.remoteAddress ?? 'unknown';
-    const scope = options.scope ?? `${req.method}:${req.route?.path ?? req.path}`;
 
+    // Trasy z własnym limitem (logowanie, maile) zostają per IP — tam liczy się właśnie adres.
+    const konto = custom ? null : this.kontoZTokenu(req);
+    if (konto) {
+      await this.assertWithinLimit(`global:user:${konto}`, { limit: AUTHENTICATED_LIMIT, windowMs: DEFAULT_WINDOW_MS });
+      return true;
+    }
+
+    const options = custom ?? { limit: DEFAULT_LIMIT, windowMs: DEFAULT_WINDOW_MS, scope: 'global' };
+    const scope = options.scope ?? `${req.method}:${req.route?.path ?? req.path}`;
     await this.assertWithinLimit(`${scope}:${ip}`, options);
 
     if (options.keyByBodyField) {
@@ -112,6 +128,18 @@ export class RateLimitGuard implements CanActivate, OnModuleDestroy {
     }
 
     return true;
+  }
+
+  /** `sub` z poprawnie podpisanego, niewygasłego tokenu Bearer; wszystko inne → null (limit per IP). */
+  private kontoZTokenu(req: Request): string | null {
+    const auth = req.headers?.authorization;
+    if (!process.env.JWT_SECRET || typeof auth !== 'string' || !auth.startsWith('Bearer ')) return null;
+    try {
+      const { sub } = this.jwt.verify<{ sub?: unknown }>(auth.slice(7));
+      return typeof sub === 'string' && sub ? sub : null;
+    } catch {
+      return null;
+    }
   }
 
   private async assertWithinLimit(key: string, options: RateLimitOptions): Promise<void> {

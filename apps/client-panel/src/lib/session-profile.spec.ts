@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { apiBaseUrl, fetchSessionProfile, fetchSessionProfileState } from './session-profile';
+import { apiBaseUrl, fetchSessionProfile, fetchSessionProfileState, wyczyscPamiecProfili } from './session-profile';
 
 /**
  * X-05 — profil sesji, na którym middleware opiera uprawnienia subkonta.
@@ -19,6 +19,7 @@ const saved = Object.fromEntries(ENV.map((k) => [k, process.env[k]]));
 const realFetch = global.fetch;
 
 afterEach(() => {
+  wyczyscPamiecProfili();
   for (const k of ENV) {
     if (saved[k] === undefined) delete process.env[k];
     else process.env[k] = saved[k];
@@ -142,5 +143,19 @@ describe('fetchSessionProfileState — wylogowanie tylko przy odrzuconej sesji',
     const r = await fetchSessionProfileState('t');
     expect(r.unauthorized).toBe(false);
     expect(r.profile?.isSubaccount).toBe(false);
+  });
+
+  it('udany profil pamiętany krótko per token (jeden widok = dziesiątki żądań); odrzucony token nie', async () => {
+    const f = mockFetch(async () => ({ ok: true, status: 200, json: async () => ({ isSubaccount: false }) }));
+    await fetchSessionProfileState('tok-a');
+    await fetchSessionProfileState('tok-a');
+    await fetchSessionProfileState('tok-b');
+    expect(f).toHaveBeenCalledTimes(2);
+    mockFetch(async () => ({ ok: false, status: 401 }));
+    wyczyscPamiecProfili();
+    await expect(fetchSessionProfileState('tok-a')).resolves.toEqual({ profile: null, unauthorized: true });
+    const g = mockFetch(async () => ({ ok: false, status: 401 }));
+    await fetchSessionProfileState('tok-a');
+    expect(g).toHaveBeenCalledTimes(1);
   });
 });
