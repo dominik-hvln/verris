@@ -2,7 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 const NOTICES: Record<string, string> = {
   'permissions-saved': 'Uprawnienia subkonta zostały zapisane.',
@@ -11,9 +11,17 @@ const NOTICES: Record<string, string> = {
   'invite-revoked': 'Zaproszenie zostało odwołane.',
 };
 
-export function IamNoticeBanner() {
+export function IamNoticeBanner({ blad }: { blad?: string | null }) {
   const searchParams = useSearchParams();
   const notice = searchParams.get('notice');
+  if (notice === 'blad' && blad) {
+    return (
+      <div role="alert" className="flex items-start gap-2 rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+        <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+        <p>{blad}</p>
+      </div>
+    );
+  }
   const message = notice ? NOTICES[notice] : null;
   if (!message) return null;
 

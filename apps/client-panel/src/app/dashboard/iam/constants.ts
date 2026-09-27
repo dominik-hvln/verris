@@ -16,3 +16,6 @@ export const PERMISSION_LABELS: Record<string, string> = {
 /** Konto usunięte na wniosek (RODO) ma zanonimizowany e-mail — pokazujemy etykietę, nie „deleted-<uuid>@verris.local”. */
 export const pokazEmail = (email: string | null | undefined): string =>
   email && /^deleted-[0-9a-f-]+@verris\.local$/i.test(email) ? 'Konto usunięte' : (email ?? '');
+
+/** Ciasteczko z komunikatem błędu formularza IAM (strona czyta je, gdy w adresie jest notice=blad). */
+export const CIASTECZKO_BLEDU_IAM = 'iam_blad';

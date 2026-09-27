@@ -1,8 +1,10 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { ApiError, apiFetch } from '@/lib/api';
+import { CIASTECZKO_BLEDU_IAM } from './constants';
 
 export interface IamOverview {
   permissions: string[];
@@ -41,11 +43,21 @@ export interface IamOverview {
 }
 
 /** PB-20 — zakres z formularza: „całe konto” = [] (także gdy lista usług przyszła, bo przełącznik był na „całe”). */
-function zakresZFormularza(formData: FormData): string[] {
+async function zakresZFormularza(formData: FormData, powrot: string): Promise<string[]> {
   if (String(formData.get('zakres') ?? 'caly') !== 'wybrane') return [];
   const ids = formData.getAll('serviceIds').map(String).filter(Boolean);
-  if (ids.length === 0) throw new Error('Zaznacz co najmniej jedną usługę albo wybierz „Całe konto”.');
+  if (ids.length === 0) return blad('Zaznacz co najmniej jedną usługę albo wybierz „Całe konto”.', powrot);
   return ids;
+}
+
+/**
+ * Błąd formularza wraca na stronę jako komunikat. Rzucony wyjątek Next na produkcji zamienia
+ * w stronę „Nie udało się wczytać” bez treści. Treść idzie w krótkim ciasteczku, nie w adresie —
+ * z adresu dałoby się podsunąć komuś link z dowolnym „komunikatem” na stronie Verris.
+ */
+async function blad(tresc: string, powrot: string): Promise<never> {
+  (await cookies()).set(CIASTECZKO_BLEDU_IAM, tresc.slice(0, 300), { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 60 });
+  redirect(`${powrot}${powrot.includes('?') ? '&' : '?'}notice=blad`);
 }
 
 export async function getIamOverview(): Promise<IamOverview> {
@@ -71,16 +83,16 @@ export async function inviteSubaccountAction(formData: FormData): Promise<void> 
   const label = String(formData.get('label') ?? '').trim();
   const permissions = formData.getAll('permissions').map(String);
   if (!email || permissions.length === 0) {
-    throw new Error('Podaj e-mail i wybierz co najmniej jedno uprawnienie.');
+    return blad('Podaj e-mail i wybierz co najmniej jedno uprawnienie.', '/dashboard/iam');
   }
-  const serviceIds = zakresZFormularza(formData);
+  const serviceIds = await zakresZFormularza(formData, '/dashboard/iam');
   try {
     await apiFetch('/users/iam/invites', {
       method: 'POST',
       body: JSON.stringify({ email, label: label || undefined, permissions, serviceIds }),
     });
   } catch (err) {
-    throw new Error(normalizeError(err, 'Nie udało się wysłać zaproszenia.'));
+    return blad(normalizeError(err, 'Nie udało się wysłać zaproszenia.'), '/dashboard/iam');
   }
   // redirect() poza try: rzuca NEXT_REDIRECT, a catch zamieniał go w błąd formularza.
   revalidatePath('/dashboard/iam');
@@ -92,7 +104,7 @@ export async function revokeInviteAction(formData: FormData): Promise<void> {
   try {
     await apiFetch(`/users/iam/invites/${encodeURIComponent(id)}`, { method: 'DELETE' });
   } catch (err) {
-    throw new Error(normalizeError(err, 'Nie udało się odwołać zaproszenia.'));
+    return blad(normalizeError(err, 'Nie udało się odwołać zaproszenia.'), '/dashboard/iam');
   }
   revalidatePath('/dashboard/iam');
   redirect('/dashboard/iam?notice=invite-revoked');
@@ -103,9 +115,9 @@ export async function updateMemberAction(formData: FormData): Promise<void> {
   const label = String(formData.get('label') ?? '').trim();
   const permissions = formData.getAll('permissions').map(String);
   if (!id || permissions.length === 0) {
-    throw new Error('Wybierz co najmniej jedno uprawnienie.');
+    return blad('Wybierz co najmniej jedno uprawnienie.', '/dashboard/iam');
   }
-  const serviceIds = zakresZFormularza(formData);
+  const serviceIds = await zakresZFormularza(formData, '/dashboard/iam');
   // PB-20 — ten sam formularz dla subkonta i dla osoby z własnym kontem (członkostwo).
   const konto = String(formData.get('rodzaj') ?? '') === 'konto';
   const sciezka = konto ? `/users/iam/memberships/${encodeURIComponent(id)}` : `/users/iam/members/${encodeURIComponent(id)}`;
@@ -119,7 +131,7 @@ export async function updateMemberAction(formData: FormData): Promise<void> {
       }),
     });
   } catch (err) {
-    throw new Error(normalizeError(err, 'Nie udało się zaktualizować uprawnień.'));
+    return blad(normalizeError(err, 'Nie udało się zaktualizować uprawnień.'), '/dashboard/iam');
   }
   revalidatePath('/dashboard/iam');
   redirect('/dashboard/iam?notice=permissions-saved');
@@ -131,7 +143,7 @@ export async function disableMemberAction(formData: FormData): Promise<void> {
   try {
     await apiFetch(konto ? `/users/iam/memberships/${encodeURIComponent(id)}` : `/users/iam/members/${encodeURIComponent(id)}`, { method: 'DELETE' });
   } catch (err) {
-    throw new Error(normalizeError(err, 'Nie udało się wyłączyć dostępu.'));
+    return blad(normalizeError(err, 'Nie udało się wyłączyć dostępu.'), '/dashboard/iam');
   }
   revalidatePath('/dashboard/iam');
   redirect('/dashboard/iam?notice=member-disabled');
@@ -151,7 +163,7 @@ export async function acceptInviteAction(formData: FormData): Promise<void> {
     });
     accepted = true;
   } catch (err) {
-    throw new Error(normalizeError(err, 'Nie udało się aktywować subkonta.'));
+    return blad(normalizeError(err, 'Nie udało się aktywować subkonta.'), `/accept-invite?token=${encodeURIComponent(token)}`);
   }
   if (accepted) redirect('/login?invite=accepted');
 }
@@ -183,7 +195,7 @@ export async function przyjmijWlasnymKontemAction(formData: FormData): Promise<v
   try {
     await apiFetch('/users/iam/invites/accept-existing', { method: 'POST', body: JSON.stringify({ token }) });
   } catch (err) {
-    throw new Error(normalizeError(err, 'Nie udało się przyjąć zaproszenia.'));
+    return blad(normalizeError(err, 'Nie udało się przyjąć zaproszenia.'), `/accept-invite?token=${encodeURIComponent(token)}`);
   }
   // Nowe konto pojawia się w przełączniku kont w menu bocznym.
   redirect('/dashboard');

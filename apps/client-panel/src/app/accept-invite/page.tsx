@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { CIASTECZKO_BLEDU_IAM } from '../dashboard/iam/constants';
 import { acceptInviteAction, infoZaproszenia, przyjmijWlasnymKontemAction } from '../dashboard/iam/actions';
 import { getAuthToken } from '@/lib/auth';
 import { fetchSessionProfile } from '@/lib/session-profile';
@@ -10,9 +11,13 @@ const LINK = 'font-semibold text-foreground underline underline-offset-4 hover:t
 export default async function AcceptInvitePage({
   searchParams,
 }: {
-  searchParams: Promise<{ token?: string }>;
+  searchParams: Promise<{ token?: string; notice?: string }>;
 }) {
-  const token = (await searchParams).token ?? '';
+  const { token = '', notice } = await searchParams;
+  const tresc = notice === 'blad' ? (await cookies()).get(CIASTECZKO_BLEDU_IAM)?.value : undefined;
+  const komunikat = tresc ? (
+    <p role="alert" className="mx-8 mt-6 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{tresc}</p>
+  ) : null;
   const info = await infoZaproszenia(token);
   // PB-20 — adres ma już konto Verris: przyjęcie z własnego konta, bez nowego loginu.
   if (info?.maKonto) {
@@ -28,6 +33,7 @@ export default async function AcceptInvitePage({
             <b className="text-foreground">{info.email}</b> ma już konto Verris — przyjmiesz zaproszenie ze swojego konta i będziesz przełączać się między kontami w menu bocznym.
           </p>
         </div>
+        {komunikat}
         <div className="p-8">
           {toSamoKonto ? (
             <form action={przyjmijWlasnymKontemAction}>
@@ -65,6 +71,7 @@ export default async function AcceptInvitePage({
           {info?.ownerEmail ? `${info.ownerEmail} zaprasza Cię do swojego konta. ` : ''}Ustaw swoje dane i hasło.
         </p>
       </div>
+      {komunikat}
       <form action={acceptInviteAction} className="space-y-5 p-8">
         <input type="hidden" name="token" value={token} />
         <div className="space-y-2">

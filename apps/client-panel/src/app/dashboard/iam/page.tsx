@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { FeatureNotAvailable } from '@/components/feature-not-available';
 import { czyModul } from '@/lib/feature-flags-core';
 import { pobierzFlagiAction } from '@/lib/feature-flags-action';
@@ -18,7 +18,7 @@ import { IamAuditSection } from './iam-audit-section';
 import { IamNoticeBanner } from './iam-notice-banner';
 import { IamPermissionPicker } from './iam-permission-picker';
 import { IamScopePicker } from './iam-scope-picker';
-import { PERMISSION_LABELS, pokazEmail } from './constants';
+import { CIASTECZKO_BLEDU_IAM, PERMISSION_LABELS, pokazEmail } from './constants';
 import { PanelFetchError, PanelPageHeader } from '@/components/panel';
 
 export default async function IamPage() {
@@ -55,7 +55,7 @@ export default async function IamPage() {
       />
 
       <Suspense fallback={null}>
-        <IamNoticeBanner />
+        <IamNoticeBanner blad={(await cookies()).get(CIASTECZKO_BLEDU_IAM)?.value ?? null} />
       </Suspense>
 
       <section className="rounded-[28px] border border-white/10 bg-[#0a0a0a]/80 p-6">
