@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import {
   applyConsent,
@@ -26,6 +27,7 @@ import { useFocusTrap } from "@/hooks/use-focus-trap";
  */
 export function CookieConsentManager() {
   const [decided, setDecided] = useState(true); // pesymistycznie: bez flasha banera
+  const pathname = usePathname();
   const [bannerOpen, setBannerOpen] = useState(false);
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [functional, setFunctional] = useState(false);
@@ -99,8 +101,9 @@ export function CookieConsentManager() {
   if (!bannerOpen && !prefsOpen) {
     // Decyzja zapadła → stały, dyskretny trigger do zmiany zgody (art. 7 ust. 3
     // RODO — wycofanie równie łatwe jak wyrażenie), obecny także na stronach
-    // bez stopki panelu (login, rejestracja, /legal/*).
-    if (!decided) return null;
+    // bez stopki panelu (login, rejestracja, /legal/*). W panelu (/dashboard) ten sam przycisk
+    // jest w stopce, a pływający zasłaniał na telefonie menu konta i treść w lewym dolnym rogu.
+    if (!decided || pathname?.startsWith("/dashboard")) return null;
     return (
       <button
         type="button"

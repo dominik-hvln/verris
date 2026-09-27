@@ -290,8 +290,13 @@ export function DomainPurchaseWizard({ initialOrders, initialLabel = '' }: { ini
             `Znaleziono ${results.filter((r) => r.available).length} dostępnych wariantów`,
           );
         }
-      } catch (err: unknown) {
-        toast.error(err instanceof Error ? err.message : 'Nie udało się sprawdzić domeny');
+      } catch {
+        // Awaria (limit API, rejestrator) to nie „wszystko zajęte” — wcześniej pusta lista wyników
+        // pokazywała klientowi, że wolnej domeny nie ma. Treść błędu akcji serwera Next i tak
+        // ukrywa na produkcji („Minified React error”), więc komunikat jest nasz.
+        setHasSearched(false);
+        setSearchResults([]);
+        toast.error('Nie udało się sprawdzić dostępności. Spróbuj ponownie za chwilę.');
       }
     });
   };
