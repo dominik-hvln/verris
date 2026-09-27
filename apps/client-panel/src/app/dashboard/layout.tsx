@@ -486,11 +486,13 @@ function DashboardLayoutInner({
               // O-09 — klient resellera widzi markę partnera; Verris zostaje jako dopisek.
               <span className="flex min-w-0 flex-col">
                 <span className="flex min-w-0 items-center gap-2">
+                  {/* Z logo nazwa tylko w alt — logo zwykle ją zawiera (tak samo w mailach). */}
                   {rail.partner.logoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element -- logo z API (inny host)
-                    <img src={rail.partner.logoUrl} alt="" className="h-7 max-w-[7rem] object-contain" />
-                  ) : null}
-                  <span className="break-words font-display text-[15px] font-bold leading-tight text-foreground">{rail.partner.nazwa}</span>
+                    <img src={rail.partner.logoUrl} alt={rail.partner.nazwa} className="h-7 max-w-[10rem] object-contain" />
+                  ) : (
+                    <span className="break-words font-display text-[15px] font-bold leading-tight text-foreground">{rail.partner.nazwa}</span>
+                  )}
                 </span>
                 <span className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">na infrastrukturze Verris</span>
               </span>
