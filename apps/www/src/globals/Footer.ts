@@ -33,7 +33,7 @@ export const Footer: GlobalConfig = {
       type: 'text',
       label: 'Linia płatności / SLA',
       defaultValue:
-        'Płatności: karta · BLIK · Przelewy24 · Stripe · SLA 99,5% z automatycznymi rekompensatami wg regulaminu',
+        'Płatności: karta · BLIK · Przelewy24 · Stripe · SLA 99,5% z rekompensatami na wniosek wg regulaminu',
     },
   ],
 };

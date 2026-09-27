@@ -222,10 +222,10 @@ export const features: Feature[] = [
     slug: 'sla',
     eyebrow: 'Funkcja',
     title: 'SLA 99,5% z rekompensatami',
-    lead: 'Nie „obiecujemy" dostępności — gwarantujemy ją w umowie. Za niedostępność naliczamy kredyty według regulaminu.',
+    lead: 'Nie „obiecujemy" dostępności — gwarantujemy ją w umowie. Za niedostępność poniżej 99,5% przyznajemy kredyty według regulaminu — wystarczy zgłoszenie.',
     metaTitle: 'SLA 99,5% z rekompensatami — gwarancja w umowie | Verris',
     metaDescription:
-      'Verris gwarantuje SLA 99,5% z automatycznymi rekompensatami zapisanymi w regulaminie (kredyty zależne od skali niedostępności). Bez obietnic „100% uptime".',
+      'Verris gwarantuje SLA 99,5% z rekompensatami zapisanymi w regulaminie (kredyty zależne od skali niedostępności, przyznawane na wniosek). Bez obietnic „100% uptime".',
     sections: [
       {
         p: [
@@ -236,7 +236,7 @@ export const features: Feature[] = [
         h: 'Zasady wprost',
         ul: [
           'SLA 99,5% — realny poziom, nie marketingowe „100%".',
-          'Rekompensaty = kredyty naliczane wg regulaminu.',
+          'Rekompensaty = kredyty wg regulaminu, przyznawane na wniosek złożony w panelu lub e-mailem.',
           'Status usług na żywo pod status.verris.pl.',
         ],
       },

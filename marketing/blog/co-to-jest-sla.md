@@ -31,7 +31,7 @@ Wyższa liczba wygląda lepiej, ale liczy się też, **czy jest poparta rekompen
 
 „99,9% uptime" bez zapisu o rekompensacie to obietnica bez konsekwencji. Uczciwe SLA mówi wprost, co dostajesz, gdy dostawca nie dotrzyma słowa — najczęściej w postaci **kredytów** naliczanych według skali niedostępności. To zamienia marketingowy slogan w realne zobowiązanie.
 
-W Verris obowiązuje [SLA 99,5% z automatycznymi rekompensatami](/funkcje/sla) zapisanymi w regulaminie — kredyty zależne od skali niedostępności. Świadomie nie obiecujemy „100% uptime", bo takiej gwarancji nie da się dotrzymać uczciwie.
+W Verris obowiązuje [SLA 99,5% z rekompensatami](/funkcje/sla) zapisanymi w regulaminie — kredyty zależne od skali niedostępności, przyznawane na wniosek. Świadomie nie obiecujemy „100% uptime", bo takiej gwarancji nie da się dotrzymać uczciwie.
 
 ## Jak czytać gwarancje dostępności
 

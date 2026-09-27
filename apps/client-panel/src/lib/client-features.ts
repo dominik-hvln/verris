@@ -3,7 +3,7 @@
  * EKO + program partnerski są LIVE — domyślnie włączone; wyłącz jawnie przez `=false`.
  * IAM (subkonta) jest LIVE — domyślnie włączone; wyłącz jawnie przez `=false`.
  */
-export type ClientFeature = 'eco' | 'iam' | 'referral' | 'vps';
+export type ClientFeature = 'eco' | 'iam' | 'referral' | 'vps' | 'emailMarketing' | 'resellerMarkup';
 
 /**
  * Wartość przekazywana z LITERALNEGO `process.env.NEXT_PUBLIC_…`. Next podstawia w buildzie
@@ -29,6 +29,15 @@ export function isClientFeatureEnabled(feature: ClientFeature): boolean {
     // tylko „chwilowo niedostępne”). Włączenie: NEXT_PUBLIC_FEATURE_VPS=true przy buildzie panelu.
     case 'vps':
       return envFlag(process.env.NEXT_PUBLIC_FEATURE_VPS, false);
+    // Decyzja właściciela 2026-09-28: e-mail marketing ukryty do ukończenia (nie da się go kupić —
+    // brak planu i typu w zamówieniu). Włączenie: NEXT_PUBLIC_FEATURE_EMAIL_MARKETING=true przy buildzie.
+    case 'emailMarketing':
+      return envFlag(process.env.NEXT_PUBLIC_FEATURE_EMAIL_MARKETING, false);
+    // Decyzja właściciela 2026-09-28: narzut resellera ukryty do wdrożenia — klienci resellera płacą
+    // cenę z cennika, narzut zmieniał tylko liczby w widoku resellera. Pole `markupPct` w API zostaje.
+    // Włączenie: NEXT_PUBLIC_FEATURE_RESELLER_MARKUP=true przy buildzie, gdy narzut trafi do rozliczeń.
+    case 'resellerMarkup':
+      return envFlag(process.env.NEXT_PUBLIC_FEATURE_RESELLER_MARKUP, false);
     default:
       return false;
   }
@@ -39,4 +48,6 @@ export const clientFeatures = {
   iam: isClientFeatureEnabled('iam'),
   referral: isClientFeatureEnabled('referral'),
   vps: isClientFeatureEnabled('vps'),
+  emailMarketing: isClientFeatureEnabled('emailMarketing'),
+  resellerMarkup: isClientFeatureEnabled('resellerMarkup'),
 } as const;

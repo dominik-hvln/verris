@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { features } from '@/lib/features';
 import { getPayloadClient } from '@/lib/payload';
-import { SPECYFIKACJA_OPUBLIKOWANA, VPS_W_SPRZEDAZY } from '@/lib/oferta';
+import { EMAIL_MARKETING_W_SPRZEDAZY, SPECYFIKACJA_OPUBLIKOWANA, VPS_W_SPRZEDAZY } from '@/lib/oferta';
 
 const BASE = 'https://verris.pl';
 
@@ -17,7 +17,7 @@ const STATIC = [
   '/poczta',
   ...(VPS_W_SPRZEDAZY ? ['/vps'] : []),
   '/domeny',
-  '/email-marketing',
+  ...(EMAIL_MARKETING_W_SPRZEDAZY ? ['/email-marketing'] : []),
   '/reseller',
   '/funkcje',
   '/cennik',

@@ -7,7 +7,7 @@ import { getFooterGlobal } from '@/lib/globals';
 const DEFAULT_LEGAL =
   '© 2026 Verris · Operator: HVLN Dominik Kowalski, Zielona Góra · NIP 9292069367';
 const DEFAULT_PAY =
-  'Płatności: karta · BLIK · Przelewy24 · Stripe · SLA 99,5% z automatycznymi rekompensatami wg regulaminu';
+  'Płatności: karta · BLIK · Przelewy24 · Stripe · SLA 99,5% z rekompensatami na wniosek wg regulaminu';
 
 type Col = { heading: string; links: { label: string; href: string }[] };
 

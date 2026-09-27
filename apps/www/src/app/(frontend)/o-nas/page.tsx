@@ -7,7 +7,7 @@ import { VPS_W_SPRZEDAZY } from '@/lib/oferta';
 export const metadata: Metadata = {
   title: 'O Verris — polski hosting z uczciwymi zasadami',
   description:
-    `Verris to polski hosting z autoskalowaniem${VPS_W_SPRZEDAZY ? ', VPS i domenami' : ' i domenami'}. Operator: HVLN Dominik Kowalski, Zielona Góra. Budujemy zaufanie konkretami: automatyczne rekompensaty za awarie, jedna cena bez pułapek, darmowa migracja strony i poczty.`,
+    `Verris to polski hosting z autoskalowaniem${VPS_W_SPRZEDAZY ? ', VPS i domenami' : ' i domenami'}. Operator: HVLN Dominik Kowalski, Zielona Góra. Budujemy zaufanie konkretami: rekompensaty za awarie zapisane w regulaminie, jedna cena bez pułapek, darmowa migracja strony i poczty.`,
   alternates: { canonical: '/o-nas' },
 };
 
@@ -17,7 +17,7 @@ export default function Page() {
       <SubHero
         eyebrow="O nas"
         title="Hosting, który gra w otwarte karty"
-        lead="Verris to młoda polska marka hostingowa. Zaufanie budujemy konkretami — awaria oznacza automatyczną rekompensatę, odnowienie idzie po cenie z cennika, a nie kilka razy drożej, a migrację robimy za 0 zł — a nie pustymi obietnicami."
+        lead="Verris to młoda polska marka hostingowa. Zaufanie budujemy konkretami — awaria poniżej SLA oznacza rekompensatę zapisaną w regulaminie, odnowienie idzie po cenie z cennika, a nie kilka razy drożej, a migrację robimy za 0 zł — a nie pustymi obietnicami."
         crumbs={[{ label: 'O nas' }]}
       />
       <section>

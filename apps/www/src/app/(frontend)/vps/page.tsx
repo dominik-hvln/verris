@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 const F = [
   { icon: Terminal, h: 'Pełny root', p: 'Niezarządzany VPS — instalujesz i konfigurujesz, co chcesz. Pełna kontrola nad środowiskiem.' },
   { icon: Cpu, h: 'Przewidywalne zasoby', p: 'Dedykowane vCPU i RAM bez niespodzianek. Zasoby, za które płacisz, są Twoje.' },
-  { icon: ShieldCheck, h: 'SLA w umowie', p: 'SLA 99,5% z automatycznymi rekompensatami wg regulaminu — dotyczy także usług VPS.' },
+  { icon: ShieldCheck, h: 'SLA w umowie', p: 'SLA 99,5% z rekompensatami na wniosek wg regulaminu — dotyczy także usług VPS.' },
 ];
 
 export default function VpsPage() {

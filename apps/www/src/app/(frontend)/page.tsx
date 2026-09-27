@@ -17,7 +17,7 @@ import { Pricing } from './components/Pricing';
 import { RevealInit } from './components/RevealInit';
 import { JsonLd } from './components/ui';
 import { organization, ORG_ID, SITE, HOSTING_OFFERS } from '@/lib/schema';
-import { VPS_W_SPRZEDAZY } from '@/lib/oferta';
+import { EMAIL_MARKETING_W_SPRZEDAZY, VPS_W_SPRZEDAZY } from '@/lib/oferta';
 
 // VPS wraca na stronę razem z flagą sprzedaży (decyzja 2026-09-24).
 const VPS_KARTA = {
@@ -62,7 +62,7 @@ const SERVICES_BAZA = [
   {
     icon: Users,
     title: 'Program resellerski',
-    desc: 'Odsprzedawaj usługi z własnym narzutem. Wielu klientów z jednego panelu — mniej klikania, większa marża.',
+    desc: 'Wielu klientów z jednego panelu — mniej klikania i przełączania kont. Własny narzut do cen dla klientów — wkrótce.',
     tag: 'Dla agencji i freelancerów',
     tagClass: 'note',
     cta: 'Zostań resellerem →',
@@ -79,10 +79,14 @@ const SERVICES_BAZA = [
   },
 ];
 
-const SERVICES: typeof SERVICES_BAZA = VPS_W_SPRZEDAZY ? [SERVICES_BAZA[0], VPS_KARTA, ...SERVICES_BAZA.slice(1)] : SERVICES_BAZA;
+// E-mail marketing wraca na stronę razem z flagą sprzedaży (decyzja 2026-09-28).
+const BAZA_W_SPRZEDAZY = SERVICES_BAZA.filter((s) => EMAIL_MARKETING_W_SPRZEDAZY || s.title !== 'E-mail marketing');
+const SERVICES: typeof SERVICES_BAZA = VPS_W_SPRZEDAZY
+  ? [BAZA_W_SPRZEDAZY[0], VPS_KARTA, ...BAZA_W_SPRZEDAZY.slice(1)]
+  : BAZA_W_SPRZEDAZY;
 
 const USP = [
-  { icon: ShieldCheck, title: 'SLA 99,5% z rekompensatami', desc: 'Nie „obiecujemy" — gwarantujemy w umowie. Za niedostępność naliczamy kredyty wg regulaminu.' },
+  { icon: ShieldCheck, title: 'SLA 99,5% z rekompensatami', desc: 'Nie „obiecujemy" — gwarantujemy w umowie. Gdy dostępność spadnie poniżej 99,5%, na Twoje zgłoszenie przyznajemy kredyty wg regulaminu.' },
   { icon: Gauge, title: 'Płacisz za realne użycie', desc: 'Autoskalowanie: moc rośnie w piku i wraca do bazy po nim. Nie płacisz za pakiet „na zapas".' },
   { icon: FileText, title: 'Jedna cena, bez pułapek', desc: 'Odnowienie zawsze po cenie z cennika — 45 zł/mies lub 399 zł/rok. Bez szoku po pierwszym roku.' },
   { icon: Undo2, title: 'Przywracanie z siatką bezpieczeństwa', desc: 'Domyślnie przed odtworzeniem kopii zapisujemy stan obecny, więc nieudane przywrócenie da się cofnąć.' },
@@ -177,7 +181,7 @@ export default function HomePage() {
       <div className="trust">
         <div className="wrap">
           <div className="row">
-            <span><ShieldCheck /> Awaria? Rekompensata wraca sama</span>
+            <span><ShieldCheck /> Awaria? Rekompensata SLA na zgłoszenie</span>
             <span><Gauge /> Płacisz za realne użycie</span>
             <span><ArrowLeftRight /> Przenosimy stronę za 0 zł</span>
             <span><Undo2 /> Cofniesz nieudane przywracanie</span>

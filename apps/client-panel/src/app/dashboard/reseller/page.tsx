@@ -8,7 +8,7 @@ export default function ResellerPage() {
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
       <PanelPageHeader
         title="Reseller (white-label)"
-        description="Sprzedawaj hosting pod własną marką: Twoi klienci rejestrują się z Twojego linku, a Ty ustalasz narzut do ceny hurtowej."
+        description="Obsługuj klientów pod własną marką: rejestrują się z Twojego linku, a Ty masz ich usługi w jednym panelu."
       />
       <ResellerClient />
     </div>

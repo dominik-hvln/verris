@@ -16,8 +16,11 @@ import {
 import { liczba } from '@/lib/liczba';
 import { KlientResellera } from './reseller-klient';
 import { MarkaResellera } from './reseller-marka';
+import { clientFeatures } from '@/lib/client-features';
 
 const pln = (n: number) => `${liczba(n, 2)} K`;
+/** Narzut ukryty do wdrożenia w rozliczeniach (2026-09-28) — klienci płacą dziś cenę z cennika. */
+const narzutWlaczony = clientFeatures.resellerMarkup;
 
 export function ResellerClient() {
   const [ov, setOv] = useState<ResellerOverview | null>(null);
@@ -98,8 +101,11 @@ export function ResellerClient() {
         <Lock className="mx-auto h-9 w-9 text-neutral-500" />
         <h2 className="text-lg font-semibold text-white">Konto resellera nie jest aktywne</h2>
         <p className="mx-auto max-w-md text-sm text-neutral-400">
-          Program white-label pozwala odsprzedawać hosting pod własną marką z własnym narzutem.
-          Złóż wniosek — sprawdzimy konto i włączymy program, zwykle w ciągu jednego dnia roboczego. Startowy narzut to 20%.
+          {narzutWlaczony
+            ? 'Program white-label pozwala odsprzedawać hosting pod własną marką z własnym narzutem.'
+            : 'Program white-label pozwala obsługiwać klientów pod własną marką — wszystkich z jednego panelu.'}
+          {' '}Złóż wniosek — sprawdzimy konto i włączymy program, zwykle w ciągu jednego dnia roboczego.
+          {narzutWlaczony ? ' Startowy narzut to 20%.' : null}
         </p>
         <label className="mx-auto block max-w-sm text-left text-sm font-medium text-white">
           Nazwa Twojej marki (opcjonalnie)
@@ -131,12 +137,19 @@ export function ResellerClient() {
         </p>
       ) : null}
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat icon={<Users2 className="h-4 w-4" />} label="Klienci" value={String(ov.clientsCount)} />
-        <Stat icon={<TrendingUp className="h-4 w-4" />} label="Twój narzut" value={`+${ov.markupPct}%`} accent />
-        <Stat icon={<Wallet className="h-4 w-4" />} label="Przychód detaliczny / mies." value={pln(ov.monthlyRetail)} accent />
-        <Stat icon={<Wallet className="h-4 w-4" />} label="Koszt hurtowy / mies." value={pln(ov.monthlyWholesale)} />
-      </div>
+      {narzutWlaczony ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Stat icon={<Users2 className="h-4 w-4" />} label="Klienci" value={String(ov.clientsCount)} />
+          <Stat icon={<TrendingUp className="h-4 w-4" />} label="Twój narzut" value={`+${ov.markupPct}%`} accent />
+          <Stat icon={<Wallet className="h-4 w-4" />} label="Przychód detaliczny / mies." value={pln(ov.monthlyRetail)} accent />
+          <Stat icon={<Wallet className="h-4 w-4" />} label="Koszt hurtowy / mies." value={pln(ov.monthlyWholesale)} />
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Stat icon={<Users2 className="h-4 w-4" />} label="Klienci" value={String(ov.clientsCount)} />
+          <Stat icon={<Wallet className="h-4 w-4" />} label="Abonamenty klientów / mies." value={pln(ov.monthlyWholesale)} />
+        </div>
+      )}
 
       <section className="rounded-2xl border border-white/10 bg-black/30 p-5 space-y-3">
         <h3 className="text-sm font-semibold text-white flex items-center gap-2"><Link2 className="h-4 w-4 text-emerald-400" /> Link zapraszający klientów</h3>
@@ -150,7 +163,7 @@ export function ResellerClient() {
 
       {ov.status === 'ACTIVE' ? <MarkaResellera ov={ov} onZmiana={setOv} /> : null}
 
-      {ov.status === 'ACTIVE' ? (
+      {narzutWlaczony && ov.status === 'ACTIVE' ? (
         <form onSubmit={(e) => void zapiszNarzut(e)} className="flex flex-wrap items-end gap-2 rounded-2xl border border-white/10 bg-black/30 p-5">
           <label className="text-sm font-medium text-white">
             Twój narzut do ceny hurtowej (%, 0–300)
@@ -208,8 +221,9 @@ export function ResellerClient() {
       </section>
 
       <p className="text-[11px] text-neutral-500">
-        Ceny detaliczne liczymy automatycznie jako cena hurtowa × (1 + Twój narzut). Klienci płacą za usługi
-        bezpośrednio w swoim panelu; rozliczenia między Tobą a klientami i Twoja marka na fakturach — w kolejnym etapie.
+        {narzutWlaczony
+          ? 'Ceny detaliczne liczymy automatycznie jako cena hurtowa × (1 + Twój narzut). Klienci płacą za usługi bezpośrednio w swoim panelu; rozliczenia między Tobą a klientami i Twoja marka na fakturach — w kolejnym etapie.'
+          : 'Klienci płacą za usługi bezpośrednio w swoim panelu, po cenach z cennika Verris. Własny narzut, rozliczenia między Tobą a klientami i Twoja marka na fakturach — w kolejnym etapie.'}
       </p>
     </div>
   );

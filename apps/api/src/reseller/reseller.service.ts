@@ -342,11 +342,11 @@ export class ResellerService {
       bodyMarkdown: [
         'Cześć,',
         '',
-        `zatwierdziliśmy Twój wniosek${p.brandName ? ` dla marki **${md(p.brandName)}**` : ''} — program resellerski jest aktywny. Twój narzut: **${p.markupPct}%** ceny hurtowej.`,
+        `zatwierdziliśmy Twój wniosek${p.brandName ? ` dla marki **${md(p.brandName)}**` : ''} — program resellerski jest aktywny.`,
         '',
         `Klienci, którzy założą konto z Twojego linku, będą przypisani do Ciebie: ${link}`,
         '',
-        'Przegląd klientów i przychodu znajdziesz w panelu w zakładce **Reseller**.',
+        'Przegląd klientów i ich usług znajdziesz w panelu w zakładce **Reseller**.',
       ].join('\n'),
       cta: { label: 'Otwórz panel resellera', url: `${panelUrl}/dashboard/reseller` },
       recipientEmail: u.email,

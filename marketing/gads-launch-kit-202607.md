@@ -83,8 +83,8 @@ hostingu" / „Zmień hosting bez stresu" (przekaz migracyjny zawsze widoczny).
 ```
 Darmowa pomoc w migracji lub samodzielny migrator w panelu. Przenieś stronę i pocztę.
 Jeden pakiet z autoskalowaniem: 45 zł/mies lub 399 zł/rok brutto. Bez ukrytych kosztów.
-SLA 99,5% z automatycznymi rekompensatami w regulaminie. Dane zostają w Europie.
-Odnowienia bez pułapek, wyłączysz je w panelu. Awaria? Rekompensata wraca sama.
+SLA 99,5% z rekompensatami na wniosek wg regulaminu. Dane zostają w Europie.
+Odnowienia bez pułapek, wyłączysz je w panelu. Awaria? Rekompensata na zgłoszenie.
 ```
 
 **Wyświetlany URL:** `verris.pl/hosting/migracja` · **Docelowy URL:** `https://verris.pl/przenies-strone`

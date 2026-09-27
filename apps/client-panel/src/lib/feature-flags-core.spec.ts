@@ -22,6 +22,8 @@ const ENV_KEYS = [
   'NEXT_PUBLIC_FEATURE_REFERRAL',
   'NEXT_PUBLIC_FEATURE_IAM',
   'NEXT_PUBLIC_FEATURE_VPS',
+  'NEXT_PUBLIC_FEATURE_EMAIL_MARKETING',
+  'NEXT_PUBLIC_FEATURE_RESELLER_MARKUP',
 ] as const;
 
 async function load(env: Partial<Record<(typeof ENV_KEYS)[number], string>> = {}): Promise<Core & Features> {
@@ -38,9 +40,9 @@ async function load(env: Partial<Record<(typeof ENV_KEYS)[number], string>> = {}
 }
 
 describe('X-05 client-features — przełączniki build-time', () => {
-  it('bez zmiennych: EKO, polecenia i IAM włączone, VPS ukryty', async () => {
+  it('bez zmiennych: EKO, polecenia i IAM włączone, VPS, e-mail marketing i narzut resellera ukryte', async () => {
     const { clientFeatures } = await load();
-    expect(clientFeatures).toEqual({ eco: true, iam: true, referral: true, vps: false });
+    expect(clientFeatures).toEqual({ eco: true, iam: true, referral: true, vps: false, emailMarketing: false, resellerMarkup: false });
   });
 
   it('pusta wartość traktowana jak brak zmiennej', async () => {
@@ -80,6 +82,14 @@ describe('X-05 czyModul / trasaWidoczna — co jest w menu', () => {
   it('VPS zależy wyłącznie od przełącznika build-time', async () => {
     expect((await load()).trasaWidoczna({}, '/dashboard/vps')).toBe(false);
     expect((await load({ NEXT_PUBLIC_FEATURE_VPS: 'true' })).trasaWidoczna({}, '/dashboard/vps/abc')).toBe(true);
+  });
+
+  it('e-mail marketing zależy wyłącznie od przełącznika build-time', async () => {
+    expect((await load()).trasaWidoczna({}, '/dashboard/email-marketing')).toBe(false);
+    expect((await load()).trasaWidoczna({}, '/dashboard/email-marketing/abc')).toBe(false);
+    expect(
+      (await load({ NEXT_PUBLIC_FEATURE_EMAIL_MARKETING: 'true' })).trasaWidoczna({}, '/dashboard/email-marketing'),
+    ).toBe(true);
   });
 
   it('trasy spoza modułów są zawsze widoczne (nic nie znika przez przypadek)', async () => {

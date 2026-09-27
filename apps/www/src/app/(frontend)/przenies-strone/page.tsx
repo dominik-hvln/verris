@@ -48,7 +48,7 @@ const COMPARE: [string, string, string][] = [
   ['Cena', 'Niska w pierwszym okresie, znacznie wyższa przy odnowieniu', 'Odnowienie po cenie z cennika — 45 zł/mies lub 399 zł/rok brutto'],
   ['Zasoby', 'Sztywne pakiety — płacisz za moc „na zapas" 24 h/dobę', 'Autoskalowanie godzinowe — dodatkowa moc tylko wtedy, gdy jest używana'],
   ['Odnowienia domen', 'Automatyczne obciążenie, czasem bez wyraźnej zgody', 'Nie odnowi się bez Twojej decyzji — przypomnienia 30, 14 i 7 dni przed wygaśnięciem'],
-  ['Awarie', 'Rekompensata po reklamacji, jeśli w ogóle', 'SLA 99,5% z automatycznymi rekompensatami zapisanymi w regulaminie'],
+  ['Awarie', 'Rekompensata uznaniowa, jeśli w ogóle', 'SLA 99,5% i progi rekompensat zapisane w regulaminie — przyznajemy je na Twoje zgłoszenie'],
   ['Przywrócenie kopii', 'Zgłoszenie do supportu, czasem płatne, bez możliwości cofnięcia', 'Samodzielnie w panelu — wybierasz pliki, bazę lub pocztę, a system domyślnie robi kopię bezpieczeństwa przed operacją'],
   ['Rezygnacja', 'Ukryte kroki, konsultant „zatrzymujący"', 'Rezygnacja z odnowienia w panelu w dwóch kliknięciach, bez opłat'],
 ];
@@ -147,7 +147,7 @@ export default function Page() {
       <div className="trust">
         <div className="wrap">
           <div className="row">
-            <span><ShieldCheck /> Awaria? Rekompensata wraca sama</span>
+            <span><ShieldCheck /> Awaria? Rekompensata SLA na zgłoszenie</span>
             <span><Boxes /> Bez limitu stron i skrzynek</span>
             <span><CreditCard /> Płatność BLIK i kartą</span>
             {/* Brand-review: KSeF/„polski support" to standard, nie wyróżnik — mówimy korzyścią. */}

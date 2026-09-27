@@ -91,7 +91,7 @@ const SEKCJE: { tytul: string; wiersze: Wiersz[] }[] = [
       ['Centrum danych', 'Hetzner, Niemcy lub Finlandia (EOG) — region serwera widzisz w panelu'],
       ['Ochrona DDoS', 'filtrowanie L3/L4 w sieci centrum danych i limity połączeń na serwerze WWW', true],
       ['SLA', 'dostępność 99,5% w miesiącu kalendarzowym'],
-      ['Rekompensata', 'automatyczna: 5% opłaty poniżej 99,5%, 25% poniżej 99%, 50% poniżej 95%, 100% poniżej 90%'],
+      ['Rekompensata', 'na wniosek: 5% opłaty poniżej 99,5%, 25% poniżej 99%, 50% poniżej 95%, 100% poniżej 90%'],
       ['Monitoring', 'wykresy CPU, RAM i I/O, powiadomienia, publiczna strona statusu'],
       ['Bezpieczeństwo konta', 'logowanie dwuskładnikowe, klucze dostępu (passkeys), subkonta z uprawnieniami, tokeny API'],
       ['Migracja', 'przeniesienie strony, baz i poczty w cenie'],

@@ -18,9 +18,9 @@ describe('client-features', () => {
 
   const zaladuj = () => jest.requireActual<typeof import('./client-features')>('./client-features');
 
-  it('bez zmiennych: EKO, polecenia i IAM włączone, VPS wyłączony', () => {
-    for (const k of ['NEXT_PUBLIC_FEATURE_ECO', 'NEXT_PUBLIC_FEATURE_REFERRAL', 'NEXT_PUBLIC_FEATURE_IAM', 'NEXT_PUBLIC_FEATURE_VPS']) delete process.env[k];
-    expect(zaladuj().clientFeatures).toEqual({ eco: true, iam: true, referral: true, vps: false });
+  it('bez zmiennych: EKO, polecenia i IAM włączone, VPS, e-mail marketing i narzut resellera wyłączone', () => {
+    for (const k of ['NEXT_PUBLIC_FEATURE_ECO', 'NEXT_PUBLIC_FEATURE_REFERRAL', 'NEXT_PUBLIC_FEATURE_IAM', 'NEXT_PUBLIC_FEATURE_VPS', 'NEXT_PUBLIC_FEATURE_EMAIL_MARKETING', 'NEXT_PUBLIC_FEATURE_RESELLER_MARKUP']) delete process.env[k];
+    expect(zaladuj().clientFeatures).toEqual({ eco: true, iam: true, referral: true, vps: false, emailMarketing: false, resellerMarkup: false });
   });
 
   it('jawne false/0 wyłącza, true/1 włącza', () => {

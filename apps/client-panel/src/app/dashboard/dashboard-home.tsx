@@ -268,7 +268,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
                 <p className="px-4 py-5 text-sm text-muted-foreground">Nie udało się pobrać usług — spróbuj odświeżyć stronę.</p>
               ) : services.length === 0 ? (
                 <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-5">
-                  <p className="text-sm text-muted-foreground">Tu pojawią się Twoje usługi: hosting, poczta, newsletter.</p>
+                  <p className="text-sm text-muted-foreground">Tu pojawią się Twoje usługi: hosting i poczta.</p>
                   {moze('/dashboard/services/new') ? <Link href="/dashboard/services/new" className={BTN_PRIMARY}>Zamów pierwszą usługę</Link> : null}
                 </div>
               ) : (

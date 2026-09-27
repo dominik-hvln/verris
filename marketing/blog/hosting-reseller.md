@@ -44,7 +44,7 @@ Jeśli prowadzisz dwie–trzy strony, [zwykły hosting](/hosting) w zupełności
 
 ## Jak to działa w Verris
 
-[Program resellerski](/reseller) pozwala odsprzedawać usługi pod własną marką i obsługiwać wielu klientów z jednego panelu. Zasady odnowień i cennik są te same, co dla klientów bezpośrednich — bez pułapek, które musiałbyś tłumaczyć swoim klientom.
+[Program resellerski](/reseller) pozwala odsprzedawać usługi pod własną marką i obsługiwać wielu klientów z jednego panelu. Zasady odnowień i cennik są te same, co dla klientów bezpośrednich — bez pułapek, które musiałbyś tłumaczyć swoim klientom. Własny narzut do cen dla Twoich klientów jest w przygotowaniu — dziś płacą oni ceny z cennika Verris.
 
 ## FAQ
 

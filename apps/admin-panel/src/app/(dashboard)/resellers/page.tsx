@@ -18,8 +18,9 @@ export default async function ResellersPage() {
       <header>
         <h1 className="text-[28px] lg:text-[34px]">Resellerzy</h1>
         <p className="mt-2 text-sm text-muted-foreground max-w-3xl">
-          Włącz program white-label dla wybranego klienta — ustal narzut (markup) i nazwę marki.
-          Klienci pozyskani jego linkiem zostaną do niego przypisani, a ceny detaliczne policzą się automatycznie.
+          Włącz program white-label dla wybranego klienta — ustal nazwę marki. Klienci pozyskani jego linkiem
+          zostaną do niego przypisani. Narzut (markup) jest tylko zapisywany: nie trafia jeszcze do rozliczeń —
+          klienci resellera płacą ceny z cennika, a panel klienta go nie pokazuje.
         </p>
       </header>
 

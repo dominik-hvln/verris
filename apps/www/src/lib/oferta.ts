@@ -8,6 +8,14 @@
 const flaga = process.env.NEXT_PUBLIC_FEATURE_VPS;
 export const VPS_W_SPRZEDAZY = flaga === 'true' || flaga === '1';
 
+/**
+ * E-mail marketing w sprzedaży — ta sama flaga co w panelu (`NEXT_PUBLIC_FEATURE_EMAIL_MARKETING`),
+ * domyślnie wyłączona. Decyzja 2026-09-28: do ukończenia usługi (w panelu nie da się jej kupić)
+ * verris.pl jej nie reklamuje — /email-marketing → 404, znika z menu, stopki, sitemapy i llms.txt.
+ */
+const flagaEmm = process.env.NEXT_PUBLIC_FEATURE_EMAIL_MARKETING;
+export const EMAIL_MARKETING_W_SPRZEDAZY = flagaEmm === 'true' || flagaEmm === '1';
+
 /** „hosting z autoskalowaniem, VPS i domeny” albo bez VPS — jedno miejsce na to wyliczenie. */
 export const OFERTA_KROTKO = VPS_W_SPRZEDAZY
   ? 'hosting z autoskalowaniem, VPS i domeny'

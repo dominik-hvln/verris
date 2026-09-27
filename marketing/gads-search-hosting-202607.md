@@ -70,7 +70,7 @@ Teksty (limit 90 znaków — zweryfikowane):
 
 1. Darmowa pomoc w migracji lub samodzielny migrator w panelu. Przenieś stronę i pocztę. (85)
 2. Jeden pakiet z autoskalowaniem: 45 zł/mies lub 399 zł/rok brutto. Bez ukrytych kosztów. (87)
-3. SLA 99,5% z automatycznymi rekompensatami zapisanymi w regulaminie. Dane w UE (RODO). (85)
+3. SLA 99,5% z rekompensatami na wniosek, zapisanymi w regulaminie. Dane w UE (RODO). (82)
 4. Odnowienia bez pułapek cenowych, wyłączysz je w panelu w każdej chwili. Polski support. (77)
 
 Grupa B: te same zasoby minus nagłówki 1/2/13, plus przypięcie poz. 1 → 8/12/15.

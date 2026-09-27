@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { SubHero, CTABand } from '../components/ui';
 import { RevealInit } from '../components/RevealInit';
 import { PANEL } from '@/lib/site';
+import { EMAIL_MARKETING_W_SPRZEDAZY } from '@/lib/oferta';
 
 export const metadata: Metadata = {
   title: 'Poczta e-mail w hostingu — skrzynki na własnej domenie | Verris',
@@ -32,10 +33,12 @@ export default function Page() {
               <li>Konfiguracja i zarządzanie kontami z panelu Verris.</li>
               <li>Migracja poczty razem ze stroną — w cenie, bez przestoju.</li>
             </ul>
-            <p>
-              Chcesz wysyłać kampanie do własnej listy odbiorców? To osobna usługa —{' '}
-              <Link href="/email-marketing">e-mail marketing</Link>.
-            </p>
+            {EMAIL_MARKETING_W_SPRZEDAZY ? (
+              <p>
+                Chcesz wysyłać kampanie do własnej listy odbiorców? To osobna usługa —{' '}
+                <Link href="/email-marketing">e-mail marketing</Link>.
+              </p>
+            ) : null}
           </div>
         </div>
       </section>

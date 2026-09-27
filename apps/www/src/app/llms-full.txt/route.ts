@@ -37,7 +37,7 @@ export async function GET() {
   const head = `# Verris — pełny tekst poradników
 
 Źródło: ${BASE}/blog · Kontekst marki: ${BASE}/llms.txt · Cennik: ${BASE}/pricing.md
-Ceny brutto (PLN). SLA 99,5% z rekompensatami. Wygenerowano: ${new Date().toISOString().slice(0, 10)}.
+Ceny brutto (PLN). SLA 99,5% z rekompensatami na wniosek. Wygenerowano: ${new Date().toISOString().slice(0, 10)}.
 
 `;
 

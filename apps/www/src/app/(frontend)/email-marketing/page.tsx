@@ -3,6 +3,8 @@ import { SubHero, CTABand, JsonLd } from '../components/ui';
 import { RevealInit } from '../components/RevealInit';
 import { PANEL } from '@/lib/site';
 import { serviceSchema } from '@/lib/schema';
+import { notFound } from 'next/navigation';
+import { EMAIL_MARKETING_W_SPRZEDAZY } from '@/lib/oferta';
 
 export const metadata: Metadata = {
   title: 'E-mail marketing — wysyłki do własnych list | Verris',
@@ -12,6 +14,8 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
+  // Do ukończenia usługi strona nie istnieje (decyzja 2026-09-28) — w panelu nie da się jej kupić.
+  if (!EMAIL_MARKETING_W_SPRZEDAZY) notFound();
   return (
     <main>
       <JsonLd

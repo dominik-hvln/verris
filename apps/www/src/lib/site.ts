@@ -1,4 +1,4 @@
-import { SPECYFIKACJA_OPUBLIKOWANA, VPS_W_SPRZEDAZY } from './oferta';
+import { EMAIL_MARKETING_W_SPRZEDAZY, SPECYFIKACJA_OPUBLIKOWANA, VPS_W_SPRZEDAZY } from './oferta';
 // Jedno źródło nawigacji i stopki (używane przez Header, Footer, sitemap).
 
 export const PANEL = 'https://panel.verris.pl';
@@ -10,9 +10,9 @@ export const megaServices: { label: string; href: string; desc: string }[] = [
   { label: 'Hosting pod sklep', href: '/hosting/sklep', desc: 'WooCommerce, piki sprzedaży' },
   ...(VPS_W_SPRZEDAZY ? [{ label: 'VPS', href: '/vps', desc: 'Niezarządzany, pełny root' }] : []),
   { label: 'Domeny', href: '/domeny', desc: 'Rejestracja i transfer' },
-  { label: 'E-mail marketing', href: '/email-marketing', desc: 'Wysyłki z panelu' },
+  ...(EMAIL_MARKETING_W_SPRZEDAZY ? [{ label: 'E-mail marketing', href: '/email-marketing', desc: 'Wysyłki z panelu' }] : []),
   { label: 'Poczta', href: '/poczta', desc: 'Skrzynki w hostingu' },
-  { label: 'Program resellerski', href: '/reseller', desc: 'Odsprzedaż z własnym narzutem' },
+  { label: 'Program resellerski', href: '/reseller', desc: 'Wielu klientów z jednego panelu' },
 ];
 
 export const KB_URL = 'https://pomoc.verris.pl';
@@ -31,7 +31,7 @@ export const footerCols: { heading: string; links: { label: string; href: string
       { label: 'Hosting z autoskalowaniem', href: '/hosting' },
       ...(VPS_W_SPRZEDAZY ? [{ label: 'VPS', href: '/vps' }] : []),
       { label: 'Domeny', href: '/domeny' },
-      { label: 'E-mail marketing', href: '/email-marketing' },
+      ...(EMAIL_MARKETING_W_SPRZEDAZY ? [{ label: 'E-mail marketing', href: '/email-marketing' }] : []),
       { label: 'Program resellerski', href: '/reseller' },
     ],
   },

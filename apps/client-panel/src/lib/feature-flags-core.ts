@@ -22,6 +22,7 @@ export const TRASY_MODULOW: Record<string, FlagaModulu> = {
 export function trasaWidoczna(flagi: Record<string, boolean>, href: string): boolean {
   // VPS: sam przełącznik build-time, bez flagi operatora — flaga nic by nie włączyła (2026-09-23).
   if (href.startsWith('/dashboard/vps')) return clientFeatures.vps;
+  if (href.startsWith('/dashboard/email-marketing')) return clientFeatures.emailMarketing;
   const m = TRASY_MODULOW[href.split('?')[0]];
   return m ? czyModul(flagi, m) : true;
 }
