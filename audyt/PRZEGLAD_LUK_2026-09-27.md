@@ -27,7 +27,7 @@ Każdą pozycję sprawdzono w kodzie albo w źródle. „Węzeł” oznacza, że
 | 9 | **Narzut resellera zmienia tylko liczby, które widzi reseller; klient płaci cenę katalogową** (§3.2) | Widmo w module resellera | kod / decyzja |
 | 10 | **Asystent AI w panelu (L-11), blokada botów AI, generator strony WP z AI** (§4.2) | Konkurencja w PL (cyber_Folks, home.pl, cPanel, Plesk, Hostinger) ma to od 2025–26. Największa luka wizerunkowa | decyzja produktowa |
 
-Naprawione dziś w trakcie przeglądu: **podwójne „przejdź na płatny” dawało darmowy miesiąc** (commit 393f254, test na PostgreSQL).
+Naprawione 27.09 wieczorem (testy na PostgreSQL): podwójne „przejdź na płatny” (393f254); korekty bez podwójnego zwrotu i płatność Stripe po zawieszeniu (b1a1097); zwrot + spór bez podwójnego cofnięcia, „Ponów” bez równoległego przetwarzania (140566c); widma 3.4 (opis), 3.6, 3.12–3.14 (600fd18). Zostaje z pilnych: **1.1 numeracja faktur**.
 
 ---
 
@@ -38,13 +38,13 @@ API działa jako jedna replika, więc realne wyścigi to: nakładające się prz
 | # | Gdzie | Problem | Waga |
 |---|---|---|---|
 | 1.1 | `billing/invoices.service.ts` (upsertFromStripe / finalizeAsVerrisInvoice) + `faktury.scheduler` | `invoice.paid` i `invoice.payment_succeeded` przychodzą razem, a do tego dochodzi cron dokańczania. Każda ścieżka przydziela numer VFV: jeden numer ginie (dziura w serii), powstaje drugi PDF i drugi mail. Zdarzenie `invoice.created`/`finalized` obsłużone po `paid` cofa status na OPEN i zeruje `paidAt` | **WYSOKA** |
-| 1.2 | `billing/korekty.service.ts` (wystaw) | Korekta liczona od faktury pierwotnej, bez uwzględnienia wcześniejszych korekt. Klucz unikalności zawiera nowy numer, więc nie blokuje powtórki. Dwuklik albo druga korekta to drugi zwrot do portfela | **WYSOKA** |
-| 1.3 | `subscriptions.service.ts` activateAfterStripePayment + `renewal.scheduler` runGraceExpiry | Po karencji zawieszane są też subskrypcje Stripe. Późniejsza udana płatność (smart retry) przy statusie SUSPENDED nic nie robi. Przy synchronicznym provisioningu dwa zdarzenia „paid” uruchamiają dwa zakładania konta | **WYSOKA** |
+| 1.2 | `billing/korekty.service.ts` (wystaw) | Korekta liczona od faktury pierwotnej, bez uwzględnienia wcześniejszych korekt. Klucz unikalności zawiera nowy numer, więc nie blokuje powtórki. Dwuklik albo druga korekta to drugi zwrot do portfela | **NAPRAWIONE** (b1a1097) |
+| 1.3 | `subscriptions.service.ts` activateAfterStripePayment + `renewal.scheduler` runGraceExpiry | Po karencji zawieszane są też subskrypcje Stripe. Późniejsza udana płatność (smart retry) przy statusie SUSPENDED nic nie robi. Przy synchronicznym provisioningu dwa zdarzenia „paid” uruchamiają dwa zakładania konta | **NAPRAWIONE** (b1a1097) |
 | 1.4 | `trial.service.ts` convertFromWallet | ~~Podwójne kliknięcie → zwrot → darmowy miesiąc~~ | **NAPRAWIONE** (393f254) |
-| 1.5 | `billing.service.ts` handleZwrotPlatnosci | Dwa zdarzenia dla jednej płatności (częściowe zwroty, zwrot + dispute) mogą podwójnie ściągnąć pieniądze z portfela. `charge.dispute.closed` (wygrany) nie jest obsłużony, więc środki nie wracają | ŚREDNIA+ |
+| 1.5 | `billing.service.ts` handleZwrotPlatnosci | Dwa zdarzenia dla jednej płatności (częściowe zwroty, zwrot + dispute) mogą podwójnie ściągnąć pieniądze z portfela. `charge.dispute.closed` (wygrany) nie jest obsłużony, więc środki nie wracają | **NAPRAWIONE** (140566c) |
 | 1.6 | `promo.service.ts` applyPercentBonusForTopup | Dwa checkouty z tym samym kodem dostają bonus dwa razy. Limit użyć i data ważności są sprawdzane tylko przy tworzeniu checkoutu | ŚREDNIA |
 | 1.7 | `vps/vps-renewal.scheduler.ts` | Brak warunkowego przejęcia rekordu. VPS usunięty w trakcie przebiegu zostaje obciążony i „wskrzeszony”. Nieudane usunięcie w Hetznerze jest połknięte: rekord ma status DELETED, a serwer dalej działa na koszt Verris. Włącza też VPS zatrzymany ręcznie przez klienta. (VPS jest za flagą, ale przed włączeniem sprzedaży trzeba to naprawić) | ŚREDNIA |
-| 1.8 | `billing.service.ts` przetworzPonownie | Przejęcie zdarzenia bez `claimedAt`: „Ponów” w adminie w trakcie przetwarzania albo harmonogram ponowień przy redelivery Stripe uruchamia handler dwa razy. Wzmacnia problemy 1.1, 1.3 i 1.5 | ŚREDNIA |
+| 1.8 | `billing.service.ts` przetworzPonownie | Przejęcie zdarzenia bez `claimedAt`: „Ponów” w adminie w trakcie przetwarzania albo harmonogram ponowień przy redelivery Stripe uruchamia handler dwa razy. Wzmacnia problemy 1.1, 1.3 i 1.5 | **NAPRAWIONE** (140566c) |
 | 1.9 | `domain-registrar.service.ts` charge | Obciążenie i zapis `walletTxId` w jednym `try`. Błąd po obciążeniu kończy się komunikatem „brak środków”: pieniądze pobrane, domena niezarejestrowana, brak zwrotu | ŚREDNIA |
 | 1.10 | `renewal.scheduler.ts` | Licznik okresów zniżki startowej zmniejszany bezwarunkowo: „Opłać teraz” w tej samej chwili co cron zabiera okres zniżki. `extendPeriod` ustawia ACTIVE bezwarunkowo | ŚREDNIA |
 | 1.11 | `migration-worker.scheduler.ts` processQueuedMigrations | Zawsze czyta 20 najstarszych zdarzeń *_REQUESTED. Po 20 wnioskach w historii nowe nie są już obsługiwane. Brak flagi „zajęty” | ŚREDNIA |
@@ -52,7 +52,7 @@ API działa jako jedna replika, więc realne wyścigi to: nakładające się prz
 | 1.13 | `ksef.service.ts` oznaczNiedostepnosc | Może cofnąć SUBMITTED na OFFLINE i wysłać fakturę do KSeF drugi raz (moduł jest wyłączony, ale trzeba to poprawić przed włączeniem) | ŚREDNIA− |
 | 1.14 | `partners.service.ts` adminProcessPayout | Równoczesne PAID i REJECTED: wypłata oznaczona PAID, a prowizje wracają do puli | NISKA+ |
 | 1.15 | `subscriptions.service.ts` finalizeScheduledCancellation | Klient wznawia usługę w trakcie przebiegu, a usługa i tak zostaje anulowana | NISKA+ |
-| 1.16 | `subscriptions.service.ts` unsuspend | Pobiera cenę indywidualną, a zwraca katalogową; nieudany zwrot jest połknięty | NISKA+ |
+| 1.16 | `subscriptions.service.ts` unsuspend | Pobiera cenę indywidualną, a zwraca katalogową; nieudany zwrot jest połknięty | **NAPRAWIONE** (b1a1097) |
 | 1.17 | `vps.service.ts` order | Błąd po `createServer` to zwrot pieniędzy przy działającym serwerze w Hetznerze | NISKA+ |
 | 1.18 | `domain-registrar.service.ts` renew | Brak idempotencji żądania: dwuklik to dwa odnowienia i dwa obciążenia | NISKA |
 | 1.19 | `plan-change.service.ts` | Limity w DirectAdminie ustawiane przed commitem. Commit się nie udaje, zmiana jest zwrócona, a limity zostają podniesione | NISKA |
@@ -102,17 +102,17 @@ API jest czyste: wszystkie ok. 680 wywołań z paneli ma kontroler, nie ma danyc
 | 3.1 | klient | **E-mail marketing** w menu i „Zamów usługę” | Zamówienie oferuje tylko HOSTING/EMAIL/VPS; DTO planów nie pozwala założyć planu EMAIL_MARKETING, a w bazie startowej go nie ma | **WYSOKA** |
 | 3.2 | klient | **Narzut resellera**: „nowe ceny detaliczne liczą się od razu”, „przychód detaliczny” | `markupPct` liczy tylko wyświetlane liczby; klienci płacą cenę katalogową. Rozliczenia są „w kolejnym etapie” | **WYSOKA** |
 | 3.3 | klient | **„Drzewa łącznie — posadzone z Twoich punktów”** | Liczba to `floor(punkty / punktyNaDrzewo)`: bez partnera, bez sadzenia, maleje po wymianie punktów | **WYSOKA** (greenwashing) |
-| 3.4 | klient | **„ECO Mode (zalecane) — optymalizacja wydajności”**, domyślnie włączony przy zamówieniu | Jedynie punkty i zmiana kopii z dziennych na tygodniowe (na nowym koncie nic). Karta usługi przyznaje „rzadsze kopie”, formularz zamówienia to ukrywa | **WYSOKA** |
+| 3.4 | klient | **„ECO Mode (zalecane) — optymalizacja wydajności”**, domyślnie włączony przy zamówieniu | Jedynie punkty i zmiana kopii z dziennych na tygodniowe (na nowym koncie nic). Karta usługi przyznaje „rzadsze kopie”, formularz zamówienia to ukrywa | **NAPRAWIONE** (600fd18 (opis)) |
 | 3.5 | klient | Język „English” w ustawieniach | Zapisuje `locale`, którego nikt nie czyta; panel ma tylko polski | ŚREDNIA |
-| 3.6 | klient | SSO phpMyAdmin/webmail zostawia pustą kartę | `window.open(..., 'noopener')` zawsze zwraca `null`; druga karta może zostać zablokowana | ŚREDNIA |
+| 3.6 | klient | SSO phpMyAdmin/webmail zostawia pustą kartę | `window.open(..., 'noopener')` zawsze zwraca `null`; druga karta może zostać zablokowana | **NAPRAWIONE** (600fd18) |
 | 3.7 | klient | „Kup domenę” na pulpicie i w palecie, gdy rejestrator nie jest skonfigurowany | Sprawdzane są tylko uprawnienia; w efekcie strona „Zakup domen nie jest jeszcze dostępny” | ŚREDNIA |
 | 3.8 | klient | Dodatek **„Dedykowane IP” za 25 zł jednorazowo** | Tylko otwiera zgłoszenie; DirectAdmin nie ma API do przypisania IP; zasób stały sprzedany jednorazowo | ŚREDNIA |
 | 3.9 | klient | Analityka: „Kraje” | Potrzebuje nagłówka `cf-ipcountry`/`x-geo-country`, którego nic nie ustawia (prawdopodobnie zawsze pusto) | ŚREDNIA |
 | 3.10 | klient | Analityka „bez danych osobowych” | Sprzeczne z przyjętą zasadą (IP przetwarzane przed hashowaniem) | NISKA |
 | 3.11 | klient | Przełącznik „oferty partnerskie” | Zapisywany, ale żaden nadawca go nie czyta | NISKA |
-| 3.12 | klient | „Autoskalowanie rozliczane godzinowo” (formularz zamówienia) | Rozliczamy blokami 15 min | NISKA |
-| 3.13 | klient | `/dashboard/notifications` na liście tras | Strona nie istnieje (nic tam nie linkuje) | NISKA |
-| 3.14 | admin | Link „Zgłoszenie” przy migracji | Prowadzi do `/tickets/{id}`, którego w adminie nie ma (404) | ŚREDNIA |
+| 3.12 | klient | „Autoskalowanie rozliczane godzinowo” (formularz zamówienia) | Rozliczamy blokami 15 min | **NAPRAWIONE** (600fd18) |
+| 3.13 | klient | `/dashboard/notifications` na liście tras | Strona nie istnieje (nic tam nie linkuje) | **NAPRAWIONE** (600fd18) |
+| 3.14 | admin | Link „Zgłoszenie” przy migracji | Prowadzi do `/tickets/{id}`, którego w adminie nie ma (404) | **NAPRAWIONE** (600fd18) |
 | 3.15 | admin | „Included transfer (GB)” w planie | Zapisywane, nieużywane | NISKA |
 
 Panel obsługi (staff): bez widm.
