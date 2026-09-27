@@ -20,12 +20,14 @@ Każdą pozycję sprawdzono w kodzie albo w źródle. „Węzeł” oznacza, że
 | 2 | **Faktury: podwójny numer i cofanie statusu z PAID** (§1.1) | Luka w numeracji VAT, druga faktura PDF i drugi mail | kod |
 | 3 | **Korekta faktury zwraca pieniądze drugi raz** (§1.2) | Pieniądze | kod |
 | 4 | **Płatność Stripe po zawieszeniu nie odwiesza usługi** (§1.3) | Klient zapłacił, a usługa dalej stoi | kod |
-| 5 | **Automatyczne rekompensaty SLA obiecane w 9 miejscach na verris.pl, a przełącznik jest wyłączony, obowiązujący regulamin 1.0.1 mówi „na wniosek”** (§2.1) | Ryzyko prawne (wprowadzanie w błąd) | decyzja + tekst |
+| 5 | **Automatyczne rekompensaty SLA obiecane w 9 miejscach na verris.pl, a przełącznik jest wyłączony, obowiązujący regulamin 1.0.1 mówi „na wniosek”** (§2.1) | Ryzyko prawne (wprowadzanie w błąd) | **NAPRAWIONE** 28.09 — decyzja: „na wniosek”; tekst w 14 miejscach (46976c6) |
 | 6 | **„Stare wersje PHP 7.4–8.3 per domena”**, a węzeł ma 8.0–8.3 (kreator stawia tylko 8.3) (§2.2) | Obietnica bez pokrycia | węzeł / tekst |
 | 7 | **Omnibus: brak najniższej ceny z 30 dni przy promocji** (regulamin §9 ust. 3) (§2.5) | UOKiK | kod |
-| 8 | **E-mail marketing jest w menu, ale nie da się go kupić** (§3.1) | Widmo, choć usługa jest wpisana w zakres startu | kod |
-| 9 | **Narzut resellera zmienia tylko liczby, które widzi reseller; klient płaci cenę katalogową** (§3.2) | Widmo w module resellera | kod / decyzja |
+| 8 | **E-mail marketing jest w menu, ale nie da się go kupić** (§3.1) | Widmo, choć usługa jest wpisana w zakres startu | **NAPRAWIONE** 28.09 — ukryte flagą do ukończenia (46976c6) |
+| 9 | **Narzut resellera zmienia tylko liczby, które widzi reseller; klient płaci cenę katalogową** (§3.2) | Widmo w module resellera | **NAPRAWIONE** 28.09 — ukryte flagą do wdrożenia rozliczeń (46976c6) |
 | 10 | **Asystent AI w panelu (L-11), blokada botów AI, generator strony WP z AI** (§4.2) | Konkurencja w PL (cyber_Folks, home.pl, cPanel, Plesk, Hostinger) ma to od 2025–26. Największa luka wizerunkowa | decyzja produktowa |
+
+Noc 27/28.09 (bezpieczeństwo): egress hosta po IPv6 + przetrwanie restartu (94cfe2c); sieć danych bez internetu (93e0b8d, przejście skryptem); bootstrap węzła gotowy na Hetzner Cloud/AlmaLinux 9 (5ae6c3a); qs 6.16.0 (d162632); Permissions-Policy (a50d147); subkonto nie działa na 2FA/zgodach/silnym logowaniu właściciela, /admin/search wymaga CUSTOMERS_VIEW, VPS i autoskalowanie wymagają BILLING_MANAGE (f4cc34b); jedna lista adresów zastrzeżonych (NAT64/6to4/Teredo), sondy TLS przez bezpieczny lookup, limity kodów promo (adf6951).
 
 Naprawione 27.09 wieczorem (testy na PostgreSQL): podwójne „przejdź na płatny” (393f254); korekty bez podwójnego zwrotu i płatność Stripe po zawieszeniu (b1a1097); zwrot + spór bez podwójnego cofnięcia, „Ponów” bez równoległego przetwarzania (140566c); widma 3.4 (opis), 3.6, 3.12–3.14 (600fd18). Numeracja faktur (1.1) też naprawiona tego wieczoru.
 
@@ -71,7 +73,7 @@ Pozostałe akcje serwera, które rzucają błędy (ok. 30), pokazują ogólny ko
 
 | # | Obietnica (gdzie) | Stan | Co zrobić |
 |---|---|---|---|
-| 2.1 | „Awaria? Rekompensata wraca sama” (strona główna, meta całej witryny, specyfikacja, przenieś-stronę, o-nas, stopka, llms.txt) | **Bez pokrycia dziś**: `sla.creditsEnabled='0'`; regulamin 1.0.1 mówi „na wniosek”; §15 obiecuje „niezależny monitoring”, a liczymy z własnych sond | Albo opublikować regulamin 1.1.0 i włączyć rekompensaty, albo usunąć „automatycznie” z 9 miejsc |
+| 2.1 | „Awaria? Rekompensata wraca sama” (strona główna, meta całej witryny, specyfikacja, przenieś-stronę, o-nas, stopka, llms.txt) | **Bez pokrycia dziś**: `sla.creditsEnabled='0'`; regulamin 1.0.1 mówi „na wniosek”; §15 obiecuje „niezależny monitoring”, a liczymy z własnych sond | **NAPRAWIONE** 28.09 — „na wniosek wg regulaminu” (46976c6) |
 | 2.2 | „PHP 7.4, 8.0, 8.1, 8.2, 8.3 osobno dla każdej domeny”, „obsługa starych wersji PHP” | **Częściowe**: sloty 8.3/8.2/8.1/8.0 (bez 7.4), kreator węzła instaluje tylko 8.3 | Na węźle zainstalować 7.4 (alt-php/CL) albo poprawić tekst na 8.0–8.3 |
 | 2.3 | Szyfrowana kopia poza serwerem, 30 dni (cennik, llms.txt) | Węzeł. Skrypt off-site do 25.09 nie robił nowych kopii; poprawka nie jest przetestowana | Ukryć za tą samą flagą co na specyfikacji, do testu na węźle |
 | 2.4 | Autoskalowanie „samo”, „pik sprzedaży nie kończy się błędem 503” | **Częściowe**: domyślnie wyłączone (klient musi je włączyć i ustawić limit kosztu), przy braku miejsca na węźle przycinane | Dopisać „po włączeniu”, usunąć absolutne „bez 503” |
@@ -99,8 +101,8 @@ API jest czyste: wszystkie ok. 680 wywołań z paneli ma kontroler, nie ma danyc
 
 | # | Panel | Co widzi klient | Dlaczego to widmo | Waga |
 |---|---|---|---|---|
-| 3.1 | klient | **E-mail marketing** w menu i „Zamów usługę” | Zamówienie oferuje tylko HOSTING/EMAIL/VPS; DTO planów nie pozwala założyć planu EMAIL_MARKETING, a w bazie startowej go nie ma | **WYSOKA** |
-| 3.2 | klient | **Narzut resellera**: „nowe ceny detaliczne liczą się od razu”, „przychód detaliczny” | `markupPct` liczy tylko wyświetlane liczby; klienci płacą cenę katalogową. Rozliczenia są „w kolejnym etapie” | **WYSOKA** |
+| 3.1 | klient | **E-mail marketing** w menu i „Zamów usługę” | Zamówienie oferuje tylko HOSTING/EMAIL/VPS; DTO planów nie pozwala założyć planu EMAIL_MARKETING, a w bazie startowej go nie ma | **NAPRAWIONE** 28.09 (46976c6) |
+| 3.2 | klient | **Narzut resellera**: „nowe ceny detaliczne liczą się od razu”, „przychód detaliczny” | `markupPct` liczy tylko wyświetlane liczby; klienci płacą cenę katalogową. Rozliczenia są „w kolejnym etapie” | **NAPRAWIONE** 28.09 — ukryte (46976c6) |
 | 3.3 | klient | **„Drzewa łącznie — posadzone z Twoich punktów”** | Liczba to `floor(punkty / punktyNaDrzewo)`: bez partnera, bez sadzenia, maleje po wymianie punktów | **WYSOKA** (greenwashing) |
 | 3.4 | klient | **„ECO Mode (zalecane) — optymalizacja wydajności”**, domyślnie włączony przy zamówieniu | Jedynie punkty i zmiana kopii z dziennych na tygodniowe (na nowym koncie nic). Karta usługi przyznaje „rzadsze kopie”, formularz zamówienia to ukrywa | **NAPRAWIONE** (600fd18 (opis)) |
 | 3.5 | klient | Język „English” w ustawieniach | Zapisuje `locale`, którego nikt nie czyta; panel ma tylko polski | ŚREDNIA |
