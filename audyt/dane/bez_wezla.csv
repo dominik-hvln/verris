@@ -29,7 +29,7 @@ P-14,WŁAŚCICIEL,ISO 27001 — decyzja organizacyjna (wybór: po starcie)
 PB-04,WŁAŚCICIEL,skrzynka abuse@verris.pl i test zgłoszenia
 PB-06,WŁAŚCICIEL,akceptacja treści /przenies-strone i publikacja
 PB-07,WŁAŚCICIEL,akceptacja treści i włączenie /specyfikacja
-PB-08,WŁAŚCICIEL,po wdrożeniu: GA4 → Czas rzeczywisty z telefonu (inna sieć) — odsłona verris.pl widoczna
+PB-08,WŁAŚCICIEL,GA4 → Czas rzeczywisty: odsłona verris.pl widoczna (wysyłka potwierdzona 27.09); purchase przy pierwszej prawdziwej płatności
 PB-09,WŁAŚCICIEL,"seed wykonany 27.09 (13 kategorii, 38 artykułów); artykuły o domenach prawdziwe po włączeniu OpenProvider"
 PB-10,WŁAŚCICIEL,"kampania Google Ads — technicznie bez węzła, ale uruchamiamy przy starcie"
 P-11,WŁAŚCICIEL,zatwierdzone 27.09 — rcpd.md 1.2 (sekcje D i E) + przypomnienie w adminie
