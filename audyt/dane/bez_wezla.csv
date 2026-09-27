@@ -11,12 +11,9 @@ Q-08,KOD PO STARCIE,snapshoty i rebuild VPS (Hetzner Cloud API)
 G-08,KOD PO STARCIE,sprzedaż certyfikatów DV/OV/EV — plus umowa z dostawcą
 J-05,KOD PO STARCIE,CDN (Cloudflare) — plus konto Cloudflare
 PB-20,PRODUKCJA,"zaproszenie deweloperskiego konta testowego z wybraną usługą, przełączenie, odmowa poza zakresem — na produkcji"
-O-03,PRODUKCJA,działanie subkonta widoczne u właściciela (IAM → Audyt) na produkcji — po wdrożeniu poprawki autora wpisów (26.09)
-Z-10,PRODUKCJA,odmowa subkonta widoczna w Audycie IAM na produkcji
 L-10,PRODUKCJA,zdarzenie rozliczeń (invoice.issued) przy pierwszej fakturze — ping i podpis sprawdzone 26.09
 N-10,PRODUKCJA,wpis SUPPRESSED przy pierwszym alercie limitu (przełącznik zapisany 26.09; alert wymaga telemetrii węzła)
 O-06,PRODUKCJA,konto klienta założone przez resellera testowego na produkcji
-Q-09,PRODUKCJA,przejście głównych ścieżek na prawdziwym telefonie (produkcja)
 PB-11,PRODUKCJA,alert testowy dociera e-mailem
 L-11,WŁAŚCICIEL,klucze AI w .env.prod po publikacji dokumentów 1.1.0 (PB-03)
 L-12,WŁAŚCICIEL,j.w. — prognoza idzie tym samym kluczem
@@ -48,5 +45,4 @@ PB-30,OD 29.09,"test na węźle testowym (D3): bootstrap z manifestem, Governor 
 PB-31,OD 29.09,"przejście kreatora na węźle testowym (D3): bootstrap → zatwierdzenie → Onboard LIVE z panelu → zielony raport, bez SSH"
 PB-32,OD 29.09,fala aktualizacji na dwóch węzłach (kanarek + drugi)
 PB-33,OD 29.09,wyrównanie floty na węzłach testowych (PHP + krok MariaDB)
-PB-34,PRODUKCJA,"przejście panelu admina po wdrożeniu: pulpit, strona węzła, karta klienta, listy"
 PB-35,PRODUKCJA,pierwszy wtorek po wdrożeniu: fala ruszyła sama o 4:00
