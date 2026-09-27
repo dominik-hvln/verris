@@ -14,6 +14,8 @@
         Strict-Transport-Security "max-age=31536000; includeSubDomains"
         X-Content-Type-Options "nosniff"
         Referrer-Policy "strict-origin-when-cross-origin"
+        # 2026-09-28: www, API, status i Grafana nie wysyłały Permissions-Policy (panele tak).
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
         -Server
         -X-Powered-By
     }
