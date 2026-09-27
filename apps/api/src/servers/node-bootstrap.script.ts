@@ -79,7 +79,8 @@ EOSTACK
 load_secrets() {
   [ -n "\${SECRETS_LOADED:-}" ] && return 0
   local out
-  out="$(curl -fsS -m 20 -X POST -H "X-Bootstrap-Token: $BOOTSTRAP_TOKEN" "$API_BASE/agent/nodes/bootstrap/secrets")" || return 1
+  # Retry: po restarcie (CloudLinux) sieć/DNS może jeszcze nie odpowiadać, a porażka zatrzymuje fazę do kolejnego bootu.
+  out="$(curl -fsS -m 20 --retry 10 --retry-delay 6 --retry-all-errors -X POST -H "X-Bootstrap-Token: $BOOTSTRAP_TOKEN" "$API_BASE/agent/nodes/bootstrap/secrets")" || return 1
   DA_LICENSE="$(printf '%s\\n' "$out" | sed -n 's/^DA_LICENSE=//p' | head -1)"
   CL_ACTIVATION_KEY="$(printf '%s\\n' "$out" | sed -n 's/^CL_ACTIVATION_KEY=//p' | head -1)"
   LS_SERIAL="$(printf '%s\\n' "$out" | sed -n 's/^LS_SERIAL=//p' | head -1)"
@@ -94,8 +95,13 @@ get_phase() { cat "$STATE_FILE" 2>/dev/null || echo PENDING; }
 fail() { report "$1" FAILED "\${2:-}"; exit 1; }
 
 install_self() {
-  cp -f "$0" "$RUNNER" 2>/dev/null || curl -fsS -H "X-Bootstrap-Token: $BOOTSTRAP_TOKEN" "$API_BASE/agent/nodes/bootstrap/script" -o "$RUNNER"
+  # Przy \`curl … | bash\` $0 to „bash” — wtedy pobieramy skrypt jeszcze raz.
+  if [ -f "$0" ] && [ "$(basename "$0")" != "bash" ]; then cp -f "$0" "$RUNNER"; else
+    curl -fsS -m 60 -H "X-Bootstrap-Token: $BOOTSTRAP_TOKEN" "$API_BASE/agent/nodes/bootstrap/script" -o "$RUNNER" \\
+      || { echo "[verris] nie udało się pobrać skryptu bootstrapu" >&2; exit 1; }
+  fi
   chmod 0700 "$RUNNER"
+  # HOME: fazy po restarcie działają pod systemd (bez HOME) — instalatory DA/CustomBuild go oczekują.
   cat > "$UNIT" <<'EOUNIT'
 [Unit]
 Description=Verris node bootstrap (resumable)
@@ -103,6 +109,7 @@ After=network-online.target
 Wants=network-online.target
 [Service]
 Type=oneshot
+Environment=HOME=/root
 ExecStart=/usr/local/sbin/verris-bootstrap run
 RemainAfterExit=no
 [Install]
@@ -112,7 +119,9 @@ EOUNIT
   systemctl enable verris-bootstrap.service >/dev/null 2>&1 || true
   [ -f "$STATE_FILE" ] || set_phase PREFLIGHT
   write_stack_env
-  exec "$RUNNER" run
+  # Start przez systemd, nie w sesji SSH: zerwane SSH (SIGHUP) nie przerywa instalacji DA.
+  systemctl start --no-block verris-bootstrap.service
+  echo "[verris] bootstrap uruchomiony w tle (systemd). Podgląd: journalctl -fu verris-bootstrap"
 }
 
 finish() {
@@ -138,6 +147,31 @@ phase_preflight() {
   if [ -n "$NODE_HOSTNAME" ] && [ "$(hostname -f 2>/dev/null)" != "$NODE_HOSTNAME" ]; then
     hostnamectl set-hostname "$NODE_HOSTNAME" || fail PREFLIGHT "hostnamectl set-hostname $NODE_HOSTNAME"
   fi
+  # Obrazy chmurowe (Hetzner Cloud): cloud-init ustawia nazwę hosta i /etc/hosts przy starcie —
+  # po restarcie CloudLinux nazwa DA wróciłaby do nazwy serwera z konsoli dostawcy.
+  if [ -d /etc/cloud/cloud.cfg.d ]; then
+    printf 'preserve_hostname: true\\nmanage_etc_hosts: false\\n' > /etc/cloud/cloud.cfg.d/99-verris-hostname.cfg
+  fi
+  if [ -n "$NODE_HOSTNAME" ]; then
+    local ip4
+    ip4="$(ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \\([0-9.]*\\).*/\\1/p' | head -1)"
+    if [ -n "$ip4" ] && ! grep -qE "^\${ip4}[[:space:]].*\${NODE_HOSTNAME}" /etc/hosts; then
+      echo "$ip4 $NODE_HOSTNAME \${NODE_HOSTNAME%%.*}" >> /etc/hosts
+    fi
+  fi
+  # DirectAdmin: min. 4 GB RAM + 4 GB swap (docs.directadmin.com, System Requirements); obrazy chmurowe nie mają swapu.
+  if [ -z "$(swapon --noheadings 2>/dev/null)" ] && [ ! -f /swapfile ]; then
+    { fallocate -l 4G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=4096; } >/dev/null 2>&1 \\
+      && chmod 600 /swapfile && mkswap /swapfile >/dev/null && swapon /swapfile \\
+      && echo '/swapfile none swap defaults 0 0' >> /etc/fstab \\
+      || report PREFLIGHT STARTED "nie udało się utworzyć swapu 4 GB — kontynuuję"
+  fi
+  # SELinux: CloudLinux „supported on CL8+, but might not work with control panels” — tryb permissive
+  # (logi zostają; wyłączenie w pliku configu jest w EL9 przestarzałe).
+  if command -v getenforce >/dev/null 2>&1 && [ "$(getenforce)" = "Enforcing" ]; then
+    setenforce 0 || true
+    sed -i 's/^SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
+  fi
   report PREFLIGHT OK
   set_phase CLOUDLINUX
 }
@@ -160,8 +194,9 @@ phase_cloudlinux() {
     report CLOUDLINUX OK "pominięto — brak klucza aktywacyjnego CloudLinux"; set_phase DA; return
   fi
   # Oficjalna konwersja CloudLinux (repo.cloudlinux.com) — wymaga rebootu.
-  cd "$STATE_DIR"
-  wget -q https://repo.cloudlinux.com/cloudlinux/sources/cln/cldeploy -O cldeploy || fail CLOUDLINUX "pobranie cldeploy nie powiodło się"
+  cd "$STATE_DIR" || fail CLOUDLINUX "cd $STATE_DIR"
+  # curl, nie wget — minimalne/chmurowe obrazy AlmaLinux nie muszą mieć wget (curl sprawdza PREFLIGHT).
+  curl -fsSL -m 120 https://repo.cloudlinux.com/cloudlinux/sources/cln/cldeploy -o cldeploy || fail CLOUDLINUX "pobranie cldeploy nie powiodło się"
   sh cldeploy -k "$CL_ACTIVATION_KEY" || fail CLOUDLINUX "cldeploy zwrócił błąd"
   set_phase DA
   report CLOUDLINUX REBOOT "restart po instalacji kernela CloudLinux (wznowię automatycznie)"
@@ -184,6 +219,9 @@ phase_da() {
   [ -n "$VERRIS_DA_COMMIT" ] && export DA_COMMIT="$VERRIS_DA_COMMIT"
   [ -n "$NODE_HOSTNAME" ] && export DA_HOSTNAME="$NODE_HOSTNAME"
   export php1_release="$VERRIS_PHP1_RELEASE" mysql_inst=mariadb mariadb="$VERRIS_MARIADB"
+  # Domyślnie setup.sh puszcza CustomBuild (PHP, MariaDB, Exim…) W TLE i kończy się od razu —
+  # faza STACK ruszyłaby ./build równolegle. Tryb pierwszoplanowy (predefined options DirectAdmin).
+  export DA_FOREGROUND_CUSTOMBUILD=yes
   sh <(curl -fsSL https://download.directadmin.com/setup.sh) "$DA_LICENSE" || fail DA "instalator DA zwrócił błąd"
   da_installed || fail DA "DA nie zainstalował się poprawnie"
   report DA OK
@@ -195,18 +233,26 @@ phase_stack() {
   CB=/usr/local/directadmin/custombuild
   if [ ! -d "$CB" ]; then report STACK OK "brak CustomBuild — pomijam"; set_phase AGENT; return; fi
   load_secrets || fail STACK "nie udało się pobrać kluczy licencyjnych z control-plane"
-  cd "$CB"
-  if [ -z "$LS_SERIAL" ]; then
-    report STACK OK "pominięto LiteSpeed — brak seriala; działa domyślny serwer WWW"
-    set_phase AGENT; return
-  fi
-  # LiteSpeed przez CustomBuild (oficjalna metoda dla DirectAdmin).
+  cd "$CB" || fail STACK "cd $CB"
+  # Asekuracja: gdyby CustomBuild z instalatora DA nadal działał w tle — czekamy (maks. 3 h).
+  local i=0
+  while pgrep -f 'custombuild/build' >/dev/null 2>&1 && [ "$i" -lt 360 ]; do sleep 30; i=$((i + 1)); done
+  # LiteSpeed przez CustomBuild (docs.directadmin.com → Web services → LiteSpeed):
+  #   build set webserver litespeed; build set php1_mode lsphp; build litespeed; build php
+  #   licencja: build set litespeed_serialno <serial>. Bez seriala CustomBuild instaluje TRIAL.
+  # Faza AGENT wymaga LiteSpeed, więc brak seriala = trial, a nie pominięcie fazy.
   ./build update >/dev/null 2>&1 || true
   ./build set webserver litespeed >/dev/null 2>&1 || fail STACK "build set webserver litespeed"
-  ./build set litespeed_serial "$LS_SERIAL" >/dev/null 2>&1 || fail STACK "build set litespeed_serial"
+  ./build set php1_mode lsphp >/dev/null 2>&1 || fail STACK "build set php1_mode lsphp"
+  local ls_tryb=trial
+  case "$LS_SERIAL" in
+    ''|[Tt][Rr][Ii][Aa][Ll]) ;;
+    *) ./build set litespeed_serialno "$LS_SERIAL" >/dev/null 2>&1 || fail STACK "build set litespeed_serialno"; ls_tryb=serial ;;
+  esac
   ./build litespeed || fail STACK "build litespeed"
+  ./build php || fail STACK "build php (lsphp)"
   ./build rewrite_confs >/dev/null 2>&1 || true
-  report STACK OK "LiteSpeed zainstalowany"
+  report STACK OK "LiteSpeed zainstalowany (licencja: $ls_tryb)"
   set_phase AGENT
 }
 

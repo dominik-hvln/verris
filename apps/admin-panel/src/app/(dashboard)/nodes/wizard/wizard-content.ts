@@ -130,6 +130,7 @@ tmux new -s ls-custombuild
 cd /usr/local/directadmin/custombuild
 
 ./build set webserver litespeed
+./build set php1_mode lsphp
 ./build set php1_release 8.3
 ./build set php2_release no
 ./build set redis yes
@@ -139,7 +140,7 @@ cd /usr/local/directadmin/custombuild
 
 # Weryfikacja (wymagane przez bootstrap Verris):
 /usr/local/lsws/bin/lswsctrl status
-ls /usr/local/lsws/lsphp*/bin/lsphp
+ls /usr/local/php*/bin/lsphp   # CustomBuild (lsphp)
 ss -lnt | grep 7080   # WebAdmin LS`;
 
 export const INSTALL_LITESPEED_STANDALONE = `# 3b) LiteSpeed — alternatywa: instalator przed bootstrap (gdy bez CustomBuild)

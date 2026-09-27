@@ -284,6 +284,13 @@ verify_live_readiness() {
     else
       log_fail "poczta — brak nasłuchu :993/:587 (profil: exim + dovecot)"
     fi
+    # Wychodzący SMTP (Exim → MX odbiorców). Hetzner Cloud blokuje 25 i 465 na nowych projektach
+    # (docs.hetzner.com/cloud/servers/faq): odblokowanie „limit request” po miesiącu i opłaceniu 1. faktury.
+    if timeout 8 bash -c 'exec 3<>/dev/tcp/gmail-smtp-in.l.google.com/25' 2>/dev/null; then
+      log_ok "wychodzący SMTP :25 (poczta klientów wyjdzie)"
+    else
+      log_warn "wychodzący SMTP :25 zablokowany — Exim nie doręczy poczty (Hetzner Cloud: wniosek o odblokowanie 25/465 w konsoli → Limits, po 1. opłaconej fakturze)"
+    fi
     if ss -lnt 2>/dev/null | awk '{print $4}' | grep -qE ':21$'; then
       log_ok "FTP — :21"
     else

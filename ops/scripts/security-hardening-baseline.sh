@@ -64,7 +64,10 @@ install_packages() {
     run "apt-get update"
     run "DEBIAN_FRONTEND=noninteractive apt-get install -y ufw fail2ban unattended-upgrades apt-listchanges"
   elif command -v dnf >/dev/null 2>&1; then
-    run "dnf install -y fail2ban firewalld dnf-automatic"
+    # fail2ban jest w EPEL — świeży AlmaLinux/CloudLinux go nie ma, a bez niego `dnf install` pada w całości.
+    run "dnf install -y epel-release || true"
+    # python3-systemd: jail z backend = systemd (niżej) bez niego nie startuje.
+    run "dnf install -y fail2ban firewalld dnf-automatic python3-systemd"
   else
     die "Unsupported package manager (expected apt-get or dnf)"
   fi
@@ -169,6 +172,13 @@ configure_firewall_ingress() {
     fi
   fi
 
+  # CSF (opcja CustomBuild DirectAdmin) i firewalld wzajemnie się wykluczają — przy aktywnym CSF
+  # ingress zostaje w CSF, nie włączamy drugiego firewalla (ryzyko odcięcia SSH).
+  if command -v csf >/dev/null 2>&1 && systemctl is-active --quiet csf 2>/dev/null; then
+    log "CSF aktywny — pomijam ufw/firewalld; porty ingress (w tym 2222, 465, 995, 35000:35999) ustaw w /etc/csf/csf.conf"
+    return 0
+  fi
+
   if command -v ufw >/dev/null 2>&1; then
     run "ufw --force reset"
     run "ufw default deny incoming"
@@ -193,8 +203,10 @@ configure_firewall_ingress() {
       # parse PASV replies; passive data ports must be opened explicitly (pure-ftpd range).
       run "ufw allow 35000:35999/tcp comment 'verris-ftps-passive'"
       run "ufw allow 25/tcp"
+      run "ufw allow 465/tcp"
       run "ufw allow 587/tcp"
       run "ufw allow 993/tcp"
+      run "ufw allow 995/tcp"
       run "ufw allow 5232/tcp comment 'verris-dav'"
       if [ -n "$control_plane_ip" ]; then
         # Remote MySQL stays private by default; allow only control-plane.
@@ -216,8 +228,10 @@ configure_firewall_ingress() {
       run "firewall-cmd --permanent --add-service=ftp"
       run "firewall-cmd --permanent --add-port=35000-35999/tcp"
       run "firewall-cmd --permanent --add-port=25/tcp"
+      run "firewall-cmd --permanent --add-port=465/tcp"
       run "firewall-cmd --permanent --add-port=587/tcp"
       run "firewall-cmd --permanent --add-port=993/tcp"
+      run "firewall-cmd --permanent --add-port=995/tcp"
       run "firewall-cmd --permanent --add-port=5232/tcp"
       if [ -n "$control_plane_ip" ]; then
         # Remote MySQL stays private by default; allow only control-plane.

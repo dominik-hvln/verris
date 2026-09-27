@@ -65,7 +65,10 @@ NFT_CONF="/etc/nftables.d/verris-egress.nft"
 mkdir -p /etc/nftables.d
 
 COMMON_ALLOW_TCP="{ 53, 80, 443 }"
-COMMON_ALLOW_UDP="{ 53, 123 }"
+# 67/547 — odnowienie dzierżawy DHCP (unicast przez zwykłe gniazdo UDP). Hetzner Cloud przydziela
+# główny IPv4 przez DHCP (docs.hetzner.com/cloud/servers/static-configuration) — bez tego po wygaśnięciu
+# dzierżawy węzeł traci IPv4.
+COMMON_ALLOW_UDP="{ 53, 67, 123, 547 }"
 
 if [ "$ROLE" = "control-plane" ]; then
   EXTRA_TCP="{ 25, 465, 587, 993, 995, 2222, 3306, 5432, 6379, 9000, 9001 }"
@@ -83,6 +86,9 @@ table inet verris_egress {
   chain output {
     type filter hook output priority 0; policy drop;
 
+    # explicit IOC deny (Hetzner/Spamhaus incident) — PRZED akceptacjami portów, inaczej 80/443/25 przechodziły
+    ip daddr 216.218.185.162 drop
+
     # loopback and already-established traffic
     oifname "lo" accept
     ct state established,related accept
@@ -98,12 +104,12 @@ table inet verris_egress {
     # role-specific outbound
     tcp dport ${EXTRA_TCP} accept
 
-    # PB-31 — SSH/SFTP tylko dla procesów roota: kopie off-site (rclone → Storage Box, port 23)
-    # i worker migracji (SFTP do starego hostingu, port 22). Konta klientów (inne UID) dalej zablokowane.
-    meta skuid 0 tcp dport { 22, 23 } accept
-
-    # explicit IOC deny (Hetzner/Spamhaus incident)
-    ip daddr 216.218.185.162 drop
+    # PB-31 — procesy roota: kopie off-site (rclone → Storage Box, port 23) i worker migracji
+    # (verris-migration-worker, root), który łączy się z DOWOLNYM hostem klienta: SSH/SFTP na
+    # niestandardowych portach (np. 65002, 18765), FTP pasywne (porty danych > 1024 — conntrack nie
+    # oznacza ich jako related bez helpera, a przy FTPS helper nie widzi PASV), IMAP 143/STARTTLS.
+    # Konta klientów (inne UID: PHP, cron, SSH) dalej tylko porty z list powyżej.
+    meta skuid 0 meta l4proto tcp accept
   }
 }
 EOF
@@ -124,18 +130,35 @@ EOF
   exit 2
 fi
 
-# Plik ładowany przy starcie przez nftables.service: RHEL/AlmaLinux czyta /etc/sysconfig/nftables.conf
-# (dokumentacja RHEL 9 „Getting started with nftables” → include w tym pliku); Debian — /etc/nftables.conf.
-# Wcześniej pisaliśmy tylko /etc/nftables.conf, więc na AlmaLinux blokada znikała po restarcie.
-BOOT_CONF=/etc/nftables.conf
-[ -f /etc/sysconfig/nftables.conf ] && BOOT_CONF=/etc/sysconfig/nftables.conf
-if ! grep -qF "include \"${NFT_CONF}\"" "$BOOT_CONF" 2>/dev/null; then
-  [ -f "$BOOT_CONF" ] && cp "$BOOT_CONF" "${BOOT_CONF}.bak.$(date -u +%Y%m%dT%H%M%SZ)"
-  printf '\n# Verris egress lockdown\ninclude "%s"\n' "$NFT_CONF" >>"$BOOT_CONF"
-fi
-
 nft -f "$NFT_CONF"
-systemctl enable --now nftables
-nft list ruleset
+# Własna jednostka zamiast nftables.service: firewalld.service ma Conflicts=nftables.service (RHBZ#1785494),
+# więc `enable --now nftables` zatrzymywał firewalld i zdejmował ingress z security-hardening-baseline.sh,
+# a ExecStop/reload nftables.service robi `nft flush ruleset` (kasuje też reguły firewalld/CSF).
+# Ta jednostka ładuje i zdejmuje wyłącznie tabelę inet verris_egress.
+# Bez --now: zatrzymanie nftables.service = `nft flush ruleset`. Wcześniejsza wersja włączała go
+# i przez Conflicts= zatrzymywała firewalld — przywracamy firewalld (start zatrzyma nftables.service).
+systemctl disable nftables >/dev/null 2>&1 || true
+if systemctl is-enabled --quiet firewalld 2>/dev/null && ! systemctl is-active --quiet firewalld; then
+  systemctl start firewalld
+fi
+cat >/etc/systemd/system/verris-node-egress.service <<UNIT
+[Unit]
+Description=Verris node egress lockdown (nftables table inet verris_egress)
+After=firewalld.service csf.service network-pre.target
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f ${NFT_CONF}
+ExecStop=/usr/sbin/nft delete table inet verris_egress
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+systemctl daemon-reload
+systemctl enable verris-node-egress.service
+systemctl restart verris-node-egress.service
+nft list table inet verris_egress
 
 log "Egress lockdown applied."

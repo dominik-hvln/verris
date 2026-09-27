@@ -614,15 +614,21 @@ ensure_deps() {
   for b in "${need[@]}"; do command -v "$b" >/dev/null 2>&1 || missing+=("$b"); done
   if [ ${#missing[@]} -gt 0 ]; then
     log "installing missing tools: ${missing[*]}"
+    # Tylko brakujące pakiety: `mariadb` z dystrybucji koliduje z MariaDB DirectAdmina / cl-MariaDB
+    # (Governor), a jeden konflikt w transakcji dnf blokował instalację WSZYSTKICH narzędzi.
+    local pkgs=() b
+    for b in "${missing[@]}"; do
+      if [ "$b" = mysql ]; then command -v apt-get >/dev/null 2>&1 && pkgs+=(mariadb-client) || pkgs+=(mariadb); else pkgs+=("$b"); fi
+    done
     if command -v dnf >/dev/null 2>&1; then
       dnf install -y epel-release >/dev/null 2>&1 || true
-      dnf install -y jq curl rsync sshpass lftp mariadb imapsync >/dev/null 2>&1 || true
+      dnf install -y "${pkgs[@]}" >/dev/null 2>&1 || true
     elif command -v yum >/dev/null 2>&1; then
       yum install -y epel-release >/dev/null 2>&1 || true
-      yum install -y jq curl rsync sshpass lftp mariadb imapsync >/dev/null 2>&1 || true
+      yum install -y "${pkgs[@]}" >/dev/null 2>&1 || true
     elif command -v apt-get >/dev/null 2>&1; then
       apt-get update >/dev/null 2>&1 || true
-      apt-get install -y jq curl rsync sshpass lftp mariadb-client imapsync >/dev/null 2>&1 || true
+      apt-get install -y "${pkgs[@]}" >/dev/null 2>&1 || true
     fi
   fi
 

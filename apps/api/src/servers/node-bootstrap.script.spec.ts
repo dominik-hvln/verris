@@ -37,6 +37,28 @@ describe('Bootstrap węzła (PB-29 / PB-30)', () => {
     expect(skrypt).toContain('rm -f "$RUNNER" "$UNIT"');
   });
 
+  it('działa na świeżym obrazie chmurowym (Hetzner Cloud AlmaLinux 9)', () => {
+    // cloud-init nie nadpisze nazwy hosta po restarcie CloudLinux; swap wymagany przez DA; SELinux permissive.
+    expect(skrypt).toContain('preserve_hostname: true');
+    expect(skrypt).toContain('mkswap /swapfile');
+    expect(skrypt).toContain("sed -i 's/^SELINUX=enforcing/SELINUX=permissive/'");
+    // obraz nie musi mieć wget — tylko curl (sprawdzany w PREFLIGHT)
+    expect(skrypt).not.toMatch(/^\s*wget /m);
+    // start przez systemd, nie w sesji SSH (zerwane SSH nie przerywa instalacji)
+    expect(skrypt).toContain('systemctl start --no-block verris-bootstrap.service');
+    expect(skrypt).not.toContain('exec "$RUNNER" run');
+    expect(skrypt).toContain('Environment=HOME=/root');
+  });
+
+  it('LiteSpeed przez CustomBuild: opcja litespeed_serialno, tryb lsphp, trial bez seriala', () => {
+    expect(skrypt).toContain('./build set litespeed_serialno "$LS_SERIAL"');
+    expect(skrypt).not.toMatch(/litespeed_serial\s/);
+    expect(skrypt).toContain('./build set php1_mode lsphp');
+    // CustomBuild z setup.sh nie może biec w tle równolegle z fazą STACK
+    expect(skrypt).toContain('export DA_FOREGROUND_CUSTOMBUILD=yes');
+    expect(skrypt).not.toContain('pominięto LiteSpeed');
+  });
+
   it('one-liner niesie token w nagłówku, nie w adresie', () => {
     const linia = buildNodeBootstrapOneLiner({ apiBaseUrl: 'https://api.verris.pl', bootstrapToken: 'eko_btk_x' });
     expect(linia).toBe("curl -fsS -H 'X-Bootstrap-Token: eko_btk_x' 'https://api.verris.pl/agent/nodes/bootstrap/script' | bash");

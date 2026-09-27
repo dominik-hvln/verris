@@ -164,7 +164,7 @@ function LicenseKeysForm({ serverId }: { serverId: string }) {
         <KeyRound className="h-4 w-4 text-amber-300" /> Klucze licencyjne
       </h3>
       <p className="mb-3 text-[11px] text-muted-foreground">
-        Wklej klucze po zakupie — są szyfrowane i wstrzykiwane do instalatora. Puste pole = faza pominięta (np. bez LiteSpeed zostaje domyślny serwer WWW).
+        Wklej klucze po zakupie — są szyfrowane i wstrzykiwane do instalatora. Puste pole CloudLinux = faza pominięta (agent wymaga CloudLinux, więc tylko przy ręcznej konwersji). Puste pole LiteSpeed lub „TRIAL” = licencja trial z CustomBuild (15 dni).
       </p>
       <div className="grid gap-3 md:grid-cols-3">
         <Field label="DirectAdmin — License Key"><input value={da} onChange={(e) => setDa(e.target.value)} placeholder="XXXX-XXXX-…" className="inp" /></Field>

@@ -1099,8 +1099,9 @@ if [ ! -x /usr/local/lsws/bin/lswsctrl ]; then
   bash <(curl -fsSL https://get.litespeed.sh) "$LITESPEED_SERIAL_NO"
 fi
 
-if ! ls /usr/local/lsws/lsphp*/bin/lsphp >/dev/null 2>&1; then
-  echo "[verris] LSPHP binary not found under /usr/local/lsws/lsphp*/bin/lsphp" >&2
+# LSPHP: repozytorium LiteSpeed → /usr/local/lsws/lsphpXX; DirectAdmin CustomBuild (php1_mode=lsphp) → /usr/local/phpXX/bin/lsphp.
+if ! compgen -G '/usr/local/lsws/lsphp*/bin/lsphp' >/dev/null && ! compgen -G '/usr/local/php*/bin/lsphp' >/dev/null; then
+  echo "[verris] LSPHP binary not found (/usr/local/lsws/lsphp*/bin/lsphp or /usr/local/php*/bin/lsphp)" >&2
   echo "[verris] Install LSPHP from LiteSpeed repository before continuing." >&2
   exit 1
 fi

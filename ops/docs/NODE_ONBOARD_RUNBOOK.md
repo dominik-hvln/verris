@@ -40,7 +40,12 @@ flowchart TD
 
 1. **OS:** AlmaLinux 9.x lub 10.x, minimal, dostęp root (krok „Wymagania” kreatora ma komendy przygotowania OS).
 2. **Rekord A** w OVH: `node-pl-NN.verris.pl` → publiczne IP węzła (wymagany przed akceptacją).
-3. Licencje: klucz aktywacji **CloudLinux**, klucz **DirectAdmin**, serial **LiteSpeed** (trial na testy).
+3. Licencje: klucz aktywacji **CloudLinux**, klucz **DirectAdmin**, serial **LiteSpeed** (trial na testy; puste pole / `TRIAL` = trial z CustomBuild).
+4. **Hetzner Cloud (VM):** nazwa serwera w konsoli = FQDN węzła (cloud-init ustawia z niej hostname), obraz AlmaLinux 9,
+   publiczny IPv4 włączony (DA wymaga IPv4), rDNS IPv4 i IPv6 = FQDN. Porty **25 i 465 wychodzące są blokowane** na nowych
+   projektach — odblokowanie wnioskiem (Limits) po miesiącu i opłaceniu 1. faktury; do tego czasu Exim nie doręczy poczty
+   (readiness zgłasza [WARN]). Bootstrap sam: swap 4 GB, SELinux → permissive, `preserve_hostname` w cloud-init.
+   IPv4 idzie z DHCP — egress węzła przepuszcza udp/67.
 
 ## Faza 2 — Instalacja: kreator → bootstrap v2
 
