@@ -230,6 +230,10 @@ export class TrialService {
       },
     });
     if (zmienione.count === 0) {
+      // Podwójne kliknięcie: drugie wywołanie dostaje ten sam wpis obciążenia (klucz idempotencji),
+      // a przekształcenie zrobiło już pierwsze — zwrot dałby darmowy miesiąc.
+      const teraz = await this.prisma.subscription.findUnique({ where: { id: subscriptionId }, select: { trialConvertedAt: true } });
+      if (teraz?.trialConvertedAt) return { ok: true };
       await this.walletLedger.credit({
         userId,
         type: WalletTxType.REFUND,

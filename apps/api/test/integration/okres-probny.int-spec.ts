@@ -91,4 +91,18 @@ describe('X-04 okres próbny', () => {
       expect(s.saldo).toBe(100);
     }
   });
+
+  it('podwójne kliknięcie „przejdź na płatny”: jedno obciążenie, bez zwrotu', async () => {
+    const k = await trial(100);
+    const { trial: t } = uslugi();
+    await Promise.all([
+      t.convertFromWallet(k.user.id, k.subscription.id).catch(() => undefined),
+      t.convertFromWallet(k.user.id, k.subscription.id).catch(() => undefined),
+    ]);
+    const s = await stan(k.subscription.id, k.user.id, k.account.id);
+    expect(s.sub.isTrial).toBe(false);
+    expect(s.obciazenia).toBe(1);
+    expect(await prisma().walletTransaction.count({ where: { userId: k.user.id, type: WalletTxType.REFUND } })).toBe(0);
+    expect(s.saldo).toBeLessThan(100);
+  });
 });
