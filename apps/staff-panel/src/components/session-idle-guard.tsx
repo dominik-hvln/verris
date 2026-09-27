@@ -11,7 +11,7 @@ type Props = {
   idleMinutes?: number;
 };
 
-/** Wylogowuje operatora supportu po braku aktywności. */
+/** Wylogowuje operatora supportu po braku aktywności. Aktywność wspólna dla kart (localStorage) — z sessionStorage bezczynna karta wylogowywała operatora pracującego w innej. */
 export function SessionIdleGuard({ idleMinutes = FALLBACK_IDLE_MINUTES }: Props) {
   const idleMs = Math.max(5, idleMinutes) * 60 * 1000;
   const loggingOut = useRef(false);
@@ -19,7 +19,7 @@ export function SessionIdleGuard({ idleMinutes = FALLBACK_IDLE_MINUTES }: Props)
   useEffect(() => {
     const touch = () => {
       try {
-        sessionStorage.setItem(STORAGE_KEY, String(Date.now()));
+        localStorage.setItem(STORAGE_KEY, String(Date.now()));
       } catch {
         /* ignore */
       }
@@ -35,7 +35,7 @@ export function SessionIdleGuard({ idleMinutes = FALLBACK_IDLE_MINUTES }: Props)
       if (loggingOut.current) return;
       let last = Date.now();
       try {
-        const raw = sessionStorage.getItem(STORAGE_KEY);
+        const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) last = Number.parseInt(raw, 10) || last;
       } catch {
         /* ignore */
