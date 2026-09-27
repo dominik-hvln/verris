@@ -8,6 +8,7 @@ function zbuduj(opts: { saldoOk: boolean; subs: Array<Record<string, unknown>>; 
       findMany: vi.fn(async () => opts.subs),
       findFirst: vi.fn(async () => opts.subs[0] ?? null),
       update: vi.fn(async () => ({})),
+      updateMany: vi.fn(async () => ({ count: 1 })),
     },
     subscriptionEvent: { create: vi.fn(async () => ({})) },
   };
@@ -76,5 +77,6 @@ describe('RenewalScheduler — Z-07', () => {
     await (s as unknown as { runRenewalWindow(): Promise<void> }).runRenewalWindow();
     expect(prisma.subscriptionEvent.create).not.toHaveBeenCalled();
     expect(prisma.subscription.update).not.toHaveBeenCalledWith(expect.objectContaining({ data: { status: 'PAST_DUE' } }));
+    expect(prisma.subscription.updateMany).not.toHaveBeenCalled();
   });
 });

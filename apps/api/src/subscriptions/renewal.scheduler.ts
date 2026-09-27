@@ -239,7 +239,7 @@ export class RenewalScheduler {
       // Ponowienie w karencji nie zapisuje nowego PAYMENT_FAILED — to zdarzenie
       // wyznacza początek karencji, a nowe co godzinę nie pozwoliłoby jej wygasnąć.
       if (sub.status !== SubscriptionStatus.PAST_DUE) {
-        await this.markPastDue(sub.id, sub.userId, msg);
+        await this.markPastDue(sub.id, sub.userId, msg, periodEnd);
       }
       return false;
     }
@@ -294,11 +294,15 @@ export class RenewalScheduler {
     subscriptionId: string,
     userId: string,
     reason: string,
+    periodEnd: Date,
   ): Promise<void> {
-    await this.prisma.subscription.update({
-      where: { id: subscriptionId },
+    // Warunkowo: klient mógł w tej chwili sam opłacić okres („Opłać teraz” po doładowaniu) —
+    // wtedy okres jest już przesunięty i usługa nie może wrócić do „zaległa” z karencją.
+    const oznaczone = await this.prisma.subscription.updateMany({
+      where: { id: subscriptionId, status: SubscriptionStatus.ACTIVE, currentPeriodEnd: periodEnd },
       data: { status: SubscriptionStatus.PAST_DUE },
     });
+    if (oznaczone.count === 0) return;
     await this.prisma.subscriptionEvent.create({
       data: {
         subscriptionId,
