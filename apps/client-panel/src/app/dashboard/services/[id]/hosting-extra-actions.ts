@@ -3,7 +3,6 @@
 import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
 
 import type {
-  HostingBackupsResponseDto,
   HostingCronJobsResponseDto,
   HostingFtpAccountsResponseDto,
 } from '@verris/contracts';
@@ -22,12 +21,6 @@ async function fetchHostingCronActionTresc(
   serviceId: string,
 ): Promise<HostingCronJobsResponseDto> {
   return apiFetch<HostingCronJobsResponseDto>(`/services/${serviceId}/hosting-cron`);
-}
-
-export async function fetchHostingBackupsAction(
-  serviceId: string,
-): Promise<HostingBackupsResponseDto> {
-  return apiFetch<HostingBackupsResponseDto>(`/services/${serviceId}/hosting-backups`);
 }
 
 type MutResult = { ok: true } | { ok: false; error: string };

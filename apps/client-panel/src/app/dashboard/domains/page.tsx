@@ -64,7 +64,7 @@ export default function DomainsPage() {
 
     setAdding(true);
     try {
-      await addDomain(newDomainName.trim().toLowerCase());
+      odpakuj(await addDomain(newDomainName.trim().toLowerCase()));
       toast.success('Domena dodana do konta');
       setIsAddOpen(false);
       setNewDomainName('');

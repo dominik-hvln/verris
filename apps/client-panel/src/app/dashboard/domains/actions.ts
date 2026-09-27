@@ -22,11 +22,12 @@ export async function fetchDomain(id: string): Promise<DomainDto> {
   return apiFetch<DomainDto>(`/domains/${id}`);
 }
 
-export async function addDomain(name: string): Promise<boolean> {
-  await apiFetch('/domains', { method: 'POST', body: JSON.stringify({ name }) });
-
-  revalidatePath('/dashboard/domains');
-  return true;
+export async function addDomain(name: string): Promise<WynikAkcji<boolean>> {
+  return bezpiecznie(async () => {
+    await apiFetch('/domains', { method: 'POST', body: JSON.stringify({ name }) });
+    revalidatePath('/dashboard/domains');
+    return true;
+  });
 }
 
 export async function deleteDomain(id: string): Promise<WynikAkcji<boolean>> {
