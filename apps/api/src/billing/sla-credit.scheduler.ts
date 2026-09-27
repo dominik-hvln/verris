@@ -45,6 +45,9 @@ import { NotificationsService } from '../notifications/notifications.service.js'
  *
  * Domyślnie WYŁĄCZONE — nic nie jest kredytowane, dopóki `sla.creditsEnabled = 1`.
  */
+/** §15 ust. 7 — minimalne wyprzedzenie zapowiedzi prac konserwacyjnych. */
+const ZAPOWIEDZ_MS = 48 * 60 * 60 * 1000;
+
 @Injectable()
 export class SlaCreditScheduler {
   private readonly logger = new Logger(SlaCreditScheduler.name);
@@ -181,14 +184,22 @@ export class SlaCreditScheduler {
           },
         });
 
-        const tx = await this.walletLedger.credit({
-          userId: p.userId,
-          type: WalletTxType.ADJUSTMENT,
-          amount: p.amount,
-          description: `Rekompensata SLA za ${periodKey} (${p.domain ?? p.planName ?? 'usługa'})`,
-          idempotencyKey: `sla-${p.subscriptionId}-${periodKey}`,
-          subscriptionId: p.subscriptionId,
-        });
+        let tx;
+        try {
+          tx = await this.walletLedger.credit({
+            userId: p.userId,
+            type: WalletTxType.ADJUSTMENT,
+            amount: p.amount,
+            description: `Rekompensata SLA za ${periodKey} (${p.domain ?? p.planName ?? 'usługa'})`,
+            idempotencyKey: `sla-${p.subscriptionId}-${periodKey}`,
+            subscriptionId: p.subscriptionId,
+          });
+        } catch (err) {
+          // Rekord bez uznania portfela blokowałby każdy kolejny przebieg (unikat) — klient nie
+          // dostałby rekompensaty nigdy. Zwalniamy miesiąc, jutrzejszy przebieg spróbuje ponownie.
+          await this.prisma.slaCredit.deleteMany({ where: { subscriptionId: p.subscriptionId, periodStart: p.periodStart } });
+          throw err;
+        }
 
         await this.audit.record({
           action: 'SLA_CREDIT_GRANTED',
@@ -292,12 +303,13 @@ export class SlaCreditScheduler {
     const byServer = new Map<string, Interval[]>();
     for (const w of windows) {
       if (!w.serverId) continue;
+      // §15 ust. 7: wyłączone są tylko prace zapowiedziane co najmniej 48 h wcześniej — okno założone
+      // w trakcie awarii nie może jej „przykryć”. I tylko w zapowiedzianych godzinach: przedłużenie
+      // prac ponad zapowiedź to zwykła niedostępność. Wcześniej liczyło się każde okno, w całym
+      // faktycznym czasie trwania.
+      if (w.createdAt.getTime() > w.scheduledStart.getTime() - ZAPOWIEDZ_MS) continue;
       const list = byServer.get(w.serverId) ?? [];
-      // Liczy się okno faktyczne, jeśli znane; w przeciwnym razie zapowiedziane.
-      list.push({
-        start: w.startedAt ?? w.scheduledStart,
-        end: w.completedAt ?? w.scheduledEnd,
-      });
+      list.push({ start: w.scheduledStart, end: w.scheduledEnd });
       byServer.set(w.serverId, list);
     }
     for (const [id, list] of byServer) byServer.set(id, mergeIntervals(list));
