@@ -51,7 +51,11 @@ fi
 
 # --entrypoint bash: obraz API ma własny entrypoint (składa DATABASE_URL i startuje API).
 # NODE_ENV= : obraz API ustawia production, a wtedy pnpm pomija devDependencies (CLI Payloada).
-docker run --rm \
+# Sieć danych jest `internal: true` (bez internetu), a `pnpm install` potrzebuje
+# rejestru npm — kontener dostaje obie sieci: dane (postgres) + verris_public (wyjście).
+PUB="${MIGRATE_PUBLIC_NETWORK:-$(docker network ls --format '{{.Name}}' | grep -m1 '_verris_public$' || true)}"
+[ -n "$PUB" ] || { echo "[migrate-www] nie znaleziono sieci verris_public"; exit 1; }
+CID="$(docker create \
   --entrypoint bash \
   -e NODE_ENV= \
   --network "$NET" \
@@ -67,6 +71,10 @@ docker run --rm \
     command -v pnpm >/dev/null || npm install -g "$(node -p "require(\"/repo/package.json\").packageManager")"
     pnpm install --filter @verris/www... --frozen-lockfile
     pnpm --filter @verris/www exec payload migrate
-  '
+  ')"
+trap 'docker rm -f "$CID" >/dev/null 2>&1 || true' EXIT
+docker network connect "$PUB" "$CID"
+# `start -a` zwraca kod wyjścia kontenera — nieudana migracja przerywa deploy jak dotąd.
+docker start -a "$CID"
 
 echo "[migrate-www] OK"

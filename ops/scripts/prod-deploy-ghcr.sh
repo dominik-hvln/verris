@@ -40,6 +40,20 @@ git -c safe.directory="$(pwd)" checkout -q "${IMAGE_TAG}" 2>/dev/null || echo "[
 
 PREV_TAG="$(cat "$LAST_GOOD_FILE" 2>/dev/null || echo '')"
 
+# 0-) Sieć danych bez internetu (2026-09-28). Compose z `internal: true` przy starej
+#     sieci: pierwsze częściowe `run`/`up` próbuje ją odtworzyć i potrafi zostawić
+#     zatrzymaną bazę („network has active endpoints", sprawdzone na replice stosu).
+#     Przejście robi właściciel, raz: ops/scripts/prod-siec-danych-izolacja.sh.
+#     Tutaj tylko odmowa — PRZED jakąkolwiek zmianą kontenerów.
+siec_danych="$(docker network ls --format '{{.Name}}' | grep -m1 '_verris_internal$' || true)"
+if [ -n "$siec_danych" ] && [ "$(docker network inspect -f '{{.Internal}}' "$siec_danych" 2>/dev/null)" = "false" ] \
+  && awk '/^  verris_internal:/{f=1;next} f&&/^  [^ ]/{f=0} f&&/internal: true/{t=1} END{exit !t}' "$COMPOSE_FILE"; then
+  echo "[deploy] STOP: $siec_danych ma jeszcze wyjście do internetu, a $COMPOSE_FILE wymaga internal: true."
+  echo "[deploy]       Na serwerze: WDROZENIE_RECZNE_POWOD=\"sieć danych bez internetu\" bash ops/scripts/prod-siec-danych-izolacja.sh"
+  echo "[deploy]       potem ponów deploy. Nic nie zostało zmienione."
+  exit 1
+fi
+
 # 0) Zwolnij miejsce PRZED pobraniem nowych obrazów. Deploy zostawia stare tagi/warstwy,
 #    a nieudany deploy nigdy nie sprząta (czyszczenie było tylko po sukcesie) — dysk się
 #    zapychał do „no space left on device" przy `pull`. Obrazy uruchomionych kontenerów

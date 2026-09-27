@@ -1,5 +1,9 @@
 auth_enabled: false
 
+# Bez raportów użycia do stats.grafana.org.
+analytics:
+  reporting_enabled: false
+
 server:
   http_listen_port: 3100
 

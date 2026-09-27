@@ -82,6 +82,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
       MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-}
+      # Bez sprawdzania aktualizacji (dl.min.io) — obraz budujemy sami (PB-38).
+      MINIO_UPDATE: 'off'
     volumes:
       - minio_data:/data
     expose: ['9000', '9001']
@@ -551,6 +553,7 @@ services:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
       - --storage.path=/var/lib/alloy/data
+      - --disable-reporting
       - /etc/alloy/config.alloy
     volumes:
       - ./ops/observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
@@ -753,5 +756,15 @@ volumes:
 networks:
   verris_internal:   # DB + Redis — not exposed to anything else
     driver: bridge
+    # Bez wyjścia do internetu (2026-09-28). Docker nie daje sieci `internal` bramy,
+    # więc Postgres, Valkey, MinIO, Loki, eksportery i Alloy nie mają trasy na
+    # zewnątrz — przejęty kontener danych nie wyśle ich nigdzie. Kontenery w obu
+    # sieciach (API, www, Grafana, Prometheus) wychodzą przez verris_public; bez tej
+    # flagi ich trasa domyślna szła przez TĘ sieć (sprawdzone na replice stosu).
+    #
+    # Przejście istniejącej sieci: ops/scripts/prod-siec-danych-izolacja.sh
+    # (down + up całego stosu). Deploy odmawia, dopóki sieć nie jest przestawiona —
+    # częściowe `up` przy starej sieci potrafi zostawić zatrzymaną bazę.
+    internal: true
   verris_public:     # API + panels reachable through the proxy
     driver: bridge
