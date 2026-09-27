@@ -23,6 +23,7 @@ describe('DomainsService', () => {
       create: vi.fn(),
       findMany: vi.fn(),
     },
+    account: { findFirst: vi.fn() },
   };
   const config = { get: () => 'test-secret' };
 
@@ -135,6 +136,14 @@ describe('DomainsService', () => {
     });
     await expect(service().create('owner', { name: 'x.pl' } as never)).rejects.toThrow('już zarejestrowana');
     expect(prisma.domain.delete).not.toHaveBeenCalled();
+  });
+
+  it('domena główna hostingu nie daje się dodać drugi raz jako osobny wpis', async () => {
+    prisma.account.findFirst.mockResolvedValue({ userId: 'owner' });
+    await expect(service().create('owner', { name: 'tprstudio.pl' } as never)).rejects.toThrow('już na Twoim hostingu');
+    prisma.account.findFirst.mockResolvedValue({ userId: 'ktos' });
+    await expect(service().create('owner', { name: 'tprstudio.pl' } as never)).rejects.toThrow('już zarejestrowana');
+    expect(prisma.domain.create).not.toHaveBeenCalled();
   });
 });
 

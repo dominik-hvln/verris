@@ -4,7 +4,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import * as tls from 'tls';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ConfigService } from '@nestjs/config';
-import { DomainChecklistStatus, DomainStatus } from '@verris/database';
+import { AccountStatus, DomainChecklistStatus, DomainStatus } from '@verris/database';
 import { CreateDomainDto } from './dto/create-domain.dto.js';
 
 /** A-16 — rekord wyzwania: TXT pod `_verris-challenge.<domena>`. */
@@ -22,6 +22,18 @@ export class DomainsService {
   ) {}
 
   async create(userId: string, createDomainDto: CreateDomainDto) {
+    // Domena główna hostingu żyje tylko w Account.domain — bez tej kontroli „Dodaj domenę”
+    // tworzył obok niej drugi wpis (PENDING), który zasłaniał na liście działający hosting.
+    const naHostingu = await this.prisma.account.findFirst({
+      where: { domain: { equals: createDomainDto.name, mode: 'insensitive' }, status: { not: AccountStatus.DELETED } },
+      select: { userId: true },
+    });
+    if (naHostingu) {
+      throw new ConflictException(
+        naHostingu.userId === userId ? 'Ta domena jest już na Twoim hostingu' : 'Domena jest już zarejestrowana w systemie',
+      );
+    }
+
     const existing = await this.prisma.domain.findUnique({
       where: { name: createDomainDto.name },
     });
