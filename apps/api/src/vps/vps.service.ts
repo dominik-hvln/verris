@@ -170,14 +170,20 @@ export class VpsService {
       },
     });
 
-    // 2) Debit wallet (fail-closed).
-    await this.wallet.debit({
-      userId,
-      type: WalletTxType.CHARGE_USAGE,
-      amount: price,
-      description: `VPS ${plan.name} (pierwszy miesiąc)`,
-      idempotencyKey: `vps-${instance.id}-initial`,
-    });
+    // 2) Debit wallet (fail-closed). Bez środków rekord znika — wcześniej zostawał na liście klienta
+    //    jako „zakładany” na zawsze (odnowienia go pomijają, nikt go nie sprzątał).
+    try {
+      await this.wallet.debit({
+        userId,
+        type: WalletTxType.CHARGE_USAGE,
+        amount: price,
+        description: `VPS ${plan.name} (pierwszy miesiąc)`,
+        idempotencyKey: `vps-${instance.id}-initial`,
+      });
+    } catch (err) {
+      await this.prisma.vpsInstance.delete({ where: { id: instance.id } });
+      throw err;
+    }
 
     // 3) Provision on Hetzner; refund + ERROR on failure.
     try {
@@ -242,6 +248,13 @@ export class VpsService {
   async power(userId: string, id: string, action: 'on' | 'off' | 'reboot') {
     const v = await this.requireOwned(userId, id);
     if (!v.hetznerServerId) throw new ConflictException('VPS nie jest jeszcze gotowy.');
+    // Okres nieopłacony = VPS wstrzymany za brak płatności. Wcześniej klient mógł go po prostu
+    // włączyć i korzystać przez całą karencję bez płacenia.
+    if (action === 'on' && v.currentPeriodEnd && v.currentPeriodEnd.getTime() <= Date.now()) {
+      throw new ConflictException(
+        'VPS jest wstrzymany z powodu braku środków. Doładuj portfel — włączymy go automatycznie przy najbliższym odnowieniu (codziennie o 4:00).',
+      );
+    }
     if (action === 'on') await this.hetzner.powerOn(v.hetznerServerId);
     else if (action === 'off') await this.hetzner.powerOff(v.hetznerServerId);
     else await this.hetzner.reboot(v.hetznerServerId);
