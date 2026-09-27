@@ -2,8 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { Select } from '@/components/panel/select';
-import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
+import {
+  fetchHostingDomainsAction as fetchHostingDomainsActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-domains-action';
 import { fetchDomainPhp } from '@/app/dashboard/php/php-actions';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
 
 /**
  * L-05 — polecenie crona ze skryptem PHP w wybranej wersji. Wersje = sloty PHP serwera

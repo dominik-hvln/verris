@@ -2,10 +2,17 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Kpi, KpiStrip, MiniBars, SectionHead, fmtMb } from '@/components/panel/v2';
-import { fetchHostingUsageAction, HostingUsageResponse } from '@/app/dashboard/services/[id]/hosting-usage-actions';
+import {
+  fetchHostingUsageAction as fetchHostingUsageActionAkcja,
+  HostingUsageResponse,
+} from '@/app/dashboard/services/[id]/hosting-usage-actions';
 import ServiceForecastPanel from '@/components/hosting/ServiceForecastPanel';
 import AccountStatsCard from '@/components/hosting/AccountStatsCard';
 import { DiskUsagePanel } from '@/components/hosting/DiskUsagePanel';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchHostingUsageAction = zOdpakowaniem(fetchHostingUsageActionAkcja);
 
 export default function UsageTab({ serviceId }: { serviceId: string }) {
   const [window, setWindow] = useState<'24h' | '7d'>('24h');

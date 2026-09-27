@@ -111,7 +111,7 @@ export async function searchDomainsAction(label: string) {
   });
 }
 
-export async function quotePeriodsAction(name: string, years: number[] = [1, 2, 3, 5, 10]) {
+async function quotePeriodsActionTresc(name: string, years: number[] = [1, 2, 3, 5, 10]) {
   return apiFetch<DomainPeriodQuotesDto>('/domains/registrar/quote-periods', {
     method: 'POST',
     body: JSON.stringify({ name, years }),
@@ -304,4 +304,8 @@ export async function renewDomainAction(id: string, years: number): Promise<{ ok
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Odnowienie nie powiodło się.' };
   }
+}
+
+export async function quotePeriodsAction(...a: Parameters<typeof quotePeriodsActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof quotePeriodsActionTresc>>>> {
+  return bezpiecznie(() => quotePeriodsActionTresc(...a));
 }

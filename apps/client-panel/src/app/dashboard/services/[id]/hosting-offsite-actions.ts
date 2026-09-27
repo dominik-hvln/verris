@@ -1,5 +1,7 @@
 'use server';
 
+import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
+
 import { apiFetch } from '@/lib/api';
 
 /**
@@ -39,13 +41,13 @@ export interface OffsiteRestoreStatusDto {
   fetchedArchive: string | null;
 }
 
-export async function fetchOffsiteStatusAction(
+async function fetchOffsiteStatusActionTresc(
   serviceId: string,
 ): Promise<OffsiteRestoreStatusDto> {
   return apiFetch<OffsiteRestoreStatusDto>(`/services/${serviceId}/hosting-offsite`);
 }
 
-export async function queueOffsiteListAction(
+async function queueOffsiteListActionTresc(
   serviceId: string,
   snapshot?: string,
 ): Promise<OffsiteRestoreStatusDto> {
@@ -55,7 +57,7 @@ export async function queueOffsiteListAction(
   });
 }
 
-export async function queueOffsiteFetchAction(
+async function queueOffsiteFetchActionTresc(
   serviceId: string,
   archive: string,
   snapshot?: string,
@@ -64,4 +66,16 @@ export async function queueOffsiteFetchAction(
     method: 'POST',
     body: JSON.stringify({ archive, snapshot: snapshot || undefined }),
   });
+}
+
+export async function fetchOffsiteStatusAction(...a: Parameters<typeof fetchOffsiteStatusActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof fetchOffsiteStatusActionTresc>>>> {
+  return bezpiecznie(() => fetchOffsiteStatusActionTresc(...a));
+}
+
+export async function queueOffsiteListAction(...a: Parameters<typeof queueOffsiteListActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof queueOffsiteListActionTresc>>>> {
+  return bezpiecznie(() => queueOffsiteListActionTresc(...a));
+}
+
+export async function queueOffsiteFetchAction(...a: Parameters<typeof queueOffsiteFetchActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof queueOffsiteFetchActionTresc>>>> {
+  return bezpiecznie(() => queueOffsiteFetchActionTresc(...a));
 }

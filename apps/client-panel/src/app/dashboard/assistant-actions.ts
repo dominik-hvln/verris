@@ -1,5 +1,7 @@
 'use server';
 
+import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
+
 import type { AiChatMessageDto, AiChatResponseDto, AiStatusDto } from '@verris/contracts';
 import { apiFetch } from '@/lib/api';
 
@@ -11,7 +13,7 @@ export async function fetchAiStatusAction(): Promise<AiStatusDto | null> {
   }
 }
 
-export async function askHostingAssistantAction(input: {
+async function askHostingAssistantActionTresc(input: {
   question: string;
   history?: AiChatMessageDto[];
   subscriptionId?: string | null;
@@ -24,4 +26,8 @@ export async function askHostingAssistantAction(input: {
       subscriptionId: input.subscriptionId ?? undefined,
     }),
   });
+}
+
+export async function askHostingAssistantAction(...a: Parameters<typeof askHostingAssistantActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof askHostingAssistantActionTresc>>>> {
+  return bezpiecznie(() => askHostingAssistantActionTresc(...a));
 }

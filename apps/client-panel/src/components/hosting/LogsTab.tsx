@@ -3,11 +3,20 @@
 import { useEffect, useId, useState } from 'react';
 import { Loader2, RefreshCw } from 'lucide-react';
 import type { HostingDomainsResponseDto, HostingLogDto } from '@verris/contracts';
-import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
-import { fetchHostingLogAction } from '@/app/dashboard/services/[id]/hosting-logs-action';
+import {
+  fetchHostingDomainsAction as fetchHostingDomainsActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-domains-action';
+import {
+  fetchHostingLogAction as fetchHostingLogActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-logs-action';
 import { HostingTabShell } from '@/components/hosting/HostingTabShell';
 import { Select } from '@/components/panel/select';
 import { HOSTING_FETCH_UNAVAILABLE, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
+const fetchHostingLogAction = zOdpakowaniem(fetchHostingLogActionAkcja);
 
 const komunikat = (e: unknown) => hostingFetchErrorMessage(e instanceof Error ? e.message : String(e)) ?? HOSTING_FETCH_UNAVAILABLE;
 

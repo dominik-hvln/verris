@@ -12,12 +12,18 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import {
-  fetchOffsiteStatusAction,
-  queueOffsiteFetchAction,
-  queueOffsiteListAction,
+  fetchOffsiteStatusAction as fetchOffsiteStatusActionAkcja,
+  queueOffsiteFetchAction as queueOffsiteFetchActionAkcja,
+  queueOffsiteListAction as queueOffsiteListActionAkcja,
   type OffsiteRestoreStatusDto,
 } from '@/app/dashboard/services/[id]/hosting-offsite-actions';
 import { liczba } from '@/lib/liczba';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchOffsiteStatusAction = zOdpakowaniem(fetchOffsiteStatusActionAkcja);
+const queueOffsiteFetchAction = zOdpakowaniem(queueOffsiteFetchActionAkcja);
+const queueOffsiteListAction = zOdpakowaniem(queueOffsiteListActionAkcja);
 
 /**
  * S-1 — kopie OFF-SITE w panelu klienta.

@@ -1,15 +1,17 @@
 'use server';
 
+import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
+
 import type { HostingDaLinksResponseDto, HostingMysqlDatabasesResponseDto } from '@verris/contracts';
 import { apiFetch } from '@/lib/api';
 
-export async function fetchHostingDatabasesAction(
+async function fetchHostingDatabasesActionTresc(
   subscriptionId: string,
 ): Promise<HostingMysqlDatabasesResponseDto> {
   return apiFetch<HostingMysqlDatabasesResponseDto>(`/services/${subscriptionId}/hosting-databases`);
 }
 
-export async function fetchHostingDaLinksAction(
+async function fetchHostingDaLinksActionTresc(
   subscriptionId: string,
 ): Promise<HostingDaLinksResponseDto> {
   return apiFetch<HostingDaLinksResponseDto>(`/services/${subscriptionId}/hosting-da-links`);
@@ -42,4 +44,12 @@ export async function deleteHostingDatabaseAction(
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Nie udało się usunąć bazy.' };
   }
+}
+
+export async function fetchHostingDatabasesAction(...a: Parameters<typeof fetchHostingDatabasesActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof fetchHostingDatabasesActionTresc>>>> {
+  return bezpiecznie(() => fetchHostingDatabasesActionTresc(...a));
+}
+
+export async function fetchHostingDaLinksAction(...a: Parameters<typeof fetchHostingDaLinksActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof fetchHostingDaLinksActionTresc>>>> {
+  return bezpiecznie(() => fetchHostingDaLinksActionTresc(...a));
 }

@@ -21,7 +21,7 @@ import { SpinBorder } from '@/components/spin-border';
 import { toast } from 'sonner';
 import {
   getWaiverConsentAction,
-  quotePeriodsAction,
+  quotePeriodsAction as quotePeriodsActionAkcja,
   registerDomainClientAction,
   searchDomainsAction,
   transferDomainClientAction,
@@ -35,6 +35,10 @@ import { trackBeginCheckout, trackPurchase, trackSearch } from '@/lib/analytics-
 import { Checkbox } from '@/components/panel/checkbox';
 import { Stepper } from '@/components/panel/stepper';
 import { odpakuj } from '@/lib/wynik-akcji';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const quotePeriodsAction = zOdpakowaniem(quotePeriodsActionAkcja);
 
 const YEAR_OPTIONS = [1, 2, 3, 5, 10] as const;
 

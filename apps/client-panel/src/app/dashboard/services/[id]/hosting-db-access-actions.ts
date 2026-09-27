@@ -1,5 +1,7 @@
 'use server';
 
+import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
+
 import { apiFetch, ApiError } from '@/lib/api';
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -7,7 +9,7 @@ function errMsg(err: unknown): string {
   return err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Błąd';
 }
 
-export async function fetchDbAccessHostsAction(
+async function fetchDbAccessHostsActionTresc(
   subscriptionId: string,
   db: string,
 ): Promise<{ hosts: string[]; fetchError: string | null }> {
@@ -36,4 +38,8 @@ export async function removeDbAccessHostAction(input: { subscriptionId: string; 
   } catch (err) {
     return { ok: false, error: errMsg(err) };
   }
+}
+
+export async function fetchDbAccessHostsAction(...a: Parameters<typeof fetchDbAccessHostsActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof fetchDbAccessHostsActionTresc>>>> {
+  return bezpiecznie(() => fetchDbAccessHostsActionTresc(...a));
 }

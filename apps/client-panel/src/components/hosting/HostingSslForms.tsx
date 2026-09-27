@@ -3,13 +3,19 @@
 import React, { useEffect, useState, useId } from 'react';
 import { KeyRound, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@verris/ui';
-import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
+import {
+  fetchHostingDomainsAction as fetchHostingDomainsActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-domains-action';
 import {
   pasteCustomSslAction,
   requestLetsEncryptSslAction,
 } from '@/app/dashboard/services/[id]/hosting-ssl-actions';
 import { Select } from '@/components/panel';
 import { Checkbox } from '@/components/panel/checkbox';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
 
 interface Props {
   serviceId: string;

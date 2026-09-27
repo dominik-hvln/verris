@@ -3,7 +3,13 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { HostingDaLinksResponseDto } from '@verris/contracts';
 import { Loader2 } from 'lucide-react';
-import { fetchHostingDaLinksAction } from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
+import {
+  fetchHostingDaLinksAction as fetchHostingDaLinksActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchHostingDaLinksAction = zOdpakowaniem(fetchHostingDaLinksActionAkcja);
 
 const emptyLinks: HostingDaLinksResponseDto = {
   panelBaseUrl: '',

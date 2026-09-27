@@ -5,8 +5,8 @@ import { Database, Download, Loader2, RotateCcw, ShieldAlert, Check, X, AlertTri
 import type { HostingBackupRowDto } from '@verris/contracts';
 import { fetchHostingBackupsAction } from '@/app/dashboard/services/[id]/hosting-extra-actions';
 import {
-  enqueueHostingRestoreAction,
-  fetchHostingRestoreStatusAction,
+  enqueueHostingRestoreAction as enqueueHostingRestoreActionAkcja,
+  fetchHostingRestoreStatusAction as fetchHostingRestoreStatusActionAkcja,
   type HostingRestoreJobDto,
 } from '@/app/dashboard/services/[id]/hosting-backup-actions';
 import { BackupNowButton } from '@/app/dashboard/backups/backup-now-button';
@@ -17,6 +17,11 @@ import { ArchiveBrowser } from '@/components/hosting/ArchiveBrowser';
 import BackupScheduleCard from '@/components/hosting/BackupScheduleCard';
 import { HostingOffsitePanel } from '@/components/hosting/hosting-offsite-panel';
 import { Checkbox } from '@/components/panel/checkbox';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const enqueueHostingRestoreAction = zOdpakowaniem(enqueueHostingRestoreActionAkcja);
+const fetchHostingRestoreStatusAction = zOdpakowaniem(fetchHostingRestoreStatusActionAkcja);
 
 const STATUS_LABEL: Record<HostingRestoreJobDto['status'], string> = {
   QUEUED: 'W kolejce',

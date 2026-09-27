@@ -5,10 +5,10 @@ import { Globe, Link2, Loader2, Plus, Star, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@verris/ui';
 import {
-  fetchAdditionalDomainsAction,
+  fetchAdditionalDomainsAction as fetchAdditionalDomainsActionAkcja,
   createAdditionalDomainAction,
   deleteAdditionalDomainAction,
-  fetchDomainPointersAction,
+  fetchDomainPointersAction as fetchDomainPointersActionAkcja,
   createDomainPointerAction,
   deleteDomainPointerAction,
   type AdditionalDomainRow,
@@ -16,6 +16,11 @@ import {
 } from '@/app/dashboard/services/[id]/hosting-additional-domains-actions';
 import { daErrorMessage } from '@/lib/client-hosting-messages';
 import { potwierdz } from '@/components/panel/potwierdz';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchAdditionalDomainsAction = zOdpakowaniem(fetchAdditionalDomainsActionAkcja);
+const fetchDomainPointersAction = zOdpakowaniem(fetchDomainPointersActionAkcja);
 
 export default function AdditionalDomains({ serviceId }: { serviceId: string }) {
   const [rows, setRows] = useState<AdditionalDomainRow[]>([]);

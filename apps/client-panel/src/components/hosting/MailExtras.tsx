@@ -5,15 +5,15 @@ import { Forward, Inbox, Loader2, MailCheck, Plus, ShieldCheck, Trash2 } from 'l
 import { toast } from 'sonner';
 import { Button } from '@verris/ui';
 import {
-  fetchHostingForwardersAction,
+  fetchHostingForwardersAction as fetchHostingForwardersActionAkcja,
   createHostingForwarderAction,
   deleteHostingForwarderAction,
-  fetchHostingAutorespondersAction,
+  fetchHostingAutorespondersAction as fetchHostingAutorespondersActionAkcja,
   setHostingAutoresponderAction,
   deleteHostingAutoresponderAction,
   fetchCatchAllAction,
   setCatchAllAction,
-  fetchSpamFilterAction,
+  fetchSpamFilterAction as fetchSpamFilterActionAkcja,
   setSpamFilterAction,
   type ForwarderRow,
   type AutoresponderRow,
@@ -22,6 +22,12 @@ import { daErrorMessage } from '@/lib/client-hosting-messages';
 import { Select } from '@/components/panel/select';
 import { potwierdz } from '@/components/panel/potwierdz';
 import { Checkbox } from '@/components/panel/checkbox';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchHostingForwardersAction = zOdpakowaniem(fetchHostingForwardersActionAkcja);
+const fetchHostingAutorespondersAction = zOdpakowaniem(fetchHostingAutorespondersActionAkcja);
+const fetchSpamFilterAction = zOdpakowaniem(fetchSpamFilterActionAkcja);
 
 const fieldCls =
   'w-full rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground';

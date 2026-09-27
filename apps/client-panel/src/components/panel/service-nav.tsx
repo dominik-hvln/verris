@@ -11,8 +11,14 @@ import { useEffect, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { ArrowRightLeft, Gauge, Plus, Server } from 'lucide-react';
 import { fetchServiceKindAction } from '@/app/dashboard/services/[id]/hosting-service-actions';
-import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
+import {
+  fetchHostingDomainsAction as fetchHostingDomainsActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-domains-action';
 import { NAV_GROUPS, SIMPLE_MODE_KEY, TABS, isTabId, visibleTabIds } from '@/app/dashboard/services/[id]/tabs';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
 
 const ROW = 'flex w-full items-center gap-2.5 rounded-[5px] px-2 py-1.5 text-left text-sm transition-colors';
 const ROW_ON = 'bg-verris-mint/[0.08] text-verris-paper shadow-[inset_2px_0_0_var(--verris-mint)]';

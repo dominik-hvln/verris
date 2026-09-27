@@ -1,5 +1,7 @@
 'use server';
 
+import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
+
 import { apiFetch, ApiError } from '@/lib/api';
 
 export type AdditionalDomainRow = { domain: string; isPrimary: boolean };
@@ -8,7 +10,7 @@ function errMsg(err: unknown): string {
   return err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Błąd';
 }
 
-export async function fetchAdditionalDomainsAction(
+async function fetchAdditionalDomainsActionTresc(
   subscriptionId: string,
 ): Promise<{ rows: AdditionalDomainRow[]; primary: string | null; fetchError: string | null }> {
   return apiFetch(`/services/${subscriptionId}/hosting-additional-domains`);
@@ -42,7 +44,7 @@ export async function deleteAdditionalDomainAction(subscriptionId: string, domai
 
 /* ===================== PANEL-5: aliasy domeny (pointers) ===================== */
 export type DomainPointerRow = { alias: string; type: string };
-export async function fetchDomainPointersAction(
+async function fetchDomainPointersActionTresc(
   subscriptionId: string,
 ): Promise<{ rows: DomainPointerRow[]; primary: string | null; fetchError: string | null }> {
   return apiFetch(`/services/${subscriptionId}/hosting-domain-pointers`);
@@ -69,4 +71,12 @@ export async function deleteDomainPointerAction(subscriptionId: string, alias: s
   } catch (err) {
     return { ok: false, error: errMsg(err) };
   }
+}
+
+export async function fetchAdditionalDomainsAction(...a: Parameters<typeof fetchAdditionalDomainsActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof fetchAdditionalDomainsActionTresc>>>> {
+  return bezpiecznie(() => fetchAdditionalDomainsActionTresc(...a));
+}
+
+export async function fetchDomainPointersAction(...a: Parameters<typeof fetchDomainPointersActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof fetchDomainPointersActionTresc>>>> {
+  return bezpiecznie(() => fetchDomainPointersActionTresc(...a));
 }

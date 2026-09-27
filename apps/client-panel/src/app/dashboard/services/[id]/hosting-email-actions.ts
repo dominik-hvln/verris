@@ -1,10 +1,12 @@
 'use server';
 
+import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
+
 import { revalidatePath } from 'next/cache';
 import type { HostingEmailAccountsResponseDto } from '@verris/contracts';
 import { apiFetch, ApiError } from '@/lib/api';
 
-export async function fetchHostingEmailAction(
+async function fetchHostingEmailActionTresc(
   subscriptionId: string,
 ): Promise<HostingEmailAccountsResponseDto> {
   return apiFetch<HostingEmailAccountsResponseDto>(`/services/${subscriptionId}/hosting-email`);
@@ -91,7 +93,7 @@ export async function deleteHostingEmailAction(
 
 /* ===================== PANEL-1: forwardery (aliasy) ===================== */
 export type ForwarderRow = { id: string; name: string; email: string; destinations: string[] };
-export async function fetchHostingForwardersAction(
+async function fetchHostingForwardersActionTresc(
   subscriptionId: string,
 ): Promise<{ rows: ForwarderRow[]; fetchError: string | null }> {
   return apiFetch(`/services/${subscriptionId}/hosting-email-forwarders`);
@@ -129,7 +131,7 @@ export async function deleteHostingForwarderAction(
 
 /* ===================== PANEL-1: autorespondery ===================== */
 export type AutoresponderRow = { id: string; name: string; email: string; cc: string };
-export async function fetchHostingAutorespondersAction(
+async function fetchHostingAutorespondersActionTresc(
   subscriptionId: string,
 ): Promise<{ rows: AutoresponderRow[]; fetchError: string | null }> {
   return apiFetch(`/services/${subscriptionId}/hosting-autoresponders`);
@@ -185,7 +187,7 @@ export async function setCatchAllAction(input: { subscriptionId: string; mode: '
 
 /* ===================== PANEL-9: filtr antyspam ===================== */
 export type SpamFilterState = { isOn: boolean; requiredScore: string; subjectTag: string; fetchError: string | null };
-export async function fetchSpamFilterAction(subscriptionId: string): Promise<SpamFilterState> {
+async function fetchSpamFilterActionTresc(subscriptionId: string): Promise<SpamFilterState> {
   return apiFetch(`/services/${subscriptionId}/hosting-spamfilter`);
 }
 export async function setSpamFilterAction(input: { subscriptionId: string; enabled: boolean; requiredScore?: string; subjectTag?: string }): Promise<EmailActionResult> {
@@ -198,4 +200,20 @@ export async function setSpamFilterAction(input: { subscriptionId: string; enabl
   } catch (err) {
     return { ok: false, error: errMsg(err) };
   }
+}
+
+export async function fetchHostingEmailAction(...a: Parameters<typeof fetchHostingEmailActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof fetchHostingEmailActionTresc>>>> {
+  return bezpiecznie(() => fetchHostingEmailActionTresc(...a));
+}
+
+export async function fetchHostingForwardersAction(...a: Parameters<typeof fetchHostingForwardersActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof fetchHostingForwardersActionTresc>>>> {
+  return bezpiecznie(() => fetchHostingForwardersActionTresc(...a));
+}
+
+export async function fetchHostingAutorespondersAction(...a: Parameters<typeof fetchHostingAutorespondersActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof fetchHostingAutorespondersActionTresc>>>> {
+  return bezpiecznie(() => fetchHostingAutorespondersActionTresc(...a));
+}
+
+export async function fetchSpamFilterAction(...a: Parameters<typeof fetchSpamFilterActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof fetchSpamFilterActionTresc>>>> {
+  return bezpiecznie(() => fetchSpamFilterActionTresc(...a));
 }

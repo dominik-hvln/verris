@@ -1,10 +1,12 @@
 'use server';
 
+import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
+
 import { getHostingBackups } from '@/app/dashboard/hosting-tools-data';
 import type { HostingBackupsResponseDto } from '@verris/contracts';
 import { apiFetch } from '@/lib/api';
 
-export async function fetchHostingBackupsAction(
+async function fetchHostingBackupsActionTresc(
   serviceId: string,
 ): Promise<HostingBackupsResponseDto> {
   return getHostingBackups(serviceId);
@@ -33,7 +35,7 @@ export interface EnqueueHostingRestoreInput {
   confirmDomain: string;
 }
 
-export async function enqueueHostingRestoreAction(
+async function enqueueHostingRestoreActionTresc(
   serviceId: string,
   input: EnqueueHostingRestoreInput,
 ): Promise<HostingRestoreJobDto> {
@@ -43,8 +45,20 @@ export async function enqueueHostingRestoreAction(
   });
 }
 
-export async function fetchHostingRestoreStatusAction(
+async function fetchHostingRestoreStatusActionTresc(
   serviceId: string,
 ): Promise<HostingRestoreJobDto | null> {
   return apiFetch<HostingRestoreJobDto | null>(`/services/${serviceId}/hosting-restore/status`);
+}
+
+export async function fetchHostingBackupsAction(...a: Parameters<typeof fetchHostingBackupsActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof fetchHostingBackupsActionTresc>>>> {
+  return bezpiecznie(() => fetchHostingBackupsActionTresc(...a));
+}
+
+export async function enqueueHostingRestoreAction(...a: Parameters<typeof enqueueHostingRestoreActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof enqueueHostingRestoreActionTresc>>>> {
+  return bezpiecznie(() => enqueueHostingRestoreActionTresc(...a));
+}
+
+export async function fetchHostingRestoreStatusAction(...a: Parameters<typeof fetchHostingRestoreStatusActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof fetchHostingRestoreStatusActionTresc>>>> {
+  return bezpiecznie(() => fetchHostingRestoreStatusActionTresc(...a));
 }

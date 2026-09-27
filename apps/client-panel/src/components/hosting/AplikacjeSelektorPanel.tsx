@@ -6,7 +6,9 @@ import { toast } from 'sonner';
 import { SectionHead, StatusPill } from '@/components/panel/v2';
 import { Select } from '@/components/panel/select';
 import { potwierdz } from '@/components/panel/potwierdz';
-import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
+import {
+  fetchHostingDomainsAction as fetchHostingDomainsActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-domains-action';
 import {
   akcjaAplikacji,
   fetchAplikacje,
@@ -17,6 +19,10 @@ import {
   type AplikacjeStatus,
   type Interpreter,
 } from '@/app/dashboard/services/[id]/hosting-app-selector-actions';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
 
 const INPUT = 'w-full rounded-[7px] border border-line bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-data';
 const BTN = 'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[11px] py-1.5 text-[13px] font-medium text-foreground hover:bg-raised disabled:opacity-50';

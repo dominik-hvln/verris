@@ -6,8 +6,14 @@ import { toast } from 'sonner';
 import type { ServiceConnectionInfoDto } from '@verris/contracts';
 import { Switch } from '@/components/panel/v2';
 import { potwierdz } from '@/components/panel/potwierdz';
-import { fetchConnectionInfoAction } from '@/app/dashboard/services/[id]/hosting-connection-actions';
+import {
+  fetchConnectionInfoAction as fetchConnectionInfoActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-connection-actions';
 import { fetchSsh, setSsh, setSshKeys, type SshStatus } from '@/app/dashboard/services/[id]/hosting-ssh-actions';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchConnectionInfoAction = zOdpakowaniem(fetchConnectionInfoActionAkcja);
 
 /**
  * C-21/C-22 — SSH konta w klatce (CloudLinux CageFS: widać tylko własne pliki) i klucze SSH.

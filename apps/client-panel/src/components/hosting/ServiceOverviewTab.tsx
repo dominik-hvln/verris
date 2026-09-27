@@ -24,8 +24,12 @@ import type {
   ServiceRecommendationDto,
 } from '@verris/contracts';
 import { Button } from '@verris/ui';
-import { fetchServiceDetailsAction } from '@/app/dashboard/services/[id]/hosting-service-actions';
-import { fetchHostingUsageAction } from '@/app/dashboard/services/[id]/hosting-usage-actions';
+import {
+  fetchServiceDetailsAction as fetchServiceDetailsActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-service-actions';
+import {
+  fetchHostingUsageAction as fetchHostingUsageActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-usage-actions';
 import { fetchServiceHealthAction } from '@/app/dashboard/services/[id]/hosting-health-actions';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 import { ServiceGaugeRing, gaugeColors } from '@/components/hosting/ServiceGaugeRing';
@@ -39,6 +43,11 @@ import { useModul } from '@/lib/feature-flags';
 import { fetchSidebarUser } from '@/app/dashboard/sidebar-actions';
 import { liczba } from '@/lib/liczba';
 import { powodBlokady } from '@/lib/service-events';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchServiceDetailsAction = zOdpakowaniem(fetchServiceDetailsActionAkcja);
+const fetchHostingUsageAction = zOdpakowaniem(fetchHostingUsageActionAkcja);
 
 const statusLabels: Record<string, string> = {
   ACTIVE: 'Aktywna',

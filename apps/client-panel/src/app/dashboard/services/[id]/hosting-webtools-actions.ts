@@ -1,5 +1,7 @@
 'use server';
 
+import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
+
 import { apiFetch, ApiError } from '@/lib/api';
 
 export type Redirect = { from: string; to: string; type: '301' | '302' };
@@ -16,7 +18,7 @@ function errMsg(err: unknown): string {
   return err instanceof ApiError ? err.message : err instanceof Error ? err.message : 'Błąd';
 }
 
-export async function fetchWebToolsAction(
+async function fetchWebToolsActionTresc(
   subscriptionId: string,
 ): Promise<{ state: WebToolsState; fetchError: string | null }> {
   return apiFetch(`/services/${subscriptionId}/hosting-webtools`);
@@ -65,4 +67,8 @@ export async function removeDirProtectionAction(subscriptionId: string, dir: str
   } catch (err) {
     return { ok: false, error: errMsg(err) };
   }
+}
+
+export async function fetchWebToolsAction(...a: Parameters<typeof fetchWebToolsActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof fetchWebToolsActionTresc>>>> {
+  return bezpiecznie(() => fetchWebToolsActionTresc(...a));
 }

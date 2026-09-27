@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { AlertTriangle, Check, Globe, Loader2 } from 'lucide-react';
 import { Select } from '@/components/panel';
-import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
+import {
+  fetchHostingDomainsAction as fetchHostingDomainsActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-domains-action';
 import {
   fetchDomainPhp,
   setDomainPhp,
@@ -13,6 +15,10 @@ import {
   type DomainPhpStatus,
   type PhpStatus,
 } from './php-actions';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
 
 export function PhpClient({ serviceId, status }: { serviceId: string; status: PhpStatus }) {
   const versionId = useId();

@@ -5,9 +5,13 @@ import { usePathname } from 'next/navigation';
 import { Bot, Loader2, MessageCircle, Send, Sparkles, X } from 'lucide-react';
 import type { AiChatMessageDto, AiChatSourceDto } from '@verris/contracts';
 import {
-  askHostingAssistantAction,
+  askHostingAssistantAction as askHostingAssistantActionAkcja,
   fetchAiStatusAction,
 } from '@/app/dashboard/assistant-actions';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const askHostingAssistantAction = zOdpakowaniem(askHostingAssistantActionAkcja);
 
 interface ChatMessage {
   role: 'user' | 'assistant';

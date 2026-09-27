@@ -7,13 +7,17 @@ import { Button } from '@verris/ui';
 import {
   createHostingSubdomainAction,
   deleteHostingSubdomainAction,
-  fetchHostingSubdomainsAction,
+  fetchHostingSubdomainsAction as fetchHostingSubdomainsActionAkcja,
   type SubdomainRow,
 } from '@/app/dashboard/services/[id]/hosting-extra-actions';
 import { Select } from '@/components/panel';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
 import { potwierdz } from '@/components/panel/potwierdz';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchHostingSubdomainsAction = zOdpakowaniem(fetchHostingSubdomainsActionAkcja);
 
 export default function SubdomainsManager({ serviceId }: { serviceId: string }) {
   const domainId = useId();

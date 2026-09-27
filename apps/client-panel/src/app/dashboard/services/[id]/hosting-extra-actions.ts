@@ -1,5 +1,7 @@
 'use server';
 
+import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
+
 import type {
   HostingBackupsResponseDto,
   HostingCronJobsResponseDto,
@@ -10,13 +12,13 @@ import { apiFetch } from '@/lib/api';
 /** Server-action wrappers so the in-service hub (client component) can fetch
  *  FTP / Cron / Backups without leaving the page. */
 
-export async function fetchHostingFtpAction(
+async function fetchHostingFtpActionTresc(
   serviceId: string,
 ): Promise<HostingFtpAccountsResponseDto> {
   return apiFetch<HostingFtpAccountsResponseDto>(`/services/${serviceId}/hosting-ftp`);
 }
 
-export async function fetchHostingCronAction(
+async function fetchHostingCronActionTresc(
   serviceId: string,
 ): Promise<HostingCronJobsResponseDto> {
   return apiFetch<HostingCronJobsResponseDto>(`/services/${serviceId}/hosting-cron`);
@@ -143,7 +145,7 @@ export interface SubdomainsResponse {
   fetchError: string | null;
 }
 
-export async function fetchHostingSubdomainsAction(
+async function fetchHostingSubdomainsActionTresc(
   serviceId: string,
 ): Promise<SubdomainsResponse> {
   return apiFetch<SubdomainsResponse>(`/services/${serviceId}/hosting-subdomains`);
@@ -190,4 +192,16 @@ export async function fetchCronOutputAction(
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Błąd' };
   }
+}
+
+export async function fetchHostingCronAction(...a: Parameters<typeof fetchHostingCronActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof fetchHostingCronActionTresc>>>> {
+  return bezpiecznie(() => fetchHostingCronActionTresc(...a));
+}
+
+export async function fetchHostingFtpAction(...a: Parameters<typeof fetchHostingFtpActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof fetchHostingFtpActionTresc>>>> {
+  return bezpiecznie(() => fetchHostingFtpActionTresc(...a));
+}
+
+export async function fetchHostingSubdomainsAction(...a: Parameters<typeof fetchHostingSubdomainsActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof fetchHostingSubdomainsActionTresc>>>> {
+  return bezpiecznie(() => fetchHostingSubdomainsActionTresc(...a));
 }

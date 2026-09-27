@@ -9,7 +9,7 @@ import {
   createHostingCronAction,
   deleteHostingCronAction,
   fetchCronOutputAction,
-  fetchHostingCronAction,
+  fetchHostingCronAction as fetchHostingCronActionAkcja,
   updateHostingCronAction,
 } from '@/app/dashboard/services/[id]/hosting-extra-actions';
 import { newCronKey, unwrapCron, wrapCron } from '@/components/hosting/cron-output';
@@ -17,6 +17,10 @@ import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-m
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
 import { potwierdz } from '@/components/panel/potwierdz';
 import { CronPhpHelper } from '@/components/hosting/CronPhpHelper';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchHostingCronAction = zOdpakowaniem(fetchHostingCronActionAkcja);
 
 type Sched = { minute: string; hour: string; dayOfMonth: string; month: string; dayOfWeek: string };
 const EVERY: Sched = { minute: '*', hour: '*', dayOfMonth: '*', month: '*', dayOfWeek: '*' };

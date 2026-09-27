@@ -4,9 +4,15 @@ import { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import type { HostingDnsRecordDto } from '@verris/contracts';
 import { DnsManager } from '@/app/dashboard/dns/dns-manager';
-import { fetchHostingDnsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
+import {
+  fetchHostingDnsAction as fetchHostingDnsActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-domains-action';
 import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { Select } from '@/components/panel';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchHostingDnsAction = zOdpakowaniem(fetchHostingDnsActionAkcja);
 
 /**
  * F-01/F-02 — edytor strefy DNS w zakładce „Domeny". Komponent DnsManager

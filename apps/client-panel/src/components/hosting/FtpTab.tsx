@@ -9,12 +9,16 @@ import {
   changeHostingFtpPasswordAction,
   createHostingFtpAction,
   deleteHostingFtpAction,
-  fetchHostingFtpAction,
+  fetchHostingFtpAction as fetchHostingFtpActionAkcja,
 } from '@/app/dashboard/services/[id]/hosting-extra-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
 import { SshPanel } from '@/components/hosting/SshPanel';
 import { potwierdz } from '@/components/panel/potwierdz';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchHostingFtpAction = zOdpakowaniem(fetchHostingFtpActionAkcja);
 
 function genPassword(len = 18): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';

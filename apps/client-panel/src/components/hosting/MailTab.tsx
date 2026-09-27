@@ -21,11 +21,15 @@ import {
   changeHostingEmailQuotaAction,
   createHostingEmailAction,
   deleteHostingEmailAction,
-  fetchHostingEmailAction,
+  fetchHostingEmailAction as fetchHostingEmailActionAkcja,
 } from '@/app/dashboard/services/[id]/hosting-email-actions';
-import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
+import {
+  fetchHostingDomainsAction as fetchHostingDomainsActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-domains-action';
 import { Select } from '@/components/panel';
-import { fetchConnectionInfoAction } from '@/app/dashboard/services/[id]/hosting-connection-actions';
+import {
+  fetchConnectionInfoAction as fetchConnectionInfoActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-connection-actions';
 import { HostingTabShell } from '@/components/hosting/HostingTabShell';
 import { AccessList, Kpi, KpiStrip, Meter } from '@/components/panel/v2';
 import MailExtras from '@/components/hosting/MailExtras';
@@ -36,6 +40,12 @@ import { createHostingSsoUrlAction } from '@/app/dashboard/services/[id]/hosting
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 import { potwierdz } from '@/components/panel/potwierdz';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchHostingEmailAction = zOdpakowaniem(fetchHostingEmailActionAkcja);
+const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
+const fetchConnectionInfoAction = zOdpakowaniem(fetchConnectionInfoActionAkcja);
 
 function genPassword(len = 18): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';

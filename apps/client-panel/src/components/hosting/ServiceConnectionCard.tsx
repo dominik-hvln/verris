@@ -18,8 +18,14 @@ import {
   Wifi,
 } from 'lucide-react';
 import type { ConnectionMetricDto, ServiceConnectionInfoDto } from '@verris/contracts';
-import { fetchConnectionInfoAction } from '@/app/dashboard/services/[id]/hosting-connection-actions';
+import {
+  fetchConnectionInfoAction as fetchConnectionInfoActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-connection-actions';
 import { liczba } from '@/lib/liczba';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchConnectionInfoAction = zOdpakowaniem(fetchConnectionInfoActionAkcja);
 
 function CopyButton({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false);

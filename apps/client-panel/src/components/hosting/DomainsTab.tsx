@@ -4,7 +4,9 @@ import Link from 'next/link';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Globe, RefreshCw, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '@verris/ui';
-import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
+import {
+  fetchHostingDomainsAction as fetchHostingDomainsActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-domains-action';
 import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTabShell';
 import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
@@ -13,6 +15,10 @@ import SubdomainsManager from '@/components/hosting/SubdomainsManager';
 import AdditionalDomains from '@/components/hosting/AdditionalDomains';
 import DnsZoneSection from '@/components/hosting/DnsZoneSection';
 import { ResponsiveDataView } from '@/components/panel';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
 
 interface Props {
   serviceId: string;

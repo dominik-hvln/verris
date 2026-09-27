@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { Loader2, Trash2, Wallet } from 'lucide-react';
 import { Button } from '@verris/ui';
 import type { ServiceDetailsDto, SubscriptionStatus } from '@verris/contracts';
-import { fetchServiceDetailsAction } from '@/app/dashboard/services/[id]/hosting-service-actions';
+import {
+  fetchServiceDetailsAction as fetchServiceDetailsActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-service-actions';
 import { Kpi, KpiStrip, Meter, SectionHead, StatusPill } from '@/components/panel/v2';
 import { EVENT_WARN, serviceEventLabel } from '@/lib/service-events';
 
@@ -15,6 +17,10 @@ const BTN =
 import { UnpaidServiceBanner } from '@/components/hosting/UnpaidServiceBanner';
 import { PanelModal } from '@/components/panel';
 import { cancelSubscriptionAction } from '@/app/dashboard/services/subscription-payment-actions';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchServiceDetailsAction = zOdpakowaniem(fetchServiceDetailsActionAkcja);
 
 const STATUS_LABELS: Record<SubscriptionStatus, string> = {
   PENDING_PAYMENT: 'Oczekuje płatności',

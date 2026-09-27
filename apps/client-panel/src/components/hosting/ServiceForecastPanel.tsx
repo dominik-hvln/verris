@@ -17,7 +17,13 @@ import type {
   ServiceForecastDto,
   ServiceForecastResourceDto,
 } from '@verris/contracts';
-import { fetchServiceForecastAction } from '@/app/dashboard/services/[id]/hosting-forecast-actions';
+import {
+  fetchServiceForecastAction as fetchServiceForecastActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-forecast-actions';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchServiceForecastAction = zOdpakowaniem(fetchServiceForecastActionAkcja);
 
 const RESOURCE_LABEL: Record<ForecastResource, string> = {
   CPU: 'CPU',

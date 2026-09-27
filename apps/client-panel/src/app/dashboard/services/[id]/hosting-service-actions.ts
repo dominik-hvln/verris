@@ -1,9 +1,11 @@
 'use server';
 
+import { bezpiecznie, type Wynik as WynikAkcji } from '@/lib/wynik-akcji';
+
 import type { ServiceDetailsDto } from '@verris/contracts';
 import { apiFetch } from '@/lib/api';
 
-export async function fetchServiceDetailsAction(serviceId: string): Promise<ServiceDetailsDto> {
+async function fetchServiceDetailsActionTresc(serviceId: string): Promise<ServiceDetailsDto> {
   return apiFetch<ServiceDetailsDto>(`/services/${serviceId}`);
 }
 
@@ -15,4 +17,8 @@ export async function fetchServiceKindAction(
   return apiFetch<{ productKind: 'HOSTING' | 'EMAIL'; serviceTag: string | null }>(
     `/services/${serviceId}/kind`,
   );
+}
+
+export async function fetchServiceDetailsAction(...a: Parameters<typeof fetchServiceDetailsActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof fetchServiceDetailsActionTresc>>>> {
+  return bezpiecznie(() => fetchServiceDetailsActionTresc(...a));
 }

@@ -22,11 +22,20 @@ import type {
   HostingDomainsResponseDto,
   HostingBackupsResponseDto,
 } from '@verris/contracts';
-import { fetchServiceDetailsAction } from '@/app/dashboard/services/[id]/hosting-service-actions';
-import { fetchHostingUsageAction, type HostingUsageResponse } from '@/app/dashboard/services/[id]/hosting-usage-actions';
+import {
+  fetchServiceDetailsAction as fetchServiceDetailsActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-service-actions';
+import {
+  fetchHostingUsageAction as fetchHostingUsageActionAkcja,
+  type HostingUsageResponse,
+} from '@/app/dashboard/services/[id]/hosting-usage-actions';
 import { fetchServiceHealthAction } from '@/app/dashboard/services/[id]/hosting-health-actions';
-import { fetchConnectionInfoAction } from '@/app/dashboard/services/[id]/hosting-connection-actions';
-import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
+import {
+  fetchConnectionInfoAction as fetchConnectionInfoActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-connection-actions';
+import {
+  fetchHostingDomainsAction as fetchHostingDomainsActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-domains-action';
 import {
   fetchOverviewExtrasAction,
   toggleAutoscalingAction,
@@ -39,7 +48,9 @@ import { FirstStepsAssistant } from '@/components/hosting/FirstStepsAssistant';
 import { HealthCheckDetails } from '@/components/hosting/HealthCheckDetails';
 import DomainPointingPanel from '@/components/hosting/DomainPointingPanel';
 import HostingPanelCard from '@/components/hosting/HostingPanelCard';
-import { fetchHostingBackupsAction } from '@/app/dashboard/services/[id]/hosting-backup-actions';
+import {
+  fetchHostingBackupsAction as fetchHostingBackupsActionAkcja,
+} from '@/app/dashboard/services/[id]/hosting-backup-actions';
 import { clientFeatures } from '@/lib/client-features';
 import { useModul } from '@/lib/feature-flags';
 import {
@@ -64,6 +75,14 @@ import {
   tip,
   type Tone,
 } from '@/components/panel/v2';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchServiceDetailsAction = zOdpakowaniem(fetchServiceDetailsActionAkcja);
+const fetchHostingUsageAction = zOdpakowaniem(fetchHostingUsageActionAkcja);
+const fetchConnectionInfoAction = zOdpakowaniem(fetchConnectionInfoActionAkcja);
+const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
+const fetchHostingBackupsAction = zOdpakowaniem(fetchHostingBackupsActionAkcja);
 
 const BTN =
   'inline-flex items-center gap-2 whitespace-nowrap rounded-md border border-line-strong bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-primary';

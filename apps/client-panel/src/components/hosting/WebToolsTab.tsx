@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@verris/ui';
 import { HostingTabShell } from '@/components/hosting/HostingTabShell';
 import {
-  fetchWebToolsAction,
+  fetchWebToolsAction as fetchWebToolsActionAkcja,
   saveWebToolsAction,
   setDirProtectionAction,
   removeDirProtectionAction,
@@ -17,6 +17,10 @@ import { daErrorMessage } from '@/lib/client-hosting-messages';
 import { Select } from '@/components/panel/select';
 import { potwierdz } from '@/components/panel/potwierdz';
 import { Checkbox } from '@/components/panel/checkbox';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchWebToolsAction = zOdpakowaniem(fetchWebToolsActionAkcja);
 
 const field = 'rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground';
 const EMPTY: WebToolsState = { redirects: [], hotlink: { enabled: false, extensions: 'jpg,jpeg,png,gif,webp,svg', allow: [] }, blockedIps: [], protectedDirs: [], forceHttps: false, wwwMode: 'none' };

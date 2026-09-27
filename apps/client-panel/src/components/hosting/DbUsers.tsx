@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { KeyRound, Loader2, Plus, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  fetchDbUsersAction,
+  fetchDbUsersAction as fetchDbUsersActionAkcja,
   createDbUserAction,
   removeDbUserAction,
   changeDbUserPasswordAction,
@@ -13,6 +13,10 @@ import { fetchDbTransfer, setDbUserPrivileges, type DbTransferStatus } from '@/a
 import { daErrorMessage } from '@/lib/client-hosting-messages';
 import { Select } from '@/components/panel/select';
 import { potwierdz } from '@/components/panel/potwierdz';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchDbUsersAction = zOdpakowaniem(fetchDbUsersActionAkcja);
 
 const ZESTAWY = [
   { value: 'full', label: 'Pełne uprawnienia' },

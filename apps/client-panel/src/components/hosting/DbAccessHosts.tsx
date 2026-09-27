@@ -4,11 +4,15 @@ import { useState } from 'react';
 import { Globe2, Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  fetchDbAccessHostsAction,
+  fetchDbAccessHostsAction as fetchDbAccessHostsActionAkcja,
   addDbAccessHostAction,
   removeDbAccessHostAction,
 } from '@/app/dashboard/services/[id]/hosting-db-access-actions';
 import { daErrorMessage } from '@/lib/client-hosting-messages';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchDbAccessHostsAction = zOdpakowaniem(fetchDbAccessHostsActionAkcja);
 
 /** PANEL-10 — zarządzanie zdalnym dostępem do bazy (MySQL access hosts). */
 export default function DbAccessHosts({ serviceId, db }: { serviceId: string; db: string }) {

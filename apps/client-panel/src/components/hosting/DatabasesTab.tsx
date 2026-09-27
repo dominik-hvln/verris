@@ -7,7 +7,7 @@ import { Button } from '@verris/ui';
 import {
   createHostingDatabaseAction,
   deleteHostingDatabaseAction,
-  fetchHostingDatabasesAction,
+  fetchHostingDatabasesAction as fetchHostingDatabasesActionAkcja,
 } from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
 import { HostingTabShell } from '@/components/hosting/HostingTabShell';
 import DbAccessHosts from '@/components/hosting/DbAccessHosts';
@@ -19,6 +19,10 @@ import { createHostingSsoUrlAction } from '@/app/dashboard/services/[id]/hosting
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 import { potwierdz } from '@/components/panel/potwierdz';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchHostingDatabasesAction = zOdpakowaniem(fetchHostingDatabasesActionAkcja);
 
 interface Props {
   serviceId: string;

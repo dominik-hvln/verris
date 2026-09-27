@@ -38,13 +38,27 @@ import { PhpKatalogPanel } from '@/components/hosting/PhpKatalogPanel';
 import { ObrazyPanel } from '@/components/hosting/ObrazyPanel';
 import { FileSearchPanel } from '@/components/hosting/FileSearchPanel';
 import { HostingLinksProvider } from '@/components/hosting/hosting-links-context';
-import { fetchHostingDnsAction, fetchHostingDomainsAction } from '../../hosting-domains-action';
+import {
+  fetchHostingDnsAction as fetchHostingDnsActionAkcja,
+  fetchHostingDomainsAction as fetchHostingDomainsActionAkcja,
+} from '../../hosting-domains-action';
 import { fetchHostingSslAction, requestLetsEncryptSslAction } from '../../hosting-ssl-actions';
-import { fetchHostingEmailAction } from '../../hosting-email-actions';
-import { fetchServiceDetailsAction } from '../../hosting-service-actions';
+import {
+  fetchHostingEmailAction as fetchHostingEmailActionAkcja,
+} from '../../hosting-email-actions';
+import {
+  fetchServiceDetailsAction as fetchServiceDetailsActionAkcja,
+} from '../../hosting-service-actions';
 import { getMonitoringStatus, type MonitoringStatus } from '../../monitoring-actions';
 import { fetchDomainPhp, setDomainPhp, type DomainPhpStatus } from '@/app/dashboard/php/php-actions';
 import { SIMPLE_MODE_KEY } from '../../tabs';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
+
+// Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
+const fetchHostingDnsAction = zOdpakowaniem(fetchHostingDnsActionAkcja);
+const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
+const fetchHostingEmailAction = zOdpakowaniem(fetchHostingEmailActionAkcja);
+const fetchServiceDetailsAction = zOdpakowaniem(fetchServiceDetailsActionAkcja);
 
 const SITE_TABS = [
   ['overview', 'Przegląd'],
