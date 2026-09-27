@@ -1,4 +1,5 @@
 import { lookup as dnsLookupCb } from 'node:dns';
+import { BlockList, isIP } from 'node:net';
 import { request as httpsRequest } from 'node:https';
 import { request as httpRequest } from 'node:http';
 
@@ -65,33 +66,35 @@ export function bezpiecznyLookup(host: string, opts: { all?: boolean } & Record<
   });
 }
 
+/**
+ * Adresy, do których serwer nie łączy się w imieniu klienta (SSRF): sieci prywatne, pętla, link-local,
+ * CGNAT, benchmark, dokumentacja, multicast/zarezerwowane, oraz prefiksy IPv6 zanurzające IPv4
+ * (NAT64 64:ff9b::/96, 6to4 2002::/16, Teredo 2001::/32) — przez nie da się dojść do 127.0.0.1
+ * czy 169.254.169.254 adresem wyglądającym na publiczny. `net.BlockList` zamiast porównań prefiksów
+ * tekstowych (np. „fe80:” nie obejmowało fe81::–febf::). Jedna lista dla webhooków, sond i migratora.
+ */
+const ZASTRZEZONE = new BlockList();
+for (const [adres, prefiks] of [
+  ['0.0.0.0', 8], ['10.0.0.0', 8], ['100.64.0.0', 10], ['127.0.0.0', 8], ['169.254.0.0', 16],
+  ['172.16.0.0', 12], ['192.0.0.0', 24], ['192.0.2.0', 24], ['192.168.0.0', 16], ['198.18.0.0', 15],
+  ['198.51.100.0', 24], ['203.0.113.0', 24], ['224.0.0.0', 3],
+] as const) ZASTRZEZONE.addSubnet(adres, prefiks, 'ipv4');
+for (const [adres, prefiks] of [
+  // Bez ::ffff:0:0/96 — BlockList sprawdza IPv4 także względem reguł IPv6 (jako ::ffff:a.b.c.d),
+  // więc ten prefiks zablokowałby cały IPv4. Zapis szesnastkowy ::ffff:7f00:1 obsługuje funkcja niżej.
+  ['::', 127], ['64:ff9b::', 96], ['64:ff9b:1::', 48], ['100::', 64],
+  ['2001::', 32], ['2001:db8::', 32], ['2002::', 16], ['fc00::', 7], ['fe80::', 10], ['ff00::', 8],
+] as const) ZASTRZEZONE.addSubnet(adres, prefiks, 'ipv6');
+
 export function isPrivateOrReservedIp(ip: string): boolean {
-  if (ip.startsWith('::ffff:')) {
-    return isPrivateOrReservedIp(ip.slice('::ffff:'.length));
+  const lower = ip.toLowerCase();
+  // IPv4 zapisany w IPv6 (::ffff:a.b.c.d) — sprawdzamy sam IPv4.
+  if (lower.startsWith('::ffff:')) {
+    const reszta = lower.slice(7);
+    if (isIP(reszta) === 4) return isPrivateOrReservedIp(reszta);
+    return true; // ::ffff:7f00:1 — IPv4 w zapisie szesnastkowym; DNS tak nie odpowiada, odmawiamy.
   }
-  if (ip.includes(':')) {
-    const lower = ip.toLowerCase();
-    return (
-      lower === '::1' ||
-      lower === '::' ||
-      lower.startsWith('fc') ||
-      lower.startsWith('fd') ||
-      lower.startsWith('fe80:') ||
-      lower.startsWith('ff')
-    );
-  }
-  const parts = ip.split('.').map((p) => Number.parseInt(p, 10));
-  if (parts.length !== 4 || parts.some((p) => Number.isNaN(p))) return true;
-  const [a, b] = parts;
-  return (
-    a === 0 ||
-    a === 10 ||
-    a === 127 ||
-    (a === 100 && b >= 64 && b <= 127) ||
-    (a === 169 && b === 254) ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168) ||
-    (a === 198 && (b === 18 || b === 19)) ||
-    a >= 224
-  );
+  const rodzina = isIP(lower);
+  if (rodzina === 0) return true;
+  return ZASTRZEZONE.check(lower, rodzina === 4 ? 'ipv4' : 'ipv6');
 }

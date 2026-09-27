@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { bezpiecznyLookup } from '../common/net/webhook-post.js';
 import * as dns from 'node:dns/promises';
 import * as tls from 'node:tls';
 import { Role } from '@verris/database';
@@ -222,6 +223,8 @@ export class HostingDiagnosticsService {
           host: hostname,
           port: 443,
           servername: hostname,
+          // SSRF: domena klienta nie może prowadzić do adresu prywatnego (przegląd 28.09).
+          lookup: bezpiecznyLookup as never,
           rejectUnauthorized: false,
         },
         () => {

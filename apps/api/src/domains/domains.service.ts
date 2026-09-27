@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger, ConflictException, NotFoundException } from '@nestjs/common';
+import { bezpiecznyLookup } from '../common/net/webhook-post.js';
 import * as dns from 'dns';
 import { createHmac, timingSafeEqual } from 'crypto';
 import * as tls from 'tls';
@@ -247,6 +248,8 @@ function probeTls(hostname: string): Promise<{ ok: boolean; error: string | null
         host: hostname,
         port: 443,
         servername: hostname,
+        // SSRF: domena klienta nie może prowadzić do adresu prywatnego (przegląd 28.09).
+        lookup: bezpiecznyLookup as never,
         rejectUnauthorized: false,
         timeout: 5000,
       },

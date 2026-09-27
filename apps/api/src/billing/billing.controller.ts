@@ -16,6 +16,7 @@ import {
 import type { Response } from 'express';
 import { WalletTxType } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { BillingService } from './billing.service.js';
 import { CreateTopupCheckoutDto, TopupQuoteDto, PreviewTopupPromoDto } from './dto/checkout.dto.js';
@@ -81,6 +82,8 @@ export class BillingController {
   }
 
   @Post('checkout-session/preview-promo')
+  // Podgląd kodu też jest wyrocznią „czy kod istnieje” — ten sam limit co realizacja, osobny licznik.
+  @RateLimit({ limit: 60, windowMs: 60 * 60 * 1000, scope: 'billing:promo-preview' })
   @HttpCode(200)
   previewTopupPromo(
     @CurrentUser() user: { userId: string },
@@ -116,6 +119,8 @@ export class BillingController {
   /** C-14 — zamiana kodu promocyjnego na wpływ PROMO_CREDIT na portfel */
   @Post('promo/redeem')
   @HttpCode(200)
+  // Zgadywanie kodów (np. BETA-XXXXXX): 20 prób na godzinę zamiast globalnych 900/min (przegląd 28.09).
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'billing:promo-redeem' })
   redeemPromo(@CurrentUser() user: { userId: string }, @Body() dto: RedeemPromoDto) {
     return this.promo.redeemPromo(user.userId, dto.code);
   }

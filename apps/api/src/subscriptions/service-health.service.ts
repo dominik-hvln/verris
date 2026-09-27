@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { bezpiecznyLookup } from '../common/net/webhook-post.js';
 import { Prisma } from '@verris/database';
 import type { ServiceHealthCheckDetailDto, ServiceHealthCheckKey } from '@verris/contracts';
 import * as dns from 'node:dns/promises';
@@ -436,7 +437,7 @@ export class ServiceHealthService {
       };
 
       const socket = tls.connect(
-        { host: hostname, port, servername: hostname, rejectUnauthorized: true },
+        { host: hostname, port, servername: hostname, lookup: bezpiecznyLookup as never, rejectUnauthorized: true },
         () => {
           clearTimeout(timer);
           finish({ ok: true, authorized: socket.authorized });
@@ -457,7 +458,7 @@ export class ServiceHealthService {
         clearTimeout(timer);
         // Self-signed / brak cert — drugi pass z rejectUnauthorized: false
         const soft = tls.connect(
-          { host: hostname, port, servername: hostname, rejectUnauthorized: false },
+          { host: hostname, port, servername: hostname, lookup: bezpiecznyLookup as never, rejectUnauthorized: false },
           () => {
             finish({ ok: true, authorized: false });
             soft.end();

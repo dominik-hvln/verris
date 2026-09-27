@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import * as dns from 'node:dns/promises';
 import * as net from 'node:net';
+import { isPrivateOrReservedIp } from '../common/net/webhook-post.js';
 
 /**
  * Wspólne pomocniki sieciowe migratora (discovery + preflight).
@@ -8,31 +9,9 @@ import * as net from 'node:net';
  * dlatego każdy host musi rozwiązywać się wyłącznie na publiczne IP.
  */
 
+/** Ta sama lista co webhooki i sondy (common/net/webhook-post.ts) — jedno źródło prawdy o SSRF. */
 export function isPrivateIp(ip: string): boolean {
-  if (net.isIPv6(ip)) {
-    const lower = ip.toLowerCase();
-    if (lower.startsWith('::ffff:')) return isPrivateIp(lower.slice('::ffff:'.length)); // IPv4-mapped
-    return (
-      lower === '::' ||
-      lower === '::1' ||
-      lower.startsWith('fe80:') ||
-      lower.startsWith('fc') ||
-      lower.startsWith('fd')
-    );
-  }
-  const parts = ip.split('.').map((p) => Number.parseInt(p, 10));
-  if (parts.length !== 4 || parts.some((p) => Number.isNaN(p))) return true;
-  const [a, b] = parts;
-  return (
-    a === 0 ||
-    a === 10 ||
-    a === 127 ||
-    (a === 100 && b >= 64 && b <= 127) ||
-    (a === 169 && b === 254) ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168) ||
-    a >= 224
-  );
+  return isPrivateOrReservedIp(ip);
 }
 
 export async function assertPublicHost(host: string): Promise<void> {

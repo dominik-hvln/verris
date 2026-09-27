@@ -11,17 +11,17 @@ const odpowiedz = (adresy: { address: string; family: number }[]) =>
 describe('bezpiecznyLookup', () => {
   it('adres publiczny → przechodzi (tryb pojedynczy i all)', () => {
     const cb = vi.fn();
-    odpowiedz([{ address: '203.0.113.7', family: 4 }]);
+    odpowiedz([{ address: '93.184.216.34', family: 4 }]);
     bezpiecznyLookup('hook.example.com', {}, cb);
-    expect(cb).toHaveBeenCalledWith(null, '203.0.113.7', 4);
-    odpowiedz([{ address: '203.0.113.7', family: 4 }]);
+    expect(cb).toHaveBeenCalledWith(null, '93.184.216.34', 4);
+    odpowiedz([{ address: '93.184.216.34', family: 4 }]);
     bezpiecznyLookup('hook.example.com', { all: true }, cb);
-    expect(cb).toHaveBeenLastCalledWith(null, [{ address: '203.0.113.7', family: 4 }]);
+    expect(cb).toHaveBeenLastCalledWith(null, [{ address: '93.184.216.34', family: 4 }]);
   });
 
   it.each([['127.0.0.1'], ['10.0.0.5'], ['169.254.169.254'], ['::1'], ['::ffff:192.168.1.1']])('%s → błąd EPRIVATE, bez połączenia', (ip) => {
     const cb = vi.fn();
-    odpowiedz([{ address: '203.0.113.7', family: 4 }, { address: ip, family: ip.includes(':') ? 6 : 4 }]);
+    odpowiedz([{ address: '93.184.216.34', family: 4 }, { address: ip, family: ip.includes(':') ? 6 : 4 }]);
     bezpiecznyLookup('rebind.example.com', {}, cb);
     expect(cb.mock.calls[0][0]).toMatchObject({ code: 'EPRIVATE' });
   });

@@ -23,7 +23,7 @@ import { PlatformSettingsService } from '../platform-settings/platform-settings.
 import { NotificationsService } from '../notifications/notifications.service.js';
 import * as tls from 'node:tls';
 import { resolvePublicHost } from './migration-net.util.js';
-import { getBezpiecznie } from '../common/net/webhook-post.js';
+import { bezpiecznyLookup, getBezpiecznie } from '../common/net/webhook-post.js';
 import {
   siteDownTemplate,
   siteRecoveredTemplate,
@@ -869,6 +869,8 @@ function probeTlsExpiryRaw(domain: string): Promise<Date | null> {
         host: domain,
         port: 443,
         servername: domain,
+        // SSRF: domena klienta nie może prowadzić do adresu prywatnego (przegląd 28.09).
+        lookup: bezpiecznyLookup as never,
         rejectUnauthorized: false,
         timeout: TLS_PROBE_TIMEOUT_MS,
       },
