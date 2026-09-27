@@ -21,7 +21,7 @@ import { DataExportService } from './data-export.service.js';
  *
  *  - `POST /me/data-export`               — request a new export.
  *  - `GET  /me/data-export`               — list previous + active requests.
- *  - `GET  /me/data-export/download/:token` — single-use download link.
+ *  - `GET  /me/data-export/download/:token` — download link (valid until expiry, not single-use).
  *
  * The download endpoint is auth-less by design (token-based) so the email
  * link can be opened from any device. Token is single-token-per-row and

@@ -69,7 +69,7 @@ export function dataExportReadyTemplate(ctx: DataExportReadyContext): MailMessag
       url: ctx.downloadUrl,
     },
     footnote:
-      'Link jest osobistym, jednorazowym tokenem — nie udostępniaj go nikomu. Jeśli to nie Ty zgłaszałeś żądanie, daj nam znać: rodo@verris.pl.',
+      'Link jest osobisty i działa do daty wygaśnięcia — każdy, kto go ma, pobierze Twoje dane, więc nie udostępniaj go nikomu. Jeśli to nie Ty zgłaszałeś żądanie, daj nam znać: rodo@verris.pl.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
