@@ -1645,7 +1645,27 @@ export class SubscriptionsService {
     let canceled = 0;
     for (const sub of stale) {
       try {
-        await this.cancelSystem(sub.id, 'ABANDONED_UNPAID_TIMEOUT');
+        // Warunkowo: klient mógł zapłacić między wyborem listy a tym zamówieniem — wtedy
+        // status nie jest już PENDING_PAYMENT i zamówienie zostaje (wcześniej anulowało opłaconą usługę).
+        const now = new Date();
+        const zajete = await this.prisma.subscription.updateMany({
+          where: { id: sub.id, status: SubscriptionStatus.PENDING_PAYMENT, account: null },
+          data: { status: SubscriptionStatus.CANCELED, canceledAt: now, cancelAt: now },
+        });
+        if (zajete.count === 0) continue;
+        await this.prisma.subscriptionEvent.create({
+          data: { subscriptionId: sub.id, type: 'CANCELED', details: { actor: null, source: 'SCHEDULED' } },
+        });
+        if (sub.paymentSource === SubscriptionPaymentSource.STRIPE_CARD && sub.stripeSubscriptionId) {
+          await this.stripe.cancelSubscription(sub.stripeSubscriptionId, { atPeriodEnd: false }).catch((err: Error) =>
+            this.logger.warn(`abandonStalePendingPayments: Stripe cancel failed sub=${sub.id}: ${err.message}`),
+          );
+        }
+        await this.audit.record({
+          action: 'SUBSCRIPTION_CANCELED',
+          userId: sub.userId,
+          details: { subscriptionId: sub.id, immediate: true, reason: 'ABANDONED_UNPAID_TIMEOUT' },
+        });
         canceled += 1;
       } catch (err) {
         this.logger.warn(
@@ -1657,34 +1677,6 @@ export class SubscriptionsService {
       this.logger.log(`Abandoned ${canceled} stale PENDING_PAYMENT subscription(s)`);
     }
     return { canceled };
-  }
-
-  /** System cancel (cron) — same teardown as customer immediate cancel. */
-  private async cancelSystem(subscriptionId: string, reason: string) {
-    const subscription = await this.prisma.subscription.findUnique({
-      where: { id: subscriptionId },
-      include: { account: true },
-    });
-    if (!subscription || subscription.status === SubscriptionStatus.CANCELED) return;
-
-    if (
-      subscription.paymentSource === SubscriptionPaymentSource.STRIPE_CARD &&
-      subscription.stripeSubscriptionId
-    ) {
-      await this.stripe.cancelSubscription(subscription.stripeSubscriptionId, {
-        atPeriodEnd: false,
-      });
-    }
-
-    await this.tearDownCanceledSubscription(subscription, {
-      account: subscription.account,
-      source: 'SCHEDULED',
-    });
-    await this.audit.record({
-      action: 'SUBSCRIPTION_CANCELED',
-      userId: subscription.userId,
-      details: { subscriptionId, immediate: true, reason },
-    });
   }
 
   /** Także M-27 (dodanie karty bez zakupu) — dlatego publiczne. */
