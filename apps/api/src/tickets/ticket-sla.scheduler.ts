@@ -185,10 +185,11 @@ export class TicketSlaScheduler {
     const closeInDays = CLOSE_AFTER_DAYS - REMIND_AFTER_DAYS;
     let sent = 0;
     for (const t of due) {
-      await this.prisma.ticket.update({
-        where: { id: t.id },
+      const oznaczone = await this.prisma.ticket.updateMany({
+        where: { id: t.id, status: 'WAITING_CUSTOMER', customerReminderSentAt: null },
         data: { customerReminderSentAt: new Date() },
       });
+      if (oznaczone.count === 0) continue;
       await this.logEvent(t.id, 'CUSTOMER_REMINDER_SENT', { closeInDays });
       if (t.user?.anonymizedAt) continue;
       await this.notifications.create({
@@ -239,10 +240,13 @@ export class TicketSlaScheduler {
     const panelUrl = this.clientPanelBaseUrl();
     let closed = 0;
     for (const t of due) {
-      await this.prisma.ticket.update({
-        where: { id: t.id },
+      // Warunkowo: klient mógł odpisać po wybraniu listy — wtedy zgłoszenie nie czeka już na
+      // niego, więc nie zamykamy go ani nie wysyłamy maila „zamknęliśmy, bo nie odpowiadasz”.
+      const zamkniete = await this.prisma.ticket.updateMany({
+        where: { id: t.id, status: 'WAITING_CUSTOMER' },
         data: { status: 'CLOSED', autoClosedAt: now, resolvedAt: now },
       });
+      if (zamkniete.count === 0) continue;
       await this.logEvent(t.id, 'AUTO_CLOSED', { afterDays: CLOSE_AFTER_DAYS });
       if (t.assignedTo) {
         await this.notifications.create({
