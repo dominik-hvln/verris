@@ -108,6 +108,8 @@ STRIPE_CANCEL_URL=https://panel.verris.pl/dashboard/billing?topup=cancel
       - `invoice.payment_failed`
       - `payment_intent.succeeded`
       - `payment_intent.payment_failed`
+      - `payment_method.attached` / `payment_method.detached`
+      - `charge.refunded` / `charge.dispute.created` (cofnięcie doładowania przy zwrocie i chargebacku — 2026-09-27)
       - `payment_method.attached` / `payment_method.detached` (zapisane karty w panelu — M-26)
 - [ ] `🔴` Test webhooka: `Send test webhook` z dashboardu → 200 OK
 - [ ] `🟡` Tax & VAT skonfigurowane (PL → 23 %, kraje UE → reverse charge B2B)

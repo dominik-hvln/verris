@@ -735,6 +735,10 @@ export class BillingService {
       case 'payment_intent.payment_failed':
         await this.handlePaymentIntentFailed(event);
         break;
+      case 'charge.refunded':
+      case 'charge.dispute.created':
+        await this.handleZwrotPlatnosci(event);
+        break;
       case 'payment_method.attached':
         await this.handlePaymentMethodAttached(event);
         break;
@@ -744,6 +748,69 @@ export class BillingService {
       default:
         this.logger.debug(`Ignoring unhandled Stripe event: ${event.type}`);
     }
+  }
+
+  /**
+   * Zwrot (charge.refunded) albo spór/chargeback (charge.dispute.created) płatności za doładowanie.
+   * Do 2026-09-27 żadne z tych zdarzeń nie było obsługiwane: pieniądze wracały do klienta przez bank,
+   * a K zostawały w portfelu — klasyczna ścieżka nadużycia (doładuj kradzioną kartą, wydaj, chargeback).
+   * Cofamy proporcjonalną część K (charge.refunded podaje kwotę narastająco, więc liczymy „ile powinno
+   * być cofnięte” minus „ile już cofnięto”). Portfel nie schodzi poniżej zera — brakującą część
+   * i korektę dokumentu doładowania zgłaszamy administratorom.
+   */
+  private async handleZwrotPlatnosci(event: { id: string; type: string; data: { object: Record<string, unknown> } }) {
+    const o = event.data.object as { payment_intent?: string | null; amount?: number; amount_refunded?: number; reason?: string };
+    const spor = event.type === 'charge.dispute.created';
+    if (!o.payment_intent) return;
+    const wplata = await this.prisma.walletTransaction.findFirst({
+      where: { paymentRef: o.payment_intent, type: WalletTxType.TOPUP },
+    });
+    if (!wplata) {
+      this.logger.warn(`${event.type} ${event.id}: brak doładowania dla ${o.payment_intent} — pomijam`);
+      return;
+    }
+    const kwotaMinor = (spor ? o.amount : o.amount_refunded) ?? 0;
+    const zaplaconoMinor = Number((wplata.metadata as { wplata?: { kwota?: string } } | null)?.wplata?.kwota ?? 0) * 100;
+    const udzial = zaplaconoMinor > 0 ? Math.min(1, kwotaMinor / zaplaconoMinor) : 1;
+    const doCofniecia = new Prisma.Decimal(wplata.amount).mul(udzial).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+    const juz = await this.prisma.walletTransaction.findMany({
+      where: { userId: wplata.userId, metadata: { path: ['zwrotZa'], equals: wplata.id } },
+      select: { amount: true },
+    });
+    const cofniete = juz.reduce((a, t) => a.plus(new Prisma.Decimal(t.amount).abs()), new Prisma.Decimal(0));
+    const reszta = doCofniecia.minus(cofniete);
+    if (reszta.lessThanOrEqualTo(0)) return;
+
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: wplata.userId }, select: { email: true, walletBalance: true } });
+    const saldo = new Prisma.Decimal(user.walletBalance);
+    const pobierz = Prisma.Decimal.min(reszta, saldo.greaterThan(0) ? saldo : new Prisma.Decimal(0));
+    if (pobierz.greaterThan(0)) {
+      await this.ledger.debit({
+        userId: wplata.userId,
+        type: WalletTxType.ADJUSTMENT,
+        amount: pobierz,
+        description: spor ? 'Spór o płatność (chargeback) — cofnięcie doładowania' : 'Zwrot płatności — cofnięcie doładowania',
+        idempotencyKey: `stripe:${event.id}`,
+        metadata: { zwrotZa: wplata.id, stripeEvent: event.id, powod: o.reason ?? null },
+      });
+    }
+    const brak = reszta.minus(pobierz);
+    await this.audit.record({
+      action: spor ? 'WALLET_TOPUP_DISPUTED' : 'WALLET_TOPUP_REFUNDED',
+      userId: wplata.userId,
+      details: { walletTxId: wplata.id, stripeEvent: event.id, cofnieteK: pobierz.toFixed(2), brakK: brak.toFixed(2), powod: o.reason ?? null },
+    });
+    const admini = await this.prisma.user.findMany({ where: { role: 'ADMIN', loginBlocked: false }, select: { id: true } });
+    await this.prisma.notification.createMany({
+      data: admini.map((a) => ({
+        userId: a.id,
+        category: 'SYSTEM',
+        severity: 'warning',
+        title: spor ? 'Spór o płatność (chargeback)' : 'Zwrot płatności w Stripe',
+        body: `${user.email}: cofnięto ${pobierz.toFixed(2)} K z portfela${brak.greaterThan(0) ? `, brakuje ${brak.toFixed(2)} K (saldo za niskie)` : ''}. Wystaw korektę dokumentu doładowania${spor ? ' i zdecyduj o usługach klienta' : ''}.`,
+        link: `/customers/${wplata.userId}`,
+      })),
+    });
   }
 
   /**

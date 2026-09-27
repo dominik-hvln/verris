@@ -61,6 +61,7 @@ Jeśli którykolwiek punkt krytyczny nie jest spełniony, decyzja = **NO-GO**.
   - `customer.subscription.*`
   - `payment_intent.succeeded` / `payment_intent.payment_failed` (auto-topup)
   - `payment_method.attached` / `payment_method.detached` (zapisane karty — M-26)
+  - `charge.refunded` / `charge.dispute.created` (cofnięcie doładowania przy zwrocie i chargebacku — 2026-09-27)
 
 ## 7) Observability / backup / operacje
 
