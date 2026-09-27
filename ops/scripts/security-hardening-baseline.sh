@@ -91,7 +91,11 @@ EOF"
 }
 
 harden_ssh() {
-  local conf="/etc/ssh/sshd_config.d/99-verris-hardening.conf"
+  # `00-`, nie `99-`: w sshd_config.d wygrywa PIERWSZA wartość danej opcji, a pliki czytane są
+  # alfabetycznie — `50-cloud-init.conf` z `PasswordAuthentication yes` (obraz Hetznera) nadpisywał
+  # nasze `no`. Panel przyjmował próby hasła na root (brute force w auth.log, 09.2026).
+  local conf="/etc/ssh/sshd_config.d/00-verris-hardening.conf"
+  run "rm -f /etc/ssh/sshd_config.d/99-verris-hardening.conf"
   run "mkdir -p /etc/ssh/sshd_config.d"
   run "cat > '$conf' <<EOF
 PasswordAuthentication no
@@ -108,6 +112,11 @@ MaxAuthTries 4
 LoginGraceTime 30
 EOF"
   run "sshd -t"
+  # Sprawdzenie skutku, nie samego pliku: `sshd -T` pokazuje wartości, które sshd naprawdę stosuje.
+  if [ "${DRY_RUN:-0}" != "1" ] && ! sshd -T 2>/dev/null | grep -qx 'passwordauthentication no'; then
+    echo "BŁĄD: sshd nadal przyjmuje hasła (sshd -T). Sprawdź /etc/ssh/sshd_config i sshd_config.d/." >&2
+    return 1
+  fi
   if command -v systemctl >/dev/null 2>&1; then
     run "systemctl restart ssh || systemctl restart sshd"
   fi
