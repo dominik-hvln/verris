@@ -97,4 +97,11 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   CUSTOMER_IAM_MEMBER_DISABLED: 'Subkonto wyłączone',
   CUSTOMER_IAM_ACCESS_DENIED: 'Odmowa dostępu subkonta (brak uprawnienia)',
   CUSTOMER_IAM_SUBACCOUNT_ACTION: 'Działanie subkonta',
+  CUSTOMER_IAM_ACCOUNT_SWITCH: 'Przełączenie na to konto (dostęp z własnego konta)',
+  CUSTOMER_IAM_MEMBERSHIP_UPDATED: 'Zmieniono dostęp z własnego konta',
+  CUSTOMER_IAM_MEMBERSHIP_DISABLED: 'Odebrano dostęp z własnego konta',
+  RESELLER_BRAND_CHANGED: 'Zmieniono nazwę marki resellera',
+  RESELLER_LOGO_CHANGED: 'Zmieniono logo resellera',
+  RESELLER_CLIENT_PASSWORD_LINK: 'Reseller wysłał klientowi link do ustawienia hasła',
+  RESELLER_CLIENT_DETACHED: 'Reseller odpiął klienta',
 };

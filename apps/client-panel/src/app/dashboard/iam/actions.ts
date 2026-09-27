@@ -146,7 +146,7 @@ export async function disableMemberAction(formData: FormData): Promise<void> {
     return blad(normalizeError(err, 'Nie udało się wyłączyć dostępu.'), '/dashboard/iam');
   }
   revalidatePath('/dashboard/iam');
-  redirect('/dashboard/iam?notice=member-disabled');
+  redirect(konto ? '/dashboard/iam?notice=membership-disabled' : '/dashboard/iam?notice=member-disabled');
 }
 
 export async function acceptInviteAction(formData: FormData): Promise<void> {

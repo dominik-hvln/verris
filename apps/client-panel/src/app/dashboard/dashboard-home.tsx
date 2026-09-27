@@ -440,7 +440,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
             </div>
           </Box>
 
-          {ekoWidoczny ? (
+          {ekoWidoczny && !bez.eco ? (
             <div className="v2-comet rounded-[10px]" style={comet('c', 15, -10, 0.45)}>
             <Box
               title="Program EKO"

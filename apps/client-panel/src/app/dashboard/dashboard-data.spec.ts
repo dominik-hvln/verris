@@ -56,6 +56,18 @@ describe('X-05 getDashboardSnapshot — błędy nie udają zera (X-39)', () => {
     expect(s.bezDostepu).toEqual({ domains: true, wallet: true, tickets: true });
   });
 
+  it('PB-20 — dostęp do wybranych usług: 403 z programu EKO to brak uprawnień, nie „dane chwilowo niedostępne”', async () => {
+    const zakaz = Object.assign(new Error('Masz dostęp tylko do wybranych usług tego konta.'), { status: 403 });
+    apiFetch.mockImplementation(async (path: string) => {
+      if (path.startsWith('/users/me/eco')) throw zakaz;
+      return [];
+    });
+    const s = await getDashboardSnapshot();
+    expect(s.errors.ecoProgram).toBeUndefined();
+    expect(s.errors.ecoLedger).toBeUndefined();
+    expect(s.bezDostepu.eco).toBe(true);
+  });
+
   it('wszystko OK → brak kluczy błędów', async () => {
     const s = await getDashboardSnapshot();
     expect(s.errors).toEqual({});

@@ -90,7 +90,7 @@ export type DashboardSnapshot = {
     tickets?: string;
   };
   /** Subkonto bez uprawnienia (API: 403) — to nie awaria, widok chowa dane zamiast straszyć błędem. */
-  bezDostepu: { domains?: true; wallet?: true; tickets?: true };
+  bezDostepu: { domains?: true; wallet?: true; tickets?: true; eco?: true };
 };
 
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
@@ -112,10 +112,12 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
   if (!servicesRes.ok) errors.services = servicesRes.error;
   if (zabronione(domainsRes)) bezDostepu.domains = true;
   else if (!domainsRes.ok) errors.domains = domainsRes.error;
-  if (!ecoProgramRes.ok) errors.ecoProgram = ecoProgramRes.error;
+  // Dostęp tylko do wybranych usług (PB-20) — program EKO jest całego konta: 403 to brak uprawnień, nie awaria.
+  if (zabronione(ecoProgramRes) || zabronione(ecoLedgerRes)) bezDostepu.eco = true;
+  else if (!ecoProgramRes.ok) errors.ecoProgram = ecoProgramRes.error;
   if (zabronione(walletRes)) bezDostepu.wallet = true;
   else if (!walletRes.ok) errors.wallet = walletRes.error;
-  if (!ecoLedgerRes.ok) errors.ecoLedger = ecoLedgerRes.error;
+  if (!ecoLedgerRes.ok && !bezDostepu.eco) errors.ecoLedger = ecoLedgerRes.error;
   if (zabronione(ticketsRes)) bezDostepu.tickets = true;
   else if (!ticketsRes.ok) errors.tickets = ticketsRes.error;
 

@@ -128,6 +128,7 @@ export default function ServiceOverviewV2({
   const { links } = useHostingLinks();
   const router = useRouter();
   const [service, setService] = useState<ServiceDetailsDto | null>(null);
+  const [bladUslugi, setBladUslugi] = useState<string | null>(null);
   const [health, setHealth] = useState<ServiceHealthSummaryDto | null>(null);
   const [usage, setUsage] = useState<HostingUsageResponse | null>(null);
   const [conn, setConn] = useState<ServiceConnectionInfoDto | null>(null);
@@ -164,6 +165,8 @@ export default function ServiceOverviewV2({
           setService(svc);
           setHealth((h) => h ?? svc.health);
         })
+        // Komunikat API (np. „Masz dostęp tylko do wybranych usług tego konta.”) zamiast ogólnego.
+        .catch((e: unknown) => setBladUslugi(e instanceof Error && e.message ? e.message : null))
         .finally(() => setLoading(false))
         .then(() => healthP)
         .then(() => setRefreshing(false));
@@ -192,7 +195,7 @@ export default function ServiceOverviewV2({
       </div>
     );
   }
-  if (!service) return <p className="text-sm text-crit">Nie udało się wczytać usługi.</p>;
+  if (!service) return <p className="text-sm text-crit">{bladUslugi ?? 'Nie udało się wczytać usługi.'}</p>;
 
   const account = service.account;
   const blokada = powodBlokady(service.status, service.events);
