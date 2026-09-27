@@ -3,7 +3,8 @@ import { GET } from "./route";
 
 /** Przekazanie sesji impersonacji: jednorazowy kod wymieniany po stronie serwera, przekierowanie tylko w panelu. */
 const KOD = "a".repeat(43);
-const wywolaj = (q: string) => GET(new NextRequest(`https://panel.verris.pl/impersonate?${q}`));
+const wywolaj = (q: string, cookie?: string) =>
+  GET(new NextRequest(`https://panel.verris.pl/impersonate?${q}`, cookie ? { headers: { cookie } } : undefined));
 
 describe("GET /impersonate", () => {
   const env = process.env.CLIENT_PANEL_URL;
@@ -27,6 +28,19 @@ describe("GET /impersonate", () => {
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ code: KOD });
     expect(r.headers.get("location")).toBe("https://panel.verris.pl/dashboard/services");
     expect(r.cookies.get("auth_token")?.value).toBe("tok-imp");
+  });
+
+  it("zalogowany właściciel w tej samej przeglądarce: jego sesja odłożona, nie nadpisana", async () => {
+    ok();
+    const r = await wywolaj(`code=${KOD}`, "auth_token=tok-wl");
+    expect(r.cookies.get("auth_token")?.value).toBe("tok-imp");
+    expect(r.cookies.get("auth_token_wlasciciel")?.value).toBe("tok-wl");
+  });
+
+  it("impersonacja w trakcie innej: odłożona zostaje pierwotna sesja, nie poprzedni token wsparcia", async () => {
+    ok();
+    const r = await wywolaj(`code=${KOD}`, "auth_token=tok-imp-stary; impersonation_operator=admin; auth_token_wlasciciel=tok-wl");
+    expect(r.cookies.get("auth_token_wlasciciel")).toBeUndefined();
   });
 
   it("nieznany albo zużyty kod → logowanie, istniejąca sesja nietknięta", async () => {

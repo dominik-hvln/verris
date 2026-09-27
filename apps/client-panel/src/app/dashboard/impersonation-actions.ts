@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { getAuthToken } from "@/lib/auth";
+import { CIASTECZKO_WLASCICIELA, getAuthToken, opcjeSesji } from "@/lib/auth";
 
 export interface ImpersonationContext {
   isImpersonating: boolean;
@@ -66,8 +66,8 @@ export async function getImpersonationContext(): Promise<ImpersonationContext> {
 }
 
 /**
- * Records an "impersonation stopped" audit event server-side, drops the
- * impersonation cookie, and bounces the operator back to the admin panel.
+ * Records an "impersonation stopped" audit event server-side, restores the
+ * operator's own client session (if one was set aside), and bounces the operator back to the admin panel.
  */
 export async function stopImpersonationAction(): Promise<never> {
   const token = await getAuthToken();
@@ -87,7 +87,11 @@ export async function stopImpersonationAction(): Promise<never> {
   }
   const store = await cookies();
   const operator = store.get("impersonation_operator")?.value;
-  store.delete("auth_token");
+  const wlasciciel = store.get(CIASTECZKO_WLASCICIELA)?.value;
+  // Sesja właściciela odłożona przy starcie impersonacji wraca na miejsce — bez ponownego logowania.
+  if (wlasciciel) store.set("auth_token", wlasciciel, opcjeSesji());
+  else store.delete("auth_token");
+  store.delete(CIASTECZKO_WLASCICIELA);
   store.delete("impersonation_operator");
 
   if (operator === "staff") {

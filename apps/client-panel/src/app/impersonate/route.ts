@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { CIASTECZKO_WLASCICIELA, opcjeSesji } from "@/lib/auth";
 
 const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
 
 /**
  * Przejęcie sesji klienta przez operatora (impersonacja). W adresie przychodzi tylko jednorazowy
  * kod (60 s) z API — serwer panelu wymienia go na token (POST /auth/handoff) i zapisuje w ciasteczku.
- * Token nie trafia do historii przeglądarki ani logów. Nieznany / zużyty kod → logowanie, a
+ * Token nie trafia do historii przeglądarki ani logów. Dotychczasowa sesja czeka w osobnym ciasteczku. Nieznany / zużyty kod → logowanie, a
  * istniejąca sesja zostaje nietknięta (wcześniej dowolny ciąg nadpisywał ciasteczko — wylogowanie
  * ofiary jednym linkiem).
  */
@@ -25,6 +26,13 @@ export async function GET(req: NextRequest) {
   const opcje = { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax" as const, path: "/", maxAge: 60 * 30 };
   response.cookies.set("auth_token", token, opcje);
   response.cookies.set("impersonation_operator", operator, opcje);
+  // Własna sesja operatora w panelu klienta (ta sama przeglądarka) nie ginie: odkładamy ją na bok
+  // i wraca po „Powrót do panelu” albo wygaśnięciu impersonacji. Przy impersonacji w trakcie
+  // innej odłożona zostaje pierwotna sesja, nie token poprzedniej impersonacji.
+  const obecna = req.cookies.get("auth_token")?.value;
+  if (obecna && !req.cookies.has("impersonation_operator")) {
+    response.cookies.set(CIASTECZKO_WLASCICIELA, obecna, opcjeSesji());
+  }
   return response;
 }
 

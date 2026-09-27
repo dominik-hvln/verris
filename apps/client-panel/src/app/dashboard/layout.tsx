@@ -456,7 +456,6 @@ function DashboardLayoutInner({
       <NoticesBanner />
       {/* Zgody składa wyłącznie klient — podczas sesji wsparcia (impersonacji) modal się nie pokazuje. */}
       {userLoading || impersonating ? null : <ReConsentModal />}
-      <PlatformConfigLoader />
       <div className="relative flex min-h-screen w-full max-w-full flex-col lg:flex-row lg:items-start">
 
       {sidebarOpen ? (
@@ -576,6 +575,7 @@ function DashboardLayoutInner({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <PlatformConfigLoader />
             <ThemeToggle />
             {showWallet && (
               <WalletBadge
