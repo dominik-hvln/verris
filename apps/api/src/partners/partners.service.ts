@@ -68,6 +68,7 @@ interface PayoutDelegate {
   create(args: { data: Record<string, unknown> }): Promise<PayoutRow>;
   update(args: { where: { id: string }; data: Record<string, unknown> }): Promise<PayoutRow>;
   delete(args: { where: { id: string } }): Promise<PayoutRow>;
+  updateMany(args: { where: Record<string, unknown>; data: Record<string, unknown> }): Promise<{ count: number }>;
 }
 
 export interface PartnerOverview {
@@ -347,38 +348,37 @@ export class PartnersService {
       throw new BadRequestException('Tę wypłatę można już tylko przeglądać.');
     }
 
+    // Przejście warunkowe PRZED ruszeniem prowizji: „Wypłacone” i „Odrzuć” kliknięte naraz
+    // zostawiały wypłatę PAID z prowizjami zwolnionymi do puli (partner mógł je wypłacić drugi raz).
+    const przejscie = await this.payouts.updateMany({
+      where: { id: payoutId, status: 'REQUESTED' },
+      data: { status: action, processedAt: new Date(), processedByUserId: actorUserId, note: note ?? null },
+    });
+    if (przejscie.count === 0) throw new BadRequestException('Tę wypłatę można już tylko przeglądać.');
+
     if (action === 'PAID') {
       await this.commissions.updateMany({
         where: { payoutId, status: 'AVAILABLE' },
         data: { status: 'PAID' },
-      });
-      const updated = await this.payouts.update({
-        where: { id: payoutId },
-        data: { status: 'PAID', processedAt: new Date(), processedByUserId: actorUserId, note: note ?? null },
       });
       await this.audit.record({
         action: 'PARTNER_PAYOUT_PAID',
         userId: actorUserId,
         details: { payoutId, partnerUserId: payout.partnerUserId, amount: this.toNum(payout.amount) },
       });
-      return updated;
+    } else {
+      // REJECTED — zwalniamy zarezerwowane prowizje z powrotem do puli.
+      await this.commissions.updateMany({
+        where: { payoutId, status: 'AVAILABLE' },
+        data: { payoutId: null },
+      });
+      await this.audit.record({
+        action: 'PARTNER_PAYOUT_REJECTED',
+        userId: actorUserId,
+        details: { payoutId, partnerUserId: payout.partnerUserId, note: note ?? null },
+      });
     }
-
-    // REJECTED — zwalniamy zarezerwowane prowizje z powrotem do puli.
-    await this.commissions.updateMany({
-      where: { payoutId, status: 'AVAILABLE' },
-      data: { payoutId: null },
-    });
-    const updated = await this.payouts.update({
-      where: { id: payoutId },
-      data: { status: 'REJECTED', processedAt: new Date(), processedByUserId: actorUserId, note: note ?? null },
-    });
-    await this.audit.record({
-      action: 'PARTNER_PAYOUT_REJECTED',
-      userId: actorUserId,
-      details: { payoutId, partnerUserId: payout.partnerUserId, note: note ?? null },
-    });
-    return updated;
+    return (await this.payouts.findUnique({ where: { id: payoutId } }))!;
   }
 
   getConfig() {
