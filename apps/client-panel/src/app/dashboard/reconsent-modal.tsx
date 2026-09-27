@@ -60,6 +60,8 @@ export function ReConsentModal() {
   }, []);
 
   if (!docs || docs.length === 0) return null;
+  // Konto bez żadnej akceptacji (np. założone przez resellera) — pierwsza zgoda, nie „aktualizacja”.
+  const pierwsza = docs.every((d) => !d.userVersion);
 
   const onAccept = () => {
     if (!accepted) return;
@@ -93,10 +95,12 @@ export function ReConsentModal() {
           </div>
           <div className="flex-1">
             <h2 id="reconsent-title" className="text-xl font-bold text-white">
-              Zaktualizowaliśmy ważne dokumenty prawne
+              {pierwsza ? "Zaakceptuj regulamin i politykę prywatności" : "Zaktualizowaliśmy ważne dokumenty prawne"}
             </h2>
             <p className="mt-1 text-sm text-neutral-400">
-              Zanim przejdziesz do panelu, prosimy o zapoznanie się i ponowną akceptację.
+              {pierwsza
+                ? "Zanim przejdziesz do panelu, zapoznaj się z dokumentami i zaakceptuj je."
+                : "Zanim przejdziesz do panelu, prosimy o zapoznanie się i ponowną akceptację."}
             </p>
           </div>
         </div>
@@ -112,10 +116,12 @@ export function ReConsentModal() {
                 <p className="text-sm font-semibold text-white">
                   {KIND_LABELS[doc.kind]} — wersja {doc.currentVersion}
                 </p>
-                <p className="mt-0.5 text-xs text-neutral-500">
-                  Twoja zaakceptowana wersja: {doc.userVersion ?? "brak (legacy)"}
-                </p>
-                {doc.changelogMarkdown && (
+                {doc.userVersion && (
+                  <p className="mt-0.5 text-xs text-neutral-500">
+                    Twoja zaakceptowana wersja: {doc.userVersion}
+                  </p>
+                )}
+                {!pierwsza && doc.changelogMarkdown && (
                   <p className="mt-2 text-xs text-neutral-300 whitespace-pre-line">
                     {doc.changelogMarkdown}
                   </p>
@@ -149,8 +155,9 @@ export function ReConsentModal() {
             className="mt-1 h-4 w-4 rounded border-white/20 bg-neutral-900 text-sky-500 focus:ring-2 focus:ring-sky-500/30 cursor-pointer"
           />
           <span className="text-sm text-neutral-300">
-            Akceptuję wszystkie powyższe zmiany i potwierdzam, że zapoznałem/am się z treścią
-            zaktualizowanych dokumentów.
+            {pierwsza
+              ? "Akceptuję powyższe dokumenty i potwierdzam, że zapoznałem/am się z ich treścią."
+              : "Akceptuję wszystkie powyższe zmiany i potwierdzam, że zapoznałem/am się z treścią zaktualizowanych dokumentów."}
           </span>
         </label>
 

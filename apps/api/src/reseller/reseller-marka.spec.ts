@@ -23,6 +23,8 @@ describe('O-09 — marka resellera', () => {
   it('mail bez znaczników zostaje bez zmian', () => {
     expect(wstawMarke('<p>x</p>', 'x', { nazwa: 'A', logoUrl: null })).toEqual({ html: '<p>x</p>', text: 'x' });
     expect(blokPartnera({ nazwa: 'A', logoUrl: 'https://api/x"y' })).toContain('x&quot;y');
+    // Z logo nazwa tylko w alt — bez podwójnego „Test Verris Test Verris” w nagłówku.
+    expect(blokPartnera({ nazwa: 'Marka', logoUrl: 'https://api/l.png' }).match(/Marka/g)).toHaveLength(1);
     expect(ZNACZNIK_PARTNERA_DO).toBe('<!--/verris-partner-->');
   });
 });

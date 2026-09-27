@@ -22,11 +22,12 @@ export interface MarkaPartnera {
 
 /** Blok w prawej części nagłówka maila: logo i nazwa partnera + „na infrastrukturze Verris”. */
 export function blokPartnera(m: MarkaPartnera): string {
-  const logo = m.logoUrl
-    ? `<img src="${escapeHtml(m.logoUrl)}" height="28" alt="${escapeHtml(m.nazwa)}" style="display:inline-block;height:28px;max-width:120px;border:0;vertical-align:middle;margin-right:8px;" />`
-    : '';
+  // Z logo nazwa idzie tylko w alt (logo zwykle ją zawiera; bez obrazków klient i tak ją zobaczy).
+  const znak = m.logoUrl
+    ? `<img src="${escapeHtml(m.logoUrl)}" height="28" alt="${escapeHtml(m.nazwa)}" style="display:inline-block;height:28px;max-width:160px;border:0;vertical-align:middle;color:#ffffff;font-size:14px;font-weight:700;" />`
+    : `<span style="font-size:14px;font-weight:700;color:#ffffff;vertical-align:middle;">${escapeHtml(m.nazwa)}</span>`;
   return (
-    `${logo}<span style="font-size:14px;font-weight:700;color:#ffffff;vertical-align:middle;">${escapeHtml(m.nazwa)}</span>` +
+    znak +
     `<br/><span style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:#b7d3cc;">na infrastrukturze Verris</span>`
   );
 }
