@@ -1125,7 +1125,10 @@ export class BillingService {
           stripeInvoiceId: invoice.id,
         });
       }
-      if (created || invoice.status === 'paid') {
+      // Stripe wysyła `invoice.paid` i `invoice.payment_succeeded` dla tej samej płatności (oba
+      // subskrybowane, docs/ops/OPERATIONAL_CHECKLIST.md) — mail i audyt tylko przy `invoice.paid`,
+      // inaczej klient dostawał dwa maile o odnowieniu.
+      if (event.type === 'invoice.paid' && (created || invoice.status === 'paid')) {
         await this.audit.record({
           action: 'INVOICE_PAID',
           userId: verrisUserId,
