@@ -614,10 +614,13 @@ export class EmailMarketingService {
       return { done: true, processed: 0 };
     }
 
+    // Kolejni odbiorcy = zapisani, którzy jeszcze nie mają wysyłki tej kampanii. Wcześniej
+    // paczki szły przez skip/offset po liście zapisanych — każdy wypis z wcześniejszej paczki
+    // (ludzie klikają „wypisz” w pierwszych mailach, zanim wyjdą kolejne) przesuwał listę
+    // i tylu samo odbiorców z następnej paczki nie dostawało kampanii wcale.
     const recipients = await this.contacts.findMany({
-      where: { listId: campaign.listId, status: 'SUBSCRIBED' },
+      where: { listId: campaign.listId, status: 'SUBSCRIBED', sends: { none: { campaignId } } },
       orderBy: { id: 'asc' },
-      skip: campaign.cursorOffset ?? 0,
       take: EmailMarketingService.BATCH_SIZE,
     });
 
@@ -635,30 +638,29 @@ export class EmailMarketingService {
     let failed = 0;
 
     for (const contact of recipients) {
-      const existing = await this.sends.findFirst({
-        where: { campaignId, contactId: contact.id },
-        select: { id: true },
-      });
-      if (existing) continue;
+      // Rekord wysyłki zakładany PRZED wysłaniem (unikat kampania+kontakt): dwa nakładające
+      // się przebiegi dyspozytora wysyłały ten sam mail dwa razy, a drugi zapis wywracał paczkę.
+      // ponytail: awaria procesu między zapisem a wysłaniem gubi jeden mail (lepsze niż dubel u odbiorcy).
+      let wpis: { id: string };
+      try {
+        wpis = await this.sends.create({ data: { campaignId, contactId: contact.id, status: 'SENT' }, select: { id: true } });
+      } catch (err) {
+        if ((err as { code?: string }).code === 'P2002') continue;
+        throw err;
+      }
 
-      let status: 'SENT' | 'SUPPRESSED' | 'FAILED';
-      let reason: string | null = null;
       try {
         const result = await this.deliver(campaign, campaign.list, contact);
         if (result.delivered) {
-          status = 'SENT';
           sent++;
         } else {
-          status = 'SUPPRESSED';
-          reason = result.suppressedReason ?? 'SUPPRESSED';
           suppressed++;
+          await this.sends.update({ where: { id: wpis.id }, data: { status: 'SUPPRESSED', reason: result.suppressedReason ?? 'SUPPRESSED' } });
         }
       } catch (err) {
-        status = 'FAILED';
-        reason = (err as Error).message.slice(0, 200);
         failed++;
+        await this.sends.update({ where: { id: wpis.id }, data: { status: 'FAILED', reason: (err as Error).message.slice(0, 200) } });
       }
-      await this.sends.create({ data: { campaignId, contactId: contact.id, status, reason } });
     }
 
     await this.campaigns.update({
