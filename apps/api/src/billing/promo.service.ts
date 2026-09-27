@@ -502,51 +502,58 @@ export class PromoService {
       throw new BadRequestException('Kod promocyjny nieaktywny lub nie istnieje.');
     }
 
-    // Re-check redemption gate (race on multiple checkouts with same code).
-    const already = await this.prisma.promoRedemption.findUnique({
-      where: { promoCodeId_userId: { promoCodeId: promo.id, userId: input.userId } },
-    });
-    if (already) {
-      // Idempotent: someone else (or earlier webhook delivery) already
-      // redeemed this. Return that walletTxId.
-      return { walletTxId: already.walletTxId };
-    }
-
     const bonus = new Prisma.Decimal(input.bonusAmount);
     if (bonus.lessThanOrEqualTo(0)) {
       throw new BadRequestException('Bonus nie może być zerowy.');
     }
 
-    const credit = await this.ledger.credit({
-      userId: input.userId,
-      amount: bonus,
-      type: WalletTxType.PROMO_CREDIT,
-      description: promo.description ?? `Bonus promocyjny „${promo.code}” do doładowania`,
-      idempotencyKey: `promo-pct-bonus:${promo.id}:${input.userId}:${input.sessionId}`,
-      paymentProvider: 'PROMO',
-      paymentRef: promo.id,
-      metadata: {
-        promoCodeId: promo.id,
-        relatedWalletTxId: input.relatedWalletTxId,
-        stripeSessionId: input.sessionId,
-        kind: 'PERCENT_BONUS',
-      },
-    });
-
-    await this.prisma.promoRedemption.create({
-      data: {
-        promoCodeId: promo.id,
-        userId: input.userId,
-        amountCredited: bonus,
-        currency: promo.currency,
-        walletTxId: credit.id,
-      },
-    });
-
-    await this.prisma.promoCode.update({
-      where: { id: promo.id },
+    // Zajęcie PRZED uznaniem: unikalne (kod, klient) rozstrzyga wyścig dwóch checkoutów z tym samym
+    // kodem. Wcześniej oba widziały „nie użyty”, oba dostawały bonus, a drugi zapis użycia padał po fakcie.
+    let redemption;
+    try {
+      redemption = await this.prisma.promoRedemption.create({
+        data: { promoCodeId: promo.id, userId: input.userId, amountCredited: bonus, currency: promo.currency },
+      });
+    } catch (err) {
+      if (!(err instanceof Prisma.PrismaClientKnownRequestError) || err.code !== 'P2002') throw err;
+      const already = await this.prisma.promoRedemption.findUnique({
+        where: { promoCodeId_userId: { promoCodeId: promo.id, userId: input.userId } },
+      });
+      return { walletTxId: already?.walletTxId ?? null };
+    }
+    // Limit użyć sprawdzany przy przyznaniu, nie tylko przy tworzeniu checkoutu.
+    const licznik = await this.prisma.promoCode.updateMany({
+      where: { id: promo.id, ...(promo.maxRedemptions != null ? { redemptionCount: { lt: promo.maxRedemptions } } : {}) },
       data: { redemptionCount: { increment: 1 } },
     });
+    if (licznik.count === 0) {
+      await this.prisma.promoRedemption.delete({ where: { id: redemption.id } });
+      throw new BadRequestException('Limit użyć kodu promocyjnego został wyczerpany.');
+    }
+
+    let credit;
+    try {
+      credit = await this.ledger.credit({
+        userId: input.userId,
+        amount: bonus,
+        type: WalletTxType.PROMO_CREDIT,
+        description: promo.description ?? `Bonus promocyjny „${promo.code}” do doładowania`,
+        idempotencyKey: `promo-pct-bonus:${promo.id}:${input.userId}`,
+        paymentProvider: 'PROMO',
+        paymentRef: promo.id,
+        metadata: {
+          promoCodeId: promo.id,
+          relatedWalletTxId: input.relatedWalletTxId,
+          stripeSessionId: input.sessionId,
+          kind: 'PERCENT_BONUS',
+        },
+      });
+    } catch (err) {
+      await this.prisma.promoRedemption.delete({ where: { id: redemption.id } }).catch(() => undefined);
+      await this.prisma.promoCode.update({ where: { id: promo.id }, data: { redemptionCount: { decrement: 1 } } }).catch(() => undefined);
+      throw err;
+    }
+    await this.prisma.promoRedemption.update({ where: { id: redemption.id }, data: { walletTxId: credit.id } });
 
     await this.audit.record({
       action: 'PROMO_CODE_REDEEMED',

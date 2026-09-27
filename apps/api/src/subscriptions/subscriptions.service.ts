@@ -680,6 +680,8 @@ export class SubscriptionsService {
     });
     if (!subscription) return null;
     if (subscription.status === SubscriptionStatus.CANCELED) return subscription;
+    // Klient mógł wznowić usługę po tym, jak harmonogram ją wybrał — wtedy nic nie kasujemy.
+    if (!subscription.cancelAt || subscription.cancelAt.getTime() > Date.now()) return subscription;
     return this.tearDownCanceledSubscription(subscription, {
       account: subscription.account,
       source: 'SCHEDULED',

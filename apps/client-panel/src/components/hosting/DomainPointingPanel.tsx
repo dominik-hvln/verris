@@ -1,5 +1,6 @@
 'use client';
 
+import { toast } from 'sonner';
 import { useCallback, useEffect, useState } from 'react';
 import {
   AlertCircle,
@@ -95,6 +96,9 @@ export default function DomainPointingPanel({
     setVerifying(true);
     try {
       setData(await verifyDomainPointingAction(serviceId));
+    } catch {
+      // Wcześniej brak `catch`: błąd był nieobsłużonym odrzuceniem, klient nie widział nic.
+      toast.error('Nie udało się sprawdzić domeny. Spróbuj ponownie za chwilę.');
     } finally {
       setVerifying(false);
     }
