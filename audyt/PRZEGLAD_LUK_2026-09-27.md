@@ -58,7 +58,7 @@ API działa jako jedna replika, więc realne wyścigi to: nakładające się prz
 | 1.19 | `plan-change.service.ts` | Limity w DirectAdminie ustawiane przed commitem. Commit się nie udaje, zmiana jest zwrócona, a limity zostają podniesione | NISKA |
 | 1.20 | `site-monitor.service.ts` | Klucz idempotencji dzienny: wyłączenie i ponowne włączenie tego samego dnia daje darmowy miesiąc | NISKA |
 | 1.21 | maile przypomnień (trial, SLA zgłoszeń, domeny, odnowienia, niskie saldo, faktury, migracje) | Wzorzec „czytaj, wyślij, oznacz”: nakładający się przebieg albo awaria wysyła maila drugi raz | NISKA |
-| 1.22 | webhook Stripe: `invoice.paid` + `payment_succeeded` | Oba wysyłają mail o odnowieniu i zapisują audyt, więc klient dostaje dwa maile | NISKA |
+| 1.22 | webhook Stripe: `invoice.paid` + `payment_succeeded` | Oba wysyłają mail o odnowieniu i zapisują audyt, więc klient dostaje dwa maile | **NAPRAWIONE** (27.09) |
 | 1.23 | `DomainPointingPanel.tsx:94` | „Sprawdź” bez `catch`: przy błędzie klient nic nie widzi | NISKA |
 
 Pozostałe akcje serwera, które rzucają błędy (ok. 30), pokazują ogólny komunikat albo żaden, więc komunikat nie ginie. Jedynym realnym przypadkiem jest 1.23.
