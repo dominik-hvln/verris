@@ -507,7 +507,21 @@ export class DomainRegistrarService {
 
     const price = await this.resolvePrice(provider, domain.name, years, 'renew');
 
-    const order = await this.prisma.domainRegistrarOrder.create({
+    // Dwuklik „Odnów” tworzył dwa zamówienia z osobnymi kluczami — dwa obciążenia i dwa odnowienia.
+    // Blokada wiersza domeny + odmowa, gdy odnowienie tej domeny jest już w toku.
+    const order = await this.prisma.$transaction(async (db) => {
+      await db.$queryRaw`SELECT id FROM "Domain" WHERE id = ${domain.id} FOR UPDATE`;
+      const wToku = await db.domainRegistrarOrder.findFirst({
+        where: {
+          domainId: domain.id,
+          type: DomainRegistrarOrderType.RENEW,
+          status: { in: [DomainRegistrarOrderStatus.QUEUED, DomainRegistrarOrderStatus.SUBMITTED] },
+          createdAt: { gte: new Date(Date.now() - 15 * 60_000) },
+        },
+        select: { id: true },
+      });
+      if (wToku) throw new ConflictException('Odnowienie tej domeny jest już w toku — odśwież stronę za chwilę.');
+      return db.domainRegistrarOrder.create({
       data: {
         domainName: domain.name,
         type: DomainRegistrarOrderType.RENEW,
@@ -518,6 +532,7 @@ export class DomainRegistrarService {
         priceAmount: new Prisma.Decimal(price.amount),
         currency: price.currency,
       },
+      });
     });
 
     const tx = await this.charge(userId, order, price, `Odnowienie domeny ${domain.name} (${years} lata/lat)`);

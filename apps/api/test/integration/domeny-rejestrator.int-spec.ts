@@ -152,6 +152,16 @@ describe('X-04 domeny u rejestratora', () => {
     expect(wywolania).toEqual([]);
     expect(await saldo(obcy.id)).toBe(500);
   });
+  it('dwuklik „Odnów”: jedno obciążenie i jedno odnowienie u rejestratora', async () => {
+    const { rejestr } = uslugi();
+    const u = await klient(500);
+    await rejestr.register(u.id, u.id, { name: 'dwuklik.pl', registrant: abonent });
+    const d = await prisma().domain.findUniqueOrThrow({ where: { name: 'dwuklik.pl' } });
+    wywolania.length = 0;
+    await Promise.all([rejestr.renew(u.id, u.id, d.id, 1).catch(() => undefined), rejestr.renew(u.id, u.id, d.id, 1).catch(() => undefined)]);
+    expect(wywolania.filter((w) => w.startsWith('renew:'))).toHaveLength(1);
+    expect(await prisma().walletTransaction.count({ where: { userId: u.id, type: WalletTxType.CHARGE_DOMAIN, description: { startsWith: 'Odnowienie domeny dwuklik.pl' } } })).toBe(1);
+  });
   it('transfer zakończony u rejestratora: domena na koncie płacącego, zlecenie zamknięte raz', async () => {
     const { rejestr } = uslugi();
     const u = await klient(500);
