@@ -173,9 +173,16 @@ export class MarketingCampaignService {
       );
     }
 
+    // Kolejna paczka od ostatniego obsłużonego odbiorcy (id rosnąco), nie od offsetu: każdy
+    // wypis z wcześniejszej paczki (klik „Wypisz” w pierwszych mailach) przesuwał segment
+    // i tylu samo odbiorców następnej paczki nie dostawało kampanii (105 → 102).
+    const ostatni = await this.prisma.emailLog.aggregate({
+      where: { campaignId },
+      _max: { userId: true },
+    });
     const recipients = await this.fetchSegmentBatch(
       campaign.segment,
-      campaign.cursorOffset,
+      ostatni._max.userId ?? null,
       MarketingCampaignService.BATCH_SIZE,
     );
     if (recipients.length === 0) {
@@ -253,14 +260,13 @@ export class MarketingCampaignService {
 
   private async fetchSegmentBatch(
     segment: MarketingSegment,
-    skip: number,
+    poId: string | null,
     take: number,
   ): Promise<Array<{ id: string; email: string }>> {
     const where = this.buildSegmentWhere(segment);
     return this.prisma.user.findMany({
-      where,
+      where: poId ? { AND: [where, { id: { gt: poId } }] } : where,
       orderBy: { id: 'asc' },
-      skip,
       take,
       select: { id: true, email: true },
     });
