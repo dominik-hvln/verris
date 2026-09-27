@@ -175,7 +175,17 @@ export class WalletAutoTopupService {
     const minor = Math.round(rule.topupAmount.toNumber() * 100);
     if (minor < 100) return;
 
-    const piIdempotencyKey = `auto-topup:intent:${rule.userId}:${Math.floor(Date.now() / COOLDOWN_MS)}`;
+    // Zajęcie przed obciążeniem karty: dwa nakładające się przebiegi (albo dwie instancje API)
+    // obciążały kartę dwa razy — klucz idempotencji Stripe scalał je tylko w tej samej godzinie,
+    // a karencja zapisywała się dopiero po odpowiedzi Stripe. Wygrywa jeden przebieg.
+    const teraz = new Date();
+    const zajete = await this.prisma.walletAutoTopup.updateMany({
+      where: { userId: rule.userId, enabled: true, OR: [{ cooldownUntil: null }, { cooldownUntil: { lte: teraz } }] },
+      data: { cooldownUntil: new Date(teraz.getTime() + COOLDOWN_MS), lastAttemptAt: teraz },
+    });
+    if (zajete.count === 0) return;
+
+    const piIdempotencyKey = `auto-topup:intent:${rule.userId}:${Math.floor(teraz.getTime() / COOLDOWN_MS)}`;
 
     try {
       const pi = await this.stripe.createOffSessionPaymentIntent({
