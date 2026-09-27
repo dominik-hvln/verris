@@ -42,24 +42,24 @@ API działa jako jedna replika, więc realne wyścigi to: nakładające się prz
 | 1.3 | `subscriptions.service.ts` activateAfterStripePayment + `renewal.scheduler` runGraceExpiry | Po karencji zawieszane są też subskrypcje Stripe. Późniejsza udana płatność (smart retry) przy statusie SUSPENDED nic nie robi. Przy synchronicznym provisioningu dwa zdarzenia „paid” uruchamiają dwa zakładania konta | **NAPRAWIONE** (b1a1097) |
 | 1.4 | `trial.service.ts` convertFromWallet | ~~Podwójne kliknięcie → zwrot → darmowy miesiąc~~ | **NAPRAWIONE** (393f254) |
 | 1.5 | `billing.service.ts` handleZwrotPlatnosci | Dwa zdarzenia dla jednej płatności (częściowe zwroty, zwrot + dispute) mogą podwójnie ściągnąć pieniądze z portfela. `charge.dispute.closed` (wygrany) nie jest obsłużony, więc środki nie wracają | **NAPRAWIONE** (140566c) |
-| 1.6 | `promo.service.ts` applyPercentBonusForTopup | Dwa checkouty z tym samym kodem dostają bonus dwa razy. Limit użyć i data ważności są sprawdzane tylko przy tworzeniu checkoutu | ŚREDNIA |
+| 1.6 | `promo.service.ts` applyPercentBonusForTopup | Dwa checkouty z tym samym kodem dostają bonus dwa razy. Limit użyć i data ważności są sprawdzane tylko przy tworzeniu checkoutu | **NAPRAWIONE** (27.09) |
 | 1.7 | `vps/vps-renewal.scheduler.ts` | Brak warunkowego przejęcia rekordu. VPS usunięty w trakcie przebiegu zostaje obciążony i „wskrzeszony”. Nieudane usunięcie w Hetznerze jest połknięte: rekord ma status DELETED, a serwer dalej działa na koszt Verris. Włącza też VPS zatrzymany ręcznie przez klienta. (VPS jest za flagą, ale przed włączeniem sprzedaży trzeba to naprawić) | ŚREDNIA |
 | 1.8 | `billing.service.ts` przetworzPonownie | Przejęcie zdarzenia bez `claimedAt`: „Ponów” w adminie w trakcie przetwarzania albo harmonogram ponowień przy redelivery Stripe uruchamia handler dwa razy. Wzmacnia problemy 1.1, 1.3 i 1.5 | **NAPRAWIONE** (140566c) |
-| 1.9 | `domain-registrar.service.ts` charge | Obciążenie i zapis `walletTxId` w jednym `try`. Błąd po obciążeniu kończy się komunikatem „brak środków”: pieniądze pobrane, domena niezarejestrowana, brak zwrotu | ŚREDNIA |
-| 1.10 | `renewal.scheduler.ts` | Licznik okresów zniżki startowej zmniejszany bezwarunkowo: „Opłać teraz” w tej samej chwili co cron zabiera okres zniżki. `extendPeriod` ustawia ACTIVE bezwarunkowo | ŚREDNIA |
-| 1.11 | `migration-worker.scheduler.ts` processQueuedMigrations | Zawsze czyta 20 najstarszych zdarzeń *_REQUESTED. Po 20 wnioskach w historii nowe nie są już obsługiwane. Brak flagi „zajęty” | ŚREDNIA |
+| 1.9 | `domain-registrar.service.ts` charge | Obciążenie i zapis `walletTxId` w jednym `try`. Błąd po obciążeniu kończy się komunikatem „brak środków”: pieniądze pobrane, domena niezarejestrowana, brak zwrotu | **NAPRAWIONE** (27.09) |
+| 1.10 | `renewal.scheduler.ts` | Licznik okresów zniżki startowej zmniejszany bezwarunkowo: „Opłać teraz” w tej samej chwili co cron zabiera okres zniżki. `extendPeriod` ustawia ACTIVE bezwarunkowo | **NAPRAWIONE** (27.09) |
+| 1.11 | `migration-worker.scheduler.ts` processQueuedMigrations | Zawsze czyta 20 najstarszych zdarzeń *_REQUESTED. Po 20 wnioskach w historii nowe nie są już obsługiwane. Brak flagi „zajęty” | **NAPRAWIONE** (27.09) |
 | 1.12 | `domain-registrar.service.ts` refundAndFail | Nieudany zwrot tylko ląduje w logu, zamówienie ma status FAILED, brak ponowienia | ŚREDNIA− |
 | 1.13 | `ksef.service.ts` oznaczNiedostepnosc | Może cofnąć SUBMITTED na OFFLINE i wysłać fakturę do KSeF drugi raz (moduł jest wyłączony, ale trzeba to poprawić przed włączeniem) | ŚREDNIA− |
-| 1.14 | `partners.service.ts` adminProcessPayout | Równoczesne PAID i REJECTED: wypłata oznaczona PAID, a prowizje wracają do puli | NISKA+ |
-| 1.15 | `subscriptions.service.ts` finalizeScheduledCancellation | Klient wznawia usługę w trakcie przebiegu, a usługa i tak zostaje anulowana | NISKA+ |
+| 1.14 | `partners.service.ts` adminProcessPayout | Równoczesne PAID i REJECTED: wypłata oznaczona PAID, a prowizje wracają do puli | **NAPRAWIONE** (27.09) |
+| 1.15 | `subscriptions.service.ts` finalizeScheduledCancellation | Klient wznawia usługę w trakcie przebiegu, a usługa i tak zostaje anulowana | **NAPRAWIONE** (27.09) |
 | 1.16 | `subscriptions.service.ts` unsuspend | Pobiera cenę indywidualną, a zwraca katalogową; nieudany zwrot jest połknięty | **NAPRAWIONE** (b1a1097) |
 | 1.17 | `vps.service.ts` order | Błąd po `createServer` to zwrot pieniędzy przy działającym serwerze w Hetznerze | NISKA+ |
-| 1.18 | `domain-registrar.service.ts` renew | Brak idempotencji żądania: dwuklik to dwa odnowienia i dwa obciążenia | NISKA |
+| 1.18 | `domain-registrar.service.ts` renew | Brak idempotencji żądania: dwuklik to dwa odnowienia i dwa obciążenia | **NAPRAWIONE** (27.09) |
 | 1.19 | `plan-change.service.ts` | Limity w DirectAdminie ustawiane przed commitem. Commit się nie udaje, zmiana jest zwrócona, a limity zostają podniesione | NISKA |
 | 1.20 | `site-monitor.service.ts` | Klucz idempotencji dzienny: wyłączenie i ponowne włączenie tego samego dnia daje darmowy miesiąc | NISKA |
 | 1.21 | maile przypomnień (trial, SLA zgłoszeń, domeny, odnowienia, niskie saldo, faktury, migracje) | Wzorzec „czytaj, wyślij, oznacz”: nakładający się przebieg albo awaria wysyła maila drugi raz | NISKA |
 | 1.22 | webhook Stripe: `invoice.paid` + `payment_succeeded` | Oba wysyłają mail o odnowieniu i zapisują audyt, więc klient dostaje dwa maile | **NAPRAWIONE** (27.09) |
-| 1.23 | `DomainPointingPanel.tsx:94` | „Sprawdź” bez `catch`: przy błędzie klient nic nie widzi | NISKA |
+| 1.23 | `DomainPointingPanel.tsx:94` | „Sprawdź” bez `catch`: przy błędzie klient nic nie widzi | **NAPRAWIONE** (27.09) |
 
 Pozostałe akcje serwera, które rzucają błędy (ok. 30), pokazują ogólny komunikat albo żaden, więc komunikat nie ginie. Jedynym realnym przypadkiem jest 1.23.
 
