@@ -71,11 +71,11 @@ export function computePlanChangeProration(input: PlanProrationInput): PlanProra
     input.targetInterval !== input.currentInterval;
 
   const oldCredit = oldPrice.mul(fractionCurrent);
-  const newCost = intervalChanges
-    ? newPrice.mul(
-        new Prisma.Decimal(remainingMs).div(referencePeriodMs(input.targetInterval!)),
-      )
-    : newPrice.mul(fractionCurrent);
+  // Zmiana okresu (miesiąc ↔ rok) zaczyna NOWY pełny okres od dziś (commitPlanChange), więc kosztuje
+  // pełną cenę nowego okresu minus niewykorzystana część starego. Do 2026-09-27 liczyliśmy tylko
+  // „resztę starego okresu" w cenie rocznej: przejście z 45 zł/mies. na rok w połowie miesiąca dawało
+  // zwrot ~6 zł i cały rok hostingu gratis.
+  const newCost = intervalChanges ? newPrice : newPrice.mul(fractionCurrent);
   const net = newCost.minus(oldCredit);
   const fraction = fractionCurrent;
 

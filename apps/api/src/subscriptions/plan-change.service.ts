@@ -253,6 +253,18 @@ export class PlanChangeService {
       }
     }
 
+    // Zajęcie usługi na tę zmianę: warunek na `updatedAt` z chwili odczytu. Dwa równoległe żądania
+    // (podwójne kliknięcie albo dwa różne plany) widzą ten sam stan — przejdzie jedno, drugie dostaje
+    // 409 zanim cokolwiek obciąży portfel, zmieni DirectAdmin czy księgę węzła. Wcześniej oba
+    // przesuwały księgę węzła, a przy dwóch różnych planach oba pobierały dopłatę.
+    const zajete = await this.prisma.subscription.updateMany({
+      where: { id: sub.id, updatedAt: sub.updatedAt },
+      data: { updatedAt: new Date() },
+    });
+    if (zajete.count === 0) {
+      throw new ConflictException('Plan tej usługi właśnie się zmienia — odśwież stronę i sprawdź wynik.');
+    }
+
     let walletTxId: string | null = null;
     let stripeUpdated = false;
 

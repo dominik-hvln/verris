@@ -97,6 +97,7 @@ describe('PlanChangeService (admin)', () => {
         findFirst: vi.fn(),
         findUnique: vi.fn().mockResolvedValue(baseSub),
         update: vi.fn(),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
         const tx = {
