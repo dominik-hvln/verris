@@ -37,6 +37,10 @@ describe('Z-06 — idempotencja zakupu dodatku', () => {
           return zapisane.find((r) => r.idempotencyKey === where.idempotencyKey) ?? null;
         }),
         create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+          // Jak unikalny indeks w bazie: drugi zakup z tym samym kluczem to P2002.
+          if (zapisane.some((r) => r.idempotencyKey === data.idempotencyKey)) {
+            throw Object.assign(new Error('unique violation'), { code: 'P2002' });
+          }
           if (opcje.rzucP2002 && licznik === 0) {
             licznik += 1;
             // Symulacja wyścigu: rekord powstał „w międzyczasie" z innego żądania.
@@ -62,8 +66,17 @@ describe('Z-06 — idempotencja zakupu dodatku', () => {
           zapisane.push(rekord);
           return rekord;
         }),
+        update: vi.fn(async ({ where, data }: { where: { id: string }; data: Partial<Rekord> }) => {
+          const r = zapisane.find((x) => x.id === where.id)!;
+          Object.assign(r, data);
+          return r;
+        }),
+        delete: vi.fn(async ({ where }: { where: { id: string } }) => {
+          zapisane.splice(zapisane.findIndex((x) => x.id === where.id), 1);
+          return {};
+        }),
       },
-      user: { update: vi.fn(async () => ({})) },
+      user: { update: vi.fn(async () => ({})), findUnique: vi.fn(async () => ({ prioritySupportUntil: null })) },
       subscription: {
         // Usługi „obca-*” należą do kogoś innego.
         findFirst: vi.fn(async ({ where }: { where: { id: string } }) => (where.id.startsWith('obca-') ? null : { id: where.id })),
@@ -131,9 +144,11 @@ describe('Z-06 — idempotencja zakupu dodatku', () => {
     });
 
     it('klucz od klienta wygrywa z wyliczanym', async () => {
-      const { service, debety } = zbuduj();
+      const { service, debety, zapisane } = zbuduj();
       await service.purchase('user-1', 'manual_setup', undefined, 'intencja-abc-123');
-      expect(debety[0].idempotencyKey).toBe('addon:v1:user-1:intencja-abc-123');
+      expect(zapisane[0].idempotencyKey).toBe('addon:v1:user-1:intencja-abc-123');
+      // W księdze: klucz zakupu + próba (nieudana próba zwalnia klucz zakupu, patrz addon.service).
+      expect(debety[0].idempotencyKey).toBe(`addon:v1:user-1:intencja-abc-123:${zapisane[0].id}`);
     });
   });
 
@@ -160,9 +175,10 @@ describe('Z-06 — idempotencja zakupu dodatku', () => {
     });
 
     it('nie tworzy drugiego wpisu w historii zakupów', async () => {
-      const { service, prisma } = zbuduj({ istniejacy });
+      const { service, zapisane } = zbuduj({ istniejacy });
       await service.purchase('user-1', 'manual_setup', undefined, 'intencja-abc-123');
-      expect(prisma.purchasedAddon.create).not.toHaveBeenCalled();
+      // Próba zapisu odbija się od unikalnego klucza — w historii dalej jeden zakup.
+      expect(zapisane).toHaveLength(1);
     });
 
     it('zwraca istniejący zakup i oznacza go jako duplikat', async () => {

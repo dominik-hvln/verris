@@ -176,79 +176,82 @@ export class AddonService {
     }
 
     const klucz = this.kluczIdempotencji(userId, slug, subscriptionId, klientKey, Date.now());
+    const amount = new Prisma.Decimal(def.price);
 
-    // Szybkie wyjście: ten zakup już był. Pomija obciążenie ORAZ skutki uboczne
-    // — bez tego poprawka broniłaby tylko portfela, a klient i tak dostałby
-    // dziesięć zgłoszeń do BOK-u i dziesięć wpisów w historii zakupów.
-    const istniejacy = await this.prisma.purchasedAddon.findUnique({
-      where: { idempotencyKey: klucz },
-    });
-    if (istniejacy) {
+    // Najpierw zajęcie zakupu unikalnym kluczem, dopiero potem pieniądze i skutki. Wcześniej rekord
+    // powstawał na końcu: dwa równoległe kliknięcia obciążały portfel raz, ale zakładały DWA zgłoszenia
+    // dla zespołu; a gdy założenie zgłoszenia padło, opłata zostawała bez zakupu i bez zwrotu.
+    let rekord;
+    try {
+      rekord = await this.prisma.purchasedAddon.create({
+        data: { userId, slug: def.slug, name: def.name, amount, subscriptionId: subscriptionId ?? null, status: 'PENDING', idempotencyKey: klucz },
+      });
+    } catch (e) {
+      if ((e as { code?: string })?.code !== 'P2002') throw e;
+      const istniejacy = await this.prisma.purchasedAddon.findUnique({ where: { idempotencyKey: klucz } });
+      if (!istniejacy) throw e;
       this.logger.log(`Powtórzony zakup dodatku (klucz=${klucz}, id=${istniejacy.id}) — bez opłaty`);
       return this.odpowiedzZRekordu(istniejacy);
     }
 
-    const amount = new Prisma.Decimal(def.price);
-    await this.wallet.debit({
-      userId,
-      type: WalletTxType.CHARGE_USAGE,
-      amount,
-      description: `Dodatek: ${def.name}`,
-      idempotencyKey: klucz,
-      subscriptionId: subscriptionId ?? undefined,
-    });
+    // Klucz w księdze = klucz zakupu + ta próba. Nieudana próba zwalnia klucz zakupu (rekord znika),
+    // więc ponowienie tym samym kluczem z panelu płaci od nowa, zamiast trafić w zwrócone obciążenie.
+    const kluczKsiegi = `${klucz}:${rekord.id}`;
+    try {
+      await this.wallet.debit({
+        userId,
+        type: WalletTxType.CHARGE_USAGE,
+        amount,
+        description: `Dodatek: ${def.name}`,
+        idempotencyKey: kluczKsiegi,
+        subscriptionId: subscriptionId ?? undefined,
+      });
+    } catch (e) {
+      await this.prisma.purchasedAddon.delete({ where: { id: rekord.id } });
+      throw e;
+    }
 
     let status = 'APPLIED';
     let ticketId: string | null = null;
-
-    if (def.mode === 'flag' && slug === 'priority_support_30d') {
-      const until = new Date(Date.now() + PRIORITY_DAYS * 24 * 60 * 60 * 1000);
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { prioritySupport: true, prioritySupportUntil: until },
-      });
-    } else if (def.mode === 'workorder') {
-      const ticket = await this.tickets.create(userId, {
-        subject: `Dodatek: ${def.name}`,
-        message: `Klient wykupił dodatek „${def.name}". ${def.description}\n\nProszę o realizację${
-          subscriptionId ? ` (usługa: ${subscriptionId})` : ''
-        }.`,
-        department: 'TECHNICAL',
-        topic: 'OTHER',
-        priority: 'HIGH',
-      });
-      ticketId = (ticket as { id?: string } | null)?.id ?? null;
-      status = 'QUEUED';
-    }
-
-    let record;
     try {
-      record = await this.prisma.purchasedAddon.create({
-        data: {
-          userId,
-          slug: def.slug,
-          name: def.name,
-          amount,
-          subscriptionId: subscriptionId ?? null,
-          status,
-          ticketId,
-          idempotencyKey: klucz,
-        },
-      });
+      if (def.mode === 'flag' && slug === 'priority_support_30d') {
+        // Dokupienie w trakcie aktywnego okresu przedłuża go — wcześniej liczyło 30 dni od dziś,
+        // a klient tracił opłacone, niewykorzystane dni.
+        const obecny = await this.prisma.user.findUnique({ where: { id: userId }, select: { prioritySupportUntil: true } });
+        const od = Math.max(Date.now(), obecny?.prioritySupportUntil?.getTime() ?? 0);
+        const until = new Date(od + PRIORITY_DAYS * 24 * 60 * 60 * 1000);
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { prioritySupport: true, prioritySupportUntil: until },
+        });
+      } else if (def.mode === 'workorder') {
+        const ticket = await this.tickets.create(userId, {
+          subject: `Dodatek: ${def.name}`,
+          message: `Klient wykupił dodatek „${def.name}". ${def.description}\n\nProszę o realizację${
+            subscriptionId ? ` (usługa: ${subscriptionId})` : ''
+          }.`,
+          department: 'TECHNICAL',
+          topic: 'OTHER',
+          priority: 'HIGH',
+        });
+        ticketId = (ticket as { id?: string } | null)?.id ?? null;
+        status = 'QUEUED';
+      }
     } catch (e) {
-      // Wyścig: dwa równoległe żądania przeszły obok sprawdzenia wyżej. Portfel
-      // obciążył raz (unikalny klucz w księdze), a tutaj drugie żądanie dostaje
-      // P2002 z unikalnego indeksu i zwraca rekord utworzony przez pierwsze.
-      const p2002 =
-        typeof e === 'object' && e !== null && (e as { code?: string }).code === 'P2002';
-      if (!p2002) throw e;
-      const rekord = await this.prisma.purchasedAddon.findUnique({
-        where: { idempotencyKey: klucz },
+      this.logger.error(`Dodatek ${def.slug} opłacony, realizacja padła — zwrot: ${(e as Error).message}`);
+      await this.wallet.credit({
+        userId,
+        type: WalletTxType.REFUND,
+        amount,
+        description: `Zwrot: dodatek ${def.name} (nie udało się uruchomić)`,
+        idempotencyKey: `${kluczKsiegi}:zwrot`,
+        subscriptionId: subscriptionId ?? undefined,
       });
-      if (!rekord) throw e;
-      this.logger.log(`Wyścig przy zakupie dodatku (klucz=${klucz}) — zwracam ${rekord.id}`);
-      return this.odpowiedzZRekordu(rekord);
+      await this.prisma.purchasedAddon.delete({ where: { id: rekord.id } });
+      throw e;
     }
+
+    const record = await this.prisma.purchasedAddon.update({ where: { id: rekord.id }, data: { status, ticketId } });
 
     await this.audit.record({
       action: 'ADDON_PURCHASED',
