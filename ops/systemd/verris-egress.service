@@ -1,0 +1,15 @@
+[Unit]
+Description=Verris egress control-plane (iptables/ip6tables + ipset) po starcie hosta
+# Reguły i zbiory ipset żyją w pamięci jądra — bez tej usługi restart serwera
+# zdejmował cały hardening egress i zerował tygodniowy pomiar.
+After=network-online.target docker.service ufw.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash @REPO_ROOT@/ops/scripts/security-control-plane-egress.sh --przy-starcie
+ExecStop=/bin/bash @REPO_ROOT@/ops/scripts/security-control-plane-egress.sh --zapisz-pomiar
+
+[Install]
+WantedBy=multi-user.target

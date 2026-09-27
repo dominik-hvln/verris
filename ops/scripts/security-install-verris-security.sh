@@ -90,6 +90,11 @@ if [ "$ROLE" = "control-plane" ]; then
   else
     ensure_control_plane_ufw_ingress
     run "bash '$REPO_ROOT/ops/scripts/security-control-plane-egress.sh'"
+    # Po restarcie hosta: ten sam tryb (domyślny/strict) i odtworzony pomiar.
+    run "install -m 0644 '$REPO_ROOT/ops/systemd/verris-egress.service' /etc/systemd/system/verris-egress.service"
+    run "sed -i 's|@REPO_ROOT@|$REPO_ROOT|g' /etc/systemd/system/verris-egress.service"
+    run "systemctl daemon-reload"
+    run "systemctl enable verris-egress.service"
     if [ -x "$REPO_ROOT/ops/scripts/security-sync-cp-egress-hosts.sh" ]; then
       run "bash '$REPO_ROOT/ops/scripts/security-sync-cp-egress-hosts.sh' || true"
       # SEC-01: strict NIE jest włączany automatycznie. Do 2026-09-22 stało tu

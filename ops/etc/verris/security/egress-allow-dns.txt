@@ -4,3 +4,8 @@
 # Zmiana resolwera = najpierw wpis tutaj, potem zmiana w systemie.
 185.12.64.1
 185.12.64.2
+# IPv6 — systemd-resolved na panelu pyta NAJPIERW te dwa (resolvectl, 2026-09-28).
+# Bez nich strict IPv6 odrzucałby każde zapytanie po IPv6 (resolved przechodzi
+# wtedy na IPv4, ale to zbędne opóźnienie przy każdej nazwie).
+2a01:4ff:ff00::add:1
+2a01:4ff:ff00::add:2

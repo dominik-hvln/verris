@@ -1,0 +1,7 @@
+# SEC-03 — użytkownicy systemu, którym wolno pytać DOWOLNE serwery DNS (port 53)
+# mimo --strict. Tylko własny resolwer rekurencyjny (unbound, bind), który z natury
+# pyta serwery główne i TLD. Jeden login na linię.
+#
+# Pomiar 2026-09-28 (ss -uanp): na panelu takiego resolwera NIE MA — rspamd pyta
+# lokalny systemd-resolved (127.0.0.53), a ten wyłącznie resolwery Hetznera.
+# Plik jest więc pusty i każdy proces rozmawia tylko z egress-allow-dns.txt.

@@ -72,6 +72,12 @@ STRICT=0
 ALLOWLIST_ONLY=0
 DRY_RUN=0
 OBSERWUJ_KONTENERY=0
+PRZY_STARCIE=0
+ZAPISZ_POMIAR=0
+# Tryb ostatniego udanego przebiegu (domyslny/strict) i zrzut zbiorów pomiaru —
+# czyta je usługa verris-egress.service po restarcie hosta.
+TRYB_PLIK="${TRYB_PLIK:-$SECURITY_DIR/egress-tryb}"
+POMIAR_ZRZUT="${POMIAR_ZRZUT:-$SECURITY_DIR/egress-pomiar.ipset}"
 # Obniżone po incydencie Hetzner 2026-06-11 (wolny skan ~1/s, ~256 hostów).
 # Control-plane gada z ~kilkunastoma API — 40 nowych poł./60s to i tak duży zapas.
 ANTISCAN_HITCOUNT="${ANTISCAN_HITCOUNT:-40}"
@@ -104,6 +110,28 @@ XT_RECENT_MAX_HITCOUNT=255
 # blokuje DA:2222. Wyjątek: wewn. sieć Dockera (obsłużona przez ctstate/iface).
 BOGON_DESTS="${BOGON_DESTS:-10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 100.64.0.0/10 192.0.2.0/24 198.18.0.0/15 198.51.100.0/24 203.0.113.0/24 224.0.0.0/3}"
 
+# SEC-03 (resolwer lokalny) — użytkownicy, którym wolno pytać DOWOLNE serwery DNS.
+# Pomiar 2026-09-27: host pyta bezpośrednio serwery główne i TLD (rspamd potrzebuje
+# własnego resolwera rekurencyjnego do list DNSBL). Takich celów nie da się wypisać
+# w allowliście — wyjątek idzie więc po właścicielu procesu (`-m owner`), a nie po
+# adresie. Każdy inny proces nadal rozmawia tylko z resolwerami z egress-allow-dns.txt.
+ALLOW_DNS_OWNERS="${ALLOW_DNS_OWNERS:-$SECURITY_DIR/egress-allow-dns-owners.txt}"
+SEEN_SET_RESOLVER="${SEEN_SET_RESOLVER:-verris_egress_seen_resolver}"
+
+# IPv6 — ta sama ochrona dla ruchu po IPv6.
+# Do 2026-09-27 skrypt znał tylko iptables. Panel ma publiczny IPv6 (a verris.pl,
+# panel i api — rekordy AAAA), więc cały egress po IPv6 omijał pomiar, IOC i strict.
+# EGRESS_IPV6: auto (domyślnie: jest ip6tables i trasa domyślna IPv6), 1, 0.
+EGRESS_IPV6="${EGRESS_IPV6:-auto}"
+SEEN_SET6="${SEEN_SET6:-verris_egress_seen6}"
+ALLOW_SET6="${ALLOW_SET6:-verris_egress_https6}"
+ALLOW_DNS_SET6="${ALLOW_DNS_SET6:-verris_egress_dns6}"
+ALLOW_SMTP_SET6="${ALLOW_SMTP_SET6:-verris_egress_smtp6}"
+POMIAR6_OD_PLIK="${POMIAR6_OD_PLIK:-$SECURITY_DIR/egress-pomiar6-od}"
+# Odpowiedniki BOGON_DESTS dla TCP 80/443: ULA, link-local, dokumentacja.
+# ICMPv6 (odkrywanie sąsiadów, router) nie jest tu dotykane — reguły dotyczą tylko TCP/UDP.
+BOGON_DESTS6="${BOGON_DESTS6:-fc00::/7 fe80::/10 2001:db8::/32}"
+
 log() { printf '[%s] %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"; }
 die() { echo "ERROR: $*" >&2; exit 1; }
 
@@ -133,6 +161,13 @@ Opcje:
   --pomiar     Raport: dokąd host i kontenery łączyły się w ostatnich 7 dniach
                (z ipset, nie z logu) i co z tego jest poza allowlistą.
   --dry-run    Tylko podgląd
+  --przy-starcie
+               Dla verris-egress.service: odtwarza zrzut pomiaru i stosuje tryb
+               z ostatniego udanego przebiegu (egress-tryb). Strict zatwierdzony
+               wcześniej nie jest ponownie sprawdzany pomiarem, bo ten po
+               restarcie zaczyna się od zrzutu.
+  --zapisz-pomiar
+               Zrzuca zbiory pomiaru do egress-pomiar.ipset (przy zatrzymaniu usługi).
   --obserwuj-kontenery
                Wpina do DOCKER-USER łańcuch, który TYLKO LOGUJE ruch wychodzący
                z kontenerów. Nic nie blokuje. Tryb wyłączny — nie rusza OUTPUT.
@@ -155,6 +190,8 @@ while [ $# -gt 0 ]; do
     --pomiar) POMIAR_RAPORT=1; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
     --obserwuj-kontenery) OBSERWUJ_KONTENERY=1; shift ;;
+    --przy-starcie) PRZY_STARCIE=1; shift ;;
+    --zapisz-pomiar) ZAPISZ_POMIAR=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) die "Unknown argument: $1" ;;
   esac
@@ -167,12 +204,39 @@ install -d "$SECURITY_DIR"
 if [ ! -f "$IOC_FILE" ]; then
   install -m 0644 "$REPO_ROOT/ops/etc/verris/security/ioc-ips.txt" "$IOC_FILE"
 fi
-for _plik in "$ALLOW_NETS" "$ALLOW_DNS" "$ALLOW_SMTP"; do
-  if [ ! -f "$_plik" ] && [ -f "$REPO_ROOT/ops/etc/verris/security/$(basename "$_plik")" ]; then
-    install -m 0644 "$REPO_ROOT/ops/etc/verris/security/$(basename "$_plik")" "$_plik"
+for _plik in "$ALLOW_HOSTS" "$ALLOW_NETS" "$ALLOW_DNS" "$ALLOW_SMTP" "$ALLOW_DNS_OWNERS"; do
+  _repo="$REPO_ROOT/ops/etc/verris/security/$(basename "$_plik")"
+  [ -f "$_repo" ] || continue
+  if [ ! -f "$_plik" ]; then
+    install -m 0644 "$_repo" "$_plik"
+  elif ! cmp -s "$_repo" "$_plik"; then
+    # Nie nadpisujemy (plik na hoście mógł być świadomie zmieniony), ale mówimy
+    # o tym głośno: nowy wpis w repo nie działa, dopóki nie trafi do /etc.
+    log "WARN: $_plik różni się od wersji w repo — sprawdź: diff '$_repo' '$_plik'"
   fi
 done
 
+# Użytkownicy z egress-allow-dns-owners.txt, którzy istnieją na tym hoście.
+wlasciciele_dns() {
+  [ -f "$ALLOW_DNS_OWNERS" ] || return 0
+  local u
+  while IFS= read -r u || [ -n "$u" ]; do
+    u="${u%%#*}"; u="$(echo "$u" | tr -d '[:space:]')"
+    [ -z "$u" ] && continue
+    if id -u "$u" >/dev/null 2>&1; then echo "$u"; else log "WARN: użytkownik resolwera '$u' nie istnieje — pomijam wyjątek DNS" >&2; fi
+  done <"$ALLOW_DNS_OWNERS"
+}
+
+ipv6_aktywne() {
+  case "$EGRESS_IPV6" in
+    0) return 1 ;;
+    1) command -v ip6tables >/dev/null 2>&1 || die "EGRESS_IPV6=1, a nie ma ip6tables"; return 0 ;;
+  esac
+  command -v ip6tables >/dev/null 2>&1 || return 1
+  [ -n "$(ip -6 route show default 2>/dev/null || true)" ]
+}
+
+IOC6=()
 apply_ioc_drop() {
   run "iptables -N '$CHAIN_IOC' 2>/dev/null || iptables -F '$CHAIN_IOC'"
   run "iptables -C OUTPUT -j '$CHAIN_IOC' 2>/dev/null || iptables -I OUTPUT 1 -j '$CHAIN_IOC'"
@@ -180,6 +244,10 @@ apply_ioc_drop() {
     line="${line%%#*}"
     line="$(echo "$line" | tr -d '[:space:]')"
     [ -z "$line" ] && continue
+    if [[ "$line" == *:* && "$line" =~ ^[0-9a-fA-F:]+$ ]]; then
+      IOC6+=("$line")
+      continue
+    fi
     if ! [[ "$line" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
       log "SKIP invalid IOC line: $line"
       continue
@@ -360,44 +428,98 @@ zbuduj_ipset_allow() {
   log "ipset $setname: $added adresów (podmiana atomowa)"
   zbuduj_zbior_z_pliku "$ALLOW_DNS_SET" "$ALLOW_DNS" "DNS"
   zbuduj_zbior_z_pliku "$ALLOW_SMTP_SET" "$ALLOW_SMTP" "SMTP"
+  if [ "$V6" -eq 1 ]; then
+    zbuduj_ipset_allow6
+  fi
+}
+
+# IPv6: nazwy z allow-hostnames (rekordy AAAA) + zakresy IPv6 z egress-allow-nets.
+zbuduj_ipset_allow6() {
+  local tmpset="${ALLOW_SET6}_new" host ip net added=0
+  run "ipset create '$ALLOW_SET6' hash:net family inet6 hashsize 4096 maxelem 65536 -exist"
+  run "ipset create '$tmpset' hash:net family inet6 hashsize 4096 maxelem 65536 -exist"
+  run "ipset flush '$tmpset'"
+  while IFS= read -r host || [ -n "$host" ]; do
+    host="${host%%#*}"
+    host="$(echo "$host" | tr -d '[:space:]')"
+    [ -z "$host" ] && continue
+    while read -r ip; do
+      [ -z "$ip" ] && continue
+      run "ipset add '$tmpset' '$ip' -exist"; added=$((added + 1))
+    done < <(getent ahostsv6 "$host" 2>/dev/null | awk '{print $1}' | grep -v '^::ffff:' | sort -u)
+  done <"$ALLOW_HOSTS"
+  if [ -f "$ALLOW_NETS" ]; then
+    while IFS= read -r net || [ -n "$net" ]; do
+      net="${net%%#*}"
+      net="$(echo "$net" | tr -d '[:space:]')"
+      [[ "$net" == *:* ]] || continue
+      run "ipset add '$tmpset' '$net' -exist"; added=$((added + 1))
+    done <"$ALLOW_NETS"
+  fi
+  run "ipset swap '$tmpset' '$ALLOW_SET6'"
+  run "ipset destroy '$tmpset'"
+  log "ipset $ALLOW_SET6 (IPv6): $added adresów"
+  zbuduj_zbior_z_pliku "$ALLOW_DNS_SET6" "$ALLOW_DNS" "DNS" 6
+  zbuduj_zbior_z_pliku "$ALLOW_SMTP_SET6" "$ALLOW_SMTP" "SMTP" 6
 }
 
 # SEC-03 — zbiór z pliku: wiersz to adres, CIDR albo nazwa (rozwiązywana teraz).
 # Pusty = odmowa: strict z pustą listą DNS odciąłby serwerowi rozwiązywanie
 # nazw, a z pustą SMTP — całą pocztę systemową.
+#
+# Czwarty argument 6 = zbiór IPv6: z pliku bierze adresy/CIDR IPv6 i rekordy AAAA
+# nazw (bez adresów ::ffff:a.b.c.d, które getent zwraca, gdy AAAA nie ma). Pusty
+# zbiór IPv6 to tylko ostrzeżenie: strict IPv6 odrzuca (REJECT), więc programy
+# od razu przechodzą na IPv4, pilnowane przez zbiór IPv4.
 zbuduj_zbior_z_pliku() {
-  local setname="$1" plik="$2" opis="$3" tmpset="${1}_new" wpis ip added=0
+  local setname="$1" plik="$2" opis="$3" rodzina="${4:-4}" tmpset="${1}_new" wpis ip added=0
+  local fam=inet baza=ahostsv4 literal='^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(/[0-9]+)?$'
+  if [ "$rodzina" = 6 ]; then fam=inet6; baza=ahostsv6; literal='^[0-9a-fA-F]*:[0-9a-fA-F:]*(/[0-9]+)?$'; fi
   [ -f "$plik" ] || die "Brak $plik — lista $opis jest wymagana (SEC-03)"
-  run "ipset create '$setname' hash:net family inet -exist"
-  run "ipset create '$tmpset' hash:net family inet -exist"
+  run "ipset create '$setname' hash:net family $fam -exist"
+  run "ipset create '$tmpset' hash:net family $fam -exist"
   run "ipset flush '$tmpset'"
   while IFS= read -r wpis || [ -n "$wpis" ]; do
     wpis="${wpis%%#*}"
     wpis="$(echo "$wpis" | tr -d '[:space:]')"
     [ -z "$wpis" ] && continue
-    if [[ "$wpis" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(/[0-9]+)?$ ]]; then
+    if [[ "$wpis" =~ $literal ]]; then
       run "ipset add '$tmpset' '$wpis' -exist"; added=$((added + 1))
       continue
     fi
+    # Adres drugiej rodziny — nie ten zbiór.
+    [[ "$wpis" =~ ^[0-9.]+(/[0-9]+)?$ || "$wpis" == *:* ]] && continue
     while read -r ip; do
       [ -z "$ip" ] && continue
       run "ipset add '$tmpset' '$ip' -exist"; added=$((added + 1))
-    done < <(getent ahostsv4 "$wpis" 2>/dev/null | awk '{print $1}' | sort -u)
+    done < <(getent "$baza" "$wpis" 2>/dev/null | awk '{print $1}' | grep -v '^::ffff:' | sort -u)
   done <"$plik"
-  [ "$added" -gt 0 ] || die "Lista $opis ($plik) jest pusta albo nic się nie rozwiązało — strict odciąłby cały ruch $opis"
+  if [ "$added" -eq 0 ]; then
+    [ "$rodzina" = 6 ] || die "Lista $opis ($plik) jest pusta albo nic się nie rozwiązało — strict odciąłby cały ruch $opis"
+    log "WARN: lista $opis nie ma adresów IPv6 — strict IPv6 odrzuci cały ruch $opis po IPv6 (programy przejdą na IPv4)"
+  fi
   run "ipset swap '$tmpset' '$setname'"
   run "ipset destroy '$tmpset'"
   log "ipset $setname ($opis): $added adresów"
 }
 
-# Który zbiór allowlisty obejmuje dany cel pomiaru (protokół, port).
-# Pusto = cel, którego strict nie dotyczy.
+# Który zbiór allowlisty obejmuje dany cel pomiaru (protokół, port, adres).
+# Pusto = cel, którego strict nie dotyczy. Adres z dwukropkiem = zbiór IPv6.
 zbior_dla_celu() {
+  local s=""
   case "$1:$2" in
-    tcp:80|tcp:443) echo "$ALLOW_SET" ;;
-    tcp:53|udp:53) echo "$ALLOW_DNS_SET" ;;
-    tcp:25|tcp:465|tcp:587) echo "$ALLOW_SMTP_SET" ;;
+    tcp:80|tcp:443) s="$ALLOW_SET" ;;
+    tcp:53|udp:53) s="$ALLOW_DNS_SET" ;;
+    tcp:25|tcp:465|tcp:587) s="$ALLOW_SMTP_SET" ;;
   esac
+  if [ -n "$s" ] && [[ "${3:-}" == *:* ]]; then
+    case "$s" in
+      "$ALLOW_SET") s="$ALLOW_SET6" ;;
+      "$ALLOW_DNS_SET") s="$ALLOW_DNS_SET6" ;;
+      "$ALLOW_SMTP_SET") s="$ALLOW_SMTP_SET6" ;;
+    esac
+  fi
+  echo "$s"
 }
 
 # ---------------------------------------------------------------------------
@@ -432,8 +554,15 @@ ip_na_liczbe() {
   echo $(( (a << 24) + (b << 16) + (c << 8) + d ))
 }
 
+# IPv6: te same zakresy co domyślne BOGON_DESTS6 (ULA, link-local, dokumentacja).
+w_bogonach6() {
+  local ip="${1,,}"
+  [[ "$ip" =~ ^f[cd] || "$ip" =~ ^fe[89ab] || "$ip" == 2001:db8:* || "$ip" == "::1" ]]
+}
+
 w_bogonach() {
   local ip="$1" siec adres maska n baza
+  if [[ "$ip" == *:* ]]; then w_bogonach6 "$ip"; return; fi
   [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 1
   n="$(ip_na_liczbe "$ip")"
   for siec in $BOGON_DESTS; do
@@ -448,49 +577,59 @@ w_bogonach() {
 # allowliście. Wypisuje po jednym na linię; pusto = allowlisty pokrywają
 # wszystko, co host robił. Pomija zakresy bogonów — patrz w_bogonach.
 cele_spoza_allowlisty() {
-  local wpis rest proto port ip zbior
+  local zmierzony="${1:-$SEEN_SET}" wpis rest proto port ip zbior
   while read -r wpis; do
     [ -z "$wpis" ] && continue
     ip="${wpis%%,*}"
     rest="${wpis#*,}"
     proto="${rest%%:*}"
     port="${rest#*:}"
-    zbior="$(zbior_dla_celu "$proto" "$port")"
+    zbior="$(zbior_dla_celu "$proto" "$port" "$ip")"
     [ -n "$zbior" ] || continue
     w_bogonach "$ip" && continue
     ipset test "$zbior" "$ip" >/dev/null 2>&1 || echo "$wpis"
-  done < <(ipset list "$SEEN_SET" 2>/dev/null | awk '/^Members:/{m=1; next} m && NF {print $1}')
+  done < <(ipset list "$zmierzony" 2>/dev/null | awk '/^Members:/{m=1; next} m && NF {print $1}')
 }
 
 sprawdz_pomiar_przed_strict() {
+  local zmierzony="${1:-$SEEN_SET}" plik_od="${2:-$POMIAR_OD_PLIK}" rodzina="${3:-IPv4}"
+  if [ "$PRZY_STARCIE" -eq 1 ]; then
+    log "Start hosta: strict był włączony przed restartem ($TRYB_PLIK) — przywracam bez ponownego warunku pomiaru."
+    return 0
+  fi
   if [ "$WYMUS_STRICT" -eq 1 ]; then
     log "WARN: --wymus-strict — pomijam warunek pomiaru. Strict może odciąć ruch, którego nikt nie zmierzył."
     return 0
   fi
-  if ! ipset list -n 2>/dev/null | grep -x "$SEEN_SET" >/dev/null; then
-    die "Brak pomiaru egressu (ipset $SEEN_SET). Najpierw przebieg domyślny, potem ${POMIAR_MIN_DNI} dni obserwacji, potem --pomiar. (SEC-05/SEC-06)"
+  if ! ipset list -n 2>/dev/null | grep -x "$zmierzony" >/dev/null; then
+    die "Brak pomiaru egressu $rodzina (ipset $zmierzony). Najpierw przebieg domyślny, potem ${POMIAR_MIN_DNI} dni obserwacji, potem --pomiar. (SEC-05/SEC-06)"
   fi
   local od teraz dni
-  od="$(cat "$POMIAR_OD_PLIK" 2>/dev/null || true)"
-  [[ "$od" =~ ^[0-9]+$ ]] || die "Brak daty początku pomiaru ($POMIAR_OD_PLIK) — nie wiem, jak długo trwa obserwacja."
+  od="$(cat "$plik_od" 2>/dev/null || true)"
+  [[ "$od" =~ ^[0-9]+$ ]] || die "Brak daty początku pomiaru $rodzina ($plik_od) — nie wiem, jak długo trwa obserwacja."
   teraz="$(date +%s)"
   dni=$(( (teraz - od) / 86400 ))
   if [ "$dni" -lt "$POMIAR_MIN_DNI" ]; then
-    die "Pomiar trwa ${dni} d, wymagane ${POMIAR_MIN_DNI} d. Pusty zbiór po krótkiej obserwacji nie dowodzi, że host nigdzie więcej nie chodzi."
+    die "Pomiar $rodzina trwa ${dni} d, wymagane ${POMIAR_MIN_DNI} d. Pusty zbiór po krótkiej obserwacji nie dowodzi, że host nigdzie więcej nie chodzi."
   fi
   local spoza
-  spoza="$(cele_spoza_allowlisty)"
+  spoza="$(cele_spoza_allowlisty "$zmierzony")"
   if [ -n "$spoza" ]; then
-    log "Cele (80/443, DNS, SMTP) zmierzone na hoście, których NIE MA w allowliście:"
+    log "Cele $rodzina (80/443, DNS, SMTP) zmierzone na hoście, których NIE MA w allowliście:"
     printf '%s\n' "$spoza" | while read -r w; do log "  $w"; done
     die "Strict odciąłby powyższe. Dopisz je do allowlisty (albo wyjaśnij, czemu mają zostać odcięte) i uruchom ponownie. (SEC-06)"
   fi
-  log "Pomiar: ${dni} d, wszystkie cele 80/443, DNS i SMTP hosta są w allowlistach — strict niczego znanego nie odetnie."
+  log "Pomiar $rodzina: ${dni} d, wszystkie cele 80/443, DNS i SMTP hosta są w allowlistach — strict niczego znanego nie odetnie."
 }
 
 apply_strict_allowlist() {
   zbuduj_ipset_allow
+  # Oba warunki wstępne PRZED pierwszą regułą — odmowa po IPv6 nie może zostawić
+  # włączonego w połowie strict IPv4.
   sprawdz_pomiar_przed_strict
+  if [ "$V6" -eq 1 ]; then
+    sprawdz_pomiar_przed_strict "$SEEN_SET6" "$POMIAR6_OD_PLIK" IPv6
+  fi
   local setname="$ALLOW_SET"
   local chain="VERRIS_EGRESS_STRICT"
   run "iptables -N '$chain' 2>/dev/null || iptables -F '$chain'"
@@ -503,7 +642,13 @@ apply_strict_allowlist() {
   run "iptables -A '$chain' -p tcp -m multiport --dports 80,443 -m set ! --match-set '$setname' dst -m conntrack --ctstate NEW -m limit --limit 30/min --limit-burst 30 -j LOG --log-prefix 'VERRIS-STRICT-DROP ' --log-level 4"
   run "iptables -A '$chain' -p tcp -m multiport --dports 80,443 -m set ! --match-set '$setname' dst -m conntrack --ctstate NEW -j DROP -m comment --comment 'verris-strict-egress-host'"
   # SEC-03 — DNS tylko do resolwerów z listy, poczta tylko przez przekaźnik.
-  local proto
+  local proto u
+  for u in $(wlasciciele_dns); do
+    for proto in udp tcp; do
+      run "iptables -A '$chain' -p $proto --dport 53 -m owner --uid-owner '$u' -j RETURN"
+    done
+    log "DNS: resolwer '$u' może pytać dowolne serwery (SEC-03, egress-allow-dns-owners.txt)"
+  done
   for proto in udp tcp; do
     run "iptables -A '$chain' -p $proto --dport 53 -m set ! --match-set '$ALLOW_DNS_SET' dst -m conntrack --ctstate NEW -m limit --limit 30/min --limit-burst 30 -j LOG --log-prefix 'VERRIS-STRICT-DNS ' --log-level 4"
     run "iptables -A '$chain' -p $proto --dport 53 -m set ! --match-set '$ALLOW_DNS_SET' dst -m conntrack --ctstate NEW -j DROP -m comment --comment 'verris-strict-egress-dns'"
@@ -521,6 +666,125 @@ apply_strict_allowlist() {
     fi
   done
   log "STRICT egress hosta: NOWE TCP/80,443 poza $setname, DNS poza $ALLOW_DNS_SET, SMTP poza $ALLOW_SMTP_SET → DROP (kontenery: FORWARD, nie dotyczy)"
+  if [ "$V6" -eq 1 ]; then
+    apply_strict6
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# IPv6 — ta sama ochrona w ip6tables.
+# ---------------------------------------------------------------------------
+#
+# Te same nazwy łańcuchów (ip6tables ma własną przestrzeń nazw), własne zbiory
+# ipset (family inet6) i własna data początku pomiaru — pomiar IPv6 rusza
+# dopiero z tą wersją skryptu, więc nie może dziedziczyć stażu po IPv4.
+# ICMPv6 (odkrywanie sąsiadów, routery, PMTU) nie jest dotykany: wszystkie
+# reguły poniżej dotyczą TCP/UDP.
+#
+# W strict IPv6 zamiast DROP jest REJECT. Cel spoza listy IPv6 dostaje od razu
+# odmowę, więc curl/node/apt/resolwer przechodzą natychmiast na IPv4 (który
+# pilnuje strict IPv4), zamiast wisieć do limitu czasu. Nic nie wychodzi po
+# IPv6 poza listą — różnica jest tylko w tym, jak szybko program się o tym dowie.
+apply_seen6() {
+  local c="$CHAIN_SEEN" u proto
+  run "ipset create '$SEEN_SET6' hash:ip,port family inet6 timeout '$SEEN_TIMEOUT' counters maxelem 65536 -exist"
+  if [ ! -f "$POMIAR6_OD_PLIK" ]; then
+    run "date +%s > '$POMIAR6_OD_PLIK'"
+  fi
+  run "ip6tables -N '$c' 2>/dev/null || ip6tables -F '$c'"
+  run "ip6tables -A '$c' -m conntrack ! --ctstate NEW -j RETURN"
+  run "ip6tables -A '$c' -o lo -j RETURN"
+  run "ip6tables -A '$c' -o docker0 -j RETURN"
+  run "ip6tables -A '$c' -o br-+ -j RETURN"
+  for u in $(wlasciciele_dns); do
+    run "ipset create '${SEEN_SET_RESOLVER}6' hash:ip,port family inet6 timeout '$SEEN_TIMEOUT' counters maxelem 65536 -exist"
+    for proto in udp tcp; do
+      run "ip6tables -A '$c' -p $proto --dport 53 -m owner --uid-owner '$u' -j SET --add-set '${SEEN_SET_RESOLVER}6' dst,dst --exist"
+      run "ip6tables -A '$c' -p $proto --dport 53 -m owner --uid-owner '$u' -j RETURN"
+    done
+  done
+  run "ip6tables -A '$c' -p tcp --syn -j SET --add-set '$SEEN_SET6' dst,dst --exist"
+  run "ip6tables -A '$c' -p udp -j SET --add-set '$SEEN_SET6' dst,dst --exist"
+  run "ip6tables -A '$c' -p tcp -m set --match-set '$SEEN_SET6' dst,dst"
+  run "ip6tables -A '$c' -p udp -m set --match-set '$SEEN_SET6' dst,dst"
+  run "ip6tables -A '$c' -j RETURN"
+}
+
+apply_ipv6() {
+  local ip net
+  apply_seen6
+
+  run "ip6tables -N '$CHAIN_BOGON' 2>/dev/null || ip6tables -F '$CHAIN_BOGON'"
+  run "ip6tables -A '$CHAIN_BOGON' -m conntrack --ctstate established,related -j RETURN"
+  run "ip6tables -A '$CHAIN_BOGON' -o lo -j RETURN"
+  run "ip6tables -A '$CHAIN_BOGON' -o docker0 -j RETURN"
+  run "ip6tables -A '$CHAIN_BOGON' -o br-+ -j RETURN"
+  for net in $BOGON_DESTS6; do
+    run "ip6tables -A '$CHAIN_BOGON' -p tcp -m multiport --dports 80,443 -d '$net' -m conntrack --ctstate NEW -j LOG --log-prefix 'VERRIS-BOGON-DROP ' --log-level 4"
+    run "ip6tables -A '$CHAIN_BOGON' -p tcp -m multiport --dports 80,443 -d '$net' -m conntrack --ctstate NEW -j DROP -m comment --comment 'verris-bogon'"
+  done
+  run "ip6tables -A '$CHAIN_BOGON' -j RETURN"
+
+  run "ip6tables -N '$CHAIN_IOC' 2>/dev/null || ip6tables -F '$CHAIN_IOC'"
+  for ip in "${IOC6[@]}"; do
+    run "ip6tables -A '$CHAIN_IOC' -d '$ip' -j DROP -m comment --comment 'verris-ioc'"
+  done
+
+  run "ip6tables -N '$CHAIN_LOG' 2>/dev/null || ip6tables -F '$CHAIN_LOG'"
+  run "ip6tables -A '$CHAIN_LOG' -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW -m limit --limit 120/min --limit-burst 60 -j LOG --log-prefix 'VERRIS-EGRESS-WEB ' --log-level 4"
+  run "ip6tables -A '$CHAIN_LOG' -j RETURN"
+
+  # Anty-skan: osobne listy `recent` (…6), żeby progi IPv4 i IPv6 się nie mieszały.
+  run "ip6tables -N '$CHAIN_ANTISCAN' 2>/dev/null || ip6tables -F '$CHAIN_ANTISCAN'"
+  run "ip6tables -A '$CHAIN_ANTISCAN' -m conntrack --ctstate established,related -j RETURN"
+  if ipset list -n 2>/dev/null | grep -qx "$ALLOW_SET6"; then
+    run "ip6tables -A '$CHAIN_ANTISCAN' -m set --match-set '$ALLOW_SET6' dst -j RETURN"
+  fi
+  run "ip6tables -A '$CHAIN_ANTISCAN' -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW -m recent --set --name verris_eg_new6 --rsource"
+  run "ip6tables -A '$CHAIN_ANTISCAN' -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW -m recent --update --seconds '$ANTISCAN_WINDOW' --hitcount '$ANTISCAN_HITCOUNT' --name verris_eg_new6 --rsource -j LOG --log-prefix 'VERRIS-ANTISCAN-DROP ' --log-level 4"
+  run "ip6tables -A '$CHAIN_ANTISCAN' -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW -m recent --update --seconds '$ANTISCAN_WINDOW' --hitcount '$ANTISCAN_HITCOUNT' --name verris_eg_new6 --rsource -j DROP -m comment --comment 'verris-antiscan'"
+  run "ip6tables -A '$CHAIN_ANTISCAN' -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW -m recent --set --name verris_eg_slow6 --rsource"
+  run "ip6tables -A '$CHAIN_ANTISCAN' -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW -m recent --update --seconds '$ANTISCAN_SLOW_WINDOW' --hitcount '$ANTISCAN_SLOW_HITCOUNT' --name verris_eg_slow6 --rsource -j LOG --log-prefix 'VERRIS-ANTISCAN-SLOW ' --log-level 4"
+  run "ip6tables -A '$CHAIN_ANTISCAN' -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW -m recent --update --seconds '$ANTISCAN_SLOW_WINDOW' --hitcount '$ANTISCAN_SLOW_HITCOUNT' --name verris_eg_slow6 --rsource -j DROP -m comment --comment 'verris-antiscan-slow'"
+  run "ip6tables -A '$CHAIN_ANTISCAN' -j RETURN"
+
+  # Kolejność w OUTPUT: pomiar, bogony, IOC, log, anty-skan (strict dopina się za nimi).
+  local lancuch
+  for lancuch in "$CHAIN_ANTISCAN" "$CHAIN_LOG" "$CHAIN_IOC" "$CHAIN_BOGON" "$CHAIN_SEEN"; do
+    run "ip6tables -C OUTPUT -j '$lancuch' 2>/dev/null || ip6tables -I OUTPUT 1 -j '$lancuch'"
+  done
+  log "IPv6: pomiar ($SEEN_SET6), bogony, IOC (${#IOC6[@]}), log i anty-skan w ip6tables"
+}
+
+apply_strict6() {
+  local chain="VERRIS_EGRESS_STRICT" u proto regula
+  run "ip6tables -N '$chain' 2>/dev/null || ip6tables -F '$chain'"
+  run "ip6tables -A '$chain' -m conntrack --ctstate established,related -j RETURN"
+  run "ip6tables -A '$chain' -o lo -j RETURN"
+  run "ip6tables -A '$chain' -o docker0 -j RETURN"
+  run "ip6tables -A '$chain' -o br-+ -j RETURN"
+  run "ip6tables -A '$chain' -p tcp -m multiport --dports 80,443 -m set ! --match-set '$ALLOW_SET6' dst -m conntrack --ctstate NEW -m limit --limit 30/min --limit-burst 30 -j LOG --log-prefix 'VERRIS-STRICT-DROP ' --log-level 4"
+  run "ip6tables -A '$chain' -p tcp -m multiport --dports 80,443 -m set ! --match-set '$ALLOW_SET6' dst -m conntrack --ctstate NEW -j REJECT --reject-with tcp-reset -m comment --comment 'verris-strict-egress-host'"
+  for u in $(wlasciciele_dns); do
+    for proto in udp tcp; do
+      run "ip6tables -A '$chain' -p $proto --dport 53 -m owner --uid-owner '$u' -j RETURN"
+    done
+  done
+  run "ip6tables -A '$chain' -p udp --dport 53 -m set ! --match-set '$ALLOW_DNS_SET6' dst -m conntrack --ctstate NEW -m limit --limit 30/min --limit-burst 30 -j LOG --log-prefix 'VERRIS-STRICT-DNS ' --log-level 4"
+  run "ip6tables -A '$chain' -p udp --dport 53 -m set ! --match-set '$ALLOW_DNS_SET6' dst -m conntrack --ctstate NEW -j REJECT --reject-with icmp6-adm-prohibited -m comment --comment 'verris-strict-egress-dns'"
+  run "ip6tables -A '$chain' -p tcp --dport 53 -m set ! --match-set '$ALLOW_DNS_SET6' dst -m conntrack --ctstate NEW -j REJECT --reject-with tcp-reset -m comment --comment 'verris-strict-egress-dns'"
+  run "ip6tables -A '$chain' -p tcp -m multiport --dports 25,465,587 -m set ! --match-set '$ALLOW_SMTP_SET6' dst -m conntrack --ctstate NEW -m limit --limit 30/min --limit-burst 30 -j LOG --log-prefix 'VERRIS-STRICT-SMTP ' --log-level 4"
+  run "ip6tables -A '$chain' -p tcp -m multiport --dports 25,465,587 -m set ! --match-set '$ALLOW_SMTP_SET6' dst -m conntrack --ctstate NEW -j REJECT --reject-with tcp-reset -m comment --comment 'verris-strict-egress-smtp'"
+  run "ip6tables -A '$chain' -j RETURN"
+  # Pozycja 6: za pomiarem, bogonami, IOC, logiem i anty-skanem, a PRZED
+  # łańcuchami ufw — reguła dopięta na końcu OUTPUT mogłaby nigdy nie zadziałać.
+  run "ip6tables -C OUTPUT -j '$chain' 2>/dev/null || ip6tables -I OUTPUT 6 -j '$chain'"
+  for regula in verris-strict-egress-host verris-strict-egress-dns verris-strict-egress-smtp; do
+    if [ "$DRY_RUN" -eq 0 ] && ! ip6tables -S "$chain" 2>/dev/null | grep -- "$regula" >/dev/null; then
+      die "Łańcuch $chain (IPv6) nie zawiera reguły $regula po założeniu — strict IPv6 NIE działa."
+    fi
+  done
+  log "STRICT egress hosta IPv6: poza $ALLOW_SET6 / $ALLOW_DNS_SET6 / $ALLOW_SMTP_SET6 → REJECT (natychmiastowe przejście na IPv4)"
 }
 
 # ---------------------------------------------------------------------------
@@ -623,6 +887,16 @@ apply_egress_seen() {
   run "iptables -A '$CHAIN_SEEN' -o lo -j RETURN"
   run "iptables -A '$CHAIN_SEEN' -o docker0 -j RETURN"
   run "iptables -A '$CHAIN_SEEN' -o br-+ -j RETURN"
+  # DNS resolwera lokalnego do osobnego zbioru: jego cele (serwery główne, TLD)
+  # są z założenia dowolne, a w zbiorze hosta zasłaniałyby prawdziwe odstępstwa.
+  local u proto
+  for u in $(wlasciciele_dns); do
+    run "ipset create '$SEEN_SET_RESOLVER' hash:ip,port family inet timeout '$SEEN_TIMEOUT' counters maxelem 65536 -exist"
+    for proto in udp tcp; do
+      run "iptables -A '$CHAIN_SEEN' -p $proto --dport 53 -m owner --uid-owner '$u' -j SET --add-set '$SEEN_SET_RESOLVER' dst,dst --exist"
+      run "iptables -A '$CHAIN_SEEN' -p $proto --dport 53 -m owner --uid-owner '$u' -j RETURN"
+    done
+  done
   # Bez `-m limit` — to jest cały sens tej pozycji.
   # `--syn`: tylko połączenia, które host sam otwiera. Spóźniona odpowiedź
   # sshd do skanera (conntrack już zapomniał sesję) też ma stan NEW, ale nie
@@ -641,32 +915,41 @@ apply_egress_seen() {
 
 raport_pomiaru() {
   local zbior tytul wpis ip w_allow rev licz rest zb
-  for zbior in "$SEEN_SET" "$SEEN_SET_FWD"; do
-    if [ "$zbior" = "$SEEN_SET" ]; then tytul="HOST (OUTPUT)"; else tytul="KONTENERY (FORWARD)"; fi
+  for zbior in "$SEEN_SET" "$SEEN_SET6" "$SEEN_SET_RESOLVER" "${SEEN_SET_RESOLVER}6" "$SEEN_SET_FWD"; do
+    case "$zbior" in
+      "$SEEN_SET") tytul="HOST (OUTPUT)" ;;
+      "$SEEN_SET6") tytul="HOST IPv6 (OUTPUT)" ;;
+      "$SEEN_SET_FWD") tytul="KONTENERY (FORWARD)" ;;
+      *) tytul="RESOLWER LOKALNY (DNS, wyjątek z egress-allow-dns-owners.txt)" ;;
+    esac
     echo "=== ${tytul}: ${zbior} ==="
     if ! ipset list -n 2>/dev/null | grep -x "$zbior" >/dev/null; then
       echo "  brak zbioru — pomiar nie jest włączony"
       echo
       continue
     fi
-    printf '  %-28s %-9s %-10s %s\n' "CEL" "ALLOW" "NOWE_POL." "NAZWA ODWROTNA"
+    printf '  %-44s %-9s %-10s %s\n' "CEL" "ALLOW" "NOWE_POL." "NAZWA ODWROTNA"
     ipset list "$zbior" 2>/dev/null | awk '/^Members:/{m=1; next} m && NF {p="?"; for(i=2;i<=NF;i++) if($i=="packets") p=$(i+1); print $1, p}' \
       | sort -k2,2nr | while read -r wpis licz; do
           ip="${wpis%%,*}"
           rest="${wpis#*,}"
-          zb="$(zbior_dla_celu "${rest%%:*}" "${rest#*:}")"
+          zb="$(zbior_dla_celu "${rest%%:*}" "${rest#*:}" "$ip")"
           if [ -z "$zb" ]; then w_allow="-"
           elif ipset test "$zb" "$ip" >/dev/null 2>&1; then w_allow="tak"
           elif w_bogonach "$ip"; then w_allow="bogon"
           else w_allow="NIE"; fi
           rev="$( { getent hosts "$ip" 2>/dev/null || true; } | awk 'NR==1{print $2}')"
-          printf '  %-28s %-9s %-10s %s\n' "$wpis" "$w_allow" "$licz" "${rev:--}"
+          printf '  %-44s %-9s %-10s %s\n' "$wpis" "$w_allow" "$licz" "${rev:--}"
         done
     echo
   done
   local od plik etykieta
-  for plik in "$POMIAR_OD_PLIK" "$POMIAR_FWD_OD_PLIK"; do
-    if [ "$plik" = "$POMIAR_OD_PLIK" ]; then etykieta="Pomiar hosta od"; else etykieta="Pomiar kontenerów od"; fi
+  for plik in "$POMIAR_OD_PLIK" "$POMIAR6_OD_PLIK" "$POMIAR_FWD_OD_PLIK"; do
+    case "$plik" in
+      "$POMIAR_OD_PLIK") etykieta="Pomiar hosta od" ;;
+      "$POMIAR6_OD_PLIK") etykieta="Pomiar hosta IPv6 od" ;;
+      *) etykieta="Pomiar kontenerów od" ;;
+    esac
     od="$(cat "$plik" 2>/dev/null || true)"
     if [[ "$od" =~ ^[0-9]+$ ]]; then
       echo "${etykieta}: $(date -u -d "@$od" +%F 2>/dev/null || echo "$od") ($(( ($(date +%s) - od) / 86400 )) d)"
@@ -677,7 +960,7 @@ raport_pomiaru() {
   echo "ALLOW: tak = w allowliście; bogon = sieć prywatna/link-local, już odcinana przez VERRIS_EGRESS_BOGON; - = port, którego strict nie dotyczy"
   echo "Cele 80/443, DNS i SMTP hosta spoza allowlist (to odciąłby strict):"
   local spoza
-  spoza="$(cele_spoza_allowlisty)"
+  spoza="$(cele_spoza_allowlisty; cele_spoza_allowlisty "$SEEN_SET6")"
   if [ -n "$spoza" ]; then printf '  %s\n' $spoza; else echo "  brak"; fi
   echo "=== KONIEC RAPORTU ==="
 }
@@ -714,10 +997,51 @@ persist_rules() {
     run "netfilter-persistent save"
   elif [ -d /etc/iptables ]; then
     run "iptables-save > /etc/iptables/rules.v4"
+    if [ "$V6" -eq 1 ]; then run "ip6tables-save > /etc/iptables/rules.v6"; fi
   else
     log "WARN: install iptables-persistent / netfilter-persistent to survive reboot"
   fi
 }
+
+V6=0
+if ipv6_aktywne; then V6=1; fi
+
+zbiory_pomiaru() {
+  local z
+  for z in "$SEEN_SET" "$SEEN_SET6" "$SEEN_SET_FWD" "$SEEN_SET_RESOLVER" "${SEEN_SET_RESOLVER}6"; do
+    ipset list -n 2>/dev/null | grep -qx "$z" && echo "$z"
+  done
+  return 0
+}
+
+if [ "$ZAPISZ_POMIAR" -eq 1 ]; then
+  command -v ipset >/dev/null 2>&1 || exit 0
+  : >"${POMIAR_ZRZUT}.tmp"
+  for _z in $(zbiory_pomiaru); do ipset save "$_z" >>"${POMIAR_ZRZUT}.tmp"; done
+  mv "${POMIAR_ZRZUT}.tmp" "$POMIAR_ZRZUT"
+  chmod 0600 "$POMIAR_ZRZUT"
+  log "Pomiar zapisany: $POMIAR_ZRZUT"
+  exit 0
+fi
+
+if [ "$PRZY_STARCIE" -eq 1 ]; then
+  if [ -s "$POMIAR_ZRZUT" ] && command -v ipset >/dev/null 2>&1; then
+    # Tylko wiersze create/add dla naszych zbiorów — plik leży w /etc, ale
+    # restore z dowolnymi poleceniami ipset byłby zbyt szerokim zaufaniem.
+    grep -E '^(create|add) verris_egress_seen[a-z0-9_]* ' "$POMIAR_ZRZUT" | ipset restore -exist \
+      || log "WARN: nie udało się odtworzyć pomiaru z $POMIAR_ZRZUT — pomiar zaczyna się od zera"
+  fi
+  case "$(cat "$TRYB_PLIK" 2>/dev/null || true)" in
+    strict) STRICT=1 ;;
+    domyslny|"") ;;
+    *) die "Nieznany tryb w $TRYB_PLIK" ;;
+  esac
+  # Zbiory allowlisty też żyją tylko w pamięci. Bez nich anty-skan (X-36) objąłby
+  # ghcr.io i pierwsze wdrożenie po restarcie padłoby na `compose pull`.
+  zbuduj_ipset_allow
+  # Obserwacja kontenerów jest dodatkiem do trybu hosta, nie zamiast niego.
+  if [ -f "$POMIAR_FWD_OD_PLIK" ]; then apply_forward_observe; fi
+fi
 
 # SEC-05: raport tylko do odczytu — nic nie zmienia.
 if [ "$POMIAR_RAPORT" -eq 1 ]; then
@@ -750,9 +1074,17 @@ apply_egress_log
 apply_antiscan
 apply_egress_seen
 apply_fwd_metadane
+if [ "$V6" -eq 1 ]; then
+  apply_ipv6
+else
+  log "IPv6: pomijam (EGRESS_IPV6=${EGRESS_IPV6}; brak ip6tables albo trasy domyślnej IPv6)"
+fi
 if [ "$STRICT" -eq 1 ]; then
   apply_strict_allowlist
 fi
 persist_rules
+if [ "$DRY_RUN" -eq 0 ]; then
+  if [ "$STRICT" -eq 1 ]; then echo strict >"$TRYB_PLIK"; else echo domyslny >"$TRYB_PLIK"; fi
+fi
 
-log "Control-plane egress hardening applied (strict=${STRICT}, dry_run=${DRY_RUN})"
+log "Control-plane egress hardening applied (strict=${STRICT}, ipv6=${V6}, dry_run=${DRY_RUN})"
