@@ -175,9 +175,16 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
       customerPermissions: u,
     });
 
-    it('zamówienie VPS-a wymaga SERVICES_MANAGE', () => {
+    it('zamówienie VPS-a i autoskalowanie wymagają SERVICES_MANAGE i BILLING_MANAGE (wydatek z portfela)', () => {
       expect(guard().canActivate(zadanie('POST', '/vps', sub(CustomerPermission.TICKETS_READ)))).toBe(false);
-      expect(guard().canActivate(zadanie('POST', '/vps', sub(CustomerPermission.SERVICES_MANAGE)))).toBe(true);
+      for (const [m, p] of [['POST', '/vps'], ['PATCH', '/subscriptions/:id/autoscaling']] as const) {
+        expect(guard().canActivate(zadanie(m, p, sub(CustomerPermission.SERVICES_MANAGE)))).toBe(false);
+        expect(guard().canActivate(zadanie(m, p, sub(CustomerPermission.SERVICES_MANAGE, CustomerPermission.BILLING_MANAGE)))).toBe(true);
+      }
+      // Podgląd bez zmian; wyłączenie VPS-a nie jest wydatkiem.
+      expect(guard().canActivate(zadanie('GET', '/vps', sub(CustomerPermission.SERVICES_READ)))).toBe(true);
+      expect(guard().canActivate(zadanie('GET', '/subscriptions/:id/autoscaling/history', sub(CustomerPermission.SERVICES_READ)))).toBe(true);
+      expect(guard().canActivate(zadanie('POST', '/vps/:id/power', sub(CustomerPermission.SERVICES_MANAGE)))).toBe(true);
     });
 
     it('skasowanie VPS-a wymaga SERVICES_MANAGE', () => {

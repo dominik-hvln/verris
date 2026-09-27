@@ -548,11 +548,14 @@ function SecurityTab({
 
       <TwoFactorSection showToast={showToast} />
       <PasskeysSection showToast={showToast} />
-      <StrongAuthSection
-        initialEnabled={Boolean(profile.requireStrongAuth)}
-        hasFactor={Boolean(profile.isTwoFactorEnabled) || Boolean(profile.hasPasskey)}
-        showToast={showToast}
-      />
+      {/* Wymóg silnego logowania dotyczy konta właściciela — subkonto go nie zmienia (API: 403). */}
+      {!profile.isSubaccount ? (
+        <StrongAuthSection
+          initialEnabled={Boolean(profile.requireStrongAuth)}
+          hasFactor={Boolean(profile.isTwoFactorEnabled) || Boolean(profile.hasPasskey)}
+          showToast={showToast}
+        />
+      ) : null}
       <ActiveSessionsSection showToast={showToast} />
       <LoginHistorySection />
       <ActivityLogSection />

@@ -8,6 +8,7 @@ import {
   UseGuards,
   Ip,
   Headers,
+  ForbiddenException,
 } from '@nestjs/common';
 import { UsersService } from './users.service.js';
 import {
@@ -50,12 +51,19 @@ export class UsersController {
     return this.usersService.listMyActivity(user.userId);
   }
 
-  /** SEC-6 — włącz/wyłącz wymóg silnego logowania (passkey/2FA) dla konta. */
+  /**
+   * SEC-6 — włącz/wyłącz wymóg silnego logowania (passkey/2FA) dla konta.
+   * Tylko właściciel we własnej sesji: subkonto (userId = właściciel) ani operator w impersonacji
+   * nie osłabia zabezpieczeń logowania właściciela (przegląd 28.09).
+   */
   @Patch('me/strong-auth')
   setStrongAuth(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: { userId: string; customerOwnerId?: string | null; impersonatedBy?: string },
     @Body() body: SilneLogowanieDto,
   ) {
+    if (user.customerOwnerId || user.impersonatedBy) {
+      throw new ForbiddenException('Wymóg silnego logowania zmienia wyłącznie właściciel konta.');
+    }
     return this.usersService.setStrongAuthRequirement(user.userId, body.enabled);
   }
 

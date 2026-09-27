@@ -178,9 +178,10 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Treść strony: menedżer plików i wszystko, co ją czyta albo nadpisuje (odtwarzanie z kopii, Git, aktualizacje WordPressa, eksport/import baz, wyniki crona, skaner, SSH i klucze SSH, .htaccess strony).',
   },
   {
-    pasuje: zaczyna('/vps'),
+    // Samo `/vps` (lista i zamówienie) — reguła wydatków niżej: zamówienie obciąża portfel właściciela.
+    pasuje: (s) => s !== '/vps' && zaczyna('/vps')(s),
     odczyt: [SERVICES_READ], zapis: [SERVICES_MANAGE],
-    po_co: 'Zamówienie, wyłączenie i skasowanie VPS-a. Zamówienie obciąża portfel właściciela.',
+    po_co: 'Wyłączenie i skasowanie VPS-a, klucze SSH.',
   },
   {
     pasuje: zaczyna('/addons'),
@@ -204,11 +205,13 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Podgląd migracji jak usługi; uruchomienie, delta-sync i anulowanie nadpisują treść konta.',
   },
   {
-    // Wydatki z portfela właściciela (jak /addons): zamówienie usługi, opłacenie, ponowienie płatności,
-    // przejście z okresu próbnego na płatny, zmiana planu z proratą, płatny monitoring.
+    // Wydatki z portfela właściciela (jak /addons): zamówienie usługi i VPS-a, opłacenie, ponowienie płatności,
+    // przejście z okresu próbnego na płatny, zmiana planu z proratą, autoskalowanie, płatny monitoring.
     pasuje: (s) =>
       s === '/subscriptions' ||
-      /^\/subscriptions\/[^/]+\/(pay-from-wallet|payment-retry|convert|plan)(\/|$)/.test(s) ||
+      s === '/vps' ||
+      // Autoskalowanie nalicza godzinowo z portfela (limit do ~100 tys. zł/mies.) — jak płatny monitoring.
+      /^\/subscriptions\/[^/]+\/(pay-from-wallet|payment-retry|convert|plan|autoscaling)(\/|$)/.test(s) ||
       /^\/services\/[^/]+\/monitoring\/paid$/.test(s),
     odczyt: [SERVICES_READ], zapis: [SERVICES_MANAGE, BILLING_MANAGE],
     po_co: 'Operacje na usłudze, które obciążają portfel właściciela — potrzebne oba uprawnienia.',

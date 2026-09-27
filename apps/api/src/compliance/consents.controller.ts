@@ -63,9 +63,14 @@ class UpdateMarketingPrefsDto {
  * w sesji wsparcia (impersonacja) nie akceptuje dokumentów ani nie zmienia zgód marketingowych
  * w imieniu klienta — taki wpis byłby fałszywym dowodem zgody.
  */
-export function tylkoKlient(user: { impersonatedBy?: string }): void {
+export function tylkoKlient(user: { impersonatedBy?: string; customerOwnerId?: string | null }): void {
   if (user.impersonatedBy) {
     throw new ForbiddenException('Zgody akceptuje wyłącznie klient — nie w sesji wsparcia.');
+  }
+  // Subkonto / członkostwo działa na koncie właściciela (userId = właściciel): wpis byłby zgodą
+  // właściciela złożoną przez inną osobę (w tym wyłączenie jego alertów logowania).
+  if (user.customerOwnerId) {
+    throw new ForbiddenException('Dokumenty i zgody konta akceptuje wyłącznie jego właściciel.');
   }
 }
 
@@ -95,7 +100,7 @@ export class ConsentsController {
   @UseGuards(JwtAuthGuard)
   @Post('me/consent/accept-current')
   @HttpCode(HttpStatus.OK)
-  async acceptCurrent(@CurrentUser() user: { userId: string; impersonatedBy?: string }, @Req() req: Request) {
+  async acceptCurrent(@CurrentUser() user: { userId: string; impersonatedBy?: string; customerOwnerId?: string | null }, @Req() req: Request) {
     tylkoKlient(user);
     const ctx = extractRequestContext(req);
     await this.consents.acceptCurrent(user.userId, ctx);
@@ -105,7 +110,7 @@ export class ConsentsController {
   @UseGuards(JwtAuthGuard)
   @Post('me/consent/accept-dpa')
   @HttpCode(HttpStatus.OK)
-  async acceptDpa(@CurrentUser() user: { userId: string; impersonatedBy?: string }, @Req() req: Request) {
+  async acceptDpa(@CurrentUser() user: { userId: string; impersonatedBy?: string; customerOwnerId?: string | null }, @Req() req: Request) {
     tylkoKlient(user);
     const ctx = extractRequestContext(req);
     return this.consents.acceptDpa(user.userId, ctx);
@@ -120,7 +125,7 @@ export class ConsentsController {
   @UseGuards(JwtAuthGuard)
   @Patch('me/marketing-preferences')
   updatePrefs(
-    @CurrentUser() user: { userId: string; impersonatedBy?: string },
+    @CurrentUser() user: { userId: string; impersonatedBy?: string; customerOwnerId?: string | null },
     @Body() dto: UpdateMarketingPrefsDto,
     @Req() req: Request,
   ) {

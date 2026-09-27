@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -215,44 +216,47 @@ export class AuthController {
   // 2FA management (E-9)
   // ---------------------------------------------------------------------------
 
+  // Drugi składnik należy do OSOBY zalogowanej. Dla subkonta i członkostwa (PB-20) `userId` to konto
+  // właściciela — do 28.09 subkonto bez uprawnień mogło tu wygenerować i włączyć TOTP właściciela
+  // (sekret zostawał u subkonta). Operator w impersonacji też nie ustawia klientowi 2FA.
   @UseGuards(JwtAuthGuard)
   @Get('2fa/status')
-  twoFactorStatus(@CurrentUser() user: { userId: string }) {
-    return this.twoFactor.getStatus(user.userId);
+  twoFactorStatus(@CurrentUser() user: Osoba2fa) {
+    return this.twoFactor.getStatus(user.principalUserId ?? user.userId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('2fa/enroll')
   @HttpCode(HttpStatus.OK)
-  twoFactorEnroll(@CurrentUser() user: { userId: string }) {
-    return this.twoFactor.startEnrollment(user.userId);
+  twoFactorEnroll(@CurrentUser() user: Osoba2fa) {
+    return this.twoFactor.startEnrollment(wlasne2fa(user));
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('2fa/confirm')
   @HttpCode(HttpStatus.OK)
   twoFactorConfirm(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: Osoba2fa,
     @Body() dto: ConfirmTwoFactorDto,
     @Req() req: Request,
   ) {
     const ip =
       req.ip ?? null; // F-10: req.ip (trust proxy) — lewy wpis X-Forwarded-For podaje klient
-    return this.twoFactor.confirmEnrollment(user.userId, dto.code, ip);
+    return this.twoFactor.confirmEnrollment(wlasne2fa(user), dto.code, ip);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('2fa/disable')
   @HttpCode(HttpStatus.OK)
   async twoFactorDisable(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: Osoba2fa,
     @Body() dto: DisableTwoFactorDto,
     @Req() req: Request,
   ) {
     const ip =
       req.ip ?? null; // F-10: req.ip (trust proxy) — lewy wpis X-Forwarded-For podaje klient
     await this.twoFactor.disable({
-      userId: user.userId,
+      userId: wlasne2fa(user),
       password: dto.password,
       code: dto.code,
       ip,
@@ -387,6 +391,13 @@ export class AuthController {
       message: 'You have access to the staff zone.',
     };
   }
+}
+
+type Osoba2fa = { userId: string; principalUserId?: string; impersonatedBy?: string };
+
+function wlasne2fa(user: Osoba2fa): string {
+  if (user.impersonatedBy) throw new ForbiddenException('Drugi składnik ustawia wyłącznie klient — nie w sesji wsparcia.');
+  return user.principalUserId ?? user.userId;
 }
 
 function requestContext(req: Request): { ip: string | null; userAgent: string | null } {
