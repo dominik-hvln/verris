@@ -8,7 +8,7 @@ import { AccountDeletionService } from './account-deletion.service.js';
  */
 function stanowisko(blad?: Error) {
   const acc = { id: 'a1', daUsername: 'klient1', serverId: 'n1', status: 'SUSPENDED', userId: 'u1', cpuLimit: 100, ramLimitMb: 1024, diskLimitMb: 10240 };
-  const tx = { account: { update: vi.fn(async () => ({})) }, server: { update: vi.fn(async () => ({})) } };
+  const tx = { account: { update: vi.fn(async () => ({})), updateMany: vi.fn(async () => ({ count: 1 })) }, server: { update: vi.fn(async () => ({})) } };
   const prisma = {
     account: { findUnique: vi.fn(async () => acc) },
     $transaction: vi.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
@@ -23,14 +23,14 @@ describe('AccountDeletionService.purgeAccountOnDa', () => {
   it('DA usunął konto → DELETED i zwolnienie pojemności', async () => {
     const s = stanowisko();
     await s.svc.purgeAccountOnDa('a1');
-    expect(s.tx.account.update).toHaveBeenCalledWith({ where: { id: 'a1' }, data: { status: 'DELETED' } });
+    expect(s.tx.account.updateMany).toHaveBeenCalledWith({ where: { id: 'a1', status: { not: 'DELETED' } }, data: { status: 'DELETED' } });
     expect(s.tx.server.update).toHaveBeenCalled();
   });
 
   it('DA: użytkownik nie istnieje → też DELETED (idempotencja)', async () => {
     const s = stanowisko(new DirectAdminApiError('DirectAdmin API Error: User klient1 does not exist', 'User klient1 does not exist'));
     await s.svc.purgeAccountOnDa('a1');
-    expect(s.tx.account.update).toHaveBeenCalled();
+    expect(s.tx.account.updateMany).toHaveBeenCalled();
   });
 
   it.each([
@@ -41,7 +41,7 @@ describe('AccountDeletionService.purgeAccountOnDa', () => {
   ])('%s → konto NIE jest oznaczane jako usunięte (ponowienie w następnym przebiegu)', async (_n, blad) => {
     const s = stanowisko(blad);
     await s.svc.purgeAccountOnDa('a1');
-    expect(s.tx.account.update).not.toHaveBeenCalled();
+    expect(s.tx.account.updateMany).not.toHaveBeenCalled();
     expect(s.tx.server.update).not.toHaveBeenCalled();
   });
 });

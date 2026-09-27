@@ -201,10 +201,14 @@ export class AccountDeletionService {
 
     const now = new Date();
     await this.prisma.$transaction(async (tx) => {
-      await tx.accountDeletionRequest.update({
-        where: { userId },
+      // Warunkowo: anonimizacja mogła ruszyć między odczytem a zapisem.
+      const cofniety = await tx.accountDeletionRequest.updateMany({
+        where: { userId, cancelledAt: null, anonymizedAt: null },
         data: { cancelledAt: now },
       });
+      if (cofniety.count !== 1) {
+        throw new ConflictException('Konto zostało już zanonimizowane — nie można cofnąć.');
+      }
       await tx.user.update({
         where: { id: userId },
         data: { deletionRequestedAt: null },
@@ -276,6 +280,18 @@ export class AccountDeletionService {
     const now = new Date();
 
     await this.prisma.$transaction(async (tx) => {
+      // 0) Zajęcie wniosku jako pierwsze w transakcji: lista do anonimizacji powstaje o 03:30,
+      //    a klient mógł cofnąć wniosek, zanim harmonogram doszedł do jego konta — wcześniej
+      //    anonimizacja szła mimo to (dane usunięte po cofnięciu). Brak aktywnego wniosku
+      //    wycofuje całą transakcję.
+      const zajety = await tx.accountDeletionRequest.updateMany({
+        where: { userId, cancelledAt: null, anonymizedAt: null },
+        data: { anonymizedAt: now, anonymizedById: actorUserId },
+      });
+      if (zajety.count !== 1) {
+        throw new ConflictException('Wniosek o usunięcie konta został cofnięty albo już zrealizowany.');
+      }
+
       // 1) Mark subscriptions as canceled — actual Stripe cancel is handled by
       //    a separate sweeper; keeping `stripeSubscriptionId` so the sweeper
       //    knows which to cancel provider-side.
@@ -368,14 +384,7 @@ export class AccountDeletionService {
       await tx.clientWebhookEndpoint.deleteMany({ where: { userId } });
       await tx.apiToken.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: now } });
 
-      // 6) Mark deletion request done.
-      await tx.accountDeletionRequest.update({
-        where: { userId },
-        data: {
-          anonymizedAt: now,
-          anonymizedById: actorUserId,
-        },
-      });
+      // 6) Wniosek oznaczony jako zrealizowany już w kroku 0.
     });
 
     // 7) Provider-side DA suspend (after commit). One failure must not block
@@ -498,10 +507,13 @@ export class AccountDeletionService {
     // transakcji ze zmianą statusu: gdyby jedno przeszło bez drugiego, księga
     // rozjechałaby się w drugą stronę.
     await this.prisma.$transaction(async (tx) => {
-      await tx.account.update({
-        where: { id: accountId },
+      // Warunkowo: dwa przebiegi naraz zwalniały pojemność węzła dwa razy (księga na minusie,
+      // węzeł wyglądał na pustszy, niż jest).
+      const oznaczone = await tx.account.updateMany({
+        where: { id: accountId, status: { not: AccountStatus.DELETED } },
         data: { status: AccountStatus.DELETED },
       });
+      if (oznaczone.count === 0) return;
       // Konto znika: księga maleje o jego limity efektywne. Account.cpuLimit
       // JEST limitem efektywnym — utrzymuje go provisioning i autoskalowanie.
       await tx.server.update({

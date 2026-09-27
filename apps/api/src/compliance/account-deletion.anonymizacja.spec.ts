@@ -20,7 +20,7 @@ function stanowisko(opts: { juzZanonimizowany?: boolean; subkonta?: string[] } =
     walletAutoTopup: { deleteMany: vi.fn(async () => ({})) },
     clientWebhookEndpoint: { deleteMany: vi.fn(async () => ({})) },
     apiToken: { updateMany: vi.fn(async () => ({})) },
-    accountDeletionRequest: { update: vi.fn(async () => ({})) },
+    accountDeletionRequest: { update: vi.fn(async () => ({})), updateMany: vi.fn(async () => ({ count: 1 })) },
     invoice: { deleteMany: vi.fn() },
   };
   const prisma = {
