@@ -309,9 +309,9 @@ function ClientHeader({ detail }: { detail: MigrationDetail }) {
           Otwórz usługę
         </Link>
         {detail.ticketId ? (
-          <Link href={`/tickets/${detail.ticketId}`} className="text-indigo-400 hover:underline">
+          <a href={`${process.env.NEXT_PUBLIC_STAFF_PANEL_URL ?? "https://staff.verris.pl"}/tickets/${detail.ticketId}`} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline">
             Powiązany ticket
-          </Link>
+          </a>
         ) : null}
       </div>
     </section>

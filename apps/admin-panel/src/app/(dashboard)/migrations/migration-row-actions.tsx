@@ -100,9 +100,9 @@ export function MigrationRowActions({ migrationId, subscriptionId, ticketId, nee
           Szczegóły
         </Link>
         {ticketId ? (
-          <Link href={`/tickets/${ticketId}`} className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-xs text-indigo-200 hover:bg-indigo-500/20">
+          <a href={`${process.env.NEXT_PUBLIC_STAFF_PANEL_URL ?? "https://staff.verris.pl"}/tickets/${ticketId}`} target="_blank" rel="noreferrer" className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 text-xs text-indigo-200 hover:bg-indigo-500/20">
             Ticket
-          </Link>
+          </a>
         ) : null}
         <Link href={`/subscriptions/${subscriptionId}`} className="text-xs text-indigo-400 hover:underline">
           Otwórz usługę

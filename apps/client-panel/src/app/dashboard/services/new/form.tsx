@@ -515,14 +515,14 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
               checked={autoscalingEnabled}
               onChange={setAutoscalingEnabled}
               label="Autoskalowanie limitów zasobów"
-              description="Aplikacja automatycznie dostanie więcej CPU/RAM, gdy będzie tego potrzebowała. Koszty rozliczane godzinowo z portfela."
+              description="Aplikacja automatycznie dostanie więcej CPU/RAM, gdy będzie tego potrzebowała. Koszty rozliczane blokami 15 minut z portfela, do ustawionego limitu."
             />
           ) : null}
           <Toggle
             checked={ecoModeEnabled}
             onChange={setEcoModeEnabled}
             label="ECO Mode (zalecane)"
-            description="Optymalizacja wydajności + zbieranie EkoPunktów na sadzenie drzew."
+            description="Twoje harmonogramy kopii w panelu działają raz w tygodniu zamiast codziennie (kopie platformy bez zmian) + zbieranie EkoPunktów."
           />
         </div>
       </section>

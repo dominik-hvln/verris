@@ -60,7 +60,8 @@ export default function DatabasesTab({ serviceId }: Props) {
   const openPhpMyAdmin = async () => {
     if (pmaOpening) return;
     setPmaOpening(true);
-    const win = window.open('about:blank', '_blank', 'noopener');
+    const win = window.open('about:blank', '_blank');
+    if (win) win.opener = null; // noopener zwracało null — przekierowanie po SSO nigdy nie trafiało do tej karty
     const res = await createHostingSsoUrlAction(serviceId, 'phpmyadmin');
     setPmaOpening(false);
     if (res.ok) {

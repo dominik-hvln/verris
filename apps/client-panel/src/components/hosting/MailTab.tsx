@@ -100,7 +100,8 @@ export default function MailTab({ serviceId }: Props) {
   const openWebmailSso = async () => {
     if (ssoOpening) return;
     setSsoOpening(true);
-    const win = window.open('about:blank', '_blank', 'noopener');
+    const win = window.open('about:blank', '_blank');
+    if (win) win.opener = null; // noopener zwracało null — przekierowanie po SSO nigdy nie trafiało do tej karty
     const res = await createHostingSsoUrlAction(serviceId, 'webmail');
     setSsoOpening(false);
     if (res.ok) {

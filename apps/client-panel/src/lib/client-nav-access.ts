@@ -14,7 +14,7 @@ export type ClientNavContext = {
 const W_ZAKRESIE = [
   '/dashboard/services', '/dashboard/dns', '/dashboard/email', '/dashboard/file-manager', '/dashboard/ftp',
   '/dashboard/cron', '/dashboard/backups', '/dashboard/databases', '/dashboard/ssl', '/dashboard/php',
-  '/dashboard/apps', '/dashboard/support', '/dashboard/knowledge', '/dashboard/settings', '/dashboard/notifications',
+  '/dashboard/apps', '/dashboard/support', '/dashboard/knowledge', '/dashboard/settings',
 ];
 
 /** PB-28 — przy rozliczeniu poza Verris klient nie płaci w panelu i nie zamawia sam nowych usług. */
