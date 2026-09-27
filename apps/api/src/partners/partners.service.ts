@@ -67,6 +67,7 @@ interface PayoutDelegate {
   findUnique(args: { where: { id: string } }): Promise<PayoutRow | null>;
   create(args: { data: Record<string, unknown> }): Promise<PayoutRow>;
   update(args: { where: { id: string }; data: Record<string, unknown> }): Promise<PayoutRow>;
+  delete(args: { where: { id: string } }): Promise<PayoutRow>;
 }
 
 export interface PartnerOverview {
@@ -127,6 +128,21 @@ export class PartnersService {
     if (status !== 'APPROVED') {
       throw new ForbiddenException('Konto nie jest aktywnym partnerem programu poleceń.');
     }
+  }
+
+  /**
+   * Rezerwuje wolne prowizje dla wypłaty i zwraca sumę tego, co faktycznie przypisano.
+   * Dwa równoległe żądania wypłaty czytają te same wolne prowizje — do 2026-09-27 oba tworzyły
+   * wypłatę na pełną kwotę (portfel uznany dwa razy / dwa przelewy do zatwierdzenia), choć prowizje
+   * mogły trafić tylko do jednej. Warunek `payoutId: null` rozstrzyga, kto je dostał.
+   */
+  private async zarezerwujProwizje(payoutId: string, ids: string[], data: Record<string, unknown>): Promise<Prisma.Decimal> {
+    await this.commissions.updateMany({
+      where: { id: { in: ids }, status: 'AVAILABLE', payoutId: null },
+      data: { payoutId, ...data },
+    });
+    const agg = await this.commissions.aggregate({ where: { payoutId }, _sum: { amount: true } });
+    return new Prisma.Decimal(agg._sum.amount ?? 0);
   }
 
   private async sumBy(where: Record<string, unknown>): Promise<number> {
@@ -220,7 +236,7 @@ export class PartnersService {
       select: { id: true, amount: true },
     });
     if (available.length === 0) throw new BadRequestException('Brak dostępnych prowizji do wypłaty.');
-    const total = available.reduce((s, c) => s.plus(c.amount), new Prisma.Decimal(0));
+    let total = available.reduce((s, c) => s.plus(c.amount), new Prisma.Decimal(0));
     if (total.lessThanOrEqualTo(0)) throw new BadRequestException('Brak dostępnych prowizji do wypłaty.');
 
     const payout = await this.payouts.create({
@@ -233,11 +249,14 @@ export class PartnersService {
       },
     });
 
-    // Najpierw rezerwujemy prowizje na wypłatę (idempotentnie po payoutId), potem kredyt.
-    await this.commissions.updateMany({
-      where: { id: { in: available.map((c) => c.id) }, status: 'AVAILABLE', payoutId: null },
-      data: { payoutId: payout.id, status: 'PAID' },
-    });
+    // Najpierw rezerwujemy prowizje na wypłatę, potem kredyt — za to, co FAKTYCZNIE zarezerwowano.
+    const zarezerwowane = await this.zarezerwujProwizje(payout.id, available.map((c) => c.id), { status: 'PAID' });
+    if (zarezerwowane.lessThanOrEqualTo(0)) {
+      await this.payouts.delete({ where: { id: payout.id } });
+      throw new BadRequestException('Brak dostępnych prowizji do wypłaty.');
+    }
+    total = zarezerwowane;
+    await this.payouts.update({ where: { id: payout.id }, data: { amount: total } });
 
     const tx = await this.ledger.credit({
       userId,
@@ -272,8 +291,8 @@ export class PartnersService {
       where: { partnerUserId: userId, status: 'AVAILABLE', payoutId: null },
       select: { id: true, amount: true },
     });
-    const total = available.reduce((s, c) => s.plus(c.amount), new Prisma.Decimal(0));
-    if (total.lessThan(cfg.minPayout)) {
+    const wstepnie = available.reduce((s, c) => s.plus(c.amount), new Prisma.Decimal(0));
+    if (wstepnie.lessThan(cfg.minPayout)) {
       throw new BadRequestException(`Minimalna kwota wypłaty na konto to ${cfg.minPayout} K.`);
     }
 
@@ -281,16 +300,20 @@ export class PartnersService {
       data: {
         partnerUserId: userId,
         method: 'BANK',
-        amount: total,
+        amount: wstepnie,
         status: 'REQUESTED',
         bankAccount: iban,
       },
     });
     // Rezerwujemy prowizje (payoutId), status pozostaje AVAILABLE do czasu wypłaty.
-    await this.commissions.updateMany({
-      where: { id: { in: available.map((c) => c.id) }, status: 'AVAILABLE', payoutId: null },
-      data: { payoutId: payout.id },
-    });
+    const zarezerwowane = await this.zarezerwujProwizje(payout.id, available.map((c) => c.id), {});
+    if (zarezerwowane.lessThan(cfg.minPayout) || zarezerwowane.lessThanOrEqualTo(0)) {
+      await this.commissions.updateMany({ where: { payoutId: payout.id }, data: { payoutId: null } });
+      await this.payouts.delete({ where: { id: payout.id } });
+      throw new BadRequestException('Prowizje zostały właśnie przypisane do innej wypłaty — odśwież stronę.');
+    }
+    const total = zarezerwowane;
+    await this.payouts.update({ where: { id: payout.id }, data: { amount: total } });
 
     await this.audit.record({
       action: 'PARTNER_PAYOUT_BANK_REQUESTED',
