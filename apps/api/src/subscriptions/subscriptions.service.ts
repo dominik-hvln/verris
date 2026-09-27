@@ -701,12 +701,20 @@ export class SubscriptionsService {
     actorUserId?: string | null;
     /** Free-form note saved in audit / SubscriptionEvent. */
     note?: string;
+    /**
+     * Zawieś tylko, gdy usługa nadal jest w tym stanie (harmonogram karencji: PAST_DUE) — klient
+     * mógł ją opłacić po wybraniu listy, a wtedy zawieszenie opłaconej usługi to błąd.
+     */
+    tylkoGdyStatus?: SubscriptionStatus;
   }): Promise<Subscription> {
     const subscription = await this.prisma.subscription.findUnique({
       where: { id: opts.subscriptionId },
       include: { account: true },
     });
     if (!subscription) throw new NotFoundException('Subscription not found');
+    // ponytail: sprawdzenie przy odczycie zawęża okno do czasu wywołania DirectAdmina; pełne
+    // domknięcie = warunkowe przejście w bazie przed zawieszeniem na serwerze (jak expireTrial).
+    if (opts.tylkoGdyStatus && subscription.status !== opts.tylkoGdyStatus) return subscription;
     if (subscription.status === SubscriptionStatus.SUSPENDED) {
       this.logger.debug(`Subscription ${opts.subscriptionId} already SUSPENDED — skipping`);
       return subscription;

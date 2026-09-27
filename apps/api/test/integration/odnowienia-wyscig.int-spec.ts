@@ -37,3 +37,39 @@ describe('X-04 odnowienie vs ręczna opłata', () => {
     expect(await prisma().subscriptionEvent.count({ where: { subscriptionId: u.id, type: 'PAYMENT_FAILED' } })).toBe(0);
   });
 });
+
+describe('X-04 koniec karencji vs opłata', () => {
+  beforeEach(wyczyscBaze);
+  afterAll(rozlacz);
+
+  it('klient opłacił zaległą usługę po wybraniu listy do zawieszenia: usługa zostaje aktywna', async () => {
+    const plan = await utworzPlan();
+    const k = await prisma().user.create({ data: { email: `kar-${Date.now()}@test.verris.pl`, passwordHash: 'x', walletBalance: 0 } });
+    const u = await prisma().subscription.create({
+      data: { userId: k.id, planId: plan.id, status: SubscriptionStatus.PAST_DUE, interval: 'MONTH', priceAmount: 45, currency: 'PLN', paymentSource: 'WALLET', currentPeriodEnd: new Date(Date.now() - 5 * 86400_000) } as never,
+    });
+    await prisma().subscriptionEvent.create({ data: { subscriptionId: u.id, type: 'PAYMENT_FAILED', createdAt: new Date(Date.now() - 4 * 86400_000) } as never });
+    const p = prisma() as never;
+    const ledger = new WalletLedgerService(p);
+    const audit = new AuditService(p);
+    const promo = new PromoService(p, ledger, audit, { send: async () => ({}) } as never, { get: () => undefined } as never);
+    const { SubscriptionsService } = await import('../../src/subscriptions/subscriptions.service.js');
+    const subs = new SubscriptionsService(
+      p, audit, ledger, null as never, null as never, null as never, null as never,
+      { send: async () => ({}) } as never, { get: () => undefined } as never, null as never, null as never, null as never, null as never,
+    );
+    const s = new RenewalScheduler(p, ledger, subs as never, audit, promo, { safeAward: () => undefined } as never);
+    const pr = prisma();
+    const oryginal = pr.subscription.findMany.bind(pr.subscription);
+    const szpieg = vi.spyOn(pr.subscription, 'findMany').mockImplementation(async (a: never) => {
+      const lista = await oryginal(a);
+      if ((a as { where?: { status?: string } }).where?.status === 'PAST_DUE') {
+        await pr.subscription.update({ where: { id: u.id }, data: { status: 'ACTIVE', currentPeriodEnd: new Date(Date.now() + 30 * 86400_000) } });
+      }
+      return lista;
+    });
+    await (s as unknown as { runGraceExpiry(): Promise<void> }).runGraceExpiry();
+    szpieg.mockRestore();
+    expect((await prisma().subscription.findUniqueOrThrow({ where: { id: u.id } })).status).toBe('ACTIVE');
+  });
+});

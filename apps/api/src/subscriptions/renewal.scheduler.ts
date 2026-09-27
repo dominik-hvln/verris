@@ -347,6 +347,7 @@ export class RenewalScheduler {
       try {
         await this.subs.suspend({
           subscriptionId: sub.id,
+          tylkoGdyStatus: SubscriptionStatus.PAST_DUE,
           reason: 'GRACE_EXPIRED',
           note: `Grace period expired (${Math.round(
             (Date.now() - graceStart.getTime()) / DAYS,
