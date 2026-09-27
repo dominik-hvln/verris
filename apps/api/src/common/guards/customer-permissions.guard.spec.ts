@@ -147,6 +147,11 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
       expect(guard().canActivate(zadanie('GET', '/services/:id/apps', sub(CustomerPermission.SERVICES_READ)))).toBe(true);
     });
 
+    it('zarządzanie obejmuje podgląd (27.09: samo TICKETS_MANAGE nie widziało listy zgłoszeń)', () => {
+      expect(guard().canActivate(zadanie('GET', '/tickets', sub(CustomerPermission.TICKETS_MANAGE)))).toBe(true);
+      expect(guard().canActivate(zadanie('GET', '/tickets', sub(CustomerPermission.SERVICES_MANAGE)))).toBe(false);
+    });
+
     it('rejestracja, transfer i odnowienie domeny wymagają też BILLING_MANAGE (wydatek z portfela)', () => {
       for (const p of ['/domains/registrar/register', '/domains/registrar/transfer', '/domains/:id/registrar/renew'] as const) {
         expect(guard().canActivate(zadanie('POST', p, sub(CustomerPermission.DOMAINS_MANAGE)))).toBe(false);

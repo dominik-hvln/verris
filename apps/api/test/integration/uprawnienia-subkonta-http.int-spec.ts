@@ -1,11 +1,12 @@
 import 'reflect-metadata';
 import { Controller, Get, Module, Post, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { NestFactory } from '@nestjs/core';
+import { APP_INTERCEPTOR, NestFactory } from '@nestjs/core';
 import { PassportModule } from '@nestjs/passport';
 import type { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AuditService } from '../../src/common/audit/audit.service.js';
+import { KontekstZadaniaInterceptor } from '../../src/common/audit/kontekst-zadania.js';
 import { JwtAuthGuard } from '../../src/common/guards/jwt-auth.guard.js';
 import { JwtStrategy } from '../../src/auth/strategies/jwt.strategy.js';
 import { PrismaService } from '../../src/prisma/prisma.service.js';
@@ -42,6 +43,7 @@ class Domeny {
     { provide: PrismaService, useFactory: () => prisma() },
     { provide: ConfigService, useValue: { get: () => SEKRET } },
     { provide: AuditService, useFactory: (p: PrismaService) => new AuditService(p), inject: [PrismaService] },
+    { provide: APP_INTERCEPTOR, useClass: KontekstZadaniaInterceptor },
   ],
 })
 class Aplikacja {}
@@ -96,6 +98,17 @@ describe('O-03/Z-10 uprawnienia subkonta przez HTTP', () => {
     const k = await konta(['SERVICES_READ', 'SERVICES_MANAGE', 'BILLING_MANAGE']);
     expect(await zadanie('POST', '/subscriptions', k.sub)).toBe(201);
     expect(await zadanie('POST', '/subscriptions', k.wlasciciel)).toBe(201);
+  });
+
+  it('udany zapis subkonta widać w dzienniku właściciela (IAM → Audyt), odmowy i odczyty nie', async () => {
+    const k = await konta(['SERVICES_READ', 'SERVICES_MANAGE', 'BILLING_MANAGE']);
+    expect(await zadanie('POST', '/subscriptions', k.sub)).toBe(201);
+    expect(await zadanie('GET', '/subscriptions', k.sub)).toBe(200);
+    expect(await zadanie('POST', '/subscriptions', k.wlasciciel)).toBe(201);
+    await new Promise((r) => setTimeout(r, 200));
+    const dzialania = await prisma().auditLog.findMany({ where: { action: 'CUSTOMER_IAM_SUBACCOUNT_ACTION' } });
+    expect(dzialania).toHaveLength(1);
+    expect(dzialania[0]).toMatchObject({ userId: k.wlasciciel, actorUserId: k.sub, details: { method: 'POST', route: '/subscriptions' } });
   });
 
   it('bez tokenu 401, nie 403', async () => {

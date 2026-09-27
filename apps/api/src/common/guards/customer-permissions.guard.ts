@@ -321,6 +321,9 @@ export class CustomerPermissionsGuard implements CanActivate {
 
     // Właściciel konta — subkontowa kontrola go nie dotyczy.
     if (!user?.customerOwnerId) return true;
+    // Operator kończący impersonację subkonta — to nie działanie subkonta (wcześniej odmowa w dzienniku
+    // właściciela i sesja impersonacji niezamknięta po stronie API).
+    if ((user as { impersonatedBy?: string }).impersonatedBy && (req.route?.path ?? req.path) === '/admin/users/impersonate/stop') return true;
 
     const jawne = this.reflector.getAllAndOverride<CustomerPermission[] | undefined>(
       CUSTOMER_PERMISSIONS_KEY,
@@ -343,7 +346,10 @@ export class CustomerPermissionsGuard implements CanActivate {
     }
     if (wymagane.length === 0) return true;
 
-    const nadane = new Set(user.customerPermissions ?? []);
+    // „Zarządzanie” obejmuje „podgląd” — subkonto, które może zakładać zgłoszenia, musi też widzieć ich listę
+    // (27.09 na produkcji: samo TICKETS_MANAGE = zgłoszenie wysłane, lista „brak uprawnień”).
+    const nadane = new Set<string>(user.customerPermissions ?? []);
+    for (const p of [...nadane]) if (p.endsWith('_MANAGE')) nadane.add(p.replace(/_MANAGE$/, '_READ'));
     const ok = wymagane.every((uprawnienie) => nadane.has(uprawnienie));
     if (!ok) this.zapiszOdmowe(req, wymagane);
     return ok;

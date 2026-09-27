@@ -3,7 +3,7 @@ import { getIamAudit } from './actions';
 import { pokazEmail } from './constants';
 import { ETYKIETY_DZIENNIKA } from '@/lib/etykiety-dziennika';
 
-/** Z-10 — przy odmowie pokazujemy, czego subkonto próbowało (metoda i trasa API). */
+/** Z-10/O-03 — przy odmowie i działaniu subkonta pokazujemy metodę i trasę API. */
 function trasaOdmowy(details: unknown): string | null {
   const d = details as { method?: unknown; route?: unknown } | null;
   return d && typeof d.route === 'string' ? `${typeof d.method === 'string' ? d.method : ''} ${d.route}`.trim() : null;
@@ -34,9 +34,13 @@ export async function IamAuditSection() {
                   {ETYKIETY_DZIENNIKA[entry.action] ?? entry.action}
                 </span>
                 {entry.actor?.name && (
-                  <span className="ml-2 text-neutral-500">— {pokazEmail(entry.actor.name)}</span>
+                  <span className="ml-2 text-neutral-500">
+                    — {pokazEmail(entry.actor.name)}
+                    {/* Imię subkonta bywa takie samo jak właściciela — adres rozstrzyga, kto to zrobił. */}
+                    {entry.actor.email && pokazEmail(entry.actor.email) !== pokazEmail(entry.actor.name) ? ` (${pokazEmail(entry.actor.email)})` : ''}
+                  </span>
                 )}
-                {entry.action === 'CUSTOMER_IAM_ACCESS_DENIED' && trasaOdmowy(entry.details) ? (
+                {(entry.action === 'CUSTOMER_IAM_ACCESS_DENIED' || entry.action === 'CUSTOMER_IAM_SUBACCOUNT_ACTION') && trasaOdmowy(entry.details) ? (
                   <span className="mt-0.5 block font-mono text-xs text-neutral-500">{trasaOdmowy(entry.details)}</span>
                 ) : null}
               </div>

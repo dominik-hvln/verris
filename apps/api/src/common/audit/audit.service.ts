@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { kontekstZadania } from './kontekst-zadania.js';
+import { kontekstZadania } from './kontekst-magazyn.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditLog, Prisma } from '@verris/database';
 import {
