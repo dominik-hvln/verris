@@ -302,12 +302,37 @@ export class MigrationWorkerScheduler {
 
   @Cron(CronExpression.EVERY_MINUTE)
   async processQueuedMigrations(): Promise<void> {
+    // Kopia DA dla kilku wniosków potrafi przekroczyć minutę — nakładający się przebieg robił
+    // drugą kopię i drugie zgłoszenie dla tego samego wniosku.
+    if (this.zajetyWnioski) return;
+    this.zajetyWnioski = true;
+    try {
+      await this.przetworzWnioski();
+    } finally {
+      this.zajetyWnioski = false;
+    }
+  }
+
+  private zajetyWnioski = false;
+
+  private async przetworzWnioski(): Promise<void> {
+    // Tylko NIEOBSŁUŻONE wnioski. Wcześniej brane było 20 najstarszych w ogóle, a obsłużone
+    // pomijane w pętli — po 20 wnioskach w historii nowe nie były już nigdy przetwarzane.
+    const nieobsluzone = await this.prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT r.id FROM "SubscriptionEvent" r
+      WHERE r.type IN ('MIGRATION_EXTERNAL_REQUESTED', 'MIGRATION_INTERNAL_REQUESTED')
+        AND NOT EXISTS (
+          SELECT 1 FROM "SubscriptionEvent" p
+          WHERE p."subscriptionId" = r."subscriptionId"
+            AND p.type IN ('MIGRATION_EXTERNAL_QUEUED', 'MIGRATION_EXTERNAL_FAILED', 'MIGRATION_INTERNAL_QUEUED', 'MIGRATION_INTERNAL_FAILED')
+            AND p.details->>'requestId' = r.id
+        )
+      ORDER BY r."createdAt" ASC
+      LIMIT 20`;
+    if (nieobsluzone.length === 0) return;
     const queue = await this.prisma.subscriptionEvent.findMany({
-      where: {
-        type: { in: ['MIGRATION_EXTERNAL_REQUESTED', 'MIGRATION_INTERNAL_REQUESTED'] },
-      },
+      where: { id: { in: nieobsluzone.map((r) => r.id) } },
       orderBy: { createdAt: 'asc' },
-      take: 20,
       include: {
         subscription: {
           include: { account: true, user: { select: { id: true, email: true } } },

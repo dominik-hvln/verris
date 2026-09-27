@@ -73,3 +73,28 @@ describe('X-04 koniec karencji vs opłata', () => {
     expect((await prisma().subscription.findUniqueOrThrow({ where: { id: u.id } })).status).toBe('ACTIVE');
   });
 });
+
+describe('X-04 „Opłać teraz” w tej samej chwili co harmonogram', () => {
+  beforeEach(wyczyscBaze);
+  afterAll(rozlacz);
+
+  it('zaległa usługa z rabatem startowym: jedno przedłużenie, jeden okres rabatu zużyty', async () => {
+    const plan = await utworzPlan();
+    const k = await prisma().user.create({ data: { email: `rab-${Date.now()}@test.verris.pl`, passwordHash: 'x', walletBalance: 500 } });
+    const koniec = new Date(Date.now() - 86400_000);
+    const u = await prisma().subscription.create({
+      data: { userId: k.id, planId: plan.id, status: SubscriptionStatus.PAST_DUE, interval: 'MONTH', priceAmount: 45, currency: 'PLN', paymentSource: 'WALLET', currentPeriodEnd: koniec, introDiscountPeriodsLeft: 3, introDiscountPct: 20 } as never,
+    });
+    await prisma().subscriptionEvent.create({ data: { subscriptionId: u.id, type: 'PAYMENT_FAILED' } as never });
+    const p = prisma() as never;
+    const ledger = new WalletLedgerService(p);
+    const audit = new AuditService(p);
+    const promo = new PromoService(p, ledger, audit, { send: async () => ({}) } as never, { get: () => undefined } as never);
+    const s = new RenewalScheduler(p, ledger, { finalizeScheduledCancellation: async () => null, suspend: async () => undefined } as never, audit, promo, { safeAward: () => undefined } as never);
+    await Promise.all([s.handleHourlyTick().catch(() => undefined), s.retryPastDueNow(k.id, u.id).catch(() => undefined)]);
+    const po = await prisma().subscription.findUniqueOrThrow({ where: { id: u.id } });
+    expect(po.status).toBe('ACTIVE');
+    expect((po as unknown as { introDiscountPeriodsLeft: number }).introDiscountPeriodsLeft).toBe(2);
+    expect(await prisma().subscriptionEvent.count({ where: { subscriptionId: u.id, type: 'RENEWED' } })).toBe(1);
+  });
+});

@@ -244,16 +244,10 @@ export class RenewalScheduler {
       return false;
     }
 
-    await this.extendPeriod(sub.id, periodEnd, sub.interval);
-
-    // Zużyj jeden okres rabatu startowego po udanej opłacie. Gdy spadnie do 0,
-    // kolejne odnowienia idą pełną ceną listową.
-    if (useIntro) {
-      await this.prisma.subscription.update({
-        where: { id: sub.id },
-        data: { introDiscountPeriodsLeft: { decrement: 1 } },
-      });
-    }
+    // Zużycie okresu rabatu startowego razem z przedłużeniem i tylko przez tego, kto przedłużył:
+    // „Opłać teraz” w tej samej chwili co cron (to samo obciążenie przez klucz idempotencji)
+    // zdejmował wcześniej dwa okresy rabatu.
+    await this.extendPeriod(sub.id, periodEnd, sub.interval, useIntro);
 
     void this.ecoPoints.safeAward(`wallet_renewal:${idempotencyKey}`, async () => {
       await this.ecoPoints.awardSubscriptionRenewal(this.prisma, {
@@ -269,16 +263,22 @@ export class RenewalScheduler {
     subscriptionId: string,
     periodEnd: Date,
     interval: 'MONTH' | 'YEAR',
+    zuzyjRabat = false,
   ): Promise<void> {
     const newEnd = addInterval(periodEnd, interval);
-    const odnowiona = await this.prisma.subscription.update({
-      where: { id: subscriptionId },
+    // Warunkowo na opłacany okres: drugi, równoległy przebieg dla tego samego okresu nic nie zmienia
+    // (ani drugiego RENEWED, ani drugiego zużycia rabatu).
+    const { count } = await this.prisma.subscription.updateMany({
+      where: { id: subscriptionId, currentPeriodEnd: periodEnd },
       data: {
         status: SubscriptionStatus.ACTIVE,
         currentPeriodStart: periodEnd,
         currentPeriodEnd: newEnd,
+        ...(zuzyjRabat ? { introDiscountPeriodsLeft: { decrement: 1 } } : {}),
       },
     });
+    if (count === 0) return;
+    const odnowiona = await this.prisma.subscription.findUnique({ where: { id: subscriptionId }, select: { userId: true } });
     await this.prisma.subscriptionEvent.create({
       data: {
         subscriptionId,

@@ -7,6 +7,7 @@ function zbuduj(opts: { saldoOk: boolean; subs: Array<Record<string, unknown>>; 
     subscription: {
       findMany: vi.fn(async () => opts.subs),
       findFirst: vi.fn(async () => opts.subs[0] ?? null),
+      findUnique: vi.fn(async () => ({ userId: 'u1' })),
       update: vi.fn(async () => ({})),
       updateMany: vi.fn(async () => ({ count: 1 })),
     },
@@ -44,7 +45,7 @@ describe('RenewalScheduler — Z-07', () => {
     const { s, prisma, walletLedger } = zbuduj({ saldoOk: true, subs: [pastDue] });
     await (s as unknown as { runRenewalWindow(): Promise<void> }).runRenewalWindow();
     expect(walletLedger.debit).toHaveBeenCalledWith(expect.objectContaining({ idempotencyKey: 'sub-s1-renew-2026-09-20' }));
-    expect(prisma.subscription.update).toHaveBeenCalledWith(
+    expect(prisma.subscription.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'ACTIVE' }) }),
     );
   });

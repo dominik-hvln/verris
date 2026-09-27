@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import {
@@ -687,8 +687,9 @@ export class DomainRegistrarService {
     price: { amount: string; currency: string },
     description: string,
   ) {
+    let tx;
     try {
-      const tx = await this.wallet.debit({
+      tx = await this.wallet.debit({
         userId,
         amount: price.amount,
         type: WalletTxType.CHARGE_DOMAIN,
@@ -696,11 +697,6 @@ export class DomainRegistrarService {
         idempotencyKey: `domain-${order.type.toLowerCase()}:${order.id}`,
         metadata: { orderId: order.id, domain: order.domainName, years: order.years } as Prisma.InputJsonValue,
       });
-      await this.prisma.domainRegistrarOrder.update({
-        where: { id: order.id },
-        data: { walletTxId: tx.id },
-      });
-      return tx;
     } catch (err) {
       await this.prisma.domainRegistrarOrder.update({
         where: { id: order.id },
@@ -709,10 +705,21 @@ export class DomainRegistrarService {
           lastError: (err as Error).message.slice(0, 1000),
         },
       });
-      throw new BadRequestException(
-        'Brak wystarczających środków w portfelu na opłacenie domeny. Doładuj portfel i spróbuj ponownie.',
-      );
+      // Tylko brak środków mówi „doładuj portfel” — inny błąd (baza, blokada) to nie wina salda.
+      if (err instanceof ConflictException) {
+        throw new BadRequestException(
+          'Brak wystarczających środków w portfelu na opłacenie domeny. Doładuj portfel i spróbuj ponownie.',
+        );
+      }
+      throw err;
     }
+    // Poza `try` obciążenia: błąd zapisu `walletTxId` po udanym obciążeniu wcześniej kończył się
+    // „brak środków” i PENDING_PAYMENT — pieniądze pobrane, domena nie zarejestrowana, bez zwrotu.
+    // Obciążenie ma klucz idempotencji z id zamówienia, więc zamówienie da się z nim powiązać także później.
+    await this.prisma.domainRegistrarOrder
+      .update({ where: { id: order.id }, data: { walletTxId: tx.id } })
+      .catch((err) => this.logger.error(`Zamówienie ${order.id}: obciążenie ${tx.id} bez zapisu walletTxId: ${(err as Error).message}`));
+    return tx;
   }
 
   /**
