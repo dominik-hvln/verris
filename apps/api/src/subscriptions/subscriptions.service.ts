@@ -888,7 +888,7 @@ export class SubscriptionsService {
             .credit({
               userId: subscription.userId,
               type: WalletTxType.REFUND,
-              amount: subscription.priceAmount,
+              amount: subscription.individualPrice ?? subscription.priceAmount,
               description: `Refund: failed unsuspend on DA for ${subscription.id}`,
               idempotencyKey: `sub-${subscription.id}-manual-renew-refund-${renewAnchor}`,
               subscriptionId: subscription.id,
@@ -1839,6 +1839,29 @@ export class SubscriptionsService {
         `activateAfterStripePayment: sub=${sub.id} is in terminal status=${sub.status}, ignoring`,
       );
       return sub;
+    }
+
+    if (sub.status === SubscriptionStatus.SUSPENDED) {
+      // Smart retry Stripe po końcu karencji: klient zapłacił, a usługa stała zawieszona.
+      // Odwieszamy wyłącznie zawieszenie za brak płatności — nie nadużycie ani decyzję obsługi/resellera.
+      const ostatnie = await this.prisma.subscriptionEvent.findFirst({
+        where: { subscriptionId: sub.id, type: 'SUSPENDED' },
+        orderBy: { createdAt: 'desc' },
+        select: { details: true },
+      });
+      const powod = (ostatnie?.details as { reason?: string } | null)?.reason;
+      if (powod !== 'GRACE_EXPIRED') {
+        this.logger.warn(`activateAfterStripePayment: sub=${sub.id} SUSPENDED (${powod ?? '?'}) — płatność przyjęta, zawieszenie zostaje`);
+        return sub;
+      }
+      await this.unsuspend({ subscriptionId: sub.id, note: 'Płatność Stripe po zawieszeniu za brak płatności' });
+      return this.prisma.subscription.update({
+        where: { id: sub.id },
+        data: {
+          currentPeriodStart: opts.periodStart ?? sub.currentPeriodStart,
+          currentPeriodEnd: opts.periodEnd ?? sub.currentPeriodEnd,
+        },
+      });
     }
 
     if (sub.status === SubscriptionStatus.PAST_DUE) {

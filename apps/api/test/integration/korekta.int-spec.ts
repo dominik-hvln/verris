@@ -161,6 +161,38 @@ describe('M-06 — faktura korygująca', () => {
     expect(po.walletBalance.toFixed(2)).toBe('133.00');
   });
 
+  it('dwuklik „wystaw korektę do zera”: zwrot raz, nie dwa', async () => {
+    const { user, faktura } = await klientZFaktura('10.00', '123.00');
+    const s = korekty();
+    const wejscie = {
+      invoiceId: faktura.id,
+      rodzaj: 'WARTOSCIOWA' as const,
+      przyczyna: 'Odstąpienie od umowy',
+      pozycjePo: [{ nazwa: 'Abonament Verris Hosting', ilosc: 1, cenaBrutto: '0' }],
+      aktorUserId: user.id,
+    };
+    await Promise.all([s.wystaw(wejscie).catch(() => undefined), s.wystaw(wejscie).catch(() => undefined)]);
+    const po = await prisma().user.findUniqueOrThrow({ where: { id: user.id } });
+    expect(po.walletBalance.toFixed(2)).toBe('133.00');
+  });
+
+  it('druga korekta liczy się od stanu po pierwszej, nie od faktury pierwotnej', async () => {
+    const { user, faktura } = await klientZFaktura('0.00', '123.00');
+    const s = korekty();
+    const k1 = await s.wystaw({
+      invoiceId: faktura.id, rodzaj: 'WARTOSCIOWA', przyczyna: 'Rabat za awarię',
+      pozycjePo: [{ nazwa: 'Abonament', ilosc: 1, cenaBrutto: '100.00' }], aktorUserId: user.id,
+    });
+    const k2 = await s.wystaw({
+      invoiceId: faktura.id, rodzaj: 'WARTOSCIOWA', przyczyna: 'Odstąpienie',
+      pozycjePo: [{ nazwa: 'Abonament', ilosc: 1, cenaBrutto: '0' }], aktorUserId: user.id,
+    });
+    expect(k1.zwrot).toBe('23.00');
+    expect(k2.zwrot).toBe('100.00');
+    const po = await prisma().user.findUniqueOrThrow({ where: { id: user.id } });
+    expect(po.walletBalance.toFixed(2)).toBe('123.00');
+  });
+
   it('korekta w GÓRĘ nie rusza portfela', async () => {
     // Dopłata to zobowiązanie klienta, nie automatyczne pobranie. Ściąganie
     // pieniędzy z portfela przy korekcie zwiększającej byłoby obciążeniem bez

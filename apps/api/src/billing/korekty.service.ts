@@ -69,26 +69,34 @@ export class KorektyService {
       );
     }
 
-    let wynik;
-    try {
-      wynik =
-        input.rodzaj === 'FORMALNA'
-          ? korektaFormalna(pierwotna as never)
-          : przeliczKorekte(pierwotna as never, input.pozycjePo ?? []);
-    } catch (err) {
-      throw new BadRequestException(err instanceof Error ? err.message : String(err));
-    }
-
     if (input.rodzaj === 'FORMALNA' && !input.nabywcaPo) {
       throw new BadRequestException(
         'Korekta formalna bez poprawionych danych nabywcy niczego nie poprawia.',
       );
     }
 
-    const zwrot = kwotaDoZwrotu(wynik.roznica);
     const teraz = new Date();
+    let zwrot = new Prisma.Decimal(0);
+    let wynik!: ReturnType<typeof korektaFormalna>;
 
     const korekta = await this.prisma.$transaction(async (tx) => {
+      // Blokada faktury pierwotnej: dwa równoległe „wystaw” (dwuklik) liczą się jedno po drugim,
+      // a drugie widzi już pierwszą korektę. Wcześniej oba liczyły od stanu pierwotnego i oba zwracały.
+      await tx.$queryRaw`SELECT id FROM "Invoice" WHERE id = ${pierwotna.id} FOR UPDATE`;
+      const ostatnia = await tx.invoice.findFirst({
+        where: { correctedId: pierwotna.id, kind: 'KOREKTA' },
+        orderBy: [{ issuedAt: 'desc' }, { createdAt: 'desc' }],
+      });
+      const stan = stanPoKorektach(pierwotna, ostatnia);
+      try {
+        wynik =
+          input.rodzaj === 'FORMALNA'
+            ? korektaFormalna(stan as never)
+            : przeliczKorekte(stan as never, input.pozycjePo ?? []);
+      } catch (err) {
+        throw new BadRequestException(err instanceof Error ? err.message : String(err));
+      }
+      zwrot = kwotaDoZwrotu(wynik.roznica);
       const { numer, rodzajPrawny } = await nadajNumerDokumentu(tx, teraz, {
         rodzajPierwotnej: pierwotna.rodzajPrawny,
       });
@@ -116,15 +124,15 @@ export class KorektyService {
           // Stan przed korektą zapisujemy NA korekcie, a nie odczytujemy
           // z faktury pierwotnej — ta może zostać skorygowana ponownie,
           // a dokument ma pokazywać stan, do którego się odnosi.
-          correctedAmount: pierwotna.amount,
-          correctedNet: pierwotna.netAmount,
-          correctedVat: pierwotna.vatAmount,
-          correctedLineItems: (pierwotna.lineItems ?? Prisma.JsonNull) as Prisma.InputJsonValue,
-          correctedBuyer: (pierwotna.buyerSnapshot ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+          correctedAmount: stan.amount,
+          correctedNet: stan.netAmount,
+          correctedVat: stan.vatAmount,
+          correctedLineItems: (stan.lineItems ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+          correctedBuyer: (stan.buyerSnapshot ?? Prisma.JsonNull) as Prisma.InputJsonValue,
 
           lineItems: wynik.pozycjePo as unknown as Prisma.InputJsonValue,
           buyerSnapshot: (input.nabywcaPo ??
-            pierwotna.buyerSnapshot ??
+            stan.buyerSnapshot ??
             Prisma.JsonNull) as Prisma.InputJsonValue,
           sellerSnapshot: (pierwotna.sellerSnapshot ?? Prisma.JsonNull) as Prisma.InputJsonValue,
 
@@ -204,4 +212,22 @@ export class KorektyService {
       orderBy: { createdAt: 'asc' },
     });
   }
+}
+
+/**
+ * Stan faktury po wszystkich dotychczasowych korektach — od niego liczy się kolejna.
+ * Każda korekta zapisuje stan przed (`corrected*`) i różnicę (`amount`/`netAmount`/`vatAmount`),
+ * więc stan po ostatniej to ich suma; pozycje i nabywca — z ostatniej korekty.
+ */
+export function stanPoKorektach(pierwotna: Invoice, ostatnia: Invoice | null): Invoice {
+  if (!ostatnia) return pierwotna;
+  const suma = (a: Prisma.Decimal | null, b: Prisma.Decimal | null) => (a === null || b === null ? null : a.add(b));
+  return {
+    ...pierwotna,
+    amount: (ostatnia.correctedAmount ?? pierwotna.amount).add(ostatnia.amount),
+    netAmount: suma(ostatnia.correctedNet, ostatnia.netAmount),
+    vatAmount: suma(ostatnia.correctedVat, ostatnia.vatAmount),
+    lineItems: ostatnia.lineItems,
+    buyerSnapshot: ostatnia.buyerSnapshot ?? pierwotna.buyerSnapshot,
+  };
 }
