@@ -542,7 +542,11 @@ export class MigrationOrchestratorService {
       where: {
         status: { in: [MigrationWorkerJobStatus.QUEUED, MigrationWorkerJobStatus.RETRYING] },
         migrationRequest: {
-          status: { in: [MigrationStatus.QUEUED, MigrationStatus.RUNNING] },
+          // Tylko RUNNING: zlecenie QUEUED czeka jeszcze na kopię bezpieczeństwa konta docelowego
+          // i bazy docelowe (MigrationWorkerScheduler, co minutę). Wcześniej węzeł mógł wziąć
+          // przenoszenie plików od razu po złożeniu zlecenia i nadpisać konto bez kopii,
+          // a import bazy — bez przygotowanych baz docelowych.
+          status: MigrationStatus.RUNNING,
           needsAttention: false,
           subscription: {
             account: { serverId },

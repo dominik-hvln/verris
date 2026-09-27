@@ -43,6 +43,20 @@ export class MigrationWorkerScheduler {
    */
   @Cron(CronExpression.EVERY_MINUTE)
   async processMigrationRequests(): Promise<void> {
+    // Kopia i bazy dla 10 zleceń potrafią trwać dłużej niż minuta — bez tego kolejny przebieg
+    // brał te same zlecenia QUEUED (druga kopia, drugie bazy → fałszywa eskalacja).
+    if (this.zajety) return;
+    this.zajety = true;
+    try {
+      await this.przetworzKolejke();
+    } finally {
+      this.zajety = false;
+    }
+  }
+
+  private zajety = false;
+
+  private async przetworzKolejke(): Promise<void> {
     const queued = await this.prisma.migrationRequest.findMany({
       where: { status: MigrationStatus.QUEUED },
       orderBy: { createdAt: 'asc' },

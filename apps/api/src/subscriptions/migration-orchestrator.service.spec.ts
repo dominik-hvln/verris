@@ -345,6 +345,8 @@ describe('MigrationOrchestratorService', () => {
       where: { id: 'mig_1' },
       data: expect.objectContaining({ currentStep: 'mysql' }),
     });
+    // Zlecenie QUEUED (przed kopią bezpieczeństwa konta docelowego) nie wydaje zadań węzłowi.
+    expect(fullPrisma.migrationWorkerJob.findMany.mock.calls[0][0].where.migrationRequest.status).toBe('RUNNING');
   });
 
   it('does not lease a job while an earlier step of the same request is unfinished', async () => {
