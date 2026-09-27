@@ -773,10 +773,6 @@ export function DomainPurchaseWizard({ initialOrders, initialLabel = '' }: { ini
                 <span className="block text-xs text-neutral-500">Kod AuthInfo / EPP (od obecnego rejestratora)</span>
                 <Input id={`${nsId}-tr-auth`} value={tr.authCode} onChange={(e) => setTr({ ...tr, authCode: e.target.value })} placeholder="Kod AuthInfo / EPP" />
               </label>
-              <label htmlFor={`${nsId}-tr-years`} className="block space-y-1">
-                <span className="block text-xs text-neutral-500">Przedłużenie przy transferze (lata)</span>
-                <Input id={`${nsId}-tr-years`} type="number" min={1} max={10} value={tr.years} onChange={(e) => setTr({ ...tr, years: Math.min(10, Math.max(1, Number(e.target.value) || 1)) })} />
-              </label>
               <label htmlFor={`${nsId}-tr-ns`} className="block space-y-1">
                 <span className="block text-xs text-neutral-500">Nameserwery</span>
                 <Input id={`${nsId}-tr-ns`} value={tr.nameservers} onChange={(e) => setTr({ ...tr, nameservers: e.target.value })} placeholder="ns1.verris.pl, ns2.verris.pl" />
@@ -786,7 +782,7 @@ export function DomainPurchaseWizard({ initialOrders, initialLabel = '' }: { ini
               {!trDomena
                 ? 'Wpisz domenę, a pokażemy koszt transferu.'
                 : trCenaAktualna?.amount
-                  ? <>Koszt transferu: <span className="font-semibold text-white">{formatPln(trCenaAktualna.amount)}</span> brutto (VAT {trCenaAktualna.vatRate}%) — opłata z portfela, obejmuje przedłużenie o {tr.years} {tr.years === 1 ? 'rok' : tr.years < 5 ? 'lata' : 'lat'}.</>
+                  ? <>Koszt transferu: <span className="font-semibold text-white">{formatPln(trCenaAktualna.amount)}</span> brutto (VAT {trCenaAktualna.vatRate}%) — opłata z portfela. {/\.pl$/.test(trDomena) ? 'Transfer domeny .pl nie przedłuża jej ważności — termin zostaje taki jak u obecnego rejestratora.' : 'Dla domen globalnych (.com, .net, .org…) rejestr przy transferze przedłuża ważność o rok.'}</>
                   : trCenaAktualna?.error
                     ? <span className="text-rose-300">{trCenaAktualna.error}</span>
                     : 'Sprawdzamy koszt transferu…'}
