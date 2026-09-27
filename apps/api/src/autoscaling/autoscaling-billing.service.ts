@@ -148,6 +148,23 @@ export class AutoscalingBillingService {
     while (nextBlockStart.getTime() <= now.getTime() && passes < MAX_BLOCKS_PER_PASS) {
       passes += 1;
       const blockStart = nextBlockStart;
+      const blockEnd = new Date(blockStart.getTime() + BILLING_BLOCK_MS);
+      // Zajęcie bloku przed obciążeniem: silnik po skalowaniu i cron co 5 min potrafią rozliczać
+      // to samo konto naraz. Klucz idempotencji chronił portfel, ale historia zdarzeń dostawała
+      // każdy blok dwa razy, a przy rozliczeniu poza Verris (MANUAL) — zestawienie do faktury
+      // właściciela liczyło blok podwójnie. Wygrywa jeden przebieg; drugi kończy.
+      const zajety = await this.prisma.account.updateMany({
+        where: { id: account.id, scaledBilledUntil: blockStart },
+        data: { scaledSince: since, scaledBilledUntil: blockEnd },
+      });
+      if (zajety.count === 0) break;
+      // ponytail: awaria procesu między zajęciem a obciążeniem gubi jeden blok (na korzyść klienta);
+      // gdyby to bolało — znacznik „zajęty do” z czasem i ponowienie przez cron.
+      const zwolnij = () =>
+        this.prisma.account.updateMany({
+          where: { id: account.id, scaledBilledUntil: blockEnd },
+          data: { scaledBilledUntil: blockStart },
+        });
       const amount = roundToCurrency(block.total);
 
       if (amount >= MIN_CHARGEABLE_PLN && poza) {
@@ -212,12 +229,14 @@ export class AutoscalingBillingService {
             // we retry it after a top-up. The engine's guard will scale the
             // customer back to baseline + disable autoscaling on its next tick.
             walletDepleted = true;
+            await zwolnij();
             this.logger.warn(
               `Autoscaling block billing: wallet insufficient for sub=${account.subscriptionId} ` +
                 `amount=${amount} — pausing, engine will disable shortly`,
             );
             break;
           }
+          await zwolnij();
           this.logger.error(
             `Autoscaling block billing failed for sub=${account.subscriptionId} ` +
               `amount=${amount}: ${e.message}`,
@@ -226,15 +245,7 @@ export class AutoscalingBillingService {
         }
       }
 
-      nextBlockStart = new Date(blockStart.getTime() + BILLING_BLOCK_MS);
-    }
-
-    // Persist how far we've billed (don't advance if the wallet stopped us).
-    if (!walletDepleted && nextBlockStart.getTime() !== (account.scaledBilledUntil?.getTime() ?? -1)) {
-      await this.prisma.account.update({
-        where: { id: account.id },
-        data: { scaledSince: since, scaledBilledUntil: nextBlockStart },
-      });
+      nextBlockStart = blockEnd;
     }
 
     return { blocksCharged, amountChargedPln, walletDepleted };

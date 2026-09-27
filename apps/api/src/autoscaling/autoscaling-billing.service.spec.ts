@@ -26,7 +26,7 @@ function rule(resource: string, price: string) {
 
 function buildService(opts?: { debitError?: Error }) {
   const prisma = {
-    account: { update: vi.fn().mockResolvedValue({}) },
+    account: { update: vi.fn().mockResolvedValue({}), updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
     subscription: { findUnique: vi.fn().mockResolvedValue({ autoscalingDiscountPct: 0, paymentSource: 'WALLET' }) },
     autoscalingEvent: { create: vi.fn().mockResolvedValue({}) },
     walletTransaction: { aggregate: vi.fn() },
@@ -78,8 +78,8 @@ describe('AutoscalingBillingService.billDueBlocks', () => {
     expect(new Set(keys).size).toBe(3);
     expect(keys[0]).toBe(`autoscale-block:sub-1:${since.getTime()}`);
 
-    // Cursor advanced past `now`.
-    const lastUpdate = prisma.account.update.mock.calls.at(-1)![0].data;
+    // Cursor advanced past `now` (each block is claimed before the charge).
+    const lastUpdate = prisma.account.updateMany.mock.calls.at(-1)![0].data;
     expect(lastUpdate.scaledBilledUntil.getTime()).toBeGreaterThan(now.getTime());
   });
 
@@ -107,6 +107,9 @@ describe('AutoscalingBillingService.billDueBlocks', () => {
       const data = (call[0] as { data: { scaledBilledUntil: Date } }).data;
       expect(data.scaledBilledUntil.getTime()).toBeLessThanOrEqual(since.getTime());
     }
+    // The claimed block is released, so the cursor ends where it started.
+    const release = prisma.account.updateMany.mock.calls.at(-1)![0].data;
+    expect(release.scaledBilledUntil.getTime()).toBe(since.getTime());
   });
 
   it('clears episode timestamps when the account is back at baseline', async () => {
@@ -143,5 +146,14 @@ describe('AutoscalingBillingService.billDueBlocks', () => {
     expect(result.blocksCharged).toBe(1);
     const key = (walletLedger.debit.mock.calls[0][0] as { idempotencyKey: string }).idempotencyKey;
     expect(key).toBe(`autoscale-block:sub-1:${now.getTime()}`);
+  });
+
+  it('another pass already claimed the block: no charge', async () => {
+    const { service, prisma, walletLedger } = buildService();
+    prisma.account.updateMany.mockResolvedValue({ count: 0 });
+    const now = new Date('2026-06-09T12:00:00Z');
+    const result = await service.billDueBlocks(account({ scaledSince: now, scaledBilledUntil: now }), rules as never, now);
+    expect(result.blocksCharged).toBe(0);
+    expect(walletLedger.debit).not.toHaveBeenCalled();
   });
 });
