@@ -179,17 +179,20 @@ export class InvoicesService {
     });
 
     if (existing) {
+      // Opłacona faktura nie wraca do OPEN: `invoice.created`/`finalized` obsłużone po `paid`
+      // (ponowienie, kolejność dostarczenia) cofało status i zerowało datę zapłaty.
+      const juzOplacona = existing.status === InvoiceStatus.PAID && status !== InvoiceStatus.VOID;
       const updated = await this.prisma.invoice.update({
         where: { id: existing.id },
         data: {
-          status,
+          status: juzOplacona ? InvoiceStatus.PAID : status,
           amount: totalGross,
           currency: stripeInvoice.currency.toUpperCase(),
           hostedUrl: stripeInvoice.hosted_invoice_url,
           pdfUrl: stripeInvoice.invoice_pdf,
           issuedAt,
           dueAt,
-          paidAt,
+          paidAt: juzOplacona ? existing.paidAt ?? paidAt : paidAt,
         },
       });
 
@@ -198,7 +201,7 @@ export class InvoicesService {
       //   (a) Pre-2.2 invoices that exist as Stripe-mirror only.
       //   (b) Invoices upserted in OPEN status before payment, then paid.
       if (
-        status === InvoiceStatus.PAID &&
+        updated.status === InvoiceStatus.PAID &&
         !updated.storageKey &&
         !toNumerPanelu(updated.number, SERIE_PANELU)
       ) {
@@ -220,17 +223,15 @@ export class InvoicesService {
     const isImmediatelyPaid = status === InvoiceStatus.PAID;
     // FAK-01: rodzaj prawny razem z numerem. Placeholder dostaje domyślny
     // rodzaj z bazy, a właściwy — razem z właściwym numerem — przy finalizacji.
-    const nadany = isImmediatelyPaid
-      ? await this.allocateInvoiceNumber(issuedAt ?? new Date())
-      : null;
-    const number = nadany?.numer ?? placeholderNumber;
+    // Numer VFV nadaje finalizacja (pod blokadą wiersza) — nadany tu, przepadał, gdy równoległe
+    // zdarzenie tej samej faktury wygrało `create` (P2002), i zostawiał dziurę w serii.
+    const number = placeholderNumber;
 
     const created = await this.prisma.invoice.create({
       data: {
         userId: opts.verrisUserId,
         subscriptionId: opts.verrisSubscriptionId ?? null,
         number,
-        ...(nadany ? { rodzajPrawny: nadany.rodzajPrawny } : {}),
         status,
         amount: totalGross,
         currency: stripeInvoice.currency.toUpperCase(),
@@ -279,21 +280,6 @@ export class InvoicesService {
   // ---------------------------------------------------------------------------
 
   /**
-   * Numer faktury w serii `VFV/RRRR/MM/{0001}`.
-   *
-   * Logika siedzi w `faktura-za-portfel.ts`, bo używa jej też księga portfela
-   * przy wystawianiu faktury w transakcji obciążenia. Dwie kopie numeratora
-   * oznaczałyby dwie serie rozjeżdżające się przy pierwszym równoległym
-   * wystawieniu, a numeracja faktur ma być ciągła i bez luk
-   * (art. 106e ust. 1 pkt 2 ustawy o VAT).
-   */
-  private async allocateInvoiceNumber(
-    reference: Date,
-  ): Promise<{ numer: string; rodzajPrawny: RodzajPrawny }> {
-    return nadajNumerDokumentu(this.prisma, reference);
-  }
-
-  /**
    * Replaces the Stripe-mirror placeholder with a Verris-issued VAT
    * invoice: assigns proper VFV/... number, calculates net/VAT split,
    * captures seller/buyer snapshots, generates PDF, uploads to MinIO,
@@ -317,7 +303,16 @@ export class InvoicesService {
     let number = invoice.number;
     let rodzajPrawny: string = invoice.rodzajPrawny;
     if (!toNumerPanelu(number, SERIE_PANELU)) {
-      const nadany = await this.allocateInvoiceNumber(invoice.issuedAt ?? new Date());
+      // Blokada wiersza + zapis numeru od razu: dwa zdarzenia „paid” i cron dokańczania nie nadadzą
+      // jednej fakturze dwóch numerów (druga finalizacja czeka i bierze już nadany).
+      const nadany = await this.prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM "Invoice" WHERE id = ${invoice.id} FOR UPDATE`;
+        const teraz = await tx.invoice.findUniqueOrThrow({ where: { id: invoice.id }, select: { number: true, rodzajPrawny: true } });
+        if (toNumerPanelu(teraz.number, SERIE_PANELU)) return { numer: teraz.number, rodzajPrawny: teraz.rodzajPrawny as string };
+        const n = await nadajNumerDokumentu(tx, invoice.issuedAt ?? new Date());
+        await tx.invoice.update({ where: { id: invoice.id }, data: { number: n.numer, rodzajPrawny: n.rodzajPrawny } });
+        return n;
+      });
       number = nadany.numer;
       rodzajPrawny = nadany.rodzajPrawny;
     }
@@ -458,9 +453,10 @@ export class InvoicesService {
       },
     );
 
-    // 7) Persist updates atomically.
-    const updated = await this.prisma.invoice.update({
-      where: { id: invoice.id },
+    // 7) Persist updates atomically. Warunkowo: równoległa finalizacja mogła już skończyć —
+    //    wtedy bez drugiego audytu, drugiej kolejki KSeF i drugiego maila do klienta.
+    const zapis = await this.prisma.invoice.updateMany({
+      where: { id: invoice.id, storageKey: null },
       data: {
         number,
         rodzajPrawny,
@@ -473,6 +469,8 @@ export class InvoicesService {
         storageKey,
       },
     });
+    if (zapis.count === 0) return;
+    const updated = await this.prisma.invoice.findUniqueOrThrow({ where: { id: invoice.id } });
 
     await this.audit.record({
       action: 'INVOICE_PDF_GENERATED',
