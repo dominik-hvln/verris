@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { Invoice, KsefStatus } from '@verris/database';
@@ -17,6 +17,8 @@ import { RODZAJ_FAKTURA_VAT, rodzajKwalifikujeDoKsef } from '../billing/tryb-fak
 import { InvoicingProvider } from './invoicing-provider.interface.js';
 
 const BATCH_LIMIT = 25;
+/** Dzierżawa wysyłki faktury — dłuższa niż najdłuższy cykl (25 × 30 s). */
+const DZIERZAWA_WYSYLKI_MS = 15 * 60 * 1000;
 
 /**
  * KSEF-05 — okno automatycznego dokwalifikowania zaległych faktur.
@@ -200,6 +202,21 @@ export class KsefService {
     try {
       for (const inv of pending) {
         try {
+          // Zajęcie wysyłki (dzierżawa 15 min w ksefSubmittedAt = ostatnia próba). Cykl co 10 min może
+          // trwać dłużej (25 faktur × do 30 s przy wolnym KSeF) i nakładać się na kolejny — bez tego obie
+          // tury wysyłały tę samą fakturę: duplikat w KSeF, a odrzucenie duplikatu nadpisywało przyjętą
+          // fakturę statusem REJECTED. Sprawdzanie statusu (SUBMITTED) jest idempotentne — bez zajęcia.
+          if (inv.ksefStatus === KsefStatus.PENDING || inv.ksefStatus === KsefStatus.OFFLINE) {
+            const zajeta = await this.prisma.invoice.updateMany({
+              where: {
+                id: inv.id,
+                ksefStatus: { in: [KsefStatus.PENDING, KsefStatus.OFFLINE] },
+                OR: [{ ksefSubmittedAt: null }, { ksefSubmittedAt: { lt: new Date(Date.now() - DZIERZAWA_WYSYLKI_MS) } }],
+              },
+              data: { ksefSubmittedAt: new Date() },
+            });
+            if (zajeta.count === 0) continue;
+          }
           if (
             inv.ksefStatus === KsefStatus.PENDING ||
             inv.ksefStatus === KsefStatus.OFFLINE
@@ -475,10 +492,15 @@ export class KsefService {
 
   /** Admin: ponów odrzuconą fakturę po poprawie danych. */
   async retryInvoice(invoiceId: string, actorUserId: string) {
-    await this.prisma.invoice.update({
-      where: { id: invoiceId },
-      data: { ksefStatus: KsefStatus.PENDING, ksefError: null, ksefElementRef: null },
+    // Tylko odrzucona faktura wraca do wysyłki. Wcześniej „ponów” działało na każdej — także przyjętej
+    // albo czekającej na numer KSeF — i wysyłało ją drugi raz (duplikat w KSeF).
+    const r = await this.prisma.invoice.updateMany({
+      where: { id: invoiceId, ksefStatus: KsefStatus.REJECTED },
+      data: { ksefStatus: KsefStatus.PENDING, ksefError: null, ksefElementRef: null, ksefSubmittedAt: null },
     });
+    if (r.count === 0) {
+      throw new ConflictException('Ponowić można tylko fakturę odrzuconą przez KSeF.');
+    }
     await this.audit.record({
       action: 'KSEF_INVOICE_RETRY',
       actorUserId,
