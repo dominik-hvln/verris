@@ -211,8 +211,15 @@ export class TrialService {
     const now = new Date();
     const periodEnd = new Date(now);
     periodEnd.setUTCMonth(periodEnd.getUTCMonth() + 1);
-    await this.prisma.subscription.update({
-      where: { id: subscriptionId },
+    // Warunkowo: okres próbny mógł właśnie wygasnąć (harmonogram co godzinę) między sprawdzeniem
+    // a obciążeniem — wcześniej usługa wracała na ACTIVE, a konto zostawało zawieszone na serwerze.
+    const zmienione = await this.prisma.subscription.updateMany({
+      where: {
+        id: subscriptionId,
+        isTrial: true,
+        trialConvertedAt: null,
+        status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.PROVISIONING] },
+      },
       data: {
         isTrial: false,
         trialConvertedAt: now,
@@ -222,6 +229,17 @@ export class TrialService {
         currentPeriodEnd: periodEnd,
       },
     });
+    if (zmienione.count === 0) {
+      await this.walletLedger.credit({
+        userId,
+        type: WalletTxType.REFUND,
+        amount,
+        description: `Zwrot — okres próbny zakończył się przed przejściem na płatny (${subscription.plan.name})`,
+        idempotencyKey: `trial-convert-${subscriptionId}:zwrot`,
+        subscriptionId,
+      });
+      throw new ConflictException('Okres próbny właśnie się zakończył — środki wróciły do portfela.');
+    }
     await this.prisma.subscriptionEvent.create({
       data: {
         subscriptionId,

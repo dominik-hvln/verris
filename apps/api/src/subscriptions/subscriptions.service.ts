@@ -1141,23 +1141,19 @@ export class SubscriptionsService {
       return subscription;
     }
 
-    if (subscription.account && subscription.account.status !== AccountStatus.SUSPENDED) {
-      try {
-        await this.suspendOnDa(subscription.account.serverId, subscription.account.daUsername);
-      } catch (err) {
-        this.logger.error(
-          `Trial expiry: DA suspend failed for sub=${subscriptionId}: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
-        );
-      }
-    }
-
+    // Najpierw warunkowe przejście w bazie, zawieszenie na serwerze dopiero po nim: klient mógł
+    // przejść na płatny w trakcie wygaszania (zawieszanie na serwerze trwa) — wcześniej kończył
+    // jako „zapłacone, a konto zawieszone” albo „zapłacone, a usługa wygasła”.
     const updated = await this.prisma.$transaction(async (tx) => {
-      const next = await tx.subscription.update({
-        where: { id: subscriptionId },
+      const zajete = await tx.subscription.updateMany({
+        where: {
+          id: subscriptionId,
+          isTrial: true,
+          status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.PROVISIONING] },
+        },
         data: { status: SubscriptionStatus.EXPIRED },
       });
+      if (zajete.count === 0) return null;
       if (subscription.account) {
         await tx.account.update({
           where: { id: subscription.account.id },
@@ -1171,8 +1167,23 @@ export class SubscriptionsService {
           details: { trialEndsAt: subscription.trialEndsAt?.toISOString() ?? null },
         },
       });
-      return next;
+      return tx.subscription.findUniqueOrThrow({ where: { id: subscriptionId } });
     });
+    if (!updated) {
+      return this.prisma.subscription.findUniqueOrThrow({ where: { id: subscriptionId } });
+    }
+
+    if (subscription.account && subscription.account.status !== AccountStatus.SUSPENDED) {
+      try {
+        await this.suspendOnDa(subscription.account.serverId, subscription.account.daUsername);
+      } catch (err) {
+        this.logger.error(
+          `Trial expiry: DA suspend failed for sub=${subscriptionId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
 
     await this.audit.record({
       action: 'TRIAL_EXPIRED',
