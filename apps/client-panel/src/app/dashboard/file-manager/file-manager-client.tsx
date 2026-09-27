@@ -24,24 +24,38 @@ import {
   X,
 } from 'lucide-react';
 import {
-  fmChmod,
-  fmCopy,
-  fmDelete,
-  fmCompress,
-  fmExtract,
-  fmList,
-  fmMkdir,
-  fmMove,
-  fmRead,
-  fmRename,
+  fmChmod as fmChmodAkcja,
+  fmCopy as fmCopyAkcja,
+  fmDelete as fmDeleteAkcja,
+  fmCompress as fmCompressAkcja,
+  fmExtract as fmExtractAkcja,
+  fmList as fmListAkcja,
+  fmMkdir as fmMkdirAkcja,
+  fmMove as fmMoveAkcja,
+  fmRead as fmReadAkcja,
+  fmRename as fmRenameAkcja,
+  fmWrite as fmWriteAkcja,
   fmUpload,
-  fmWrite,
   type FmEntry,
 } from './data';
+import { zOdpakowaniem } from '@/lib/wynik-akcji';
 import { daErrorMessage } from '@/lib/client-hosting-messages';
 import { potwierdz, zapytaj } from '@/components/panel/potwierdz';
 import { Checkbox } from '@/components/panel/checkbox';
 import { liczba } from '@/lib/liczba';
+
+// Akcje zwracają Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem rzucają Error z treścią.
+const fmChmod = zOdpakowaniem(fmChmodAkcja);
+const fmCopy = zOdpakowaniem(fmCopyAkcja);
+const fmDelete = zOdpakowaniem(fmDeleteAkcja);
+const fmCompress = zOdpakowaniem(fmCompressAkcja);
+const fmExtract = zOdpakowaniem(fmExtractAkcja);
+const fmList = zOdpakowaniem(fmListAkcja);
+const fmMkdir = zOdpakowaniem(fmMkdirAkcja);
+const fmMove = zOdpakowaniem(fmMoveAkcja);
+const fmRead = zOdpakowaniem(fmReadAkcja);
+const fmRename = zOdpakowaniem(fmRenameAkcja);
+const fmWrite = zOdpakowaniem(fmWriteAkcja);
 
 const EDITABLE = /\.(txt|md|html?|css|js|mjs|cjs|ts|jsx|tsx|json|xml|ya?ml|ini|conf|env|htaccess|php|py|sh|sql|log)$/i;
 const ARCHIVE = /\.(zip|tar\.gz|tgz|tar\.bz2|tar)$/i;

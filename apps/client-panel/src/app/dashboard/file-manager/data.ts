@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers';
 import type { ServiceSummaryDto } from '@verris/contracts';
 import { apiFetch } from '@/lib/api';
+import { bezpiecznie, type Wynik } from '@/lib/wynik-akcji';
 
 // Ten moduł jest `'use server'` i sam woła `fetch` (upload/download plików),
 // więc potrzebuje adresu WEWNĘTRZNEGO, nie publicznego — powód opisany
@@ -39,15 +40,15 @@ export async function listHostingServices(): Promise<FmHostingService[]> {
 export async function fmList(
   id: string,
   path: string,
-): Promise<{ path: string; entries: FmEntry[] }> {
-  return apiFetch(`/services/${id}/files?path=${encodeURIComponent(path)}`);
+): Promise<Wynik<{ path: string; entries: FmEntry[] }>> {
+  return bezpiecznie(() => apiFetch(`/services/${id}/files?path=${encodeURIComponent(path)}`));
 }
 
 export async function fmRead(
   id: string,
   path: string,
-): Promise<{ path: string; content: string }> {
-  return apiFetch(`/services/${id}/files/read?path=${encodeURIComponent(path)}`);
+): Promise<Wynik<{ path: string; content: string }>> {
+  return bezpiecznie(() => apiFetch(`/services/${id}/files/read?path=${encodeURIComponent(path)}`));
 }
 
 export async function fmWrite(
@@ -55,18 +56,18 @@ export async function fmWrite(
   dir: string,
   filename: string,
   content: string,
-): Promise<{ ok: true }> {
-  return apiFetch(`/services/${id}/files/write`, {
+): Promise<Wynik<{ ok: true }>> {
+  return bezpiecznie(() => apiFetch(`/services/${id}/files/write`, {
     method: 'POST',
     body: JSON.stringify({ dir, filename, content }),
-  });
+  }));
 }
 
-export async function fmMkdir(id: string, dir: string, name: string): Promise<{ ok: true }> {
-  return apiFetch(`/services/${id}/files/mkdir`, {
+export async function fmMkdir(id: string, dir: string, name: string): Promise<Wynik<{ ok: true }>> {
+  return bezpiecznie(() => apiFetch(`/services/${id}/files/mkdir`, {
     method: 'POST',
     body: JSON.stringify({ dir, name }),
-  });
+  }));
 }
 
 export async function fmRename(
@@ -74,22 +75,22 @@ export async function fmRename(
   dir: string,
   oldName: string,
   newName: string,
-): Promise<{ ok: true }> {
-  return apiFetch(`/services/${id}/files/rename`, {
+): Promise<Wynik<{ ok: true }>> {
+  return bezpiecznie(() => apiFetch(`/services/${id}/files/rename`, {
     method: 'POST',
     body: JSON.stringify({ dir, oldName, newName }),
-  });
+  }));
 }
 
 export async function fmDelete(
   id: string,
   dir: string,
   names: string[],
-): Promise<{ ok: true; deleted: number }> {
-  return apiFetch(`/services/${id}/files/delete`, {
+): Promise<Wynik<{ ok: true; deleted: number }>> {
+  return bezpiecznie(() => apiFetch(`/services/${id}/files/delete`, {
     method: 'POST',
     body: JSON.stringify({ dir, names }),
-  });
+  }));
 }
 
 export async function fmCopy(
@@ -97,11 +98,11 @@ export async function fmCopy(
   dir: string,
   names: string[],
   dest: string,
-): Promise<{ ok: true; count: number }> {
-  return apiFetch(`/services/${id}/files/copy`, {
+): Promise<Wynik<{ ok: true; count: number }>> {
+  return bezpiecznie(() => apiFetch(`/services/${id}/files/copy`, {
     method: 'POST',
     body: JSON.stringify({ dir, names, dest }),
-  });
+  }));
 }
 
 export async function fmMove(
@@ -109,30 +110,30 @@ export async function fmMove(
   dir: string,
   names: string[],
   dest: string,
-): Promise<{ ok: true; count: number }> {
-  return apiFetch(`/services/${id}/files/move`, {
+): Promise<Wynik<{ ok: true; count: number }>> {
+  return bezpiecznie(() => apiFetch(`/services/${id}/files/move`, {
     method: 'POST',
     body: JSON.stringify({ dir, names, dest }),
-  });
+  }));
 }
 
 /** C-11 — spakuj zaznaczone do <nazwa>.tar.gz w bieżącym katalogu. */
-export async function fmCompress(id: string, dir: string, names: string[], name: string): Promise<{ ok: true; archive: string }> {
-  return apiFetch(`/services/${id}/files/compress`, {
+export async function fmCompress(id: string, dir: string, names: string[], name: string): Promise<Wynik<{ ok: true; archive: string }>> {
+  return bezpiecznie(() => apiFetch(`/services/${id}/files/compress`, {
     method: 'POST',
     body: JSON.stringify({ dir, names, name }),
-  });
+  }));
 }
 
 export async function fmExtract(
   id: string,
   path: string,
   dest?: string,
-): Promise<{ ok: true }> {
-  return apiFetch(`/services/${id}/files/extract`, {
+): Promise<Wynik<{ ok: true }>> {
+  return bezpiecznie(() => apiFetch(`/services/${id}/files/extract`, {
     method: 'POST',
     body: JSON.stringify({ path, dest }),
-  });
+  }));
 }
 
 export async function fmChmod(
@@ -140,11 +141,11 @@ export async function fmChmod(
   dir: string,
   names: string[],
   mode: string,
-): Promise<{ ok: true; count: number }> {
-  return apiFetch(`/services/${id}/files/chmod`, {
+): Promise<Wynik<{ ok: true; count: number }>> {
+  return bezpiecznie(() => apiFetch(`/services/${id}/files/chmod`, {
     method: 'POST',
     body: JSON.stringify({ dir, names, mode }),
-  });
+  }));
 }
 
 /** Upload — manual multipart forward (apiFetch can't carry FormData cleanly). */

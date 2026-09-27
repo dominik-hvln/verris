@@ -19,6 +19,7 @@ import { CREDIT_SHORT, formatCredits } from '@/lib/credits';
 import { trackBeginCheckout, trackPurchase } from '@/lib/analytics-events';
 import { Checkbox } from '@/components/panel/checkbox';
 import { liczba } from '@/lib/liczba';
+import { odpakuj } from '@/lib/wynik-akcji';
 
 interface StartOffer {
   cardEnabled: boolean;
@@ -230,13 +231,13 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
           return;
         }
         try {
-          await registerDomainClientAction({
+          odpakuj(await registerDomainClientAction({
             name: domainSel.register.name,
             years: domainSel.register.years,
             nameservers: [],
             withdrawalWaiverConsent: domainWaiverConsent,
             registrant: abonent,
-          });
+          }));
         } catch (err) {
           setError(
             err instanceof Error ? err.message : 'Rejestracja domeny nie powiodła się.',

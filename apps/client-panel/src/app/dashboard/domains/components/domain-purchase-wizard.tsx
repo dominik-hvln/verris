@@ -34,6 +34,7 @@ import { RegistrantFields, PUSTY_ABONENT, brakiAbonenta } from './registrant-fie
 import { trackBeginCheckout, trackPurchase, trackSearch } from '@/lib/analytics-events';
 import { Checkbox } from '@/components/panel/checkbox';
 import { Stepper } from '@/components/panel/stepper';
+import { odpakuj } from '@/lib/wynik-akcji';
 
 const YEAR_OPTIONS = [1, 2, 3, 5, 10] as const;
 
@@ -336,13 +337,13 @@ export function DomainPurchaseWizard({ initialOrders, initialLabel = '' }: { ini
     }
     startTransition(async () => {
       try {
-        await registerDomainClientAction({
+        odpakuj(await registerDomainClientAction({
           name: selectedDomain,
           years,
           nameservers: [ns1, ns2].map((n) => n.trim().toLowerCase()).filter(Boolean),
           withdrawalWaiverConsent: waiverConsent,
           registrant: abonent,
-        });
+        }));
         // GA4: purchase — domena płacona z Portfela, kwota z wyceny.
         // transaction_id MUSI być stabilny: `Date.now()` dawał nowy identyfikator przy
         // każdym ponowieniu, więc GA4 nie deduplikowało zakupu, a `event_id` dla Meta

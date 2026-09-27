@@ -7,6 +7,7 @@ import {
 } from "@verris/contracts";
 import { revalidatePath } from "next/cache";
 import { apiFetch } from "@/lib/api";
+import { bezpiecznie, type Wynik as WynikAkcji } from "@/lib/wynik-akcji";
 
 export async function fetchUserDomains(): Promise<DomainDto[]> {
   try {
@@ -28,18 +29,21 @@ export async function addDomain(name: string): Promise<boolean> {
   return true;
 }
 
-export async function deleteDomain(id: string): Promise<boolean> {
-  await apiFetch(`/domains/${id}`, { method: 'DELETE' });
-
-  revalidatePath('/dashboard/domains');
-  return true;
+export async function deleteDomain(id: string): Promise<WynikAkcji<boolean>> {
+  return bezpiecznie(async () => {
+    await apiFetch(`/domains/${id}`, { method: 'DELETE' });
+    revalidatePath('/dashboard/domains');
+    return true;
+  });
 }
 
-export async function verifyDomainAction(id: string): Promise<DomainDto> {
-  const updated = await apiFetch<DomainDto>(`/domains/${id}/verify`, { method: 'POST' });
-  revalidatePath('/dashboard/domains');
-  revalidatePath(`/dashboard/domains/${id}`);
-  return updated;
+export async function verifyDomainAction(id: string): Promise<WynikAkcji<DomainDto>> {
+  return bezpiecznie(async () => {
+    const updated = await apiFetch<DomainDto>(`/domains/${id}/verify`, { method: 'POST' });
+    revalidatePath('/dashboard/domains');
+    revalidatePath(`/dashboard/domains/${id}`);
+    return updated;
+  });
 }
 
 export interface DomainChecklistRow {
@@ -57,11 +61,13 @@ export async function fetchDomainChecklist(id: string): Promise<DomainChecklistR
   return apiFetch<DomainChecklistRow[]>(`/domains/${id}/checklist`);
 }
 
-export async function runDomainChecklistAction(id: string): Promise<DomainChecklistRow> {
-  const row = await apiFetch<DomainChecklistRow>(`/domains/${id}/checklist`, { method: 'POST' });
-  revalidatePath(`/dashboard/domains/${id}`);
-  revalidatePath('/dashboard/domains');
-  return row;
+export async function runDomainChecklistAction(id: string): Promise<WynikAkcji<DomainChecklistRow>> {
+  return bezpiecznie(async () => {
+    const row = await apiFetch<DomainChecklistRow>(`/domains/${id}/checklist`, { method: 'POST' });
+    revalidatePath(`/dashboard/domains/${id}`);
+    revalidatePath('/dashboard/domains');
+    return row;
+  });
 }
 
 export async function fetchRegistrarStatus(): Promise<{
@@ -262,13 +268,15 @@ export async function registerDomainClientAction(input: {
   registrant: Abonent;
   /** Oświadczenie: natychmiastowa rejestracja + utrata prawa odstąpienia (art. 38 pkt 1 upk). */
   withdrawalWaiverConsent: boolean;
-}) {
-  await apiFetch('/domains/registrar/register', {
-    method: 'POST',
-    body: JSON.stringify(input),
+}): Promise<WynikAkcji<void>> {
+  return bezpiecznie(async () => {
+    await apiFetch('/domains/registrar/register', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    revalidatePath('/dashboard/domains');
+    revalidatePath('/dashboard/domains/buy');
   });
-  revalidatePath('/dashboard/domains');
-  revalidatePath('/dashboard/domains/buy');
 }
 
 /** A-10 — odnowienie domeny u rejestratora (cena → potwierdzenie → obciążenie portfela). */

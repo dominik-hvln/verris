@@ -8,6 +8,7 @@ import type { DomainDto } from '@verris/contracts';
 import { verifyDomainAction, deleteDomain, runDomainChecklistAction } from '../actions';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import { potwierdz } from '@/components/panel/potwierdz';
+import { odpakuj } from '@/lib/wynik-akcji';
 
 export function DomainRecordActions({ domain }: { domain: DomainDto }) {
   const router = useRouter();
@@ -16,7 +17,7 @@ export function DomainRecordActions({ domain }: { domain: DomainDto }) {
   async function onVerify() {
     setBusy('verify');
     try {
-      await verifyDomainAction(domain.id);
+      odpakuj(await verifyDomainAction(domain.id));
       toast.success('Domena potwierdzona rekordem TXT.');
       router.refresh();
     } catch (e) {
@@ -29,7 +30,7 @@ export function DomainRecordActions({ domain }: { domain: DomainDto }) {
   async function onChecklist() {
     setBusy('checklist');
     try {
-      await runDomainChecklistAction(domain.id);
+      odpakuj(await runDomainChecklistAction(domain.id));
       toast.success('Asystent domeny zapisał nowy wynik DNS/SSL.');
       router.refresh();
     } catch (e) {
@@ -43,7 +44,7 @@ export function DomainRecordActions({ domain }: { domain: DomainDto }) {
     if (!(await potwierdz(`Usunąć domenę ${domain.name} z portfolia?`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     setBusy('delete');
     try {
-      await deleteDomain(domain.id);
+      odpakuj(await deleteDomain(domain.id));
       toast.success('Domena usunięta');
       router.push('/dashboard/domains');
     } catch (e) {
