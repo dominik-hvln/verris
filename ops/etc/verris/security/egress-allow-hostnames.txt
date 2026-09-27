@@ -50,6 +50,8 @@ api.anthropic.com
 www.wordfence.com
 # --- Rspamd SURBL updates (host) ---
 sa-update.surbl.org
+# Mapy reguł rspamd (host) — pomiar 2026-09-27: 157.180.118.77 = maps.rspamd.com (certyfikat).
+maps.rspamd.com
 # --- SOGo (webmail zespołu): repozytorium pakietów, pomiar 2026-09-23 ---
 sogo-repo.alinto.org
 # --- Węzły compute ---
