@@ -680,8 +680,13 @@ export class BillingService {
     }
 
     const teraz = new Date();
+    // To samo przejęcie co przy webhooku: zdarzenie właśnie przetwarzane (świeża dzierżawa) nie idzie
+    // drugi raz równolegle — „Ponów” w adminie albo harmonogram ponowień przy redelivery ze Stripe.
+    if (decyzja(wiersz as WierszZdarzenia, teraz).rodzaj === 'wTrakcie') {
+      throw new ConflictException(`Zdarzenie ${eventId} jest właśnie przetwarzane — spróbuj za chwilę`);
+    }
     const { count } = await this.prisma.stripeWebhookEvent.updateMany({
-      where: { eventId, status: wiersz.status },
+      where: { eventId, status: wiersz.status, claimedAt: wiersz.claimedAt },
       data: { status: 'PENDING', attempts: { increment: 1 }, claimedAt: teraz, nextAttemptAt: null },
     });
     if (count === 0) {
@@ -773,27 +778,41 @@ export class BillingService {
     const zaplaconoMinor = Number((wplata.metadata as { wplata?: { kwota?: string } } | null)?.wplata?.kwota ?? 0) * 100;
     const udzial = zaplaconoMinor > 0 ? Math.min(1, kwotaMinor / zaplaconoMinor) : 1;
     const doCofniecia = new Prisma.Decimal(wplata.amount).mul(udzial).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
-    const juz = await this.prisma.walletTransaction.findMany({
-      where: { userId: wplata.userId, metadata: { path: ['zwrotZa'], equals: wplata.id } },
-      select: { amount: true },
-    });
-    const cofniete = juz.reduce((a, t) => a.plus(new Prisma.Decimal(t.amount).abs()), new Prisma.Decimal(0));
-    const reszta = doCofniecia.minus(cofniete);
-    if (reszta.lessThanOrEqualTo(0)) return;
-
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: wplata.userId }, select: { email: true, walletBalance: true } });
-    const saldo = new Prisma.Decimal(user.walletBalance);
-    const pobierz = Prisma.Decimal.min(reszta, saldo.greaterThan(0) ? saldo : new Prisma.Decimal(0));
-    if (pobierz.greaterThan(0)) {
-      await this.ledger.debit({
-        userId: wplata.userId,
-        type: WalletTxType.ADJUSTMENT,
-        amount: pobierz,
-        description: spor ? 'Spór o płatność (chargeback) — cofnięcie doładowania' : 'Zwrot płatności — cofnięcie doładowania',
-        idempotencyKey: `stripe:${event.id}`,
-        metadata: { zwrotZa: wplata.id, stripeEvent: event.id, powod: o.reason ?? null },
+    // Blokada wiersza klienta PRZED policzeniem, ile już cofnięto: dwa zdarzenia do jednej płatności
+    // (częściowe zwroty, zwrot + spór) liczą się jedno po drugim. Wcześniej oba widziały „nic nie cofnięto”
+    // i oba ściągały całą resztę.
+    const wynik = await this.prisma.$transaction(async (tx) => {
+      const [u] = await tx.$queryRaw<Array<{ walletBalance: Prisma.Decimal }>>`SELECT "walletBalance" FROM "User" WHERE "id" = ${wplata.userId} FOR UPDATE`;
+      const juz = await tx.walletTransaction.findMany({
+        where: { userId: wplata.userId, metadata: { path: ['zwrotZa'], equals: wplata.id } },
+        select: { amount: true },
       });
-    }
+      const cofniete = juz.reduce((a, t) => a.plus(new Prisma.Decimal(t.amount).abs()), new Prisma.Decimal(0));
+      const reszta = doCofniecia.minus(cofniete);
+      if (reszta.lessThanOrEqualTo(0)) return null;
+      const saldo = new Prisma.Decimal(u?.walletBalance ?? 0);
+      const pobierz = Prisma.Decimal.min(reszta, saldo.greaterThan(0) ? saldo : new Prisma.Decimal(0));
+      if (pobierz.greaterThan(0)) {
+        await this.ledger.zapiszWpis(
+          tx,
+          {
+            userId: wplata.userId,
+            type: WalletTxType.ADJUSTMENT,
+            amount: pobierz,
+            description: spor ? 'Spór o płatność (chargeback) — cofnięcie doładowania' : 'Zwrot płatności — cofnięcie doładowania',
+            idempotencyKey: `stripe:${event.id}`,
+            metadata: { zwrotZa: wplata.id, stripeEvent: event.id, powod: o.reason ?? null },
+          },
+          'debit',
+          pobierz,
+          pobierz.negated(),
+        );
+      }
+      return { reszta, pobierz };
+    });
+    if (!wynik) return;
+    const { reszta, pobierz } = wynik;
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: wplata.userId }, select: { email: true } });
     const brak = reszta.minus(pobierz);
     await this.audit.record({
       action: spor ? 'WALLET_TOPUP_DISPUTED' : 'WALLET_TOPUP_REFUNDED',
