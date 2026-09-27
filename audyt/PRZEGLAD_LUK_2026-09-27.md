@@ -27,7 +27,7 @@ Każdą pozycję sprawdzono w kodzie albo w źródle. „Węzeł” oznacza, że
 | 9 | **Narzut resellera zmienia tylko liczby, które widzi reseller; klient płaci cenę katalogową** (§3.2) | Widmo w module resellera | kod / decyzja |
 | 10 | **Asystent AI w panelu (L-11), blokada botów AI, generator strony WP z AI** (§4.2) | Konkurencja w PL (cyber_Folks, home.pl, cPanel, Plesk, Hostinger) ma to od 2025–26. Największa luka wizerunkowa | decyzja produktowa |
 
-Naprawione 27.09 wieczorem (testy na PostgreSQL): podwójne „przejdź na płatny” (393f254); korekty bez podwójnego zwrotu i płatność Stripe po zawieszeniu (b1a1097); zwrot + spór bez podwójnego cofnięcia, „Ponów” bez równoległego przetwarzania (140566c); widma 3.4 (opis), 3.6, 3.12–3.14 (600fd18). Zostaje z pilnych: **1.1 numeracja faktur**.
+Naprawione 27.09 wieczorem (testy na PostgreSQL): podwójne „przejdź na płatny” (393f254); korekty bez podwójnego zwrotu i płatność Stripe po zawieszeniu (b1a1097); zwrot + spór bez podwójnego cofnięcia, „Ponów” bez równoległego przetwarzania (140566c); widma 3.4 (opis), 3.6, 3.12–3.14 (600fd18). Numeracja faktur (1.1) też naprawiona tego wieczoru.
 
 ---
 
@@ -37,7 +37,7 @@ API działa jako jedna replika, więc realne wyścigi to: nakładające się prz
 
 | # | Gdzie | Problem | Waga |
 |---|---|---|---|
-| 1.1 | `billing/invoices.service.ts` (upsertFromStripe / finalizeAsVerrisInvoice) + `faktury.scheduler` | `invoice.paid` i `invoice.payment_succeeded` przychodzą razem, a do tego dochodzi cron dokańczania. Każda ścieżka przydziela numer VFV: jeden numer ginie (dziura w serii), powstaje drugi PDF i drugi mail. Zdarzenie `invoice.created`/`finalized` obsłużone po `paid` cofa status na OPEN i zeruje `paidAt` | **WYSOKA** |
+| 1.1 | `billing/invoices.service.ts` (upsertFromStripe / finalizeAsVerrisInvoice) + `faktury.scheduler` | `invoice.paid` i `invoice.payment_succeeded` przychodzą razem, a do tego dochodzi cron dokańczania. Każda ścieżka przydziela numer VFV: jeden numer ginie (dziura w serii), powstaje drugi PDF i drugi mail. Zdarzenie `invoice.created`/`finalized` obsłużone po `paid` cofa status na OPEN i zeruje `paidAt` | **NAPRAWIONE** (faktury, 27.09) |
 | 1.2 | `billing/korekty.service.ts` (wystaw) | Korekta liczona od faktury pierwotnej, bez uwzględnienia wcześniejszych korekt. Klucz unikalności zawiera nowy numer, więc nie blokuje powtórki. Dwuklik albo druga korekta to drugi zwrot do portfela | **NAPRAWIONE** (b1a1097) |
 | 1.3 | `subscriptions.service.ts` activateAfterStripePayment + `renewal.scheduler` runGraceExpiry | Po karencji zawieszane są też subskrypcje Stripe. Późniejsza udana płatność (smart retry) przy statusie SUSPENDED nic nie robi. Przy synchronicznym provisioningu dwa zdarzenia „paid” uruchamiają dwa zakładania konta | **NAPRAWIONE** (b1a1097) |
 | 1.4 | `trial.service.ts` convertFromWallet | ~~Podwójne kliknięcie → zwrot → darmowy miesiąc~~ | **NAPRAWIONE** (393f254) |
