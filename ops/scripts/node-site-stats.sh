@@ -6,7 +6,7 @@
 #   SS_DOMAIN    domena konta
 # Ruch i 5xx: log dostępu domeny prowadzony przez DirectAdmin (/var/log/httpd/domains/<domena>.log,
 # format combined), ostatnie 7 dni, najwyżej ostatnie 100 MB pliku; ścieżki bez parametrów (?…).
-# TTFB: 5 żądań do strony z samego serwera (127.0.0.1 + nagłówek Host) — czas serwera bez sieci klienta.
+# TTFB: 5 żądań do strony z samego serwera (IP konta, bo vhosty DA są przypięte do IP) — czas serwera bez sieci klienta.
 # Technologia: pliki w public_html sprawdzane jako KLIENT (runuser) — dowiązanie nie wyprowadzi poza konto.
 # Wynik: VERRIS_SITESTATS=<base64 JSON>.
 # SS_LOG_DIR / SS_HOME / SS_SKIP_TTFB / SS_JAKO_ROOT dają się podmienić wyłącznie w testach.
@@ -70,10 +70,12 @@ PY
 
 # --- TTFB z serwera (mediana z 5 prób) ---
 TTFB=""
+IP_KONTA="$(sed -n 's/^ip=//p' "/usr/local/directadmin/data/users/$SS_DA_USER/user.conf" 2>/dev/null | head -1 || true)"
+[[ "$IP_KONTA" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || IP_KONTA=127.0.0.1
 if [ "${SS_SKIP_TTFB:-0}" != 1 ] && command -v curl >/dev/null 2>&1; then
   for _ in 1 2 3 4 5; do
     t="$(curl -s --noproxy '*' -o /dev/null -k -w '%{time_starttransfer}' --max-time 15 \
-      --resolve "$SS_DOMAIN:443:127.0.0.1" "https://$SS_DOMAIN/" 2>/dev/null || true)"
+      --resolve "$SS_DOMAIN:443:$IP_KONTA" "https://$SS_DOMAIN/" 2>/dev/null || true)"
     [[ "$t" =~ ^[0-9]+([.,][0-9]+)?$ ]] && TTFB="$TTFB ${t/,/.}"
   done
 fi

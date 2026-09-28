@@ -145,29 +145,6 @@ describe('Aliasy domeny (CMD_API_DOMAIN_POINTER)', () => {
   });
 });
 
-describe('PHP per domena', () => {
-  it('odczyt: slot z php1_select zamieniony na wersję z mapy slotów', async () => {
-    const s = stanowisko({ get: { '/CMD_API_ADDITIONAL_DOMAINS': 'php1_select=2' } });
-    expect(await s.svc.getHostingDomainPhp('s1', 'u1', 'Sklep.pl')).toEqual({
-      domain: 'sklep.pl', slotReleases: ['8.3', '8.2', '7.4'], currentSlot: 2, currentVersion: '8.2',
-    });
-  });
-
-  it('odczyt: slot spoza mapy → wersja nieznana (null), bez zgadywania', async () => {
-    const s = stanowisko({ get: { '/CMD_API_ADDITIONAL_DOMAINS': 'php1_select=9' } });
-    expect((await s.svc.getHostingDomainPhp('s1', 'u1', 'firma.pl')).currentVersion).toBeNull();
-  });
-
-  it('zapis: wersja → numer slotu; wersja spoza mapy i cudza domena nie dochodzą do DA', async () => {
-    const s = stanowisko();
-    expect(await s.svc.setHostingDomainPhp('s1', 'u1', { domain: 'firma.pl', version: '7.4' })).toEqual({ ok: true, domain: 'firma.pl', version: '7.4', slot: 3 });
-    expect(s.wyslane()).toEqual({ action: 'php_selector', save: 'yes', domain: 'firma.pl', php1_select: '3', api: 'yes' });
-    await expect(s.svc.setHostingDomainPhp('s1', 'u1', { domain: 'firma.pl', version: '5.6' })).rejects.toThrow('Nieobsługiwana');
-    await expect(s.svc.setHostingDomainPhp('s1', 'u1', { domain: 'obca.pl', version: '8.3' })).rejects.toThrow('nie należy');
-    expect(s.post).toHaveBeenCalledTimes(1);
-  });
-});
-
 describe('Poddomeny (CMD_API_SUBDOMAINS)', () => {
   it('lista: obie postaci odpowiedzi DA (klucz albo listN), po każdej domenie konta', async () => {
     const s = stanowisko();

@@ -895,8 +895,8 @@ export class UserServicesController {
   }
 
   // ───────────────────────── FALA-2b — wersja PHP per domena ───────────────────
-  // Obok per-kontowego selektora CloudLinux. Ustawienie per domena ma pierwszeństwo
-  // dla danego vhosta — panel sygnalizuje to przy selektorze konta. Pozycja B-02.
+  // Handler alt-php w .htaccess domeny (zadanie HTACCESS) — ma pierwszeństwo przed wersją konta
+  // z selektora CloudLinux; panel sygnalizuje to przy selektorze konta. Pozycja B-02.
 
   @Get(':id/hosting-domain-php')
   async hostingDomainPhp(
@@ -904,17 +904,17 @@ export class UserServicesController {
     @Param('id') id: string,
     @Query('domain') domain: string,
   ) {
-    return this.directAdmin.getHostingDomainPhp(id, user.userId, domain);
+    return this.htaccess.phpDomenyStatus(id, user.userId, domain ?? '');
   }
 
-  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:domain-php' })
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:htaccess' })
   @Post(':id/hosting-domain-php')
   async setHostingDomainPhp(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
     @Body() body: WersjaPhpDomenyDto,
   ) {
-    return this.directAdmin.setHostingDomainPhp(id, user.userId, body);
+    return this.htaccess.phpDomeny(id, user.userId, body);
   }
 
   // A-06 — katalog główny domeny (DocumentRoot). Reguła FILES w strażniku subkont.

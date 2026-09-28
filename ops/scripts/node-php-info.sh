@@ -3,7 +3,7 @@
 # Verris — podgląd konfiguracji PHP strony (B-06, odczyt do B-04): wersja, SAPI, najważniejsze
 # dyrektywy php.ini i załadowane rozszerzenia — tak, jak widzi je serwer WWW, nie PHP z konsoli
 # (wersja i ustawienia mogą być inne per domena). Skrypt kładzie w katalogu strony plik o losowej
-# nazwie (jako klient), pobiera go przez 127.0.0.1 z nagłówkiem Host i od razu usuwa.
+# nazwie (jako klient), pobiera go przez IP konta z nagłówkiem Host i od razu usuwa.
 # Uruchamiany przez agenta zadań (PHP_INFO) z env:
 #   PI_DA_USER   login konta DA
 #   PI_DOMAIN    domena konta
@@ -24,7 +24,11 @@ HOME_DIR="$(getent passwd "$PI_DA_USER" | cut -d: -f6)"
 [ -n "$HOME_DIR" ] && [ -d "$HOME_DIR" ] || fail "brak katalogu domowego konta"
 DOCROOT="$HOME_DIR/domains/$PI_DOMAIN/public_html"
 [ -d "$DOCROOT" ] && [ ! -L "$DOCROOT" ] || fail "brak katalogu strony domains/$PI_DOMAIN/public_html"
-HTTP_BASE="${PI_HEALTH_BASE:-http://127.0.0.1}"
+# Vhosty DirectAdmina są przypięte do IP konta (<VirtualHost |IP|:80>), więc żądanie na 127.0.0.1
+# trafia w stronę domyślną serwera, nie w domenę klienta (test D3 na t1, 28.09).
+IP_KONTA="$(sed -n 's/^ip=//p' "/usr/local/directadmin/data/users/$PI_DA_USER/user.conf" 2>/dev/null | head -1 || true)"
+[[ "$IP_KONTA" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || IP_KONTA=127.0.0.1
+HTTP_BASE="${PI_HEALTH_BASE:-http://$IP_KONTA}"
 HTTPS_PORT="${PI_HTTPS_PORT:-443}"
 
 jako_klient() { runuser -u "$PI_DA_USER" -- "$@"; }
@@ -53,7 +57,7 @@ pobierz() { curl -s --noproxy '*' --max-time 20 "$@" 2>/dev/null || true; }
 ODP="$(pobierz -H "Host: $PI_DOMAIN" "$HTTP_BASE/$NAZWA")"
 case "$ODP" in
   \{*) ;;
-  *) ODP="$(pobierz -k --resolve "$PI_DOMAIN:$HTTPS_PORT:127.0.0.1" "https://$PI_DOMAIN:$HTTPS_PORT/$NAZWA")" ;;
+  *) ODP="$(pobierz -k --resolve "$PI_DOMAIN:$HTTPS_PORT:$IP_KONTA" "https://$PI_DOMAIN:$HTTPS_PORT/$NAZWA")" ;;
 esac
 
 # B-04 — rozszerzenia z CloudLinux PHP Selector (oficjalna dokumentacja CloudLinux, selectorctl):

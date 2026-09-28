@@ -11,6 +11,9 @@
 #   HT_HSTS      (write) 0 | 1 — Strict-Transport-Security na rok (przeglądarki ignorują go po HTTP)
 #   HT_E403 / HT_E404 / HT_E500  (write) ścieżka strony błędu w witrynie (/404.html) albo pusta
 #   HT_DIR       podkatalog public_html (np. sklep/stary), pusty = public_html (B-03)
+#   Wartość „zachowaj” (HT_INDEXES — zostają listowanie, HSTS i strony błędów; HT_PHP — zostaje wersja PHP)
+#   bierze to ustawienie ze starego bloku: PHP domeny i reszta ustawień zmieniają się osobno (B-02).
+#   Znacznik w istniejących polach, bo mapowanie payloadu siedzi w agencie na węźle.
 #   HT_PHP       (write) wersja PHP katalogu z CloudLinux alt-php, np. 83, albo pusta — wg dokumentacji
 #                LiteSpeed (DirectAdmin → PHP): <IfModule LiteSpeed> AddHandler application/x-httpd-alt-php83 .php
 # Plik czyta i zapisuje klient (runuser) — dowiązanie symboliczne nie wyprowadzi roota poza konto.
@@ -31,14 +34,14 @@ SCIEZKA_RE='^/[A-Za-z0-9._~-][A-Za-z0-9._~/-]{0,199}$'
 [[ "$HT_MODE" == "read" || "$HT_MODE" == "write" ]] || fail "nieznany tryb: $HT_MODE"
 [[ "$HT_DA_USER" =~ ^[a-z][a-z0-9]{0,15}$ ]] || fail "nieprawidłowy login konta"
 [[ "$HT_DOMAIN" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$ ]] || fail "nieprawidłowa domena"
-[[ "$HT_INDEXES" =~ ^(on|off|default)$ ]] || fail "nieprawidłowe ustawienie listowania katalogów"
+[[ "$HT_INDEXES" =~ ^(on|off|default|zachowaj)$ ]] || fail "nieprawidłowe ustawienie listowania katalogów"
 [[ "$HT_HSTS" =~ ^[01]$ ]] || fail "nieprawidłowe ustawienie HSTS"
 for e in "$HT_E403" "$HT_E404" "$HT_E500"; do
   [ -z "$e" ] || { [[ "$e" =~ $SCIEZKA_RE ]] && [[ "$e" != *..* ]] && [[ "$e" != *//* ]]; } || fail "nieprawidłowa ścieżka strony błędu"
 done
 [ -z "$HT_DIR" ] || { [[ "$HT_DIR" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+){0,9}$ ]] && [[ "/$HT_DIR/" != */../* ]] && [[ "/$HT_DIR/" != */./* ]]; } || fail "nieprawidłowy katalog"
-[[ "$HT_PHP" =~ ^([5-8][0-9])?$ ]] || fail "nieprawidłowa wersja PHP"
-if [ -n "$HT_PHP" ] && [ "$HT_MODE" = "write" ] && [ ! -x "/opt/alt/php$HT_PHP/usr/bin/php" ]; then
+[[ "$HT_PHP" =~ ^([5-8][0-9]|zachowaj)?$ ]] || fail "nieprawidłowa wersja PHP"
+if [ -n "$HT_PHP" ] && [ "$HT_PHP" != zachowaj ] && [ "$HT_MODE" = "write" ] && [ ! -x "/opt/alt/php$HT_PHP/usr/bin/php" ]; then
   fail "PHP ${HT_PHP:0:1}.${HT_PHP:1} nie jest zainstalowane na serwerze"
 fi
 id "$HT_DA_USER" >/dev/null 2>&1 || fail "brak użytkownika systemowego $HT_DA_USER"
@@ -54,7 +57,11 @@ if [ -n "$HT_DIR" ]; then
   KATALOG="$PRAWDZIWY"
 fi
 PLIK="$KATALOG/.htaccess"
-HEALTH_BASE="${HT_HEALTH_BASE:-http://127.0.0.1}"
+# Vhosty DirectAdmina są przypięte do IP konta — kontrola strony na 127.0.0.1 trafiała w stronę
+# domyślną serwera, więc nigdy nie widziała 5xx domeny i nie cofała zepsutego pliku (test D3 na t1).
+IP_KONTA="$(sed -n 's/^ip=//p' "/usr/local/directadmin/data/users/$HT_DA_USER/user.conf" 2>/dev/null | head -1 || true)"
+[[ "$IP_KONTA" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || IP_KONTA=127.0.0.1
+HEALTH_BASE="${HT_HEALTH_BASE:-http://$IP_KONTA}"
 
 jako_klient() { runuser -u "$HT_DA_USER" -- "$@"; }
 http_kod() { curl -s --noproxy '*' -o /dev/null -w '%{http_code}' --max-time 20 -H "Host: $HT_DOMAIN" "$HEALTH_BASE/${HT_DIR:+$HT_DIR/}" 2>/dev/null || true; }
@@ -82,7 +89,7 @@ def rozbij(t):
 tryb, src = sys.argv[1], sys.argv[2]
 tekst = open(src, encoding="utf-8", errors="surrogateescape").read()
 blok, reszta = rozbij(tekst)
-if tryb == "blok":
+def ustawienia(blok):
     s = {"indexes": "default", "hsts": False, "e403": "", "e404": "", "e500": "", "php": ""}
     for l in blok:
         l = l.strip()
@@ -94,9 +101,16 @@ if tryb == "blok":
         else:
             m = re.fullmatch(r"ErrorDocument (403|404|500) (/\S+)", l)
             if m: s["e" + m.group(1)] = m.group(2)
-    print(base64.b64encode(json.dumps(s, separators=(",", ":")).encode()).decode())
+    return s
+if tryb == "blok":
+    print(base64.b64encode(json.dumps(ustawienia(blok), separators=(",", ":")).encode()).decode())
 else:
-    e = os.environ
+    e = dict(os.environ)
+    st = ustawienia(blok)
+    if e.get("HT_INDEXES") == "zachowaj":
+        e.update(HT_INDEXES=st["indexes"], HT_HSTS="1" if st["hsts"] else "0", HT_E403=st["e403"], HT_E404=st["e404"], HT_E500=st["e500"])
+    if e.get("HT_PHP") == "zachowaj":
+        e["HT_PHP"] = st["php"]
     nowy = []
     if e["HT_INDEXES"] == "off": nowy.append("Options -Indexes")
     if e["HT_INDEXES"] == "on": nowy.append("Options +Indexes")

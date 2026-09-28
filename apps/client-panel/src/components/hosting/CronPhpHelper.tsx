@@ -12,13 +12,13 @@ import { zOdpakowaniem } from '@/lib/wynik-akcji';
 const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
 
 /**
- * L-05 — polecenie crona ze skryptem PHP w wybranej wersji. Wersje = sloty PHP serwera
- * (te same co przy domenie); binarka CustomBuild `/usr/local/phpXY/bin/php`, ścieżka od $HOME,
- * więc nie trzeba znać loginu konta.
+ * L-05 — polecenie crona ze skryptem PHP w wybranej wersji. Wersje = te same co przy domenie
+ * (CloudLinux alt-php); binarka `/opt/alt/phpXY/usr/bin/php` — CustomBuild ma tylko jedną wersję,
+ * a /opt/alt jest widoczne w CageFS. Ścieżka od $HOME, więc nie trzeba znać loginu konta.
  * ponytail: tylko ścieżka w public_html domeny; argumenty skryptu klient dopisze w polu polecenia.
  */
 export function phpCronCommand(release: string, domain: string, path: string): string {
-  const bin = `/usr/local/php${release.replace('.', '')}/bin/php`;
+  const bin = `/opt/alt/php${release.replace('.', '')}/usr/bin/php`;
   const plik = path.trim().replace(/^\/+/, '');
   return `${bin} -q $HOME/domains/${domain}/public_html/${plik}`;
 }
@@ -40,7 +40,7 @@ export function CronPhpHelper({ serviceId, onUse }: { serviceId: string; onUse: 
         if (off || !lista.length) return;
         setDomeny(lista);
         const php = await fetchDomainPhp(serviceId, lista[0]);
-        if (!off && php) setWersje(php.slotReleases.filter(Boolean));
+        if (!off && php) setWersje(php.versions.filter(Boolean));
       })
       .catch(() => undefined);
     return () => {

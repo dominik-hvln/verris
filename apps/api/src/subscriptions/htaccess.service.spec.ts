@@ -17,7 +17,8 @@ function stanowisko(zadania: unknown[] = [], wToku: unknown = null) {
   };
   const da = { assertDomainOwnedBySubscription: vi.fn(async (_s: string, _u: string, d: string) => d.toLowerCase()) };
   const audit = { record: vi.fn(async () => undefined) };
-  return { svc: new HtaccessService(prisma as never, audit as never, da as never), prisma, audit };
+  const settings = { getAvailablePhpVersions: vi.fn(async () => ['8.3', '8.2']) };
+  return { svc: new HtaccessService(prisma as never, audit as never, da as never, settings as never), prisma, audit };
 }
 const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64');
 const zapis = { domain: 'A.pl', indexes: 'off' as const, hsts: true, e403: '', e404: ' /404.html ', e500: '' };
@@ -28,7 +29,7 @@ describe('HtaccessService', () => {
     await s.svc.zapisz('s1', 'u1', zapis);
     const d = (s.prisma.nodeTask.create.mock.calls[0] as unknown as [{ data: { kind: string; payload: Record<string, string> } }])[0].data;
     expect(d.kind).toBe('HTACCESS');
-    expect(d.payload).toEqual({ mode: 'write', indexes: 'off', hsts: '1', e403: '', e404: '/404.html', e500: '', daUser: 'klient1', domain: 'a.pl' });
+    expect(d.payload).toEqual({ mode: 'write', indexes: 'off', hsts: '1', e403: '', e404: '/404.html', e500: '', php: 'zachowaj', daUser: 'klient1', domain: 'a.pl' });
     expect(s.audit.record).toHaveBeenCalled();
   });
 
@@ -76,5 +77,26 @@ describe('B-03 wersja PHP podkatalogu', () => {
     ];
     expect(await stanowisko(zadania).svc.status('s1', 'u1', 'a.pl', 'sklep')).toMatchObject({ katalog: 'sklep', php: '8.3' });
     expect(await stanowisko(zadania).svc.status('s1', 'u1', 'a.pl')).toMatchObject({ katalog: '', php: '' });
+  });
+});
+
+describe('B-02 wersja PHP domeny (alt-php w .htaccess, nie slot DA)', () => {
+  it('zapis: sama wersja, reszta bloku zachowana; pusta = wersja konta; spoza listy → 400', async () => {
+    const s = stanowisko();
+    await s.svc.phpDomeny('s1', 'u1', { domain: 'a.pl', version: '8.2' });
+    const d = (s.prisma.nodeTask.create.mock.calls[0] as unknown as [{ data: { payload: Record<string, string> } }])[0].data;
+    expect(d.payload).toMatchObject({ mode: 'write', php: '82', indexes: 'zachowaj' });
+    expect(d.payload.dir).toBeUndefined();
+    await s.svc.phpDomeny('s1', 'u1', { domain: 'a.pl', version: '' });
+    expect((s.prisma.nodeTask.create.mock.calls[1] as unknown as [{ data: { payload: Record<string, string> } }])[0].data.payload.php).toBe('');
+    await expect(s.svc.phpDomeny('s1', 'u1', { domain: 'a.pl', version: '7.4' })).rejects.toThrow(BadRequestException);
+  });
+
+  it('stan: wersja z bloku domeny, brak handlera = wersja konta (null)', async () => {
+    const d = new Date();
+    const wynik = (o: unknown) => `VERRIS_HTACCESS=${Buffer.from(JSON.stringify(o)).toString('base64')}\n`;
+    const z = (php: string) => [{ status: 'COMPLETED', payload: { domain: 'a.pl', mode: 'write' }, outputLog: wynik({ php }), createdAt: d }];
+    expect(await stanowisko(z('82')).svc.phpDomenyStatus('s1', 'u1', 'a.pl')).toMatchObject({ versions: ['8.3', '8.2'], currentVersion: '8.2' });
+    expect(await stanowisko(z('')).svc.phpDomenyStatus('s1', 'u1', 'a.pl')).toMatchObject({ currentVersion: null });
   });
 });

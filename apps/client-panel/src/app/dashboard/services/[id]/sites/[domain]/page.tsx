@@ -283,8 +283,8 @@ export default function SitePage() {
               </Kpi>
               <Kpi
                 label="Wersja PHP"
-                value={ok(php)?.currentVersion ?? (php === undefined ? '…' : '—')}
-                foot={<span>{ok(php)?.slotReleases.length ? `dostępne: ${ok(php)?.slotReleases.join(', ')}` : 'ustawienie per domena'}</span>}
+                value={ok(php)?.currentVersion ?? (php === undefined ? '…' : ok(php) ? 'konto' : '—')}
+                foot={<span>{ok(php) && !ok(php)?.currentVersion ? 'wersja konta' : ok(php)?.versions.length ? `dostępne: ${ok(php)?.versions.join(', ')}` : 'ustawienie per domena'}</span>}
               />
               <Kpi
                 label="Poczta w domenie"
@@ -558,12 +558,19 @@ function PhpSection({
       start(async () => {
         const r = await setDomainPhp(serviceId, domain, v);
         if (r.ok) {
-          toast.success(`PHP ${v} ustawione dla ${domain}.`);
+          toast.success(v ? `Zlecono PHP ${v} dla ${domain} — zwykle trwa do minuty.` : `Zlecono powrót ${domain} do wersji konta.`);
           onChanged();
         } else toast.error(r.error);
       }),
     [serviceId, domain, onChanged],
   );
+  // Zmiana idzie zadaniem na serwerze — odświeżamy, aż się skończy.
+  const wToku = php?.wToku ?? false;
+  useEffect(() => {
+    if (!wToku) return;
+    const t = setTimeout(onChanged, 5000);
+    return () => clearTimeout(t);
+  }, [wToku, php, onChanged]);
   return (
     <section>
       <SectionHead
@@ -581,24 +588,25 @@ function PhpSection({
         <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-muted-foreground">Nie udało się odczytać wersji PHP.</p>
       ) : (
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[10px] border border-line bg-line sm:grid-cols-4">
-          {php.slotReleases.map((v) => {
-            const on = v === php.currentVersion;
+          {['', ...php.versions].map((v) => {
+            const on = v === (php.currentVersion ?? '');
             return (
               <button
                 key={v}
                 type="button"
-                disabled={pending || on}
+                disabled={pending || on || php.wToku}
                 aria-pressed={on}
                 onClick={() => change(v)}
                 className={`flex flex-col gap-0.5 border-0 px-3.5 py-3 text-left ${on ? 'bg-data-soft' : 'bg-card hover:bg-raised'} disabled:cursor-default`}
               >
-                <b className="font-mono text-sm font-semibold text-foreground">PHP {v}</b>
-                <small className={`text-[12.5px] ${on ? 'text-data-hi' : 'text-muted-foreground'}`}>{on ? 'używana teraz' : 'przełącz'}</small>
+                <b className="font-mono text-sm font-semibold text-foreground">{v ? `PHP ${v}` : 'Jak konto'}</b>
+                <small className={`text-[12.5px] ${on ? 'text-data-hi' : 'text-muted-foreground'}`}>{on ? 'używana teraz' : php.wToku ? 'zmiana w toku…' : 'przełącz'}</small>
               </button>
             );
           })}
         </div>
       )}
+      {php?.blad ? <p className="mt-2 text-[12.5px] text-crit">Ostatnia zmiana nie powiodła się: {php.blad}</p> : null}
       <h3 className="mb-2 mt-6 text-[15px] font-bold text-foreground">Ustawienia PHP</h3>
       <PhpIniForm serviceId={serviceId} domain={domain} />
     </section>

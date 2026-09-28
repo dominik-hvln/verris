@@ -60,6 +60,17 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
     expect(t).not.toContain('task.queue');
   });
 
+  it.each(['node-htaccess.sh', 'node-php-info.sh', 'node-site-stats.sh'])(
+    '%s: strona klienta przez IP konta z user.conf (vhosty DA są przypięte do IP), nie przez 127.0.0.1',
+    (plik) => {
+      const t = czytaj(plik);
+      expect(t).toContain('/usr/local/directadmin/data/users/');
+      expect(t).toMatch(/IP_KONTA/);
+      expect(t).not.toMatch(/(HEALTH_BASE|HTTP_BASE)="\$\{[A-Z_]+:-http:\/\/127\.0\.0\.1\}"/);
+      expect(t).not.toMatch(/--resolve "[^"]*:127\.0\.0\.1"/);
+    },
+  );
+
   it('profil: alt-php z repo php-els (CL10) i sprawdzenie każdej wersji w selektorze, bez OK na ślepo', () => {
     const t = czytaj('node-hosting-profile.sh');
     expect(t).toContain('els-php-release');

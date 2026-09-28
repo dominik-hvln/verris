@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { HostingResourceActions } from '../common/audit/audit.actions.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
 
 /**
  * B-17 / B-18 / G-07 — ustawienia strony w .htaccess (`ops/scripts/node-htaccess.sh`, zadanie
@@ -41,7 +42,29 @@ export class HtaccessService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly directAdmin: DirectAdminService,
+    private readonly settings: PlatformSettingsService,
   ) {}
+
+  /**
+   * B-02 — wersja PHP domeny: handler CloudLinux alt-php w bloku Verris public_html/.htaccess (LiteSpeed,
+   * dokumentacja „DirectAdmin → PHP”). Wcześniej slot selektora DA (php1_select), ale węzły mają tylko
+   * php1_release, a slot inny niż 1 wyłącza selektor CloudLinux konta (dokumentacja DA „Multiple PHP
+   * versions”) — test D3 na t1 (28.09). Pusta wersja = domena wraca do wersji konta.
+   */
+  async phpDomenyStatus(subscriptionId: string, userId: string, domain: string) {
+    const [stan, wersje] = await Promise.all([this.status(subscriptionId, userId, domain), this.settings.getAvailablePhpVersions()]);
+    return { domain: stan.domena, versions: wersje, currentVersion: stan.php || null, wToku: stan.wToku, blad: stan.blad };
+  }
+
+  async phpDomeny(subscriptionId: string, userId: string, input: { domain: string; version: string }) {
+    const v = input.version.trim();
+    if (v && !(await this.settings.getAvailablePhpVersions()).includes(v)) throw new BadRequestException('Nieobsługiwana wersja PHP.');
+    // „zachowaj” — listowanie, HSTS i strony błędów zostają ze starego bloku (node-htaccess.sh).
+    await this.zlec(subscriptionId, userId, input.domain, {
+      mode: 'write', php: v.replace('.', ''), indexes: 'zachowaj', hsts: '0', e403: '', e404: '', e500: '',
+    });
+    return this.phpDomenyStatus(subscriptionId, userId, input.domain);
+  }
 
   async status(subscriptionId: string, userId: string, domain: string, katalog = '') {
     const { account } = await this.wymagajKonta(subscriptionId, userId);
@@ -78,6 +101,7 @@ export class HtaccessService {
       e403: sprawdzSciezke(input.e403),
       e404: sprawdzSciezke(input.e404),
       e500: sprawdzSciezke(input.e500),
+      php: 'zachowaj',
     });
   }
 

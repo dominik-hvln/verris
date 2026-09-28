@@ -26,12 +26,13 @@ export async function fetchPhpStatus(serviceId: string): Promise<PhpStatus | nul
   }
 }
 
-/** FALA-2b — wersja PHP per domena (selektor DA). */
+/** B-02 — wersja PHP domeny (alt-php w .htaccess, zadanie na serwerze); null = wersja konta. */
 export interface DomainPhpStatus {
   domain: string;
-  slotReleases: string[];
-  currentSlot: number | null;
+  versions: string[];
   currentVersion: string | null;
+  wToku: boolean;
+  blad: string | null;
 }
 
 export async function fetchDomainPhp(

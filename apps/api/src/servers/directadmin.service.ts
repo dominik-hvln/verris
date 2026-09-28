@@ -1,5 +1,5 @@
 import { odczytajUserIni, sprawdzUstawieniaPhp, type UstawieniaPhp } from './php-ini.js';
-import { normalizujKatalogDocroot, odczytajDocroot, zapiszDocroot } from './docroot.js';
+import { normalizujKatalogDocroot, odczytajDocroot, trescCustomHttpd, zapiszDocroot } from './docroot.js';
 import {
   BadRequestException,
   Injectable,
@@ -2208,75 +2208,6 @@ export class DirectAdminService {
     return wanted;
   }
 
-  /**
-   * Stan wyboru PHP per domena: mapa slotów (platform-setting `php.slotReleases`,
-   * odpowiada phpN_release z options.conf CustomBuild) + best-effort odczyt
-   * bieżącego slotu domeny z DA. Gdy odczyt się nie uda, `currentSlot=null`
-   * („wg ustawienia konta") — sam zapis działa niezależnie.
-   */
-  async getHostingDomainPhp(subscriptionId: string, userId: string, domain: string) {
-    const dom = await this.assertDomainOwnedBySubscription(subscriptionId, userId, domain);
-    const slotReleases = await this.platformSettings.getPhpSlotReleases();
-    let currentSlot: number | null = null;
-    try {
-      const raw = await this.daGetForSubscription(
-        subscriptionId,
-        userId,
-        '/CMD_API_ADDITIONAL_DOMAINS',
-        { action: 'view', domain: dom },
-      );
-      const sel = raw.get('php1_select');
-      if (sel != null && /^\d+$/.test(sel)) currentSlot = Number(sel);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`getHostingDomainPhp view sub=${subscriptionId} ${dom}: ${msg}`);
-    }
-    return {
-      domain: dom,
-      slotReleases,
-      currentSlot,
-      currentVersion:
-        currentSlot != null && currentSlot >= 1 && currentSlot <= slotReleases.length
-          ? slotReleases[currentSlot - 1]
-          : null,
-    };
-  }
-
-  /**
-   * Ustawia wersję PHP dla pojedynczej domeny przez selektor DA
-   * (`CMD_API_DOMAIN action=php_selector`, `php1_select=<slot>`); slot wynika
-   * z mapy `php.slotReleases`. Działa obok per-kontowego CloudLinux Selectora
-   * (PHP_APPLY) — wybór per domena ma pierwszeństwo dla vhostu.
-   */
-  async setHostingDomainPhp(
-    subscriptionId: string,
-    userId: string,
-    input: { domain: string; version: string },
-  ): Promise<{ ok: true; domain: string; version: string; slot: number }> {
-    const dom = await this.assertDomainOwnedBySubscription(subscriptionId, userId, input.domain);
-    const slotReleases = await this.platformSettings.getPhpSlotReleases();
-    const version = String(input.version || '').trim();
-    const slot = slotReleases.indexOf(version) + 1;
-    if (slot === 0) {
-      throw new BadRequestException(
-        `Nieobsługiwana wersja PHP dla domeny. Dostępne: ${slotReleases.join(', ')}.`,
-      );
-    }
-    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DOMAIN', {
-      action: 'php_selector',
-      save: 'yes',
-      domain: dom,
-      php1_select: String(slot),
-    });
-    await this.audit.record({
-      action: HostingResourceActions.HOSTING_DOMAIN_PHP_SET,
-      userId,
-      actorUserId: userId,
-      details: { subscriptionId, domain: dom, version, slot },
-    });
-    return { ok: true as const, domain: dom, version, slot };
-  }
-
   /* ===================== A-06: katalog główny strony (DocumentRoot) ===================== */
 
   /**
@@ -2414,15 +2345,12 @@ export class DirectAdminService {
     const surowy = (admin as unknown as { client?: SurowyKlientDa }).client;
     if (!surowy) throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny. Spróbuj ponownie za chwilę.');
     const res = await surowy.get('/CMD_API_CUSTOM_HTTPD', { params: { domain, api: 'yes' }, timeout: 15_000 });
-    const data: unknown = res?.data;
-    const pola = typeof data === 'string' ? new URLSearchParams(data) : this.parseKvPayload(data);
-    if (pola.get('error') && pola.get('error') !== '0') {
-      throw new BadRequestException(pola.get('text') || 'DirectAdmin error');
-    }
-    const config = pola.get('config');
-    if (config === null) {
+    const wynik = trescCustomHttpd(res?.data);
+    if ('blad' in wynik) {
+      this.logger.warn(`CUSTOM_HTTPD ${domain} server=${serverId}: ${wynik.blad}`);
       throw new BadRequestException('Nie udało się odczytać konfiguracji domeny na serwerze — spróbuj ponownie albo napisz do pomocy.');
     }
+    const config = wynik.config;
     return config;
   }
 

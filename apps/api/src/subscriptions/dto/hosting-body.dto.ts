@@ -60,8 +60,10 @@ export class RozszerzeniaPhpDto {
   @IsOptional() @IsString() @Matches(/^\d+\.\d+$/) version?: string;
 }
 
-export class WersjaPhpDomenyDto extends WersjaPhpDto {
+/** B-02 — wersja PHP domeny: „8.3” albo pusta (domena wraca do wersji konta). */
+export class WersjaPhpDomenyDto {
   @Linia(253) domain!: string;
+  @IsString() @Matches(/^([5-8]\.\d)?$/, { message: 'Nieprawidłowa wersja PHP.' }) version!: string;
 }
 
 /** A-06 — katalog główny domeny: podkatalog public_html (pusty = public_html); znaki sprawdza serwis. */

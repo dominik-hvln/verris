@@ -18,7 +18,6 @@ export const PLATFORM_SETTING_KEYS = {
    * (flota jest budowana jednym skryptem onboardingu, więc mapa jest wspólna).
    * Przykład "8.3,8.2,8.1,8.0" → slot 1 = 8.3, slot 2 = 8.2 itd.
    */
-  PHP_SLOT_RELEASES: 'php.slotReleases',
 
   // UX-3 — oferta okresu próbnego (zarządzalna z panelu admina).
   TRIAL_FREE_ENABLED: 'trial.freeEnabled',
@@ -106,7 +105,6 @@ export const PLATFORM_SETTING_DEFAULTS: Record<PlatformSettingKey, string> = {
   [PLATFORM_SETTING_KEYS.CLIENT_IDLE_MINUTES]: '60',
   [PLATFORM_SETTING_KEYS.WEBMAIL_URL]: '',
   [PLATFORM_SETTING_KEYS.PHP_AVAILABLE_VERSIONS]: '8.3,8.2,8.1,8.0,7.4',
-  [PLATFORM_SETTING_KEYS.PHP_SLOT_RELEASES]: '8.3,8.2,8.1,8.0',
   [PLATFORM_SETTING_KEYS.TRIAL_FREE_ENABLED]: '1',
   [PLATFORM_SETTING_KEYS.TRIAL_CARD_ENABLED]: '1',
   [PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_DISCOUNT_PCT]: '15',

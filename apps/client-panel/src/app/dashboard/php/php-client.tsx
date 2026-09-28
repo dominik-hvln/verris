@@ -100,7 +100,7 @@ export function PhpClient({ serviceId, status }: { serviceId: string; status: Ph
   );
 }
 
-/** FALA-2b — wybór wersji PHP dla pojedynczej domeny (selektor DirectAdmin). */
+/** B-02 — wybór wersji PHP dla pojedynczej domeny (alt-php w .htaccess domeny, zadanie na serwerze). */
 /**
  * FALA-2b — sygnalizacja pierwszeństwa.
  *
@@ -190,9 +190,16 @@ function DomainPhpSection({ serviceId }: { serviceId: string }) {
     if (!domain) return;
     void fetchDomainPhp(serviceId, domain).then((res) => {
       setStatus(res);
-      if (res) setVersion(res.currentVersion ?? res.slotReleases[0] ?? '');
+      if (res) setVersion(res.currentVersion ?? '');
     });
   }, [serviceId, domain]);
+
+  // Zmiana idzie zadaniem na serwerze — odświeżamy stan, aż się skończy.
+  useEffect(() => {
+    if (!status?.wToku) return;
+    const t = setTimeout(() => void fetchDomainPhp(serviceId, domain).then(setStatus), 5000);
+    return () => clearTimeout(t);
+  }, [serviceId, domain, status]);
 
   const apply = () =>
     startTransition(async () => {
@@ -201,7 +208,7 @@ function DomainPhpSection({ serviceId }: { serviceId: string }) {
         toast.error('Nie udało się zmienić PHP domeny', { description: res.error });
         return;
       }
-      toast.success(`PHP dla ${domain} → ${version}`);
+      toast.success(version ? `Zlecono PHP ${version} dla ${domain} — zwykle trwa do minuty.` : `Zlecono powrót ${domain} do wersji konta.`);
       const fresh = await fetchDomainPhp(serviceId, domain);
       setStatus(fresh);
     });
@@ -215,7 +222,7 @@ function DomainPhpSection({ serviceId }: { serviceId: string }) {
       </p>
       <p className="text-[11px] text-neutral-500">
         Nadpisuje wersję PHP dla wybranej domeny (pozostałe strony konta zostają przy ustawieniu
-        powyżej). Zmiana działa od razu, bez zadania na serwerze.
+        powyżej). „Jak konto” usuwa wyjątek. Zmiana wykonuje się na serwerze — zwykle do minuty.
       </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end max-w-xl">
         <label htmlFor={domainId} className="flex-1 space-y-1">
@@ -234,25 +241,27 @@ function DomainPhpSection({ serviceId }: { serviceId: string }) {
         </label>
         <label className="flex-1 space-y-1">
           <span className="text-xs text-neutral-400">
-            Wersja{status?.currentVersion ? ` (obecnie ${status.currentVersion})` : ''}
+            Wersja{status ? ` (obecnie ${status.currentVersion ?? 'jak konto'})` : ''}
           </span>
           <Select
             value={version}
             onChange={setVersion}
             aria-label="Wersja PHP domeny"
-            options={(status?.slotReleases ?? []).map((v) => ({ value: v, label: `PHP ${v}` }))}
+            options={[{ value: '', label: 'Jak konto' }, ...(status?.versions ?? []).map((v) => ({ value: v, label: `PHP ${v}` }))]}
           />
         </label>
         <button
           type="button"
           onClick={apply}
-          disabled={pending || !status || !version || version === status.currentVersion}
+          disabled={pending || !status || status.wToku || version === (status.currentVersion ?? '')}
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-black hover:bg-emerald-600 disabled:opacity-50"
         >
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
           Zastosuj
         </button>
       </div>
+      {status?.wToku ? <p className="text-[11px] text-neutral-400">Zmiana w toku…</p> : null}
+      {status?.blad ? <p className="text-[11px] text-rose-300">Ostatnia zmiana nie powiodła się: {status.blad}</p> : null}
     </div>
   );
 }

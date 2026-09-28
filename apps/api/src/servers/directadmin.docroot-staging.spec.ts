@@ -1,5 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { DirectAdminService } from './directadmin.service.js';
+import { trescCustomHttpd } from './docroot.js';
 
 /**
  * X-09 — zmiana document root (A-06), SSO administratora do węzła, staging i deploy w DirectAdminService.
@@ -64,6 +65,14 @@ describe('document root (A-06, CMD_API_CUSTOM_HTTPD)', () => {
     await expect(s.svc.setHostingDocroot('s1', 'u1', input)).rejects.toBeInstanceOf(BadRequestException);
     expect(s.adminPost).not.toHaveBeenCalled();
     expect(s.audit.record).not.toHaveBeenCalled();
+  });
+
+  it('odczyt: DA zwraca surową treść .cust_httpd (dokumentacja 1.26.0), pusta dla świeżej domeny', () => {
+    expect(trescCustomHttpd('')).toEqual({ config: '' });
+    expect(trescCustomHttpd('|*if !SUB|\n|?DOCROOT=/x|\n|*endif|\n')).toEqual({ config: '|*if !SUB|\n|?DOCROOT=/x|\n|*endif|\n' });
+    expect(trescCustomHttpd('config=%23+a')).toEqual({ config: '# a' });
+    expect(trescCustomHttpd('error=1&text=Brak+domeny')).toEqual({ blad: 'Brak domeny' });
+    expect(trescCustomHttpd('<!DOCTYPE html><html>')).toHaveProperty('blad');
   });
 
   it('odczyt: podkatalog z bloku Verris', async () => {

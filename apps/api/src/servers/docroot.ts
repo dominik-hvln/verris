@@ -35,3 +35,28 @@ export function zapiszDocroot(config: string, sciezka: string | null): string {
   const blok = `${START}\n|*if !SUB|\n|?DOCROOT=${sciezka}|\n|*endif|\n${KONIEC}\n`;
   return reszta ? `${reszta}\n${blok}` : blok;
 }
+
+/**
+ * Odpowiedź GET `CMD_API_CUSTOM_HTTPD?domain=` → treść Custom HTTPD domeny. Wg dokumentacji DirectAdmin
+ * (changelog 1.26.0) GET „dumps the contents” pliku `domain.cust_httpd` — surowy tekst, pusty dla świeżej
+ * domeny. Wcześniej czytaliśmy pole `config=` z odpowiedzi urlencoded, więc na t1 (28.09) każda świeża
+ * domena kończyła się błędem odczytu. Urlencoded `config=` i JSON `{config}` przyjmujemy dalej.
+ * `blad` = odpowiedź, która nie jest konfiguracją (błąd DA, strona HTML).
+ */
+export function trescCustomHttpd(data: unknown): { config: string } | { blad: string } {
+  if (data && typeof data === 'object') {
+    const o = data as { config?: unknown; error?: unknown; text?: unknown };
+    if (o.error && String(o.error) !== '0') return { blad: String(o.text ?? 'DirectAdmin error') };
+    return typeof o.config === 'string' ? { config: o.config } : { blad: 'brak pola config' };
+  }
+  const s = typeof data === 'string' ? data : '';
+  if (/^\s*<(!doctype|html)/i.test(s)) return { blad: 'DirectAdmin zwrócił stronę HTML zamiast konfiguracji' };
+  if (/^(error|config)=/.test(s)) {
+    const p = new URLSearchParams(s);
+    if (p.get('error') && p.get('error') !== '0') return { blad: p.get('text') || 'DirectAdmin error' };
+    // „error=0” bez pola config nie mówi, co jest w pliku — nie zgadujemy, żeby zapis nie skasował wpisów administratora.
+    const c = p.get('config');
+    return c === null ? { blad: 'odpowiedź bez pola config' } : { config: c };
+  }
+  return { config: s };
+}
