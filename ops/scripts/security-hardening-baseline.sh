@@ -104,6 +104,8 @@ harden_ssh() {
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 ChallengeResponseAuthentication no
+GSSAPIAuthentication no
+KerberosAuthentication no
 PubkeyAuthentication yes
 PermitRootLogin prohibit-password
 X11Forwarding no

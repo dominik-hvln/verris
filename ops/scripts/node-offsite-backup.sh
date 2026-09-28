@@ -124,9 +124,11 @@ run() {
   fi
 
   # Retention: prune old version snapshots beyond RETENTION_DAYS.
+  # Pierwszy przebieg: katalogu -versions/ jeszcze nie ma, `rclone lsf` kończy się kodem 3, a pipefail + set -e
+  # zabijały skrypt PRZED raportem do panelu (węzeł t1, 28.09) — stąd `|| true` przy lsf.
   local cutoff; cutoff=$(date -u -d "-${RETENTION_DAYS} days" +%Y%m%d 2>/dev/null || echo "")
   if [ -n "$cutoff" ]; then
-    rclone lsf "${RCLONE_REMOTE}${BACKUP_PREFIX}-versions/" 2>/dev/null | sed 's#/##' | while read -r snap; do
+    { rclone lsf "${RCLONE_REMOTE}${BACKUP_PREFIX}-versions/" 2>/dev/null || true; } | sed 's#/##' | while read -r snap; do
       [[ "$snap" =~ ^[0-9]{8}$ ]] || continue
       if [ "$snap" -lt "$cutoff" ]; then
         rclone purge "${RCLONE_REMOTE}${BACKUP_PREFIX}-versions/${snap}" 2>/dev/null || true

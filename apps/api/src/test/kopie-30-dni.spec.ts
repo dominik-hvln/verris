@@ -19,4 +19,11 @@ describe('kopie poza serwerem — 30 dni', () => {
     const cennik = readFileSync(join(KORZEN, 'apps', 'www', 'src', 'app', '(frontend)', 'components', 'Pricing.tsx'), 'utf8');
     expect(cennik).toContain(`ostatnich ${KOPIE_OFFSITE_DNI} dni`);
   });
+
+  it('pierwszy przebieg bez katalogu -versions/ nie zabija skryptu przed raportem (set -e + pipefail)', () => {
+    const skrypt = readFileSync(join(KORZEN, 'ops', 'scripts', 'node-offsite-backup.sh'), 'utf8');
+    const lsf = skrypt.split('\n').filter((l) => /rclone lsf/.test(l) && !/^\s*#/.test(l));
+    expect(lsf.length).toBeGreaterThan(0);
+    for (const l of lsf) expect(l).toMatch(/\|\| true/);
+  });
 });
