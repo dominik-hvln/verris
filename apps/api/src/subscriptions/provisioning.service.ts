@@ -120,7 +120,11 @@ export class ProvisioningService {
 
     const domain = normaliseDomain(options.domain);
 
-    const existingDomainAccount = await this.prisma.account.findUnique({ where: { domain } });
+    // Usunięte konto nie blokuje domeny (indeks unikalny jest częściowy: status <> DELETED).
+    const existingDomainAccount = await this.prisma.account.findFirst({
+      where: { domain, status: { not: AccountStatus.DELETED } },
+      select: { id: true },
+    });
     if (existingDomainAccount) {
       throw new ConflictException(`Domain "${domain}" is already taken on the platform`);
     }

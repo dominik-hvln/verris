@@ -1214,7 +1214,10 @@ model Account {
   // DirectAdmin
   daUsername      String        @unique
   daPasswordEnc   String?       // initial password / managed password (encrypted)
-  domain          String        @unique // primary domain
+  /// Domena główna. Unikalna tylko wśród kont NIEUSUNIĘTYCH — indeks częściowy w migracji
+  /// 20260928180000_domena_konta_po_usunieciu (Prisma nie wyraża WHERE w @unique). Wcześniej usunięte
+  /// konto blokowało tę domenę na zawsze: ponowne zamówienie kończyło się „already taken” (t1, 28.09).
+  domain          String
 
   status          AccountStatus @default(PROVISIONING)
 
@@ -1275,6 +1278,8 @@ model Account {
 
   @@index([serverId])
   @@index([userId])
+
+  @@index([domain])
 }
 
 /// C-27 — webhook wdrożenia (GitHub/GitLab/Bitbucket): tajny adres → git pull w katalogu strony.

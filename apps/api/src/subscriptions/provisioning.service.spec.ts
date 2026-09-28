@@ -28,7 +28,8 @@ function stanowisko(o: { kontoZDomena?: boolean; limity?: Error; zapis?: Error; 
   const prisma = {
     subscription: { findUnique: vi.fn(async () => subscription), update: vi.fn(async () => subscription) },
     account: {
-      findUnique: vi.fn(async (q: { where: { domain?: string } }) => (q.where.domain && o.kontoZDomena ? { id: 'inne' } : null)),
+      findUnique: vi.fn(async () => null),
+      findFirst: vi.fn(async (q: { where: { domain?: string } }) => (q.where.domain && o.kontoZDomena ? { id: 'inne' } : null)),
     },
     siteMonitor: { upsert: vi.fn(async () => undefined) },
     $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => {
