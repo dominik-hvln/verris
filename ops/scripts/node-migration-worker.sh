@@ -1085,9 +1085,95 @@ UNIT
   log "installed verris-migration-worker.timer (every 2 min)"
 }
 
+# --- tryb ręczny (obsługa) ---------------------------------------------------------------------
+# verris-migration-worker reczna pliki|baza|poczta [opcje] — te same ścieżki co automat (verris-mig,
+# walidacja wejścia, kopia jako klient, import na użytkowniku bazy), bez control-plane: log na ekran.
+# Hasła wpisuje się na zapytanie (read -s): nie trafiają do argv, historii powłoki ani do plików.
+reczna_uzycie() {
+  cat >&2 <<'U'
+użycie: verris-migration-worker reczna <rodzaj> --konto <login DA> --domena <domena> [opcje]
+  pliki   --host H [--protokol sftp|ftps|ftp] [--port P] --login L [--sciezka /public_html]
+  baza    --baza NAZWA [--db-host H] [--db-port 3306] [--db-login L]   (puste hasło = z wp-config.php)
+          [--host/--protokol/--port/--login źródła plików = zapasowe drogi: SSH i eksport PHP]
+          [--cel-baza <baza DA> --cel-login <użytkownik DA>]          (bez tego: <konto>_<baza>)
+  poczta  --email adres@domena --host imap.stary.pl [--port 993] [--login L]
+Hasła: zapytanie na terminalu. Log: ścieżka na końcu (root, 0600).
+U
+  return 64
+}
+reczna_haslo() { local h; read -r -s -p "$1: " h </dev/tty; echo >&2; printf '%s' "$h"; }
+
+reczna() {
+  local rodzaj="${1:-}"; shift || true
+  local konto="" domena="" proto="sftp" host="" port="" login="" sciezka="/" dbhost="" dbport=3306 dblogin="" baza="" email="" celbaza="" cellogin=""
+  while [ $# -gt 0 ]; do
+    [ $# -ge 2 ] || { reczna_uzycie; return 64; }
+    case "$1" in
+      --konto) konto="$2" ;; --domena) domena="$2" ;; --protokol) proto="$2" ;; --host) host="$2" ;; --port) port="$2" ;;
+      --login) login="$2" ;; --sciezka) sciezka="$2" ;; --db-host) dbhost="$2" ;; --db-port) dbport="$2" ;;
+      --db-login) dblogin="$2" ;; --baza) baza="$2" ;; --email) email="$2" ;; --cel-baza) celbaza="$2" ;; --cel-login) cellogin="$2" ;;
+      *) echo "nieznana opcja: $1" >&2; reczna_uzycie; return 64 ;;
+    esac
+    shift 2
+  done
+  [ -n "$konto" ] && [ -n "$domena" ] || { reczna_uzycie; return 64; }
+  vg_require account "$konto" --konto && vg_require host "$domena" --domena || return 64
+  id -u "$konto" >/dev/null 2>&1 || { echo "konto ${konto} nie istnieje na tym węźle" >&2; return 64; }
+  # Literówka w domenie nie może skierować kopii (rsync --delete) do cudzego katalogu.
+  local lista="/usr/local/directadmin/data/users/${konto}/domains.list"
+  if [ -r "$lista" ] && ! grep -qxF "$domena" "$lista"; then
+    echo "domena ${domena} nie należy do konta ${konto} (${lista}) — odmowa" >&2; return 64
+  fi
+  [ -n "$port" ] || { [ "$proto" = sftp ] && port=22 || port=21; }
+
+  local log; log=$(mktemp /tmp/verris-mig-reczna-XXXXXX.log)
+  local H="" DH="" CH="" job rc
+  set +e
+  case "$rodzaj" in
+    pliki)
+      [ -n "$host" ] && [ -n "$login" ] || { reczna_uzycie; return 64; }
+      H=$(reczna_haslo "Hasło ${proto} ${login}@${host}")
+      job=$(H="$H" jq -n --arg k "$konto" --arg d "$domena" --arg pr "$proto" --arg h "$host" --argjson p "$port" --arg l "$login" --arg s "$sciezka" \
+        '{id:"reczna", target:{accountUsername:$k, domain:$d}, source:{protocol:$pr, host:$h, port:$p, username:$l, password:env.H, remotePath:$s}}')
+      echo "== pliki: ${proto}://${login}@${host}:${port}${sciezka} -> /home/${konto}/domains/${domena}/public_html (UWAGA: --delete)" >&2
+      run_files "$job" "$log"; rc=$? ;;
+    baza)
+      [ -n "$baza" ] || { reczna_uzycie; return 64; }
+      [ -n "$dbhost" ] || dbhost="$host"
+      [ -n "$dbhost" ] || { echo "podaj --db-host albo --host" >&2; return 64; }
+      [ -n "$dblogin" ] && DH=$(reczna_haslo "Hasło bazy ${dblogin}@${dbhost}/${baza} (puste = z wp-config.php)")
+      [ -n "$host" ] && [ -n "$login" ] && H=$(reczna_haslo "Hasło ${proto} ${login}@${host} (zapasowe drogi: SSH, eksport PHP)")
+      [ -n "$celbaza" ] && CH=$(reczna_haslo "Hasło użytkownika DA ${cellogin} do bazy ${celbaza}")
+      job=$(H="$H" DH="$DH" CH="$CH" jq -n --arg k "$konto" --arg d "$domena" --arg dh "$dbhost" --argjson dp "$dbport" --arg dl "$dblogin" --arg b "$baza" \
+        --arg pr "$proto" --arg h "$host" --argjson p "$port" --arg l "$login" --arg s "$sciezka" --arg cb "$celbaza" --arg cl "$cellogin" '
+        {id:"reczna", target:{accountUsername:$k, domain:$d},
+         source:({host:$dh, port:$dp, database:$b} + (if $dl != "" and env.DH != "" then {username:$dl, password:env.DH} else {} end))}
+        + (if $h != "" and env.H != "" then {
+             sshFallback:{host:$h, port:(if $pr == "sftp" then $p else 22 end), username:$l, password:env.H},
+             ftpFallback:{protocol:$pr, host:$h, port:$p, username:$l, password:env.H, remotePath:$s},
+             sourceDomain:$d} else {} end)
+        + (if $cb != "" then {targetDb:{database:$cb, username:$cl, password:env.CH}} else {} end)')
+      echo "== baza: ${baza}@${dbhost} -> ${celbaza:-${konto}_${baza}} (istniejące tabele o tych nazwach zostaną nadpisane)" >&2
+      run_mysql "$job" "$log"; rc=$? ;;
+    poczta)
+      [ -n "$email" ] && [ -n "$host" ] || { reczna_uzycie; return 64; }
+      [ "$port" = 22 ] || [ "$port" = 21 ] && port=993
+      [[ "${email##*@}" == "$domena" ]] || { echo "skrzynka ${email} nie jest w domenie ${domena} tego konta — odmowa" >&2; return 64; }
+      H=$(reczna_haslo "Hasło skrzynki ${login:-$email} na ${host}")
+      job=$(H="$H" jq -n --arg k "$konto" --arg d "$domena" --arg h "$host" --argjson p "$port" --arg l "${login:-$email}" --arg e "$email" \
+        '{id:"reczna", target:{accountUsername:$k, domain:$d}, source:{host:$h, port:$p, username:$l, password:env.H, email:$e}}')
+      run_imap "$job" "$log"; rc=$? ;;
+    *) reczna_uzycie; return 64 ;;
+  esac
+  cat "$log"
+  echo "== wynik: rc=${rc} (0 = OK) · log: ${log}" >&2
+  return "$rc"
+}
+
 main() {
   case "${1:-once}" in
     --install|install-timer) install_timer ;;
+    reczna) shift; ensure_deps; reczna "$@" ;;
     drain)
       require_conf
       ensure_deps

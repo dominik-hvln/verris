@@ -83,6 +83,14 @@ describe('worker migracji — bez roota przy obcych serwerach', () => {
     expect(w).toMatch(/jako_mig cat "\$sek\/zrzut\.sql" \| oczysc_zrzut \| "\$\{importuj\[@\]\}"/);
   });
 
+  it('tryb ręczny obsługi: hasła z zapytania, domena musi należeć do konta, te same ścieżki co automat', () => {
+    expect(w).toMatch(/reczna\) shift; ensure_deps; reczna "\$@" ;;/);
+    expect(w).toMatch(/read -r -s -p "\$1: " h <\/dev\/tty/);
+    expect(w).toMatch(/grep -qxF "\$domena" "\$lista"/);
+    expect(w).toMatch(/run_files "\$job" "\$log"; rc=\$\?/);
+    expect(czytaj('docs/ops/MIGRATOR_V2.md')).toContain('## Migracja ręczna — instrukcja dla obsługi');
+  });
+
   it('drain nie pobiera skryptu imapsync co 2 minuty', () => {
     expect(w).toMatch(/\[ "\$tryb" = pelne \] \|\| return 0/);
   });
