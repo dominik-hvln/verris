@@ -1,5 +1,7 @@
 'use client';
 
+import { useOdswiezPoWdrozeniu } from '@verris/ui';
+
 import Link from 'next/link';
 
 /**
@@ -7,6 +9,7 @@ import Link from 'next/link';
  * ponownie albo napisać do pomocy z kodem błędu (digest łączy zgłoszenie z logiem serwera).
  */
 export default function BladStrony({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  useOdswiezPoWdrozeniu(error);
   return (
     <div role="alert" className="mx-auto max-w-xl space-y-4 rounded-2xl border border-line bg-card p-6">
       <h1 className="text-xl font-semibold text-foreground">Nie udało się wczytać tej strony</h1>

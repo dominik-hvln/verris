@@ -1,10 +1,13 @@
 "use client";
 
+import { useOdswiezPoWdrozeniu } from "@verris/ui";
+
 /**
  * Błąd strony w obrębie panelu: menu zostaje, a zamiast pustego „This page couldn’t load”
  * operator widzi, co się stało, i może spróbować ponownie. Kod (digest) łączy zgłoszenie z logiem serwera.
  */
 export default function BladStrony({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  useOdswiezPoWdrozeniu(error);
   return (
     <div role="alert" className="mx-auto max-w-xl space-y-4 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6">
       <h1 className="text-xl font-semibold text-white">Nie udało się wczytać tej strony</h1>
