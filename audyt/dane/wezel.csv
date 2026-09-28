@@ -40,8 +40,8 @@ J-02,czeka,,
 J-03,czeka,,
 K-03,czeka,,
 L-03,sprawdzone,2026-09-28,CMD_API_CRON_JOBS create/delete
-L-05,czeka,,
-L-06,czeka,,
+L-05,sprawdzone,2026-09-29,alt-php 7.4 i 8.1 w cronie na d3.hvln.pl
+L-06,czeka,,29.09: log wyniku powstaje; treść do sprawdzenia skryptem z echo
 N-10,czeka,,
 NODE-03,czeka,,
 C-26,czeka,,
