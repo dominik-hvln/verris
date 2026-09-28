@@ -86,7 +86,10 @@ describe("SSL — zamówienie Let's Encrypt (CMD_API_SSL)", () => {
   it('wildcard pokrywa apex + *.domena i ma pierwszeństwo przed www', async () => {
     const s = stanowisko();
     await s.svc.requestLetsEncryptCertificate('s1', 'u1', { domain: 'firma.pl', includeWww: true, wildcard: true });
-    expect(s.wyslane()).toMatchObject({ name: 'firma.pl,*.firma.pl', wildcard: 'yes', le_select1: '*.firma.pl' });
+    // DA 1.710: tryb wildcard czyta le_wc_selectN (z le_selectN: „Musi być wybrana co najmniej jedna pozycja”)
+    const pola = s.wyslane();
+    expect(pola).toMatchObject({ name: 'firma.pl,*.firma.pl', wildcard: 'yes', le_wc_select0: '*.firma.pl', le_wc_select1: 'firma.pl' });
+    expect(Object.keys(pola).filter((k) => k.startsWith('le_select'))).toEqual([]);
   });
 
   it.each([

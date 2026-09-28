@@ -1033,13 +1033,16 @@ export class DirectAdminService {
       wildcard: wildcard ? 'yes' : 'no',
       keysize: 'secp384r1',
       encryption: 'sha256',
-      le_select0: domain,
     };
     if (wildcard) {
-      // Pokryj apex + wszystkie subdomeny.
-      form.le_select1 = `*.${domain}`;
-    } else if (input.includeWww) {
-      form.le_select1 = `www.${domain}`;
+      // Pokryj apex + wszystkie subdomeny. Tryb wildcard ma w DA 1.710 osobną listę pozycji
+      // (LETSENCRYPT_WC_OPTIONS → le_wc_selectN); z le_selectN DA w tle odpowiadał „Musi być
+      // wybrana co najmniej jedna pozycja Let's Encrypt” (test D3 na t1, 29.09).
+      form.le_wc_select0 = `*.${domain}`;
+      form.le_wc_select1 = domain;
+    } else {
+      form.le_select0 = domain;
+      if (input.includeWww) form.le_select1 = `www.${domain}`;
     }
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SSL', form, { timeoutMs: 180_000 });
     return { ok: true as const };
