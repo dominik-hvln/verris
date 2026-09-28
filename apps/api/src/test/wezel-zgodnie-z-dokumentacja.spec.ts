@@ -92,6 +92,15 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
     expect(t).toContain('da build roundcube');
   });
 
+  it('profil: DA nie mailuje klientów — konta DA na lokalny alias :blackhole:, stary adres zachowany, kontrola exim -bt', () => {
+    const t = czytaj('node-hosting-profile.sh');
+    expect(t).toContain('verris-da-powiadomienia');
+    expect(t).toContain(':blackhole:');
+    expect(t).toContain("grep -q '^usertype=user$'");
+    expect(t).toContain('verris_email_klienta=');
+    expect(t).toMatch(/exim -bt "\$DA_SINK"/);
+  });
+
   it('profil: antyspam — rspamd wg dokumentacji DA, gdy żaden spamd nie działa; pakiety z catchall=ON', () => {
     const t = czytaj('node-hosting-profile.sh');
     expect(t).toContain('da build set spamd rspamd');

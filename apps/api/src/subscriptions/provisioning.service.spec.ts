@@ -1,6 +1,6 @@
 import { promises as dns } from 'node:dns';
 import { ConflictException } from '@nestjs/common';
-import { ProvisioningService } from './provisioning.service.js';
+import { emailKontaDa, ProvisioningService } from './provisioning.service.js';
 import { BladEtapuProvisioningu } from './provisioning-error.js';
 
 /**
@@ -66,6 +66,14 @@ function stanowisko(o: { kontoZDomena?: boolean; limity?: Error; zapis?: Error; 
   const akcje = () => (audit.record.mock.calls as unknown as Array<[{ action: string; details: Record<string, unknown> }]>).map((c) => c[0]);
   return { svc, daClient, prisma, akcje, le };
 }
+
+describe('emailKontaDa — DA nie pisze do klientów sam', () => {
+  it('węzeł z nazwą hosta → lokalny alias bez doręczenia; bez nazwy → e-mail klienta (profil przestawi)', () => {
+    expect(emailKontaDa({ hostname: 'T1.verris.pl ' }, 'jan@firma.pl')).toBe('verris-da-powiadomienia@t1.verris.pl');
+    expect(emailKontaDa({ hostname: null }, 'jan@firma.pl')).toBe('jan@firma.pl');
+    expect(emailKontaDa({ hostname: 'zly host;rm' }, 'jan@firma.pl')).toBe('jan@firma.pl');
+  });
+});
 
 describe('ProvisioningService — zakładanie konta DA', () => {
   it('pakiet → konto (login = handle usługi, IP „shared” dla 0.0.0.0, NS platformy) → limity → zapis', async () => {

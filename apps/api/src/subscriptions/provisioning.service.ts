@@ -68,6 +68,16 @@ function resolveDaAccountIp(server: Pick<Server, 'ipAddress'>): string {
 }
 
 /**
+ * Adres konta w DirectAdminie: lokalny alias węzła bez doręczenia (node-hosting-profile.sh), a nie
+ * e-mail klienta — DA nie może pisać do klientów sam (angielskie „Message System” z adresem :2222,
+ * test D3 na t1, 29.09). Bez nazwy hosta węzła zostaje e-mail klienta; profil przestawi go później.
+ */
+export function emailKontaDa(server: Pick<Server, 'hostname'>, emailKlienta: string): string {
+  const host = server.hostname?.trim().toLowerCase();
+  return host && /^[a-z0-9.-]+\.[a-z]{2,}$/.test(host) ? `verris-da-powiadomienia@${host}` : emailKlienta;
+}
+
+/**
  * End-to-end provisioning flow for a paid subscription.
  *
  * Today this runs *synchronously* inside the same request — that's good enough
@@ -193,7 +203,7 @@ export class ProvisioningService {
     try {
       daResult = await daClient.createAccount({
         username: daUsername,
-        email: subscription.user.email,
+        email: emailKontaDa(server, subscription.user.email),
         domain,
         packageName: subscription.plan.slug,
         notify: 'no',

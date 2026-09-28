@@ -1180,6 +1180,35 @@ configure_hosting_capabilities() {
       log_fail "Webmail: brak Roundcube/direct_login po budowie — /var/log/verris-roundcube.log"
     fi
   fi
+  # White-label: DirectAdmin nie mailuje klientów bezpośrednio. Test D3 na t1 (29.09): przy każdym
+  # logowaniu z panelu klient dostawał angielski mail „Message System” z adresem :2222 węzła i IP
+  # control-plane'u (tworzenie klucza logowania). Wiadomości zostają w DA, klientom pisze Verris.
+  # Adres kont DA → lokalny alias bez doręczenia; poprzedni adres zostaje w user.conf (verris_email_klienta).
+  DA_SINK_LOCAL="verris-da-powiadomienia"
+  if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && [ -d /usr/local/directadmin/data/users ]; then
+    DA_SINK="${DA_SINK_LOCAL}@$(hostname -f 2>/dev/null || hostname)"
+    grep -q "^${DA_SINK_LOCAL}:" /etc/aliases 2>/dev/null || printf '%s: :blackhole:\n' "$DA_SINK_LOCAL" >> /etc/aliases
+    newaliases >/dev/null 2>&1 || true
+    zmienione=0
+    for uc in /usr/local/directadmin/data/users/*/user.conf; do
+      [ -f "$uc" ] || continue
+      grep -q '^usertype=user$' "$uc" || continue
+      obecny="$(sed -n 's/^email=//p' "$uc" | head -n1)"
+      [ "$obecny" = "$DA_SINK" ] && continue
+      grep -q '^verris_email_klienta=' "$uc" || printf 'verris_email_klienta=%s\n' "$obecny" >> "$uc"
+      if grep -q '^email=' "$uc"; then
+        sed -i "s|^email=.*|email=${DA_SINK}|" "$uc"
+      else
+        printf 'email=%s\n' "$DA_SINK" >> "$uc"
+      fi
+      zmienione=$((zmienione + 1))
+    done
+    if command -v exim >/dev/null 2>&1 && exim -bt "$DA_SINK" 2>/dev/null | grep -qi 'discarded'; then
+      log_ok "Maile DA do klientów wyłączone: konta DA → ${DA_SINK} (zmieniono ${zmienione})"
+    else
+      log_fail "Maile DA do klientów: exim nie odrzuca ${DA_SINK} (sprawdź /etc/aliases i czy $(hostname -f) jest domeną lokalną)"
+    fi
+  fi
   # E-20 — dobowy limit wysyłki per konto (exim DirectAdmina czyta /etc/virtual/limit).
   # Ta sama liczba stoi w panelu klienta (libs/contracts: HOSTING_MAIL_DAILY_SEND_LIMIT);
   # zgodność pilnuje apps/api/src/test/limit-wysylki.spec.ts. Bez nadpisywania z env —
