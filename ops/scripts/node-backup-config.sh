@@ -52,7 +52,15 @@ fi
 
 umask 077
 mkdir -p /root/.config/rclone
-rclone config create verris-remote sftp host "$VB_HOST" port "$VB_PORT" user "$VB_USER" pass "$VB_PASS" --obscure >/dev/null
+# Klucz hosta Storage Boxa przypięty przy pierwszej konfiguracji: bez known_hosts_file rclone nie sprawdza
+# serwera („No host key validation is being performed”) — podszywający się host zebrałby hasło SFTP i mógłby
+# kasować kopie (treść chroni crypt). ponytail: TOFU przy onboardzie; porównanie z odciskami publikowanymi
+# przez Hetznera, gdyby trzeba było bronić też pierwszego połączenia.
+KH=/root/.config/rclone/storagebox_known_hosts
+ssh-keyscan -p "$VB_PORT" -t ed25519,rsa "$VB_HOST" 2>/dev/null > "$KH.nowy" || true
+[ -s "$KH.nowy" ] || { rm -f "$KH.nowy"; log "Nie pobrano klucza hosta Storage Boxa ($VB_HOST:$VB_PORT) — sprawdź egress i host."; exit 1; }
+mv -f "$KH.nowy" "$KH"; chmod 600 "$KH"
+rclone config create verris-remote sftp host "$VB_HOST" port "$VB_PORT" user "$VB_USER" pass "$VB_PASS" known_hosts_file "$KH" --obscure >/dev/null
 rclone config create verris-crypt crypt remote "verris-remote:$VB_PATH" password "$VB_CRYPT_PASS" password2 "$VB_CRYPT_SALT" --obscure >/dev/null
 chmod 600 /root/.config/rclone/rclone.conf
 
