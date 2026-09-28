@@ -14,6 +14,7 @@ import {
   updatePlanAction,
   validateStripePriceAction,
   deactivatePlanAction,
+  usunPlanTrwaleAction,
   syncPlanStripeAction,
 } from "../actions";
 import type { AdminPlanRow } from "../data";
@@ -191,6 +192,15 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
     startTransition(async () => {
       const res = await deactivatePlanAction(plan.id);
       if (res.ok) setGlobalOk(res.message ?? "Plan wyłączony.");
+      else setGlobalError(res.error);
+    });
+  };
+
+  const handleDelete = async () => {
+    if (!(await potwierdz(`Usunąć plan „${plan.name}” na stałe? Da się to zrobić tylko, gdy nikt go nigdy nie kupił — inaczej wyłącz go ze sprzedaży.`, { akcja: 'Usuń na stałe', niebezpieczne: true }))) return;
+    startTransition(async () => {
+      const res = await usunPlanTrwaleAction(plan.id);
+      if (res.ok) window.location.assign("/plans");
       else setGlobalError(res.error);
     });
   };
@@ -512,6 +522,15 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
         >
           <Trash2 className="h-4 w-4" />
           Wyłącz ze sprzedaży
+        </button>
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={pending}
+          className="inline-flex items-center gap-2 rounded-lg border border-rose-500/40 px-4 py-2 text-sm font-medium text-rose-300 hover:bg-rose-500/15 disabled:opacity-50"
+        >
+          <Trash2 className="h-4 w-4" />
+          Usuń na stałe
         </button>
         <button
           type="submit"

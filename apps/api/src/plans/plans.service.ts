@@ -236,6 +236,28 @@ export class PlansService {
     return plan;
   }
 
+  /**
+   * Trwałe usunięcie planu. Tylko gdy nikt go nigdy nie kupił: subskrypcje (także zakończone)
+   * trzymają planId dla faktur i historii — taki plan można jedynie wyłączyć ze sprzedaży.
+   * Ceny w Stripe zostają (archiwizacja w Stripe to osobna decyzja).
+   */
+  async usunTrwale(id: string, actorUserId: string): Promise<{ usuniety: true }> {
+    const current = await this.getById(id);
+    const subskrypcje = await this.prisma.subscription.count({ where: { planId: id } });
+    if (subskrypcje > 0) {
+      throw new ConflictException(
+        `Planu „${current.name}” nie można usunąć — ma ${subskrypcje} subskrypcji (także zakończonych), potrzebnych do faktur i historii. Wyłącz go ze sprzedaży.`,
+      );
+    }
+    await this.prisma.plan.delete({ where: { id } });
+    await this.audit.record({
+      action: 'PLAN_DELETED',
+      actorUserId,
+      details: { planId: id, slug: current.slug, name: current.name },
+    });
+    return { usuniety: true };
+  }
+
   /** CloudLinux recommendation: NPROC should be > EP + 15. */
   private validateCloudLinuxLimits(entryProcesses?: number, nprocLimit?: number) {
     if (entryProcesses == null || nprocLimit == null) return;

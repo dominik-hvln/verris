@@ -188,3 +188,15 @@ export async function wyslijPakietyNaFloteAction(): Promise<PlanActionResult & {
     return { ok: false, error: e instanceof AdminApiError ? e.message : (e as Error).message };
   }
 }
+
+/** Trwałe usunięcie planu — API odmawia (409), gdy plan ma jakąkolwiek subskrypcję. */
+export async function usunPlanTrwaleAction(id: string): Promise<PlanActionResult> {
+  try {
+    await adminApi(`/admin/plans/${id}/trwale`, { method: "DELETE" });
+    revalidatePath("/plans");
+    return { ok: true, message: "Plan usunięty." };
+  } catch (e) {
+    if (e instanceof AdminApiError) return { ok: false, error: e.message, status: e.status };
+    return { ok: false, error: (e as Error).message };
+  }
+}

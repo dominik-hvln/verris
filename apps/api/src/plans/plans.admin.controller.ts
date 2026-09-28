@@ -63,6 +63,13 @@ export class PlansAdminController {
     return this.plans.syncStripeCatalog(id, actor.userId);
   }
 
+  /** Trwałe usunięcie — tylko plan, którego nigdy nie kupiono (żadnej subskrypcji, także historycznej). */
+  @Delete(':id/trwale')
+  @HttpCode(200)
+  usunTrwale(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    return this.plans.usunTrwale(id, actor.userId);
+  }
+
   @Delete(':id')
   @HttpCode(200)
   deactivate(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
