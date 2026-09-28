@@ -77,6 +77,14 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
     expect(t).toMatch(/if \[ "\$ODP" != "VERRIS-PHP \$CEL" \]; then\n\s+zapisz "\$TMP\/stary"/);
   });
 
+  it('profil: handlery alt-phpXX w LiteSpeed (<phpConfig><phpHandler>) po instalacji alt-php, z kopią i restartem', () => {
+    const t = czytaj('node-hosting-profile.sh');
+    expect(t).toContain('configure_litespeed_alt_php');
+    expect(t).toMatch(/configure_hosting_capabilities\nconfigure_litespeed_alt_php/);
+    expect(t).toContain('<id>alt-php%s</id>');
+    expect(t).toContain('/opt/alt/php%s/usr/bin/lsphp');
+  });
+
   it('profil: alt-php z repo php-els (CL10) i sprawdzenie każdej wersji w selektorze, bez OK na ślepo', () => {
     const t = czytaj('node-hosting-profile.sh');
     expect(t).toContain('els-php-release');

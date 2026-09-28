@@ -930,6 +930,66 @@ configure_litespeed() {
   fi
 }
 
+# B-02/B-03 — PHP domeny i katalogu: `AddHandler application/x-httpd-alt-phpXX` w .htaccess działa
+# w LiteSpeed dopiero, gdy serwer zna handler o id `alt-phpXX` (<phpConfig><phpHandler>). Bez niego
+# LSWS odpowiada 403 „MIME type … does not allow serving as static file” (test D3 na t1, 28.09).
+# Dopisujemy handler dla każdej zainstalowanej wersji alt-php i restartujemy LSWS (łagodnie).
+configure_litespeed_alt_php() {
+  local conf=/usr/local/lsws/conf/httpd_config.xml
+  [ -x /usr/local/lsws/bin/lswsctrl ] && [ -f "$conf" ] || { log_skip "LiteSpeed alt-php — brak LSWS"; return 0; }
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then log_info "dry-run: handlery alt-php w LSWS"; return 0; fi
+  local wersje="" v
+  for v in ${VERRIS_PHP_VERSIONS:-8.3 8.2 8.1 8.0 7.4}; do
+    [ -x "/opt/alt/php${v/./}/usr/bin/lsphp" ] && wersje="$wersje ${v/./}"
+  done
+  [ -n "$wersje" ] || { log_warn "LiteSpeed alt-php — brak /opt/alt/phpXX/usr/bin/lsphp"; return 0; }
+  local zmiana bak="/root/httpd_config.xml.verris-$(date +%Y%m%d%H%M%S)"
+  cp -p "$conf" "$bak" 2>/dev/null || true
+  zmiana="$(WERSJE="$wersje" python3 - "$conf" "$conf.cagefs" <<'PY'
+import os, re, sys
+wersje = os.environ["WERSJE"].split()
+zmienione = 0
+for plik in sys.argv[1:]:
+    if not os.path.isfile(plik):
+        continue
+    t = open(plik, encoding="utf-8").read()
+    if "</phpConfig>" not in t:
+        continue
+    nowe = ""
+    for v in wersje:
+        if "<id>alt-php%s</id>" % v in t:
+            continue
+        nowe += "    <phpHandler>\n      <id>alt-php%s</id>\n      <command>/opt/alt/php%s/usr/bin/lsphp</command>\n    </phpHandler>\n" % (v, v)
+    if not nowe:
+        continue
+    # za ostatnim istniejącym <phpHandler> albo na początku <phpConfig>
+    m = list(re.finditer(r"</phpHandler>\n", t))
+    at = m[-1].end() if m else t.index("<phpConfig>") + len("<phpConfig>\n")
+    tmp = plik + ".verris-tmp"
+    st = os.stat(plik)
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(t[:at] + nowe + t[at:])
+    os.chown(tmp, st.st_uid, st.st_gid)
+    os.chmod(tmp, st.st_mode & 0o7777)
+    os.replace(tmp, plik)
+    zmienione += 1
+print(zmienione)
+PY
+)" || { log_fail "LiteSpeed alt-php — nie udało się zapisać $conf"; return 0; }
+  if [ "${zmiana:-0}" = "0" ]; then
+    rm -f "$bak"
+  else
+    /usr/local/lsws/bin/lswsctrl restart >/dev/null 2>&1 || log_warn "LiteSpeed restart po dodaniu handlerów alt-php zwrócił błąd"
+  fi
+  local brak=""
+  for v in $wersje; do grep -q "<id>alt-php$v</id>" "$conf" || brak="$brak $v"; done
+  if [ -z "$brak" ]; then
+    log_ok "LiteSpeed: handlery alt-php dla$(printf ' %s' $wersje) (PHP domeny/katalogu w .htaccess)"
+  else
+    log_fail "LiteSpeed: brak handlerów alt-php dla:$brak"
+  fi
+}
+
 print_lve_info() {
   echo "--- LVE / CageFS ---"
   log_info "Limity EP/NPROC per konto ustawia Verris przy provisioning (plan → DA) + agent verris-lve.sh"
@@ -1493,6 +1553,7 @@ configure_directadmin_custombuild
 ensure_hosting_core_services
 configure_litespeed
 configure_hosting_capabilities
+configure_litespeed_alt_php
 print_lve_info
 print_summary
 exit $?
