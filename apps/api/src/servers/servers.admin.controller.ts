@@ -21,7 +21,7 @@ import { Roles } from '../common/decorators/roles.decorator.js';
 import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
 import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
-import { Role, NodeTaskStatus } from '@verris/database';
+import { Role, NodeTaskStatus, ServerStatus } from '@verris/database';
 import { InitServerDto } from './dto/init-server.dto.js';
 import { UpdateServerDto } from './dto/update-server.dto.js';
 import { UpdateDirectAdminConfigDto } from './dto/directadmin-config.dto.js';
@@ -107,6 +107,43 @@ export class ServersAdminController {
   @StaffPerm('NODES_VIEW')
   flota() {
     return flotaZBazy(this.prisma, Date.now()).then((f) => f.wiersze);
+  }
+
+  /**
+   * Pakiety DA = plany z panelu (jedno źródło prawdy). Podgląd przed wysłaniem zmienionego planu
+   * na flotę: ile kont tego planu siedzi na których węzłach (limity zmienią się im od razu).
+   */
+  @Get('pakiety-floty')
+  async pakietyFloty(@Query('planId') planId?: string) {
+    const wezly = await this.prisma.server.findMany({
+      where: { status: { in: [ServerStatus.ACTIVE, ServerStatus.MAINTENANCE] }, daPasswordEnc: { not: null } },
+      select: { id: true, name: true, _count: { select: { accounts: { where: { status: { not: 'DELETED' }, ...(planId ? { subscription: { planId } } : {}) } } } } },
+      orderBy: { name: 'asc' },
+    });
+    const lista = wezly.map((w) => ({ id: w.id, name: w.name, konta: w._count.accounts }));
+    return { wezly: lista, konta: lista.reduce((a, w) => a + w.konta, 0) };
+  }
+
+  /** Wysyła pakiety wszystkich aktywnych planów na każdy węzeł z DA (idempotentne; audyt per węzeł). */
+  @Post('pakiety-floty/sync')
+  async wyslijPakietyNaFlote(@CurrentUser() user: { userId: string }) {
+    const wezly = await this.prisma.server.findMany({
+      where: { status: { in: [ServerStatus.ACTIVE, ServerStatus.MAINTENANCE] }, daPasswordEnc: { not: null } },
+      select: { id: true, name: true },
+    });
+    const wyniki = [];
+    for (const w of wezly) {
+      try {
+        const r = await this.nodeStack.repairDaPackages(w.id);
+        wyniki.push({ id: w.id, name: w.name, ok: true, pakiety: r.synced });
+      } catch (err) {
+        wyniki.push({ id: w.id, name: w.name, ok: false, blad: err instanceof Error ? err.message : String(err) });
+      }
+    }
+    await this.prisma.auditLog.create({
+      data: { action: 'DA_PACKAGES_FLEET_SYNC', actorUserId: user.userId, details: { wyniki } as never },
+    }).catch(() => undefined);
+    return { wyniki };
   }
 
   // #13 — operacje węzłów (NodeTask): lista + ręczne ponowienie nieudanych

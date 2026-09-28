@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { getAdminPlan } from "../data";
 import { PlanEditForm } from "./plan-edit-form";
+import { PakietyNaFlocie } from "./pakiety-na-flocie";
 import { BladStrony } from "@/components/blad-strony";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +47,8 @@ export default async function AdminPlanEditPage({ params }: PageProps) {
       </header>
 
       <PlanEditForm plan={plan} />
+
+      <PakietyNaFlocie planId={plan.id} slug={plan.slug} />
     </div>
   );
 }

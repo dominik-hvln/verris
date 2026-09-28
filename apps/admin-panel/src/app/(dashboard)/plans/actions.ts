@@ -160,3 +160,31 @@ export async function validateStripePriceAction(input: {
     return { ok: false, error: (e as Error).message };
   }
 }
+
+export interface PakietyFloty {
+  wezly: Array<{ id: string; name: string; konta: number }>;
+  konta: number;
+}
+export interface WynikSyncuFloty {
+  wyniki: Array<{ id: string; name: string; ok: boolean; pakiety?: string[]; blad?: string }>;
+}
+
+/** Podgląd: ile kont tego planu na których węzłach dostanie nowe limity. */
+export async function pobierzPakietyFlotyAction(planId: string): Promise<PlanActionResult & { dane?: PakietyFloty }> {
+  try {
+    const dane = await adminApi<PakietyFloty>(`/admin/servers/pakiety-floty?planId=${encodeURIComponent(planId)}`);
+    return { ok: true, dane };
+  } catch (e) {
+    return { ok: false, error: e instanceof AdminApiError ? e.message : (e as Error).message };
+  }
+}
+
+/** Pakiety DA wszystkich aktywnych planów → każdy węzeł z DA (po potwierdzeniu admina). */
+export async function wyslijPakietyNaFloteAction(): Promise<PlanActionResult & { dane?: WynikSyncuFloty }> {
+  try {
+    const dane = await adminApi<WynikSyncuFloty>(`/admin/servers/pakiety-floty/sync`, { method: "POST" });
+    return { ok: true, dane };
+  } catch (e) {
+    return { ok: false, error: e instanceof AdminApiError ? e.message : (e as Error).message };
+  }
+}
