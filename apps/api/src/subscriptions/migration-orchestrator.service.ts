@@ -265,6 +265,14 @@ export class MigrationOrchestratorService {
       );
     }
 
+    // Baza bez loginu/hasła = worker odczyta je z wp-config.php skopiowanej strony — bez plików nie ma skąd.
+    const bezDanych = (dto.mysql ?? []).find((m) => !m.username || !m.password);
+    if (bezDanych && !dto.ftp) {
+      throw new BadRequestException(
+        `Podaj użytkownika i hasło bazy ${bezDanych.database} — bez plików strony nie odczytamy ich z wp-config.php.`,
+      );
+    }
+
     // RODO / powierzenie przetwarzania — bez wyraźnego upoważnienia nie ruszamy
     // cudzych systemów ani nie kopiujemy danych. Wymóg egzekwowany serwerowo.
     if (dto.consentAccepted !== true) {
@@ -721,15 +729,27 @@ export class MigrationOrchestratorService {
       // Baza docelowa utworzona przez DA API (prepareMysqlTargets) — import
       // idzie na jej creds; brak = worker używa root-socketa (fallback).
       response.targetDb = bundle.targets?.mysql?.[index] ?? null;
-      // Fallback SSH: gdy zdalny MySQL jest zablokowany, worker może zrobić
-      // mysqldump przez SSH na koncie plikowym (o ile źródło plików to sftp).
-      if (bundle.ftp && (bundle.ftp.protocol ?? 'sftp') === 'sftp') {
+      // Zdalny MySQL na hostingu współdzielonym prawie zawsze jest zablokowany. Worker próbuje wtedy:
+      //  1) mysqldump przez SSH na koncie plikowym — przy FTP/FTPS też (port 22): na cPanelu/DA konto FTP
+      //     główne = konto SSH; kreator wybiera FTPS po wykryciu panelu, więc bez tego baza zawsze padała,
+      //  2) jednorazowy eksport przez PHP wgrany po FTP do katalogu strony (ftpFallback + sourceDomain).
+      if (bundle.ftp) {
+        const sftp = (bundle.ftp.protocol ?? 'sftp') === 'sftp';
         response.sshFallback = {
+          host: bundle.ftp.host,
+          port: sftp ? bundle.ftp.port : 22,
+          username: bundle.ftp.username,
+          password: bundle.ftp.password,
+        };
+        response.ftpFallback = {
+          protocol: bundle.ftp.protocol ?? 'sftp',
           host: bundle.ftp.host,
           port: bundle.ftp.port,
           username: bundle.ftp.username,
           password: bundle.ftp.password,
+          remotePath: bundle.ftp.remotePath ?? '/',
         };
+        response.sourceDomain = bundle.sourceDomain || targetDomain;
       }
     } else if (
       updated.kind === MigrationWorkerJobKind.IMAP_SYNC ||

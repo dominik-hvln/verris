@@ -65,7 +65,19 @@ export class MigrationPreflightService {
       );
     }
     for (const db of dto.mysql ?? []) {
-      checks.push(this.checkMysql(db.host, db.port, db.username, db.password, db.database));
+      checks.push(
+        db.username && db.password
+          ? this.checkMysql(db.host, db.port, db.username, db.password, db.database)
+          : Promise.resolve<PreflightCheckResult>({
+              kind: 'mysql',
+              target: `mysql://${db.host}:${db.port}/${db.database}`,
+              status: dto.ftp ? 'reachable' : 'auth_failed',
+              message: dto.ftp
+                ? 'Login i hasło bazy odczytamy z pliku wp-config.php po skopiowaniu plików strony.'
+                : 'Podaj użytkownika i hasło bazy — bez plików strony nie mamy skąd ich odczytać.',
+              latencyMs: null,
+            }),
+      );
     }
     checks.push(...(dto.imap ?? []).map((b) => this.sprawdzSkrzynke(b)));
 

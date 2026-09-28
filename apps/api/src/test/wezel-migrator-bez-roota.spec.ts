@@ -29,7 +29,7 @@ describe('węzeł — firewall bez CSF', () => {
 describe('worker migracji — bez roota przy obcych serwerach', () => {
   const w = kod('ops/scripts/node-migration-worker.sh');
 
-  it.each(['sshpass -e rsync', 'lftp --env-password', 'mysqldump --single-transaction', 'imapsync', 'curl -sSk'])(
+  it.each(['sshpass -e rsync', 'lftp --env-password', 'mysqldump --single-transaction', 'imapsync', 'curl -sSk', 'curl -sS --fail'])(
     '%s działa jako verris-mig',
     (narzedzie) => {
       // Wywołania narzędzia (bez listy zależności, instalacji, logów i polecenia wykonywanego ZDALNIE przez ssh).
@@ -61,6 +61,26 @@ describe('worker migracji — bez roota przy obcych serwerach', () => {
   it('mysqldump z MariaDB: --set-gtid-purged tylko gdy klient go zna', () => {
     expect(w).toMatch(/grep -q -- '--set-gtid-purged' && gtid=\(--set-gtid-purged=OFF\)/);
     expect(w).not.toMatch(/--no-tablespaces --set-gtid-purged=OFF/);
+  });
+
+  it('katalog domowy starego konta nie trafia do public_html', () => {
+    expect(w).toMatch(/pod="domains\/\$\{domain\}\/public_html"/);
+    expect(w).toMatch(/ODMOWA: katalog źródłowy wygląda na katalog domowy konta/);
+  });
+
+  it('dane bazy z wp-config.php czyta klient (dowiązanie do pliku roota nie wycieknie)', () => {
+    expect(w).toMatch(/runuser -u "\$user" -- head -c 262144 "\$f"/);
+    expect(w).not.toMatch(/(cat|head|grep|perl)[^\n|]*wp-config\.php/);
+  });
+
+  it('eksport bazy przez PHP: token, jednorazowość, HTTPS bez przekierowań, znacznik końca', () => {
+    expect(w).toMatch(/hash_equals\(\\\$token, \\\$_POST\['t'\]\)/);
+    expect(w).toMatch(/@unlink\(__FILE__\);\n@set_time_limit/);
+    expect(w).toMatch(/--proto =https --tlsv1\.2 --max-redirs 0/);
+    expect(w).not.toMatch(/curl[^\n]*(-L |--location|-k )[^\n]*verris-export|nazwa\}"[^\n]*-k/);
+    expect(w).toMatch(/--data "@\$sek\/token"/);
+    expect(w).toMatch(/grep -q 'VERRIS-EXPORT-OK'/);
+    expect(w).toMatch(/jako_mig cat "\$sek\/zrzut\.sql" \| oczysc_zrzut \| "\$\{importuj\[@\]\}"/);
   });
 
   it('drain nie pobiera skryptu imapsync co 2 minuty', () => {

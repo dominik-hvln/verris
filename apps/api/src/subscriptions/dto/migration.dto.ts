@@ -152,12 +152,16 @@ export class MigrationMysqlSourceDto {
   @Type(() => Number) @IsInt() @Min(1) @Max(65535)
   port!: number;
 
-  @IsString() @MinLength(1) @MaxLength(128)
+  /**
+   * Login i hasło bazy są opcjonalne, gdy przenosimy też pliki: worker odczyta je z wp-config.php
+   * skopiowanej strony (klient WordPressa zwykle ich nie zna). Bez plików — wymagane (createBundle).
+   */
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(128)
   @Matches(MIGRACJA_WZORCE.username, { message: KOMUNIKAT.username })
-  username!: string;
+  username?: string;
 
-  @IsString() @MinLength(1) @MaxLength(2048)
-  password!: string;
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(2048)
+  password?: string;
 
   @IsString() @MinLength(1) @MaxLength(64)
   @Matches(MIGRACJA_WZORCE.database, { message: KOMUNIKAT.database })

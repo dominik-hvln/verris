@@ -279,6 +279,59 @@ describe('MigrationOrchestratorService', () => {
     expect(prisma.migrationRequest.create).not.toHaveBeenCalled();
   });
 
+  it('baza bez loginu i hasła tylko razem z plikami strony (wp-config.php)', async () => {
+    prisma.subscription.findFirst.mockResolvedValue({
+      id: 'sub_1',
+      userId: 'user_1',
+      account: { domain: 'target.example' },
+    });
+    await expect(
+      service().createBundle('sub_1', 'user_1', {
+        mysql: [{ host: 'db.example', port: 3306, database: 'db1' }],
+        consentAccepted: true,
+      } as never),
+    ).rejects.toThrow('wp-config.php');
+    expect(prisma.migrationRequest.create).not.toHaveBeenCalled();
+  });
+
+  it('konto FTP/FTPS: lease bazy daje SSH na porcie 22 i FTP do eksportu PHP', async () => {
+    const ftp = { protocol: 'ftps', host: 'old.example', port: 21, username: 'fu', password: 'fp', remotePath: '/public_html' };
+    const candidate = { id: 'job_1', migrationRequestId: 'mig_1', sequence: 20, maxAttempts: 3, startedAt: null };
+    const workerJob = {
+      ...candidate,
+      kind: MigrationWorkerJobKind.MYSQL_IMPORT,
+      status: MigrationWorkerJobStatus.RUNNING,
+      attempts: 1,
+      workerId: 'srv_1',
+      payload: { index: 0 },
+      migrationRequest: {
+        id: 'mig_1',
+        sourceBundleEnc: `enc:${JSON.stringify({ ftp, sourceDomain: 'stara.example', mysql: [{ host: 'old.example', port: 3306, database: 'db1' }] })}`,
+        targetDomain: 'target.example',
+        startedAt: null,
+        userId: 'user_1',
+        subscription: { account: { serverId: 'srv_1', daUsername: 'targetuser', domain: 'target.example' } },
+      },
+    };
+    const fullPrisma = {
+      ...prisma,
+      migrationWorkerJob: {
+        findMany: vi.fn().mockResolvedValueOnce([candidate]).mockResolvedValueOnce([]),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findUnique: vi.fn().mockResolvedValue(workerJob),
+      },
+      migrationRequest: { update: vi.fn().mockResolvedValue({}) },
+    };
+    const leased = await new MigrationOrchestratorService(
+      fullPrisma as never, crypto as never, audit as never, notifications as never, directAdmin as never, preflight as never,
+    ).leaseFileWorkerJobForNode('srv_1');
+    expect(leased).toMatchObject({
+      sshFallback: { host: 'old.example', port: 22, username: 'fu', password: 'fp' },
+      ftpFallback: ftp,
+      sourceDomain: 'stara.example',
+    });
+  });
+
   it('returns MySQL source secrets only to an authorized node lease and respects sequence order', async () => {
     const dbSource = { host: 'db.example', port: 3306, database: 'db1', username: 'dbu', password: 'dbp' };
     const candidate = {

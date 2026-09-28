@@ -14,8 +14,9 @@ export interface MigrationFtpInput {
 export interface MigrationMysqlInput {
   host: string;
   port: number;
-  username: string;
-  password: string;
+  /** Puste = worker odczyta z wp-config.php skopiowanej strony. */
+  username?: string;
+  password?: string;
   database: string;
 }
 export interface MigrationImapInput {

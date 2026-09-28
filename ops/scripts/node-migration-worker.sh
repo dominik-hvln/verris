@@ -23,7 +23,7 @@
 # plane wznawia joby, których worker umarł — zlecenie nie wisi w nieskończoność).
 #
 # Auth: /etc/verris.conf (VERRIS_SERVER_ID, VERRIS_IDENTITY_TOKEN, VERRIS_API_URL).
-# Requires: root, jq, curl, rsync, sshpass, lftp, mysql client, imapsync, wp-cli, acl (setfacl).
+# Requires: root, jq, curl, rsync, sshpass, lftp, mysql client, imapsync, wp-cli, acl (setfacl), perl (wp-config.php).
 #
 # PODZIAŁ UPRAWNIEŃ (2026-09-28). Wszystko, co łączy się z serwerem PODANYM
 # PRZEZ KLIENTA (rsync/ssh, lftp, mysqldump, imapsync, curl), działa jako
@@ -367,6 +367,9 @@ run_files() {
     zrodlo_kopii="${stage}/${pod}"
     echo "== wskazano katalog domowy starego konta — kopiuję tylko katalog strony: ${pod}" >>"$logfile"
   fi
+  # Katalog strony NA SERWERZE ŹRÓDŁOWYM — tam run_mysql wgra jednorazowy eksport PHP, gdy baza
+  # nie jest dostępna ani zdalnie, ani przez SSH. Zapis jako verris-mig (katalog jest jego).
+  jako_mig bash -c 'printf "%s\n" "$1" >"$2"' _ "${spath%/}${pod:+/$pod}" "${stage}.zrodlo" 2>>"$logfile" || true
   # Po zejściu (albo bez niego) w źródle nie może być śladów katalogu domowego — odmowa zamiast wycieku.
   if [ -e "$zrodlo_kopii/.ssh" ] || [ -e "$zrodlo_kopii/.cpanel" ] || [ -e "$zrodlo_kopii/.my.cnf" ] \
       || compgen -G "$zrodlo_kopii/etc/*/shadow" >/dev/null || compgen -G "$zrodlo_kopii/imap/*/*/Maildir" >/dev/null \
@@ -472,21 +475,202 @@ mysql_prepare_target_db() {
 }
 
 
+# Dane bazy z wp-config.php skopiowanej strony: klient WordPressa zwykle nie zna loginu i hasła bazy.
+# Czytamy JAKO KLIENT (runuser): wp-config.php w jego katalogu może być dowiązaniem do pliku roota
+# (/etc/verris.conf, /root/.my.cnf) — root przeczytałby go i wysłał „hasło" na obcy serwer.
+# Wynik: linie KLUCZ<TAB>WARTOŚĆ dla DB_NAME, DB_USER, DB_PASSWORD, DB_HOST.
+wp_config_db() {
+  local user="$1" dst="$2" f
+  for f in "$dst/wp-config.php" "$(dirname "$dst")/wp-config.php"; do
+    runuser -u "$user" -- test -f "$f" 2>/dev/null || continue
+    runuser -u "$user" -- head -c 262144 "$f" 2>/dev/null | perl -0777 -ne '
+      for my $k (qw(DB_NAME DB_USER DB_PASSWORD DB_HOST)) {
+        if (/^\s*define\s*\(\s*["\x27]$k["\x27]\s*,\s*(["\x27])((?:\\.|(?!\1).)*)\1\s*\)/m) {
+          my $v = $2; $v =~ s/\\([\\\x27"])/$1/g;
+          print "$k\t$v\n" unless $v =~ /[\x00-\x1f]/;
+        }
+      }'
+    return 0
+  done
+  return 1
+}
+
+# Literał PHP w apostrofach (hasło bazy w jednorazowym skrypcie eksportu).
+php_str() {
+  local s="${1//\\/\\\\}"
+  s="${s//\'/\\\'}"
+  printf "'%s'" "$s"
+}
+
+# Jednorazowy eksport bazy przez PHP — ostatnia droga, gdy MySQL źródła nie jest dostępny ani zdalnie,
+# ani przez SSH (typowe konto „tylko FTP" na hostingu współdzielonym). Skrypt:
+#  - trafia po FTP/FTPS/SFTP do katalogu strony pod losową nazwą,
+#  - odpowiada wyłącznie na POST z losowym tokenem (hash_equals), inaczej 404,
+#  - kasuje się przy pierwszym poprawnym żądaniu, a po 2 h przy dowolnym; worker i tak usuwa go po FTP,
+#  - hasło bazy jest W PLIKU (na serwerze klienta, jak w wp-config.php) — nie idzie przez internet.
+# Pobranie tylko po HTTPS ze sprawdzeniem certyfikatu, bez podążania za przekierowaniami (SSRF z obcego
+# serwera w stronę sieci węzła). Zrzut kończy znacznik — bez niego import się nie zaczyna.
+# ponytail: tabele, dane i widoki; bez procedur/wyzwalaczy i kolumn generowanych — te zostają dla
+# obsługi (node-db-transfer.sh), gdy trafi się taki sklep.
+mysql_przez_php() {
+  local job="$1" logfile="$2" sek="$3" suser="$4" spass="$5" sdb="$6" dbhost="$7" dbport="$8" out="$9"
+  local proto host port fuser fpass zdalny sdomain user domain
+  proto=$(jq -r '.ftpFallback.protocol // empty' <<<"$job")
+  host=$(jq -r '.ftpFallback.host // empty' <<<"$job")
+  port=$(jq -r '.ftpFallback.port // empty' <<<"$job")
+  fuser=$(jq -r '.ftpFallback.username // empty' <<<"$job")
+  fpass=$(jq -r '.ftpFallback.password // empty' <<<"$job")
+  sdomain=$(jq -r '.sourceDomain // empty' <<<"$job")
+  user=$(jq -r '.target.accountUsername // empty' <<<"$job")
+  domain=$(jq -r '.target.domain // empty' <<<"$job")
+  [ -n "$host" ] && [ -n "$sdomain" ] || return 1
+  vg_require protocol "$proto" ftpFallback.protocol 2>>"$logfile" || return 1
+  vg_require publichost "$host" ftpFallback.host 2>>"$logfile" || return 1
+  vg_require port "$port" ftpFallback.port 2>>"$logfile" || return 1
+  vg_require username "$fuser" ftpFallback.username 2>>"$logfile" || return 1
+  vg_require host "$sdomain" sourceDomain 2>>"$logfile" || return 1
+  # Katalog strony na źródle zapisany przez run_files; bez niego ścieżka z formularza.
+  zdalny=$(jako_mig cat "${MIG_HOME}/stage/${user}/${domain}.zrodlo" 2>/dev/null | head -1) \
+    || zdalny=$(jq -r '.ftpFallback.remotePath // "/"' <<<"$job")
+  vg_require path "$zdalny" katalog_strony_zrodla 2>>"$logfile" || return 1
+
+  local nazwa token; nazwa="verris-export-$(openssl rand -hex 12).php"; token=$(openssl rand -hex 32)
+  ( umask 077
+    cat >"$sek/$nazwa" <<PHP
+<?php
+// Verris — jednorazowy eksport bazy do migracji. Usuwa się po pierwszym użyciu i po 2 godzinach.
+\$token = '${token}';
+if (time() - @filemtime(__FILE__) > 7200) { @unlink(__FILE__); http_response_code(404); exit; }
+if (!isset(\$_POST['t']) || !is_string(\$_POST['t']) || !hash_equals(\$token, \$_POST['t'])) { http_response_code(404); exit; }
+@unlink(__FILE__);
+@set_time_limit(0);
+mysqli_report(MYSQLI_REPORT_OFF);
+\$db = @new mysqli($(php_str "$dbhost"), $(php_str "$suser"), $(php_str "$spass"), $(php_str "$sdb"), ${dbport:-3306});
+if (\$db->connect_errno) { http_response_code(502); echo 'VERRIS-ERR connect ', \$db->connect_errno; exit; }
+\$db->set_charset('utf8mb4');
+header('Content-Type: application/octet-stream');
+header('Cache-Control: no-store');
+while (ob_get_level()) { ob_end_clean(); }
+function q(\$n) { return '\`' . str_replace('\`', '\`\`', \$n) . '\`'; }
+echo "SET NAMES utf8mb4;\nSET FOREIGN_KEY_CHECKS=0;\nSET UNIQUE_CHECKS=0;\nSET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';\n";
+\$tabele = array(); \$widoki = array();
+\$r = \$db->query('SHOW FULL TABLES');
+if (!\$r) { echo "\n-- VERRIS-ERR tables\n"; exit; }
+while (\$w = \$r->fetch_row()) { if (\$w[1] === 'VIEW') \$widoki[] = \$w[0]; else \$tabele[] = \$w[0]; }
+\$binarne = array(249, 250, 251, 252, 253, 254, 255); // BIT (16) mysqlnd zwraca jako liczbę dziesiętną
+foreach (\$tabele as \$t) {
+  \$c = \$db->query('SHOW CREATE TABLE ' . q(\$t));
+  if (!\$c || !(\$c = \$c->fetch_row())) { echo "\n-- VERRIS-ERR create\n"; exit; }
+  echo 'DROP TABLE IF EXISTS ', q(\$t), ";\n", \$c[1], ";\n";
+  \$s = \$db->query('SELECT * FROM ' . q(\$t), MYSQLI_USE_RESULT);
+  if (!\$s) { echo "\n-- VERRIS-ERR select\n"; exit; }
+  \$bin = array(); \$typ = array();
+  foreach (\$s->fetch_fields() as \$i => \$p) { \$typ[\$i] = \$p->type; \$bin[\$i] = (\$p->charsetnr == 63 && in_array(\$p->type, \$binarne, true)); }
+  \$buf = '';
+  while (\$w = \$s->fetch_row()) {
+    \$v = array();
+    foreach (\$w as \$i => \$x) {
+      if (\$x === null) \$v[] = 'NULL';
+      elseif (\$typ[\$i] === 16) \$v[] = ctype_digit(\$x) ? \$x : '0x' . bin2hex(\$x);
+      elseif (\$bin[\$i]) \$v[] = (\$x === '' ? "''" : '0x' . bin2hex(\$x));
+      else \$v[] = "'" . \$db->real_escape_string(\$x) . "'";
+    }
+    \$buf .= (\$buf === '' ? 'INSERT INTO ' . q(\$t) . ' VALUES ' : ',') . '(' . implode(',', \$v) . ')';
+    if (strlen(\$buf) > 1000000) { echo \$buf, ";\n"; \$buf = ''; }
+  }
+  if (\$buf !== '') echo \$buf, ";\n";
+  if (\$db->errno) { echo "\n-- VERRIS-ERR rows\n"; exit; }
+  \$s->free();
+}
+foreach (\$widoki as \$t) {
+  \$c = \$db->query('SHOW CREATE VIEW ' . q(\$t));
+  if (\$c && (\$c = \$c->fetch_row())) echo 'DROP VIEW IF EXISTS ', q(\$t), ";\n", \$c[1], ";\n";
+}
+echo "SET FOREIGN_KEY_CHECKS=1;\n-- VERRIS-EXPORT-OK\n";
+PHP
+    printf 't=%s' "$token" >"$sek/token" )
+  chown "$MIG_USER:$MIG_USER" "$sek/$nazwa" "$sek/token"
+
+  local fpf; fpf=$(plik_sekretu "$sek" ftp "$fpass")
+  local ssl_setting="" cel="${zdalny%/}/${nazwa}"
+  [ "$proto" = "ftps" ] && ssl_setting="set ftp:ssl-force true; set ftp:ssl-protect-data true;"
+  lftp_zrodlo() {
+    jako_mig_env LFTP_PASSWORD "$fpf" lftp --env-password -u "$fuser" \
+      -e "set sftp:auto-confirm yes; set net:max-retries 2; set net:timeout 30; set ssl:verify-certificate no; ${ssl_setting} $1; bye" \
+      "${proto}://${host}:${port}" </dev/null
+  }
+  echo "== eksport bazy przez PHP: wgrywam jednorazowy skrypt do katalogu strony na źródle" >>"$logfile"
+  lftp_zrodlo "put '$sek/$nazwa' -o '${cel}'" >>"$logfile" 2>&1 || { echo "== nie udało się wgrać skryptu eksportu" >>"$logfile"; return 1; }
+
+  # Domena z DNS (strona jeszcze u starego dostawcy) albo przypięta do IP serwera FTP (DNS już u nas);
+  # wariant z www, bo wiele stron odpowiada tylko pod nim. Każdy adres musi być publiczny.
+  local ftp_ip ok=false d proba pin
+  local -a proby=()
+  ftp_ip=$(getent ahostsv4 "$host" 2>/dev/null | awk 'NR==1{print $1}')
+  for d in "$sdomain" "www.${sdomain}"; do
+    vg_is_public_host "$d" && proby+=("${d}|")
+    [ -n "$ftp_ip" ] && proby+=("${d}|${d}:443:${ftp_ip}")
+  done
+  for proba in "${proby[@]}"; do
+    d="${proba%%|*}"; pin="${proba#*|}"
+    if jako_mig curl -sS --fail --proto =https --tlsv1.2 --max-redirs 0 --connect-timeout 20 --max-time 7200 \
+        ${pin:+--resolve "$pin"} --data "@$sek/token" -o "$out" "https://${d}/${nazwa}" 2>>"$logfile" \
+        && jako_mig tail -c 64 "$out" | grep -q 'VERRIS-EXPORT-OK'; then
+      ok=true; break
+    fi
+  done
+  lftp_zrodlo "rm '${cel}'" >>"$logfile" 2>&1 || echo "== skrypt eksportu usunie się sam (najpóźniej po 2 h)" >>"$logfile"
+  [ "$ok" = true ] || { echo "== eksport przez PHP nie powiódł się (brak HTTPS, PHP wyłączone albo baza odrzuca login)" >>"$logfile"; return 1; }
+  echo "== eksport przez PHP pobrany" >>"$logfile"
+}
+
 run_mysql() {
   # Ścieżka 1: zdalny mysqldump (gdy źródło wystawia MySQL na świat).
   # Ścieżka 2: mysqldump przez SSH na koncie plikowym źródła (typowe na
   # hostingach współdzielonych, gdzie MySQL słucha tylko na localhost).
+  # Ścieżka 3: jednorazowy eksport PHP wgrany po FTP (konto bez SSH).
   local job="$1" logfile="$2"
-  local shost sport sdb suser spass tdb
+  local shost sport sdb suser spass tdb user domain dbhost="localhost" dbport=""
   shost=$(jq -r '.source.host' <<<"$job")
   sport=$(jq -r '.source.port' <<<"$job")
   sdb=$(jq -r '.source.database' <<<"$job")
-  suser=$(jq -r '.source.username' <<<"$job")
-  spass=$(jq -r '.source.password' <<<"$job")
+  suser=$(jq -r '.source.username // empty' <<<"$job")
+  spass=$(jq -r '.source.password // empty' <<<"$job")
+  user=$(jq -r '.target.accountUsername // empty' <<<"$job")
+  domain=$(jq -r '.target.domain // empty' <<<"$job")
 
   # Z-03: `sdb` szła do `eval`, a stamtąd do polecenia powłoki jako root.
-  vg_check_source "$job" "$logfile" || return 2
   vg_require db "$sdb" "source.database" 2>>"$logfile" || return 2
+
+  # Login/hasło z wp-config.php (klient zostawił puste) — tylko gdy wp-config wskazuje TĘ bazę.
+  # DB_HOST stamtąd służy ścieżkom na serwerze źródłowym (SSH, PHP): localhost, host:port albo
+  # osobny serwer baz (np. OVH *.mysql.db).
+  if [ -n "$user" ] && [ -n "$domain" ] && vg_require account "$user" target.accountUsername 2>>"$logfile"; then
+    local k v wp_name="" wp_user="" wp_pass="" wp_host=""
+    while IFS=$'\t' read -r k v; do
+      case "$k" in DB_NAME) wp_name="$v" ;; DB_USER) wp_user="$v" ;; DB_PASSWORD) wp_pass="$v" ;; DB_HOST) wp_host="$v" ;; esac
+    done < <(wp_config_db "$user" "$(docroot_for "$user" "$domain")" 2>/dev/null || true)
+    if [ -n "$wp_name" ] && [ "$wp_name" = "$sdb" ]; then
+      if [ -z "$suser" ] || [ -z "$spass" ]; then
+        suser="$wp_user"; spass="$wp_pass"
+        echo "== login i hasło bazy ${sdb} z wp-config.php skopiowanej strony" >>"$logfile"
+      fi
+      if [ -n "$wp_host" ]; then
+        dbhost="${wp_host%%:*}"; [[ "$wp_host" == *:* ]] && dbport="${wp_host##*:}"
+        [[ "$dbport" =~ ^[0-9]+$ ]] || dbport=""               # host:/ścieżka/gniazda = localhost
+        [[ "$dbhost" == "127.0.0.1" || -z "$dbhost" ]] && dbhost="localhost"
+      fi
+    elif [ -z "$suser" ] || [ -z "$spass" ]; then
+      echo "brak loginu/hasła bazy ${sdb}, a wp-config.php skopiowanej strony ${wp_name:+wskazuje inną bazę}${wp_name:-nie istnieje} — podaj dane bazy" >>"$logfile"
+      return 2
+    fi
+  fi
+  [ -n "$suser" ] && [ -n "$spass" ] || { echo "brak loginu/hasła bazy ${sdb}" >>"$logfile"; return 2; }
+  vg_require host "$shost" source.host 2>>"$logfile" || return 2
+  vg_require publichost "$shost" source.host 2>>"$logfile" || return 2
+  vg_require port "$sport" source.port 2>>"$logfile" || return 2
+  vg_require username "$suser" source.username 2>>"$logfile" || return 2
+  vg_require host "$dbhost" DB_HOST 2>>"$logfile" || return 2
 
   tdb=$(mysql_prepare_target_db "$job" "$logfile") || return 2
   vg_require db "$tdb" "targetDb.database" 2>>"$logfile" || return 2
@@ -544,11 +728,16 @@ SQL
       # wcześniej było w argv lokalnego ssh, widoczne w `ps` dla wszystkich kont węzła.
       # shellcheck disable=SC2029
       if { cat "$src_pf"; echo; } | jako_mig_env SSHPASS "$ssh_pf" sshpass -e ssh "${SSH_OPTS[@]}" -p "$sshport" "${sshuser}@${sshhost}" \
-          "IFS= read -r MYSQL_PWD; export MYSQL_PWD; exec mysqldump --single-transaction --quick --routines --triggers --no-tablespaces --hex-blob -h 127.0.0.1 -u $(printf %q "$suser") $(printf %q "$sdb")" \
+          "IFS= read -r MYSQL_PWD; export MYSQL_PWD; exec mysqldump --single-transaction --quick --routines --triggers --no-tablespaces --hex-blob -h $(printf %q "$dbhost") ${dbport:+-P $dbport} -u $(printf %q "$suser") $(printf %q "$sdb")" \
           2>>"$logfile" | oczysc_zrzut | "${importuj[@]}" 2>>"$logfile"; then
         dumped=true
       fi
     fi
+  fi
+
+  if [ "$dumped" = false ] && mysql_przez_php "$job" "$logfile" "$sek" "$suser" "$spass" "$sdb" "$dbhost" "$dbport" "$sek/zrzut.sql"; then
+    # Czyta verris-mig (plik w jego katalogu) — root nie otwiera ścieżek, które kontroluje proces sieciowy.
+    jako_mig cat "$sek/zrzut.sql" | oczysc_zrzut | "${importuj[@]}" 2>>"$logfile" && dumped=true
   fi
 
   if [ -n "$tymczasowy" ]; then
@@ -794,7 +983,7 @@ ensure_deps() {
   # brakujące pakiety — wcześniej każdy przebieg pobierał skrypt imapsync z internetu i nadpisywał
   # nim /usr/local/bin jako root.
   local tryb="${1:-}"
-  local need=(jq curl rsync sshpass lftp mysql imapsync setfacl openssl)
+  local need=(jq curl rsync sshpass lftp mysql imapsync setfacl openssl perl)
   local missing=()
   for b in "${need[@]}"; do command -v "$b" >/dev/null 2>&1 || missing+=("$b"); done
   if [ ${#missing[@]} -gt 0 ]; then

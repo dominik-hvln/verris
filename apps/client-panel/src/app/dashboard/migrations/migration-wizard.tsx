@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useId } from 'react';
+import { useEffect, useMemo, useState, useId } from 'react';
 import { Button } from '@verris/ui';
 import { Select } from '@/components/panel';
 import {
@@ -23,6 +23,8 @@ interface Props {
 
 interface DbRow extends MigrationMysqlInput {
   key: string;
+  username: string;
+  password: string;
 }
 interface BoxRow extends MigrationImapInput {
   key: string;
@@ -115,7 +117,11 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
               remotePath: ftpPath.trim() || '/',
             }
           : undefined,
-      mysql: dbs.map(bezKlucza),
+      mysql: dbs.map(({ key: _k, username, password, ...db }) => ({
+        ...db,
+        ...(username.trim() ? { username: username.trim() } : {}),
+        ...(password ? { password } : {}),
+      })),
       imap: boxes.map(bezKlucza),
     };
   }
@@ -185,6 +191,14 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
     );
     setStep(1);
   }
+
+  // Test dostępów rusza sam po wejściu w krok — klient nie musi wiedzieć, że trzeba go kliknąć.
+  useEffect(() => {
+    if (step === 2 && !preflight && !preflighting) void runPreflight();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+  // Złe hasło = STOP przed startem: inaczej klient dowiaduje się o literówce z maila po godzinie.
+  const zleHaslo = preflight?.checks.some((c) => c.status === 'auth_failed') ?? false;
 
   async function runPreflight() {
     setMsg(null);
@@ -336,7 +350,10 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
             <Button
               type="button"
               disabled={!hasAnySource}
-              onClick={() => setStep(2)}
+              onClick={() => {
+                setPreflight(null);
+                setStep(2);
+              }}
               className="bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-40"
             >
               Dalej: test dostępów →
@@ -347,7 +364,12 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
               <Button type="button" disabled={preflighting} onClick={runPreflight} className="bg-white/10 hover:bg-white/20 text-white">
                 {preflighting ? 'Testuję…' : preflight ? 'Testuj ponownie' : 'Uruchom test'}
               </Button>
-              <Button type="button" onClick={() => setStep(3)} className="bg-cyan-600 hover:bg-cyan-500 text-white">
+              <Button
+                type="button"
+                disabled={preflighting || !preflight || zleHaslo}
+                onClick={() => setStep(3)}
+                className="bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-40"
+              >
                 Dalej: podsumowanie →
               </Button>
             </>
@@ -526,7 +548,10 @@ function StepSources(props: {
           <p className="font-semibold text-emerald-200">
             Wykryto: {discovery.domains.length} domen, {discovery.databases.length} baz, {discovery.mailboxes.length} skrzynek ({discovery.panelType}).
           </p>
-          <p className="mt-1 text-emerald-100/70">Uzupełnij brakujące hasła do baz i skrzynek — reszta jest gotowa.</p>
+          <p className="mt-1 text-emerald-100/70">
+            Uzupełnij hasła skrzynek e-mail — reszta jest gotowa. Strona na WordPressie? Login i hasło bazy zostaw puste,
+            odczytamy je sami.
+          </p>
           {discovery.warnings.map((w) => (
             <p key={w} className="mt-1 text-amber-200/80">⚠ {w}</p>
           ))}
@@ -607,17 +632,24 @@ function StepSources(props: {
         </div>
         {props.dbs.map((row, i) => (
           <div key={row.key} className="grid gap-2 md:grid-cols-6 rounded-xl border border-white/5 p-2">
-            <input className={`${input} md:col-span-2`} placeholder="host" value={row.host} onChange={(e) => patch(props.setDbs, i, { host: e.target.value })} />
-            <input className={input} type="number" placeholder="port" value={row.port} onChange={(e) => patch(props.setDbs, i, { port: Number(e.target.value) })} />
-            <input className={input} placeholder="nazwa bazy" value={row.database} onChange={(e) => patch(props.setDbs, i, { database: e.target.value })} />
-            <input className={input} placeholder="użytkownik" autoComplete="off" value={row.username} onChange={(e) => patch(props.setDbs, i, { username: e.target.value })} />
+            <input className={`${input} md:col-span-2`} aria-label="Serwer bazy" placeholder="serwer bazy" value={row.host} onChange={(e) => patch(props.setDbs, i, { host: e.target.value })} />
+            <input className={input} type="number" aria-label="Port bazy" placeholder="port" value={row.port} onChange={(e) => patch(props.setDbs, i, { port: Number(e.target.value) })} />
+            <input className={input} aria-label="Nazwa bazy" placeholder="nazwa bazy" value={row.database} onChange={(e) => patch(props.setDbs, i, { database: e.target.value })} />
+            <input className={input} aria-label="Użytkownik bazy" placeholder={props.includeFiles ? 'użytkownik (WP: puste)' : 'użytkownik'} autoComplete="off" value={row.username} onChange={(e) => patch(props.setDbs, i, { username: e.target.value })} />
             <div className="flex gap-1">
-              <input className={input} type="password" placeholder="hasło" autoComplete="new-password" value={row.password} onChange={(e) => patch(props.setDbs, i, { password: e.target.value })} />
+              <input className={input} type="password" aria-label="Hasło bazy" placeholder={props.includeFiles ? 'hasło (WP: puste)' : 'hasło'} autoComplete="new-password" value={row.password} onChange={(e) => patch(props.setDbs, i, { password: e.target.value })} />
               <button type="button" onClick={() => props.setDbs((r) => r.filter((_, j) => j !== i))} className="px-2 text-rose-300 hover:text-rose-200" aria-label="Usuń bazę">×</button>
             </div>
           </div>
         ))}
-        {props.dbs.length === 0 ? <p className="text-xs text-neutral-500">Brak baz. Dodaj, jeśli Twoja strona ich używa (np. WordPress, sklep).</p> : null}
+        {props.dbs.length === 0 ? (
+          <p className="text-xs text-neutral-500">Brak baz. Dodaj, jeśli Twoja strona ich używa (np. WordPress, sklep).</p>
+        ) : props.includeFiles ? (
+          <p className="text-xs text-neutral-500">
+            Nie znasz loginu i hasła bazy? Przy WordPressie zostaw je puste — odczytamy je z pliku wp-config.php po
+            skopiowaniu plików strony.
+          </p>
+        ) : null}
       </section>
       </>
       )}
@@ -635,11 +667,11 @@ function StepSources(props: {
         </div>
         {props.boxes.map((row, i) => (
           <div key={row.key} className="grid gap-2 md:grid-cols-6 rounded-xl border border-white/5 p-2">
-            <input className={`${input} md:col-span-2`} placeholder="adres e-mail (np. biuro@twojadomena.pl)" value={row.email ?? ''} onChange={(e) => patch(props.setBoxes, i, { email: e.target.value, username: e.target.value })} />
-            <input className={`${input} md:col-span-2`} placeholder="serwer IMAP (np. imap.stary-hosting.pl)" value={row.host} onChange={(e) => patch(props.setBoxes, i, { host: e.target.value })} />
+            <input className={`${input} md:col-span-2`} aria-label="Adres skrzynki" placeholder="adres e-mail (np. biuro@twojadomena.pl)" value={row.email ?? ''} onChange={(e) => patch(props.setBoxes, i, { email: e.target.value, username: e.target.value })} />
+            <input className={`${input} md:col-span-2`} aria-label="Serwer IMAP" placeholder="serwer IMAP (np. imap.stary-hosting.pl)" value={row.host} onChange={(e) => patch(props.setBoxes, i, { host: e.target.value })} />
             <input className={input} inputMode="numeric" aria-label="port IMAP" title="Port IMAP — zostaw 993, jeśli poprzedni dostawca nie podał innego" value={row.port} onChange={(e) => patch(props.setBoxes, i, { port: Number(e.target.value.replace(/\D/g, '')) || 993 })} />
             <div className="flex gap-1">
-              <input className={input} type="password" placeholder="hasło do skrzynki" autoComplete="new-password" value={row.password} onChange={(e) => patch(props.setBoxes, i, { password: e.target.value })} />
+              <input className={input} type="password" aria-label="Hasło skrzynki" placeholder="hasło do skrzynki" autoComplete="new-password" value={row.password} onChange={(e) => patch(props.setBoxes, i, { password: e.target.value })} />
               <button type="button" onClick={() => props.setBoxes((r) => r.filter((_, j) => j !== i))} className="px-2 text-rose-300 hover:text-rose-200" aria-label="Usuń skrzynkę">×</button>
             </div>
           </div>
@@ -672,12 +704,16 @@ function StepPreflight({
       </p>
       {!preflight ? (
         <Button type="button" disabled={preflighting} onClick={onRun} className="bg-cyan-600 hover:bg-cyan-500 text-white">
-          {preflighting ? 'Testuję dostępy…' : 'Uruchom test dostępów'}
+          {preflighting ? 'Sprawdzam dostępy…' : 'Sprawdź dostępy'}
         </Button>
       ) : (
         <div className={`rounded-xl border px-3 py-2.5 text-xs ${preflight.ok ? 'border-emerald-500/25 bg-emerald-500/[0.06]' : 'border-amber-500/25 bg-amber-500/[0.06]'}`}>
           <p className="font-semibold text-white">
-            {preflight.ok ? 'Wszystko wygląda dobrze ✓' : 'Część źródeł wymaga uwagi (możesz kontynuować)'}
+            {preflight.ok
+              ? 'Wszystko wygląda dobrze ✓'
+              : preflight.checks.some((c) => c.status === 'auth_failed')
+                ? 'Serwer odrzucił login lub hasło — wróć krok wstecz, popraw dane oznaczone czerwoną kropką i sprawdź ponownie'
+                : 'Część źródeł wymaga uwagi — możesz kontynuować, resztę dokończymy po naszej stronie'}
           </p>
           <ul className="mt-1.5 space-y-1">
             {preflight.checks.map((c, i) => (
@@ -689,10 +725,12 @@ function StepPreflight({
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-neutral-500">
-            „Zablokowany zdalny MySQL” to normalne na hostingach współdzielonych — przy transferze
-            pobierzemy bazę przez SSH. Możesz spokojnie przejść dalej.
-          </p>
+          {preflight.checks.some((c) => c.kind === 'mysql' && c.status === 'unreachable') ? (
+            <p className="mt-2 text-neutral-500">
+              Brak zdalnego dostępu do bazy to normalne na hostingach współdzielonych — bazę pobierzemy inną drogą
+              (przez SSH albo jednorazowo przez stronę). Możesz spokojnie przejść dalej.
+            </p>
+          ) : null}
         </div>
       )}
     </div>
