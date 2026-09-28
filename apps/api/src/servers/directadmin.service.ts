@@ -2551,21 +2551,10 @@ export class DirectAdminService {
 
   async listHostingCronJobs(subscriptionId: string, userId: string) {
     try {
-      const raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_CRON', {});
-      const rows: Array<{ id: string; schedule: string; command: string }> = [];
-      for (const [k, v] of raw.entries()) {
-        if (!/^command\d+$/i.test(k)) continue;
-        const idx = k.replace(/\D/g, '');
-        const schedule = [
-          raw.get(`minute${idx}`) ?? '*',
-          raw.get(`hour${idx}`) ?? '*',
-          raw.get(`day_of_month${idx}`) ?? '*',
-          raw.get(`month${idx}`) ?? '*',
-          raw.get(`day_of_week${idx}`) ?? '*',
-        ].join(' ');
-        rows.push({ id: idx, schedule, command: v });
-      }
-      return { rows, fetchError: null as string | null };
+      // DA (changelog 1.21.3): CMD_API_CRON_JOBS zwraca `idcrona=min godz dzień mies dzieńTyg komenda&…`.
+      // Wcześniej szło do CMD_API_CRON, którego DA nie zna (strona HTML) — lista zawsze pusta (sonda na t1, 28.09).
+      const raw = await this.daGetRawForSubscription(subscriptionId, userId, '/CMD_API_CRON_JOBS', {}, { json: false });
+      return { rows: zCronowDa(raw), fetchError: null as string | null };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       return { rows: [], fetchError: msg };
@@ -2577,13 +2566,13 @@ export class DirectAdminService {
     userId: string,
     input: { minute: string; hour: string; dayOfMonth: string; month: string; dayOfWeek: string; command: string },
   ) {
-    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_CRON', {
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_CRON_JOBS', {
       action: 'create',
       minute: input.minute,
       hour: input.hour,
-      day_of_month: input.dayOfMonth,
+      dayofmonth: input.dayOfMonth,
       month: input.month,
-      day_of_week: input.dayOfWeek,
+      dayofweek: input.dayOfWeek,
       command: input.command,
     });
     await this.audit.record({
@@ -2614,7 +2603,7 @@ export class DirectAdminService {
 
   async deleteHostingCronJob(subscriptionId: string, userId: string, id: string) {
     if (!/^\d{1,6}$/.test(id)) throw new BadRequestException('Nieprawidłowy identyfikator zadania.');
-    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_CRON', {
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_CRON_JOBS', {
       action: 'delete',
       select0: id,
     });
@@ -2819,7 +2808,7 @@ export class DirectAdminService {
   }
 
   // ---------------------------------------------------------------------------
-  // Deploy — automatyczne wdrożenia Git oparte o cron DirectAdmin (CMD_API_CRON)
+  // Deploy — automatyczne wdrożenia Git oparte o cron DirectAdmin (CMD_API_CRON_JOBS)
   // ---------------------------------------------------------------------------
   //
   // Każde zadanie wdrożenia to wpis cron z komendą `git pull` w docroot domeny.
@@ -2874,13 +2863,13 @@ export class DirectAdminService {
     const schedule = frequencyToSchedule(input.frequency);
     const command = buildDeployCommand({ domain, branch, build });
 
-    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_CRON', {
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_CRON_JOBS', {
       action: 'create',
       minute: schedule.minute,
       hour: schedule.hour,
-      day_of_month: schedule.dayOfMonth,
+      dayofmonth: schedule.dayOfMonth,
       month: schedule.month,
-      day_of_week: schedule.dayOfWeek,
+      dayofweek: schedule.dayOfWeek,
       command,
     });
     return { ok: true as const };
@@ -2905,6 +2894,7 @@ export class DirectAdminService {
     userId: string,
     path: string,
     params: Record<string, string>,
+    opts: { json?: boolean } = {},
   ): Promise<unknown> {
     const sub = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
@@ -2916,7 +2906,7 @@ export class DirectAdminService {
     const axiosClient = (client as unknown as { client?: SurowyKlientDa }).client;
     if (!axiosClient) throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny. Spróbuj ponownie za chwilę.');
     const res = await axiosClient.get(path, {
-      params: { ...params, api: 'yes', json: 'yes' },
+      params: { ...params, api: 'yes', ...(opts.json === false ? {} : { json: 'yes' }) },
       timeout: 15_000,
     });
     return res?.data;
@@ -3529,4 +3519,19 @@ export function bladDa(text: unknown, details: unknown): string {
   const d = czysc(details);
   const razem = t && d && !t.includes(d) ? `${t}: ${d}` : t || d || 'Błąd serwera hostingowego';
   return razem.slice(0, 500);
+}
+
+/** Lista cronów z CMD_API_CRON_JOBS: `id=min godz dzień mies dzieńTyg komenda` (urlencoded). */
+export function zCronowDa(data: unknown): Array<{ id: string; schedule: string; command: string }> {
+  const t = typeof data === 'string' ? data.trim() : '';
+  if (/^<(!doctype|html)/i.test(t)) throw new BadRequestException('Serwer nie zwrócił listy zadań cron.');
+  const p = new URLSearchParams(t);
+  if (p.get('error') && p.get('error') !== '0') throw new BadRequestException(bladDa(p.get('text'), p.get('details')));
+  const rows: Array<{ id: string; schedule: string; command: string }> = [];
+  for (const [id, v] of p.entries()) {
+    if (!/^\d+$/.test(id)) continue;
+    const m = /^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+([\s\S]+)$/.exec(v.trim());
+    if (m) rows.push({ id, schedule: m.slice(1, 6).join(' '), command: m[6]! });
+  }
+  return rows;
 }

@@ -41,13 +41,14 @@ function stanowisko(o: { status?: string; get?: Record<string, unknown>; post?: 
 }
 
 
-describe('cron (CMD_API_CRON)', () => {
+describe('cron (CMD_API_CRON_JOBS)', () => {
   const zadanie = { minute: '*/5', hour: '*', dayOfMonth: '*', month: '*', dayOfWeek: '*', command: 'php ~/domains/firma.pl/public_html/cron.php' };
 
   it('dodanie: pola crona 1:1 do DA i wpis w audycie z komendą', async () => {
     const s = stanowisko();
     await s.svc.createHostingCronJob('s1', 'u1', zadanie);
-    expect(s.wyslane()).toEqual({ action: 'create', minute: '*/5', hour: '*', day_of_month: '*', month: '*', day_of_week: '*', command: zadanie.command, api: 'yes' });
+    expect(s.post.mock.calls[0]?.[0]).toBe('/CMD_API_CRON_JOBS');
+    expect(s.wyslane()).toEqual({ action: 'create', minute: '*/5', hour: '*', dayofmonth: '*', month: '*', dayofweek: '*', command: zadanie.command, api: 'yes' });
     expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'HOSTING_CRON_CREATED', details: { subscriptionId: 's1', command: zadanie.command } }));
   });
 

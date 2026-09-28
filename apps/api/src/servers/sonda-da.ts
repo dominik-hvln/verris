@@ -22,7 +22,7 @@ export const ODCZYTY_DA: Array<{ poziom: 'konto' | 'admin'; sciezka: string }> =
   { poziom: 'konto', sciezka: '/CMD_API_FTP?action=list&domain={D}' },
   { poziom: 'konto', sciezka: '/CMD_API_DATABASES' },
   { poziom: 'konto', sciezka: '/CMD_API_SSL?domain={D}' },
-  { poziom: 'konto', sciezka: '/CMD_API_CRON' },
+  { poziom: 'konto', sciezka: '/CMD_API_CRON_JOBS' },
   { poziom: 'konto', sciezka: '/CMD_API_SITE_BACKUP?domain={D}' },
   { poziom: 'konto', sciezka: '/CMD_API_FILE_MANAGER?path=/domains/{D}' },
   { poziom: 'admin', sciezka: '/CMD_API_CUSTOM_HTTPD?domain={D}' },
@@ -47,7 +47,9 @@ export function opiszOdpowiedz(body: string): { format: string; ksztalt: string 
   const t = body.trim();
   if (t.startsWith('{') || t.startsWith('[')) {
     try {
-      return { format: 'json', ksztalt: ksztalt(JSON.parse(t)) };
+      const j = JSON.parse(t) as unknown;
+      const o = (j && typeof j === 'object' && !Array.isArray(j) ? j : {}) as Record<string, unknown>;
+      return { format: 'json', ksztalt: ksztalt(j) + komunikatBledu(o.error, o.text ?? o.result, o.details ?? o.extended) };
     } catch {
       /* nie JSON — dalej */
     }
@@ -56,7 +58,18 @@ export function opiszOdpowiedz(body: string): { format: string; ksztalt: string 
   const pierwsza = t.split('\n', 1)[0] ?? '';
   if (pierwsza.includes('=') && !(t.split('&', 1)[0] ?? '').includes(' ')) {
     const klucze = t.split('&').filter(Boolean).map((x) => x.split('=', 1)[0]);
-    return { format: 'urlencoded', ksztalt: `${klucze.length} pól: ${klucze.slice(0, 30).join(', ')}${klucze.length > 30 ? ' …' : ''}` };
+    const p = new URLSearchParams(t);
+    return {
+      format: 'urlencoded',
+      ksztalt: `${klucze.length} pól: ${klucze.slice(0, 30).join(', ')}${klucze.length > 30 ? ' …' : ''}` + komunikatBledu(p.get('error'), p.get('text'), p.get('details')),
+    };
   }
   return { format: 'tekst', ksztalt: `${t.length} B, ${t ? t.split('\n').length : 0} linii` };
+}
+
+/** Przy błędzie DA pokazujemy jego komunikat (tekst DA, nie dane konta) — bez niego sonda nie mówi, co naprawić. */
+function komunikatBledu(error: unknown, text: unknown, details: unknown): string {
+  if (error == null || String(error) === '0' || String(error) === 'false') return '';
+  const t = [text, details].filter((x) => x != null && String(x).trim()).map((x) => String(x).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+  return t.length ? ` · błąd DA: ${t.join(' — ').slice(0, 200)}` : '';
 }

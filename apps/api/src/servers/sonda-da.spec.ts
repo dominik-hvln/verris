@@ -1,5 +1,6 @@
 import { bladDa } from './directadmin.service.js';
 import { opiszOdpowiedz } from './sonda-da.js';
+import { zCronowDa } from './directadmin.service.js';
 
 describe('sonda API DA — kształt bez wartości', () => {
   it('json: nazwy pól i typy, bez wartości', () => {
@@ -22,5 +23,21 @@ describe('bladDa — powód z details, nie sam ogólnik', () => {
     );
     expect(bladDa('Rate limit', null)).toBe('Rate limit');
     expect(bladDa(undefined, undefined)).toBe('Błąd serwera hostingowego');
+  });
+});
+
+describe('sonda i cron — formaty z żywego DA (t1, 28.09)', () => {
+  it('błąd DA z komunikatem', () => {
+    expect(opiszOdpowiedz('{"error":"1","result":"SpamAssassin nie jest włączony"}').ksztalt).toContain('błąd DA: SpamAssassin nie jest włączony');
+    expect(opiszOdpowiedz('error=1&text=Brak&details=pakietu').ksztalt).toContain('błąd DA: Brak — pakietu');
+  });
+  it('CMD_API_CRON_JOBS: id=harmonogram komenda; HTML → błąd', () => {
+    const body = new URLSearchParams({ '12': '*/5 * * * * php ~/cron.php --x "a b"', '3': '0 2 * * 0 /bin/true' }).toString();
+    expect(zCronowDa(body)).toEqual([
+      { id: '3', schedule: '0 2 * * 0', command: '/bin/true' },
+      { id: '12', schedule: '*/5 * * * *', command: 'php ~/cron.php --x "a b"' },
+    ]);
+    expect(zCronowDa('')).toEqual([]);
+    expect(() => zCronowDa('<!DOCTYPE html>')).toThrow();
   });
 });

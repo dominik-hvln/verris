@@ -177,28 +177,28 @@ describe('Retencja kopii (pruneHostingBackups) — kasuje pliki', () => {
 });
 
 describe('Tryb EKO — harmonogram crona kopii (applyEcoModeBackupCronPolicy)', () => {
-  const CRON = {
-    minute0: '15', hour0: '3', day_of_month0: '*', month0: '*', day_of_week0: '*',
-    command0: '/usr/local/bin/da-cli CMD_API_SITE_BACKUP',
-    minute1: '0', hour1: '*', day_of_month1: '*', month1: '*', day_of_week1: '*',
-    command1: 'php ~/cron.php',
-  };
+  // Format DA (changelog 1.21.3): `idcrona=min godz dzień mies dzieńTyg komenda`.
+  const CRON = new URLSearchParams({
+    '0': '15 3 * * * /usr/local/bin/da-cli CMD_API_SITE_BACKUP',
+    '1': '0 * * * * php ~/cron.php',
+  }).toString();
+  const KOMENDA_KOPII = '/usr/local/bin/da-cli CMD_API_SITE_BACKUP';
 
   it('EKO włączone: kopia dzienna → niedziela z zachowaniem godziny; inne crony nietknięte', async () => {
-    const s = stanowisko({ get: { '/CMD_API_CRON': CRON } });
+    const s = stanowisko({ get: { '/CMD_API_CRON_JOBS': CRON } });
     const wynik = await s.svc.applyEcoModeBackupCronPolicy('s1', 'u1', true);
     expect(wynik.adjusted).toBe(1);
     const akcje = s.post.mock.calls.map((_c, i) => s.wyslane(i));
     expect(akcje).toHaveLength(2);
     expect(akcje).toContainEqual({
-      action: 'create', minute: '15', hour: '3', day_of_month: '*', month: '*', day_of_week: '0',
-      command: CRON.command0, api: 'yes',
+      action: 'create', minute: '15', hour: '3', dayofmonth: '*', month: '*', dayofweek: '0',
+      command: KOMENDA_KOPII, api: 'yes',
     });
     expect(akcje).toContainEqual({ action: 'delete', select0: '0', api: 'yes' });
   });
 
   it('DA odrzuca nowe zadanie → stare zostaje; najpierw create, potem delete (jak L-03)', async () => {
-    const s = stanowisko({ get: { '/CMD_API_CRON': CRON } });
+    const s = stanowisko({ get: { '/CMD_API_CRON_JOBS': CRON } });
     s.post.mockImplementation((_p: string, body?: unknown) =>
       odp(new URLSearchParams(String(body)).get('action') === 'create' ? 'error=1&text=Limit%20cron%C3%B3w' : 'error=0'),
     );
@@ -208,7 +208,7 @@ describe('Tryb EKO — harmonogram crona kopii (applyEcoModeBackupCronPolicy)', 
   });
 
   it('błąd odczytu crona → bez zmian i z komunikatem', async () => {
-    const s = stanowisko({ get: { '/CMD_API_CRON': new Error('ECONNREFUSED') } });
+    const s = stanowisko({ get: { '/CMD_API_CRON_JOBS': new Error('ECONNREFUSED') } });
     expect(await s.svc.applyEcoModeBackupCronPolicy('s1', 'u1', false)).toEqual({ adjusted: 0, notice: 'Bez zmian harmonogramu w DA: ECONNREFUSED' });
     expect(s.post).not.toHaveBeenCalled();
   });

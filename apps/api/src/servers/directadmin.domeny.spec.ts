@@ -198,7 +198,7 @@ describe('Deploy z Git (cron)', () => {
     const s = stanowisko();
     await s.svc.createDeployJob('s1', 'u1', { domain: 'firma.pl', branch: 'release/2.1', buildCommand: 'npm run build', frequency: 'hourly' });
     expect(s.wyslane()).toEqual({
-      action: 'create', minute: '0', hour: '*', day_of_month: '*', month: '*', day_of_week: '*', api: 'yes',
+      action: 'create', minute: '0', hour: '*', dayofmonth: '*', month: '*', dayofweek: '*', api: 'yes',
       command: 'cd $HOME/domains/firma.pl/public_html && git pull origin release/2.1 && npm run build # verris-deploy d=firma.pl b=release/2.1',
     });
   });

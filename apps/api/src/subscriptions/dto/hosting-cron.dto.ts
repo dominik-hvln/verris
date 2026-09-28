@@ -1,7 +1,7 @@
 import { IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 /**
- * L-03 / X-09 — zadanie cron od klienta idzie prosto do DirectAdmina (CMD_API_CRON),
+ * L-03 / X-09 — zadanie cron od klienta idzie prosto do DirectAdmina (CMD_API_CRON_JOBS),
  * który zapisuje je do crontaba konta. Do 2026-09-23 body było interfejsem, czyli
  * bez żadnej walidacji: znak nowej linii w komendzie albo w polu harmonogramu
  * dopisywał do crontaba dodatkowy wiersz.
