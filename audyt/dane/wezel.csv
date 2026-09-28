@@ -2,13 +2,13 @@ id,stan,data,uwagi
 A-25,czeka,,
 A-26,czeka,,
 B-05,czeka,,
-B-06,czeka,,
+B-06,sprawdzone,2026-09-28,podgląd PHP z IP konta
 B-17,czeka,,
 B-18,czeka,,
 C-11,czeka,,
 C-14,czeka,,
 C-15,czeka,,
-C-18,czeka,,
+C-18,czeka,,29.09: lista FTP DA 1.710 = login@domena=ścieżka — poprawka bcce42d; potem zmiana hasła na koncie dodatkowym
 C-21,czeka,,
 C-22,czeka,,
 C-25,czeka,,
@@ -17,12 +17,12 @@ D-08,czeka,,
 D-12,czeka,,
 D-15,czeka,,
 D-18,czeka,,
-E-05,czeka,,
+E-05,czeka,,"29.09: lista skrzynek pokazywała „bez limitu” (1 GB w DA) — poprawka b8d4f53 (type=quota, bajty → MB); potem zmiana rozmiaru"
 E-06,czeka,,
-E-15,czeka,,
-E-17,czeka,,
-E-19,czeka,,
-F-01,czeka,,
+E-15,sprawdzone,2026-09-29,SPF poprawny na d3.hvln.pl
+E-17,sprawdzone,2026-09-29,DMARC dodany z panelu
+E-19,czeka,,"29.09: zadanie MAIL_LOG przechodzi na t1, „brak zdarzeń” — czeka na ruch pocztowy (wysyłka/odbiór z test@d3.hvln.pl)"
+F-01,sprawdzone,2026-09-29,lista/dodanie/edycja/usunięcie + DMARC na d3.hvln.pl
 F-02,czeka,,
 F-11,czeka,,
 G-07,czeka,,
@@ -39,7 +39,7 @@ I-15,czeka,,
 J-02,czeka,,
 J-03,czeka,,
 K-03,czeka,,
-L-03,czeka,,
+L-03,sprawdzone,2026-09-28,CMD_API_CRON_JOBS create/delete
 L-05,czeka,,
 L-06,czeka,,
 N-10,czeka,,
@@ -57,7 +57,7 @@ I-14,czeka,,
 E-21,czeka,,
 E-16,czeka,,
 H-13,czeka,,
-A-06,czeka,,"CMD_API_CUSTOM_HTTPD: format GET (config), klucz admina, przebudowa pod LSWS"
+A-06,czeka,,"CMD_API_CUSTOM_HTTPD: format GET (config), klucz admina, przebudowa pod LSWS; 28.09: odczyt „Teraz: public_html” działa po trescCustomHttpd; zapis do sprawdzenia"
 B-04,czeka,,"selectorctl: --user-current, --list-user-extensions --all, --set-user-current, --enable/--disable-user-extensions na koncie alt-php"
 H-14,czeka,,admin-backup per konto + rclone sync drzewa; raport ok/rc=3
 G-09,czeka,,da build modsecurity; SecRuleEngine w .htaccess pod LSWS (DetectionOnly/On)
@@ -65,10 +65,10 @@ Q-14,czeka,,IP w IP Manager; default_ttl; ./build clean/php/litespeed; letsencry
 Z-18,czeka,,"provisioning na węźle: zerwane połączenie z DA w trakcie → PONOWIENIE w audycie, konto założone przy drugiej próbie"
 F-06,czeka,,"D3: na węźle dnssec=1 (node-hosting-profile.sh), „Włącz DNSSEC” w panelu → dig +dnssec pokazuje RRSIG, format get_keys (DS, signed_on) zgodny z parserem; transfer podpisanej strefy do secondary (ClouDNS); wyłączenie przywraca strefę bez podpisu."
 E-12,czeka,,D3: da build dovecot_pigeonhole na węźle (log /var/log/verris-pigeonhole.log); w Roundcube DA widać Ustawienia → Filtry (managesieve); reguła „przenieś do folderu” działa dla poczty przychodzącej; jeśli Roundcube DA nie ma managesieve — dopisać plugin w konfiguracji Roundcube według dokumentacji DA/Roundcube.
-H-04,czeka,,D3: node-offsite-backup.sh z RETENTION_DAYS=30 działa dobowo; w panelu „Szukam kopii z konkretnego dnia” dla dnia sprzed 20–29 dni → lista archiwów → pobranie → przywrócenie przez kopie konta.
+H-04,czeka,,D3: node-offsite-backup.sh z RETENTION_DAYS=30 działa dobowo; w panelu „Szukam kopii z konkretnego dnia” dla dnia sprzed 20–29 dni → lista archiwów → pobranie → przywrócenie przez kopie konta.; 29.09: konto nowsze niż ostatni przebieg off-site — panel mówił „chronione”; poprawka 8f7b043 (pierwsza kopia przy następnym przebiegu); sprawdzić po nocnym przebiegu
 B-08,czeka,,"D3: po profilu węzła `cloudlinux-selector get --json --interpreter nodejs` i `python` pokazują selector_enabled=true i włączone wersje; w panelu utwórz aplikację Express (app.js) i Flask (passenger_wsgi.py, obiekt application) pod domeną/ścieżką → strona odpowiada przez LiteSpeed; Zależności (package.json / requirements.txt), Zatrzymaj/Uruchom, Edytuj zmienne, Usuń; sprawdzić, że katalog w public_html jest odrzucany."
 B-09,czeka,,"D3: po profilu węzła `cloudlinux-selector get --json --interpreter nodejs` i `python` pokazują selector_enabled=true i włączone wersje; w panelu utwórz aplikację Express (app.js) i Flask (passenger_wsgi.py, obiekt application) pod domeną/ścieżką → strona odpowiada przez LiteSpeed; Zależności (package.json / requirements.txt), Zatrzymaj/Uruchom, Edytuj zmienne, Usuń; sprawdzić, że katalog w public_html jest odrzucany."
-I-01,czeka,,"D3: na świeżym koncie (z domyślną stroną Verris) zainstaluj z panelu Joomla i MediaWiki — instalacja rusza mimo index.html/assets, po niej strona pokazuje aplikację (nie stronę Verris), logowanie do /administrator (Joomla) i Specjalna:Zaloguj (MediaWiki) hasłem z panelu; to samo dla WordPressa."
+I-01,czeka,,"D3: na świeżym koncie (z domyślną stroną Verris) zainstaluj z panelu Joomla i MediaWiki — instalacja rusza mimo index.html/assets, po niej strona pokazuje aplikację (nie stronę Verris), logowanie do /administrator (Joomla) i Specjalna:Zaloguj (MediaWiki) hasłem z panelu; to samo dla WordPressa.; 28.09: WordPress 1-click na d3.hvln.pl działa; Joomla i MediaWiki jeszcze do sprawdzenia"
 I-07,czeka,,D3: z WORDFENCE_API_KEY na produkcji — w logach API „Wordfence feed: N wpisów” po 05:40 UTC (albo ręczne wywołanie); strona WordPress ze starą wersją znanej podatnej wtyczki (np. zainstalowana starsza wersja) pokazuje ją w „Znane podatności” z poprawką i linkiem.
 H-16,czeka,,"D3 (wymaga dwóch węzłów): konto testowe z węzła A → admin „Odtworzenie na innym węźle” na węzeł B → lista kopii z nodes/<A> → odtworzenie; w DA węzła B konto z IP węzła B, strona i poczta działają; w panelu konto wskazuje węzeł B (audyt ACCOUNT_MOVED_TO_NODE); próba na węźle, gdzie konto już jest → odmowa."
 K-14,czeka,,"D3: po profilu węzła SELECT @@slow_query_log, @@long_query_time = 1, 2; na koncie testowym zapytanie SELECT SLEEP(3) z bazy konta → panel Bazy danych → „Odczytaj” pokazuje je bez wartości; zapytania innego konta nie widać."
@@ -76,7 +76,7 @@ D-16,czeka,,"D3: po profilu węzła memcached zainstalowany, ss -ltnp bez 11211;
 PB-19,czeka,,"D3: na stronie z ruchem widok strony pokazuje odwiedzających/żądania/5xx z 7 dni zgodnie z /var/log/httpd/domains/<domena>.log, TTFB w ms, technologię z wersją; zakładka Logi pokazuje log tej domeny; domena bez logu → „—”."
 G-21,czeka,,"D3: w WebAdmin LiteSpeed węzła ustawione Per-Client Throttling wg ops/docs/DDOS.md; test: ab/hey na stronę testową z jednego IP → po przekroczeniu limitu odrzucenia/ban, inne IP bez wpływu."
 D-14,czeka,,"D3: po profilu węzła `systemctl status postgresql` aktywny, `ss -ltnp` — 5432 tylko na 127.0.0.1/::1; w panelu utwórz bazę → połączenie z PHP (pdo_pgsql włączone w PHP Selectorze) na 127.0.0.1 działa; drugi login nie łączy się do cudzej bazy; nowe hasło działa, stare nie; po `verris-pgsql-dump` plik w ~/.verris-pgsql/ i w kopii DA; usunięcie konta w DA usuwa bazy; sprawdzić nazwę opcji CustomBuild dla pdo_pgsql (1.707)."
-B-03,czeka,,"D3: katalog z własnym index.php (phpinfo) — ustaw w panelu PHP 7.4 dla katalogu, 8.3 dla domeny; katalog pokazuje 7.4, reszta strony 8.3; „Jak domena” przywraca; wersja niezainstalowana → komunikat."
+B-03,czeka,,"D3: katalog z własnym index.php (phpinfo) — ustaw w panelu PHP 7.4 dla katalogu, 8.3 dla domeny; katalog pokazuje 7.4, reszta strony 8.3; „Jak domena” przywraca; wersja niezainstalowana → komunikat.; 28.09: czeka na handler alt-php w LiteSpeed (0cc479f + profil) — ten sam blok co B-02"
 E-23,czeka,,"D3: po profilu `systemctl status verris-radicale` aktywny, gniazdo Dovecota dostępne dla grupy; iPhone/DAVx5: konto CalDAV/CardDAV https://<węzeł>:5232/ danymi skrzynki — Kalendarz i Kontakty widoczne, wydarzenie z telefonu wraca na drugie urządzenie; złe hasło 5× → blokada IP jak dla IMAP; po nocy archiwum w ~/.verris-dav/ i w kopii DA."
 J-06,czeka,,"D3: strona z kilkuset zdjęciami w wp-content/uploads — optymalizacja w panelu kończy się wynikiem (plików, MB przed/po), obrazy wyglądają tak samo, drugie uruchomienie = 0 plików, nowe zdjęcie → 1 plik; jpegoptim/optipng zainstalowane przez profil."
 PB-29,czeka,,węzeł testowy
