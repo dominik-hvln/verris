@@ -24,7 +24,7 @@ describe('PhpService — rozszerzenia (B-04)', () => {
   it('zleca PHP_APPLY z listami dla bieżącej wersji konta i wpisem w dzienniku', async () => {
     const s = stanowisko();
     await s.svc.setExtensionsForSubscription('s1', 'u1', { enable: ['Intl', 'intl', 'imagick'], disable: ['xsl'] });
-    expect(payload(s)).toEqual({ daUser: 'klient1', domain: 'a.pl', version: '8.3', extEnable: 'intl,imagick', extDisable: 'xsl' });
+    expect(payload(s)).toEqual({ daUser: 'klient1', domain: 'a.pl', version: '8.3', poprzednia: '8.3', extEnable: 'intl,imagick', extDisable: 'xsl' });
     expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'PHP_EXTENSIONS_CHANGE_QUEUED' }));
   });
 
@@ -51,6 +51,6 @@ describe('PhpService — rozszerzenia (B-04)', () => {
     await expect(stanowisko({ wToku: { id: 'x' } }).svc.setExtensionsForSubscription('s1', 'u1', { enable: ['intl'] })).rejects.toBeInstanceOf(ConflictException);
     const s = stanowisko();
     await s.svc.setVersionForSubscription('s1', 'u1', '8.2');
-    expect(payload(s)).toEqual({ daUser: 'klient1', domain: 'a.pl', version: '8.2' });
+    expect(payload(s)).toEqual({ daUser: 'klient1', domain: 'a.pl', version: '8.2', poprzednia: '8.3' });
   });
 });

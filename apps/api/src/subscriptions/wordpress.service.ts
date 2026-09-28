@@ -10,6 +10,7 @@ import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
+import { bladZadaniaDlaKlienta } from './blad-zadania.js';
 
 /**
  * A4 — 1-click WordPress installer.
@@ -43,7 +44,7 @@ export class WordpressService {
         ? {
             id: task.id,
             status: task.status,
-            errorMessage: task.errorMessage,
+            errorMessage: bladZadaniaDlaKlienta(task.errorMessage, task.outputLog),
             createdAt: task.createdAt.toISOString(),
             completedAt: task.completedAt?.toISOString() ?? null,
           }

@@ -1177,15 +1177,28 @@ configure_hosting_capabilities() {
     fi
   fi
 
-  # A2 — PHP Selector (CloudLinux): wymaga lvemanager + alt-php. Best-effort.
+  # A2 — PHP Selector (CloudLinux): lvemanager + pakiety alt-php. Wersje = domyślna lista
+  # platformy (php.availableVersions); inna lista → VERRIS_PHP_VERSIONS. Na CloudLinux 10 alt-php
+  # są w repo php-els (KB CloudLinux „Install alt-php on CloudLinux 10”: els-php-release, potem
+  # groupinstall alt-phpXX). Bez tego selektor nie zna żadnej wersji i każda zmiana PHP z panelu
+  # kończy się błędem „wersja nie jest zainstalowana” (test D3 na t1, 28.09).
   if command -v cloudlinux-config >/dev/null 2>&1 || [ -d /opt/alt ]; then
     if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ]; then
-      yum install -y lvemanager alt-php-config >/dev/null 2>&1 || \
-        dnf install -y lvemanager alt-php-config >/dev/null 2>&1 || \
-        log_skip "lvemanager/alt-php — zainstaluj ręcznie dla PHP Selectora"
+      dnf install -y lvemanager alt-php-config >/dev/null 2>&1 || log_warn "lvemanager/alt-php-config — instalacja nie powiodła się"
+      rpm -q els-php-release >/dev/null 2>&1 || dnf install -y els-php-release >/dev/null 2>&1 || true
+      local php_brak=""
+      for v in ${VERRIS_PHP_VERSIONS:-8.3 8.2 8.1 8.0 7.4}; do
+        selectorctl --list --interpreter=php 2>/dev/null | awk '{print $1}' | grep -qx "$v" && continue
+        dnf groupinstall -y "alt-php${v/./}" >>/var/log/verris-alt-php.log 2>&1 || true
+        selectorctl --list --interpreter=php 2>/dev/null | awk '{print $1}' | grep -qx "$v" || php_brak="$php_brak $v"
+      done
       cldiag --check-php-selector >/dev/null 2>&1 || true
+      if [ -z "$php_brak" ]; then
+        log_ok "PHP Selector (CloudLinux): wersje ${VERRIS_PHP_VERSIONS:-8.3 8.2 8.1 8.0 7.4} dostępne"
+      else
+        log_fail "PHP Selector: brak wersji$php_brak po groupinstall — /var/log/verris-alt-php.log"
+      fi
     fi
-    log_ok "PHP Selector (CloudLinux) — lvemanager obecny lub doinstalowany"
   else
     log_skip "PHP Selector — brak CloudLinux lvemanager (węzeł bez CL?)"
   fi

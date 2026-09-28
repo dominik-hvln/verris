@@ -10,6 +10,7 @@ import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
+import { bladZadaniaDlaKlienta } from './blad-zadania.js';
 
 interface AppCatalogEntry {
   slug: string;
@@ -89,7 +90,7 @@ export class AppInstallService {
         id: t.id,
         app: (t.payload as { app?: string } | null)?.app ?? null,
         status: t.status,
-        errorMessage: t.errorMessage,
+        errorMessage: bladZadaniaDlaKlienta(t.errorMessage, t.outputLog),
         createdAt: t.createdAt.toISOString(),
         completedAt: t.completedAt?.toISOString() ?? null,
       })),

@@ -8,6 +8,7 @@ import {
 import { NodeTaskKind, NodeTaskStatus, WafMode } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
+import { bladZadaniaDlaKlienta } from './blad-zadania.js';
 
 /**
  * B2 — ModSecurity WAF (OWASP CRS) per account.
@@ -145,7 +146,7 @@ export class WafService {
         ? {
             id: lastTask.id,
             status: lastTask.status,
-            errorMessage: lastTask.errorMessage,
+            errorMessage: bladZadaniaDlaKlienta(lastTask.errorMessage, lastTask.outputLog),
             createdAt: lastTask.createdAt.toISOString(),
             completedAt: lastTask.completedAt?.toISOString() ?? null,
           }

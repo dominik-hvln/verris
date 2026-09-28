@@ -60,6 +60,14 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
     expect(t).not.toContain('task.queue');
   });
 
+  it('profil: alt-php z repo php-els (CL10) i sprawdzenie każdej wersji w selektorze, bez OK na ślepo', () => {
+    const t = czytaj('node-hosting-profile.sh');
+    expect(t).toContain('els-php-release');
+    expect(t).toMatch(/groupinstall -y "alt-php\$\{v\/\.\/\}"/);
+    expect(t).toMatch(/for v in \$\{VERRIS_PHP_VERSIONS:-8\.3 8\.2 8\.1 8\.0 7\.4\}/);
+    expect(t).toContain('log_fail "PHP Selector: brak wersji');
+  });
+
   it('profil węzła: ModSecurity budowane, default_ttl zamiast dns_ttl, składnia CustomBuild 2', () => {
     const t = czytaj('node-hosting-profile.sh');
     expect(t).toMatch(/"\$BUILD" modsecurity/);

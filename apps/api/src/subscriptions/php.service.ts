@@ -9,6 +9,7 @@ import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
+import { bladZadaniaDlaKlienta } from './blad-zadania.js';
 
 /**
  * P-6 — per-account PHP version selection (CloudLinux PHP Selector).
@@ -97,6 +98,8 @@ export class PhpService {
             daUser: account.daUsername,
             domain: account.domain,
             version,
+            // Do przywrócenia, gdy węzeł odrzuci zmianę (node-tasks.service → failTaskFromNode).
+            poprzednia: account.phpVersion,
             ...(ext ? { extEnable: ext.enable.join(','), extDisable: ext.disable.join(',') } : {}),
           },
         },
@@ -137,7 +140,7 @@ export class PhpService {
         ? {
             id: lastTask.id,
             status: lastTask.status,
-            errorMessage: lastTask.errorMessage,
+            errorMessage: bladZadaniaDlaKlienta(lastTask.errorMessage, lastTask.outputLog),
             createdAt: lastTask.createdAt.toISOString(),
             completedAt: lastTask.completedAt?.toISOString() ?? null,
           }

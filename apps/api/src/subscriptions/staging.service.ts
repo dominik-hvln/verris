@@ -10,6 +10,7 @@ import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
+import { bladZadaniaDlaKlienta } from './blad-zadania.js';
 
 const STAGING_SUB = 'staging';
 
@@ -56,7 +57,7 @@ export class StagingService {
             id: lastTask.id,
             direction: payload.direction ?? null,
             status: lastTask.status,
-            errorMessage: lastTask.errorMessage,
+            errorMessage: bladZadaniaDlaKlienta(lastTask.errorMessage, lastTask.outputLog),
             createdAt: lastTask.createdAt.toISOString(),
             completedAt: lastTask.completedAt?.toISOString() ?? null,
           }

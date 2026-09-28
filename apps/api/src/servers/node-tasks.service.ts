@@ -764,6 +764,15 @@ export class NodeTasksService {
     await this.webhooks?.poZadaniu(task, false);
     if (task.kind === NodeTaskKind.FLEET_UPDATE) await this.dalejFala(task, false);
 
+    // P-6 — panel zapisuje wersję PHP przy zleceniu; odrzucona przez węzeł nie może zostać
+    // pokazana klientowi jako „aktualna”. Wracamy do wersji sprzed zlecenia.
+    const php = (task.payload ?? {}) as { poprzednia?: string | null };
+    if (task.kind === NodeTaskKind.PHP_APPLY && task.accountId && 'poprzednia' in php) {
+      await this.prisma.account
+        .update({ where: { id: task.accountId }, data: { phpVersion: php.poprzednia ?? null } })
+        .catch((err) => this.logger.warn(`phpVersion revert failed account=${task.accountId}: ${err instanceof Error ? err.message : String(err)}`));
+    }
+
     return this.toPublicTask(updated);
   }
 
