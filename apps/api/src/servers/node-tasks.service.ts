@@ -90,6 +90,15 @@ export class NodeTasksService {
       action: zielony ? 'NODE_ONBOARD_VERIFIED' : 'NODE_ONBOARD_FAILED',
       details: { serverId, fail: r.fail, warn: r.warn },
     });
+    // Skrypt onboardu tworzy pakiety o nazwach z czasu jego napisania (starter/pro/business), a plany
+    // w panelu się zmieniają — węzeł testowy 28.09 nie miał pakietów verris-hosting i poczta-standard.
+    // Zielony onboard = pakiety wszystkich aktywnych planów z panelu (best-effort; provisioning i tak
+    // robi ensureUserPackage, a audyt pokaże brak).
+    if (zielony) {
+      void this.directAdmin.syncPlanPackagesForServer(serverId).catch((err: unknown) => {
+        this.logger.warn(`Sync pakietów DA po onboardzie server=${serverId}: ${err instanceof Error ? err.message : String(err)}`);
+      });
+    }
   }
 
   async queueHostingProfile(

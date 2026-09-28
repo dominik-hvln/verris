@@ -76,7 +76,7 @@ export class OnboardAdminController {
   @StaffPerm('NODES_VIEW')
   async stan(@Param('id') id: string) {
     const [srv, zadanie] = await Promise.all([
-      this.prisma.server.findUnique({ where: { id }, select: { onboardVerifiedAt: true, onboardReport: true } }),
+      this.prisma.server.findUnique({ where: { id }, select: { onboardVerifiedAt: true, onboardReport: true, acceptsNewAccounts: true } }),
       this.prisma.nodeTask.findFirst({
         where: { serverId: id, kind: 'ONBOARD_LIVE' },
         orderBy: { createdAt: 'desc' },
@@ -85,6 +85,7 @@ export class OnboardAdminController {
     ]);
     return {
       zweryfikowany: srv?.onboardVerifiedAt ?? null,
+      noweKonta: srv?.acceptsNewAccounts ?? false,
       raport: srv?.onboardReport ?? null,
       zadanie: zadanie ?? null,
       trwa: zadanie ? zadanie.status === NodeTaskStatus.QUEUED || zadanie.status === NodeTaskStatus.RUNNING : false,

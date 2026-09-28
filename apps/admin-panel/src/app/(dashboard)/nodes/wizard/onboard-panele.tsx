@@ -213,7 +213,7 @@ export function OnboardLivePanel({ serverId }: { serverId: string }) {
         <p className="flex items-center gap-2 text-sm">
           {stan.zweryfikowany ? <CheckCircle2 className="h-4 w-4 text-emerald-300" /> : <XCircle className="h-4 w-4 text-amber-300" />}
           {stan.zweryfikowany
-            ? `Węzeł zweryfikowany ${new Date(stan.zweryfikowany).toLocaleString("pl-PL")} — przyjmuje nowe konta.`
+            ? `Węzeł zweryfikowany ${new Date(stan.zweryfikowany).toLocaleString("pl-PL")} — ${stan.noweKonta === false ? "nowe konta wstrzymane (poza pulą)." : "przyjmuje nowe konta."}`
             : "Węzeł nie jest zweryfikowany — nie dostaje nowych kont."}
         </p>
       ) : null}

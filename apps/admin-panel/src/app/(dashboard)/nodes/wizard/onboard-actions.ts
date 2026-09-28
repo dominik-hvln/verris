@@ -9,6 +9,8 @@ export type PodgladOffsite =
 
 export interface StanOnboardu {
   zweryfikowany: string | null;
+  /** acceptsNewAccounts — admin może wstrzymać węzeł mimo zielonego onboardu. */
+  noweKonta?: boolean;
   raport: { ok?: boolean; fail?: number; warn?: number; podsumowanie?: string; at?: string } | null;
   zadanie: { id: string; status: string; createdAt: string; startedAt: string | null; completedAt: string | null; errorMessage: string | null } | null;
   trwa: boolean;

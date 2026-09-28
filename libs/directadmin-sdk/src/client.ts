@@ -223,6 +223,20 @@ function bladDa(tekst: string, prefiks = ''): DirectAdminApiError {
   return new DirectAdminApiError(`${prefiks}${tekst}`.trim(), tekst.trim());
 }
 
+/**
+ * `CMD_API_IP_CONFIG` w dwóch formatach: starszy `list[]=1.2.3.4&…` oraz DA 1.710
+ * `1.2.3.4=gateway%3D%26ip%3D1.2.3.4%26…` (klucz = adres). Czytając tylko `list[]` audyt na DA 1.710
+ * zgłaszał „IP nie jest zarejestrowane” przy poprawnie dodanym IP (węzeł testowy, 28.09).
+ */
+export function parseIpConfig(body: string): string[] {
+  const ips = new Set<string>();
+  for (const [key, value] of new URLSearchParams(body).entries()) {
+    if (key.startsWith('list')) ips.add(value.trim());
+    else if (/^(\d{1,3}\.){3}\d{1,3}$|^[0-9a-f:]+:[0-9a-f:]*$/i.test(key)) ips.add(key.trim());
+  }
+  return [...ips].filter(Boolean);
+}
+
 export class DirectAdminClient {
   private client: AxiosInstance;
   private readonly usernameValue: string;
@@ -527,12 +541,7 @@ export class DirectAdminClient {
    */
   async listServerIps(): Promise<string[]> {
     const response = await this.client.get('/CMD_API_IP_CONFIG');
-    const params = new URLSearchParams(response.data);
-    const list: string[] = [];
-    for (const [key, value] of params.entries()) {
-      if (key.startsWith('list')) list.push(value);
-    }
-    return list;
+    return parseIpConfig(String(response.data ?? ''));
   }
 
   async listUserPackages(): Promise<string[]> {
