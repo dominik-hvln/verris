@@ -44,15 +44,34 @@ function stanowisko(o: { status?: string; get?: Record<string, unknown>; post?: 
 }
 
 describe('DNS (CMD_API_DNS_CONTROL)', () => {
-  it('lista: rekordy z nameN/typeN/valueN/ttlN, domyślnie strefa domeny głównej', async () => {
-    const s = stanowisko({ post: { '/CMD_API_DNS_CONTROL': 'error=0&name0=www&type0=CNAME&value0=firma.pl.&ttl0=300&name1=@&type1=MX&value1=10 mx.firma.pl.' } });
+  it('lista: GET json=yes → records[], domyślnie strefa domeny głównej (nie POST action=select — to usuwanie)', async () => {
+    const s = stanowisko({ get: { '/CMD_API_DNS_CONTROL': { records: [
+      { name: 'www', type: 'CNAME', value: 'firma.pl.', ttl: '300' },
+      { name: 'firma.pl.', type: 'MX', value: '10 mail' },
+    ] } } });
     const r = await s.svc.listHostingDnsRecords('s1', 'u1');
     expect(r.domain).toBe('firma.pl');
     expect(r.records).toEqual([
       { id: 'www:CNAME:firma.pl.:0', name: 'www', type: 'CNAME', value: 'firma.pl.', ttl: 300 },
-      { id: '@:MX:10 mx.firma.pl.:1', name: '@', type: 'MX', value: '10 mx.firma.pl.', ttl: null },
+      { id: 'firma.pl.:MX:10 mail:1', name: 'firma.pl.', type: 'MX', value: '10 mail', ttl: null },
     ]);
-    expect(s.wyslane()).toEqual({ action: 'select', domain: 'firma.pl', api: 'yes' });
+    expect(s.get).toHaveBeenCalledWith('/CMD_API_DNS_CONTROL', expect.objectContaining({ params: expect.objectContaining({ domain: 'firma.pl', json: 'yes' }) }));
+    expect(s.post).not.toHaveBeenCalled();
+  });
+
+  it('lista: odpowiedź bez records (np. strona HTML) → fetchError, nie „pusta strefa”', async () => {
+    const s = stanowisko({ get: { '/CMD_API_DNS_CONTROL': '<html>' } });
+    const r = await s.svc.listHostingDnsRecords('s1', 'u1');
+    expect(r.records).toEqual([]);
+    expect(r.fetchError).toBeTruthy();
+  });
+
+  it('usunięcie: action=select + <typ>recs0 „name=…&value=…”; DA „usunął”, a rekord został → 400', async () => {
+    const s = stanowisko({ get: { '/CMD_API_DNS_CONTROL': { records: [] } } });
+    await s.svc.deleteHostingDnsRecord('s1', 'u1', { domain: 'firma.pl', name: 'firma.pl.', type: 'MX', value: '10 mail' });
+    expect(s.wyslane()).toEqual({ action: 'select', delete: 'yes', domain: 'firma.pl', mxrecs0: 'name=firma.pl.&value=10+mail', api: 'yes' });
+    const z = stanowisko({ get: { '/CMD_API_DNS_CONTROL': { records: [{ name: 'x', type: 'A', value: '1.2.3.4' }] } } });
+    await expect(z.svc.deleteHostingDnsRecord('s1', 'u1', { domain: 'firma.pl', name: 'x', type: 'A', value: '1.2.3.4' })).rejects.toThrow('nie usunął');
   });
 
   it('lista cudzej domeny → 400 bez pytania DA o strefę', async () => {

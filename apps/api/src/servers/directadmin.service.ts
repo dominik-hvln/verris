@@ -1083,26 +1083,10 @@ export class DirectAdminService {
     const effectiveDomain = domain ?? domains.primaryDomain ?? domains.domains[0]?.name ?? null;
     if (!effectiveDomain) return { domain: null, records: [], fetchError: null };
     try {
-      const raw = await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DNS_CONTROL', {
-        action: 'select',
-        domain: effectiveDomain,
-      });
-      const records: Array<{ id: string; name: string; type: string; value: string; ttl: number | null }> = [];
-      for (const [k, v] of raw.entries()) {
-        if (!/^name\d+$/i.test(k)) continue;
-        const idx = k.replace(/\D/g, '');
-        const name = v;
-        const type = raw.get(`type${idx}`) ?? '';
-        const value = raw.get(`value${idx}`) ?? '';
-        const ttlRaw = raw.get(`ttl${idx}`);
-        records.push({
-          id: `${name}:${type}:${value}:${idx}`,
-          name,
-          type,
-          value,
-          ttl: ttlRaw ? Number(ttlRaw) : null,
-        });
-      }
+      // Lista strefy: GET z json=yes → { records: [{ name, type, value, ttl }] } (forum DirectAdmin,
+      // „CMD_API_DNS_CONTROL … json=yes”). Wcześniej POST action=select — to polecenie USUWANIA
+      // zaznaczonych rekordów, więc lista zawsze była pusta (test D3 na t1, 28.09).
+      const records = zRekordowDns(await this.daGetRawForSubscription(subscriptionId, userId, '/CMD_API_DNS_CONTROL', { domain: effectiveDomain }));
       return { domain: effectiveDomain, records, fetchError: null };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -1134,16 +1118,19 @@ export class DirectAdminService {
     input: { domain: string; name: string; type: string; value: string },
   ) {
     await this.assertDomainOnSubscription(subscriptionId, userId, input.domain);
-    // ponytail: format usuwania niezweryfikowany na żywym DA (brak węzła do
-    // sprintu 18). Starsze DA usuwają przez action=select + <typ>recs0=name=…&value=…;
-    // sprawdzić przy D3 — edycja robi create-then-delete, więc nieudane usunięcie = duplikat.
+    // Usuwanie wg DA: action=select + <typ>recs0 = urlencoded „name=…&value=…” (dokładnie jak na liście strefy).
+    // DA odpowiada „Records Deleted” także wtedy, gdy nic nie pasowało — dlatego sprawdzamy listę po zapisie;
+    // edycja robi create-then-delete, więc ciche niepowodzenie zostawiłoby duplikat.
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DNS_CONTROL', {
-      action: 'delete',
+      action: 'select',
+      delete: 'yes',
       domain: input.domain,
-      name: input.name,
-      type: input.type,
-      value: input.value,
+      [`${input.type.toLowerCase()}recs0`]: new URLSearchParams({ name: input.name, value: input.value }).toString(),
     });
+    const po = await this.listHostingDnsRecords(subscriptionId, userId, input.domain);
+    if (!po.fetchError && po.records.some((r) => r.name === input.name && r.type === input.type && r.value === input.value)) {
+      throw new BadRequestException('Serwer DNS nie usunął rekordu. Spróbuj ponownie albo napisz do nas.');
+    }
     return { ok: true as const };
   }
 
@@ -2868,6 +2855,15 @@ export class DirectAdminService {
     path: string,
     params: Record<string, string>,
   ): Promise<URLSearchParams> {
+    return this.parseKvPayload(await this.daGetRawForSubscription(subscriptionId, userId, path, params));
+  }
+
+  private async daGetRawForSubscription(
+    subscriptionId: string,
+    userId: string,
+    path: string,
+    params: Record<string, string>,
+  ): Promise<unknown> {
     const sub = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
       include: { account: true },
@@ -2881,7 +2877,7 @@ export class DirectAdminService {
       params: { ...params, api: 'yes', json: 'yes' },
       timeout: 15_000,
     });
-    return this.parseKvPayload(res?.data);
+    return res?.data;
   }
 
   /**
@@ -3462,4 +3458,21 @@ function scheduleToFrequency(schedule: string): DeployFrequency {
   const hour = schedule.trim().split(/\s+/)[1] ?? '';
   if (hour === '*') return 'hourly';
   return 'daily';
+}
+
+/** Rekordy strefy z odpowiedzi CMD_API_DNS_CONTROL (json=yes); błąd DA → wyjątek. */
+export function zRekordowDns(data: unknown): Array<{ id: string; name: string; type: string; value: string; ttl: number | null }> {
+  const o = (typeof data === 'string' ? (() => { try { return JSON.parse(data) as unknown; } catch { return null; } })() : data) as
+    | { records?: unknown; error?: unknown; text?: unknown }
+    | null;
+  if (!o || typeof o !== 'object') throw new BadRequestException('Serwer nie zwrócił listy rekordów DNS.');
+  if (o.error && String(o.error) !== '0') throw new BadRequestException(String(o.text ?? 'Błąd serwera DNS'));
+  if (!Array.isArray(o.records)) throw new BadRequestException('Serwer nie zwrócił listy rekordów DNS.');
+  return o.records.flatMap((r, i) => {
+    const x = r as { name?: unknown; type?: unknown; value?: unknown; ttl?: unknown };
+    if (typeof x?.name !== 'string' || typeof x.type !== 'string') return [];
+    const value = String(x.value ?? '');
+    const ttl = Number(x.ttl);
+    return [{ id: `${x.name}:${x.type}:${value}:${i}`, name: x.name, type: x.type, value, ttl: Number.isFinite(ttl) && ttl > 0 ? ttl : null }];
+  });
 }
