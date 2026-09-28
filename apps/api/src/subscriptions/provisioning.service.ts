@@ -14,6 +14,7 @@ import {
   User,
   WafMode,
 } from '@verris/database';
+import { promises as dns } from 'node:dns';
 import { ConfigService } from '@nestjs/config';
 import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -408,15 +409,21 @@ export class ProvisioningService {
         );
       });
 
-    // A1 — best-effort auto-SSL (Let's Encrypt) right after provisioning. DNS
-    // may not point at the node yet, so failures are expected and harmless:
-    // DA's `letsencrypt=1` flag retries auto-issue, and the panel exposes a
-    // manual "Wystaw SSL" button. Never fails the provisioning flow.
-    void this.da
-      .requestLetsEncryptDirect(server, daUsername, daResult.password, domain)
-      .then(() =>
-        this.logger.log(`Auto-SSL (LE) requested for ${domain} (sub=${subscription.id})`),
-      )
+    // A1 — best-effort auto-SSL (Let's Encrypt) right after provisioning, ale tylko gdy domena już
+    // wskazuje na węzeł. Inaczej ACME na pewno padnie: DA wysyła klientowi wiadomość o błędzie
+    // (test D3 na t1, 28.09), a nieudane walidacje zjadają limit Let's Encrypt. Klient wystawia SSL
+    // przyciskiem w panelu, gdy DNS się rozpropaguje. Never fails the provisioning flow.
+    void dns
+      .resolve4(domain)
+      .then((a) => a.includes(server.ipAddress ?? ''), () => false)
+      .then(async (wskazuje) => {
+        if (!wskazuje) {
+          this.logger.log(`Auto-SSL skipped for ${domain} (sub=${subscription.id}): DNS nie wskazuje jeszcze na węzeł`);
+          return;
+        }
+        await this.da.requestLetsEncryptDirect(server, daUsername, daResult.password, domain);
+        this.logger.log(`Auto-SSL (LE) requested for ${domain} (sub=${subscription.id})`);
+      })
       .catch((err) => {
         this.logger.log(
           `Auto-SSL deferred for ${domain} (sub=${subscription.id}): ${

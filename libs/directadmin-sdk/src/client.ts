@@ -955,9 +955,13 @@ export class DirectAdminClient {
    */
   async requestLetsEncrypt(domain: string, opts: { includeWww?: boolean } = {}): Promise<void> {
     const names = opts.includeWww === false ? domain : `${domain},www.${domain}`;
+    // DA zamawia tylko nazwy zaznaczone polami le_selectN — bez nich w tle odpowiada wiadomością
+    // „Musi być wybrana co najmniej jedna pozycja Let's Encrypt” (test D3 na t1, 28.09).
+    const zaznaczone = Object.fromEntries(names.split(',').map((n, i) => [`le_select${i}`, n]));
     const response = await this.client.post(
       '/CMD_API_SSL',
       new URLSearchParams({
+        ...zaznaczone,
         domain,
         action: 'save',
         type: 'create',

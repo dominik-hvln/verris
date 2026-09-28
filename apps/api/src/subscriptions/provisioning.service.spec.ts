@@ -1,3 +1,4 @@
+import { promises as dns } from 'node:dns';
 import { ConflictException } from '@nestjs/common';
 import { ProvisioningService } from './provisioning.service.js';
 import { BladEtapuProvisioningu } from './provisioning-error.js';
@@ -44,6 +45,7 @@ function stanowisko(o: { kontoZDomena?: boolean; limity?: Error; zapis?: Error; 
     }),
   };
   const audit = { record: vi.fn(async () => undefined) };
+  const le = vi.fn(async () => undefined);
   const svc = new ProvisioningService(
     prisma as never,
     { encrypt: (v: string) => `enc:${v}` } as never,
@@ -52,7 +54,7 @@ function stanowisko(o: { kontoZDomena?: boolean; limity?: Error; zapis?: Error; 
     {
       getClientForServer: vi.fn(async () => daClient),
       applyEcoModeBackupCronPolicy: vi.fn(),
-      requestLetsEncryptDirect: vi.fn(async () => undefined),
+      requestLetsEncryptDirect: le,
     } as never,
     { resolveNameservers: vi.fn(async () => ({ ns1: 'ns1.verris.pl', ns2: 'ns2.verris.pl' })) } as never,
     { send: vi.fn(async () => undefined) } as never,
@@ -62,7 +64,7 @@ function stanowisko(o: { kontoZDomena?: boolean; limity?: Error; zapis?: Error; 
   );
   vi.spyOn(svc as unknown as { notifyAccountProvisioned: () => Promise<void> }, 'notifyAccountProvisioned').mockResolvedValue();
   const akcje = () => (audit.record.mock.calls as unknown as Array<[{ action: string; details: Record<string, unknown> }]>).map((c) => c[0]);
-  return { svc, daClient, prisma, akcje };
+  return { svc, daClient, prisma, akcje, le };
 }
 
 describe('ProvisioningService — zakładanie konta DA', () => {
@@ -106,5 +108,20 @@ describe('ProvisioningService — zakładanie konta DA', () => {
     expect(s.akcje()).toContainEqual(expect.objectContaining({
       action: 'PROVISIONING_ROLLBACK_FAILED', details: expect.objectContaining({ stage: 'zapisKonta', error: 'socket hang up', domain: 'firma.pl' }),
     }));
+  });
+
+  it('auto-SSL tylko gdy domena już wskazuje na węzeł (inaczej DA wysyła klientowi błąd ACME)', async () => {
+    const r4 = vi.spyOn(dns, 'resolve4');
+    r4.mockResolvedValueOnce(['9.9.9.9']);
+    const nie = stanowisko({ ip: '2.28.204.249' });
+    await nie.svc.provisionForSubscription('sub-1', { domain: 'firma.pl' });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(nie.le).not.toHaveBeenCalled();
+    r4.mockResolvedValueOnce(['2.28.204.249']);
+    const tak = stanowisko({ ip: '2.28.204.249' });
+    await tak.svc.provisionForSubscription('sub-1', { domain: 'firma.pl' });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(tak.le).toHaveBeenCalled();
+    r4.mockRestore();
   });
 });

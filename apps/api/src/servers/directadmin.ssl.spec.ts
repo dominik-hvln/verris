@@ -179,8 +179,10 @@ describe('SSL — SDK requestLetsEncrypt czyta treść odpowiedzi', () => {
     });
   });
 
-  it('200 + error=0 → ok: true', async () => {
+  it('200 + error=0 → ok: true; nazwy zaznaczone polami le_selectN (bez nich DA nic nie zamawia)', async () => {
     const s = stanowisko();
     await expect(s.svc.requestLetsEncryptForSubscription('s1', 'u1')).resolves.toEqual({ ok: true, domain: 'firma.pl', error: null });
+    const wyslane = new URLSearchParams(String((s.post.mock.calls.at(-1) as unknown as [string, string])[1]));
+    expect([wyslane.get('le_select0'), wyslane.get('le_select1')]).toEqual(['firma.pl', 'www.firma.pl']);
   });
 });
