@@ -96,11 +96,12 @@ Onboarding uruchamia po drodze `node-live-readiness.sh`, który pokrywa warstwę
 Trzy endpointy, które do 2026-08-21 zwracały 500 w obrazie produkcyjnym. Sprawdzenie zajmuje pół minuty i zamyka `X-12` na poziomie D3.
 
 ```bash
-# na węźle, z tokenem tożsamości z /etc/verris.conf
+# na węźle, z tożsamością z /etc/verris.conf (te same nagłówki co verris-tasks.sh;
+# `Authorization: Bearer` daje 401 — tak stało tu do 28.09)
 source /etc/verris.conf
 for ep in php-apply app-install offsite-restore; do
   kod=$(curl -s -o /dev/null -w '%{http_code}' \
-    -H "Authorization: Bearer $VERRIS_IDENTITY_TOKEN" \
+    -H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \
     "$VERRIS_API_URL/agent/tasks/$ep/script")
   echo "$ep -> $kod"
 done
