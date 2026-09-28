@@ -531,3 +531,18 @@ export async function setNodeStatus(id: string, status: "OFFLINE" | "ACTIVE") {
     return { ok: false as const, error: extractError(err) };
   }
 }
+
+/** Wycofanie węzła, którego już nie ma — API wymaga nazwy węzła i braku sygnału od ≥ 7 dni. */
+export async function wycofajMartwyWezelAction(id: string, potwierdzenie: string) {
+  try {
+    const data = await adminApi<{ usunieteKonta: string[]; dns: Array<{ step: string; status: string; detail?: string }> }>(
+      `/admin/servers/${id}/wycofaj-martwy`,
+      { method: "POST", body: { potwierdzenie } },
+    );
+    revalidatePath(`/nodes/${id}`);
+    revalidatePath("/nodes");
+    return { data };
+  } catch (err) {
+    return { error: err instanceof AdminApiError ? err.message : (err as Error).message };
+  }
+}

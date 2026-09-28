@@ -298,6 +298,51 @@ export class NodeDnsService {
     return msg;
   }
 
+  /**
+   * Wycofanie martwego węzła: jego nazwy NS (ns<N>.<baza>) i hostname wskazują na IP, którego już nie mamy.
+   * Hetzner może to IP przydzielić komuś innemu — wtedy ns<N>.verris.pl odpowiadałby z cudzego serwera
+   * (przejęcie DNS domen klientów). Usuwamy rekordy A/AAAA i glue, o ile tej nazwy nie używa inny węzeł.
+   */
+  async zwolnijNazwyWezla(serverId: string): Promise<NsProvisionStep[]> {
+    const steps: NsProvisionStep[] = [];
+    if (!this.ovh.isConfigured()) {
+      steps.push({ step: 'OVH', status: 'skipped', detail: 'integracja OVH nieskonfigurowana — usuń rekordy ręcznie' });
+      return steps;
+    }
+    const server = await this.prisma.server.findUnique({ where: { id: serverId } });
+    if (!server) return steps;
+    const base = this.baseDomain();
+    const inne = await this.prisma.server.findMany({
+      where: { id: { not: serverId }, status: { notIn: ['DEPROVISIONING', 'OFFLINE'] } },
+      select: { ns1: true, ns2: true, hostname: true },
+    });
+    const zajete = new Set(inne.flatMap((s) => [s.ns1, s.ns2, s.hostname]).filter(Boolean).map((h) => String(h).toLowerCase()));
+    const nazwy = [server.ns1, server.ns2, server.hostname]
+      .filter((h): h is string => Boolean(h))
+      .map((h) => h.trim().toLowerCase().replace(/\.$/, ''))
+      .filter((h) => h.endsWith(`.${base}`) && h !== base);
+    for (const host of [...new Set(nazwy)]) {
+      if (zajete.has(host)) {
+        steps.push({ step: host, status: 'skipped', detail: 'używa go inny węzeł' });
+        continue;
+      }
+      const sub = host.slice(0, -(base.length + 1));
+      await this.removeZoneRecord(base, sub, 'A', steps);
+      await this.removeZoneRecord(base, sub, 'AAAA', steps);
+      if (host === server.ns1 || host === server.ns2) {
+        try {
+          await this.ovh.request('DELETE', `/domain/${encodeURIComponent(base)}/glueRecord/${encodeURIComponent(host)}`);
+          steps.push({ step: `Glue ${host}`, status: 'updated', detail: 'usunięto' });
+        } catch (err) {
+          steps.push({ step: `Glue ${host}`, status: 'error', detail: this.formatOvhError(err) });
+        }
+      }
+    }
+    await this.refreshZone(base, steps);
+    await this.prisma.server.update({ where: { id: serverId }, data: { ns1: null, ns2: null } });
+    return steps;
+  }
+
   private async ensureZoneRecord(
     zone: string,
     subDomain: string,

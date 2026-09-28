@@ -53,6 +53,11 @@ class ProvisionNsDto {
   ipv6?: string;
 }
 
+class WycofajMartwyDto {
+  @IsString() @MaxLength(200)
+  potwierdzenie!: string;
+}
+
 class NodeRepairDto {
   @IsOptional()
   @IsString()
@@ -122,6 +127,12 @@ export class ServersAdminController {
     });
     const lista = wezly.map((w) => ({ id: w.id, name: w.name, konta: w._count.accounts }));
     return { wezly: lista, konta: lista.reduce((a, w) => a + w.konta, 0) };
+  }
+
+  /** Wycofanie węzła, którego już nie ma (serwer skasowany) — konta usunięte, NS zwolnione. Tylko ADMIN. */
+  @Post(':id/wycofaj-martwy')
+  wycofajMartwy(@Param('id') id: string, @Body() body: WycofajMartwyDto, @CurrentUser() user: { userId: string }) {
+    return this.servers.wycofajMartwyWezel(id, body.potwierdzenie, user.userId);
   }
 
   /** Wysyła pakiety wszystkich aktywnych planów na każdy węzeł z DA (idempotentne; audyt per węzeł). */

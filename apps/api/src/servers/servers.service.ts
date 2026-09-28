@@ -21,7 +21,8 @@ import { BootstrapTokenService } from './bootstrap-token.service.js';
 import { DirectAdminService } from './directadmin.service.js';
 import { NodeDnsService } from './node-dns.service.js';
 import { NodeTasksService } from './node-tasks.service.js';
-import { Prisma, Server, ServerStatus } from '@verris/database';
+import { AccountStatus, Prisma, Server, ServerStatus, SubscriptionStatus } from '@verris/database';
+import { deltaKsiegi, ksiegaUpdateData, KONTO_NIEISTNIEJACE } from '../subscriptions/node-capacity.js';
 import { InitServerDto } from './dto/init-server.dto.js';
 import { HandshakeDto } from './dto/handshake.dto.js';
 import { UpdateServerDto } from './dto/update-server.dto.js';
@@ -982,6 +983,67 @@ export class ServersService {
     });
 
     return this.toPublicServer(updated);
+  }
+
+  /**
+   * Wycofanie węzła, którego fizycznie już nie ma (serwer skasowany u dostawcy). Zwykłe wycofanie przenosi
+   * konta na inne węzły, a z martwego serwera nie ma czego przenosić. Tu: konta → DELETED (z księgi
+   * pojemności), subskrypcje → CANCELED, węzeł poza pulą (DEPROVISIONING), nazwy NS/hostname zwolnione w OVH.
+   * Bezpieczniki: potwierdzenie nazwą węzła, brak sygnału od ≥ 7 dni, żadnej aktywnej płatności w Stripe
+   * (anulowanie w bazie nie zatrzymałoby obciążeń karty).
+   */
+  async wycofajMartwyWezel(id: string, potwierdzenie: string, actorUserId: string) {
+    const server = await this.prisma.server.findUnique({ where: { id } });
+    if (!server) throw new NotFoundException('Węzeł nie istnieje.');
+    const nazwa = server.name ?? server.hostname ?? server.id;
+    if ((potwierdzenie ?? '').trim() !== nazwa) {
+      throw new BadRequestException(`Wpisz dokładnie nazwę węzła („${nazwa}”), żeby potwierdzić.`);
+    }
+    const TYDZIEN = 7 * 24 * 3600_000;
+    if (server.lastHeartbeatAt && Date.now() - server.lastHeartbeatAt.getTime() < TYDZIEN) {
+      throw new ConflictException('Węzeł wysyłał sygnał w ostatnim tygodniu — żyje. Użyj wycofania z przeniesieniem kont.');
+    }
+    const konta = await this.prisma.account.findMany({
+      where: { serverId: id, status: { not: AccountStatus.DELETED } },
+      select: {
+        id: true, domain: true, cpuLimit: true, ramLimitMb: true, diskLimitMb: true,
+        subscription: { select: { id: true, status: true, stripeSubscriptionId: true } },
+      },
+    });
+    const zStripe = konta.filter(
+      (k) => k.subscription?.stripeSubscriptionId &&
+        ([SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE, SubscriptionStatus.PROVISIONING, SubscriptionStatus.PENDING_PAYMENT] as string[]).includes(k.subscription.status),
+    );
+    if (zStripe.length > 0) {
+      throw new ConflictException(
+        `Najpierw anuluj płatności w Stripe dla: ${zStripe.map((k) => k.domain).join(', ')} — inaczej karta klienta byłaby dalej obciążana.`,
+      );
+    }
+    const teraz = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      for (const k of konta) {
+        const o = await tx.account.updateMany({ where: { id: k.id, status: { not: AccountStatus.DELETED } }, data: { status: AccountStatus.DELETED } });
+        if (o.count > 0) {
+          await tx.server.update({
+            where: { id },
+            data: ksiegaUpdateData(deltaKsiegi({ cpu: k.cpuLimit, ramMb: k.ramLimitMb, diskMb: k.diskLimitMb }, KONTO_NIEISTNIEJACE)),
+          });
+        }
+        if (k.subscription && k.subscription.status !== SubscriptionStatus.CANCELED) {
+          await tx.subscription.update({ where: { id: k.subscription.id }, data: { status: SubscriptionStatus.CANCELED, canceledAt: teraz } });
+        }
+      }
+      await tx.server.update({ where: { id }, data: { status: ServerStatus.DEPROVISIONING, acceptsNewAccounts: false } });
+    });
+    const dns = await this.nodeDns.zwolnijNazwyWezla(id).catch((err: unknown) => [
+      { step: 'OVH', status: 'error' as const, detail: err instanceof Error ? err.message : String(err) },
+    ]);
+    await this.audit.record({
+      action: 'SERVER_RETIRED_DEAD',
+      actorUserId,
+      details: { serverId: id, name: nazwa, ip: server.ipAddress, konta: konta.map((k) => k.domain), dns: dns as unknown as Prisma.InputJsonValue },
+    });
+    return { usunieteKonta: konta.map((k) => k.domain), dns };
   }
 
   testDirectAdmin(id: string) {

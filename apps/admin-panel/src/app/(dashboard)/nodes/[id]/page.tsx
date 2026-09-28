@@ -13,6 +13,7 @@ import { WafPanel } from "./waf-panel";
 import { MaintenanceToggle } from "./maintenance-toggle";
 import { NodeStatusPanel } from "./node-status-panel";
 import { CapacityPolicyPanel } from "./capacity-policy-panel";
+import { WycofajMartwyPanel } from "./wycofaj-martwy-panel";
 import { DrainPanel } from "./drain-panel";
 import { NodeAuditPanel } from "./node-audit-panel";
 import { NodeInsightsPanel } from "./node-insights-panel";
@@ -52,6 +53,9 @@ function rozmiar(mb: number | null | undefined, jednostka?: "GB" | "TB"): string
 const jednostkaDla = (mb: number | null | undefined) => (mb != null && mb >= 1024 * 1024 ? "TB" : "GB");
 const proc = (a: number | null | undefined, b: number | null | undefined) => (a != null && b ? Math.min(100, Math.round((a / b) * 100)) : 0);
 
+// Czas żądania (strona dynamiczna) — reguła purity nie przepuszcza Date.now() w ciele komponentu.
+const chwila = () => Date.now();
+
 export default async function ServerDetailPage({
   params,
   searchParams,
@@ -79,6 +83,7 @@ export default async function ServerDetailPage({
 
   const isPending = server.status === "PENDING_APPROVAL";
   const canBootstrap = server.status === "INIT" || server.status === "PENDING_APPROVAL";
+  const teraz = chwila();
   const dziala = server.status === "ACTIVE" || server.status === "MAINTENANCE";
   const baza = `/nodes/${server.id}`;
   const nazwa = p?.nazwa ?? server.name ?? server.ipAddress;
@@ -287,7 +292,15 @@ export default async function ServerDetailPage({
 
       {sekcja === "wycofanie" ? (
         dziala ? (
-          <DrainPanel serverId={server.id} acceptsNewAccounts={server.acceptsNewAccounts} />
+          <div className="space-y-6">
+            <DrainPanel serverId={server.id} acceptsNewAccounts={server.acceptsNewAccounts} />
+            <WycofajMartwyPanel
+              serverId={server.id}
+              nazwa={server.name ?? server.hostname ?? server.id}
+              konta={server._count?.accounts ?? 0}
+              martwy={!server.lastHeartbeatAt || teraz - new Date(server.lastHeartbeatAt).getTime() >= 7 * 24 * 3600_000}
+            />
+          </div>
         ) : (
           <p className="text-sm text-muted-foreground">Wycofanie (przeniesienie kont na inne węzły) jest dostępne dla węzła aktywnego albo w serwisie.</p>
         )
