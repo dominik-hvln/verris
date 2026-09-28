@@ -51,7 +51,7 @@ C-02,C,Podgląd i edycja pliku tekstowego,TAK,TAK,TAK,TAK,TAK,DZIAŁA,"files.con
 C-03,C,Tworzenie katalogu,TAK,TAK,TAK,TAK,TAK,DZIAŁA,files.controller.ts:71,PARYTET,—,—,
 C-04,C,Tworzenie pliku,TAK,TAK,TAK,TAK,TAK,DZIAŁA,files.controller.ts:61; D3 t1 (d3.hvln.pl) 29.09: nowy plik verris-cron-test.php z panelu + edycja i zapis treści,PARYTET,—,—,
 C-05,C,Zmiana nazwy pliku/katalogu,TAK,TAK,TAK,TAK,TAK,DZIAŁA,files.controller.ts:81,PARYTET,—,—,
-C-06,C,Usuwanie plików (także zaznaczonych),TAK,TAK,TAK,TAK,TAK,CZĘŚCIOWE,"files.controller.ts:91; D3 t1 (d3.hvln.pl) 29.09 FAIL: „Usuń zaznaczone” → komunikat sukcesu, pliki zostają (DA 1.710 wymaga selectN = pełna ścieżka; sprawdzone na t1: nazwa → bez zmian, pełna ścieżka → usunięty); poprawka dad708cd/SDK czeka na wdrożenie; retest",CZĘŚCIOWY,WYSOKA,—,
+C-06,C,Usuwanie plików (także zaznaczonych),TAK,TAK,TAK,TAK,TAK,CZĘŚCIOWE,"files.controller.ts:91; D3 t1 (d3.hvln.pl) 29.09 FAIL: „Usuń zaznaczone” → komunikat sukcesu, pliki zostają (DA 1.710 wymaga selectN = pełna ścieżka; sprawdzone na t1: nazwa → bez zmian, pełna ścieżka → usunięty); poprawka 464dd72 (SDK) czeka na wdrożenie; retest",CZĘŚCIOWY,WYSOKA,—,
 C-07,C,Kopiowanie plików,TAK,TAK,TAK,TAK,TAK,CZĘŚCIOWE,files.controller.ts:101; D3 t1 (d3.hvln.pl) 29.09: ten sam format zaznaczenia co C-06 (schowek DA) — poprawka razem z C-06; D3 do potwierdzenia,CZĘŚCIOWY,ŚREDNIA,—,
 C-08,C,Przenoszenie plików,TAK,TAK,TAK,TAK,TAK,CZĘŚCIOWE,files.controller.ts:111; D3 t1 (d3.hvln.pl) 29.09: jak C-07,CZĘŚCIOWY,ŚREDNIA,—,
 C-09,C,Zmiana uprawnień (chmod),TAK,TAK,TAK,TAK,TAK,CZĘŚCIOWE,files.controller.ts:131; D3 t1 (d3.hvln.pl) 29.09: chmod zaznaczonych — ten sam format co C-06; D3 do potwierdzenia po wdrożeniu,CZĘŚCIOWY,ŚREDNIA,—,
