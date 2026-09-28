@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { CheckCircle2, Loader2, Play, RefreshCw, XCircle } from "lucide-react";
+import { CheckCircle2, Copy, Eye, EyeOff, Loader2, Play, RefreshCw, XCircle } from "lucide-react";
+import { Checkbox } from "@/components/checkbox";
 import {
   pobierzOffsite,
   pobierzStanOnboardu,
@@ -33,6 +34,12 @@ export function KopieOffsiteFormularz() {
   const [ok, setOk] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [f, setF] = useState({ host: "", port: "23", user: "", sciezka: "verris", retencjaDni: "30", pass: "", cryptPass: "", cryptSalt: "" });
+  // Hasło i sól szyfrowania trzeba zobaczyć i skopiować PRZED zapisem — panel ich potem nie pokaże,
+  // a bez nich kopii nie odczyta nikt (28.09: wygenerowane wartości były niewidoczne w polach password).
+  const [pokazSekrety, setPokazSekrety] = useState(false);
+  const [wSejfie, setWSejfie] = useState(false);
+  const [skopiowano, setSkopiowano] = useState(false);
+  const noweSekrety = Boolean(f.cryptPass || f.cryptSalt);
 
   useEffect(() => {
     void pobierzOffsite().then((r) => {
@@ -62,6 +69,8 @@ export function KopieOffsiteFormularz() {
       if (!r.ok) return setBlad(r.error);
       setStan(r.data);
       setF((x) => ({ ...x, pass: "", cryptPass: "", cryptSalt: "" }));
+      setPokazSekrety(false);
+      setWSejfie(false);
       setOk("Zapisane. Każdy węzeł pobierze tę konfigurację w onboardzie.");
     });
   };
@@ -89,22 +98,49 @@ export function KopieOffsiteFormularz() {
         <label className="block"><span className={etykieta}>Hasło Storage Boxa</span><input className={pole} type="password" autoComplete="new-password" value={f.pass} onChange={ustaw("pass")} placeholder={pierwszyZapis ? "" : "bez zmian"} /></label>
         <label className="block"><span className={etykieta}>Katalog na Storage Boxie</span><input className={pole} value={f.sciezka} onChange={ustaw("sciezka")} /></label>
         <label className="block"><span className={etykieta}>Retencja (dni)</span><input className={pole} inputMode="numeric" value={f.retencjaDni} onChange={ustaw("retencjaDni")} /></label>
-        <label className="block"><span className={etykieta}>Hasło szyfrowania (min. 16 znaków)</span><input className={pole} type="password" autoComplete="new-password" value={f.cryptPass} onChange={ustaw("cryptPass")} placeholder={pierwszyZapis ? "" : "bez zmian"} /></label>
-        <label className="block"><span className={etykieta}>Sól szyfrowania (min. 16 znaków)</span><input className={pole} type="password" autoComplete="new-password" value={f.cryptSalt} onChange={ustaw("cryptSalt")} placeholder={pierwszyZapis ? "" : "bez zmian"} /></label>
+        <label className="block"><span className={etykieta}>Hasło szyfrowania (min. 16 znaków)</span><input className={`${pole} font-mono`} type={pokazSekrety ? "text" : "password"} autoComplete="new-password" spellCheck={false} value={f.cryptPass} onChange={ustaw("cryptPass")} placeholder={pierwszyZapis ? "" : "bez zmian"} /></label>
+        <label className="block"><span className={etykieta}>Sól szyfrowania (min. 16 znaków)</span><input className={`${pole} font-mono`} type={pokazSekrety ? "text" : "password"} autoComplete="new-password" spellCheck={false} value={f.cryptSalt} onChange={ustaw("cryptSalt")} placeholder={pierwszyZapis ? "" : "bez zmian"} /></label>
       </div>
-      {pierwszyZapis ? (
+      <div className="flex flex-wrap items-center gap-4 text-xs">
         <button
           type="button"
-          className="text-xs font-semibold text-emerald-300 underline underline-offset-2"
-          onClick={() => setF((x) => ({ ...x, cryptPass: losowy(), cryptSalt: losowy() }))}
+          className="font-semibold text-emerald-300 underline underline-offset-2"
+          onClick={() => {
+            setF((x) => ({ ...x, cryptPass: losowy(), cryptSalt: losowy() }));
+            setPokazSekrety(true);
+            setWSejfie(false);
+          }}
         >
           Wygeneruj hasło i sól szyfrowania
         </button>
-      ) : (
+        <button type="button" className="inline-flex items-center gap-1 text-zinc-300 hover:text-white" onClick={() => setPokazSekrety((v) => !v)}>
+          {pokazSekrety ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />} {pokazSekrety ? "Ukryj" : "Pokaż"} hasło i sól
+        </button>
+        {noweSekrety ? (
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 text-zinc-300 hover:text-white"
+            onClick={() => {
+              void navigator.clipboard
+                .writeText(`Verris — kopie off-site (rclone crypt)\nHasło szyfrowania: ${f.cryptPass}\nSól szyfrowania: ${f.cryptSalt}\n`)
+                .then(() => { setSkopiowano(true); setTimeout(() => setSkopiowano(false), 2000); });
+            }}
+          >
+            <Copy className="h-3.5 w-3.5" /> {skopiowano ? "Skopiowano" : "Kopiuj oba"}
+          </button>
+        ) : null}
+      </div>
+      {pierwszyZapis ? null : (
         <p className="text-xs text-amber-200">Zmiana hasła lub soli szyfrowania odcina dostęp do wcześniejszych kopii — rób to tylko świadomie.</p>
       )}
+      {noweSekrety ? (
+        <label className="flex items-start gap-2 text-xs text-zinc-300">
+          <Checkbox checked={wSejfie} onChange={(e) => setWSejfie(e.target.checked)} className="mt-0.5" />
+          Hasło i sól szyfrowania są zapisane w menedżerze haseł. Panel ich później nie pokaże, a bez nich kopii nie odczytamy.
+        </label>
+      ) : null}
       <div>
-        <button type="button" className={przycisk} disabled={pending} onClick={zapisz}>
+        <button type="button" className={przycisk} disabled={pending || (noweSekrety && !wSejfie)} onClick={zapisz}>
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Zapisz konfigurację kopii
         </button>
       </div>
