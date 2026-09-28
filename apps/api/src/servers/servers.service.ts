@@ -598,6 +598,8 @@ export class ServersService {
         allocatedCpu: server.allocatedCpu,
         allocatedMemory: server.allocatedMemory,
         allocatedDisk: server.allocatedDisk,
+        // Alokacja porównywana z pojemnością sprzedażową (fizyczna × nadsubskrypcja Z-12), nie z fizyczną.
+        overcommit: { cpu: server.overcommitCpu, ram: server.overcommitRam, disk: server.overcommitDisk },
       },
       accountCount: accounts.length,
       activeAccountCount: accounts.filter((a) => a.status === 'ACTIVE').length,

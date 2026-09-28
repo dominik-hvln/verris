@@ -459,6 +459,7 @@ export interface NodeUsageResponse {
     allocatedCpu: number;
     allocatedMemory: number;
     allocatedDisk: number;
+    overcommit?: { cpu: number; ram: number; disk: number };
   };
   accountCount: number;
   activeAccountCount: number;

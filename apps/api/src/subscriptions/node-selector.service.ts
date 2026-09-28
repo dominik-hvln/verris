@@ -196,8 +196,9 @@ export class NodeSelectorService {
         `Brak węzła dla planu ${plan.slug} (cpu=${plan.cpuLimit}, ram=${plan.ramLimitMb}MB, ` +
           `disk=${plan.diskLimitMb}MB). Powody odmowy: ${opis || 'brak kandydatów'}.`,
       );
+      // Powody trafiają do błędu zadania w Kolejce zakładania — klient widzi go przez humanizeProvisioningError.
       throw new ServiceUnavailableException(
-        'All compute nodes are at capacity. Please try again later or contact support.',
+        `All compute nodes are at capacity. Please try again later or contact support. [${opis || 'brak kandydatów'}]`,
       );
     }
 

@@ -81,6 +81,9 @@ export function NodeInsightsPanel({ serverId }: { serverId: string }) {
   );
   const l = usage?.latest;
   const srv = usage?.server;
+  // Alokacja względem tego, ile węzeł może sprzedać (Z-12), inaczej przy nadsubskrypcji zawsze „100%”.
+  const oc = srv?.overcommit ?? { cpu: 1, ram: 1, disk: 1 };
+  const x = (v: number) => (v > 1 ? ` (limit ${v}×)` : "");
 
   return (
     <div className="space-y-6">
@@ -124,21 +127,21 @@ export function NodeInsightsPanel({ serverId }: { serverId: string }) {
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Bar
-                label="Alokacja CPU"
+                label={`Alokacja CPU${x(oc.cpu)}`}
                 value={srv?.allocatedCpu ?? 0}
-                max={srv?.totalCpuCores ? srv.totalCpuCores * 100 : null}
+                max={srv?.totalCpuCores ? srv.totalCpuCores * 100 * oc.cpu : null}
                 unit="%"
               />
               <Bar
-                label="Alokacja RAM"
+                label={`Alokacja RAM${x(oc.ram)}`}
                 value={srv?.allocatedMemory ?? 0}
-                max={srv?.totalMemoryMb ?? null}
+                max={srv?.totalMemoryMb ? srv.totalMemoryMb * oc.ram : null}
                 unit=" MB"
               />
               <Bar
-                label="Alokacja dysku"
+                label={`Alokacja dysku${x(oc.disk)}`}
                 value={srv?.allocatedDisk ?? 0}
-                max={srv?.totalDiskMb ?? null}
+                max={srv?.totalDiskMb ? srv.totalDiskMb * oc.disk : null}
                 unit=" MB"
               />
             </div>
