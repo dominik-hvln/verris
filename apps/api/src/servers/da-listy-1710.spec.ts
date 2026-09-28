@@ -26,3 +26,10 @@ describe('listy DA 1.710', () => {
     await expect(k.listEmailAccounts('firma.pl')).resolves.toEqual([{ localPart: 'jan', quotaMb: null }]);
   });
 });
+
+describe('menedżer plików DA 1.710', () => {
+  it('„Zmodyfikowano” z mtime, nie z date (czas utworzenia)', async () => {
+    const k = klient(() => new URLSearchParams({ '/public_html/.htaccess': 'type=file&size=1100&date=1790550175&mtime=1790636575' }).toString());
+    await expect(k.listDir('/public_html')).resolves.toEqual([{ name: '.htaccess', type: 'file', sizeBytes: 1100, modified: '1790636575' }]);
+  });
+});

@@ -348,7 +348,9 @@ export class DirectAdminClient {
         name,
         type: type === 'dir' ? 'dir' : 'file',
         sizeBytes: Number.parseInt(info.get('size') || '0', 10) || 0,
-        modified: info.get('date') || null,
+        // DA 1.710 podaje `date` (czas utworzenia) i `mtime` (modyfikacji). Na t1 katalog domowy miał
+        // date = założenie konta (22:43), mtime = 00:40 (nowy katalog backups) — „Zmodyfikowano” to mtime.
+        modified: info.get('mtime') || info.get('date') || null,
       });
     }
     return entries.sort((a, b) =>
