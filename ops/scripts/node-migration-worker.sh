@@ -23,7 +23,19 @@
 # plane wznawia joby, których worker umarł — zlecenie nie wisi w nieskończoność).
 #
 # Auth: /etc/verris.conf (VERRIS_SERVER_ID, VERRIS_IDENTITY_TOKEN, VERRIS_API_URL).
-# Requires: root, jq, curl, rsync, sshpass, lftp, mysql client, imapsync, wp-cli.
+# Requires: root, jq, curl, rsync, sshpass, lftp, mysql client, imapsync, wp-cli, acl (setfacl).
+#
+# PODZIAŁ UPRAWNIEŃ (2026-09-28). Wszystko, co łączy się z serwerem PODANYM
+# PRZEZ KLIENTA (rsync/ssh, lftp, mysqldump, imapsync, curl), działa jako
+# nieuprzywilejowany użytkownik systemowy `verris-mig`. Złośliwy serwer źródłowy,
+# który wykorzysta błąd w którymś z tych klientów, dostaje `verris-mig`, a nie
+# roota i nie dane pozostałych klientów węzła. Pliki trafiają do katalogu
+# roboczego verris-mig, a do konta klienta kopiuje je sam klient (runuser -u
+# <konto>) — root nie pisze w drzewie klienta. Import bazy idzie na poświadczeniach
+# użytkownika bazy docelowej (tylko ta jedna baza), nie przez root-socket.
+# Hasła nigdy nie trafiają do argv (widoczne w `ps` dla wszystkich) — tylko
+# przez pliki 0600 verris-mig albo zmienne środowiskowe czytane z tych plików.
+# Egress węzła: dowolny port TCP ma wyłącznie verris-mig (security-egress-lockdown.sh).
 #
 # Usage:
 #   node-migration-worker.sh once       # lease + run a single job (default)
@@ -199,6 +211,56 @@ bwlimit_to_bytes() {
 
 SSH_OPTS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=20 -o PreferredAuthentications=password -o PubkeyAuthentication=no)
 
+MIG_USER="${VERRIS_MIG_USER:-verris-mig}"
+MIG_HOME="${VERRIS_MIG_HOME:-/var/lib/verris-mig}"
+
+ensure_mig_user() {
+  if ! id -u "$MIG_USER" >/dev/null 2>&1; then
+    useradd --system --shell /sbin/nologin --home-dir "$MIG_HOME" --no-create-home "$MIG_USER"
+  fi
+  # 0711: klient musi przejść do SWOJEGO katalogu w stage/ (ACL x), nic więcej nie widzi.
+  install -d -m 0711 -o "$MIG_USER" -g "$MIG_USER" "$MIG_HOME"
+  install -d -m 0711 -o root -g root "$MIG_HOME/stage"
+  # HOME narzędzi (lftp, ssh zapisują tam historię i known_hosts) — prywatny.
+  install -d -m 0700 -o "$MIG_USER" -g "$MIG_USER" "$MIG_HOME/home"
+}
+
+# Uruchamia polecenie jako verris-mig z czystym środowiskiem (bez tokenu węzła
+# z /etc/verris.conf). umask 022 — domyślne prawa jak u zwykłego wgrania plików;
+# katalog roboczy i tak jest zamknięty (stage/<konto> 0700 + ACL tylko dla konta).
+jako_mig() {
+  runuser -u "$MIG_USER" -- env -i PATH=/usr/local/bin:/usr/bin:/bin HOME="$MIG_HOME/home" LANG=C.UTF-8 \
+    bash -c 'umask 022; exec "$@"' _ "$@"
+}
+
+# jako_mig_env ZMIENNA PLIK polecenie… — hasło trafia do środowiska procesu
+# (czytelne tylko dla verris-mig i roota), a nie do argv.
+jako_mig_env() {
+  local var="$1" pf="$2"; shift 2
+  jako_mig bash -c 'v="$1"; f="$2"; shift 2; export "$v=$(cat "$f")"; exec "$@"' _ "$var" "$pf" "$@"
+}
+
+# Katalog na pliki z hasłami jednego zlecenia (0700 verris-mig), sprzątany w run_one.
+katalog_sekretow() {
+  local d; d=$(mktemp -d "$MIG_HOME/job.XXXXXX")
+  chown "$MIG_USER:$MIG_USER" "$d"; chmod 0700 "$d"
+  echo "$d"
+}
+# plik_sekretu KATALOG NAZWA TREŚĆ -> ścieżka (printf to builtin — treść nie trafia do argv procesu)
+plik_sekretu() {
+  local p="$1/$2"
+  ( umask 077; printf '%s' "$3" >"$p" )
+  chown "$MIG_USER:$MIG_USER" "$p"
+  echo "$p"
+}
+
+# Czy klient mysql zna --sandbox (MariaDB ≥ 10.6.18 / 11.x): wyłącza `\!`, `source`
+# itp. w strumieniu importu — zrzut z obcego serwera nie wykona polecenia powłoki.
+mysql_sandbox_opt() {
+  mysql --help 2>/dev/null | grep -q -- '--sandbox' && echo --sandbox
+  return 0
+}
+
 run_files() {
   # rsync-over-SSH (szybki, wznawialny, delta) z fallbackiem na lftp mirror
   # (działa też na kontach sftp-only/ftp/ftps). Delta = drugi przebieg tych
@@ -222,7 +284,20 @@ run_files() {
   vg_require path "$spath" "source.remotePath" 2>>"$logfile" || return 2
   vg_require account "$user" "target.accountUsername" 2>>"$logfile" || return 2
   dst=$(docroot_for "$user" "$domain")
-  mkdir -p "$dst"
+  [[ "$dst" == "/home/${user}/"* ]] || { echo "nieoczekiwana ścieżka docelowa" >>"$logfile"; return 2; }
+  id -u "$user" >/dev/null 2>&1 || { echo "konto ${user} nie istnieje na węźle" >>"$logfile"; return 2; }
+  runuser -u "$user" -- mkdir -p "$dst" >>"$logfile" 2>&1 || { echo "nie mogę utworzyć ${dst} jako ${user}" >>"$logfile"; return 2; }
+
+  # Katalog roboczy verris-mig trwa między FILES a FILES_DELTA (delta pobiera tylko różnice);
+  # sprząta go systemd-tmpfiles po 14 dniach (install_timer).
+  ensure_mig_user
+  local stage_user="${MIG_HOME}/stage/${user}" stage
+  stage="${stage_user}/${domain}"
+  install -d -m 0700 -o "$MIG_USER" -g "$MIG_USER" "$stage_user"
+  setfacl -m "u:${user}:x" "$stage_user"
+  jako_mig mkdir -p "$stage"
+  local sek; sek=$(katalog_sekretow)
+  local pf; pf=$(plik_sekretu "$sek" haslo "$spass")
 
   local bwlimit="${VERRIS_MIGRATION_BWLIMIT:-$MIGRATION_BWLIMIT_DEFAULT}"
   local rsync_bw=() lftp_bw=""
@@ -235,12 +310,12 @@ run_files() {
 
   local transferred=false
   if [ "$proto" = "sftp" ] && command -v rsync >/dev/null 2>&1 && command -v sshpass >/dev/null 2>&1; then
-    echo "== rsync over SSH ${suser}@${host}:${port}${spath} -> ${dst}" >>"$logfile"
-    if sshpass -p "$spass" rsync -az --partial --delete-excluded \
+    echo "== rsync over SSH ${suser}@${host}:${port}${spath} -> katalog roboczy (jako ${MIG_USER})" >>"$logfile"
+    if jako_mig_env SSHPASS "$pf" sshpass -e rsync -az --partial --delete-excluded \
         --exclude '.cache' --exclude 'tmp/' \
         --timeout=120 --info=stats2 "${rsync_bw[@]}" \
         -e "ssh ${SSH_OPTS[*]} -p ${port}" \
-        "${suser}@${host}:${spath%/}/" "${dst}/" >>"$logfile" 2>&1; then
+        "${suser}@${host}:${spath%/}/" "${stage}/" >>"$logfile" 2>&1; then
       transferred=true
     else
       echo "== rsync failed (brak shella na źródle?) — fallback lftp mirror" >>"$logfile"
@@ -252,22 +327,35 @@ run_files() {
     #
     # `${spath}` jest wstawiana do łańcucha poleceń lftp w apostrofach. Jest to
     # bezpieczne wyłącznie dlatego, że vg_require path wyżej odrzuca apostrof,
-    # cudzysłów, backslash, dolar, średnik i nową linię. Gdyby ta walidacja
-    # kiedyś stąd zniknęła, wraca wykonanie polecenia jako root — lftp wykonuje
-    # polecenia powłoki po `!`.
+    # cudzysłów, backslash, dolar, średnik i nową linię. lftp wykonuje polecenia
+    # powłoki po `!` — od 28.09 jako verris-mig, nie root. Hasło przez
+    # --env-password (LFTP_PASSWORD z pliku), nie w argv.
     local ssl_setting=""
     [ "$proto" = "ftps" ] && ssl_setting="set ftp:ssl-force true; set ftp:ssl-protect-data true;"
-    LFTP_PASSWORD="$spass" lftp -u "$suser,dummy" \
+    if jako_mig_env LFTP_PASSWORD "$pf" lftp --env-password -u "$suser" \
       -e "set sftp:auto-confirm yes; set net:max-retries 3; set net:timeout 30; \
           set ssl:verify-certificate no; ${lftp_bw} ${ssl_setting} \
-          mirror --continue --parallel=4 --no-perms --verbose '${spath}' '${dst}'; bye" \
-      "${proto}://${host}:${port}" >>"$logfile" 2>&1 <<EOF
-$spass
-EOF
+          mirror --continue --parallel=4 --verbose '${spath}' '${stage}'; bye" \
+      "${proto}://${host}:${port}" >>"$logfile" 2>&1 </dev/null; then
+      transferred=true
+    fi
   fi
+  rm -rf "$sek"
+  [ "$transferred" = true ] || return 3
 
-  # DA-correct ownership so PHP-FPM / suEXEC can serve the files.
-  chown -R "${user}:${user}" "$dst" >>"$logfile" 2>&1 || true
+  # Klient czyta swój katalog roboczy (ACL ustawia właściciel plików, czyli verris-mig —
+  # root nie chodzi po drzewie, które kontroluje proces rozmawiający z obcym serwerem).
+  jako_mig setfacl -R -P -m "u:${user}:rX" "$stage" >>"$logfile" 2>&1 \
+    || { echo "setfacl na katalogu roboczym nie powiódł się" >>"$logfile"; return 3; }
+  # Kopia lokalna JAKO KLIENT: pliki od razu mają właściciela konta, root nie pisze w drzewie klienta
+  # (bez ryzyka podmiany katalogu na dowiązanie w trakcie operacji roota).
+  # Prawa samego katalogu docelowego (np. public_html 750 z grupą DA) zostają — rsync przeniósłby
+  # na niego prawa katalogu źródłowego.
+  echo "== kopia lokalna do ${dst} (jako ${user})" >>"$logfile"
+  local tryb_dst; tryb_dst=$(stat -c %a "$dst")
+  runuser -u "$user" -- rsync -a --delete --delete-excluded --exclude '.cache' --exclude 'tmp/' \
+    "${stage}/" "${dst}/" >>"$logfile" 2>&1 || { echo "kopia lokalna nie powiodła się" >>"$logfile"; return 3; }
+  runuser -u "$user" -- chmod "$tryb_dst" "$dst" >>"$logfile" 2>&1 || true
 
   local bytes files
   bytes=$(du -sb "$dst" 2>/dev/null | awk '{print $1+0}')
@@ -361,12 +449,37 @@ run_mysql() {
   tdb=$(mysql_prepare_target_db "$job" "$logfile") || return 2
   vg_require db "$tdb" "targetDb.database" 2>>"$logfile" || return 2
 
+  # Import na poświadczeniach użytkownika TEJ bazy (targetDb z lease) — zrzut z obcego
+  # serwera nie może dotknąć innych baz węzła ani uprawnień. Brak targetDb = tymczasowy
+  # użytkownik z GRANT tylko na tę bazę, usuwany po imporcie.
+  ensure_mig_user
+  local sek; sek=$(katalog_sekretow)
+  local tuser tpass tymczasowy=""
+  tuser=$(jq -r '.targetDb.username // empty' <<<"$job")
+  tpass=$(jq -r '.targetDb.password // empty' <<<"$job")
+  if [ -z "$tuser" ] || [ -z "$tpass" ]; then
+    tuser="vmig_$(openssl rand -hex 6)"
+    tpass="$(openssl rand -base64 24 | tr -d '/+=')"
+    tymczasowy="$tuser"
+    mysql --protocol=socket <<SQL 2>>"$logfile" || { rm -rf "$sek"; echo "nie mogę utworzyć tymczasowego użytkownika importu" >>"$logfile"; return 3; }
+CREATE USER '${tuser}'@'localhost' IDENTIFIED BY '${tpass}';
+GRANT ALL ON \`${tdb}\`.* TO '${tuser}'@'localhost';
+SQL
+  fi
+  local src_pf tgt_pf; src_pf=$(plik_sekretu "$sek" zrodlo "$spass"); tgt_pf=$(plik_sekretu "$sek" cel "$tpass")
+  local sandbox; sandbox=$(mysql_sandbox_opt)
+  local -a importuj=(jako_mig_env MYSQL_PWD "$tgt_pf" mysql --protocol=socket ${sandbox:+"$sandbox"} -u "$tuser" "$tdb")
+
   local dumped=false remote_reachable=false
-  echo "== mysqldump remote ${suser}@${shost}:${sport}/${sdb} -> ${tdb}" >>"$logfile"
-  if MYSQL_PWD="$spass" mysqldump --single-transaction --quick --routines --triggers \
-      --no-tablespaces --set-gtid-purged=OFF \
+  echo "== mysqldump remote ${suser}@${shost}:${sport}/${sdb} -> ${tdb} (jako ${MIG_USER}, import jako ${tuser})" >>"$logfile"
+  # --set-gtid-purged zna tylko mysqldump z MySQL; mysqldump z MariaDB (klient na węzłach DA/CloudLinux)
+  # odrzuca nieznaną opcję i CAŁA ścieżka zdalna padała (zostawał tylko fallback przez SSH).
+  local gtid=()
+  mysqldump --help 2>/dev/null | grep -q -- '--set-gtid-purged' && gtid=(--set-gtid-purged=OFF)
+  if jako_mig_env MYSQL_PWD "$src_pf" mysqldump --single-transaction --quick --routines --triggers \
+      --no-tablespaces "${gtid[@]}" \
       -h "$shost" -P "$sport" -u "$suser" "$sdb" 2>>"$logfile" \
-      | mysql --protocol=socket "$tdb" 2>>"$logfile"; then
+      | "${importuj[@]}" 2>>"$logfile"; then
     dumped=true
     remote_reachable=true
   else
@@ -384,16 +497,22 @@ run_mysql() {
     fi
     if [ -n "$sshhost" ] && command -v sshpass >/dev/null 2>&1; then
       echo "== mysqldump via SSH ${sshuser}@${sshhost}:${sshport}" >>"$logfile"
+      local ssh_pf; ssh_pf=$(plik_sekretu "$sek" ssh "$sshpass_")
+      # Hasło MySQL źródła idzie do zdalnej powłoki przez stdin (pierwsza linia), nie w poleceniu —
+      # wcześniej było w argv lokalnego ssh, widoczne w `ps` dla wszystkich kont węzła.
       # shellcheck disable=SC2029
-      if sshpass -p "$sshpass_" ssh "${SSH_OPTS[@]}" -p "$sshport" "${sshuser}@${sshhost}" \
-          "MYSQL_PWD=$(printf %q "$spass") mysqldump --single-transaction --quick --routines --triggers --no-tablespaces -h 127.0.0.1 -u $(printf %q "$suser") $(printf %q "$sdb")" \
-          2>>"$logfile" | mysql --protocol=socket "$tdb" 2>>"$logfile"; then
+      if { cat "$src_pf"; echo; } | jako_mig_env SSHPASS "$ssh_pf" sshpass -e ssh "${SSH_OPTS[@]}" -p "$sshport" "${sshuser}@${sshhost}" \
+          "IFS= read -r MYSQL_PWD; export MYSQL_PWD; exec mysqldump --single-transaction --quick --routines --triggers --no-tablespaces -h 127.0.0.1 -u $(printf %q "$suser") $(printf %q "$sdb")" \
+          2>>"$logfile" | "${importuj[@]}" 2>>"$logfile"; then
         dumped=true
       fi
     fi
   fi
 
-  [ "$dumped" = true ] || return 3
+  if [ -n "$tymczasowy" ]; then
+    mysql --protocol=socket -e "DROP USER IF EXISTS '${tymczasowy}'@'localhost';" 2>>"$logfile" || true
+  fi
+  [ "$dumped" = true ] || { rm -rf "$sek"; return 3; }
 
   local bytes
   bytes=$(mysql --protocol=socket -N -e \
@@ -406,13 +525,14 @@ run_mysql() {
     "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${tdb}' AND table_type='BASE TABLE';" 2>/dev/null || echo 0)
   tgt_rows=$(mysql_row_total "$tdb" mysql --protocol=socket 2>/dev/null || echo 0)
   if [ "$remote_reachable" = true ]; then
-    src_rows=$(mysql_row_total "$sdb" env "MYSQL_PWD=$spass" mysql -h "$shost" -P "$sport" -u "$suser" 2>/dev/null || echo null)
+    src_rows=$(mysql_row_total "$sdb" jako_mig_env MYSQL_PWD "$src_pf" mysql -h "$shost" -P "$sport" -u "$suser" 2>/dev/null || echo null)
     [ "$src_rows" != "null" ] && { [ "${src_rows:-0}" -eq "${tgt_rows:-0}" ] 2>/dev/null && match=true || match=false; }
   fi
   jq -nc \
     --arg db "$tdb" --argjson tables "${tgt_tables:-0}" --argjson rows "${tgt_rows:-0}" \
     --argjson srows "${src_rows:-null}" --argjson match "${match:-null}" \
     '{kind:"mysql", database:$db, targetTables:$tables, targetRows:$rows, sourceRows:$srows, match:$match}' >"${logfile}.integrity"
+  rm -rf "$sek"
   echo "${bytes:-0}"
 }
 
@@ -444,14 +564,22 @@ run_imap() {
   local tls1=()
   [ "$sport" = "993" ] && tls1=(--ssl1) || tls1=(--tls1)
 
-  imapsync \
-    --host1 "$shost" --port1 "$sport" --user1 "$suser" --password1 "$spass" "${tls1[@]}" \
+  # imapsync jako verris-mig, hasła przez --passfile (nie w argv).
+  # ponytail: hasło mastera dovecota trafia do procesu verris-mig — przejęcie imapsync przez złośliwy
+  # serwer IMAP daje dostęp do poczty na węźle (wcześniej: root). Docelowo hasło per zlecenie
+  # rotowane przez control-plane.
+  ensure_mig_user
+  local sek; sek=$(katalog_sekretow)
+  local pf1 pf2; pf1=$(plik_sekretu "$sek" imap1 "$spass"); pf2=$(plik_sekretu "$sek" imap2 "$master_pass")
+  jako_mig imapsync \
+    --host1 "$shost" --port1 "$sport" --user1 "$suser" --passfile1 "$pf1" "${tls1[@]}" \
     --host2 127.0.0.1 --port2 143 --user2 "$email" \
-    --authuser2 "$master_user" --password2 "$master_pass" --authmech2 PLAIN \
+    --authuser2 "$master_user" --passfile2 "$pf2" --authmech2 PLAIN \
     --no-modulesversion --automap --skipcrossduplicates \
     --useheader 'Message-Id' --useheader 'Date' \
     --nofoldersizes --nofoldersizesatend \
     >>"$logfile" 2>&1
+  rm -rf "$sek"
 
   # Raport spójności: liczby wiadomości źródła/celu z podsumowania imapsync.
   local host1_msgs host2_msgs
@@ -547,7 +675,8 @@ run_http_check() {
   if [ -n "$domain" ] && [ -n "$node_ip" ]; then
     resolve_opts=(--resolve "${domain}:443:${node_ip}" --resolve "${domain}:80:${node_ip}")
   fi
-  code=$(curl -sSk -o /dev/null -w '%{http_code}' --max-time 30 -L "${resolve_opts[@]}" "$url" 2>>"$logfile" || echo 000)
+  ensure_mig_user
+  code=$(jako_mig curl -sSk -o /dev/null -w '%{http_code}' --max-time 30 -L "${resolve_opts[@]}" "$url" 2>>"$logfile" || echo 000)
   echo "HTTP $code for $url (resolved to ${node_ip:-public DNS})" >>"$logfile"
   [[ "$code" =~ ^(2|3)[0-9][0-9]$ ]]
 }
@@ -561,6 +690,8 @@ run_one() {
   local id kind; id=$(jq -r '.id' <<<"$job"); kind=$(jq -r '.kind' <<<"$job")
   [ -n "$id" ] && [ "$id" != "null" ] || return 9
   local logfile; logfile=$(mktemp /tmp/verris-mig-XXXXXX.log)
+  # Pliki z hasłami po zleceniach przerwanych w połowie (kill, restart) — nie dłużej niż 2 h.
+  find "$MIG_HOME" -maxdepth 1 -name 'job.*' -mmin +120 -exec rm -rf {} + 2>/dev/null || true
   log "leased job $id kind=$kind"
 
   local user domain dst=""
@@ -571,7 +702,7 @@ run_one() {
   set +e
   case "$kind" in
     FILES_SFTP_RSYNC|FILES_DELTA)
-      start_heartbeat "$id" "$dst" "kopiowanie plików ($kind)"
+      start_heartbeat "$id" "${MIG_HOME}/stage/${user}/${domain}" "kopiowanie plików ($kind)"
       out=$(run_files "$job" "$logfile"); rc=$?
       stop_heartbeat
       if [ $rc -eq 0 ]; then complete_job "$id" "${out% *}" "${out#* }" 0 0 "$logfile"
@@ -609,7 +740,11 @@ run_one() {
 ensure_deps() {
   # Best-effort install of the transfer tools. Non-fatal: a missing tool only
   # affects its own job kind (worker reports that job as retryable-failed).
-  local need=(jq curl rsync sshpass lftp mysql imapsync)
+  # $1 = "pelne" (instalacja): także nakładka najnowszego imapsync. W `drain` (co 2 min) tylko
+  # brakujące pakiety — wcześniej każdy przebieg pobierał skrypt imapsync z internetu i nadpisywał
+  # nim /usr/local/bin jako root.
+  local tryb="${1:-}"
+  local need=(jq curl rsync sshpass lftp mysql imapsync setfacl openssl)
   local missing=()
   for b in "${need[@]}"; do command -v "$b" >/dev/null 2>&1 || missing+=("$b"); done
   if [ ${#missing[@]} -gt 0 ]; then
@@ -618,7 +753,11 @@ ensure_deps() {
     # (Governor), a jeden konflikt w transakcji dnf blokował instalację WSZYSTKICH narzędzi.
     local pkgs=() b
     for b in "${missing[@]}"; do
-      if [ "$b" = mysql ]; then command -v apt-get >/dev/null 2>&1 && pkgs+=(mariadb-client) || pkgs+=(mariadb); else pkgs+=("$b"); fi
+      case "$b" in
+        mysql) command -v apt-get >/dev/null 2>&1 && pkgs+=(mariadb-client) || pkgs+=(mariadb) ;;
+        setfacl) pkgs+=(acl) ;;
+        *) pkgs+=("$b") ;;
+      esac
     done
     if command -v dnf >/dev/null 2>&1; then
       dnf install -y epel-release >/dev/null 2>&1 || true
@@ -637,6 +776,7 @@ ensure_deps() {
   # Exchange, poprawki serwerów IMAP). Nadpisujemy binarkę najnowszym oficjalnym
   # skryptem w /usr/local/bin (wyprzedza /usr/bin w PATH). Best-effort: gdy pobranie
   # się nie uda, zostaje wersja z pakietu. Pin przez IMAPSYNC_URL (domyślnie: latest).
+  [ "$tryb" = pelne ] || return 0
   local imapsync_url="${IMAPSYNC_URL:-https://imapsync.lamiral.info/imapsync}"
   local imapsync_dst="/usr/local/bin/imapsync"
   if curl -fsSL --retry 2 -o "${imapsync_dst}.tmp" "$imapsync_url" 2>/dev/null \
@@ -659,7 +799,12 @@ ensure_deps() {
 
 install_timer() {
   require_conf
-  ensure_deps
+  ensure_deps pelne
+  ensure_mig_user
+  # Katalog roboczy migracji: pliki starsze niż 14 dni znikają (delta i tak dzieje się w ciągu dni).
+  cat >/etc/tmpfiles.d/verris-mig.conf <<TMPF
+d ${MIG_HOME}/stage 0711 root root 14d
+TMPF
   install -m 0755 "$0" /usr/local/sbin/verris-migration-worker
   # Biblioteka walidacji musi wylądować obok workera — bez niej worker startuje
   # fail-closed i nie weźmie żadnego zlecenia (Z-03).

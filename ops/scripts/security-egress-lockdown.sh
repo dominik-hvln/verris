@@ -78,6 +78,11 @@ else
   EXTRA_TCP="{ 21, 25, 465, 587, 993, 995, 2222, 3306 }"
 fi
 
+# Użytkownik workera migracji musi istnieć, zanim nft rozwiąże `meta skuid "verris-mig"`.
+if [ "$ROLE" != "control-plane" ] && ! id -u verris-mig >/dev/null 2>&1; then
+  useradd --system --shell /sbin/nologin --home-dir /var/lib/verris-mig --no-create-home verris-mig
+fi
+
 # Idempotencja: ponowne uruchomienie nie dokleja reguł (utwórz → usuń → zdefiniuj od nowa).
 cat >"$NFT_CONF" <<EOF
 table inet verris_egress
@@ -104,12 +109,14 @@ table inet verris_egress {
     # role-specific outbound
     tcp dport ${EXTRA_TCP} accept
 
-    # PB-31 — procesy roota: kopie off-site (rclone → Storage Box, port 23) i worker migracji
-    # (verris-migration-worker, root), który łączy się z DOWOLNYM hostem klienta: SSH/SFTP na
-    # niestandardowych portach (np. 65002, 18765), FTP pasywne (porty danych > 1024 — conntrack nie
-    # oznacza ich jako related bez helpera, a przy FTPS helper nie widzi PASV), IMAP 143/STARTTLS.
+    # PB-31 — root: kopie off-site (rclone → Storage Box, port 23) i SSH/SFTP (22).
+    meta skuid 0 tcp dport { 22, 23 } accept
+
+    # Worker migracji łączy się z DOWOLNYM hostem klienta (SFTP na niestandardowych portach,
+    # np. 65002, 18765; FTP pasywne; IMAP 143) — ale od 28.09 jako nieuprzywilejowany
+    # verris-mig, nie root (node-migration-worker.sh). Tylko on dostaje dowolny port TCP.
     # Konta klientów (inne UID: PHP, cron, SSH) dalej tylko porty z list powyżej.
-    meta skuid 0 meta l4proto tcp accept
+    meta skuid "verris-mig" meta l4proto tcp accept
   }
 }
 EOF

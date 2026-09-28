@@ -222,6 +222,9 @@ phase_da() {
   # Domyślnie setup.sh puszcza CustomBuild (PHP, MariaDB, Exim…) W TLE i kończy się od razu —
   # faza STACK ruszyłaby ./build równolegle. Tryb pierwszoplanowy (predefined options DirectAdmin).
   export DA_FOREGROUND_CUSTOMBUILD=yes
+  # Bez CSF: na węźle jest firewalld + nftables (egress) + fail2ban (decyzja 28.09). CSF z instalatora DA
+  # dołożyłby drugi firewall na iptables — ryzyko odcięcia SSH i rozjazdu reguł.
+  export DA_SKIP_CSF=true
   sh <(curl -fsSL https://download.directadmin.com/setup.sh) "$DA_LICENSE" || fail DA "instalator DA zwrócił błąd"
   da_installed || fail DA "DA nie zainstalował się poprawnie"
   report DA OK

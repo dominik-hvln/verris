@@ -138,8 +138,48 @@ backend = systemd
 enabled = true
 port = ${SSH_PORT}
 EOF"
+  # Węzeł: firewalld + fail2ban zamiast CSF/LFD (decyzja 28.09; CSF po zamknięciu ConfigServer
+  # utrzymuje tylko fork DirectAdmina, na iptables, i koliduje z naszym egress nftables).
+  # Te jaile przejmują rolę LFD: logowanie do DirectAdmina, SMTP AUTH, IMAP/POP3, FTP.
+  # DA i Exim piszą do własnych plików (backend auto); Dovecot i Pure-FTPd — do journala
+  # (backend systemd z [DEFAULT], filtry mają journalmatch).
+  if [ "$ROLE" = "node" ]; then
+    [ -d /var/log/directadmin ] && run "touch /var/log/directadmin/login.log"
+    [ -d /var/log/exim ] && run "touch /var/log/exim/mainlog"
+    run "cat >> /etc/fail2ban/jail.d/verris.local <<'EOF'
+
+[directadmin]
+enabled = true
+port = 2222
+backend = auto
+logpath = /var/log/directadmin/login.log
+
+[exim]
+enabled = true
+port = smtp,465,submission
+backend = auto
+logpath = /var/log/exim/mainlog
+
+[dovecot]
+enabled = true
+port = pop3,pop3s,imap,imaps,submission,465,sieve
+
+[pure-ftpd]
+enabled = true
+port = ftp,ftp-data,ftps,ftps-data
+EOF"
+  fi
   if command -v systemctl >/dev/null 2>&1; then
     run "systemctl enable --now fail2ban"
+    run "systemctl restart fail2ban"
+  fi
+  # Kontrola po fakcie: jail, który nie wstał (zła ścieżka logu, brak filtra), to cicha dziura.
+  if [ "$DRY_RUN" -eq 0 ] && command -v fail2ban-client >/dev/null 2>&1; then
+    sleep 2
+    local j
+    for j in sshd $( [ "$ROLE" = node ] && echo directadmin exim dovecot pure-ftpd ); do
+      fail2ban-client status "$j" >/dev/null 2>&1 || log "WARN: jail fail2ban '$j' nie działa — sprawdź: fail2ban-client status $j; journalctl -u fail2ban"
+    done
   fi
 }
 

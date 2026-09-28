@@ -46,6 +46,13 @@ flowchart TD
    projektach — odblokowanie wnioskiem (Limits) po miesiącu i opłaceniu 1. faktury; do tego czasu Exim nie doręczy poczty
    (readiness zgłasza [WARN]). Bootstrap sam: swap 4 GB, SELinux → permissive, `preserve_hostname` w cloud-init.
    IPv4 idzie z DHCP — egress węzła przepuszcza udp/67.
+5. **Firewall (decyzja 2026-09-28): firewalld + nftables + fail2ban, bez CSF.** Bootstrap instaluje DirectAdmina
+   z `DA_SKIP_CSF=true`; rolę LFD przejmują jaile fail2ban (`directadmin`, `exim`, `dovecot`, `pure-ftpd`, `sshd`).
+   Po onboardzie: `fail2ban-client status` — pięć jaili.
+6. **Worker migracji bez roota przy obcych serwerach (2026-09-28):** rsync/lftp/mysqldump/imapsync/curl do serwerów
+   klienta działają jako `verris-mig`; tylko on ma dowolny port TCP w egress (root: 22/23). Pliki kopiuje do konta
+   sam klient (`runuser -u <konto>`), import bazy idzie na poświadczeniach bazy docelowej z `mysql --sandbox`.
+   Katalog roboczy `/var/lib/verris-mig/stage` sprząta systemd-tmpfiles po 14 dniach (licz miejsce na dysku).
 
 ## Faza 2 — Instalacja: kreator → bootstrap v2
 
