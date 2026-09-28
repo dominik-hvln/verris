@@ -1,3 +1,4 @@
+import { bladDa } from './directadmin.service.js';
 import { opiszOdpowiedz } from './sonda-da.js';
 
 describe('sonda API DA — kształt bez wartości', () => {
@@ -11,5 +12,15 @@ describe('sonda API DA — kształt bez wartości', () => {
     expect(opiszOdpowiedz('<!DOCTYPE html><p>')).toEqual({ format: 'html', ksztalt: '18 B' });
     expect(opiszOdpowiedz('a IN A 1.2.3.4\n').format).toBe('tekst');
     expect(opiszOdpowiedz('')).toEqual({ format: 'tekst', ksztalt: '0 B, 0 linii' });
+  });
+});
+
+describe('bladDa — powód z details, nie sam ogólnik', () => {
+  it('łączy text i details, zdejmuje HTML', () => {
+    expect(bladDa('Nie udało się wykonać Twojego żądania', 'DNS problem: NXDOMAIN<br>looking up A for d3.hvln.pl')).toBe(
+      'Nie udało się wykonać Twojego żądania: DNS problem: NXDOMAIN looking up A for d3.hvln.pl',
+    );
+    expect(bladDa('Rate limit', null)).toBe('Rate limit');
+    expect(bladDa(undefined, undefined)).toBe('Błąd serwera hostingowego');
   });
 });

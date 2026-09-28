@@ -835,7 +835,7 @@ export class DirectAdminService {
       const p = new URLSearchParams(data);
       const err = p.get('error');
       if (err && err !== '0') {
-        throw new BadRequestException(p.get('text') ?? p.get('details') ?? 'DirectAdmin error');
+        throw new BadRequestException(bladDa(p.get('text'), p.get('details')));
       }
       return;
     }
@@ -844,9 +844,7 @@ export class DirectAdminService {
       if ('error' in o && o.error !== undefined) {
         const err = o.error;
         if (String(err) !== '0' && String(err) !== 'false') {
-          throw new BadRequestException(
-            String(o.text ?? o.details ?? o.message ?? 'DirectAdmin error'),
-          );
+          throw new BadRequestException(bladDa(o.text ?? o.message, o.details));
         }
       }
     }
@@ -3519,4 +3517,16 @@ export function zRekordowDns(data: unknown): Array<{ id: string; name: string; t
     const ttl = Number(x.ttl);
     return [{ id: `${x.name}:${x.type}:${value}:${i}`, name: x.name, type: x.type, value, ttl: Number.isFinite(ttl) && ttl > 0 ? ttl : null }];
   });
+}
+
+/**
+ * Komunikat błędu DA: `text` bywa ogólny („Nie udało się wykonać Twojego żądania”), a powód — np. odpowiedź
+ * Let's Encrypt — jest w `details` (test D3 na t1, 28.09: klient widział sam ogólnik). Bez tagów HTML, przycięty.
+ */
+export function bladDa(text: unknown, details: unknown): string {
+  const czysc = (v: unknown) => (v == null ? '' : String(v).replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim());
+  const t = czysc(text);
+  const d = czysc(details);
+  const razem = t && d && !t.includes(d) ? `${t}: ${d}` : t || d || 'Błąd serwera hostingowego';
+  return razem.slice(0, 500);
 }
