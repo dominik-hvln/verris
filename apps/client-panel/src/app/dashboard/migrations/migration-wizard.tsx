@@ -74,7 +74,8 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
   const [ftpPort, setFtpPort] = useState(22);
   const [ftpUser, setFtpUser] = useState('');
   const [ftpPass, setFtpPass] = useState('');
-  const [ftpPath, setFtpPath] = useState('/');
+  // Puste = worker sam znajdzie katalog strony (public_html / domains/<d>/public_html / httpdocs).
+  const [ftpPath, setFtpPath] = useState('');
 
   const [dbs, setDbs] = useState<DbRow[]>([]);
   const [boxes, setBoxes] = useState<BoxRow[]>(() =>
@@ -138,10 +139,29 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
     const d = res.result as DiscoveryResult;
     setDiscovery(d);
     setIncludeFiles(true);
-    setFtpProtocol(preset.ftpProtocol);
-    setFtpPort(preset.ftpPort);
+    // Panel podał dane FTP konta: FTP z szyfrowaniem (FTPS) na porcie z panelu — SSH na hostingu
+    // współdzielonym bywa wyłączone, więc preset SFTP:22 zawodził. Hasło główne FTP to zwykle hasło panelu.
+    if (d.ftpHint) {
+      setFtpProtocol('ftps');
+      setFtpPort(d.ftpHint.port);
+    } else {
+      setFtpProtocol(preset.ftpProtocol);
+      setFtpPort(preset.ftpPort);
+    }
     setFtpHost(d.ftpHint?.host ?? panelHost.trim());
     setFtpUser(d.ftpHint?.username ?? panelUser);
+    setFtpPass(panelPass);
+    // Katalog strony, nie katalog domowy konta (tam są poczta i hasła skrzynek).
+    const dom = d.primaryDomain ?? '';
+    setFtpPath(
+      preset.panelType === 'cpanel'
+        ? '/public_html'
+        : preset.panelType === 'directadmin' && dom
+          ? `/domains/${dom}/public_html`
+          : preset.panelType === 'plesk'
+            ? '/httpdocs'
+            : '',
+    );
     if (d.primaryDomain && !sourceDomain) setSourceDomain(d.primaryDomain);
     setDbs(
       d.databases.map((db) => ({
@@ -564,10 +584,11 @@ function StepSources(props: {
             <label className="space-y-1.5 block">
               <span className={labelText}>Hasło</span>
               <input type="password" value={props.ftpPass} onChange={(e) => props.setFtpPass(e.target.value)} className={input} autoComplete="new-password" />
+              <span className="block text-[11px] text-neutral-500">Zwykle to samo hasło co do panelu starego hostingu.</span>
             </label>
             <label className="space-y-1.5 block">
               <span className={labelText}>Ścieżka na serwerze</span>
-              <input value={props.ftpPath} onChange={(e) => props.setFtpPath(e.target.value)} className={input} placeholder="/ lub /public_html" />
+              <input value={props.ftpPath} onChange={(e) => props.setFtpPath(e.target.value)} className={input} placeholder="zostaw puste — sami znajdziemy katalog strony" />
             </label>
           </div>
         ) : null}

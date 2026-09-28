@@ -1134,6 +1134,9 @@ model MigrationRequest {
   mailboxesMigrated Int           @default(0)
 
   startedAt       DateTime?
+  /// Kopia bezpieczeństwa konta docelowego i bazy docelowe gotowe (MigrationWorkerScheduler).
+  /// Bez tej daty worker nie dostanie żadnego kroku — wznowienie wraca do QUEUED (28.09).
+  preBackupAt     DateTime?
   completedAt     DateTime?
 
   createdAt       DateTime        @default(now())

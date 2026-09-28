@@ -484,6 +484,15 @@ export class MigrationOrchestratorService {
     };
   }
 
+  /**
+   * Wznowienie zlecenia: RUNNING tylko, gdy konto docelowe ma kopię bezpieczeństwa i bazy docelowe
+   * (preBackupAt). Inaczej QUEUED — MigrationWorkerScheduler zrobi kopię, a przy porażce eskaluje.
+   * Do 28.09 „Wznów automat” po nieudanej kopii puszczał workera na konto bez kopii.
+   */
+  private statusWznowienia(request: { preBackupAt: Date | null }): MigrationStatus {
+    return request.preBackupAt ? MigrationStatus.RUNNING : MigrationStatus.QUEUED;
+  }
+
   async setStatusForStaff(opts: {
     migrationRequestId: string;
     actorUserId: string;
@@ -494,27 +503,42 @@ export class MigrationOrchestratorService {
       where: { id: opts.migrationRequestId },
     });
     if (!request) throw new NotFoundException('Migration request not found');
+    if (opts.status === MigrationStatus.CANCELED) {
+      // Anulowanie przez obsługę = to samo co u klienta: kroki w kolejce też stają.
+      await this.prisma.migrationWorkerJob.updateMany({
+        where: {
+          migrationRequestId: request.id,
+          status: {
+            in: [MigrationWorkerJobStatus.QUEUED, MigrationWorkerJobStatus.RUNNING, MigrationWorkerJobStatus.RETRYING],
+          },
+        },
+        data: { status: MigrationWorkerJobStatus.CANCELED, completedAt: new Date() },
+      });
+    }
+    // RUNNING bez kopii konta docelowego = QUEUED: scheduler najpierw zrobi kopię i bazy.
+    const status = opts.status === MigrationStatus.RUNNING ? this.statusWznowienia(request) : opts.status;
 
     const updated = await this.prisma.migrationRequest.update({
       where: { id: request.id },
       data: {
-        status: opts.status,
+        status,
+        ...(opts.status === MigrationStatus.CANCELED ? { needsAttention: false, attentionReason: null } : {}),
         startedAt:
-          opts.status === MigrationStatus.RUNNING && !request.startedAt
+          status === MigrationStatus.RUNNING && !request.startedAt
             ? new Date()
             : request.startedAt,
         completedAt:
-          opts.status === MigrationStatus.COMPLETED ||
-          opts.status === MigrationStatus.FAILED ||
-          opts.status === MigrationStatus.CANCELED
+          status === MigrationStatus.COMPLETED ||
+          status === MigrationStatus.FAILED ||
+          status === MigrationStatus.CANCELED
             ? new Date()
             : null,
         currentStep:
-          opts.status === MigrationStatus.COMPLETED
+          status === MigrationStatus.COMPLETED
             ? 'done'
-            : opts.status === MigrationStatus.RUNNING
+            : status === MigrationStatus.RUNNING
               ? (request.currentStep ?? 'running')
-              : opts.status.toLowerCase(),
+              : status.toLowerCase(),
       },
     });
 
@@ -548,6 +572,8 @@ export class MigrationOrchestratorService {
           // a import bazy — bez przygotowanych baz docelowych.
           status: MigrationStatus.RUNNING,
           needsAttention: false,
+          // Druga warstwa: bez kopii konta docelowego żadnego kroku (patrz wznowienie niżej).
+          preBackupAt: { not: null },
           subscription: {
             account: { serverId },
           },
@@ -973,7 +999,7 @@ export class MigrationOrchestratorService {
           completedAt: null,
         },
       });
-      status = MigrationStatus.RUNNING;
+      status = this.statusWznowienia(request);
     } else if (opts.outcome === 'completed') {
       status = MigrationStatus.COMPLETED;
     } else {
@@ -987,9 +1013,15 @@ export class MigrationOrchestratorService {
         needsAttention: false,
         attentionReason: null,
         currentStep:
-          status === MigrationStatus.RUNNING ? 'worker-queue' : status === MigrationStatus.COMPLETED ? 'done' : 'failed',
-        completedAt: status === MigrationStatus.RUNNING ? null : new Date(),
-        lastError: status === MigrationStatus.RUNNING ? null : request.lastError,
+          status === MigrationStatus.RUNNING
+            ? 'worker-queue'
+            : status === MigrationStatus.QUEUED
+              ? 'queued'
+              : status === MigrationStatus.COMPLETED
+                ? 'done'
+                : 'failed',
+        completedAt: status === MigrationStatus.RUNNING || status === MigrationStatus.QUEUED ? null : new Date(),
+        lastError: status === MigrationStatus.RUNNING || status === MigrationStatus.QUEUED ? null : request.lastError,
       },
     });
 
@@ -1028,9 +1060,20 @@ export class MigrationOrchestratorService {
         completedAt: null,
       },
     });
+    const zlecenie = await this.prisma.migrationRequest.findUniqueOrThrow({
+      where: { id: opts.migrationRequestId },
+      select: { preBackupAt: true },
+    });
+    const statusZlecenia = this.statusWznowienia(zlecenie);
     await this.prisma.migrationRequest.update({
       where: { id: opts.migrationRequestId },
-      data: { status: MigrationStatus.RUNNING, needsAttention: false, currentStep: 'worker-queue', completedAt: null },
+      data: {
+        status: statusZlecenia,
+        needsAttention: false,
+        attentionReason: null,
+        currentStep: statusZlecenia === MigrationStatus.RUNNING ? 'worker-queue' : 'queued',
+        completedAt: null,
+      },
     });
     await this.audit.record({
       action: MigrationActions.MIGRATION_WORKER_JOB_RETRIED,

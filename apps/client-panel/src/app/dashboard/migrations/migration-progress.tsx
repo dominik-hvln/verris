@@ -165,8 +165,8 @@ export function MigrationProgress({ serviceId, initial }: Props) {
 
       {summary.status === 'ATTENTION' ? (
         <p className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-xs text-amber-100/90">
-          Migrację przejął nasz zespół{summary.attentionReason ? `: ${summary.attentionReason}` : ''}.
-          Zajmiemy się nią i damy znać e-mailem. Nie musisz nic robić.
+          {/* Powód eskalacji (attentionReason) jest techniczny i dla zespołu — klient go nie widzi. */}
+          Migrację przejął nasz zespół. Zajmiemy się nią i damy znać e-mailem. Nie musisz nic robić.
         </p>
       ) : null}
 
@@ -222,7 +222,8 @@ function JobRow({ job }: { job: MigrationJobView }) {
           </span>
         ) : null}
         {job.status === 'RETRYING' ? <span className="ml-2 text-xs text-amber-400/80">ponawiam ({job.attempts}/{job.maxAttempts})</span> : null}
-        {job.status === 'FAILED' && job.lastError ? <span className="ml-2 text-xs text-rose-400/80">{job.lastError}</span> : null}
+        {/* Surowy błąd workera (po angielsku, techniczny) widzi zespół w panelu obsługi. */}
+        {job.status === 'FAILED' ? <span className="ml-2 text-xs text-rose-400/80">nie udało się — przejmuje to nasz zespół</span> : null}
         {job.status === 'COMPLETED' && job.integrity ? <IntegrityLine integrity={job.integrity} /> : null}
       </span>
     </li>

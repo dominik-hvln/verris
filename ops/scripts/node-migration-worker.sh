@@ -254,6 +254,14 @@ plik_sekretu() {
   echo "$p"
 }
 
+# Zrzut z obcego serwera przed importem na użytkowniku jednej bazy:
+#  - DEFINER=`kto`@`gdzie` w widokach, procedurach i wyzwalaczach wymaga SUPER — bez usunięcia import
+#    pada w połowie (node-db-transfer.sh robi to samo),
+#  - kolacje MySQL 8 (utf8mb4_0900_*) → utf8mb4_unicode_ci: starsza MariaDB ich nie zna.
+oczysc_zrzut() {
+  sed -E 's/DEFINER=`[^`]*`@`[^`]*`//g; s/utf8mb4_0900_[a-z_]+/utf8mb4_unicode_ci/g'
+}
+
 # Czy klient mysql zna --sandbox (MariaDB ≥ 10.6.18 / 11.x): wyłącza `\!`, `source`
 # itp. w strumieniu importu — zrzut z obcego serwera nie wykona polecenia powłoki.
 mysql_sandbox_opt() {
@@ -343,9 +351,33 @@ run_files() {
   rm -rf "$sek"
   [ "$transferred" = true ] || return 3
 
+  # Źródło kopii: SAM katalog strony. Wartość domyślna „/” albo ręcznie podany katalog domowy starego
+  # konta dawały w stage cały katalog domowy: mail/, etc/<domena>/shadow (hashe haseł skrzynek),
+  # .ssh, ssl/ — i to wszystko trafiało do public_html, czyli do internetu (przegląd 28.09).
+  local zrodlo_kopii="$stage" pod=""
+  if [ -d "$stage/domains/$domain/public_html" ]; then
+    pod="domains/${domain}/public_html"                                   # DirectAdmin
+  elif [ -d "$stage/public_html" ] && { [ -d "$stage/mail" ] || [ -d "$stage/etc" ] || [ -e "$stage/.ssh" ] \
+      || [ -d "$stage/ssl" ] || [ -d "$stage/logs" ] || [ -e "$stage/.cpanel" ] || [ -f "$stage/.bashrc" ]; }; then
+    pod="public_html"                                                     # cPanel i podobne
+  elif [ -d "$stage/httpdocs" ] && [ ! -e "$stage/index.php" ] && [ ! -e "$stage/index.html" ]; then
+    pod="httpdocs"                                                        # Plesk
+  fi
+  if [ -n "$pod" ]; then
+    zrodlo_kopii="${stage}/${pod}"
+    echo "== wskazano katalog domowy starego konta — kopiuję tylko katalog strony: ${pod}" >>"$logfile"
+  fi
+  # Po zejściu (albo bez niego) w źródle nie może być śladów katalogu domowego — odmowa zamiast wycieku.
+  if [ -e "$zrodlo_kopii/.ssh" ] || [ -e "$zrodlo_kopii/.cpanel" ] || [ -e "$zrodlo_kopii/.my.cnf" ] \
+      || compgen -G "$zrodlo_kopii/etc/*/shadow" >/dev/null || compgen -G "$zrodlo_kopii/imap/*/*/Maildir" >/dev/null \
+      || compgen -G "$zrodlo_kopii/mail/*/*/cur" >/dev/null; then
+    echo "ODMOWA: katalog źródłowy wygląda na katalog domowy konta (poczta, klucze, hasła) — wskaż katalog strony, np. /public_html" >>"$logfile"
+    return 2
+  fi
+
   # Klient czyta swój katalog roboczy (ACL ustawia właściciel plików, czyli verris-mig —
   # root nie chodzi po drzewie, które kontroluje proces rozmawiający z obcym serwerem).
-  jako_mig setfacl -R -P -m "u:${user}:rX" "$stage" >>"$logfile" 2>&1 \
+  jako_mig setfacl -R -P -m "u:${user}:rX" "$zrodlo_kopii" >>"$logfile" 2>&1 \
     || { echo "setfacl na katalogu roboczym nie powiódł się" >>"$logfile"; return 3; }
   # Kopia lokalna JAKO KLIENT: pliki od razu mają właściciela konta, root nie pisze w drzewie klienta
   # (bez ryzyka podmiany katalogu na dowiązanie w trakcie operacji roota).
@@ -353,8 +385,16 @@ run_files() {
   # na niego prawa katalogu źródłowego.
   echo "== kopia lokalna do ${dst} (jako ${user})" >>"$logfile"
   local tryb_dst; tryb_dst=$(stat -c %a "$dst")
+  # Klient musi przejść przez katalogi pośrednie (domains/<d>/) do katalogu strony.
+  if [ -n "$pod" ]; then
+    local p="$zrodlo_kopii"
+    while p=$(dirname "$p"); [ "$p" != "$stage" ] && [ "${#p}" -gt "${#stage}" ]; do
+      jako_mig setfacl -m "u:${user}:x" "$p" >>"$logfile" 2>&1 || true
+    done
+  fi
+  jako_mig setfacl -m "u:${user}:x" "$stage" >>"$logfile" 2>&1 || true
   runuser -u "$user" -- rsync -a --delete --delete-excluded --exclude '.cache' --exclude 'tmp/' \
-    "${stage}/" "${dst}/" >>"$logfile" 2>&1 || { echo "kopia lokalna nie powiodła się" >>"$logfile"; return 3; }
+    "${zrodlo_kopii}/" "${dst}/" >>"$logfile" 2>&1 || { echo "kopia lokalna nie powiodła się" >>"$logfile"; return 3; }
   runuser -u "$user" -- chmod "$tryb_dst" "$dst" >>"$logfile" 2>&1 || true
 
   local bytes files
@@ -365,6 +405,8 @@ run_files() {
   # Na ścieżce lftp brak statystyk — źródło pozostaje null (raport tylko celu).
   local src_files
   src_files=$(grep -oE 'Number of files:[^(]*\(reg: *[0-9,]+' "$logfile" 2>/dev/null | tail -1 | grep -oE 'reg: *[0-9,]+' | grep -oE '[0-9,]+' | tr -d ',')
+  # Pobrany był cały katalog domowy, a do konta trafił tylko katalog strony — liczby nieporównywalne.
+  [ -n "$pod" ] && src_files=
   if [ -n "$src_files" ]; then
     jq -nc --argjson s "$src_files" --argjson t "$files" --argjson b "$bytes" \
       '{kind:"files", sourceFiles:$s, targetFiles:$t, targetBytes:$b, match:($s==$t)}' >"${logfile}.integrity"
@@ -477,9 +519,9 @@ SQL
   local gtid=()
   mysqldump --help 2>/dev/null | grep -q -- '--set-gtid-purged' && gtid=(--set-gtid-purged=OFF)
   if jako_mig_env MYSQL_PWD "$src_pf" mysqldump --single-transaction --quick --routines --triggers \
-      --no-tablespaces "${gtid[@]}" \
+      --no-tablespaces --hex-blob "${gtid[@]}" \
       -h "$shost" -P "$sport" -u "$suser" "$sdb" 2>>"$logfile" \
-      | "${importuj[@]}" 2>>"$logfile"; then
+      | oczysc_zrzut | "${importuj[@]}" 2>>"$logfile"; then
     dumped=true
     remote_reachable=true
   else
@@ -502,8 +544,8 @@ SQL
       # wcześniej było w argv lokalnego ssh, widoczne w `ps` dla wszystkich kont węzła.
       # shellcheck disable=SC2029
       if { cat "$src_pf"; echo; } | jako_mig_env SSHPASS "$ssh_pf" sshpass -e ssh "${SSH_OPTS[@]}" -p "$sshport" "${sshuser}@${sshhost}" \
-          "IFS= read -r MYSQL_PWD; export MYSQL_PWD; exec mysqldump --single-transaction --quick --routines --triggers --no-tablespaces -h 127.0.0.1 -u $(printf %q "$suser") $(printf %q "$sdb")" \
-          2>>"$logfile" | "${importuj[@]}" 2>>"$logfile"; then
+          "IFS= read -r MYSQL_PWD; export MYSQL_PWD; exec mysqldump --single-transaction --quick --routines --triggers --no-tablespaces --hex-blob -h 127.0.0.1 -u $(printf %q "$suser") $(printf %q "$sdb")" \
+          2>>"$logfile" | oczysc_zrzut | "${importuj[@]}" 2>>"$logfile"; then
         dumped=true
       fi
     fi
@@ -608,6 +650,14 @@ run_wp_fixup() {
   dst=$(docroot_for "$user" "$domain")
 
   if [ ! -f "${dst}/wp-config.php" ]; then
+    # WordPress w podkatalogu = najpewniej zła ścieżka źródłowa (strona nie zadziała pod domeną).
+    # Wcześniej krok kończył się „sukcesem”, a klient dostawał niedziałającą stronę.
+    local zagniezdzony
+    zagniezdzony=$(find "$dst" -mindepth 2 -maxdepth 4 -name wp-config.php -print -quit 2>/dev/null)
+    if [ -n "$zagniezdzony" ]; then
+      echo "wp-config.php jest w podkatalogu (${zagniezdzony#"$dst"/}), a nie w katalogu strony — sprawdź ścieżkę źródłową" >>"$logfile"
+      return 3
+    fi
     echo "wp-config.php not found in ${dst} — not a WordPress site, nothing to fix." >>"$logfile"
     echo "0"
     return 0
@@ -658,7 +708,7 @@ run_wp_fixup() {
 
   sudo -u "$user" -- wp rewrite flush --hard --path="$dst" >>"$logfile" 2>&1 || true
   sudo -u "$user" -- wp cache flush --path="$dst" >>"$logfile" 2>&1 || true
-  chown -R "${user}:${user}" "$dst" >>"$logfile" 2>&1 || true
+  # Bez `chown -R` jako root: pliki kopiował klient (są jego), a wp-cli działa jako klient.
   echo "1" # wp fixed
 }
 

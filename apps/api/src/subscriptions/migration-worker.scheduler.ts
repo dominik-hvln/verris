@@ -80,7 +80,7 @@ export class MigrationWorkerScheduler {
         // Bezpiecznik nie zadziałał — nie nadpisujemy konta automatem.
         await this.orchestrator.escalateToStaff(
           req.id,
-          `Pre-backup konta docelowego w DirectAdmin nie powiódł się: ${msg}`,
+          `Kopia bezpieczeństwa konta docelowego przed migracją nie powiodła się: ${msg}`,
         );
         continue;
       }
@@ -93,7 +93,7 @@ export class MigrationWorkerScheduler {
         this.logger.warn(`migration mysql target provisioning failed request=${req.id}: ${msg}`);
         await this.orchestrator.escalateToStaff(
           req.id,
-          `Nie udało się utworzyć baz docelowych w DirectAdmin: ${msg}`,
+          `Nie udało się utworzyć baz docelowych na koncie klienta: ${msg}`,
         );
         continue;
       }
@@ -104,6 +104,7 @@ export class MigrationWorkerScheduler {
           status: MigrationStatus.RUNNING,
           currentStep: 'worker-queue',
           startedAt: new Date(),
+          preBackupAt: new Date(),
         },
       });
       await this.audit.record({
