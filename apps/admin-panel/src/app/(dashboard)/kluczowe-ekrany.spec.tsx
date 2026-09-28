@@ -194,6 +194,16 @@ describe("X-05 strona węzła", () => {
     expect(t).toContain("brak próbek z ostatnich 10 min");
     przeglad.zasoby.cpu.proc = 37;
   });
+
+  it("pusty węzeł (0 kont): wyjaśnia, skąd brak próbek, zamiast straszyć brakiem danych", async () => {
+    przeglad.zasoby.cpu.proc = null;
+    const kontaPrzed = przeglad.zasoby.konta.razem;
+    przeglad.zasoby.konta.razem = 0;
+    const t = await render();
+    expect(t).toContain("brak kont — zużycie (LVE) pojawi się po pierwszym koncie");
+    przeglad.zasoby.konta.razem = kontaPrzed;
+    przeglad.zasoby.cpu.proc = 37;
+  });
 });
 
 describe("X-05 karta klienta", () => {

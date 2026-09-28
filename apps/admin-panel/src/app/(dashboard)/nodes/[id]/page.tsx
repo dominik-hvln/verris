@@ -141,7 +141,7 @@ export default async function ServerDetailPage({
             etykieta="CPU realne"
             wartosc={z.cpu.proc ?? "—"}
             jednostka={z.cpu.rdzenie ? `% z ${z.cpu.rdzenie} rdzeni` : "% — brak liczby rdzeni"}
-            opis={z.cpu.proc == null ? "brak próbek z ostatnich 10 min" : `sprzedane ${z.cpu.sprzedane?.toLocaleString("pl-PL") ?? "—"}× · limit ${z.cpu.limit.toLocaleString("pl-PL")}×`}
+            opis={z.cpu.proc == null ? (z.konta.razem === 0 ? "brak kont — zużycie (LVE) pojawi się po pierwszym koncie" : "brak próbek z ostatnich 10 min") : `sprzedane ${z.cpu.sprzedane?.toLocaleString("pl-PL") ?? "—"}× · limit ${z.cpu.limit.toLocaleString("pl-PL")}×`}
           >
             <Pasek proc={z.cpu.proc ?? 0} ton={(z.cpu.proc ?? 0) >= 60 ? "warn" : "ok"} />
           </Kpi>
