@@ -105,6 +105,23 @@ describe('Poczta — skrzynki (CMD_API_POP)', () => {
     });
   });
 
+  it.each([
+    ['JSON', { jan: 'limit=200&quota=1073741824&sent=0&usage=0&usage_bytes=0' }],
+    ['urlencoded', 'jan=limit%3D200%26quota%3D1073741824%26sent%3D0%26usage%3D0%26usage_bytes%3D0'],
+  ])('lista DA 1.710 (%s): limit z type=quota w bajtach → 1024 MB, nie „bez limitu” z samej listy nazw', async (_n, quotaBody) => {
+    const s = stanowisko();
+    s.get.mockImplementation((path: string, cfg?: Record<string, unknown>) => {
+      if (path !== '/CMD_API_POP') return odp(path === '/CMD_API_SHOW_DOMAINS' ? 'list0=firma.pl' : 'domain=firma.pl');
+      const params = (cfg?.params ?? {}) as Record<string, string>;
+      return odp(params.type === 'quota' ? quotaBody : 'list[]=jan');
+    });
+    const lista = await s.svc.listHostingEmailAccounts('s1', 'u1');
+    expect(lista.rows).toEqual([expect.objectContaining({ email: 'jan@firma.pl', quotaMb: 1024 })]);
+    // zmiana hasła odsyła do DA bieżący rozmiar w MB — bajty wysłane jako MB dałyby skrzynkę 1 PB
+    await s.svc.changeHostingEmailPassword('s1', 'u1', { email: 'jan@firma.pl', password: 'NoweHaslo1' });
+    expect(s.wyslane().quota).toBe('1024');
+  });
+
   it('zmiana hasła: krótsze niż 8 znaków → 400 przed DA', async () => {
     const s = stanowisko();
     await expect(s.svc.changeHostingEmailPassword('s1', 'u1', { email: 'jan@firma.pl', password: 'krotkie' }))

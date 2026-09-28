@@ -463,7 +463,7 @@ export default function MailTab({ serviceId }: Props) {
                     className="whitespace-nowrap text-xs text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground"
                   >
                     {uzyteMb(box.email) !== null ? `${uzyteMb(box.email)!.toLocaleString('pl-PL')} MB z ` : ''}
-                    {box.quotaMb != null ? `${box.quotaMb} MB` : 'bez limitu'}
+                    {box.quotaMb ? `${box.quotaMb} MB` : 'bez limitu'}
                   </button>
                   <button
                     type="button"

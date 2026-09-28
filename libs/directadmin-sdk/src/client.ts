@@ -1229,13 +1229,15 @@ export class DirectAdminClient {
     const domainParam = domain.trim();
     if (!domainParam) return [];
 
+    // Najpierw type=quota: sama lista nazw (DA 1.710: `list[]=test`) nie niesie limitu i panel
+    // pokazywał „bez limitu” przy skrzynce z 1 GB (test D3 na t1, 29.09).
     const getAttempts: Array<Record<string, string>> = [
+      { domain: domainParam, action: 'list', type: 'quota', json: 'yes' },
+      { domain: domainParam, action: 'list', type: 'quota' },
       { domain: domainParam, action: 'list' },
       { domain: domainParam, action: 'list', json: 'yes' },
       { domain: domainParam, action: 'list', api: 'yes' },
       { domain: domainParam, action: 'list', api: 'yes', json: 'yes' },
-      { domain: domainParam, action: 'list', type: 'quota' },
-      { domain: domainParam, action: 'list', type: 'quota', json: 'yes' },
     ];
 
     let lastError: unknown;
@@ -1505,7 +1507,10 @@ export class DirectAdminClient {
     }
   }
 
-  /** POP list with type=quota — each listN is a urlencoded user=…&quota=… string. */
+  /**
+   * POP list z type=quota. DA 1.710: `skrzynka=limit=200&quota=<bajty>&sent=…&usage=…&usage_bytes=…`
+   * (klucz = nazwa skrzynki, JSON lub urlencoded); starsze: listN=user=…&quota=<MB>.
+   */
   private parsePopQuotaList(
     data: unknown,
     domain: string,
@@ -1529,17 +1534,17 @@ export class DirectAdminClient {
       if (seen.has(key)) return;
       seen.add(key);
       const quotaRaw = inner?.get('quota');
-      rows.push({
-        localPart,
-        quotaMb:
-          quotaRaw != null && quotaRaw !== '' && !Number.isNaN(Number(quotaRaw))
-            ? Number(quotaRaw)
-            : null,
-      });
+      const q = quotaRaw != null && quotaRaw !== '' ? Number(quotaRaw) : NaN;
+      // ponytail: bajty rozpoznajemy po usage_bytes albo wartości ≥ 1 MiB (1 TB skrzynki w MB nie sprzedajemy).
+      const wBajtach = inner?.has('usage_bytes') || q >= 1048576;
+      rows.push({ localPart, quotaMb: Number.isFinite(q) ? (wBajtach ? Math.round(q / 1048576) : q) : null });
     };
 
     for (const [key, value] of params.entries()) {
       if (/^list\d+$/i.test(key)) pushParsed(value);
+      else if (/(^|&)quota=/.test(value) && !['error', 'text', 'details', 'domain', 'action'].includes(key)) {
+        pushParsed(`user=${encodeURIComponent(key)}&${value}`);
+      }
     }
     return rows;
   }
