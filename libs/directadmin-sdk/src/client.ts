@@ -51,6 +51,7 @@ export interface DaPackageFeatures {
   php?: boolean;
   ssl?: boolean;
   spam?: boolean;
+  catchall?: boolean;
   cron?: boolean;
   dnscontrol?: boolean;
   ssh?: boolean;
@@ -600,6 +601,9 @@ export class DirectAdminClient {
     params.set('php', onOff(f.php, true));
     params.set('ssl', onOff(f.ssl, true));
     params.set('spam', onOff(f.spam, true));
+    // Catch-all w panelu klienta (CMD_API_EMAIL_CATCH_ALL) działa tylko z catchall=ON w pakiecie —
+    // bez tego DA zwraca 500, a panel pokazywał „Odrzucaj” jako ustawienie (sonda API DA na t1, 29.09).
+    params.set('catchall', onOff(f.catchall, true));
     params.set('cron', onOff(f.cron, true));
     params.set('dnscontrol', onOff(f.dnscontrol, true));
     params.set('ssh', onOff(f.ssh, false));

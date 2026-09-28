@@ -85,6 +85,13 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
     expect(t).toContain('/opt/alt/php%s/usr/bin/lsphp');
   });
 
+  it('profil: antyspam — rspamd wg dokumentacji DA, gdy żaden spamd nie działa; pakiety z catchall=ON', () => {
+    const t = czytaj('node-hosting-profile.sh');
+    expect(t).toContain('da build set spamd rspamd');
+    expect(t).toContain('da build exim_conf');
+    expect(czytaj('node-da-sync-plan-packages.sh')).toContain('catchall=ON');
+  });
+
   it('profil: alt-php z repo php-els (CL10) i sprawdzenie każdej wersji w selektorze, bez OK na ślepo', () => {
     const t = czytaj('node-hosting-profile.sh');
     expect(t).toContain('els-php-release');

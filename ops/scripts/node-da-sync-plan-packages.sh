@@ -84,7 +84,7 @@ upsert_package() {
   body="${body}&CPUQuota=${cpu}%25&MemoryHigh=${mem}M&MemoryMax=${mem}M"
   body="${body}&IOReadBandwidthMax=${io}K&IOWriteBandwidthMax=${io}K"
   body="${body}&IOReadIOPSMax=${iops}&IOWriteIOPSMax=${iops}&TasksMax=${nproc}"
-  body="${body}&cgi=ON&php=ON&ssl=ON&spam=ON&cron=ON&dnscontrol=ON&ssh=OFF"
+  body="${body}&cgi=ON&php=ON&ssl=ON&spam=ON&catchall=ON&cron=ON&dnscontrol=ON&ssh=OFF"
   body="${body}&language=${DA_LANGUAGE}&skin=evolution"
 
   local out

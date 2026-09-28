@@ -1147,6 +1147,23 @@ configure_hosting_capabilities() {
       log_warn "Pigeonhole — budowa nie powiodła się (log: /var/log/verris-pigeonhole.log); filtry w webmailu niedostępne"
     fi
   fi
+  # PANEL-9 — filtr antyspam klienta (CMD_API_SPAMASSASSIN) wymaga działającego spamd. Sonda API DA na t1
+  # (29.09): „Spamd nie jest uruchomiony w systemie” — profil nigdy go nie instalował, a panel pokazywał
+  # filtr jako włączony. Rspamd wg dokumentacji DA („Filtering incoming spam”): ustawienia użytkownika
+  # działają jak dla SpamAssassin (te same pliki w katalogu użytkownika).
+  if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && command -v da >/dev/null 2>&1; then
+    if systemctl is-active --quiet rspamd 2>/dev/null || systemctl is-active --quiet spamassassin 2>/dev/null; then
+      log_ok "Antyspam: spamd działa ($(cb_option_value spamd))"
+    else
+      { da build set easy_spam_fighter yes && da build set spamd rspamd && da build easy_spam_fighter \
+          && da build rspamd && da build exim_conf; } >>/var/log/verris-rspamd.log 2>&1 || true
+      if systemctl is-active --quiet rspamd 2>/dev/null; then
+        log_ok "Antyspam: rspamd zainstalowany i uruchomiony (log: /var/log/verris-rspamd.log)"
+      else
+        log_fail "Antyspam: rspamd nie działa po instalacji — /var/log/verris-rspamd.log (filtr w panelu klienta nie zadziała)"
+      fi
+    fi
+  fi
   # E-20 — dobowy limit wysyłki per konto (exim DirectAdmina czyta /etc/virtual/limit).
   # Ta sama liczba stoi w panelu klienta (libs/contracts: HOSTING_MAIL_DAILY_SEND_LIMIT);
   # zgodność pilnuje apps/api/src/test/limit-wysylki.spec.ts. Bez nadpisywania z env —
