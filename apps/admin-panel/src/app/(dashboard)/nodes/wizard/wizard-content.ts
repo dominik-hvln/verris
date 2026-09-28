@@ -182,11 +182,12 @@ ssh root@WĘZEŁ 'bash /root/node-hosting-profile.sh --yes --skip-build'
 # Węzeł sprzed agent-3: jednorazowo zainstaluj agenta zadań (skrypt z panelu → Pokaż skrypt instalacji)`;
 
 export const VERIFY_BOOTSTRAP_AGENTS = `# Po bootstrap — weryfikacja agentów (root na węźle):
-systemctl is-active verris-agent.timer verris-probes.timer
+cat /var/lib/verris/bootstrap.state                      # DONE
+systemctl is-active verris-probes.timer verris-tasks.timer verris-lve.timer   # 3× active
 test -x /usr/local/bin/verris-tasks.sh && echo "OK: verris-tasks"
 grep -q verris-tasks.sh /usr/local/bin/verris-probes.sh 2>/dev/null && echo "OK: probes→tasks hook"
-tail -3 /var/log/verris-agent.log
-# Oczekiwany komunikat bootstrapu: "Bootstrap complete"`;
+tail -n 3 /var/log/verris-lve.log /var/log/verris-tasks.log
+# verris-agent (stary agent telemetrii) jest wycofany — zastąpił go verris-lve.`;
 
 /** Co robi skrypt bootstrap z panelu (nie instaluje CL ani DA). */
 export const BOOTSTRAP_DOES = [
