@@ -1,4 +1,5 @@
 import { odczytajUserIni, sprawdzUstawieniaPhp, type UstawieniaPhp } from './php-ini.js';
+import { ODCZYTY_DA, opiszOdpowiedz, type WynikSondy } from './sonda-da.js';
 import { normalizujKatalogDocroot, odczytajDocroot, trescCustomHttpd, zapiszDocroot } from './docroot.js';
 import {
   BadRequestException,
@@ -23,7 +24,7 @@ import type {
 import { randomBytes, X509Certificate } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import * as net from 'net';
-import { Prisma } from '@verris/database';
+import { AccountStatus, Prisma } from '@verris/database';
 
 /**
  * Surowy klient HTTP z wnętrza `DirectAdminClient` (axios, pole prywatne) — tylko
@@ -87,6 +88,49 @@ export class DirectAdminService {
       // (onboarding window with a self-signed cert on :2222).
       rejectUnauthorized: !server.daAllowInvalidCert,
     });
+  }
+
+  /**
+   * Sonda API DA węzła: te same odczyty co panel (ODCZYTY_DA), z json=yes i bez, na pierwszym aktywnym
+   * koncie węzła i kluczem admina. Zwraca tylko kształt odpowiedzi — bez wartości (sonda-da.ts).
+   */
+  async sondaApiDa(serverId: string, actorUserId: string): Promise<{ konto: string; domena: string; wyniki: WynikSondy[] }> {
+    const konto = await this.prisma.account.findFirst({
+      where: { serverId, status: AccountStatus.ACTIVE },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, userId: true, daUsername: true, domain: true },
+    });
+    if (!konto) throw new BadRequestException('Na węźle nie ma aktywnego konta — sonda potrzebuje jednego do odczytów poziomu konta.');
+    const surowy = (c: DirectAdminClient) => (c as unknown as { client?: SurowyKlientDa }).client;
+    const klienci = {
+      konto: surowy(await this.getClientForHostingAccount(konto.id, konto.userId)),
+      admin: surowy(await this.getClientForServer(serverId)),
+    };
+    const wyniki: WynikSondy[] = [];
+    for (const json of [true, false]) {
+      for (const o of ODCZYTY_DA) {
+        const sciezka = o.sciezka.replace('{D}', konto.domain);
+        const k = klienci[o.poziom];
+        let kod = 0;
+        let body = '';
+        try {
+          const r = (await k!.get(sciezka, {
+            params: json ? { json: 'yes' } : {},
+            responseType: 'text',
+            transformResponse: (x: unknown) => x,
+            validateStatus: () => true,
+            timeout: 20_000,
+          })) as { data: unknown; status?: number };
+          kod = r.status ?? 0;
+          body = typeof r.data === 'string' ? r.data : JSON.stringify(r.data ?? '');
+        } catch (err) {
+          this.logger.warn(`sonda DA ${o.sciezka} server=${serverId}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+        wyniki.push({ poziom: o.poziom, sciezka: o.sciezka, json, kod, ...opiszOdpowiedz(body) });
+      }
+    }
+    await this.audit.record({ action: 'DA_API_PROBE', actorUserId, details: { serverId, konto: konto.daUsername, odczytow: wyniki.length } });
+    return { konto: konto.daUsername, domena: konto.domain, wyniki };
   }
 
   /**

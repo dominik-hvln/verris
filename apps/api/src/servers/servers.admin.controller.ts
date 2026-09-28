@@ -129,6 +129,12 @@ export class ServersAdminController {
     return { wezly: lista, konta: lista.reduce((a, w) => a + w.konta, 0) };
   }
 
+  /** Sonda API DirectAdmina węzła — kształt odpowiedzi odczytów panelu, bez wartości. Tylko ADMIN. */
+  @Post(':id/sonda-da')
+  sondaDa(@Param('id') id: string, @CurrentUser() user: { userId: string }) {
+    return this.directAdmin.sondaApiDa(id, user.userId);
+  }
+
   /** Wycofanie węzła, którego już nie ma (serwer skasowany) — konta usunięte, NS zwolnione. Tylko ADMIN. */
   @Post(':id/wycofaj-martwy')
   wycofajMartwy(@Param('id') id: string, @Body() body: WycofajMartwyDto, @CurrentUser() user: { userId: string }) {

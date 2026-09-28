@@ -7,6 +7,7 @@ import { BootstrapScriptPanel } from "./bootstrap-script-panel";
 import { NodeBootstrapProgress } from "./node-bootstrap-progress";
 import { DirectAdminConfigForm } from "./directadmin-form";
 import { HostingProfilePanel } from "./hosting-profile-panel";
+import { SondaDaPanel } from "./sonda-da-panel";
 import { NodeStackReadinessPanel } from "./node-stack-readiness-panel";
 import { DbUpgradePanel } from "./db-upgrade-panel";
 import { WafPanel } from "./waf-panel";
@@ -214,6 +215,7 @@ export default async function ServerDetailPage({
           <>
             <NodeAuditPanel serverId={server.id} serverName={server.name} />
             <NodeStackReadinessPanel serverId={server.id} serverStatus={server.status} />
+            <SondaDaPanel serverId={server.id} />
           </>
         ) : (
           <p className="text-sm text-muted-foreground">Audyt i naprawa są dostępne, gdy węzeł jest aktywny albo w serwisie.</p>

@@ -547,3 +547,17 @@ export async function wycofajMartwyWezelAction(id: string, potwierdzenie: string
     return { error: err instanceof AdminApiError ? err.message : (err as Error).message };
   }
 }
+
+/** Sonda API DirectAdmina węzła — kształt odpowiedzi odczytów panelu, bez wartości. */
+export interface SondaDa {
+  konto: string;
+  domena: string;
+  wyniki: Array<{ poziom: "konto" | "admin"; sciezka: string; json: boolean; kod: number; format: string; ksztalt: string }>;
+}
+export async function sondaDaAction(id: string): Promise<{ data?: SondaDa; error?: string }> {
+  try {
+    return { data: await adminApi<SondaDa>(`/admin/servers/${id}/sonda-da`, { method: "POST", body: {} }) };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
