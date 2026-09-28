@@ -340,7 +340,7 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
           <input
             type="number"
             min={1}
-            max={10}
+            max={32}
             step={0.1}
             value={state.autoscalingMaxOverscaleCpu}
             onChange={(e) => setField("autoscalingMaxOverscaleCpu", e.target.value)}
@@ -352,7 +352,7 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
           <input
             type="number"
             min={1}
-            max={10}
+            max={32}
             step={0.1}
             value={state.autoscalingMaxOverscaleRam}
             onChange={(e) => setField("autoscalingMaxOverscaleRam", e.target.value)}
@@ -364,7 +364,7 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
           <input
             type="number"
             min={1}
-            max={10}
+            max={32}
             step={0.1}
             value={state.autoscalingMaxOverscaleDisk}
             onChange={(e) => setField("autoscalingMaxOverscaleDisk", e.target.value)}

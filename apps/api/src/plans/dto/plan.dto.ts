@@ -1,3 +1,6 @@
+// Sufit krotności = ten sam, który przepuszcza silnik (Z-16: 32×, z ogranicznikiem pojemności węzła).
+// Było @Max(10): oferta ma CPU 12× i dysk 20×, więc zapis planu produkcyjnego kończył się błędem.
+import { MAKS_KROTNOSC_AUTOSKALOWANIA } from '../../subscriptions/node-capacity.js';
 import {
   IsBoolean,
   IsIn,
@@ -96,13 +99,13 @@ export class CreatePlanDto {
   })
   stripePriceYearlyId?: string;
 
-  @IsOptional() @IsNumber() @Min(1) @Max(10)
+  @IsOptional() @IsNumber() @Min(1) @Max(MAKS_KROTNOSC_AUTOSKALOWANIA)
   autoscalingMaxOverscaleCpu?: number;
 
-  @IsOptional() @IsNumber() @Min(1) @Max(10)
+  @IsOptional() @IsNumber() @Min(1) @Max(MAKS_KROTNOSC_AUTOSKALOWANIA)
   autoscalingMaxOverscaleRam?: number;
 
-  @IsOptional() @IsNumber() @Min(1) @Max(10)
+  @IsOptional() @IsNumber() @Min(1) @Max(MAKS_KROTNOSC_AUTOSKALOWANIA)
   autoscalingMaxOverscaleDisk?: number;
 }
 
@@ -190,12 +193,12 @@ export class UpdatePlanDto {
   })
   stripePriceYearlyId?: string;
 
-  @IsOptional() @IsNumber() @Min(1) @Max(10)
+  @IsOptional() @IsNumber() @Min(1) @Max(MAKS_KROTNOSC_AUTOSKALOWANIA)
   autoscalingMaxOverscaleCpu?: number;
 
-  @IsOptional() @IsNumber() @Min(1) @Max(10)
+  @IsOptional() @IsNumber() @Min(1) @Max(MAKS_KROTNOSC_AUTOSKALOWANIA)
   autoscalingMaxOverscaleRam?: number;
 
-  @IsOptional() @IsNumber() @Min(1) @Max(10)
+  @IsOptional() @IsNumber() @Min(1) @Max(MAKS_KROTNOSC_AUTOSKALOWANIA)
   autoscalingMaxOverscaleDisk?: number;
 }
