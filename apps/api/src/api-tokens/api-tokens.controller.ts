@@ -3,7 +3,7 @@ import { IsArray, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } 
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { ApiTokensService } from './api-tokens.service.js';
-import { API_SCOPE_LABELS, ALL_API_SCOPES, UPRAWNIENIE_ZAKRESU, isValidScope } from './api-scopes.js';
+import { API_SCOPE_LABELS, ALL_API_SCOPES } from './api-scopes.js';
 
 class CreateApiTokenDto {
   @IsString() @MinLength(2) @MaxLength(60)
@@ -35,15 +35,14 @@ export class ApiTokensController {
   @Post()
   @HttpCode(201)
   create(
-    @CurrentUser() user: { userId: string; customerOwnerId?: string | null; customerPermissions?: string[] },
+    @CurrentUser() user: { userId: string; customerOwnerId?: string | null; impersonatedBy?: string },
     @Body() dto: CreateApiTokenDto,
   ) {
-    if (user.customerOwnerId) {
-      const ma = new Set(user.customerPermissions ?? []);
-      const brak = dto.scopes.filter((z) => isValidScope(z) && !ma.has(UPRAWNIENIE_ZAKRESU[z]));
-      if (brak.length) {
-        throw new ForbiddenException(`Subkonto nie może nadać tokenowi zakresu, do którego samo nie ma uprawnienia: ${brak.join(', ')}.`);
-      }
+    // Decyzja właściciela 28.09: tokeny API tworzy wyłącznie właściciel konta. Token działa w imieniu
+    // konta i przeżywa wyłączenie subkonta (nie zapisujemy twórcy), a w sesji wsparcia byłby
+    // poświadczeniem założonym klientowi przez operatora. Unieważnić token może też subkonto.
+    if (user.customerOwnerId || user.impersonatedBy) {
+      throw new ForbiddenException('Tokeny API tworzy wyłącznie właściciel konta.');
     }
     return this.tokens.create(user.userId, { name: dto.name, scopes: dto.scopes, expiresInDays: dto.expiresInDays ?? null });
   }

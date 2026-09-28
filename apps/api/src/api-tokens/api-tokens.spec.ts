@@ -114,14 +114,14 @@ describe('ApiTokenGuard (L-09)', () => {
 describe('subkonto — zakresy tokenu i zdarzenia webhooków (L-09/L-10)', () => {
   const sk = (...p: string[]) => ({ userId: 'owner', customerOwnerId: 'owner', customerPermissions: p });
 
-  it('token: subkonto bez DNS_MANAGE nie nada dns:write; z uprawnieniem — tak; właściciel bez ograniczeń', async () => {
+  it('token: tworzy wyłącznie właściciel — subkonto (nawet z pełnymi uprawnieniami) i sesja wsparcia dostają 403 (decyzja 28.09)', async () => {
     const create = vi.fn(async () => ({ token: 't', view: {} }));
     const c = new ApiTokensController({ create } as never);
-    expect(() => c.create(sk('SETTINGS_MANAGE', 'SERVICES_READ'), { name: 'CI', scopes: ['services:read', 'dns:write'] })).toThrow('dns:write');
+    expect(() => c.create(sk('SETTINGS_MANAGE', 'DNS_MANAGE', 'SERVICES_READ'), { name: 'CI', scopes: ['services:read'] })).toThrow('właściciel');
+    expect(() => c.create({ userId: 'owner', impersonatedBy: 'staff1' }, { name: 'CI', scopes: ['services:read'] })).toThrow('właściciel');
     expect(create).not.toHaveBeenCalled();
-    await c.create(sk('SETTINGS_MANAGE', 'DNS_MANAGE'), { name: 'CI', scopes: ['dns:write'] });
     await c.create({ userId: 'owner' }, { name: 'CI', scopes: ['deploy:write', 'billing:read'] });
-    expect(create).toHaveBeenCalledTimes(2);
+    expect(create).toHaveBeenCalledTimes(1);
   });
 
   it('webhook: zdarzenia rozliczeń wymagają BILLING_READ u subkonta', () => {

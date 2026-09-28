@@ -16,7 +16,7 @@ import { potwierdz } from '@/components/panel/potwierdz';
 
 const BASE_HINT = '/api/v1';
 
-export function ApiTokensClient() {
+export function ApiTokensClient({ mozeTworzyc = true }: { mozeTworzyc?: boolean }) {
   const [tokens, setTokens] = useState<ApiTokenView[]>([]);
   const [scopes, setScopes] = useState<ScopeOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,6 +99,7 @@ export function ApiTokensClient() {
         </section>
       ) : null}
 
+      {mozeTworzyc ? (
       <section className="rounded-2xl border border-white/10 bg-black/30 p-5 space-y-4">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2"><Plus className="h-5 w-5 text-emerald-400" /> Nowy token</h2>
         <div>
@@ -137,6 +138,9 @@ export function ApiTokensClient() {
           </button>
         </div>
       </section>
+      ) : (
+        <p className="rounded-2xl border border-white/10 bg-black/30 p-5 text-sm text-neutral-400">Tokeny API tworzy właściciel konta. Jako subkonto możesz przeglądać i unieważniać istniejące tokeny.</p>
+      )}
 
       <section className="rounded-2xl border border-white/10 bg-black/30 p-5">
         <h2 className="mb-3 text-lg font-semibold text-white">Twoje tokeny</h2>
