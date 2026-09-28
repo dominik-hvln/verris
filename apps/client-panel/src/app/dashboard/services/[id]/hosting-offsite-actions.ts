@@ -31,7 +31,7 @@ export interface OffsiteTaskDto {
 export interface OffsiteRestoreStatusDto {
   accountId: string;
   domain: string | null;
-  offsite: { protected: boolean; lastRunAt: string | null };
+  offsite: { protected: boolean; pending?: boolean; lastRunAt: string | null };
   busy: boolean;
   snapshot: string | null;
   listedAt: string | null;

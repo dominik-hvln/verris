@@ -445,8 +445,10 @@ export interface HostingBackupRowDto {
 
 /** S-1 — status ochrony kopią off-site (utrata węzła ≠ utrata danych). */
 export interface HostingOffsiteStatusDto {
-  /** Czy ostatni backup off-site węzła zakończył się sukcesem. */
+  /** Ostatni backup off-site węzła się udał I objął to konto (konto starsze niż przebieg). */
   protected: boolean;
+  /** Przebiegi działają, ale konto powstało po ostatnim — pierwsza kopia przy następnym. */
+  pending?: boolean;
   /** ISO daty ostatniego przebiegu backupu off-site (lub null). */
   lastRunAt: string | null;
   lastRunOk: boolean | null;

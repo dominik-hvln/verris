@@ -349,7 +349,9 @@ export default function ServiceOverviewV2({
                 {backups?.offsite
                   ? backups.offsite.protected
                     ? `poza serwerem: ${date(backups.offsite.lastRunAt, false)}`
-                    : 'kopia poza serwerem: brak świeżej'
+                    : backups.offsite.pending
+                      ? 'poza serwerem: pierwsza w nocy'
+                      : 'kopia poza serwerem: brak świeżej'
                   : health?.checks.backupFresh === false
                     ? 'brak świeżej kopii'
                     : 'kopie na koncie'}

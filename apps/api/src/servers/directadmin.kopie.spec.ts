@@ -130,6 +130,27 @@ describe('Lista kopii', () => {
     expect(s.get).toHaveBeenCalledWith('/CMD_API_FILE_MANAGER', expect.objectContaining({ params: expect.objectContaining({ path: '/backups' }) }));
   });
 
+  it('świeże konto bez katalogu /backups (DA 404) → pusta lista, nie „Request failed with status code 404”', async () => {
+    const e404 = Object.assign(new Error('Request failed with status code 404'), { response: { status: 404, data: 'error=1&text=Nie%20ma%20takiego%20katalogu' } });
+    const s = stanowisko({ get: { '/CMD_API_SITE_BACKUP': '', '/CMD_API_FILE_MANAGER': e404 } });
+    expect(await s.svc.listHostingBackups('s1', 'u1')).toMatchObject({ rows: [], fetchError: null });
+  });
+
+  it.each([
+    ['JSON — goła tablica', ['backup-Sep-29-2026-1.tar.zst']],
+    ['tekst — list[]=', 'list[]=backup-Sep-29-2026-1.tar.zst'],
+  ])('DA 1.710 (%s): istniejąca kopia jest na liście, a nie „Brak kopii”', async (_n, body) => {
+    const s = stanowisko({ get: { '/CMD_API_SITE_BACKUP': body } });
+    expect((await s.svc.listHostingBackups('s1', 'u1')).rows).toEqual([{ id: 'list0', fileName: 'backup-Sep-29-2026-1.tar.zst' }]);
+  });
+
+  it('menedżer plików DA 1.710: klucz = ścieżka /backups/<archiwum>', async () => {
+    const s = stanowisko({ get: { '/CMD_API_SITE_BACKUP': [], '/CMD_API_FILE_MANAGER': {
+      '/': 'type=dir&size=4096', '/backups/backup-Sep-29-2026-1.tar.zst': 'type=file&size=123', '/backups/notatka.txt': 'type=file',
+    } } });
+    expect((await s.svc.listHostingBackups('s1', 'u1')).rows).toEqual([{ id: '/backups/backup-Sep-29-2026-1.tar.zst', fileName: 'backup-Sep-29-2026-1.tar.zst' }]);
+  });
+
   it('konto bez zapisanego dostępu DA → fetchError bez żadnego zapytania', async () => {
     const s = stanowisko({ daPasswordEnc: null });
     expect((await s.svc.listHostingBackups('s1', 'u1')).fetchError).toContain('Brak zapisanego dostępu');
@@ -155,6 +176,16 @@ describe('Retencja kopii (pruneHostingBackups) — kasuje pliki', () => {
     await expect(s.svc.pruneHostingBackups('s1', 'u1', 2)).resolves.toBe(2);
     expect(s.post).toHaveBeenCalledTimes(1);
     expect(s.wyslane()).toEqual({ action: 'multiple', button: 'delete', path: '/backups', select0: 'a.tar.gz', select1: 'd.zip' });
+  });
+
+  it('DA 1.710: .tar.zst i data jako epoch → kasuje NAJSTARSZE, nie „Sep > Oct” po nazwie', async () => {
+    const s = stanowisko({ get: { '/CMD_API_FILE_MANAGER': katalog([
+      ['backup-Sep-29-2026-1.tar.zst', 'file', '1790640000'],
+      ['backup-Oct-01-2026-1.tar.zst', 'file', '1790812800'],
+      ['backup-Sep-30-2026-1.tar.zst', 'file', '1790726400'],
+    ]) } });
+    await expect(s.svc.pruneHostingBackups('s1', 'u1', 2)).resolves.toBe(1);
+    expect(s.wyslane()).toMatchObject({ select0: 'backup-Sep-29-2026-1.tar.zst' });
   });
 
   it.each([0, -1, Number.NaN])('keep=%p → nic nie kasuje i nawet nie pyta DA', async (keep) => {

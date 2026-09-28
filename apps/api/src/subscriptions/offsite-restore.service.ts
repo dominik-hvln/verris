@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
+import { statusOffsite } from '../servers/offsite-status.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { HostingResourceActions } from '../common/audit/audit.actions.js';
@@ -163,10 +164,7 @@ export class OffsiteRestoreService {
     return {
       accountId: account.id,
       domain: account.domain,
-      offsite: {
-        protected: Boolean(account.server?.lastOffsiteBackupOk),
-        lastRunAt: account.server?.lastOffsiteBackupAt?.toISOString() ?? null,
-      },
+      offsite: statusOffsite(account),
       busy,
       snapshot: (lastList?.payload as { snapshot?: string } | null)?.snapshot ?? null,
       listedAt,

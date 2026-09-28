@@ -1,4 +1,5 @@
 import { odczytajUserIni, sprawdzUstawieniaPhp, type UstawieniaPhp } from './php-ini.js';
+import { statusOffsite } from './offsite-status.js';
 import { ODCZYTY_DA, opiszOdpowiedz, type WynikSondy } from './sonda-da.js';
 import { normalizujKatalogDocroot, odczytajDocroot, trescCustomHttpd, zapiszDocroot } from './docroot.js';
 import {
@@ -780,7 +781,16 @@ export class DirectAdminService {
       }
       return params;
     }
-    return new URLSearchParams(typeof payload === 'string' ? payload : String(payload ?? ''));
+    // DA 1.710 z json=yes oddaje listy jako goły tablicowy JSON (`["a.tar.zst"]`), a bez json jako
+    // `list[]=a`. Oba sprowadzamy do list0…N — wcześniej String(tablica) robił z nazwy KLUCZ i lista
+    // kopii na t1 była pusta mimo istniejącego archiwum (test D3, 29.09).
+    const out = new URLSearchParams();
+    const wpisy = Array.isArray(payload)
+      ? payload.filter((v) => v != null && String(v).trim()).map((v) => ['list[]', String(v)] as const)
+      : [...new URLSearchParams(typeof payload === 'string' ? payload : String(payload ?? '')).entries()];
+    let i = 0;
+    for (const [k, v] of wpisy) out.append(k === 'list[]' ? `list${i++}` : k, v);
+    return out;
   }
 
   /** Values from DA list responses (`list0`, `list1`, …). */
@@ -814,12 +824,14 @@ export class DirectAdminService {
     const rows: Array<{ id: string; fileName: string }> = [];
     const seen = new Set<string>();
     for (const [key, value] of raw.entries()) {
-      const fileName = value.trim();
+      // Menedżer plików DA 1.710: klucz = ścieżka `/backups/<archiwum>`, wartość = metadane.
+      const zMenedzera = /^\/backups\/([^/]+)$/.exec(key);
+      const fileName = zMenedzera ? zMenedzera[1]! : value.trim();
       if (!fileName) continue;
       if (['error', 'text', 'details', 'success', 'domain'].includes(key)) continue;
       const isList = /^list\d+$/i.test(key);
       const isArchive =
-        /^file\d+$/i.test(key) && /\.(tar|gz|tgz|zip)/i.test(fileName);
+        (zMenedzera || /^file\d+$/i.test(key)) && /\.(tar|gz|tgz|zip|zst)/i.test(fileName);
       if (!isList && !isArchive) continue;
       if (seen.has(fileName)) continue;
       seen.add(fileName);
@@ -1911,10 +1923,13 @@ export class DirectAdminService {
       const client = await this.getClientForHostingAccount(sub.account.id, userId);
       const entries = await client.listDir('/backups').catch(() => []);
       const archives = entries
-        .filter((e) => e.type === 'file' && /\.(tar\.gz|tgz|tar|zip)$/i.test(e.name))
+        .filter((e) => e.type === 'file' && /\.(tar\.gz|tar\.zst|tgz|tar|zip)$/i.test(e.name))
         .sort((a, b) => {
-          const ta = a.modified ? Date.parse(a.modified) : NaN;
-          const tb = b.modified ? Date.parse(b.modified) : NaN;
+          // DA 1.710 podaje datę jako epoch w sekundach; Date.parse daje z niej NaN i sortowanie spadało
+          // na nazwę (`backup-Sep-…` > `backup-Oct-…`), więc retencja skasowałaby NAJNOWSZE kopie.
+          const czas = (m: string | null) => (!m ? NaN : /^\d+$/.test(m) ? Number(m) * 1000 : Date.parse(m));
+          const ta = czas(a.modified);
+          const tb = czas(b.modified);
           if (Number.isFinite(ta) && Number.isFinite(tb) && ta !== tb) return tb - ta; // najnowsze pierwsze
           return b.name.localeCompare(a.name); // fallback: po nazwie (zwykle z datą)
         });
@@ -2502,7 +2517,8 @@ export class DirectAdminService {
       const rows: Array<{ alias: string; type: string }> = [];
       for (const [k, v] of raw.entries()) {
         if (meta.has(k) || !k) continue;
-        rows.push({ alias: k, type: String(v || 'alias') });
+        if (/^list\d+$/.test(k)) rows.push({ alias: v, type: 'alias' });
+        else rows.push({ alias: k, type: String(v || 'alias') });
       }
       return { rows, primary: domain, fetchError: null as string | null };
     } catch (err) {
@@ -3026,14 +3042,7 @@ export class DirectAdminService {
 
     // S-1 — status ochrony off-site (utrata węzła ≠ utrata danych). Czytany z
     // ostatniego raportu node-offsite-backup.sh zapisanego na Server.
-    const srv = sub.account?.server;
-    const offsite = srv
-      ? {
-          protected: Boolean(srv.lastOffsiteBackupOk),
-          lastRunAt: srv.lastOffsiteBackupAt ? srv.lastOffsiteBackupAt.toISOString() : null,
-          lastRunOk: srv.lastOffsiteBackupOk ?? null,
-        }
-      : { protected: false, lastRunAt: null, lastRunOk: null };
+    const offsite = statusOffsite(sub.account);
 
     if (!sub.account) {
       return { rows: [], fetchError: null as string | null, offsite };
@@ -3065,9 +3074,11 @@ export class DirectAdminService {
       if (rows.length > 0) {
         return { rows, fetchError: null as string | null, offsite };
       }
+      // Świeże konto nie ma katalogu /backups — DA odpowiada 404 i panel pokazywał „Request failed
+      // with status code 404” zamiast pustej listy (test D3 na t1). Lista kopii już przyszła wyżej.
       const fm = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_FILE_MANAGER', {
         path: '/backups',
-      });
+      }).catch(() => new URLSearchParams());
       return { rows: this.parseDaBackupFileRows(fm), fetchError: null as string | null, offsite };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

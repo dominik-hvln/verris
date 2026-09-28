@@ -139,7 +139,9 @@ export function HostingOffsitePanel({
                         '.'
                       : ''
                   }`
-                : 'Kopia off-site dla tego konta nie została jeszcze potwierdzona — napisz do nas, zanim będzie potrzebna.'}
+                : state.offsite.pending
+                  ? 'Konto jest nowe — pierwsza kopia poza serwerem powstanie przy najbliższym nocnym przebiegu. Do tego czasu chronią je kopie na koncie.'
+                  : 'Kopia off-site dla tego konta nie została jeszcze potwierdzona — napisz do nas, zanim będzie potrzebna.'}
             </p>
           </div>
         </div>
