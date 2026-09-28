@@ -85,6 +85,13 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
     expect(t).toContain('/opt/alt/php%s/usr/bin/lsphp');
   });
 
+  it('profil: webmail i phpMyAdmin jednym kliknięciem (one_click_*_login, Roundcube z direct_login)', () => {
+    const t = czytaj('node-hosting-profile.sh');
+    expect(t).toContain('da_set_conf one_click_webmail_login 1');
+    expect(t).toContain('da_set_conf one_click_pma_login 1');
+    expect(t).toContain('da build roundcube');
+  });
+
   it('profil: antyspam — rspamd wg dokumentacji DA, gdy żaden spamd nie działa; pakiety z catchall=ON', () => {
     const t = czytaj('node-hosting-profile.sh');
     expect(t).toContain('da build set spamd rspamd');

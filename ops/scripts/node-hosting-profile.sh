@@ -1164,6 +1164,22 @@ configure_hosting_capabilities() {
       fi
     fi
   fi
+  # Webmail i phpMyAdmin jednym kliknięciem z panelu klienta (SSO → lista skrzynek w DA). Test D3 na t1
+  # (29.09): przy skrzynkach nie było logowania do webmaila — profil nie włączał one_click_webmail_login
+  # ani nie budował Roundcube z modułem direct_login (changelog DA 1.58.2: set + dovecot_conf, exim_conf,
+  # roundcube). one_click_pma_login — SSO phpMyAdmin (/CMD_PMA/), z którego korzysta panel.
+  da_set_conf one_click_webmail_login 1
+  da_set_conf one_click_pma_login 1
+  if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && command -v da >/dev/null 2>&1; then
+    if [ ! -d /var/www/html/roundcube/plugins/direct_login ]; then
+      { da build dovecot_conf && da build exim_conf && da build roundcube; } >>/var/log/verris-roundcube.log 2>&1 || true
+    fi
+    if [ -d /var/www/html/roundcube/plugins/direct_login ]; then
+      log_ok "Webmail: Roundcube z logowaniem jednym kliknięciem (direct_login)"
+    else
+      log_fail "Webmail: brak Roundcube/direct_login po budowie — /var/log/verris-roundcube.log"
+    fi
+  fi
   # E-20 — dobowy limit wysyłki per konto (exim DirectAdmina czyta /etc/virtual/limit).
   # Ta sama liczba stoi w panelu klienta (libs/contracts: HOSTING_MAIL_DAILY_SEND_LIMIT);
   # zgodność pilnuje apps/api/src/test/limit-wysylki.spec.ts. Bez nadpisywania z env —
