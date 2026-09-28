@@ -270,6 +270,13 @@ describe('FTP', () => {
     expect(zle.audit.record).not.toHaveBeenCalled();
   });
 
+  it('lista DA 1.710: `login@domena=/ścieżka` → konto dodatkowe; główne (bez @) pomijamy', async () => {
+    const s = stanowisko({ post: { '/CMD_API_FTP': 'klient1=%2Fhome%2Fklient1%2F&transfer%40firma.pl=%2Fhome%2Fklient1%2Fdomains%2Ffirma.pl%2Fpublic_html%2Fx' } });
+    expect((await s.svc.listHostingFtpAccounts('s1', 'u1')).rows).toEqual([
+      { id: 'transfer@firma.pl', username: 'transfer@firma.pl', path: '/home/klient1/domains/firma.pl/public_html/x', suspended: false },
+    ]);
+  });
+
   it('lista: błąd DA → fetchError zamiast pustej listy', async () => {
     const s = stanowisko({ post: { '/CMD_API_FTP': 'error=1&text=FTP%20wy%C5%82%C4%85czone' } });
     expect(await s.svc.listHostingFtpAccounts('s1', 'u1')).toEqual({ rows: [], fetchError: 'FTP wyłączone' });

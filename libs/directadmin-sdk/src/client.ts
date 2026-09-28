@@ -1314,7 +1314,12 @@ export class DirectAdminClient {
     if (typeof data === 'string') {
       const text = data.trim();
       if (!text || text.startsWith('<')) return new URLSearchParams();
-      return new URLSearchParams(text);
+      // DA 1.710 bez json: `list[]=a&list[]=b` — parsery czytają list0…N (bez tego lista baz na t1
+      // była pusta mimo bazy WordPressa, test D3 29.09).
+      const out = new URLSearchParams();
+      let i = 0;
+      for (const [k, v] of new URLSearchParams(text)) out.append(k === 'list[]' ? `list${i++}` : k, v);
+      return out;
     }
     if (typeof data === 'object' && !Array.isArray(data)) {
       const record = data as Record<string, unknown>;

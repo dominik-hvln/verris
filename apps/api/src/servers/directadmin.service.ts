@@ -1210,6 +1210,11 @@ export class DirectAdminService {
       });
       const rows: Array<{ id: string; username: string; path: string; suspended: boolean }> = [];
       for (const [k, v] of raw.entries()) {
+        // DA 1.710: `login@domena=/home/…/katalog` (konto główne bez @ — nie jest „dodatkowe”).
+        if (k.includes('@') && v.startsWith('/')) {
+          rows.push({ id: k, username: k, path: v, suspended: false });
+          continue;
+        }
         if (!/^user\d+$/i.test(k)) continue;
         const idx = k.replace(/\D/g, '');
         rows.push({
