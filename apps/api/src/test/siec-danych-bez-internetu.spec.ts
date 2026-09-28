@@ -43,4 +43,14 @@ describe('sieć danych bez internetu', () => {
     for (const up of kod.match(/compose up [^\n]*/g) ?? []) expect(up).toMatch(/--no-recreate/);
     expect(kod).toMatch(/podepnij_z_powrotem/);
   });
+
+  it('po przejściu odtwarza aliasy usług i sprawdza DNS (28.09: Compose zgubił aliasy, API bez bazy ok. 10 min)', () => {
+    const kod = bezKomentarzy(czytaj('ops/scripts/prod-siec-danych-izolacja.sh'));
+    expect(kod).toMatch(/docker network connect --alias "\$s" "\$siec" "\$c"/);
+    expect(kod).toMatch(/getent hosts "\$u"/);
+    // Jednorazówki (minio-bootstrap) nie blokują startu usług: drugi `up` tylko dla działających wcześniej.
+    expect(kod).toMatch(/compose up -d --no-build --no-recreate --no-deps \$dzialajace/);
+    // Komenda ratunkowa musi mieć IMAGE_TAG — bez niego override GHCR nie działa.
+    expect(kod).toMatch(/export IMAGE_TAG=/);
+  });
 });

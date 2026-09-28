@@ -93,18 +93,49 @@ log "usługi: $uslugi"
 log "zapamiętuję identyfikatory kontenerów (kontrola, że nic nie zostało odtworzone)…"
 przed="$(docker ps -aq --no-trunc --filter "label=com.docker.compose.project=$projekt" --filter 'label=com.docker.compose.oneoff=False' | sort)"
 
+# Usługi z DZIAŁAJĄCYM kontenerem — tylko je uruchamiamy z powrotem po przejściu. Jednorazówki
+# (minio-bootstrap) są w liście powyżej, bo bez nich Compose nie usunie sieci, ale ich wynik nie może
+# blokować reszty: 28.09 minio-bootstrap padł na DNS w trakcie przejścia, a API, Grafana i Prometheus
+# (depends_on: service_completed_successfully) zostały zatrzymane — ok. 10 min bez API.
+dzialajace="$(docker ps --filter "label=com.docker.compose.project=$projekt" --filter 'label=com.docker.compose.oneoff=False' \
+  --format '{{.Label "com.docker.compose.service"}}' | sort -u | tr '\n' ' ')"
+
+# Compose 5.1 po odtworzeniu sieci z --no-recreate podpina kontenery BEZ aliasów usług: kontener jest
+# w sieci, ale nazwa `postgres` nie istnieje (EAI_AGAIN, 28.09 na produkcji; odtworzone na replice).
+# Przepięcie z --alias <usługa> przywraca nazwy i przetrwa restart kontenera.
+napraw_aliasy() {
+  local c s
+  for c in $(docker network inspect "$siec" -f '{{range .Containers}}{{.Name}} {{end}}'); do
+    [ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' "$c")" = "$projekt" ] || continue
+    s="$(docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' "$c")"
+    [ -n "$s" ] || continue
+    docker network disconnect "$siec" "$c" && docker network connect --alias "$s" "$siec" "$c" \
+      && log "alias: $c → $s"
+  done
+}
+
 log "odtwarzam sieć — kilkanaście sekund niedostępności…"
 # shellcheck disable=SC2086
-if ! compose up -d --no-build --no-recreate --no-deps $uslugi; then
-  podepnij_z_powrotem
-  log "Compose zgłosił błąd. Stan kontenerów:"
-  docker ps -a --filter "label=com.docker.compose.project=$projekt" --format '  {{.Names}} {{.State}}'
-  fail "przejście przerwane. Ratunek (kilkadziesiąt sekund przerwy, wolumeny zostają):
-  docker compose -f $COMPOSE_FILE -f $GHCR_OVERRIDE --env-file $ENV_FILE up -d --no-build --no-recreate $uslugi"
-fi
+compose up -d --no-build --no-recreate --no-deps $uslugi \
+  || log "Compose zgłosił błąd (np. jednorazówka) — naprawiam aliasy i uruchamiam działające wcześniej usługi…"
 podepnij_z_powrotem
+napraw_aliasy
+# shellcheck disable=SC2086
+if ! compose up -d --no-build --no-recreate --no-deps $dzialajace; then
+  docker ps -a --filter "label=com.docker.compose.project=$projekt" --format '  {{.Names}} {{.State}}'
+  fail "nie wszystkie usługi wstały. Ratunek (wolumeny zostają):
+  cd $(pwd) && export IMAGE_TAG=$IMAGE_TAG REGISTRY_PREFIX=$REGISTRY_PREFIX && docker compose -f $COMPOSE_FILE -f $GHCR_OVERRIDE --env-file $ENV_FILE up -d --no-build --no-recreate --no-deps $dzialajace"
+fi
 compose up -d --no-build --no-recreate --no-deps --wait --wait-timeout 240 postgres redis \
   || fail "postgres/Valkey nie są zdrowe po przejściu."
+
+# DNS: każda usługa z kontenerem w sieci danych musi się rozwiązywać z kontenera API.
+log "DNS w sieci danych…"
+for s in $(docker network inspect "$siec" -f '{{range .Containers}}{{.Name}} {{end}}'); do
+  [ "$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' "$s")" = "$projekt" ] || continue
+  u="$(docker inspect -f '{{index .Config.Labels "com.docker.compose.service"}}' "$s")"
+  compose exec -T api getent hosts "$u" >/dev/null || fail "nazwa '$u' nie rozwiązuje się z API — sprawdź aliasy: docker network inspect $siec"
+done
 
 po="$(docker ps -aq --no-trunc --filter "label=com.docker.compose.project=$projekt" --filter 'label=com.docker.compose.oneoff=False' | sort)"
 [ "$przed" = "$po" ] || log "UWAGA: zestaw kontenerów się zmienił (sprawdź: docker ps -a) — oczekiwany był sam restart."
