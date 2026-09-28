@@ -236,8 +236,13 @@ export class DirectAdminService {
       const domains = await client.getDomains();
       sampleCount = domains.length;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      let msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`DA test (connectivity) failed for server=${serverId}: ${msg}`);
+      // HTTP na port TLS DirectAdmina (:2222) daje gołe „400” — bez podpowiedzi wyglądało to na zły klucz.
+      if (/status code 400/.test(msg)) {
+        const s = await this.prisma.server.findUnique({ where: { id: serverId }, select: { daUseTls: true } });
+        if (s && !s.daUseTls) msg += ' — DirectAdmin przyjmuje tylko HTTPS: zaznacz „Wymuszaj HTTPS (TLS)” i zapisz.';
+      }
       return { ok: false, error: msg };
     }
 
