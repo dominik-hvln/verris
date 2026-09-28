@@ -39,7 +39,7 @@ B-09,B,Aplikacje Python,TAK,TAK,CZĘŚĆ,CZĘŚĆ,CZĘŚĆ,CZĘŚCIOWE,"ops/scri
 B-10,B,Aplikacje Ruby,TAK,TAK,NIE,NIE,NIE,BRAK,—,POZA ZAKRESEM,NISKA,—,rynek PL tego nie oczekuje
 B-11,B,Wymuszenie HTTPS,TAK,TAK,TAK,TAK,TAK,DZIAŁA,WebToolsTab.tsx:120,PARYTET,—,—,
 B-12,B,Kanonizacja www / non-www,TAK,TAK,TAK,TAK,TAK,DZIAŁA,WebToolsTab.tsx:124,PARYTET,—,—,
-B-13,B,Przekierowania 301/302 z panelu,TAK,TAK,TAK,TAK,TAK,DZIAŁA,WebToolsTab.tsx:143,PARYTET,—,—,
+B-13,B,Przekierowania 301/302 z panelu,TAK,TAK,TAK,TAK,TAK,DZIAŁA,"WebToolsTab.tsx:143; D3 t1 (d3.hvln.pl) 29.09: 301 /verris-test-301 dodane z panelu → przekierowanie działa, usunięte z panelu → 404",PARYTET,—,—,
 B-14,B,Ochrona przed hotlinkingiem,TAK,TAK,CZĘŚĆ,CZĘŚĆ,NIE,DZIAŁA,WebToolsTab.tsx:185,PRZEWAGA,—,—,
 B-15,B,Blokowanie adresów IP,TAK,TAK,TAK,CZĘŚĆ,TAK,DZIAŁA,WebToolsTab.tsx:198,PARYTET,—,—,
 B-16,B,Ochrona katalogu hasłem (.htpasswd),TAK,TAK,TAK,CZĘŚĆ,TAK,DZIAŁA,WebToolsTab.tsx:91,PARYTET,—,—,
@@ -131,7 +131,7 @@ F-11,F,Zmiana TTL rekordów,TAK,TAK,TAK,CZĘŚĆ,TAK,CZĘŚCIOWE,"dns-manager.ts
 F-12,F,Anycast DNS,NIE,NIE,NIE,CZĘŚĆ,CZĘŚĆ,BRAK,—,LUKA,NISKA,L,tylko nazwa.pl na rynku PL
 G-01,G,Certyfikat Let's Encrypt — wystawienie,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:741; D3 t1 (d3.hvln.pl) 28.09 22:45: LE dla d3.hvln.pl + www (89 dni); poprawki le_select i wystawianie dopiero po DNS,PARYTET,—,—,
 G-02,G,Certyfikat z www i bez www,TAK,TAK,TAK,TAK,TAK,DZIAŁA,HostingSslForms.tsx:93,PARYTET,—,—,
-G-03,G,Certyfikat wildcard (DNS-01),TAK,TAK,TAK,CZĘŚĆ,CZĘŚĆ,DZIAŁA,HostingSslForms.tsx:103,PRZEWAGA,—,—,
+G-03,G,Certyfikat wildcard (DNS-01),TAK,TAK,TAK,CZĘŚĆ,CZĘŚĆ,CZĘŚCIOWE,HostingSslForms.tsx:103; D3 t1 (d3.hvln.pl) 29.09 00:51 FAIL: zamówienie z panelu → wiadomość DA „Musi być wybrana co najmniej jedna pozycja Let's Encrypt” (tryb wildcard czyta le_wc_selectN); z le_wc_select0/1 wystawiony CN=*.d3.hvln.pl w ~1 min; poprawka 44d0875 czeka na wdrożenie; retest z panelu,CZĘŚCIOWY,ŚREDNIA,—,
 G-04,G,Automatyczne odnawianie certyfikatu,TAK,TAK,TAK,TAK,TAK,DZIAŁA,przez DA,PARYTET,—,—,
 G-05,G,Wgranie własnego certyfikatu i klucza,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:754,PARYTET,—,—,
 G-06,G,Lista certyfikatów ze statusem i datą wygaśnięcia,TAK,TAK,TAK,CZĘŚĆ,TAK,DZIAŁA,services.controller.ts:736; directadmin.service.ts:2547,PARYTET,—,—,realny odczyt PEM
