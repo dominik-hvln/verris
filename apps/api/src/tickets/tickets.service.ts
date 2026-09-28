@@ -955,6 +955,16 @@ export class TicketsService {
     if (!isStaffOrAdmin && ticket.userId !== userId) {
       throw new ForbiddenException('Brak dostępu');
     }
+    // Pracownik widzi załączniki tylko z uprawnieniem do zgłoszeń — jak lista i szczegóły (przegląd 28.09).
+    if (role === 'STAFF') {
+      const pracownik = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { staffRole: { select: { permissions: true } } },
+      });
+      if (!pracownik?.staffRole?.permissions.includes('TICKETS_VIEW')) {
+        throw new ForbiddenException('Twoja rola nie ma uprawnień do zgłoszeń.');
+      }
+    }
 
     const att = await this.prisma.ticketAttachment.findFirst({
       where: { id: attachmentId, ticketId },
