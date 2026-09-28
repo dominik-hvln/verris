@@ -144,6 +144,23 @@ if [[ "$PO" =~ ^5 ]] && [[ ! "$PRZED" =~ ^5 ]]; then
   zapisz "$TMP/stary" || true
   fail "serwer odrzucił nowe ustawienia (HTTP $PO) — przywróciliśmy poprzedni plik .htaccess"
 fi
+# Zmiana wersji PHP: kontrola „/” nie wystarcza — strona główna bywa statyczna (index.html), a handler
+# alt-php, którego serwer nie obsłuży, psuje tylko pliki .php (test D3 na t1, 28.09: PHP 8.1 dla domeny
+# zepsuł PHP strony, a kontrola 5xx nic nie widziała). Plik kontrolny jako klient, wynik musi mieć tę wersję.
+if [[ "$HT_PHP" =~ ^[5-8][0-9]$ ]]; then
+  CEL="${HT_PHP:0:1}.${HT_PHP:1}"
+  SONDA="verris-php-$(openssl rand -hex 12).php"
+  trap 'jako_klient rm -f -- "$KATALOG/$SONDA" 2>/dev/null || true; rm -rf -- "$TMP"' EXIT
+  jako_klient sh -c 'umask 022; printf "%s" "<?php echo \"VERRIS-PHP \".PHP_MAJOR_VERSION.\".\".PHP_MINOR_VERSION;" > "$1"' verris "$KATALOG/$SONDA" \
+    || fail "nie udało się zapisać pliku kontrolnego PHP"
+  ODP="$(curl -s --noproxy '*' --max-time 20 -H "Host: $HT_DOMAIN" "$HEALTH_BASE/${HT_DIR:+$HT_DIR/}$SONDA" 2>/dev/null || true)"
+  jako_klient rm -f -- "$KATALOG/$SONDA" 2>/dev/null || true
+  if [ "$ODP" != "VERRIS-PHP $CEL" ]; then
+    zapisz "$TMP/stary" || true
+    fail "serwer nie uruchomił PHP $CEL dla tej strony — przywróciliśmy poprzedni plik .htaccess (napisz do nas, sprawdzimy)"
+  fi
+  log "PHP strony po zmianie: $CEL"
+fi
 log "Strona odpowiada: HTTP ${PO:-brak odpowiedzi} (przed zmianą: ${PRZED:-brak odpowiedzi})."
 echo "VERRIS_HTACCESS=$(stan "$TMP/nowy")"
 log "Gotowe."

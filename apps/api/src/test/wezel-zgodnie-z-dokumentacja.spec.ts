@@ -71,6 +71,12 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
     },
   );
 
+  it('.htaccess: zmiana PHP sprawdzana plikiem .php z oczekiwaną wersją, inaczej poprzedni plik wraca', () => {
+    const t = czytaj('node-htaccess.sh');
+    expect(t).toContain('VERRIS-PHP');
+    expect(t).toMatch(/if \[ "\$ODP" != "VERRIS-PHP \$CEL" \]; then\n\s+zapisz "\$TMP\/stary"/);
+  });
+
   it('profil: alt-php z repo php-els (CL10) i sprawdzenie każdej wersji w selektorze, bez OK na ślepo', () => {
     const t = czytaj('node-hosting-profile.sh');
     expect(t).toContain('els-php-release');
