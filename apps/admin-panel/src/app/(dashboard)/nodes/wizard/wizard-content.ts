@@ -108,9 +108,9 @@ chmod 750 setup.sh
 # Instalator interaktywny (license key, hostname, e-mail admina, NS-y):
 ./setup.sh
 
-# --- sharedlicense / auto (jeśli vendor dał Ci gotowy klucz i parametry) ---
-# ./setup.sh auto
-# (parametry zależą od typu licencji — patrz help DirectAdmin / mail z licencji)
+# --- tryb automatyczny z oficjalnym kluczem licencji DirectAdmin (directadmin.com / partner) ---
+# ./setup.sh <klucz>
+# Nie używamy „licencji współdzielonych” pośredników: obcy skrypt jako root + niezgodne z licencją DA.
 
 # Po instalacji — panel:
 #   https://TWÓJ.IP:2222

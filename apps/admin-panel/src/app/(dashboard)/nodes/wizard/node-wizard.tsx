@@ -384,7 +384,7 @@ export function NodeWizard() {
               Osobny serwer compute (nie ten sam co control-plane Docker/Caddy).
             </CheckItem>
             <CheckItem>
-              <strong>AlmaLinux 9.x</strong> (produkcja / sharedlicense DA) lub{" "}
+              <strong>AlmaLinux 9.x</strong> (produkcja) lub{" "}
               <strong>10.2</strong> (test, najdłuższe wsparcie — full DA na AL10).
             </CheckItem>
             </ul>
@@ -397,7 +397,7 @@ export function NodeWizard() {
               Węzeł musi łączyć się z <code className="text-indigo-300">https://api.verris.pl</code>{" "}
               (443).
             </CheckItem>
-            <CheckItem>Licencje trial: CloudLinux, LiteSpeed, DA (sharedlicense na smoke).</CheckItem>
+            <CheckItem>Licencje: CloudLinux i LiteSpeed (trial), DirectAdmin — oficjalna (na test Lite: 10 kont).</CheckItem>
             </ul>
             <label className="flex items-center gap-2 text-sm cursor-pointer mt-4">
               <Checkbox
