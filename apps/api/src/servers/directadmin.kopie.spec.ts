@@ -175,7 +175,8 @@ describe('Retencja kopii (pruneHostingBackups) — kasuje pliki', () => {
     const s = stanowisko({ get: { '/CMD_API_FILE_MANAGER': BACKUPS } });
     await expect(s.svc.pruneHostingBackups('s1', 'u1', 2)).resolves.toBe(2);
     expect(s.post).toHaveBeenCalledTimes(1);
-    expect(s.wyslane()).toEqual({ action: 'multiple', button: 'delete', path: '/backups', select0: 'a.tar.gz', select1: 'd.zip' });
+    // DA 1.710: selectN = pełna ścieżka (sama nazwa → error=0 i nic nie usunięte, t1 29.09)
+    expect(s.wyslane()).toEqual({ action: 'multiple', button: 'delete', path: '/backups', select0: '/backups/a.tar.gz', select1: '/backups/d.zip' });
   });
 
   it('DA 1.710: .tar.zst i data jako epoch → kasuje NAJSTARSZE, nie „Sep > Oct” po nazwie', async () => {
@@ -185,7 +186,7 @@ describe('Retencja kopii (pruneHostingBackups) — kasuje pliki', () => {
       ['backup-Sep-30-2026-1.tar.zst', 'file', '1790726400'],
     ]) } });
     await expect(s.svc.pruneHostingBackups('s1', 'u1', 2)).resolves.toBe(1);
-    expect(s.wyslane()).toMatchObject({ select0: 'backup-Sep-29-2026-1.tar.zst' });
+    expect(s.wyslane()).toMatchObject({ select0: '/backups/backup-Sep-29-2026-1.tar.zst' });
   });
 
   it.each([0, -1, Number.NaN])('keep=%p → nic nie kasuje i nawet nie pyta DA', async (keep) => {

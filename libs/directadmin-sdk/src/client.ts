@@ -238,6 +238,16 @@ export function parseIpConfig(body: string): string[] {
   return [...ips].filter(Boolean);
 }
 
+/**
+ * Zaznaczenie w menedżerze plików DA (`action=multiple`): selectN to PEŁNA ścieżka elementu, nie
+ * sama nazwa. Z samą nazwą DA 1.710 odpowiada error=0 i nic nie robi — na t1 (29.09) panel mówił
+ * „Usunięto zaznaczone”, a pliki zostały; retencja kopii też nigdy niczego nie kasowała.
+ */
+function zaznaczSciezki(body: URLSearchParams, dir: string, names: string[]): void {
+  const baza = dir === '/' ? '' : stripTrailingSlash(dir);
+  names.forEach((n, i) => body.append(`select${i}`, `${baza}/${n}`));
+}
+
 export class DirectAdminClient {
   private client: AxiosInstance;
   private readonly usernameValue: string;
@@ -419,7 +429,7 @@ export class DirectAdminClient {
   /** Deletes one or more entries within `dir` (files or folders). */
   async deleteEntries(dir: string, names: string[]): Promise<void> {
     const body = new URLSearchParams({ action: 'multiple', button: 'delete', path: dir });
-    names.forEach((n, i) => body.append(`select${i}`, n));
+    zaznaczSciezki(body, dir, names);
     const data = await this.client.post('/CMD_FILE_MANAGER', body.toString(), {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     });
@@ -475,7 +485,7 @@ export class DirectAdminClient {
   ): Promise<void> {
     if (names.length === 0) return;
     const add = new URLSearchParams({ action: 'multiple', add: 'clipboard', path: dir });
-    names.forEach((n, i) => add.append(`select${i}`, n));
+    zaznaczSciezki(add, dir, names);
     await this.fmPost(add);
     try {
       await this.fmPost(
@@ -498,7 +508,7 @@ export class DirectAdminClient {
   async compressEntries(dir: string, names: string[], archiveName: string): Promise<void> {
     if (names.length === 0) return;
     const add = new URLSearchParams({ action: 'multiple', add: 'clipboard', path: dir });
-    names.forEach((n, i) => add.append(`select${i}`, n));
+    zaznaczSciezki(add, dir, names);
     await this.fmPost(add);
     try {
       await this.fmPost(new URLSearchParams({ action: 'compress', path: dir, file: archiveName }));
@@ -528,7 +538,7 @@ export class DirectAdminClient {
       chmod,
       path: dir,
     });
-    names.forEach((n, i) => body.append(`select${i}`, n));
+    zaznaczSciezki(body, dir, names);
     await this.fmPost(body);
   }
 

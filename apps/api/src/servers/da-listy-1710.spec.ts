@@ -33,3 +33,27 @@ describe('menedżer plików DA 1.710', () => {
     await expect(k.listDir('/public_html')).resolves.toEqual([{ name: '.htaccess', type: 'file', sizeBytes: 1100, modified: '1790636575' }]);
   });
 });
+
+describe('zaznaczenie w menedżerze plików DA 1.710 — pełne ścieżki', () => {
+  const zPosta = () => {
+    const post = vi.fn(async (_p: string, _b: string) => ({ data: 'error=0' }));
+    const k = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'klient1', loginKey: 'x', secure: true });
+    Object.assign(k, { client: { get: vi.fn(), post } });
+    const pola = (n = 0) => Object.fromEntries(new URLSearchParams(String(post.mock.calls[n]?.[1] ?? '')));
+    return { k, pola };
+  };
+
+  it('usuwanie: select0 = /katalog/plik (sama nazwa: DA mówi error=0 i nic nie kasuje)', async () => {
+    const { k, pola } = zPosta();
+    await k.deleteEntries('/public_html/', ['a.txt', 'b.php']);
+    expect(pola()).toMatchObject({ action: 'multiple', button: 'delete', select0: '/public_html/a.txt', select1: '/public_html/b.php' });
+  });
+
+  it('katalog domowy „/” nie daje podwójnego ukośnika; chmod i schowek też pełnymi ścieżkami', async () => {
+    const { k, pola } = zPosta();
+    await k.chmodEntries('/', ['x'], '644');
+    expect(pola().select0).toBe('/x');
+    await k.transferEntries('/public_html', ['y'], '/tmp', 'copy');
+    expect(pola(1)).toMatchObject({ add: 'clipboard', select0: '/public_html/y' });
+  });
+});
