@@ -28,8 +28,8 @@ F-11,sprawdzone,2026-09-29,"TTL CAA 3600→1800→3600 z panelu, strefa potwierd
 G-07,czeka,,
 G-11,czeka,,
 H-09,czeka,,
-H-10,czeka,,
-H-11,czeka,2026-09-29,"lista archiwum OK, panel pusty — log obcięty; 9f1010b"
+H-10,sprawdzone,2026-09-29,odtworzenie index.php z kopii do verris-odtworzone
+H-11,sprawdzone,2026-09-29,przeglądanie archiwum do public_html WordPressa
 I-04,czeka,,
 I-05,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 I-08,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
