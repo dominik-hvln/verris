@@ -74,7 +74,7 @@ Korzystanie z Panelu wymaga: dostępu do internetu, aktualnej wersji przeglądar
 
 1. Subskrypcja jest zawierana na okres miesięczny albo roczny, według wyboru Klienta.
 2. Subskrypcja odnawia się automatycznie na kolejny okres tej samej długości i w aktualnej cenie z Cennika obowiązującej w dniu odnowienia, chyba że Klient wyłączy odnawianie w Panelu przed końcem bieżącego okresu. O zbliżającym się odnowieniu Verris przypomina e-mailem: co najmniej 7 dni wcześniej przy okresie rocznym i 3 dni przy miesięcznym, wskazując cenę odnowienia i sposób rezygnacji.
-3. Jeżeli automatyczne odnowienie nie powiedzie się (brak środków w Portfelu, odrzucona płatność), Verris uruchamia 7-dniowy okres prolongaty, w którym Usługa pozostaje aktywna, a Klient otrzymuje powiadomienia. Po bezskutecznym upływie prolongaty Usługa zostaje zawieszona; jeżeli w ciągu kolejnych 14 dni zaległość nie zostanie uregulowana, Umowa w zakresie tej Usługi wygasa, a dane Usługi są usuwane zgodnie z §10 ust. 8 (Hosting) albo §11 ust. 7 (VPS). Terminy usuwania danych po wygaśnięciu wskazane w rozdziale III mają pierwszeństwo.
+3. Z zastrzeżeniem §11 ust. 7 (VPS), jeżeli automatyczne odnowienie nie powiedzie się (brak środków w Portfelu, odrzucona płatność), Verris uruchamia 7-dniowy okres prolongaty, w którym Usługa pozostaje aktywna, a Klient otrzymuje powiadomienia. Po bezskutecznym upływie prolongaty Usługa zostaje zawieszona; jeżeli w ciągu kolejnych 14 dni zaległość nie zostanie uregulowana, Umowa w zakresie tej Usługi wygasa, a dane Usługi są usuwane zgodnie z §10 ust. 8 (Hosting) albo §11 ust. 7 (VPS). Terminy usuwania danych po wygaśnięciu wskazane w rozdziale III mają pierwszeństwo.
 4. Klient może w Panelu zmienić Plan lub okres rozliczeniowy aktywnej, opłaconej Subskrypcji. Różnica ceny za niewykorzystaną część okresu jest rozliczana proporcjonalnie: przy płatności z Portfela — jako dopłata albo uznanie Portfela; przy płatności kartą — w rozliczeniu operatora płatności. Zmiana okresu rozliczeniowego rozpoczyna nowy okres z chwilą zmiany.
 5. Obniżenie Planu (downgrade) z niższym limitem dysku jest niedostępne, dopóki faktyczne zużycie dysku przekracza limit docelowego Planu; Klient musi najpierw zwolnić miejsce.
 6. Przy zmianie Planu limity zasobów ustawiane są według nowego Planu bazowego, a dotychczasowe modyfikacje autoskalowania są resetowane.
@@ -120,7 +120,7 @@ Korzystanie z Panelu wymaga: dostępu do internetu, aktualnej wersji przeglądar
 3. Verris nie wykonuje kopii zapasowych zawartości VPS, chyba że specyfikacja Planu wyraźnie obejmuje snapshoty lub backup — wówczas ich zakres i częstotliwość określa specyfikacja.
 4. Klient zobowiązany jest do korzystania z VPS zgodnie z §16; ze względu na pełną kontrolę Klienta nad serwerem, Klient ponosi odpowiedzialność za ruch generowany z przydzielonych adresów IP.
 5. W przypadku gdy VPS uczestniczy w atakach, masowej wysyłce spamu lub innym naruszeniu §16, Verris może niezwłocznie odizolować serwer od sieci (tryb §17).
-6. Odnowienie VPS następuje z Portfela lub zapisaną metodą płatności zgodnie z §7.
+6. Odnowienie VPS następuje z Portfela; jeżeli Klient włączył automatyczne doładowanie (§8 ust. 5), brakujące środki mogą zostać pobrane z zapisanej karty.
 7. Jeżeli odnowienie nie powiedzie się, serwer zostaje wyłączony i zawieszony; po upływie 7 dni od zawieszenia serwer wraz z danymi jest trwale usuwany, o czym Klient jest uprzedzany w powiadomieniach. Usunięcie serwera VPS jest nieodwracalne.
 
 ## §12. Rejestracja i utrzymanie domen
