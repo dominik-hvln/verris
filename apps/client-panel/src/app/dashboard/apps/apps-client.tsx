@@ -48,7 +48,7 @@ export function AppsClient({ serviceId, status }: { serviceId: string; status: A
       {result ? (
         <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-4 space-y-2">
           <p className="text-sm font-semibold text-emerald-100">
-            {result.app} instaluje się na <span className="font-mono">{result.domain}</span>. Zapisz dane —
+            {status.catalog.find((a) => a.slug === result.app)?.name ?? result.app} instaluje się na <span className="font-mono">{result.domain}</span>. Zapisz dane —
             pokazujemy je tylko raz:
           </p>
           <div className="text-sm text-white space-y-1">
@@ -119,7 +119,7 @@ export function AppsClient({ serviceId, status }: { serviceId: string; status: A
           <p className="text-sm font-semibold text-white">Ostatnie instalacje</p>
           {status.installs.map((i) => (
             <div key={i.id} className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm">
-              <span className="text-white">{i.app ?? '—'}</span>
+              <span className="text-white">{status.catalog.find((a) => a.slug === i.app)?.name ?? i.app ?? '—'}</span>
               <span className={`text-xs ${i.status === 'FAILED' ? 'text-rose-300' : i.status === 'COMPLETED' ? 'text-emerald-300' : 'text-amber-300'}`}>
                 {STATUS_LABEL[i.status] ?? i.status}
                 {i.status === 'FAILED' && i.errorMessage ? ` — ${i.errorMessage}` : ''}

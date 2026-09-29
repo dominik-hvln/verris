@@ -40,9 +40,13 @@ fi
 POMIN='^(index\.html|\.htaccess|\.well-known)$'
 [ "$DOMYSLNA" = 1 ] && POMIN='^(index\.html|\.htaccess|\.well-known|assets)$'
 
-# Bezpieczeństwo: nie nadpisuj istniejącej strony (poza domyślną stroną Verris).
-if [ -n "$(ls -A "$DOCROOT" 2>/dev/null | grep -vE "$POMIN" || true)" ]; then
-  log "Katalog $DOCROOT nie jest pusty — przerwano (chronimy istniejące dane)."
+# Bezpieczeństwo: nie nadpisuj istniejącej strony (poza domyślną stroną Verris). Puste katalogi się nie
+# liczą — nowa domena w DA 1.710 dostaje puste cgi-bin i katalog z nazwą domeny (test D3 29.09,
+# test2.d3.hvln.pl: instalacja Joomli przerwana na świeżej domenie). Nic w nich nie ma do nadpisania.
+ZAJETE="$(find "$DOCROOT" -mindepth 1 -maxdepth 1 ! -empty -printf '%f\n' 2>/dev/null | grep -vE "$POMIN" || true)"
+if [ -n "$ZAJETE" ]; then
+  log "Katalog $DOCROOT nie jest pusty ($(echo "$ZAJETE" | head -5 | tr '\n' ' ')) — przerwano (chronimy istniejące dane)."
+  log "BŁĄD: W katalogu domeny są już pliki strony — instalacja działa tylko na pustym katalogu. Usuń je w menedżerze plików albo wybierz inną domenę."
   exit 1
 fi
 
