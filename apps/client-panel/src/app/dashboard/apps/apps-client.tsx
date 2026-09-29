@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Boxes, Check, Copy, Loader2 } from 'lucide-react';
 import { installAppAction, type AppsStatus, type AppInstallResult } from './apps-actions';
+import { Select } from '@/components/panel/select';
 
 const STATUS_LABEL: Record<string, string> = {
   QUEUED: 'W kolejce',
@@ -88,14 +89,10 @@ export function AppsClient({ serviceId, status }: { serviceId: string; status: A
 
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-3 max-w-lg">
         {domeny.length > 1 ? (
-          <label className="block text-xs text-neutral-400">
+          <div className="text-xs text-neutral-400">
             Domena
-            <select value={domena} onChange={(e) => setDomena(e.target.value)} className="mt-1 block w-full rounded-lg bg-black/40 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-emerald-400/60">
-              {domeny.map((d) => (
-                <option key={d} value={d}>{d}</option>
-              ))}
-            </select>
-          </label>
+            <Select aria-label="Domena instalacji" value={domena} onChange={setDomena} options={domeny.map((d) => ({ value: d, label: d }))} className="mt-1 w-full" />
+          </div>
         ) : null}
         <p className="text-sm font-semibold text-white">Dane administratora</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

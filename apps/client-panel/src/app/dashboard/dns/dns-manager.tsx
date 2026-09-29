@@ -8,6 +8,7 @@ import { AlertCircle, Check, Loader2, Pencil, Plus, Trash2, X } from 'lucide-rea
 import { Select } from '@/components/panel';
 import { createDnsRecordAction, deleteDnsRecordAction, editDnsRecordAction } from './dns-actions';
 import { potwierdz } from '@/components/panel/potwierdz';
+import { plForm } from '@/lib/pl';
 
 const TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'SRV', 'NS', 'CAA'] as const;
 type RecType = (typeof TYPES)[number];
@@ -75,7 +76,7 @@ export function DnsManager({
   };
   const applyPreset = async (preset: { label: string; records: { name: string; type: string; value: string }[] }) => {
     if (!domain) return;
-    if (!(await potwierdz(`Dodać zestaw „${preset.label}" (${preset.records.length} rekord(ów)) do strefy ${domain}?`, { akcja: 'Dodaj' }))) return;
+    if (!(await potwierdz(`Dodać zestaw „${preset.label}" (${preset.records.length} ${plForm(preset.records.length, 'rekord', 'rekordy', 'rekordów')}) do strefy ${domain}?`, { akcja: 'Dodaj' }))) return;
     setError(null);
     startTransition(async () => {
       let ok = 0;
@@ -83,7 +84,7 @@ export function DnsManager({
         const res = await createDnsRecordAction({ serviceId, domain, name: r.name, type: r.type, value: r.value, ttl: 3600 });
         if (res.ok) ok++; else setError(res.error);
       }
-      toast.success(`Dodano ${ok}/${preset.records.length} rekord(ów) z presetu „${preset.label}".`);
+      toast.success(`Dodano ${ok}/${preset.records.length} ${plForm(preset.records.length, 'rekordu', 'rekordów', 'rekordów')} z presetu „${preset.label}".`);
       refresh();
     });
   };
@@ -114,7 +115,7 @@ export function DnsManager({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {records.length} rekord(ów) w strefie <span className="font-mono text-neutral-300">{domain ?? '—'}</span>
+          {records.length} {plForm(records.length, 'rekord', 'rekordy', 'rekordów')} w strefie <span className="font-mono text-neutral-300">{domain ?? '—'}</span>
         </p>
         {!adding ? (
           <button

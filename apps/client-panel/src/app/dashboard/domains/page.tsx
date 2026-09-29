@@ -16,6 +16,8 @@ import { Kpi, KpiStrip, SectionHead } from '@/components/panel/v2';
 import { isExpiringSoon } from '@/lib/domain-expiry';
 import { PageHeaderRow, PanelModal } from '@/components/panel';
 import { fetchUserDomains, addDomain, deleteDomain, fetchRegistrarStatus } from './actions';
+import { fetchSidebarUserState } from '../sidebar-actions';
+import { canAccessDashboardRoute, clientNavContextFromSidebar } from '@/lib/client-nav-access';
 import { DomainDto } from '@verris/contracts';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -53,8 +55,13 @@ export default function DomainsPage() {
 
   useEffect(() => {
     void fetchDomains();
-    fetchRegistrarStatus()
-      .then((status) => setRegistrarConfigured(status.configured))
+    // Zakup tylko tam, gdzie trasa jest dostępna — przy rozliczeniu poza Verris (PB-28) albo subkoncie bez
+    // uprawnień „Kup domenę” przerzucał na pulpit bez słowa (retest D3 29.09).
+    Promise.all([fetchRegistrarStatus(), fetchSidebarUserState()])
+      .then(([status, { user }]) => {
+        const ctx = clientNavContextFromSidebar(user);
+        setRegistrarConfigured(status.configured && (!ctx || canAccessDashboardRoute('/dashboard/domains/buy', ctx)));
+      })
       .catch(() => setRegistrarConfigured(false));
   }, []);
 

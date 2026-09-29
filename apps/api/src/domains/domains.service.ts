@@ -69,8 +69,10 @@ export class DomainsService {
         where: { userId },
         orderBy: { createdAt: 'desc' },
       }),
+      // Usunięte konta mają domenę z przyrostkiem „~usuniete-<id>” (zwolnienie domeny) — klient
+      // widział je na liście jako „czeka na DNS” (retest D3 29.09).
       this.prisma.account.findMany({
-        where: { userId },
+        where: { userId, status: { not: AccountStatus.DELETED } },
         select: {
           id: true,
           domain: true,
@@ -83,7 +85,7 @@ export class DomainsService {
 
     const known = new Set(registered.map((d) => d.name.toLowerCase()));
     const hostingDomains = accounts
-      .filter((a) => a.domain && !known.has(a.domain.toLowerCase()))
+      .filter((a) => a.domain && !a.domain.includes('~') && !known.has(a.domain.toLowerCase()))
       .map((a) => ({
         id: `hosting:${a.id}`,
         name: a.domain,

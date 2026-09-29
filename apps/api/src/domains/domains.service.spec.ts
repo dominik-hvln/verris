@@ -169,3 +169,21 @@ function mockTls(opts: {
     return socket as unknown as tls.TLSSocket;
   });
 }
+
+describe('DomainsService.findAllByUser — usunięte konta', () => {
+  it('pomija konta DELETED i domeny z przyrostkiem ~usuniete- (retest D3 29.09)', async () => {
+    const prisma = {
+      domain: { findMany: vi.fn(async () => []) },
+      account: {
+        findMany: vi.fn(async () => [
+          { id: 'a1', domain: 'firma.pl', status: 'ACTIVE', createdAt: new Date(), subscriptionId: 's1' },
+          { id: 'a2', domain: 'stara.pl~usuniete-a2', status: 'SUSPENDED', createdAt: new Date(), subscriptionId: 's2' },
+        ]),
+      },
+    };
+    const svc = new DomainsService(prisma as never, { get: () => 'x' } as never);
+    const lista = (await svc.findAllByUser('u1')) as Array<{ name: string }>;
+    expect(prisma.account.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: 'u1', status: { not: 'DELETED' } } }));
+    expect(lista.map((d) => d.name)).toEqual(['firma.pl']);
+  });
+});
