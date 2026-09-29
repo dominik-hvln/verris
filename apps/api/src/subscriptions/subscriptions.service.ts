@@ -83,8 +83,12 @@ export interface CreatedSubscription {
 
 /** Decyzja właściciela 29.09.2026: konto zakończonej (anulowanej/wygasłej) usługi żyje 14 dni, potem usunięcie. */
 export const RETENCJA_KONTA_DNI = 14;
-/** Regulamin §7 ust. 3: 7-dniowa prolongata po nieudanym odnowieniu (usługa działa), potem zawieszenie. */
-export const KARENCJA_PLATNOSCI_DNI = 7;
+/**
+ * Decyzja właściciela 29.09.2026 („od razu, 14 + 14 dni”): bez prolongaty — nieudane odnowienie zawiesza
+ * usługę z końcem opłaconego okresu (karta: w najbliższym przebiegu). Dalej 14 dni na zapłatę, wygaśnięcie,
+ * 14 dni retencji konta i usunięcie. Zapłata w tym czasie przywraca usługę sama.
+ */
+export const KARENCJA_PLATNOSCI_DNI = 0;
 /** Regulamin §7 ust. 3: zaległość nieuregulowana w 14 dni od zawieszenia → Umowa wygasa (EXPIRED). */
 export const ZAWIESZENIE_DO_WYGASNIECIA_DNI = 14;
 /** Zawieszenia „za brak płatności” — tylko one prowadzą do wygaśnięcia z §7 ust. 3 (nie nadużycie, nie decyzja operatora). */
@@ -2221,7 +2225,9 @@ export class SubscriptionsService {
     // customer's payment kept failing and Stripe gave up. We send the
     // "suspended" email instead of "cancelled" so the wording matches the
     // operational reality (and the customer knows they can still revive).
-    const wasPaymentFailure = sub.status === SubscriptionStatus.PAST_DUE;
+    // Bez prolongaty nieopłacona usługa jest tu już zwykle SUSPENDED, nie PAST_DUE.
+    const wasPaymentFailure =
+      sub.status === SubscriptionStatus.PAST_DUE || sub.status === SubscriptionStatus.SUSPENDED;
     void this.notifySubscriptionEnded({
       userId: sub.userId,
       subscriptionId: sub.id,

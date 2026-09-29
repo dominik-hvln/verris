@@ -233,8 +233,19 @@ export default function ServiceOverviewV2({
           onClick={() => onNavigate('subscription')}
           className="w-full rounded-[10px] border border-warn/30 bg-warn-soft px-4 py-3 text-left text-sm text-foreground"
         >
-          <b>Usługa czeka na płatność.</b>{' '}
-          <span className="text-muted-foreground">Opłać, anuluj zamówienie lub zarządzaj rozliczeniem →</span>
+          {service.status === 'SUSPENDED' ? (
+            <>
+              <b>Usługa zawieszona z powodu braku płatności.</b>{' '}
+              <span className="text-muted-foreground">
+                Strona pokazuje odwiedzającym komunikat o zawieszeniu, dane są nietknięte. Opłać zaległość — usługa wróci automatycznie →
+              </span>
+            </>
+          ) : (
+            <>
+              <b>Usługa czeka na płatność.</b>{' '}
+              <span className="text-muted-foreground">Opłać, anuluj zamówienie lub zarządzaj rozliczeniem →</span>
+            </>
+          )}
         </button>
       ) : null}
       {blokada === 'partner' ? (

@@ -7,6 +7,7 @@ import { AlertTriangle, CreditCard, Loader2, Trash2, Wallet } from 'lucide-react
 import { Button } from '@verris/ui';
 import type { SubscriptionStatus } from '@verris/contracts';
 import { PanelModal } from '@/components/panel';
+import { powodBlokady } from '@/lib/service-events';
 import {
   abandonUnpaidSubscriptionAction,
   payPastDueFromWalletAction,
@@ -17,20 +18,36 @@ export function UnpaidServiceBanner({
   serviceId,
   status,
   paymentSource,
+  events,
 }: {
   serviceId: string;
   status: SubscriptionStatus;
   paymentSource?: string;
+  /** Zdarzenia usługi — bez nich (lista usług) baner zawieszenia się nie pokazuje, bo nie znamy powodu. */
+  events?: { type: string; createdAt: string; details?: unknown }[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  if (status !== 'PENDING_PAYMENT' && status !== 'PAST_DUE') return null;
+  const zawieszona = status === 'SUSPENDED' && events !== undefined && powodBlokady(status, events) === 'platnosc';
+  if (status !== 'PENDING_PAYMENT' && status !== 'PAST_DUE' && !zawieszona) return null;
 
   const isPending = status === 'PENDING_PAYMENT';
   const isStripe = paymentSource === 'STRIPE_CARD';
+  const zalegla = status === 'PAST_DUE' || zawieszona;
+  const zawieszenie = zawieszona
+    ? [...events].filter((e) => e.type === 'SUSPENDED').sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+    : undefined;
+  // ZAWIESZENIE_DO_WYGASNIECIA_DNI w API (subscriptions.service.ts): 14 dni od zawieszenia do wygaśnięcia umowy.
+  const wygasa = zawieszenie
+    ? new Date(new Date(zawieszenie.createdAt).getTime() + 14 * 86400000).toLocaleDateString('pl-PL', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : null;
 
   const confirmTitle = isPending ? 'Anulować zamówienie?' : 'Anulować usługę?';
   const confirmDescription = isPending
@@ -81,14 +98,26 @@ export function UnpaidServiceBanner({
     <>
       <div className="mb-4 rounded-[10px] border border-warn/30 bg-warn-soft px-4 py-3 text-sm text-warn">
         <p className="font-semibold text-warn">
-          {isPending ? 'Zamówienie oczekuje na płatność' : 'Zaległa opłata za usługę'}
+          {isPending
+            ? 'Zamówienie oczekuje na płatność'
+            : zawieszona
+              ? 'Usługa zawieszona z powodu braku płatności'
+              : 'Zaległa opłata za usługę'}
         </p>
         <p className="mt-1 text-xs text-warn">
           {isPending
             ? 'Dokończ płatność lub anuluj zamówienie. Nieopłacone zamówienia bez konta hostingowego są usuwane automatycznie po 48 godzinach.'
-            : isStripe
-              ? 'Opłać zaległą fakturę w rozliczeniach. Po 7 dniach od nieudanej płatności usługa zostanie zawieszona.'
-              : 'Doładuj portfel — pobierzemy opłatę automatycznie w ciągu godziny albo od razu przyciskiem „Opłać z portfela”. Po 7 dniach od nieudanej płatności usługa zostanie zawieszona.'}
+            : zawieszona
+              ? `Odwiedzający widzą komunikat o zawieszeniu strony. Pliki, bazy i poczta są nietknięte. ${
+                  isStripe
+                    ? 'Opłać zaległą fakturę w Rozliczeniach'
+                    : 'Doładuj portfel — pobierzemy opłatę w ciągu godziny albo od razu przyciskiem „Opłać z portfela”'
+                } — usługa wróci automatycznie.${
+                  wygasa ? ` Bez zapłaty do ${wygasa} umowa wygaśnie, a po kolejnych 14 dniach dane zostaną usunięte.` : ''
+                }`
+              : isStripe
+                ? 'Opłać zaległą fakturę w Rozliczeniach — do czasu zapłaty usługa zostanie zawieszona.'
+                : 'Doładuj portfel — pobierzemy opłatę automatycznie w ciągu godziny albo od razu przyciskiem „Opłać z portfela”. Jeśli opłata nie wpłynie do końca opłaconego okresu, usługa zostanie zawieszona.'}
         </p>
         {error ? <p className="mt-2 text-xs text-crit">{error}</p> : null}
         <div className="mt-3 flex flex-wrap gap-2">
@@ -112,7 +141,7 @@ export function UnpaidServiceBanner({
               Portfel / płatność
             </Link>
           ) : null}
-          {status === 'PAST_DUE' && !isStripe ? (
+          {zalegla && !isStripe ? (
             <button
               type="button"
               disabled={pending}
@@ -123,7 +152,7 @@ export function UnpaidServiceBanner({
               Opłać z portfela
             </button>
           ) : null}
-          {status === 'PAST_DUE' ? (
+          {zalegla ? (
             <Link
               href="/dashboard/billing"
               className="inline-flex items-center gap-1.5 rounded-[7px] bg-primary text-primary-foreground font-semibold px-3 py-2 text-xs font-bold hover:bg-data-hi"
@@ -132,6 +161,7 @@ export function UnpaidServiceBanner({
               Rozliczenia
             </Link>
           ) : null}
+          {zawieszona ? null : (
           <button
             type="button"
             disabled={pending}
@@ -141,6 +171,7 @@ export function UnpaidServiceBanner({
             <Trash2 className="h-3.5 w-3.5" />
             {isPending ? 'Anuluj zamówienie' : 'Anuluj usługę'}
           </button>
+          )}
         </div>
       </div>
 

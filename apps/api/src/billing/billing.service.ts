@@ -21,7 +21,7 @@ import {
   StripeSubscription,
 } from './stripe/stripe.client.js';
 import { InvoicesService } from './invoices.service.js';
-import { KARENCJA_PLATNOSCI_DNI, SubscriptionsService } from '../subscriptions/subscriptions.service.js';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { adminCreditNotificationTemplate } from '../mail/templates/admin-credit-notification.js';
 import {
@@ -1516,14 +1516,12 @@ export class BillingService {
 
     const subscriptionId = getInvoiceSubscriptionId(opts.stripeInvoice);
     let serviceName = 'Hosting Verris';
-    let suspendAt: Date | null = null;
     if (subscriptionId) {
       const localSub = await this.prisma.subscription.findFirst({
         where: { stripeSubscriptionId: subscriptionId },
         select: {
           plan: { select: { name: true } },
           account: { select: { domain: true } },
-          currentPeriodEnd: true,
         },
       });
       if (localSub) {
@@ -1531,12 +1529,6 @@ export class BillingService {
         serviceName = localSub.account?.domain
           ? `${planName} (${localSub.account.domain})`
           : planName;
-        // Zawieszenie robi RenewalScheduler po prolongacie z Regulaminu §7 ust. 3 (7 dni od pierwszej
-        // nieudanej płatności ≈ koniec okresu). Wcześniej mail podawał koniec okresu + 14 dni, choć
-        // zawieszaliśmy po 3 — klient dostawał datę późniejszą niż faktyczna.
-        if (localSub.currentPeriodEnd) {
-          suspendAt = new Date(localSub.currentPeriodEnd.getTime() + KARENCJA_PLATNOSCI_DNI * 24 * 60 * 60 * 1000);
-        }
       }
     }
 
@@ -1568,7 +1560,6 @@ export class BillingService {
       currency,
       errorReason,
       nextRetryAt,
-      suspendAt,
       paymentUpdateUrl,
       panelUrl,
     });

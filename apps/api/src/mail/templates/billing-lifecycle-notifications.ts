@@ -496,8 +496,6 @@ export interface SubscriptionPaymentFailedContext {
   errorReason: string | null;
   /** When Stripe will retry next; null if all retries exhausted. */
   nextRetryAt: Date | null;
-  /** When the subscription will be suspended if payment keeps failing. */
-  suspendAt: Date | null;
   /** Stripe-hosted "update payment method" URL or panel URL. */
   paymentUpdateUrl: string;
   panelUrl: string;
@@ -516,9 +514,9 @@ export function subscriptionPaymentFailedTemplate(
     ? `Spróbujemy ponownie automatycznie **${escapeMarkdown(formatDate(ctx.nextRetryAt))}**.`
     : 'Wykorzystaliśmy wszystkie próby automatycznego pobrania.';
 
-  const suspendLine = ctx.suspendAt
-    ? `Jeśli płatność nie zostanie uregulowana do **${escapeMarkdown(formatDate(ctx.suspendAt))}**, usługa **zostanie zawieszona**.`
-    : 'Usługa może zostać zawieszona w ciągu najbliższych dni — zaktualizuj sposób płatności jak najszybciej.';
+  // Bez prolongaty (KARENCJA_PLATNOSCI_DNI = 0): RenewalScheduler zawiesza w najbliższym przebiegu godzinowym.
+  const suspendLine =
+    'Do czasu zapłaty usługa **zostanie zawieszona** — odwiedzający zobaczą komunikat o zawieszeniu strony, a pliki, bazy i poczta pozostaną nietknięte. Po opłaceniu faktury (także przy automatycznej ponownej próbie) przywrócimy usługę automatycznie.';
 
   const { html, text } = renderEmailShell({
     title: `Płatność za "${ctx.serviceName}" nie powiodła się`,

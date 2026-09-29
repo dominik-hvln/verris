@@ -140,6 +140,7 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
         serviceId={serviceId}
         status={service.status}
         paymentSource={service.paymentSource}
+        events={service.events}
       />
 
       <SectionHead

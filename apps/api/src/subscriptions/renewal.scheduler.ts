@@ -1,4 +1,12 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  Optional,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { ClientWebhooksService } from '../client-webhooks/client-webhooks.service.js';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { SubscriptionStatus, WalletTxType } from '@verris/database';
@@ -24,11 +32,14 @@ const DAYS = 24 * HOURS;
  *   1. **Renewal window** — for each subscription whose `currentPeriodEnd`
  *      is within 24h, attempt to debit the wallet for one period. On success
  *      we extend `currentPeriodEnd`. On failure (insufficient funds) we flip
- *      the subscription to PAST_DUE and start the grace timer.
+ *      the subscription to PAST_DUE.
  *
- *   2. **Grace expiry** — for each subscription that has been PAST_DUE for
- *      >= 7 days (Regulamin §7 ust. 3: prolongata), suspend it on DA via
- *      `SubscriptionsService.suspend(reason='GRACE_EXPIRED')`.
+ *   1b. **Przywrócenie po zapłacie** — zawieszona za brak płatności (GRACE_EXPIRED) usługa z portfela:
+ *      po doładowaniu obciążamy okres i odwieszamy konto.
+ *
+ *   2. **Grace expiry** — decyzja właściciela 29.09.2026 („od razu, 14 + 14 dni”): bez prolongaty.
+ *      PAST_DUE z portfela → zawieszenie z końcem opłaconego okresu; kartą (Stripe) → w najbliższym
+ *      przebiegu po nieudanej płatności. `SubscriptionsService.suspend(reason='GRACE_EXPIRED')`.
  *
  *   3. **Wygaśnięcie po zawieszeniu** — zawieszona za brak płatności dłużej niż
  *      14 dni (§7 ust. 3) → `SubscriptionsService.wygasPoZawieszeniu` (EXPIRED);
@@ -64,6 +75,11 @@ export class RenewalScheduler {
         `Renewal window failed: ${(err as Error).message}`,
         (err as Error).stack,
       );
+    }
+    try {
+      await this.runPaymentSuspensionRestore();
+    } catch (err) {
+      this.logger.error(`Przywrócenie po zapłacie: ${(err as Error).message}`, (err as Error).stack);
     }
     try {
       await this.runGraceExpiry();
@@ -181,16 +197,21 @@ export class RenewalScheduler {
   async retryPastDueNow(userId: string, subscriptionId: string): Promise<{ status: string }> {
     const sub = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
-      include: { plan: { select: { slug: true } } },
+      include: { plan: { select: { slug: true } }, ...OSTATNIE_ZAWIESZENIE },
     });
     if (!sub) throw new NotFoundException('Usługa nie istnieje.');
-    if (sub.status !== SubscriptionStatus.PAST_DUE) {
+    const zawieszona = sub.status === SubscriptionStatus.SUSPENDED;
+    if (sub.status !== SubscriptionStatus.PAST_DUE && !zawieszona) {
       throw new BadRequestException('Usługa nie ma zaległej płatności.');
     }
     if (sub.paymentSource === 'STRIPE_CARD' && sub.stripeSubscriptionId) {
       throw new BadRequestException('Ta usługa jest opłacana kartą — zaległą fakturę opłacisz w Rozliczeniach.');
     }
-    const ok = await this.attemptRenewal(sub);
+    // Zawieszenie ręczne (także „brak płatności” wybrany przez obsługę) zdejmuje obsługa, nie wpłata.
+    if (zawieszona && !zawieszonaPrzezKarencje(sub.events)) {
+      throw new BadRequestException('Usługę zawiesiła obsługa — napisz do pomocy, aby ją wznowić.');
+    }
+    const ok = zawieszona ? await this.oplacIPrzywroc(sub) : await this.attemptRenewal(sub);
     if (!ok) {
       throw new BadRequestException('Za mało środków w portfelu — doładuj portfel i spróbuj ponownie.');
     }
@@ -203,6 +224,8 @@ export class RenewalScheduler {
   ): Promise<boolean> {
     const periodEnd = sub.currentPeriodEnd ?? new Date();
     const idempotencyKey = `sub-${sub.id}-renew-${periodEnd.toISOString().slice(0, 10)}`;
+    // Zawieszona zostaje SUSPENDED po obciążeniu — ACTIVE ustawia dopiero odwieszenie konta na serwerze.
+    const aktywuj = sub.status !== SubscriptionStatus.SUSPENDED;
 
     const existing = await this.walletLedger.findByIdempotencyKey(idempotencyKey);
     if (existing) {
@@ -210,7 +233,7 @@ export class RenewalScheduler {
         `Renewal idempotent hit for sub=${sub.id} key=${idempotencyKey}`,
       );
       // Treat as already-paid; just extend period if not extended yet.
-      await this.extendPeriod(sub.id, periodEnd, sub.interval);
+      await this.extendPeriod(sub.id, periodEnd, sub.interval, false, aktywuj);
       void this.ecoPoints.safeAward(`wallet_renewal:${idempotencyKey}`, async () => {
         await this.ecoPoints.awardSubscriptionRenewal(this.prisma, {
           userId: sub.userId,
@@ -252,7 +275,7 @@ export class RenewalScheduler {
       this.logger.warn(`Renewal debit failed for sub=${sub.id}: ${msg}`);
       // Ponowienie w karencji nie zapisuje nowego PAYMENT_FAILED — to zdarzenie
       // wyznacza początek karencji, a nowe co godzinę nie pozwoliłoby jej wygasnąć.
-      if (sub.status !== SubscriptionStatus.PAST_DUE) {
+      if (sub.status === SubscriptionStatus.ACTIVE) {
         await this.markPastDue(sub.id, sub.userId, msg, periodEnd);
       }
       return false;
@@ -261,7 +284,7 @@ export class RenewalScheduler {
     // Zużycie okresu rabatu startowego razem z przedłużeniem i tylko przez tego, kto przedłużył:
     // „Opłać teraz” w tej samej chwili co cron (to samo obciążenie przez klucz idempotencji)
     // zdejmował wcześniej dwa okresy rabatu.
-    await this.extendPeriod(sub.id, periodEnd, sub.interval, useIntro);
+    await this.extendPeriod(sub.id, periodEnd, sub.interval, useIntro, aktywuj);
 
     void this.ecoPoints.safeAward(`wallet_renewal:${idempotencyKey}`, async () => {
       await this.ecoPoints.awardSubscriptionRenewal(this.prisma, {
@@ -278,6 +301,7 @@ export class RenewalScheduler {
     periodEnd: Date,
     interval: 'MONTH' | 'YEAR',
     zuzyjRabat = false,
+    aktywuj = true,
   ): Promise<void> {
     const newEnd = addInterval(periodEnd, interval);
     // Warunkowo na opłacany okres: drugi, równoległy przebieg dla tego samego okresu nic nie zmienia
@@ -285,7 +309,7 @@ export class RenewalScheduler {
     const { count } = await this.prisma.subscription.updateMany({
       where: { id: subscriptionId, currentPeriodEnd: periodEnd },
       data: {
-        status: SubscriptionStatus.ACTIVE,
+        ...(aktywuj ? { status: SubscriptionStatus.ACTIVE } : {}),
         currentPeriodStart: periodEnd,
         currentPeriodEnd: newEnd,
         ...(zuzyjRabat ? { introDiscountPeriodsLeft: { decrement: 1 } } : {}),
@@ -338,11 +362,10 @@ export class RenewalScheduler {
   // ---------------------------------------------------------------------------
 
   private async runGraceExpiry(): Promise<void> {
-    const cutoff = new Date(Date.now() - this.graceDurationMs);
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - this.graceDurationMs);
 
-    // Find subscriptions stuck in PAST_DUE for >= 7 days (prolongata z §7 ust. 3). We use the most
-    // recent PAYMENT_FAILED event timestamp as the grace start. If there's no
-    // such event, fall back to `currentPeriodEnd`.
+    // PAST_DUE dłużej niż karencja (dziś 0 dni). Początek = ostatnie PAYMENT_FAILED, bez niego koniec okresu.
     const candidates = await this.prisma.subscription.findMany({
       where: { status: SubscriptionStatus.PAST_DUE },
       include: {
@@ -358,14 +381,16 @@ export class RenewalScheduler {
     for (const sub of candidates) {
       const graceStart = sub.events[0]?.createdAt ?? sub.currentPeriodEnd ?? new Date();
       if (graceStart > cutoff) continue;
+      // Portfel: próba odnowienia jest do 24 h przed końcem okresu, a opłaconego okresu nie odbieramy.
+      // Stripe przesuwa okres już przy wystawieniu faktury, więc tam liczy się sama nieudana płatność.
+      const stripe = sub.paymentSource === 'STRIPE_CARD' && sub.stripeSubscriptionId;
+      if (!stripe && sub.currentPeriodEnd && sub.currentPeriodEnd > now) continue;
       try {
         await this.subs.suspend({
           subscriptionId: sub.id,
           tylkoGdyStatus: SubscriptionStatus.PAST_DUE,
           reason: 'GRACE_EXPIRED',
-          note: `Grace period expired (${Math.round(
-            (Date.now() - graceStart.getTime()) / DAYS,
-          )} days past due)`,
+          note: 'Nieudane odnowienie — zawieszenie do czasu zapłaty',
         });
       } catch (err) {
         this.logger.error(
@@ -373,6 +398,54 @@ export class RenewalScheduler {
         );
       }
     }
+  }
+
+  /**
+   * Zawieszona za brak płatności usługa z portfela wraca sama po doładowaniu (karta — przez invoice.paid
+   * w activateAfterStripePayment). Tylko GRACE_EXPIRED: zawieszenie wybrane ręcznie zdejmuje obsługa.
+   */
+  async runPaymentSuspensionRestore(now = new Date()): Promise<void> {
+    const zawieszone = await this.prisma.subscription.findMany({
+      where: {
+        status: SubscriptionStatus.SUSPENDED,
+        paymentSource: { in: ['WALLET', 'STRIPE_CARD'] },
+        stripeSubscriptionId: null,
+      },
+      include: { plan: { select: { slug: true } }, ...OSTATNIE_ZAWIESZENIE },
+      take: 200,
+    });
+    for (const sub of zawieszone) {
+      if (!zawieszonaPrzezKarencje(sub.events)) continue;
+      if (sub.cancelAt != null && sub.cancelAt <= now) continue;
+      try {
+        if (await this.oplacIPrzywroc(sub, now)) this.logger.log(`Przywrócono sub=${sub.id} po zapłacie z portfela`);
+      } catch (err) {
+        this.logger.error(`Przywrócenie sub=${sub.id} po zapłacie: ${(err as Error).message}`);
+      }
+    }
+  }
+
+  /**
+   * Okres już opłacony (poprzednie odwieszenie na serwerze nie wyszło) → tylko odwieszenie; inaczej
+   * obciążenie tym samym kluczem co odnowienie (bez podwójnej opłaty) i odwieszenie.
+   * @returns false, gdy w portfelu brak środków.
+   */
+  private async oplacIPrzywroc(
+    sub: Awaited<ReturnType<typeof this.findRenewable>>[number],
+    now = new Date(),
+  ): Promise<boolean> {
+    const oplacona = sub.currentPeriodEnd != null && sub.currentPeriodEnd > now;
+    if (!oplacona && !(await this.attemptRenewal(sub))) return false;
+    try {
+      await this.subs.unsuspend({ subscriptionId: sub.id, note: 'Zaległość opłacona z portfela' });
+    } catch (err) {
+      // Okres zostaje opłacony, więc następny przebieg spróbuje samego odwieszenia.
+      this.logger.error(`Odwieszenie sub=${sub.id} po zapłacie: ${(err as Error).message}`);
+      throw new ServiceUnavailableException(
+        'Opłata przyjęta, ale nie udało się jeszcze włączyć usługi — ponowimy automatycznie w ciągu godziny.',
+      );
+    }
+    return true;
   }
 
   /**
@@ -412,6 +485,14 @@ export class RenewalScheduler {
       include: { plan: { select: { slug: true } } },
     });
   }
+}
+
+const OSTATNIE_ZAWIESZENIE = {
+  events: { where: { type: 'SUSPENDED' }, orderBy: { createdAt: 'desc' as const }, take: 1 },
+};
+
+function zawieszonaPrzezKarencje(events: { details: unknown }[]): boolean {
+  return (events[0]?.details as { reason?: string } | null)?.reason === 'GRACE_EXPIRED';
 }
 
 function addInterval(from: Date, interval: 'MONTH' | 'YEAR'): Date {

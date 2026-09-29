@@ -220,9 +220,13 @@ export default function ServiceOverviewTab({
           onClick={() => onNavigate('subscription')}
           className="w-full rounded-[10px] border border-warn/30 bg-warn-soft px-4 py-3 text-left text-sm text-warn hover:bg-warn-soft transition-colors"
         >
-          <span className="font-semibold text-warn">Płatność i subskrypcja</span>
+          <span className="font-semibold text-warn">
+            {service.status === 'SUSPENDED' ? 'Usługa zawieszona z powodu braku płatności' : 'Płatność i subskrypcja'}
+          </span>
           <span className="mt-1 block text-xs text-warn">
-            Opłać, anuluj zamówienie lub zarządzaj rozliczeniem → zakładka Subskrypcja
+            {service.status === 'SUSPENDED'
+              ? 'Strona pokazuje odwiedzającym komunikat o zawieszeniu, dane są nietknięte. Opłać zaległość w zakładce Subskrypcja — usługa wróci automatycznie.'
+              : 'Opłać, anuluj zamówienie lub zarządzaj rozliczeniem → zakładka Subskrypcja'}
           </span>
         </button>
       ) : null}
