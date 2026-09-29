@@ -86,7 +86,9 @@ export interface AccountSuspendedPaymentContext {
   firstName: string | null;
   domain: string;
   suspendedAt: Date;
-  /** When DA account will be deleted permanently (typically suspendedAt + 30d). */
+  /** Regulamin §7 ust. 3: bez zapłaty do tej daty (zawieszenie + 14 dni) Umowa wygasa. */
+  expiresAt: Date;
+  /** Trwałe usunięcie konta: wygaśnięcie + 14 dni retencji. */
   hardDeleteAt: Date;
   panelUrl: string;
 }
@@ -98,7 +100,7 @@ export function accountSuspendedPaymentTemplate(
 
   const { html, text } = renderEmailShell({
     title: `Konto ${ctx.domain} zostało zawieszone`,
-    preheader: `Brak płatności — masz czas do ${escapeMarkdown(formatDate(ctx.hardDeleteAt))}.`,
+    preheader: `Brak płatności — masz czas do ${escapeMarkdown(formatDate(ctx.expiresAt))}.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -111,23 +113,21 @@ export function accountSuspendedPaymentTemplate(
       `- **Strona internetowa nie działa** — odwiedzający widzą stronę zastępczą,`,
       `- **e-maile na tej domenie nie są dostarczane** (wszystkie wysłane do Ciebie odbijają się),`,
       `- **dane są jednak zachowane** (pliki, bazy, e-maile) — w naszych backupach i na serwerze,`,
-      `- masz czas do **${escapeMarkdown(
+      `- masz czas do **${escapeMarkdown(formatDate(ctx.expiresAt))}** (14 dni) na uregulowanie płatności,`,
+      `- jeśli płatność nie wpłynie, usługa wygaśnie, a konto zostanie **trwale usunięte ${escapeMarkdown(
         formatDate(ctx.hardDeleteAt),
-      )}** (30 dni) na uregulowanie płatności i wznowienie usługi,`,
-      `- po tym terminie konto zostanie **trwale usunięte** wraz ze wszystkimi danymi.`,
+      )}** wraz ze wszystkimi danymi.`,
       ``,
-      `## Jak wznowić`,
+      `## Jak przywrócić usługę`,
       ``,
-      `1. Zaloguj się do panelu klienta,`,
-      `2. Wybierz "Wznów subskrypcję" w sekcji Subskrypcje,`,
-      `3. Po pomyślnej płatności **strona wraca w ciągu kilkunastu minut** — bez utraty danych.`,
+      `1. Doładuj portfel albo opłać zaległą fakturę w sekcji Rozliczenia w panelu,`,
+      `2. Napisz do nas w Centrum pomocy — przywrócimy usługę bez utraty danych.`,
     ].join('\n'),
     cta: {
-      label: 'Wznów subskrypcję',
-      url: `${ctx.panelUrl}/dashboard/billing`,
+      label: 'Napisz do nas',
+      url: `${ctx.panelUrl}/dashboard/support`,
     },
-    footnote:
-      'Jeśli to świadoma decyzja (rezygnacja) — nie musisz nic robić. Po 30 dniach automatycznie usuniemy dane zgodnie z RODO.',
+    footnote: `Jeśli to świadoma decyzja (rezygnacja) — nie musisz nic robić. Konto usuniemy automatycznie ${formatDate(ctx.hardDeleteAt)}.`,
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
@@ -136,7 +136,7 @@ export function accountSuspendedPaymentTemplate(
   return {
     to: ctx.to,
     tag: 'hosting.account-suspended-payment',
-    subject: `[Verris] ${ctx.domain} — konto zawieszone, wznów do ${formatDate(ctx.hardDeleteAt)}`,
+    subject: `[Verris] ${ctx.domain} — konto zawieszone, opłać do ${formatDate(ctx.expiresAt)}`,
     text,
     html,
   };
@@ -287,11 +287,11 @@ export function accountDeletionReminderTemplate(ctx: AccountDeletionReminderCont
       ``,
       `Konto hostingowe **${escapeMarkdown(ctx.domain)}** zostanie **trwale usunięte ${escapeMarkdown(data)}** — razem z plikami, bazami danych i pocztą. Usługa, do której należy, jest już zakończona.`,
       ``,
-      `Jeśli chcesz je zachować, wznów usługę przed tą datą: napisz do nas w Centrum pomocy w panelu.`,
+      `Jeśli chcesz je zachować, napisz do nas w Centrum pomocy w panelu przed tą datą.`,
       ``,
       `Jeśli to świadoma decyzja — nie musisz nic robić.`,
     ].join('\n'),
-    cta: { label: 'Wznów usługę', url: `${ctx.panelUrl}/dashboard/support` },
+    cta: { label: 'Napisz do nas', url: `${ctx.panelUrl}/dashboard/support` },
     footnote: 'Wysyłamy to przypomnienie raz, 3 dni przed usunięciem konta.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,

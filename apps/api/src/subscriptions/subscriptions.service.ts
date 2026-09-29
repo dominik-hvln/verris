@@ -82,6 +82,12 @@ export interface CreatedSubscription {
 
 /** Decyzja właściciela 29.09.2026: konto zakończonej (anulowanej/wygasłej) usługi żyje 14 dni, potem usunięcie. */
 export const RETENCJA_KONTA_DNI = 14;
+/** Regulamin §7 ust. 3: 7-dniowa prolongata po nieudanym odnowieniu (usługa działa), potem zawieszenie. */
+export const KARENCJA_PLATNOSCI_DNI = 7;
+/** Regulamin §7 ust. 3: zaległość nieuregulowana w 14 dni od zawieszenia → Umowa wygasa (EXPIRED). */
+export const ZAWIESZENIE_DO_WYGASNIECIA_DNI = 14;
+/** Zawieszenia „za brak płatności” — tylko one prowadzą do wygaśnięcia z §7 ust. 3 (nie nadużycie, nie decyzja operatora). */
+export const POWODY_ZAWIESZENIA_ZA_PLATNOSC: SuspendReason[] = ['GRACE_EXPIRED', 'PAYMENT_FAILED'];
 
 /**
  * Sale + lifecycle for Subscription records. Today this layer:
@@ -734,6 +740,50 @@ export class SubscriptionsService {
     return updated;
   }
 
+  /**
+   * Regulamin §7 ust. 3 — zaległość nieuregulowana w 14 dni od zawieszenia: Umowa wygasa (EXPIRED).
+   * `canceledAt` = chwila wygaśnięcia; od niej RetencjaKontService liczy 14 dni do usunięcia konta.
+   * Karta: najpierw anulujemy subskrypcję w Stripe (błąd → wyjątek, ponowienie w następnym przebiegu),
+   * żeby nie obciążać za wygasłą usługę. Zmiana tylko z SUSPENDED (warunkowo) — webhook Stripe, który
+   * zdąży pierwszy, wygrywa i nie dostaniemy dwóch maili. Zwraca null, gdy nic nie zmieniono.
+   */
+  async wygasPoZawieszeniu(subscriptionId: string): Promise<Subscription | null> {
+    const sub = await this.prisma.subscription.findUnique({ where: { id: subscriptionId } });
+    if (!sub || sub.status !== SubscriptionStatus.SUSPENDED) return null;
+    if (sub.paymentSource === SubscriptionPaymentSource.STRIPE_CARD && sub.stripeSubscriptionId) {
+      await this.stripe.cancelSubscription(sub.stripeSubscriptionId, { atPeriodEnd: false });
+    }
+    const now = new Date();
+    const zmienione = await this.prisma.$transaction(async (tx) => {
+      const r = await tx.subscription.updateMany({
+        where: { id: subscriptionId, status: SubscriptionStatus.SUSPENDED },
+        data: { status: SubscriptionStatus.EXPIRED, canceledAt: now, cancelAt: now },
+      });
+      if (r.count === 0) return false;
+      await tx.subscriptionEvent.create({
+        data: { subscriptionId, type: 'EXPIRED', details: { reason: 'UNPAID_AFTER_SUSPENSION' } },
+      });
+      return true;
+    });
+    if (!zmienione) return null;
+    await this.audit.record({
+      action: 'SUBSCRIPTION_EXPIRED',
+      userId: sub.userId,
+      details: { subscriptionId, reason: 'UNPAID_AFTER_SUSPENSION' },
+    });
+    void this.notifySubscriptionEnded({
+      userId: sub.userId,
+      subscriptionId,
+      cancelledAt: now,
+      effectiveUntil: now,
+      wasPaymentFailure: false,
+      userInitiated: false,
+    }).catch((err) =>
+      this.logger.warn(`notifySubscriptionEnded (wygaśnięcie) sub=${subscriptionId}: ${(err as Error).message}`),
+    );
+    return { ...sub, status: SubscriptionStatus.EXPIRED, canceledAt: now, cancelAt: now };
+  }
+
   // ---------------------------------------------------------------------------
   // Suspend / unsuspend (used by admin tools, abuse handling, B-11 grace cron)
   // ---------------------------------------------------------------------------
@@ -864,12 +914,16 @@ export class SubscriptionsService {
     if (!user || user.anonymizedAt) return;
 
     const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
-    const hardDeleteAt = new Date(opts.suspendedAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+    // §7 ust. 3: 14 dni na zapłatę od zawieszenia → wygaśnięcie → retencja konta → usunięcie.
+    const dzien = 24 * 60 * 60 * 1000;
+    const expiresAt = new Date(opts.suspendedAt.getTime() + ZAWIESZENIE_DO_WYGASNIECIA_DNI * dzien);
+    const hardDeleteAt = new Date(expiresAt.getTime() + RETENCJA_KONTA_DNI * dzien);
     const message = accountSuspendedPaymentTemplate({
       to: user.email,
       firstName: user.firstName,
       domain: opts.domain,
       suspendedAt: opts.suspendedAt,
+      expiresAt,
       hardDeleteAt,
       panelUrl,
     });

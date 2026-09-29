@@ -87,8 +87,8 @@ export function UnpaidServiceBanner({
           {isPending
             ? 'Dokończ płatność lub anuluj zamówienie. Nieopłacone zamówienia bez konta hostingowego są usuwane automatycznie po 48 godzinach.'
             : isStripe
-              ? 'Opłać zaległą fakturę w rozliczeniach. Po 3 dniach od nieudanej płatności usługa zostanie zawieszona.'
-              : 'Doładuj portfel — pobierzemy opłatę automatycznie w ciągu godziny albo od razu przyciskiem „Opłać z portfela”. Po 3 dniach od nieudanej płatności usługa zostanie zawieszona.'}
+              ? 'Opłać zaległą fakturę w rozliczeniach. Po 7 dniach od nieudanej płatności usługa zostanie zawieszona.'
+              : 'Doładuj portfel — pobierzemy opłatę automatycznie w ciągu godziny albo od razu przyciskiem „Opłać z portfela”. Po 7 dniach od nieudanej płatności usługa zostanie zawieszona.'}
         </p>
         {error ? <p className="mt-2 text-xs text-crit">{error}</p> : null}
         <div className="mt-3 flex flex-wrap gap-2">

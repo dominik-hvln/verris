@@ -549,7 +549,7 @@ export function subscriptionPaymentFailedTemplate(
       url: ctx.paymentUpdateUrl,
     },
     footnote:
-      'Twoje dane i pliki są bezpieczne — nawet w razie zawieszenia konta zachowujemy je 30 dni, w tym czasie możesz wznowić bez utraty danych.',
+      'Twoje dane i pliki są bezpieczne — nawet po zawieszeniu usługi masz jeszcze 14 dni na uregulowanie płatności bez utraty danych.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
@@ -585,7 +585,7 @@ export function subscriptionSuspendedTemplate(ctx: SubscriptionSuspendedContext)
 
   const { html, text } = renderEmailShell({
     title: `Subskrypcja "${ctx.serviceName}" została zawieszona`,
-    preheader: `Brak płatności — masz czas do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))} na wznowienie.`,
+    preheader: `Brak płatności — dane zachowujemy do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))}.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -597,18 +597,16 @@ export function subscriptionSuspendedTemplate(ctx: SubscriptionSuspendedContext)
       ``,
       `- Usługa **przestała działać** (strony WWW niedostępne),`,
       `- Twoje **dane są zachowane** — w tym pliki, e-maile, bazy danych,`,
-      `- Masz czas do **${escapeMarkdown(formatDate(ctx.dataDeletedAt))}** (14 dni od zakończenia subskrypcji) na wznowienie subskrypcji bez utraty danych,`,
+      `- Dane zachowujemy do **${escapeMarkdown(formatDate(ctx.dataDeletedAt))}** (14 dni od zakończenia subskrypcji),`,
       `- Po tym terminie konto zostanie **trwale usunięte** zgodnie z naszą polityką retencji.`,
       ``,
-      `## Jak wznowić`,
+      `## Chcesz zachować usługę?`,
       ``,
-      `1. Zaktualizuj metodę płatności,`,
-      `2. Wybierz "Wznów subskrypcję" w panelu,`,
-      `3. Po pomyślnej płatności usługa wraca **w ciągu kilkunastu minut**.`,
+      `Napisz do nas w Centrum pomocy w panelu przed tą datą — ustalimy płatność i to, co dalej z Twoimi danymi.`,
     ].join('\n'),
     cta: {
-      label: 'Wznów subskrypcję',
-      url: ctx.paymentUpdateUrl,
+      label: 'Napisz do nas',
+      url: `${ctx.panelUrl}/dashboard/support`,
     },
     footnote:
       'Jeśli to świadoma decyzja (rezygnacja) — nie musisz nic robić. Po 14 dniach automatycznie usuniemy Twoje dane zgodnie z RODO.',
@@ -620,7 +618,7 @@ export function subscriptionSuspendedTemplate(ctx: SubscriptionSuspendedContext)
   return {
     to: ctx.to,
     tag: 'subscription.suspended',
-    subject: `[Verris] Subskrypcja ${ctx.serviceName} zawieszona — wznów do ${formatDate(ctx.dataDeletedAt)}`,
+    subject: `[Verris] Subskrypcja ${ctx.serviceName} zawieszona — dane do ${formatDate(ctx.dataDeletedAt)}`,
     text,
     html,
   };
@@ -660,7 +658,7 @@ export function subscriptionCancelledTemplate(ctx: SubscriptionCancelledContext)
       : 'Usługa została zakończona z dniem dzisiejszym.';
 
   const { html, text } = renderEmailShell({
-    title: `Subskrypcja "${ctx.serviceName}" — anulacja potwierdzona`,
+    title: `Subskrypcja "${ctx.serviceName}" — ${ctx.userInitiated ? 'anulacja potwierdzona' : 'usługa zakończona'}`,
     preheader: `Działa do ${escapeMarkdown(formatDate(ctx.effectiveUntil))}, dane do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))}.`,
     bodyMarkdown: [
       greeting,
@@ -672,10 +670,9 @@ export function subscriptionCancelledTemplate(ctx: SubscriptionCancelledContext)
       `## Twoje dane`,
       ``,
       `- Pliki, e-maile, bazy są **zachowane do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))}** (14 dni od końca subskrypcji),`,
-      `- W tym czasie możesz **wznowić** subskrypcję bez utraty czegokolwiek,`,
       `- Po tym terminie dane są **usuwane trwale** (RODO art. 17).`,
       ``,
-      `Jeśli zmienisz zdanie — w sekcji "Subskrypcje" w panelu znajdziesz przycisk wznowienia.`,
+      `Jeśli zmienisz zdanie — napisz do nas w Centrum pomocy w panelu przed tym terminem.`,
       ``,
       `Dziękujemy, że byłeś z nami!`,
     ].join('\n'),
@@ -693,7 +690,7 @@ export function subscriptionCancelledTemplate(ctx: SubscriptionCancelledContext)
   return {
     to: ctx.to,
     tag: ctx.userInitiated ? 'subscription.cancelled.user' : 'subscription.cancelled.auto',
-    subject: `[Verris] Subskrypcja ${ctx.serviceName} — potwierdzenie anulacji`,
+    subject: `[Verris] Subskrypcja ${ctx.serviceName} — ${ctx.userInitiated ? 'potwierdzenie anulacji' : 'usługa zakończona'}`,
     text,
     html,
   };
@@ -758,7 +755,7 @@ export function trialEndingSoonTemplate(ctx: TrialEndingSoonContext): MailMessag
       ``,
       `Aby usługa działała dalej bez przerwy: **doładuj portfel** i kliknij **„Przekształć na płatną"** przy usłudze. Pobierzemy wtedy opłatę za pierwszy miesiąc, a dalej rozliczamy się z portfela.`,
       ``,
-      `Jeśli nie przedłużysz — po tej dacie usługa zostanie zawieszona. Dane przechowamy jeszcze 14 dni, więc nadal zdążysz wrócić.`,
+      `Jeśli nie przedłużysz — po tej dacie usługa zostanie zawieszona. Dane przechowamy jeszcze 14 dni — jeśli zechcesz wrócić, napisz do nas w tym czasie w Centrum pomocy.`,
     ].join('\n'),
     cta: { label: 'Przekształć usługę', url: `${ctx.panelUrl}/dashboard/services` },
     footnote: 'Wysyłamy to przypomnienie raz, przed końcem okresu próbnego.',
@@ -786,9 +783,9 @@ export function trialExpiredTemplate(ctx: TrialExpiredContext): MailMessage {
       ``,
       `Twój darmowy okres próbny planu **${escapeMarkdown(ctx.planName)}** się zakończył, więc usługa została **zawieszona**.`,
       ``,
-      `Nic nie przepadło: **Twoje pliki, bazy i poczta są bezpieczne jeszcze przez 14 dni**. Aby je przywrócić i wznowić usługę — doładuj portfel i przekształć usługę na płatną w panelu.`,
+      `Nic nie przepadło: **Twoje pliki, bazy i poczta są bezpieczne jeszcze przez 14 dni**. Jeśli chcesz zachować usługę, napisz do nas w Centrum pomocy w panelu przed upływem tego terminu.`,
     ].join('\n'),
-    cta: { label: 'Wznów usługę', url: `${ctx.panelUrl}/dashboard/services` },
+    cta: { label: 'Napisz do nas', url: `${ctx.panelUrl}/dashboard/support` },
     footnote: 'Po 14 dniach od zawieszenia dane mogą zostać trwale usunięte.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,

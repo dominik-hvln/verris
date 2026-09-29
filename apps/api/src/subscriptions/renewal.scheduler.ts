@@ -6,7 +6,12 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
 import { PromoService } from '../billing/promo.service.js';
-import { SubscriptionsService } from './subscriptions.service.js';
+import {
+  KARENCJA_PLATNOSCI_DNI,
+  POWODY_ZAWIESZENIA_ZA_PLATNOSC,
+  SubscriptionsService,
+  ZAWIESZENIE_DO_WYGASNIECIA_DNI,
+} from './subscriptions.service.js';
 import { EcoPointsService } from '../eco/eco-points.service.js';
 
 const HOURS = 60 * 60 * 1000;
@@ -22,8 +27,12 @@ const DAYS = 24 * HOURS;
  *      the subscription to PAST_DUE and start the grace timer.
  *
  *   2. **Grace expiry** — for each subscription that has been PAST_DUE for
- *      >= 3 days (configurable), suspend it on DA via
+ *      >= 7 days (Regulamin §7 ust. 3: prolongata), suspend it on DA via
  *      `SubscriptionsService.suspend(reason='GRACE_EXPIRED')`.
+ *
+ *   3. **Wygaśnięcie po zawieszeniu** — zawieszona za brak płatności dłużej niż
+ *      14 dni (§7 ust. 3) → `SubscriptionsService.wygasPoZawieszeniu` (EXPIRED);
+ *      dalej retencja konta 14 dni i usunięcie (RetencjaKontService).
  *
  * The cron is idempotent: each renewal attempt uses an idempotency key
  * derived from `subscriptionId + period start`, so re-running the same
@@ -32,7 +41,7 @@ const DAYS = 24 * HOURS;
 @Injectable()
 export class RenewalScheduler {
   private readonly logger = new Logger(RenewalScheduler.name);
-  private readonly graceDurationMs = 3 * DAYS;
+  private readonly graceDurationMs = KARENCJA_PLATNOSCI_DNI * DAYS;
   private readonly renewalWindowMs = 24 * HOURS;
 
   constructor(
@@ -63,6 +72,11 @@ export class RenewalScheduler {
         `Grace expiry failed: ${(err as Error).message}`,
         (err as Error).stack,
       );
+    }
+    try {
+      await this.runSuspensionExpiry();
+    } catch (err) {
+      this.logger.error(`Wygaśnięcie po zawieszeniu: ${(err as Error).message}`, (err as Error).stack);
     }
   }
 
@@ -231,7 +245,7 @@ export class RenewalScheduler {
     } catch (err) {
       // Tylko brak środków (ConflictException z WalletLedgerService) otwiera karencję. Wcześniej KAŻDY
       // błąd — zerwane połączenie z bazą, timeout blokady — dawał PAST_DUE, mail „płatność nieudana”
-      // i start 3-dniowego licznika do zawieszenia, choć klient miał pieniądze. Inny błąd leci dalej:
+      // i start licznika karencji do zawieszenia, choć klient miał pieniądze. Inny błąd leci dalej:
       // przebieg zaloguje go i spróbuje za godzinę, a „Opłać teraz” nie powie „za mało środków”.
       if (!(err instanceof ConflictException)) throw err;
       const msg = err.message;
@@ -326,7 +340,7 @@ export class RenewalScheduler {
   private async runGraceExpiry(): Promise<void> {
     const cutoff = new Date(Date.now() - this.graceDurationMs);
 
-    // Find subscriptions stuck in PAST_DUE for >= 3 days. We use the most
+    // Find subscriptions stuck in PAST_DUE for >= 7 days (prolongata z §7 ust. 3). We use the most
     // recent PAYMENT_FAILED event timestamp as the grace start. If there's no
     // such event, fall back to `currentPeriodEnd`.
     const candidates = await this.prisma.subscription.findMany({
@@ -359,6 +373,34 @@ export class RenewalScheduler {
         );
       }
     }
+  }
+
+  /**
+   * Regulamin §7 ust. 3 — „jeżeli w ciągu kolejnych 14 dni zaległość nie zostanie uregulowana, Umowa
+   * w zakresie tej Usługi wygasa”. Początek = ostatnie zdarzenie SUSPENDED; liczą się tylko zawieszenia
+   * za brak płatności (nadużycie czy decyzja operatora nie wygaszają umowy). Błąd jednej usługi nie
+   * zatrzymuje reszty — spróbujemy za godzinę.
+   */
+  async runSuspensionExpiry(now = new Date()): Promise<number> {
+    const cutoff = new Date(now.getTime() - ZAWIESZENIE_DO_WYGASNIECIA_DNI * DAYS);
+    const candidates = await this.prisma.subscription.findMany({
+      where: { status: SubscriptionStatus.SUSPENDED },
+      include: { events: { where: { type: 'SUSPENDED' }, orderBy: { createdAt: 'desc' }, take: 1 } },
+      take: 200,
+    });
+    let wygasle = 0;
+    for (const sub of candidates) {
+      const zawieszenie = sub.events[0];
+      const powod = (zawieszenie?.details as { reason?: string } | null)?.reason;
+      if (!zawieszenie || zawieszenie.createdAt > cutoff) continue;
+      if (!POWODY_ZAWIESZENIA_ZA_PLATNOSC.some((p) => p === powod)) continue;
+      try {
+        if (await this.subs.wygasPoZawieszeniu(sub.id)) wygasle += 1;
+      } catch (err) {
+        this.logger.error(`Wygaśnięcie po zawieszeniu sub=${sub.id}: ${(err as Error).message}`);
+      }
+    }
+    return wygasle;
   }
 
   // ---------------------------------------------------------------------------

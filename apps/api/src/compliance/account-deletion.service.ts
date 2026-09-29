@@ -41,6 +41,18 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const DA_PURGE_AFTER_DAYS = 30;
 
 /**
+ * Account.domain jest unikalne — usunięte konto trzymało domenę na zawsze i klient wracający z tą
+ * samą domeną nie mógł założyć hostingu (provisioning: „Domain is already taken”, Z-10: „cudza”).
+ * Przy DELETED domena dostaje przyrostek z `~` (znak spoza nazw DNS, więc nie koliduje z żadną
+ * prawdziwą domeną ani nie przejdzie walidacji) i id konta (unikalność). Początek napisu to wciąż
+ * domena — widać ją w panelach; pełna domena trafia też do audytu. Ten sam format w migracji
+ * 20260929120000_zwolnienie_domen_usunietych_kont.
+ */
+export function zwolnionaDomena(domena: string, accountId: string): string {
+  return `${domena}~usuniete-${accountId}`;
+}
+
+/**
  * GDPR Art. 17 — right to be forgotten (Sprint 1, L-07).
  *
  * Lifecycle:
@@ -462,6 +474,7 @@ export class AccountDeletionService {
       select: {
         id: true,
         daUsername: true,
+        domain: true,
         serverId: true,
         status: true,
         userId: true,
@@ -517,7 +530,7 @@ export class AccountDeletionService {
       // węzeł wyglądał na pustszy, niż jest).
       const oznaczone = await tx.account.updateMany({
         where: { id: accountId, status: { not: AccountStatus.DELETED } },
-        data: { status: AccountStatus.DELETED },
+        data: { status: AccountStatus.DELETED, domain: zwolnionaDomena(acc.domain, acc.id) },
       });
       if (oznaczone.count === 0) return;
       // Konto znika: księga maleje o jego limity efektywne. Account.cpuLimit
@@ -540,7 +553,8 @@ export class AccountDeletionService {
       action: audyt?.action ?? RodoActions.ACCOUNT_DA_PURGED,
       userId: acc.userId,
       actorUserId: audyt?.actorUserId ?? null,
-      details: { ...audyt?.details, accountId, daUsername: acc.daUsername, serverId: acc.serverId },
+      // `domain` = domena sprzed zwolnienia (odwrócenie: przywróć ją w Account.domain, jeśli wolna).
+      details: { ...audyt?.details, accountId, domain: acc.domain, daUsername: acc.daUsername, serverId: acc.serverId },
     });
     return { ok: true };
   }

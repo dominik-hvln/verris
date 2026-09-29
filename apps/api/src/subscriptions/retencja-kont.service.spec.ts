@@ -114,6 +114,7 @@ describe('RetencjaKontService — usuwanie po 14 dniach', () => {
     expect(await s.svc.usunPoRetencji(TERAZ)).toEqual({ usuniete: 1, bledy: 0 });
     expect(s.deleteAccount).toHaveBeenCalledWith('ua');
     expect(k.status).toBe('DELETED');
+    expect(k.domain).toBe('a.pl~usuniete-a'); // domena wolna dla nowego zamówienia
     expect(s.audyt).toContainEqual(
       expect.objectContaining({ action: RetencjaAkcje.USUNIETE, details: expect.objectContaining({ accountId: 'a', powod: 'RETENCJA_14_DNI' }) }),
     );

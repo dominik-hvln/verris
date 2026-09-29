@@ -21,7 +21,7 @@ import {
   StripeSubscription,
 } from './stripe/stripe.client.js';
 import { InvoicesService } from './invoices.service.js';
-import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
+import { KARENCJA_PLATNOSCI_DNI, SubscriptionsService } from '../subscriptions/subscriptions.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { adminCreditNotificationTemplate } from '../mail/templates/admin-credit-notification.js';
 import {
@@ -1531,12 +1531,11 @@ export class BillingService {
         serviceName = localSub.account?.domain
           ? `${planName} (${localSub.account.domain})`
           : planName;
-        // Stripe Smart Retries typically run 3 attempts over ~3 weeks; we
-        // suspend ~7 days after the last retry. We don't know the exact
-        // day from the payload — use period end + 14 days as conservative
-        // upper bound for the customer-facing communication.
+        // Zawieszenie robi RenewalScheduler po prolongacie z Regulaminu §7 ust. 3 (7 dni od pierwszej
+        // nieudanej płatności ≈ koniec okresu). Wcześniej mail podawał koniec okresu + 14 dni, choć
+        // zawieszaliśmy po 3 — klient dostawał datę późniejszą niż faktyczna.
         if (localSub.currentPeriodEnd) {
-          suspendAt = new Date(localSub.currentPeriodEnd.getTime() + 14 * 24 * 60 * 60 * 1000);
+          suspendAt = new Date(localSub.currentPeriodEnd.getTime() + KARENCJA_PLATNOSCI_DNI * 24 * 60 * 60 * 1000);
         }
       }
     }
