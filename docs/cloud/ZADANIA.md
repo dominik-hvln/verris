@@ -67,6 +67,12 @@ Wynik zawsze jako draft PR; testy na węźle (D3), macierz audytu i tablice robi
   przeglądarką a serwerem. Popraw braki, dopisz testy.
 - **Gotowe gdy:** opis w PR (co było, co jest, link do dokumentacji), bramki www + client-panel zielone.
 
+### CL-09 — Teksty panelu klienta: żargon, niejasności, odmiana
+- **Zakres:** `apps/client-panel/src` (tylko teksty i odmiana, bez zmian w logice poza `<input type="date">` i czasem kopii).
+- **Kroki:** pozycje z `docs/cloud/CL-09-teksty-panelu-klienta.md` (przegląd 30.09) — każdą sprawdź w kodzie,
+  popraw tekst, liczebniki przez `plForm`/`plural`. Strażnik `lib/biala-etykieta.spec.ts` ma zostać zielony.
+- **Gotowe gdy:** lista zmian w PR (plik:linia, przed → po), bramki client-panel zielone.
+
 ---
 
 ## Fala 2 — po scaleniu fali 1 (te same katalogi)
