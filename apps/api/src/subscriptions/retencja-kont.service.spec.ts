@@ -56,6 +56,12 @@ function stanowisko(konta: ReturnType<typeof konto>[], daBlad?: (username: strin
       update: vi.fn(async ({ where, data }: { where: { id: string }; data: Wiersz }) =>
         Object.assign(konta.find((k) => k.id === where.id)!, data),
       ),
+      // purgeAccountOnDa oznacza DELETED warunkowo (updateMany z status != DELETED)
+      updateMany: vi.fn(async ({ where, data }: { where: { id: string }; data: Wiersz }) => {
+        const k = konta.find((x) => x.id === where.id && x.status !== 'DELETED');
+        if (k) Object.assign(k, data);
+        return { count: k ? 1 : 0 };
+      }),
     },
     server: { update: vi.fn(async () => ({})) },
   };
