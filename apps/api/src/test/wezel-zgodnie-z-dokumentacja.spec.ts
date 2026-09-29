@@ -75,6 +75,11 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
     const t = czytaj('node-htaccess.sh');
     expect(t).toContain('VERRIS-PHP');
     expect(t).toMatch(/if \[ "\$ODP" != "VERRIS-PHP \$CEL" \]; then\n\s+zapisz "\$TMP\/stary"/);
+    // t1 29.09: jedna natychmiastowa próba cofała działającą zmianę — kilka prób, https przy przekierowaniu,
+    // kod i początek odpowiedzi w dzienniku zadania
+    expect(t).toMatch(/for proba in 1 2 3 4 5 6; do/);
+    expect(t).toContain('--resolve "$HT_DOMAIN:443:$IP_KONTA"');
+    expect(t).toContain('[htaccess] sonda PHP: HTTP');
   });
 
   it('profil: handlery alt-phpXX w LiteSpeed (<phpConfig><phpHandler>) po instalacji alt-php, z kopią i restartem', () => {

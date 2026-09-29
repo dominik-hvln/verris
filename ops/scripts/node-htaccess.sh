@@ -153,10 +153,26 @@ if [[ "$HT_PHP" =~ ^[5-8][0-9]$ ]]; then
   trap 'jako_klient rm -f -- "$KATALOG/$SONDA" 2>/dev/null || true; rm -rf -- "$TMP"' EXIT
   jako_klient sh -c 'umask 022; printf "%s" "<?php echo \"VERRIS-PHP \".PHP_MAJOR_VERSION.\".\".PHP_MINOR_VERSION;" > "$1"' verris "$KATALOG/$SONDA" \
     || fail "nie udało się zapisać pliku kontrolnego PHP"
-  ODP="$(curl -s --noproxy '*' --max-time 20 -H "Host: $HT_DOMAIN" "$HEALTH_BASE/${HT_DIR:+$HT_DIR/}$SONDA" 2>/dev/null || true)"
+  # Kilka prób: LiteSpeed podejmuje zmieniony .htaccess i startuje lsphp nowej wersji z opóźnieniem —
+  # na t1 (29.09) ta sama zmiana ręcznie działała po kilku sekundach, a jedna natychmiastowa próba
+  # cofała plik. Przy przekierowaniu na https próbujemy https na IP konta (--resolve).
+  URL_SONDY="$HEALTH_BASE/${HT_DIR:+$HT_DIR/}$SONDA"
+  ODP=""; KOD=""
+  for proba in 1 2 3 4 5 6; do
+    ODP="$(curl -s --noproxy '*' --max-time 20 -H "Host: $HT_DOMAIN" -w '\n%{http_code}' "$URL_SONDY" 2>/dev/null || true)"
+    KOD="${ODP##*$'\n'}"; ODP="${ODP%$'\n'*}"
+    if [[ "$KOD" =~ ^30[12378]$ ]] && [ "$IP_KONTA" != "127.0.0.1" ]; then
+      ODP="$(curl -sk --noproxy '*' --max-time 20 --resolve "$HT_DOMAIN:443:$IP_KONTA" -w '\n%{http_code}' "https://$HT_DOMAIN/${HT_DIR:+$HT_DIR/}$SONDA" 2>/dev/null || true)"
+      KOD="${ODP##*$'\n'}"; ODP="${ODP%$'\n'*}"
+    fi
+    [ "$ODP" = "VERRIS-PHP $CEL" ] && break
+    sleep 2
+  done
   jako_klient rm -f -- "$KATALOG/$SONDA" 2>/dev/null || true
   if [ "$ODP" != "VERRIS-PHP $CEL" ]; then
     zapisz "$TMP/stary" || true
+    # Do dziennika zadania (operator), nie do klienta: kod HTTP i początek odpowiedzi bez znaków sterujących.
+    printf '[htaccess] sonda PHP: HTTP %s, odpowiedź: %s\n' "${KOD:-brak}" "$(printf '%s' "$ODP" | head -c 120 | tr -c '[:print:]' ' ')" >&2
     fail "serwer nie uruchomił PHP $CEL dla tej strony — przywróciliśmy poprzedni plik .htaccess (napisz do nas, sprawdzimy)"
   fi
   log "PHP strony po zmianie: $CEL"
