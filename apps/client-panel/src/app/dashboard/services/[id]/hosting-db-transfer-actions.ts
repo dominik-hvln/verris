@@ -24,7 +24,7 @@ export interface DbTransferStatus {
   /** D-17 — ostatni pomiar rozmiaru baz konta. */
   rozmiary: { kiedy: string; bazy: { baza: string; bajty: number; tabele: number }[] } | null;
   /** D-08 — ostatni zestaw uprawnień ustawiony w panelu, klucz „baza|użytkownik”. */
-  uprawnienia: Record<string, { zestaw: 'full' | 'rw' | 'ro'; status: string }>;
+  uprawnienia: Record<string, { zestaw: 'full' | 'rw' | 'ro'; status: string; /** Ostatnia zmiana nie udała się na serwerze (zestaw, o który prosił klient). */ nieudana?: 'full' | 'rw' | 'ro' }>;
   katalog: string;
   wToku: boolean;
   zadania: DbTransferZadanie[];

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PoleHasla } from '@/components/hosting/PoleHasla';
 import { KeyRound, Loader2, Plus, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
@@ -94,6 +94,18 @@ export default function DbUsers({ serviceId, db }: { serviceId: string; db: stri
     toast.success('Użytkownik usunięty');
     void load();
   };
+
+  // Wynik zmiany uprawnień przychodzi z węzła po chwili — odświeżamy, dopóki coś jest w toku.
+  const wToku = Object.values(prawa).some((p) => p.status === 'QUEUED' || p.status === 'RUNNING');
+  useEffect(() => {
+    if (!wToku) return;
+    const t = setInterval(() => {
+      void fetchDbTransfer(serviceId).then((r) => {
+        if (r.ok) setPrawa(r.status.uprawnienia ?? {});
+      });
+    }, 5000);
+    return () => clearInterval(t);
+  }, [wToku, serviceId]);
 
   // D-08 — zestaw uprawnień wykonuje węzeł (GRANT dla wszystkich hostów użytkownika).
   const ustawPrawa = async (u: string, zestaw: string) => {
@@ -196,8 +208,13 @@ export default function DbUsers({ serviceId, db }: { serviceId: string; db: stri
                       className="w-56"
                     />
                     {prawaDla === u ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" /> : null}
-                    {prawaDla !== u && prawa[`${db}|${u}`] && prawa[`${db}|${u}`].status !== 'COMPLETED' ? (
+                    {prawaDla !== u && ['QUEUED', 'RUNNING'].includes(prawa[`${db}|${u}`]?.status ?? '') ? (
                       <span className="text-[11px] text-muted-foreground">zmiana w toku</span>
+                    ) : null}
+                    {prawaDla !== u && prawa[`${db}|${u}`]?.nieudana ? (
+                      <span className="text-[11px] text-crit">
+                        nie udało się ustawić „{ZESTAWY.find((z) => z.value === prawa[`${db}|${u}`]?.nieudana)?.label}” — spróbuj ponownie
+                      </span>
                     ) : null}
                   </div>
                   {pwFor === u ? (
