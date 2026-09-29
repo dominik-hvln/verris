@@ -1,5 +1,6 @@
 import { cookies, headers as incomingHeaders } from 'next/headers';
 import { opiszBladSieci, wpisDoLogu, sprawdzSciezkeApi } from '@verris/contracts';
+import { daErrorMessage } from './client-hosting-messages';
 
 // PRZEGLĄDARKA I SERWER TO DWA RÓŻNE ADRESY TEGO SAMEGO API.
 //
@@ -153,6 +154,11 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
     }
     if (message === null && typeof body === 'string' && body.length > 0) {
       message = body;
+    }
+    // Odmowa serwera hostingu (API oznacza ją `zrodlo`) przychodzi po angielsku, tak jak ją podał
+    // serwer — tłumaczymy ją tutaj, żeby żaden widok nie pokazał jej klientowi 1:1.
+    if (typeof body === 'object' && body !== null && (body as { zrodlo?: unknown }).zrodlo === 'serwer-hostingu') {
+      message = daErrorMessage(message);
     }
     throw new ApiError(message ?? `API ${response.status}`, response.status, body);
   }

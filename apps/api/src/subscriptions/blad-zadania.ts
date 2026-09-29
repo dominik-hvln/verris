@@ -1,3 +1,5 @@
+import { KOMUNIKAT_OGOLNY, zdradzaPanelSerwera } from '../common/biala-etykieta.js';
+
 /**
  * Błąd zadania węzła w wersji dla klienta. `errorMessage` z agenta to surowy ogon logu
  * (ID zadania, ścieżki skryptów na węźle) — klient dostaje tylko ostatnią linię
@@ -10,8 +12,6 @@ export function bladZadaniaDlaKlienta(errorMessage: string | null, outputLog?: s
   const trafienia = [...`${outputLog ?? ''}\n${errorMessage}`.matchAll(LINIA)];
   const ostatnie = trafienia.at(-1)?.[1]?.trim();
   // White label: komunikat skryptu z nazwą panelu serwera (DirectAdmin/DA/CustomBuild) nie trafia do klienta.
-  if (!ostatnie || /DirectAdmin|\bDA\b|CustomBuild|task\.queue/i.test(ostatnie)) {
-    return 'Operacja nie powiodła się. Napisz do nas — sprawdzimy to.';
-  }
+  if (!ostatnie || zdradzaPanelSerwera(ostatnie)) return KOMUNIKAT_OGOLNY;
   return ostatnie.slice(0, 300);
 }

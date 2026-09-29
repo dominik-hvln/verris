@@ -13,5 +13,8 @@ describe('bladZadaniaDlaKlienta', () => {
     expect(bladZadaniaDlaKlienta('x', '[staging-sync] ERROR: czy subdomena staging.firma.pl istnieje w DA?')).toMatch(/^Operacja nie powiodła się/);
     expect(bladZadaniaDlaKlienta('x', '[restore] BŁĄD: DirectAdmin nie założył konta')).toMatch(/^Operacja nie powiodła się/);
     expect(bladZadaniaDlaKlienta('x', '[htaccess] BŁĄD: DATA w pliku jest błędna')).toBe('DATA w pliku jest błędna');
+    // Polskie „da” to nie skrót panelu — `/\bDA\b/i` chował czytelny komunikat za ogólnym.
+    expect(bladZadaniaDlaKlienta('x', '[php-set] BŁĄD: nie da się zapisać php.ini')).toBe('nie da się zapisać php.ini');
+    expect(bladZadaniaDlaKlienta('x', '[ssl] BŁĄD: CMD_API_SSL zwrócił błąd')).toMatch(/^Operacja nie powiodła się/);
   });
 });
