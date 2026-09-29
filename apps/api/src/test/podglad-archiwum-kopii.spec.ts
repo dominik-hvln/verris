@@ -19,6 +19,10 @@ describe('podgląd archiwum kopii (H-11)', () => {
   mkdirSync(join(DIR, 'home', 'u1', 'backups'), { recursive: true });
   for (let i = 0; i < 2100; i++) writeFileSync(join(wp, `f${i}.php`), '');
   writeFileSync(join(DIR, 'src', 'domains', 'd.pl', 'public_html', 'index.php'), 'x');
+  // Długie ścieżki jak w WordPressie: 2000 wpisów przekroczyłoby log zadania (120 000 znaków od końca).
+  const dlugi = join(DIR, 'src', 'domains', 'd.pl', 'public_html', 'wp-content', 'plugins', 'wtyczka-o-bardzo-dlugiej-nazwie', 'assets');
+  mkdirSync(dlugi, { recursive: true });
+  for (let i = 0; i < 2100; i++) writeFileSync(join(dlugi, `plik-${i}-${'x'.repeat(60)}.js`), '');
   spawnSync('tar', ['czf', join(DIR, 'home', 'u1', 'backups', 'b.tar.gz'), 'domains', 'imap'], { cwd: join(DIR, 'src') });
   const bin = join(DIR, 'bin');
   mkdirSync(bin);
@@ -36,14 +40,22 @@ describe('podgląd archiwum kopii (H-11)', () => {
       env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, FR_MODE: 'list', FR_DA_USER: 'u1', FR_ARCHIVE: 'b.tar.gz', FR_PATH: prefiks },
       encoding: 'utf8',
     });
-    return { rc: r.status, wpisy: r.stdout.split('\n').filter((l) => l.startsWith('VERRIS_WPIS ')), obciete: r.stdout.includes('VERRIS_OBCIETE') };
+    return { rc: r.status, dlugosc: r.stdout.length, wpisy: r.stdout.split('\n').filter((l) => l.startsWith('VERRIS_WPIS ')), obciete: r.stdout.includes('VERRIS_OBCIETE') };
   };
 
   it('ponad 2000 wpisów pod prefiksem → sukces, bieżący poziom pełny i na początku, znacznik obcięcia', () => {
     const r = lista('domains');
     expect(r.rc).toBe(0);
     expect(r.wpisy[0]).toBe('VERRIS_WPIS d|0|domains/d.pl');
-    expect(r.wpisy).toHaveLength(2000);
+    expect(r.wpisy.length).toBeLessThanOrEqual(2000);
+    expect(r.obciete).toBe(true);
+  });
+
+  it('wyjście mieści się w logu zadania (120 000 znaków) — bieżący poziom nie znika przy obcięciu', () => {
+    const r = lista('domains/d.pl/public_html/wp-content');
+    expect(r.rc).toBe(0);
+    expect(r.dlugosc).toBeLessThan(110_000);
+    expect(r.wpisy[0]).toBe('VERRIS_WPIS d|0|domains/d.pl/public_html/wp-content/plugins');
     expect(r.obciete).toBe(true);
   });
 

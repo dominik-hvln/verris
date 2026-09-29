@@ -23,6 +23,10 @@ log() { echo "[file-restore] $*"; }
 fail() { log "BŁĄD: $*"; exit 1; }
 
 LIMIT_WPISOW=2000
+# Log zadania w API trzyma najwyżej 120 000 znaków z KOŃCA (node-tasks.service.ts, MAX_LOG_CHARS).
+# 2000 długich ścieżek WordPressa to ~180 000 — obcięcie zjadało początek, czyli bieżący poziom,
+# i panel pokazywał „Pusty katalog” (retest D3 29.09 13:46). Budżet znaków z zapasem na nagłówek.
+LIMIT_ZNAKOW=100000
 
 [[ "$FR_MODE" == "list" || "$FR_MODE" == "extract" ]] || fail "nieznany tryb: $FR_MODE"
 [[ "$FR_DA_USER" =~ ^[a-z][a-z0-9]{0,15}$ ]] || fail "nieprawidłowy login konta"
@@ -56,7 +60,7 @@ if [ "$FR_MODE" = "list" ]; then
   # Najpierw bezpośrednie dzieci prefiksu (także katalogi widoczne tylko w ścieżkach głębiej), potem
   # głębsze wpisy do limitu — panel zawsze dostaje pełny bieżący poziom.
   jako_klient tar "${KOMPRESJA[@]}" -tvf "$ARCHIWUM" \
-    | awk -v p="$PREFIKS" -v lim="$LIMIT_WPISOW" '
+    | awk -v p="$PREFIKS" -v lim="$LIMIT_WPISOW" -v limz="$LIMIT_ZNAKOW" '
         {
           typ = substr($1, 1, 1); typ = (typ == "d" ? "d" : typ == "l" ? "l" : "f"); rozmiar = $3
           sciezka = $0; for (i = 1; i <= 5; i++) sub(/^[^ ]+ +/, "", sciezka)
@@ -70,9 +74,13 @@ if [ "$FR_MODE" = "list" ]; then
           if (n == 1) poziom[dziecko] = typ "|" rozmiar
           else glebiej[++ileg] = typ "|" rozmiar "|" sciezka
         }
+        function wypisz(w) {
+          if (wyp >= lim || zn + length(w) + 13 > limz) { obciete = 1; return 0 }
+          print "VERRIS_WPIS " w; wyp++; zn += length(w) + 13; return 1
+        }
         END {
-          for (i = 1; i <= ile; i++) { if (wyp >= lim) { obciete = 1; break } print "VERRIS_WPIS " poziom[kolej[i]] "|" kolej[i]; wyp++ }
-          for (i = 1; i <= ileg && !obciete; i++) { if (wyp >= lim) { obciete = 1; break } print "VERRIS_WPIS " glebiej[i]; wyp++ }
+          for (i = 1; i <= ile; i++) if (!wypisz(poziom[kolej[i]] "|" kolej[i])) break
+          for (i = 1; i <= ileg && !obciete; i++) if (!wypisz(glebiej[i])) break
           if (obciete) print "VERRIS_OBCIETE " lim
         }'
   log "Gotowe."
