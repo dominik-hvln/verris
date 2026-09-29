@@ -9,5 +9,9 @@ export function bladZadaniaDlaKlienta(errorMessage: string | null, outputLog?: s
   if (!errorMessage) return null;
   const trafienia = [...`${outputLog ?? ''}\n${errorMessage}`.matchAll(LINIA)];
   const ostatnie = trafienia.at(-1)?.[1]?.trim();
-  return ostatnie ? ostatnie.slice(0, 300) : 'Operacja nie powiodła się. Napisz do nas — sprawdzimy to.';
+  // White label: komunikat skryptu z nazwą panelu serwera (DirectAdmin/DA/CustomBuild) nie trafia do klienta.
+  if (!ostatnie || /DirectAdmin|\bDA\b|CustomBuild|task\.queue/i.test(ostatnie)) {
+    return 'Operacja nie powiodła się. Napisz do nas — sprawdzimy to.';
+  }
+  return ostatnie.slice(0, 300);
 }

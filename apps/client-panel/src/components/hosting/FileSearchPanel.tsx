@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { SectionHead } from '@/components/panel/v2';
 import { fetchFileSearch, runFileSearch, type FileSearchStatus } from '@/app/dashboard/services/[id]/hosting-file-search-actions';
 import { liczba } from '@/lib/liczba';
+import { plForm } from '@/lib/pl';
 
 const INPUT = 'w-full rounded-[7px] border border-line bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-data';
 const BTN = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[13px] py-2 text-sm font-medium text-foreground hover:bg-raised disabled:opacity-50';
@@ -71,7 +72,7 @@ export function FileSearchPanel({ serviceId, domain }: { serviceId: string; doma
           <div className="border-t border-line px-4 py-3">
             <p className="m-0 text-[12.5px] text-muted-foreground">
               {[stan.zapytanie.name && `nazwa „${stan.zapytanie.name}”`, stan.zapytanie.text && `tekst „${stan.zapytanie.text}”`].filter(Boolean).join(' i ')}:{' '}
-              {w.pliki.length ? `${w.pliki.length}${w.ucieto ? '+' : ''} plików` : 'nic nie znaleziono'}
+              {w.pliki.length ? `${w.pliki.length}${w.ucieto ? '+ plików' : ` ${plForm(w.pliki.length, 'plik', 'pliki', 'plików')}`}` : 'nic nie znaleziono'}
               {w.ucieto ? ' — pokazujemy pierwsze 500, zawęź wyszukiwanie.' : '.'}
             </p>
             {w.pliki.length ? (

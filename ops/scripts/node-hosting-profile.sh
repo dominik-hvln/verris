@@ -1333,6 +1333,20 @@ configure_hosting_capabilities() {
         selectorctl --list --interpreter=php 2>/dev/null | awk '{print $1}' | grep -qx "$v" || php_brak="$php_brak $v"
       done
       cldiag --check-php-selector >/dev/null 2>&1 || true
+      # OPcache domyślnie dla każdej wersji (selectorctl bez --user = ustawienie wersji; konta z własnym
+      # wyborem rozszerzeń zachowują swój). Retest D3 29.09: strony działały bez OPcache
+      # (opcache.enable = brak w odczycie PHP). --list-extensions: „+” włączone, „~” wbudowane.
+      local opc_brak=""
+      for v in ${VERRIS_PHP_VERSIONS:-8.3 8.2 8.1 8.0 7.4}; do
+        selectorctl --list-extensions --version="$v" 2>/dev/null | grep -qE '^[+~] opcache$' && continue
+        selectorctl --enable-extensions=opcache --version="$v" >/dev/null 2>&1 || true
+        selectorctl --list-extensions --version="$v" 2>/dev/null | grep -qE '^[+~] opcache$' || opc_brak="$opc_brak $v"
+      done
+      if [ -z "$opc_brak" ]; then
+        log_ok "PHP Selector: OPcache domyślnie włączony (${VERRIS_PHP_VERSIONS:-8.3 8.2 8.1 8.0 7.4})"
+      else
+        log_warn "PHP Selector: OPcache nie jest domyślny dla:$opc_brak (selectorctl --enable-extensions=opcache --version=<wersja>)"
+      fi
       if [ -z "$php_brak" ]; then
         log_ok "PHP Selector (CloudLinux): wersje ${VERRIS_PHP_VERSIONS:-8.3 8.2 8.1 8.0 7.4} dostępne"
       else

@@ -1,4 +1,6 @@
-import { readFileSync } from 'fs';
+import { spawnSync } from 'child_process';
+import { mkdirSync, mkdtempSync, readFileSync } from 'fs';
+import { tmpdir } from 'os';
 import { join } from 'path';
 
 /**
@@ -38,5 +40,22 @@ describe('I-11 — publikacja stagingu tylko z kopią produkcji', () => {
     expect(kopiaBazy).toBeGreaterThan(kopiaPlikow);
     expect(importBazy).toBeGreaterThan(kopiaBazy);
     expect(rsync).toBeGreaterThan(kopiaBazy);
+  });
+});
+
+describe('I-11 — katalog kopii roboczej (DirectAdmin 1.710: subdomena jako domains/<sub>.<domena>)', () => {
+  const blok = SKRYPT.slice(SKRYPT.indexOf('STAGING_HOST='), SKRYPT.indexOf('\n', SKRYPT.indexOf('[ -d "$STG" ] || STG=')));
+  const stg = (uklad: 'nowy' | 'stary') => {
+    const home = mkdtempSync(join(tmpdir(), 'stg-'));
+    mkdirSync(join(home, 'domains', 'firma.pl', 'public_html', uklad === 'stary' ? 'staging' : 'x'), { recursive: true });
+    if (uklad === 'nowy') mkdirSync(join(home, 'domains', 'staging.firma.pl', 'public_html'), { recursive: true });
+    const r = spawnSync('bash', ['-c', `set -eu; HOME_DIR='${home}'; STG_SUB=staging; STG_DOMAIN=firma.pl; LIVE="$HOME_DIR/domains/firma.pl/public_html"\n${blok}\necho "$STG"`], { encoding: 'utf8' });
+    return r.stdout.trim().slice(home.length);
+  };
+  it('nowy układ DA → domains/staging.<domena>/public_html', () => {
+    expect(stg('nowy')).toBe('/domains/staging.firma.pl/public_html');
+  });
+  it('starszy układ → public_html/staging', () => {
+    expect(stg('stary')).toBe('/domains/firma.pl/public_html/staging');
   });
 });

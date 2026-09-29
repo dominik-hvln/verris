@@ -25,8 +25,12 @@ STG_SUB="${STG_SUB:-staging}"
 
 HOME_DIR="/home/${STG_DA_USER}"
 LIVE="${HOME_DIR}/domains/${STG_DOMAIN}/public_html"
-STG="${LIVE}/${STG_SUB}"
 STAGING_HOST="${STG_SUB}.${STG_DOMAIN}"
+# DirectAdmin 1.710 zakłada subdomenę jako osobny katalog domains/<sub>.<domena>/public_html
+# (retest D3 29.09: zadanie szukało public_html/staging i kończyło się błędem); starszy układ —
+# public_html/<sub>. Wykluczenie „/${STG_SUB}/” w rsync zostaje dla starszego układu.
+STG="${HOME_DIR}/domains/${STAGING_HOST}/public_html"
+[ -d "$STG" ] || STG="${LIVE}/${STG_SUB}"
 VERRIS_DIR="${HOME_DIR}/.verris"
 BACKUP_DIR="${VERRIS_DIR}/backups"
 WP_PHAR="${VERRIS_DIR}/wp-cli.phar"
@@ -39,7 +43,7 @@ account_group() { id -gn "$STG_DA_USER" 2>/dev/null || echo "$STG_DA_USER"; }
 as_user() { su -s /bin/bash -l "$STG_DA_USER" -c "$1"; }
 
 [ -d "$LIVE" ] || die "Brak docroot $LIVE"
-[ -d "$STG" ] || die "Brak katalogu staging $STG — czy subdomena ${STAGING_HOST} istnieje w DA?"
+[ -d "$STG" ] || die "Brak katalogu kopii roboczej ${STAGING_HOST} — spróbuj ponownie za chwilę albo napisz do nas."
 
 # --- wp-cli (współdzielony z instalatorem WP) --------------------------------
 # wp-cli w ~/.verris klienta — zapis wyłącznie jako klient. Katalog domowy należy do klienta, więc root

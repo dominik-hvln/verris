@@ -2335,7 +2335,8 @@ export class DirectAdminService {
       domain: dom,
       klucze: Boolean(pola.get('ksk_id') || pola.get('zsk_id')),
       podpisana: Boolean(signedOn) && !blad,
-      podpisanaOd: signedOn,
+      // DA 1.710 podaje signed_on jako sekundy Unix (retest D3 29.09: panel pokazywał „od 1790687844”).
+      podpisanaOd: signedOn && /^\d{9,11}$/.test(signedOn) ? new Date(Number(signedOn) * 1000).toISOString() : signedOn,
       wygasa: Number(pola.get('expiry')) || null,
       ds: (pola.get('DS') ?? '').split('\n').map((l) => l.trim()).filter(Boolean),
       blad,

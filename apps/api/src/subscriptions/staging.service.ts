@@ -95,6 +95,15 @@ export class StagingService {
       dbPass = randomBytes(18).toString('base64url');
       try {
         const client = await this.da.getClientForHostingAccount(account.id, userId);
+        // Nieudane pierwsze kopiowanie zostawia bazę stgXXXX bez działającej kopii roboczej
+        // (stagingCreatedAt ustawia dopiero udane zadanie) — przy ponowieniu sprzątamy ją,
+        // zamiast mnożyć osierocone bazy na koncie klienta.
+        const sieroty = (await client.listMysqlDatabases().catch(() => [] as string[])).filter((d) =>
+          new RegExp(`^${account.daUsername}_stg[0-9a-f]{4}$`).test(d),
+        );
+        for (const d of sieroty) {
+          await client.deleteMysqlDatabase(d).catch((e) => this.logger.warn(`Staging: nie usunięto starej bazy ${d}: ${e instanceof Error ? e.message : String(e)}`));
+        }
         const created = await client.createMysqlDatabase({
           name: short,
           user: short,

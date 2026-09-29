@@ -33,7 +33,7 @@ id "$SSH_DA_USER" >/dev/null 2>&1 || fail "brak użytkownika systemowego $SSH_DA
 HOME_DIR="$(getent passwd "$SSH_DA_USER" | cut -d: -f6)"
 [ -n "$HOME_DIR" ] && [ -d "$HOME_DIR" ] || fail "brak katalogu domowego konta"
 USER_CONF="$DA_USERS_DIR/$SSH_DA_USER/user.conf"
-[ -f "$USER_CONF" ] || fail "brak konfiguracji DirectAdmin konta"
+[ -f "$USER_CONF" ] || fail "brak konfiguracji konta na serwerze"
 
 jako_klient() { runuser -u "$SSH_DA_USER" -- "$@"; }
 

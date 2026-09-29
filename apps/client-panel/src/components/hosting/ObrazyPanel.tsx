@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { ImageDown, Loader2 } from 'lucide-react';
 import { SectionHead, Switch } from '@/components/panel/v2';
 import { fetchObrazy, optymalizujObrazy, type StanObrazow } from '@/app/dashboard/services/[id]/hosting-images-actions';
+import { plForm } from '@/lib/pl';
 
 const INPUT = 'w-full rounded-[7px] border border-line bg-card px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data';
 const BTN = 'inline-flex items-center gap-2 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[13px] py-2 text-sm font-medium text-foreground hover:bg-raised disabled:opacity-50';
@@ -78,9 +79,9 @@ export function ObrazyPanel({ serviceId, domain }: { serviceId: string; domain: 
         {stan?.blad ? <p role="alert" className="m-0 mt-2 text-[13px] text-crit">{stan.blad}</p> : null}
         {o ? (
           <p className="m-0 mt-3 text-[13px] text-muted-foreground">
-            Ostatnio ({new Date(o.kiedy).toLocaleString('pl-PL')}, {o.katalog || 'cała strona'}): {o.plikow.toLocaleString('pl-PL')} plików,{' '}
+            Ostatnio ({new Date(o.kiedy).toLocaleString('pl-PL')}, {o.katalog || 'cała strona'}): {o.plikow.toLocaleString('pl-PL')} {plForm(o.plikow, 'plik', 'pliki', 'plików')},{' '}
             {mb(o.przed)} → {mb(o.po)} ({zysk}% mniej).
-            {o.zostalo > 0 ? ` Zostało ${o.zostalo.toLocaleString('pl-PL')} plików — uruchom ponownie, żeby je dokończyć.` : ''}
+            {o.zostalo > 0 ? ` Zostało ${o.zostalo.toLocaleString('pl-PL')} ${plForm(o.zostalo, 'plik', 'pliki', 'plików')} — uruchom ponownie, żeby je dokończyć.` : ''}
           </p>
         ) : null}
       </div>

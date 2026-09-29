@@ -203,7 +203,7 @@ export default function StagingTab({ serviceId }: StagingTabProps) {
               )}
               <p className="text-sm font-medium text-foreground">Usuń staging</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Usuwa subdomenę z plikami. Baza staging zostaje (zakładka Bazy MySQL).
+                Usuwa subdomenę z plikami. Baza kopii roboczej zostaje (zakładka Bazy MySQL) do czasu utworzenia nowej kopii roboczej.
               </p>
             </button>
           </div>

@@ -223,6 +223,12 @@ if [ "$WPU_MODE" = "cache" ]; then
       wp config set WP_REDIS_PREFIX "$WPU_DOMAIN:" --quiet
       wp plugin activate redis-cache || fail "nie udało się włączyć wtyczki Redis Object Cache"
       wp_z_wtyczkami redis enable --force || fail "wtyczka nie połączyła się z Redisem konta"
+      # `redis enable` tylko kopiuje drop-in — o połączeniu mówi dopiero `redis status`.
+      if ! wp_z_wtyczkami redis status 2>/dev/null | grep -qiE '^Status: *Connected'; then
+        wp_z_wtyczkami redis disable || true
+        wp plugin deactivate redis-cache || true
+        fail "wtyczka nie połączyła się z Redisem konta (gniazdo $SOCK) — cache obiektowy zostaje wyłączony"
+      fi
       KOD_PO="$(http_kod)"
       log "kontrola strony: przed=$KOD_PRZED po=$KOD_PO"
       if [[ "$KOD_PRZED" =~ ^[1-4][0-9][0-9]$ ]] && ! [[ "$KOD_PO" =~ ^[1-4][0-9][0-9]$ ]]; then

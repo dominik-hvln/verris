@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SectionHead } from '@/components/panel/v2';
 import { countDiskUsage, fetchDiskUsage, type DiskUsageStatus } from '@/app/dashboard/services/[id]/hosting-disk-usage-actions';
+import { plForm } from '@/lib/pl';
 
 /**
  * C-15/K-03 — co zajmuje miejsce i ile jest plików, dwa poziomy katalogów od katalogu domowego.
@@ -67,7 +68,7 @@ export function DiskUsagePanel({ serviceId }: { serviceId: string }) {
         title="Co zajmuje miejsce"
         desc={
           stan?.policzono
-            ? `Pomiar z ${new Date(stan.policzono).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${stan.razem ? ` · razem ${rozmiar(stan.razem.kb)}${stan.razem.pliki !== null ? `, ${stan.razem.pliki.toLocaleString('pl-PL')} plików` : ''}` : ''}.`
+            ? `Pomiar z ${new Date(stan.policzono).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}${stan.razem ? ` · razem ${rozmiar(stan.razem.kb)}${stan.razem.pliki !== null ? `, ${stan.razem.pliki.toLocaleString('pl-PL')} ${plForm(stan.razem.pliki, 'plik', 'pliki', 'plików')}` : ''}` : ''}.`
             : 'Serwer policzy rozmiar i liczbę plików w katalogach konta — potrwa to około minuty.'
         }
         action={

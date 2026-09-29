@@ -59,6 +59,15 @@ function Pole({ checked, onChange, label, disabled }: { checked: boolean; onChan
   );
 }
 
+
+/** Stan z `wp plugin list` (active, active-network, inactive, must-use, dropin) i `wp theme list` (parent). */
+function stanWtyczki(status: string): string {
+  if (status === 'active' || status === 'active-network' || status === 'parent') return 'włączony';
+  if (status === 'must-use') return 'zawsze włączony';
+  // Drop-in (np. object-cache.php) działa, dopóki plik leży w wp-content — „wyłączony” wprowadzał w błąd.
+  if (status === 'dropin') return 'działa (drop-in)';
+  return 'wyłączony';
+}
 export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domain: string }) {
   const [stan, setStan] = useState<WpStatus | null>(null);
   const [blad, setBlad] = useState<string | null>(null);
@@ -219,7 +228,7 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
                   <span className="block font-mono text-[11.5px] text-muted-foreground">{p.name}</span>
                 </td>
                 <td className={TD} data-label="Stan">
-                  {p.status === 'active' || p.status === 'parent' ? 'włączony' : p.status === 'must-use' ? 'zawsze włączony' : 'wyłączony'}
+                  {stanWtyczki(p.status)}
                 </td>
                 <td className={`${TD} font-mono`} data-label="Wersja">{p.version || '—'}</td>
                 <td className={TD} data-label="Aktualizacja">

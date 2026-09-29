@@ -108,7 +108,9 @@ function formatSize(bytes: number): string {
 }
 
 export function FileManagerClient({ serviceId, domain }: { serviceId: string; domain?: string }) {
-  const [path, setPath] = useState('/');
+  // Widok strony otwiera katalog tej strony (D3 29.09: „Pliki strony” pokazywały katalog domowy konta).
+  const start = domain ? `/domains/${domain}/public_html` : '/';
+  const [path, setPath] = useState(start);
   const [entries, setEntries] = useState<FmEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -147,8 +149,8 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
   );
 
   useEffect(() => {
-    void fetchDir('/');
-  }, [fetchDir]);
+    void fetchDir(start);
+  }, [fetchDir, start]);
 
   const segments = path.split('/').filter(Boolean);
   const goUp = () => {

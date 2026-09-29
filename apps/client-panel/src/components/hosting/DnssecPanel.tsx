@@ -13,6 +13,11 @@ const BTN = 'inline-flex items-center gap-2 whitespace-nowrap rounded-[7px] bord
  * wpisać u rejestratora domeny. Wyłączenie najpierw u rejestratora (usuń DS), potem tutaj — inaczej
  * domena przestanie się rozwiązywać w resolverach sprawdzających podpisy.
  */
+
+const dataPodpisu = (v: string) => {
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? v : d.toLocaleString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
 export function DnssecPanel({ serviceId, domain }: { serviceId: string; domain: string }) {
   const [stan, setStan] = useState<DnssecStan | null>(null);
   const [blad, setBlad] = useState<string | null>(null);
@@ -75,7 +80,7 @@ export function DnssecPanel({ serviceId, domain }: { serviceId: string; domain: 
           <>
             <p className="m-0 text-[13.5px] text-foreground">
               {stan.podpisana ? (
-                <>Strefa jest podpisana{stan.podpisanaOd ? ` (od ${stan.podpisanaOd})` : ''}. Serwer odnawia podpis automatycznie.</>
+                <>Strefa jest podpisana{stan.podpisanaOd ? ` (od ${dataPodpisu(stan.podpisanaOd)})` : ''}. Serwer odnawia podpis automatycznie.</>
               ) : (
                 'Strefa nie jest podpisana.'
               )}

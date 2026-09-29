@@ -44,6 +44,12 @@ describe('DNSSEC', () => {
     expect(r).toMatchObject({ domain: 'firma.pl', klucze: true, podpisana: true, ds: ['firma.pl. IN DS 12345 13 2 ABCDEF', 'firma.pl. IN DS 12345 13 4 012345'], blad: null });
   });
 
+  it('signed_on w sekundach Unix (DA 1.710) → data ISO', async () => {
+    const s = stanowisko({ odpowiedz: new URLSearchParams({ ksk_id: '1', zsk_id: '2', DS: 'x', signed_on: '1790687844' }).toString() });
+    const r = await s.svc.getHostingDnssec('s1', 'u1', 'firma.pl');
+    expect(r.podpisanaOd).toBe('2026-09-29T13:17:24.000Z');
+  });
+
   it('włączenie bez kluczy: generate_keys, potem sign_zone; wpis w audycie', async () => {
     const s = stanowisko();
     const r = await s.svc.enableHostingDnssec('s1', 'u1', 'firma.pl');

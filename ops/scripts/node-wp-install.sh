@@ -33,7 +33,7 @@ chown_user() {
   chown -R "$WP_DA_USER:$(account_group)" "$1"
 }
 
-[ -d "$DOCROOT" ] || die "Brak docroot $DOCROOT — czy domena istnieje w DA?"
+[ -d "$DOCROOT" ] || die "Brak katalogu strony domains/${WP_DOMAIN}/public_html — sprawdź, czy domena jest dodana do usługi."
 
 # wp-cli w ~/.verris klienta — zapis wyłącznie jako klient. Katalog domowy należy do klienta, więc root
 # idący za jego dowiązaniem symbolicznym (curl -o, chmod, chown) nadpisałby albo otworzył dowolny plik
