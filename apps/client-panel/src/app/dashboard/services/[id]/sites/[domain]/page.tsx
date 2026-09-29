@@ -277,7 +277,7 @@ export default function SitePage() {
                 label="Certyfikat SSL"
                 value={sslRow?.daysLeft != null ? sslRow.daysLeft : ssl === undefined ? '…' : '—'}
                 unit={sslRow?.daysLeft != null ? 'dni' : undefined}
-                foot={<span>{sslRow ? (sslRow.status === 'NONE' ? 'brak certyfikatu' : sslRow.isLetsEncrypt ? 'Let’s Encrypt · odnawia się sam' : sslRow.issuer) : 'brak danych'}</span>}
+                foot={<span>{sslRow ? (sslRow.status === 'NONE' ? 'brak certyfikatu' : sslRow.status === 'MISMATCH' ? 'nie obejmuje tej domeny — wystaw ponownie' : sslRow.isLetsEncrypt ? 'Let’s Encrypt · odnawia się sam' : sslRow.issuer) : 'brak danych'}</span>}
               >
                 {sslRow?.daysLeft != null ? (
                   <Meter pct={(sslRow.daysLeft / 90) * 100} tone={sslRow.status === 'VALID' ? 'data' : 'warn'} tipText={`${sslRow.daysLeft} z 90 dni\ndo wygaśnięcia`} />
@@ -539,7 +539,9 @@ function SslSection({
               <b className="text-sm font-semibold text-foreground">Ważność</b>
               <span className="row-span-2 text-right text-[13px] tabular-nums">{row?.daysLeft != null ? `${row.daysLeft} ${plForm(row.daysLeft, 'dzień', 'dni', 'dni')}` : '—'}</span>
               <span className="text-[12.5px] text-muted-foreground">
-                {row?.coveredNames.length ? `obejmuje ${row.coveredNames.join(', ')}` : 'strona otwiera się bez kłódki'}
+                {row?.status === 'MISMATCH'
+                  ? `obejmuje tylko ${row.coveredNames.join(', ')} — przeglądarka odrzuci ${row.domain}; wystaw certyfikat ponownie`
+                  : row?.coveredNames.length ? `obejmuje ${row.coveredNames.join(', ')}` : 'strona otwiera się bez kłódki'}
                 {row?.daysLeft != null ? <Meter pct={(row.daysLeft / 90) * 100} tone={row.status === 'VALID' ? 'data' : 'warn'} tipText={`${row.daysLeft} z 90 dni\ndo wygaśnięcia`} /> : null}
               </span>
             </li>

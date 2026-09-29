@@ -1,6 +1,6 @@
 import { X509Certificate } from 'crypto';
 import { DirectAdminClient } from '@verris/directadmin-sdk';
-import { DirectAdminService } from './directadmin.service.js';
+import { certObejmuje, DirectAdminService } from './directadmin.service.js';
 
 /**
  * SSL w DirectAdminService: wystawienie Let's Encrypt, wklejenie własnego certyfikatu
@@ -162,6 +162,29 @@ describe('SSL — stan certyfikatów (odczyt X.509)', () => {
     const s = stanowisko({ get: { '/CMD_API_SSL': odpowiedz } });
     const { rows } = await s.svc.listHostingSslCertificates('s1', 'u1');
     expect(rows).toEqual([expect.objectContaining({ domain: 'firma.pl', status: 'NONE', expiresAt: null, isLetsEncrypt: false })]);
+  });
+
+  it('certyfikat nie obejmuje domeny (np. tylko www.<domena>) → MISMATCH, nie „ważny”', async () => {
+    const s = stanowisko({
+      get: {
+        '/CMD_API_SHOW_DOMAINS': 'list0=firma.pl&list1=inna.pl&list2=sklep.firma.pl',
+        '/CMD_API_SSL': new URLSearchParams({ certificate: PEM }).toString(),
+      },
+    });
+    const { rows } = await s.svc.listHostingSslCertificates('s1', 'u1');
+    expect(Object.fromEntries(rows.map((r) => [r.domain, r.status]))).toEqual({
+      'firma.pl': 'VALID',
+      'inna.pl': 'MISMATCH',
+      'sklep.firma.pl': 'VALID',
+    });
+  });
+
+  it('pokrycie nazw: dokładna, wildcard tylko na jeden poziom', () => {
+    expect(certObejmuje(['www.test2.d3.hvln.pl'], 'test2.d3.hvln.pl')).toBe(false);
+    expect(certObejmuje(['test2.d3.hvln.pl', 'www.test2.d3.hvln.pl'], 'TEST2.d3.hvln.pl')).toBe(true);
+    expect(certObejmuje(['*.firma.pl'], 'a.firma.pl')).toBe(true);
+    expect(certObejmuje(['*.firma.pl'], 'a.b.firma.pl')).toBe(false);
+    expect(certObejmuje(['*.firma.pl'], 'firma.pl')).toBe(false);
   });
 
   it('nie da się pobrać listy domen → fetchError zamiast pustej „wszystko OK” listy', async () => {

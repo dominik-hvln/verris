@@ -24,6 +24,7 @@ const SSL_LABEL: Record<HostingSslStatus, { label: string; tone: Tone }> = {
   VALID: { label: 'ważny', tone: 'data' },
   EXPIRING: { label: 'wygasa wkrótce', tone: 'warn' },
   EXPIRED: { label: 'wygasł', tone: 'warn' },
+  MISMATCH: { label: 'nie obejmuje tej domeny', tone: 'warn' },
   NONE: { label: 'brak certyfikatu', tone: 'muted' },
 };
 
@@ -116,6 +117,9 @@ export default function SSLTab({ serviceId }: Props) {
         <Kpi label="Domeny" value={domains.length} foot={<span>na koncie hostingowym</span>} />
         <Kpi label="Z ważnym certyfikatem" value={count('VALID')} foot={<span>kłódka działa</span>} />
         <Kpi label="Wygasają wkrótce" value={count('EXPIRING') + count('EXPIRED')} foot={<span>odnowimy przed końcem</span>} />
+        {count('MISMATCH') > 0 ? (
+          <Kpi label="Do wystawienia ponownie" value={count('MISMATCH')} foot={<span>certyfikat nie obejmuje domeny</span>} />
+        ) : null}
         <Kpi label="Bez certyfikatu" value={count('NONE')} foot={<span>strona bez kłódki</span>} />
       </KpiStrip>
 
@@ -187,7 +191,7 @@ export default function SSLTab({ serviceId }: Props) {
 
       <HostingHelpHint
         help={{
-          blurb: 'Jeśli domena ma stan „brak certyfikatu”, najpierw skieruj ją na nasz serwer, a potem wystaw certyfikat ponownie.',
+          blurb: 'Jeśli domena ma stan „brak certyfikatu” albo „nie obejmuje tej domeny”, upewnij się, że wskazuje na nasz serwer, a potem wystaw certyfikat ponownie (Let’s Encrypt poniżej).',
           kbQuery: 'certyfikat SSL',
         }}
       />

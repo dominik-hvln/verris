@@ -398,7 +398,8 @@ export interface HostingCronJobsResponseDto {
   fetchError: string | null;
 }
 
-export type HostingSslStatus = 'VALID' | 'EXPIRING' | 'EXPIRED' | 'NONE';
+/** MISMATCH — certyfikat jest, ale nie obejmuje tej domeny (np. tylko www.<domena>), więc przeglądarka go odrzuca. */
+export type HostingSslStatus = 'VALID' | 'EXPIRING' | 'EXPIRED' | 'MISMATCH' | 'NONE';
 
 export interface HostingSslRowDto {
   id: string;

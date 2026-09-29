@@ -3068,6 +3068,9 @@ export class DirectAdminService {
         .map((s) => s.trim().replace(/^DNS:/i, '').trim())
         .filter((s) => s.length > 0);
       const isWildcard = coveredNames.some((n) => n.startsWith('*.'));
+      // Test D3 30.09 (test2.d3.hvln.pl): certyfikat tylko na www.<domena> panel pokazywał jako „ważny”,
+      // a przeglądarka odrzucała stronę. Ważność bez pokrycia nazwy nic klientowi nie daje.
+      if (status !== 'EXPIRED' && !certObejmuje(coveredNames, domain)) status = 'MISMATCH';
       return {
         id: domain,
         domain,
@@ -3582,4 +3585,16 @@ export function zCronowDa(data: unknown): Array<{ id: string; schedule: string; 
     if (m) rows.push({ id, schedule: m.slice(1, 6).join(' '), command: m[6]! });
   }
   return rows;
+}
+
+/** Czy SAN certyfikatu obejmuje domenę: nazwa dokładna albo wildcard na jeden poziom (RFC 6125 §6.4.3). */
+export function certObejmuje(nazwy: string[], domena: string): boolean {
+  const d = domena.toLowerCase().replace(/\.$/, '');
+  return nazwy.some((n) => {
+    const x = n.toLowerCase();
+    if (x === d) return true;
+    if (!x.startsWith('*.')) return false;
+    const rodzic = x.slice(1);
+    return d.endsWith(rodzic) && d.length > rodzic.length && !d.slice(0, -rodzic.length).includes('.');
+  });
 }
