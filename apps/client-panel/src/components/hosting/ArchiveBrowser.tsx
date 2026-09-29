@@ -86,7 +86,13 @@ export function ArchiveBrowser({ serviceId, archive }: { serviceId: string; arch
           </button>
         </div>
       ) : dzieci.length === 0 ? (
-        <p className="m-0 px-3 py-3 text-[13px] text-muted-foreground">Pusty katalog.</p>
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-3">
+          <p className="m-0 text-[13px] text-muted-foreground">Pusty katalog.</p>
+          {/* Lista zostaje zapamiętana — bez tego starego (np. obciętego) wyniku nie dało się odczytać ponownie. */}
+          <button type="button" onClick={() => wczytaj(biezacy)} disabled={pending || stan?.wToku} className="text-[12.5px] text-foreground underline disabled:opacity-50">
+            Wczytaj ponownie
+          </button>
+        </div>
       ) : (
         <ul className="m-0 max-h-80 list-none overflow-y-auto p-0">
           {dzieci.map((w) => {

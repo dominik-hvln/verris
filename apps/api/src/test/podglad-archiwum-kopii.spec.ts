@@ -1,5 +1,5 @@
 import { spawnSync } from 'child_process';
-import { chmodSync, mkdirSync, mkdtempSync, writeFileSync } from 'fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
@@ -40,7 +40,7 @@ describe('podgląd archiwum kopii (H-11)', () => {
       env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, FR_MODE: 'list', FR_DA_USER: 'u1', FR_ARCHIVE: 'b.tar.gz', FR_PATH: prefiks },
       encoding: 'utf8',
     });
-    return { rc: r.status, dlugosc: r.stdout.length, wpisy: r.stdout.split('\n').filter((l) => l.startsWith('VERRIS_WPIS ')), obciete: r.stdout.includes('VERRIS_OBCIETE') };
+    return { rc: r.status, dlugosc: Buffer.byteLength(r.stdout), wpisy: r.stdout.split('\n').filter((l) => l.startsWith('VERRIS_WPIS ')), obciete: r.stdout.includes('VERRIS_OBCIETE') };
   };
 
   it('ponad 2000 wpisów pod prefiksem → sukces, bieżący poziom pełny i na początku, znacznik obcięcia', () => {
@@ -51,12 +51,21 @@ describe('podgląd archiwum kopii (H-11)', () => {
     expect(r.obciete).toBe(true);
   });
 
-  it('wyjście mieści się w logu zadania (120 000 znaków) — bieżący poziom nie znika przy obcięciu', () => {
+  it('wyjście mieści się w logu wysyłanym przez agenta (tail -c 100000) — bieżący poziom nie znika przy obcięciu', () => {
     const r = lista('domains/d.pl/public_html/wp-content');
     expect(r.rc).toBe(0);
-    expect(r.dlugosc).toBeLessThan(110_000);
+    expect(r.dlugosc).toBeLessThan(90_000);
     expect(r.wpisy[0]).toBe('VERRIS_WPIS d|0|domains/d.pl/public_html/wp-content/plugins');
     expect(r.obciete).toBe(true);
+  });
+
+  it('budżet skryptu jest wyraźnie mniejszy niż fragment logu, który agent wysyła do API', () => {
+    const agent = readFileSync(join(import.meta.dirname, '..', 'servers', 'node-tasks-agent.install.ts'), 'utf8');
+    const skrypt = readFileSync(SKRYPT, 'utf8');
+    const wysyla = Number(/tail -c (\d+) "\$TASK_LOG"/.exec(agent)?.[1]);
+    const budzet = Number(/^LIMIT_ZNAKOW=(\d+)$/m.exec(skrypt)?.[1]);
+    expect(budzet).toBeGreaterThan(0);
+    expect(budzet).toBeLessThanOrEqual(wysyla * 0.9);
   });
 
   it('katalog widoczny tylko w głębszych ścieżkach też jest na liście; bez prefiksu — korzeń archiwum', () => {
