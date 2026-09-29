@@ -5,7 +5,7 @@ B-05,czeka,,
 B-06,sprawdzone,2026-09-28,podgląd PHP z IP konta
 B-17,czeka,,
 B-18,czeka,,
-C-11,czeka,,
+C-11,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 C-14,czeka,,
 C-15,czeka,,
 C-18,czeka,,29.09: lista FTP DA 1.710 = login@domena=ścieżka — poprawka bcce42d; potem zmiana hasła na koncie dodatkowym
@@ -21,7 +21,7 @@ E-05,czeka,,"29.09: lista skrzynek pokazywała „bez limitu” (1 GB w DA) — 
 E-06,czeka,,
 E-15,sprawdzone,2026-09-29,SPF poprawny na d3.hvln.pl
 E-17,sprawdzone,2026-09-29,DMARC dodany z panelu
-E-19,czeka,,"29.09: zadanie MAIL_LOG przechodzi na t1, „brak zdarzeń” — czeka na ruch pocztowy (wysyłka/odbiór z test@d3.hvln.pl)"
+E-19,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 F-01,sprawdzone,2026-09-29,lista/dodanie/edycja/usunięcie + DMARC na d3.hvln.pl
 F-02,czeka,,
 F-11,czeka,,
