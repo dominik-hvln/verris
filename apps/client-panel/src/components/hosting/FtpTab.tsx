@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { UkladZBokiem } from '@/components/hosting/UkladZBokiem';
 import { PoleHasla } from '@/components/hosting/PoleHasla';
 import { FolderKanban, KeyRound, Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -105,9 +106,11 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
           kbQuery: 'konto FTP',
         }}
       />
+
+      <UkladZBokiem bok={
       <form onSubmit={onCreate} className="rounded-[10px] border border-line bg-raised p-4">
         <p className="mb-3 text-sm font-semibold text-foreground">Nowe konto FTP</p>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3">
           <label className="space-y-1">
             <span className="text-xs text-muted-foreground">Użytkownik</span>
             <input
@@ -145,7 +148,7 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
           </Button>
         </div>
       </form>
-
+      }>
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie…
@@ -220,6 +223,7 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
         </div>
       )}
       <SshPanel serviceId={serviceId} />
+      </UkladZBokiem>
     </div>
   );
 }

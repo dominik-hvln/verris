@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { UkladZBokiem } from '@/components/hosting/UkladZBokiem';
 import { PoleHasla } from '@/components/hosting/PoleHasla';
 import { Database, Loader2, RefreshCw, AlertCircle, ExternalLink, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -179,67 +180,74 @@ export default function DatabasesTab({ serviceId }: Props) {
         </>
       }
     >
-      {/* Create form */}
-      <form
-        onSubmit={onCreate}
-        className="mb-5 rounded-[10px] border border-line bg-raised p-4"
-      >
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-foreground">Nowa baza danych</p>
-          {engine ? (
-            <span
-              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-background px-2.5 py-1 text-[11px] text-[color:var(--verris-body)]"
-              title="Silnik bazy danych na Twoim serwerze"
-            >
-              <Database className="h-3 w-3 text-data-hi" />
-              Silnik: <span className="font-mono text-foreground">{engine.name} {engine.version}</span>
-            </span>
-          ) : null}
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <label className="space-y-1">
-            <span className="text-xs text-muted-foreground">Nazwa bazy</span>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="np. sklep"
-              maxLength={16}
-              className="w-full rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-data"
-            />
-          </label>
-          <label className="space-y-1">
-            <span className="text-xs text-muted-foreground">Użytkownik</span>
-            <input
-              value={user}
-              onChange={(e) => setUser(e.target.value)}
-              placeholder="np. sklep_usr"
-              maxLength={16}
-              className="w-full rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-data"
-            />
-          </label>
-          <div className="space-y-1">
-            <span className="text-xs text-muted-foreground">Hasło</span>
-            <div className="flex gap-1.5">
-              <PoleHasla value={password} onChange={setPassword} placeholder="min. 8 znaków" className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data" />
-            </div>
-          </div>
-        </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Do nazwy bazy i użytkownika dodamy prefiks konta (np. <span className="font-mono">user_sklep</span>).
-        </p>
-        <div className="mt-3 flex justify-end">
-          <Button
-            type="submit"
-            size="sm"
-            disabled={creating || !name.trim() || !user.trim() || password.length < 8}
-            className="h-8 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs"
-          >
-            {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-            Utwórz bazę
-          </Button>
-        </div>
-      </form>
 
+      <UkladZBokiem
+        bok={
+          <>
+      {/* Create form */}
+            <form
+              onSubmit={onCreate}
+              className="rounded-[10px] border border-line bg-raised p-4"
+            >
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-foreground">Nowa baza danych</p>
+                {engine ? (
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full border border-line bg-background px-2.5 py-1 text-[11px] text-[color:var(--verris-body)]"
+                    title="Silnik bazy danych na Twoim serwerze"
+                  >
+                    <Database className="h-3 w-3 text-data-hi" />
+                    Silnik: <span className="font-mono text-foreground">{engine.name} {engine.version}</span>
+                  </span>
+                ) : null}
+              </div>
+              <div className="grid gap-3">
+                <label className="space-y-1">
+                  <span className="text-xs text-muted-foreground">Nazwa bazy</span>
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="np. sklep"
+                    maxLength={16}
+                    className="w-full rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-data"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-xs text-muted-foreground">Użytkownik</span>
+                  <input
+                    value={user}
+                    onChange={(e) => setUser(e.target.value)}
+                    placeholder="np. sklep_usr"
+                    maxLength={16}
+                    className="w-full rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-data"
+                  />
+                </label>
+                <div className="space-y-1">
+                  <span className="text-xs text-muted-foreground">Hasło</span>
+                  <div className="flex gap-1.5">
+                    <PoleHasla value={password} onChange={setPassword} placeholder="min. 8 znaków" className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data" />
+                  </div>
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Do nazwy bazy i użytkownika dodamy prefiks konta (np. <span className="font-mono">user_sklep</span>).
+              </p>
+              <div className="mt-3 flex justify-end">
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={creating || !name.trim() || !user.trim() || password.length < 8}
+                  className="h-8 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs"
+                >
+                  {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                  Utwórz bazę
+                </Button>
+              </div>
+            </form>
+            <PgsqlPanel serviceId={serviceId} />
+          </>
+        }
+      >
       {error ? (
         <div className="mb-3 flex items-start gap-2 rounded-[7px] border border-crit/30 bg-crit/12 px-3 py-2 text-xs text-crit">
           <AlertCircle className="h-4 w-4 shrink-0" />
@@ -256,7 +264,7 @@ export default function DatabasesTab({ serviceId }: Props) {
 
       {databases.length === 0 && !fetchError ? (
         <p className="rounded-[10px] border border-line bg-card px-3 py-8 text-center text-xs text-muted-foreground">
-          Brak baz — utwórz pierwszą powyżej.
+          Brak baz — utwórz pierwszą w formularzu „Nowa baza danych”.
         </p>
       ) : (
         <div className="overflow-hidden rounded-[10px] border border-line bg-card">
@@ -301,7 +309,7 @@ export default function DatabasesTab({ serviceId }: Props) {
       )}
       <DbTransferPanel serviceId={serviceId} databases={databases.map((d) => d.name)} />
       <SlowSqlPanel serviceId={serviceId} />
-      <PgsqlPanel serviceId={serviceId} />
+      </UkladZBokiem>
     </HostingTabShell>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
+import { UkladZBokiem } from '@/components/hosting/UkladZBokiem';
 import Link from 'next/link';
 import { Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -332,45 +333,9 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
         </div>
       ) : null}
 
-      {wp ? (
-        <>
-          <div className="rounded-[10px] border border-line bg-card px-4 py-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
-                <b className="text-sm font-semibold text-foreground">Rdzeń WordPress</b>
-                <p className="m-0 text-[12.5px] text-muted-foreground">
-                  {minor || major ? `Zainstalowana ${wp.version}; dostępna ${[minor?.version, major?.version].filter(Boolean).join(' lub ')}.` : `Wersja ${wp.version} jest aktualna.`}
-                </p>
-              </div>
-              {minor || major ? (
-                <Select
-                  aria-label="Aktualizacja rdzenia"
-                  value={selRdzen}
-                  onChange={setRdzen}
-                  disabled={zajete}
-                  options={[
-                    { value: 'none', label: 'Bez aktualizacji rdzenia' },
-                    ...(minor ? [{ value: 'minor', label: `Poprawka ${minor.version}` }] : []),
-                    ...(major ? [{ value: 'all', label: `Pełna do ${major.version}` }] : []),
-                  ]}
-                  className="w-full sm:w-64"
-                />
-              ) : (
-                <StatusPill tone="data">aktualny</StatusPill>
-              )}
-            </div>
-          </div>
-          {wp.plugins.length ? tabela('Wtyczka', wp.plugins, selWt, setWybraneWt) : null}
-          {wp.themes.length ? tabela('Motyw', wp.themes, selMo, setWybraneMo) : null}
-          {!minor && !major && doAktWt.length === 0 && doAktMo.length === 0 ? (
-            <p className="m-0 text-[13px] text-muted-foreground">Wszystko jest aktualne.</p>
-          ) : null}
-          <p className="m-0 text-[12px] text-muted-foreground">
-            Wtyczki spoza katalogu WordPress.org (np. płatne) aktualizuj z kokpitu WordPressa — ich aktualizacje wymagają licencji.
-          </p>
-        </>
-      ) : null}
-
+      <UkladZBokiem
+        bok={
+          <>
       {wp ? (
         <div className="rounded-[10px] border border-line bg-card px-4 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -425,6 +390,98 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
             )}
           </div>
         </div>
+      ) : null}
+
+      {wp && zab ? (
+        <div className="flex flex-wrap items-start justify-between gap-3 rounded-[10px] border border-line bg-card px-4 py-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <StatusPill tone={zab.konserwacja ? 'warn' : 'data'}>{zab.konserwacja ? 'włączony' : 'wyłączony'}</StatusPill>
+              <h3 className="m-0 text-[15px] font-bold text-foreground">Tryb konserwacji</h3>
+            </div>
+            <p className="m-0 mt-1 text-[13px] text-verris-body">
+              {zab.konserwacja
+                ? 'Odwiedzający widzą komunikat o przerwie technicznej zamiast strony. Aktualizacje (także automatyczne) czekają, aż go wyłączysz.'
+                : 'Na czas większych zmian możesz pokazać odwiedzającym komunikat o przerwie technicznej. Kokpit WordPressa działa dalej.'}
+            </p>
+          </div>
+          <button type="button" onClick={() => void popraw(zab.konserwacja ? 'maintenance-off' : 'maintenance-on')} disabled={zajete} className={BTN}>
+            {zab.konserwacja ? 'Wyłącz tryb konserwacji' : 'Włącz tryb konserwacji'}
+          </button>
+        </div>
+      ) : null}
+
+      {stan && !stan.brakWordpressa && auto ? (
+        <div className="rounded-[10px] border border-line bg-card">
+          <header className="border-b border-line px-4 py-3">
+            <h3 className="m-0 text-[15px] font-bold text-foreground">Automatyczne aktualizacje</h3>
+            <p className="m-0 mt-0.5 text-[12.5px] text-muted-foreground">
+              Codziennie ok. 3:20 w nocy, zawsze z kopią i automatycznym przywróceniem, gdy strona przestanie odpowiadać.
+              {stan.automat?.ostatnio ? ` Ostatnio: ${data(stan.automat.ostatnio)}.` : ''}
+            </p>
+          </header>
+          <div className="grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end">
+            <div className="min-w-0">
+              <label htmlFor="wp-auto-core" className="mb-1 block text-[13px] font-medium text-foreground">
+                Rdzeń WordPress
+              </label>
+              <Select id="wp-auto-core" value={auto.core} onChange={(v) => setAuto({ ...auto, core: v })} options={ZAKRES_AUTO} disabled={pending} className="w-full" />
+            </div>
+            <div className="flex items-center gap-2 text-[13px] text-foreground">
+              <Switch checked={auto.plugins} onChange={(v) => setAuto({ ...auto, plugins: v })} label="Wtyczki" disabled={pending} /> Wtyczki
+            </div>
+            <div className="flex items-center gap-2 text-[13px] text-foreground">
+              <Switch checked={auto.themes} onChange={(v) => setAuto({ ...auto, themes: v })} label="Motywy" disabled={pending} /> Motywy
+            </div>
+          </div>
+          <div className="flex justify-end border-t border-line px-4 py-3">
+            <button type="button" onClick={zapiszAuto} disabled={pending} className={BTN_MAIN}>
+              Zapisz
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+          </>
+        }
+      >
+      {wp ? (
+        <>
+          <div className="rounded-[10px] border border-line bg-card px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <b className="text-sm font-semibold text-foreground">Rdzeń WordPress</b>
+                <p className="m-0 text-[12.5px] text-muted-foreground">
+                  {minor || major ? `Zainstalowana ${wp.version}; dostępna ${[minor?.version, major?.version].filter(Boolean).join(' lub ')}.` : `Wersja ${wp.version} jest aktualna.`}
+                </p>
+              </div>
+              {minor || major ? (
+                <Select
+                  aria-label="Aktualizacja rdzenia"
+                  value={selRdzen}
+                  onChange={setRdzen}
+                  disabled={zajete}
+                  options={[
+                    { value: 'none', label: 'Bez aktualizacji rdzenia' },
+                    ...(minor ? [{ value: 'minor', label: `Poprawka ${minor.version}` }] : []),
+                    ...(major ? [{ value: 'all', label: `Pełna do ${major.version}` }] : []),
+                  ]}
+                  className="w-full sm:w-64"
+                />
+              ) : (
+                <StatusPill tone="data">aktualny</StatusPill>
+              )}
+            </div>
+          </div>
+          {wp.plugins.length ? tabela('Wtyczka', wp.plugins, selWt, setWybraneWt) : null}
+          {wp.themes.length ? tabela('Motyw', wp.themes, selMo, setWybraneMo) : null}
+          {!minor && !major && doAktWt.length === 0 && doAktMo.length === 0 ? (
+            <p className="m-0 text-[13px] text-muted-foreground">Wszystko jest aktualne.</p>
+          ) : null}
+          <p className="m-0 text-[12px] text-muted-foreground">
+            Wtyczki spoza katalogu WordPress.org (np. płatne) aktualizuj z kokpitu WordPressa — ich aktualizacje wymagają licencji.
+          </p>
+        </>
       ) : null}
 
       {wp && zab ? (
@@ -493,56 +550,6 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
         </div>
       ) : null}
 
-      {wp && zab ? (
-        <div className="flex flex-wrap items-start justify-between gap-3 rounded-[10px] border border-line bg-card px-4 py-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <StatusPill tone={zab.konserwacja ? 'warn' : 'data'}>{zab.konserwacja ? 'włączony' : 'wyłączony'}</StatusPill>
-              <h3 className="m-0 text-[15px] font-bold text-foreground">Tryb konserwacji</h3>
-            </div>
-            <p className="m-0 mt-1 text-[13px] text-verris-body">
-              {zab.konserwacja
-                ? 'Odwiedzający widzą komunikat o przerwie technicznej zamiast strony. Aktualizacje (także automatyczne) czekają, aż go wyłączysz.'
-                : 'Na czas większych zmian możesz pokazać odwiedzającym komunikat o przerwie technicznej. Kokpit WordPressa działa dalej.'}
-            </p>
-          </div>
-          <button type="button" onClick={() => void popraw(zab.konserwacja ? 'maintenance-off' : 'maintenance-on')} disabled={zajete} className={BTN}>
-            {zab.konserwacja ? 'Wyłącz tryb konserwacji' : 'Włącz tryb konserwacji'}
-          </button>
-        </div>
-      ) : null}
-
-      {stan && !stan.brakWordpressa && auto ? (
-        <div className="rounded-[10px] border border-line bg-card">
-          <header className="border-b border-line px-4 py-3">
-            <h3 className="m-0 text-[15px] font-bold text-foreground">Automatyczne aktualizacje</h3>
-            <p className="m-0 mt-0.5 text-[12.5px] text-muted-foreground">
-              Codziennie ok. 3:20 w nocy, zawsze z kopią i automatycznym przywróceniem, gdy strona przestanie odpowiadać.
-              {stan.automat?.ostatnio ? ` Ostatnio: ${data(stan.automat.ostatnio)}.` : ''}
-            </p>
-          </header>
-          <div className="grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end">
-            <div className="min-w-0">
-              <label htmlFor="wp-auto-core" className="mb-1 block text-[13px] font-medium text-foreground">
-                Rdzeń WordPress
-              </label>
-              <Select id="wp-auto-core" value={auto.core} onChange={(v) => setAuto({ ...auto, core: v })} options={ZAKRES_AUTO} disabled={pending} className="w-full" />
-            </div>
-            <div className="flex items-center gap-2 text-[13px] text-foreground">
-              <Switch checked={auto.plugins} onChange={(v) => setAuto({ ...auto, plugins: v })} label="Wtyczki" disabled={pending} /> Wtyczki
-            </div>
-            <div className="flex items-center gap-2 text-[13px] text-foreground">
-              <Switch checked={auto.themes} onChange={(v) => setAuto({ ...auto, themes: v })} label="Motywy" disabled={pending} /> Motywy
-            </div>
-          </div>
-          <div className="flex justify-end border-t border-line px-4 py-3">
-            <button type="button" onClick={zapiszAuto} disabled={pending} className={BTN_MAIN}>
-              Zapisz
-            </button>
-          </div>
-        </div>
-      ) : null}
-
       {stan?.aktualizacje.length ? (
         <div>
           <SectionHead title="Ostatnie aktualizacje" />
@@ -568,6 +575,7 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
           </ul>
         </div>
       ) : null}
+      </UkladZBokiem>
     </section>
   );
 }

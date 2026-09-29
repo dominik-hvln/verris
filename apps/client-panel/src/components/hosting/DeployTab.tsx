@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState, useId } from 'react';
+import { UkladZBokiem } from '@/components/hosting/UkladZBokiem';
 import { AlertCircle, ExternalLink, Loader2, Plus, RefreshCw, Rocket, Trash2 } from 'lucide-react';
 import { Button } from '@verris/ui';
 import type { DeployFrequency, DeployJobDto } from '@verris/contracts';
@@ -135,26 +136,12 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
         </>
       }
     >
-      <GitRepoPanel serviceId={serviceId} domains={domains} />
-      {error ? (
-        <div className="mb-3 flex items-start gap-2 rounded-[7px] border border-crit/30 bg-crit/12 px-3 py-2 text-xs text-crit">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          {error}
-        </div>
-      ) : null}
-
-      {fetchError ? (
-        <div className="mb-3 flex items-start gap-2 rounded-[7px] border border-warn/30 bg-warn-soft px-3 py-2 text-xs text-warn">
-          <AlertCircle className="h-4 w-4 shrink-0" />
-          {hostingFetchErrorMessage(fetchError)}
-        </div>
-      ) : null}
-
-      <div className="mb-5 rounded-[10px] border border-line bg-raised p-4">
+      <UkladZBokiem bok={
+      <div className="rounded-[10px] border border-line bg-raised p-4">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Nowe wdrożenie
         </h3>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <div className="mt-3 grid gap-3">
           <label htmlFor={`${fieldId}-domain`} className="block text-xs text-muted-foreground">
             Domena
             <Select
@@ -218,6 +205,21 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
           Zapisz wdrożenie
         </Button>
       </div>
+      }>
+      <GitRepoPanel serviceId={serviceId} domains={domains} />
+      {error ? (
+        <div className="mb-3 flex items-start gap-2 rounded-[7px] border border-crit/30 bg-crit/12 px-3 py-2 text-xs text-crit">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      ) : null}
+
+      {fetchError ? (
+        <div className="mb-3 flex items-start gap-2 rounded-[7px] border border-warn/30 bg-warn-soft px-3 py-2 text-xs text-warn">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {hostingFetchErrorMessage(fetchError)}
+        </div>
+      ) : null}
 
       <div className="rounded-[10px] border border-line bg-card overflow-hidden">
         <table className="v2-stack w-full text-xs sm:text-sm">
@@ -265,6 +267,7 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
           </tbody>
         </table>
       </div>
+      </UkladZBokiem>
     </HostingTabShell>
   );
 }

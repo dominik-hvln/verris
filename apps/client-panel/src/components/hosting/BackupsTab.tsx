@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { UkladZBokiem } from '@/components/hosting/UkladZBokiem';
 import { Database, Download, Loader2, RotateCcw, ShieldAlert, Check, X, AlertTriangle, FolderOpen } from 'lucide-react';
 import type { HostingBackupRowDto } from '@verris/contracts';
 import {
@@ -100,8 +101,14 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
           kbQuery: 'kopie zapasowe',
         }}
       />
-      <BackupScheduleCard serviceId={serviceId} />
-      <BackupNowButton serviceId={serviceId} />
+      <UkladZBokiem
+        bok={
+          <>
+            <BackupScheduleCard serviceId={serviceId} />
+            <BackupNowButton serviceId={serviceId} />
+          </>
+        }
+      >
 
       {job && (job.active || job.status === 'COMPLETED' || job.status === 'FAILED') && (
         <RestoreStatusBanner job={job} />
@@ -181,6 +188,7 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
         <SectionHead title="Kopie poza serwerem" desc="Gdy serwer ulegnie awarii, dane odtworzymy z kopii w drugim miejscu. Pobrana kopia trafia na listę powyżej." />
         <HostingOffsitePanel serviceId={serviceId} onFetched={() => void loadRows()} />
       </section>
+      </UkladZBokiem>
     </div>
   );
 }

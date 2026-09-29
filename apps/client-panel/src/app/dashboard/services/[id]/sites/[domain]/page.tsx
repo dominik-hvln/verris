@@ -22,6 +22,7 @@ import type {
 
 import { Box, Kpi, KpiStrip, Meter, SectionHead, StatusPill } from '@/components/panel/v2';
 import { DnsManager } from '@/app/dashboard/dns/dns-manager';
+import { UkladZBokiem } from '@/components/hosting/UkladZBokiem';
 import { FileManagerClient } from '@/app/dashboard/file-manager/file-manager-client';
 import DatabasesTab from '@/components/hosting/DatabasesTab';
 import WebToolsTab from '@/components/hosting/WebToolsTab';
@@ -381,8 +382,9 @@ export default function SitePage() {
           <section>
             <SectionHead title={`Rekordy DNS · ${domain}`} desc="Zmiany działają zwykle w kilka minut." />
             {ok(dns)?.fetchError ? <p className="mb-3 text-[13.5px] text-warn">Nie udało się odczytać strefy — spróbuj za chwilę.</p> : null}
-            {dns === undefined ? <Loading /> : <DnsManager serviceId={serviceId} domain={domain} records={records} onChanged={reloadDns} />}
-            <DnssecPanel key={`dnssec-${domain}`} serviceId={serviceId} domain={domain} />
+            <UkladZBokiem bok={<DnssecPanel key={`dnssec-${domain}`} serviceId={serviceId} domain={domain} />}>
+              {dns === undefined ? <Loading /> : <DnsManager serviceId={serviceId} domain={domain} records={records} onChanged={reloadDns} />}
+            </UkladZBokiem>
           </section>
         ) : null}
 
@@ -391,10 +393,17 @@ export default function SitePage() {
         {tab === 'files' ? (
           <section>
             <SectionHead title="Pliki strony" desc={`Katalog /domains/${domain}/public_html.`} />
-            <FileManagerClient serviceId={serviceId} domain={domain} />
-            <FileSearchPanel serviceId={serviceId} domain={domain} />
-            <ObrazyPanel key={`img-${domain}`} serviceId={serviceId} domain={domain} />
-            <SiteClonePanel serviceId={serviceId} domain={domain} domains={domainList} />
+            <UkladZBokiem
+              bok={
+                <>
+                  <FileSearchPanel serviceId={serviceId} domain={domain} />
+                  <ObrazyPanel key={`img-${domain}`} serviceId={serviceId} domain={domain} />
+                  <SiteClonePanel serviceId={serviceId} domain={domain} domains={domainList} />
+                </>
+              }
+            >
+              <FileManagerClient serviceId={serviceId} domain={domain} />
+            </UkladZBokiem>
           </section>
         ) : null}
 
@@ -446,11 +455,18 @@ export default function SitePage() {
 
         {tab === 'php' ? (
           <>
-            <PhpSection serviceId={serviceId} domain={domain} php={ok(php)} loading={php === undefined} onChanged={reloadPhp} />
-            <PhpInfoPanel serviceId={serviceId} domain={domain} />
-            <HtaccessPanel key={domain} serviceId={serviceId} domain={domain} />
-            <PhpKatalogPanel key={`pk-${domain}`} serviceId={serviceId} domain={domain} />
-            <DocrootPanel key={`dr-${domain}`} serviceId={serviceId} domain={domain} />
+            <UkladZBokiem
+              bok={
+                <>
+                  <HtaccessPanel key={domain} serviceId={serviceId} domain={domain} />
+                  <PhpKatalogPanel key={`pk-${domain}`} serviceId={serviceId} domain={domain} />
+                  <DocrootPanel key={`dr-${domain}`} serviceId={serviceId} domain={domain} />
+                </>
+              }
+            >
+              <PhpSection serviceId={serviceId} domain={domain} php={ok(php)} loading={php === undefined} onChanged={reloadPhp} />
+              <PhpInfoPanel serviceId={serviceId} domain={domain} />
+            </UkladZBokiem>
           </>
         ) : null}
 

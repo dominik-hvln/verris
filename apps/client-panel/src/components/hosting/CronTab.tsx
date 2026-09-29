@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { UkladZBokiem } from '@/components/hosting/UkladZBokiem';
 import { Clock, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@verris/ui';
@@ -143,6 +144,8 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
           kbQuery: 'cron zadania',
         }}
       />
+
+      <UkladZBokiem bok={
       <form onSubmit={onCreate} className="rounded-[10px] border border-line bg-raised p-4">
         <p className="mb-3 text-sm font-semibold text-foreground">{editingId ? 'Edycja zadania cron' : 'Nowe zadanie cron'}</p>
         <div className="mb-3 flex flex-wrap gap-1.5">
@@ -203,7 +206,7 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
           </Button>
         </div>
       </form>
-
+      }>
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie…
@@ -278,6 +281,7 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
           ))}
         </div>
       )}
+      </UkladZBokiem>
     </div>
   );
 }
