@@ -1,21 +1,8 @@
 import Script from "next/script";
 
-/**
- * Consent Mode v2 defaults + optional GTM bootstrap (server component).
- *
- * Order matters: the consent-default script MUST run before GTM so every
- * tag starts in the `denied` state (EEA requirement, Consent Mode v2).
- * If a valid `cookies_consent` cookie already exists, the same inline
- * script replays it synchronously so returning visitors don't lose
- * granted state between page loads.
- *
- * GTM loads only when NEXT_PUBLIC_GTM_ID is set — without it this
- * component renders the consent defaults only (no external requests).
- */
-export function AnalyticsScripts() {
-  const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
-
-  const consentDefault = `
+// Consent Mode v2: https://developers.google.com/tag-platform/security/guides/consent
+// Eksport tylko dla testu (analytics-scripts.spec.ts).
+export const consentDefault = `
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('consent', 'default', {
@@ -46,6 +33,21 @@ try {
   }
 } catch (e) {}
 `.trim();
+
+/**
+ * Consent Mode v2 defaults + optional GTM bootstrap (server component).
+ *
+ * Order matters: the consent-default script MUST run before GTM so every
+ * tag starts in the `denied` state (EEA requirement, Consent Mode v2).
+ * If a valid `cookies_consent` cookie already exists, the same inline
+ * script replays it synchronously so returning visitors don't lose
+ * granted state between page loads.
+ *
+ * GTM loads only when NEXT_PUBLIC_GTM_ID is set — without it this
+ * component renders the consent defaults only (no external requests).
+ */
+export function AnalyticsScripts() {
+  const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
 
   return (
     <>
