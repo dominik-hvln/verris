@@ -57,3 +57,37 @@ describe('zaznaczenie w menedżerze plików DA 1.710 — pełne ścieżki', () =
     expect(pola(1)).toMatchObject({ add: 'clipboard', select0: '/public_html/y' });
   });
 });
+
+describe('menedżer plików DA 1.710 — zmiana nazwy', () => {
+  it('old = sama nazwa (pełna ścieżka dawała błąd na t1)', async () => {
+    const post = vi.fn(async (_p: string, _b: string) => ({ data: 'error=0' }));
+    const k = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'klient1', loginKey: 'x', secure: true });
+    Object.assign(k, { client: { get: vi.fn(), post } });
+    await k.renameEntry('/verris-fm-test', 'a.txt', 'c.txt');
+    expect(Object.fromEntries(new URLSearchParams(String(post.mock.calls[0]?.[1])))).toMatchObject({ action: 'rename', path: '/verris-fm-test', old: 'a.txt', filename: 'c.txt' });
+  });
+});
+
+describe('webmail jednym kliknięciem (CMD_WEBMAIL_LOGIN)', () => {
+  const zOdpowiedzia = (html: string) => {
+    const post = vi.fn(async () => ({ data: html }));
+    const k = new DirectAdminClient({ host: '2.28.204.249', port: 2222, username: 'klient1', loginKey: 'x', secure: true });
+    Object.assign(k, { client: { get: vi.fn(), post } });
+    return { k, post };
+  };
+
+  it('formularz DA → adres Roundcube i token; zapytanie z email skrzynki', async () => {
+    const { k, post } = zOdpowiedzia('<html><body><form method="post" action="https://t1.verris.pl/roundcube/direct_login/index.php"><input type="hidden" name="token" value="abc123"></form></body></html>');
+    await expect(k.createWebmailLogin('test@d3.hvln.pl')).resolves.toEqual({ action: 'https://t1.verris.pl/roundcube/direct_login/index.php', token: 'abc123' });
+    expect(String((post.mock.calls[0] as unknown[])[1])).toBe('email=test%40d3.hvln.pl');
+  });
+
+  it.each([
+    ['obcy adres', '<form action="https://zly.example/login"><input name="token" value="x"></form>'],
+    ['http zamiast https', '<form action="http://t1.verris.pl/roundcube/direct_login/"><input name="token" value="x"></form>'],
+    ['brak tokenu', '<form action="https://t1.verris.pl/roundcube/direct_login/"></form>'],
+    ['strona 404 DA', '<html>Nie znaleziono</html>'],
+  ])('%s → błąd, klient nie dostaje adresu', async (_n, html) => {
+    await expect(zOdpowiedzia(html).k.createWebmailLogin('test@d3.hvln.pl')).rejects.toThrow();
+  });
+});

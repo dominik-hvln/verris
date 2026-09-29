@@ -417,7 +417,9 @@ export class DirectAdminClient {
       new URLSearchParams({
         action: 'rename',
         path: dir,
-        old: `${stripTrailingSlash(dir)}/${oldName}`,
+        // DA 1.710: `old` to sama nazwa w `path` (odwrotnie niż selectN w action=multiple) — z pełną
+        // ścieżką zmiana nazwy na t1 kończyła się błędem (test D3, 29.09).
+        old: oldName,
         filename: newName,
         overwrite: 'no',
       }).toString(),
@@ -1228,6 +1230,34 @@ export class DirectAdminClient {
       throw bladDa(params.get('text') || 'DirectAdmin nie zwrócił adresu logowania');
     }
     return url;
+  }
+
+  /**
+   * Logowanie do webmaila jednym kliknięciem (CMD_WEBMAIL_LOGIN, DA z one_click_webmail_login=1).
+   * DA odpowiada stroną z formularzem POST do Roundcube (`…/roundcube/direct_login/`) z jednorazowym
+   * tokenem — zwracamy adres i token, formularz wysyła przeglądarka klienta.
+   */
+  async createWebmailLogin(email: string): Promise<{ action: string; token: string }> {
+    const response = await this.client.post(
+      '/CMD_WEBMAIL_LOGIN',
+      new URLSearchParams({ email }).toString(),
+      { params: { json: 'yes' }, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, responseType: 'text' },
+    );
+    const html = String(response.data ?? '');
+    const action = /<form[^>]*\saction="([^"]+)"/i.exec(html)?.[1] ?? '';
+    const token = /<input[^>]*\sname="token"[^>]*\svalue="([^"]+)"/i.exec(html)?.[1]
+      ?? /<input[^>]*\svalue="([^"]+)"[^>]*\sname="token"/i.exec(html)?.[1] ?? '';
+    // Tylko Roundcube (https, …/roundcube/direct_login/) — nie przekazujemy klientowi dowolnego adresu
+    // z odpowiedzi. Nazwy hosta nie porównujemy: klient DA bywa zbudowany na IP, a Roundcube stoi na FQDN.
+    let ok = false;
+    try {
+      const u = new URL(action);
+      ok = u.protocol === 'https:' && /\/roundcube\/direct_login\//.test(u.pathname);
+    } catch { /* nie URL */ }
+    if (!ok || !token) {
+      throw bladDa(this.popPayloadIndicatesError(html) ? new URLSearchParams(html).get('text') || '' : 'Webmail nie zwrócił logowania jednym kliknięciem');
+    }
+    return { action, token };
   }
 
   /**

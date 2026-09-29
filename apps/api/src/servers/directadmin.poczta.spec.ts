@@ -136,6 +136,15 @@ describe('Poczta — skrzynki (CMD_API_POP)', () => {
   });
 });
 
+describe('Poczta — webmail skrzynki jednym kliknięciem', () => {
+  it('skrzynka z cudzej domeny → odmowa przed DA; zła postać adresu → 400', async () => {
+    const s = stanowisko();
+    await expect(s.svc.createHostingWebmailLogin('s1', 'u1', 'jan@obca.pl')).rejects.toThrow();
+    await expect(s.svc.createHostingWebmailLogin('s1', 'u1', 'jan@a@firma.pl')).rejects.toBeInstanceOf(BadRequestException);
+    expect(s.post).not.toHaveBeenCalled();
+  });
+});
+
 describe('Poczta — przekierowania (CMD_API_EMAIL_FORWARDERS)', () => {
   it('normalizuje alias do lewej części i skleja adresy docelowe przecinkiem', async () => {
     const s = stanowisko();

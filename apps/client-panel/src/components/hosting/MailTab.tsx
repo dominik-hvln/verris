@@ -36,7 +36,7 @@ import MailExtras from '@/components/hosting/MailExtras';
 import { MailLogPanel } from '@/components/hosting/MailLogPanel';
 import { countDiskUsage, fetchDiskUsage, type DiskUsageStatus } from '@/app/dashboard/services/[id]/hosting-disk-usage-actions';
 import { DeliverabilityPanel } from '@/app/dashboard/email/deliverability-panel';
-import { createHostingSsoUrlAction } from '@/app/dashboard/services/[id]/hosting-sso-actions';
+import { createHostingSsoUrlAction, createWebmailLoginAction } from '@/app/dashboard/services/[id]/hosting-sso-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 import { potwierdz } from '@/components/panel/potwierdz';
@@ -118,6 +118,34 @@ export default function MailTab({ serviceId }: Props) {
     } else {
       toast.error('Nie udało się otworzyć panelu poczty', { description: daErrorMessage(res.error) });
     }
+  };
+  /**
+   * E-14 — webmail skrzynki od razu w Roundcube (token z DA wysyłany formularzem POST w nowej karcie).
+   * Gdy węzeł nie ma logowania jednym kliknięciem — dotychczasowe SSO do listy skrzynek.
+   */
+  const openMailboxWebmail = async (email: string) => {
+    if (ssoOpening) return;
+    setSsoOpening(true);
+    const win = window.open('about:blank', '_blank');
+    const res = await createWebmailLoginAction(serviceId, email);
+    setSsoOpening(false);
+    if (!res.ok || !win) {
+      if (win) win.close();
+      void openWebmailSso();
+      return;
+    }
+    const doc = win.document;
+    const form = doc.createElement('form');
+    form.method = 'post';
+    form.action = res.action;
+    const input = doc.createElement('input');
+    input.type = 'hidden';
+    input.name = 'token';
+    input.value = res.token;
+    form.appendChild(input);
+    doc.body.appendChild(form);
+    win.opener = null;
+    form.submit();
   };
   // zmiana hasła per skrzynka
   const [pwEditing, setPwEditing] = useState<string | null>(null);
@@ -467,7 +495,7 @@ export default function MailTab({ serviceId }: Props) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => void openWebmailSso()}
+                    onClick={() => void openMailboxWebmail(box.email)}
                     disabled={ssoOpening}
                     className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
                   >

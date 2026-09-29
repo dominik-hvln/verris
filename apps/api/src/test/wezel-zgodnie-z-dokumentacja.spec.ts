@@ -90,6 +90,9 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
     expect(t).toContain('da_set_conf one_click_webmail_login 1');
     expect(t).toContain('da_set_conf one_click_pma_login 1');
     expect(t).toContain('da build roundcube');
+    // DA 1.710: moduł leży w /var/www/html/roundcube/direct_login (formularz CMD_WEBMAIL_LOGIN), nie w plugins/
+    expect(t).toContain('/var/www/html/roundcube/direct_login');
+    expect(t).not.toContain('roundcube/plugins/direct_login');
   });
 
   it('profil: DA nie mailuje klientów — konta DA na lokalny alias :blackhole:, stary adres zachowany, kontrola exim -bt', () => {

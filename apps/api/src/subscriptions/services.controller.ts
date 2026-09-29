@@ -83,6 +83,7 @@ import {
   InstalacjaAplikacjiDto,
   KatalogDto,
   LogowanieSsoDto,
+  WebmailSkrzynkiDto,
   MigawkaOffsiteDto,
   NarzedziaWwwDto,
   NowaBazaDanychDto,
@@ -892,6 +893,16 @@ export class UserServicesController {
     @Body() body: LogowanieSsoDto,
   ) {
     return this.directAdmin.createHostingSsoUrl(id, user.userId, body.target);
+  }
+
+  @RateLimit({ limit: 20, windowMs: 15 * 60 * 1000, scope: 'hosting:sso-url' })
+  @Post(':id/hosting-webmail-login')
+  async hostingWebmailLogin(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: WebmailSkrzynkiDto,
+  ) {
+    return this.directAdmin.createHostingWebmailLogin(id, user.userId, body.email);
   }
 
   // ───────────────────────── FALA-2b — wersja PHP per domena ───────────────────

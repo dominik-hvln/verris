@@ -2238,6 +2238,32 @@ export class DirectAdminService {
     return { url };
   }
 
+  /**
+   * E-14 — webmail skrzynki jednym kliknięciem: DA (CMD_WEBMAIL_LOGIN) wydaje jednorazowy token do
+   * Roundcube, przeglądarka klienta wysyła go formularzem. Wcześniej „Webmail →” otwierał listę
+   * skrzynek w DA i trzeba było kliknąć drugi raz (test D3 na t1, 29.09).
+   */
+  async createHostingWebmailLogin(
+    subscriptionId: string,
+    userId: string,
+    email: string,
+  ): Promise<{ action: string; token: string }> {
+    const adres = String(email || '').trim().toLowerCase();
+    const [login, domena] = adres.split('@');
+    if (!login || !domena || adres.split('@').length !== 2) throw new BadRequestException('Adres skrzynki musi mieć postać nazwa@domena.');
+    await this.assertDomainOnSubscription(subscriptionId, userId, domena);
+    const { account, client } = await this.accountClientForSubscription(subscriptionId, userId);
+    this.assertAccountMutable(account);
+    const wynik = await client.createWebmailLogin(adres);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_SSO_URL_CREATED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, target: 'webmail-skrzynka', email: adres },
+    });
+    return wynik;
+  }
+
   /* ===================== FALA-2b: wersja PHP per domena ===================== */
 
   /** Sprawdza, że `domain` jest jedną z domen konta subskrypcji. */

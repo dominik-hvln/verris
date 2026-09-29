@@ -1171,10 +1171,10 @@ configure_hosting_capabilities() {
   da_set_conf one_click_webmail_login 1
   da_set_conf one_click_pma_login 1
   if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && command -v da >/dev/null 2>&1; then
-    if [ ! -d /var/www/html/roundcube/plugins/direct_login ]; then
+    if [ ! -d /var/www/html/roundcube/direct_login ]; then
       { da build dovecot_conf && da build exim_conf && da build roundcube; } >>/var/log/verris-roundcube.log 2>&1 || true
     fi
-    if [ -d /var/www/html/roundcube/plugins/direct_login ]; then
+    if [ -d /var/www/html/roundcube/direct_login ]; then
       log_ok "Webmail: Roundcube z logowaniem jednym kliknięciem (direct_login)"
     else
       log_fail "Webmail: brak Roundcube/direct_login po budowie — /var/log/verris-roundcube.log"

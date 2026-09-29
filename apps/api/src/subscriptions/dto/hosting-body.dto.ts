@@ -311,6 +311,10 @@ export class LogowanieSsoDto {
   @IsIn(['phpmyadmin', 'webmail', 'panel']) target!: 'phpmyadmin' | 'webmail' | 'panel';
 }
 
+export class WebmailSkrzynkiDto {
+  @IsEmail() @MaxLength(254) email!: string;
+}
+
 export class SubdomenaDto extends DomenaDto {
   @Linia(63) subdomain!: string;
 }
