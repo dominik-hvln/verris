@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Globe, Link2, Loader2, Plus, Star, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 import { Button } from '@verris/ui';
 import {
   fetchAdditionalDomainsAction as fetchAdditionalDomainsActionAkcja,
@@ -23,6 +24,7 @@ const fetchAdditionalDomainsAction = zOdpakowaniem(fetchAdditionalDomainsActionA
 const fetchDomainPointersAction = zOdpakowaniem(fetchDomainPointersActionAkcja);
 
 export default function AdditionalDomains({ serviceId }: { serviceId: string }) {
+  const router = useRouter();
   const [rows, setRows] = useState<AdditionalDomainRow[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,6 +85,7 @@ export default function AdditionalDomains({ serviceId }: { serviceId: string }) 
     setBusy(false);
     if (!res.ok) { toast.error('Nie udało się dodać domeny', { description: daErrorMessage(res.error) }); return; }
     toast.success('Domena dodana do konta'); setDomain(''); void load();
+    router.refresh(); // tabela domen i licznik w menu są renderowane na serwerze (test D3 29.09)
   };
   const remove = async (d: string) => {
     if (!(await potwierdz(`Usunąć domenę „${d}" z konta? Pliki tej domeny mogą zostać usunięte.`, { akcja: 'Usuń', niebezpieczne: true }))) return;
@@ -91,6 +94,7 @@ export default function AdditionalDomains({ serviceId }: { serviceId: string }) 
     setDel(null);
     if (!res.ok) { toast.error('Nie udało się usunąć', { description: daErrorMessage(res.error) }); return; }
     toast.success('Domena usunięta'); void load();
+    router.refresh();
   };
 
   return (

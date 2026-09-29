@@ -13,6 +13,7 @@ import {
 import type { DiscoveryResult, PreflightSummary } from './types';
 import { Checkbox } from '@/components/panel/checkbox';
 import { Stepper } from '@/components/panel/stepper';
+import { plForm } from '@/lib/pl';
 
 interface Props {
   serviceId: string;
@@ -546,7 +547,7 @@ function StepSources(props: {
       {discovery ? (
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2.5 text-xs text-emerald-100/90">
           <p className="font-semibold text-emerald-200">
-            Wykryto: {discovery.domains.length} domen, {discovery.databases.length} baz, {discovery.mailboxes.length} skrzynek ({discovery.panelType}).
+            Wykryto: {discovery.domains.length} {plForm(discovery.domains.length, 'domena', 'domeny', 'domen')}, {discovery.databases.length} {plForm(discovery.databases.length, 'baza', 'bazy', 'baz')}, {discovery.mailboxes.length} {plForm(discovery.mailboxes.length, 'skrzynka', 'skrzynki', 'skrzynek')} ({discovery.panelType}).
           </p>
           <p className="mt-1 text-emerald-100/70">
             Uzupełnij hasła skrzynek e-mail — reszta jest gotowa. Strona na WordPressie? Login i hasło bazy zostaw puste,

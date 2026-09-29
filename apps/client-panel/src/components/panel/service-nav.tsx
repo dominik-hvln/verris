@@ -16,6 +16,7 @@ import {
 } from '@/app/dashboard/services/[id]/hosting-domains-action';
 import { NAV_GROUPS, SIMPLE_MODE_KEY, TABS, isTabId, visibleTabIds } from '@/app/dashboard/services/[id]/tabs';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
+import { plForm } from '@/lib/pl';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
 const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
@@ -82,7 +83,7 @@ export function ServiceNav({ serviceId, name, domainsCount }: { serviceId: strin
         <b className="min-w-0 break-words font-display text-sm font-bold text-verris-paper">{name ?? (email ? 'Poczta' : 'Hosting')}</b>
         {!email && (domainsCount ?? domains.length) > 0 ? (
           <small className="ml-auto shrink-0 font-mono text-[11px] text-verris-stone">
-            {domainsCount ?? domains.length} {(domainsCount ?? domains.length) === 1 ? 'domena' : 'domen'}
+            {domainsCount ?? domains.length} {plForm(domainsCount ?? domains.length, 'domena', 'domeny', 'domen')}
           </small>
         ) : null}
       </div>
