@@ -248,3 +248,38 @@ describe('Poczta — catch-all i antyspam', () => {
     expect(zle.audit.record).not.toHaveBeenCalled();
   });
 });
+
+describe('CL-01: błąd odczytu nie zamienia się w zapis wartości domyślnych', () => {
+  it('antyspam: odczyt ustawień z błędem DA → wyjątek, żadnego save (czarna/biała lista zostają)', async () => {
+    for (const body of ['error=1&text=Brak%20dost%C4%99pu', { error: '1', text: 'Brak dostępu' }]) {
+      const s = stanowisko({ get: { '/CMD_API_SPAMASSASSIN': body } });
+      await expect(s.svc.setHostingSpamFilter('s1', 'u1', { enabled: true, requiredScore: '6' })).rejects.toThrow('Brak dostępu');
+      expect(s.post).not.toHaveBeenCalled();
+      expect(s.audit.record).not.toHaveBeenCalled();
+    }
+  });
+
+  it('antyspam: błąd sieci przy odczycie → wyjątek, żadnego save', async () => {
+    const s = stanowisko({ get: { '/CMD_API_SPAMASSASSIN': new Error('ECONNRESET') } });
+    await expect(s.svc.setHostingSpamFilter('s1', 'u1', { enabled: true })).rejects.toThrow('ECONNRESET');
+    expect(s.post).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['lista skrzynek nie przyszła', { rows: [], fetchError: 'timeout' }, 'odczytać skrzynki'],
+    ['skrzynki nie ma', { rows: [], fetchError: null }, 'Nie ma takiej skrzynki'],
+    ['rozmiar nieznany', { rows: [{ id: 'jan@firma.pl', email: 'jan@firma.pl', quotaMb: null }], fetchError: null }, 'rozmiaru skrzynki'],
+  ])('zmiana hasła skrzynki: %s → odmowa, a nie modify z quota=1024', async (_n, lista, fragment) => {
+    const s = stanowisko();
+    vi.spyOn(s.svc, 'listHostingEmailAccounts').mockResolvedValue(lista as never);
+    await expect(s.svc.changeHostingEmailPassword('s1', 'u1', { email: 'jan@firma.pl', password: 'NoweHaslo1' })).rejects.toThrow(fragment);
+    expect(s.post).not.toHaveBeenCalled();
+    expect(s.audit.record).not.toHaveBeenCalled();
+  });
+
+  it('autoresponder: lista z błędem → odmowa zamiast zgadywania create/modify', async () => {
+    const s = stanowisko({ get: { '/CMD_API_EMAIL_AUTORESPONDER': { error: '1', text: 'Chwilowo niedostępne' } } });
+    await expect(s.svc.setHostingAutoresponder('s1', 'u1', { name: 'jan', text: 'Urlop' })).rejects.toThrow('autoresponderów');
+    expect(s.post).not.toHaveBeenCalled();
+  });
+});

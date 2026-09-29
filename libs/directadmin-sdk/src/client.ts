@@ -823,16 +823,20 @@ export class DirectAdminClient {
 
   private async buildAdminSettingsSavePayload(ns1: string, ns2: string): Promise<Record<string, string>> {
     const defaults = this.adminSettingsFormDefaults(ns1, ns2);
+    let lastError: unknown;
     for (const getPath of ['/CMD_ADMIN_SETTINGS', '/CMD_API_ADMIN_SETTINGS'] as const) {
       try {
         const getRes = await this.client.get(getPath, { params: { json: 'yes' }, timeout: 20_000 });
         const merged = mergeAdminSettingsPayload(getRes.data);
+        if (Object.keys(merged).length === 0) throw new Error(`${getPath}: pusta odpowiedź`);
         return { ...merged, ...defaults, ns1, ns2 };
-      } catch {
-        // try next GET path
+      } catch (err) {
+        lastError = err;
       }
     }
-    return defaults;
+    // Bez bieżących ustawień nie zapisujemy: action=save z samymi polami domyślnymi nadpisałby
+    // resztę Admin Settings węzła. Wcześniej błąd odczytu kończył się właśnie takim zapisem.
+    throw lastError instanceof Error ? lastError : new Error('Nie udało się odczytać Admin Settings');
   }
 
   private shouldRetryAdminSettingsOnAlternatePath(err: unknown, path: string): boolean {
@@ -850,6 +854,10 @@ export class DirectAdminClient {
     if (typeof data === 'string') {
       if (/cannot execute that command/i.test(data)) {
         throw new Error('DirectAdmin: CMD_ADMIN_SETTINGS not available for this session');
+      }
+      // Strona HTML (formularz logowania, błąd) nie niesie error=0 — to nie jest zapis.
+      if (data.trim().startsWith('<')) {
+        throw new Error('DirectAdmin: CMD_ADMIN_SETTINGS odpowiedział stroną HTML zamiast wyniku zapisu');
       }
       this.parseResponse(data);
       return;
@@ -1090,14 +1098,18 @@ export class DirectAdminClient {
     }
   }
 
-  /** Urlencoded POST with the standard DA error check (returns parsed params). */
+  /**
+   * Urlencoded POST; sukces tylko przy jawnym `error=0`. Legacy API DA zawsze zwraca `error=1|0`
+   * (https://docs.directadmin.com/developer/api/legacy-api.html) — strona HTML albo pusta odpowiedź
+   * to nie jest „brak błędu”. Tak panel pokazał „dodano” użytkownika bazy, którego nie było (29.09).
+   */
   private async daPost(path: string, body: Record<string, string>): Promise<URLSearchParams> {
     const response = await this.client.post(path, new URLSearchParams(body).toString(), {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     });
     const params = this.daPayloadToParams(response.data);
-    if (params.get('error') === '1') {
-      throw bladDa(params.get('text') || params.get('details') || 'DirectAdmin error');
+    if (params.get('error') !== '0') {
+      throw bladDa(params.get('text') || params.get('details') || 'Serwer nie potwierdził wykonania operacji');
     }
     return params;
   }
