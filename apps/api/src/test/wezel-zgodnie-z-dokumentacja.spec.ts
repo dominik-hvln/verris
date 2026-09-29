@@ -179,7 +179,9 @@ describe('profil węzła — panel DA (:2222) tylko z control-plane (decyzja 202
   };
   const uruchom = (env: Record<string, string>) => {
     const r = spawnSync('bash', ['-c', `. "${DIR}/fn.sh"; configure_da_panel_firewall`], {
-      env: { ...process.env, PATH: `${DIR}:${process.env.PATH}`, CSF_DIR: DIR, ...env },
+      // CSF_LOG w katalogu testu: w CI (bez roota) /var/log jest tylko do odczytu i przekierowanie
+      // blokowało samo csf -r (lokalnie jako root test przechodził).
+      env: { ...process.env, PATH: `${DIR}:${process.env.PATH}`, CSF_DIR: DIR, CSF_LOG: join(DIR, 'csf.log'), ...env },
       encoding: 'utf8',
     });
     return {

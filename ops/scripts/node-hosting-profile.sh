@@ -1589,6 +1589,7 @@ DAVB
 # -----------------------------------------------------------------------------
 DA_PANEL_PORT=2222
 CSF_DIR="${CSF_DIR:-/etc/csf}"
+CSF_LOG="${CSF_LOG:-/var/log/verris-csf.log}"
 
 adresy_da_panelu() {
   printf '%s\n' "$VERRIS_CONTROL_PLANE_IPS" "$VERRIS_DA_ADMIN_ALLOW" | tr ', ' '\n\n' | sed '/^$/d' | sort -u
@@ -1623,8 +1624,8 @@ da_panel_csf() {
     sed -i -E "/^TCP6?_IN *=/{s/\"${DA_PANEL_PORT},/\"/;s/,${DA_PANEL_PORT}(,|\")/\1/;s/\"${DA_PANEL_PORT}\"/\"\"/}" "$CSF_DIR/csf.conf"
     zmiana=1
   fi
-  if [ "$zmiana" = "1" ] && ! csf -r >/var/log/verris-csf.log 2>&1; then
-    log_fail "CSF: csf -r nie powiódł się (log: /var/log/verris-csf.log)"
+  if [ "$zmiana" = "1" ] && ! csf -r >"$CSF_LOG" 2>&1; then
+    log_fail "CSF: csf -r nie powiódł się (log: $CSF_LOG)"
   fi
   if csf_port_panelu_otwarty; then
     log_fail "CSF: ${DA_PANEL_PORT} nadal w TCP_IN/TCP6_IN — panel DA otwarty dla internetu"
