@@ -144,6 +144,12 @@ describe('Lista kopii', () => {
     expect((await s.svc.listHostingBackups('s1', 'u1')).rows).toEqual([{ id: 'list0', fileName: 'backup-Sep-29-2026-1.tar.zst' }]);
   });
 
+  it('menedżer plików pada czymś innym niż 404 → fetchError, a nie „brak kopii” (CL-01)', async () => {
+    const e500 = Object.assign(new Error('Request failed with status code 500'), { response: { status: 500, data: '' } });
+    const s = stanowisko({ get: { '/CMD_API_SITE_BACKUP': '', '/CMD_API_FILE_MANAGER': e500 } });
+    expect(await s.svc.listHostingBackups('s1', 'u1')).toMatchObject({ rows: [], fetchError: 'Request failed with status code 500' });
+  });
+
   it('menedżer plików DA 1.710: klucz = ścieżka /backups/<archiwum>', async () => {
     const s = stanowisko({ get: { '/CMD_API_SITE_BACKUP': [], '/CMD_API_FILE_MANAGER': {
       '/': 'type=dir&size=4096', '/backups/backup-Sep-29-2026-1.tar.zst': 'type=file&size=123', '/backups/notatka.txt': 'type=file',

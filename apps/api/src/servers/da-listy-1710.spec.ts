@@ -146,3 +146,51 @@ describe('użytkownicy bazy — CMD_API_DB_USER wg dokumentacji DA (name = baza)
     expect(bl.post).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('CL-01: odpowiedź bez error=0 to nie sukces (Legacy API: error=1|0)', () => {
+  const zPosta = (odpowiedz: unknown) => {
+    const post = vi.fn(async (_p: string, _b: string) => ({ data: odpowiedz }));
+    const k = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'klient1', loginKey: 'x', secure: true });
+    Object.assign(k, { client: { get: vi.fn(), post } });
+    return { k, post };
+  };
+
+  it.each([
+    ['strona HTML', '<html><body>Unknown command</body></html>'],
+    ['pusta odpowiedź', ''],
+    ['treść bez pola error', 'text=cokolwiek'],
+  ])('użytkownik bazy: %s → wyjątek, a nie „dodano”', async (_n, odpowiedz) => {
+    const { k, post } = zPosta(odpowiedz);
+    await expect(k.createDbUser('klient1_wp', 'test', 'Haslo-testowe-1')).rejects.toThrow();
+    await expect(k.setDbUserPassword('klient1_wp', 'klient1_test', 'Haslo-testowe-2')).rejects.toThrow();
+    await expect(k.deleteDbUser('klient1_wp', 'klient1_test')).rejects.toThrow();
+    expect(post).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('CL-01: Admin Settings — bez odczytu nie ma zapisu', () => {
+  const zAdminem = (get: (p: string) => unknown, postBody: unknown = 'error=0&text=Saved') => {
+    const post = vi.fn(async (_p: string, _b: string) => ({ data: postBody }));
+    const k = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'admin', loginKey: 'x', secure: true });
+    Object.assign(k, { client: { get: vi.fn(async (p: string) => { const v = get(p); if (v instanceof Error) throw v; return { data: v }; }), post } });
+    return { k, post };
+  };
+
+  it('oba odczyty padają → wyjątek i ŻADNEGO action=save z samymi domyślnymi polami', async () => {
+    const { k, post } = zAdminem(() => new Error('Request failed with status code 500'));
+    await expect(k.setAdminDefaultNameservers('ns1.verris.pl', 'ns2.verris.pl')).rejects.toThrow('500');
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('odczyt OK → zapis z bieżącymi polami i nowymi NS', async () => {
+    const { k, post } = zAdminem(() => ({ server_settings: { timeout: '60', ns1: 'stary1', ns2: 'stary2' } }));
+    await k.setAdminDefaultNameservers('ns1.verris.pl', 'ns2.verris.pl');
+    const pola = Object.fromEntries(new URLSearchParams(String(post.mock.calls[0]?.[1])));
+    expect(pola).toMatchObject({ action: 'save', timeout: '60', ns1: 'ns1.verris.pl', ns2: 'ns2.verris.pl' });
+  });
+
+  it('zapis odpowiada stroną HTML → wyjątek, nie „zapisano”', async () => {
+    const { k } = zAdminem(() => ({ ns1: 'a', ns2: 'b' }), '<html><form action="/CMD_LOGIN"></form></html>');
+    await expect(k.setAdminDefaultNameservers('ns1.verris.pl', 'ns2.verris.pl')).rejects.toThrow('HTML');
+  });
+});
