@@ -39,7 +39,8 @@ describe('I-01 — instalator aplikacji', () => {
     przygotuj(d);
     const start = s.indexOf('DOMYSLNA=0');
     const koniec = s.indexOf('\nfi\n', s.indexOf('ZAJETE=')) + 4;
-    const r = spawnSync('bash', ['-c', `log() { echo "[app-install] $*"; }\nDOCROOT=${JSON.stringify(d)}\n${s.slice(start, koniec)}\necho DALEJ`], { encoding: 'utf8' });
+    const bezZmian = s.split('\n').find((l) => l.startsWith('bez_zmian() {')) ?? '';
+    const r = spawnSync('bash', ['-c', `log() { echo "[app-install] $*"; }\n${bezZmian}\nDOCROOT=${JSON.stringify(d)}\n${s.slice(start, koniec)}\necho DALEJ`], { encoding: 'utf8' });
     return r.stdout;
   };
   const domyslna = (d: string) => {
@@ -60,5 +61,6 @@ describe('I-01 — instalator aplikacji', () => {
     const dlaKlienta = bladZadaniaDlaKlienta('exit 1', out);
     expect(dlaKlienta).toContain('W katalogu domeny są już pliki strony');
     expect(dlaKlienta).not.toContain('/home/');
+    expect(out).toContain('[VERRIS_APP] bez_zmian=1');
   });
 });

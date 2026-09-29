@@ -28,8 +28,11 @@ set -Eeuo pipefail
 
 DOCROOT="/home/${APP_DA_USER}/domains/${APP_DOMAIN}/public_html"
 log() { echo "[app-install] $*"; }
-id "$APP_DA_USER" >/dev/null 2>&1 || { log "Brak użytkownika $APP_DA_USER"; exit 1; }
-[ -d "$DOCROOT" ] || { log "Brak docroot $DOCROOT"; exit 1; }
+# Przerwanie PRZED jakąkolwiek zmianą na koncie: znacznik dla API, że bazę założoną dla tej instalacji
+# można bezpiecznie usunąć (test D3 29.09 — po przerwanej Joomli zostawała pusta baza klienta).
+bez_zmian() { log "$*"; echo "[VERRIS_APP] bez_zmian=1"; exit 1; }
+id "$APP_DA_USER" >/dev/null 2>&1 || bez_zmian "Brak użytkownika $APP_DA_USER"
+[ -d "$DOCROOT" ] || bez_zmian "Brak docroot $DOCROOT"
 
 # Domyślna strona Verris (albo stockowa DirectAdmina) w public_html — rozpoznawana po treści.
 DOMYSLNA=0
@@ -46,8 +49,7 @@ POMIN='^(index\.html|\.htaccess|\.well-known)$'
 ZAJETE="$(find "$DOCROOT" -mindepth 1 -maxdepth 1 ! -empty -printf '%f\n' 2>/dev/null | grep -vE "$POMIN" || true)"
 if [ -n "$ZAJETE" ]; then
   log "Katalog $DOCROOT nie jest pusty ($(echo "$ZAJETE" | head -5 | tr '\n' ' ')) — przerwano (chronimy istniejące dane)."
-  log "BŁĄD: W katalogu domeny są już pliki strony — instalacja działa tylko na pustym katalogu. Usuń je w menedżerze plików albo wybierz inną domenę."
-  exit 1
+  bez_zmian "BŁĄD: W katalogu domeny są już pliki strony — instalacja działa tylko na pustym katalogu. Usuń je w menedżerze plików albo wybierz inną domenę."
 fi
 
 # Wykryj binarkę PHP CLI konta (CloudLinux alt-php lub systemowe).
@@ -145,11 +147,11 @@ usun_strone_domyslna() {
 fixperms() { chown -R "${APP_DA_USER}:${APP_DA_USER}" "$DOCROOT" 2>/dev/null || true; }
 
 case "$APP_APP" in
-  nextcloud)  command -v "$PHP_BIN" >/dev/null || { log "Brak PHP CLI"; exit 1; }; install_nextcloud ;;
-  prestashop) command -v unzip >/dev/null || { log "Brak unzip"; exit 1; }; install_prestashop ;;
-  joomla)     command -v "$PHP_BIN" >/dev/null || { log "Brak PHP CLI"; exit 1; }; install_joomla ;;
-  mediawiki)  command -v "$PHP_BIN" >/dev/null || { log "Brak PHP CLI"; exit 1; }; install_mediawiki ;;
-  *) log "Nieobsługiwana aplikacja: $APP_APP"; exit 1 ;;
+  nextcloud)  command -v "$PHP_BIN" >/dev/null || bez_zmian "Brak PHP CLI"; install_nextcloud ;;
+  prestashop) command -v unzip >/dev/null || bez_zmian "Brak unzip"; install_prestashop ;;
+  joomla)     command -v "$PHP_BIN" >/dev/null || bez_zmian "Brak PHP CLI"; install_joomla ;;
+  mediawiki)  command -v "$PHP_BIN" >/dev/null || bez_zmian "Brak PHP CLI"; install_mediawiki ;;
+  *) bez_zmian "Nieobsługiwana aplikacja: $APP_APP" ;;
 esac
 
 usun_strone_domyslna
