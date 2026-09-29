@@ -389,7 +389,7 @@ export function subscriptionRenewalReminderTemplate(
       ``,
       sourceLine,
       ``,
-      `Jeśli **nie chcesz odnawiać** subskrypcji — anuluj ją w panelu. Anulacja będzie skuteczna do końca obecnego okresu rozliczeniowego (dane i pliki **nie znikają natychmiast** — zachowujemy je 30 dni od daty wygaśnięcia).`,
+      `Jeśli **nie chcesz odnawiać** subskrypcji — anuluj ją w panelu. Anulacja będzie skuteczna do końca obecnego okresu rozliczeniowego (dane i pliki **nie znikają natychmiast** — zachowujemy je 14 dni od daty wygaśnięcia).`,
     ].join('\n'),
     cta: {
       label: ctaLabel,
@@ -574,7 +574,7 @@ export interface SubscriptionSuspendedContext {
   serviceName: string;
   /** Date when service was actually suspended. */
   suspendedAt: Date;
-  /** Date when data will be permanently deleted (typically suspendedAt + 30 days). */
+  /** Date when data will be permanently deleted (zwykle: zakończenie subskrypcji + 14 dni). */
   dataDeletedAt: Date;
   paymentUpdateUrl: string;
   panelUrl: string;
@@ -597,7 +597,7 @@ export function subscriptionSuspendedTemplate(ctx: SubscriptionSuspendedContext)
       ``,
       `- Usługa **przestała działać** (strony WWW niedostępne),`,
       `- Twoje **dane są zachowane** — w tym pliki, e-maile, bazy danych,`,
-      `- Masz czas do **${escapeMarkdown(formatDate(ctx.dataDeletedAt))}** (30 dni od zawieszenia) na wznowienie subskrypcji bez utraty danych,`,
+      `- Masz czas do **${escapeMarkdown(formatDate(ctx.dataDeletedAt))}** (14 dni od zakończenia subskrypcji) na wznowienie subskrypcji bez utraty danych,`,
       `- Po tym terminie konto zostanie **trwale usunięte** zgodnie z naszą polityką retencji.`,
       ``,
       `## Jak wznowić`,
@@ -611,7 +611,7 @@ export function subscriptionSuspendedTemplate(ctx: SubscriptionSuspendedContext)
       url: ctx.paymentUpdateUrl,
     },
     footnote:
-      'Jeśli to świadoma decyzja (rezygnacja) — nie musisz nic robić. Po 30 dniach automatycznie usuniemy Twoje dane zgodnie z RODO.',
+      'Jeśli to świadoma decyzja (rezygnacja) — nie musisz nic robić. Po 14 dniach automatycznie usuniemy Twoje dane zgodnie z RODO.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
@@ -641,7 +641,7 @@ export interface SubscriptionCancelledContext {
    * indicate immediate cancellation (refund / chargeback / hard delete).
    */
   effectiveUntil: Date;
-  /** Date when data will be removed (typically `effectiveUntil + 30 days`). */
+  /** Date when data will be removed (zwykle: `cancelledAt` + 14 dni). */
   dataDeletedAt: Date;
   /** True when user explicitly cancelled (vs automatic post-failure). */
   userInitiated: boolean;
@@ -671,7 +671,7 @@ export function subscriptionCancelledTemplate(ctx: SubscriptionCancelledContext)
       ``,
       `## Twoje dane`,
       ``,
-      `- Pliki, e-maile, bazy są **zachowane do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))}** (30 dni od końca subskrypcji),`,
+      `- Pliki, e-maile, bazy są **zachowane do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))}** (14 dni od końca subskrypcji),`,
       `- W tym czasie możesz **wznowić** subskrypcję bez utraty czegokolwiek,`,
       `- Po tym terminie dane są **usuwane trwale** (RODO art. 17).`,
       ``,
@@ -726,7 +726,7 @@ export function trialStartedTemplate(ctx: TrialStartedContext): MailMessage {
       `- **Okres próbny trwa do:** ${escapeMarkdown(formatDate(ctx.trialEndsAt))}.`,
       `- W trakcie próby masz pełnię możliwości planu (pliki, bazy, poczta, WordPress 1-click).`,
       `- Aby zachować dane po próbie — **doładuj portfel i przekształć usługę na płatną** w panelu. Zrobisz to jednym kliknięciem.`,
-      `- Jeśli nic nie zrobisz, po tej dacie usługa zostanie zawieszona, a dane przechowamy jeszcze 30 dni.`,
+      `- Jeśli nic nie zrobisz, po tej dacie usługa zostanie zawieszona, a dane przechowamy jeszcze 14 dni.`,
     ].join('\n'),
     cta: { label: 'Otwórz panel', url: `${ctx.panelUrl}/dashboard` },
     footnote: 'Okres próbny jest jednorazowy na konto. Bez automatycznych opłat — przekształcenie na płatną usługę zawsze potwierdzasz sam.',
@@ -758,7 +758,7 @@ export function trialEndingSoonTemplate(ctx: TrialEndingSoonContext): MailMessag
       ``,
       `Aby usługa działała dalej bez przerwy: **doładuj portfel** i kliknij **„Przekształć na płatną"** przy usłudze. Pobierzemy wtedy opłatę za pierwszy miesiąc, a dalej rozliczamy się z portfela.`,
       ``,
-      `Jeśli nie przedłużysz — po tej dacie usługa zostanie zawieszona. Dane przechowamy jeszcze 30 dni, więc nadal zdążysz wrócić.`,
+      `Jeśli nie przedłużysz — po tej dacie usługa zostanie zawieszona. Dane przechowamy jeszcze 14 dni, więc nadal zdążysz wrócić.`,
     ].join('\n'),
     cta: { label: 'Przekształć usługę', url: `${ctx.panelUrl}/dashboard/services` },
     footnote: 'Wysyłamy to przypomnienie raz, przed końcem okresu próbnego.',
@@ -780,16 +780,16 @@ export function trialExpiredTemplate(ctx: TrialExpiredContext): MailMessage {
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Okres próbny dobiegł końca',
-    preheader: 'Usługa została zawieszona — dane przechowujemy 30 dni.',
+    preheader: 'Usługa została zawieszona — dane przechowujemy 14 dni.',
     bodyMarkdown: [
       greeting,
       ``,
       `Twój darmowy okres próbny planu **${escapeMarkdown(ctx.planName)}** się zakończył, więc usługa została **zawieszona**.`,
       ``,
-      `Nic nie przepadło: **Twoje pliki, bazy i poczta są bezpieczne jeszcze przez 30 dni**. Aby je przywrócić i wznowić usługę — doładuj portfel i przekształć usługę na płatną w panelu.`,
+      `Nic nie przepadło: **Twoje pliki, bazy i poczta są bezpieczne jeszcze przez 14 dni**. Aby je przywrócić i wznowić usługę — doładuj portfel i przekształć usługę na płatną w panelu.`,
     ].join('\n'),
     cta: { label: 'Wznów usługę', url: `${ctx.panelUrl}/dashboard/services` },
-    footnote: 'Po 30 dniach od zawieszenia dane mogą zostać trwale usunięte.',
+    footnote: 'Po 14 dniach od zawieszenia dane mogą zostać trwale usunięte.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',

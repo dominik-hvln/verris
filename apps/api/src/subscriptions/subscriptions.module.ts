@@ -70,10 +70,12 @@ import { DeliverabilityService } from '../deliverability/deliverability.service.
 import { BackupScheduleService } from './backup-schedule.service.js';
 import { BackupScheduleScheduler } from './backup-schedule.scheduler.js';
 import { QuotaAlertScheduler } from './quota-alert.scheduler.js';
+import { RetencjaKontService } from './retencja-kont.service.js';
 import { EcoModule } from '../eco/eco.module.js';
+import { ComplianceModule } from '../compliance/compliance.module.js';
 
 @Module({
-  imports: [ServersModule, PlatformSettingsModule, EcoModule, forwardRef(() => BillingModule), MailModule, NotificationsModule, ApiTokensModule],
+  imports: [ServersModule, PlatformSettingsModule, EcoModule, forwardRef(() => BillingModule), MailModule, NotificationsModule, ApiTokensModule, ComplianceModule],
   providers: [
     SubscriptionsService,
     WarunkiIndywidualneService,
@@ -129,6 +131,7 @@ import { EcoModule } from '../eco/eco.module.js';
     BackupScheduleService,
     BackupScheduleScheduler,
     QuotaAlertScheduler,
+    RetencjaKontService,
   ],
   controllers: [
     SubscriptionsController,

@@ -80,6 +80,9 @@ export interface CreatedSubscription {
   provisioningQueued?: boolean;
 }
 
+/** Decyzja właściciela 29.09.2026: konto zakończonej (anulowanej/wygasłej) usługi żyje 14 dni, potem usunięcie. */
+export const RETENCJA_KONTA_DNI = 14;
+
 /**
  * Sale + lifecycle for Subscription records. Today this layer:
  *   - Validates plan & interval
@@ -634,7 +637,7 @@ export class SubscriptionsService {
     subscription: { id: string },
     ctx: {
       account: { id: string; serverId: string; daUsername: string; status: AccountStatus } | null;
-      source: 'CUSTOMER' | 'SCHEDULED';
+      source: 'CUSTOMER' | 'SCHEDULED' | 'ADMIN';
       actorUserId?: string;
     },
   ) {
@@ -686,6 +689,49 @@ export class SubscriptionsService {
       account: subscription.account,
       source: 'SCHEDULED',
     });
+  }
+
+  /**
+   * Zakończenie subskrypcji przez operatora (bez czekania na koniec okresu).
+   * Najpierw Stripe — przy błędzie przerywamy, jak w `cancel()`: nie zostawiamy
+   * karty obciążanej za usługę, której już nie ma. Zakończona już — bez zmian.
+   */
+  async zakonczPrzezOperatora(subscriptionId: string, actorUserId: string, powod: string) {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      include: { account: true },
+    });
+    if (!subscription) throw new NotFoundException('Subscription not found');
+    if (
+      subscription.status === SubscriptionStatus.CANCELED ||
+      subscription.status === SubscriptionStatus.EXPIRED
+    ) {
+      return subscription;
+    }
+    if (
+      subscription.paymentSource === SubscriptionPaymentSource.STRIPE_CARD &&
+      subscription.stripeSubscriptionId
+    ) {
+      try {
+        await this.stripe.cancelSubscription(subscription.stripeSubscriptionId, { atPeriodEnd: false });
+      } catch (err) {
+        throw new ConflictException(
+          `Nie udało się anulować subskrypcji w Stripe — nic nie zmieniono: ${(err as Error).message}`,
+        );
+      }
+    }
+    const updated = await this.tearDownCanceledSubscription(subscription, {
+      account: subscription.account,
+      source: 'ADMIN',
+      actorUserId,
+    });
+    await this.audit.record({
+      action: 'SUBSCRIPTION_CANCELED',
+      userId: subscription.userId,
+      actorUserId,
+      details: { subscriptionId, immediate: true, source: 'ADMIN', powod },
+    });
+    return updated;
   }
 
   // ---------------------------------------------------------------------------
@@ -2159,8 +2205,8 @@ export class SubscriptionsService {
     const serviceName = sub?.account?.domain ? `${planName} (${sub.account.domain})` : planName;
 
     const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
-    // Data retention: 30 days after the service stops working.
-    const dataDeletedAt = new Date(opts.effectiveUntil.getTime() + 30 * 24 * 60 * 60 * 1000);
+    // Retencja liczona od zakończenia subskrypcji (canceledAt) — tak samo jak w RetencjaKontService.
+    const dataDeletedAt = new Date(opts.cancelledAt.getTime() + RETENCJA_KONTA_DNI * 24 * 60 * 60 * 1000);
 
     const message = opts.wasPaymentFailure
       ? subscriptionSuspendedTemplate({

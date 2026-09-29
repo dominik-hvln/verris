@@ -259,3 +259,49 @@ export function accountQuotaAlertTemplate(ctx: AccountQuotaAlertContext): MailMe
   });
   return { to: ctx.to, tag: 'hosting.quota-alert', subject: `[Verris] Konto ${ctx.domain} zbliża się do limitu zasobów`, text, html };
 }
+
+// ---------------------------------------------------------------------------
+// account-deletion-reminder — 3 dni przed usunięciem konta zakończonej usługi
+// ---------------------------------------------------------------------------
+
+export interface AccountDeletionReminderContext {
+  to: string;
+  firstName: string | null;
+  domain: string;
+  deleteAt: Date;
+  panelUrl: string;
+}
+
+/**
+ * Retencja 14 dni (decyzja 29.09.2026) — przypomnienie w 11. dniu. Przycisku wznowienia zakończonej
+ * usługi nie ma dziś w panelu, więc kierujemy do Centrum pomocy, nie do nieistniejącej opcji.
+ */
+export function accountDeletionReminderTemplate(ctx: AccountDeletionReminderContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
+  const data = formatDate(ctx.deleteAt);
+  const { html, text } = renderEmailShell({
+    title: `Konto ${ctx.domain} zostanie usunięte ${data}`,
+    preheader: `Usługa jest zakończona — konto hostingowe zniknie ${escapeMarkdown(data)}.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Konto hostingowe **${escapeMarkdown(ctx.domain)}** zostanie **trwale usunięte ${escapeMarkdown(data)}** — razem z plikami, bazami danych i pocztą. Usługa, do której należy, jest już zakończona.`,
+      ``,
+      `Jeśli chcesz je zachować, wznów usługę przed tą datą: napisz do nas w Centrum pomocy w panelu.`,
+      ``,
+      `Jeśli to świadoma decyzja — nie musisz nic robić.`,
+    ].join('\n'),
+    cta: { label: 'Wznów usługę', url: `${ctx.panelUrl}/dashboard/support` },
+    footnote: 'Wysyłamy to przypomnienie raz, 3 dni przed usunięciem konta.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'hosting.account-deletion-reminder',
+    subject: `[Verris] Konto ${ctx.domain} zostanie usunięte ${data}`,
+    text,
+    html,
+  };
+}

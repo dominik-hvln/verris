@@ -448,8 +448,14 @@ export class AccountDeletionService {
    * Issues `CMD_API_SELECT_USERS delete=yes` on DirectAdmin for the account
    * and marks the row `status = DELETED`. Idempotent: if DA returns "user
    * not found", we still mark the DB row as DELETED.
+   *
+   * `audyt` — własny wpis zamiast ACCOUNT_DA_PURGED (retencja po zakończeniu
+   * subskrypcji, usunięcie przez operatora). Wynik mówi, czy konto zniknęło.
    */
-  async purgeAccountOnDa(accountId: string): Promise<void> {
+  async purgeAccountOnDa(
+    accountId: string,
+    audyt?: { action: string; actorUserId?: string | null; details?: Record<string, string | null> },
+  ): Promise<{ ok: boolean; error?: string }> {
     const acc = await this.prisma.account.findUnique({
       where: { id: accountId },
       // Z-16: limity efektywne są potrzebne, żeby zwolnić pojemność węzła.
@@ -464,8 +470,8 @@ export class AccountDeletionService {
         diskLimitMb: true,
       },
     });
-    if (!acc) return;
-    if (acc.status === AccountStatus.DELETED) return;
+    if (!acc) return { ok: false, error: 'Konto nie istnieje w bazie' };
+    if (acc.status === AccountStatus.DELETED) return { ok: true };
 
     let daResult: { ok: boolean; error?: string } = { ok: true };
     try {
@@ -493,7 +499,7 @@ export class AccountDeletionService {
 
     if (!daResult.ok) {
       // Don't mark DELETED — let the scheduler retry next tick.
-      return;
+      return daResult;
     }
 
     // Z-16 — usunięcie konta ZWALNIA pojemność węzła.
@@ -531,10 +537,12 @@ export class AccountDeletionService {
       });
     });
     await this.audit.record({
-      action: RodoActions.ACCOUNT_DA_PURGED,
+      action: audyt?.action ?? RodoActions.ACCOUNT_DA_PURGED,
       userId: acc.userId,
-      details: { accountId, daUsername: acc.daUsername, serverId: acc.serverId },
+      actorUserId: audyt?.actorUserId ?? null,
+      details: { ...audyt?.details, accountId, daUsername: acc.daUsername, serverId: acc.serverId },
     });
+    return { ok: true };
   }
 
   // ---------------------------------------------------------------------------

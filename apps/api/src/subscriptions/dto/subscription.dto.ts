@@ -140,6 +140,17 @@ export class UnsuspendSubscriptionDto {
   chargeRenewal?: boolean;
 }
 
+/** Operator: zakończ usługę i usuń konto od razu. Powód do audytu, potwierdzenie = domena konta. */
+export class ZakonczIUsunDto {
+  @IsString()
+  @Length(3, 500)
+  powod!: string;
+
+  @IsString()
+  @Length(1, 253)
+  potwierdzenie!: string;
+}
+
 export class CancelSubscriptionDto {
   /**
    * When true (default), the subscription stays active until the end of the

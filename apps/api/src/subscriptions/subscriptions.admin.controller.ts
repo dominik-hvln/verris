@@ -32,7 +32,9 @@ import { OdtworzenieNaWezleService } from './odtworzenie-na-wezle.service.js';
 import {
   SuspendSubscriptionDto,
   UnsuspendSubscriptionDto,
+  ZakonczIUsunDto,
 } from './dto/subscription.dto.js';
+import { RetencjaKontService } from './retencja-kont.service.js';
 import { RequestInternalMigrationDto } from './dto/migration.dto.js';
 import {
   AdminChangePlanDto,
@@ -61,6 +63,7 @@ export class SubscriptionsAdminController {
     private readonly diagnostics: DiagnosticsService,
     private readonly directAdmin: DirectAdminService,
     private readonly naWezle: OdtworzenieNaWezleService,
+    private readonly retencja: RetencjaKontService,
   ) {}
 
   // H-16 — odtworzenie konta z kopii off-site na innym węźle (utrata węzła). Tylko ADMIN: przepina konto.
@@ -250,6 +253,20 @@ export class SubscriptionsAdminController {
       chargeRenewal: dto.chargeRenewal,
       actorUserId: actor.userId,
     });
+  }
+
+  /**
+   * Zakończenie usługi i natychmiastowe usunięcie konta hostingowego — nieodwracalne, więc tylko ADMIN
+   * (bez nadpisania ról), z powodem do audytu i potwierdzeniem domeną. Retencja 14 dni tu nie obowiązuje.
+   */
+  @Post(':id/zakoncz-i-usun')
+  @HttpCode(200)
+  zakonczIUsun(
+    @Param('id') id: string,
+    @Body() dto: ZakonczIUsunDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.retencja.zakonczIUsunTeraz(id, dto, actor.userId);
   }
 
   /** G‑7: zlecenie migracji wewnętrznej między węzłami przez admin/staff. */

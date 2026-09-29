@@ -2,8 +2,8 @@
 
 import { Select } from '@/components/select';
 import { useState, useId } from 'react';
-import { suspendSubscriptionAction, unsuspendSubscriptionAction } from './suspend-actions';
-import { potwierdz } from "@/components/potwierdz";
+import { suspendSubscriptionAction, unsuspendSubscriptionAction, zakonczIUsunAction } from './suspend-actions';
+import { potwierdz, zapytaj } from "@/components/potwierdz";
 import { Checkbox } from '@/components/checkbox';
 
 const REASONS = [
@@ -89,6 +89,64 @@ export function SuspendForm({ subscriptionId, status, domain }: { subscriptionId
         }`}
       >
         {busy ? 'Chwila…' : suspended ? 'Odwieś usługę' : 'Zawieś usługę'}
+      </button>
+      {msg ? <p className={`text-sm ${msg.type === 'ok' ? 'text-emerald-300' : 'text-rose-300'}`}>{msg.text}</p> : null}
+    </div>
+  );
+}
+
+/**
+ * Zakończenie usługi i natychmiastowe usunięcie konta (bez 14 dni retencji). Nieodwracalne:
+ * powód trafia do audytu, a operację potwierdza się wpisaniem domeny konta.
+ */
+export function ZakonczIUsunForm({ subscriptionId, confirmText, hasAccount }: { subscriptionId: string; confirmText: string; hasAccount: boolean }) {
+  const [powod, setPowod] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
+  const submit = async () => {
+    const wpisane = await zapytaj(
+      hasAccount
+        ? `Usługa zostanie zakończona, a konto hostingowe ${confirmText} usunięte od razu — pliki, bazy i poczta. Tego nie da się cofnąć. Wpisz domenę, aby potwierdzić:`
+        : `Usługa ${confirmText} zostanie zakończona od razu. Wpisz ${confirmText}, aby potwierdzić:`,
+      { akcja: 'Zakończ i usuń', tytul: 'Operacja nieodwracalna', placeholder: confirmText },
+    );
+    if (wpisane === null) return;
+    if (wpisane.trim().toLowerCase() !== confirmText.toLowerCase()) {
+      setMsg({ type: 'err', text: 'Wpisany tekst nie zgadza się — nic nie zmieniono.' });
+      return;
+    }
+    setBusy(true);
+    setMsg(null);
+    const res = await zakonczIUsunAction(subscriptionId, powod, wpisane);
+    setBusy(false);
+    if ('error' in res) setMsg({ type: 'err', text: res.error });
+    else {
+      setMsg({ type: 'ok', text: hasAccount ? 'Usługa zakończona, konto usunięte.' : 'Usługa zakończona.' });
+      setPowod('');
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <label className="block space-y-1">
+        <span className="text-xs text-neutral-400">Powód (obowiązkowy, trafia do audytu)</span>
+        <input
+          value={powod}
+          onChange={(e) => setPowod(e.target.value)}
+          maxLength={500}
+          disabled={busy}
+          placeholder="np. prośba klienta w zgłoszeniu #1234"
+          className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
+        />
+      </label>
+      <button
+        type="button"
+        onClick={() => void submit()}
+        disabled={busy || powod.trim().length < 3}
+        className="rounded-lg bg-rose-700 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600 disabled:opacity-50"
+      >
+        {busy ? 'Chwila…' : hasAccount ? 'Zakończ usługę i usuń konto' : 'Zakończ usługę'}
       </button>
       {msg ? <p className={`text-sm ${msg.type === 'ok' ? 'text-emerald-300' : 'text-rose-300'}`}>{msg.text}</p> : null}
     </div>

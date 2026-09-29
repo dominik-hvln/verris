@@ -17,6 +17,20 @@ export async function suspendSubscriptionAction(id: string, reason: string, note
   }
 }
 
+/** Zakończenie usługi i natychmiastowe usunięcie konta (nieodwracalne) — powód i potwierdzenie domeną. */
+export async function zakonczIUsunAction(id: string, powod: string, potwierdzenie: string): Promise<Result> {
+  try {
+    const r = await adminApi<{ kontoUsuniete: boolean; blad: string | null }>(`/admin/subscriptions/${id}/zakoncz-i-usun`, {
+      method: 'POST',
+      body: { powod: powod.trim(), potwierdzenie: potwierdzenie.trim() },
+    });
+    revalidatePath(`/subscriptions/${id}`);
+    return r.blad ? { error: `Usługa zakończona, ale konta nie udało się usunąć: ${r.blad}. Ponów za chwilę.` } : { ok: true };
+  } catch (e) {
+    return { error: msg(e) };
+  }
+}
+
 /** A-26 — odwieszenie; opcjonalnie od razu obciąża odnowienie okresu. */
 export async function unsuspendSubscriptionAction(id: string, note: string, chargeRenewal: boolean): Promise<Result> {
   try {

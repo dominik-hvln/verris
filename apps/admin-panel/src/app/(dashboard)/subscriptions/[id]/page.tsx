@@ -5,7 +5,7 @@ import { InternalMigrationForm } from "./internal-migration-form";
 import { PlanChangeForm } from "./plan-change-form";
 import { ServiceUsagePanel } from "./usage-panel";
 import { DiagnosticsPanel } from "./diagnostics-panel";
-import { SuspendForm } from "./suspend-form";
+import { SuspendForm, ZakonczIUsunForm } from "./suspend-form";
 import { RestorePanel } from "./restore-panel";
 import { OdtworzenieNaWezlePanel } from "./odtworzenie-na-wezle-panel";
 
@@ -109,6 +109,29 @@ export default async function AdminSubscriptionDetailPage({ params }: { params: 
             </h2>
             <SuspendForm subscriptionId={detail.id} status={detail.status} domain={detail.account?.domain ?? null} />
           </div>
+
+          {(() => {
+            const zakonczona = detail.status === "CANCELED" || detail.status === "EXPIRED";
+            const kontoZostalo = !!detail.account && detail.account.status !== "DELETED";
+            if (zakonczona && !kontoZostalo) return null;
+            return (
+              <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-4">
+                <h2 className="text-sm font-semibold text-white mb-1">
+                  {kontoZostalo ? "Zakończenie usługi i usunięcie konta" : "Zakończenie usługi"}
+                </h2>
+                <p className="text-xs text-muted-foreground mb-3">
+                  {zakonczona
+                    ? "Usługa jest już zakończona — konto zostanie usunięte automatycznie 14 dni po zakończeniu. Tutaj usuniesz je od razu."
+                    : "Bez czekania na koniec okresu i bez 14 dni retencji. Płatność cykliczna kartą jest anulowana."}
+                </p>
+                <ZakonczIUsunForm
+                  subscriptionId={detail.id}
+                  confirmText={detail.account?.domain ?? detail.serviceTag ?? detail.id}
+                  hasAccount={kontoZostalo}
+                />
+              </div>
+            );
+          })()}
 
           {detail.account ? <ServiceUsagePanel subscriptionId={detail.id} /> : null}
 
