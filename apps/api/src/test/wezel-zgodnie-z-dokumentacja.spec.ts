@@ -1,5 +1,5 @@
 import { spawnSync } from 'child_process';
-import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
@@ -269,3 +269,29 @@ describe('profil węzła — strona zawieszonego konta (white label)', () => {
   });
 });
 
+
+describe('profil węzła — liczenie ticket.conf bez adresu-zlewu (t1 29.09: profil przerwany przez pipefail)', () => {
+  const surowy = readFileSync(join(SKRYPTY, 'node-hosting-profile.sh'), 'utf8');
+  const DIR = mkdtempSync(join(tmpdir(), 'da-sink-'));
+  writeFileSync(join(DIR, 'fn.sh'), surowy.slice(0, surowy.indexOf('\nrequire_root\n')));
+  const konto = (u: string, typ: string, email: string) => {
+    mkdirSync(join(DIR, 'users', u), { recursive: true });
+    writeFileSync(join(DIR, 'users', u, 'user.conf'), `usertype=${typ}\n`);
+    writeFileSync(join(DIR, 'users', u, 'ticket.conf'), `email=${email}\n`);
+  };
+  const policz = () =>
+    spawnSync('bash', ['-c', `. "${DIR}/fn.sh"; da_zle_ticket_conf "${DIR}/users" zlew@t1; echo koniec`], { encoding: 'utf8' });
+
+  it('admin bez zlewu (ostatni na liście) nie przerywa skryptu pod set -Eeuo pipefail', () => {
+    konto('aaklient', 'user', 'zlew@t1');
+    konto('zzadmin', 'admin', 'admin@example.com');
+    const r = policz();
+    expect(r.status).toBe(0);
+    expect(r.stdout).toBe('0\nkoniec\n');
+  });
+
+  it('klient z własnym adresem jest liczony', () => {
+    konto('bbklient', 'user', 'klient@example.com');
+    expect(policz().stdout).toBe('1\nkoniec\n');
+  });
+});

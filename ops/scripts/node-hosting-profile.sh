@@ -1218,7 +1218,7 @@ configure_hosting_capabilities() {
       fi
       zmienione=$((zmienione + 1))
     done
-    zle_tc="$(grep -L -x "email=${DA_SINK}" /usr/local/directadmin/data/users/*/ticket.conf 2>/dev/null | while read -r f; do grep -q '^usertype=user$' "${f%/ticket.conf}/user.conf" 2>/dev/null && echo "$f"; done | wc -l)"
+    zle_tc="$(da_zle_ticket_conf /usr/local/directadmin/data/users "$DA_SINK")"
     if [ "$zle_tc" -gt 0 ]; then
       log_fail "Maile DA do klientów: ${zle_tc} kont ma w ticket.conf adres inny niż ${DA_SINK}"
     elif command -v exim >/dev/null 2>&1 && exim -bt "$DA_SINK" 2>/dev/null | grep -qi 'discarded'; then
@@ -1778,7 +1778,7 @@ configure_suspended_page() {
     return 0
   fi
   mkdir -p "$dst"
-  cp -an "$tpl/suspended/." "$dst/"  # m.in. .htaccess DA bez cache — po odwieszeniu przeglądarka nie trzyma strony
+  cp -an "$tpl/suspended/." "$dst/" 2>/dev/null || true  # coreutils 9.2 kończy -n kodem 1 przy pominięciu; m.in. .htaccess DA bez cache — po odwieszeniu przeglądarka nie trzyma strony
   verris_suspended_html > "$dst/index.html"
   # Kopie u admina/resellerów: tylko gdy to jeszcze strona domyślna albo nasza; zapis jako właściciel katalogu.
   for u in $(cat /usr/local/directadmin/data/admin/admin.list /usr/local/directadmin/data/admin/reseller.list 2>/dev/null); do
@@ -1796,6 +1796,19 @@ configure_suspended_page() {
   else
     log_fail "Strona zawieszenia: $dst/index.html bez treści Verris"
   fi
+}
+
+# Liczba kont klientów (usertype=user), których ticket.conf nie wysyła kopii wiadomości DA na adres-zlew.
+# Pętla, nie potok: ticket.conf admina nie ma zlewu, a w dawnym `grep -L | while … && echo` ostatnia
+# iteracja kończyła się kodem 1 — pipefail + set -e przerywały cały profil bez podsumowania (t1, 29.09).
+da_zle_ticket_conf() {
+  local tc n=0
+  for tc in "$1"/*/ticket.conf; do
+    [ -f "$tc" ] || continue
+    grep -q '^usertype=user$' "${tc%/ticket.conf}/user.conf" 2>/dev/null || continue
+    grep -qx "email=$2" "$tc" || n=$((n + 1))
+  done
+  echo "$n"
 }
 
 # Status możliwości do summary (czytany przez audyt węzła).
