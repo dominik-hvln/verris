@@ -1,7 +1,7 @@
 id,stan,data,uwagi
 A-25,sprawdzone,2026-09-29,zawieszenie/odwieszenie d3.hvln.pl z panelu admina
 A-26,sprawdzone,2026-09-29,zawieszenie/odwieszenie d3.hvln.pl z panelu admina
-B-05,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
+B-05,sprawdzone,2026-09-29,memory_limit 512M z panelu (strona → PHP) → odczyt PHP_INFO przez serwer WWW: 512M (LiteSpeed czyta php_value z bloku VERRIS PHP w .htaccess — 98e6f24; .user.ini LSAPI ignoruje).
 B-06,sprawdzone,2026-09-28,podgląd PHP z IP konta
 B-17,czeka,,
 B-18,sprawdzone,2026-09-29,lista plików „Ukryta” → /wp-includes/ zwraca 403
@@ -13,7 +13,7 @@ C-21,sprawdzone,2026-09-29,"SSH kluczem z panelu, klatka CageFS potwierdzona"
 C-22,sprawdzone,2026-09-29,"SSH kluczem z panelu, klatka CageFS potwierdzona"
 C-25,sprawdzone,2026-09-29,"„Sklonuj” https://github.com/WordPress/hello-dolly.git do public_html/git-test → gotowe, H"
 C-27,czeka,,
-D-08,czeka,,
+D-08,czeka,2026-09-29,29.09 po 79b1a18: użytkownik ovsekucx_test powstaje i jest na liście. „Tylko odczyt” padł na węźle (DBT_USER nie przekazywany przez agenta) — SHOW GRANTS nadal ALL PRIVILEGES → 66a685a; retest po wdrożeniu i przeinstalowaniu agenta na t1.
 D-12,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 D-15,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 D-18,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
@@ -64,11 +64,11 @@ G-09,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 Q-14,czeka,,IP w IP Manager; default_ttl; ./build clean/php/litespeed; letsencrypt.sh server_cert; lvectl --maxEntryProcs (lvectl --help); mysqlgovernor.py 10.6→10.11
 Z-18,czeka,,"provisioning na węźle: zerwane połączenie z DA w trakcie → PONOWIENIE w audycie, konto założone przy drugiej próbie"
 F-06,sprawdzone,2026-09-29,"„Włącz DNSSEC” → strefa podpisana, rekord DS (13 2 …) do rejestratora, „Kopiuj rekordy DS”"
-E-12,czeka,,D3: da build dovecot_pigeonhole na węźle (log /var/log/verris-pigeonhole.log); w Roundcube DA widać Ustawienia → Filtry (managesieve); reguła „przenieś do folderu” działa dla poczty przychodzącej; jeśli Roundcube DA nie ma managesieve — dopisać plugin w konfiguracji Roundcube według dokumentacji DA/Roundcube.; 29.09 profil: [WARN] Pigeonhole — budowa nie powiodła się (/var/log/verris-pigeonhole.log)
+E-12,czeka,2026-09-29,29.09 profil (98e6f24): Dovecot Pigeonhole (Sieve) aktywny — da build set pigeonhole yes + dovecot. Zostaje: filtr w Roundcube (managesieve) — wymaga logowania do skrzynki.
 H-04,czeka,,"D3: node-offsite-backup.sh z RETENTION_DAYS=30 działa dobowo; w panelu „Szukam kopii z konkretnego dnia” dla dnia sprzed 20–29 dni → lista archiwów → pobranie → przywrócenie przez kopie konta.; 29.09: konto nowsze niż ostatni przebieg off-site — panel mówił „chronione”; poprawka 8f7b043 (pierwsza kopia przy następnym przebiegu); sprawdzić po nocnym przebiegu; 29.09: przebieg 03:54 objął konto d3, archiwum w panelu (30 dni — do sprawdzenia po czasie)"
 B-08,czeka,,"D3: po profilu węzła `cloudlinux-selector get --json --interpreter nodejs` i `python` pokazują selector_enabled=true i włączone wersje; w panelu utwórz aplikację Express (app.js) i Flask (passenger_wsgi.py, obiekt application) pod domeną/ścieżką → strona odpowiada przez LiteSpeed; Zależności (package.json / requirements.txt), Zatrzymaj/Uruchom, Edytuj zmienne, Usuń; sprawdzić, że katalog w public_html jest odrzucany."
 B-09,czeka,,"D3: po profilu węzła `cloudlinux-selector get --json --interpreter nodejs` i `python` pokazują selector_enabled=true i włączone wersje; w panelu utwórz aplikację Express (app.js) i Flask (passenger_wsgi.py, obiekt application) pod domeną/ścieżką → strona odpowiada przez LiteSpeed; Zależności (package.json / requirements.txt), Zatrzymaj/Uruchom, Edytuj zmienne, Usuń; sprawdzić, że katalog w public_html jest odrzucany."
-I-01,czeka,,"D3: na świeżym koncie (z domyślną stroną Verris) zainstaluj z panelu Joomla i MediaWiki — instalacja rusza mimo index.html/assets, po niej strona pokazuje aplikację (nie stronę Verris), logowanie do /administrator (Joomla) i Specjalna:Zaloguj (MediaWiki) hasłem z panelu; to samo dla WordPressa.; 28.09: WordPress 1-click na d3.hvln.pl działa; Joomla i MediaWiki jeszcze do sprawdzenia"
+I-01,czeka,2026-09-29,"29.09: druga domena test2.d3.hvln.pl (DNS, SSL z panelu) — Joomla przerwana „katalog nie jest pusty” (puste cgi-bin i katalog domeny z DA 1.710), klient widział tylko ogólny błąd → 1245178. Retest po wdrożeniu; WordPress na drugiej domenie → 3129fea."
 I-07,czeka,,D3: z WORDFENCE_API_KEY na produkcji — w logach API „Wordfence feed: N wpisów” po 05:40 UTC (albo ręczne wywołanie); strona WordPress ze starą wersją znanej podatnej wtyczki (np. zainstalowana starsza wersja) pokazuje ją w „Znane podatności” z poprawką i linkiem.
 H-16,czeka,,"D3 (wymaga dwóch węzłów): konto testowe z węzła A → admin „Odtworzenie na innym węźle” na węzeł B → lista kopii z nodes/<A> → odtworzenie; w DA węzła B konto z IP węzła B, strona i poczta działają; w panelu konto wskazuje węzeł B (audyt ACCOUNT_MOVED_TO_NODE); próba na węźle, gdzie konto już jest → odmowa."
 K-14,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
@@ -77,7 +77,7 @@ PB-19,czeka,,"D3: na stronie z ruchem widok strony pokazuje odwiedzających/żą
 G-21,czeka,,"D3: w WebAdmin LiteSpeed węzła ustawione Per-Client Throttling wg ops/docs/DDOS.md; test: ab/hey na stronę testową z jednego IP → po przekroczeniu limitu odrzucenia/ban, inne IP bez wpływu."
 D-14,czeka,,"D3: po profilu węzła `systemctl status postgresql` aktywny, `ss -ltnp` — 5432 tylko na 127.0.0.1/::1; w panelu utwórz bazę → połączenie z PHP (pdo_pgsql włączone w PHP Selectorze) na 127.0.0.1 działa; drugi login nie łączy się do cudzej bazy; nowe hasło działa, stare nie; po `verris-pgsql-dump` plik w ~/.verris-pgsql/ i w kopii DA; usunięcie konta w DA usuwa bazy; sprawdzić nazwę opcji CustomBuild dla pdo_pgsql (1.707)."
 B-03,sprawdzone,2026-09-29,"„PHP w podkatalogu” git-test → PHP 8.1: /git-test/v.php zwraca 8.1.34, reszta strony dalej"
-E-23,czeka,,"D3: po profilu `systemctl status verris-radicale` aktywny, gniazdo Dovecota dostępne dla grupy; iPhone/DAVx5: konto CalDAV/CardDAV https://<węzeł>:5232/ danymi skrzynki — Kalendarz i Kontakty widoczne, wydarzenie z telefonu wraca na drugie urządzenie; złe hasło 5× → blokada IP jak dla IMAP; po nocy archiwum w ~/.verris-dav/ i w kopii DA.; 29.09 profil: [WARN] Radicale — gniazdo dovecot auth-client bez dostępu dla grupy"
+E-23,czeka,2026-09-29,"29.09 profil: WARN — gniazdo /var/run/dovecot/auth-client bez dostępu dla grupy radicale, logowanie CalDAV nie zadziała. Do poprawki: osobny listener auth Dovecota dla Radicale (nie poluzowanie auth-client)."
 J-06,sprawdzone,2026-09-29,"„Optymalizuj obrazy” (cała strona) → 43 pliki, 2,9 MB → 2,9 MB (obrazy rdzenia WP już zopt"
 PB-29,czeka,,węzeł testowy
 PB-30,czeka,,węzeł testowy
@@ -94,5 +94,5 @@ A-13,czeka,,"OpenProvider skonfigurowany, wyszukiwarka poprawiona 27.09 (b0a556f
 A-15,czeka,,"OpenProvider skonfigurowany, wyszukiwarka poprawiona 27.09 (b0a556f); decyzja właściciela 27.09: prawdziwa rejestracja domeny razem z pełnym testem konta klienta na węźle (PB-05)"
 O-05,czeka,,wstrzymaj/wznów usługi klienta resellera (reszta sprawdzona na produkcji 27.09)
 J-01,sprawdzone,2026-09-29,"LiteSpeed Enterprise (Server: LiteSpeed), CacheRoot z profilu [OK], strona główna WordPres"
-J-04,czeka,2026-09-29,UDP 443 zamknięty — 68c7e95
+J-04,sprawdzone,2026-09-29,"alt-svc h3 w odpowiedzi, UDP 443 nasłuchuje (LiteSpeed), firewalld otwarty (68c7e95). Chrome przy pierwszym wejściu łączy się po h2 i przechodzi na h3 po nagłówku alt-svc."
 L-10,sprawdzone,2026-09-29,webhook na https://d3.hvln.pl/verris-webhook-test.php (odbiornik testowy): „Wyślij test” →

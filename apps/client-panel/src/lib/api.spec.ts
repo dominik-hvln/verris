@@ -98,6 +98,16 @@ describe('X-05 apiFetch — błędy', () => {
     expect(e.status).toBe(402);
   });
 
+  it('odmowa serwera hostingu (zrodlo) → polski komunikat zamiast angielskiego 1:1 (CL-02)', async () => {
+    respond(400, { message: 'Database already exists', zrodlo: 'serwer-hostingu' });
+    expect((await errorOf(apiFetch('/x'))).message).toBe('Taki element już istnieje.');
+    respond(400, { message: 'Invalid DirectAdmin login key', zrodlo: 'serwer-hostingu' });
+    expect((await errorOf(apiFetch('/x'))).message).not.toMatch(/DirectAdmin/);
+    // Bez oznaczenia — komunikat API bez zmian (to już tekst dla klienta).
+    respond(400, { message: 'Domain already exists' });
+    expect((await errorOf(apiFetch('/x'))).message).toBe('Domain already exists');
+  });
+
   it('message jako tablica walidacji — sklejona, bez elementów nie-string', async () => {
     respond(400, { message: ['amount must be positive', 42, 'currency invalid'] });
     expect((await errorOf(apiFetch('/x'))).message).toBe('amount must be positive, currency invalid');

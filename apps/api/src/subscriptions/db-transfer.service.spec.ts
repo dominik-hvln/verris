@@ -66,7 +66,13 @@ describe('DbTransferService', () => {
     const z = (privs: string, status: string) => ({ id: privs, status, payload: { mode: 'privileges', db: 'klient1_sklep', user: 'klient1_app', privs }, outputLog: '', errorMessage: null, createdAt: new Date(), completedAt: null });
     s.prisma.nodeTask.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([z('full', 'FAILED'), z('rw', 'COMPLETED'), z('ro', 'COMPLETED')] as never);
     const r = await s.svc.status('s1', 'u1');
-    expect(r.uprawnienia).toEqual({ 'klient1_sklep|klient1_app': { zestaw: 'rw', status: 'COMPLETED' } });
+    // Nowsza nieudana zmiana nie przesłania działającego zestawu, ale jest widoczna (test D3 29.09).
+    expect(r.uprawnienia).toEqual({ 'klient1_sklep|klient1_app': { zestaw: 'rw', status: 'COMPLETED', nieudana: 'full' } });
+    // Jedyna próba nieudana → domyślne pełne + informacja; starsza nieudana przed udaną → bez informacji.
+    s.prisma.nodeTask.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([z('ro', 'FAILED')] as never);
+    expect((await s.svc.status('s1', 'u1')).uprawnienia).toEqual({ 'klient1_sklep|klient1_app': { zestaw: 'full', status: 'COMPLETED', nieudana: 'ro' } });
+    s.prisma.nodeTask.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([z('ro', 'COMPLETED'), z('rw', 'FAILED')] as never);
+    expect((await s.svc.status('s1', 'u1')).uprawnienia).toEqual({ 'klient1_sklep|klient1_app': { zestaw: 'ro', status: 'COMPLETED' } });
   });
 
   it('D-17: przeliczenie rozmiarów bez bazy w zadaniu; parser odrzuca śmieci', async () => {

@@ -19,4 +19,10 @@ export class InstallWordpressDto {
   @IsString()
   @Matches(/^[a-z]{2}_[A-Z]{2}$/, { message: 'Locale w formacie np. pl_PL.' })
   locale?: string;
+
+  /** Domena usługi (domyślnie główna). Tylko przypisana do tej usługi — sprawdza serwis. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(253)
+  domain?: string;
 }

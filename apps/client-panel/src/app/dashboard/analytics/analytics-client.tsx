@@ -24,6 +24,7 @@ import {
   fetchStats,
 } from './actions';
 import { Select } from '@/components/panel/select';
+import { plForm } from '@/lib/pl';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.verris.pl';
 const RANGES = [
@@ -329,7 +330,7 @@ function StatsView({ stats }: { stats: AnalyticsStats }) {
         <p className="mb-3 text-xs font-medium text-neutral-300">Odsłony w czasie</p>
         <div className="flex h-32 items-end gap-[2px]">
           {stats.timeseries.map((d) => (
-            <div key={d.date} className="group relative flex-1" title={`${d.date}: ${d.pageviews} odsłon, ${d.visitors} unikalnych`}>
+            <div key={d.date} className="group relative flex-1" title={`${d.date}: ${d.pageviews} ${plForm(d.pageviews, 'odsłona', 'odsłony', 'odsłon')}, ${d.visitors} unikalnych`}>
               <div className="w-full rounded-t bg-cyan-500/70 transition group-hover:bg-cyan-400" style={{ height: `${Math.max(2, (d.pageviews / max) * 100)}%` }} />
             </div>
           ))}

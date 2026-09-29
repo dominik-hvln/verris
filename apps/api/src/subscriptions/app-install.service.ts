@@ -153,6 +153,7 @@ export class AppInstallService {
     let db: { database: string; username: string };
     try {
       const client = await this.da.getClientForHostingAccount(account.id, userId);
+      await this.usunBazyPrzerwanych(account, client);
       db = await client.createMysqlDatabase({ name: dbShort, user: dbShort, password: dbPass });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -199,6 +200,42 @@ export class AppInstallService {
       adminPassword: adminPass,
       note: 'Zapisz hasło administratora — nie pokażemy go ponownie. Instalacja potrwa 1-3 min.',
     };
+  }
+
+  /**
+   * Bazy po instalacjach przerwanych, zanim skrypt węzła cokolwiek zmienił (znacznik
+   * `[VERRIS_APP] bez_zmian=1` w logu) — test D3 29.09: po przerwanej Joomli klient zostawał z pustą
+   * bazą „…_jooma7c0” na liście. Tylko nazwy w formacie instalatora (<login>_<4 litery><4 hex>), bo
+   * bazy z instalacji, które coś zapisały, mogą już trzymać dane klienta. Błąd usunięcia → spróbujemy
+   * przy następnej instalacji.
+   */
+  private async usunBazyPrzerwanych(
+    account: { id: string; daUsername: string | null },
+    client: { deleteMysqlDatabase(name: string): Promise<void> },
+  ) {
+    if (!account.daUsername) return;
+    const wzor = new RegExp(`^${account.daUsername}_[a-z]{1,4}[0-9a-f]{4}$`);
+    const przerwane = await this.prisma.nodeTask.findMany({
+      where: {
+        accountId: account.id,
+        kind: NodeTaskKind.APP_INSTALL,
+        status: NodeTaskStatus.FAILED,
+        outputLog: { contains: '[VERRIS_APP] bez_zmian=1' },
+      },
+      select: { id: true, payload: true },
+      take: 20,
+    });
+    for (const t of przerwane) {
+      const p = (t.payload ?? {}) as Record<string, unknown>;
+      const baza = typeof p.dbName === 'string' ? p.dbName : '';
+      if (p.bazaUsunieta === true || !wzor.test(baza)) continue;
+      try {
+        await client.deleteMysqlDatabase(baza);
+        await this.prisma.nodeTask.update({ where: { id: t.id }, data: { payload: { ...p, bazaUsunieta: true } as never } });
+      } catch (err) {
+        this.logger.warn(`App install: nie usunięto bazy ${baza} po przerwanej instalacji: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
   }
 
   private async requireOwnedSub(subscriptionId: string, userId: string) {

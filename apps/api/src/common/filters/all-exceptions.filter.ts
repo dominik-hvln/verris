@@ -1,6 +1,10 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { DirectAdminApiError } from '@verris/directadmin-sdk';
+import { dlaKlienta } from '../biala-etykieta.js';
+
+/** Trasy zespołu i węzłów — tam pełna treść błędu zostaje (diagnoza). Reszta to trasy klienta. */
+const TRASA_ZESPOLU = /^\/(?:admin|staff|agent|node|servers)(?:[/?]|$)/;
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -21,18 +25,24 @@ export class AllExceptionsFilter implements ExceptionFilter {
           ? HttpStatus.BAD_REQUEST
           : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    const message = normalizeExceptionMessage(
+    const surowy = normalizeExceptionMessage(
       exception instanceof HttpException
         ? exception.getResponse()
         : odmowaDa
           ? exception.daText
           : 'Wewnętrzny błąd serwera',
     );
+    // White label: klient nie dostaje tekstu z nazwą panelu serwera, jego komendą ani portem
+    // (np. BladEtapuProvisioningu „DirectAdmin package … is missing”, powód odmowy DA).
+    const message =
+      typeof surowy === 'string' && !TRASA_ZESPOLU.test(request.url) ? dlaKlienta(surowy) : surowy;
 
     if (status >= 500) {
       this.logger.error(`[${request.method}] ${request.url}`, exception instanceof Error ? exception.stack : exception);
     } else {
-      this.logger.warn(`[${request.method}] ${request.url} - Status: ${status}`);
+      this.logger.warn(
+        `[${request.method}] ${request.url} - Status: ${status}${message !== surowy ? ` - ${String(surowy)}` : ''}`,
+      );
     }
 
     response.status(status).json({
@@ -40,6 +50,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       timestamp: new Date().toISOString(),
       path: request.url,
       message,
+      // Odmowa serwera hostingu: panel klienta tłumaczy ją na polski (`daErrorMessage`).
+      ...(odmowaDa ? { zrodlo: 'serwer-hostingu' } : {}),
     });
   }
 }

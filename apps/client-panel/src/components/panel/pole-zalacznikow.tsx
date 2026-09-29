@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Paperclip, X } from 'lucide-react';
 import { cx } from './cx';
+import { plForm } from '@/lib/pl';
 
 const rozmiar = (b: number) =>
   b < 1024 * 1024 ? `${Math.max(1, Math.round(b / 1024))} KB` : `${(b / 1024 / 1024).toFixed(1).replace('.', ',')} MB`;
@@ -50,7 +51,7 @@ export function PoleZalacznikow({
     const komunikaty: string[] = [];
     if (zaDuze.length) komunikaty.push(`Pominięto (ponad ${rozmiar(maxBajtow)}): ${zaDuze.join(', ')}.`);
     if (wynik.length > maxPlikow) {
-      komunikaty.push(`Można dołączyć najwyżej ${maxPlikow} plików — zostawiliśmy pierwsze ${maxPlikow}.`);
+      komunikaty.push(`Można dołączyć najwyżej ${maxPlikow} ${plForm(maxPlikow, 'plik', 'pliki', 'plików')} — zostawiliśmy pierwsze ${maxPlikow}.`);
       wynik = wynik.slice(0, maxPlikow);
     }
     setBlad(komunikaty.join(' ') || null);

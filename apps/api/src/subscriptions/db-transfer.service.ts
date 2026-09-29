@@ -161,13 +161,29 @@ export class DbTransferService {
       orderBy: { createdAt: 'desc' },
       take: 100,
     });
-    const uprawnienia: Record<string, { zestaw: string; status: string }> = {};
+    // Nieudana zmiana nie przesłania ostatniego działającego zestawu, ale klient ma ją zobaczyć (test D3 29.09:
+    // „Tylko odczyt” padał na węźle, a panel dalej pisał „zmiana w toku”, choć użytkownik miał pełne prawa).
+    const uprawnienia: Record<string, { zestaw: string; status: string; nieudana?: string }> = {};
+    const nieudane: Record<string, string> = {};
     for (const z of nadania) {
       const p = (z.payload ?? {}) as { db?: string; user?: string; privs?: string };
       const klucz = `${p.db}|${p.user}`;
       if (!p.db || !p.user || !p.privs || uprawnienia[klucz]) continue;
-      if (z.status === NodeTaskStatus.FAILED || z.status === NodeTaskStatus.CANCELLED) continue;
+      if (z.status === NodeTaskStatus.FAILED || z.status === NodeTaskStatus.CANCELLED) {
+        nieudane[klucz] ??= p.privs;
+        continue;
+      }
       uprawnienia[klucz] = { zestaw: p.privs, status: z.status };
+    }
+    for (const [klucz, zestaw] of Object.entries(nieudane)) {
+      // Nieudana zmiana NOWSZA niż ostatnia udana (albo brak udanej = domyślne pełne).
+      const najnowsza = nadania.find((z) => {
+        const p = (z.payload ?? {}) as { db?: string; user?: string };
+        return `${p.db}|${p.user}` === klucz;
+      });
+      if (najnowsza && (najnowsza.status === NodeTaskStatus.FAILED || najnowsza.status === NodeTaskStatus.CANCELLED)) {
+        uprawnienia[klucz] = { ...(uprawnienia[klucz] ?? { zestaw: 'full', status: NodeTaskStatus.COMPLETED }), nieudana: zestaw };
+      }
     }
     const pomiar = await this.prisma.nodeTask.findFirst({
       where: { accountId, kind: NodeTaskKind.DB_TRANSFER, status: NodeTaskStatus.COMPLETED, payload: { path: ['mode'], equals: 'sizes' } },

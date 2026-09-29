@@ -4,8 +4,12 @@ import { apiFetch, ApiError } from '@/lib/api';
 
 export interface WordpressStatus {
   domain: string;
+  /** Domeny usługi — WordPress można postawić na każdej z nich. */
+  domains?: string[];
   task: {
     id: string;
+    /** Domena, na którą szła ostatnia instalacja. */
+    domain?: string;
     status: 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED';
     errorMessage: string | null;
     createdAt: string;
@@ -33,7 +37,7 @@ export async function getWordpressStatus(serviceId: string): Promise<WordpressSt
 
 export async function installWordpress(
   serviceId: string,
-  input: { siteTitle: string; adminUser: string; adminEmail: string; locale?: string },
+  input: { siteTitle: string; adminUser: string; adminEmail: string; locale?: string; domain?: string },
 ): Promise<WordpressInstallResult | { ok: false; error: string }> {
   try {
     return await apiFetch<WordpressInstallResult>(`/services/${serviceId}/wordpress/install`, {

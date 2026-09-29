@@ -16,6 +16,7 @@ import {
   type PhpStatus,
 } from './php-actions';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
+import { plForm } from '@/lib/pl';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
 const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
@@ -149,7 +150,7 @@ function DomainPhpOverridesNote({
         <p className="font-semibold text-amber-200">
           {wyjatki.length === 1
             ? 'Jedna domena ma własną wersję PHP i nie zmieni się razem z kontem'
-            : `${wyjatki.length} domeny mają własną wersję PHP i nie zmienią się razem z kontem`}
+            : `${wyjatki.length} ${plForm(wyjatki.length, 'domena ma', 'domeny mają', 'domen ma')} własną wersję PHP i nie ${plForm(wyjatki.length, 'zmieni', 'zmienią', 'zmieni')} się razem z kontem`}
         </p>
         <ul className="space-y-0.5 text-neutral-300">
           {wyjatki.map((w) => (

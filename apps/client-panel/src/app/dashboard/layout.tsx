@@ -51,6 +51,7 @@ import { sidebarTilesFromLinks } from "@/lib/sidebar-tiles";
 import { clientFeatures } from "@/lib/client-features";
 import { FeatureFlagsProvider, useFlagi, useModul } from "@/lib/feature-flags";
 import { trasaWidoczna } from "@/lib/feature-flags-core";
+import { plForm } from "@/lib/pl";
 import {
   canAccessDashboardRoute,
   canShowWalletBalance,
@@ -414,8 +415,8 @@ function DashboardLayoutInner({
     if (!rail) return null;
     if (href === "/dashboard/services") return rail.services ? String(rail.services.length) : null;
     if (href === "/dashboard/domains")
-      return rail.domainsExpiring ? `${rail.domainsExpiring} wygasa` : rail.domains != null ? String(rail.domains) : null;
-    if (href === "/dashboard/support") return rail.openTickets ? `${rail.openTickets} otwarte` : null;
+      return rail.domainsExpiring ? `${rail.domainsExpiring} ${plForm(rail.domainsExpiring, "wygasa", "wygasają", "wygasa")}` : rail.domains != null ? String(rail.domains) : null;
+    if (href === "/dashboard/support") return rail.openTickets ? `${rail.openTickets} ${plForm(rail.openTickets, "otwarte", "otwarte", "otwartych")}` : null;
     return null;
   };
   const serviceId = /^\/dashboard\/services\/([0-9a-f-]{36})(?:\/|$)/.exec(pathname)?.[1] ?? null;

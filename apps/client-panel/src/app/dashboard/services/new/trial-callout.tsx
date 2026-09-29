@@ -6,6 +6,7 @@ import { Gift, Loader2, Check } from 'lucide-react';
 import type { PlanDto } from '@verris/contracts';
 import { getTrialEligibilityAction, startTrialAction } from './actions';
 import { trackGenerateLead } from '@/lib/analytics-events';
+import { plForm } from '@/lib/pl';
 
 /**
  * O-1 — free trial entry point shown above the paid order form. Renders only
@@ -59,7 +60,7 @@ export function TrialCallout({ plans }: { plans: PlanDto[] }) {
         <div>
           <h2 className="text-lg font-bold text-white">Wypróbuj za darmo</h2>
           <p className="text-sm text-emerald-100/80">
-            {selected.trialDays} dni pełnego hostingu bez opłat. Bez karty. Jeden okres próbny na
+            {selected.trialDays} {plForm(selected.trialDays, 'dzień', 'dni', 'dni')} pełnego hostingu bez opłat. Bez karty. Jeden okres próbny na
             konto.
           </p>
         </div>
@@ -93,7 +94,7 @@ export function TrialCallout({ plans }: { plans: PlanDto[] }) {
                     {active ? <Check className="h-3 w-3 text-black" /> : null}
                   </span>
                 </span>
-                <span className="mt-1 text-[11px] text-emerald-200/90">{p.trialDays} dni za darmo</span>
+                <span className="mt-1 text-[11px] text-emerald-200/90">{p.trialDays} {plForm(p.trialDays, 'dzień', 'dni', 'dni')} za darmo</span>
               </button>
             );
           })}

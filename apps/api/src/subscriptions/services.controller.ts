@@ -363,6 +363,7 @@ export class UserServicesController {
       adminUser: dto.adminUser,
       adminEmail: dto.adminEmail,
       locale: dto.locale,
+      domain: dto.domain,
     });
   }
 

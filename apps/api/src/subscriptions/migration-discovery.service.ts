@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import * as https from 'node:https';
 import { AuditService } from '../common/audit/audit.service.js';
+import { zdradzaPanelSerwera } from '../common/biala-etykieta.js';
 import { MigrationActions } from '../common/audit/audit.actions.js';
 import { assertPublicHost, basicAuth, resolvePublicHost } from './migration-net.util.js';
 
@@ -112,9 +113,11 @@ export class MigrationDiscoveryService {
       actorUserId: userId,
       details: { subscriptionId, host, result: 'failed', error: lastError },
     });
+    // White label: szczegóły z nazwą panelu lub portem 2222 zamieniłyby w filtrze API cały komunikat na ogólny.
+    const szczegoly = !lastError ? 'brak odpowiedzi' : zdradzaPanelSerwera(lastError) ? 'brak poprawnej odpowiedzi panelu' : lastError;
     throw new BadRequestException(
       `Nie udało się połączyć z panelem źródłowym (${host}). Sprawdź adres i dane logowania, ` +
-        `albo przejdź do trybu ręcznego (FTP/MySQL/IMAP). Szczegóły: ${lastError ?? 'brak odpowiedzi'}`,
+        `albo przejdź do trybu ręcznego (FTP/MySQL/IMAP). Szczegóły: ${szczegoly}`,
     );
   }
 
@@ -245,18 +248,18 @@ export class MigrationDiscoveryService {
     const call = async (path: string) => {
       const res = await this.panelHttp(host, port, path, basicAuth(username, password), warnings);
       if (res.status === 401 || res.status === 403) {
-        throw new BadRequestException('DirectAdmin odrzucił dane logowania (401/403).');
+        throw new BadRequestException('Panel źródłowy odrzucił dane logowania (401/403).');
       }
-      if (res.status !== 200) throw new Error(`DirectAdmin HTTP ${res.status} dla ${path}`);
+      if (res.status !== 200) throw new Error(`Panel źródłowy: HTTP ${res.status}`);
       if (res.body.includes('<html') || res.body.includes('DirectAdmin Login')) {
-        throw new Error('DirectAdmin zwrócił stronę logowania zamiast odpowiedzi API.');
+        throw new Error('Panel źródłowy zwrócił stronę logowania zamiast odpowiedzi API.');
       }
       return parseDaList(res.body);
     };
 
     const domainList = await call('/CMD_API_SHOW_DOMAINS');
     if (domainList.error) {
-      throw new BadRequestException(`DirectAdmin: ${domainList.error}`);
+      throw new BadRequestException(`Panel źródłowy: ${domainList.error}`);
     }
     const domains = domainList.list;
     const primaryDomain = domains[0] ?? null;
@@ -266,7 +269,7 @@ export class MigrationDiscoveryService {
       const dbList = await call('/CMD_API_DATABASES');
       databases = dbList.list.map((name) => ({ name, sizeMb: null }));
     } catch {
-      warnings.push('Nie udało się pobrać listy baz z DirectAdmin — dodaj bazy ręcznie.');
+      warnings.push('Nie udało się pobrać listy baz z panelu źródłowego — dodaj bazy ręcznie.');
     }
 
     const mailboxes: DiscoveredMailbox[] = [];
@@ -421,7 +424,7 @@ function toMb(value: string | number | undefined): number | null {
 function parseDaList(body: string): { list: string[]; error: string | null } {
   const params = new URLSearchParams(body.trim());
   if (params.get('error') === '1') {
-    return { list: [], error: params.get('text') ?? params.get('details') ?? 'nieznany błąd DA' };
+    return { list: [], error: params.get('text') ?? params.get('details') ?? 'nieznany błąd' };
   }
   const list = params.getAll('list[]').filter(Boolean);
   return { list, error: null };

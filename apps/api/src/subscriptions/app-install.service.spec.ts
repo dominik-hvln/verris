@@ -5,13 +5,21 @@ import { AppInstallService } from './app-install.service.js';
  * I-01 — instalator aplikacji na wybranej domenie usługi (retest D3 29.09: tylko domena główna,
  * zajęta przez WordPressa, więc instalator był bezużyteczny). Cudza domena odpada PRZED bazą.
  */
-function stanowisko(domenyUslugi: string[]) {
+function stanowisko(domenyUslugi: string[], przerwane: Array<{ id: string; payload: Record<string, unknown> }> = []) {
   const account = { id: 'a1', domain: 'firma.pl', daUsername: 'klient1', serverId: 's1' };
   const prisma = {
     subscription: { findFirst: vi.fn(async () => ({ id: 'sub1', account })) },
-    nodeTask: { findFirst: vi.fn(async () => null), findMany: vi.fn(async () => []), create: vi.fn(async (a: unknown) => ({ id: 't1', ...(a as object) })) },
+    nodeTask: {
+      findFirst: vi.fn(async () => null),
+      findMany: vi.fn(async (a: { where: { status?: unknown; outputLog?: unknown } }) => (a.where.outputLog ? przerwane : [])),
+      create: vi.fn(async (a: unknown) => ({ id: 't1', ...(a as object) })),
+      update: vi.fn(async () => ({})),
+    },
   };
-  const client = { createMysqlDatabase: vi.fn(async () => ({ database: 'klient1_mediab', username: 'klient1_mediab' })) };
+  const client = {
+    createMysqlDatabase: vi.fn(async () => ({ database: 'klient1_mediab', username: 'klient1_mediab' })),
+    deleteMysqlDatabase: vi.fn(async () => undefined),
+  };
   const da = {
     getClientForHostingAccount: vi.fn(async () => client),
     listHostingDomainsForSubscription: vi.fn(async () => ({ domains: domenyUslugi.map((name) => ({ name })) })),
@@ -44,5 +52,19 @@ describe('AppInstallService — domena instalacji', () => {
     const s = stanowisko(['firma.pl', 'wiki.pl']);
     expect((await s.svc.install('sub1', 'u1', s.wejscie)).domain).toBe('firma.pl');
     expect((await s.svc.statusForSubscription('sub1', 'u1')).domains).toEqual(['firma.pl', 'wiki.pl']);
+  });
+
+  it('baza po instalacji przerwanej przed zmianami (znacznik) zostaje usunięta przy kolejnej; inne nie', async () => {
+    const s = stanowisko(['firma.pl'], [
+      { id: 'p1', payload: { dbName: 'klient1_jooma7c0' } },
+      { id: 'p2', payload: { dbName: 'klient1_sklep' } },
+      { id: 'p3', payload: { dbName: 'klient1_medi1234', bazaUsunieta: true } },
+    ]);
+    await s.svc.install('sub1', 'u1', s.wejscie);
+    expect(s.prisma.nodeTask.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ status: 'FAILED', outputLog: { contains: '[VERRIS_APP] bez_zmian=1' } }),
+    }));
+    expect(s.client.deleteMysqlDatabase.mock.calls).toEqual([['klient1_jooma7c0']]);
+    expect(s.prisma.nodeTask.update).toHaveBeenCalledWith({ where: { id: 'p1' }, data: { payload: { dbName: 'klient1_jooma7c0', bazaUsunieta: true } } });
   });
 });

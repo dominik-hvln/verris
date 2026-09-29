@@ -389,3 +389,8 @@ it('profil zamyka Cockpit (9090) w firewalld — test D3 29.09: „services: coc
   expect(t).toContain('firewall-cmd --permanent --remove-service=cockpit');
   expect(t).toMatch(/\nconfigure_firewall_cockpit\n/);
 });
+
+it('domyślna strona domeny nie pokazuje loginu konta (test D3 29.09: „Konto: ovsekucx” dla każdego odwiedzającego)', () => {
+  const html = readFileSync(join(SKRYPTY, '..', 'hosting-default-page', 'index.html'), 'utf8');
+  expect(html).not.toContain('|USERNAME|');
+});

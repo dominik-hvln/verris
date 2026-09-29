@@ -245,13 +245,13 @@ function IntegrityLine({ integrity }: { integrity: MigrationIntegrity }) {
     text =
       integrity.sourceRows != null
         ? `${integrity.targetRows}/${integrity.sourceRows} wierszy w ${integrity.targetTables} tab.`
-        : `${integrity.targetRows} wierszy w ${integrity.targetTables} tab.`;
+        : `${integrity.targetRows} ${plForm(integrity.targetRows, 'wiersz', 'wiersze', 'wierszy')} w ${integrity.targetTables} tab.`;
   } else {
     ok = integrity.match;
     text =
       integrity.sourceMessages != null
         ? `${integrity.targetMessages ?? 0}/${integrity.sourceMessages} wiadomości`
-        : `${integrity.targetMessages ?? 0} wiadomości`;
+        : `${integrity.targetMessages ?? 0} ${plForm(integrity.targetMessages ?? 0, 'wiadomość', 'wiadomości', 'wiadomości')}`;
   }
   const color = ok === false ? 'text-amber-400/90' : 'text-emerald-400/80';
   const icon = ok === false ? '⚠' : ok === true ? '✓' : '·';

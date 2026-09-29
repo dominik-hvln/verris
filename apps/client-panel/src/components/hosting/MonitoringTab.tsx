@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, ArrowDownCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { Zap, Loader2 as Loader } from 'lucide-react';
 import { Kpi, KpiStrip, Meter, SectionHead, Switch } from '@/components/panel/v2';
+import { plForm } from '@/lib/pl';
 import {
   getMonitoringStatus,
   setMonitoringEnabled,
@@ -112,7 +113,7 @@ export default function MonitoringTab({ serviceId }: Props) {
             foot={
               <span>
                 {status.uptime
-                  ? `${status.uptime.measuredFullWindow ? `ostatnie ${status.uptime.windowDays} dni` : `od ${new Date(status.uptime.sinceIso).toLocaleDateString('pl-PL')}`} · ${status.uptime.incidents} przerw`
+                  ? `${status.uptime.measuredFullWindow ? `ostatnie ${status.uptime.windowDays} dni` : `od ${new Date(status.uptime.sinceIso).toLocaleDateString('pl-PL')}`} · ${status.uptime.incidents} ${plForm(status.uptime.incidents, 'przerwa', 'przerwy', 'przerw')}`
                   : 'liczymy od pierwszego pomiaru'}
               </span>
             }

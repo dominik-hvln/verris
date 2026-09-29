@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Bell, Check, Loader2 } from 'lucide-react';
+import { plForm } from '@/lib/pl';
 import {
   fetchNotificationsAction,
   markAllNotificationsReadAction,
@@ -24,7 +25,7 @@ function timeAgo(iso: string): string {
   const h = Math.floor(m / 60);
   if (h < 24) return `${h} godz. temu`;
   const d = Math.floor(h / 24);
-  return `${d} dni temu`;
+  return `${d} ${plForm(d, 'dzień', 'dni', 'dni')} temu`;
 }
 
 /** NTF-2 — dzwonek powiadomień w nagłówku panelu klienta. */
