@@ -387,33 +387,26 @@ export class DirectAdminClient {
 
   /** Writes/overwrites a text file (`action=edit`). */
   async writeFile(dir: string, filename: string, content: string): Promise<void> {
-    const data = await this.client.post(
-      '/CMD_FILE_MANAGER',
+    await this.fmPost(
       new URLSearchParams({
         action: 'edit',
         path: dir,
         text: content,
         filename,
-      }).toString(),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+      }),
     );
-    this.assertFileManagerOk(data.data);
   }
 
   /** Creates a new folder inside `dir`. */
   async makeDir(dir: string, name: string): Promise<void> {
-    const data = await this.client.post(
-      '/CMD_FILE_MANAGER',
-      new URLSearchParams({ action: 'folder', path: dir, name }).toString(),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+    await this.fmPost(
+      new URLSearchParams({ action: 'folder', path: dir, name }),
     );
-    this.assertFileManagerOk(data.data);
   }
 
   /** Renames a single entry within `dir`. */
   async renameEntry(dir: string, oldName: string, newName: string): Promise<void> {
-    const data = await this.client.post(
-      '/CMD_FILE_MANAGER',
+    await this.fmPost(
       new URLSearchParams({
         action: 'rename',
         path: dir,
@@ -422,20 +415,15 @@ export class DirectAdminClient {
         old: oldName,
         filename: newName,
         overwrite: 'no',
-      }).toString(),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+      }),
     );
-    this.assertFileManagerOk(data.data);
   }
 
   /** Deletes one or more entries within `dir` (files or folders). */
   async deleteEntries(dir: string, names: string[]): Promise<void> {
     const body = new URLSearchParams({ action: 'multiple', button: 'delete', path: dir });
     zaznaczSciezki(body, dir, names);
-    const data = await this.client.post('/CMD_FILE_MANAGER', body.toString(), {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    });
-    this.assertFileManagerOk(data.data);
+    await this.fmPost(body);
   }
 
   /** Uploads a file into `dir`. `content` is the raw file bytes. */
@@ -461,16 +449,26 @@ export class DirectAdminClient {
   private assertFileManagerOk(data: unknown): void {
     const params = this.daPayloadToParams(data);
     if (params.get('error') === '1') {
-      throw bladDa(params.get('text') || params.get('details') || 'DirectAdmin file manager operation failed');
+      const powod = [params.get('text'), params.get('details')].filter((x) => x && x.trim()).join(' — ');
+      throw bladDa(powod || 'DirectAdmin file manager operation failed');
     }
   }
 
-  /** Low-level FM POST (urlencoded) with the standard error check. */
+  /**
+   * Low-level FM POST (urlencoded) with the standard error check. DA 1.710: wersja API odpowiada
+   * error=0/1 z powodem w `details` (także przy HTTP 500), a stara CMD_FILE_MANAGER potrafiła zwrócić
+   * „500 unexpected error” PO wykonaniu operacji (pakowanie na t1, 29.09) — panel mówił „nie udało się”,
+   * choć archiwum powstało. Stąd API i własna ocena statusu zamiast wyjątku axios.
+   */
   private async fmPost(body: URLSearchParams): Promise<void> {
-    const data = await this.client.post('/CMD_FILE_MANAGER', body.toString(), {
+    const res = await this.client.post('/CMD_API_FILE_MANAGER', body.toString(), {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      validateStatus: () => true,
     });
-    this.assertFileManagerOk(data.data);
+    this.assertFileManagerOk(res.data);
+    if (res.status >= 400) {
+      throw bladDa(`Menedżer plików odpowiedział błędem (HTTP ${res.status})`);
+    }
   }
 
   /**

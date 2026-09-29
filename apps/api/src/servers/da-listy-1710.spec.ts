@@ -91,3 +91,23 @@ describe('webmail jednym kliknięciem (CMD_WEBMAIL_LOGIN)', () => {
     await expect(zOdpowiedzia(html).k.createWebmailLogin('test@d3.hvln.pl')).rejects.toThrow();
   });
 });
+
+describe('menedżer plików DA 1.710 — odpowiedzi', () => {
+  const zPost = (status: number, data: string) => {
+    const post = vi.fn(async (_p: string, _b: string, _c?: unknown) => ({ status, data }));
+    const k = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'klient1', loginKey: 'x', secure: true });
+    Object.assign(k, { client: { get: vi.fn(), post } });
+    return { k, post };
+  };
+
+  it('operacje idą do CMD_API_FILE_MANAGER (stara CMD_FILE_MANAGER dawała 500 po udanym pakowaniu)', async () => {
+    const { k, post } = zPost(200, 'error=0&text=OK');
+    await k.compressEntries('/', ['katalog'], 'archiwum');
+    expect(post.mock.calls.map((c) => c[0])).toEqual(['/CMD_API_FILE_MANAGER', '/CMD_API_FILE_MANAGER', '/CMD_API_FILE_MANAGER']);
+  });
+
+  it('HTTP 500 z error=1 → komunikat DA z details, nie „Wewnętrzny błąd serwera”', async () => {
+    const { k } = zPost(500, 'error=1&text=Nie%20mo%C5%BCna&details=no%20such%20file%20or%20directory');
+    await expect(k.renameEntry('/x', 'a', 'b')).rejects.toThrow('no such file or directory');
+  });
+});

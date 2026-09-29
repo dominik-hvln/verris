@@ -203,7 +203,7 @@ describe('Retencja kopii (pruneHostingBackups) — kasuje pliki', () => {
   });
 
   it('błąd DA przy kasowaniu → 0 (nie raportujemy usuniętych, których nie usunięto)', async () => {
-    const s = stanowisko({ get: { '/CMD_API_FILE_MANAGER': BACKUPS }, post: { '/CMD_FILE_MANAGER': 'error=1&text=Permission%20denied' } });
+    const s = stanowisko({ get: { '/CMD_API_FILE_MANAGER': BACKUPS }, post: { '/CMD_API_FILE_MANAGER': 'error=1&text=Permission%20denied' } });
     await expect(s.svc.pruneHostingBackups('s1', 'u1', 1)).resolves.toBe(0);
   });
 });
