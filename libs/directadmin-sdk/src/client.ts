@@ -1370,6 +1370,27 @@ export class DirectAdminClient {
   }
 
   // ---------------------------------------------------------------------------
+  // Wiadomości systemowe konta („Message System”, CMD_API_TICKET) — wywołania jako użytkownik
+  // ---------------------------------------------------------------------------
+
+  /** Lista wiadomości systemowych konta (pierwsza strona, jak zwraca węzeł). */
+  async listMessages(): Promise<DaMessage[]> {
+    const res = await this.client.get('/CMD_API_TICKET', { params: { json: 'yes' } });
+    this.parseDaResponseBody(res.data);
+    return parseDaMessageList(res.data);
+  }
+
+  /** Treść jednej wiadomości systemowej; `id` jak w liście (np. „000000006”). */
+  async getMessage(id: string): Promise<DaMessageDetails> {
+    if (!/^\d{1,12}$/.test(id)) throw new Error(`Niepoprawny numer wiadomości: ${id.slice(0, 20)}`);
+    const res = await this.client.get('/CMD_API_TICKET', {
+      params: { action: 'view', type: 'message', number: id, json: 'yes' },
+    });
+    this.parseDaResponseBody(res.data);
+    return parseDaMessage(id, res.data);
+  }
+
+  // ---------------------------------------------------------------------------
   // Internals
   // ---------------------------------------------------------------------------
 
@@ -1717,6 +1738,81 @@ const ADMIN_SETTINGS_SKIP_KEYS = new Set([
 ]);
 
 /** Wyciąga pola formularza Admin Settings do POST action=save. */
+/** Wiadomość systemowa z listy CMD_API_TICKET. */
+export interface DaMessage {
+  /** Numer tak, jak podaje węzeł (np. „000000006”) — do `getMessage`. */
+  id: string;
+  /** Ten sam numer jako liczba (rośnie z każdą wiadomością). */
+  number: number;
+  /** Temat z odkodowanymi encjami HTML. */
+  subject: string;
+  isNew: boolean;
+}
+
+export interface DaMessageDetails {
+  id: string;
+  subject: string;
+  body: string;
+  from: string | null;
+  time: Date | null;
+}
+
+const ENCJE: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+
+/** Odkodowuje encje HTML z tekstów węzła (np. „&#39;”, „&#53;”, „&amp;”). */
+export function decodeHtmlEntities(s: string): string {
+  return s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e: string) => {
+    if (e[0] === '#') {
+      const kod = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+      return Number.isFinite(kod) && kod > 0 && kod <= 0x10ffff ? String.fromCodePoint(kod) : m;
+    }
+    return ENCJE[e.toLowerCase()] ?? m;
+  });
+}
+
+/**
+ * JSON listy: {"messages": {"0": {"message": "000000006", "subject": …, "new": "yes"}, …, "info": {…}}, …}.
+ * Klucze nienumeryczne (info) i wpisy bez numeru pomijamy; brak `messages` = pusta lista.
+ */
+export function parseDaMessageList(data: unknown): DaMessage[] {
+  const root = typeof data === 'object' && data !== null ? (data as Record<string, unknown>) : {};
+  const msgs = root.messages;
+  if (typeof msgs !== 'object' || msgs === null || Array.isArray(msgs)) return [];
+  const out: DaMessage[] = [];
+  for (const [key, v] of Object.entries(msgs as Record<string, unknown>)) {
+    if (!/^\d+$/.test(key) || typeof v !== 'object' || v === null) continue;
+    const r = v as Record<string, unknown>;
+    const id = String(r.message ?? '').trim();
+    if (!/^\d{1,12}$/.test(id)) continue;
+    out.push({
+      id,
+      number: parseInt(id, 10),
+      subject: decodeHtmlEntities(String(r.subject ?? '')).trim(),
+      isNew: String(r.new ?? '') === 'yes',
+    });
+  }
+  return out;
+}
+
+/** JSON treści: {"0": "from=diradmin&message=<urlenc>&subject=<urlenc>&time=<epoch>&…"}. */
+export function parseDaMessage(id: string, data: unknown): DaMessageDetails {
+  let raw = '';
+  if (typeof data === 'string') raw = data;
+  else if (typeof data === 'object' && data !== null) {
+    const v = (data as Record<string, unknown>)['0'];
+    if (typeof v === 'string') raw = v;
+  }
+  const p = new URLSearchParams(raw.trim().startsWith('<') ? '' : raw);
+  const epoch = parseInt(p.get('time') ?? '', 10);
+  return {
+    id,
+    subject: decodeHtmlEntities(p.get('subject') ?? '').trim(),
+    body: decodeHtmlEntities(p.get('message') ?? '').trim(),
+    from: p.get('from') || null,
+    time: Number.isFinite(epoch) && epoch > 0 ? new Date(epoch * 1000) : null,
+  };
+}
+
 /** Ensures a path begins with exactly one leading slash. */
 function ensureLeadingSlash(path: string): string {
   return `/${path.replace(/^\/+/, '')}`;

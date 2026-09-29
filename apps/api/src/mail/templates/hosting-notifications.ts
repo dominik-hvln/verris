@@ -305,3 +305,117 @@ export function accountDeletionReminderTemplate(ctx: AccountDeletionReminderCont
     html,
   };
 }
+
+/* ===================== Wiadomości systemowe węzła → komunikat Verris (decyzja 29.09.2026) ===================== */
+/**
+ * Klient nie dostaje surowych wiadomości z węzła (white label) — tylko nasz komunikat o tym, co się stało
+ * i co zrobić. Te same teksty idą do maila i do powiadomienia w panelu.
+ */
+export type KomunikatKontaRodzaj = 'ssl-blad' | 'ssl-ok' | 'limit-dysku' | 'limit-transferu' | 'kopia-blad';
+
+export interface KomunikatKonta {
+  tytul: string;
+  tresc: string;
+  rady: string[];
+  /** Zakładka usługi w panelu, do której prowadzi przycisk / powiadomienie. */
+  tab: 'ssl' | 'usage' | 'backups';
+  cta: string;
+}
+
+const ZAPYTAJ = 'Jeśli problem się powtarza, napisz do nas — sprawdzimy to.';
+
+/** `d` — domena w treści (w mailu pogrubiona, po escapeMarkdown), `domena` — w tytule. */
+function komunikat(rodzaj: KomunikatKontaRodzaj, d: string, domena: string): KomunikatKonta {
+  switch (rodzaj) {
+    case 'ssl-blad':
+      return {
+        tytul: `Nie udało się wystawić certyfikatu SSL dla ${domena}`,
+        tresc: `Próba wystawienia bezpłatnego certyfikatu SSL (Let's Encrypt) dla ${d} nie powiodła się.`,
+        rady: [
+          'Sprawdź w zakładce „Domeny i DNS”, czy domena (i wariant z www) kieruje na Twój serwer Verris — najczęstszą przyczyną jest nieustawiony albo świeżo zmieniony DNS.',
+          'Gdy DNS jest poprawny, ponów wystawienie certyfikatu w zakładce „Certyfikaty SSL”.',
+          ZAPYTAJ,
+        ],
+        tab: 'ssl',
+        cta: 'Przejdź do certyfikatów SSL',
+      };
+    case 'ssl-ok':
+      return {
+        tytul: `Certyfikat SSL dla ${domena} został wystawiony`,
+        tresc: `Bezpłatny certyfikat SSL (Let's Encrypt) dla ${d} jest aktywny.`,
+        rady: [],
+        tab: 'ssl',
+        cta: 'Zobacz certyfikaty SSL',
+      };
+    case 'limit-dysku':
+      return {
+        tytul: `Konto ${domena} jest przy limicie miejsca na dysku`,
+        tresc: `Miejsce na dysku konta ${d} jest wykorzystane do limitu planu albo blisko niego. Po przekroczeniu zapis plików, poczty i baz danych może się nie udawać.`,
+        rady: [
+          'Usuń zbędne pliki, stare kopie i logi (zakładka „Menedżer plików”) oraz sprawdź rozmiar skrzynek pocztowych.',
+          'Szczegóły wykorzystania znajdziesz w zakładce „Zużycie zasobów”.',
+          'Rozważ wyższy plan, jeśli potrzebujesz więcej miejsca.',
+        ],
+        tab: 'usage',
+        cta: 'Sprawdź wykorzystanie',
+      };
+    case 'limit-transferu':
+      return {
+        tytul: `Konto ${domena} jest przy limicie transferu`,
+        tresc: `Transfer konta ${d} w bieżącym okresie jest wykorzystany do limitu planu albo blisko niego.`,
+        rady: [
+          'Sprawdź w zakładce „Zużycie zasobów”, co generuje ruch — częstą przyczyną są boty i duże pliki do pobrania.',
+          'Włącz cache strony (np. LSCache dla WordPressa), żeby ograniczyć transfer.',
+          'Rozważ wyższy plan, jeśli ruch jest naturalny.',
+        ],
+        tab: 'usage',
+        cta: 'Sprawdź wykorzystanie',
+      };
+    case 'kopia-blad':
+      return {
+        tytul: `Nie udało się wykonać kopii zapasowej konta ${domena}`,
+        tresc: `Tworzenie kopii zapasowej konta ${d} zakończyło się błędem.`,
+        rady: [
+          'Spróbuj ponownie w zakładce „Kopie zapasowe”.',
+          'Sprawdź, czy na koncie jest wolne miejsce — pełny dysk to częsta przyczyna.',
+          ZAPYTAJ,
+        ],
+        tab: 'backups',
+        cta: 'Przejdź do kopii zapasowych',
+      };
+  }
+}
+
+/** Teksty do powiadomienia w panelu (zwykły tekst, bez Markdown). */
+export function komunikatKonta(rodzaj: KomunikatKontaRodzaj, domena: string): KomunikatKonta {
+  return komunikat(rodzaj, domena, domena);
+}
+
+export interface KomunikatKontaMailContext {
+  to: string;
+  firstName: string | null;
+  rodzaj: KomunikatKontaRodzaj;
+  domena: string;
+  panelUrl: string;
+  /** Link przycisku (zakładka usługi); bez niego — panel. */
+  ctaUrl?: string;
+}
+
+export function komunikatKontaTemplate(ctx: KomunikatKontaMailContext): MailMessage {
+  const k = komunikat(ctx.rodzaj, `**${escapeMarkdown(ctx.domena)}**`, ctx.domena);
+  const lines = [ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,', '', k.tresc];
+  if (k.rady.length) {
+    lines.push('', '## Co możesz zrobić', '');
+    k.rady.forEach((r, i) => lines.push(`${i + 1}. ${r}`));
+  }
+  const { html, text } = renderEmailShell({
+    title: k.tytul,
+    preheader: komunikatKonta(ctx.rodzaj, ctx.domena).tresc,
+    bodyMarkdown: lines.join('\n'),
+    cta: { label: k.cta, url: ctx.ctaUrl ?? ctx.panelUrl },
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: `hosting.komunikat.${ctx.rodzaj}`, subject: `[Verris] ${k.tytul}`, text, html };
+}

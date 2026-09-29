@@ -109,6 +109,8 @@ export const AdminNodeActions = {
   MAINTENANCE_WINDOW_UPDATED: 'ADMIN_MAINTENANCE_WINDOW_UPDATED',
   STATUS_WEBHOOK_ENDPOINT_CREATED: 'ADMIN_STATUS_WEBHOOK_ENDPOINT_CREATED',
   STATUS_WEBHOOK_ENDPOINT_UPDATED: 'ADMIN_STATUS_WEBHOOK_ENDPOINT_UPDATED',
+  // Wiadomość systemowa węzła dla konta (WiadomosciWezlaScheduler) — tylko operator, bez userId.
+  NODE_SYSTEM_MESSAGE: 'NODE_SYSTEM_MESSAGE',
 } as const;
 
 export const ProvisioningActions = {

@@ -1261,6 +1261,10 @@ model Account {
   // platform-initiated snapshot). Feeds the health-score backup-freshness check.
   lastBackupAt    DateTime?
 
+  // Ostatnia przetworzona wiadomość systemowa węzła (numer z CMD_API_TICKET). NULL = konto jeszcze
+  // nie przeglądane — pierwszy przebieg tylko zapamiętuje najnowszy numer, bez wysyłki zaległych.
+  daMessageSeen   Int?
+
   wpAutoUpdates   WpAutoUpdate[]
   gitWebhooks     GitWebhook[]
 

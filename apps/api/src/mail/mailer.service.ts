@@ -43,6 +43,8 @@ export const POWIADOMIENIA_OPCJONALNE: Record<string, 'autoscalingEmail' | 'quot
   'autoscaling.started': 'autoscalingEmail',
   'autoscaling.ended': 'autoscalingEmail',
   'hosting.quota-alert': 'quotaAlertsEmail',
+  'hosting.komunikat.limit-dysku': 'quotaAlertsEmail',
+  'hosting.komunikat.limit-transferu': 'quotaAlertsEmail',
 };
 
 /**
