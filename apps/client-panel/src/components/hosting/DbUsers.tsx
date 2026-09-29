@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { PoleHasla } from '@/components/hosting/PoleHasla';
 import { KeyRound, Loader2, Plus, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -24,12 +25,6 @@ const ZESTAWY = [
   { value: 'ro', label: 'Tylko odczyt' },
 ];
 
-function genPassword(len = 18): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
-  const arr = new Uint32Array(len);
-  crypto.getRandomValues(arr);
-  return Array.from(arr, (n) => chars[n % chars.length]).join('');
-}
 
 /** SPRINT-1a — zarządzanie użytkownikami istniejącej bazy MySQL. */
 export default function DbUsers({ serviceId, db }: { serviceId: string; db: string }) {
@@ -146,20 +141,7 @@ export default function DbUsers({ serviceId, db }: { serviceId: string; db: stri
               className="w-32 flex-1 rounded-[7px] border border-line bg-background px-2.5 py-1.5 text-sm text-foreground placeholder:text-muted-foreground"
             />
             <div className="flex flex-[2] gap-1.5">
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="hasło (min. 8 znaków)"
-                className="w-full rounded-[7px] border border-line bg-background px-2.5 py-1.5 font-mono text-sm text-foreground placeholder:text-muted-foreground"
-              />
-              <button
-                type="button"
-                title="Wygeneruj hasło"
-                onClick={() => setPassword(genPassword())}
-                className="shrink-0 rounded-[7px] border border-line bg-raised px-2 text-[color:var(--verris-body)] hover:bg-raised"
-              >
-                <KeyRound className="h-3.5 w-3.5" />
-              </button>
+              <PoleHasla value={password} onChange={setPassword} placeholder="hasło (min. 8 znaków)" className="w-full rounded-[7px] border border-line bg-background px-2.5 py-1.5 font-mono text-sm text-foreground placeholder:text-muted-foreground" small />
             </div>
             <button
               type="submit"
@@ -220,20 +202,7 @@ export default function DbUsers({ serviceId, db }: { serviceId: string; db: stri
                   </div>
                   {pwFor === u ? (
                     <div className="mt-1.5 flex gap-1.5">
-                      <input
-                        value={pwValue}
-                        onChange={(e) => setPwValue(e.target.value)}
-                        placeholder="nowe hasło (min. 8 znaków)"
-                        className="w-full rounded-[7px] border border-line bg-background px-2.5 py-1.5 font-mono text-xs text-foreground placeholder:text-muted-foreground"
-                      />
-                      <button
-                        type="button"
-                        title="Wygeneruj hasło"
-                        onClick={() => setPwValue(genPassword())}
-                        className="shrink-0 rounded-[7px] border border-line bg-raised px-2 text-[color:var(--verris-body)] hover:bg-raised"
-                      >
-                        <KeyRound className="h-3.5 w-3.5" />
-                      </button>
+                      <PoleHasla value={pwValue} onChange={setPwValue} placeholder="nowe hasło (min. 8 znaków)" className="w-full rounded-[7px] border border-line bg-background px-2.5 py-1.5 font-mono text-xs text-foreground placeholder:text-muted-foreground" small />
                       <button
                         type="button"
                         disabled={pwSaving || pwValue.length < 8}

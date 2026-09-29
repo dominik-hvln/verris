@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { PoleHasla } from '@/components/hosting/PoleHasla';
 import Link from 'next/link';
 import {
   AlertCircle,
@@ -10,7 +11,6 @@ import {
   Mail,
   Plus,
   RefreshCw,
-  Server,
   Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -32,7 +32,7 @@ import {
 } from '@/app/dashboard/services/[id]/hosting-connection-actions';
 import { HostingTabShell } from '@/components/hosting/HostingTabShell';
 import { AccessList, Kpi, KpiStrip, Meter } from '@/components/panel/v2';
-import MailExtras from '@/components/hosting/MailExtras';
+import MailExtras, { MailOchrona } from '@/components/hosting/MailExtras';
 import { MailLogPanel } from '@/components/hosting/MailLogPanel';
 import { countDiskUsage, fetchDiskUsage, type DiskUsageStatus } from '@/app/dashboard/services/[id]/hosting-disk-usage-actions';
 import { DeliverabilityPanel } from '@/app/dashboard/email/deliverability-panel';
@@ -46,12 +46,6 @@ const fetchHostingEmailAction = zOdpakowaniem(fetchHostingEmailActionAkcja);
 const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
 const fetchConnectionInfoAction = zOdpakowaniem(fetchConnectionInfoActionAkcja);
 
-function genPassword(len = 18): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
-  const arr = new Uint32Array(len);
-  crypto.getRandomValues(arr);
-  return Array.from(arr, (n) => chars[n % chars.length]).join('');
-}
 
 interface Props {
   serviceId: string;
@@ -331,32 +325,9 @@ export default function MailTab({ serviceId }: Props) {
         />
       </KpiStrip>
 
-      <div className="mb-4 mt-4 rounded-[10px] border border-line bg-card">
-        <div className="flex items-center justify-between gap-3 px-4 pt-3.5">
-          <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Ustawienia klienta pocztowego</h3>
-        </div>
-        <AccessList
-          items={[
-            { label: 'Serwer przychodzący (IMAP)', values: [imapHost], port: '993' },
-            { label: 'Serwer wychodzący (SMTP)', values: [imapHost], port: '465' },
-            { label: 'Kalendarz i kontakty (CalDAV/CardDAV)', values: [mailHost ? `https://${mailHost}:5232/` : '—'], port: null },
-          ]}
-        />
-        <p className="m-0 px-4 pb-3.5 pt-2 font-mono text-[11.5px] leading-relaxed text-muted-foreground">
-          Szyfrowanie SSL/TLS: SMTP na porcie 465 (SSL). Jeśli Twoja sieć blokuje 465, użyj 587 ze STARTTLS. Login to pełny adres skrzynki (np. kontakt@twojadomena.pl). Hasło ustawiasz przy tworzeniu skrzynki. Webmail otwierasz przyciskiem wyżej.
-        </p>
-        <p className="m-0 px-4 pb-3.5 text-[12.5px] leading-relaxed text-muted-foreground">
-          Filtry poczty (np. przenoszenie wiadomości do folderu, przekierowanie według nadawcy, autoodpowiedź) ustawisz w webmailu:
-          Ustawienia → Filtry. Reguły działają na serwerze, więc obowiązują też w telefonie i programie pocztowym.
-        </p>
-        <p className="m-0 px-4 pb-3.5 text-[12.5px] leading-relaxed text-muted-foreground">
-          Każda skrzynka ma własny kalendarz i książkę kontaktów, synchronizowane z telefonem i komputerem. Logujesz się tym samym adresem i hasłem co do poczty.
-          iPhone/Mac: Ustawienia → Kalendarz → Konta → Dodaj konto → Inne → Konto CalDAV (i osobno CardDAV), serwer jak wyżej.
-          Android: aplikacja DAVx⁵ → „Zaloguj się za pomocą adresu URL i nazwy użytkownika”. Thunderbird: Nowy kalendarz → W sieci.
-          Kopia kalendarzy i kontaktów trafia co noc do kopii zapasowej konta.
-        </p>
-      </div>
-
+      {/* Dwie kolumny: skrzynki i ich ustawienia po lewej, ustawienia domeny i klienta pocztowego po prawej. */}
+      <div className="mt-4 grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
+        <div className="min-w-0">
       {/* Create mailbox */}
       <form onSubmit={onCreate} className="mb-5 rounded-[10px] border border-line bg-raised p-4">
         <p className="mb-3 text-sm font-semibold text-foreground">Nowa skrzynka e-mail</p>
@@ -382,25 +353,12 @@ export default function MailTab({ serviceId }: Props) {
               />
             </div>
           </label>
-          <label className="space-y-1">
+          <div className="space-y-1">
             <span className="text-xs text-muted-foreground">Hasło</span>
             <div className="flex gap-1.5">
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="min. 8 znaków"
-                className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data"
-              />
-              <button
-                type="button"
-                title="Wygeneruj hasło"
-                onClick={() => setPassword(genPassword())}
-                className="shrink-0 rounded-[7px] border border-line bg-raised px-2.5 text-[color:var(--verris-body)] hover:bg-raised"
-              >
-                <KeyRound className="h-4 w-4" />
-              </button>
+              <PoleHasla value={password} onChange={setPassword} placeholder="min. 8 znaków" className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data" />
             </div>
-          </label>
+          </div>
         </div>
         <div className="mt-3 flex items-end justify-between gap-3">
           <label className="space-y-1">
@@ -526,25 +484,12 @@ export default function MailTab({ serviceId }: Props) {
               ) : null}
               {pwEditing === box.email ? (
                 <div className="flex items-end gap-2 px-4 pb-3">
-                  <label className="flex-1 space-y-1">
+                  <div className="flex-1 space-y-1">
                     <span className="text-[11px] text-muted-foreground">Nowe hasło (min. 8 znaków)</span>
                     <div className="flex gap-1.5">
-                      <input
-                        value={pwValue}
-                        onChange={(e) => setPwValue(e.target.value)}
-                        placeholder="nowe hasło"
-                        className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data"
-                      />
-                      <button
-                        type="button"
-                        title="Wygeneruj hasło"
-                        onClick={() => setPwValue(genPassword())}
-                        className="shrink-0 rounded-[7px] border border-line bg-raised px-2.5 text-[color:var(--verris-body)] hover:bg-raised"
-                      >
-                        <KeyRound className="h-4 w-4" />
-                      </button>
+                      <PoleHasla value={pwValue} onChange={setPwValue} placeholder="nowe hasło" className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data" />
                     </div>
-                  </label>
+                  </div>
                   <Button
                     type="button"
                     size="sm"
@@ -567,12 +512,27 @@ export default function MailTab({ serviceId }: Props) {
       <DeliverabilityPanel serviceId={serviceId} />
 
       <MailLogPanel serviceId={serviceId} />
-
-      <p className="mt-3 flex items-start gap-2 text-[11px] text-muted-foreground">
-        <Server className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-        Skrzynki tworzysz i usuwasz tutaj. Webmail (jeśli włączony na węźle) i zaawansowane opcje są dostępne w
-        panelu hostingu.
-      </p>
+        </div>
+        <aside className="min-w-0 space-y-5 xl:sticky xl:top-4">
+          {/* CalDAV/CardDAV i filtry Sieve ukryte do sprawdzenia na węźle: E-23 po starcie, E-12 (Pigeonhole). */}
+      <div className="rounded-[10px] border border-line bg-card">
+        <div className="px-4 pt-3.5">
+          <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Ustawienia klienta pocztowego</h3>
+        </div>
+        <AccessList
+          items={[
+            { label: 'Serwer przychodzący (IMAP)', values: [imapHost], port: '993' },
+            { label: 'Serwer wychodzący (SMTP)', values: [imapHost], port: '465' },
+          ]}
+        />
+        <p className="m-0 px-4 pb-3.5 pt-2 text-[12px] leading-relaxed text-muted-foreground">
+          SSL/TLS: SMTP na porcie 465. Gdy sieć blokuje 465 — port 587 ze STARTTLS. Login to pełny adres skrzynki
+          (np. kontakt@twojadomena.pl), hasło — to ustawione przy skrzynce.
+        </p>
+      </div>
+          <MailOchrona serviceId={serviceId} />
+        </aside>
+      </div>
     </HostingTabShell>
   );
 }

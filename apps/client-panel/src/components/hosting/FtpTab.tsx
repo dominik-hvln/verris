@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { PoleHasla } from '@/components/hosting/PoleHasla';
 import { FolderKanban, KeyRound, Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@verris/ui';
@@ -20,12 +21,6 @@ import { zOdpakowaniem } from '@/lib/wynik-akcji';
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
 const fetchHostingFtpAction = zOdpakowaniem(fetchHostingFtpActionAkcja);
 
-function genPassword(len = 18): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
-  const arr = new Uint32Array(len);
-  crypto.getRandomValues(arr);
-  return Array.from(arr, (n) => chars[n % chars.length]).join('');
-}
 
 export default function FtpTab({ serviceId }: { serviceId: string }) {
   const [rows, setRows] = useState<HostingFtpAccountDto[]>([]);
@@ -122,25 +117,12 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
               className="w-full rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-data"
             />
           </label>
-          <label className="space-y-1">
+          <div className="space-y-1">
             <span className="text-xs text-muted-foreground">Hasło</span>
             <div className="flex gap-1.5">
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="min. 8 znaków"
-                className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data"
-              />
-              <button
-                type="button"
-                title="Wygeneruj hasło"
-                onClick={() => setPassword(genPassword())}
-                className="shrink-0 rounded-[7px] border border-line bg-raised px-2.5 text-[color:var(--verris-body)] hover:bg-raised"
-              >
-                <KeyRound className="h-4 w-4" />
-              </button>
+              <PoleHasla value={password} onChange={setPassword} placeholder="min. 8 znaków" className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data" />
             </div>
-          </label>
+          </div>
           <label className="space-y-1">
             <span className="text-xs text-muted-foreground">Katalog (opcjonalnie)</span>
             <input
@@ -215,24 +197,12 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
             </div>
             {pwFor === r.username ? (
               <div className="flex flex-wrap items-end gap-2 px-4 pb-3">
-                <label className="min-w-[14rem] flex-1 space-y-1">
+                <div className="min-w-[14rem] flex-1 space-y-1">
                   <span className="text-[11px] text-muted-foreground">Nowe hasło (min. 8 znaków)</span>
                   <div className="flex gap-1.5">
-                    <input
-                      value={pwValue}
-                      onChange={(e) => setPwValue(e.target.value)}
-                      className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data"
-                    />
-                    <button
-                      type="button"
-                      title="Wygeneruj hasło"
-                      onClick={() => setPwValue(genPassword())}
-                      className="shrink-0 rounded-[7px] border border-line bg-raised px-2.5 text-[color:var(--verris-body)] hover:bg-raised"
-                    >
-                      <KeyRound className="h-4 w-4" />
-                    </button>
+                    <PoleHasla value={pwValue} onChange={setPwValue} className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data" />
                   </div>
-                </label>
+                </div>
                 <Button
                   type="button"
                   size="sm"

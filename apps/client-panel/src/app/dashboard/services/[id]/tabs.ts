@@ -30,7 +30,7 @@ export const TABS = [
   { id: 'ssl', label: 'Certyfikaty SSL', icon: Shield },
   { id: 'apps', label: 'Aplikacje 1-click', icon: Globe },
   { id: 'webtools', label: 'Narzędzia WWW', icon: Wrench },
-  { id: 'ftp', label: 'Konta FTP', icon: FolderKanban },
+  { id: 'ftp', label: 'FTP i SSH', icon: FolderKanban },
   { id: 'cron', label: 'Zadania cron', icon: Clock },
   { id: 'backups', label: 'Kopie zapasowe', icon: Archive },
   { id: 'waf', label: 'Bezpieczeństwo (WAF)', icon: Shield },
@@ -55,7 +55,8 @@ export const NAV_GROUPS: { label: string; ids: TabId[] }[] = [
 
 /** Poczta ma krótki zestaw; tryb prosty chowa narzędzia dla zaawansowanych (GUIDE-4). */
 export const EMAIL_TAB_IDS: TabId[] = ['overview', 'subscription', 'domains', 'mail', 'backups'];
-export const ADVANCED_TAB_IDS: TabId[] = ['php', 'ftp', 'cron', 'waf', 'staging', 'deploy', 'usage', 'logs'];
+// FTP i SSH zostają w widoku prostym — dostęp do plików to podstawa hostingu (retest 29.09: „nie widzę FTP ani SSH”).
+export const ADVANCED_TAB_IDS: TabId[] = ['php', 'cron', 'waf', 'staging', 'deploy', 'usage', 'logs'];
 
 export function isTabId(v: string | null): v is TabId {
   return !!v && TABS.some((t) => t.id === v);

@@ -48,48 +48,18 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
   const [arBusy, setArBusy] = useState(false);
   const [arDel, setArDel] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  // catch-all
-  const [caMode, setCaMode] = useState<'fail' | 'blackhole' | 'address'>('fail');
-  const [caAddr, setCaAddr] = useState('');
-  const [caBusy, setCaBusy] = useState(false);
-  // spam filter
-  const [spamOn, setSpamOn] = useState(false);
-  const [spamScore, setSpamScore] = useState('5');
-  const [spamTag, setSpamTag] = useState('***SPAM*** ');
-  const [spamBusy, setSpamBusy] = useState(false);
-
   const load = useCallback(async () => {
     try {
-      const [fw, ar, ca, sp] = await Promise.all([
+      const [fw, ar] = await Promise.all([
         fetchHostingForwardersAction(serviceId).catch((e) => ({ rows: [], fetchError: e instanceof Error ? e.message : 'Błąd' })),
         fetchHostingAutorespondersAction(serviceId).catch((e) => ({ rows: [], fetchError: e instanceof Error ? e.message : 'Błąd' })),
-        fetchCatchAllAction(serviceId).catch(() => null),
-        fetchSpamFilterAction(serviceId).catch(() => null),
       ]);
       setFwRows(fw.rows); setFwErr(fw.fetchError);
       setArRows(ar.rows); setArErr(ar.fetchError);
-      if (ca) { setCaMode(ca.mode); setCaAddr(ca.address || ''); }
-      if (sp) { setSpamOn(sp.isOn); setSpamScore(sp.requiredScore || '5'); if (sp.subjectTag) setSpamTag(sp.subjectTag); }
     } finally {
       setLoading(false);
     }
   }, [serviceId]);
-
-  const saveCatchAll = async () => {
-    setCaBusy(true);
-    const res = await setCatchAllAction({ subscriptionId: serviceId, mode: caMode, address: caAddr });
-    setCaBusy(false);
-    if (!res.ok) { toast.error('Nie udało się zapisać catch-all', { description: daErrorMessage(res.error) }); return; }
-    toast.success('Catch-all zapisany');
-  };
-  const saveSpam = async (enabled: boolean) => {
-    setSpamBusy(true);
-    const res = await setSpamFilterAction({ subscriptionId: serviceId, enabled, requiredScore: spamScore, subjectTag: spamTag });
-    setSpamBusy(false);
-    if (!res.ok) { toast.error('Nie udało się zapisać filtra', { description: daErrorMessage(res.error) }); return; }
-    setSpamOn(enabled);
-    toast.success(enabled ? 'Filtr antyspam włączony' : 'Filtr antyspam wyłączony');
-  };
 
   useEffect(() => { void load(); }, [load]);
 
@@ -130,7 +100,7 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
   };
 
   return (
-    <div className="mt-6 space-y-6">
+    <div className="mt-5 space-y-5">
       {/* Forwardery */}
       <section className="rounded-[10px] border border-line bg-raised p-4">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -203,6 +173,51 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
         )}
       </section>
 
+    </div>
+  );
+}
+
+/**
+ * Catch-all i filtr antyspam — ustawienia całej domeny, w prawej kolumnie zakładki Poczta.
+ */
+export function MailOchrona({ serviceId }: { serviceId: string }) {
+  const [caMode, setCaMode] = useState<'fail' | 'blackhole' | 'address'>('fail');
+  const [caAddr, setCaAddr] = useState('');
+  const [caBusy, setCaBusy] = useState(false);
+  const [spamOn, setSpamOn] = useState(false);
+  const [spamScore, setSpamScore] = useState('5');
+  const [spamTag, setSpamTag] = useState('***SPAM*** ');
+  const [spamBusy, setSpamBusy] = useState(false);
+
+  useEffect(() => {
+    void (async () => {
+      const [ca, sp] = await Promise.all([
+        fetchCatchAllAction(serviceId).catch(() => null),
+        fetchSpamFilterAction(serviceId).catch(() => null),
+      ]);
+      if (ca) { setCaMode(ca.mode); setCaAddr(ca.address || ''); }
+      if (sp) { setSpamOn(sp.isOn); setSpamScore(sp.requiredScore || '5'); if (sp.subjectTag) setSpamTag(sp.subjectTag); }
+    })();
+  }, [serviceId]);
+
+  const saveCatchAll = async () => {
+    setCaBusy(true);
+    const res = await setCatchAllAction({ subscriptionId: serviceId, mode: caMode, address: caAddr });
+    setCaBusy(false);
+    if (!res.ok) { toast.error('Nie udało się zapisać catch-all', { description: daErrorMessage(res.error) }); return; }
+    toast.success('Catch-all zapisany');
+  };
+  const saveSpam = async (enabled: boolean) => {
+    setSpamBusy(true);
+    const res = await setSpamFilterAction({ subscriptionId: serviceId, enabled, requiredScore: spamScore, subjectTag: spamTag });
+    setSpamBusy(false);
+    if (!res.ok) { toast.error('Nie udało się zapisać filtra', { description: daErrorMessage(res.error) }); return; }
+    setSpamOn(enabled);
+    toast.success(enabled ? 'Filtr antyspam włączony' : 'Filtr antyspam wyłączony');
+  };
+
+  return (
+    <div className="space-y-5">
       {/* Catch-all */}
       <section className="rounded-[10px] border border-line bg-raised p-4">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground"><Inbox className="h-4 w-4 text-data-hi" /> Catch-all (poczta na nieistniejące adresy)</h3>
@@ -212,7 +227,7 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
             aria-label="Tryb catch-all"
             value={caMode}
             onChange={(v) => setCaMode(v as 'fail' | 'blackhole' | 'address')}
-            className="w-full max-w-[230px]"
+            className="w-full"
             options={[
               { value: 'fail', label: 'Odrzucaj (zalecane)' },
               { value: 'blackhole', label: 'Przyjmij i wyrzuć po cichu' },
@@ -220,7 +235,7 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
             ]}
           />
           {caMode === 'address' && (
-            <input value={caAddr} onChange={(e) => setCaAddr(e.target.value)} placeholder="adres docelowy" className={fieldCls + ' flex-1 min-w-[200px]'} />
+            <input value={caAddr} onChange={(e) => setCaAddr(e.target.value)} placeholder="adres docelowy" className={fieldCls + ' w-full'} />
           )}
           <Button onClick={saveCatchAll} disabled={caBusy} className="h-9 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs">{caBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Zapisz</Button>
         </div>
@@ -238,7 +253,7 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
           <label className="flex items-center gap-2 text-xs text-muted-foreground">Próg (czułość)
             <input value={spamScore} onChange={(e) => setSpamScore(e.target.value.replace(/[^0-9.]/g, ''))} className={fieldCls + ' w-16'} />
           </label>
-          <label className="flex items-center gap-2 text-xs text-muted-foreground flex-1 min-w-[200px]">Tag tematu
+          <label className="flex items-center gap-2 text-xs text-muted-foreground w-full">Tag tematu
             <input value={spamTag} onChange={(e) => setSpamTag(e.target.value)} className={fieldCls + ' flex-1'} />
           </label>
           <Button onClick={() => saveSpam(true)} disabled={spamBusy} className="h-9 gap-1.5 bg-raised text-foreground hover:bg-raised text-xs">{spamBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Zapisz ustawienia</Button>

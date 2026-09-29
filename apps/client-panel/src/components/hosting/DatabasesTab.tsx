@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Database, Loader2, RefreshCw, AlertCircle, ExternalLink, Plus, Trash2, KeyRound } from 'lucide-react';
+import { PoleHasla } from '@/components/hosting/PoleHasla';
+import { Database, Loader2, RefreshCw, AlertCircle, ExternalLink, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@verris/ui';
 import {
@@ -27,12 +28,6 @@ interface Props {
   serviceId: string;
 }
 
-function genPassword(len = 18): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
-  const arr = new Uint32Array(len);
-  crypto.getRandomValues(arr);
-  return Array.from(arr, (n) => chars[n % chars.length]).join('');
-}
 
 export default function DatabasesTab({ serviceId }: Props) {
   const [loading, setLoading] = useState(true);
@@ -222,25 +217,12 @@ export default function DatabasesTab({ serviceId }: Props) {
               className="w-full rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-data"
             />
           </label>
-          <label className="space-y-1">
+          <div className="space-y-1">
             <span className="text-xs text-muted-foreground">Hasło</span>
             <div className="flex gap-1.5">
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="min. 8 znaków"
-                className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data"
-              />
-              <button
-                type="button"
-                title="Wygeneruj hasło"
-                onClick={() => setPassword(genPassword())}
-                className="shrink-0 rounded-[7px] border border-line bg-raised px-2.5 text-[color:var(--verris-body)] hover:bg-raised"
-              >
-                <KeyRound className="h-4 w-4" />
-              </button>
+              <PoleHasla value={password} onChange={setPassword} placeholder="min. 8 znaków" className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data" />
             </div>
-          </label>
+          </div>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
           Do nazwy bazy i użytkownika dodamy prefiks konta (np. <span className="font-mono">user_sklep</span>).
