@@ -2111,8 +2111,13 @@ export class SubscriptionsService {
       opts.metadataSubscriptionId ?? null,
     );
     if (!sub) return null;
+    // SUSPENDED zostaje: kolejne ponowienie Stripe (Smart Retries) po zawieszeniu przestawiało usługę
+    // SUSPENDED → PAST_DUE — licznik 14 dni do wygaśnięcia (§7 ust. 3) stawał, zawieszenie za nadużycie
+    // zamieniało się w „za brak płatności”, a udana płatność dawała ACTIVE bez odwieszenia konta na węźle
+    // (raport CL-04, Z-01).
     if (
       sub.status === SubscriptionStatus.PAST_DUE ||
+      sub.status === SubscriptionStatus.SUSPENDED ||
       sub.status === SubscriptionStatus.CANCELED ||
       sub.status === SubscriptionStatus.EXPIRED
     ) {

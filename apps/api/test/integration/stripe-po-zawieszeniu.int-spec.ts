@@ -57,4 +57,14 @@ describe('Stripe: płatność po zawieszeniu', () => {
     expect(s.status).toBe('SUSPENDED');
     expect(odwieszone).toHaveLength(0);
   });
+
+  it.each(['GRACE_EXPIRED', 'ABUSE'])('kolejne nieudane ponowienie Stripe po zawieszeniu (%s): status i harmonogram bez zmian (CL-04 Z-01)', async (powod) => {
+    const k = await zawieszona(powod);
+    const przed = await prisma().subscriptionEvent.count({ where: { subscriptionId: k.subscription.id } });
+    await uslugi().markPastDueFromStripe({ stripeSubscriptionId: `sub_${k.subscription.id.slice(0, 8)}`, reason: 'invoice.payment_failed' });
+    const s = await prisma().subscription.findUniqueOrThrow({ where: { id: k.subscription.id } });
+    expect(s.status).toBe('SUSPENDED');
+    expect(await prisma().subscriptionEvent.count({ where: { subscriptionId: k.subscription.id } })).toBe(przed);
+  });
 });
+
