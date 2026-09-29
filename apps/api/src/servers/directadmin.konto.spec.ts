@@ -102,14 +102,14 @@ describe('Bazy MySQL — użytkownicy i zdalny dostęp', () => {
     await expect(s.svc.createHostingDbUser('s1', 'u1', { db: 'klient1_sklep', user: 'raport', password: 'Haslo1234' }))
       .resolves.toEqual({ username: 'klient1_raport' });
     expect(s.sciezki()).toEqual(['/CMD_API_DB_USER']);
-    expect(s.wyslane()).toEqual({ action: 'create', db: 'klient1_sklep', name: 'raport', user: 'raport', passwd: 'Haslo1234', passwd2: 'Haslo1234' });
+    expect(s.wyslane()).toEqual({ action: 'create', name: 'klient1_sklep', user: 'raport', passwd: 'Haslo1234', passwd2: 'Haslo1234' });
   });
 
-  it('błąd DA na obu ścieżkach (nowa i zapasowa) → wyjątek, bez audytu', async () => {
-    const s = stanowisko({ post: { '/CMD_API_DB_USER': 'error=1&text=Nieznana%20komenda', '/CMD_API_DATABASES': 'error=1&text=Limit%20u%C5%BCytkownik%C3%B3w' } });
+  it('błąd DA → wyjątek z komunikatem DA, bez zapasowego wywołania i bez audytu (retest D3 29.09)', async () => {
+    const s = stanowisko({ post: { '/CMD_API_DB_USER': 'error=1&text=Limit%20u%C5%BCytkownik%C3%B3w' } });
     await expect(s.svc.createHostingDbUser('s1', 'u1', { db: 'klient1_sklep', user: 'raport', password: 'Haslo1234' }))
       .rejects.toThrow('Limit użytkowników');
-    expect(s.sciezki()).toEqual(['/CMD_API_DB_USER', '/CMD_API_DATABASES']);
+    expect(s.sciezki()).toEqual(['/CMD_API_DB_USER']);
     expect(s.audit.record).not.toHaveBeenCalled();
   });
 

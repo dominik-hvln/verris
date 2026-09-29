@@ -116,3 +116,33 @@ describe('menedżer plików DA 1.710 — odpowiedzi', () => {
     await expect(k.renameEntry('/x', 'a', 'b')).rejects.toThrow('no such file or directory');
   });
 });
+
+describe('użytkownicy bazy — CMD_API_DB_USER wg dokumentacji DA (name = baza)', () => {
+  const zPosta = (odpowiedz = 'error=0&text=OK') => {
+    const post = vi.fn(async (_p: string, _b: string) => ({ data: odpowiedz }));
+    const get = vi.fn(async (_p: string, _c?: unknown) => ({ data: 'list%5B%5D=klient1_wp&list%5B%5D=klient1_test' }));
+    const k = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'klient1', loginKey: 'x', secure: true });
+    Object.assign(k, { client: { get, post } });
+    const pola = (n = 0) => Object.fromEntries(new URLSearchParams(String(post.mock.calls[n]?.[1] ?? '')));
+    return { k, post, get, pola };
+  };
+
+  it('lista: GET name=<baza>; utworzenie: name=<baza>, user=<krótki> (retest D3 29.09: name=<użytkownik>)', async () => {
+    const s = zPosta();
+    await expect(s.k.listDbUsers('klient1_wp')).resolves.toEqual(['klient1_test', 'klient1_wp']);
+    expect(s.get).toHaveBeenCalledWith('/CMD_API_DB_USER', { params: { name: 'klient1_wp' } });
+    await expect(s.k.createDbUser('klient1_wp', 'test', 'Haslo-testowe-1')).resolves.toEqual({ username: 'klient1_test' });
+    expect(s.pola()).toEqual({ action: 'create', name: 'klient1_wp', user: 'test', passwd: 'Haslo-testowe-1', passwd2: 'Haslo-testowe-1' });
+  });
+
+  it('zmiana hasła i usunięcie z name=<baza>; błąd DA nie jest zamieniany na sukces', async () => {
+    const s = zPosta();
+    await s.k.setDbUserPassword('klient1_wp', 'klient1_test', 'Haslo-testowe-2');
+    expect(s.pola(0)).toEqual({ action: 'modify', name: 'klient1_wp', user: 'klient1_test', passwd: 'Haslo-testowe-2', passwd2: 'Haslo-testowe-2' });
+    await s.k.deleteDbUser('klient1_wp', 'klient1_test');
+    expect(s.pola(1)).toEqual({ action: 'delete', name: 'klient1_wp', select0: 'klient1_test' });
+    const bl = zPosta('error=1&text=Database+does+not+exist');
+    await expect(bl.k.createDbUser('klient1_wp', 'x', 'Haslo-testowe-3')).rejects.toThrow('Database does not exist');
+    expect(bl.post).toHaveBeenCalledTimes(1);
+  });
+});

@@ -1103,44 +1103,29 @@ export class DirectAdminClient {
   }
 
   // ---------------------------------------------------------------------------
-  // MySQL — database users (CMD_API_DB_USER, fallback CMD_API_DATABASES)
-  //
-  // NOTE: DA builds differ in the exact command set for db-user management
-  // (newer builds expose CMD_API_DB_USER; older ones only the CMD_API_DATABASES
-  // form actions). Like the file-manager block above: primary + fallback,
-  // verify against the live node.
+  // MySQL — użytkownicy bazy: CMD_API_DB_USER, parametr `name` = PEŁNA nazwa bazy we wszystkich
+  // akcjach (docs.directadmin.com → changelog 1.25.1: list `name=db_name`; create `action=create,
+  // name=db_name, user=bob, passwd, passwd2`; modify `name=db_name, user=user_bob`; delete
+  // `name=db_name, select0=user_bob`). Retest D3 29.09: create wysyłał name=<użytkownik>, a
+  // „zapasowe” CMD_API_DATABASES action=adduser zwracało odpowiedź bez error=1 — panel pokazywał
+  // „dodano”, a w MariaDB użytkownika nie było. Bez zapasowych wywołań: błąd DA = błąd dla klienta.
   // ---------------------------------------------------------------------------
 
   /** Lists user names attached to a database (full, prefixed names). */
   async listDbUsers(fullDbName: string): Promise<string[]> {
-    const attempts: Array<{ path: string; params: Record<string, string> }> = [
-      { path: '/CMD_API_DB_USER', params: { db: fullDbName } },
-      { path: '/CMD_API_DATABASES', params: { action: 'users', db: fullDbName } },
-    ];
-    let lastErr: unknown = null;
-    for (const attempt of attempts) {
-      try {
-        const response = await this.client.get(attempt.path, { params: attempt.params });
-        const params = this.daPayloadToParams(response.data);
-        if (params.get('error') === '1') {
-          lastErr = new Error(params.get('text') || 'DirectAdmin error');
-          continue;
-        }
-        const users = new Set<string>();
-        for (const [key, value] of params.entries()) {
-          if (['error', 'text', 'details'].includes(key)) continue;
-          // DA emits either list0..N=<user> or <full_user>=<short_user>.
-          const candidate = key.startsWith('list') ? value : key;
-          if (candidate && candidate.includes('_')) users.add(candidate);
-        }
-        return Array.from(users).sort();
-      } catch (err) {
-        lastErr = err;
-      }
+    const response = await this.client.get('/CMD_API_DB_USER', { params: { name: fullDbName } });
+    const params = this.daPayloadToParams(response.data);
+    if (params.get('error') === '1') {
+      throw bladDa(params.get('text') || params.get('details') || 'DirectAdmin error');
     }
-    throw lastErr instanceof Error
-      ? lastErr
-      : new Error('Nie udało się pobrać użytkowników bazy danych');
+    const users = new Set<string>();
+    for (const [key, value] of params.entries()) {
+      if (['error', 'text', 'details'].includes(key)) continue;
+      // DA emits either list[]=<user> / list0..N=<user> or <full_user>=<short_user>.
+      const candidate = key.startsWith('list') ? value : key;
+      if (candidate && candidate.includes('_')) users.add(candidate);
+    }
+    return Array.from(users).sort();
   }
 
   /**
@@ -1152,29 +1137,13 @@ export class DirectAdminClient {
     user: string,
     password: string,
   ): Promise<{ username: string }> {
-    const body = {
-      db: fullDbName,
-      name: user,
-      user,
-      passwd: password,
-      passwd2: password,
-    };
-    try {
-      await this.daPost('/CMD_API_DB_USER', { action: 'create', ...body });
-    } catch {
-      await this.daPost('/CMD_API_DATABASES', { action: 'adduser', ...body });
-    }
+    await this.daPost('/CMD_API_DB_USER', { action: 'create', name: fullDbName, user, passwd: password, passwd2: password });
     return { username: `${this.usernameForDbPrefix()}_${user}` };
   }
 
   /** Deletes a database user (full, prefixed name). */
   async deleteDbUser(fullDbName: string, fullUserName: string): Promise<void> {
-    const body = { db: fullDbName, user: fullUserName, select0: fullUserName };
-    try {
-      await this.daPost('/CMD_API_DB_USER', { action: 'delete', ...body });
-    } catch {
-      await this.daPost('/CMD_API_DATABASES', { action: 'deluser', ...body });
-    }
+    await this.daPost('/CMD_API_DB_USER', { action: 'delete', name: fullDbName, select0: fullUserName });
   }
 
   /** Changes a database user's password (full, prefixed name). */
@@ -1183,18 +1152,7 @@ export class DirectAdminClient {
     fullUserName: string,
     password: string,
   ): Promise<void> {
-    const body = {
-      db: fullDbName,
-      user: fullUserName,
-      name: fullUserName,
-      passwd: password,
-      passwd2: password,
-    };
-    try {
-      await this.daPost('/CMD_API_DB_USER', { action: 'modify', ...body });
-    } catch {
-      await this.daPost('/CMD_API_DATABASES', { action: 'moduser', ...body });
-    }
+    await this.daPost('/CMD_API_DB_USER', { action: 'modify', name: fullDbName, user: fullUserName, passwd: password, passwd2: password });
   }
 
   // ---------------------------------------------------------------------------
