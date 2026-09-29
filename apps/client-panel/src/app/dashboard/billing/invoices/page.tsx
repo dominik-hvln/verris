@@ -5,6 +5,7 @@ import { ApiError } from '@/lib/api';
 import { PageHeaderRow, PanelCard } from '@/components/panel';
 import { getInvoiceList } from './data';
 import { InvoiceList } from './invoice-list';
+import { plForm } from '@/lib/pl';
 
 const PAGE_SIZE = 25;
 
@@ -93,7 +94,7 @@ function Pagination({
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-white/5 bg-white/[0.02] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
       <p className="text-sm text-neutral-400">
-        Strona {page} z {totalPages} • {total} {total === 1 ? 'faktura' : 'faktur'} łącznie
+        Strona {page} z {totalPages} • {total} {plForm(total, 'faktura', 'faktury', 'faktur')} łącznie
       </p>
       <div className="flex items-center gap-2">
         {hasPrev ? (

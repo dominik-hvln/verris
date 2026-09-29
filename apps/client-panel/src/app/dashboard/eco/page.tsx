@@ -12,6 +12,7 @@ import { EcoPointsGuide } from './eco-points-guide';
 import { ECO_LEDGER_REASON_LABEL } from '@/lib/eco-point-rules';
 import { PanelFetchError, PanelPageHeader } from '@/components/panel';
 import { Kpi, KpiStrip, Meter } from '@/components/panel/v2';
+import { plForm } from '@/lib/pl';
 
 function badgeEmbedHtml(src: string, height: number, alt: string): string {
   return `<a href="https://verris.pl" target="_blank" rel="noopener"><img src="${src}" height="${height}" alt="${alt}"></a>`;
@@ -123,7 +124,7 @@ export default async function EcoProgramPage() {
               {badgeStats.impressionsUntilNextPoint}
             </p>
             <p className="mt-1 text-xs text-neutral-500">
-              Przyznajemy 1 pkt co {badgeStats.impressionsPerPoint} wyświetleń
+              Przyznajemy 1 pkt co {badgeStats.impressionsPerPoint} {plForm(badgeStats.impressionsPerPoint, 'wyświetlenie', 'wyświetlenia', 'wyświetleń')}
             </p>
           </article>
           <article className="rounded-xl border border-white/10 bg-black/20 p-4">
@@ -184,7 +185,7 @@ export default async function EcoProgramPage() {
             <History className="h-5 w-5 text-neutral-400" aria-hidden />
             Historia punktów
           </h2>
-          <p className="text-sm text-neutral-500">{ledger.length} wpisów</p>
+          <p className="text-sm text-neutral-500">{ledger.length} {plForm(ledger.length, 'wpis', 'wpisy', 'wpisów')}</p>
         </div>
         {ledger.length === 0 ? (
           <p className="text-center text-sm text-neutral-500 py-8">Brak wpisów — zacznij zbierać punkty EKO.</p>

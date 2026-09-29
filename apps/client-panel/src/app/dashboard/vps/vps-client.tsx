@@ -31,6 +31,7 @@ import {
   type VpsPlanDto,
 } from './vps-actions';
 import { Checkbox } from '@/components/panel/checkbox';
+import { plForm } from '@/lib/pl';
 
 const STATUS_LABEL: Record<VpsInstanceDto['status'], string> = {
   PROVISIONING: 'Tworzenie…',
@@ -187,7 +188,7 @@ export function VpsClient({
       ) : null}
 
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">{instances.length} serwer(ów)</p>
+        <p className="text-sm text-muted-foreground">{instances.length} {plForm(instances.length, 'serwer', 'serwery', 'serwerów')}</p>
         {!ordering ? (
           <button
             type="button"

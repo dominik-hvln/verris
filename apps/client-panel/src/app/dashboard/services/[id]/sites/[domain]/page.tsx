@@ -305,9 +305,9 @@ export default function SitePage() {
                     {(
                       [
                         ['dns', 'Domena i DNS', aRecord ? `A → ${aRecord.value}` : ok(dns)?.fetchError ? 'nie udało się odczytać strefy' : `${records.length} ${plForm(records.length, 'rekord', 'rekordy', 'rekordów')} w strefie`, records.length ? `${records.length} ${plForm(records.length, 'rekord', 'rekordy', 'rekordów')}` : '—'],
-                        ['ssl', 'Certyfikat SSL', sslRow?.coveredNames.length ? sslRow.coveredNames.slice(0, 3).join(', ') : 'brak certyfikatu', sslRow?.daysLeft != null ? `${sslRow.daysLeft} dni` : '—'],
+                        ['ssl', 'Certyfikat SSL', sslRow?.coveredNames.length ? sslRow.coveredNames.slice(0, 3).join(', ') : 'brak certyfikatu', sslRow?.daysLeft != null ? `${sslRow.daysLeft} ${plForm(sslRow.daysLeft, 'dzień', 'dni', 'dni')}` : '—'],
                         ['db', 'Bazy danych', 'bazy są wspólne dla konta', ''],
-                        ['mail', 'Poczta', boxes.length ? `${boxes.length} skrzynki w tej domenie` : 'brak skrzynek', ''],
+                        ['mail', 'Poczta', boxes.length ? `${boxes.length} ${plForm(boxes.length, 'skrzynka', 'skrzynki', 'skrzynek')} w tej domenie` : 'brak skrzynek', ''],
                         ['php', 'PHP', ok(php)?.currentVersion ? `wersja ${ok(php)?.currentVersion}` : 'brak danych', ''],
                       ] as [SiteTab, string, string, string][]
                     ).map(([id, t, m, r]) => (
@@ -537,7 +537,7 @@ function SslSection({
           <ul className="m-0 list-none p-0">
             <li className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-0.5 px-4 py-[11px]">
               <b className="text-sm font-semibold text-foreground">Ważność</b>
-              <span className="row-span-2 text-right text-[13px] tabular-nums">{row?.daysLeft != null ? `${row.daysLeft} dni` : '—'}</span>
+              <span className="row-span-2 text-right text-[13px] tabular-nums">{row?.daysLeft != null ? `${row.daysLeft} ${plForm(row.daysLeft, 'dzień', 'dni', 'dni')}` : '—'}</span>
               <span className="text-[12.5px] text-muted-foreground">
                 {row?.coveredNames.length ? `obejmuje ${row.coveredNames.join(', ')}` : 'strona otwiera się bez kłódki'}
                 {row?.daysLeft != null ? <Meter pct={(row.daysLeft / 90) * 100} tone={row.status === 'VALID' ? 'data' : 'warn'} tipText={`${row.daysLeft} z 90 dni\ndo wygaśnięcia`} /> : null}

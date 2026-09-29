@@ -10,6 +10,7 @@ import { headers } from 'next/headers';
 import { getAuthToken } from '@/lib/auth';
 import { fetchSessionProfile } from '@/lib/session-profile';
 import { canAccessDashboardRoute } from '@/lib/client-nav-access';
+import { plForm, plural } from '@/lib/pl';
 
 /** PB-15 — wszystkie usługi w nowym wyglądzie (wzorzec: docs/design/wzorzec-panelu.html). */
 
@@ -72,13 +73,13 @@ export default async function ServicesPage() {
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 pb-10">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Label>Usługi · {active.length} aktywnych</Label>
+          <Label>Usługi · {active.length} {plForm(active.length, 'aktywna', 'aktywne', 'aktywnych')}</Label>
           <h1 className="mb-2 mt-1.5 font-display text-[clamp(28px,4vw,40px)] font-extrabold leading-none tracking-[-0.03em] text-foreground">Twoje usługi</h1>
           <div className="flex flex-wrap items-center gap-2 text-[13.5px] text-muted-foreground">
             {active.length > 0 ? (
               <>
-                {active.length - attention > 0 ? <StatusPill tone="data">{active.length - attention} działa</StatusPill> : null}
-                {attention > 0 ? <StatusPill tone="warn">{attention} wymaga uwagi</StatusPill> : null}
+                {active.length - attention > 0 ? <StatusPill tone="data">{plural(active.length - attention, 'działa', 'działają', 'działa')}</StatusPill> : null}
+                {attention > 0 ? <StatusPill tone="warn">{attention} {plForm(attention, 'wymaga', 'wymagają', 'wymaga')} uwagi</StatusPill> : null}
               </>
             ) : null}
             <span>hosting, poczta i e-mail marketing w jednym miejscu</span>
