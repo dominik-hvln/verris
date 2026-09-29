@@ -295,3 +295,42 @@ describe('profil węzła — liczenie ticket.conf bez adresu-zlewu (t1 29.09: pr
     expect(policz().stdout).toBe('1\nkoniec\n');
   });
 });
+
+describe('profil węzła — HTTP/3: UDP 443 w zaporze (J-04, retest D3 29.09)', () => {
+  const surowy = readFileSync(join(SKRYPTY, 'node-hosting-profile.sh'), 'utf8');
+  const DIR = mkdtempSync(join(tmpdir(), 'http3-'));
+  writeFileSync(join(DIR, 'fn.sh'), surowy.slice(0, surowy.indexOf('\nrequire_root\n')));
+  // Atrapa firewall-cmd: stan portu w pliku, zapis wywołań.
+  writeFileSync(join(DIR, 'firewall-cmd'), `#!/bin/sh
+echo "$*" >> "${DIR}/wywolania"
+case "$*" in
+  --state) exit 0 ;;
+  *--add-port=443/udp*) touch "${DIR}/udp443"; exit 0 ;;
+  *--query-port=443/udp*) [ -f "${DIR}/udp443" ] ;;
+  *) exit 0 ;;
+esac
+`);
+  chmodSync(join(DIR, 'firewall-cmd'), 0o755);
+  const uruchom = () =>
+    spawnSync('bash', ['-c', `. "${DIR}/fn.sh"; configure_http3_firewall`], {
+      env: { ...process.env, PATH: `${DIR}:${process.env.PATH}`, CSF_DIR: join(DIR, 'brak-csf') },
+      encoding: 'utf8',
+    });
+
+  it('firewalld bez UDP 443 → dodaje, przeładowuje, [OK]; drugi raz bez zmian', () => {
+    const r1 = uruchom();
+    expect(r1.status).toBe(0);
+    expect(r1.stdout).toContain('[OK] firewalld: UDP 443 otwarty');
+    const w1 = readFileSync(join(DIR, 'wywolania'), 'utf8');
+    expect(w1).toContain('--permanent --add-port=443/udp');
+    expect(w1).toContain('--reload');
+    writeFileSync(join(DIR, 'wywolania'), '');
+    const r2 = uruchom();
+    expect(r2.stdout).toContain('[OK] firewalld: UDP 443 otwarty');
+    expect(readFileSync(join(DIR, 'wywolania'), 'utf8')).not.toContain('--add-port');
+  });
+
+  it('profil wywołuje krok po zaporze panelu DA', () => {
+    expect(surowy).toMatch(/^configure_da_panel_firewall\nconfigure_http3_firewall$/m);
+  });
+});

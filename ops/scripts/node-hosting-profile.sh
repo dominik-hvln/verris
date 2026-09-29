@@ -1743,6 +1743,35 @@ configure_da_panel_firewall() {
 }
 
 # -----------------------------------------------------------------------------
+# HTTP/3 (J-04). LiteSpeed Enterprise w trybie panelu ma QUIC domyślnie włączony dla vhostów HTTPS —
+# wystarczy otworzyć UDP 443 (docs.litespeedtech.com → QUIC and HTTP/3 Support; CSF: 443 w UDP_IN).
+# Retest D3 29.09: firewalld przepuszczał tylko 53/udp, strony szły po HTTP/2.
+# -----------------------------------------------------------------------------
+configure_http3_firewall() {
+  echo "--- HTTP/3: UDP 443 ---"
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    log_info "dry-run: UDP 443 w zaporze (firewalld --add-port=443/udp albo CSF UDP_IN/UDP6_IN)"
+    return 0
+  fi
+  if command -v csf >/dev/null 2>&1 && [ -f "$CSF_DIR/csf.conf" ]; then
+    local zm=0 k
+    for k in UDP_IN UDP6_IN; do
+      grep -qE "^${k} *= *\"([^\"]*,)?443(,[^\"]*)?\"" "$CSF_DIR/csf.conf" && continue
+      sed -i -E "/^${k} *=/{s/\"\"/\"443\"/;t;s/\"$/,443\"/}" "$CSF_DIR/csf.conf" && zm=1
+    done
+    [ "$zm" = "1" ] && { csf -r >"$CSF_LOG" 2>&1 || log_warn "CSF: csf -r po dodaniu UDP 443 zwrócił błąd"; }
+    grep -qE '^UDP_IN *= *"([^"]*,)?443(,[^"]*)?"' "$CSF_DIR/csf.conf" && log_ok "CSF: UDP 443 otwarty (HTTP/3)" || log_warn "CSF: UDP 443 nie jest w UDP_IN"
+  elif command -v firewall-cmd >/dev/null 2>&1 && firewall-cmd --state >/dev/null 2>&1; then
+    if ! firewall-cmd --permanent --query-port=443/udp >/dev/null 2>&1; then
+      firewall-cmd --permanent --add-port=443/udp >/dev/null 2>&1 && firewall-cmd --reload >/dev/null 2>&1 || true
+    fi
+    firewall-cmd --query-port=443/udp >/dev/null 2>&1 && log_ok "firewalld: UDP 443 otwarty (HTTP/3)" || log_warn "firewalld: UDP 443 zamknięty — HTTP/3 niedostępny"
+  else
+    log_skip "Brak CSF i aktywnego firewalld — UDP 443 bez zmian"
+  fi
+}
+
+# -----------------------------------------------------------------------------
 # Strona zawieszonego konta (white label). DA serwuje ją jako zwykły katalog (odpowiedź 200, kod
 # zostaje jak w DA): pliki domyślne w data/templates/suspended, własne w data/templates/custom/suspended;
 # od DA 1.51 kopia w katalogu każdego resellera i admina: /home/<reseller>/domains/suspended/
@@ -1881,6 +1910,7 @@ configure_hosting_capabilities
 configure_litespeed_alt_php
 configure_php_expose
 configure_da_panel_firewall
+configure_http3_firewall
 configure_suspended_page
 print_lve_info
 print_summary
