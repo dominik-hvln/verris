@@ -1,6 +1,7 @@
 import { Leaf, Info } from 'lucide-react';
 import type { EcoReportDto } from './data';
 import { liczba } from '@/lib/liczba';
+import { plForm, plural } from '@/lib/pl';
 
 /**
  * C5 — raport energetyczny z realnych metryk LVE. Wartości to szacunki —
@@ -63,7 +64,7 @@ export function EcoReportCard({ report, failed = false }: { report: EcoReportDto
           value={
             report.treeMonthsEquivalent >= 1
               ? `${liczba(report.treeMonthsEquivalent, 1)} mies.`
-              : `${Math.round(report.treeMonthsEquivalent * 30)} dni`
+              : plural(Math.round(report.treeMonthsEquivalent * 30), 'dzień', 'dni', 'dni')
           }
           accent
         />
@@ -73,7 +74,7 @@ export function EcoReportCard({ report, failed = false }: { report: EcoReportDto
         <div>
           Realne zużycie: <span className="text-neutral-300">{liczba(report.cpuCoreHours, 1)} rdzenio-godz. CPU</span>,{' '}
           <span className="text-neutral-300">śr. {liczba(report.avgRamGb, 2)} GB RAM</span>{' '}
-          ({report.samples.toLocaleString('pl-PL')} próbek)
+          ({report.samples.toLocaleString('pl-PL')} {plForm(report.samples, 'próbka', 'próbki', 'próbek')})
         </div>
         <div className="text-right">
           Punkt odniesienia: {liczba(report.baselineEnergyKwh, 2)} kWh (parametry planu 24/7)

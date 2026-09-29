@@ -31,6 +31,7 @@ import {
 import { deriveReasons } from './services-health-overview';
 import { SERVICE_STATUS_LABEL, buildEcoLedgerSeries, mapWalletMonthlyFlow } from './dashboard-chart-utils';
 import type { DashboardSnapshot } from './dashboard-data';
+import { plForm, plural } from '@/lib/pl';
 
 const BTN =
   'inline-flex items-center gap-2 whitespace-nowrap rounded-md border border-line-strong bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-primary';
@@ -170,8 +171,8 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
               <span>{moze('/dashboard/services/new') ? 'Nie masz jeszcze usług — zacznij od nowej.' : navCtx.billingOutside ? 'Nową usługę zamówisz u swojego opiekuna.' : 'Brak usług do wyświetlenia.'}</span>
             ) : (
               <>
-                {ok > 0 ? <StatusPill tone="data">{ok === 1 ? '1 usługa działa' : `${ok} usługi działają`}</StatusPill> : null}
-                {attention > 0 ? <StatusPill tone="warn">{attention === 1 ? '1 wymaga uwagi' : `${attention} wymagają uwagi`}</StatusPill> : null}
+                {ok > 0 ? <StatusPill tone="data">{ok === 1 ? '1 usługa działa' : `${ok} ${plForm(ok, 'usługa działa', 'usługi działają', 'usług działa')}`}</StatusPill> : null}
+                {attention > 0 ? <StatusPill tone="warn">{attention === 1 ? '1 wymaga uwagi' : `${attention} ${plForm(attention, 'wymaga', 'wymagają', 'wymaga')} uwagi`}</StatusPill> : null}
               </>
             )}
           </div>
@@ -216,15 +217,15 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
             <StackBar
               total={Math.max(1, services.length)}
               parts={[
-                { label: `${ok} działa`, value: ok, color: 'var(--data)', detail: services.filter((_, i) => tones[i]!.tone === 'data').map((s) => s.planName).join(', ') },
-                { label: `${attention} wymaga uwagi`, value: attention, color: 'var(--warn)', detail: services.filter((_, i) => tones[i]!.tone !== 'data').map((s) => `${s.planName}: ${serviceTone(s).text}`).join(', ') },
+                { label: `${ok} ${plForm(ok, 'działa', 'działają', 'działa')}`, value: ok, color: 'var(--data)', detail: services.filter((_, i) => tones[i]!.tone === 'data').map((s) => s.planName).join(', ') },
+                { label: `${attention} ${plForm(attention, 'wymaga', 'wymagają', 'wymaga')} uwagi`, value: attention, color: 'var(--warn)', detail: services.filter((_, i) => tones[i]!.tone !== 'data').map((s) => `${s.planName}: ${serviceTone(s).text}`).join(', ') },
               ]}
             />
           </Kpi>
           <Kpi
             label="Domeny"
             value={snapshot.errors.domains || bez.domains ? '—' : String(domains.length)}
-            foot={<span>{bez.domains ? 'brak uprawnień' : snapshot.errors.domains ? 'błąd pobierania' : `${domains.filter((d) => d.status === 'ACTIVE').length} aktywnych`}</span>}
+            foot={<span>{bez.domains ? 'brak uprawnień' : snapshot.errors.domains ? 'błąd pobierania' : plural(domains.filter((d) => d.status === 'ACTIVE').length, 'aktywna', 'aktywne', 'aktywnych')}</span>}
           >
             {domains.length > 0 ? (
               <Squares

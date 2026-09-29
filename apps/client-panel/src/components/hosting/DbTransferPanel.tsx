@@ -14,6 +14,7 @@ import {
   type DbTransferStatus,
 } from '@/app/dashboard/services/[id]/hosting-db-transfer-actions';
 import { liczba } from '@/lib/liczba';
+import { plForm } from '@/lib/pl';
 
 /**
  * D-12 — eksport i import bazy. Pracę wykonuje węzeł; plik wyniku (albo kopia sprzed importu)
@@ -179,7 +180,7 @@ export function DbTransferPanel({ serviceId, databases }: { serviceId: string; d
               <li key={b.baza} className="flex justify-between gap-3 border-t border-line py-1.5 first:border-t-0">
                 <span className="font-mono text-foreground">{b.baza}</span>
                 <span className="font-mono text-muted-foreground">
-                  {rozmiar(b.bajty)} · {b.tabele} tabel
+                  {rozmiar(b.bajty)} · {b.tabele} {plForm(b.tabele, 'tabela', 'tabele', 'tabel')}
                 </span>
               </li>
             ))}

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { AlertTriangle, Loader2, Sparkles, Undo2, X } from 'lucide-react';
+import { plural } from '@/lib/pl';
 import {
   applyAssistantFix,
   undoAssistantFix,
@@ -155,7 +156,7 @@ export function AssistantHint({ serviceId, onNavigate }: { serviceId: string; on
               <button type="button" onClick={() => dismiss(hint.key)} className="text-muted-foreground hover:text-foreground">
                 Nie pokazuj więcej
               </button>
-              {hints.length > 1 ? <span className="text-muted-foreground">+{hints.length - 1} kolejne po tej</span> : null}
+              {hints.length > 1 ? <span className="text-muted-foreground">+{plural(hints.length - 1, 'kolejna', 'kolejne', 'kolejnych')} po tej</span> : null}
             </div>
           )}
         </div>

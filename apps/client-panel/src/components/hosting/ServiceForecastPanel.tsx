@@ -21,6 +21,7 @@ import {
   fetchServiceForecastAction as fetchServiceForecastActionAkcja,
 } from '@/app/dashboard/services/[id]/hosting-forecast-actions';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
+import { plForm, plural } from '@/lib/pl';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
 const fetchServiceForecastAction = zOdpakowaniem(fetchServiceForecastActionAkcja);
@@ -113,7 +114,7 @@ export default function ServiceForecastPanel({ serviceId }: { serviceId: string 
               Pewność: {CONFIDENCE_LABEL[forecast.confidence]}
             </span>
             <span className="rounded-full border border-line bg-raised px-2 py-0.5 text-[color:var(--verris-body)]">
-              Horyzont: {forecast.horizonDays} dni
+              Horyzont: {forecast.horizonDays} {plForm(forecast.horizonDays, 'dzień', 'dni', 'dni')}
             </span>
             <span className="text-muted-foreground">
               {new Date(forecast.generatedAt).toLocaleString('pl-PL')}
@@ -178,7 +179,7 @@ function ResourceCard({ item }: { item: ServiceForecastResourceDto }) {
       </div>
       {item.daysToLimit != null ? (
         <p className="mt-2 text-xs text-warn">
-          Szacowany czas do limitu: ~{Math.round(item.daysToLimit)} dni
+          Szacowany czas do limitu: ~{plural(Math.round(item.daysToLimit), 'dzień', 'dni', 'dni')}
         </p>
       ) : null}
       {item.note ? <p className="mt-1 text-xs text-muted-foreground">{item.note}</p> : null}
