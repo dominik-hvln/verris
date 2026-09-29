@@ -2,6 +2,11 @@
 
 Data: 2026-07-10 · Status: **NIE włączać flagi przed poprawką kodu**
 
+> **Stan na 2026-09-29 — dokument historyczny.** Rozjazdy 1–4 opisane niżej zostały usunięte w kodzie
+> (progi z §15 ust. 2, agregacja miesięczna, jedna rekompensata na miesiąc, odliczanie zapowiedzianych prac),
+> a §15 w wersji 1.1.0 ma nową numerację (wniosek — ust. 4, wyłączenia — ust. 7). Aktualne porównanie:
+> `ZGODNOSC_KOD_DOKUMENTY_2026-09-29.md` (Z-08 … Z-15).
+
 ---
 
 ## Wniosek w jednym zdaniu
