@@ -51,17 +51,30 @@ esac
 if [ "$FR_MODE" = "list" ]; then
   PREFIKS="${FR_PATH%/}"
   # tar -tv: „typ+uprawnienia właściciel rozmiar data czas ścieżka”; ścieżki ze spacjami zostają całe.
+  # awk czyta CAŁE wyjście tar (bez wcześniejszego exit): przy pipefail tar ubity SIGPIPE-em kończył
+  # zadanie błędem, gdy wpisów było więcej niż limit (retest D3 29.09: „domains” z WordPressem).
+  # Najpierw bezpośrednie dzieci prefiksu (także katalogi widoczne tylko w ścieżkach głębiej), potem
+  # głębsze wpisy do limitu — panel zawsze dostaje pełny bieżący poziom.
   jako_klient tar "${KOMPRESJA[@]}" -tvf "$ARCHIWUM" \
     | awk -v p="$PREFIKS" -v lim="$LIMIT_WPISOW" '
         {
-          typ = substr($1, 1, 1); rozmiar = $3
+          typ = substr($1, 1, 1); typ = (typ == "d" ? "d" : typ == "l" ? "l" : "f"); rozmiar = $3
           sciezka = $0; for (i = 1; i <= 5; i++) sub(/^[^ ]+ +/, "", sciezka)
           sub(/ -> .*$/, "", sciezka); sub(/\/$/, "", sciezka)
-          if (p != "" && sciezka != p && index(sciezka, p "/") != 1) next
-          if (++n > lim) { obciete = 1; exit }
-          print "VERRIS_WPIS " (typ == "d" ? "d" : typ == "l" ? "l" : "f") "|" rozmiar "|" sciezka
+          if (p != "" && index(sciezka, p "/") != 1) next
+          reszta = (p == "" ? sciezka : substr(sciezka, length(p) + 2))
+          if (reszta == "") next
+          n = split(reszta, cz, "/")
+          dziecko = (p == "" ? cz[1] : p "/" cz[1])
+          if (!(dziecko in poziom)) { kolej[++ile] = dziecko; poziom[dziecko] = "d|0" }
+          if (n == 1) poziom[dziecko] = typ "|" rozmiar
+          else glebiej[++ileg] = typ "|" rozmiar "|" sciezka
         }
-        END { if (obciete) print "VERRIS_OBCIETE " lim }'
+        END {
+          for (i = 1; i <= ile; i++) { if (wyp >= lim) { obciete = 1; break } print "VERRIS_WPIS " poziom[kolej[i]] "|" kolej[i]; wyp++ }
+          for (i = 1; i <= ileg && !obciete; i++) { if (wyp >= lim) { obciete = 1; break } print "VERRIS_WPIS " glebiej[i]; wyp++ }
+          if (obciete) print "VERRIS_OBCIETE " lim
+        }'
   log "Gotowe."
   exit 0
 fi

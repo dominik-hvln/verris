@@ -1581,6 +1581,48 @@ DAVB
 }
 
 # -----------------------------------------------------------------------------
+# expose_php = Off — strony klientów nie ogłaszają wersji PHP w nagłówku X-Powered-By (retest D3
+# 29.09: „X-Powered-By: PHP/8.1.34”). alt-php: /etc/cl.selector/global_php.ini, sekcja
+# [Global PHP Settings] + selectorctl --apply-global-php-ini (CloudLinux KB — przetrwa aktualizacje
+# alt-php). PHP z CustomBuild DA: plik w php.conf.d (katalog skanowany przez PHP DA), tylko gdy istnieje.
+# -----------------------------------------------------------------------------
+configure_php_expose() {
+  echo "--- PHP: expose_php = Off ---"
+  local gi=/etc/cl.selector/global_php.ini d zmiana=0
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    log_info "dry-run: expose_php = Off w $gi i /usr/local/php*/lib/php.conf.d/90-verris.ini"
+    return 0
+  fi
+  if [ -d /etc/cl.selector ]; then
+    touch "$gi"
+    grep -q '^\[Global PHP Settings\]' "$gi" || printf '[Global PHP Settings]\n' >> "$gi"
+    if grep -qE '^expose_php *=' "$gi"; then
+      grep -qE '^expose_php *= *Off' "$gi" || { sed -i -E 's/^expose_php *=.*/expose_php = Off/' "$gi"; zmiana=1; }
+    else
+      sed -i '/^\[Global PHP Settings\]/a expose_php = Off' "$gi"; zmiana=1
+    fi
+    if [ "$zmiana" = "1" ]; then
+      selectorctl --apply-global-php-ini >/dev/null 2>&1 || log_warn "selectorctl --apply-global-php-ini zwrócił błąd"
+    fi
+  fi
+  for d in /usr/local/php*/lib/php.conf.d; do
+    [ -d "$d" ] || continue
+    if ! grep -qx 'expose_php = Off' "$d/90-verris.ini" 2>/dev/null; then
+      printf '; Verris: bez wersji PHP w nagłówkach stron klientów\nexpose_php = Off\n' > "$d/90-verris.ini"; zmiana=1
+    fi
+  done
+  if [ "$zmiana" = "1" ] && [ -x /usr/local/lsws/bin/lswsctrl ]; then
+    /usr/local/lsws/bin/lswsctrl restart >/dev/null 2>&1 || log_warn "LiteSpeed restart po expose_php zwrócił błąd"
+  fi
+  local zle=""
+  for d in /opt/alt/php[0-9]*/usr/bin/php /usr/local/php[0-9]*/bin/php; do
+    [ -x "$d" ] || continue
+    "$d" -r 'exit(ini_get("expose_php") ? 1 : 0);' 2>/dev/null || zle="$zle ${d%/bin/php}"
+  done
+  if [ -n "$zle" ]; then log_fail "expose_php nadal włączone:$zle"; else log_ok "expose_php = Off (alt-php i PHP DA)"; fi
+}
+
+# -----------------------------------------------------------------------------
 # Panel DA (:2222) tylko z control-plane (decyzja 2026-09-29). Klient ma wszystko w panelu Verris,
 # control-plane rozmawia z DA po API na 2222. Zapora z DA to CSF (instalator DA stawia go domyślnie,
 # DA_SKIP_CSF go pomija — docs.directadmin.com → Predefined installation options); bez CSF — firewalld
@@ -1810,6 +1852,7 @@ ensure_hosting_core_services
 configure_litespeed
 configure_hosting_capabilities
 configure_litespeed_alt_php
+configure_php_expose
 configure_da_panel_firewall
 configure_suspended_page
 print_lve_info

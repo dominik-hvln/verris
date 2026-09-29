@@ -157,6 +157,14 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
     expect(t).toContain('governor_step_by_step');
   });
 
+  it('expose_php = Off: alt-php przez global_php.ini [Global PHP Settings] + selectorctl --apply-global-php-ini (CloudLinux KB)', () => {
+    const t = czytaj('node-hosting-profile.sh');
+    expect(t).toContain('/etc/cl.selector/global_php.ini');
+    expect(t).toContain('[Global PHP Settings]');
+    expect(t).toContain('selectorctl --apply-global-php-ini');
+    expect(t).toMatch(/^configure_php_expose$/m);
+  });
+
   it('CustomBuild: opcje czytane z options.conf', () => {
     expect(czytaj('node-hosting-profile.sh')).toContain('"$CB/options.conf"');
   });
