@@ -62,8 +62,8 @@ export async function deleteDnsRecordAction(input: {
 }
 
 /**
- * Edit = create the new record first, then delete the old one only if the
- * create succeeded — so a failure never loses the existing record.
+ * Zmiana rekordu jednym poleceniem po stronie API (DA action=edit) — także samego TTL. Dawne „dodaj nowy,
+ * usuń stary” przy zmianie TTL nic nie zmieniało, a nieudane usunięcie zostawiało duplikat bez komunikatu.
  */
 export async function editDnsRecordAction(input: {
   serviceId: string;
@@ -71,16 +71,14 @@ export async function editDnsRecordAction(input: {
   old: { name: string; type: string; value: string };
   next: { name: string; type: string; value: string; ttl?: number };
 }): Promise<DnsResult> {
-  const created = await createDnsRecordAction({ serviceId: input.serviceId, domain: input.domain, ...input.next });
-  if (!created.ok) return created;
-  // Only delete the old if something actually changed.
-  const unchanged =
-    input.old.name === input.next.name &&
-    input.old.type === input.next.type &&
-    input.old.value === input.next.value;
-  if (!unchanged) {
-    await deleteDnsRecordAction({ serviceId: input.serviceId, domain: input.domain, ...input.old });
+  try {
+    await apiFetch(`/services/${input.serviceId}/hosting-dns`, {
+      method: 'PUT',
+      body: JSON.stringify({ domain: input.domain, old: input.old, next: input.next }),
+    });
+    revalidatePath('/dashboard/dns');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: errMsg(err) };
   }
-  revalidatePath('/dashboard/dns');
-  return { ok: true };
 }

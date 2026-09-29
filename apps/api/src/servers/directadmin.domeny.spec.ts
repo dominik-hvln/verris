@@ -66,12 +66,41 @@ describe('DNS (CMD_API_DNS_CONTROL)', () => {
     expect(r.fetchError).toBeTruthy();
   });
 
-  it('usunięcie: action=select + <typ>recs0 „name=…&value=…”; DA „usunął”, a rekord został → 400', async () => {
+  it('usunięcie: action=select + <typ>recs0 „name=…&value=…” ze spacją jako %20 (DA czyta „+” dosłownie); DA „usunął”, a rekord został → 400', async () => {
     const s = stanowisko({ get: { '/CMD_API_DNS_CONTROL': { records: [] } } });
     await s.svc.deleteHostingDnsRecord('s1', 'u1', { domain: 'firma.pl', name: 'firma.pl.', type: 'MX', value: '10 mail' });
-    expect(s.wyslane()).toEqual({ action: 'select', delete: 'yes', domain: 'firma.pl', mxrecs0: 'name=firma.pl.&value=10+mail', api: 'yes' });
+    expect(s.wyslane()).toEqual({ action: 'select', delete: 'yes', domain: 'firma.pl', mxrecs0: 'name=firma.pl.&value=10%20mail', api: 'yes' });
     const z = stanowisko({ get: { '/CMD_API_DNS_CONTROL': { records: [{ name: 'x', type: 'A', value: '1.2.3.4' }] } } });
     await expect(z.svc.deleteHostingDnsRecord('s1', 'u1', { domain: 'firma.pl', name: 'x', type: 'A', value: '1.2.3.4' })).rejects.toThrow('nie usunął');
+  });
+
+  it('edycja: jedno action=edit ze starym rekordem w <typ>recs0 — także zmiana samego TTL; sprawdzenie strefy po zapisie', async () => {
+    const val = '0 issue "letsencrypt.org"';
+    const s = stanowisko({ get: { '/CMD_API_DNS_CONTROL': { records: [{ name: '@', type: 'CAA', value: val, ttl: '1800' }] } } });
+    await s.svc.editHostingDnsRecord('s1', 'u1', { domain: 'firma.pl', old: { name: '@', type: 'CAA', value: val }, next: { name: '@', type: 'CAA', value: val, ttl: 1800 } });
+    expect(s.wyslane()).toEqual({
+      action: 'edit', domain: 'firma.pl', type: 'CAA', caarecs0: `name=%40&value=${encodeURIComponent(val)}`, name: '@', value: val, ttl: '1800', api: 'yes',
+    });
+    expect(s.post).toHaveBeenCalledTimes(1);
+  });
+
+  it('edycja: DA „zapisał”, ale TTL/wartość bez zmian albo stary rekord został → 400 (bez fałszywego „zapisano”)', async () => {
+    const stary = stanowisko({ get: { '/CMD_API_DNS_CONTROL': { records: [{ name: 'www', type: 'A', value: '1.1.1.1', ttl: '3600' }] } } });
+    await expect(stary.svc.editHostingDnsRecord('s1', 'u1', { domain: 'firma.pl', old: { name: 'www', type: 'A', value: '1.1.1.1' }, next: { name: 'www', type: 'A', value: '1.1.1.1', ttl: 300 } }))
+      .rejects.toThrow('nie zapisał');
+    const obaj = stanowisko({ get: { '/CMD_API_DNS_CONTROL': { records: [{ name: 'www.firma.pl.', type: 'A', value: '1.1.1.1', ttl: '3600' }, { name: 'www', type: 'A', value: '2.2.2.2', ttl: '3600' }] } } });
+    await expect(obaj.svc.editHostingDnsRecord('s1', 'u1', { domain: 'firma.pl', old: { name: 'www', type: 'A', value: '1.1.1.1' }, next: { name: 'www', type: 'A', value: '2.2.2.2', ttl: 3600 } }))
+      .rejects.toThrow('nie zapisał');
+  });
+
+  it('edycja ze zmianą typu: dodanie nowego, potem usunięcie starego; cudza strefa nie dochodzi do DA', async () => {
+    const s = stanowisko({ get: { '/CMD_API_DNS_CONTROL': { records: [] } } });
+    await s.svc.editHostingDnsRecord('s1', 'u1', { domain: 'firma.pl', old: { name: 'www', type: 'A', value: '1.1.1.1' }, next: { name: 'www', type: 'CNAME', value: 'firma.pl.' } });
+    expect(s.wyslane(0)).toMatchObject({ action: 'add', type: 'CNAME' });
+    expect(s.wyslane(1)).toMatchObject({ action: 'select', delete: 'yes', arecs0: 'name=www&value=1.1.1.1' });
+    const z = stanowisko();
+    await expect(z.svc.editHostingDnsRecord('s1', 'u1', { domain: 'obca.pl', old: { name: 'x', type: 'A', value: '1.1.1.1' }, next: { name: 'x', type: 'A', value: '2.2.2.2' } })).rejects.toThrow();
+    expect(z.post).not.toHaveBeenCalled();
   });
 
   it('lista cudzej domeny → 400 bez pytania DA o strefę', async () => {

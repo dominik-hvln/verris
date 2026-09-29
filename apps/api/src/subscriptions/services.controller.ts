@@ -61,7 +61,7 @@ import { SiteMonitorService } from './site-monitor.service.js';
 import { StagingService } from './staging.service.js';
 import { BackupScheduleService } from './backup-schedule.service.js';
 import { SetMonitoringDto } from './dto/site-monitor.dto.js';
-import { DomenaDnssecDto, UsunRekordDnsDto, UtworzRekordDnsDto } from './dto/hosting-dns.dto.js';
+import { DomenaDnssecDto, EdytujRekordDnsDto, UsunRekordDnsDto, UtworzRekordDnsDto } from './dto/hosting-dns.dto.js';
 import { ZadanieCronDto } from './dto/hosting-cron.dto.js';
 import { UtworzKontoFtpDto, ZmienHasloFtpDto } from './dto/hosting-ftp.dto.js';
 import { UtworzSkrzynkeDto, ZmienHasloSkrzynkiDto, ZmienRozmiarSkrzynkiDto } from './dto/hosting-email.dto.js';
@@ -539,6 +539,15 @@ export class UserServicesController {
     @Body() body: UtworzRekordDnsDto,
   ) {
     return this.directAdmin.createHostingDnsRecord(id, user.userId, body);
+  }
+
+  @Put(':id/hosting-dns')
+  async editHostingDns(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: EdytujRekordDnsDto,
+  ) {
+    return this.directAdmin.editHostingDnsRecord(id, user.userId, body);
   }
 
   @Delete(':id/hosting-dns')

@@ -1137,11 +1137,55 @@ export class DirectAdminService {
       action: 'select',
       delete: 'yes',
       domain: input.domain,
-      [`${input.type.toLowerCase()}recs0`]: new URLSearchParams({ name: input.name, value: input.value }).toString(),
+      [`${input.type.toLowerCase()}recs0`]: zaznaczenieRekorduDns(input.name, input.value),
     });
     const po = await this.listHostingDnsRecords(subscriptionId, userId, input.domain);
     if (!po.fetchError && po.records.some((r) => r.name === input.name && r.type === input.type && r.value === input.value)) {
       throw new BadRequestException('Serwer DNS nie usunął rekordu. Spróbuj ponownie albo napisz do nas.');
+    }
+    return { ok: true as const };
+  }
+
+  /**
+   * F-11/F-01 — zmiana rekordu (wartość, nazwa, TTL) jednym poleceniem DA: action=edit + `<typ>recs0`
+   * wskazujący stary rekord (sprawdzone na t1 29.09). Dawniej panel robił „dodaj nowy, usuń stary”: przy
+   * zmianie samego TTL DA brał identyczny rekord za istniejący i TTL zostawał bez zmian (panel mówił
+   * „zapisano”). Zmiana typu nie jest edycją — wtedy dodanie i usunięcie (usunięcie sprawdza listę).
+   */
+  async editHostingDnsRecord(
+    subscriptionId: string,
+    userId: string,
+    input: {
+      domain: string;
+      old: { name: string; type: string; value: string };
+      next: { name: string; type: string; value: string; ttl?: number };
+    },
+  ) {
+    await this.assertDomainOnSubscription(subscriptionId, userId, input.domain);
+    const { old, next } = input;
+    if (old.type !== next.type) {
+      await this.createHostingDnsRecord(subscriptionId, userId, { domain: input.domain, ...next });
+      await this.deleteHostingDnsRecord(subscriptionId, userId, { domain: input.domain, ...old });
+      return { ok: true as const };
+    }
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DNS_CONTROL', {
+      action: 'edit',
+      domain: input.domain,
+      type: next.type,
+      [`${next.type.toLowerCase()}recs0`]: zaznaczenieRekorduDns(old.name, old.value),
+      name: next.name,
+      value: next.value,
+      ttl: String(next.ttl ?? 3600),
+    });
+    // DA odpowiada „Rekord zapisany” także, gdy starego rekordu nie znalazł — sprawdzamy strefę.
+    const po = await this.listHostingDnsRecords(subscriptionId, userId, input.domain);
+    if (!po.fetchError) {
+      const nazwa = (n: string) => nazwaRekorduDns(n, input.domain);
+      const jest = po.records.some(
+        (r) => r.type === next.type && r.value === next.value && nazwa(r.name) === nazwa(next.name) && (next.ttl == null || r.ttl === next.ttl),
+      );
+      const stary = (old.name !== next.name || old.value !== next.value) && po.records.some((r) => r.type === old.type && r.value === old.value && nazwa(r.name) === nazwa(old.name));
+      if (!jest || stary) throw new BadRequestException('Serwer DNS nie zapisał zmiany rekordu. Spróbuj ponownie albo napisz do nas.');
     }
     return { ok: true as const };
   }
@@ -3461,6 +3505,23 @@ function scheduleToFrequency(schedule: string): DeployFrequency {
   const hour = schedule.trim().split(/\s+/)[1] ?? '';
   if (hour === '*') return 'hourly';
   return 'daily';
+}
+
+/**
+ * Wskazanie rekordu dla DA (`<typ>recs0`): „name=…&value=…” kodowane jak w formularzu DA — spacja jako %20.
+ * URLSearchParams koduje spację jako „+”, a DA czyta go dosłownie: rekordy ze spacją w wartości (MX, TXT/SPF/
+ * DKIM/DMARC, CAA, SRV) „nie istniały” i nie dało się ich usunąć ani zmienić (retest D3 29.09).
+ */
+export function zaznaczenieRekorduDns(name: string, value: string): string {
+  return `name=${encodeURIComponent(name)}&value=${encodeURIComponent(value)}`;
+}
+
+/** Nazwa rekordu bez różnic zapisu: „@”, „domena.pl.”, „domena.pl” → „@”; „www.domena.pl.” → „www”. */
+export function nazwaRekorduDns(name: string, domain: string): string {
+  const n = name.replace(/\.$/, '').toLowerCase();
+  const d = domain.replace(/\.$/, '').toLowerCase();
+  if (n === '@' || n === d || n === '') return '@';
+  return n.endsWith(`.${d}`) ? n.slice(0, -(d.length + 1)) : n;
 }
 
 /** Rekordy strefy z odpowiedzi CMD_API_DNS_CONTROL (json=yes); błąd DA → wyjątek. */

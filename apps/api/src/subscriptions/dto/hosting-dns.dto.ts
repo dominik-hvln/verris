@@ -1,4 +1,5 @@
-import { IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 /**
  * F-01/F-02 — rekord DNS od klienta idzie prosto do DirectAdmina
@@ -38,6 +39,46 @@ export class UtworzRekordDnsDto extends RekordDnsBaza {
 }
 
 export class UsunRekordDnsDto extends RekordDnsBaza {}
+
+/** Rekord bez domeny — część edycji (domena jest raz, na zewnątrz). */
+class RekordDnsCzesc {
+  @IsString()
+  @Matches(/^(@|[A-Za-z0-9_*]([A-Za-z0-9_*.-]{0,252})?\.?)$/, { message: 'Niepoprawna nazwa rekordu.' })
+  name!: string;
+
+  @IsIn(TYPY_REKORDOW_DNS)
+  type!: (typeof TYPY_REKORDOW_DNS)[number];
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(2048)
+  @Matches(/^[^\x00-\x1f\x7f]+$/, { message: 'Wartość rekordu nie może zawierać znaków sterujących.' })
+  value!: string;
+}
+
+class RekordDnsNowy extends RekordDnsCzesc {
+  @IsOptional()
+  @IsInt()
+  @Min(60)
+  @Max(86400)
+  ttl?: number;
+}
+
+/** F-11 — zmiana rekordu (wartość, nazwa, TTL) jednym poleceniem DA. */
+export class EdytujRekordDnsDto {
+  @IsString()
+  @MinLength(3)
+  @MaxLength(253)
+  domain!: string;
+
+  @ValidateNested()
+  @Type(() => RekordDnsCzesc)
+  old!: RekordDnsCzesc;
+
+  @ValidateNested()
+  @Type(() => RekordDnsNowy)
+  next!: RekordDnsNowy;
+}
 
 /** F-06 — domena, dla której włączamy/wyłączamy DNSSEC (własność sprawdza serwis). */
 export class DomenaDnssecDto {
