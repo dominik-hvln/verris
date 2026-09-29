@@ -27,7 +27,7 @@ F-02,czeka,,
 F-11,sprawdzone,2026-09-29,"TTL CAA 3600→1800→3600 z panelu, strefa potwierdza"
 G-07,sprawdzone,2026-09-29,HSTS włączony w „PHP i serwer” → nagłówek strict-transport-security: max-age=31536000 na /
 G-11,czeka,,
-H-09,czeka,,
+H-09,sprawdzone,2026-09-29,"„Przywróć” z backup-Sep-29-2026-3 (pliki + bazy, kopia bezpieczeństwa zaznaczona) → najpie"
 H-10,sprawdzone,2026-09-29,odtworzenie index.php z kopii do verris-odtworzone
 H-11,sprawdzone,2026-09-29,przeglądanie archiwum do public_html WordPressa
 I-04,czeka,,
@@ -93,3 +93,5 @@ A-12,czeka,,"OpenProvider skonfigurowany, wyszukiwarka poprawiona 27.09 (b0a556f
 A-13,czeka,,"OpenProvider skonfigurowany, wyszukiwarka poprawiona 27.09 (b0a556f); decyzja właściciela 27.09: prawdziwa rejestracja domeny razem z pełnym testem konta klienta na węźle (PB-05)"
 A-15,czeka,,"OpenProvider skonfigurowany, wyszukiwarka poprawiona 27.09 (b0a556f); decyzja właściciela 27.09: prawdziwa rejestracja domeny razem z pełnym testem konta klienta na węźle (PB-05)"
 O-05,czeka,,wstrzymaj/wznów usługi klienta resellera (reszta sprawdzona na produkcji 27.09)
+J-01,sprawdzone,2026-09-29,"LiteSpeed Enterprise (Server: LiteSpeed), CacheRoot z profilu [OK], strona główna WordPres"
+J-04,czeka,2026-09-29,UDP 443 zamknięty — 68c7e95
