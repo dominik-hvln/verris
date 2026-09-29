@@ -1,7 +1,7 @@
 id,stan,data,uwagi
 A-25,sprawdzone,2026-09-29,zawieszenie/odwieszenie d3.hvln.pl z panelu admina
 A-26,sprawdzone,2026-09-29,zawieszenie/odwieszenie d3.hvln.pl z panelu admina
-B-05,czeka,,
+B-05,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 B-06,sprawdzone,2026-09-28,podgląd PHP z IP konta
 B-17,czeka,,
 B-18,czeka,,
@@ -14,9 +14,9 @@ C-22,czeka,,
 C-25,czeka,,
 C-27,czeka,,
 D-08,czeka,,
-D-12,czeka,,
+D-12,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 D-15,czeka,,
-D-18,czeka,,
+D-18,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 E-05,czeka,,"29.09: lista skrzynek pokazywała „bez limitu” (1 GB w DA) — poprawka b8d4f53 (type=quota, bajty → MB); potem zmiana rozmiaru"
 E-06,czeka,,
 E-15,sprawdzone,2026-09-29,SPF poprawny na d3.hvln.pl
@@ -31,12 +31,12 @@ H-09,czeka,,
 H-10,czeka,,
 H-11,czeka,,
 I-04,czeka,,
-I-05,czeka,,
-I-08,czeka,,
+I-05,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
+I-08,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 I-11,czeka,,
 I-13,czeka,,
-I-15,czeka,,
-J-02,czeka,,
+I-15,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
+J-02,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 J-03,czeka,,
 K-03,czeka,,
 L-03,sprawdzone,2026-09-28,CMD_API_CRON_JOBS create/delete
@@ -48,9 +48,9 @@ C-26,czeka,,
 C-28,czeka,,
 I-16,czeka,,
 L-08,czeka,,
-K-04,czeka,,
-K-05,czeka,,
-D-17,czeka,,
+K-04,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
+K-05,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
+D-17,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 D-13,czeka,,
 L-04,czeka,,
 I-14,czeka,,
@@ -60,7 +60,7 @@ H-13,czeka,,
 A-06,czeka,,"CMD_API_CUSTOM_HTTPD: format GET (config), klucz admina, przebudowa pod LSWS; 28.09: odczyt „Teraz: public_html” działa po trescCustomHttpd; zapis do sprawdzenia"
 B-04,czeka,,"selectorctl: --user-current, --list-user-extensions --all, --set-user-current, --enable/--disable-user-extensions na koncie alt-php"
 H-14,czeka,,admin-backup per konto + rclone sync drzewa; raport ok/rc=3
-G-09,czeka,,da build modsecurity; SecRuleEngine w .htaccess pod LSWS (DetectionOnly/On)
+G-09,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 Q-14,czeka,,IP w IP Manager; default_ttl; ./build clean/php/litespeed; letsencrypt.sh server_cert; lvectl --maxEntryProcs (lvectl --help); mysqlgovernor.py 10.6→10.11
 Z-18,czeka,,"provisioning na węźle: zerwane połączenie z DA w trakcie → PONOWIENIE w audycie, konto założone przy drugiej próbie"
 F-06,czeka,,"D3: na węźle dnssec=1 (node-hosting-profile.sh), „Włącz DNSSEC” w panelu → dig +dnssec pokazuje RRSIG, format get_keys (DS, signed_on) zgodny z parserem; transfer podpisanej strefy do secondary (ClouDNS); wyłączenie przywraca strefę bez podpisu."
@@ -71,7 +71,7 @@ B-09,czeka,,"D3: po profilu węzła `cloudlinux-selector get --json --interprete
 I-01,czeka,,"D3: na świeżym koncie (z domyślną stroną Verris) zainstaluj z panelu Joomla i MediaWiki — instalacja rusza mimo index.html/assets, po niej strona pokazuje aplikację (nie stronę Verris), logowanie do /administrator (Joomla) i Specjalna:Zaloguj (MediaWiki) hasłem z panelu; to samo dla WordPressa.; 28.09: WordPress 1-click na d3.hvln.pl działa; Joomla i MediaWiki jeszcze do sprawdzenia"
 I-07,czeka,,D3: z WORDFENCE_API_KEY na produkcji — w logach API „Wordfence feed: N wpisów” po 05:40 UTC (albo ręczne wywołanie); strona WordPress ze starą wersją znanej podatnej wtyczki (np. zainstalowana starsza wersja) pokazuje ją w „Znane podatności” z poprawką i linkiem.
 H-16,czeka,,"D3 (wymaga dwóch węzłów): konto testowe z węzła A → admin „Odtworzenie na innym węźle” na węzeł B → lista kopii z nodes/<A> → odtworzenie; w DA węzła B konto z IP węzła B, strona i poczta działają; w panelu konto wskazuje węzeł B (audyt ACCOUNT_MOVED_TO_NODE); próba na węźle, gdzie konto już jest → odmowa."
-K-14,czeka,,"D3: po profilu węzła SELECT @@slow_query_log, @@long_query_time = 1, 2; na koncie testowym zapytanie SELECT SLEEP(3) z bazy konta → panel Bazy danych → „Odczytaj” pokazuje je bez wartości; zapytania innego konta nie widać."
+K-14,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 D-16,czeka,,"D3: po profilu węzła memcached zainstalowany, ss -ltnp bez 11211; w panelu PHP i serwer → Memcached włącz → gniazdo w ~/.verris-memcached, „version” przez gniazdo odpowiada jako klient, inny użytkownik → Permission denied; wyłącz → proces znika."
 PB-19,czeka,,"D3: na stronie z ruchem widok strony pokazuje odwiedzających/żądania/5xx z 7 dni zgodnie z /var/log/httpd/domains/<domena>.log, TTFB w ms, technologię z wersją; zakładka Logi pokazuje log tej domeny; domena bez logu → „—”."
 G-21,czeka,,"D3: w WebAdmin LiteSpeed węzła ustawione Per-Client Throttling wg ops/docs/DDOS.md; test: ab/hey na stronę testową z jednego IP → po przekroczeniu limitu odrzucenia/ban, inne IP bez wpływu."
