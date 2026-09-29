@@ -61,3 +61,10 @@ _to_delete/
 __pycache__/
 *.pyc
 *.bak
+
+# Materiały robocze sesji Claude (Cowork) i paczki przenoszone między kopiami — nigdy nie commitujemy.
+/Claude outputs/
+/.claude-in/
+/*.tgz
+/*.tar.gz
+/*.bundle
