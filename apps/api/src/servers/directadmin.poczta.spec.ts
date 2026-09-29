@@ -94,32 +94,28 @@ describe('Poczta — skrzynki (CMD_API_POP)', () => {
     expect(zle.audit.record).not.toHaveBeenCalled();
   });
 
-  it('zmiana hasła zachowuje bieżący rozmiar skrzynki (DA modify wymaga quota — bez tego by ją wyzerował)', async () => {
-    const s = stanowisko();
-    vi.spyOn(s.svc, 'listHostingEmailAccounts').mockResolvedValue({
-      rows: [{ id: 'jan@firma.pl', email: 'jan@firma.pl', quotaMb: 250 }], fetchError: null,
-    });
-    await s.svc.changeHostingEmailPassword('s1', 'u1', { email: 'jan@firma.pl', password: 'NoweHaslo1' });
-    expect(s.wyslane()).toEqual({
-      action: 'modify', user: 'jan', domain: 'firma.pl', passwd: 'NoweHaslo1', passwd2: 'NoweHaslo1', quota: '250', api: 'yes',
-    });
-  });
+  /** Trasa GET /CMD_API_POP: lista w formacie DA 1.710 (`list[]=`, bez rozmiaru) albo odczyt jednej skrzynki. */
+  const zPop = (jednaSkrzynka: unknown) => (path: string, cfg?: Record<string, unknown>) => {
+    if (path !== '/CMD_API_POP') return odp(path === '/CMD_API_SHOW_DOMAINS' ? 'list0=firma.pl' : 'domain=firma.pl');
+    const params = (cfg?.params ?? {}) as Record<string, string>;
+    if (params.user) return odp(jednaSkrzynka);
+    return odp(params.type === 'quota' ? '' : 'list[]=jan');
+  };
 
   it.each([
-    ['JSON', { jan: 'limit=200&quota=1073741824&sent=0&usage=0&usage_bytes=0' }],
-    ['urlencoded', 'jan=limit%3D200%26quota%3D1073741824%26sent%3D0%26usage%3D0%26usage_bytes%3D0'],
-  ])('lista DA 1.710 (%s): limit z type=quota w bajtach → 1024 MB, nie „bez limitu” z samej listy nazw', async (_n, quotaBody) => {
+    ['płasko, MB', 'error=0&quota=250&usage=12', '250'],
+    ['pod kluczem skrzynki, bajty (Dovecot)', { jan: 'limit=200&quota=1073741824&sent=0&usage=0&usage_bytes=0' }, '1024'],
+    ['bez limitu', 'quota=0&usage=3', '0'],
+  ])('lista `list[]=` bez rozmiaru + CMD_API_POP type=quota&user (%s) → modify z tym rozmiarem', async (_n, body, quota) => {
     const s = stanowisko();
-    s.get.mockImplementation((path: string, cfg?: Record<string, unknown>) => {
-      if (path !== '/CMD_API_POP') return odp(path === '/CMD_API_SHOW_DOMAINS' ? 'list0=firma.pl' : 'domain=firma.pl');
-      const params = (cfg?.params ?? {}) as Record<string, string>;
-      return odp(params.type === 'quota' ? quotaBody : 'list[]=jan');
-    });
-    const lista = await s.svc.listHostingEmailAccounts('s1', 'u1');
-    expect(lista.rows).toEqual([expect.objectContaining({ email: 'jan@firma.pl', quotaMb: 1024 })]);
-    // zmiana hasła odsyła do DA bieżący rozmiar w MB — bajty wysłane jako MB dałyby skrzynkę 1 PB
+    s.get.mockImplementation(zPop(body));
+    expect((await s.svc.listHostingEmailAccounts('s1', 'u1')).rows).toEqual([expect.objectContaining({ email: 'jan@firma.pl', quotaMb: null })]);
     await s.svc.changeHostingEmailPassword('s1', 'u1', { email: 'jan@firma.pl', password: 'NoweHaslo1' });
-    expect(s.wyslane().quota).toBe('1024');
+    expect(s.get).toHaveBeenCalledWith('/CMD_API_POP', { params: { type: 'quota', domain: 'firma.pl', user: 'jan', api: '1' } });
+    expect(s.wyslane()).toEqual({
+      action: 'modify', user: 'jan', domain: 'firma.pl', passwd: 'NoweHaslo1', passwd2: 'NoweHaslo1', quota, api: 'yes',
+    });
+    expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'HOSTING_EMAIL_PASSWORD_CHANGED' }));
   });
 
   it('zmiana hasła: krótsze niż 8 znaków → 400 przed DA', async () => {
@@ -250,6 +246,11 @@ describe('Poczta — catch-all i antyspam', () => {
 });
 
 describe('CL-01: błąd odczytu nie zamienia się w zapis wartości domyślnych', () => {
+  const zPopBlad = (jednaSkrzynka: unknown) => (path: string, cfg?: Record<string, unknown>) => {
+    if (path !== '/CMD_API_POP') return odp(path === '/CMD_API_SHOW_DOMAINS' ? 'list0=firma.pl' : 'domain=firma.pl');
+    return odp((cfg?.params as Record<string, string> | undefined)?.user ? jednaSkrzynka : 'list[]=jan');
+  };
+
   it('antyspam: odczyt ustawień z błędem DA → wyjątek, żadnego save (czarna/biała lista zostają)', async () => {
     for (const body of ['error=1&text=Brak%20dost%C4%99pu', { error: '1', text: 'Brak dostępu' }]) {
       const s = stanowisko({ get: { '/CMD_API_SPAMASSASSIN': body } });
@@ -266,15 +267,23 @@ describe('CL-01: błąd odczytu nie zamienia się w zapis wartości domyślnych'
   });
 
   it.each([
-    ['lista skrzynek nie przyszła', { rows: [], fetchError: 'timeout' }, 'odczytać skrzynki'],
-    ['skrzynki nie ma', { rows: [], fetchError: null }, 'Nie ma takiej skrzynki'],
-    ['rozmiar nieznany', { rows: [{ id: 'jan@firma.pl', email: 'jan@firma.pl', quotaMb: null }], fetchError: null }, 'rozmiaru skrzynki'],
-  ])('zmiana hasła skrzynki: %s → odmowa, a nie modify z quota=1024', async (_n, lista, fragment) => {
+    ['DA nie podał quota', 'error=0&usage=5', 'rozmiaru skrzynki'],
+    ['quota nieliczbowe', 'quota=abc', 'rozmiaru skrzynki'],
+    ['bajty niebędące całymi MiB', 'quota=1500000&usage_bytes=0', 'rozmiaru skrzynki'],
+    ['błąd DA (np. brak skrzynki)', 'error=1&text=Nie%20ma%20takiej%20skrzynki', 'Nie ma takiej skrzynki'],
+    ['błąd sieci', new Error('ECONNRESET'), 'ECONNRESET'],
+  ])('zmiana hasła skrzynki: %s → odmowa, a nie modify z quota=1024', async (_n, body, fragment) => {
     const s = stanowisko();
-    vi.spyOn(s.svc, 'listHostingEmailAccounts').mockResolvedValue(lista as never);
+    s.get.mockImplementation(zPopBlad(body));
     await expect(s.svc.changeHostingEmailPassword('s1', 'u1', { email: 'jan@firma.pl', password: 'NoweHaslo1' })).rejects.toThrow(fragment);
     expect(s.post).not.toHaveBeenCalled();
     expect(s.audit.record).not.toHaveBeenCalled();
+  });
+
+  it('zmiana hasła skrzynki z cudzej domeny → odmowa przed DA', async () => {
+    const s = stanowisko();
+    await expect(s.svc.changeHostingEmailPassword('s1', 'u1', { email: 'jan@obca.pl', password: 'NoweHaslo1' })).rejects.toThrow('nie należy');
+    expect(s.post).not.toHaveBeenCalled();
   });
 
   it('autoresponder: lista z błędem → odmowa zamiast zgadywania create/modify', async () => {

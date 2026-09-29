@@ -1396,22 +1396,24 @@ export class DirectAdminService {
     if (!input.password || input.password.length < 8) {
       throw new BadRequestException('Hasło skrzynki musi mieć co najmniej 8 znaków.');
     }
-    // DA CMD_API_POP action=modify wymaga quota — odsyłamy bieżącą. Gdy jej nie znamy, odmawiamy:
+    // DA CMD_API_POP action=modify wymaga quota — odsyłamy bieżącą, czytaną dla tej jednej skrzynki
+    // (CMD_API_POP type=quota&user=…, https://docs.directadmin.com/changelog/version-1.27.0.html#cmd-api-pop-per-account-quotas-cmd-email-account-quota).
+    // Lista skrzynek w formacie DA 1.710 `list[]=` nie niesie rozmiaru. Gdy go nie znamy, odmawiamy:
     // wcześniej szło wtedy „1024”, więc zmiana hasła po cichu zmieniała rozmiar skrzynki.
-    const list = await this.listHostingEmailAccounts(subscriptionId, userId);
-    if (list.fetchError) throw new BadRequestException('Nie udało się odczytać skrzynki z serwera. Spróbuj ponownie za chwilę.');
-    const box = list.rows.find((r) => r.email.toLowerCase() === input.email.toLowerCase());
-    if (!box) throw new NotFoundException('Nie ma takiej skrzynki na tej usłudze.');
-    if (typeof box.quotaMb !== 'number' || box.quotaMb < 0) {
+    const domena = await this.assertDomainOwnedBySubscription(subscriptionId, userId, domain);
+    const { account, client } = await this.accountClientForSubscription(subscriptionId, userId);
+    this.assertAccountMutable(account);
+    const quotaMb = await client.getEmailAccountQuotaMb(domena, user);
+    if (quotaMb == null) {
       throw new BadRequestException('Serwer nie podał rozmiaru skrzynki — hasło zostaje bez zmian. Spróbuj ponownie albo napisz do nas.');
     }
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_POP', {
       action: 'modify',
       user,
-      domain,
+      domain: domena,
       passwd: input.password,
       passwd2: input.password,
-      quota: String(box.quotaMb),
+      quota: String(quotaMb),
     });
     await this.audit.record({
       action: HostingResourceActions.HOSTING_EMAIL_PASSWORD_CHANGED,
