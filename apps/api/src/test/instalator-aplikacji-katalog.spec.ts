@@ -1,5 +1,5 @@
 import { spawnSync } from 'child_process';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { bladZadaniaDlaKlienta } from '../subscriptions/blad-zadania.js';
@@ -64,6 +64,64 @@ describe('I-01 — instalator aplikacji', () => {
   it('cgi-bin z czymkolwiek poza szkieletem DirectAdmina → przerwanie', () => {
     expect(sprawdz((d) => { domyslna(d); writeFileSync(join(d, 'cgi-bin', 'skrypt.pl'), '#!/usr/bin/perl'); })).not.toContain('DALEJ');
     expect(sprawdz((d) => { domyslna(d); writeFileSync(join(d, 'cgi-bin', '.htaccess'), 'Options +ExecCGI\nAddHandler cgi-script .pl\n'); })).not.toContain('DALEJ');
+  });
+
+  // Test D3 30.09: Joomla rozpakowana, instalator CLI odrzucił PHP 8.2 — pliki zostały, ponowienie blokowane.
+  const instalacja = (d: string, root: string, poZmianach: string) => {
+    const start = s.indexOf('DOMYSLNA=0');
+    const koniec = s.indexOf('trap wycofaj EXIT') + 'trap wycofaj EXIT'.length;
+    const fragment = s.slice(start, koniec).replace('"/home/${APP_DA_USER}/"', JSON.stringify(`${root}/u1/`));
+    const bezZmian = s.split('\n').find((l) => l.startsWith('bez_zmian() {')) ?? '';
+    return spawnSync('bash', ['-c', `set -Eeuo pipefail\nlog() { echo "[app-install] $*"; }\n${bezZmian}\nAPP_DA_USER=u1\nDOCROOT=${JSON.stringify(d)}\n${fragment}\n${poZmianach}`], { encoding: 'utf8' });
+  };
+  const konto = () => {
+    const root = mkdtempSync(join(tmpdir(), 'konta-'));
+    const d = join(root, 'u1', 'domains', 'x.pl', 'public_html');
+    mkdirSync(d, { recursive: true });
+    domyslna(d);
+    return { root, d };
+  };
+  const zmiany = 'echo x > "$DOCROOT/index.php"; mkdir "$DOCROOT/installation"; echo zmiana > "$DOCROOT/index.html"; rm -rf "$DOCROOT/assets"';
+
+  it('nieudana instalacja: katalog wraca 1:1, znacznik bez_zmian (API usuwa bazę), komunikat dla klienta', () => {
+    const { root, d } = konto();
+    const przed = readdirSync(d).sort();
+    const r = instalacja(d, root, `${zmiany}; false`);
+    expect(r.status).not.toBe(0);
+    expect(readdirSync(d).sort()).toEqual(przed);
+    expect(readFileSync(join(d, 'index.html'), 'utf8')).toContain('hosting verris');
+    expect(readFileSync(join(d, 'cgi-bin', '.htaccess'), 'utf8')).toBe('Options -Indexes\n');
+    expect(r.stdout).toContain('[VERRIS_APP] bez_zmian=1');
+    expect(bladZadaniaDlaKlienta('exit 1', r.stdout)).toContain('katalog domeny jest taki jak przed instalacją');
+  });
+
+  it('konkretny błąd dla klienta (np. za stare PHP) wygrywa z ogólnym', () => {
+    const { root, d } = konto();
+    const r = instalacja(d, root, `${zmiany}; blad "Najnowsza Joomla wymaga PHP 8.3 lub nowszego"`);
+    expect(bladZadaniaDlaKlienta('exit 1', r.stdout)).toBe('Najnowsza Joomla wymaga PHP 8.3 lub nowszego');
+    expect(readdirSync(d)).not.toContain('index.php');
+  });
+
+  it('udana instalacja zostaje, bez znacznika', () => {
+    const { root, d } = konto();
+    const r = instalacja(d, root, zmiany);
+    expect(r.status).toBe(0);
+    expect(readdirSync(d)).toContain('index.php');
+    expect(r.stdout).not.toContain('bez_zmian');
+  });
+
+  it('katalog domeny poza katalogiem konta (dowiązanie) → odmowa przed zmianami', () => {
+    const { root } = konto();
+    const obcy = mkdtempSync(join(tmpdir(), 'obcy-'));
+    const r = instalacja(obcy, root, zmiany);
+    expect(r.status).not.toBe(0);
+    expect(readdirSync(obcy)).toEqual([]);
+  });
+
+  it('Joomla: wymóg PHP z paczki sprawdzany przed instalatorem CLI', () => {
+    const j = s.slice(s.indexOf('install_joomla() {'), s.indexOf('install_mediawiki() {'));
+    expect(j.indexOf('JOOMLA_MINIMUM_PHP')).toBeGreaterThan(0);
+    expect(j.indexOf('JOOMLA_MINIMUM_PHP')).toBeLessThan(j.indexOf('installation/joomla.php install'));
   });
 
   it('prawdziwe pliki strony → przerwanie z komunikatem dla klienta, bez ścieżek węzła', () => {

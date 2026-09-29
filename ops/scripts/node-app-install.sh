@@ -60,6 +60,32 @@ if [ -n "$ZAJETE" ]; then
   bez_zmian "BŁĄD: W katalogu domeny są już pliki strony — instalacja działa tylko na pustym katalogu. Usuń je w menedżerze plików albo wybierz inną domenę."
 fi
 
+# Nieudana instalacja nie może zostawić połowy aplikacji w katalogu domeny (test D3 30.09: Joomla
+# rozpakowana, instalator CLI odrzucił PHP 8.2 — ponowienie blokował „katalog nie jest pusty”).
+# Katalog ma tu tylko szkielet (sprawdzone wyżej), więc kopia jest mała; przy błędzie wraca 1:1,
+# a znacznik bez_zmian pozwala API usunąć bazę założoną dla tej instalacji.
+REALNY="$(realpath -e -- "$DOCROOT")"
+[[ "$REALNY" == "/home/${APP_DA_USER}/"* ]] || bez_zmian "Katalog domeny poza katalogiem konta: $REALNY"
+DOCROOT="$REALNY"
+KOPIA="$(mktemp -d /var/tmp/verris-app-kopia.XXXXXX)"
+cp -a -- "$DOCROOT/." "$KOPIA/"
+BLAD_DLA_KLIENTA=""
+blad() { BLAD_DLA_KLIENTA=1; log "BŁĄD: $*"; exit 1; }
+wycofaj() {
+  local rc=$?
+  if [ "$rc" -eq 0 ]; then rm -rf -- "$KOPIA"; return 0; fi
+  if find "$DOCROOT" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} + && cp -a -- "$KOPIA/." "$DOCROOT/"; then
+    rm -rf -- "$KOPIA"
+    log "Przywrócono katalog domeny sprzed instalacji."
+    [ -n "$BLAD_DLA_KLIENTA" ] || log "BŁĄD: Instalacja nie powiodła się — katalog domeny jest taki jak przed instalacją. Spróbuj ponownie albo napisz do nas."
+    echo "[VERRIS_APP] bez_zmian=1"
+  else
+    log "UWAGA: nie udało się przywrócić katalogu domeny (kopia: $KOPIA)"
+  fi
+  exit "$rc"
+}
+trap wycofaj EXIT
+
 # Wykryj binarkę PHP CLI konta (CloudLinux alt-php lub systemowe).
 PHP_BIN="$(command -v php || echo /usr/local/bin/php)"
 run_as() { su -s /bin/bash -l "$APP_DA_USER" -c "$1"; }
@@ -112,6 +138,15 @@ print(a[0] if a else "")')"
   log "Joomla: pobieranie + rozpakowanie ($url)"
   run_as "cd '$DOCROOT' && curl -fsSL '$url' -o /tmp/joomla.tar.gz && tar xzf /tmp/joomla.tar.gz -C '$DOCROOT' && rm -f /tmp/joomla.tar.gz"
   [ -f "$DOCROOT/installation/joomla.php" ] || { log "Paczka Joomla bez installation/joomla.php"; exit 1; }
+  # Wymóg PHP z paczki (JOOMLA_MINIMUM_PHP) sprawdzamy sami — instalator CLI odrzuca starszy PHP
+  # komunikatem po angielsku, a klient ma wiedzieć, co zmienić.
+  local min akt
+  min="$(grep -rhoE "JOOMLA_MINIMUM_PHP['\"]?[[:space:]]*[,=][[:space:]]*['\"][0-9]+(\.[0-9]+)+" \
+    "$DOCROOT/installation" "$DOCROOT/includes" 2>/dev/null | grep -oE '[0-9]+(\.[0-9]+)+' | head -1 || true)"
+  akt="$(run_as "'$PHP_BIN' -r 'echo PHP_VERSION;'" 2>/dev/null | tail -1 || true)"
+  if [ -n "$min" ] && [ -n "$akt" ] && [ "$(printf '%s\n%s\n' "$min" "$akt" | sort -V | head -1)" != "$min" ]; then
+    blad "Najnowsza Joomla wymaga PHP ${min%.0} lub nowszego, a hosting działa na PHP ${akt%.*}. Zmień wersję PHP (Strona → PHP) i zainstaluj ponownie."
+  fi
   log "Joomla: installation/joomla.php install"
   run_as "cd '$DOCROOT' && '$PHP_BIN' installation/joomla.php install -n \
     --site-name='$APP_DOMAIN' --admin-user=Administrator --admin-username=$Q_ADMIN_USER \
