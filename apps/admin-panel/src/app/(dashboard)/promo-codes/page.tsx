@@ -138,7 +138,7 @@ function KindBadge({ kind }: { kind: PromoCodeRow["kind"] }) {
   if (kind === "PERCENT_BONUS") {
     return (
       <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">
-        Bonus % portfel
+        Bonus % do portfela
       </span>
     );
   }

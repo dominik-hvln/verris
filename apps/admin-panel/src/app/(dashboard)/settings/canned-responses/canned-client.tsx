@@ -12,6 +12,7 @@ import {
   type CannedResponseRow,
 } from "./actions";
 import { Checkbox } from '@/components/checkbox';
+import { plForm } from "@/lib/pl";
 
 const TOPICS = ["", "HOSTING", "DOMAIN", "EMAIL", "DNS", "SSL", "BILLING", "OTHER"];
 /** PB-37 — kategorie w bloku „Podpowiedzi” panelu obsługi. */
@@ -55,7 +56,7 @@ export function CannedClient({ rows }: { rows: CannedResponseRow[] }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-neutral-400">{rows.length} szablon(ów)</p>
+        <p className="text-sm text-neutral-400">{rows.length} {plForm(rows.length, "szablon", "szablony", "szablonów")}</p>
         {!creating ? (
           <button
             type="button"

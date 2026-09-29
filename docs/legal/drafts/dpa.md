@@ -66,7 +66,7 @@ Klient zobowiązuje się powierzać dane zgodnie z prawem (posiadać podstawy pr
 
 ## §10. Zakończenie przetwarzania
 
-1. Po zakończeniu umowy o świadczenie Usług Verris — zależnie od decyzji Klienta — zwraca dane (eksport dostępny przez 30 dni od zakończenia) albo je usuwa. Po upływie 30 dni Verris trwale usuwa powierzone dane z systemów produkcyjnych, a kopie zapasowe zawierające te dane są nadpisywane w cyklu rotacji, nie dłużej niż w ciągu 90 dni — chyba że prawo Unii lub prawo polskie nakazuje dalsze przechowywanie.
+1. Po zakończeniu umowy o świadczenie Usług Verris — zależnie od decyzji Klienta — zwraca dane (na wniosek złożony w ciągu 14 dni od zakończenia) albo je usuwa. Po upływie 14 dni Verris trwale usuwa powierzone dane z systemów produkcyjnych, a kopie zapasowe zawierające te dane są nadpisywane w cyklu rotacji, nie dłużej niż w ciągu 90 dni — chyba że prawo Unii lub prawo polskie nakazuje dalsze przechowywanie.
 2. Na żądanie Klienta Verris potwierdza usunięcie danych e-mailem.
 
 ## §11. Odpowiedzialność

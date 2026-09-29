@@ -43,7 +43,7 @@ export function PlatformSettingsForm({ initial }: { initial: PlatformSettingsFor
         />
         <NumberField
           name="staffIdleSessionMinutes"
-          label="Panel staff"
+          label="Panel obsługi"
           defaultValue={initial.staffIdleSessionMinutes}
         />
         <NumberField

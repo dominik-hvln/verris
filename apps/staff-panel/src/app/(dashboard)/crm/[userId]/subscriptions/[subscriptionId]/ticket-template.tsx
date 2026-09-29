@@ -11,9 +11,9 @@ potwierdzamy zmianę planu hostingowego na Twojej usłudze.
 - Nowy plan: {{toPlan}}
 - Rozliczenie proporcjonalne: {{billingNote}}
 
-Limity zasobów (CPU, RAM, dysk) zostały zaktualizowane. Jeśli korzystałeś z autoskalowania, delty zostały zresetowane — możesz je ponownie włączyć w panelu.
+Limity zasobów (CPU, RAM, dysk) zostały zaktualizowane. Jeśli usługa korzystała z autoskalowania, dodatkowe zasoby z autoskalowania zostały wyzerowane — możesz je ponownie włączyć w panelu.
 
-W razie pytań odpowiedz na ten ticket.
+W razie pytań odpowiedz na to zgłoszenie.
 
 Pozdrawiamy,
 Zespół Verris`;
@@ -39,7 +39,7 @@ export function PlanChangeTicketTemplate({
   return (
     <div className="rounded-xl border border-white/10 bg-black/25 p-4">
       <p className="text-xs font-bold uppercase tracking-wide text-neutral-500">
-        Szablon odpowiedzi (ticket)
+        Szablon odpowiedzi do zgłoszenia
       </p>
       <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-xs text-neutral-300">
         {text}

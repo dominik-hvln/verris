@@ -77,7 +77,7 @@ export default function AdminLoginPage() {
 
         <div className="space-y-1">
           <label htmlFor="email" className="text-xs font-medium text-muted-foreground">
-            Email administratora
+            E-mail administratora
           </label>
           <input
             id="email"

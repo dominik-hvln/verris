@@ -158,7 +158,7 @@ export async function staffSetRiskFlag(
     revalidatePath(`/tickets/${ticketId}`);
     return { ok: true };
   } catch (e) {
-    return { error: e instanceof StaffApiError ? e.message : "Nie udało się ustawić risk flag." };
+    return { error: e instanceof StaffApiError ? e.message : "Nie udało się ustawić flagi ryzyka." };
   }
 }
 

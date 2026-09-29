@@ -1,5 +1,6 @@
 "use client";
 
+import { plForm } from "@/lib/pl";
 import { Select } from "@/components/select";
 import { useEffect, useState, useTransition, useId } from "react";
 import {
@@ -175,7 +176,7 @@ function CreateCampaignForm() {
             {seg.hint}{" "}
             {estimate != null ? (
               <span className="text-indigo-300 font-semibold">
-                Aktualnie {estimate} odbiorców.
+                Aktualnie {estimate} {plForm(estimate, "odbiorca", "odbiorcy", "odbiorców")}.
               </span>
             ) : (
               <span className="opacity-60">Liczę odbiorców…</span>

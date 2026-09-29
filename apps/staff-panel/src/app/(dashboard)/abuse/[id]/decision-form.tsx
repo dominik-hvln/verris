@@ -25,7 +25,7 @@ export function DecisionForm({ id, maKlienta }: { id: string; maKlienta: boolean
         Samo ograniczenie usługi (zawieszenie, kordon wysyłki, usunięcie pliku) robisz w panelu admina lub na węźle — tu zapisujesz decyzję i uzasadnienie.
       </p>
       <textarea aria-label="Uzasadnienie decyzji" value={decision} onChange={(e) => setDecision(e.target.value)} rows={5}
-        placeholder="Uzasadnienie (min. 20 znaków): co sprawdziłeś, co zrobiłeś i na jakiej podstawie. Dostanie je zgłaszający."
+        placeholder="Uzasadnienie (min. 20 znaków): co sprawdzono, co zrobiono i na jakiej podstawie. Dostanie je zgłaszający."
         className="w-full rounded-lg border border-white/10 bg-black/40 p-3 text-sm text-white" />
       {maKlienta ? (
         <label className="flex items-center gap-2 text-xs text-neutral-300">

@@ -9,6 +9,7 @@
     "start": "next start -p 3005",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint .",
+    "test": "jest --config jest.config.cjs",
     "payload": "cross-env PAYLOAD_CONFIG_PATH=payload.config.ts payload",
     "generate:types": "cross-env PAYLOAD_CONFIG_PATH=payload.config.ts payload generate:types"
   },
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.1",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
@@ -36,6 +38,8 @@
     "eslint": "10.11.0",
     "eslint-config-next": "16.3.6",
     "eslint-plugin-jsx-a11y": "^6.10.2",
+    "jest": "^30.5.2",
+    "ts-jest": "^29.4.13",
     "typescript": "^6.0.3"
   }
 }

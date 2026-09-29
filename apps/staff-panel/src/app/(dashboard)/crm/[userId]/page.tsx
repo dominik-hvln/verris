@@ -103,7 +103,7 @@ export default async function StaffCustomerProfilePage({
       {statusPageOpenIncidents.length > 0 ? (
         <div className="rounded-2xl border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
           <p className="font-bold uppercase tracking-wide text-amber-200/90">
-            Otwarte incydenty na status page (węzły tego klienta)
+            Otwarte incydenty na stronie statusu (węzły tego klienta)
           </p>
           <ul className="mt-2 space-y-1 text-xs">
             {statusPageOpenIncidents.map((i) => (
@@ -197,7 +197,7 @@ export default async function StaffCustomerProfilePage({
 
       <section className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
         <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-white">Customer risk</h2>
+          <h2 className="text-sm font-bold uppercase tracking-wide text-white">Ryzyko klienta</h2>
           <p
             className={`mt-3 text-3xl font-bold ${
               supportInsights.riskLevel === "high"
@@ -241,7 +241,7 @@ export default async function StaffCustomerProfilePage({
 
       <section className="rounded-2xl border border-white/10 bg-black/30">
         <h2 className="border-b border-white/10 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white">
-          Timeline klienta
+          Oś zdarzeń klienta
         </h2>
         <ul className="divide-y divide-white/5">
           {customerTimeline.map((item) => {
@@ -360,7 +360,7 @@ export default async function StaffCustomerProfilePage({
             ))}
           </ul>
           {recentTickets.length === 0 ? (
-            <p className="p-6 text-sm text-muted-foreground">Brak ticketów.</p>
+            <p className="p-6 text-sm text-muted-foreground">Brak zgłoszeń.</p>
           ) : null}
         </section>
 

@@ -823,16 +823,20 @@ export class DirectAdminClient {
 
   private async buildAdminSettingsSavePayload(ns1: string, ns2: string): Promise<Record<string, string>> {
     const defaults = this.adminSettingsFormDefaults(ns1, ns2);
+    let lastError: unknown;
     for (const getPath of ['/CMD_ADMIN_SETTINGS', '/CMD_API_ADMIN_SETTINGS'] as const) {
       try {
         const getRes = await this.client.get(getPath, { params: { json: 'yes' }, timeout: 20_000 });
         const merged = mergeAdminSettingsPayload(getRes.data);
+        if (Object.keys(merged).length === 0) throw new Error(`${getPath}: pusta odpowiedź`);
         return { ...merged, ...defaults, ns1, ns2 };
-      } catch {
-        // try next GET path
+      } catch (err) {
+        lastError = err;
       }
     }
-    return defaults;
+    // Bez bieżących ustawień nie zapisujemy: action=save z samymi polami domyślnymi nadpisałby
+    // resztę Admin Settings węzła. Wcześniej błąd odczytu kończył się właśnie takim zapisem.
+    throw lastError instanceof Error ? lastError : new Error('Nie udało się odczytać Admin Settings');
   }
 
   private shouldRetryAdminSettingsOnAlternatePath(err: unknown, path: string): boolean {
@@ -850,6 +854,10 @@ export class DirectAdminClient {
     if (typeof data === 'string') {
       if (/cannot execute that command/i.test(data)) {
         throw new Error('DirectAdmin: CMD_ADMIN_SETTINGS not available for this session');
+      }
+      // Strona HTML (formularz logowania, błąd) nie niesie error=0 — to nie jest zapis.
+      if (data.trim().startsWith('<')) {
+        throw new Error('DirectAdmin: CMD_ADMIN_SETTINGS odpowiedział stroną HTML zamiast wyniku zapisu');
       }
       this.parseResponse(data);
       return;
@@ -1090,14 +1098,18 @@ export class DirectAdminClient {
     }
   }
 
-  /** Urlencoded POST with the standard DA error check (returns parsed params). */
+  /**
+   * Urlencoded POST; sukces tylko przy jawnym `error=0`. Legacy API DA zawsze zwraca `error=1|0`
+   * (https://docs.directadmin.com/developer/api/legacy-api.html) — strona HTML albo pusta odpowiedź
+   * to nie jest „brak błędu”. Tak panel pokazał „dodano” użytkownika bazy, którego nie było (29.09).
+   */
   private async daPost(path: string, body: Record<string, string>): Promise<URLSearchParams> {
     const response = await this.client.post(path, new URLSearchParams(body).toString(), {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     });
     const params = this.daPayloadToParams(response.data);
-    if (params.get('error') === '1') {
-      throw bladDa(params.get('text') || params.get('details') || 'DirectAdmin error');
+    if (params.get('error') !== '0') {
+      throw bladDa(params.get('text') || params.get('details') || 'Serwer nie potwierdził wykonania operacji');
     }
     return params;
   }
@@ -1305,6 +1317,26 @@ export class DirectAdminClient {
       throw this.normalizeDaClientError(lastError, 'Unable to list email accounts');
     }
     return [];
+  }
+
+  /**
+   * Bieżący limit JEDNEJ skrzynki w MB (0 = bez limitu) albo null, gdy DA go nie podał albo nie da się go
+   * przeliczyć jednoznacznie. `CMD_API_POP?type=quota&domain=…&user=…` — raport limitu pojedynczego konta
+   * pocztowego, api=1 → wynik z error=0/1:
+   * https://docs.directadmin.com/changelog/version-1.27.0.html#cmd-api-pop-per-account-quotas-cmd-email-account-quota
+   * Lista type=quota z Dovecotem podaje quota w BAJTACH (z usage_bytes), a action=modify przyjmuje MB — stąd
+   * przeliczenie; bajty, które nie są całymi MiB, dają null (nie zaokrąglamy cudzego limitu).
+   */
+  async getEmailAccountQuotaMb(domain: string, user: string): Promise<number | null> {
+    const response = await this.client.get('/CMD_API_POP', { params: { type: 'quota', domain, user, api: '1' } });
+    const params = this.daPayloadToParams(response.data);
+    if (params.get('error') && params.get('error') !== '0') {
+      throw bladDa(params.get('text') || params.get('details') || 'Nie udało się odczytać rozmiaru skrzynki');
+    }
+    // Wiersz bywa płaski (quota=…&usage=…) albo pod kluczem skrzynki (jak w liście: jan=quota%3D…).
+    const zagniezdzony = params.get(user);
+    const rekord = !params.has('quota') && zagniezdzony ? new URLSearchParams(zagniezdzony) : params;
+    return popQuotaMb(rekord);
   }
 
   /** Usage counters from CMD_API_SHOW_USER_USAGE (nemails, …). */
@@ -1769,6 +1801,19 @@ export function parseDaMessage(id: string, data: unknown): DaMessageDetails {
     from: p.get('from') || null,
     time: Number.isFinite(epoch) && epoch > 0 ? new Date(epoch * 1000) : null,
   };
+}
+
+/**
+ * `quota` rekordu skrzynki → MB. Bajty rozpoznajemy tak jak lista type=quota (usage_bytes albo ≥ 1 MiB);
+ * wtedy wynik musi być całą liczbą MiB, inaczej null. Brak/nieliczbowe quota → null.
+ */
+export function popQuotaMb(rekord: URLSearchParams): number | null {
+  const surowe = rekord.get('quota');
+  if (surowe == null || surowe.trim() === '') return null;
+  const q = Number(surowe);
+  if (!Number.isFinite(q) || q < 0) return null;
+  if (!rekord.has('usage_bytes') && q < 1048576) return q;
+  return q % 1048576 === 0 ? q / 1048576 : null;
 }
 
 /** Ensures a path begins with exactly one leading slash. */

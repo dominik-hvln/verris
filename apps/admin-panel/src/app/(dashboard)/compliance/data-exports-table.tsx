@@ -30,7 +30,7 @@ export function DataExportsTable({ rows }: { rows: AdminDataExportRow[] }) {
     setPendingId(id);
     startTransition(async () => {
       const res = await retryDataExportAction(id);
-      setFeedback(res.ok ? `Zaplanowano retry ${id.slice(0, 8)}…` : res.error ?? "Błąd retry.");
+      setFeedback(res.ok ? `Zaplanowano ponowienie ${id.slice(0, 8)}…` : res.error ?? "Nie udało się ponowić eksportu.");
       setPendingId(null);
     });
   };
@@ -94,7 +94,7 @@ export function DataExportsTable({ rows }: { rows: AdminDataExportRow[] }) {
                       ) : (
                         <RefreshCw className="h-3 w-3" />
                       )}
-                      Retry
+                      Ponów
                     </button>
                   )}
                 </td>

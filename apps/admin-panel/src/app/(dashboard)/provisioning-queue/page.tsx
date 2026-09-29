@@ -98,7 +98,7 @@ export default async function ProvisioningQueuePage({
             <table className="w-full text-sm">
               <thead className="border-b border-white/10 text-left text-xs uppercase tracking-widest text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-3">Job ID</th>
+                  <th className="px-4 py-3">ID zadania</th>
                   <th className="px-4 py-3">Subskrypcja</th>
                   <th className="px-4 py-3">Typ</th>
                   <th className="px-4 py-3">Stan</th>
@@ -112,7 +112,7 @@ export default async function ProvisioningQueuePage({
                 {data.rows.length === 0 && (
                   <tr>
                     <td colSpan={8} className="px-4 py-6 text-center text-xs text-muted-foreground">
-                      Brak jobów w wybranym stanie.
+                      Brak zadań w wybranym stanie.
                     </td>
                   </tr>
                 )}

@@ -1,0 +1,16 @@
+{
+  // Główny tsconfig wyklucza `**/*.spec.ts` (Next nie buduje testów); tu ts-jest je typuje.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Next buduje do ESM z `moduleResolution: bundler`; jest potrzebuje CJS.
+    "module": "commonjs",
+    "moduleResolution": "bundler",
+    // `jsx: preserve` z konfiguracji Next zostawia JSX nieprzetworzony — ts-jest nie ma go czym wykonać.
+    "jsx": "react-jsx",
+    "noEmit": false,
+    "rootDir": "../..",
+    "types": ["jest", "node"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", ".next"]
+}

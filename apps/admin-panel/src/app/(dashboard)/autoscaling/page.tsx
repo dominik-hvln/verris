@@ -24,7 +24,7 @@ export default async function AutoscalingPricingPage() {
         <div>
           <h1 className="flex items-center gap-3 text-[28px] lg:text-[34px]">
             <Gauge className="h-7 w-7 text-indigo-400" />
-            Cennik Autoskalowania
+            Cennik autoskalowania
           </h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
             Stawki za dodatkowe CPU, RAM i dysk ponad plan bazowy. Zmiany wchodzą natychmiast —

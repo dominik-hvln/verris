@@ -1,5 +1,6 @@
 import { CheckCircle2, AlertTriangle, XCircle, Rocket } from "lucide-react";
 import { fetchLiveReadiness, type ReadinessCheck } from "./actions";
+import { plForm } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,8 @@ export default async function LiveReadinessPage() {
                 {res.data.go ? "GO — brak blokerów" : "NO-GO — są blokery do usunięcia"}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {res.data.counts.ok} OK · {res.data.counts.warn} ostrzeżeń · {res.data.counts.fail} błędów ·
+                {res.data.counts.ok} OK · {res.data.counts.warn} {plForm(res.data.counts.warn, "ostrzeżenie", "ostrzeżenia", "ostrzeżeń")} ·{" "}
+                {res.data.counts.fail} {plForm(res.data.counts.fail, "błąd", "błędy", "błędów")} ·
                 wygenerowano {new Date(res.data.generatedAt).toLocaleString("pl-PL")}
               </p>
             </div>

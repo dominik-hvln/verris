@@ -4,6 +4,7 @@ import { Select } from "@/components/select";
 import { useState, useTransition, useId } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, EyeOff, Loader2, Pencil, Plus, Server, X } from "lucide-react";
+import { plForm } from "@/lib/pl";
 import {
   createVpsPlan,
   disableVpsPlan,
@@ -79,7 +80,7 @@ export function VpsPlansClient({
       ) : null}
 
       <div className="flex items-center justify-between">
-        <p className="text-sm text-neutral-400">{plans.length} plan(ów) VPS</p>
+        <p className="text-sm text-neutral-400">{plans.length} {plForm(plans.length, "plan", "plany", "planów")} VPS</p>
         {!creating && !editing ? (
           <button
             type="button"
@@ -231,7 +232,7 @@ function PlanForm({
         <Field label="Dysk (GB)"><input type="number" className="ip" value={f.diskGb} onChange={(e) => set("diskGb", Number(e.target.value))} /></Field>
         <Field label="Transfer (TB)"><input type="number" className="ip" value={f.trafficTb} onChange={(e) => set("trafficTb", Number(e.target.value))} /></Field>
         <Field label="Cena/mies."><input type="number" step="0.01" className="ip" value={f.priceMonthly} onChange={(e) => set("priceMonthly", Number(e.target.value))} /></Field>
-        <Field label="Sort"><input type="number" className="ip" value={f.sortOrder} onChange={(e) => set("sortOrder", Number(e.target.value))} /></Field>
+        <Field label="Kolejność"><input type="number" className="ip" value={f.sortOrder} onChange={(e) => set("sortOrder", Number(e.target.value))} /></Field>
         <Field label="Publiczny" htmlFor={`${vpsFieldId}-public`}>
           <Select id={`${vpsFieldId}-public`} className="ip" value={f.isPublic ? "1" : "0"} onChange={(v) => set("isPublic", v === "1")}
             options={[{ value: "1", label: "Tak" }, { value: "0", label: "Nie" }]} />

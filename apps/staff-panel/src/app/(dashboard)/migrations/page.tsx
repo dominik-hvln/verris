@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { plForm } from "@/lib/pl";
 import { staffApi as adminApi, StaffApiError } from "@/lib/staff-api";
 import { MigrationRowActions } from "./migration-row-actions";
+import { statusPl } from "./status-pl";
 
 export const dynamic = "force-dynamic";
 
@@ -46,18 +48,6 @@ const STATUS_STYLE: Record<string, string> = {
   CANCELED: "border-white/15 bg-white/5 text-muted-foreground",
 };
 
-/** Statusy po polsku — obsługa nie ma czytać enumów z bazy. */
-const STATUS_PL: Record<string, string> = {
-  ATTENTION: "Pilne",
-  QUEUED: "W kolejce",
-  RUNNING: "W toku",
-  FAILED: "Nieudane",
-  COMPLETED: "Ukończone",
-  DRAFT: "Szkic",
-  CANCELED: "Anulowane",
-};
-const statusPl = (s: string) => STATUS_PL[s] ?? s;
-
 const FILTERS = ["", "ATTENTION", "QUEUED", "RUNNING", "FAILED", "COMPLETED"] as const;
 
 export default async function MigrationsCockpitPage({
@@ -85,7 +75,7 @@ export default async function MigrationsCockpitPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-white">Cockpit migracji</h1>
+        <h1 className="text-3xl font-bold text-white">Migracje</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Flota zleceń migracji. Migracje są automatyczne — te oznaczone „Pilne” zatrzymał
           automat i czekają na dokończenie przez zespół (wznów, ponów krok lub oznacz jako ukończone).
@@ -97,7 +87,7 @@ export default async function MigrationsCockpitPage({
           href="/migrations?status=ATTENTION"
           className="block rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 hover:bg-amber-500/15"
         >
-          🔴 {attentionCount} {attentionCount === 1 ? "migracja wymaga" : "migracji wymaga"} uwagi zespołu — kliknij, aby zobaczyć.
+          🔴 {attentionCount} {plForm(attentionCount, "migracja wymaga", "migracje wymagają", "migracji wymaga")} uwagi zespołu — kliknij, aby zobaczyć.
         </Link>
       ) : null}
 

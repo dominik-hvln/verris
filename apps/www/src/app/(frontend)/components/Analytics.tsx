@@ -8,7 +8,14 @@ import { captureFbclid } from '@/lib/cookie-consent';
 
 // Consent Mode v2 — domyślnie wszystko „denied" (poza niezbędnym).
 // Musi wykonać się PRZED załadowaniem GTM.
-const consentDefault = `
+// https://developers.google.com/tag-platform/security/guides/consent
+//
+// Każdy typ, który ustawia applyConsent(), ma tu wartość domyślną. `functionality_storage`
+// i `personalization_storage` idą za kategorią „Funkcjonalne”, która w banerze jest opcjonalna
+// i domyślnie wyłączona — do 29.09.2026 domyślnie było tu „granted” (a personalizacji brakowało),
+// więc przed decyzją tagi z tymi wymogami działały bez zgody. Tak samo jak w panelu.
+// Eksport tylko dla testu (Analytics.spec.ts).
+export const consentDefault = `
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 window.gtag = window.gtag || gtag;
@@ -17,7 +24,8 @@ gtag('consent','default',{
   ad_user_data:'denied',
   ad_personalization:'denied',
   analytics_storage:'denied',
-  functionality_storage:'granted',
+  functionality_storage:'denied',
+  personalization_storage:'denied',
   security_storage:'granted',
   wait_for_update:500
 });

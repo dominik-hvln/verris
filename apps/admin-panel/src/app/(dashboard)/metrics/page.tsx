@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { adminApi } from "@/lib/api";
-import { nodes as nodesLabel, accounts as accountsLabel } from "@/lib/pl";
+import { nodes as nodesLabel, accounts as accountsLabel, plForm } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
@@ -83,7 +83,7 @@ export default async function BusinessMetricsPage() {
             <Stat
               label="Churn (mies.)"
               value={`${m.churnPct}%`}
-              hint={`${m.canceledThisMonth} anulowanych / +${m.newThisMonth} nowych`}
+              hint={`${m.canceledThisMonth} ${plForm(m.canceledThisMonth, "anulowana", "anulowane", "anulowanych")} / +${m.newThisMonth} ${plForm(m.newThisMonth, "nowa", "nowe", "nowych")}`}
             />
           </div>
 

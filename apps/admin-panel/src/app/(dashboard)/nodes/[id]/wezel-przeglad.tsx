@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { KARTA, LinkKarty, NaglowekKarty, Pasek, Pigulka, WIERSZ } from "@/components/v2";
 import type { PrzegladWezla } from "./przeglad-data";
+import { plForm } from "@/lib/pl";
 
 /** PB-34 — zakładka „Przegląd” strony węzła 1:1 z makiety AdminWezel.dc.html. */
 const STREFA = "Europe/Warsaw";
@@ -48,7 +49,7 @@ export function WezelPrzeglad({ p, bazaHref }: { p: PrzegladWezla; bazaHref: str
             <span className="ml-auto">
               {z.rozjazdy > 0 ? (
                 <Pigulka ton="warn" className="!text-xs">
-                  {z.rozjazdy} {z.rozjazdy === 1 ? "rozjazd" : z.rozjazdy < 5 ? "rozjazdy" : "rozjazdów"}
+                  {z.rozjazdy} {plForm(z.rozjazdy, "rozjazd", "rozjazdy", "rozjazdów")}
                 </Pigulka>
               ) : z.bezRaportu ? (
                 <Pigulka ton="muted" className="!text-xs">

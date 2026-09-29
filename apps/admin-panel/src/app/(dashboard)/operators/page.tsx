@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Search, ShieldCheck, ShieldAlert } from "lucide-react";
 import { listOperators, type OperatorRole } from "./data";
 import { GrafanaAccessToggle } from "./grafana-toggle";
+import { plForm } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
         </div>
         {data ? (
           <div className="text-xs text-muted-foreground">
-            {data.rows.length} z {data.total.toLocaleString("pl-PL")} operatorów
+            {data.rows.length} z {data.total.toLocaleString("pl-PL")} {plForm(data.total, "operatora", "operatorów", "operatorów")}
           </div>
         ) : null}
       </header>
@@ -63,7 +64,7 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
                   type="text"
                   name="search"
                   defaultValue={search ?? ""}
-                  placeholder="email, imię, nazwisko"
+                  placeholder="e-mail, imię, nazwisko"
                   className="bg-transparent border-none outline-none text-sm text-white w-full"
                 />
               </div>

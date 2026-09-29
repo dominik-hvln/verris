@@ -1,4 +1,5 @@
 import type { SlaPodglad } from './actions';
+import { plForm } from '@/lib/pl';
 
 /** N-16 — podgląd rekompensat za poprzedni miesiąc na prawdziwych danych sond, przed włączeniem. */
 export function SlaPreview({ data }: { data: SlaPodglad | null }) {
@@ -15,7 +16,7 @@ export function SlaPreview({ data }: { data: SlaPodglad | null }) {
       ) : (
         <>
           <p className="text-xs text-neutral-400">
-            Za {data.okres} po włączeniu przyznalibyśmy {data.pozycje.length} rekompensat na łącznie {data.suma} zł. Nic tu nie
+            Za {data.okres} po włączeniu przyznalibyśmy {data.pozycje.length} {plForm(data.pozycje.length, "rekompensatę", "rekompensaty", "rekompensat")} na łącznie {data.suma} zł. Nic tu nie
             jest zapisywane.
           </p>
           <table className="w-full text-left text-xs">

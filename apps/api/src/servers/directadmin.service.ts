@@ -1396,24 +1396,24 @@ export class DirectAdminService {
     if (!input.password || input.password.length < 8) {
       throw new BadRequestException('Hasło skrzynki musi mieć co najmniej 8 znaków.');
     }
-    // DA CMD_API_POP action=modify wymaga quota — pobieramy bieżącą, by jej nie wyzerować.
-    let quota = '1024';
-    try {
-      const list = await this.listHostingEmailAccounts(subscriptionId, userId);
-      const box = list.rows.find((r) => r.email === input.email);
-      if (box && typeof box.quotaMb === 'number' && box.quotaMb >= 0) {
-        quota = String(box.quotaMb);
-      }
-    } catch {
-      // brak listy → użyj domyślnej; modyfikacja hasła i tak ma priorytet
+    // DA CMD_API_POP action=modify wymaga quota — odsyłamy bieżącą, czytaną dla tej jednej skrzynki
+    // (CMD_API_POP type=quota&user=…, https://docs.directadmin.com/changelog/version-1.27.0.html#cmd-api-pop-per-account-quotas-cmd-email-account-quota).
+    // Lista skrzynek w formacie DA 1.710 `list[]=` nie niesie rozmiaru. Gdy go nie znamy, odmawiamy:
+    // wcześniej szło wtedy „1024”, więc zmiana hasła po cichu zmieniała rozmiar skrzynki.
+    const domena = await this.assertDomainOwnedBySubscription(subscriptionId, userId, domain);
+    const { account, client } = await this.accountClientForSubscription(subscriptionId, userId);
+    this.assertAccountMutable(account);
+    const quotaMb = await client.getEmailAccountQuotaMb(domena, user);
+    if (quotaMb == null) {
+      throw new BadRequestException('Serwer nie podał rozmiaru skrzynki — hasło zostaje bez zmian. Spróbuj ponownie albo napisz do nas.');
     }
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_POP', {
       action: 'modify',
       user,
-      domain,
+      domain: domena,
       passwd: input.password,
       passwd2: input.password,
-      quota,
+      quota: String(quotaMb),
     });
     await this.audit.record({
       action: HostingResourceActions.HOSTING_EMAIL_PASSWORD_CHANGED,
@@ -1552,11 +1552,10 @@ export class DirectAdminService {
     const text = (input.text || '').trim();
     if (!text) throw new BadRequestException('Treść autorespondera nie może być pusta.');
     // create gdy nie istnieje, w przeciwnym razie modify (DA rozróżnia akcje)
-    let action = 'create';
-    try {
-      const existing = await this.listHostingAutoresponders(subscriptionId, userId);
-      if (existing.rows.some((r) => r.name === name)) action = 'modify';
-    } catch { /* domyślnie create */ }
+    // Lista nie rzuca — błąd odczytu przychodzi w fetchError; bez listy nie wiemy, czy create czy modify.
+    const existing = await this.listHostingAutoresponders(subscriptionId, userId);
+    if (existing.fetchError) throw new BadRequestException('Nie udało się odczytać autoresponderów z serwera. Spróbuj ponownie za chwilę.');
+    const action = existing.rows.some((r) => r.name === name) ? 'modify' : 'create';
     // DA: cc=ON/OFF + email=<adres kopii> (nie adres bezpośrednio w cc).
     const form: Record<string, string> = { action, domain, user: name, text };
     if (input.cc && input.cc.trim()) { form.cc = 'ON'; form.email = input.cc.trim(); }
@@ -2034,18 +2033,19 @@ export class DirectAdminService {
       // GET aktualne tokeny i nadpisz tylko wybrane — DA action=save oczekuje pełnego zestawu pól.
       // DA 1.710 (test D3 na t1, 29.09): próg to required_hits (custom + required_hits_custom), a save
       // odrzuca formularz bez blacklist_from/whitelist_from — listy odsyłamy takie, jakie są (JSON: tablice).
+      // Bez bieżących ustawień nie zapisujemy: wcześniej błąd odczytu dawał save z pustymi
+      // blacklist_from/whitelist_from — czarna i biała lista klienta znikały, a panel mówił „zapisano”.
       const tokens: Record<string, string> = {};
-      try {
-        const raw = await this.daGetRawForSubscription(subscriptionId, userId, '/CMD_API_SPAMASSASSIN', { domain });
-        if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-          for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
-            if (Array.isArray(v)) tokens[k] = v.map(String).join('\n');
-            else if (v != null && typeof v !== 'object') tokens[k] = String(v);
-          }
-        } else {
-          for (const [k, v] of this.parseKvPayload(raw).entries()) tokens[k] = v;
+      const raw = await this.daGetRawForSubscription(subscriptionId, userId, '/CMD_API_SPAMASSASSIN', { domain });
+      this.interpretDaPostResponse(raw);
+      if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+        for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+          if (Array.isArray(v)) tokens[k] = v.map(String).join('\n');
+          else if (v != null && typeof v !== 'object') tokens[k] = String(v);
         }
-      } catch { /* domyślne */ }
+      } else {
+        for (const [k, v] of this.parseKvPayload(raw).entries()) tokens[k] = v;
+      }
       const score = String(input.requiredScore ?? tokens.required_score ?? tokens.required_hits ?? '5').replace(/[^0-9.]/g, '') || '5';
       const form: Record<string, string> = {
         action: 'save', domain,
@@ -3128,9 +3128,13 @@ export class DirectAdminService {
       }
       // Świeże konto nie ma katalogu /backups — DA odpowiada 404 i panel pokazywał „Request failed
       // with status code 404” zamiast pustej listy (test D3 na t1). Lista kopii już przyszła wyżej.
+      // Tylko 404 (brak katalogu) znaczy „brak kopii”; inny błąd idzie do fetchError, a nie w pustą listę.
       const fm = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_FILE_MANAGER', {
         path: '/backups',
-      }).catch(() => new URLSearchParams());
+      }).catch((err: unknown) => {
+        if ((err as { response?: { status?: number } })?.response?.status === 404) return new URLSearchParams();
+        throw err;
+      });
       return { rows: this.parseDaBackupFileRows(fm), fetchError: null as string | null, offsite };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
