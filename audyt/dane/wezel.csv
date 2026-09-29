@@ -15,9 +15,9 @@ C-25,czeka,,
 C-27,czeka,,
 D-08,czeka,,
 D-12,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
-D-15,czeka,,
+D-15,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 D-18,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
-E-05,czeka,,"29.09: lista skrzynek pokazywała „bez limitu” (1 GB w DA) — poprawka b8d4f53 (type=quota, bajty → MB); potem zmiana rozmiaru"
+E-05,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 E-06,czeka,,
 E-15,sprawdzone,2026-09-29,SPF poprawny na d3.hvln.pl
 E-17,sprawdzone,2026-09-29,DMARC dodany z panelu
@@ -37,7 +37,7 @@ I-11,czeka,,
 I-13,czeka,,
 I-15,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 J-02,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
-J-03,czeka,,
+J-03,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 K-03,czeka,,
 L-03,sprawdzone,2026-09-28,CMD_API_CRON_JOBS create/delete
 L-05,sprawdzone,2026-09-29,alt-php 7.4 i 8.1 w cronie na d3.hvln.pl

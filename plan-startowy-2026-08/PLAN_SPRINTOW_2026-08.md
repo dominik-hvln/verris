@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2440 h** — przy 30 h tygodniowo około **19 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2402 h** — przy 30 h tygodniowo około **19 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1178 h) oraz roadmapę po starcie (1262 h, 71 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1178 h) oraz roadmapę po starcie (1224 h, 68 pozycji) rozpisaną na epiki kwartalne.
 
 - **2027-01-22** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-02-05** — koniec sprintu 23, decyzja GO.
@@ -252,7 +252,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 | `E-15` | Rekordy SPF — kreator | 6 | — | 2026-09-23 D1: deliverability/mail-auth.ts (buildMailAuthChecks) + deliverability.service.ts (strefa DA + delegacja NS); UI app/dashboard/email/delive |
 | `E-16` | Rekordy DKIM — konfiguracja | 6 | WYSOKA | deliverability/mail-auth.ts (akcja enable-dkim); servers/directadmin.service.ts enableHostingDkim; POST /services/:id/hosting-email/dkim; email/delive |
 | `E-17` | Rekord DMARC — konfiguracja | 6 | — | 2026-09-23 D1: mail-auth.ts dmarcCheck (brak / p=none / kilka rekordów) + lib/dmarc.ts tuneDmarc (polityka + adres raportów) w deliverability-panel.ts |
-| `E-05` | Zmiana quoty ISTNIEJĄCEJ skrzynki | 6 | WYSOKA | 2026-09-23 D1: POST /services/:id/hosting-email/quota (ZmienRozmiarSkrzynkiDto 10–102400 MB) → directadmin.service changeHostingEmailQuota (CMD_API_PO |
+| `E-05` | Zmiana quoty ISTNIEJĄCEJ skrzynki | 6 | — | 2026-09-23 D1: POST /services/:id/hosting-email/quota (ZmienRozmiarSkrzynkiDto 10–102400 MB) → directadmin.service changeHostingEmailQuota (CMD_API_PO |
 | `M-26` | Usunięcie zapisanej karty przez klienta | 6 | WYSOKA | 2026-09-23 D1: DELETE /billing/payment-methods/:id (ParseUUIDPipe) → billing.service deleteMyPaymentMethod: Stripe detach, usunięcie wiersza, zerowani |
 
 **Definicja ukończenia**
@@ -260,7 +260,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 - `E-15` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `E-16` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `E-17` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `E-05` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `E-05` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `M-26` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
@@ -517,19 +517,19 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 # Po starcie — roadmapa kwartalna
 
-71 pozycji, 1262 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
+68 pozycji, 1224 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
 
 | ID | Epik | Priorytet | Kwartał | Pozycji | h | Dlaczego teraz, a nie wcześniej |
 |---|---|---|---|---|---|---|
 | `E-01` | Runtime, pliki i diagnostyka | WYSOKI | Q1 2027 | 15 | 276 | Najczęstsze źródło zgłoszeń w pierwszych miesiącach każdego hostingu. Logi WWW ma pięć z pięciu badanych hostingów PL — bez nich klient nie zdiagnozuje własnej strony i pisze do nas. |
-| `E-02` | Wydajność: cache i skalowanie | WYSOKI | Q1 2027 | 6 | 110 | Trzy z pięciu hostingów PL dają Redis w cenie. Przy pozycjonowaniu na WordPressa to nie dodatek, tylko oczekiwanie. |
+| `E-02` | Wydajność: cache i skalowanie | WYSOKI | Q1 2027 | 4 | 78 | Trzy z pięciu hostingów PL dają Redis w cenie. Przy pozycjonowaniu na WordPressa to nie dodatek, tylko oczekiwanie. |
 | `E-12` | Backup: granularność i retencja | WYSOKI | Q1 2027 | 8 | 100 | cyber_Folks daje 28 dni, seohost do 60. Nasze 30 dni jest w normie, ale granularność odtwarzania jest poniżej rynku. |
 | `E-14` | Rozliczenia: dokończenie | WYSOKI | Q1 2027 | 1 | 16 | Z-07 z macierzy: klient płacący portfelem doładowuje saldo w karencji i i tak zostaje zawieszony. Pierwszy taki przypadek to stracony klient. |
 | `E-15` | Wsparcie i ops: kolejka abuse | WYSOKI | Q1 2027 | 2 | 46 | Sprint 13 daje możliwość zatrzymania szkody. Ten epik daje proces, który skaluje się dalej niż jedna osoba. |
 | `E-03` | WordPress Toolkit | WYSOKI | Q2 2027 | 5 | 94 | Cztery z pięciu hostingów PL mają automatyczne aktualizacje WordPressa. Staging już mamy i jest przewagą — reszta toolkitu ją domyka. |
 | `E-04` | Domeny jako produkt | WYSOKI | Q2 2027 | 8 | 78 | Backend jest gotowy i wyłączony brakiem konfiguracji. Domena to najczęstszy pierwszy zakup i naturalny punkt wejścia. |
 | `E-05` | Katalog aplikacji | ŚREDNI | Q2 2027 | 1 | 16 | Softaculous ma około 400 aplikacji. Nie musimy mieć 400, ale dwie to nie jest katalog. |
-| `E-10` | Poczta: filtry, kalendarz, limity | ŚREDNI | Q2 2027 | 5 | 84 | „Gdzie jest mój mail” to najczęstszy ticket poczty. Podgląd kolejki zdejmuje go z obsługi i oddaje klientowi. |
+| `E-10` | Poczta: filtry, kalendarz, limity | ŚREDNI | Q2 2027 | 4 | 78 | „Gdzie jest mój mail” to najczęstszy ticket poczty. Podgląd kolejki zdejmuje go z obsługi i oddaje klientowi. |
 | `E-06` | Bezpieczeństwo jako funkcja | ŚREDNI | Q3 2027 | 3 | 96 | Pozycja licencyjna — wchodzi do rachunku z PB-01. Może być produktem dodatkowym, nie musi być w cenie pakietu. |
 | `E-07` | Reseller jako produkt | ŚREDNI | Q3 2027 | 2 | 56 | Dziś to strona sprzedażowa z dwoma GET-ami. Albo staje się produktem, albo znika z nawigacji — trzeciej opcji nie ma. |
 | `E-08` | Dostępność i zgodność w produkcie | ŚREDNI | Q3 2027 | 2 | 80 | Zwolnienie mikroprzedsiębiorcy z EAA wygasa przy 10 pracownikach lub 2 mln EUR. Lepiej mieć to wcześniej niż w tygodniu przekroczenia progu. |
@@ -539,7 +539,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `E-09` | Pokrycie testowe warstw krytycznych | WYSOKI | ciągłe | 0 | 0 | Realizowane równolegle z każdą fazą, nie jako osobny projekt. Zasada: każda naprawiona pozycja dostaje test, który najpierw czerwieni się na starym kodzie. |
 
 - **E-01 Runtime, pliki i diagnostyka** (276 h) — php.ini i rozszerzenia PHP z panelu, logi dostępu i błędów WWW, import/eksport bazy, spakowanie archiwum, SSH i klucze SSH dla hostingu, podgląd zajętości katalogów.
-- **E-02 Wydajność: cache i skalowanie** (110 h) — Redis jako cache obiektowy sterowany z panelu, LSCache, weryfikacja HTTP/3, CDN, optymalizacja obrazów.
+- **E-02 Wydajność: cache i skalowanie** (78 h) — Redis jako cache obiektowy sterowany z panelu, LSCache, weryfikacja HTTP/3, CDN, optymalizacja obrazów.
 - **E-03 WordPress Toolkit** (94 h) — Automatyczne aktualizacje, aktualizacje wtyczek i motywów, klonowanie między domenami, hardening, skan podatności, tryb konserwacji, masowe zarządzanie.
 - **E-04 Domeny jako produkt** (78 h) — Konfiguracja rejestratora, zakup i transfer z panelu, odnowienia, zmiana danych abonenta, blokada transferu, ukrycie WHOIS.
 - **E-05 Katalog aplikacji** (16 h) — Rozbudowa katalogu z dwóch pozycji do kilkunastu najczęściej instalowanych albo integracja z gotowym instalatorem.
@@ -547,7 +547,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - **E-07 Reseller jako produkt** (56 h) — Zakładanie kont przez resellera, marża ustawiana przez niego, white-label, rozliczenia.
 - **E-08 Dostępność i zgodność w produkcie** (80 h) — WCAG 2.1 AA dla ścieżki klienta, RCPD jako moduł zamiast pliku, ISO 27001 jeśli wejdziemy w B2B, deklaracja lokalizacji danych.
 - **E-09 Pokrycie testowe warstw krytycznych** (0 h) — Testy integracyjne API, moduł auth, klient KSeF, ścieżka backup/restore, DirectAdminService, panele frontowe.
-- **E-10 Poczta: filtry, kalendarz, limity** (84 h) — Reguły filtrowania Sieve, podgląd kolejki i logów dostarczania, limity wysyłki pokazane klientowi, kalendarz i kontakty, 2FA dla webmaila.
+- **E-10 Poczta: filtry, kalendarz, limity** (78 h) — Reguły filtrowania Sieve, podgląd kolejki i logów dostarczania, limity wysyłki pokazane klientowi, kalendarz i kontakty, 2FA dla webmaila.
 - **E-11 DNS: DNSSEC i zarządzanie strefą** (62 h) — DNSSEC, zmiana TTL, Anycast DNS, pełne zarządzanie strefą po podpięciu edytora w sprincie 10.
 - **E-12 Backup: granularność i retencja** (100 h) — Odtworzenie pojedynczego pliku, podgląd zawartości archiwum przed odtworzeniem, pobranie kopii lokalnie, retencja 28+ dni w cenie.
 - **E-13 Automatyzacja: API zapisu i webhooki** (68 h) — Rozszerzenie publicznego API o operacje zapisu, webhooki dla klienta, edycja crona, cron z wyborem wersji PHP, podgląd wyniku wykonania.
