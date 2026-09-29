@@ -1193,6 +1193,15 @@ configure_hosting_capabilities() {
     for uc in /usr/local/directadmin/data/users/*/user.conf; do
       [ -f "$uc" ] || continue
       grep -q '^usertype=user$' "$uc" || continue
+      # „Message System” wysyła kopię na adres z ticket.conf (ustawienia wiadomości użytkownika),
+      # nie z user.conf — retest D3 29.09: po zmianie user.conf maile SSO dalej szły do klienta.
+      tc="${uc%/user.conf}/ticket.conf"
+      if [ -f "$tc" ] && grep -q '^email=' "$tc"; then
+        grep -qx "email=${DA_SINK}" "$tc" || sed -i "s|^email=.*|email=${DA_SINK}|" "$tc"
+      else
+        printf 'email=%s\n' "$DA_SINK" >> "$tc"
+        chown diradmin:diradmin "$tc" 2>/dev/null || true
+      fi
       obecny="$(sed -n 's/^email=//p' "$uc" | head -n1)"
       [ "$obecny" = "$DA_SINK" ] && continue
       grep -q '^verris_email_klienta=' "$uc" || printf 'verris_email_klienta=%s\n' "$obecny" >> "$uc"
@@ -1203,7 +1212,10 @@ configure_hosting_capabilities() {
       fi
       zmienione=$((zmienione + 1))
     done
-    if command -v exim >/dev/null 2>&1 && exim -bt "$DA_SINK" 2>/dev/null | grep -qi 'discarded'; then
+    zle_tc="$(grep -L -x "email=${DA_SINK}" /usr/local/directadmin/data/users/*/ticket.conf 2>/dev/null | while read -r f; do grep -q '^usertype=user$' "${f%/ticket.conf}/user.conf" 2>/dev/null && echo "$f"; done | wc -l)"
+    if [ "$zle_tc" -gt 0 ]; then
+      log_fail "Maile DA do klientów: ${zle_tc} kont ma w ticket.conf adres inny niż ${DA_SINK}"
+    elif command -v exim >/dev/null 2>&1 && exim -bt "$DA_SINK" 2>/dev/null | grep -qi 'discarded'; then
       log_ok "Maile DA do klientów wyłączone: konta DA → ${DA_SINK} (zmieniono ${zmienione})"
     else
       log_fail "Maile DA do klientów: exim nie odrzuca ${DA_SINK} (sprawdź /etc/aliases i czy $(hostname -f) jest domeną lokalną)"

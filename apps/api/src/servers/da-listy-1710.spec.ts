@@ -82,6 +82,11 @@ describe('webmail jednym kliknięciem (CMD_WEBMAIL_LOGIN)', () => {
     expect(String((post.mock.calls[0] as unknown[])[1])).toBe('email=test%40d3.hvln.pl');
   });
 
+  it('prawdziwa odpowiedź DA 1.710 (atrybuty w apostrofach) → adres i token', async () => {
+    const { k } = zOdpowiedzia("<html><body onload='document.autologin.submit()'><form action='https://t1.verris.pl/roundcube/direct_login/index.php' name='autologin' method='POST'><input type='hidden' name='token' value='abc123'/></form></body></html>");
+    await expect(k.createWebmailLogin('test@d3.hvln.pl')).resolves.toEqual({ action: 'https://t1.verris.pl/roundcube/direct_login/index.php', token: 'abc123' });
+  });
+
   it.each([
     ['obcy adres', '<form action="https://zly.example/login"><input name="token" value="x"></form>'],
     ['http zamiast https', '<form action="http://t1.verris.pl/roundcube/direct_login/"><input name="token" value="x"></form>'],

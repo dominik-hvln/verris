@@ -107,6 +107,9 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
     expect(t).toContain("grep -q '^usertype=user$'");
     expect(t).toContain('verris_email_klienta=');
     expect(t).toMatch(/exim -bt "\$DA_SINK"/);
+    // „Message System” wysyła kopię na adres z ticket.conf, nie z user.conf (retest D3 29.09)
+    expect(t).toContain('tc="${uc%/user.conf}/ticket.conf"');
+    expect(t).toMatch(/kont ma w ticket\.conf adres inny/);
   });
 
   it('profil: antyspam — rspamd wg dokumentacji DA, gdy żaden spamd nie działa; pakiety z catchall=ON', () => {

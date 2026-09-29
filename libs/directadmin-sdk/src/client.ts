@@ -1242,9 +1242,10 @@ export class DirectAdminClient {
       { params: { json: 'yes' }, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, responseType: 'text' },
     );
     const html = String(response.data ?? '');
-    const action = /<form[^>]*\saction="([^"]+)"/i.exec(html)?.[1] ?? '';
-    const token = /<input[^>]*\sname="token"[^>]*\svalue="([^"]+)"/i.exec(html)?.[1]
-      ?? /<input[^>]*\svalue="([^"]+)"[^>]*\sname="token"/i.exec(html)?.[1] ?? '';
+    // DA 1.710 pisze atrybuty w apostrofach (action='…'), stąd ["'] — test D3 29.09.
+    const action = /<form[^>]*\saction=["']([^"']+)["']/i.exec(html)?.[1] ?? '';
+    const token = /<input[^>]*\sname=["']token["'][^>]*\svalue=["']([^"']+)["']/i.exec(html)?.[1]
+      ?? /<input[^>]*\svalue=["']([^"']+)["'][^>]*\sname=["']token["']/i.exec(html)?.[1] ?? '';
     // Tylko Roundcube (https, …/roundcube/direct_login/) — nie przekazujemy klientowi dowolnego adresu
     // z odpowiedzi. Nazwy hosta nie porównujemy: klient DA bywa zbudowany na IP, a Roundcube stoi na FQDN.
     let ok = false;
