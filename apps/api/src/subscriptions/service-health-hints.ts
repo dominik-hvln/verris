@@ -132,7 +132,7 @@ export function buildHealthCheckDetails(
     out.backupFresh = warnDetail(
       'Kopia zapasowa',
       'Brak świeżej kopii zapasowej z ostatnich 8 dni.',
-      'W zakładce Usage uruchom kopię zapasową lub skonfiguruj harmonogram w panelu hostingu.',
+      'W zakładce Kopie zapasowe uruchom kopię albo ustaw harmonogram.',
     );
   }
 

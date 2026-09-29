@@ -1,7 +1,7 @@
 import { ScrollText } from 'lucide-react';
 import { getIamAudit } from './actions';
 import { pokazEmail } from './constants';
-import { ETYKIETY_DZIENNIKA } from '@/lib/etykiety-dziennika';
+import { etykietaDziennika } from '@/lib/etykiety-dziennika';
 
 /** Z-10/O-03 — przy odmowie i działaniu subkonta pokazujemy metodę i trasę API. */
 function trasaOdmowy(details: unknown): string | null {
@@ -31,7 +31,7 @@ export async function IamAuditSection() {
             >
               <div>
                 <span className="font-medium text-white">
-                  {ETYKIETY_DZIENNIKA[entry.action] ?? entry.action}
+                  {etykietaDziennika(entry.action)}
                 </span>
                 {entry.actor?.name && (
                   <span className="ml-2 text-neutral-500">

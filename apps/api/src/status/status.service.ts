@@ -9,15 +9,41 @@ import {
   ServiceProbe,
 } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { isManualIncident } from './probe-ingest.service.js';
 
 const CACHE_TTL_MS = 30 * 1000;
 const UPTIME_DEFAULT_DAYS = 30;
 
+/**
+ * White label (przegląd tekstów 30.09): na zewnątrz — publiczna strona statusu i panel klienta — nie
+ * wychodzi adres sondy (host węzła, port), sonda panelu serwera (DA_API) ani automatyczny tytuł
+ * incydentu („HTTPS probe failing for <host:port>”). Zamiast adresu — nazwa usługi.
+ */
+const NAZWA_USLUGI: Record<ProbeKind, string> = {
+  HTTP: 'Strony WWW',
+  HTTPS: 'Strony WWW (HTTPS)',
+  SMTP: 'Poczta — wysyłanie',
+  IMAP: 'Poczta — odbiór (IMAP)',
+  POP3: 'Poczta — odbiór (POP3)',
+  MYSQL: 'Bazy danych',
+  SSH: 'Dostęp SSH',
+  DA_API: 'Panel usług',
+  DNS: 'DNS',
+};
+
+/** Tytuł incydentu dla klienta: wpisany przez obsługę (incydent ręczny) albo opis ogólny. */
+export function tytulIncydentuDlaKlienta(i: { title: string; severity: string; detectionMeta: unknown }): string {
+  if (isManualIncident(i.detectionMeta)) return i.title;
+  return i.severity === 'MAJOR'
+    ? 'Usługa jest niedostępna lub działa z przerwami — pracujemy nad tym.'
+    : 'Usługa może działać wolniej niż zwykle — pracujemy nad tym.';
+}
+
 export interface ProbeStatusDto {
   id: string;
   kind: ProbeKind;
-  target: string;
-  label: string | null;
+  /** Nazwa dla odwiedzających: etykieta sondy albo nazwa usługi (bez adresu węzła). */
+  nazwa: string;
   severity: ProbeSeverity;
   state: 'OK' | 'DEGRADED' | 'DOWN';
   lastSampleAt: string | null;
@@ -41,7 +67,6 @@ export interface PublicIncidentDto {
   serverId: string;
   serverName: string;
   probeKind: ProbeKind;
-  probeTarget: string;
   severity: 'MINOR' | 'MAJOR';
   status: IncidentStatus;
   title: string;
@@ -98,13 +123,11 @@ export function toPublicMaintenanceDto(w: {
 }
 
 interface IncidentForUser {
-  serverId: string;
-  serverName: string;
-  probeTarget: string;
-  probeKind: ProbeKind;
+  id: string;
   severity: 'MINOR' | 'MAJOR';
   startedAt: string;
   title: string;
+  publicMessage: string | null;
 }
 
 /**
@@ -149,13 +172,11 @@ export class StatusService {
     });
     if (!incident) return null;
     return {
-      serverId: incident.probe.serverId,
-      serverName: incident.probe.server.name ?? incident.probe.serverId,
-      probeKind: incident.probe.kind,
-      probeTarget: incident.probe.target,
+      id: incident.id,
       severity: incident.severity,
       startedAt: incident.startedAt.toISOString(),
-      title: incident.title,
+      title: tytulIncydentuDlaKlienta(incident),
+      publicMessage: incident.publicMessage,
     };
   }
 
@@ -216,7 +237,8 @@ export class StatusService {
       },
       include: {
         probes: {
-          where: { isEnabled: true, isPublic: true },
+          // Sonda panelu serwera to nasza wewnętrzna sprawa — nie trafia na publiczną stronę.
+          where: { isEnabled: true, isPublic: true, kind: { not: 'DA_API' } },
           orderBy: [{ severity: 'desc' }, { kind: 'asc' }],
         },
       },
@@ -313,8 +335,7 @@ function toProbeStatusDto(
   return {
     id: probe.id,
     kind: probe.kind,
-    target: probe.target,
-    label: probe.label,
+    nazwa: probe.label ?? NAZWA_USLUGI[probe.kind],
     severity: probe.severity,
     state,
     lastSampleAt: probe.lastSampleAt?.toISOString() ?? null,
@@ -342,10 +363,9 @@ function toPublicIncidentDto(
     serverId: incident.probe.serverId,
     serverName: incident.probe.server.name ?? incident.probe.serverId,
     probeKind: incident.probe.kind,
-    probeTarget: incident.probe.target,
     severity: incident.severity,
     status: incident.status,
-    title: incident.title,
+    title: tytulIncydentuDlaKlienta(incident),
     publicMessage: incident.publicMessage,
     startedAt: incident.startedAt.toISOString(),
     resolvedAt: ended?.toISOString() ?? null,

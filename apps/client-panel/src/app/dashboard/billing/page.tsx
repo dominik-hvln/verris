@@ -227,7 +227,7 @@ function TransactionRow({ tx }: { tx: WalletTransactionDto }) {
       <td className={TD} data-label="Operacja">
         <b className="block font-semibold text-foreground">{etykieta(WALLET_TX_TYPE_PL, tx.type)}</b>
         {desc ? (
-          <span className="block text-[12.5px] text-muted-foreground" data-tip={tx.description ? `Zapis w systemie\n${tx.description}` : undefined}>
+          <span className="block text-[12.5px] text-muted-foreground">
             {desc}
           </span>
         ) : null}

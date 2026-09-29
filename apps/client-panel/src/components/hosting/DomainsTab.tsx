@@ -129,7 +129,7 @@ export default function DomainsTab({ serviceId }: Props) {
       <div className="mt-4 min-w-0">
         {domains.length === 0 && !fetchError ? (
           <p className="rounded-[10px] border border-line bg-card px-3 py-8 text-center text-xs text-muted-foreground">
-            Brak domen — dodaj je w panelu hostingu.
+            Brak domen — dodaj pierwszą opcją „Dodaj domenę” w menu usługi.
           </p>
         ) : (
           <ResponsiveDataView

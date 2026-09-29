@@ -412,7 +412,7 @@ export class ServiceHealthService {
           : `DNS domeny ${domain} nie wskazuje na serwer hostingu`,
       );
     if (checks.tlsOk === false) parts.push('brak ważnego certyfikatu HTTPS na domenie');
-    if (checks.panelTlsOk === false) parts.push('panel hostingu wymaga uwagi');
+    if (checks.panelTlsOk === false) parts.push('bezpieczne połączenie z serwerem wymaga uwagi — sprawdzamy to');
     if (checks.mailOk === false) parts.push('serwer poczty nie odpowiada');
     if (checks.lveOk === false) parts.push('wysokie obciążenie CPU');
     if (checks.backupFresh === false) parts.push('brak świeżej kopii zapasowej (>8 dni)');

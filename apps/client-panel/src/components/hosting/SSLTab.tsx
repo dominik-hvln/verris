@@ -1,15 +1,12 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Loader2, Lock, ExternalLink, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { Kpi, KpiStrip, SectionHead, StatusPill, type Tone } from '@/components/panel/v2';
 import { days as daysLabel } from '@/lib/pl';
 import type { HostingSslRowDto, HostingSslStatus } from '@verris/contracts';
 import { HostingSslForms } from '@/components/hosting/HostingSslForms';
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
-import {
-  fetchHostingDaLinksAction as fetchHostingDaLinksActionAkcja,
-} from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
 import {
   fetchHostingDomainsAction as fetchHostingDomainsActionAkcja,
 } from '@/app/dashboard/services/[id]/hosting-domains-action';
@@ -17,7 +14,6 @@ import { fetchHostingSslAction } from '@/app/dashboard/services/[id]/hosting-ssl
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
-const fetchHostingDaLinksAction = zOdpakowaniem(fetchHostingDaLinksActionAkcja);
 const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
 
 interface Props {
@@ -43,22 +39,17 @@ export default function SSLTab({ serviceId }: Props) {
   const [domains, setDomains] = useState<{ name: string }[]>([]);
   const [domainFetchError, setDomainFetchError] = useState<string | null>(null);
   const [sslRows, setSslRows] = useState<Record<string, HostingSslRowDto>>({});
-  const [sslUrl, setSslUrl] = useState<string | null>(null);
-  const [panelBase, setPanelBase] = useState<string>('');
 
   // Samo pobranie — przy montażu `error` jest już pusty, więc efekt nie musi go zerować.
   const fetchSsl = useCallback(
     () =>
       Promise.all([
         fetchHostingDomainsAction(serviceId),
-        fetchHostingDaLinksAction(serviceId),
         fetchHostingSslAction(serviceId),
       ])
-        .then(([domRes, links, sslRes]) => {
+        .then(([domRes, sslRes]) => {
           setDomains(domRes.domains);
           setDomainFetchError(domRes.fetchError);
-          setSslUrl(links.sslUrl || null);
-          setPanelBase(links.panelBaseUrl || '');
           const map: Record<string, HostingSslRowDto> = {};
           for (const r of sslRes?.rows ?? []) map[r.domain] = r;
           setSslRows(map);
@@ -102,12 +93,6 @@ export default function SSLTab({ serviceId }: Props) {
         desc="Kłódka i HTTPS dla każdej domeny. Let’s Encrypt wystawiamy za darmo i odnawiamy sami — warunek: domena wskazuje na nasz serwer."
         action={
           <div className="flex flex-wrap gap-2">
-            {sslUrl ? (
-              <a href={sslUrl} target="_blank" rel="noopener noreferrer" className={BTN}>
-                <Lock className="h-[15px] w-[15px]" /> Panel SSL (zaawansowany)
-                <ExternalLink className="h-3.5 w-3.5 opacity-70" />
-              </a>
-            ) : null}
             <button
               type="button"
               className={BTN}
@@ -206,7 +191,6 @@ export default function SSLTab({ serviceId }: Props) {
           kbQuery: 'certyfikat SSL',
         }}
       />
-      {panelBase ? <p className="m-0 font-mono text-[11.5px] text-muted-foreground">Adres panelu hostingu: {panelBase}</p> : null}
     </div>
   );
 }

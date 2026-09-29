@@ -83,8 +83,8 @@ export function IncidentBanner() {
             <AlertTriangle className="h-4 w-4 shrink-0" />
             <span className="break-words">
               {hasMajor
-                ? "Wykryliśmy poważne zakłócenie usługi na Twoich serwerach"
-                : "Wykryliśmy pogorszenie jakości usługi na Twoich serwerach"}
+                ? "Wykryliśmy poważne zakłócenie działania Twojej usługi"
+                : "Twoja usługa może działać wolniej niż zwykle"}
               {visible.length > 1 ? ` (${visible.length} ${plForm(visible.length, 'aktywny', 'aktywne', 'aktywnych')})` : ""}.
             </span>
           </div>
@@ -96,7 +96,7 @@ export function IncidentBanner() {
               className="inline-flex items-center gap-1 rounded-md bg-black/10 hover:bg-black/20 px-2.5 py-1 text-xs font-bold"
             >
               <ExternalLink className="h-3 w-3" />
-              Status page
+              Status usług
             </a>
             <button
               onClick={() => setExpanded((v) => !v)}
@@ -129,13 +129,10 @@ export function IncidentBanner() {
                   <span className="font-bold uppercase tracking-wider opacity-80">
                     {incident.severity === "MAJOR" ? "Poważny" : "Drobny"}
                   </span>
-                  <span className="mx-2 opacity-60">•</span>
-                  <span className="font-semibold">{incident.serverName}</span>
-                  <span className="mx-2 opacity-60">•</span>
-                  <span className="font-mono opacity-80">
-                    {incident.probeKind} → {incident.probeTarget}
-                  </span>
                   <div className="mt-0.5 opacity-90 break-words">{incident.title}</div>
+                  {incident.publicMessage ? (
+                    <div className="mt-0.5 opacity-90 break-words">{incident.publicMessage}</div>
+                  ) : null}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="opacity-70">
@@ -160,5 +157,5 @@ export function IncidentBanner() {
 }
 
 function incidentKey(incident: UserIncident): string {
-  return `${incident.serverId}:${incident.probeKind}:${incident.probeTarget}:${incident.startedAt}`;
+  return `${incident.id}:${incident.startedAt}`;
 }

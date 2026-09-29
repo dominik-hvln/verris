@@ -56,7 +56,7 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
     <div className="min-w-0 space-y-6">
       <SectionHead
         title="Zużycie zasobów"
-        desc="Metryki z węzła, odświeżane co pół minuty. Najedź na słupek, żeby zobaczyć dokładną wartość."
+        desc="Dane z serwera Twojej usługi, odświeżane co pół minuty. Najedź na słupek, żeby zobaczyć dokładną wartość."
         action={
           <div role="tablist" className="flex gap-0.5 rounded-[7px] border border-line-strong bg-card p-0.5">
             {(['24h', '7d'] as const).map((value) => (

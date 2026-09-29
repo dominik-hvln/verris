@@ -58,7 +58,7 @@ export function NoticesBanner() {
                 {w.status === "IN_PROGRESS" ? "Trwają prace serwisowe" : "Planowane prace serwisowe"}: {w.title}
               </p>
               <p className="text-muted-foreground">
-                {fmt(w.scheduledStart)} – {fmt(w.scheduledEnd)} · {w.serverName ?? "cała platforma"}
+                {fmt(w.scheduledStart)} – {fmt(w.scheduledEnd)} · {w.calaPlatforma ? "cała platforma" : "dotyczy Twojej usługi"}
                 {w.publicMessage ? ` · ${w.publicMessage}` : ""}
               </p>
             </div>

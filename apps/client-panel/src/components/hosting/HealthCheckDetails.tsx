@@ -52,7 +52,7 @@ function fallbackDetail(
     dnsOk: 'DNS',
     tlsOk: 'HTTPS',
     mailOk: 'Poczta',
-    panelTlsOk: 'Panel hostingu',
+    panelTlsOk: 'Bezpieczne połączenie z serwerem',
     lveOk: 'Obciążenie CPU',
     backupFresh: 'Kopia zapasowa',
   };

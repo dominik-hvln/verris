@@ -18,6 +18,8 @@ const WYJATKI = new Set([
 ]);
 
 const PANEL_SERWERA = /DirectAdmin|CustomBuild|CMD_API|\b2222\b/i;
+// Przegląd tekstów 30.09: oprogramowanie i węzły serwera, drugi „panel hostingu”, adres sondy.
+const INFRASTRUKTURA = /CloudLinux|CageFS|\bLVE\b|węzł|panel(?:u|em)? hostingu|Hosting Manager|status page|probeTarget/i;
 
 export function bezKomentarzy(kod: string): string {
   return kod.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\'"`])\/\/.*$/gm, '$1');
@@ -25,7 +27,7 @@ export function bezKomentarzy(kod: string): string {
 
 export function zdradzaPanel(kod: string): boolean {
   const tekst = bezKomentarzy(kod);
-  return PANEL_SERWERA.test(tekst) || /\bDA\b/.test(tekst);
+  return PANEL_SERWERA.test(tekst) || /\bDA\b/.test(tekst) || INFRASTRUKTURA.test(tekst);
 }
 
 it('żaden plik panelu klienta nie pokazuje nazwy panelu serwera', () => {
@@ -51,4 +53,8 @@ it('strażnik łapie tekst dla klienta, a nie komentarze i identyfikatory', () =
   expect(zdradzaPanel('// dane z DirectAdmina\nconst daUsername = x;')).toBe(false);
   expect(zdradzaPanel('/** CMD_API_DNS_CONTROL (DA) */\nexport const nie = "nie da się";')).toBe(false);
   expect(zdradzaPanel("const u = 'https://verris.pl/pomoc'; // DirectAdmin")).toBe(false);
+  expect(zdradzaPanel('<p>Zmiana na serwerze (CloudLinux PHP Selector)</p>')).toBe(true);
+  expect(zdradzaPanel("{status.version ?? 'domyślna węzła'}")).toBe(true);
+  expect(zdradzaPanel('{incident.probeKind} → {incident.probeTarget}')).toBe(true);
+  expect(zdradzaPanel('function ograniczenieWezla() {}')).toBe(false);
 });

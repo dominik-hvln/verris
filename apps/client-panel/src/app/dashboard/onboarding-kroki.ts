@@ -167,7 +167,7 @@ export function podsumujKroki(kroki: KrokOnboardingu[]): PodsumowanieKrokow {
  */
 export function podtytulKrokow(p: PodsumowanieKrokow): string {
   if (p.sprawdzane === 0) return 'Skonfiguruj usługę w kilka chwil.';
-  return `Skonfiguruj usługę w kilka chwil (sprawdzone automatycznie: ${p.zrobione}/${p.sprawdzane}).`;
+  return `Skonfiguruj usługę w kilka chwil — zrobione ${p.zrobione} z ${p.sprawdzane}.`;
 }
 
 /** Procent z kroków, które umiemy sprawdzić; `null` = nie ma czego liczyć. */

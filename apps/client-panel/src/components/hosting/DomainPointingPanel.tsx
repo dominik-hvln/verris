@@ -298,8 +298,8 @@ export default function DomainPointingPanel({
               <div>
                 <p className="font-medium text-foreground">Poczekaj na propagację i kliknij „Sprawdź teraz”</p>
                 <p className="text-muted-foreground mt-0.5">
-                  Zwykle 5–60 minut. Włącz „Auto”, aby odświeżać co 30 s. Status będzie PASS dla poprawnej delegacji NS
-                  albo poprawnych rekordów A/AAAA.
+                  Zwykle 5–60 minut. Włącz „Auto”, aby odświeżać co 30 s. Gdy serwery nazw albo rekordy A/AAAA będą
+                  poprawne, zobaczysz tu potwierdzenie, że domena wskazuje na nasz serwer.
                 </p>
               </div>
             </li>

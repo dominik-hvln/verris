@@ -436,7 +436,7 @@ export default function ServiceOverviewV2({
                   ['Skrzynki pocztowe', conn?.emails],
                   ['Bazy danych', conn?.databases],
                   ['Konta FTP', conn?.ftpAccounts],
-                  ['Pliki (i-węzły)', conn?.inodes],
+                  ['Liczba plików', conn?.inodes],
                 ] as const
               ).map(([label, m]) => (
                 <li key={label} className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-0.5 border-line px-4 py-3 [&+&]:border-t">

@@ -32,7 +32,7 @@ const KIND_DESCRIPTIONS: Record<string, string> = {
   PRIVACY:
     "Jak Verris przetwarza dane osobowe — podstawy prawne, cele, odbiorcy, prawa klienta.",
   COOKIES:
-    "Pliki cookies, których używamy w panelu klienta, status page i stronach publicznych.",
+    "Pliki cookies, których używamy w panelu klienta, stronie statusu i stronach publicznych.",
   DPA: "Umowa powierzenia przetwarzania danych osobowych dla klientów biznesowych.",
 };
 

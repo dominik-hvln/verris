@@ -68,7 +68,7 @@ describe('PANEL-01 — licznik onboardingu', () => {
     expect(provisioning).not.toMatch(/\d+\s*\/\s*\d+/);
 
     const komplet = podtytulKrokow(podsumujKroki(zbudujKroki({ ...HOSTING, dnsOk: true, tlsOk: true })));
-    expect(komplet).toMatch(/2\/2/);
+    expect(komplet).toMatch(/zrobione 2 z 2/);
   });
 
   it('brak usługi nie generuje kroków', () => {

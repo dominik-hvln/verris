@@ -2,13 +2,12 @@
 
 import { apiFetch, ApiError } from "@/lib/api";
 
+/** API nie wysyła nazwy serwera ani adresu sondy (white label) — tylko tekst dla klienta. */
 export interface UserIncident {
-  serverId: string;
-  serverName: string;
-  probeKind: string;
-  probeTarget: string;
+  id: string;
   severity: "MINOR" | "MAJOR";
   title: string;
+  publicMessage: string | null;
   startedAt: string;
 }
 
@@ -32,7 +31,7 @@ export interface UserNotices {
     status: string;
     scheduledStart: string;
     scheduledEnd: string;
-    serverName: string | null;
+    calaPlatforma: boolean;
   }>;
 }
 

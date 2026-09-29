@@ -14,8 +14,8 @@ export type ServiceState = 'OK' | 'DEGRADED' | 'DOWN';
 export interface ProbeStatusDto {
   id: string;
   kind: ProbeKind;
-  target: string;
-  label: string | null;
+  /** Etykieta sondy albo nazwa usługi — API nie wysyła adresu węzła (white label). */
+  nazwa: string;
   severity: 'MINOR' | 'MAJOR';
   state: ServiceState;
   lastSampleAt: string | null;
@@ -39,7 +39,6 @@ export interface PublicIncidentDto {
   serverId: string;
   serverName: string;
   probeKind: ProbeKind;
-  probeTarget: string;
   severity: 'MINOR' | 'MAJOR';
   status: 'OPEN' | 'RESOLVED';
   title: string;

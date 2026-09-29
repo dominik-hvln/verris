@@ -1,6 +1,6 @@
 /**
- * G-18 / O-03 — nazwy działań z dziennika konta po ludzku. Brak wpisu = pokazujemy kod działania
- * (lepiej coś technicznego niż nic — dziennik niczego nie ukrywa).
+ * G-18 / O-03 — nazwy działań z dziennika konta po ludzku. Brak wpisu = „Zmiana na koncie” (data i
+ * autor zostają) — surowy kod działania (np. SUBSCRIPTION_…) klient widział jako żargon (przegląd 30.09).
  */
 export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   HOSTING_ADDON_DOMAIN_CREATED: 'Dodano domenę',
@@ -105,3 +105,7 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   RESELLER_CLIENT_PASSWORD_LINK: 'Reseller wysłał klientowi link do ustawienia hasła',
   RESELLER_CLIENT_DETACHED: 'Reseller odpiął klienta',
 };
+
+export function etykietaDziennika(akcja: string): string {
+  return ETYKIETY_DZIENNIKA[akcja] ?? 'Zmiana na koncie';
+}

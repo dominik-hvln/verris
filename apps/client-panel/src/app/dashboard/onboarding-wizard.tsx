@@ -53,8 +53,8 @@ function znacznik(stan: StanKroku) {
     <span
       className="block h-4 w-4 rounded-full border border-dashed border-line-strong"
       role="img"
-      title="Tego kroku nie sprawdzamy automatycznie"
-      aria-label="Nie sprawdzamy automatycznie"
+      title="Ten krok sprawdź samodzielnie"
+      aria-label="Do sprawdzenia samodzielnie"
     />
   );
 }
@@ -145,7 +145,9 @@ export function OnboardingWizard({ snapshot, hidden }: { snapshot: OnboardingSna
       {p.nieznane > 0 ? (
         <p className="m-0 flex items-center gap-2 border-t border-line px-4 py-2.5 font-mono text-[11px] text-muted-foreground">
           <span className="block h-3 w-3 flex-none rounded-full border border-dashed border-line-strong" />
-          {p.nieznane === 1 ? 'tego kroku nie sprawdzamy automatycznie, licznik go pomija' : `${p.nieznane} kroków nie sprawdzamy automatycznie, licznik je pomija`}
+          {p.nieznane === 1
+            ? 'Krok oznaczony kreską sprawdź samodzielnie — nie wliczamy go do postępu.'
+            : 'Kroki oznaczone kreską sprawdź samodzielnie — nie wliczamy ich do postępu.'}
         </p>
       ) : null}
       {!snapshot.provisioning ? <DobrePraktyki serviceId={snapshot.serviceId} poczta={snapshot.isEmailProduct} /> : null}
@@ -167,7 +169,7 @@ function DobrePraktyki({ serviceId, poczta }: { serviceId: string | null; poczta
   ];
   return (
     <div className="border-t border-line px-4 py-2.5">
-      <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted-foreground">Dobre praktyki · poza licznikiem</span>
+      <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-muted-foreground">Warto też zrobić</span>
       <ul className="m-0 mt-1.5 list-none space-y-1 p-0">
         {linki.map((l) => (
           <li key={l.href}>

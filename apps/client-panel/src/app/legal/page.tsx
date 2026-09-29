@@ -32,7 +32,7 @@ const DOCS: { kind: string; href: string; label: string; description: string }[]
     href: "/legal/cookies",
     label: "Polityka cookies",
     description:
-      "Pliki cookies używane w panelu klienta, na status page i stronach publicznych oraz zarządzanie zgodami.",
+      "Pliki cookies używane w panelu klienta, na stronie statusu i stronach publicznych oraz zarządzanie zgodami.",
   },
   {
     kind: "DPA",

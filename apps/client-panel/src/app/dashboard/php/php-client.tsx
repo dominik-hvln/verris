@@ -47,7 +47,7 @@ export function PhpClient({ serviceId, status }: { serviceId: string; status: Ph
         <p className="text-sm text-neutral-400">Domena</p>
         <p className="font-mono text-white">{status.domain}</p>
         <p className="mt-3 text-sm text-neutral-400">Aktualna wersja PHP</p>
-        <p className="text-2xl font-bold text-white">{status.version ?? 'domyślna węzła'}</p>
+        <p className="text-2xl font-bold text-white">{status.version ?? 'domyślna'}</p>
         {status.appliedAt ? (
           <p className="mt-1 text-xs text-neutral-500">
             Zastosowano: {new Date(status.appliedAt).toLocaleString('pl-PL')}
@@ -91,8 +91,7 @@ export function PhpClient({ serviceId, status }: { serviceId: string; status: Ph
           </button>
         </div>
         <p className="text-[11px] text-neutral-500">
-          Zmiana jest wykonywana na serwerze (CloudLinux PHP Selector) — zwykle trwa kilkadziesiąt
-          sekund. Skrypty i .htaccess pozostają bez zmian.
+          Zmiana zwykle trwa kilkadziesiąt sekund. Skrypty i .htaccess pozostają bez zmian.
         </p>
       </div>
 

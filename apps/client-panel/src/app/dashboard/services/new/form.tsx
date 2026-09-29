@@ -796,7 +796,7 @@ function ProvisioningQueuedBanner({ subscriptionId }: { subscriptionId: string }
         href={`/dashboard/services/${subscriptionId}`}
         className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-bold text-black hover:bg-neutral-200"
       >
-        Otwórz Hosting Manager i status konta
+        Przejdź do usługi
       </Link>
     </div>
   );
@@ -820,7 +820,7 @@ function ProvisioningSuccess({
           <h2 className="text-2xl font-bold text-white">Usługa poczty uruchomiona</h2>
           <p className="text-neutral-300 mt-1">
             Poczta dla domeny <strong>{domain}</strong> jest gotowa. Skrzynki zakładasz i obsługujesz
-            w panelu — bez osobnego logowania do panelu hostingu.
+            tutaj, w panelu Verris.
           </p>
         </div>
         <ol className="space-y-2 text-sm text-neutral-300">

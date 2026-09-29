@@ -19,6 +19,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { DomainRecordActions } from './domain-record-actions';
+import { SERVICE_STATUS_LABEL } from '../../dashboard-chart-utils';
 import { fetchDomainChecklist } from '../actions';
 
 export const dynamic = 'force-dynamic';
@@ -137,7 +138,7 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
                     : 'border-white/15 bg-white/5 text-neutral-400'
               }`}
             >
-              {domain.status}
+              {domain.status === 'ACTIVE' ? 'działa' : domain.status === 'PENDING' ? 'czeka na DNS' : 'wygasła'}
             </span>
           </div>
           <p className="mt-2 text-sm text-neutral-400">
@@ -180,8 +181,8 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
         <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-6 text-sm text-neutral-200">
           <p className="font-medium text-amber-100">Brak powiązanej usługi hostingowej</p>
           <p className="mt-2 text-neutral-400">
-            Żadna aktywna usługa nie ma tej domeny jako głównej. Zamów hosting na ten adres lub dodaj domenę
-            w panelu hostingu — wtedy pojawią się linki do DNS, plików i pozostałych modułów.
+            Żadna aktywna usługa nie ma tej domeny jako głównej. Zamów hosting na ten adres albo dodaj tę domenę
+            do istniejącej usługi (Usługa → Domeny i DNS) — wtedy pojawią się linki do DNS, plików i pozostałych modułów.
           </p>
           <Link href="/dashboard/services/new" className="mt-4 inline-block text-sm text-indigo-400 underline">
             Zamów usługę →
@@ -237,13 +238,13 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
             <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-300">
               <Server className="h-4 w-4 text-white" />
               <span>
-                Powiązana usługa: <span className="text-white">{linked.planName}</span> ({linked.status})
+                Powiązana usługa: <span className="text-white">{linked.planName}</span> ({SERVICE_STATUS_LABEL[linked.status as keyof typeof SERVICE_STATUS_LABEL] ?? 'stan nieznany'})
               </span>
               <Link
                 href={`/dashboard/services/${linked.id}`}
                 className="ml-auto inline-flex items-center gap-1 text-indigo-400 underline"
               >
-                Hosting Manager
+                Przejdź do usługi
                 <ExternalLink className="h-3.5 w-3.5 opacity-70" />
               </Link>
             </div>

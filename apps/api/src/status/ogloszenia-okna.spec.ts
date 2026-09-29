@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { MeStatusController } from './me-status.controller.js';
-import { maintenanceVisibleWhere } from './status.service.js';
+import { maintenanceVisibleWhere, StatusService, tytulIncydentuDlaKlienta } from './status.service.js';
 import { ProductOpsAdminController } from '../product-ops/product-ops.admin.controller.js';
 
 /** N-11 — ogłoszenia i okna serwisowe docierają do klienta i dają się prowadzić z panelu. */
@@ -26,14 +26,16 @@ describe('N-11 ogłoszenia i okna serwisowe', () => {
       },
       maintenanceWindow: {
         findMany: vi.fn(async () => [
-          { id: 'm1', title: 'PHP', publicMessage: null, status: 'SCHEDULED', scheduledStart: now, scheduledEnd: now, server: { name: 'poz-1' } },
+          { id: 'm1', serverId: 's1', title: 'PHP', publicMessage: null, status: 'SCHEDULED', scheduledStart: now, scheduledEnd: now, server: { name: 'poz-1' } },
         ]),
       },
     };
     const c = new MeStatusController(prisma as never, {} as never);
     const r = await c.noticesForCurrentUser({ userId: 'u1' });
     expect(r.announcements[0]).toMatchObject({ id: 'a1', title: 'T' });
-    expect(r.maintenance[0]).toMatchObject({ id: 'm1', serverName: 'poz-1' });
+    // White label (30.09): klient nie dostaje nazwy serwera, tylko informację, czy prace są globalne.
+    expect(r.maintenance[0]).toMatchObject({ id: 'm1', calaPlatforma: false });
+    expect(JSON.stringify(r)).not.toContain('poz-1');
     const annWhere = (prisma.productAnnouncement.findMany.mock.calls[0] as unknown as [{ where: Record<string, unknown> }])[0].where;
     expect(annWhere.status).toBe('PUBLISHED');
     expect(annWhere.OR).toEqual([{ audienceRole: null }, { audienceRole: 'USER' }]);
@@ -70,5 +72,22 @@ describe('N-11 ogłoszenia i okna serwisowe', () => {
   it('okno: zakończonego nie da się odwołać, zaplanowanego nie da się „zakończyć”', async () => {
     await expect(adminCtl('COMPLETED').c.updateMaintenanceStatus({ userId: 'op' }, 'm1', { status: 'CANCELED' })).rejects.toBeInstanceOf(BadRequestException);
     await expect(adminCtl('SCHEDULED').c.updateMaintenanceStatus({ userId: 'op' }, 'm1', { status: 'COMPLETED' })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('incydenty dla klienta i na stronie statusu: bez adresu sondy i nazwy serwera, tytuł automatyczny zastąpiony', async () => {
+    const incydent = {
+      id: 'i1', severity: 'MAJOR', status: 'OPEN', title: 'DA_API probe failing for https://t1.verris.pl:2222',
+      publicMessage: null, detectionMeta: null, startedAt: now, resolvedAt: null, probeId: 'p1',
+      probe: { serverId: 's1', kind: 'DA_API', target: 'https://t1.verris.pl:2222', server: { id: 's1', name: 'TEST-NRB-01' } },
+    };
+    const st = new StatusService({ probeIncident: { findFirst: vi.fn(async () => incydent) } } as never);
+    const c = new MeStatusController({ account: { findMany: vi.fn(async () => [{ serverId: 's1' }]) } } as never, st);
+    const r = await c.listForCurrentUser({ userId: 'u1' });
+    expect(r).toHaveLength(1);
+    expect(JSON.stringify(r)).not.toMatch(/t1\.verris|2222|TEST-NRB|DA_API|probe/);
+    expect(r[0].title).toContain('pracujemy nad tym');
+
+    // Incydent wpisany ręcznie przez obsługę zostaje ze swoim tytułem.
+    expect(tytulIncydentuDlaKlienta({ title: 'Awaria zasilania w DC', severity: 'MAJOR', detectionMeta: { composedBy: 'op' } })).toBe('Awaria zasilania w DC');
   });
 });

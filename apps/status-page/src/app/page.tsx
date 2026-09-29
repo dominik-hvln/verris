@@ -157,11 +157,10 @@ function ProbeRow({ probe }: { probe: ProbeStatusDto }) {
           <span className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-0.5 mr-2 text-xs text-neutral-300">
             {probe.kind}
           </span>
-          {probe.label ?? probe.target}
+          {probe.nazwa}
         </p>
-        {probe.label ? <p className="text-xs text-neutral-500 mt-1">{probe.target}</p> : null}
       </div>
-      <Metric label="Live (30d)" value={`${live.toFixed(2)}%`} tone={meetingSla ? 'good' : 'bad'} />
+      <Metric label="Dostępność (30 dni)" value={`${live.toFixed(2)}%`} tone={meetingSla ? 'good' : 'bad'} />
       <Metric label="Deklarowany SLA" value={`${declared.toFixed(2)}%`} tone="muted" />
       <StateChip state={probe.state} compact />
     </div>
@@ -234,7 +233,7 @@ function IncidentsBlock({
                 <div>
                   <p className="font-semibold">{incident.title}</p>
                   <p className="text-xs text-neutral-400 mt-1">
-                    {incident.serverName} • {incident.probeKind} • {incident.probeTarget}
+                    {incident.serverName} • {incident.probeKind}
                   </p>
                   {incident.publicMessage ? (
                     <p className="text-sm text-neutral-200 mt-2">{incident.publicMessage}</p>

@@ -12,18 +12,20 @@ import {
 /** N-11 — ogłoszenia widać w panelu przez 30 dni od publikacji (albo do expiresAt / archiwizacji). */
 export const ANNOUNCEMENT_VISIBLE_DAYS = 30;
 
+/** Klient nie widzi nazw serwerów (white label) — tylko czy prace dotyczą całej platformy. */
+type OknoDlaKlienta = Omit<PublicMaintenanceDto, 'serverName'> & { calaPlatforma: boolean };
+
 interface UserNoticesDto {
   announcements: Array<{ id: string; kind: string; title: string; bodyMarkdown: string; publishedAt: string }>;
-  maintenance: PublicMaintenanceDto[];
+  maintenance: OknoDlaKlienta[];
 }
 
+/** Bez nazwy serwera, rodzaju i adresu sondy — tylko to, co klient ma przeczytać. */
 interface UserIncidentDto {
-  serverId: string;
-  serverName: string;
-  probeKind: string;
-  probeTarget: string;
+  id: string;
   severity: 'MINOR' | 'MAJOR';
   title: string;
+  publicMessage: string | null;
   startedAt: string;
 }
 
@@ -62,17 +64,7 @@ export class MeStatusController {
       serverIds.map((id) => this.status.findActiveIncidentForServer(id)),
     );
 
-    return incidents
-      .filter((i): i is NonNullable<typeof i> => i !== null)
-      .map((i) => ({
-        serverId: i.serverId,
-        serverName: i.serverName,
-        probeKind: String(i.probeKind),
-        probeTarget: i.probeTarget,
-        severity: i.severity,
-        title: i.title,
-        startedAt: i.startedAt,
-      }));
+    return incidents.filter((i): i is NonNullable<typeof i> => i !== null);
   }
 
   /** N-11 — ogłoszenia dla klientów i prace serwisowe dotyczące serwerów tego użytkownika. */
@@ -112,7 +104,10 @@ export class MeStatusController {
         bodyMarkdown: a.bodyMarkdown,
         publishedAt: (a.publishedAt ?? now).toISOString(),
       })),
-      maintenance: maintenance.map(toPublicMaintenanceDto),
+      maintenance: maintenance.map((w) => {
+        const { id, title, publicMessage, status, scheduledStart, scheduledEnd } = toPublicMaintenanceDto(w);
+        return { id, title, publicMessage, status, scheduledStart, scheduledEnd, calaPlatforma: !w.serverId };
+      }),
     };
   }
 }

@@ -186,7 +186,7 @@ export function UnpaidServiceBanner({
           <p>
             {isPending
               ? 'Po anulowaniu nie będziesz mógł dokończyć tej samej płatności — utwórz nowe zamówienie, jeśli nadal chcesz hosting.'
-              : 'Upewnij się, że rozliczyłeś zaległość, zanim anulujesz — inaczej stracisz dostęp do panelu hostingu.'}
+              : 'Upewnij się, że rozliczyłeś zaległość, zanim anulujesz — inaczej stracisz dostęp do usługi.'}
           </p>
         </div>
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

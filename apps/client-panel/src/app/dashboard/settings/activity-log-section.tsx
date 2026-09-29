@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { ScrollText, Loader2 } from "lucide-react";
 import { fetchAccountActivity, type AccountActivityEntry } from "./activity-actions";
-import { ETYKIETY_DZIENNIKA } from "@/lib/etykiety-dziennika";
+import { etykietaDziennika } from "@/lib/etykiety-dziennika";
 
 
 function fmt(iso: string): string {
@@ -59,7 +59,7 @@ export function ActivityLogSection() {
               className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-2.5 last:border-0"
             >
               <div className="min-w-0">
-                <p className="break-words text-sm text-white">{ETYKIETY_DZIENNIKA[r.action] ?? r.action}</p>
+                <p className="break-words text-sm text-white">{etykietaDziennika(r.action)}</p>
                 {r.context || r.actor ? (
                   <p className="break-words text-[11px] text-neutral-500">
                     {[r.context, r.actor ? `wykonał(a): ${r.actor}` : null].filter(Boolean).join(' · ')}
