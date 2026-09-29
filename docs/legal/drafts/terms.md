@@ -111,7 +111,7 @@ Korzystanie z Panelu wymaga: dostępu do internetu, aktualnej wersji przeglądar
 5. Verris wykonuje kopie zapasowe własnej infrastruktury służące przywracaniu ciągłości działania platformy. Panel i Panel hostingowy umożliwiają Klientowi samodzielne tworzenie i pobieranie kopii konta. Kopie wykonywane przez Verris mają charakter pomocniczy i nie zwalniają Klienta z obowiązku utrzymywania własnych kopii danych o krytycznym znaczeniu.
 6. Funkcja autoskalowania (jeżeli włączona przez Klienta) automatycznie zwiększa wybrane zasoby ponad limity Planu w granicach limitu kwotowego z §9 ust. 5.
 7. Wysyłka poczty z kont hostingowych podlega limitom antyspamowym określonym w specyfikacji Planu; §13 ust. 4–6 stosuje się odpowiednio.
-8. Po wygaśnięciu Umowy w zakresie Hostingu (§7 ust. 3) dane konta hostingowego (pliki, bazy, poczta) są trwale usuwane. Przez 30 dni od wygaśnięcia Klient może zwrócić się o odzyskanie danych z ostatniej dostępnej kopii; po tym terminie dane są nieodwracalnie usuwane, a kopie zapasowe nadpisywane w cyklu rotacji nie dłuższym niż 90 dni.
+8. Po wygaśnięciu lub rozwiązaniu Umowy w zakresie Hostingu (§7 ust. 3, §23) konto hostingowe pozostaje zawieszone przez 14 dni; w tym czasie Klient może zwrócić się o przywrócenie Usługi lub wydanie danych. Przed upływem tego terminu Verris przypomina Klientowi e-mailem o planowanym usunięciu. Po upływie 14 dni dane konta hostingowego (pliki, bazy, poczta) są trwale usuwane z serwera, a kopie zapasowe zawierające te dane są usuwane w cyklu rotacji nie dłuższym niż 90 dni.
 
 ## §11. Serwery VPS
 
