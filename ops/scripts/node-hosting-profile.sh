@@ -1446,12 +1446,37 @@ HBA
   # z certyfikatem hosta DirectAdmina (LoadCredential — klucz nie zmienia uprawnień). Nowa skrzynka dostaje
   # od razu „Kalendarz” i „Kontakty” (predefined_collections). Bez interfejsu WWW ([web] type = none).
   if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ]; then
-    local dav_ver=3.8.1 dav_venv=/opt/verris-radicale dav_sock=/var/run/dovecot/auth-client dav_grupa=""
+    local dav_ver=3.8.1 dav_venv=/opt/verris-radicale dav_sock=/var/run/dovecot/auth-verris-radicale dav_grupa=""
     id radicale >/dev/null 2>&1 || useradd --system -M -d /var/lib/radicale -s /sbin/nologin radicale
     install -d -m 750 -o radicale -g radicale /var/lib/radicale /var/lib/radicale/collections
     if [ ! -x "$dav_venv/bin/radicale" ] || ! "$dav_venv/bin/pip" show radicale 2>/dev/null | grep -q "^Version: $dav_ver$"; then
       { python3 -m venv "$dav_venv" && "$dav_venv/bin/pip" install -q "radicale==$dav_ver"; } >/var/log/verris-dav.log 2>&1 \
         || log_warn "Radicale — instalacja nie powiodła się (log: /var/log/verris-dav.log)"
+    fi
+    # Osobne gniazdo auth Dovecota tylko dla Radicale (grupa radicale, 0660) zamiast poluzowania auth-client —
+    # test D3 29.09: auth-client bez dostępu dla grupy. Dovecot 2.4: unix_listener z `type = auth` obsługuje
+    # tylko uwierzytelnianie SASL (doc.dovecot.org → Services). Plik w /etc/dovecot/conf.d jak w dokumentacji
+    # DirectAdmin „Customizing Dovecot”; zła składnia → plik usunięty, Dovecot bez zmian.
+    local dav_conf=/etc/dovecot/conf.d/90-verris-radicale.conf
+    if command -v doveconf >/dev/null 2>&1 && ! doveconf -n 2>/dev/null | grep -q 'auth-verris-radicale'; then
+      cat > "$dav_conf" <<'DCONF'
+# Zarządzane przez Verris (E-23) — gniazdo logowania dla kalendarza i kontaktów (Radicale).
+service auth {
+  unix_listener auth-verris-radicale {
+    mode = 0660
+    user = root
+    group = radicale
+    type = auth
+  }
+}
+DCONF
+      if doveconf -n >/dev/null 2>>/var/log/verris-dav.log && doveconf -n 2>/dev/null | grep -q 'auth-verris-radicale'; then
+        systemctl reload dovecot 2>>/var/log/verris-dav.log || doveadm reload 2>>/var/log/verris-dav.log || true
+        for _ in 1 2 3 4 5 6 7 8 9 10; do [ -S "$dav_sock" ] && break; sleep 1; done
+      else
+        rm -f "$dav_conf"
+        log_warn "Radicale: Dovecot nie przyjął gniazda auth-verris-radicale (log: /var/log/verris-dav.log) — konfiguracja Dovecota bez zmian"
+      fi
     fi
     if [ -S "$dav_sock" ]; then
       dav_grupa="$(stat -c %G "$dav_sock")"
@@ -1470,7 +1495,7 @@ max_content_length = 20000000
 timeout = 30
 [auth]
 type = dovecot
-dovecot_socket = /var/run/dovecot/auth-client
+dovecot_socket = /var/run/dovecot/auth-verris-radicale
 lc_username = True
 delay = 1
 cache_logins = True

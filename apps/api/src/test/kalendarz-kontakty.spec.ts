@@ -20,6 +20,14 @@ describe('E-23 kalendarz i kontakty w profilu węzła', () => {
     expect(profil).toContain('LoadCredential=key:/usr/local/directadmin/conf/cakey.pem');
   });
 
+  it('osobne gniazdo auth Dovecota dla Radicale (grupa radicale), auth-client nietknięty — test D3 29.09', () => {
+    expect(profil).toMatch(/unix_listener auth-verris-radicale \{\n\s+mode = 0660\n\s+user = root\n\s+group = radicale\n\s+type = auth\n/);
+    expect(profil).toContain('dovecot_socket = /var/run/dovecot/auth-verris-radicale');
+    expect(profil).not.toMatch(/chmod[^\n]*auth-client|dovecot_socket = \/var\/run\/dovecot\/auth-client/);
+    // Zła składnia nie może zostawić Dovecota z cudzym plikiem.
+    expect(profil).toMatch(/rm -f "\$dav_conf"/);
+  });
+
   it('wersja Radicale przypięta, usługa bez uprawnień roota', () => {
     expect(profil).toMatch(/dav_ver=\d+\.\d+\.\d+/);
     expect(profil).toContain('"radicale==$dav_ver"');
