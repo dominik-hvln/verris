@@ -44,8 +44,16 @@ POMIN='^(index\.html|\.htaccess|\.well-known)$'
 [ "$DOMYSLNA" = 1 ] && POMIN='^(index\.html|\.htaccess|\.well-known|assets)$'
 
 # Bezpieczeństwo: nie nadpisuj istniejącej strony (poza domyślną stroną Verris). Puste katalogi się nie
-# liczą — nowa domena w DA 1.710 dostaje puste cgi-bin i katalog z nazwą domeny (test D3 29.09,
+# liczą — nowa domena w DA 1.710 dostaje katalog z nazwą domeny i cgi-bin (test D3 29.09,
 # test2.d3.hvln.pl: instalacja Joomli przerwana na świeżej domenie). Nic w nich nie ma do nadpisania.
+# cgi-bin od DirectAdmina ma tylko .htaccess z „Options -Indexes” (17 B, t1 29.09) — to szkielet domeny;
+# każda inna zawartość cgi-bin nadal blokuje instalację.
+CGI="$DOCROOT/cgi-bin"
+if [ -d "$CGI" ] && [ ! -L "$CGI" ] && [ -f "$CGI/.htaccess" ] && [ ! -L "$CGI/.htaccess" ] \
+  && [ "$(find "$CGI" -mindepth 1 | wc -l)" -eq 1 ] \
+  && [ "$(tr -d '[:space:]' < "$CGI/.htaccess")" = "Options-Indexes" ]; then
+  POMIN="${POMIN%)\$}|cgi-bin)\$"
+fi
 ZAJETE="$(find "$DOCROOT" -mindepth 1 -maxdepth 1 ! -empty -printf '%f\n' 2>/dev/null | grep -vE "$POMIN" || true)"
 if [ -n "$ZAJETE" ]; then
   log "Katalog $DOCROOT nie jest pusty ($(echo "$ZAJETE" | head -5 | tr '\n' ' ')) — przerwano (chronimy istniejące dane)."

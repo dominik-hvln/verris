@@ -47,12 +47,23 @@ describe('I-01 — instalator aplikacji', () => {
     writeFileSync(join(d, 'index.html'), '<title>x — hosting verris</title>');
     mkdirSync(join(d, 'assets'));
     writeFileSync(join(d, 'assets', 'logo.svg'), '<svg/>');
+    // DA 1.710 (t1, 29.09): cgi-bin z samym .htaccess „Options -Indexes”.
     mkdirSync(join(d, 'cgi-bin'));
+    writeFileSync(join(d, 'cgi-bin', '.htaccess'), 'Options -Indexes\n');
     mkdirSync(join(d, 'test2.d3.hvln.pl'));
   };
 
-  it('świeża domena (domyślna strona, puste cgi-bin i katalog domeny) → instalacja rusza', () => {
+  it('świeża domena (domyślna strona, cgi-bin od DirectAdmina i katalog domeny) → instalacja rusza', () => {
     expect(sprawdz(domyslna)).toContain('DALEJ');
+  });
+
+  it('bez strony domyślnej i z pustym cgi-bin też rusza', () => {
+    expect(sprawdz((d) => mkdirSync(join(d, 'cgi-bin')))).toContain('DALEJ');
+  });
+
+  it('cgi-bin z czymkolwiek poza szkieletem DirectAdmina → przerwanie', () => {
+    expect(sprawdz((d) => { domyslna(d); writeFileSync(join(d, 'cgi-bin', 'skrypt.pl'), '#!/usr/bin/perl'); })).not.toContain('DALEJ');
+    expect(sprawdz((d) => { domyslna(d); writeFileSync(join(d, 'cgi-bin', '.htaccess'), 'Options +ExecCGI\nAddHandler cgi-script .pl\n'); })).not.toContain('DALEJ');
   });
 
   it('prawdziwe pliki strony → przerwanie z komunikatem dla klienta, bez ścieżek węzła', () => {
