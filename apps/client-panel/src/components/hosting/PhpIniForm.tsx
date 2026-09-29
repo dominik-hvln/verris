@@ -80,7 +80,7 @@ export function PhpIniForm({ serviceId, domain }: { serviceId: string; domain: s
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3">
         <p className="m-0 text-[12.5px] text-muted-foreground">
-          Zapis w pliku <span className="font-mono">.user.ini</span> tej domeny
+          Zapis w plikach <span className="font-mono">.user.ini</span> i <span className="font-mono">.htaccess</span> tej domeny
           {stan.wlasneDyrektywy > 0 ? ` — Twoich własnych wpisów (${stan.wlasneDyrektywy}) nie zmieniamy` : ''}.
         </p>
         <button

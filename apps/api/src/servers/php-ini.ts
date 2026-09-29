@@ -73,3 +73,16 @@ export function odczytajUserIni(tresc: string, znaczniki: { begin: string; end: 
   const wlasne = poza.split('\n').filter((l) => l.trim() && !l.trim().startsWith(';')).length;
   return { values, wlasneDyrektywy: wlasne };
 }
+
+/**
+ * Te same dyrektywy dla LiteSpeed jako php_value/php_flag w .htaccess. LSAPI czyta `.user.ini`
+ * tylko z LSPHP_ENABLE_USER_INI=on i nie w trybie Daemon (docs.litespeedtech.com → PHP → Advanced);
+ * retest D3 29.09: memory_limit 256M w `.user.ini` nie działał, php_value w .htaccess tak (300M).
+ * `<IfModule LiteSpeed>` — Apache z PHP-FPM potraktowałby php_value jako błąd 500. Pusty zestaw → null (bez bloku).
+ */
+export function blokHtaccessPhp(values: UstawieniaPhp): string | null {
+  const linie = Object.entries(values).map(([k, v]) =>
+    k === 'display_errors' ? `php_flag ${k} ${v === 'On' ? 'on' : 'off'}` : `php_value ${k} ${v}`,
+  );
+  return linie.length ? ['<IfModule LiteSpeed>', ...linie, '</IfModule>'].join('\n') : null;
+}

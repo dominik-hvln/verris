@@ -1,4 +1,4 @@
-import { odczytajUserIni, sprawdzUstawieniaPhp, type UstawieniaPhp } from './php-ini.js';
+import { blokHtaccessPhp, odczytajUserIni, sprawdzUstawieniaPhp, type UstawieniaPhp } from './php-ini.js';
 import { statusOffsite } from './offsite-status.js';
 import { ODCZYTY_DA, opiszOdpowiedz, type WynikSondy } from './sonda-da.js';
 import { normalizujKatalogDocroot, odczytajDocroot, trescCustomHttpd, zapiszDocroot } from './docroot.js';
@@ -2466,6 +2466,11 @@ export class DirectAdminService {
 
   /* ===================== B-05: ustawienia PHP per domena (.user.ini) ===================== */
 
+  private readonly HT_PHP_ZNACZNIKI = {
+    begin: '# BEGIN VERRIS PHP (zarządzane przez panel — nie edytuj ręcznie)',
+    end: '# END VERRIS PHP',
+  };
+
   private readonly INI_ZNACZNIKI = {
     begin: '; BEGIN VERRIS PHP (zarządzane przez panel — nie edytuj ręcznie)',
     end: '; END VERRIS PHP',
@@ -2516,6 +2521,10 @@ export class DirectAdminService {
     const obecna = await this.readAccountTextFile(client, `${katalog}/.user.ini`);
     const blok = Object.entries(values).map(([k, v]) => `${k} = ${v}`).join('\n');
     await client.writeFile(katalog, '.user.ini', this.spliceManagedBlock(obecna, blok, this.INI_ZNACZNIKI));
+    // LiteSpeed: to samo w .htaccess (osobny blok — nie „# BEGIN Verris” zadania HTACCESS).
+    const htaccess = await this.readAccountTextFile(client, `${katalog}/.htaccess`);
+    const nowyHtaccess = this.spliceManagedBlock(htaccess, blokHtaccessPhp(values), this.HT_PHP_ZNACZNIKI);
+    if (nowyHtaccess !== htaccess) await client.writeFile(katalog, '.htaccess', nowyHtaccess);
     await this.audit.record({
       action: HostingResourceActions.HOSTING_PHP_INI_SET,
       userId, actorUserId: userId,

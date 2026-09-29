@@ -1143,14 +1143,21 @@ configure_hosting_capabilities() {
   # user_dnssec_control zostaje 0). Oficjalnie: „Make sure you have dnssec=1 in the directadmin.conf”
   # (docs.directadmin.com → Maintaining DNS records → DNSSEC); restart DA niżej.
   da_set_conf dnssec 1
-  # E-12 — filtry poczty po stronie serwera (Sieve): wtyczka Dovecot Pigeonhole. Od DirectAdmin 1.665
-  # polecenie to `da build dovecot_pigeonhole` (changelog DA 1.665: zmiana z `da build pigeonhole`).
-  # Reguły klient ustawia w webmailu (Roundcube → Ustawienia → Filtry, managesieve) — D3 w wezel.csv.
+  # E-12 — filtry poczty po stronie serwera (Sieve): wtyczka Dovecot Pigeonhole. DirectAdmin 1.710 (Dovecot
+  # 2.4) nie ma już `da build dovecot_pigeonhole` („This command is no longer supported. Please use command
+  # 'da build dovecot' instead” — retest D3 29.09): Pigeonhole buduje się razem z Dovecotem po
+  # `da build set pigeonhole yes` (forum DA, wątek „pigeonhole and dovecot 2.4”; dokumentacja DA „Filtering
+  # incoming spam” → Dovecot 2.4.x). Potem dovecot_conf i Roundcube (managesieve). Reguły klient ustawia
+  # w webmailu (Roundcube → Ustawienia → Filtry). Budowa tylko, gdy Dovecot jeszcze nie ma sieve.
   if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && command -v da >/dev/null 2>&1; then
-    if da build dovecot_pigeonhole >/var/log/verris-pigeonhole.log 2>&1; then
-      log_ok "Dovecot Pigeonhole (Sieve) zbudowany (log: /var/log/verris-pigeonhole.log)"
+    if ! doveconf -n 2>/dev/null | grep -qi 'sieve'; then
+      { da build set pigeonhole yes && da build dovecot && da build dovecot_conf && da build roundcube; } \
+        >/var/log/verris-pigeonhole.log 2>&1 || true
+    fi
+    if doveconf -n 2>/dev/null | grep -qi 'sieve'; then
+      log_ok "Dovecot Pigeonhole (Sieve) aktywny — filtry w webmailu (log budowy: /var/log/verris-pigeonhole.log)"
     else
-      log_warn "Pigeonhole — budowa nie powiodła się (log: /var/log/verris-pigeonhole.log); filtry w webmailu niedostępne"
+      log_warn "Pigeonhole — Dovecot bez sieve po budowie (log: /var/log/verris-pigeonhole.log); filtry w webmailu niedostępne"
     fi
   fi
   # PANEL-9 — filtr antyspam klienta (CMD_API_SPAMASSASSIN) wymaga działającego spamd. Sonda API DA na t1

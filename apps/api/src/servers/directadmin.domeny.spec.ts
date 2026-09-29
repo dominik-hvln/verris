@@ -290,11 +290,14 @@ describe('B-05 — .user.ini domeny', () => {
     const pola = s.wyslane();
     expect(pola).toMatchObject({ action: 'edit', path: '/domains/sklep.pl/public_html', filename: '.user.ini' });
     expect(pola.text).toBe('; BEGIN VERRIS PHP (zarządzane przez panel — nie edytuj ręcznie)\nmemory_limit = 512M\nupload_max_filesize = 64M\n; END VERRIS PHP\n\nsession.gc_maxlifetime = 1440\n');
+    // LiteSpeed nie czyta .user.ini bez LSPHP_ENABLE_USER_INI — to samo jako php_value w .htaccess (retest D3 29.09).
+    expect(s.wyslane(1)).toMatchObject({ action: 'edit', path: '/domains/sklep.pl/public_html', filename: '.htaccess' });
+    expect(s.wyslane(1).text).toBe('# BEGIN VERRIS PHP (zarządzane przez panel — nie edytuj ręcznie)\n<IfModule LiteSpeed>\nphp_value memory_limit 512M\nphp_value upload_max_filesize 64M\n</IfModule>\n# END VERRIS PHP\n');
     expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'HOSTING_PHP_INI_SET' }));
 
     await expect(s.svc.setHostingPhpIni('s1', 'u1', { domain: 'obca.pl', values: { memory_limit: '512M' } })).rejects.toThrow('nie należy');
     await expect(s.svc.setHostingPhpIni('s1', 'u1', { domain: 'sklep.pl', values: { auto_prepend_file: '/tmp/x' } as never })).rejects.toThrow('nie jest dostępna');
-    expect(s.post).toHaveBeenCalledTimes(1);
+    expect(s.post).toHaveBeenCalledTimes(2);
   });
 
   it('konto zawieszone: brak zapisu', async () => {

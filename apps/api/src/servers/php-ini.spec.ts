@@ -1,4 +1,4 @@
-import { odczytajUserIni, sprawdzUstawieniaPhp } from './php-ini.js';
+import { blokHtaccessPhp, odczytajUserIni, sprawdzUstawieniaPhp } from './php-ini.js';
 
 const Z = { begin: '; BEGIN VERRIS PHP', end: '; END VERRIS PHP' };
 
@@ -23,5 +23,14 @@ describe('B-05 — ustawienia PHP (.user.ini)', () => {
     const plik = `${Z.begin}\nmemory_limit = 256M\nauto_prepend_file = /tmp/x\n${Z.end}\n\n; komentarz\nsession.gc_maxlifetime = 1440\n`;
     expect(odczytajUserIni(plik, Z)).toEqual({ values: { memory_limit: '256M' }, wlasneDyrektywy: 1 });
     expect(odczytajUserIni('', Z)).toEqual({ values: {}, wlasneDyrektywy: 0 });
+  });
+});
+
+describe('B-05 — te same dyrektywy dla LiteSpeed w .htaccess', () => {
+  it('php_value / php_flag w <IfModule LiteSpeed>; pusty zestaw → brak bloku', () => {
+    expect(blokHtaccessPhp({ memory_limit: '256M', display_errors: 'Off', 'date.timezone': 'Europe/Warsaw' })).toBe(
+      '<IfModule LiteSpeed>\nphp_value memory_limit 256M\nphp_flag display_errors off\nphp_value date.timezone Europe/Warsaw\n</IfModule>',
+    );
+    expect(blokHtaccessPhp({})).toBeNull();
   });
 });
