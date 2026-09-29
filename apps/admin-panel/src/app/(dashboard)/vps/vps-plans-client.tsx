@@ -4,6 +4,7 @@ import { Select } from "@/components/select";
 import { useState, useTransition, useId } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, EyeOff, Loader2, Pencil, Plus, Server, X } from "lucide-react";
+import { plForm } from "@/lib/pl";
 import {
   createVpsPlan,
   disableVpsPlan,
@@ -79,7 +80,7 @@ export function VpsPlansClient({
       ) : null}
 
       <div className="flex items-center justify-between">
-        <p className="text-sm text-neutral-400">{plans.length} plan(ów) VPS</p>
+        <p className="text-sm text-neutral-400">{plans.length} {plForm(plans.length, "plan", "plany", "planów")} VPS</p>
         {!creating && !editing ? (
           <button
             type="button"

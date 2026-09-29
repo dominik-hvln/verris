@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Save, Loader2, AlertCircle, Check, Plug } from "lucide-react";
 import { updateDirectAdminConfig, testDirectAdmin } from "../actions";
 import { Checkbox } from '@/components/checkbox';
+import { plForm } from "@/lib/pl";
 
 interface InitialConfig {
   daHost: string;
@@ -215,7 +216,7 @@ export function DirectAdminConfigForm({
         >
           {testResult.ok ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
           {testResult.ok
-            ? `Połączenie OK. DA zwróciło ${testResult.sampleCount ?? 0} domen.`
+            ? `Połączenie OK. DA zwróciło ${testResult.sampleCount ?? 0} ${plForm(testResult.sampleCount ?? 0, "domenę", "domeny", "domen")}.`
             : `Test się nie udał: ${testResult.error}`}
         </div>
       )}

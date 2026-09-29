@@ -22,6 +22,7 @@ import { WarunkiIndywidualne, type PodgladWarunkow } from "./warunki-indywidualn
 import { rozliczeniePoza, ustawWarunki, zalozUsluge } from "./warunki-actions";
 import { pobierzProfilKlienta, type ProfilKlienta } from "./profil-data";
 import { NotatkaWewnetrzna } from "./notatka-wewnetrzna";
+import { services } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
@@ -317,7 +318,7 @@ export default async function AdminCustomerCardPage({
                 <LinkKarty href={`${baza}?sekcja=rozliczenia`}>Szczegóły</LinkKarty>
               </div>
               <Para k="Sposób" v={zrodla.join(", ") || "—"} />
-              <Para k="Warunki indywidualne" v={indywidualne.length ? `${indywidualne.length} ${indywidualne.length === 1 ? "usługa" : "usług(i)"}` : "brak"} />
+              <Para k="Warunki indywidualne" v={indywidualne.length ? services(indywidualne.length) : "brak"} />
               <Para k="Dane do faktury" v={u.companyName && u.nip ? `komplet · NIP ${u.nip}` : u.nip ? `NIP ${u.nip} · bez nazwy firmy` : "osoba prywatna / brak NIP"} />
               <Para k="Metoda płatności" v={p.paymentMethods.find((m) => m.isDefault) ? `${p.paymentMethods.find((m) => m.isDefault)!.brand ?? "karta"} •••• ${p.paymentMethods.find((m) => m.isDefault)!.last4 ?? ""}` : "brak zapisanej"} />
             </section>

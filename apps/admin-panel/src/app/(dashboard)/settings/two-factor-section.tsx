@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Shield, ShieldCheck, Loader2, Copy, AlertCircle, Check } from "lucide-react";
+import { plForm } from "@/lib/pl";
 import {
   confirmTwoFactorAction,
   disableTwoFactorAction,
@@ -134,7 +135,9 @@ export function TwoFactorSection() {
               {status.enrolledAt
                 ? new Date(status.enrolledAt).toLocaleString("pl-PL")
                 : "—"}
-              . Pozostało <strong>{status.recoveryCodesRemaining}</strong> kodów zapasowych.
+              . {plForm(status.recoveryCodesRemaining, "Pozostał", "Pozostały", "Pozostało")}{" "}
+              <strong>{status.recoveryCodesRemaining}</strong>{" "}
+              {plForm(status.recoveryCodesRemaining, "kod zapasowy", "kody zapasowe", "kodów zapasowych")}.
             </p>
           </div>
           <button

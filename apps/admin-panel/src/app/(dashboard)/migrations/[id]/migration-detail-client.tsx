@@ -9,6 +9,7 @@ import {
   retryMigrationJobAction,
   revealMigrationSecretsAction,
 } from "../actions";
+import { statusPl } from "../status-pl";
 
 interface SourceFormFtp {
   protocol: string;
@@ -473,7 +474,7 @@ function StatusBadge({ status }: { status: string }) {
   };
   return (
     <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${map[status] ?? map.DRAFT}`}>
-      {status === "ATTENTION" ? "PILNE" : status}
+      {statusPl(status)}
     </span>
   );
 }
@@ -485,5 +486,5 @@ function JobStatus({ status }: { status: string }) {
         : status === "FAILED" ? "text-rose-300"
           : status === "RETRYING" ? "text-amber-300"
             : "text-muted-foreground";
-  return <span className={`text-xs font-medium ${color}`}>{status}</span>;
+  return <span className={`text-xs font-medium ${color}`}>{statusPl(status)}</span>;
 }

@@ -1,5 +1,6 @@
 import { fetchAdminDashboardOverview } from "@/lib/admin-overview-data";
 import { WalletCsvExportButton } from "./csv-export-button";
+import { days, plForm } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export default async function BillingPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="rounded-2xl border border-white/10 bg-black/35 p-6">
             <h2 className="text-lg font-semibold text-white mb-2">
-              Podsumowanie {b.periodDays} dni (portfel)
+              Podsumowanie {b.periodDays} {plForm(b.periodDays, "dnia", "dni", "dni")} (portfel)
             </h2>
             <p className="text-3xl font-bold tabular-nums text-white">{b.walletNetPln} PLN</p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -56,7 +57,7 @@ export default async function BillingPage() {
             <thead className="bg-white/5 text-left text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="px-4 py-3">Typ transakcji</th>
-                <th className="px-4 py-3 text-right">Suma PLN ({b!.periodDays} dni)</th>
+                <th className="px-4 py-3 text-right">Suma PLN ({days(b!.periodDays)})</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">

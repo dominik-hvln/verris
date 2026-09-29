@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { CheckCircle2, CircleDashed, Loader2, XCircle } from "lucide-react";
 import { Select } from "@/components/select";
 import { potwierdz } from "@/components/potwierdz";
+import { plForm } from "@/lib/pl";
 import { wyrownajFlote, zapiszStos, type WidokStosu } from "./actions";
 
 const etykieta = "text-[10px] font-bold uppercase tracking-wider text-neutral-500";
@@ -87,7 +88,7 @@ export function WersjeStosu({ start }: { start: WidokStosu }) {
         <div className="flex flex-wrap items-center gap-3">
           <h2 id="zgodnosc" className="text-sm font-bold uppercase tracking-wide text-white">Zgodność węzłów</h2>
           <span className={`text-xs ${rozjazdy ? "text-amber-300" : "text-emerald-300"}`}>
-            {rozjazdy ? `${rozjazdy} z ${widok.wezly.length} węzłów różni się od manifestu` : "wszystkie węzły zgodne albo bez raportu"}
+            {rozjazdy ? `${rozjazdy} z ${widok.wezly.length} ${plForm(widok.wezly.length, "węzła", "węzłów", "węzłów")} ${plForm(rozjazdy, "różni", "różnią", "różni")} się od manifestu` : "wszystkie węzły zgodne albo bez raportu"}
           </span>
           <button type="button" className={`${przycisk} ml-auto`} disabled={pending || widok.wezly.length === 0} onClick={() => void wyrownaj()}>
             Wyrównaj flotę

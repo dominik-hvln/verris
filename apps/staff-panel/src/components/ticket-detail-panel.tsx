@@ -23,6 +23,7 @@ import { staffTicketAttachmentDownloadHref } from "@/lib/ticket-attachment-links
 import { TICKET_DEPARTMENT_PL, TICKET_PRIORITY_PL, TICKET_STATUS_PL, etykieta } from "@verris/contracts";
 import { PoleZalacznikow } from "./pole-zalacznikow";
 import { Checkbox } from "./checkbox";
+import { plForm } from "@/lib/pl";
 
 interface Props {
   ticket: StaffTicketDetail;
@@ -398,7 +399,7 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
                 Twoja odpowiedź
               </label>
               <span className="ml-auto text-[12.5px] text-muted-foreground">
-                wpisz <kbd className="rounded-[5px] border border-line-strong bg-card px-1.5 py-px font-mono text-[11px]">/skrót</kbd> żeby wstawić szablon
+                wpisz <kbd className="rounded-[5px] border border-line-strong bg-card px-1.5 py-px font-mono text-[11px]">/skrót</kbd>, żeby wstawić szablon
               </span>
             </div>
             <textarea
@@ -624,7 +625,7 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
             <h2 className="font-display text-[15px] font-bold">Co widzi klient</h2>
             <Krok stan="done">Przyjęte · {kd(ticket.createdAt)}</Krok>
             <Krok stan={assignedId ? "done" : "todo"}>Opiekun: {opiekun}</Krok>
-            <Krok stan={przeczytane ? "done" : "todo"}>{przeczytane ? `Przeczytane · ${kd(przeczytane)}` : "Jeszcze nie przeczytane przez opiekuna"}</Krok>
+            <Krok stan={przeczytane ? "done" : "todo"}>{przeczytane ? `Przeczytane · ${kd(przeczytane)}` : "Jeszcze nieprzeczytane przez opiekuna"}</Krok>
             <Krok stan={zamkniete ? "done" : "now"}>
               {zamkniete ? "Rozwiązane" : ticket.status === "WAITING_CUSTOMER" ? "Czekamy na odpowiedź klienta" : czekaNaNas ? "Czeka na naszą odpowiedź" : "W toku — ostatnio odpisaliśmy my"}
             </Krok>
@@ -666,7 +667,7 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
               <b className="text-[13.5px]">Twoje oceny · 30 dni</b>
               <span className="text-muted-foreground">
                 {mojeOceny
-                  ? `obsługa ${mojeOceny.support?.toLocaleString("pl-PL") ?? "—"} · rozwiązane ${mojeOceny.rozwiazanePct ?? "—"}% · ${mojeOceny.ocen} ocen`
+                  ? `obsługa ${mojeOceny.support?.toLocaleString("pl-PL") ?? "—"} · rozwiązane ${mojeOceny.rozwiazanePct ?? "—"}% · ${mojeOceny.ocen} ${plForm(mojeOceny.ocen, "ocena", "oceny", "ocen")}`
                   : "jeszcze bez ocen"}
               </span>
             </span>

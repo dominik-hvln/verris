@@ -8,6 +8,7 @@ import {
   resolveMigrationAttentionAction,
   retryMigrationJobAction,
 } from './actions';
+import { statusPl } from './status-pl';
 
 interface JobLite {
   id: string;
@@ -118,7 +119,7 @@ export function MigrationRowActions({ migrationId, subscriptionId, ticketId, nee
               <li key={job.id} className="text-xs">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-mono text-neutral-200">
-                    #{job.sequence} {job.kind} · <span className={jobColor(job.status)}>{job.status}</span> ({job.attempts}/{job.maxAttempts})
+                    #{job.sequence} {job.kind} · <span className={jobColor(job.status)}>{statusPl(job.status)}</span> ({job.attempts}/{job.maxAttempts})
                   </span>
                   {job.status === 'FAILED' ? (
                     <button

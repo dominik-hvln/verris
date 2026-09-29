@@ -18,6 +18,7 @@ import {
 } from "./actions";
 import { potwierdz } from "@/components/potwierdz";
 import { Checkbox } from '@/components/checkbox';
+import { plForm } from "@/lib/pl";
 
 type Editing = { id: string | null; name: string; description: string; permissions: Set<string> } | null;
 
@@ -139,7 +140,8 @@ export function RolesClient({
                       {r.isSystem && <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-neutral-400">systemowa</span>}
                     </p>
                     {r.description && <p className="mt-0.5 text-xs text-neutral-400">{r.description}</p>}
-                    <p className="mt-1 text-[11px] text-neutral-500">{r.permissions.length} uprawnień · {r.memberCount} operator(ów)</p>
+                    <p className="mt-1 text-[11px] text-neutral-500">{r.permissions.length} {plForm(r.permissions.length, "uprawnienie", "uprawnienia", "uprawnień")} · {r.memberCount}{" "}
+                      {plForm(r.memberCount, "operator", "operatorzy", "operatorów")}</p>
                   </div>
                   <div className="flex shrink-0 gap-1">
                     <button onClick={() => startEdit(r)} className="rounded-md border border-white/10 px-2 py-1 text-xs text-neutral-200 hover:text-white">Edytuj</button>

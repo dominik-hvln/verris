@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Box, Plus, AlertTriangle, CheckCircle2, EyeOff, EyeIcon, Mail } from "lucide-react";
 import { listAdminPlans, type AdminPlanRow } from "./data";
+import { plForm } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
@@ -180,7 +181,7 @@ export default async function AdminPlansPage() {
           <div className="p-6 border-b border-white/10 flex justify-between items-center text-sm">
             <span className="text-muted-foreground">
               {plans
-                ? `${plans.length} plan(ów), ${sellableCount ?? 0} w pełnej sprzedaży`
+                ? `${plans.length} ${plForm(plans.length, "plan", "plany", "planów")}, ${sellableCount ?? 0} w pełnej sprzedaży`
                 : "Ładowanie…"}
             </span>
             <span className="flex items-center gap-2 text-xs text-muted-foreground">

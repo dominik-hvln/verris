@@ -95,7 +95,7 @@ export default async function StaffSubscriptionReadonlyPage({
             </dd>
           </div>
           <div>
-            <dt className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">Autoscaling</dt>
+            <dt className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">Autoskalowanie</dt>
             <dd className="mt-1 text-sm text-white">{sub.autoscalingEnabled ? "Tak" : "Nie"}</dd>
           </div>
         </dl>

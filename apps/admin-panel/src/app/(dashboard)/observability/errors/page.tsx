@@ -96,7 +96,7 @@ export default async function RuntimeErrorsPage() {
             </table>
           </div>
           <p className="text-xs text-muted-foreground">
-            Bufor ostatnich {data.recent.length} zdarzeń (in-memory). Metryka Grafana:{" "}
+            Ostatnie zdarzenia w pamięci procesu: {data.recent.length}. Metryka Grafana:{" "}
             <code>verris_runtime_errors_total</code>.
           </p>
         </>

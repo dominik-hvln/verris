@@ -66,7 +66,7 @@ describe("X-05 szczegół zgłoszenia (obsługa)", () => {
       staffReadAt: h(-1),
       replies: [{ id: "r1", message: "Dalej nie działa", createdAt: h(-0.5), isStaff: false }],
     });
-    expect(render(poDopisku)).toContain("Jeszcze nie przeczytane przez opiekuna");
+    expect(render(poDopisku)).toContain("Jeszcze nieprzeczytane przez opiekuna");
   });
 
   it("czeka na nas: zapowiedź „Wciąż nad tym pracujemy” (po połowie czasu odpowiedzi)", () => {

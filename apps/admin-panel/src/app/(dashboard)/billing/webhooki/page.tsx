@@ -1,6 +1,7 @@
 import { listWebhookEvents, type WebhookEventRow } from "./data";
 import { ReplayButton } from "./replay-button";
 import { BladStrony, wynik } from "@/components/blad-strony";
+import { plForm } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +68,7 @@ export default async function WebhookiPage({
       {wymagaUwagi > 0 && (
         <div className="rounded-md border border-red-600/40 bg-red-500/10 p-4 text-sm text-red-100">
           <b>{wymagaUwagi}</b>{" "}
-          {wymagaUwagi === 1 ? "zdarzenie nie zostało obsłużone" : "zdarzeń nie zostało obsłużonych"}.
+          {plForm(wymagaUwagi, "zdarzenie nie zostało obsłużone", "zdarzenia nie zostały obsłużone", "zdarzeń nie zostało obsłużonych")}.
           Jeżeli dotyczą doładowania albo opłaty za subskrypcję, pieniądze mogły zostać
           pobrane, a saldo albo aktywacja nie nastąpiły.
           <p className="mt-2 text-xs text-red-200/80">

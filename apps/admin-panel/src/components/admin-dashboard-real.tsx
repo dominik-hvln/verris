@@ -3,7 +3,7 @@ import { Plus } from "lucide-react";
 import type { AdminDashboardOverview } from "@/lib/admin-overview-data";
 import { FleetUpdateButton } from "@/app/(dashboard)/nodes/fleet-update-button";
 import { Eyebrow, LinkKarty, NaglowekKarty, Pasek, Pigulka } from "./v2";
-import { clients, plForm, plural } from "@/lib/pl";
+import { clients, days, plForm, plural } from "@/lib/pl";
 
 /**
  * PB-34 — pulpit admina 1:1 z makiety Main.dc.html („Stan platformy”).
@@ -124,7 +124,7 @@ export function AdminDashboardReal({ o }: { o: AdminDashboardOverview }) {
           </span>
         </div>
         <div className="flex flex-col gap-2.5 border-line px-5 py-[18px] max-xl:border-t xl:border-l">
-          <Eyebrow>Wpływy · {o.wplywy.okresDni} dni</Eyebrow>
+          <Eyebrow>Wpływy · {days(o.wplywy.okresDni)}</Eyebrow>
           <div>
             <span className="font-display text-[30px] font-bold tracking-[-0.02em]">{zl(o.wplywy.bruttoPln)}</span>
             <span className="ml-1.5 font-mono text-xs text-muted-foreground">zł</span>

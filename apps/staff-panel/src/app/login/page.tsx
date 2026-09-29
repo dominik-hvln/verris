@@ -148,7 +148,7 @@ function BreakGlassScreen({ onBack }: { onBack: () => void }) {
         </div>
 
         <p className="text-[11px] text-amber-200/90 leading-relaxed">
-          Użyj tylko gdy nie masz dostępu do passkey. Każde użycie powiadamia wszystkich
+          Użyj tylko, gdy nie masz dostępu do passkey. Każde użycie powiadamia wszystkich
           administratorów i trafia do logu audytu.
         </p>
 
