@@ -1815,6 +1815,100 @@ a{color:#2952cc}
 VERRIS_SUSPENDED
 }
 
+# White label phpMyAdmina (test D3 na t1, 29.09): po logowaniu jednym kliknięciem z panelu klient widział
+# „Serwer: DA PMA SignOn” w tytule karty i nagłówku — DirectAdmin wpisuje tę nazwę do sesji SSO
+# (PMA_single_signon_cfgupdate, napis wkompilowany w binarkę DA). phpMyAdmin z SignonScript nie czyta
+# sesji sam (AuthenticationSignon::readCredentials, 5.2) — nasz skrypt bierze z sesji DA tylko login
+# i hasło, nazwa serwera zostaje z config.inc.php. Tymczasowych użytkowników MySQL dalej zakłada
+# i po 24 h usuwa DirectAdmin. Kopia w custombuild/custom/phpmyadmin przeżywa aktualizację phpMyAdmina
+# (CustomBuild kopiuje ją do nowej wersji). Brak skryptu → phpMyAdmin wraca do sesji DA (działa, z napisem).
+configure_pma_white_label() {
+  local cfg=/var/www/html/phpMyAdmin/config.inc.php dir=/var/www/html/.verris
+  local custom=/usr/local/directadmin/custombuild/custom/phpmyadmin/config.inc.php
+  [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] || return 0
+  if [ ! -f "$cfg" ]; then
+    log_warn "phpMyAdmin: brak $cfg — nazwa serwera w phpMyAdmin bez zmian"
+    return 0
+  fi
+  install -d -m 0755 "$dir"
+  printf 'Require all denied\n' >"$dir/.htaccess"
+  cat >"$dir/pma-signon.php" <<'PMA_SIGNON'
+<?php
+/**
+ * Verris — odczyt sesji logowania jednym kliknięciem do phpMyAdmina (SignonScript).
+ *
+ * DirectAdmin zakłada sesję „SignonSession” z tymczasowym użytkownikiem MySQL, ale dopisuje do niej
+ * PMA_single_signon_cfgupdate z nazwą serwera „DA PMA SignOn” (widoczna w tytule karty i w nagłówku
+ * phpMyAdmina — test D3 na t1, 29.09). phpMyAdmin z ustawionym SignonScript nie czyta sesji sam, tylko
+ * woła get_login_credentials() — bierzemy z sesji DA wyłącznie login i hasło, bez nadpisań konfiguracji.
+ * Odczyt sesji jak w AuthenticationSignon::readCredentials (phpMyAdmin 5.2), z powrotem do sesji PMA.
+ *
+ * Plik tylko definiuje funkcję — wywołany bezpośrednio nic nie robi i nic nie wypisuje.
+ * Instaluje node-hosting-profile.sh (configure_pma_white_label).
+ */
+
+if (! function_exists('get_login_credentials')) {
+    function get_login_credentials($user)
+    {
+        $nazwa = 'SignonSession';
+        $id = isset($_COOKIE[$nazwa]) ? (string) $_COOKIE[$nazwa] : '';
+        if ($id === '' || ! preg_match('/^[A-Za-z0-9,-]{16,256}$/', $id)) {
+            return ['', ''];
+        }
+
+        $staraNazwa = session_name();
+        $stareId = session_id();
+        $staraAktywna = session_status() === PHP_SESSION_ACTIVE;
+        $stareCookie = session_get_cookie_params();
+        if ($staraAktywna) {
+            session_write_close();
+        }
+
+        session_name($nazwa);
+        session_id($id);
+        @session_start();
+        $login = isset($_SESSION['PMA_single_signon_user']) ? (string) $_SESSION['PMA_single_signon_user'] : '';
+        $haslo = isset($_SESSION['PMA_single_signon_password']) ? (string) $_SESSION['PMA_single_signon_password'] : '';
+        session_write_close();
+
+        @session_set_cookie_params($stareCookie);
+        if ($staraNazwa !== false) {
+            session_name($staraNazwa);
+        }
+        if ($stareId !== '' && $stareId !== false) {
+            session_id($stareId);
+        }
+        if ($staraAktywna) {
+            @session_start();
+        }
+
+        return [$login, $haslo];
+    }
+}
+PMA_SIGNON
+  chmod 0644 "$dir/pma-signon.php" "$dir/.htaccess"
+  if ! grep -q 'VERRIS-PMA' "$cfg"; then
+    cp -a "$cfg" "$cfg.verris-przed"
+    awk '
+      { print }
+      /\[.SignonURL.\][[:space:]]*=/ && !s { print "\t// VERRIS-PMA: logowanie z panelu bez nazwy serwera DirectAdmina"; print "\tif (@is_readable(\x27/var/www/html/.verris/pma-signon.php\x27)) { $cfg[\x27Servers\x27][$i][\x27SignonScript\x27] = \x27/var/www/html/.verris/pma-signon.php\x27; }"; s=1 }
+      /\[.host.\][[:space:]]*=/ && !h { print "$cfg[\x27Servers\x27][$i][\x27verbose\x27] = \x27Bazy danych\x27; // VERRIS-PMA"; h=1 }
+    ' "$cfg.verris-przed" >"$cfg.verris-nowy"
+    if grep -q "SignonScript" "$cfg.verris-nowy" && grep -q "'verbose'" "$cfg.verris-nowy" \
+      && { ! command -v php >/dev/null 2>&1 || php -l "$cfg.verris-nowy" >/dev/null 2>&1; }; then
+      cat "$cfg.verris-nowy" >"$cfg"
+    else
+      log_fail "phpMyAdmin: nie rozpoznano config.inc.php (brak SignonURL/host) — bez zmian, $cfg.verris-przed"
+      rm -f "$cfg.verris-nowy"
+      return 0
+    fi
+    rm -f "$cfg.verris-nowy"
+  fi
+  install -d -m 0755 "$(dirname "$custom")"
+  cp -a "$cfg" "$custom"
+  log_ok "phpMyAdmin: logowanie z panelu bez nazwy serwera DirectAdmina (SignonScript, kopia w custombuild/custom)"
+}
+
 configure_suspended_page() {
   echo "--- Strona zawieszonego konta ---"
   local tpl=/usr/local/directadmin/data/templates dst u d f n=0
@@ -1919,6 +2013,7 @@ configure_php_expose
 configure_da_panel_firewall
 configure_http3_firewall
 configure_suspended_page
+configure_pma_white_label
 print_lve_info
 print_summary
 exit $?

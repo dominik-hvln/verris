@@ -334,3 +334,52 @@ esac
     expect(surowy).toMatch(/^configure_da_panel_firewall\nconfigure_http3_firewall$/m);
   });
 });
+
+describe('phpMyAdmin bez nazwy serwera DirectAdmina (test D3 29.09: „DA PMA SignOn”)', () => {
+  const funkcja = () => {
+    const pelny = readFileSync(join(SKRYPTY, 'node-hosting-profile.sh'), 'utf8');
+    const start = pelny.indexOf('configure_pma_white_label() {');
+    const koniec = pelny.indexOf('\n}\n', pelny.indexOf('log_ok "phpMyAdmin', start));
+    return pelny.slice(start, koniec + 3);
+  };
+  const KONFIG = [
+    '<?php', '$i = 0;', '$i++;', "if (isset($_COOKIE['SignonSession'])) {",
+    "\t$cfg['Servers'][$i]['auth_type'] = 'signon';", "\t$cfg['Servers'][$i]['SignonURL'] = 'sso_logout.php';",
+    '}', "$cfg['Servers'][$i]['host'] = 'localhost';", "// $cfg['Servers'][$i]['controlhost'] = '';", '',
+  ].join('\n');
+  const uruchom = (konfig: string | null) => {
+    const t = mkdtempSync(join(tmpdir(), 'pma-'));
+    if (konfig !== null) {
+      mkdirSync(join(t, 'www', 'phpMyAdmin'), { recursive: true });
+      writeFileSync(join(t, 'www', 'phpMyAdmin', 'config.inc.php'), konfig);
+    }
+    const skrypt = [
+      'log_ok(){ echo "OK $*"; }; log_warn(){ echo "WARN $*"; }; log_fail(){ echo "FAIL $*"; }; DRY_RUN=0; PREFLIGHT_ONLY=0',
+      funkcja().replaceAll('/var/www/html', join(t, 'www')).replaceAll('/usr/local/directadmin', join(t, 'da')),
+      'configure_pma_white_label', 'configure_pma_white_label',
+    ].join('\n');
+    const r = spawnSync('bash', ['-c', skrypt], { encoding: 'utf8' });
+    return { t, out: r.stdout + r.stderr, cfg: () => readFileSync(join(t, 'www', 'phpMyAdmin', 'config.inc.php'), 'utf8') };
+  };
+
+  it('SignonScript w bloku SSO, własna nazwa serwera, kopia w custombuild/custom, bez duplikatów przy powtórce', () => {
+    const r = uruchom(KONFIG);
+    const cfg = r.cfg();
+    expect(r.out).not.toMatch(/FAIL|WARN/);
+    expect(cfg.match(/VERRIS-PMA/g)).toHaveLength(2);
+    expect(cfg).toMatch(/SignonURL[^\n]*\n[^\n]*VERRIS-PMA[^\n]*\n\tif \(@is_readable\('[^']*\/\.verris\/pma-signon\.php'\)\) \{ \$cfg\['Servers'\]\[\$i\]\['SignonScript'\]/);
+    expect(cfg).toContain("$cfg['Servers'][$i]['verbose'] = 'Bazy danych'; // VERRIS-PMA");
+    expect(readFileSync(join(r.t, 'da', 'custombuild', 'custom', 'phpmyadmin', 'config.inc.php'), 'utf8')).toBe(cfg);
+    const php = readFileSync(join(r.t, 'www', '.verris', 'pma-signon.php'), 'utf8');
+    expect(php).toContain('function get_login_credentials');
+    expect(php).not.toContain('cfgupdate\']');
+    expect(readFileSync(join(r.t, 'www', '.verris', '.htaccess'), 'utf8')).toBe('Require all denied\n');
+  });
+
+  it('nierozpoznany config.inc.php → bez zmian i FAIL; brak phpMyAdmina → tylko ostrzeżenie', () => {
+    const r = uruchom('<?php\n$cfg = [];\n');
+    expect(r.out).toContain('FAIL phpMyAdmin');
+    expect(r.cfg()).toBe('<?php\n$cfg = [];\n');
+    expect(uruchom(null).out).toContain('WARN phpMyAdmin');
+  });
+});
