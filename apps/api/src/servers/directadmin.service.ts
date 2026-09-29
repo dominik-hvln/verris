@@ -2028,22 +2028,34 @@ export class DirectAdminService {
       await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SPAMASSASSIN', { action: 'disable', domain });
     } else {
       // GET aktualne tokeny i nadpisz tylko wybrane — DA action=save oczekuje pełnego zestawu pól.
+      // DA 1.710 (test D3 na t1, 29.09): próg to required_hits (custom + required_hits_custom), a save
+      // odrzuca formularz bez blacklist_from/whitelist_from — listy odsyłamy takie, jakie są (JSON: tablice).
       const tokens: Record<string, string> = {};
       try {
-        const raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_SPAMASSASSIN', { domain });
-        for (const [k, v] of raw.entries()) tokens[k] = v;
+        const raw = await this.daGetRawForSubscription(subscriptionId, userId, '/CMD_API_SPAMASSASSIN', { domain });
+        if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+          for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+            if (Array.isArray(v)) tokens[k] = v.map(String).join('\n');
+            else if (v != null && typeof v !== 'object') tokens[k] = String(v);
+          }
+        } else {
+          for (const [k, v] of this.parseKvPayload(raw).entries()) tokens[k] = v;
+        }
       } catch { /* domyślne */ }
-      const score = String(input.requiredScore ?? tokens.required_score ?? '5').replace(/[^0-9.]/g, '') || '5';
+      const score = String(input.requiredScore ?? tokens.required_score ?? tokens.required_hits ?? '5').replace(/[^0-9.]/g, '') || '5';
       const form: Record<string, string> = {
         action: 'save', domain,
         is_on: 'yes',
-        required_score: score,
+        required_hits: 'custom',
+        required_hits_custom: score,
         report_safe: tokens.report_safe ?? '1',
-        high_score: tokens.high_score ?? '',
+        high_score: tokens.high_score ?? '15',
         high_score_block: tokens.high_score_block ?? 'no',
         subject_tag: input.subjectTag ?? tokens.subject_tag ?? '***SPAM*** ',
-        rewrite_subject: tokens.rewrite_subject ?? 'yes',
-        where: tokens.where ?? 'INBOX',
+        rewrite_subject: tokens.rewrite_subject ?? '1',
+        where: tokens.where ?? 'inbox',
+        blacklist_from: tokens.blacklist_from ?? '',
+        whitelist_from: tokens.whitelist_from ?? '',
       };
       await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SPAMASSASSIN', form);
     }

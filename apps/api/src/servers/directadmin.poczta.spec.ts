@@ -226,7 +226,16 @@ describe('Poczta — catch-all i antyspam', () => {
   ])('antyspam: próg %j trafia do DA jako %j (tylko cyfry i kropka)', async (score, oczekiwany) => {
     const s = stanowisko({ get: { '/CMD_API_SPAMASSASSIN': { required_score: '5', where: 'spamfolder' } } });
     await s.svc.setHostingSpamFilter('s1', 'u1', { enabled: true, requiredScore: score });
-    expect(s.wyslane()).toMatchObject({ action: 'save', is_on: 'yes', required_score: oczekiwany, where: 'spamfolder' });
+    expect(s.wyslane()).toMatchObject({ action: 'save', is_on: 'yes', required_hits: 'custom', required_hits_custom: oczekiwany, where: 'spamfolder' });
+  });
+
+  it('antyspam DA 1.710: listy blacklist/whitelist z JSON odsyłane (bez nich save = błąd), próg jako custom', async () => {
+    const s = stanowisko({ get: { '/CMD_API_SPAMASSASSIN': { required_hits: '5.0', required_score: '5.0', where: 'inbox', rewrite_subject: '0', blacklist_from: ['zly@spam.pl', '*@x.pl'], whitelist_from: [] } } });
+    await s.svc.setHostingSpamFilter('s1', 'u1', { enabled: true, requiredScore: '6' });
+    expect(s.wyslane()).toMatchObject({
+      required_hits: 'custom', required_hits_custom: '6', where: 'inbox', rewrite_subject: '0',
+      blacklist_from: 'zly@spam.pl\n*@x.pl', whitelist_from: '',
+    });
   });
 
   it('antyspam wyłączony → action=disable; błąd DA → wyjątek bez audytu', async () => {
