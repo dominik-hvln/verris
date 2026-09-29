@@ -3,6 +3,7 @@ import { AuditService } from '../../src/common/audit/audit.service.js';
 import { WalletLedgerService } from '../../src/billing/wallet-ledger.service.js';
 import { PromoService } from '../../src/billing/promo.service.js';
 import { RenewalScheduler } from '../../src/subscriptions/renewal.scheduler.js';
+import { KARENCJA_PLATNOSCI_DNI } from '../../src/subscriptions/subscriptions.service.js';
 import { prisma, rozlacz, utworzPlan, wyczyscBaze } from './setup.js';
 
 /**
@@ -87,12 +88,13 @@ describe('X-04 — odnowienia z portfela (RenewalScheduler)', () => {
     await expect(scheduler().retryPastDueNow(obcy.id, u.id)).rejects.toMatchObject({ status: 404 });
   });
 
-  it('karencja 3 dni: po jej upływie zawieszenie, wcześniej nie', async () => {
+  // Regulamin §7 ust. 3: prolongata 7 dni (było 3 — test nie poszedł za zmianą w 8252a831).
+  it('karencja (§7 ust. 3): po jej upływie zawieszenie, dzień wcześniej nie', async () => {
     const k = await klient(0);
     const swieza = await usluga(k.id, { status: SubscriptionStatus.PAST_DUE });
-    await prisma().subscriptionEvent.create({ data: { subscriptionId: swieza.id, type: 'PAYMENT_FAILED', createdAt: new Date(Date.now() - 86400000) } });
+    await prisma().subscriptionEvent.create({ data: { subscriptionId: swieza.id, type: 'PAYMENT_FAILED', createdAt: new Date(Date.now() - (KARENCJA_PLATNOSCI_DNI - 1) * 86400000) } });
     const stara = await usluga(k.id, { status: SubscriptionStatus.PAST_DUE });
-    await prisma().subscriptionEvent.create({ data: { subscriptionId: stara.id, type: 'PAYMENT_FAILED', createdAt: new Date(Date.now() - 4 * 86400000) } });
+    await prisma().subscriptionEvent.create({ data: { subscriptionId: stara.id, type: 'PAYMENT_FAILED', createdAt: new Date(Date.now() - (KARENCJA_PLATNOSCI_DNI + 1) * 86400000) } });
     await scheduler().handleHourlyTick();
     expect(zawieszone).toEqual([stara.id]);
     expect((await sub(swieza.id)).status).toBe('PAST_DUE');
