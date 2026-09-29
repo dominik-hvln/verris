@@ -90,6 +90,8 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
       expect(pliki.has(n)).toBe(true);
     }
     expect(pliki.get('README.txt')).toContain('RODO art. 20');
+    // White label (CL-02): README trafia do klienta — bez nazwy panelu serwera.
+    expect(pliki.get('README.txt')).not.toMatch(/DirectAdmin/i);
     expect(JSON.parse(pliki.get('invoices.json')!)).toEqual([{ id: 'i1', number: 'FV/1/2026' }]);
     expect(pliki.get('attachments/faktura.pdf')).toBe('zawartosc-k1');
     expect(pliki.get('attachments/z2_faktura.pdf')).toBe('zawartosc-k2');

@@ -28,6 +28,7 @@ import { DirectAdminService } from '../servers/directadmin.service.js';
 import { ProvisioningService, ProvisionResult } from './provisioning.service.js';
 import { ProvisioningQueueService } from './provisioning-queue.service.js';
 import { generateUniqueServiceTag } from './service-tag.util.js';
+import { komunikatEkoDlaKlienta } from './eko-komunikat.js';
 import {
   UpdateSubscriptionPreferencesDto,
   CreateSubscriptionDto,
@@ -252,13 +253,15 @@ export class SubscriptionsService {
 
     let ecoDaSync: { adjusted: number; notice: string | null } | undefined;
     if (typeof ecoToggle === 'boolean' && prev.account?.id) {
+      let wynik: { adjusted: number; notice: string | null } | null = null;
       try {
-        ecoDaSync = await this.da.applyEcoModeBackupCronPolicy(subscriptionId, userId, ecoToggle);
+        wynik = await this.da.applyEcoModeBackupCronPolicy(subscriptionId, userId, ecoToggle);
+        if (wynik.notice && wynik.adjusted === 0) this.logger.warn(`ecoDaSync sub=${subscriptionId}: ${wynik.notice}`);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         this.logger.warn(`ecoDaSync failed sub=${subscriptionId}: ${msg}`);
-        ecoDaSync = { adjusted: 0, notice: `DirectAdmin: ${msg}` };
       }
+      ecoDaSync = { adjusted: wynik?.adjusted ?? 0, notice: komunikatEkoDlaKlienta(wynik, ecoToggle) };
     }
 
     return Object.assign(updated, {

@@ -43,6 +43,20 @@ describe('X-05 daErrorMessage', () => {
     expect(daErrorMessage('z'.repeat(141))).toMatch(/nie powiodła się/);
   });
 
+  it('white label: oryginał z nazwą panelu serwera nie przechodzi, polskie „nie da się” tak (CL-02)', () => {
+    expect(daErrorMessage('Invalid DirectAdmin login key')).toMatch(/nie powiodła się/);
+    expect(daErrorMessage('Konto DA nie istnieje')).toMatch(/nie powiodła się/);
+    expect(daErrorMessage('CustomBuild: brak wersji PHP')).toMatch(/nie powiodła się/);
+    expect(daErrorMessage('Tej bazy nie da się usunąć')).toBe('Tej bazy nie da się usunąć');
+  });
+
+  it('komunikat już przetłumaczony przechodzi drugi raz bez zmian (apiFetch + widok)', () => {
+    for (const raw of ['Database already exists', 'Quota exceeded', 'weak password', 'socket hang up', 'x']) {
+      const raz = daErrorMessage(raw);
+      expect(daErrorMessage(raz)).toBe(raz);
+    }
+  });
+
   it('krótki, czytelny komunikat bez dopasowania przechodzi bez zmian', () => {
     expect(daErrorMessage('Usługa jest zawieszona')).toBe('Usługa jest zawieszona');
   });

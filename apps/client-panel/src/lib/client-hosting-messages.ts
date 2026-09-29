@@ -6,6 +6,13 @@ export const HOSTING_FETCH_UNAVAILABLE =
 const GENERIC_OP =
   'Operacja nie powiodła się. Spróbuj ponownie lub skontaktuj się z pomocą techniczną.';
 
+/**
+ * White label: oryginału z nazwą panelu serwera, jego komendą lub portem 2222 klient nie dostaje
+ * (to samo co `apps/api/src/common/biala-etykieta.ts`). „DA” tylko wielkimi literami — „nie da się” zostaje.
+ */
+const PANEL_SERWERA = /DirectAdmin|CustomBuild|CMD_API|task\.queue|\/usr\/local\/directadmin|:2222\b|\bpor(?:t\w*|cie) 2222\b/i;
+const zdradzaPanelSerwera = (text: string) => PANEL_SERWERA.test(text) || /\bDA\b/.test(text);
+
 /** Reguły dopasowania — pierwszy trafiony wzorzec wygrywa. */
 const RULES: { test: RegExp; message: string }[] = [
   {
@@ -54,11 +61,12 @@ export function daErrorMessage(raw: string | null | undefined): string {
   for (const rule of RULES) {
     if (rule.test.test(text)) {
       // Pusty message = pokaż oryginał (czytelne walidacje), obcięty do 200 zn.
-      return rule.message || text.slice(0, 200);
+      if (rule.message) return rule.message;
+      return zdradzaPanelSerwera(text) ? GENERIC_OP : text.slice(0, 200);
     }
   }
   // Krótkie, czytelne komunikaty po polsku przepuszczamy; długie/techniczne → generyk.
-  if (text.length <= 140 && !/CMD_API|DirectAdmin|axios|stack|at \w+\./i.test(text)) {
+  if (text.length <= 140 && !zdradzaPanelSerwera(text) && !/axios|stack|at \w+\./i.test(text)) {
     return text;
   }
   return GENERIC_OP;

@@ -447,7 +447,7 @@ export class MigrationWorkerScheduler {
       `Docelowy serverId: ${String(details.targetServerId ?? '—')}`,
       `Notatki: ${String(details.notes ?? '—')}`,
       '',
-      'Worker wykonał backup przygotowawczy w DirectAdmin.',
+      'Przed migracją wykonaliśmy kopię zapasową konta.',
     ].join('\n');
   }
 }
