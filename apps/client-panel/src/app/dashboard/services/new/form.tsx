@@ -98,7 +98,6 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{
     daUsername: string;
-    daPassword: string;
     domain: string;
     productKind: 'HOSTING' | 'EMAIL';
   } | null>(null);
@@ -281,7 +280,6 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
       if (res.data?.provisioning) {
         setSuccess({
           daUsername: res.data.provisioning.daUsername,
-          daPassword: res.data.provisioning.daPassword,
           productKind: (selectedPlan?.productKind ?? 'HOSTING') as 'HOSTING' | 'EMAIL',
           domain: res.data.provisioning.domain,
         });
@@ -806,12 +804,10 @@ function ProvisioningQueuedBanner({ subscriptionId }: { subscriptionId: string }
 
 function ProvisioningSuccess({
   daUsername,
-  daPassword,
   domain,
   productKind,
 }: {
   daUsername: string;
-  daPassword: string;
   domain: string;
   productKind: 'HOSTING' | 'EMAIL';
 }) {
@@ -847,19 +843,14 @@ function ProvisioningSuccess({
       <div>
         <h2 className="text-2xl font-bold text-white">Usługa uruchomiona</h2>
         <p className="text-neutral-300 mt-1">
-          Twoje konto hostingowe dla domeny <strong>{domain}</strong> jest gotowe. Poniżej
-          znajdziesz dane logowania do panelu — zachowaj je w bezpiecznym miejscu, nie pokażemy ich
-          ponownie.
+          Twoje konto hostingowe dla domeny <strong>{domain}</strong> jest gotowe. Wszystkim — plikami,
+          bazami, pocztą, SSL i kopiami — zarządzasz w tym panelu. Konta FTP i klucze SSH dodasz w zakładkach usługi.
         </p>
       </div>
-      <dl className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+      <dl className="grid grid-cols-1 gap-4 text-sm">
         <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
-          <dt className="text-xs uppercase tracking-widest text-neutral-500">Login hostingowy</dt>
+          <dt className="text-xs uppercase tracking-widest text-neutral-500">Login konta</dt>
           <dd className="mt-2 font-mono text-white text-base">{daUsername}</dd>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
-          <dt className="text-xs uppercase tracking-widest text-neutral-500">Hasło</dt>
-          <dd className="mt-2 font-mono text-white text-base break-all">{daPassword}</dd>
         </div>
       </dl>
       <Link

@@ -146,7 +146,7 @@ export class ServiceHealthService {
     // Deklaracje na poziomie funkcji — używane też w probeMeta poniżej.
     let dnsResolved: string[] = [];
     let siteTls: { ok: boolean; authorized?: boolean; error?: string } = { ok: false };
-    let panelTls: { ok: boolean; authorized?: boolean; error?: string } = { ok: false };
+    const panelTls: { ok: boolean; authorized?: boolean; error?: string } = { ok: false };
 
     if (isEmail) {
       // DNS poczty: MX domeny wskazuje na serwer poczty węzła (25).
@@ -181,12 +181,8 @@ export class ServiceHealthService {
       if (checks.tlsOk) earned += 15;
       else if (siteTls.ok) earned += 5;
 
-      // Panel DA (hostname węzła :2222) — cert zaufany (15)
-      possible += 15;
-      panelTls = await this.probeTls(panelHost, server.daPort ?? 2222);
-      checks.panelTlsOk = panelTls.ok && panelTls.authorized === true;
-      if (checks.panelTlsOk) earned += 15;
-      else if (panelTls.ok) earned += 5;
+      // Panelu DA (:2222) nie sprawdzamy w zdrowiu usługi klienta: klient z niego nie korzysta
+      // (white label, 29.09) — dostępność DA pilnuje monitoring węzła po stronie operatora.
     }
 
     // Poczta węzła — IMAPS :993 (fallback :587). Brak nasłuchu = infra niegotowa, nie karzemy klienta.

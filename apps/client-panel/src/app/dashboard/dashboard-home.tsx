@@ -73,7 +73,6 @@ function checks(s: ServiceSummaryDto): { label: string; ok: boolean }[] {
     ['SSL', email ? null : c.tlsOk],
     ['Kopie', c.backupFresh],
     ['Zasoby', c.lveOk],
-    ['Panel', c.panelTlsOk],
     ['Poczta', c.mailOk],
   ];
   return all.filter((x): x is [string, boolean] => x[1] !== null).map(([label, ok]) => ({ label, ok }));

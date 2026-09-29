@@ -2,11 +2,10 @@
 
 import { apiFetch, ApiError } from '@/lib/api';
 
-export type SsoTarget = 'phpmyadmin' | 'webmail' | 'panel';
+export type SsoTarget = 'phpmyadmin';
 
 /**
- * SPRINT-1c — jednorazowy adres auto-logowania do panelu hostingu (DA).
- * URL jest ważny ~2 minuty i działa jeden raz; otwieramy go w nowej karcie.
+ * Jednorazowy adres phpMyAdmin (bez sesji panelu DA — white label); otwieramy go w nowej karcie.
  */
 export async function createHostingSsoUrlAction(
   subscriptionId: string,

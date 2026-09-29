@@ -43,7 +43,7 @@ export interface ProvisionResult {
   subscription: Subscription;
   accountId: string;
   daUsername: string;
-  daPassword: string;
+  // Bez hasła konta DA: klient nie loguje się do DA (white label). Hasło zostaje zaszyfrowane w bazie.
   serverId: string;
   domain: string;
 }
@@ -457,7 +457,6 @@ export class ProvisioningService {
       subscription: result.updatedSub,
       accountId: result.account.id,
       daUsername,
-      daPassword: daResult.password,
       serverId: server.id,
       domain,
     };

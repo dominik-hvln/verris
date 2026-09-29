@@ -43,11 +43,9 @@ import {
 } from '@/app/dashboard/services/[id]/overview-extras-actions';
 import { fetchSidebarUser } from '@/app/dashboard/sidebar-actions';
 import { EcoModeCard } from '@/app/dashboard/services/[id]/autoscaling/eco-mode-card';
-import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 import { FirstStepsAssistant } from '@/components/hosting/FirstStepsAssistant';
 import { HealthCheckDetails } from '@/components/hosting/HealthCheckDetails';
 import DomainPointingPanel from '@/components/hosting/DomainPointingPanel';
-import HostingPanelCard from '@/components/hosting/HostingPanelCard';
 import {
   fetchHostingBackupsAction as fetchHostingBackupsActionAkcja,
 } from '@/app/dashboard/services/[id]/hosting-backup-actions';
@@ -125,7 +123,6 @@ export default function ServiceOverviewV2({
 }) {
   // N-12: moduł EKO może wyłączyć operator flagą (brak flagi = jak dotąd).
   const eco = useModul('modul.eco');
-  const { links } = useHostingLinks();
   const router = useRouter();
   const [service, setService] = useState<ServiceDetailsDto | null>(null);
   const [bladUslugi, setBladUslugi] = useState<string | null>(null);
@@ -504,19 +501,13 @@ export default function ServiceOverviewV2({
 
           <Box
             title="Dane dostępowe"
-            footer={
-              <>
-                {links.emailUrl ? <a href={links.emailUrl} target="_blank" rel="noopener noreferrer" className={BTN_SM}>Webmail</a> : null}
-                {links.databasesUrl ? <a href={links.databasesUrl} target="_blank" rel="noopener noreferrer" className={BTN_SM}>phpMyAdmin</a> : null}
-              </>
-            }
           >
             <p className="mx-4 mb-1.5 mt-1 text-[12.5px] text-muted-foreground">
               {conn?.fetchError ? 'Część danych chwilowo niedostępna.' : 'Kliknij adres, żeby go skopiować.'}
             </p>
             <AccessList
               items={[
-                { label: 'Login konta (FTP, SSH, panel)', values: account?.daUsername ? [account.daUsername] : [] },
+                { label: 'Login konta (SSH, prefiks baz i kont FTP)', values: account?.daUsername ? [account.daUsername] : [] },
                 { label: 'Adres serwera', values: conn?.ipv4 ? [conn.ipv4] : [] },
                 { label: 'Serwer FTP', values: [conn?.ftpHost, conn?.ipv4].filter((v): v is string => !!v), port: '21' },
                 ...(conn?.sshEnabled && conn.sshHost
@@ -581,7 +572,6 @@ export default function ServiceOverviewV2({
             </dl>
           </Box>
 
-          <HostingPanelCard />
 
           {eco && service.status !== 'CANCELED' && service.status !== 'EXPIRED' ? (
             <EcoModeCard subscriptionId={serviceId} ecoModeEnabled={service.ecoModeEnabled} ecoPoints={ecoPoints} />

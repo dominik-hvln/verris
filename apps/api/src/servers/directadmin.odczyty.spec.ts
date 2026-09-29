@@ -60,12 +60,10 @@ describe('dane dostępowe i adresy panelu', () => {
     expect(info.fetchError).toBe('Konto hostingowe nie jest jeszcze gotowe.');
   });
 
-  it('adres panelu: hostname → https z portem; nazwa domeny zakodowana w linkach', () => {
-    const s = stanowisko().svc;
-    expect(s.hostingPanelDisplayHost({ hostname: null, daHost: null, ipAddress: '203.0.113.7' })).toBe('203.0.113.7');
-    const base = s.hostingPanelBaseUrl({ hostname: 'n1.verris.pl', daHost: null, daPort: null, daUseTls: true, ipAddress: null });
-    expect(base).toBe('https://n1.verris.pl:2222');
-    expect(s.hostingEvolutionLinks(base, 'a/b.pl').fileManagerUrl).toBe('https://n1.verris.pl:2222/evo/user/filemanager/domains/a%2Fb.pl');
+  it('white label: klient nie dostaje adresu panelu DA ani hasła konta DA', async () => {
+    const links = await stanowisko().svc.getHostingDaLinksForSubscription('s1', 'u1');
+    expect(Object.values(links).every((v) => v === '' || v === null)).toBe(true);
+    await expect(stanowisko().svc.getHostingDaLinksForSubscription('s1', 'obcy')).rejects.toBeInstanceOf(NotFoundException);
   });
 });
 

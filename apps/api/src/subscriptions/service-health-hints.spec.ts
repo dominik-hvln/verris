@@ -41,8 +41,15 @@ describe('buildHealthCheckDetails', () => {
     );
     const teksty = [details.tlsOk, details.panelTlsOk, details.mailOk].map((d) => d?.explanation ?? '').join(' ');
     expect(teksty).not.toMatch(/ECONN|timeout|62\.238|\d+\.\d+\.\d+\.\d+:\d+/);
-    expect(details.panelTlsOk?.explanation).toContain('serwer odrzuca połączenie');
     expect(details.tlsOk?.explanation).toContain('nie odpowiada na czas');
+  });
+
+  it('white label: klient nie dostaje opisu panelu DirectAdmina ani portu 2222', () => {
+    const details = buildHealthCheckDetails(
+      { dnsOk: true, tlsOk: true, backupFresh: true, lveOk: true, panelTlsOk: false, mailOk: true },
+      { ...meta, panelTls: { ok: false, error: 'connect ECONNREFUSED 62.238.0.223:2222' } },
+    );
+    expect(JSON.stringify(details)).not.toMatch(/DirectAdmin|2222/);
   });
 
   it.each([

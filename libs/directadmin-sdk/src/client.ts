@@ -1231,6 +1231,29 @@ export class DirectAdminClient {
   }
 
   /**
+   * phpMyAdmin jednym kliknięciem bez sesji DA u klienta (white label). DA 1.710 (Evolution):
+   * POST /api/phpmyadmin-sso/account-access → `{ url: "https://<węzeł>/phpMyAdmin/sso/<jednorazowy>.php" }`
+   * (sprawdzone na t1 29.09). Adres przyjmujemy tylko https i tylko ścieżkę /phpMyAdmin/sso/…php.
+   */
+  async createPhpMyAdminSso(): Promise<string> {
+    const response = await this.client.post('/api/phpmyadmin-sso/account-access', {}, {
+      headers: { 'Content-Type': 'application/json' },
+      validateStatus: () => true,
+    });
+    const data = response.data as { url?: unknown; data?: { url?: unknown } } | undefined;
+    const url = String(data?.url ?? data?.data?.url ?? '');
+    let ok = false;
+    try {
+      const u = new URL(url);
+      ok = u.protocol === 'https:' && /^\/phpMyAdmin\/sso\/[^/]+\.php$/i.test(u.pathname);
+    } catch { /* nie URL */ }
+    if (response.status >= 400 || !ok) {
+      throw bladDa(`phpMyAdmin nie zwrócił logowania jednym kliknięciem (HTTP ${response.status})`);
+    }
+    return url;
+  }
+
+  /**
    * Logowanie do webmaila jednym kliknięciem (CMD_WEBMAIL_LOGIN, DA z one_click_webmail_login=1).
    * DA odpowiada stroną z formularzem POST do Roundcube (`…/roundcube/direct_login/`) z jednorazowym
    * tokenem — zwracamy adres i token, formularz wysyła przeglądarka klienta.

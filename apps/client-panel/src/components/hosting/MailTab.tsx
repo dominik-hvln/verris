@@ -36,9 +36,8 @@ import MailExtras from '@/components/hosting/MailExtras';
 import { MailLogPanel } from '@/components/hosting/MailLogPanel';
 import { countDiskUsage, fetchDiskUsage, type DiskUsageStatus } from '@/app/dashboard/services/[id]/hosting-disk-usage-actions';
 import { DeliverabilityPanel } from '@/app/dashboard/email/deliverability-panel';
-import { createHostingSsoUrlAction, createWebmailLoginAction } from '@/app/dashboard/services/[id]/hosting-sso-actions';
+import { createWebmailLoginAction } from '@/app/dashboard/services/[id]/hosting-sso-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
-import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 import { potwierdz } from '@/components/panel/potwierdz';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
 
@@ -59,7 +58,6 @@ interface Props {
 }
 
 export default function MailTab({ serviceId }: Props) {
-  const { links } = useHostingLinks();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,35 +91,8 @@ export default function MailTab({ serviceId }: Props) {
   const [ssoOpening, setSsoOpening] = useState(false);
 
   /**
-   * SPRINT-1c — panel poczty bez przepisywania haseł: jednorazowy URL SSO.
-   * Okno otwieramy PRZED awaitem (polityka popupów); przy błędzie wracamy do
-   * zwykłego linku do panelu hostingu.
-   */
-  const openWebmailSso = async () => {
-    if (ssoOpening) return;
-    setSsoOpening(true);
-    const win = window.open('about:blank', '_blank');
-    if (win) win.opener = null; // noopener zwracało null — przekierowanie po SSO nigdy nie trafiało do tej karty
-    const res = await createHostingSsoUrlAction(serviceId, 'webmail');
-    setSsoOpening(false);
-    if (res.ok) {
-      if (win) win.location.href = res.url;
-      else window.open(res.url, '_blank');
-      return;
-    }
-    if (win) win.close();
-    if (links.emailUrl) {
-      toast.info('Auto-logowanie niedostępne — otwieram panel poczty', {
-        description: daErrorMessage(res.error),
-      });
-      window.open(links.emailUrl, '_blank');
-    } else {
-      toast.error('Nie udało się otworzyć panelu poczty', { description: daErrorMessage(res.error) });
-    }
-  };
-  /**
    * E-14 — webmail skrzynki od razu w Roundcube (token z DA wysyłany formularzem POST w nowej karcie).
-   * Gdy węzeł nie ma logowania jednym kliknięciem — dotychczasowe SSO do listy skrzynek.
+   * Bez zapasowego logowania do DirectAdmina (white label): przy błędzie komunikat, nie panel DA.
    */
   const openMailboxWebmail = async (email: string) => {
     if (ssoOpening) return;
@@ -131,7 +102,9 @@ export default function MailTab({ serviceId }: Props) {
     setSsoOpening(false);
     if (!res.ok || !win) {
       if (win) win.close();
-      void openWebmailSso();
+      toast.error('Nie udało się otworzyć webmaila', {
+        description: res.ok ? 'Przeglądarka zablokowała nowe okno — zezwól na wyskakujące okna dla panelu.' : daErrorMessage(res.error),
+      });
       return;
     }
     const doc = win.document;
@@ -296,19 +269,18 @@ export default function MailTab({ serviceId }: Props) {
           >
             Przenieś pocztę z innego serwera
           </Link>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={ssoOpening}
-            onClick={() => void openWebmailSso()}
-            className="h-8 gap-1.5 border-line-strong bg-raised text-foreground hover:bg-raised text-xs"
-            title="Loguje Cię automatycznie do panelu poczty (jednorazowy link); przy skrzynce klikniesz webmail bez hasła"
-          >
-            {ssoOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-            Webmail / panel
-            <ExternalLink className="h-3 w-3 opacity-70" />
-          </Button>
+          {mailHost ? (
+            <a
+              href={`https://${mailHost}/roundcube/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line-strong bg-raised px-3 text-xs text-foreground hover:bg-raised"
+              title="Logowanie do poczty w przeglądarce adresem i hasłem skrzynki; przy skrzynce poniżej otworzysz ją bez hasła"
+            >
+              Webmail
+              <ExternalLink className="h-3 w-3 opacity-70" />
+            </a>
+          ) : null}
           <Button
             type="button"
             variant="outline"

@@ -44,7 +44,7 @@ export function accountProvisionedTemplate(ctx: AccountProvisionedContext): Mail
       ``,
       `- **Plan:** ${escapeMarkdown(ctx.planName)}`,
       `- **Domena główna:** ${escapeMarkdown(ctx.domain)}`,
-      `- **Login hostingowy:** \`${escapeMarkdown(ctx.daUsername)}\` (także login FTP i prefiks nazw baz danych)`,
+      `- **Login hostingowy:** \`${escapeMarkdown(ctx.daUsername)}\` (prefiks nazw baz danych i kont FTP)`,
       `- **Hasło:** w panelu klienta przy usłudze — nie wysyłamy haseł e-mailem`,
       ``,
       `**Pierwsze kroki:**`,

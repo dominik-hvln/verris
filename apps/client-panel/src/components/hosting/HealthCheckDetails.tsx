@@ -11,7 +11,6 @@ const CHECK_ORDER: ServiceHealthCheckKey[] = [
   'dnsOk',
   'tlsOk',
   'mailOk',
-  'panelTlsOk',
   'lveOk',
   'backupFresh',
 ];

@@ -137,26 +137,37 @@ describe('Bazy MySQL — użytkownicy i zdalny dostęp', () => {
   });
 });
 
-describe('Logowanie do panelu (SSO)', () => {
-  it('phpMyAdmin: jednorazowy link na 2 min, w audycie', async () => {
-    const s = stanowisko({ post: { '/CMD_API_LOGIN_KEYS': 'error=0&details=https%3A%2F%2Fda.test%3A2222%2FCMD_LOGIN_URL%3Fhash%3Dabc' } });
-    await expect(s.svc.createHostingSsoUrl('s1', 'u1', 'phpmyadmin')).resolves.toEqual({ url: 'https://da.test:2222/CMD_LOGIN_URL?hash=abc' });
-    expect(s.wyslane()).toMatchObject({ action: 'create', type: 'one_time_url', 'redirect-url': '/CMD_PMA/', expiry: '2m' });
+describe('phpMyAdmin jednym kliknięciem (white label — bez sesji DA)', () => {
+  const PMA = '/api/phpmyadmin-sso/account-access';
+
+  it('adres jednorazowego skryptu /phpMyAdmin/sso/…php, w audycie; żadnego klucza logowania do DA', async () => {
+    const s = stanowisko({ post: { [PMA]: { url: 'https://t1.verris.pl/phpMyAdmin/sso/Ab12Cd.php' } } });
+    await expect(s.svc.createHostingSsoUrl('s1', 'u1', 'phpmyadmin')).resolves.toEqual({ url: 'https://t1.verris.pl/phpMyAdmin/sso/Ab12Cd.php' });
+    expect(s.sciezki()).toEqual([PMA]);
+    expect(s.sciezki()).not.toContain('/CMD_API_LOGIN_KEYS');
     expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'HOSTING_SSO_URL_CREATED' }));
   });
 
-  it('DA nie zwraca adresu (albo error=1) → wyjątek, bez audytu', async () => {
-    const s = stanowisko({ post: { '/CMD_API_LOGIN_KEYS': 'error=0&details=javascript%3Aalert(1)' } });
-    await expect(s.svc.createHostingSsoUrl('s1', 'u1', 'panel')).rejects.toThrow();
-    const z = stanowisko({ post: { '/CMD_API_LOGIN_KEYS': 'error=1&text=Z%C5%82e%20has%C5%82o' } });
-    await expect(z.svc.createHostingSsoUrl('s1', 'u1', 'panel')).rejects.toThrow('Złe hasło');
+  it.each([
+    ['adres panelu DA', { url: 'https://t1.verris.pl:2222/CMD_LOGIN_URL?hash=abc' }],
+    ['http', { url: 'http://t1.verris.pl/phpMyAdmin/sso/Ab12Cd.php' }],
+    ['javascript:', { url: 'javascript:alert(1)' }],
+    ['pusta odpowiedź', {}],
+  ])('%s → wyjątek, bez audytu', async (_n, odpowiedz) => {
+    const s = stanowisko({ post: { [PMA]: odpowiedz } });
+    await expect(s.svc.createHostingSsoUrl('s1', 'u1', 'phpmyadmin')).rejects.toThrow();
     expect(s.audit.record).not.toHaveBeenCalled();
-    expect(z.audit.record).not.toHaveBeenCalled();
   });
 
-  it('konto zawieszone (SEC-2) → brak logowania do panelu (tam klient zrobiłby wszystko ręcznie)', async () => {
+  it('inne cele (dawny panel DA / webmail przez DA) → odmowa przed DA', async () => {
+    const s = stanowisko();
+    await expect(s.svc.createHostingSsoUrl('s1', 'u1', 'panel' as never)).rejects.toBeInstanceOf(BadRequestException);
+    expect(s.post).not.toHaveBeenCalled();
+  });
+
+  it('konto zawieszone (SEC-2) → brak phpMyAdmin', async () => {
     const s = stanowisko({ status: 'SUSPENDED' });
-    await expect(s.svc.createHostingSsoUrl('s1', 'u1', 'panel')).rejects.toThrow('zawieszone');
+    await expect(s.svc.createHostingSsoUrl('s1', 'u1', 'phpmyadmin')).rejects.toThrow('zawieszone');
     expect(s.post).not.toHaveBeenCalled();
   });
 });

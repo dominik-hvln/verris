@@ -175,12 +175,9 @@ describe('dane logowania do panelu hostingu (hosting-da-links)', () => {
     vi.spyOn(svc as unknown as { syncPrimaryDomainForSubscription: () => Promise<string> }, 'syncPrimaryDomainForSubscription').mockResolvedValue('firma.pl');
     return svc;
   }
-  it('właściciel (domyślnie) dostaje login i hasło', async () => {
-    await expect(st().getHostingDaLinksForSubscription('s1', 'u1')).resolves.toMatchObject({ daUsername: 'klient1', daPassword: 'tajne', fetchError: null });
+  it('white label: nawet właściciel nie dostaje hasła ani adresu panelu DA', async () => {
+    const r = await st().getHostingDaLinksForSubscription('s1', 'u1');
+    expect(r).toMatchObject({ daUsername: null, daPassword: null, panelBaseUrl: '', emailUrl: '', databasesUrl: '' });
   });
-  it('subkonto bez uprawnienia do plików: linki tak, hasła i loginu nie (bez komunikatu o błędzie)', async () => {
-    const r = await st().getHostingDaLinksForSubscription('s1', 'u1', { pokazHaslo: false });
-    expect(r).toMatchObject({ daUsername: null, daPassword: null, fetchError: null });
-    expect(r.panelBaseUrl).toBeTruthy();
-  });
+
 });

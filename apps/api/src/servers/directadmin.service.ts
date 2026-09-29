@@ -527,51 +527,6 @@ export class DirectAdminService {
     }
   }
 
-  /** Hostname węzła do linków panelu (preferuj DNS węzła zamiast surowego IP). */
-  hostingPanelDisplayHost(server: {
-    hostname: string | null;
-    daHost: string | null;
-    ipAddress: string | null;
-  }): string {
-    return server.hostname ?? server.daHost ?? server.ipAddress ?? 'localhost';
-  }
-
-  /** URL do panelu użytkownika DA (Evolution) — bez logowania. */
-  hostingPanelBaseUrl(server: {
-    hostname: string | null;
-    daHost: string | null;
-    daPort: number | null;
-    daUseTls: boolean;
-    ipAddress: string | null;
-  }): string {
-    const host = this.hostingPanelDisplayHost(server);
-    const port = server.daPort ?? 2222;
-    const secure = server.daUseTls !== false;
-    return `${secure ? 'https' : 'http'}://${host}:${port}`;
-  }
-
-  /** Deep-linki do Evolution skin (DirectAdmin ≥1.6). */
-  hostingEvolutionLinks(panelBaseUrl: string, domain: string): {
-    databasesUrl: string;
-    emailUrl: string;
-    sslUrl: string;
-    fileManagerUrl: string;
-    domainsUrl: string;
-    dnsUrl: string;
-    domainManageUrl: string;
-  } {
-    const domainPath = encodeURIComponent(domain);
-    return {
-      databasesUrl: `${panelBaseUrl}/evo/user/databases/mysql`,
-      emailUrl: `${panelBaseUrl}/evo/user/email/accounts`,
-      sslUrl: `${panelBaseUrl}/evo/user/ssl`,
-      fileManagerUrl: `${panelBaseUrl}/evo/user/filemanager/domains/${domainPath}`,
-      domainsUrl: `${panelBaseUrl}/evo/user/domains`,
-      dnsUrl: `${panelBaseUrl}/evo/user/dns`,
-      domainManageUrl: `${panelBaseUrl}/evo/user/domains/domain/${domainPath}`,
-    };
-  }
-
   /**
    * Lista baz MySQL z CMD_API_DATABASES (sesja jak dla domen).
    */
@@ -2219,28 +2174,20 @@ export class DirectAdminService {
   /* ===================== SPRINT-1c: auto-logowanie (one-time SSO URL) ===================== */
 
   /**
-   * Tworzy jednorazowy adres auto-logowania do panelu hostingu (DA) dla konta
-   * subskrypcji. `target` steruje miejscem docelowym po zalogowaniu:
-   *  - `phpmyadmin` → SSO phpMyAdmin (`/CMD_PMA/`, wymaga one_click_pma_login=1 na węźle),
-   *  - `webmail`    → lista skrzynek w Evolution (przycisk 1-klik webmaila),
-   *  - `panel`      → pulpit panelu hostingu.
-   * URL jest ważny 2 minuty i działa jeden raz; tworzenie jest audytowane.
+   * Jednorazowy adres phpMyAdmin dla konta subskrypcji. White label (decyzja 2026-09-24, przypomniana
+   * 29.09): klient NIE dostaje sesji DirectAdmina — wcześniej był to link logowania do DA
+   * (przekierowanie na /CMD_PMA/, a cele `webmail`/`panel` otwierały sam panel DA). Teraz adres
+   * jednorazowego skryptu /phpMyAdmin/sso/…php na porcie 443, bez cookie DA.
    */
   async createHostingSsoUrl(
     subscriptionId: string,
     userId: string,
-    target: 'phpmyadmin' | 'webmail' | 'panel',
+    target: 'phpmyadmin',
   ): Promise<{ url: string }> {
-    const redirects: Record<'phpmyadmin' | 'webmail' | 'panel', string> = {
-      phpmyadmin: '/CMD_PMA/',
-      webmail: '/evo/user/email/accounts',
-      panel: '/',
-    };
-    const redirectUrl = redirects[target];
-    if (!redirectUrl) throw new BadRequestException('Nieznany cel logowania.');
+    if (target !== 'phpmyadmin') throw new BadRequestException('Nieznany cel logowania.');
     const { account, client } = await this.accountClientForSubscription(subscriptionId, userId);
     this.assertAccountMutable(account);
-    const url = await client.createOneTimeLoginUrl({ redirectUrl, expiry: '2m' });
+    const url = await client.createPhpMyAdminSso();
     await this.audit.record({
       action: HostingResourceActions.HOSTING_SSO_URL_CREATED,
       userId,
@@ -3300,9 +3247,12 @@ export class DirectAdminService {
   }
 
   /**
-   * Bezwzględne adresy przydatnego UI w DA (bez SSO — tak jak link z panelu do „Zaloguj do DA”).
+   * Dawniej: adresy ekranów DirectAdmina, adres panelu DA i hasło konta DA dla klienta. White label
+   * (decyzja 2026-09-24, przypomniana 29.09: „klient nie powinien mieć dostępu do DA”) — klient nie
+   * dostaje ani adresu panelu DA, ani hasła, którym by się do niego zalogował. Kształt odpowiedzi
+   * zostaje, żeby starsze ekrany panelu po prostu nie pokazały linków.
    */
-  async getHostingDaLinksForSubscription(subscriptionId: string, userId: string, opcje: { pokazHaslo?: boolean } = {}): Promise<{
+  async getHostingDaLinksForSubscription(subscriptionId: string, userId: string): Promise<{
     panelBaseUrl: string;
     panelDisplayHost: string;
     databasesUrl: string;
@@ -3317,61 +3267,22 @@ export class DirectAdminService {
     daPassword: string | null;
     fetchError: string | null;
   }> {
-    const sub = await this.prisma.subscription.findFirst({
-      where: { id: subscriptionId, userId },
-      include: { account: { include: { server: true } } },
-    });
+    const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, select: { id: true } });
     if (!sub) throw new NotFoundException('Service not found');
-    if (!sub.account?.server) {
-      return {
-        panelBaseUrl: '',
-        panelDisplayHost: '',
-        databasesUrl: '',
-        emailUrl: '',
-        sslUrl: '',
-        fileManagerUrl: '',
-        domainsUrl: '',
-        dnsUrl: '',
-        domainManageUrl: '',
-        stagingHint: '',
-        daUsername: null,
-        daPassword: null,
-        fetchError: null,
-      };
-    }
-    const server = sub.account.server;
-    const panelBaseUrl = this.hostingPanelBaseUrl(server);
-    const panelDisplayHost = this.hostingPanelDisplayHost(server);
-    const primaryDomain =
-      (await this.syncPrimaryDomainForSubscription(subscriptionId, userId)) ??
-      sub.account.domain;
-    const evo = this.hostingEvolutionLinks(panelBaseUrl, primaryDomain);
-    let daPassword: string | null = null;
-    const pokazHaslo = opcje.pokazHaslo !== false;
-    if (pokazHaslo && sub.account.daPasswordEnc) {
-      try {
-        daPassword = this.crypto.decrypt(sub.account.daPasswordEnc);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        this.logger.warn(
-          `Could not decrypt DA password for account=${sub.account.id}: ${msg}`,
-        );
-      }
-    }
     return {
-      panelBaseUrl,
-      panelDisplayHost,
-      databasesUrl: evo.databasesUrl,
-      emailUrl: evo.emailUrl,
-      sslUrl: evo.sslUrl,
-      fileManagerUrl: evo.fileManagerUrl,
-      domainsUrl: evo.domainsUrl,
-      dnsUrl: evo.dnsUrl,
-      domainManageUrl: evo.domainManageUrl,
-      stagingHint: evo.domainManageUrl,
-      daUsername: pokazHaslo ? sub.account.daUsername : null,
-      daPassword,
-      fetchError: !pokazHaslo || daPassword ? null : 'Hasło do panelu hostingu jest niedostępne — skontaktuj się z pomocą techniczną.',
+      panelBaseUrl: '',
+      panelDisplayHost: '',
+      databasesUrl: '',
+      emailUrl: '',
+      sslUrl: '',
+      fileManagerUrl: '',
+      domainsUrl: '',
+      dnsUrl: '',
+      domainManageUrl: '',
+      stagingHint: '',
+      daUsername: null,
+      daPassword: null,
+      fetchError: null,
     };
   }
 

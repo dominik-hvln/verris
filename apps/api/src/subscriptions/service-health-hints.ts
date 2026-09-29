@@ -96,19 +96,6 @@ export function buildHealthCheckDetails(
     );
   }
 
-  if (checks.panelTlsOk === true) {
-    out.panelTlsOk = okDetail(
-      'Panel hostingu',
-      `Panel DirectAdmin (${meta.panelHost}:2222) odpowiada z poprawnym TLS.`,
-    );
-  } else if (checks.panelTlsOk === false) {
-    out.panelTlsOk = warnDetail(
-      'Panel hostingu',
-      `Panel ${meta.panelHost}:2222 wymaga uwagi${meta.panelTls.error ? `: ${opisBleduPolaczenia(meta.panelTls.error)}` : ''}.`,
-      'Zwykle nie musisz nic robić — logowanie odbywa się przez nasz panel. Jeśli link „Panel hostingu” nie działa, napisz do supportu.',
-    );
-  }
-
   if (checks.mailOk === true) {
     out.mailOk = okDetail(
       'Poczta',
@@ -162,7 +149,6 @@ export function fallbackHealthCheckDetails(checks: Checks): Partial<Record<Servi
   const out: Partial<Record<ServiceHealthCheckKey, ServiceHealthCheckDetailDto>> = {};
   if (checks.dnsOk != null) out.dnsOk = generic('DNS', checks.dnsOk);
   if (checks.tlsOk != null) out.tlsOk = generic('HTTPS', checks.tlsOk);
-  if (checks.panelTlsOk != null) out.panelTlsOk = generic('Panel hostingu', checks.panelTlsOk);
   if (checks.mailOk != null) out.mailOk = generic('Poczta', checks.mailOk);
   if (checks.lveOk != null) out.lveOk = generic('Obciążenie CPU', checks.lveOk);
   if (checks.backupFresh != null) out.backupFresh = generic('Kopia zapasowa', checks.backupFresh);

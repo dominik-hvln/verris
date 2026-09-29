@@ -488,13 +488,11 @@ export class UserServicesController {
 
   @Get(':id/hosting-da-links')
   async hostingDaLinks(
-    @CurrentUser() user: { userId: string; customerOwnerId?: string | null; customerPermissions?: string[] },
+    @CurrentUser() user: { userId: string },
     @Param('id') id: string,
   ) {
-    // Hasło konta hostingowego = pełny dostęp do plików, baz i poczty. Linki widzi każdy z podglądem
-    // usługi, hasło — tylko właściciel albo subkonto z uprawnieniem do plików.
-    const pokazHaslo = !user.customerOwnerId || (user.customerPermissions ?? []).includes('FILES_MANAGE');
-    return this.directAdmin.getHostingDaLinksForSubscription(id, user.userId, { pokazHaslo });
+    // White label: bez adresów panelu DA i bez hasła konta DA (patrz serwis).
+    return this.directAdmin.getHostingDaLinksForSubscription(id, user.userId);
   }
 
   @Get(':id/connection-info')

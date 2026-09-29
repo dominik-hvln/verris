@@ -308,7 +308,8 @@ export class UzytkownikBazyZHaslemDto extends UzytkownikBazyDto {
 }
 
 export class LogowanieSsoDto {
-  @IsIn(['phpmyadmin', 'webmail', 'panel']) target!: 'phpmyadmin' | 'webmail' | 'panel';
+  // White label: tylko phpMyAdmin (jednorazowy skrypt, bez sesji DA). Webmail — POST :id/hosting-webmail-login.
+  @IsIn(['phpmyadmin']) target!: 'phpmyadmin';
 }
 
 export class WebmailSkrzynkiDto {

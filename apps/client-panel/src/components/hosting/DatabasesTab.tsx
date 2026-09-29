@@ -17,7 +17,6 @@ import { SlowSqlPanel } from '@/components/hosting/SlowSqlPanel';
 import { PgsqlPanel } from '@/components/hosting/PgsqlPanel';
 import { createHostingSsoUrlAction } from '@/app/dashboard/services/[id]/hosting-sso-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
-import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 import { potwierdz } from '@/components/panel/potwierdz';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
 
@@ -36,7 +35,6 @@ function genPassword(len = 18): string {
 }
 
 export default function DatabasesTab({ serviceId }: Props) {
-  const { links } = useHostingLinks();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +53,7 @@ export default function DatabasesTab({ serviceId }: Props) {
   /**
    * SPRINT-1c — phpMyAdmin bez przepisywania haseł: jednorazowy URL SSO.
    * Okno otwieramy PRZED awaitem (polityka popupów), a potem podmieniamy adres;
-   * przy błędzie wracamy do zwykłego linku do panelu hostingu.
+   * przy błędzie komunikat (bez linku do panelu DA — white label).
    */
   const openPhpMyAdmin = async () => {
     if (pmaOpening) return;
@@ -70,14 +68,7 @@ export default function DatabasesTab({ serviceId }: Props) {
       return;
     }
     if (win) win.close();
-    if (links.databasesUrl) {
-      toast.info('Auto-logowanie niedostępne — otwieram panel baz danych', {
-        description: daErrorMessage(res.error),
-      });
-      window.open(links.databasesUrl, '_blank');
-    } else {
-      toast.error('Nie udało się otworzyć phpMyAdmin', { description: daErrorMessage(res.error) });
-    }
+    toast.error('Nie udało się otworzyć phpMyAdmin', { description: daErrorMessage(res.error) });
   };
 
   // Samo pobranie — przy montażu `error` jest już pusty, więc efekt nie musi go zerować.
