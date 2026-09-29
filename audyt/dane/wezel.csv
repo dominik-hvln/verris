@@ -9,8 +9,8 @@ C-11,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 C-14,czeka,,
 C-15,czeka,,
 C-18,czeka,,29.09: lista FTP DA 1.710 = login@domena=ścieżka — poprawka bcce42d; potem zmiana hasła na koncie dodatkowym
-C-21,czeka,,
-C-22,czeka,,
+C-21,sprawdzone,2026-09-29,"SSH kluczem z panelu, klatka CageFS potwierdzona"
+C-22,sprawdzone,2026-09-29,"SSH kluczem z panelu, klatka CageFS potwierdzona"
 C-25,czeka,,
 C-27,czeka,,
 D-08,czeka,,
