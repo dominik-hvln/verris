@@ -47,6 +47,8 @@ export class InstalacjaAplikacjiDto {
   @Linia(64) adminUser!: string;
   @Linia(254) adminEmail!: string;
   @IsOptional() @Linia(128) adminPassword?: string;
+  /** Domena usługi, na której instalujemy (domyślnie główna). */
+  @IsOptional() @Linia(253) domain?: string;
 }
 
 export class WersjaPhpDto {

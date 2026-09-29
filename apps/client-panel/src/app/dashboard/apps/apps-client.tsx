@@ -18,6 +18,8 @@ export function AppsClient({ serviceId, status }: { serviceId: string; status: A
   const [app, setApp] = useState('');
   const [adminUser, setAdminUser] = useState('admin');
   const [adminEmail, setAdminEmail] = useState('');
+  const domeny = status.domains?.length ? status.domains : [status.domain];
+  const [domena, setDomena] = useState(status.domain);
   const [result, setResult] = useState<AppInstallResult | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -29,7 +31,7 @@ export function AppsClient({ serviceId, status }: { serviceId: string; status: A
       return;
     }
     startTransition(async () => {
-      const res = await installAppAction(serviceId, { app, adminUser: adminUser.trim(), adminEmail: adminEmail.trim() });
+      const res = await installAppAction(serviceId, { app, adminUser: adminUser.trim(), adminEmail: adminEmail.trim(), domain: domena });
       if (!res.ok) {
         toast.error('Nie udało się rozpocząć instalacji', { description: res.error });
         return;
@@ -85,6 +87,16 @@ export function AppsClient({ serviceId, status }: { serviceId: string; status: A
       </div>
 
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-3 max-w-lg">
+        {domeny.length > 1 ? (
+          <label className="block text-xs text-neutral-400">
+            Domena
+            <select value={domena} onChange={(e) => setDomena(e.target.value)} className="mt-1 block w-full rounded-lg bg-black/40 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-emerald-400/60">
+              {domeny.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <p className="text-sm font-semibold text-white">Dane administratora</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <input value={adminUser} onChange={(e) => setAdminUser(e.target.value)} placeholder="Login admina" className="rounded-lg bg-black/40 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-emerald-400/60" />

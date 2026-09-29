@@ -20,6 +20,8 @@ export interface AppInstallRow {
 
 export interface AppsStatus {
   domain: string;
+  /** Domeny usługi (starsze API bez pola — tylko główna). */
+  domains?: string[];
   catalog: AppCatalogItem[];
   installs: AppInstallRow[];
 }
@@ -44,7 +46,7 @@ export async function fetchAppsStatus(serviceId: string): Promise<AppsStatus | n
 
 export async function installAppAction(
   serviceId: string,
-  input: { app: string; adminUser: string; adminEmail: string; adminPassword?: string },
+  input: { app: string; adminUser: string; adminEmail: string; adminPassword?: string; domain?: string },
 ): Promise<{ ok: true; data: AppInstallResult } | { ok: false; error: string }> {
   try {
     const data = await apiFetch<AppInstallResult>(`/services/${serviceId}/apps/install`, {

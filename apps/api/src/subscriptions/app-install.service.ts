@@ -83,8 +83,12 @@ export class AppInstallService {
       orderBy: { createdAt: 'desc' },
       take: 10,
     });
+    // Domeny usługi do wyboru w instalatorze; serwer niedostępny → tylko główna.
+    const lista = await this.da.listHostingDomainsForSubscription(subscriptionId, userId).catch(() => null);
+    const domains = lista?.domains.length ? lista.domains.map((d) => d.name) : [sub.account!.domain];
     return {
       domain: sub.account!.domain,
+      domains,
       catalog: this.catalog(),
       installs: tasks.map((t) => ({
         id: t.id,
@@ -100,7 +104,7 @@ export class AppInstallService {
   async install(
     subscriptionId: string,
     userId: string,
-    input: { app: string; adminUser: string; adminEmail: string; adminPassword?: string },
+    input: { app: string; adminUser: string; adminEmail: string; adminPassword?: string; domain?: string },
   ) {
     const app = CATALOG[input.app];
     if (!app) throw new BadRequestException('Nieobsługiwana aplikacja.');
@@ -138,6 +142,11 @@ export class AppInstallService {
       );
     }
 
+    // Domena spoza głównej — tylko przypisana do tej usługi (instalator pisze do domains/<domena>/public_html).
+    const domena = input.domain?.trim()
+      ? await this.da.assertDomainOwnedBySubscription(subscriptionId, userId, input.domain)
+      : account.domain;
+
     // Create a DA-tracked DB + user for the app.
     const dbShort = `${app.slug.slice(0, 4)}${randomToken(4)}`;
     const dbPass = strongPassword();
@@ -162,7 +171,7 @@ export class AppInstallService {
         payload: {
           app: app.slug,
           daUser: account.daUsername,
-          domain: account.domain,
+          domain: domena,
           dbName: db.database,
           dbUser: db.username,
           dbPass,
@@ -177,15 +186,15 @@ export class AppInstallService {
       action: 'APP_INSTALL_QUEUED',
       userId,
       actorUserId: userId,
-      details: { subscriptionId, app: app.slug, domain: account.domain, taskId: task.id },
+      details: { subscriptionId, app: app.slug, domain: domena, taskId: task.id },
     });
 
     return {
       ok: true as const,
       taskId: task.id,
       app: app.slug,
-      domain: account.domain,
-      adminUrl: `https://${account.domain}${app.adminPath}`,
+      domain: domena,
+      adminUrl: `https://${domena}${app.adminPath}`,
       adminUser,
       adminPassword: adminPass,
       note: 'Zapisz hasło administratora — nie pokażemy go ponownie. Instalacja potrwa 1-3 min.',
