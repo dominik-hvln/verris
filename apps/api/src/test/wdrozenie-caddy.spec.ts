@@ -19,3 +19,14 @@ describe('wdrożenie przeładowuje Caddy', () => {
     expect(SKRYPT.indexOf('caddy reload --config')).toBeGreaterThan(SKRYPT.indexOf('compose up -d --no-build ${APP_SERVICES}'));
   });
 });
+
+describe('CSP paneli', () => {
+  const CADDY = readFileSync(join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'caddy', 'Caddyfile'), 'utf8');
+  const panel = CADDY.slice(CADDY.indexOf('(panel_headers) {'));
+
+  it('form-action dopuszcza węzły *.verris.pl (webmail skrzynki: POST z tokenem do Roundcube), nic szerszego', () => {
+    const fa = /form-action ('self'[^;]+);/.exec(panel)?.[1] ?? ''; // pierwsza CSP po (panel_headers)
+    expect(fa.split(' ')).toContain('https://*.verris.pl');
+    expect(fa).not.toMatch(/\bhttps:(?!\/\/)|\*(?!\.verris\.pl)/);
+  });
+});
