@@ -922,8 +922,10 @@ export class DirectAdminService {
       info.diskMb = daMetric(usage.get('quota'), config.get('quota'));
       info.bandwidthMb = daMetric(usage.get('bandwidth'), config.get('bandwidth'));
       info.emails = daMetric(usage.get('nemails'), config.get('nemails'));
-      info.ftpAccounts = daMetric(usage.get('nftp'), config.get('nftp'));
-      info.databases = daMetric(usage.get('nmysql'), config.get('nmysql'));
+      // DA: liczniki i limity baz/FTP to `mysql` i `ftp` (jak w createUser i getHostingAccountStats);
+      // `nmysql`/`nftp` nie istnieją — przegląd usługi pokazywał „—” przy 2 bazach (test D3 29.09).
+      info.ftpAccounts = daMetric(usage.get('ftp'), config.get('ftp'));
+      info.databases = daMetric(usage.get('mysql'), config.get('mysql'));
       info.inodes = daMetric(usage.get('inode'), config.get('inode'));
     } catch (err) {
       info.fetchError = err instanceof Error ? err.message : String(err);

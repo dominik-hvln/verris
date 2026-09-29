@@ -14,7 +14,7 @@ function stanowisko(o: { konto?: boolean; bezHasla?: boolean; ns?: [string | nul
   const platformSettings = { getHostingNameservers: vi.fn(async () => ({ ns1: 'ns1.verris.pl', ns2: 'ns2.verris.pl', ns3: '' })) };
   const svc = new DirectAdminService(prisma as never, {} as never, platformSettings as never, { record: vi.fn() } as never);
   const get = vi.fn(async (path: string) => ({
-    data: path === '/CMD_API_SHOW_USER_USAGE' ? 'quota=512&bandwidth=100&nemails=3&nftp=1&nmysql=2&inode=4000' : 'quota=10240&bandwidth=unlimited&nemails=50&nftp=10&nmysql=10&inode=200000&ssh=ON',
+    data: path === '/CMD_API_SHOW_USER_USAGE' ? 'quota=512&bandwidth=100&nemails=3&ftp=1&mysql=2&inode=4000' : 'quota=10240&bandwidth=unlimited&nemails=50&ftp=10&mysql=10&inode=200000&ssh=ON',
   }));
   const klient = {
     client: { get },
@@ -47,6 +47,9 @@ describe('dane dostępowe i adresy panelu', () => {
     expect(s.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 's1', userId: 'u1' } }));
     expect(info).toMatchObject({ ipv4: '203.0.113.7', ftpHost: 'n1.verris.pl', sshEnabled: true, sshPort: 22, nameservers: ['ns1.verris.pl', 'ns2.verris.pl'], fetchError: null });
     expect(info.diskMb).toMatchObject({ used: 512, limit: 10240 });
+    // DA: `mysql`/`ftp` (test D3 29.09 — z `nmysql`/`nftp` przegląd pokazywał „—”)
+    expect(info.databases).toEqual({ used: 2, limit: 10 });
+    expect(info.ftpAccounts).toEqual({ used: 1, limit: 10 });
   });
 
   it('NS węzła mają pierwszeństwo, gdy ustawione oba', async () => {
