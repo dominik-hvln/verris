@@ -8,7 +8,8 @@ import { createNodeSsoUrl } from "./da-sso-actions";
 /**
  * FALA-2c — szybkie wejście na węzeł jako admin:
  *  - „DirectAdmin (SSO)" otwiera panel DA węzła przez jednorazowy link (2 min, 1 użycie),
- *  - obok kopiowalna komenda SSH.
+ *  - obok kopiowalna komenda SSH,
+ *  - pod spodem informacja o tunelu SSH (port 2222 tylko z control-plane'u, decyzja 2026-09-29).
  */
 export function DaSsoButton({ serverId, sshHost, srodek, daGotowe = true }: { serverId: string; sshHost: string | null; srodek?: ReactNode; daGotowe?: boolean }) {
   const [busy, setBusy] = useState(false);
@@ -67,6 +68,14 @@ export function DaSsoButton({ serverId, sshHost, srodek, daGotowe = true }: { se
         ) : null}
       </div>
       {error ? <p className="text-xs text-crit">{error}</p> : null}
+      {daGotowe ? (
+        // Decyzja 2026-09-29: port 2222 węzła przyjmuje tylko control-plane (zapora w profilu węzła).
+        <p className="max-w-md text-right text-xs text-muted-foreground">
+          Panel DA (:2222) jest dostępny tylko z control-plane&apos;u. Z przeglądarki przez tunel SSH:{" "}
+          <code>ssh -L 2222:127.0.0.1:2222 root@{sshHost ?? "<węzeł>"}</code>, potem w otwartym linku zamień adres węzła na
+          127.0.0.1.
+        </p>
+      ) : null}
     </div>
   );
 }

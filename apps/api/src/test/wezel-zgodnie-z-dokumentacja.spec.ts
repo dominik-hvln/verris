@@ -1,4 +1,6 @@
-import { readFileSync } from 'fs';
+import { spawnSync } from 'child_process';
+import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
 import { join } from 'path';
 
 /**
@@ -157,6 +159,103 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
 
   it('CustomBuild: opcje czytane z options.conf', () => {
     expect(czytaj('node-hosting-profile.sh')).toContain('"$CB/options.conf"');
+  });
+});
+
+describe('profil węzła — panel DA (:2222) tylko z control-plane (decyzja 2026-09-29)', () => {
+  const surowy = readFileSync(join(SKRYPTY, 'node-hosting-profile.sh'), 'utf8');
+  // Same definicje funkcji (bez wywołań od require_root) — uruchamiane w bashu na atrapach csf/firewall-cmd.
+  const DIR = mkdtempSync(join(tmpdir(), 'da-panel-'));
+  writeFileSync(join(DIR, 'fn.sh'), surowy.slice(0, surowy.indexOf('\nrequire_root\n')));
+  for (const bin of ['csf', 'firewall-cmd']) {
+    writeFileSync(join(DIR, bin), `#!/bin/sh\necho "${bin} $*" >> "${DIR}/wywolania"\n`);
+    chmodSync(join(DIR, bin), 0o755);
+  }
+  const CONF = 'TCP_IN = "20,21,22,2222,80"\nTCP6_IN = "2222,443"\nUDP_IN = "53"\n';
+  const przygotuj = () => {
+    writeFileSync(join(DIR, 'csf.conf'), CONF);
+    writeFileSync(join(DIR, 'csf.allow'), '192.0.2.1 # cudzy wpis\n');
+    writeFileSync(join(DIR, 'wywolania'), '');
+  };
+  const uruchom = (env: Record<string, string>) => {
+    const r = spawnSync('bash', ['-c', `. "${DIR}/fn.sh"; configure_da_panel_firewall`], {
+      env: { ...process.env, PATH: `${DIR}:${process.env.PATH}`, CSF_DIR: DIR, ...env },
+      encoding: 'utf8',
+    });
+    return {
+      rc: r.status,
+      out: r.stdout + r.stderr,
+      conf: readFileSync(join(DIR, 'csf.conf'), 'utf8'),
+      allow: readFileSync(join(DIR, 'csf.allow'), 'utf8'),
+      wywolania: readFileSync(join(DIR, 'wywolania'), 'utf8'),
+    };
+  };
+
+  it('pusty VERRIS_CONTROL_PLANE_IPS → [WARN] i zero zmian zapory (także przy samym VERRIS_DA_ADMIN_ALLOW)', () => {
+    przygotuj();
+    const r = uruchom({ VERRIS_CONTROL_PLANE_IPS: ' , ', VERRIS_DA_ADMIN_ALLOW: '198.51.100.7' });
+    expect(r.rc).toBe(0);
+    expect(r.out).toContain('[WARN] VERRIS_CONTROL_PLANE_IPS pusty');
+    expect(r.wywolania).toBe('');
+    expect(r.conf).toBe(CONF);
+    expect(r.allow).toBe('192.0.2.1 # cudzy wpis\n');
+  });
+
+  it('nieprawidłowy adres → [FAIL] i zero zmian', () => {
+    przygotuj();
+    const r = uruchom({ VERRIS_CONTROL_PLANE_IPS: '203.0.113.10;reboot' });
+    expect(r.out).toContain('[FAIL] Nieprawidłowy adres');
+    expect(r.wywolania).toBe('');
+    expect(r.conf).toBe(CONF);
+  });
+
+  it('CSF: 2222 znika z TCP_IN/TCP6_IN, allow tylko dla control-plane i operatora, idempotentnie, cudze wpisy zostają', () => {
+    przygotuj();
+    const env = { VERRIS_CONTROL_PLANE_IPS: '203.0.113.10, 2001:db8::/64', VERRIS_DA_ADMIN_ALLOW: '198.51.100.7' };
+    uruchom(env);
+    const r = uruchom(env);
+    expect(r.conf).toBe('TCP_IN = "20,21,22,80"\nTCP6_IN = "443"\nUDP_IN = "53"\n');
+    expect(r.allow).toBe(
+      '192.0.2.1 # cudzy wpis\n' +
+        '# verris-da-panel BEGIN — panel DA tylko z control-plane (zarządza profil Verris, nie edytuj)\n' +
+        'tcp|in|d=2222|s=198.51.100.7\ntcp|in|d=2222|s=2001:db8::/64\ntcp|in|d=2222|s=203.0.113.10\n' +
+        '# verris-da-panel END\n',
+    );
+    expect(r.wywolania).toBe('csf -r\n'); // drugie uruchomienie bez zmian = bez przeładowania
+    expect(r.out).toContain('[OK] CSF: panel DA :2222 tylko z: 198.51.100.7,2001:db8::/64,203.0.113.10');
+  });
+
+  it('kontrola po zmianie: log_fail, gdy 2222 dalej w TCP_IN; firewalld: reject z ujemnym priorytetem', () => {
+    const t = czytaj('node-hosting-profile.sh');
+    expect(t).toContain('log_fail "CSF: ${DA_PANEL_PORT} nadal w TCP_IN/TCP6_IN');
+    expect(t).toContain('rule priority=\\"-100\\" port port=\\"${DA_PANEL_PORT}\\" protocol=\\"tcp\\" reject');
+    expect(t).toMatch(/^configure_da_panel_firewall$/m);
+  });
+});
+
+describe('profil węzła — strona zawieszonego konta (white label)', () => {
+  const surowy = readFileSync(join(SKRYPTY, 'node-hosting-profile.sh'), 'utf8');
+  const html = /<<'VERRIS_SUSPENDED'\n([\s\S]*?)\nVERRIS_SUSPENDED\n/.exec(surowy)?.[1] ?? '';
+
+  it('samodzielna strona po polsku z marką Verris: noindex, bez nazwy DirectAdmin i zasobów zewnętrznych', () => {
+    expect(html).toContain('<html lang="pl">');
+    expect(html).toContain('<meta name="robots" content="noindex, nofollow">');
+    expect(html).toContain('<p class="marka">Verris</p>');
+    expect(html).toContain('Ta strona jest tymczasowo niedostępna.');
+    expect(html).toContain(
+      'Jeśli jesteś właścicielem, zaloguj się do panelu Verris (<a href="https://panel.verris.pl" rel="nofollow">panel.verris.pl</a>), aby sprawdzić status usługi.',
+    );
+    expect(html).not.toMatch(/directadmin/i);
+    expect(html).not.toMatch(/<script|<link|<img|<iframe|src=|url\(|@import/i);
+  });
+
+  it('wdrożenie wg DA: custom/suspended + kopie admina/resellerów zapisywane jako ich właściciel, z kontrolą', () => {
+    const t = czytaj('node-hosting-profile.sh');
+    expect(t).toContain('dst="$tpl/custom/suspended"');
+    expect(t).toContain('runuser -u "$u" --');
+    expect(t).toContain('[ ! -L "$f" ]');
+    expect(t).toContain('log_fail "Strona zawieszenia');
+    expect(t).toMatch(/^configure_suspended_page$/m);
   });
 });
 

@@ -165,6 +165,8 @@ services:
       # odmawia od razu, stare kontenery działają dalej) i adresy control-plane dla klucza deploy SSH.
       VERRIS_SCRIPT_SIGNING_KEY: ${VERRIS_SCRIPT_SIGNING_KEY:?VERRIS_SCRIPT_SIGNING_KEY is required - openssl genpkey -algorithm ed25519 | base64 -w0}
       VERRIS_CONTROL_PLANE_IPS: ${VERRIS_CONTROL_PLANE_IPS:-}
+      # Dodatkowe adresy operatora z dostępem do panelu DA :2222 na węzłach (domyślnie brak).
+      VERRIS_DA_ADMIN_ALLOW: ${VERRIS_DA_ADMIN_ALLOW:-}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
       APP_KMS_KEY: ${APP_KMS_KEY:?APP_KMS_KEY is required}

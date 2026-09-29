@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { adresyControlPlane } from './podpis-skryptow.js';
 
 /** Loads the canonical hosting profile bash script from the monorepo. */
 export function loadHostingProfileScript(): string {
@@ -15,4 +16,17 @@ export function loadHostingProfileScript(): string {
     }
   }
   throw new Error('node-hosting-profile.sh not found in monorepo');
+}
+
+/**
+ * Profil wydawany węzłowi (zadanie HOSTING_PROFILE): adresy z konfiguracji API wstawione w skrypt,
+ * żeby węzeł nie zgadywał control-plane'u przy ograniczaniu panelu DA :2222 (decyzja 2026-09-29).
+ * Pusta konfiguracja = pusty parametr = profil nie zmienia zapory. Zły adres = wyjątek (skrypt nie wyjdzie).
+ */
+export function hostingProfileScriptForNode(): string {
+  let skrypt = loadHostingProfileScript();
+  for (const zmienna of ['VERRIS_CONTROL_PLANE_IPS', 'VERRIS_DA_ADMIN_ALLOW']) {
+    skrypt = skrypt.replace(new RegExp(`^${zmienna}=.*$`, 'm'), `${zmienna}="${adresyControlPlane(zmienna)}"`);
+  }
+  return skrypt;
 }

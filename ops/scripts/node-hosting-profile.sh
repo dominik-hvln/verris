@@ -21,6 +21,12 @@ if [ -r /etc/verris-stack.env ]; then
   . /etc/verris-stack.env
 fi
 
+# Decyzja 2026-09-29 — panel DA (:2222) tylko z control-plane. Linię VERRIS_CONTROL_PLANE_IPS / VERRIS_DA_ADMIN_ALLOW
+# podmienia API przy wydaniu skryptu (GET /agent/tasks/hosting-profile/script, env API o tych samych nazwach);
+# przy ręcznym uruchomieniu — z env. Lista IPv4/IPv6/CIDR po przecinku. Pusty control-plane = zapora bez zmian.
+VERRIS_CONTROL_PLANE_IPS="${VERRIS_CONTROL_PLANE_IPS:-}"
+VERRIS_DA_ADMIN_ALLOW="${VERRIS_DA_ADMIN_ALLOW:-}"
+
 GOVERNOR_PY="/usr/share/lve/dbgovernor/mysqlgovernor.py"
 
 DRY_RUN=0
@@ -1574,6 +1580,181 @@ DAVB
   fi
 }
 
+# -----------------------------------------------------------------------------
+# Panel DA (:2222) tylko z control-plane (decyzja 2026-09-29). Klient ma wszystko w panelu Verris,
+# control-plane rozmawia z DA po API na 2222. Zapora z DA to CSF (instalator DA stawia go domyślnie,
+# DA_SKIP_CSF go pomija — docs.directadmin.com → Predefined installation options); bez CSF — firewalld
+# (security-hardening-baseline.sh). Pusty VERRIS_CONTROL_PLANE_IPS = nic nie zmieniamy: nie zgadujemy
+# adresu control-plane, bo pomyłka odcina panel Verris od węzła.
+# -----------------------------------------------------------------------------
+DA_PANEL_PORT=2222
+CSF_DIR="${CSF_DIR:-/etc/csf}"
+
+adresy_da_panelu() {
+  printf '%s\n' "$VERRIS_CONTROL_PLANE_IPS" "$VERRIS_DA_ADMIN_ALLOW" | tr ', ' '\n\n' | sed '/^$/d' | sort -u
+}
+
+csf_port_panelu_otwarty() {
+  grep -qE "^TCP6?_IN *= *\"([^\"]*,)?${DA_PANEL_PORT}(,[^\"]*)?\"" "$CSF_DIR/csf.conf"
+}
+
+# CSF (csf.allow: „tcp/udp|in/out|s/d=port|s/d=ip”, przeładowanie csf -r). Najpierw reguły allow, potem
+# usunięcie portu z TCP_IN/TCP6_IN, jedno przeładowanie — control-plane nie traci połączenia.
+da_panel_csf() {
+  local adresy="$1" lista a nowy zmiana=0
+  lista="$(printf '%s\n' "$adresy" | paste -sd, -)"
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    log_info "dry-run: CSF — tcp|in|d=${DA_PANEL_PORT}|s=<${lista}> w csf.allow, ${DA_PANEL_PORT} z TCP_IN/TCP6_IN, csf -r"
+    csf_port_panelu_otwarty && log_warn "CSF: :${DA_PANEL_PORT} otwarty dla internetu (profil go ograniczy)" || log_ok "CSF: :${DA_PANEL_PORT} poza TCP_IN"
+    return 0
+  fi
+  nowy="$(mktemp)"
+  {
+    sed '/^# verris-da-panel BEGIN/,/^# verris-da-panel END/d' "$CSF_DIR/csf.allow" 2>/dev/null || true
+    echo "# verris-da-panel BEGIN — panel DA tylko z control-plane (zarządza profil Verris, nie edytuj)"
+    for a in $adresy; do printf 'tcp|in|d=%s|s=%s\n' "$DA_PANEL_PORT" "$a"; done
+    echo "# verris-da-panel END"
+  } > "$nowy"
+  if ! cmp -s "$nowy" "$CSF_DIR/csf.allow"; then
+    cat "$nowy" > "$CSF_DIR/csf.allow" && zmiana=1
+  fi
+  rm -f "$nowy"
+  if csf_port_panelu_otwarty; then
+    sed -i -E "/^TCP6?_IN *=/{s/\"${DA_PANEL_PORT},/\"/;s/,${DA_PANEL_PORT}(,|\")/\1/;s/\"${DA_PANEL_PORT}\"/\"\"/}" "$CSF_DIR/csf.conf"
+    zmiana=1
+  fi
+  if [ "$zmiana" = "1" ] && ! csf -r >/var/log/verris-csf.log 2>&1; then
+    log_fail "CSF: csf -r nie powiódł się (log: /var/log/verris-csf.log)"
+  fi
+  if csf_port_panelu_otwarty; then
+    log_fail "CSF: ${DA_PANEL_PORT} nadal w TCP_IN/TCP6_IN — panel DA otwarty dla internetu"
+  else
+    log_ok "CSF: panel DA :${DA_PANEL_PORT} tylko z: ${lista}"
+  fi
+}
+
+# firewalld (firewalld.richlanguage): reguły z ujemnym priorytetem idą przed zwykłymi portami, więc
+# „accept z control-plane” (-110) i „reject :2222” (-100) działają nawet, gdy hardening znów doda port.
+da_panel_firewalld() {
+  local adresy="$1" lista strefa a r nowe
+  lista="$(printf '%s\n' "$adresy" | paste -sd, -)"
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    log_info "dry-run: firewalld — accept :${DA_PANEL_PORT} z <${lista}> (priority -110), reject :${DA_PANEL_PORT} (priority -100)"
+    return 0
+  fi
+  strefa="$(firewall-cmd --get-default-zone)"
+  nowe="$(for a in $adresy; do
+    case "$a" in *:*) r=ipv6 ;; *) r=ipv4 ;; esac
+    echo "rule priority=\"-110\" family=\"$r\" source address=\"$a\" port port=\"${DA_PANEL_PORT}\" protocol=\"tcp\" accept"
+  done; echo "rule priority=\"-100\" port port=\"${DA_PANEL_PORT}\" protocol=\"tcp\" reject")"
+  # Nasze stare reguły (te priorytety + port panelu), których nie ma w nowej liście — usuń.
+  firewall-cmd --permanent --zone="$strefa" --list-rich-rules | grep -E "priority=\"-1[01]0\".*port=\"${DA_PANEL_PORT}\"" \
+    | grep -vxF -f <(printf '%s\n' "$nowe") | while IFS= read -r r; do
+      firewall-cmd --permanent --zone="$strefa" --remove-rich-rule="$r" >/dev/null
+    done || true
+  while IFS= read -r r; do
+    firewall-cmd --permanent --zone="$strefa" --add-rich-rule="$r" >/dev/null 2>&1 || true
+  done <<<"$nowe"
+  firewall-cmd --permanent --zone="$strefa" --remove-port="${DA_PANEL_PORT}/tcp" >/dev/null 2>&1 || true
+  firewall-cmd --reload >/dev/null || log_fail "firewalld: reload nie powiódł się"
+  if firewall-cmd --zone="$strefa" --list-rich-rules | grep -qxF "rule priority=\"-100\" port port=\"${DA_PANEL_PORT}\" protocol=\"tcp\" reject"; then
+    log_ok "firewalld: panel DA :${DA_PANEL_PORT} tylko z: ${lista}"
+  else
+    log_fail "firewalld: brak reguły reject dla :${DA_PANEL_PORT} — panel DA otwarty dla internetu"
+  fi
+}
+
+configure_da_panel_firewall() {
+  echo "--- Panel DA (:${DA_PANEL_PORT}) tylko z control-plane ---"
+  if [ -z "$(printf '%s' "$VERRIS_CONTROL_PLANE_IPS" | tr -d ', ')" ]; then
+    log_warn "VERRIS_CONTROL_PLANE_IPS pusty — zapory nie zmieniam, :${DA_PANEL_PORT} bez ograniczenia (ustaw VERRIS_CONTROL_PLANE_IPS w env API)"
+    return 0
+  fi
+  local adresy
+  adresy="$(adresy_da_panelu)"
+  if printf '%s\n' "$adresy" | grep -qvxE '[0-9A-Fa-f:.]+(/[0-9]{1,3})?'; then
+    log_fail "Nieprawidłowy adres w VERRIS_CONTROL_PLANE_IPS/VERRIS_DA_ADMIN_ALLOW — zapory nie zmieniam"
+    return 0
+  fi
+  if command -v csf >/dev/null 2>&1 && [ -f "$CSF_DIR/csf.conf" ]; then
+    da_panel_csf "$adresy"
+  elif command -v firewall-cmd >/dev/null 2>&1 && firewall-cmd --state >/dev/null 2>&1; then
+    da_panel_firewalld "$adresy"
+  else
+    log_warn "Brak CSF i aktywnego firewalld — :${DA_PANEL_PORT} bez ograniczenia"
+  fi
+}
+
+# -----------------------------------------------------------------------------
+# Strona zawieszonego konta (white label). DA serwuje ją jako zwykły katalog (odpowiedź 200, kod
+# zostaje jak w DA): pliki domyślne w data/templates/suspended, własne w data/templates/custom/suspended;
+# od DA 1.51 kopia w katalogu każdego resellera i admina: /home/<reseller>/domains/suspended/
+# (docs.directadmin.com → Customizing Resellers). LiteSpeed Enterprise czyta tę samą konfigurację DA.
+# -----------------------------------------------------------------------------
+verris_suspended_html() {
+  cat <<'VERRIS_SUSPENDED'
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Strona tymczasowo niedostępna</title>
+<!-- verris-suspended-page -->
+<style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f6f8;color:#1c2330;font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:34rem;margin:1.5rem;padding:2rem 2.25rem;background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.marka{margin:0 0 1.25rem;font-weight:700;font-size:1.1rem;letter-spacing:.02em;color:#2952cc}
+h1{margin:0 0 .75rem;font-size:1.35rem;line-height:1.35}
+p{margin:0}
+a{color:#2952cc}
+@media (prefers-color-scheme:dark){body{background:#12161d;color:#e4e7ec}main{background:#1b212b;box-shadow:none}.marka,a{color:#8aa8ff}}
+</style>
+</head>
+<body>
+<main>
+<p class="marka">Verris</p>
+<h1>Ta strona jest tymczasowo niedostępna.</h1>
+<p>Jeśli jesteś właścicielem, zaloguj się do panelu Verris (<a href="https://panel.verris.pl" rel="nofollow">panel.verris.pl</a>), aby sprawdzić status usługi.</p>
+</main>
+</body>
+</html>
+VERRIS_SUSPENDED
+}
+
+configure_suspended_page() {
+  echo "--- Strona zawieszonego konta ---"
+  local tpl=/usr/local/directadmin/data/templates dst u d f n=0
+  dst="$tpl/custom/suspended"
+  if [ ! -d "$tpl/suspended" ]; then
+    log_skip "Brak $tpl/suspended — pomijam stronę zawieszenia"
+    return 0
+  fi
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    log_info "dry-run: $dst/index.html (Verris) + odświeżenie domains/suspended admina i resellerów"
+    return 0
+  fi
+  mkdir -p "$dst"
+  cp -an "$tpl/suspended/." "$dst/"  # m.in. .htaccess DA bez cache — po odwieszeniu przeglądarka nie trzyma strony
+  verris_suspended_html > "$dst/index.html"
+  # Kopie u admina/resellerów: tylko gdy to jeszcze strona domyślna albo nasza; zapis jako właściciel katalogu.
+  for u in $(cat /usr/local/directadmin/data/admin/admin.list /usr/local/directadmin/data/admin/reseller.list 2>/dev/null); do
+    d="/home/$u/domains/suspended"; f="$d/index.html"
+    [ -d "$d" ] && [ ! -L "$d" ] && [ ! -L "$f" ] || continue
+    if [ -s "$f" ] && ! grep -qiE 'verris-suspended-page|directadmin' "$f"; then
+      log_warn "Strona zawieszenia u $u jest własna — zostawiam ($f)"
+      continue
+    fi
+    runuser -u "$u" -- sh -c 'cat > "$1.verris-new" && mv -f "$1.verris-new" "$1"' _ "$f" < "$dst/index.html" \
+      && n=$((n + 1)) || log_warn "Nie udało się zapisać $f jako $u"
+  done
+  if grep -q 'verris-suspended-page' "$dst/index.html" && ! grep -qi 'directadmin' "$dst/index.html"; then
+    log_ok "Strona zawieszenia Verris (custom/suspended; kopii admina/resellerów: $n)"
+  else
+    log_fail "Strona zawieszenia: $dst/index.html bez treści Verris"
+  fi
+}
+
 # Status możliwości do summary (czytany przez audyt węzła).
 capability_status() {
   local ssl="off" dkim="off" redis="off" phpsel="off" dnssec="off" appsel="off"
@@ -1628,6 +1809,8 @@ ensure_hosting_core_services
 configure_litespeed
 configure_hosting_capabilities
 configure_litespeed_alt_php
+configure_da_panel_firewall
+configure_suspended_page
 print_lve_info
 print_summary
 exit $?

@@ -46,15 +46,18 @@ export function podpisz(sciezka: string, serverId: string, tresc: Buffer | strin
   return { ts, podpis };
 }
 
-/** VERRIS_CONTROL_PLANE_IPS — adresy/sieci control-plane (przecinek), jedyne źródła SSH klucza deploy. */
-export function adresyControlPlane(): string {
-  const lista = (process.env.VERRIS_CONTROL_PLANE_IPS ?? '').split(/[\s,]+/).filter(Boolean);
+/**
+ * VERRIS_CONTROL_PLANE_IPS — adresy/sieci control-plane (przecinek): jedyne źródła SSH klucza deploy
+ * i panelu DA :2222 na węzłach. Ta sama walidacja dla innych list adresów (np. VERRIS_DA_ADMIN_ALLOW).
+ */
+export function adresyControlPlane(zmienna = 'VERRIS_CONTROL_PLANE_IPS'): string {
+  const lista = (process.env[zmienna] ?? '').split(/[\s,]+/).filter(Boolean);
   for (const a of lista) {
     const [ip, maska, ...reszta] = a.split('/');
     const wersja = isIP(ip);
     const max = wersja === 6 ? 128 : 32;
     if (!wersja || reszta.length || (maska !== undefined && !(/^\d{1,3}$/.test(maska) && Number(maska) <= max))) {
-      throw new Error(`VERRIS_CONTROL_PLANE_IPS: nieprawidłowy adres „${a}”.`);
+      throw new Error(`${zmienna}: nieprawidłowy adres „${a}”.`);
     }
   }
   return lista.join(',');

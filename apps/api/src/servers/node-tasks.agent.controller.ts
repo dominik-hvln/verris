@@ -18,7 +18,7 @@ import {
   buildDefaultHostingPageBundle,
   loadDefaultHostingPageInstallScript,
 } from './default-hosting-page.assets.js';
-import { loadHostingProfileScript } from './hosting-profile.script.js';
+import { hostingProfileScriptForNode } from './hosting-profile.script.js';
 import { loadLveAgentScript } from './lve-agent.script.js';
 import { loadWpInstallScript } from './wp-install.script.js';
 import { loadWafApplyScript } from './waf-apply.script.js';
@@ -136,7 +136,7 @@ export class NodeTasksAgentController {
   @Get('hosting-profile/script')
   @Header('Content-Type', 'text/plain; charset=utf-8')
   hostingProfileScript() {
-    return loadHostingProfileScript();
+    return hostingProfileScriptForNode();
   }
 
   /** A4 — WordPress installer script (run with WP_* env from the task payload). */

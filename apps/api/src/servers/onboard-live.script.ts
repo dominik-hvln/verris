@@ -1,6 +1,7 @@
 import { existsSync, readdirSync } from 'fs';
 import { join } from 'path';
 import * as archiver from 'archiver';
+import { hostingProfileScriptForNode } from './hosting-profile.script.js';
 
 /**
  * PB-31 — Onboard LIVE jako zadanie agenta (bez scp i ręcznego SSH).
@@ -50,7 +51,12 @@ export function buildOnboardBundle(): Promise<Buffer> {
     archive.on('data', (c: Buffer) => chunks.push(c));
     archive.on('error', reject);
     archive.on('end', () => resolve(Buffer.concat(chunks)));
-    for (const p of plikiPakietuOnboardu()) archive.file(join(korzen, p), { name: p, mode: p.endsWith('.sh') ? 0o755 : 0o644 });
+    for (const p of plikiPakietuOnboardu()) {
+      const opcje = { name: p, mode: p.endsWith('.sh') ? 0o755 : 0o644 };
+      // Profil z adresami control-plane z konfiguracji API (panel DA :2222 tylko z control-plane)
+      if (p === 'ops/scripts/node-hosting-profile.sh') archive.append(hostingProfileScriptForNode(), opcje);
+      else archive.file(join(korzen, p), opcje);
+    }
     archive.directory(join(ops, 'hosting-default-page'), 'ops/hosting-default-page');
     void archive.finalize();
   });
