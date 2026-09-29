@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { Select } from "@/components/select";
+import { plForm } from "@/lib/pl";
 
 /** Odpowiedź GET /admin/custom-terms/user/:id (PB-27 / PB-28). */
 export interface PodgladWarunkow {
@@ -311,7 +312,7 @@ export function WarunkiIndywidualne({ userId, dane, akcje }: { userId: string; d
             <ul className="text-sm text-white space-y-1">
               {dane.autoskalowaniePoza.map((a) => (
                 <li key={a.subscriptionId} className="tabular-nums">
-                  {domenaUslugi(a.subscriptionId)}: <strong>{a.kwota} zł</strong> wg cennika autoskalowania, po rabacie ({a.bloki} bloków po 15 min)
+                  {domenaUslugi(a.subscriptionId)}: <strong>{a.kwota} zł</strong> wg cennika autoskalowania, po rabacie ({a.bloki} {plForm(a.bloki, "blok", "bloki", "bloków")} po 15 min)
                 </li>
               ))}
             </ul>

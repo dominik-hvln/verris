@@ -1,3 +1,4 @@
+import { plForm } from "@/lib/pl";
 import type { AdminConsentRow } from "./data";
 
 const KIND_LABEL: Record<string, string> = {
@@ -24,7 +25,7 @@ export function ConsentsTable({
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground">
-        Łącznie {total} zgód w systemie. Pokazujemy najnowsze 100.
+        Łącznie {total} {plForm(total, "zgoda", "zgody", "zgód")} w systemie. Pokazujemy najnowsze 100.
       </p>
       <div className="rounded-2xl border border-white/10 bg-black/30 overflow-hidden">
         <div className="overflow-x-auto">

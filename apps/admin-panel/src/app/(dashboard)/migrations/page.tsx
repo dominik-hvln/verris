@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { plForm } from "@/lib/pl";
 import { adminApi } from "@/lib/api";
 import { MigrationRowActions } from "./migration-row-actions";
+import { statusPl } from "./status-pl";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +72,7 @@ export default async function MigrationsCockpitPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-[28px] lg:text-[34px]">Cockpit migracji</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Migracje</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Flota zleceń migracji. Migracje są automatyczne — te oznaczone „Pilne” zatrzymał
           automat i czekają na dokończenie przez zespół (wznów, ponów krok lub oznacz jako ukończone).
@@ -82,7 +84,7 @@ export default async function MigrationsCockpitPage({
           href="/migrations?status=ATTENTION"
           className="block rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 hover:bg-amber-500/15"
         >
-          🔴 {attentionCount} {attentionCount === 1 ? "migracja wymaga" : "migracji wymaga"} uwagi zespołu — kliknij, aby zobaczyć.
+          🔴 {attentionCount} {plForm(attentionCount, "migracja wymaga", "migracje wymagają", "migracji wymaga")} uwagi zespołu — kliknij, aby zobaczyć.
         </Link>
       ) : null}
 
@@ -97,7 +99,7 @@ export default async function MigrationsCockpitPage({
                 : "border-white/10 bg-black/30 text-muted-foreground hover:border-white/20"
             }`}
           >
-            {f === "ATTENTION" ? "Pilne" : f || "Wszystkie"}
+            {f ? statusPl(f) : "Wszystkie"}
           </Link>
         ))}
       </div>
@@ -108,7 +110,7 @@ export default async function MigrationsCockpitPage({
         </p>
       ) : rows.length === 0 ? (
         <p className="rounded-xl border border-white/10 bg-black/30 p-8 text-center text-sm text-muted-foreground">
-          Brak migracji{status ? ` w statusie ${status}` : ""}.
+          Brak migracji{status ? ` w statusie „${statusPl(status)}”` : ""}.
         </p>
       ) : (
         <div className="space-y-3">
@@ -125,7 +127,7 @@ export default async function MigrationsCockpitPage({
                     <span
                       className={`rounded-full border px-2 py-0.5 text-[11px] ${STATUS_STYLE[r.status] ?? STATUS_STYLE.DRAFT}`}
                     >
-                      {r.status === "ATTENTION" ? "PILNE" : r.status}
+                      {statusPl(r.status)}
                     </span>
                     <p className="truncate text-white">{r.targetDomain ?? "—"}</p>
                     {r.sourcePanelType && r.sourcePanelType !== "manual" ? (

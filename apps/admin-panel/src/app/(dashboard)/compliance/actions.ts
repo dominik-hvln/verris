@@ -43,7 +43,7 @@ export async function retryDataExportAction(
     revalidatePath("/compliance");
     return { ok: true };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Błąd retry." };
+    return { ok: false, error: err instanceof Error ? err.message : "Nie udało się ponowić eksportu." };
   }
 }
 

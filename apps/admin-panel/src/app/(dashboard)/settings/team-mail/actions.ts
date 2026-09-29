@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { adminApi, AdminApiError } from "@/lib/api";
+import { plForm } from "@/lib/pl";
 
 export interface ControlPlaneMailboxRow {
   id: string;
@@ -227,7 +228,7 @@ export async function syncPostfixMapsAction(): Promise<{ ok: boolean; error?: st
       parts.push("Na serwerze: ./ops/scripts/prod-mail-postmap-reload.sh (lub systemd verris-postfix-maps).");
     }
     if (res.pendingForwards && res.pendingForwards > 0) {
-      parts.push(`${res.pendingForwards} forward(ów) czeka na potwierdzenie linkiem.`);
+      parts.push(`${res.pendingForwards} ${plForm(res.pendingForwards, "przekierowanie czeka", "przekierowania czekają", "przekierowań czeka")} na potwierdzenie linkiem.`);
     }
     if (res.hint && !res.write?.ok) parts.push(res.hint);
     return {

@@ -7,6 +7,7 @@ import { ImpersonateButton } from "./impersonate-button";
 import { CreditWalletButton } from "./credit-wallet-button";
 import { CreateCustomerButton } from "./create-customer-button";
 import { getAdminSession } from "@/lib/session";
+import { plForm } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
         <div className="flex flex-col gap-2">
           <Eyebrow>Klienci i usługi</Eyebrow>
           <h1 className="text-[32px] lg:text-[40px]">Klienci</h1>
-          {data ? <span className="text-[15px] text-muted-foreground">{data.total.toLocaleString("pl-PL")} kont (klienci, obsługa i administratorzy)</span> : null}
+          {data ? <span className="text-[15px] text-muted-foreground">{data.total.toLocaleString("pl-PL")} {plForm(data.total, "konto", "konta", "kont")} (klienci, obsługa i administratorzy)</span> : null}
         </div>
         <div className="ml-auto flex items-center gap-2.5">
           <CreateCustomerButton />

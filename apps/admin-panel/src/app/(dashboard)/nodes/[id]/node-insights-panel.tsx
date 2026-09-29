@@ -98,7 +98,7 @@ export function NodeInsightsPanel({ serverId }: { serverId: string }) {
           </h2>
           {usage ? (
             <span className="text-[10px] text-muted-foreground">
-              {usage.activeAccountCount}/{usage.accountCount} kont aktywnych
+              aktywne konta: {usage.activeAccountCount}/{usage.accountCount}
             </span>
           ) : null}
         </div>

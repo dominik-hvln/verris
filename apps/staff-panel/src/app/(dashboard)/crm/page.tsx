@@ -39,7 +39,7 @@ export default async function StaffCrmPage({
       <header>
         <h1 className="text-3xl font-bold tracking-tight text-white">Klienci</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Lista kont klientów. Użyj <strong className="text-amber-200">Panel klienta</strong>, aby zobaczyć
+          Lista kont klientów. Użyj przycisku <strong className="text-amber-200">Zaloguj jako klient</strong>, aby zobaczyć
           usługi, domeny i ustawienia tak jak użytkownik (sesja 30 min, audyt).
         </p>
       </header>

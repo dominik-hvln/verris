@@ -54,7 +54,7 @@ export async function adminApi<T = unknown>(path: string, opts: ApiOptions = {})
   }
 
   if (!res.ok) {
-    const errorMessage = extractErrorMessage(payload) ?? `Request failed with ${res.status}`;
+    const errorMessage = extractErrorMessage(payload) ?? `Żądanie nie powiodło się (HTTP ${res.status}).`;
     throw new AdminApiError(errorMessage, res.status, payload);
   }
 

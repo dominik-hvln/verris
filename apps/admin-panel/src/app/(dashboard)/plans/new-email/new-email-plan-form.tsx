@@ -173,8 +173,8 @@ export function NewEmailPlanForm() {
             description="Pokaż w cenniku panelu klienta (kafel Poczta)."
           />
         </Field>
-        <NumField label="Sort order" value={form.sortOrder} onChange={(v) => setField("sortOrder", v)} />
-        <NumField label="Trial (dni, 0=brak)" value={form.trialDays} onChange={(v) => setField("trialDays", v)} />
+        <NumField label="Kolejność" value={form.sortOrder} onChange={(v) => setField("sortOrder", v)} />
+        <NumField label="Okres próbny (dni, 0 = brak)" value={form.trialDays} onChange={(v) => setField("trialDays", v)} />
         <NumField label="SLA wsparcia (h, 0=brak)" value={form.supportSlaHours} onChange={(v) => setField("supportSlaHours", v)} />
       </Card>
 

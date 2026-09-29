@@ -32,7 +32,7 @@ const STATUS_META: Record<
 };
 
 const RISK_META: Record<RepairRisk, { label: string; cls: string }> = {
-  safe: { label: "bezinwazyjna", cls: "text-emerald-200 border-emerald-500/30 bg-emerald-500/10" },
+  safe: { label: "nieinwazyjna", cls: "text-emerald-200 border-emerald-500/30 bg-emerald-500/10" },
   caution: { label: "ostrożna", cls: "text-amber-200 border-amber-500/30 bg-amber-500/10" },
   danger: { label: "ryzykowna", cls: "text-rose-200 border-rose-500/30 bg-rose-500/10" },
 };
@@ -75,7 +75,7 @@ export function NodeAuditPanel({ serverId, serverName }: { serverId: string; ser
           </div>
           <p className="mt-1 text-xs text-muted-foreground max-w-xl">
             Walidator dwufazowy (istnienie → zgodność z planem i dokumentacją DA/CloudLinux).
-            Audyt jest <strong className="text-white">bezinwazyjny</strong> (tylko odczyt) — można go
+            Audyt jest <strong className="text-white">nieinwazyjny</strong> (tylko odczyt) — można go
             uruchomić na węźle produkcyjnym z klientami. Naprawy wykonujesz świadomie, pojedynczo.
           </p>
         </div>
@@ -387,7 +387,7 @@ function BulkSafeRepair({
           if (res.data.check) onRevalidated(res.data.check);
         }
       }
-      setDone(`Naprawiono ${ok}/${checks.length} bezpiecznych niezgodności.`);
+      setDone(`Naprawione bezpieczne niezgodności: ${ok}/${checks.length}.`);
     });
   };
 

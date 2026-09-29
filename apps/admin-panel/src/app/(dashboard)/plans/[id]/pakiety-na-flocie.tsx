@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Loader2, Send } from "lucide-react";
+import { plForm } from "@/lib/pl";
 import { pobierzPakietyFlotyAction, wyslijPakietyNaFloteAction, type PakietyFloty, type WynikSyncuFloty } from "../actions";
 
 /**
@@ -39,7 +40,8 @@ export function PakietyNaFlocie({ planId, slug }: { planId: string; slug: string
       {podglad ? (
         <p className="text-sm text-white">
           Konta tego planu: <strong>{podglad.konta}</strong> na{" "}
-          {podglad.wezly.filter((w) => w.konta > 0).length} z {podglad.wezly.length} węzłów
+          {podglad.wezly.filter((w) => w.konta > 0).length} z {podglad.wezly.length}{" "}
+          {plForm(podglad.wezly.length, "węzła", "węzłów", "węzłów")}
           {podglad.wezly.some((w) => w.konta > 0) ? (
             <span className="text-muted-foreground">
               {" "}({podglad.wezly.filter((w) => w.konta > 0).map((w) => `${w.name}: ${w.konta}`).join(", ")})
@@ -59,8 +61,9 @@ export function PakietyNaFlocie({ planId, slug }: { planId: string; slug: string
       ) : (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
           <span>
-            Nadpisze pakiety wszystkich aktywnych planów na {podglad?.wezly.length ?? 0} węzłach
-            {podglad && podglad.konta > 0 ? ` i od razu zmieni limity ${podglad.konta} kont tego planu` : ""}. Na pewno?
+            Nadpisze pakiety wszystkich aktywnych planów na {podglad?.wezly.length ?? 0}{" "}
+            {plForm(podglad?.wezly.length ?? 0, "węźle", "węzłach", "węzłach")}
+            {podglad && podglad.konta > 0 ? ` i od razu zmieni limity ${podglad.konta} ${plForm(podglad.konta, "konta", "kont", "kont")} tego planu` : ""}. Na pewno?
           </span>
           <button type="button" onClick={wyslij} disabled={pending} className="inline-flex items-center gap-1 rounded-md bg-amber-500 px-3 py-1 font-semibold text-black disabled:opacity-60">
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Tak, wyślij

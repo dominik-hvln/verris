@@ -13,7 +13,7 @@ import { PoleDaty } from "@/components/pole-daty";
 export const dynamic = "force-dynamic";
 
 const STATUS_OPTIONS: { value: AdminInvoiceStatus; label: string; tone: string }[] = [
-  { value: "DRAFT", label: "Draft", tone: "bg-neutral-500/10 text-neutral-300 border-neutral-500/30" },
+  { value: "DRAFT", label: "Szkic", tone: "bg-neutral-500/10 text-neutral-300 border-neutral-500/30" },
   { value: "OPEN", label: "Otwarta", tone: "bg-amber-500/10 text-amber-300 border-amber-500/30" },
   { value: "PAID", label: "Zapłacona", tone: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" },
   { value: "VOID", label: "Anulowana", tone: "bg-rose-500/10 text-rose-300 border-rose-500/30" },
@@ -117,7 +117,7 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
                   type="text"
                   name="search"
                   defaultValue={search ?? ""}
-                  placeholder="email, imię, nazwa firmy, VFV/2026/05/…"
+                  placeholder="e-mail, imię, nazwa firmy, VFV/2026/05/…"
                   className="bg-transparent border-none outline-none text-sm text-white w-full"
                 />
               </div>

@@ -22,6 +22,7 @@ import { WarunkiIndywidualne, type PodgladWarunkow } from "./warunki-indywidualn
 import { rozliczeniePoza, ustawWarunki, zalozUsluge } from "./warunki-actions";
 import { pobierzProfilKlienta, type ProfilKlienta } from "./profil-data";
 import { NotatkaWewnetrzna } from "./notatka-wewnetrzna";
+import { services, plForm } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
@@ -228,7 +229,7 @@ export default async function AdminCustomerCardPage({
         <Kpi
           etykieta="Usługi"
           wartosc={aktywne.length}
-          jednostka="aktywne"
+          jednostka={plForm(aktywne.length, "aktywna", "aktywne", "aktywnych")}
           opis={odnowienia[0] ? `najbliższe odnowienie ${data(odnowienia[0], false)}` : zywe.length ? `${zywe.length - aktywne.length} w innym stanie` : "brak usług"}
         />
         <Kpi etykieta="Kondycja" wartosc={kondycja} jednostka="/ 100">
@@ -239,7 +240,7 @@ export default async function AdminCustomerCardPage({
             {p.supportInsights.riskLevel === "high" ? "wysokie ryzyko odejścia" : p.supportInsights.riskLevel === "medium" ? "średnie ryzyko odejścia" : "niskie ryzyko odejścia"}
           </span>
         </Kpi>
-        <Kpi etykieta="Zgłoszenia" wartosc={otwarteZgl.length} jednostka="otwarte">
+        <Kpi etykieta="Zgłoszenia" wartosc={otwarteZgl.length} jednostka={plForm(otwarteZgl.length, "otwarte", "otwarte", "otwartych")}>
           {poTerminie[0] ? (
             <a href={zgloszenieHref(poTerminie[0].id)} className="text-[13px] font-semibold text-crit hover:underline">
               #{poTerminie[0].id.slice(0, 8)} — po terminie SLA →
@@ -317,7 +318,7 @@ export default async function AdminCustomerCardPage({
                 <LinkKarty href={`${baza}?sekcja=rozliczenia`}>Szczegóły</LinkKarty>
               </div>
               <Para k="Sposób" v={zrodla.join(", ") || "—"} />
-              <Para k="Warunki indywidualne" v={indywidualne.length ? `${indywidualne.length} ${indywidualne.length === 1 ? "usługa" : "usług(i)"}` : "brak"} />
+              <Para k="Warunki indywidualne" v={indywidualne.length ? services(indywidualne.length) : "brak"} />
               <Para k="Dane do faktury" v={u.companyName && u.nip ? `komplet · NIP ${u.nip}` : u.nip ? `NIP ${u.nip} · bez nazwy firmy` : "osoba prywatna / brak NIP"} />
               <Para k="Metoda płatności" v={p.paymentMethods.find((m) => m.isDefault) ? `${p.paymentMethods.find((m) => m.isDefault)!.brand ?? "karta"} •••• ${p.paymentMethods.find((m) => m.isDefault)!.last4 ?? ""}` : "brak zapisanej"} />
             </section>

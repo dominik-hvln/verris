@@ -53,7 +53,7 @@ export async function staffApi<T = unknown>(path: string, opts: ApiOptions = {})
   }
 
   if (!res.ok) {
-    const msg = extractError(payload) ?? `Request failed (${res.status})`;
+    const msg = extractError(payload) ?? `Żądanie nie powiodło się (HTTP ${res.status}).`;
     throw new StaffApiError(msg, res.status, payload);
   }
   return payload as T;
@@ -80,7 +80,7 @@ export async function staffApiMultipart(path: string, formData: FormData): Promi
   }
 
   if (!res.ok) {
-    const msg = extractError(payload) ?? `Request failed (${res.status})`;
+    const msg = extractError(payload) ?? `Żądanie nie powiodło się (HTTP ${res.status}).`;
     throw new StaffApiError(msg, res.status, payload);
   }
   return payload;

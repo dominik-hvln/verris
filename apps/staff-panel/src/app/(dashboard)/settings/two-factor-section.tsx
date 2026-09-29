@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Shield, ShieldCheck, Loader2, Copy, AlertCircle, Check } from "lucide-react";
+import { plForm } from "@/lib/pl";
 import {
   confirmTwoFactorAction,
   disableTwoFactorAction,
@@ -134,7 +135,9 @@ export function TwoFactorSection() {
               {status.enrolledAt
                 ? new Date(status.enrolledAt).toLocaleString("pl-PL")
                 : "—"}
-              . Pozostało <strong>{status.recoveryCodesRemaining}</strong> kodów zapasowych.
+              . {plForm(status.recoveryCodesRemaining, "Pozostał", "Pozostały", "Pozostało")}{" "}
+              <strong>{status.recoveryCodesRemaining}</strong>{" "}
+              {plForm(status.recoveryCodesRemaining, "kod zapasowy", "kody zapasowe", "kodów zapasowych")}.
             </p>
           </div>
           <button
@@ -238,7 +241,7 @@ export function TwoFactorSection() {
           <div className="space-y-3">
             <div>
               <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">
-                Sekret (manualne wprowadzenie)
+                Sekret (wprowadzenie ręczne)
               </p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-sm font-mono text-white break-all">
@@ -365,7 +368,7 @@ function RecoveryCodesPanel({
           onClick={onDismiss}
           className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white hover:bg-white/10"
         >
-          Zapisałem, ukryj
+          Zapisane, ukryj
         </button>
       </div>
     </div>

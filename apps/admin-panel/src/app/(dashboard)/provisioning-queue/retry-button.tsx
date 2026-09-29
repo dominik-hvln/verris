@@ -14,7 +14,7 @@ export function RetryButton({ jobId }: { jobId: string }) {
       <input
         value={reason}
         onChange={(event) => setReason(event.target.value)}
-        placeholder="Powód retry"
+        placeholder="Powód ponowienia"
         className="w-48 rounded-md border border-white/10 bg-black/40 px-2 py-1 text-xs text-white placeholder:text-neutral-500"
       />
       <button
@@ -33,7 +33,7 @@ export function RetryButton({ jobId }: { jobId: string }) {
         }}
         className="rounded-md border border-indigo-500/40 bg-indigo-500/10 px-3 py-1 text-xs text-indigo-200 hover:bg-indigo-500/20 disabled:opacity-50"
       >
-        {done ? "Ponowiono" : pending ? "..." : "Retry"}
+        {done ? "Ponowiono" : pending ? "..." : "Ponów"}
       </button>
       {error && <span className="text-[10px] text-red-400 max-w-[200px] truncate">{error}</span>}
     </div>

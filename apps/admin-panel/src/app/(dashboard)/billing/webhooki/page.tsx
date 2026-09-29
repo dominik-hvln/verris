@@ -1,6 +1,7 @@
 import { listWebhookEvents, type WebhookEventRow } from "./data";
 import { ReplayButton } from "./replay-button";
 import { BladStrony, wynik } from "@/components/blad-strony";
+import { plForm } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
@@ -67,7 +68,7 @@ export default async function WebhookiPage({
       {wymagaUwagi > 0 && (
         <div className="rounded-md border border-red-600/40 bg-red-500/10 p-4 text-sm text-red-100">
           <b>{wymagaUwagi}</b>{" "}
-          {wymagaUwagi === 1 ? "zdarzenie nie zostało obsłużone" : "zdarzeń nie zostało obsłużonych"}.
+          {plForm(wymagaUwagi, "zdarzenie nie zostało obsłużone", "zdarzenia nie zostały obsłużone", "zdarzeń nie zostało obsłużonych")}.
           Jeżeli dotyczą doładowania albo opłaty za subskrypcję, pieniądze mogły zostać
           pobrane, a saldo albo aktywacja nie nastąpiły.
           <p className="mt-2 text-xs text-red-200/80">
@@ -171,7 +172,7 @@ export default async function WebhookiPage({
 
       <p className="text-xs text-neutral-500">
         Ponowienia idą też automatycznie, z narastającym odstępem (1, 5, 15, 60 min). Po
-        {" "}{dane.progAlertu} nieudanych próbach albo 15 minutach od pierwszej dostawy wszyscy
+        {" "}{dane.progAlertu} {plForm(dane.progAlertu, "nieudanej próbie", "nieudanych próbach", "nieudanych próbach")} albo 15 minutach od pierwszej dostawy wszyscy
         administratorzy dostają maila. Treść zdarzenia jest kasowana 90 dni po przetworzeniu —
         wtedy ponowienie przestaje być możliwe, ale sam wiersz zostaje na zawsze, bo to on
         odrzuca powtórne dostawy.

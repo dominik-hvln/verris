@@ -14,8 +14,8 @@ export default async function StaffKnowledgePage() {
   return (
     <div className="space-y-6">
       <header>
-        <h1 className="text-3xl font-bold tracking-tight text-white">Knowledge Base</h1>
-        <p className="text-sm text-muted-foreground">Szablony odpowiedzi (canned responses) z API ticketów.</p>
+        <h1 className="text-3xl font-bold tracking-tight text-white">Baza wiedzy</h1>
+        <p className="text-sm text-muted-foreground">Szablony gotowych odpowiedzi na zgłoszenia.</p>
       </header>
       {error ? (
         <p className="text-sm text-rose-300">{error}</p>

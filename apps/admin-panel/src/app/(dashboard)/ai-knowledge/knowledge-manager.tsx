@@ -1,5 +1,6 @@
 "use client";
 
+import { plForm } from "@/lib/pl";
 import { Select } from "@/components/select";
 import { useRef, useState, useTransition, useId } from "react";
 import {
@@ -171,7 +172,7 @@ export function KnowledgeManager({
             onChange={(e) => void onFile(e.target.files?.[0])}
           />
           <span className="mt-1 block text-[11px] text-muted-foreground">
-            {content.length.toLocaleString("pl-PL")} znaków ·{" "}
+            {content.length.toLocaleString("pl-PL")} {plForm(content.length, "znak", "znaki", "znaków")} ·{" "}
             {embeddings ? "indeksowanie wektorowe (embeddings)" : "wyszukiwanie po słowach kluczowych"}
           </span>
         </label>
@@ -232,7 +233,7 @@ export function KnowledgeManager({
                     ) : null}
                   </div>
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    {doc.chunkCount} fragm. · {doc.charCount.toLocaleString("pl-PL")} znaków ·{" "}
+                    {doc.chunkCount} fragm. · {doc.charCount.toLocaleString("pl-PL")} {plForm(doc.charCount, "znak", "znaki", "znaków")} ·{" "}
                     {doc.createdByEmail ?? "—"} ·{" "}
                     {new Date(doc.createdAt).toLocaleDateString("pl-PL")}
                   </p>
