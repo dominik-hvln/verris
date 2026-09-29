@@ -294,8 +294,10 @@ Przy Z-05 zmiana skraca termin wobec 1.0.1, zaakceptowanej wyłącznie przez kon
 
 ## 7. Czego nie sprawdzono
 
-- Niczego nie uruchomiono: ani testów integracyjnych (brak Postgresa w tej sesji — raport nie zmienia kodu), ani węzła,
-  ani Stripe. Z-01 i Z-04 potwierdzone czytaniem kodu; Z-02 i Z-03 zależą od zachowania i ustawień Stripe.
+- Uruchomiono tylko strażniki, które czytają zmienione pliki: `apps/api/src/test/bez-nazwy-directadmina.spec.ts`
+  (skanuje `drafts/terms.md`, `drafts/dpa.md`) i `apps/api/src/test/kopie-30-dni.spec.ts` — zielone.
+  Testów integracyjnych nie uruchamiano (raport nie zmienia kodu; brak serwera Postgres w sesji). Nic na węźle ani
+  w Stripe. Z-01 i Z-04 potwierdzone czytaniem kodu; Z-02 i Z-03 zależą od zachowania i ustawień Stripe.
 - Produkcja: wartości `sla.creditsEnabled`, `sla.maintenanceCapMinutes`, `retencjaDni` kopii poza serwerem,
   `MIRROR_EXTERNAL_ENABLED` — nieznane z sesji w chmurze.
 - Ustawienia ponowień płatności w panelu Stripe (Z-02).
