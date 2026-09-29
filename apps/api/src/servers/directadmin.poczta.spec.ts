@@ -129,10 +129,10 @@ describe('Poczta — skrzynki (CMD_API_POP)', () => {
     expect(s.post).not.toHaveBeenCalled();
   });
 
-  it('zmiana rozmiaru nie wysyła passwd — hasło klienta zostaje nietknięte', async () => {
+  it('zmiana rozmiaru: PUSTE passwd/passwd2 (DA 1.710 bez nich odmawia; puste = hasło bez zmian)', async () => {
     const s = stanowisko();
     await s.svc.changeHostingEmailQuota('s1', 'u1', { email: 'jan@firma.pl', quotaMb: 2048 });
-    expect(s.wyslane()).toEqual({ action: 'modify', user: 'jan', domain: 'firma.pl', quota: '2048', api: 'yes' });
+    expect(s.wyslane()).toEqual({ action: 'modify', user: 'jan', newuser: 'jan', domain: 'firma.pl', passwd: '', passwd2: '', quota: '2048', api: 'yes' });
   });
 });
 

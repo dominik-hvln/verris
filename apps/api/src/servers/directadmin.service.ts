@@ -1386,12 +1386,15 @@ export class DirectAdminService {
   ) {
     const [user, domain] = input.email.split('@');
     if (!user || !domain) throw new BadRequestException('Email must be in user@domain format');
-    // ponytail: pominięcie passwd przy modify zachowuje hasło wg dokumentacji DA —
-    // potwierdzić na żywym węźle przy D3 (sprint 18).
+    // DA 1.710 (t1, 29.09): bez pól passwd/passwd2 odpowiada „wymagane jest podanie nazwy użytkownika
+    // i domeny”. PUSTE passwd/passwd2 zachowują hasło (tak robi formularz DA); newuser = ta sama nazwa.
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_POP', {
       action: 'modify',
       user,
+      newuser: user,
       domain,
+      passwd: '',
+      passwd2: '',
       quota: String(input.quotaMb),
     });
     await this.audit.record({
