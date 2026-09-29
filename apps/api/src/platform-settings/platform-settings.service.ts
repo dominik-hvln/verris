@@ -342,7 +342,7 @@ export class PlatformSettingsService {
   }> {
     const map = await this.loadMap();
     return {
-      enabled: this.readStr(map, PLATFORM_SETTING_KEYS.SLA_CREDITS_ENABLED, '0') === '1',
+      enabled: this.readStr(map, PLATFORM_SETTING_KEYS.SLA_CREDITS_ENABLED, '1') === '1',
       graceMinutes: this.readInt(map, PLATFORM_SETTING_KEYS.SLA_GRACE_MINUTES, 5, 0, 1440),
       // §15 ust. 5 — prace konserwacyjne zapowiedziane ≥48 h, łącznie ≤ 8 h/mies.
       maintenanceCapMinutes: this.readInt(

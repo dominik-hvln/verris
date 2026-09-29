@@ -43,7 +43,7 @@ import { NotificationsService } from '../notifications/notifications.service.js'
  * Ten sam unikat blokuje podwójną wypłatę, gdy kredyt przyznano dodatkowo ręcznie
  * na wniosek klienta.
  *
- * Domyślnie WYŁĄCZONE — nic nie jest kredytowane, dopóki `sla.creditsEnabled = 1`.
+ * Domyślnie WŁĄCZONE (decyzja 29.09.2026, Z-08); `sla.creditsEnabled = 0` w ustawieniach wyłącza.
  */
 /** §15 ust. 7 — minimalne wyprzedzenie zapowiedzi prac konserwacyjnych. */
 const ZAPOWIEDZ_MS = 48 * 60 * 60 * 1000;

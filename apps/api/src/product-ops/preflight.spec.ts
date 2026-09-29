@@ -49,8 +49,12 @@ describe('PROD-03 — preflight GO-LIVE', () => {
     expect(Date.now() - where.lastHeartbeatAt.gte.getTime()).toBeLessThanOrEqual(15 * 60 * 1000 + 1000);
   });
 
+  it('rekompensaty SLA: brak ustawienia = domyślnie włączone (Z-08), nie blokuje startu', async () => {
+    await expect(kontroler({ provisioning: 0, sla: null }).c.preflight()).resolves.toMatchObject({ goLiveReady: true });
+  });
+
   it('obietnice z verris.pl: wyłączone rekompensaty SLA i brak rejestratora blokują start', async () => {
-    const r = await kontroler({ provisioning: 0, sla: null, rejestrator: '' }).c.preflight();
+    const r = await kontroler({ provisioning: 0, sla: '0', rejestrator: '' }).c.preflight();
     expect(r.goLiveReady).toBe(false);
     expect(r.blockers.join(' | ')).toMatch(/SLA credits disabled[\s\S]*registrar not configured/);
   });
