@@ -1754,6 +1754,22 @@ configure_da_panel_firewall() {
 # wystarczy otworzyć UDP 443 (docs.litespeedtech.com → QUIC and HTTP/3 Support; CSF: 443 w UDP_IN).
 # Retest D3 29.09: firewalld przepuszczał tylko 53/udp, strony szły po HTTP/2.
 # -----------------------------------------------------------------------------
+# Cockpit (panel administracyjny systemu na :9090, logowanie kontami systemowymi) jest w domyślnej strefie
+# firewalld AlmaLinux — test D3 na t1 (29.09): „services: cockpit …” w strefie public. Węzeł hostingu go
+# nie używa (administracja przez SSH i control-plane), więc zamykamy port; pakietu nie ruszamy.
+configure_firewall_cockpit() {
+  [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] || return 0
+  command -v firewall-cmd >/dev/null 2>&1 && firewall-cmd --state >/dev/null 2>&1 || return 0
+  if firewall-cmd --permanent --query-service=cockpit >/dev/null 2>&1; then
+    firewall-cmd --permanent --remove-service=cockpit >/dev/null 2>&1 && firewall-cmd --reload >/dev/null 2>&1 || true
+  fi
+  if firewall-cmd --query-service=cockpit >/dev/null 2>&1; then
+    log_warn "firewalld: Cockpit (9090) nadal otwarty w strefie domyślnej"
+  else
+    log_ok "firewalld: Cockpit (9090) zamknięty z zewnątrz"
+  fi
+}
+
 configure_http3_firewall() {
   echo "--- HTTP/3: UDP 443 ---"
   if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
@@ -2012,6 +2028,7 @@ configure_litespeed_alt_php
 configure_php_expose
 configure_da_panel_firewall
 configure_http3_firewall
+configure_firewall_cockpit
 configure_suspended_page
 configure_pma_white_label
 print_lve_info

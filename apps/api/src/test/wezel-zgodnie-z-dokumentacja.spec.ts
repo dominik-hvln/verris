@@ -383,3 +383,9 @@ describe('phpMyAdmin bez nazwy serwera DirectAdmina (test D3 29.09: „DA PMA Si
     expect(uruchom(null).out).toContain('WARN phpMyAdmin');
   });
 });
+
+it('profil zamyka Cockpit (9090) w firewalld — test D3 29.09: „services: cockpit” w strefie public', () => {
+  const t = czytaj('node-hosting-profile.sh');
+  expect(t).toContain('firewall-cmd --permanent --remove-service=cockpit');
+  expect(t).toMatch(/\nconfigure_firewall_cockpit\n/);
+});
