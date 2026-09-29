@@ -23,7 +23,7 @@ E-15,sprawdzone,2026-09-29,SPF poprawny na d3.hvln.pl
 E-17,sprawdzone,2026-09-29,DMARC dodany z panelu
 E-19,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 F-01,sprawdzone,2026-09-29,lista/dodanie/edycja/usunięcie + DMARC na d3.hvln.pl
-F-02,czeka,,
+F-02,sprawdzone,2026-09-29,CAA dodany wcześniej; SRV _sip._tcp „10 5 5060 mail.d3.hvln.pl.” dodany i usunięty z panel
 F-11,sprawdzone,2026-09-29,"TTL CAA 3600→1800→3600 z panelu, strefa potwierdza"
 G-07,sprawdzone,2026-09-29,HSTS włączony w „PHP i serwer” → nagłówek strict-transport-security: max-age=31536000 na /
 G-11,czeka,,
