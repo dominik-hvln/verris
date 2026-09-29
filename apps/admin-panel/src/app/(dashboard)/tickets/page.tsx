@@ -35,7 +35,7 @@ export default async function AdminTicketsPage({ searchParams }: { searchParams:
   try {
     rows = await adminApi<AdminTicket[]>("/tickets/admin/all");
   } catch (e) {
-    error = e instanceof Error ? e.message : "Nie udało się pobrać ticketów.";
+    error = e instanceof Error ? e.message : "Nie udało się pobrać zgłoszeń.";
   }
 
   const chwila = teraz();

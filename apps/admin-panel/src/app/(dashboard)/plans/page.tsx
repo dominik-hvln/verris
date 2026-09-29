@@ -194,7 +194,7 @@ export default async function AdminPlansPage() {
             <div className="p-10 text-center text-sm text-rose-300">{error}</div>
           ) : !plans || plans.length === 0 ? (
             <div className="p-10 text-center text-sm text-muted-foreground">
-              Brak planów. Kliknij „Nowy plan” aby dodać pierwszy.
+              Brak planów. Kliknij „Nowy plan hostingu” lub „Nowy plan poczty”, aby dodać pierwszy.
             </div>
           ) : (
             <div className="overflow-x-auto">

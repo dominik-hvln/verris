@@ -368,7 +368,7 @@ function RecoveryCodesPanel({
           onClick={onDismiss}
           className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white hover:bg-white/10"
         >
-          Zapisałem, ukryj
+          Zapisane, ukryj
         </button>
       </div>
     </div>

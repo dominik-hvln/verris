@@ -66,7 +66,7 @@ export function CreateProbeForm({ servers }: Props) {
       return;
     }
     if (target.trim().length < 3) {
-      setError("Target musi mieć co najmniej 3 znaki");
+      setError("Cel musi mieć co najmniej 3 znaki.");
       return;
     }
     const slaNum = Number.parseFloat(sla);
@@ -86,7 +86,7 @@ export function CreateProbeForm({ servers }: Props) {
         isPublic,
       });
       if (!res.ok) {
-        setError(res.error ?? "Nie udało się dodać probe");
+        setError(res.error ?? "Nie udało się dodać monitora.");
         return;
       }
       setTarget("");
@@ -102,12 +102,12 @@ export function CreateProbeForm({ servers }: Props) {
     >
       <div className="flex items-center gap-2 text-white font-semibold">
         <Plus className="h-4 w-4 text-indigo-400" />
-        Dodaj probe
+        Dodaj monitor
       </div>
 
       {servers.length === 0 ? (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-          Brak serwerów. Najpierw zarejestruj serwer w sekcji „Węzły & Serwery”.
+          Brak serwerów. Najpierw zarejestruj serwer w sekcji „Węzły”.
         </div>
       ) : null}
 
@@ -124,7 +124,7 @@ export function CreateProbeForm({ servers }: Props) {
         />
       </Field>
 
-      <Field label="Typ probe" htmlFor={`${probeFieldId}-kind`}>
+      <Field label="Typ monitora" htmlFor={`${probeFieldId}-kind`}>
         <Select
           id={`${probeFieldId}-kind`}
           value={kind}
@@ -144,7 +144,7 @@ export function CreateProbeForm({ servers }: Props) {
         />
       </Field>
 
-      <Field label="Target" hint={KIND_HINTS[kind]}>
+      <Field label="Cel" hint={KIND_HINTS[kind]}>
         <input
           value={target}
           onChange={(e) => setTarget(e.target.value)}
@@ -163,15 +163,15 @@ export function CreateProbeForm({ servers }: Props) {
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Severity" htmlFor={`${probeFieldId}-severity`}>
+        <Field label="Waga" htmlFor={`${probeFieldId}-severity`}>
           <Select
             id={`${probeFieldId}-severity`}
             value={severity}
             onChange={(v) => setSeverity(v as ProbeSeverity)}
             className="w-full rounded-md bg-black/60 border border-white/10 px-2 py-2 text-white text-sm"
             options={[
-              { value: "MINOR", label: "MINOR (drobny)" },
-              { value: "MAJOR", label: "MAJOR (poważny)" },
+              { value: "MINOR", label: "Drobna (MINOR)" },
+              { value: "MAJOR", label: "Poważna (MAJOR)" },
             ]}
           />
         </Field>
@@ -209,7 +209,7 @@ export function CreateProbeForm({ servers }: Props) {
         className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-400/40 px-3 py-2.5 text-sm font-bold text-indigo-200 disabled:opacity-50"
       >
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-        Dodaj probe
+        Dodaj monitor
       </button>
     </form>
   );

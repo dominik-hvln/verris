@@ -172,7 +172,7 @@ export default async function WebhookiPage({
 
       <p className="text-xs text-neutral-500">
         Ponowienia idą też automatycznie, z narastającym odstępem (1, 5, 15, 60 min). Po
-        {" "}{dane.progAlertu} nieudanych próbach albo 15 minutach od pierwszej dostawy wszyscy
+        {" "}{dane.progAlertu} {plForm(dane.progAlertu, "nieudanej próbie", "nieudanych próbach", "nieudanych próbach")} albo 15 minutach od pierwszej dostawy wszyscy
         administratorzy dostają maila. Treść zdarzenia jest kasowana 90 dni po przetworzeniu —
         wtedy ponowienie przestaje być możliwe, ale sam wiersz zostaje na zawsze, bo to on
         odrzuca powtórne dostawy.

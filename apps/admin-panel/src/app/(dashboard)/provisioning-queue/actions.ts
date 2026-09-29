@@ -17,7 +17,7 @@ export async function retryProvisioningJob(
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof AdminApiError ? err.message : "Nie udało się ponowić joba.",
+      error: err instanceof AdminApiError ? err.message : "Nie udało się ponowić zadania.",
     };
   }
 }
@@ -41,7 +41,7 @@ export async function odrzucProvisioningJob(
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof AdminApiError ? err.message : "Nie udało się odrzucić joba.",
+      error: err instanceof AdminApiError ? err.message : "Nie udało się odrzucić zadania.",
     };
   }
 }

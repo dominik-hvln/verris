@@ -1,3 +1,4 @@
+import { plForm } from "@/lib/pl";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, AlertCircle } from "lucide-react";
@@ -141,7 +142,7 @@ export default async function ServerDetailPage({
           <Kpi
             etykieta="CPU realne"
             wartosc={z.cpu.proc ?? "—"}
-            jednostka={z.cpu.rdzenie ? `% z ${z.cpu.rdzenie} rdzeni` : "% — brak liczby rdzeni"}
+            jednostka={z.cpu.rdzenie ? `% z ${z.cpu.rdzenie} ${plForm(z.cpu.rdzenie, "rdzenia", "rdzeni", "rdzeni")}` : "% — brak liczby rdzeni"}
             opis={z.cpu.proc == null ? (z.konta.razem === 0 ? "brak kont — zużycie (LVE) pojawi się po pierwszym koncie" : "brak próbek z ostatnich 10 min") : `sprzedane ${z.cpu.sprzedane?.toLocaleString("pl-PL") ?? "—"}× · limit ${z.cpu.limit.toLocaleString("pl-PL")}×`}
           >
             <Pasek proc={z.cpu.proc ?? 0} ton={(z.cpu.proc ?? 0) >= 60 ? "warn" : "ok"} />

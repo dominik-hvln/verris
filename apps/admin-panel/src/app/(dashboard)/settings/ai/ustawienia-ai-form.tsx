@@ -1,5 +1,6 @@
 'use client';
 
+import { plForm } from "@/lib/pl";
 import { useState, useTransition } from 'react';
 import { Bot, Loader2, Plus, Save } from 'lucide-react';
 import { Select } from '@/components/select';
@@ -133,7 +134,8 @@ export function UstawieniaAiForm({ initial }: { initial: UstawieniaAi }) {
         <p className="text-[11px] text-neutral-400">
           Liczą się czat klienta i prognozy zasobów. Praca obsługi nie ma limitu i nie zjada limitu klienta.
           {kosztCzatu && konf.limitKlientaUsd > 0 ? (
-            <> Przy obecnym modelu to ok. <strong className="text-white">{Math.floor(konf.limitKlientaUsd / kosztCzatu).toLocaleString('pl-PL')}</strong> pytań w czacie miesięcznie.</>
+            <> Przy obecnym modelu to ok. <strong className="text-white">{Math.floor(konf.limitKlientaUsd / kosztCzatu).toLocaleString('pl-PL')}</strong>{' '}
+              {plForm(Math.floor(konf.limitKlientaUsd / kosztCzatu), 'pytanie', 'pytania', 'pytań')} w czacie miesięcznie.</>
           ) : null}
         </p>
       </div>

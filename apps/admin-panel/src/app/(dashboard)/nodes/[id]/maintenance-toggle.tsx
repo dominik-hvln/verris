@@ -28,7 +28,7 @@ export function MaintenanceToggle({
   const enable = () => {
     setError(null);
     if (!reason.trim()) {
-      setError("Podaj powód maintenance — będzie widoczny w audicie i komunikacie dla klienta.");
+      setError("Podaj powód maintenance — będzie widoczny w audycie i komunikacie dla klienta.");
       return;
     }
     startTransition(async () => {

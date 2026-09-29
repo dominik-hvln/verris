@@ -159,12 +159,12 @@ export function NewPlanForm() {
       <Card title="Limity LVE (CloudLinux)">
         <NumField label="CPU SPEED %" value={form.cpuLimit} onChange={(v) => setField("cpuLimit", v)} min={50} max={2000} />
         <NumField label="RAM (MB)" value={form.ramLimitMb} onChange={(v) => setField("ramLimitMb", v)} min={256} max={65536} />
-        <NumField label="Disk (MB)" value={form.diskLimitMb} onChange={(v) => setField("diskLimitMb", v)} min={1024} />
+        <NumField label="Dysk (MB)" value={form.diskLimitMb} onChange={(v) => setField("diskLimitMb", v)} min={1024} />
         <NumField label="I/O (kbps)" value={form.ioLimitKbps} onChange={(v) => setField("ioLimitKbps", v)} min={1024} />
         <NumField label="IOPS" value={form.iopsLimit} onChange={(v) => setField("iopsLimit", v)} min={64} />
         <NumField label="EP" value={form.entryProcesses} onChange={(v) => setField("entryProcesses", v)} min={1} max={2000} hint="NPROC > EP+15" />
         <NumField label="NPROC" value={form.nprocLimit} onChange={(v) => setField("nprocLimit", v)} min={16} max={4000} />
-        <NumField label="Included transfer (GB)" value={form.includedTransferGb} onChange={(v) => setField("includedTransferGb", v)} min={0} optional />
+        <NumField label="Transfer w cenie (GB)" value={form.includedTransferGb} onChange={(v) => setField("includedTransferGb", v)} min={0} optional />
       </Card>
 
       <Card title="Ceny">
@@ -237,8 +237,8 @@ export function NewPlanForm() {
         <Field label="Publiczny">
           <ToggleRow checked={form.isPublic} onChange={(v) => setField("isPublic", v)} description="Pokaż w cenniku panelu klienta." />
         </Field>
-        <NumField label="Sort order" value={form.sortOrder} onChange={(v) => setField("sortOrder", v)} />
-        <NumField label="Trial (dni, 0=brak)" value={form.trialDays} onChange={(v) => setField("trialDays", v)} />
+        <NumField label="Kolejność" value={form.sortOrder} onChange={(v) => setField("sortOrder", v)} />
+        <NumField label="Okres próbny (dni, 0 = brak)" value={form.trialDays} onChange={(v) => setField("trialDays", v)} />
         <NumField label="SLA wsparcia (h, 0=brak)" value={form.supportSlaHours} onChange={(v) => setField("supportSlaHours", v)} />
       </Card>
 

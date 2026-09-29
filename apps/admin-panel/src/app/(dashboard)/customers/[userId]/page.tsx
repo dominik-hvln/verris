@@ -22,7 +22,7 @@ import { WarunkiIndywidualne, type PodgladWarunkow } from "./warunki-indywidualn
 import { rozliczeniePoza, ustawWarunki, zalozUsluge } from "./warunki-actions";
 import { pobierzProfilKlienta, type ProfilKlienta } from "./profil-data";
 import { NotatkaWewnetrzna } from "./notatka-wewnetrzna";
-import { services } from "@/lib/pl";
+import { services, plForm } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
@@ -229,7 +229,7 @@ export default async function AdminCustomerCardPage({
         <Kpi
           etykieta="Usługi"
           wartosc={aktywne.length}
-          jednostka="aktywne"
+          jednostka={plForm(aktywne.length, "aktywna", "aktywne", "aktywnych")}
           opis={odnowienia[0] ? `najbliższe odnowienie ${data(odnowienia[0], false)}` : zywe.length ? `${zywe.length - aktywne.length} w innym stanie` : "brak usług"}
         />
         <Kpi etykieta="Kondycja" wartosc={kondycja} jednostka="/ 100">
@@ -240,7 +240,7 @@ export default async function AdminCustomerCardPage({
             {p.supportInsights.riskLevel === "high" ? "wysokie ryzyko odejścia" : p.supportInsights.riskLevel === "medium" ? "średnie ryzyko odejścia" : "niskie ryzyko odejścia"}
           </span>
         </Kpi>
-        <Kpi etykieta="Zgłoszenia" wartosc={otwarteZgl.length} jednostka="otwarte">
+        <Kpi etykieta="Zgłoszenia" wartosc={otwarteZgl.length} jednostka={plForm(otwarteZgl.length, "otwarte", "otwarte", "otwartych")}>
           {poTerminie[0] ? (
             <a href={zgloszenieHref(poTerminie[0].id)} className="text-[13px] font-semibold text-crit hover:underline">
               #{poTerminie[0].id.slice(0, 8)} — po terminie SLA →

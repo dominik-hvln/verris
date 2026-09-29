@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, AlertCircle, Cpu, MemoryStick, HardDrive, Gauge, Ban } from "lucide-react";
 import type { ServerSummaryDto } from "@verris/contracts";
 import { fetchServers } from "../actions";
-import { nodes as nodesLabel } from "@/lib/pl";
+import { nodes as nodesLabel, plForm } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +55,7 @@ export default async function FleetCapacityPage() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center gap-3">
         <Link href="/nodes" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-white">
-          <ArrowLeft className="h-4 w-4" /> Węzły &amp; serwery
+          <ArrowLeft className="h-4 w-4" /> Węzły
         </Link>
       </div>
 
@@ -84,13 +84,15 @@ export default async function FleetCapacityPage() {
           <p className="text-xs text-muted-foreground">Konta na flocie</p>
           <p className="mt-1 text-2xl font-semibold text-white">{totals.accounts}</p>
           <p className="text-xs text-muted-foreground mt-1">
-            {freeSlots != null ? `~${freeSlots} jeszcze się zmieści` : "brak danych do estymacji"}
+            {freeSlots != null ? `~${freeSlots} ${plForm(freeSlots, "jeszcze się zmieści", "jeszcze się zmieszczą", "jeszcze się zmieści")}` : "brak danych do estymacji"}
           </p>
         </div>
         <div className="rounded-xl border border-white/5 bg-black/30 backdrop-blur-md p-4">
           <p className="text-xs text-muted-foreground">Cordon (wstrzymane)</p>
           <p className={`mt-1 text-2xl font-semibold ${cordoned > 0 ? "text-amber-300" : "text-white"}`}>{cordoned}</p>
-          <p className="text-xs text-muted-foreground mt-1">z {nodes.length} hostujących</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            z {nodes.length} {plForm(nodes.length, "hostującego", "hostujących", "hostujących")}
+          </p>
         </div>
       </section>
 
@@ -142,8 +144,8 @@ function NodeRow({ server: s }: { server: ServerSummaryDto }) {
             </span>
           ) : null}
           <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-neutral-300">
-            {accounts}
-            {s.maxAccounts != null ? ` / ${s.maxAccounts}` : ""} kont
+            konta: {accounts}
+            {s.maxAccounts != null ? ` / ${s.maxAccounts}` : ""}
           </span>
         </div>
       </div>

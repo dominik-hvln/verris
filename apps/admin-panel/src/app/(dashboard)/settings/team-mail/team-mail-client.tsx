@@ -1,5 +1,6 @@
 "use client";
 
+import { plForm } from "@/lib/pl";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, RefreshCw, Plus, KeyRound, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
@@ -133,7 +134,7 @@ export function TeamMailClient({
       }
       const r = res.result!;
       setImportResult(
-        `${dryRun ? "Podgląd" : "Import"}: ${r.created} do utworzenia / utworzono, ${r.rows.length} wierszy.`,
+        `${dryRun ? "Podgląd" : "Import"}: ${r.created} do utworzenia / utworzono, ${r.rows.length} ${plForm(r.rows.length, "wiersz", "wiersze", "wierszy")}.`,
       );
       if (!dryRun) {
         setImportCsv("");

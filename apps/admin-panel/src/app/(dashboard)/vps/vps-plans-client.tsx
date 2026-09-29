@@ -232,7 +232,7 @@ function PlanForm({
         <Field label="Dysk (GB)"><input type="number" className="ip" value={f.diskGb} onChange={(e) => set("diskGb", Number(e.target.value))} /></Field>
         <Field label="Transfer (TB)"><input type="number" className="ip" value={f.trafficTb} onChange={(e) => set("trafficTb", Number(e.target.value))} /></Field>
         <Field label="Cena/mies."><input type="number" step="0.01" className="ip" value={f.priceMonthly} onChange={(e) => set("priceMonthly", Number(e.target.value))} /></Field>
-        <Field label="Sort"><input type="number" className="ip" value={f.sortOrder} onChange={(e) => set("sortOrder", Number(e.target.value))} /></Field>
+        <Field label="Kolejność"><input type="number" className="ip" value={f.sortOrder} onChange={(e) => set("sortOrder", Number(e.target.value))} /></Field>
         <Field label="Publiczny" htmlFor={`${vpsFieldId}-public`}>
           <Select id={`${vpsFieldId}-public`} className="ip" value={f.isPublic ? "1" : "0"} onChange={(v) => set("isPublic", v === "1")}
             options={[{ value: "1", label: "Tak" }, { value: "0", label: "Nie" }]} />

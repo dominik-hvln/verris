@@ -228,7 +228,7 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
             className="form-input"
           />
         </Field>
-        <Field label="Slug (read-only)">
+        <Field label="Slug (tylko do odczytu)">
           <input value={plan.slug} disabled className="form-input opacity-50" />
         </Field>
         <Field label="Opis publiczny" wide>
@@ -264,7 +264,7 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
             className="form-input"
           />
         </Field>
-        <Field label="Disk (MB)">
+        <Field label="Dysk (MB)">
           <input
             type="number"
             min={1024}
@@ -319,7 +319,7 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
             className="form-input"
           />
         </Field>
-        <Field label="Included transfer (GB)">
+        <Field label="Transfer w cenie (GB)">
           <input
             type="number"
             min={0}
@@ -470,7 +470,7 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
             description="Pokaż w cenniku panelu klienta."
           />
         </Field>
-        <Field label="Sort order">
+        <Field label="Kolejność">
           <input
             type="number"
             value={state.sortOrder}

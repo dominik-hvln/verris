@@ -1,3 +1,4 @@
+import { plForm } from "@/lib/pl";
 import { getRuntimeErrors } from "./data";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +24,7 @@ export default async function RuntimeErrorsPage() {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[28px] lg:text-[34px]">Błędy runtime</h1>
+          <h1 className="text-[28px] lg:text-[34px]">Błędy aplikacji</h1>
           <p className="text-sm text-muted-foreground">
             Ostatnie błędy serwera (5xx). Pełna historia i triage w GlitchTip.
           </p>
@@ -49,7 +50,9 @@ export default async function RuntimeErrorsPage() {
           <div className="flex flex-wrap gap-3">
             <div className="rounded-xl border border-border px-4 py-3">
               <div className="text-2xl font-bold">{data.summary.total}</div>
-              <div className="text-xs text-muted-foreground">błędów łącznie (od startu)</div>
+              <div className="text-xs text-muted-foreground">
+                {plForm(data.summary.total, "błąd", "błędy", "błędów")} łącznie (od startu)
+              </div>
             </div>
             {data.summary.byType.slice(0, 6).map((t) => (
               <div key={t.type} className="rounded-xl border border-border px-4 py-3">

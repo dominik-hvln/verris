@@ -1,3 +1,4 @@
+import { plForm } from "@/lib/pl";
 import Link from 'next/link';
 import { BarChart3, Download } from 'lucide-react';
 import { getAutoscalingRevenueReport } from '../actions';
@@ -62,7 +63,7 @@ export default async function AutoscalingRevenuePage() {
           {Number(report.byResource.unallocatedLegacy) > 0 ? (
             <p className="text-xs text-amber-200/90">
               Starsze naliczenia bez rozbicia: {report.byResource.unallocatedLegacy}{' '}
-              {report.currency} ({report.chargeCount} transakcji w okresie).
+              {report.currency} ({report.chargeCount} {plForm(report.chargeCount, "transakcja", "transakcje", "transakcji")} w okresie).
             </p>
           ) : null}
           <section className="rounded-2xl border border-white/10 bg-black/35 p-5">

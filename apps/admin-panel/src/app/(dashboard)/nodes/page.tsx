@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Plus, Gauge } from "lucide-react";
 import type { ServerSummaryDto } from "@verris/contracts";
 import { adminApi } from "@/lib/api";
-import { plural } from "@/lib/pl";
+import { plural, plForm } from "@/lib/pl";
 import { Eyebrow, KARTA, Pasek, Pigulka, PRZYCISK, PRZYCISK_GLOWNY, WIERSZ } from "@/components/v2";
 import { fetchServers } from "./actions";
 import { FleetUpdateButton } from "./fleet-update-button";
@@ -73,7 +73,7 @@ export default async function AdminNodesPage() {
           <h1 className="text-[32px] lg:text-[40px]">Węzły</h1>
           <div className="flex flex-wrap items-center gap-2 text-[15px] text-muted-foreground">
             <span>
-              {plural(wiersze.length, "węzeł", "węzły", "węzłów")} · {dziala} działa
+              {plural(wiersze.length, "węzeł", "węzły", "węzłów")} · {dziala} {plForm(dziala, "działa", "działają", "działa")}
             </span>
             {(["PENDING_APPROVAL", "INIT", "MAINTENANCE", "OFFLINE"] as const).map((k) =>
               liczby[k] ? (

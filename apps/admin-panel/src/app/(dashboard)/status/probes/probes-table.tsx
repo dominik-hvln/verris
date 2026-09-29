@@ -38,9 +38,9 @@ export function ProbesTable({ probes, servers }: Props) {
   if (probes.length === 0) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-10 text-center">
-        <p className="text-base font-semibold text-white">Brak probes</p>
+        <p className="text-base font-semibold text-white">Brak monitorów</p>
         <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-          Dodaj pierwszą probe po prawej. Bez probes ani publiczna strona statusu, ani engine
+          Dodaj pierwszy monitor po prawej. Bez monitorów ani publiczna strona statusu, ani automat
           incydentów nie zaczną pracować.
         </p>
       </div>
@@ -53,9 +53,9 @@ export function ProbesTable({ probes, servers }: Props) {
         <thead className="border-b border-white/5 bg-white/[0.02]">
           <tr className="text-left text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
             <th className="px-4 py-3">Serwer</th>
-            <th className="px-4 py-3">Kind</th>
-            <th className="px-4 py-3">Target</th>
-            <th className="px-4 py-3">Severity</th>
+            <th className="px-4 py-3">Typ</th>
+            <th className="px-4 py-3">Cel</th>
+            <th className="px-4 py-3">Waga</th>
             <th className="px-4 py-3">SLA</th>
             <th className="px-4 py-3">Stan</th>
             <th className="px-4 py-3 text-right">Akcje</th>
@@ -124,7 +124,7 @@ function ProbeRow({ probe, serverName }: { probe: ProbeDto; serverName: string }
   };
 
   const onDelete = async () => {
-    if (!(await potwierdz(`Usunąć probe ${KIND_LABELS[probe.kind]} → ${probe.target}?`, { akcja: 'Usuń', niebezpieczne: true }))) return;
+    if (!(await potwierdz(`Usunąć monitor ${KIND_LABELS[probe.kind]} → ${probe.target}?`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     startTransition(async () => {
       const res = await deleteProbe(probe.id);
       if (!res.ok) setError(res.error ?? "Nie udało się usunąć");
@@ -310,7 +310,7 @@ function ProbeStateBadge({
       )}
       {failures > 0 && (
         <span className="inline-flex items-center rounded-full border border-rose-400/30 bg-rose-400/10 px-2 py-0.5 font-bold text-rose-200">
-          {failures}× fail
+          nieudane: {failures}
         </span>
       )}
     </div>

@@ -120,7 +120,7 @@ export function AdminDashboardReal({ o }: { o: AdminDashboardOverview }) {
             <Pasek proc={u.wszystkie ? Math.round((u.aktywne / u.wszystkie) * 100) : 0} />
           </div>
           <span className="text-[13px] text-muted-foreground">
-            {u.zakladane} zakładane · {plural(u.zawieszone, "zawieszona", "zawieszone", "zawieszonych")}
+            {u.zakladane} {plForm(u.zakladane, "zakładana", "zakładane", "zakładanych")} · {plural(u.zawieszone, "zawieszona", "zawieszone", "zawieszonych")}
           </span>
         </div>
         <div className="flex flex-col gap-2.5 border-line px-5 py-[18px] max-xl:border-t xl:border-l">
@@ -136,7 +136,7 @@ export function AdminDashboardReal({ o }: { o: AdminDashboardOverview }) {
           <Eyebrow>Zgłoszenia</Eyebrow>
           <div>
             <span className="font-display text-[30px] font-bold tracking-[-0.02em]">{z.otwarte}</span>
-            <span className="ml-1.5 font-mono text-xs text-muted-foreground">otwarte</span>
+            <span className="ml-1.5 font-mono text-xs text-muted-foreground">{plForm(z.otwarte, "otwarte", "otwarte", "otwartych")}</span>
           </div>
           <div className="mt-2.5 flex flex-wrap gap-1.5">
             {z.poTerminie > 0 ? (

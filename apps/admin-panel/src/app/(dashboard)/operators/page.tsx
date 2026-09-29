@@ -64,7 +64,7 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
                   type="text"
                   name="search"
                   defaultValue={search ?? ""}
-                  placeholder="email, imię, nazwisko"
+                  placeholder="e-mail, imię, nazwisko"
                   className="bg-transparent border-none outline-none text-sm text-white w-full"
                 />
               </div>

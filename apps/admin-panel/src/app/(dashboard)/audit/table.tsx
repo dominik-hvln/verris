@@ -23,7 +23,7 @@ export function AuditTable({ rows, page, totalPages, totalRows, limit }: Props) 
         <p className="text-base font-semibold text-white">Brak zdarzeń</p>
         <p className="mt-2 text-sm text-muted-foreground">
           Nie znaleziono żadnych logów dla tych filtrów. Spróbuj poszerzyć zakres lub
-          wyczyść kryteria.
+          wyczyścić kryteria.
         </p>
       </div>
     );

@@ -177,7 +177,7 @@ export default async function AdminSubscriptionDetailPage({ params }: { params: 
           ) : null}
 
           <div className="rounded-xl border border-white/10 bg-black/35 p-4">
-            <h2 className="text-sm font-semibold text-white mb-3">Timeline migracji</h2>
+            <h2 className="text-sm font-semibold text-white mb-3">Przebieg migracji</h2>
             {migrations.length === 0 ? (
               <p className="text-sm text-muted-foreground">Brak zdarzeń migracji.</p>
             ) : (
@@ -187,7 +187,7 @@ export default async function AdminSubscriptionDetailPage({ params }: { params: 
                     <p className="font-medium text-white">{row.type}</p>
                     <p className="text-muted-foreground">{new Date(row.createdAt).toLocaleString("pl-PL")}</p>
                     {row.details?.ticketId ? (
-                      <p className="text-neutral-400">Ticket: {String(row.details.ticketId)}</p>
+                      <p className="text-neutral-400">Zgłoszenie: {String(row.details.ticketId)}</p>
                     ) : null}
                   </div>
                 ))}

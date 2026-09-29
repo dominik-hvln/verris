@@ -1,5 +1,6 @@
 "use client";
 
+import { plForm } from "@/lib/pl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
@@ -105,7 +106,7 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
         {
           name: "Węzły",
           ikona: "wezly",
-          licznik: l?.wezlyUwaga ? `${l.wezlyUwaga} uwaga` : undefined,
+          licznik: l?.wezlyUwaga ? `${l.wezlyUwaga} ${plForm(l.wezlyUwaga, "wymaga uwagi", "wymagają uwagi", "wymaga uwagi")}` : undefined,
           ostrzezenie: true,
           pod: [
             { name: "Węzły", href: "/nodes", perm: "NODES_VIEW" },
@@ -132,7 +133,7 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
           pod: [
             { name: "Monitory (status)", href: "/status/probes", perm: "NODES_VIEW" },
             { name: "Historia incydentów", href: "/status/incidents", perm: "NODES_VIEW" },
-            { name: "Błędy runtime", href: "/observability/errors", perm: "NODES_VIEW" },
+            { name: "Błędy aplikacji", href: "/observability/errors", perm: "NODES_VIEW" },
           ],
         },
       ],
@@ -450,6 +451,6 @@ function StatusFloty({ l }: { l: LicznikiMenu | null }) {
   const { razem, dziala } = l.flota;
   if (razem === 0) return <Pigulka ton="muted">Brak węzłów</Pigulka>;
   if (dziala === razem) return <Pigulka ton="ok">Flota działa · {dziala}/{razem}</Pigulka>;
-  return <Pigulka ton={dziala === 0 ? "crit" : "warn"}>Flota · {dziala}/{razem} działa</Pigulka>;
+  return <Pigulka ton={dziala === 0 ? "crit" : "warn"}>Flota · działa {dziala}/{razem}</Pigulka>;
 }
 

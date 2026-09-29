@@ -19,7 +19,7 @@ export default async function StatusProbesPage() {
         <div>
           <h1 className="flex items-center gap-3 text-[28px] lg:text-[34px]">
             <Activity className="h-7 w-7 text-indigo-400" />
-            Status & Probes
+            Monitory usług
           </h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
             Konfiguracja monitorów dostępności (HTTP/HTTPS/SMTP/IMAP/POP3/MySQL/SSH/DA-API/DNS).
@@ -32,7 +32,7 @@ export default async function StatusProbesPage() {
       {!probesResult.ok && (
         <div className="flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
           <AlertCircle className="h-4 w-4" />
-          <span>Nie udało się pobrać probes: {probesResult.error}</span>
+          <span>Nie udało się pobrać monitorów: {probesResult.error}</span>
         </div>
       )}
       {!serversResult.ok && (
@@ -40,7 +40,7 @@ export default async function StatusProbesPage() {
           <AlertCircle className="h-4 w-4" />
           <span>
             Nie udało się pobrać listy serwerów: {serversResult.error}. Bez serwerów nie da się
-            dodać nowej probe.
+            dodać nowego monitora.
           </span>
         </div>
       )}

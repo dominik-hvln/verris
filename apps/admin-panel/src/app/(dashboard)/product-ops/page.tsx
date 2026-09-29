@@ -1,9 +1,12 @@
+import { plForm, plural } from "@/lib/pl";
 import { getProductOpsDashboard } from "./data";
 import { Announcements, Maintenance } from "./notices";
 import { FeatureFlags } from "./flags";
 import { BladStrony, wynik } from "@/components/blad-strony";
 
 export const dynamic = "force-dynamic";
+
+const rekordy = (n: number) => plural(n, "rekord", "rekordy", "rekordów");
 
 export default async function ProductOpsPage() {
   const w = await wynik(getProductOpsDashboard());
@@ -14,7 +17,7 @@ export default async function ProductOpsPage() {
       <header>
         <h1 className="text-[28px] lg:text-[34px]">Product Ops / NOC</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          GO-LIVE preflight, feature flags, changelog i maintenance calendar.
+          Gotowość do startu (preflight GO-LIVE), flagi funkcji, ogłoszenia i kalendarz prac serwisowych.
         </p>
       </header>
 
@@ -30,12 +33,12 @@ export default async function ProductOpsPage() {
             <h2 className="font-semibold">Preflight GO-LIVE</h2>
             <p className="text-sm text-muted-foreground">
               {data.preflight.goLiveReady
-                ? "Brak blockerów technicznych w kluczowych obszarach."
+                ? "Brak blokerów technicznych w kluczowych obszarach."
                 : "Wymagana interwencja przed promocją na LIVE."}
             </p>
           </div>
           <span className="text-2xl font-bold">
-            {data.preflight.goLiveReady ? "READY" : "BLOCKED"}
+            {data.preflight.goLiveReady ? "GOTOWE" : "ZABLOKOWANE"}
           </span>
         </div>
         {data.preflight.blockers.length > 0 && (
@@ -56,7 +59,7 @@ export default async function ProductOpsPage() {
       </section>
 
       <section className="grid gap-4">
-        <Panel title="Feature flags">
+        <Panel title="Flagi funkcji">
           <FeatureFlags rows={data.flags} />
         </Panel>
       </section>
@@ -74,7 +77,7 @@ export default async function ProductOpsPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Capacity planner">
+        <Panel title="Planowanie pojemności">
           {data.capacity.slice(0, 10).map((row) => (
             <Row
               key={row.id}
@@ -84,31 +87,31 @@ export default async function ProductOpsPage() {
           ))}
           {data.capacity.length === 0 && <Empty />}
         </Panel>
-        <Panel title="Anomaly board">
-          <Row title="Open incidents" meta={`${data.anomalies.openIncidents.length} aktywnych`} />
-          <Row title="Failed migrations 24h" meta={`${data.anomalies.failedMigrations.length} rekordów`} />
-          <Row title="Failed provisioning 24h" meta={`${data.anomalies.failedProvisioning.length} rekordów`} />
-          <Row title="Usage spikes 24h" meta={`${data.anomalies.usageSpikes.length} rekordów`} />
+        <Panel title="Anomalie">
+          <Row title="Otwarte incydenty" meta={`${data.anomalies.openIncidents.length} ${plForm(data.anomalies.openIncidents.length, "aktywny", "aktywne", "aktywnych")}`} />
+          <Row title="Nieudane migracje (24 h)" meta={rekordy(data.anomalies.failedMigrations.length)} />
+          <Row title="Nieudane zakładanie usług (24 h)" meta={rekordy(data.anomalies.failedProvisioning.length)} />
+          <Row title="Skoki zużycia (24 h)" meta={rekordy(data.anomalies.usageSpikes.length)} />
         </Panel>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <Panel title="Status webhooks">
+        <Panel title="Webhooki — stan">
           {data.webhooks.slice(0, 8).map((hook) => (
             <Row
               key={hook.id}
               title={hook.url}
-              meta={`${hook.isActive ? "ACTIVE" : "OFF"} · ${hook.events.join(", ")} · ${hook._count.deliveries} deliveries`}
+              meta={`${hook.isActive ? "aktywny" : "wyłączony"} · ${hook.events.join(", ")} · ${hook._count.deliveries} ${plForm(hook._count.deliveries, "dostawa", "dostawy", "dostaw")}`}
             />
           ))}
           {data.webhooks.length === 0 && <Empty />}
         </Panel>
-        <Panel title="Webhook deliveries">
+        <Panel title="Dostawy webhooków">
           {data.deliveries.slice(0, 8).map((delivery) => (
             <Row
               key={delivery.id}
               title={`${delivery.event} → ${delivery.endpoint.url}`}
-              meta={`${delivery.status} · attempts ${delivery.attempts}${
+              meta={`${delivery.status} · próby: ${delivery.attempts}${
                 delivery.lastError ? ` · ${delivery.lastError}` : ""
               }`}
             />

@@ -16,7 +16,7 @@ export function IncidentsTable({ incidents }: Props) {
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-10 text-center">
         <p className="text-base font-semibold text-white">Brak incydentów</p>
         <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-          Świetnie. W tym oknie engine nie wykrył 2 kolejnych nieudanych probes na żadnej z
+          Świetnie. W tym oknie automat nie wykrył 2 kolejnych nieudanych sprawdzeń na żadnej z
           aktywnych usług.
         </p>
       </div>
@@ -28,8 +28,8 @@ export function IncidentsTable({ incidents }: Props) {
       <table className="w-full text-sm">
         <thead className="border-b border-white/5 bg-white/[0.02]">
           <tr className="text-left text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
-            <th className="px-4 py-3">Serwer / Probe</th>
-            <th className="px-4 py-3">Severity</th>
+            <th className="px-4 py-3">Serwer / monitor</th>
+            <th className="px-4 py-3">Waga</th>
             <th className="px-4 py-3">Status</th>
             <th className="px-4 py-3">Czas trwania</th>
             <th className="px-4 py-3">Treść</th>

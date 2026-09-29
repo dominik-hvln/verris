@@ -162,7 +162,7 @@ export function MigrationDetailClient({ initial }: { initial: MigrationDetail })
         <div className="flex items-center justify-between">
           <StatusBadge status={detail.status} />
           <span className="text-xs text-muted-foreground">
-            {done}/{jobs.length} kroków · aktualizacja {new Date(detail.updatedAt).toLocaleString("pl-PL")}
+            ukończone kroki: {done}/{jobs.length} · aktualizacja {new Date(detail.updatedAt).toLocaleString("pl-PL")}
           </span>
         </div>
         <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
