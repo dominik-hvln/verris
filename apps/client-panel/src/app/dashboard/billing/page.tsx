@@ -131,7 +131,7 @@ export default async function BillingPage({
               <section>
                 <SectionHead
                   title="Historia transakcji"
-                  desc={`Ostatnie ${summary.recentTransactions.length} ruchów na portfelu.`}
+                  desc={`Ostatnie ruchy na portfelu: ${summary.recentTransactions.length}.`}
                   action={
                     <a
                       href="/api/billing/transactions.csv"

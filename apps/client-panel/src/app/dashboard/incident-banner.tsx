@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { AlertTriangle, ChevronDown, ChevronUp, ExternalLink, X } from "lucide-react";
 import { fetchMyIncidents, type UserIncident } from "./incident-banner-actions";
+import { plForm } from '@/lib/pl';
 
 const POLL_INTERVAL_MS = 60_000;
 const DISMISS_STORAGE_KEY = "verris.dismissed-incidents";
@@ -84,7 +85,7 @@ export function IncidentBanner() {
               {hasMajor
                 ? "Wykryliśmy poważne zakłócenie usługi na Twoich serwerach"
                 : "Wykryliśmy pogorszenie jakości usługi na Twoich serwerach"}
-              {visible.length > 1 ? ` (${visible.length} aktywnych)` : ""}.
+              {visible.length > 1 ? ` (${visible.length} ${plForm(visible.length, 'aktywny', 'aktywne', 'aktywnych')})` : ""}.
             </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">

@@ -54,6 +54,7 @@ import { getMonitoringStatus, type MonitoringStatus } from '../../monitoring-act
 import { fetchDomainPhp, setDomainPhp, type DomainPhpStatus } from '@/app/dashboard/php/php-actions';
 import { SIMPLE_MODE_KEY } from '../../tabs';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
+import { plForm } from '@/lib/pl';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
 const fetchHostingDnsAction = zOdpakowaniem(fetchHostingDnsActionAkcja);
@@ -303,7 +304,7 @@ export default function SitePage() {
                   <ul className="m-0 list-none rounded-[10px] border border-line bg-card p-0">
                     {(
                       [
-                        ['dns', 'Domena i DNS', aRecord ? `A → ${aRecord.value}` : ok(dns)?.fetchError ? 'nie udało się odczytać strefy' : `${records.length} rekordów w strefie`, records.length ? `${records.length} rekordów` : '—'],
+                        ['dns', 'Domena i DNS', aRecord ? `A → ${aRecord.value}` : ok(dns)?.fetchError ? 'nie udało się odczytać strefy' : `${records.length} ${plForm(records.length, 'rekord', 'rekordy', 'rekordów')} w strefie`, records.length ? `${records.length} ${plForm(records.length, 'rekord', 'rekordy', 'rekordów')}` : '—'],
                         ['ssl', 'Certyfikat SSL', sslRow?.coveredNames.length ? sslRow.coveredNames.slice(0, 3).join(', ') : 'brak certyfikatu', sslRow?.daysLeft != null ? `${sslRow.daysLeft} dni` : '—'],
                         ['db', 'Bazy danych', 'bazy są wspólne dla konta', ''],
                         ['mail', 'Poczta', boxes.length ? `${boxes.length} skrzynki w tej domenie` : 'brak skrzynek', ''],

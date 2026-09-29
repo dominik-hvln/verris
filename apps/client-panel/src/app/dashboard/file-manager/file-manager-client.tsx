@@ -43,6 +43,7 @@ import { daErrorMessage } from '@/lib/client-hosting-messages';
 import { potwierdz, zapytaj } from '@/components/panel/potwierdz';
 import { Checkbox } from '@/components/panel/checkbox';
 import { liczba } from '@/lib/liczba';
+import { plForm } from '@/lib/pl';
 
 // Akcje zwracają Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem rzucają Error z treścią.
 const fmChmod = zOdpakowaniem(fmChmodAkcja);
@@ -351,7 +352,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
   const onDeleteSelected = async () => {
     const names = Array.from(selected);
     if (names.length === 0) return;
-    if (!(await potwierdz(`Usunąć ${names.length} zaznaczonych elementów? Tej operacji nie można cofnąć.`, { akcja: 'Usuń', niebezpieczne: true }))) return;
+    if (!(await potwierdz(`Usunąć ${names.length} ${plForm(names.length, 'zaznaczony element', 'zaznaczone elementy', 'zaznaczonych elementów')}? Tej operacji nie można cofnąć.`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     await runOnSelection('Usunięto zaznaczone', (ns) => fmDelete(serviceId, path, ns));
   };
 

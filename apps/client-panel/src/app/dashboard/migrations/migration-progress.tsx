@@ -20,6 +20,7 @@ import {
 } from './types';
 import { potwierdz } from '@/components/panel/potwierdz';
 import { liczba } from '@/lib/liczba';
+import { plForm } from '@/lib/pl';
 
 interface Props {
   serviceId: string;
@@ -237,8 +238,8 @@ function IntegrityLine({ integrity }: { integrity: MigrationIntegrity }) {
     ok = integrity.match;
     text =
       integrity.sourceFiles != null
-        ? `${integrity.targetFiles}/${integrity.sourceFiles} plików`
-        : `${integrity.targetFiles} plików`;
+        ? `${integrity.targetFiles}/${integrity.sourceFiles} ${plForm(integrity.sourceFiles, 'pliku', 'plików', 'plików')}`
+        : `${integrity.targetFiles} ${plForm(integrity.targetFiles, 'plik', 'pliki', 'plików')}`;
   } else if (integrity.kind === 'mysql') {
     ok = integrity.match;
     text =
