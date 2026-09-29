@@ -8,6 +8,7 @@ import {
   type WordpressInstallResult,
   type WordpressStatus,
 } from '@/app/dashboard/services/[id]/wordpress-actions';
+import { Select } from '@/components/panel/select';
 
 interface Props {
   serviceId: string;
@@ -26,6 +27,7 @@ export default function WordpressTab({ serviceId }: Props) {
   const [siteTitle, setSiteTitle] = useState('');
   const [adminUser, setAdminUser] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
+  const [domenaWybrana, setDomenaWybrana] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<WordpressInstallResult | null>(null);
@@ -61,6 +63,7 @@ export default function WordpressTab({ serviceId }: Props) {
       siteTitle: siteTitle.trim(),
       adminUser: adminUser.trim(),
       adminEmail: adminEmail.trim(),
+      domain: domena,
     });
     setSubmitting(false);
     if ('ok' in res && res.ok) {
@@ -74,6 +77,10 @@ export default function WordpressTab({ serviceId }: Props) {
   const inflight =
     status?.task?.status === 'QUEUED' || status?.task?.status === 'RUNNING';
   const installed = status?.task?.status === 'COMPLETED';
+  // Test D3 29.09: WordPress szedł zawsze na domenę główną. Przy kilku domenach klient wybiera, na którą.
+  const domeny = status?.domains?.length ? status.domains : status?.domain ? [status.domain] : [];
+  const domena = domenaWybrana || status?.domain || '';
+  const domenaOstatniej = status?.task?.domain ?? status?.domain;
 
   if (loading) {
     return (
@@ -90,7 +97,7 @@ export default function WordpressTab({ serviceId }: Props) {
           <Globe className="h-5 w-5 text-data-hi" /> WordPress — instalacja jednym kliknięciem
         </h3>
         <p className="text-sm text-muted-foreground">
-          Postawimy WordPressa na <strong className="text-[color:var(--verris-body)]">{status?.domain}</strong> —
+          Postawimy WordPressa na <strong className="text-[color:var(--verris-body)]">{domena}</strong> —
           z bazą danych, ładnymi linkami i wtyczką LiteSpeed Cache. Zajmie ~1 minutę.
         </p>
       </div>
@@ -99,6 +106,7 @@ export default function WordpressTab({ serviceId }: Props) {
         <div className="flex items-center justify-between gap-3 rounded-[10px] border border-line bg-background px-4 py-3">
           <span className="text-sm text-[color:var(--verris-body)]">
             Ostatnia instalacja: {new Date(status.task.createdAt).toLocaleString('pl-PL')}
+            {domeny.length > 1 && domenaOstatniej ? <> · <span className="font-mono">{domenaOstatniej}</span></> : null}
           </span>
           <span
             className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${STATUS_LABEL[status.task.status]?.cls ?? ''}`}
@@ -117,9 +125,11 @@ export default function WordpressTab({ serviceId }: Props) {
 
       {installed && !result && (
         <div className="flex items-center justify-between gap-3 rounded-[10px] border border-data/28 bg-data-soft px-4 py-3">
-          <span className="text-sm text-data-hi">WordPress jest zainstalowany.</span>
+          <span className="text-sm text-data-hi">
+            WordPress jest zainstalowany{domeny.length > 1 ? <> na <span className="font-mono">{domenaOstatniej}</span></> : null}.
+          </span>
           <a
-            href={`https://${status?.domain}/wp-admin`}
+            href={`https://${domenaOstatniej}/wp-admin`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-sm text-data-hi underline"
@@ -161,6 +171,11 @@ export default function WordpressTab({ serviceId }: Props) {
             {installed ? 'Zainstaluj ponownie / na nowo' : 'Nowa instalacja'}
           </p>
           <div className="grid sm:grid-cols-2 gap-3">
+            {domeny.length > 1 ? (
+              <Field label="Domena">
+                <Select aria-label="Domena instalacji WordPressa" value={domena} onChange={setDomenaWybrana} options={domeny.map((d) => ({ value: d, label: d }))} className="w-full" />
+              </Field>
+            ) : null}
             <Field label="Tytuł witryny">
               <input value={siteTitle} onChange={(e) => setSiteTitle(e.target.value)} required placeholder="Moja strona" className="wp-input" />
             </Field>

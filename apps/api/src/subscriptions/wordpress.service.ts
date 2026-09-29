@@ -38,11 +38,14 @@ export class WordpressService {
       where: { accountId: sub.account!.id, kind: NodeTaskKind.WP_INSTALL },
       orderBy: { createdAt: 'desc' },
     });
+    const lista = await this.da.listHostingDomainsForSubscription(subscriptionId, userId).catch(() => null);
     return {
       domain: sub.account!.domain,
+      domains: lista?.domains.length ? lista.domains.map((d) => d.name) : [sub.account!.domain],
       task: task
         ? {
             id: task.id,
+            domain: String((task.payload as { domain?: unknown } | null)?.domain ?? sub.account!.domain),
             status: task.status,
             errorMessage: bladZadaniaDlaKlienta(task.errorMessage, task.outputLog),
             createdAt: task.createdAt.toISOString(),
@@ -55,7 +58,7 @@ export class WordpressService {
   async install(
     subscriptionId: string,
     userId: string,
-    input: { siteTitle: string; adminUser: string; adminEmail: string; locale?: string },
+    input: { siteTitle: string; adminUser: string; adminEmail: string; locale?: string; domain?: string },
   ) {
     const sub = await this.requireOwnedSub(subscriptionId, userId);
     const account = sub.account!;
@@ -72,7 +75,12 @@ export class WordpressService {
       throw new ConflictException('Instalacja WordPress jest już w toku dla tej usługi.');
     }
 
-    const siteTitle = input.siteTitle?.trim() || account.domain;
+    // Test D3 29.09: WordPress szedł zawsze na domenę główną — przy drugiej domenie usługi nie dało się go
+    // postawić z panelu. Domena spoza usługi odpada PRZED założeniem bazy (jak w instalatorze aplikacji).
+    const domena = input.domain?.trim()
+      ? await this.da.assertDomainOwnedBySubscription(subscriptionId, userId, input.domain)
+      : account.domain;
+    const siteTitle = input.siteTitle?.trim() || domena;
     const adminUser = (input.adminUser || '').trim();
     const adminEmail = (input.adminEmail || '').trim();
     if (!/^[a-zA-Z0-9_.@-]{3,60}$/.test(adminUser)) {
@@ -108,7 +116,7 @@ export class WordpressService {
         requestedById: userId,
         payload: {
           daUser: account.daUsername,
-          domain: account.domain,
+          domain: domena,
           dbName: db.database,
           dbUser: db.username,
           dbPass,
@@ -125,15 +133,15 @@ export class WordpressService {
       action: 'WORDPRESS_INSTALL_QUEUED',
       userId,
       actorUserId: userId,
-      details: { subscriptionId, accountId: account.id, domain: account.domain, taskId: task.id },
+      details: { subscriptionId, accountId: account.id, domain: domena, taskId: task.id },
     });
 
     // Return admin credentials ONCE — they are not retrievable later.
     return {
       ok: true as const,
       taskId: task.id,
-      domain: account.domain,
-      adminUrl: `https://${account.domain}/wp-admin`,
+      domain: domena,
+      adminUrl: `https://${domena}/wp-admin`,
       adminUser,
       adminPassword: adminPass,
       note: 'Zapisz hasło administratora — nie pokażemy go ponownie. Instalacja potrwa ~1 minutę.',
