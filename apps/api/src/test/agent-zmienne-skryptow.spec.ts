@@ -1,4 +1,6 @@
-import { readdirSync, readFileSync } from 'fs';
+import { execFileSync } from 'child_process';
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
 import { join } from 'path';
 
 /**
@@ -43,5 +45,19 @@ describe('agent zadań przekazuje wszystkie wymagane zmienne skryptów węzła',
       }
     }
     expect(braki).toEqual([]);
+  });
+
+  it('payload_env zachowuje końcowe „=” wartości (dopełnienie base64) — test D3 30.09, B-08', () => {
+    const src = readFileSync(join(SKRYPTY, 'verris-task-run.sh'), 'utf8');
+    const fn = /^payload_env\(\) \{[\s\S]*?^\}$/m.exec(src)![0];
+    const dir = mkdtempSync(join(tmpdir(), 'pe-'));
+    const job = join(dir, 'job.json');
+    writeFileSync(job, JSON.stringify({ payload: { envB64: 'eyJWIjoib2sifQ==', one: 'ab=', x: 'a=b' } }));
+    const out = execFileSync(
+      'bash',
+      ['-c', `${fn}\nRUN_ENV=(); JOB_JSON="$1"; payload_env "AS" "{'envB64':'ENV_B64','one':'ONE','x':'X'}"; printf '%s\\n' "\${RUN_ENV[@]}"`, '_', job],
+      { encoding: 'utf8' },
+    );
+    expect(out.trim().split('\n')).toEqual(['AS_ENV_B64=eyJWIjoib2sifQ==', 'AS_ONE=ab=', 'AS_X=a=b']);
   });
 });

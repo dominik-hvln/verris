@@ -173,8 +173,9 @@ fetch_task_script() {
 # payload_env <prefix> <mapping-python-dict>
 payload_env() {
   local prefix="\${1}" mapping="\${2}"
-  while IFS='=' read -r k v; do
-    [ -n "$k" ] && RUN_ENV+=("\${prefix}_\${k}=$v")
+  # cała linia „NAZWA=wartość” — read z IFS='=' ucina końcowe „=” (np. dopełnienie base64)
+  while IFS= read -r linia; do
+    [ -n "$linia" ] && RUN_ENV+=("\${prefix}_\${linia}")
   done < <(python3 -c "
 import json, sys
 p = json.load(open(sys.argv[1])).get('payload', {})
