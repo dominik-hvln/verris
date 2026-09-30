@@ -61,6 +61,7 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   'GET /agent/tasks/ssh-access/script',
   'GET /agent/tasks/stack-env',
   'GET /agent/tasks/backup-config',
+  'GET /agent/tasks/backup-retention',
   'GET /agent/tasks/onboard-live/script',
   'GET /agent/tasks/onboard-live/bundle',
   'GET /agent/tasks/wp-update/script',

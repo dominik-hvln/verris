@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger, Optional } from '@nestjs/common';
+import { retencjaOffsiteDni } from '@verris/contracts';
 import { NodeTasksService } from './node-tasks.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CryptoService } from '../common/crypto/crypto.service.js';
@@ -123,5 +124,32 @@ export class BackupOffsiteService {
       `VB_RETENTION_DAYS=${q(k.retencjaDni)}`,
       '',
     ].join('\n');
+  }
+
+  /**
+   * H-03 — retencja kopii poza serwerem per konto węzła, linia `<login> <dni>` (wybór klienta w granicach
+   * planu, min. KOPIE_OFFSITE_DNI). node-offsite-backup.sh pobiera ją co noc przed przycinaniem wersji;
+   * konto spoza listy (np. usunięte) dostaje RETENTION_DAYS floty.
+   */
+  async retencjaKontDlaWezla(serverId: string): Promise<string> {
+    const konta = await this.prisma.account.findMany({
+      where: { serverId, status: { not: 'DELETED' } },
+      select: {
+        daUsername: true,
+        subscription: {
+          select: {
+            backupSchedule: { select: { offsiteRetentionDays: true } },
+            plan: { select: { offsiteRetentionMaxDays: true } },
+          },
+        },
+      },
+      orderBy: { daUsername: 'asc' },
+    });
+    return konta
+      .map((k) => {
+        const s = k.subscription;
+        return `${k.daUsername} ${retencjaOffsiteDni(s.backupSchedule?.offsiteRetentionDays, s.plan.offsiteRetentionMaxDays)}\n`;
+      })
+      .join('');
   }
 }

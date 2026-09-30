@@ -1,4 +1,5 @@
 import { Type } from 'class-transformer';
+import { KOPIE_OFFSITE_DNI, KOPIE_OFFSITE_MAX_DNI } from '@verris/contracts';
 import {
   ArrayMaxSize,
   IsArray,
@@ -341,6 +342,11 @@ export class HarmonogramKopiiDto {
   @IsInt() @Min(0) @Max(6) dayOfWeek!: number;
   @IsBoolean() enabled!: boolean;
   @IsOptional() @IsInt() @Min(0) @Max(60) retainCount?: number;
+}
+
+/** H-03 — retencja kopii poza serwerem. Górną granicę planu sprawdza BackupScheduleService. */
+export class RetencjaOffsiteDto {
+  @IsInt() @Min(KOPIE_OFFSITE_DNI) @Max(KOPIE_OFFSITE_MAX_DNI) dni!: number;
 }
 
 /** Narzędzia WWW (.htaccess). Format ścieżek, celów, IP i domen sprawdza DirectAdminService. */

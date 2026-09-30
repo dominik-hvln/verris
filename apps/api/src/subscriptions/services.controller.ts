@@ -80,6 +80,7 @@ import {
   DostepZdalnyBazyDto,
   FiltrSpamuDto,
   HarmonogramKopiiDto,
+  RetencjaOffsiteDto,
   InstalacjaAplikacjiDto,
   KatalogDto,
   LogowanieSsoDto,
@@ -1615,6 +1616,21 @@ export class UserServicesController {
     @Body() body: HarmonogramKopiiDto,
   ) {
     return this.backupSchedule.set(id, user.userId, body);
+  }
+
+  /** H-03 — retencja kopii poza serwerem (dni) w granicach planu; węzeł stosuje ją przy nocnym przebiegu. */
+  @Get(':id/hosting-offsite-retention')
+  async hostingOffsiteRetention(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.backupSchedule.retencjaOffsite(id, user.userId);
+  }
+
+  @Post(':id/hosting-offsite-retention')
+  async setHostingOffsiteRetention(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: RetencjaOffsiteDto,
+  ) {
+    return this.backupSchedule.ustawRetencjeOffsite(id, user.userId, body.dni);
   }
 
   /** PANEL-12: statystyki konta — transfer/dysk/liczniki (DA SHOW_USER_USAGE + CONFIG). */

@@ -921,6 +921,10 @@ model Plan {
   autoscalingMaxOverscaleRam   Float @default(3)
   autoscalingMaxOverscaleDisk  Float @default(3)
 
+  // H-03 — najdłuższa retencja kopii poza serwerem, jaką klient tego planu może wybrać (dni).
+  // Minimum w cenie = KOPIE_OFFSITE_DNI (30), sufit = KOPIE_OFFSITE_MAX_DNI (90, Regulamin §10 ust. 8).
+  offsiteRetentionMaxDays      Int   @default(30)
+
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -1959,6 +1963,9 @@ model BackupSchedule {
   dayOfWeek      Int             @default(1) // 0=niedziela .. 6=sobota (dla WEEKLY)
   enabled        Boolean         @default(false)
   retainCount    Int             @default(7) // ile najnowszych kopii zostawić (0 = bez czyszczenia)
+  /// H-03 — ile dni węzeł trzyma wersje kopii konta poza serwerem (wybór klienta w granicach planu,
+  /// min. KOPIE_OFFSITE_DNI). Węzeł dostaje wartość z GET /agent/tasks/backup-retention.
+  offsiteRetentionDays Int       @default(30)
 
   lastRunAt      DateTime?
   lastStatus     String?

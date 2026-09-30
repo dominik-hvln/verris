@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Plan } from '@verris/database';
+import { KOPIE_OFFSITE_DNI } from '@verris/contracts';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { StripeService } from '../billing/stripe/stripe.service.js';
@@ -112,6 +113,7 @@ export class PlansService {
         trialDays: dto.trialDays ?? 0,
         productKind: dto.productKind ?? 'HOSTING',
         supportSlaHours: dto.supportSlaHours ?? 0,
+        offsiteRetentionMaxDays: dto.offsiteRetentionMaxDays ?? KOPIE_OFFSITE_DNI,
         stripePriceMonthlyId: manualStripe ? (dto.stripePriceMonthlyId?.trim() ?? null) : null,
         stripePriceYearlyId: manualStripe ? (dto.stripePriceYearlyId?.trim() ?? null) : null,
         autoscalingMaxOverscaleCpu: dto.autoscalingMaxOverscaleCpu ?? 3,
