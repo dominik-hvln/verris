@@ -54,7 +54,7 @@ Korzystanie z Panelu wymaga: dostępu do internetu, aktualnej wersji przeglądar
 
 1. Klient może posiadać jedno Konto, chyba że Verris wyrazi zgodę na konto dodatkowe (np. rozdzielenie działalności).
 2. Klient zobowiązany jest chronić dane logowania i niezwłocznie zgłosić Verris podejrzenie ich ujawnienia. Verris zaleca włączenie uwierzytelniania dwuskładnikowego (2FA) lub kluczy passkey; dla kont z dostępem do funkcji administracyjnych Verris może wymagać 2FA.
-3. Verris może zawiesić dostęp do Konta lub poszczególnych funkcji w przypadku: uzasadnionego podejrzenia przejęcia Konta, naruszenia Regulaminu (w trybie §17), zaległości płatniczych po upływie okresu prolongaty (§7) albo gdy obowiązek taki wynika z przepisów prawa lub decyzji uprawnionego organu. O zawieszeniu i jego przyczynie Verris informuje Klienta zgodnie z §17 ust. 6.
+3. Verris może zawiesić dostęp do Konta lub poszczególnych funkcji w przypadku: uzasadnionego podejrzenia przejęcia Konta, naruszenia Regulaminu (w trybie §17), zaległości płatniczych (§7 ust. 3) albo gdy obowiązek taki wynika z przepisów prawa lub decyzji uprawnionego organu. O zawieszeniu i jego przyczynie Verris informuje Klienta zgodnie z §17 ust. 6.
 4. Klient może w każdej chwili zażądać usunięcia Konta (Panel → Prywatność i RODO). Usunięcie Konta nie zwalnia z obowiązku zapłaty za Usługi wykonane do dnia rozwiązania Umowy. Zasady usuwania danych opisuje Polityka prywatności.
 
 ## §6. Subkonta i uprawnienia (IAM)
@@ -74,7 +74,7 @@ Korzystanie z Panelu wymaga: dostępu do internetu, aktualnej wersji przeglądar
 
 1. Subskrypcja jest zawierana na okres miesięczny albo roczny, według wyboru Klienta.
 2. Subskrypcja odnawia się automatycznie na kolejny okres tej samej długości i w aktualnej cenie z Cennika obowiązującej w dniu odnowienia, chyba że Klient wyłączy odnawianie w Panelu przed końcem bieżącego okresu. O zbliżającym się odnowieniu Verris przypomina e-mailem: co najmniej 7 dni wcześniej przy okresie rocznym i 3 dni przy miesięcznym, wskazując cenę odnowienia i sposób rezygnacji.
-3. Z zastrzeżeniem §11 ust. 7 (VPS), jeżeli automatyczne odnowienie nie powiedzie się (brak środków w Portfelu, odrzucona płatność), Verris uruchamia 7-dniowy okres prolongaty, w którym Usługa pozostaje aktywna, a Klient otrzymuje powiadomienia. Po bezskutecznym upływie prolongaty Usługa zostaje zawieszona; jeżeli w ciągu kolejnych 14 dni zaległość nie zostanie uregulowana, Umowa w zakresie tej Usługi wygasa, a dane Usługi są usuwane zgodnie z §10 ust. 8 (Hosting) albo §11 ust. 7 (VPS). Terminy usuwania danych po wygaśnięciu wskazane w rozdziale III mają pierwszeństwo.
+3. Z zastrzeżeniem §11 ust. 7 (VPS), jeżeli automatyczne odnowienie nie powiedzie się (brak środków w Portfelu, odrzucona płatność), Usługa zostaje zawieszona z końcem opłaconego okresu — przy płatności kartą niezwłocznie po nieudanej płatności — o czym Verris informuje Klienta e-mailem i w Panelu. W czasie zawieszenia strona Klienta wyświetla odwiedzającym informację o zawieszeniu, a dane Usługi pozostają nienaruszone. Uregulowanie zaległości (doładowanie Portfela albo skuteczna płatność kartą, także w ramach automatycznej ponownej próby operatora płatności) przywraca Usługę automatycznie; kolejny okres rozliczeniowy liczy się od końca poprzedniego opłaconego okresu. Jeżeli zaległość nie zostanie uregulowana w ciągu 14 dni od zawieszenia, Umowa w zakresie tej Usługi wygasa, a dane Usługi są usuwane zgodnie z §10 ust. 8 (Hosting) albo §11 ust. 7 (VPS). Terminy usuwania danych po wygaśnięciu wskazane w rozdziale III mają pierwszeństwo.
 4. Klient może w Panelu zmienić Plan lub okres rozliczeniowy aktywnej, opłaconej Subskrypcji. Różnica ceny za niewykorzystaną część okresu jest rozliczana proporcjonalnie: przy płatności z Portfela — jako dopłata albo uznanie Portfela; przy płatności kartą — w rozliczeniu operatora płatności. Zmiana okresu rozliczeniowego rozpoczyna nowy okres z chwilą zmiany.
 5. Obniżenie Planu (downgrade) z niższym limitem dysku jest niedostępne, dopóki faktyczne zużycie dysku przekracza limit docelowego Planu; Klient musi najpierw zwolnić miejsce.
 6. Przy zmianie Planu limity zasobów ustawiane są według nowego Planu bazowego, a dotychczasowe modyfikacje autoskalowania są resetowane.
@@ -116,7 +116,7 @@ Korzystanie z Panelu wymaga: dostępu do internetu, aktualnej wersji przeglądar
 ## §11. Serwery VPS
 
 1. Usługa VPS polega na udostępnieniu wirtualnego serwera prywatnego o parametrach określonych w Planie, uruchamianego na infrastrukturze chmurowej zlokalizowanej w EOG, z pełnym dostępem administracyjnym (root) dla Klienta.
-2. VPS jest usługą niezarządzaną: Klient samodzielnie administruje systemem operacyjnym, oprogramowaniem i ich bezpieczeństwem, w tym aktualizacjami. Verris odpowiada za dostępność warstwy infrastruktury (wirtualizacja, sieć, zasilanie) zgodnie z SLA.
+2. VPS jest usługą niezarządzaną: Klient samodzielnie administruje systemem operacyjnym, oprogramowaniem i ich bezpieczeństwem, w tym aktualizacjami. Verris odpowiada za dostępność warstwy infrastruktury (wirtualizacja, sieć, zasilanie); rekompensaty z §15 nie obejmują VPS.
 3. Verris nie wykonuje kopii zapasowych zawartości VPS, chyba że specyfikacja Planu wyraźnie obejmuje snapshoty lub backup — wówczas ich zakres i częstotliwość określa specyfikacja.
 4. Klient zobowiązany jest do korzystania z VPS zgodnie z §16; ze względu na pełną kontrolę Klienta nad serwerem, Klient ponosi odpowiedzialność za ruch generowany z przydzielonych adresów IP.
 5. W przypadku gdy VPS uczestniczy w atakach, masowej wysyłce spamu lub innym naruszeniu §16, Verris może niezwłocznie odizolować serwer od sieci (tryb §17).
@@ -158,7 +158,7 @@ Korzystanie z Panelu wymaga: dostępu do internetu, aktualnej wersji przeglądar
 
 ## §15. Dostępność i rekompensaty
 
-1. Verris zapewnia dostępność Usług (Hosting, VPS, infrastruktura poczty i DNS) na poziomie **99,5% w skali miesiąca kalendarzowego**, mierzoną niezależnym monitoringiem, którego wyniki są publikowane pod adresem `status.verris.pl`.
+1. Verris zapewnia dostępność Usługi Hosting (w tym poczty i DNS utrzymywanych na serwerze hostingowym tej Usługi) na poziomie **99,5% w skali miesiąca kalendarzowego**, mierzoną niezależnym monitoringiem, którego wyniki są publikowane pod adresem `status.verris.pl`.
 2. W przypadku niedotrzymania SLA w danym miesiącu Klientowi przysługuje rekompensata w Kredytach Verris, liczona od miesięcznej opłaty za dotkniętą Usługę (przy okresie rocznym — 1/12 opłaty rocznej):
 
 | Dostępność w miesiącu | Rekompensata |

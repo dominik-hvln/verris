@@ -13,6 +13,21 @@ wynik zależy od konfiguracji produkcji lub panelu Stripe, jest to napisane wpro
 
 ---
 
+## Decyzje właściciela 29–30.09.2026 (dopisek sesji z dostępem do węzła)
+
+- **Z-01** — poprawione w kodzie (kolejne nieudane ponowienie Stripe nie zmienia SUSPENDED w PAST_DUE).
+- **Z-02** — zmiana zasad zamiast dopasowania dokumentu: bez 7-dniowej prolongaty. Zawieszenie z końcem opłaconego
+  okresu (karta: po nieudanej płatności), 14 dni na zapłatę, wygaśnięcie, 14 dni retencji, usunięcie; zapłata w tym
+  czasie przywraca usługę sama. Kod: `KARENCJA_PLATNOSCI_DNI = 0` + samoczynne przywrócenie po doładowaniu portfela.
+  Dokument: `drafts/terms.md` §7 ust. 3 i §5 ust. 3. W panelu Stripe zalecane „po wyczerpaniu ponowień: zostaw
+  subskrypcję jako zaległą” — anulowanie po stronie Stripe skróciłoby 14 dni na zapłatę (ustawia właściciel).
+- **Z-08** — rekompensaty SLA włączone od startu (`sla.creditsEnabled` domyślnie 1).
+- **Z-09** — wariant B: §15 ust. 1 zawężony do Hostingu (z pocztą i DNS na serwerze hostingowym), §11 ust. 2 bez SLA dla VPS.
+- Zmiany Z-02 i Z-09 są na niekorzyść klienta względem 1.0.1 — wchodzą do 1.1.0 przed publikacją; wobec klientów
+  z akceptacją 1.0.1 obowiązuje tryb §24 (zawiadomienie 30 dni). Wymaga przeglądu prawnika.
+
+---
+
 ## 1. Stałe z kodu, które obiecują dokumenty
 
 | Stała / zachowanie | Wartość w kodzie | Gdzie w kodzie | Gdzie w dokumentach | Zgodne? |
