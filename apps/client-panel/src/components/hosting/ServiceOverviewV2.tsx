@@ -11,7 +11,6 @@ import { opisLokalizacji } from '@verris/contracts';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { EVENT_WARN, powodBlokady, serviceEventLabel } from '@/lib/service-events';
 import { ChevronRight, Loader2, Plus, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
@@ -123,7 +122,6 @@ export default function ServiceOverviewV2({
 }) {
   // N-12: moduł EKO może wyłączyć operator flagą (brak flagi = jak dotąd).
   const eco = useModul('modul.eco');
-  const router = useRouter();
   const [service, setService] = useState<ServiceDetailsDto | null>(null);
   const [bladUslugi, setBladUslugi] = useState<string | null>(null);
   const [health, setHealth] = useState<ServiceHealthSummaryDto | null>(null);
@@ -404,19 +402,24 @@ export default function ServiceOverviewV2({
                     <tr>
                       <th className="px-3 pb-2.5 pt-3 text-left font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground">Domena</th>
                       <th className="px-3 pb-2.5 pt-3 text-left font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground">Rola</th>
-                      <th />
+                      <th>
+                        <span className="sr-only">Szczegóły</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {domainList.map((d) => (
-                      <tr
-                        key={d.name}
-                        tabIndex={0}
-                        className="group cursor-pointer hover:bg-raised/50"
-                        onClick={() => router.push(`/dashboard/services/${serviceId}/sites/${encodeURIComponent(d.name)}`)}
-                        onKeyDown={(e) => e.key === 'Enter' && router.push(`/dashboard/services/${serviceId}/sites/${encodeURIComponent(d.name)}`)}
-                      >
-                        <td className="border-t border-line px-3 py-3 font-semibold text-foreground" data-label="Domena">{d.name}</td>
+                      // Cały wiersz klikalny przez rozciągnięty link (after:inset-0), a nie <tr tabIndex onClick>:
+                      // czytnik ekranu ogłasza wtedy „link, kowalski.pl” zamiast wiersza tabeli bez roli (4.1.2).
+                      <tr key={d.name} className="group relative hover:bg-raised/50">
+                        <td className="border-t border-line px-3 py-3 font-semibold text-foreground" data-label="Domena">
+                          <Link
+                            href={`/dashboard/services/${serviceId}/sites/${encodeURIComponent(d.name)}`}
+                            className="after:absolute after:inset-0 after:content-['']"
+                          >
+                            {d.name}
+                          </Link>
+                        </td>
                         <td className="border-t border-line px-3 py-3 text-muted-foreground" data-label="Rola">{d.name === primary ? 'domena główna' : 'domena dodatkowa'}</td>
                         <td data-label="" className="w-8 border-t border-line px-3 py-3 text-muted-foreground">
                           <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />

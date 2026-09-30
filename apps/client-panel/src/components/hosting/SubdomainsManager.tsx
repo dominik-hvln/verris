@@ -155,6 +155,7 @@ export default function SubdomainsManager({ serviceId }: { serviceId: string }) 
               <button
                 type="button"
                 title="Usuń poddomenę"
+                aria-label={`Usuń poddomenę ${r.subdomain}.${r.domain}`}
                 disabled={deleting === r.id}
                 onClick={() => void onDelete(r)}
                 className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-line bg-raised text-crit hover:bg-crit/12 disabled:opacity-50"

@@ -434,6 +434,8 @@ export default function MailTab({ serviceId }: Props) {
                   <button
                     type="button"
                     title="Zmień hasło"
+                    aria-label={`Zmień hasło ${box.email}`}
+                    aria-expanded={pwEditing === box.email}
                     onClick={() => {
                       setPwEditing((cur) => (cur === box.email ? null : box.email));
                       setPwValue('');
@@ -446,6 +448,7 @@ export default function MailTab({ serviceId }: Props) {
                   <button
                     type="button"
                     title="Usuń skrzynkę"
+                    aria-label={`Usuń skrzynkę ${box.email}`}
                     disabled={deleting === box.email}
                     onClick={() => void onDelete(box.email)}
                     className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-line bg-raised text-crit hover:bg-crit/12 disabled:opacity-50"

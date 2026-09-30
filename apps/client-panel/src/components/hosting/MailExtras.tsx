@@ -110,8 +110,8 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
           Adres typu alias (np. <span className="font-mono">biuro@</span>) przekazujący pocztę na jedną lub kilka skrzynek — bez zakładania osobnego konta.
         </p>
         <form onSubmit={addForward} className="mt-3 grid gap-2 sm:grid-cols-[1fr_1.4fr_auto]">
-          <input value={fwName} onChange={(e) => setFwName(e.target.value)} placeholder="alias (lewa część przed @)" className={fieldCls} />
-          <input value={fwDest} onChange={(e) => setFwDest(e.target.value)} placeholder="adres docelowy (kilka po przecinku)" className={fieldCls} />
+          <input value={fwName} onChange={(e) => setFwName(e.target.value)} aria-label="Alias (część adresu przed @)" placeholder="alias (lewa część przed @)" className={fieldCls} />
+          <input value={fwDest} onChange={(e) => setFwDest(e.target.value)} aria-label="Adresy docelowe aliasu" placeholder="adres docelowy (kilka po przecinku)" className={fieldCls} />
           <Button type="submit" disabled={fwBusy} className="h-9 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs">
             {fwBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Dodaj alias
           </Button>
@@ -131,7 +131,7 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
                   <span className="text-muted-foreground"> → </span>
                   <span className="break-words text-[color:var(--verris-body)]">{r.destinations.join(', ')}</span>
                 </div>
-                <button onClick={() => delForward(r.name)} disabled={fwDel === r.name} className="shrink-0 text-muted-foreground hover:text-crit" title="Usuń alias">
+                <button onClick={() => delForward(r.name)} disabled={fwDel === r.name} className="shrink-0 text-muted-foreground hover:text-crit" title="Usuń alias" aria-label={`Usuń alias ${r.email}`}>
                   {fwDel === r.name ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 </button>
               </div>
@@ -149,8 +149,8 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
           Automatyczna odpowiedź wysyłana z wybranej skrzynki — np. komunikat urlopowy „Wrócę 15 lipca”.
         </p>
         <form onSubmit={saveAr} className="mt-3 space-y-2">
-          <input value={arName} onChange={(e) => setArName(e.target.value)} placeholder="skrzynka (lewa część przed @, np. kontakt)" className={fieldCls} />
-          <textarea value={arText} onChange={(e) => setArText(e.target.value)} rows={3} placeholder="Treść automatycznej odpowiedzi" className={fieldCls} />
+          <input value={arName} onChange={(e) => setArName(e.target.value)} aria-label="Skrzynka z autoresponderem (część adresu przed @)" placeholder="skrzynka (lewa część przed @, np. kontakt)" className={fieldCls} />
+          <textarea value={arText} onChange={(e) => setArText(e.target.value)} rows={3} aria-label="Treść automatycznej odpowiedzi" placeholder="Treść automatycznej odpowiedzi" className={fieldCls} />
           <Button type="submit" disabled={arBusy} className="h-9 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs">
             {arBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Zapisz autoresponder
           </Button>
@@ -164,7 +164,7 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
             {arRows.map((r) => (
               <div key={r.id} className="flex items-center justify-between gap-2 rounded-[7px] border border-line bg-background px-3 py-2 text-sm">
                 <span className="font-medium text-foreground">{r.email}</span>
-                <button onClick={() => delAr(r.name)} disabled={arDel === r.name} className="shrink-0 text-muted-foreground hover:text-crit" title="Wyłącz autoresponder">
+                <button onClick={() => delAr(r.name)} disabled={arDel === r.name} className="shrink-0 text-muted-foreground hover:text-crit" title="Wyłącz autoresponder" aria-label={`Wyłącz autoresponder ${r.email}`}>
                   {arDel === r.name ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 </button>
               </div>
@@ -235,7 +235,7 @@ export function MailOchrona({ serviceId }: { serviceId: string }) {
             ]}
           />
           {caMode === 'address' && (
-            <input value={caAddr} onChange={(e) => setCaAddr(e.target.value)} placeholder="adres docelowy" className={fieldCls + ' w-full'} />
+            <input value={caAddr} onChange={(e) => setCaAddr(e.target.value)} aria-label="Adres docelowy catch-all" placeholder="adres docelowy" className={fieldCls + ' w-full'} />
           )}
           <Button onClick={saveCatchAll} disabled={caBusy} className="h-9 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs">{caBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Zapisz</Button>
         </div>
