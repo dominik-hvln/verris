@@ -27,6 +27,30 @@ describe('skrypty węzła — katalog klienta tylko jako klient', () => {
     },
   );
 
+  // Test D3 30.09: kopia WordPressa z prefiksem Redis źródła czytała jego cache (adresy starej domeny).
+  it.each([
+    ['node-site-clone.sh', /config set "\$c" "\$SC_TARGET:"/, 'search-replace "//www.$SC_SOURCE"'],
+    ['node-staging-sync.sh', /config set \$c '\$\{STAGING_HOST\}:'/, "search-replace '://${STG_DOMAIN}'"],
+  ])('%s: kopia WordPressa dostaje własny prefiks Redis po imporcie bazy', (plik, prefiks, poImporcie) => {
+    const t = czytaj(plik);
+    expect(t).toMatch(/for c in WP_REDIS_PREFIX WP_CACHE_KEY_SALT/);
+    expect(t).toMatch(prefiks);
+    expect(t.search(prefiks)).toBeGreaterThan(t.indexOf(poImporcie));
+  });
+
+  it('Memcached: po uruchomieniu instancji włącza rozszerzenie PHP memcached dla bieżącej wersji konta', () => {
+    const t = czytaj('node-memcached.sh');
+    expect(t).toMatch(/selectorctl --user-current --user="\$MC_DA_USER"/);
+    expect(t).toMatch(/selectorctl --enable-user-extensions=memcached --version="\$WERSJA" --user="\$MC_DA_USER"/);
+    expect(t.indexOf('--enable-user-extensions=memcached')).toBeGreaterThan(t.indexOf('Memcached działa dla'));
+  });
+
+  it('zmiana PHP konta włącza OPcache dla wybranej wersji, chyba że klient go wyłącza', () => {
+    const t = czytaj('node-php-apply.sh');
+    expect(t).toMatch(/selectorctl --enable-user-extensions=opcache --version="\$PHP_VERSION" --user="\$PHP_DA_USER"/);
+    expect(t).toContain('",opcache,"');
+  });
+
   it('WAF: .htaccess edytowany przez klienta (runuser), nie przez roota', () => {
     const t = czytaj('node-waf-apply.sh');
     expect(t).toMatch(/runuser -u "\$WAF_DA_USER"/);

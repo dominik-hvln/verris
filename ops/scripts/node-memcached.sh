@@ -91,5 +91,19 @@ for _ in $(seq 1 20); do
 done
 odpowiada 2>/dev/null || fail "Memcached nie odpowiada po uruchomieniu"
 log "Memcached działa dla $MC_DA_USER (${MC_MEMORY_MB} MB)"
+# Aplikacje PHP (LiteSpeed Cache, Drupal, Magento) łączą się przez rozszerzenie PHP memcached, którego
+# selektor CloudLinux domyślnie nie włącza (test D3 30.09: instancja działała, class_exists('Memcached')
+# = false). Włączamy je dla bieżącej wersji PHP konta (selectorctl, dokumentacja CloudLinux PHP Selector);
+# po zmianie wersji klient włączy je w panelu (PHP i serwer → rozszerzenia).
+if [ "${MC_SKIP_SYSTEMD:-0}" != "1" ] && command -v selectorctl >/dev/null 2>&1; then
+  WERSJA="$(selectorctl --user-current --user="$MC_DA_USER" 2>/dev/null | awk 'NR==1{print $1}')"
+  if [[ "$WERSJA" =~ ^[0-9]+\.[0-9]+$ ]]; then
+    if selectorctl --enable-user-extensions=memcached --version="$WERSJA" --user="$MC_DA_USER" >/dev/null 2>&1; then
+      log "Rozszerzenie PHP memcached włączone dla PHP $WERSJA"
+    else
+      log "UWAGA: nie udało się włączyć rozszerzenia PHP memcached dla PHP $WERSJA"
+    fi
+  fi
+fi
 echo "VERRIS_MEMCACHED_SOCKET=$SOCK"
 log "Gotowe."
