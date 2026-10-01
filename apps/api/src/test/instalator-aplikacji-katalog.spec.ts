@@ -18,6 +18,24 @@ describe('I-01 — instalator aplikacji', () => {
     expect(s).toMatch(new RegExp(`^\\s+${slug}\\)\\s`, 'm'));
   });
 
+  it('PrestaShop: paczka z najnowszego stabilnego wydania, które ją ma (9.x na GitHubie jest bez paczek — t1 01.10)', () => {
+    const f = s.slice(s.indexOf('install_prestashop() {'), s.indexOf('install_joomla() {'));
+    expect(f).not.toContain('releases/latest/download/prestashop.zip');
+    const py = f.match(/python3 -c '\n([\s\S]*?)'\)"/)![1];
+    const wydania = [
+      { tag_name: '9.2.0', prerelease: false, assets: [] },
+      { tag_name: '9.2.0-rc.1', prerelease: true, assets: [{ name: 'prestashop_9.2.0.zip', browser_download_url: 'zle' }] },
+      { tag_name: '8.2.8', prerelease: false, assets: [
+        { name: 'prestashop_8.2.8.xml', browser_download_url: 'xml' },
+        { name: 'prestashop_8.2.8.zip', browser_download_url: 'https://github.com/PrestaShop/PrestaShop/releases/download/8.2.8/prestashop_8.2.8.zip' },
+      ] },
+    ];
+    const r = spawnSync('python3', ['-c', py], { input: JSON.stringify(wydania), encoding: 'utf8' });
+    expect(r.stdout.trim()).toBe('https://github.com/PrestaShop/PrestaShop/releases/download/8.2.8/prestashop_8.2.8.zip');
+    // startowy index.php z paczki usuwany PRZED rozpakowaniem właściwych plików (inaczej ginął index.php sklepu)
+    expect(f.indexOf('rm -f index.php Install_PrestaShop.html')).toBeLessThan(f.indexOf('unzip -q -o prestashop.zip'));
+  });
+
   it('oficjalne instalatory CLI: Joomla (joomla.php install -n) i MediaWiki (run.php install)', () => {
     expect(s).toContain("installation/joomla.php install -n");
     expect(s).toContain('maintenance/run.php install');

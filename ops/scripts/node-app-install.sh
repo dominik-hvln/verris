@@ -109,11 +109,27 @@ install_nextcloud() {
 }
 
 install_prestashop() {
-  local url="https://github.com/PrestaShop/PrestaShop/releases/latest/download/prestashop.zip"
-  log "PrestaShop: pobieranie + rozpakowanie"
+  # Od 9.x wydania GitHub nie mają paczki (9.2.0: brak zasobów, t1 01.10 — „curl: (22) 404”); wersja 9
+  # jest tylko w formularzu na prestashop.com. Bierzemy najnowsze stabilne wydanie z paczką prestashop_X.Y.Z.zip
+  # (dziś gałąź 8.2, nadal wydawana) — z API wydań GitHub, jak Joomla.
+  local url
+  url="$(curl -fsSL 'https://api.github.com/repos/PrestaShop/PrestaShop/releases?per_page=30' | python3 -c '
+import json, re, sys
+for r in json.load(sys.stdin):
+    if r.get("prerelease") or r.get("draft"):
+        continue
+    a = [x["browser_download_url"] for x in r.get("assets", []) if re.fullmatch(r"prestashop_[0-9.]+\.zip", x.get("name", ""))]
+    if a:
+        print(a[0]); break')"
+  [[ "$url" =~ ^https://github\.com/PrestaShop/PrestaShop/releases/download/[0-9.]+/prestashop_[0-9.]+\.zip$ ]] \
+    || { log "Nie znaleziono paczki PrestaShop w wydaniach"; exit 1; }
+  log "PrestaShop: pobieranie + rozpakowanie ($url)"
   run_as "cd '$DOCROOT' && curl -fsSL '$url' -o /tmp/ps.zip && unzip -q /tmp/ps.zip -d '$DOCROOT' && rm -f /tmp/ps.zip"
-  # Niektóre paczki zawierają zagnieżdżony prestashop.zip — rozpakuj jeśli trzeba.
-  run_as "cd '$DOCROOT' && [ -f prestashop.zip ] && unzip -q prestashop.zip && rm -f prestashop.zip index.php Install_PrestaShop.html || true"
+  # Paczka ma w środku prestashop.zip (właściwe pliki) obok startowego index.php i Install_PrestaShop.html.
+  # Najpierw usuwamy te dwa, potem rozpakowujemy — inaczej unzip pytał o nadpisanie index.php (bez terminala
+  # pomijał go), a późniejsze rm kasowało index.php sklepu.
+  run_as "cd '$DOCROOT' && if [ -f prestashop.zip ]; then rm -f index.php Install_PrestaShop.html && unzip -q -o prestashop.zip && rm -f prestashop.zip; fi"
+  [ -f "$DOCROOT/install/index_cli.php" ] || { log "Paczka PrestaShop bez install/index_cli.php"; exit 1; }
   log "PrestaShop: install/index_cli.php"
   run_as "cd '$DOCROOT/install' && '$PHP_BIN' index_cli.php \
     --domain='$APP_DOMAIN' --db_server=localhost --db_name='$APP_DB_NAME' \
