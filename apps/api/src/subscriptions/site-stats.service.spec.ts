@@ -23,9 +23,10 @@ function uruchom(pliki: Record<string, string>, log: string, archiwa: Record<str
   mkdirSync(arch, { recursive: true });
   for (const [nazwa, tresc] of Object.entries(archiwa)) {
     const tmp = mkdtempSync(join(tmpdir(), 'ssa-'));
-    writeFileSync(join(tmp, 'a.pl.log'), tresc);
-    writeFileSync(join(tmp, 'a.pl.error.log'), tresc);
-    execFileSync('tar', ['czf', join(arch, nazwa), '-C', tmp, 'a.pl.log', 'a.pl.error.log']);
+    // Nazwy jak w archiwum DA na t1 (01.10): log domeny z sufiksem rotacji, obok log błędów i log subdomeny.
+    const czlonki = ['a.pl.log.1', 'a.pl.error.log.1', 'a.pl.staging.log.1'];
+    for (const c of czlonki) writeFileSync(join(tmp, c), tresc);
+    execFileSync('tar', ['czf', join(arch, nazwa), '-C', tmp, ...czlonki]);
   }
   const out = execFileSync('bash', [SKRYPT], {
     encoding: 'utf8',

@@ -140,7 +140,8 @@ for n in nazwy:
             with tarfile.open(fileobj=f, mode="r:gz") as t:
                 for m in t:
                     b = os.path.basename(m.name)
-                    if m.isfile() and b.startswith(domena) and b.endswith(".log") and ".error" not in b and m.size <= LIMIT:
+                    # DA archiwizuje log jako <domena>.log.N (t1 01.10); log błędów i log subdomeny <sub>.<domena> nie są ruchem tej domeny.
+                    if m.isfile() and re.fullmatch(re.escape(domena) + r"\.log(\.\d{1,3})?", b) and m.size <= LIMIT:
                         licz(t.extractfile(m).read())
                         wynik["log"] = True
         except (tarfile.TarError, OSError, EOFError):
