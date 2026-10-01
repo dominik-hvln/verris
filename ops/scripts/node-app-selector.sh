@@ -51,6 +51,10 @@ if [[ "$AS_MODE" =~ ^(create|update)$ ]]; then
   [ ! -f "$DL" ] || grep -qxF "$AS_DOMAIN" "$DL" || fail "domena nie należy do konta"
   [ -z "$AS_URI" ] || { [[ "$AS_URI" =~ ^$SEG(/$SEG){0,3}$ ]] && [[ "$AS_URI" != *..* ]]; } || fail "nieprawidłowa ścieżka aplikacji pod domeną"
   [[ "$AS_VERSION" =~ ^[0-9]{1,2}(\.[0-9]{1,2}){0,2}$ ]] || fail "nieprawidłowa wersja"
+  # Selektor przyjmuje wersję główną: Node.js „24”, Python „3.13” (docs.cloudlinux.com → Command-line tools →
+  # Node.js / Python Selector: create --version 8, set --new-version 8). Lista z `get` podaje pełne 24.21.0 —
+  # z nią `set` odrzucał zmianę („Unable to lock specified interpreter version”, t1 01.10).
+  if [ "$AS_INTERPRETER" = "nodejs" ]; then AS_VERSION="${AS_VERSION%%.*}"; else AS_VERSION="$(printf '%s' "$AS_VERSION" | cut -d. -f1-2)"; fi
   [[ "$AS_STARTUP" =~ ^$SEG(/$SEG){0,3}$ ]] && [[ "$AS_STARTUP" != *..* ]] || fail "nieprawidłowy plik startowy"
   [ -z "$AS_ENTRY" ] || [[ "$AS_ENTRY" =~ ^[A-Za-z_][A-Za-z0-9_]{0,63}$ ]] || fail "nieprawidłowy obiekt aplikacji"
   ENV_JSON="$(AS_ENV_B64="$AS_ENV_B64" python3 - <<'PY'
@@ -83,7 +87,10 @@ try:
 except Exception:
     print("selektor zwrócił nieoczekiwaną odpowiedź"); sys.exit(0)
 if j.get("result") != "success":
-    print(" ".join(str(j.get("result") or "operacja nie powiodła się").split())[:300])
+    t = " ".join(str(j.get("result") or "operacja nie powiodła się").split())
+    if "Unable to lock specified interpreter version" in t:
+        t = "ta wersja nie jest dostępna na serwerze — wybierz inną z listy"
+    print(t.replace("%(version)s", "")[:300])
 ')"
   [ -z "$msg" ] || fail "$msg"
 }

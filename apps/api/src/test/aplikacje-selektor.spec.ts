@@ -103,6 +103,22 @@ opisz('B-08/B-09 — node-app-selector.sh', () => {
     expect(uruchom({ ...{ AS_MODE: 'create', AS_INTERPRETER: 'python', AS_ROOT: 'apps/py', AS_DOMAIN: 'a.pl', AS_URI: '', AS_VERSION: '3.11', AS_STARTUP: 'passenger_wsgi.py', AS_ENTRY: 'application', AS_ENV_B64: '' }, ...env }).status).toBe(0);
   });
 
+  it('wersja do selektora jako główna (Node 24, Python 3.11) — t1 01.10: set odrzucał 24.21.0', () => {
+    const u = uruchom({
+      AS_MODE: 'update', AS_INTERPRETER: 'nodejs', AS_ROOT: 'apps/api', AS_DOMAIN: 'a.pl', AS_URI: '',
+      AS_VERSION: '24.21.0', AS_STARTUP: 'app.js', AS_ENV_B64: '',
+    });
+    expect(u.status).toBe(0);
+    const set = u.wywolania.find((w) => w[0] === 'set')!;
+    expect(set[set.indexOf('--new-version') + 1]).toBe('24');
+    const c = uruchom({
+      AS_MODE: 'create', AS_INTERPRETER: 'python', AS_ROOT: 'apps/py', AS_DOMAIN: 'a.pl', AS_URI: '',
+      AS_VERSION: '3.11.9', AS_STARTUP: 'passenger_wsgi.py', AS_ENTRY: 'application', AS_ENV_B64: '',
+    });
+    const create = c.wywolania.find((w) => w[0] === 'create')!;
+    expect(create[create.indexOf('--version') + 1]).toBe('3.11');
+  });
+
   it('odmowa selektora kończy zadanie błędem z jego komunikatem', () => {
     const r = uruchom({ AS_MODE: 'stop', AS_INTERPRETER: 'nodejs', AS_ROOT: 'apps/api' });
     expect(r.status).not.toBe(0);
