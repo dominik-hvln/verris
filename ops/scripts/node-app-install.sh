@@ -89,9 +89,22 @@ trap wycofaj EXIT
 # Wykryj binarkę PHP CLI konta (CloudLinux alt-php lub systemowe).
 PHP_BIN="$(command -v php || echo /usr/local/bin/php)"
 run_as() { su -s /bin/bash -l "$APP_DA_USER" -c "$1"; }
-# Paczki aplikacji mają po 50–250 MB; zerwany strumień (t1 01.10, MediaWiki: „curl: (92) HTTP/2 stream …
-# CANCEL”) kończył instalację. Ponawiamy pobranie, także po błędzie w trakcie transferu.
-DL="curl -fsSL --retry 3 --retry-all-errors --retry-delay 5"
+# Paczki aplikacji mają po 50–250 MB. Serwer wydań MediaWiki zrywa transfer po ~70–85 s niezależnie od
+# HTTP/2 czy 1.1 i od użytkownika (t1 01.10: „curl: (92) … CANCEL”, „(18) … bytes missing”), a --retry
+# curla zaczyna od nowa (sprawdzone), więc dociągamy kolejnymi wywołaniami z -C - (zakresy HTTP).
+# Root pobiera do własnego pliku tymczasowego, klient dostaje gotową paczkę na stdin do swojego /tmp.
+pobierz() {
+  local tmp i rc
+  tmp="$(mktemp /var/tmp/verris-app-pobranie.XXXXXX)"
+  for i in 1 2 3 4 5 6 7 8; do
+    curl -fsSL -C - "$1" -o "$tmp" && break
+    [ "$i" = 8 ] && { rm -f -- "$tmp"; blad "Nie udało się pobrać paczki aplikacji od producenta — spróbuj ponownie za kilka minut."; }
+    sleep 3
+  done
+  run_as "umask 077; cat > '$2'" < "$tmp"; rc=$?
+  rm -f -- "$tmp"
+  return "$rc"
+}
 # Dane logowania mogą zawierać znaki specjalne powłoki — do poleceń trafiają jako tokeny z printf %q.
 Q_ADMIN_USER=$(printf %q "$APP_ADMIN_USER"); Q_ADMIN_PASS=$(printf %q "$APP_ADMIN_PASS"); Q_ADMIN_EMAIL=$(printf %q "$APP_ADMIN_EMAIL")
 Q_DB_PASS=$(printf %q "$APP_DB_PASS")
@@ -99,7 +112,8 @@ Q_DB_PASS=$(printf %q "$APP_DB_PASS")
 install_nextcloud() {
   local url="https://download.nextcloud.com/server/releases/latest.tar.bz2"
   log "Nextcloud: pobieranie + rozpakowanie"
-  run_as "cd '$DOCROOT' && $DL '$url' -o /tmp/nc.tar.bz2 && tar xjf /tmp/nc.tar.bz2 --strip-components=1 -C '$DOCROOT' && rm -f /tmp/nc.tar.bz2"
+  pobierz "$url" /tmp/nc.tar.bz2
+  run_as "cd '$DOCROOT' && tar xjf /tmp/nc.tar.bz2 --strip-components=1 -C '$DOCROOT' && rm -f /tmp/nc.tar.bz2"
   log "Nextcloud: occ maintenance:install"
   run_as "cd '$DOCROOT' && '$PHP_BIN' occ maintenance:install \
     --database mysql --database-name '$APP_DB_NAME' --database-user '$APP_DB_USER' \
@@ -127,7 +141,8 @@ for r in json.load(sys.stdin):
   [[ "$url" =~ ^https://github\.com/PrestaShop/PrestaShop/releases/download/[0-9.]+/prestashop_[0-9.]+\.zip$ ]] \
     || { log "Nie znaleziono paczki PrestaShop w wydaniach"; exit 1; }
   log "PrestaShop: pobieranie + rozpakowanie ($url)"
-  run_as "cd '$DOCROOT' && $DL '$url' -o /tmp/ps.zip && unzip -q /tmp/ps.zip -d '$DOCROOT' && rm -f /tmp/ps.zip"
+  pobierz "$url" /tmp/ps.zip
+  run_as "cd '$DOCROOT' && unzip -q /tmp/ps.zip -d '$DOCROOT' && rm -f /tmp/ps.zip"
   # Paczka ma w środku prestashop.zip (właściwe pliki) obok startowego index.php i Install_PrestaShop.html.
   # Najpierw usuwamy te dwa, potem rozpakowujemy — inaczej unzip pytał o nadpisanie index.php (bez terminala
   # pomijał go), a późniejsze rm kasowało index.php sklepu.
@@ -155,7 +170,8 @@ print(a[0] if a else "")')"
   [[ "$url" =~ ^https://github\.com/joomla/joomla-cms/releases/download/[A-Za-z0-9._-]+/Joomla_[A-Za-z0-9._-]+-Stable-Full_Package\.tar\.gz$ ]] \
     || { log "Nie znaleziono paczki Joomla w najnowszym wydaniu"; exit 1; }
   log "Joomla: pobieranie + rozpakowanie ($url)"
-  run_as "cd '$DOCROOT' && $DL '$url' -o /tmp/joomla.tar.gz && tar xzf /tmp/joomla.tar.gz -C '$DOCROOT' && rm -f /tmp/joomla.tar.gz"
+  pobierz "$url" /tmp/joomla.tar.gz
+  run_as "cd '$DOCROOT' && tar xzf /tmp/joomla.tar.gz -C '$DOCROOT' && rm -f /tmp/joomla.tar.gz"
   [ -f "$DOCROOT/installation/joomla.php" ] || { log "Paczka Joomla bez installation/joomla.php"; exit 1; }
   # Wymóg PHP z paczki (JOOMLA_MINIMUM_PHP) sprawdzamy sami — instalator CLI odrzuca starszy PHP
   # komunikatem po angielsku, a klient ma wiedzieć, co zmienić.
@@ -183,7 +199,8 @@ install_mediawiki() {
   local gal="${MEDIAWIKI_WERSJA%.*}"
   local url="https://releases.wikimedia.org/mediawiki/${gal}/mediawiki-${MEDIAWIKI_WERSJA}.tar.gz"
   log "MediaWiki ${MEDIAWIKI_WERSJA}: pobieranie + rozpakowanie"
-  run_as "cd '$DOCROOT' && $DL '$url' -o /tmp/mediawiki.tar.gz && tar xzf /tmp/mediawiki.tar.gz --strip-components=1 -C '$DOCROOT' && rm -f /tmp/mediawiki.tar.gz"
+  pobierz "$url" /tmp/mediawiki.tar.gz
+  run_as "cd '$DOCROOT' && tar xzf /tmp/mediawiki.tar.gz --strip-components=1 -C '$DOCROOT' && rm -f /tmp/mediawiki.tar.gz"
   log "MediaWiki: maintenance/run.php install"
   run_as "cd '$DOCROOT' && '$PHP_BIN' maintenance/run.php install \
     --dbtype=mysql --dbserver=localhost --dbname='$APP_DB_NAME' \
