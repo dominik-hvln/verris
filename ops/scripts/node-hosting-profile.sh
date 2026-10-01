@@ -1177,6 +1177,18 @@ configure_hosting_capabilities() {
       fi
     fi
   fi
+  # BlockCracking (CustomBuild, Exim): blokuje wysyłkę ze skrzynki, której hasło przejęto i która zaczyna
+  # rozsyłać spam — jedna taka skrzynka na wspólnym IP węzła psuje dostarczalność wszystkim klientom.
+  # Decyzja właściciela 01.10; opcja z `da build opt_help`: blockcracking: yes, no (domyślnie no).
+  if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && command -v da >/dev/null 2>&1; then
+    if [ "$(cb_option_value blockcracking)" = "yes" ]; then
+      log_ok "Exim BlockCracking włączony"
+    elif { da build set blockcracking yes && da build blockcracking; } >>/var/log/verris-blockcracking.log 2>&1; then
+      log_ok "Exim BlockCracking zainstalowany (log: /var/log/verris-blockcracking.log)"
+    else
+      log_warn "Exim BlockCracking — budowa nie powiodła się (log: /var/log/verris-blockcracking.log)"
+    fi
+  fi
   # Webmail i phpMyAdmin jednym kliknięciem z panelu klienta (SSO → lista skrzynek w DA). Test D3 na t1
   # (29.09): przy skrzynkach nie było logowania do webmaila — profil nie włączał one_click_webmail_login
   # ani nie budował Roundcube z modułem direct_login (changelog DA 1.58.2: set + dovecot_conf, exim_conf,

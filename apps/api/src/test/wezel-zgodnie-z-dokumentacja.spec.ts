@@ -52,6 +52,12 @@ describe('skrypty węzła — katalog klienta tylko jako klient', () => {
     expect(t.indexOf('dnf install -y fail2ban-firewalld')).toBeGreaterThan(t.indexOf('da build fail2ban'));
   });
 
+  it('profil: Exim BlockCracking włączony przez CustomBuild (decyzja 01.10)', () => {
+    const t = czytaj('node-hosting-profile.sh');
+    expect(t).toContain('da build set blockcracking yes && da build blockcracking');
+    expect(t).toContain('cb_option_value blockcracking');
+  });
+
   it('profil: aplikacje Python przez LiteSpeed — skrypt producenta i kontrola lswsgi (t1 01.10: 503)', () => {
     const t = czytaj('node-hosting-profile.sh');
     expect(t).toContain('/usr/local/lsws/admin/misc/enable_ruby_python_selector.sh');
