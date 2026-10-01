@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2036 h** — przy 30 h tygodniowo około **16 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2020 h** — przy 30 h tygodniowo około **16 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1178 h) oraz roadmapę po starcie (858 h, 44 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1178 h) oraz roadmapę po starcie (842 h, 43 pozycji) rozpisaną na epiki kwartalne.
 
 - **2027-01-22** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-02-05** — koniec sprintu 23, decyzja GO.
@@ -517,7 +517,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 # Po starcie — roadmapa kwartalna
 
-44 pozycji, 858 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
+43 pozycji, 842 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
 
 | ID | Epik | Priorytet | Kwartał | Pozycji | h | Dlaczego teraz, a nie wcześniej |
 |---|---|---|---|---|---|---|
@@ -528,7 +528,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `E-15` | Wsparcie i ops: kolejka abuse | WYSOKI | Q1 2027 | 2 | 46 | Sprint 13 daje możliwość zatrzymania szkody. Ten epik daje proces, który skaluje się dalej niż jedna osoba. |
 | `E-03` | WordPress Toolkit | WYSOKI | Q2 2027 | 2 | 46 | Cztery z pięciu hostingów PL mają automatyczne aktualizacje WordPressa. Staging już mamy i jest przewagą — reszta toolkitu ją domyka. |
 | `E-04` | Domeny jako produkt | WYSOKI | Q2 2027 | 7 | 72 | Backend jest gotowy i wyłączony brakiem konfiguracji. Domena to najczęstszy pierwszy zakup i naturalny punkt wejścia. |
-| `E-05` | Katalog aplikacji | ŚREDNI | Q2 2027 | 1 | 16 | Softaculous ma około 400 aplikacji. Nie musimy mieć 400, ale dwie to nie jest katalog. |
+| `E-05` | Katalog aplikacji | ŚREDNI | Q2 2027 | 0 | 0 | Softaculous ma około 400 aplikacji. Nie musimy mieć 400, ale dwie to nie jest katalog. |
 | `E-10` | Poczta: filtry, kalendarz, limity | ŚREDNI | Q2 2027 | 4 | 78 | „Gdzie jest mój mail” to najczęstszy ticket poczty. Podgląd kolejki zdejmuje go z obsługi i oddaje klientowi. |
 | `E-06` | Bezpieczeństwo jako funkcja | ŚREDNI | Q3 2027 | 3 | 96 | Pozycja licencyjna — wchodzi do rachunku z PB-01. Może być produktem dodatkowym, nie musi być w cenie pakietu. |
 | `E-07` | Reseller jako produkt | ŚREDNI | Q3 2027 | 2 | 56 | Dziś to strona sprzedażowa z dwoma GET-ami. Albo staje się produktem, albo znika z nawigacji — trzeciej opcji nie ma. |
@@ -542,7 +542,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - **E-02 Wydajność: cache i skalowanie** (46 h) — Redis jako cache obiektowy sterowany z panelu, LSCache, weryfikacja HTTP/3, CDN, optymalizacja obrazów.
 - **E-03 WordPress Toolkit** (46 h) — Automatyczne aktualizacje, aktualizacje wtyczek i motywów, klonowanie między domenami, hardening, skan podatności, tryb konserwacji, masowe zarządzanie.
 - **E-04 Domeny jako produkt** (72 h) — Konfiguracja rejestratora, zakup i transfer z panelu, odnowienia, zmiana danych abonenta, blokada transferu, ukrycie WHOIS.
-- **E-05 Katalog aplikacji** (16 h) — Rozbudowa katalogu z dwóch pozycji do kilkunastu najczęściej instalowanych albo integracja z gotowym instalatorem.
+- **E-05 Katalog aplikacji** (0 h) — Rozbudowa katalogu z dwóch pozycji do kilkunastu najczęściej instalowanych albo integracja z gotowym instalatorem.
 - **E-06 Bezpieczeństwo jako funkcja** (96 h) — Skaner malware, czyszczenie zainfekowanych plików, rozbudowa WAF, HSTS, anty-DDoS, sprzedaż certyfikatów DV/OV/EV.
 - **E-07 Reseller jako produkt** (56 h) — Zakładanie kont przez resellera, marża ustawiana przez niego, white-label, rozliczenia.
 - **E-08 Dostępność i zgodność w produkcie** (80 h) — WCAG 2.1 AA dla ścieżki klienta, RCPD jako moduł zamiast pliku, ISO 27001 jeśli wejdziemy w B2B, deklaracja lokalizacji danych.
