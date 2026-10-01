@@ -56,6 +56,7 @@ if [[ "$AS_MODE" =~ ^(create|update)$ ]]; then
   ENV_JSON="$(AS_ENV_B64="$AS_ENV_B64" python3 - <<'PY'
 import base64, json, os, re, sys
 raw = os.environ.get("AS_ENV_B64", "")
+raw += "=" * (-len(raw) % 4)  # starszy agent ucinał końcowe „=” dopełnienia
 try:
     d = json.loads(base64.b64decode(raw).decode("utf-8")) if raw else {}
 except Exception:

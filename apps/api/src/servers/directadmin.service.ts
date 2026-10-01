@@ -2641,7 +2641,7 @@ export class DirectAdminService {
       dayofmonth: input.dayOfMonth,
       month: input.month,
       dayofweek: input.dayOfWeek,
-      command: input.command,
+      command: cronZnakProcentu(input.command),
     });
     await this.audit.record({
       action: HostingResourceActions.HOSTING_CRON_CREATED,
@@ -3572,6 +3572,15 @@ export function bladDa(text: unknown, details: unknown): string {
   return razem.slice(0, 500);
 }
 
+/**
+ * crontab(5): nieosłonięty `%` w poleceniu cron zamienia na nową linię, a resztę podaje jako stdin —
+ * `date +%F` w zadaniu klienta ucinało polecenie i zadanie po cichu nie działało (test D3 30.09).
+ * DA zapisuje polecenie do crontaba bez zmian, więc osłaniamy tu; lista pokazuje je z powrotem z `%`.
+ */
+export function cronZnakProcentu(polecenie: string): string {
+  return polecenie.replace(/\\?%/g, '\\%');
+}
+
 /** Lista cronów z CMD_API_CRON_JOBS: `id=min godz dzień mies dzieńTyg komenda` (urlencoded). */
 export function zCronowDa(data: unknown): Array<{ id: string; schedule: string; command: string }> {
   const t = typeof data === 'string' ? data.trim() : '';
@@ -3582,7 +3591,7 @@ export function zCronowDa(data: unknown): Array<{ id: string; schedule: string; 
   for (const [id, v] of p.entries()) {
     if (!/^\d+$/.test(id)) continue;
     const m = /^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+([\s\S]+)$/.exec(v.trim());
-    if (m) rows.push({ id, schedule: m.slice(1, 6).join(' '), command: m[6]! });
+    if (m) rows.push({ id, schedule: m.slice(1, 6).join(' '), command: m[6]!.replace(/\\%/g, '%') });
   }
   return rows;
 }

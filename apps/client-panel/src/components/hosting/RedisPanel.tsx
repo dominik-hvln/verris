@@ -20,7 +20,8 @@ const TEKSTY: Record<Silnik, { tytul: string; nazwa: string; opis: (mb: number) 
     nazwa: 'Memcached',
     opis: (mb) => `Własna instancja dla konta, ${mb} MB pamięci, tylko przez gniazdo w katalogu konta. Dla aplikacji, które wolą Memcached (np. LiteSpeed Cache, Drupal, Magento).`,
     wylacz: 'Wyłączyć Memcached? Aplikacje, które z niego korzystają, stracą cache (zadziałają, ale wolniej).',
-    gniazdo: 'W aplikacji wpisz ścieżkę gniazda zamiast hosta i portu.',
+    gniazdo:
+      'W aplikacji wpisz ścieżkę gniazda zamiast hosta i portu. Rozszerzenie PHP memcached włączamy dla bieżącej wersji PHP konta — po zmianie wersji włącz je w PHP i serwer → rozszerzenia.',
   },
 };
 

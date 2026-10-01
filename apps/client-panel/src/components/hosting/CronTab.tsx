@@ -172,7 +172,7 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
           <input
             value={command}
             onChange={(e) => setCommand(e.target.value)}
-            placeholder="np. php /home/user/domains/twojadomena.pl/public_html/cron.php"
+            placeholder="np. php ~/domains/twojadomena.pl/public_html/cron.php"
             className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data"
           />
         </label>
