@@ -48,7 +48,7 @@ export class WpPodatnosciService implements OnApplicationBootstrap {
     void this.prisma.wpPodatnosc
       .count({ take: 1 })
       .then((n) => (n > 0 ? null : this.odswiez()))
-      .catch((e: unknown) => this.logger.warn(`Wordfence feed przy starcie: ${e instanceof Error ? e.message : String(e)}`));
+      .catch((e: unknown) => this.logger.warn(`Wordfence feed przy starcie: ${opisBledu(e)}`));
   }
 
   /** Codziennie 05:40 UTC. Bez klucza — nic (skan pokazuje wtedy „baza podatności niepodłączona”). */
@@ -100,6 +100,14 @@ export class WpPodatnosciService implements OnApplicationBootstrap {
     }
     return out;
   }
+}
+
+/** Błąd sieci z fetch ma pusty albo ogólny komunikat („fetch failed”) — powód (ENOTFOUND, ECONNRESET…) siedzi w `cause`. */
+export function opisBledu(e: unknown): string {
+  if (!(e instanceof Error)) return String(e);
+  const c = e.cause as { code?: string; name?: string; message?: string } | undefined;
+  const powod = c ? ` (${c.code ?? c.name ?? c.message ?? String(c)})` : '';
+  return `${e.name}: ${e.message || '—'}${powod}`.slice(0, 300);
 }
 
 /** Feed → wiersze tabeli; śmieci i rekordy „informational” (bez realnego wpływu) pomijamy. */

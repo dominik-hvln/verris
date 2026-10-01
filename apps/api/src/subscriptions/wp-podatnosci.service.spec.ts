@@ -1,5 +1,5 @@
 import type { Mock } from 'vitest';
-import { WpPodatnosciService, porownajWersje, wZakresie, wierszeZFeedu } from './wp-podatnosci.service.js';
+import { WpPodatnosciService, opisBledu, porownajWersje, wZakresie, wierszeZFeedu } from './wp-podatnosci.service.js';
 
 const rekord = (o: Record<string, unknown> = {}) => ({
   title: 'XSS w Example',
@@ -86,5 +86,10 @@ describe('I-07 — podatności WordPressa (Wordfence Scanner Feed v3)', () => {
     zBaza(0).onApplicationBootstrap();
     await new Promise((r) => setTimeout(r, 10));
     expect(odswiez).toHaveBeenCalledTimes(1);
+  });
+
+  it('opis błędu sieci: nazwa i powód z cause, nie pusty komunikat (D3 01.10)', () => {
+    expect(opisBledu(new TypeError('fetch failed', { cause: Object.assign(new Error(''), { code: 'ENOTFOUND' }) }))).toBe('TypeError: fetch failed (ENOTFOUND)');
+    expect(opisBledu(new AggregateError([], ''))).toBe('AggregateError: —');
   });
 });
