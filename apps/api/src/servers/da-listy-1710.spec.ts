@@ -32,6 +32,20 @@ describe('menedżer plików DA 1.710', () => {
     const k = klient(() => new URLSearchParams({ '/public_html/.htaccess': 'type=file&size=1100&date=1790550175&mtime=1790636575' }).toString());
     await expect(k.listDir('/public_html')).resolves.toEqual([{ name: '.htaccess', type: 'file', sizeBytes: 1100, modified: '1790636575' }]);
   });
+
+  it('wpis katalogu nadrzędnego („..”) nie jest pokazywany jako podkatalog — t1 01.10', async () => {
+    const k = klient(() =>
+      new URLSearchParams({
+        '/domains/ex.pl': 'type=dir&size=4096&mtime=1',
+        '/domains/ex.pl/public_html/wp-admin': 'type=dir&size=4096&mtime=2',
+        '/domains/ex.pl/public_html/index.php': 'type=file&size=10&mtime=3',
+      }).toString(),
+    );
+    await expect(k.listDir('/domains/ex.pl/public_html')).resolves.toEqual([
+      { name: 'wp-admin', type: 'dir', sizeBytes: 4096, modified: '2' },
+      { name: 'index.php', type: 'file', sizeBytes: 10, modified: '3' },
+    ]);
+  });
 });
 
 describe('zaznaczenie w menedżerze plików DA 1.710 — pełne ścieżki', () => {

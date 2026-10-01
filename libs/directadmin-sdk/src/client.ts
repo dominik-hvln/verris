@@ -344,13 +344,18 @@ export class DirectAdminClient {
       throw bladDa(params.get('text') || 'DirectAdmin file manager error');
     }
     const entries: DaFileEntry[] = [];
+    const katalog = ensureLeadingSlash(path).replace(/\/+$/, '');
     for (const [key, value] of params.entries()) {
       if (key === 'error' || key === 'text' || key === 'details') continue;
       // DA keys entries by full account-relative path (e.g. "/domains/ex.pl");
       // we display/operate on the basename only.
-      const full = decodeURIComponent(key);
-      const name = full.replace(/\/+$/, '').split('/').pop() || '';
+      const full = decodeURIComponent(key).replace(/\/+$/, '');
+      const name = full.split('/').pop() || '';
       if (!name) continue; // skip the current-dir / empty entry DA may emit
+      // DA 1.710 dokłada wpis „..” kluczowany ścieżką katalogu nadrzędnego — panel pokazywał go jako
+      // podkatalog o nazwie rodzica („domains” w domains/ex.pl, „ex.pl” w public_html), a wejście
+      // kończyło się błędem 500 (t1, 01.10). Pomijamy sam katalog i każdego jego przodka.
+      if (full === katalog || katalog.startsWith(`${full}/`)) continue;
       // Each value is a urlencoded sub-record: type=dir&size=..&date=..
       const info = new URLSearchParams(value);
       const type = (info.get('type') || '').toLowerCase();
