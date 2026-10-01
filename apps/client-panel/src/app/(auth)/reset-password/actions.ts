@@ -12,7 +12,7 @@ export async function confirmPasswordReset(
   const confirm = formData.get("confirmPassword")?.toString();
 
   if (!token) {
-    return { error: "Brak tokenu resetu — użyj linku z e-maila." };
+    return { error: "Link jest niepełny — otwórz go ponownie z wiadomości e-mail." };
   }
   if (!newPassword || newPassword.length < 8) {
     return { error: "Hasło musi mieć co najmniej 8 znaków." };

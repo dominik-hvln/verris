@@ -85,10 +85,10 @@ export function buildEcoPointRules(platform: EcoPlatformConfig): EcoPointRule[] 
     },
     {
       id: 'BADGE_IMPRESSION',
-      title: 'Badge EKO na Twojej stronie',
+      title: 'Odznaka EKO na Twojej stronie',
       points: `+1 co ${platform.ecoBadgeImpressionsPerPoint} wyśw.`,
       description:
-        'Osadź oficjalny badge Verris na swojej witrynie. Liczymy unikalne wyświetlenia (maks. jedno na adres IP na godzinę).',
+        'Osadź oficjalną odznakę Verris na swojej witrynie. Liczymy unikalne wyświetlenia (maks. jedno na adres IP na godzinę).',
     },
     {
       id: 'REFERRAL_REGISTER_REFEREE',
@@ -138,7 +138,7 @@ export const ECO_LEDGER_REASON_LABEL: Record<string, string> = {
   EMAIL_VERIFIED: 'Potwierdzenie e-mail',
   BILLING_PROFILE_COMPLETE: 'Dane do faktury uzupełnione',
   PASSKEY_REGISTERED: 'Pierwszy passkey',
-  BADGE_IMPRESSION: 'Wyświetlenia badge na stronie',
+  BADGE_IMPRESSION: 'Wyświetlenia odznaki na stronie',
   REFERRAL_REGISTER_REFEREE: 'Polecenie (rejestracja)',
   REFERRAL_REGISTER_REFERRER: 'Polecenie — nowy klient',
   REFERRAL_APPLIED_REFEREE: 'Polecenie (kod dodany)',

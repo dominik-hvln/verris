@@ -73,6 +73,7 @@ import {
   type Tone,
 } from '@/components/panel/v2';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
+import { backupForm } from '@/lib/pl';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
 const fetchServiceDetailsAction = zOdpakowaniem(fetchServiceDetailsActionAkcja);
@@ -348,7 +349,7 @@ export default function ServiceOverviewV2({
         <Kpi
           label="Kopie zapasowe"
           value={backups ? String(backups.rows.length) : '—'}
-          unit={backups ? (backups.rows.length === 1 ? 'kopia' : 'kopii') : undefined}
+          unit={backups ? backupForm(backups.rows.length) : undefined}
           foot={
             <>
               <span>

@@ -33,7 +33,7 @@ export default async function IamPage() {
     return (
       <FeatureNotAvailable
         title="IAM i subkonta"
-        description="Delegowanie dostępu do konta będzie dostępne po włączeniu modułu IAM w ofercie. Do tego czasu korzystaj z głównego konta właściciela."
+        description="Dostęp dla współpracowników będzie dostępny wkrótce. Do tego czasu korzystaj z głównego konta właściciela."
       />
     );
   }

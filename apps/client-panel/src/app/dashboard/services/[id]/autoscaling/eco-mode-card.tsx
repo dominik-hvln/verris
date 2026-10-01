@@ -24,8 +24,8 @@ export function EcoModeCard({ subscriptionId, ecoModeEnabled: initial, ecoPoints
   const label = useMemo(
     () =>
       eco
-        ? 'Włączone — mniej agresywne kopie zapasowe i przyjazne działanie środowisku.'
-        : 'Wyłączone — pełny rytm utrzymaniowy jak w domyślnej konfiguracji.',
+        ? 'Włączone — kopie raz w tygodniu (w niedzielę) zamiast codziennie.'
+        : 'Wyłączone — kopie codziennie (standard).',
     [eco],
   );
 

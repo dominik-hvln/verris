@@ -84,7 +84,7 @@ export function DnsManager({
         const res = await createDnsRecordAction({ serviceId, domain, name: r.name, type: r.type, value: r.value, ttl: 3600 });
         if (res.ok) ok++; else setError(res.error);
       }
-      toast.success(`Dodano ${ok}/${preset.records.length} ${plForm(preset.records.length, 'rekordu', 'rekordów', 'rekordów')} z presetu „${preset.label}".`);
+      toast.success(`Dodano ${ok}/${preset.records.length} ${plForm(preset.records.length, 'rekordu', 'rekordów', 'rekordów')} z zestawu „${preset.label}".`);
       refresh();
     });
   };

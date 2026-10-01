@@ -13,7 +13,7 @@ export default async function AnalyticsPage() {
   try {
     services = await listServices();
   } catch (err) {
-    error = err instanceof ApiError ? `Nie udało się pobrać usług (${err.status}).` : 'Nieznany błąd';
+    error = err instanceof ApiError ? 'Nie udało się pobrać usług. Odśwież stronę za chwilę.' : 'Nieznany błąd';
   }
 
   // Analityka dotyczy usług hostingowych (strony WWW).

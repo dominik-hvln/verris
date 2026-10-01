@@ -11,6 +11,7 @@ import {
 } from '@/app/dashboard/services/[id]/hosting-backup-schedule-actions';
 import { daErrorMessage } from '@/lib/client-hosting-messages';
 import { Select } from '@/components/panel/select';
+import { terminDoUtc, terminZUtc } from '@/lib/godzina-kopii';
 
 const DOW = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
 
@@ -30,7 +31,9 @@ export default function BackupScheduleCard({ serviceId }: { serviceId: string })
     () =>
       fetchBackupScheduleAction(serviceId)
         .then((s) => {
-          setFrequency(s.frequency); setHour(s.hour); setDayOfWeek(s.dayOfWeek);
+          // API trzyma godzinę i dzień w UTC — klient widzi czas polski.
+          const pl = terminZUtc({ hour: s.hour, dayOfWeek: s.dayOfWeek });
+          setFrequency(s.frequency); setHour(pl.hour); setDayOfWeek(pl.dayOfWeek);
           setRetainCount(s.retainCount ?? 7);
           setLastRunAt(s.lastRunAt); setLastStatus(s.lastStatus);
         })
@@ -42,10 +45,11 @@ export default function BackupScheduleCard({ serviceId }: { serviceId: string })
 
   const save = async () => {
     setSaving(true);
-    const res = await setBackupScheduleAction({ subscriptionId: serviceId, frequency, hour, dayOfWeek, enabled: frequency !== 'OFF', retainCount });
+    const utc = terminDoUtc({ hour, dayOfWeek });
+    const res = await setBackupScheduleAction({ subscriptionId: serviceId, frequency, hour: utc.hour, dayOfWeek: utc.dayOfWeek, enabled: frequency !== 'OFF', retainCount });
     setSaving(false);
     if (!res.ok) { toast.error('Nie udało się zapisać harmonogramu', { description: daErrorMessage(res.error) }); return; }
-    toast.success(frequency === 'OFF' ? 'Automatyczne backupy wyłączone' : 'Harmonogram backupów zapisany');
+    toast.success(frequency === 'OFF' ? 'Automatyczne kopie zapasowe wyłączone' : 'Harmonogram kopii zapasowych zapisany');
     void load();
   };
 
@@ -55,8 +59,8 @@ export default function BackupScheduleCard({ serviceId }: { serviceId: string })
 
   return (
     <section className="mb-4 rounded-[10px] border border-line bg-raised p-4">
-      <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground"><CalendarClock className="h-4 w-4 text-data-hi" /> Automatyczne backupy (harmonogram)</h3>
-      <p className="mt-1 text-xs text-muted-foreground">Verris sam wykona pełny backup konta w wybranym cyklu — nie musisz pamiętać o ręcznym tworzeniu kopii.</p>
+      <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground"><CalendarClock className="h-4 w-4 text-data-hi" /> Automatyczne kopie zapasowe (harmonogram)</h3>
+      <p className="mt-1 text-xs text-muted-foreground">Verris sam wykona pełną kopię konta w wybranym cyklu — nie musisz pamiętać o ręcznym tworzeniu kopii.</p>
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <label htmlFor={`${uid}-freq`}>Cykl</label>
@@ -86,7 +90,7 @@ export default function BackupScheduleCard({ serviceId }: { serviceId: string })
         )}
         {frequency !== 'OFF' && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <label htmlFor={`${uid}-hour`}>Godzina (UTC)</label>
+            <label htmlFor={`${uid}-hour`}>Godzina (czas polski)</label>
             <Select
               id={`${uid}-hour`}
               value={String(hour)}
@@ -98,7 +102,7 @@ export default function BackupScheduleCard({ serviceId }: { serviceId: string })
         )}
         {frequency !== 'OFF' && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <label htmlFor={`${uid}-retain`}>Trzymaj kopii</label>
+            <label htmlFor={`${uid}-retain`}>Ile kopii przechowywać</label>
             <Select
               id={`${uid}-retain`}
               value={String(retainCount)}
@@ -114,7 +118,7 @@ export default function BackupScheduleCard({ serviceId }: { serviceId: string })
       </div>
       {lastRunAt && (
         <p className="mt-2 text-[11px] text-muted-foreground">
-          Ostatni automatyczny backup: {new Date(lastRunAt).toLocaleString('pl-PL')}
+          Ostatnia automatyczna kopia: {new Date(lastRunAt).toLocaleString('pl-PL')}
           {lastStatus && lastStatus !== 'ok' ? <span className="text-warn"> — {lastStatus}</span> : <span className="text-data-hi"> — OK</span>}
         </p>
       )}

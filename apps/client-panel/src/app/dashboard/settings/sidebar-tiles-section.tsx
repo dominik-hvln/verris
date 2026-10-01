@@ -40,7 +40,7 @@ export function SidebarTilesSection({ initialLinks }: { initialLinks: string[] }
         toast.error(result.error);
         return;
       }
-      toast.success('Skróty w sidebarze zapisane.');
+      toast.success('Skróty w menu zapisane.');
       window.location.reload();
     });
   };
@@ -56,7 +56,7 @@ export function SidebarTilesSection({ initialLinks }: { initialLinks: string[] }
           <LayoutGrid className="h-5 w-5 text-emerald-400" aria-hidden />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-white">Skróty w sidebarze</h2>
+          <h2 className="text-lg font-semibold text-white">Skróty w menu</h2>
           <p className="mt-1 text-sm text-neutral-400">
             Wybierz 4 sekcje wyświetlane jako duże kafelki u góry menu. Pozostałe linki zostają na liście
             poniżej.

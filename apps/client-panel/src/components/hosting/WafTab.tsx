@@ -124,7 +124,7 @@ export default function WafTab({ serviceId }: Props) {
           <p className="inline-flex items-start gap-1.5 text-xs text-crit">
             <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
             Ostatnia zmiana nie powiodła się: {status.lastTask.errorMessage ?? 'błąd'} — spróbuj
-            ponownie lub skontaktuj się z BOK.
+            ponownie lub napisz do nas (Centrum pomocy).
           </p>
         )}
       </div>
@@ -173,7 +173,7 @@ export default function WafTab({ serviceId }: Props) {
       <p className="text-xs text-muted-foreground">
         Wskazówka: po przejściu z trybu detekcji na blokowanie obserwuj stronę przez 1-2 dni. Jeśli
         prawidłowe żądania są blokowane (np. zapis w edytorze wtyczki), przełącz na tryb detekcji i
-        zgłoś to do BOK — dostroimy reguły dla Twojej domeny.
+        napisz do nas (Centrum pomocy) — dostroimy reguły dla Twojej domeny.
       </p>
     </div>
   );

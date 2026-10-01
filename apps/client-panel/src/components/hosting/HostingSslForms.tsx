@@ -110,7 +110,7 @@ export function HostingSslForms({ serviceId }: Props) {
             <span>
               Wildcard <span className="font-mono text-[color:var(--verris-body)]">*.{domain || 'domena'}</span> — pokrywa wszystkie subdomeny.
               <span className="mt-0.5 block text-[11px] text-warn">
-                Wymaga, aby DNS domeny był hostowany na tym serwerze (walidacja DNS-01).
+                Wymaga, aby DNS domeny był u nas (Verris).
               </span>
             </span>
           </label>
@@ -138,9 +138,9 @@ export function HostingSslForms({ serviceId }: Props) {
                 setLeMsg({
                   type: 'ok',
                   text: wildcard
-                    ? 'Zlecono wystawienie certyfikatu wildcard (w tle). Walidacja DNS-01 wymaga, aby strefa ' +
-                      'DNS domeny była na tym serwerze. Status zaktualizuje się tu po wydaniu (zwykle do kilku minut).'
-                    : 'Zlecono wystawienie certyfikatu (w tle). Aby się powiodło, domena musi już ' +
+                    ? 'Zlecono wystawienie certyfikatu wildcard. Wymaga, aby DNS domeny był u nas (Verris). ' +
+                      'Status zaktualizuje się tu po wydaniu (zwykle do kilku minut).'
+                    : 'Zlecono wystawienie certyfikatu. Aby się powiodło, domena musi już ' +
                       'wskazywać na nasz serwer (rekord A) — inaczej walidacja Let’s Encrypt nie przejdzie. ' +
                       'Status zaktualizuje się tu po wydaniu (zwykle do kilku minut).',
                 });

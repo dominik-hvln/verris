@@ -125,7 +125,7 @@ function QuickFix({
   }
   if (!onNavigate) return null;
   if (checkKey === 'dnsOk') {
-    return <FixButton label="Przejdź do Domeny & DNS" onClick={() => onNavigate('domains')} />;
+    return <FixButton label="Przejdź do: Domeny i DNS" onClick={() => onNavigate('domains')} />;
   }
   if (checkKey === 'mailOk') {
     return <FixButton label="Przejdź do Poczty" onClick={() => onNavigate('mail')} />;

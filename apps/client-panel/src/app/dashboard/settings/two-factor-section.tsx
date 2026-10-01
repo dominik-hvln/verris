@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { Shield, ShieldCheck, Loader2, Copy, AlertCircle, Check } from 'lucide-react';
+import { recoveryCodesLeft } from '@/lib/pl';
 import {
   confirmTwoFactorAction,
   disableTwoFactorAction,
@@ -139,8 +140,9 @@ export function TwoFactorSection({ showToast }: Props) {
               {status.enrolledAt
                 ? new Date(status.enrolledAt).toLocaleString('pl-PL')
                 : '—'}
-              . Pozostało <strong>{status.recoveryCodesRemaining}</strong> kodów
-              zapasowych.
+              . {recoveryCodesLeft(status.recoveryCodesRemaining).verb}{' '}
+              <strong>{status.recoveryCodesRemaining}</strong>{' '}
+              {recoveryCodesLeft(status.recoveryCodesRemaining).noun}.
             </p>
           </div>
           <button

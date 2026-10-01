@@ -16,7 +16,7 @@ export async function IamAuditSection() {
       <div className="mb-5 flex items-center gap-3">
         <ScrollText className="h-5 w-5 text-white" />
         <div>
-          <h2 className="text-lg font-semibold text-white">Audyt IAM</h2>
+          <h2 className="text-lg font-semibold text-white">Historia dostępu</h2>
           <p className="text-sm text-neutral-500">Ostatnie 50 zdarzeń: zmiany dostępu i działania subkont na tym koncie.</p>
         </div>
       </div>

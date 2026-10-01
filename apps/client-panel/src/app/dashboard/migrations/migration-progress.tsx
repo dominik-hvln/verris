@@ -222,7 +222,7 @@ function JobRow({ job }: { job: MigrationJobView }) {
             {Number(job.progress.bytes) > 0 ? ` — ${formatBytes(job.progress.bytes)}` : ''}
           </span>
         ) : null}
-        {job.status === 'RETRYING' ? <span className="ml-2 text-xs text-amber-400/80">ponawiam ({job.attempts}/{job.maxAttempts})</span> : null}
+        {job.status === 'RETRYING' ? <span className="ml-2 text-xs text-amber-400/80">ponawiamy próbę ({job.attempts} z {job.maxAttempts})</span> : null}
         {/* Surowy błąd workera (po angielsku, techniczny) widzi zespół w panelu obsługi. */}
         {job.status === 'FAILED' ? <span className="ml-2 text-xs text-rose-400/80">nie udało się — przejmuje to nasz zespół</span> : null}
         {job.status === 'COMPLETED' && job.integrity ? <IntegrityLine integrity={job.integrity} /> : null}
@@ -279,7 +279,7 @@ function CutoverPanel({
           Od transferu minęło trochę czasu — zalecamy dograć różnice (pliki i nową pocztę) tuż przed przełączeniem.
           <div className="mt-2">
             <Button type="button" disabled={busy === 'delta'} onClick={onDelta} className="bg-amber-600 hover:bg-amber-500 text-white text-xs">
-              {busy === 'delta' ? 'Dosynchronizowuję…' : 'Dograj różnice (delta-sync)'}
+              {busy === 'delta' ? 'Dogrywamy…' : 'Dograj nowe pliki i pocztę'}
             </Button>
           </div>
         </div>

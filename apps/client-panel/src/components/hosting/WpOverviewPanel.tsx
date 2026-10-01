@@ -87,7 +87,7 @@ export function WpOverviewPanel({ serviceId }: { serviceId: string }) {
                   {!s.rdzen && !s.wtyczki && !s.motywy ? <StatusPill tone="data">aktualny</StatusPill> : null}
                   {s.doPoprawy ? <StatusPill tone="warn">zabezpieczenia: {s.doPoprawy} do poprawy</StatusPill> : null}
                   {s.konserwacja ? <StatusPill tone="warn">tryb konserwacji</StatusPill> : null}
-                  <StatusPill tone={s.automat ? 'data' : 'muted'}>{s.automat ? 'automat włączony' : 'automat wyłączony'}</StatusPill>
+                  <StatusPill tone={s.automat ? 'data' : 'muted'}>{s.automat ? 'auto-aktualizacje: wł.' : 'auto-aktualizacje: wył.'}</StatusPill>
                 </div>
               ) : null}
             </li>

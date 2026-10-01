@@ -322,8 +322,7 @@ export function PlanChangeForm({
               className="mt-0.5 h-5 w-5 rounded accent-amber-500"
             />
             <span className="text-xs text-amber-100/90">
-              Rozumiem, że delty autoskalowania zostaną zresetowane, a limity ustawione według
-              nowego planu bazowego.
+              Rozumiem, że dodatkowe zasoby z autoskalowania wrócą do limitów nowego planu.
             </span>
           </label>
         )}

@@ -29,7 +29,7 @@ function VerifyEmailForm() {
     return (
       <div className="p-8 space-y-4">
         <p className="text-sm text-rose-300">
-          Brak tokenu w linku. Otwórz potwierdzenie z wiadomości e-mail lub poproś o nowy link.
+          Link jest niepełny — otwórz go ponownie z wiadomości e-mail lub poproś o nowy link.
         </p>
         <Link
           href="/resend-verification"

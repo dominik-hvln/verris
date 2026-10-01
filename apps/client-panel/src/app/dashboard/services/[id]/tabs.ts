@@ -36,7 +36,7 @@ export const TABS = [
   { id: 'waf', label: 'Bezpieczeństwo (WAF)', icon: Shield },
   { id: 'monitoring', label: 'Monitoring', icon: Activity },
   { id: 'logs', label: 'Logi WWW', icon: ScrollText },
-  { id: 'badges', label: 'Badge na stronę', icon: BadgeCheck },
+  { id: 'badges', label: 'Odznaka na stronę', icon: BadgeCheck },
   { id: 'staging', label: 'Staging', icon: Box },
   { id: 'deploy', label: 'Deploy (Git)', icon: Rocket },
   { id: 'usage', label: 'Zużycie zasobów', icon: Activity },

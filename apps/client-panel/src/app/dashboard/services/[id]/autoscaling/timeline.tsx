@@ -81,10 +81,11 @@ function EventRow({ event }: { event: AutoscalingEventDto }) {
     return (
       <li className="flex items-center justify-between gap-4 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-amber-100">
         <div className="min-w-0">
-          <div className="text-sm font-semibold">Serwer dał mniej zasobów, niż potrzebowała strona</div>
+          <div className="text-sm font-semibold">
+            Przyznaliśmy mniej zasobów, niż potrzebowała strona (chwilowe obciążenie serwera)
+          </div>
           <div className="text-[11px] opacity-90">
-            Przyznano: {ograniczone}. To brak miejsca po naszej stronie, nie za mały pakiet — płacisz tylko za to, co
-            faktycznie przyznaliśmy.
+            Przyznano: {ograniczone}. Płacisz tylko za to, co faktycznie przyznaliśmy.
           </div>
         </div>
         <div className="text-right text-[11px] opacity-80 shrink-0">{new Date(event.createdAt).toLocaleString('pl-PL')}</div>

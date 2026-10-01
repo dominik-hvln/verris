@@ -36,7 +36,7 @@ const SOURCE_LABELS: Record<UserConsentRow["source"], string> = {
   REGISTRATION: "Rejestracja",
   RE_CONSENT: "Re-akceptacja",
   SETTINGS: "Ustawienia",
-  ADMIN_MANUAL: "Ręczne (admin)",
+  ADMIN_MANUAL: "Dodane przez obsługę",
 };
 
 const STATUS_LABELS: Record<DataExportSummary["status"], string> = {
@@ -203,7 +203,7 @@ function DataExportSection({
       if (result.ok) {
         await onRefresh();
         showToast(
-          "Eksport został zakolejkowany — wyślemy e-mail z linkiem gdy będzie gotowy.",
+          "Przygotowujemy eksport — wyślemy e-mail z linkiem, gdy będzie gotowy.",
           "success",
         );
       } else {
@@ -220,8 +220,8 @@ function DataExportSection({
           Pobierz kopię swoich danych
         </h3>
         <p className="text-xs text-neutral-500 mt-1">
-          Realizacja prawa do przenoszenia danych (RODO art. 20). Generujemy paczkę .ndjson.gz ze
-          wszystkimi Twoimi danymi w panelu (profil, faktury, tickety, audyt logów). Link do
+          Realizacja prawa do przenoszenia danych (RODO art. 20). Przygotujemy plik ze
+          wszystkimi Twoimi danymi (profil, faktury, zgłoszenia, historia działań). Link do
           pobrania jest ważny 7 dni.
         </p>
       </div>

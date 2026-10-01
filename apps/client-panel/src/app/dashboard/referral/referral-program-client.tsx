@@ -179,7 +179,7 @@ function PartnerEarnings() {
       <section className="rounded-2xl border border-white/10 bg-black/30 p-5 space-y-3">
         <h3 className="text-sm font-semibold text-white">Zasady programu</h3>
         <ul className="text-sm text-neutral-400 space-y-1">
-          <li>• Prowizja <span className="text-emerald-300 font-medium">{ov.config.commissionPct}%</span> od każdej płatności poleconego klienta (recurring).</li>
+          <li>• Prowizja <span className="text-emerald-300 font-medium">{ov.config.commissionPct}%</span> od płatności poleconego klienta (od każdej kolejnej płatności).</li>
           {ov.config.freeHostingThreshold > 0 ? (
             <li>• Bonus <span className="text-emerald-300 font-medium">{pln(ov.config.freeHostingCredit)}</span> za każde <span className="text-emerald-300 font-medium">{ov.config.freeHostingThreshold}</span> aktywnych (płacących) poleceń.</li>
           ) : null}

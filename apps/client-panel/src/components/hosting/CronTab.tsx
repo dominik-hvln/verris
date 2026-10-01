@@ -145,7 +145,7 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
       <HostingHelpHint
         help={{
           blurb:
-            'Cron uruchamia Twój skrypt automatycznie o wybranych porach. Użyj gotowego presetu (np. „Codziennie 3:00") — nie musisz znać składni.',
+            'Cron uruchamia Twój skrypt automatycznie o wybranych porach. Użyj gotowego ustawienia (np. „Codziennie 3:00") — nie musisz znać składni.',
           kbQuery: 'cron zadania',
         }}
       />

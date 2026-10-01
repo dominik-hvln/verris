@@ -44,7 +44,7 @@ export default async function BillingPage({
   } catch (err) {
     loadError =
       err instanceof ApiError
-        ? `Nie udało się pobrać danych portfela (${err.status}).`
+        ? 'Nie udało się pobrać danych portfela. Odśwież stronę za chwilę.'
         : err instanceof Error
           ? err.message
           : 'Nieznany błąd';
@@ -65,7 +65,7 @@ export default async function BillingPage({
           tone="success"
           icon={<CheckCircle2 className="h-5 w-5" />}
           title="Płatność zakończona pomyślnie"
-          description="Środki pojawią się w portfelu w ciągu kilku sekund (po potwierdzeniu webhooka)."
+          description="Środki pojawią się w portfelu w ciągu kilku sekund (gdy operator płatności potwierdzi wpłatę)."
         />
       ) : params.karta === 'dodana' ? (
         <StatusBanner

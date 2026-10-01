@@ -350,7 +350,7 @@ export function VpsClient({
               </div>
             </div>
             {v.status === 'ERROR' ? (
-              <p className="mt-2 text-xs text-rose-300">Provisioning nie powiódł się — środki zwrócono do portfela.</p>
+              <p className="mt-2 text-xs text-rose-300">Nie udało się utworzyć serwera — środki zwróciliśmy do portfela.</p>
             ) : null}
           </div>
         ))}

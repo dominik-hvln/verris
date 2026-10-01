@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Activity, AlertTriangle, ArrowRight, CheckCircle2, ShieldAlert } from 'lucide-react';
 import type { ServiceSummaryDto } from '@verris/contracts';
+import { plForm } from '@/lib/pl';
 
 /**
  * Dashboard zdrowia usług — agregat stanu wszystkich usług klienta w jednym
@@ -17,11 +18,18 @@ interface ServiceIssue {
   reasons: string[];
 }
 
+/** Podpis pod liczbą w kaflu podsumowania („2 usługi sprawne”, „5 wymaga uwagi”, „3 pilne sprawy”). */
+export function etykietaKafla(rodzaj: 'ok' | 'warn' | 'crit', n: number): string {
+  if (rodzaj === 'ok') return plForm(n, 'usługa sprawna', 'usługi sprawne', 'usług sprawnych');
+  if (rodzaj === 'warn') return plForm(n, 'wymaga uwagi', 'wymagają uwagi', 'wymaga uwagi');
+  return plForm(n, 'pilna sprawa', 'pilne sprawy', 'pilnych spraw');
+}
+
 export function deriveReasons(s: ServiceSummaryDto): string[] {
   const reasons: string[] = [];
   // Konto powiązane, ale nieaktywne (zawieszone / w trakcie) — najważniejsze.
   if (s.account && s.account.status !== 'ACTIVE') reasons.push('Konto nieaktywne');
-  if (s.provisioning?.stage === 'failed') reasons.push('Provisioning wymaga uwagi');
+  if (s.provisioning?.stage === 'failed') reasons.push('Zakładanie konta wymaga uwagi — napisz do nas');
 
   const c = s.health?.checks;
   if (c) {
@@ -83,19 +91,19 @@ export function ServicesHealthOverview({ services }: { services: ServiceSummaryD
           icon={CheckCircle2}
           tone="ok"
           value={healthy}
-          label={healthy === 1 ? 'usługa sprawna' : 'usług sprawnych'}
+          label={etykietaKafla('ok', healthy)}
         />
         <SummaryTile
           icon={AlertTriangle}
           tone="warn"
           value={attention}
-          label={attention === 1 ? 'wymaga uwagi' : 'wymagają uwagi'}
+          label={etykietaKafla('warn', attention)}
         />
         <SummaryTile
           icon={ShieldAlert}
           tone="crit"
           value={critical}
-          label={critical === 1 ? 'pilna sprawa' : 'pilnych spraw'}
+          label={etykietaKafla('crit', critical)}
         />
       </div>
 

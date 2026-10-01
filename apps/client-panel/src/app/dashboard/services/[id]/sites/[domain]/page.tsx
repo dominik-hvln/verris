@@ -54,7 +54,7 @@ import { getMonitoringStatus, type MonitoringStatus } from '../../monitoring-act
 import { fetchDomainPhp, setDomainPhp, type DomainPhpStatus } from '@/app/dashboard/php/php-actions';
 import { SIMPLE_MODE_KEY } from '../../tabs';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
-import { plForm } from '@/lib/pl';
+import { mailboxForm, plForm } from '@/lib/pl';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
 const fetchHostingDnsAction = zOdpakowaniem(fetchHostingDnsActionAkcja);
@@ -291,7 +291,7 @@ export default function SitePage() {
               <Kpi
                 label="Poczta w domenie"
                 value={mail === undefined ? '…' : ok(mail) ? boxes.length : '—'}
-                unit={ok(mail) ? (boxes.length === 1 ? 'skrzynka' : 'skrzynek') : undefined}
+                unit={ok(mail) ? mailboxForm(boxes.length) : undefined}
                 foot={<span>{boxes.length ? boxes.slice(0, 2).map((b) => b.email.split('@')[0]).join(', ') : 'brak skrzynek'}</span>}
               />
             </KpiStrip>

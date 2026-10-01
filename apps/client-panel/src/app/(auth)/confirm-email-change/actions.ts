@@ -9,7 +9,7 @@ export async function confirmEmailChange(
 ): Promise<{ error?: string }> {
   const token = formData.get("token")?.toString().trim();
   if (!token) {
-    return { error: "Brak tokenu — użyj linku z wiadomości e-mail." };
+    return { error: "Link jest niepełny — otwórz go ponownie z wiadomości e-mail." };
   }
 
   try {

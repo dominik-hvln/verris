@@ -33,7 +33,7 @@ export default async function EcoProgramPage() {
   if (dane instanceof Error) {
     return (
       <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
-        <PanelPageHeader title="Program EKO" description="Punkty za oszczędność zasobów i badge na Twoją stronę." />
+        <PanelPageHeader title="Program EKO" description="Punkty za oszczędność zasobów i odznaka na Twoją stronę." />
         <PanelFetchError message={dane.message} />
       </div>
     );
@@ -77,7 +77,7 @@ export default async function EcoProgramPage() {
           <Meter pct={((profile.ecoPoints % platform.ecoPointsPerTree) / platform.ecoPointsPerTree) * 100} />
         </Kpi>
         <Kpi label="Drzewa łącznie" value={Math.floor(profile.ecoPoints / platform.ecoPointsPerTree)} foot={<span>posadzone z Twoich punktów</span>} />
-        <Kpi label="Przelicznik" value={platform.ecoPointsPer10Credits} unit="pkt = 10 K" foot={<span>wymiana na portfel</span>} />
+        <Kpi label="Przelicznik" value={platform.ecoPointsPer10Credits} unit="pkt = 10 zł w portfelu" foot={<span>wymiana na portfel</span>} />
       </KpiStrip>
 
       <EcoPointsGuide platform={platform} />
@@ -94,7 +94,7 @@ export default async function EcoProgramPage() {
             <p className="text-sm text-neutral-400">
               Przelicznik:{' '}
               <span className="font-mono text-neutral-200">
-                {platform.ecoPointsPer10Credits} pkt = 10,00 K
+                {platform.ecoPointsPer10Credits} pkt = 10,00 zł w portfelu
               </span>
               . Zasilenie trafia od razu do portfela i jest widoczne w historii transakcji.
             </p>
@@ -113,7 +113,7 @@ export default async function EcoProgramPage() {
           <article className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-400/90">
               <Eye className="h-3.5 w-3.5" aria-hidden />
-              Wyświetlenia badge
+              Wyświetlenia odznaki
             </div>
             <p className="mt-2 text-2xl font-bold tabular-nums text-white">{badgeStats.impressions}</p>
             <p className="mt-1 text-xs text-neutral-500">Unikalne odsłony (max 1 / IP / godz.)</p>
@@ -128,7 +128,7 @@ export default async function EcoProgramPage() {
             </p>
           </article>
           <article className="rounded-xl border border-white/10 bg-black/20 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Punkty z badge</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Punkty z odznaki</p>
             <p className="mt-2 text-2xl font-bold tabular-nums text-emerald-400">
               +{badgeStats.pointsEarnedFromBadge}
             </p>
@@ -139,12 +139,12 @@ export default async function EcoProgramPage() {
         <div className="mx-auto mb-8 max-w-2xl text-center">
           <div className="mb-2 flex items-center justify-center gap-2 text-white font-semibold">
             <Trees className="h-5 w-5 text-emerald-400" aria-hidden />
-            Badge na stronę
+            Odznaka na stronę
           </div>
           <p className="text-sm text-neutral-400">
             Statyczny obrazek z linkiem — działa w każdym kreatorze i w mailach. Każde unikalne wyświetlenie na
-            zewnętrznej stronie przybliża Cię do kolejnego punktu EKO. Interaktywne badge (pieczęć zaufania,
-            dostępność na żywo, polecenie z prowizją) znajdziesz w usłudze hostingu, w zakładce „Badge na stronę”.
+            zewnętrznej stronie przybliża Cię do kolejnego punktu EKO. Interaktywne odznaki (pieczęć zaufania,
+            dostępność na żywo, polecenie z prowizją) znajdziesz w usłudze hostingu, w zakładce „Odznaka na stronę”.
           </p>
         </div>
 
@@ -175,7 +175,7 @@ export default async function EcoProgramPage() {
             ))}
           </div>
         ) : (
-          <p className="text-center text-sm text-amber-200/80">Brak tokenu badge — odśwież stronę za chwilę.</p>
+          <p className="text-center text-sm text-amber-200/80">Odznaka jest chwilowo niedostępna — odśwież stronę za chwilę.</p>
         )}
       </section>
 

@@ -13,6 +13,7 @@ import { HostingTabShell } from '@/components/hosting/HostingTabShell';
 import { Select } from '@/components/panel/select';
 import { HOSTING_FETCH_UNAVAILABLE, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
+import { entries } from '@/lib/pl';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
 const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
@@ -170,7 +171,7 @@ export default function LogsTab({ serviceId, domena: stalaDomena }: { serviceId:
       ) : (
         <>
           <p className="mb-2 font-mono text-[11.5px] text-muted-foreground">
-            {log?.domain} · {linie.length} {linie.length === 1 ? 'wpis' : 'wpisów'}, najnowsze na górze
+            {log?.domain} · {entries(linie.length)}, najnowsze na górze
             {log?.truncated ? ' · starsze pominięte' : ''}
           </p>
           <pre

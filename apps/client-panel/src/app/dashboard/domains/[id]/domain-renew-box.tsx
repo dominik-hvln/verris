@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import { Select } from '@/components/panel/select';
 import { renewDomainAction, renewQuoteAction } from '../actions';
 import { liczba } from '@/lib/liczba';
+import { formatPln } from '@/lib/credits';
+import { plural } from '@/lib/pl';
 
 /** A-10 — odnowienie domeny z panelu: wybór okresu, cena, potwierdzenie (obciąża portfel). */
 export function DomainRenewBox({ domainId, expiresAt }: { domainId: string; expiresAt: string }) {
@@ -52,7 +54,7 @@ export function DomainRenewBox({ domainId, expiresAt }: { domainId: string; expi
             }}
             disabled={busy}
             className="w-28"
-            options={[1, 2, 3, 5].map((y) => ({ value: String(y), label: `${y} ${y === 1 ? 'rok' : y < 5 ? 'lata' : 'lat'}` }))}
+            options={[1, 2, 3, 5].map((y) => ({ value: String(y), label: plural(y, 'rok', 'lata', 'lat') }))}
           />
         </div>
         {!quote ? (
@@ -61,7 +63,10 @@ export function DomainRenewBox({ domainId, expiresAt }: { domainId: string; expi
           </button>
         ) : (
           <button type="button" onClick={renew} disabled={busy} className="rounded-lg bg-white px-3 py-1.5 font-semibold text-black hover:bg-neutral-200 disabled:opacity-50">
-            Odnów za {liczba(Number(quote.priceAmount), 2)} {quote.currency === 'PLN' ? 'K' : quote.currency}
+            Odnów za{' '}
+            {quote.currency === 'PLN'
+              ? `${formatPln(quote.priceAmount)} z portfela`
+              : `${liczba(Number(quote.priceAmount), 2)} ${quote.currency}`}
           </button>
         )}
       </div>

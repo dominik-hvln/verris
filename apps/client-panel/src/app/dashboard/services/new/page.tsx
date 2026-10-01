@@ -15,7 +15,7 @@ export default async function NewServicePage() {
   } catch (err) {
     loadError =
       err instanceof ApiError
-        ? `Nie udało się pobrać katalogu planów (${err.status}).`
+        ? 'Nie udało się pobrać katalogu planów. Odśwież stronę za chwilę.'
         : err instanceof Error
           ? err.message
           : 'Nieznany błąd';
@@ -64,7 +64,7 @@ function EmptyPlans() {
     <div className="rounded-[24px] border border-white/10 bg-white/[0.02] p-10 text-center">
       <h3 className="text-xl font-bold text-white">Brak dostępnych planów</h3>
       <p className="mt-2 text-neutral-400">
-        Administrator nie opublikował jeszcze planów hostingowych. Spróbuj ponownie później.
+        Plany są chwilowo niedostępne. Spróbuj za chwilę lub napisz do nas.
       </p>
     </div>
   );

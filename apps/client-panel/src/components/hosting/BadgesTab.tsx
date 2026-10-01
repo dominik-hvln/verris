@@ -66,7 +66,7 @@ function FramePreview({ src }: { src: string }) {
       <iframe
         ref={ref}
         src={src}
-        title="Podgląd badge"
+        title="Podgląd odznaki"
         sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
         referrerPolicy="origin"
         className="absolute bottom-0 left-0 z-10 border-0 bg-transparent"
@@ -108,10 +108,10 @@ export default function BadgesTab({ serviceId }: { serviceId: string }) {
       try {
         const r = await fetch(`/api/services/${serviceId}/badges`, { cache: 'no-store' });
         const j = await r.json();
-        if (!r.ok) throw new Error(j?.message ?? 'Nie udało się wczytać badge.');
+        if (!r.ok) throw new Error(j?.message ?? 'Nie udało się wczytać odznak.');
         setData(j as BadgesData);
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Nie udało się wczytać badge.');
+        setError(e instanceof Error ? e.message : 'Nie udało się wczytać odznak.');
       }
     };
     void load();
@@ -141,8 +141,8 @@ export default function BadgesTab({ serviceId }: { serviceId: string }) {
       src: `${api}/public/badges/ramka/dostepnosc/${serviceId}?${[q, wariant === 'mini' ? 'wariant=mini' : ''].filter(Boolean).join('&')}`,
       code: embedCode(api, 'dostepnosc', serviceId, motyw, wariant === 'mini' ? ' data-wariant="mini"' : ''),
       state: data.uptime.monitorOn
-        ? { ok: true, text: 'Monitor strony włączony — badge pokazuje jego dane.' }
-        : { ok: false, text: 'Włącz monitoring strony (zakładka Monitoring) — bez niego badge się nie wyświetla.' },
+        ? { ok: true, text: 'Monitor strony włączony — odznaka pokazuje jego dane.' }
+        : { ok: false, text: 'Włącz monitoring strony (zakładka Monitoring) — bez niego odznaka się nie wyświetla.' },
     },
     polecenie: {
       src: `${api}/public/badges/ramka/polecenie/${refCode}${q ? `?${q}` : ''}`,
@@ -151,20 +151,20 @@ export default function BadgesTab({ serviceId }: { serviceId: string }) {
         data.referral.status === 'APPROVED'
           ? { ok: true, text: `Program partnerski aktywny — ${data.referral.commissionPct}% od każdej płatności poleconego klienta trafia do portfela.` }
           : data.referral.status === 'PENDING'
-            ? { ok: false, text: 'Zgłoszenie do programu partnerskiego czeka na akceptację. Do tego czasu badge działa bez prowizji.' }
-            : { ok: false, text: 'Badge działa bez prowizji. Dołącz do programu poleceń (menu: Polecenia), żeby zarabiać na każdym kliencie z Twojej strony.' },
+            ? { ok: false, text: 'Zgłoszenie do programu partnerskiego czeka na akceptację. Do tego czasu odznaka działa bez prowizji.' }
+            : { ok: false, text: 'Odznaka działa bez prowizji. Dołącz do programu poleceń (menu: Polecenia), żeby zarabiać na każdym kliencie z Twojej strony.' },
     },
     eko: {
       src: null,
       code: ekoSrc ? `<a href="https://verris.pl" target="_blank" rel="noopener"><img src="${ekoSrc}" alt="Hosting Verris" height="${eko === 'eko' ? 44 : eko === 'znak' ? 28 : 20}"></a>` : '',
-      state: { ok: !!ekoSrc, text: ekoSrc ? 'Widoczny zawsze. Wyświetlenia z panelu nie są liczone.' : 'Brak tokenu badge — napisz do nas.' },
+      state: { ok: !!ekoSrc, text: ekoSrc ? 'Widoczny zawsze. Wyświetlenia z panelu nie są liczone.' : 'Odznaka jest chwilowo niedostępna — napisz do nas.' },
     },
   }[kind];
 
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(view.code);
-      toast.success('Skopiowano kod badge');
+      toast.success('Skopiowano kod odznaki');
     } catch {
       toast.error('Nie udało się skopiować — zaznacz kod ręcznie.');
     }
@@ -173,8 +173,8 @@ export default function BadgesTab({ serviceId }: { serviceId: string }) {
   return (
     <div className="space-y-5">
       <SectionHead
-        title="Badge na stronę"
-        desc={`Wklejasz kod raz na ${data.domain}, a dane odświeżają się same. Bez ciasteczek i bez zewnętrznych skryptów poza jednym małym loaderem.`}
+        title="Odznaka na stronę"
+        desc={`Wklejasz kod raz na ${data.domain}, a dane odświeżają się same. Bez ciasteczek i bez zewnętrznych skryptów poza jednym małym skryptem.`}
       />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -222,7 +222,7 @@ export default function BadgesTab({ serviceId }: { serviceId: string }) {
             <FramePreview key={view.src} src={view.src} />
           ) : ekoSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={ekoSrc} alt="Podgląd badge EKO" />
+            <img src={ekoSrc} alt="Podgląd odznaki EKO" />
           ) : null}
         </div>
         <div className="mt-3 flex items-start gap-2">
@@ -245,7 +245,7 @@ export default function BadgesTab({ serviceId }: { serviceId: string }) {
       </section>
 
       <KpiStrip>
-        <Kpi label="Wyświetlenia badge" value={data.eco.impressions.toLocaleString('pl-PL')} foot={<span>wszystkie badge, od początku</span>} />
+        <Kpi label="Wyświetlenia odznak" value={data.eco.impressions.toLocaleString('pl-PL')} foot={<span>wszystkie odznaki, od początku</span>} />
         <Kpi label="Punkty EKO" value={data.eco.points} foot={<span>poziom {data.eco.tier}</span>} />
         <Kpi label="Kliknięcia w polecenie" value={data.referral.clicks} foot={<span>{data.referral.referrals} poleconych kont</span>} />
         <Kpi label="Prowizja" value={pl(data.referral.earned)} unit="zł" foot={<span>{data.referral.status === 'APPROVED' ? 'łącznie z programu poleceń' : 'po dołączeniu do programu'}</span>} />

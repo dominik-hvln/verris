@@ -31,17 +31,17 @@ export function DomainRecordActions({ domain }: { domain: DomainDto }) {
     setBusy('checklist');
     try {
       odpakuj(await runDomainChecklistAction(domain.id));
-      toast.success('Asystent domeny zapisał nowy wynik DNS/SSL.');
+      toast.success('Sprawdziliśmy domenę — wynik poniżej.');
       router.refresh();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Checklist DNS/SSL nie powiódł się');
+      toast.error(e instanceof Error ? e.message : 'Nie udało się sprawdzić DNS i SSL');
     } finally {
       setBusy(null);
     }
   }
 
   async function onDelete() {
-    if (!(await potwierdz(`Usunąć domenę ${domain.name} z portfolia?`, { akcja: 'Usuń', niebezpieczne: true }))) return;
+    if (!(await potwierdz(`Usunąć domenę ${domain.name} z konta?`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     setBusy('delete');
     try {
       odpakuj(await deleteDomain(domain.id));
@@ -89,7 +89,7 @@ export function DomainRecordActions({ domain }: { domain: DomainDto }) {
         onClick={() => void onDelete()}
       >
         <Trash2 className="mr-1.5 h-4 w-4" />
-        Usuń z portfolia
+        Usuń z konta
       </Button>
     </div>
   );

@@ -25,7 +25,7 @@ export default async function InvoicesPage({
   } catch (err) {
     loadError =
       err instanceof ApiError
-        ? `Nie udało się pobrać listy faktur (${err.status}).`
+        ? 'Nie udało się pobrać listy faktur. Odśwież stronę za chwilę.'
         : err instanceof Error
           ? err.message
           : 'Nieznany błąd';
