@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
@@ -34,7 +34,7 @@ export const CATALOG: Record<string, AppCatalogEntry> = {
     name: 'PrestaShop',
     description: 'Sklep internetowy (e-commerce).',
     needsDb: true,
-    adminPath: '/admin',
+    adminPath: '/admin', // nadpisywane przez katalogPaneluPrestaShop()
   },
   joomla: {
     slug: 'joomla',
@@ -51,6 +51,14 @@ export const CATALOG: Record<string, AppCatalogEntry> = {
     adminPath: '/',
   },
 };
+
+/**
+ * PrestaShop nie wpuszcza do panelu pod „/admin” — skrypt węzła zmienia nazwę katalogu na tę samą wartość
+ * (admin + 10 znaków sha256("<baza>:<hasło admina>")), więc adres pokazany klientowi się zgadza (t1 01.10).
+ */
+export function katalogPaneluPrestaShop(baza: string, haslo: string): string {
+  return `/admin${createHash('sha256').update(`${baza}:${haslo}`).digest('hex').slice(0, 10)}`;
+}
 
 /**
  * P-3 — 1-click app marketplace (beyond WordPress/A4). Mirrors the WP installer:
@@ -195,7 +203,7 @@ export class AppInstallService {
       taskId: task.id,
       app: app.slug,
       domain: domena,
-      adminUrl: `https://${domena}${app.adminPath}`,
+      adminUrl: `https://${domena}${app.slug === 'prestashop' ? katalogPaneluPrestaShop(db.database, adminPass) : app.adminPath}`,
       adminUser,
       adminPassword: adminPass,
       note: 'Zapisz hasło administratora — nie pokażemy go ponownie. Instalacja potrwa 1-3 min.',

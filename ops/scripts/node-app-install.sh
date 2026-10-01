@@ -155,9 +155,13 @@ for r in json.load(sys.stdin):
     --name='Sklep' --country=pl --language=pl \
     --email=$Q_ADMIN_EMAIL --password=$Q_ADMIN_PASS \
     --firstname='Admin' --lastname='Sklep' --newsletter=0 --send_email=0"
-  # Po instalacji PrestaShop wymaga usunięcia katalogu install i zmiany nazwy admin.
-  run_as "cd '$DOCROOT' && rm -rf install" || true
-  log "PrestaShop zainstalowany (pamiętaj o zmianie nazwy katalogu admin po pierwszym logowaniu)."
+  # PrestaShop nie wpuszcza do panelu, dopóki jest katalog install/ i dopóki panel leży pod „admin/”.
+  # Nazwę liczy też API (adres panelu pokazany klientowi): admin + 10 znaków sha256("<baza>:<hasło>") —
+  # bez hasła nie da się jej zgadnąć. Wspólny wzór pilnuje test instalator-aplikacji-katalog.spec.ts.
+  local panel
+  panel="admin$(printf '%s:%s' "$APP_DB_NAME" "$APP_ADMIN_PASS" | sha256sum | cut -c1-10)"
+  run_as "cd '$DOCROOT' && rm -rf install && mv admin '$panel'" || blad "Nie udało się przygotować panelu sklepu — napisz do nas."
+  log "PrestaShop zainstalowany (panel: /$panel)."
 }
 
 install_joomla() {

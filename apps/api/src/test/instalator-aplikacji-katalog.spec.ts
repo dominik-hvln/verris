@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { bladZadaniaDlaKlienta } from '../subscriptions/blad-zadania.js';
-import { CATALOG } from '../subscriptions/app-install.service.js';
+import { CATALOG, katalogPaneluPrestaShop } from '../subscriptions/app-install.service.js';
 
 /**
  * I-01 — katalog aplikacji w API i instalator na węźle mówią jednym głosem, a domyślna strona Verris
@@ -42,6 +42,15 @@ describe('I-01 — instalator aplikacji', () => {
     expect(f).toContain('blad "Nie udało się pobrać paczki');
     expect(s.match(/run_as "[^"]*curl /g)).toBeNull();
     expect(s.match(/^\s+pobierz "\$url" \/tmp\/\S+$/gm)).toHaveLength(4);
+  });
+
+  it('PrestaShop: katalog panelu z węzła = adres panelu pokazany klientowi (bez „/admin”, którego sklep nie wpuszcza)', () => {
+    const f = s.slice(s.indexOf('install_prestashop() {'), s.indexOf('install_joomla() {'));
+    const wzor = f.match(/panel="admin\$\((.*)\)"/)![1];
+    const r = spawnSync('bash', ['-c', `APP_DB_NAME='klient_pres1a2b' APP_ADMIN_PASS='Ha$lo!x' ; echo "admin$(${wzor})"`], { encoding: 'utf8' });
+    expect(`/${r.stdout.trim()}`).toBe(katalogPaneluPrestaShop('klient_pres1a2b', 'Ha$lo!x'));
+    expect(katalogPaneluPrestaShop('klient_pres1a2b', 'Ha$lo!x')).toMatch(/^\/admin[0-9a-f]{10}$/);
+    expect(f.indexOf("rm -rf install && mv admin")).toBeGreaterThan(f.indexOf('index_cli.php'));
   });
 
   it('oficjalne instalatory CLI: Joomla (joomla.php install -n) i MediaWiki (run.php install)', () => {
