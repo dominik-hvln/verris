@@ -27,7 +27,7 @@ const fetchHostingDomainsAction = zOdpakowaniem(fetchHostingDomainsActionAkcja);
 const INPUT = 'w-full rounded-[7px] border border-line bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-data';
 const BTN = 'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[11px] py-1.5 text-[13px] font-medium text-foreground hover:bg-raised disabled:opacity-50';
 const JEZYK: Record<Interpreter, string> = { nodejs: 'Node.js', python: 'Python' };
-const START: Record<Interpreter, string> = { nodejs: 'app.js', python: 'passenger_wsgi.py' };
+const START: Record<Interpreter, string> = { nodejs: 'app.js', python: 'app.py' };
 
 type Formularz = {
   nowa: boolean;

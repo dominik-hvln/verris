@@ -2,6 +2,7 @@ import { execFileSync, spawnSync } from 'child_process';
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { sprawdzDane } from '../subscriptions/app-selector.service.js';
 
 /**
  * B-08/B-09 — node-app-selector.sh wykonany naprawdę, z atrapą `cloudlinux-selector`:
@@ -95,12 +96,12 @@ opisz('B-08/B-09 — node-app-selector.sh', () => {
     expect(uruchom({ AS_MODE: 'list', ...env }).wynik?.versions).toEqual({ nodejs: ['22'], python: [] });
     const r = uruchom({
       AS_MODE: 'create', AS_INTERPRETER: 'python', AS_ROOT: 'apps/py', AS_DOMAIN: 'a.pl', AS_URI: '',
-      AS_VERSION: '3.12', AS_STARTUP: 'passenger_wsgi.py', AS_ENTRY: 'application', AS_ENV_B64: '', ...env,
+      AS_VERSION: '3.12', AS_STARTUP: 'app.py', AS_ENTRY: 'application', AS_ENV_B64: '', ...env,
     });
     expect(r.status).not.toBe(0);
     expect(r.stderr).toContain('Python 3.12 nie działa jeszcze na tym serwerze');
     expect(r.wywolania.find((w) => w[0] === 'create')).toBeUndefined();
-    expect(uruchom({ ...{ AS_MODE: 'create', AS_INTERPRETER: 'python', AS_ROOT: 'apps/py', AS_DOMAIN: 'a.pl', AS_URI: '', AS_VERSION: '3.11', AS_STARTUP: 'passenger_wsgi.py', AS_ENTRY: 'application', AS_ENV_B64: '' }, ...env }).status).toBe(0);
+    expect(uruchom({ ...{ AS_MODE: 'create', AS_INTERPRETER: 'python', AS_ROOT: 'apps/py', AS_DOMAIN: 'a.pl', AS_URI: '', AS_VERSION: '3.11', AS_STARTUP: 'app.py', AS_ENTRY: 'application', AS_ENV_B64: '' }, ...env }).status).toBe(0);
   });
 
   it('wersja do selektora jako główna (Node 24, Python 3.11) — t1 01.10: set odrzucał 24.21.0', () => {
@@ -113,10 +114,21 @@ opisz('B-08/B-09 — node-app-selector.sh', () => {
     expect(set[set.indexOf('--new-version') + 1]).toBe('24');
     const c = uruchom({
       AS_MODE: 'create', AS_INTERPRETER: 'python', AS_ROOT: 'apps/py', AS_DOMAIN: 'a.pl', AS_URI: '',
-      AS_VERSION: '3.11.9', AS_STARTUP: 'passenger_wsgi.py', AS_ENTRY: 'application', AS_ENV_B64: '',
+      AS_VERSION: '3.11.9', AS_STARTUP: 'app.py', AS_ENTRY: 'application', AS_ENV_B64: '',
     });
     const create = c.wywolania.find((w) => w[0] === 'create')!;
     expect(create[create.indexOf('--version') + 1]).toBe('3.11');
+  });
+
+  it('Python: plik startowy passenger_wsgi.py odrzucony (selektor zapisuje go sam — rekurencja, t1 01.10)', () => {
+    const r = uruchom({
+      AS_MODE: 'create', AS_INTERPRETER: 'python', AS_ROOT: 'apps/py', AS_DOMAIN: 'a.pl', AS_URI: '',
+      AS_VERSION: '3.11', AS_STARTUP: 'passenger_wsgi.py', AS_ENTRY: 'application', AS_ENV_B64: '',
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.wywolania.find((w) => w[0] === 'create')).toBeUndefined();
+    expect(() => sprawdzDane({ interpreter: 'python', root: 'apps/py', domain: 'a.pl', uri: '', version: '3.13', startup: 'passenger_wsgi.py' })).toThrow(/app\.py/);
+    expect(sprawdzDane({ interpreter: 'nodejs', root: 'apps/n', domain: 'a.pl', uri: '', version: '24', startup: 'passenger_wsgi.py' }).startup).toBe('passenger_wsgi.py');
   });
 
   it('odmowa selektora kończy zadanie błędem z jego komunikatem', () => {
@@ -134,7 +146,7 @@ opisz('B-08/B-09 — node-app-selector.sh', () => {
   ])('odrzuca %o', (zle, komunikat) => {
     const r = uruchom({
       AS_MODE: 'create', AS_INTERPRETER: 'python', AS_ROOT: 'apps/api', AS_DOMAIN: 'a.pl', AS_VERSION: '3.12',
-      AS_STARTUP: 'passenger_wsgi.py', AS_ENTRY: 'application', ...zle,
+      AS_STARTUP: 'app.py', AS_ENTRY: 'application', ...zle,
     });
     expect(r.status).not.toBe(0);
     expect(r.stderr).toContain(komunikat);

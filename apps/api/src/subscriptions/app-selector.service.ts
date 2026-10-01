@@ -60,7 +60,12 @@ export function sprawdzDane(d: DaneAplikacji): Required<DaneAplikacji> {
   }
   if (!WERSJA_RE.test(d.version)) throw new BadRequestException('Wybierz wersję z listy.');
   const startup = d.startup.trim();
-  if (!SCIEZKA_RE.test(startup) || startup.includes('..')) throw new BadRequestException('Plik startowy, np. app.js albo passenger_wsgi.py.');
+  if (!SCIEZKA_RE.test(startup) || startup.includes('..')) throw new BadRequestException('Plik startowy, np. app.js albo app.py.');
+  // Selektor sam zapisuje passenger_wsgi.py, który ładuje plik startowy. Plik startowy o tej nazwie ładował
+  // samego siebie — rekurencja i 500 na każdym żądaniu (t1 01.10).
+  if (d.interpreter === 'python' && startup.split('/').pop() === 'passenger_wsgi.py') {
+    throw new BadRequestException('Podaj plik z aplikacją, np. app.py — passenger_wsgi.py serwer tworzy sam i ładuje z niego Twój plik.');
+  }
   const entry = (d.entry ?? '').trim();
   if (entry && !ENTRY_RE.test(entry)) throw new BadRequestException('Obiekt aplikacji to nazwa w Pythonie, np. application.');
   const env = d.env ?? {};

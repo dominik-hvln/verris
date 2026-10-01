@@ -112,6 +112,8 @@ case "$AS_MODE" in
     ARGS=(create --interpreter "$AS_INTERPRETER" --domain "$AS_DOMAIN" --app-root "$AS_ROOT" --app-uri "$AS_URI" --version "$AS_VERSION" --startup-file "$AS_STARTUP" --env-vars "$ENV_JSON")
     [ "$AS_INTERPRETER" = "nodejs" ] && ARGS+=(--app-mode production)
     [ "$AS_INTERPRETER" = "python" ] && [ -n "$AS_ENTRY" ] && ARGS+=(--entry-point "$AS_ENTRY")
+    # Selektor zapisuje passenger_wsgi.py, który ładuje plik startowy — ten sam plik ładowałby sam siebie.
+    [ "$AS_INTERPRETER" != "python" ] || [ "${AS_STARTUP##*/}" != "passenger_wsgi.py" ] || fail "plik startowy to plik aplikacji (np. app.py) — passenger_wsgi.py serwer tworzy sam"
     if [ "$AS_INTERPRETER" = "python" ] && ! python_przez_litespeed "$AS_VERSION"; then
       fail "Python $AS_VERSION nie działa jeszcze na tym serwerze — wybierz inną wersję z listy"
     fi
