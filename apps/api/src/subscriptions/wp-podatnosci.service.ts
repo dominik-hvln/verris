@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -31,13 +31,25 @@ export type Podatnosc = {
 };
 
 @Injectable()
-export class WpPodatnosciService {
+export class WpPodatnosciService implements OnApplicationBootstrap {
   private readonly logger = new Logger(WpPodatnosciService.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
   ) {}
+
+  /**
+   * Pusta baza przy starcie (nowa instalacja, klucz dopiero dodany) — nie czekamy do 05:40, bo do tego czasu
+   * panel mówi „baza podatności niepodłączona” (D3 01.10: klucz dodany w ciągu dnia). W tle, start API nie czeka.
+   */
+  onApplicationBootstrap(): void {
+    if (!this.config.get<string>('WORDFENCE_API_KEY')) return;
+    void this.prisma.wpPodatnosc
+      .count({ take: 1 })
+      .then((n) => (n > 0 ? null : this.odswiez()))
+      .catch((e: unknown) => this.logger.warn(`Wordfence feed przy starcie: ${e instanceof Error ? e.message : String(e)}`));
+  }
 
   /** Codziennie 05:40 UTC. Bez klucza — nic (skan pokazuje wtedy „baza podatności niepodłączona”). */
   @Cron('40 5 * * *')

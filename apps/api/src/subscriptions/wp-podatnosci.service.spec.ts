@@ -72,4 +72,19 @@ describe('I-07 — podatności WordPressa (Wordfence Scanner Feed v3)', () => {
     expect(await new WpPodatnosciService(prisma as never, { get: () => 'wf-key' } as never).odswiez()).toBe(1200);
     expect(tx.wpPodatnosc.deleteMany).toHaveBeenCalled();
   });
+
+  it('start API: z kluczem i pustą bazą pobiera feed od razu; z danymi albo bez klucza — nie', async () => {
+    const odswiez = vi.fn(async () => 1200);
+    const zBaza = (n: number, klucz?: string) => {
+      const svc = new WpPodatnosciService({ wpPodatnosc: { count: vi.fn(async () => n) } } as never, { get: () => klucz } as never);
+      svc.odswiez = odswiez;
+      return svc;
+    };
+    zBaza(0, 'wf-key').onApplicationBootstrap();
+    await vi.waitFor(() => expect(odswiez).toHaveBeenCalledTimes(1));
+    zBaza(5, 'wf-key').onApplicationBootstrap();
+    zBaza(0).onApplicationBootstrap();
+    await new Promise((r) => setTimeout(r, 10));
+    expect(odswiez).toHaveBeenCalledTimes(1);
+  });
 });
