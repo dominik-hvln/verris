@@ -49,6 +49,7 @@ describe('skrypty węzła — katalog klienta tylko jako klient', () => {
     const t = czytaj('security-hardening-baseline.sh');
     expect(t).toContain('da build set fail2ban yes && da build fail2ban');
     expect(t.indexOf('da build set fail2ban yes')).toBeGreaterThan(t.indexOf('dnf install -y fail2ban'));
+    expect(t.indexOf('dnf install -y fail2ban-firewalld')).toBeGreaterThan(t.indexOf('da build fail2ban'));
   });
 
   it('profil: aplikacje Python przez LiteSpeed — skrypt producenta i kontrola lswsgi (t1 01.10: 503)', () => {

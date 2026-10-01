@@ -73,6 +73,9 @@ install_packages() {
     # i węzeł zostaje bez blokowania zgadywania haseł. Opcja: `da build opt_help` → fail2ban: yes, no.
     if [ "$ROLE" = "node" ] && command -v da >/dev/null 2>&1 && [ -d /usr/local/directadmin/custombuild ]; then
       run "da build set fail2ban yes && da build fail2ban"
+      # CustomBuild instaluje samo fail2ban-server — bez fail2ban-firewalld (jail.d/00-firewalld.conf,
+      # banaction firewallcmd) blokady szły do iptables obok firewalld (t1 01.10). python3-systemd: backend systemd.
+      run "dnf install -y fail2ban-firewalld python3-systemd"
     fi
   else
     die "Unsupported package manager (expected apt-get or dnf)"
