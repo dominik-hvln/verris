@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'child_process';
-import { chmodSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
@@ -77,6 +77,30 @@ opisz('B-08/B-09 — node-app-selector.sh', () => {
     expect(r.status).toBe(0);
     const create = r.wywolania.find((w) => w[0] === 'create')!;
     expect(JSON.parse(create[create.indexOf('--env-vars') + 1])).toEqual(env);
+  });
+
+  it('LiteSpeed: wersja Pythona bez lswsgi znika z listy i nie da się na niej utworzyć aplikacji — t1 01.10', () => {
+    const alt = mkdtempSync(join(tmpdir(), 'alt-'));
+    const lsws = join(alt, 'lswsctrl');
+    writeFileSync(lsws, '#!/bin/sh\n');
+    chmodSync(lsws, 0o755);
+    for (const [d, lswsgi] of [['python312', false], ['python311', true]] as const) {
+      mkdirSync(join(alt, d, 'bin'), { recursive: true });
+      for (const plik of lswsgi ? ['python3', 'lswsgi'] : ['python3']) {
+        writeFileSync(join(alt, d, 'bin', plik), '#!/bin/sh\n');
+        chmodSync(join(alt, d, 'bin', plik), 0o755);
+      }
+    }
+    const env = { AS_LSWS_BIN: lsws, AS_ALT_DIR: alt };
+    expect(uruchom({ AS_MODE: 'list', ...env }).wynik?.versions).toEqual({ nodejs: ['22'], python: [] });
+    const r = uruchom({
+      AS_MODE: 'create', AS_INTERPRETER: 'python', AS_ROOT: 'apps/py', AS_DOMAIN: 'a.pl', AS_URI: '',
+      AS_VERSION: '3.12', AS_STARTUP: 'passenger_wsgi.py', AS_ENTRY: 'application', AS_ENV_B64: '', ...env,
+    });
+    expect(r.status).not.toBe(0);
+    expect(r.stderr).toContain('Python 3.12 nie działa jeszcze na tym serwerze');
+    expect(r.wywolania.find((w) => w[0] === 'create')).toBeUndefined();
+    expect(uruchom({ ...{ AS_MODE: 'create', AS_INTERPRETER: 'python', AS_ROOT: 'apps/py', AS_DOMAIN: 'a.pl', AS_URI: '', AS_VERSION: '3.11', AS_STARTUP: 'passenger_wsgi.py', AS_ENTRY: 'application', AS_ENV_B64: '' }, ...env }).status).toBe(0);
   });
 
   it('odmowa selektora kończy zadanie błędem z jego komunikatem', () => {

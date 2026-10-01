@@ -16,7 +16,7 @@
 #   AS_ENV_B64      (create/update) base64 JSON {"ZMIENNA":"wartość"} — zmienne środowiskowe
 # Każdy argument idzie osobnym elementem argv (bez eval/sh -c) — wartości klienta nie trafiają do powłoki.
 # Wynik (zawsze, także po zmianie): VERRIS_APPS=<base64 JSON {apps:[…], versions:{nodejs:[…], python:[…]}}>.
-# AS_SELECTOR_BIN daje się podmienić wyłącznie w testach.
+# AS_SELECTOR_BIN, AS_LSWS_BIN i AS_ALT_DIR dają się podmienić wyłącznie w testach.
 # =============================================================================
 set -Eeuo pipefail
 
@@ -88,6 +88,16 @@ if j.get("result") != "success":
   [ -z "$msg" ] || fail "$msg"
 }
 
+# LiteSpeed uruchamia aplikacje Python przez /opt/alt/pythonXY/bin/lswsgi (pakiet alt-pythonXY-wsgi-lsapi).
+# Wersja bez niego daje 503 dla każdej aplikacji (t1 01.10: Python 3.14 — pakietu jeszcze nie ma).
+LSWS_BIN="${AS_LSWS_BIN:-/usr/local/lsws/bin/lswsctrl}"
+ALT_DIR="${AS_ALT_DIR:-/opt/alt}"
+python_przez_litespeed() { # $1 = wersja (3.13 / 3.13.5)
+  [ -x "$LSWS_BIN" ] || return 0
+  local mm; mm="$(printf '%s' "$1" | cut -d. -f1-2 | tr -d .)"
+  [ -x "$ALT_DIR/python$mm/bin/lswsgi" ]
+}
+
 I=(--interpreter "$AS_INTERPRETER" --user "$AS_DA_USER" --app-root "$AS_ROOT")
 case "$AS_MODE" in
   create)
@@ -95,6 +105,9 @@ case "$AS_MODE" in
     ARGS=(create --interpreter "$AS_INTERPRETER" --domain "$AS_DOMAIN" --app-root "$AS_ROOT" --app-uri "$AS_URI" --version "$AS_VERSION" --startup-file "$AS_STARTUP" --env-vars "$ENV_JSON")
     [ "$AS_INTERPRETER" = "nodejs" ] && ARGS+=(--app-mode production)
     [ "$AS_INTERPRETER" = "python" ] && [ -n "$AS_ENTRY" ] && ARGS+=(--entry-point "$AS_ENTRY")
+    if [ "$AS_INTERPRETER" = "python" ] && ! python_przez_litespeed "$AS_VERSION"; then
+      fail "Python $AS_VERSION nie działa jeszcze na tym serwerze — wybierz inną wersję z listy"
+    fi
     log "tworzę aplikację $AS_INTERPRETER $AS_ROOT → $AS_DOMAIN/$AS_URI"
     sel "${ARGS[@]}"
     ;;
@@ -125,7 +138,13 @@ for interp in nodejs python; do
   out="$("$SEL" get --json --interpreter "$interp" 2>/dev/null || true)"
   LISTA+=("$interp" "$(printf '%s' "$out" | base64 -w0)")
 done
-AS_U="$AS_DA_USER" python3 - "${LISTA[@]}" <<'PY'
+BEZ_LSWSGI=""
+for py in "$ALT_DIR"/python3*/bin/python3; do
+  [ -x "$py" ] || continue
+  d="$(basename "$(dirname "$(dirname "$py")")")"
+  [ ! -x "$LSWS_BIN" ] || [ -x "$ALT_DIR/$d/bin/lswsgi" ] || BEZ_LSWSGI="$BEZ_LSWSGI ${d#python}"
+done
+AS_U="$AS_DA_USER" AS_BEZ_LSWSGI="$BEZ_LSWSGI" python3 - "${LISTA[@]}" <<'PY'
 import base64, json, os, sys
 u = os.environ["AS_U"]
 wynik = {"apps": [], "versions": {}}
@@ -141,7 +160,8 @@ for interp, b64 in zip(a[0::2], a[1::2]):
     for ver, v in (j.get("available_versions") or {}).items():
         if not isinstance(v, dict):
             continue
-        if v.get("status") == "enabled":
+        bez = os.environ.get("AS_BEZ_LSWSGI", "").split()
+        if v.get("status") == "enabled" and not (interp == "python" and "".join(ver.split(".")[:2]) in bez):
             wersje.append(ver)
         apps = (((v.get("users") or {}).get(u) or {}).get("applications") or {})
         for root, ap in apps.items():
