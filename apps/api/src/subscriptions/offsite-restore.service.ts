@@ -174,8 +174,12 @@ export class OffsiteRestoreService {
           : [],
       lastList: this.taskView(lastList),
       lastFetch: this.taskView(lastFetch),
+      // Ta sama nazwa archiwum jest w każdej wersji dnia — „na serwerze” tylko dla wersji, którą pobrano.
+      // Inaczej lista z wybranego dnia chowała „Pobierz” (t1 01.10: wersja z 30.09 udawała pobraną).
       fetchedArchive:
-        lastFetch?.status === NodeTaskStatus.COMPLETED
+        lastFetch?.status === NodeTaskStatus.COMPLETED &&
+        ((lastFetch.payload as { snapshot?: string } | null)?.snapshot ?? null) ===
+          ((lastList?.payload as { snapshot?: string } | null)?.snapshot ?? null)
           ? ((lastFetch.payload as { archive?: string } | null)?.archive ?? null)
           : null,
     };

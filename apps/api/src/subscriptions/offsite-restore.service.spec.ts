@@ -78,6 +78,17 @@ describe('OffsiteRestoreService — X-08', () => {
     expect(stan.archives[0].modifiedAt).toBe('2026-09-20T03:00:00.000Z');
   });
 
+  it('„na serwerze” tylko dla pobranej wersji dnia — lista z innego dnia ma „Pobierz” (t1 01.10)', async () => {
+    const t = (id: string, payload: Record<string, string>, dt: number) => ({
+      id, status: 'COMPLETED', payload, outputLog: 'VERRIS-OFFSITE-FILE user.admin.k.tar.zst|5|2026-09-30 01:56:53',
+      completedAt: new Date(dt), updatedAt: new Date(dt), createdAt: new Date(dt), errorMessage: null,
+    });
+    const inny = zbuduj({ zadania: [t('l', { mode: 'list', snapshot: '20261001' }, 3), t('f', { mode: 'fetch', archive: 'user.admin.k.tar.zst' }, 2)] });
+    expect((await inny.svc.status('s1', 'u1')).fetchedArchive).toBeNull();
+    const ten = zbuduj({ zadania: [t('f', { mode: 'fetch', archive: 'user.admin.k.tar.zst', snapshot: '20261001' }, 3), t('l', { mode: 'list', snapshot: '20261001' }, 2)] });
+    expect((await ten.svc.status('s1', 'u1')).fetchedArchive).toBe('user.admin.k.tar.zst');
+  });
+
   it('błąd z węzła nie wycieka do klienta surowym logiem', async () => {
     const { svc } = zbuduj({
       zadania: [{ id: 't', status: 'FAILED', payload: { mode: 'fetch' }, errorMessage: 'rclone copy: /etc/verris-backup.conf RCLONE_REMOTE=s3:secret', createdAt: new Date(), completedAt: null, updatedAt: new Date() }],
