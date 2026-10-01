@@ -1,7 +1,7 @@
 'use client';
 
 import { KOPIE_OFFSITE_DNI } from '@verris/contracts';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -12,18 +12,27 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import {
+  fetchOffsiteRetentionAction as fetchOffsiteRetentionActionAkcja,
   fetchOffsiteStatusAction as fetchOffsiteStatusActionAkcja,
   queueOffsiteFetchAction as queueOffsiteFetchActionAkcja,
   queueOffsiteListAction as queueOffsiteListActionAkcja,
+  setOffsiteRetentionAction as setOffsiteRetentionActionAkcja,
   type OffsiteRestoreStatusDto,
+  type RetencjaOffsiteDto,
 } from '@/app/dashboard/services/[id]/hosting-offsite-actions';
+import { Select } from '@/components/panel/select';
+import { potwierdz } from '@/components/panel/potwierdz';
 import { liczba } from '@/lib/liczba';
+import { days } from '@/lib/pl';
+import { opcjeRetencji, zDni } from '@/lib/retencja-kopii';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
 const fetchOffsiteStatusAction = zOdpakowaniem(fetchOffsiteStatusActionAkcja);
 const queueOffsiteFetchAction = zOdpakowaniem(queueOffsiteFetchActionAkcja);
 const queueOffsiteListAction = zOdpakowaniem(queueOffsiteListActionAkcja);
+const fetchOffsiteRetentionAction = zOdpakowaniem(fetchOffsiteRetentionActionAkcja);
+const setOffsiteRetentionAction = zOdpakowaniem(setOffsiteRetentionActionAkcja);
 
 /**
  * S-1 — kopie OFF-SITE w panelu klienta.
@@ -48,6 +57,39 @@ export function HostingOffsitePanel({
   const [snapshot, setSnapshot] = useState('');
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const wasBusyRef = useRef(false);
+  const uid = useId();
+  // H-03 — retencja wybrana w granicach planu; do odczytu z API pokazujemy minimum w cenie.
+  const [retencja, setRetencja] = useState<RetencjaOffsiteDto | null>(null);
+  const [zapisRetencji, setZapisRetencji] = useState(false);
+  const dni = retencja?.dni ?? KOPIE_OFFSITE_DNI;
+
+  useEffect(() => {
+    fetchOffsiteRetentionAction(serviceId)
+      .then(setRetencja)
+      .catch(() => { /* zostaje minimum w cenie */ });
+  }, [serviceId]);
+
+  const zmienRetencje = async (nowa: number) => {
+    if (!retencja || nowa === retencja.dni) return;
+    if (
+      nowa < retencja.dni &&
+      !(await potwierdz(
+        `Kopie starsze niż ${zDni(nowa)} zostaną usunięte przy najbliższym nocnym przebiegu i nie da się ich odzyskać.`,
+        { akcja: 'Skróć', niebezpieczne: true, tytul: 'Skrócić przechowywanie kopii?' },
+      ))
+    ) {
+      return;
+    }
+    setZapisRetencji(true);
+    setError(null);
+    try {
+      setRetencja(await setOffsiteRetentionAction(serviceId, nowa));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Nie udało się zmienić czasu przechowywania kopii.');
+    } finally {
+      setZapisRetencji(false);
+    }
+  };
 
   // `.then` zamiast `await` — lint React Compilera nie widzi `await` w useCallback i zgłasza fałszywy setState w efekcie.
   const load = useCallback(
@@ -132,7 +174,7 @@ export function HostingOffsitePanel({
             <p className="text-sm font-semibold text-foreground">Kopia poza serwerem (off-site)</p>
             <p className="text-xs text-muted-foreground">
               {state.offsite.protected
-                ? `Dodatkowa kopia Twojego konta leży poza tym serwerem — przetrwa nawet jego awarię. Trzymamy wersje z ${KOPIE_OFFSITE_DNI} dni.${
+                ? `Dodatkowa kopia Twojego konta leży poza tym serwerem — przetrwa nawet jego awarię. Trzymamy wersje z ${zDni(dni)}.${
                     state.offsite.lastRunAt
                       ? ' Ostatnia: ' +
                         new Date(state.offsite.lastRunAt).toLocaleString('pl-PL') +
@@ -162,6 +204,25 @@ export function HostingOffsitePanel({
         </button>
       </div>
 
+      {retencja && retencja.max > retencja.min ? (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <label htmlFor={`${uid}-retencja`}>Przechowuj wersje przez</label>
+          <Select
+            id={`${uid}-retencja`}
+            value={String(retencja.dni)}
+            onChange={(v) => void zmienRetencje(Number(v))}
+            disabled={zapisRetencji}
+            className="w-32"
+            options={opcjeRetencji(retencja.min, retencja.max, retencja.dni).map((d) => ({
+              value: String(d),
+              label: d === retencja.min ? `${days(d)} (w cenie)` : days(d),
+            }))}
+          />
+          {zapisRetencji ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+          <span>Zmiana obowiązuje od najbliższej nocnej kopii.</span>
+        </div>
+      ) : null}
+
       {/* Starsza wersja — schowana, bo 9 na 10 klientów chce po prostu najnowszą. */}
       <div className="text-xs">
         <button
@@ -184,7 +245,7 @@ export function HostingOffsitePanel({
               className="w-48 rounded-md border border-line bg-background px-3 py-1.5 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:border-data focus:outline-none"
             />
             <span className="text-muted-foreground">
-              Masz kopię z każdego z ostatnich {KOPIE_OFFSITE_DNI} dni — starszych już nie ma.
+              Masz kopię z każdego z ostatnich {zDni(dni)} — starszych już nie ma.
             </span>
           </div>
         ) : null}

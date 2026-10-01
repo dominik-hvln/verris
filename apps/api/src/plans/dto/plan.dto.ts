@@ -1,6 +1,7 @@
 // Sufit krotności = ten sam, który przepuszcza silnik (Z-16: 32×, z ogranicznikiem pojemności węzła).
 // Było @Max(10): oferta ma CPU 12× i dysk 20×, więc zapis planu produkcyjnego kończył się błędem.
 import { MAKS_KROTNOSC_AUTOSKALOWANIA } from '../../subscriptions/node-capacity.js';
+import { KOPIE_OFFSITE_DNI, KOPIE_OFFSITE_MAX_DNI } from '@verris/contracts';
 import {
   IsBoolean,
   IsIn,
@@ -84,6 +85,10 @@ export class CreatePlanDto {
   /** SUP-5 — gwarantowany czas odpowiedzi wsparcia (godziny, 0 = brak). */
   @IsOptional() @IsInt() @Min(0) @Max(720)
   supportSlaHours?: number;
+
+  /** H-03 — najdłuższa retencja kopii poza serwerem do wyboru przez klienta (dni; 30 = tylko minimum w cenie). */
+  @IsOptional() @IsInt() @Min(KOPIE_OFFSITE_DNI) @Max(KOPIE_OFFSITE_MAX_DNI)
+  offsiteRetentionMaxDays?: number;
 
   // Stripe recurring price IDs — required only if you intend to sell this plan
   // through Stripe Subscriptions (paymentSource=STRIPE_CARD on /subscriptions).
@@ -182,6 +187,10 @@ export class UpdatePlanDto {
   /** SUP-5 — gwarantowany czas odpowiedzi wsparcia (godziny, 0 = brak). */
   @IsOptional() @IsInt() @Min(0) @Max(720)
   supportSlaHours?: number;
+
+  /** H-03 — najdłuższa retencja kopii poza serwerem do wyboru przez klienta (dni; 30 = tylko minimum w cenie). */
+  @IsOptional() @IsInt() @Min(KOPIE_OFFSITE_DNI) @Max(KOPIE_OFFSITE_MAX_DNI)
+  offsiteRetentionMaxDays?: number;
 
   @IsOptional() @IsString() @Length(3, 80) @Matches(/^price_/, {
     message: 'Stripe Price ID musi zaczynać się od "price_"',

@@ -79,3 +79,29 @@ export async function queueOffsiteListAction(...a: Parameters<typeof queueOffsit
 export async function queueOffsiteFetchAction(...a: Parameters<typeof queueOffsiteFetchActionTresc>): Promise<WynikAkcji<Awaited<ReturnType<typeof queueOffsiteFetchActionTresc>>>> {
   return bezpiecznie(() => queueOffsiteFetchActionTresc(...a));
 }
+
+/** H-03 — ile dni trzymamy wersje kopii poza serwerem; zakres z planu klienta. */
+export interface RetencjaOffsiteDto {
+  dni: number;
+  min: number;
+  max: number;
+}
+
+async function fetchOffsiteRetentionActionTresc(serviceId: string): Promise<RetencjaOffsiteDto> {
+  return apiFetch<RetencjaOffsiteDto>(`/services/${serviceId}/hosting-offsite-retention`);
+}
+
+async function setOffsiteRetentionActionTresc(serviceId: string, dni: number): Promise<RetencjaOffsiteDto> {
+  return apiFetch<RetencjaOffsiteDto>(`/services/${serviceId}/hosting-offsite-retention`, {
+    method: 'POST',
+    body: JSON.stringify({ dni }),
+  });
+}
+
+export async function fetchOffsiteRetentionAction(...a: Parameters<typeof fetchOffsiteRetentionActionTresc>): Promise<WynikAkcji<RetencjaOffsiteDto>> {
+  return bezpiecznie(() => fetchOffsiteRetentionActionTresc(...a));
+}
+
+export async function setOffsiteRetentionAction(...a: Parameters<typeof setOffsiteRetentionActionTresc>): Promise<WynikAkcji<RetencjaOffsiteDto>> {
+  return bezpiecznie(() => setOffsiteRetentionActionTresc(...a));
+}

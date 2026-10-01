@@ -338,6 +338,14 @@ export class NodeTasksAgentController {
     return tresc;
   }
 
+  /** H-03 — retencja kopii off-site per konto węzła (`<login> <dni>`), pobierana przez node-offsite-backup.sh. */
+  @Get('backup-retention')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  @Header('Cache-Control', 'no-store')
+  backupRetention(@Req() req: Request & { serverId?: string }) {
+    return this.backup.retencjaKontDlaWezla(req.serverId!);
+  }
+
   /** PB-31 — Onboard LIVE z panelu: skrypt-opakowanie i pakiet w układzie repo. */
   @Get('onboard-live/script')
   @Header('Content-Type', 'text/plain; charset=utf-8')

@@ -64,6 +64,8 @@ rclone config create verris-remote sftp host "$VB_HOST" port "$VB_PORT" user "$V
 rclone config create verris-crypt crypt remote "verris-remote:$VB_PATH" password "$VB_CRYPT_PASS" password2 "$VB_CRYPT_SALT" --obscure >/dev/null
 chmod 600 /root/.config/rclone/rclone.conf
 
+# RETENTION_DAYS = domyślna retencja floty (konto bez własnego wyboru). Retencję wybraną przez klienta
+# (H-03) node-offsite-backup.sh pobiera co noc z /agent/tasks/backup-retention; obie przycina do 30–90 dni.
 cat > "$BCONF" <<CONF
 RCLONE_REMOTE="verris-crypt:"
 BACKUP_PREFIX="nodes/$(hostname -s)"

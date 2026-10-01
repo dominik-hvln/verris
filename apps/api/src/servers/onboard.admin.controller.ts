@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/comm
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
 import { NodeTaskStatus, Role } from '@verris/database';
+import { KOPIE_OFFSITE_DNI, KOPIE_OFFSITE_MAX_DNI } from '@verris/contracts';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
@@ -12,7 +13,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { NodeTasksService } from './node-tasks.service.js';
 import { BackupOffsiteService } from './backup-offsite.service.js';
 
-class BackupOffsiteDto {
+export class BackupOffsiteDto {
   @IsString() @MaxLength(253) @Matches(/^[a-z0-9.-]+$/i, { message: 'Host: sama nazwa, np. u123456.your-storagebox.de' })
   host!: string;
 
@@ -25,7 +26,8 @@ class BackupOffsiteDto {
   @IsString() @MaxLength(200) @Matches(/^[a-z0-9._/-]*$/i, { message: 'Ścieżka: litery, cyfry, . _ - /' })
   sciezka!: string;
 
-  @Type(() => Number) @IsInt() @Min(7) @Max(365)
+  /** Domyślna retencja floty (konto bez własnego wyboru). Z-06: poniżej 30 łamie obietnicę panelu, powyżej 90 — Regulamin. */
+  @Type(() => Number) @IsInt() @Min(KOPIE_OFFSITE_DNI) @Max(KOPIE_OFFSITE_MAX_DNI)
   retencjaDni!: number;
 
   @IsOptional() @IsString() @MaxLength(256)
