@@ -512,7 +512,7 @@ export default function MailTab({ serviceId }: Props) {
 
       <MailExtras serviceId={serviceId} />
 
-      <DeliverabilityPanel serviceId={serviceId} />
+      <DeliverabilityPanel serviceId={serviceId} domains={domains} />
 
       <MailLogPanel serviceId={serviceId} />
         </div>

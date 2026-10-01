@@ -11,8 +11,8 @@ import type { DeliverabilityCheck, DeliverabilityReport } from './deliverability
 import { enableDkimAction } from './dkim-actions';
 
 /** Przez route handler — sondy DNS nie blokują kolejki akcji serwera. */
-const fetchDeliverability = (serviceId: string): Promise<DeliverabilityReport | null> =>
-  fetch(`/api/services/${serviceId}/deliverability`, { cache: 'no-store' })
+const fetchDeliverability = (serviceId: string, domena?: string): Promise<DeliverabilityReport | null> =>
+  fetch(`/api/services/${serviceId}/deliverability${domena ? `?domain=${encodeURIComponent(domena)}` : ''}`, { cache: 'no-store' })
     .then((r) => (r.ok ? (r.json() as Promise<DeliverabilityReport>) : null))
     .catch(() => null);
 
@@ -27,17 +27,21 @@ const ICON = {
  * rekord do dodania jednym kliknięciem (gdy domena używa DNS Verris) albo do
  * skopiowania u zewnętrznego dostawcy DNS.
  */
-export function DeliverabilityPanel({ serviceId }: { serviceId: string }) {
+// domains — wszystkie domeny usługi; przy więcej niż jednej można sprawdzić i poprawić każdą
+// (E-16: DKIM, SPF i DMARC tylko dla domeny głównej, test D3 30.09).
+export function DeliverabilityPanel({ serviceId, domains = [] }: { serviceId: string; domains?: string[] }) {
   const [report, setReport] = useState<DeliverabilityReport | null | undefined>(undefined);
+  const [domena, setDomena] = useState('');
   const [pending, startTransition] = useTransition();
 
   const load = () =>
     startTransition(async () => {
-      const r = await fetchDeliverability(serviceId);
+      const r = await fetchDeliverability(serviceId, domena || undefined);
       setReport(r);
       if (!r) toast.error('Nie udało się sprawdzić dostarczalności');
     });
-  useEffect(load, [serviceId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- load czyta serviceId i domena
+  useEffect(load, [serviceId, domena]);
 
   return (
     <section className="mt-6">
@@ -52,6 +56,16 @@ export function DeliverabilityPanel({ serviceId }: { serviceId: string }) {
         }
         desc="SPF, DKIM i DMARC mówią serwerom odbiorców, że poczta z Twojej domeny jest prawdziwa. Bez nich wiadomości częściej lądują w spamie."
         action={
+          <span className="flex items-center gap-2">
+          {domains.length > 1 ? (
+            <Select
+              value={domena || report?.domain || domains[0]}
+              onChange={setDomena}
+              aria-label="Domena do sprawdzenia"
+              className="min-w-[10rem]"
+              options={domains.map((d) => ({ value: d, label: d }))}
+            />
+          ) : null}
           <button
             type="button"
             onClick={load}
@@ -60,6 +74,7 @@ export function DeliverabilityPanel({ serviceId }: { serviceId: string }) {
           >
             {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />} Sprawdź ponownie
           </button>
+          </span>
         }
       />
 

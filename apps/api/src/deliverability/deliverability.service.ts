@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { promises as dns } from 'dns';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
@@ -57,13 +57,22 @@ export class DeliverabilityService {
     private readonly platformSettings: PlatformSettingsService,
   ) {}
 
-  async forSubscription(subscriptionId: string, userId: string): Promise<DeliverabilityReport> {
+  /** `wybrana` — domena dodatkowa usługi (E-16: „Włącz DKIM” było tylko dla domeny głównej, test D3 30.09). */
+  async forSubscription(subscriptionId: string, userId: string, wybrana?: string): Promise<DeliverabilityReport> {
     const sub = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
       include: { account: { include: { server: { select: { ipAddress: true, ns1: true, ns2: true, ns3: true } } } } },
     });
     if (!sub) throw new NotFoundException('Service not found');
-    const domain = sub.account?.domain ?? null;
+    let domain = sub.account?.domain ?? null;
+    const d = (wybrana ?? '').trim().toLowerCase();
+    if (d && domain && d !== domain.toLowerCase()) {
+      const lista = await this.directAdmin.listHostingDomainsForSubscription(subscriptionId, userId);
+      if (!lista.domains.some((x) => x.name.toLowerCase() === d)) {
+        throw new BadRequestException('Ta domena nie należy do tej usługi.');
+      }
+      domain = d;
+    }
     const server = sub.account?.server;
     if (!domain || !server) return this.check(domain, server?.ipAddress ?? null);
 

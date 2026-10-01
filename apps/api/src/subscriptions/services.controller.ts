@@ -239,8 +239,8 @@ export class UserServicesController {
   }
 
   @Get(':id/deliverability')
-  deliverabilityFor(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
-    return this.deliverability.forSubscription(id, user.userId);
+  deliverabilityFor(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Query('domain') domain?: string) {
+    return this.deliverability.forSubscription(id, user.userId, domain);
   }
 
   // P-6 — wersja PHP konta.
