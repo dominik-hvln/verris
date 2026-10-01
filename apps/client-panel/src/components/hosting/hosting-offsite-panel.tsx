@@ -215,7 +215,7 @@ export function HostingOffsitePanel({
             className="w-32"
             options={opcjeRetencji(retencja.min, retencja.max, retencja.dni).map((d) => ({
               value: String(d),
-              label: d === retencja.min ? `${days(d)} (w cenie)` : days(d),
+              label: days(d),
             }))}
           />
           {zapisRetencji ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}

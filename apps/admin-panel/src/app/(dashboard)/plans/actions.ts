@@ -38,6 +38,8 @@ interface CreatePlanPayload {
   trialDays?: number;
   productKind?: "HOSTING" | "EMAIL";
   supportSlaHours?: number;
+  /** H-03 — najdłuższa retencja kopii poza serwerem do wyboru przez klienta (30–90 dni). */
+  offsiteRetentionMaxDays?: number;
   stripePriceMonthlyId?: string;
   stripePriceYearlyId?: string;
   autoscalingMaxOverscaleCpu?: number;
@@ -77,6 +79,8 @@ interface UpdatePlanPayload {
   trialDays?: number;
   productKind?: "HOSTING" | "EMAIL";
   supportSlaHours?: number;
+  /** H-03 — najdłuższa retencja kopii poza serwerem do wyboru przez klienta (30–90 dni). */
+  offsiteRetentionMaxDays?: number;
   stripePriceMonthlyId?: string;
   stripePriceYearlyId?: string;
   autoscalingMaxOverscaleCpu?: number;

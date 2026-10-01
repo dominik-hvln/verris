@@ -30,6 +30,8 @@ export interface AdminPlanRow {
   productKind: 'HOSTING' | 'EMAIL';
   /** SUP-4 — SLA response window in hours; 0 = no SLA badge. */
   supportSlaHours: number;
+  /** H-03 — najdłuższa retencja kopii poza serwerem do wyboru przez klienta (dni). */
+  offsiteRetentionMaxDays: number;
   autoscalingMaxOverscaleCpu: number;
   autoscalingMaxOverscaleRam: number;
   autoscalingMaxOverscaleDisk: number;

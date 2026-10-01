@@ -5,6 +5,7 @@ import { useState, useTransition, useId } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, PlusCircle, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { createPlanAction, validateStripePriceAction } from "../actions";
+import { KOPIE_OFFSITE_DNI, KOPIE_OFFSITE_MAX_DNI } from "@verris/contracts";
 
 const DEFAULTS = {
   cpuLimit: 100,
@@ -43,6 +44,7 @@ export function NewPlanForm() {
     sortOrder: "0",
     trialDays: "0",
     supportSlaHours: "0",
+    offsiteRetentionMaxDays: String(KOPIE_OFFSITE_DNI),
     productKind: "HOSTING" as "HOSTING" | "EMAIL",
     stripePriceMonthlyId: "",
     stripePriceYearlyId: "",
@@ -105,6 +107,7 @@ export function NewPlanForm() {
         sortOrder: Number.parseInt(form.sortOrder, 10) || 0,
         trialDays: Number.parseInt(form.trialDays, 10) || 0,
         supportSlaHours: Number.parseInt(form.supportSlaHours, 10) || 0,
+        offsiteRetentionMaxDays: Number.parseInt(form.offsiteRetentionMaxDays, 10) || KOPIE_OFFSITE_DNI,
         productKind: form.productKind,
         ...(stripeManual
           ? {
@@ -240,6 +243,14 @@ export function NewPlanForm() {
         <NumField label="Kolejność" value={form.sortOrder} onChange={(v) => setField("sortOrder", v)} />
         <NumField label="Okres próbny (dni, 0 = brak)" value={form.trialDays} onChange={(v) => setField("trialDays", v)} />
         <NumField label="SLA wsparcia (h, 0=brak)" value={form.supportSlaHours} onChange={(v) => setField("supportSlaHours", v)} />
+        <NumField
+          label="Kopie poza serwerem — maks. dni do wyboru"
+          value={form.offsiteRetentionMaxDays}
+          onChange={(v) => setField("offsiteRetentionMaxDays", v)}
+          min={KOPIE_OFFSITE_DNI}
+          max={KOPIE_OFFSITE_MAX_DNI}
+          hint={`${KOPIE_OFFSITE_DNI} = klient ma stałe ${KOPIE_OFFSITE_DNI} dni; więcej — sam wybiera w panelu (do ${KOPIE_OFFSITE_MAX_DNI}).`}
+        />
       </Card>
 
       <div className="pt-4 border-t border-white/5 flex justify-end">

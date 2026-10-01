@@ -1,5 +1,6 @@
 "use client";
 
+import { KOPIE_OFFSITE_DNI, KOPIE_OFFSITE_MAX_DNI } from "@verris/contracts";
 import { Select } from "@/components/select";
 import { useState, useTransition, useId } from "react";
 import {
@@ -38,6 +39,7 @@ interface FormState {
   sortOrder: string;
   trialDays: string;
   supportSlaHours: string;
+  offsiteRetentionMaxDays: string;
   productKind: "HOSTING" | "EMAIL";
   stripePriceMonthlyId: string;
   stripePriceYearlyId: string;
@@ -65,6 +67,7 @@ function toFormState(plan: AdminPlanRow): FormState {
     sortOrder: String(plan.sortOrder),
     trialDays: String(plan.trialDays ?? 0),
     supportSlaHours: String(plan.supportSlaHours ?? 0),
+    offsiteRetentionMaxDays: String(plan.offsiteRetentionMaxDays ?? KOPIE_OFFSITE_DNI),
     productKind: (plan.productKind ?? "HOSTING") as "HOSTING" | "EMAIL",
     stripePriceMonthlyId: plan.stripePriceMonthlyId ?? "",
     stripePriceYearlyId: plan.stripePriceYearlyId ?? "",
@@ -152,6 +155,7 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
         sortOrder: Number.parseInt(state.sortOrder, 10) || 0,
         trialDays: Number.parseInt(state.trialDays, 10) || 0,
         supportSlaHours: Number.parseInt(state.supportSlaHours, 10) || 0,
+        offsiteRetentionMaxDays: Number.parseInt(state.offsiteRetentionMaxDays, 10) || KOPIE_OFFSITE_DNI,
         productKind: state.productKind,
         ...(stripeManual
           ? {
@@ -508,6 +512,16 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
             max={720}
             value={state.supportSlaHours}
             onChange={(e) => setField("supportSlaHours", e.target.value)}
+            className="form-input"
+          />
+        </Field>
+        <Field label={`Kopie poza serwerem — maks. dni do wyboru (${KOPIE_OFFSITE_DNI} = stałe ${KOPIE_OFFSITE_DNI} dni)`}>
+          <input
+            type="number"
+            min={KOPIE_OFFSITE_DNI}
+            max={KOPIE_OFFSITE_MAX_DNI}
+            value={state.offsiteRetentionMaxDays}
+            onChange={(e) => setField("offsiteRetentionMaxDays", e.target.value)}
             className="form-input"
           />
         </Field>
