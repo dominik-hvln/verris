@@ -6,6 +6,8 @@
 #   SS_DOMAIN    domena konta
 # Ruch i 5xx: log dostępu domeny prowadzony przez DirectAdmin (/var/log/httpd/domains/<domena>.log,
 # format combined), ostatnie 7 dni, najwyżej ostatnie 100 MB pliku; ścieżki bez parametrów (?…).
+# DA co noc przenosi ten log do archiwum konta ~/domains/<domena>/logs/<Mies-RRRR>.tar.gz[.N] (t1 01.10) —
+# bieżący plik to tylko doba, więc czytamy też archiwa z ostatnich 8 dni (bez dowiązań, tylko pliki klienta).
 # TTFB: 5 żądań do strony z samego serwera (IP konta, bo vhosty DA są przypięte do IP) — czas serwera bez sieci klienta.
 # Technologia: pliki w public_html sprawdzane jako KLIENT (runuser) — dowiązanie nie wyprowadzi poza konto.
 # Wynik: VERRIS_SITESTATS=<base64 JSON>.
@@ -81,8 +83,9 @@ if [ "${SS_SKIP_TTFB:-0}" != 1 ] && command -v curl >/dev/null 2>&1; then
 fi
 
 LOGF="${SS_LOG_DIR:-/var/log/httpd/domains}/$SS_DOMAIN.log"
-SS_TECH="$TECH" SS_TTFB="$TTFB" python3 - "$LOGF" <<'PY'
-import base64, datetime as dt, json, os, re, statistics, sys
+ARCH="$HOME_DIR/domains/$SS_DOMAIN/logs"
+SS_TECH="$TECH" SS_TTFB="$TTFB" python3 - "$LOGF" "$ARCH" "$(stat -c %u "$HOME_DIR")" "$SS_DOMAIN" <<'PY'
+import base64, datetime as dt, json, os, re, stat, statistics, sys, tarfile, time
 nazwa, _, wer = os.environ["SS_TECH"].partition("|")
 wynik = {"technologia": {"nazwa": nazwa[:40], "wersja": wer[:20] or None}, "ruch": [], "top5xx": [], "ttfbMs": None, "log": True}
 probki = [float(x) * 1000 for x in os.environ["SS_TTFB"].split() if x]
@@ -93,26 +96,55 @@ MIES = {m: i for i, m in enumerate(["Jan","Feb","Mar","Apr","May","Jun","Jul","A
 dzis = dt.date.today()
 dni = {(dzis - dt.timedelta(days=i)).isoformat(): {"zadania": 0, "ip": set(), "bledy5xx": 0} for i in range(7)}
 bledy = {}
+LIMIT = 100 * 1024 * 1024
+def licz(tekst):
+    for linia in tekst.decode("utf-8", "replace").splitlines():
+        m = wiersz.match(linia)
+        if not m or m.group(3) not in MIES:
+            continue
+        try:
+            d = dt.date(int(m.group(4)), MIES[m.group(3)], int(m.group(2))).isoformat()
+        except ValueError:
+            continue
+        if d not in dni:
+            continue
+        x = dni[d]; x["zadania"] += 1; x["ip"].add(m.group(1))
+        if m.group(6).startswith("5"):
+            x["bledy5xx"] += 1
+            sc = m.group(5).split("?", 1)[0][:200]
+            bledy[sc] = bledy.get(sc, 0) + 1
 try:
     with open(sys.argv[1], "rb") as f:
-        f.seek(0, 2); r = f.tell(); f.seek(max(0, r - 100 * 1024 * 1024))
-        for linia in f.read().decode("utf-8", "replace").splitlines():
-            m = wiersz.match(linia)
-            if not m or m.group(3) not in MIES:
-                continue
-            try:
-                d = dt.date(int(m.group(4)), MIES[m.group(3)], int(m.group(2))).isoformat()
-            except ValueError:
-                continue
-            if d not in dni:
-                continue
-            x = dni[d]; x["zadania"] += 1; x["ip"].add(m.group(1))
-            if m.group(6).startswith("5"):
-                x["bledy5xx"] += 1
-                sc = m.group(5).split("?", 1)[0][:200]
-                bledy[sc] = bledy.get(sc, 0) + 1
+        f.seek(0, 2); r = f.tell(); f.seek(max(0, r - LIMIT))
+        licz(f.read())
 except OSError:
     wynik["log"] = False
+# Archiwa DA w katalogu klienta: otwierane bez podążania za dowiązaniem, tylko zwykłe pliki właściciela konta.
+arch, uid, domena = sys.argv[2], int(sys.argv[3]), sys.argv[4]
+try:
+    nazwy = sorted(os.listdir(arch))
+except OSError:
+    nazwy = []
+for n in nazwy:
+    if not re.fullmatch(r"[A-Z][a-z]{2}-\d{4}\.tar\.gz(\.\d{1,2})?", n):
+        continue
+    try:
+        fd = os.open(os.path.join(arch, n), os.O_RDONLY | os.O_NOFOLLOW)
+    except OSError:
+        continue
+    with os.fdopen(fd, "rb") as f:
+        st = os.fstat(f.fileno())
+        if not stat.S_ISREG(st.st_mode) or st.st_uid != uid or st.st_mtime < time.time() - 8 * 86400:
+            continue
+        try:
+            with tarfile.open(fileobj=f, mode="r:gz") as t:
+                for m in t:
+                    b = os.path.basename(m.name)
+                    if m.isfile() and b.startswith(domena) and b.endswith(".log") and ".error" not in b and m.size <= LIMIT:
+                        licz(t.extractfile(m).read())
+                        wynik["log"] = True
+        except (tarfile.TarError, OSError, EOFError):
+            continue
 wynik["ruch"] = [{"dzien": d, "zadania": v["zadania"], "odwiedzajacy": len(v["ip"]), "bledy5xx": v["bledy5xx"]} for d, v in sorted(dni.items())]
 wynik["top5xx"] = [{"sciezka": s, "liczba": n} for s, n in sorted(bledy.items(), key=lambda kv: -kv[1])[:5]]
 print("VERRIS_SITESTATS=" + base64.b64encode(json.dumps(wynik, separators=(",", ":"), ensure_ascii=False).encode()).decode())

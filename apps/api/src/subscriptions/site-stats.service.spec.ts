@@ -8,7 +8,7 @@ import { statystykiZLogu } from './site-stats.service.js';
 const SKRYPT = join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'scripts', 'node-site-stats.sh');
 const MIES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-function uruchom(pliki: Record<string, string>, log: string) {
+function uruchom(pliki: Record<string, string>, log: string, archiwa: Record<string, string> = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'ss-'));
   const doc = join(dir, 'home', 'domains', 'a.pl', 'public_html');
   mkdirSync(doc, { recursive: true });
@@ -18,6 +18,15 @@ function uruchom(pliki: Record<string, string>, log: string) {
   }
   mkdirSync(join(dir, 'logs'));
   writeFileSync(join(dir, 'logs', 'a.pl.log'), log);
+  // Archiwa DA: ~/domains/<domena>/logs/<Mies-RRRR>.tar.gz z logiem domeny z poprzednich dób.
+  const arch = join(dir, 'home', 'domains', 'a.pl', 'logs');
+  mkdirSync(arch, { recursive: true });
+  for (const [nazwa, tresc] of Object.entries(archiwa)) {
+    const tmp = mkdtempSync(join(tmpdir(), 'ssa-'));
+    writeFileSync(join(tmp, 'a.pl.log'), tresc);
+    writeFileSync(join(tmp, 'a.pl.error.log'), tresc);
+    execFileSync('tar', ['czf', join(arch, nazwa), '-C', tmp, 'a.pl.log', 'a.pl.error.log']);
+  }
   const out = execFileSync('bash', [SKRYPT], {
     encoding: 'utf8',
     env: {
@@ -45,6 +54,14 @@ describe('PB-19 — statystyki strony', () => {
     expect(w.ruch[6]).toMatchObject({ zadania: 2, odwiedzajacy: 2, bledy5xx: 1 });
     expect(w.top5xx).toEqual([{ sciezka: '/wp-admin/admin-ajax.php', liczba: 1 }]);
     expect(JSON.stringify(w)).not.toMatch(/tajne|token|1\.2\.3\.4/);
+  });
+
+  it('ruch z poprzednich dób z archiwów DA (log bieżący to tylko doba) — t1 01.10', () => {
+    const wczoraj = new Date(Date.now() - 86400000);
+    const dz = `${String(wczoraj.getUTCDate()).padStart(2, '0')}/${MIES[wczoraj.getUTCMonth()]}/${wczoraj.getUTCFullYear()}`;
+    const linia = `9.9.9.9 - - [${dz}:12:00:00 +0000] "GET / HTTP/1.1" 200 5 "-" "UA"\n`;
+    const w = uruchom({ 'index.php': '<?php' }, '', { 'Sep-2026.tar.gz.1': linia + linia, 'zly.tar.gz': linia });
+    expect(w.ruch[5]).toMatchObject({ zadania: 2, odwiedzajacy: 1 });
   });
 
   it('strona domyślna Verris rozpoznana; wynik z logu odporny na śmieci', () => {
