@@ -45,6 +45,12 @@ describe('skrypty węzła — katalog klienta tylko jako klient', () => {
     expect(t.indexOf('--enable-user-extensions=memcached')).toBeGreaterThan(t.indexOf('Memcached działa dla'));
   });
 
+  it('utwardzanie węzła: fail2ban włączony w CustomBuild (przy fail2ban=no CustomBuild go usuwa — t1 29.09)', () => {
+    const t = czytaj('security-hardening-baseline.sh');
+    expect(t).toContain('da build set fail2ban yes && da build fail2ban');
+    expect(t.indexOf('da build set fail2ban yes')).toBeGreaterThan(t.indexOf('dnf install -y fail2ban'));
+  });
+
   it('profil: aplikacje Python przez LiteSpeed — skrypt producenta i kontrola lswsgi (t1 01.10: 503)', () => {
     const t = czytaj('node-hosting-profile.sh');
     expect(t).toContain('/usr/local/lsws/admin/misc/enable_ruby_python_selector.sh');

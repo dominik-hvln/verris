@@ -68,6 +68,12 @@ install_packages() {
     run "dnf install -y epel-release || true"
     # python3-systemd: jail z backend = systemd (niżej) bez niego nie startuje.
     run "dnf install -y fail2ban firewalld dnf-automatic python3-systemd"
+    # Węzeł z DirectAdminem: fail2ban musi być włączony w CustomBuild — przy fail2ban=no (domyślnie)
+    # CustomBuild usuwa go przy nocnej przebudowie (t1 29.09, dnf history 64: remove fail2ban-server)
+    # i węzeł zostaje bez blokowania zgadywania haseł. Opcja: `da build opt_help` → fail2ban: yes, no.
+    if [ "$ROLE" = "node" ] && command -v da >/dev/null 2>&1 && [ -d /usr/local/directadmin/custombuild ]; then
+      run "da build set fail2ban yes && da build fail2ban"
+    fi
   else
     die "Unsupported package manager (expected apt-get or dnf)"
   fi
