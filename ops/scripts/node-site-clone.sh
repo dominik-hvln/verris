@@ -84,6 +84,20 @@ if [ -f "$CEL/wp-config.php" ]; then
   jako_klient rm -f -- "$SQL"
   wp --path="$CEL" search-replace "//$SC_SOURCE" "//$SC_TARGET" --all-tables --skip-columns=guid --quiet || fail "zamiana adresów nie powiodła się"
   wp --path="$CEL" search-replace "//www.$SC_SOURCE" "//www.$SC_TARGET" --all-tables --skip-columns=guid --quiet || true
+  # Kopia dzieli z oryginałem Redis konta: z prefiksem źródła czytała jego cache (adresy starej domeny
+  # na kopii, test D3 30.09) i pisała do niego. Własny prefiks = osobna przestrzeń kluczy, bez flush
+  # (flush czyściłby też cache oryginału). Adresy zapisane w wp-config search-replace nie obejmuje.
+  for c in WP_REDIS_PREFIX WP_CACHE_KEY_SALT; do
+    if wp --path="$CEL" config has "$c" 2>/dev/null; then
+      wp --path="$CEL" config set "$c" "$SC_TARGET:" --quiet || fail "nie udało się ustawić $c kopii"
+    fi
+  done
+  for c in WP_HOME WP_SITEURL; do
+    if wp --path="$CEL" config has "$c" 2>/dev/null; then
+      v="$(wp --path="$CEL" config get "$c")"
+      wp --path="$CEL" config set "$c" "${v//\/\/$SC_SOURCE/\/\/$SC_TARGET}" --quiet || fail "nie udało się zmienić $c kopii"
+    fi
+  done
   log "WordPress: baza skopiowana, adresy zmienione na $SC_TARGET"
 else
   echo "VERRIS_KLON_WP=0"

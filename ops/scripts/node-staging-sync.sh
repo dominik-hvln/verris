@@ -130,6 +130,14 @@ TO_STAGING)
     log "Zamieniam adresy na ${STAGING_HOST}…"
     wp_in "$STG" "search-replace '://www.${STG_DOMAIN}' '://${STAGING_HOST}' --all-tables --precise" >/dev/null
     wp_in "$STG" "search-replace '://${STG_DOMAIN}' '://${STAGING_HOST}' --all-tables --precise" >/dev/null
+    # Staging dzieli z produkcją Redis konta: z prefiksem produkcji czytał jej cache i pisał do niego
+    # (klon strony, test D3 30.09). Własny prefiks ustawiamy przy każdym odświeżeniu — naprawia też staging
+    # założony przed tą poprawką.
+    for c in WP_REDIS_PREFIX WP_CACHE_KEY_SALT; do
+      if wp_in "$STG" "config has $c" >/dev/null 2>&1; then
+        wp_in "$STG" "config set $c '${STAGING_HOST}:'" >/dev/null || die "Nie udało się ustawić $c stagingu."
+      fi
+    done
     # Staging nie powinien być indeksowany ani spamować mailami.
     wp_in "$STG" "option update blog_public 0" >/dev/null || true
     wp_in "$STG" "cache flush" >/dev/null 2>&1 || true

@@ -56,9 +56,13 @@ export function CronPhpHelper({ serviceId, onUse }: { serviceId: string; onUse: 
   return (
     <div className="mt-3 rounded-[7px] border border-line bg-raised px-3 py-3">
       <p className="m-0 mb-2 text-xs font-medium text-foreground">Skrypt PHP w wybranej wersji</p>
-      <div className="grid gap-2 sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center">
-        <Select aria-label="Wersja PHP" value={w} onChange={setWersja} options={wersje.map((v) => ({ value: v, label: `PHP ${v}` }))} className="w-full sm:w-32" />
-        <Select aria-label="Domena" value={d} onChange={setDomena} options={domeny.map((v) => ({ value: v, label: v }))} className="w-full" />
+      {/* Pomocnik stoi w wąskiej kolumnie formularza — cztery pola w jednym wierszu ściskały nazwę domeny
+          do pionowego paska (zgłoszenie 30.09). Wersja i domena w wierszu, plik i przycisk pod spodem. */}
+      <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-[7.5rem_minmax(0,1fr)] gap-2">
+          <Select aria-label="Wersja PHP" value={w} onChange={setWersja} options={wersje.map((v) => ({ value: v, label: `PHP ${v}` }))} className="w-full" />
+          <Select aria-label="Domena" value={d} onChange={setDomena} options={domeny.map((v) => ({ value: v, label: v }))} className="w-full min-w-0" />
+        </div>
         <input
           aria-label="Plik w public_html"
           value={sciezka}
@@ -70,7 +74,7 @@ export function CronPhpHelper({ serviceId, onUse }: { serviceId: string; onUse: 
           type="button"
           disabled={!ok}
           onClick={() => onUse(phpCronCommand(w, d, sciezka))}
-          className="whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-raised disabled:opacity-50"
+          className="self-start whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-raised disabled:opacity-50"
         >
           Wstaw polecenie
         </button>

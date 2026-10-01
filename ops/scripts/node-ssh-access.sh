@@ -99,7 +99,9 @@ case "$SSH_MODE" in
     log "SSH wyłączony dla $SSH_DA_USER"
     ;;
   keys)
-    KLUCZE="$(printf '%s' "${SSH_KEYS_B64:-}" | base64 -d 2>/dev/null)" || fail "nieprawidłowe dane kluczy"
+    B64="${SSH_KEYS_B64:-}"
+    while (( ${#B64} % 4 )); do B64+="="; done  # starszy agent ucinał końcowe „=” dopełnienia
+    KLUCZE="$(printf '%s' "$B64" | base64 -d 2>/dev/null)" || fail "nieprawidłowe dane kluczy"
     TMP="$(mktemp)"; trap 'rm -f "$TMP"' EXIT
     n=0
     while IFS= read -r k; do

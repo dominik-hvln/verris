@@ -66,6 +66,19 @@ opisz('B-08/B-09 — node-app-selector.sh', () => {
     expect(JSON.parse(create[create.indexOf('--env-vars') + 1])).toEqual(env);
   });
 
+  it('create: base64 zmiennych bez końcowego „=” (starszy agent go ucinał) — test D3 30.09', () => {
+    const env = { VERRIS_TEST: 'ok' };
+    const b64 = Buffer.from(JSON.stringify(env)).toString('base64');
+    expect(b64.endsWith('=')).toBe(true);
+    const r = uruchom({
+      AS_MODE: 'create', AS_INTERPRETER: 'nodejs', AS_ROOT: 'apps/api', AS_DOMAIN: 'a.pl', AS_URI: '',
+      AS_VERSION: '22', AS_STARTUP: 'app.js', AS_ENV_B64: b64.replace(/=+$/, ''),
+    });
+    expect(r.status).toBe(0);
+    const create = r.wywolania.find((w) => w[0] === 'create')!;
+    expect(JSON.parse(create[create.indexOf('--env-vars') + 1])).toEqual(env);
+  });
+
   it('odmowa selektora kończy zadanie błędem z jego komunikatem', () => {
     const r = uruchom({ AS_MODE: 'stop', AS_INTERPRETER: 'nodejs', AS_ROOT: 'apps/api' });
     expect(r.status).not.toBe(0);

@@ -1,6 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { DirectAdminClient } from '@verris/directadmin-sdk';
-import { DirectAdminService } from './directadmin.service.js';
+import { cronZnakProcentu, DirectAdminService, zCronowDa } from './directadmin.service.js';
 
 /**
  * X-09 — cron, FTP, autorespondery i hosty dostępu do bazy w DirectAdminService (dotąd bez testów).
@@ -66,6 +66,15 @@ describe('cron (CMD_API_CRON_JOBS)', () => {
     await s.svc.updateHostingCronJob('s1', 'u1', '7', zadanie);
     expect(s.wyslane(0).action).toBe('create');
     expect(s.wyslane(1)).toEqual({ action: 'delete', select0: '7', api: 'yes' });
+  });
+
+  it('znak % w poleceniu osłonięty dla crontaba (inaczej cron ucina polecenie), lista pokazuje go bez osłony', async () => {
+    const s = stanowisko();
+    await s.svc.createHostingCronJob('s1', 'u1', { ...zadanie, command: 'echo OK $(date +%H:%M) > ~/log-$(date +\\%F).txt' });
+    expect(s.wyslane().command).toBe('echo OK $(date +\\%H:\\%M) > ~/log-$(date +\\%F).txt');
+    expect(cronZnakProcentu('bez procentu')).toBe('bez procentu');
+    const lista = zCronowDa(new URLSearchParams({ '3': '* * * * * echo $(date +\\%H:\\%M)' }).toString());
+    expect(lista).toEqual([{ id: '3', schedule: '* * * * *', command: 'echo $(date +%H:%M)' }]);
   });
 
   it('konto zawieszone → bez mutacji w DA', async () => {

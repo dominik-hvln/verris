@@ -33,6 +33,14 @@ selectorctl --list --interpreter=php 2>/dev/null | awk '{print $1}' | grep -qx "
 selectorctl --set-user-current="$PHP_VERSION" --user="$PHP_DA_USER" >/dev/null \
   || fail "selektor nie ustawił wersji $PHP_VERSION"
 log "PHP konta $PHP_DA_USER → $PHP_VERSION"
+# OPcache: domyślne rozszerzenia wersji (profil węzła) nie obejmują kont z własnym wyborem rozszerzeń —
+# test D3 30.09: po zmianie na 8.3 strona działała bez OPcache (opcache.enable = brak). Włączamy go
+# dla wybranej wersji, chyba że klient właśnie go wyłącza.
+if [[ ",${PHP_EXT_DISABLE:-}," != *",opcache,"* ]]; then
+  selectorctl --enable-user-extensions=opcache --version="$PHP_VERSION" --user="$PHP_DA_USER" >/dev/null 2>&1 \
+    && log "OPcache włączony dla PHP $PHP_VERSION" \
+    || log "UWAGA: nie udało się włączyć OPcache dla PHP $PHP_VERSION"
+fi
 
 if [ -n "${PHP_EXT_ENABLE:-}" ]; then
   selectorctl --enable-user-extensions="$PHP_EXT_ENABLE" --version="$PHP_VERSION" --user="$PHP_DA_USER" >/dev/null \
