@@ -191,7 +191,7 @@ export default function DomainsTab({ serviceId }: Props) {
           />
         )}
       </div>
-      <AdditionalDomains serviceId={serviceId} />
+      <AdditionalDomains serviceId={serviceId} onZmiana={() => void fetchDomains()} />
       {domains.length > 0 ? (
         <DnsZoneSection serviceId={serviceId} domains={domains} primaryDomain={primaryDomain} />
       ) : null}

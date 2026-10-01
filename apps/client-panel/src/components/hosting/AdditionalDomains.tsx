@@ -23,7 +23,9 @@ import { zOdpakowaniem } from '@/lib/wynik-akcji';
 const fetchAdditionalDomainsAction = zOdpakowaniem(fetchAdditionalDomainsActionAkcja);
 const fetchDomainPointersAction = zOdpakowaniem(fetchDomainPointersActionAkcja);
 
-export default function AdditionalDomains({ serviceId }: { serviceId: string }) {
+// onZmiana — tabela domen i strefa DNS w zakładce trzymają listę u siebie; bez odświeżenia nowa domena
+// pojawiała się dopiero po przeładowaniu strony (test D3 01.10, test4/test5.d3.hvln.pl).
+export default function AdditionalDomains({ serviceId, onZmiana }: { serviceId: string; onZmiana?: () => void }) {
   const router = useRouter();
   const [rows, setRows] = useState<AdditionalDomainRow[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -84,7 +86,7 @@ export default function AdditionalDomains({ serviceId }: { serviceId: string }) 
     const res = await createAdditionalDomainAction({ subscriptionId: serviceId, domain: domain.trim() });
     setBusy(false);
     if (!res.ok) { toast.error('Nie udało się dodać domeny', { description: daErrorMessage(res.error) }); return; }
-    toast.success('Domena dodana do konta'); setDomain(''); void load();
+    toast.success('Domena dodana do konta'); setDomain(''); void load(); onZmiana?.();
     router.refresh(); // tabela domen i licznik w menu są renderowane na serwerze (test D3 29.09)
   };
   const remove = async (d: string) => {
@@ -93,7 +95,7 @@ export default function AdditionalDomains({ serviceId }: { serviceId: string }) 
     const res = await deleteAdditionalDomainAction(serviceId, d);
     setDel(null);
     if (!res.ok) { toast.error('Nie udało się usunąć', { description: daErrorMessage(res.error) }); return; }
-    toast.success('Domena usunięta'); void load();
+    toast.success('Domena usunięta'); void load(); onZmiana?.();
     router.refresh();
   };
 
