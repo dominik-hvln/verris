@@ -84,7 +84,7 @@ PB-30,czeka,,węzeł testowy
 PB-31,czeka,,węzeł testowy
 PB-32,czeka,,dwa węzły
 PB-33,czeka,,węzły testowe
-PB-36,czeka,,weryfikacja podpisu na węźle
+PB-36,sprawdzone,2026-10-01,"weryfikacja podpisu na węźle | 01.10 t1: verris-fetch z kluczem Verris rc=0, z obcym kluczem Ed25519 — „PODPIS NIEPRAWIDŁOWY — plik odrzucony” rc=3 (OpenSSL 3.5.8 na CloudLinux 10); authorized_keys: jeden klucz control-plane (verris-control-plane) z from=""IP control-plane"" i bez przekierowań; drugi wpis to osobisty klucz właściciela do pracy ręcznej."
 A-08,czeka,,"OpenProvider skonfigurowany, wyszukiwarka poprawiona 27.09 (b0a556f); decyzja właściciela 27.09: prawdziwa rejestracja domeny razem z pełnym testem konta klienta na węźle (PB-05)"
 A-09,czeka,,"OpenProvider skonfigurowany, wyszukiwarka poprawiona 27.09 (b0a556f); decyzja właściciela 27.09: prawdziwa rejestracja domeny razem z pełnym testem konta klienta na węźle (PB-05)"
 A-10,czeka,,"OpenProvider skonfigurowany, wyszukiwarka poprawiona 27.09 (b0a556f); decyzja właściciela 27.09: prawdziwa rejestracja domeny razem z pełnym testem konta klienta na węźle (PB-05)"
