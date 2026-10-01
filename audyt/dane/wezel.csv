@@ -80,7 +80,7 @@ B-03,sprawdzone,2026-09-29,"„PHP w podkatalogu” git-test → PHP 8.1: /git-t
 E-23,czeka,2026-09-30,"29.09 profil: WARN — gniazdo /var/run/dovecot/auth-client bez dostępu dla grupy radicale, logowanie CalDAV nie zadziała. Do poprawki: osobny listener auth Dovecota dla Radicale (nie poluzowanie auth-client). | 30.09 po 8b17203: profil OK=56 WARN=0 — osobne gniazdo auth-verris-radicale (grupa radicale), Radicale 3.8.1 na 5232. Zostaje: logowanie klienta CalDAV/CardDAV adresem i hasłem skrzynki."
 J-06,sprawdzone,2026-10-01,"„Optymalizuj obrazy” (cała strona) → 43 pliki, 2,9 MB → 2,9 MB (obrazy rdzenia WP już zopt | 01.10: optymalizacja całego public_html zmieniała obrazy rdzenia WordPressa (43 pliki, 0% zysku) i psuła sumy kontrolne → 50dccf7 (pomija wp-admin, wp-includes)."
 PB-29,sprawdzone,2026-10-01,"węzeł testowy | 01.10 t1: weryfikacja onboardu zielona (28.09, 0 FAIL/0 WARN), cldetect → DirectAdmin 1.710, /proc/lve obecne, verris-security-watch.timer aktywny (ostatni przebieg success), brak plików licencji w /root i /etc/verris (tylko deploy-key.last), MariaDB 11.4.13 z manifestu."
-PB-30,czeka,,węzeł testowy
+PB-30,sprawdzone,2026-10-01,"węzeł testowy | 01.10 t1: /etc/verris-stack.env z manifestu; DA_COMMIT 694f22b2… (build z t1) przypięty w Admin → Wersje stosu floty → manifest 2026-10-01.1, panel od razu pokazał różnicę dla t1, po przywróceniu łączności (SEC-04) t1 pobrał nowy manifest i audyt zgodności zielony. Warunek „dwa węzły z jednego manifestu” — przy węźle #2."
 PB-31,czeka,,węzeł testowy
 PB-32,czeka,,dwa węzły
 PB-33,czeka,,węzły testowe
