@@ -1,6 +1,6 @@
 # Plan sprintów do startu — Verris
 
-**Wygenerowany:** 2026-09-30 z `audyt/dane/` · **nie edytuj ręcznie**  
+**Wygenerowany:** 2026-10-01 z `audyt/dane/` · **nie edytuj ręcznie**  
 **Podstawa:** audyt parytetu funkcji z 2026-08-20  
 **Pojemność:** 1 osoba, pełny etat, **30 h netto na sprint** · sprint = 1 tydzień  
 **Sprint 1:** 2026-08-31 · **Sprint 23:** 2027-02-01–2027-02-05
