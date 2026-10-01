@@ -315,6 +315,21 @@ describe('SEC-04 — ruch do kontenerów nie jest egressem', () => {
   );
 });
 
+describe('SEC-04 — anty-skan nie liczy ruchu do kontenerów (01.10: docker-proxy IPv6 → DROP całego IPv6)', () => {
+  it.each(['iptables', 'ip6tables'])('%s VERRIS_ANTISCAN zwalnia lo, docker0 i br-+ przed licznikiem', (bin) => {
+    const r = uruchom({ zmierzone: null, wAllowliscie: [], pomiarOdDni: null, argumenty: [], ipv6: '1' });
+    expect(r.kod).toBe(0);
+    const reguly = r.wywolania.filter((w) => w.startsWith(`${bin} -A VERRIS_ANTISCAN `));
+    const licznik = reguly.findIndex((w) => w.includes('-m recent --set'));
+    expect(licznik).toBeGreaterThan(0);
+    for (const iface of ['lo', 'docker0', 'br-+']) {
+      const i = reguly.findIndex((w) => w.includes(`-o ${iface} -j RETURN`));
+      expect(i).toBeGreaterThanOrEqual(0);
+      expect(i).toBeLessThan(licznik);
+    }
+  });
+});
+
 describe('SEC-05 — pomiar jest zapisem, nie próbką', () => {
   const r = uruchom({ zmierzone: null, wAllowliscie: [], pomiarOdDni: null, argumenty: [] });
 

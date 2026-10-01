@@ -280,6 +280,13 @@ apply_antiscan() {
   run "iptables -N '$CHAIN_ANTISCAN' 2>/dev/null || iptables -F '$CHAIN_ANTISCAN'"
   run "iptables -C OUTPUT -j '$CHAIN_ANTISCAN' 2>/dev/null || iptables -I OUTPUT 3 -j '$CHAIN_ANTISCAN'"
   run "iptables -A '$CHAIN_ANTISCAN' -m conntrack --ctstate established,related -j RETURN"
+  # SEC-04 — ruch do kontenerów i lokalny to nie egress. docker-proxy obsługuje klientów IPv6 i każde
+  # ich połączenie otwiera NOWE połączenie hosta do kontenera (br-*, :443). Liczone tutaj wyczerpywało
+  # budżet anty-skanu i DROP odcinał cały ruch IPv6 do panelu i API (01.10 ~20:00: węzły i klienci
+  # z IPv6 bez odpowiedzi, „VERRIS-ANTISCAN-DROP fired 515 time(s)”).
+  run "iptables -A '$CHAIN_ANTISCAN' -o lo -j RETURN"
+  run "iptables -A '$CHAIN_ANTISCAN' -o docker0 -j RETURN"
+  run "iptables -A '$CHAIN_ANTISCAN' -o br-+ -j RETURN"
 
   # ===========================================================================
   # X-36 — CELE Z ALLOWLISTY NIE LICZĄ SIĘ DO BUDŻETU.
@@ -737,6 +744,9 @@ apply_ipv6() {
   # Anty-skan: osobne listy `recent` (…6), żeby progi IPv4 i IPv6 się nie mieszały.
   run "ip6tables -N '$CHAIN_ANTISCAN' 2>/dev/null || ip6tables -F '$CHAIN_ANTISCAN'"
   run "ip6tables -A '$CHAIN_ANTISCAN' -m conntrack --ctstate established,related -j RETURN"
+  run "ip6tables -A '$CHAIN_ANTISCAN' -o lo -j RETURN"
+  run "ip6tables -A '$CHAIN_ANTISCAN' -o docker0 -j RETURN"
+  run "ip6tables -A '$CHAIN_ANTISCAN' -o br-+ -j RETURN"
   if ipset list -n 2>/dev/null | grep -qx "$ALLOW_SET6"; then
     run "ip6tables -A '$CHAIN_ANTISCAN' -m set --match-set '$ALLOW_SET6' dst -j RETURN"
   fi
