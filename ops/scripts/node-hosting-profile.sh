@@ -1606,6 +1606,19 @@ DAVB
           log_warn "Selector $interp — nie udało się włączyć (log: /var/log/verris-app-selector.log)"
         fi
       done
+      # LiteSpeed uruchamia aplikacje Python przez /opt/alt/pythonXY/bin/lswsgi — bez niego każda aplikacja
+      # Python daje 503 („lswsgi_wrapper: … lswsgi: No such file or directory”, t1 01.10). Skrypt producenta:
+      # docs.litespeedtech.com/products/lsws/cp/cpanel/cloudlinux/ (enable_ruby_python_selector.sh).
+      LSSEL=/usr/local/lsws/admin/misc/enable_ruby_python_selector.sh
+      if [ -x /usr/local/lsws/bin/lswsctrl ] && [ -f "$LSSEL" ]; then
+        bash "$LSSEL" >>/var/log/verris-app-selector.log 2>&1 || log_warn "enable_ruby_python_selector.sh — błąd (log: /var/log/verris-app-selector.log)"
+        brak=""
+        for py in /opt/alt/python3*/bin/python3; do
+          [ -x "$py" ] || continue
+          [ -x "$(dirname "$py")/lswsgi" ] || brak="$brak $(basename "$(dirname "$(dirname "$py")")")"
+        done
+        if [ -z "$brak" ]; then log_ok "Python przez LiteSpeed (lswsgi)"; else log_warn "brak lswsgi dla:$brak — aplikacje Python na tych wersjach dadzą 503"; fi
+      fi
     fi
   else
     log_skip "Aplikacje Node.js/Python — brak CloudLinux Selectora (węzeł bez CL?)"

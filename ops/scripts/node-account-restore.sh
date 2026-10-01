@@ -57,7 +57,8 @@ cmd_list() {
     [ -n "$line" ] || continue
     printf 'VERRIS-OFFSITE-FILE %s\n' "$line"
     found=1
-  done < <(rclone lsf --files-only --format 'pst' --separator '|' "$p" 2>/dev/null \
+  # TZ=UTC — rclone wypisuje czas bez strefy w strefie procesu; control-plane czyta go jako UTC.
+  done < <(TZ=UTC rclone lsf --files-only --format 'pst' --separator '|' "$p" 2>/dev/null \
              | grep -iE '^[^|]+\.(tar\.gz|tar\.zst|tar)\|')
   if [ "$found" = "0" ]; then
     log "(brak archiwow off-site — sprawdz prefix/usera)"

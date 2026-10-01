@@ -74,6 +74,8 @@ describe('OffsiteRestoreService — X-08', () => {
     const stan = await svc.status('s1', 'u1');
     expect(stan.archives.map((a) => a.name)).toEqual(['nowa.tar.gz', 'stara.tar.gz', 'bez-rozmiaru.tar']);
     expect(stan.archives[2]).toMatchObject({ sizeBytes: null, modifiedAt: null });
+    // Czas z węzła to UTC bez strefy (TZ=UTC rclone lsf) — t1 01.10: kopia 03:54 pokazywana jako 05:54.
+    expect(stan.archives[0].modifiedAt).toBe('2026-09-20T03:00:00.000Z');
   });
 
   it('błąd z węzła nie wycieka do klienta surowym logiem', async () => {

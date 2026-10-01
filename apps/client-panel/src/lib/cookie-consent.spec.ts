@@ -90,3 +90,25 @@ describe('27.09 applyConsent — zdarzenie verris_consent_update tylko przy zmia
     expect(zdarzenia()).toEqual(['verris_consent_update']);
   });
 });
+
+describe('01.10 Meta Pixel bez automatycznych zdarzeń (klik w przycisk wysyłał jego tekst i adres panelu)', () => {
+  const w = globalThis as unknown as { window?: Record<string, unknown>; document?: unknown; dataLayer?: unknown[] };
+  const env = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+  afterEach(() => {
+    delete w.window;
+    delete w.document;
+    delete w.dataLayer;
+    process.env.NEXT_PUBLIC_META_PIXEL_ID = env;
+  });
+
+  it('autoConfig=false ustawione przed init', () => {
+    process.env.NEXT_PUBLIC_META_PIXEL_ID = '123';
+    w.window = { dataLayer: [] };
+    w.dataLayer = w.window.dataLayer as unknown[];
+    w.document = { createElement: () => ({}), head: { appendChild: () => undefined } };
+    applyConsent({ v: 1, ts: 't', functional: true, analytics: true, marketing: true });
+    const kolejka = (w.window.fbq as unknown as { queue: unknown[][] }).queue.map((a) => a.join(' '));
+    expect(kolejka.indexOf('set autoConfig false 123')).toBeGreaterThan(-1);
+    expect(kolejka.indexOf('set autoConfig false 123')).toBeLessThan(kolejka.indexOf('init 123'));
+  });
+});

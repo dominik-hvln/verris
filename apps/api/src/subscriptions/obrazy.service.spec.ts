@@ -1,4 +1,6 @@
 import { spawnSync } from 'child_process';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
 import { join } from 'path';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { ObrazyService, wynikZLogu } from './obrazy.service.js';
@@ -51,5 +53,16 @@ describe('ObrazyService', () => {
     expect(uruchom({ IO_DA_USER: "a'x", IO_DOMAIN: 'a.pl' }).stderr).toContain('nieprawidłowy login');
     expect(uruchom({ IO_DA_USER: 'klient1', IO_DOMAIN: 'a.pl', IO_DIR: '../etc' }).stderr).toContain('nieprawidłowy katalog');
     expect(uruchom({ IO_DA_USER: 'klient1', IO_DOMAIN: 'a.pl', IO_METADANE: '2' }).stderr).toContain('metadanych');
+  });
+  it('skrypt węzła pomija rdzeń WordPressa (wp-admin, wp-includes) — t1 01.10: verify-checksums', () => {
+    const skrypt = readFileSync(join(import.meta.dirname, '../../../../ops/scripts/node-image-optimize.sh'), 'utf8');
+    const find = /^\s*(find "\$IO_KATALOG" [^\n]*-printf "%T@ %s %p\\n")/m.exec(skrypt)![1];
+    const dir = mkdtempSync(join(tmpdir(), 'io-'));
+    const duzy = Buffer.alloc(5000, 1);
+    for (const p of ['wp-admin/images', 'wp-includes/images', 'wp-content/uploads', 'blog/wp-admin']) mkdirSync(join(dir, p), { recursive: true });
+    for (const p of ['wp-admin/images/a.png', 'wp-includes/images/b.png', 'wp-content/uploads/c.png', 'blog/wp-admin/d.jpg', 'e.jpg']) writeFileSync(join(dir, p), duzy);
+    const r = spawnSync('bash', ['-c', `NOWSZE=(); ${find}`], { env: { PATH: process.env.PATH ?? '', IO_KATALOG: dir }, encoding: 'utf8' });
+    const pliki = r.stdout.trim().split('\n').map((l) => l.split(' ').slice(2).join(' ').slice(dir.length + 1)).sort();
+    expect(pliki).toEqual(['e.jpg', 'wp-content/uploads/c.png']);
   });
 });

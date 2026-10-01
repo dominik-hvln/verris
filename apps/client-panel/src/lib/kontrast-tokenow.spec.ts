@@ -28,6 +28,27 @@ const kontrast = (a: string, b: string) => {
   return (x + 0.05) / (y + 0.05);
 };
 
+/** Kolor półprzezroczysty (rgba) nałożony na tło — tak, jak go widać na ekranie. */
+function naTle(kolor: string, tlo: string): string {
+  const m = kolor.match(/rgba?\(\s*(\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\s*\)/);
+  if (!m) return kolor;
+  const alfa = m[4] === undefined ? 1 : Number(m[4]);
+  return (
+    '#' +
+    [1, 2, 3]
+      .map((i) => Math.round(Number(m[i]) * alfa + parseInt(tlo.slice(2 * i - 1, 2 * i + 1), 16) * (1 - alfa)))
+      .map((c) => c.toString(16).padStart(2, '0'))
+      .join('')
+  );
+}
+
+/** Kolor globalnego obrysu fokusu (`:where(a, button, …):focus-visible`) w danym motywie. */
+function kolorFokusu(t: Record<string, string>): string {
+  const regula = css.match(/:where\(a, button[^{]*\):focus-visible\s*\{([^}]*)\}/);
+  const kolor = regula?.[1].match(/outline:\s*\d+px\s+solid\s+([^;]+);/)?.[1].trim() ?? '';
+  return kolor.replace(/^var\(--([a-z0-9-]+)\)$/, (_, tok: string) => t[tok] ?? '');
+}
+
 describe.each([
   ['jasny', ':root,\n[data-vtheme="light"] .v2-content', ['background', 'card', 'raised', 'muted']],
   ['ciemny', '.dark {', ['background', 'card', 'raised']],
@@ -42,5 +63,13 @@ describe.each([
   });
   it('grafika --data ≥ 3:1', () => {
     for (const tlo of tla) expect(kontrast(t.data, t[tlo])).toBeGreaterThanOrEqual(3);
+  });
+  it('globalny obrys fokusu ≥ 3:1 na każdym tle (2.4.7, 1.4.11)', () => {
+    const kolor = kolorFokusu(t);
+    expect(kolor).not.toBe('');
+    for (const tlo of tla) {
+      const k = kontrast(naTle(kolor, t[tlo]), t[tlo]);
+      expect({ tlo, kontrast: k >= 3 }).toEqual({ tlo, kontrast: true });
+    }
   });
 });

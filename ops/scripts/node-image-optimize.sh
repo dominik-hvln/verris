@@ -6,6 +6,7 @@
 #   IO_DOMAIN     domena konta
 #   IO_DIR        podkatalog public_html (np. wp-content/uploads), pusty = cały public_html
 #   IO_METADANE   1 = usuń metadane (EXIF, w tym lokalizację GPS), 0 = zostaw
+# Pomija katalogi rdzenia WordPressa (wp-admin, wp-includes) — ich pliki sprawdza wp core verify-checksums.
 # JPEG: jpegoptim (tryb bezstratny — optymalizacja tablic Huffmana; -p zachowuje daty, -P właściciela
 # i uprawnienia, -T 1 zostawia plik, gdy zysk < 1%). PNG: optipng -o2 (bezstratny), -preserve.
 # Wszystko jako klient (runuser, nice/ionice) — dowiązanie nie wyprowadzi poza konto. Do 5000 plików
@@ -44,7 +45,9 @@ jako_klient bash -c '
   mkdir -p "$(dirname "$IO_ZNACZNIK")" && chmod 700 "$(dirname "$IO_ZNACZNIK")"
   NOWSZE=(); [ -e "$IO_ZNACZNIK" ] && NOWSZE=(-newer "$IO_ZNACZNIK")
   LISTA="$(mktemp)"; trap "rm -f \"$LISTA\"" EXIT
-  find "$IO_KATALOG" -xdev -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" \) -size +4k "${NOWSZE[@]}" -printf "%T@ %s %p\n" 2>/dev/null |
+  # Bez rdzenia WordPressa (wp-admin, wp-includes): zmieniony obrazek rdzenia psuje wp core verify-checksums
+  # i przegląd zabezpieczeń pokazywał klientowi „pliki rdzenia różnią się od oryginału” (t1, 01.10).
+  find "$IO_KATALOG" -xdev -type d \( -name wp-admin -o -name wp-includes \) -prune -o -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" \) -size +4k "${NOWSZE[@]}" -printf "%T@ %s %p\n" 2>/dev/null |
     sort -n > "$LISTA"
   WSZYSTKIE=$(wc -l < "$LISTA")
   head -n "$IO_MAKS" "$LISTA" > "$LISTA.w"; mv -f "$LISTA.w" "$LISTA"

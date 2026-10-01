@@ -177,6 +177,10 @@ function syncMetaPixel(marketingGranted: boolean): void {
   script.src = "https://connect.facebook.net/en_US/fbevents.js";
   document.head.appendChild(script);
   window.fbq("consent", "grant");
+  // Bez automatycznych zdarzeń Meta (klik w przycisk z jego tekstem, metadane strony) — wysyłamy tylko
+  // własne zdarzenia. W panelu klient klika w nazwy domen, plików i skrzynek. Musi być przed init:
+  // https://developers.facebook.com/docs/meta-pixel/advanced/#automatic-configuration
+  window.fbq("set", "autoConfig", false, pixelId);
   window.fbq("init", pixelId);
   window.fbq("track", "PageView");
 }
