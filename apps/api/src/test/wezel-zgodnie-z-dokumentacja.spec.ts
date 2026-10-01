@@ -45,6 +45,13 @@ describe('skrypty węzła — katalog klienta tylko jako klient', () => {
     expect(t.indexOf('--enable-user-extensions=memcached')).toBeGreaterThan(t.indexOf('Memcached działa dla'));
   });
 
+  it('profil: aplikacje Python przez LiteSpeed — skrypt producenta i kontrola lswsgi (t1 01.10: 503)', () => {
+    const t = czytaj('node-hosting-profile.sh');
+    expect(t).toContain('/usr/local/lsws/admin/misc/enable_ruby_python_selector.sh');
+    expect(t).toMatch(/\/lswsgi"/);
+    expect(t.indexOf('enable_ruby_python_selector.sh')).toBeGreaterThan(t.indexOf('--selector-status enabled'));
+  });
+
   it('zmiana PHP konta włącza OPcache dla wybranej wersji, chyba że klient go wyłącza', () => {
     const t = czytaj('node-php-apply.sh');
     expect(t).toMatch(/selectorctl --enable-user-extensions=opcache --version="\$PHP_VERSION" --user="\$PHP_DA_USER"/);
