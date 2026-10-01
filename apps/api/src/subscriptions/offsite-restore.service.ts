@@ -251,7 +251,10 @@ export function archiwaZLogu(outputLog: string): OffsiteArchive[] {
     if (!fileName || !ARCHIVE_RE.test(fileName)) continue;
     const bytes = Number.parseInt((size ?? '').trim(), 10);
     const when = (modified ?? '').trim();
-    const parsed = when ? new Date(when.replace(' ', 'T')) : null;
+    // Węzeł wypisuje UTC bez strefy (TZ=UTC rclone lsf). Bez „Z” Date czytał to jako czas lokalny
+    // procesu — na t1 kopia z 03:54 pokazywała się jako 05:54.
+    const iso = when.replace(' ', 'T');
+    const parsed = when ? new Date(/(?:[zZ]|[+-]\d\d:?\d\d)$/.test(iso) ? iso : `${iso}Z`) : null;
     out.push({
       name: fileName,
       sizeBytes: Number.isFinite(bytes) ? bytes : null,
