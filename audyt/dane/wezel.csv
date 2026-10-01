@@ -43,7 +43,7 @@ L-03,sprawdzone,2026-09-28,CMD_API_CRON_JOBS create/delete
 L-05,sprawdzone,2026-09-29,alt-php 7.4 i 8.1 w cronie na d3.hvln.pl
 L-06,sprawdzone,2026-10-01,29.09: log wyniku powstaje; treść do sprawdzenia skryptem z echo | 30.09: zadanie co minutę z echo → wynik widoczny w panelu. Polecenie z % (np. date +%F) cicho się urywało (crontab(5): % = nowa linia) → 3a76645 (escapowanie %). | 01.10 po 3a76645: nowe zadanie „echo VERRIS-PCT $(date +%H:%M)” → wynik „VERRIS-PCT 09:54”. Po usunięciu zadania wynik/edycja wskazywały sąsiednie → 52b7e3a.
 N-10,czeka,,
-NODE-03,czeka,,
+NODE-03,sprawdzone,2026-10-01,"01.10 t1: panel admina (węzeł) pokazuje 4 rdzenie / 7,3 GB RAM / 75 GB dysku — zgodne z nproc, /proc/meminfo, df / na węźle; alert „blisko limitu pojemności” liczony względem tych wartości (przydzielone 100 GB z 75 GB)."
 C-26,sprawdzone,2026-09-29,"„Pobierz zmiany teraz” dla git-test → pobranie zmian gotowe, HEAD w wyniku"
 C-28,czeka,,
 I-16,czeka,,
@@ -61,7 +61,7 @@ A-06,sprawdzone,2026-09-29,"„Katalog główny strony” → git-test: po ~1 mi
 B-04,sprawdzone,2026-09-29,"włączenie opcache i redis dla PHP 8.2 z panelu → ponowny odczyt: 59 rozszerzeń, opcache.en"
 H-14,sprawdzone,2026-10-01,"admin-backup per konto + rclone sync drzewa; raport ok/rc=3 | 01.10: nocne przebiegi 29.09–01.10 OK (accounts=2), na magazynie archiwum konta z 01.10 03:54 (111 MB) i wersje 20260930/20261001; lista w panelu po odświeżeniu pokazuje bieżące archiwum, pobranie do konta działało 29.09. Godzina w liście +2 h → 47f621e."
 G-09,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
-Q-14,czeka,,IP w IP Manager; default_ttl; ./build clean/php/litespeed; letsencrypt.sh server_cert; lvectl --maxEntryProcs (lvectl --help); mysqlgovernor.py 10.6→10.11
+Q-14,sprawdzone,2026-10-01,"IP w IP Manager; default_ttl; ./build clean/php/litespeed; letsencrypt.sh server_cert; lvectl --maxEntryProcs (lvectl --help); mysqlgovernor.py 10.6→10.11 | 01.10 t1: IP węzła w IP Managerze DA, default_ttl=3600, certyfikat serwera DA z Let's Encrypt (letsencrypt.sh server_cert, ważny do 27.12.2026), limity LVE domyślne (EP 20, PMEM 1024M — lvectl), PHP 8.3.33 i LiteSpeed 6.3.7 z CustomBuild, MariaDB 11.4 przez Governor. Pełne przejście od czystego systemu bez SSH — PB-31."
 Z-18,czeka,,"provisioning na węźle: zerwane połączenie z DA w trakcie → PONOWIENIE w audycie, konto założone przy drugiej próbie"
 F-06,sprawdzone,2026-09-29,"„Włącz DNSSEC” → strefa podpisana, rekord DS (13 2 …) do rejestratora, „Kopiuj rekordy DS”"
 E-12,czeka,2026-09-29,29.09 profil (98e6f24): Dovecot Pigeonhole (Sieve) aktywny — da build set pigeonhole yes + dovecot. Zostaje: filtr w Roundcube (managesieve) — wymaga logowania do skrzynki.
@@ -79,7 +79,7 @@ D-14,czeka,,"D3: po profilu węzła `systemctl status postgresql` aktywny, `ss -
 B-03,sprawdzone,2026-09-29,"„PHP w podkatalogu” git-test → PHP 8.1: /git-test/v.php zwraca 8.1.34, reszta strony dalej"
 E-23,czeka,2026-09-30,"29.09 profil: WARN — gniazdo /var/run/dovecot/auth-client bez dostępu dla grupy radicale, logowanie CalDAV nie zadziała. Do poprawki: osobny listener auth Dovecota dla Radicale (nie poluzowanie auth-client). | 30.09 po 8b17203: profil OK=56 WARN=0 — osobne gniazdo auth-verris-radicale (grupa radicale), Radicale 3.8.1 na 5232. Zostaje: logowanie klienta CalDAV/CardDAV adresem i hasłem skrzynki."
 J-06,sprawdzone,2026-10-01,"„Optymalizuj obrazy” (cała strona) → 43 pliki, 2,9 MB → 2,9 MB (obrazy rdzenia WP już zopt | 01.10: optymalizacja całego public_html zmieniała obrazy rdzenia WordPressa (43 pliki, 0% zysku) i psuła sumy kontrolne → 50dccf7 (pomija wp-admin, wp-includes)."
-PB-29,czeka,,węzeł testowy
+PB-29,sprawdzone,2026-10-01,"węzeł testowy | 01.10 t1: weryfikacja onboardu zielona (28.09, 0 FAIL/0 WARN), cldetect → DirectAdmin 1.710, /proc/lve obecne, verris-security-watch.timer aktywny (ostatni przebieg success), brak plików licencji w /root i /etc/verris (tylko deploy-key.last), MariaDB 11.4.13 z manifestu."
 PB-30,czeka,,węzeł testowy
 PB-31,czeka,,węzeł testowy
 PB-32,czeka,,dwa węzły
