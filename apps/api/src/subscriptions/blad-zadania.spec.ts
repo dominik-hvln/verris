@@ -17,4 +17,9 @@ describe('bladZadaniaDlaKlienta', () => {
     expect(bladZadaniaDlaKlienta('x', '[php-set] BŁĄD: nie da się zapisać php.ini')).toBe('nie da się zapisać php.ini');
     expect(bladZadaniaDlaKlienta('x', '[ssl] BŁĄD: CMD_API_SSL zwrócił błąd')).toMatch(/^Operacja nie powiodła się/);
   });
+  it('ogon logu sklejony w jedną linię — bez znaczników technicznych po komunikacie (D3 01.10, PrestaShop)', () => {
+    const sklejony = '=== Verris task t (kind=APP_INSTALL) === --- [app-install] Przywrócono katalog. [app-install] BŁĄD: Instalacja nie powiodła się — katalog domeny jest taki jak przed instalacją. [VERRIS_APP] bez_zmian=1';
+    expect(bladZadaniaDlaKlienta(sklejony)).toBe('Instalacja nie powiodła się — katalog domeny jest taki jak przed instalacją.');
+    expect(bladZadaniaDlaKlienta('x [staging-sync] ERROR: Kopiowanie nie powiodło się. [verris-task-run] Task FAILED')).toBe('Kopiowanie nie powiodło się.');
+  });
 });
