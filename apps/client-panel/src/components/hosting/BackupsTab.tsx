@@ -1,37 +1,61 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { UkladZBokiem } from '@/components/hosting/UkladZBokiem';
-import { Database, Download, Loader2, RotateCcw, ShieldAlert, Check, X, AlertTriangle, FolderOpen } from 'lucide-react';
-import type { HostingBackupRowDto } from '@verris/contracts';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { UkladZBokiem } from "@/components/hosting/UkladZBokiem";
+import {
+  Database,
+  Download,
+  Loader2,
+  RotateCcw,
+  ShieldAlert,
+  Check,
+  X,
+  AlertTriangle,
+  FolderOpen,
+} from "lucide-react";
+import type { HostingBackupRowDto } from "@verris/contracts";
 import {
   fetchHostingBackupsAction as fetchHostingBackupsActionAkcja,
   enqueueHostingRestoreAction as enqueueHostingRestoreActionAkcja,
   fetchHostingRestoreStatusAction as fetchHostingRestoreStatusActionAkcja,
   type HostingRestoreJobDto,
-} from '@/app/dashboard/services/[id]/hosting-backup-actions';
-import { BackupNowButton } from '@/app/dashboard/backups/backup-now-button';
-import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
-import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
-import { SectionHead } from '@/components/panel/v2';
-import { ArchiveBrowser } from '@/components/hosting/ArchiveBrowser';
-import BackupScheduleCard from '@/components/hosting/BackupScheduleCard';
-import { HostingOffsitePanel } from '@/components/hosting/hosting-offsite-panel';
-import { Checkbox } from '@/components/panel/checkbox';
-import { zOdpakowaniem } from '@/lib/wynik-akcji';
+} from "@/app/dashboard/services/[id]/hosting-backup-actions";
+import { BackupNowButton } from "@/app/dashboard/backups/backup-now-button";
+import { hostingFetchErrorMessage } from "@/lib/client-hosting-messages";
+import { HostingHelpHint } from "@/components/hosting/HostingTabShell";
+import { SectionHead } from "@/components/panel/v2";
+import { ArchiveBrowser } from "@/components/hosting/ArchiveBrowser";
+import BackupScheduleCard from "@/components/hosting/BackupScheduleCard";
+import { HostingOffsitePanel } from "@/components/hosting/hosting-offsite-panel";
+import { Checkbox } from "@/components/panel/checkbox";
+import { zOdpakowaniem } from "@/lib/wynik-akcji";
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
 const fetchHostingBackupsAction = zOdpakowaniem(fetchHostingBackupsActionAkcja);
-const enqueueHostingRestoreAction = zOdpakowaniem(enqueueHostingRestoreActionAkcja);
-const fetchHostingRestoreStatusAction = zOdpakowaniem(fetchHostingRestoreStatusActionAkcja);
+const enqueueHostingRestoreAction = zOdpakowaniem(
+  enqueueHostingRestoreActionAkcja,
+);
+const fetchHostingRestoreStatusAction = zOdpakowaniem(
+  fetchHostingRestoreStatusActionAkcja,
+);
 
-const STATUS_LABEL: Record<HostingRestoreJobDto['status'], string> = {
-  QUEUED: 'W kolejce',
-  RUNNING: 'W trakcie',
-  SAFETY_BACKUP: 'Kopia bezpieczeństwa',
-  RESTORING: 'Przywracanie',
-  COMPLETED: 'Odtwarzanie zlecone',
-  FAILED: 'Błąd',
+// Pasek postępu: etap z 4. „Gotowe” dopiero, gdy serwer sam potwierdzi odtworzenie.
+const ETAP: Record<HostingRestoreJobDto["status"], number> = {
+  QUEUED: 1,
+  RUNNING: 1,
+  SAFETY_BACKUP: 2,
+  RESTORING: 3,
+  COMPLETED: 4,
+  FAILED: 0,
+};
+
+const STATUS_LABEL: Record<HostingRestoreJobDto["status"], string> = {
+  QUEUED: "W kolejce",
+  RUNNING: "W trakcie",
+  SAFETY_BACKUP: "Kopia bezpieczeństwa",
+  RESTORING: "Serwer odtwarza dane",
+  COMPLETED: "Gotowe",
+  FAILED: "Błąd",
 };
 
 export default function BackupsTab({ serviceId }: { serviceId: string }) {
@@ -63,7 +87,11 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
           setRows(res.rows);
           setError(res.fetchError);
         })
-        .catch((e) => setError(e instanceof Error ? e.message : 'Nie udało się wczytać kopii.'))
+        .catch((e) =>
+          setError(
+            e instanceof Error ? e.message : "Nie udało się wczytać kopii.",
+          ),
+        )
         .finally(() => setLoading(false)),
     [serviceId],
   );
@@ -93,12 +121,15 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
 
   return (
     <div className="space-y-4">
-      <SectionHead title="Kopie zapasowe" desc="Harmonogram, kopie na koncie i przywracanie jednym kliknięciem." />
+      <SectionHead
+        title="Kopie zapasowe"
+        desc="Harmonogram, kopie na koncie i przywracanie jednym kliknięciem."
+      />
       <HostingHelpHint
         help={{
           blurb:
-            'Kopia zapasowa to Twoja siatka bezpieczeństwa. Dodatkowo robimy kopie poza serwerem. Przed dużymi zmianami zrób kopię, a w razie problemu przywróć ją jednym kliknięciem.',
-          kbQuery: 'kopie zapasowe',
+            "Kopia zapasowa to Twoja siatka bezpieczeństwa. Dodatkowo robimy kopie poza serwerem. Przed dużymi zmianami zrób kopię, a w razie problemu przywróć ją jednym kliknięciem.",
+          kbQuery: "kopie zapasowe",
         }}
       />
       <UkladZBokiem
@@ -109,113 +140,155 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
           </>
         }
       >
+        {job &&
+          (job.active ||
+            job.status === "COMPLETED" ||
+            job.status === "FAILED") && <RestoreStatusBanner job={job} />}
 
-      {job && (job.active || job.status === 'COMPLETED' || job.status === 'FAILED') && (
-        <RestoreStatusBanner job={job} />
-      )}
-
-      {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie…
-        </div>
-      ) : error ? (
-        <p className="rounded-[10px] border border-warn/30 bg-warn-soft px-3 py-2 text-sm text-warn">
-          {hostingFetchErrorMessage(error)}
-        </p>
-      ) : rows.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-8 text-center text-sm text-muted-foreground">
-          <Database className="h-8 w-8 opacity-20" />
-          Brak kopii zapasowych. Pierwsza kopia pojawi się po jej utworzeniu.
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {rows.map((row) => (
-            <div
-              key={row.id}
-              className="rounded-[7px] border border-line bg-raised px-3 py-2 text-sm text-foreground"
-            >
-              <div className="flex items-center gap-2">
-                <Database className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <span className="min-w-0 flex-1 break-words font-mono text-[13px]">{row.fileName}</span>
-                <button
-                  type="button"
-                  disabled={Boolean(job?.active)}
-                  onClick={() => setOpenId(openId === row.id ? null : row.id)}
-                  className="inline-flex items-center gap-1.5 rounded-[7px] border border-data/28 bg-data-soft px-2.5 py-1 text-[13px] font-medium text-data-hi transition hover:bg-data-soft disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" /> Przywróć
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPlikiId(plikiId === row.id ? null : row.id)}
-                  aria-expanded={plikiId === row.id}
-                  className="inline-flex items-center gap-1.5 rounded-[7px] border border-line bg-raised px-2.5 py-1 text-[13px] font-medium text-[color:var(--verris-body)] transition hover:bg-raised"
-                >
-                  <FolderOpen className="h-3.5 w-3.5" /> Pliki
-                </button>
-                {/* H-13 — archiwum na komputer (strumień przez /api/services/[id]/files/download). */}
-                <a
-                  href={`/api/services/${serviceId}/files/download?path=${encodeURIComponent(
-                    row.fileName.includes('/') ? `/${row.fileName.replace(/^\/+/, '')}` : `/backups/${row.fileName}`,
-                  )}`}
-                  // Bez atrybutu download: sukces przychodzi jako załącznik (plik się pobiera), a błąd
-                  // (np. brak uprawnienia, limit) pokazuje się jako tekst zamiast pustego pliku.
-                  className="inline-flex items-center gap-1.5 rounded-[7px] border border-line bg-raised px-2.5 py-1 text-[13px] font-medium text-[color:var(--verris-body)] transition hover:bg-raised"
-                >
-                  <Download className="h-3.5 w-3.5" /> Pobierz
-                </a>
+        {loading ? (
+          <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie…
+          </div>
+        ) : error ? (
+          <p className="rounded-[10px] border border-warn/30 bg-warn-soft px-3 py-2 text-sm text-warn">
+            {hostingFetchErrorMessage(error)}
+          </p>
+        ) : rows.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-8 text-center text-sm text-muted-foreground">
+            <Database className="h-8 w-8 opacity-20" />
+            Brak kopii zapasowych. Pierwsza kopia pojawi się po jej utworzeniu.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {rows.map((row) => (
+              <div
+                key={row.id}
+                className="rounded-[7px] border border-line bg-raised px-3 py-2 text-sm text-foreground"
+              >
+                <div className="flex items-center gap-2">
+                  <Database className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <span className="min-w-0 flex-1 break-words font-mono text-[13px]">
+                    {row.fileName}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={Boolean(job?.active)}
+                    onClick={() => setOpenId(openId === row.id ? null : row.id)}
+                    className="inline-flex items-center gap-1.5 rounded-[7px] border border-data/28 bg-data-soft px-2.5 py-1 text-[13px] font-medium text-data-hi transition hover:bg-data-soft disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> Przywróć
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPlikiId(plikiId === row.id ? null : row.id)
+                    }
+                    aria-expanded={plikiId === row.id}
+                    className="inline-flex items-center gap-1.5 rounded-[7px] border border-line bg-raised px-2.5 py-1 text-[13px] font-medium text-[color:var(--verris-body)] transition hover:bg-raised"
+                  >
+                    <FolderOpen className="h-3.5 w-3.5" /> Pliki
+                  </button>
+                  {/* H-13 — archiwum na komputer (strumień przez /api/services/[id]/files/download). */}
+                  <a
+                    href={`/api/services/${serviceId}/files/download?path=${encodeURIComponent(
+                      row.fileName.includes("/")
+                        ? `/${row.fileName.replace(/^\/+/, "")}`
+                        : `/backups/${row.fileName}`,
+                    )}`}
+                    // Bez atrybutu download: sukces przychodzi jako załącznik (plik się pobiera), a błąd
+                    // (np. brak uprawnienia, limit) pokazuje się jako tekst zamiast pustego pliku.
+                    className="inline-flex items-center gap-1.5 rounded-[7px] border border-line bg-raised px-2.5 py-1 text-[13px] font-medium text-[color:var(--verris-body)] transition hover:bg-raised"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Pobierz
+                  </a>
+                </div>
+                {plikiId === row.id ? (
+                  <ArchiveBrowser
+                    serviceId={serviceId}
+                    archive={row.fileName}
+                  />
+                ) : null}
+                {openId === row.id && (
+                  <RestoreForm
+                    serviceId={serviceId}
+                    backupId={row.id}
+                    fileName={row.fileName}
+                    onClose={() => setOpenId(null)}
+                    onStarted={(j) => {
+                      setJob(j);
+                      setOpenId(null);
+                    }}
+                  />
+                )}
               </div>
-              {plikiId === row.id ? <ArchiveBrowser serviceId={serviceId} archive={row.fileName} /> : null}
-              {openId === row.id && (
-                <RestoreForm
-                  serviceId={serviceId}
-                  backupId={row.id}
-                  fileName={row.fileName}
-                  onClose={() => setOpenId(null)}
-                  onStarted={(j) => {
-                    setJob(j);
-                    setOpenId(null);
-                  }}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
 
-      {/* H-22 — kopie poza serwerem tam, gdzie klient ich szuka w kryzysie (wcześniej w „Zużyciu zasobów”). */}
-      <section className="space-y-2">
-        <SectionHead title="Kopie poza serwerem" desc="Gdy serwer ulegnie awarii, dane odtworzymy z kopii w drugim miejscu. Pobrana kopia trafia na listę powyżej." />
-        <HostingOffsitePanel serviceId={serviceId} onFetched={() => void loadRows()} />
-      </section>
+        {/* H-22 — kopie poza serwerem tam, gdzie klient ich szuka w kryzysie (wcześniej w „Zużyciu zasobów”). */}
+        <section className="space-y-2">
+          <SectionHead
+            title="Kopie poza serwerem"
+            desc="Gdy serwer ulegnie awarii, dane odtworzymy z kopii w drugim miejscu. Pobrana kopia trafia na listę powyżej."
+          />
+          <HostingOffsitePanel
+            serviceId={serviceId}
+            onFetched={() => void loadRows()}
+          />
+        </section>
       </UkladZBokiem>
     </div>
   );
 }
 
 function RestoreStatusBanner({ job }: { job: HostingRestoreJobDto }) {
-  const failed = job.status === 'FAILED';
-  const done = job.status === 'COMPLETED';
+  const failed = job.status === "FAILED";
+  const done = job.status === "COMPLETED";
   const tone = failed
-    ? 'border-crit/30 bg-crit/12 text-crit'
+    ? "border-crit/30 bg-crit/12 text-crit"
     : done
-      ? 'border-data/28 bg-data-soft text-data-hi'
-      : 'border-data/28 bg-data-soft text-data-hi';
+      ? "border-data/28 bg-data-soft text-data-hi"
+      : "border-data/28 bg-data-soft text-data-hi";
+  const etap = ETAP[job.status];
   return (
-    <div className={`flex items-center gap-2 rounded-[10px] border px-3 py-2 text-sm ${tone}`}>
-      {job.active ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : done ? (
-        <Check className="h-4 w-4" />
-      ) : (
-        <AlertTriangle className="h-4 w-4" />
+    <div className={`rounded-[10px] border px-3 py-2 text-sm ${tone}`}>
+      <div className="flex items-center gap-2">
+        {job.active ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : done ? (
+          <Check className="h-4 w-4" />
+        ) : (
+          <AlertTriangle className="h-4 w-4" />
+        )}
+        <span>
+          Przywracanie: <strong>{STATUS_LABEL[job.status]}</strong>
+          {job.status === "RESTORING"
+            ? " — zwykle trwa to kilka minut, status zmieni się sam."
+            : job.active
+              ? " — nie zamykaj usługi do zakończenia."
+              : ""}
+          {failed && job.error ? ` — ${job.error}` : ""}
+          {done
+            ? ` — serwer potwierdził odtworzenie${job.completedAt ? ` (${new Date(job.completedAt).toLocaleString("pl-PL")})` : ""}.${job.safetyBackup ? " Kopia sprzed odtworzenia jest na liście." : ""}`
+            : ""}
+        </span>
+      </div>
+      {etap > 0 && (
+        <div
+          role="progressbar"
+          aria-label="Postęp przywracania"
+          aria-valuemin={0}
+          aria-valuemax={4}
+          aria-valuenow={etap}
+          aria-valuetext={`Etap ${etap} z 4: ${STATUS_LABEL[job.status]}`}
+          className="mt-2 h-1.5 overflow-hidden rounded-full bg-data/15"
+        >
+          <div
+            className="h-full rounded-full bg-data transition-all"
+            style={{ width: `${etap * 25}%` }}
+          />
+        </div>
       )}
-      <span>
-        Przywracanie: <strong>{STATUS_LABEL[job.status]}</strong>
-        {job.active ? ' — nie zamykaj usługi do zakończenia.' : ''}
-        {failed && job.error ? ` — ${job.error}` : ''}
-        {done ? ` — serwer odtwarza dane w tle, zwykle trwa to kilka minut.${job.safetyBackup ? ' Kopia sprzed odtworzenia jest na liście.' : ''}` : ''}
-      </span>
     </div>
   );
 }
@@ -237,11 +310,14 @@ function RestoreForm({
   const [databases, setDatabases] = useState(true);
   const [email, setEmail] = useState(false);
   const [safety, setSafety] = useState(true);
-  const [confirmDomain, setConfirmDomain] = useState('');
+  const [confirmDomain, setConfirmDomain] = useState("");
   const [pending, setPending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const canSubmit = (files || databases || email) && confirmDomain.trim().length > 2 && !pending;
+  const canSubmit =
+    (files || databases || email) &&
+    confirmDomain.trim().length > 2 &&
+    !pending;
 
   async function submit() {
     setErr(null);
@@ -257,7 +333,9 @@ function RestoreForm({
       });
       onStarted(j);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Nie udało się zlecić przywracania.');
+      setErr(
+        e instanceof Error ? e.message : "Nie udało się zlecić przywracania.",
+      );
     } finally {
       setPending(false);
     }
@@ -268,16 +346,25 @@ function RestoreForm({
       <div className="flex items-start gap-2 rounded-md border border-warn/30 bg-warn-soft px-2.5 py-2 text-[12.5px] text-warn">
         <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
         <span>
-          Przywrócenie <strong className="font-mono">{fileName}</strong> nadpisze bieżące dane w
-          wybranym zakresie. Zalecamy zostawić włączoną kopię bezpieczeństwa.
+          Przywrócenie <strong className="font-mono">{fileName}</strong>{" "}
+          nadpisze bieżące dane w wybranym zakresie. Zalecamy zostawić włączoną
+          kopię bezpieczeństwa.
         </span>
       </div>
 
       <div className="flex flex-wrap gap-3 text-[13px]">
         <Toggle label="Pliki" checked={files} onChange={setFiles} />
-        <Toggle label="Bazy danych" checked={databases} onChange={setDatabases} />
+        <Toggle
+          label="Bazy danych"
+          checked={databases}
+          onChange={setDatabases}
+        />
         <Toggle label="Poczta" checked={email} onChange={setEmail} />
-        <Toggle label="Kopia bezpieczeństwa przed przywróceniem" checked={safety} onChange={setSafety} />
+        <Toggle
+          label="Kopia bezpieczeństwa przed przywróceniem"
+          checked={safety}
+          onChange={setSafety}
+        />
       </div>
 
       <label className="block">
@@ -305,7 +392,11 @@ function RestoreForm({
           disabled={!canSubmit}
           className="inline-flex items-center gap-1.5 rounded-[7px] bg-primary text-primary-foreground font-semibold px-3 py-1.5 text-[13px] transition hover:bg-data-hi disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+          {pending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RotateCcw className="h-4 w-4" />
+          )}
           Przywróć z tej kopii
         </button>
         <button

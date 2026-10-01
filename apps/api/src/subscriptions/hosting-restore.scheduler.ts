@@ -27,6 +27,7 @@ export class HostingRestoreScheduler {
       if (processed > 0) {
         this.logger.log(`Przetworzono ${processed} zadań przywracania.`);
       }
+      await this.restore.potwierdzOdtworzenia();
     } catch (err) {
       this.logger.error(`Restore worker error: ${(err as Error).message}`);
     } finally {

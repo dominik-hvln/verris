@@ -43,7 +43,9 @@ describe('H-09 kopia bezpieczeństwa przed odtworzeniem', () => {
     const { svc, da, updates } = setup([list('old.tar.gz'), list('old.tar.gz'), list('old.tar.gz', 'safety.tar.gz')]);
     await svc.processNextQueued();
     expect(da.createHostingSiteBackupNow.mock.invocationCallOrder[0]).toBeLessThan(da.restoreHostingBackup.mock.invocationCallOrder[0]);
-    expect(updates.at(-1)).toMatchObject({ status: 'COMPLETED' });
+    // serwer tylko przyjął zlecenie — status zostaje RESTORING do jego potwierdzenia
+    expect(updates.some((u) => u.status === 'RESTORING')).toBe(true);
+    expect(updates.some((u) => u.status === 'COMPLETED')).toBe(false);
   });
 
   it('kopia nie powstała → odtwarzanie się nie zaczyna, zadanie FAILED z wyjaśnieniem', async () => {
@@ -58,5 +60,57 @@ describe('H-09 kopia bezpieczeństwa przed odtworzeniem', () => {
     await svc.processNextQueued();
     expect(da.createHostingSiteBackupNow).not.toHaveBeenCalled();
     expect(da.restoreHostingBackup).not.toHaveBeenCalled();
+  });
+});
+
+describe('Gotowe dopiero po potwierdzeniu serwera (uwaga właściciela 01.10)', () => {
+  const zlecono = new Date('2026-10-01T20:29:30Z');
+  function konfig(wiadomosci: Array<{ id: string; number: number; subject: string; time: Date }>) {
+    const job = { id: 'j1', subscriptionId: 's1', status: 'RESTORING', updatedAt: zlecono, requestedByUserId: 'u1', backupFileName: 'a.tar.zst', safetyBackup: true };
+    let status = 'RESTORING';
+    const updates: Array<Record<string, unknown>> = [];
+    const prisma = {
+      hostingRestoreJob: {
+        findMany: vi.fn().mockResolvedValue([job]),
+        findUnique: vi.fn().mockImplementation(() => Promise.resolve({ status })),
+        update: vi.fn().mockImplementation(({ data }: { data: Record<string, unknown> }) => {
+          updates.push(data);
+          if (typeof data.status === 'string') status = data.status;
+          return Promise.resolve({});
+        }),
+      },
+      account: { findUnique: vi.fn().mockResolvedValue({ id: 'a1', userId: 'u1' }) },
+    };
+    const client = {
+      listMessages: vi.fn().mockResolvedValue(wiadomosci.map(({ id, number, subject }) => ({ id, number, subject, isNew: true }))),
+      getMessage: vi.fn().mockImplementation((id: string) => Promise.resolve({ id, time: wiadomosci.find((w) => w.id === id)!.time })),
+    };
+    const da = { getClientForHostingAccount: vi.fn().mockResolvedValue(client) };
+    const svc = new (HostingRestoreService as unknown as new (...a: unknown[]) => HostingRestoreService)(prisma, { record: vi.fn() }, da);
+    return { svc, updates };
+  }
+
+  it('wiadomość „przywrócone” nowsza niż zlecenie → COMPLETED z czasem z serwera', async () => {
+    const t = new Date('2026-10-01T20:31:35Z');
+    const { svc, updates } = konfig([
+      { id: '000000072', number: 72, subject: 'Twoje kopie zapasowe są gotowe', time: new Date('2026-10-01T20:30:00Z') },
+      { id: '000000073', number: 73, subject: 'Pliki użytkownika zostały przywrócone z kopii zapasowej', time: t },
+    ]);
+    await svc.potwierdzOdtworzenia(new Date('2026-10-01T20:33:00Z'));
+    expect(updates.at(-1)).toMatchObject({ status: 'COMPLETED', completedAt: t });
+  });
+
+  it('stara wiadomość „przywrócone” (z poprzedniego odtworzenia) nie zamyka zadania', async () => {
+    const { svc, updates } = konfig([
+      { id: '000000040', number: 40, subject: 'Pliki użytkownika zostały przywrócone z kopii zapasowej', time: new Date('2026-09-29T13:38:06Z') },
+    ]);
+    await svc.potwierdzOdtworzenia(new Date('2026-10-01T20:35:00Z'));
+    expect(updates).toEqual([]);
+  });
+
+  it('brak potwierdzenia przez 2 h → FAILED z wyjaśnieniem dla klienta', async () => {
+    const { svc, updates } = konfig([]);
+    await svc.potwierdzOdtworzenia(new Date('2026-10-01T22:40:00Z'));
+    expect(updates.at(-1)).toMatchObject({ status: 'FAILED', error: expect.stringContaining('nie potwierdził') });
   });
 });

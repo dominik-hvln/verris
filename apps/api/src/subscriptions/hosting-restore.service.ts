@@ -14,6 +14,14 @@ import { DirectAdminService } from '../servers/directadmin.service.js';
 /** H-09 — jak długo czekamy na kopię bezpieczeństwa, zanim odmówimy nadpisania danych. */
 const SAFETY_BACKUP_TIMEOUT_MS = 15 * 60_000;
 const SAFETY_BACKUP_POLL_MS = 20_000;
+/** Ile czekamy na potwierdzenie od serwera, zanim powiemy klientowi, że coś jest nie tak. */
+const POTWIERDZENIE_MAX_MS = 2 * 60 * 60_000;
+/**
+ * Panel serwera po odtworzeniu wysyła do konta wiadomość systemową (t1 01.10: „Pliki użytkownika zostały
+ * przywrócone z kopii zapasowej”; węzeł w innym języku — „…restored…”). Na niej opieramy „Gotowe”.
+ */
+const ODTWORZONO = /przywr|restor/i;
+const BLAD_SERWERA = /bł[aąeę]d|nie powiod|niepowodz|nieudan|nie udał|error|fail/i;
 
 const ACTIVE_STATUSES: HostingRestoreStatus[] = [
   HostingRestoreStatus.QUEUED,
@@ -182,26 +190,87 @@ export class HostingRestoreService {
         databases: job.scopeDatabases,
         email: job.scopeEmail,
       });
-
-      await this.prisma.hostingRestoreJob.update({
-        where: { id: job.id },
-        data: { status: HostingRestoreStatus.COMPLETED, completedAt: new Date(), error: null },
-      });
-      await this.audit.record({
-        action: 'HOSTING_RESTORE_COMPLETED',
-        userId: account.userId,
-        actorUserId: job.requestedByUserId,
-        details: {
-          jobId: job.id,
-          subscriptionId: job.subscriptionId,
-          backupFileName: job.backupFileName,
-          safetyBackup: job.safetyBackup,
-        } as Prisma.InputJsonValue,
-      });
+      // Serwer tylko przyjął zlecenie do swojej kolejki — „Gotowe” dopiero po jego potwierdzeniu
+      // (potwierdzOdtworzenia). Wcześniej status kończył się tu na „zlecone”, a klient nie wiedział,
+      // czy dane już wróciły (uwaga właściciela 01.10). updatedAt = chwila zlecenia.
+      await this.prisma.hostingRestoreJob.update({ where: { id: job.id }, data: { error: null } });
     } catch (err) {
       await this.fail(job.id, job.subscriptionId, (err as Error).message, account.userId, job.requestedByUserId);
     }
     return true;
+  }
+
+  /**
+   * Zadania zlecone serwerowi (RESTORING) czekają na jego wiadomość „przywrócono” nowszą niż zlecenie.
+   * Wołane co minutę przez scheduler. Wiadomość o błędzie albo brak potwierdzenia przez 2 h → FAILED
+   * z wyjaśnieniem dla klienta.
+   */
+  async potwierdzOdtworzenia(teraz = new Date()): Promise<void> {
+    const zadania = await this.prisma.hostingRestoreJob.findMany({
+      where: { status: HostingRestoreStatus.RESTORING },
+      orderBy: { createdAt: 'asc' },
+      take: 20,
+    });
+    for (const job of zadania) {
+      const zlecono = job.updatedAt;
+      try {
+        const account = await this.prisma.account.findUnique({
+          where: { subscriptionId: job.subscriptionId },
+          select: { id: true, userId: true },
+        });
+        if (!account) continue;
+        const client = await this.directAdmin.getClientForHostingAccount(account.id, account.userId);
+        const kandydaci = (await client.listMessages())
+          .filter((m) => ODTWORZONO.test(m.subject))
+          .sort((a, b) => b.number - a.number)
+          .slice(0, 5);
+        for (const m of kandydaci) {
+          const w = await client.getMessage(m.id);
+          // minuta zapasu na różnicę zegarów control-plane i węzła
+          if (!w.time || w.time.getTime() < zlecono.getTime() - 60_000) continue;
+          if (BLAD_SERWERA.test(m.subject)) {
+            await this.fail(job.id, job.subscriptionId, `Serwer zgłosił błąd odtwarzania: ${m.subject}`, account.userId, job.requestedByUserId);
+          } else {
+            await this.zakoncz(job, account.userId, w.time);
+          }
+          break;
+        }
+      } catch (err) {
+        this.logger.warn(`Potwierdzenie odtworzenia job=${job.id}: ${(err as Error).message}`);
+      }
+      const odswiezone = await this.prisma.hostingRestoreJob.findUnique({ where: { id: job.id }, select: { status: true } });
+      if (odswiezone?.status === HostingRestoreStatus.RESTORING && teraz.getTime() - zlecono.getTime() > POTWIERDZENIE_MAX_MS) {
+        await this.fail(
+          job.id,
+          job.subscriptionId,
+          'Serwer nie potwierdził odtworzenia w ciągu 2 godzin — sprawdź dane albo napisz do nas, sprawdzimy to.',
+          undefined,
+          job.requestedByUserId,
+        );
+      }
+    }
+  }
+
+  private async zakoncz(
+    job: { id: string; subscriptionId: string; requestedByUserId: string; backupFileName: string; safetyBackup: boolean },
+    userId: string,
+    kiedy: Date,
+  ): Promise<void> {
+    await this.prisma.hostingRestoreJob.update({
+      where: { id: job.id },
+      data: { status: HostingRestoreStatus.COMPLETED, completedAt: kiedy, error: null },
+    });
+    await this.audit.record({
+      action: 'HOSTING_RESTORE_COMPLETED',
+      userId,
+      actorUserId: job.requestedByUserId,
+      details: {
+        jobId: job.id,
+        subscriptionId: job.subscriptionId,
+        backupFileName: job.backupFileName,
+        safetyBackup: job.safetyBackup,
+      } as Prisma.InputJsonValue,
+    });
   }
 
   /**

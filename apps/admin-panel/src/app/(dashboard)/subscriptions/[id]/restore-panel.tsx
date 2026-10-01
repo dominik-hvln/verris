@@ -9,8 +9,8 @@ const STATUS: Record<string, string> = {
   QUEUED: 'w kolejce',
   RUNNING: 'przygotowanie',
   SAFETY_BACKUP: 'kopia bezpieczeństwa',
-  RESTORING: 'odtwarzanie',
-  COMPLETED: 'zlecone serwerowi',
+  RESTORING: 'serwer odtwarza (czekam na potwierdzenie)',
+  COMPLETED: 'odtworzono — serwer potwierdził',
   FAILED: 'nieudane',
 };
 
