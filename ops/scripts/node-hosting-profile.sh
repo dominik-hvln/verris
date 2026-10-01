@@ -202,7 +202,20 @@ configure_cloudlinux_cagefs() {
     log_warn "cagefsctl --enable-all zwrócił błąd — sprawdź cagefsctl --list-disabled"
   fi
 
-  # 4) odśwież skeleton po zmianach oprogramowania (gdy nie było świeżego --init)
+  # 3b) rsync w CageFS — kopia robocza (staging) kopiuje pliki jako klient, w jego CageFS; bez pakietu
+  # w skeletonie: „rsync: command not found” (t1 01.10). Klienci dostają też rsync przez SSH.
+  # Dokumentacja: https://docs.cloudlinux.com/cloudlinuxos/cloudlinux_os_components/#cagefs (cagefsctl --addrpm)
+  if ! rpm -q rsync >/dev/null 2>&1; then
+    dnf install -y rsync 2>&1 | strip_ansi || log_warn "Instalacja rsync nie powiodła się"
+  fi
+  if "$bin" --addrpm rsync 2>&1 | strip_ansi; then
+    log_ok "rsync dodany do CageFS"
+    did_init=0
+  else
+    log_warn "cagefsctl --addrpm rsync nie powiódł się — kopia robocza (staging) nie zadziała"
+  fi
+
+  # 4) odśwież skeleton po zmianach oprogramowania (gdy nie było świeżego --init albo doszedł pakiet)
   if [ "$did_init" = "0" ]; then
     log_info "Aktualizacja skeletonu CageFS (cagefsctl --force-update)…"
     "$bin" --force-update 2>&1 | strip_ansi || log_warn "cagefsctl --force-update — częściowy błąd"

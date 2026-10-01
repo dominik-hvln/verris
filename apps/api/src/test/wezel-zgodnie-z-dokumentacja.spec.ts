@@ -212,6 +212,16 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
   it('CustomBuild: opcje czytane z options.conf', () => {
     expect(czytaj('node-hosting-profile.sh')).toContain('"$CB/options.conf"');
   });
+
+  it('rsync w CageFS (cagefsctl --addrpm) — staging kopiuje pliki jako klient (t1 01.10: rsync: command not found)', () => {
+    const t = czytaj('node-hosting-profile.sh');
+    expect(t).toMatch(/"\$bin" --addrpm rsync/);
+    // --force-update po dodaniu pakietu, inaczej skeleton go nie ma
+    expect(t.indexOf('--addrpm rsync')).toBeLessThan(t.indexOf('"$bin" --force-update'));
+    const s = czytaj('node-staging-sync.sh');
+    expect(s).toContain("as_user 'command -v rsync'");
+    expect(s).toMatch(/'\$\{from\}\/' '\$\{to\}\/'" \|\| die "/);
+  });
 });
 
 describe('profil węzła — panel DA (:2222) tylko z control-plane (decyzja 2026-09-29)', () => {

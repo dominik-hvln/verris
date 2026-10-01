@@ -87,12 +87,13 @@ is_wordpress() { [ -f "${1}/wp-config.php" ] && [ -d "${1}/wp-includes" ]; }
 # --- rsync (jako użytkownik, z wykluczeniem stagingu i backupów) -------------
 sync_files() {
   local from="$1" to="$2" extra="${3:-}"
-  command -v rsync >/dev/null 2>&1 || die "Brak rsync na węźle."
+  # Kopiujemy jako klient, w jego CageFS — rsync musi być w skeletonie (profil węzła: cagefsctl --addrpm rsync).
+  as_user 'command -v rsync' >/dev/null 2>&1 || die "Kopiowanie plików jest chwilowo niedostępne na tym serwerze — napisz do nas, naprawimy to."
   as_user "rsync -a --delete \
     --exclude '/${STG_SUB}/' \
     --exclude '.well-known' \
     ${extra} \
-    '${from}/' '${to}/'"
+    '${from}/' '${to}/'" || die "Kopiowanie plików nie powiodło się — spróbuj ponownie za chwilę albo napisz do nas."
 }
 
 # =============================================================================
