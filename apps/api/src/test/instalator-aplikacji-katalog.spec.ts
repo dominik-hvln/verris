@@ -36,6 +36,12 @@ describe('I-01 — instalator aplikacji', () => {
     expect(f.indexOf('rm -f index.php Install_PrestaShop.html')).toBeLessThan(f.indexOf('unzip -q -o prestashop.zip'));
   });
 
+  it('pobranie paczki ponawiane po zerwanym transferze (t1 01.10: MediaWiki „curl: (92)”)', () => {
+    expect(s).toMatch(/^DL="curl -fsSL --retry 3 --retry-all-errors /m);
+    expect(s.match(/run_as "cd '\$DOCROOT' && curl /g)).toBeNull();
+    expect(s.match(/\$DL '\$url' -o \/tmp\//g)).toHaveLength(4);
+  });
+
   it('oficjalne instalatory CLI: Joomla (joomla.php install -n) i MediaWiki (run.php install)', () => {
     expect(s).toContain("installation/joomla.php install -n");
     expect(s).toContain('maintenance/run.php install');
