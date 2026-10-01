@@ -549,7 +549,9 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
                 <th className="px-4 py-2 font-medium">Nazwa</th>
                 <th className="px-4 py-2 font-medium">Rozmiar</th>
                 <th className="px-4 py-2 font-medium">Zmodyfikowano</th>
-                <th className="px-4 py-2" />
+                <th className="px-4 py-2">
+                  <span className="sr-only">Akcje</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -590,24 +592,24 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
                   <td data-label="Akcje" className="px-4 py-2">
                     <div className="flex items-center justify-end gap-1">
                       {entry.type === 'file' && ARCHIVE.test(entry.name) ? (
-                        <IconBtn title="Rozpakuj tutaj" onClick={() => void onExtract(entry.name)}>
+                        <IconBtn title="Rozpakuj tutaj" etykieta={`Rozpakuj ${entry.name} tutaj`} onClick={() => void onExtract(entry.name)}>
                           <Package className="h-4 w-4" />
                         </IconBtn>
                       ) : null}
                       {entry.type === 'file' && EDITABLE.test(entry.name) ? (
-                        <IconBtn title="Edytuj" onClick={() => void onEdit(entry.name)}>
+                        <IconBtn title="Edytuj" etykieta={`Edytuj ${entry.name}`} onClick={() => void onEdit(entry.name)}>
                           <FilePen className="h-4 w-4" />
                         </IconBtn>
                       ) : null}
                       {entry.type === 'file' ? (
-                        <IconBtn title="Pobierz" onClick={() => void onDownload(entry.name)}>
+                        <IconBtn title="Pobierz" etykieta={`Pobierz ${entry.name}`} onClick={() => void onDownload(entry.name)}>
                           <Download className="h-4 w-4" />
                         </IconBtn>
                       ) : null}
-                      <IconBtn title="Zmień nazwę" onClick={() => void onRename(entry.name)}>
+                      <IconBtn title="Zmień nazwę" etykieta={`Zmień nazwę ${entry.name}`} onClick={() => void onRename(entry.name)}>
                         <Pencil className="h-4 w-4" />
                       </IconBtn>
-                      <IconBtn title="Usuń" danger onClick={() => void onDelete(entry)}>
+                      <IconBtn title="Usuń" etykieta={`Usuń ${entry.name}`} danger onClick={() => void onDelete(entry)}>
                         <Trash2 className="h-4 w-4" />
                       </IconBtn>
                     </div>
@@ -661,11 +663,14 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
 function IconBtn({
   children,
   title,
+  etykieta,
   onClick,
   danger,
 }: {
   children: React.ReactNode;
   title: string;
+  /** Nazwa dla czytnika ekranu z obiektem („Usuń index.php”) — samo „Usuń” w każdym wierszu nic nie mówi. */
+  etykieta: string;
   onClick: () => void;
   danger?: boolean;
 }) {
@@ -673,6 +678,7 @@ function IconBtn({
     <button
       type="button"
       title={title}
+      aria-label={etykieta}
       onClick={onClick}
       className={`inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/5 hover:bg-white/10 ${
         danger ? 'text-rose-300 hover:text-rose-200' : 'text-neutral-300'
