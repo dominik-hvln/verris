@@ -66,20 +66,37 @@ Object.assign(globalThis, {
 // axe sprawdza ligatury ikon na <canvas>; jsdom go nie ma i tylko hałasuje w logu.
 HTMLCanvasElement.prototype.getContext = (() => null) as typeof HTMLCanvasElement.prototype.getContext;
 
-const WIDOKI: [string, string][] = [
-  ['przegląd usługi', ''],
-  ['poczta', 'mail'],
-  ['bazy danych', 'databases'],
-  ['pliki', 'files'],
-  ['domeny i DNS', 'domains'],
+// [nazwa, zakładka, teksty z danych przykładowych, które widać dopiero po wczytaniu całego widoku]
+const WIDOKI: [string, string, string[]][] = [
+  ['przegląd usługi', '', ['domena główna', 'ftp.kowalski.pl']],
+  ['poczta', 'mail', ['jan@kowalski.pl', 'sklep@kowalski.pl', 'urlop@kowalski.pl']],
+  ['bazy danych', 'databases', ['kowalski1_sklep']],
+  ['pliki', 'files', ['kopia.zip']],
+  ['domeny i DNS', 'domains', ['10 mail.kowalski.pl.', 'blog.kowalski.pl', 'kowalski.com.pl']],
 ];
+
+// Pierwszy test w pliku kompiluje całe drzewo modułów strony usługi (ts-jest) — na wolnym runnerze CI
+// to kilka sekund, więcej niż domyślne 5 s Jesta. Import rozgrzewa beforeAll z własnym limitem.
+jest.setTimeout(30_000);
+beforeAll(async () => {
+  await import('@/app/dashboard/services/[id]/page');
+}, 120_000);
 
 let root: Root | null = null;
 let kontener: HTMLElement;
 
-async function dociagnij() {
-  // Kilka tur: dane z akcji → setState → kolejne efekty (np. strefa DNS po liście domen).
-  for (let i = 0; i < 6; i++) await act(async () => new Promise((r) => setTimeout(r, 0)));
+/**
+ * Czeka, aż widok pokaże wszystkie `teksty` (dane z akcji → setState → kolejne efekty, np. strefa DNS
+ * po liście domen). Stała liczba tur zdarzeń nie wystarczała na wolnym runnerze CI — audyt szedł
+ * wtedy po niedociągniętym widoku albo nie znajdował wierszy.
+ */
+async function czekajNa(teksty: string[], limitMs = 15_000) {
+  const start = Date.now();
+  const brakujace = () => teksty.filter((t) => !kontener.textContent?.includes(t));
+  while (brakujace().length) {
+    if (Date.now() - start > limitMs) throw new Error(`Widok nie pokazał: ${brakujace().join(', ')}`);
+    await act(async () => new Promise((r) => setTimeout(r, 20)));
+  }
 }
 
 async function pokazWidok(tab: string) {
@@ -91,7 +108,7 @@ async function pokazWidok(tab: string) {
   document.body.appendChild(kontener);
   root = createRoot(kontener);
   await act(async () => root!.render(<Strona />));
-  await dociagnij();
+  await czekajNa(WIDOKI.find(([, t]) => t === tab)![2]);
 }
 
 afterEach(() => {
