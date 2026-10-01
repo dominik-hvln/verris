@@ -239,6 +239,7 @@ export function DnsManager({
                   }}
                   className="p-2 rounded-lg border border-white/10 hover:bg-white/5"
                   title="Edytuj"
+                  aria-label={`Edytuj rekord ${r.type} ${r.name}`}
                 >
                   <Pencil className="h-3.5 w-3.5 text-neutral-300" />
                 </button>
@@ -248,6 +249,7 @@ export function DnsManager({
                   disabled={pending}
                   className="p-2 rounded-lg border border-white/10 hover:bg-rose-500/10 hover:border-rose-500/40 disabled:opacity-50"
                   title="Usuń"
+                  aria-label={`Usuń rekord ${r.type} ${r.name}`}
                 >
                   <Trash2 className="h-3.5 w-3.5 text-rose-300" />
                 </button>

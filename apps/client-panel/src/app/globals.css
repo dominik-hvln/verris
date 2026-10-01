@@ -386,9 +386,11 @@ html.dark.eco-tint {
 
 /* === Dostępność (EAA/WCAG 2.4.7) — globalny, widoczny wskaźnik fokusa ===
    Dotyczy nawigacji klawiaturą; nie zmienia wyglądu przy kliknięciu myszą.
-   Komponenty z własnym focus-visible (ring) nadpisują to lokalnie. */
+   Komponenty z własnym focus-visible (ring) nadpisują to lokalnie.
+   Kolor z tokenu --data (≥ 3:1 na każdym tle obu motywów, WCAG 1.4.11) — biały obrys
+   znikał w motywie jasnym (1,1:1 na --background). Pilnuje lib/kontrast-tokenow.spec.ts. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.75);
+  outline: 2px solid var(--data);
   outline-offset: 2px;
   border-radius: 6px;
 }
