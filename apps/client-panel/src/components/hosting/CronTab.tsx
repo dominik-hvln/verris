@@ -114,13 +114,18 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
     setSched({ ...EVERY, minute: '0', hour: '3' });
   };
 
-  const onDelete = async (id: string) => {
-    if (!(await potwierdz('Usunąć to zadanie cron?', { akcja: 'Usuń', niebezpieczne: true }))) return;
-    setDeleting(id);
-    const res = await deleteHostingCronAction(serviceId, id);
+  const onDelete = async (row: HostingCronJobDto) => {
+    const polecenie = unwrapCron(row.command)?.command ?? row.command;
+    if (!(await potwierdz(`Usunąć zadanie „${polecenie}” (${row.schedule})?`, { akcja: 'Usuń', niebezpieczne: true }))) return;
+    setDeleting(row.id);
+    const res = await deleteHostingCronAction(serviceId, row.id);
     setDeleting(null);
     if (!res.ok) return toast.error('Nie udało się usunąć', { description: daErrorMessage(res.error) });
     toast.success('Zadanie usunięte');
+    // Numery zadań są pozycjami w crontabie — po usunięciu kolejne się przesuwają. Otwarty wynik albo
+    // edycja wskazywałyby wtedy inne zadanie (zapis edycji nadpisałby cudzą linię).
+    setWynik(null);
+    if (editingId) cancelEdit();
     load();
   };
 
@@ -267,7 +272,7 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
                 type="button"
                 title="Usuń zadanie"
                 disabled={deleting === row.id}
-                onClick={() => void onDelete(row.id)}
+                onClick={() => void onDelete(row)}
                 className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-line bg-raised text-crit hover:bg-crit/12 disabled:opacity-50"
               >
                 {deleting === row.id ? (
