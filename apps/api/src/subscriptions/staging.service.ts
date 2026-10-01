@@ -77,16 +77,19 @@ export class StagingService {
     let dbPass: string | null = null;
 
     if (firstTime) {
-      // 1) DA subdomain (idempotent on DA side — "already exists" tolerated).
-      try {
-        await this.da.createHostingStaging(subscriptionId, userId, {
-          domain: account.domain,
-          label: STAGING_SUB,
-          withDatabase: false,
-        });
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        if (!/exist/i.test(msg)) {
+      // 1) Subdomena — tylko gdy jej nie ma. Błąd DA bywa po polsku („Subdomena już istnieje”, test D3
+      // 01.10), więc nie zgadujemy po treści: subdomena z nieudanej pierwszej próby zostaje i ponowienie
+      // ma przejść dalej, a każdy inny błąd DA idzie do klienta.
+      const istniejace = await this.da.listHostingStaging(subscriptionId, userId);
+      if (!istniejace.rows.some((r) => r.domain === account.domain && r.subdomain === STAGING_SUB)) {
+        try {
+          await this.da.createHostingStaging(subscriptionId, userId, {
+            domain: account.domain,
+            label: STAGING_SUB,
+            withDatabase: false,
+          });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
           throw new BadRequestException(`Nie udało się utworzyć subdomeny staging: ${msg}`);
         }
       }
