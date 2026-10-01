@@ -343,7 +343,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 - `H-09` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `H-17` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `G-20` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `I-11` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `I-11` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
 **Ryzyko sprintu.** H-17 bylo zalezne od H-20 — zamkniete 2026-08-23 dowodem D4, wiec zaleznosc spelniona. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. Pozycje, ktore okaza sie wymagac wezla do dowodu D3, dostaja kod tutaj, a dowod w sprincie 18.
