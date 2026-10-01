@@ -273,7 +273,7 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
         <p className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3 text-xs leading-relaxed text-cyan-100">
           Przenosisz tylko pocztę. Wpisz adres skrzynki oraz serwer IMAP, login i hasło u poprzedniego dostawcy —
           wiadomości i foldery skopiujemy do skrzynki o tym samym adresie na tym koncie (musi już istnieć: załóż ją
-          w zakładce Poczta). Stara skrzynka zostaje bez zmian; różnice dograsz później funkcją delta-sync.
+          w zakładce Poczta). Stara skrzynka zostaje bez zmian; różnice dograsz później przyciskiem „Dograj nowe pliki i pocztę”.
         </p>
       ) : null}
 

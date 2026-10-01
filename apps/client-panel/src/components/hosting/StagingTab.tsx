@@ -95,14 +95,14 @@ export default function StagingTab({ serviceId }: StagingTabProps) {
     <div className="space-y-5">
       <SectionHead
         title="Kopia robocza (staging)"
-        desc={`Bezpieczna kopia strony pod adresem ${status.stagingDomain}. Testuj zmiany bez ryzyka, a gdy wszystko działa — opublikuj jednym kliknięciem. Dla WordPressa kopiujemy też bazę i podmieniamy adresy; przed publikacją robimy kopię produkcji.`}
+        desc={`Bezpieczna kopia strony pod adresem ${status.stagingDomain}. Testuj zmiany bez ryzyka, a gdy wszystko działa — opublikuj jednym kliknięciem. Dla WordPressa kopiujemy też bazę i podmieniamy adresy; przed publikacją robimy kopię wersji publicznej strony.`}
       />
 
       {inflight && (
         <div className="flex items-center gap-2 rounded-[10px] border border-data/28 bg-data-soft px-4 py-3 text-sm text-data-hi">
           <Loader2 className="h-4 w-4 animate-spin" />
           {status.lastTask?.direction === 'TO_LIVE'
-            ? 'Publikowanie na produkcję… (zwykle do 2 min)'
+            ? 'Publikowanie kopii roboczej jako wersji publicznej… (zwykle do 2 min)'
             : 'Kopiowanie strony na staging… (zwykle do 2 min)'}
         </div>
       )}
@@ -110,7 +110,7 @@ export default function StagingTab({ serviceId }: StagingTabProps) {
         <div className="flex items-start gap-2 rounded-[10px] border border-crit/30 bg-crit/12 px-4 py-3 text-sm text-crit">
           <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
           Ostatnia operacja nie powiodła się: {status.lastTask.errorMessage ?? 'błąd'} — spróbuj
-          ponownie lub napisz do BOK.
+          ponownie lub napisz do nas (Centrum pomocy).
         </div>
       )}
       {error && (
@@ -124,7 +124,7 @@ export default function StagingTab({ serviceId }: StagingTabProps) {
           <Box className="h-10 w-10 mx-auto text-muted-foreground" />
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
             Nie masz jeszcze kopii roboczej. Utworzymy <code>{status.stagingDomain}</code> i
-            skopiujemy tam całą stronę z produkcji.
+            skopiujemy tam całą wersję publiczną strony.
           </p>
           <button
             type="button"
@@ -156,7 +156,7 @@ export default function StagingTab({ serviceId }: StagingTabProps) {
                 </a>
                 <p className="text-xs text-muted-foreground">
                   {status.syncedAt
-                    ? `Ostatnia kopia z produkcji: ${new Date(status.syncedAt).toLocaleString('pl-PL')}`
+                    ? `Ostatnia kopia z wersji publicznej strony: ${new Date(status.syncedAt).toLocaleString('pl-PL')}`
                     : 'Kopiowanie w przygotowaniu…'}
                 </p>
               </div>
@@ -171,7 +171,7 @@ export default function StagingTab({ serviceId }: StagingTabProps) {
               className="rounded-[10px] border border-line bg-background hover:border-line-strong disabled:opacity-50 p-4 text-left"
             >
               <RefreshCw className="h-5 w-5 text-data-hi mb-2" />
-              <p className="text-sm font-medium text-foreground">Odśwież z produkcji</p>
+              <p className="text-sm font-medium text-foreground">Odśwież z wersji publicznej</p>
               <p className="text-xs text-muted-foreground mt-1">
                 Nadpisz staging aktualną wersją strony. Zmiany na stagingu przepadną.
               </p>
@@ -184,9 +184,9 @@ export default function StagingTab({ serviceId }: StagingTabProps) {
               className="rounded-[10px] border border-data/28 bg-data-soft hover:border-data disabled:opacity-50 p-4 text-left"
             >
               <Rocket className="h-5 w-5 text-data-hi mb-2" />
-              <p className="text-sm font-medium text-foreground">Opublikuj na produkcję</p>
+              <p className="text-sm font-medium text-foreground">Opublikuj jako wersję publiczną</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Wgraj staging na {status.domain}. Najpierw zrobimy backup produkcji.
+                Wgraj staging na {status.domain}. Najpierw zrobimy kopię zapasową wersji publicznej.
               </p>
             </button>
 
@@ -203,7 +203,7 @@ export default function StagingTab({ serviceId }: StagingTabProps) {
               )}
               <p className="text-sm font-medium text-foreground">Usuń staging</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Usuwa subdomenę z plikami. Baza kopii roboczej zostaje (zakładka Bazy MySQL) do czasu utworzenia nowej kopii roboczej.
+                Usuwa subdomenę z plikami. Baza kopii roboczej zostaje (zakładka Bazy danych) do czasu utworzenia nowej kopii roboczej.
               </p>
             </button>
           </div>
@@ -213,7 +213,7 @@ export default function StagingTab({ serviceId }: StagingTabProps) {
               <p className="text-sm text-warn">
                 <strong>Publikacja zastąpi obecną wersję {status.domain}</strong> zawartością
                 stagingu (pliki i — dla WordPressa — baza danych). Przed zmianą zapiszemy kopię
-                zapasową produkcji na Twoim koncie (<code>~/.verris/backups</code>).
+                zapasową wersji publicznej strony na Twoim koncie (<code>~/.verris/backups</code>).
               </p>
               <div className="flex gap-2">
                 <button

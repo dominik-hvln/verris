@@ -617,7 +617,7 @@ function BillingTab({
   return (
     <div className="p-8 space-y-8">
       <div>
-        <h2 className="text-xl font-bold text-white mb-2">Dane bilingowe</h2>
+        <h2 className="text-xl font-bold text-white mb-2">Dane do faktury</h2>
         <p className="text-neutral-400">
           Dane te zostaną użyte na wszystkich nowo wystawianych fakturach VAT.
         </p>

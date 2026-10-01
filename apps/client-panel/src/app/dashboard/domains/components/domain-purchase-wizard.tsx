@@ -36,7 +36,7 @@ import { Checkbox } from '@/components/panel/checkbox';
 import { Stepper } from '@/components/panel/stepper';
 import { odpakuj } from '@/lib/wynik-akcji';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
-import { plForm, plural } from '@/lib/pl';
+import { plForm, plural, years as lata } from '@/lib/pl';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
 const quotePeriodsAction = zOdpakowaniem(quotePeriodsActionAkcja);
@@ -636,7 +636,7 @@ export function DomainPurchaseWizard({ initialOrders, initialLabel = '' }: { ini
                 <div className="flex justify-between gap-4">
                   <span className="text-neutral-400">Okres</span>
                   <span className="text-white">
-                    {years} {years === 1 ? 'rok' : 'lat'}
+                    {lata(years)}
                   </span>
                 </div>
                 <div className="flex justify-between gap-4">

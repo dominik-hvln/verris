@@ -10,6 +10,7 @@ import { NewSubscriptionForm } from './form';
 import { TrialCallout } from './trial-callout';
 import type { TrialOffer } from '../data';
 import { clientFeatures } from '@/lib/client-features';
+import { variants } from '@/lib/pl';
 
 /**
  * UX-4 — wybór TYPU usługi w osobnych kaflach (Hosting / Poczta / VPS), zamiast
@@ -152,7 +153,7 @@ export function OrderFlow({ plans, offer }: { plans: PlanDto[]; offer: TrialOffe
             icon={<Cpu className="h-6 w-6" />}
             title="VPS / Cloud"
             desc="Własny serwer z dostępem root. Rozliczenie miesięczne."
-            bullets={['Pełny root + SSH', 'Skalowalne zasoby', 'Snapshoty']}
+            bullets={['Pełny root + SSH', 'Skalowalne zasoby', 'Kopie migawkowe']}
             href="/dashboard/services/new?type=vps"
             accent="violet"
           />
@@ -304,7 +305,7 @@ function ProductCard({
           {external
             ? 'Przejdź do VPS'
             : count && count > 0
-              ? `${count} ${count === 1 ? 'wariant' : 'warianty/ów'}`
+              ? variants(count)
               : 'Sprawdź warianty'}
         </span>
         <span className="inline-flex items-center gap-1 text-sm font-medium text-white">

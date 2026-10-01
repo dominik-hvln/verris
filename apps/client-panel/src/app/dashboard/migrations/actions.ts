@@ -165,7 +165,7 @@ export async function queueMigrationDeltaSyncAction(input: {
     revalidatePath('/dashboard/migrations');
     return { ok: true, detail };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Nie udało się uruchomić delta-synca.' };
+    return { error: e instanceof Error ? e.message : 'Nie udało się dograć nowych plików i poczty.' };
   }
 }
 

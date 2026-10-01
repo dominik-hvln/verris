@@ -7,6 +7,7 @@ import { potwierdz } from '@/components/panel';
 import { StatusPill, type Tone } from '@/components/panel/v2';
 import { liczba } from '@/lib/liczba';
 import { clientFeatures } from '@/lib/client-features';
+import { services } from '@/lib/pl';
 import {
   fetchKlient,
   linkHaslaKlienta,
@@ -107,7 +108,7 @@ export function KlientResellera({ klient, aktywny, onOdpiety }: { klient: Resell
           <span className="ml-2 break-all text-xs text-muted-foreground">{klient.email}</span>
         </span>
         <span className="flex items-center gap-3 text-xs text-muted-foreground">
-          {klient.services.length} {klient.services.length === 1 ? 'usługa' : 'usług'} · od {new Date(klient.createdAt).toLocaleDateString('pl-PL')}
+          {services(klient.services.length)} · od {new Date(klient.createdAt).toLocaleDateString('pl-PL')}
           <ChevronDown className={`h-4 w-4 transition-transform ${otwarty ? 'rotate-180' : ''}`} aria-hidden />
         </span>
       </button>

@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, ArrowDownCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { Zap, Loader2 as Loader } from 'lucide-react';
 import { Kpi, KpiStrip, Meter, SectionHead, Switch } from '@/components/panel/v2';
+import { formatPln } from '@/lib/credits';
 import { plForm } from '@/lib/pl';
 import {
   getMonitoringStatus,
@@ -233,7 +234,7 @@ function PaidMonitoringCard({
                   ? ` Rezygnacja zaplanowana: szybki tryb działa do ${nextDate}, potem wraca standardowy (co ${paid.freeIntervalMinutes} min).`
                   : ' Rezygnacja zaplanowana — wróci tryb standardowy.'
                 : nextDate
-                  ? ` Następna opłata: ${nextDate} (${paid.monthlyPrice} K/mies.).`
+                  ? ` Następna opłata: ${nextDate} (${formatPln(paid.monthlyPrice)}/mies. z portfela).`
                   : ''}
             </p>
           </div>
@@ -262,7 +263,7 @@ function PaidMonitoringCard({
             Standardowo sprawdzamy stronę co {paid.freeIntervalMinutes} min (za darmo). Włącz
             szybki monitoring, by sprawdzać co{' '}
             {paid.paidIntervalMinutes === 1 ? 'minutę' : `${paid.paidIntervalMinutes} min`} i wykrywać
-            awarie niemal natychmiast — <strong className="text-[color:var(--verris-body)]">{paid.monthlyPrice} K/mies.</strong> z portfela.
+            awarie niemal natychmiast — <strong className="text-[color:var(--verris-body)]">{formatPln(paid.monthlyPrice)}/mies.</strong> z portfela.
           </p>
         </div>
         <button
@@ -272,7 +273,7 @@ function PaidMonitoringCard({
           className="shrink-0 inline-flex items-center gap-2 rounded-[7px] bg-warn-soft px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-warn-soft disabled:opacity-50"
         >
           {busy ? <Loader className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-          Włącz za {paid.monthlyPrice} K/mies.
+          Włącz za {formatPln(paid.monthlyPrice)}/mies.
         </button>
       </div>
       {error && <p className="mt-3 text-sm text-crit">{error}</p>}

@@ -142,7 +142,7 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
             </span>
           </div>
           <p className="mt-2 text-sm text-neutral-400">
-            Domena w portfelu Verris. Narzędzia hostingowe działają po powiązaniu z aktywną usługą (ta sama
+            Domena na Twoim koncie Verris. Narzędzia hostingowe działają po powiązaniu z aktywną usługą (ta sama
             nazwa domeny co przy zakładaniu hostingu).
           </p>
         </div>

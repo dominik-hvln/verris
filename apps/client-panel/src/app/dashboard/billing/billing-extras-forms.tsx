@@ -212,7 +212,7 @@ function WalletAutotopupBlock({
         <div className="min-w-0">
           <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Auto-doładowanie</h3>
           <p className="mt-1 text-[12.5px] text-muted-foreground">
-            Gdy saldo spadnie poniżej progu, system pobierze zapisany sposób płatności (Stripe, off-session).
+            Gdy saldo spadnie poniżej progu, pobierzemy kwotę z zapisanej karty.
           </p>
         </div>
       </div>
@@ -274,7 +274,7 @@ function WalletAutotopupBlock({
             options={[
               {
                 value: '',
-                label: 'Automatycznie — pierwszy zapis na koncie lub domyślna przy Stripe Checkout',
+                label: 'Automatycznie — domyślna karta',
               },
               ...savedCards.map((c) => ({
                 value: c.id,

@@ -1,4 +1,15 @@
-import { days, plForm, plural, services } from './pl';
+import {
+  backupForm,
+  days,
+  entries,
+  mailboxForm,
+  plForm,
+  plural,
+  recoveryCodesLeft,
+  services,
+  variants,
+  years,
+} from './pl';
 
 /**
  * X-05 — odmiana liczebników w panelu klienta.
@@ -37,5 +48,41 @@ describe('X-05 plForm — polska odmiana', () => {
     expect(days(14)).toBe('14 dni');
     expect(services(12)).toBe('12 usług');
     expect(services(22)).toBe('22 usługi');
+  });
+});
+
+describe('CL-09 odmiana w miejscach z przeglądu 30.09', () => {
+  it('wpisy logu, warianty, lata — trzy formy zamiast dwóch', () => {
+    expect(entries(1)).toBe('1 wpis');
+    expect(entries(3)).toBe('3 wpisy');
+    expect(entries(25)).toBe('25 wpisów');
+    expect(variants(1)).toBe('1 wariant');
+    expect(variants(2)).toBe('2 warianty');
+    expect(variants(6)).toBe('6 wariantów');
+    expect(years(1)).toBe('1 rok');
+    expect(years(2)).toBe('2 lata');
+    expect(years(5)).toBe('5 lat');
+  });
+
+  it('kopie i skrzynki jako jednostka pod liczbą', () => {
+    expect(backupForm(1)).toBe('kopia');
+    expect(backupForm(3)).toBe('kopie');
+    expect(backupForm(7)).toBe('kopii');
+    expect(mailboxForm(1)).toBe('skrzynka');
+    expect(mailboxForm(4)).toBe('skrzynki');
+    expect(mailboxForm(12)).toBe('skrzynek');
+  });
+
+  it('usługi resellera: 2–4 → „usługi”, nie „usług”', () => {
+    expect(services(1)).toBe('1 usługa');
+    expect(services(3)).toBe('3 usługi');
+    expect(services(5)).toBe('5 usług');
+  });
+
+  it('kody zapasowe 2FA: odmienia się też czasownik', () => {
+    expect(recoveryCodesLeft(1)).toEqual({ verb: 'Pozostał', noun: 'kod zapasowy' });
+    expect(recoveryCodesLeft(3)).toEqual({ verb: 'Pozostały', noun: 'kody zapasowe' });
+    expect(recoveryCodesLeft(8)).toEqual({ verb: 'Pozostało', noun: 'kodów zapasowych' });
+    expect(recoveryCodesLeft(0)).toEqual({ verb: 'Pozostało', noun: 'kodów zapasowych' });
   });
 });

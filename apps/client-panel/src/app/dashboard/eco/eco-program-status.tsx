@@ -33,7 +33,7 @@ export function EcoProgramStatus({ overview }: { overview: EcoProgramOverview })
           Twoje punkty: <span className="font-mono font-semibold text-white">{overview.ecoPoints}</span>
         </p>
         <p className="mt-4 text-xs leading-relaxed text-neutral-500">
-          Program EKO obejmuje zbieranie punktów (tryb oszczędny na hostingu, badge na stronie, wymiana na
+          Program EKO obejmuje zbieranie punktów (tryb oszczędny na hostingu, odznaka na stronie, wymiana na
           kredyty). Program partnerski (polecenia) opisujemy osobno.
         </p>
       </article>
@@ -58,7 +58,7 @@ export function EcoProgramStatus({ overview }: { overview: EcoProgramOverview })
                     (łącznie {overview.ecoModeOnServices} z trybem EKO w konfiguracji)
                   </span>
                 ) : null}
-                . Przy aktywnej usłudze panel może mieć delikatny zielony akcent.
+                .
               </>
             ) : overview.ecoModeOnServices > 0 ? (
               <>

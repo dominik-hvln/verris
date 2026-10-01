@@ -1,5 +1,5 @@
 import type { ServiceSummaryDto } from '@verris/contracts';
-import { deriveReasons } from './services-health-overview';
+import { deriveReasons, etykietaKafla } from './services-health-overview';
 
 /**
  * X-05 — powody, dla których usługa wymaga uwagi klienta (pulpit „Zdrowie usług").
@@ -62,7 +62,7 @@ describe('X-05 deriveReasons', () => {
       provisioning: { stage: 'failed' } as ServiceSummaryDto['provisioning'],
       health: { score: 10, label: 'critical', checkedAt: null, checks: checks({ dnsOk: false }) },
     });
-    expect(deriveReasons(s)).toEqual(['Konto nieaktywne', 'Provisioning wymaga uwagi', 'DNS domeny']);
+    expect(deriveReasons(s)).toEqual(['Konto nieaktywne', 'Zakładanie konta wymaga uwagi — napisz do nas', 'DNS domeny']);
   });
 
   it('brak konta (usługa w trakcie) nie jest „kontem nieaktywnym", brak health nie wysypuje', () => {
@@ -75,5 +75,27 @@ describe('X-05 deriveReasons', () => {
       recommendations: [rec('info', 'Rozważ plan roczny'), rec('warning', 'Włącz autoskalowanie'), rec('critical', 'Włącz autoskalowanie')],
     });
     expect(deriveReasons(s)).toEqual(['Włącz autoskalowanie']);
+  });
+});
+
+describe('CL-09 podpisy kafli podsumowania — odmiana', () => {
+  it('usługi sprawne: 1 / 2–4 / 5+ i nastki', () => {
+    expect(etykietaKafla('ok', 1)).toBe('usługa sprawna');
+    expect(etykietaKafla('ok', 3)).toBe('usługi sprawne');
+    expect(etykietaKafla('ok', 5)).toBe('usług sprawnych');
+    expect(etykietaKafla('ok', 12)).toBe('usług sprawnych');
+  });
+
+  it('„wymaga uwagi”: liczba mnoga tylko dla 2–4, przy 0 i 5+ czasownik w liczbie pojedynczej', () => {
+    expect(etykietaKafla('warn', 1)).toBe('wymaga uwagi');
+    expect(etykietaKafla('warn', 2)).toBe('wymagają uwagi');
+    expect(etykietaKafla('warn', 5)).toBe('wymaga uwagi');
+    expect(etykietaKafla('warn', 0)).toBe('wymaga uwagi');
+  });
+
+  it('pilne sprawy: 2–4 mają własną formę', () => {
+    expect(etykietaKafla('crit', 1)).toBe('pilna sprawa');
+    expect(etykietaKafla('crit', 2)).toBe('pilne sprawy');
+    expect(etykietaKafla('crit', 7)).toBe('pilnych spraw');
   });
 });

@@ -41,14 +41,14 @@ export async function submitLogin(
       body: JSON.stringify({ email, password, captchaToken }),
     });
     if (data.twoFactorRequired) {
-      if (!data.challengeToken) return { error: "Brak tokenu 2FA — spróbuj ponownie." };
+      if (!data.challengeToken) return { error: "Nie udało się zalogować — spróbuj ponownie." };
       return { twoFactorRequired: true, challengeToken: data.challengeToken, email };
     }
     if (data.access_token) {
       await setAuthCookie(data.access_token);
       shouldRedirect = true;
     } else {
-      return { error: "Nieoczekiwana odpowiedź serwera" };
+      return { error: "Nie udało się zalogować — spróbuj ponownie." };
     }
   } catch (e: unknown) {
     if (e instanceof ApiError && e.status === 401) {
@@ -66,7 +66,7 @@ export async function submitLogin(
   }
 
   if (shouldRedirect) redirect("/dashboard");
-  return { error: "Nieoczekiwana odpowiedź serwera" };
+  return { error: "Nie udało się zalogować — spróbuj ponownie." };
 }
 
 export async function submitTwoFactor(
@@ -87,7 +87,7 @@ export async function submitTwoFactor(
       method: "POST",
       body: JSON.stringify({ challengeToken, code }),
     });
-    if (!data.access_token) return { error: "Brak tokenu sesji w odpowiedzi" };
+    if (!data.access_token) return { error: "Nie udało się zalogować — spróbuj ponownie." };
     await setAuthCookie(data.access_token);
     shouldRedirect = true;
   } catch {
@@ -95,5 +95,5 @@ export async function submitTwoFactor(
   }
 
   if (shouldRedirect) redirect("/dashboard");
-  return { error: "Brak tokenu sesji w odpowiedzi" };
+  return { error: "Nie udało się zalogować — spróbuj ponownie." };
 }

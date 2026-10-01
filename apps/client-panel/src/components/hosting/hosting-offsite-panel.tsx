@@ -23,6 +23,7 @@ import {
 import { Select } from '@/components/panel/select';
 import { potwierdz } from '@/components/panel/potwierdz';
 import { liczba } from '@/lib/liczba';
+import { dzienCzytelny, dzienDoApi, dzienDoPola } from '@/lib/dzien-kopii';
 import { days } from '@/lib/pl';
 import { opcjeRetencji, zDni } from '@/lib/retencja-kopii';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
@@ -100,7 +101,7 @@ export function HostingOffsitePanel({
           setError(null);
         })
         .catch((e) => {
-          setError(e instanceof Error ? e.message : 'Nie udało się sprawdzić kopii off-site.');
+          setError(e instanceof Error ? e.message : 'Nie udało się sprawdzić kopii poza serwerem.');
         })
         .finally(() => {
           setLoading(false);
@@ -171,7 +172,7 @@ export function HostingOffsitePanel({
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
           )}
           <div>
-            <p className="text-sm font-semibold text-foreground">Kopia poza serwerem (off-site)</p>
+            <p className="text-sm font-semibold text-foreground">Kopia poza serwerem</p>
             <p className="text-xs text-muted-foreground">
               {state.offsite.protected
                 ? `Dodatkowa kopia Twojego konta leży poza tym serwerem — przetrwa nawet jego awarię. Trzymamy wersje z ${zDni(dni)}.${
@@ -182,8 +183,8 @@ export function HostingOffsitePanel({
                       : ''
                   }`
                 : state.offsite.pending
-                  ? 'Konto jest nowe — pierwsza kopia poza serwerem powstanie przy najbliższym nocnym przebiegu. Do tego czasu chronią je kopie na koncie.'
-                  : 'Kopia off-site dla tego konta nie została jeszcze potwierdzona — napisz do nas, zanim będzie potrzebna.'}
+                  ? 'Konto jest nowe — pierwsza kopia poza serwerem powstanie dzisiejszej nocy. Do tego czasu chronią je kopie na koncie.'
+                  : 'Kopia poza serwerem dla tego konta nie została jeszcze potwierdzona — napisz do nas, zanim będzie potrzebna.'}
             </p>
           </div>
         </div>
@@ -231,18 +232,16 @@ export function HostingOffsitePanel({
           className="inline-flex items-center gap-1 text-muted-foreground hover:text-[color:var(--verris-body)]"
         >
           <History className="h-3.5 w-3.5" />
-          {showOlder ? 'Ukryj starsze wersje' : 'Szukam kopii z konkretnego dnia'}
+          {showOlder ? 'Ukryj starsze wersje' : 'Znajdź kopię z wybranego dnia'}
         </button>
         {showOlder ? (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <input
-              value={snapshot}
-              onChange={(e) => setSnapshot(e.target.value.replace(/\D/g, '').slice(0, 8))}
-              placeholder="RRRRMMDD, np. 20260715"
-              aria-label="Dzień kopii (RRRRMMDD)"
-              inputMode="numeric"
-              spellCheck={false}
-              className="w-48 rounded-md border border-line bg-background px-3 py-1.5 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:border-data focus:outline-none"
+              type="date"
+              value={dzienDoPola(snapshot)}
+              onChange={(e) => setSnapshot(dzienDoApi(e.target.value))}
+              aria-label="Dzień kopii"
+              className="w-48 rounded-md border border-line bg-background px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:border-data focus:outline-none"
             />
             <span className="text-muted-foreground">
               Masz kopię z każdego z ostatnich {zDni(dni)} — starszych już nie ma.
@@ -254,13 +253,13 @@ export function HostingOffsitePanel({
       {state.busy ? (
         <p className="flex items-center gap-2 text-xs text-data-hi">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          Serwer pracuje nad kopią off-site… To potrwa chwilę, możesz zostać na tej stronie.
+          Przygotowujemy kopię zapasową z drugiej lokalizacji… To potrwa chwilę, możesz zostać na tej stronie.
         </p>
       ) : null}
       {error ? <p className="text-xs text-crit">{error}</p> : null}
       {listFailed && !state.busy ? (
         <p className="text-xs text-crit">
-          {state.lastList?.errorMessage ?? 'Nie udało się odczytać kopii off-site.'}
+          {state.lastList?.errorMessage ?? 'Nie udało się odczytać kopii poza serwerem.'}
         </p>
       ) : null}
 
@@ -316,8 +315,8 @@ export function HostingOffsitePanel({
         </ul>
       ) : state.listedAt && !state.busy ? (
         <p className="text-xs text-muted-foreground">
-          Nie znaleźliśmy archiwów off-site dla tego konta
-          {state.snapshot ? ` z dnia ${state.snapshot}` : ''}. Napisz do nas, sprawdzimy to razem.
+          Nie znaleźliśmy kopii poza serwerem dla tego konta
+          {state.snapshot ? ` z dnia ${dzienCzytelny(state.snapshot)}` : ''}. Napisz do nas, sprawdzimy to razem.
         </p>
       ) : null}
 

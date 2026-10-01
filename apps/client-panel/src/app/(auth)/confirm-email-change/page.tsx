@@ -28,7 +28,7 @@ function ConfirmForm() {
     return (
       <div className="p-8 space-y-4">
         <p className="text-sm text-rose-300">
-          Brak tokenu w linku. Otwórz potwierdzenie z wiadomości e-mail wysłanej na nowy adres.
+          Link jest niepełny — otwórz go ponownie z wiadomości e-mail wysłanej na nowy adres.
         </p>
         <Link href="/dashboard/settings" className="text-sm font-semibold text-sky-400 hover:text-sky-300">
           Wróć do ustawień

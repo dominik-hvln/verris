@@ -59,7 +59,7 @@ export default async function ServicesPage() {
     services = await listServices();
   } catch (err) {
     loadError =
-      err instanceof ApiError ? `Nie udało się pobrać Twoich usług (${err.status}).` : err instanceof Error ? err.message : 'Nieznany błąd';
+      err instanceof ApiError ? 'Nie udało się pobrać Twoich usług. Odśwież stronę za chwilę.' : err instanceof Error ? err.message : 'Nieznany błąd';
   }
   // PB-20 / IAM — przycisk zamówienia tylko dla tych, którzy mogą zamawiać (właściciel, subkonto bez zakresu usług).
   const token = await getAuthToken();

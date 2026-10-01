@@ -20,3 +20,14 @@ export const databases = (n: number) => plural(n, "baza", "bazy", "baz");
 export const mailboxes = (n: number) => plural(n, "skrzynka", "skrzynki", "skrzynek");
 export const files = (n: number) => plural(n, "plik", "pliki", "plików");
 export const services = (n: number) => plural(n, "usługa", "usługi", "usług");
+export const entries = (n: number) => plural(n, "wpis", "wpisy", "wpisów");
+export const years = (n: number) => plural(n, "rok", "lata", "lat");
+export const variants = (n: number) => plural(n, "wariant", "warianty", "wariantów");
+export const backupForm = (n: number) => plForm(n, "kopia", "kopie", "kopii");
+export const mailboxForm = (n: number) => plForm(n, "skrzynka", "skrzynki", "skrzynek");
+
+/** „Pozostał 1 kod zapasowy” / „Pozostały 3 kody zapasowe” / „Pozostało 5 kodów zapasowych” — czasownik też się odmienia. */
+export const recoveryCodesLeft = (n: number) => ({
+  verb: plForm(n, "Pozostał", "Pozostały", "Pozostało"),
+  noun: plForm(n, "kod zapasowy", "kody zapasowe", "kodów zapasowych"),
+});

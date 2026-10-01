@@ -331,7 +331,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
         <p className="text-neutral-400 text-sm mt-1">
           {productKind === 'EMAIL'
             ? 'Profesjonalna poczta na Twojej domenie — skrzynki, webmail Roundcube, antyspam.'
-            : 'Limity zasobów są egzekwowane na serwerze — autoskalowanie dokupuje dodatkową moc godzinowo z portfela.'}
+            : 'Plan ma stałe limity. Autoskalowanie w razie potrzeby dokłada mocy, rozliczając ją w 15-minutowych blokach z portfela.'}
         </p>
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
           {visiblePlans.map((plan) => {
@@ -437,7 +437,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
             onChange={setPaymentSource}
             icon={<CreditCard className="h-5 w-5" />}
             title="Karta przez Stripe"
-            description="Cykliczne pobieranie z karty (Stripe Subscriptions). Dostaniesz fakturę po każdym miesięcznym/rocznym pobraniu."
+            description="Karta obciążana automatycznie co miesiąc lub rok. Dostaniesz fakturę po każdym pobraniu."
           />
         </div>
       </section>
@@ -449,7 +449,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
             Kod rabatowy (opcjonalnie)
           </h2>
           <p className="text-neutral-400 text-sm mt-1">
-            Rabat procentowy na pierwszą opłatę za usługę. Działa tylko przy płatności z portfela (K).
+            Rabat procentowy na pierwszą opłatę za usługę. Działa tylko przy płatności z portfela.
           </p>
           <div className="mt-4 flex flex-col sm:flex-row gap-3">
             <input
@@ -520,7 +520,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
             checked={ecoModeEnabled}
             onChange={setEcoModeEnabled}
             label="ECO Mode (zalecane)"
-            description="Twoje harmonogramy kopii w panelu działają raz w tygodniu zamiast codziennie (kopie platformy bez zmian) + zbieranie EkoPunktów."
+            description="Twoje harmonogramy kopii w panelu działają raz w tygodniu zamiast codziennie (nasze kopie awaryjne bez zmian) + zbieranie EkoPunktów."
           />
         </div>
       </section>
@@ -824,7 +824,7 @@ function ProvisioningSuccess({
           </p>
         </div>
         <ol className="space-y-2 text-sm text-neutral-300">
-          <li>1. Skonfiguruj DNS poczty (rekordy <strong>MX, SPF, DKIM</strong>) w zakładce „Domeny &amp; DNS”.</li>
+          <li>1. Skonfiguruj DNS poczty (rekordy <strong>MX, SPF, DKIM</strong>) w zakładce „Domeny i DNS”.</li>
           <li>2. Załóż skrzynki e-mail w zakładce „Poczta” i ustaw hasła.</li>
           <li>3. Zaloguj się do webmaila adresem skrzynki (nie danymi panelu).</li>
         </ol>

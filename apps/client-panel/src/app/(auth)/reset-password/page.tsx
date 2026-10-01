@@ -21,7 +21,7 @@ function ResetPasswordForm() {
     return (
       <div className="p-8 space-y-4">
         <p className="text-sm text-rose-300">
-          Brak tokenu w linku. Otwórz reset hasła z wiadomości e-mail lub poproś o nowy link.
+          Link jest niepełny — otwórz go ponownie z wiadomości e-mail lub poproś o nowy link.
         </p>
         <Link href="/forgot-password" className="text-sm font-semibold text-accent hover:text-verris-tip">
           Poproś o reset hasła

@@ -47,7 +47,7 @@ export function FirstStepsAssistant({
       title: 'Skonfiguruj DNS poczty (MX, SPF, DKIM)',
       desc: 'Wskaż domenę na nasze serwery poczty — pokażemy dokładne rekordy do wpisania.',
       done: dnsOk,
-      cta: dnsOk ? 'Gotowe' : 'Przejdź do Domen & DNS',
+      cta: dnsOk ? 'Gotowe' : 'Przejdź do: Domeny i DNS',
       tab: 'domains',
     },
     {

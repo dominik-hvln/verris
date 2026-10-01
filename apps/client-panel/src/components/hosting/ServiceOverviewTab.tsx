@@ -249,7 +249,7 @@ export default function ServiceOverviewTab({
 
       <HostingTabShell
         title={service.plan.name}
-        description={account?.domain ?? 'Dashboard usługi hostingowej'}
+        description={account?.domain ?? 'Przegląd usługi'}
         icon={<Activity className="h-4 w-4" />}
         actions={
           <Button
@@ -277,7 +277,7 @@ export default function ServiceOverviewTab({
             {health?.score != null ? (
               <>
                 <ServiceGaugeRing
-                  label="Health score"
+                  label="Stan usługi"
                   value={health.score}
                   max={100}
                   unit=""
@@ -513,7 +513,7 @@ export default function ServiceOverviewTab({
             onClick={() => onNavigate(isEmail ? 'backups' : 'usage')}
             className="w-full text-left rounded-[7px] border border-line px-3 py-2 text-[11px] text-muted-foreground hover:bg-raised hover:text-foreground"
           >
-            {isEmail ? 'Kopie zapasowe →' : 'Usage, backup i badge uptime →'}
+            {isEmail ? 'Kopie zapasowe →' : 'Zużycie, kopie i odznaka dostępności →'}
           </button>
         </div>
       </div>
@@ -549,7 +549,7 @@ export function RecommendationsCard({
       case 'plan':
         return { label: 'Zobacz plany', href: `/dashboard/services/${serviceId}/plan` };
       case 'autoscaling':
-        return { label: 'Ustaw autoscaling', href: `/dashboard/services/${serviceId}/autoscaling` };
+        return { label: 'Ustaw autoskalowanie', href: `/dashboard/services/${serviceId}/autoscaling` };
       case 'backup':
         return { label: 'Przejdź do kopii', tab: 'backups' };
       case 'domain':

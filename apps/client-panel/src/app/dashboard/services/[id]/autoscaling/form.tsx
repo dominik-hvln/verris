@@ -126,7 +126,7 @@ export function AutoscalingForm({
           />
         </label>
         <p className="mt-2 text-[11px] text-neutral-500">
-          Po przekroczeniu liczby kredytów (1 zł = 1 K) silnik nie zwiększy więcej zasobów
+          Po przekroczeniu liczby kredytów (1 zł = 1 K) nie dołożymy więcej zasobów
           do końca okresu rozliczeniowego — w razie skoku strona zwolni, ale nie
           wygenerujesz dodatkowych kosztów.
         </p>
