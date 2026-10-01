@@ -149,12 +149,14 @@ for r in json.load(sys.stdin):
   run_as "cd '$DOCROOT' && if [ -f prestashop.zip ]; then rm -f index.php Install_PrestaShop.html && unzip -q -o prestashop.zip && rm -f prestashop.zip; fi"
   [ -f "$DOCROOT/install/index_cli.php" ] || { log "Paczka PrestaShop bez install/index_cli.php"; exit 1; }
   log "PrestaShop: install/index_cli.php"
+  # --ssl=1 (od PS 1.7.4, docs.prestashop-project.org → Installing PrestaShop using the command-line script):
+  # bez niego sklep przekierowywał https → http, także logowanie do panelu (t1 01.10, test4).
   run_as "cd '$DOCROOT/install' && '$PHP_BIN' index_cli.php \
     --domain='$APP_DOMAIN' --db_server=localhost --db_name='$APP_DB_NAME' \
     --db_user='$APP_DB_USER' --db_password=$Q_DB_PASS \
     --name='Sklep' --country=pl --language=pl \
     --email=$Q_ADMIN_EMAIL --password=$Q_ADMIN_PASS \
-    --firstname='Admin' --lastname='Sklep' --newsletter=0 --send_email=0"
+    --firstname='Admin' --lastname='Sklep' --newsletter=0 --send_email=0 --ssl=1"
   # PrestaShop nie wpuszcza do panelu, dopóki jest katalog install/ i dopóki panel leży pod „admin/”.
   # Nazwę liczy też API (adres panelu pokazany klientowi): admin + 10 znaków sha256("<baza>:<hasło>") —
   # bez hasła nie da się jej zgadnąć. Wspólny wzór pilnuje test instalator-aplikacji-katalog.spec.ts.

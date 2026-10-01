@@ -51,6 +51,8 @@ describe('I-01 — instalator aplikacji', () => {
     expect(`/${r.stdout.trim()}`).toBe(katalogPaneluPrestaShop('klient_pres1a2b', 'Ha$lo!x'));
     expect(katalogPaneluPrestaShop('klient_pres1a2b', 'Ha$lo!x')).toMatch(/^\/admin[0-9a-f]{10}$/);
     expect(f.indexOf("rm -rf install && mv admin")).toBeGreaterThan(f.indexOf('index_cli.php'));
+    // https w sklepie i panelu — bez tego logowanie szło po http (t1 01.10)
+    expect(f).toMatch(/index_cli\.php[\s\S]*--ssl=1/);
   });
 
   it('oficjalne instalatory CLI: Joomla (joomla.php install -n) i MediaWiki (run.php install)', () => {
