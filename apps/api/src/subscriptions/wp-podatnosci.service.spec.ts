@@ -111,6 +111,16 @@ describe('I-07 — podatności WordPressa (Wordfence Scanner Feed v3)', () => {
     expect(warn).toHaveBeenCalledWith('Wordfence feed: TypeError: fetch failed (ETIMEDOUT)');
   });
 
+  it('opis błędu Prismy: kod i sedno komunikatu w jednej linii (D3 02.10: pusty WARN)', () => {
+    const e = Object.assign(new Error('\nInvalid `prisma.wpPodatnosc.createMany()` invocation:\n\n\nUnique constraint failed on the fields: (`id`)'), {
+      name: 'PrismaClientKnownRequestError',
+      code: 'P2002',
+    });
+    expect(opisBledu(e)).toBe(
+      'PrismaClientKnownRequestError [P2002]: Invalid `prisma.wpPodatnosc.createMany()` invocation: Unique constraint failed on the fields: (`id`)',
+    );
+  });
+
   it('opis błędu sieci: nazwa i powód z cause, nie pusty komunikat (D3 01.10)', () => {
     expect(opisBledu(new TypeError('fetch failed', { cause: Object.assign(new Error(''), { code: 'ENOTFOUND' }) }))).toBe('TypeError: fetch failed (ENOTFOUND)');
     expect(opisBledu(new AggregateError([], ''))).toBe('AggregateError: —');

@@ -117,7 +117,9 @@ export function opisBledu(e: unknown): string {
   if (!(e instanceof Error)) return String(e);
   const c = e.cause as { code?: string; name?: string; message?: string } | undefined;
   const powod = c ? ` (${c.code ?? c.name ?? c.message ?? String(c)})` : '';
-  return `${e.name}: ${e.message || '—'}${powod}`.slice(0, 300);
+  // Prisma: komunikat zaczyna się od nowej linii, a sedno (np. „Unique constraint failed”) jest dalej — jedna linia + kod P….
+  const kod = typeof (e as { code?: unknown }).code === 'string' ? ` [${(e as { code: string }).code}]` : '';
+  return `${e.name}${kod}: ${e.message.replace(/\s+/g, ' ').trim() || '—'}${powod}`.slice(0, 600);
 }
 
 /** Feed → wiersze tabeli; śmieci i rekordy „informational” (bez realnego wpływu) pomijamy. */
