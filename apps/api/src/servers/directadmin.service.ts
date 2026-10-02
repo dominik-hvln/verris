@@ -1297,12 +1297,19 @@ export class DirectAdminService {
 
   async deleteHostingFtpAccount(subscriptionId: string, userId: string, username: string) {
     const domain = await this.accountDomainForSubscription(subscriptionId, userId);
+    // DA 1.710 listuje konta jako login@domena, ale usuwa po samym loginie (select0=login, jak zmiana hasła).
+    // t1 02.10: z select0=login@domena odpowiadał sukcesem, a konto zostawało — panel mówił „usunięte”.
+    const login = username.split('@')[0];
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_FTP', {
       action: 'delete',
       domain,
-      user: username,
-      'select0': username,
+      select0: login,
     });
+    // Sukces liczymy dopiero, gdy konta nie ma na liście — „OK” serwera bez efektu nie może być sukcesem klienta.
+    const po = await this.listHostingFtpAccounts(subscriptionId, userId);
+    if (po.fetchError === null && po.rows.some((r) => r.username.split('@')[0] === login)) {
+      throw new BadRequestException('Serwer nie usunął konta FTP — spróbuj ponownie albo napisz do nas.');
+    }
     await this.audit.record({
       action: HostingResourceActions.HOSTING_FTP_DELETED,
       userId,

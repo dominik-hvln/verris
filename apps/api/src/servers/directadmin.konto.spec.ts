@@ -281,7 +281,13 @@ describe('FTP', () => {
   it('usuwanie: dokładne pola; błąd DA → wyjątek bez wpisu „usunięto”', async () => {
     const ok = stanowisko();
     await ok.svc.deleteHostingFtpAccount('s1', 'u1', 'transfer@firma.pl');
-    expect(ok.wyslane()).toEqual({ action: 'delete', domain: 'firma.pl', user: 'transfer@firma.pl', select0: 'transfer@firma.pl', api: 'yes' });
+    expect(ok.wyslane()).toEqual({ action: 'delete', domain: 'firma.pl', select0: 'transfer', api: 'yes' });
+    expect(ok.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'HOSTING_FTP_DELETED' }));
+
+    // t1 02.10: serwer odpowiada „OK”, a konto dalej jest na liście → błąd, bez wpisu „usunięto”
+    const bezEfektu = stanowisko({ post: { '/CMD_API_FTP': 'transfer%40firma.pl=%2Fhome%2Fklient1%2Fdomains%2Ffirma.pl%2F' } });
+    await expect(bezEfektu.svc.deleteHostingFtpAccount('s1', 'u1', 'transfer@firma.pl')).rejects.toThrow('nie usunął konta FTP');
+    expect(bezEfektu.audit.record).not.toHaveBeenCalled();
 
     const zle = stanowisko({ post: { '/CMD_API_FTP': { error: '1', text: 'Brak konta' } } });
     await expect(zle.svc.deleteHostingFtpAccount('s1', 'u1', 'transfer@firma.pl')).rejects.toThrow('Brak konta');
