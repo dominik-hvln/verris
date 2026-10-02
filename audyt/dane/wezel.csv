@@ -8,7 +8,7 @@ B-18,sprawdzone,2026-09-29,lista plików „Ukryta” → /wp-includes/ zwraca 4
 C-11,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 C-14,sprawdzone,2026-09-29,"szukanie nazwa „config” + tekst „DB_NAME” → 3 pliki (wp-config.php, wp-config-sample.php, "
 C-15,sprawdzone,2026-09-29,"„Co zajmuje miejsce” → razem 271,5 MB / 5821 plików, podział na domains, backups, poczta, "
-C-18,czeka,,29.09: lista FTP DA 1.710 = login@domena=ścieżka — poprawka bcce42d; potem zmiana hasła na koncie dodatkowym
+C-18,sprawdzone,2026-10-02,"29.09: lista FTP DA 1.710 = login@domena=ścieżka — poprawka bcce42d; potem zmiana hasła na koncie dodatkowym | 02.10 t1 (po 9e362ed — tworzenie konta FTP wysyłało pole path zamiast wymaganego type, panel mówił „słabe hasło”): panel → FTP i SSH → konto d3test@d3.hvln.pl z hasłem z generatora → „Konto FTP utworzone”, katalog /home/ovsekucx/domains/d3.hvln.pl/; „Nowe hasło” → „Hasło FTP zmienione”, katalog bez zmian; logowanie nowym hasłem z Maca: curl --ssl-reqd ftp://t1.verris.pl/ → lista katalogu domeny (public_html, public_ftp, logs, stats, private_html)."
 C-21,sprawdzone,2026-10-01,"SSH kluczem z panelu, klatka CageFS potwierdzona | 01.10: fail2ban z utwardzania usunął CustomBuild 29.09 (options.conf fail2ban=no), BFM bez block_ip.sh nie blokuje — węzeł bez blokowania zgadywania haseł → 073123f (fail2ban przez CustomBuild). Retest po da build fail2ban."
 C-22,sprawdzone,2026-09-29,"SSH kluczem z panelu, klatka CageFS potwierdzona"
 C-25,sprawdzone,2026-09-29,"„Sklonuj” https://github.com/WordPress/hello-dolly.git do public_html/git-test → gotowe, H"
@@ -46,7 +46,7 @@ N-10,czeka,,
 NODE-03,sprawdzone,2026-10-01,"01.10 t1: panel admina (węzeł) pokazuje 4 rdzenie / 7,3 GB RAM / 75 GB dysku — zgodne z nproc, /proc/meminfo, df / na węźle; alert „blisko limitu pojemności” liczony względem tych wartości (przydzielone 100 GB z 75 GB)."
 C-26,sprawdzone,2026-09-29,"„Pobierz zmiany teraz” dla git-test → pobranie zmian gotowe, HEAD w wyniku"
 C-28,czeka,,
-I-16,czeka,,
+I-16,sprawdzone,2026-10-02,"02.10 t1: SSH z panelu włączone (przełącznik → „włączony”), logowanie kluczem z panelu z Maca: whoami=ovsekucx, ls /home pokazuje tylko ovsekucx (CageFS), wp core version → 7.1.2, wp plugin list → akismet/hello/litespeed-cache/redis-cache. Uwaga z testu: klucz o niestandardowej nazwie trzeba wskazać (ssh -i) — dopisane w panelu (b9370db)."
 L-08,czeka,,
 K-04,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 K-05,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
