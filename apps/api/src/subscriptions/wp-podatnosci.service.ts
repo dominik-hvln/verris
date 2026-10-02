@@ -56,6 +56,16 @@ export class WpPodatnosciService implements OnApplicationBootstrap {
   async odswiez(): Promise<number | null> {
     const key = this.config.get<string>('WORDFENCE_API_KEY');
     if (!key) return null;
+    try {
+      return await this.pobierz(key);
+    } catch (e) {
+      // Bez tego błąd sieci/bazy z crona ląduje w logu Schedulera bez słowa „Wordfence” (D3 02.10: cicho po 05:40).
+      this.logger.warn(`Wordfence feed: ${opisBledu(e)}`);
+      return null;
+    }
+  }
+
+  private async pobierz(key: string): Promise<number | null> {
     const res = await fetch(FEED, { headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(120_000) });
     if (!res.ok) {
       this.logger.warn(`Wordfence feed: HTTP ${res.status}`);

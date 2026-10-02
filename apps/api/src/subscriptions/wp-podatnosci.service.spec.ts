@@ -88,6 +88,16 @@ describe('I-07 — podatności WordPressa (Wordfence Scanner Feed v3)', () => {
     expect(odswiez).toHaveBeenCalledTimes(1);
   });
 
+  it('cron: błąd sieci nie ucieka do Schedulera — log „Wordfence feed: …” i null (D3 02.10)', async () => {
+    global.fetch = vi.fn(async () => {
+      throw new TypeError('fetch failed', { cause: Object.assign(new Error(''), { code: 'ETIMEDOUT' }) });
+    }) as unknown as typeof fetch;
+    const svc = new WpPodatnosciService({} as never, { get: () => 'wf-key' } as never);
+    const warn = vi.spyOn((svc as unknown as { logger: { warn: (m: string) => void } }).logger, 'warn').mockImplementation(() => undefined);
+    expect(await svc.odswiez()).toBeNull();
+    expect(warn).toHaveBeenCalledWith('Wordfence feed: TypeError: fetch failed (ETIMEDOUT)');
+  });
+
   it('opis błędu sieci: nazwa i powód z cause, nie pusty komunikat (D3 01.10)', () => {
     expect(opisBledu(new TypeError('fetch failed', { cause: Object.assign(new Error(''), { code: 'ENOTFOUND' }) }))).toBe('TypeError: fetch failed (ENOTFOUND)');
     expect(opisBledu(new AggregateError([], ''))).toBe('AggregateError: —');
