@@ -3373,15 +3373,23 @@ export class DirectAdminService {
    * Idempotentnie nadpisuje pakiety DA (starter/pro/business) realnymi limitami
    * z planów Verris — bez flag u* (obecność u<pole> w DA 1.697 = „Bez ograniczeń”).
    */
-  async syncPlanPackagesForServer(serverId: string): Promise<{ synced: string[] }> {
+  /**
+   * Pakiety DA dla aktywnych planów. Domyślnie TYLKO brakujące: zapis istniejącego pakietu DA nakłada go
+   * od nowa na wszystkie konta z tym pakietem — t1 02.10 po przebiegu profilu (sync po HOSTING_PROFILE)
+   * DA ustawił klientowi ssh=OFF i powłokę /bin/false (włączone z panelu SSH zniknęło). Nadpisanie
+   * istniejących (`nadpisz`) tylko na wyraźne polecenie operatora („Napraw pakiety”).
+   */
+  async syncPlanPackagesForServer(serverId: string, opts: { nadpisz?: boolean } = {}): Promise<{ synced: string[] }> {
     const client = await this.getClientForServer(serverId);
     const plans = await this.prisma.plan.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
     });
+    const istniejace = opts.nadpisz ? [] : await client.listUserPackages();
     const synced: string[] = [];
     for (const plan of plans) {
       const spec = buildDaPackageSpecFromPlan(planResourceFields(plan));
+      if (!opts.nadpisz && istniejace.includes(spec.name)) continue;
       await client.upsertUserPackage(spec);
       synced.push(plan.slug);
       this.logger.log(`DA package synced server=${serverId} slug=${plan.slug}`);

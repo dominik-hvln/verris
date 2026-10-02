@@ -76,7 +76,7 @@ export class NodeStackReadinessService {
   }
 
   async repairDaPackages(serverId: string) {
-    return this.da.syncPlanPackagesForServer(serverId);
+    return this.da.syncPlanPackagesForServer(serverId, { nadpisz: true });
   }
 
   private resolveProbeHost(server: Server): string {

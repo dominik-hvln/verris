@@ -93,9 +93,19 @@ describe('Synchronizacja pakietów DA z planami', () => {
     const c = klient();
     vi.spyOn(svc, 'getClientForServer').mockResolvedValue(c);
     const upsert = vi.spyOn(c, 'upsertUserPackage').mockResolvedValue(undefined);
-    expect(await svc.syncPlanPackagesForServer('n1')).toEqual({ synced: ['starter', 'pro'] });
+    expect(await svc.syncPlanPackagesForServer('n1', { nadpisz: true })).toEqual({ synced: ['starter', 'pro'] });
     expect(plans.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { isActive: true } }));
     expect(upsert.mock.calls.map(([spec]) => spec.name)).toEqual(['starter', 'pro']);
+  });
+
+  it('domyślnie tylko brakujące — istniejącego pakietu nie zapisuje (t1 02.10: zapis nałożył ssh=OFF na konta)', async () => {
+    const { svc } = serwis(WEZEL, { plan: { findMany: vi.fn(async () => [plan('starter'), plan('pro')]) } });
+    const c = klient();
+    vi.spyOn(svc, 'getClientForServer').mockResolvedValue(c);
+    vi.spyOn(c, 'listUserPackages').mockResolvedValue(['starter']);
+    const upsert = vi.spyOn(c, 'upsertUserPackage').mockResolvedValue(undefined);
+    expect(await svc.syncPlanPackagesForServer('n1')).toEqual({ synced: ['pro'] });
+    expect(upsert.mock.calls.map(([spec]) => spec.name)).toEqual(['pro']);
   });
 
   it('błąd DA na pierwszym pakiecie → wyjątek, kolejne nie są wysyłane', async () => {
@@ -103,7 +113,7 @@ describe('Synchronizacja pakietów DA z planami', () => {
     const c = klient();
     vi.spyOn(svc, 'getClientForServer').mockResolvedValue(c);
     const upsert = vi.spyOn(c, 'upsertUserPackage').mockRejectedValue(new Error('DirectAdmin API Error: invalid quota'));
-    await expect(svc.syncPlanPackagesForServer('n1')).rejects.toThrow('invalid quota');
+    await expect(svc.syncPlanPackagesForServer('n1', { nadpisz: true })).rejects.toThrow('invalid quota');
     expect(upsert).toHaveBeenCalledTimes(1);
   });
 });
