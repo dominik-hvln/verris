@@ -92,7 +92,8 @@ export function SshPanel({ serviceId }: { serviceId: string }) {
       <div className="space-y-2 px-4 py-3 text-[13px]">
         {wlaczony && polaczenie?.sshHost ? (
           <p className="m-0 text-muted-foreground">
-            Połączenie: <span className="font-mono text-foreground">ssh {'<login konta>'}@{polaczenie.sshHost}{polaczenie.sshPort && polaczenie.sshPort !== 22 ? ` -p ${polaczenie.sshPort}` : ''}</span> — logujesz się kluczem dodanym poniżej (login konta jest w przeglądzie usługi, w „Dane dostępowe”).
+            Połączenie: <span className="font-mono text-foreground">ssh {'<login konta>'}@{polaczenie.sshHost}{polaczenie.sshPort && polaczenie.sshPort !== 22 ? ` -p ${polaczenie.sshPort}` : ''}</span> — logujesz się kluczem dodanym poniżej (login konta jest w przeglądzie usługi, w „Dane dostępowe”). Jeśli plik klucza
+            ma inną nazwę niż domyślna (id_ed25519, id_rsa), wskaż go: <span className="font-mono text-foreground">ssh -i ~/.ssh/nazwa_klucza …</span>
           </p>
         ) : (
           <p className="m-0 text-muted-foreground">SSH jest wyłączony.</p>

@@ -136,6 +136,16 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
     expect(t).toContain('/opt/alt/php%s/usr/bin/lsphp');
   });
 
+  it('profil: Composer dla SSH (C-28, t1 02.10 „command not found”) — oficjalny phar z sumą SHA-256, przed odświeżeniem CageFS', () => {
+    const t = czytaj('node-hosting-profile.sh');
+    const i = t.indexOf('https://getcomposer.org/download/latest-stable/composer.phar ');
+    expect(i).toBeGreaterThan(0);
+    expect(t).toContain('composer.phar.sha256sum');
+    expect(t).toMatch(/sha256sum -c --quiet -/);
+    expect(t).toContain('install -m 0755 -o root -g root "$ctmp" /usr/local/bin/composer');
+    expect(i).toBeLessThan(t.indexOf('"$bin" --force-update'));
+  });
+
   it('profil: G-21 Per-Client Throttling w httpd_config.xml (blok z t1 02.10) — wartości, kopia, idempotencja', () => {
     const t = czytaj('node-hosting-profile.sh');
     expect(t).toMatch(/configure_litespeed_alt_php\nconfigure_litespeed_throttling\n/);

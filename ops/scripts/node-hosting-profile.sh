@@ -215,6 +215,26 @@ configure_cloudlinux_cagefs() {
     log_warn "cagefsctl --addrpm rsync nie powiódł się — kopia robocza (staging) nie zadziała"
   fi
 
+  # 3c) Composer dla klientów przez SSH (C-28; t1 02.10: „composer: command not found”, wp działał).
+  # Oficjalny phar z getcomposer.org/download (latest-stable) sprawdzony sumą SHA-256 publikowaną obok;
+  # do /usr/local/bin jak wp-cli — skeleton CageFS odświeża krok 4. Bez pakietu composer z EPEL: ciągnie
+  # systemowe PHP, które gryzie się z alt-php selektora.
+  if [ ! -x /usr/local/bin/composer ]; then
+    local ctmp csum
+    ctmp="$(mktemp)"
+    if curl -fsSL --retry 3 -o "$ctmp" https://getcomposer.org/download/latest-stable/composer.phar \
+      && csum="$(curl -fsSL --retry 3 https://getcomposer.org/download/latest-stable/composer.phar.sha256sum | awk '{print $1}')" \
+      && [[ "$csum" =~ ^[0-9a-f]{64}$ ]] && echo "$csum  $ctmp" | sha256sum -c --quiet - >/dev/null 2>&1; then
+      install -m 0755 -o root -g root "$ctmp" /usr/local/bin/composer && log_ok "Composer zainstalowany (/usr/local/bin/composer, suma SHA-256 zgodna)"
+      did_init=0
+    else
+      log_warn "Composer — pobranie albo suma SHA-256 niezgodna; klient nie ma composera przez SSH"
+    fi
+    rm -f "$ctmp"
+  else
+    log_ok "Composer już jest (/usr/local/bin/composer)"
+  fi
+
   # 4) odśwież skeleton po zmianach oprogramowania (gdy nie było świeżego --init albo doszedł pakiet)
   if [ "$did_init" = "0" ]; then
     log_info "Aktualizacja skeletonu CageFS (cagefsctl --force-update)…"
