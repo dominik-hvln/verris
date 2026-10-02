@@ -15,8 +15,6 @@ import {
 import { liczba } from '@/lib/liczba';
 
 const BTN = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[13px] py-2 text-sm font-medium text-foreground hover:bg-raised disabled:opacity-50';
-const TH = 'whitespace-nowrap px-3 pb-2.5 pt-3 text-left font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground';
-const TD = 'border-t border-line px-3 py-[11px] align-middle text-[13px]';
 const rozmiar = (b: number) => (b >= 1024 ** 3 ? `${liczba(b / 1024 ** 3, 2)} GB` : `${liczba(b / 1024 ** 2, 1)} MB`);
 
 /**
@@ -137,52 +135,42 @@ export function PgsqlPanel({ serviceId }: { serviceId: string }) {
         </p>
       ) : null}
       {stan?.bazy.length ? (
-        <div className="overflow-hidden rounded-[10px] border border-line bg-card">
-          <table className="v2-stack w-full border-collapse">
-            <thead>
-              <tr>
-                <th className={TH}>Baza i użytkownik</th>
-                <th className={TH}>Rozmiar</th>
-                <th className={TH}><span className="sr-only">Akcje</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {stan.bazy.map((b) => (
-                <tr key={b.nazwa}>
-                  <td className={`${TD} font-mono`} data-label="Baza i użytkownik">{b.nazwa}</td>
-                  <td className={TD} data-label="Rozmiar">{rozmiar(b.rozmiar)}</td>
-                  <td className={`${TD} text-right`} data-label="Akcje">
-                    <div className="inline-flex gap-2">
-                      <button
-                        type="button"
-                        className={BTN}
-                        disabled={zajete}
-                        onClick={async () => {
-                          if (!(await potwierdz(`Ustawić nowe hasło dla ${b.nazwa}? Aplikacje używające starego hasła stracą połączenie.`, { akcja: 'Zmień hasło' }))) return;
-                          wykonaj(() => hasloPgsql(serviceId, sufiks(b.nazwa)));
-                        }}
-                      >
-                        <KeyRound className="h-4 w-4" aria-hidden /> Nowe hasło
-                      </button>
-                      <button
-                        type="button"
-                        className={BTN}
-                        disabled={zajete}
-                        aria-label={`Usuń bazę ${b.nazwa}`}
-                        onClick={async () => {
-                          if (!(await potwierdz(`Usunąć bazę ${b.nazwa} razem z danymi i jej użytkownikiem? Tego nie da się cofnąć.`, { akcja: 'Usuń', niebezpieczne: true }))) return;
-                          wykonaj(() => usunPgsql(serviceId, sufiks(b.nazwa)));
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-crit" aria-hidden />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        // Lista zamiast tabeli: panel stoi też w wąskiej kolumnie — przyciski zawijają się pod nazwę, nie wychodzą poza kartę.
+        <ul className="m-0 list-none divide-y divide-line overflow-hidden rounded-[10px] border border-line bg-card p-0">
+          {stan.bazy.map((b) => (
+            <li key={b.nazwa} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3">
+              <div className="min-w-0">
+                <div className="break-all font-mono text-sm text-foreground">{b.nazwa}</div>
+                <div className="text-[12px] text-muted-foreground">Rozmiar: {rozmiar(b.rozmiar)}</div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className={BTN}
+                  disabled={zajete}
+                  onClick={async () => {
+                    if (!(await potwierdz(`Ustawić nowe hasło dla ${b.nazwa}? Aplikacje używające starego hasła stracą połączenie.`, { akcja: 'Zmień hasło' }))) return;
+                    wykonaj(() => hasloPgsql(serviceId, sufiks(b.nazwa)));
+                  }}
+                >
+                  <KeyRound className="h-4 w-4" aria-hidden /> Nowe hasło
+                </button>
+                <button
+                  type="button"
+                  className={BTN}
+                  disabled={zajete}
+                  aria-label={`Usuń bazę ${b.nazwa}`}
+                  onClick={async () => {
+                    if (!(await potwierdz(`Usunąć bazę ${b.nazwa} razem z danymi i jej użytkownikiem? Tego nie da się cofnąć.`, { akcja: 'Usuń', niebezpieczne: true }))) return;
+                    wykonaj(() => usunPgsql(serviceId, sufiks(b.nazwa)));
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 text-crit" aria-hidden />
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
       ) : null}
     </section>
   );
