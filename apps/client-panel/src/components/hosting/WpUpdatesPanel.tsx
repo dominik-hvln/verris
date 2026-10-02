@@ -393,9 +393,10 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
       ) : null}
 
       {wp && zab ? (
-        <div className="flex flex-wrap items-start justify-between gap-3 rounded-[10px] border border-line bg-card px-4 py-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+        // Karta stoi też w wąskiej kolumnie — przycisk pod opisem, nie obok (inaczej tytuł wchodził pod przycisk).
+        <div className="flex flex-col items-start gap-3 rounded-[10px] border border-line bg-card px-4 py-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
               <StatusPill tone={zab.konserwacja ? 'warn' : 'data'}>{zab.konserwacja ? 'włączony' : 'wyłączony'}</StatusPill>
               <h3 className="m-0 text-[15px] font-bold text-foreground">Tryb konserwacji</h3>
             </div>
@@ -420,18 +421,20 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
               {stan.automat?.ostatnio ? ` Ostatnio: ${data(stan.automat.ostatnio)}.` : ''}
             </p>
           </header>
-          <div className="grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end">
-            <div className="min-w-0">
+          <div className="flex flex-col gap-3 px-4 py-3">
+            <div className="min-w-0 max-w-md">
               <label htmlFor="wp-auto-core" className="mb-1 block text-[13px] font-medium text-foreground">
                 Rdzeń WordPress
               </label>
               <Select id="wp-auto-core" value={auto.core} onChange={(v) => setAuto({ ...auto, core: v })} options={ZAKRES_AUTO} disabled={pending} className="w-full" />
             </div>
-            <div className="flex items-center gap-2 text-[13px] text-foreground">
-              <Switch checked={auto.plugins} onChange={(v) => setAuto({ ...auto, plugins: v })} label="Wtyczki" disabled={pending} /> Wtyczki
-            </div>
-            <div className="flex items-center gap-2 text-[13px] text-foreground">
-              <Switch checked={auto.themes} onChange={(v) => setAuto({ ...auto, themes: v })} label="Motywy" disabled={pending} /> Motywy
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              <div className="flex items-center gap-2 text-[13px] text-foreground">
+                <Switch checked={auto.plugins} onChange={(v) => setAuto({ ...auto, plugins: v })} label="Wtyczki" disabled={pending} /> Wtyczki
+              </div>
+              <div className="flex items-center gap-2 text-[13px] text-foreground">
+                <Switch checked={auto.themes} onChange={(v) => setAuto({ ...auto, themes: v })} label="Motywy" disabled={pending} /> Motywy
+              </div>
             </div>
           </div>
           <div className="flex justify-end border-t border-line px-4 py-3">
