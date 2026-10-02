@@ -122,7 +122,9 @@ export function opisBledu(e: unknown): string {
 
 /** Feed → wiersze tabeli; śmieci i rekordy „informational” (bez realnego wpływu) pomijamy. */
 export function wierszeZFeedu(feed: Record<string, unknown>) {
-  const out: Array<{ id: string; typ: string; slug: string; tytul: string; zakresy: Zakres[]; poprawione: string[]; link: string; opublikowano: Date | null }> = [];
+  type Wiersz = { id: string; typ: string; slug: string; tytul: string; zakresy: Zakres[]; poprawione: string[]; link: string; opublikowano: Date | null };
+  const out: Wiersz[] = [];
+  const poId = new Map<string, Wiersz>();
   for (const [uuid, v] of Object.entries(feed ?? {})) {
     const r = (v ?? {}) as Record<string, unknown>;
     if (r.informational === true || !Array.isArray(r.software)) continue;
@@ -142,16 +144,28 @@ export function wierszeZFeedu(feed: Record<string, unknown>) {
         doWlacznie: a?.to_inclusive !== false,
       }));
       if (!zakresy.length) continue;
-      out.push({
-        id: `${uuid}:${typ}:${slug}`.slice(0, 300),
+      const id = `${uuid}:${typ}:${slug}`.slice(0, 300);
+      const poprawione = (Array.isArray(sw.patched_versions) ? sw.patched_versions : []).map(String);
+      // Ten sam slug drugi raz w jednym rekordzie (np. różna wielkość liter) — łączymy zakresy, inaczej
+      // klucz główny się powtarza i cały import pada (D3 02.10 05:40: UniqueConstraintViolation).
+      const juz = poId.get(id);
+      if (juz) {
+        juz.zakresy.push(...zakresy);
+        juz.poprawione = [...new Set([...juz.poprawione, ...poprawione])].slice(0, 10);
+        continue;
+      }
+      const w: Wiersz = {
+        id,
         typ,
         slug,
         tytul: String(r.title ?? '').slice(0, 300),
         zakresy,
-        poprawione: (Array.isArray(sw.patched_versions) ? sw.patched_versions : []).map(String).slice(0, 10),
+        poprawione: poprawione.slice(0, 10),
         link,
         opublikowano: pub && !Number.isNaN(pub.getTime()) ? pub : null,
-      });
+      };
+      poId.set(id, w);
+      out.push(w);
     }
   }
   return out;

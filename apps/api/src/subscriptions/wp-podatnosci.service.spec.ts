@@ -88,6 +88,19 @@ describe('I-07 — podatności WordPressa (Wordfence Scanner Feed v3)', () => {
     expect(odswiez).toHaveBeenCalledTimes(1);
   });
 
+  it('ten sam slug dwa razy w rekordzie → jeden wiersz z oboma zakresami (D3 02.10: UniqueConstraintViolation)', () => {
+    const sw = (slug: string, od: string, doW: string, fix: string) => ({
+      type: 'plugin',
+      slug,
+      affected_versions: { [`${od} - ${doW}`]: { from_version: od, from_inclusive: true, to_version: doW, to_inclusive: true } },
+      patched_versions: [fix],
+    });
+    const w = wierszeZFeedu({ u1: rekord({ software: [sw('example', '1.0.0', '1.2.3', '1.2.4'), sw('Example', '2.0.0', '2.0.5', '2.0.6')] }) });
+    expect(w).toHaveLength(1);
+    expect(w[0].zakresy.map((z) => z.do)).toEqual(['1.2.3', '2.0.5']);
+    expect(w[0].poprawione).toEqual(['1.2.4', '2.0.6']);
+  });
+
   it('cron: błąd sieci nie ucieka do Schedulera — log „Wordfence feed: …” i null (D3 02.10)', async () => {
     global.fetch = vi.fn(async () => {
       throw new TypeError('fetch failed', { cause: Object.assign(new Error(''), { code: 'ETIMEDOUT' }) });
