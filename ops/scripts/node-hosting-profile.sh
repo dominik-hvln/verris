@@ -234,6 +234,12 @@ configure_cloudlinux_cagefs() {
   else
     log_ok "Composer już jest (/usr/local/bin/composer)"
   fi
+  # /usr/local/bin nie jest w CageFS z automatu — t1 02.10 po instalacji: w klatce „composer: command not found”.
+  # Plik w /etc/cagefs/conf.d wg CloudLinux/cPanel „Add a command or binary to CageFS”; skeleton odświeża krok 4.
+  if [ -x /usr/local/bin/composer ] && ! grep -qs '/usr/local/bin/composer' /etc/cagefs/conf.d/verris-composer.cfg; then
+    printf '[verris-composer]\ncomment=Composer dla klientów przez SSH (Verris, C-28)\npaths=/usr/local/bin/composer\n' \
+      > /etc/cagefs/conf.d/verris-composer.cfg && did_init=0 && log_ok "Composer dodany do CageFS (/etc/cagefs/conf.d/verris-composer.cfg)"
+  fi
 
   # 4) odśwież skeleton po zmianach oprogramowania (gdy nie było świeżego --init albo doszedł pakiet)
   if [ "$did_init" = "0" ]; then

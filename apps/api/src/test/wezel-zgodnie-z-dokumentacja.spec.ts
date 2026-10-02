@@ -144,6 +144,11 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
     expect(t).toMatch(/sha256sum -c --quiet -/);
     expect(t).toContain('install -m 0755 -o root -g root "$ctmp" /usr/local/bin/composer');
     expect(i).toBeLessThan(t.indexOf('"$bin" --force-update'));
+    // t1 02.10: sama instalacja nie wystarczyła — /usr/local/bin poza klatką; wpis CageFS przed odświeżeniem
+    const cfg = t.indexOf('/etc/cagefs/conf.d/verris-composer.cfg');
+    expect(cfg).toBeGreaterThan(0);
+    expect(t).toContain('paths=/usr/local/bin/composer');
+    expect(cfg).toBeLessThan(t.indexOf('"$bin" --force-update'));
   });
 
   it('profil: G-21 Per-Client Throttling w httpd_config.xml (blok z t1 02.10) — wartości, kopia, idempotencja', () => {
