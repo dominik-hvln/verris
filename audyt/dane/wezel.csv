@@ -47,7 +47,7 @@ NODE-03,sprawdzone,2026-10-01,"01.10 t1: panel admina (węzeł) pokazuje 4 rdzen
 C-26,sprawdzone,2026-09-29,"„Pobierz zmiany teraz” dla git-test → pobranie zmian gotowe, HEAD w wyniku"
 C-28,czeka,,
 I-16,sprawdzone,2026-10-02,"02.10 t1: SSH z panelu włączone (przełącznik → „włączony”), logowanie kluczem z panelu z Maca: whoami=ovsekucx, ls /home pokazuje tylko ovsekucx (CageFS), wp core version → 7.1.2, wp plugin list → akismet/hello/litespeed-cache/redis-cache. Uwaga z testu: klucz o niestandardowej nazwie trzeba wskazać (ssh -i) — dopisane w panelu (b9370db)."
-L-08,czeka,,
+L-08,sprawdzone,2026-10-02,"02.10 produkcja + t1: token z panelu (API i integracje, dns:read + dns:write, 30 dni) → GET /api/v1/services/:id/dns?domain=d3.hvln.pl lista rekordów; POST /dns TXT l08-test → {""ok"":true}, rekord na liście z API i po ~60 s na ns3.verris.pl („verris-l08”); POST /dns/delete → {""ok"":true}, lista bez rekordu (0); POST /deploy bez deploy:write → 403. Token unieważniony po teście. Zamówienia i skrzynki przez API — decyzja właściciela 02.10: po starcie."
 K-04,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 K-05,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 D-17,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
