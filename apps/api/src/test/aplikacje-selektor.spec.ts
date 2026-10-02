@@ -1,5 +1,6 @@
 import { execFileSync, spawnSync } from 'child_process';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { homedir } from 'os';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { sprawdzDane } from '../subscriptions/app-selector.service.js';
@@ -25,7 +26,7 @@ function uruchom(env: Record<string, string>) {
     `#!/usr/bin/env bash
 for a in "$@"; do printf '%s\\0' "$a" >> "${argsPlik}"; done; printf '\\n' >> "${argsPlik}"
 case "$1" in
-  get) if [ "$4" = nodejs ]; then echo '{"result":"success","available_versions":{"22":{"status":"enabled","users":{"${UZYTKOWNIK}":{"applications":{"apps/api":{"domain":"a.pl","app_uri":"","startup_file":"app.js","app_status":"started","env_vars":{"X":"1"}}}},"obcy":{"applications":{"apps/cudze":{}}}}},"18":{"status":"disabled"}}}'; else echo '{"result":"success","available_versions":{"3.12":{"status":"enabled"}}}'; fi ;;
+  get) if [ "$4" = nodejs ]; then echo '{"result":"success","available_versions":{"22":{"status":"enabled","users":{"${UZYTKOWNIK}":{"applications":{"apps/api":{"domain":"'"\${ATRAPA_DOM:-a.pl}"'","app_uri":"'"\${ATRAPA_URI:-}"'","startup_file":"app.js","app_status":"started","env_vars":{"X":"1"}}}},"obcy":{"applications":{"apps/cudze":{}}}}},"18":{"status":"disabled"}}}'; else echo '{"result":"success","available_versions":{"3.12":{"status":"enabled"}}}'; fi ;;
   stop) echo '{"result":"No such application"}' ;;
   *) echo '{"result":"success"}' ;;
 esac
@@ -48,6 +49,37 @@ esac
 }
 
 opisz('B-08/B-09 — node-app-selector.sh', () => {
+  it('destroy: pusty katalog pod adresem aplikacji znika, katalog z plikami zostaje — t1 02.10', () => {
+    // getent podaje prawdziwy katalog domowy użytkownika testów — domena unikalna i sprzątana po teście.
+    const dom = `verris-test-${process.pid}.pl`;
+    const pub = join(homedir(), 'domains', dom, 'public_html');
+    try {
+      mkdirSync(join(pub, 'pusty'), { recursive: true });
+      writeFileSync(join(pub, 'pusty', '.htaccess'), '');
+      const r = uruchom({ AS_MODE: 'destroy', AS_INTERPRETER: 'nodejs', AS_ROOT: 'apps/api', ATRAPA_DOM: dom, ATRAPA_URI: 'pusty' });
+      expect(r.status).toBe(0);
+      expect(r.wywolania.find((w) => w[0] === 'destroy')).toBeDefined();
+      expect(existsSync(join(pub, 'pusty'))).toBe(false);
+
+      mkdirSync(join(pub, 'pliki'), { recursive: true });
+      writeFileSync(join(pub, 'pliki', '.htaccess'), '');
+      writeFileSync(join(pub, 'pliki', 'index.php'), '<?php');
+      expect(uruchom({ AS_MODE: 'destroy', AS_INTERPRETER: 'nodejs', AS_ROOT: 'apps/api', ATRAPA_DOM: dom, ATRAPA_URI: 'pliki' }).status).toBe(0);
+      expect(existsSync(join(pub, 'pliki', 'index.php'))).toBe(true);
+
+      mkdirSync(join(pub, 'regula'), { recursive: true });
+      writeFileSync(join(pub, 'regula', '.htaccess'), 'Require all denied\n');
+      expect(uruchom({ AS_MODE: 'destroy', AS_INTERPRETER: 'nodejs', AS_ROOT: 'apps/api', ATRAPA_DOM: dom, ATRAPA_URI: 'regula' }).status).toBe(0);
+      expect(existsSync(join(pub, 'regula', '.htaccess'))).toBe(true);
+
+      // aplikacja na całej domenie (pusty adres) — public_html nigdy nie jest ruszany
+      expect(uruchom({ AS_MODE: 'destroy', AS_INTERPRETER: 'nodejs', AS_ROOT: 'apps/api', ATRAPA_DOM: dom, ATRAPA_URI: '' }).status).toBe(0);
+      expect(existsSync(pub)).toBe(true);
+    } finally {
+      rmSync(join(homedir(), 'domains', dom), { recursive: true, force: true });
+    }
+  });
+
   it('lista: tylko aplikacje tego konta i tylko włączone wersje', () => {
     const r = uruchom({ AS_MODE: 'list' });
     expect(r.status).toBe(0);

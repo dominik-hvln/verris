@@ -26,6 +26,8 @@ set -Eeuo pipefail
 SEL="${AS_SELECTOR_BIN:-cloudlinux-selector}"
 
 log() { echo "[app-selector] $*"; }
+# Na węźle (root) jako właściciel konta; w testach skrypt działa już jako ten użytkownik.
+jako_klient() { if [ "$(id -u)" = 0 ]; then runuser -u "$AS_DA_USER" -- "$@"; else "$@"; fi; }
 fail() { log "BŁĄD: $*" >&2; exit 1; }
 
 SEG='[A-Za-z0-9][A-Za-z0-9._-]{0,63}'
@@ -125,9 +127,39 @@ case "$AS_MODE" in
     log "zmieniam ustawienia aplikacji $AS_ROOT"
     sel "${ARGS[@]}"
     ;;
-  start|stop|restart|destroy)
+  start|stop|restart)
     log "$AS_MODE: $AS_ROOT"
     sel "$AS_MODE" "${I[@]}"
+    ;;
+  destroy)
+    # Adres aplikacji (domena + ścieżka) trzeba znać przed usunięciem — potem selektor już go nie poda.
+    ADRES="$("$SEL" get --json --interpreter "$AS_INTERPRETER" 2>/dev/null | AS_U="$AS_DA_USER" AS_R="$AS_ROOT" python3 -c '
+import json, os, sys
+t = sys.stdin.read()
+try:
+    j = json.loads(t[t.index("{"):])
+except Exception:
+    sys.exit(0)
+for v in (j.get("available_versions") or {}).values():
+    ap = ((((v or {}).get("users") or {}).get(os.environ["AS_U"]) or {}).get("applications") or {}).get(os.environ["AS_R"])
+    if isinstance(ap, dict):
+        print(str(ap.get("domain", "")), str(ap.get("app_uri", "")))
+        break
+' || true)"
+    log "destroy: $AS_ROOT"
+    sel destroy "${I[@]}"
+    # Selektor czyści .htaccess pod adresem aplikacji, ale zostawia pusty katalog (t1 02.10: public_html/flask,
+    # public_html/nodetest z pustym .htaccess). Usuwamy go tylko, gdy nie ma w nim nic poza pustym .htaccess,
+    # i jako właściciel konta (runuser) — root nie kasuje niczego w katalogu klienta.
+    read -r A_DOM A_URI <<< "$ADRES" || true
+    if [ -n "${A_URI:-}" ] && [[ "$A_URI" =~ ^$SEG(/$SEG){0,3}$ ]] && [[ "$A_URI" != *..* ]] \
+      && [[ "${A_DOM:-}" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$ ]]; then
+      KAT="$HOME_DIR/domains/$A_DOM/public_html/$A_URI"
+      if [ -d "$KAT" ] && [ ! -L "$KAT" ] && [ "$(find "$KAT" -mindepth 1 | wc -l)" -le 1 ] \
+        && { [ -z "$(find "$KAT" -mindepth 1)" ] || { [ -f "$KAT/.htaccess" ] && [ ! -s "$KAT/.htaccess" ]; }; }; then
+        jako_klient rm -f "$KAT/.htaccess" && jako_klient rmdir "$KAT" && log "usunięto pusty katalog pod adresem /$A_URI"
+      fi
+    fi
     ;;
   install)
     if [ "$AS_INTERPRETER" = "python" ]; then
