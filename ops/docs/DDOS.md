@@ -16,21 +16,23 @@ Hetzner nie opisuje ochrony warstwy aplikacji (L7) — tę część robimy sami.
 
 ## Węzeł: LiteSpeed Per-Client Throttling (przy onboardingu)
 
-Dokumentacja LiteSpeed („DDoS Attack Protection”): WebAdmin → **Configuration → Server → Security → Per-Client Throttling**.
-Wartości przykładowe z dokumentacji (punkt startowy; korekta po obserwacji ruchu):
+Dokumentacja LiteSpeed („DDoS Attack Protection”): WebAdmin → **Configuration → Server → Security → Per-Client Throttling**
+(`<security><perClientConnLimit>` w `/usr/local/lsws/conf/httpd_config.xml`). **Ustawia to profil węzła**
+(`configure_litespeed_throttling` w `node-hosting-profile.sh`) — nie klikamy w WebAdmin, bo ręczna zmiana nie przeszłaby na kolejny węzeł.
 
-| Ustawienie | Wartość |
-|---|---|
-| Static Requests/second | 40 |
-| Dynamic Requests/second | 2 |
-| Connection Soft Limit | 15 |
-| Connection Hard Limit | 20 |
-| Grace Period (sec) | 15 |
-| Banned Period (sec) | 60 |
-| Block Bad Request | Yes |
+| Ustawienie | Przykład z dokumentacji | U nas (decyzja D3 02.10) | Zmienna profilu |
+|---|---|---|---|
+| Static Requests/second | 40 | 0 (bez limitu — statyki obsługuje tanio LSWS/cache) | `VERRIS_LSWS_STATIC_RPS` |
+| Dynamic Requests/second | 2 | 20 | `VERRIS_LSWS_DYN_RPS` |
+| Connection Soft Limit | 15 | 100 | `VERRIS_LSWS_SOFT` |
+| Connection Hard Limit | 20 | 150 | `VERRIS_LSWS_HARD` |
+| Grace Period (sec) | 15 | 15 | `VERRIS_LSWS_GRACE` |
+| Banned Period (sec) | 60 | 60 | `VERRIS_LSWS_BAN` |
 
-Dynamic Requests/second = 2 jest ostre dla sklepów z AJAX — po tygodniu sprawdzić w logach, czy nie banuje prawdziwych
-klientów (błędy 503/odrzucenia w logu LiteSpeed), i w razie potrzeby podnieść.
+Dlaczego luźniej niż przykład: ta sama dokumentacja ostrzega, że przy niskich limitach blokowani są prawdziwi
+użytkownicy za wspólnym adresem (CDN, biuro za NAT), a 2 zapytania PHP/s z jednego IP to mniej, niż robi sklep z AJAX.
+20/s nadal tnie zalew z jednego adresu z tysięcy do 20. Po tygodniu ruchu sprawdzić w logach LiteSpeed odrzucenia
+i w razie potrzeby skorygować zmienną w env profilu.
 Dodatkowo z tej samej dokumentacji: **reCAPTCHA na poziomie serwera** (LSWS 5.4+) jako tryb awaryjny w czasie ataku.
 
 ## W czasie ataku

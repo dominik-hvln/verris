@@ -136,6 +136,27 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
     expect(t).toContain('/opt/alt/php%s/usr/bin/lsphp');
   });
 
+  it('profil: G-21 Per-Client Throttling w httpd_config.xml (blok z t1 02.10) — wartości, kopia, idempotencja', () => {
+    const t = czytaj('node-hosting-profile.sh');
+    expect(t).toMatch(/configure_litespeed_alt_php\nconfigure_litespeed_throttling\n/);
+    const py = /<<'PY_THROTTLE'\n([\s\S]*?)\nPY_THROTTLE\n/.exec(t)![1];
+    const dir = mkdtempSync(join(tmpdir(), 'lsws-'));
+    const conf = join(dir, 'httpd_config.xml');
+    const blok = (s: string, d: string, soft: string, hard: string, ban: string) =>
+      `<security>\n    <perClientConnLimit>\n      <staticReqPerSec>${s}</staticReqPerSec>\n      <dynReqPerSec>${d}</dynReqPerSec>\n      <outBandwidth>0</outBandwidth>\n      <inBandwidth>0</inBandwidth>\n      <softLimit>${soft}</softLimit>\n      <hardLimit>${hard}</hardLimit>\n      <gracePeriod>15</gracePeriod>\n      <banPeriod>${ban}</banPeriod>\n    </perClientConnLimit>\n    <CGIRLimit>\n      <maxCGIInstances>200</maxCGIInstances>\n    </CGIRLimit>\n</security>\n`;
+    writeFileSync(conf, blok('0', '0', '10000', '10000', '300'));
+    const env = { ...process.env, STATIC: '0', DYN: '20', SOFT: '100', HARD: '150', GRACE: '15', BAN: '60' };
+    const uruchom = () => spawnSync('python3', ['-', conf, join(dir, 'brak.cagefs')], { input: py, env, encoding: 'utf8' });
+    const r = uruchom();
+    expect(r.status).toBe(0);
+    expect(r.stdout.trim()).toBe('1');
+    expect(readFileSync(conf, 'utf8')).toBe(blok('0', '20', '100', '150', '60'));
+    expect(uruchom().stdout.trim()).toBe('0'); // drugi przebieg nic nie zmienia — bez zbędnego restartu LSWS
+    writeFileSync(conf, '<security></security>\n');
+    expect(uruchom().status).not.toBe(0); // brak bloku = błąd, nie cichy sukces
+    expect(spawnSync('python3', ['-', conf], { input: py, env: { ...env, DYN: '20; rm' }, encoding: 'utf8' }).status).not.toBe(0);
+  });
+
   it('profil: webmail i phpMyAdmin jednym kliknięciem (one_click_*_login, Roundcube z direct_login)', () => {
     const t = czytaj('node-hosting-profile.sh');
     expect(t).toContain('da_set_conf one_click_webmail_login 1');

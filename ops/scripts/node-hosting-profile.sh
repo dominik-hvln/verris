@@ -949,6 +949,70 @@ configure_litespeed() {
   fi
 }
 
+# G-21 — ochrona L7 stron klientów: LiteSpeed Per-Client Throttling (dokumentacja LiteSpeed „DDoS Attack Protection”,
+# WebAdmin → Configuration → Server → Security → Per-Client Throttling = <security><perClientConnLimit> w
+# httpd_config.xml). Wartości przykładowe z dokumentacji (2 dyn./s, 15/20 połączeń) dokumentacja sama opisuje jako
+# ryzyko fałszywych blokad przy wspólnym IP (biuro za NAT, CDN) — na hostingu współdzielonym luźniej: PHP 20/s z jednego
+# IP (zalew z jednego adresu i tak tnie z tysięcy do 20), pliki statyczne bez limitu, połączenia 100/150, blokada 60 s.
+# Pokrętła: VERRIS_LSWS_DYN_RPS, _STATIC_RPS, _SOFT, _HARD, _GRACE, _BAN (decyzja D3 02.10, ops/docs/DDOS.md).
+configure_litespeed_throttling() {
+  local conf=/usr/local/lsws/conf/httpd_config.xml
+  [ -x /usr/local/lsws/bin/lswsctrl ] && [ -f "$conf" ] || { log_skip "LiteSpeed throttling — brak LSWS"; return 0; }
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then log_info "dry-run: Per-Client Throttling w LSWS"; return 0; fi
+  local zmiana bak="/root/httpd_config.xml.verris-$(date +%Y%m%d%H%M%S)"
+  cp -p "$conf" "$bak" 2>/dev/null || true
+  zmiana="$(STATIC="${VERRIS_LSWS_STATIC_RPS:-0}" DYN="${VERRIS_LSWS_DYN_RPS:-20}" SOFT="${VERRIS_LSWS_SOFT:-100}" \
+    HARD="${VERRIS_LSWS_HARD:-150}" GRACE="${VERRIS_LSWS_GRACE:-15}" BAN="${VERRIS_LSWS_BAN:-60}" \
+    python3 - "$conf" "$conf.cagefs" <<'PY_THROTTLE'
+import os, re, sys
+chce = {"staticReqPerSec": os.environ["STATIC"], "dynReqPerSec": os.environ["DYN"], "softLimit": os.environ["SOFT"],
+        "hardLimit": os.environ["HARD"], "gracePeriod": os.environ["GRACE"], "banPeriod": os.environ["BAN"]}
+for k, v in chce.items():
+    if not re.fullmatch(r"\d{1,6}", v):
+        sys.exit("nieprawidłowa wartość %s=%r" % (k, v))
+zmienione = 0
+brak = []
+for plik in sys.argv[1:]:
+    if not os.path.isfile(plik):
+        continue
+    t = open(plik, encoding="utf-8").read()
+    m = re.search(r"<perClientConnLimit>.*?</perClientConnLimit>", t, re.S)
+    if not m:
+        brak.append(plik)
+        continue
+    blok = m.group(0)
+    for k, v in chce.items():
+        if re.search(r"<%s>[^<]*</%s>" % (k, k), blok):
+            blok = re.sub(r"<%s>[^<]*</%s>" % (k, k), "<%s>%s</%s>" % (k, v, k), blok)
+        else:
+            blok = blok.replace("</perClientConnLimit>", "  <%s>%s</%s>\n    </perClientConnLimit>" % (k, v, k))
+    if blok == m.group(0):
+        continue
+    tmp = plik + ".verris-tmp"
+    st = os.stat(plik)
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(t[:m.start()] + blok + t[m.end():])
+    os.chown(tmp, st.st_uid, st.st_gid)
+    os.chmod(tmp, st.st_mode & 0o7777)
+    os.replace(tmp, plik)
+    zmienione += 1
+if brak and not zmienione and len(brak) == len([p for p in sys.argv[1:] if os.path.isfile(p)]):
+    sys.exit("brak <perClientConnLimit> w " + ", ".join(brak))
+print(zmienione)
+PY_THROTTLE
+)" || { log_fail "LiteSpeed throttling — nie udało się ustawić Per-Client Throttling w $conf"; return 0; }
+  if [ "${zmiana:-0}" = "0" ]; then
+    rm -f "$bak"
+  else
+    /usr/local/lsws/bin/lswsctrl restart >/dev/null 2>&1 || log_warn "LiteSpeed restart po zmianie Per-Client Throttling zwrócił błąd"
+  fi
+  if grep -q "<dynReqPerSec>${VERRIS_LSWS_DYN_RPS:-20}</dynReqPerSec>" "$conf"; then
+    log_ok "LiteSpeed Per-Client Throttling: PHP ${VERRIS_LSWS_DYN_RPS:-20}/s z IP, połączenia ${VERRIS_LSWS_SOFT:-100}/${VERRIS_LSWS_HARD:-150}, blokada ${VERRIS_LSWS_BAN:-60} s"
+  else
+    log_fail "LiteSpeed Per-Client Throttling nie ustawiony"
+  fi
+}
+
 # B-02/B-03 — PHP domeny i katalogu: `AddHandler application/x-httpd-alt-phpXX` w .htaccess działa
 # w LiteSpeed dopiero, gdy serwer zna handler o id `alt-phpXX` (<phpConfig><phpHandler>). Bez niego
 # LSWS odpowiada 403 „MIME type … does not allow serving as static file” (test D3 na t1, 28.09).
@@ -2088,6 +2152,7 @@ ensure_hosting_core_services
 configure_litespeed
 configure_hosting_capabilities
 configure_litespeed_alt_php
+configure_litespeed_throttling
 configure_php_expose
 configure_da_panel_firewall
 configure_http3_firewall
