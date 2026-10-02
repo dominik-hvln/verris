@@ -256,9 +256,16 @@ describe('FTP', () => {
     const s = stanowisko();
     await s.svc.createHostingFtpAccount('s1', 'u1', { username: 'transfer', password: 'Ha&slo1234', directory: '/public_html/sklep' });
     expect(s.wyslane()).toEqual({
-      action: 'create', user: 'transfer', passwd: 'Ha&slo1234', passwd2: 'Ha&slo1234', domain: 'firma.pl', path: '/public_html/sklep', api: 'yes',
+      action: 'create', user: 'transfer', passwd: 'Ha&slo1234', passwd2: 'Ha&slo1234', domain: 'firma.pl',
+      type: 'custom', custom_val: '/home/klient1/public_html/sklep', api: 'yes',
     });
     expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'HOSTING_FTP_CREATED' }));
+  });
+
+  it('tworzenie bez katalogu: typ „domain” (t1 02.10: bez typu DA odrzucał — „hasło i typ są wymagane”)', async () => {
+    const s = stanowisko();
+    await s.svc.createHostingFtpAccount('s1', 'u1', { username: 'transfer', password: 'Haslo1234' });
+    expect(s.wyslane()).toEqual({ action: 'create', user: 'transfer', passwd: 'Haslo1234', passwd2: 'Haslo1234', domain: 'firma.pl', type: 'domain', api: 'yes' });
   });
 
   it('tworzenie: błąd DA → wyjątek bez audytu; konto zawieszone → 400 bez DA', async () => {

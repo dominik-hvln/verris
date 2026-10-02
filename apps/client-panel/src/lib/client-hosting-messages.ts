@@ -32,7 +32,7 @@ const RULES: { test: RegExp; message: string }[] = [
   },
   {
     // Tylko odrzucone hasło — samo słowo „password” (np. „brak zapisanego hasła konta”) to inny błąd.
-    test: /password.{0,40}(too short|too weak|weak|invalid|requirement|must|at least)|(weak|invalid|short)\s+password|hasło.{0,40}(za krótkie|za słabe|musi|wymaga)/i,
+    test: /password.{0,40}(too short|too weak|weak|invalid|requirement|must|at least)|(weak|invalid|short)\s+password|hasło.{0,40}(za krótkie|za słabe|musi mieć|nie spełnia)/i,
     message: 'Hasło nie spełnia wymagań (długość/znaki). Użyj silniejszego hasła.',
   },
   {

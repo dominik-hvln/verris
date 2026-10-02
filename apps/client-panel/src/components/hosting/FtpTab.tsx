@@ -131,7 +131,7 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
             <input
               value={directory}
               onChange={(e) => setDirectory(e.target.value)}
-              placeholder="domyślnie katalog domowy"
+              placeholder="domyślnie katalog domeny"
               className="w-full rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-data"
             />
           </label>

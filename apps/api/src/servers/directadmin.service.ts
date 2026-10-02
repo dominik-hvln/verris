@@ -1240,14 +1240,24 @@ export class DirectAdminService {
     userId: string,
     input: { username: string; password: string; directory?: string },
   ) {
-    const domain = await this.accountDomainForSubscription(subscriptionId, userId);
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+      include: { account: { select: { domain: true, daUsername: true } } },
+    });
+    if (!sub?.account?.domain || !sub.account.daUsername) throw new BadRequestException('Subscription has no hosting account yet');
+    const domain = sub.account.domain;
+    // DA wymaga `type` (domain | ftp | user | custom) i przy custom pełnej ścieżki w `custom_val` — t1 02.10: bez typu
+    // odpowiadał „Użytkownik, hasło, hasło i typ są wymagane” (pole `path` DA ignoruje). Bez katalogu: katalog domeny
+    // (domyślny typ w panelu DA), nie cały katalog domowy z pocztą i kluczami SSH. Katalog klienta: w obrębie konta
+    // (DTO odrzuca „..”), względem katalogu domowego.
+    const katalog = (input.directory ?? '').trim().replace(/^\/+|\/+$/g, '');
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_FTP', {
       action: 'create',
       user: input.username,
       passwd: input.password,
       passwd2: input.password,
       domain,
-      path: input.directory ?? '/',
+      ...(katalog ? { type: 'custom', custom_val: `/home/${sub.account.daUsername}/${katalog}` } : { type: 'domain' }),
     });
     await this.audit.record({
       action: HostingResourceActions.HOSTING_FTP_CREATED,

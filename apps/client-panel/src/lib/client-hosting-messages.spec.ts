@@ -83,5 +83,7 @@ describe('daErrorMessage — hasło', () => {
     expect(daErrorMessage('Hasło musi mieć co najmniej 8 znaków')).toMatch(/Hasło nie spełnia/);
     expect(daErrorMessage('Konto hostingowe nie jest jeszcze w pełni gotowe (brak danych dostępowych do serwera).')).not.toMatch(/Hasło nie spełnia/);
     expect(daErrorMessage('login key password not stored')).not.toMatch(/Hasło nie spełnia/);
+    // t1 02.10: brak pola w zapytaniu do serwera to nie słabe hasło — klient widział „Użyj silniejszego hasła”
+    expect(daErrorMessage('Błąd przy wykonywaniu żądania: Użytkownik, hasło, hasło i typ są wymagane')).not.toMatch(/Hasło nie spełnia/);
   });
 });
