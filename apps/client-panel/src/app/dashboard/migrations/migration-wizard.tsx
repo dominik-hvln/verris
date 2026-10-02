@@ -7,7 +7,6 @@ import {
   createMigrationBundleAction,
   discoverMigrationSourceAction,
   preflightMigrationAction,
-  type MigrationImapInput,
   type MigrationMysqlInput,
 } from './actions';
 import type { DiscoveryResult, PreflightSummary } from './types';
@@ -18,22 +17,17 @@ import { plForm } from '@/lib/pl';
 interface Props {
   serviceId: string;
   onQueued?: () => void;
-  /** E-21 — wejście z zakładki Poczta: od razu krok „Co przenosimy”, bez plików, jedna pusta skrzynka. */
-  tylkoPoczta?: boolean;
+  /** Co przenosimy — każdy zakres to osobny formularz (uwaga Dominika 02.10). Poczta: `MigracjaPoczty`. */
+  zakres: Zakres;
 }
+
+export type Zakres = 'strona' | 'pliki' | 'baza';
 
 interface DbRow extends MigrationMysqlInput {
   key: string;
   username: string;
   password: string;
 }
-interface BoxRow extends MigrationImapInput {
-  key: string;
-}
-
-// `key` istnieje tylko dla list Reacta w formularzu — do API idzie reszta pól.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- celowo odrzucany element destrukturyzacji z rest
-const bezKlucza = <T extends { key: unknown }>({ key, ...rest }: T) => rest;
 
 const PROVIDER_PRESETS: Array<{
   id: string;
@@ -60,9 +54,9 @@ const STEPS = ['Skąd migrujesz', 'Co przenosimy', 'Test dostępów', 'Start'] a
 let rowSeq = 0;
 const nextKey = () => `row_${Date.now()}_${rowSeq++}`;
 
-export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Props) {
-  const [step, setStep] = useState(tylkoPoczta ? 1 : 0); // 0..3
-  const [method, setMethod] = useState<'auto' | 'manual' | null>(tylkoPoczta ? 'manual' : null);
+export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
+  const [step, setStep] = useState(0); // 0..3
+  const [method, setMethod] = useState<'auto' | 'manual' | null>(null);
   const [presetId, setPresetId] = useState('directadmin');
   const preset = PROVIDER_PRESETS.find((p) => p.id === presetId) ?? PROVIDER_PRESETS[1];
 
@@ -71,7 +65,8 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
   const [notes, setNotes] = useState('');
   const [consent, setConsent] = useState(false);
 
-  const [includeFiles, setIncludeFiles] = useState(!tylkoPoczta);
+  const includeFiles = zakres !== 'baza';
+  const includeDbs = zakres !== 'pliki';
   const [ftpProtocol, setFtpProtocol] = useState<'ftp' | 'ftps' | 'sftp'>('sftp');
   const [ftpHost, setFtpHost] = useState('');
   const [ftpPort, setFtpPort] = useState(22);
@@ -80,9 +75,8 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
   // Puste = worker sam znajdzie katalog strony (public_html / domains/<d>/public_html / httpdocs).
   const [ftpPath, setFtpPath] = useState('');
 
-  const [dbs, setDbs] = useState<DbRow[]>([]);
-  const [boxes, setBoxes] = useState<BoxRow[]>(() =>
-    tylkoPoczta ? [{ key: nextKey(), host: '', port: 993, username: '', password: '', email: '' }] : [],
+  const [dbs, setDbs] = useState<DbRow[]>(() =>
+    zakres === 'baza' ? [{ key: nextKey(), host: '', port: 3306, username: '', password: '', database: '' }] : [],
   );
 
   const [panelHost, setPanelHost] = useState('');
@@ -97,8 +91,8 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   const hasAnySource = useMemo(
-    () => (includeFiles && ftpHost.trim().length > 0) || dbs.length > 0 || boxes.length > 0,
-    [includeFiles, ftpHost, dbs.length, boxes.length],
+    () => (includeFiles && ftpHost.trim().length > 0) || (includeDbs && dbs.some((d) => d.database.trim())),
+    [includeFiles, includeDbs, ftpHost, dbs],
   );
 
   function buildInput() {
@@ -118,12 +112,16 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
               remotePath: ftpPath.trim() || '/',
             }
           : undefined,
-      mysql: dbs.map(({ key: _k, username, password, ...db }) => ({
-        ...db,
-        ...(username.trim() ? { username: username.trim() } : {}),
-        ...(password ? { password } : {}),
-      })),
-      imap: boxes.map(bezKlucza),
+      mysql: includeDbs
+        ? dbs
+            .filter((d) => d.database.trim())
+            .map(({ key: _k, username, password, ...db }) => ({
+              ...db,
+              ...(username.trim() ? { username: username.trim() } : {}),
+              ...(password ? { password } : {}),
+            }))
+        : [],
+      imap: [],
     };
   }
 
@@ -145,7 +143,6 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
     }
     const d = res.result as DiscoveryResult;
     setDiscovery(d);
-    setIncludeFiles(true);
     // Panel podał dane FTP konta: FTP z szyfrowaniem (FTPS) na porcie z panelu — SSH na hostingu
     // współdzielonym bywa wyłączone, więc preset SFTP:22 zawodził. Hasło główne FTP to zwykle hasło panelu.
     if (d.ftpHint) {
@@ -170,7 +167,7 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
             : '',
     );
     if (d.primaryDomain && !sourceDomain) setSourceDomain(d.primaryDomain);
-    setDbs(
+    if (includeDbs) setDbs(
       d.databases.map((db) => ({
         key: nextKey(),
         host: panelHost.trim(),
@@ -178,16 +175,6 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
         username: '',
         password: '',
         database: db.name,
-      })),
-    );
-    setBoxes(
-      d.mailboxes.map((box) => ({
-        key: nextKey(),
-        host: panelHost.trim(),
-        port: 993,
-        username: box.email,
-        password: '',
-        email: box.email,
       })),
     );
     setStep(1);
@@ -200,6 +187,10 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
   }, [step]);
   // Złe hasło = STOP przed startem: inaczej klient dowiaduje się o literówce z maila po godzinie.
   const zleHaslo = preflight?.checks.some((c) => c.status === 'auth_failed') ?? false;
+  // Sama baza bez plików: zapasowej drogi (mysqldump przez SSH konta plikowego) nie ma — bez zdalnego dostępu
+  // migracja by padła po starcie, więc zatrzymujemy tutaj.
+  const bazaNiedostepna =
+    zakres === 'baza' && (preflight?.checks.some((c) => c.kind === 'mysql' && c.status === 'unreachable') ?? false);
 
   async function runPreflight() {
     setMsg(null);
@@ -216,7 +207,7 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
   async function submit() {
     setMsg(null);
     if (!hasAnySource) {
-      setMsg({ type: 'err', text: 'Wskaż co najmniej jedno źródło: pliki, bazę lub skrzynkę.' });
+      setMsg({ type: 'err', text: zakres === 'baza' ? 'Wpisz nazwę bazy.' : 'Wpisz adres serwera z plikami.' });
       return;
     }
     if (!consent) {
@@ -237,7 +228,6 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
     setMsg({ type: 'ok', text: 'Migracja została uruchomiona. Poniżej zobaczysz postęp na żywo.' });
     setFtpPass('');
     setDbs((rows) => rows.map((r) => ({ ...r, password: '' })));
-    setBoxes((rows) => rows.map((r) => ({ ...r, password: '' })));
     onQueued?.();
   }
 
@@ -247,6 +237,7 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
 
       {step === 0 ? (
         <StepMethod
+          zakres={zakres}
           method={method}
           setMethod={setMethod}
           presetId={presetId}
@@ -269,14 +260,6 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
         />
       ) : null}
 
-      {step === 1 && tylkoPoczta ? (
-        <p className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3 text-xs leading-relaxed text-cyan-100">
-          Przenosisz tylko pocztę. Wpisz adres skrzynki oraz serwer IMAP, login i hasło u poprzedniego dostawcy —
-          wiadomości i foldery skopiujemy do skrzynki o tym samym adresie na tym koncie (musi już istnieć: załóż ją
-          w zakładce Poczta). Stara skrzynka zostaje bez zmian; różnice dograsz później funkcją delta-sync.
-        </p>
-      ) : null}
-
       {step === 1 ? (
         <StepSources
           discovery={discovery}
@@ -293,8 +276,7 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
           setTargetDomain={setTargetDomain}
           sourceDomain={sourceDomain}
           setSourceDomain={setSourceDomain}
-          includeFiles={includeFiles}
-          setIncludeFiles={setIncludeFiles}
+          zakres={zakres}
           ftpProtocol={ftpProtocol}
           setFtpProtocol={setFtpProtocol}
           ftpHost={ftpHost}
@@ -309,22 +291,18 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
           setFtpPath={setFtpPath}
           dbs={dbs}
           setDbs={setDbs}
-          boxes={boxes}
-          setBoxes={setBoxes}
-          tylkoPoczta={tylkoPoczta}
         />
       ) : null}
 
       {step === 2 ? (
-        <StepPreflight preflight={preflight} preflighting={preflighting} onRun={runPreflight} />
+        <StepPreflight zakres={zakres} preflight={preflight} preflighting={preflighting} onRun={runPreflight} />
       ) : null}
 
       {step === 3 ? (
         <StepStart
-          includeFiles={includeFiles}
+          zakres={zakres}
           ftpHost={ftpHost}
           dbs={dbs}
-          boxes={boxes}
           targetDomain={targetDomain}
           notes={notes}
           setNotes={setNotes}
@@ -367,7 +345,7 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
               </Button>
               <Button
                 type="button"
-                disabled={preflighting || !preflight || zleHaslo}
+                disabled={preflighting || !preflight || zleHaslo || bazaNiedostepna}
                 onClick={() => setStep(3)}
                 className="bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-40"
               >
@@ -393,7 +371,14 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
 
 // --- kroki ------------------------------------------------------------------
 
+const OPIS_ZAKRESU: Record<Zakres, string> = {
+  strona: 'Przeniesiemy całą stronę: pliki i bazy danych (WordPress, sklep).',
+  pliki: 'Przeniesiemy same pliki z serwera FTP/SFTP starego hostingu.',
+  baza: 'Przeniesiemy bazę danych MySQL ze starego hostingu.',
+};
+
 function StepMethod(props: {
+  zakres: Zakres;
   method: 'auto' | 'manual' | null;
   setMethod: (m: 'auto' | 'manual' | null) => void;
   presetId: string;
@@ -415,8 +400,7 @@ function StepMethod(props: {
   return (
     <div className="space-y-4">
       <p className="text-sm text-neutral-300">
-        Przeniesiemy Twoją stronę, bazy danych i pocztę ze starego hostingu — od A do Z.
-        Wybierz, jak chcesz zacząć:
+        {OPIS_ZAKRESU[props.zakres]} Wybierz, jak chcesz zacząć:
       </p>
       <div className="grid gap-3 md:grid-cols-2">
         <button
@@ -425,7 +409,7 @@ function StepMethod(props: {
           className={`rounded-2xl border p-4 text-left transition ${method === 'auto' ? 'border-cyan-400/60 bg-cyan-500/[0.08]' : 'border-cyan-500/25 bg-cyan-500/[0.04] hover:border-cyan-400/50'}`}
         >
           <p className="font-semibold text-white">Automatycznie (zalecane)</p>
-          <p className="mt-1 text-xs text-neutral-400">Podaj login do panelu starego hostingu — sami wykryjemy domeny, bazy i skrzynki.</p>
+          <p className="mt-1 text-xs text-neutral-400">Podaj login do panelu starego hostingu — sami wykryjemy dane serwera i bazy.</p>
         </button>
         <button
           type="button"
@@ -433,7 +417,7 @@ function StepMethod(props: {
           className={`rounded-2xl border p-4 text-left transition ${method === 'manual' ? 'border-white/40 bg-white/[0.05]' : 'border-white/10 bg-white/[0.02] hover:border-white/30'}`}
         >
           <p className="font-semibold text-white">Ręcznie</p>
-          <p className="mt-1 text-xs text-neutral-400">Wprowadź dane FTP/SFTP, baz i skrzynek samodzielnie.</p>
+          <p className="mt-1 text-xs text-neutral-400">Wpiszesz dane dostępowe samodzielnie.</p>
         </button>
       </div>
 
@@ -464,7 +448,7 @@ function StepMethod(props: {
             </label>
           </div>
           <p className="text-xs text-neutral-500">
-            Łączymy się tylko po to, by odczytać listę domen, baz i skrzynek. Hasła nie są zapisywane.
+            Łączymy się tylko po to, by odczytać listę domen i baz. Hasła nie są zapisywane.
           </p>
           {props.msg ? <p className={props.msg.type === 'ok' ? 'text-sm text-emerald-300' : 'text-sm text-rose-300'}>{props.msg.text}</p> : null}
           <div className="flex flex-wrap gap-2">
@@ -512,8 +496,7 @@ function StepMethod(props: {
 }
 
 function StepSources(props: {
-  /** Tryb „tylko poczta” (E-21): bez pól plików, baz i domeny źródłowej. */
-  tylkoPoczta?: boolean;
+  zakres: Zakres;
   discovery: DiscoveryResult | null;
   presetId: string;
   setPresetId: (id: string) => void;
@@ -521,8 +504,6 @@ function StepSources(props: {
   setTargetDomain: (v: string) => void;
   sourceDomain: string;
   setSourceDomain: (v: string) => void;
-  includeFiles: boolean;
-  setIncludeFiles: (v: boolean) => void;
   ftpProtocol: 'ftp' | 'ftps' | 'sftp';
   setFtpProtocol: (v: 'ftp' | 'ftps' | 'sftp') => void;
   ftpHost: string;
@@ -537,22 +518,20 @@ function StepSources(props: {
   setFtpPath: (v: string) => void;
   dbs: DbRow[];
   setDbs: React.Dispatch<React.SetStateAction<DbRow[]>>;
-  boxes: BoxRow[];
-  setBoxes: React.Dispatch<React.SetStateAction<BoxRow[]>>;
 }) {
   const protocolId = useId();
   const { discovery } = props;
+  const includeFiles = props.zakres !== 'baza';
   return (
     <div className="space-y-5">
       {discovery ? (
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2.5 text-xs text-emerald-100/90">
           <p className="font-semibold text-emerald-200">
-            Wykryto: {discovery.domains.length} {plForm(discovery.domains.length, 'domena', 'domeny', 'domen')}, {discovery.databases.length} {plForm(discovery.databases.length, 'baza', 'bazy', 'baz')}, {discovery.mailboxes.length} {plForm(discovery.mailboxes.length, 'skrzynka', 'skrzynki', 'skrzynek')} ({discovery.panelType}).
+            Wykryto: {discovery.domains.length} {plForm(discovery.domains.length, 'domena', 'domeny', 'domen')}, {discovery.databases.length} {plForm(discovery.databases.length, 'baza', 'bazy', 'baz')} ({discovery.panelType}).
           </p>
-          <p className="mt-1 text-emerald-100/70">
-            Uzupełnij hasła skrzynek e-mail — reszta jest gotowa. Strona na WordPressie? Login i hasło bazy zostaw puste,
-            odczytamy je sami.
-          </p>
+          {props.zakres === 'strona' ? (
+            <p className="mt-1 text-emerald-100/70">Strona na WordPressie? Login i hasło bazy zostaw puste, odczytamy je sami.</p>
+          ) : null}
           {discovery.warnings.map((w) => (
             <p key={w} className="mt-1 text-amber-200/80">⚠ {w}</p>
           ))}
@@ -564,23 +543,18 @@ function StepSources(props: {
           <span className={labelText}>Domena docelowa (u nas)</span>
           <input value={props.targetDomain} onChange={(e) => props.setTargetDomain(e.target.value)} className={input} placeholder="twojadomena.pl" />
         </label>
-        {props.tylkoPoczta ? null : (
+        {props.zakres === 'strona' ? (
           <label className="space-y-1.5 block">
             <span className={labelText}>Domena na starym hostingu (dla podmiany URL w WordPress)</span>
             <input value={props.sourceDomain} onChange={(e) => props.setSourceDomain(e.target.value)} className={input} placeholder="np. stara-domena.pl (jeśli inna)" />
           </label>
-        )}
+        ) : null}
       </div>
 
-      {props.tylkoPoczta ? null : (
-      <>
+      {includeFiles ? (
       <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-3">
-        <label className="flex items-center gap-2 text-sm font-semibold text-white">
-          <Checkbox checked={props.includeFiles} onChange={(e) => props.setIncludeFiles(e.target.checked)} />
-          Pliki strony (FTP/SFTP)
-        </label>
-        {props.includeFiles ? (
-          <div className="grid gap-3 md:grid-cols-2">
+        <p className="text-sm font-semibold text-white">Pliki strony (FTP/SFTP)</p>
+        <div className="grid gap-3 md:grid-cols-2">
             <label htmlFor={protocolId} className="space-y-1.5 block">
               <span className={labelText}>Protokół</span>
               <Select
@@ -617,9 +591,10 @@ function StepSources(props: {
               <input value={props.ftpPath} onChange={(e) => props.setFtpPath(e.target.value)} className={input} placeholder="zostaw puste — sami znajdziemy katalog strony" />
             </label>
           </div>
-        ) : null}
       </section>
+      ) : null}
 
+      {props.zakres !== 'pliki' ? (
       <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold text-white">Bazy danych MySQL ({props.dbs.length})</p>
@@ -636,63 +611,34 @@ function StepSources(props: {
             <input className={`${input} md:col-span-2`} aria-label="Serwer bazy" placeholder="serwer bazy" value={row.host} onChange={(e) => patch(props.setDbs, i, { host: e.target.value })} />
             <input className={input} type="number" aria-label="Port bazy" placeholder="port" value={row.port} onChange={(e) => patch(props.setDbs, i, { port: Number(e.target.value) })} />
             <input className={input} aria-label="Nazwa bazy" placeholder="nazwa bazy" value={row.database} onChange={(e) => patch(props.setDbs, i, { database: e.target.value })} />
-            <input className={input} aria-label="Użytkownik bazy" placeholder={props.includeFiles ? 'użytkownik (WP: puste)' : 'użytkownik'} autoComplete="off" value={row.username} onChange={(e) => patch(props.setDbs, i, { username: e.target.value })} />
+            <input className={input} aria-label="Użytkownik bazy" placeholder={includeFiles ? 'użytkownik (WP: puste)' : 'użytkownik'} autoComplete="off" value={row.username} onChange={(e) => patch(props.setDbs, i, { username: e.target.value })} />
             <div className="flex gap-1">
-              <input className={input} type="password" aria-label="Hasło bazy" placeholder={props.includeFiles ? 'hasło (WP: puste)' : 'hasło'} autoComplete="new-password" value={row.password} onChange={(e) => patch(props.setDbs, i, { password: e.target.value })} />
+              <input className={input} type="password" aria-label="Hasło bazy" placeholder={includeFiles ? 'hasło (WP: puste)' : 'hasło'} autoComplete="new-password" value={row.password} onChange={(e) => patch(props.setDbs, i, { password: e.target.value })} />
               <button type="button" onClick={() => props.setDbs((r) => r.filter((_, j) => j !== i))} className="px-2 text-rose-300 hover:text-rose-200" aria-label="Usuń bazę">×</button>
             </div>
           </div>
         ))}
         {props.dbs.length === 0 ? (
           <p className="text-xs text-neutral-500">Brak baz. Dodaj, jeśli Twoja strona ich używa (np. WordPress, sklep).</p>
-        ) : props.includeFiles ? (
+        ) : includeFiles ? (
           <p className="text-xs text-neutral-500">
             Nie znasz loginu i hasła bazy? Przy WordPressie zostaw je puste — odczytamy je z pliku wp-config.php po
             skopiowaniu plików strony.
           </p>
         ) : null}
       </section>
-      </>
-      )}
-
-      <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-white">Skrzynki e-mail IMAP ({props.boxes.length})</p>
-          <Button
-            type="button"
-            onClick={() => props.setBoxes((r) => [...r, { key: nextKey(), host: '', port: 993, username: '', password: '', email: '' }])}
-            className="bg-white/10 hover:bg-white/20 text-white text-xs"
-          >
-            + dodaj skrzynkę
-          </Button>
-        </div>
-        {props.boxes.map((row, i) => (
-          <div key={row.key} className="grid gap-2 md:grid-cols-6 rounded-xl border border-white/5 p-2">
-            <input className={`${input} md:col-span-2`} aria-label="Adres skrzynki" placeholder="adres e-mail (np. biuro@twojadomena.pl)" value={row.email ?? ''} onChange={(e) => patch(props.setBoxes, i, { email: e.target.value, username: e.target.value })} />
-            <input className={`${input} md:col-span-2`} aria-label="Serwer IMAP" placeholder="serwer IMAP (np. imap.stary-hosting.pl)" value={row.host} onChange={(e) => patch(props.setBoxes, i, { host: e.target.value })} />
-            <input className={input} inputMode="numeric" aria-label="port IMAP" title="Port IMAP — zostaw 993, jeśli poprzedni dostawca nie podał innego" value={row.port} onChange={(e) => patch(props.setBoxes, i, { port: Number(e.target.value.replace(/\D/g, '')) || 993 })} />
-            <div className="flex gap-1">
-              <input className={input} type="password" aria-label="Hasło skrzynki" placeholder="hasło do skrzynki" autoComplete="new-password" value={row.password} onChange={(e) => patch(props.setBoxes, i, { password: e.target.value })} />
-              <button type="button" onClick={() => props.setBoxes((r) => r.filter((_, j) => j !== i))} className="px-2 text-rose-300 hover:text-rose-200" aria-label="Usuń skrzynkę">×</button>
-            </div>
-          </div>
-        ))}
-        {props.boxes.length === 0 ? <p className="text-xs text-neutral-500">Brak skrzynek. Dodaj, jeśli przenosisz pocztę.</p> : (
-          <p className="text-xs text-neutral-500">
-            Wystarczy adres, serwer i hasło — loginem jest adres skrzynki, port domyślnie 993. Przed startem logujemy się do
-            starego serwera, żeby sprawdzić dane; wiadomości trafią do skrzynki o tym samym adresie na tym koncie.
-          </p>
-        )}
-      </section>
+      ) : null}
     </div>
   );
 }
 
 function StepPreflight({
+  zakres,
   preflight,
   preflighting,
   onRun,
 }: {
+  zakres: Zakres;
   preflight: PreflightSummary | null;
   preflighting: boolean;
   onRun: () => void;
@@ -727,10 +673,17 @@ function StepPreflight({
             ))}
           </ul>
           {preflight.checks.some((c) => c.kind === 'mysql' && c.status === 'unreachable') ? (
+            zakres === 'baza' ? (
+              <p className="mt-2 text-amber-200/90">
+                Stary hosting nie wpuszcza połączeń do bazy z zewnątrz. Włącz u niego zdalny dostęp do MySQL albo wybierz
+                „Cała strona” — wtedy bazę pobierzemy razem z plikami.
+              </p>
+            ) : (
             <p className="mt-2 text-neutral-500">
               Brak zdalnego dostępu do bazy to normalne na hostingach współdzielonych — bazę pobierzemy inną drogą
               (przez SSH albo jednorazowo przez stronę). Możesz spokojnie przejść dalej.
             </p>
+            )
           ) : null}
         </div>
       )}
@@ -739,10 +692,9 @@ function StepPreflight({
 }
 
 function StepStart(props: {
-  includeFiles: boolean;
+  zakres: Zakres;
   ftpHost: string;
   dbs: DbRow[];
-  boxes: BoxRow[];
   targetDomain: string;
   notes: string;
   setNotes: (v: string) => void;
@@ -753,18 +705,18 @@ function StepStart(props: {
     <div className="space-y-4">
       <p className="text-sm text-neutral-300">Sprawdź, co przenosimy, i uruchom migrację:</p>
       <ul className="space-y-1.5 text-sm">
-        <li className="flex items-center gap-2">
-          <span className={props.includeFiles && props.ftpHost.trim() ? 'text-emerald-400' : 'text-neutral-600'}>●</span>
-          <span className="text-neutral-200">Pliki strony {props.includeFiles && props.ftpHost.trim() ? `(${props.ftpHost.trim()})` : '— pominięte'}</span>
-        </li>
-        <li className="flex items-center gap-2">
-          <span className={props.dbs.length > 0 ? 'text-emerald-400' : 'text-neutral-600'}>●</span>
-          <span className="text-neutral-200">Bazy danych: {props.dbs.length}</span>
-        </li>
-        <li className="flex items-center gap-2">
-          <span className={props.boxes.length > 0 ? 'text-emerald-400' : 'text-neutral-600'}>●</span>
-          <span className="text-neutral-200">Skrzynki e-mail: {props.boxes.length}</span>
-        </li>
+        {props.zakres !== 'baza' ? (
+          <li className="flex items-center gap-2">
+            <span className={props.ftpHost.trim() ? 'text-emerald-400' : 'text-neutral-600'}>●</span>
+            <span className="text-neutral-200">Pliki strony {props.ftpHost.trim() ? `(${props.ftpHost.trim()})` : '— pominięte'}</span>
+          </li>
+        ) : null}
+        {props.zakres !== 'pliki' ? (
+          <li className="flex items-center gap-2">
+            <span className={props.dbs.length > 0 ? 'text-emerald-400' : 'text-neutral-600'}>●</span>
+            <span className="text-neutral-200">Bazy danych: {props.dbs.filter((d) => d.database.trim()).length}</span>
+          </li>
+        ) : null}
         <li className="flex items-center gap-2">
           <span className={props.targetDomain.trim() ? 'text-emerald-400' : 'text-amber-400'}>●</span>
           <span className="text-neutral-200">Domena docelowa: {props.targetDomain.trim() || 'domena konta (domyślna)'}</span>
