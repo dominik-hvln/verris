@@ -287,7 +287,9 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
     if (!this.queue) throw new Error('Queue not initialized');
     const job = await this.queue.getJob(jobId);
     if (!job) return { ok: false };
-    await job.retry();
+    // Z-18 (t1 03.10): bez resetu job wracał z attemptsMade = 3 — runJob uznawał pierwszą ponowioną próbę
+    // za ostatnią (isLastAttempt), więc chwilowy błąd od razu kończył się twardą porażką.
+    await job.retry('failed', { resetAttemptsMade: true, resetAttemptsStarted: true });
     this.counters.retried += 1;
     await this.markQueued(job.data.subscriptionId);
     await this.audit.record({

@@ -74,3 +74,15 @@ describe('ProvisioningQueueService — twarda porażka kończy job', () => {
     expect(s.walletLedger.credit).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('ProvisioningQueueService.retryJob — ponowienie przez admina (Z-18, t1 03.10)', () => {
+  it('zeruje licznik prób: inaczej pierwsza ponowiona próba byłaby „ostatnią” i chwilowy błąd = twarda porażka', async () => {
+    const job = { data: { subscriptionId: 's1', userId: 'u1' }, retry: vi.fn(async () => undefined) };
+    const prisma = { subscription: { update: vi.fn(async () => ({})) } };
+    const audit = { record: vi.fn(async () => undefined) };
+    const svc = new ProvisioningQueueService(prisma as never, {} as never, {} as never, audit as never, {} as never);
+    (svc as unknown as { queue: unknown }).queue = { getJob: vi.fn(async () => job) };
+    await expect(svc.retryJob('j1')).resolves.toEqual({ ok: true });
+    expect(job.retry).toHaveBeenCalledWith('failed', { resetAttemptsMade: true, resetAttemptsStarted: true });
+  });
+});
