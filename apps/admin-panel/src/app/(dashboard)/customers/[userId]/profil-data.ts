@@ -29,6 +29,7 @@ export interface ProfilKlienta {
   subscriptions: Array<{
     id: string;
     status: string;
+    provisioningStage?: string | null;
     serviceTag: string | null;
     interval: string;
     paymentSource: string;

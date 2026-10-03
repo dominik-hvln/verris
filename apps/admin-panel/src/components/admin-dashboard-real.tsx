@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import type { AdminDashboardOverview } from "@/lib/admin-overview-data";
+import { stanUslugi } from "@/lib/stan-uslugi";
 import { FleetUpdateButton } from "@/app/(dashboard)/nodes/fleet-update-button";
 import { Eyebrow, LinkKarty, NaglowekKarty, Pasek, Pigulka } from "./v2";
 import { clients, days, plForm, plural } from "@/lib/pl";
@@ -37,15 +38,6 @@ function Slupki({ wartosci }: { wartosci: number[] }) {
 
 
 
-const STATUS_USLUGI: Record<string, { t: string; ton: "ok" | "warn" | "crit" | "muted" }> = {
-  ACTIVE: { t: "działa", ton: "ok" },
-  PROVISIONING: { t: "zakładanie", ton: "warn" },
-  PENDING_PAYMENT: { t: "czeka na płatność", ton: "warn" },
-  PAST_DUE: { t: "zaległa płatność", ton: "warn" },
-  SUSPENDED: { t: "zawieszona", ton: "crit" },
-  CANCELED: { t: "anulowana", ton: "muted" },
-  EXPIRED: { t: "wygasła", ton: "muted" },
-};
 
 function godzina(iso: string) {
   const d = new Date(iso);
@@ -267,11 +259,11 @@ export function AdminDashboardReal({ o }: { o: AdminDashboardOverview }) {
             <div className="border-t border-line px-[18px] py-[13px] text-sm text-muted-foreground">Brak usług.</div>
           ) : (
             o.noweUslugi.map((s) => {
-              const st = STATUS_USLUGI[s.status] ?? { t: s.status, ton: "muted" as const };
+              const st = stanUslugi(s.status, s.provisioningStage);
               const opis = [
                 s.plan,
                 s.cenaIndywidualna ? `cena indywidualna ${zl(s.cenaIndywidualna)} zł` : s.interval === "YEAR" ? "rocznie" : "miesięcznie",
-                s.wezel ?? (s.status === "PROVISIONING" ? "zakładanie" : null),
+                s.wezel ?? (s.status === "PROVISIONING" && s.provisioningStage !== "failed" ? "zakładanie" : null),
               ].filter(Boolean);
               return (
                 <div key={s.id} className="flex items-center gap-3.5 border-t border-line px-[18px] py-[13px]">

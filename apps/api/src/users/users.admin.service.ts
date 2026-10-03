@@ -359,6 +359,7 @@ export class UsersAdminService {
       subscriptions: subscriptions.map((s) => ({
         id: s.id,
         status: s.status,
+        provisioningStage: s.provisioningStage,
         serviceTag: s.serviceTag ?? s.account?.daUsername ?? null,
         interval: s.interval,
         paymentSource: s.paymentSource,

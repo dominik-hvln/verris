@@ -276,6 +276,7 @@ export class AdminDashboardService {
         select: {
           id: true,
           status: true,
+          provisioningStage: true,
           interval: true,
           individualPrice: true,
           plan: { select: { name: true } },
@@ -450,6 +451,7 @@ export class AdminDashboardService {
       noweUslugi: noweUslugi.map((s) => ({
         id: s.id,
         status: s.status,
+        provisioningStage: s.provisioningStage,
         interval: s.interval,
         plan: s.plan.name,
         domena: s.account?.domain ?? null,

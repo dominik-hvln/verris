@@ -3,18 +3,11 @@ import { services } from "@/lib/pl";
 import { formatCredits } from "@/lib/credits";
 import { Eyebrow, KARTA, Pigulka, WIERSZ } from "@/components/v2";
 import { listAdminSubscriptions } from "./data";
+import { STAN_USLUGI, stanUslugi } from "@/lib/stan-uslugi";
 
 export const dynamic = "force-dynamic";
 
-const STAN: Record<string, { t: string; ton: "ok" | "warn" | "crit" | "muted" }> = {
-  ACTIVE: { t: "działa", ton: "ok" },
-  PROVISIONING: { t: "zakładanie", ton: "warn" },
-  PENDING_PAYMENT: { t: "czeka na płatność", ton: "warn" },
-  PAST_DUE: { t: "zaległa płatność", ton: "warn" },
-  SUSPENDED: { t: "zawieszona", ton: "crit" },
-  CANCELED: { t: "anulowana", ton: "muted" },
-  EXPIRED: { t: "wygasła", ton: "muted" },
-};
+const STAN = STAN_USLUGI;
 const KOLEJNOSC = ["ACTIVE", "PROVISIONING", "PENDING_PAYMENT", "PAST_DUE", "SUSPENDED", "CANCELED", "EXPIRED"];
 
 /** PB-34 — lista usług w języku makiety; filtr stanu w adresie (?stan=), bez JS. */
@@ -65,7 +58,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
           </div>
           {widoczne.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak usług.</div> : null}
           {widoczne.map((r) => {
-            const s = STAN[r.status] ?? { t: r.status, ton: "muted" as const };
+            const s = stanUslugi(r.status, r.provisioningStage);
             const klient = [r.user.firstName, r.user.lastName].filter(Boolean).join(" ") || r.user.email;
             return (
               <Link key={r.id} href={`/subscriptions/${r.id}`} className={`${WIERSZ} hover:bg-raised`}>

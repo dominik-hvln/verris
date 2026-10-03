@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 type SubscriptionDetail = {
   id: string;
   status: string;
+  provisioningStage?: string | null;
   serviceTag: string | null;
   interval: string;
   priceAmount: string;
@@ -72,7 +73,12 @@ export default async function AdminSubscriptionDetailPage({ params }: { params: 
             </div>
             <div>
               <p className="text-muted-foreground">Status</p>
-              <p className="text-white">{detail.status}</p>
+              <p className="text-white">
+                {detail.status}
+                {detail.status === "PROVISIONING" && detail.provisioningStage === "failed" ? (
+                  <span className="ml-2 text-rose-300">— zakładanie nieudane (szczegóły w Kolejce zakładania)</span>
+                ) : null}
+              </p>
             </div>
             <div>
               <p className="text-muted-foreground">Plan</p>

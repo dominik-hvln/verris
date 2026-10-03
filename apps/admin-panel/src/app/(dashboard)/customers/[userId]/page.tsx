@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { stanUslugi } from "@/lib/stan-uslugi";
 import { notFound } from "next/navigation";
 import { UserCog } from "lucide-react";
 import {
@@ -47,15 +48,6 @@ function kiedy(iso: string) {
 const chwila = () => Date.now();
 const kwota = (v: string | number | null | undefined) => formatCredits(v ?? 0);
 
-const STAN_USLUGI: Record<string, { t: string; ton: "ok" | "warn" | "crit" | "muted" }> = {
-  ACTIVE: { t: "działa", ton: "ok" },
-  PROVISIONING: { t: "zakładanie", ton: "warn" },
-  PENDING_PAYMENT: { t: "czeka na płatność", ton: "warn" },
-  PAST_DUE: { t: "zaległa płatność", ton: "warn" },
-  SUSPENDED: { t: "zawieszona", ton: "crit" },
-  CANCELED: { t: "anulowana", ton: "muted" },
-  EXPIRED: { t: "wygasła", ton: "muted" },
-};
 const ZRODLO: Record<string, string> = { WALLET: "portfel Verris", STRIPE_CARD: "karta (Stripe)", MANUAL: "przelew / poza Verris" };
 const RODZAJ_OSI: Record<string, { t: string; ton: "ok" | "warn" | "crit" | "muted" }> = {
   ticket: { t: "zgłoszenie", ton: "warn" },
@@ -129,7 +121,7 @@ export default async function AdminCustomerCardPage({
   const zgloszenieHref = (id: string) => new URL(`/tickets/${id}`, obsluga).toString();
 
   const wierszUslugi = (s: ProfilKlienta["subscriptions"][number]) => {
-    const st = s.account?.server && serweryZAwaria.has(s.account.server.id) && s.status === "ACTIVE" ? { t: "awaria", ton: "crit" as const } : STAN_USLUGI[s.status] ?? { t: s.status, ton: "muted" as const };
+    const st = s.account?.server && serweryZAwaria.has(s.account.server.id) && s.status === "ACTIVE" ? { t: "awaria", ton: "crit" as const } : stanUslugi(s.status, s.provisioningStage);
     const cena = s.individualPrice ?? s.priceAmount;
     const okres = s.interval === "YEAR" ? "rok" : "mies.";
     const dopisek = [

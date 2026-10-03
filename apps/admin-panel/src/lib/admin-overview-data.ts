@@ -63,6 +63,7 @@ export type StanPlatformy = {
   noweUslugi: Array<{
     id: string;
     status: string;
+    provisioningStage?: string | null;
     interval: string;
     plan: string;
     domena: string | null;
