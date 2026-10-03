@@ -22,6 +22,7 @@ import { CryptoService } from '../common/crypto/crypto.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
 import { BladEtapuProvisioningu } from './provisioning-error.js';
+import { nodeErrorKind } from '@verris/directadmin-sdk';
 import { ServersService } from '../servers/servers.service.js';
 import { NodeSelectorService } from './node-selector.service.js';
 import { MailerService } from '../mail/mailer.service.js';
@@ -194,7 +195,10 @@ export class ProvisioningService {
       throw new BladEtapuProvisioningu(
         'ensureUserPackage',
         msg,
-        `DirectAdmin package "${subscription.plan.slug}" is missing on the node and could not be created automatically. Contact support.`,
+        // Węzeł nie odpowiedział (odmowa, brak trasy, otwarty bezpiecznik) — to nie brak pakietu (t1 03.10).
+        nodeErrorKind(err) || (err as { code?: string } | null)?.code === 'ETIMEDOUT_CIRCUIT'
+          ? 'DirectAdmin on the node did not respond while checking the hosting package — provisioning will be retried.'
+          : `DirectAdmin package "${subscription.plan.slug}" is missing on the node and could not be created automatically. Contact support.`,
       );
     }
 

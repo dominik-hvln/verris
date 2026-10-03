@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, SubscriptionStatus, WalletTxType } from '@verris/database';
 import { Job, Queue, QueueEvents, UnrecoverableError, Worker } from 'bullmq';
+import { NODE_DOWN_MS } from '@verris/directadmin-sdk';
 import { Redis } from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
@@ -43,7 +44,11 @@ export type ProvisionJobData =
 
 const QUEUE_NAME = 'provisioning';
 const MAX_ATTEMPTS = 3;
-const BACKOFF_DELAY_MS = 5_000;
+// Z-18 (t1 03.10): przy 5 s jedno odrzucone połączenie z DA spalało wszystkie 3 próby w 15 s — bezpiecznik
+// węzła (libs/directadmin-sdk node-circuit, NODE_DOWN_MS = 2 min) odrzucał próby 2 i 3 bez łączenia się
+// z węzłem, a zlecenie kończyło się twardą porażką (przy portfelu: zwrot i FAILED). Druga próba musi przyjść
+// po zamknięciu bezpiecznika: wykładniczo 2,5 min, potem 5 min.
+export const BACKOFF_DELAY_MS = NODE_DOWN_MS + 30_000;
 
 /** Sprint 5 / R-11+B-7 — etapy widoczne klientowi (string żeby uniknąć migracji enum). */
 export const ProvisioningStage = {

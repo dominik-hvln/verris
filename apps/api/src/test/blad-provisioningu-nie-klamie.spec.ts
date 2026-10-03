@@ -1,10 +1,12 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import {
+  BACKOFF_DELAY_MS,
   categorizeProvisioningError,
   kategoriaBledu,
 } from '../subscriptions/provisioning-queue.service.js';
 import { BladEtapuProvisioningu } from '../subscriptions/provisioning-error.js';
+import { NODE_DOWN_MS } from '@verris/directadmin-sdk';
 
 /**
  * Z-18 — poprawna kontrola, którą się okłamuje.
@@ -201,5 +203,22 @@ describe('Z-18 — żaden etap nie wypiera prawdziwej przyczyny', () => {
     const doKonca = kolejka.slice(od, kolejka.indexOf('private async markQueued', od));
     expect(od).toBeGreaterThan(-1);
     expect(doKonca).toContain('przyczyna');
+  });
+});
+
+describe('Z-18 — D3 na t1 (03.10): ponowienie musi przeżyć bezpiecznik węzła', () => {
+  // Jedno odrzucone połączenie otwiera bezpiecznik na NODE_DOWN_MS; próby w tym oknie odpadają
+  // bez łączenia się z węzłem („kolejna próba za 115 s”). Przy 5 s opóźnienia wszystkie 3 próby
+  // padały w 15 s i zlecenie kończyło się twardą porażką.
+  it('pierwsza ponowiona próba przychodzi po zamknięciu bezpiecznika', () => {
+    expect(BACKOFF_DELAY_MS).toBeGreaterThan(NODE_DOWN_MS);
+  });
+
+  it('brak odpowiedzi węzła przy sprawdzaniu pakietu nie udaje brakującego pakietu', () => {
+    const t = kod(USLUGA);
+    const od = t.indexOf("'ensureUserPackage',");
+    const blok = t.slice(od, od + 600);
+    expect(blok).toContain('nodeErrorKind(err)');
+    expect(blok).toContain('ETIMEDOUT_CIRCUIT');
   });
 });
