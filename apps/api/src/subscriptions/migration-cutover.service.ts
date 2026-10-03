@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import * as dnsLookup from 'node:dns/promises';
 import { MigrationStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
@@ -50,6 +51,7 @@ export class MigrationCutoverService {
   async plan(subscriptionId: string, userId: string, migrationRequestId: string): Promise<CutoverPlan> {
     const request = await this.getRequest(subscriptionId, userId, migrationRequestId);
     const dns = await this.dnsPointing.verifyForSubscription(subscriptionId, userId);
+    const mxDoNas = tylkoPoczta(request.workerJobs) ? await mxWskazujeNa(dns.domain, dns.expectedIpv4) : false;
 
     await this.audit.record({
       action: MigrationActions.MIGRATION_CUTOVER_REQUESTED,
@@ -58,7 +60,7 @@ export class MigrationCutoverService {
       details: { subscriptionId, migrationRequestId, dnsStatus: dns.status },
     });
 
-    return this.buildPlan(request, dns);
+    return this.buildPlan(request, dns, mxDoNas);
   }
 
   /**
@@ -68,10 +70,13 @@ export class MigrationCutoverService {
   async verify(subscriptionId: string, userId: string, migrationRequestId: string): Promise<CutoverPlan> {
     const request = await this.getRequest(subscriptionId, userId, migrationRequestId);
     const dns = await this.dnsPointing.verifyForSubscription(subscriptionId, userId);
-    const pointsToUs = dns.pointsToServer || dns.delegatedToExpectedNs;
+    const poczta = tylkoPoczta(request.workerJobs);
+    const mxDoNas = poczta ? await mxWskazujeNa(dns.domain, dns.expectedIpv4) : false;
+    // Sama poczta: liczy się MX (albo nasze NS), nie rekord A strony — strona klienta może zostać gdzie indziej.
+    const pointsToUs = dns.delegatedToExpectedNs || (poczta ? mxDoNas : dns.pointsToServer);
 
     if (pointsToUs && !request.cutoverAt) {
-      const mode = dns.delegatedToExpectedNs ? 'ns' : 'a-records';
+      const mode = dns.delegatedToExpectedNs ? 'ns' : poczta ? 'mx' : 'a-records';
       await this.prisma.migrationRequest.update({
         where: { id: request.id },
         data: { cutoverAt: new Date(), cutoverMode: mode, currentStep: 'done' },
@@ -93,7 +98,7 @@ export class MigrationCutoverService {
       request.cutoverMode = mode;
     }
 
-    return this.buildPlan(request, dns);
+    return this.buildPlan(request, dns, mxDoNas);
   }
 
   private async getRequest(subscriptionId: string, userId: string, migrationRequestId: string) {
@@ -123,8 +128,12 @@ export class MigrationCutoverService {
       workerJobs: Array<{ kind: string; status: string; completedAt: Date | null }>;
     },
     dns: HostingDnsPointingResult,
+    mxDoNas = false,
   ): CutoverPlan {
-    const pointsToUs = dns.pointsToServer || dns.delegatedToExpectedNs;
+    // Uwaga z t1 03.10: po samej migracji poczty plan kazał przełączyć rekordy A strony i NS — dla klienta,
+    // który przenosi tylko pocztę, to przeniosłoby mu też stronę. Dla samej poczty: tylko rekordy poczty.
+    const poczta = tylkoPoczta(request.workerJobs);
+    const pointsToUs = dns.delegatedToExpectedNs || (poczta ? mxDoNas : dns.pointsToServer);
     const ip = dns.expectedIpv4;
     const domain = dns.domain;
 
@@ -144,14 +153,20 @@ export class MigrationCutoverService {
     let message: string;
     if (request.cutoverAt || pointsToUs) {
       status = 'done';
-      message = dns.delegatedToExpectedNs
-        ? 'Domena jest delegowana na nasze serwery nazw — ruch trafia już na nowy hosting.'
-        : 'Rekordy DNS wskazują na nasz serwer — ruch trafia już na nowy hosting.';
+      message = poczta
+        ? dns.delegatedToExpectedNs
+          ? 'Domena korzysta z naszych serwerów nazw — nowa poczta trafia już do skrzynek na tym koncie.'
+          : 'Rekord MX wskazuje na nasz serwer — nowa poczta trafia już do skrzynek na tym koncie.'
+        : dns.delegatedToExpectedNs
+          ? 'Domena jest delegowana na nasze serwery nazw — ruch trafia już na nowy hosting.'
+          : 'Rekordy DNS wskazują na nasz serwer — ruch trafia już na nowy hosting.';
     } else if (request.status === MigrationStatus.COMPLETED) {
       status = 'waiting-dns';
-      message =
-        'Dane są przeniesione. Ustaw poniższe rekordy DNS u obecnego dostawcy (albo przełącz NS na nasze), ' +
-        'a potem kliknij „Sprawdź DNS”. Do czasu przełączenia stara strona działa bez przerwy.';
+      message = poczta
+        ? 'Wiadomości są już w skrzynce na tym koncie. Żeby nowa poczta też trafiała tutaj, ustaw u obecnego dostawcy DNS ' +
+          'poniższe rekordy poczty, a potem kliknij „Sprawdź DNS”. Strona zostaje tam, gdzie jest — jej rekordów nie zmieniasz.'
+        : 'Dane są przeniesione. Ustaw poniższe rekordy DNS u obecnego dostawcy (albo przełącz NS na nasze), ' +
+          'a potem kliknij „Sprawdź DNS”. Do czasu przełączenia stara strona działa bez przerwy.';
     } else if (request.status === MigrationStatus.RUNNING) {
       status = 'ready';
       message = 'Transfer danych jeszcze trwa — cutover DNS będzie możliwy po jego zakończeniu.';
@@ -161,7 +176,7 @@ export class MigrationCutoverService {
     }
 
     const records: CutoverRecordInstruction[] = [];
-    if (domain && ip && !pointsToUs) {
+    if (domain && ip && !pointsToUs && !poczta) {
       records.push(
         {
           type: 'A',
@@ -190,9 +205,22 @@ export class MigrationCutoverService {
         },
       );
     }
+    if (domain && ip && !pointsToUs && poczta) {
+      records.push(
+        { type: 'A', name: `mail.${domain}`, value: ip, note: 'Serwer poczty na tym koncie.' },
+        {
+          type: 'MX',
+          name: domain,
+          value: `mail.${domain}`,
+          priority: 10,
+          note: 'Dostarczanie nowej poczty tutaj — tuż przed zmianą dograj różnice (delta-sync).',
+        },
+      );
+    }
 
+    // Zmiana NS przenosi całą strefę (także stronę) — przy samej poczcie jej nie proponujemy.
     const nameserverOption =
-      dns.expectedNameservers.length >= 2 && !dns.delegatedToExpectedNs
+      !poczta && dns.expectedNameservers.length >= 2 && !dns.delegatedToExpectedNs
         ? {
             nameservers: dns.expectedNameservers,
             note:
@@ -214,4 +242,20 @@ export class MigrationCutoverService {
       cutoverMode: request.cutoverMode,
     };
   }
+}
+
+/** Migracja samej poczty: są kroki IMAP, nie ma plików ani baz. */
+export function tylkoPoczta(jobs: Array<{ kind: string }>): boolean {
+  return jobs.some((j) => j.kind.startsWith('IMAP')) && !jobs.some((j) => /^(FILES|MYSQL|WP_)/.test(j.kind));
+}
+
+/** Czy któryś rekord MX domeny wskazuje (przez A) na adres naszego serwera. */
+async function mxWskazujeNa(domain: string | null, ip: string | null): Promise<boolean> {
+  if (!domain || !ip) return false;
+  const mx = await dnsLookup.resolveMx(domain).catch(() => []);
+  for (const { exchange } of mx) {
+    const a = await dnsLookup.resolve4(exchange).catch(() => [] as string[]);
+    if (a.includes(ip)) return true;
+  }
+  return false;
 }
