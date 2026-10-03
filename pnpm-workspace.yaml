@@ -54,3 +54,9 @@ overrides:
   multer: "^2.3.0"
   "js-yaml@3": "^3.15.2"
   browserslist: "^4.28.7"
+  # GHSA-vfj7-8cjw-p6xm (braces <=3.0.3, brak poprawki): obie ścieżki produkcyjne apps/www wycinamy.
+  # @payloadcms/next przypina sass 1.77.4 → chokidar 3 → braces; sass 1.103 (już w drzewie) ma chokidar 5 bez braces.
+  "sass@1.77": "^1.103.1"
+  # @payloadcms/plugin-cloud-storage deklaruje find-node-modules, ale dist go nie importuje (martwa zależność
+  # → findup-sync → micromatch → braces). Sprawdzone grepem po paczce 3.90.2 — przy podbiciu Payloada sprawdzić ponownie.
+  "find-node-modules": "-"
