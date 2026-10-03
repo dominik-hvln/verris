@@ -550,10 +550,9 @@ describe('profil węzła — Python bez lswsgi (t1 03.10: python314 → 503)', (
   const DIR = mkdtempSync(join(tmpdir(), 'lswsgi-'));
   const ALT = join(DIR, 'alt');
   // python313 z lswsgi, python314 bez; atrapy dnf (pakiet niedostępny) i cloudlinux-selector (zapis wywołań).
-  for (const [nazwa, wer] of [['python313', '3.13'], ['python314', '3.14']]) {
+  for (const nazwa of ['python313', 'python314']) {
     mkdirSync(join(ALT, nazwa, 'bin'), { recursive: true });
-    writeFileSync(join(ALT, nazwa, 'bin', 'python3'), `#!/bin/sh\necho ${wer}\n`);
-    chmodSync(join(ALT, nazwa, 'bin', 'python3'), 0o755);
+    writeFileSync(join(ALT, nazwa, 'bin', 'python3'), '', { mode: 0o755 });
   }
   writeFileSync(join(ALT, 'python313', 'bin', 'lswsgi'), '');
   chmodSync(join(ALT, 'python313', 'bin', 'lswsgi'), 0o755);
@@ -562,14 +561,16 @@ describe('profil węzła — Python bez lswsgi (t1 03.10: python314 → 503)', (
   for (const b of ['dnf', 'cloudlinux-selector']) chmodSync(join(DIR, b), 0o755);
   const uruchom = () =>
     spawnSync('bash', ['-c', `log_ok(){ echo "[OK] $*"; }; log_warn(){ echo "[WARN] $*"; }; f(){ ${blok} }; f`], {
-      env: { ...process.env, PATH: `${DIR}:${process.env.PATH}`, VERRIS_ALT_DIR: ALT, HOME: DIR },
+      // VERRIS_APP_LOG w katalogu testu: w CI (bez roota) /var/log jest tylko do odczytu — przekierowanie
+      // nie powiodłoby się i selektor „odmówiłby” (CI 03.10, lokalnie jako root przechodziło).
+      env: { ...process.env, PATH: `${DIR}:${process.env.PATH}`, VERRIS_ALT_DIR: ALT, VERRIS_APP_LOG: join(DIR, 'app.log'), HOME: DIR },
       encoding: 'utf8',
     });
 
   it('brakujący lswsgi: najpierw pakiet CloudLinux, potem wyłączenie wersji w selektorze → [OK] z listą', () => {
     writeFileSync(join(DIR, 'wywolania'), '');
     const r = uruchom();
-    expect(r.stdout).toContain('[OK] Python przez LiteSpeed (lswsgi); bez lswsgi wyłączone w selektorze: 3.14');
+    expect(r.stdout + r.stderr).toContain('[OK] Python przez LiteSpeed (lswsgi); bez lswsgi wyłączone w selektorze: 3.14');
     const w = readFileSync(join(DIR, 'wywolania'), 'utf8');
     expect(w).toContain('dnf install -y alt-python314-wsgi-lsapi');
     expect(w).toContain('cls disable-version --json --interpreter python --version 3.14');

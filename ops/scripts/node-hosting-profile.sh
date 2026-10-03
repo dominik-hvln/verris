@@ -1780,16 +1780,16 @@ DAVB
         # Dla brakujących: ten sam pakiet CloudLinux, który instaluje skrypt (alt-pythonXY-wsgi-lsapi); gdy go nie ma,
         # wersję wyłączamy w selektorze (`cloudlinux-selector disable-version`, `--help` na t1), żeby klient nie
         # postawił aplikacji, która od razu daje 503. Po pojawieniu się pakietu: `enable-version` ręcznie.
-        brak="" wylaczone=""
+        brak="" wylaczone="" plog="${VERRIS_APP_LOG:-/var/log/verris-app-selector.log}"
         for py in "${VERRIS_ALT_DIR:-/opt/alt}"/python3*/bin/python3; do
           [ -x "$py" ] || continue
           local pdir pnaz pwer
           pdir="$(dirname "$py")"; pnaz="$(basename "$(dirname "$pdir")")"
           [ -x "$pdir/lswsgi" ] && continue
-          dnf install -y "alt-${pnaz}-wsgi-lsapi" >>/var/log/verris-app-selector.log 2>&1 || true
+          dnf install -y "alt-${pnaz}-wsgi-lsapi" >>"$plog" 2>&1 || true
           [ -x "$pdir/lswsgi" ] && continue
-          pwer="$("$py" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)"
-          if [ -n "$pwer" ] && cloudlinux-selector disable-version --json --interpreter python --version "$pwer" >>/var/log/verris-app-selector.log 2>&1; then
+          pwer="${pnaz#python}"; pwer="${pwer:0:1}.${pwer:1}"   # python314 → 3.14 (nazwy katalogów alt-python)
+          if cloudlinux-selector disable-version --json --interpreter python --version "$pwer" >>"$plog" 2>&1; then
             wylaczone="$wylaczone $pwer"
           else
             brak="$brak $pnaz"
