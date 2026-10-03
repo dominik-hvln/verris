@@ -84,6 +84,7 @@ export function MigrationProgress({ serviceId, initial }: Props) {
   }, [summary.status, loadCutover]);
 
   const jobs = detail?.jobs ?? [];
+  const ma = (prefiks: string) => jobs.length === 0 || jobs.some((j) => j.kind.startsWith(prefiks));
   const total = jobs.length;
   const done = jobs.filter((j) => j.status === 'COMPLETED').length;
   const pct = total > 0 ? Math.round((done / total) * 100) : summary.status === 'COMPLETED' ? 100 : 0;
@@ -178,10 +179,11 @@ export function MigrationProgress({ serviceId, initial }: Props) {
         {jobs.length === 0 ? <li className="text-xs text-neutral-500">Przygotowuję kroki migracji…</li> : null}
       </ol>
 
+      {/* Tylko liczniki rodzajów, które ta migracja przenosi (sama poczta nie pokazuje „Pliki 0” i „Bazy 0”). */}
       <dl className="grid grid-cols-3 gap-2 text-center text-xs">
-        <Stat label="Pliki" value={`${summary.filesTransferred} · ${formatBytes(summary.bytesTransferred)}`} />
-        <Stat label="Bazy" value={String(summary.databasesMigrated)} />
-        <Stat label="Skrzynki" value={String(summary.mailboxesMigrated)} />
+        {ma('FILES') ? <Stat label="Pliki" value={`${summary.filesTransferred} · ${formatBytes(summary.bytesTransferred)}`} /> : null}
+        {ma('MYSQL') ? <Stat label="Bazy" value={String(summary.databasesMigrated)} /> : null}
+        {ma('IMAP') ? <Stat label="Skrzynki" value={String(summary.mailboxesMigrated)} /> : null}
       </dl>
 
       {summary.status === 'COMPLETED' && cutover ? (

@@ -484,3 +484,60 @@ it('domyślna strona domeny nie pokazuje loginu konta (test D3 29.09: „Konto: 
   const html = readFileSync(join(SKRYPTY, '..', 'hosting-default-page', 'index.html'), 'utf8');
   expect(html).not.toContain('|USERNAME|');
 });
+
+describe('profil węzła — konto master Dovecota dla migracji poczty (E-21, t1 03.10: rc=2 bez konta)', () => {
+  const surowy = readFileSync(join(SKRYPTY, 'node-hosting-profile.sh'), 'utf8');
+  const DIR = mkdtempSync(join(tmpdir(), 'dovecot-master-'));
+  writeFileSync(join(DIR, 'fn.sh'), surowy.slice(0, surowy.indexOf('\nrequire_root\n')));
+  const DD = join(DIR, 'dovecot');
+  mkdirSync(join(DD, 'conf.d'), { recursive: true });
+  // Atrapa doveconf -n: „konfiguracja” = treść conf.d; ODRZUC = Dovecot nie przyjmuje.
+  writeFileSync(join(DIR, 'doveconf'), `#!/bin/sh\n[ -f "${DIR}/ODRZUC" ] && exit 1\ncat "${DD}"/conf.d/*.conf 2>/dev/null\n`);
+  writeFileSync(join(DIR, 'systemctl'), `#!/bin/sh\necho "$*" >> "${DIR}/wywolania"\n`);
+  for (const b of ['doveconf', 'systemctl']) chmodSync(join(DIR, b), 0o755);
+  const VCONF = join(DIR, 'verris.conf');
+  const uruchom = () =>
+    spawnSync('bash', ['-c', `. "${DIR}/fn.sh"; configure_dovecot_migration_master`], {
+      env: { ...process.env, PATH: `${DIR}:${process.env.PATH}`, VERRIS_DOVECOT_DIR: DD, VERRIS_CONF_FILE: VCONF },
+      encoding: 'utf8',
+    });
+
+  it('worker czyta z /etc/verris.conf te same zmienne, które profil zapisuje; profil woła krok po throttlingu', () => {
+    expect(surowy).toMatch(/configure_litespeed_throttling\nconfigure_dovecot_migration_master\n/);
+    const worker = readFileSync(join(SKRYPTY, 'node-migration-worker.sh'), 'utf8');
+    expect(worker).toContain('VERRIS_DOVECOT_MASTER_USER');
+    expect(worker).toContain('VERRIS_DOVECOT_MASTER_PASS');
+  });
+
+  it('zakłada konto raz: hasło w verris.conf (0600), skrót w passwd-file tylko z localhost, passdb master', () => {
+    writeFileSync(VCONF, "VERRIS_SERVER_ID='s1'\n");
+    const r = uruchom();
+    expect(r.status).toBe(0);
+    expect(r.stdout).toContain('[OK] Dovecot: konto master migracji poczty');
+    const conf = readFileSync(VCONF, 'utf8');
+    const haslo = /^VERRIS_DOVECOT_MASTER_PASS='([0-9a-f]{48})'$/m.exec(conf)![1];
+    expect(conf).toContain("VERRIS_DOVECOT_MASTER_USER='verris-migracja'");
+    expect(spawnSync('stat', ['-c', '%a', VCONF], { encoding: 'utf8' }).stdout.trim()).toBe('600');
+    const users = readFileSync(join(DD, 'verris-master-users'), 'utf8');
+    expect(users).toMatch(/^verris-migracja:\{SHA512-CRYPT\}\$6\$[^:]+::::::allow_nets=127\.0\.0\.1\/32,::1\/128\n$/);
+    expect(users).not.toContain(haslo);
+    const pd = readFileSync(join(DD, 'conf.d', '91-verris-migracja.conf'), 'utf8');
+    expect(pd).toContain('passdb verris-migracja {');
+    expect(pd).toMatch(/master = yes\n\s+result_success = continue/);
+    expect(readFileSync(join(DIR, 'wywolania'), 'utf8')).toContain('reload dovecot');
+
+    // Drugi przebieg: to samo hasło (worker i Dovecot zgodne), bez drugiego wpisu.
+    uruchom();
+    const conf2 = readFileSync(VCONF, 'utf8');
+    expect(conf2.match(/VERRIS_DOVECOT_MASTER_PASS=/g)).toHaveLength(1);
+    expect(conf2).toContain(haslo);
+  });
+
+  it('Dovecot odrzuca konfigurację → plik conf.d usunięty, [FAIL]', () => {
+    writeFileSync(join(DIR, 'ODRZUC'), '');
+    spawnSync('rm', ['-f', join(DD, 'conf.d', '91-verris-migracja.conf')]);
+    const r = uruchom();
+    expect(r.stderr).toContain('[FAIL] Dovecot nie przyjął');
+    expect(spawnSync('test', ['-e', join(DD, 'conf.d', '91-verris-migracja.conf')]).status).not.toBe(0);
+  });
+});

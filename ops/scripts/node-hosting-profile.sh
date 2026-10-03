@@ -1039,6 +1039,55 @@ PY_THROTTLE
   fi
 }
 
+# E-21 — przenoszenie poczty: worker migracji (node-migration-worker.sh, run_imap) pisze do skrzynki klienta
+# przez IMAP na 127.0.0.1 jako użytkownik master Dovecota (SASL PLAIN z authzid = skrzynka), więc nie potrzebuje
+# hasła skrzynki. Do 03.10 nic tego konta nie zakładało — każde zlecenie poczty kończyło się rc=2 („dovecot master
+# credentials not configured”, test t1 03.10). Konfiguracja wg doc.dovecot.org (2.4) „Master Users/Passwords”:
+# osobna passdb passwd-file z master = yes i result_success = continue (sprawdza, że skrzynka docelowa istnieje);
+# nazwana inaczej niż passdb DirectAdmina, żeby bloki się nie scaliły. Plik w conf.d jak przy Radicale (E-23).
+# Logowanie mastera tylko z localhost: pole allow_nets w pliku passwd-file (doc.dovecot.org → passdb extra fields).
+# Hasło losowe, raz; trafia do /etc/verris.conf (root, 0600), skąd czyta je worker. Hash SHA512-CRYPT przez openssl
+# ze stdin — hasło nie pojawia się w argv.
+configure_dovecot_migration_master() {
+  local dd="${VERRIS_DOVECOT_DIR:-/etc/dovecot}" vconf="${VERRIS_CONF_FILE:-/etc/verris.conf}"
+  local plik="$dd/verris-master-users" conf="$dd/conf.d/91-verris-migracja.conf" uzytk=verris-migracja
+  command -v doveconf >/dev/null 2>&1 || { log_skip "Dovecot master (migracja poczty) — brak Dovecota"; return 0; }
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then log_info "dry-run: konto master Dovecota dla migracji poczty"; return 0; fi
+  [ -f "$vconf" ] || { log_warn "Dovecot master — brak $vconf (najpierw bootstrap węzła)"; return 0; }
+  local haslo
+  haslo="$(sed -n "s/^VERRIS_DOVECOT_MASTER_PASS='\(.*\)'$/\1/p" "$vconf" | tail -1)"
+  if [ -z "$haslo" ]; then
+    haslo="$(openssl rand -hex 24)" || { log_fail "Dovecot master — nie udało się wylosować hasła"; return 0; }
+    { printf "VERRIS_DOVECOT_MASTER_USER='%s'\n" "$uzytk"; printf "VERRIS_DOVECOT_MASTER_PASS='%s'\n" "$haslo"; } >>"$vconf"
+  fi
+  chmod 600 "$vconf"
+  local hash
+  hash="$(printf '%s\n' "$haslo" | openssl passwd -6 -stdin)" || { log_fail "Dovecot master — nie udało się policzyć skrótu hasła"; return 0; }
+  ( umask 027; printf '%s:{SHA512-CRYPT}%s::::::allow_nets=127.0.0.1/32,::1/128\n' "$uzytk" "$hash" >"$plik.tmp" )
+  getent group dovecot >/dev/null 2>&1 && chgrp dovecot "$plik.tmp"
+  mv -f "$plik.tmp" "$plik"
+  local nowy=0
+  if [ ! -f "$conf" ]; then
+    nowy=1
+    cat >"$conf" <<DCONF
+# Zarządzane przez Verris (E-21) — konto master tylko dla migracji poczty (logowanie wyłącznie z localhost).
+passdb verris-migracja {
+  driver = passwd-file
+  passwd_file_path = $plik
+  master = yes
+  result_success = continue
+}
+DCONF
+  fi
+  if doveconf -n >/dev/null 2>&1 && doveconf -n 2>/dev/null | grep -q 'verris-master-users'; then
+    [ "$nowy" = "1" ] && { systemctl reload dovecot >/dev/null 2>&1 || doveadm reload >/dev/null 2>&1 || true; }
+    log_ok "Dovecot: konto master migracji poczty ($uzytk, tylko localhost)"
+  else
+    rm -f "$conf"
+    log_fail "Dovecot nie przyjął konfiguracji konta master migracji — konfiguracja Dovecota bez zmian"
+  fi
+}
+
 # B-02/B-03 — PHP domeny i katalogu: `AddHandler application/x-httpd-alt-phpXX` w .htaccess działa
 # w LiteSpeed dopiero, gdy serwer zna handler o id `alt-phpXX` (<phpConfig><phpHandler>). Bez niego
 # LSWS odpowiada 403 „MIME type … does not allow serving as static file” (test D3 na t1, 28.09).
@@ -2179,6 +2228,7 @@ configure_litespeed
 configure_hosting_capabilities
 configure_litespeed_alt_php
 configure_litespeed_throttling
+configure_dovecot_migration_master
 configure_php_expose
 configure_da_panel_firewall
 configure_http3_firewall

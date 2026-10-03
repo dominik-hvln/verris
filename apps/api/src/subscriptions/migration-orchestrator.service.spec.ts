@@ -119,6 +119,16 @@ describe('MigrationOrchestratorService', () => {
     );
   });
 
+  it('sama poczta: tylko IMAP_SYNC, bez testu strony (t1 03.10)', async () => {
+    prisma.subscription.findFirst.mockResolvedValue({ id: 'sub_1', userId: 'user_1', account: { domain: 'target.example' } });
+    await service().createBundle('sub_1', 'user_1', {
+      consentAccepted: true,
+      imap: [{ host: 'imap.stary.pl', port: 993, username: 'stary@stara.pl', email: 'biuro@target.example', password: 'p' }],
+    });
+    const createJobs = prisma.migrationRequest.create.mock.calls[0][0].data.workerJobs.create;
+    expect(createJobs.map((job: { kind: MigrationWorkerJobKind }) => job.kind)).toEqual([MigrationWorkerJobKind.IMAP_SYNC]);
+  });
+
   it('skips WP fixup when the bundle has no database sources', async () => {
     prisma.subscription.findFirst.mockResolvedValue({
       id: 'sub_1',

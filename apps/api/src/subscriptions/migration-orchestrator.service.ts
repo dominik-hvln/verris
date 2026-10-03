@@ -1815,7 +1815,9 @@ function buildWorkerJobs(
       payload: { index, username: source.username, targetDomain },
     });
   });
-  if (targetDomain) {
+  // Test strony tylko, gdy przenosimy stronę (pliki/bazy) — sama poczta nie zmienia tego, co serwuje domena
+  // (t1 03.10: migracja skrzynki pokazywała krok „Test działania strony”).
+  if (targetDomain && (dto.ftp || (dto.mysql?.length ?? 0) > 0)) {
     jobs.push({
       kind: MigrationWorkerJobKind.HTTP_POST_CHECK,
       status: MigrationWorkerJobStatus.QUEUED,
