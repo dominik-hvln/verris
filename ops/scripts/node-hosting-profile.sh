@@ -1776,12 +1776,32 @@ DAVB
       LSSEL=/usr/local/lsws/admin/misc/enable_ruby_python_selector.sh
       if [ -x /usr/local/lsws/bin/lswsctrl ] && [ -f "$LSSEL" ]; then
         bash "$LSSEL" >>/var/log/verris-app-selector.log 2>&1 || log_warn "enable_ruby_python_selector.sh — błąd (log: /var/log/verris-app-selector.log)"
-        brak=""
-        for py in /opt/alt/python3*/bin/python3; do
+        # Skrypt LSWS ma listę wersji na sztywno (t1 03.10: kończy się na 313 — python314 bez lswsgi, 503).
+        # Dla brakujących: ten sam pakiet CloudLinux, który instaluje skrypt (alt-pythonXY-wsgi-lsapi); gdy go nie ma,
+        # wersję wyłączamy w selektorze (`cloudlinux-selector disable-version`, `--help` na t1), żeby klient nie
+        # postawił aplikacji, która od razu daje 503. Po pojawieniu się pakietu: `enable-version` ręcznie.
+        brak="" wylaczone=""
+        for py in "${VERRIS_ALT_DIR:-/opt/alt}"/python3*/bin/python3; do
           [ -x "$py" ] || continue
-          [ -x "$(dirname "$py")/lswsgi" ] || brak="$brak $(basename "$(dirname "$(dirname "$py")")")"
+          local pdir pnaz pwer
+          pdir="$(dirname "$py")"; pnaz="$(basename "$(dirname "$pdir")")"
+          [ -x "$pdir/lswsgi" ] && continue
+          dnf install -y "alt-${pnaz}-wsgi-lsapi" >>/var/log/verris-app-selector.log 2>&1 || true
+          [ -x "$pdir/lswsgi" ] && continue
+          pwer="$("$py" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)"
+          if [ -n "$pwer" ] && cloudlinux-selector disable-version --json --interpreter python --version "$pwer" >>/var/log/verris-app-selector.log 2>&1; then
+            wylaczone="$wylaczone $pwer"
+          else
+            brak="$brak $pnaz"
+          fi
         done
-        if [ -z "$brak" ]; then log_ok "Python przez LiteSpeed (lswsgi)"; else log_warn "brak lswsgi dla:$brak — aplikacje Python na tych wersjach dadzą 503"; fi
+        if [ -n "$brak" ]; then
+          log_warn "brak lswsgi dla:$brak — aplikacje Python na tych wersjach dadzą 503 (nie udało się też wyłączyć ich w selektorze)"
+        elif [ -n "$wylaczone" ]; then
+          log_ok "Python przez LiteSpeed (lswsgi); bez lswsgi wyłączone w selektorze:$wylaczone"
+        else
+          log_ok "Python przez LiteSpeed (lswsgi)"
+        fi
       fi
     fi
   else

@@ -541,3 +541,44 @@ describe('profil węzła — konto master Dovecota dla migracji poczty (E-21, t1
     expect(spawnSync('test', ['-e', join(DD, 'conf.d', '91-verris-migracja.conf')]).status).not.toBe(0);
   });
 });
+
+describe('profil węzła — Python bez lswsgi (t1 03.10: python314 → 503)', () => {
+  const surowy = readFileSync(join(SKRYPTY, 'node-hosting-profile.sh'), 'utf8');
+  const start = surowy.indexOf('        brak="" wylaczone=""');
+  const koniec = surowy.indexOf('\n        fi\n', start) + '\n        fi\n'.length;
+  const blok = surowy.slice(start, koniec);
+  const DIR = mkdtempSync(join(tmpdir(), 'lswsgi-'));
+  const ALT = join(DIR, 'alt');
+  // python313 z lswsgi, python314 bez; atrapy dnf (pakiet niedostępny) i cloudlinux-selector (zapis wywołań).
+  for (const [nazwa, wer] of [['python313', '3.13'], ['python314', '3.14']]) {
+    mkdirSync(join(ALT, nazwa, 'bin'), { recursive: true });
+    writeFileSync(join(ALT, nazwa, 'bin', 'python3'), `#!/bin/sh\necho ${wer}\n`);
+    chmodSync(join(ALT, nazwa, 'bin', 'python3'), 0o755);
+  }
+  writeFileSync(join(ALT, 'python313', 'bin', 'lswsgi'), '');
+  chmodSync(join(ALT, 'python313', 'bin', 'lswsgi'), 0o755);
+  writeFileSync(join(DIR, 'dnf'), `#!/bin/sh\necho "dnf $*" >> "${DIR}/wywolania"\nexit 1\n`);
+  writeFileSync(join(DIR, 'cloudlinux-selector'), `#!/bin/sh\necho "cls $*" >> "${DIR}/wywolania"\n[ -f "${DIR}/CLS_BLAD" ] && exit 1\nexit 0\n`);
+  for (const b of ['dnf', 'cloudlinux-selector']) chmodSync(join(DIR, b), 0o755);
+  const uruchom = () =>
+    spawnSync('bash', ['-c', `log_ok(){ echo "[OK] $*"; }; log_warn(){ echo "[WARN] $*"; }; f(){ ${blok} }; f`], {
+      env: { ...process.env, PATH: `${DIR}:${process.env.PATH}`, VERRIS_ALT_DIR: ALT, HOME: DIR },
+      encoding: 'utf8',
+    });
+
+  it('brakujący lswsgi: najpierw pakiet CloudLinux, potem wyłączenie wersji w selektorze → [OK] z listą', () => {
+    writeFileSync(join(DIR, 'wywolania'), '');
+    const r = uruchom();
+    expect(r.stdout).toContain('[OK] Python przez LiteSpeed (lswsgi); bez lswsgi wyłączone w selektorze: 3.14');
+    const w = readFileSync(join(DIR, 'wywolania'), 'utf8');
+    expect(w).toContain('dnf install -y alt-python314-wsgi-lsapi');
+    expect(w).toContain('cls disable-version --json --interpreter python --version 3.14');
+    expect(w).not.toContain('python313');
+  });
+
+  it('selektor odmawia → [WARN] o 503 (nie udajemy sukcesu)', () => {
+    writeFileSync(join(DIR, 'CLS_BLAD'), '');
+    const r = uruchom();
+    expect(r.stdout).toContain('[WARN] brak lswsgi dla: python314');
+  });
+});
