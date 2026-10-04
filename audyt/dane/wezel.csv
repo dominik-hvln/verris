@@ -12,7 +12,7 @@ C-18,sprawdzone,2026-10-02,"29.09: lista FTP DA 1.710 = login@domena=ścieżka �
 C-21,sprawdzone,2026-10-01,"SSH kluczem z panelu, klatka CageFS potwierdzona | 01.10: fail2ban z utwardzania usunął CustomBuild 29.09 (options.conf fail2ban=no), BFM bez block_ip.sh nie blokuje — węzeł bez blokowania zgadywania haseł → 073123f (fail2ban przez CustomBuild). Retest po da build fail2ban."
 C-22,sprawdzone,2026-09-29,"SSH kluczem z panelu, klatka CageFS potwierdzona"
 C-25,sprawdzone,2026-09-29,"„Sklonuj” https://github.com/WordPress/hello-dolly.git do public_html/git-test → gotowe, H"
-C-27,czeka,,
+C-27,sprawdzone,2026-10-04,"04.10 t1: testpayload (prywatne, GitHub). „Utwórz klucz” → ssh-ed25519 verris-deploy@d3.hvln.pl; klon przed dodaniem klucza → czytelny błąd. Klon z kluczem: ssh: connect to host github.com port 22: Connection timed out (egress nft: TCP/22 tylko skuid 0) → poprawka 33e4722; ls-remote przez ssh.github.com:443 jako ovsekucx OK, odcisk ED25519 zgodny z opublikowanym przez GitHub. Po wdrożeniu: klon 11:42 → HEAD c681f57; curl d3.hvln.pl/payload/.git/config, .git/HEAD, .env.example → 403. Webhook (adres z panelu, nie przez czat) w GitHub Settings → Webhooks; commit „- TEST” w README → 11:46 „pobranie zmian (webhook) · gotowe”, HEAD 615cdbe, webhook „ostatnio 11:47”. Lista w panelu nie odświeżała się bez przeładowania — poprawka w panelu klienta."
 D-08,sprawdzone,2026-09-29,"Po 66a685a i przeinstalowaniu agenta: „Tylko odczyt” → SHOW GRANTS dla ovsekucx_test@localhost: SELECT, SHOW VIEW na ovsekucx_wp8664 (wcześniej ALL PRIVILEGES)."
 D-12,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
 D-15,sprawdzone,2026-09-29,29.09 po wdrożeniu: potwierdzone na t1 z panelu
