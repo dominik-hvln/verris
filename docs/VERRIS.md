@@ -12,6 +12,14 @@ nie źródło prawdy). Poza tym zostają tylko dokumenty operacyjne i prawne: `d
 
 ## Decyzje
 
+### 2026-10-04 — SPF klientów bez wspólnego rekordu `_spf.verris.pl` (PB-21)
+Decyzja właściciela (rekomendacja z testu na t1): nie zakładamy `_spf.verris.pl`. Kreator poczty proponuje
+klientom `v=spf1 a mx ip4:<IP węzła> ~all` — część `mx` sama nadąża za przeniesieniem konta na inny węzeł,
+a wspólny rekord to dodatkowe zapytanie DNS i lista IP floty do pilnowania. Wracamy do tematu, gdy węzłów
+będzie tyle, że limit 10 zapytań SPF albo zmiany IP zaczną boleć.
+verris.pl: zostaje jeden DMARC (`p=quarantine`, ścisłe dopasowanie — poczta panelu wychodzi z naszego IP
+z DKIM `default._domainkey.verris.pl`); duplikat `p=none` usunięty 04.10.
+
 ### 2026-09-26 — panel admina 1:1 z makiety: powłoka i pulpit (PB-34)
 Menu dokładnie jak w makiecie (Pulpit · Flota · Klienci i usługi · Finanse · Bezpieczeństwo i platforma). Strony
 spoza makiety nie znikają: są **zakładkami nad treścią** pod pozycją, do której należą tematycznie (np. „Kody
