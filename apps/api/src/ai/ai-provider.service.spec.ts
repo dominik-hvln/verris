@@ -100,4 +100,16 @@ describe('AiProviderService — dwa poziomy (L-11)', () => {
     // model bez ceny liczony drożej niż najdroższy znany — limit nie przepuści nieznanego kosztu
     expect(kosztUsd(k, 'nieznany', 1e6, 0)).toBeGreaterThan(4);
   });
+
+  it('beta wewnętrzna: AI_TYLKO_KONTA wpuszcza tylko konta testowe (dane innych klientów nie idą do AI przed PB-03)', async () => {
+    const aggregate = vi.fn(async () => ({ _sum: { costUsd: 0 } }));
+    const user = { findUnique: vi.fn(async ({ where }: { where: { id: string } }) => ({ email: where.id === 'tester' ? 'Tester@Hvln.pl' : 'obcy@firma.pl' })) };
+    const prisma = { platformSetting: { findUnique: vi.fn(async () => null) }, aiInteractionLog: { aggregate }, user };
+    const s = new AiProviderService(konfig({ AI_TYLKO_KONTA: 'tester@hvln.pl, kontakt@hvln.pl' }) as never, prisma as never);
+    expect(await s.przekroczonyLimitKlienta('tester')).toBeNull();
+    expect(await s.przekroczonyLimitKlienta('obcy')).toMatch(/w testach/);
+    expect(await s.przekroczonyLimitKlienta(null)).toMatch(/w testach/);
+    const wszyscy = new AiProviderService(konfig({}) as never, prisma as never);
+    expect(await wszyscy.kontoPozaTestemAi('obcy')).toBeNull();
+  });
 });

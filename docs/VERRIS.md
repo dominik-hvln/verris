@@ -20,6 +20,11 @@ Kolejność: domknięcie bez nowego serwera (5–16.10) → **beta wewnętrzna n
 AX102 9–20.11 → migracja kilku stron właściciela i dokumenty 23.11–4.12 → **otwarta beta na AX102
 7–20.12** (PB-26, PB-05) → zamrożenie świąteczne 21.12–3.01 → **decyzja GO 4–8.01.2027** → **start
 sprzedaży 11.01.2027**. Daty sprintów: `audyt/dane/konfiguracja.json` → `daty_sprintow`.
+Dalsze decyzje tego dnia: **drugi węzeł testowy t2** (Hetzner Cloud) od razu — kreator od czystego
+AlmaLinuksa i flota (PB-30/31/32/33/35, H-16) na t1 + t2, AX102 już tylko PB-02; **AI na betę wewnętrzną**
+— klucze w `.env.prod` z `AI_TYLKO_KONTA` (e-maile kont testowych) i `AI_EMBED_DISABLED=true` do publikacji
+dokumentów z podprocesorami AI; **transfer domeny (A-09)** prawdziwy w PB-05; **strict egress** najpierw
+48 h w trybie logowania; beta wewnętrzna: właściciel + 2–3 zaufane osoby (zaproszenia z panelu admina).
 
 ### 2026-10-04 — SPF klientów bez wspólnego rekordu `_spf.verris.pl` (PB-21)
 Decyzja właściciela (rekomendacja z testu na t1): nie zakładamy `_spf.verris.pl`. Kreator poczty proponuje

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { AiInteractionStatus, Prisma } from '@verris/database';
 import type {
   ForecastConfidence,
@@ -29,6 +29,8 @@ export class AiService {
       },
     });
     if (!ticket) throw new NotFoundException('Ticket not found');
+    const poza = await this.provider.kontoPozaTestemAi(ticket.userId);
+    if (poza) throw new ServiceUnavailableException(poza);
     const system = [
       'Jesteś asystentem BOK Verris. Zwracasz wyłącznie JSON w kształcie',
       '{"szkic": "treść odpowiedzi do klienta po polsku", "checklista": ["co operator ma sprawdzić przed wysłaniem"]}.',

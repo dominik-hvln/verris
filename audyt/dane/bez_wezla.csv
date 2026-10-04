@@ -14,8 +14,8 @@ L-10,PRODUKCJA,zdarzenie rozliczeń (invoice.issued) przy pierwszej fakturze —
 N-10,PRODUKCJA,wpis SUPPRESSED przy pierwszym alercie limitu (przełącznik zapisany 26.09; alert wymaga telemetrii węzła)
 O-06,PRODUKCJA,konto klienta założone przez resellera testowego na produkcji
 PB-11,PRODUKCJA,alert testowy dociera e-mailem
-L-11,WŁAŚCICIEL,klucze AI w .env.prod po publikacji dokumentów 1.1.0 (PB-03)
-L-12,WŁAŚCICIEL,j.w. — prognoza idzie tym samym kluczem
+L-11,WŁAŚCICIEL,decyzja 04.10: klucze w .env.prod teraz z AI_TYLKO_KONTA (tylko konta bety wewnętrznej); dla wszystkich po publikacji dokumentów z podprocesorami AI (PB-03)
+L-12,WŁAŚCICIEL,decyzja 04.10: klucze w .env.prod teraz z AI_TYLKO_KONTA (tylko konta bety wewnętrznej); dla wszystkich po publikacji dokumentów z podprocesorami AI (PB-03)
 P-15,WŁAŚCICIEL,"Hetzner: potwierdzić, że accounts.hetzner.com → Data protection pokazuje zawartą umowę powierzenia (data); reszta potwierdzona przez właściciela 27.09"
 Q-01,WŁAŚCICIEL,decyzja: włączyć program EKO czy zostawić za flagą
 A-14,WŁAŚCICIEL,decyzja: płatne ukrycie WHOIS (wybór: po starcie)
@@ -25,13 +25,13 @@ P-14,WŁAŚCICIEL,ISO 27001 — decyzja organizacyjna (wybór: po starcie)
 PB-04,WŁAŚCICIEL,skrzynka abuse@verris.pl i test zgłoszenia
 PB-06,WŁAŚCICIEL,akceptacja treści /przenies-strone i publikacja
 PB-07,WŁAŚCICIEL,akceptacja treści i włączenie /specyfikacja
-PB-08,WŁAŚCICIEL,GA4 → Czas rzeczywisty: odsłona verris.pl widoczna (wysyłka potwierdzona 27.09); purchase przy pierwszej prawdziwej płatności
+PB-08,WŁAŚCICIEL,GA4 → Czas rzeczywisty sprawdza Claude przez Chrome (decyzja 04.10); purchase przy pierwszej prawdziwej płatności
 PB-09,WŁAŚCICIEL,"seed wykonany 27.09 (13 kategorii, 38 artykułów); artykuły o domenach prawdziwe po włączeniu OpenProvider"
 PB-10,WŁAŚCICIEL,"kampania Google Ads — technicznie bez węzła, ale uruchamiamy przy starcie"
 P-11,WŁAŚCICIEL,zatwierdzone 27.09 — rcpd.md 1.2 (sekcje D i E) + przypomnienie w adminie
 PB-03,WŁAŚCICIEL,"decyzje podjęte 27.09 (1.1.0, ClouDNS po starcie) — publikacja skryptem w dniu startu"
 PB-24,WŁAŚCICIEL,"zakres zdecydowany 27.09 (DNS + domeny + chmura); zostaje e-Doręczenia, telefon 24/7 i złożenie wniosku po przesłance"
-SEC-01,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
+SEC-01,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł | decyzja 04.10: strict najpierw 48 h w trybie logowania odmów, blokada po OK właściciela"
 SEC-02,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
 SEC-03,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
 SEC-04,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"

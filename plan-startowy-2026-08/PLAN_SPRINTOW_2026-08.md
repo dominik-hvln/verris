@@ -402,7 +402,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 # Faza 3 — Wejście na rynek
 
-*Sprinty 15–19 · 251 h · 2026-10-05 – 2026-12-04*
+*Sprinty 15–19 · 312 h · 2026-10-05 – 2026-12-04*
 
 Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, baza wiedzy, przejście ścieżki pierwszego klienta na produkcji i zapisana decyzja GO.
 
@@ -427,7 +427,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 ## Sprint 16 — Strict egress na control-plane
 
-`2026-10-12 – 2026-10-16` · **60 h** z 30 h pojemności
+`2026-10-12 – 2026-10-16` · **121 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -436,7 +436,13 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `SEC-01` | Tryb `--strict` jest atrapą | 16 | WYSOKA | security-control-plane-egress.sh — apply_strict_allowlist: DROP bez testu cgroup, kontrola po fakcie (iptables -S; brak reguly = exit 1), warunek wste |
 | `SEC-06` | Allowlista pokrywa to, o czym ktoś pomyślał, nie to, co host robi | 16 | WYSOKA | ipset test verris_egress_https na 4 celach z logu egressu |
 | `SEC-02` | Stripe jest w allowliście wyłącznie po nazwie, a ipset powstaje z rozwiązania nazw | 6 | ŚREDNIA | `egress-allow-hostnames.txt`; ipset `verris_egress_https` = 65 wpisów |
+| `NODE-02` | `main()` nie sprawdza kodów powrotu | 6 | WYSOKA | ops/scripts/lib/przerwij-po-etapie.sh — przerwij_po_etapie zamienia zebrane [FAIL] w exit 1; node-onboard-live.sh main() — bramka po preflight_stack,  |
 | `PB-23` | Każdy widok osiągalny z menu (klient, admin, staff) | 10 | ŚREDNI | Zasada właściciela 2026-09-23: żaden ekran nie może wymagać szukania po panelu. Przegląd wszystkich tras (page.tsx) w trzech panelach i ich wejść w me |
+| `PB-30` | Jeden plik wersji dla floty + test zgodności | 12 | WYSOKI | Decyzja właściciela 2026-09-26: manifest z przypiętymi wersjami (kanał i commit DirectAdmin, LiteSpeed, PHP, MariaDB, reguły CRS), szablon options.con |
+| `PB-31` | Pełna automatyzacja kreatora węzła | 20 | WYSOKI | Decyzja właściciela 2026-09-26: po jednej linijce reszta sama — onboard, profil, kopie off-site bez ręcznego rclone config, klucz logowania DA, IP w D |
+| `PB-32` | Aktualizacje węzłów falami | 8 | ŚREDNI | Decyzja właściciela 2026-09-26: najpierw węzeł kanarkowy, potem reszta po jednym; prawdziwy status (dziś skrypt zawsze zwraca ok); aktualizacje z pane |
+| `PB-33` | Wersje stosu floty w panelu + wyrównanie falą | 12 | WYSOKI | Decyzja właściciela 2026-09-26: strona „Wersje stosu floty” w panelu admina (DB, PHP, LiteSpeed, DirectAdmin) z dozwolonymi wartościami z oficjalnych  |
+| `PB-35` | Automatyczna fala aktualizacji węzłów co tydzień | 3 | WYSOKI | Decyzja właściciela 2026-09-26: fala rusza sama we wtorki o 4:00 (kanarek → reszta po jednym, błąd zatrzymuje, powiadomienie). Węzły same już niczego  |
 
 **Definicja ukończenia**
 
@@ -445,10 +451,16 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - `SEC-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `SEC-06` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `SEC-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `NODE-02` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `PB-23` — Lista tras vs menu dla trzech paneli bez luk; test-strażnik czerwony po dodaniu trasy bez wejścia w nawigacji.
+- `PB-30` — Dwa węzły z tego samego manifestu dają identyczny raport wersji; różnica widoczna w panelu.
+- `PB-31` — Węzeł testowy od czystego AlmaLinux do zielonego raportu bez SSH ręcznie.
+- `PB-32` — Fala zatrzymuje się na pierwszym błędzie; status w panelu zgodny z logiem.
+- `PB-33` — Zmiana wersji w panelu → nowy węzeł instaluje ją, istniejące wyrównane falą; audyt zgodności zielony.
+- `PB-35` — Fala startuje sama w oknie; zatrzymanie widoczne w powiadomieniach admina.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
-**Ryzyko sprintu.** Kod SEC-05/04/01 gotowy 2026-09-22 (pomiar na produkcji od 09:23 UTC). Tutaj: allowlista z kilku tygodni pelnego pomiaru (SEC-06), odswiezanie adresow Stripe (SEC-02), wlaczenie --strict (warunek wstepny w skrypcie sam odmowi, jesli pomiar widzi cele spoza listy). | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze.
+**Ryzyko sprintu.** Kod SEC-05/04/01 gotowy 2026-09-22 (pomiar na produkcji od 09:23 UTC). Tutaj: allowlista z kilku tygodni pelnego pomiaru (SEC-06), odswiezanie adresow Stripe (SEC-02), wlaczenie --strict (warunek wstepny w skrypcie sam odmowi, jesli pomiar widzi cele spoza listy). | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. | 2026-10-04 DECYZJA WŁAŚCICIELA: drugi węzeł testowy t2 (Hetzner Cloud, czysty AlmaLinux 10) teraz — kreator od zera (PB-31, NODE-02), flota na t1 + t2 (PB-30/32/33/35), H-16 między t1 a t2. AX102 w sprincie 21 już tylko PB-02.
 
 ## Sprint 17 — Dokumenty prawne, DPA i naduzycia
 

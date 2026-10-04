@@ -108,8 +108,29 @@ export class AiProviderService {
     return Number(agg._sum.costUsd ?? 0);
   }
 
+  /**
+   * Beta wewnętrzna (decyzja 2026-10-04): AI_TYLKO_KONTA = e-maile kont testowych po przecinku. Dopóki dokumenty
+   * z OpenAI/Anthropic jako podprocesorami (PB-03) nie są opublikowane, dane innych klientów nie idą do AI.
+   * Puste = AI dla wszystkich. null = wolno; tekst = powód odmowy.
+   */
+  async kontoPozaTestemAi(userId: string | null | undefined): Promise<string | null> {
+    const lista = (this.config.get<string>('AI_TYLKO_KONTA') ?? '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+    if (!lista.length) return null;
+    const email = userId
+      ? await this.prisma?.user.findUnique({ where: { id: userId }, select: { email: true } }).then((u) => u?.email?.toLowerCase())
+      : undefined;
+    return email && lista.includes(email)
+      ? null
+      : 'Asystent AI jest jeszcze w testach — wkrótce będzie dostępny na każdym koncie. Do tego czasu chętnie pomożemy w zgłoszeniu.';
+  }
+
   /** null = mieści się w limicie; tekst = powód odmowy (pokazywany klientowi). */
   async przekroczonyLimitKlienta(userId: string | null | undefined): Promise<string | null> {
+    const poza = await this.kontoPozaTestemAi(userId);
+    if (poza) return poza;
     if (!userId) return null;
     const { limitKlientaUsd } = await this.konfiguracja();
     if (limitKlientaUsd <= 0) return null;
