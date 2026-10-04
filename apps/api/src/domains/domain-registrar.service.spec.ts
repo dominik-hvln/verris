@@ -81,3 +81,10 @@ describe('DomainRegistrarService', () => {
     expect(Number(q.amount)).toBeGreaterThan(0);
   });
 });
+
+describe('opis okresu domeny w historii portfela (t1 04.10: „1 lata/lat”)', () => {
+  it.each([[1, '1 rok'], [2, '2 lata'], [4, '4 lata'], [5, '5 lat'], [10, '10 lat'], [12, '12 lat'], [22, '22 lata']])('%i → %s', async (n, opis) => {
+    const { lata } = await import('./domain-registrar.service.js');
+    expect(lata(n)).toBe(opis);
+  });
+});

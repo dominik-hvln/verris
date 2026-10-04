@@ -35,6 +35,10 @@ import {
 } from './registrar.provider.js';
 import { EcoPointsService } from '../eco/eco-points.service.js';
 
+/** Opis operacji w historii portfela: „1 rok”, „2 lata”, „5 lat”. */
+export const lata = (n: number) =>
+  `${n} ${n === 1 ? 'rok' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'lata' : 'lat'}`;
+
 @Injectable()
 export class DomainRegistrarService {
   private readonly logger = new Logger(DomainRegistrarService.name);
@@ -237,7 +241,7 @@ export class DomainRegistrarService {
     });
 
     // 2. Charge the wallet (fail-closed: no funds → no registration).
-    const tx = await this.charge(userId, order, price, `Rejestracja domeny ${domain} (${years} lata/lat)`);
+    const tx = await this.charge(userId, order, price, `Rejestracja domeny ${domain} (${lata(years)})`);
 
     // 3. Call the registrar; refund + fail the order on provider error.
     let result: RegistrarOrderResult;
@@ -536,7 +540,7 @@ export class DomainRegistrarService {
       });
     });
 
-    const tx = await this.charge(userId, order, price, `Odnowienie domeny ${domain.name} (${years} lata/lat)`);
+    const tx = await this.charge(userId, order, price, `Odnowienie domeny ${domain.name} (${lata(years)})`);
 
     let result: RegistrarOrderResult;
     try {
