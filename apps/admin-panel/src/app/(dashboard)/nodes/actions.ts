@@ -323,7 +323,7 @@ export async function fetchNodeStackReadiness(id: string) {
 
 export async function repairNodeStackPackages(id: string) {
   try {
-    const data = await adminApi<{ synced: string[] }>(
+    const data = await adminApi<{ synced: string[]; przywroconeSsh?: number }>(
       `/admin/servers/${id}/stack-readiness/repair-packages`,
       { method: "POST" },
     );

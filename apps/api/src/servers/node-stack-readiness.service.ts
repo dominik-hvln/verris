@@ -8,7 +8,7 @@ import type {
   NodeStackReadinessDto,
   NodeStackServiceCheckDto,
 } from '@verris/contracts';
-import { NodeTaskKind, Server, ServerStatus } from '@verris/database';
+import { AccountStatus, NodeTaskKind, NodeTaskStatus, Server, ServerStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DirectAdminService } from './directadmin.service.js';
 import { NodeTasksService } from './node-tasks.service.js';
@@ -76,7 +76,45 @@ export class NodeStackReadinessService {
   }
 
   async repairDaPackages(serverId: string) {
-    return this.da.syncPlanPackagesForServer(serverId, { nadpisz: true });
+    const wynik = await this.da.syncPlanPackagesForServer(serverId, { nadpisz: true });
+    // DA przy zapisie pakietu nakłada go ponownie na wszystkich jego użytkowników — ssh=OFF z planu zdejmuje
+    // SSH włączone przez klienta (t1 02.10: powłoka /bin/false po synchronizacji pakietów). Przywracamy je tym
+    // samym zadaniem węzła co przełącznik w panelu klienta, dla kont, których ostatnia zmiana SSH to „włącz”.
+    const przywroconeSsh = await this.przywrocSshPoPakietach(serverId);
+    return { ...wynik, przywroconeSsh };
+  }
+
+  private async przywrocSshPoPakietach(serverId: string): Promise<number> {
+    const konta = await this.prisma.account.findMany({
+      where: { serverId, status: AccountStatus.ACTIVE },
+      select: { id: true, daUsername: true },
+    });
+    let ile = 0;
+    for (const konto of konta) {
+      const zadania = await this.prisma.nodeTask.findMany({
+        where: { accountId: konto.id, kind: NodeTaskKind.SSH_ACCESS },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        select: { status: true, payload: true },
+      });
+      if (zadania.some((z) => z.status === NodeTaskStatus.QUEUED || z.status === NodeTaskStatus.RUNNING)) continue;
+      const tryb = zadania
+        .filter((z) => z.status === NodeTaskStatus.COMPLETED)
+        .map((z) => ((z.payload ?? {}) as { mode?: string }).mode)
+        .find((m) => m === 'enable' || m === 'disable');
+      if (tryb !== 'enable') continue;
+      await this.prisma.nodeTask.create({
+        data: {
+          serverId,
+          accountId: konto.id,
+          kind: NodeTaskKind.SSH_ACCESS,
+          status: NodeTaskStatus.QUEUED,
+          payload: { mode: 'enable', daUser: konto.daUsername, powod: 'przywrocenie-po-pakietach' },
+        },
+      });
+      ile += 1;
+    }
+    return ile;
   }
 
   private resolveProbeHost(server: Server): string {

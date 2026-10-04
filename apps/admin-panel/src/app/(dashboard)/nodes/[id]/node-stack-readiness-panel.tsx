@@ -95,10 +95,12 @@ export function NodeStackReadinessPanel({
         setError(result.error);
         return;
       }
+      const ssh = result.data?.przywroconeSsh ?? 0;
       setRepairMsg(
-        result.data?.synced?.length
+        (result.data?.synced?.length
           ? `Pakiety DA zsynchronizowane: ${result.data.synced.join(", ")}.`
-          : "Pakiety DA zsynchronizowane.",
+          : "Pakiety DA zsynchronizowane.") +
+          (ssh > 0 ? ` Przywracamy SSH na ${ssh} ${ssh === 1 ? "koncie" : "kontach"} (pakiet je wyłączył).` : ""),
       );
       await load();
     });
