@@ -109,6 +109,8 @@ export async function searchDomainsAction(label: string) {
   return apiFetch<DomainSearchResultDto[]>('/domains/registrar/search', {
     method: 'POST',
     body: JSON.stringify({ label }),
+    // Rejestrator pytany o ~30 końcówek z cenami odnowienia; domyślne 20 s ucinało wynik (t1 04.10).
+    timeoutMs: 40_000,
   });
 }
 

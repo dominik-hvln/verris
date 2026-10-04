@@ -290,6 +290,7 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
       `/v1/domains/prices?${qs.toString()}`,
       null,
       'GET',
+      OP_CHECK_TIMEOUT_MS,
     );
     const price = res.data?.price?.reseller ?? res.data?.price?.product;
     if (!price) {
@@ -458,8 +459,11 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
 
 /** Bez limitu zawieszone zapytanie trzymało wyszukiwarkę do 504 bramki OpenProvidera (~60 s). */
 const OP_TIMEOUT_MS = 30_000;
-/** Sprawdzenie dostępności: zdrowa odpowiedź ~1,3 s (sandbox 04.10); paczka + pojedyncze mieszczą się w ~16 s. */
-const OP_CHECK_TIMEOUT_MS = 8_000;
+/**
+ * Odczyty (dostępność, ceny): zdrowa odpowiedź ~1,3 s (sandbox 04.10). Paczka + pojedyncze + ceny odnowienia
+ * mieszczą się w ~18 s — poniżej budżetu wyszukiwarki w panelu (t1 04.10: przy 8 s panel ucinał po 20 s).
+ */
+const OP_CHECK_TIMEOUT_MS = 6_000;
 
 interface OpPrice {
   price: number;
