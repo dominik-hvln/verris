@@ -47,6 +47,9 @@ export class AssistantService {
             domain: true,
             diskLimitMb: true,
             status: true,
+            scaledCpu: true,
+            scaledRamMb: true,
+            scaledDiskMb: true,
             server: { select: { lastOffsiteBackupAt: true, lastOffsiteBackupOk: true } },
           },
         },
@@ -56,7 +59,19 @@ export class AssistantService {
     });
     if (!sub) throw new NotFoundException('Service not found');
     const account = sub.account;
-    if (!account || account.status !== 'ACTIVE') return [];
+    const usluga = {
+      id: subscriptionId,
+      provisioningFailed: sub.provisioningStage === 'failed',
+      autoscalingEnabled: sub.autoscalingEnabled,
+      usedScaling: !!account && (account.scaledCpu > 0 || account.scaledRamMb > 0 || account.scaledDiskMb > 0),
+      active: sub.status === 'ACTIVE',
+    };
+    if (!account || account.status !== 'ACTIVE') {
+      // Nieudane zakładanie nie ma jeszcze aktywnego konta — klient i tak musi o tym wiedzieć.
+      return usluga.provisioningFailed
+        ? buildHints({ now: new Date(), domain: null, disk: null, tlsExpiresAt: null, domainExpiry: null, backup: null, pointing: null, mail: [], usesPlatformDns: null, usluga })
+        : [];
+    }
 
     const [domainRow, pointing, mail] = await Promise.all([
       account.domain
@@ -79,6 +94,7 @@ export class AssistantService {
       pointing: pointing ? { status: pointing.status, message: pointing.message } : null,
       mail: (mail?.checks ?? []).map((c) => ({ key: c.key, status: c.status, detail: c.detail, suggestion: c.suggestion })),
       usesPlatformDns: mail?.usesPlatformDns ?? null,
+      usluga,
     });
   }
 

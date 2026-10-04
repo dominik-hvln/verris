@@ -69,4 +69,14 @@ describe('PB-17 reguły dymków asystenta', () => {
   it('krytyczne idą przed ostrzeżeniami', () => {
     expect(keys({ disk: { usedMb: 990, limitMb: 1000 }, tlsExpiresAt: inDays(10) })).toEqual(['disk:crit', 'ssl:warn']);
   });
+
+  it('jeden asystent (04.10): zakładanie, autoskalowanie i plan z dawnego bloku przeglądu', () => {
+    const u = { id: 's1', provisioningFailed: false, autoscalingEnabled: false, usedScaling: false, active: true };
+    expect(keys({ usluga: u })).toEqual([]);
+    expect(keys({ usluga: { ...u, usedScaling: true } })).toEqual(['autoscaling:warn']);
+    expect(keys({ usluga: { ...u, usedScaling: true, autoscalingEnabled: true } })).toEqual(['plan:info']);
+    // krytyczne zakładanie przed wszystkim, informacja na końcu
+    expect(keys({ usluga: { ...u, provisioningFailed: true }, disk: { usedMb: 860, limitMb: 1000 } })).toEqual(['provisioning:crit', 'disk:warn']);
+    expect(buildHints({ ...base, usluga: { ...u, usedScaling: true } })[0].action).toEqual({ kind: 'href', label: 'Ustaw autoskalowanie', href: '/dashboard/services/s1/autoscaling' });
+  });
 });

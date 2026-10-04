@@ -7,7 +7,7 @@
 
 import { canAccessDashboardRoute, canShowWalletBalance } from '@/lib/client-nav-access';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { AlertTriangle, ArrowRight, ChevronRight, Plus } from 'lucide-react';
 import type { ServiceSummaryDto } from '@verris/contracts';
 import { CREDIT_RATE_INFO, formatCredits } from '@/lib/credits';
@@ -79,6 +79,35 @@ function checks(s: ServiceSummaryDto): { label: string; ok: boolean }[] {
   return all.filter((x): x is [string, boolean] => x[1] !== null).map(([label, ok]) => ({ label, ok }));
 }
 
+type HintUslugi = { s: ServiceSummaryDto; r: { title: string; body: string }; pilne: boolean };
+
+/** Podpowiedzi asystenta dla aktywnych usług (do 6), najpierw pilne. Przez route handler jak AssistantHint. */
+function useHintyUslug(services: ServiceSummaryDto[]): HintUslugi[] {
+  const [hinty, setHinty] = useState<HintUslugi[]>([]);
+  const aktywne = services.filter((s) => s.status === 'ACTIVE').slice(0, 6);
+  const klucz = aktywne.map((s) => s.id).join(',');
+  useEffect(() => {
+    let zywy = true;
+    void Promise.all(
+      aktywne.map((s) =>
+        fetch(`/api/services/${s.id}/assistant-hints`, { cache: 'no-store' })
+          .then((r) => (r.ok ? (r.json() as Promise<{ title: string; detail: string; severity: string }[]>) : []))
+          .catch(() => [] as { title: string; detail: string; severity: string }[])
+          .then((lista) =>
+            lista.filter((h) => h.severity !== 'info').map((h) => ({ s, r: { title: h.title, body: h.detail }, pilne: h.severity === 'crit' })),
+          ),
+      ),
+    ).then((wyniki) => {
+      if (zywy) setHinty(wyniki.flat().sort((a, b) => Number(b.pilne) - Number(a.pilne)));
+    });
+    return () => {
+      zywy = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- klucz = lista id aktywnych usług
+  }, [klucz]);
+  return hinty;
+}
+
 export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot; aside?: ReactNode }) {
   // N-12: moduł EKO może wyłączyć operator flagą (brak flagi = jak dotąd).
   const ekoWidoczny = useModul('modul.eco');
@@ -126,14 +155,9 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
     return snapshot.tickets.filter((t) => new Date(t.createdAt).toDateString() === key).length;
   });
 
-  // Asystent: najważniejsza rekomendacja ze wszystkich usług (to samo źródło co wcześniej ProactiveHints).
-  const hints = services
-    .flatMap((s) =>
-      (s.recommendations ?? [])
-        .filter((r) => r.severity === 'warning' || r.severity === 'critical')
-        .map((r) => ({ s, r })),
-    )
-    .sort((a, b) => (b.r.severity === 'critical' ? 1 : 0) - (a.r.severity === 'critical' ? 1 : 0));
+  // Asystent: to samo źródło co dymek na stronie usługi (PB-17, /assistant-hints) — od 04.10 jeden asystent;
+  // wcześniej pulpit czytał rekomendacje i mówił „wszystko pod kontrolą”, gdy usługa miała brak DMARC.
+  const hints = useHintyUslug(services);
   const next = hints[0];
 
   const bez = { ...snapshot.bezDostepu, ...(canShowWalletBalance(navCtx) ? {} : { wallet: true as const }) };

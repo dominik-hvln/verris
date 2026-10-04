@@ -4,7 +4,7 @@ import { apiFetch, ApiError } from '@/lib/api';
 
 export interface AssistantHint {
   key: string;
-  severity: 'crit' | 'warn';
+  severity: 'crit' | 'warn' | 'info';
   title: string;
   detail: string;
   action?:

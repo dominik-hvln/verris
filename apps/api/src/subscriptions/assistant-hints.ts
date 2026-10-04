@@ -4,7 +4,7 @@
  */
 import type { MailAuthSuggestion } from '../deliverability/mail-auth.js';
 
-export type HintSeverity = 'crit' | 'warn';
+export type HintSeverity = 'crit' | 'warn' | 'info';
 
 export type HintAction =
   | { kind: 'fix'; label: string; preview: MailAuthSuggestion }
@@ -12,7 +12,7 @@ export type HintAction =
   | { kind: 'href'; label: string; href: string };
 
 export interface AssistantHint {
-  key: 'ssl' | 'pointing' | 'disk' | 'backup' | 'domain-expiry' | 'spf' | 'dmarc' | 'dkim';
+  key: 'provisioning' | 'ssl' | 'pointing' | 'disk' | 'backup' | 'domain-expiry' | 'spf' | 'dmarc' | 'dkim' | 'autoscaling' | 'plan';
   severity: HintSeverity;
   title: string;
   detail: string;
@@ -30,10 +30,15 @@ export interface HintInput {
   /** Kontrole SPF/DKIM/DMARC z DeliverabilityService. */
   mail: { key: string; status: 'ok' | 'warn' | 'fail'; detail: string; suggestion?: MailAuthSuggestion }[];
   usesPlatformDns: boolean | null;
+  /**
+   * Dawny blok „Asystent” przeglądu usługi (buildServiceRecommendations) — od 04.10 jeden asystent:
+   * reguły, których nie pokrywają powyższe (zakładanie, autoskalowanie, plan). Brak = pomijamy.
+   */
+  usluga?: { id: string; provisioningFailed: boolean; autoscalingEnabled: boolean; usedScaling: boolean; active: boolean };
 }
 
 const DAY = 86_400_000;
-const ORDER: AssistantHint['key'][] = ['ssl', 'pointing', 'disk', 'backup', 'domain-expiry', 'spf', 'dmarc', 'dkim'];
+const ORDER: AssistantHint['key'][] = ['provisioning', 'ssl', 'pointing', 'disk', 'backup', 'domain-expiry', 'spf', 'dmarc', 'dkim', 'autoscaling', 'plan'];
 const days = (ms: number) => Math.ceil(ms / DAY);
 const plDays = (n: number) => `${n} ${n === 1 ? 'dzień' : 'dni'}`;
 
@@ -129,6 +134,35 @@ export function buildHints(i: HintInput): AssistantHint[] {
     });
   }
 
-  const rank = (h: AssistantHint) => (h.severity === 'crit' ? 0 : 100) + ORDER.indexOf(h.key);
+  const u = i.usluga;
+  if (u?.provisioningFailed) {
+    out.push({
+      key: 'provisioning',
+      severity: 'crit',
+      title: 'Zakładanie usługi wymaga naszej interwencji',
+      detail: 'Widzimy szczegóły błędu i już się tym zajmujemy. Nie zamawiaj ponownie tej samej domeny.',
+      action: { kind: 'href', label: 'Napisz do nas', href: '/dashboard/support' },
+    });
+  }
+  if (u && !u.autoscalingEnabled && u.usedScaling) {
+    out.push({
+      key: 'autoscaling',
+      severity: 'warn',
+      title: 'Włącz autoskalowanie',
+      detail: 'Usługa korzystała już z podwyższonych limitów. Autoskalowanie ograniczy ryzyko błędów 508 przy skokach ruchu.',
+      action: { kind: 'href', label: 'Ustaw autoskalowanie', href: `/dashboard/services/${u.id}/autoscaling` },
+    });
+  } else if (u && u.autoscalingEnabled && u.usedScaling && u.active) {
+    out.push({
+      key: 'plan',
+      severity: 'info',
+      title: 'Rozważ wyższy plan',
+      detail: 'Usługa regularnie korzysta z autoskalowania (dopłaty godzinowe). Wyższy plan ze stałą ceną może być tańszy i bardziej przewidywalny.',
+      action: { kind: 'href', label: 'Zobacz plany', href: `/dashboard/services/${u.id}/plan` },
+    });
+  }
+
+  const waga: Record<HintSeverity, number> = { crit: 0, warn: 100, info: 200 };
+  const rank = (h: AssistantHint) => waga[h.severity] + ORDER.indexOf(h.key);
   return out.sort((a, b) => rank(a) - rank(b));
 }

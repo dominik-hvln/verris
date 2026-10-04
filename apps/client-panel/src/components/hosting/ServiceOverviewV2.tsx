@@ -511,8 +511,6 @@ export default function ServiceOverviewV2({
           </Box>
           </div>
 
-          <AssistantBubble recommendations={service.recommendations} serviceId={serviceId} onNavigate={onNavigate} />
-
           <Box
             title="Dane dostępowe"
           >
@@ -634,59 +632,3 @@ function EventsFeed({ events }: { events: ServiceDetailsDto['events'] }) {
   );
 }
 
-/** Dymek asystenta (wzorzec) — rekomendacje usługi zamiast osobnej karty. */
-function AssistantBubble({
-  recommendations,
-  serviceId,
-  onNavigate,
-}: {
-  recommendations: ServiceDetailsDto['recommendations'];
-  serviceId: string;
-  onNavigate: (tab: string) => void;
-}) {
-  const items = recommendations.filter((r) => !(r.severity === 'info' && r.title.startsWith('Usługa działa')));
-  const first = items[0];
-  const act = (type: string) => {
-    if (type === 'plan') return { label: 'Zobacz plany', href: `/dashboard/services/${serviceId}/plan` };
-    if (type === 'autoscaling') return { label: 'Ustaw autoskalowanie', href: `/dashboard/services/${serviceId}/autoscaling` };
-    if (type === 'backup') return { label: 'Przejdź do kopii', tab: 'backups' };
-    return { label: 'Sprawdź domenę i DNS', tab: 'domains' };
-  };
-  return (
-    <section aria-label="Asystent">
-      <SectionHead title="Asystent" />
-      <div className="v2-comet relative rounded-[10px] border border-primary/30 bg-card p-4 shadow-[0_0_0_1px_rgba(52,229,160,0.08),0_18px_40px_-22px_rgba(0,0,0,0.8)]" style={comet('b', 10, -6, 0.8)}>
-        <Label className="mb-2">{first ? 'zauważyłem' : 'na dziś'}</Label>
-        {first ? (
-          <>
-            <p className="mb-3 text-[14.5px] text-foreground">
-              <b className="font-semibold">{first.title}</b>
-              <br />
-              <span className="text-[13.5px] text-muted-foreground">{first.body}</span>
-            </p>
-            {(() => {
-              const a = act(first.type);
-              return a.href ? (
-                <Link href={a.href} className={BTN_SM.replace('bg-card', 'bg-primary text-primary-foreground border-primary font-semibold')}>{a.label}</Link>
-              ) : (
-                <button type="button" onClick={() => onNavigate(a.tab!)} className={BTN_SM.replace('bg-card', 'bg-primary text-primary-foreground border-primary font-semibold')}>{a.label}</button>
-              );
-            })()}
-            {items.length > 1 ? (
-              <ul className="mt-3 list-none space-y-1 p-0 text-[12.5px] text-muted-foreground">
-                {items.slice(1, 4).map((r, i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <span className={`h-1.5 w-1.5 rounded-full ${r.severity === 'critical' ? 'bg-crit' : r.severity === 'warning' ? 'bg-warn' : 'bg-data'}`} />
-                    {r.title}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </>
-        ) : (
-          <p className="text-[14.5px] text-foreground">Wszystko pod kontrolą. Pilnujemy DNS, SSL, kopii i obciążenia — damy znać, gdy coś będzie wymagać uwagi.</p>
-        )}
-      </div>
-    </section>
-  );
-}
