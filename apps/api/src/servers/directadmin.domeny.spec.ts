@@ -74,6 +74,14 @@ describe('DNS (CMD_API_DNS_CONTROL)', () => {
     await expect(z.svc.deleteHostingDnsRecord('s1', 'u1', { domain: 'firma.pl', name: 'x', type: 'A', value: '1.2.3.4' })).rejects.toThrow('nie usunął');
   });
 
+  it('usunięcie zapisem ze strefy — t1 04.10: „Cofnij” asystenta podawał _dmarc bez cudzysłowów, DA nic nie usunął, panel „cofnięto”', async () => {
+    const rek = { name: '_dmarc', type: 'TXT', value: '"v=DMARC1; p=quarantine"' };
+    const s = stanowisko({ get: { '/CMD_API_DNS_CONTROL': { records: [rek] } } });
+    await expect(s.svc.deleteHostingDnsRecord('s1', 'u1', { domain: 'firma.pl', name: '_dmarc.firma.pl.', type: 'TXT', value: 'v=DMARC1; p=quarantine' }))
+      .rejects.toThrow('nie usunął'); // strefa w atrapie się nie zmienia — kontrola po zapisie łapie rekord mimo innego zapisu
+    expect(s.wyslane().txtrecs0).toBe(`name=_dmarc&value=${encodeURIComponent('"v=DMARC1; p=quarantine"')}`);
+  });
+
   it('edycja: jedno action=edit ze starym rekordem w <typ>recs0 — także zmiana samego TTL; sprawdzenie strefy po zapisie', async () => {
     const val = '0 issue "letsencrypt.org"';
     const s = stanowisko({ get: { '/CMD_API_DNS_CONTROL': { records: [{ name: '@', type: 'CAA', value: val, ttl: '1800' }] } } });

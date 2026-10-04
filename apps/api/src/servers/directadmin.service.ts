@@ -1135,14 +1135,22 @@ export class DirectAdminService {
     // Usuwanie wg DA: action=select + <typ>recs0 = urlencoded „name=…&value=…” (dokładnie jak na liście strefy).
     // DA odpowiada „Records Deleted” także wtedy, gdy nic nie pasowało — dlatego sprawdzamy listę po zapisie;
     // edycja robi create-then-delete, więc ciche niepowodzenie zostawiłoby duplikat.
+    // Wołający podaje rekord różnie („_dmarc” i wartość bez cudzysłowów — asystent), a DA dopasowuje tylko
+    // zapis ze strefy: t1 04.10 „Cofnij” zgłaszał sukces, rekord zostawał. Bierzemy więc zapis ze strefy.
+    const ten = (r: { name: string; type: string; value: string }) =>
+      r.type === input.type &&
+      nazwaRekorduDns(r.name, input.domain) === nazwaRekorduDns(input.name, input.domain) &&
+      wartoscRekorduDns(r.value) === wartoscRekorduDns(input.value);
+    const przed = await this.listHostingDnsRecords(subscriptionId, userId, input.domain);
+    const cel = (przed.fetchError ? undefined : przed.records.find(ten)) ?? input;
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DNS_CONTROL', {
       action: 'select',
       delete: 'yes',
       domain: input.domain,
-      [`${input.type.toLowerCase()}recs0`]: zaznaczenieRekorduDns(input.name, input.value),
+      [`${input.type.toLowerCase()}recs0`]: zaznaczenieRekorduDns(cel.name, cel.value),
     });
     const po = await this.listHostingDnsRecords(subscriptionId, userId, input.domain);
-    if (!po.fetchError && po.records.some((r) => r.name === input.name && r.type === input.type && r.value === input.value)) {
+    if (!po.fetchError && po.records.some(ten)) {
       throw new BadRequestException('Serwer DNS nie usunął rekordu. Spróbuj ponownie albo napisz do nas.');
     }
     return { ok: true as const };
@@ -3565,6 +3573,12 @@ function scheduleToFrequency(schedule: string): DeployFrequency {
  */
 export function zaznaczenieRekorduDns(name: string, value: string): string {
   return `name=${encodeURIComponent(name)}&value=${encodeURIComponent(value)}`;
+}
+
+/** Wartość rekordu bez różnic zapisu TXT: `"v=spf1 …"` i `v=spf1 …` to ten sam rekord (DA trzyma w cudzysłowach). */
+export function wartoscRekorduDns(value: string): string {
+  const v = value.trim();
+  return v.startsWith('"') ? v.replace(/^"|"$/g, '').replace(/"\s*"/g, '') : v;
 }
 
 /** Nazwa rekordu bez różnic zapisu: „@”, „domena.pl.”, „domena.pl” → „@”; „www.domena.pl.” → „www”. */
