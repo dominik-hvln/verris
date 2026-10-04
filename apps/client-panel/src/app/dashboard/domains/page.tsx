@@ -36,6 +36,7 @@ export default function DomainsPage() {
   const [newDomainName, setNewDomainName] = useState('');
   const [adding, setAdding] = useState(false);
   const [registrarConfigured, setRegistrarConfigured] = useState(false);
+  const [domyslneNs, setDomyslneNs] = useState<string[]>([]);
 
   // Samo pobranie — efekt montażu startuje z `loading` już ustawionym na `true`.
   const fetchDomains = () =>
@@ -61,6 +62,7 @@ export default function DomainsPage() {
       .then(([status, { user }]) => {
         const ctx = clientNavContextFromSidebar(user);
         setRegistrarConfigured(status.configured && (!ctx || canAccessDashboardRoute('/dashboard/domains/buy', ctx)));
+        setDomyslneNs(status.nameservers ?? []);
       })
       .catch(() => setRegistrarConfigured(false));
   }, []);
@@ -138,8 +140,13 @@ export default function DomainsPage() {
               <Info className="h-4 w-4" /> Instrukcja DNS
             </p>
             <p className="text-sm">
-              Ustaw NS: <span className="font-mono">ns1.verris.pl</span>,{' '}
-              <span className="font-mono">ns2.verris.pl</span> (propagacja do 24 h).
+              {domyslneNs.length ? (
+                <>
+                  Ustaw NS: <span className="font-mono">{domyslneNs.join(', ')}</span> (propagacja do 24 h).
+                </>
+              ) : (
+                'Po dodaniu domeny w jej widoku pokażemy, jak skierować ją na hosting.'
+              )}
             </p>
           </div>
           <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

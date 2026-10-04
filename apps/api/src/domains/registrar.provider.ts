@@ -7,6 +7,8 @@ export interface RegistrarAvailability {
   premium?: boolean;
   priceAmount?: string | null;
   currency?: string;
+  /** Rejestrator nie odpowiedział dla tej końcówki — nie wiemy, czy wolna (nie „zajęta”). */
+  unknown?: boolean;
 }
 
 export interface RegistrarPrice {
@@ -264,6 +266,7 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
       return {
         domain: fqdn,
         available: result?.status === 'free',
+        unknown: !result,
         premium: Boolean(result?.is_premium),
         priceAmount: price ? String(price.price) : null,
         currency: price?.currency ?? 'USD',
@@ -349,11 +352,15 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
       `/v1/domains/${encodeURIComponent(input.externalId)}/renew`,
       { period: input.years },
     );
+    // t1 04.10 (sandbox): odpowiedź na renew bez expiration_date — panel zostawał przy starej dacie ważności,
+    // choć opłata zeszła i domena była odnowiona. Wtedy czytamy datę z domeny u rejestratora.
+    const expiresAt =
+      res.data?.expiration_date ?? (await this.domainInfo(input.externalId).then((d) => d.expiresAt).catch(() => null));
     return {
       provider: this.id,
       providerOrderId: input.externalId,
       externalDomainId: input.externalId,
-      expiresAt: res.data?.expiration_date ?? null,
+      expiresAt,
     };
   }
 

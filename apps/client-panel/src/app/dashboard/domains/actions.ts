@@ -74,6 +74,8 @@ export async function runDomainChecklistAction(id: string): Promise<WynikAkcji<D
 export async function fetchRegistrarStatus(): Promise<{
   provider: string | null;
   configured: boolean;
+  /** Domyślne NS dla nowej domeny (węzeł hostingu klienta albo NS platformy); pusta lista = brak. */
+  nameservers?: string[];
 }> {
   return apiFetch('/domains/registrar/status');
 }

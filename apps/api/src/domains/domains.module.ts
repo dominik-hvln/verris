@@ -10,9 +10,10 @@ import { NbpFxService } from './nbp-fx.service.js';
 import { RegistrarProviderFactory } from './registrar.provider.js';
 import { BillingModule } from '../billing/billing.module.js';
 import { EcoModule } from '../eco/eco.module.js';
+import { PlatformSettingsModule } from '../platform-settings/platform-settings.module.js';
 
 @Module({
-  imports: [PrismaModule, ConfigModule, CryptoModule, BillingModule, EcoModule],
+  imports: [PrismaModule, ConfigModule, CryptoModule, BillingModule, EcoModule, PlatformSettingsModule],
   controllers: [DomainsController],
   providers: [DomainsService, DomainRegistrarService, RegistrarProviderFactory, NbpFxService, DomainExpiryReminderScheduler],
 })

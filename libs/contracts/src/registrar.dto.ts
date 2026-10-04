@@ -55,6 +55,8 @@ export interface DomainSearchResultDto {
   label: string;
   popular: boolean;
   available: boolean;
+  /** t1 04.10: rejestrator nie odpowiedział — „nie sprawdzono”, nie „zajęta”. */
+  unknown?: boolean;
   premium: boolean;
   /** Rejestracja (1. rok) — brutto. */
   register: DomainCustomerPriceDto;

@@ -68,7 +68,23 @@ describe('OpenProvider — zawieszona paczka (t1 04.10, sandbox: 504 po ~60 s)',
       return new Response(JSON.stringify({ code: 0, data: { results: domeny.map((d) => ({ domain: d, status: 'free' })) } }));
     }));
     const wynik = await new RegistrarProviderFactory({ get: (k: string) => cfg[k] } as never).get().batchAvailability('nazwa', ['pl', 'online', 'com']);
-    expect(wynik.map((w) => [w.domain, w.available])).toEqual([['nazwa.pl', true], ['nazwa.online', false], ['nazwa.com', true]]);
+    expect(wynik.map((w) => [w.domain, w.available, w.unknown])).toEqual([['nazwa.pl', true, false], ['nazwa.online', false, true], ['nazwa.com', true, false]]);
+  });
+});
+
+describe('OpenProvider — odnowienie (t1 04.10: brak expiration_date w odpowiedzi)', () => {
+  const cfg: Record<string, string> = {
+    REGISTRAR_PROVIDER: 'openprovider', OPENPROVIDER_USERNAME: 'u', OPENPROVIDER_PASSWORD: 'p', OPENPROVIDER_OWNER_HANDLE: 'H',
+  };
+  afterEach(() => vi.unstubAllGlobals());
+  it('nowa data ważności z domeny u rejestratora, gdy renew jej nie zwraca', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (url.endsWith('/auth/login')) return new Response(JSON.stringify({ code: 0, data: { token: 't' } }));
+      if (url.endsWith('/renew')) return new Response(JSON.stringify({ code: 0, data: { status: 'ACT' } }));
+      return new Response(JSON.stringify({ code: 0, data: { status: 'ACT', expiration_date: '2028-10-04 12:00:00' } }));
+    }));
+    const r = await new RegistrarProviderFactory({ get: (k: string) => cfg[k] } as never).get().renew({ domain: 'a.com', years: 1, externalId: '123' });
+    expect(r.expiresAt).toBe('2028-10-04 12:00:00');
   });
 });
 

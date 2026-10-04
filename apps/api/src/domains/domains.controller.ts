@@ -9,6 +9,8 @@ import { DomainRegistrarService } from './domain-registrar.service.js';
 import { NbpFxService } from './nbp-fx.service.js';
 import { parseDomainPricingConfig } from './domain-pricing.util.js';
 import { REGISTRAR_TLD_CATALOG } from './registrar-tld-catalog.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
 import {
   DomainAvailabilityDto,
   DomainQuoteDto,
@@ -32,7 +34,25 @@ export class DomainsController {
     private readonly registrar: DomainRegistrarService,
     private readonly config: ConfigService,
     private readonly nbpFx: NbpFxService,
+    private readonly prisma: PrismaService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
+
+  /**
+   * Domyślne NS dla nowej domeny: węzeł aktywnego hostingu klienta → NS platformy z ustawień → brak.
+   * t1 04.10: kreator miał na sztywno ns1/ns2.verris.pl, których nie ma w DNS (węzeł t1 to ns3/ns4).
+   */
+  private async domyslneNs(userId: string): Promise<string[]> {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { userId, status: 'ACTIVE', account: { isNot: null } },
+      orderBy: { createdAt: 'asc' },
+      select: { account: { select: { server: { select: { ns1: true, ns2: true } } } } },
+    });
+    const wezel = [sub?.account?.server?.ns1, sub?.account?.server?.ns2].map((n) => (n ?? '').trim()).filter(Boolean);
+    if (wezel.length === 2) return wezel;
+    const p = await this.platformSettings.getHostingNameservers();
+    return p.ns1 && p.ns2 ? [p.ns1, p.ns2] : [];
+  }
 
   @Post()
   async create(@CurrentUser() user: Uzytkownik, @Body() createDomainDto: CreateDomainDto) {
@@ -75,7 +95,7 @@ export class DomainsController {
   }
 
   @Get('registrar/status')
-  async registrarStatus() {
+  async registrarStatus(@CurrentUser() user: Uzytkownik) {
     const provider = (this.config.get<string>('REGISTRAR_PROVIDER') ?? '').toLowerCase() || null;
     let configured = false;
     let apiBaseUrl: string | null = null;
@@ -100,6 +120,7 @@ export class DomainsController {
     return {
       provider,
       configured,
+      nameservers: await this.domyslneNs(user.userId),
       apiBaseUrl,
       environment:
         /\b(cte|sandbox)\.openprovider\./.test(apiBaseUrl ?? '')

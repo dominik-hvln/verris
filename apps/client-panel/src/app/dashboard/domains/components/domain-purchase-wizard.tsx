@@ -43,7 +43,6 @@ const quotePeriodsAction = zOdpakowaniem(quotePeriodsActionAkcja);
 
 const YEAR_OPTIONS = [1, 2, 3, 5, 10] as const;
 
-const DEFAULT_NS = ['ns1.verris.pl', 'ns2.verris.pl'];
 
 type Step = 'search' | 'period' | 'config' | 'summary';
 
@@ -123,7 +122,7 @@ function TldResultCard({
           </span>
         ) : (
           <span className="shrink-0 rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-neutral-500">
-            Zajęta
+            {result.unknown ? 'Nie sprawdzono — spróbuj później' : 'Zajęta'}
           </span>
         )}
       </div>
@@ -164,7 +163,16 @@ function TldResultCard({
   );
 }
 
-export function DomainPurchaseWizard({ initialOrders, initialLabel = '' }: { initialOrders: RegistrarOrderRow[]; initialLabel?: string }) {
+/** `domyslneNs` z /domains/registrar/status — t1 04.10: na sztywno były ns1/ns2.verris.pl, których nie ma w DNS. */
+export function DomainPurchaseWizard({
+  initialOrders,
+  initialLabel = '',
+  domyslneNs = [],
+}: {
+  initialOrders: RegistrarOrderRow[];
+  initialLabel?: string;
+  domyslneNs?: string[];
+}) {
   const router = useRouter();
   const [step, setStep] = useState<Step>('search');
   const nsId = useId();
@@ -176,8 +184,8 @@ export function DomainPurchaseWizard({ initialOrders, initialLabel = '' }: { ini
   const [quotes, setQuotes] = useState<QuoteRow[]>([]);
   const [renewalPerYear, setRenewalPerYear] = useState<DomainCustomerPriceDto | null>(null);
   const [premium, setPremium] = useState(false);
-  const [ns1, setNs1] = useState(DEFAULT_NS[0]);
-  const [ns2, setNs2] = useState(DEFAULT_NS[1]);
+  const [ns1, setNs1] = useState(domyslneNs[0] ?? '');
+  const [ns2, setNs2] = useState(domyslneNs[1] ?? '');
   // Oświadczenie: natychmiastowa rejestracja + utrata prawa odstąpienia (art. 38 pkt 1 upk).
   const [waiverConsent, setWaiverConsent] = useState(false);
   // Zbiorcza akceptacja dokumentów przy zamówieniu (jak u liderów rynku).
@@ -197,7 +205,7 @@ export function DomainPurchaseWizard({ initialOrders, initialLabel = '' }: { ini
     void abonentZProfiluAction().then((p) => setAbonent((a) => ({ ...a, ...p })));
   }, []);
   const [transferOpen, setTransferOpen] = useState(false);
-  const [tr, setTr] = useState({ name: '', authCode: '', years: 1, nameservers: DEFAULT_NS.join(', ') });
+  const [tr, setTr] = useState({ name: '', authCode: '', years: 1, nameservers: domyslneNs.join(', ') });
   const [isPending, startTransition] = useTransition();
   // Cena transferu przed zleceniem (obciąża portfel) — wcześniej klient zlecał transfer bez kwoty.
   const [trCena, setTrCena] = useState<{ klucz: string; amount?: string; vatRate?: number; error?: string } | null>(null);
@@ -596,7 +604,9 @@ export function DomainPurchaseWizard({ initialOrders, initialLabel = '' }: { ini
                 <h2 className="text-lg font-semibold text-white">Nameserwery DNS</h2>
               </div>
               <p className="text-sm text-neutral-400">
-                Domyślnie ustawiamy serwery Verris. Możesz je zmienić przed rejestracją.
+                {domyslneNs.length
+                  ? 'Podpowiadamy serwery Twojego hostingu Verris. Możesz je zmienić przed rejestracją.'
+                  : 'Wpisz serwery DNS, na które ma wskazywać domena (np. od Twojego dostawcy DNS).'}
               </p>
               <div className="space-y-3">
                 <label htmlFor={`${nsId}-1`} className="block text-xs text-neutral-500">Nameserver 1</label>
@@ -786,7 +796,7 @@ export function DomainPurchaseWizard({ initialOrders, initialLabel = '' }: { ini
               </label>
               <label htmlFor={`${nsId}-tr-ns`} className="block space-y-1">
                 <span className="block text-xs text-neutral-500">Nameserwery</span>
-                <Input id={`${nsId}-tr-ns`} value={tr.nameservers} onChange={(e) => setTr({ ...tr, nameservers: e.target.value })} placeholder="ns1.verris.pl, ns2.verris.pl" />
+                <Input id={`${nsId}-tr-ns`} value={tr.nameservers} onChange={(e) => setTr({ ...tr, nameservers: e.target.value })} placeholder="ns1.twoj-dostawca.pl, ns2.twoj-dostawca.pl" />
               </label>
             </div>
             <p className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-neutral-300" aria-live="polite">
@@ -828,7 +838,7 @@ export function DomainPurchaseWizard({ initialOrders, initialLabel = '' }: { ini
                     return;
                   }
                   toast.success('Transfer zlecony', { description: 'Status zobaczysz w historii zleceń.' });
-                  setTr({ name: '', authCode: '', years: 1, nameservers: DEFAULT_NS.join(', ') });
+                  setTr({ name: '', authCode: '', years: 1, nameservers: domyslneNs.join(', ') });
                   router.refresh();
                 });
               }}

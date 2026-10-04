@@ -158,6 +158,7 @@ export class DomainRegistrarService {
           label: catalog.label,
           popular: catalog.popular,
           available: row.available,
+          unknown: Boolean(row.unknown),
           premium: Boolean(row.premium),
           register,
           renewal,

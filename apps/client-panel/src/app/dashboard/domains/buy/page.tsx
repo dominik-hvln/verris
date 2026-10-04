@@ -9,7 +9,7 @@ function nazwaZAdresu(v: string | string[] | undefined): string {
 
 export default async function BuyDomainPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { domain } = await searchParams;
-  const status = await fetchRegistrarStatus().catch(() => ({ provider: null, configured: false }));
+  const status: { configured: boolean; nameservers?: string[] } = await fetchRegistrarStatus().catch(() => ({ provider: null, configured: false }));
   if (!status.configured) {
     return (
       <div className="mx-auto max-w-3xl rounded-[28px] border border-white/10 bg-[#0a0a0a] p-8">
@@ -22,5 +22,5 @@ export default async function BuyDomainPage({ searchParams }: { searchParams: Pr
   }
 
   const orders = await fetchRegistrarOrders().catch(() => []);
-  return <DomainPurchaseWizard initialOrders={orders} initialLabel={nazwaZAdresu(domain)} />;
+  return <DomainPurchaseWizard initialOrders={orders} initialLabel={nazwaZAdresu(domain)} domyslneNs={status.nameservers ?? []} />;
 }
