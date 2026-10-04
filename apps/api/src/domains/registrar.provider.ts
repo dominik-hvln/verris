@@ -228,23 +228,21 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
     // ponytail: 15 dobrane ostrożnie, bez potwierdzonego limitu w dokumentacji — podnieść, jeśli OpenProvider go poda.
     const paczki: string[][] = [];
     for (let i = 0; i < fqdns.length; i += 15) paczki.push(fqdns.slice(i, i + 15));
-    // Po kolei: pierwsza paczka loguje i zapisuje token, kolejne go używają (równoległe logowałyby się każda osobno).
-    // Błąd jednej paczki (np. końcówka nieobsługiwana) nie gasi całej wyszukiwarki — tylko gdy padną wszystkie.
-    const wyniki: { data: { results: OpReachableResult[] } }[] = [];
-    let blad: unknown = null;
-    for (const p of paczki) {
-      try {
-        wyniki.push(
-          await this.request<{ data: { results: OpReachableResult[] } }>('/v1/domains/check', {
-            domains: p.map((fqdn) => splitDomain(fqdn)),
-            with_price: true,
-          }),
-        );
-      } catch (e) {
-        blad = e;
-      }
-    }
-    if (!wyniki.length && blad) throw blad;
+    // Token raz, potem paczki równolegle: t1 04.10 (sandbox) paczka z rejestrem bez środowiska testowego
+    // wisiała do 504 OpenProvidera, a kolejna czekała za nią — panel kończył się „nie udało się sprawdzić”.
+    // Błąd jednej paczki nie gasi całej wyszukiwarki — tylko gdy padną wszystkie.
+    await this.ensureToken();
+    const odp = await Promise.allSettled(
+      paczki.map((p) =>
+        this.request<{ data: { results: OpReachableResult[] } }>('/v1/domains/check', {
+          domains: p.map((fqdn) => splitDomain(fqdn)),
+          with_price: true,
+        }),
+      ),
+    );
+    const wyniki = odp.flatMap((o) => (o.status === 'fulfilled' ? [o.value] : []));
+    const blad = odp.find((o): o is PromiseRejectedResult => o.status === 'rejected');
+    if (!wyniki.length && blad) throw blad.reason;
     // OpenProvider NIE zachowuje kolejności zapytania (27.09: google.com wrócił przed domeną podaną jako
     // pierwsza) — dopasowanie po nazwie domeny, nie po indeksie.
     const wgDomeny = new Map(
@@ -412,6 +410,7 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: this.username, password: this.password }),
+      signal: AbortSignal.timeout(OP_TIMEOUT_MS),
     });
     const body = (await res.json().catch(() => null)) as { data?: { token?: string }; desc?: string } | null;
     if (!res.ok || !body?.data?.token) {
@@ -432,6 +431,10 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
         Authorization: `Bearer ${token}`,
       },
       body: method === 'GET' || payload == null ? undefined : JSON.stringify(payload),
+      signal: AbortSignal.timeout(OP_TIMEOUT_MS),
+    }).catch((e: unknown) => {
+      this.logger.warn(`OpenProvider ${path} failed: ${(e as Error).name === 'TimeoutError' ? 'timeout' : (e as Error).message}`);
+      throw new ServiceUnavailableException('OpenProvider nie odpowiada — spróbuj za chwilę.');
     });
     const body = (await res.json().catch(() => null)) as
       | { data?: T; code?: number; desc?: string }
@@ -444,6 +447,9 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
     return body as unknown as T;
   }
 }
+
+/** Bez limitu zawieszone zapytanie trzymało wyszukiwarkę do 504 bramki OpenProvidera (~60 s). */
+const OP_TIMEOUT_MS = 20_000;
 
 interface OpPrice {
   price: number;

@@ -30,6 +30,36 @@ describe('OpenProvider — sprawdzanie dostępności', () => {
   });
 });
 
+describe('OpenProvider — zawieszona paczka (t1 04.10, sandbox: 504 po ~60 s)', () => {
+  const cfg: Record<string, string> = {
+    REGISTRAR_PROVIDER: 'openprovider', OPENPROVIDER_USERNAME: 'u', OPENPROVIDER_PASSWORD: 'p', OPENPROVIDER_OWNER_HANDLE: 'H',
+  };
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('paczki idą równolegle z limitem czasu — wiszące zapytanie nie blokuje pozostałych końcówek', async () => {
+    const sygnaly: (AbortSignal | undefined)[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init: { body: string; signal?: AbortSignal }) => {
+      sygnaly.push(init.signal);
+      if (url.endsWith('/auth/login')) return new Response(JSON.stringify({ code: 0, data: { token: 't' } }));
+      const domeny = (JSON.parse(init.body).domains as { name: string; extension: string }[]).map((d) => `${d.name}.${d.extension}`);
+      if (domeny.includes('nazwa.t0')) {
+        // pierwsza paczka „wisi”, dopóki sygnał nie przerwie — jak rejestr bez środowiska testowego
+        return new Promise<Response>((_, rej) => init.signal?.addEventListener('abort', () => rej(Object.assign(new Error('t'), { name: 'TimeoutError' }))));
+      }
+      return new Response(JSON.stringify({ code: 0, data: { results: domeny.map((d) => ({ domain: d, status: 'free' })) } }));
+    }));
+    const ext = Array.from({ length: 20 }, (_, i) => `t${i}`);
+    const p = new RegistrarProviderFactory({ get: (k: string) => cfg[k] } as never).get().batchAvailability('nazwa', ext);
+    // druga paczka odpowiedziała mimo wiszącej pierwszej
+    await vi.waitFor(() => expect(sygnaly.length).toBe(3));
+    expect(sygnaly.every(Boolean)).toBe(true);
+    // limit czasu (AbortSignal.timeout) przerywa wiszącą paczkę
+    sygnaly[1]!.dispatchEvent(new Event('abort'));
+    const wynik = await p;
+    expect(wynik.filter((w) => w.available).map((w) => w.domain)).toEqual(ext.slice(15).map((e) => `nazwa.${e}`));
+  });
+});
+
 describe('OpenProvider — stan domeny (domknięcie transferu)', () => {
   it('ACT = aktywna, FAI/DEL = nieudana, reszta i nieznane = w toku (bez zwrotu za udany transfer)', () => {
     expect(stanOpenProvider('ACT')).toBe('active');
