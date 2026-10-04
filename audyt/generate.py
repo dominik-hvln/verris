@@ -120,8 +120,16 @@ def godziny_otwarte(D, n):
 
 
 def daty(D, n):
-    a = datetime.date.fromisoformat(D["cfg"]["start"]) + datetime.timedelta(weeks=n - 1)
+    # 2026-10-04 — harmonogram startu (wariant A): sprinty po zmianie planu mają własny poniedziałek.
+    nadpis = D["cfg"].get("daty_sprintow", {}).get(str(n))
+    a = (datetime.date.fromisoformat(nadpis) if nadpis
+         else datetime.date.fromisoformat(D["cfg"]["start"]) + datetime.timedelta(weeks=n - 1))
     return a, a + datetime.timedelta(days=4)
+
+
+def sprint_go(D):
+    """Sprint z decyzją GO (PB-12) — po zmianie dat nie musi być ostatnim numerem."""
+    return next((n for n, s in D["sprinty"].items() if "PB-12" in s["pb"].split(";")), max(D["sprinty"]))
 
 
 def faza(D, n):
@@ -490,7 +498,7 @@ def buduj_plan_md(D):
                        for x in pozycje_sprintu(D, n)
                        if x[4] == "BLOKER STARTU" and x[0] not in ("M-14", "M-15", "M-16", "M-17"))
     w(f"- **{daty(D, blk_bez_ksef)[1]}** — koniec sprintu {blk_bez_ksef}, zamknięte wszystkie blokery **poza KSeF-em**.")
-    w(f"- **{daty(D, NS)[1]}** — koniec sprintu {NS}, decyzja GO.\n")
+    w(f"- **{daty(D, sprint_go(D))[1]}** — koniec sprintu {sprint_go(D)}, decyzja GO.\n")
     w("---\n")
     w("## Zasady obowiązujące w każdym sprincie\n")
     for i, t in enumerate([
@@ -605,7 +613,7 @@ def postep(D, dzis=None):
     # na węźle albo na produkcji (bez_wezla: PRODUKCJA). Dotyczy pozycji audytu i zadań PB.
     na_wezle = lambda i: czeka_na_sprawdzenie(D, i)
     sprinty = []
-    for n in sorted(D["sprinty"]):
+    for n in sorted(D["sprinty"], key=lambda n: (daty(D, n)[0], n)):
         poz = pozycje_sprintu(D, n)
         zrob = [x for x in poz if _zrobione(D, x[0], x[3])]
         kod = [x for x in poz if _zrobione(D, x[0], x[3]) or na_wezle(x[0])]
@@ -680,7 +688,7 @@ def postep(D, dzis=None):
     # sprzeczność na jednej tablicy: „+25 tyg. zapasu” obok prognozy końca o rok po terminie.
     tempo = max(cap, godz_zrob / tyg_uplynelo) if tyg_uplynelo >= 1 else cap  # h/tydzień
     tygodni_do_konca = pozostale_godz / tempo if tempo else 0
-    koniec_nominalny = daty(D, max(D["sprinty"]))[1]
+    koniec_nominalny = daty(D, sprint_go(D))[1]
     koniec_prognoza = dzis + datetime.timedelta(weeks=tygodni_do_konca)
 
     blokery_otwarte = [
@@ -823,7 +831,7 @@ def buduj_dashboard_planu(D):
         "tasks": zadania(D),
         "sprints": [{"n": n, "cel": D["sprinty"][n]["cel"], "od": str(daty(D, n)[0]),
                      "do": str(daty(D, n)[1]), "faza": faza(D, n), "ryzyko": D["sprinty"][n]["ryzyko"]}
-                    for n in sorted(D["sprinty"])],
+                    for n in sorted(D["sprinty"], key=lambda n: (daty(D, n)[0], n))],
         "fazy": [{"od": f_["od"], "do": f_["do"], "tytul": f_["tytul"], "opis": f_["opis"]} for f_ in D["fazy"]],
         "rest": [[r[0], epik_dla(D, r), EP[epik_dla(D, r)]["nazwa"], EP[epik_dla(D, r)]["kw"], r[2],
                   D["cfg"]["kategorie"].get(r[1], r[1]), r[11], H.get(r[12], 0)] for r in R],

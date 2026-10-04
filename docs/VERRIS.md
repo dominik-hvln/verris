@@ -12,6 +12,15 @@ nie źródło prawdy). Poza tym zostają tylko dokumenty operacyjne i prawne: `d
 
 ## Decyzje
 
+### 2026-10-04 — harmonogram startu: wariant A (PB-12, PB-26, PB-40)
+Decyzja właściciela. Kod gotowy w ~91%, więc termin trzymał tylko zakup serwera. **AX102 kupujemy 9.11.2026**
+(zamiast 18.01.2027, wpis z 22.09 nieaktualny) — od razu przyjmuje strony właściciela, a razem z t1 daje
+dwa węzły dla PB-30/32/33 i H-16. Koszt ~750–800 € netto więcej niż przy zakupie w styczniu.
+Kolejność: domknięcie bez nowego serwera (5–16.10) → **beta wewnętrzna na t1 19.10–6.11** (PB-40) →
+AX102 9–20.11 → migracja kilku stron właściciela i dokumenty 23.11–4.12 → **otwarta beta na AX102
+7–20.12** (PB-26, PB-05) → zamrożenie świąteczne 21.12–3.01 → **decyzja GO 4–8.01.2027** → **start
+sprzedaży 11.01.2027**. Daty sprintów: `audyt/dane/konfiguracja.json` → `daty_sprintow`.
+
 ### 2026-10-04 — SPF klientów bez wspólnego rekordu `_spf.verris.pl` (PB-21)
 Decyzja właściciela (rekomendacja z testu na t1): nie zakładamy `_spf.verris.pl`. Kreator poczty proponuje
 klientom `v=spf1 a mx ip4:<IP węzła> ~all` — część `mx` sama nadąża za przeniesieniem konta na inny węzeł,
@@ -88,7 +97,7 @@ z programem księgowym po API. Pytanie do księgowej: faktura zaliczkowa przy do
 
 ### 2026-09-22 — węzeł #1: Hetzner AX102 (PB-14)
 259 € netto/mies. (setup ~129 €). Dane klientów w DE/FI (UE) → polityka prywatności i DPA muszą to
-opisać przed startem. **Zakup dopiero w sprincie 18** (żeby serwer nie stał pusty). Na później:
+opisać przed startem. ~~Zakup dopiero w sprincie 18~~ — zmienione 2026-10-04: zakup 9.11.2026 (wariant A). Na później:
 Beyond (Poznań) / inne serwerownie; EX130-R po migracji 15 stron → węzeł #2.
 
 ### 2026-09-22 — kolejność prac

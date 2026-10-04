@@ -1,8 +1,12 @@
 # Otwarte testy przed startem (beta) — PB-26
 
-> Stan: **plan** (2026-09-24). Termin: sprint 22, po uruchomieniu węzła produkcyjnego #1 (PB-02)
-> i przed decyzją GO (PB-12). Zaproszenia wysyła właściciel; ten dokument mówi, co ma być gotowe,
-> co testerzy dostają i kiedy uznajemy testy za zakończone.
+> Stan: **plan** (2026-10-04, wariant A). Dwa etapy:
+> - **beta wewnętrzna** na węźle testowym t1 — **19.10–6.11.2026** (PB-40): właściciel i 2–3 zaufane osoby,
+>   te same scenariusze co niżej, bez zaproszeń z kodem;
+> - **otwarta beta** na węźle produkcyjnym #1 (AX102) — **7–20.12.2026** (PB-26), po przeniesieniu kilku
+>   stron właściciela na AX102 i publikacji dokumentów. Potem decyzja GO 4–8.01.2027 (PB-12).
+> Zaproszenia wysyła właściciel; ten dokument mówi, co ma być gotowe, co testerzy dostają i kiedy
+> uznajemy testy za zakończone.
 
 ## Po co
 

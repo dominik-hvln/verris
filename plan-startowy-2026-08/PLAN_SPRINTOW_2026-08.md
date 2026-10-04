@@ -3,18 +3,18 @@
 **Wygenerowany:** 2026-10-04 z `audyt/dane/` · **nie edytuj ręcznie**  
 **Podstawa:** audyt parytetu funkcji z 2026-08-20  
 **Pojemność:** 1 osoba, pełny etat, **30 h netto na sprint** · sprint = 1 tydzień  
-**Sprint 1:** 2026-08-31 · **Sprint 23:** 2027-02-01–2027-02-05
+**Sprint 1:** 2026-08-31 · **Sprint 23:** 2027-01-11–2027-01-15
 
 ---
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **1728 h** — przy 30 h tygodniowo około **13 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **1740 h** — przy 30 h tygodniowo około **13 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1178 h) oraz roadmapę po starcie (550 h, 25 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1190 h) oraz roadmapę po starcie (550 h, 25 pozycji) rozpisaną na epiki kwartalne.
 
-- **2027-01-22** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
-- **2027-02-05** — koniec sprintu 23, decyzja GO.
+- **2026-11-13** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
+- **2027-01-08** — koniec sprintu 20, decyzja GO.
 
 ---
 
@@ -270,7 +270,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 # Faza 2 — Odzyskanie funkcji-widm i luki pierwszego tygodnia
 
-*Sprinty 9–14 · 194 h · 2026-10-26 – 2026-12-04*
+*Sprinty 9–14 · 206 h · 2026-10-26 – 2026-10-23*
 
 Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. Najlepszy stosunek wartości do pracy w całym backlogu.
 
@@ -371,15 +371,16 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 **Ryzyko sprintu.** X-31 i X-32 to ostatnie CZESCIOWE z passu adwersaryjnego. DEP-02 tu, bo wyciszenie majorow ESLinta z DEP-03 ma termin przegladu 2026-11-15, a sprint zaczyna sie 2026-11-02. M-08 (anulowanie faktury VOID) — w trybie zewnetrznym z FAK-01 dotyczy dokumentu rozliczeniowego, nie faktury VAT; zakres do potwierdzenia przy realizacji. X-31 i X-32 zamkniete 2026-09-22 (D3) — zostaja tu jako zapis. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze.
 
-## Sprint 14 — Rozliczenia klienta i pomiar
+## Sprint 14 — Beta wewnętrzna na t1, rozliczenia klienta i pomiar
 
-`2026-11-30 – 2026-12-04` · **56 h** z 30 h pojemności
+`2026-10-19 – 2026-10-23` · **68 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `A-11` | Wyszukiwarka wolnych domen | 6 | WYSOKA | domains.controller.ts:54 |
 | `C-11` | Spakowanie do archiwum | 6 | — | 2026-09-23 D1: POST /services/:id/files/compress → files.service compress (nazwa archiwum walidowana) → SDK compressEntries (schowek DA + action=compr |
 | `NODE-03` | Pojemność węzła nigdy się nie odświeża | 6 | ŚREDNIA | 2026-09-23 D1: verris-lve.sh node_capacity (nproc, MemTotal, df /) w każdym raporcie, lve-agent/1.1; telemetry.dto NodeStatusDto.totalCpuCores/totalMe |
+| `PB-40` | Beta wewnętrzna na węźle testowym t1 | 12 | WYSOKI | Przed zakupem AX102 właściciel i 2–3 zaufane osoby przechodzą scenariusze testerów z docs/ops/BETA_TESTY.md na t1 (decyzja 2026-09-29: otwarta beta do |
 | `PB-08` | Pomiar: Consent Mode v2 + GTM + dedup event_id | 16 | ŚREDNI | Wdrożenie ustaleń z audytu pomiaru: www linkuje, panel działa, deduplikacja po event_id, cookie Domain=.verris.pl. | PRZEGLĄD GTM 2026-09-23 (tylko od |
 | `PB-27` | Indywidualne warunki usługi: cena i autoskalowanie | 12 | WYSOKI | Decyzja właściciela 2026-09-26: operator (admin albo pracownik z uprawnieniem „Indywidualne warunki”) zakłada usługę na istniejącym lub nowym koncie i |
 | `PB-28` | Rozliczenie poza Verris (całe konto) | 10 | WYSOKI | Decyzja właściciela 2026-09-26: klient oznaczony „rozliczany przez właściciela” — system nie pobiera opłat, nie blokuje za brak płatności, sam przedłu |
@@ -389,24 +390,25 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 - `A-11` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `C-11` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `NODE-03` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `PB-40` — Wszystkie 8 scenariuszy przejście bez pomocy; zero otwartych błędów krytycznych (dane, pieniądze, dostęp); poprawki „przed AX102” zamknięte, reszta rozpisana na „przed GO” i „po starcie”.
 - `PB-08` — Zdarzenie zakupu dociera raz, nie dwa. Consent Mode nie blokuje pomiaru po zgodzie. Zweryfikowane w GTM Preview i w raporcie.
 - `PB-27` — Operator zakłada usługę z własną ceną; odnowienie pobiera tę cenę; autoskalowanie liczone z rabatem; każda zmiana w dzienniku audytu z autorem i powodem; test na PostgreSQL.
 - `PB-28` — Flaga na koncie ustawiana z panelu admina/obsługi; testy: brak obciążeń, przedłużanie okresu, brak maili, brak blokady, raport zużycia autoskalowania.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
-**Ryzyko sprintu.** Ostatni sprint kodowy przed blokiem dokumentow. PB-08 (Consent Mode v2 + dedup event_id) jest tu, a nie przy landingu, bo to kod w panelu, nie tresc — landing tylko z niego korzysta. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. NODE-03 (pojemnosc wezla z telemetrii) dolozone tutaj z sprintu 13 dla pojemnosci — kod bez wezla, dowod przy wezle.
+**Ryzyko sprintu.** Ostatni sprint kodowy przed blokiem dokumentow. PB-08 (Consent Mode v2 + dedup event_id) jest tu, a nie przy landingu, bo to kod w panelu, nie tresc — landing tylko z niego korzysta. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. NODE-03 (pojemnosc wezla z telemetrii) dolozone tutaj z sprintu 13 dla pojemnosci — kod bez wezla, dowod przy wezle. | 2026-10-04 HARMONOGRAM STARTU (wariant A, decyzja właściciela): beta wewnętrzna na t1 19.10–6.11 (PB-40); w tym oknie wypadają testy PB-27 (22.10) i PB-28 (odnowienie d3 28.10).
 
 ---
 
 # Faza 3 — Wejście na rynek
 
-*Sprinty 15–19 · 251 h · 2026-12-07 – 2027-01-08*
+*Sprinty 15–19 · 251 h · 2026-10-05 – 2026-12-04*
 
 Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, baza wiedzy, przejście ścieżki pierwszego klienta na produkcji i zapisana decyzja GO.
 
 ## Sprint 15 — Egress: pelne pokrycie ruchu (control-plane)
 
-`2026-12-07 – 2026-12-11` · **52 h** z 30 h pojemności
+`2026-10-05 – 2026-10-09` · **52 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -425,7 +427,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 ## Sprint 16 — Strict egress na control-plane
 
-`2026-12-14 – 2026-12-18` · **60 h** z 30 h pojemności
+`2026-10-12 – 2026-10-16` · **60 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -450,7 +452,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 ## Sprint 17 — Dokumenty prawne, DPA i naduzycia
 
-`2026-12-21 – 2026-12-25` · **30 h** z 30 h pojemności
+`2026-11-23 – 2026-11-27` · **30 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -465,11 +467,11 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - `PB-04` — Dokument w ops/docs z właścicielem i czasami reakcji. Test: zgłoszenie wysłane na abuse@ trafia do kogoś i ma odpowiedź w deklarowanym czasie.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
-**Ryzyko sprintu.** BLOK DOKUMENTOW — przesuniety na koniec decyzja wlasciciela 2026-09-22: najpierw kod i infrastruktura, dokumenty na sam koniec, przed pierwszym klientem. Kolejnosc wewnatrz bloku wymuszona zaleznosciami: regulamin (PB-03) przed kredytami SLA (N-16), cennik (PB-07) przed landingiem (PB-06), landing przed kampania (PB-10), wszystko przed sciezka pierwszego klienta (PB-05). P-15 zamyka ostatni bloker poza FAK-01 i Z-18: zostal tylko Hetzner (Zalacznik 1 przygotowany w trackerze). PB-04: adres abuse@ jest punktem kontaktowym DSA i musi istniec przed publikacja regulaminu. Polityka prywatnosci opisuje lokalizacje przetwarzania DE/FI (ADR-2026-09-22-wezel-1-hetzner).
+**Ryzyko sprintu.** BLOK DOKUMENTOW — przesuniety na koniec decyzja wlasciciela 2026-09-22: najpierw kod i infrastruktura, dokumenty na sam koniec, przed pierwszym klientem. Kolejnosc wewnatrz bloku wymuszona zaleznosciami: regulamin (PB-03) przed kredytami SLA (N-16), cennik (PB-07) przed landingiem (PB-06), landing przed kampania (PB-10), wszystko przed sciezka pierwszego klienta (PB-05). P-15 zamyka ostatni bloker poza FAK-01 i Z-18: zostal tylko Hetzner (Zalacznik 1 przygotowany w trackerze). PB-04: adres abuse@ jest punktem kontaktowym DSA i musi istniec przed publikacja regulaminu. Polityka prywatnosci opisuje lokalizacje przetwarzania DE/FI (ADR-2026-09-22-wezel-1-hetzner). | 2026-10-04 HARMONOGRAM STARTU (wariant A, decyzja właściciela): 23.11 — dokumenty przed otwartą betą (testerzy są zwykłymi klientami); równolegle migracja kilku stron właściciela na AX102.
 
 ## Sprint 18 — Cennik, SLA i zastepstwo
 
-`2026-12-28 – 2027-01-01` · **53 h** z 30 h pojemności
+`2026-11-30 – 2026-12-04` · **53 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -492,11 +494,11 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - `PB-25` — Na węźle #1: logowanie do panelu hostingowego, phpMyAdmin i webmaila z panelu klienta nie pokazuje nazwy ani portu DirectAdmina; nowa domena i konto zawieszone pokazują strony Verris; zrzuty w dowodzie.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
-**Ryzyko sprintu.** BLOK DOKUMENTOW — przesuniety na koniec decyzja wlasciciela 2026-09-22: najpierw kod i infrastruktura, dokumenty na sam koniec, przed pierwszym klientem. Kolejnosc wewnatrz bloku wymuszona zaleznosciami: regulamin (PB-03) przed kredytami SLA (N-16), cennik (PB-07) przed landingiem (PB-06), landing przed kampania (PB-10), wszystko przed sciezka pierwszego klienta (PB-05). N-16 (kredyty SLA) po PB-03, bo regulamin obiecuje kredyty — najpierw przeliczyc je na realnych danych z probe-ow. Cennik zgodny z PB-01 (45 zl/mies brutto, 399 zl/rok). | 2026-09-23: PB-21 (DNS platformy i D3 edytora DNS/poczty) tutaj, bo w tym sprincie pojawia się serwer testowy.
+**Ryzyko sprintu.** BLOK DOKUMENTOW — przesuniety na koniec decyzja wlasciciela 2026-09-22: najpierw kod i infrastruktura, dokumenty na sam koniec, przed pierwszym klientem. Kolejnosc wewnatrz bloku wymuszona zaleznosciami: regulamin (PB-03) przed kredytami SLA (N-16), cennik (PB-07) przed landingiem (PB-06), landing przed kampania (PB-10), wszystko przed sciezka pierwszego klienta (PB-05). N-16 (kredyty SLA) po PB-03, bo regulamin obiecuje kredyty — najpierw przeliczyc je na realnych danych z probe-ow. Cennik zgodny z PB-01 (45 zl/mies brutto, 399 zl/rok). | 2026-09-23: PB-21 (DNS platformy i D3 edytora DNS/poczty) tutaj, bo w tym sprincie pojawia się serwer testowy. | 2026-10-04 HARMONOGRAM STARTU (wariant A, decyzja właściciela): 30.11; dane OpenProvidera przełączone na produkcyjne przed PB-05.
 
 ## Sprint 19 — Landing i baza wiedzy
 
-`2027-01-04 – 2027-01-08` · **56 h** z 30 h pojemności
+`2026-11-30 – 2026-12-04` · **56 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
