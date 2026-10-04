@@ -51,7 +51,14 @@ export class DomainsController {
     const wezel = [sub?.account?.server?.ns1, sub?.account?.server?.ns2].map((n) => (n ?? '').trim()).filter(Boolean);
     if (wezel.length === 2) return wezel;
     const p = await this.platformSettings.getHostingNameservers();
-    return p.ns1 && p.ns2 ? [p.ns1, p.ns2] : [];
+    if (p.ns1 && p.ns2) return [p.ns1, p.ns2];
+    // Bez hostingu i bez NS w ustawieniach → NS węzła z puli (przypisane automatycznie przy aktywacji węzła).
+    const pula = await this.prisma.server.findFirst({
+      where: { status: 'ACTIVE', acceptsNewAccounts: true, ns1: { not: null }, ns2: { not: null } },
+      orderBy: { createdAt: 'asc' },
+      select: { ns1: true, ns2: true },
+    });
+    return pula?.ns1 && pula.ns2 ? [pula.ns1, pula.ns2] : [];
   }
 
   @Post()
