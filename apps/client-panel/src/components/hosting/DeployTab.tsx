@@ -37,6 +37,7 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
   const [rows, setRows] = useState<DeployJobDto[]>([]);
   const [domains, setDomains] = useState<string[]>([]);
   const [domain, setDomain] = useState('');
+  const [katalog, setKatalog] = useState('');
   const [branch, setBranch] = useState('');
   const [buildCommand, setBuildCommand] = useState('');
   const [frequency, setFrequency] = useState<DeployFrequency>('every_15m');
@@ -78,11 +79,13 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
     setError(null);
     const result = await createDeployJobAction(serviceId, {
       domain,
+      dir: katalog.trim() || undefined,
       branch: branch.trim() || undefined,
       buildCommand: buildCommand.trim() || undefined,
       frequency,
     });
     if (result.ok) {
+      setKatalog('');
       setBranch('');
       setBuildCommand('');
       await load();
@@ -173,6 +176,15 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
             />
           </label>
           <label className="block text-xs text-muted-foreground">
+            Podkatalog w public_html (opcjonalnie)
+            <input
+              value={katalog}
+              onChange={(e) => setKatalog(e.target.value)}
+              placeholder="np. app"
+              className="mt-1 w-full rounded-[7px] border border-line bg-card px-3 py-2 text-sm text-foreground font-mono"
+            />
+          </label>
+          <label className="block text-xs text-muted-foreground">
             Gałąź Git (opcjonalnie)
             <input
               value={branch}
@@ -246,6 +258,7 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
               <tr key={job.id} className="border-b border-line hover:bg-raised align-top">
                 <td data-label="Domena" className="py-3 px-3 text-foreground">
                   {job.domain}
+                  {job.dir ? <span className="font-mono text-muted-foreground">/{job.dir}</span> : null}
                   {job.branch ? (
                     <span className="ml-2 rounded bg-raised px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
                       {job.branch}

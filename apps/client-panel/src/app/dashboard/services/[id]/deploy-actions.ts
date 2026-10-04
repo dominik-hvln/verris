@@ -21,7 +21,7 @@ export type DeployJobMutationResult = DeployJobMutationOkDto | { ok: false; erro
 
 export async function createDeployJobAction(
   serviceId: string,
-  input: { domain: string; branch?: string; buildCommand?: string; frequency: DeployFrequency },
+  input: { domain: string; dir?: string; branch?: string; buildCommand?: string; frequency: DeployFrequency },
 ): Promise<DeployJobMutationResult> {
   try {
     await apiFetch<DeployJobMutationOkDto>(`/services/${serviceId}/deploy-jobs`, {

@@ -378,6 +378,7 @@ export class NarzedziaWwwDto {
 
 /** Auto-deploy z Git (cron). Gałąź i komendę build dodatkowo czyści serwis. */
 export class ZadanieDeployDto extends DomenaDto {
+  @IsOptional() @Linia(255) dir?: string;
   @IsOptional() @Linia(255) branch?: string;
   @IsOptional() @Linia(500) buildCommand?: string;
   @IsIn(['every_15m', 'hourly', 'daily']) frequency!: 'every_15m' | 'hourly' | 'daily';

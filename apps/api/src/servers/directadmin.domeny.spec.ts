@@ -232,6 +232,18 @@ describe('Deploy z Git (cron)', () => {
     });
   });
 
+  it('podkatalog repozytorium (t1 04.10: repo w public_html/payload, cron ciągnął katalog główny)', async () => {
+    const s = stanowisko();
+    await s.svc.createDeployJob('s1', 'u1', { domain: 'firma.pl', dir: '/payload/', frequency: 'every_15m' });
+    expect(s.wyslane().command).toBe('cd $HOME/domains/firma.pl/public_html/payload && git pull # verris-deploy d=firma.pl k=payload');
+  });
+
+  it.each(['../x', 'a/../../b', 'a b', 'a;rm', '$HOME'])('podkatalog „%s” → 400 bez DA', async (dir) => {
+    const s = stanowisko();
+    await expect(s.svc.createDeployJob('s1', 'u1', { domain: 'firma.pl', dir, frequency: 'daily' })).rejects.toThrow('katalog');
+    expect(s.post).not.toHaveBeenCalled();
+  });
+
   it.each(['main; rm -rf ~', '--upload-pack=x', 'a..b', 'feat branch'])('gałąź „%s” → 400 zamiast cichego „czyszczenia”', async (branch) => {
     const s = stanowisko();
     await expect(s.svc.createDeployJob('s1', 'u1', { domain: 'firma.pl', branch, frequency: 'daily' })).rejects.toThrow('Nazwa gałęzi');
@@ -259,14 +271,14 @@ describe('Deploy z Git (cron)', () => {
       rows: [
         { id: '1', schedule: '*/15 * * * *', command: 'cd $HOME/domains/firma.pl/public_html && git pull # verris-deploy d=firma.pl' },
         { id: '2', schedule: '0 * * * *', command: 'php artisan schedule:run' },
-        { id: '3', schedule: '30 3 * * *', command: 'cd x && git pull origin prod # verris-deploy d=sklep.pl b=prod' },
+        { id: '3', schedule: '30 3 * * *', command: 'cd x && git pull origin prod # verris-deploy d=sklep.pl b=prod k=app/web' },
       ],
       fetchError: null,
     } as never);
     const r = await s.svc.listDeployJobs('s1', 'u1');
-    expect(r.rows.map((x) => [x.id, x.domain, x.branch, x.frequency])).toEqual([
-      ['1', 'firma.pl', null, 'every_15m'],
-      ['3', 'sklep.pl', 'prod', 'daily'],
+    expect(r.rows.map((x) => [x.id, x.domain, x.branch, x.dir, x.frequency])).toEqual([
+      ['1', 'firma.pl', null, null, 'every_15m'],
+      ['3', 'sklep.pl', 'prod', 'app/web', 'daily'],
     ]);
   });
 });

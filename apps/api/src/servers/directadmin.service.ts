@@ -2919,6 +2919,7 @@ export class DirectAdminService {
         domain: parsed.domain,
         command: job.command,
         branch: parsed.branch,
+        dir: parsed.dir,
         frequency: scheduleToFrequency(job.schedule),
         schedule: job.schedule,
       });
@@ -2929,7 +2930,7 @@ export class DirectAdminService {
   async createDeployJob(
     subscriptionId: string,
     userId: string,
-    input: { domain: string; branch?: string; buildCommand?: string; frequency: DeployFrequency },
+    input: { domain: string; dir?: string; branch?: string; buildCommand?: string; frequency: DeployFrequency },
   ): Promise<{ ok: true }> {
     const domain = input.domain.trim();
     if (!domain) throw new BadRequestException('Domena jest wymagana.');
@@ -2941,12 +2942,17 @@ export class DirectAdminService {
     if (branch && (!/^[A-Za-z0-9._/-]{1,255}$/.test(branch) || branch.startsWith('-') || branch.includes('..'))) {
       throw new BadRequestException('Nazwa gałęzi: litery, cyfry oraz . _ / - (bez „..” i bez myślnika na początku).');
     }
+    // Podkatalog public_html (repo sklonowane z panelu do podkatalogu — t1 04.10: cron ciągnął katalog główny).
+    const dir = (input.dir ?? '').trim().replace(/^\/+|\/+$/g, '');
+    if (dir && (!/^[A-Za-z0-9._-]+(\/[A-Za-z0-9._-]+)*$/.test(dir) || dir.split('/').includes('..'))) {
+      throw new BadRequestException('Nieprawidłowy katalog.');
+    }
     const build = (input.buildCommand?.trim() || '').replace(/[\r\n]+/g, ' ');
     if (build && /[;&|`$<>]/.test(build)) {
       throw new BadRequestException('Komenda build zawiera niedozwolone znaki specjalne.');
     }
     const schedule = frequencyToSchedule(input.frequency);
-    const command = buildDeployCommand({ domain, branch, build });
+    const command = buildDeployCommand({ domain, dir, branch, build });
 
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_CRON_JOBS', {
       action: 'create',
@@ -3506,24 +3512,25 @@ function generateDbPassword(): string {
 const DEPLOY_MARKER = '# verris-deploy';
 
 /** Builds the cron command for a scheduled Git deploy in a domain's docroot. */
-function buildDeployCommand(input: { domain: string; branch: string; build: string }): string {
-  const docroot = `$HOME/domains/${input.domain}/public_html`;
+function buildDeployCommand(input: { domain: string; dir?: string; branch: string; build: string }): string {
+  const docroot = `$HOME/domains/${input.domain}/public_html${input.dir ? `/${input.dir}` : ''}`;
   const pull = input.branch ? `git pull origin ${input.branch}` : 'git pull';
   const parts = [`cd ${docroot}`, pull];
   if (input.build) parts.push(input.build);
-  const marker = `${DEPLOY_MARKER} d=${input.domain}${input.branch ? ` b=${input.branch}` : ''}`;
+  const marker = `${DEPLOY_MARKER} d=${input.domain}${input.branch ? ` b=${input.branch}` : ''}${input.dir ? ` k=${input.dir}` : ''}`;
   return `${parts.join(' && ')} ${marker}`;
 }
 
 /** Extracts the Verris-managed deploy metadata from a cron command, or null. */
-function parseDeployCommand(command: string): { domain: string; branch: string | null } | null {
+function parseDeployCommand(command: string): { domain: string; branch: string | null; dir: string | null } | null {
   const idx = command.indexOf(DEPLOY_MARKER);
   if (idx === -1) return null;
   const marker = command.slice(idx);
   const domain = /\bd=([^\s]+)/.exec(marker)?.[1] ?? null;
   if (!domain) return null;
   const branch = /\bb=([^\s]+)/.exec(marker)?.[1] ?? null;
-  return { domain, branch };
+  const dir = /\bk=([^\s]+)/.exec(marker)?.[1] ?? null;
+  return { domain, branch, dir };
 }
 
 function frequencyToSchedule(frequency: DeployFrequency): {

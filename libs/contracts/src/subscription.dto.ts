@@ -527,6 +527,8 @@ export interface DeployJobDto {
   /** Pełna komenda wdrożenia uruchamiana przez cron. */
   command: string;
   branch: string | null;
+  /** Podkatalog public_html z repozytorium (null = katalog główny strony). */
+  dir: string | null;
   frequency: DeployFrequency;
   /** Surowy harmonogram cron (5 pól) — informacyjnie. */
   schedule: string;
