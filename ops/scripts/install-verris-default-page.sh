@@ -109,10 +109,18 @@ install_subdomain_hook() {
 SRC="${VERRIS_DEFAULT_PAGE_DIR:-/var/lib/verris/hosting-default-page}"
 [ -f "$SRC/index.html" ] || exit 0
 [[ "$username" =~ ^[a-z][a-z0-9]{0,15}$ && "$subdomain" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ && "$domain" =~ ^[a-z0-9.-]+$ ]] || exit 0
-DIR="${VERRIS_HOME_BASE:-/home}/$username/domains/$domain/public_html/$subdomain"
 jako() { runuser -u "$username" -- "$@"; }
-jako test -f "$DIR/index.html" || exit 0
-[ "$(jako find "$DIR" -mindepth 1 -maxdepth 1 | wc -l)" = 1 ] || exit 0
+# DA 1.710 (t1 04.10): katalog poddomeny to domains/<sub>.<domena>/public_html (docroot.override),
+# starszy układ — public_html/<sub> domeny. Bierzemy ten, w którym DA właśnie położył zaślepkę.
+H="${VERRIS_HOME_BASE:-/home}/$username/domains"
+DIR=""
+for d in "$H/$subdomain.$domain/public_html" "$H/$domain/public_html/$subdomain"; do
+  if jako test -f "$d/index.html"; then DIR="$d"; break; fi
+done
+[ -n "$DIR" ] || exit 0
+# Świeża poddomena DA 1.710: index.html + pusty cgi-bin. Cokolwiek więcej = pliki klienta, nie ruszamy.
+[ "$(jako find "$DIR" -mindepth 1 -maxdepth 1 ! -name cgi-bin | wc -l)" = 1 ] || exit 0
+[ -z "$(jako find "$DIR/cgi-bin" -mindepth 1 2>/dev/null | head -1)" ] || exit 0
 IP="$(grep -m1 '^ip=' "/usr/local/directadmin/data/users/$username/domains/$domain.conf" 2>/dev/null | cut -d= -f2-)"
 sed -e "s/|DOMAIN|/$subdomain.$domain/g" -e "s/|IP|/${IP}/g" "$SRC/index.html" | jako sh -c 'cat > "$1"' _ "$DIR/index.html"
 [ -d "$SRC/assets" ] && tar -C "$SRC" -cf - assets | jako tar -C "$DIR" -xf - --no-same-owner

@@ -54,6 +54,24 @@ describe('hak poddomeny — strona Verris zamiast zaślepki DA', () => {
     expect(readFileSync(join(katalog('x'), 'index.html'), 'utf8')).toBe('Jest to symbol zastępczy subdomeny');
   });
 
+  it('układ DA 1.710: domains/<sub>.<domena>/public_html (t1 04.10 — tam DA kładzie zaślepkę)', () => {
+    const d = join(DIR, 'home', 'klient', 'domains', 'nowa.firma.pl', 'public_html');
+    mkdirSync(d, { recursive: true });
+    writeFileSync(join(d, 'index.html'), 'Jest to symbol zastępczy subdomeny');
+    mkdirSync(join(d, 'cgi-bin')); // DA 1.710 zakłada też pusty cgi-bin
+    expect(uruchom('nowa').status).toBe(0);
+    expect(readFileSync(join(d, 'index.html'), 'utf8')).toContain('Witamy na nowa.firma.pl');
+  });
+
+  it('cgi-bin z plikiem klienta → nic nie zmienia', () => {
+    const d = join(DIR, 'home', 'klient', 'domains', 'cgi.firma.pl', 'public_html');
+    mkdirSync(join(d, 'cgi-bin'), { recursive: true });
+    writeFileSync(join(d, 'index.html'), 'Jest to symbol zastępczy subdomeny');
+    writeFileSync(join(d, 'cgi-bin', 'skrypt.pl'), '#!/usr/bin/perl');
+    uruchom('cgi');
+    expect(readFileSync(join(d, 'index.html'), 'utf8')).toBe('Jest to symbol zastępczy subdomeny');
+  });
+
   it('instalator nie nadpisuje cudzego haka i woła instalację haka', () => {
     expect(instalator).toMatch(/grep -q 'verris-pb25' "\$hook"/);
     expect(instalator).toMatch(/^install_subdomain_hook$/m);
