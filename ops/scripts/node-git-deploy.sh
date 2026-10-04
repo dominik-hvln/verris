@@ -34,9 +34,39 @@ CEL_WZGL="domains/$GD_DOMAIN/public_html${GD_DIR:+/$GD_DIR}"
 CEL="$HOME_DIR/$CEL_WZGL"
 KLUCZ="$HOME_DIR/.ssh/verris_deploy"
 
-jako_klient() { runuser -u "$GD_DA_USER" -- env HOME="$HOME_DIR" \
-  GIT_SSH_COMMAND="ssh -i $KLUCZ -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o BatchMode=yes" \
-  GIT_TERMINAL_PROMPT=0 "$@"; }
+# ConnectTimeout: bez niego zablokowany port wisi ~2 min na próbę, zanim git zwróci błąd.
+SSH_CMD="ssh -i $KLUCZ -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=20"
+jako_klient() { runuser -u "$GD_DA_USER" -- env HOME="$HOME_DIR" GIT_SSH_COMMAND="$SSH_CMD" GIT_TERMINAL_PROMPT=0 "$@"; }
+
+# Egress węzła (security-egress-lockdown.sh) wpuszcza TCP/22 tylko dla roota — konta klientów nie
+# połączą się z git@github.com:22. GitHub, GitLab.com i Bitbucket mają oficjalny SSH na porcie 443:
+#   https://docs.github.com/en/authentication/troubleshooting-ssh/using-ssh-over-the-https-port
+#   https://about.gitlab.com/blog/gitlab-dot-com-now-supports-an-alternate-git-plus-ssh-port/
+#   https://support.atlassian.com/bitbucket-cloud/kb/port-22-is-blocked-on-local-network
+adres_443() {
+  local u="$1"
+  case "$u" in
+    git@github.com:*) echo "ssh://git@ssh.github.com:443/${u#git@github.com:}" ;;
+    git@gitlab.com:*) echo "ssh://git@altssh.gitlab.com:443/${u#git@gitlab.com:}" ;;
+    git@bitbucket.org:*) echo "ssh://git@altssh.bitbucket.org:443/${u#git@bitbucket.org:}" ;;
+    *) echo "$u" ;;
+  esac
+}
+# Klucz i adres zapisane w .git/config repozytorium — tak samo działa „git pull” z harmonogramu (cron).
+utrwal_repo() {
+  jako_klient git -C "$CEL" config core.sshCommand "$SSH_CMD"
+  local teraz nowy
+  teraz="$(jako_klient git -C "$CEL" remote get-url origin 2>/dev/null || true)"
+  nowy="$(adres_443 "$teraz")"
+  if [ -n "$teraz" ] && [ "$nowy" != "$teraz" ]; then jako_klient git -C "$CEL" remote set-url origin "$nowy"; fi
+}
+# git@inny-host: — port 22 zablokowany; mówimy to wprost zamiast „sprawdź klucz”.
+blad_git() {
+  if grep -q 'port 22: Connection timed out' <<<"$1"; then
+    fail "serwer repozytorium wymaga połączenia na porcie 22, które jest zablokowane — użyj adresu https://… albo GitHub, GitLab.com lub Bitbucket"
+  fi
+  fail "$2"
+}
 command -v git >/dev/null 2>&1 || fail "Git nie jest zainstalowany na serwerze — napisz do nas"
 
 case "$GD_MODE" in
@@ -60,14 +90,21 @@ case "$GD_MODE" in
       log "dotychczasowe pliki przeniesione do ~/$KOPIA"
       echo "VERRIS_GIT_KOPIA=$KOPIA"
     fi
-    if ! jako_klient git clone --depth 50 ${GD_BRANCH:+--branch "$GD_BRANCH"} -- "$GD_URL" "$CEL" 2>&1 | tail -n 20; then
-      fail "klonowanie nie powiodło się — sprawdź adres i czy klucz wdrożeniowy jest dodany w repozytorium"
+    BLAD_KLON="klonowanie nie powiodło się — sprawdź adres i czy klucz wdrożeniowy jest dodany w repozytorium"
+    if ! WYJ="$(jako_klient git clone --depth 50 ${GD_BRANCH:+--branch "$GD_BRANCH"} -- "$(adres_443 "$GD_URL")" "$CEL" 2>&1)"; then
+      tail -n 20 <<<"$WYJ"; blad_git "$WYJ" "$BLAD_KLON"
     fi
-    jako_klient test -d "$CEL/.git" || fail "klonowanie nie powiodło się — sprawdź adres i czy klucz wdrożeniowy jest dodany w repozytorium"
+    tail -n 20 <<<"$WYJ"
+    jako_klient test -d "$CEL/.git" || fail "$BLAD_KLON"
+    utrwal_repo
     ;;
   pull)
     jako_klient test -d "$CEL/.git" || fail "w tym katalogu nie ma repozytorium — najpierw sklonuj"
-    jako_klient git -C "$CEL" pull --ff-only 2>&1 | tail -n 30 || fail "pobieranie zmian nie powiodło się (lokalne zmiany albo rozjechana historia)"
+    utrwal_repo
+    if ! WYJ="$(jako_klient git -C "$CEL" pull --ff-only 2>&1)"; then
+      tail -n 30 <<<"$WYJ"; blad_git "$WYJ" "pobieranie zmian nie powiodło się (lokalne zmiany albo rozjechana historia)"
+    fi
+    tail -n 30 <<<"$WYJ"
     ;;
 esac
 if [ "$GD_MODE" != "key" ]; then
