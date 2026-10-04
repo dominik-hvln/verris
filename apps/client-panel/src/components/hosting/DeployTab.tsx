@@ -31,6 +31,7 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
   const { links } = useHostingLinks();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [odswiezNr, setOdswiezNr] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [rows, setRows] = useState<DeployJobDto[]>([]);
@@ -127,7 +128,10 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
             variant="outline"
             size="sm"
             disabled={busy}
-            onClick={() => void load()}
+            onClick={() => {
+              void load();
+              setOdswiezNr((n) => n + 1);
+            }}
             className="h-8 gap-1.5 border-line-strong bg-raised text-foreground hover:bg-raised text-xs"
           >
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
@@ -206,7 +210,7 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
         </Button>
       </div>
       }>
-      <GitRepoPanel serviceId={serviceId} domains={domains} />
+      <GitRepoPanel serviceId={serviceId} domains={domains} odswiezNr={odswiezNr} />
       {error ? (
         <div className="mb-3 flex items-start gap-2 rounded-[7px] border border-crit/30 bg-crit/12 px-3 py-2 text-xs text-crit">
           <AlertCircle className="h-4 w-4 shrink-0" />
