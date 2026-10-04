@@ -73,3 +73,18 @@ describe('PB-17 AssistantService — naprawy', () => {
     expect(stale.da.deleteHostingDnsRecord).not.toHaveBeenCalled();
   });
 });
+
+describe('asystent — raport poczty bez list blokad (t1 04.10)', () => {
+  it('hints prosi o raport bez RBL, żeby zmieścić się w budżecie 3 s', async () => {
+    const prisma = {
+      subscription: { findFirst: vi.fn().mockResolvedValue({ account: { domain: 'firma.pl', diskLimitMb: 1, status: 'ACTIVE', server: null }, siteMonitor: null, usageMetrics: [] }) },
+      domain: { findFirst: vi.fn().mockResolvedValue(null) },
+    };
+    const deliverability = { forSubscription: vi.fn().mockResolvedValue({ checks: [{ key: 'dmarc', status: 'fail', detail: 'brak' }], usesPlatformDns: true }) };
+    const pointing = { verifyForSubscription: vi.fn().mockResolvedValue(null) };
+    const svc = new (AssistantService as unknown as new (...a: unknown[]) => AssistantService)(prisma, {}, {}, deliverability, pointing);
+    const hints = await svc.hints('s1', 'u1');
+    expect(deliverability.forSubscription).toHaveBeenCalledWith('s1', 'u1', undefined, { rbl: false });
+    expect(hints.map((h) => h.key)).toContain('dmarc');
+  });
+});

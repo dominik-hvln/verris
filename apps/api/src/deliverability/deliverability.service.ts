@@ -74,7 +74,12 @@ export class DeliverabilityService {
   ) {}
 
   /** `wybrana` — domena dodatkowa usługi (E-16: „Włącz DKIM” było tylko dla domeny głównej, test D3 30.09). */
-  async forSubscription(subscriptionId: string, userId: string, wybrana?: string): Promise<DeliverabilityReport> {
+  async forSubscription(
+    subscriptionId: string,
+    userId: string,
+    wybrana?: string,
+    opcje: { rbl?: boolean } = {},
+  ): Promise<DeliverabilityReport> {
     const sub = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
       include: { account: { include: { server: { select: { ipAddress: true, ns1: true, ns2: true, ns3: true } } } } },
@@ -90,7 +95,7 @@ export class DeliverabilityService {
       domain = d;
     }
     const server = sub.account?.server;
-    if (!domain || !server) return this.check(domain, server?.ipAddress ?? null);
+    if (!domain || !server) return this.check(domain, server?.ipAddress ?? null, null, null, opcje.rbl);
 
     const platformNs = await this.platformSettings.getHostingNameservers();
     const serverNs = [server.ns1, server.ns2, server.ns3].map((v) => (v ?? '').trim().toLowerCase()).filter(Boolean);
@@ -106,7 +111,7 @@ export class DeliverabilityService {
     ]);
     const live = liveNs.map((n) => n.toLowerCase().replace(/\.$/, ''));
     const usesPlatformDns = expectedNs.length < 2 || live.length === 0 ? null : expectedNs.every((n) => live.includes(n));
-    return this.check(domain, server.ipAddress, zone, usesPlatformDns);
+    return this.check(domain, server.ipAddress, zone, usesPlatformDns, opcje.rbl);
   }
 
   async check(
@@ -114,6 +119,7 @@ export class DeliverabilityService {
     sendingIp: string | null,
     zone: ZoneRecord[] | null = null,
     usesPlatformDns: boolean | null = null,
+    rbl = true,
   ): Promise<DeliverabilityReport> {
     const checks: DeliverabilityCheck[] = [];
     const blacklists: Array<{ zone: string; listed: boolean }> = [];
@@ -131,7 +137,7 @@ export class DeliverabilityService {
     checks.push(...buildMailAuthChecks({ domain, sendingIp, rootTxt, dmarcTxt, dkimSelector, zone }));
 
     // --- RBL / blacklists on the sending IP ---
-    if (sendingIp && /^\d+\.\d+\.\d+\.\d+$/.test(sendingIp)) {
+    if (rbl && sendingIp && /^\d+\.\d+\.\d+\.\d+$/.test(sendingIp)) {
       const reversed = sendingIp.split('.').reverse().join('.');
       const unknown: string[] = [];
       await Promise.all(

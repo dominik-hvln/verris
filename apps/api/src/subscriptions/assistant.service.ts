@@ -63,7 +63,9 @@ export class AssistantService {
         ? this.prisma.domain.findFirst({ where: { userId, name: account.domain }, select: { name: true, expiresAt: true, autoRenew: true } })
         : null,
       within(this.pointing.verifyForSubscription(subscriptionId, userId)),
-      within(this.deliverability.forSubscription(subscriptionId, userId)),
+      // Bez RBL: listy blokad (do 3,5 s na strefę) przekraczały budżet 3 s, raport wracał jako null i asystent
+      // po cichu pomijał SPF/DMARC (t1 04.10: brak DMARC widoczny w zakładce Poczta, asystent „wszystko OK”).
+      within(this.deliverability.forSubscription(subscriptionId, userId, undefined, { rbl: false })),
     ]);
     const usage = sub.usageMetrics[0];
 
