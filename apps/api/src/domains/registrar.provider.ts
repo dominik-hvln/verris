@@ -231,12 +231,20 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
     // Token raz, potem paczki równolegle: t1 04.10 (sandbox) paczka z rejestrem bez środowiska testowego
     // wisiała do 504 OpenProvidera, a kolejna czekała za nią — panel kończył się „nie udało się sprawdzić”.
     // Błąd jednej paczki nie gasi całej wyszukiwarki — tylko gdy padną wszystkie.
+    // Paczka jest „wszystko albo nic”: jedna wisząca końcówka (sandbox: .online/.shop >40 s) gubiła .pl i .com
+    // z tej samej paczki — wtedy jej domeny pytamy pojedynczo (też równolegle, z tym samym limitem).
     await this.ensureToken();
+    type Odp = { data: { results: OpReachableResult[] } };
+    const sprawdz = (lista: string[]) =>
+      this.request<Odp>('/v1/domains/check', { domains: lista.map((fqdn) => splitDomain(fqdn)), with_price: true }, 'POST', OP_CHECK_TIMEOUT_MS);
     const odp = await Promise.allSettled(
       paczki.map((p) =>
-        this.request<{ data: { results: OpReachableResult[] } }>('/v1/domains/check', {
-          domains: p.map((fqdn) => splitDomain(fqdn)),
-          with_price: true,
+        sprawdz(p).catch(async (e: unknown) => {
+          if (p.length === 1) throw e;
+          const pojedyncze = await Promise.allSettled(p.map((fqdn) => sprawdz([fqdn])));
+          const ok = pojedyncze.flatMap((o) => (o.status === 'fulfilled' ? (o.value.data?.results ?? []) : []));
+          if (!ok.length) throw e;
+          return { data: { results: ok } } as Odp;
         }),
       ),
     );
@@ -421,7 +429,7 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
     return this.token;
   }
 
-  private async request<T>(path: string, payload: unknown, method = 'POST'): Promise<T> {
+  private async request<T>(path: string, payload: unknown, method = 'POST', timeoutMs = OP_TIMEOUT_MS): Promise<T> {
     const token = await this.ensureToken();
     const res = await fetch(`${this.baseUrl.replace(/\/$/, '')}${path}`, {
       method,
@@ -431,7 +439,7 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
         Authorization: `Bearer ${token}`,
       },
       body: method === 'GET' || payload == null ? undefined : JSON.stringify(payload),
-      signal: AbortSignal.timeout(OP_TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
     }).catch((e: unknown) => {
       this.logger.warn(`OpenProvider ${path} failed: ${(e as Error).name === 'TimeoutError' ? 'timeout' : (e as Error).message}`);
       throw new ServiceUnavailableException('OpenProvider nie odpowiada — spróbuj za chwilę.');
@@ -449,7 +457,9 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
 }
 
 /** Bez limitu zawieszone zapytanie trzymało wyszukiwarkę do 504 bramki OpenProvidera (~60 s). */
-const OP_TIMEOUT_MS = 20_000;
+const OP_TIMEOUT_MS = 30_000;
+/** Sprawdzenie dostępności: zdrowa odpowiedź ~1,3 s (sandbox 04.10); paczka + pojedyncze mieszczą się w ~16 s. */
+const OP_CHECK_TIMEOUT_MS = 8_000;
 
 interface OpPrice {
   price: number;

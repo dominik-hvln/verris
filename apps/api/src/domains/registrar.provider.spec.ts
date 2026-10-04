@@ -42,7 +42,7 @@ describe('OpenProvider — zawieszona paczka (t1 04.10, sandbox: 504 po ~60 s)',
       sygnaly.push(init.signal);
       if (url.endsWith('/auth/login')) return new Response(JSON.stringify({ code: 0, data: { token: 't' } }));
       const domeny = (JSON.parse(init.body).domains as { name: string; extension: string }[]).map((d) => `${d.name}.${d.extension}`);
-      if (domeny.includes('nazwa.t0')) {
+      if (domeny.includes('nazwa.t0') && domeny.length > 1) {
         // pierwsza paczka „wisi”, dopóki sygnał nie przerwie — jak rejestr bez środowiska testowego
         return new Promise<Response>((_, rej) => init.signal?.addEventListener('abort', () => rej(Object.assign(new Error('t'), { name: 'TimeoutError' }))));
       }
@@ -56,7 +56,19 @@ describe('OpenProvider — zawieszona paczka (t1 04.10, sandbox: 504 po ~60 s)',
     // limit czasu (AbortSignal.timeout) przerywa wiszącą paczkę
     sygnaly[1]!.dispatchEvent(new Event('abort'));
     const wynik = await p;
-    expect(wynik.filter((w) => w.available).map((w) => w.domain)).toEqual(ext.slice(15).map((e) => `nazwa.${e}`));
+    // po przerwaniu paczki jej domeny poszły pojedynczo — dostępne wszystkie 20
+    expect(wynik.filter((w) => w.available)).toHaveLength(20);
+  });
+
+  it('paczka przerwana → jej domeny pojedynczo; wisi tylko jedna końcówka, reszta paczki ma wynik', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init: { body: string; signal?: AbortSignal }) => {
+      if (url.endsWith('/auth/login')) return new Response(JSON.stringify({ code: 0, data: { token: 't' } }));
+      const domeny = (JSON.parse(init.body).domains as { name: string; extension: string }[]).map((d) => `${d.name}.${d.extension}`);
+      if (domeny.includes('nazwa.online')) return new Response('{}', { status: 504 });
+      return new Response(JSON.stringify({ code: 0, data: { results: domeny.map((d) => ({ domain: d, status: 'free' })) } }));
+    }));
+    const wynik = await new RegistrarProviderFactory({ get: (k: string) => cfg[k] } as never).get().batchAvailability('nazwa', ['pl', 'online', 'com']);
+    expect(wynik.map((w) => [w.domain, w.available])).toEqual([['nazwa.pl', true], ['nazwa.online', false], ['nazwa.com', true]]);
   });
 });
 
