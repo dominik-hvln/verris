@@ -89,6 +89,39 @@ install_da_templates() {
   install_to_dir "/usr/local/directadmin/data/templates/custom/default" "DA templates/custom/default"
 }
 
+install_subdomain_hook() {
+  # PB-25 (t1 04.10): nowa poddomena dostawała zaślepkę DirectAdmina („symbol zastępczy subdomeny”).
+  # Poddomeny nie korzystają z templates/custom/default — DA woła skrypt scripts/custom/subdomain_create_post.sh
+  # ze zmiennymi $username/$domain/$subdomain (forum.directadmin.com/threads/custom-index-html-for-subdomains.40593).
+  local dir="${DA_CUSTOM_DIR:-/usr/local/directadmin/scripts/custom}" hook
+  hook="${dir}/subdomain_create_post.sh"
+  if [ "$DRY_RUN" = "1" ]; then log "DRY-RUN: ${hook}"; return 0; fi
+  if [ -f "$hook" ] && ! grep -q 'verris-pb25' "$hook"; then
+    log "WARN: ${hook} istnieje i nie jest nasz — nie nadpisuję (strona Verris dla poddomen pominięta)"
+    return 0
+  fi
+  mkdir -p "$dir"
+  cat >"$hook" <<'HOOK'
+#!/bin/bash
+# verris-pb25 — zaślepka nowej poddomeny → strona Verris. Plik zarządzany przez Verris.
+# Katalog klienta zapisuje KLIENT (runuser), root tylko czyta szablon. Nadpisujemy wyłącznie świeżą
+# zaślepkę DA (index.html jako jedyny plik), więc pliki klienta nigdy nie giną.
+SRC="${VERRIS_DEFAULT_PAGE_DIR:-/var/lib/verris/hosting-default-page}"
+[ -f "$SRC/index.html" ] || exit 0
+[[ "$username" =~ ^[a-z][a-z0-9]{0,15}$ && "$subdomain" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ && "$domain" =~ ^[a-z0-9.-]+$ ]] || exit 0
+DIR="${VERRIS_HOME_BASE:-/home}/$username/domains/$domain/public_html/$subdomain"
+jako() { runuser -u "$username" -- "$@"; }
+jako test -f "$DIR/index.html" || exit 0
+[ "$(jako find "$DIR" -mindepth 1 -maxdepth 1 | wc -l)" = 1 ] || exit 0
+IP="$(grep -m1 '^ip=' "/usr/local/directadmin/data/users/$username/domains/$domain.conf" 2>/dev/null | cut -d= -f2-)"
+sed -e "s/|DOMAIN|/$subdomain.$domain/g" -e "s/|IP|/${IP}/g" "$SRC/index.html" | jako sh -c 'cat > "$1"' _ "$DIR/index.html"
+[ -d "$SRC/assets" ] && tar -C "$SRC" -cf - assets | jako tar -C "$DIR" -xf - --no-same-owner
+exit 0
+HOOK
+  chmod 755 "$hook"
+  log "OK: strona Verris dla nowych poddomen -> ${hook}"
+}
+
 install_reseller_default() {
   install_to_dir "/home/${RESELLER}/domains/default" "reseller ${RESELLER} domains/default"
 }
@@ -245,6 +278,7 @@ fi
 
 log "Źródło: ${SRC_DIR}"
 install_da_templates
+install_subdomain_hook
 install_reseller_default
 replace_existing_public_html
 
