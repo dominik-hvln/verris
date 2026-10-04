@@ -102,7 +102,7 @@ export class DomainsController {
       configured,
       apiBaseUrl,
       environment:
-        apiBaseUrl?.includes('cte.openprovider') || apiBaseUrl?.includes('api.cte.')
+        /\b(cte|sandbox)\.openprovider\./.test(apiBaseUrl ?? '')
           ? 'sandbox'
           : provider === 'openprovider'
             ? 'production'

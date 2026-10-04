@@ -282,7 +282,8 @@ API: prefiks `/v1` (OpenProvider wycofuje `/v1beta`, wyłączenie 2027-06-30).
 ```bash
 REGISTRAR_PROVIDER=openprovider
 OPENPROVIDER_API_BASE_URL=https://api.openprovider.eu      # produkcja
-# (CTE/sandbox OpenProvider: https://api.cte.openprovider.eu — do testów)
+# (sandbox OpenProvider: https://api.sandbox.openprovider.nl — osobne konto z cp.sandbox.openprovider.nl/signup;
+#  stare CTE wycofane; sandbox nie obsługuje transferów, nie wszystkie TLD)
 OPENPROVIDER_USERNAME=twoj_login_api
 OPENPROVIDER_PASSWORD=twoje_haslo_api
 OPENPROVIDER_OWNER_HANDLE=AB123456-PL
