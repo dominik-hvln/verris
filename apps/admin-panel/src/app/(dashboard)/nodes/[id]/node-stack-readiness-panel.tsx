@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { AuditCheckStatus, NodeStackReadinessDto } from "@verris/contracts";
 import { ensureNodeStack, fetchNodeStackReadiness, repairNodeStackPackages } from "../actions";
+import { plural } from "@/lib/pl";
 
 const STATUS_LABEL: Record<AuditCheckStatus, string> = {
   OK: "Działa",
@@ -100,7 +101,7 @@ export function NodeStackReadinessPanel({
         (result.data?.synced?.length
           ? `Pakiety DA zsynchronizowane: ${result.data.synced.join(", ")}.`
           : "Pakiety DA zsynchronizowane.") +
-          (ssh > 0 ? ` Przywracamy SSH na ${ssh} ${ssh === 1 ? "koncie" : "kontach"} (pakiet je wyłączył).` : ""),
+          (ssh > 0 ? ` Przywracamy SSH na ${plural(ssh, "koncie", "kontach", "kontach")} (pakiet je wyłączył).` : ""),
       );
       await load();
     });
