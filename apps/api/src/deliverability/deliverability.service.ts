@@ -40,13 +40,29 @@ async function withTimeout<T>(p: Promise<T>, ms = 4000): Promise<T> {
   ]);
 }
 
-async function txt(name: string): Promise<string[]> {
+type TxtResolver = { resolveTxt(name: string): Promise<string[][]> };
+
+async function txt(name: string, r: TxtResolver = dns): Promise<string[]> {
   try {
-    const records: string[][] = await withTimeout(dns.resolveTxt(name));
+    const records: string[][] = await withTimeout(r.resolveTxt(name));
     return records.map((chunks: string[]) => chunks.join(''));
-  } catch {
+  } catch (err) {
+    const code = (err as { code?: string }).code;
+    // Węzeł nie odpowiedział (nie jest NS tej strefy, timeout) → zwykły resolver zamiast fałszywego „brak rekordu”.
+    if (r !== dns && code !== 'ENODATA' && code !== 'ENOTFOUND') return txt(name);
     return [];
   }
+}
+
+/**
+ * Strefa na naszym węźle (usesPlatformDns) — pytamy serwer autorytatywny wprost. Przez zwykły resolver
+ * zmiana z panelu była widoczna dopiero po TTL (t1 04.10: usunięty DMARC przez godzinę „Poprawny”,
+ * więc asystent nie proponował naprawy).
+ */
+function autorytatywny(ip: string): TxtResolver {
+  const r = new dns.Resolver({ timeout: 3000, tries: 1 });
+  r.setServers([ip]);
+  return r;
 }
 
 @Injectable()
@@ -107,8 +123,9 @@ export class DeliverabilityService {
     }
 
     // --- SPF / DKIM / DMARC (E-15/16/17) ---
-    const [rootTxt, dmarcTxt] = await Promise.all([txt(domain), txt(`_dmarc.${domain}`)]);
-    const dkimTxt = await Promise.all(DKIM_SELECTORS.map((sel) => txt(`${sel}._domainkey.${domain}`)));
+    const r = usesPlatformDns && sendingIp ? autorytatywny(sendingIp) : dns;
+    const [rootTxt, dmarcTxt] = await Promise.all([txt(domain, r), txt(`_dmarc.${domain}`, r)]);
+    const dkimTxt = await Promise.all(DKIM_SELECTORS.map((sel) => txt(`${sel}._domainkey.${domain}`, r)));
     const dkimIdx = dkimTxt.findIndex((rec) => rec.some((r) => r.toLowerCase().includes('v=dkim1') || r.includes('p=')));
     const dkimSelector = dkimIdx === -1 ? null : DKIM_SELECTORS[dkimIdx];
     checks.push(...buildMailAuthChecks({ domain, sendingIp, rootTxt, dmarcTxt, dkimSelector, zone }));
