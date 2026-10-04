@@ -1607,7 +1607,7 @@ HBA
   # E-23 — kalendarz i kontakty (CalDAV/CardDAV): Radicale 3.8.1 (radicale.org, DOCUMENTATION.md) w venv,
   # logowanie danymi skrzynki przez gniazdo auth Dovecota ([auth] type = dovecot — Dovecot dostaje IP klienta,
   # więc blokady po nieudanych logowaniach działają jak dla IMAP), [rights] owner_only, TLS na porcie 5232
-  # z certyfikatem hosta DirectAdmina (LoadCredential — klucz nie zmienia uprawnień). Nowa skrzynka dostaje
+  # z certyfikatem hosta DirectAdmina (kopia w /run przy starcie — oryginał klucza nie zmienia uprawnień). Nowa skrzynka dostaje
   # od razu „Kalendarz” i „Kontakty” (predefined_collections). Bez interfejsu WWW ([web] type = none).
   if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ]; then
     local dav_ver=3.8.1 dav_venv=/opt/verris-radicale dav_sock=/var/run/dovecot/auth-verris-radicale dav_grupa=""
@@ -1681,9 +1681,14 @@ After=network.target dovecot.service
 User=radicale
 Group=radicale
 ${dav_grupa:+SupplementaryGroups=$dav_grupa}
-LoadCredential=cert:/usr/local/directadmin/conf/cacert.pem
-LoadCredential=key:/usr/local/directadmin/conf/cakey.pem
-ExecStart=$dav_venv/bin/radicale --config /etc/verris-radicale/config --server-certificate=\${CREDENTIALS_DIRECTORY}/cert --server-key=\${CREDENTIALS_DIRECTORY}/key
+# Certyfikat hosta kopiowany przy starcie (ExecStartPre z „+” działa jako root poza piaskownicą) do
+# RuntimeDirectory, czytelny tylko dla grupy radicale. Wcześniej LoadCredential= — na t1 (AlmaLinux 10,
+# systemd 257) proces nie widział pliku w \$CREDENTIALS_DIRECTORY i usługa padała (03.10).
+RuntimeDirectory=verris-radicale
+RuntimeDirectoryMode=0750
+ExecStartPre=+/usr/bin/install -m 0640 -o root -g radicale /usr/local/directadmin/conf/cacert.pem /run/verris-radicale/cert.pem
+ExecStartPre=+/usr/bin/install -m 0640 -o root -g radicale /usr/local/directadmin/conf/cakey.pem /run/verris-radicale/key.pem
+ExecStart=$dav_venv/bin/radicale --config /etc/verris-radicale/config --server-certificate=/run/verris-radicale/cert.pem --server-key=/run/verris-radicale/key.pem
 UMask=0027
 Restart=on-failure
 NoNewPrivileges=yes
@@ -1697,7 +1702,9 @@ WantedBy=multi-user.target
 UNITF
     systemctl daemon-reload
     systemctl enable verris-radicale >/dev/null 2>&1 || true
-    if systemctl restart verris-radicale 2>>/var/log/verris-dav.log; then
+    # is-active po chwili: restart usługi Type=simple „udaje się”, nawet gdy proces pada sekundę później
+    # (t1 03.10: brak certyfikatu → failed, a profil raportował [OK]).
+    if systemctl restart verris-radicale 2>>/var/log/verris-dav.log && sleep 3 && systemctl is-active --quiet verris-radicale; then
       log_ok "Kalendarz i kontakty (Radicale $dav_ver) na porcie 5232"
     else
       log_warn "Radicale — start nie powiódł się (journalctl -u verris-radicale)"

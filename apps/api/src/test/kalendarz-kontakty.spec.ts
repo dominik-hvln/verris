@@ -17,7 +17,13 @@ describe('E-23 kalendarz i kontakty w profilu węzła', () => {
     expect(profil).toMatch(/\[rights\]\ntype = owner_only\n/);
     expect(profil).toMatch(/\[web\]\ntype = none\n/);
     expect(profil).toMatch(/hosts = 0\.0\.0\.0:5232, \[::\]:5232\nssl = True\n/);
-    expect(profil).toContain('LoadCredential=key:/usr/local/directadmin/conf/cakey.pem');
+    expect(profil).toContain('--server-key=/run/verris-radicale/key.pem');
+  });
+
+  it('certyfikat kopiowany przy starcie, profil sprawdza, że usługa żyje — t1 03.10: LoadCredential bez pliku, [OK] przy failed', () => {
+    expect(profil).not.toMatch(/^LoadCredential=/m);
+    expect(profil).toContain('ExecStartPre=+/usr/bin/install -m 0640 -o root -g radicale /usr/local/directadmin/conf/cakey.pem /run/verris-radicale/key.pem');
+    expect(profil).toMatch(/systemctl restart verris-radicale[^\n]*&& sleep 3 && systemctl is-active --quiet verris-radicale/);
   });
 
   it('osobne gniazdo auth Dovecota dla Radicale (grupa radicale), auth-client nietknięty — test D3 29.09', () => {
