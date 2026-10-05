@@ -28,6 +28,7 @@ import {
 import { generateUniqueServiceTag } from './service-tag.util.js';
 import type { StartTrialDto } from './dto/trial.dto.js';
 import type { CreatedSubscription } from './subscriptions.service.js';
+import { narzutResellera, zNarzutem } from '../reseller/narzut-resellera.js';
 
 /**
  * O-1 — Free trial.
@@ -198,7 +199,9 @@ export class TrialService {
       throw new ConflictException('Nie można przekształcić usługi w tym stanie.');
     }
 
-    const amount = new Prisma.Decimal(subscription.plan.priceMonthly);
+    // O-07 — klient resellera płaci cenę z narzutem; odnowienia czytają listPriceAmount, więc zapisujemy oba.
+    const narzut = await narzutResellera(this.prisma, this.config, userId);
+    const amount = zNarzutem(subscription.plan.priceMonthly, narzut);
     await this.walletLedger.debit({
       userId,
       type: WalletTxType.CHARGE_SUBSCRIPTION,
@@ -224,6 +227,8 @@ export class TrialService {
         isTrial: false,
         trialConvertedAt: now,
         priceAmount: amount,
+        listPriceAmount: amount,
+        resellerMarkupPct: narzut > 0 ? narzut : null,
         status: SubscriptionStatus.ACTIVE,
         currentPeriodStart: now,
         currentPeriodEnd: periodEnd,

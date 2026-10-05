@@ -43,6 +43,7 @@ import {
 import { accountSuspendedPaymentTemplate } from '../mail/templates/hosting-notifications.js';
 import { orderReceivedTemplate } from '../mail/templates/order-notifications.js';
 import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service.js';
+import { narzutResellera, zNarzutem } from '../reseller/narzut-resellera.js';
 
 export type SuspendReason =
   | 'PAYMENT_FAILED'
@@ -136,7 +137,8 @@ export class SubscriptionsService {
     if (listPriceRaw === null || listPriceRaw === undefined) {
       throw new BadRequestException('Plan does not have a price for the requested interval');
     }
-    const listPrice = new Prisma.Decimal(listPriceRaw);
+    // O-07 — klient resellera widzi i płaci cenę z narzutem; kod rabatowy liczy się od niej.
+    const listPrice = zNarzutem(listPriceRaw, await narzutResellera(this.prisma, this.config, userId));
     const preview = await this.promo.previewServicePercentOff(userId, dto.code, listPrice);
 
     // BILL-1 — reguła NIE-ŁĄCZENIA: porównaj kod z rabatem startowym z ustawień.
@@ -319,6 +321,16 @@ export class SubscriptionsService {
       }
     }
 
+    // O-07 — narzut resellera. Cena operatora (PB-27) zastępuje cennik, więc narzutu do niej nie doliczamy.
+    const narzutPct = op?.individualPrice != null ? 0 : await narzutResellera(this.prisma, this.config, userId);
+    // Karta odnawia się ceną Stripe z cennika (bez narzutu) — klient resellera płaci z portfela.
+    if (narzutPct > 0 && dto.paymentSource === SubscriptionPaymentSource.STRIPE_CARD) {
+      throw new BadRequestException(
+        'Twoje konto prowadzi partner, więc za usługę płacisz z portfela. Doładujesz go kartą albo BLIK-iem ' +
+          'i wybierzesz płatność z portfela.',
+      );
+    }
+
     // EMM — produkty aplikacyjne (email-marketing) nie tworzą konta DA i nie
     // potrzebują domeny. Dla pozostałych produktów domena jest wymagana.
     // Cast przez string — generated Prisma client regeneruje enum w prod
@@ -335,7 +347,7 @@ export class SubscriptionsService {
       throw new BadRequestException('Plan does not have a price for the requested interval');
     }
 
-    const listPrice = new Prisma.Decimal(listPriceRaw);
+    const listPrice = zNarzutem(listPriceRaw, narzutPct);
     // PB-27 — cena operatora zastępuje cennik, kody i rabat startowy (także przy odnowieniach).
     const pricing =
       op?.individualPrice != null
@@ -385,6 +397,7 @@ export class SubscriptionsService {
         appliedPromoCodeId: pricing.appliedPromoCodeId,
         introDiscountPct: pricing.introDiscountPct,
         introDiscountPeriodsLeft: pricing.introDiscountPeriodsLeft,
+        resellerMarkupPct: narzutPct > 0 ? narzutPct : null,
         currency: plan.currency,
         paymentSource: dto.paymentSource,
         autoscalingEnabled: dto.autoscalingEnabled ?? false,

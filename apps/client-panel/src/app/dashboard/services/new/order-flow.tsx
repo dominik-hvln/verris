@@ -16,7 +16,7 @@ import { clientFeatures } from '@/lib/client-features';
  * jednej zmieszanej listy. Poczta przestaje być schowana. Po wyborze typu
  * pokazujemy warianty (plany) tego typu + (dla hostingu) atrakcyjny start trial.
  */
-export function OrderFlow({ plans, offer }: { plans: PlanDto[]; offer: TrialOffer }) {
+export function OrderFlow({ plans, offer, bezKarty }: { plans: PlanDto[]; offer: TrialOffer; bezKarty?: boolean }) {
   const vps = clientFeatures.vps; // VPS ukryty do wejścia do sprzedaży (2026-09-23)
   const params = useSearchParams();
   const router = useRouter();
@@ -62,6 +62,7 @@ export function OrderFlow({ plans, offer }: { plans: PlanDto[]; offer: TrialOffe
                 plans={typed}
                 initialInterval={initialInterval}
                 initialPromo={promo}
+                bezKarty={bezKarty}
                 startOffer={
                   type === 'hosting'
                     ? {

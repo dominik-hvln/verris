@@ -6,6 +6,8 @@ import { MailerService } from '../mail/mailer.service.js';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
 import { generateAuthToken, hashAuthToken } from '../auth/auth-token.util.js';
 import { escapeMarkdown as md, renderEmailShell } from '../mail/templates/_layouts/email-shell.js';
+import { bezNarzutu, cenyDlaResellera, narzutWlaczony } from './narzut-resellera.js';
+import { ConfigService } from '@nestjs/config';
 
 const WAZNOSC_LINKU_H = 72;
 /** Ponowny link „ustaw hasło” — najwyżej raz na 10 minut na klienta (mail ląduje u klienta, nie u resellera). */
@@ -57,7 +59,35 @@ export class ResellerKlienciService {
     private readonly audit: AuditService,
     private readonly mailer: MailerService,
     private readonly subs: SubscriptionsService,
+    private readonly config: ConfigService,
   ) {}
+
+  /**
+   * O-07 — odpięcie od resellera: klient przechodzi na cennik. Usługi z narzutem (snapshot) wracają do
+   * ceny bez narzutu w tej samej transakcji co odpięcie — inaczej odnowienia dalej pobierałyby detal.
+   */
+  private async odepnijZCena(userId: string, actorUserId: string) {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id: userId }, data: { resellerOwnerId: null } });
+      const uslugi = await tx.subscription.findMany({
+        where: { userId, resellerMarkupPct: { gt: 0 }, status: { notIn: [SubscriptionStatus.CANCELED, SubscriptionStatus.EXPIRED] } },
+        select: { id: true, priceAmount: true, listPriceAmount: true, resellerMarkupPct: true },
+      });
+      for (const u of uslugi) {
+        const pct = u.resellerMarkupPct ?? 0;
+        const cena = bezNarzutu(u.priceAmount, pct);
+        const lista = bezNarzutu(u.listPriceAmount ?? u.priceAmount, pct);
+        await tx.subscription.update({ where: { id: u.id }, data: { priceAmount: cena, listPriceAmount: lista, resellerMarkupPct: null } });
+        await tx.subscriptionEvent.create({
+          data: {
+            subscriptionId: u.id,
+            type: 'RESELLER_MARKUP_REMOVED',
+            details: { narzutPct: pct, cenaPrzed: u.priceAmount.toFixed(2), cenaPo: cena.toFixed(2), actorUserId },
+          },
+        });
+      }
+    });
+  }
 
   private panelUrl(): string {
     return (process.env.CLIENT_PANEL_URL ?? 'https://panel.verris.pl').replace(/\/$/, '');
@@ -90,6 +120,7 @@ export class ResellerKlienciService {
         id: true,
         status: true,
         priceAmount: true,
+        resellerMarkupPct: true,
         currency: true,
         currentPeriodEnd: true,
         plan: { select: { name: true } },
@@ -98,7 +129,6 @@ export class ResellerKlienciService {
         events: { where: { type: 'SUSPENDED' }, orderBy: { createdAt: 'desc' }, take: 1, select: { details: true } },
       },
     });
-    const mk = 1 + p.markupPct / 100;
     return {
       id: c.id,
       email: c.email,
@@ -111,7 +141,7 @@ export class ResellerKlienciService {
         status: s.status,
         zdrowie: zdrowie(s.healthSnapshots[0]?.score),
         odnowienie: s.currentPeriodEnd?.toISOString() ?? null,
-        cenaDetaliczna: Math.round(Number(s.priceAmount) * mk * 100) / 100,
+        cenaDetaliczna: cenyDlaResellera(s.priceAmount, s.resellerMarkupPct, p.markupPct).detal,
         waluta: s.currency,
         wstrzymanaPrzezCiebie: s.status === SubscriptionStatus.SUSPENDED && ostatniPowodWstrzymania(s.events) === 'RESELLER',
       })),
@@ -220,7 +250,7 @@ export class ResellerKlienciService {
   async odepnij(resellerId: string, clientId: string) {
     const p = await this.profil(resellerId, false);
     const c = await this.klient(resellerId, clientId);
-    await this.prisma.user.update({ where: { id: c.id }, data: { resellerOwnerId: null } });
+    await this.odepnijZCena(c.id, resellerId);
     await this.audit.record({ action: 'RESELLER_CLIENT_DETACHED', userId: c.id, actorUserId: resellerId, details: { przez: 'reseller' } });
     const marka = p.brandName || 'Twój partner';
     await this.mailDoKlienta(c.email, c.id, 'Twoje konto w Verris jest teraz samodzielne', 'Konto odpięte od partnera', [
@@ -239,7 +269,7 @@ export class ResellerKlienciService {
     if (!u?.resellerOwnerId) return null;
     const p = await this.prisma.resellerProfile.findUnique({
       where: { userId: u.resellerOwnerId },
-      select: { status: true, brandName: true, code: true, logoMime: true, logoVersion: true, user: { select: { email: true } } },
+      select: { status: true, brandName: true, code: true, markupPct: true, logoMime: true, logoVersion: true, user: { select: { email: true } } },
     });
     if (!p || p.status !== 'ACTIVE') return null;
     const api = (process.env.PUBLIC_API_URL || process.env.API_BASE_URL || 'https://api.verris.pl').replace(/\/$/, '');
@@ -247,6 +277,8 @@ export class ResellerKlienciService {
       nazwa: p.brandName || p.user.email,
       logoUrl: p.logoMime ? `${api}/public/reseller-logo/${encodeURIComponent(p.code)}?v=${p.logoVersion}` : null,
       kontakt: p.user.email,
+      // O-07 — narzut doliczany do cen (panel pokazuje klientowi cenę, którą zapłaci); 0 = cennik.
+      narzutPct: narzutWlaczony(this.config) ? Math.max(0, p.markupPct) : 0,
     };
   }
 
@@ -255,7 +287,7 @@ export class ResellerKlienciService {
     const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { resellerOwnerId: true, email: true } });
     if (!u?.resellerOwnerId) throw new ConflictException('Twoje konto nie jest przypisane do partnera.');
     const resellerId = u.resellerOwnerId;
-    await this.prisma.user.update({ where: { id: userId }, data: { resellerOwnerId: null } });
+    await this.odepnijZCena(userId, userId);
     await this.audit.record({ action: 'RESELLER_CLIENT_DETACHED', userId, actorUserId: userId, details: { przez: 'klient', resellerId } });
     const r = await this.prisma.user.findUnique({ where: { id: resellerId }, select: { email: true } });
     if (r?.email) {

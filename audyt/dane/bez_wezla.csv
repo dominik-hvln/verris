@@ -45,3 +45,4 @@ PB-31,OD 29.09,"przejście kreatora na węźle testowym (D3): bootstrap → zatw
 PB-32,OD 29.09,fala aktualizacji na dwóch węzłach (kanarek + drugi)
 PB-33,OD 29.09,wyrównanie floty na węzłach testowych (PHP + krok MariaDB)
 PB-35,PRODUKCJA,pierwszy wtorek po wdrożeniu: fala ruszyła sama o 4:00
+O-07,PRODUKCJA,włączenie FEATURE_RESELLER_MARKUP + NEXT_PUBLIC_FEATURE_RESELLER_MARKUP i przejście: reseller testowy → klient zamawia z portfela → cena z narzutem → prowizja po karencji → wypłata do portfela

@@ -985,6 +985,10 @@ model Subscription {
   individualTermsById     String?
   individualTermsAt       DateTime?
 
+  // O-07 — narzut resellera (%) wliczony w listPriceAmount/priceAmount przy sprzedaży albo zmianie planu.
+  // null = cena katalogowa. Z tego snapshotu liczymy prowizję resellera od opłat (RESELLER_MARKUP).
+  resellerMarkupPct       Int?
+
   // Payment configuration
   paymentSource        SubscriptionPaymentSource @default(STRIPE_CARD)
   stripeSubscriptionId String?                   @unique
@@ -3398,6 +3402,7 @@ model VpsInstance {
 enum PartnerCommissionKind {
   RECURRING_PCT    // % od płatności poleconego klienta
   MILESTONE_BONUS  // bonus za osiągnięcie progu N aktywnych poleceń
+  RESELLER_MARKUP  // O-07 — narzut resellera zawarty w płatności jego klienta
 }
 
 enum PartnerCommissionStatus {

@@ -5,13 +5,17 @@ import { ApiError } from '@/lib/api';
 import { listPublicPlans, getTrialOffer, type TrialOffer } from '../data';
 import { Suspense } from 'react';
 import { OrderFlow } from './order-flow';
+import { pobierzPartnera } from '@/app/dashboard/settings/partner-actions';
+import { planyZNarzutem } from '@/lib/narzut';
 
 export default async function NewServicePage() {
   let plans: PlanDto[] = [];
   let loadError: string | null = null;
   const offer: TrialOffer = await getTrialOffer();
+  // O-07 — klient resellera widzi ceny z narzutem (tak liczy je API) i płaci z portfela.
+  const narzutPct = (await pobierzPartnera())?.narzutPct ?? 0;
   try {
-    plans = await listPublicPlans();
+    plans = planyZNarzutem(await listPublicPlans(), narzutPct);
   } catch (err) {
     loadError =
       err instanceof ApiError
@@ -52,7 +56,7 @@ export default async function NewServicePage() {
         <EmptyPlans />
       ) : (
         <Suspense fallback={null}>
-          <OrderFlow plans={plans} offer={offer} />
+          <OrderFlow plans={plans} offer={offer} bezKarty={narzutPct > 0} />
         </Suspense>
       )}
     </div>

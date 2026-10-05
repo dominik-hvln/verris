@@ -6,6 +6,8 @@ import { ApiError } from '@/lib/api';
 import { getServiceDetails, listPublicPlans } from '../../data';
 import { PlanChangeForm } from './form';
 import { previewPlanChangeAction } from './actions';
+import { pobierzPartnera } from '@/app/dashboard/settings/partner-actions';
+import { cenaZNarzutem } from '@/lib/narzut';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +32,9 @@ export default async function PlanChangePage({
   }
 
   const publicPlans = await listPublicPlans().catch(() => []);
+  // O-07 — ceny z narzutem resellera, tak jak policzy je API (karta odnawia się cennikiem Stripe — bez narzutu).
+  const narzut = service && service.paymentSource !== 'STRIPE_CARD' ? ((await pobierzPartnera())?.narzutPct ?? 0) : 0;
+  const zN = (c: string) => cenaZNarzutem(c, narzut);
   const targetPlans = service
     ? publicPlans
         .filter((p) => p.id !== service.plan.id)
@@ -40,10 +45,9 @@ export default async function PlanChangePage({
           cpuLimit: p.cpuLimit,
           ramLimitMb: p.ramLimitMb,
           diskLimitMb: p.diskLimitMb,
-          priceForInterval:
-            service.interval === 'YEAR' ? p.priceYearly : p.priceMonthly,
-          priceMonthly: p.priceMonthly,
-          priceYearly: p.priceYearly,
+          priceForInterval: zN(service.interval === 'YEAR' ? p.priceYearly : p.priceMonthly),
+          priceMonthly: zN(p.priceMonthly),
+          priceYearly: zN(p.priceYearly),
           currency: p.currency,
         }))
     : [];

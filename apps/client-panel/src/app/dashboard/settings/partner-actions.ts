@@ -6,6 +6,8 @@ export interface PartnerKonta {
   nazwa: string;
   logoUrl: string | null;
   kontakt: string;
+  /** O-07 — narzut resellera doliczany do cen (%); 0 = cennik. */
+  narzutPct?: number;
 }
 
 /** O-05 — kto prowadzi konto (reseller). `null` = konto samodzielne albo brak danych. */

@@ -28,7 +28,7 @@ const subs = {
 
 function serwis() {
   const p = prisma() as never;
-  return new ResellerKlienciService(p, new AuditService(p), mailer as never, subs as never);
+  return new ResellerKlienciService(p, new AuditService(p), mailer as never, subs as never, { get: () => undefined } as never);
 }
 
 let n = 0;

@@ -41,13 +41,15 @@ export type PartnerOverview = {
   config: { commissionPct: number; holdDays: number; minPayout: number; freeHostingThreshold: number; freeHostingCredit: number };
   referrals: { total: number; paying: number };
   earnings: { pending: number; available: number; paid: number; reserved: number };
+  /** O-07 — z tego narzut resellera w opłatach jego klientów. */
+  resellerMarkup: { pending: number; available: number };
   milestone: { threshold: number; payingCount: number; achieved: number; nextAt: number | null };
   payout: { canRequestWallet: boolean; canRequestBank: boolean };
 };
 
 export type PartnerCommission = {
   id: string;
-  kind: 'RECURRING_PCT' | 'MILESTONE_BONUS';
+  kind: 'RECURRING_PCT' | 'MILESTONE_BONUS' | 'RESELLER_MARKUP';
   referredUserId: string | null;
   baseAmount: string | null;
   pct: number | null;

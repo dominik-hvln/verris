@@ -7,6 +7,7 @@ import { AuditService } from '../common/audit/audit.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { escapeMarkdown as md, renderEmailShell } from '../mail/templates/_layouts/email-shell.js';
 import { LOGO_MAX_BAJTOW, typLogo } from './reseller-marka.js';
+import { cenyDlaResellera } from './narzut-resellera.js';
 
 type ResellerStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED';
 
@@ -85,7 +86,7 @@ export class ResellerService {
       user: {
         findMany(a: Record<string, unknown>): Promise<Array<{
           id: string; email: string; firstName: string | null; lastName: string | null; createdAt: Date;
-          subscriptions: Array<{ id: string; status: string; priceAmount: unknown; currency: string; plan: { name: string | null } | null }>;
+          subscriptions: Array<{ id: string; status: string; priceAmount: string | number; resellerMarkupPct: number | null; currency: string; plan: { name: string | null } | null }>;
         }>>;
       };
     }).user.findMany({
@@ -96,19 +97,18 @@ export class ResellerService {
         id: true, email: true, firstName: true, lastName: true, createdAt: true,
         subscriptions: {
           where: { status: 'ACTIVE' },
-          select: { id: true, status: true, priceAmount: true, currency: true, plan: { select: { name: true } } },
+          select: { id: true, status: true, priceAmount: true, resellerMarkupPct: true, currency: true, plan: { select: { name: true } } },
         },
       },
     });
-    const mk = 1 + markupPct / 100;
     return clients.map((c) => ({
       id: c.id,
       email: c.email,
       name: [c.firstName, c.lastName].filter(Boolean).join(' ') || null,
       createdAt: c.createdAt.toISOString(),
       services: c.subscriptions.map((s) => {
-        const wholesale = Number(s.priceAmount);
-        return { id: s.id, plan: s.plan?.name ?? null, status: s.status, wholesale, retail: Math.round(wholesale * mk * 100) / 100, currency: s.currency };
+        const { hurt, detal } = cenyDlaResellera(s.priceAmount, s.resellerMarkupPct, markupPct);
+        return { id: s.id, plan: s.plan?.name ?? null, status: s.status, wholesale: hurt, retail: detal, currency: s.currency };
       }),
     }));
   }

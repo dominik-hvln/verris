@@ -14,12 +14,17 @@ import {
   type ResellerClient as Client,
 } from './actions';
 import { liczba } from '@/lib/liczba';
+import { days } from '@/lib/pl';
 import { KlientResellera } from './reseller-klient';
 import { MarkaResellera } from './reseller-marka';
 import { clientFeatures } from '@/lib/client-features';
+import { fetchPartnerOverview, requestWalletPayoutAction, type PartnerOverview } from '../referral/actions';
 
 const pln = (n: number) => `${liczba(n, 2)} K`;
-/** Narzut ukryty do wdrożenia w rozliczeniach (2026-09-28) — klienci płacą dziś cenę z cennika. */
+/**
+ * Narzut widoczny dopiero po włączeniu flagi (razem z FEATURE_RESELLER_MARKUP w API) — od tego momentu
+ * klienci resellera płacą cenę z narzutem, a narzut wraca do resellera jako prowizja (O-07).
+ */
 const narzutWlaczony = clientFeatures.resellerMarkup;
 
 export function ResellerClient() {
@@ -61,7 +66,7 @@ export function ResellerClient() {
     if (r.ok) {
       setOv(r.data);
       setNarzut(null);
-      toast.success(`Narzut ustawiony: ${r.data.markupPct}%. Nowe ceny detaliczne liczą się od razu.`);
+      toast.success(`Narzut ustawiony: ${r.data.markupPct}%. Obowiązuje przy nowych zamówieniach i zmianach planu klientów.`);
     } else toast.error(r.error);
   };
 
@@ -178,9 +183,11 @@ export function ResellerClient() {
           <button type="submit" disabled={narzut === null || narzut === String(ov.markupPct)} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50">
             Zapisz narzut
           </button>
-          <p className="w-full text-xs text-neutral-500">Cena dla Twoich klientów = cena hurtowa × (1 + narzut). Zmiana działa od razu w przeglądzie poniżej.</p>
+          <p className="w-full text-xs text-neutral-500">Cena dla Twoich klientów = cena hurtowa × (1 + narzut). Nowy narzut obowiązuje przy kolejnych zamówieniach i zmianach planu — opłacone usługi odnawiają się dotychczasową ceną.</p>
         </form>
       ) : null}
+
+      {narzutWlaczony && ov.status === 'ACTIVE' ? <ProwizjeZNarzutu /> : null}
 
       {ov.status === 'ACTIVE' ? (
         <section className="rounded-2xl border border-white/10 bg-black/30 p-5 space-y-3">
@@ -222,10 +229,45 @@ export function ResellerClient() {
 
       <p className="text-[11px] text-neutral-500">
         {narzutWlaczony
-          ? 'Ceny detaliczne liczymy automatycznie jako cena hurtowa × (1 + Twój narzut). Klienci płacą za usługi bezpośrednio w swoim panelu; rozliczenia między Tobą a klientami i Twoja marka na fakturach — w kolejnym etapie.'
+          ? 'Klienci płacą w swoim panelu cenę z Twoim narzutem (z portfela). Część opłaty odpowiadającą narzutowi naliczamy Ci jako prowizję. Klient odpięty od Ciebie wraca do cen z cennika. Twoja marka na fakturach — w kolejnym etapie.'
           : 'Klienci płacą za usługi bezpośrednio w swoim panelu, po cenach z cennika Verris. Własny narzut, rozliczenia między Tobą a klientami i Twoja marka na fakturach — w kolejnym etapie.'}
       </p>
     </div>
+  );
+}
+
+/** O-07 — prowizje z narzutu (część opłat klientów) i wypłata do portfela przez endpointy programu partnerskiego. */
+function ProwizjeZNarzutu() {
+  const [p, setP] = useState<PartnerOverview | null>(null);
+  const [wyplacam, setWyplacam] = useState(false);
+  const odswiez = () => fetchPartnerOverview().then(setP).catch(() => setP(null));
+  useEffect(() => {
+    void odswiez();
+  }, []);
+  if (!p) return null;
+  const wyplac = async () => {
+    setWyplacam(true);
+    const r = await requestWalletPayoutAction();
+    setWyplacam(false);
+    if (r.ok) {
+      toast.success(`Wypłaciliśmy ${pln(r.amount ?? 0)} do Twojego portfela.`);
+      void odswiez();
+    } else toast.error(r.error ?? 'Nie udało się wypłacić prowizji.');
+  };
+  return (
+    <section className="rounded-2xl border border-white/10 bg-black/30 p-5 space-y-3">
+      <h3 className="text-sm font-semibold text-white">Twoje prowizje z narzutu</h3>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Stat icon={<Wallet className="h-4 w-4" />} label="Do wypłaty" value={pln(p.resellerMarkup.available)} accent />
+        <Stat icon={<Wallet className="h-4 w-4" />} label={`W karencji (${days(p.config.holdDays)})`} value={pln(p.resellerMarkup.pending)} />
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" onClick={() => void wyplac()} disabled={wyplacam || !p.payout.canRequestWallet} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50">
+          {wyplacam ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Wypłać do portfela
+        </button>
+        <p className="text-xs text-neutral-500">Narzut z każdej opłaty klienta naliczamy co godzinę; po karencji trafia do wypłaty. Wypłata obejmuje wszystkie dostępne prowizje.</p>
+      </div>
+    </section>
   );
 }
 

@@ -16,7 +16,7 @@ import { PlatformSettingsService } from '../platform-settings/platform-settings.
 const COMMISSION_CREDIT = 'COMMISSION_CREDIT' as WalletTxType;
 
 type CommissionStatus = 'PENDING' | 'AVAILABLE' | 'PAID' | 'CANCELED';
-type CommissionKind = 'RECURRING_PCT' | 'MILESTONE_BONUS';
+type CommissionKind = 'RECURRING_PCT' | 'MILESTONE_BONUS' | 'RESELLER_MARKUP';
 type PayoutMethod = 'WALLET' | 'BANK';
 type PayoutStatus = 'REQUESTED' | 'PAID' | 'REJECTED';
 
@@ -85,6 +85,8 @@ export interface PartnerOverview {
   };
   referrals: { total: number; paying: number };
   earnings: { pending: number; available: number; paid: number; reserved: number };
+  /** O-07 — z tego: narzut resellera w opłatach jego klientów. */
+  resellerMarkup: { pending: number; available: number };
   milestone: { threshold: number; payingCount: number; achieved: number; nextAt: number | null };
   payout: { canRequestWallet: boolean; canRequestBank: boolean };
 }
@@ -124,11 +126,24 @@ export class PartnersService {
     return e.status as 'PENDING' | 'APPROVED' | 'REJECTED';
   }
 
-  private async assertApprovedPartner(userId: string): Promise<void> {
+  private async aktywnyReseller(userId: string): Promise<boolean> {
+    const p = await this.prisma.resellerProfile.findUnique({ where: { userId }, select: { status: true } });
+    return p?.status === 'ACTIVE';
+  }
+
+  /**
+   * Wypłata: zatwierdzony partner przy włączonym programie poleceń albo (O-07) aktywny reseller —
+   * reseller wypłaca prowizje z narzutu także bez zapisu do programu i przy wyłączonym programie.
+   */
+  private async ustawieniaWyplaty(userId: string) {
+    const cfg = await this.settings.getPartnerProgram();
+    if (await this.aktywnyReseller(userId)) return cfg;
     const status = await this.enrollmentStatus(userId);
     if (status !== 'APPROVED') {
       throw new ForbiddenException('Konto nie jest aktywnym partnerem programu poleceń.');
     }
+    if (!cfg.enabled) throw new BadRequestException('Program partnerski jest wyłączony.');
+    return cfg;
   }
 
   /**
@@ -176,6 +191,9 @@ export class PartnersService {
     const available = await this.sumBy({ partnerUserId: userId, status: 'AVAILABLE', payoutId: null });
     const reserved = await this.sumBy({ partnerUserId: userId, status: 'AVAILABLE', payoutId: { not: null } });
     const paid = await this.sumBy({ partnerUserId: userId, status: 'PAID' });
+    const narzutPending = await this.sumBy({ partnerUserId: userId, kind: 'RESELLER_MARKUP', status: 'PENDING' });
+    const narzutAvailable = await this.sumBy({ partnerUserId: userId, kind: 'RESELLER_MARKUP', status: 'AVAILABLE', payoutId: null });
+    const mozeWyplacic = (await this.aktywnyReseller(userId)) || (status === 'APPROVED' && cfg.enabled);
 
     const achieved = await this.commissions.count({
       where: { partnerUserId: userId, kind: 'MILESTONE_BONUS' },
@@ -197,6 +215,7 @@ export class PartnersService {
       },
       referrals: { total: totalReferrals, paying: payingCount },
       earnings: { pending, available, paid, reserved },
+      resellerMarkup: { pending: narzutPending, available: narzutAvailable },
       milestone: {
         threshold: cfg.freeHostingThreshold,
         payingCount,
@@ -204,8 +223,8 @@ export class PartnersService {
         nextAt,
       },
       payout: {
-        canRequestWallet: status === 'APPROVED' && cfg.enabled && available > 0,
-        canRequestBank: status === 'APPROVED' && cfg.enabled && available >= cfg.minPayout,
+        canRequestWallet: mozeWyplacic && available > 0,
+        canRequestBank: mozeWyplacic && available >= cfg.minPayout,
       },
     };
   }
@@ -228,9 +247,7 @@ export class PartnersService {
 
   /** Wypłata do portfela — natychmiastowa (kredyt COMMISSION_CREDIT). */
   async requestWalletPayout(userId: string): Promise<{ amount: number; payoutId: string }> {
-    await this.assertApprovedPartner(userId);
-    const cfg = await this.settings.getPartnerProgram();
-    if (!cfg.enabled) throw new BadRequestException('Program partnerski jest wyłączony.');
+    await this.ustawieniaWyplaty(userId);
 
     const available = await this.commissions.findMany({
       where: { partnerUserId: userId, status: 'AVAILABLE', payoutId: null },
@@ -279,9 +296,7 @@ export class PartnersService {
 
   /** Zlecenie wypłaty na konto bankowe — wymaga zatwierdzenia przez admina. */
   async requestBankPayout(userId: string, bankAccount: string): Promise<{ amount: number; payoutId: string }> {
-    await this.assertApprovedPartner(userId);
-    const cfg = await this.settings.getPartnerProgram();
-    if (!cfg.enabled) throw new BadRequestException('Program partnerski jest wyłączony.');
+    const cfg = await this.ustawieniaWyplaty(userId);
 
     const iban = (bankAccount ?? '').replace(/\s+/g, '').toUpperCase();
     if (!/^[A-Z0-9]{15,34}$/.test(iban)) {

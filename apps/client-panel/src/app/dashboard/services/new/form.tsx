@@ -35,9 +35,11 @@ interface Props {
   initialPromo?: string;
   /** BILL-1 — rabat startowy z ustawień (auto-naliczany z portfela, bez kuponu). */
   startOffer?: StartOffer;
+  /** O-07 — klient resellera płaci z portfela (karta odnawiałaby się ceną z cennika). */
+  bezKarty?: boolean;
 }
 
-export function NewSubscriptionForm({ plans, initialInterval, initialPromo, startOffer }: Props) {
+export function NewSubscriptionForm({ plans, initialInterval, initialPromo, startOffer, bezKarty }: Props) {
   const router = useRouter();
   const hasEmailPlans = useMemo(() => plans.some((p) => p.productKind === 'EMAIL'), [plans]);
   const hasHostingPlans = useMemo(
@@ -431,15 +433,22 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
             title="Z portfela"
             description="Pobranie środków z portfela natychmiast — usługa uruchomi się od razu."
           />
-          <PaymentCard
-            value="STRIPE_CARD"
-            current={paymentSource}
-            onChange={setPaymentSource}
-            icon={<CreditCard className="h-5 w-5" />}
-            title="Karta przez Stripe"
-            description="Cykliczne pobieranie z karty (Stripe Subscriptions). Dostaniesz fakturę po każdym miesięcznym/rocznym pobraniu."
-          />
+          {bezKarty ? null : (
+            <PaymentCard
+              value="STRIPE_CARD"
+              current={paymentSource}
+              onChange={setPaymentSource}
+              icon={<CreditCard className="h-5 w-5" />}
+              title="Karta przez Stripe"
+              description="Cykliczne pobieranie z karty (Stripe Subscriptions). Dostaniesz fakturę po każdym miesięcznym/rocznym pobraniu."
+            />
+          )}
         </div>
+        {bezKarty ? (
+          <p className="mt-2 max-w-2xl text-xs text-neutral-400">
+            Twoje konto prowadzi partner — za usługę płacisz z portfela. Portfel doładujesz kartą albo BLIK-iem.
+          </p>
+        ) : null}
       </section>
 
       {paymentSource === 'WALLET' ? (

@@ -37,6 +37,7 @@ import {
   ksiegaUpdateData,
   limityEfektywne,
 } from './node-capacity.js';
+import { narzutResellera, zNarzutem } from '../reseller/narzut-resellera.js';
 
 type LoadedSub = Subscription & {
   plan: Plan;
@@ -169,8 +170,9 @@ export class PlanChangeService {
     const effectiveInterval = opts.targetInterval ?? sub.interval;
     this.assertCanChangePlan(sub, target, effectiveInterval);
     await this.assertDiskAllowsDowngrade(sub, target);
-    const proration = this.prorationFor(sub, target, effectiveInterval);
-    const targets = await this.listEligibleTargets(sub, opts.allowNonPublicPlan);
+    const narzut = await this.narzut(sub);
+    const proration = this.prorationFor(sub, target, effectiveInterval, narzut);
+    const targets = await this.listEligibleTargets(sub, opts.allowNonPublicPlan, narzut);
     const intervalChange = effectiveInterval !== sub.interval;
     const newPeriodStart = intervalChange ? new Date() : sub.currentPeriodStart;
     const newPeriodEnd = intervalChange
@@ -223,9 +225,10 @@ export class PlanChangeService {
       );
     }
 
-    const proration = this.prorationFor(sub, target, effectiveInterval);
+    const narzut = await this.narzut(sub);
+    const proration = this.prorationFor(sub, target, effectiveInterval, narzut);
     const intervalChange = effectiveInterval !== sub.interval;
-    const newPrice = planPriceForInterval(target, effectiveInterval);
+    const newPrice = zNarzutem(planPriceForInterval(target, effectiveInterval), narzut);
     // Z-11 — klucz ma identyfikować TĘ zmianę, nie parę (usługa, plan docelowy).
     // Do 2026-09-23 klucz nie zawierał planu źródłowego ani stanu subskrypcji:
     // upgrade A→B, downgrade B→A (zwrot), ponowny upgrade A→B w tym samym okresie
@@ -303,6 +306,7 @@ export class PlanChangeService {
         sub,
         target,
         newPrice,
+        narzut,
         effectiveInterval,
         intervalChange,
         proration,
@@ -483,10 +487,20 @@ export class PlanChangeService {
     }
   }
 
-  private prorationFor(sub: LoadedSub, target: Plan, targetInterval: BillingInterval) {
+  /**
+   * O-07 — narzut resellera dla nowej ceny. Karta odnawia się ceną Stripe z cennika, a cena
+   * indywidualna (PB-27) zastępuje cennik — w obu przypadkach bez narzutu, żeby zapisana cena
+   * zgadzała się z tym, co faktycznie pobieramy.
+   */
+  private async narzut(sub: LoadedSub): Promise<number> {
+    if (sub.paymentSource === SubscriptionPaymentSource.STRIPE_CARD || sub.individualPrice != null) return 0;
+    return narzutResellera(this.prisma, this.config, sub.userId);
+  }
+
+  private prorationFor(sub: LoadedSub, target: Plan, targetInterval: BillingInterval, narzut: number) {
     return computePlanChangeProration({
       oldPeriodPrice: sub.priceAmount,
-      newPeriodPrice: planPriceForInterval(target, targetInterval),
+      newPeriodPrice: zNarzutem(planPriceForInterval(target, targetInterval), narzut),
       periodStart: sub.currentPeriodStart!,
       periodEnd: sub.currentPeriodEnd!,
       currentInterval: sub.interval,
@@ -532,7 +546,7 @@ export class PlanChangeService {
     );
   }
 
-  private async listEligibleTargets(sub: LoadedSub, includeNonPublic: boolean) {
+  private async listEligibleTargets(sub: LoadedSub, includeNonPublic: boolean, narzut = 0) {
     const plans = await this.prisma.plan.findMany({
       where: {
         isActive: true,
@@ -548,9 +562,9 @@ export class PlanChangeService {
       cpuLimit: p.cpuLimit,
       ramLimitMb: p.ramLimitMb,
       diskLimitMb: p.diskLimitMb,
-      priceForInterval: planPriceForInterval(p, sub.interval).toFixed(2),
-      priceMonthly: p.priceMonthly.toFixed(2),
-      priceYearly: p.priceYearly.toFixed(2),
+      priceForInterval: zNarzutem(planPriceForInterval(p, sub.interval), narzut).toFixed(2),
+      priceMonthly: zNarzutem(p.priceMonthly, narzut).toFixed(2),
+      priceYearly: zNarzutem(p.priceYearly, narzut).toFixed(2),
       currency: p.currency,
     }));
   }
@@ -612,6 +626,7 @@ export class PlanChangeService {
     sub: LoadedSub,
     target: Plan,
     newPrice: Prisma.Decimal,
+    narzut: number,
     targetInterval: BillingInterval,
     intervalChange: boolean,
     proration: { direction: PlanChangeDirection },
@@ -671,6 +686,7 @@ export class PlanChangeService {
           planId: target.id,
           priceAmount: newPrice,
           listPriceAmount: newPrice,
+          resellerMarkupPct: narzut > 0 ? narzut : null,
           ...(intervalChange
             ? {
                 interval: targetInterval,

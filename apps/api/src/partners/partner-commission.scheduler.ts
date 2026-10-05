@@ -3,6 +3,7 @@ import { Cron } from '@nestjs/schedule';
 import { Prisma, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
+import { czescNarzutu } from '../reseller/narzut-resellera.js';
 
 /**
  * RESELL — naliczanie prowizji partnerskich.
@@ -11,9 +12,11 @@ import { PlatformSettingsService } from '../platform-settings/platform-settings.
  *  1) maturacja: PENDING → AVAILABLE gdy minął okres karencji (holdDays),
  *  2) naliczanie: skan realnych płatności klientów (WalletTransaction
  *     CHARGE_SUBSCRIPTION) i utworzenie prowizji % dla poleconych,
- *  3) bonusy: „darmowy hosting za N poleceń" po osiągnięciu progu.
+ *  3) bonusy: „darmowy hosting za N poleceń" po osiągnięciu progu,
+ *  4) O-07 — narzut resellera zawarty w opłatach jego klientów (RESELLER_MARKUP);
+ *     niezależnie od tego, czy program poleceń jest włączony.
  *
- * Idempotencja: PartnerCommission.dedupeKey (unikat) — „tx:<id>" / „ms:<partner>:<n>".
+ * Idempotencja: PartnerCommission.dedupeKey (unikat) — „tx:<id>" / „ms:<partner>:<n>" / „rsl:<id>".
  */
 @Injectable()
 export class PartnerCommissionScheduler {
@@ -50,6 +53,8 @@ export class PartnerCommissionScheduler {
         data: { status: 'AVAILABLE' },
       });
       if (matured.count > 0) this.logger.log(`Dojrzało ${matured.count} prowizji.`);
+
+      await this.naliczNarzutyResellerow(cfg.holdDays);
 
       if (!cfg.enabled || cfg.commissionPct <= 0) {
         this.busy = false;
@@ -124,6 +129,57 @@ export class PartnerCommissionScheduler {
       this.logger.error(`partner-commission run failed: ${(err as Error).message}`);
     } finally {
       this.busy = false;
+    }
+  }
+
+  /**
+   * O-07 — prowizja resellera = część opłaty klienta przypadająca na narzut: kwota × pct / (100 + pct).
+   * Procent bierzemy ze snapshotu na usłudze (cena, którą klient faktycznie płaci), nie z bieżącego
+   * profilu resellera. Usługi z ceną indywidualną (PB-27) płacą cenę operatora — bez narzutu.
+   */
+  private async naliczNarzutyResellerow(holdDays: number): Promise<void> {
+    const since = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    const txs = await this.prisma.walletTransaction.findMany({
+      where: {
+        type: WalletTxType.CHARGE_SUBSCRIPTION,
+        createdAt: { gte: since },
+        subscription: { resellerMarkupPct: { gt: 0 }, individualPrice: null },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: 2000,
+      select: { id: true, userId: true, amount: true, currency: true, createdAt: true, subscription: { select: { resellerMarkupPct: true } } },
+    });
+    for (const tx of txs) {
+      const pct = tx.subscription?.resellerMarkupPct ?? 0;
+      const dedupeKey = `rsl:${tx.id}`;
+      const exists = await this.commissions.findFirst({ where: { dedupeKey }, select: { id: true } });
+      if (exists) continue;
+      const klient = await this.prisma.user.findUnique({ where: { id: tx.userId }, select: { resellerOwnerId: true } });
+      if (!klient?.resellerOwnerId) continue;
+      const base = new Prisma.Decimal(tx.amount).abs();
+      const amount = czescNarzutu(base, pct);
+      if (amount.lessThanOrEqualTo(0)) continue;
+      try {
+        await this.commissions.create({
+          data: {
+            partnerUserId: klient.resellerOwnerId,
+            referredUserId: tx.userId,
+            kind: 'RESELLER_MARKUP',
+            dedupeKey,
+            baseAmount: base,
+            pct,
+            amount,
+            currency: tx.currency,
+            status: 'PENDING',
+            availableAt: new Date(tx.createdAt.getTime() + holdDays * 24 * 60 * 60 * 1000),
+            description: `Narzut ${pct}% w płatności Twojego klienta`,
+          },
+        });
+      } catch (err) {
+        if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002')) {
+          this.logger.warn(`Nie udało się naliczyć narzutu resellera tx=${tx.id}: ${(err as Error).message}`);
+        }
+      }
     }
   }
 
