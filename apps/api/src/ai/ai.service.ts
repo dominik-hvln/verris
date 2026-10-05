@@ -5,7 +5,7 @@ import { createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { AiProviderService } from './ai-provider.service.js';
-import { opisPrognozy, policzPrognoze } from './prognoza-zasobow.js';
+import { opisPrognozy, policzPrognoze, type Pomiar } from './prognoza-zasobow.js';
 
 @Injectable()
 export class AiService {
@@ -60,14 +60,20 @@ export class AiService {
   ): Promise<ServiceForecastDto> {
     const subscription = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
-      include: {
-        plan: true,
-        usageMetrics: { orderBy: { bucketStart: 'desc' }, take: 96 },
-      },
+      include: { plan: true },
     });
     if (!subscription) throw new NotFoundException('Service not found');
 
-    if (subscription.usageMetrics.length < 6) {
+    // Telemetria przychodzi co 60 s: „96 ostatnich próbek” to ~1,5 h, więc trend na 7 dni liczył się
+    // z półtorej godziny i pewność zawsze wychodziła niska (t1 05.10). Średnie godzinowe z 7 dni.
+    const pomiary = await this.prisma.$queryRaw<Pomiar[]>`
+      SELECT date_trunc('hour', "bucketStart") AS "bucketStart",
+             avg("cpuUsageAvg") AS "cpuUsageAvg", avg("memUsageAvgMb") AS "memUsageAvgMb",
+             max("diskUsageMb") AS "diskUsageMb", avg("ioUsageKbps") AS "ioUsageKbps"
+      FROM "UsageMetric"
+      WHERE "subscriptionId" = ${subscriptionId} AND "bucketStart" >= ${new Date(Date.now() - 7 * 86_400_000)}
+      GROUP BY 1 ORDER BY 1`;
+    if (pomiary.length < 6) {
       return unavailableForecast(
         'Za mało danych telemetrycznych — prognoza pojawi się po zebraniu kilku godzin metryk.',
       );
@@ -75,7 +81,7 @@ export class AiService {
 
     // Liczby liczy panel (regresja po pomiarach); AI (poziom analiza) tylko komentuje gotowe liczby —
     // mały prompt. Bez AI (brak klucza, limit, błąd) klient dostaje prognozę z opisem bez AI.
-    const liczby = policzPrognoze(subscription.plan, subscription.usageMetrics);
+    const liczby = policzPrognoze(subscription.plan, pomiary);
     const prognoza: ServiceForecastDto = {
       generatedAt: new Date().toISOString(),
       available: true,
@@ -114,7 +120,7 @@ export class AiService {
           actorUserId,
           userId,
           subscriptionId,
-          inputSummary: { subscriptionId, points: subscription.usageMetrics.length },
+          inputSummary: { subscriptionId, points: pomiary.length },
           system,
           user,
           })),

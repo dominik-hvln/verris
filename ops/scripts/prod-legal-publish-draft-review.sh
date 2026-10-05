@@ -100,6 +100,8 @@ async function publishOne(spec) {
   // [DATA PUBLIKACJI] w nagłówku i stopce → dzisiejsza data (PB-03: data publikacji = data wejścia w życie).
   const dzis = new Date().toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Warsaw' });
   const contentMarkdown = fs.readFileSync(filePath, 'utf8').replaceAll('[DATA PUBLIKACJI]', `${dzis} r.`);
+  // Nieuzupełnione miejsce w treści nie może trafić do klientów (05.10: [UZUPEŁNIĆ przed publikacją] w tabeli odbiorców).
+  if (/\[(UZUPEŁNIĆ|TODO|DO UZUPEŁNIENIA)/i.test(contentMarkdown)) throw new Error(`Nieuzupełnione miejsce w ${spec.file} — publikacja przerwana`);
   const locale = 'pl';
 
   // Opublikowana wersja to dowód, co klient zaakceptował — nie podmieniamy jej treści (27.09.2026:

@@ -432,7 +432,10 @@ export default function ServiceOverviewV2({
             </div>
           </section>
           <section>
-            <SectionHead title="Zasoby konta" />
+            <SectionHead
+              title="Zasoby konta"
+              action={<button type="button" className={BTN_SM} onClick={() => onNavigate('usage')}>Zużycie i prognoza</button>}
+            />
             <ul className="m-0 list-none rounded-[10px] border border-line bg-card p-0">
               {(
                 [

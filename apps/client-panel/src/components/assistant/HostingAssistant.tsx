@@ -29,7 +29,7 @@ const SUGGESTIONS = [
 const GREETING: ChatMessage = {
   role: 'assistant',
   content:
-    'Cześć! Jestem asystentem AI Verris — odpowiadam automatycznie na podstawie bazy wiedzy i danych Twoich usług. Mogę się pomylić: w sprawach rozliczeń, reklamacji i umowy wiążąca jest odpowiedź pracownika (Nowe zgłoszenie).',
+    'Cześć! Jestem asystentem Verris. Zapytaj o domeny, SSL, pocztę, bazy danych, kopie zapasowe czy rozliczenia — odpowiem na podstawie bazy wiedzy i danych Twoich usług.',
 };
 
 export default function HostingAssistant() {
@@ -88,34 +88,39 @@ export default function HostingAssistant() {
 
   if (available === false) return null;
 
+  // Wygląd z tokenów panelu (card/line/primary) — działa w motywie jasnym i ciemnym, jak paleta poleceń.
   return (
     <>
       {!open ? (
         <button
           type="button"
-          aria-label="Otwórz asystenta AI Verris"
+          aria-label="Otwórz asystenta Verris"
           onClick={() => setOpen(true)}
-          className="fixed bottom-[max(1rem,env(safe-area-inset-bottom,1rem))] right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-cyan-500/90 to-violet-600/90 text-white shadow-lg shadow-cyan-500/20 transition-transform hover:scale-105 sm:bottom-6 sm:right-6"
+          className="fixed bottom-[max(1rem,env(safe-area-inset-bottom,1rem))] right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full border border-line-strong bg-card text-foreground shadow-[0_18px_40px_-18px_rgba(0,0,0,0.55)] transition-colors hover:bg-raised sm:bottom-6 sm:right-6"
         >
-          <MessageCircle className="h-6 w-6" />
+          <MessageCircle className="h-5 w-5" />
         </button>
       ) : (
-        <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom,1rem))] right-4 z-50 flex h-[min(560px,80dvh)] max-h-[80dvh] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0a] shadow-2xl shadow-black/60 sm:bottom-6 sm:right-6">
-          <div className="flex items-center justify-between border-b border-white/10 bg-gradient-to-r from-cyan-500/10 to-violet-600/10 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white">
+        <div
+          role="dialog"
+          aria-label="Asystent Verris"
+          className="fixed bottom-[max(1rem,env(safe-area-inset-bottom,1rem))] right-4 z-50 flex h-[min(560px,80dvh)] max-h-[80dvh] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-xl border border-line-strong bg-card shadow-[0_30px_80px_-30px_rgba(0,0,0,0.6)] sm:bottom-6 sm:right-6"
+        >
+          <div className="flex items-center justify-between border-b border-line px-4 py-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-md border border-line bg-raised text-foreground">
                 <Bot className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">Asystent AI Verris</p>
-                <p className="text-[10px] text-neutral-400">Odpowiedzi generuje AI — mogą zawierać błędy</p>
+                <p className="text-sm font-semibold text-foreground">Asystent Verris</p>
+                <p className="text-[11px] text-muted-foreground">Baza wiedzy i dane Twoich usług</p>
               </div>
             </div>
             <button
               type="button"
               aria-label="Zamknij"
               onClick={() => setOpen(false)}
-              className="rounded-lg p-1.5 text-neutral-400 hover:bg-white/10 hover:text-white"
+              className="rounded-md p-1.5 text-muted-foreground hover:bg-raised hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </button>
@@ -123,30 +128,19 @@ export default function HostingAssistant() {
 
           <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
             {messages.map((m, i) => (
-              <div
-                key={i}
-                className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                {/* AI Act art. 50 — odpowiedź AI oznaczona widocznie i maszynowo (data-ai-generated). */}
+              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {/* AI Act art. 50 ust. 2 — treść AI oznaczona maszynowo (data-ai-generated); informacja dla człowieka jest pod polem pytania. */}
                 <div
-                  data-ai-generated={m.role === 'assistant' ? 'true' : undefined}
-                  className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-[13px] leading-relaxed ${
-                    m.role === 'user'
-                      ? 'bg-cyan-500/15 text-cyan-50'
-                      : 'bg-white/5 text-neutral-200'
+                  data-ai-generated={m.role === 'assistant' && m !== GREETING ? 'true' : undefined}
+                  className={`max-w-[85%] whitespace-pre-wrap rounded-lg px-3 py-2 text-[13px] leading-relaxed ${
+                    m.role === 'user' ? 'bg-primary text-primary-foreground' : 'border border-line bg-raised text-foreground'
                   }`}
                 >
-                  {m.role === 'assistant' ? (
-                    <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-neutral-500">Odpowiedź AI</span>
-                  ) : null}
                   {m.content}
                   {m.sources && m.sources.length > 0 ? (
-                    <div className="mt-2 flex flex-wrap gap-1 border-t border-white/10 pt-2">
+                    <div className="mt-2 flex flex-wrap gap-1 border-t border-line pt-2">
                       {m.sources.map((s) => (
-                        <span
-                          key={s.docId}
-                          className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-neutral-400"
-                        >
+                        <span key={s.docId} className="rounded-full border border-line bg-card px-2 py-0.5 text-[10.5px] text-muted-foreground">
                           {s.title}
                         </span>
                       ))}
@@ -157,7 +151,7 @@ export default function HostingAssistant() {
             ))}
             {loading ? (
               <div className="flex justify-start">
-                <div className="flex items-center gap-2 rounded-2xl bg-white/5 px-3 py-2 text-[13px] text-neutral-400">
+                <div className="flex items-center gap-2 rounded-lg border border-line bg-raised px-3 py-2 text-[13px] text-muted-foreground">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" /> Asystent pisze…
                 </div>
               </div>
@@ -165,7 +159,7 @@ export default function HostingAssistant() {
 
             {messages.length === 1 && !loading ? (
               <div className="space-y-2 pt-2">
-                <p className="flex items-center gap-1.5 text-[11px] text-neutral-500">
+                <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                   <Sparkles className="h-3 w-3" /> Przykładowe pytania:
                 </p>
                 {SUGGESTIONS.map((s) => (
@@ -173,7 +167,7 @@ export default function HostingAssistant() {
                     key={s}
                     type="button"
                     onClick={() => void send(s)}
-                    className="block w-full rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2 text-left text-[12px] text-neutral-300 hover:bg-white/5 hover:text-white"
+                    className="block w-full rounded-md border border-line bg-card px-3 py-2 text-left text-[12.5px] text-foreground hover:border-line-strong hover:bg-raised"
                   >
                     {s}
                   </button>
@@ -187,23 +181,30 @@ export default function HostingAssistant() {
               e.preventDefault();
               void send(input);
             }}
-            className="flex items-center gap-2 border-t border-white/10 p-3"
+            className="border-t border-line p-3"
           >
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Zadaj pytanie…"
-              disabled={loading}
-              className="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-[13px] text-white placeholder:text-neutral-500 focus:border-cyan-400/40 focus:outline-none disabled:opacity-50"
-            />
-            <button
-              type="submit"
-              disabled={loading || !input.trim()}
-              aria-label="Wyślij"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-500/80 text-white hover:bg-cyan-500 disabled:opacity-40"
-            >
-              <Send className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Zadaj pytanie…"
+                aria-describedby="asystent-ai-info"
+                disabled={loading}
+                className="min-w-0 flex-1 rounded-md border border-line bg-background px-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground focus:border-line-strong focus:outline-none disabled:opacity-50"
+              />
+              <button
+                type="submit"
+                disabled={loading || !input.trim()}
+                aria-label="Wyślij"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
+            {/* AI Act art. 50 ust. 1 i 5 — informacja najpóźniej przy pierwszej interakcji: widoczna przy polu pytania od otwarcia okna. */}
+            <p id="asystent-ai-info" className="mt-2 text-[10.5px] leading-snug text-muted-foreground">
+              Odpowiedzi tworzy AI i mogą zawierać błędy. Wiążące są Regulamin i odpowiedzi naszego zespołu.
+            </p>
           </form>
         </div>
       )}

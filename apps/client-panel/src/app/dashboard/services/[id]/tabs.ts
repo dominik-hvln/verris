@@ -39,24 +39,25 @@ export const TABS = [
   { id: 'badges', label: 'Badge na stronę', icon: BadgeCheck },
   { id: 'staging', label: 'Staging', icon: Box },
   { id: 'deploy', label: 'Deploy (Git)', icon: Rocket },
-  { id: 'usage', label: 'Zużycie zasobów', icon: Activity },
+  { id: 'usage', label: 'Zużycie i prognoza', icon: Activity },
 ] as const;
 
 export type TabId = (typeof TABS)[number]['id'];
 
 /** Grupy sekcji (wzorzec: docs/design/wzorzec-panelu.html). */
 export const NAV_GROUPS: { label: string; ids: TabId[] }[] = [
-  { label: 'Usługa', ids: ['overview'] },
+  { label: 'Usługa', ids: ['overview', 'usage'] },
   { label: 'Poczta i domeny', ids: ['mail', 'domains', 'ssl'] },
   { label: 'Pliki i dane', ids: ['files', 'databases', 'ftp', 'backups'] },
-  { label: 'Narzędzia', ids: ['php', 'webtools', 'apps', 'cron', 'staging', 'deploy', 'waf', 'monitoring', 'logs', 'badges', 'usage'] },
+  { label: 'Narzędzia', ids: ['php', 'webtools', 'apps', 'cron', 'staging', 'deploy', 'waf', 'monitoring', 'logs', 'badges'] },
   { label: 'Rozliczenie', ids: ['subscription'] },
 ];
 
 /** Poczta ma krótki zestaw; tryb prosty chowa narzędzia dla zaawansowanych (GUIDE-4). */
 export const EMAIL_TAB_IDS: TabId[] = ['overview', 'subscription', 'domains', 'mail', 'backups'];
 // FTP i SSH zostają w widoku prostym — dostęp do plików to podstawa hostingu (retest 29.09: „nie widzę FTP ani SSH”).
-export const ADVANCED_TAB_IDS: TabId[] = ['php', 'cron', 'waf', 'staging', 'deploy', 'usage', 'logs'];
+// Zużycie i prognoza też (05.10: schowane w widoku pełnym, prognozy nikt nie znajdował).
+export const ADVANCED_TAB_IDS: TabId[] = ['php', 'cron', 'waf', 'staging', 'deploy', 'logs'];
 
 export function isTabId(v: string | null): v is TabId {
   return !!v && TABS.some((t) => t.id === v);

@@ -65,7 +65,7 @@ Podanie danych oznaczonych w formularzach jako wymagane jest warunkiem zawarcia 
 | --- | --- | --- | --- |
 | **Hetzner Online GmbH** | Niemcy; centra danych Niemcy/Finlandia (EOG) | infrastruktura serwerowa: control-plane (API, panele, baza danych), węzły hostingowe, serwery VPS (Hetzner Cloud), kopie zapasowe off-site (Storage Box / Object Storage, zaszyfrowane przed wysyłką) | nie |
 | **Stripe Payments Europe, Ltd.** | Irlandia (EOG) | płatności kartą: zapisane karty, automatyczne doładowanie portfela, subskrypcje kartą, wpłaty w EUR i USD | możliwy transfer wspierający do Stripe, Inc. (USA) — standardowe klauzule umowne (SCC) i certyfikacja Data Privacy Framework |
-| **mBank S.A. (Paynow)** | Polska (EOG) | jednorazowe wpłaty w PLN przez bramkę Paynow (BLIK, szybki przelew, karta) i ich zwroty | do potwierdzenia w umowie Paynow [UZUPEŁNIĆ przed publikacją] |
+| **mBank S.A. (Paynow)** | Polska (EOG) | jednorazowe wpłaty w PLN przez bramkę Paynow (BLIK, szybki przelew, karta) i ich zwroty | nie — dane przetwarzane w Polsce |
 | **Amazon Web Services EMEA SARL** | Luksemburg; region usługi: UE (Frankfurt/Irlandia) | wysyłka wiadomości e-mail (Amazon SES): powiadomienia transakcyjne i kampanie e-mail marketingu | dane w regionie UE; możliwy dostęp wspierający z USA — SCC i Data Privacy Framework |
 | **Cloudflare, Inc.** | USA; punkty obecności w EOG | ochrona formularzy rejestracji i logowania przed botami (Cloudflare Turnstile) | tak — SCC i Data Privacy Framework |
 | **Hosting Concepts B.V. (Openprovider)** | Holandia (EOG) | rejestracja, odnawianie i transfer domen | zależnie od rejestru domeny (pkt 5.2) |

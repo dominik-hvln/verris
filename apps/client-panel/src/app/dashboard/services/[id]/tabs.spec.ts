@@ -57,3 +57,11 @@ describe('X-05 zakładki usługi', () => {
     expect(visibleTabIds({ email: false, kindResolved: false, simple: false })).toEqual(EMAIL_TAB_IDS);
   });
 });
+
+describe('05.10 — zużycie i prognoza widoczne także w widoku prostym', () => {
+  it('usage jest w trybie prostym i w grupie „Usługa”', async () => {
+    const { visibleTabIds, NAV_GROUPS } = await import('./tabs');
+    expect(visibleTabIds({ email: false, kindResolved: true, simple: true })).toContain('usage');
+    expect(NAV_GROUPS.find((g) => g.label === 'Usługa')?.ids).toEqual(['overview', 'usage']);
+  });
+});

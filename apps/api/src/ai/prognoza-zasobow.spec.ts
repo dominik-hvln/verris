@@ -36,9 +36,10 @@ describe('prognoza zasobów bez AI', () => {
 });
 
 describe('AiService.serviceForecast — AI komentuje gotowe liczby', () => {
-  const sub = { id: 's1', plan, usageMetrics: pomiary };
+  const sub = { id: 's1', plan };
   const prisma = {
     subscription: { findFirst: vi.fn(async () => sub) },
+    $queryRaw: vi.fn(async () => pomiary),
     aiInteractionLog: { create: vi.fn(async () => ({})), findFirst: vi.fn(async (): Promise<{ output: unknown } | null> => null) },
   };
   const audit = { record: vi.fn(async () => undefined) };

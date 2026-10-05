@@ -97,7 +97,7 @@ export default function HostingManagerPage() {
   const visibleTabs = TABS.filter((t) => visibleIds.includes(t.id));
 
   // Zakładka z adresu; niedostępna w tym TYPIE usługi → Przegląd. Tryb prosty tylko chowa pozycje
-  // z menu — jawny link (przycisk „Zużycie zasobów” na przeglądzie, powiadomienie) otwiera zakładkę,
+  // z menu — jawny link (przycisk „Zużycie i prognoza” na przeglądzie, powiadomienie) otwiera zakładkę,
   // zamiast po cichu zostawić klienta na Przeglądzie.
   const requested = searchParams.get('tab');
   const dostepne = visibleTabIds({ email: isEmail, kindResolved, simple: false });
