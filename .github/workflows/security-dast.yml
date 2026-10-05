@@ -26,7 +26,7 @@ env:
 jobs:
   zap-baseline:
     name: OWASP ZAP baseline
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - name: Resolve target
@@ -48,7 +48,7 @@ jobs:
 
   nuclei:
     name: Nuclei scan
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     steps:
       - name: Resolve target
