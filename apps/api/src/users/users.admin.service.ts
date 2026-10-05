@@ -299,6 +299,17 @@ export class UsersAdminService {
         },
       }),
     ]);
+    // Zwrot Paynow: ile zł z wpłaty zostało do zwrotu — przycisk „Zwróć” znika po pełnym zwrocie (t1 05.10).
+    const paynowIds = walletLedger.filter((w) => w.type === 'TOPUP' && w.paymentProvider === 'PAYNOW').map((w) => w.id);
+    const paynowDoZwrotu = new Map(
+      (paynowIds.length
+        ? await this.prisma.paynowPlatnosc.findMany({
+            where: { walletTxId: { in: paynowIds } },
+            select: { walletTxId: true, kwotaMinor: true, zwroconoMinor: true },
+          })
+        : []
+      ).map((r) => [r.walletTxId, ((r.kwotaMinor - r.zwroconoMinor) / 100).toFixed(2)]),
+    );
 
     const serverIds = Array.from(
       new Set(
@@ -416,6 +427,7 @@ export class UsersAdminService {
         balanceAfter: w.balanceAfter.toString(),
         description: w.description,
         paymentProvider: w.paymentProvider,
+        paynowDoZwrotu: paynowDoZwrotu.get(w.id) ?? null,
         createdAt: w.createdAt.toISOString(),
       })),
       recentInvoices: recentInvoices.map((inv) => ({

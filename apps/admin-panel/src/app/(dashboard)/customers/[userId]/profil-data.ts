@@ -78,6 +78,8 @@ export interface ProfilKlienta {
     balanceAfter: string;
     description: string | null;
     paymentProvider: string | null;
+    /** Paynow: zł pozostałe do zwrotu z tej wpłaty; null = nie Paynow. */
+    paynowDoZwrotu?: string | null;
     createdAt: string;
   }>;
   recentInvoices: Array<{

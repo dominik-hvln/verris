@@ -8,6 +8,7 @@ import {
   TICKET_STATUS_PL,
   WALLET_TX_STATUS_PL,
   WALLET_TX_TYPE_PL,
+  etykietaWpisuPortfela,
   etykieta,
 } from "@verris/contracts";
 import { formatCredits, formatPlnAndCredits } from "@/lib/credits";
@@ -386,13 +387,13 @@ export default async function AdminCustomerCardPage({
               <div key={w.id} className={WIERSZ}>
                 <span className="w-[92px] shrink-0 font-mono text-xs text-muted-foreground">{kiedy(w.createdAt)}</span>
                 <span className="flex min-w-0 flex-1 flex-col text-sm">
-                  <span>{etykieta(WALLET_TX_TYPE_PL, w.type)}</span>
+                  <span>{etykietaWpisuPortfela(w.type, w.amount)}</span>
                   <span className="text-[12.5px] text-muted-foreground">
                     {[w.description, etykieta(WALLET_TX_STATUS_PL, w.status)].filter(Boolean).join(" · ")}
                   </span>
                 </span>
                 <span className={`font-mono text-[13px] ${Number(w.amount) < 0 ? "" : "text-data-hi"}`}>{kwota(w.amount)}</span>
-                {w.type === "TOPUP" && w.paymentProvider === "PAYNOW" ? <ZwrotPaynowButton userId={u.id} walletTxId={w.id} /> : null}
+                {w.type === "TOPUP" && w.paymentProvider === "PAYNOW" && Number(w.paynowDoZwrotu ?? 0) > 0 ? <ZwrotPaynowButton userId={u.id} walletTxId={w.id} /> : null}
               </div>
             ))}
           </section>

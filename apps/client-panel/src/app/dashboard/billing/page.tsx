@@ -6,7 +6,7 @@ import type {
   WalletSummaryDto,
   WalletTransactionDto,
 } from '@verris/contracts';
-import { WALLET_TX_TYPE_PL, etykieta } from '@verris/contracts';
+import { etykietaWpisuPortfela } from '@verris/contracts';
 import { ApiError } from '@/lib/api';
 import { PanelPageHeader } from '@/components/panel';
 import { CREDIT_DISCLAIMER, CREDIT_RATE_INFO, CREDIT_SHORT, formatCredits } from '@/lib/credits';
@@ -257,7 +257,7 @@ function TransactionRow({ tx }: { tx: WalletTransactionDto }) {
   return (
     <tr>
       <td className={TD} data-label="Operacja">
-        <b className="block font-semibold text-foreground">{etykieta(WALLET_TX_TYPE_PL, tx.type)}</b>
+        <b className="block font-semibold text-foreground">{etykietaWpisuPortfela(tx.type, tx.amount)}</b>
         {desc ? (
           <span className="block text-[12.5px] text-muted-foreground">
             {desc}

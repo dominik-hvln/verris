@@ -25,6 +25,15 @@ export const WALLET_TX_TYPE_PL: Record<WalletTxType, string> = {
   COMMISSION_CREDIT: 'Prowizja partnerska',
 };
 
+/**
+ * Nazwa wpisu portfela z uwzględnieniem znaku: ADJUSTMENT to zarówno uznanie od Verris, jak i obciążenie
+ * (cofnięcie doładowania po zwrocie, ręczna korekta) — „Uznanie” przy −25 K myliło (t1 05.10).
+ */
+export function etykietaWpisuPortfela(type: string, amount: string | number): string {
+  if (type === 'ADJUSTMENT' && Number(amount) < 0) return 'Korekta salda';
+  return (WALLET_TX_TYPE_PL as Record<string, string>)[type] ?? type;
+}
+
 export const WALLET_TX_STATUS_PL: Record<WalletTxStatus, string> = {
   PENDING: 'w toku',
   COMPLETED: 'zaksięgowana',

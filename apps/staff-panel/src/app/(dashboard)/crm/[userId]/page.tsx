@@ -17,6 +17,7 @@ import {
   TICKET_STATUS_PL,
   WALLET_TX_STATUS_PL,
   WALLET_TX_TYPE_PL,
+  etykietaWpisuPortfela,
   etykieta,
 } from "@verris/contracts";
 
@@ -404,7 +405,7 @@ export default async function StaffCustomerProfilePage({
                     {new Date(w.createdAt).toLocaleString("pl-PL")}
                   </td>
                   <td className="px-4 py-2 text-xs">
-                    {etykieta(WALLET_TX_TYPE_PL, w.type)} <span className="text-neutral-500">({etykieta(WALLET_TX_STATUS_PL, w.status)})</span>
+                    {etykietaWpisuPortfela(w.type, w.amount)} <span className="text-neutral-500">({etykieta(WALLET_TX_STATUS_PL, w.status)})</span>
                   </td>
                   <td className="px-4 py-2 text-xs tabular-nums">
                     {formatPlnAndCredits(w.amount, w.currency)}

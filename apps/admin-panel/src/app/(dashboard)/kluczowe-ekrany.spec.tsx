@@ -285,4 +285,21 @@ describe("X-05 karta klienta", () => {
     expect(t).toContain("cennik 45");
     expect(t).toContain("Saldo portfela");
   });
+
+  it("t1 05.10: wpłata Paynow zwrócona w całości bez „Zwróć”; cofnięcie doładowania to „Korekta salda”, nie „Uznanie”", async () => {
+    const wpis = (id: string, o: Partial<ProfilKlienta["walletLedger"][number]>) => ({
+      id, type: "TOPUP", status: "COMPLETED", amount: "25.00", currency: "PLN", balanceAfter: "0", description: id,
+      paymentProvider: "PAYNOW", paynowDoZwrotu: "25.00", createdAt: "2026-10-05T11:00:00Z", ...o,
+    });
+    profil.walletLedger = [
+      wpis("cofniecie", { type: "ADJUSTMENT", amount: "-25.00", paymentProvider: null, paynowDoZwrotu: null }),
+      wpis("zwrocona", { paynowDoZwrotu: "0.00" }),
+      wpis("dozwrotu", {}),
+    ];
+    const html = renderToStaticMarkup(await KlientStrona({ params: Promise.resolve({ userId: UID }), searchParams: Promise.resolve({ sekcja: "rozliczenia" }) }));
+    profil.walletLedger = [];
+    expect(html.match(/>\s*Zwróć\s*</g)).toHaveLength(1);
+    expect(tekst(html)).toMatch(/Korekta salda[^|]*cofniecie/);
+    expect(tekst(html)).not.toContain("Uznanie od Verris");
+  });
 });
