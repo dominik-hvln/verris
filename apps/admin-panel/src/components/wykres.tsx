@@ -42,6 +42,7 @@ export function Wykres({
   wysokosc = 48,
   obszar = true,
   max = 100,
+  prognoza,
 }: {
   punkty: Punkt[];
   od: string;
@@ -52,6 +53,8 @@ export function Wykres({
   wysokosc?: number;
   obszar?: boolean;
   max?: number;
+  /** Prognoza rysowana linią przerywaną (bez dymka — dymek i klawiatura chodzą po pomiarach). */
+  prognoza?: Punkt[];
 }) {
   const [aktywny, setAktywny] = useState<number | null>(null);
   if (!punkty.length) {
@@ -65,8 +68,10 @@ export function Wykres({
   const t0 = Date.parse(od);
   const dt = Math.max(1, Date.parse(doT) - t0);
   const zDniem = dt > 2 * 86_400_000;
-  const xs = punkty.map((p) => Math.min(W, Math.max(0, ((Date.parse(p.t) - t0) / dt) * W)));
-  const ys = punkty.map((p) => H - 2 - (Math.min(max, Math.max(0, p.v)) / max) * (H - 4));
+  const x = (p: Punkt) => Math.min(W, Math.max(0, ((Date.parse(p.t) - t0) / dt) * W));
+  const y = (p: Punkt) => H - 2 - (Math.min(max, Math.max(0, p.v)) / max) * (H - 4);
+  const xs = punkty.map(x);
+  const ys = punkty.map(y);
   const linia = xs.map((x, i) => `${x.toFixed(1)},${ys[i]!.toFixed(1)}`).join(" ");
   const kolor = `var(--${ton})`;
   const tekst = (i: number) => `${punkty[i]!.v.toLocaleString("pl-PL")}${jednostka} · ${godzina(punkty[i]!.t, zDniem)}`;
@@ -106,6 +111,18 @@ export function Wykres({
       >
         {obszar ? <polygon points={`${xs[0]!.toFixed(1)},${H} ${linia} ${xs[ost]!.toFixed(1)},${H}`} style={{ fill: `color-mix(in srgb, ${kolor} 15%, transparent)` }} /> : null}
         <polyline points={linia} fill="none" style={{ stroke: kolor }} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        {prognoza?.length ? (
+          <polyline
+            data-prognoza
+            points={prognoza.map((p) => `${x(p).toFixed(1)},${y(p).toFixed(1)}`).join(" ")}
+            fill="none"
+            style={{ stroke: kolor }}
+            strokeWidth={2}
+            strokeDasharray="4 3"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        ) : null}
         {aktywny != null ? (
           <line x1={xs[aktywny]} x2={xs[aktywny]} y1={0} y2={H} style={{ stroke: "var(--line-strong)" }} strokeWidth={1} vectorEffect="non-scaling-stroke" />
         ) : null}

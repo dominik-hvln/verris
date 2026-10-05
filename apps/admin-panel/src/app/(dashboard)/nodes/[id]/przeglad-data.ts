@@ -40,3 +40,39 @@ export async function fetchPrzegladWezla(id: string): Promise<PrzegladWezla | nu
     return null;
   }
 }
+
+type Zasob = "CPU" | "RAM" | "DISK" | "IO";
+export interface SygnalPrognozy {
+  ton: "warn" | "crit";
+  tekst: string;
+}
+export interface ZapasPuli {
+  kont: number;
+  wymiar: string;
+  noweKonta30d: number;
+  dniDoWyczerpania: number | null;
+}
+
+/** Odpowiedź `GET /admin/servers/:id/prognoza` (apps/api/src/servers/prognoza-wezla.ts). */
+export interface PrognozaWezla {
+  generatedAt: string;
+  dostepna: boolean;
+  confidence: "low" | "medium" | "high";
+  horizonDays: number;
+  resources: { resource: Zasob; currentPct: number; predictedPct: number; daysToLimit: number | null; historia?: { t: string; v: number }[] }[];
+  oknoAktualizacji: { godzina: number; cpuProc: number } | null;
+  zapas: ZapasPuli | null;
+  kandydaci: { etykieta: string; accountId: string; domena: string | null; subscriptionId: string | null; udzialProc: number; mocWezlaProc: number | null }[];
+  sygnaly: SygnalPrognozy[];
+  podsumowanie: string;
+  zalecenia: string[];
+  komentarzAi: boolean;
+}
+
+export async function fetchPrognozaWezla(id: string): Promise<PrognozaWezla | null> {
+  try {
+    return await adminApi<PrognozaWezla>(`/admin/servers/${id}/prognoza`);
+  } catch {
+    return null;
+  }
+}

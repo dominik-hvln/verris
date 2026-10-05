@@ -144,7 +144,8 @@ export class AiService {
     }
   }
 
-  private async runLogged(input: {
+  /** Wywołanie AI z wpisem w aiInteractionLog i audycie (także prognoza węzła — servers/prognoza-wezla.ts). */
+  async runLogged(input: {
     feature: string;
     actorUserId: string;
     userId?: string | null;

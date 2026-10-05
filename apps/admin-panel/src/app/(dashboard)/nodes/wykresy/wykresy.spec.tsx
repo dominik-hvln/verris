@@ -89,13 +89,14 @@ describe("Strona „Wykresy węzłów”", () => {
   });
 
   it("filtr stanu z liczbami, lokalizacja bez dostawcy, zakres i sort idą do API", async () => {
-    (adminApi as jest.Mock).mockResolvedValue({
+    const wykresy = {
       zakres: "7d",
       od: OD,
       do: DO,
       kpi: { wszystkie: 3, aktywne: 3, pozaPula: 1, cpuSrednie: 31, ramSrednie: 44, cpu: PUNKTY, ram: PUNKTY, pojemnosc: { wymiar: "dysk", proc: 58 } },
       wezly: [wezel("nbg-03", "krytyczny", { region: "DE-NBG", pozaPula: "poza pulą — wstrzymany" }), wezel("fsn-02", "ostrzezenie"), wezel("hel-01", "norma", { region: "FI-HEL" })],
-    });
+    };
+    (adminApi as jest.Mock).mockImplementation(async (sciezka: string) => (sciezka.startsWith("/admin/servers/wykresy") ? wykresy : Promise.reject(new Error("HTTP 503"))));
     const html = renderToStaticMarkup(await WykresyStrona({ searchParams: Promise.resolve({ zakres: "7d", stan: "krytyczny", sort: "cpu" }) }));
     const tekst = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 
@@ -115,6 +116,38 @@ describe("Strona „Wykresy węzłów”", () => {
     expect(html).toContain('href="/nodes/wykresy?stan=krytyczny&amp;sort=cpu"');
     // każdy wykres to suwak z opisem dla czytnika
     expect(html.match(/role="slider"/g)).toHaveLength(4);
+  });
+
+  it("prognoza floty: podsumowanie na górze, notka AI tylko przy komentarzu AI, linia prognozy na karcie", async () => {
+    const wykresy = {
+      zakres: "24h",
+      od: OD,
+      do: DO,
+      kpi: { wszystkie: 1, aktywne: 1, pozaPula: 0, cpuSrednie: 40, ramSrednie: 50, cpu: PUNKTY, ram: PUNKTY, pojemnosc: null },
+      wezly: [wezel("fsn-01", "norma")],
+    };
+    const prognoza = (komentarzAi: boolean) => ({
+      wezly: [{ id: "fsn-01", linia: { tekst: "limit RAM za ~9 dni", ton: "warn" } }],
+      podsumowanie: komentarzAi ? "fsn-01 zapełni się pierwszy." : "Najbliżej limitu: fsn-01 — RAM za ok. 9 dni.",
+      zalecenia: komentarzAi ? ["Zamów kolejny węzeł za ok. 3 tygodnie."] : [],
+      komentarzAi,
+    });
+    for (const ai of [true, false]) {
+      (adminApi as jest.Mock).mockImplementation(async (sciezka: string) => (sciezka === "/admin/servers/prognoza-floty" ? prognoza(ai) : wykresy));
+      const html = renderToStaticMarkup(await WykresyStrona({ searchParams: Promise.resolve({}) }));
+      const tekst = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+      expect(tekst).toContain("Prognoza floty");
+      expect(tekst).toContain("prognoza: limit RAM za ~9 dni");
+      if (ai) {
+        expect(tekst).toContain("Zamów kolejny węzeł za ok. 3 tygodnie.");
+        expect(tekst).toContain("Zalecenia tworzy AI — decyzję podejmuje operator.");
+        expect(html.match(/data-ai-generated/g)).toHaveLength(2);
+      } else {
+        expect(tekst).toContain("Najbliżej limitu: fsn-01");
+        expect(tekst).not.toContain("Zalecenia tworzy AI");
+        expect(html).not.toContain("data-ai-generated");
+      }
+    }
   });
 
   it("API niedostępne — komunikat zamiast pustej strony", async () => {

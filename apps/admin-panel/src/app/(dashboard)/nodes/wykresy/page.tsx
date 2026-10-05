@@ -5,6 +5,7 @@ import { plural } from "@/lib/pl";
 import { Eyebrow, KARTA, Pigulka } from "@/components/v2";
 import { Wykres, type Punkt, type TonWykresu } from "@/components/wykres";
 import { Sortowanie } from "./sortowanie";
+import { KomentarzPrognozy } from "../[id]/prognoza-wezla";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,15 @@ interface WykresyFloty {
     cpu: Punkt[];
     ram: Punkt[];
   }[];
+}
+
+type LiniaPrognozy = { tekst: string; ton: "warn" | "crit" | null };
+/** Odpowiedź `GET /admin/servers/prognoza-floty` (apps/api/src/servers/prognoza-wezla.ts) — tylko pola tej strony. */
+interface PrognozaFloty {
+  wezly: { id: string; linia: LiniaPrognozy }[];
+  podsumowanie: string;
+  zalecenia: string[];
+  komentarzAi: boolean;
 }
 
 const ZAKRESY = [
@@ -108,7 +118,12 @@ export default async function WykresyWezlowStrona({ searchParams }: { searchPara
     return `/nodes/wykresy${qs.size ? `?${qs}` : ""}`;
   };
 
-  const dane = await adminApi<WykresyFloty>(`/admin/servers/wykresy?zakres=${zakres}&sort=${sort}`).catch((e: unknown) => (e instanceof Error ? e.message : "błąd"));
+  const [dane, prognoza] = await Promise.all([
+    adminApi<WykresyFloty>(`/admin/servers/wykresy?zakres=${zakres}&sort=${sort}`).catch((e: unknown) => (e instanceof Error ? e.message : "błąd")),
+    // Prognoza jest dodatkiem — jej brak nie psuje wykresów.
+    adminApi<PrognozaFloty>("/admin/servers/prognoza-floty").catch(() => null),
+  ]);
+  const linie = new Map((prognoza?.wezly ?? []).map((w) => [w.id, w.linia]));
   const teraz = chwila();
   const nazwaZakresu = ZAKRESY.find((z) => z.v === zakres)!.nazwa;
 
@@ -129,10 +144,19 @@ export default async function WykresyWezlowStrona({ searchParams }: { searchPara
         </nav>
       </div>
 
+      {prognoza ? (
+        <section className={`${KARTA} flex flex-col gap-2 px-5 py-[18px]`} aria-labelledby="prognoza-floty">
+          <h2 id="prognoza-floty" className="font-display text-[17px] font-bold">
+            Prognoza floty
+          </h2>
+          <KomentarzPrognozy podsumowanie={prognoza.podsumowanie} zalecenia={prognoza.zalecenia} komentarzAi={prognoza.komentarzAi} />
+        </section>
+      ) : null}
+
       {typeof dane === "string" ? (
         <div className="rounded-[10px] border border-crit/30 bg-crit/10 px-4 py-3 text-sm text-crit">Nie udało się pobrać wykresów: {dane}</div>
       ) : (
-        <Tresc dane={dane} stan={stan} sort={sort} href={href} teraz={teraz} nazwaZakresu={nazwaZakresu} />
+        <Tresc dane={dane} stan={stan} sort={sort} href={href} teraz={teraz} nazwaZakresu={nazwaZakresu} linie={linie} />
       )}
     </div>
   );
@@ -145,6 +169,7 @@ function Tresc({
   href,
   teraz,
   nazwaZakresu,
+  linie,
 }: {
   dane: WykresyFloty;
   stan: string;
@@ -152,6 +177,7 @@ function Tresc({
   href: (z: Partial<{ zakres: string; stan: string; sort: string }>) => string;
   teraz: number;
   nazwaZakresu: string;
+  linie: Map<string, LiniaPrognozy>;
 }) {
   const { kpi, od, do: doT } = dane;
   const liczby = dane.wezly.reduce<Record<string, number>>((a, w) => ({ ...a, [w.stan]: (a[w.stan] ?? 0) + 1 }), { wszystkie: dane.wezly.length });
@@ -214,6 +240,7 @@ function Tresc({
             const tonRam = ton(w.ramNow, 85, 101);
             const tonDysk = ton(w.diskPct, 80, 90);
             const miejsce = lokalizacja(w.region);
+            const linia = linie.get(w.id);
             return (
               <article key={w.id} className={`${KARTA} flex flex-col gap-3.5 rounded-[14px] p-[18px]`} aria-labelledby={`wezel-${w.id}`}>
                 <div className="flex items-start gap-3">
@@ -273,6 +300,9 @@ function Tresc({
                     <span className={w.status === "ACTIVE" && (!w.lastSignalAt || teraz - Date.parse(w.lastSignalAt) > 15 * 60_000) ? "text-crit" : undefined}>sygnał {temu(w.lastSignalAt, teraz)}</span>
                     <span>kopia off-site {temu(w.lastOffsiteBackupAt, teraz)}</span>
                   </div>
+                  {linia ? (
+                    <span className={`text-[11.5px] ${linia.ton ? TEKST[linia.ton] : "text-muted-foreground"}`}>prognoza: {linia.tekst}</span>
+                  ) : null}
                 </div>
               </article>
             );

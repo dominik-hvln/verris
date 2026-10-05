@@ -14,6 +14,6 @@ import { KnowledgeBaseService } from './knowledge-base.service.js';
   imports: [ConfigModule, PrismaModule, NotificationsModule],
   controllers: [AiController, AiKnowledgeAdminController, AiUstawieniaAdminController],
   providers: [AiProviderService, AiService, AiChatService, KnowledgeBaseService],
-  exports: [AiChatService, KnowledgeBaseService, AiService],
+  exports: [AiChatService, KnowledgeBaseService, AiService, AiProviderService],
 })
 export class AiModule {}

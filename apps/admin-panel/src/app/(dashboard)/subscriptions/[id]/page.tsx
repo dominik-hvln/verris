@@ -161,7 +161,7 @@ export default async function AdminSubscriptionDetailPage({ params }: { params: 
             </div>
           ) : null}
 
-          <div className="rounded-xl border border-white/10 bg-black/35 p-4">
+          <div id="migracja-wewnetrzna" className="rounded-xl border border-white/10 bg-black/35 p-4">
             <h2 className="text-sm font-semibold text-white mb-3">Migracja wewnętrzna (G‑7)</h2>
             <InternalMigrationForm
               subscriptionId={detail.id}

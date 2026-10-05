@@ -1,6 +1,8 @@
 import { StosWezlaService } from './stos-wezla.service.js';
 import { WykresyFlotyService } from './wykresy-floty.js';
 import { PrzegladWezlaService } from './przeglad-wezla.service.js';
+import { PrognozaWezlaService } from './prognoza-wezla.js';
+import { AiModule } from '../ai/ai.module.js';
 import { StosWezlaAdminController } from './stos-wezla.admin.controller.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { FalaTygodniowaScheduler } from './fala-tygodniowa.scheduler.js';
@@ -28,7 +30,7 @@ import { NodeBootstrapAdminController } from './node-bootstrap.admin.controller.
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module.js';
 
 @Module({
-  imports: [PlatformSettingsModule, NotificationsModule],
+  imports: [PlatformSettingsModule, NotificationsModule, AiModule],
   controllers: [
     ServersController,
     StosWezlaAdminController,
@@ -45,6 +47,7 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
     StosWezlaService,
     PrzegladWezlaService,
     WykresyFlotyService,
+    PrognozaWezlaService,
     FalaTygodniowaScheduler,
     BackupOffsiteService,
     NodeTasksService,

@@ -25,7 +25,8 @@ import { DaSsoButton } from "./da-sso-button";
 import { NoweKontaButton } from "./nowe-konta-button";
 import { AktualizujWezelButton } from "./aktualizuj-wezel-button";
 import { WezelPrzeglad } from "./wezel-przeglad";
-import { fetchPrzegladWezla } from "./przeglad-data";
+import { fetchPrognozaWezla, fetchPrzegladWezla } from "./przeglad-data";
+import { PrognozaWezlaKarta } from "./prognoza-wezla";
 import { listNodeTasks } from "../../provisioning-queue/data";
 import { NodeTasksSection } from "../../provisioning-queue/node-tasks-section";
 import { Okruszek } from "@/components/admin-shell";
@@ -68,7 +69,8 @@ export default async function ServerDetailPage({
   const { id } = await params;
   const q = await searchParams;
   const sekcja: Sekcja = (SEKCJE as readonly string[]).includes(q.sekcja ?? "") ? (q.sekcja as Sekcja) : "przeglad";
-  const [{ data: server, error }, p] = await Promise.all([fetchServer(id), fetchPrzegladWezla(id)]);
+  // Prognoza tylko na Przeglądzie: komentarz AI (raz na 24 h) nie jest liczony przy innych zakładkach.
+  const [{ data: server, error }, p, prognoza] = await Promise.all([fetchServer(id), fetchPrzegladWezla(id), sekcja === "przeglad" ? fetchPrognozaWezla(id) : null]);
   if (!server) {
     if (error?.toLowerCase().includes("not found")) notFound();
     return (
@@ -205,6 +207,7 @@ export default async function ServerDetailPage({
               <NodeBootstrapProgress serverId={server.id} />
             </section>
           )}
+          {prognoza ? <PrognozaWezlaKarta p={prognoza} bazaHref={baza} /> : null}
           {p ? <WezelPrzeglad p={p} bazaHref={baza} /> : null}
         </>
       ) : null}

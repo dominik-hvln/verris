@@ -63,10 +63,10 @@ describe('Flota — wykresy: serie', () => {
   it('% rdzeni i RAM węzła, punkty po czasie, węzeł bez pojemności bez serii CPU', () => {
     const s = serieWezlow(
       [
-        { serverId: 'w1', t: t2, cpu: 200, ram: 2048 },
-        { serverId: 'w1', t: t1, cpu: 160, ram: 1536 },
-        { serverId: 'w2', t: t1, cpu: 900, ram: 100 },
-        { serverId: 'obcy', t: t1, cpu: 1, ram: 1 },
+        { serverId: 'w1', t: t2, cpu: 200, ram: 2048, dysk: 0 },
+        { serverId: 'w1', t: t1, cpu: 160, ram: 1536, dysk: 0 },
+        { serverId: 'w2', t: t1, cpu: 900, ram: 100, dysk: 0 },
+        { serverId: 'obcy', t: t1, cpu: 1, ram: 1, dysk: 0 },
       ],
       new Map([
         ['w1', { rdzenie: 4, ramMb: 8192 }],

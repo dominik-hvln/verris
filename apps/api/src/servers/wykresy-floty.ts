@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { nazwaWezla, pozaPula } from '../admin-dashboard/stan-platformy.js';
 import { pojemnoscSprzedazowa } from '../subscriptions/node-capacity.js';
@@ -61,6 +62,29 @@ export interface WierszSerii {
   t: Date;
   cpu: number;
   ram: number;
+  dysk: number;
+}
+
+/**
+ * Seria węzłów z próbek kont: najpierw suma kont w każdej próbce węzła, potem średnia tych sum w kubełku
+ * `krok`. Wspólne dla wykresów floty i prognozy węzła (prognoza-wezla.ts).
+ * ponytail: liczone z surowych próbek minutowych (indeks serverId+bucketStart); przy tysiącach kont
+ * zakres 7 dni czyta miliony wierszy — wtedy zbiorczy wiersz godzinowy (bucketDurationS 3600) przy zapisie telemetrii.
+ */
+export function sumyWezlow(prisma: PrismaService, od: Date, krok: string, serverId?: string) {
+  const tylko = serverId ? Prisma.sql`AND "serverId" = ${serverId}` : Prisma.empty;
+  return prisma.$queryRaw<WierszSerii[]>`
+    WITH wezel AS (
+      SELECT "serverId", "bucketStart", SUM("cpuUsageAvg") AS cpu, SUM("memUsageAvgMb") AS ram, SUM("diskUsageMb") AS dysk
+      FROM "UsageMetric"
+      WHERE "serverId" IS NOT NULL AND "accountId" IS NOT NULL AND "bucketDurationS" <= 300 AND "bucketStart" >= ${od} ${tylko}
+      GROUP BY "serverId", "bucketStart"
+    )
+    SELECT "serverId", date_bin(${krok}::interval, "bucketStart", TIMESTAMP '2000-01-01') AS t,
+           AVG(cpu)::float8 AS cpu, AVG(ram)::float8 AS ram, AVG(dysk)::float8 AS dysk
+    FROM wezel
+    GROUP BY 1, 2
+    ORDER BY 1, 2`;
 }
 
 const proc = (v: number, razem: number) => Math.round(Math.min(100, (v / razem) * 100) * 10) / 10;
@@ -130,20 +154,7 @@ export class WykresyFlotyService {
           _count: { select: { accounts: { where: { status: { not: 'DELETED' } } } } },
         },
       }),
-      // Najpierw suma kont w każdej próbce węzła, potem średnia tych sum w kubełku.
-      // ponytail: liczone z surowych próbek minutowych (indeks serverId+bucketStart); przy tysiącach kont
-      // zakres 7 dni czyta miliony wierszy — wtedy zbiorczy wiersz godzinowy (bucketDurationS 3600) przy zapisie telemetrii.
-      this.prisma.$queryRaw<WierszSerii[]>`
-        WITH wezel AS (
-          SELECT "serverId", "bucketStart", SUM("cpuUsageAvg") AS cpu, SUM("memUsageAvgMb") AS ram
-          FROM "UsageMetric"
-          WHERE "serverId" IS NOT NULL AND "accountId" IS NOT NULL AND "bucketDurationS" <= 300 AND "bucketStart" >= ${od}
-          GROUP BY "serverId", "bucketStart"
-        )
-        SELECT "serverId", date_bin(${krok}::interval, "bucketStart", TIMESTAMP '2000-01-01') AS t, AVG(cpu)::float8 AS cpu, AVG(ram)::float8 AS ram
-        FROM wezel
-        GROUP BY 1, 2
-        ORDER BY 1, 2`,
+      sumyWezlow(this.prisma, od, krok),
       // Stan bieżący: najnowsza próbka każdego konta z 10 min (jak strona węzła).
       this.prisma.$queryRaw<{ serverId: string; cpu: number; ram: number; dysk: number }[]>`
         SELECT "serverId", SUM(cpu)::float8 AS cpu, SUM(ram)::float8 AS ram, SUM(dysk)::float8 AS dysk

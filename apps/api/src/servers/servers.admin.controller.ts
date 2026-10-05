@@ -13,6 +13,7 @@ import type { Request } from 'express';
 import { ServersService } from './servers.service.js';
 import { PrzegladWezlaService } from './przeglad-wezla.service.js';
 import { WykresyFlotyService, sortZ, zakresZ } from './wykresy-floty.js';
+import { PrognozaWezlaService } from './prognoza-wezla.js';
 import { flotaZBazy } from '../admin-dashboard/stan-platformy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PolitykaPojemnosciDto, WygaszenieWezlaDto } from './dto/capacity-policy.dto.js';
@@ -87,6 +88,7 @@ export class ServersAdminController {
     private readonly directAdmin: DirectAdminService,
     private readonly przegladWezla: PrzegladWezlaService,
     private readonly wykresyFloty: WykresyFlotyService,
+    private readonly prognozaWezla: PrognozaWezlaService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -114,6 +116,15 @@ export class ServersAdminController {
   @StaffPerm('NODES_VIEW')
   flota() {
     return flotaZBazy(this.prisma, Date.now()).then((f) => f.wiersze);
+  }
+
+  /** Prognoza floty: liczby z panelu + komentarz AI raz na 24 h (AI niczego nie wykonuje). Trasa przed :id. */
+  @Get('prognoza-floty')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_VIEW')
+  prognozaFloty(@CurrentUser() user: { userId: string }) {
+    return this.prognozaWezla.flota(user.userId);
   }
 
   /** Flota — wykresy: CPU/RAM węzłów w czasie (`zakres` 1h|24h|7d) i KPI floty. Trasa przed :id. */
@@ -243,6 +254,15 @@ export class ServersAdminController {
   @StaffPerm('NODES_VIEW')
   przeglad(@Param('id') id: string) {
     return this.przegladWezla.przeglad(id);
+  }
+
+  /** Prognoza węzła: CPU/RAM/dysk za 7 dni, okno aktualizacji, zapas puli, kandydaci do przeniesienia, zalecenia AI. */
+  @Get(':id/prognoza')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_VIEW')
+  prognoza(@Param('id') id: string, @CurrentUser() user: { userId: string }) {
+    return this.prognozaWezla.wezel(id, user.userId);
   }
 
   /** Per-node drill-down: hosting accounts placed on this node + latest telemetry. */
