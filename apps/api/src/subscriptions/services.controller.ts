@@ -51,6 +51,7 @@ import { SlowSqlService } from './slow-sql.service.js';
 import { PgsqlService } from './pgsql.service.js';
 import { ObrazyService } from './obrazy.service.js';
 import { BazaPgsqlDto } from './dto/pgsql.dto.js';
+import { KwarantannaMalwareDto, WpisyKwarantannyDto } from './dto/malware.dto.js';
 import { SiteStatsService } from './site-stats.service.js';
 import { HostingRestoreDto } from './dto/hosting-restore.dto.js';
 import { WordpressService } from './wordpress.service.js';
@@ -1293,6 +1294,25 @@ export class UserServicesController {
   @Post(':id/hosting-malware/refresh')
   async refreshHostingMalware(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     return this.malwareScan.zlec(id, user.userId, 'list');
+  }
+
+  // G-12 — kwarantanna plików wykrytych przez skaner (stan kwarantanny jest w GET hosting-malware).
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:malware-quarantine' })
+  @Post(':id/hosting-malware/kwarantanna')
+  async quarantineHostingMalware(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: KwarantannaMalwareDto) {
+    return this.malwareScan.doKwarantanny(id, user.userId, body.sciezki);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:malware-quarantine-restore' })
+  @Post(':id/hosting-malware/kwarantanna/przywroc')
+  async restoreHostingMalwareQuarantine(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: WpisyKwarantannyDto) {
+    return this.malwareScan.wpisyKwarantanny(id, user.userId, 'przywroc', body.wpisy);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:malware-quarantine-delete' })
+  @Post(':id/hosting-malware/kwarantanna/usun')
+  async deleteHostingMalwareQuarantine(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: WpisyKwarantannyDto) {
+    return this.malwareScan.wpisyKwarantanny(id, user.userId, 'usun', body.wpisy);
   }
 
   // D-15/J-03 — Redis konta (zadanie węzła).

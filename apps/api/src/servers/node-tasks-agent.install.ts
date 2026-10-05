@@ -244,7 +244,7 @@ elif [ "$TASK_KIND" = "DISK_USAGE" ]; then
 elif [ "$TASK_KIND" = "MALWARE_SCAN" ]; then
   RUN_BIN="/usr/local/bin/verris-malware-scan.sh"
   fetch_task_script "/agent/tasks/malware-scan/script" "$RUN_BIN"
-  payload_env "MS" "{'mode':'MODE','daUser':'DA_USER'}"
+  payload_env "MS" "{'mode':'MODE','daUser':'DA_USER','pathsB64':'PATHS_B64'}"
 elif [ "$TASK_KIND" = "REDIS_ACCESS" ]; then
   RUN_BIN="/usr/local/bin/verris-redis.sh"
   fetch_task_script "/agent/tasks/redis/script" "$RUN_BIN"
