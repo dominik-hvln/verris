@@ -470,6 +470,11 @@ export class PlanChangeService {
         'Usługa nie ma jeszcze konta hostingowego — poczekaj na provisioning.',
       );
     }
+    // Q-05 — zmiana tylko w obrębie tego samego produktu. Hosting przełączony na plan poczty
+    // albo newslettera dostałby na węźle pakiet z cudzymi limitami (pushDaLimits).
+    if (target.productKind !== sub.plan.productKind) {
+      throw new BadRequestException('Wybrany plan dotyczy innej usługi — zmiana planu działa w obrębie tej samej usługi.');
+    }
     if (sub.planId === target.id && sub.interval === targetInterval) {
       throw new BadRequestException(
         'Ta usługa ma już wybrany plan i okres rozliczeniowy — wybierz inny plan lub okres.',
@@ -551,6 +556,7 @@ export class PlanChangeService {
       where: {
         isActive: true,
         id: { not: sub.planId },
+        productKind: sub.plan.productKind,
         ...(includeNonPublic ? {} : { isPublic: true }),
       },
       orderBy: [{ sortOrder: 'asc' }, { priceMonthly: 'asc' }],

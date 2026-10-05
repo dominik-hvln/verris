@@ -82,6 +82,15 @@ function fakePrisma(o: FakeOpts) {
   } as never;
 }
 
+describe('Q-05 — produkt aplikacyjny nie dostaje węzła', () => {
+  it('plan EMAIL_MARKETING: odmowa przed jakimkolwiek wyborem węzła', async () => {
+    const prisma = fakePrisma({ servers: [wezel()] });
+    const s = new NodeSelectorService(prisma);
+    await expect(s.pickServerForPlan({ slug: 'newsletter-start', productKind: 'EMAIL_MARKETING', cpuLimit: 1, ramLimitMb: 1, diskLimitMb: 1 } as never)).rejects.toThrow('nie zakłada konta');
+    expect((prisma as unknown as { server: { findMany: Mock } }).server.findMany).not.toHaveBeenCalled();
+  });
+});
+
 describe('Z-12 — NodeSelectorService korzysta z nadsubskrypcji', () => {
   it('bez nadsubskrypcji odmawia, gdy sprzedano całą pojemność fizyczną', async () => {
     const s = new NodeSelectorService(

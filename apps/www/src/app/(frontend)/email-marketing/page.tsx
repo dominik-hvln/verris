@@ -4,7 +4,9 @@ import { RevealInit } from '../components/RevealInit';
 import { PANEL } from '@/lib/site';
 import { serviceSchema } from '@/lib/schema';
 import { notFound } from 'next/navigation';
-import { EMAIL_MARKETING_W_SPRZEDAZY } from '@/lib/oferta';
+import { EMAIL_MARKETING_W_SPRZEDAZY, PAKIETY_NEWSLETTER } from '@/lib/oferta';
+
+const liczba = (n: number) => n.toLocaleString('pl-PL');
 
 export const metadata: Metadata = {
   title: 'E-mail marketing — wysyłki do własnych list | Verris',
@@ -42,6 +44,15 @@ export default function Page() {
               <li>Budujesz kampanię i wysyłasz do własnej listy odbiorców z panelu.</li>
               <li>Stawiamy na dostarczalność — poprawną konfigurację nadawcy i reputację.</li>
               <li>Zgody odbiorców zbierasz i przechowujesz Ty (jako administrator swoich danych).</li>
+            </ul>
+            <h2>Pakiety</h2>
+            <ul>
+              {PAKIETY_NEWSLETTER.map((p) => (
+                <li key={p.nazwa}>
+                  <strong>{p.nazwa}</strong> — {p.miesiecznie} zł/mies. lub {p.rocznie} zł/rok (brutto): do{' '}
+                  {liczba(p.kontakty)} kontaktów i {liczba(p.wysylki)} wysyłek miesięcznie.
+                </li>
+              ))}
             </ul>
             <h2>Zgodność (PKE / RODO)</h2>
             <p>

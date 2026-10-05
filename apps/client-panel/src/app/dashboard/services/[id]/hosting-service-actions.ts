@@ -13,8 +13,8 @@ async function fetchServiceDetailsActionTresc(serviceId: string): Promise<Servic
 // natychmiast dobrał właściwy zestaw zakładek przy wejściu z deep-linku.
 export async function fetchServiceKindAction(
   serviceId: string,
-): Promise<{ productKind: 'HOSTING' | 'EMAIL'; serviceTag: string | null }> {
-  return apiFetch<{ productKind: 'HOSTING' | 'EMAIL'; serviceTag: string | null }>(
+): Promise<{ productKind: 'HOSTING' | 'EMAIL' | 'EMAIL_MARKETING'; serviceTag: string | null }> {
+  return apiFetch<{ productKind: 'HOSTING' | 'EMAIL' | 'EMAIL_MARKETING'; serviceTag: string | null }>(
     `/services/${serviceId}/kind`,
   );
 }

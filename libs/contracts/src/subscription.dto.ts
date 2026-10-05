@@ -17,7 +17,8 @@ export interface CreateSubscriptionInput {
   planId: string;
   interval: BillingInterval;
   paymentSource: SubscriptionPaymentSource;
-  domain: string;
+  /** Wymagana dla hostingu i poczty; produkt aplikacyjny (EMAIL_MARKETING) zamawia się bez domeny. */
+  domain?: string;
   preferredRegion?: string;
   autoscalingEnabled?: boolean;
   ecoModeEnabled?: boolean;

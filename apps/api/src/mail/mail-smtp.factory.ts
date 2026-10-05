@@ -43,6 +43,38 @@ export function isLocalSmtpHost(host: string): boolean {
   );
 }
 
+/**
+ * Q-05 — konfiguracja SMTP z jednego adresu (env `EMM_SMTP_URL`):
+ *   smtp://login:hasło@host:587   — STARTTLS (dla localhost bez TLS), domyślny port 587
+ *   smtps://login:hasło@host:465  — TLS od połączenia, domyślny port 465
+ *   …?from=newsletter@domena.pl   — opcjonalny adres nadawcy (domyślnie ten z `defaults`)
+ * Znaki specjalne w loginie i haśle kodowane %XX (zapis URL). Pusty lub zły adres = null.
+ */
+export function parseSmtpUrl(
+  raw: string | undefined,
+  defaults: { fromAddress: string; fromName: string },
+): ResolvedSmtpConfig | null {
+  if (!raw?.trim()) return null;
+  let u: URL;
+  try {
+    u = new URL(raw.trim());
+  } catch {
+    return null;
+  }
+  const tlsOdPolaczenia = u.protocol === 'smtps:';
+  if (!tlsOdPolaczenia && u.protocol !== 'smtp:') return null;
+  return {
+    host: u.hostname,
+    port: u.port ? Number(u.port) : tlsOdPolaczenia ? 465 : 587,
+    username: decodeURIComponent(u.username),
+    password: decodeURIComponent(u.password),
+    fromAddress: u.searchParams.get('from') || defaults.fromAddress,
+    fromName: defaults.fromName,
+    secure: tlsOdPolaczenia ? 'tls' : isLocalSmtpHost(u.hostname) ? 'none' : 'starttls',
+    ...resolveSmtpIdentity(process.env),
+  };
+}
+
 export function buildSmtpMailerProvider(config: ResolvedSmtpConfig): MailerProvider {
   if (!config.host || config.port <= 0 || !config.fromAddress) {
     return new LogMailerProvider();

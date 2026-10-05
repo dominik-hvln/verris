@@ -40,7 +40,7 @@ import { CryptoService } from '../common/crypto/crypto.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { HostingResourceActions } from '../common/audit/audit.actions.js';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
-import { buildDaPackageSpecFromPlan, planResourceFields } from './da-package-spec.js';
+import { PLANY_Z_PAKIETEM_DA, buildDaPackageSpecFromPlan, planResourceFields } from './da-package-spec.js';
 import { resolveHostingPrimaryDomain } from './hosting-primary-domain.js';
 
 export interface WebToolsState {
@@ -3396,7 +3396,7 @@ export class DirectAdminService {
   async syncPlanPackagesForServer(serverId: string, opts: { nadpisz?: boolean } = {}): Promise<{ synced: string[] }> {
     const client = await this.getClientForServer(serverId);
     const plans = await this.prisma.plan.findMany({
-      where: { isActive: true },
+      where: PLANY_Z_PAKIETEM_DA,
       orderBy: { sortOrder: 'asc' },
     });
     const istniejace = opts.nadpisz ? [] : await client.listUserPackages();

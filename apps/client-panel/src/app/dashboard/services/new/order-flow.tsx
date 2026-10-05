@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getTrialEligibilityAction } from './actions';
-import { ArrowLeft, Server, Mail, Cpu, ArrowRight, Gift, Check, CreditCard, CalendarClock } from 'lucide-react';
+import { ArrowLeft, Server, Mail, Cpu, ArrowRight, Gift, Check, CreditCard, CalendarClock, Megaphone } from 'lucide-react';
 import type { BillingInterval, PlanDto } from '@verris/contracts';
 import { NewSubscriptionForm } from './form';
 import { TrialCallout } from './trial-callout';
@@ -18,6 +18,8 @@ import { clientFeatures } from '@/lib/client-features';
  */
 export function OrderFlow({ plans, offer, bezKarty }: { plans: PlanDto[]; offer: TrialOffer; bezKarty?: boolean }) {
   const vps = clientFeatures.vps; // VPS ukryty do wejścia do sprzedaży (2026-09-23)
+  // Q-05 — pakiety Newsletter tylko przy włączonej fladze (domyślnie wyłączona, 2026-09-28).
+  const emm = clientFeatures.emailMarketing;
   const params = useSearchParams();
   const router = useRouter();
   const type = params.get('type');
@@ -26,11 +28,12 @@ export function OrderFlow({ plans, offer, bezKarty }: { plans: PlanDto[]; offer:
 
   const hostingPlans = plans.filter((p) => p.productKind === 'HOSTING');
   const emailPlans = plans.filter((p) => p.productKind === 'EMAIL');
+  const newsletterPlans = emm ? plans.filter((p) => p.productKind === 'EMAIL_MARKETING') : [];
 
   // --- Krok 2: wybrany typ ---
-  if (type === 'hosting' || type === 'email') {
-    const typed = type === 'hosting' ? hostingPlans : emailPlans;
-    const title = type === 'hosting' ? 'Hosting WWW' : 'Poczta e-mail';
+  if (type === 'hosting' || type === 'email' || (type === 'newsletter' && emm)) {
+    const typed = type === 'hosting' ? hostingPlans : type === 'email' ? emailPlans : newsletterPlans;
+    const title = type === 'hosting' ? 'Hosting WWW' : type === 'email' ? 'Poczta e-mail' : 'E-mail marketing';
     const initialInterval: BillingInterval | undefined =
       interval === 'YEAR' ? 'YEAR' : interval === 'MONTH' ? 'MONTH' : undefined;
     return (
@@ -128,7 +131,7 @@ export function OrderFlow({ plans, offer, bezKarty }: { plans: PlanDto[]; offer:
   return (
     <div className="space-y-5">
       <p className="text-sm text-neutral-400">Co chcesz uruchomić? Wybierz rodzaj usługi.</p>
-      <div className={`grid gap-4 ${vps ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+      <div className={`grid gap-4 ${vps && emm ? 'md:grid-cols-2 xl:grid-cols-4' : vps || emm ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
         <ProductCard
           icon={<Server className="h-6 w-6" />}
           title="Hosting WWW"
@@ -148,6 +151,17 @@ export function OrderFlow({ plans, offer, bezKarty }: { plans: PlanDto[]; offer:
           count={emailPlans.length}
           accent="sky"
         />
+        {emm ? (
+          <ProductCard
+            icon={<Megaphone className="h-6 w-6" />}
+            title="E-mail marketing"
+            desc="Newslettery do własnej listy odbiorców, prosto z panelu. Bez domeny i serwera."
+            bullets={['Zapis z potwierdzeniem (double opt-in)', 'Wypis jednym kliknięciem', 'Kampanie z panelu']}
+            href="/dashboard/services/new?type=newsletter"
+            count={newsletterPlans.length}
+            accent="fuchsia"
+          />
+        ) : null}
         {vps ? (
           <ProductCard
             icon={<Cpu className="h-6 w-6" />}
@@ -265,18 +279,20 @@ function ProductCard({
   badge?: string;
   href: string;
   count?: number;
-  accent: 'emerald' | 'sky' | 'violet';
+  accent: 'emerald' | 'sky' | 'violet' | 'fuchsia';
   external?: boolean;
 }) {
   const ring: Record<string, string> = {
     emerald: 'hover:border-emerald-400/40 hover:shadow-[0_0_40px_rgba(16,185,129,0.12)]',
     sky: 'hover:border-sky-400/40 hover:shadow-[0_0_40px_rgba(56,189,248,0.12)]',
     violet: 'hover:border-violet-400/40 hover:shadow-[0_0_40px_rgba(139,92,246,0.12)]',
+    fuchsia: 'hover:border-fuchsia-400/40 hover:shadow-[0_0_40px_rgba(217,70,239,0.12)]',
   };
   const iconBg: Record<string, string> = {
     emerald: 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30',
     sky: 'bg-sky-500/15 text-sky-300 border-sky-400/30',
     violet: 'bg-violet-500/15 text-violet-300 border-violet-400/30',
+    fuchsia: 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-400/30',
   };
   return (
     <Link

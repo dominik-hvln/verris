@@ -16,6 +16,15 @@ export const VPS_W_SPRZEDAZY = flaga === 'true' || flaga === '1';
 const flagaEmm = process.env.NEXT_PUBLIC_FEATURE_EMAIL_MARKETING;
 export const EMAIL_MARKETING_W_SPRZEDAZY = flagaEmm === 'true' || flagaEmm === '1';
 
+/**
+ * Q-05 — pakiety e-mail marketingu (ceny BRUTTO, zł). Źródło prawdy: apps/api/src/plans/plany-newsletter.ts;
+ * zgodność liczb pilnuje test plany-newsletter.spec.ts w API.
+ */
+export const PAKIETY_NEWSLETTER = [
+  { nazwa: 'Newsletter Start', miesiecznie: 19, rocznie: 190, kontakty: 1000, wysylki: 5000 },
+  { nazwa: 'Newsletter Plus', miesiecznie: 49, rocznie: 490, kontakty: 5000, wysylki: 25000 },
+] as const;
+
 /** „hosting z autoskalowaniem, VPS i domeny” albo bez VPS — jedno miejsce na to wyliczenie. */
 export const OFERTA_KROTKO = VPS_W_SPRZEDAZY
   ? 'hosting z autoskalowaniem, VPS i domeny'

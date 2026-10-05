@@ -39,7 +39,7 @@ export default async function EmailMarketingIndexPage() {
             z dbałością o dostarczalność i zgodność RODO.
           </p>
           <Link
-            href="/dashboard/services/new"
+            href="/dashboard/services/new?type=newsletter"
             className="mt-5 inline-flex items-center gap-2 rounded-xl bg-fuchsia-600 px-4 py-2 text-sm font-semibold text-white hover:bg-fuchsia-500"
           >
             <Plus className="h-4 w-4" /> Zamów usługę

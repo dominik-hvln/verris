@@ -161,6 +161,22 @@ describe('PlanChangeService (admin)', () => {
     expect(klucze[0]).toContain('plan-a>plan-b');
   });
 
+  it('Q-05: hosting nie przechodzi na plan newslettera — pakiet DA nie zmienia się, portfel nietknięty; lista celów tylko z tego samego produktu', async () => {
+    const debit = vi.fn();
+    const setAccountLimits = vi.fn();
+    const { service, prisma } = createService({ wallet: { debit, credit: vi.fn() }, da: { setAccountLimits } });
+    prisma.subscription.findUnique.mockResolvedValue({ ...baseSub, plan: { ...baseSub.plan, productKind: 'HOSTING' } });
+    prisma.plan.findUnique.mockResolvedValue({
+      id: 'plan-n', slug: 'newsletter-start', name: 'Newsletter Start', isActive: true, isPublic: true, productKind: 'EMAIL_MARKETING',
+      cpuLimit: 1, ramLimitMb: 1, diskLimitMb: 1, priceMonthly: new Prisma.Decimal(19), priceYearly: new Prisma.Decimal(190),
+    });
+    await expect(service.changeForAdmin('admin-1', Role.ADMIN, 'sub-1', 'plan-n', 'test', false)).rejects.toThrow('innej usługi');
+    expect(debit).not.toHaveBeenCalled();
+    expect(setAccountLimits).not.toHaveBeenCalled();
+    await service.listEligiblePlansForAdmin('sub-1');
+    expect(prisma.plan.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ productKind: 'HOSTING' }) }));
+  });
+
   it('rejects downgrade when disk usage exceeds target limit', async () => {
     const targetPlan = {
       id: 'plan-b',

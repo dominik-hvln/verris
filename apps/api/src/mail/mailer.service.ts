@@ -10,6 +10,7 @@ import type { MailMessage, MailerProvider } from './mailer.interface.js';
 import {
   buildSmtpMailerProvider,
   isLocalSmtpHost,
+  parseSmtpUrl,
   resolveSmtpIdentity,
 } from './mail-smtp.factory.js';
 import type { MailSmtpSecure } from './mail-settings.keys.js';
@@ -17,6 +18,13 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { wstawMarke, ZNACZNIK_PARTNERA_OD } from '../reseller/reseller-marka.js';
 
 export const MAILER_PROVIDER = Symbol('MAILER_PROVIDER');
+
+/** Q-05 — wiadomość z `transport: 'EMM'`, a `EMM_SMTP_URL` nie wskazuje działającego serwera SMTP. */
+export class EmmTransportNiedostepnyError extends Error {
+  constructor() {
+    super('EMM_SMTP_URL nie jest ustawiony (albo jest niepełny) — wysyłka kampanii wstrzymana, bez przejścia na transport platformy.');
+  }
+}
 
 export interface MailerConfig {
   fromAddress: string;
@@ -85,9 +93,14 @@ export class MailerService {
    * wszystkie istniejące callers nadal kompilują się bez zmian.
    */
   async send(message: MailMessage): Promise<MailerSendResult> {
+    // Q-05 — kampanie klientów wyłącznie przez własny transport. Brak = odmowa (wyjątek nie jest
+    // połykany przez swallowErrors), nigdy cicha wysyłka przez SMTP poczty transakcyjnej.
+    const provider = message.transport === 'EMM' ? this.emmProvider() : this.provider;
+    if (!provider) throw new EmmTransportNiedostepnyError();
+
     if (!message.to) {
       return {
-        providerId: this.provider.id,
+        providerId: provider.id,
         messageId: null,
         emailLogId: null,
         delivered: false,
@@ -103,7 +116,7 @@ export class MailerService {
     if (gate.allowed === false) {
       const log = await this.persistSuppressed(message, category, gate.reason);
       return {
-        providerId: this.provider.id,
+        providerId: provider.id,
         messageId: null,
         emailLogId: log?.id ?? null,
         delivered: false,
@@ -121,7 +134,7 @@ export class MailerService {
 
     // ---- 4. Provider call (z retry na przejściowe błędy) -------------------
     try {
-      const result = await this.sendWithRetry(enriched);
+      const result = await this.sendWithRetry(enriched, provider);
       await this.markSent(log?.id ?? null, result.providerId, result.messageId);
       return {
         providerId: result.providerId,
@@ -132,10 +145,10 @@ export class MailerService {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.error(`Mailer failed to deliver to ${message.to}: ${msg}`);
-      await this.markFailed(log?.id ?? null, msg);
+      await this.markFailed(log?.id ?? null, msg, provider.id);
       if (this.config.swallowErrors) {
         return {
-          providerId: this.provider.id,
+          providerId: provider.id,
           messageId: null,
           emailLogId: log?.id ?? null,
           delivered: false,
@@ -143,6 +156,20 @@ export class MailerService {
       }
       throw err;
     }
+  }
+
+  /** Q-05 — czy kampanie klientów mają osobny, działający serwer SMTP (`EMM_SMTP_URL`). */
+  emmTransportConfigured(): boolean {
+    return this.emmProvider() !== null;
+  }
+
+  private emmProvider(): MailerProvider | null {
+    const cfg = parseSmtpUrl(this.cfg.get<string>('EMM_SMTP_URL'), this.config);
+    if (!cfg) return null;
+    const p = buildSmtpMailerProvider(cfg);
+    // Niepełny adres (zdalny host bez loginu/hasła) daje w fabryce LogMailerProvider — dla kampanii
+    // byłoby to ciche „wysłano” do logu. Tylko prawdziwy SMTP liczy się jako transport.
+    return p.id === 'smtp' ? p : null;
   }
 
   /**
@@ -176,12 +203,13 @@ export class MailerService {
    */
   private async sendWithRetry(
     message: MailMessage,
+    provider: MailerProvider,
   ): Promise<{ providerId: string; messageId: string | null }> {
     const delays = [1000, 3000];
     let lastErr: unknown;
     for (let attempt = 0; attempt <= delays.length; attempt++) {
       try {
-        return await this.provider.send(message);
+        return await provider.send(message);
       } catch (err) {
         lastErr = err;
         if (attempt === delays.length || !this.isTransientError(err)) throw err;
@@ -456,14 +484,14 @@ export class MailerService {
     }
   }
 
-  private async markFailed(logId: string | null, errorMessage: string): Promise<void> {
+  private async markFailed(logId: string | null, errorMessage: string, providerId: string): Promise<void> {
     if (!logId) return;
     try {
       await this.prisma.emailLog.update({
         where: { id: logId },
         data: {
           status: EmailStatus.FAILED,
-          providerId: this.provider.id,
+          providerId,
           errorMessage: errorMessage.slice(0, 1024),
         },
       });

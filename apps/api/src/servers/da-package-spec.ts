@@ -1,4 +1,4 @@
-import type { Plan } from '@verris/database';
+import type { Plan, Prisma } from '@verris/database';
 import type { DaLimit, DaPackageSpec } from '@verris/directadmin-sdk';
 
 /**
@@ -123,6 +123,18 @@ export interface PlanResourceFields {
   /** P-1b / EMM — rodzina produktu; EMAIL = pakiet pocztowy, EMAIL_MARKETING = aplikacyjny (bez DA). */
   productKind?: 'HOSTING' | 'EMAIL' | 'EMAIL_MARKETING';
 }
+
+/**
+ * Q-05 — plany, które mają pakiet DirectAdmina i limity LVE na węźle. Produkty aplikacyjne
+ * (EMAIL_MARKETING) nie mają konta na węźle: bez tego filtra synchronizacja pakietów, audyt węzła
+ * i stan LVE zakładałyby na każdym węźle pakiet „newsletter-start” z limitami 1 MB / 1% CPU.
+ * Lista dozwolona (nie „wszystko poza EMAIL_MARKETING”), żeby kolejny produkt aplikacyjny nie trafił
+ * na węzeł przez pominięcie.
+ */
+export const PLANY_Z_PAKIETEM_DA: Prisma.PlanWhereInput = {
+  isActive: true,
+  productKind: { in: ['HOSTING', 'EMAIL'] },
+};
 
 export function packagePolicyForSlug(slug: string): DaPackagePolicy {
   return PACKAGE_POLICY_BY_SLUG[slug] ?? DEFAULT_PACKAGE_POLICY;

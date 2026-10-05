@@ -8,11 +8,14 @@ import { prisma, rozlacz, utworzPlan, wyczyscBaze } from './setup.js';
  * i dwa nakładające się przebiegi dyspozytora. Poczta jest atrapą, która liczy wiadomości.
  */
 const wyslane: string[] = [];
+const kanaly = new Set<string | undefined>();
 let opoznienieMs = 0;
 const mailer = {
-  send: async (m: { to: string }) => {
+  emmTransportConfigured: () => true,
+  send: async (m: { to: string; transport?: string }) => {
     await new Promise((r) => setTimeout(r, opoznienieMs));
     wyslane.push(m.to);
+    kanaly.add(m.transport);
     return { delivered: true };
   },
 };
@@ -41,6 +44,7 @@ describe('X-04 kampanie e-mail', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     wyslane.length = 0;
+    kanaly.clear();
     opoznienieMs = 0;
   });
   afterAll(rozlacz);
@@ -56,6 +60,8 @@ describe('X-04 kampanie e-mail', () => {
     while (!(await s.sendNextBatch(c.id)).done) { /* kolejne paczki */ }
     expect(new Set(wyslane).size).toBe(105);
     expect(wyslane).toHaveLength(105);
+    // Q-05 — każda wiadomość kampanii osobnym transportem, żadna przez SMTP platformy.
+    expect([...kanaly]).toEqual(['EMM']);
     expect((await prisma().emmCampaign.findUniqueOrThrow({ where: { id: c.id } })).status).toBe('SENT');
   });
 

@@ -47,6 +47,7 @@ const KIND: Record<ServiceSummaryDto['productKind'], string> = {
 };
 
 function serviceHref(s: ServiceSummaryDto) {
+  if (s.productKind === 'EMAIL_MARKETING') return `/dashboard/email-marketing/${s.id}`;
   return `/dashboard/services/${s.id}?kind=${s.productKind ?? 'HOSTING'}`;
 }
 

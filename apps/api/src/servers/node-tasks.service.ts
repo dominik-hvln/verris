@@ -8,6 +8,7 @@ import { AccountStatus, NodeTaskKind, NodeTaskStatus, Prisma, ServerStatus } fro
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { DirectAdminService } from './directadmin.service.js';
+import { PLANY_Z_PAKIETEM_DA } from './da-package-spec.js';
 
 /** Desired CloudLinux LVE state for a node (consumed by the on-node verris-lve agent). */
 export interface NodeDesiredLve {
@@ -422,7 +423,7 @@ export class NodeTasksService {
    */
   async getDesiredLveForServer(serverId: string): Promise<NodeDesiredLve> {
     const [plans, accounts] = await Promise.all([
-      this.prisma.plan.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } }),
+      this.prisma.plan.findMany({ where: PLANY_Z_PAKIETEM_DA, orderBy: { sortOrder: 'asc' } }),
       this.prisma.account.findMany({
         where: { serverId, status: AccountStatus.ACTIVE },
       }),

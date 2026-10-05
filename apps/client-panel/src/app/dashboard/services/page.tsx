@@ -49,6 +49,8 @@ function tone(s: ServiceSummaryDto): 'data' | 'warn' | 'muted' {
 }
 
 function href(s: ServiceSummaryDto) {
+  // Q-05 — e-mail marketing nie ma strony usługi hostingowej; zarządza się nim w swojej przestrzeni.
+  if (s.productKind === 'EMAIL_MARKETING') return `/dashboard/email-marketing/${s.id}`;
   return `/dashboard/services/${s.id}?kind=${s.productKind ?? 'HOSTING'}`;
 }
 
@@ -209,7 +211,7 @@ function ServicesTable({ services }: { services: ServiceSummaryDto[] }) {
                         <ArrowRightLeft className="h-4 w-4" />
                       </Link>
                     ) : null}
-                    {s.productKind !== 'EMAIL' ? (
+                    {s.productKind === 'HOSTING' ? (
                       <Link
                         href={`/dashboard/services/${s.id}/autoscaling`}
                         className={`${ICON_BTN} ${s.autoscalingEnabled ? 'border-data/50 text-data-hi' : ''}`}

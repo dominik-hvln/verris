@@ -22,6 +22,9 @@ export interface PlanDto {
   trialDays: number;
   /** P-1b / EMM — 'HOSTING' (web), 'EMAIL' (mailbox), 'EMAIL_MARKETING' (newsletter app). */
   productKind: 'HOSTING' | 'EMAIL' | 'EMAIL_MARKETING';
+  /** EMM — limity pakietu e-mail marketingu (null = bez limitu; dla innych produktów null). */
+  emmMaxContacts?: number | null;
+  emmMonthlySends?: number | null;
   /** SUP-5 — guaranteed support first-response time in hours (0 = no promise). */
   supportSlaHours: number;
 }

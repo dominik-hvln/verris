@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
@@ -137,6 +138,29 @@ export class EmailMarketingService {
       maxContacts: plan.emmMaxContacts ?? null,
       monthlySends: plan.emmMonthlySends ?? null,
     };
+  }
+
+  /**
+   * Q-05 — kampanie i potwierdzenia zapisu wychodzą wyłącznie przez osobny serwer SMTP (EMM_SMTP_URL),
+   * nie przez pocztę transakcyjną Verris. Bez niego klient dostaje jasną odmowę, a admin powód
+   * w dzienniku zdarzeń (EMM_TRANSPORT_UNAVAILABLE) i w logu API.
+   */
+  private async wymagajTransportu(userId: string, subscriptionId: string, operacja: string): Promise<void> {
+    if (this.mailer.emmTransportConfigured()) return;
+    this.logger.error(`EMM: ${operacja} odrzucona — brak EMM_SMTP_URL (sub=${subscriptionId}).`);
+    await this.audit.record({
+      action: 'EMM_TRANSPORT_UNAVAILABLE',
+      userId,
+      details: {
+        subscriptionId,
+        operacja,
+        powod: 'EMM_SMTP_URL nie jest ustawiony — kampanie i potwierdzenia zapisu wstrzymane (bez przejścia na SMTP platformy)',
+      },
+    });
+    throw new ServiceUnavailableException(
+      'Wysyłka kampanii jest chwilowo niedostępna — dotyczy to też e-maili potwierdzających zapis na listę. ' +
+        'Twoje listy i kampanie są bezpieczne; spróbuj ponownie później.',
+    );
   }
 
   private async ownedList(userId: string, subscriptionId: string, listId: string): Promise<EmmList> {
@@ -317,6 +341,8 @@ export class EmailMarketingService {
     if (existing) throw new ConflictException('Kontakt z tym adresem już istnieje na liście.');
 
     const doubleOptIn = list.doubleOptIn !== false;
+    // Bez transportu kontakt zostałby na zawsze „oczekujący” — nie ma ponownej wysyłki potwierdzenia.
+    if (doubleOptIn) await this.wymagajTransportu(userId, subscriptionId, 'dodanie kontaktu (double opt-in)');
     const row = await this.contacts.create({
       data: {
         listId,
@@ -371,6 +397,7 @@ export class EmailMarketingService {
     await this.assertContactCapacity(ws, incoming.length);
 
     const doubleOptIn = list.doubleOptIn !== false;
+    if (doubleOptIn) await this.wymagajTransportu(userId, subscriptionId, 'import kontaktów (double opt-in)');
     let added = 0;
     let skipped = 0;
     for (const r of incoming) {
@@ -525,6 +552,7 @@ export class EmailMarketingService {
     const ws = await this.resolveWorkspace(userId, subscriptionId);
     const c = await this.ownedCampaign(subscriptionId, campaignId);
     if (c.status !== 'DRAFT') throw new ConflictException(`Kampania w stanie ${c.status} nie może być wysłana.`);
+    await this.wymagajTransportu(userId, subscriptionId, 'wysyłka kampanii');
 
     const recipientCount = await this.contacts.count({ where: { listId: c.listId, status: 'SUBSCRIBED' } });
     if (recipientCount === 0) {
@@ -605,12 +633,23 @@ export class EmailMarketingService {
     });
     if (!campaign || campaign.status !== 'SENDING') return { done: true, processed: 0 };
 
+    // Zawieszona albo zakończona usługa nie wysyła — kampania czeka (SENDING) i rusza po odwieszeniu.
+    const usluga = await this.prisma.subscription.findUnique({ where: { id: campaign.subscriptionId }, select: { status: true } });
+    if (usluga?.status !== 'ACTIVE') return { done: true, processed: 0 };
+
     // CYBER-3 — jeśli konto właściciela jest w cordonie, wstrzymaj wysyłkę.
     // Kampania zostaje SENDING; wznowi się automatycznie po zwolnieniu cordonu.
     if (await this.outbound.isCordoned(campaign.userId)) {
       this.logger.warn(
         `EMM campaign ${campaignId} wstrzymana — konto ${campaign.userId} w cordonie (outbound).`,
       );
+      return { done: true, processed: 0 };
+    }
+
+    // Q-05 — transport kampanii zniknął w trakcie wysyłki (np. zdjęty EMM_SMTP_URL): wstrzymaj, zanim
+    // powstaną rekordy wysyłki. Kampania zostaje SENDING i rusza sama po przywróceniu transportu.
+    if (!this.mailer.emmTransportConfigured()) {
+      this.logger.warn(`EMM campaign ${campaignId} wstrzymana — brak EMM_SMTP_URL.`);
       return { done: true, processed: 0 };
     }
 
@@ -711,6 +750,7 @@ export class EmailMarketingService {
       html,
       category: 'MARKETING',
       externalRecipient: true,
+      transport: 'EMM',
       listUnsubscribeUrl: unsubUrl,
       fromName: list.fromName || undefined,
       replyTo: list.replyTo || undefined,
@@ -796,6 +836,9 @@ export class EmailMarketingService {
       html,
       category: 'TRANSACTIONAL',
       externalRecipient: true,
+      // Potwierdzenia idą na adresy podane przez klienta (niezweryfikowane) — to tu ryzyko odbić
+      // i skarg jest największe, więc ten sam osobny transport co kampanie.
+      transport: 'EMM',
       fromName: list.fromName || undefined,
       replyTo: list.replyTo || undefined,
       tag: 'emm.confirm',

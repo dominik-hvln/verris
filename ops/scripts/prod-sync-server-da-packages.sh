@@ -80,7 +80,8 @@ function policy(slug) {
     loginKey,
     secure: server.daUseTls,
   });
-  const plans = await prisma.plan.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } });
+  // Q-05 — tylko plany z kontem na węźle; pakiety Newsletter (EMAIL_MARKETING) nie mają pakietu DA.
+  const plans = await prisma.plan.findMany({ where: { isActive: true, productKind: { in: ['HOSTING', 'EMAIL'] } }, orderBy: { sortOrder: 'asc' } });
   for (const plan of plans) {
     const pol = policy(plan.slug);
     const bw = plan.includedTransferGb > 0 ? plan.includedTransferGb * 1024 : 'unlimited';

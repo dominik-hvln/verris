@@ -19,7 +19,8 @@ export async function getPrimaryService(): Promise<ServiceSummaryDto | null> {
   // Awaria API → null: strony-przekierowania trafiają na listę usług, która pokazuje błąd po polsku
   // (zamiast „This page couldn’t load” na każdej z 11 tras narzędzi).
   const services = await listUserServices().catch(() => [] as ServiceSummaryDto[]);
-  return services[0] ?? null;
+  // Narzędzia hostingu nie dotyczą e-mail marketingu — ta usługa nie ma konta na serwerze.
+  return services.find((s) => s.productKind !== 'EMAIL_MARKETING') ?? null;
 }
 
 /**
@@ -35,7 +36,7 @@ export async function resolveServiceForHostingPages(
   if (serviceIdParam) {
     return services.find((s) => s.id === serviceIdParam) ?? null;
   }
-  return services[0] ?? null;
+  return services.find((s) => s.productKind !== 'EMAIL_MARKETING') ?? null;
 }
 
 export async function getHostingDns(serviceId: string, domain?: string) {

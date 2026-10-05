@@ -3,6 +3,7 @@ import { AuditService } from '../../src/common/audit/audit.service.js';
 import { WalletLedgerService } from '../../src/billing/wallet-ledger.service.js';
 import { PromoService } from '../../src/billing/promo.service.js';
 import { SubscriptionsService } from '../../src/subscriptions/subscriptions.service.js';
+import { PLANY_NEWSLETTER } from '../../src/plans/plany-newsletter.js';
 import { prisma, rozlacz, utworzPlan, wyczyscBaze } from './setup.js';
 
 /**
@@ -28,7 +29,7 @@ function uslugi() {
   };
   return new SubscriptionsService(
     p, audit, ledger, null as never, null as never, queue as never, null as never,
-    mailer as never, { get: () => undefined } as never, promo, null as never,
+    mailer as never, { get: () => undefined } as never, promo, { safeAward: () => undefined } as never,
     { getTrialOffer: async () => oferta } as never, null as never,
   );
 }
@@ -95,6 +96,22 @@ describe('X-04 zakup usługi z portfela', () => {
     expect(await prisma().walletTransaction.count({ where: { userId: k.id, type: WalletTxType.REFUND } })).toBe(1);
     const [s] = await prisma().subscription.findMany({ where: { userId: k.id } });
     expect(s.status).toBe(SubscriptionStatus.PENDING_PAYMENT);
+  });
+
+  it('Q-05 — pakiet Newsletter z portfela: bez domeny, od razu aktywny, bez konta na węźle i bez kolejki', async () => {
+    const k = await klient(100);
+    const d = PLANY_NEWSLETTER[0];
+    const plan = await utworzPlan({
+      productKind: 'EMAIL_MARKETING', priceMonthly: Number(d.priceMonthly), priceYearly: Number(d.priceYearly),
+      emmMaxContacts: d.emmMaxContacts, emmMonthlySends: d.emmMonthlySends, cpuLimit: 1, ramLimitMb: 1, diskLimitMb: 1,
+    });
+    const { subscription } = await uslugi().create(k.id, { planId: plan.id, interval: 'MONTH', paymentSource: 'WALLET', immediatePerformanceConsent: true } as never);
+    expect(await saldo(k.id)).toBe(100 - Number(d.priceMonthly));
+    const s = await prisma().subscription.findUniqueOrThrow({ where: { id: subscription.id } });
+    expect(s.status).toBe(SubscriptionStatus.ACTIVE);
+    expect(s.currentPeriodEnd!.getTime()).toBeGreaterThan(Date.now() + 27 * 86400000);
+    expect(kolejka).toHaveLength(0);
+    expect(await prisma().account.count()).toBe(0);
   });
 
   it('klient rozliczany poza Verris nie zamówi sam nowej usługi', async () => {

@@ -1,5 +1,8 @@
 import { DirectAdminClient } from '@verris/directadmin-sdk';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { DirectAdminService } from './directadmin.service.js';
+import { PLANY_Z_PAKIETEM_DA } from './da-package-spec.js';
 
 /**
  * Operacje administracyjne na węźle w DirectAdminService: klient admina, test klucza,
@@ -94,8 +97,17 @@ describe('Synchronizacja pakietów DA z planami', () => {
     vi.spyOn(svc, 'getClientForServer').mockResolvedValue(c);
     const upsert = vi.spyOn(c, 'upsertUserPackage').mockResolvedValue(undefined);
     expect(await svc.syncPlanPackagesForServer('n1', { nadpisz: true })).toEqual({ synced: ['starter', 'pro'] });
-    expect(plans.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { isActive: true } }));
+    expect(plans.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { isActive: true, productKind: { in: ['HOSTING', 'EMAIL'] } } }));
     expect(upsert.mock.calls.map(([spec]) => spec.name)).toEqual(['starter', 'pro']);
+  });
+
+  it('Q-05: pakiet DA, audyt węzła i stan LVE tylko dla planów z kontem na węźle — nie dla e-mail marketingu', () => {
+    expect(PLANY_Z_PAKIETEM_DA).toEqual({ isActive: true, productKind: { in: ['HOSTING', 'EMAIL'] } });
+    for (const plik of ['directadmin.service.ts', 'node-audit.service.ts', 'node-tasks.service.ts']) {
+      const src = readFileSync(resolve(import.meta.dirname, plik), 'utf8');
+      expect(src).not.toMatch(/plan\.findMany\(\{\s*where:\s*\{\s*isActive:\s*true\s*\}/);
+      expect(src).toContain('where: PLANY_Z_PAKIETEM_DA');
+    }
   });
 
   it('domyślnie tylko brakujące — istniejącego pakietu nie zapisuje (t1 02.10: zapis nałożył ssh=OFF na konta)', async () => {

@@ -58,6 +58,11 @@ export default function HostingManagerPage() {
     fetchServiceKindAction(params.id)
       .then((svc) => {
         if (cancelled) return;
+        // Q-05 — e-mail marketing nie ma zakładek hostingu; ze starego linku prosto do jego przestrzeni.
+        if (svc?.productKind === 'EMAIL_MARKETING') {
+          router.replace(`/dashboard/email-marketing/${params.id}`);
+          return;
+        }
         if (kindHint == null && svc?.productKind === 'EMAIL') setProductKind('EMAIL');
         if (svc?.serviceTag) setServiceTag(svc.serviceTag);
         setKindResolved(true);

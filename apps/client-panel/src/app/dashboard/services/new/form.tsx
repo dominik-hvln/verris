@@ -19,6 +19,7 @@ import { CREDIT_SHORT, formatCredits } from '@/lib/credits';
 import { trackBeginCheckout, trackPurchase } from '@/lib/analytics-events';
 import { Checkbox } from '@/components/panel/checkbox';
 import { liczba } from '@/lib/liczba';
+import { plForm } from '@/lib/pl';
 import { odpakuj } from '@/lib/wynik-akcji';
 
 interface StartOffer {
@@ -50,10 +51,11 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
   // oba rodzaje. Po redesignie wybór typu robi chooser (OrderFlow), więc tu
   // zwykle dostajemy jeden rodzaj — domyślny `productKind` musi z niego wynikać.
   const showKindToggle = hasEmailPlans && hasHostingPlans;
-  const initialKind: 'HOSTING' | 'EMAIL' = (plans[0]?.productKind ?? 'HOSTING') as
-    | 'HOSTING'
-    | 'EMAIL';
-  const [productKind, setProductKind] = useState<'HOSTING' | 'EMAIL'>(initialKind);
+  const initialKind: PlanDto['productKind'] = plans[0]?.productKind ?? 'HOSTING';
+  const [productKind, setProductKind] = useState<PlanDto['productKind']>(initialKind);
+  // Q-05 — pakiet Newsletter: usługa aplikacyjna, bez domeny, serwera i opcji hostingu.
+  const newsletter = productKind === 'EMAIL_MARKETING';
+  const kategoria = newsletter ? 'email-marketing' : productKind === 'EMAIL' ? 'email' : 'hosting';
   const visiblePlans = useMemo(
     () => plans.filter((p) => (p.productKind ?? 'HOSTING') === productKind),
     [plans, productKind],
@@ -203,7 +205,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
       [
         {
           item_name: selectedPlan.name,
-          item_category: productKind === 'EMAIL' ? 'email' : 'hosting',
+          item_category: kategoria,
           quantity: 1,
         },
       ],
@@ -251,9 +253,9 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
         planId: selectedPlan.id,
         interval,
         paymentSource,
-        domain: domain.trim().toLowerCase(),
-        autoscalingEnabled,
-        ecoModeEnabled,
+        domain: newsletter ? undefined : domain.trim().toLowerCase(),
+        autoscalingEnabled: newsletter ? false : autoscalingEnabled,
+        ecoModeEnabled: newsletter ? false : ecoModeEnabled,
         immediatePerformanceConsent: immediateConsent,
       });
       if (!res.ok) {
@@ -272,7 +274,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
           items: [
             {
               item_name: selectedPlan.name,
-              item_category: productKind === 'EMAIL' ? 'email' : 'hosting',
+              item_category: kategoria,
               price: Number.isFinite(paid) ? paid : undefined,
               quantity: 1,
             },
@@ -289,6 +291,9 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
         setProvisionQueuedSubId(res.data.subscription.id);
       } else if (res.data?.checkoutRedirectUrl) {
         window.location.href = res.data.checkoutRedirectUrl;
+      } else if (newsletter && res.data?.subscription?.id) {
+        // Usługa aktywna od razu — prosto do przestrzeni e-mail marketingu.
+        router.push(`/dashboard/email-marketing/${res.data.subscription.id}`);
       } else {
         router.push('/dashboard/services');
       }
@@ -331,7 +336,9 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
       <section>
         <h2 className="text-xl font-bold text-white">1. Wybierz plan</h2>
         <p className="text-neutral-400 text-sm mt-1">
-          {productKind === 'EMAIL'
+          {newsletter
+            ? 'Newslettery do własnej listy odbiorców. Limit kontaktów obejmuje zapisanych i oczekujących na potwierdzenie; wysyłki liczymy w miesiącu kalendarzowym.'
+            : productKind === 'EMAIL'
             ? 'Profesjonalna poczta na Twojej domenie — skrzynki, webmail Roundcube, antyspam.'
             : 'Limity zasobów są egzekwowane na serwerze — autoskalowanie dokupuje dodatkową moc godzinowo z portfela.'}
         </p>
@@ -359,6 +366,9 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
                 {plan.description ? (
                   <p className="mt-1 text-sm text-neutral-400">{plan.description}</p>
                 ) : null}
+                {plan.productKind === 'EMAIL_MARKETING' ? (
+                  <NewsletterLimity plan={plan} />
+                ) : (
                 <div className="mt-6 space-y-2 text-sm text-neutral-300">
                   <Spec icon={<Cpu className="h-4 w-4 text-neutral-400" />} label={`${plan.cpuLimit}% CPU`} />
                   <Spec
@@ -370,6 +380,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
                     label={`${liczba(plan.diskLimitMb / 1024, 0)} GB SSD`}
                   />
                 </div>
+                )}
                 <div className="mt-6 flex items-baseline gap-2">
                   <span className="text-3xl font-bold text-white">
                     {formatCredits(plan.priceMonthly, { withUnit: false })}
@@ -414,7 +425,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
         ) : null}
       </section>
 
-      <DomainStep value={domainSel} onChange={setDomainSel} />
+      {newsletter ? null : <DomainStep value={domainSel} onChange={setDomainSel} />}
       {domainSel.mode === 'register' && abonent ? (
         <section className="max-w-2xl space-y-3">
           <h3 className="text-base font-semibold text-white">Abonent domeny</h3>
@@ -423,7 +434,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
       ) : null}
 
       <section>
-        <h2 className="text-xl font-bold text-white">4. Sposób płatności</h2>
+        <h2 className="text-xl font-bold text-white">{newsletter ? 3 : 4}. Sposób płatności</h2>
         <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl">
           <PaymentCard
             value="WALLET"
@@ -513,6 +524,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
         </section>
       ) : null}
 
+      {newsletter ? null : (
       <section>
         <h2 className="text-xl font-bold text-white">5. Opcje</h2>
         <div className="mt-3 space-y-3 max-w-2xl">
@@ -533,6 +545,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
           />
         </div>
       </section>
+      )}
 
       {error ? (
         <div
@@ -649,7 +662,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
             !selectedPlan ||
             !immediateConsent ||
             (domainSel.mode === 'register' && !domainWaiverConsent) ||
-            (domainSel.mode === 'own' ? !domain.trim() : !domainSel.register)
+            (!newsletter && (domainSel.mode === 'own' ? !domain.trim() : !domainSel.register))
           }
           className="inline-flex items-center gap-2 rounded-2xl bg-white px-8 py-4 text-base font-bold text-black hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
@@ -662,6 +675,26 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
         </button>
       </div>
     </form>
+  );
+}
+
+/** Q-05 — limity pakietu Newsletter zamiast zasobów serwera (których ten produkt nie ma). */
+function NewsletterLimity({ plan }: { plan: PlanDto }) {
+  const kontakty = plan.emmMaxContacts;
+  const wysylki = plan.emmMonthlySends;
+  return (
+    <ul className="mt-6 space-y-2 text-sm text-neutral-300">
+      <li>
+        {kontakty == null
+          ? 'Kontakty bez limitu'
+          : `Do ${liczba(kontakty, 0)} ${plForm(kontakty, 'kontaktu', 'kontaktów', 'kontaktów')}`}
+      </li>
+      <li>
+        {wysylki == null
+          ? 'Wysyłki bez limitu'
+          : `${liczba(wysylki, 0)} ${plForm(wysylki, 'wysyłka', 'wysyłki', 'wysyłek')} miesięcznie`}
+      </li>
+    </ul>
   );
 }
 

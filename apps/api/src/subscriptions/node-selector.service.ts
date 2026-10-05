@@ -1,4 +1,4 @@
-import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { Plan, Server, ServerStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -48,6 +48,11 @@ export class NodeSelectorService {
   constructor(private readonly prisma: PrismaService) {}
 
   async pickServerForPlan(plan: Plan, ctx: NodeSelectionContext = {}): Promise<Server> {
+    // Q-05 — produkt aplikacyjny (e-mail marketing) nie ma konta na węźle. Jedno miejsce, przez które
+    // przechodzi każde zakładanie konta (zakup, kolejka, okres próbny, ponowienie przez admina).
+    if (plan.productKind === 'EMAIL_MARKETING') {
+      throw new BadRequestException(`Plan ${plan.slug} to usługa aplikacyjna — nie zakłada konta na serwerze.`);
+    }
     // Tylko węzły ACTIVE, które NIE są „cordoned" (acceptsNewAccounts=false).
     // Cordon pozwala wstrzymać przyjmowanie nowych kont na pojedynczym węźle bez
     // przełączania go w MAINTENANCE (co wstrzymałoby sprzedaż globalnie).

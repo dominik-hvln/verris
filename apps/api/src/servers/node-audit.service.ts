@@ -25,6 +25,7 @@ import { DirectAdminService } from './directadmin.service.js';
 import { NodeTasksService } from './node-tasks.service.js';
 import {
   DA_DEFAULT_LANGUAGE,
+  PLANY_Z_PAKIETEM_DA,
   buildDaPackageSpecFromPlan,
   planResourceFields,
 } from './da-package-spec.js';
@@ -949,7 +950,7 @@ export class NodeAuditService {
 
   private async loadManagedPlans(): Promise<Plan[]> {
     const plans = await this.prisma.plan.findMany({
-      where: { isActive: true },
+      where: PLANY_Z_PAKIETEM_DA,
       orderBy: { sortOrder: 'asc' },
     });
     return plans;

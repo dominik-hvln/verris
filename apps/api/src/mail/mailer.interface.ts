@@ -74,6 +74,13 @@ export interface MailMessage {
    * Wymaga jawnego `listUnsubscribeUrl` (publiczny link wypisu).
    */
   externalRecipient?: boolean;
+  /**
+   * Q-05 — kanał wysyłki. `EMM` = osobny serwer SMTP dla kampanii klientów (env `EMM_SMTP_URL`),
+   * żeby newsletter klienta nie psuł reputacji poczty transakcyjnej Verris (reset hasła, faktury).
+   * Bez `EMM_SMTP_URL` MailerService odmawia — nigdy nie przechodzi na transport platformy.
+   * Brak pola = transport platformy.
+   */
+  transport?: 'EMM';
 }
 
 export interface MailerProvider {
