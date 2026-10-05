@@ -110,6 +110,7 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
           ostrzezenie: true,
           pod: [
             { name: "Węzły", href: "/nodes", perm: "NODES_VIEW" },
+            { name: "Wykresy", href: "/nodes/wykresy", perm: "NODES_VIEW" },
             { name: "Product Ops / NOC", href: "/product-ops", perm: "NODES_VIEW" },
           ],
         },

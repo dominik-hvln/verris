@@ -270,6 +270,9 @@ importers:
       jest:
         specifier: ^30.5.2
         version: 30.5.2(@types/node@24.13.6)(babel-plugin-macros@3.1.0)(esbuild-register@3.6.0(esbuild@0.25.12)(supports-color@8.1.1))(supports-color@8.1.1)(ts-node@10.9.2(@types/node@24.13.6)(typescript@6.0.3))
+      jest-environment-jsdom:
+        specifier: ^30.5.2
+        version: 30.5.2(supports-color@8.1.1)
       tailwindcss:
         specifier: ^4.1.0
         version: 4.3.3

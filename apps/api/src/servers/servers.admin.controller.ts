@@ -12,6 +12,7 @@ import {
 import type { Request } from 'express';
 import { ServersService } from './servers.service.js';
 import { PrzegladWezlaService } from './przeglad-wezla.service.js';
+import { WykresyFlotyService, sortZ, zakresZ } from './wykresy-floty.js';
 import { flotaZBazy } from '../admin-dashboard/stan-platformy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PolitykaPojemnosciDto, WygaszenieWezlaDto } from './dto/capacity-policy.dto.js';
@@ -85,6 +86,7 @@ export class ServersAdminController {
     private readonly nodeDns: NodeDnsService,
     private readonly directAdmin: DirectAdminService,
     private readonly przegladWezla: PrzegladWezlaService,
+    private readonly wykresyFloty: WykresyFlotyService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -112,6 +114,15 @@ export class ServersAdminController {
   @StaffPerm('NODES_VIEW')
   flota() {
     return flotaZBazy(this.prisma, Date.now()).then((f) => f.wiersze);
+  }
+
+  /** Flota — wykresy: CPU/RAM węzłów w czasie (`zakres` 1h|24h|7d) i KPI floty. Trasa przed :id. */
+  @Get('wykresy')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_VIEW')
+  wykresy(@Query('zakres') zakres?: string, @Query('sort') sort?: string) {
+    return this.wykresyFloty.wykresy(zakresZ(zakres), sortZ(sort));
   }
 
   /**
