@@ -227,7 +227,7 @@ export class AiProviderService {
   }
 
   /**
-   * Anthropic Messages API. Bez temperature: Claude Sonnet 5 odrzuca niestandardowe temperature/top_p/top_k (400),
+   * Anthropic Messages API. Bez temperature: Claude Sonnet 5 odrzucał niestandardowe temperature/top_p/top_k (400),
    * a adaptacyjne myślenie jest domyślnie włączone — stąd większy max_tokens niż u OpenAI.
    */
   private async anthropic(

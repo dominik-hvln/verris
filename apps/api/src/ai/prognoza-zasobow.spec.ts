@@ -77,7 +77,7 @@ describe('budżet AI całej platformy', () => {
       aiInteractionLog: { aggregate: vi.fn(async () => ({ _sum: { costUsd: 20.5 } })) },
       user: { findMany: vi.fn(async () => [{ id: 'admin1' }]) },
     };
-    const s = new AiProviderService({ get: (k: string) => (k === 'AI_API_KEY' ? 'sk' : undefined) } as never, prisma as never, notifications as never);
+    const s = new AiProviderService({ get: (k: string) => (k === 'ANTHROPIC_API_KEY' ? 'sk' : undefined) } as never, prisma as never, notifications as never);
     await expect(s.chat({ system: 's', messages: [{ role: 'user', content: 'x' }] })).rejects.toThrow(/niedostępny/);
     expect(global.fetch).not.toHaveBeenCalled();
     expect(notifications.create).toHaveBeenCalledWith(expect.objectContaining({ userId: 'admin1', dedupeKey: 'ai-budzet-platformy' }));
