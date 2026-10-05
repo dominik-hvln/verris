@@ -2,14 +2,14 @@
 
 **Wygenerowany:** 2026-10-05 z `audyt/dane/` · **nie edytuj ręcznie**  
 **Podstawa:** audyt parytetu funkcji z 2026-08-20  
-**Pojemność:** 1 osoba, pełny etat, **30 h netto na sprint** · sprint = 1 tydzień  
+**Pojemność:** 1 osoba, pełny etat, **65 h netto na sprint** · sprint = 1 tydzień  
 **Sprint 1:** 2026-08-31 · **Sprint 23:** 2027-01-11–2027-01-15
 
 ---
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **1700 h** — przy 30 h tygodniowo około **13 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **1700 h** — przy 65 h tygodniowo około **6 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
 Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1190 h) oraz roadmapę po starcie (510 h, 24 pozycji) rozpisaną na epiki kwartalne.
 
@@ -38,7 +38,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 ## Sprint 1 — Zatrzymać krwawienie i włączyć CI
 
-`2026-08-31 – 2026-09-04` · **68 h** z 30 h pojemności
+`2026-08-31 – 2026-09-04` · **68 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -73,7 +73,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 ## Sprint 2 — Zamknąć luki bezpieczeństwa z passu adwersaryjnego
 
-`2026-09-07 – 2026-09-11` · **144 h** z 30 h pojemności
+`2026-09-07 – 2026-09-11` · **144 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -124,7 +124,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 ## Sprint 3 — Pojemność węzła i plan produkcyjny
 
-`2026-09-14 – 2026-09-18` · **44 h** z 30 h pojemności
+`2026-09-14 – 2026-09-18` · **44 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -153,7 +153,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 ## Sprint 4 — Wznowienie: odzyskac srodowisko i zatrzymac gnicie
 
-`2026-09-21 – 2026-09-25` · **58 h** z 30 h pojemności
+`2026-09-21 – 2026-09-25` · **58 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -182,7 +182,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 ## Sprint 5 — Faktury w programie ksiegowym i bramka wdrozenia
 
-`2026-09-28 – 2026-10-02` · **28 h** z 30 h pojemności
+`2026-09-28 – 2026-10-02` · **28 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -201,7 +201,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 ## Sprint 6 — Fundament designu i edytor DNS
 
-`2026-10-05 – 2026-10-09` · **42 h** z 30 h pojemności
+`2026-10-05 – 2026-10-09` · **42 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -220,7 +220,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 ## Sprint 7 — Ekrany panelu klienta w nowym designie
 
-`2026-10-12 – 2026-10-16` · **156 h** z 30 h pojemności
+`2026-10-12 – 2026-10-16` · **156 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -245,7 +245,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 ## Sprint 8 — Poczta: dostarczalnosc i skrzynki
 
-`2026-10-19 – 2026-10-23` · **30 h** z 30 h pojemności
+`2026-10-19 – 2026-10-23` · **30 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -276,7 +276,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 ## Sprint 9 — Asystent v1
 
-`2026-10-26 – 2026-10-30` · **30 h** z 30 h pojemności
+`2026-10-26 – 2026-10-30` · **30 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -291,7 +291,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 ## Sprint 10 — Tickety v2
 
-`2026-11-02 – 2026-11-06` · **24 h** z 30 h pojemności
+`2026-11-02 – 2026-11-06` · **24 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -306,7 +306,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 ## Sprint 11 — Warstwa operatorska: zatrzymywanie szkody
 
-`2026-11-09 – 2026-11-13` · **30 h** z 30 h pojemności
+`2026-11-09 – 2026-11-13` · **30 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -329,7 +329,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 ## Sprint 12 — Backup i staging
 
-`2026-11-16 – 2026-11-20` · **24 h** z 30 h pojemności
+`2026-11-16 – 2026-11-20` · **24 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -350,7 +350,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 ## Sprint 13 — Ogony, zaleznosci i dokumenty VOID
 
-`2026-11-23 – 2026-11-27` · **30 h** z 30 h pojemności
+`2026-11-23 – 2026-11-27` · **30 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -373,7 +373,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 ## Sprint 14 — Beta wewnętrzna na t1, rozliczenia klienta i pomiar
 
-`2026-10-19 – 2026-10-23` · **68 h** z 30 h pojemności
+`2026-10-19 – 2026-10-23` · **68 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -408,7 +408,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 ## Sprint 15 — Egress: pelne pokrycie ruchu (control-plane)
 
-`2026-10-05 – 2026-10-09` · **52 h** z 30 h pojemności
+`2026-10-05 – 2026-10-09` · **52 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -427,7 +427,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 ## Sprint 16 — Strict egress na control-plane
 
-`2026-10-12 – 2026-10-16` · **121 h** z 30 h pojemności
+`2026-10-12 – 2026-10-16` · **121 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -464,7 +464,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 ## Sprint 17 — Dokumenty prawne, DPA i naduzycia
 
-`2026-11-23 – 2026-11-27` · **30 h** z 30 h pojemności
+`2026-11-23 – 2026-11-27` · **30 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -483,7 +483,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 ## Sprint 18 — Cennik, SLA i zastepstwo
 
-`2026-11-30 – 2026-12-04` · **53 h** z 30 h pojemności
+`2026-11-30 – 2026-12-04` · **53 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -510,7 +510,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 ## Sprint 19 — Landing i baza wiedzy
 
-`2026-11-30 – 2026-12-04` · **56 h** z 30 h pojemności
+`2026-11-30 – 2026-12-04` · **56 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
