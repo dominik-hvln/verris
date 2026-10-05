@@ -31,12 +31,12 @@ PB-10,WŁAŚCICIEL,"kampania Google Ads — technicznie bez węzła, ale urucham
 P-11,WŁAŚCICIEL,zatwierdzone 27.09 — rcpd.md 1.2 (sekcje D i E) + przypomnienie w adminie
 PB-03,WŁAŚCICIEL,"decyzje podjęte 27.09 (1.1.0, ClouDNS po starcie) — publikacja skryptem w dniu startu"
 PB-24,WŁAŚCICIEL,"zakres zdecydowany 27.09 (DNS + domeny + chmura); zostaje e-Doręczenia, telefon 24/7 i złożenie wniosku po przesłance"
-SEC-01,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł | decyzja 04.10: strict najpierw 48 h w trybie logowania odmów, blokada po OK właściciela"
+SEC-01,PRODUKCJA,"kod gotowy (D2/D3 obserwacji); zostaje włączenie na control-plane po pomiarze 7-dniowym (6.10): 48 h logowania odmów, potem blokada po OK właściciela"
 SEC-02,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
-SEC-03,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
+SEC-03,PRODUKCJA,"kod gotowy (D2/D3 obserwacji); zostaje włączenie na control-plane po pomiarze 7-dniowym (6.10): 48 h logowania odmów, potem blokada po OK właściciela"
 SEC-04,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
 SEC-06,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
-X-41,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
+X-41,PRODUKCJA,"kod gotowy (D2/D3 obserwacji); zostaje włączenie na control-plane po pomiarze 7-dniowym (6.10): 48 h logowania odmów, potem blokada po OK właściciela"
 PB-27,PRODUKCJA,"odnowienie z ceną indywidualną 22.10.2026 (mailtest-verris.pl, 6 zł) — reszta sprawdzona 26.09"
 PB-28,PRODUKCJA,na produkcji: przedłużenie okresu bez obciążenia przy pierwszym odnowieniu usługi klienta poza Verris; pulpit bez portfela po wdrożeniu (26.09 — konto Smoke Test przełączone)
 PB-29,OD 29.09,"test na węźle testowym (D3): bootstrap z manifestem, Governor 11.4, raport gotowości, zgodność floty"
