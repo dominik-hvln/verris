@@ -1,4 +1,4 @@
-import { backupDays, barHeights, bucketize, fmtMb, lastDaysLabels, niceStep, parseBackupDate, placeTip, tip } from './v2';
+import { backupDays, barHeights, bucketize, fmtMb, procentGb, lastDaysLabels, niceStep, parseBackupDate, placeTip, tip } from './v2';
 
 describe('PB-15 klocki v2', () => {
   it('barHeights skaluje do maksimum i nie gubi zer', () => {
@@ -22,6 +22,12 @@ describe('PB-15 klocki v2', () => {
     expect(b.values).toEqual([5, 9, 4]);
     expect(b.labels).toHaveLength(3);
     expect(bucketize([], 8)).toEqual({ values: [], labels: [] });
+  });
+  it('procentGb (karta „Dysk i transfer”): procent i GB po polsku, bez limitu, brak danych', () => {
+    expect(procentGb(5427, 7680)).toBe('71% (5,3 GB / 7,5 GB)');
+    expect(procentGb(300, 20480)).toBe('1% (0,3 GB / 20 GB)');
+    expect(procentGb(5000, null)).toBe('4,9 GB · bez limitu');
+    expect(procentGb(null, 7680)).toBe('—');
   });
   it('fmtMb: MB poniżej 1 GB, GB z przecinkiem, brak = kreska', () => {
     expect(fmtMb(512)).toBe('512 MB');

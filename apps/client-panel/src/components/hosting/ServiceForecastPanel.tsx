@@ -1,148 +1,133 @@
 'use client';
 
-import { useCallback, useState } from 'react';
-import {
-  AlertTriangle,
-  ArrowDownRight,
-  ArrowRight,
-  ArrowUpRight,
-  Lightbulb,
-  Loader2,
-  Sparkles,
-} from 'lucide-react';
-import { Button } from '@verris/ui';
-import type {
-  ForecastResource,
-  ForecastTrend,
-  ServiceForecastDto,
-  ServiceForecastResourceDto,
-} from '@verris/contracts';
-import {
-  fetchServiceForecastAction as fetchServiceForecastActionAkcja,
-} from '@/app/dashboard/services/[id]/hosting-forecast-actions';
+import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { AlertTriangle, ArrowRight, Lightbulb, Loader2 } from 'lucide-react';
+import type { ForecastResource, ServiceForecastDto, ServiceForecastResourceDto } from '@verris/contracts';
+import { fetchServiceForecastAction as fetchServiceForecastActionAkcja } from '@/app/dashboard/services/[id]/hosting-forecast-actions';
+import { Wykres } from '@/components/panel/wykres';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
-import { plForm, plural } from '@/lib/pl';
+import { days } from '@/lib/pl';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
 const fetchServiceForecastAction = zOdpakowaniem(fetchServiceForecastActionAkcja);
 
-const RESOURCE_LABEL: Record<ForecastResource, string> = {
+const KOLEJNOSC: ForecastResource[] = ['CPU', 'RAM', 'DISK', 'IO'];
+const NAZWA: Record<ForecastResource, string> = {
   CPU: 'CPU',
   RAM: 'Pamięć RAM',
   DISK: 'Dysk',
-  IO: 'I/O',
+  IO: 'Operacje dyskowe (IO)',
 };
+const PEWNOSC: Record<ServiceForecastDto['confidence'], string> = { low: 'niska', medium: 'średnia', high: 'wysoka' };
+const DZIEN_MS = 86_400_000;
+const HISTORIA_DNI = 7;
 
-const CONFIDENCE_LABEL: Record<ServiceForecastDto['confidence'], string> = {
-  low: 'niska',
-  medium: 'średnia',
-  high: 'wysoka',
-};
+const proc = (v: number) => `${v.toLocaleString('pl-PL', { maximumFractionDigits: 1 })}%`;
+const godzina = (t: number) =>
+  new Date(t).toLocaleString('pl-PL', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
-const CONFIDENCE_STYLE: Record<ServiceForecastDto['confidence'], string> = {
-  low: 'border-warn/30 bg-warn-soft text-warn',
-  medium: 'border-data/28 bg-data-soft text-data-hi',
-  high: 'border-data/28 bg-data-soft text-data-hi',
-};
+function uwaga(r: ServiceForecastResourceDto): string {
+  if (r.note) return r.note;
+  if (r.daysToLimit === 0) return 'na limicie planu';
+  if (r.daysToLimit != null) return `limit za ok. ${days(r.daysToLimit)}`;
+  return { up: 'rośnie', down: 'spada', flat: 'stabilnie', unknown: '' }[r.trend];
+}
 
 export default function ServiceForecastPanel({ serviceId }: { serviceId: string }) {
   const [forecast, setForecast] = useState<ServiceForecastDto | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const run = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      setForecast(await fetchServiceForecastAction(serviceId));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Nie udało się wygenerować prognozy.');
-    } finally {
-      setLoading(false);
-    }
-  }, [serviceId]);
+  // Liczby liczy panel (regresja), komentarz AI jest w pamięci 3 h — wczytanie przy wejściu nic nie kosztuje.
+  // Spinner przy montażu daje stan początkowy, przy odświeżeniu — onClick; efekt nie ustawia stanu synchronicznie.
+  const pobierz = useCallback(
+    () =>
+      fetchServiceForecastAction(serviceId)
+        .then((f) => {
+          setForecast(f);
+          setError(null);
+        })
+        .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Nie udało się wczytać prognozy.'))
+        .finally(() => setLoading(false)),
+    [serviceId],
+  );
+  useEffect(() => {
+    void pobierz();
+  }, [pobierz]);
+
+  const ai = forecast?.komentarzAi ? 'true' : undefined;
+  const h = forecast?.horizonDays ?? 7;
 
   return (
-    <div className="mt-4 rounded-[10px] border border-line bg-raised p-4 sm:p-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="rounded-[10px] border border-data/28 bg-data-soft p-2 text-data-hi">
-            <Sparkles className="h-4 w-4" />
-          </div>
-          <div>
-            <h3 className="flex items-center gap-2 text-base font-bold text-foreground">Prognoza zasobów</h3>
-            <p className="text-xs text-muted-foreground">
-              Szacowany trend wykorzystania zasobów na podstawie ostatnich metryk.
+    <div className="space-y-4">
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-[10px] border border-line bg-card px-5 py-4">
+        <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-1.5">
+          {forecast?.available ? (
+            <div className="flex flex-wrap gap-2 text-[12.5px]">
+              <span className={`rounded-full px-2.5 py-0.5 font-semibold ${forecast.confidence === 'low' ? 'bg-warn-soft text-warn' : 'bg-data-soft text-data-hi'}`}>
+                Pewność: {PEWNOSC[forecast.confidence]}
+              </span>
+              <span className="rounded-full bg-raised px-2.5 py-0.5 text-muted-foreground">
+                {HISTORIA_DNI} dni historii · prognoza na {days(h)}
+              </span>
+            </div>
+          ) : null}
+          {loading && !forecast ? (
+            <p className="m-0 flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Liczę prognozę…
             </p>
-          </div>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => void run()}
-          disabled={loading}
-          className="border-data/28 text-data-hi"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analizuję…
-            </>
+          ) : forecast && !forecast.available ? (
+            <p className="m-0 flex items-start gap-2 text-sm text-warn">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              {forecast.unavailableReason ?? 'Prognoza jest chwilowo niedostępna.'}
+            </p>
           ) : forecast ? (
-            'Odśwież prognozę'
-          ) : (
-            'Generuj prognozę'
-          )}
-        </Button>
-      </div>
-
-      {error ? <p className="mt-3 text-sm text-crit">{error}</p> : null}
-
-      {forecast && !forecast.available ? (
-        <div className="mt-4 flex items-start gap-2 rounded-[10px] border border-warn/30 bg-warn-soft p-3 text-sm text-warn">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>{forecast.unavailableReason ?? 'Prognoza jest chwilowo niedostępna.'}</span>
-        </div>
-      ) : null}
-
-      {forecast && forecast.available ? (
-        <div className="mt-4 space-y-4">
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            <span
-              className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium ${CONFIDENCE_STYLE[forecast.confidence]}`}
-            >
-              Pewność: {CONFIDENCE_LABEL[forecast.confidence]}
-            </span>
-            <span className="rounded-full border border-line bg-raised px-2 py-0.5 text-[color:var(--verris-body)]">
-              Horyzont: {forecast.horizonDays} {plForm(forecast.horizonDays, 'dzień', 'dni', 'dni')}
-            </span>
-            <span className="text-muted-foreground">
-              {new Date(forecast.generatedAt).toLocaleString('pl-PL')}
-            </span>
-          </div>
-
-          {forecast.summary ? (
-            <p data-ai-generated={forecast.komentarzAi ? 'true' : undefined} className="text-sm text-[color:var(--verris-body)]">
+            <p data-ai-generated={ai} className="m-0 text-[15px] leading-normal text-foreground">
               {forecast.summary}
             </p>
           ) : null}
+          {error ? <p className="m-0 text-sm text-crit">{error}</p> : null}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => {
+              setLoading(true);
+              void pobierz();
+            }}
+            className="rounded-[7px] border border-line-strong px-3 py-2 text-[13px] font-semibold text-foreground hover:bg-raised disabled:opacity-60"
+          >
+            {loading ? 'Liczę…' : 'Odśwież'}
+          </button>
+          <Link
+            href={`/dashboard/services/${serviceId}/autoscaling`}
+            className="rounded-[7px] border border-line-strong px-3 py-2 text-[13px] font-semibold text-foreground hover:bg-raised"
+          >
+            Autoskalowanie i limity
+          </Link>
+        </div>
+      </section>
 
-          {forecast.resources.length > 0 ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {forecast.resources.map((r) => (
-                <ResourceCard key={r.resource} item={r} />
+      {forecast?.available ? (
+        <>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {KOLEJNOSC.map((k) => forecast.resources.find((r) => r.resource === k))
+              .filter((r): r is ServiceForecastResourceDto => !!r)
+              .map((r) => (
+                <WykresZasobu key={r.resource} r={r} horyzont={h} wygenerowano={Date.parse(forecast.generatedAt)} ai={ai} />
               ))}
-            </div>
-          ) : null}
+          </div>
 
           {forecast.recommendations.length > 0 ? (
-            <div data-ai-generated={forecast.komentarzAi ? 'true' : undefined} className="rounded-[10px] border border-line bg-raised p-3">
-              <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            <div data-ai-generated={ai} className="rounded-[10px] border border-line bg-card p-4">
+              <p className="mb-2 flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
                 <Lightbulb className="h-3.5 w-3.5" /> Rekomendacje
               </p>
-              <ul className="space-y-1.5">
+              <ul className="m-0 list-none space-y-1.5 p-0">
                 {forecast.recommendations.map((rec, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-[color:var(--verris-body)]">
+                  <li key={i} className="flex items-start gap-2 text-sm text-foreground">
                     <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-data-hi" />
                     <span>{rec}</span>
                   </li>
@@ -151,74 +136,76 @@ export default function ServiceForecastPanel({ serviceId }: { serviceId: string 
             </div>
           ) : null}
 
-          <p className="text-[11px] text-muted-foreground">
-            {forecast.komentarzAi
-              ? 'Prognoza orientacyjna, liczona przez Verris z historycznych metryk — nie stanowi gwarancji. Opis i rekomendacje tworzy AI.'
-              : 'Prognoza orientacyjna, liczona przez Verris na podstawie historycznych metryk — nie stanowi gwarancji.'}
+          <p className="m-0 text-[11.5px] text-muted-foreground">
+            Prognoza orientacyjna, liczona przez Verris z historycznych metryk — nie stanowi gwarancji.
+            {forecast.komentarzAi ? ' Opis i rekomendacje tworzy AI.' : ''}
           </p>
-        </div>
+        </>
       ) : null}
     </div>
   );
 }
 
-function TrendIcon({ trend }: { trend: ForecastTrend }) {
-  if (trend === 'up') return <ArrowUpRight className="h-4 w-4 text-crit" />;
-  if (trend === 'down') return <ArrowDownRight className="h-4 w-4 text-data-hi" />;
-  if (trend === 'flat') return <ArrowRight className="h-4 w-4 text-[color:var(--verris-body)]" />;
-  return <ArrowRight className="h-4 w-4 text-muted-foreground" />;
-}
-
-function ResourceCard({ item }: { item: ServiceForecastResourceDto }) {
-  const current = clampPct(item.currentPct);
-  const predicted = clampPct(item.predictedPct);
-  const predictedHigh = (predicted ?? 0) >= 85;
-  return (
-    <div className="rounded-[10px] border border-line bg-raised p-3">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-foreground">{RESOURCE_LABEL[item.resource]}</span>
-        <TrendIcon trend={item.trend} />
-      </div>
-      <div className="mt-2 space-y-2">
-        <Bar label="Teraz" pct={current} tone="current" />
-        <Bar label="Prognoza" pct={predicted} tone={predictedHigh ? 'danger' : 'predicted'} />
-      </div>
-      {item.daysToLimit != null ? (
-        <p className="mt-2 text-xs text-warn">
-          Szacowany czas do limitu: ~{plural(Math.round(item.daysToLimit), 'dzień', 'dni', 'dni')}
-        </p>
-      ) : null}
-      {item.note ? <p className="mt-1 text-xs text-muted-foreground">{item.note}</p> : null}
-    </div>
-  );
-}
-
-function Bar({
-  label,
-  pct,
-  tone,
+function WykresZasobu({
+  r,
+  horyzont,
+  wygenerowano,
+  ai,
 }: {
-  label: string;
-  pct: number | null;
-  tone: 'current' | 'predicted' | 'danger';
+  r: ServiceForecastResourceDto;
+  horyzont: number;
+  wygenerowano: number;
+  ai: 'true' | undefined;
 }) {
-  const width = pct == null ? 0 : Math.max(2, Math.min(100, pct));
-  const color =
-    tone === 'danger' ? 'bg-crit/12' : tone === 'predicted' ? 'bg-data-soft' : 'bg-data-soft';
+  const punkty = (r.historia ?? []).map((p) => {
+    const t = Date.parse(p.t);
+    return { t, v: p.v, label: godzina(t) };
+  });
+  const teraz = punkty.at(-1)?.t ?? wygenerowano;
+  const obecnie = r.currentPct ?? punkty.at(-1)?.v ?? 0;
+  const za = r.predictedPct ?? obecnie;
+  const prognoza = [
+    { t: teraz, v: obecnie, label: 'teraz' },
+    { t: teraz + horyzont * DZIEN_MS, v: za, label: `za ${days(horyzont)}` },
+  ];
+  const najwyzej = Math.max(100, za, ...punkty.map((p) => p.v));
+  const opis = uwaga(r);
   return (
-    <div>
-      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-        <span>{label}</span>
-        <span>{pct == null ? '—' : `${Math.round(pct)}%`}</span>
+    <section className="flex min-w-0 flex-col gap-2.5 rounded-[10px] border border-line bg-card px-5 py-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="m-0 font-display text-[16px] font-bold text-foreground">{NAZWA[r.resource]}</h3>
+        <div className="text-[13px] text-muted-foreground">
+          teraz <b className="font-mono text-foreground">{Math.round(obecnie)}%</b> · za {days(horyzont)}{' '}
+          <b className={`font-mono ${za >= 100 ? 'text-crit' : 'text-foreground'}`}>{Math.round(za)}%</b>
+        </div>
       </div>
-      <div className="mt-1 h-2 overflow-hidden rounded-full bg-raised">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${width}%` }} />
+      <Wykres
+        nazwa={`${NAZWA[r.resource]}: ${HISTORIA_DNI} dni historii i prognoza na ${days(horyzont)}, w procentach limitu planu`}
+        punkty={punkty}
+        prognoza={prognoza}
+        limit={100}
+        // Prognoza 250% nie spłaszcza historii: oś najwyżej do 150% limitu, wyższe wartości przy krawędzi.
+        max={Math.min(150, najwyzej)}
+        domena={[teraz - HISTORIA_DNI * DZIEN_MS, teraz + horyzont * DZIEN_MS]}
+        format={proc}
+        wysokosc={150}
+      />
+      <div className="flex justify-between text-[11.5px] text-muted-foreground">
+        <span>−{HISTORIA_DNI} dni</span>
+        <span>dziś</span>
+        <span>+{days(horyzont)}</span>
       </div>
-    </div>
+      <div className="flex justify-between gap-3 text-[11.5px] text-muted-foreground">
+        <span>
+          <span className="text-crit" aria-hidden>
+            - - -
+          </span>{' '}
+          limit planu
+        </span>
+        <span data-ai-generated={r.note ? ai : undefined} className="text-right">
+          {opis}
+        </span>
+      </div>
+    </section>
   );
-}
-
-function clampPct(value: number | null): number | null {
-  if (value == null || !Number.isFinite(value)) return null;
-  return value < 0 ? 0 : value;
 }

@@ -211,6 +211,8 @@ export interface ServiceForecastResourceDto {
   trend: ForecastTrend;
   daysToLimit: number | null;
   note?: string | null;
+  /** Godzinowa historia (≤ 168 punktów = 7 dni) w % limitu planu — wykres w panelu; AI jej nie dostaje. */
+  historia?: { t: string; v: number }[];
 }
 
 export interface ServiceForecastDto {

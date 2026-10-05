@@ -30,5 +30,8 @@ describe('Prognoza zasobów — godzinowe średnie z 7 dni', () => {
     expect(r.available).toBe(true);
     expect(r.confidence).toBe('high');
     expect(r.resources.find((x) => x.resource === 'DISK')?.trend).not.toBe('down');
+    const historia = r.resources.find((x) => x.resource === 'DISK')?.historia ?? [];
+    expect(historia.length).toBeGreaterThanOrEqual(96);
+    expect(historia.length).toBeLessThanOrEqual(168);
   });
 });

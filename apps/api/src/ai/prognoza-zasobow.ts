@@ -22,6 +22,8 @@ export interface LimityPlanu {
 }
 
 const DZIEN_MS = 86_400_000;
+/** Wykres w panelu: 7 dni średnich godzinowych. */
+export const HISTORIA_PUNKTY = 7 * 24;
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
 /** Nachylenie prostej najmniejszych kwadratów: przyrost y na dzień. */
@@ -60,6 +62,7 @@ export function policzPrognoze(plan: LimityPlanu, pomiary: Pomiar[]) {
         trend,
         daysToLimit: dni === null || dni > 365 ? null : dni === 0 ? 0 : Math.max(1, Math.ceil(dni)),
         note: null,
+        historia: posort.slice(-HISTORIA_PUNKTY).map((p) => ({ t: p.bucketStart.toISOString(), v: r1((Number(wart(p)) / limit) * 100) })),
       };
     });
   const confidence: ForecastConfidence = zakresDni >= 3 ? 'high' : zakresDni >= 1 ? 'medium' : 'low';

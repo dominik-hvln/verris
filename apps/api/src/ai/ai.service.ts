@@ -100,7 +100,8 @@ export class AiService {
       '(np. cache, optymalizacja wtyczek, porządek w plikach, autoskalowanie, wyższy plan) — tylko gdy uzasadnione liczbami.',
       'notes: krótka uwaga tylko dla zasobów z trendem "up" albo daysToLimit ≤ 30.',
     ].join('\n');
-    const user = JSON.stringify({ plan: subscription.plan.name, ...liczby });
+    // Historia godzinowa jest dla wykresu — AI dostaje tylko gotowe liczby (mały prompt).
+    const user = JSON.stringify({ plan: subscription.plan.name, ...liczby, resources: liczby.resources.map(({ historia: _h, ...r }) => r) });
     try {
       // „Odśwież prognozę” co chwilę nie płaci za AI: komentarz z ostatnich 3 h (pomiary są godzinowe).
       const swiezy = await this.prisma.aiInteractionLog.findFirst({

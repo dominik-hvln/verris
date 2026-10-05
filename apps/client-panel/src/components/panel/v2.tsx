@@ -527,6 +527,18 @@ export function fmtMb(mb: number | null | undefined): string {
   return `${(mb / 1024).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} GB`;
 }
 
+/** MB → zawsze GB, po polsku: 5427 → „5,3 GB”, 300 → „0,3 GB”. */
+export function fmtGb(mb: number): string {
+  return `${(mb / 1024).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} GB`;
+}
+
+/** Zajętość z limitem: „71% (5,3 GB / 7,5 GB)”; bez limitu „5,3 GB · bez limitu”. Czysta funkcja — testowana. */
+export function procentGb(usedMb: number | null | undefined, limitMb: number | null | undefined): string {
+  if (usedMb == null || !Number.isFinite(usedMb)) return '—';
+  if (!limitMb) return `${fmtGb(usedMb)} · bez limitu`;
+  return `${Math.round((usedMb / limitMb) * 100)}% (${fmtGb(usedMb)} / ${fmtGb(limitMb)})`;
+}
+
 /** Szereg 24 h → `n` kubełków (maksimum w kubełku) + etykiety godzin. Czysta funkcja — testowana. */
 export function bucketize(
   rows: { bucketStart: string; value: number }[],

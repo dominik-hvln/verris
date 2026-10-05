@@ -58,10 +58,8 @@ import {
   KpiStrip,
   Label,
   Meter,
-  MiniBars,
   SectionHead,
   Squares,
-  StackBar,
   StatusPill,
   Switch,
   backupDays,
@@ -69,9 +67,11 @@ import {
   comet,
   fmtMb,
   lastDaysLabels,
+  procentGb,
   tip,
   type Tone,
 } from '@/components/panel/v2';
+import { Wykres } from '@/components/panel/wykres';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
@@ -174,11 +174,11 @@ export default function ServiceOverviewV2({
   }, [load]);
 
   const cpu = useMemo(
-    () => bucketize((usage?.rows ?? []).map((r) => ({ bucketStart: r.bucketStart, value: r.cpuUsageMax })), 8),
+    () => bucketize((usage?.rows ?? []).map((r) => ({ bucketStart: r.bucketStart, value: r.cpuUsageMax })), 24),
     [usage],
   );
   const ram = useMemo(
-    () => bucketize((usage?.rows ?? []).map((r) => ({ bucketStart: r.bucketStart, value: r.memUsageMaxMb })), 8),
+    () => bucketize((usage?.rows ?? []).map((r) => ({ bucketStart: r.bucketStart, value: r.memUsageMaxMb })), 24),
     [usage],
   );
 
@@ -204,6 +204,10 @@ export default function ServiceOverviewV2({
   const ramLimit = account?.ramLimitMb ?? null;
   const cpuPeak = cpu.values.length ? Math.max(...cpu.values) : null;
   const cpuHot = cpuPeak != null && cpuPeak / cpuLimit >= 0.8;
+  const ramPeak = ram.values.length ? Math.max(...ram.values) : null;
+  const ramNow = usage?.rows.at(-1)?.memUsageAvgMb ?? null;
+  const diskPct = diskUsed != null && diskLimit ? Math.round((diskUsed / diskLimit) * 100) : null;
+  const bwPct = bw?.used != null && bw.limit ? Math.round((bw.used / bw.limit) * 100) : null;
   const domainList = domains?.domains ?? [];
   const primary = domains?.primaryDomain ?? account?.domain ?? null;
   const as = extras?.autoscaling ?? null;
@@ -309,41 +313,66 @@ export default function ServiceOverviewV2({
       <div className="v2-comet rounded-[10px]" style={comet('a', 13, -2, 0.55)}>
       <KpiStrip>
         <Kpi
-          label="Miejsce na dysku"
-          value={diskUsed != null ? fmtMb(diskUsed).split(' ')[0] : '—'}
-          unit={diskUsed != null ? `${fmtMb(diskUsed).split(' ')[1]} / ${fmtMb(diskLimit)}` : undefined}
-          foot={<span>{diskUsed != null && diskLimit ? `zostało ${fmtMb(diskLimit - diskUsed)}` : 'dane pojawią się po pierwszym pomiarze'}</span>}
-        >
-          <StackBar
-            total={diskLimit ?? 1}
-            parts={diskUsed != null ? [{ label: 'Zajęte', value: diskUsed, color: 'var(--data)', detail: `${fmtMb(diskUsed)} z ${fmtMb(diskLimit)}` }] : []}
-          />
-        </Kpi>
-        <Kpi
-          label="Transfer · ten miesiąc"
-          value={bw?.used != null ? fmtMb(bw.used).split(' ')[0] : '—'}
-          unit={bw?.used != null ? `${fmtMb(bw.used).split(' ')[1]} / ${bw.limit ? fmtMb(bw.limit) : 'bez limitu'}` : undefined}
-          foot={<span>{bw?.limit ? `${Math.round(((bw.used ?? 0) / bw.limit) * 100)}% limitu` : 'bez limitu transferu'}</span>}
-        >
-          {bw?.limit ? <Meter pct={((bw.used ?? 0) / bw.limit) * 100} tipText={tip(fmtMb(bw.used), `z ${fmtMb(bw.limit)} w tym miesiącu`)} /> : <div className="h-[11px]" />}
-        </Kpi>
-        <Kpi
           label="Wydajność konta · 24 h"
           value={cpuPeak != null ? Math.round((cpuPeak / cpuLimit) * 100) : '—'}
-          unit={cpuPeak != null ? '% limitu' : undefined}
+          unit={cpuPeak != null ? '% limitu · szczyt' : undefined}
           foot={
             cpuHot ? (
               <span className="text-warn">blisko limitu — rozważ autoskalowanie</span>
             ) : (
-              <span data-tip={ram.values.length ? tip(`RAM szczyt ${fmtMb(Math.max(...ram.values))}`, `limit ${fmtMb(ramLimit)}`) : undefined}>
-                {cpu.values.length ? `w normie${ram.values.length ? ` · RAM ${fmtMb(Math.max(...ram.values))}` : ''}` : 'brak pomiarów z 24 h'}
-              </span>
+              <span>{cpu.values.length ? 'w normie' : 'brak pomiarów z 24 h'}</span>
             )
           }
         >
           {cpu.values.length ? (
-            <MiniBars values={cpu.values} labels={cpu.labels} unit="% CPU (szczyt)" lastTone={cpuHot ? 'warn' : 'data'} format={(v) => String(Math.round(v))} />
+            <Wykres
+              wariant="slupki"
+              punkty={cpu.values.map((v, i) => ({ v: (v / cpuLimit) * 100, label: `od ${cpu.labels[i] ?? ''}` }))}
+              limit={100}
+              format={(v) => `${Math.round(v)}% limitu CPU`}
+              nazwa="Wydajność konta w ostatnich 24 godzinach: szczyt CPU w każdej godzinie, w procentach limitu"
+              wysokosc={44}
+            />
           ) : null}
+        </Kpi>
+        <Kpi
+          label="Pamięć (RAM)"
+          value={ramPeak != null ? fmtMb(ramPeak).split(' ')[0] : '—'}
+          unit={ramPeak != null ? `${fmtMb(ramPeak).split(' ')[1]} · szczyt 24 h` : undefined}
+          foot={
+            <span>
+              {ramNow != null ? `teraz ${fmtMb(ramNow)}${ramLimit ? ` · limit ${fmtMb(ramLimit)}` : ''}` : 'brak pomiarów z 24 h'}
+            </span>
+          }
+        >
+          {ram.values.length ? (
+            <Wykres
+              punkty={ram.values.map((v, i) => ({ v, label: `od ${ram.labels[i] ?? ''}` }))}
+              limit={ramLimit}
+              format={fmtMb}
+              nazwa="Pamięć RAM w ostatnich 24 godzinach: szczyt w każdej godzinie"
+              wysokosc={44}
+            />
+          ) : null}
+        </Kpi>
+        <Kpi
+          label="Dysk i transfer"
+          value={diskPct ?? '—'}
+          unit={diskPct != null ? '% dysku' : undefined}
+          foot={<span>{diskUsed != null && diskLimit ? `zostało ${fmtMb(diskLimit - diskUsed)}` : 'dane pojawią się po pierwszym pomiarze'}</span>}
+        >
+          <div className="flex flex-col text-[12.5px] text-muted-foreground">
+            <div className="flex justify-between gap-2">
+              <span>Dysk</span>
+              <span className="font-mono text-foreground">{procentGb(diskUsed, diskLimit)}</span>
+            </div>
+            <Meter pct={diskPct ?? 0} tone={(diskPct ?? 0) >= 80 ? 'warn' : 'data'} tipText={tip(procentGb(diskUsed, diskLimit), 'miejsce na dysku')} />
+            <div className="mt-2 flex justify-between gap-2">
+              <span>Transfer · miesiąc</span>
+              <span className="font-mono text-foreground">{procentGb(bw?.used, bw?.limit)}</span>
+            </div>
+            <Meter pct={bwPct ?? 0} tone={(bwPct ?? 0) >= 80 ? 'warn' : 'data'} tipText={tip(procentGb(bw?.used, bw?.limit), 'transfer w tym miesiącu')} />
+          </div>
         </Kpi>
         <Kpi
           label="Kopie zapasowe"

@@ -28,6 +28,18 @@ describe('prognoza zasobów bez AI', () => {
     expect(opisPrognozy(p.resources)).toMatch(/^Najbliżej limitu: dysk — 94% teraz, limit za ok\. 1 dzień/);
   });
 
+  it('historia do wykresu: % limitu, posortowana, najwyżej 168 punktów (7 dni)', () => {
+    const p = policzPrognoze(plan, [...pomiary].reverse());
+    const disk = p.resources.find((r) => r.resource === 'DISK')!;
+    expect(disk.historia).toHaveLength(96);
+    expect(disk.historia![0]).toEqual({ t: '2026-10-01T00:00:00.000Z', v: 0 });
+    expect(disk.historia![95].v).toBe(95); // 950 MB z 1000 MB
+    expect(p.resources.find((r) => r.resource === 'RAM')!.historia![0].v).toBe(30);
+    const dlugo = policzPrognoze(plan, Array.from({ length: 200 }, (_, h) => godz(h, 100)));
+    expect(dlugo.resources[0].historia).toHaveLength(168);
+    expect(dlugo.resources[0].historia!.at(-1)!.t).toBe(new Date(Date.UTC(2026, 9, 1) + 199 * 3_600_000).toISOString());
+  });
+
   it('wszystko płasko → opis „w normie”, krótkie dane → niska pewność', () => {
     const p = policzPrognoze(plan, Array.from({ length: 6 }, (_, h) => godz(h, 100)));
     expect(p.confidence).toBe('low');
@@ -63,6 +75,8 @@ describe('AiService.serviceForecast — AI komentuje gotowe liczby', () => {
     expect(complete).toHaveBeenCalledWith(expect.objectContaining({ user: expect.any(String) }));
     const wyslane = JSON.parse((complete.mock.calls[0] as unknown as [{ user: string }])[0].user) as { resources: unknown[] };
     expect(wyslane.resources).toHaveLength(4);
+    expect(wyslane.resources[0]).not.toHaveProperty('historia'); // historia tylko dla wykresu, nie do AI
+    expect(r.resources[0].historia?.length).toBe(96);
     expect(r.summary).toBe('Dysk zaraz się zapełni.');
     expect(r.komentarzAi).toBe(true); // AI Act art. 50 — panel oznacza komentarz AI
     expect(r.recommendations).toEqual(['Usuń stare kopie']);

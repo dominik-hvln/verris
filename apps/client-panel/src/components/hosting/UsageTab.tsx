@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Kpi, KpiStrip, MiniBars, SectionHead, fmtMb } from '@/components/panel/v2';
+import { Kpi, KpiStrip, SectionHead, bucketize, fmtMb } from '@/components/panel/v2';
+import { Wykres } from '@/components/panel/wykres';
 import {
   fetchHostingUsageAction as fetchHostingUsageActionAkcja,
   HostingUsageResponse,
@@ -15,16 +16,16 @@ import { zOdpakowaniem } from '@/lib/wynik-akcji';
 const fetchHostingUsageAction = zOdpakowaniem(fetchHostingUsageActionAkcja);
 
 export default function UsageTab({ serviceId }: { serviceId: string }) {
-  const [window, setWindow] = useState<'24h' | '7d'>('24h');
   const [usage, setUsage] = useState<HostingUsageResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Samo pobranie. Spinner i czyszczenie błędu przy montażu daje stan początkowy,
-  // a przy zmianie okna — onClick przełącznika; efekt niczego nie ustawia synchronicznie.
+  // Samo pobranie. Spinner i czyszczenie błędu przy montażu daje stan początkowy; efekt niczego
+  // nie ustawia synchronicznie. 7 dni z prognozą rysuje ServiceForecastPanel (średnie godzinowe z API) —
+  // dawny przełącznik „7d” brał 48 ostatnich minut z 500 najnowszych próbek, czyli nie 7 dni.
   const fetchUsage = useCallback(
     (silent: boolean) =>
-      fetchHostingUsageAction(serviceId, window)
+      fetchHostingUsageAction(serviceId, '24h')
         .then(setUsage)
         .catch((e) => {
           if (!silent) setError(e instanceof Error ? e.message : 'Nie udało się pobrać metryk użycia.');
@@ -32,7 +33,7 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
         .finally(() => {
           if (!silent) setLoading(false);
         }),
-    [serviceId, window],
+    [serviceId],
   );
 
   useEffect(() => {
@@ -50,35 +51,17 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
   }, [fetchUsage]);
 
   const latest = usage?.rows.at(-1);
-  const chart = useMemo(() => usage?.rows.slice(-48) ?? [], [usage]);
+  // 24 h minutowych próbek → 48 słupków po pół godziny (szczyt w kubełku).
+  const cpu = useMemo(() => {
+    const b = bucketize((usage?.rows ?? []).map((r) => ({ bucketStart: r.bucketStart, value: r.cpuUsageAvg })), 48);
+    return b.values.map((v, i) => ({ v, label: b.labels[i] ?? '' }));
+  }, [usage]);
 
   return (
     <div className="min-w-0 space-y-6">
       <SectionHead
         title="Zużycie i prognoza"
-        desc="Dane z serwera Twojej usługi, odświeżane co pół minuty. Najedź na słupek, żeby zobaczyć dokładną wartość."
-        action={
-          <div role="tablist" className="flex gap-0.5 rounded-[7px] border border-line-strong bg-card p-0.5">
-            {(['24h', '7d'] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                role="tab"
-                aria-selected={window === value}
-                onClick={() => {
-                  if (value !== window) {
-                    setLoading(true);
-                    setError(null);
-                  }
-                  setWindow(value);
-                }}
-                className={`rounded-[5px] px-2.5 py-1 text-[13px] ${window === value ? 'bg-raised font-semibold text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                {value}
-              </button>
-            ))}
-          </div>
-        }
+        desc="Dane z serwera Twojej usługi, odświeżane co pół minuty. Najedź na wykres albo użyj strzałek na klawiaturze, żeby zobaczyć dokładną wartość."
       />
 
       <KpiStrip>
@@ -90,27 +73,23 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
 
       {error ? <p className="text-sm text-crit">{error}</p> : null}
 
+      <ServiceForecastPanel serviceId={serviceId} />
+
       <section>
-        <SectionHead title={`Obciążenie CPU · ${window === '24h' ? 'ostatnie 24 h' : 'ostatnie 7 dni'}`} />
-        <div className="rounded-[10px] border border-line bg-card px-4 pb-4 pt-3">
+        <SectionHead title="Obciążenie CPU · ostatnie 24 h" />
+        <div className="rounded-[10px] border border-line bg-card px-4 pb-4 pt-8">
           {loading && !usage ? (
             <p className="m-0 py-6 text-sm text-muted-foreground">Wczytywanie metryk…</p>
-          ) : chart.length === 0 ? (
+          ) : cpu.length === 0 ? (
             <p className="m-0 py-6 text-sm text-muted-foreground">Brak zapisanych metryk w tym oknie.</p>
           ) : (
-            <MiniBars
-              values={chart.map((r) => r.cpuUsageAvg)}
-              labels={chart.map((r) => new Date(r.bucketStart).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}
-              unit="% CPU"
-              format={(v) => String(Math.round(v))}
-            />
+            <Wykres wariant="slupki" punkty={cpu} nazwa="Obciążenie CPU w ostatnich 24 godzinach, szczyt w półgodzinnych przedziałach" format={(v) => `${Math.round(v)}% CPU`} wysokosc={90} />
           )}
         </div>
       </section>
 
       <AccountStatsCard serviceId={serviceId} />
       <DiskUsagePanel serviceId={serviceId} />
-      <ServiceForecastPanel serviceId={serviceId} />
     </div>
   );
 }
