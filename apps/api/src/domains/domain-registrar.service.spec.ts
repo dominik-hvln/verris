@@ -36,6 +36,7 @@ describe('DomainRegistrarService', () => {
       config as never,
       nbpFx as never,
       ecoPoints as never,
+      {} as never,
     );
 
     await expect(service.availability('example.pl')).rejects.toBeInstanceOf(ServiceUnavailableException);
@@ -54,6 +55,7 @@ describe('DomainRegistrarService', () => {
       config as never,
       nbpFx as never,
       ecoPoints as never,
+      {} as never,
     );
 
     await expect(service.register('user_1', 'user_1', { name: 'Example.pl', registrant: {} as never })).rejects.toThrow(
@@ -73,6 +75,7 @@ describe('DomainRegistrarService', () => {
       config as never,
       nbpFx as never,
       ecoPoints as never,
+      {} as never,
     );
 
     const q = await service.quoteTransfer('Example.PL', 2);

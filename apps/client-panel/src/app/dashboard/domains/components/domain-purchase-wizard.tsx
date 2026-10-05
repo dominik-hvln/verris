@@ -55,7 +55,7 @@ type QuoteRow = {
   loading: boolean;
 };
 
-const RODZAJ_ZLECENIA: Record<string, string> = { REGISTER: 'Rejestracja', TRANSFER: 'Transfer', RENEW: 'Odnowienie' };
+const RODZAJ_ZLECENIA: Record<string, string> = { REGISTER: 'Rejestracja', TRANSFER: 'Transfer', RENEW: 'Odnowienie', WHOIS_PRIVACY: 'Ukrycie danych WHOIS' };
 const STAN_ZLECENIA: Record<string, string> = {
   PENDING_PAYMENT: 'czeka na płatność',
   QUEUED: 'w kolejce',

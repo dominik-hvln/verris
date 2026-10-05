@@ -1348,6 +1348,8 @@ model Domain {
   autoRenew Boolean @default(false)
   nameservers String[] @default([])
   transferLock Boolean @default(true)
+  /// A-14 — ukrycie danych abonenta w WHOIS (płatne, cena w ustawieniach platformy).
+  whoisPrivacy Boolean @default(false)
   lastRegistrarSyncAt DateTime?
 
   userId    String
@@ -1364,6 +1366,7 @@ enum DomainRegistrarOrderType {
   REGISTER
   TRANSFER
   RENEW
+  WHOIS_PRIVACY
 }
 
 enum DomainRegistrarOrderStatus {

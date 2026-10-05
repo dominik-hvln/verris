@@ -222,8 +222,8 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Usługi hostingowe — ogólna reguła, po szczegółowych.',
   },
   {
-    // Rejestracja, transfer i odnowienie domeny obciążają portfel właściciela — jak zamówienie usługi.
-    pasuje: (s) => /^\/domains\/(registrar\/(register|transfer)|[^/]+\/registrar\/renew)$/.test(s),
+    // Rejestracja, transfer, odnowienie i ukrycie danych WHOIS (A-14) obciążają portfel właściciela — jak zamówienie usługi.
+    pasuje: (s) => /^\/domains\/(registrar\/(register|transfer)|[^/]+\/registrar\/(renew|whois-privacy))$/.test(s),
     odczyt: [DOMAINS_READ], zapis: [DOMAINS_MANAGE, BILLING_MANAGE],
     po_co: 'Wydatek z portfela właściciela na domenę — potrzebne oba uprawnienia (26.09, zrównane z zamówieniem usługi).',
   },

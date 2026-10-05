@@ -44,6 +44,8 @@ export interface RegistrarProvider {
   domainInfo(externalId: string): Promise<DomainInfo>;
   /** A-15 */
   setTransferLock(externalId: string, locked: boolean): Promise<void>;
+  /** A-14 — ukrycie danych abonenta w WHOIS (WPP). */
+  setWhoisPrivacy(externalId: string, enabled: boolean): Promise<void>;
   /** A-09 — kod do transferu domeny do innego rejestratora. */
   authCode(externalId: string): Promise<string>;
   /** Uchwyt operatora (admin/tech/billing). Abonent nim NIE jest — patrz A-13. */
@@ -53,6 +55,8 @@ export interface RegistrarProvider {
 export interface DomainInfo {
   ownerHandle: string | null;
   locked: boolean | null;
+  /** A-14 — czy rejestrator ma włączone ukrycie danych w WHOIS; null = nie podał. */
+  privateWhois?: boolean | null;
   state?: 'active' | 'pending' | 'failed' | null;
   expiresAt?: string | null;
 }
@@ -162,6 +166,10 @@ class HttpRegistrarProvider implements RegistrarProvider {
 
   async setTransferLock(externalId: string, locked: boolean): Promise<void> {
     await this.request(`/domains/${encodeURIComponent(externalId)}/lock`, { method: 'POST', body: JSON.stringify({ locked }) });
+  }
+
+  async setWhoisPrivacy(externalId: string, enabled: boolean): Promise<void> {
+    await this.request(`/domains/${encodeURIComponent(externalId)}/whois-privacy`, { method: 'POST', body: JSON.stringify({ enabled }) });
   }
 
   async authCode(externalId: string): Promise<string> {
@@ -399,11 +407,12 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
 
   async domainInfo(externalId: string): Promise<DomainInfo> {
     const res = await this.request<{
-      data: { owner_handle?: string; is_locked?: boolean; status?: string; expiration_date?: string };
+      data: { owner_handle?: string; is_locked?: boolean; is_private_whois_enabled?: boolean; status?: string; expiration_date?: string };
     }>(`/v1/domains/${encodeURIComponent(externalId)}`, null, 'GET');
     return {
       ownerHandle: res.data?.owner_handle ?? null,
       locked: res.data?.is_locked ?? null,
+      privateWhois: res.data?.is_private_whois_enabled ?? null,
       state: stanOpenProvider(res.data?.status),
       expiresAt: res.data?.expiration_date ?? null,
     };
@@ -411,6 +420,17 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
 
   async setTransferLock(externalId: string, locked: boolean): Promise<void> {
     await this.request(`/v1/domains/${encodeURIComponent(externalId)}`, { is_locked: locked }, 'PUT');
+  }
+
+  /**
+   * A-14 — WHOIS privacy protection (WPP): pole `is_private_whois_enabled` domeny, ta sama aktualizacja
+   * PUT /v1/domains/{id} co blokada transferu.
+   * Dokumentacja: https://doc.openprovider.eu/API_Format_isPrivateWhoisEnabled
+   * („Enables or disables whois privacy protection (WPP) on domain”), REST: https://developer.openprovider.com
+   * Rejestry, które nie pozwalają ukryć danych (wiele ccTLD, np. .pl), kończą się błędem OpenProvidera.
+   */
+  async setWhoisPrivacy(externalId: string, enabled: boolean): Promise<void> {
+    await this.request(`/v1/domains/${encodeURIComponent(externalId)}`, { is_private_whois_enabled: enabled }, 'PUT');
   }
 
   async authCode(externalId: string): Promise<string> {

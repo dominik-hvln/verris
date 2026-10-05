@@ -17,6 +17,7 @@ const abonent = {
 };
 
 let rejestracjaPada = false;
+let whoisPada = false;
 let stanTransferu: 'active' | 'pending' | 'failed' = 'pending';
 const wywolania: string[] = [];
 const rejestrator = {
@@ -34,6 +35,10 @@ const rejestrator = {
     return { provider: 'atrapa', providerOrderId: `ext-${i.domain}`, externalDomainId: `ext-${i.domain}` };
   },
   domainInfo: async () => ({ ownerHandle: 'H-ABONENT', locked: true, state: stanTransferu, expiresAt: '2027-11-01T00:00:00.000Z' }),
+  setWhoisPrivacy: async (id: string, on: boolean) => {
+    wywolania.push(`whois:${id}:${on}`);
+    if (whoisPada) throw new Error('OpenProvider: Whois privacy is not supported for this extension');
+  },
   renew: async (i: { domain: string }) => {
     wywolania.push(`renew:${i.domain}`);
     return { provider: 'atrapa', providerOrderId: `rn-${i.domain}`, expiresAt: '2028-09-27T00:00:00.000Z' };
@@ -47,7 +52,7 @@ function uslugi() {
   return {
     rejestr: new DomainRegistrarService(
       p, new AuditService(p), { encrypt: (v: string) => `enc:${v}` } as never, { get: () => rejestrator } as never,
-      new WalletLedgerService(p), { get: () => undefined } as never, nbp as never, eco as never,
+      new WalletLedgerService(p), { get: () => undefined } as never, nbp as never, eco as never, { getWhoisPrivacyPrice: async () => '19.99' } as never,
     ),
     domeny: new DomainsService(p, null as never),
   };
@@ -161,6 +166,28 @@ describe('X-04 domeny u rejestratora', () => {
     await Promise.all([rejestr.renew(u.id, u.id, d.id, 1).catch(() => undefined), rejestr.renew(u.id, u.id, d.id, 1).catch(() => undefined)]);
     expect(wywolania.filter((w) => w.startsWith('renew:'))).toHaveLength(1);
     expect(await prisma().walletTransaction.count({ where: { userId: u.id, type: WalletTxType.CHARGE_DOMAIN, description: { startsWith: 'Odnowienie domeny dwuklik.pl' } } })).toBe(1);
+  });
+  it('A-14 ukrycie WHOIS: dwuklik = jedno obciążenie; odmowa rejestru = zwrot i stan bez zmian', async () => {
+    const { rejestr } = uslugi();
+    const u = await klient(500);
+    await rejestr.register(u.id, u.id, { name: 'prywatna.com', registrant: abonent });
+    const d = await prisma().domain.findUniqueOrThrow({ where: { name: 'prywatna.com' } });
+    const przed = await saldo(u.id);
+    wywolania.length = 0;
+    await Promise.all([rejestr.setWhoisPrivacy(u.id, u.id, d.id, true).catch(() => undefined), rejestr.setWhoisPrivacy(u.id, u.id, d.id, true).catch(() => undefined)]);
+    expect(wywolania.filter((w) => w.startsWith('whois:'))).toHaveLength(1);
+    expect(przed - (await saldo(u.id))).toBeCloseTo(19.99, 2);
+    expect((await prisma().domain.findUniqueOrThrow({ where: { id: d.id } })).whoisPrivacy).toBe(true);
+    expect(await prisma().domainRegistrarOrder.findFirstOrThrow({ where: { domainId: d.id, type: 'WHOIS_PRIVACY' } })).toMatchObject({ status: DomainRegistrarOrderStatus.COMPLETED });
+
+    await rejestr.register(u.id, u.id, { name: 'odmowa.pl', registrant: abonent });
+    const pl = await prisma().domain.findUniqueOrThrow({ where: { name: 'odmowa.pl' } });
+    const przedPl = await saldo(u.id);
+    whoisPada = true;
+    await expect(rejestr.setWhoisPrivacy(u.id, u.id, pl.id, true)).rejects.toThrow('Rejestr tej domeny nie pozwala');
+    whoisPada = false;
+    expect(await saldo(u.id)).toBe(przedPl);
+    expect((await prisma().domain.findUniqueOrThrow({ where: { id: pl.id } })).whoisPrivacy).toBe(false);
   });
   it('transfer zakończony u rejestratora: domena na koncie płacącego, zlecenie zamknięte raz', async () => {
     const { rejestr } = uslugi();

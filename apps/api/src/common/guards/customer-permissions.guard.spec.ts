@@ -152,8 +152,8 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
       expect(guard().canActivate(zadanie('GET', '/tickets', sub(CustomerPermission.SERVICES_MANAGE)))).toBe(false);
     });
 
-    it('rejestracja, transfer i odnowienie domeny wymagają też BILLING_MANAGE (wydatek z portfela)', () => {
-      for (const p of ['/domains/registrar/register', '/domains/registrar/transfer', '/domains/:id/registrar/renew'] as const) {
+    it('rejestracja, transfer, odnowienie i ukrycie danych WHOIS (A-14) wymagają też BILLING_MANAGE (wydatek z portfela)', () => {
+      for (const p of ['/domains/registrar/register', '/domains/registrar/transfer', '/domains/:id/registrar/renew', '/domains/:id/registrar/whois-privacy'] as const) {
         expect(guard().canActivate(zadanie('POST', p, sub(CustomerPermission.DOMAINS_MANAGE)))).toBe(false);
         expect(guard().canActivate(zadanie('POST', p, sub(CustomerPermission.DOMAINS_MANAGE, CustomerPermission.BILLING_MANAGE)))).toBe(true);
       }

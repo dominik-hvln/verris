@@ -332,6 +332,30 @@ export class PlatformSettingsService {
     return this.getMonitoringSettings();
   }
 
+  /** A-14 — roczna cena brutto ukrycia danych w WHOIS („29.99”); null = usługa niedostępna. */
+  async getWhoisPrivacyPrice(): Promise<string | null> {
+    const map = await this.loadMap();
+    const raw = this.readStr(map, PLATFORM_SETTING_KEYS.DOMAIN_WHOIS_PRIVACY_PRICE, '').replace(',', '.');
+    const n = Number(raw);
+    return raw && Number.isFinite(n) && n > 0 ? n.toFixed(2) : null;
+  }
+
+  async updateWhoisPrivacyPrice(price: string | null | undefined, actorUserId: string): Promise<{ whoisPrivacyPrice: string | null }> {
+    const raw = (price ?? '').trim().replace(',', '.');
+    const n = Number(raw);
+    if (raw && !(Number.isFinite(n) && n > 0)) {
+      throw new BadRequestException('Cena musi być kwotą większą od zera albo pusta (usługa niedostępna).');
+    }
+    const value = raw ? n.toFixed(2) : '';
+    await this.upsertMany([[PLATFORM_SETTING_KEYS.DOMAIN_WHOIS_PRIVACY_PRICE, value]], actorUserId);
+    await this.audit.record({
+      action: 'PLATFORM_WHOIS_PRIVACY_PRICE_UPDATED',
+      userId: actorUserId,
+      details: { whoisPrivacyPrice: value || null },
+    });
+    return { whoisPrivacyPrice: value || null };
+  }
+
   // #11 — polityka kredytów SLA.
   async getSlaCreditPolicy(): Promise<{
     enabled: boolean;

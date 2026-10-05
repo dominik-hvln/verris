@@ -20,6 +20,7 @@ import {
   RegistrantDto,
   TransferDomainDto,
   TransferLockDto,
+  WhoisPrivacyDto,
   OkresOdnowieniaDto,
 } from './dto/registrar.dto.js';
 
@@ -199,6 +200,12 @@ export class DomainsController {
     return this.registrar.setTransferLock(user.userId, user.principalUserId ?? user.userId, id, dto.locked);
   }
 
+  /** A-14 — ukrycie danych w WHOIS (włączenie płatne z portfela). */
+  @Post(':id/registrar/whois-privacy')
+  async whoisPrivacy(@CurrentUser() user: Uzytkownik, @Param('id') id: string, @Body() dto: WhoisPrivacyDto) {
+    return this.registrar.setWhoisPrivacy(user.userId, user.principalUserId ?? user.userId, id, dto.enabled);
+  }
+
   /** A-09 — kod transferu (authinfo) do przeniesienia domeny do innego rejestratora. */
   @Post(':id/registrar/authcode')
   @RateLimit({ limit: 5, windowMs: 60 * 60 * 1000, scope: 'domains:authcode' })
@@ -208,7 +215,12 @@ export class DomainsController {
 
   @Get(':id')
   async findOne(@CurrentUser() user: Uzytkownik, @Param('id') id: string) {
-    return this.domainsService.findOneForOwner(id, user.userId);
+    const [domain, whoisPrivacyPrice] = await Promise.all([
+      this.domainsService.findOneForOwner(id, user.userId),
+      this.platformSettings.getWhoisPrivacyPrice(),
+    ]);
+    // A-14 — cena za rok; null = usługa niedostępna (panel nie pokazuje opcji).
+    return { ...domain, whoisPrivacyPrice };
   }
 
   @Post(':id/verify')

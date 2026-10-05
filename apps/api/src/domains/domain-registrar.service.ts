@@ -34,6 +34,7 @@ import {
   RegistrarProviderFactory,
 } from './registrar.provider.js';
 import { EcoPointsService } from '../eco/eco-points.service.js';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
 
 /** Opis operacji w historii portfela: „1 rok”, „2 lata”, „5 lat”. */
 export const lata = (n: number) =>
@@ -52,6 +53,7 @@ export class DomainRegistrarService {
     private readonly config: ConfigService,
     private readonly nbpFx: NbpFxService,
     private readonly ecoPoints: EcoPointsService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
 
   async quote(name: string, years = 1) {
@@ -485,6 +487,89 @@ export class DomainRegistrarService {
     return { transferLock: locked };
   }
 
+  /**
+   * A-14 — ukrycie danych abonenta w WHOIS. Włączenie jest płatne (cena za rok z ustawień platformy ×
+   * rozpoczęte lata do końca ważności domeny) — portfel PRZED rejestratorem, zwrot przy jego błędzie.
+   * Wyłączenie: bez opłaty i bez zwrotu za niewykorzystany okres.
+   */
+  async setWhoisPrivacy(userId: string, actorUserId: string, domainId: string, enabled: boolean) {
+    const { domain, externalId, provider } = await this.domenaURejestratora(userId, domainId);
+    if (!enabled) {
+      try {
+        await provider.setWhoisPrivacy(externalId, false);
+      } catch (e) {
+        throw bladWhois(e);
+      }
+      return this.zapiszWhois(userId, actorUserId, domain, false);
+    }
+    if (domain.whoisPrivacy) return { whoisPrivacy: true };
+    const cenaRok = await this.platformSettings.getWhoisPrivacyPrice();
+    if (!cenaRok) throw new BadRequestException('Ukrycie danych w WHOIS nie jest jeszcze dostępne.');
+    const years = rozpoczeteLata(domain.expiresAt);
+    const price = { amount: new Prisma.Decimal(cenaRok).mul(years).toFixed(2), currency: 'PLN' };
+
+    // Jak przy odnowieniu: dwuklik nie może dać dwóch obciążeń.
+    const order = await this.prisma.$transaction(async (db) => {
+      await db.$queryRaw`SELECT id FROM "Domain" WHERE id = ${domain.id} FOR UPDATE`;
+      const wToku = await db.domainRegistrarOrder.findFirst({
+        where: {
+          domainId: domain.id,
+          type: DomainRegistrarOrderType.WHOIS_PRIVACY,
+          status: { in: [DomainRegistrarOrderStatus.QUEUED, DomainRegistrarOrderStatus.SUBMITTED] },
+          createdAt: { gte: new Date(Date.now() - 15 * 60_000) },
+        },
+        select: { id: true },
+      });
+      if (wToku) throw new ConflictException('Włączanie ukrycia danych jest już w toku — odśwież stronę za chwilę.');
+      return db.domainRegistrarOrder.create({
+        data: {
+          domainName: domain.name,
+          type: DomainRegistrarOrderType.WHOIS_PRIVACY,
+          status: DomainRegistrarOrderStatus.QUEUED,
+          userId,
+          domainId: domain.id,
+          years,
+          priceAmount: new Prisma.Decimal(price.amount),
+          currency: price.currency,
+        },
+      });
+    });
+
+    const tx = await this.charge(userId, order, price, `Ukrycie danych w WHOIS — ${domain.name} (${lata(years)})`);
+    try {
+      await provider.setWhoisPrivacy(externalId, true);
+    } catch (err) {
+      // W zamówieniu i logu zostaje surowy błąd rejestratora; klient dostaje zrozumiały komunikat.
+      await this.refundAndFail(userId, order, tx.id, err, price);
+      throw bladWhois(err);
+    }
+    await this.prisma.domainRegistrarOrder.update({
+      where: { id: order.id },
+      data: { status: DomainRegistrarOrderStatus.COMPLETED, provider: provider.id, providerOrderId: externalId, submittedAt: new Date(), completedAt: new Date() },
+    });
+    return this.zapiszWhois(userId, actorUserId, domain, true, { orderId: order.id, years, priceAmount: price.amount, walletTxId: tx.id });
+  }
+
+  private async zapiszWhois(
+    userId: string, actorUserId: string, domain: { id: string; name: string }, enabled: boolean, oplata?: Record<string, unknown>,
+  ) {
+    await this.prisma.domain.update({ where: { id: domain.id }, data: { whoisPrivacy: enabled, lastRegistrarSyncAt: new Date() } });
+    await this.audit.record({
+      action: enabled ? 'DOMAIN_WHOIS_PRIVACY_ENABLED' : 'DOMAIN_WHOIS_PRIVACY_DISABLED',
+      userId,
+      actorUserId,
+      details: { domain: domain.name, ...oplata },
+    });
+    return { whoisPrivacy: enabled };
+  }
+
+  /** A-14 — przy odnowieniu domeny z włączonym ukryciem danych doliczamy jego cenę za te same lata. */
+  private async doplataWhois(domain: { whoisPrivacy: boolean }, years: number): Promise<string | null> {
+    if (!domain.whoisPrivacy) return null;
+    const cenaRok = await this.platformSettings.getWhoisPrivacyPrice();
+    return cenaRok ? new Prisma.Decimal(cenaRok).mul(years).toFixed(2) : null;
+  }
+
   async authCode(userId: string, actorUserId: string, domainId: string) {
     const { domain, externalId, provider } = await this.domenaURejestratora(userId, domainId);
     const code = await provider.authCode(externalId);
@@ -502,7 +587,16 @@ export class DomainRegistrarService {
     const domain = await this.prisma.domain.findFirst({ where: { id: domainId, userId } });
     if (!domain) throw new NotFoundException('Domena nie została znaleziona.');
     const price = await this.resolvePrice(this.providerFactory.get(), domain.name, years, 'renew');
-    return { domain: domain.name, years, priceAmount: price.amount, currency: price.currency, expiresAt: domain.expiresAt };
+    const whois = await this.doplataWhois(domain, years);
+    return {
+      domain: domain.name,
+      years,
+      // Kwota całkowita (jedno obciążenie portfela); `whoisPrivacyAmount` to jej część za ukrycie danych.
+      priceAmount: whois ? new Prisma.Decimal(price.amount).plus(whois).toFixed(2) : price.amount,
+      whoisPrivacyAmount: whois,
+      currency: price.currency,
+      expiresAt: domain.expiresAt,
+    };
   }
 
   async renew(userId: string, actorUserId: string, domainId: string, years = 1) {
@@ -510,7 +604,9 @@ export class DomainRegistrarService {
     if (!domain) throw new NotFoundException('Domena nie została znaleziona.');
     const provider = this.providerFactory.get();
 
-    const price = await this.resolvePrice(provider, domain.name, years, 'renew');
+    const cenaDomeny = await this.resolvePrice(provider, domain.name, years, 'renew');
+    const whois = await this.doplataWhois(domain, years);
+    const price = whois ? { ...cenaDomeny, amount: new Prisma.Decimal(cenaDomeny.amount).plus(whois).toFixed(2) } : cenaDomeny;
 
     // Dwuklik „Odnów” tworzył dwa zamówienia z osobnymi kluczami — dwa obciążenia i dwa odnowienia.
     // Blokada wiersza domeny + odmowa, gdy odnowienie tej domeny jest już w toku.
@@ -540,7 +636,9 @@ export class DomainRegistrarService {
       });
     });
 
-    const tx = await this.charge(userId, order, price, `Odnowienie domeny ${domain.name} (${lata(years)})`);
+    const tx = await this.charge(
+      userId, order, price, `Odnowienie domeny ${domain.name} (${lata(years)})${whois ? ' z ukryciem danych w WHOIS' : ''}`,
+    );
 
     let result: RegistrarOrderResult;
     try {
@@ -582,6 +680,7 @@ export class DomainRegistrarService {
         domainId,
         years,
         priceAmount: price.amount,
+        ...(whois ? { whoisPrivacyAmount: whois } : {}),
         currency: price.currency,
         walletTxId: tx.id,
       },
@@ -891,6 +990,28 @@ function sanitizeDomainLabel(value: string): string {
 
 function sanitizeNameservers(value?: string[]): string[] {
   return (value ?? []).map((v) => v.trim().toLowerCase()).filter(Boolean).slice(0, 8);
+}
+
+/** A-14 — rozpoczęte lata do końca ważności domeny (min. 1): za tyle płaci klient przy włączeniu ukrycia. */
+export function rozpoczeteLata(expiresAt: Date | null, teraz = new Date()): number {
+  if (!expiresAt) return 1;
+  const ms = expiresAt.getTime() - teraz.getTime();
+  return Math.max(1, Math.ceil(ms / (365.25 * 24 * 3600_000)));
+}
+
+/**
+ * A-14 — część rejestrów (wiele ccTLD, np. .pl) nie pozwala ukryć danych. OpenProvider nie podaje w dokumentacji
+ * stałego kodu tego błędu — rozpoznajemy go po treści (privacy/WPP/„not supported/allowed/available”).
+ * ponytail: dopasowanie po tekście; gdy poznamy kod błędu z sandboxa, zamienić na kod.
+ */
+export function bladWhois(err: unknown): Error {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/privacy|wpp|not (supported|allowed|available)|unsupported/i.test(msg)) {
+    return new BadRequestException(
+      'Rejestr tej domeny nie pozwala ukryć danych w WHOIS (np. .pl — dane osób prywatnych i tak nie są publikowane).',
+    );
+  }
+  return err instanceof Error ? err : new Error(msg);
 }
 
 function hashSecret(value: string): string {

@@ -11,7 +11,7 @@ import { liczba } from '@/lib/liczba';
 export function DomainRenewBox({ domainId, expiresAt }: { domainId: string; expiresAt: string }) {
   const router = useRouter();
   const [years, setYears] = useState(1);
-  const [quote, setQuote] = useState<{ priceAmount: string; currency: string } | null>(null);
+  const [quote, setQuote] = useState<{ priceAmount: string; whoisPrivacyAmount: string | null; currency: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
   const check = async () => {
@@ -19,7 +19,7 @@ export function DomainRenewBox({ domainId, expiresAt }: { domainId: string; expi
     const r = await renewQuoteAction(domainId, years);
     setBusy(false);
     if (!r.ok) return toast.error('Nie udało się pobrać ceny', { description: r.error });
-    setQuote({ priceAmount: r.priceAmount, currency: r.currency });
+    setQuote({ priceAmount: r.priceAmount, whoisPrivacyAmount: r.whoisPrivacyAmount, currency: r.currency });
   };
 
   const renew = async () => {
@@ -65,6 +65,11 @@ export function DomainRenewBox({ domainId, expiresAt }: { domainId: string; expi
           </button>
         )}
       </div>
+      {quote?.whoisPrivacyAmount ? (
+        <p className="mt-2 text-neutral-400">
+          W tym ukrycie danych w WHOIS: {liczba(Number(quote.whoisPrivacyAmount), 2)} {quote.currency === 'PLN' ? 'K' : quote.currency}
+        </p>
+      ) : null}
     </div>
   );
 }

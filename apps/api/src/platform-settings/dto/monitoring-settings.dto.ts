@@ -1,4 +1,4 @@
-import { IsBoolean, IsInt, Max, Min } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, Matches, Max, Min } from 'class-validator';
 
 /** MON-3 — ustawienia monitoringu strony (admin). */
 export class UpdateMonitoringSettingsDto {
@@ -23,4 +23,11 @@ export class UpdateMonitoringSettingsDto {
   /** Czy oferować klientom upgrade do płatnego monitoringu. */
   @IsBoolean()
   paidOffered!: boolean;
+}
+
+/** A-14 — roczna cena brutto ukrycia danych w WHOIS (PLN); pusta/null = usługa niedostępna. */
+export class UpdateWhoisPrivacyPriceDto {
+  @IsOptional()
+  @Matches(/^(\d{1,5}([.,]\d{1,2})?)?$/, { message: 'Podaj kwotę, np. 29,99, albo zostaw puste.' })
+  whoisPrivacyPrice?: string | null;
 }

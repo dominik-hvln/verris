@@ -38,6 +38,11 @@ export const PLATFORM_SETTING_KEYS = {
   MONITORING_PAID_PRICE: 'monitoring.paidMonthlyPrice',
   /** Czy oferować klientom upgrade do płatnego monitoringu (1/0). */
   MONITORING_PAID_OFFERED: 'monitoring.paidOffered',
+  /**
+   * A-14 — roczna cena BRUTTO (PLN) ukrycia danych w WHOIS dla klienta. OpenProvider na planie
+   * Basic pobiera opłatę za każdą domenę; puste = usługa niedostępna (nie oferujemy jej klientom).
+   */
+  DOMAIN_WHOIS_PRIVACY_PRICE: 'domain.whoisPrivacyYearlyPrice',
 
   // #11 — kredyty SLA za przestój infrastruktury (domyślnie wyłączone).
   // Rozliczenie MIESIĘCZNE wg progów §15 regulaminu (5/25/50/100%).
@@ -116,6 +121,7 @@ export const PLATFORM_SETTING_DEFAULTS: Record<PlatformSettingKey, string> = {
   [PLATFORM_SETTING_KEYS.MONITORING_PAID_INTERVAL_MIN]: '1',
   [PLATFORM_SETTING_KEYS.MONITORING_PAID_PRICE]: '5',
   [PLATFORM_SETTING_KEYS.MONITORING_PAID_OFFERED]: '1',
+  [PLATFORM_SETTING_KEYS.DOMAIN_WHOIS_PRIVACY_PRICE]: '',
   // Decyzja właściciela 29.09.2026 (Z-08): rekompensaty SLA włączone od startu (Regulamin §15).
   [PLATFORM_SETTING_KEYS.SLA_CREDITS_ENABLED]: '1',
   [PLATFORM_SETTING_KEYS.SLA_GRACE_MINUTES]: '5',

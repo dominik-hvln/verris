@@ -16,6 +16,10 @@ export interface DomainDto {
   registrarExternalId?: string | null;
   /** A-15 — blokada transferu u rejestratora. */
   transferLock?: boolean;
+  /** A-14 — ukrycie danych abonenta w WHOIS. */
+  whoisPrivacy?: boolean;
+  /** A-14 — cena brutto za rok ukrycia danych; null = usługa niedostępna. */
+  whoisPrivacyPrice?: string | null;
   /** A-16 — rekord TXT potwierdzający własność (tylko domeny jeszcze niezweryfikowane). */
   verification?: { recordName: string; recordValue: string } | null;
 }

@@ -24,7 +24,7 @@ function zbuduj(provider: Record<string, unknown>, domena: Record<string, unknow
   const audit = { record: vi.fn() };
   const service = new DomainRegistrarService(
     prisma as never, audit as never, {} as never, { get: () => provider } as never,
-    {} as never, {} as never, {} as never, {} as never,
+    {} as never, {} as never, {} as never, {} as never, {} as never,
   );
   return { service, prisma, audit };
 }

@@ -6,22 +6,24 @@ import {
   fetchMonitoringSettings,
   fetchSlaCreditPolicy,
   fetchSlaPodglad,
+  fetchWhoisPrivacyPrice,
 } from './actions';
 import { SlaPreview } from './sla-preview';
 import { PlatformSettingsForm } from './platform-settings-form';
 import { TrialOfferSettingsForm } from './trial-offer-form';
 import { MonitoringSettingsForm } from './monitoring-settings-form';
 import { SlaCreditsForm } from './sla-credits-form';
+import { WhoisPrivacyForm } from './whois-privacy-form';
 import { BladStrony, wynik } from "@/components/blad-strony";
 
 export const dynamic = 'force-dynamic';
 
 export default async function PlatformSettingsPage() {
   const w = await wynik(
-    Promise.all([fetchPlatformSettings(), fetchTrialOffer(), fetchMonitoringSettings(), fetchSlaCreditPolicy(), fetchSlaPodglad()]),
+    Promise.all([fetchPlatformSettings(), fetchTrialOffer(), fetchMonitoringSettings(), fetchSlaCreditPolicy(), fetchSlaPodglad(), fetchWhoisPrivacyPrice()]),
   );
   if (!w.ok) return <BladStrony blad={w.blad} tytul="Ustawienia platformy" powrot={{ href: "/settings", label: "Ustawienia" }} />;
-  const [settings, trialOffer, monitoring, slaCredits, slaPodglad] = w.dane;
+  const [settings, trialOffer, monitoring, slaCredits, slaPodglad, whois] = w.dane;
 
   return (
     <div className="space-y-8">
@@ -41,6 +43,7 @@ export default async function PlatformSettingsPage() {
       <PlatformSettingsForm initial={settings} />
       <TrialOfferSettingsForm initial={trialOffer} />
       <MonitoringSettingsForm initial={monitoring} />
+      <WhoisPrivacyForm initial={whois.whoisPrivacyPrice} />
       <SlaCreditsForm initial={slaCredits} />
       <SlaPreview data={slaPodglad} />
     </div>

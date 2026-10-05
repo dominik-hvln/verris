@@ -8,7 +8,7 @@ import { PlatformSettingsService } from './platform-settings.service.js';
 import { UpdatePlatformSettingsDto } from './dto/platform-settings.dto.js';
 import { UpdateSellerCompanyDto, UpdateKsefSettingsDto } from './dto/company-settings.dto.js';
 import { UpdateTrialOfferDto } from './dto/trial-offer.dto.js';
-import { UpdateMonitoringSettingsDto } from './dto/monitoring-settings.dto.js';
+import { UpdateMonitoringSettingsDto, UpdateWhoisPrivacyPriceDto } from './dto/monitoring-settings.dto.js';
 import { UpdateSlaCreditPolicyDto } from './dto/sla-credit-policy.dto.js';
 
 @Controller('admin/platform-settings')
@@ -111,6 +111,22 @@ export class PlatformSettingsAdminController {
       },
       actor.userId,
     );
+  }
+
+  // A-14 — cena ukrycia danych w WHOIS (puste = usługa niedostępna)
+  @Get('whois-privacy')
+  @HttpCode(200)
+  async getWhoisPrivacy() {
+    return { whoisPrivacyPrice: await this.settings.getWhoisPrivacyPrice() };
+  }
+
+  @Patch('whois-privacy')
+  @HttpCode(200)
+  updateWhoisPrivacy(
+    @Body() dto: UpdateWhoisPrivacyPriceDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.settings.updateWhoisPrivacyPrice(dto.whoisPrivacyPrice, actor.userId);
   }
 
   // #11 — polityka kredytów SLA

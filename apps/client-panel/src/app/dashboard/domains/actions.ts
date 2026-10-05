@@ -257,6 +257,17 @@ export async function blokadaTransferuAction(id: string, locked: boolean): Promi
   }
 }
 
+/** A-14 — ukrycie danych w WHOIS (włączenie obciąża portfel). */
+export async function ukrycieWhoisAction(id: string, enabled: boolean): Promise<Wynik> {
+  try {
+    await apiFetch(`/domains/${id}/registrar/whois-privacy`, { method: 'POST', body: JSON.stringify({ enabled }) });
+    revalidatePath(`/dashboard/domains/${id}`);
+    return { ok: true };
+  } catch (e) {
+    return blad(e, 'Nie udało się zmienić ukrycia danych w WHOIS.');
+  }
+}
+
 export async function kodTransferuAction(id: string): Promise<Wynik<{ authCode: string }>> {
   try {
     const r = await apiFetch<{ authCode: string }>(`/domains/${id}/registrar/authcode`, { method: 'POST' });
@@ -288,13 +299,13 @@ export async function registerDomainClientAction(input: {
 export async function renewQuoteAction(
   id: string,
   years: number,
-): Promise<{ ok: true; priceAmount: string; currency: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; priceAmount: string; whoisPrivacyAmount: string | null; currency: string } | { ok: false; error: string }> {
   try {
-    const q = await apiFetch<{ priceAmount: string; currency: string }>(`/domains/${id}/registrar/renew-quote`, {
+    const q = await apiFetch<{ priceAmount: string; whoisPrivacyAmount?: string | null; currency: string }>(`/domains/${id}/registrar/renew-quote`, {
       method: 'POST',
       body: JSON.stringify({ years }),
     });
-    return { ok: true, priceAmount: q.priceAmount, currency: q.currency };
+    return { ok: true, priceAmount: q.priceAmount, whoisPrivacyAmount: q.whoisPrivacyAmount ?? null, currency: q.currency };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Nie udało się pobrać ceny odnowienia.' };
   }

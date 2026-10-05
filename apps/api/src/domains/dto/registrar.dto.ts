@@ -62,6 +62,12 @@ export class TransferLockDto {
   locked!: boolean;
 }
 
+/** A-14 — ukrycie danych w WHOIS. */
+export class WhoisPrivacyDto {
+  @IsBoolean()
+  enabled!: boolean;
+}
+
 export class DomainSearchDto {
   @IsString()
   @MaxLength(63)
