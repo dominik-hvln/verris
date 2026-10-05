@@ -12,6 +12,17 @@ nie źródło prawdy). Poza tym zostają tylko dokumenty operacyjne i prawne: `d
 
 ## Decyzje
 
+### 2026-10-05 — Paynow główną bramką płatności jednorazowych, Stripe dla cyklicznych
+Decyzja właściciela. Platforma jest „najpierw portfel”: każda opłata za usługę schodzi z portfela, a pieniądze wchodzą
+jednorazowym doładowaniem. **Paynow (mBank)** jest domyślną bramką doładowań w PLN (BLIK, szybki przelew, karta;
+0,95% prowizji). **Stripe zostaje** dla: zapisanych kart, auto-doładowania (off-session), subskrypcji kartą
+(STRIPE_CARD) i wpłat w EUR/USD; w panelu klienta jest też opcją „Karta — przez Stripe” dla PLN. Bez `PAYNOW_API_KEY`
+i `PAYNOW_SIGNATURE_KEY` wszystko działa jak przed zmianą (Stripe Checkout). Powiadomienia Paynow:
+`PUBLIC_API_URL/billing/paynow/powiadomienia`; zapasowo status sprawdzany po powrocie klienta; zwrot — przycisk
+„Zwróć” przy doładowaniu Paynow w karcie klienta (admin). **PayU jako możliwa zamiana dostawcy płatności
+cyklicznych** — dziś niezaimplementowane; punkt przełączenia to `PLATNOSCI_CYKLICZNE` (tylko `stripe`, opis wywołań
+w `apps/api/src/config/configuration.ts`). Płynne przejście: najpierw obie bramki, potem ewentualnie jedna.
+
 ### 2026-10-05 — koszty AI: budżet platformy i prognoza liczona w panelu (L-11, L-12)
 Decyzja właściciela. AI ma realny wpływ, ale z bezpiecznikami: **budżet całej platformy** (domyślnie 20 USD/mies.,
 admin → Ustawienia → Asystent AI) — po przekroczeniu wszystkie funkcje AI stoją do 1. dnia miesiąca, admini dostają

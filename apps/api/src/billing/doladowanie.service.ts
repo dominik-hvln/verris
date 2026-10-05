@@ -15,7 +15,7 @@ export const WALUTY_WPLATY: readonly WalutaWplaty[] = ['PLN', 'EUR', 'USD'];
 /**
  * M-09/M-10/M-34 — doładowanie portfela: stawka VAT nabywcy, waluta wpłaty,
  * ile K dostaje klient i dokument przy wpłacie. Jedyne miejsce, które zamienia
- * realną wpłatę na K — Checkout i auto-doładowanie idą tędy, żeby reguła nie
+ * realną wpłatę na K — Checkout, Paynow i auto-doładowanie idą tędy, żeby reguła nie
  * miała dwóch kopii.
  */
 @Injectable()
@@ -61,6 +61,8 @@ export class DoladowanieService {
     meta?: Record<string, string | undefined> | null;
     idempotencyKey: string;
     paymentRef: string;
+    /** Bramka wpłaty — domyślnie STRIPE (Checkout, auto-doładowanie); PAYNOW dla doładowań przez Paynow. */
+    paymentProvider?: 'STRIPE' | 'PAYNOW';
     opis: string;
     zaplaconoAt: Date;
     metadata?: Record<string, unknown>;
@@ -87,7 +89,7 @@ export class DoladowanieService {
             type: WalletTxType.TOPUP,
             description: i.opis,
             idempotencyKey: i.idempotencyKey,
-            paymentProvider: 'STRIPE',
+            paymentProvider: i.paymentProvider ?? 'STRIPE',
             paymentRef: i.paymentRef,
             metadata: {
               ...(i.metadata ?? {}),

@@ -71,10 +71,22 @@ describe('X-05 startTopupAction', () => {
     apiFetch.mockResolvedValue({ url: 'u' });
     await startTopupAction(form({ amount: '50', currency: 'EUR', promoCode: '  JESIEN  ' }));
     await startTopupAction(form({ amount: '50', currency: 'GBP', promoCode: '   ' }));
-    expect(sentBody(0)).toEqual({ amount: '50.00', currency: 'EUR', promoCode: 'JESIEN' });
+    expect(sentBody(0)).toEqual({ amount: '50.00', currency: 'EUR', promoCode: 'JESIEN', metoda: 'stripe' });
     expect(sentBody(1)).toEqual({ amount: '50.00', currency: 'PLN', promoCode: null });
     expect(apiFetch.mock.calls[0][0]).toBe('/billing/checkout-session');
     expect(apiFetch.mock.calls[0][1].method).toBe('POST');
+  });
+
+  it('2026-10-05 bramka: PLN przekazuje wybór (paynow/stripe), EUR/USD zawsze stripe, śmieci → bez wyboru (decyduje API)', async () => {
+    apiFetch.mockResolvedValue({ url: 'u' });
+    await startTopupAction(form({ amount: '50', currency: 'PLN', metoda: 'paynow' }));
+    await startTopupAction(form({ amount: '50', currency: 'PLN', metoda: 'stripe' }));
+    await startTopupAction(form({ amount: '50', currency: 'USD', metoda: 'paynow' }));
+    await startTopupAction(form({ amount: '50', currency: 'PLN', metoda: 'payu' }));
+    expect(sentBody(0).metoda).toBe('paynow');
+    expect(sentBody(1).metoda).toBe('stripe');
+    expect(sentBody(2).metoda).toBe('stripe');
+    expect(sentBody(3)).not.toHaveProperty('metoda');
   });
 
   it('sukces → przekierowanie na URL sesji płatności', async () => {

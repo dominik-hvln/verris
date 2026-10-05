@@ -72,7 +72,16 @@ export class BillingController {
       amount: dto.amount,
       promoCode: dto.promoCode ?? null,
       currency: dto.currency ?? null,
+      metoda: dto.metoda ?? null,
     });
+  }
+
+  /** Po powrocie z Paynow (continueUrl): status płatności, a gdy powiadomienie nie dotarło — odczyt z Paynow i księgowanie. */
+  @Post('paynow/:id/sprawdz')
+  @HttpCode(200)
+  @RateLimit({ limit: 30, windowMs: 60 * 1000, scope: 'billing:paynow-sprawdz' })
+  sprawdzPaynow(@CurrentUser() user: { userId: string }, @Param('id', ParseUUIDPipe) id: string) {
+    return this.billing.sprawdzPlatnoscPaynow(user.userId, id);
   }
 
   @Post('checkout-session/quote')

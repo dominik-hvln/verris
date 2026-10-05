@@ -4,16 +4,19 @@ import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { trackStripeCheckoutSuccess } from '@/lib/analytics-events';
 
-/** Po powrocie ze Stripe odświeża layout (badge portfela w topbarze). */
+/**
+ * Po powrocie ze Stripe odświeża layout (badge portfela w topbarze). `paynow-czeka` — powrót z Paynow
+ * przed potwierdzeniem: odświeżamy tak samo, ale bez zdarzenia GA4 o udanym Stripe Checkout.
+ */
 export function BillingWalletRefresh({ status }: { status?: string }) {
   const router = useRouter();
   const tracked = useRef(false);
 
   useEffect(() => {
-    if (status !== 'success') return;
+    if (status !== 'success' && status !== 'paynow-czeka') return;
     // GA4: powrót ze Stripe Checkout — raz na wejście (router.refresh()
     // re-renderuje ten komponent, ref chroni przed duplikatami).
-    if (!tracked.current) {
+    if (status === 'success' && !tracked.current) {
       tracked.current = true;
       trackStripeCheckoutSuccess();
     }

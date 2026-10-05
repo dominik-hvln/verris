@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronRight, ShieldAlert, XCircle } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Clock, ShieldAlert, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import type {
   SavedPaymentMethodDto,
@@ -13,7 +13,7 @@ import { CREDIT_DISCLAIMER, CREDIT_RATE_INFO, CREDIT_SHORT, formatCredits } from
 import { DualBars, Kpi, KpiStrip, SectionHead } from '@/components/panel/v2';
 import { walletTxDescription } from '@/lib/wallet-tx-label';
 import { mapWalletMonthlyFlow } from '../dashboard-chart-utils';
-import { getSavedPaymentMethods, getWalletAutoTopup, getWalletSummary } from './data';
+import { getSavedPaymentMethods, getWalletAutoTopup, getWalletSummary, sprawdzPlatnoscPaynow } from './data';
 import { TopupCard } from './topup-card';
 import { BillingExtrasForms } from './billing-extras-forms';
 import { BillingWalletRefresh } from './billing-wallet-refresh';
@@ -22,9 +22,13 @@ import { BillingWalletRefresh } from './billing-wallet-refresh';
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; karta?: string }>;
+  searchParams: Promise<{ status?: string; karta?: string; paynow?: string }>;
 }) {
   const params = await searchParams;
+  // Powrót z Paynow (continueUrl): sprawdzenie statusu PRZED odczytem salda — zgubione powiadomienie
+  // zostaje zaksięgowane tutaj, więc saldo poniżej jest już po wpłacie.
+  const paynow = params.paynow ? await sprawdzPlatnoscPaynow(params.paynow) : null;
+  const paynowWynik = params.paynow ? wynikPaynow(paynow?.status) : null;
   let summary: WalletSummaryDto | null = null;
   let loadError: string | null = null;
   let billingExtras: {
@@ -54,13 +58,34 @@ export default async function BillingPage({
 
   return (
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
-      <BillingWalletRefresh status={params.status} />
+      <BillingWalletRefresh status={paynowWynik === 'czeka' ? 'paynow-czeka' : params.status} />
       <PanelPageHeader
         title="Płatności"
         description={`Doładuj portfel, śledź zużycie i zarządzaj rozliczeniami. ${CREDIT_RATE_INFO}.`}
       />
 
-      {params.status === 'success' ? (
+      {paynowWynik === 'ok' ? (
+        <StatusBanner
+          tone="success"
+          icon={<CheckCircle2 className="h-5 w-5" />}
+          title="Płatność przyjęta"
+          description="Środki są już w portfelu. Dokument za wpłatę znajdziesz w zakładce Faktury."
+        />
+      ) : paynowWynik === 'czeka' ? (
+        <StatusBanner
+          tone="warning"
+          icon={<Clock className="h-5 w-5" />}
+          title="Czekamy na potwierdzenie płatności"
+          description="Operator płatności jeszcze jej nie potwierdził (przelew bywa księgowany z opóźnieniem). Saldo odświeży się samo, gdy tylko wpłata dotrze."
+        />
+      ) : paynowWynik === 'nieudana' ? (
+        <StatusBanner
+          tone="error"
+          icon={<XCircle className="h-5 w-5" />}
+          title="Płatność nie doszła do skutku"
+          description="Nie pobraliśmy żadnych środków — możesz spróbować ponownie."
+        />
+      ) : params.status === 'success' ? (
         <StatusBanner
           tone="success"
           icon={<CheckCircle2 className="h-5 w-5" />}
@@ -168,7 +193,7 @@ export default async function BillingPage({
             </div>
 
             <div className="flex min-w-0 flex-col gap-6">
-              <TopupCard balance={summary.balance} />
+              <TopupCard balance={summary.balance} paynowDostepny={summary.paynowDostepny === true} />
               {billingExtras ? (
                 <BillingExtrasForms
                   key={[
@@ -213,6 +238,13 @@ export default async function BillingPage({
       ) : null}
     </div>
   );
+}
+
+/** Status Paynow → komunikat po powrocie z płatności (https://docs.paynow.pl/docs/v3/payments#flow-of-statuses). */
+function wynikPaynow(status: string | undefined): 'ok' | 'czeka' | 'nieudana' {
+  if (status === 'CONFIRMED') return 'ok';
+  if (status === 'REJECTED' || status === 'ERROR' || status === 'EXPIRED' || status === 'ABANDONED') return 'nieudana';
+  return 'czeka';
 }
 
 const TH = 'whitespace-nowrap px-3 pb-2.5 pt-3 text-left font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground';

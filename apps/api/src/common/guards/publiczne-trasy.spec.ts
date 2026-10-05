@@ -94,6 +94,7 @@ const PUBLICZNE = [
   'NodeBootstrapAgentController.report',
   'NodeBootstrapAgentController.script',
   'NodeBootstrapAgentController.secrets',
+  'PaynowPowiadomieniaController.powiadomienie',
   'PlansController.get',
   'PlansController.list',
   'PublicBadgesController.eko',

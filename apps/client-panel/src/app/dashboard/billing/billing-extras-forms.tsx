@@ -212,7 +212,8 @@ function WalletAutotopupBlock({
         <div className="min-w-0">
           <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Auto-doładowanie</h3>
           <p className="mt-1 text-[12.5px] text-muted-foreground">
-            Gdy saldo spadnie poniżej progu, system pobierze zapisany sposób płatności (Stripe, off-session).
+            Gdy saldo spadnie poniżej progu, obciążymy kartę bez Twojego udziału. Auto-doładowanie korzysta z karty
+            zapisanej w Stripe — wpłaty BLIK-iem czy przelewem przez Paynow nie zapisują karty.
           </p>
         </div>
       </div>
@@ -288,7 +289,7 @@ function WalletAutotopupBlock({
 
         {savedCards.length === 0 ? (
           <p className="text-xs text-muted-foreground">
-            Nie masz zapisanej karty — auto-doładowanie użyje karty z Twojej ostatniej płatności kartą.
+            Nie masz zapisanej karty — auto-doładowanie użyje karty z Twojej ostatniej płatności kartą w Stripe (płatności przez Paynow się nie liczą).
           </p>
         ) : null}
 

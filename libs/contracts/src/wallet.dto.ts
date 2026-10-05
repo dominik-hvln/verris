@@ -47,6 +47,8 @@ export interface WalletSummaryDto {
   recentTransactions: WalletTransactionDto[];
   /** Ostatnie 12 miesięcy (włącznie z bieżącym), tylko transakcje COMPLETED. */
   monthlyFlowLast12: WalletMonthlyFlowPointDto[];
+  /** 2026-10-05 — Paynow (BLIK, przelew, karta) dostępny jako domyślna bramka doładowań w PLN. */
+  paynowDostepny?: boolean;
 }
 
 export interface AdminCreditWalletInput {
@@ -68,6 +70,15 @@ export interface CreateCheckoutSessionInput {
   promoCode?: string | null;
   /** M-10 — waluta wpłaty (PLN, EUR, USD); portfel liczy w K po kursie NBP. */
   currency?: WalutaWplaty;
+  /** 2026-10-05 — bramka: Paynow (tylko PLN) albo Stripe (karta; jedyna dla EUR/USD). */
+  metoda?: MetodaDoladowania;
+}
+
+export type MetodaDoladowania = 'paynow' | 'stripe';
+
+/** Odpowiedź `POST /billing/paynow/:id/sprawdz` — status płatności Paynow (NEW, PENDING, CONFIRMED, …). */
+export interface StatusPlatnosciPaynowDto {
+  status: string;
 }
 
 export interface CreateCheckoutSessionResponse {

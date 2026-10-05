@@ -234,6 +234,7 @@ model User {
   accounts                 Account[]
   subscriptions            Subscription[]
   walletTransactions       WalletTransaction[]
+  paynowPlatnosci          PaynowPlatnosc[]
   paymentMethods           PaymentMethod[]
   invoices                 Invoice[]
   domains                  Domain[]
@@ -3162,6 +3163,34 @@ model StripeWebhookEvent {
   @@index([status, nextAttemptAt])
   @@index([status, claimedAt])
   @@index([createdAt])
+}
+
+/// 2026-10-05 — doładowanie portfela przez Paynow (mBank), główna bramka płatności jednorazowych w PLN.
+/// Paynow, inaczej niż Stripe Checkout, nie przechowuje naszych metadanych — kwota, kod promocyjny
+/// i stawka VAT ustalona przy tworzeniu płatności żyją tutaj. `id` = `externalId` wysłany do Paynow.
+model PaynowPlatnosc {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Kwota w groszach — dokładnie ta, którą podpisaliśmy w żądaniu do Paynow.
+  kwotaMinor Int
+  waluta     String   @default("PLN")
+  /// `paymentId` nadany przez Paynow (np. NOLV-8F9-08K-WGD). NULL, dopóki Paynow nie przyjął zlecenia.
+  paymentId  String?  @unique
+  /// Ostatni znany status Paynow: NEW, PENDING, CONFIRMED, REJECTED, ERROR, EXPIRED, ABANDONED.
+  /// CONFIRMED jest końcowy — późniejsze (spóźnione) powiadomienia go nie cofają.
+  status     String   @default("NEW")
+  /// Kod promocyjny i stawka VAT (te same klucze co metadane sesji Stripe).
+  meta       Json
+  /// Wpis TOPUP w księdze po zaksięgowaniu.
+  walletTxId String?  @unique
+  /// Suma zwrotów przyjętych przez Paynow (grosze) i ich identyfikatory — zwrot liczy się raz.
+  zwroconoMinor Int      @default(0)
+  zwrotyIds     String[] @default([])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId, createdAt])
 }
 
 /// H-20 — wynik próby odtworzenia z kopii zapasowej.

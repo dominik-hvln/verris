@@ -23,6 +23,7 @@ import { WarunkiIndywidualne, type PodgladWarunkow } from "./warunki-indywidualn
 import { rozliczeniePoza, ustawWarunki, zalozUsluge } from "./warunki-actions";
 import { pobierzProfilKlienta, type ProfilKlienta } from "./profil-data";
 import { NotatkaWewnetrzna } from "./notatka-wewnetrzna";
+import { ZwrotPaynowButton } from "./zwrot-paynow-button";
 import { services, plForm } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
@@ -391,6 +392,7 @@ export default async function AdminCustomerCardPage({
                   </span>
                 </span>
                 <span className={`font-mono text-[13px] ${Number(w.amount) < 0 ? "" : "text-data-hi"}`}>{kwota(w.amount)}</span>
+                {w.type === "TOPUP" && w.paymentProvider === "PAYNOW" ? <ZwrotPaynowButton userId={u.id} walletTxId={w.id} /> : null}
               </div>
             ))}
           </section>

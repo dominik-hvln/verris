@@ -40,6 +40,24 @@ export interface AppConfig {
   stripeSuccessUrl: string;
   stripeCancelUrl: string;
 
+  // Paynow (mBank) — główna bramka płatności jednorazowych w PLN (doładowania portfela).
+  // Bez klucza API i klucza podpisu doładowania idą jak dotąd przez Stripe Checkout.
+  paynowApiKey: string | null;
+  paynowSignatureKey: string | null;
+  paynowApiUrl: string;
+
+  /**
+   * PUNKT PRZEŁĄCZENIA płatności cyklicznych / bez udziału klienta (off-session).
+   * Dziś jedyna wartość to `stripe`. Cała ta ścieżka idzie przez `StripeService`
+   * (`billing/stripe/stripe.service.ts`): zapis karty (`createSetupSession`),
+   * auto-doładowanie (`createOffSessionPaymentIntent` w `wallet-auto-topup.service.ts`),
+   * subskrypcje kartą STRIPE_CARD (`createSubscription`/`cancelSubscription`/`updateSubscriptionPrice`
+   * w `subscriptions/*`), a ich wyniki wracają webhookiem Stripe (`payment_intent.*`, `invoice.*`,
+   * `customer.subscription.*`, `payment_method.*` w `BillingService.rozdzielZdarzenie`).
+   * Zamiana na PayU = nowa wartość tutaj + odpowiednik tych wywołań; patrz docs/VERRIS.md (2026-10-05).
+   */
+  platnosciCykliczne: 'stripe';
+
   // CYBER-2 — pluggable captcha (anty-bot). Optional in dev.
   captchaProvider: string;
   captchaSecretKey: string | null;
@@ -68,6 +86,15 @@ function readInt(name: string, fallback: number): number {
     throw new Error(`Environment variable ${name} must be a number, got: ${raw}`);
   }
   return parsed;
+}
+
+/** Zob. `AppConfig.platnosciCykliczne` — inna wartość niż `stripe` zatrzymuje start, zamiast cicho używać Stripe. */
+export function readPlatnosciCykliczne(): 'stripe' {
+  const v = readEnv('PLATNOSCI_CYKLICZNE', { default: 'stripe' });
+  if (v !== 'stripe') {
+    throw new Error(`PLATNOSCI_CYKLICZNE=${v} — obsługiwana jest tylko wartość "stripe" (PayU nie jest jeszcze zaimplementowane).`);
+  }
+  return v;
 }
 
 export function loadConfig(): AppConfig {
@@ -132,6 +159,12 @@ export function loadConfig(): AppConfig {
       required: isProd,
       default: isProd ? undefined : 'http://localhost:3001/dashboard/billing?status=cancel',
     }),
+    paynowApiKey: process.env.PAYNOW_API_KEY || null,
+    paynowSignatureKey: process.env.PAYNOW_SIGNATURE_KEY || null,
+    // https://docs.paynow.pl/docs/v3/integration#api-access — sandbox: https://api.sandbox.paynow.pl,
+    // produkcja: https://api.paynow.pl (ustaw PAYNOW_API_URL po aktywacji usługi w mBanku).
+    paynowApiUrl: readEnv('PAYNOW_API_URL', { default: 'https://api.sandbox.paynow.pl' }).replace(/\/$/, ''),
+    platnosciCykliczne: readPlatnosciCykliczne(),
     // CYBER-2 — pluggable captcha. Domyślny dostawca: reCAPTCHA v2 (checkbox).
     captchaProvider: readEnv('CAPTCHA_PROVIDER', { default: 'recaptcha' }),
     captchaSecretKey: process.env.CAPTCHA_SECRET_KEY || null,

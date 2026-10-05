@@ -1,4 +1,4 @@
-import { IsIn, IsNumber, IsOptional, IsPositive, IsString, Length, Matches, Max } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsPositive, IsString, IsUUID, Length, Matches, Max } from 'class-validator';
 
 export class CreateTopupCheckoutDto {
   @IsNumber({ maxDecimalPlaces: 2 })
@@ -23,6 +23,22 @@ export class CreateTopupCheckoutDto {
   @IsOptional()
   @IsIn(['PLN', 'EUR', 'USD'])
   currency?: 'PLN' | 'EUR' | 'USD';
+
+  /** 2026-10-05 — bramka: `paynow` (BLIK, przelew, karta; tylko PLN) albo `stripe`. Bez wyboru PLN → Paynow, gdy włączony. */
+  @IsOptional()
+  @IsIn(['paynow', 'stripe'])
+  metoda?: 'paynow' | 'stripe';
+}
+
+/** Zwrot doładowania Paynow z panelu admina; bez kwoty = cała pozostała kwota. */
+export class ZwrotPaynowDto {
+  @IsUUID()
+  walletTxId!: string;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsPositive()
+  kwota?: number;
 }
 
 /** M-09/M-10 — podgląd: stawka VAT nabywcy i ile K wyjdzie z wpłaty. */

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import type {
   CreateCheckoutSessionInput,
   CreateCheckoutSessionResponse,
+  MetodaDoladowania,
   PreviewTopupPromoInput,
   PreviewTopupPromoResponse,
   PromoRedeemSuccessDto,
@@ -48,10 +49,16 @@ export async function startTopupAction(formData: FormData): Promise<TopupResult>
   const currency: WalutaWplaty =
     walutaRaw === 'EUR' || walutaRaw === 'USD' ? walutaRaw : 'PLN';
 
+  // Paynow tylko dla PLN; EUR i USD zawsze kartą przez Stripe. Bez wyboru decyduje API (PLN → Paynow, gdy włączony).
+  const metodaRaw = formData.get('metoda');
+  const metoda: MetodaDoladowania | undefined =
+    currency !== 'PLN' ? 'stripe' : metodaRaw === 'paynow' || metodaRaw === 'stripe' ? metodaRaw : undefined;
+
   const input: CreateCheckoutSessionInput = {
     amount: parsed.toFixed(2),
     promoCode,
     currency,
+    ...(metoda ? { metoda } : {}),
   };
   let response: CreateCheckoutSessionResponse;
   try {

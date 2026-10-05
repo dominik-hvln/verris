@@ -6,9 +6,12 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma, WalletTxType } from '@verris/database';
+import { createHash } from 'crypto';
+import { Prisma, WalletTransaction, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { WalletLedgerService } from './wallet-ledger.service.js';
@@ -41,6 +44,27 @@ import {
   nastepnaProba,
   WierszZdarzenia,
 } from './stripe/webhook-ewidencja.js';
+import {
+  czyStatusPaynow,
+  PAYNOW_SANDBOX_URL,
+  PaynowBlad,
+  PaynowClient,
+  poprawnyPodpisPowiadomienia,
+  type StatusPlatnosciPaynow,
+} from './paynow/paynow.client.js';
+
+/** Bramka doładowania wybrana w panelu klienta. Bez wyboru: Paynow dla PLN (gdy skonfigurowany), inaczej Stripe. */
+export type MetodaDoladowania = 'paynow' | 'stripe';
+
+type RekordPaynow = {
+  id: string;
+  userId: string;
+  kwotaMinor: number;
+  waluta: string;
+  paymentId: string | null;
+  status: string;
+  meta: Prisma.JsonValue;
+};
 
 export interface TransactionsCsvFilters {
   userId?: string;
@@ -125,6 +149,8 @@ export class BillingService {
       totalTopupLast30d: totalTopupLast30d.toFixed(2),
       totalChargesLast30d: totalChargesLast30d.abs().toFixed(2),
       monthlyFlowLast12,
+      // 2026-10-05 — czy formularz doładowania ma pokazać Paynow (BLIK, przelew, karta) jako domyślną bramkę dla PLN.
+      paynowDostepny: this.paynowKlient() !== null,
       recentTransactions: recent.map((tx) => ({
         id: tx.id,
         type: tx.type,
@@ -409,6 +435,8 @@ export class BillingService {
     promoCode?: string | null;
     /** M-10 — waluta wpłaty; portfel i tak liczy w K (kurs NBP przy księgowaniu). */
     currency?: WalutaWplaty | null;
+    /** 2026-10-05 — bramka; bez wyboru PLN idzie przez Paynow, gdy jest skonfigurowany. */
+    metoda?: MetodaDoladowania | null;
   }) {
     const amount = new Prisma.Decimal(opts.amount);
     if (amount.lessThanOrEqualTo(0) || amount.greaterThan(10000)) {
@@ -440,12 +468,40 @@ export class BillingService {
 
     const minor = Math.round(amount.toNumber() * 100);
     const waluta: WalutaWplaty = opts.currency ?? 'PLN';
+    const paynow = this.paynowKlient();
+    // Paynow: tylko PLN (EUR/USD u Paynow wyłącznie kartą i po osobnej umowie — zostają w Stripe).
+    const przezPaynow = paynow !== null && waluta === 'PLN' && opts.metoda !== 'stripe';
+    if (opts.metoda === 'paynow' && !przezPaynow) {
+      throw new BadRequestException(
+        paynow === null
+          ? 'Płatności Paynow nie są jeszcze włączone — wybierz płatność kartą (Stripe).'
+          : 'Paynow przyjmuje wpłaty tylko w PLN — dla EUR i USD wybierz płatność kartą (Stripe).',
+      );
+    }
+    // https://docs.paynow.pl/docs/reference/v3/send-payment-request — amount >= 100 (1,00 zł).
+    if (przezPaynow && minor < 100) {
+      throw new BadRequestException('Minimalna kwota płatności przez Paynow to 1 zł.');
+    }
     // M-09 — stawka ustalana TERAZ (VIES, próg OSS) i zapisywana w metadanych płatności.
     const { traktowanie, vies } = await this.doladowanie.ustalTraktowanie(user.id);
 
     const description = promoMetadata
       ? `Doładowanie portfela Verris (${amount.toFixed(2)} ${user.walletCurrency}) + ${promoMetadata.promoPercent}% bonus „${promoMetadata.promoCode}"`
       : `Doładowanie portfela Verris (${amount.toFixed(2)} ${user.walletCurrency})`;
+    const bonus = promoMetadata
+      ? { amount: promoMetadata.bonusAmount, percent: Number(promoMetadata.promoPercent), code: promoMetadata.promoCode }
+      : null;
+
+    if (przezPaynow) {
+      return this.utworzDoladowaniePaynow(paynow, {
+        user,
+        minor,
+        description,
+        meta: { kind: 'wallet_topup', ...(promoMetadata ?? {}), ...DoladowanieService.doMetadanych(traktowanie, vies) },
+        amount,
+        bonus,
+      });
+    }
 
     const session = await this.stripe.createCheckoutSession({
       amountMinor: minor,
@@ -477,10 +533,269 @@ export class BillingService {
     return {
       url: session.url,
       sessionId: session.id,
-      bonus: promoMetadata
-        ? { amount: promoMetadata.bonusAmount, percent: Number(promoMetadata.promoPercent), code: promoMetadata.promoCode }
-        : null,
+      bonus,
     };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Paynow (mBank): doładowanie portfela w PLN — główna bramka płatności jednorazowych (2026-10-05)
+  // ---------------------------------------------------------------------------
+
+  /** Klient Paynow albo `null`, gdy brak PAYNOW_API_KEY / PAYNOW_SIGNATURE_KEY (wtedy wszystko idzie przez Stripe). */
+  private paynowKlient(): PaynowClient | null {
+    const apiKey = this.config.get<string>('paynowApiKey');
+    const signatureKey = this.config.get<string>('paynowSignatureKey');
+    if (!apiKey || !signatureKey) return null;
+    return new PaynowClient(apiKey, signatureKey, this.config.get<string>('paynowApiUrl') ?? PAYNOW_SANDBOX_URL);
+  }
+
+  private async utworzDoladowaniePaynow(
+    paynow: PaynowClient,
+    i: {
+      user: { id: string; email: string; walletCurrency: string };
+      minor: number;
+      description: string;
+      meta: Record<string, string>;
+      amount: Prisma.Decimal;
+      bonus: { amount: string; percent: number; code: string } | null;
+    },
+  ) {
+    // Rekord przed wywołaniem Paynow: jego id to externalId i Idempotency-Key tego zlecenia.
+    const rek = await this.prisma.paynowPlatnosc.create({
+      data: { userId: i.user.id, kwotaMinor: i.minor, waluta: 'PLN', meta: i.meta },
+    });
+    const panel = (this.config.get<string>('clientPanelUrl') ?? 'https://panel.verris.pl').replace(/\/$/, '');
+    let odp: Awaited<ReturnType<PaynowClient['utworzPlatnosc']>>;
+    try {
+      // https://docs.paynow.pl/docs/v3/payments#make-a-payment — kwota w groszach, externalId = nasz rekord,
+      // continueUrl nadpisuje adres powrotu z konfiguracji sklepu (Paynow dopisze paymentId i paymentStatus).
+      odp = await paynow.utworzPlatnosc(
+        {
+          amount: i.minor,
+          currency: 'PLN',
+          externalId: rek.id,
+          description: i.description.slice(0, 255),
+          continueUrl: `${panel}/dashboard/billing?paynow=${rek.id}`,
+          buyer: { email: i.user.email },
+        },
+        rek.id,
+      );
+    } catch (err) {
+      await this.prisma.paynowPlatnosc.update({ where: { id: rek.id }, data: { status: 'ERROR' } });
+      this.logger.error(`Paynow: nie utworzono płatności ${rek.id} user=${i.user.id}: ${err instanceof Error ? err.message : String(err)}`);
+      throw new BadRequestException('Operator płatności nie przyjął zlecenia — spróbuj ponownie za chwilę.');
+    }
+    if (!odp.redirectUrl || !odp.paymentId) {
+      await this.prisma.paynowPlatnosc.update({ where: { id: rek.id }, data: { status: 'ERROR', paymentId: odp.paymentId ?? null } });
+      throw new BadRequestException('Operator płatności nie zwrócił adresu płatności — spróbuj ponownie.');
+    }
+    await this.prisma.paynowPlatnosc.update({
+      where: { id: rek.id },
+      data: { paymentId: odp.paymentId, ...(czyStatusPaynow(odp.status) ? { status: odp.status } : {}) },
+    });
+    await this.audit.record({
+      action: 'WALLET_TOPUP_INITIATED',
+      userId: i.user.id,
+      details: {
+        provider: 'PAYNOW',
+        paynowId: rek.id,
+        paymentId: odp.paymentId,
+        amount: i.amount.toFixed(2),
+        currency: i.user.walletCurrency,
+        ...(i.bonus ? { promoCode: i.bonus.code, bonusAmount: i.bonus.amount } : {}),
+      },
+    });
+    return { url: odp.redirectUrl, sessionId: rek.id, bonus: i.bonus };
+  }
+
+  /**
+   * Powiadomienie Paynow o zmianie statusu płatności.
+   * https://docs.paynow.pl/docs/v3/integration#notifications — podpis HMAC z surowej treści; to samo
+   * powiadomienie może przyjść kilka razy i nie po kolei. Odpowiedź 200 bez treści; wyjątek (5xx) każe
+   * Paynow ponowić wg harmonogramu (do 48 h), a niedoręczone powiadomienie łapie {@link sprawdzPlatnoscPaynow}.
+   */
+  async handlePaynowNotification(surowaTresc: Buffer, podpis: string | undefined): Promise<void> {
+    const signatureKey = this.config.get<string>('paynowSignatureKey');
+    if (!signatureKey || !this.paynowKlient()) throw new ServiceUnavailableException('Paynow nie jest skonfigurowany');
+    if (!poprawnyPodpisPowiadomienia(signatureKey, surowaTresc, podpis)) {
+      this.logger.warn('Paynow: odrzucono powiadomienie z niepoprawnym podpisem');
+      throw new UnauthorizedException('Niepoprawny podpis powiadomienia');
+    }
+    let n: { paymentId?: unknown; externalId?: unknown; status?: unknown };
+    try {
+      n = JSON.parse(surowaTresc.toString('utf8'));
+    } catch {
+      throw new BadRequestException('Niepoprawna treść powiadomienia');
+    }
+    if (typeof n.paymentId !== 'string' || typeof n.externalId !== 'string' || !czyStatusPaynow(n.status)) {
+      throw new BadRequestException('Niepełne powiadomienie Paynow');
+    }
+    const rek = await this.prisma.paynowPlatnosc.findUnique({ where: { id: n.externalId } });
+    if (!rek) {
+      // Nie nasze zlecenie (np. inny sklep na tym samym koncie) — potwierdzamy odbiór, nic nie księgujemy.
+      this.logger.warn(`Paynow: powiadomienie dla nieznanego externalId=${n.externalId} (${n.paymentId})`);
+      return;
+    }
+    if (rek.paymentId !== n.paymentId) {
+      // Powiadomienie podpisane, ale o innej płatności niż ta, którą utworzyliśmy dla tego doładowania
+      // (np. ponowienie płatności po stronie Paynow — opcja „ABANDONED” w panelu Paynow). Kwoty tej płatności
+      // nie da się potwierdzić (powiadomienie i status nie zawierają kwoty), więc nie księgujemy automatycznie.
+      await this.zglosNiezgodnoscPaynow(rek, n.paymentId, n.status);
+      return;
+    }
+    await this.zastosujStatusPaynow(rek, n.status);
+  }
+
+  /**
+   * Zapasowe sprawdzenie statusu po powrocie klienta z Paynow (continueUrl), gdy powiadomienie
+   * jeszcze nie dotarło. Ta sama funkcja księgowania i ten sam klucz idempotencji co powiadomienie.
+   * https://docs.paynow.pl/docs/reference/v3/get-payment-status
+   */
+  async sprawdzPlatnoscPaynow(userId: string, id: string): Promise<{ status: string }> {
+    const rek = await this.prisma.paynowPlatnosc.findFirst({ where: { id, userId } });
+    if (!rek) throw new NotFoundException('Nie znaleziono tej płatności.');
+    const paynow = this.paynowKlient();
+    if (rek.status === 'CONFIRMED' || !rek.paymentId || !paynow) return { status: rek.status };
+    let status: StatusPlatnosciPaynow;
+    try {
+      const odp = await paynow.statusPlatnosci(rek.paymentId);
+      if (odp.paymentId !== rek.paymentId || !czyStatusPaynow(odp.status)) return { status: rek.status };
+      status = odp.status;
+    } catch (err) {
+      this.logger.warn(`Paynow: odczyt statusu ${rek.paymentId} nie powiódł się: ${err instanceof Error ? err.message : String(err)}`);
+      return { status: rek.status };
+    }
+    await this.zastosujStatusPaynow(rek, status);
+    return { status };
+  }
+
+  private async zastosujStatusPaynow(rek: RekordPaynow, status: StatusPlatnosciPaynow): Promise<void> {
+    if (status === 'CONFIRMED') {
+      await this.zaksiegujPaynow(rek);
+      return;
+    }
+    // CONFIRMED jest końcowy: spóźnione NEW/PENDING/… (powiadomienia nie po kolei) go nie cofają.
+    await this.prisma.paynowPlatnosc.updateMany({
+      where: { id: rek.id, status: { not: 'CONFIRMED' } },
+      data: { status },
+    });
+  }
+
+  private async zaksiegujPaynow(rek: RekordPaynow): Promise<void> {
+    if (!rek.paymentId) throw new Error(`Paynow: rekord ${rek.id} bez paymentId`);
+    const meta = (rek.meta ?? {}) as Record<string, string>;
+    // Idempotentne po kluczu: duplikat powiadomienia, wyścig powiadomienia ze sprawdzeniem po powrocie —
+    // K wchodzą raz (unikalny idempotencyKey w księdze).
+    const { wpis, kredytK } = await this.doladowanie.zaksieguj({
+      userId: rek.userId,
+      kwotaMinor: rek.kwotaMinor,
+      waluta: rek.waluta,
+      meta,
+      idempotencyKey: `paynow:${rek.paymentId}`,
+      paymentRef: rek.paymentId,
+      paymentProvider: 'PAYNOW',
+      opis: `Doładowanie Paynow (${rek.paymentId})`,
+      zaplaconoAt: new Date(),
+    });
+    // Skutki uboczne (bonus, e-mail, EKO) uruchamia tylko ten, kto przestawił rekord na CONFIRMED.
+    // Padnięcie po zaksięgowaniu, a przed tym zapisem: ponowienie zaksięguje „na sucho” i dokończy.
+    const { count } = await this.prisma.paynowPlatnosc.updateMany({
+      where: { id: rek.id, status: { not: 'CONFIRMED' } },
+      data: { status: 'CONFIRMED', walletTxId: wpis.id },
+    });
+    if (count === 0) return;
+    await this.poZaksiegowaniuDoladowania({
+      userId: rek.userId,
+      wpis,
+      kredytK,
+      meta,
+      kwota: (rek.kwotaMinor / 100).toFixed(2),
+      waluta: rek.waluta,
+      odniesienie: `paynow:${rek.id}`,
+      szczegoly: { provider: 'PAYNOW', paynowId: rek.id, paymentId: rek.paymentId },
+    });
+  }
+
+  private async zglosNiezgodnoscPaynow(rek: RekordPaynow, paymentId: string, status: string): Promise<void> {
+    this.logger.error(
+      `Paynow: powiadomienie ${paymentId} (${status}) dla doładowania ${rek.id}, które ma płatność ${rek.paymentId} — bez księgowania`,
+    );
+    await this.audit.record({
+      action: 'PAYNOW_PLATNOSC_NIEZGODNA',
+      userId: rek.userId,
+      details: { paynowId: rek.id, oczekiwanyPaymentId: rek.paymentId, otrzymanyPaymentId: paymentId, status },
+    });
+    if (status !== 'CONFIRMED') return;
+    const admini = await this.prisma.user.findMany({ where: { role: 'ADMIN', loginBlocked: false }, select: { id: true } });
+    await this.prisma.notification.createMany({
+      data: admini.map((a) => ({
+        userId: a.id,
+        category: 'SYSTEM',
+        severity: 'warning',
+        title: 'Paynow: potwierdzona płatność nie pasuje do doładowania',
+        body: `Płatność ${paymentId} potwierdzona dla doładowania ${rek.id} (oczekiwana ${rek.paymentId}). Portfel nie został uznany — sprawdź w panelu Paynow i uznaj ręcznie.`,
+        link: `/customers/${rek.userId}`,
+      })),
+    });
+  }
+
+  /**
+   * Zwrot doładowania Paynow z panelu admina: zlecenie zwrotu w Paynow (Idempotency-Key wyliczany ze stanu,
+   * więc ponowienie po zerwanym połączeniu nie zleci drugiego zwrotu), potem cofnięcie K z portfela tymi
+   * samymi regułami co zwrot w Stripe ({@link cofnijDoladowanie}): proporcjonalnie, nie poniżej zera.
+   * https://docs.paynow.pl/docs/v3/refunds#make-a-refund
+   */
+  async zwrocPlatnoscPaynow(i: { walletTxId: string; kwota?: number | null; actorUserId: string }) {
+    const paynow = this.paynowKlient();
+    if (!paynow) throw new ServiceUnavailableException('Paynow nie jest skonfigurowany.');
+    const rek = await this.prisma.paynowPlatnosc.findUnique({ where: { walletTxId: i.walletTxId } });
+    if (!rek || rek.status !== 'CONFIRMED' || !rek.paymentId) {
+      throw new BadRequestException('To nie jest zaksięgowane doładowanie Paynow.');
+    }
+    const pozostalo = rek.kwotaMinor - rek.zwroconoMinor;
+    const kwotaMinor = i.kwota == null ? pozostalo : Math.round(i.kwota * 100);
+    if (kwotaMinor <= 0 || kwotaMinor > pozostalo) {
+      throw new BadRequestException(`Kwota zwrotu musi być z zakresu 0,01–${(pozostalo / 100).toFixed(2)} zł.`);
+    }
+    // ≤ 45 znaków wg API reference; ten sam stan + ta sama kwota = ten sam klucz.
+    const idem = createHash('sha256').update(`zwrot:${rek.id}:${rek.zwroconoMinor}:${kwotaMinor}`).digest('base64url');
+    let odp: { refundId: string; status: string };
+    try {
+      odp = await paynow.zwrot(rek.paymentId, { amount: kwotaMinor, reason: 'OTHER' }, idem);
+    } catch (err) {
+      const typy = err instanceof PaynowBlad ? err.typyBledow.join(', ') : '';
+      this.logger.error(`Paynow: zwrot ${rek.paymentId} odrzucony: ${err instanceof Error ? err.message : String(err)}`);
+      throw new BadRequestException(`Paynow odrzucił zwrot${typy ? ` (${typy})` : ''}.`);
+    }
+    const wplata = await this.prisma.walletTransaction.findUniqueOrThrow({ where: { id: i.walletTxId } });
+    const wynik = await this.prisma.$transaction(async (tx) => {
+      // Blokada rekordu: równoległy zwrot (albo ponowienie z tym samym refundId) liczy się po kolei i raz.
+      const [r] = await tx.$queryRaw<Array<{ zwroconoMinor: number; zwrotyIds: string[] }>>`SELECT "zwroconoMinor", "zwrotyIds" FROM "PaynowPlatnosc" WHERE "id" = ${rek.id} FOR UPDATE`;
+      if (!r || r.zwrotyIds.includes(odp.refundId)) return null;
+      const narastajaco = r.zwroconoMinor + kwotaMinor;
+      await tx.paynowPlatnosc.update({
+        where: { id: rek.id },
+        data: { zwroconoMinor: narastajaco, zwrotyIds: { push: odp.refundId } },
+      });
+      return this.cofnijDoladowanie(tx, {
+        wplata,
+        zwroconoMinorNarastajaco: narastajaco,
+        idempotencyKey: `paynow:zwrot:${odp.refundId}`,
+        opis: 'Zwrot płatności Paynow — cofnięcie doładowania',
+        metadata: { paynowRefundId: odp.refundId, paynowId: rek.id },
+      });
+    });
+    if (wynik) {
+      await this.zglosCofniecie({
+        wplata,
+        ...wynik,
+        akcja: 'WALLET_TOPUP_REFUNDED',
+        tytul: 'Zwrot płatności w Paynow',
+        szczegoly: { provider: 'PAYNOW', paynowRefundId: odp.refundId, kwotaZwrotu: (kwotaMinor / 100).toFixed(2), actorUserId: i.actorUserId },
+        dopisek: '',
+      });
+    }
+    return { refundId: odp.refundId, status: odp.status, kwota: (kwotaMinor / 100).toFixed(2) };
   }
 
   /**
@@ -775,49 +1090,95 @@ export class BillingService {
       return;
     }
     const kwotaMinor = (spor ? o.amount : o.amount_refunded) ?? 0;
-    const zaplaconoMinor = Number((wplata.metadata as { wplata?: { kwota?: string } } | null)?.wplata?.kwota ?? 0) * 100;
-    const udzial = zaplaconoMinor > 0 ? Math.min(1, kwotaMinor / zaplaconoMinor) : 1;
-    const doCofniecia = new Prisma.Decimal(wplata.amount).mul(udzial).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
-    // Blokada wiersza klienta PRZED policzeniem, ile już cofnięto: dwa zdarzenia do jednej płatności
-    // (częściowe zwroty, zwrot + spór) liczą się jedno po drugim. Wcześniej oba widziały „nic nie cofnięto”
-    // i oba ściągały całą resztę.
-    const wynik = await this.prisma.$transaction(async (tx) => {
-      const [u] = await tx.$queryRaw<Array<{ walletBalance: Prisma.Decimal }>>`SELECT "walletBalance" FROM "User" WHERE "id" = ${wplata.userId} FOR UPDATE`;
-      const juz = await tx.walletTransaction.findMany({
-        where: { userId: wplata.userId, metadata: { path: ['zwrotZa'], equals: wplata.id } },
-        select: { amount: true },
-      });
-      const cofniete = juz.reduce((a, t) => a.plus(new Prisma.Decimal(t.amount).abs()), new Prisma.Decimal(0));
-      const reszta = doCofniecia.minus(cofniete);
-      if (reszta.lessThanOrEqualTo(0)) return null;
-      const saldo = new Prisma.Decimal(u?.walletBalance ?? 0);
-      const pobierz = Prisma.Decimal.min(reszta, saldo.greaterThan(0) ? saldo : new Prisma.Decimal(0));
-      if (pobierz.greaterThan(0)) {
-        await this.ledger.zapiszWpis(
-          tx,
-          {
-            userId: wplata.userId,
-            type: WalletTxType.ADJUSTMENT,
-            amount: pobierz,
-            description: spor ? 'Spór o płatność (chargeback) — cofnięcie doładowania' : 'Zwrot płatności — cofnięcie doładowania',
-            idempotencyKey: `stripe:${event.id}`,
-            metadata: { zwrotZa: wplata.id, stripeEvent: event.id, powod: o.reason ?? null },
-          },
-          'debit',
-          pobierz,
-          pobierz.negated(),
-        );
-      }
-      return { reszta, pobierz };
-    });
+    // charge.refunded podaje kwotę zwrotów narastająco, spór — kwotę sporu.
+    const wynik = await this.prisma.$transaction((tx) =>
+      this.cofnijDoladowanie(tx, {
+        wplata,
+        zwroconoMinorNarastajaco: kwotaMinor,
+        idempotencyKey: `stripe:${event.id}`,
+        opis: spor ? 'Spór o płatność (chargeback) — cofnięcie doładowania' : 'Zwrot płatności — cofnięcie doładowania',
+        metadata: { stripeEvent: event.id, powod: o.reason ?? null },
+      }),
+    );
     if (!wynik) return;
-    const { reszta, pobierz } = wynik;
+    await this.zglosCofniecie({
+      wplata,
+      ...wynik,
+      akcja: spor ? 'WALLET_TOPUP_DISPUTED' : 'WALLET_TOPUP_REFUNDED',
+      tytul: spor ? 'Spór o płatność (chargeback)' : 'Zwrot płatności w Stripe',
+      szczegoly: { stripeEvent: event.id, powod: o.reason ?? null },
+      dopisek: spor ? ' i zdecyduj o usługach klienta' : '',
+    });
+  }
+
+  /**
+   * Cofnięcie części doładowania po zwrocie pieniędzy (Stripe: zwrot/spór, Paynow: zwrot z panelu admina).
+   * Do cofnięcia jest udział kwoty zwróconej NARASTAJĄCO w kwocie wpłaty, minus to, co już cofnięto
+   * (wpisy z `metadata.zwrotZa`). Portfel nie schodzi poniżej zera — brak zgłasza {@link zglosCofniecie}.
+   * Wołać w transakcji; blokada wiersza klienta PRZED policzeniem, ile już cofnięto: dwa zdarzenia do jednej
+   * płatności (częściowe zwroty, zwrot + spór) liczą się jedno po drugim. Wcześniej oba widziały
+   * „nic nie cofnięto” i oba ściągały całą resztę.
+   */
+  private async cofnijDoladowanie(
+    tx: Prisma.TransactionClient,
+    i: {
+      wplata: WalletTransaction;
+      zwroconoMinorNarastajaco: number;
+      idempotencyKey: string;
+      opis: string;
+      metadata: Record<string, unknown>;
+    },
+  ): Promise<{ reszta: Prisma.Decimal; pobierz: Prisma.Decimal } | null> {
+    const { wplata } = i;
+    const zaplaconoMinor = Number((wplata.metadata as { wplata?: { kwota?: string } } | null)?.wplata?.kwota ?? 0) * 100;
+    const udzial = zaplaconoMinor > 0 ? Math.min(1, i.zwroconoMinorNarastajaco / zaplaconoMinor) : 1;
+    const doCofniecia = new Prisma.Decimal(wplata.amount).mul(udzial).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+    const [u] = await tx.$queryRaw<Array<{ walletBalance: Prisma.Decimal }>>`SELECT "walletBalance" FROM "User" WHERE "id" = ${wplata.userId} FOR UPDATE`;
+    const juz = await tx.walletTransaction.findMany({
+      where: { userId: wplata.userId, metadata: { path: ['zwrotZa'], equals: wplata.id } },
+      select: { amount: true },
+    });
+    const cofniete = juz.reduce((a, t) => a.plus(new Prisma.Decimal(t.amount).abs()), new Prisma.Decimal(0));
+    const reszta = doCofniecia.minus(cofniete);
+    if (reszta.lessThanOrEqualTo(0)) return null;
+    const saldo = new Prisma.Decimal(u?.walletBalance ?? 0);
+    const pobierz = Prisma.Decimal.min(reszta, saldo.greaterThan(0) ? saldo : new Prisma.Decimal(0));
+    if (pobierz.greaterThan(0)) {
+      await this.ledger.zapiszWpis(
+        tx,
+        {
+          userId: wplata.userId,
+          type: WalletTxType.ADJUSTMENT,
+          amount: pobierz,
+          description: i.opis,
+          idempotencyKey: i.idempotencyKey,
+          metadata: { zwrotZa: wplata.id, ...i.metadata } as Prisma.InputJsonValue,
+        },
+        'debit',
+        pobierz,
+        pobierz.negated(),
+      );
+    }
+    return { reszta, pobierz };
+  }
+
+  /** Audyt + powiadomienie adminów po cofnięciu doładowania (korekta dokumentu, ewentualny brak K). */
+  private async zglosCofniecie(i: {
+    wplata: WalletTransaction;
+    reszta: Prisma.Decimal;
+    pobierz: Prisma.Decimal;
+    akcja: string;
+    tytul: string;
+    szczegoly: Record<string, unknown>;
+    dopisek: string;
+  }): Promise<void> {
+    const { wplata, reszta, pobierz } = i;
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: wplata.userId }, select: { email: true } });
     const brak = reszta.minus(pobierz);
     await this.audit.record({
-      action: spor ? 'WALLET_TOPUP_DISPUTED' : 'WALLET_TOPUP_REFUNDED',
+      action: i.akcja,
       userId: wplata.userId,
-      details: { walletTxId: wplata.id, stripeEvent: event.id, cofnieteK: pobierz.toFixed(2), brakK: brak.toFixed(2), powod: o.reason ?? null },
+      details: { walletTxId: wplata.id, ...i.szczegoly, cofnieteK: pobierz.toFixed(2), brakK: brak.toFixed(2) },
     });
     const admini = await this.prisma.user.findMany({ where: { role: 'ADMIN', loginBlocked: false }, select: { id: true } });
     await this.prisma.notification.createMany({
@@ -825,8 +1186,8 @@ export class BillingService {
         userId: a.id,
         category: 'SYSTEM',
         severity: 'warning',
-        title: spor ? 'Spór o płatność (chargeback)' : 'Zwrot płatności w Stripe',
-        body: `${user.email}: cofnięto ${pobierz.toFixed(2)} K z portfela${brak.greaterThan(0) ? `, brakuje ${brak.toFixed(2)} K (saldo za niskie)` : ''}. Wystaw korektę dokumentu doładowania${spor ? ' i zdecyduj o usługach klienta' : ''}.`,
+        title: i.tytul,
+        body: `${user.email}: cofnięto ${pobierz.toFixed(2)} K z portfela${brak.greaterThan(0) ? `, brakuje ${brak.toFixed(2)} K (saldo za niskie)` : ''}. Wystaw korektę dokumentu doładowania${i.dopisek}.`,
         link: `/customers/${wplata.userId}`,
       })),
     });
@@ -934,28 +1295,53 @@ export class BillingService {
       zaplaconoAt: new Date(),
     });
 
+    await this.poZaksiegowaniuDoladowania({
+      userId,
+      wpis: tx,
+      kredytK,
+      meta: session.metadata ?? {},
+      kwota: amountMajor.toFixed(2),
+      waluta: (session.currency ?? 'pln').toUpperCase(),
+      odniesienie: session.id ?? '',
+      szczegoly: { sessionId: session.id, idempotent: idempotencyKey === tx.idempotencyKey },
+    });
+  }
+
+  /**
+   * Wspólny ciąg po zaksięgowaniu doładowania (Stripe Checkout i Paynow): audyt, bonus z kodu procentowego,
+   * e-mail i punkty EKO. Dokument za wpłatę powstaje wcześniej, atomowo z wpisem (DoladowanieService.zaksieguj).
+   */
+  private async poZaksiegowaniuDoladowania(i: {
+    userId: string;
+    wpis: WalletTransaction;
+    kredytK: Prisma.Decimal;
+    meta: Record<string, string | undefined>;
+    kwota: string;
+    waluta: string;
+    /** Identyfikator płatności do audytu bonusu (sesja Stripe albo `paynow:<id>`). */
+    odniesienie: string;
+    szczegoly: Record<string, unknown>;
+  }): Promise<void> {
+    const { userId, wpis: tx, kredytK, meta } = i;
     await this.audit.record({
       action: 'WALLET_TOPUP_COMPLETED',
       userId,
       details: {
         walletTxId: tx.id,
-        sessionId: session.id,
-        amount: amountMajor.toFixed(2),
-        currency: (session.currency ?? 'pln').toUpperCase(),
+        ...i.szczegoly,
+        amount: i.kwota,
+        currency: i.waluta,
         creditedK: kredytK.toFixed(2),
-        idempotent: idempotencyKey === tx.idempotencyKey,
       },
     });
 
-    // Optional percent-bonus applied at checkout time. Stripe metadata
-    // contains the canonicalized bonus amount we calculated server-side
-    // before redirecting the user to Stripe — so the user can't tamper
-    // with the percentage by editing client-side state.
-    const promoCodeId = session.metadata?.promoCodeId;
+    // Bonus z kodu procentowego: metadane (Stripe) / rekord (Paynow) zawierają bonus policzony po naszej
+    // stronie przed przekierowaniem do płatności — klient nie zmieni procentu po stronie przeglądarki.
+    const promoCodeId = meta.promoCodeId;
     // Bonus liczony od K, które faktycznie weszły (waluta obca, cena netto) — nie od kwoty w walucie.
-    const procent = Number(session.metadata?.promoPercent);
+    const procent = Number(meta.promoPercent);
     const bonusAmountStr =
-      procent > 0 ? kredytK.times(procent).dividedBy(100).toDecimalPlaces(2).toFixed(2) : session.metadata?.bonusAmount;
+      procent > 0 ? kredytK.times(procent).dividedBy(100).toDecimalPlaces(2).toFixed(2) : meta.bonusAmount;
     if (promoCodeId && bonusAmountStr) {
       try {
         await this.promo.applyPercentBonusForTopup({
@@ -963,21 +1349,19 @@ export class BillingService {
           promoCodeId,
           bonusAmount: bonusAmountStr,
           relatedWalletTxId: tx.id,
-          sessionId: session.id ?? '',
+          sessionId: i.odniesienie,
         });
       } catch (err) {
         // Topup itself succeeded — bonus failure must not roll back the
         // top-up. Operator follow-up via audit log + Slack alert.
         this.logger.error(
-          `applyPercentBonusForTopup failed for sessionId=${session.id} user=${userId}: ${
-            (err as Error).message
-          }`,
+          `applyPercentBonusForTopup failed for ${i.odniesienie} user=${userId}: ${(err as Error).message}`,
         );
         await this.audit.record({
           action: 'PROMO_PERCENT_BONUS_FAILED',
           userId,
           details: {
-            sessionId: session.id,
+            sessionId: i.odniesienie,
             promoCodeId,
             bonusAmount: bonusAmountStr,
             error: (err as Error).message,
@@ -991,7 +1375,7 @@ export class BillingService {
       amountMajor: kredytK.toFixed(2),
     }).catch((err) => {
       this.logger.warn(
-        `handleCheckoutCompleted: topup mail failed user=${userId}: ${err instanceof Error ? err.message : String(err)}`,
+        `poZaksiegowaniuDoladowania: topup mail failed user=${userId}: ${err instanceof Error ? err.message : String(err)}`,
       );
     });
 

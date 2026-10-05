@@ -188,6 +188,13 @@ services:
       STRIPE_API_VERSION: ${STRIPE_API_VERSION:-2026-04-22.dahlia}
       STRIPE_SUCCESS_URL: ${STRIPE_SUCCESS_URL}
       STRIPE_CANCEL_URL: ${STRIPE_CANCEL_URL}
+      # Paynow (mBank) — doładowania portfela w PLN. Puste = doładowania przez Stripe jak dotąd.
+      # Produkcja: PAYNOW_API_URL=https://api.paynow.pl (domyślnie sandbox), https://docs.paynow.pl/docs/v3/integration
+      PAYNOW_API_KEY: ${PAYNOW_API_KEY:-}
+      PAYNOW_SIGNATURE_KEY: ${PAYNOW_SIGNATURE_KEY:-}
+      PAYNOW_API_URL: ${PAYNOW_API_URL:-https://api.sandbox.paynow.pl}
+      # Dostawca płatności cyklicznych (karta zapisana, auto-doładowanie, subskrypcje kartą). Tylko „stripe”.
+      PLATNOSCI_CYKLICZNE: ${PLATNOSCI_CYKLICZNE:-stripe}
       METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
       # Pre-LIVE hardening + VPN (ETAP 7/8)
       REQUIRE_2FA_FOR_STAFF: ${REQUIRE_2FA_FOR_STAFF:-0}

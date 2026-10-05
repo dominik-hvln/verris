@@ -6,6 +6,7 @@ import { WalletLedgerService } from './wallet-ledger.service.js';
 import { StripeService } from './stripe/stripe.service.js';
 import { AnulowanieService } from './anulowanie.service.js';
 import { StripeWebhookController } from './stripe/stripe.controller.js';
+import { PaynowPowiadomieniaController } from './paynow/paynow.controller.js';
 import { StripeWebhookEventsAdminController } from './stripe/stripe-webhook-events.admin.controller.js';
 import { StripeWebhookPonowieniaScheduler } from './stripe/stripe-webhook-ponowienia.scheduler.js';
 import { InvoicesService } from './invoices.service.js';
@@ -39,6 +40,7 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
     BillingController,
     BillingAdminController,
     StripeWebhookController,
+    PaynowPowiadomieniaController,
     StripeWebhookEventsAdminController,
     InvoicesController,
     InvoicesAdminController,

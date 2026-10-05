@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { Loader2, BadgePercent, X, CheckCircle2 } from 'lucide-react';
 import { CREDIT_SHORT, formatCredits, pluralCredits } from '@/lib/credits';
-import type { PreviewTopupPromoResponse, TopupQuoteDto, WalutaWplaty } from '@verris/contracts';
+import type { MetodaDoladowania, PreviewTopupPromoResponse, TopupQuoteDto, WalutaWplaty } from '@verris/contracts';
 import { previewTopupPromoAction, quoteTopupAction, startTopupAction } from './actions';
 import { TOPUP_PRESETS } from './constants';
 import { Select } from '@/components/panel/select';
@@ -11,6 +11,8 @@ import { liczba } from '@/lib/liczba';
 
 interface Props {
   balance: string;
+  /** 2026-10-05 — Paynow (BLIK, przelew, karta) włączony: domyślna bramka dla PLN. */
+  paynowDostepny?: boolean;
 }
 
 interface PromoState {
@@ -19,9 +21,13 @@ interface PromoState {
   error?: string;
 }
 
-export function TopupCard({ balance }: Props) {
+export function TopupCard({ balance, paynowDostepny = false }: Props) {
   const [amount, setAmount] = useState<string>('50');
   const [currency, setCurrency] = useState<WalutaWplaty>('PLN');
+  const [metoda, setMetoda] = useState<MetodaDoladowania>('paynow');
+  // Paynow tylko dla PLN; EUR i USD (i brak Paynow) — karta przez Stripe.
+  const wyborMetody = paynowDostepny && currency === 'PLN';
+  const metodaEfektywna: MetodaDoladowania = wyborMetody ? metoda : 'stripe';
   const [quote, setQuote] = useState<TopupQuoteDto | null>(null);
   const [promoCode, setPromoCode] = useState<string>('');
   const [promoState, setPromoState] = useState<PromoState>({ status: 'idle' });
@@ -143,6 +149,7 @@ export function TopupCard({ balance }: Props) {
               />
             </div>
             <input type="hidden" name="currency" value={currency} />
+            <input type="hidden" name="metoda" value={metodaEfektywna} />
             <Select
               value={currency}
               onChange={(v) => setCurrency(v as WalutaWplaty)}
@@ -163,6 +170,27 @@ export function TopupCard({ balance }: Props) {
               {pending ? 'Przekierowanie…' : 'Doładuj'}
             </button>
           </div>
+          {wyborMetody ? (
+            <div role="group" aria-label="Sposób płatności" className="grid grid-cols-2 gap-2">
+              {METODY.map((m) => {
+                const active = metoda === m.value;
+                return (
+                  <button
+                    type="button"
+                    key={m.value}
+                    onClick={() => setMetoda(m.value)}
+                    aria-pressed={active}
+                    className={`rounded-[7px] border px-3 py-2 text-left transition-colors ${
+                      active ? 'border-primary bg-data-soft' : 'border-line-strong bg-card hover:border-primary'
+                    }`}
+                  >
+                    <span className="block text-sm font-semibold text-foreground">{m.label}</span>
+                    <span className="block text-[12px] text-muted-foreground">{m.opis}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
           {kredyt !== null ? (
             <p className="text-xs text-emerald-200/90">
               Otrzymasz {quote?.szacunek ? 'ok. ' : ''}
@@ -193,16 +221,25 @@ export function TopupCard({ balance }: Props) {
             </div>
           ) : null}
           <p className="font-mono text-[11.5px] leading-relaxed text-muted-foreground">
-            Płatność przez Stripe: w PLN karta, BLIK i Przelewy24, w EUR i USD karta. Portfel liczy
-            w {CREDIT_SHORT} — wpłatę w walucie przeliczamy po kursie średnim NBP z dnia roboczego
-            poprzedzającego płatność. Dokument za wpłatę znajdziesz w zakładce Faktury. Bonus z
-            kodu procentowego dolicza się po zaksięgowaniu wpłaty.
+            {metodaEfektywna === 'paynow'
+              ? 'Płatność przez Paynow (mBank): BLIK, szybki przelew albo karta — wybierzesz na stronie płatności. '
+              : paynowDostepny
+                ? 'Płatność kartą przez Stripe (w EUR i USD tylko tak). '
+                : 'Płatność przez Stripe: w PLN karta, BLIK i Przelewy24, w EUR i USD karta. '}
+            Portfel liczy w {CREDIT_SHORT} — wpłatę w walucie przeliczamy po kursie średnim NBP z dnia
+            roboczego poprzedzającego płatność. Dokument za wpłatę znajdziesz w zakładce Faktury. Bonus
+            z kodu procentowego dolicza się po zaksięgowaniu wpłaty.
           </p>
         </form>
       </div>
     </section>
   );
 }
+
+const METODY: { value: MetodaDoladowania; label: string; opis: string }[] = [
+  { value: 'paynow', label: 'BLIK, przelew, karta', opis: 'przez Paynow (mBank)' },
+  { value: 'stripe', label: 'Karta', opis: 'przez Stripe' },
+];
 
 function PromoSubform({
   promoCode,

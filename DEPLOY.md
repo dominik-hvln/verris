@@ -65,6 +65,8 @@ Wartości muszą być wygenerowane raz i przechowywane bezpiecznie (np. wbudowan
 | `POSTGRES_PASSWORD`     | losowe ≥ 24 znaki                                                          |
 | `STRIPE_SECRET_KEY`     | klucz ze Stripe (live)                                                     |
 | `STRIPE_WEBHOOK_SECRET` | sekret z Stripe (po skonfigurowaniu webhooka na `/billing/stripe/webhook`) |
+| `PAYNOW_API_KEY`, `PAYNOW_SIGNATURE_KEY` | z panelu Paynow: Ustawienia → Sklepy i punkty płatności → Uwierzytelnianie (puste = doładowania przez Stripe) |
+| `PAYNOW_API_URL` | domyślnie sandbox `https://api.sandbox.paynow.pl`; produkcja `https://api.paynow.pl`. Adres powiadomień w panelu Paynow: `PUBLIC_API_URL/billing/paynow/powiadomienia` |
 
 
 > W Stripe Dashboard przypisz do tego endpointu m.in. `**checkout.session.completed**`, zdarzenia `**invoice.***`, `**customer.subscription.***` oraz — dla auto-doładowania portfela (**C-9**) — `**payment_intent.succeeded`** i `**payment_intent.payment_failed**`, a dla listy zapisanych kart (**M-26**) `**payment_method.attached**` i `**payment_method.detached**`, a do cofania doładowań przy zwrocie i sporze (chargeback) `**charge.refunded**` i `**charge.dispute.created**`.

@@ -412,7 +412,7 @@ export class InvoicesService {
       saleDate: invoice.paidAt ?? invoice.issuedAt ?? new Date(),
       dueAt: invoice.dueAt ?? invoice.paidAt ?? new Date(),
       isPaid: true,
-      paymentMethodLabel: this.paymentMethodLabel(invoice),
+      paymentMethodLabel: await this.paymentMethodLabel(invoice),
       currency: (invoice.currency.toUpperCase() as 'PLN' | 'EUR' | 'USD') ?? 'PLN',
       seller,
       buyer,
@@ -664,7 +664,15 @@ export class InvoicesService {
     return 'Usługa hostingowa Verris';
   }
 
-  private paymentMethodLabel(invoice: Invoice): string {
+  private async paymentMethodLabel(invoice: Invoice): Promise<string> {
+    if (invoice.provider === DOSTAWCA_DOLADOWANIE && invoice.providerRef) {
+      // Dokument za doładowanie: providerRef = wpis księgi, a ten wie, którą bramką przyszła wpłata.
+      const wpis = await this.prisma.walletTransaction.findUnique({
+        where: { id: invoice.providerRef },
+        select: { paymentProvider: true },
+      });
+      if (wpis?.paymentProvider === 'PAYNOW') return 'Płatność online (Paynow)';
+    }
     if (invoice.provider === 'STRIPE' || invoice.provider === DOSTAWCA_DOLADOWANIE) return 'Karta płatnicza (Stripe)';
     return 'Portfel Verris';
   }

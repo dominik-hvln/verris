@@ -22,6 +22,7 @@ import { BillingService } from './billing.service.js';
 import { AdminCreditWalletDto } from './dto/admin-credit.dto.js';
 import { PromoService } from './promo.service.js';
 import { AdminCreatePromoDto } from './dto/promo.dto.js';
+import { ZwrotPaynowDto } from './dto/checkout.dto.js';
 
 @Controller('admin/billing')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -48,6 +49,16 @@ export class BillingAdminController {
       idempotencyKey: dto.idempotencyKey,
       actorUserId: actor.userId,
     });
+  }
+
+  /** Zwrot doładowania Paynow (pieniądze wracają do klienta, K schodzą z portfela jak przy zwrocie w Stripe). */
+  @Post('paynow/zwrot')
+  @HttpCode(200)
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('BILLING_MANAGE')
+  zwrotPaynow(@Body() dto: ZwrotPaynowDto, @CurrentUser() actor: { userId: string }) {
+    return this.billing.zwrocPlatnoscPaynow({ walletTxId: dto.walletTxId, kwota: dto.kwota ?? null, actorUserId: actor.userId });
   }
 
   @Post('promo-codes')

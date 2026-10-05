@@ -238,3 +238,29 @@ export async function createCustomerAction(input: {
     return { ok: false, error: "Nie udało się założyć konta." };
   }
 }
+
+/**
+ * 2026-10-05 — zwrot doładowania Paynow: API zleca zwrot w Paynow i cofa K z portfela (jak zwrot w Stripe).
+ * `kwota` pusta = cała pozostała kwota wpłaty.
+ */
+export async function zwrotPaynowAction(
+  userId: string,
+  walletTxId: string,
+  kwotaTekst: string,
+): Promise<{ ok: true; kwota: string; status: string } | ActionResultErr> {
+  const t = kwotaTekst.trim().replace(",", ".");
+  const kwota = t === "" ? undefined : Number(t);
+  if (kwota !== undefined && (!Number.isFinite(kwota) || kwota <= 0)) {
+    return { ok: false, error: "Podaj kwotę większą od 0 albo zostaw puste pole (cała kwota)." };
+  }
+  try {
+    const r = await adminApi<{ refundId: string; status: string; kwota: string }>(`/admin/billing/paynow/zwrot`, {
+      method: "POST",
+      body: { walletTxId, ...(kwota !== undefined ? { kwota: Math.round(kwota * 100) / 100 } : {}) },
+    });
+    revalidatePath(`/customers/${userId}`);
+    return { ok: true, kwota: r.kwota, status: r.status };
+  } catch (err) {
+    return { ok: false, error: err instanceof AdminApiError ? err.message : "Nie udało się zlecić zwrotu." };
+  }
+}

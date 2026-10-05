@@ -7,7 +7,8 @@ Wersja kanoniczna publikowana klientom: Załącznik 2 do DPA oraz pkt 5.1 Polity
 | Podmiot | Siedziba / lokalizacja danych | Cel przetwarzania | Zakres danych | Transfer poza EOG |
 | --- | --- | --- | --- | --- |
 | **Hetzner Online GmbH** | Industriestr. 25, 91710 Gunzenhausen, Niemcy; DC: Niemcy/Finlandia | infrastruktura: control-plane (API, panele, PostgreSQL, Redis, MinIO), węzły hostingowe, serwery VPS (Hetzner Cloud), backup off-site (Storage Box / Object Storage) | wszystkie dane przetwarzane w systemie Verris oraz dane hostowane przez klientów; kopie zapasowe szyfrowane (age) przed wysyłką, klucz przechowywany odrębnie | nie |
-| **Stripe Payments Europe, Ltd.** | 1 Grand Canal Street Lower, Dublin, Irlandia | płatności: karty, Apple Pay, Google Pay, BLIK/Przelewy24 | identyfikatory płatności, 4 ostatnie cyfry karty, status transakcji (bez pełnego numeru karty) | możliwy transfer wspierający do Stripe, Inc. (USA) — SCC + Data Privacy Framework |
+| **Stripe Payments Europe, Ltd.** | 1 Grand Canal Street Lower, Dublin, Irlandia | płatności kartą: zapisane karty, auto-doładowanie portfela, subskrypcje kartą, wpłaty w EUR/USD (także Apple Pay, Google Pay, BLIK/Przelewy24) | identyfikatory płatności, 4 ostatnie cyfry karty, status transakcji (bez pełnego numeru karty) | możliwy transfer wspierający do Stripe, Inc. (USA) — SCC + Data Privacy Framework |
+| **mBank S.A. (Paynow)** | Warszawa, Polska | bramka Paynow — jednorazowe wpłaty w PLN (doładowanie portfela): BLIK, szybki przelew, karta; zwroty | e-mail płacącego, kwota i opis płatności, identyfikatory płatności i zwrotów, status transakcji (danych karty i rachunku nie otrzymujemy) | do potwierdzenia w umowie Paynow [UZUPEŁNIĆ przed publikacją] |
 | **Amazon Web Services EMEA SARL** | 38 Avenue John F. Kennedy, Luksemburg; region usługi: UE (Frankfurt / Irlandia) | Amazon SES — wysyłka e-mail transakcyjnych i kampanii e-mail marketingu | adres odbiorcy, treść wiadomości, status doręczenia | dane w regionie UE; możliwy dostęp wspierający z USA — SCC + Data Privacy Framework |
 | **Cloudflare, Inc.** | 101 Townsend St, San Francisco, USA (PoP w EOG) | Cloudflare Turnstile — ochrona anty-bot rejestracji i logowania | adres IP, sygnały przeglądarki/interakcji | tak — SCC + Data Privacy Framework |
 | **Hosting Concepts B.V. (Openprovider)** | Willemskade 18, Rotterdam, Holandia | rejestracja, odnawianie i transfer domen | dane abonenta domeny (nazwa, adres, e-mail, telefon) | zależnie od rejestru danej domeny |
@@ -36,6 +37,7 @@ Monitoring błędów (GlitchTip self-hosted), kopie zapasowe bazy (MinIO self-ho
 | --- | --- | --- |
 | Hetzner Online GmbH | DPA w panelu konta Hetzner (obejmuje Cloud i Storage Box) | do akceptacji przed startem LIVE |
 | Stripe Payments Europe | Stripe Data Processing Agreement (online) | do akceptacji przed startem LIVE |
+| mBank S.A. (Paynow) | umowa o usługę Paynow w bankowości firmowej mBanku — sprawdzić, czy zawiera powierzenie, czy mBank działa jako odrębny administrator | do ustalenia przy aktywacji Paynow |
 | AWS EMEA SARL | AWS Service Terms + DPA (online), region wymuszony EU | do akceptacji przed startem LIVE |
 | Cloudflare, Inc. | Cloudflare DPA (online) | do akceptacji przed startem LIVE |
 | Hosting Concepts B.V. | DPA rejestratora (Openprovider) | do akceptacji przed startem LIVE |

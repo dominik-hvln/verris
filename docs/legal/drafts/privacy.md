@@ -18,7 +18,7 @@ Kontakt: e-mail `kontakt@verris.pl`, telefon +48 511 589 465. We wszystkich spra
 Adres e-mail, hasło (wyłącznie w postaci hasha bcrypt), imię i nazwisko, opcjonalnie numer telefonu, preferencje językowe, dane uwierzytelniania dwuskładnikowego (sekret TOTP szyfrowany AES-256-GCM, kody zapasowe w postaci hashy, klucze passkey).
 
 ### 2.2 Dane rozliczeniowe
-Dane do faktur (nazwa, adres, NIP przy fakturach na działalność), saldo Portfela i historia transakcji, numery i treść faktur, identyfikator klienta u operatora płatności Stripe oraz identyfikatory zapisanych metod płatności — pełny numer karty zna wyłącznie Stripe; my widzimy tylko cztery ostatnie cyfry i typ karty.
+Dane do faktur (nazwa, adres, NIP przy fakturach na działalność), saldo Portfela i historia transakcji, numery i treść faktur, identyfikator klienta u operatora płatności Stripe, identyfikatory płatności Paynow (mBank) oraz identyfikatory zapisanych metod płatności — pełny numer karty zna wyłącznie Stripe; my widzimy tylko cztery ostatnie cyfry i typ karty.
 
 ### 2.3 Dane techniczne i bezpieczeństwa
 Adres IP, przeglądarka (User-Agent) i znaczniki czasu logowań, dziennik audytu operacji na koncie, alerty bezpieczeństwa, logi doręczeń e-mail, dane sesji (token w cookie httpOnly).
@@ -64,7 +64,8 @@ Podanie danych oznaczonych w formularzach jako wymagane jest warunkiem zawarcia 
 | Podmiot | Siedziba / lokalizacja danych | Cel | Transfer poza EOG |
 | --- | --- | --- | --- |
 | **Hetzner Online GmbH** | Niemcy; centra danych Niemcy/Finlandia (EOG) | infrastruktura serwerowa: control-plane (API, panele, baza danych), węzły hostingowe, serwery VPS (Hetzner Cloud), kopie zapasowe off-site (Storage Box / Object Storage, zaszyfrowane przed wysyłką) | nie |
-| **Stripe Payments Europe, Ltd.** | Irlandia (EOG) | obsługa płatności: karty, Apple Pay, Google Pay, BLIK/Przelewy24 | możliwy transfer wspierający do Stripe, Inc. (USA) — standardowe klauzule umowne (SCC) i certyfikacja Data Privacy Framework |
+| **Stripe Payments Europe, Ltd.** | Irlandia (EOG) | płatności kartą: zapisane karty, automatyczne doładowanie portfela, subskrypcje kartą, wpłaty w EUR i USD | możliwy transfer wspierający do Stripe, Inc. (USA) — standardowe klauzule umowne (SCC) i certyfikacja Data Privacy Framework |
+| **mBank S.A. (Paynow)** | Polska (EOG) | jednorazowe wpłaty w PLN przez bramkę Paynow (BLIK, szybki przelew, karta) i ich zwroty | do potwierdzenia w umowie Paynow [UZUPEŁNIĆ przed publikacją] |
 | **Amazon Web Services EMEA SARL** | Luksemburg; region usługi: UE (Frankfurt/Irlandia) | wysyłka wiadomości e-mail (Amazon SES): powiadomienia transakcyjne i kampanie e-mail marketingu | dane w regionie UE; możliwy dostęp wspierający z USA — SCC i Data Privacy Framework |
 | **Cloudflare, Inc.** | USA; punkty obecności w EOG | ochrona formularzy rejestracji i logowania przed botami (Cloudflare Turnstile) | tak — SCC i Data Privacy Framework |
 | **Hosting Concepts B.V. (Openprovider)** | Holandia (EOG) | rejestracja, odnawianie i transfer domen | zależnie od rejestru domeny (pkt 5.2) |
