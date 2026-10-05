@@ -82,5 +82,15 @@ Wtedy runbook startu i decyzja GO (PB-12) — bez „warunkowego GO”.
       z zaproszenia, `GET /me/beta`); w panelu obsługi znacznik **Beta** na liście zgłoszeń.
 - [x] Widok testerów w panelu admina: stan kodu (czeka / użyty / wygasł / wyłączony), konto, aktywne usługi,
       zgłoszenia z tematem Beta (w tym otwarte), odsetek testerów z aktywną usługą.
-- [ ] Krótka ankieta na koniec (3–5 pytań) — mailem od właściciela; formularz w panelu dopiero, jeśli
+- [x] Krótka ankieta na koniec — mailem od właściciela (treść niżej); formularz w panelu dopiero, jeśli
       testerów będzie więcej niż kilkunastu.
+
+## Ankieta na koniec (mail od właściciela)
+
+1. Czy Twoja strona działa u nas? Jeśli tak — ile mniej więcej trwało od rejestracji do działającej strony?
+2. W którym momencie musiałeś(-aś) zgadywać, szukać pomocy albo napisać do nas? Co by Ci wtedy pomogło?
+3. Co działało lepiej niż u Twojego obecnego (albo poprzedniego) hostingu, a co gorzej?
+4. Asystent w panelu: czy jego odpowiedzi rozwiązały problem? Przykład dobrej i słabej odpowiedzi, jeśli pamiętasz.
+5. Czy zostałbyś(-abyś) u nas za 45 zł miesięcznie? Jeśli nie — czego brakuje?
+
+Odpowiedzi trafiają do listy poprawek z podziałem „przed GO” / „po starcie” (`docs/ops/RUNBOOK_STARTU.md`).
