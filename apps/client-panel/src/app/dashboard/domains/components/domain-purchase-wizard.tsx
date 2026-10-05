@@ -80,7 +80,7 @@ function sanitizeLabel(value: string) {
     .replace(/^-+|-+$/g, '');
 }
 
-function TldResultCard({
+export function TldResultCard({
   result,
   label,
   selected,
