@@ -21,6 +21,14 @@ BLEDY=0
 OLD_KERNEL="$(uname -r)"
 blad() { log "BŁĄD: $*"; BLEDY=$((BLEDY + 1)); }
 
+# 0) Agent zadań z control-plane (podpisany, verris-fetch). Bez tego nowe pola zadań (np. lista plików
+#    kwarantanny) wymagały ręcznej instalacji agenta przez SSH na każdym węźle.
+if verris-fetch /agent/tasks/agent-install/script /usr/local/bin/verris-agent-install.sh 60; then
+  bash /usr/local/bin/verris-agent-install.sh >/dev/null 2>&1 && log "Agent zadań zaktualizowany." || blad "instalacja agenta zadań"
+else
+  blad "pobranie instalatora agenta zadań (verris-fetch)"
+fi
+
 # 1) DirectAdmin + LiteSpeed + PHP przez CustomBuild (kanał stable).
 CB=/usr/local/directadmin/custombuild
 if [ -d "$CB" ]; then

@@ -53,6 +53,7 @@ import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'cla
 import { stosJakoEnv } from './stos-wezla.js';
 import { StosWezlaService } from './stos-wezla.service.js';
 import { linijkaAuthorizedKeys, PodpisOdpowiedziInterceptor } from './podpis-skryptow.js';
+import { renderNodeTasksAgentInstallScript } from './node-tasks-agent.install.js';
 
 class OnboardReportDto {
   @IsBoolean()
@@ -312,6 +313,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   dbUpgradeScript() {
     return loadDbUpgradeScript();
+  }
+
+  /** Instalator agenta zadań — aktualizacja floty (node-update) odświeża nim agenta bez SSH. */
+  @Get('agent-install/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  agentInstallScript() {
+    return renderNodeTasksAgentInstallScript();
   }
 
   /** NODE-6 — fleet update script (CustomBuild + yum → latest-stable). */

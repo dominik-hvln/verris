@@ -507,9 +507,11 @@ function renderInstallTaskRunScriptFile(): string {
   const runScript = renderVerrisTaskRunScript();
   return `${renderInstalacjaPodpisu()}
 TASK_RUN_PATH="/usr/local/bin/verris-task-run.sh"
-cat > "$TASK_RUN_PATH" <<'__VERRIS_TASK_RUN_SCRIPT__'
+# Zapis atomowy (nowy plik + mv): instalacja z zadania aktualizacji floty biegnie, gdy verris-task-run.sh
+# jest wykonywany — „cat >” na tym samym pliku podmieniłby treść czytaną przez działający bash.
+cat > "$TASK_RUN_PATH.new" <<'__VERRIS_TASK_RUN_SCRIPT__'
 ${runScript}__VERRIS_TASK_RUN_SCRIPT__
-chmod 755 "$TASK_RUN_PATH"
+chmod 755 "$TASK_RUN_PATH.new" && mv -f "$TASK_RUN_PATH.new" "$TASK_RUN_PATH"
 echo "[verris] Installed $TASK_RUN_PATH"`;
 }
 
@@ -517,9 +519,9 @@ function renderInstallTasksScriptFile(): string {
   const tasksScript = renderVerrisTasksScript();
   return `${renderInstallTaskRunScriptFile()}
 TASKS_PATH="/usr/local/bin/verris-tasks.sh"
-cat > "$TASKS_PATH" <<'__VERRIS_TASKS_SCRIPT__'
+cat > "$TASKS_PATH.new" <<'__VERRIS_TASKS_SCRIPT__'
 ${tasksScript}__VERRIS_TASKS_SCRIPT__
-chmod 755 "$TASKS_PATH"
+chmod 755 "$TASKS_PATH.new" && mv -f "$TASKS_PATH.new" "$TASKS_PATH"
 echo "[verris] Installed $TASKS_PATH"`;
 }
 
