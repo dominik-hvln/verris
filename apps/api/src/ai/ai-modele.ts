@@ -18,6 +18,8 @@ export interface ZnanyModelAi {
 }
 
 export const ZNANE_MODELE_AI: ZnanyModelAi[] = [
+  { dostawca: 'openai', model: 'gpt-6-luna', nazwa: 'GPT-6 Luna', cenaWej: 0.1, cenaWyj: 0.5 },
+  { dostawca: 'openai', model: 'gpt-6-astra', nazwa: 'GPT-6 Astra', cenaWej: 10, cenaWyj: 50 },
   { dostawca: 'openai', model: 'gpt-5.6-luna', nazwa: 'GPT-5.6 Luna', cenaWej: 0.2, cenaWyj: 1.2 },
   { dostawca: 'anthropic', model: 'claude-haiku-4-5-20251001', nazwa: 'Claude Haiku 4.5', cenaWej: 1, cenaWyj: 5 },
   { dostawca: 'anthropic', model: 'claude-sonnet-5-5', nazwa: 'Claude Sonnet 5.5', cenaWej: 2, cenaWyj: 10 },
@@ -37,13 +39,14 @@ export interface KonfiguracjaAi {
 }
 
 /**
- * Decyzja 2026-10-05: mocniejsze modele, jeden dostawca. Szybki (czat klienta, komentarz do prognozy) = Sonnet 5.5,
- * analiza (szkice odpowiedzi BOK) = Opus 5.5. Ceny: platform.claude.com/docs/en/about-claude/pricing.
+ * Decyzja 2026-10-05: szybki (czat klienta i obsługi) = GPT-6 Luna z krótkim rozumowaniem,
+ * analiza (komentarz do prognozy, szkice odpowiedzi BOK) = Claude Sonnet 5.5 (Opus 5.5 — jednym kliknięciem w adminie).
+ * Ceny: developers.openai.com/api/docs/models/gpt-6-luna, platform.claude.com/docs/en/about-claude/pricing.
  * Budżet platformy ~30 zł/mies. na start (beta); podnosić razem z liczbą klientów.
  */
 export const DOMYSLNA_KONFIGURACJA_AI: KonfiguracjaAi = {
-  szybki: { dostawca: 'anthropic', model: 'claude-sonnet-5-5' },
-  analiza: { dostawca: 'anthropic', model: 'claude-opus-5-5' },
+  szybki: { dostawca: 'openai', model: 'gpt-6-luna' },
+  analiza: { dostawca: 'anthropic', model: 'claude-sonnet-5-5' },
   limitKlientaUsd: 2,
   limitPlatformyUsd: 8,
   ceny: Object.fromEntries(ZNANE_MODELE_AI.map((m) => [m.model, { wej: m.cenaWej, wyj: m.cenaWyj }])),

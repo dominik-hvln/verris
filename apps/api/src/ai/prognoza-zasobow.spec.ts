@@ -39,7 +39,7 @@ describe('AiService.serviceForecast — AI komentuje gotowe liczby', () => {
   const sub = { id: 's1', plan, usageMetrics: pomiary };
   const prisma = {
     subscription: { findFirst: vi.fn(async () => sub) },
-    aiInteractionLog: { create: vi.fn(async () => ({})) },
+    aiInteractionLog: { create: vi.fn(async () => ({})), findFirst: vi.fn(async (): Promise<{ output: unknown } | null> => null) },
   };
   const audit = { record: vi.fn(async () => undefined) };
 
@@ -51,20 +51,29 @@ describe('AiService.serviceForecast — AI komentuje gotowe liczby', () => {
     expect(r.summary).toMatch(/Najbliżej limitu/);
   });
 
-  it('z AI: szybki poziom, mały prompt z gotowymi liczbami; AI nie zmienia liczb', async () => {
+  it('z AI: poziom analiza, mały prompt z gotowymi liczbami; AI nie zmienia liczb', async () => {
     const complete = vi.fn(async () => ({
       wynik: { summary: 'Dysk zaraz się zapełni.', recommendations: ['Usuń stare kopie'], notes: { DISK: 'Rośnie szybko.' }, resources: [{ resource: 'DISK', currentPct: 1 }] },
       dostawca: 'openai', model: 'm', wej: 1, wyj: 1, kosztUsd: 0,
     }));
     const provider = { dostepny: vi.fn(async () => true), przekroczonyLimitKlienta: vi.fn(async () => null), complete };
     const r = await new AiService(prisma as never, provider as never, audit as never).serviceForecast('s1', 'u1', 'u1');
-    expect(complete).toHaveBeenCalledWith(expect.anything(), 'szybki');
+    expect(complete).toHaveBeenCalledWith(expect.objectContaining({ user: expect.any(String) }));
     const wyslane = JSON.parse((complete.mock.calls[0] as unknown as [{ user: string }])[0].user) as { resources: unknown[] };
     expect(wyslane.resources).toHaveLength(4);
     expect(r.summary).toBe('Dysk zaraz się zapełni.');
     expect(r.recommendations).toEqual(['Usuń stare kopie']);
     const disk = r.resources.find((x) => x.resource === 'DISK')!;
     expect(disk).toMatchObject({ currentPct: 94, note: 'Rośnie szybko.' });
+  });
+
+  it('komentarz AI sprzed < 3 h: bez nowego wywołania (odświeżanie nie kosztuje)', async () => {
+    prisma.aiInteractionLog.findFirst.mockResolvedValueOnce({ output: { summary: 'Z pamięci.', recommendations: [] } });
+    const complete = vi.fn();
+    const provider = { dostepny: vi.fn(async () => true), przekroczonyLimitKlienta: vi.fn(async () => null), complete };
+    const r = await new AiService(prisma as never, provider as never, audit as never).serviceForecast('s1', 'u1', 'u1');
+    expect(complete).not.toHaveBeenCalled();
+    expect(r.summary).toBe('Z pamięci.');
   });
 });
 
@@ -77,7 +86,7 @@ describe('budżet AI całej platformy', () => {
       aiInteractionLog: { aggregate: vi.fn(async () => ({ _sum: { costUsd: 20.5 } })) },
       user: { findMany: vi.fn(async () => [{ id: 'admin1' }]) },
     };
-    const s = new AiProviderService({ get: (k: string) => (k === 'ANTHROPIC_API_KEY' ? 'sk' : undefined) } as never, prisma as never, notifications as never);
+    const s = new AiProviderService({ get: (k: string) => (k === 'AI_API_KEY' ? 'sk' : undefined) } as never, prisma as never, notifications as never);
     await expect(s.chat({ system: 's', messages: [{ role: 'user', content: 'x' }] })).rejects.toThrow(/niedostępny/);
     expect(global.fetch).not.toHaveBeenCalled();
     expect(notifications.create).toHaveBeenCalledWith(expect.objectContaining({ userId: 'admin1', dedupeKey: 'ai-budzet-platformy' }));

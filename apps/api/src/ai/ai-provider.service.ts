@@ -196,7 +196,7 @@ export class AiProviderService {
     const r =
       dostawca === 'anthropic'
         ? await this.anthropic(key, model, system, messages, json, maxTokens ?? (poziom === 'szybki' ? 2000 : 8000))
-        : await this.openai(key, model, system, messages, json, maxTokens ?? (poziom === 'szybki' ? 700 : 4000));
+        : await this.openai(key, model, system, messages, json, maxTokens ?? (poziom === 'szybki' ? 2000 : 4000));
     return { ...r, dostawca, model, kosztUsd: kosztUsd(konf, model, r.wej, r.wyj) };
   }
 
@@ -276,10 +276,12 @@ export class AiProviderService {
 }
 
 /**
- * Modele z rozumowaniem (OpenAI gpt-5*, o*) przyjmują `max_completion_tokens` i `reasoning_effort` zamiast
- * `max_tokens`/`temperature`. `none` — bez tokenów rozumowania: tanio i szybko (gpt-5.6-luna: none…max).
+ * Modele z rozumowaniem (OpenAI gpt-5*, gpt-6*, o*) przyjmują `max_completion_tokens` i `reasoning_effort` zamiast
+ * `max_tokens`/`temperature`. gpt-5*: `none` — tanio i szybko. gpt-6*: `low` — krótkie rozumowanie za ułamek grosza
+ * (developers.openai.com/api/docs/models/gpt-6-luna: none…max, domyślnie medium).
  */
 export function parametryOpenAi(model: string, temperature: number, maxTokens: number): Record<string, unknown> {
+  if (/^gpt-[6-9]/.test(model)) return { reasoning_effort: 'low', max_completion_tokens: maxTokens };
   if (/^(gpt-5|o\d)/.test(model)) return { reasoning_effort: 'none', max_completion_tokens: maxTokens };
   return { temperature, max_tokens: maxTokens };
 }

@@ -5,7 +5,6 @@ import { createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { AiProviderService } from './ai-provider.service.js';
-import type { PoziomAi } from './ai-modele.js';
 import { opisPrognozy, policzPrognoze } from './prognoza-zasobow.js';
 
 @Injectable()
@@ -74,7 +73,7 @@ export class AiService {
       );
     }
 
-    // Liczby liczy panel (regresja po pomiarach); AI tylko komentuje gotowe liczby — szybki poziom,
+    // Liczby liczy panel (regresja po pomiarach); AI (poziom analiza) tylko komentuje gotowe liczby —
     // mały prompt. Bez AI (brak klucza, limit, błąd) klient dostaje prognozę z opisem bez AI.
     const liczby = policzPrognoze(subscription.plan, subscription.usageMetrics);
     const prognoza: ServiceForecastDto = {
@@ -85,7 +84,7 @@ export class AiService {
       summary: opisPrognozy(liczby.resources),
       recommendations: [],
     };
-    if (!(await this.provider.dostepny('szybki'))) return prognoza;
+    if (!(await this.provider.dostepny('analiza'))) return prognoza;
     if (await this.provider.przekroczonyLimitKlienta(userId)) return prognoza;
 
     const system = [
@@ -97,8 +96,20 @@ export class AiService {
     ].join('\n');
     const user = JSON.stringify({ plan: subscription.plan.name, ...liczby });
     try {
+      // „Odśwież prognozę” co chwilę nie płaci za AI: komentarz z ostatnich 3 h (pomiary są godzinowe).
+      const swiezy = await this.prisma.aiInteractionLog.findFirst({
+        where: {
+          feature: 'service_forecast',
+          subscriptionId,
+          status: AiInteractionStatus.COMPLETED,
+          createdAt: { gte: new Date(Date.now() - 3 * 3_600_000) },
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { output: true },
+      });
       const out = asRecord(
-        await this.runLogged({
+        swiezy?.output ??
+          (await this.runLogged({
           feature: 'service_forecast',
           actorUserId,
           userId,
@@ -106,8 +117,7 @@ export class AiService {
           inputSummary: { subscriptionId, points: subscription.usageMetrics.length },
           system,
           user,
-          poziom: 'szybki',
-        }),
+          })),
       );
       const notes = asRecord(out.notes);
       return {
@@ -135,11 +145,10 @@ export class AiService {
     inputSummary: Prisma.InputJsonValue;
     system: string;
     user: string;
-    poziom?: PoziomAi;
   }) {
     const promptHash = hash(`${input.system}\n${input.user}`);
     try {
-      const r = await this.provider.complete({ system: input.system, user: input.user }, input.poziom);
+      const r = await this.provider.complete({ system: input.system, user: input.user });
       const output = r.wynik;
       await this.prisma.aiInteractionLog.create({
         data: {
@@ -168,7 +177,7 @@ export class AiService {
       return output;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      const opis = await this.provider.opis(input.poziom ?? 'analiza');
+      const opis = await this.provider.opis('analiza');
       await this.prisma.aiInteractionLog.create({
         data: {
           feature: input.feature,

@@ -93,7 +93,7 @@ export class AiUstawieniaAdminController {
       ostatnie30Dni: grupy
         .map((g) => ({
           funkcja: g.feature,
-          poziom: g.feature.startsWith('chatbot_') || g.feature === 'service_forecast' ? 'szybki' : 'analiza',
+          poziom: g.feature.startsWith('chatbot_') ? 'szybki' : 'analiza',
           model: g.model ?? '—',
           wywolania: g._count._all,
           tokenyWej: g._sum.inputTokens ?? 0,

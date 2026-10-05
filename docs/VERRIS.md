@@ -21,11 +21,12 @@ zamiast ~5 000 na poziomie analizy). Bez AI prognoza działa z opisem panelu. Od
 odłożone: przy wyłączonych embeddingach (beta) dopasowanie po słowach dawałoby błędne odpowiedzi, a pytanie w czacie
 kosztuje ułamek grosza. Własny model LLM — nie na start (CPU control-plane za słaby, serwer z GPU droższy niż API przy
 naszej skali); wracamy przy wydatkach API rzędu 150 €/mies. albo dla danych, które nie mogą wyjść do podprocesora.
-**Modele (ta sama decyzja):** szybki = Claude Sonnet 5.5 (czat klienta, komentarz do prognozy), analiza = Claude
-Opus 5.5 (szkice odpowiedzi BOK); jeden dostawca — na start wystarczy `ANTHROPIC_API_KEY`, bez klucza OpenAI
-(OpenAI nie jest wtedy podprocesorem, embeddingi zostają wyłączone, baza wiedzy po słowach). Budżet platformy
-domyślnie 8 USD (~30 zł) na betę; przy starcie ustawić ok. 0,08–0,10 USD × liczba klientów. Zmiana modelu = admin
-→ Asystent AI, bez wdrożenia.
+**Modele (ta sama decyzja, po porównaniu cen):** szybki = **GPT-6 Luna** (czat klienta i obsługi; 0,1/0,5 USD,
+`reasoning_effort: low`), analiza = **Claude Sonnet 5.5** (komentarz do prognozy, szkice odpowiedzi BOK; Opus 5.5
+jednym kliknięciem, ok. 2× drożej). Komentarz AI do prognozy trzymany 3 h — „Odśwież” nie płaci ponownie.
+Szacunek przy 100 klientach (10 pytań, 8 prognoz, 1,5 zgłoszenia na klienta): ok. 33 zł/mies. (z Opusem ok. 63 zł).
+Potrzebne oba klucze; OpenAI i Anthropic jako podprocesorzy w dokumentach przed otwartą betą. Budżet platformy
+domyślnie 8 USD na betę; przy starcie ok. 0,08–0,10 USD × liczba klientów. Zmiana modelu = admin → Asystent AI.
 
 ### 2026-10-04 — harmonogram startu: wariant A (PB-12, PB-26, PB-40)
 Decyzja właściciela. Kod gotowy w ~91%, więc termin trzymał tylko zakup serwera. **AX102 kupujemy 9.11.2026**

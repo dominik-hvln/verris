@@ -10,8 +10,8 @@ type Poziom = 'szybki' | 'analiza';
 
 /** Typowe wywołanie (tokeny) — do szacunków; realne liczby są w tabeli kosztów poniżej. */
 const TYPOWE: Record<Poziom, { wej: number; wyj: number; opis: string }> = {
-  szybki: { wej: 3000, wyj: 300, opis: 'pytanie w czacie z kontekstem bazy wiedzy ≈ 3 000 tokenów wej. / 300 wyj.; komentarz do prognozy ≈ 600 / 300' },
-  analiza: { wej: 4000, wyj: 1500, opis: 'szkic odpowiedzi na zgłoszenie ≈ 4 000 tokenów wej. / 1 500 wyj.' },
+  szybki: { wej: 3000, wyj: 300, opis: 'pytanie w czacie z kontekstem bazy wiedzy ≈ 3 000 tokenów wej. / 300 wyj.' },
+  analiza: { wej: 4000, wyj: 1500, opis: 'szkic odpowiedzi na zgłoszenie ≈ 4 000 / 1 500 tokenów; komentarz do prognozy ≈ 600 / 500' },
 };
 const INNY = '__inny__';
 const DOSTAWCY: { value: DostawcaAi; label: string }[] = [

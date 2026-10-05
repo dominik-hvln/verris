@@ -14,10 +14,10 @@ describe('AiProviderService — dwa poziomy (L-11)', () => {
 
   it('bez klucza dostawcy poziomu: odmowa i zero ruchu sieciowego', async () => {
     const s = new AiProviderService(konfig({ AI_API_KEY: 'sk-test' }) as never);
-    // oba poziomy domyślnie = Anthropic (2026-10-05), a klucza Anthropic brak
+    // analiza domyślnie = Anthropic, a klucza Anthropic brak
     await expect(s.complete({ system: 'x', user: '{}' })).rejects.toBeInstanceOf(ServiceUnavailableException);
     expect(await s.dostepny('analiza')).toBe(false);
-    expect(await s.dostepny('szybki')).toBe(false);
+    expect(await s.dostepny('szybki')).toBe(true);
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
@@ -32,13 +32,13 @@ describe('AiProviderService — dwa poziomy (L-11)', () => {
     const s = new AiProviderService(konfig({ AI_API_KEY: 'sk-test', AI_API_BASE_URL: 'https://ai.example.com/v1' }) as never, prisma as never);
     const r = await s.chat({ system: 's', messages: [{ role: 'user', content: 'hej' }] });
     expect((global.fetch as Mock).mock.calls[0][0]).toBe('https://ai.example.com/v1/chat/completions');
-    expect(wyslane()).toMatchObject({ model: 'gpt-5.6-luna', reasoning_effort: 'none', max_completion_tokens: 700 });
+    expect(wyslane()).toMatchObject({ model: 'gpt-5.6-luna', reasoning_effort: 'none', max_completion_tokens: 2000 });
     expect(wyslane()).not.toHaveProperty('temperature');
     expect(r).toMatchObject({ wynik: 'cześć', dostawca: 'openai', model: 'gpt-5.6-luna', wej: 1000, wyj: 100 });
     expect(r.kosztUsd).toBeCloseTo((1000 * 0.2 + 100 * 1.2) / 1e6, 12);
   });
 
-  it('analiza = Anthropic Opus 5.5: Messages API, bez temperature, JSON także w bloku ```', async () => {
+  it('analiza = Anthropic Sonnet 5.5: Messages API, bez temperature, JSON także w bloku ```', async () => {
     (global.fetch as Mock).mockResolvedValue(
       odp({
         content: [{ type: 'thinking', thinking: '…' }, { type: 'text', text: '```json\n{"ok":true}\n```' }],
@@ -50,10 +50,10 @@ describe('AiProviderService — dwa poziomy (L-11)', () => {
     const [url, init] = (global.fetch as Mock).mock.calls[0] as [string, { headers: Record<string, string> }];
     expect(url).toBe('https://api.anthropic.com/v1/messages');
     expect(init.headers).toMatchObject({ 'x-api-key': 'sk-ant', 'anthropic-version': '2023-06-01' });
-    expect(wyslane()).toMatchObject({ model: 'claude-opus-5-5', max_tokens: 8000 });
+    expect(wyslane()).toMatchObject({ model: 'claude-sonnet-5-5', max_tokens: 8000 });
     expect(wyslane()).not.toHaveProperty('temperature');
     expect(r.wynik).toEqual({ ok: true });
-    expect(r.kosztUsd).toBeCloseTo((1000 * 4 + 500 * 20) / 1e6, 12);
+    expect(r.kosztUsd).toBeCloseTo((1000 * 2 + 500 * 10) / 1e6, 12);
   });
 
   it('model z ustawień admina zastępuje domyślny (nowsza wersja = zmiana ustawienia, nie kodu)', async () => {
@@ -86,6 +86,8 @@ describe('AiProviderService — dwa poziomy (L-11)', () => {
   it('parametry OpenAI: modele bez rozumowania dostają temperature i max_tokens', () => {
     expect(parametryOpenAi('mistral-small-latest', 0.3, 700)).toEqual({ temperature: 0.3, max_tokens: 700 });
     expect(parametryOpenAi('o4-mini', 0.3, 700)).toEqual({ reasoning_effort: 'none', max_completion_tokens: 700 });
+    // gpt-6 to model z rozumowaniem: temperature/max_tokens dałyby 400
+    expect(parametryOpenAi('gpt-6-luna', 0.3, 2000)).toEqual({ reasoning_effort: 'low', max_completion_tokens: 2000 });
   });
 
   it('konfiguracja z bazy: śmieci i wstrzyknięcia wracają do wartości domyślnych', () => {
