@@ -50,7 +50,8 @@ export function EcoReportCard({ report, failed = false }: { report: EcoReportDto
         )}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Karta stoi w wąskiej kolumnie bocznej — zawsze 2 kolumny, wartości w jednej linii (t1 05.10: nie mieściło się). */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
         <Stat label="Zużycie energii" value={`${liczba(report.energyKwh, 2)} kWh`} />
         <Stat label="Ślad CO₂e" value={`${liczba(report.co2Kg, 2)} kg`} />
         <Stat
@@ -70,13 +71,13 @@ export function EcoReportCard({ report, failed = false }: { report: EcoReportDto
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 text-xs text-neutral-500">
+      <div className="space-y-1 text-xs text-neutral-500">
         <div>
           Realne zużycie: <span className="text-neutral-300">{liczba(report.cpuCoreHours, 1)} rdzenio-godz. CPU</span>,{' '}
           <span className="text-neutral-300">śr. {liczba(report.avgRamGb, 2)} GB RAM</span>{' '}
           ({report.samples.toLocaleString('pl-PL')} {plForm(report.samples, 'próbka', 'próbki', 'próbek')})
         </div>
-        <div className="text-right">
+        <div>
           Punkt odniesienia: {liczba(report.baselineEnergyKwh, 2)} kWh (parametry planu 24/7)
         </div>
       </div>
@@ -101,12 +102,10 @@ function Stat({
   accent?: boolean;
 }) {
   return (
-    <div>
-      <div className="text-[11px] uppercase tracking-wider text-neutral-500">{label}</div>
-      <div className={`mt-1 text-xl font-extrabold ${accent ? 'text-emerald-300' : 'text-white'}`}>
-        {value}
-        {sub && <span className="ml-1.5 text-xs font-semibold text-emerald-400">{sub}</span>}
-      </div>
+    <div className="min-w-0">
+      <div className="text-[11px] leading-tight uppercase tracking-wider text-neutral-500">{label}</div>
+      <div className={`mt-1 whitespace-nowrap text-lg font-extrabold ${accent ? 'text-emerald-300' : 'text-white'}`}>{value}</div>
+      {sub && <div className="text-xs font-semibold text-emerald-400">{sub}</div>}
     </div>
   );
 }
