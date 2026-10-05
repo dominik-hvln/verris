@@ -1,3 +1,4 @@
+import { clientNavContextFromSidebar } from '@/lib/client-nav-access';
 import { DashboardHome } from './dashboard-home';
 import { getDashboardSnapshot } from './dashboard-data';
 import { getOnboardingSnapshot } from './onboarding-data';
@@ -15,7 +16,7 @@ export default async function DashboardPage() {
   return (
     <DashboardHome
       snapshot={snapshot}
-      aside={<OnboardingWizard key="pierwsze-kroki" snapshot={onboarding} hidden={user?.onboardingHidden ?? false} />}
+      aside={<OnboardingWizard key="pierwsze-kroki" snapshot={onboarding} hidden={user?.onboardingHidden ?? false} navCtx={clientNavContextFromSidebar(user)} />}
     />
   );
 }

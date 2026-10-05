@@ -20,12 +20,13 @@ import {
   podsumujKroki,
   podtytulKrokow,
   procentKrokow,
-  zbudujKroki,
+  krokiDozwolone,
   type StanKroku,
 } from './onboarding-kroki';
 
 import { savePanelPreferences } from './sidebar-actions';
 import { clientFeatures } from '@/lib/client-features';
+import { canAccessDashboardRoute, type ClientNavContext } from '@/lib/client-nav-access';
 
 /** Dawny klucz z przeglądarki — przenoszony raz na konto (PROD-02), potem usuwany. */
 const DISMISS_KEY = 'verris_onboarding_dismissed_v1';
@@ -63,7 +64,7 @@ function znacznik(stan: StanKroku) {
  * PROD-02 — „schowany” żyje na koncie, nie w przeglądarce. Schowanie to nie
  * usunięcie: pasek postępu w sidebarze przywraca baner jednym kliknięciem.
  */
-export function OnboardingWizard({ snapshot, hidden }: { snapshot: OnboardingSnapshot; hidden: boolean }) {
+export function OnboardingWizard({ snapshot, hidden, navCtx = null }: { snapshot: OnboardingSnapshot; hidden: boolean; navCtx?: ClientNavContext | null }) {
   const [dismissed, setDismissed] = useState(hidden);
 
   // Nowa wartość z konta nadpisuje lokalny stan — w renderze, nie efektem.
@@ -108,7 +109,7 @@ export function OnboardingWizard({ snapshot, hidden }: { snapshot: OnboardingSna
     );
   }
 
-  const kroki = zbudujKroki(snapshot);
+  const kroki = krokiDozwolone(snapshot, (href) => !navCtx || canAccessDashboardRoute(href, navCtx));
   const p = podsumujKroki(kroki);
   const pct = procentKrokow(p) ?? 0;
 

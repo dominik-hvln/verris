@@ -154,6 +154,14 @@ export function zbudujKroki(snapshot: OnboardingSnapshot): KrokOnboardingu[] {
   ];
 }
 
+/**
+ * Kroki, do których konto ma dostęp — wspólne dla banera na pulpicie i paska w menu.
+ * PB-28: klient rozliczany poza Verris nie ma płatności w panelu, więc nie dostaje kroku „Zabezpiecz odnowienie”.
+ */
+export function krokiDozwolone(snapshot: OnboardingSnapshot, dozwolony: (href: string) => boolean = () => true): KrokOnboardingu[] {
+  return zbudujKroki(snapshot).filter((k) => dozwolony(k.href.split('?')[0]));
+}
+
 export function podsumujKroki(kroki: KrokOnboardingu[]): PodsumowanieKrokow {
   const zrobione = kroki.filter((k) => k.stan === 'zrobione').length;
   const nieznane = kroki.filter((k) => k.stan === 'nieznane').length;
@@ -262,8 +270,7 @@ export function najnizszyPostep(
 ): PostepUslugi | null {
   let najnizszy: PostepUslugi | null = null;
   for (const usluga of uslugi) {
-    const kroki = zbudujKroki(usluga.onboarding).filter((k) => dozwolony(k.href.split('?')[0]));
-    const procent = procentKrokow(podsumujKroki(kroki));
+    const procent = procentKrokow(podsumujKroki(krokiDozwolone(usluga.onboarding, dozwolony)));
     if (procent === null) continue;
     if (!najnizszy || procent < najnizszy.procent) najnizszy = { usluga, procent };
   }
