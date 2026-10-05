@@ -58,7 +58,7 @@ export class BillingAdminController {
   @Roles(Role.ADMIN, Role.STAFF)
   @StaffPerm('BILLING_MANAGE')
   zwrotPaynow(@Body() dto: ZwrotPaynowDto, @CurrentUser() actor: { userId: string }) {
-    return this.billing.zwrocPlatnoscPaynow({ walletTxId: dto.walletTxId, kwota: dto.kwota ?? null, actorUserId: actor.userId });
+    return this.billing.zwrocPlatnoscPaynow({ walletTxId: dto.walletTxId, kwota: dto.kwota ?? null, actorUserId: actor.userId, wPaneluPaynow: dto.wPaneluPaynow === true });
   }
 
   @Post('promo-codes')

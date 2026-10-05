@@ -1,4 +1,4 @@
-import { IsIn, IsNumber, IsOptional, IsPositive, IsString, IsUUID, Length, Matches, Max } from 'class-validator';
+import { IsBoolean, IsIn, IsNumber, IsOptional, IsPositive, IsString, IsUUID, Length, Matches, Max } from 'class-validator';
 
 export class CreateTopupCheckoutDto {
   @IsNumber({ maxDecimalPlaces: 2 })
@@ -39,6 +39,11 @@ export class ZwrotPaynowDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @IsPositive()
   kwota?: number;
+
+  /** Zwrot już wykonany w panelu Paynow — tylko cofnięcie K, bez zlecenia w API. */
+  @IsOptional()
+  @IsBoolean()
+  wPaneluPaynow?: boolean;
 }
 
 /** M-09/M-10 — podgląd: stawka VAT nabywcy i ile K wyjdzie z wpłaty. */

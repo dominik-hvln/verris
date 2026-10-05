@@ -247,6 +247,7 @@ export async function zwrotPaynowAction(
   userId: string,
   walletTxId: string,
   kwotaTekst: string,
+  wPaneluPaynow = false,
 ): Promise<{ ok: true; kwota: string; status: string } | ActionResultErr> {
   const t = kwotaTekst.trim().replace(",", ".");
   const kwota = t === "" ? undefined : Number(t);
@@ -256,7 +257,7 @@ export async function zwrotPaynowAction(
   try {
     const r = await adminApi<{ refundId: string; status: string; kwota: string }>(`/admin/billing/paynow/zwrot`, {
       method: "POST",
-      body: { walletTxId, ...(kwota !== undefined ? { kwota: Math.round(kwota * 100) / 100 } : {}) },
+      body: { walletTxId, ...(kwota !== undefined ? { kwota: Math.round(kwota * 100) / 100 } : {}), ...(wPaneluPaynow ? { wPaneluPaynow: true } : {}) },
     });
     revalidatePath(`/customers/${userId}`);
     return { ok: true, kwota: r.kwota, status: r.status };

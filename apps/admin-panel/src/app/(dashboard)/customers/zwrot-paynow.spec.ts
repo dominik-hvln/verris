@@ -20,6 +20,12 @@ describe("zwrotPaynowAction", () => {
     expect(adminApi.mock.calls[1][1].body).toEqual({ walletTxId: "wtx-1", kwota: 20.5 });
   });
 
+  it("zwrot zrobiony w panelu Paynow → flaga wPaneluPaynow", async () => {
+    adminApi.mockResolvedValue({ refundId: "panel-x", status: "WYKONANY_W_PANELU", kwota: "25.00" });
+    await zwrotPaynowAction("u1", "wtx-1", "", true);
+    expect(adminApi).toHaveBeenLastCalledWith("/admin/billing/paynow/zwrot", { method: "POST", body: { walletTxId: "wtx-1", wPaneluPaynow: true } });
+  });
+
   it("zła kwota → błąd bez API; błąd API → komunikat API", async () => {
     expect((await zwrotPaynowAction("u1", "wtx-1", "-3")).ok).toBe(false);
     expect((await zwrotPaynowAction("u1", "wtx-1", "abc")).ok).toBe(false);

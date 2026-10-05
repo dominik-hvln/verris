@@ -298,6 +298,30 @@ describe('Paynow — zwrot z panelu admina', () => {
     expect(fetchMock).toHaveBeenCalledTimes(wywolan);
   });
 
+  it('zwrot zrobiony w panelu Paynow (t1 05.10): bez wywołania API, K cofnięte raz także przy dwukliku', async () => {
+    const s = zbuduj();
+    const rek = await zaksiegowana(s);
+    s.prisma.walletTransaction.findUniqueOrThrow.mockResolvedValue({
+      id: 'wtx-1', userId: 'u1', amount: new Prisma.Decimal('45.67'), metadata: { wplata: { kwota: '45.67' } },
+    });
+    s.tx.$queryRaw
+      .mockResolvedValueOnce([{ zwroconoMinor: 0, zwrotyIds: [] }])
+      .mockResolvedValueOnce([{ walletBalance: new Prisma.Decimal(100) }]);
+    const wywolan = fetchMock.mock.calls.length;
+    const wynik = await s.svc.zwrocPlatnoscPaynow({ walletTxId: 'wtx-1', actorUserId: 'admin1', wPaneluPaynow: true });
+    expect(fetchMock).toHaveBeenCalledTimes(wywolan);
+    expect(wynik).toMatchObject({ status: 'WYKONANY_W_PANELU', kwota: '45.67' });
+    expect(s.ledger.zapiszWpis).toHaveBeenCalledTimes(1);
+    expect(s.ledger.zapiszWpis.mock.calls[0][1]).toMatchObject({ description: expect.stringMatching(/panelu Paynow/) });
+    const id = s.rekordy.get(rek.id)!.zwrotyIds[0];
+    expect(id).toMatch(/^panel-/);
+    // dwuklik: rekord jeszcze sprzed pierwszego zapisu (ten sam stan) → ten sam klucz → bez drugiego cofnięcia
+    s.prisma.paynowPlatnosc.findUnique.mockResolvedValueOnce({ ...s.rekordy.get(rek.id)!, zwroconoMinor: 0 });
+    s.tx.$queryRaw.mockResolvedValueOnce([{ zwroconoMinor: 4567, zwrotyIds: [id] }]);
+    await s.svc.zwrocPlatnoscPaynow({ walletTxId: 'wtx-1', actorUserId: 'admin1', wPaneluPaynow: true });
+    expect(s.ledger.zapiszWpis).toHaveBeenCalledTimes(1);
+  });
+
   it('wpis spoza Paynow → błąd', async () => {
     const s = zbuduj();
     await expect(s.svc.zwrocPlatnoscPaynow({ walletTxId: 'inny', actorUserId: 'admin1' })).rejects.toThrow(BadRequestException);

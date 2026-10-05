@@ -745,7 +745,12 @@ export class BillingService {
    * samymi regułami co zwrot w Stripe ({@link cofnijDoladowanie}): proporcjonalnie, nie poniżej zera.
    * https://docs.paynow.pl/docs/v3/refunds#make-a-refund
    */
-  async zwrocPlatnoscPaynow(i: { walletTxId: string; kwota?: number | null; actorUserId: string }) {
+  /**
+   * `wPaneluPaynow`: zwrot zrobiony ręcznie w panelu sprzedawcy Paynow — API go nie zgłasza
+   * (brak powiadomień o zwrotach i listy zwrotów płatności, https://docs.paynow.pl/docs/v3/refunds),
+   * więc tylko cofamy K, bez drugiego zlecenia w Paynow. Klucz z idem: dwuklik nie cofa dwa razy.
+   */
+  async zwrocPlatnoscPaynow(i: { walletTxId: string; kwota?: number | null; actorUserId: string; wPaneluPaynow?: boolean }) {
     const paynow = this.paynowKlient();
     if (!paynow) throw new ServiceUnavailableException('Paynow nie jest skonfigurowany.');
     const rek = await this.prisma.paynowPlatnosc.findUnique({ where: { walletTxId: i.walletTxId } });
@@ -761,7 +766,9 @@ export class BillingService {
     const idem = createHash('sha256').update(`zwrot:${rek.id}:${rek.zwroconoMinor}:${kwotaMinor}`).digest('base64url');
     let odp: { refundId: string; status: string };
     try {
-      odp = await paynow.zwrot(rek.paymentId, { amount: kwotaMinor, reason: 'OTHER' }, idem);
+      odp = i.wPaneluPaynow
+        ? { refundId: `panel-${idem}`, status: 'WYKONANY_W_PANELU' }
+        : await paynow.zwrot(rek.paymentId, { amount: kwotaMinor, reason: 'OTHER' }, idem);
     } catch (err) {
       const typy = err instanceof PaynowBlad ? err.typyBledow.join(', ') : '';
       this.logger.error(`Paynow: zwrot ${rek.paymentId} odrzucony: ${err instanceof Error ? err.message : String(err)}`);
@@ -781,7 +788,7 @@ export class BillingService {
         wplata,
         zwroconoMinorNarastajaco: narastajaco,
         idempotencyKey: `paynow:zwrot:${odp.refundId}`,
-        opis: 'Zwrot płatności Paynow — cofnięcie doładowania',
+        opis: i.wPaneluPaynow ? 'Zwrot wykonany w panelu Paynow — cofnięcie doładowania' : 'Zwrot płatności Paynow — cofnięcie doładowania',
         metadata: { paynowRefundId: odp.refundId, paynowId: rek.id },
       });
     });
@@ -791,7 +798,7 @@ export class BillingService {
         ...wynik,
         akcja: 'WALLET_TOPUP_REFUNDED',
         tytul: 'Zwrot płatności w Paynow',
-        szczegoly: { provider: 'PAYNOW', paynowRefundId: odp.refundId, kwotaZwrotu: (kwotaMinor / 100).toFixed(2), actorUserId: i.actorUserId },
+        szczegoly: { provider: 'PAYNOW', paynowRefundId: odp.refundId, kwotaZwrotu: (kwotaMinor / 100).toFixed(2), actorUserId: i.actorUserId, wPaneluPaynow: Boolean(i.wPaneluPaynow) },
         dopisek: '',
       });
     }
