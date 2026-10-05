@@ -23,7 +23,10 @@ export function KosztyAiPanel({ koszty }: { koszty: KosztyAi | null }) {
           <dl className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
               <dt className="text-xs text-neutral-400">Bieżący miesiąc</dt>
-              <dd className="text-xl font-bold text-white">{usd(koszty.miesiacUsd)}</dd>
+              <dd className="text-xl font-bold text-white">
+                {usd(koszty.miesiacUsd)}
+                {koszty.limitPlatformyUsd > 0 ? <span className="text-sm font-normal text-neutral-400"> / {usd(koszty.limitPlatformyUsd)} budżetu</span> : null}
+              </dd>
             </div>
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
               <dt className="text-xs text-neutral-400">Prognoza na koniec miesiąca (przy obecnym tempie)</dt>

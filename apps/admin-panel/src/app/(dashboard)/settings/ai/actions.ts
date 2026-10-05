@@ -8,6 +8,7 @@ export type KonfiguracjaAi = {
   szybki: { dostawca: DostawcaAi; model: string };
   analiza: { dostawca: DostawcaAi; model: string };
   limitKlientaUsd: number;
+  limitPlatformyUsd: number;
   ceny: Record<string, { wej: number; wyj: number }>;
 };
 export type UstawieniaAi = {
@@ -17,6 +18,7 @@ export type UstawieniaAi = {
 };
 export type KosztyAi = {
   limitKlientaUsd: number;
+  limitPlatformyUsd: number;
   miesiacUsd: number;
   prognozaMiesiacaUsd: number;
   ostatnie30Dni: {

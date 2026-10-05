@@ -12,6 +12,16 @@ nie źródło prawdy). Poza tym zostają tylko dokumenty operacyjne i prawne: `d
 
 ## Decyzje
 
+### 2026-10-05 — koszty AI: budżet platformy i prognoza liczona w panelu (L-11, L-12)
+Decyzja właściciela. AI ma realny wpływ, ale z bezpiecznikami: **budżet całej platformy** (domyślnie 20 USD/mies.,
+admin → Ustawienia → Asystent AI) — po przekroczeniu wszystkie funkcje AI stoją do 1. dnia miesiąca, admini dostają
+powiadomienie; limit na klienta (2 USD) bez zmian. **Prognoza zasobów**: liczby (procent limitu, trend, dni do limitu)
+z regresji po 96 pomiarach w panelu, AI na poziomie szybkim pisze tylko komentarz i zalecenia (prompt ~600 tokenów
+zamiast ~5 000 na poziomie analizy). Bez AI prognoza działa z opisem panelu. Odpowiedzi z bazy wiedzy bez modelu —
+odłożone: przy wyłączonych embeddingach (beta) dopasowanie po słowach dawałoby błędne odpowiedzi, a pytanie w czacie
+kosztuje ułamek grosza. Własny model LLM — nie na start (CPU control-plane za słaby, serwer z GPU droższy niż API przy
+naszej skali); wracamy przy wydatkach API rzędu 150 €/mies. albo dla danych, które nie mogą wyjść do podprocesora.
+
 ### 2026-10-04 — harmonogram startu: wariant A (PB-12, PB-26, PB-40)
 Decyzja właściciela. Kod gotowy w ~91%, więc termin trzymał tylko zakup serwera. **AX102 kupujemy 9.11.2026**
 (zamiast 18.01.2027, wpis z 22.09 nieaktualny) — od razu przyjmuje strony właściciela, a razem z t1 daje

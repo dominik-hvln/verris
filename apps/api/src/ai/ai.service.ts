@@ -1,16 +1,12 @@
 import { Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { AiInteractionStatus, Prisma } from '@verris/database';
-import type {
-  ForecastConfidence,
-  ForecastResource,
-  ForecastTrend,
-  ServiceForecastDto,
-  ServiceForecastResourceDto,
-} from '@verris/contracts';
+import type { ServiceForecastDto } from '@verris/contracts';
 import { createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { AiProviderService } from './ai-provider.service.js';
+import type { PoziomAi } from './ai-modele.js';
+import { opisPrognozy, policzPrognoze } from './prognoza-zasobow.js';
 
 @Injectable()
 export class AiService {
@@ -68,69 +64,65 @@ export class AiService {
       include: {
         plan: true,
         usageMetrics: { orderBy: { bucketStart: 'desc' }, take: 96 },
-        healthSnapshots: { orderBy: { computedAt: 'desc' }, take: 10 },
       },
     });
     if (!subscription) throw new NotFoundException('Service not found');
 
-    if (!(await this.provider.dostepny('analiza'))) {
-      return unavailableForecast('Prognoza zasobów jest chwilowo niedostępna.');
-    }
-    const limit = await this.provider.przekroczonyLimitKlienta(userId);
-    if (limit) return unavailableForecast(limit);
     if (subscription.usageMetrics.length < 6) {
       return unavailableForecast(
         'Za mało danych telemetrycznych — prognoza pojawi się po zebraniu kilku godzin metryk.',
       );
     }
 
-    const system = [
-      'Jesteś asystentem SRE dla hostingu Verris. Zwracasz WYŁĄCZNIE JSON.',
-      'Prognoza ma być ostrożna i oparta tylko na przekazanych metrykach.',
-      'Jeśli danych jest za mało, ustaw confidence="low" i wskaż braki w summary.',
-      'Zwróć dokładnie taki kształt JSON:',
-      '{"confidence":"low|medium|high","horizonDays":number,"summary":string,' +
-        '"resources":[{"resource":"CPU|RAM|DISK|IO","currentPct":number,"predictedPct":number,' +
-        '"trend":"up|down|flat","daysToLimit":number|null,"note":string}],' +
-        '"recommendations":[string]}',
-      'currentPct/predictedPct to procent wykorzystania limitu planu (0-100+).',
-      'daysToLimit = szacowana liczba dni do osiągnięcia limitu (null jeśli nie zmierza do limitu).',
-      'Pisz po polsku, zwięźle.',
-    ].join('\n');
-    const user = JSON.stringify({
-      plan: {
-        name: subscription.plan.name,
-        cpuLimit: subscription.plan.cpuLimit,
-        ramLimitMb: subscription.plan.ramLimitMb,
-        diskLimitMb: subscription.plan.diskLimitMb,
-      },
-      usage: subscription.usageMetrics.map((m) => ({
-        timestamp: m.bucketStart,
-        cpuAvg: m.cpuUsageAvg,
-        cpuMax: m.cpuUsageMax,
-        memoryAvgMb: m.memUsageAvgMb,
-        memoryMaxMb: m.memUsageMaxMb,
-        diskMb: m.diskUsageMb,
-        ioKbps: m.ioUsageKbps,
-      })),
-      health: subscription.healthSnapshots,
-    });
+    // Liczby liczy panel (regresja po pomiarach); AI tylko komentuje gotowe liczby — szybki poziom,
+    // mały prompt. Bez AI (brak klucza, limit, błąd) klient dostaje prognozę z opisem bez AI.
+    const liczby = policzPrognoze(subscription.plan, subscription.usageMetrics);
+    const prognoza: ServiceForecastDto = {
+      generatedAt: new Date().toISOString(),
+      available: true,
+      unavailableReason: null,
+      ...liczby,
+      summary: opisPrognozy(liczby.resources),
+      recommendations: [],
+    };
+    if (!(await this.provider.dostepny('szybki'))) return prognoza;
+    if (await this.provider.przekroczonyLimitKlienta(userId)) return prognoza;
 
+    const system = [
+      'Jesteś asystentem hostingu Verris. Dostajesz GOTOWE liczby prognozy zasobów konta (procent limitu planu).',
+      'Nie zmieniaj liczb. Zwracasz WYŁĄCZNIE JSON: {"summary": string, "recommendations": [string], "notes": {"CPU"|"RAM"|"DISK"|"IO": string}}.',
+      'summary: 1–2 zdania po polsku dla klienta nietechnicznego. recommendations: do 4 konkretnych kroków',
+      '(np. cache, optymalizacja wtyczek, porządek w plikach, autoskalowanie, wyższy plan) — tylko gdy uzasadnione liczbami.',
+      'notes: krótka uwaga tylko dla zasobów z trendem "up" albo daysToLimit ≤ 30.',
+    ].join('\n');
+    const user = JSON.stringify({ plan: subscription.plan.name, ...liczby });
     try {
-      const output = await this.runLogged({
-        feature: 'service_forecast',
-        actorUserId,
-        userId,
-        subscriptionId,
-        inputSummary: { subscriptionId, points: subscription.usageMetrics.length },
-        system,
-        user,
-      });
-      return normalizeForecast(output);
-    } catch (err) {
-      return unavailableForecast(
-        `Nie udało się wygenerować prognozy: ${(err as Error).message}`.slice(0, 200),
+      const out = asRecord(
+        await this.runLogged({
+          feature: 'service_forecast',
+          actorUserId,
+          userId,
+          subscriptionId,
+          inputSummary: { subscriptionId, points: subscription.usageMetrics.length },
+          system,
+          user,
+          poziom: 'szybki',
+        }),
       );
+      const notes = asRecord(out.notes);
+      return {
+        ...prognoza,
+        summary: typeof out.summary === 'string' && out.summary.trim() ? out.summary.slice(0, 600) : prognoza.summary,
+        recommendations: Array.isArray(out.recommendations)
+          ? out.recommendations.filter((x): x is string => typeof x === 'string').slice(0, 4)
+          : [],
+        resources: prognoza.resources.map((r) => ({
+          ...r,
+          note: typeof notes[r.resource] === 'string' ? String(notes[r.resource]).slice(0, 280) : null,
+        })),
+      };
+    } catch {
+      return prognoza;
     }
   }
 
@@ -143,10 +135,11 @@ export class AiService {
     inputSummary: Prisma.InputJsonValue;
     system: string;
     user: string;
+    poziom?: PoziomAi;
   }) {
     const promptHash = hash(`${input.system}\n${input.user}`);
     try {
-      const r = await this.provider.complete({ system: input.system, user: input.user });
+      const r = await this.provider.complete({ system: input.system, user: input.user }, input.poziom);
       const output = r.wynik;
       await this.prisma.aiInteractionLog.create({
         data: {
@@ -175,7 +168,7 @@ export class AiService {
       return output;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      const opis = await this.provider.opis('analiza');
+      const opis = await this.provider.opis(input.poziom ?? 'analiza');
       await this.prisma.aiInteractionLog.create({
         data: {
           feature: input.feature,
@@ -215,62 +208,6 @@ function unavailableForecast(reason: string): ServiceForecastDto {
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
-}
-
-function toNumberOrNull(value: unknown): number | null {
-  const n = typeof value === 'string' ? Number(value) : value;
-  return typeof n === 'number' && Number.isFinite(n) ? n : null;
-}
-
-function normalizeTrend(value: unknown): ForecastTrend {
-  const v = String(value ?? '').toLowerCase();
-  if (v === 'up' || v === 'down' || v === 'flat') return v;
-  return 'unknown';
-}
-
-function normalizeConfidence(value: unknown): ForecastConfidence {
-  const v = String(value ?? '').toLowerCase();
-  if (v === 'low' || v === 'medium' || v === 'high') return v;
-  return 'low';
-}
-
-function normalizeResource(value: unknown): ForecastResource | null {
-  const v = String(value ?? '').toUpperCase();
-  if (v === 'CPU' || v === 'RAM' || v === 'DISK' || v === 'IO') return v;
-  return null;
-}
-
-function normalizeForecast(output: unknown): ServiceForecastDto {
-  const root = asRecord(output);
-  const rawResources = Array.isArray(root.resources) ? root.resources : [];
-  const resources: ServiceForecastResourceDto[] = [];
-  for (const item of rawResources) {
-    const r = asRecord(item);
-    const resource = normalizeResource(r.resource);
-    if (!resource) continue;
-    resources.push({
-      resource,
-      currentPct: toNumberOrNull(r.currentPct),
-      predictedPct: toNumberOrNull(r.predictedPct),
-      trend: normalizeTrend(r.trend),
-      daysToLimit: toNumberOrNull(r.daysToLimit),
-      note: typeof r.note === 'string' ? r.note.slice(0, 280) : null,
-    });
-  }
-  const recommendations = Array.isArray(root.recommendations)
-    ? root.recommendations.filter((x): x is string => typeof x === 'string').slice(0, 8)
-    : [];
-  const horizon = toNumberOrNull(root.horizonDays);
-  return {
-    generatedAt: new Date().toISOString(),
-    available: true,
-    unavailableReason: null,
-    confidence: normalizeConfidence(root.confidence),
-    horizonDays: horizon && horizon > 0 ? Math.min(horizon, 90) : 7,
-    summary: typeof root.summary === 'string' ? root.summary.slice(0, 1200) : '',
-    resources,
-    recommendations,
-  };
 }
 
 function redact(value: string): string {

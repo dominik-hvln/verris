@@ -57,6 +57,7 @@ describe('AiProviderService — dwa poziomy (L-11)', () => {
       platformSetting: {
         findUnique: vi.fn(async () => ({ value: JSON.stringify({ szybki: { dostawca: 'anthropic', model: 'claude-haiku-4-5-20251001' } }) })),
       },
+      aiInteractionLog: { aggregate: vi.fn(async () => ({ _sum: { costUsd: 0 } })) },
     };
     (global.fetch as Mock).mockResolvedValue(odp({ content: [{ type: 'text', text: 'ok' }], usage: {} }));
     const s = new AiProviderService(konfig({ ANTHROPIC_API_KEY: 'sk-ant' }) as never, prisma as never);

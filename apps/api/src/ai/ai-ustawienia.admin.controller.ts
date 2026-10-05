@@ -47,7 +47,7 @@ export class AiUstawieniaAdminController {
       action: AdminCustomerActions.AI_SETTINGS_UPDATED,
       userId: actor.userId,
       actorUserId: actor.userId,
-      details: { szybki: konf.szybki, analiza: konf.analiza, limitKlientaUsd: konf.limitKlientaUsd },
+      details: { szybki: konf.szybki, analiza: konf.analiza, limitKlientaUsd: konf.limitKlientaUsd, limitPlatformyUsd: konf.limitPlatformyUsd },
     });
     return this.ustawienia();
   }
@@ -83,16 +83,17 @@ export class AiUstawieniaAdminController {
       select: { id: true, email: true },
     });
     const email = new Map(users.map((u) => [u.id, u.email]));
-    const { limitKlientaUsd } = await this.provider.konfiguracja();
+    const { limitKlientaUsd, limitPlatformyUsd } = await this.provider.konfiguracja();
     const miesiacUsd = Number(mies._sum.costUsd ?? 0);
     return {
       limitKlientaUsd,
+      limitPlatformyUsd,
       miesiacUsd,
       prognozaMiesiacaUsd: (miesiacUsd / dzien) * dniMies,
       ostatnie30Dni: grupy
         .map((g) => ({
           funkcja: g.feature,
-          poziom: g.feature.startsWith('chatbot_') ? 'szybki' : 'analiza',
+          poziom: g.feature.startsWith('chatbot_') || g.feature === 'service_forecast' ? 'szybki' : 'analiza',
           model: g.model ?? '—',
           wywolania: g._count._all,
           tokenyWej: g._sum.inputTokens ?? 0,

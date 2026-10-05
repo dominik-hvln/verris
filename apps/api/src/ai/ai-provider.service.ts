@@ -1,6 +1,7 @@
 import { Injectable, Optional, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import {
   type DostawcaAi,
   type KonfiguracjaAi,
@@ -50,6 +51,7 @@ export class AiProviderService {
   constructor(
     private readonly config: ConfigService,
     @Optional() private readonly prisma?: PrismaService,
+    @Optional() private readonly notifications?: NotificationsService,
   ) {}
 
   get embedModel() {
@@ -138,6 +140,31 @@ export class AiProviderService {
     return 'Wykorzystano miesięczny limit asystenta AI dla tego konta. Odnowi się 1. dnia miesiąca — do tego czasu chętnie pomożemy w zgłoszeniu.';
   }
 
+  /** Bezpiecznik kosztów (decyzja 2026-10-05): suma wszystkich wywołań w miesiącu ≥ limit platformy → AI stoi. */
+  private async budzetPlatformyWyczerpany(konf: KonfiguracjaAi): Promise<boolean> {
+    if (!this.prisma || konf.limitPlatformyUsd <= 0) return false;
+    const teraz = new Date();
+    const agg = await this.prisma.aiInteractionLog.aggregate({
+      where: { createdAt: { gte: new Date(Date.UTC(teraz.getUTCFullYear(), teraz.getUTCMonth(), 1)) } },
+      _sum: { costUsd: true },
+    });
+    if (Number(agg._sum.costUsd ?? 0) < konf.limitPlatformyUsd) return false;
+    const admini = await this.prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });
+    for (const a of admini) {
+      await this.notifications?.create({
+        userId: a.id,
+        category: 'SYSTEM',
+        severity: 'warning',
+        title: 'Budżet AI platformy wykorzystany',
+        body: `Koszt AI w tym miesiącu osiągnął limit ${konf.limitPlatformyUsd} USD — asystent, prognozy i szkice są wyłączone do 1. dnia miesiąca albo do podniesienia limitu.`,
+        link: '/settings/ai',
+        dedupeKey: 'ai-budzet-platformy',
+        dedupeWindowMin: 24 * 60,
+      });
+    }
+    return true;
+  }
+
   /** Swobodna odpowiedź (czat). Domyślnie poziom SZYBKI. */
   async chat(
     input: { system: string; messages: Wiadomosc[]; maxTokens?: number },
@@ -163,6 +190,9 @@ export class AiProviderService {
     const { dostawca, model } = konf[poziom];
     const key = this.klucz(dostawca);
     if (!key) throw new ServiceUnavailableException('AI provider is not configured.');
+    if (await this.budzetPlatformyWyczerpany(konf)) {
+      throw new ServiceUnavailableException('Asystent AI jest chwilowo niedostępny. Chętnie pomożemy w zgłoszeniu.');
+    }
     const r =
       dostawca === 'anthropic'
         ? await this.anthropic(key, model, system, messages, json, maxTokens ?? (poziom === 'szybki' ? 2000 : 8000))

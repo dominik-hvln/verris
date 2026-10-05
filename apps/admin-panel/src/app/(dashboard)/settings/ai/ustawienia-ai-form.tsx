@@ -10,8 +10,8 @@ type Poziom = 'szybki' | 'analiza';
 
 /** Typowe wywołanie (tokeny) — do szacunków; realne liczby są w tabeli kosztów poniżej. */
 const TYPOWE: Record<Poziom, { wej: number; wyj: number; opis: string }> = {
-  szybki: { wej: 3000, wyj: 300, opis: 'pytanie w czacie z kontekstem bazy wiedzy ≈ 3 000 tokenów wej. / 300 wyj.' },
-  analiza: { wej: 4000, wyj: 1500, opis: 'prognoza lub szkic odpowiedzi ≈ 4 000 tokenów wej. / 1 500 wyj.' },
+  szybki: { wej: 3000, wyj: 300, opis: 'pytanie w czacie z kontekstem bazy wiedzy ≈ 3 000 tokenów wej. / 300 wyj.; komentarz do prognozy ≈ 600 / 300' },
+  analiza: { wej: 4000, wyj: 1500, opis: 'szkic odpowiedzi na zgłoszenie ≈ 4 000 tokenów wej. / 1 500 wyj.' },
 };
 const INNY = '__inny__';
 const DOSTAWCY: { value: DostawcaAi; label: string }[] = [
@@ -137,6 +137,25 @@ export function UstawieniaAiForm({ initial }: { initial: UstawieniaAi }) {
             <> Przy obecnym modelu to ok. <strong className="text-white">{Math.floor(konf.limitKlientaUsd / kosztCzatu).toLocaleString('pl-PL')}</strong>{' '}
               {plForm(Math.floor(konf.limitKlientaUsd / kosztCzatu), 'pytanie', 'pytania', 'pytań')} w czacie miesięcznie.</>
           ) : null}
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <label className="block space-y-1 max-w-xs">
+          <span className="text-xs font-medium text-neutral-300">Budżet całej platformy (USD / miesiąc, 0 = bez limitu)</span>
+          <input
+            type="number"
+            min={0}
+            max={10000}
+            step={1}
+            value={konf.limitPlatformyUsd}
+            onChange={(e) => setKonf((k) => ({ ...k, limitPlatformyUsd: Math.max(0, Number(e.target.value) || 0) }))}
+            className={POLE}
+          />
+        </label>
+        <p className="text-[11px] text-neutral-400">
+          Wszystkie funkcje AI razem (klienci i obsługa). Po przekroczeniu AI wyłącza się do 1. dnia miesiąca, a administratorzy
+          dostają powiadomienie. Prognoza zasobów działa dalej — bez komentarza AI.
         </p>
       </div>
 

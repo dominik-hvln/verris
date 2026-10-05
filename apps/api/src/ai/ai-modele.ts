@@ -29,6 +29,8 @@ export interface KonfiguracjaAi {
   analiza: { dostawca: DostawcaAi; model: string };
   /** Miesięczny limit kosztu AI na jedno konto klienta (USD). 0 = bez limitu. Obsługa nie ma limitu. */
   limitKlientaUsd: number;
+  /** Miesięczny budżet AI całej platformy (USD, wszystkie funkcje). Po przekroczeniu AI się wyłącza. 0 = bez limitu. */
+  limitPlatformyUsd: number;
   /** Ceny modeli (USD / 1 mln tokenów) — domyślnie z ZNANE_MODELE_AI, admin może nadpisać i dopisać nowe. */
   ceny: Record<string, { wej: number; wyj: number }>;
 }
@@ -37,6 +39,7 @@ export const DOMYSLNA_KONFIGURACJA_AI: KonfiguracjaAi = {
   szybki: { dostawca: 'openai', model: 'gpt-5.6-luna' },
   analiza: { dostawca: 'anthropic', model: 'claude-sonnet-5' },
   limitKlientaUsd: 2,
+  limitPlatformyUsd: 20,
   ceny: Object.fromEntries(ZNANE_MODELE_AI.map((m) => [m.model, { wej: m.cenaWej, wyj: m.cenaWyj }])),
 };
 
@@ -65,10 +68,13 @@ export function odczytajKonfiguracjeAi(surowe: string | null | undefined): Konfi
     }
   }
   const limit = Number(v.limitKlientaUsd);
+  const limitP = Number(v.limitPlatformyUsd);
   return {
     szybki: poziom(v.szybki, DOMYSLNA_KONFIGURACJA_AI.szybki),
     analiza: poziom(v.analiza, DOMYSLNA_KONFIGURACJA_AI.analiza),
     limitKlientaUsd: Number.isFinite(limit) && limit >= 0 && limit <= 1000 ? Math.round(limit * 100) / 100 : DOMYSLNA_KONFIGURACJA_AI.limitKlientaUsd,
+    limitPlatformyUsd:
+      Number.isFinite(limitP) && limitP >= 0 && limitP <= 10_000 ? Math.round(limitP * 100) / 100 : DOMYSLNA_KONFIGURACJA_AI.limitPlatformyUsd,
     ceny,
   };
 }

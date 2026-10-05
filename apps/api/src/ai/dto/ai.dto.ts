@@ -110,6 +110,11 @@ export class UstawieniaAiDto {
   @Max(1000)
   limitKlientaUsd!: number;
 
+  @IsNumber()
+  @Min(0)
+  @Max(10_000)
+  limitPlatformyUsd!: number;
+
   /** Model → { wej, wyj } USD / 1 mln tokenów; każdy wpis sprawdza jeszcze odczytajKonfiguracjeAi. */
   @IsObject()
   ceny!: Record<string, { wej: number; wyj: number }>;

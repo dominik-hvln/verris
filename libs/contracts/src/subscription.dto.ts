@@ -214,7 +214,7 @@ export interface ServiceForecastResourceDto {
 
 export interface ServiceForecastDto {
   generatedAt: string;
-  /** false when the AI provider is not configured or there is too little data. */
+  /** false only when there is too little data — numbers come from the panel, AI adds commentary when available. */
   available: boolean;
   unavailableReason?: string | null;
   confidence: ForecastConfidence;

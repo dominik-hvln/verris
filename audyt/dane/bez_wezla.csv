@@ -15,7 +15,7 @@ N-10,PRODUKCJA,wpis SUPPRESSED przy pierwszym alercie limitu (przełącznik zapi
 O-06,PRODUKCJA,konto klienta założone przez resellera testowego na produkcji
 PB-11,PRODUKCJA,alert testowy dociera e-mailem
 L-11,WŁAŚCICIEL,decyzja 04.10: klucze w .env.prod teraz z AI_TYLKO_KONTA (tylko konta bety wewnętrznej); dla wszystkich po publikacji dokumentów z podprocesorami AI (PB-03)
-L-12,WŁAŚCICIEL,decyzja 04.10: klucze w .env.prod teraz z AI_TYLKO_KONTA (tylko konta bety wewnętrznej); dla wszystkich po publikacji dokumentów z podprocesorami AI (PB-03)
+L-12,WŁAŚCICIEL,"05.10: liczby prognozy liczy panel (regresja, bez klucza), AI (poziom szybki) dopisuje komentarz — sprawdzić po wdrożeniu na usłudze d3; komentarz po kluczach z AI_TYLKO_KONTA"
 P-15,WŁAŚCICIEL,"Hetzner: potwierdzić, że accounts.hetzner.com → Data protection pokazuje zawartą umowę powierzenia (data); reszta potwierdzona przez właściciela 27.09"
 Q-01,WŁAŚCICIEL,decyzja: włączyć program EKO czy zostawić za flagą
 A-14,WŁAŚCICIEL,decyzja: płatne ukrycie WHOIS (wybór: po starcie)
