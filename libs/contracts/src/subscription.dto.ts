@@ -223,6 +223,8 @@ export interface ServiceForecastDto {
   summary: string;
   resources: ServiceForecastResourceDto[];
   recommendations: string[];
+  /** AI Act art. 50 — true, gdy podsumowanie/rekomendacje/uwagi napisało AI (panel to oznacza). */
+  komentarzAi?: boolean;
 }
 
 /** A single used/limit metric. `limit === null` means unlimited (∞). */

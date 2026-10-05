@@ -49,6 +49,7 @@ describe('AiService.serviceForecast — AI komentuje gotowe liczby', () => {
     expect(r.available).toBe(true);
     expect(r.resources.find((x) => x.resource === 'DISK')?.daysToLimit).toBe(1);
     expect(r.summary).toMatch(/Najbliżej limitu/);
+    expect(r.komentarzAi).toBeUndefined();
   });
 
   it('z AI: poziom analiza, mały prompt z gotowymi liczbami; AI nie zmienia liczb', async () => {
@@ -62,6 +63,7 @@ describe('AiService.serviceForecast — AI komentuje gotowe liczby', () => {
     const wyslane = JSON.parse((complete.mock.calls[0] as unknown as [{ user: string }])[0].user) as { resources: unknown[] };
     expect(wyslane.resources).toHaveLength(4);
     expect(r.summary).toBe('Dysk zaraz się zapełni.');
+    expect(r.komentarzAi).toBe(true); // AI Act art. 50 — panel oznacza komentarz AI
     expect(r.recommendations).toEqual(['Usuń stare kopie']);
     const disk = r.resources.find((x) => x.resource === 'DISK')!;
     expect(disk).toMatchObject({ currentPct: 94, note: 'Rośnie szybko.' });

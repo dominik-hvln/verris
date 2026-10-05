@@ -487,7 +487,7 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
                 <div className="flex flex-col gap-2 border-b border-line px-3.5 py-3">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-data-hi">
-                      {szkic?.szkic ? `Asystent · gotowy${ticket.aiDraftAt && !szkicNowy ? ` ${kd(ticket.aiDraftAt)}` : ""}` : context ? "Szkic z danych konta" : "Asystent"}
+                      {szkic?.szkic ? `Szkic AI · gotowy${ticket.aiDraftAt && !szkicNowy ? ` ${kd(ticket.aiDraftAt)}` : ""} — sprawdź przed wysłaniem` : context ? "Szkic z danych konta" : "Asystent"}
                     </span>
                     <span className="ml-auto text-[11.5px] text-muted-foreground">do sprawdzenia</span>
                   </div>

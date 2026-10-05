@@ -33,7 +33,7 @@ Treść zgłoszeń (ticketów) z załącznikami, korespondencja e-mail, preferen
 Adres e-mail i imię użytkownika subkonta, nadane role i uprawnienia, logi zaproszeń, akceptacji i operacji. Dane te otrzymujemy od właściciela konta, który zaprasza subkonto (art. 14 RODO — źródłem danych jest właściciel konta).
 
 ### 2.7 Asystent AI
-Treść pytań zadanych asystentowi w panelu i jego odpowiedzi; kontekst usługi, której dotyczy pytanie (stan usługi, dysku, SSL, domeny i kopii — **bez haseł, kluczy, adresów e-mail i kwot**); zagregowane metryki zużycia zasobów, gdy prosisz o prognozę; treść zgłoszenia z usuniętymi danymi wrażliwymi, gdy nasz pracownik prosi asystenta o szkic odpowiedzi. Do każdego użycia zapisujemy liczbę przetworzonych tokenów i koszt (miesięczny limit asystenta). Asystent nie ma dostępu do plików, baz danych ani poczty Twoich stron.
+Treść pytań zadanych asystentowi w panelu i jego odpowiedzi; kontekst usługi, której dotyczy pytanie (stan usługi, data odnowienia, stan dysku, SSL, domeny i kopii — **bez haseł, kluczy, adresów e-mail i kwot**); na pulpicie — lista Twoich usług z planem, stanem, domeną, datą odnowienia i ważnością SSL; zagregowane metryki zużycia zasobów, gdy prosisz o prognozę; treść zgłoszenia z usuniętymi danymi wrażliwymi, gdy nasz pracownik prosi asystenta o szkic odpowiedzi. Do każdego użycia zapisujemy liczbę przetworzonych tokenów i koszt (miesięczny limit asystenta). Asystent nie ma dostępu do plików, baz danych ani poczty Twoich stron.
 
 ## 3. Dwie role Verris
 

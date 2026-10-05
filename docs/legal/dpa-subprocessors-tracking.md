@@ -85,6 +85,7 @@ Właściciel potwierdził akceptację umów powierzenia (Hetzner, Openprovider, 
 - [x] Cloudflare — DPA z umową self-serve (właściciel, 27.09.2026)
 - [x] Streamsoft Firmino — zaakceptowana w programie (właściciel, 27.09.2026)
 - [ ] ClouDNS — przy zakupie razem z węzłem (sprint 18): dopisać do listy i polityki (30 dni powiadomienia, jeśli już są klienci)
+- [ ] 2026-10-05: klucze AI ustawione (konta API u obu dostawców założone → DPA z SCC zaakceptowane z warunkami). AI działa WYŁĄCZNIE dla kont właściciela (`AI_TYLKO_KONTA`) do publikacji Polityki prywatności 1.1.0 — dopisanie testerów bety do `AI_TYLKO_KONTA` dopiero po publikacji albo po poinformowaniu ich o asystencie AI (treść pkt 2.7). AI Act art. 50: asystent i komentarze AI oznaczone w panelu (widocznie + `data-ai-generated`), Regulamin 1.1.0 §5 ust. 5 (draft).
 - [ ] AI (OpenAI + Anthropic, decyzja właściciela 2026-09-25): konto API u obu dostawców (= DPA z SCC), publikacja Polityki prywatności 1.1.0 (pkt 2.7, 4, 5.1, 6, 8 — gotowa w `drafts/privacy.md`), dopiero potem klucze `AI_API_KEY` / `ANTHROPIC_API_KEY`. Do DPA z klientami (Zał. 2) nie wchodzą — asystent nie dotyka danych powierzonych.
 - [ ] Stripe, AWS — odnotować podstawę (umowa główna), bez akcji
 - [ ] Paynow (mBank) — przy aktywacji ustalić rolę mBanku i podstawę (umowa Paynow), uzupełnić transfer w `drafts/subprocessors.md` i `drafts/privacy.md`; nowy podmiot na liście = 30 dni powiadomienia, jeśli są już klienci

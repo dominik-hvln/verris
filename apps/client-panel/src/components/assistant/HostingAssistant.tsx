@@ -29,7 +29,7 @@ const SUGGESTIONS = [
 const GREETING: ChatMessage = {
   role: 'assistant',
   content:
-    'Cześć! Jestem asystentem Verris. Zapytaj mnie o domeny, SSL, pocztę, bazy danych, kopie zapasowe czy rozliczenia — odpowiem na podstawie naszej bazy wiedzy.',
+    'Cześć! Jestem asystentem AI Verris — odpowiadam automatycznie na podstawie bazy wiedzy i danych Twoich usług. Mogę się pomylić: w sprawach rozliczeń, reklamacji i umowy wiążąca jest odpowiedź pracownika (Nowe zgłoszenie).',
 };
 
 export default function HostingAssistant() {
@@ -93,7 +93,7 @@ export default function HostingAssistant() {
       {!open ? (
         <button
           type="button"
-          aria-label="Otwórz asystenta Verris"
+          aria-label="Otwórz asystenta AI Verris"
           onClick={() => setOpen(true)}
           className="fixed bottom-[max(1rem,env(safe-area-inset-bottom,1rem))] right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-cyan-500/90 to-violet-600/90 text-white shadow-lg shadow-cyan-500/20 transition-transform hover:scale-105 sm:bottom-6 sm:right-6"
         >
@@ -107,8 +107,8 @@ export default function HostingAssistant() {
                 <Bot className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">Asystent Verris</p>
-                <p className="text-[10px] text-neutral-400">Pomoc hostingowa 24/7</p>
+                <p className="text-sm font-semibold text-white">Asystent AI Verris</p>
+                <p className="text-[10px] text-neutral-400">Odpowiedzi generuje AI — mogą zawierać błędy</p>
               </div>
             </div>
             <button
@@ -127,13 +127,18 @@ export default function HostingAssistant() {
                 key={i}
                 className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
+                {/* AI Act art. 50 — odpowiedź AI oznaczona widocznie i maszynowo (data-ai-generated). */}
                 <div
+                  data-ai-generated={m.role === 'assistant' ? 'true' : undefined}
                   className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-[13px] leading-relaxed ${
                     m.role === 'user'
                       ? 'bg-cyan-500/15 text-cyan-50'
                       : 'bg-white/5 text-neutral-200'
                   }`}
                 >
+                  {m.role === 'assistant' ? (
+                    <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-neutral-500">Odpowiedź AI</span>
+                  ) : null}
                   {m.content}
                   {m.sources && m.sources.length > 0 ? (
                     <div className="mt-2 flex flex-wrap gap-1 border-t border-white/10 pt-2">

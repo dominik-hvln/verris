@@ -121,7 +121,11 @@ export default function ServiceForecastPanel({ serviceId }: { serviceId: string 
             </span>
           </div>
 
-          {forecast.summary ? <p className="text-sm text-[color:var(--verris-body)]">{forecast.summary}</p> : null}
+          {forecast.summary ? (
+            <p data-ai-generated={forecast.komentarzAi ? 'true' : undefined} className="text-sm text-[color:var(--verris-body)]">
+              {forecast.summary}
+            </p>
+          ) : null}
 
           {forecast.resources.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -132,9 +136,9 @@ export default function ServiceForecastPanel({ serviceId }: { serviceId: string 
           ) : null}
 
           {forecast.recommendations.length > 0 ? (
-            <div className="rounded-[10px] border border-line bg-raised p-3">
+            <div data-ai-generated={forecast.komentarzAi ? 'true' : undefined} className="rounded-[10px] border border-line bg-raised p-3">
               <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                <Lightbulb className="h-3.5 w-3.5" /> Rekomendacje
+                <Lightbulb className="h-3.5 w-3.5" /> Rekomendacje{forecast.komentarzAi ? ' (AI)' : ''}
               </p>
               <ul className="space-y-1.5">
                 {forecast.recommendations.map((rec, i) => (
@@ -148,7 +152,9 @@ export default function ServiceForecastPanel({ serviceId }: { serviceId: string 
           ) : null}
 
           <p className="text-[11px] text-muted-foreground">
-            Prognoza orientacyjna, generowana przez autorski mechanizm Verris na podstawie historycznych metryk — nie stanowi gwarancji.
+            {forecast.komentarzAi
+              ? 'Liczby liczy Verris z historycznych metryk; komentarz i rekomendacje napisało AI i mogą zawierać błędy. Prognoza orientacyjna — nie stanowi gwarancji.'
+              : 'Prognoza orientacyjna, liczona przez Verris na podstawie historycznych metryk — nie stanowi gwarancji.'}
           </p>
         </div>
       ) : null}

@@ -122,6 +122,7 @@ export class AiService {
       const notes = asRecord(out.notes);
       return {
         ...prognoza,
+        komentarzAi: true,
         summary: typeof out.summary === 'string' && out.summary.trim() ? out.summary.slice(0, 600) : prognoza.summary,
         recommendations: Array.isArray(out.recommendations)
           ? out.recommendations.filter((x): x is string => typeof x === 'string').slice(0, 4)
