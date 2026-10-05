@@ -18,7 +18,7 @@ L-11,WŁAŚCICIEL,decyzja 04.10: klucze w .env.prod teraz z AI_TYLKO_KONTA (tylk
 L-12,WŁAŚCICIEL,"05.10: liczby prognozy liczy panel (regresja, bez klucza), AI (poziom szybki) dopisuje komentarz — sprawdzić po wdrożeniu na usłudze d3; komentarz po kluczach z AI_TYLKO_KONTA"
 P-15,WŁAŚCICIEL,"Hetzner: potwierdzić, że accounts.hetzner.com → Data protection pokazuje zawartą umowę powierzenia (data); reszta potwierdzona przez właściciela 27.09"
 Q-01,WŁAŚCICIEL,decyzja: włączyć program EKO czy zostawić za flagą
-A-14,WŁAŚCICIEL,decyzja: płatne ukrycie WHOIS (wybór: po starcie)
+A-14,WŁAŚCICIEL,"kod gotowy 05.10 — cena brutto za rok w Ustawieniach platformy, test w sandboxie OP"
 F-12,WŁAŚCICIEL,Anycast DNS — zakup u ClouDNS (wybór: po starcie)
 N-21,WŁAŚCICIEL,wsparcie telefoniczne — decyzja operacyjna (wybór: po starcie)
 P-14,WŁAŚCICIEL,ISO 27001 — decyzja organizacyjna (wybór: po starcie)
