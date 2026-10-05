@@ -18,8 +18,11 @@ import { PlatformConfigLoader } from "@/components/platform-config-loader";
 import { CookiePreferencesButton } from "@/components/cookie-consent";
 import { VerrisLockup } from "@/components/logo";
 import {
+  VerrisDomenyIcon,
   VerrisEkoIcon,
+  VerrisPortfelIcon,
   VerrisProgramPartnerskiIcon,
+  VerrisSerweryIcon,
   VerrisSupportIcon,
   VerrisUstawieniaIcon,
 } from "@/components/icons";
@@ -61,10 +64,15 @@ import {
 // Menu boczne zawiera wyłącznie elementy GLOBALNE (konto/usługi/płatności).
 // Narzędzia per-usługa (pliki, bazy, poczta, SSL, PHP, aplikacje, FTP, cron,
 // kopie) żyją wewnątrz konkretnej usługi: Usługi → wybierz usługę → zakładki.
+// PB-23: każdy kafelek do wyboru (SIDEBAR_TILE_OPTIONS) ma tu stałe miejsce —
+// nieprzypięty zostaje w „Więcej”, przypięty jest odfiltrowany (mainGridHrefs).
 const secondaryItems = [
   {
     label: "Usługi i zasoby",
     items: [
+      { name: "Usługi", href: "/dashboard/services", icon: VerrisSerweryIcon },
+      { name: "Domeny", href: "/dashboard/domains", icon: VerrisDomenyIcon },
+      { name: "Płatności", href: "/dashboard/billing", icon: VerrisPortfelIcon },
       { name: "Migracje", href: "/dashboard/migrations", icon: Globe },
       { name: "Dodatki", href: "/dashboard/addons", icon: Calculator },
       { name: "VPS / Cloud", href: "/dashboard/vps", icon: ServerIcon },
