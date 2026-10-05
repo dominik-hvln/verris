@@ -91,9 +91,8 @@ export class RegistrarProviderFactory {
       const password = this.config.get<string>('OPENPROVIDER_PASSWORD');
       const ownerHandle = this.config.get<string>('OPENPROVIDER_OWNER_HANDLE');
       if (!username || !password || !ownerHandle) {
-        throw new ServiceUnavailableException(
-          'OpenProvider is not configured (OPENPROVIDER_USERNAME / OPENPROVIDER_PASSWORD / OPENPROVIDER_OWNER_HANDLE).',
-        );
+        // Brak OPENPROVIDER_USERNAME / _PASSWORD / _OWNER_HANDLE — preflight GO-LIVE to zgłasza adminowi.
+        throw new ServiceUnavailableException('Rejestracja domen jest chwilowo niedostępna.');
       }
       const baseUrl =
         this.config.get<string>('OPENPROVIDER_API_BASE_URL') ?? 'https://api.openprovider.eu';
@@ -305,7 +304,7 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
     );
     const price = res.data?.price?.reseller ?? res.data?.price?.product;
     if (!price) {
-      throw new ServiceUnavailableException('OpenProvider: brak ceny dla domeny.');
+      throw new ServiceUnavailableException('Rejestr domen nie podał ceny dla tej domeny.');
     }
     return { amount: String(price.price), currency: price.currency ?? 'EUR' };
   }
@@ -354,7 +353,7 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
 
   async renew(input: { domain: string; years: number; externalId?: string | null }): Promise<RegistrarOrderResult> {
     if (!input.externalId) {
-      throw new ServiceUnavailableException('OpenProvider: brak ID domeny do odnowienia.');
+      throw new ServiceUnavailableException('Rejestr domen nie zwrócił identyfikatora domeny do odnowienia.');
     }
     const res = await this.request<{ data: { expiration_date?: string } }>(
       `/v1/domains/${encodeURIComponent(input.externalId)}/renew`,
@@ -378,7 +377,7 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
       ...(r.companyName ? { company_name: r.companyName } : {}),
       ...opKontakt(r),
     });
-    if (!res.data?.handle) throw new ServiceUnavailableException('OpenProvider: nie zwrócił uchwytu abonenta.');
+    if (!res.data?.handle) throw new ServiceUnavailableException('Rejestr domen nie zwrócił danych abonenta.');
     return res.data.handle;
   }
 
@@ -436,7 +435,7 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
   async authCode(externalId: string): Promise<string> {
     const res = await this.request<{ data: { auth_code?: string } }>(
       `/v1/domains/${encodeURIComponent(externalId)}/authcode`, null, 'GET');
-    if (!res.data?.auth_code) throw new ServiceUnavailableException('OpenProvider: brak kodu transferu.');
+    if (!res.data?.auth_code) throw new ServiceUnavailableException('Rejestr domen nie zwrócił kodu transferu.');
     return res.data.auth_code;
   }
 
@@ -450,7 +449,8 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
     });
     const body = (await res.json().catch(() => null)) as { data?: { token?: string }; desc?: string } | null;
     if (!res.ok || !body?.data?.token) {
-      throw new ServiceUnavailableException(`OpenProvider auth failed: ${body?.desc ?? res.status}`);
+      this.logger.warn(`OpenProvider auth failed: ${body?.desc ?? res.status}`);
+      throw new ServiceUnavailableException('Rejestr domen jest chwilowo niedostępny — spróbuj za chwilę.');
     }
     this.token = body.data.token;
     this.tokenExpiresAt = Date.now() + 50 * 60 * 1000;
@@ -470,7 +470,7 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
       signal: AbortSignal.timeout(timeoutMs),
     }).catch((e: unknown) => {
       this.logger.warn(`OpenProvider ${path} failed: ${(e as Error).name === 'TimeoutError' ? 'timeout' : (e as Error).message}`);
-      throw new ServiceUnavailableException('OpenProvider nie odpowiada — spróbuj za chwilę.');
+      throw new ServiceUnavailableException('Rejestr domen nie odpowiada — spróbuj za chwilę.');
     });
     const body = (await res.json().catch(() => null)) as
       | { data?: T; code?: number; desc?: string }

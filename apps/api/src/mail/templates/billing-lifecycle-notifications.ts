@@ -353,7 +353,7 @@ export function subscriptionRenewalReminderTemplate(
     : null;
 
   const sourceLine = !ctx.payFromWallet
-    ? 'Płatność zostanie pobrana **automatycznie ze Stripe** z karty zapisanej w Twoim koncie.'
+    ? 'Płatność zostanie pobrana **automatycznie** z karty zapisanej w Twoim koncie.'
     : hasShortfall
       ? `⚠️ **Uwaga — środków w portfelu może zabraknąć.** Saldo to **${escapeMarkdown(
           ctx.walletBalance,

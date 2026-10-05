@@ -450,8 +450,8 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
               current={paymentSource}
               onChange={setPaymentSource}
               icon={<CreditCard className="h-5 w-5" />}
-              title="Karta przez Stripe"
-              description="Cykliczne pobieranie z karty (Stripe Subscriptions). Dostaniesz fakturę po każdym miesięcznym/rocznym pobraniu."
+              title="Karta płatnicza"
+              description="Cykliczne pobieranie z karty. Dostaniesz fakturę po każdym miesięcznym/rocznym pobraniu."
             />
           )}
         </div>
@@ -652,7 +652,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
           <p className="text-xs text-neutral-500 mt-1">
             {paymentSource === 'WALLET'
               ? 'Środki zostaną pobrane z portfela.'
-              : 'Po przekierowaniu do Stripe.'}
+              : 'Po przekierowaniu na stronę płatności.'}
           </p>
         </div>
         <button

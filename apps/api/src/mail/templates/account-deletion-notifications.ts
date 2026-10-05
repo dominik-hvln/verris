@@ -103,7 +103,7 @@ export function accountAnonymizedTemplate(ctx: AccountAnonymizedContext): MailMe
       ``,
       `- imię, nazwisko, adres, NIP, dane do faktury,`,
       `- hasła i klucze 2FA,`,
-      `- numery kart i metody płatności (po stronie Stripe również usunięte),`,
+      `- numery kart i metody płatności (po stronie operatora płatności również usunięte),`,
       `- kody referralów i token "eco badge".`,
       ``,
       `## Co jeszcze się dzieje`,

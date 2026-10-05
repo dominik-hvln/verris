@@ -275,7 +275,7 @@ function WalletAutotopupBlock({
             options={[
               {
                 value: '',
-                label: 'Automatycznie — pierwszy zapis na koncie lub domyślna przy Stripe Checkout',
+                label: 'Automatycznie — pierwszy zapis na koncie lub domyślna przy płatności kartą',
               },
               ...savedCards.map((c) => ({
                 value: c.id,

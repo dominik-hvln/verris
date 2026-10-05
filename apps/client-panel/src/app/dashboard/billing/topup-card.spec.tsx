@@ -31,14 +31,14 @@ const przyciskMetody = (el: HTMLElement, tekst: string) =>
 describe('TopupCard — wybór bramki', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('Paynow włączony: dla PLN domyślnie „BLIK, przelew, karta — przez Paynow (mBank)”, Stripe do wyboru', async () => {
+  it('Paynow włączony: dla PLN domyślnie „BLIK, przelew, karta — przez Paynow”, Stripe do wyboru', async () => {
     const { el, root } = await renderuj({ balance: '10.00', paynowDostepny: true });
     const paynow = przyciskMetody(el, 'BLIK, przelew, karta');
-    expect(paynow.textContent).toContain('przez Paynow (mBank)');
+    expect(paynow.textContent).toContain('przez Paynow');
     expect(paynow.getAttribute('aria-pressed')).toBe('true');
     expect(metoda(el)).toBe('paynow');
-    expect(el.textContent).toContain('Płatność przez Paynow (mBank)');
-    await act(async () => przyciskMetody(el, 'przez Stripe').click());
+    expect(el.textContent).toContain('Płatność przez Paynow');
+    await act(async () => przyciskMetody(el, 'płatność kartą').click());
     expect(metoda(el)).toBe('stripe');
     expect(paynow.getAttribute('aria-pressed')).toBe('false');
     act(() => root.unmount());
@@ -48,7 +48,7 @@ describe('TopupCard — wybór bramki', () => {
     const { el, root } = await renderuj({ balance: '10.00' });
     expect(el.querySelector('[aria-label="Sposób płatności"]')).toBeNull();
     expect(metoda(el)).toBe('stripe');
-    expect(el.textContent).toContain('Płatność przez Stripe: w PLN karta, BLIK i Przelewy24');
+    expect(el.textContent).toContain('Płatność online: w PLN karta, BLIK i Przelewy24');
     act(() => root.unmount());
   });
 
@@ -62,4 +62,12 @@ describe('TopupCard — wybór bramki', () => {
     expect(fd.get('currency')).toBe('PLN');
     act(() => root.unmount());
   });
+});
+
+it('05.10: klient nie widzi nazw dostawców zaplecza (mBank, Stripe)', async () => {
+  for (const paynowDostepny of [true, false]) {
+    const { el, root } = await renderuj({ balance: '10.00', paynowDostepny });
+    expect(el.textContent).not.toMatch(/mBank|Stripe/);
+    act(() => root.unmount());
+  }
 });

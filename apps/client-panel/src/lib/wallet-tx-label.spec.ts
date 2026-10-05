@@ -15,14 +15,15 @@ describe('walletTxDescription', () => {
   });
   it('doładowanie kartą', () => {
     expect(walletTxDescription('Doładowanie Stripe (cs_test_a1p7WljGoUGZcWJoQNXIC1JQYJa6WgsdYkbiUrUrFDw4pd1zRi7GCFCaF)')).toBe(
-      'Doładowanie — Stripe',
+      'Doładowanie kartą',
     );
   });
   it('zwykły opis zostaje', () => {
     expect(walletTxDescription('Dodatek: Priorytetowe wsparcie (30 dni)')).toBe('Dodatek: Priorytetowe wsparcie (30 dni)');
   });
   it('brak opisu — nazwa operatora płatności albo nic', () => {
-    expect(walletTxDescription(null, 'stripe')).toBe('Płatność: stripe');
+    expect(walletTxDescription(null, 'stripe')).toBe('Płatność kartą');
+    expect(walletTxDescription('Doładowanie Paynow (PGK6-S2A-0RO-HLW)')).toBe('Doładowanie — Paynow');
     expect(walletTxDescription('')).toBeNull();
   });
 });

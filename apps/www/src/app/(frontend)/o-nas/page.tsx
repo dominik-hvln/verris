@@ -39,7 +39,7 @@ export default function Page() {
             </ul>
             <h2>Infrastruktura</h2>
             <p>
-              Usługi opieramy na infrastrukturze w Unii Europejskiej (Hetzner, Niemcy/Finlandia), więc
+              Usługi opieramy na infrastrukturze w Unii Europejskiej (Niemcy/Finlandia), więc
               dane pozostają w EOG. Więcej o gwarancjach przeczytasz na stronie{' '}
               <Link href="/funkcje/sla">SLA</Link> i <Link href="/funkcje/rodo-i-dpa">RODO/DPA</Link>.
             </p>

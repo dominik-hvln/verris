@@ -165,7 +165,7 @@ export class WalletAutoTopupService {
     if (!stripePm?.startsWith('pm_')) {
       await this.touchFailure(
         rule.userId,
-        'Brak zapisanej karty Stripe (pm_) — ustaw domyślną metodę płatności.',
+        'Brak zapisanej karty — ustaw domyślną metodę płatności.',
         null,
         rule,
       );

@@ -11,7 +11,7 @@ import { VPS_W_SPRZEDAZY } from '@/lib/oferta';
 export const metadata: Metadata = {
   title: 'VPS — serwery z pełnym dostępem root | Verris',
   description:
-    'Niezarządzane serwery VPS z pełnym dostępem administracyjnym (root). Przewidywalne zasoby, infrastruktura w UE (Hetzner). Dla deweloperów i startupów. Konfiguracja i wycena w panelu.',
+    'Niezarządzane serwery VPS z pełnym dostępem administracyjnym (root). Przewidywalne zasoby, infrastruktura w UE (Niemcy/Finlandia). Dla deweloperów i startupów. Konfiguracja i wycena w panelu.',
   alternates: { canonical: '/vps' },
 };
 
@@ -30,7 +30,7 @@ export default function VpsPage() {
         data={serviceSchema({
           name: 'VPS — serwery wirtualne',
           description:
-            'Niezarządzane serwery VPS z pełnym dostępem root. Przewidywalne zasoby, infrastruktura w UE (Hetzner). SLA 99,5% z rekompensatami.',
+            'Niezarządzane serwery VPS z pełnym dostępem root. Przewidywalne zasoby, infrastruktura w UE (Niemcy/Finlandia). SLA 99,5% z rekompensatami.',
           path: '/vps',
         })}
       />

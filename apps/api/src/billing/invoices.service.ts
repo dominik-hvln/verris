@@ -673,7 +673,7 @@ export class InvoicesService {
       });
       if (wpis?.paymentProvider === 'PAYNOW') return 'Płatność online (Paynow)';
     }
-    if (invoice.provider === 'STRIPE' || invoice.provider === DOSTAWCA_DOLADOWANIE) return 'Karta płatnicza (Stripe)';
+    if (invoice.provider === 'STRIPE' || invoice.provider === DOSTAWCA_DOLADOWANIE) return 'Karta płatnicza';
     return 'Portfel Verris';
   }
 
@@ -738,7 +738,7 @@ export class InvoicesService {
       // Pre-2.2 invoices may only have Stripe URL — caller should redirect.
       throw new NotFoundException(
         invoice.hostedUrl
-          ? 'PDF nie został jeszcze wygenerowany — użyj linku Stripe do pobrania.'
+          ? 'PDF nie został jeszcze wygenerowany — użyj linku do faktury.'
           : 'PDF nie jest jeszcze gotowy. Spróbuj za chwilę.',
       );
     }
@@ -803,7 +803,7 @@ export class InvoicesService {
     if (!invoice.storageKey) {
       throw new NotFoundException(
         invoice.hostedUrl
-          ? 'PDF nie został wygenerowany — użyj linku Stripe Hosted.'
+          ? 'PDF nie został wygenerowany — użyj linku do faktury.'
           : 'PDF nie jest jeszcze gotowy.',
       );
     }

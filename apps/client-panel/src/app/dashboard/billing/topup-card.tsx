@@ -222,10 +222,10 @@ export function TopupCard({ balance, paynowDostepny = false }: Props) {
           ) : null}
           <p className="font-mono text-[11.5px] leading-relaxed text-muted-foreground">
             {metodaEfektywna === 'paynow'
-              ? 'Płatność przez Paynow (mBank): BLIK, szybki przelew albo karta — wybierzesz na stronie płatności. '
+              ? 'Płatność przez Paynow: BLIK, szybki przelew albo karta — wybierzesz na stronie płatności. '
               : paynowDostepny
-                ? 'Płatność kartą przez Stripe (w EUR i USD tylko tak). '
-                : 'Płatność przez Stripe: w PLN karta, BLIK i Przelewy24, w EUR i USD karta. '}
+                ? 'Płatność kartą (w EUR i USD tylko tak). '
+                : 'Płatność online: w PLN karta, BLIK i Przelewy24, w EUR i USD karta. '}
             Portfel liczy w {CREDIT_SHORT} — wpłatę w walucie przeliczamy po kursie średnim NBP z dnia
             roboczego poprzedzającego płatność. Dokument za wpłatę znajdziesz w zakładce Faktury. Bonus
             z kodu procentowego dolicza się po zaksięgowaniu wpłaty.
@@ -237,8 +237,8 @@ export function TopupCard({ balance, paynowDostepny = false }: Props) {
 }
 
 const METODY: { value: MetodaDoladowania; label: string; opis: string }[] = [
-  { value: 'paynow', label: 'BLIK, przelew, karta', opis: 'przez Paynow (mBank)' },
-  { value: 'stripe', label: 'Karta', opis: 'przez Stripe' },
+  { value: 'paynow', label: 'BLIK, przelew, karta', opis: 'przez Paynow' },
+  { value: 'stripe', label: 'Karta', opis: 'płatność kartą' },
 ];
 
 function PromoSubform({

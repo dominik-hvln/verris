@@ -79,7 +79,7 @@ export interface BuildInvoiceContext {
   dueAt: Date;
   /** Czy faktura jest już opłacona — wpływa na widoczność stopki "Do zapłaty". */
   isPaid: boolean;
-  /** Sposób zapłaty (np. "Karta płatnicza (Stripe)", "Portfel Verris", "Przelew"). */
+  /** Sposób zapłaty (np. "Karta płatnicza", "Portfel Verris", "Przelew"). */
   paymentMethodLabel: string;
   currency: 'PLN' | 'EUR' | 'USD';
   seller: SellerSnapshot;

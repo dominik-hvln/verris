@@ -88,7 +88,7 @@ const SEKCJE: { tytul: string; wiersze: Wiersz[] }[] = [
   {
     tytul: 'Infrastruktura i gwarancje',
     wiersze: [
-      ['Centrum danych', 'Hetzner, Niemcy lub Finlandia (EOG) — region serwera widzisz w panelu'],
+      ['Centrum danych', 'Niemcy lub Finlandia (EOG) — lokalizację serwera widzisz w panelu'],
       ['Ochrona DDoS', 'filtrowanie L3/L4 w sieci centrum danych i limity połączeń na serwerze WWW', true],
       ['SLA', 'dostępność 99,5% w miesiącu kalendarzowym'],
       ['Rekompensata', 'na wniosek: 5% opłaty poniżej 99,5%, 25% poniżej 99%, 50% poniżej 95%, 100% poniżej 90%'],

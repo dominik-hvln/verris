@@ -21,7 +21,7 @@ export function buildEcoPointRules(platform: EcoPlatformConfig): EcoPointRule[] 
       title: 'Pierwsza opłacona usługa hostingowa',
       points: '+10',
       description:
-        'Punkty za aktywację pierwszej opłaconej subskrypcji hostingu (portfel, karta lub faktura Stripe). Naliczamy raz na daną usługę.',
+        'Punkty za aktywację pierwszej opłaconej subskrypcji hostingu (portfel, karta lub faktura). Naliczamy raz na daną usługę.',
     },
     {
       id: 'SUBSCRIPTION_RENEWAL',
@@ -35,14 +35,14 @@ export function buildEcoPointRules(platform: EcoPlatformConfig): EcoPointRule[] 
       title: 'Podpięcie karty do subskrypcji',
       points: '+15',
       description:
-        'Pierwsza udana płatność kartą za subskrypcję hostingu z włączonym autopay Stripe. Raz na daną usługę.',
+        'Pierwsza udana płatność kartą za subskrypcję hostingu z włączoną automatyczną płatnością kartą. Raz na daną usługę.',
     },
     {
       id: 'WALLET_TOPUP',
       title: 'Doładowanie portfela',
       points: '+2 / 50 PLN',
       description:
-        'Punkty po zaksięgowaniu doładowania (Stripe lub auto-doładowanie). Minimum 20 PLN na transakcję. Maks. 20 pkt miesięcznie.',
+        'Punkty po zaksięgowaniu doładowania (kartą, Paynow lub auto-doładowanie). Minimum 20 PLN na transakcję. Maks. 20 pkt miesięcznie.',
     },
     {
       id: 'DOMAIN_FIRST_PAID',

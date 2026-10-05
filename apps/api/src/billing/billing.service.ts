@@ -474,8 +474,8 @@ export class BillingService {
     if (opts.metoda === 'paynow' && !przezPaynow) {
       throw new BadRequestException(
         paynow === null
-          ? 'Płatności Paynow nie są jeszcze włączone — wybierz płatność kartą (Stripe).'
-          : 'Paynow przyjmuje wpłaty tylko w PLN — dla EUR i USD wybierz płatność kartą (Stripe).',
+          ? 'Płatności Paynow nie są jeszcze włączone — wybierz płatność kartą.'
+          : 'Paynow przyjmuje wpłaty tylko w PLN — dla EUR i USD wybierz płatność kartą.',
       );
     }
     // https://docs.paynow.pl/docs/reference/v3/send-payment-request — amount >= 100 (1,00 zł).
@@ -1112,7 +1112,7 @@ export class BillingService {
       wplata,
       ...wynik,
       akcja: spor ? 'WALLET_TOPUP_DISPUTED' : 'WALLET_TOPUP_REFUNDED',
-      tytul: spor ? 'Spór o płatność (chargeback)' : 'Zwrot płatności w Stripe',
+      tytul: spor ? 'Spór o płatność (chargeback)' : 'Zwrot płatności kartą',
       szczegoly: { stripeEvent: event.id, powod: o.reason ?? null },
       dopisek: spor ? ' i zdecyduj o usługach klienta' : '',
     });

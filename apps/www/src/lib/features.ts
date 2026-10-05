@@ -206,7 +206,7 @@ export const features: Feature[] = [
         ul: [
           'DPA do samodzielnej akceptacji w panelu klienta.',
           'Aktualna lista podprocesorów.',
-          'Infrastruktura w UE (Hetzner) — dane w EOG.',
+          'Infrastruktura w UE (Niemcy/Finlandia) — dane w EOG.',
         ],
       },
     ],

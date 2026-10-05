@@ -87,7 +87,7 @@ export class ProformaService {
       dueAt: od,
       isPaid: false,
       paymentMethodLabel:
-        sub.paymentSource === 'WALLET' ? 'Portfel Verris (doładowanie w panelu)' : 'Karta płatnicza (Stripe)',
+        sub.paymentSource === 'WALLET' ? 'Portfel Verris (doładowanie w panelu)' : 'Karta płatnicza',
       currency: (sub.currency ?? 'PLN').toUpperCase() as 'PLN' | 'EUR' | 'USD',
       seller: await this.invoices.buildSellerSnapshot(),
       buyer: await this.invoices.buildBuyerSnapshot(userId),

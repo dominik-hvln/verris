@@ -33,7 +33,7 @@ const STATUS_LABELS: Record<SubscriptionStatus, string> = {
 };
 
 const PAYMENT_LABELS: Record<string, string> = {
-  STRIPE_CARD: 'Karta (Stripe)',
+  STRIPE_CARD: 'Karta',
   WALLET: 'Portfel Verris',
   MANUAL: 'u opiekuna (poza panelem)',
 };

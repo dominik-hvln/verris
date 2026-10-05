@@ -212,7 +212,8 @@ export class StripeService {
     } catch (e) {
       const msg = (e as Error).message;
       this.logger.warn(`Stripe API error: ${msg}`);
-      throw new BadRequestException(`Stripe: ${msg}`);
+      // Komunikat operatora zostaje w logu; klient nie ogląda nazwy dostawcy zaplecza.
+      throw new BadRequestException(`Płatność kartą nie powiodła się: ${msg}`);
     }
   }
 

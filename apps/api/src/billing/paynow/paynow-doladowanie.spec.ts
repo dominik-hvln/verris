@@ -337,7 +337,7 @@ describe('Dokument za doładowanie — sposób płatności', () => {
     findUnique.mockResolvedValueOnce({ paymentProvider: 'PAYNOW' });
     await expect(etykieta({ provider: 'WALLET_TOPUP', providerRef: 'wtx-1' })).resolves.toBe('Płatność online (Paynow)');
     findUnique.mockResolvedValueOnce({ paymentProvider: 'STRIPE' });
-    await expect(etykieta({ provider: 'WALLET_TOPUP', providerRef: 'wtx-2' })).resolves.toBe('Karta płatnicza (Stripe)');
+    await expect(etykieta({ provider: 'WALLET_TOPUP', providerRef: 'wtx-2' })).resolves.toBe('Karta płatnicza');
     await expect(etykieta({ provider: 'WALLET', providerRef: null })).resolves.toBe('Portfel Verris');
   });
 });

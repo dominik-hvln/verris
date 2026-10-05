@@ -91,7 +91,7 @@ describe('A-14 — włączenie ukrycia danych w WHOIS', () => {
   it('awaria rejestratora innego rodzaju → zwrot, błąd bez przekłamania', async () => {
     const { service, wallet } = zbuduj({
       cena: '19.99',
-      provider: { setWhoisPrivacy: vi.fn().mockRejectedValue(new Error('OpenProvider nie odpowiada — spróbuj za chwilę.')) },
+      provider: { setWhoisPrivacy: vi.fn().mockRejectedValue(new Error('Rejestr domen nie odpowiada — spróbuj za chwilę.')) },
     });
     await expect(service.setWhoisPrivacy('u1', 'u1', 'd1', true)).rejects.toThrow('nie odpowiada');
     expect(wallet.credit).toHaveBeenCalled();

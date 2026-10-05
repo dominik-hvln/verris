@@ -12,7 +12,8 @@ function planLabel(slug: string): string {
 
 export function walletTxDescription(description: string | null | undefined, paymentProvider?: string | null): string | null {
   const d = (description ?? '').trim();
-  if (!d) return paymentProvider ? `Płatność: ${paymentProvider}` : null;
+  // Nazw dostawców zaplecza (operator kart) klient nie ogląda — tylko sposób płatności; Paynow to marka, którą widzi przy płaceniu.
+  if (!d) return paymentProvider ? (/^stripe$/i.test(paymentProvider) ? 'Płatność kartą' : `Płatność: ${paymentProvider}`) : null;
 
   const renew = d.match(/^auto-renewal\s+(\S+)\s*\((month|year)\)/i);
   if (renew) return `Odnowienie ${renew[2]!.toLowerCase() === 'month' ? 'miesięczne' : 'roczne'} · ${planLabel(renew[1]!)}`;
@@ -23,7 +24,7 @@ export function walletTxDescription(description: string | null | undefined, paym
   if (/^refund/i.test(d)) return 'Zwrot środków';
 
   const topup = d.match(/^doładowanie\s+(\w+)/i);
-  if (topup) return `Doładowanie — ${topup[1]}`;
+  if (topup) return /^stripe$/i.test(topup[1]!) ? 'Doładowanie kartą' : `Doładowanie — ${topup[1]}`;
 
   // Opis bez identyfikatorów zostaje, jak jest (np. „Dodatek: Priorytetowe wsparcie (30 dni)").
   return d.replace(/\s*[(\[]?\b[0-9a-f]{8}-[0-9a-f-]{8,}\b[)\]]?/gi, '').replace(/\s{2,}/g, ' ').trim() || 'Operacja na portfelu';
