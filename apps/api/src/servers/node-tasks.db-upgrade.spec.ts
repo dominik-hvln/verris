@@ -60,8 +60,14 @@ describe('NodeTasksService.queueDbUpgrade', () => {
     return { service, prisma, audit };
   }
 
-  it('exposes exactly the three current LTS targets', () => {
-    expect(ALLOWED_DB_VERSIONS).toEqual(['10.11', '11.4', '11.8', '12.3']);
+  it('exposes only the Governor-supported LTS targets from the fleet manifest', () => {
+    expect(ALLOWED_DB_VERSIONS).toEqual(['10.11', '11.4']);
+  });
+
+  it('rejects 11.8 — CloudLinux MySQL Governor (required on every node) does not support it', async () => {
+    const { service, prisma } = makeService();
+    await expect(service.queueDbUpgrade(SRV, ACTOR, '11.8')).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.server.findUnique).not.toHaveBeenCalled();
   });
 
   it('rejects a version outside the allow-list', async () => {
@@ -141,9 +147,9 @@ describe('NodeTasksService.queueDbUpgrade', () => {
 
   it('trims and still validates whitespace-padded versions', async () => {
     const { service, prisma } = makeService();
-    await service.queueDbUpgrade(SRV, ACTOR, '  11.8  ');
+    await service.queueDbUpgrade(SRV, ACTOR, '  11.4  ');
     expect(prisma.nodeTask.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ payload: { version: '11.8' } }) }),
+      expect.objectContaining({ data: expect.objectContaining({ payload: { version: '11.4' } }) }),
     );
   });
 });

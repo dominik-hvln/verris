@@ -1,7 +1,8 @@
 'use server';
 
-import type { HostingSslMutationOkDto, HostingSslResponseDto } from '@verris/contracts';
+import type { HostingSslMutationOkDto, HostingSslResponseDto, SslPlatneDto, SslZamowienieDto, SslZamowRequestDto } from '@verris/contracts';
 import { apiFetch, ApiError } from '@/lib/api';
+import { bezpiecznie, type Wynik } from '@/lib/wynik-akcji';
 
 export async function fetchHostingSslAction(
   serviceId: string,
@@ -56,4 +57,21 @@ export async function pasteCustomSslAction(
     if (err instanceof Error) return { ok: false, error: err.message };
     return { ok: false, error: 'Nie udało się zapisać certyfikatu.' };
   }
+}
+
+/** G-08 — płatne certyfikaty: oferta z cennika i zamówienia tej usługi. */
+export async function fetchPaidSslAction(serviceId: string): Promise<Wynik<SslPlatneDto>> {
+  return bezpiecznie(() => apiFetch<SslPlatneDto>(`/services/${serviceId}/ssl-orders`));
+}
+
+export async function orderPaidSslAction(serviceId: string, input: SslZamowRequestDto): Promise<Wynik<SslZamowienieDto>> {
+  return bezpiecznie(() =>
+    apiFetch<SslZamowienieDto>(`/services/${serviceId}/ssl-orders`, { method: 'POST', body: JSON.stringify(input) }),
+  );
+}
+
+export async function checkPaidSslAction(serviceId: string, orderId: string): Promise<Wynik<SslZamowienieDto>> {
+  return bezpiecznie(() =>
+    apiFetch<SslZamowienieDto>(`/services/${serviceId}/ssl-orders/${orderId}/check`, { method: 'POST' }),
+  );
 }

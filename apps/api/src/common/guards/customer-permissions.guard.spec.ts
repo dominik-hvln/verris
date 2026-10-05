@@ -187,6 +187,23 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
       expect(guard().canActivate(zadanie('POST', '/vps/:id/power', sub(CustomerPermission.SERVICES_MANAGE)))).toBe(true);
     });
 
+    it('Q-08: snapshot VPS-a (płatny) wymaga SERVICES_MANAGE i BILLING_MANAGE; przywrócenie, reinstalacja i konsola — SERVICES_MANAGE', () => {
+      expect(guard().canActivate(zadanie('POST', '/vps/:id/snapshots', sub(CustomerPermission.SERVICES_MANAGE)))).toBe(false);
+      expect(
+        guard().canActivate(zadanie('POST', '/vps/:id/snapshots', sub(CustomerPermission.SERVICES_MANAGE, CustomerPermission.BILLING_MANAGE))),
+      ).toBe(true);
+      expect(guard().canActivate(zadanie('GET', '/vps/:id/snapshots', sub(CustomerPermission.SERVICES_READ)))).toBe(true);
+      for (const [m, p] of [
+        ['POST', '/vps/:id/snapshots/:snapshotId/restore'],
+        ['DELETE', '/vps/:id/snapshots/:snapshotId'],
+        ['POST', '/vps/:id/rebuild'],
+        ['POST', '/vps/:id/console'],
+      ] as const) {
+        expect(guard().canActivate(zadanie(m, p, sub(CustomerPermission.SERVICES_READ)))).toBe(false);
+        expect(guard().canActivate(zadanie(m, p, sub(CustomerPermission.SERVICES_MANAGE)))).toBe(true);
+      }
+    });
+
     it('skasowanie VPS-a wymaga SERVICES_MANAGE', () => {
       expect(guard().canActivate(zadanie('DELETE', '/vps/:id', sub(CustomerPermission.SERVICES_READ)))).toBe(false);
     });

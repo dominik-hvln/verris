@@ -245,6 +245,7 @@ model User {
   prioritySupport          Boolean   @default(false)
   prioritySupportUntil     DateTime?
   domainRegistrarOrders    DomainRegistrarOrder[]
+  sslOrders                SslOrder[]
   aiInteractions           AiInteractionLog[]
   aiKnowledgeDocs          AiKnowledgeDoc[]    @relation("AiKnowledgeDocAuthor")
   tickets                  Ticket[]            @relation("ClientTickets")
@@ -1018,6 +1019,7 @@ model Subscription {
 
   // #11 — kredyty SLA przyznane tej subskrypcji
   slaCredits           SlaCredit[]
+  sslOrders            SslOrder[]
 
   // Autoscaling (per service)
   autoscalingEnabled   Boolean                   @default(false)
@@ -1408,6 +1410,54 @@ model DomainRegistrarOrder {
   @@index([userId, createdAt])
   @@index([status, createdAt])
   @@index([domainName])
+}
+
+/// G-08 — płatny certyfikat SSL (DV) kupiony przez klienta u resellera rejestratora domen.
+/// Klucz prywatny generujemy u siebie i trzymamy wyłącznie zaszyfrowany (CryptoService).
+enum SslOrderStatus {
+  PENDING     // zamówienie zapisane, przed wysłaniem do wystawcy
+  VALIDATING  // u wystawcy, czeka na weryfikację domeny (DNS / e-mail)
+  ISSUED      // certyfikat wydany, jeszcze niezainstalowany na koncie
+  INSTALLED   // zainstalowany na koncie hostingowym
+  FAILED
+}
+
+model SslOrder {
+  id               String         @id @default(uuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId   String
+  subscription     Subscription   @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  domain           String
+  wildcard         Boolean        @default(false)
+  productId        Int
+  productName      String
+  years            Int            @default(1)
+  /// DNS | EMAIL
+  validation       String
+  approverEmail    String?
+  status           SslOrderStatus @default(PENDING)
+  providerOrderId  String?
+  privateKeyEnc    String         @db.Text
+  csr              String         @db.Text
+  certificate      String?        @db.Text
+  caBundle         String?        @db.Text
+  /// Rekord weryfikacyjny DNS { name, type, value } — pokazywany klientowi, dodawany do naszej strefy.
+  dnsRecord        Json?
+  dnsRecordAddedAt DateTime?
+  priceAmount      Decimal        @db.Decimal(10, 2)
+  currency         String         @default("PLN")
+  walletTxId       String?
+  lastError        String?        @db.Text
+  expiresAt        DateTime?
+  installedAt      DateTime?
+  reminderSentAt   DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@index([subscriptionId])
 }
 
 // -----------------------------------------------------------------------------
@@ -3420,8 +3470,27 @@ model VpsInstance {
   updatedAt        DateTime  @updatedAt
   deletedAt        DateTime?
 
+  snapshots        VpsSnapshot[]
+
   @@index([userId, createdAt])
   @@index([status])
+}
+
+/// Q-08 — snapshot dysku VPS-a (obraz u dostawcy chmury, etykieta `verris-vps=<id VPS-a>`).
+/// Wiersz po usunięciu zostaje (`deletedAt`) — odnowienie VPS-a nalicza opłatę za snapshoty
+/// przechowywane w minionym okresie, także te usunięte przed jego końcem.
+model VpsSnapshot {
+  id             String      @id @default(uuid())
+  vpsInstanceId  String
+  vpsInstance    VpsInstance @relation(fields: [vpsInstanceId], references: [id], onDelete: Cascade)
+  hetznerImageId String      @unique
+  description    String
+  /// Rozmiar w GB wg dostawcy (`image_size`, podstawa jego rozliczenia); null, dopóki obraz powstaje.
+  sizeGb         Decimal?    @db.Decimal(10, 2)
+  createdAt      DateTime    @default(now())
+  deletedAt      DateTime?
+
+  @@index([vpsInstanceId, deletedAt])
 }
 
 // =====================================================================

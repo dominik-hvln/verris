@@ -2,7 +2,7 @@
 # =============================================================================
 # Verris — upgrade silnika MariaDB węzła (VER-UPG). Uruchamiany przez agenta
 # zadań (NodeTask DB_UPGRADE) z env:
-#   DB_TARGET_VERSION   docelowa wersja MariaDB, np. "11.4", "11.8", "12.3"
+#   DB_TARGET_VERSION   docelowa wersja MariaDB z VERRIS_MARIADB_ALLOWED (manifest floty)
 #
 # Mechanizm: DirectAdmin CustomBuild (./build set mariadb X.Y && ./build mariadb) albo — gdy na węźle
 # jest CloudLinux MySQL Governor — mysqlgovernor.py (oficjalna procedura CloudLinux, krok po kroku),
@@ -16,7 +16,10 @@
 set -Eeuo pipefail
 
 TARGET="${DB_TARGET_VERSION:?Brak DB_TARGET_VERSION}"
-ALLOWED="10.11 11.4 11.8 12.3"
+# PB-30 — lista dozwolonych wersji z manifestu floty (stos-wezla.ts → /etc/verris-stack.env), ta sama co w API.
+# shellcheck disable=SC1091
+[ -r /etc/verris-stack.env ] && . /etc/verris-stack.env
+ALLOWED="${VERRIS_MARIADB_ALLOWED:?brak /etc/verris-stack.env (manifest wersji floty) — uruchom agenta zadań}"
 CB="/usr/local/directadmin/custombuild"
 BACKUP_DIR="/var/backups/verris-db"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -82,7 +85,7 @@ gov_id() { case "$1" in 10.4) echo mariadb104;; 10.5) echo mariadb105;; 10.6) ec
 gov_idx() { local i; for i in "${!GOV_LISTA[@]}"; do [ "${GOV_LISTA[$i]}" = "$1" ] && { echo "$i"; return; }; done; echo -1; }
 if [ -x "$GOV" ]; then
   GOV_CEL="$(gov_id "$TARGET")"
-  [ -n "$GOV_CEL" ] || { log "MariaDB $TARGET nie jest dostępna przez MySQL Governor — wybierz 11.4."; marker "from=${CURRENT:-unknown} to=$TARGET status=rejected reason=governor_version_unsupported"; exit 1; }
+  [ -n "$GOV_CEL" ] || { log "MariaDB $TARGET nie jest dostępna przez MySQL Governor — wybierz wersję z manifestu (${VERRIS_MARIADB:-?})."; marker "from=${CURRENT:-unknown} to=$TARGET status=rejected reason=governor_version_unsupported"; exit 1; }
   if [ -n "$CURRENT" ] && [ "$(gov_idx "$(gov_id "$CURRENT")")" -ge 0 ] \
      && [ "$(( $(gov_idx "$GOV_CEL") - $(gov_idx "$(gov_id "$CURRENT")") ))" -ne 1 ]; then
     log "MySQL Governor: aktualizacja tylko o jedną wersję naraz ($CURRENT → następna na liście, nie $TARGET)."

@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { StosWezlaService } from './stos-wezla.service.js';
-import { nastepnyKrokMariadb } from './stos-wezla.js';
+import { DOZWOLONE, nastepnyKrokMariadb } from './stos-wezla.js';
 import { BadRequestException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { ClientWebhooksService } from '../client-webhooks/client-webhooks.service.js';
 import { AccountStatus, NodeTaskKind, NodeTaskStatus, Prisma, ServerStatus } from '@verris/database';
@@ -44,9 +44,12 @@ export type HostingProfileTaskPayload = {
   dryRun?: boolean;
 };
 
-/** VER-UPG — dozwolone docelowe wersje MariaDB (aktualne LTS; 10.11 jako krok pośredni przy CloudLinux MySQL Governor). */
-export const ALLOWED_DB_VERSIONS = ['10.11', '11.4', '11.8', '12.3'] as const;
-export type AllowedDbVersion = (typeof ALLOWED_DB_VERSIONS)[number];
+/**
+ * VER-UPG / PB-30 — dozwolone docelowe wersje MariaDB = wersje manifestu (DOZWOLONE.mariadb): tylko te,
+ * które obsługuje CloudLinux MySQL Governor (wymagany na każdym węźle). 11.8/12.3 odrzucał dopiero
+ * skrypt węzła (governor_version_unsupported), po zleceniu zadania.
+ */
+export const ALLOWED_DB_VERSIONS: readonly string[] = DOZWOLONE.mariadb.map((m) => m.v);
 
 /** PB-32 — stan fali aktualizacji niesiony w payloadzie zadania FLEET_UPDATE. */
 export interface FalaAktualizacji {
@@ -165,7 +168,7 @@ export class NodeTasksService {
    */
   async queueDbUpgrade(serverId: string, actorUserId: string | null, version: string, lancuch = false) {
     const target = (version ?? '').trim();
-    if (!(ALLOWED_DB_VERSIONS as readonly string[]).includes(target)) {
+    if (!ALLOWED_DB_VERSIONS.includes(target)) {
       throw new BadRequestException(
         `Niedozwolona wersja docelowa „${target}". Dozwolone: ${ALLOWED_DB_VERSIONS.join(', ')}.`,
       );

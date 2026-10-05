@@ -6,6 +6,7 @@ import { Kpi, KpiStrip, SectionHead, StatusPill, type Tone } from '@/components/
 import { days as daysLabel } from '@/lib/pl';
 import type { HostingSslRowDto, HostingSslStatus } from '@verris/contracts';
 import { HostingSslForms } from '@/components/hosting/HostingSslForms';
+import { SslPlatne } from '@/components/hosting/SslPlatne';
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
 import {
   fetchHostingDomainsAction as fetchHostingDomainsActionAkcja,
@@ -188,6 +189,8 @@ export default function SSLTab({ serviceId }: Props) {
           <HostingSslForms serviceId={serviceId} />
         </div>
       </section>
+
+      <SslPlatne serviceId={serviceId} domains={domains} />
 
       <HostingHelpHint
         help={{

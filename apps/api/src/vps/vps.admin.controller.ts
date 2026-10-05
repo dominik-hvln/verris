@@ -5,7 +5,7 @@ import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { VpsService } from './vps.service.js';
-import { CreateVpsPlanDto, UpdateVpsPlanDto } from './dto/vps.dto.js';
+import { CreateVpsPlanDto, UpdateVpsPlanDto, VpsSnapshotSettingsDto } from './dto/vps.dto.js';
 
 @Controller('admin/vps')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -22,6 +22,18 @@ export class VpsAdminController {
   @Get('server-types')
   serverTypes() {
     return this.vps.serverTypes();
+  }
+
+  /** Q-08 — cena snapshotów (K/GB/mies.; pusta = wyłączone) i limit na VPS. */
+  @Get('snapshot-settings')
+  snapshotSettings() {
+    return this.vps.adminSnapshotSettings();
+  }
+
+  @Patch('snapshot-settings')
+  @HttpCode(200)
+  updateSnapshotSettings(@Body() dto: VpsSnapshotSettingsDto, @CurrentUser() user: { userId: string }) {
+    return this.vps.updateSnapshotSettings(dto, user.userId);
   }
 
   @Get('plans')

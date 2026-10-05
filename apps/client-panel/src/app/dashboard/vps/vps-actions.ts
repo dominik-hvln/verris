@@ -135,3 +135,107 @@ export async function deleteSshKeyAction(id: string): Promise<Result> {
     return { ok: false, error: err(e) };
   }
 }
+
+// --- Q-08 snapshoty i reinstalacja, Q-07 konsola ---
+
+export interface VpsSnapshotDto {
+  id: string;
+  description: string;
+  createdAt: string;
+  sizeGb: string | null;
+  status: 'available' | 'creating' | 'unavailable';
+}
+
+export interface VpsSnapshotsDto {
+  /** false = snapshoty wyłączone (brak ceny) — tworzenie ukryte. */
+  enabled: boolean;
+  pricePerGbMonthly: string | null;
+  limit: number;
+  snapshots: VpsSnapshotDto[];
+}
+
+export interface VpsOsImageDto {
+  name: string;
+  description: string;
+}
+
+export async function fetchVpsSnapshots(id: string): Promise<Result<VpsSnapshotsDto>> {
+  try {
+    return { ok: true, data: await apiFetch<VpsSnapshotsDto>(`/vps/${id}/snapshots`) };
+  } catch (e) {
+    return { ok: false, error: err(e) };
+  }
+}
+
+export async function createVpsSnapshotAction(id: string, description: string): Promise<Result<VpsSnapshotDto>> {
+  try {
+    const data = await apiFetch<VpsSnapshotDto>(`/vps/${id}/snapshots`, {
+      method: 'POST',
+      body: JSON.stringify({ description: description || undefined }),
+    });
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, error: err(e) };
+  }
+}
+
+export async function deleteVpsSnapshotAction(id: string, snapshotId: string): Promise<Result> {
+  try {
+    await apiFetch(`/vps/${id}/snapshots/${snapshotId}`, { method: 'DELETE' });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: err(e) };
+  }
+}
+
+export async function restoreVpsSnapshotAction(id: string, snapshotId: string): Promise<Result<{ actionId: string }>> {
+  try {
+    const data = await apiFetch<{ actionId: string }>(`/vps/${id}/snapshots/${snapshotId}/restore`, { method: 'POST' });
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, error: err(e) };
+  }
+}
+
+export async function fetchVpsOsImages(id: string): Promise<Result<VpsOsImageDto[]>> {
+  try {
+    return { ok: true, data: await apiFetch<VpsOsImageDto[]>(`/vps/${id}/images`) };
+  } catch (e) {
+    return { ok: false, error: err(e) };
+  }
+}
+
+export async function rebuildVpsAction(
+  id: string,
+  image: string,
+): Promise<Result<{ actionId: string; rootPassword: string | null }>> {
+  try {
+    const data = await apiFetch<{ actionId: string; rootPassword: string | null }>(`/vps/${id}/rebuild`, {
+      method: 'POST',
+      body: JSON.stringify({ image }),
+    });
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, error: err(e) };
+  }
+}
+
+export async function vpsActionStatus(
+  id: string,
+  actionId: string,
+): Promise<Result<{ status: 'running' | 'success' | 'error'; progress: number }>> {
+  try {
+    return { ok: true, data: await apiFetch(`/vps/${id}/actions/${actionId}`) };
+  } catch (e) {
+    return { ok: false, error: err(e) };
+  }
+}
+
+/** Jednorazowa sesja konsoli — hasło tylko dla tego połączenia, nigdzie nie zapisywane. */
+export async function requestVpsConsoleAction(id: string): Promise<Result<{ wssUrl: string; password: string }>> {
+  try {
+    return { ok: true, data: await apiFetch(`/vps/${id}/console`, { method: 'POST' }) };
+  } catch (e) {
+    return { ok: false, error: err(e) };
+  }
+}

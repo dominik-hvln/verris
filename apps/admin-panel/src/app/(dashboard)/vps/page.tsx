@@ -1,14 +1,16 @@
 import { Server } from "lucide-react";
-import { fetchVpsAvailability, fetchVpsPlans, fetchHetznerServerTypes } from "./actions";
+import { fetchVpsAvailability, fetchVpsPlans, fetchHetznerServerTypes, fetchVpsSnapshotSettings } from "./actions";
 import { VpsPlansClient } from "./vps-plans-client";
+import { SnapshotSettingsForm } from "./snapshot-settings-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminVpsPage() {
-  const [available, plans, serverTypes] = await Promise.all([
+  const [available, plans, serverTypes, snapshotSettings] = await Promise.all([
     fetchVpsAvailability(),
     fetchVpsPlans(),
     fetchHetznerServerTypes(),
+    fetchVpsSnapshotSettings(),
   ]);
 
   return (
@@ -23,6 +25,7 @@ export default async function AdminVpsPage() {
         </p>
       </header>
       <VpsPlansClient available={available} plans={plans} serverTypes={serverTypes} />
+      {snapshotSettings ? <SnapshotSettingsForm initial={snapshotSettings} /> : null}
     </div>
   );
 }

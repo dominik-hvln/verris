@@ -1,4 +1,5 @@
 import {
+  BadGatewayException,
   BadRequestException,
   ConflictException,
   Injectable,
@@ -16,6 +17,11 @@ import { MailerService } from '../mail/mailer.service.js';
 import { vpsReadyTemplate } from '../mail/templates/vps-notifications.js';
 import { HetznerClient } from './hetzner.client.js';
 import type { OrderVpsDto } from './dto/vps.dto.js';
+import { PLATFORM_SETTING_KEYS } from '../platform-settings/platform-settings.keys.js';
+import { ETYKIETA_VPS, odswiezRozmiary, politykaSnapshotow, usunSnapshotyVps } from './vps-snapshoty.js';
+
+const WSTRZYMANY =
+  'VPS jest wstrzymany z powodu braku środków. Doładuj portfel — włączymy go automatycznie przy najbliższym odnowieniu (codziennie o 4:00).';
 
 function sanitizeName(raw: string): string {
   const base = raw.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
@@ -251,9 +257,7 @@ export class VpsService {
     // Okres nieopłacony = VPS wstrzymany za brak płatności. Wcześniej klient mógł go po prostu
     // włączyć i korzystać przez całą karencję bez płacenia.
     if (action === 'on' && v.currentPeriodEnd && v.currentPeriodEnd.getTime() <= Date.now()) {
-      throw new ConflictException(
-        'VPS jest wstrzymany z powodu braku środków. Doładuj portfel — włączymy go automatycznie przy najbliższym odnowieniu (codziennie o 4:00).',
-      );
+      throw new ConflictException(WSTRZYMANY);
     }
     if (action === 'on') await this.hetzner.powerOn(v.hetznerServerId);
     else if (action === 'off') await this.hetzner.powerOff(v.hetznerServerId);
@@ -282,6 +286,8 @@ export class VpsService {
         // Continue to mark deleted locally; orphan cleanup is an ops concern.
       }
     }
+    // Q-08 — snapshoty przeżywają serwer u dostawcy i dalej kosztują.
+    await usunSnapshotyVps(this.prisma, this.hetzner, id);
     await this.prisma.vpsInstance.update({
       where: { id },
       data: { status: VpsStatus.DELETED, deletedAt: new Date() },
@@ -293,6 +299,209 @@ export class VpsService {
       details: { instanceId: id, hetznerServerId: v.hetznerServerId },
     });
     return { ok: true as const };
+  }
+
+  // --- Q-08 snapshoty i reinstalacja, Q-07 konsola ---
+
+  /** VPS klienta gotowy do operacji: istnieje u dostawcy i nie jest wstrzymany za brak płatności. */
+  private async requireActionable(userId: string, id: string) {
+    const v = await this.requireOwned(userId, id);
+    if (!v.hetznerServerId) throw new ConflictException('VPS nie jest jeszcze gotowy.');
+    if (v.currentPeriodEnd && v.currentPeriodEnd.getTime() <= Date.now()) throw new ConflictException(WSTRZYMANY);
+    return { ...v, hetznerServerId: v.hetznerServerId };
+  }
+
+  async listSnapshots(userId: string, id: string) {
+    const v = await this.requireOwned(userId, id);
+    const polityka = await politykaSnapshotow(this.prisma);
+    const aktywne = await this.prisma.vpsSnapshot.count({ where: { vpsInstanceId: id, deletedAt: null } });
+    const stan = aktywne && v.hetznerServerId ? await odswiezRozmiary(this.prisma, this.hetzner, id) : new Map();
+    const rows = await this.prisma.vpsSnapshot.findMany({
+      where: { vpsInstanceId: id, deletedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
+    return {
+      enabled: polityka.cenaZaGb != null,
+      pricePerGbMonthly: polityka.cenaZaGb,
+      limit: polityka.limit,
+      snapshots: rows.map((r) => ({
+        id: r.id,
+        description: r.description,
+        createdAt: r.createdAt.toISOString(),
+        sizeGb: r.sizeGb?.toString() ?? null,
+        // Brak obrazu u dostawcy (np. usunięty poza panelem) = niedostępny, nie „gotowy”.
+        status: (stan.get(r.hetznerImageId)?.status ?? 'unavailable') as 'available' | 'creating' | 'unavailable',
+      })),
+    };
+  }
+
+  async createSnapshot(userId: string, id: string, description?: string) {
+    const v = await this.requireActionable(userId, id);
+    const polityka = await politykaSnapshotow(this.prisma);
+    if (!polityka.cenaZaGb) throw new BadRequestException('Snapshoty są niedostępne.');
+    // ponytail: limit sprawdzany przed utworzeniem bez blokady — dwa równoległe żądania mogą go przekroczyć o 1
+    // (trasa ma limit częstotliwości); blokada wiersza VPS-a, jeśli to wyjdzie w praktyce.
+    const aktywne = await this.prisma.vpsSnapshot.count({ where: { vpsInstanceId: id, deletedAt: null } });
+    if (aktywne >= polityka.limit) {
+      throw new ConflictException(`Osiągnięto limit snapshotów dla tego serwera (${polityka.limit}). Usuń starszy, aby utworzyć nowy.`);
+    }
+    const opis = description?.trim() || `Snapshot ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`;
+    const { image } = await this.hetzner.createSnapshot(v.hetznerServerId, {
+      description: opis,
+      labels: { [ETYKIETA_VPS]: id },
+    });
+    const row = await this.prisma.vpsSnapshot.create({
+      data: {
+        vpsInstanceId: id,
+        hetznerImageId: String(image.id),
+        description: opis,
+        sizeGb: image.image_size != null ? new Prisma.Decimal(image.image_size) : null,
+      },
+    });
+    await this.audit.record({
+      action: 'VPS_SNAPSHOT_CREATED',
+      userId,
+      actorUserId: userId,
+      details: { instanceId: id, snapshotId: row.id, hetznerImageId: row.hetznerImageId },
+    });
+    return {
+      id: row.id,
+      description: row.description,
+      createdAt: row.createdAt.toISOString(),
+      sizeGb: row.sizeGb?.toString() ?? null,
+      status: image.status,
+    };
+  }
+
+  private async requireSnapshot(id: string, snapshotId: string) {
+    const snap = await this.prisma.vpsSnapshot.findFirst({ where: { id: snapshotId, vpsInstanceId: id, deletedAt: null } });
+    if (!snap) throw new NotFoundException('Snapshot nie istnieje.');
+    return snap;
+  }
+
+  async deleteSnapshot(userId: string, id: string, snapshotId: string) {
+    await this.requireOwned(userId, id);
+    const snap = await this.requireSnapshot(id, snapshotId);
+    try {
+      await this.hetzner.deleteImage(snap.hetznerImageId);
+    } catch (err) {
+      // Obrazu już nie ma u dostawcy — usunięcie osiągnęło cel. Każdy inny błąd idzie do klienta.
+      if (!(err instanceof NotFoundException)) throw err;
+    }
+    await this.prisma.vpsSnapshot.update({ where: { id: snap.id }, data: { deletedAt: new Date() } });
+    await this.audit.record({
+      action: 'VPS_SNAPSHOT_DELETED',
+      userId,
+      actorUserId: userId,
+      details: { instanceId: id, snapshotId: snap.id, hetznerImageId: snap.hetznerImageId },
+    });
+    return { ok: true as const };
+  }
+
+  /** Przywrócenie serwera ze snapshotu tego samego VPS-a — nadpisuje dysk. Zwraca akcję do śledzenia. */
+  async restoreSnapshot(userId: string, id: string, snapshotId: string) {
+    const v = await this.requireActionable(userId, id);
+    const snap = await this.requireSnapshot(id, snapshotId);
+    const res = await this.hetzner.rebuild(v.hetznerServerId, snap.hetznerImageId);
+    await this.audit.record({
+      action: 'VPS_SNAPSHOT_RESTORED',
+      userId,
+      actorUserId: userId,
+      details: { instanceId: id, snapshotId: snap.id, hetznerImageId: snap.hetznerImageId, actionId: res.actionId },
+    });
+    return { actionId: String(res.actionId) };
+  }
+
+  /** Systemy dostępne do reinstalacji — tylko dla architektury tego serwera. */
+  async listOsImages(userId: string, id: string) {
+    const v = await this.requireActionable(userId, id);
+    return this.systemImages(v.hetznerServerId);
+  }
+
+  private async systemImages(hetznerServerId: string) {
+    const server = await this.hetzner.getServer(hetznerServerId);
+    const arch = server?.server_type?.architecture;
+    if (!arch) throw new BadGatewayException('Nie udało się pobrać listy systemów. Spróbuj ponownie za chwilę.');
+    const obrazy = await this.hetzner.listSystemImages(arch);
+    return obrazy
+      .filter((o) => o.name)
+      .map((o) => ({ name: o.name as string, description: o.description }))
+      .sort((a, b) => a.description.localeCompare(b.description, 'pl'));
+  }
+
+  /** Reinstalacja systemu z listy obrazów systemowych — kasuje dane. Nowe hasło root pokazujemy raz. */
+  async rebuild(userId: string, id: string, image: string) {
+    const v = await this.requireActionable(userId, id);
+    // Tylko obraz z listy systemów — inaczej klient mógłby podać ID cudzego snapshotu z tego samego projektu.
+    if (!(await this.systemImages(v.hetznerServerId)).some((o) => o.name === image)) {
+      throw new BadRequestException('Wybrany system nie jest dostępny.');
+    }
+    const res = await this.hetzner.rebuild(v.hetznerServerId, image);
+    if (res.rootPassword) {
+      await this.prisma.vpsInstance.update({ where: { id }, data: { rootPasswordEnc: this.crypto.encrypt(res.rootPassword) } });
+    }
+    await this.audit.record({
+      action: 'VPS_REBUILT',
+      userId,
+      actorUserId: userId,
+      details: { instanceId: id, image, actionId: res.actionId },
+    });
+    return { actionId: String(res.actionId), rootPassword: res.rootPassword };
+  }
+
+  /** Stan akcji asynchronicznej — tylko akcji dotyczącej serwera tego klienta. */
+  async actionStatus(userId: string, id: string, actionId: string) {
+    const v = await this.requireOwned(userId, id);
+    if (!/^\d{1,20}$/.test(actionId) || !v.hetznerServerId) throw new NotFoundException('Operacja nie istnieje.');
+    const a = await this.hetzner.getAction(actionId);
+    if (!a.resources.some((r) => r.type === 'server' && String(r.id) === v.hetznerServerId)) {
+      throw new NotFoundException('Operacja nie istnieje.');
+    }
+    return { status: a.status, progress: a.progress };
+  }
+
+  /**
+   * Q-07 — sesja konsoli (VNC przez websocket). Żądana po naszej stronie, token dostawcy nie opuszcza API;
+   * hasło jest jednorazowe dla tej sesji i nie trafia do dziennika.
+   */
+  async console(userId: string, id: string) {
+    const v = await this.requireActionable(userId, id);
+    const res = await this.hetzner.requestConsole(v.hetznerServerId);
+    await this.audit.record({ action: 'VPS_CONSOLE_OPENED', userId, actorUserId: userId, details: { instanceId: id } });
+    return { wssUrl: res.wssUrl, password: res.password };
+  }
+
+  // --- admin: ustawienia snapshotów ---
+
+  async adminSnapshotSettings() {
+    const p = await politykaSnapshotow(this.prisma);
+    return { pricePerGbMonthly: p.cenaZaGb, limit: p.limit };
+  }
+
+  async updateSnapshotSettings(input: { pricePerGbMonthly?: string | null; limit: number }, actorUserId: string) {
+    const raw = (input.pricePerGbMonthly ?? '').trim().replace(',', '.');
+    const n = Number(raw);
+    if (raw && !(Number.isFinite(n) && n > 0)) {
+      throw new BadRequestException('Cena musi być kwotą większą od zera albo pusta (snapshoty wyłączone).');
+    }
+    const cena = raw ? String(Number(n.toFixed(4))) : '';
+    const K = PLATFORM_SETTING_KEYS;
+    await this.prisma.$transaction(
+      ([[K.VPS_SNAPSHOT_PRICE_PER_GB, cena], [K.VPS_SNAPSHOT_LIMIT, String(input.limit)]] as const).map(([key, value]) =>
+        this.prisma.platformSetting.upsert({
+          where: { key },
+          create: { key, value, updatedByUserId: actorUserId },
+          update: { value, updatedByUserId: actorUserId },
+        }),
+      ),
+    );
+    await this.audit.record({
+      action: 'VPS_SNAPSHOT_SETTINGS_UPDATED',
+      userId: actorUserId,
+      actorUserId,
+      details: { pricePerGbMonthly: cena || null, limit: input.limit },
+    });
+    return this.adminSnapshotSettings();
   }
 
   // --- admin: plan catalogue ---

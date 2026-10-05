@@ -107,3 +107,36 @@ export async function disableVpsPlan(id: string): Promise<Result> {
     return { ok: false, error: err(e) };
   }
 }
+
+/** Q-08 — cena snapshotów VPS (K/GB/mies.; null = wyłączone) i limit na serwer. */
+export interface VpsSnapshotSettings {
+  pricePerGbMonthly: string | null;
+  limit: number;
+}
+
+export async function fetchVpsSnapshotSettings(): Promise<VpsSnapshotSettings | null> {
+  try {
+    return await adminApi<VpsSnapshotSettings>("/admin/vps/snapshot-settings");
+  } catch {
+    return null;
+  }
+}
+
+export async function updateVpsSnapshotSettingsAction(
+  _prev: { ok?: boolean; error?: string },
+  form: FormData,
+): Promise<{ ok?: boolean; error?: string }> {
+  try {
+    await adminApi("/admin/vps/snapshot-settings", {
+      method: "PATCH",
+      body: {
+        pricePerGbMonthly: String(form.get("pricePerGbMonthly") ?? "").trim() || null,
+        limit: Number(form.get("limit")),
+      },
+    });
+    revalidatePath("/vps");
+    return { ok: true };
+  } catch (e) {
+    return { error: err(e) };
+  }
+}

@@ -419,3 +419,49 @@ export function komunikatKontaTemplate(ctx: KomunikatKontaMailContext): MailMess
   });
   return { to: ctx.to, tag: `hosting.komunikat.${ctx.rodzaj}`, subject: `[Verris] ${k.tytul}`, text, html };
 }
+
+/* ===================== G-08 — płatny certyfikat SSL ===================== */
+export type SslPlatnyRodzaj = 'zainstalowany' | 'odrzucony' | 'wygasa';
+
+/** Teksty wspólne dla maila i powiadomienia w panelu (bez nazw zaplecza — white label). */
+export function sslPlatnyKomunikat(rodzaj: SslPlatnyRodzaj, domena: string, wygasa?: Date | null): { tytul: string; tresc: string } {
+  switch (rodzaj) {
+    case 'zainstalowany':
+      return {
+        tytul: `Certyfikat SSL dla ${domena} jest zainstalowany`,
+        tresc: `Płatny certyfikat SSL dla ${domena} został wydany i zainstalowany na Twoim koncie${wygasa ? ` — ważny do ${formatDate(wygasa)}` : ''}.`,
+      };
+    case 'odrzucony':
+      return {
+        tytul: `Nie udało się wystawić certyfikatu SSL dla ${domena}`,
+        tresc: `Wystawca nie potwierdził własności domeny ${domena} i zamówienie zostało zamknięte. Opłata wróciła do portfela — możesz zamówić certyfikat ponownie.`,
+      };
+    case 'wygasa':
+      return {
+        tytul: `Certyfikat SSL dla ${domena} wygasa${wygasa ? ` ${formatDate(wygasa)}` : ' wkrótce'}`,
+        tresc: `Płatny certyfikat SSL dla ${domena} wygasa${wygasa ? ` ${formatDate(wygasa)}` : ' wkrótce'}. Płatnych certyfikatów nie odnawiamy automatycznie — zamów nowy w zakładce „Certyfikaty SSL”, żeby strona nie straciła kłódki.`,
+      };
+  }
+}
+
+export function sslPlatnyTemplate(ctx: {
+  to: string;
+  firstName: string | null;
+  rodzaj: SslPlatnyRodzaj;
+  domena: string;
+  wygasa?: Date | null;
+  panelUrl: string;
+  ctaUrl: string;
+}): MailMessage {
+  const k = sslPlatnyKomunikat(ctx.rodzaj, ctx.domena, ctx.wygasa);
+  const { html, text } = renderEmailShell({
+    title: k.tytul,
+    preheader: k.tresc,
+    bodyMarkdown: [ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,', '', escapeMarkdown(k.tresc)].join('\n'),
+    cta: { label: 'Przejdź do certyfikatów SSL', url: ctx.ctaUrl },
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: `hosting.ssl-platny.${ctx.rodzaj}`, subject: `[Verris] ${k.tytul}`, text, html };
+}

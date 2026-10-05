@@ -16,5 +16,7 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
   imports: [PrismaModule, ConfigModule, CryptoModule, BillingModule, EcoModule, PlatformSettingsModule],
   controllers: [DomainsController],
   providers: [DomainsService, DomainRegistrarService, RegistrarProviderFactory, NbpFxService, DomainExpiryReminderScheduler],
+  // G-08 — SslModule korzysta z tego samego klienta rejestratora i kursów NBP (jeden harmonogram kursów).
+  exports: [RegistrarProviderFactory, NbpFxService],
 })
 export class DomainsModule {}

@@ -10,7 +10,11 @@ function stanowisko(blad: Error) {
     id: 'v1', userId: 'u1', name: 'app', status: 'RUNNING', hetznerServerId: 42, priceMonthly: 30,
     currentPeriodEnd: new Date(Date.now() - 30 * 24 * 3600_000), user: { email: 'jan@firma.pl', firstName: null }, plan: { name: 'CX' },
   };
-  const prisma = { vpsInstance: { findMany: vi.fn(async () => [vps]), update: vi.fn(async () => ({})) } };
+  const prisma = {
+    vpsInstance: { findMany: vi.fn(async () => [vps]), update: vi.fn(async () => ({})) },
+    platformSetting: { findMany: vi.fn(async () => []) },
+    vpsSnapshot: { findMany: vi.fn(async () => []), count: vi.fn(async () => 0) },
+  };
   const hetzner = { deleteServer: vi.fn(async () => undefined), powerOff: vi.fn(async () => undefined), powerOn: vi.fn() };
   const svc = new VpsRenewalScheduler(
     prisma as never,

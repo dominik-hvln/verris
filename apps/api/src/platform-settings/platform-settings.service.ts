@@ -10,6 +10,13 @@ import {
 import { ksefDozwolony, normalizujTryb } from '../billing/tryb-fakturowania.js';
 import type { TrialOfferConfig } from './dto/trial-offer.dto.js';
 
+/** G-08 — pozycja cennika SSL: cena brutto za rok (PLN), nazwa produktu, czy wildcard. */
+export interface SslCena {
+  price: string;
+  name: string;
+  wildcard: boolean;
+}
+
 export interface SellerCompanyDto {
   name: string;
   nip: string;
@@ -356,6 +363,29 @@ export class PlatformSettingsService {
     return { whoisPrivacyPrice: value || null };
   }
 
+  /** G-08 — cennik certyfikatów SSL (tylko produkty z ceną). */
+  async getSslPrices(): Promise<Record<string, SslCena>> {
+    const map = await this.loadMap();
+    try {
+      const raw = JSON.parse(this.readStr(map, PLATFORM_SETTING_KEYS.SSL_PRICES, '{}')) as Record<string, SslCena>;
+      return Object.fromEntries(Object.entries(raw).filter(([, v]) => Number(v?.price) > 0));
+    } catch {
+      return {};
+    }
+  }
+
+  async updateSslPrices(prices: Record<string, SslCena>, actorUserId: string): Promise<Record<string, SslCena>> {
+    const czyste: Record<string, SslCena> = {};
+    for (const [id, v] of Object.entries(prices)) {
+      const n = Number(String(v?.price ?? '').trim().replace(',', '.'));
+      if (!/^\d+$/.test(id) || !(Number.isFinite(n) && n > 0)) continue;
+      czyste[id] = { price: n.toFixed(2), name: String(v.name ?? '').slice(0, 120), wildcard: v.wildcard === true };
+    }
+    await this.upsertMany([[PLATFORM_SETTING_KEYS.SSL_PRICES, JSON.stringify(czyste)]], actorUserId);
+    await this.audit.record({ action: 'PLATFORM_SSL_PRICES_UPDATED', userId: actorUserId, details: czyste as never });
+    return czyste;
+  }
+
   // #11 — polityka kredytów SLA.
   async getSlaCreditPolicy(): Promise<{
     enabled: boolean;
@@ -492,7 +522,7 @@ export class PlatformSettingsService {
     const raw = this.readStr(
       map,
       PLATFORM_SETTING_KEYS.PHP_AVAILABLE_VERSIONS,
-      '8.3,8.2,8.1,8.0,7.4',
+      PLATFORM_SETTING_DEFAULTS[PLATFORM_SETTING_KEYS.PHP_AVAILABLE_VERSIONS],
     );
     return raw
       .split(',')

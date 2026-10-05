@@ -104,3 +104,24 @@ export class CreateVpsPlanDto {
 }
 
 export class UpdateVpsPlanDto extends Czesciowy(CreateVpsPlanDto) {}
+
+/** Q-08 — nowy snapshot (opis opcjonalny; pusty = data utworzenia). */
+export class CreateVpsSnapshotDto {
+  @IsOptional() @IsString() @Length(0, 100)
+  description?: string;
+}
+
+/** Q-08 — reinstalacja systemu: nazwa obrazu z listy GET /vps/:id/images. */
+export class VpsRebuildDto {
+  @IsString() @Length(1, 80)
+  image!: string;
+}
+
+/** Q-08 — ustawienia snapshotów (admin): cena K/GB/mies. (pusta = wyłączone) i limit na VPS. */
+export class VpsSnapshotSettingsDto {
+  @IsOptional() @IsString() @Length(0, 20)
+  pricePerGbMonthly?: string | null;
+
+  @IsInt() @Min(1) @Max(20)
+  limit!: number;
+}

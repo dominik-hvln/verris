@@ -15,6 +15,10 @@
  * - CloudLinux MySQL Governor: słowa kluczowe do mariadb1104 (11.4) — nowszych oficjalnie nie
  *   opisano, dlatego flota jedzie na 11.4, a nie 11.8.
  * - LiteSpeed Enterprise: stabilna 6.3.x (6.4 w fazie RC) — instaluje CustomBuild.
+ * - CloudLinux PHP Selector: pakiety alt-phpXX (KB CloudLinux „Install alt-php on CloudLinux 10”).
+ *
+ * Skrypty węzła NIE mają własnych wartości domyślnych tych wersji — pilnuje test
+ * src/test/manifest-stosu-jedno-zrodlo.spec.ts (literał wersji w skrypcie albo rozjazd = czerwony).
  */
 export interface ManifestStosu {
   wersja: string;
@@ -26,12 +30,14 @@ export interface ManifestStosu {
   webserver: string;
   modsecurityRuleset: string;
   litespeedLinia: string;
+  /** Wersje alt-php instalowane w PHP Selectorze CloudLinux (i domyślnie wybieralne przez klientów). */
+  phpAlt: string[];
 }
 
 /** Domyślny manifest (pierwsze uruchomienie). Bieżący: StosWezlaService (panel → platform_settings). */
 export const STOS_WEZLA: ManifestStosu = {
   /** Podbijaj przy każdej zmianie — węzeł raportuje, którą wersję manifestu ma. */
-  wersja: '2026-09-26.1',
+  wersja: '2026-10-05.1',
   daKanal: 'stable',
   /** Build DirectAdmin sprawdzony na węźle testowym (D3). Pusty = najnowszy z kanału. */
   daCommit: '',
@@ -42,6 +48,7 @@ export const STOS_WEZLA: ManifestStosu = {
   modsecurityRuleset: 'owasp',
   /** Główna linia LiteSpeed Enterprise dopuszczona na flocie (raport zgodności porównuje prefiks). */
   litespeedLinia: '6.3',
+  phpAlt: ['8.3', '8.2', '8.1', '8.0', '7.4'],
 };
 
 /**
@@ -96,6 +103,9 @@ export function stosJakoEnv(s: ManifestStosu = STOS_WEZLA): string {
     `VERRIS_WEBSERVER=${q(s.webserver)}`,
     `VERRIS_MODSECURITY_RULESET=${q(s.modsecurityRuleset)}`,
     `VERRIS_LITESPEED_LINE=${q(s.litespeedLinia)}`,
+    `VERRIS_PHP_VERSIONS=${q(s.phpAlt.join(' '))}`,
+    // Docelowe wersje dla node-db-upgrade.sh (strażnik po stronie węzła; API sprawdza to samo).
+    `VERRIS_MARIADB_ALLOWED=${q(DOZWOLONE.mariadb.map((m) => m.v).join(' '))}`,
     '',
   ].join('\n');
 }

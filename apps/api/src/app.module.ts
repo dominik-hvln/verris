@@ -18,6 +18,7 @@ import { NotificationsModule } from './notifications/notifications.module.js';
 import { SearchModule } from './search/search.module.js';
 import { BusinessMetricsModule } from './metrics/business-metrics.module.js';
 import { DomainsModule } from './domains/domains.module.js';
+import { SslModule } from './ssl/ssl.module.js';
 import { UsersModule } from './users/users.module.js';
 import { TicketsModule } from './tickets/tickets.module.js';
 import { BillingModule } from './billing/billing.module.js';
@@ -80,6 +81,7 @@ import { DeliverabilityModule } from './deliverability/deliverability.module.js'
     SearchModule,
     BusinessMetricsModule,
     DomainsModule,
+    SslModule,
     UsersModule,
     TicketsModule,
     BillingModule,

@@ -4,7 +4,7 @@ import { adminApi, AdminApiError } from "@/lib/api";
 
 /** PB-33 — „Wersje stosu floty” (tylko admin). */
 export interface WidokStosu {
-  manifest: { wersja: string; daKanal: string; daCommit: string; php1: string; mariadb: string; litespeedLinia: string };
+  manifest: { wersja: string; daKanal: string; daCommit: string; php1: string; mariadb: string; litespeedLinia: string; phpAlt: string[] };
   dozwolone: Record<"mariadb" | "php1" | "daKanal" | "litespeedLinia", { v: string; opis: string }[]>;
   wezly: {
     id: string;

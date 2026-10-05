@@ -1,3 +1,5 @@
+import { STOS_WEZLA } from '../servers/stos-wezla.js';
+
 /** Well-known platform configuration keys (stored in `platform_settings`). */
 export const PLATFORM_SETTING_KEYS = {
   ECO_POINTS_PER_TREE: 'eco.pointsPerTree',
@@ -43,6 +45,18 @@ export const PLATFORM_SETTING_KEYS = {
    * Basic pobiera opłatę za każdą domenę; puste = usługa niedostępna (nie oferujemy jej klientom).
    */
   DOMAIN_WHOIS_PRIVACY_PRICE: 'domain.whoisPrivacyYearlyPrice',
+  /**
+   * G-08 — cennik płatnych certyfikatów SSL: JSON { "<id produktu>": { price, name, wildcard } }, cena BRUTTO
+   * (PLN) za rok. Produkt bez ceny nie jest oferowany klientom.
+   */
+  SSL_PRICES: 'ssl.prices',
+  /**
+   * Q-08 — cena snapshotu VPS-a w K za GB miesięcznie (dostawca chmury liczy za GB). Puste = snapshoty
+   * wyłączone (klient ich nie widzi). Naliczane z portfela przy odnowieniu VPS-a.
+   */
+  VPS_SNAPSHOT_PRICE_PER_GB: 'vps.snapshotPricePerGbMonthly',
+  /** Q-08 — maks. liczba snapshotów na jeden VPS (domyślnie 3). */
+  VPS_SNAPSHOT_LIMIT: 'vps.snapshotLimit',
 
   // #11 — kredyty SLA za przestój infrastruktury (domyślnie wyłączone).
   // Rozliczenie MIESIĘCZNE wg progów §15 regulaminu (5/25/50/100%).
@@ -109,7 +123,8 @@ export const PLATFORM_SETTING_DEFAULTS: Record<PlatformSettingKey, string> = {
   [PLATFORM_SETTING_KEYS.ECO_POINTS_PER_10_CREDITS]: '100',
   [PLATFORM_SETTING_KEYS.CLIENT_IDLE_MINUTES]: '60',
   [PLATFORM_SETTING_KEYS.WEBMAIL_URL]: '',
-  [PLATFORM_SETTING_KEYS.PHP_AVAILABLE_VERSIONS]: '8.3,8.2,8.1,8.0,7.4',
+  // PB-30 — domyślnie klient wybiera z wersji alt-php instalowanych na węzłach (manifest floty).
+  [PLATFORM_SETTING_KEYS.PHP_AVAILABLE_VERSIONS]: STOS_WEZLA.phpAlt.join(','),
   [PLATFORM_SETTING_KEYS.TRIAL_FREE_ENABLED]: '1',
   [PLATFORM_SETTING_KEYS.TRIAL_CARD_ENABLED]: '1',
   [PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_DISCOUNT_PCT]: '15',
@@ -122,6 +137,9 @@ export const PLATFORM_SETTING_DEFAULTS: Record<PlatformSettingKey, string> = {
   [PLATFORM_SETTING_KEYS.MONITORING_PAID_PRICE]: '5',
   [PLATFORM_SETTING_KEYS.MONITORING_PAID_OFFERED]: '1',
   [PLATFORM_SETTING_KEYS.DOMAIN_WHOIS_PRIVACY_PRICE]: '',
+  [PLATFORM_SETTING_KEYS.SSL_PRICES]: '{}',
+  [PLATFORM_SETTING_KEYS.VPS_SNAPSHOT_PRICE_PER_GB]: '',
+  [PLATFORM_SETTING_KEYS.VPS_SNAPSHOT_LIMIT]: '3',
   // Decyzja właściciela 29.09.2026 (Z-08): rekompensaty SLA włączone od startu (Regulamin §15).
   [PLATFORM_SETTING_KEYS.SLA_CREDITS_ENABLED]: '1',
   [PLATFORM_SETTING_KEYS.SLA_GRACE_MINUTES]: '5',

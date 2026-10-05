@@ -52,6 +52,44 @@ export interface RegistrarProvider {
   readonly operatorHandle?: string;
 }
 
+/** G-08 — produkt SSL u resellera (tylko to, czego potrzebuje cennik i zamówienie). */
+export interface SslProduct {
+  id: number;
+  name: string;
+  brand: string;
+  /** domain_validation | organization_validation | extended_validation */
+  category: string;
+  wildcard: boolean;
+  /** Jedna nazwa w cenie (included_domains_count = 1) — bez multi-domain. */
+  singleDomain: boolean;
+  /** Koszt zakupu na 1 rok (cena resellera); null — reseller nie podał ceny. */
+  cost: RegistrarPrice | null;
+}
+
+export type SslWalidacja = 'dns' | 'email';
+
+export interface SslOrderInfo {
+  state: 'pending' | 'issued' | 'failed';
+  certificate: string | null;
+  caBundle: string | null;
+  /** Rekord DNS do weryfikacji domeny (additional_data.dns_record / dns_value). */
+  dns: { record: string; value: string } | null;
+}
+
+/** G-08 — certyfikaty SSL u resellera rejestratora (dziś: OpenProvider /v1/ssl). */
+export interface SslReseller {
+  sslProducts(): Promise<SslProduct[]>;
+  sslCreateOrder(input: {
+    productId: number;
+    years: number;
+    csr: string;
+    hostName: string;
+    validation: SslWalidacja;
+    approverEmail?: string | null;
+  }): Promise<string>;
+  sslOrder(id: string): Promise<SslOrderInfo>;
+}
+
 export interface DomainInfo {
   ownerHandle: string | null;
   locked: boolean | null;
@@ -86,18 +124,7 @@ export class RegistrarProviderFactory {
   get(): RegistrarProvider {
     const providerId = (this.config.get<string>('REGISTRAR_PROVIDER') ?? '').toLowerCase();
 
-    if (providerId === 'openprovider') {
-      const username = this.config.get<string>('OPENPROVIDER_USERNAME');
-      const password = this.config.get<string>('OPENPROVIDER_PASSWORD');
-      const ownerHandle = this.config.get<string>('OPENPROVIDER_OWNER_HANDLE');
-      if (!username || !password || !ownerHandle) {
-        // Brak OPENPROVIDER_USERNAME / _PASSWORD / _OWNER_HANDLE — preflight GO-LIVE to zgłasza adminowi.
-        throw new ServiceUnavailableException('Rejestracja domen jest chwilowo niedostępna.');
-      }
-      const baseUrl =
-        this.config.get<string>('OPENPROVIDER_API_BASE_URL') ?? 'https://api.openprovider.eu';
-      return new OpenProviderRegistrarProvider(baseUrl, username, password, ownerHandle);
-    }
+    if (providerId === 'openprovider') return this.openProvider('Rejestracja domen jest chwilowo niedostępna.');
 
     const baseUrl = this.config.get<string>('REGISTRAR_API_BASE_URL');
     const token = this.config.get<string>('REGISTRAR_API_TOKEN');
@@ -105,6 +132,26 @@ export class RegistrarProviderFactory {
       throw new ServiceUnavailableException('Registrar provider is not configured.');
     }
     return new HttpRegistrarProvider(providerId, baseUrl, token);
+  }
+
+  /** G-08 — certyfikaty SSL sprzedajemy tylko przez OpenProvidera (ten sam login i uchwyt operatora co domeny). */
+  getSsl(): SslReseller {
+    if ((this.config.get<string>('REGISTRAR_PROVIDER') ?? '').toLowerCase() !== 'openprovider') {
+      throw new ServiceUnavailableException('Sprzedaż certyfikatów SSL jest chwilowo niedostępna.');
+    }
+    return this.openProvider('Sprzedaż certyfikatów SSL jest chwilowo niedostępna.');
+  }
+
+  private openProvider(niedostepne: string): OpenProviderRegistrarProvider {
+    const username = this.config.get<string>('OPENPROVIDER_USERNAME');
+    const password = this.config.get<string>('OPENPROVIDER_PASSWORD');
+    const ownerHandle = this.config.get<string>('OPENPROVIDER_OWNER_HANDLE');
+    if (!username || !password || !ownerHandle) {
+      // Brak OPENPROVIDER_USERNAME / _PASSWORD / _OWNER_HANDLE — preflight GO-LIVE to zgłasza adminowi.
+      throw new ServiceUnavailableException(niedostepne);
+    }
+    const baseUrl = this.config.get<string>('OPENPROVIDER_API_BASE_URL') ?? 'https://api.openprovider.eu';
+    return new OpenProviderRegistrarProvider(baseUrl, username, password, ownerHandle);
   }
 }
 
@@ -208,7 +255,7 @@ class HttpRegistrarProvider implements RegistrarProvider {
  * operatora, czyli formalnie należała do Verris. OPENPROVIDER_OWNER_HANDLE zostaje jako
  * admin/tech/billing — klient nadal nie ma kontaktu z OpenProviderem.
  */
-class OpenProviderRegistrarProvider implements RegistrarProvider {
+class OpenProviderRegistrarProvider implements RegistrarProvider, SslReseller {
   readonly id = 'openprovider';
   private readonly logger = new Logger(OpenProviderRegistrarProvider.name);
   private token: string | null = null;
@@ -439,6 +486,77 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
     return res.data.auth_code;
   }
 
+  /**
+   * G-08 — SSL wg dokumentacji OpenProvidera (REST /v1, grupa SSL):
+   * https://developer.openprovider.com/reference.html?group=SSL (swagger: /v1/ssl/products, /v1/ssl/orders,
+   * /v1/ssl/orders/{id}; opis pól w „SSL Quickstart”: https://docs.openprovider.com/doc/all#tag/descSSLQuickstart).
+   * Cena: prices[].price.reseller (koszt resellera) dla period = 1, jak przy domenach.
+   */
+  async sslProducts(): Promise<SslProduct[]> {
+    const res = await this.request<{ data: { results?: OpSslProduct[] } }>(
+      '/v1/ssl/products?with_price=true&limit=1000',
+      null,
+      'GET',
+    );
+    return (res.data?.results ?? []).map((p) => {
+      const rok = (p.prices ?? []).find((c) => c.period === 1)?.price;
+      const cena = rok?.reseller ?? rok?.product;
+      return {
+        id: p.id,
+        name: p.name ?? `#${p.id}`,
+        brand: p.brand_name ?? '',
+        category: p.category ?? '',
+        wildcard: Boolean(p.is_wildcard_supported),
+        singleDomain: p.included_domains_count === 1,
+        cost: cena ? { amount: String(cena.price), currency: cena.currency ?? 'EUR' } : null,
+      };
+    });
+  }
+
+  /**
+   * POST /v1/ssl/orders. start_provision = true — zamówienie idzie od razu do wystawcy (false zostawia je w PAI).
+   * software_id „linux” — instalujemy na serwerze Linux. Uchwyty: operator (jak admin/tech domen) — przy DV
+   * dane organizacji nie trafiają do certyfikatu. Metody weryfikacji z przykładów dokumentacji: „dns”, „email”.
+   */
+  async sslCreateOrder(input: {
+    productId: number;
+    years: number;
+    csr: string;
+    hostName: string;
+    validation: SslWalidacja;
+    approverEmail?: string | null;
+  }): Promise<string> {
+    const res = await this.request<{ data: { id?: number | string } }>('/v1/ssl/orders', {
+      product_id: input.productId,
+      period: input.years,
+      csr: input.csr,
+      software_id: 'linux',
+      start_provision: true,
+      autorenew: 'off',
+      signature_hash_algorithm: 'sha2',
+      domain_validation_methods: [{ host_name: input.hostName, method: input.validation }],
+      ...(input.validation === 'email' && input.approverEmail ? { approver_email: input.approverEmail } : {}),
+      organization_handle: this.operatorHandle,
+      technical_handle: this.operatorHandle,
+    });
+    if (res.data?.id == null) throw new ServiceUnavailableException('Wystawca nie zwrócił numeru zamówienia.');
+    return String(res.data.id);
+  }
+
+  /** GET /v1/ssl/orders/{id}. Statusy z dokumentacji: ACT, PAI, REQ, REJ, FAI, EXP. */
+  async sslOrder(id: string): Promise<SslOrderInfo> {
+    const res = await this.request<{ data: OpSslOrder }>(`/v1/ssl/orders/${encodeURIComponent(id)}`, null, 'GET');
+    const o = res.data ?? ({} as OpSslOrder);
+    const status = (o.status ?? '').toUpperCase();
+    const dane = (o.additional_data ?? []).find((d) => d.dns_record && d.dns_value);
+    return {
+      state: status === 'ACT' && o.certificate ? 'issued' : ['REJ', 'FAI', 'EXP'].includes(status) ? 'failed' : 'pending',
+      certificate: o.certificate || null,
+      caBundle: o.intermediate_certificate || null,
+      dns: dane ? { record: dane.dns_record!, value: dane.dns_value! } : null,
+    };
+  }
+
   private async ensureToken(): Promise<string> {
     if (this.token && Date.now() < this.tokenExpiresAt) return this.token;
     const res = await fetch(`${this.baseUrl.replace(/\/$/, '')}/v1/auth/login`, {
@@ -521,6 +639,23 @@ function splitDomain(domain: string): { name: string; extension: string } {
   const idx = domain.indexOf('.');
   if (idx <= 0) return { name: domain, extension: '' };
   return { name: domain.slice(0, idx), extension: domain.slice(idx + 1) };
+}
+
+interface OpSslProduct {
+  id: number;
+  name?: string;
+  brand_name?: string;
+  category?: string;
+  is_wildcard_supported?: boolean;
+  included_domains_count?: number;
+  prices?: { period?: number; price?: { reseller?: OpPrice; product?: OpPrice } }[];
+}
+
+interface OpSslOrder {
+  status?: string;
+  certificate?: string;
+  intermediate_certificate?: string;
+  additional_data?: { dns_record?: string; dns_value?: string }[];
 }
 
 interface OpCustomer {

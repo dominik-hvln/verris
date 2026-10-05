@@ -13,13 +13,19 @@
 #   --governor-only   tylko instalacja/konfiguracja MySQL Governor (wymaga CL + działającego MySQL/MariaDB)
 #   --cagefs-only     tylko instalacja/inicjalizacja CloudLinux CageFS (izolacja kont + integracja LVE w DA)
 set -Eeuo pipefail
+# NODE-02 — krok, który przerwał profil przez `set -e`, zostawia w logu (panel widzi jego koniec) co i gdzie;
+# wcześniej profil urywał się bez słowa. Tylko powłoka główna: w $(...) `set -e` nie działa, pułapka tak.
+# shellcheck disable=SC2154  # _rc przypisywane w samej pułapce
+trap '_rc=$?; [ "$BASH_SUBSHELL" != 0 ] || echo "[STOP] Profil przerwany na poleceniu: ${BASH_COMMAND} (kod $_rc, funkcja ${FUNCNAME[0]:-main}, linia $LINENO)" >&2' ERR
 
 # PB-30 — wersje stosu z manifestu floty (API → /etc/verris-stack.env, odświeżany przez
-# agenta zadań co minutę). Jeden plik dla wszystkich węzłów = węzły identyczne.
+# agenta zadań co minutę). Jeden plik dla wszystkich węzłów = węzły identyczne. Skrypt nie ma
+# własnych wersji domyślnych: brak manifestu = przerwanie w miejscu użycia (${VAR:?$BRAK_MANIFESTU}).
 if [ -r /etc/verris-stack.env ]; then
   # shellcheck disable=SC1091
   . /etc/verris-stack.env
 fi
+BRAK_MANIFESTU="brak /etc/verris-stack.env (manifest wersji floty) — uruchom agenta zadań albo onboard"
 
 # Decyzja 2026-09-29 — panel DA (:2222) tylko z control-plane. Linię VERRIS_CONTROL_PLANE_IPS / VERRIS_DA_ADMIN_ALLOW
 # podmienia API przy wydaniu skryptu (GET /agent/tasks/hosting-profile/script, env API o tych samych nazwach);
@@ -279,7 +285,9 @@ governor_mysql_version_keyword() {
   local ver major minor
 
   if grep -qi mariadb <<<"$line"; then
-    ver="$(sed -n 's/.*Distrib \([0-9]\+\.[0-9]\+\).*/\1/p' <<<"$line" | head -1)"
+    # Klient 10.x: „mysql  Ver 15.1 Distrib 10.11.9-MariaDB…”; od 11.x: „mysql from 11.4.5-MariaDB, client 15.2…”.
+    # Bez drugiego formatu węzeł na 11.x zawsze dostawał słowo z manifestu, a ostrzeżenie o rozjeździe milczało.
+    ver="$(sed -n 's/.*\(Distrib\|from\) \([0-9]\+\.[0-9]\+\).*/\2/p' <<<"$line" | head -1)"
     if [ -n "$ver" ]; then
       major="${ver%%.*}"
       minor="${ver#*.}"
@@ -305,7 +313,7 @@ governor_mysql_version_keyword() {
   fi
 
   # Świeży węzeł bez silnika: wersja docelowa z manifestu floty.
-  echo "${VERRIS_GOVERNOR_MYSQL:?brak /etc/verris-stack.env (manifest wersji) — uruchom agenta zadań albo onboard}"
+  echo "${VERRIS_GOVERNOR_MYSQL:?$BRAK_MANIFESTU}"
 }
 
 governor_is_active() {
@@ -706,15 +714,15 @@ configure_directadmin_custombuild() {
   webserver="$(cb_option_value webserver)"
   [ -n "$webserver" ] && log_info "CustomBuild webserver=$webserver"
 
-  cb_set_option webserver litespeed
+  cb_set_option webserver "${VERRIS_WEBSERVER:?$BRAK_MANIFESTU}"
 
   php_release="$(cb_option_value php1_release)"
   if [ -z "$php_release" ]; then
     php_release="$(detect_lsphp_release || true)"
   fi
   if [ -z "$php_release" ]; then
-    php_release="8.3"
-    log_warn "php1_release nieczytelne w custombuild options — używam domyślnie $php_release"
+    php_release="${VERRIS_PHP1_RELEASE:?$BRAK_MANIFESTU}"
+    log_warn "php1_release nieczytelne w custombuild options — używam wersji z manifestu floty $php_release"
   fi
   cb_set_option php1_release "$php_release"
   cb_set_option redis yes
@@ -1097,7 +1105,7 @@ configure_litespeed_alt_php() {
   [ -x /usr/local/lsws/bin/lswsctrl ] && [ -f "$conf" ] || { log_skip "LiteSpeed alt-php — brak LSWS"; return 0; }
   if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then log_info "dry-run: handlery alt-php w LSWS"; return 0; fi
   local wersje="" v
-  for v in ${VERRIS_PHP_VERSIONS:-8.3 8.2 8.1 8.0 7.4}; do
+  for v in ${VERRIS_PHP_VERSIONS:?$BRAK_MANIFESTU}; do
     [ -x "/opt/alt/php${v/./}/usr/bin/lsphp" ] && wersje="$wersje ${v/./}"
   done
   [ -n "$wersje" ] || { log_warn "LiteSpeed alt-php — brak /opt/alt/phpXX/usr/bin/lsphp"; return 0; }
@@ -1446,18 +1454,18 @@ configure_hosting_capabilities() {
   # `modsecurity` + zestaw reguł `modsecurity_ruleset` (comodo/owasp).
   if cb_option_supported modsecurity; then
     cb_set_option modsecurity yes
-    cb_set_option modsecurity_ruleset owasp
+    cb_set_option modsecurity_ruleset "${VERRIS_MODSECURITY_RULESET:?$BRAK_MANIFESTU}"
     # Oficjalna dokumentacja DA (ModSecurity): da build set modsecurity yes; da build set modsecurity_ruleset owasp;
     # da build modsecurity. Samo „set” niczego nie instaluje — wcześniej log mówił „włączony” bez budowy,
     # a klucz modsecurity_enabled w directadmin.conf nie istnieje w dokumentacji. Znacznik: budujemy raz.
-    local znacznik="$CB/.verris-modsecurity-owasp"
+    local znacznik="$CB/.verris-modsecurity-$VERRIS_MODSECURITY_RULESET"
     if [ -f "$znacznik" ]; then
-      log_ok "ModSecurity WAF (OWASP CRS) — zbudowany wcześniej"
+      log_ok "ModSecurity WAF ($VERRIS_MODSECURITY_RULESET) — zbudowany wcześniej"
     elif [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
       log_info "dry-run: da build modsecurity"
     elif (cd "$CB" && "$BUILD" modsecurity) >/tmp/verris-modsecurity.log 2>&1; then
       touch "$znacznik"
-      log_ok "ModSecurity WAF (OWASP CRS) zbudowany (build modsecurity)"
+      log_ok "ModSecurity WAF ($VERRIS_MODSECURITY_RULESET) zbudowany (build modsecurity)"
     else
       log_fail "ModSecurity: build modsecurity nie powiódł się — /tmp/verris-modsecurity.log"
     fi
@@ -1488,8 +1496,8 @@ configure_hosting_capabilities() {
     fi
   fi
 
-  # A2 — PHP Selector (CloudLinux): lvemanager + pakiety alt-php. Wersje = domyślna lista
-  # platformy (php.availableVersions); inna lista → VERRIS_PHP_VERSIONS. Na CloudLinux 10 alt-php
+  # A2 — PHP Selector (CloudLinux): lvemanager + pakiety alt-php. Wersje = VERRIS_PHP_VERSIONS
+  # z manifestu floty (stos-wezla.ts phpAlt — z niego też domyślna lista php.availableVersions). Na CloudLinux 10 alt-php
   # są w repo php-els (KB CloudLinux „Install alt-php on CloudLinux 10”: els-php-release, potem
   # groupinstall alt-phpXX). Bez tego selektor nie zna żadnej wersji i każda zmiana PHP z panelu
   # kończy się błędem „wersja nie jest zainstalowana” (test D3 na t1, 28.09).
@@ -1498,7 +1506,7 @@ configure_hosting_capabilities() {
       dnf install -y lvemanager alt-php-config >/dev/null 2>&1 || log_warn "lvemanager/alt-php-config — instalacja nie powiodła się"
       rpm -q els-php-release >/dev/null 2>&1 || dnf install -y els-php-release >/dev/null 2>&1 || true
       local php_brak=""
-      for v in ${VERRIS_PHP_VERSIONS:-8.3 8.2 8.1 8.0 7.4}; do
+      for v in ${VERRIS_PHP_VERSIONS:?$BRAK_MANIFESTU}; do
         selectorctl --list --interpreter=php 2>/dev/null | awk '{print $1}' | grep -qx "$v" && continue
         dnf groupinstall -y "alt-php${v/./}" >>/var/log/verris-alt-php.log 2>&1 || true
         selectorctl --list --interpreter=php 2>/dev/null | awk '{print $1}' | grep -qx "$v" || php_brak="$php_brak $v"
@@ -1508,18 +1516,18 @@ configure_hosting_capabilities() {
       # wyborem rozszerzeń zachowują swój). Retest D3 29.09: strony działały bez OPcache
       # (opcache.enable = brak w odczycie PHP). --list-extensions: „+” włączone, „~” wbudowane.
       local opc_brak=""
-      for v in ${VERRIS_PHP_VERSIONS:-8.3 8.2 8.1 8.0 7.4}; do
+      for v in ${VERRIS_PHP_VERSIONS:?$BRAK_MANIFESTU}; do
         selectorctl --list-extensions --version="$v" 2>/dev/null | grep -qE '^[+~] opcache$' && continue
         selectorctl --enable-extensions=opcache --version="$v" >/dev/null 2>&1 || true
         selectorctl --list-extensions --version="$v" 2>/dev/null | grep -qE '^[+~] opcache$' || opc_brak="$opc_brak $v"
       done
       if [ -z "$opc_brak" ]; then
-        log_ok "PHP Selector: OPcache domyślnie włączony (${VERRIS_PHP_VERSIONS:-8.3 8.2 8.1 8.0 7.4})"
+        log_ok "PHP Selector: OPcache domyślnie włączony ($VERRIS_PHP_VERSIONS)"
       else
         log_warn "PHP Selector: OPcache nie jest domyślny dla:$opc_brak (selectorctl --enable-extensions=opcache --version=<wersja>)"
       fi
       if [ -z "$php_brak" ]; then
-        log_ok "PHP Selector (CloudLinux): wersje ${VERRIS_PHP_VERSIONS:-8.3 8.2 8.1 8.0 7.4} dostępne"
+        log_ok "PHP Selector (CloudLinux): wersje $VERRIS_PHP_VERSIONS dostępne"
       else
         log_fail "PHP Selector: brak wersji$php_brak po groupinstall — /var/log/verris-alt-php.log"
       fi
@@ -2238,14 +2246,14 @@ fi
 
 if [ "$CAGEFS_ONLY" = "1" ]; then
   print_lve_info
-  print_summary
+  print_summary || exit
   exit $?
 fi
 
 configure_cloudlinux_governor
 
 if [ "$GOVERNOR_ONLY" = "1" ]; then
-  print_summary
+  print_summary || exit
   exit $?
 fi
 
@@ -2263,5 +2271,5 @@ configure_firewall_cockpit
 configure_suspended_page
 configure_pma_white_label
 print_lve_info
-print_summary
+print_summary || exit
 exit $?

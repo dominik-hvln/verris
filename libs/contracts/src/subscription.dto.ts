@@ -444,6 +444,61 @@ export interface HostingSslPasteRequestDto {
 
 export type HostingSslMutationOkDto = { ok: true };
 
+/** G-08 — płatny certyfikat SSL (DV) w ofercie: cena brutto (PLN) za rok z cennika admina. */
+export interface SslOfertaDto {
+  productId: number;
+  name: string;
+  wildcard: boolean;
+  priceGross: string;
+}
+
+/** PENDING/VALIDATING — oczekuje na weryfikację, ISSUED — wydany, INSTALLED — zainstalowany, FAILED — błąd. */
+export type SslZamowienieStatus = 'PENDING' | 'VALIDATING' | 'ISSUED' | 'INSTALLED' | 'FAILED';
+
+export interface SslZamowienieDto {
+  id: string;
+  domain: string;
+  wildcard: boolean;
+  productName: string;
+  status: SslZamowienieStatus;
+  validation: 'DNS' | 'EMAIL';
+  approverEmail: string | null;
+  /** Rekord do weryfikacji domeny — gdy DNS domeny jest u nas, dodajemy go sami. */
+  dnsRecord: { name: string; type: string; value: string } | null;
+  dnsRecordAdded: boolean;
+  priceGross: string;
+  expiresAt: string | null;
+  /** Neutralny opis problemu dla klienta (bez surowych komunikatów zaplecza). */
+  problem: string | null;
+  createdAt: string;
+}
+
+export interface SslPlatneDto {
+  oferta: SslOfertaDto[];
+  zamowienia: SslZamowienieDto[];
+}
+
+/** POST /services/:id/ssl-orders */
+export interface SslZamowRequestDto {
+  domain: string;
+  productId: number;
+  validation: 'DNS' | 'EMAIL';
+  /** Tylko przy EMAIL: admin@, administrator@, hostmaster@, postmaster@ albo webmaster@ domeny. */
+  approverEmail?: string;
+}
+
+/** Admin — produkt SSL u resellera z kosztem, ceną sugerowaną (marża jak przy domenach) i ceną z cennika. */
+export interface SslProduktAdminDto {
+  id: number;
+  name: string;
+  brand: string;
+  wildcard: boolean;
+  costAmount: string | null;
+  costCurrency: string | null;
+  suggestedGross: string | null;
+  price: string | null;
+}
+
 export interface HostingBackupRowDto {
   id: string;
   fileName: string;

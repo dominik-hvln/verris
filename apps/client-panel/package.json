@@ -11,6 +11,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@novnc/novnc": "1.7.0",
     "@simplewebauthn/browser": "^14.0.0",
     "@verris/contracts": "workspace:^",
     "@verris/ui": "workspace:*",

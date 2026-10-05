@@ -4,12 +4,14 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
+  Camera,
   Copy,
   Cpu,
   HardDrive,
   KeyRound,
   Loader2,
   MemoryStick,
+  Monitor,
   Play,
   Plus,
   Power,
@@ -31,7 +33,10 @@ import {
   type VpsPlanDto,
 } from './vps-actions';
 import { Checkbox } from '@/components/panel/checkbox';
+import { potwierdz } from '@/components/panel/potwierdz';
 import { plForm } from '@/lib/pl';
+import { VpsSnapshoty } from './vps-snapshoty';
+import { VpsKonsola } from './vps-konsola';
 
 const STATUS_LABEL: Record<VpsInstanceDto['status'], string> = {
   PROVISIONING: 'Tworzenie…',
@@ -73,6 +78,10 @@ export function VpsClient({
   // Oświadczenie konsumenckie: natychmiastowe rozpoczęcie świadczenia (upk).
   const [immediateConsent, setImmediateConsent] = useState(false);
   const [pending, startTransition] = useTransition();
+  // Q-07/Q-08 — rozwinięty panel jednego serwera: snapshoty i reinstalacja albo konsola.
+  const [panel, setPanel] = useState<{ id: string; typ: 'snapshoty' | 'konsola' } | null>(null);
+  const przelacz = (id: string, typ: 'snapshoty' | 'konsola') =>
+    setPanel((p) => (p?.id === id && p.typ === typ ? null : { id, typ }));
 
   const selectedPlan = plans.find((p) => p.id === planId);
   const toggleKey = (id: string) =>
@@ -150,7 +159,13 @@ export function VpsClient({
       }
     });
 
-  const remove = (id: string) =>
+  const remove = async (v: VpsInstanceDto) => {
+    const ok = await potwierdz(
+      `Usunąć serwer „${v.name}”? Serwer, wszystkie dane na jego dysku i jego snapshoty zostaną bezpowrotnie usunięte.`,
+      { akcja: 'Usuń serwer', niebezpieczne: true },
+    );
+    if (!ok) return;
+    const id = v.id;
     startTransition(async () => {
       const res = await deleteVpsAction(id);
       if (!res.ok) toast.error('Nie udało się usunąć', { description: res.error });
@@ -159,6 +174,7 @@ export function VpsClient({
         router.refresh();
       }
     });
+  };
 
   return (
     <div className="space-y-6">
@@ -344,13 +360,28 @@ export function VpsClient({
                 <IconBtn title="Restart" onClick={() => power(v.id, 'reboot')} disabled={pending}>
                   <RotateCw className="h-3.5 w-3.5 text-neutral-300" />
                 </IconBtn>
-                <IconBtn title="Usuń" onClick={() => remove(v.id)} disabled={pending} danger>
+                <IconBtn title="Snapshoty i reinstalacja" onClick={() => przelacz(v.id, 'snapshoty')} disabled={v.status !== 'RUNNING' && v.status !== 'STOPPED'}>
+                  <Camera className="h-3.5 w-3.5 text-violet-300" />
+                </IconBtn>
+                <IconBtn title="Konsola" onClick={() => przelacz(v.id, 'konsola')} disabled={v.status !== 'RUNNING'}>
+                  <Monitor className="h-3.5 w-3.5 text-sky-300" />
+                </IconBtn>
+                <IconBtn title="Usuń" onClick={() => void remove(v)} disabled={pending} danger>
                   <Trash2 className="h-3.5 w-3.5 text-rose-300" />
                 </IconBtn>
               </div>
             </div>
             {v.status === 'ERROR' ? (
               <p className="mt-2 text-xs text-rose-300">Provisioning nie powiódł się — środki zwrócono do portfela.</p>
+            ) : null}
+            {panel?.id === v.id ? (
+              <div className="mt-4 border-t border-white/10 pt-4">
+                {panel.typ === 'snapshoty' ? (
+                  <VpsSnapshoty vpsId={v.id} vpsName={v.name} onRootPassword={(pw) => setRootPw({ name: v.name, pw })} />
+                ) : (
+                  <VpsKonsola vpsId={v.id} onClose={() => setPanel(null)} />
+                )}
+              </div>
             ) : null}
           </div>
         ))}

@@ -8,13 +8,14 @@ import { AuditService } from '../common/audit/audit.service.js';
 import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
 import { HetznerClient } from './hetzner.client.js';
 import { vpsSuspendedTemplate, vpsTerminatedTemplate } from '../mail/templates/vps-notifications.js';
+import { oplataZaSnapshoty, politykaSnapshotow, usunSnapshotyVps } from './vps-snapshoty.js';
 
 const GRACE_DAYS = 7;
 const PERIOD_MS = 30 * 24 * 60 * 60 * 1000;
 
 /**
  * Monthly prepaid VPS billing from the wallet. Daily:
- *  - period ended → debit next month; success extends +30d.
+ *  - period ended → debit next month (+ Q-08 snapshots kept in the past period); success extends +30d.
  *  - insufficient funds → power off + SUSPEND (once), e-mail the customer.
  *  - unpaid > GRACE_DAYS → delete the Hetzner server + mark DELETED, e-mail.
  */
@@ -46,16 +47,28 @@ export class VpsRenewalScheduler {
       include: { user: { select: { email: true, firstName: true } }, plan: { select: { name: true } } },
       take: 200,
     });
+    const { cenaZaGb } = await politykaSnapshotow(this.prisma);
 
     for (const v of due) {
       const overdueMs = now - (v.currentPeriodEnd?.getTime() ?? now);
       let brakSrodkow = false;
+      // Q-08 — snapshoty z dołu za miniony okres, w tym samym obciążeniu (jedna pozycja, jedna idempotencja).
+      // Poza try z obciążeniem: błąd dostawcy (także 409 → ConflictException) nie może udawać braku środków.
+      let snap: Awaited<ReturnType<typeof oplataZaSnapshoty>>;
+      try {
+        snap = await oplataZaSnapshoty(this.prisma, this.hetzner, v.id, v.currentPeriodEnd ?? new Date(now), cenaZaGb);
+      } catch (err) {
+        this.logger.error(`VPS ${v.id}: nie udało się policzyć snapshotów — odnowienie ponowimy: ${(err as Error).message}`);
+        continue;
+      }
       try {
         await this.wallet.debit({
           userId: v.userId,
           type: WalletTxType.CHARGE_USAGE,
-          amount: new Prisma.Decimal(v.priceMonthly),
-          description: `VPS ${v.name} — odnowienie miesięczne`,
+          amount: new Prisma.Decimal(v.priceMonthly).add(snap.kwota),
+          description: snap.kwota.gt(0)
+            ? `VPS ${v.name} — odnowienie miesięczne + snapshoty (${snap.gb.toString()} GB)`
+            : `VPS ${v.name} — odnowienie miesięczne`,
           idempotencyKey: `vps-${v.id}-renew-${v.currentPeriodEnd?.toISOString() ?? now}`,
         });
       } catch (err) {
@@ -88,6 +101,7 @@ export class VpsRenewalScheduler {
             if (v.hetznerServerId) {
               await this.hetzner.deleteServer(v.hetznerServerId).catch(() => undefined);
             }
+            await usunSnapshotyVps(this.prisma, this.hetzner, v.id);
             await this.prisma.vpsInstance.update({
               where: { id: v.id },
               data: { status: VpsStatus.DELETED, deletedAt: new Date() },

@@ -178,6 +178,12 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Treść strony: menedżer plików i wszystko, co ją czyta albo nadpisuje (odtwarzanie z kopii, Git, aktualizacje WordPressa, eksport/import baz, wyniki crona, skaner, SSH i klucze SSH, .htaccess strony).',
   },
   {
+    // Q-08 — snapshot jest płatny (K/GB/mies. przy odnowieniu VPS-a) — utworzenie to wydatek z portfela.
+    pasuje: (s) => /^\/vps\/[^/]+\/snapshots$/.test(s),
+    odczyt: [SERVICES_READ], zapis: [SERVICES_MANAGE, BILLING_MANAGE],
+    po_co: 'Lista snapshotów jak podgląd usługi; utworzenie nalicza opłatę z portfela właściciela.',
+  },
+  {
     // Samo `/vps` (lista i zamówienie) — reguła wydatków niżej: zamówienie obciąża portfel właściciela.
     pasuje: (s) => s !== '/vps' && zaczyna('/vps')(s),
     odczyt: [SERVICES_READ], zapis: [SERVICES_MANAGE],
@@ -212,7 +218,9 @@ export const REGULY_TRAS: Regula[] = [
       s === '/vps' ||
       // Autoskalowanie nalicza godzinowo z portfela (limit do ~100 tys. zł/mies.) — jak płatny monitoring.
       /^\/subscriptions\/[^/]+\/(pay-from-wallet|payment-retry|convert|plan|autoscaling)(\/|$)/.test(s) ||
-      /^\/services\/[^/]+\/monitoring\/paid$/.test(s),
+      /^\/services\/[^/]+\/monitoring\/paid$/.test(s) ||
+      // G-08 — zakup płatnego certyfikatu SSL (sprawdzenie stanu /check idzie regułą ogólną usług).
+      /^\/services\/[^/]+\/ssl-orders$/.test(s),
     odczyt: [SERVICES_READ], zapis: [SERVICES_MANAGE, BILLING_MANAGE],
     po_co: 'Operacje na usłudze, które obciążają portfel właściciela — potrzebne oba uprawnienia.',
   },

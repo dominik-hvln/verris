@@ -7,6 +7,7 @@ import {
   fetchSlaCreditPolicy,
   fetchSlaPodglad,
   fetchWhoisPrivacyPrice,
+  fetchSslProducts,
 } from './actions';
 import { SlaPreview } from './sla-preview';
 import { PlatformSettingsForm } from './platform-settings-form';
@@ -14,16 +15,17 @@ import { TrialOfferSettingsForm } from './trial-offer-form';
 import { MonitoringSettingsForm } from './monitoring-settings-form';
 import { SlaCreditsForm } from './sla-credits-form';
 import { WhoisPrivacyForm } from './whois-privacy-form';
+import { SslPricesForm } from './ssl-prices-form';
 import { BladStrony, wynik } from "@/components/blad-strony";
 
 export const dynamic = 'force-dynamic';
 
 export default async function PlatformSettingsPage() {
   const w = await wynik(
-    Promise.all([fetchPlatformSettings(), fetchTrialOffer(), fetchMonitoringSettings(), fetchSlaCreditPolicy(), fetchSlaPodglad(), fetchWhoisPrivacyPrice()]),
+    Promise.all([fetchPlatformSettings(), fetchTrialOffer(), fetchMonitoringSettings(), fetchSlaCreditPolicy(), fetchSlaPodglad(), fetchWhoisPrivacyPrice(), fetchSslProducts()]),
   );
   if (!w.ok) return <BladStrony blad={w.blad} tytul="Ustawienia platformy" powrot={{ href: "/settings", label: "Ustawienia" }} />;
-  const [settings, trialOffer, monitoring, slaCredits, slaPodglad, whois] = w.dane;
+  const [settings, trialOffer, monitoring, slaCredits, slaPodglad, whois, ssl] = w.dane;
 
   return (
     <div className="space-y-8">
@@ -44,6 +46,7 @@ export default async function PlatformSettingsPage() {
       <TrialOfferSettingsForm initial={trialOffer} />
       <MonitoringSettingsForm initial={monitoring} />
       <WhoisPrivacyForm initial={whois.whoisPrivacyPrice} />
+      <SslPricesForm dane={ssl} />
       <SlaCreditsForm initial={slaCredits} />
       <SlaPreview data={slaPodglad} />
     </div>

@@ -245,7 +245,10 @@ phase_stack() {
   #   licencja: build set litespeed_serialno <serial>. Bez seriala CustomBuild instaluje TRIAL.
   # Faza AGENT wymaga LiteSpeed, więc brak seriala = trial, a nie pominięcie fazy.
   ./build update >/dev/null 2>&1 || true
-  ./build set webserver litespeed >/dev/null 2>&1 || fail STACK "build set webserver litespeed"
+  [ -r /etc/verris-stack.env ] || write_stack_env
+  # shellcheck disable=SC1091
+  . /etc/verris-stack.env
+  ./build set webserver "$VERRIS_WEBSERVER" >/dev/null 2>&1 || fail STACK "build set webserver $VERRIS_WEBSERVER"
   ./build set php1_mode lsphp >/dev/null 2>&1 || fail STACK "build set php1_mode lsphp"
   local ls_tryb=trial
   case "$LS_SERIAL" in

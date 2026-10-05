@@ -7,7 +7,7 @@
 # Co robi (kolejno):
 #   1. Preflight stosu (CL, DA, LS, verris.conf)
 #   2. Agent zadań Verris (agent-3): timer, systemd template, skrypty z shebang
-#   3. Profil hostingowy: Governor/MariaDB 10.6, CustomBuild (skip rebuild), LiteSpeed
+#   3. Profil hostingowy: Governor/MariaDB z manifestu floty, CustomBuild (skip rebuild), LiteSpeed
 #   4. Strona domyślna Verris (szablon DA dla nowych domen)
 #   5. Weryfikacja końcowa LIVE (Governor, MariaDB, agent, API)
 #
@@ -128,7 +128,13 @@ install_task_agent() {
     log_info "dry-run: bash $SCRIPT_DIR/node-verris-tasks-install.sh"
     return 0
   fi
-  bash "$SCRIPT_DIR/node-verris-tasks-install.sh"
+  # NODE-02 — wcześniej goły `bash …`: błąd kończył skrypt przez `set -e` bez [FAIL] w logu i w raporcie.
+  if bash "$SCRIPT_DIR/node-verris-tasks-install.sh"; then
+    log_ok "Agent zadań zainstalowany"
+  else
+    log_fail "Instalacja agenta zadań nie powiodła się (node-verris-tasks-install.sh, rc=$?)"
+    return 1
+  fi
 }
 
 run_hosting_profile() {
@@ -146,7 +152,8 @@ run_hosting_profile() {
     profile_args=(--governor-only --yes)
   fi
 
-  install -m 755 "$SCRIPT_DIR/node-hosting-profile.sh" /usr/local/bin/verris-hosting-profile.sh
+  install -m 755 "$SCRIPT_DIR/node-hosting-profile.sh" /usr/local/bin/verris-hosting-profile.sh \
+    || { log_fail "Nie udało się zainstalować profilu w /usr/local/bin"; return 1; }
   log_ok "Profil → /usr/local/bin/verris-hosting-profile.sh"
 
   if bash "$SCRIPT_DIR/node-hosting-profile.sh" "${profile_args[@]}"; then
@@ -344,9 +351,14 @@ pobierz_manifest_stosu() {
 # PB-29 — wynik trafia do control-plane: dopiero zielony raport (0 × FAIL) wpuszcza węzeł
 # do przydziału nowych kont; czerwony zdejmuje go z puli.
 wyslij_raport_onboardu() {
+  local rc=$?
   [ "$DRY_RUN" = "1" ] && return 0
-  # shellcheck disable=SC1091
-  . /etc/verris.conf
+  # NODE-02 — przerwanie przez `set -e` bez log_fail (FAIL=0) szło do control-plane jako zielony raport
+  # i wpuszczało węzeł do puli. Niezerowe wyjście = czerwony raport, zawsze.
+  if [ "$rc" != "0" ] && [ "$FAIL" = "0" ]; then
+    FAIL=1
+    PROBLEMY+=("[FAIL] Skrypt przerwany przed końcem (kod wyjścia $rc) — szczegóły w $LOG")
+  fi
   local body
   body="$(FAIL="$FAIL" WARN_N="$WARN_N" python3 -c '
 import json, os, sys
@@ -381,8 +393,11 @@ main() {
   # NODE-02 — brak python3/curl zgłaszał [FAIL] i instalacja agenta ruszała
   # mimo to. Preflight jest bramką; weryfikacja na końcu zbiera wszystko naraz.
   przerwij_po_etapie "preflight"
-  pobierz_manifest_stosu
+  # Agent przed manifestem: instaluje verris-fetch, którym manifest jest pobierany (podpis control-plane).
   install_task_agent
+  pobierz_manifest_stosu
+  # PB-30 — bez manifestu profil nie zna wersji stosu (nie ma już własnych domyślnych).
+  przerwij_po_etapie "manifest stosu floty"
   run_hosting_profile
   install_default_hosting_page
   verify_live_readiness

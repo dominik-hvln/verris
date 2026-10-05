@@ -76,6 +76,9 @@ export function WersjeStosu({ start }: { start: WidokStosu }) {
           </label>
         </div>
         <p className="text-xs text-zinc-400">
+          Wersje PHP w selektorze na węzłach: <span className="font-mono text-zinc-200">{m.phpAlt.join(", ")}</span>
+        </p>
+        <p className="text-xs text-zinc-400">
           Listy wartości pochodzą z oficjalnych źródeł: MariaDB tylko w wersjach opisanych dla CloudLinux MySQL Governor, PHP
           według wsparcia php.net. Zmiana dotyczy od razu nowych węzłów; istniejące zmieniają się dopiero po wyrównaniu.
         </p>

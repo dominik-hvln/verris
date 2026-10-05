@@ -3,7 +3,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { VpsService } from './vps.service.js';
-import { AddSshKeyDto, OrderVpsDto, VpsPowerDto } from './dto/vps.dto.js';
+import { AddSshKeyDto, CreateVpsSnapshotDto, OrderVpsDto, VpsPowerDto, VpsRebuildDto } from './dto/vps.dto.js';
 
 @Controller('vps')
 @UseGuards(JwtAuthGuard)
@@ -64,6 +64,76 @@ export class VpsController {
     @Body() dto: VpsPowerDto,
   ) {
     return this.vps.power(user.userId, id, dto.action);
+  }
+
+  // --- Q-08 snapshoty i reinstalacja ---
+
+  @Get(':id/snapshots')
+  snapshots(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.vps.listSnapshots(user.userId, id);
+  }
+
+  @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'vps:snapshot' })
+  @Post(':id/snapshots')
+  @HttpCode(201)
+  createSnapshot(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: CreateVpsSnapshotDto,
+  ) {
+    return this.vps.createSnapshot(user.userId, id, dto.description);
+  }
+
+  @Delete(':id/snapshots/:snapshotId')
+  @HttpCode(200)
+  deleteSnapshot(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('snapshotId') snapshotId: string,
+  ) {
+    return this.vps.deleteSnapshot(user.userId, id, snapshotId);
+  }
+
+  @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'vps:rebuild' })
+  @Post(':id/snapshots/:snapshotId/restore')
+  @HttpCode(202)
+  restoreSnapshot(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('snapshotId') snapshotId: string,
+  ) {
+    return this.vps.restoreSnapshot(user.userId, id, snapshotId);
+  }
+
+  @Get(':id/images')
+  osImages(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.vps.listOsImages(user.userId, id);
+  }
+
+  @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'vps:rebuild' })
+  @Post(':id/rebuild')
+  @HttpCode(202)
+  rebuild(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() dto: VpsRebuildDto) {
+    return this.vps.rebuild(user.userId, id, dto.image);
+  }
+
+  @Get(':id/actions/:actionId')
+  action(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('actionId') actionId: string,
+  ) {
+    return this.vps.actionStatus(user.userId, id, actionId);
+  }
+
+  // --- Q-07 konsola ---
+
+  /** URL sesji jest ważny 1 minutę — limit chroni przed seryjnym wydawaniem haseł. */
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'vps:console' })
+  @Post(':id/console')
+  @HttpCode(201)
+  console(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.vps.console(user.userId, id);
   }
 
   @Delete(':id')
