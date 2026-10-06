@@ -42,6 +42,13 @@ describe("Pojemność floty", () => {
     expect(t).not.toContain("RAM floty · zużycie 100%");
   });
 
+  it("wiersz węzła prowadzi do jego ustawień pojemności (cordon, limity, nadsubskrypcja), nie do nieistniejącej kotwicy", async () => {
+    (adminApi as jest.Mock).mockResolvedValue({ wezly: [t1] });
+    const html = renderToStaticMarkup(await FleetCapacityPage());
+    expect(html).toContain(`href="/nodes/${t1.id}?sekcja=konfiguracja"`);
+    expect(html).not.toContain("#hosting-profile");
+  });
+
   it("bez świeżej telemetrii nie udaje zera", async () => {
     (adminApi as jest.Mock).mockResolvedValue({ wezly: [{ ...t1, acceptsNewAccounts: true, pozaPula: null, zasoby: { ...t1.zasoby, zuzyte: null, zapas: { kont: 2, wymiar: "CPU" } } }] });
     const t = await tekst();

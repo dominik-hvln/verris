@@ -140,7 +140,7 @@ function NodeRow({ w }: { w: Wezel }) {
   const z = w.zasoby!;
   return (
     <Link
-      href={`/nodes/${w.id}#hosting-profile`}
+      href={`/nodes/${w.id}?sekcja=konfiguracja`}
       className="block rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md p-5 transition-colors hover:border-white/20"
     >
       <div className="mb-4 flex items-center justify-between gap-3">
