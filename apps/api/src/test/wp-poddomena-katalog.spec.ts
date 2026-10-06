@@ -1,5 +1,5 @@
 import { spawnSync } from 'child_process';
-import { mkdirSync, mkdtempSync, readFileSync, symlinkSync } from 'fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { DirectAdminService } from '../servers/directadmin.service.js';
@@ -40,6 +40,95 @@ describe.each(['node-wp-install.sh', 'node-wp-update.sh'])('%s — katalog stron
   it('public_html będący dowiązaniem (np. do /etc) jest odrzucany', () => {
     expect(bash(`bez_dowiazan '${dom}' 'domains/zly.pl/public_html'`).status).not.toBe(0);
     expect(bash(`bez_dowiazan '${dom}' 'domains/d3.hvln.pl/public_html/beta'`).status).toBe(0);
+  });
+});
+
+describe('node-wp-update.sh — wycofanie nieudanej aktualizacji', () => {
+  const skrypt = readFileSync(join(KORZEN, 'ops', 'scripts', 'node-wp-update.sh'), 'utf8');
+  const fragment = skrypt.slice(skrypt.indexOf('osobne_strony() {'), skrypt.indexOf('# koniec funkcji wycofania'));
+  const zapisz = (dom: string, wzgl: string, tresc: string) => {
+    mkdirSync(join(dom, wzgl, '..'), { recursive: true });
+    writeFileSync(join(dom, wzgl), tresc);
+  };
+  // Dom z domeną rodzica (WP + poddomena beta z własnym WP + zwykły podkatalog blog) — stan „po nieudanej aktualizacji”.
+  const dom = () => {
+    const d = mkdtempSync(join(tmpdir(), 'wp-rollback-'));
+    const pub = 'domains/d3.hvln.pl/public_html';
+    zapisz(d, `${pub}/index.php`, 'stare');
+    zapisz(d, `${pub}/beta/wp-config.php`, 'beta');
+    zapisz(d, `${pub}/beta/index.php`, 'beta-stare');
+    zapisz(d, `${pub}/blog/index.php`, 'blog-stare');
+    mkdirSync(join(d, 'backups'));
+    writeFileSync(join(d, 'x.sql'), '--');
+    return d;
+  };
+  const uruchom = (d: string, docroot: string, cmd: string) =>
+    spawnSync(
+      'bash',
+      ['-c', `set -Eeuo pipefail\nHOME_DIR='${d}'; DOCROOT_WZGL='${docroot}'\njako_klient() { ( cd "$HOME_DIR" && "$@" ); }\n${fragment}\n${cmd}`],
+      { encoding: 'utf8' },
+    );
+
+  it.each([
+    ['domains/d3.hvln.pl/public_html', 'domains/d3.hvln.pl/public_html.verris-nieudana'],
+    ['domains/test2.d3.hvln.pl/public_html', 'domains/test2.d3.hvln.pl/public_html.verris-nieudana'],
+    ['domains/d3.hvln.pl/public_html/beta', 'domains/d3.hvln.pl/beta.verris-nieudana'],
+  ])('nieudana wersja %s → %s (poza katalogiem WWW)', (docroot, oczekiwana) => {
+    const r = uruchom('/h', docroot, `nazwa_nieudanej '${docroot}'`);
+    expect(r.stdout.trim()).toBe(oczekiwana);
+    expect(oczekiwana).not.toContain('/public_html/');
+  });
+
+  it('osobne_strony wykrywa tylko podkatalogi z własnym wp-config.php', () => {
+    const d = dom();
+    const r = uruchom(d, 'domains/d3.hvln.pl/public_html', 'osobne_strony');
+    expect(r.stdout.trim().split('\n')).toEqual(['domains/d3.hvln.pl/public_html/beta']);
+  });
+
+  it('wycofanie rodzica: pliki rodzica wracają z kopii, poddomena zostaje, nic nie trafia do public_html', () => {
+    const d = dom();
+    const pub = 'domains/d3.hvln.pl/public_html';
+    const r = uruchom(
+      d,
+      pub,
+      `mapfile -t O < <(osobne_strony)
+       pakuj_strone "$HOME_DIR/backups/k.tar.gz" "x.sql" "\${O[@]}"
+       # „po aktualizacji”: rodzic zepsuty, poddomena zmieniona po kopii
+       echo zepsute > "$HOME_DIR/${pub}/index.php"; echo beta-nowe > "$HOME_DIR/${pub}/beta/index.php"
+       N="$(nazwa_nieudanej '${pub}')"
+       odloz_nieudana '${pub}' "$N" "\${O[@]}"
+       tar -xzf "$HOME_DIR/backups/k.tar.gz" -C "$HOME_DIR" -- '${pub}'
+       echo "$N"`,
+    );
+    expect(r.status).toBe(0);
+    expect(r.stdout.trim()).toBe('domains/d3.hvln.pl/public_html.verris-nieudana');
+    const czytaj = (w: string) => readFileSync(join(d, w), 'utf8').trim();
+    expect(czytaj(`${pub}/index.php`)).toBe('stare');
+    expect(czytaj(`${pub}/blog/index.php`)).toBe('blog-stare');
+    expect(czytaj(`${pub}/beta/index.php`)).toBe('beta-nowe'); // poddomena nie cofnięta
+    expect(czytaj(`${r.stdout.trim()}/index.php`)).toBe('zepsute');
+    expect(existsSync(join(d, `${pub}/beta/wp-config.php`))).toBe(true);
+    expect(existsSync(join(d, `${r.stdout.trim()}/beta`))).toBe(false);
+  });
+
+  it('wycofanie poddomeny: nieudana kopia obok public_html rodzica, nie w nim', () => {
+    const d = dom();
+    const sub = 'domains/d3.hvln.pl/public_html/beta';
+    const r = uruchom(
+      d,
+      sub,
+      `pakuj_strone "$HOME_DIR/backups/k.tar.gz" "x.sql"
+       echo zepsute > "$HOME_DIR/${sub}/index.php"
+       N="$(nazwa_nieudanej '${sub}')"
+       odloz_nieudana '${sub}' "$N"
+       tar -xzf "$HOME_DIR/backups/k.tar.gz" -C "$HOME_DIR" -- '${sub}'
+       echo "$N"`,
+    );
+    expect(r.status).toBe(0);
+    expect(r.stdout.trim()).toBe('domains/d3.hvln.pl/beta.verris-nieudana');
+    expect(readFileSync(join(d, sub, 'index.php'), 'utf8').trim()).toBe('beta-stare');
+    expect(readFileSync(join(d, 'domains/d3.hvln.pl/beta.verris-nieudana/index.php'), 'utf8').trim()).toBe('zepsute');
+    expect(existsSync(join(d, 'domains/d3.hvln.pl/public_html/beta.verris-nieudana'))).toBe(false);
   });
 });
 

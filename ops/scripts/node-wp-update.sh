@@ -268,7 +268,38 @@ if [ -f "$DOCROOT/.maintenance" ] && grep -qF "$ZNACZNIK_KONSERWACJI" "$DOCROOT/
   fail "strona jest w trybie konserwacji — wyłącz go przed aktualizacją"
 fi
 
+# Kopia i wycofanie dotyczą TEJ strony, nie jej poddomen. Poddomena DA leży w public_html domeny nadrzędnej,
+# więc kopia rodzica obejmowałaby jej pliki, a wycofanie rodzica cofnęłoby także poddomeny. Podkatalogi
+# z własnym wp-config.php to osobne strony — wyłączamy je z archiwum i zostawiamy na miejscu przy wycofaniu.
+osobne_strony() { # → ścieżki względne (po jednej w wierszu) podkatalogów strony z własnym wp-config.php
+  jako_klient find "$DOCROOT_WZGL" -mindepth 2 -maxdepth 2 -type f -name wp-config.php -printf '%h\n'
+}
+# Nieudana wersja ląduje POZA katalogiem serwowanym przez WWW: w public_html poddomeny jej kopia
+# (wykonywalne PHP, wp-config z tą samą bazą) byłaby dostępna pod https://<rodzic>/<etykieta>.verris-nieudana/.
+# domena → domains/<d>/public_html.verris-nieudana; poddomena → domains/<rodzic>/<etykieta>.verris-nieudana.
+nazwa_nieudanej() { # <katalog strony względem domowego>
+  case "$1" in
+    */public_html/*) echo "${1%%/public_html/*}/${1##*/}.verris-nieudana" ;;
+    *) echo "$1.verris-nieudana" ;;
+  esac
+}
+pakuj_strone() { # <archiwum> <zrzut bazy wzgl.> <osobne strony wzgl.>…
+  local arch="$1" sql="$2"; shift 2
+  local wykl=() s
+  for s in "$@"; do wykl+=("--exclude=$s"); done
+  jako_klient sh -c 'umask 077; a=$1; h=$2; d=$3; q=$4; shift 4; tar -czf "$a" -C "$h" --anchored --no-wildcards "$@" -- "$d" "$q"' \
+    verris "$arch" "$HOME_DIR" "$DOCROOT_WZGL" "$sql" ${wykl[@]+"${wykl[@]}"}
+}
+odloz_nieudana() { # <katalog strony wzgl.> <dokąd> <osobne strony wzgl.>…
+  jako_klient sh -c 'doc=$1; nie=$2; shift 2
+    rm -rf -- "$nie" && mv -- "$doc" "$nie" && mkdir -- "$doc" || exit 1
+    for s; do n=${s#"$doc"/}; mv -- "$nie/$n" "$doc/$n" || exit 1; done' verris "$@"
+}
+# koniec funkcji wycofania
+
 # 1. kopia
+OSOBNE_TXT="$(osobne_strony)" || fail "nie udało się przejrzeć katalogu strony"
+OSOBNE=(); [ -z "$OSOBNE_TXT" ] || mapfile -t OSOBNE <<< "$OSOBNE_TXT"
 TS="$(date +%Y%m%d-%H%M%S)-$(openssl rand -hex 2)"
 ARCH_NAZWA="verris-wp-$WPU_DOMAIN-$TS.tar.gz"
 ARCH="$HOME_DIR/backups/$ARCH_NAZWA"
@@ -276,7 +307,7 @@ SQL_WZGL="verris-wp-db/$WPU_DOMAIN.sql"
 jako_klient sh -c 'umask 077; mkdir -p backups verris-wp-db'
 wp db export "$HOME_DIR/$SQL_WZGL" --quiet || fail "nie udało się zrzucić bazy — aktualizacja wstrzymana"
 # umask 077: w archiwum jest zrzut bazy (z hasłami użytkowników WordPressa)
-if ! jako_klient sh -c 'umask 077; tar -czf "$1" -C "$2" -- "$3" "$4"' verris "$ARCH" "$HOME_DIR" "$DOCROOT_WZGL" "$SQL_WZGL"; then
+if ! pakuj_strone "$ARCH" "$SQL_WZGL" ${OSOBNE[@]+"${OSOBNE[@]}"}; then
   jako_klient rm -f -- "$ARCH" "$HOME_DIR/$SQL_WZGL"
   fail "nie udało się zrobić kopii strony (brak miejsca?) — aktualizacja wstrzymana"
 fi
@@ -311,8 +342,8 @@ KOD_PO="$(http_kod)"
 log "kontrola strony: przed=$KOD_PRZED po=$KOD_PO"
 if [[ "$KOD_PRZED" =~ ^[1-4][0-9][0-9]$ ]] && ! [[ "$KOD_PO" =~ ^[1-4][0-9][0-9]$ ]]; then
   log "strona przestała odpowiadać po aktualizacji — przywracam kopię"
-  NIEUDANA="$DOCROOT_WZGL.verris-nieudana"
-  jako_klient sh -c 'rm -rf -- "$1" && mv -- "$2" "$1" && mkdir -- "$2"' verris "$NIEUDANA" "$DOCROOT_WZGL"
+  NIEUDANA="$(nazwa_nieudanej "$DOCROOT_WZGL")"
+  odloz_nieudana "$DOCROOT_WZGL" "$NIEUDANA" ${OSOBNE[@]+"${OSOBNE[@]}"} || fail "nie udało się odłożyć nieudanej wersji strony — napisz do nas"
   jako_klient tar -xzf "$ARCH" -C "$HOME_DIR" -- "$DOCROOT_WZGL" "$SQL_WZGL" || fail "przywracanie plików z ~/backups/$ARCH_NAZWA nie powiodło się — napisz do nas"
   wp db import "$HOME_DIR/$SQL_WZGL" --quiet || fail "przywracanie bazy z ~/backups/$ARCH_NAZWA nie powiodło się — napisz do nas"
   jako_klient rm -f -- "$HOME_DIR/$SQL_WZGL"

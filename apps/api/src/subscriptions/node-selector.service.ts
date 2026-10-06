@@ -9,6 +9,7 @@ import {
   PojemnoscFizyczna,
   PowodOdmowy,
   SWIEZOSC_TELEMETRII_MIN,
+  swiezaTelemetria,
   WynikDopasowania,
   zuzycieZProbek,
 } from './node-capacity.js';
@@ -154,7 +155,7 @@ export class NodeSelectorService {
       // agentem i zapełniał się do 16 kont, zanim nadsubskrypcja by ruszyła.
       const zuzycie =
         zuzycieWezlow.get(server.id) ??
-        (liczbaKont === 0 ? { cpu: 0, ramMb: 0, diskMb: 0 } : null);
+        (swiezaTelemetria(false, liczbaKont) ? { cpu: 0, ramMb: 0, diskMb: 0 } : null);
 
       const dopasowanie = czyZmiesciSie({
         fizyczna,

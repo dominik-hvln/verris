@@ -113,6 +113,15 @@ export const MIN_OVERCOMMIT = 1;
 export const SWIEZOSC_TELEMETRII_MIN = 30;
 
 /**
+ * JEDNA reguła „świeżej telemetrii” dla przydziału kont, strony Pojemność floty i prognozy:
+ * węzeł ma próbkę w oknie `SWIEZOSC_TELEMETRII_MIN` ALBO nie ma kont — pusty węzeł nie ma czego
+ * mierzyć, jego realne zużycie to zero, a nie „nieznane” (inaczej wyglądałby jak węzeł z zepsutym agentem).
+ */
+export function swiezaTelemetria(maProbkeWOknie: boolean, liczbaKont: number): boolean {
+  return maProbkeWOknie || liczbaKont === 0;
+}
+
+/**
  * OPS-01 — po tylu minutach bez sygnału życia węzeł uznajemy za milczący.
  *
  * To NIE jest to samo co `SWIEZOSC_TELEMETRII_MIN`. Nieświeża telemetria mówi

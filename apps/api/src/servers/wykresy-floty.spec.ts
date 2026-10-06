@@ -1,4 +1,5 @@
 import { WykresyFlotyService, seriaFloty, serieWezlow, sortZ, sortujWezly, stanWezlaWykresy, zakresZ, zasobyWezla, type StanWykresu } from './wykresy-floty.js';
+import { SWIEZOSC_TELEMETRII_MIN, swiezaTelemetria } from '../subscriptions/node-capacity.js';
 
 const TERAZ = Date.parse('2026-10-05T12:00:00Z');
 const MIN = 60_000;
@@ -135,7 +136,8 @@ describe('Flota — wykresy: serie', () => {
       .mockResolvedValueOnce([
         { serverId: 'spokojny', cpu: 100, ram: 1024, dysk: 1000 },
         { serverId: 'goracy', cpu: 380, ram: 1024, dysk: 1000 },
-      ]);
+      ])
+      .mockResolvedValueOnce([{ serverId: 'spokojny' }, { serverId: 'goracy' }]);
     const prisma = {
       server: { findMany: vi.fn().mockResolvedValue([serwer('spokojny'), serwer('goracy'), serwer('test', { acceptsNewAccounts: false, lastHeartbeatAt: new Date(TERAZ - 20 * MIN) })]) },
       $queryRaw: queryRaw,
@@ -177,20 +179,59 @@ describe('Pojemność floty: realne zużycie osobno od sprzedanych limitów', ()
   };
 
   it('zużycie to próbki LVE, nie limity planów', () => {
-    const z = zasobyWezla(t1, { cpu: 3, ram: 71, dysk: 2_662 })!;
+    const z = zasobyWezla(t1, { cpu: 3, ram: 71, dysk: 2_662 }, true)!;
     expect(z.zuzyte).toEqual({ cpu: 3, ramMb: 71, diskMb: 2_662 });
     expect(z.przydzielone).toEqual({ cpu: 200, ramMb: 8_192, diskMb: 51_200 });
   });
 
   it('sprzedawalne = fizyczne × overcommit przy świeżej telemetrii, × 1 bez niej (jak przydział kont)', () => {
-    expect(zasobyWezla(t1, { cpu: 0, ram: 0, dysk: 0 })!.sprzedawalna).toEqual({ cpu: 800, ramMb: 11_212.5, diskMb: 92_160 });
-    const bez = zasobyWezla(t1, null)!;
+    expect(zasobyWezla(t1, { cpu: 0, ram: 0, dysk: 0 }, true)!.sprzedawalna).toEqual({ cpu: 800, ramMb: 11_212.5, diskMb: 92_160 });
+    const bez = zasobyWezla(t1, null, false)!;
     expect(bez.sprzedawalna).toEqual({ cpu: 400, ramMb: 7_475, diskMb: 76_800 });
     expect(bez.zuzyte).toBeNull();
     expect(bez.zapas).toMatchObject({ kont: 0, wymiar: 'RAM' });
   });
 
   it('węzeł bez raportu pojemności → brak danych', () => {
-    expect(zasobyWezla({ ...t1, totalDiskMb: null }, null)).toBeNull();
+    expect(zasobyWezla({ ...t1, totalDiskMb: null }, null, false)).toBeNull();
+  });
+});
+
+describe('Pojemność floty: świeżość telemetrii jak w przydziale kont', () => {
+  const baza = {
+    id: 'w', name: 'w', hostname: null, ipAddress: '10.0.0.1', region: 'DE-FSN', status: 'ACTIVE', acceptsNewAccounts: true,
+    lastHeartbeatAt: new Date(TERAZ - MIN), onboardVerifiedAt: new Date(TERAZ - 86_400_000), onboardReport: null, maintenanceReason: null,
+    totalCpuCores: 4, totalMemoryMb: 8192, totalDiskMb: 10_000, allocatedCpu: 0, allocatedMemory: 0, allocatedDisk: 0,
+    overcommitCpu: 2, overcommitRam: 2, overcommitDisk: 2, reservedHeadroomPercent: 0, lastOffsiteBackupAt: null,
+  };
+  const wezelZ = async (konta: number, biezace: unknown[], swieze: unknown[]) => {
+    const queryRaw = vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce(biezace).mockResolvedValueOnce(swieze);
+    const prisma = { server: { findMany: vi.fn().mockResolvedValue([{ ...baza, _count: { accounts: konta } }]) }, $queryRaw: queryRaw };
+    const r = await new WykresyFlotyService(prisma as never).wykresy('1h', 'stan', TERAZ);
+    return { w: r.wezly[0]!, queryRaw, kpi: r.kpi };
+  };
+
+  it('swiezaTelemetria: próbka w oknie albo pusty węzeł', () => {
+    expect(swiezaTelemetria(true, 3)).toBe(true);
+    expect(swiezaTelemetria(false, 0)).toBe(true);
+    expect(swiezaTelemetria(false, 1)).toBe(false);
+  });
+
+  it('pusty węzeł bez próbek: sprzedawalna z overcommitem, nie 1,0×', async () => {
+    const { w, kpi } = await wezelZ(0, [], []);
+    expect(w.zasoby!.sprzedawalna).toEqual({ cpu: 800, ramMb: 16_384, diskMb: 20_000 });
+    expect(kpi.pojemnosc).toMatchObject({ proc: 0 });
+  });
+
+  it('próbka sprzed 20 min (poza 10 min stanu bieżącego, w oknie 30 min): świeża', async () => {
+    const { w, queryRaw } = await wezelZ(2, [], [{ serverId: 'w' }]);
+    expect(w.zasoby!.sprzedawalna.cpu).toBe(800);
+    expect(w.zasoby!.zuzyte).toBeNull();
+    expect(queryRaw.mock.calls[2]).toContainEqual(new Date(TERAZ - SWIEZOSC_TELEMETRII_MIN * MIN));
+  });
+
+  it('węzeł z kontami i bez próbek w oknie 30 min: overcommit zdegradowany do 1,0×', async () => {
+    const { w } = await wezelZ(2, [], []);
+    expect(w.zasoby!.sprzedawalna).toEqual({ cpu: 400, ramMb: 8192, diskMb: 10_000 });
   });
 });

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { nazwaWezla, pozaPula } from '../admin-dashboard/stan-platformy.js';
-import { pojemnoscSprzedazowa } from '../subscriptions/node-capacity.js';
+import { pojemnoscSprzedazowa, SWIEZOSC_TELEMETRII_MIN, swiezaTelemetria } from '../subscriptions/node-capacity.js';
 import { PLAN_PRODUKCYJNY } from '../plans/plan-produkcyjny.js';
 
 /**
@@ -157,15 +157,17 @@ const srednia = (s: Punkt[]) => (s.length ? Math.round(s.reduce((a, p) => a + p.
  * Pojemność węzła w dwóch osobnych miarach (strona „Pojemność floty”):
  * - `zuzyte` — realne zużycie kont teraz (suma próbek LVE) wobec pojemności FIZYCZNEJ: ryzyko przeciążenia;
  * - `przydzielone` — suma limitów planów wobec SPRZEDAWALNEJ (fizyczna × overcommit): ile można jeszcze sprzedać.
- * Te same reguły co przydział kont (node-capacity.ts czyZmiesciSie) i prognoza (zapasPuli).
+ * Te same reguły co przydział kont (node-capacity.ts czyZmiesciSie) i prognoza (zapasPuli); świeżość
+ * telemetrii (`swieza`) wylicza `swiezaTelemetria` — okno SWIEZOSC_TELEMETRII_MIN, pusty węzeł jest świeży.
+ * `teraz` (próbki z 10 min) służy tylko do pokazania bieżącego zużycia.
  */
 export function zasobyWezla(
   s: WezelPojemnosc & { _count: { accounts: number } },
   teraz: { cpu: number; ram: number; dysk: number } | null,
+  swieza: boolean,
 ) {
   if (!s.totalCpuCores || !s.totalMemoryMb || !s.totalDiskMb) return null;
   const fizyczna = { cpu: s.totalCpuCores * 100, ramMb: s.totalMemoryMb, diskMb: s.totalDiskMb };
-  const swieza = teraz !== null;
   return {
     fizyczna,
     sprzedawalna: pojemnoscSprzedazowa(fizyczna, s, swieza),
@@ -182,7 +184,7 @@ export class WykresyFlotyService {
   async wykresy(zakres: Zakres, sort: Sort, teraz = Date.now()) {
     const { ms, krok } = ZAKRESY[zakres];
     const od = new Date(teraz - ms);
-    const [serwery, wiersze, biezace] = await Promise.all([
+    const [serwery, wiersze, biezace, swieze] = await Promise.all([
       this.prisma.server.findMany({
         where: { status: { not: 'DEPROVISIONING' } },
         select: {
@@ -223,10 +225,16 @@ export class WykresyFlotyService {
           ORDER BY "accountId", "bucketStart" DESC
         ) AS ostatnie
         GROUP BY "serverId"`,
+      // Świeżość telemetrii dla pojemności: to samo okno co przydział kont (node-selector).
+      this.prisma.$queryRaw<{ serverId: string }[]>`
+        SELECT DISTINCT "serverId" FROM "UsageMetric"
+        WHERE "serverId" IS NOT NULL AND "bucketStart" >= ${new Date(teraz - SWIEZOSC_TELEMETRII_MIN * 60_000)}`,
     ]);
 
     const serie = serieWezlow(wiersze, new Map(serwery.map((s) => [s.id, { rdzenie: s.totalCpuCores, ramMb: s.totalMemoryMb }])));
     const terazWg = new Map(biezace.map((b) => [b.serverId, b]));
+    const zProbkami = new Set(swieze.map((r) => r.serverId));
+    const swiezy = (s: (typeof serwery)[number]) => swiezaTelemetria(zProbkami.has(s.id), s._count.accounts);
     const wezly = serwery.map((s) => {
       const b = terazWg.get(s.id);
       const w = {
@@ -246,7 +254,7 @@ export class WykresyFlotyService {
         acceptsNewAccounts: s.acceptsNewAccounts,
         reservedHeadroomPercent: s.reservedHeadroomPercent,
         maxAccounts: s.maxAccounts,
-        zasoby: zasobyWezla(s, b ?? null),
+        zasoby: zasobyWezla(s, b ?? null, swiezy(s)),
       };
       return { ...w, stan: stanWezlaWykresy(w, teraz) };
     });
@@ -255,7 +263,7 @@ export class WykresyFlotyService {
     const hostujace = serwery.filter((s) => (s.status === 'ACTIVE' || s.status === 'MAINTENANCE') && s.totalCpuCores && s.totalMemoryMb && s.totalDiskMb);
     const suma = { cpu: [0, 0], RAM: [0, 0], dysk: [0, 0] };
     for (const s of hostujace) {
-      const sp = pojemnoscSprzedazowa({ cpu: s.totalCpuCores! * 100, ramMb: s.totalMemoryMb!, diskMb: s.totalDiskMb! }, s, terazWg.has(s.id));
+      const sp = pojemnoscSprzedazowa({ cpu: s.totalCpuCores! * 100, ramMb: s.totalMemoryMb!, diskMb: s.totalDiskMb! }, s, swiezy(s));
       suma.cpu[0] += s.allocatedCpu;
       suma.cpu[1] += sp.cpu;
       suma.RAM[0] += s.allocatedMemory;

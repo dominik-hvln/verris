@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AiService } from '../ai/ai.service.js';
 import { AiProviderService } from '../ai/ai-provider.service.js';
 import { HORYZONT_DNI, opisPrognozy, policzPrognoze, type LimityPlanu, type Pomiar } from '../ai/prognoza-zasobow.js';
-import { SWIEZOSC_TELEMETRII_MIN } from '../subscriptions/node-capacity.js';
+import { SWIEZOSC_TELEMETRII_MIN, swiezaTelemetria } from '../subscriptions/node-capacity.js';
 import { nazwaWezla, pozaPula } from '../admin-dashboard/stan-platformy.js';
 import { StosWezlaService } from './stos-wezla.service.js';
 import { zgodnoscZManifestem } from './stos-wezla.js';
@@ -226,7 +226,7 @@ export class PrognozaWezlaService {
       s,
       nazwa: nazwaWezla(s),
       konta: s._count.accounts,
-      zapas: zapasPuli(s, { konta: s._count.accounts, swieza: swiezy.has(s.id), nowe30: nowe.get(s.id) ?? 0 }),
+      zapas: zapasPuli(s, { konta: s._count.accounts, swieza: swiezaTelemetria(swiezy.has(s.id), s._count.accounts), nowe30: nowe.get(s.id) ?? 0 }),
       rozjazdy: zgodnoscZManifestem(
         { stackVersion: s.stackVersion, dbVersion: s.dbVersion, lsVersion: s.lsVersion, phpVersion: s.phpDefaultVersion },
         manifest,
