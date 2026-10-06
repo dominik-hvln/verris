@@ -62,6 +62,14 @@ export class TransferLockDto {
   locked!: boolean;
 }
 
+export class NameserversDto {
+  @IsArray()
+  @ArrayMaxSize(8)
+  @IsString({ each: true })
+  @MaxLength(253, { each: true })
+  nameservers!: string[];
+}
+
 /** A-14 — ukrycie danych w WHOIS. */
 export class WhoisPrivacyDto {
   @IsBoolean()

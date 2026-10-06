@@ -2,6 +2,7 @@ import { CopyValue } from '@/components/panel/v2';
 import { DomainRenewBox } from './domain-renew-box';
 import { DomainRegistrarBox } from './domain-registrar-box';
 import { DomainWhoisPrivacy } from './domain-whois-privacy';
+import { DomainNameservers } from './domain-nameservers';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
 import type { DomainDto, ServiceSummaryDto } from '@verris/contracts';
@@ -154,6 +155,10 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
 
       {domain.registrarExternalId ? (
         <DomainRegistrarBox domainId={domain.id} transferLock={domain.transferLock ?? true} />
+      ) : null}
+
+      {domain.registrarExternalId ? (
+        <DomainNameservers domainId={domain.id} nameservers={domain.nameservers ?? []} defaults={domain.defaultNameservers ?? []} />
       ) : null}
 
       {domain.registrarExternalId ? (

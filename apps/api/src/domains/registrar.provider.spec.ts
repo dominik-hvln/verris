@@ -136,3 +136,22 @@ describe('OpenProvider — szczegóły błędu poza `data`', () => {
     await expect(p.sslCreateOrder({ productId: 1, years: 1, csr: 'x', hostName: 'a.pl', validation: 'dns' })).rejects.toThrow(/Handle has no organization/);
   });
 });
+
+describe('OpenProvider — zmiana serwerów nazw', () => {
+  const cfg: Record<string, string> = {
+    REGISTRAR_PROVIDER: 'openprovider', OPENPROVIDER_USERNAME: 'u', OPENPROVIDER_PASSWORD: 'p', OPENPROVIDER_OWNER_HANDLE: 'H',
+  };
+  afterEach(() => vi.unstubAllGlobals());
+  it('PUT /v1/domains/{id} z name_servers w formacie rejestracji', async () => {
+    const fetchMock = vi.fn(async (url: string, _init: { method?: string; body: string }) => {
+      if (url.endsWith('/auth/login')) return new Response(JSON.stringify({ code: 0, data: { token: 't' } }));
+      return new Response(JSON.stringify({ code: 0, data: { status: 'ACT' } }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await new RegistrarProviderFactory({ get: (k: string) => cfg[k] } as never).get().setNameservers('42', ['ns3.verris.pl', 'ns4.verris.pl']);
+    const [url, init] = fetchMock.mock.calls.find((c) => String(c[0]).includes('/v1/domains/'))!;
+    expect(url).toMatch(/\/v1\/domains\/42$/);
+    expect(init.method).toBe('PUT');
+    expect(JSON.parse(init.body)).toEqual({ name_servers: [{ name: 'ns3.verris.pl' }, { name: 'ns4.verris.pl' }] });
+  });
+});

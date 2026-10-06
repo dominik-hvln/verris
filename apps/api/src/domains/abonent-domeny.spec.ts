@@ -1,7 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
-import { DomainRegistrarService } from './domain-registrar.service.js';
+import { DomainRegistrarService, sprawdzNs } from './domain-registrar.service.js';
 import { RegisterDomainDto } from './dto/registrar.dto.js';
 import { opKontakt, type Registrant } from './registrar.provider.js';
 
@@ -112,5 +112,40 @@ describe('A-15 / A-09 — blokada i kod transferu', () => {
     const { service, audit } = zbuduj(provider);
     await expect(service.authCode('u1', 'u1', 'd1')).resolves.toEqual({ authCode: 'S3kr3t!', transferLock: true });
     expect(JSON.stringify(audit.record.mock.calls)).not.toContain('S3kr3t!');
+  });
+});
+
+/** t1 07.10 — domena z 04.10 została na ns1/ns2.verris.pl (których nie ma w DNS), a panel nie miał zmiany NS. */
+describe('serwery nazw zarejestrowanej domeny', () => {
+  it('rejestrator + baza + audyt ze starymi i nowymi NS', async () => {
+    const provider = { setNameservers: vi.fn() };
+    const { service, prisma, audit } = zbuduj(provider, {
+      id: 'd1', name: 'jan.com', userId: 'u1', registrarExternalId: '777', nameservers: ['ns1.verris.pl', 'ns2.verris.pl'],
+    });
+    await expect(service.setNameservers('u1', 'u1', 'd1', [' NS3.verris.pl. ', 'ns4.verris.pl'])).resolves.toEqual({
+      nameservers: ['ns3.verris.pl', 'ns4.verris.pl'],
+    });
+    expect(provider.setNameservers).toHaveBeenCalledWith('777', ['ns3.verris.pl', 'ns4.verris.pl']);
+    expect(prisma.domain.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ nameservers: ['ns3.verris.pl', 'ns4.verris.pl'] }) }));
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({
+      action: 'DOMAIN_NAMESERVERS_UPDATED',
+      details: { domain: 'jan.com', from: ['ns1.verris.pl', 'ns2.verris.pl'], to: ['ns3.verris.pl', 'ns4.verris.pl'] },
+    }));
+  });
+
+  it('błąd rejestratora → baza bez zmian', async () => {
+    const provider = { setNameservers: vi.fn().mockRejectedValue(new Error('OpenProvider: Invalid nameserver')) };
+    const { service, prisma } = zbuduj(provider);
+    await expect(service.setNameservers('u1', 'u1', 'd1', ['a.example.com', 'b.example.com'])).rejects.toThrow(/Invalid nameserver/);
+    expect(prisma.domain.update).not.toHaveBeenCalled();
+  });
+
+  it('walidacja: 2–8 hostów, poprawne nazwy, bez NS wewnątrz tej domeny (glue)', () => {
+    expect(() => sprawdzNs('jan.pl', ['ns1.verris.pl'])).toThrow(/od 2 do 8/);
+    expect(() => sprawdzNs('jan.pl', ['ns1.verris.pl', 'NS1.verris.pl'])).toThrow(/od 2 do 8/);
+    expect(() => sprawdzNs('jan.pl', ['ns1.verris.pl', 'ns 2.verris'])).toThrow(/Niepoprawna nazwa serwera: ns 2.verris/);
+    expect(() => sprawdzNs('jan.pl', ['ns1.verris.pl', '1.2.3.4'])).toThrow(/Niepoprawna/);
+    expect(() => sprawdzNs('jan.pl', ['ns1.jan.pl', 'ns2.verris.pl'])).toThrow(/glue/);
+    expect(sprawdzNs('jan.pl', ['ns1.cloudflare.com', 'ns.xn--mgbh0fb.xn--kgbechtv'])).toEqual(['ns1.cloudflare.com', 'ns.xn--mgbh0fb.xn--kgbechtv']);
   });
 });

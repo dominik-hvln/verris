@@ -268,6 +268,16 @@ export async function ukrycieWhoisAction(id: string, enabled: boolean): Promise<
   }
 }
 
+export async function serweryNazwAction(id: string, nameservers: string[]): Promise<Wynik<{ nameservers: string[] }>> {
+  try {
+    const r = await apiFetch<{ nameservers: string[] }>(`/domains/${id}/registrar/nameservers`, { method: 'PUT', body: JSON.stringify({ nameservers }) });
+    revalidatePath(`/dashboard/domains/${id}`);
+    return { ok: true, nameservers: r.nameservers };
+  } catch (e) {
+    return blad(e, 'Nie udało się zmienić serwerów nazw.');
+  }
+}
+
 export async function kodTransferuAction(id: string): Promise<Wynik<{ authCode: string }>> {
   try {
     const r = await apiFetch<{ authCode: string }>(`/domains/${id}/registrar/authcode`, { method: 'POST' });

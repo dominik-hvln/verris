@@ -46,6 +46,8 @@ export interface RegistrarProvider {
   setTransferLock(externalId: string, locked: boolean): Promise<void>;
   /** A-14 — ukrycie danych abonenta w WHOIS (WPP). */
   setWhoisPrivacy(externalId: string, enabled: boolean): Promise<void>;
+  /** Zmiana serwerów nazw zarejestrowanej domeny. */
+  setNameservers(externalId: string, nameservers: string[]): Promise<void>;
   /** A-09 — kod do transferu domeny do innego rejestratora. */
   authCode(externalId: string): Promise<string>;
   /** Uchwyt operatora (admin/tech/billing). Abonent nim NIE jest — patrz A-13. */
@@ -216,6 +218,10 @@ class HttpRegistrarProvider implements RegistrarProvider {
 
   async setWhoisPrivacy(externalId: string, enabled: boolean): Promise<void> {
     await this.request(`/domains/${encodeURIComponent(externalId)}/whois-privacy`, { method: 'POST', body: JSON.stringify({ enabled }) });
+  }
+
+  async setNameservers(externalId: string, nameservers: string[]): Promise<void> {
+    await this.request(`/domains/${encodeURIComponent(externalId)}/nameservers`, { method: 'PUT', body: JSON.stringify({ nameservers }) });
   }
 
   async authCode(externalId: string): Promise<string> {
@@ -477,6 +483,15 @@ class OpenProviderRegistrarProvider implements RegistrarProvider, SslReseller {
    */
   async setWhoisPrivacy(externalId: string, enabled: boolean): Promise<void> {
     await this.request(`/v1/domains/${encodeURIComponent(externalId)}`, { is_private_whois_enabled: enabled }, 'PUT');
+  }
+
+  /**
+   * Serwery nazw domeny — pole `name_servers` w PUT /v1/domains/{id} (UpdateDomain), ten sam format co przy rejestracji.
+   * Dokumentacja: https://docs.openprovider.com/doc/all#operation/UpdateDomain
+   * t1 07.10: domena z 04.10 została na ns1/ns2.verris.pl, a panel nie miał jak tego zmienić.
+   */
+  async setNameservers(externalId: string, nameservers: string[]): Promise<void> {
+    await this.request(`/v1/domains/${encodeURIComponent(externalId)}`, { name_servers: nameservers.map((name) => ({ name })) }, 'PUT');
   }
 
   async authCode(externalId: string): Promise<string> {

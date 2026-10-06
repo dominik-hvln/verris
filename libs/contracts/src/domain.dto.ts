@@ -20,6 +20,10 @@ export interface DomainDto {
   whoisPrivacy?: boolean;
   /** A-14 — cena brutto za rok ukrycia danych; null = usługa niedostępna. */
   whoisPrivacyPrice?: string | null;
+  /** Serwery nazw ustawione u rejestratora (domeny kupione przez Verris). */
+  nameservers?: string[];
+  /** Serwery nazw Verris dla tego klienta — podpowiedź przy zmianie NS. */
+  defaultNameservers?: string[];
   /** A-16 — rekord TXT potwierdzający własność (tylko domeny jeszcze niezweryfikowane). */
   verification?: { recordName: string; recordValue: string } | null;
 }

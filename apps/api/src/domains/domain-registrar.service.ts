@@ -490,6 +490,22 @@ export class DomainRegistrarService {
     return { transferLock: locked };
   }
 
+  /** Serwery nazw zarejestrowanej domeny: rejestrator → baza → audyt (stare i nowe NS). */
+  async setNameservers(userId: string, actorUserId: string, domainId: string, input: string[]) {
+    const { domain, externalId, provider } = await this.domenaURejestratora(userId, domainId);
+    const nameservers = sprawdzNs(domain.name, input);
+    await provider.setNameservers(externalId, nameservers);
+    const poprzednie = domain.nameservers ?? [];
+    await this.prisma.domain.update({ where: { id: domain.id }, data: { nameservers, lastRegistrarSyncAt: new Date() } });
+    await this.audit.record({
+      action: 'DOMAIN_NAMESERVERS_UPDATED',
+      userId,
+      actorUserId,
+      details: { domain: domain.name, from: poprzednie, to: nameservers },
+    });
+    return { nameservers };
+  }
+
   /**
    * A-14 — ukrycie danych abonenta w WHOIS. Włączenie jest płatne (cena za rok z ustawień platformy ×
    * rozpoczęte lata do końca ważności domeny) — portfel PRZED rejestratorem, zwrot przy jego błędzie.
@@ -993,6 +1009,23 @@ function sanitizeDomainLabel(value: string): string {
 
 function sanitizeNameservers(value?: string[]): string[] {
   return (value ?? []).map((v) => v.trim().toLowerCase()).filter(Boolean).slice(0, 8);
+}
+
+const NAZWA_HOSTA = /^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:[a-z]{2,63}|xn--[a-z0-9-]{1,59})$/;
+
+/**
+ * NS do zmiany u rejestratora: 2–8 poprawnych nazw hostów, bez powtórzeń. NS wewnątrz tej samej domeny
+ * wymaga rekordów glue (adresów IP w rejestrze) — tego panel nie obsługuje, więc odmowa zamiast błędu rejestru.
+ */
+export function sprawdzNs(domena: string, wpisane: string[]): string[] {
+  const ns = [...new Set((wpisane ?? []).map((v) => v.trim().toLowerCase().replace(/\.$/, '')).filter(Boolean))];
+  if (ns.length < 2 || ns.length > 8) throw new BadRequestException('Podaj od 2 do 8 serwerów nazw.');
+  const zle = ns.filter((n) => !NAZWA_HOSTA.test(n));
+  if (zle.length) throw new BadRequestException(`Niepoprawna nazwa serwera: ${zle.join(', ')}.`);
+  if (ns.some((n) => n === domena || n.endsWith(`.${domena}`))) {
+    throw new BadRequestException(`Serwer nazw w domenie ${domena} wymaga rekordów glue — napisz do nas, ustawimy je ręcznie.`);
+  }
+  return ns;
 }
 
 /** A-14 — rozpoczęte lata do końca ważności domeny (min. 1): za tyle płaci klient przy włączeniu ukrycia. */

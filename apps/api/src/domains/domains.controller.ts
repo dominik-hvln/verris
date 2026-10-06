@@ -21,6 +21,7 @@ import {
   TransferDomainDto,
   TransferLockDto,
   WhoisPrivacyDto,
+  NameserversDto,
   OkresOdnowieniaDto,
 } from './dto/registrar.dto.js';
 
@@ -200,6 +201,13 @@ export class DomainsController {
     return this.registrar.setTransferLock(user.userId, user.principalUserId ?? user.userId, id, dto.locked);
   }
 
+  /** Serwery nazw zarejestrowanej domeny (t1 07.10: wcześniej nie dało się ich zmienić po rejestracji). */
+  @Put(':id/registrar/nameservers')
+  @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'domains:nameservers' })
+  async nameservers(@CurrentUser() user: Uzytkownik, @Param('id') id: string, @Body() dto: NameserversDto) {
+    return this.registrar.setNameservers(user.userId, user.principalUserId ?? user.userId, id, dto.nameservers);
+  }
+
   /** A-14 — ukrycie danych w WHOIS (włączenie płatne z portfela). */
   @Post(':id/registrar/whois-privacy')
   async whoisPrivacy(@CurrentUser() user: Uzytkownik, @Param('id') id: string, @Body() dto: WhoisPrivacyDto) {
@@ -220,7 +228,9 @@ export class DomainsController {
       this.platformSettings.getWhoisPrivacyPrice(),
     ]);
     // A-14 — cena za rok; null = usługa niedostępna (panel nie pokazuje opcji).
-    return { ...domain, whoisPrivacyPrice };
+    // defaultNameservers — podpowiedź „serwery Verris” przy zmianie NS domeny kupionej u nas.
+    const defaultNameservers = domain.registrarExternalId ? await this.domyslneNs(user.userId) : [];
+    return { ...domain, whoisPrivacyPrice, defaultNameservers };
   }
 
   @Post(':id/verify')
