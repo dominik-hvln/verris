@@ -5,6 +5,8 @@ import { Loader2, Monitor, RefreshCw, X } from 'lucide-react';
 import type RFB from '@novnc/novnc';
 import { requestVpsConsoleAction } from './vps-actions';
 
+const LIMIT_LACZENIA_MS = 20_000;
+
 type Stan = { typ: 'laczenie' } | { typ: 'polaczono' } | { typ: 'rozlaczono' } | { typ: 'blad'; tresc: string };
 
 /**
@@ -20,6 +22,12 @@ export function VpsKonsola({ vpsId, onClose }: { vpsId: string; onClose: () => v
 
   useEffect(() => {
     let anulowano = false;
+    // Websocket zablokowany (np. CSP albo sieć) nie zawsze kończy się zdarzeniem noVNC — bez limitu panel
+    // wisiał na „łączenie…” (D3 06.10). Po czasie: błąd z możliwością ponowienia.
+    const limit = setTimeout(
+      () => setStan((s) => (s.typ === 'laczenie' ? { typ: 'blad', tresc: 'Nie udało się połączyć z konsolą. Spróbuj ponownie.' } : s)),
+      LIMIT_LACZENIA_MS,
+    );
     void (async () => {
       const sesja = await requestVpsConsoleAction(vpsId);
       if (anulowano) return;
@@ -41,6 +49,7 @@ export function VpsKonsola({ vpsId, onClose }: { vpsId: string; onClose: () => v
     })();
     return () => {
       anulowano = true;
+      clearTimeout(limit);
       rfb.current?.disconnect();
       rfb.current = null;
     };

@@ -71,4 +71,22 @@ describe('VpsKonsola', () => {
     expect(el.textContent).toContain('wstrzymany');
     act(() => root.unmount());
   });
+
+  it('bez połączenia w 20 s → błąd zamiast wiecznego „łączenie…” (D3 06.10: websocket zablokowany przez CSP)', async () => {
+    jest.useFakeTimers();
+    try {
+      requestVpsConsoleAction.mockResolvedValue({ ok: true, data: { wssUrl: 'wss://konsola/x', password: 'p' } });
+      const el = document.createElement('div');
+      document.body.appendChild(el);
+      const root = createRoot(el);
+      await act(async () => root.render(<VpsKonsola vpsId="v1" onClose={jest.fn()} />));
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(20_000);
+      });
+      expect(el.textContent).toContain('Nie udało się połączyć z konsolą');
+      act(() => root.unmount());
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

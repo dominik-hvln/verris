@@ -29,4 +29,10 @@ describe('CSP paneli', () => {
     expect(fa.split(' ')).toContain('https://*.verris.pl');
     expect(fa).not.toMatch(/\bhttps:(?!\/\/)|\*(?!\.verris\.pl)/);
   });
+
+  it('connect-src dopuszcza websocket konsoli VPS (wss_url z request_console), tylko wss i tylko *.hetzner.cloud', () => {
+    const cs = /connect-src ([^;]+);/.exec(panel)?.[1] ?? '';
+    expect(cs.split(' ')).toContain('wss://*.hetzner.cloud');
+    expect(cs).not.toMatch(/(^| )wss:(?!\/\/\*\.hetzner\.cloud)/);
+  });
 });
