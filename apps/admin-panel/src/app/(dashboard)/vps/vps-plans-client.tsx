@@ -1,6 +1,7 @@
 "use client";
 
 import { Select } from "@/components/select";
+import { liczbaZPola } from "@/components/pole-liczby";
 import { useState, useTransition, useId } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, EyeOff, Loader2, Pencil, Plus, Server, X } from "lucide-react";
@@ -21,7 +22,7 @@ const EMPTY: VpsPlanInput = {
   slug: "",
   name: "",
   description: "",
-  hetznerServerType: "cx22",
+  hetznerServerType: "cx23",
   hetznerImage: "ubuntu-24.04",
   location: "nbg1",
   vcpu: 2,
@@ -185,6 +186,13 @@ function PlanForm({
       : EMPTY,
   );
   const set = <K extends keyof VpsPlanInput>(k: K, v: VpsPlanInput[K]) => setF((p) => ({ ...p, [k]: v }));
+  // Cena jako tekst: kontrolowane <input type="number"> z Number() zerowało pole przy kropce w polskiej
+  // przeglądarce (separator „,”) i przy czyszczeniu — „44.99” zapisywało się jako 99 albo 0.
+  const [cena, setCena] = useState(f.priceMonthly ? String(f.priceMonthly).replace(".", ",") : "");
+  const cenaLiczba = liczbaZPola(cena);
+  const cenaOk = Number.isFinite(cenaLiczba) && cenaLiczba > 0;
+  // Typ spoza katalogu (np. dawny domyślny cx22) — lista pokazuje wtedy pierwszy typ, a zapisałby się inny.
+  const typOk = !serverTypes.length || serverTypes.some((t) => t.name === f.hetznerServerType);
 
   // Auto-fill specs from the Hetzner catalogue when a type is picked.
   const applyType = (name: string) => {
@@ -231,7 +239,7 @@ function PlanForm({
         <Field label="RAM (GB)"><input type="number" className="ip" value={f.ramGb} onChange={(e) => set("ramGb", Number(e.target.value))} /></Field>
         <Field label="Dysk (GB)"><input type="number" className="ip" value={f.diskGb} onChange={(e) => set("diskGb", Number(e.target.value))} /></Field>
         <Field label="Transfer (TB)"><input type="number" className="ip" value={f.trafficTb} onChange={(e) => set("trafficTb", Number(e.target.value))} /></Field>
-        <Field label="Cena/mies."><input type="number" step="0.01" className="ip" value={f.priceMonthly} onChange={(e) => set("priceMonthly", Number(e.target.value))} /></Field>
+        <Field label="Cena/mies. (zł brutto)"><input inputMode="decimal" className="ip" value={cena} onChange={(e) => setCena(e.target.value)} placeholder="np. 44,99" /></Field>
         <Field label="Kolejność"><input type="number" className="ip" value={f.sortOrder} onChange={(e) => set("sortOrder", Number(e.target.value))} /></Field>
         <Field label="Publiczny" htmlFor={`${vpsFieldId}-public`}>
           <Select id={`${vpsFieldId}-public`} className="ip" value={f.isPublic ? "1" : "0"} onChange={(v) => set("isPublic", v === "1")}
@@ -239,12 +247,14 @@ function PlanForm({
         </Field>
       </div>
       <div className="flex items-center gap-2">
-        <button type="button" onClick={() => onSubmit(f)} disabled={pending || !f.slug || !f.name} className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50">
+        <button type="button" onClick={() => onSubmit({ ...f, priceMonthly: cenaLiczba })} disabled={pending || !f.slug || !f.name || !cenaOk || !typOk} className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50">
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} {initial ? "Zapisz" : "Utwórz plan"}
         </button>
         <button type="button" onClick={onCancel} className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-sm text-neutral-300 hover:bg-white/5">
           <X className="h-4 w-4" /> Anuluj
         </button>
+        {!typOk && <span className="text-xs text-amber-300">Wybierz typ serwera z katalogu.</span>}
+        {typOk && cena !== "" && !cenaOk && <span className="text-xs text-amber-300">Cena musi być większa od zera.</span>}
       </div>
       <style>{`.ip{width:100%;border-radius:.5rem;background:rgb(0 0 0/.4);border:1px solid rgb(255 255 255/.1);padding:.4rem .6rem;font-size:.8rem;color:#fff;outline:none}.ip:focus{border-color:rgb(139 92 246/.6)}`}</style>
     </div>

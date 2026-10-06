@@ -1,9 +1,10 @@
 'use client';
 
 import { plForm } from "@/lib/pl";
-import { useState, useTransition } from 'react';
+import { useId, useState, useTransition } from 'react';
 import { Bot, Loader2, Plus, Save } from 'lucide-react';
 import { Select } from '@/components/select';
+import { PoleLiczby } from '@/components/pole-liczby';
 import { zapiszUstawieniaAi, type DostawcaAi, type KonfiguracjaAi, type UstawieniaAi } from './actions';
 
 type Poziom = 'szybki' | 'analiza';
@@ -28,6 +29,7 @@ export function UstawieniaAiForm({ initial }: { initial: UstawieniaAi }) {
   const [stan, setStan] = useState<{ ok?: boolean; error?: string }>({});
   const [pending, start] = useTransition();
   const znane = initial.znaneModele;
+  const idPola = useId();
 
   const koszt = (model: string, p: Poziom) => {
     const c = konf.ceny[model];
@@ -35,8 +37,8 @@ export function UstawieniaAiForm({ initial }: { initial: UstawieniaAi }) {
   };
   const ustawPoziom = (p: Poziom, zmiana: Partial<KonfiguracjaAi['szybki']>) =>
     setKonf((k) => ({ ...k, [p]: { ...k[p], ...zmiana } }));
-  const ustawCene = (model: string, pole: 'wej' | 'wyj', v: string) =>
-    setKonf((k) => ({ ...k, ceny: { ...k.ceny, [model]: { ...k.ceny[model], [pole]: Math.max(0, Number(v) || 0) } } }));
+  const ustawCene = (model: string, pole: 'wej' | 'wyj', v: number) =>
+    setKonf((k) => ({ ...k, ceny: { ...k.ceny, [model]: { ...k.ceny[model], [pole]: v } } }));
 
   const zapisz = () =>
     start(async () => {
@@ -119,15 +121,12 @@ export function UstawieniaAiForm({ initial }: { initial: UstawieniaAi }) {
       })}
 
       <div className="space-y-2">
-        <label className="block space-y-1 max-w-xs">
+        <label htmlFor={`${idPola}-klient`} className="block space-y-1 max-w-xs">
           <span className="text-xs font-medium text-neutral-300">Limit na konto klienta (USD / miesiąc, 0 = bez limitu)</span>
-          <input
-            type="number"
-            min={0}
-            max={1000}
-            step={0.5}
+          <PoleLiczby
+            id={`${idPola}-klient`}
             value={konf.limitKlientaUsd}
-            onChange={(e) => setKonf((k) => ({ ...k, limitKlientaUsd: Math.max(0, Number(e.target.value) || 0) }))}
+            onChange={(n) => setKonf((k) => ({ ...k, limitKlientaUsd: Math.min(1000, n) }))}
             className={POLE}
           />
         </label>
@@ -141,15 +140,12 @@ export function UstawieniaAiForm({ initial }: { initial: UstawieniaAi }) {
       </div>
 
       <div className="space-y-2">
-        <label className="block space-y-1 max-w-xs">
+        <label htmlFor={`${idPola}-platforma`} className="block space-y-1 max-w-xs">
           <span className="text-xs font-medium text-neutral-300">Budżet całej platformy (USD / miesiąc, 0 = bez limitu)</span>
-          <input
-            type="number"
-            min={0}
-            max={10000}
-            step={1}
+          <PoleLiczby
+            id={`${idPola}-platforma`}
             value={konf.limitPlatformyUsd}
-            onChange={(e) => setKonf((k) => ({ ...k, limitPlatformyUsd: Math.max(0, Number(e.target.value) || 0) }))}
+            onChange={(n) => setKonf((k) => ({ ...k, limitPlatformyUsd: Math.min(10000, n) }))}
             className={POLE}
           />
         </label>
@@ -176,13 +172,10 @@ export function UstawieniaAiForm({ initial }: { initial: UstawieniaAi }) {
                 <td className="py-1.5 pr-3 font-mono text-xs text-white">{m}</td>
                 {(['wej', 'wyj'] as const).map((pole) => (
                   <td key={pole} className="py-1.5 pr-3">
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.01}
+                    <PoleLiczby
                       value={c[pole]}
                       aria-label={`${m} — cena ${pole === 'wej' ? 'wejścia' : 'wyjścia'}`}
-                      onChange={(e) => ustawCene(m, pole, e.target.value)}
+                      onChange={(n) => ustawCene(m, pole, n)}
                       className={`${POLE} max-w-[120px]`}
                     />
                   </td>
