@@ -10,6 +10,7 @@ import {
 } from "./consent-actions";
 import { logoutAction } from "./actions";
 import { Checkbox } from '@/components/panel/checkbox';
+import { renderLegalMarkdown } from "@/lib/markdown";
 
 const KIND_LABELS = {
   TERMS: "Regulamin",
@@ -81,23 +82,24 @@ export function ReConsentModal() {
       role="dialog"
       aria-modal="true"
       aria-labelledby="reconsent-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+      // .v2-content: tokeny motywu jasnego/ciemnego jak w treści panelu (okno leży poza kolumną treści).
+      className="v2-content fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-[rgba(4,10,7,0.7)] p-4 backdrop-blur-sm"
     >
       {/* Modal blokujący (wymagana akceptacja) — focus trap bez onEscape. */}
       <div
         ref={trapRef}
         tabIndex={-1}
-        className="relative w-full max-w-xl rounded-2xl border border-amber-500/30 bg-neutral-950 p-8 shadow-2xl outline-none"
+        className="relative my-auto w-full max-w-xl rounded-xl border border-line-strong bg-card p-6 text-foreground shadow-2xl outline-none sm:p-8"
       >
         <div className="flex items-start gap-4">
-          <div className="rounded-xl bg-amber-500/10 p-3">
-            <AlertTriangle className="h-6 w-6 text-amber-400" />
+          <div className="rounded-lg bg-warn-soft p-2.5">
+            <AlertTriangle aria-hidden className="h-5 w-5 text-warn" />
           </div>
           <div className="flex-1">
-            <h2 id="reconsent-title" className="text-xl font-bold text-white">
+            <h2 id="reconsent-title" className="text-xl font-bold text-foreground">
               {pierwsza ? "Zaakceptuj regulamin i politykę prywatności" : "Zaktualizowaliśmy ważne dokumenty prawne"}
             </h2>
-            <p className="mt-1 text-sm text-neutral-400">
+            <p className="mt-1 text-sm text-muted-foreground">
               {pierwsza
                 ? "Zanim przejdziesz do panelu, zapoznaj się z dokumentami i zaakceptuj je."
                 : "Zanim przejdziesz do panelu, prosimy o zapoznanie się i ponowną akceptację."}
@@ -109,28 +111,30 @@ export function ReConsentModal() {
           {docs.map((doc) => (
             <li
               key={doc.kind}
-              className="flex items-start gap-3 rounded-xl border border-white/10 bg-neutral-900/50 p-4"
+              className="flex items-start gap-3 rounded-lg border border-line bg-raised/50 p-4"
             >
-              <FileText className="mt-0.5 h-5 w-5 text-sky-400" />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-white">
+              <FileText aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-data-hi" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">
                   {KIND_LABELS[doc.kind]} — wersja {doc.currentVersion}
                 </p>
                 {doc.userVersion && (
-                  <p className="mt-0.5 text-xs text-neutral-500">
+                  <p className="mt-0.5 text-xs text-muted-foreground">
                     Twoja zaakceptowana wersja: {doc.userVersion}
                   </p>
                 )}
                 {!pierwsza && doc.changelogMarkdown && (
-                  <p className="mt-2 text-xs text-neutral-300 whitespace-pre-line">
-                    {doc.changelogMarkdown}
-                  </p>
+                  <div className="mt-2 border-l-2 border-data pl-3">
+                    {renderLegalMarkdown(doc.changelogMarkdown, {
+                      className: "text-xs leading-relaxed text-verris-body [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1",
+                    })}
+                  </div>
                 )}
                 <a
                   href={LINK_BY_KIND[doc.kind]}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-2 inline-flex items-center text-xs text-sky-400 hover:text-sky-300 underline underline-offset-2"
+                  className="mt-2 inline-flex items-center text-xs font-medium text-data-hi underline underline-offset-2 hover:text-foreground"
                 >
                   Otwórz pełną treść w nowej karcie →
                 </a>
@@ -142,7 +146,7 @@ export function ReConsentModal() {
         {error && (
           <div
             role="alert"
-            className="mt-4 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-sm text-rose-300"
+            className="mt-4 rounded-lg border border-crit/40 bg-crit/10 p-3 text-sm text-crit"
           >
             {error}
           </div>
@@ -152,9 +156,9 @@ export function ReConsentModal() {
           <Checkbox
             checked={accepted}
             onChange={(e) => setAccepted(e.target.checked)}
-            className="mt-1 h-4 w-4 rounded border-white/20 bg-neutral-900 text-sky-500 focus:ring-2 focus:ring-sky-500/30 cursor-pointer"
+            className="mt-0.5 h-4 w-4"
           />
-          <span className="text-sm text-neutral-300">
+          <span className="text-sm text-verris-body">
             {pierwsza
               ? "Akceptuję powyższe dokumenty i potwierdzam, że zapoznałem/am się z ich treścią."
               : "Akceptuję wszystkie powyższe zmiany i potwierdzam, że zapoznałem/am się z treścią zaktualizowanych dokumentów."}
@@ -165,7 +169,7 @@ export function ReConsentModal() {
           <form action={logoutAction}>
             <button
               type="submit"
-              className="w-full rounded-xl border border-white/10 px-5 py-2.5 text-center text-sm text-neutral-300 hover:bg-white/5"
+              className="w-full rounded-md border border-line-strong px-5 py-2.5 text-center text-sm font-medium text-foreground hover:bg-raised"
             >
               Wyloguj się
             </button>
@@ -174,7 +178,7 @@ export function ReConsentModal() {
             type="button"
             disabled={!accepted || pending}
             onClick={onAccept}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Akceptuję i kontynuuję

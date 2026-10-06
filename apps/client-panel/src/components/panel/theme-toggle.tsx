@@ -17,8 +17,9 @@ export function applyTheme(light: boolean) {
   }
 }
 
-/** Przełącznik motywu treści panelu (menu boczne zostaje ciemne). Wybór zapisujemy też na koncie (PB-16). */
-export function ThemeToggle() {
+/** Przełącznik motywu treści panelu (menu boczne zostaje ciemne). Wybór zapisujemy też na koncie (PB-16);
+ *  na stronach publicznych (bez sesji, np. /legal) `zapiszNaKoncie={false}` — tylko localStorage. */
+export function ThemeToggle({ zapiszNaKoncie = true }: { zapiszNaKoncie?: boolean } = {}) {
   const [light, setLight] = useState(false);
   useEffect(() => {
     // Motyw może zmienić też zapis z konta po wczytaniu profilu — śledzimy atrybut, nie tylko klik.
@@ -32,7 +33,7 @@ export function ThemeToggle() {
   const toggle = () => {
     const next = !light;
     applyTheme(next);
-    void savePanelPreferences({ panelTheme: next ? 'light' : 'dark' });
+    if (zapiszNaKoncie) void savePanelPreferences({ panelTheme: next ? 'light' : 'dark' });
   };
   return (
     <button

@@ -1,18 +1,9 @@
+import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
-
-interface LegalVersion {
-  version: string;
-  publishedAt: string;
-  isCurrent: boolean;
-}
-
-const KIND_LABELS: Record<string, string> = {
-  TERMS: "Regulamin",
-  PRIVACY: "Polityka prywatności",
-  COOKIES: "Polityka cookies",
-  DPA: "Umowa powierzenia (DPA)",
-};
+import { DocSwitcher, docByKind, formatDate, type LegalVersion } from "../../dokumenty";
+import { LegalShell } from "../../legal-shell";
 
 interface PageProps {
   params: Promise<{ kind: string }>;
@@ -20,64 +11,66 @@ interface PageProps {
 
 export const revalidate = 300;
 
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const meta = docByKind((await params).kind.toUpperCase());
+  return meta ? { title: `Historia wersji: ${meta.label} — Verris` } : {};
+}
+
 export default async function LegalVersionsPage({ params }: PageProps) {
   const { kind: kindParam } = await params;
   const kind = kindParam.toUpperCase();
-  if (!Object.keys(KIND_LABELS).includes(kind)) notFound();
+  const meta = docByKind(kind);
+  if (!meta) notFound();
 
   const versions = await apiFetch<LegalVersion[]>(`/legal/${kind}/versions?locale=pl`, {
     unauthenticated: true,
   });
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100">
-      <header className="mx-auto max-w-3xl px-4 pt-16 pb-8">
-        <a
-          href={`/legal/${kindParam}`}
-          className="text-xs uppercase tracking-widest text-neutral-500 hover:text-neutral-300"
-        >
-          ← {KIND_LABELS[kind]}
-        </a>
-        <h1 className="mt-4 text-3xl font-extrabold text-white">
-          Historia wersji — {KIND_LABELS[kind]}
-        </h1>
-        <p className="mt-2 text-sm text-neutral-400">
-          Pełen rejestr opublikowanych wersji dokumentu (transparentność RODO).
+    <LegalShell>
+      <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 lg:py-12">
+        <DocSwitcher active={kind} sub="/versions" />
+        <nav aria-label="Okruszki" className="mt-8 text-sm text-muted-foreground">
+          <Link href="/legal" className="hover:text-foreground">
+            Dokumenty prawne
+          </Link>
+          <span aria-hidden className="mx-2">
+            /
+          </span>
+          <a href={`/legal/${meta.slug}`} className="hover:text-foreground">
+            {meta.label}
+          </a>
+        </nav>
+        <h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Historia wersji</h1>
+        <p className="mt-3 text-muted-foreground">
+          {meta.label} — pełny rejestr opublikowanych wersji dokumentu (przejrzystość wobec RODO).
         </p>
-      </header>
 
-      <main className="mx-auto max-w-3xl px-4 pb-24">
-        <ul className="divide-y divide-white/10 rounded-2xl border border-white/10 bg-neutral-900/40">
-          {versions.length === 0 && (
-            <li className="p-6 text-sm text-neutral-400">Brak opublikowanych wersji.</li>
-          )}
+        <ol className="mt-8 divide-y divide-line rounded-lg border border-line bg-card">
+          {versions.length === 0 && <li className="p-5 text-sm text-muted-foreground">Brak opublikowanych wersji.</li>}
           {versions.map((v) => (
-            <li key={v.version} className="flex items-center justify-between p-5">
+            <li key={v.version} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 p-5">
               <div>
                 <a
-                  href={`/legal/${kindParam}?version=${encodeURIComponent(v.version)}`}
-                  className="text-base font-semibold text-white hover:text-sky-300"
+                  href={v.isCurrent ? `/legal/${meta.slug}` : `/legal/${meta.slug}?version=${encodeURIComponent(v.version)}`}
+                  className="font-semibold text-foreground underline-offset-4 hover:underline"
                 >
-                  Wersja {v.version}
+                  Wersja <span className="font-mono">{v.version}</span>
                 </a>
-                <p className="mt-0.5 text-xs text-neutral-500">
-                  Opublikowana{" "}
-                  {new Date(v.publishedAt).toLocaleDateString("pl-PL", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  Opublikowana <time dateTime={v.publishedAt}>{formatDate(v.publishedAt)}</time>
                 </p>
               </div>
               {v.isCurrent && (
-                <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
+                <span className="inline-flex items-center gap-2 text-sm font-medium text-data-hi">
+                  <span aria-hidden className="h-2 w-2 rounded-full bg-data" />
                   Aktualna
                 </span>
               )}
             </li>
           ))}
-        </ul>
-      </main>
-    </div>
+        </ol>
+      </div>
+    </LegalShell>
   );
 }

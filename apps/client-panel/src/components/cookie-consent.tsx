@@ -110,7 +110,7 @@ export function CookieConsentManager() {
         aria-label="Preferencje cookies"
         title="Preferencje cookies"
         onClick={() => window.dispatchEvent(new CustomEvent(OPEN_PREFERENCES_EVENT))}
-        className="fixed bottom-4 left-4 z-[90] flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-[#0d0d0d]/90 text-base shadow-lg backdrop-blur transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+        className="fixed bottom-4 left-4 z-[90] print:hidden flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-[#0d0d0d]/90 text-base shadow-lg backdrop-blur transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
       >
         <CookieIcon className="h-5 w-5 text-neutral-300" />
       </button>
@@ -124,8 +124,8 @@ export function CookieConsentManager() {
       aria-label="Ustawienia plików cookies"
       className={
         prefsOpen
-          ? "fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-3 sm:items-center"
-          : "fixed inset-x-0 bottom-0 z-[100] p-3 sm:p-4"
+          ? "fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-3 sm:items-center print:hidden"
+          : "fixed inset-x-0 bottom-0 z-[100] p-3 sm:p-4 print:hidden"
       }
     >
       <div

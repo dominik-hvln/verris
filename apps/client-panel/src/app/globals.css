@@ -856,3 +856,65 @@ html.dark.eco-tint {
   text-overflow: clip;
   overflow-wrap: anywhere;
 }
+
+/* === Dokumenty prawne (/legal) === */
+/* Tabele w treści na telefonie: wiersz = blok, nazwa kolumny nad wartością (bez przewijania w bok). */
+@media (max-width: 639px) {
+  .legal-table,
+  .legal-table tbody,
+  .legal-table tr,
+  .legal-table td {
+    display: block;
+    width: 100%;
+  }
+  .legal-table thead {
+    display: none;
+  }
+  .legal-table tr {
+    padding: 10px 0;
+  }
+  .legal-table td {
+    padding: 3px 0;
+  }
+  .legal-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+}
+/* Wydruk / „Zapisz jako PDF”: czarny tekst na białym, bez nawigacji (print:hidden) i ozdobników. */
+@media print {
+  /* .v2-content.legal-doc — ta sama waga co reguła motywu jasnego, więc wygrywa kolejnością. */
+  .v2-content.legal-doc {
+    --background: #ffffff;
+    --foreground: #000000;
+    --card: #ffffff;
+    --raised: #ffffff;
+    --verris-body: #111111;
+    --muted-foreground: #333333;
+    --data: #000000;
+    --data-hi: #000000;
+    --line: #bbbbbb;
+    --line-strong: #888888;
+    color-scheme: light;
+    font-size: 11pt;
+  }
+  .legal-doc article {
+    max-width: none;
+    font-size: 11pt;
+    line-height: 1.55;
+  }
+  .legal-doc h2,
+  .legal-doc h3,
+  .legal-doc h4 {
+    break-after: avoid;
+  }
+  .legal-doc tr,
+  .legal-doc li {
+    break-inside: avoid;
+  }
+}
