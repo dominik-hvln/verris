@@ -11,7 +11,7 @@ import { opisLokalizacji } from '@verris/contracts';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { EVENT_WARN, powodBlokady, serviceEventLabel } from '@/lib/service-events';
+import { EVENT_WARN, powodBlokady, serviceEventLabel, widoczneDlaKlienta } from '@/lib/service-events';
 import { ChevronRight, Loader2, Plus, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import type {
@@ -633,7 +633,7 @@ export default function ServiceOverviewV2({
 
 /** Historia zdarzeń usługi pogrupowana po dniach (Dziś / Wczoraj / data). */
 function EventsFeed({ events }: { events: ServiceDetailsDto['events'] }) {
-  const list = [...(events ?? [])].sort((x, y) => y.createdAt.localeCompare(x.createdAt)).slice(0, 12);
+  const list = [...(events ?? [])].filter((e) => widoczneDlaKlienta(e.type)).sort((x, y) => y.createdAt.localeCompare(x.createdAt)).slice(0, 12);
   if (list.length === 0) {
     return <div className="rounded-[10px] border border-line bg-card px-4 py-5 text-sm text-muted-foreground">Na razie nic się nie działo.</div>;
   }

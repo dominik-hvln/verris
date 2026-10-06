@@ -1,4 +1,4 @@
-import { EVENT_LABEL, EVENT_WARN, powodBlokady, serviceEventLabel } from './service-events';
+import { EVENT_LABEL, EVENT_WARN, powodBlokady, serviceEventLabel, widoczneDlaKlienta } from './service-events';
 
 /**
  * X-05 — etykiety zdarzeń usługi na osi czasu.
@@ -15,8 +15,21 @@ describe('X-05 serviceEventLabel', () => {
     expect(serviceEventLabel(type)).toBe(label);
   });
 
-  it('nieznane zdarzenie → zdanie z nazwy technicznej, nie pusty string', () => {
-    expect(serviceEventLabel('SOMETHING_NEW_HAPPENED')).toBe('Something new happened');
+  it('nieznane zdarzenie → ogólna polska etykieta, nie angielski kod', () => {
+    expect(serviceEventLabel('SOMETHING_NEW_HAPPENED')).toBe('Zmiana w usłudze');
+  });
+
+  it('próba bety 06.10: zdarzenia migracji po polsku, kroki wewnętrzne ukryte przed klientem', () => {
+    // Oś „Co się działo” d3.hvln.pl pokazywała „Migration bundle completed”, „Migration escalated”, „Migration worker job retrying”.
+    const widoczne = ['MIGRATION_BUNDLE_QUEUED', 'MIGRATION_BUNDLE_COMPLETED', 'MIGRATION_BUNDLE_FAILED', 'MIGRATION_ESCALATED', 'MIGRATION_CANCELED', 'AUTOSCALING_ENABLED'];
+    for (const t of widoczne) {
+      expect(widoczneDlaKlienta(t)).toBe(true);
+      expect(EVENT_LABEL[t]).toBeTruthy();
+      expect(serviceEventLabel(t)).not.toMatch(/migration|bundle|worker/i);
+    }
+    for (const t of ['MIGRATION_WORKER_JOB_RETRYING', 'MIGRATION_WORKER_JOB_COMPLETED', 'MIGRATION_ATTENTION_NOTIFIED']) {
+      expect(widoczneDlaKlienta(t)).toBe(false);
+    }
   });
 
   it('każde zdarzenie ostrzegawcze ma polską etykietę', () => {

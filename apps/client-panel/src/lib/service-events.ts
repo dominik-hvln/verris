@@ -5,8 +5,20 @@ export const EVENT_LABEL = SERVICE_EVENT_PL;
 export const EVENT_WARN = new Set(['PAYMENT_FAILED', 'SUSPENDED', 'PROVISIONING_FAILED', 'TRIAL_EXPIRED', 'CANCEL_SCHEDULED']);
 
 
+/** Kroki wewnętrzne (worker, powiadomienia) — mają sens dla obsługi, nie dla klienta. */
+const TYLKO_DLA_OBSLUGI = new Set(['MIGRATION_WORKER_JOB_RETRYING', 'MIGRATION_WORKER_JOB_COMPLETED', 'MIGRATION_ATTENTION_NOTIFIED']);
+
+/** Czy zdarzenie pokazujemy klientowi na osi „Co się działo”. */
+export function widoczneDlaKlienta(type: string): boolean {
+  return !TYLKO_DLA_OBSLUGI.has(type);
+}
+
+/**
+ * Nieznany kod nie znika z osi, ale klient nie widzi angielskiego kodu („Migration bundle completed”,
+ * próba bety 06.10) — dostaje ogólną etykietę, a słownik uzupełniamy w `@verris/contracts`.
+ */
 export function serviceEventLabel(type: string): string {
-  return EVENT_LABEL[type] ?? type.replace(/_/g, ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase());
+  return EVENT_LABEL[type] ?? 'Zmiana w usłudze';
 }
 
 /**
