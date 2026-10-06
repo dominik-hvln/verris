@@ -46,7 +46,7 @@ describe("Pojemność floty", () => {
     (adminApi as jest.Mock).mockResolvedValue({ wezly: [{ ...t1, acceptsNewAccounts: true, pozaPula: null, zasoby: { ...t1.zasoby, zuzyte: null, zapas: { kont: 2, wymiar: "CPU" } } }] });
     const t = await tekst();
     expect(t).toContain("brak świeżej telemetrii");
-    expect(t).toContain("1 bez telemetrii");
+    expect(t).toContain("z 1 węzła · 1 bez telemetrii");
     expect(t).toContain("~2 zmieszczą się w pakiecie standardowym");
   });
 });

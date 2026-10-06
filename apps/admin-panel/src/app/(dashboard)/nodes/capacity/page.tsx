@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, AlertCircle, Cpu, MemoryStick, HardDrive, Gauge, Ban } from "lucide-react";
 import { adminApi } from "@/lib/api";
-import { nodes as nodesLabel, plForm } from "@/lib/pl";
+import { plForm } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
@@ -115,7 +115,7 @@ export default async function FleetCapacityPage() {
           <p className="text-xs text-muted-foreground">Cordon (wstrzymane)</p>
           <p className={`mt-1 text-2xl font-semibold ${cordoned > 0 ? "text-amber-300" : "text-white"}`}>{cordoned}</p>
           <p className="text-xs text-muted-foreground mt-1">
-            z {nodesLabel(hostujace.length)}
+            z {hostujace.length} {plForm(hostujace.length, "węzła", "węzłów", "węzłów")}
             {bezTelemetrii ? ` · ${bezTelemetrii} bez telemetrii` : ""}
           </p>
         </div>
