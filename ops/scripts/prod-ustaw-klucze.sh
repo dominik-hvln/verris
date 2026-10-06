@@ -2,7 +2,7 @@
 # shellcheck disable=SC2034  # tablice GRUPA_* czytane przez declare -n
 # =============================================================================
 # Ustawienie kluczy integracji w .env.prod i restart API — wpisuje właściciel na serwerze.
-#   cd /opt/verris && sudo bash ops/scripts/prod-ustaw-klucze.sh [ai|paynow|openprovider|stripe|vps ...]
+#   cd /opt/verris && sudo bash ops/scripts/prod-ustaw-klucze.sh [ai|paynow|openprovider|stripe|vps|funkcje ...]
 # Bez argumentów: wszystkie grupy. Puste pole (Enter) = wartość bez zmian, „-” = wyczyść wartość.
 # Sekrety czytane bez echa (read -s), nie trafiają do historii powłoki ani na ekran.
 # Przed zmianą kopia .env.prod (prod-env-backup.sh). Klucze NIE są w panelu celowo:
@@ -41,6 +41,14 @@ GRUPA_stripe=(
   "STRIPE_SECRET_KEY|s|Stripe — klucz tajny (sk_live_… / sk_test_…)"
   "STRIPE_WEBHOOK_SECRET|s|Stripe — sekret webhooka (whsec_…)"
 )
+# Funkcje per konto (API + panel klienta w runtime): lista e-maili ma pierwszeństwo przed flagą true/false.
+# Wyczyszczenie listy (funkcja dla wszystkich albo nikogo): wpisz „-”.
+GRUPA_funkcje=(
+  "FEATURE_VPS|j|VPS dla wszystkich klientów (true/false)"
+  "FEATURE_VPS_TYLKO_KONTA|j|VPS tylko dla tych e-maili (po przecinku; ma pierwszeństwo przed FEATURE_VPS)"
+  "FEATURE_RESELLER_MARKUP|j|Narzut resellera dla wszystkich resellerów (true/false)"
+  "FEATURE_RESELLER_MARKUP_TYLKO_KONTA|j|Narzut tylko dla tych resellerów — e-maile po przecinku (ma pierwszeństwo przed flagą)"
+)
 
 obecna() { grep -E "^$1=" "$ENV_FILE" | tail -n1 | cut -d= -f2- | sed -e "s/^['\"]//" -e "s/['\"]\$//" || true; }
 
@@ -53,9 +61,9 @@ ustaw() { # KLUCZ WARTOŚĆ — zamiana linii albo dopisanie; wartość w apostr
   ZMIENIONE+=("$k")
 }
 
-grupy=("$@"); [[ ${#grupy[@]} -gt 0 ]] || grupy=(ai paynow openprovider stripe vps)
+grupy=("$@"); [[ ${#grupy[@]} -gt 0 ]] || grupy=(ai paynow openprovider stripe vps funkcje)
 for g in "${grupy[@]}"; do
-  declare -p "GRUPA_$g" &>/dev/null || { echo "Nieznana grupa: $g (ai|paynow|openprovider|stripe|vps)" >&2; exit 1; }
+  declare -p "GRUPA_$g" &>/dev/null || { echo "Nieznana grupa: $g (ai|paynow|openprovider|stripe|vps|funkcje)" >&2; exit 1; }
 done
 bash ops/scripts/prod-env-backup.sh >/dev/null && echo "Kopia $ENV_FILE: /root/verris-secrets/latest"
 ZMIENIONE=()

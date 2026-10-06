@@ -7,8 +7,9 @@
  *     „wyłączony", pierwszy deploy bez zasianych flag schowałby EKO, IAM
  *     i polecenia wszystkim klientom naraz.
  *  2. Flaga operatora nie może WŁĄCZYĆ modułu wyłączonego przy buildzie
- *     (np. VPS przed wejściem do sprzedaży) — inaczej klient trafi na stronę
- *     „chwilowo niedostępne".
+ *     — inaczej klient trafi na stronę „chwilowo niedostępne".
+ *  VPS nie ma przełącznika build-time: widoczny tylko, gdy API zwróci `vps: true`
+ *  (FEATURE_VPS / FEATURE_VPS_TYLKO_KONTA w env API).
  *
  * DLACZEGO `resetModules`. `clientFeatures` jest liczone raz przy imporcie
  * z `process.env`, więc każdy wariant env wymaga świeżego modułu.
@@ -21,9 +22,7 @@ const ENV_KEYS = [
   'NEXT_PUBLIC_FEATURE_ECO',
   'NEXT_PUBLIC_FEATURE_REFERRAL',
   'NEXT_PUBLIC_FEATURE_IAM',
-  'NEXT_PUBLIC_FEATURE_VPS',
   'NEXT_PUBLIC_FEATURE_EMAIL_MARKETING',
-  'NEXT_PUBLIC_FEATURE_RESELLER_MARKUP',
 ] as const;
 
 async function load(env: Partial<Record<(typeof ENV_KEYS)[number], string>> = {}): Promise<Core & Features> {
@@ -40,22 +39,22 @@ async function load(env: Partial<Record<(typeof ENV_KEYS)[number], string>> = {}
 }
 
 describe('X-05 client-features — przełączniki build-time', () => {
-  it('bez zmiennych: EKO, polecenia i IAM włączone, VPS, e-mail marketing i narzut resellera ukryte', async () => {
+  it('bez zmiennych: EKO, polecenia i IAM włączone, e-mail marketing ukryty (VPS i narzut — z API)', async () => {
     const { clientFeatures } = await load();
-    expect(clientFeatures).toEqual({ eco: true, iam: true, referral: true, vps: false, emailMarketing: false, resellerMarkup: false });
+    expect(clientFeatures).toEqual({ eco: true, iam: true, referral: true, emailMarketing: false });
   });
 
   it('pusta wartość traktowana jak brak zmiennej', async () => {
-    const { clientFeatures } = await load({ NEXT_PUBLIC_FEATURE_ECO: '', NEXT_PUBLIC_FEATURE_VPS: '' });
+    const { clientFeatures } = await load({ NEXT_PUBLIC_FEATURE_ECO: '', NEXT_PUBLIC_FEATURE_EMAIL_MARKETING: '' });
     expect(clientFeatures.eco).toBe(true);
-    expect(clientFeatures.vps).toBe(false);
+    expect(clientFeatures.emailMarketing).toBe(false);
   });
 
   it('„false"/„0" wyłącza, „true"/„1" włącza', async () => {
     expect((await load({ NEXT_PUBLIC_FEATURE_ECO: 'false' })).clientFeatures.eco).toBe(false);
     expect((await load({ NEXT_PUBLIC_FEATURE_IAM: '0' })).clientFeatures.iam).toBe(false);
-    expect((await load({ NEXT_PUBLIC_FEATURE_VPS: 'true' })).clientFeatures.vps).toBe(true);
-    expect((await load({ NEXT_PUBLIC_FEATURE_VPS: '1' })).clientFeatures.vps).toBe(true);
+    expect((await load({ NEXT_PUBLIC_FEATURE_EMAIL_MARKETING: 'true' })).clientFeatures.emailMarketing).toBe(true);
+    expect((await load({ NEXT_PUBLIC_FEATURE_EMAIL_MARKETING: '1' })).clientFeatures.emailMarketing).toBe(true);
   });
 });
 
@@ -79,9 +78,11 @@ describe('X-05 czyModul / trasaWidoczna — co jest w menu', () => {
     expect(czyModul({ 'modul.eco': true }, 'modul.eco')).toBe(false);
   });
 
-  it('VPS zależy wyłącznie od przełącznika build-time', async () => {
-    expect((await load()).trasaWidoczna({}, '/dashboard/vps')).toBe(false);
-    expect((await load({ NEXT_PUBLIC_FEATURE_VPS: 'true' })).trasaWidoczna({}, '/dashboard/vps/abc')).toBe(true);
+  it('VPS w menu tylko, gdy API zwróci vps=true (nie zależy od buildu)', async () => {
+    const { trasaWidoczna } = await load();
+    expect(trasaWidoczna({}, '/dashboard/vps')).toBe(false);
+    expect(trasaWidoczna({ vps: false }, '/dashboard/vps')).toBe(false);
+    expect(trasaWidoczna({ vps: true }, '/dashboard/vps/abc')).toBe(true);
   });
 
   it('e-mail marketing zależy wyłącznie od przełącznika build-time', async () => {

@@ -6,7 +6,7 @@ import { ChevronDown, KeyRound, Loader2, Pause, Play, Unlink } from 'lucide-reac
 import { potwierdz } from '@/components/panel';
 import { StatusPill, type Tone } from '@/components/panel/v2';
 import { liczba } from '@/lib/liczba';
-import { clientFeatures } from '@/lib/client-features';
+import { useFlagi } from '@/lib/feature-flags';
 import {
   fetchKlient,
   linkHaslaKlienta,
@@ -42,6 +42,7 @@ export function KlientResellera({ klient, aktywny, onOdpiety }: { klient: Resell
   const [otwarty, setOtwarty] = useState(false);
   const [dane, setDane] = useState<KlientSzczegoly | null>(null);
   const [zajety, setZajety] = useState<string | null>(null);
+  const narzutWlaczony = useFlagi().resellerMarkup === true;
 
   const przelacz = async () => {
     const nowy = !otwarty;
@@ -132,7 +133,7 @@ export function KlientResellera({ klient, aktywny, onOdpiety }: { klient: Resell
                         {u.plan ?? '—'} · stan: {ZDROWIE[u.zdrowie]}
                         {u.odnowienie ? ` · odnowienie ${new Date(u.odnowienie).toLocaleDateString('pl-PL')}` : ''}
                         {/* Cena z narzutem tylko gdy narzut trafia do rozliczeń (flaga resellerMarkup). */}
-                        {clientFeatures.resellerMarkup ? ` · ${liczba(u.cenaDetaliczna, 2)} ${u.waluta === 'PLN' ? 'K' : u.waluta} detal` : ''}
+                        {narzutWlaczony ? ` · ${liczba(u.cenaDetaliczna, 2)} ${u.waluta === 'PLN' ? 'K' : u.waluta} detal` : ''}
                       </p>
                       {u.status === 'SUSPENDED' && !u.wstrzymanaPrzezCiebie ? (
                         <p className="mt-0.5 text-xs text-warn">Wstrzymana przez Verris (płatność albo decyzja obsługi) — wznawia klient albo nasza obsługa.</p>

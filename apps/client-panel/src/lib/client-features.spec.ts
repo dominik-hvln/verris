@@ -18,19 +18,19 @@ describe('client-features', () => {
 
   const zaladuj = () => jest.requireActual<typeof import('./client-features')>('./client-features');
 
-  it('bez zmiennych: EKO, polecenia i IAM włączone, VPS, e-mail marketing i narzut resellera wyłączone', () => {
-    for (const k of ['NEXT_PUBLIC_FEATURE_ECO', 'NEXT_PUBLIC_FEATURE_REFERRAL', 'NEXT_PUBLIC_FEATURE_IAM', 'NEXT_PUBLIC_FEATURE_VPS', 'NEXT_PUBLIC_FEATURE_EMAIL_MARKETING', 'NEXT_PUBLIC_FEATURE_RESELLER_MARKUP']) delete process.env[k];
-    expect(zaladuj().clientFeatures).toEqual({ eco: true, iam: true, referral: true, vps: false, emailMarketing: false, resellerMarkup: false });
+  it('bez zmiennych: EKO, polecenia i IAM włączone, e-mail marketing wyłączony; VPS i narzutu tu nie ma (z API)', () => {
+    for (const k of ['NEXT_PUBLIC_FEATURE_ECO', 'NEXT_PUBLIC_FEATURE_REFERRAL', 'NEXT_PUBLIC_FEATURE_IAM', 'NEXT_PUBLIC_FEATURE_EMAIL_MARKETING']) delete process.env[k];
+    expect(zaladuj().clientFeatures).toEqual({ eco: true, iam: true, referral: true, emailMarketing: false });
   });
 
   it('jawne false/0 wyłącza, true/1 włącza', () => {
     process.env.NEXT_PUBLIC_FEATURE_ECO = 'false';
     process.env.NEXT_PUBLIC_FEATURE_IAM = '0';
-    process.env.NEXT_PUBLIC_FEATURE_VPS = '1';
+    process.env.NEXT_PUBLIC_FEATURE_EMAIL_MARKETING = '1';
     const f = zaladuj().clientFeatures;
     expect(f.eco).toBe(false);
     expect(f.iam).toBe(false);
-    expect(f.vps).toBe(true);
+    expect(f.emailMarketing).toBe(true);
   });
 
   it('źródło czyta flagi wyłącznie literalnie (inaczej przeglądarka widzi same domyślne)', () => {

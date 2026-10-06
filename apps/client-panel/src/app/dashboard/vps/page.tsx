@@ -3,12 +3,13 @@ import { PanelCard, PanelPageHeader } from '@/components/panel';
 import { fetchSshKeys, fetchVpsAvailability, fetchVpsInstances, fetchVpsPlans } from './vps-actions';
 import { VpsClient } from './vps-client';
 import { FeatureNotAvailable } from '@/components/feature-not-available';
-import { clientFeatures } from '@/lib/client-features';
+import { pobierzFlagiAction } from '@/lib/feature-flags-action';
 
 export const dynamic = 'force-dynamic';
 
 export default async function VpsPage() {
-  if (!clientFeatures.vps) {
+  // Włącza API per konto (FEATURE_VPS / FEATURE_VPS_TYLKO_KONTA); bez tego API i tak odmawia (403).
+  if ((await pobierzFlagiAction()).vps !== true) {
     return (
       <FeatureNotAvailable
         title="VPS / Cloud"

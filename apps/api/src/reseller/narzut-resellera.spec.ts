@@ -31,6 +31,19 @@ describe('O-07 — narzut resellera: helper', () => {
     expect(await narzutResellera(prismaKlienta({ status: 'ACTIVE', markupPct: 20 }) as never, config(true), 'u1')).toBe(20);
   });
 
+  it('FEATURE_RESELLER_MARKUP_TYLKO_KONTA: narzut tylko u klientów resellera z listy (nawet przy fladze false)', async () => {
+    const cfg = { get: (k: string) => ({ FEATURE_RESELLER_MARKUP: 'false', FEATURE_RESELLER_MARKUP_TYLKO_KONTA: ' Test@hvln.pl ' })[k] };
+    const zResellerem = (email: string) => ({
+      user: { findUnique: vi.fn(async () => ({ resellerOwnerId: 'r1' })) },
+      resellerProfile: { findUnique: vi.fn(async () => ({ status: 'ACTIVE', markupPct: 20, user: { email } })) },
+    });
+    expect(await narzutResellera(zResellerem('test@hvln.pl') as never, cfg, 'u1')).toBe(20);
+    expect(await narzutResellera(zResellerem('inny@firma.pl') as never, cfg, 'u1')).toBe(0);
+    // lista ma pierwszeństwo także przed FEATURE_RESELLER_MARKUP=true
+    const cfgTrue = { get: (k: string) => ({ FEATURE_RESELLER_MARKUP: 'true', FEATURE_RESELLER_MARKUP_TYLKO_KONTA: 'test@hvln.pl' })[k] };
+    expect(await narzutResellera(zResellerem('inny@firma.pl') as never, cfgTrue, 'u1')).toBe(0);
+  });
+
   it('zaokrąglenia do grosza HALF_UP', () => {
     expect(zNarzutem(D(45), 20).toFixed(2)).toBe('54.00');
     expect(zNarzutem(D('19.99'), 15).toFixed(2)).toBe('22.99'); // 22,9885

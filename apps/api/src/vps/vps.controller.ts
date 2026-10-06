@@ -1,12 +1,36 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body, Controller, Delete, ForbiddenException, Get, HttpCode, Injectable, Param, Post, UseGuards,
+  type CanActivate, type ExecutionContext,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { funkcjaDlaUzytkownika } from '../common/funkcje-testowe.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { VpsService } from './vps.service.js';
 import { AddSshKeyDto, CreateVpsSnapshotDto, OrderVpsDto, VpsPowerDto, VpsRebuildDto } from './dto/vps.dto.js';
 
+/**
+ * VPS dla klienta tylko, gdy obejmuje go FEATURE_VPS / FEATURE_VPS_TYLKO_KONTA (domyślnie wyłączony).
+ * Do 2026-10-06 VPS był ukryty wyłącznie w panelu — API przyjmowało zamówienie od każdego klienta.
+ */
+@Injectable()
+export class VpsDostepGuard implements CanActivate {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  async canActivate(ctx: ExecutionContext): Promise<boolean> {
+    const user = ctx.switchToHttp().getRequest<{ user?: { userId?: string } }>().user;
+    if (await funkcjaDlaUzytkownika(this.config, this.prisma, 'FEATURE_VPS', user?.userId)) return true;
+    throw new ForbiddenException('Serwery VPS nie są jeszcze dostępne na tym koncie.');
+  }
+}
+
 @Controller('vps')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, VpsDostepGuard)
 export class VpsController {
   constructor(private readonly vps: VpsService) {}
 

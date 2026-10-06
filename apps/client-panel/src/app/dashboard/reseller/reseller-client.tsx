@@ -17,17 +17,17 @@ import { liczba } from '@/lib/liczba';
 import { days } from '@/lib/pl';
 import { KlientResellera } from './reseller-klient';
 import { MarkaResellera } from './reseller-marka';
-import { clientFeatures } from '@/lib/client-features';
+import { useFlagi } from '@/lib/feature-flags';
 import { fetchPartnerOverview, requestWalletPayoutAction, type PartnerOverview } from '../referral/actions';
 
 const pln = (n: number) => `${liczba(n, 2)} K`;
-/**
- * Narzut widoczny dopiero po włączeniu flagi (razem z FEATURE_RESELLER_MARKUP w API) — od tego momentu
- * klienci resellera płacą cenę z narzutem, a narzut wraca do resellera jako prowizja (O-07).
- */
-const narzutWlaczony = clientFeatures.resellerMarkup;
 
 export function ResellerClient() {
+  /**
+   * Narzut widoczny, gdy API włącza go temu resellerowi (FEATURE_RESELLER_MARKUP / _TYLKO_KONTA) — od tego
+   * momentu klienci resellera płacą cenę z narzutem, a narzut wraca do resellera jako prowizja (O-07).
+   */
+  const narzutWlaczony = useFlagi().resellerMarkup === true;
   const [ov, setOv] = useState<ResellerOverview | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [state, setState] = useState<'loading' | 'reseller' | 'not'>('loading');

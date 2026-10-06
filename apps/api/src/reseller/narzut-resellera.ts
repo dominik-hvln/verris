@@ -1,16 +1,18 @@
 import { Prisma } from '@verris/database';
 import type { ConfigService } from '@nestjs/config';
 import type { PrismaService } from '../prisma/prisma.service.js';
+import { funkcjaDlaKonta, funkcjaMozliwa } from '../common/funkcje-testowe.js';
 
 /**
  * O-07 — narzut resellera (decyzja właściciela 2026-10-05): klient resellera płaci cenę katalogową
  * powiększoną o narzut resellera, a część narzutu staje się prowizją resellera (RESELLER_MARKUP).
  *
- * Bezpiecznik: bez `FEATURE_RESELLER_MARKUP=true` narzut zawsze wynosi 0 — klienci istniejących
- * resellerów płacą cennik, dopóki właściciel nie włączy funkcji.
+ * Bezpiecznik: narzut liczony tylko, gdy funkcja obejmuje RESELLERA — `FEATURE_RESELLER_MARKUP=true`
+ * (wszyscy) albo e-mail resellera w `FEATURE_RESELLER_MARKUP_TYLKO_KONTA` (test na kontach testowych).
+ * Bez zmiennych narzut zawsze wynosi 0 — klienci resellerów płacą cennik.
  */
-export function narzutWlaczony(config: Pick<ConfigService, 'get'>): boolean {
-  return (config.get<string>('FEATURE_RESELLER_MARKUP') ?? '').trim().toLowerCase() === 'true';
+export function narzutWlaczony(config: Pick<ConfigService, 'get'>, emailResellera: string | null | undefined): boolean {
+  return funkcjaDlaKonta(config, 'FEATURE_RESELLER_MARKUP', emailResellera);
 }
 
 /** Narzut (%) dla klienta: 0 gdy funkcja wyłączona, klient bez resellera albo reseller nieaktywny. */
@@ -19,14 +21,14 @@ export async function narzutResellera(
   config: Pick<ConfigService, 'get'>,
   userId: string,
 ): Promise<number> {
-  if (!narzutWlaczony(config)) return 0;
+  if (!funkcjaMozliwa(config, 'FEATURE_RESELLER_MARKUP')) return 0;
   const u = await prisma.user.findUnique({ where: { id: userId }, select: { resellerOwnerId: true } });
   if (!u?.resellerOwnerId) return 0;
   const p = await prisma.resellerProfile.findUnique({
     where: { userId: u.resellerOwnerId },
-    select: { status: true, markupPct: true },
+    select: { status: true, markupPct: true, user: { select: { email: true } } },
   });
-  if (!p || p.status !== 'ACTIVE') return 0;
+  if (!p || p.status !== 'ACTIVE' || !narzutWlaczony(config, p.user?.email)) return 0;
   return Math.max(0, p.markupPct);
 }
 

@@ -10,11 +10,14 @@ import type { PlanDto } from '@verris/contracts';
  * bez kroku domeny, z limitami kontaktów i wysyłek; po zakupie klient trafia do przestrzeni
  * e-mail marketingu. Bez flagi zamówienie wygląda jak dotąd.
  */
-const mockFlags = { vps: false, emailMarketing: false };
+const mockFlags = { emailMarketing: false };
+/** Odpowiedź API /me/feature-flags — VPS włącza API per konto, nie build panelu. */
+const mockApi = { value: {} as Record<string, boolean> };
 const mockParams = { value: new URLSearchParams() };
 const mockPush = jest.fn();
 const mockCreate = jest.fn();
 jest.mock('@/lib/client-features', () => ({ clientFeatures: mockFlags }));
+jest.mock('@/lib/feature-flags-action', () => ({ pobierzFlagiAction: async () => mockApi.value }));
 jest.mock('next/navigation', () => ({
   useSearchParams: () => mockParams.value,
   useRouter: () => ({ push: mockPush, replace: jest.fn() }),
@@ -40,6 +43,7 @@ jest.mock('@/app/dashboard/domains/components/registrant-fields', () => ({
 jest.mock('@/lib/analytics-events', () => ({ trackBeginCheckout: jest.fn(), trackPurchase: jest.fn() }));
 
 import { OrderFlow } from './order-flow';
+import { FeatureFlagsProvider } from '@/lib/feature-flags';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -60,11 +64,18 @@ let el: HTMLDivElement;
 async function pokaz(query: string, flaga: boolean) {
   mockFlags.emailMarketing = flaga;
   mockParams.value = new URLSearchParams(query);
-  await act(async () => root.render(<OrderFlow plans={PLANY} offer={OFERTA} />));
+  await act(async () =>
+    root.render(
+      <FeatureFlagsProvider>
+        <OrderFlow plans={PLANY} offer={OFERTA} />
+      </FeatureFlagsProvider>,
+    ),
+  );
   return el.textContent ?? '';
 }
 
 beforeEach(() => {
+  mockApi.value = {};
   mockPush.mockReset();
   mockCreate.mockReset();
   el = document.createElement('div');
@@ -104,4 +115,17 @@ it('zakup pakietu: zamówienie bez domeny, potem przestrzeń e-mail marketingu',
   await act(async () => void zamow.click());
   expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ planId: 'n1', paymentSource: 'WALLET', domain: undefined, ecoModeEnabled: false }));
   expect(mockPush).toHaveBeenCalledWith('/dashboard/email-marketing/sub-9');
+});
+
+it('VPS w zamówieniu tylko, gdy API zwraca vps=true dla konta', async () => {
+  expect(await pokaz('', false)).not.toContain('VPS');
+  expect(el.querySelector('a[href="/dashboard/services/new?type=vps"]')).toBeNull();
+  expect(await pokaz('type=vps', false)).not.toContain('Otwórz sekcję VPS');
+
+  mockApi.value = { vps: true };
+  await act(async () => root.unmount());
+  root = createRoot(el);
+  expect(await pokaz('', false)).toContain('VPS');
+  expect(el.querySelector('a[href="/dashboard/services/new?type=vps"]')).not.toBeNull();
+  expect(await pokaz('type=vps', false)).toContain('Otwórz sekcję VPS');
 });

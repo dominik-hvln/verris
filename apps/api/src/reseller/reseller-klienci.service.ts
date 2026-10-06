@@ -278,7 +278,7 @@ export class ResellerKlienciService {
       logoUrl: p.logoMime ? `${api}/public/reseller-logo/${encodeURIComponent(p.code)}?v=${p.logoVersion}` : null,
       kontakt: p.user.email,
       // O-07 — narzut doliczany do cen (panel pokazuje klientowi cenę, którą zapłaci); 0 = cennik.
-      narzutPct: narzutWlaczony(this.config) ? Math.max(0, p.markupPct) : 0,
+      narzutPct: narzutWlaczony(this.config, p.user.email) ? Math.max(0, p.markupPct) : 0,
     };
   }
 

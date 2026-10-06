@@ -292,6 +292,11 @@ services:
       HETZNER_API_TOKEN: ${HETZNER_API_TOKEN:-}
       # O-07 — narzut resellera doliczany do ceny klienta (prowizja resellera); domyślnie wyłączony.
       FEATURE_RESELLER_MARKUP: ${FEATURE_RESELLER_MARKUP:-false}
+      # Test na kontach testowych: e-maile po przecinku; gdy ustawione — funkcja TYLKO dla nich (pierwszeństwo przed flagą).
+      FEATURE_RESELLER_MARKUP_TYLKO_KONTA: ${FEATURE_RESELLER_MARKUP_TYLKO_KONTA:-}
+      # VPS dla klienta (API + panel w runtime przez /me/feature-flags); domyślnie wyłączony.
+      FEATURE_VPS: ${FEATURE_VPS:-false}
+      FEATURE_VPS_TYLKO_KONTA: ${FEATURE_VPS_TYLKO_KONTA:-}
     volumes:
       - ${CONTROL_PLANE_MAIL_MAPS_DIR:-/etc/postfix/verris}:/etc/postfix/verris
     extra_hosts:

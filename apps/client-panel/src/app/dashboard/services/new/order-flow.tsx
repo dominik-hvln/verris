@@ -10,6 +10,7 @@ import { NewSubscriptionForm } from './form';
 import { TrialCallout } from './trial-callout';
 import type { TrialOffer } from '../data';
 import { clientFeatures } from '@/lib/client-features';
+import { useFlagi } from '@/lib/feature-flags';
 
 /**
  * UX-4 — wybór TYPU usługi w osobnych kaflach (Hosting / Poczta / VPS), zamiast
@@ -17,7 +18,8 @@ import { clientFeatures } from '@/lib/client-features';
  * pokazujemy warianty (plany) tego typu + (dla hostingu) atrakcyjny start trial.
  */
 export function OrderFlow({ plans, offer, bezKarty }: { plans: PlanDto[]; offer: TrialOffer; bezKarty?: boolean }) {
-  const vps = clientFeatures.vps; // VPS ukryty do wejścia do sprzedaży (2026-09-23)
+  // VPS ukryty do wejścia do sprzedaży (2026-09-23); włącza API per konto (FEATURE_VPS / FEATURE_VPS_TYLKO_KONTA).
+  const vps = useFlagi().vps === true;
   // Q-05 — pakiety Newsletter tylko przy włączonej fladze (domyślnie wyłączona, 2026-09-28).
   const emm = clientFeatures.emailMarketing;
   const params = useSearchParams();
