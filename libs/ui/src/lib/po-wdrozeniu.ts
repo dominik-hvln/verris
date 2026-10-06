@@ -17,17 +17,28 @@ export function czyNieaktualnaWersja(e: unknown): boolean {
   );
 }
 
-/** Jednorazowe przeładowanie (najwyżej raz na minutę — bez pętli, gdy przyczyna jest inna). */
+/**
+ * Jednorazowe przeładowanie (najwyżej raz na minutę — bez pętli, gdy przyczyna jest inna).
+ * Zwraca true, gdy przeładowanie ruszyło — wołający nie pokazuje wtedy surowego błędu. Dla formularzy,
+ * które łapią wyjątki same (np. passkey: D3 06.10 po wylogowaniu z bezczynności i deployu pokazywał
+ * „Server Action … was not found” zamiast się odświeżyć).
+ */
+export function odswiezPoWdrozeniu(error: unknown): boolean {
+  if (!czyNieaktualnaWersja(error)) return false;
+  const klucz = "verris-odswiez-po-wdrozeniu";
+  try {
+    if (Date.now() - Number(sessionStorage.getItem(klucz) ?? 0) < 60_000) return false;
+    sessionStorage.setItem(klucz, String(Date.now()));
+  } catch {
+    return false;
+  }
+  window.location.reload();
+  return true;
+}
+
+/** To samo dla granic błędów (error.tsx). */
 export function useOdswiezPoWdrozeniu(error: unknown): void {
   useEffect(() => {
-    if (!czyNieaktualnaWersja(error)) return;
-    const klucz = "verris-odswiez-po-wdrozeniu";
-    try {
-      if (Date.now() - Number(sessionStorage.getItem(klucz) ?? 0) < 60_000) return;
-      sessionStorage.setItem(klucz, String(Date.now()));
-    } catch {
-      return;
-    }
-    window.location.reload();
+    odswiezPoWdrozeniu(error);
   }, [error]);
 }

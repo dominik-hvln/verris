@@ -91,7 +91,11 @@ RUN mkdir -p apps/${APP_NAME}/public
 RUN --mount=type=cache,id=pnpm,target=/pnpm-store \
     pnpm install --store-dir /pnpm-store --frozen-lockfile --prefer-offline --filter @verris/${APP_NAME}...
 
-RUN pnpm --filter @verris/${APP_NAME} build
+# Ochrona przed rozjazdem wersji (https://nextjs.org/docs/app/api-reference/config/next-config-js/deploymentId):
+# karta otwarta przed wdrożeniem dostaje przy nawigacji inny x-nextjs-deployment-id i przeładowuje się w całości,
+# zamiast wołać akcje serwera ze starej wersji („Server Action … was not found”, D3 06.10 po wylogowaniu).
+# Jedna wartość na cały `next build` (także workery); standalone zapisuje ją w konfiguracji serwera.
+RUN NEXT_DEPLOYMENT_ID="$(date -u +%Y%m%d%H%M%S)" pnpm --filter @verris/${APP_NAME} build
 
 # -----------------------------------------------------------------------------
 # 3. Runtime

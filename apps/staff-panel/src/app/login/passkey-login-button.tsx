@@ -1,5 +1,6 @@
 "use client";
 
+import { odswiezPoWdrozeniu } from "@verris/ui";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { startAuthentication } from "@simplewebauthn/browser";
@@ -67,6 +68,8 @@ export function StaffPasskeyLoginButton() {
       router.refresh();
     } catch (err) {
       prefetchedOptions.current = null;
+      // Karta sprzed wdrożenia (np. po wylogowaniu z bezczynności): przeładuj zamiast surowego błędu.
+      if (odswiezPoWdrozeniu(err)) return;
       const name = err instanceof Error ? err.name : "";
       if (name === "NotAllowedError" || name === "AbortError") {
         setError("Anulowano logowanie passkey.");

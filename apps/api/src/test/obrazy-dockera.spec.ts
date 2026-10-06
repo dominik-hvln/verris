@@ -141,3 +141,10 @@ describe('drzewo zależności ma jeden klient Prismy dla naszej bazy', () => {
     ]);
   });
 });
+
+describe('obraz paneli chroni przed rozjazdem wersji po wdrożeniu', () => {
+  it('next build dostaje NEXT_DEPLOYMENT_ID (jedna wartość na build) — stara karta przeładowuje się przy nawigacji', () => {
+    // D3 06.10: karta sprzed wdrożenia wołała akcję serwera ze starej wersji („Server Action … was not found”).
+    expect(kod('Dockerfile.panel')).toMatch(/^RUN NEXT_DEPLOYMENT_ID="\$\(date -u \+%Y%m%d%H%M%S\)" pnpm --filter @verris\/\$\{APP_NAME\} build$/m);
+  });
+});
