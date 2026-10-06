@@ -68,7 +68,7 @@ const FACTS = `
   Kopie Verris są pomocnicze i nie zwalniają klienta z utrzymywania własnych kopii danych krytycznych.
 - Domeny bez automatycznych odnowień: odnowienie wyłącznie po opłaceniu, przypomnienia 30/14/7 dni.
 - Komplet dokumentów RODO online: polityka prywatności, DPA do akceptacji w panelu, lista podprocesorów.
-- Infrastruktura: Hetzner (Niemcy/Finlandia), dane w EOG.
+- Infrastruktura: centra danych w Niemczech i Finlandii, dane w EOG.
 `;
 
 export async function GET() {
