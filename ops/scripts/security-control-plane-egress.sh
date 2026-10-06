@@ -170,6 +170,7 @@ Opcje:
                restarcie zaczyna się od zrzutu.
   --zapisz-pomiar
                Zrzuca zbiory pomiaru do egress-pomiar.ipset (przy zatrzymaniu usługi).
+  (bez opcji)  Tryb domyślny. Jeśli strict był włączony — zdejmuje go (droga powrotu).
   --odswiez    Dopisuje (bez podmiany zbioru) adresy, które resolwer hosta zwraca TERAZ
                dla nazw z allowlisty. Dla verris-egress-odswiez.timer (co 15 s): usługi
                za CDN zmieniają adresy częściej, niż przebudowuje się zbiór.
@@ -1047,6 +1048,25 @@ apply_fwd_metadane() {
   log "Kontenery → 169.254.0.0/16 (metadane chmury): REJECT (SEC-09)"
 }
 
+# Droga powrotu ze strict: przebieg bez --strict zdejmuje łańcuch VERRIS_EGRESS_STRICT (IPv4 i IPv6).
+# Do 2026-10-06 łańcuch zostawał w OUTPUT, a netfilter-persistent odtwarzał go po restarcie — „wyłączenie”
+# strict nic nie wyłączało.
+usun_strict() {
+  local t
+  for t in iptables ip6tables; do
+    if [ "$t" = ip6tables ] && [ "$V6" -ne 1 ]; then continue; fi
+    command -v "$t" >/dev/null 2>&1 || continue
+    "$t" -S VERRIS_EGRESS_STRICT >/dev/null 2>&1 || continue
+    for _ in 1 2 3; do
+      "$t" -C OUTPUT -j VERRIS_EGRESS_STRICT 2>/dev/null || break
+      run "$t -D OUTPUT -j VERRIS_EGRESS_STRICT"
+    done
+    run "$t -F VERRIS_EGRESS_STRICT"
+    run "$t -X VERRIS_EGRESS_STRICT"
+    log "$t: strict zdjęty (tryb domyślny)"
+  done
+}
+
 persist_rules() {
   if command -v netfilter-persistent >/dev/null 2>&1; then
     run "netfilter-persistent save"
@@ -1136,6 +1156,8 @@ else
 fi
 if [ "$STRICT" -eq 1 ]; then
   apply_strict_allowlist
+else
+  usun_strict
 fi
 persist_rules
 if [ "$DRY_RUN" -eq 0 ]; then

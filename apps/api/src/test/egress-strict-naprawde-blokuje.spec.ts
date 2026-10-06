@@ -612,3 +612,24 @@ describe('SEC-06 — adresy usług za CDN dopisywane na bieżąco (--odswiez)', 
     expect(readFileSync(INSTALATOR, 'utf8')).toContain('systemctl enable --now verris-egress-odswiez.timer');
   });
 });
+
+describe('Droga powrotu — przebieg bez --strict zdejmuje strict', () => {
+  it('tryb domyślny usuwa VERRIS_EGRESS_STRICT (IPv4 i IPv6) i zapisuje reguły', () => {
+    const r = uruchom({ zmierzone: null, wAllowliscie: [], pomiarOdDni: null, argumenty: [], ipv6: '1' });
+    expect(r.kod).toBe(0);
+    expect(r.wywolania).toContain('iptables -X VERRIS_EGRESS_STRICT');
+    expect(r.wywolania).toContain('ip6tables -X VERRIS_EGRESS_STRICT');
+    expect(r.wywolania.some((w) => DROP_STRICT.test(w))).toBe(false);
+    expect(readFileSync(join(r.sec, 'egress-tryb'), 'utf8').trim()).toBe('domyslny');
+  });
+
+  it('--strict niczego nie usuwa', () => {
+    const r = uruchom({
+      zmierzone: ['140.82.121.33,tcp:443'],
+      wAllowliscie: ['140.82.121.33'],
+      pomiarOdDni: 8,
+      argumenty: ['--strict'],
+    });
+    expect(r.wywolania.filter((w) => /-X VERRIS_EGRESS_STRICT/.test(w))).toEqual([]);
+  });
+});
