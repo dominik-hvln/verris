@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import {
@@ -1009,6 +1009,11 @@ export function rozpoczeteLata(expiresAt: Date | null, teraz = new Date()): numb
  */
 export function bladWhois(err: unknown): Error {
   const msg = err instanceof Error ? err.message : String(err);
+  // Konto resellera bez podpisanej umowy WPP (sandbox D3 06.10: „Wpp contract is not signed”) — to po naszej
+  // stronie, nie ograniczenie rejestru. Wcześniej łapał to wzorzec „wpp” i klient czytał, że rejestr nie pozwala.
+  if (/contract is not signed|contract not signed/i.test(msg)) {
+    return new ServiceUnavailableException('Ukrycie danych w WHOIS jest chwilowo niedostępne. Opłata wróciła do portfela.');
+  }
   if (/privacy|wpp|not (supported|allowed|available)|unsupported/i.test(msg)) {
     return new BadRequestException(
       'Rejestr tej domeny nie pozwala ukryć danych w WHOIS (np. .pl — dane osób prywatnych i tak nie są publikowane).',

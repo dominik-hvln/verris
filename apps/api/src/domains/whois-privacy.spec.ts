@@ -88,6 +88,16 @@ describe('A-14 — włączenie ukrycia danych w WHOIS', () => {
     expect(prisma.domain.update).not.toHaveBeenCalled();
   });
 
+  it('umowa WPP niepodpisana po naszej stronie → zwrot i „chwilowo niedostępne”, nie „rejestr nie pozwala” (D3 06.10)', async () => {
+    const { service, wallet } = zbuduj({
+      cena: '19.99',
+      provider: { setWhoisPrivacy: vi.fn().mockRejectedValue(new Error('OpenProvider: Wpp contract is not signed')) },
+    });
+    const err = await service.setWhoisPrivacy('u1', 'u1', 'd1', true).catch((e: unknown) => e);
+    expect((err as Error).message).toBe('Ukrycie danych w WHOIS jest chwilowo niedostępne. Opłata wróciła do portfela.');
+    expect(wallet.credit).toHaveBeenCalled();
+  });
+
   it('awaria rejestratora innego rodzaju → zwrot, błąd bez przekłamania', async () => {
     const { service, wallet } = zbuduj({
       cena: '19.99',
