@@ -102,6 +102,6 @@ H-03,sprawdzone,2026-10-04,"04.10 t1 (d3.hvln.pl): Kopie zapasowe w panelu klien
 NODE-02,czeka,2026-10-05,instalator zatrzymuje się na pierwszej bramce (D2: instalator-wezla-zatrzymuje-sie.spec.ts) — D3 przy kreatorze na t2 (PB-31)
 G-12,sprawdzone,2026-10-05,t1 d3 (test2.d3.hvln.pl): EICAR .txt i .php z menedżera plików → pełny skan wykrył oba → kwarantanna → 404 → przywróć .php → 200 → usuń na stałe oba; skan „czysto”
 M-19,sprawdzone,2026-10-05,"Paynow sandbox na d3: doładowanie BLIK 2×25 zł, zwrot z Verris i z panelu Paynow"
-Q-08,czeka,,"mały VPS: snapshot, przywrócenie, reinstalacja, naliczenie przy odnowieniu"
-Q-07,czeka,,konsola VPS end-to-end przez domenę produkcyjną (CSP)
+Q-08,sprawdzone,2026-10-06,"snapshot 0,61 GB utworzony, przywrócenie zakończone, snapshot usunięty"
+Q-07,sprawdzone,2026-10-06,konsola noVNC połączona (ekran logowania Ubuntu 24.04) po poprawce CSP 1ab4fcb; serwer test-d3 usunięty
 G-08,czeka,,"sandbox OP: zamówienie DV, walidacja DNS, instalacja na t1"
