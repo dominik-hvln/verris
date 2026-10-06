@@ -4,6 +4,8 @@
 #
 #   sudo bash ops/scripts/security-control-plane-egress.sh
 #   sudo bash ops/scripts/security-control-plane-egress.sh --strict   # ipset allowlist (ostrożnie)
+#   sudo bash ops/scripts/security-control-plane-egress.sh --wylacz-strict   # jedyna droga powrotu ze strict
+#   (bez opcji: tryb z egress-tryb zostaje — zapisany strict jest odtwarzany, nie zdejmowany)
 #   sudo bash ops/scripts/security-control-plane-egress.sh --dry-run
 #   sudo bash ops/scripts/security-control-plane-egress.sh --pomiar      # SEC-05: co host naprawdę robi
 #   sudo bash ops/scripts/security-control-plane-egress.sh --odswiez     # SEC-06: dopisz bieżące adresy nazw (timer co 15 s)
@@ -15,6 +17,10 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SECURITY_DIR="${SECURITY_DIR:-/etc/verris/security}"
 IOC_FILE="${IOC_FILE:-$SECURITY_DIR/ioc-ips.txt}"
 ALLOW_HOSTS="${ALLOW_HOSTS:-$SECURITY_DIR/egress-allow-hostnames.txt}"
+# Domeny klientów z security-sync-cp-egress-hosts.sh. Czytane OBOK pliku bazowego przy każdej
+# budowie zbioru i w --odswiez — do 2026-10-06 sync pisał osobny *.merged.txt, którego nie czytała
+# żadna jednostka systemd, więc domeny klientów wypadały ze strict po restarcie i z odświeżania.
+ALLOW_HOSTS_LOCAL="${ALLOW_HOSTS_LOCAL:-$SECURITY_DIR/egress-allow-hostnames.local.txt}"
 # X-36 — zakresy CIDR obok nazw. Nazwa rozwiazana w jednej chwili nie obejmuje
 # round-robinu: 2026-08-24 do zbioru trafilo 140.82.121.34, a docker pull
 # poszedl na .33 i zginal na i/o timeout. Zbior jest `hash:net`, wiec podsiec
@@ -68,6 +74,9 @@ POMIAR_OD_PLIK="${POMIAR_OD_PLIK:-$SECURITY_DIR/egress-pomiar-od}"
 POMIAR_FWD_OD_PLIK="${POMIAR_FWD_OD_PLIK:-$SECURITY_DIR/egress-pomiar-kontenery-od}"
 POMIAR_MIN_DNI="${POMIAR_MIN_DNI:-7}"
 WYMUS_STRICT=0
+WYLACZ_STRICT=0
+# 1 = strict odtworzony z egress-tryb (zatwierdzony wcześniej), nie włączany teraz po raz pierwszy.
+STRICT_ZACHOWANY=0
 POMIAR_RAPORT=0
 STRICT=0
 ALLOWLIST_ONLY=0
@@ -170,7 +179,12 @@ Opcje:
                restarcie zaczyna się od zrzutu.
   --zapisz-pomiar
                Zrzuca zbiory pomiaru do egress-pomiar.ipset (przy zatrzymaniu usługi).
-  (bez opcji)  Tryb domyślny. Jeśli strict był włączony — zdejmuje go (droga powrotu).
+  (bez opcji)  Zachowuje tryb z egress-tryb: jeśli zapisany jest strict, odtwarza go (bez
+               ponownego warunku pomiaru — był zatwierdzony). Instalator woła skrypt bez
+               opcji, więc ponowna instalacja nie wyłącza strict po cichu.
+  --wylacz-strict
+               Jedyna droga powrotu ze strict: zdejmuje VERRIS_EGRESS_STRICT (IPv4 i IPv6),
+               zapisuje tryb domyślny i utrwala reguły (netfilter-persistent).
   --odswiez    Dopisuje (bez podmiany zbioru) adresy, które resolwer hosta zwraca TERAZ
                dla nazw z allowlisty. Dla verris-egress-odswiez.timer (co 15 s): usługi
                za CDN zmieniają adresy częściej, niż przebudowuje się zbiór.
@@ -193,6 +207,7 @@ while [ $# -gt 0 ]; do
     --allowlist) ALLOWLIST_ONLY=1; shift ;;
     --strict) STRICT=1; shift ;;
     --wymus-strict) STRICT=1; WYMUS_STRICT=1; shift ;;
+    --wylacz-strict) WYLACZ_STRICT=1; shift ;;
     --pomiar) POMIAR_RAPORT=1; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
     --obserwuj-kontenery) OBSERWUJ_KONTENERY=1; shift ;;
@@ -204,8 +219,15 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+[ "$STRICT" -eq 1 ] && [ "$WYLACZ_STRICT" -eq 1 ] && die "--strict i --wylacz-strict naraz — wybierz jedno"
 [ "$(id -u)" = "0" ] || die "Run as root"
 command -v iptables >/dev/null 2>&1 || die "iptables not found"
+
+# Nazwy z allowlisty: plik bazowy + domeny klientów (ALLOW_HOSTS_LOCAL), jeśli sync go zapisał.
+# `awk 1` — plik bez końcowego znaku nowej linii nie skleja ostatniej nazwy z pierwszą z kolejnego.
+nazwy_allowlisty() {
+  if [ -f "$ALLOW_HOSTS_LOCAL" ]; then awk 1 "$ALLOW_HOSTS" "$ALLOW_HOSTS_LOCAL"; else awk 1 "$ALLOW_HOSTS"; fi
+}
 
 # SEC-06 — adresy usług za CDN (CloudFront, AWS, Fastly) rotują co minutę. Pomiar 2026-10-06:
 # 12 adresów CloudFront i AWS (apt, Docker Hub) poza zbiorem, bo zbiór buduje się z nazw RAZ.
@@ -236,7 +258,7 @@ odswiez_allowliste() {
       nowe=$((nowe + 1))
       log "dopisany $host → $ip ($zbior)"
     done < <(getent ahosts "$host" 2>/dev/null | awk '{print $1}' | sort -u)
-  done <"$ALLOW_HOSTS"
+  done < <(nazwy_allowlisty)
   [ "$nowe" -eq 0 ] || log "Odświeżenie: $nowe nowych adresów"
 }
 
@@ -457,7 +479,7 @@ zbuduj_ipset_allow() {
     else
       log "allow $host"
     fi
-  done <"$ALLOW_HOSTS"
+  done < <(nazwy_allowlisty)
 
   # Zakresy CIDR — patrz komentarz przy ALLOW_NETS oraz sam plik.
   if [ -f "$ALLOW_NETS" ]; then
@@ -500,7 +522,7 @@ zbuduj_ipset_allow6() {
       [ -z "$ip" ] && continue
       run "ipset add '$tmpset' '$ip' -exist"; added=$((added + 1))
     done < <(getent ahostsv6 "$host" 2>/dev/null | awk '{print $1}' | grep -v '^::ffff:' | sort -u)
-  done <"$ALLOW_HOSTS"
+  done < <(nazwy_allowlisty)
   if [ -f "$ALLOW_NETS" ]; then
     while IFS= read -r net || [ -n "$net" ]; do
       net="${net%%#*}"
@@ -646,8 +668,8 @@ cele_spoza_allowlisty() {
 
 sprawdz_pomiar_przed_strict() {
   local zmierzony="${1:-$SEEN_SET}" plik_od="${2:-$POMIAR_OD_PLIK}" rodzina="${3:-IPv4}"
-  if [ "$PRZY_STARCIE" -eq 1 ]; then
-    log "Start hosta: strict był włączony przed restartem ($TRYB_PLIK) — przywracam bez ponownego warunku pomiaru."
+  if [ "$STRICT_ZACHOWANY" -eq 1 ]; then
+    log "Strict zatwierdzony wcześniej ($TRYB_PLIK) — odtwarzam bez ponownego warunku pomiaru."
     return 0
   fi
   if [ "$WYMUS_STRICT" -eq 1 ]; then
@@ -1048,9 +1070,8 @@ apply_fwd_metadane() {
   log "Kontenery → 169.254.0.0/16 (metadane chmury): REJECT (SEC-09)"
 }
 
-# Droga powrotu ze strict: przebieg bez --strict zdejmuje łańcuch VERRIS_EGRESS_STRICT (IPv4 i IPv6).
-# Do 2026-10-06 łańcuch zostawał w OUTPUT, a netfilter-persistent odtwarzał go po restarcie — „wyłączenie”
-# strict nic nie wyłączało.
+# Droga powrotu ze strict (--wylacz-strict): zdejmuje łańcuch VERRIS_EGRESS_STRICT (IPv4 i IPv6).
+# Bez tego łańcuch zostawał w OUTPUT, a netfilter-persistent odtwarzał go po restarcie.
 usun_strict() {
   local t
   for t in iptables ip6tables; do
@@ -1106,11 +1127,6 @@ if [ "$PRZY_STARCIE" -eq 1 ]; then
     grep -E '^(create|add) verris_egress_seen[a-z0-9_]* ' "$POMIAR_ZRZUT" | ipset restore -exist \
       || log "WARN: nie udało się odtworzyć pomiaru z $POMIAR_ZRZUT — pomiar zaczyna się od zera"
   fi
-  case "$(cat "$TRYB_PLIK" 2>/dev/null || true)" in
-    strict) STRICT=1 ;;
-    domyslny|"") ;;
-    *) die "Nieznany tryb w $TRYB_PLIK" ;;
-  esac
   # Zbiory allowlisty też żyją tylko w pamięci. Bez nich anty-skan (X-36) objąłby
   # ghcr.io i pierwsze wdrożenie po restarcie padłoby na `compose pull`.
   zbuduj_ipset_allow
@@ -1143,6 +1159,17 @@ if [ "$OBSERWUJ_KONTENERY" -eq 1 ]; then
   exit 0
 fi
 
+# Zapisany tryb zostaje, dopóki nie zmieni go jawna flaga (--strict / --wylacz-strict). Do 2026-10-06
+# każdy przebieg bez --strict zdejmował strict — a instalator (i baseline przez instalator) woła skrypt
+# bez opcji, więc ponowna instalacja wyłączała strict po cichu, a netfilter-persistent to utrwalał.
+if [ "$STRICT" -eq 0 ] && [ "$WYLACZ_STRICT" -eq 0 ]; then
+  case "$(cat "$TRYB_PLIK" 2>/dev/null || true)" in
+    strict) STRICT=1; STRICT_ZACHOWANY=1 ;;
+    domyslny|"") ;;
+    *) die "Nieznany tryb w $TRYB_PLIK" ;;
+  esac
+fi
+
 apply_ioc_drop
 apply_bogon_drop
 apply_egress_log
@@ -1156,7 +1183,7 @@ else
 fi
 if [ "$STRICT" -eq 1 ]; then
   apply_strict_allowlist
-else
+elif [ "$WYLACZ_STRICT" -eq 1 ]; then
   usun_strict
 fi
 persist_rules

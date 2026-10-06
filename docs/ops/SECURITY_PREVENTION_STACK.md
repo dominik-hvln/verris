@@ -11,7 +11,7 @@ Po incydencie **Spamhaus XBL / Ranbyus** na `204.168.174.138` (czerwiec 2026) do
 | **UFW backup** | instalator | `ufw deny out` do IOC |
 | **Egress log** | control-plane egress | log kernela przy nowym TCP/80 i /443 (forenzja) |
 | **Anti-netscan** | control-plane egress | DROP przy >80 nowych TCP/80,443 / 60s (netscan) |
-| **Strict egress** | `--strict` + merged allowlist | nowe TCP/80,443 tylko do znanych hostów (ipset) |
+| **Strict egress** | `--strict` + allowlist (baza + domeny klientów) | nowe TCP/80,443 tylko do znanych hostów (ipset) |
 | **Watch 5 min** | `security-egress-watch.sh` + timer | IOC, burst HTTP/S, SYN-SENT, unikalne DST w kern.log |
 | **Auditd** | `verris-security.rules` | alert na zmiany cron/systemd |
 | **Node egress** | `security-egress-lockdown.sh --role node` | deny-by-default wyjście na węzłach DA |
@@ -89,9 +89,25 @@ Ogranicza **nowe** połączenia TCP/80 i /443 tylko do hostów z allowlisty (ips
 ```bash
 cd /opt/verris
 sudo bash ops/scripts/security-sync-cp-egress-hosts.sh
-sudo ALLOW_HOSTS=/etc/verris/security/egress-allow-hostnames.merged.txt \
-  bash ops/scripts/security-control-plane-egress.sh --strict
+sudo bash ops/scripts/security-control-plane-egress.sh --strict
 ```
+
+> **Tryb zostaje (2026-10-06).** Tryb ostatniego udanego przebiegu leży w `/etc/verris/security/egress-tryb`.
+> Przebieg **bez opcji** (tak woła go instalator, a przez instalator `security-hardening-baseline.sh`)
+> tryb **zachowuje**: zapisany strict jest odtwarzany (bez ponownego warunku pomiaru — był zatwierdzony),
+> nie zdejmowany. Jedyna droga powrotu ze strict to jawna flaga:
+>
+> ```bash
+> sudo bash ops/scripts/security-control-plane-egress.sh --wylacz-strict
+> ```
+>
+> Zdejmuje `VERRIS_EGRESS_STRICT` (IPv4 i IPv6), zapisuje tryb domyślny i utrwala reguły.
+>
+> **Domeny klientów.** `security-sync-cp-egress-hosts.sh` zapisuje je do
+> `/etc/verris/security/egress-allow-hostnames.local.txt`, a skrypt egress czyta ten plik obok
+> `egress-allow-hostnames.txt` przy każdej budowie zbioru (`--strict`, `--allowlist`, start hosta
+> przez `verris-egress.service`) i w `--odswiez` (timer co 15 s). Osobnego pliku `*.merged.txt` nie ma —
+> do 2026-10-06 sync go pisał, ale nie czytała go żadna jednostka systemd.
 
 > **SEC-01/05/06 (od 2026-09-22):** instalator **nie** włącza już strict automatycznie
 > (wcześniej robił to z `|| true`, a sam strict był atrapą — nic nie odrzucał).
@@ -111,7 +127,7 @@ sudo ALLOW_HOSTS=/etc/verris/security/egress-allow-hostnames.merged.txt \
 > w raporcie jako „NIE” — gdy każdy taki cel ma przypisaną nazwę z allowlisty (raport 2026-10-06
 > w audycie, SEC-06), strict włącza się `--wymus-strict`.
 
-**Ryzyko:** niepełna lista → ucięcie deploy/Stripe; po nowej domenie klienta uruchom `security-sync-cp-egress-hosts.sh` i ponów `--strict`.
+**Ryzyko:** niepełna lista → ucięcie deploy/Stripe; po nowej domenie klienta uruchom `security-sync-cp-egress-hosts.sh` — timer `--odswiez` dopisze jej adresy w ciągu 15 s.
 
 ## Co dalej operacyjnie
 

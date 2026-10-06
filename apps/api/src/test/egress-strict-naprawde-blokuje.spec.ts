@@ -19,6 +19,7 @@ import { join } from 'path';
 const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const SKRYPT = join(KORZEN, 'ops', 'scripts', 'security-control-plane-egress.sh');
 const INSTALATOR = join(KORZEN, 'ops', 'scripts', 'security-install-verris-security.sh');
+const SYNC = join(KORZEN, 'ops', 'scripts', 'security-sync-cp-egress-hosts.sh');
 const DZIEN = 86400;
 
 interface Scena {
@@ -49,6 +50,8 @@ interface Scena {
   getent?: Record<string, string[]>;
   /** Zbiory allowlisty już istnieją (strict albo --allowlist działał wcześniej). */
   zbioryAllow?: boolean;
+  /** Zawartość egress-allow-hostnames.local.txt (domeny klientów z security-sync-cp-egress-hosts.sh). */
+  lokalne?: string;
 }
 
 function uruchom(s: Scena) {
@@ -78,6 +81,7 @@ function uruchom(s: Scena) {
     join(sec, 'egress-allow-dns.txt'),
     s.pustyDns ? '# pusto\n' : '185.12.64.1\n185.12.64.2\n2a01:4ff:ff00::add:1\n2a01:4ff:ff00::add:2\n',
   );
+  if (s.lokalne !== undefined) writeFileSync(join(sec, 'egress-allow-hostnames.local.txt'), s.lokalne);
   if (s.wlasciciele !== undefined) writeFileSync(join(sec, 'egress-allow-dns-owners.txt'), s.wlasciciele);
   if (s.tryb !== undefined) writeFileSync(join(sec, 'egress-tryb'), s.tryb);
   if (s.zrzut !== undefined) writeFileSync(join(sec, 'egress-pomiar.ipset'), s.zrzut);
@@ -613,13 +617,64 @@ describe('SEC-06 — adresy usług za CDN dopisywane na bieżąco (--odswiez)', 
   });
 });
 
-describe('Droga powrotu — przebieg bez --strict zdejmuje strict', () => {
-  it('tryb domyślny usuwa VERRIS_EGRESS_STRICT (IPv4 i IPv6) i zapisuje reguły', () => {
-    const r = uruchom({ zmierzone: null, wAllowliscie: [], pomiarOdDni: null, argumenty: [], ipv6: '1' });
+describe('Tryb strict zostaje, dopóki nie wyłączy go jawna flaga', () => {
+  const strictZapisany = (argumenty: string[]): Scena => ({
+    // Cel spoza allowlisty i jednodniowy pomiar: strict zatwierdzony wcześniej nie jest ponownie
+    // sprawdzany — inaczej ponowna instalacja kończyłaby się odmową.
+    zmierzone: ['5.6.7.8,tcp:443'],
+    wAllowliscie: [],
+    pomiarOdDni: 1,
+    argumenty,
+    tryb: 'strict\n',
+    ipv6: '1',
+  });
+
+  it('przebieg bez opcji przy zapisanym strict odtwarza strict i niczego nie usuwa', () => {
+    const r = uruchom(strictZapisany([]));
+    expect(r.kod).toBe(0);
+    expect(r.wywolania.some((w) => DROP_STRICT.test(w))).toBe(true);
+    expect(r.wywolania.filter((w) => /-X VERRIS_EGRESS_STRICT/.test(w))).toEqual([]);
+    expect(readFileSync(join(r.sec, 'egress-tryb'), 'utf8').trim()).toBe('strict');
+  });
+
+  it('instalator (każde jego wywołanie skryptu egress) po strict nie zdejmuje strict', () => {
+    const kod = readFileSync(INSTALATOR, 'utf8')
+      .split('\n')
+      .filter((l) => !/^\s*#/.test(l) && !/^\s*log /.test(l));
+    const wywolania = kod
+      .map((l) => /security-control-plane-egress\.sh'([^"]*)"/.exec(l)?.[1])
+      .filter((a): a is string => a !== undefined)
+      .map((a) => a.trim().split(/\s+/).filter(Boolean));
+    expect(wywolania.length).toBeGreaterThan(0);
+    for (const argumenty of wywolania) {
+      expect(argumenty).not.toContain('--wylacz-strict');
+      const r = uruchom(strictZapisany(argumenty));
+      expect(r.kod).toBe(0);
+      expect(r.wywolania.filter((w) => /-X VERRIS_EGRESS_STRICT/.test(w))).toEqual([]);
+      expect(r.wyjscie).not.toMatch(/-X VERRIS_EGRESS_STRICT/);
+      expect(readFileSync(join(r.sec, 'egress-tryb'), 'utf8').trim()).toBe('strict');
+    }
+  });
+
+  it('--wylacz-strict zdejmuje VERRIS_EGRESS_STRICT (IPv4 i IPv6) i zapisuje tryb domyślny', () => {
+    const r = uruchom(strictZapisany(['--wylacz-strict']));
     expect(r.kod).toBe(0);
     expect(r.wywolania).toContain('iptables -X VERRIS_EGRESS_STRICT');
     expect(r.wywolania).toContain('ip6tables -X VERRIS_EGRESS_STRICT');
     expect(r.wywolania.some((w) => DROP_STRICT.test(w))).toBe(false);
+    expect(readFileSync(join(r.sec, 'egress-tryb'), 'utf8').trim()).toBe('domyslny');
+  });
+
+  it('--strict razem z --wylacz-strict to błąd, nie zgadywanie', () => {
+    const r = uruchom(strictZapisany(['--strict', '--wylacz-strict']));
+    expect(r.kod).toBe(1);
+    expect(r.wywolania).toEqual([]);
+  });
+
+  it('przebieg bez opcji w trybie domyślnym niczego nie zdejmuje i nie włącza strict', () => {
+    const r = uruchom({ zmierzone: null, wAllowliscie: [], pomiarOdDni: null, argumenty: [], tryb: 'domyslny\n' });
+    expect(r.kod).toBe(0);
+    expect(r.wywolania.some((w) => /VERRIS_EGRESS_STRICT/.test(w))).toBe(false);
     expect(readFileSync(join(r.sec, 'egress-tryb'), 'utf8').trim()).toBe('domyslny');
   });
 
@@ -631,5 +686,81 @@ describe('Droga powrotu — przebieg bez --strict zdejmuje strict', () => {
       argumenty: ['--strict'],
     });
     expect(r.wywolania.filter((w) => /-X VERRIS_EGRESS_STRICT/.test(w))).toEqual([]);
+  });
+});
+
+describe('Domeny klientów (egress-allow-hostnames.local.txt) — jedna ścieżka dla strict, startu i odświeżania', () => {
+  const getent = { 'ghcr.io': ['140.82.121.33'], 'sklep-klienta.pl': ['5.6.7.8'] };
+
+  it('--odswiez (timer) dopisuje adresy domen klientów', () => {
+    const r = uruchom({
+      zmierzone: null,
+      wAllowliscie: ['140.82.121.33'],
+      pomiarOdDni: null,
+      argumenty: ['--odswiez'],
+      zbioryAllow: true,
+      nazwy: 'ghcr.io',
+      lokalne: '# Auto-generated\nsklep-klienta.pl\n',
+      getent,
+    });
+    expect(r.kod).toBe(0);
+    expect(r.wywolania).toContain('ipset add verris_egress_https 5.6.7.8 -exist');
+  });
+
+  it('--przy-starcie (verris-egress.service) buduje zbiór z bazy i domen klientów', () => {
+    const r = uruchom({
+      zmierzone: [],
+      wAllowliscie: [],
+      pomiarOdDni: 1,
+      argumenty: ['--przy-starcie'],
+      tryb: 'strict\n',
+      nazwy: 'ghcr.io',
+      lokalne: '# Auto-generated\nsklep-klienta.pl\n',
+      getent,
+    });
+    expect(r.kod).toBe(0);
+    expect(r.wywolania).toContain('ipset add verris_egress_https_new 140.82.121.33 -exist');
+    expect(r.wywolania).toContain('ipset add verris_egress_https_new 5.6.7.8 -exist');
+  });
+
+  it('jednostki systemd nie podmieniają ALLOW_HOSTS — czytają domyślną ścieżkę skryptu', () => {
+    for (const plik of ['verris-egress.service', 'verris-egress-odswiez.service']) {
+      expect(readFileSync(join(KORZEN, 'ops', 'systemd', plik), 'utf8')).not.toMatch(/ALLOW_HOSTS/);
+    }
+  });
+});
+
+describe('security-sync-cp-egress-hosts.sh — ostrzeżenia nie trafiają do listy domen', () => {
+  function sync(docker: string) {
+    const kat = mkdtempSync(join(tmpdir(), 'egress-sync-'));
+    const bin = join(kat, 'bin');
+    mkdirSync(bin);
+    const atrapa = (nazwa: string, tresc: string) => {
+      writeFileSync(join(bin, nazwa), `#!/usr/bin/env bash\n${tresc}\n`);
+      chmodSync(join(bin, nazwa), 0o755);
+    };
+    atrapa('id', 'echo 0');
+    atrapa('docker', ['case "$1" in', '  ps) echo verris-postgres-1 ;;', `  exec) ${docker} ;;`, 'esac'].join('\n'));
+    mkdirSync(join(kat, 'security'));
+    const lokalny = join(kat, 'security', 'egress-allow-hostnames.local.txt');
+    const r = spawnSync('bash', [SYNC], {
+      encoding: 'utf8',
+      env: { PATH: `${bin}:${process.env.PATH ?? '/usr/bin:/bin'}`, LOCAL_FILE: lokalny },
+    });
+    return { kod: r.status, stderr: r.stderr, lokalny: readFileSync(lokalny, 'utf8') };
+  }
+
+  it('błąd zapytania psql: WARN na stderr, w pliku tylko nagłówek', () => {
+    const r = sync('echo "psql: error: database does not exist" >&2; exit 2');
+    expect(r.kod).toBe(0);
+    expect(r.stderr).toContain('WARN: zapytanie do Postgresa nie powiodło się');
+    expect(r.lokalny).not.toMatch(/WARN|\[20/);
+    expect(r.lokalny.split('\n').filter((l) => l && !l.startsWith('#'))).toEqual([]);
+  });
+
+  it('udane zapytanie: domeny klientów w pliku czytanym przez skrypt egress', () => {
+    const r = sync('printf "sklep-klienta.pl\\n\\n"');
+    expect(r.kod).toBe(0);
+    expect(r.lokalny.split('\n').filter((l) => l && !l.startsWith('#'))).toEqual(['sklep-klienta.pl']);
   });
 });

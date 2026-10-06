@@ -1,26 +1,21 @@
 #!/usr/bin/env bash
 # Uzupełnia /etc/verris/security/egress-allow-hostnames.local.txt domenami klientów z Postgres.
-# Uruchamiaj przed --strict na control-plane (cron co godzinę lub po nowej subskrypcji).
+# security-control-plane-egress.sh czyta ten plik obok egress-allow-hostnames.txt (budowa zbioru,
+# start hosta, timer --odswiez) — osobnego pliku scalonego już nie ma.
 #
 #   sudo bash ops/scripts/security-sync-cp-egress-hosts.sh
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-BASE_FILE="${BASE_FILE:-/etc/verris/security/egress-allow-hostnames.txt}"
 LOCAL_FILE="${LOCAL_FILE:-/etc/verris/security/egress-allow-hostnames.local.txt}"
-MERGED_FILE="${MERGED_FILE:-/etc/verris/security/egress-allow-hostnames.merged.txt}"
 WORKDIR="${WORKDIR:-/opt/verris}"
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-verris}"
 
-log() { printf '[%s] %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"; }
+# Na stderr: log() bywa wołany wewnątrz $(psql_cp …) — na stdout ostrzeżenie trafiało do listy domen.
+log() { printf '[%s] %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2; }
 die() { echo "ERROR: $*" >&2; exit 1; }
 
 [ "$(id -u)" = "0" ] || die "Run as root"
-install -d /etc/verris/security
-
-if [ ! -f "$BASE_FILE" ]; then
-  install -m 0644 "$REPO_ROOT/ops/etc/verris/security/egress-allow-hostnames.txt" "$BASE_FILE"
-fi
+install -d "$(dirname "$LOCAL_FILE")"
 
 PG_CONTAINER="${PG_CONTAINER:-${COMPOSE_PROJECT_NAME}-postgres-1}"
 # Baza i użytkownik z env kontenera (docker-compose.prod.yml: POSTGRES_DB domyślnie verris_db). Do 2026-10-06
@@ -52,11 +47,5 @@ fi
   fi
 } >"$LOCAL_FILE"
 
-{
-  grep -v '^[[:space:]]*#' "$BASE_FILE" | sed '/^$/d' || true
-  grep -v '^[[:space:]]*#' "$LOCAL_FILE" | sed '/^$/d' || true
-} | awk 'NF && !seen[$0]++' >"$MERGED_FILE"
-
-COUNT="$(wc -l <"$MERGED_FILE" | tr -d ' ')"
-log "Merged allowlist: $COUNT host(s) -> $MERGED_FILE"
-log "Re-apply strict egress: sudo ALLOW_HOSTS=$MERGED_FILE bash $REPO_ROOT/ops/scripts/security-control-plane-egress.sh --strict"
+COUNT="$(grep -cv '^#' "$LOCAL_FILE" || true)"
+log "Domeny klientów: $COUNT -> $LOCAL_FILE (timer --odswiez dopisze ich adresy do allowlisty w ciągu 15 s)"
