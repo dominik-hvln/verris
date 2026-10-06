@@ -46,7 +46,7 @@ export default function Page() {
               return (
                 <div className="icard rv" key={f.h}>
                   <div className="ico"><Icon /></div>
-                  <h3>{f.h}</h3>
+                  <h2>{f.h}</h2>
                   <p>{f.p}</p>
                 </div>
               );

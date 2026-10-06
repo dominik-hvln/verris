@@ -38,7 +38,7 @@ export default function Page() {
               return (
                 <a className="icard rv" href={`/funkcje/${f.slug}`} key={f.slug}>
                   <div className="ico"><Icon /></div>
-                  <h3>{f.title}</h3>
+                  <h2>{f.title}</h2>
                   <p>{f.lead}</p>
                 </a>
               );

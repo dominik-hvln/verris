@@ -189,7 +189,11 @@ export function CookieConsent() {
   if (prefsOpen) {
     return <div className="cc-overlay">{prefs}</div>;
   }
-  return <div className="cc-bar">{banner}</div>;
+  return (
+    <div className="cc-bar" role="region" aria-label="Zgoda na pliki cookies">
+      {banner}
+    </div>
+  );
 }
 
 function Row(props: {

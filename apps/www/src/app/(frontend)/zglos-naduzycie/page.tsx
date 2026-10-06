@@ -26,11 +26,11 @@ export default function Page() {
             </div>
             <div className="contact-side">
               <div className="icard">
-                <h3>Co musi zawierać zgłoszenie</h3>
+                <h2>Co musi zawierać zgłoszenie</h2>
                 <p>Dokładny adres treści, opis naruszenia z uzasadnieniem, Twój e-mail i oświadczenie o dobrej wierze. Bez adresu nie znajdziemy treści.</p>
               </div>
               <div className="icard">
-                <h3>Co dzieje się dalej</h3>
+                <h2>Co dzieje się dalej</h2>
                 <p>Od razu dostajesz potwierdzenie z numerem. Po sprawdzeniu — decyzję z uzasadnieniem. Jeśli ograniczymy usługę, klient też dostaje uzasadnienie i może się odwołać.</p>
               </div>
             </div>

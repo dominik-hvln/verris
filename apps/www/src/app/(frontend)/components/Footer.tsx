@@ -40,7 +40,7 @@ export async function Footer() {
           </div>
           {cols.map((col) => (
             <div className="foot-col" key={col.heading}>
-              <h4>{col.heading}</h4>
+              <h2>{col.heading}</h2>
               {col.links.map((l) => (
                 <a key={l.label + l.href} href={l.href}>
                   {l.label}

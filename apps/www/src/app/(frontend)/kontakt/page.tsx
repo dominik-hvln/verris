@@ -31,12 +31,12 @@ export default function Page() {
             <div className="contact-side rv">
               <div className="icard">
                 <div className="ico"><Mail /></div>
-                <h3>E-mail</h3>
+                <h2>E-mail</h2>
                 <p><a href="mailto:kontakt@verris.pl">kontakt@verris.pl</a></p>
               </div>
               <div className="icard">
                 <div className="ico"><LifeBuoy /></div>
-                <h3>Pomoc i status</h3>
+                <h2>Pomoc i status</h2>
                 <p>
                   Najczęstsze pytania w <Link href="/pomoc">Pomocy</Link>. Dostępność usług na żywo:{' '}
                   <a href="https://status.verris.pl">status.verris.pl</a>.
@@ -44,7 +44,7 @@ export default function Page() {
               </div>
               <div className="icard">
                 <div className="ico"><Building2 /></div>
-                <h3>Operator</h3>
+                <h2>Operator</h2>
                 <p>HVLN Dominik Kowalski, Zielona Góra · NIP 9292069367</p>
               </div>
             </div>
