@@ -122,6 +122,9 @@ describe('G-08 OpenProvider SSL — wywołania wg dokumentacji /v1/ssl', () => {
     expect(f.mock.calls[1][0]).toBe('https://api.sandbox.openprovider.nl/v1/ssl/orders/77');
     odp = { status: 'REQ', certificate: '', additional_data: [{ dns_record: 'firma.pl', dns_value: 'abc' }] };
     await expect(ssl().sslOrder('77')).resolves.toMatchObject({ state: 'pending', dns: { record: 'firma.pl', value: 'abc' } });
+    // Ogłoszenie OpenProvidera (DCV): pola dnsrecord/dnsValue — też muszą dać rekord.
+    odp = { status: 'REQ', certificate: '', additional_data: [{ dnsrecord: '_x.firma.pl', dnsValue: 'y.sectigo.com' }] };
+    await expect(ssl().sslOrder('77')).resolves.toMatchObject({ state: 'pending', dns: { record: '_x.firma.pl', value: 'y.sectigo.com' } });
     odp = { status: 'REJ' };
     await expect(ssl().sslOrder('77')).resolves.toMatchObject({ state: 'failed' });
   });

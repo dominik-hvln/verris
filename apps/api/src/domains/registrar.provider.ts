@@ -548,7 +548,9 @@ class OpenProviderRegistrarProvider implements RegistrarProvider, SslReseller {
     const res = await this.request<{ data: OpSslOrder }>(`/v1/ssl/orders/${encodeURIComponent(id)}`, null, 'GET');
     const o = res.data ?? ({} as OpSslOrder);
     const status = (o.status ?? '').toUpperCase();
-    const dane = (o.additional_data ?? []).find((d) => d.dns_record && d.dns_value);
+    const dane = (o.additional_data ?? [])
+      .map((d) => ({ dns_record: d.dns_record ?? d.dnsrecord ?? d.dnsRecord, dns_value: d.dns_value ?? d.dnsValue }))
+      .find((d) => d.dns_record && d.dns_value);
     return {
       state: status === 'ACT' && o.certificate ? 'issued' : ['REJ', 'FAI', 'EXP'].includes(status) ? 'failed' : 'pending',
       certificate: o.certificate || null,
@@ -663,7 +665,9 @@ interface OpSslOrder {
   status?: string;
   certificate?: string;
   intermediate_certificate?: string;
-  additional_data?: { dns_record?: string; dns_value?: string }[];
+  // Nazwy pól DCV: REST zwykle snake_case (dns_record/dns_value), dawne API i ogłoszenie OpenProvidera — dnsrecord/dnsValue
+  // (https://www.openprovider.com/blog/company-updates/update-openprovider-api-getting-information-dcv-validation).
+  additional_data?: { dns_record?: string; dns_value?: string; dnsrecord?: string; dnsRecord?: string; dnsValue?: string }[];
 }
 
 interface OpCustomer {
