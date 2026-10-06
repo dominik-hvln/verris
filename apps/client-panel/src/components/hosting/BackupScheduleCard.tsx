@@ -118,7 +118,7 @@ export default function BackupScheduleCard({ serviceId }: { serviceId: string })
           {lastStatus && lastStatus !== 'ok' ? <span className="text-warn"> — {lastStatus}</span> : <span className="text-data-hi"> — OK</span>}
         </p>
       )}
-      <p className="mt-1 text-[11px] text-muted-foreground">Kopie trafiają do listy poniżej, skąd możesz je przywrócić jednym kliknięciem.</p>
+      <p className="mt-1 text-[11px] text-muted-foreground">Kopie trafiają na listę kopii na tej stronie, skąd przywrócisz je jednym kliknięciem.</p>
     </section>
   );
 }

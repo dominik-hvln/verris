@@ -13,6 +13,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { SectionHead } from '@/components/panel/v2';
+import { potwierdz } from '@/components/panel/potwierdz';
 import {
   createOrRefreshStaging,
   deleteStagingEnv,
@@ -167,7 +168,11 @@ export default function StagingTab({ serviceId }: StagingTabProps) {
             <button
               type="button"
               disabled={busy !== null || inflight}
-              onClick={() => run('create', () => createOrRefreshStaging(serviceId))}
+              onClick={async () => {
+                // Próba bety 06.10: jedno kliknięcie nadpisywało staging bez pytania, choć zmiany na nim przepadają.
+                if (!(await potwierdz('Nadpisać staging aktualną wersją strony? Zmiany wprowadzone na stagingu przepadną.', { akcja: 'Nadpisz', niebezpieczne: true }))) return;
+                void run('create', () => createOrRefreshStaging(serviceId));
+              }}
               className="rounded-[10px] border border-line bg-background hover:border-line-strong disabled:opacity-50 p-4 text-left"
             >
               <RefreshCw className="h-5 w-5 text-data-hi mb-2" />
