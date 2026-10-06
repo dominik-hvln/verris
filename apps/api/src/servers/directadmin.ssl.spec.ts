@@ -62,7 +62,7 @@ describe("SSL — zamówienie Let's Encrypt (CMD_API_SSL)", () => {
 
   it('nie da się ustalić domen konta (błąd sieci) → 400, bez zamówienia', async () => {
     const s = stanowisko({ get: { '/CMD_API_SHOW_DOMAINS': new Error('ECONNREFUSED') } });
-    await expect(s.svc.requestLetsEncryptCertificate('s1', 'u1', { domain: 'firma.pl' })).rejects.toThrow('ECONNREFUSED');
+    await expect(s.svc.requestLetsEncryptCertificate('s1', 'u1', { domain: 'firma.pl' })).rejects.toThrow('chwilowo niedostępny');
     expect(s.post).not.toHaveBeenCalled();
   });
 

@@ -114,3 +114,39 @@ describe('Gotowe dopiero po potwierdzeniu serwera (uwaga właściciela 01.10)', 
     expect(updates.at(-1)).toMatchObject({ status: 'FAILED', error: expect.stringContaining('nie potwierdził') });
   });
 });
+
+describe('stan odtwarzania dla klienta — bez surowego błędu serwera (white label)', () => {
+  const SUROWY = 'Serwer zgłosił błąd odtwarzania: DirectAdmin CMD_API_SITE_BACKUP failed at 10.0.0.5:2222';
+  function zJobem(error: string | null) {
+    const job = {
+      id: 'j1', status: 'FAILED', backupFileName: 'a.tar.gz', scopeFiles: true, scopeDatabases: false, scopeEmail: false,
+      safetyBackup: true, isAdminInitiated: false, error, startedAt: null, completedAt: null, createdAt: new Date(),
+    };
+    const prisma = {
+      subscription: { findUnique: vi.fn().mockResolvedValue({ id: 's1', account: { userId: 'u1' } }) },
+      hostingRestoreJob: { findFirst: vi.fn().mockResolvedValue(job) },
+    };
+    return new (HostingRestoreService as unknown as new (...a: unknown[]) => HostingRestoreService)(prisma, { record: vi.fn() }, {});
+  }
+
+  it('klient dostaje oczyszczony komunikat, administrator surowy', async () => {
+    const svc = zJobem(SUROWY);
+    const klient = await svc.latestForSubscription('s1', 'u1', false);
+    expect(klient?.error).toMatch(/nie powiodła się/);
+    expect(klient?.error).not.toMatch(/DirectAdmin|CMD_API|2222|10\.0\.0\.5/);
+    expect((await svc.latestForSubscription('s1', 'u9', true))?.error).toBe(SUROWY);
+  });
+
+  it('własne komunikaty o wstrzymaniu przywracania zachowują informację, że dane nie zostały zmienione', async () => {
+    for (const wlasny of [
+      'Kopia bezpieczeństwa nie powstała w ciągu 15 minut — przywracanie wstrzymane, dane nie zostały zmienione.',
+      'Nie da się odczytać listy kopii — przywracanie wstrzymane, dane nie zostały zmienione.',
+    ]) {
+      expect((await zJobem(wlasny).latestForSubscription('s1', 'u1', false))?.error).toBe(wlasny);
+    }
+  });
+
+  it('brak błędu → null', async () => {
+    expect((await zJobem(null).latestForSubscription('s1', 'u1', false))?.error).toBeNull();
+  });
+});

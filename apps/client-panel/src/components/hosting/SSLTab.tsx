@@ -12,6 +12,7 @@ import {
   fetchHostingDomainsAction as fetchHostingDomainsActionAkcja,
 } from '@/app/dashboard/services/[id]/hosting-domains-action';
 import { fetchHostingSslAction } from '@/app/dashboard/services/[id]/hosting-ssl-actions';
+import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
@@ -111,8 +112,8 @@ export default function SSLTab({ serviceId }: Props) {
         }
       />
 
-      {error ? <p className="m-0 rounded-[10px] bg-[color-mix(in_srgb,var(--crit)_12%,transparent)] px-4 py-3 text-sm text-crit">{error}</p> : null}
-      {domainFetchError ? <p className="m-0 rounded-[10px] bg-warn-soft px-4 py-3 text-sm text-warn">{domainFetchError}</p> : null}
+      {error ? <p className="m-0 rounded-[10px] bg-[color-mix(in_srgb,var(--crit)_12%,transparent)] px-4 py-3 text-sm text-crit">{hostingFetchErrorMessage(error)}</p> : null}
+      {domainFetchError ? <p className="m-0 rounded-[10px] bg-warn-soft px-4 py-3 text-sm text-warn">{hostingFetchErrorMessage(domainFetchError)}</p> : null}
 
       <KpiStrip>
         <Kpi label="Domeny" value={domains.length} foot={<span>na koncie hostingowym</span>} />

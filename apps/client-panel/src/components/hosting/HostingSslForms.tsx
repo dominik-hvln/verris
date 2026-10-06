@@ -12,6 +12,7 @@ import {
 } from '@/app/dashboard/services/[id]/hosting-ssl-actions';
 import { Select } from '@/components/panel';
 import { Checkbox } from '@/components/panel/checkbox';
+import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
@@ -65,7 +66,7 @@ export function HostingSslForms({ serviceId }: Props) {
     <div className="space-y-6">
       {domainError ? (
         <p className="text-sm text-warn rounded-[10px] border border-warn/30 bg-warn-soft px-3 py-2">
-          {domainError}
+          {hostingFetchErrorMessage(domainError)}
         </p>
       ) : null}
 

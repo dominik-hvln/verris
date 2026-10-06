@@ -79,7 +79,7 @@ describe('Z-06 — idempotencja zakupu dodatku', () => {
       user: { update: vi.fn(async () => ({})), findUnique: vi.fn(async () => ({ prioritySupportUntil: null })) },
       subscription: {
         // Usługi „obca-*” należą do kogoś innego.
-        findFirst: vi.fn(async ({ where }: { where: { id: string } }) => (where.id.startsWith('obca-') ? null : { id: where.id })),
+        findFirst: vi.fn(async ({ where }: { where: { id: string } }) => (where.id.startsWith('obca-') ? null : { id: where.id, account: { domain: 'sklep.pl' } })),
       },
     };
 
@@ -231,6 +231,15 @@ describe('Z-06 — idempotencja zakupu dodatku', () => {
       const wynik = await service.purchase('user-1', 'manual_setup', undefined, 'k2');
       expect(tickets.create).toHaveBeenCalledTimes(1);
       expect(wynik).toMatchObject({ status: 'QUEUED' });
+    });
+
+    it('zgłoszenie widzi klient: wiadomość automatyczna z domeną usługi zamiast uuid, bez zwrotów do obsługi', async () => {
+      const { service, tickets } = zbuduj();
+      await service.purchase('user-1', 'manual_setup', 'c0a80123-aaaa-bbbb-cccc-0123456789ab', 'k-tresc');
+      const { message } = (tickets.create.mock.calls[0] as unknown as [string, { message: string }])[1];
+      expect(message).toContain('Usługa: sklep.pl');
+      expect(message).toContain('automatycznie');
+      expect(message).not.toMatch(/c0a80123|Klient wykupił|Proszę o realizację/);
     });
 
     it('Z-10: cudza usługa w ciele żądania → 404 bez obciążenia i bez zgłoszenia', async () => {

@@ -8,7 +8,7 @@ import {
   addDbAccessHostAction,
   removeDbAccessHostAction,
 } from '@/app/dashboard/services/[id]/hosting-db-access-actions';
-import { daErrorMessage } from '@/lib/client-hosting-messages';
+import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
@@ -66,7 +66,7 @@ export default function DbAccessHosts({ serviceId, db }: { serviceId: string; db
           {loading ? (
             <p className="mt-2 text-[11px] text-muted-foreground"><Loader2 className="inline h-3 w-3 animate-spin" /> Wczytywanie…</p>
           ) : err ? (
-            <p className="mt-2 text-[11px] text-warn">{err}</p>
+            <p className="mt-2 text-[11px] text-warn">{hostingFetchErrorMessage(err)}</p>
           ) : hosts.length === 0 ? (
             <p className="mt-2 text-[11px] text-muted-foreground">Brak dodatkowych hostów — baza dostępna tylko lokalnie.</p>
           ) : (

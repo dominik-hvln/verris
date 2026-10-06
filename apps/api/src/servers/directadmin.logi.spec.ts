@@ -58,7 +58,7 @@ describe('Logi WWW — readHostingLog', () => {
     const s = stanowisko(new Error('ECONNREFUSED'));
     const r = await s.svc.readHostingLog('s1', 'u1', { type: 'access' });
     expect(r.lines).toEqual([]);
-    expect(r.fetchError).toContain('ECONNREFUSED');
+    expect(r.fetchError).toContain('chwilowo niedostępny'); // komunikat dla klienta, nie surowy kod sieci
   });
 });
 

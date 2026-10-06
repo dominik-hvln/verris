@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync, statSync } from 'fs';
+import { join } from 'path';
 import { HOSTING_FETCH_UNAVAILABLE, daErrorMessage, hostingFetchErrorMessage } from './client-hosting-messages';
 
 /**
@@ -86,4 +88,36 @@ describe('daErrorMessage — hasło', () => {
     // t1 02.10: brak pola w zapytaniu do serwera to nie słabe hasło — klient widział „Użyj silniejszego hasła”
     expect(daErrorMessage('Błąd przy wykonywaniu żądania: Użytkownik, hasło, hasło i typ są wymagane')).not.toMatch(/Hasło nie spełnia/);
   });
+});
+
+describe('daErrorMessage — white label (wspólne z API, libs/contracts)', () => {
+  it('czytelna walidacja nie przechodzi w oryginale, gdy zdradza panel serwera, adres węzła albo URL', () => {
+    expect(daErrorMessage('Invalid response from DirectAdmin')).toMatch(/nie powiodła się/);
+    expect(daErrorMessage('Nieprawidłowy host 10.0.0.5')).toMatch(/nie powiodła się/);
+    expect(daErrorMessage('Nieprawidłowy token z https://wezel.example.net/login')).toMatch(/nie powiodła się/);
+    expect(daErrorMessage('Invalid PHP version (CloudLinux selector)')).toMatch(/nie powiodła się/);
+  });
+
+  it('polskie „da się” nie jest brane za DA', () => {
+    expect(daErrorMessage('Tego nie da się cofnąć')).toBe('Tego nie da się cofnąć');
+  });
+
+  it('błąd sieci bez „hostingowy” — tę samą funkcję woła rejestrator domen', () => {
+    expect(daErrorMessage('connect ETIMEDOUT')).toBe('Serwer jest chwilowo niedostępny. Spróbuj ponownie za chwilę.');
+  });
+});
+
+it('komponenty panelu nie pokazują surowego fetchError — tylko przez hostingFetchErrorMessage', () => {
+  const trafienia: string[] = [];
+  const przejdz = (dir: string) => {
+    for (const n of readdirSync(dir)) {
+      const p = join(dir, n);
+      if (statSync(p).isDirectory()) przejdz(p);
+      else if (n.endsWith('.tsx') && !n.includes('.spec.') && /\{(?:[\w?]+\.)?fetchError\}/.test(readFileSync(p, 'utf8'))) {
+        trafienia.push(p.split('/src/')[1]!);
+      }
+    }
+  };
+  przejdz(join(__dirname, '..'));
+  expect(trafienia).toEqual([]);
 });

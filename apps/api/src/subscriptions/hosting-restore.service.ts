@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { HostingRestoreStatus, Prisma } from '@verris/database';
+import { daErrorMessage } from '@verris/contracts';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
@@ -130,7 +131,7 @@ export class HostingRestoreService {
       } as Prisma.InputJsonValue,
     });
 
-    return this.toPublic(job);
+    return this.toPublic(job, Boolean(input.isAdmin));
   }
 
   async latestForSubscription(subscriptionId: string, requestingUserId: string, isAdmin = false) {
@@ -146,7 +147,7 @@ export class HostingRestoreService {
       where: { subscriptionId },
       orderBy: { createdAt: 'desc' },
     });
-    return job ? this.toPublic(job) : null;
+    return job ? this.toPublic(job, isAdmin) : null;
   }
 
   /**
@@ -284,7 +285,8 @@ export class HostingRestoreService {
   private async takeSafetyBackup(subscriptionId: string, userId: string): Promise<void> {
     const before = await this.directAdmin.listHostingBackups(subscriptionId, userId);
     if (before.fetchError) {
-      throw new Error(`Nie da się odczytać listy kopii (${before.fetchError}) — przywracanie wstrzymane, dane nie zostały zmienione.`);
+      this.logger.warn(`Hosting restore sub=${subscriptionId}: lista kopii niedostępna: ${before.fetchError}`);
+      throw new Error('Nie da się odczytać listy kopii — przywracanie wstrzymane, dane nie zostały zmienione.');
     }
     const known = new Set(before.rows.map((r) => r.fileName));
     await this.directAdmin.createHostingSiteBackupNow(subscriptionId, userId);
@@ -320,6 +322,7 @@ export class HostingRestoreService {
     });
   }
 
+  /** `job.error` to surowy tekst z serwera hostingowego — klient dostaje wersję oczyszczoną, administrator całość. */
   private toPublic(job: {
     id: string;
     status: HostingRestoreStatus;
@@ -333,7 +336,7 @@ export class HostingRestoreService {
     startedAt: Date | null;
     completedAt: Date | null;
     createdAt: Date;
-  }) {
+  }, pokazSurowy = false) {
     return {
       id: job.id,
       status: job.status,
@@ -341,7 +344,7 @@ export class HostingRestoreService {
       scope: { files: job.scopeFiles, databases: job.scopeDatabases, email: job.scopeEmail },
       safetyBackup: job.safetyBackup,
       isAdminInitiated: job.isAdminInitiated,
-      error: job.error,
+      error: job.error && !pokazSurowy ? daErrorMessage(job.error) : job.error,
       startedAt: job.startedAt?.toISOString() ?? null,
       completedAt: job.completedAt?.toISOString() ?? null,
       createdAt: job.createdAt.toISOString(),

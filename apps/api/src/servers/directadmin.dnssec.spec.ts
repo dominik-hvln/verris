@@ -89,4 +89,11 @@ describe('DNSSEC', () => {
     const r = await stanowisko({ odpowiedz: 'error=1&text=DNSSEC is not enabled' }).svc.getHostingDnssec('s1', 'u1', 'firma.pl');
     expect(r).toMatchObject({ podpisana: false, blad: 'DNSSEC is not enabled' });
   });
+
+  it('błąd serwera z nazwą panelu i adresem węzła → „blad” oczyszczony (panel pokazuje go klientowi)', async () => {
+    const r = await stanowisko({ odpowiedz: 'error=1&text=DirectAdmin CMD_API_DNS_ADMIN failed at 10.0.0.5:2222' }).svc.getHostingDnssec('s1', 'u1', 'firma.pl');
+    expect(r.podpisana).toBe(false);
+    expect(r.blad).toMatch(/nie powiodła się/);
+    expect(r.blad).not.toMatch(/DirectAdmin|CMD_API|2222|10\.0\.0\.5/);
+  });
 });

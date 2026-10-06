@@ -23,7 +23,7 @@ import { CreateTopupCheckoutDto, TopupQuoteDto, PreviewTopupPromoDto } from './d
 import { DoladowanieService } from './doladowanie.service.js';
 import { RedeemPromoDto, UpsertWalletAutoTopupDto } from './dto/promo.dto.js';
 import { PromoService } from './promo.service.js';
-import { WalletAutoTopupService } from './wallet-auto-topup.service.js';
+import { WalletAutoTopupService, powodAutoDoladowania } from './wallet-auto-topup.service.js';
 
 @Controller('billing')
 @UseGuards(JwtAuthGuard)
@@ -184,7 +184,7 @@ function serializeAutoTop(row: {
     cooldownUntil: row.cooldownUntil?.toISOString() ?? null,
     lastAttemptAt: row.lastAttemptAt?.toISOString() ?? null,
     lastAttemptOk: row.lastAttemptOk ?? null,
-    lastAttemptError: row.lastAttemptError ?? null,
+    lastAttemptError: row.lastAttemptError ? powodAutoDoladowania(row.lastAttemptError) : null,
     totalToppedUpAmountPln: row.totalToppedUpAmount != null ? n(row.totalToppedUpAmount) : undefined,
     totalToppedUpCount: row.totalToppedUpCount ?? undefined,
   };

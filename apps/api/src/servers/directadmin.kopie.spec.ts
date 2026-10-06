@@ -157,9 +157,17 @@ describe('Lista kopii', () => {
     expect((await s.svc.listHostingBackups('s1', 'u1')).rows).toEqual([{ id: '/backups/backup-Sep-29-2026-1.tar.zst', fileName: 'backup-Sep-29-2026-1.tar.zst' }]);
   });
 
+  it('surowy błąd z węzła nie trafia do klienta w fetchError (white label)', async () => {
+    const blad = new Error('connect ECONNREFUSED 10.1.2.3:2222 (DirectAdmin)');
+    const s = stanowisko({ get: { '/CMD_API_SITE_BACKUP': blad }, post: { '/CMD_API_SITE_BACKUP': blad } });
+    const { fetchError } = await s.svc.listHostingBackups('s1', 'u1');
+    expect(fetchError).toMatch(/chwilowo niedostępny/);
+    expect(fetchError).not.toMatch(/DirectAdmin|2222|10\.1\.2\.3/);
+  });
+
   it('konto bez zapisanego dostępu DA → fetchError bez żadnego zapytania', async () => {
     const s = stanowisko({ daPasswordEnc: null });
-    expect((await s.svc.listHostingBackups('s1', 'u1')).fetchError).toContain('Brak zapisanego dostępu');
+    expect((await s.svc.listHostingBackups('s1', 'u1')).fetchError).toBe('Konto hostingowe nie jest jeszcze gotowe.');
     expect(s.get).not.toHaveBeenCalled();
     expect(s.post).not.toHaveBeenCalled();
   });
@@ -247,7 +255,7 @@ describe('Tryb EKO — harmonogram crona kopii (applyEcoModeBackupCronPolicy)', 
 
   it('błąd odczytu crona → bez zmian i z komunikatem', async () => {
     const s = stanowisko({ get: { '/CMD_API_CRON_JOBS': new Error('ECONNREFUSED') } });
-    expect(await s.svc.applyEcoModeBackupCronPolicy('s1', 'u1', false)).toEqual({ adjusted: 0, notice: 'Bez zmian harmonogramu w DA: ECONNREFUSED' });
+    expect(await s.svc.applyEcoModeBackupCronPolicy('s1', 'u1', false)).toEqual({ adjusted: 0, notice: 'Bez zmian harmonogramu kopii: Serwer jest chwilowo niedostępny. Spróbuj ponownie za chwilę.' });
     expect(s.post).not.toHaveBeenCalled();
   });
 });

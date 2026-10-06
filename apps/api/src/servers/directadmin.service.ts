@@ -8,6 +8,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { daErrorMessage, hostingFetchErrorMessage } from '@verris/contracts';
 import { DirectAdminApiError, DirectAdminClient, mergeAdminSettingsPayload } from '@verris/directadmin-sdk';
 import type {
   DeployFrequency,
@@ -425,7 +426,7 @@ export class DirectAdminService {
         daUsername: sub.account.daUsername,
         primaryDomain,
         fetchError:
-          'Konto hostingowe nie ma jeszcze zapisanych danych logowania DirectAdmin (oczekuje na provisioning).',
+          'Konto hostingowe nie jest jeszcze gotowe.',
       };
     }
     try {
@@ -445,7 +446,7 @@ export class DirectAdminService {
         domains: [],
         daUsername: sub.account.daUsername,
         primaryDomain,
-        fetchError: msg,
+        fetchError: hostingFetchErrorMessage(msg),
       };
     }
   }
@@ -568,7 +569,7 @@ export class DirectAdminService {
         daUsername,
         engine,
         fetchError:
-          'Brak zapisanego dostępu do DirectAdmin dla tego konta (provisioningu).',
+          'Konto hostingowe nie jest jeszcze gotowe.',
       };
     }
     try {
@@ -587,7 +588,7 @@ export class DirectAdminService {
         databases: [],
         daUsername,
         engine,
-        fetchError: msg,
+        fetchError: hostingFetchErrorMessage(msg),
       };
     }
   }
@@ -716,7 +717,7 @@ export class DirectAdminService {
         const err = String(record.error ?? '');
         if (err && err !== '0' && err !== 'false') {
           throw new BadRequestException(
-            String(record.text ?? record.details ?? record.message ?? 'DirectAdmin error'),
+            String(record.text ?? record.details ?? record.message ?? 'Serwer hostingowy odrzucił operację.'),
           );
         }
       }
@@ -928,7 +929,7 @@ export class DirectAdminService {
       info.databases = daMetric(usage.get('mysql'), config.get('mysql'));
       info.inodes = daMetric(usage.get('inode'), config.get('inode'));
     } catch (err) {
-      info.fetchError = err instanceof Error ? err.message : String(err);
+      info.fetchError = hostingFetchErrorMessage(err instanceof Error ? err.message : String(err));
     }
     return info;
   }
@@ -1075,7 +1076,7 @@ export class DirectAdminService {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`readHostingLog sub=${subscriptionId} ${type}: ${msg}`);
-      return { domain, type, lines: [], truncated: false, fetchError: msg };
+      return { domain, type, lines: [], truncated: false, fetchError: hostingFetchErrorMessage(msg) };
     }
   }
 
@@ -1105,7 +1106,7 @@ export class DirectAdminService {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`listHostingDnsRecords sub=${subscriptionId}: ${msg}`);
-      return { domain: effectiveDomain, records: [], fetchError: msg };
+      return { domain: effectiveDomain, records: [], fetchError: hostingFetchErrorMessage(msg) };
     }
   }
 
@@ -1239,7 +1240,7 @@ export class DirectAdminService {
       return { rows, fetchError: null as string | null };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      return { rows: [], fetchError: msg };
+      return { rows: [], fetchError: hostingFetchErrorMessage(msg) };
     }
   }
 
@@ -1340,7 +1341,7 @@ export class DirectAdminService {
       return {
         rows: [],
         fetchError:
-          'Brak zapisanego dostępu do DirectAdmin dla tego konta (provisioningu).',
+          'Konto hostingowe nie jest jeszcze gotowe.',
       };
     }
     const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
@@ -1366,7 +1367,7 @@ export class DirectAdminService {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`listHostingEmailAccounts sub=${subscriptionId}: ${msg}`);
-      return { rows: [], fetchError: msg };
+      return { rows: [], fetchError: hostingFetchErrorMessage(msg) };
     }
   }
 
@@ -1494,7 +1495,7 @@ export class DirectAdminService {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`listHostingEmailForwarders sub=${subscriptionId}: ${msg}`);
-      return { rows: [], fetchError: msg };
+      return { rows: [], fetchError: hostingFetchErrorMessage(msg) };
     }
   }
 
@@ -1561,7 +1562,7 @@ export class DirectAdminService {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`listHostingAutoresponders sub=${subscriptionId}: ${msg}`);
-      return { rows: [], fetchError: msg };
+      return { rows: [], fetchError: hostingFetchErrorMessage(msg) };
     }
   }
 
@@ -1719,7 +1720,7 @@ export class DirectAdminService {
         fetchError: null,
       };
     } catch (err) {
-      return { state: this.defaultWebToolsState(), fetchError: err instanceof Error ? err.message : String(err) };
+      return { state: this.defaultWebToolsState(), fetchError: hostingFetchErrorMessage(err instanceof Error ? err.message : String(err)) };
     }
   }
 
@@ -1852,7 +1853,7 @@ export class DirectAdminService {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`listHostingAdditionalDomains sub=${subscriptionId}: ${msg}`);
-      return { rows: [], primary: null as string | null, fetchError: msg };
+      return { rows: [], primary: null as string | null, fetchError: hostingFetchErrorMessage(msg) };
     }
   }
 
@@ -1945,7 +1946,7 @@ export class DirectAdminService {
         bandwidth: { usedMb: 0, limitMb: null },
         disk: { usedMb: 0, limitMb: null },
         counts: { domains: 0, subdomains: 0, emails: 0, databases: 0, ftp: 0 },
-        fetchError: msg,
+        fetchError: hostingFetchErrorMessage(msg),
       };
     }
   }
@@ -1993,7 +1994,7 @@ export class DirectAdminService {
       else if (value && value !== ':fail:') { mode = 'address'; address = value; }
       return { value, mode, address, fetchError: null as string | null };
     } catch (err) {
-      return { value: '', mode: 'fail' as const, address: '', fetchError: err instanceof Error ? err.message : String(err) };
+      return { value: '', mode: 'fail' as const, address: '', fetchError: hostingFetchErrorMessage(err instanceof Error ? err.message : String(err)) };
     }
   }
 
@@ -2045,7 +2046,7 @@ export class DirectAdminService {
         fetchError: null as string | null,
       };
     } catch (err) {
-      return { isOn: false, requiredScore: '5', subjectTag: '', fetchError: err instanceof Error ? err.message : String(err) };
+      return { isOn: false, requiredScore: '5', subjectTag: '', fetchError: hostingFetchErrorMessage(err instanceof Error ? err.message : String(err)) };
     }
   }
 
@@ -2110,7 +2111,7 @@ export class DirectAdminService {
       }
       return { hosts: Array.from(new Set(hosts.filter(Boolean))), fetchError: null as string | null };
     } catch (err) {
-      return { hosts: [] as string[], fetchError: err instanceof Error ? err.message : String(err) };
+      return { hosts: [] as string[], fetchError: hostingFetchErrorMessage(err instanceof Error ? err.message : String(err)) };
     }
   }
 
@@ -2170,7 +2171,7 @@ export class DirectAdminService {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`listHostingDbUsers sub=${subscriptionId} db=${dbName}: ${msg}`);
-      return { users: [] as string[], fetchError: msg };
+      return { users: [] as string[], fetchError: hostingFetchErrorMessage(msg) };
     }
   }
 
@@ -2391,7 +2392,7 @@ export class DirectAdminService {
     const res = await surowy.get('/CMD_API_DNS_ADMIN', { params: { domain: dom, action: 'dnssec', value: 'get_keys' }, timeout: 15_000 });
     const data: unknown = res?.data;
     const pola = typeof data === 'string' ? new URLSearchParams(data) : this.parseKvPayload(data);
-    const blad = pola.get('error') && pola.get('error') !== '0' ? pola.get('text') || pola.get('details') || 'DirectAdmin error' : null;
+    const blad = pola.get('error') && pola.get('error') !== '0' ? pola.get('text') || pola.get('details') || 'Serwer hostingowy odrzucił operację.' : null;
     const signedOn = pola.get('signed_on') || null;
     return {
       domain: dom,
@@ -2401,7 +2402,8 @@ export class DirectAdminService {
       podpisanaOd: signedOn && /^\d{9,11}$/.test(signedOn) ? new Date(Number(signedOn) * 1000).toISOString() : signedOn,
       wygasa: Number(pola.get('expiry')) || null,
       ds: (pola.get('DS') ?? '').split('\n').map((l) => l.trim()).filter(Boolean),
-      blad,
+      // Panel pokazuje to klientowi („Serwer: …”) — surowy tekst serwera przechodzi przez wspólne czyszczenie.
+      blad: blad && daErrorMessage(blad),
     };
   }
 
@@ -2636,7 +2638,7 @@ export class DirectAdminService {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`listHostingDomainPointers sub=${subscriptionId}: ${msg}`);
-      return { rows: [], primary: domain, fetchError: msg };
+      return { rows: [], primary: domain, fetchError: hostingFetchErrorMessage(msg) };
     }
   }
 
@@ -2685,7 +2687,7 @@ export class DirectAdminService {
       return { rows: zCronowDa(raw), fetchError: null as string | null };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      return { rows: [], fetchError: msg };
+      return { rows: [], fetchError: hostingFetchErrorMessage(msg) };
     }
   }
 
@@ -2776,7 +2778,7 @@ export class DirectAdminService {
       return { rows, domains, primaryDomain: domainsRes.primaryDomain, fetchError: null };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      return { rows, domains, primaryDomain: domainsRes.primaryDomain, fetchError: msg };
+      return { rows, domains, primaryDomain: domainsRes.primaryDomain, fetchError: hostingFetchErrorMessage(msg) };
     }
   }
 
@@ -2881,7 +2883,7 @@ export class DirectAdminService {
       }
       return { rows, domains, fetchError: null };
     } catch (err) {
-      return { rows, domains, fetchError: err instanceof Error ? err.message : String(err) };
+      return { rows, domains, fetchError: hostingFetchErrorMessage(err instanceof Error ? err.message : String(err)) };
     }
   }
 
@@ -3072,7 +3074,7 @@ export class DirectAdminService {
       const client = await this.getClientForHostingAccount(sub.account.id, userId);
       axiosClient = (client as unknown as { client?: SurowyKlientDa }).client;
     } catch (err) {
-      return { rows: [], fetchError: err instanceof Error ? err.message : String(err) };
+      return { rows: [], fetchError: hostingFetchErrorMessage(err instanceof Error ? err.message : String(err)) };
     }
     if (!axiosClient) {
       return { rows: [], fetchError: 'Serwer hostingowy jest chwilowo niedostępny. Spróbuj ponownie za chwilę.' };
@@ -3172,7 +3174,7 @@ export class DirectAdminService {
       return {
         rows: [],
         fetchError:
-          'Brak zapisanego dostępu do DirectAdmin dla tego konta (provisioningu).',
+          'Konto hostingowe nie jest jeszcze gotowe.',
         offsite,
       };
     }
@@ -3208,7 +3210,7 @@ export class DirectAdminService {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`listHostingBackups sub=${subscriptionId}: ${msg}`);
-      return { rows: [], fetchError: msg, offsite };
+      return { rows: [], fetchError: hostingFetchErrorMessage(msg), offsite };
     }
   }
 
@@ -3226,7 +3228,7 @@ export class DirectAdminService {
     if (fetchError) {
       return {
         adjusted: 0,
-        notice: `Bez zmian harmonogramu w DA: ${fetchError}`,
+        notice: `Bez zmian harmonogramu kopii: ${fetchError}`,
       };
     }
     const backupRe = /SITE_BACKUP|CMD_API_SITE_BACKUP|sitebackup/i;
@@ -3262,8 +3264,8 @@ export class DirectAdminService {
     const notice =
       adjusted > 0
         ? ecoEnabled
-          ? `W DirectAdmin zaktualizowano ${adjusted} zadań cron z backupem: teraz cotygodniowo (niedziela, zachowana godzina jeśli była ustawiona).`
-          : `W DirectAdmin zaktualizowano ${adjusted} zadań cron z backupem: przywrócono tryb dzienny.`
+          ? 'Zaktualizowano harmonogram kopii zapasowych: teraz cotygodniowo (niedziela, zachowana godzina jeśli była ustawiona).'
+          : 'Zaktualizowano harmonogram kopii zapasowych: przywrócono tryb dzienny.'
         : null;
     return { adjusted, notice };
   }
@@ -3460,7 +3462,7 @@ export function interpretujLogDa(
   const przyciety = tekst.trim();
   if (/^error=1(&|$)/.test(przyciety)) {
     const opis = new URLSearchParams(przyciety).get('text');
-    return { lines: [], truncated: false, fetchError: opis || 'DirectAdmin odrzucił odczyt logu.' };
+    return { lines: [], truncated: false, fetchError: hostingFetchErrorMessage(opis) ?? 'Serwer hostingowy odrzucił odczyt logu.' };
   }
   if (/^</.test(przyciety)) {
     return { lines: [], truncated: false, fetchError: 'Serwer nie udostępnił logu w formie tekstowej.' };

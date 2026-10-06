@@ -96,7 +96,7 @@ describe('listy z DirectAdmina', () => {
     Object.assign(s.svc, { accountClientForSubscription: vi.fn(async () => ({ client: s.klient })) });
     await expect(s.svc.listHostingDbUsers('s1', 'u1', 'klient1_wp')).resolves.toEqual({ users: ['klient1_wp'], fetchError: null });
     s.klient.listDbUsers.mockRejectedValueOnce(new Error('DA 500'));
-    await expect(s.svc.listHostingDbUsers('s1', 'u1', 'klient1_wp')).resolves.toEqual({ users: [], fetchError: 'DA 500' });
+    await expect(s.svc.listHostingDbUsers('s1', 'u1', 'klient1_wp')).resolves.toEqual({ users: [], fetchError: expect.stringContaining('Chwilowo nie możemy pobrać danych') });
   });
 
   it('bazy MySQL z wersją silnika z telemetrii węzła; brak dostępu DA → komunikat bez wywołania DA', async () => {
@@ -105,7 +105,7 @@ describe('listy z DirectAdmina', () => {
       databases: [{ name: 'klient1_wp' }, { name: 'klient1_shop' }], daUsername: 'klient1', engine: { name: 'MariaDB', version: '11.4.3' }, fetchError: null,
     });
     const b = stanowisko({ bezHasla: true });
-    await expect(b.svc.listHostingMysqlForSubscription('s1', 'u1')).resolves.toMatchObject({ databases: [], fetchError: expect.stringContaining('Brak zapisanego dostępu') });
+    await expect(b.svc.listHostingMysqlForSubscription('s1', 'u1')).resolves.toMatchObject({ databases: [], fetchError: 'Konto hostingowe nie jest jeszcze gotowe.' });
     expect(b.klient.listMysqlDatabases).not.toHaveBeenCalled();
   });
 

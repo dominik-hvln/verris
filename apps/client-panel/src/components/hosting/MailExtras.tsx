@@ -18,7 +18,7 @@ import {
   type ForwarderRow,
   type AutoresponderRow,
 } from '@/app/dashboard/services/[id]/hosting-email-actions';
-import { daErrorMessage } from '@/lib/client-hosting-messages';
+import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { Select } from '@/components/panel/select';
 import { potwierdz } from '@/components/panel/potwierdz';
 import { Checkbox } from '@/components/panel/checkbox';
@@ -119,7 +119,7 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
         {loading ? (
           <p className="mt-3 text-xs text-muted-foreground"><Loader2 className="inline h-3.5 w-3.5 animate-spin" /> Wczytywanie…</p>
         ) : fwErr ? (
-          <p className="mt-3 text-xs text-warn">{fwErr}</p>
+          <p className="mt-3 text-xs text-warn">{hostingFetchErrorMessage(fwErr)}</p>
         ) : fwRows.length === 0 ? (
           <p className="mt-3 text-xs text-muted-foreground">Brak aliasów — dodaj pierwszy powyżej.</p>
         ) : (
@@ -156,7 +156,7 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
           </Button>
         </form>
         {loading ? null : arErr ? (
-          <p className="mt-3 text-xs text-warn">{arErr}</p>
+          <p className="mt-3 text-xs text-warn">{hostingFetchErrorMessage(arErr)}</p>
         ) : arRows.length === 0 ? (
           <p className="mt-3 text-xs text-muted-foreground">Brak aktywnych autoresponderów.</p>
         ) : (

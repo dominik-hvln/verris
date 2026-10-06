@@ -22,6 +22,7 @@ import {
   fetchConnectionInfoAction as fetchConnectionInfoActionAkcja,
 } from '@/app/dashboard/services/[id]/hosting-connection-actions';
 import { liczba } from '@/lib/liczba';
+import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
@@ -291,7 +292,7 @@ export default function ServiceConnectionCard({
       </div>
 
       {info.fetchError ? (
-        <p className="text-[11px] text-warn">{info.fetchError}</p>
+        <p className="text-[11px] text-warn">{hostingFetchErrorMessage(info.fetchError)}</p>
       ) : null}
     </div>
   );

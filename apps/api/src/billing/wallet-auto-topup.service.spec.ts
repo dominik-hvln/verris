@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { Prisma } from '@verris/database';
-import { WalletAutoTopupService } from './wallet-auto-topup.service.js';
+import { WalletAutoTopupService, powodAutoDoladowania } from './wallet-auto-topup.service.js';
 
 /**
  * M-22 — auto-doładowanie portfela: kiedy obciążamy kartę (off-session), na ile i czego
@@ -130,6 +130,28 @@ describe('WalletAutoTopupService (M-22)', () => {
       expect.objectContaining({ action: 'WALLET_AUTO_TOPUP_FAILED', details: expect.objectContaining({ stripeRef: 'pi_3ds' }) }),
     );
     expect(t.mailer.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('mail do klienta ma powód po polsku, bez surowego tekstu ze Stripe (identyfikatory); baza i audyt zachowują surowy', async () => {
+    const surowy = "No such PaymentMethod: 'pm_tajne123'; customer cus_9";
+    const t = zbuduj([regula()], { piThrows: new Error(surowy) });
+    await t.svc.runEligibleChecks();
+    const mail = (t.mailer.send.mock.calls[0] as unknown as [{ text: string; html: string }])[0];
+    expect(mail.text).toContain('Brak zapisanej karty');
+    expect(mail.text + mail.html).not.toMatch(/pm_tajne123|cus_9/);
+    const zapisy = (t.prisma.walletAutoTopup.updateMany.mock.calls as unknown as [{ data: Record<string, unknown> }][]).map(([a]) => a.data);
+    expect(zapisy.some((d) => d.lastAttemptError === surowy)).toBe(true);
+    expect(t.audit.record).toHaveBeenCalledWith(expect.objectContaining({ details: expect.objectContaining({ message: surowy }) }));
+  });
+
+  it('powodAutoDoladowania: znane przyczyny po polsku, nieznane → ogólne zdanie, własne komunikaty bez zmian', () => {
+    expect(powodAutoDoladowania('Your card has insufficient funds.')).toBe('Na karcie brakuje środków.');
+    expect(powodAutoDoladowania('Your card was declined.')).toBe('Bank odrzucił płatność kartą.');
+    expect(powodAutoDoladowania('status=requires_payment_method')).toMatch(/Sprawdź kartę/);
+    expect(powodAutoDoladowania(null)).toMatch(/Sprawdź kartę/);
+    for (const wlasny of ['Na karcie brakuje środków.', 'Karta wygasła.', 'Bank odrzucił płatność kartą.', 'Brak zapisanej karty — ustaw domyślną metodę płatności.']) {
+      expect(powodAutoDoladowania(wlasny)).toBe(wlasny);
+    }
   });
 
   it('błąd Stripe przy jednej regule nie zatrzymuje kolejnych', async () => {

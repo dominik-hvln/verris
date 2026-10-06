@@ -66,3 +66,46 @@ describe('White label — błędy API dla klienta bez nazwy DirectAdmina', () =>
     expect(trafienia).toEqual([]);
   });
 });
+
+/**
+ * Stałe napisy w odpowiedziach dla klienta. Poprzedni test łapie tylko `new XException('…DirectAdmin…')`;
+ * umykały mu pola zwracane w JSON-ie (`fetchError`, `notice`, `blad`) i napisy po `??` — a filtr wyjątków
+ * pól JSON nie czyści. Pomijamy wpisy do logów (`this.logger.*`) i podpowiedzi tylko dla administratora.
+ */
+describe('White label — stałe napisy w odpowiedziach API dla klienta', () => {
+  const PLIKI = [
+    'apps/api/src/servers/directadmin.service.ts',
+    'apps/api/src/subscriptions/services.controller.ts',
+    'apps/api/src/subscriptions/hosting-restore.service.ts',
+    'apps/api/src/domains/domain-registrar.service.ts',
+    'apps/api/src/addons/addon.service.ts',
+    'apps/api/src/billing/wallet-auto-topup.service.ts',
+  ];
+  const NAPIS = /(['"`])(?:(?!\1).)*(?:DirectAdmin|\bDA\b|CustomBuild)(?:(?!\1).)*\1/;
+  // testConnection — test połączenia z węzłem, tylko panel administratora (servers.service).
+  const TYLKO_ADMIN = /DirectAdmin przyjmuje tylko HTTPS/;
+
+  it('napisy (poza logami i komentarzami) nie zawierają „DirectAdmin” ani „DA”', () => {
+    const trafienia = PLIKI.flatMap((p) => {
+      const linie = readFileSync(join(KORZEN, p), 'utf8').split('\n');
+      return linie.flatMap((l, i) => {
+        if (/^\s*(\/\/|\*|\/\*|import )/.test(l) || !NAPIS.test(l) || TYLKO_ADMIN.test(l)) return [];
+        if (linie.slice(Math.max(0, i - 3), i + 1).some((x) => /logger\.\w+\(/.test(x))) return [];
+        return [`${p}:${i + 1}: ${l.trim().slice(0, 80)}`];
+      });
+    });
+    expect(trafienia).toEqual([]);
+  });
+
+  it('baza wiedzy dla klientów (seed-knowledge-base.ts, audience ALL) nie zawiera „DirectAdmin”', () => {
+    const zrodlo = readFileSync(join(KORZEN, 'apps/api/src/cli/seed-knowledge-base.ts'), 'utf8');
+    // Artykuły STAFF mogą mówić o DirectAdminie — obsługa wie, na czym stoi hosting.
+    const artykuly = [...zrodlo.matchAll(/title: '([^']*)',\s*audience: AiKnowledgeAudience\.(\w+),\s*content: `([^`]*)`/g)];
+    expect(artykuly.length).toBeGreaterThan(20);
+    const trafienia = artykuly
+      .filter(([, , odbiorca]) => odbiorca === 'ALL')
+      .filter(([, tytul, , tresc]) => /DirectAdmin|\bDA\b|CustomBuild|:2222/.test(`${tytul}\n${tresc}`))
+      .map(([, tytul]) => tytul);
+    expect(trafienia).toEqual([]);
+  });
+});

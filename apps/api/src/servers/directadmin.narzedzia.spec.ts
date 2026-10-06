@@ -128,8 +128,8 @@ describe('odczyt catch-all i antyspamu', () => {
 
   it('awaria DA → fetchError, a nie ciche „wyłączone”', async () => {
     const s = stanowisko({ get: { '/CMD_API_SPAMASSASSIN': new Error('ECONNREFUSED'), '/CMD_API_EMAIL_CATCH_ALL': new Error('ECONNREFUSED') } });
-    expect((await s.svc.getHostingSpamFilter('s1', 'u1')).fetchError).toContain('ECONNREFUSED');
-    expect((await s.svc.getHostingCatchAll('s1', 'u1')).fetchError).toContain('ECONNREFUSED');
+    expect((await s.svc.getHostingSpamFilter('s1', 'u1')).fetchError).toContain('chwilowo niedostępny');
+    expect((await s.svc.getHostingCatchAll('s1', 'u1')).fetchError).toContain('chwilowo niedostępny');
   });
 });
 
@@ -145,7 +145,7 @@ describe('lista skrzynek', () => {
       fetchError: null,
     });
     vi.spyOn(s.klient, 'listEmailAccounts').mockRejectedValueOnce(new Error('DA 500'));
-    await expect(s.svc.listHostingEmailAccounts('s1', 'u1')).resolves.toEqual({ rows: [], fetchError: 'DA 500' });
+    await expect(s.svc.listHostingEmailAccounts('s1', 'u1')).resolves.toEqual({ rows: [], fetchError: expect.stringContaining('Chwilowo nie możemy pobrać danych') });
   });
 });
 

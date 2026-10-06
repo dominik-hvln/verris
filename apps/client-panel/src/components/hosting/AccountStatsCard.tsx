@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Activity, Database, Globe, HardDrive, Loader2, Mail, Network } from 'lucide-react';
 import { fetchHostingStatsAction, type HostingStats } from '@/app/dashboard/services/[id]/hosting-stats-actions';
 import { liczba } from '@/lib/liczba';
+import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 
 function fmtMb(mb: number): string {
   if (mb >= 1024 * 1024) return `${liczba(mb / 1024 / 1024, 2)} TB`;
@@ -53,7 +54,7 @@ export default function AccountStatsCard({ serviceId }: { serviceId: string }) {
     <section className="rounded-[10px] border border-line bg-raised p-4">
       <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground"><Activity className="h-4 w-4 text-data-hi" /> Statystyki konta</h3>
       {data.fetchError ? (
-        <p className="mt-2 text-xs text-warn">{data.fetchError}</p>
+        <p className="mt-2 text-xs text-warn">{hostingFetchErrorMessage(data.fetchError)}</p>
       ) : (
         <>
           <div className="mt-3 grid gap-4 sm:grid-cols-2">

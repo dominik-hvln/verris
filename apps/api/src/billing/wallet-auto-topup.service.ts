@@ -9,6 +9,23 @@ import { walletAutoTopupFailedTemplate } from '../mail/templates/billing-lifecyc
 
 const COOLDOWN_MS = 60 * 60 * 1000;
 
+const POWODY_AUTODOLADOWANIA: [RegExp, string][] = [
+  [/insufficient.?funds|brak\w* środków/i, 'Na karcie brakuje środków.'],
+  [/expired|wygas/i, 'Karta wygasła.'],
+  [/3ds|authenticat|requires_action|autoryzacj/i, 'Karta wymaga dodatkowej autoryzacji (3DS) — zmień metodę płatności lub doładuj portfel ręcznie.'],
+  [/declin|do.not.honor|odrzuci/i, 'Bank odrzucił płatność kartą.'],
+  [/brak zapisanej karty|no such payment.?method/i, 'Brak zapisanej karty — ustaw domyślną metodę płatności.'],
+];
+
+/**
+ * Powód nieudanego auto-doładowania dla klienta (mail i panel). Surowy tekst od Stripe („No such PaymentMethod: pm_…”,
+ * `status=…`) zostaje w bazie i audycie — klient dostaje zdanie po polsku. Idempotentne: własne komunikaty też pasują.
+ */
+export function powodAutoDoladowania(raw: string | null | undefined): string {
+  const tekst = raw ?? '';
+  return POWODY_AUTODOLADOWANIA.find(([wzor]) => wzor.test(tekst))?.[1] ?? 'Nie udało się pobrać płatności z karty. Sprawdź kartę lub doładuj portfel ręcznie.';
+}
+
 @Injectable()
 export class WalletAutoTopupService {
   private readonly logger = new Logger(WalletAutoTopupService.name);
@@ -252,7 +269,7 @@ export class WalletAutoTopupService {
       const tpl = walletAutoTopupFailedTemplate({
         to: rule.user.email,
         firstName: rule.user.firstName,
-        reason: msg,
+        reason: powodAutoDoladowania(msg),
         topupAmountPln: rule.topupAmount.toFixed(2),
         panelUrl,
       });

@@ -14,7 +14,7 @@ import {
   type WebToolsState,
   type Redirect,
 } from '@/app/dashboard/services/[id]/hosting-webtools-actions';
-import { daErrorMessage } from '@/lib/client-hosting-messages';
+import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { Select } from '@/components/panel/select';
 import { potwierdz } from '@/components/panel/potwierdz';
 import { Checkbox } from '@/components/panel/checkbox';
@@ -123,7 +123,7 @@ export default function WebToolsTab({ serviceId }: { serviceId: string }) {
       title="Narzędzia WWW"
       description="Przekierowania, ochrona katalogów hasłem, ochrona przed hotlinkingiem i blokowanie adresów IP — zapisywane wprost do pliku .htaccess Twojej strony."
     >
-      {fetchError && <p className="mb-3 rounded-[7px] border border-warn/30 bg-warn-soft px-3 py-2 text-sm text-warn">{fetchError}</p>}
+      {fetchError && <p className="mb-3 rounded-[7px] border border-warn/30 bg-warn-soft px-3 py-2 text-sm text-warn">{hostingFetchErrorMessage(fetchError)}</p>}
 
       <UkladZBokiem bok={
         <>

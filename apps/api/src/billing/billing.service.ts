@@ -36,6 +36,7 @@ import {
 } from '../mail/templates/billing-lifecycle-notifications.js';
 import { rowsToCsv } from './csv.util.js';
 import { PromoService } from './promo.service.js';
+import { powodAutoDoladowania } from './wallet-auto-topup.service.js';
 import { EcoPointsService } from '../eco/eco-points.service.js';
 import {
   Decyzja,
@@ -1726,7 +1727,7 @@ export class BillingService {
 
     void this.notifyWalletAutoTopupFailed({
       userId,
-      reason: pi.last_payment_error?.message ?? 'payment_failed',
+      reason: powodAutoDoladowania(pi.last_payment_error?.message),
     }).catch((err) => {
       this.logger.warn(
         `handlePaymentIntentFailed: autotopup fail mail user=${userId}: ${err instanceof Error ? err.message : String(err)}`,

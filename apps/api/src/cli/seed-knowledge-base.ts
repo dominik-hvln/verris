@@ -84,7 +84,7 @@ W zakładce „Aplikacje" dostępne są też inne aplikacje 1-click (np. Nextclo
   {
     title: 'Tworzenie bazy danych MySQL',
     audience: AiKnowledgeAudience.ALL,
-    content: `Bazę MySQL utworzysz w panelu: Usługa → Bazy MySQL → formularz „Nowa baza danych" (nazwa, użytkownik, hasło). DirectAdmin doda prefiks konta do nazwy bazy i użytkownika (np. user_sklep).
+    content: `Bazę MySQL utworzysz w panelu: Usługa → Bazy MySQL → formularz „Nowa baza danych" (nazwa, użytkownik, hasło). Panel doda prefiks konta do nazwy bazy i użytkownika (np. user_sklep).
 
 Do połączenia z aplikacji użyj:
 - Host: localhost (dla aplikacji na tym samym koncie hostingowym),
@@ -284,7 +284,7 @@ Pliki strony znajdują się zwykle w katalogu domeny (np. domains/twojadomena.pl
 Do czego służy:
 - Szybkie odszukanie usługi, gdy masz ich kilka.
 - Podanie go w zgłoszeniu do wsparcia — dzięki niemu od razu wiemy, której usługi dotyczy sprawa.
-- Dla hostingu jest to jednocześnie login do panelu serwera (DirectAdmin) oraz prefiks nazw baz danych i kont (np. baza „domi3a8k_sklep").
+- Dla hostingu jest to jednocześnie nazwa konta hostingowego oraz prefiks nazw baz danych i kont (np. baza „domi3a8k_sklep").
 
 Identyfikatora nie trzeba nigdzie wpisywać samodzielnie — nadajemy go automatycznie przy zakupie usługi.`,
   },

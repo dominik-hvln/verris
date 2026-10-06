@@ -15,7 +15,7 @@ import {
   type AdditionalDomainRow,
   type DomainPointerRow,
 } from '@/app/dashboard/services/[id]/hosting-additional-domains-actions';
-import { daErrorMessage } from '@/lib/client-hosting-messages';
+import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { potwierdz } from '@/components/panel/potwierdz';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
 
@@ -110,7 +110,7 @@ export default function AdditionalDomains({ serviceId, onZmiana }: { serviceId: 
       {loading ? (
         <p className="mt-3 text-xs text-muted-foreground"><Loader2 className="inline h-3.5 w-3.5 animate-spin" /> Wczytywanie…</p>
       ) : fetchError ? (
-        <p className="mt-3 text-xs text-warn">{fetchError}</p>
+        <p className="mt-3 text-xs text-warn">{hostingFetchErrorMessage(fetchError)}</p>
       ) : rows.length === 0 ? (
         <p className="mt-3 text-xs text-muted-foreground">Brak domen na koncie.</p>
       ) : (

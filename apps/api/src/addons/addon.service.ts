@@ -170,9 +170,14 @@ export class AddonService {
 
     // Z-10: usługa z ciała żądania musi należeć do kupującego — inaczej zlecenie dla zespołu i wpis
     // w portfelu/fakturze wskazywałyby cudzą usługę.
+    let domenaUslugi: string | null = null;
     if (subscriptionId) {
-      const wlasna = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, select: { id: true } });
+      const wlasna = await this.prisma.subscription.findFirst({
+        where: { id: subscriptionId, userId },
+        select: { id: true, account: { select: { domain: true } } },
+      });
       if (!wlasna) throw new NotFoundException('Usługa nie istnieje.');
+      domenaUslugi = wlasna.account?.domain ?? null;
     }
 
     const klucz = this.kluczIdempotencji(userId, slug, subscriptionId, klientKey, Date.now());
@@ -227,9 +232,10 @@ export class AddonService {
       } else if (def.mode === 'workorder') {
         const ticket = await this.tickets.create(userId, {
           subject: `Dodatek: ${def.name}`,
-          message: `Klient wykupił dodatek „${def.name}". ${def.description}\n\nProszę o realizację${
-            subscriptionId ? ` (usługa: ${subscriptionId})` : ''
-          }.`,
+          // Klient widzi to zgłoszenie jako swoje — wiadomość automatyczna, bez identyfikatorów wewnętrznych.
+          message: `Przyjęliśmy zamówienie dodatku „${def.name}". ${def.description}${
+            domenaUslugi ? `\n\nUsługa: ${domenaUslugi}.` : ''
+          }\n\nVerris założył to zgłoszenie automatycznie po zakupie. Nic nie musisz robić — zespół zajmie się realizacją i napisze tu, gdy skończy.`,
           department: 'TECHNICAL',
           topic: 'OTHER',
           priority: 'HIGH',

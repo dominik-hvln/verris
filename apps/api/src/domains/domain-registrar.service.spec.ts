@@ -21,6 +21,25 @@ describe('DomainRegistrarService', () => {
 
   beforeEach(() => vi.clearAllMocks());
 
+  it('orders(): lastError dla klienta jest oczyszczony z surowego tekstu rejestratora/serwera', async () => {
+    const wiersz = (lastError: string | null) => ({ id: 'o1', domainName: 'a.pl', lastError });
+    const prismaZ = {
+      domainRegistrarOrder: {
+        findMany: vi.fn().mockResolvedValue([
+          wiersz('EPP 2400 DirectAdmin CMD_API_X failed at 10.0.0.5:2222'),
+          wiersz('Rejestr odrzucił transfer domeny.'),
+          wiersz(null),
+        ]),
+      },
+    };
+    const service = new DomainRegistrarService(prismaZ as never, audit as never, crypto as never, {} as never, wallet as never, config as never, nbpFx as never, ecoPoints as never, {} as never);
+    const wynik = await service.orders('user_1');
+    expect(wynik[0].lastError).toMatch(/nie powiodła się/);
+    expect(wynik[0].lastError).not.toMatch(/DirectAdmin|CMD_API|2222/);
+    expect(wynik[1].lastError).toBe('Rejestr odrzucił transfer domeny.');
+    expect(wynik[2].lastError).toBeNull();
+  });
+
   it('fails closed when registrar provider is not configured', async () => {
     const providerFactory = {
       get: vi.fn(() => {

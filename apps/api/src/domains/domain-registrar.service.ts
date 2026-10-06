@@ -10,6 +10,7 @@ import {
   WalletTxType,
 } from '@verris/database';
 import { createHash } from 'crypto';
+import { daErrorMessage } from '@verris/contracts';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { CryptoService } from '../common/crypto/crypto.service.js';
@@ -399,7 +400,7 @@ export class DomainRegistrarService {
   }
 
   async orders(userId: string) {
-    return this.prisma.domainRegistrarOrder.findMany({
+    const zamowienia = await this.prisma.domainRegistrarOrder.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: 50,
@@ -419,6 +420,8 @@ export class DomainRegistrarService {
         completedAt: true,
       },
     });
+    // `lastError` to surowy tekst od rejestratora/portfela — klient dostaje wersję oczyszczoną; surowy zostaje w bazie i audycie.
+    return zamowienia.map((z) => ({ ...z, lastError: z.lastError ? daErrorMessage(z.lastError) : null }));
   }
 
   /** A-10 — cena odnowienia przed potwierdzeniem (klient widzi kwotę, zanim portfel zostanie obciążony). */

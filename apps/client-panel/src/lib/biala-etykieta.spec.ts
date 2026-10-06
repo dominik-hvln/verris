@@ -14,7 +14,6 @@ const WYJATKI = new Set([
   'app/dashboard/migrations/migration-wizard.tsx',
   'app/dashboard/migrations/actions.ts',
   'app/dashboard/migrations/types.ts',
-  'lib/client-hosting-messages.ts',
 ]);
 
 const PANEL_SERWERA = /DirectAdmin|CustomBuild|CMD_API|\b2222\b/i;
