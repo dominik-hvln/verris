@@ -32,14 +32,14 @@ export const DOMYSLNE_AUTO: Record<RodzajAuto, UstawienieAuto & { nazwa: string;
     tytul: 'Otrzymaliśmy Twoje zgłoszenie',
     wlaczone: true,
     tresc:
-      'Dzień dobry, otrzymaliśmy zgłoszenie #{{nr}} „{{temat}}”. Zajmie się nim {{opiekun}} — odpowiemy najpóźniej {{termin}}. O każdej zmianie napiszemy e-mailem, nie musisz sprawdzać panelu.',
+      'Dzień dobry, otrzymaliśmy zgłoszenie #{{nr}} „{{temat}}”. Zajmie się nim {{opiekun}} — odpowiemy {{termin}}. O każdej zmianie napiszemy e-mailem, nie musisz sprawdzać panelu.',
   },
   ZAJMUJE_SIE: {
     nazwa: '„Opiekun się tym zajmuje”',
     kiedy: 'Gdy opiekun pierwszy raz otworzy zgłoszenie albo zmieni stan na „W realizacji”.',
     tytul: 'Zajmujemy się Twoim zgłoszeniem',
     wlaczone: true,
-    tresc: '{{opiekun}} przeczytał(a) zgłoszenie #{{nr}} i już nad nim pracuje. Odezwiemy się najpóźniej {{termin}}.',
+    tresc: 'Zgłoszeniem #{{nr}} zajmuje się już {{opiekun}}. Odezwiemy się {{termin}}.',
   },
   WCIAZ_PRACUJEMY: {
     nazwa: '„Wciąż nad tym pracujemy”',
@@ -55,9 +55,19 @@ export const DOMYSLNE_AUTO: Record<RodzajAuto, UstawienieAuto & { nazwa: string;
     tytul: 'Dziękujemy za kontakt',
     wlaczone: true,
     tresc:
-      'Dziękujemy za kontakt! Zgłoszenie #{{nr}} oznaczyliśmy jako rozwiązane. Oceń proszę pomoc ({{opiekun}} i obsługę ogólnie) — to zajmie 10 sekund: {{link}}. Jeśli coś jest nie tak, otworzysz zgłoszenie ponownie jednym kliknięciem.',
+      'Dziękujemy za kontakt! Zgłoszenie #{{nr}} oznaczyliśmy jako rozwiązane. Oceń proszę pomoc ({{opiekun}} i obsługę ogólnie) — to zajmie 10 sekund, ocenę znajdziesz poniżej. Jeśli coś jest nie tak, otworzysz zgłoszenie ponownie jednym kliknięciem.',
   },
 };
+
+/**
+ * Domyślne treści sprzed 06.10. Zapis w panelu admina utrwala wszystkie cztery wiadomości, także nieruszone —
+ * taka zapisana „stara domyślna” to nie nadpisanie, więc dostaje bieżącą domyślną.
+ */
+const STARE_DOMYSLNE = new Set([
+  'Dzień dobry, otrzymaliśmy zgłoszenie #{{nr}} „{{temat}}”. Zajmie się nim {{opiekun}} — odpowiemy najpóźniej {{termin}}. O każdej zmianie napiszemy e-mailem, nie musisz sprawdzać panelu.',
+  '{{opiekun}} przeczytał(a) zgłoszenie #{{nr}} i już nad nim pracuje. Odezwiemy się najpóźniej {{termin}}.',
+  'Dziękujemy za kontakt! Zgłoszenie #{{nr}} oznaczyliśmy jako rozwiązane. Oceń proszę pomoc ({{opiekun}} i obsługę ogólnie) — to zajmie 10 sekund: {{link}}. Jeśli coś jest nie tak, otworzysz zgłoszenie ponownie jednym kliknięciem.',
+]);
 
 const KLUCZ = 'support.autoWiadomosci';
 const DOBA_MS = 24 * 60 * 60 * 1000;
@@ -71,10 +81,11 @@ export function godzinySla(priority: string): number {
 const fmt = new Intl.DateTimeFormat('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' });
 const fmtDzien = new Intl.DateTimeFormat('pl-PL', { timeZone: 'Europe/Warsaw', day: '2-digit', month: '2-digit' });
 
+/** „najpóźniej dziś do 14:00” / „najpóźniej 07.10 do 09:00”; bez terminu (albo po terminie) — „jak najszybciej”. */
 export function terminSlownie(d: Date | null | undefined, teraz = new Date()): string {
-  if (!d) return 'jak najszybciej';
+  if (!d || d <= teraz) return 'jak najszybciej';
   const dzien = fmtDzien.format(d);
-  return dzien === fmtDzien.format(teraz) ? `dziś do ${fmt.format(d)}` : `${dzien} do ${fmt.format(d)}`;
+  return `najpóźniej ${dzien === fmtDzien.format(teraz) ? 'dziś' : dzien} do ${fmt.format(d)}`;
 }
 
 export function opiekunSlownie(u: { firstName: string | null; lastName: string | null } | null | undefined): string {
@@ -112,7 +123,10 @@ export class OpiekaZgloszenService {
     return Object.fromEntries(
       RODZAJE_AUTO.map((r) => [
         r,
-        { wlaczone: zapis[r]?.wlaczone ?? DOMYSLNE_AUTO[r].wlaczone, tresc: zapis[r]?.tresc || DOMYSLNE_AUTO[r].tresc },
+        {
+          wlaczone: zapis[r]?.wlaczone ?? DOMYSLNE_AUTO[r].wlaczone,
+          tresc: zapis[r]?.tresc && !STARE_DOMYSLNE.has(zapis[r].tresc) ? zapis[r].tresc : DOMYSLNE_AUTO[r].tresc,
+        },
       ]),
     ) as Record<RodzajAuto, UstawienieAuto>;
   }
@@ -184,11 +198,14 @@ export class OpiekaZgloszenService {
       nr: t.id.slice(0, 8),
       temat: t.subject,
       opiekun: opiekunSlownie(t.assignedTo),
-      termin: terminSlownie(t.slaResponseDueAt && t.slaResponseDueAt > new Date() ? t.slaResponseDueAt : null),
+      termin: terminSlownie(t.slaResponseDueAt),
       imie: t.user.firstName ? ` ${t.user.firstName}` : '',
       link,
     };
-    const tresc = u.tresc.replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (m, k: string) => wartosci[k as keyof typeof wartosci] ?? m);
+    // „najpóźniej” daje teraz `terminSlownie` — własne treści z „najpóźniej {{termin}}” nie dostaną go podwójnie.
+    const tresc = u.tresc
+      .replace(/najpóźniej\s+(\{\{\s*termin\s*\}\})/gi, '$1')
+      .replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (m, k: string) => wartosci[k as keyof typeof wartosci] ?? m);
 
     await this.prisma.ticketReply.create({
       data: { ticketId, message: tresc, isStaff: true, automatic: rodzaj, authorId: t.assignedToId ?? t.userId },

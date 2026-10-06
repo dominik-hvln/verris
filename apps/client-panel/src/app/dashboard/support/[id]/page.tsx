@@ -6,6 +6,7 @@ import { ChevronLeft, Clock, CheckCircle2, Sparkles } from "lucide-react";
 import { StatusPill } from "@/components/panel/v2";
 import { fetchTicketDetail } from "../actions";
 import ClientTicketChat from "./client-ticket-chat";
+import { stanZgloszenia } from "../stan";
 import { TicketCsat } from "./ticket-csat";
 
 export const dynamic = "force-dynamic";
@@ -144,7 +145,7 @@ function SlaBadge({
     return (
       <p className="flex items-center gap-2 text-[13.5px] text-data-hi">
         <CheckCircle2 className="h-4 w-4 shrink-0" />
-        Odpowiedzieliśmy — w Twoim planie pierwsza odpowiedź jest do {slaHours} h.
+        Odpowiedzieliśmy — czas pierwszej odpowiedzi z Twojego planu to {slaHours} h.
       </p>
     );
   }
@@ -156,10 +157,10 @@ function SlaBadge({
     <p className={`flex items-start gap-2 text-[13.5px] leading-[1.5] ${overdue ? "text-warn" : ""}`}>
       <Clock className="mt-0.5 h-4 w-4 shrink-0" />
       {overdue ? (
-        <span>Przekraczamy gwarantowany czas odpowiedzi ({slaHours} h) — Twoje zgłoszenie ma pierwszeństwo.</span>
+        <span>Przekraczamy czas pierwszej odpowiedzi z Twojego planu ({slaHours} h) — Twoje zgłoszenie ma pierwszeństwo.</span>
       ) : (
         <span>
-          Odpowiadamy najpóźniej w <b>{slaHours} h</b> w Twoim planie{due ? ` (do ${format(due, "d MMM, HH:mm", { locale: pl })})` : ""}.
+          Czas pierwszej odpowiedzi z Twojego planu to <b>{slaHours} h</b>{due ? ` — odpowiemy najpóźniej ${format(due, "d MMM, HH:mm", { locale: pl })}` : ""}.
         </span>
       )}
     </p>
@@ -188,8 +189,6 @@ function PriorityBadge({ priority }: { priority?: string }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  if (status === "OPEN") return <StatusPill tone="data">Przyjęte — czeka na odpowiedź</StatusPill>;
-  if (status === "IN_PROGRESS") return <StatusPill tone="data">Rozpatrujemy</StatusPill>;
-  if (status === "WAITING_CUSTOMER") return <StatusPill tone="warn">Czekamy na Twoją odpowiedź</StatusPill>;
-  return <StatusPill tone="muted">Zamknięte</StatusPill>;
+  const st = stanZgloszenia(status);
+  return <StatusPill tone={st.tone}>{st.label}</StatusPill>;
 }

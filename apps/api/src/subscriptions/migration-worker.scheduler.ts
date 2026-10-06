@@ -142,7 +142,7 @@ export class MigrationWorkerScheduler {
           to: row.subscription.user.email,
           subject: ok
             ? `Migracja zakończona sukcesem — ${row.subscription.account?.domain ?? row.targetDomain ?? '—'}`
-            : `Migracja zakończona błędem — wymaga uwagi`,
+            : `Migracja zatrzymana — ${row.targetDomain ?? row.subscription.account?.domain ?? '—'}`,
           ...(ok
             ? this.buildSuccessMail(row.subscription.user.email, row, row.subscription.user.firstName)
             : this.buildFailureMail(row.subscription.user.email, row, row.subscription.user.firstName)),
@@ -278,27 +278,27 @@ export class MigrationWorkerScheduler {
         [
           `- **Pliki:** ${req.filesTransferred} (${formatBytes(req.bytesTransferred)})`,
           `- **Bazy danych:** ${req.databasesMigrated}`,
-          `- **Skrzynki IMAP:** ${req.mailboxesMigrated}`,
+          `- **Skrzynki pocztowe:** ${req.mailboxesMigrated}`,
         ].join('\n'),
         '## Ostatni krok: przełączenie DNS',
-        'W zakładce Migracje znajdziesz gotowe rekordy do ustawienia (albo automatyczne potwierdzenie, jeśli domena jest już delegowana na nasze serwery nazw). Przed przełączeniem możesz jednym kliknięciem dograć różnice (delta-sync plików i poczty).',
+        'W zakładce Migracje znajdziesz gotowe wpisy DNS do ustawienia u dostawcy domeny (a jeśli domena korzysta już z naszego DNS — automatyczne potwierdzenie). Przed przełączeniem możesz jednym kliknięciem dograć pliki i wiadomości, które pojawiły się po skopiowaniu strony.',
         'Sprawdź proszę poprawność działania strony i zgłoś nam wszelkie nieprawidłowości w ciągu 7 dni.',
       ],
     });
   }
 
+  /** Bez `lastError` — surowy komunikat (np. „rc=23”) nic klientowi nie mówi; szczegóły opisze opiekun w zgłoszeniu. */
   private buildFailureMail(
     to: string,
-    req: { id: string; lastError: string | null; targetDomain: string | null },
+    req: { id: string; targetDomain: string | null },
     firstName: string | null,
   ) {
     return this.mailMigracji(to, firstName, {
       title: 'Migracja zatrzymana',
-      preheader: 'Twoja stara strona działa bez przerwy — wsparcie odezwie się w zgłoszeniu.',
+      preheader: 'Twoja strona działa dalej u poprzedniego dostawcy. Szczegóły opisze opiekun w zgłoszeniu.',
       akapity: [
-        `Niestety migracja **${escapeMarkdown(req.targetDomain ?? '')}** została zatrzymana z powodu błędu po stronie źródła:`,
-        req.lastError ? escapeMarkdown(req.lastError) : 'Operator wsparcia opisze szczegóły w zgłoszeniu.',
-        'Wsparcie odezwie się do Ciebie w zgłoszeniu najpóźniej w ciągu kilku godzin. Twoja stara strona nadal działa bez przerwy.',
+        `Przenoszenie strony **${escapeMarkdown(req.targetDomain ?? '')}** zatrzymało się. Twoja strona działa dalej u poprzedniego dostawcy.`,
+        'Szczegóły i dalsze kroki opisze opiekun w zgłoszeniu w panelu.',
       ],
     });
   }

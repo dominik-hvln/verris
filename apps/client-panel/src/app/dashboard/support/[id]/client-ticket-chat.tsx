@@ -115,7 +115,7 @@ export default function ClientTicketChat({ ticket }: { ticket: TicketDetail }) {
       // setTimeout na scroll to bottom on refresh
       setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: "smooth" }), 300);
       toast.success("Odpowiedź została wysłana", {
-        description: "Przekazano informację do administracji.",
+        description: "Opiekun dostał Twoją wiadomość.",
       });
     }
   };
@@ -206,8 +206,8 @@ export default function ClientTicketChat({ ticket }: { ticket: TicketDetail }) {
             onChange={(e) => setReplyText(e.target.value)}
             placeholder={
               ticket.status === "CLOSED"
-                ? "Zgłoszenie jest rozwiązane. Wpisz tutaj treść i wyślij jeśli chcesz je ponowić..."
-                : "Napisz odpowiedź do administracji..."
+                ? "Zgłoszenie jest rozwiązane. Jeśli chcesz je otworzyć ponownie, napisz tutaj, co jeszcze nie działa."
+                : "Napisz odpowiedź do opiekuna…"
             }
             className="w-full min-h-[100px] resize-none rounded-xl border border-input bg-card px-4 py-3 pb-14 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/50 disabled:cursor-not-allowed disabled:opacity-50 pr-14 scrollbar-hide"
             disabled={submitting}

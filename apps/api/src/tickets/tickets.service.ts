@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import {
+  STAN_ZGLOSZENIA_KLIENT,
   newTicketCreatedTemplate,
   ticketReplyNotificationTemplate,
   ticketStatusChangedTemplate,
@@ -29,7 +30,7 @@ import { AuditService } from '../common/audit/audit.service.js';
 import { TicketOpsActions } from '../common/audit/audit.actions.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import type { Readable } from 'stream';
-import { OpiekaZgloszenService, opiekunSlownie } from './opieka-zgloszen.service.js';
+import { OpiekaZgloszenService, opiekunSlownie, terminSlownie } from './opieka-zgloszen.service.js';
 
 @Injectable()
 export class TicketsService {
@@ -170,6 +171,7 @@ export class TicketsService {
             subject: row.subject,
             customerEmail: row.user.email,
             panelUrl: clientUrl,
+            termin: terminSlownie(row.slaResponseDueAt),
           }),
           category: 'TRANSACTIONAL',
           fromRole: 'SUPPORT',
@@ -540,12 +542,8 @@ export class TicketsService {
       existing.user.email
     ) {
       const clientUrl = this.config.get<string>('clientPanelUrl') ?? 'http://localhost:3001';
-      const statusLabel: Record<string, string> = {
-        OPEN: 'Otwarte',
-        IN_PROGRESS: 'W realizacji',
-        CLOSED: 'Zamknięte',
-      };
-      const newLabel = statusLabel[dto.status] ?? dto.status;
+      // Jeden słownik stanów klienta (jak w panelu klienta) — bez niego „czeka na klienta” szło jako surowe `WAITING_CUSTOMER`.
+      const newLabel = STAN_ZGLOSZENIA_KLIENT[dto.status] ?? dto.status;
 
       void this.mailer
         .send({

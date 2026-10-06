@@ -930,10 +930,7 @@ export class MigrationOrchestratorService {
       // Treść widzi klient jako swoją wiadomość: bez powodu technicznego (jest w kolejce migracji staff).
       const ticket = await this.tickets.create(request.userId, {
         subject: `Przeniesienie strony ${domain} dokończy nasz zespół`,
-        message: [
-          `Zgłoszenie utworzone automatycznie: przeniesienie strony ${domain} (#${request.id.slice(0, 8)})`,
-          'zatrzymało się i dokończymy je ręcznie. Nic nie musisz robić — napiszemy, gdy skończymy.',
-        ].join('\n'),
+        message: `Przenoszenie strony ${domain} zatrzymało się — Verris założył to zgłoszenie automatycznie, żeby zespół dokończył je ręcznie. Nic nie musisz robić, napiszemy tu, gdy skończymy.`,
         department: 'TECHNICAL',
         priority: 'URGENT',
       });

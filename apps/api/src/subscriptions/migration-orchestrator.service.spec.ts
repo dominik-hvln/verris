@@ -579,6 +579,8 @@ describe('MigrationOrchestratorService', () => {
     expect(tickets.create).toHaveBeenCalledWith('user_1', expect.objectContaining({ priority: 'URGENT', department: 'TECHNICAL' }));
     const zgloszenie = tickets.create.mock.calls[0][1] as { subject: string; message: string };
     expect(`${zgloszenie.subject}\n${zgloszenie.message}`).not.toMatch(/invalid credentials|staff|Sekret|PILNE/);
+    // Pierwsza wiadomość wątku podpisana „Ty” — mówi wprost, kto ją założył.
+    expect(zgloszenie.message).toContain('Verris założył to zgłoszenie automatycznie');
     expect(prisma.migrationRequest.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'mig_1' },

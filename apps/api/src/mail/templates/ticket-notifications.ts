@@ -1,6 +1,14 @@
 import type { MailMessage } from '../mailer.interface.js';
 import { escapeMarkdown, renderEmailShell } from './_layouts/email-shell.js';
 
+/** Stany zgłoszenia tak, jak widzi je klient (maile; ten sam słownik ma panel klienta w `support/stan.ts`). */
+export const STAN_ZGLOSZENIA_KLIENT: Record<string, string> = {
+  OPEN: 'Przyjęte',
+  IN_PROGRESS: 'W toku',
+  WAITING_CUSTOMER: 'Czekamy na Ciebie',
+  CLOSED: 'Rozwiązane',
+};
+
 export interface TicketContext {
   ticketId: string;
   subject: string;
@@ -8,24 +16,29 @@ export interface TicketContext {
   panelUrl: string;
 }
 
-export function newTicketCreatedTemplate(ctx: TicketContext): MailMessage {
+/**
+ * `termin` — słownie z `terminSlownie()` (np. „najpóźniej dziś do 14:00”); bez niego nie obiecujemy liczby godzin,
+ * bo SLA zależy od priorytetu (1/4/12/24 h) i nic nie pilnuje „1 godziny roboczej”.
+ */
+export function newTicketCreatedTemplate(ctx: TicketContext & { termin?: string }): MailMessage {
   const shortId = ctx.ticketId.slice(0, 8);
   const ticketUrl = `${ctx.panelUrl}/dashboard/support/${ctx.ticketId}`;
   const safeSubject = escapeMarkdown(ctx.subject);
+  const kiedy = ctx.termin ? `Odpowiemy ${ctx.termin}.` : 'Odpowiemy tak szybko, jak to możliwe.';
 
   const { html, text } = renderEmailShell({
     title: 'Otrzymaliśmy Twoje zgłoszenie',
-    preheader: `Sprawa #${shortId} jest już w obsłudze — odpowiedź w ciągu 1h roboczej.`,
+    preheader: `Sprawa #${shortId} jest już u nas. ${kiedy}`,
     bodyMarkdown: [
-      `Cześć!`,
+      `Dzień dobry,`,
       ``,
-      `Twoje zgłoszenie **#${shortId}** trafiło do naszego zespołu wsparcia i zaczynamy nad nim pracować.`,
+      `Twoje zgłoszenie **#${shortId}** trafiło do opiekuna i zaczynamy nad nim pracować.`,
       ``,
       `## Tytuł zgłoszenia`,
       ``,
       safeSubject,
       ``,
-      `Standardowy czas pierwszej odpowiedzi to **1 godzina robocza**. Jeśli sprawa jest pilna, zaznacz to w wątku — przyspieszymy.`,
+      `${kiedy} Jeśli sprawa jest pilna, napisz to w zgłoszeniu.`,
     ].join('\n'),
     cta: {
       label: 'Zobacz status zgłoszenia',
@@ -64,19 +77,19 @@ export function ticketReplyNotificationTemplate(ctx: TicketReplyContext): MailMe
     : `${ctx.staffPanelUrl ?? ctx.panelUrl}/tickets/${ctx.ticketId}`;
   const safeSubject = escapeMarkdown(ctx.subject);
   const excerpt = escapeMarkdown(ctx.excerpt.slice(0, 500));
-  const title = ctx.isFromStaff ? 'Nowa odpowiedź od supportu' : 'Nowa wiadomość od klienta';
+  const title = ctx.isFromStaff ? 'Nowa odpowiedź od opiekuna' : 'Nowa wiadomość od klienta';
   const preheader = ctx.isFromStaff
-    ? `Support odpowiedział w sprawie #${shortId}.`
+    ? `Opiekun odpowiedział w sprawie #${shortId}.`
     : `Klient dopisał w sprawie #${shortId}.`;
 
   const { html, text } = renderEmailShell({
     title,
     preheader,
     bodyMarkdown: [
-      `Cześć!`,
+      `Dzień dobry,`,
       ``,
       ctx.isFromStaff
-        ? `Nasz zespół odpowiedział w zgłoszeniu **"${safeSubject}"** (#${shortId}).`
+        ? `Opiekun odpowiedział w zgłoszeniu **"${safeSubject}"** (#${shortId}).`
         : `Klient dopisał w zgłoszeniu **"${safeSubject}"** (#${shortId}).`,
       ``,
       `> ${excerpt}${ctx.excerpt.length > 500 ? '…' : ''}`,
@@ -90,7 +103,7 @@ export function ticketReplyNotificationTemplate(ctx: TicketReplyContext): MailMe
   return {
     to: ctx.to,
     tag: ctx.isFromStaff ? 'ticket.reply.staff' : 'ticket.reply.client',
-    subject: `[#${shortId}] ${ctx.isFromStaff ? 'Odpowiedź supportu' : 'Nowa wiadomość'}: ${ctx.subject}`,
+    subject: `[#${shortId}] ${ctx.isFromStaff ? 'Odpowiedź opiekuna' : 'Nowa wiadomość'}: ${ctx.subject}`,
     text,
     html,
   };
@@ -108,11 +121,11 @@ export function ticketStatusChangedTemplate(
     title: 'Status Twojego zgłoszenia się zmienił',
     preheader: `Sprawa #${shortId} została zaktualizowana — sprawdź szczegóły.`,
     bodyMarkdown: [
-      `Cześć!`,
+      `Dzień dobry,`,
       ``,
-      `Status zgłoszenia "${safeSubject}" (#${shortId}) zmienił się na: **${safeStatus}**.`,
+      `Stan zgłoszenia "${safeSubject}" (#${shortId}) zmienił się na: **${safeStatus}**.`,
       ``,
-      `Pełny przebieg konwersacji oraz ewentualne pliki dołączone przez nasz zespół znajdziesz w panelu.`,
+      `Całą rozmowę i pliki od opiekuna znajdziesz w panelu.`,
     ].join('\n'),
     cta: {
       label: 'Otwórz zgłoszenie',
@@ -221,11 +234,11 @@ export function ticketCustomerReminderTemplate(
     title: 'Czekamy na Twoją odpowiedź',
     preheader: `Sprawa #${shortId} czeka na Twoją odpowiedź.`,
     bodyMarkdown: [
-      `Cześć!`,
+      `Dzień dobry,`,
       ``,
-      `W zgłoszeniu **"${safeSubject}"** (#${shortId}) czekamy na Twoją odpowiedź, żeby móc kontynuować.`,
+      `W zgłoszeniu **"${safeSubject}"** (#${shortId}) czekamy na Twoją odpowiedź, żeby móc działać dalej.`,
       ``,
-      `Jeśli sprawa jest już nieaktualna, nic nie musisz robić — zgłoszenie zamknie się automatycznie za **${ctx.closeInDays} dni**. Aby kontynuować, wystarczy odpowiedzieć w panelu.`,
+      `Jeśli sprawa jest już nieaktualna, nic nie musisz robić — zgłoszenie zamknie się samo za **${ctx.closeInDays} ${ctx.closeInDays === 1 ? 'dzień' : 'dni'}**. Wystarczy odpowiedzieć w panelu, a zajmiemy się nim dalej.`,
     ].join('\n'),
     cta: { label: 'Odpowiedz w panelu', url: ticketUrl },
     recipientEmail: ctx.customerEmail,
@@ -252,7 +265,7 @@ export function ticketAutoClosedTemplate(ctx: TicketContext): MailMessage {
     title: 'Zgłoszenie zamknięte',
     preheader: `Sprawa #${shortId} została zamknięta po braku odpowiedzi.`,
     bodyMarkdown: [
-      `Cześć!`,
+      `Dzień dobry,`,
       ``,
       `Zgłoszenie **"${safeSubject}"** (#${shortId}) zostało zamknięte automatycznie, ponieważ nie otrzymaliśmy odpowiedzi.`,
       ``,

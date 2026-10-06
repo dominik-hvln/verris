@@ -7,18 +7,13 @@ import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { Plus } from "lucide-react";
 import { fetchTickets, type TicketSummary } from "./actions";
+import { stanZgloszenia } from "./stan";
 import { PageHeaderRow } from "@/components/panel";
 import { Kpi, KpiStrip, SectionHead } from "@/components/panel/v2";
 
 const TH = "whitespace-nowrap px-3 pb-2.5 pt-3 text-left font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground";
 const TD = "border-t border-line px-3 py-[11px] align-middle";
 
-/** Stan zgłoszenia: kropka + słowo (jak we wzorcu). Czekamy na klienta = ostrzeżenie. */
-const STATUS: Record<string, { label: string; tone: "data" | "warn" | "muted" }> = {
-  OPEN: { label: "przyjęte", tone: "data" },
-  IN_PROGRESS: { label: "w toku", tone: "data" },
-  WAITING_CUSTOMER: { label: "czekamy na Ciebie", tone: "warn" },
-};
 
 export default function SupportPage() {
   const router = useRouter();
@@ -35,7 +30,7 @@ export default function SupportPage() {
 
   // Awaria ≠ „nie masz zgłoszeń”: liczniki pokazują „—”, lista mówi, co się stało (X-39).
   const count = (pred: (t: TicketSummary) => boolean) => (loading ? "…" : blad ? "—" : tickets.filter(pred).length);
-  const open = (t: TicketSummary) => t.status in STATUS;
+  const open = (t: TicketSummary) => t.status !== "CLOSED";
 
   return (
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
@@ -101,7 +96,7 @@ export default function SupportPage() {
               </thead>
               <tbody>
                 {tickets.map((t) => {
-                  const st = STATUS[t.status] ?? { label: "rozwiązane", tone: "muted" as const };
+                  const st = stanZgloszenia(t.status);
                   return (
                     <tr
                       key={t.id}
