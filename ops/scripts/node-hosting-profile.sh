@@ -2222,15 +2222,28 @@ ErrorDocument 503 $url/503.html
     log_fail "Strony błędów: w $dir jest nazwa producenta serwera"
     return 0
   fi
-  # Efekt u klienta: serwer WWW lokalnie, domena hostowana z DA (pierwsza z domains.list), losowa ścieżka.
-  domena="${VERRIS_ERR_DOMAIN:-$(awk 'NF { print; exit }' "$users"/*/domains.list 2>/dev/null || true)}"
+  # Efekt u klienta: domena hostowana z DA (pierwsza z domains.list) na adresie IP jej konta, losowa ścieżka.
+  # Vhosty DA są przypięte do IP konta (<VirtualHost |IP|:|PORT_443|> w szablonach,
+  # https://docs.directadmin.com/webservices/apache/customizing.html) — zapytanie na 127.0.0.1 trafia
+  # w domyślny vhost serwera i daje jego 404 (t1 06.10: fałszywy FAIL, a strona klienta pokazywała Verris).
+  local uc ip=""
+  domena="${VERRIS_ERR_DOMAIN:-}"
+  for uc in "$users"/*/user.conf; do
+    [ -f "$uc" ] || continue
+    [ -n "$domena" ] || domena="$(awk 'NF { print; exit }' "${uc%/user.conf}/domains.list" 2>/dev/null || true)"
+    [ -n "$domena" ] || continue
+    grep -qxF "$domena" "${uc%/user.conf}/domains.list" 2>/dev/null || continue
+    ip="$(sed -n 's/^ip=//p' "$uc" | head -n1)"
+    break
+  done
+  ip="${ip:-127.0.0.1}"
   if [ -z "$domena" ]; then
     log_warn "Strony błędów: brak domeny hostowanej do sprawdzenia efektu — ErrorDocument w $vh niesprawdzony"
     return 0
   fi
   for i in 1 2 3 4 5; do
     # Po rewrite_confs LiteSpeed się restartuje — kilka prób, zanim uznamy brak efektu.
-    odp="$(curl -sk -m 10 --resolve "$domena:443:127.0.0.1" -w '\n%{http_code}' \
+    odp="$(curl -sk -m 10 --resolve "$domena:443:$ip" -w '\n%{http_code}' \
       "https://$domena/verris-sprawdz-404-$RANDOM$RANDOM" 2>/dev/null || true)"
     if [ "${odp##*$'\n'}" = "404" ] && grep -q 'verris-error-page' <<<"$odp"; then
       log_ok "Strony błędów Verris 403/404/500/503 — https://$domena/<brak> zwraca 404 ze stroną Verris"

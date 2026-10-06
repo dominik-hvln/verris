@@ -23,6 +23,8 @@ function wezel(opcje: { budowaDziala?: boolean; domeny?: string } = {}) {
   const k = mkdtempSync(join(tmpdir(), 'bledy-'));
   for (const d of ['extra', 'custom', 'cb', 'bin', 'users/admin']) mkdirSync(join(k, d), { recursive: true });
   writeFileSync(join(k, 'users/admin/domains.list'), domeny);
+  // Vhosty DA są przypięte do IP konta — t1 06.10: zapytanie na 127.0.0.1 dostawało 404 domyślnego vhosta serwera.
+  writeFileSync(join(k, 'users/admin/user.conf'), 'usertype=user\nip=2.28.204.249\n');
   // Stan po A3 (CacheRoot) i po pierwszej wersji (ErrorDocument w pliku globalnym) — cudza treść musi zostać.
   writeFileSync(
     join(k, 'extra/httpd-includes.conf'),
@@ -39,7 +41,7 @@ function wezel(opcje: { budowaDziala?: boolean; domeny?: string } = {}) {
   writeFileSync(
     join(k, 'bin/curl'),
     `#!/usr/bin/env bash\necho "curl $*" >> "${k}/curl.log"\n` +
-      `if grep -qx 'ErrorDocument 404 /verris-bledy/404.html' "${k}/vhost.conf" 2>/dev/null; then cat "${k}/www/verris-bledy/404.html"\n` +
+      `if [[ "$*" == *':443:2.28.204.249 '* ]] && grep -qx 'ErrorDocument 404 /verris-bledy/404.html' "${k}/vhost.conf" 2>/dev/null; then cat "${k}/www/verris-bledy/404.html"\n` +
       `else echo '<html><body><h1>404 Not Found</h1>Proudly powered by LiteSpeed Web Server</body></html>'; fi\nprintf '\\n404'\n`,
   );
   for (const p of ['lswsctrl', 'cb/build', 'bin/curl']) chmodSync(join(k, p), 0o755);
@@ -90,7 +92,7 @@ describe('Profil węzła — strony błędów serwera WWW bez nazwy producenta',
     expect(w.czytaj('build.log').trim()).toBe(`build rewrite_confs (${join(w.k, 'cb')})`);
     expect(w.czytaj('lsws.log')).toBe('');
     expect(w.czytaj('curl.log')).toMatch(
-      /--resolve d3\.hvln\.pl:443:127\.0\.0\.1 .*https:\/\/d3\.hvln\.pl\/verris-sprawdz-404-\d+/,
+      /--resolve d3\.hvln\.pl:443:2\.28\.204\.249 .*https:\/\/d3\.hvln\.pl\/verris-sprawdz-404-\d+/,
     );
     expect(wyjscie).toContain('[OK] Strony błędów Verris');
     expect(wyjscie).not.toContain('[FAIL]');
