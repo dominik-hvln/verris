@@ -2119,16 +2119,24 @@ configure_http3_firewall() {
 # -----------------------------------------------------------------------------
 # Strony błędów 403/404/500/503 dla wszystkich stron klientów (white label). Próba bety 06.10:
 # d3.hvln.pl/nieistniejacy-plik pokazywał domyślną stronę serwera z nazwą jego producenta.
-# - LiteSpeed obsługuje apache'owe ErrorDocument na poziomie serwera i w .htaccess
-#   (https://docs.litespeedtech.com/lsws/cp/cpanel/switch-apache/ → Custom Error Pages).
 # - Ścieżka lokalna, nie URL: przy URL serwer odsyła przekierowanie zamiast kodu 404/500
 #   (https://httpd.apache.org/docs/current/mod/core.html#errordocument; kontekst: server config … .htaccess).
-#   Alias do wspólnego katalogu — jak httpd-multilang-errordoc.conf (https://httpd.apache.org/docs/current/custom-error.html).
-# - Plik /etc/httpd/conf/extra/httpd-includes.conf: „will not be touched by CustomBuild or DirectAdmin”
-#   (https://docs.directadmin.com/webservices/apache/customizing.html) — przetrwa rewrite_confs i aktualizacje;
-#   ten sam plik, którego LiteSpeed używa dla CacheRoot (docs.litespeedtech.com/lsws/cp/directadmin/configuration/).
-# - ErrorDocument klienta w .htaccess (także z panelu, node-htaccess.sh) ma pierwszeństwo przed serwerowym.
-# Restart LiteSpeed tylko po zmianie bloku konfiguracji; same pliki HTML są statyczne.
+# - Alias do wspólnego katalogu w /etc/httpd/conf/extra/httpd-includes.conf — plik „never modified by
+#   CustomBuild or DirectAdmin” (https://docs.directadmin.com/webservices/apache/customizing.html);
+#   na t1 06.10 Alias z tego pliku działa w vhostach klientów.
+# - ErrorDocument NIE w httpd-includes.conf: LiteSpeed Enterprise (t1, 06.10) nie stosuje go w vhostach
+#   DirectAdmina — poprzednia wersja pisała go tam i meldowała [OK], a klient dalej widział stronę LiteSpeed.
+#   Teraz w globalnym tokenie vhostów data/templates/custom/cust_httpd.CUSTOM.4.pre: wg dokumentacji DA
+#   tokeny CUSTOM* są w virtual_host2.conf, _secure, _sub i _secure_sub (HTTP/HTTPS, domeny i poddomeny),
+#   „CUSTOM4 token is before the trailing </VirtualHost>”, a katalog templates/custom przetrwa aktualizacje
+#   (ten sam dokument, „Custom HTTPD templates: read order”). Plik cust_httpd.CUSTOM.N.pre wczytuje się PRZED
+#   własnym httpd domeny z panelu, więc tamten (później w vhoście) wygrywa. LiteSpeed czyta vhosty DA
+#   z takich szablonów (https://docs.litespeedtech.com/lsws/cp/directadmin/configuration/ — cust_httpd.CUSTOM.2.pre).
+# - Zastosowanie: ./build rewrite_confs („LiteSpeed Web Server will be restarted”, tamże) — tylko gdy zmienił się
+#   szablon; sama zmiana Aliasu → restart LiteSpeed.
+# - ErrorDocument klienta w .htaccess (także z panelu, node-htaccess.sh) ma pierwszeństwo przed vhostowym.
+# - [OK] tylko po sprawdzeniu efektu: lokalne zapytanie o nieistniejącą ścieżkę na domenie hostowanej
+#   musi dać 404 ze stroną Verris. Sam zapis plików niczego nie dowodzi.
 # -----------------------------------------------------------------------------
 verris_error_html() {
   cat <<VERRIS_BLAD
@@ -2164,18 +2172,22 @@ VERRIS_BLAD
 configure_error_pages() {
   echo "--- Strony błędów serwera WWW ---"
   local inc="${VERRIS_ERR_INC:-/etc/httpd/conf/extra/httpd-includes.conf}"
+  local vh="${VERRIS_ERR_VHOST:-/usr/local/directadmin/data/templates/custom/cust_httpd.CUSTOM.4.pre}"
   local dir="${VERRIS_ERR_DIR:-/var/www/html/verris-bledy}"
   local ctl="${VERRIS_LSWSCTRL:-/usr/local/lsws/bin/lswsctrl}"
-  local url=/verris-bledy kod tytul opis blok nowy
+  local build="${VERRIS_CB_BUILD:-${BUILD:-/usr/local/directadmin/custombuild/build}}"
+  local users="${VERRIS_DA_USERS:-/usr/local/directadmin/data/users}"
+  local url=/verris-bledy kod tytul opis blok domena odp i
+  local zm_inc=0 zm_vh=0
   if [ ! -f "$inc" ]; then
     log_skip "Brak $inc — pomijam strony błędów"
     return 0
   fi
   if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
-    log_info "dry-run: $dir/{403,404,500,503}.html + ErrorDocument w $inc"
+    log_info "dry-run: $dir/{403,404,500,503}.html + Alias w $inc + ErrorDocument w $vh"
     return 0
   fi
-  mkdir -p "$dir"
+  mkdir -p "$dir" "$(dirname "$vh")"
   while IFS='|' read -r kod tytul opis; do
     verris_error_html "$kod" "$tytul" "$opis" > "$dir/$kod.html"
   done <<'VERRIS_BLEDY'
@@ -2191,26 +2203,52 @@ Alias $url/ \"$dir/\"
   AllowOverride None
   Require all granted
 </Directory>
+# <<< verris-bledy"
+  verris_blok_w_pliku "$inc" "$blok" && zm_inc=1
+  blok="# >>> verris-bledy (node-hosting-profile.sh)
 ErrorDocument 403 $url/403.html
 ErrorDocument 404 $url/404.html
 ErrorDocument 500 $url/500.html
 ErrorDocument 503 $url/503.html
 # <<< verris-bledy"
-  nowy="$(sed '/^# >>> verris-bledy/,/^# <<< verris-bledy/d' "$inc")"
+  verris_blok_w_pliku "$vh" "$blok" && zm_vh=1
+  if [ "$zm_vh" = "1" ]; then
+    (cd "$(dirname "$build")" && "$build" rewrite_confs) >/dev/null 2>&1 \
+      || log_warn "Strony błędów: rewrite_confs zwrócił błąd ($build)"
+  elif [ "$zm_inc" = "1" ] && [ -x "$ctl" ]; then
+    "$ctl" restart >/dev/null 2>&1 || log_warn "LiteSpeed restart po zmianie stron błędów zwrócił błąd"
+  fi
+  if grep -qiE 'litespeed|apache|directadmin' "$dir"/*.html; then
+    log_fail "Strony błędów: w $dir jest nazwa producenta serwera"
+    return 0
+  fi
+  # Efekt u klienta: serwer WWW lokalnie, domena hostowana z DA (pierwsza z domains.list), losowa ścieżka.
+  domena="${VERRIS_ERR_DOMAIN:-$(awk 'NF { print; exit }' "$users"/*/domains.list 2>/dev/null || true)}"
+  if [ -z "$domena" ]; then
+    log_warn "Strony błędów: brak domeny hostowanej do sprawdzenia efektu — ErrorDocument w $vh niesprawdzony"
+    return 0
+  fi
+  for i in 1 2 3 4 5; do
+    # Po rewrite_confs LiteSpeed się restartuje — kilka prób, zanim uznamy brak efektu.
+    odp="$(curl -sk -m 10 --resolve "$domena:443:127.0.0.1" -w '\n%{http_code}' \
+      "https://$domena/verris-sprawdz-404-$RANDOM$RANDOM" 2>/dev/null || true)"
+    if [ "${odp##*$'\n'}" = "404" ] && grep -q 'verris-error-page' <<<"$odp"; then
+      log_ok "Strony błędów Verris 403/404/500/503 — https://$domena/<brak> zwraca 404 ze stroną Verris"
+      return 0
+    fi
+    [ "$i" = "5" ] || sleep "${VERRIS_ERR_WAIT:-2}"
+  done
+  log_fail "Strony błędów: https://$domena/<nieistniejąca ścieżka> zwraca kod ${odp##*$'\n'} bez strony Verris — serwer WWW nie stosuje ErrorDocument z $vh (czy rewrite_confs przebudował vhosty?)"
+}
+
+# Podmienia blok „# >>> verris-bledy … # <<< verris-bledy” w pliku, resztę zostawia. 0 = plik zmieniony.
+verris_blok_w_pliku() {
+  local plik="$1" blok="$2" nowy=""
+  [ -f "$plik" ] && nowy="$(sed '/^# >>> verris-bledy/,/^# <<< verris-bledy/d' "$plik")"
   nowy="${nowy:+$nowy
 }$blok"
-  if [ "$nowy" != "$(cat "$inc")" ]; then
-    printf '%s\n' "$nowy" > "$inc"
-    if [ -x "$ctl" ]; then
-      "$ctl" restart >/dev/null 2>&1 || log_warn "LiteSpeed restart po zmianie stron błędów zwrócił błąd"
-    fi
-  fi
-  if grep -qx "ErrorDocument 404 $url/404.html" "$inc" && grep -q 'verris-error-page' "$dir/404.html" \
-    && ! grep -qiE 'litespeed|apache|directadmin' "$dir"/*.html; then
-    log_ok "Strony błędów Verris 403/404/500/503 ($dir, ErrorDocument w $inc)"
-  else
-    log_fail "Strony błędów: brak ErrorDocument w $inc albo treści Verris w $dir"
-  fi
+  [ -f "$plik" ] && [ "$nowy" = "$(cat "$plik")" ] && return 1
+  printf '%s\n' "$nowy" > "$plik"
 }
 
 # -----------------------------------------------------------------------------
