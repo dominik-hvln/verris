@@ -455,6 +455,7 @@ export function rekordWalidacji(domain: string, dns: { record: string; value: st
 
 // --- PKCS#10 (CSR) na node:crypto — Node nie ma wbudowanego generatora CSR (RFC 2986) -----------------------
 const OID_CN = Buffer.from('0603550403', 'hex'); // 2.5.4.3 commonName
+const OID_C = Buffer.from('0603550406', 'hex'); // 2.5.4.6 countryName
 const SHA256_RSA = Buffer.from('300d06092a864886f70d01010b0500', 'hex'); // sha256WithRSAEncryption + NULL
 
 function der(tag: number, body: Buffer): Buffer {
@@ -466,7 +467,10 @@ function der(tag: number, body: Buffer): Buffer {
 /** Klucz RSA 2048 + CSR z samym CN (www dokłada wystawca przy certyfikacie na jedną domenę). */
 export function wygenerujCsr(commonName: string): { privateKeyPem: string; csr: string } {
   const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
-  const subject = der(0x30, der(0x31, der(0x30, Buffer.concat([OID_CN, der(0x0c, Buffer.from(commonName, 'utf8'))]))));
+  // C=PL obok CN: OpenProvider odrzuca CSR bez kraju („The CSR contains an invalid country code”, sandbox D3 06.10).
+  // Kraj operatora — certyfikat DV i tak nie zawiera danych klienta. countryName to PrintableString (RFC 5280, X520countryName).
+  const rdn = (oid: Buffer, wartosc: Buffer) => der(0x31, der(0x30, Buffer.concat([oid, wartosc])));
+  const subject = der(0x30, Buffer.concat([rdn(OID_C, der(0x13, Buffer.from('PL', 'ascii'))), rdn(OID_CN, der(0x0c, Buffer.from(commonName, 'utf8')))]));
   const info = der(
     0x30,
     Buffer.concat([Buffer.from([0x02, 0x01, 0x00]), subject, publicKey.export({ type: 'spki', format: 'der' }), Buffer.from([0xa0, 0x00])]),

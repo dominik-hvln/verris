@@ -52,6 +52,8 @@ describe('G-08 CSR i rekord weryfikacyjny', () => {
     writeFileSync(join(dir, 'r.csr'), wygenerujCsr('firma.pl').csr);
     const out = execFileSync('openssl', ['req', '-in', join(dir, 'r.csr'), '-noout', '-verify', '-subject'], { stdio: 'pipe' }).toString();
     expect(out).toMatch(/CN\s*=\s*firma\.pl/);
+    // OpenProvider wymaga kraju w CSR (sandbox D3 06.10: „invalid country code”).
+    expect(out).toMatch(/C\s*=\s*PL/);
   });
 
   it('rekord: hash → TXT na „@”, nazwa hosta → CNAME z kropką, podrzędna nazwa względnie', () => {
