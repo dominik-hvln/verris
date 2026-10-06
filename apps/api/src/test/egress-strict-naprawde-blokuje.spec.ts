@@ -44,6 +44,11 @@ interface Scena {
   zrzut?: string;
   /** Zawartość ioc-ips.txt. */
   ioc?: string;
+  /** SEC-06 --odswiez: zawartość egress-allow-hostnames.txt i odpowiedź atrapy `getent ahosts`. */
+  nazwy?: string;
+  getent?: Record<string, string[]>;
+  /** Zbiory allowlisty już istnieją (strict albo --allowlist działał wcześniej). */
+  zbioryAllow?: boolean;
 }
 
 function uruchom(s: Scena) {
@@ -57,7 +62,9 @@ function uruchom(s: Scena) {
   writeFileSync(wywolania, '');
   writeFileSync(
     zbiory,
-    (s.zmierzone === null ? '' : 'verris_egress_seen\n') + (s.zmierzone6 ? 'verris_egress_seen6\n' : ''),
+    (s.zmierzone === null ? '' : 'verris_egress_seen\n') +
+      (s.zmierzone6 ? 'verris_egress_seen6\n' : '') +
+      (s.zbioryAllow ? 'verris_egress_https\nverris_egress_https6\n' : ''),
   );
   writeFileSync(join(kat, 'zmierzone.txt'), (s.zmierzone ?? []).join('\n') + '\n');
   writeFileSync(join(kat, 'zmierzone6.txt'), (s.zmierzone6 ?? []).join('\n') + '\n');
@@ -65,7 +72,7 @@ function uruchom(s: Scena) {
   writeFileSync(przywrocone, '');
   writeFileSync(join(kat, 'allow.txt'), s.wAllowliscie.join('\n') + '\n');
   writeFileSync(join(sec, 'ioc-ips.txt'), s.ioc ?? '');
-  writeFileSync(join(sec, 'egress-allow-hostnames.txt'), '');
+  writeFileSync(join(sec, 'egress-allow-hostnames.txt'), s.nazwy ?? '');
   writeFileSync(join(sec, 'egress-allow-nets.txt'), '140.82.112.0/20\n');
   writeFileSync(
     join(sec, 'egress-allow-dns.txt'),
@@ -93,6 +100,12 @@ function uruchom(s: Scena) {
     chmodSync(join(bin, nazwa), 0o755);
   };
   atrapa('id', 'echo 0');
+  if (s.getent) {
+    const przypadki = Object.entries(s.getent)
+      .map(([n, a]) => `  ${n}) printf '%s STREAM ${'$'}3\\n' ${a.map((x) => `'${x}'`).join(' ')} ;;`)
+      .join('\n');
+    atrapa('getent', ['case "$2" in', przypadki, '  *) exit 2 ;;', 'esac'].join('\n'));
+  }
   atrapa('netfilter-persistent', 'exit 0');
   atrapa(
     'iptables',
@@ -554,5 +567,48 @@ describe('Restart hosta — verris-egress.service', () => {
     const kod = readFileSync(INSTALATOR, 'utf8');
     expect(kod).toContain('ops/systemd/verris-egress.service');
     expect(kod).toMatch(/systemctl enable verris-egress\.service/);
+  });
+});
+
+describe('SEC-06 — adresy usług za CDN dopisywane na bieżąco (--odswiez)', () => {
+  const scena = (z: Partial<Scena> = {}): Scena => ({
+    zmierzone: null,
+    wAllowliscie: ['140.82.121.33'],
+    pomiarOdDni: null,
+    argumenty: ['--odswiez'],
+    zbioryAllow: true,
+    ipv6: '1',
+    nazwy: '# komentarz\nghcr.io\ndownload.docker.com # repo apt\nnieistnieje.example\n',
+    getent: {
+      'ghcr.io': ['140.82.121.33'],
+      'download.docker.com': ['18.66.233.5', '2600:9000:28f7:6a00:3:db06:4200:93a1', '::ffff:18.66.233.5'],
+    },
+    ...z,
+  });
+
+  it('dopisuje nowe adresy v4 i v6 bez podmiany zbioru, znane pomija, nic nie blokuje', () => {
+    const r = uruchom(scena());
+    expect(r.kod).toBe(0);
+    const ipset = r.wywolania.filter((w) => w.startsWith('ipset add'));
+    expect(ipset).toEqual([
+      'ipset add verris_egress_https 18.66.233.5 -exist',
+      'ipset add verris_egress_https6 2600:9000:28f7:6a00:3:db06:4200:93a1 -exist',
+    ]);
+    expect(r.wywolania.some((w) => /ipset (swap|flush|destroy)|iptables -[AIF]/.test(w))).toBe(false);
+    expect(r.wyjscie).toContain('Odświeżenie: 2 nowych adresów');
+  });
+
+  it('bez zbiorów allowlisty niczego nie tworzy (strict nieaktywny)', () => {
+    const r = uruchom(scena({ zbioryAllow: false }));
+    expect(r.kod).toBe(0);
+    expect(r.wywolania.filter((w) => /^ipset (add|create)/.test(w))).toEqual([]);
+  });
+
+  it('timer i instalator: co 15 s, włączany razem z usługą egress', () => {
+    const timer = readFileSync(join(KORZEN, 'ops', 'systemd', 'verris-egress-odswiez.timer'), 'utf8');
+    expect(timer).toMatch(/OnUnitActiveSec=15s/);
+    const usluga = readFileSync(join(KORZEN, 'ops', 'systemd', 'verris-egress-odswiez.service'), 'utf8');
+    expect(usluga).toContain('security-control-plane-egress.sh --odswiez');
+    expect(readFileSync(INSTALATOR, 'utf8')).toContain('systemctl enable --now verris-egress-odswiez.timer');
   });
 });

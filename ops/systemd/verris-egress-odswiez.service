@@ -1,0 +1,7 @@
+[Unit]
+Description=Verris egress — dopisanie bieżących adresów nazw z allowlisty (SEC-06)
+After=network-online.target verris-egress.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash @REPO_ROOT@/ops/scripts/security-control-plane-egress.sh --odswiez

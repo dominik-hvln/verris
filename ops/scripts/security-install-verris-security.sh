@@ -93,8 +93,13 @@ if [ "$ROLE" = "control-plane" ]; then
     # Po restarcie hosta: ten sam tryb (domyślny/strict) i odtworzony pomiar.
     run "install -m 0644 '$REPO_ROOT/ops/systemd/verris-egress.service' /etc/systemd/system/verris-egress.service"
     run "sed -i 's|@REPO_ROOT@|$REPO_ROOT|g' /etc/systemd/system/verris-egress.service"
+    # SEC-06: adresy usług za CDN dopisywane na bieżąco (bez tego strict odcinałby apt i docker pull).
+    run "install -m 0644 '$REPO_ROOT/ops/systemd/verris-egress-odswiez.service' /etc/systemd/system/verris-egress-odswiez.service"
+    run "install -m 0644 '$REPO_ROOT/ops/systemd/verris-egress-odswiez.timer' /etc/systemd/system/verris-egress-odswiez.timer"
+    run "sed -i 's|@REPO_ROOT@|$REPO_ROOT|g' /etc/systemd/system/verris-egress-odswiez.service"
     run "systemctl daemon-reload"
     run "systemctl enable verris-egress.service"
+    run "systemctl enable --now verris-egress-odswiez.timer"
     if [ -x "$REPO_ROOT/ops/scripts/security-sync-cp-egress-hosts.sh" ]; then
       run "bash '$REPO_ROOT/ops/scripts/security-sync-cp-egress-hosts.sh' || true"
       # SEC-01: strict NIE jest włączany automatycznie. Do 2026-09-22 stało tu

@@ -102,6 +102,14 @@ sudo ALLOW_HOSTS=/etc/verris/security/egress-allow-hostnames.merged.txt \
 > Kolejność: przebieg domyślny → 7 dni → `--pomiar` (raport: co host robi i czego brakuje
 > w allowliście) → uzupełnienie allowlisty → `--strict`. Przy incydencie:
 > `--wymus-strict` (pomija warunek pomiaru, świadomie).
+>
+> **SEC-06 (2026-10-06): adresy CDN.** Usługi za CloudFront/AWS/Fastly (repo Dockera, Docker Hub,
+> motd Ubuntu, Wordfence) zmieniają adresy co minutę, a zbiór allowlisty budowany jest z nazw raz.
+> `verris-egress-odswiez.timer` co 15 s uruchamia `--odswiez`: dopisuje (bez podmiany zbioru) adresy,
+> które resolwer hosta zwraca teraz dla nazw z allowlisty. Bez timera strict odcinałby apt i
+> `compose pull` co jakiś czas. Zmierzone wcześniej adresy CDN, których DNS już nie zwraca, zostają
+> w raporcie jako „NIE” — gdy każdy taki cel ma przypisaną nazwę z allowlisty (raport 2026-10-06
+> w audycie, SEC-06), strict włącza się `--wymus-strict`.
 
 **Ryzyko:** niepełna lista → ucięcie deploy/Stripe; po nowej domenie klienta uruchom `security-sync-cp-egress-hosts.sh` i ponów `--strict`.
 

@@ -6,6 +6,7 @@
 #   sudo bash ops/scripts/security-control-plane-egress.sh --strict   # ipset allowlist (ostrożnie)
 #   sudo bash ops/scripts/security-control-plane-egress.sh --dry-run
 #   sudo bash ops/scripts/security-control-plane-egress.sh --pomiar      # SEC-05: co host naprawdę robi
+#   sudo bash ops/scripts/security-control-plane-egress.sh --odswiez     # SEC-06: dopisz bieżące adresy nazw (timer co 15 s)
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -74,6 +75,7 @@ DRY_RUN=0
 OBSERWUJ_KONTENERY=0
 PRZY_STARCIE=0
 ZAPISZ_POMIAR=0
+ODSWIEZ=0
 # Tryb ostatniego udanego przebiegu (domyslny/strict) i zrzut zbiorów pomiaru —
 # czyta je usługa verris-egress.service po restarcie hosta.
 TRYB_PLIK="${TRYB_PLIK:-$SECURITY_DIR/egress-tryb}"
@@ -168,6 +170,9 @@ Opcje:
                restarcie zaczyna się od zrzutu.
   --zapisz-pomiar
                Zrzuca zbiory pomiaru do egress-pomiar.ipset (przy zatrzymaniu usługi).
+  --odswiez    Dopisuje (bez podmiany zbioru) adresy, które resolwer hosta zwraca TERAZ
+               dla nazw z allowlisty. Dla verris-egress-odswiez.timer (co 15 s): usługi
+               za CDN zmieniają adresy częściej, niż przebudowuje się zbiór.
   --obserwuj-kontenery
                Wpina do DOCKER-USER łańcuch, który TYLKO LOGUJE ruch wychodzący
                z kontenerów. Nic nie blokuje. Tryb wyłączny — nie rusza OUTPUT.
@@ -192,6 +197,7 @@ while [ $# -gt 0 ]; do
     --obserwuj-kontenery) OBSERWUJ_KONTENERY=1; shift ;;
     --przy-starcie) PRZY_STARCIE=1; shift ;;
     --zapisz-pomiar) ZAPISZ_POMIAR=1; shift ;;
+    --odswiez) ODSWIEZ=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) die "Unknown argument: $1" ;;
   esac
@@ -199,6 +205,45 @@ done
 
 [ "$(id -u)" = "0" ] || die "Run as root"
 command -v iptables >/dev/null 2>&1 || die "iptables not found"
+
+# SEC-06 — adresy usług za CDN (CloudFront, AWS, Fastly) rotują co minutę. Pomiar 2026-10-06:
+# 12 adresów CloudFront i AWS (apt, Docker Hub) poza zbiorem, bo zbiór buduje się z nazw RAZ.
+# Strict odcinałby apt i `compose pull` raz na jakiś czas. Timer co 15 s dopisuje — bez podmiany —
+# to, co resolwer hosta zwraca teraz. getent czyta pamięć podręczną systemd-resolved, czyli te same
+# adresy, które przed chwilą dostał proces; pierwszy SYN do nowego adresu może przepaść, a
+# retransmisja (1, 3, 7, 15 s) przechodzi już po dopisaniu. Przebudowa zbioru (--strict, start
+# hosta) zeruje dopiski — timer uzupełnia je w ciągu 15 s.
+# ponytail: okno do ~15 s na nowy adres CDN; gdyby przeszkadzało — dnsmasq z --ipset (dopisanie
+# w chwili rozwiązania nazwy), kosztem zmiany łańcucha DNS hosta.
+odswiez_allowliste() {
+  local host ip zbior v6=0 nowe=0
+  ipset list -n 2>/dev/null | grep -qx "$ALLOW_SET" || { log "Brak zbioru $ALLOW_SET — nic do odświeżenia"; return 0; }
+  ipset list -n 2>/dev/null | grep -qx "$ALLOW_SET6" && v6=1
+  [ -f "$ALLOW_HOSTS" ] || return 0
+  while IFS= read -r host || [ -n "$host" ]; do
+    host="${host%%#*}"
+    host="$(echo "$host" | tr -d '[:space:]')"
+    [ -z "$host" ] && continue
+    while read -r ip; do
+      case "$ip" in
+        "" | ::ffff:*) continue ;;
+        *:*) [ "$v6" -eq 1 ] || continue; zbior="$ALLOW_SET6" ;;
+        *) zbior="$ALLOW_SET" ;;
+      esac
+      ipset test "$zbior" "$ip" >/dev/null 2>&1 && continue
+      ipset add "$zbior" "$ip" -exist
+      nowe=$((nowe + 1))
+      log "dopisany $host → $ip ($zbior)"
+    done < <(getent ahosts "$host" 2>/dev/null | awk '{print $1}' | sort -u)
+  done <"$ALLOW_HOSTS"
+  [ "$nowe" -eq 0 ] || log "Odświeżenie: $nowe nowych adresów"
+}
+
+# Timer co 15 s: przed kopiowaniem plików z repo, żeby nie zasypywać dziennika ostrzeżeniami o różnicach.
+if [ "$ODSWIEZ" -eq 1 ]; then
+  odswiez_allowliste
+  exit 0
+fi
 
 install -d "$SECURITY_DIR"
 if [ ! -f "$IOC_FILE" ]; then

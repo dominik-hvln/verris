@@ -1,0 +1,10 @@
+[Unit]
+Description=Verris egress — odświeżanie allowlisty co 15 s (adresy CDN rotują)
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=15s
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

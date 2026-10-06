@@ -29,6 +29,14 @@ pkg-containers.githubusercontent.com
 archive.ubuntu.com
 security.ubuntu.com
 esm.ubuntu.com
+# Pomiar 2026-10-06 (SEC-06): źródła apt hosta (/etc/apt/sources.list.d) i usługi Ubuntu.
+# mirror.hetzner.com = mirror pakietów obrazu Hetznera; download.docker.com = repo Docker CE (CloudFront);
+# changelogs.ubuntu.com = sprawdzanie nowego wydania (gladys/fracktail.canonical.com);
+# motd.ubuntu.com = wiadomości motd-news (AWS eu-west-1).
+mirror.hetzner.com
+download.docker.com
+changelogs.ubuntu.com
+motd.ubuntu.com
 # --- Stripe ---
 api.stripe.com
 hooks.stripe.com
@@ -36,6 +44,8 @@ files.stripe.com
 m.stripe.com
 # --- Rejestrator / DNS / FX ---
 api.openprovider.eu
+# Pomiar 2026-10-06: 34.91.239.244 (GKE, certyfikat bez SNI) = sandbox OpenProvidera, używany do testów D3.
+api.sandbox.openprovider.nl
 eu.api.ovh.com
 api.nbp.pl
 # M-09 — VIES (walidacja numerów VAT-UE przy doładowaniu)
@@ -54,6 +64,7 @@ sa-update.surbl.org
 maps.rspamd.com
 # --- SOGo (webmail zespołu): repozytorium pakietów, pomiar 2026-09-23 ---
 sogo-repo.alinto.org
+packages.sogo.nu
 # --- Węzły compute ---
 node-pl-01.verris.pl
 # --- Domeny Verris (health / monitoring / TLS) ---
