@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **1700 h** — przy 65 h tygodniowo około **6 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **1688 h** — przy 65 h tygodniowo około **6 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1190 h) oraz roadmapę po starcie (510 h, 24 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1190 h) oraz roadmapę po starcie (498 h, 22 pozycji) rozpisaną na epiki kwartalne.
 
 - **2026-11-13** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-08** — koniec sprintu 20, decyzja GO.
@@ -531,7 +531,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 # Po starcie — roadmapa kwartalna
 
-24 pozycji, 510 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
+22 pozycji, 498 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
 
 | ID | Epik | Priorytet | Kwartał | Pozycji | h | Dlaczego teraz, a nie wcześniej |
 |---|---|---|---|---|---|---|
@@ -548,7 +548,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `E-07` | Reseller jako produkt | ŚREDNI | Q3 2027 | 2 | 56 | Dziś to strona sprzedażowa z dwoma GET-ami. Albo staje się produktem, albo znika z nawigacji — trzeciej opcji nie ma. |
 | `E-08` | Dostępność i zgodność w produkcie | ŚREDNI | Q3 2027 | 2 | 80 | Zwolnienie mikroprzedsiębiorcy z EAA wygasa przy 10 pracownikach lub 2 mln EUR. Lepiej mieć to wcześniej niż w tygodniu przekroczenia progu. |
 | `E-11` | DNS: DNSSEC i zarządzanie strefą | ŚREDNI | Q3 2027 | 1 | 40 | Żaden z pięciu hostingów PL nie potwierdza publicznie DNSSEC. To okazja, nie luka. |
-| `E-13` | Automatyzacja: API zapisu i webhooki | ŚREDNI | Q3 2027 | 2 | 12 | Żaden hosting PL nie ma publicznego API — mamy przewagę, która dziś obejmuje pięć GET-ów przy opisie obiecującym CI/CD i Terraform. |
+| `E-13` | Automatyzacja: API zapisu i webhooki | ŚREDNI | Q3 2027 | 0 | 0 | Żaden hosting PL nie ma publicznego API — mamy przewagę, która dziś obejmuje pięć GET-ów przy opisie obiecującym CI/CD i Terraform. |
 | `E-16` | Rozszerzenia oferty | NISKI | Q4 2027 | 5 | 64 | Decyzja o kreatorze stron jest binarna. Kod, który leży zakomentowany przez rok, jest długiem, nie opcją. |
 | `E-09` | Pokrycie testowe warstw krytycznych | WYSOKI | ciągłe | 0 | 0 | Realizowane równolegle z każdą fazą, nie jako osobny projekt. Zasada: każda naprawiona pozycja dostaje test, który najpierw czerwieni się na starym kodzie. |
 
@@ -564,7 +564,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - **E-10 Poczta: filtry, kalendarz, limity** (16 h) — Reguły filtrowania Sieve, podgląd kolejki i logów dostarczania, limity wysyłki pokazane klientowi, kalendarz i kontakty, 2FA dla webmaila.
 - **E-11 DNS: DNSSEC i zarządzanie strefą** (40 h) — DNSSEC, zmiana TTL, Anycast DNS, pełne zarządzanie strefą po podpięciu edytora w sprincie 10.
 - **E-12 Backup: granularność i retencja** (40 h) — Odtworzenie pojedynczego pliku, podgląd zawartości archiwum przed odtworzeniem, pobranie kopii lokalnie, retencja 28+ dni w cenie.
-- **E-13 Automatyzacja: API zapisu i webhooki** (12 h) — Rozszerzenie publicznego API o operacje zapisu, webhooki dla klienta, edycja crona, cron z wyborem wersji PHP, podgląd wyniku wykonania.
+- **E-13 Automatyzacja: API zapisu i webhooki** (0 h) — Rozszerzenie publicznego API o operacje zapisu, webhooki dla klienta, edycja crona, cron z wyborem wersji PHP, podgląd wyniku wykonania.
 - **E-14 Rozliczenia: dokończenie** (16 h) — Ponowienie płatności portfelem w karencji, waluty obce z przeliczeniem VAT, proforma, dodanie karty niezależnie od zakupu, eksport CSV.
 - **E-15 Wsparcie i ops: kolejka abuse** (46 h) — Pełna kolejka obsługi nadużyć z encją zgłoszenia, terminami i śladem audytowym, ogłoszenia i okna serwisowe z panelu, feature flagi.
 - **E-16 Rozszerzenia oferty** (64 h) — VPS: konsola, snapshoty, rebuild. Panel mobilny. Kreator stron — dokończyć albo usunąć 1612 zakomentowanych linii.
