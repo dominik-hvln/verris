@@ -54,6 +54,10 @@ overrides:
   multer: "^2.3.0"
   "js-yaml@3": "^3.15.2"
   browserslist: "^4.28.7"
+  # 06.10.2026 bramka podatności: GHSA-68fv-2mgg-jv7q (source-map-js <1.2.2, DoS) przez next/postcss/sass;
+  # GHSA-jqcg-44mw-7w3h (proxy-addr <2.0.8, podszycie IP przez IPv4-mapped IPv6) przez express w API.
+  source-map-js: "^1.2.2"
+  proxy-addr: "^2.0.8"
   # GHSA-vfj7-8cjw-p6xm (braces <=3.0.3, brak poprawki): obie ścieżki produkcyjne apps/www wycinamy.
   # @payloadcms/next przypina sass 1.77.4 → chokidar 3 → braces; sass 1.103 (już w drzewie) ma chokidar 5 bez braces.
   "sass@1.77": "^1.103.1"
