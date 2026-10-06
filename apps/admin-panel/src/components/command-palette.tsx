@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Loader2, User, Server, Globe, FileText, CornerDownLeft } from "lucide-react";
+import { Search, Loader2, User, Server, Globe, FileText, CornerDownLeft, ArrowRight } from "lucide-react";
 import { globalSearchAction, type GlobalSearchResult } from "./command-palette-actions";
 
 const TYPE_ICON = {
@@ -12,8 +12,28 @@ const TYPE_ICON = {
   invoice: FileText,
 } as const;
 
-/** ADM-4 — globalna wyszukiwarka (Cmd/Ctrl-K) w panelu admin/staff. */
-export function CommandPalette() {
+/** Strona menu dla wyszukiwarki: nazwa, sekcja, słowa kluczowe (admin-shell.tsx). */
+export type StronaMenu = { name: string; href: string; sekcja: string; szukaj?: string };
+
+const bezOgonkow = (t: string) => t.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "").replace(/ł/g, "l");
+
+/** Strony, których nazwa, sekcja albo słowa kluczowe zawierają każde wpisane słowo (bez polskich znaków). */
+export function szukajStron(strony: StronaMenu[], q: string, max = 6): StronaMenu[] {
+  const slowa = bezOgonkow(q).split(/\s+/).filter(Boolean);
+  if (!slowa.length) return [];
+  const trafione = strony.filter((s) => {
+    const tekst = bezOgonkow(`${s.name} ${s.sekcja} ${s.szukaj ?? ""}`);
+    return slowa.every((w) => tekst.includes(w));
+  });
+  // Najpierw strony, których sama nazwa pasuje.
+  const wNazwie = (s: StronaMenu) => (slowa.every((w) => bezOgonkow(s.name).includes(w)) ? 0 : 1);
+  return trafione.sort((a, b) => wNazwie(a) - wNazwie(b)).slice(0, max);
+}
+
+type Wynik = { type: "strona"; id: string; title: string; subtitle: string; href: string } | GlobalSearchResult;
+
+/** ADM-4 — globalna wyszukiwarka (Cmd/Ctrl-K, „/”): strony panelu + klienci, usługi, domeny, faktury. */
+export function CommandPalette({ strony = [] }: { strony?: StronaMenu[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
@@ -70,8 +90,13 @@ export function CommandPalette() {
     }, 220);
   }, []);
 
+  const wyniki: Wynik[] = [
+    ...(q.trim().length >= 2 ? szukajStron(strony, q) : []).map((st) => ({ type: "strona" as const, id: st.href, title: st.name, subtitle: st.sekcja ? `Strona · ${st.sekcja}` : "Strona", href: st.href })),
+    ...results,
+  ];
+
   const go = useCallback(
-    (r: GlobalSearchResult) => {
+    (r: Wynik) => {
       close();
       router.push(r.href);
     },
@@ -81,13 +106,13 @@ export function CommandPalette() {
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActive((a) => Math.min(a + 1, results.length - 1));
+      setActive((a) => Math.min(a + 1, wyniki.length - 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActive((a) => Math.max(a - 1, 0));
-    } else if (e.key === "Enter" && results[active]) {
+    } else if (e.key === "Enter" && wyniki[active]) {
       e.preventDefault();
-      go(results[active]);
+      go(wyniki[active]);
     }
   };
 
@@ -96,11 +121,11 @@ export function CommandPalette() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Szukaj klienta, domeny, węzła"
+        aria-label="Szukaj strony, klienta, domeny"
         className="flex h-[38px] items-center gap-2.5 rounded-[9px] border border-line-strong bg-card px-3 text-sm text-muted-foreground hover:border-primary md:w-[360px]"
       >
         <Search className="h-[15px] w-[15px] shrink-0" />
-        <span className="hidden md:inline">Szukaj klienta, domeny, węzła…</span>
+        <span className="hidden md:inline">Szukaj strony, klienta, domeny…</span>
         <kbd className="ml-auto hidden rounded-[5px] border border-line-strong px-1.5 py-px font-mono text-[11px] md:inline">/</kbd>
       </button>
 
@@ -129,24 +154,24 @@ export function CommandPalette() {
                 }}
                 onKeyDown={onKeyDown}
                 aria-label="Szukaj"
-                placeholder="Szukaj klienta, usługi (ID), domeny, NIP, faktury…"
+                placeholder="Strona panelu, klient, usługa (ID), domena, NIP, faktura…"
                 className="flex-1 bg-transparent py-4 text-sm text-white outline-none placeholder:text-neutral-600"
               />
               {loading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : null}
             </div>
 
             <div className="max-h-[50vh] overflow-y-auto p-2">
-              {results.length === 0 ? (
+              {wyniki.length === 0 ? (
                 <p className="px-3 py-8 text-center text-xs text-muted-foreground">
                   {q.trim().length < 2
-                    ? "Wpisz co najmniej 2 znaki, aby szukać."
+                    ? "Wpisz co najmniej 2 znaki: strona panelu (np. wykresy, ssl), klient, domena, faktura."
                     : loading
                       ? "Szukam…"
                       : "Brak wyników."}
                 </p>
               ) : (
-                results.map((r, i) => {
-                  const Icon = TYPE_ICON[r.type];
+                wyniki.map((r, i) => {
+                  const Icon = r.type === "strona" ? ArrowRight : TYPE_ICON[r.type];
                   return (
                     <button
                       key={`${r.type}-${r.id}`}

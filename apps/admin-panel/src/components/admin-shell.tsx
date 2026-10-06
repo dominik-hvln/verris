@@ -4,8 +4,8 @@ import { plForm } from "@/lib/pl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
-import { Menu, X } from "lucide-react";
-import { CommandPalette } from "./command-palette";
+import { ChevronRight, Menu, X } from "lucide-react";
+import { CommandPalette, type StronaMenu } from "./command-palette";
 import { VerrisMark, VerrisWordmark } from "./verris-mark";
 import { NotificationBell } from "./notification-bell";
 import { ThemeToggle } from "./theme-toggle";
@@ -23,7 +23,7 @@ export interface LicznikiMenu {
   flota: { razem: number; dziala: number };
 }
 
-type Pod = { name: string; href: string; perm?: string };
+type Pod = { name: string; href: string; perm?: string; /** dodatkowe słowa dla wyszukiwarki stron („/”) */ szukaj?: string };
 type Pozycja = { name: string; ikona: keyof typeof IKONY; pod: Pod[]; licznik?: string; ostrzezenie?: boolean };
 type Grupa = { naglowek?: string; pozycje: Pozycja[] };
 
@@ -37,7 +37,6 @@ const IKONY = {
     </>
   ),
   pojemnosc: <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />,
-  stos: <path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5" />,
   kolejka: <path d="M4 6h16M4 12h10M4 18h7" />,
   migracje: <path d="M5 12h14M13 6l6 6-6 6" />,
   monitoring: <path d="M3 12h4l3-8 4 16 3-8h4" />,
@@ -57,6 +56,8 @@ const IKONY = {
   zgloszenia: <path d="M4 5h16v14H4zM8 9h8M8 13h5" />,
   faktury: <path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" />,
   cenniki: <path d="M20 12l-8 8-9-9V3h8z" />,
+  marketing: <path d="M3 10v4l11 5V5zM14 8h3a3 3 0 0 1 0 6h-3M6 15l1 5" />,
+  wiedza: <path d="M4 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H4zM20 4h-6M20 4v14h-6" />,
   dziennik: (
     <>
       <rect x="5" y="10" width="14" height="10" rx="2" />
@@ -86,19 +87,13 @@ function Ikona({ nazwa }: { nazwa: keyof typeof IKONY }) {
 }
 
 /**
- * Menu 1:1 z makiety. Strony spoza makiety nie znikają: siedzą jako zakładki pod pozycją, do której
- * należą tematycznie (np. „Kody i cenniki” = kody, plany, VPS, autoskalowanie) — widoczne nad treścią.
+ * Menu: grupy → pozycje → podstrony. Pozycja z kilkoma podstronami ma strzałkę i rozwija się w menu
+ * (aktywna sama), więc żadna strona nie jest ukryta. Te same wpisy zasilają wyszukiwarkę stron („/”).
  */
 function grupy(l: LicznikiMenu | null): Grupa[] {
   return [
     {
-      pozycje: [
-        {
-          name: "Pulpit",
-          ikona: "pulpit",
-          pod: [{ name: "Pulpit", href: "/", perm: "DASHBOARD_VIEW" }],
-        },
-      ],
+      pozycje: [{ name: "Pulpit", ikona: "pulpit", pod: [{ name: "Pulpit", href: "/", perm: "DASHBOARD_VIEW", szukaj: "start strona główna" }] }],
     },
     {
       naglowek: "Flota",
@@ -109,68 +104,90 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
           licznik: l?.wezlyUwaga ? `${l.wezlyUwaga} ${plForm(l.wezlyUwaga, "wymaga uwagi", "wymagają uwagi", "wymaga uwagi")}` : undefined,
           ostrzezenie: true,
           pod: [
-            { name: "Węzły", href: "/nodes", perm: "NODES_VIEW" },
-            { name: "Wykresy", href: "/nodes/wykresy", perm: "NODES_VIEW" },
-            { name: "Product Ops / NOC", href: "/product-ops", perm: "NODES_VIEW" },
+            { name: "Lista węzłów", href: "/nodes", perm: "NODES_VIEW", szukaj: "serwery dodaj węzeł kreator" },
+            { name: "Wykresy i prognozy", href: "/nodes/wykresy", perm: "NODES_VIEW", szukaj: "cpu ram pamięć dysk obciążenie prognoza ai przeciążenie" },
+            { name: "Pojemność", href: "/nodes/capacity", perm: "NODES_VIEW", szukaj: "zużycie sprzedane overcommit miejsce na konta" },
+            { name: "Wersje stosu", href: "/nodes/stack", perm: "PLANS_MANAGE", szukaj: "php mariadb aktualizacje manifest" },
           ],
         },
-        { name: "Pojemność floty", ikona: "pojemnosc", pod: [{ name: "Pojemność floty", href: "/nodes/capacity", perm: "NODES_VIEW" }] },
-        { name: "Wersje stosu floty", ikona: "stos", pod: [{ name: "Wersje stosu floty", href: "/nodes/stack", perm: "PLANS_MANAGE" }] },
         {
           name: "Kolejka zakładania",
           ikona: "kolejka",
           licznik: l?.zakladane ? String(l.zakladane) : undefined,
-          pod: [{ name: "Kolejka zakładania", href: "/provisioning-queue", perm: "PROVISIONING_MANAGE" }],
+          pod: [{ name: "Kolejka zakładania", href: "/provisioning-queue", perm: "PROVISIONING_MANAGE", szukaj: "provisioning nowe konta" }],
         },
         {
           name: "Migracje",
           ikona: "migracje",
           licznik: l?.migracje ? String(l.migracje) : undefined,
-          pod: [{ name: "Migracje", href: "/migrations", perm: "MIGRATIONS_MANAGE" }],
+          pod: [{ name: "Migracje", href: "/migrations", perm: "MIGRATIONS_MANAGE", szukaj: "przeniesienie stron" }],
         },
         {
           name: "Monitoring",
           ikona: "monitoring",
           pod: [
-            { name: "Monitory (status)", href: "/status/probes", perm: "NODES_VIEW" },
-            { name: "Historia incydentów", href: "/status/incidents", perm: "NODES_VIEW" },
-            { name: "Błędy aplikacji", href: "/observability/errors", perm: "NODES_VIEW" },
+            { name: "Monitory (status)", href: "/status/probes", perm: "NODES_VIEW", szukaj: "sondy uptime dostępność" },
+            { name: "Historia incydentów", href: "/status/incidents", perm: "NODES_VIEW", szukaj: "awarie status page" },
+            { name: "Błędy aplikacji", href: "/observability/errors", perm: "NODES_VIEW", szukaj: "logi wyjątki" },
+            { name: "Product Ops / NOC", href: "/product-ops", perm: "NODES_VIEW", szukaj: "alerty operacje" },
           ],
         },
       ],
     },
     {
-      naglowek: "Klienci i usługi",
+      naglowek: "Klienci",
       pozycje: [
         {
           name: "Klienci",
           ikona: "klienci",
           pod: [
-            { name: "Klienci", href: "/customers", perm: "CUSTOMERS_VIEW" },
-            { name: "Blokady wysyłki poczty", href: "/deliverability", perm: "CUSTOMERS_MANAGE" },
-            { name: "Testy (beta)", href: "/beta", perm: "PROMO_MANAGE" },
-            { name: "Newsletter / mailing", href: "/marketing", perm: "PROMO_MANAGE" },
+            { name: "Klienci", href: "/customers", perm: "CUSTOMERS_VIEW", szukaj: "konta użytkownicy portfel" },
+            { name: "Blokady wysyłki poczty", href: "/deliverability", perm: "CUSTOMERS_MANAGE", szukaj: "spam dostarczalność mail" },
           ],
         },
-        { name: "Usługi", ikona: "uslugi", pod: [{ name: "Usługi", href: "/subscriptions", perm: "SUBSCRIPTIONS_MANAGE" }] },
-        {
-          name: "Resellerzy i partnerzy",
-          ikona: "partnerzy",
-          pod: [
-            { name: "Resellerzy", href: "/resellers", perm: "CUSTOMERS_MANAGE" },
-            { name: "Prowizje partnerów", href: "/partners", perm: "BILLING_VIEW" },
-            { name: "Program partnerski", href: "/referral-enrollments", perm: "PROMO_MANAGE" },
-          ],
-        },
+        { name: "Usługi", ikona: "uslugi", pod: [{ name: "Usługi", href: "/subscriptions", perm: "SUBSCRIPTIONS_MANAGE", szukaj: "subskrypcje hosting abonamenty" }] },
         {
           name: "Zgłoszenia",
           ikona: "zgloszenia",
           licznik: l?.zgloszenia ? String(l.zgloszenia) : undefined,
           ostrzezenie: (l?.zgloszeniaPoTerminie ?? 0) > 0,
           pod: [
-            { name: "Zgłoszenia", href: "/tickets", perm: "TICKETS_VIEW" },
-            { name: "Baza wiedzy", href: "/knowledge-base", perm: "DASHBOARD_VIEW" },
-            { name: "Baza wiedzy AI", href: "/ai-knowledge", perm: "DASHBOARD_VIEW" },
+            { name: "Zgłoszenia", href: "/tickets", perm: "TICKETS_VIEW", szukaj: "tickety pomoc support" },
+            { name: "Szablony odpowiedzi", href: "/settings/canned-responses", perm: "SETTINGS_MANAGE", szukaj: "gotowe odpowiedzi makra" },
+            { name: "Opieka nad zgłoszeniami", href: "/settings/support", perm: "SETTINGS_MANAGE", szukaj: "sla terminy dyżur" },
+          ],
+        },
+        {
+          name: "Partnerzy",
+          ikona: "partnerzy",
+          pod: [
+            { name: "Resellerzy", href: "/resellers", perm: "CUSTOMERS_MANAGE" },
+            { name: "Prowizje partnerów", href: "/partners", perm: "BILLING_VIEW", szukaj: "afiliacja wypłaty" },
+            { name: "Program partnerski", href: "/referral-enrollments", perm: "PROMO_MANAGE", szukaj: "polecenia zgłoszenia" },
+          ],
+        },
+      ],
+    },
+    {
+      naglowek: "Sprzedaż",
+      pozycje: [
+        {
+          name: "Oferta i ceny",
+          ikona: "cenniki",
+          pod: [
+            { name: "Plany produktowe", href: "/plans", perm: "PLANS_MANAGE", szukaj: "pakiety cennik hosting poczta" },
+            { name: "VPS / Cloud", href: "/vps", perm: "PLANS_MANAGE", szukaj: "serwery wirtualne snapshoty" },
+            { name: "Cennik autoskalowania", href: "/autoscaling", perm: "PLANS_MANAGE", szukaj: "burst przychody" },
+            { name: "Domeny i SSL", href: "/domain-pricing", perm: "SETTINGS_MANAGE", szukaj: "certyfikaty ssl dv ov whois prywatność ceny" },
+            { name: "Kody promocyjne", href: "/promo-codes", perm: "PROMO_MANAGE", szukaj: "rabaty kupony" },
+          ],
+        },
+        {
+          name: "Marketing",
+          ikona: "marketing",
+          pod: [
+            { name: "Newsletter / mailing", href: "/marketing", perm: "PROMO_MANAGE", szukaj: "kampanie e-mail" },
+            { name: "Testy (beta)", href: "/beta", perm: "PROMO_MANAGE", szukaj: "testerzy zaproszenia" },
           ],
         },
       ],
@@ -182,58 +199,64 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
           name: "Faktury i rozliczenia",
           ikona: "faktury",
           pod: [
-            { name: "Faktury", href: "/invoices", perm: "BILLING_VIEW" },
-            { name: "Rozliczenia (CSV)", href: "/billing", perm: "BILLING_VIEW" },
-            { name: "Metryki biznesowe", href: "/metrics", perm: "DASHBOARD_VIEW" },
+            { name: "Faktury", href: "/invoices", perm: "BILLING_VIEW", szukaj: "ksef korekty proforma" },
+            { name: "Rozliczenia (CSV)", href: "/billing", perm: "BILLING_VIEW", szukaj: "eksport płatności portfel" },
             // Z-05 — zdarzenia płatności, których handler nie obsłużył.
-            { name: "Webhooki Stripe", href: "/billing/webhooki", perm: "BILLING_MANAGE" },
+            { name: "Webhooki płatności", href: "/billing/webhooki", perm: "BILLING_MANAGE", szukaj: "stripe paynow zdarzenia" },
           ],
         },
+        { name: "Metryki biznesowe", ikona: "pojemnosc", pod: [{ name: "Metryki biznesowe", href: "/metrics", perm: "DASHBOARD_VIEW", szukaj: "mrr przychody churn kpi" }] },
+      ],
+    },
+    {
+      naglowek: "Wiedza i AI",
+      pozycje: [
         {
-          name: "Kody i cenniki",
-          ikona: "cenniki",
+          name: "Baza wiedzy",
+          ikona: "wiedza",
           pod: [
-            { name: "Kody promocyjne", href: "/promo-codes", perm: "PROMO_MANAGE" },
-            { name: "Plany produktowe", href: "/plans", perm: "PLANS_MANAGE" },
-            { name: "VPS / Cloud", href: "/vps", perm: "PLANS_MANAGE" },
-            { name: "Cennik autoskalowania", href: "/autoscaling", perm: "PLANS_MANAGE" },
+            { name: "Artykuły", href: "/knowledge-base", perm: "DASHBOARD_VIEW", szukaj: "baza wiedzy pomoc poradniki" },
+            { name: "Baza wiedzy AI", href: "/ai-knowledge", perm: "DASHBOARD_VIEW", szukaj: "embeddingi asystent źródła" },
+            { name: "Asystent AI", href: "/settings/ai", perm: "SETTINGS_MANAGE", szukaj: "czat model budżet klucze" },
           ],
         },
       ],
     },
     {
-      naglowek: "Bezpieczeństwo i platforma",
+      naglowek: "Bezpieczeństwo",
       pozycje: [
         {
-          name: "Dziennik bezpieczeństwa",
+          name: "Dziennik i zgodność",
           ikona: "dziennik",
           pod: [
-            { name: "Dziennik", href: "/audit", perm: "AUDIT_VIEW" },
-            { name: "Compliance (RODO)", href: "/compliance", perm: "COMPLIANCE_MANAGE" },
-            { name: "VPN (dostęp paneli)", href: "/vpn", perm: "SETTINGS_MANAGE" },
-          ],
-        },
-        {
-          name: "Ustawienia platformy",
-          ikona: "ustawienia",
-          pod: [
-            { name: "Platforma", href: "/settings/platform", perm: "SETTINGS_MANAGE" },
-            { name: "Dane firmy", href: "/settings/company", perm: "SETTINGS_MANAGE" },
-            { name: "Gotowość do startu", href: "/settings/live-readiness", perm: "SETTINGS_MANAGE" },
-            { name: "Asystent AI", href: "/settings/ai", perm: "SETTINGS_MANAGE" },
-            { name: "Opieka nad zgłoszeniami", href: "/settings/support", perm: "SETTINGS_MANAGE" },
-            { name: "Szablony odpowiedzi", href: "/settings/canned-responses", perm: "SETTINGS_MANAGE" },
-            { name: "Poczta (SMTP)", href: "/settings/mail", perm: "SETTINGS_MANAGE" },
-            { name: "Dziennik poczty", href: "/settings/mail/log", perm: "SETTINGS_MANAGE" },
-            { name: "Poczta zespołu", href: "/settings/team-mail", perm: "SETTINGS_MANAGE" },
+            { name: "Dziennik bezpieczeństwa", href: "/audit", perm: "AUDIT_VIEW", szukaj: "audyt logi zdarzenia" },
+            { name: "Compliance (RODO)", href: "/compliance", perm: "COMPLIANCE_MANAGE", szukaj: "gdpr dane osobowe eksport usunięcie" },
+            { name: "VPN (dostęp paneli)", href: "/vpn", perm: "SETTINGS_MANAGE", szukaj: "wireguard dostęp" },
           ],
         },
         {
           name: "Operatorzy i role",
           ikona: "operatorzy",
           pod: [
-            { name: "Operatorzy", href: "/operators", perm: "STAFF_MANAGE" },
+            { name: "Operatorzy", href: "/operators", perm: "STAFF_MANAGE", szukaj: "zespół pracownicy staff" },
             { name: "Role i uprawnienia", href: "/roles", perm: "STAFF_MANAGE" },
+          ],
+        },
+      ],
+    },
+    {
+      naglowek: "Ustawienia",
+      pozycje: [
+        {
+          name: "Ustawienia platformy",
+          ikona: "ustawienia",
+          pod: [
+            { name: "Platforma", href: "/settings/platform", perm: "SETTINGS_MANAGE", szukaj: "eko sesje okres próbny monitoring sla" },
+            { name: "Dane firmy", href: "/settings/company", perm: "SETTINGS_MANAGE", szukaj: "nip adres faktury" },
+            { name: "Gotowość do startu", href: "/settings/live-readiness", perm: "SETTINGS_MANAGE", szukaj: "go live checklista" },
+            { name: "Poczta (SMTP)", href: "/settings/mail", perm: "SETTINGS_MANAGE", szukaj: "e-mail wysyłka" },
+            { name: "Dziennik poczty", href: "/settings/mail/log", perm: "SETTINGS_MANAGE", szukaj: "wysłane maile" },
+            { name: "Poczta zespołu", href: "/settings/team-mail", perm: "SETTINGS_MANAGE", szukaj: "skrzynki" },
           ],
         },
       ],
@@ -305,6 +328,12 @@ export function AdminShell({
   const nazwaSzczegolu = szczegol?.dla === pathname ? szczegol : null;
   if (podAktywna && pathname !== podAktywna.href) okruszki.push(nazwaSzczegolu?.tekst ?? "Szczegóły");
 
+  // Rozwinięcie sekcji wybrane przez operatora; bez wyboru rozwinięta jest tylko sekcja bieżącej strony.
+  const [stanSekcji, setStanSekcji] = useState<Record<string, boolean>>({});
+  const strony: StronaMenu[] = menuGrupy.flatMap((g) =>
+    g.pozycje.flatMap((p) => p.pod.map((x) => ({ name: x.name, href: x.href, szukaj: x.szukaj, sekcja: x.name === p.name ? (g.naglowek ?? "") : p.name }))),
+  );
+
   const [otwarteDla, setOtwarteDla] = useState<string | null>(null);
   const otwarte = otwarteDla === pathname;
   const setOtwarte = (o: boolean) => setOtwarteDla(o ? pathname : null);
@@ -331,21 +360,63 @@ export function AdminShell({
             ) : null}
             {g.pozycje.map((p) => {
               const on = p === aktywna;
+              const licznik = p.licznik ? (
+                <span className={`ml-auto font-mono text-[11px] ${p.ostrzezenie ? "text-[#f2b84b]" : "text-[#7f8a83]"}`}>{p.licznik}</span>
+              ) : null;
+              const styl = on ? "bg-verris-card text-verris-paper shadow-[inset_3px_0_0_var(--verris-mint)]" : "text-verris-body hover:bg-verris-card/60 hover:text-verris-paper";
+              if (p.pod.length === 1) {
+                return (
+                  <Link key={p.name} href={p.pod[0]!.href} aria-current={on ? "page" : undefined} className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm ${styl}`}>
+                    <Ikona nazwa={p.ikona} />
+                    {p.name}
+                    {licznik}
+                  </Link>
+                );
+              }
+              const rozwinieta = stanSekcji[p.name] ?? on;
+              const id = `menu-${p.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
               return (
-                <Link
-                  key={p.name}
-                  href={p.pod[0]!.href}
-                  aria-current={on ? "page" : undefined}
-                  className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm ${
-                    on ? "bg-verris-card text-verris-paper shadow-[inset_3px_0_0_var(--verris-mint)]" : "text-verris-body hover:bg-verris-card/60 hover:text-verris-paper"
-                  }`}
-                >
-                  <Ikona nazwa={p.ikona} />
-                  {p.name}
-                  {p.licznik ? (
-                    <span className={`ml-auto font-mono text-[11px] ${p.ostrzezenie ? "text-[#f2b84b]" : "text-[#7f8a83]"}`}>{p.licznik}</span>
+                <div key={p.name} className="flex flex-col gap-0.5">
+                  <div className={`flex items-center rounded-lg text-sm ${styl}`}>
+                    <Link
+                      href={p.pod[0]!.href}
+                      onClick={() => setStanSekcji((x) => ({ ...x, [p.name]: true }))}
+                      className="flex min-w-0 flex-1 items-center gap-2.5 py-2 pl-3"
+                    >
+                      <Ikona nazwa={p.ikona} />
+                      <span className="truncate">{p.name}</span>
+                      {licznik}
+                    </Link>
+                    <button
+                      type="button"
+                      aria-expanded={rozwinieta}
+                      aria-controls={id}
+                      aria-label={`${rozwinieta ? "Zwiń" : "Rozwiń"}: ${p.name}`}
+                      onClick={() => setStanSekcji((x) => ({ ...x, [p.name]: !rozwinieta }))}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[#7f8a83] hover:text-verris-paper"
+                    >
+                      <ChevronRight className={`h-3.5 w-3.5 transition-transform ${rozwinieta ? "rotate-90" : ""}`} />
+                    </button>
+                  </div>
+                  {rozwinieta ? (
+                    <ul id={id} className="mb-1 ml-[19px] flex flex-col gap-0.5 border-l border-verris-hairline pl-2">
+                      {p.pod.map((x) => {
+                        const tu = x === podAktywna;
+                        return (
+                          <li key={x.href}>
+                            <Link
+                              href={x.href}
+                              aria-current={tu ? "page" : undefined}
+                              className={`block rounded-md px-2.5 py-1.5 text-[13px] ${tu ? "bg-verris-card font-semibold text-verris-mint" : "text-verris-body hover:bg-verris-card/60 hover:text-verris-paper"}`}
+                            >
+                              {x.name}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
                   ) : null}
-                </Link>
+                </div>
               );
             })}
             {g.naglowek === "Flota" && grafana && wolno("NODES_VIEW") ? (
@@ -413,7 +484,7 @@ export function AdminShell({
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-3.5">
-            <CommandPalette />
+            <CommandPalette strony={strony} />
             <span className="hidden sm:contents">
               <StatusFloty l={liczniki} />
             </span>
