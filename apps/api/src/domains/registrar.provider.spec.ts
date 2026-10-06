@@ -119,3 +119,20 @@ describe('OpenProvider — błąd z przyczyną w `data` (D3 06.10: zamówienie S
     );
   });
 });
+
+describe('OpenProvider — szczegóły błędu poza `data`', () => {
+  const cfg: Record<string, string> = {
+    REGISTRAR_PROVIDER: 'openprovider', OPENPROVIDER_USERNAME: 'u', OPENPROVIDER_PASSWORD: 'p', OPENPROVIDER_OWNER_HANDLE: 'H',
+  };
+  afterEach(() => vi.unstubAllGlobals());
+  it('warnings trafiają do komunikatu, gdy data brak', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (url.endsWith('/auth/login')) return new Response(JSON.stringify({ code: 0, data: { token: 't' } }));
+      return new Response(JSON.stringify({ code: 399, desc: 'An unknown error occurred', warnings: [{ code: 1, desc: 'Handle has no organization' }] }), { status: 500 });
+    }));
+    const p = new RegistrarProviderFactory({ get: (k: string) => cfg[k] } as never).get() as unknown as {
+      sslCreateOrder: (i: unknown) => Promise<string>;
+    };
+    await expect(p.sslCreateOrder({ productId: 1, years: 1, csr: 'x', hostName: 'a.pl', validation: 'dns' })).rejects.toThrow(/Handle has no organization/);
+  });
+});

@@ -596,7 +596,12 @@ class OpenProviderRegistrarProvider implements RegistrarProvider, SslReseller {
     if (!res.ok || (body && typeof body.code === 'number' && body.code !== 0)) {
       // Przy błędzie OpenProvider daje ogólne `desc` („…see the details below:”), a przyczynę w `data`
       // (odpowiedź API: code, desc, data — https://docs.openprovider.com/doc/all). Bez niej log i audyt były bezużyteczne (D3 06.10, SSL).
-      const szczegoly = body?.data == null ? '' : typeof body.data === 'string' ? body.data : JSON.stringify(body.data);
+      // Poza `data` szczegóły bywają w innych polach (np. `warnings`) — dokładamy wszystko oprócz code/desc.
+      const { code: _kod, desc: _opis, ...reszta } = (body ?? {}) as Record<string, unknown>;
+      const szczegoly =
+        typeof reszta.data === 'string' && Object.keys(reszta).length === 1
+          ? reszta.data
+          : Object.keys(reszta).length ? JSON.stringify(reszta) : '';
       const msg = `${body?.desc ?? `OpenProvider API ${res.status}`}${szczegoly ? ` ${szczegoly}` : ''}`.slice(0, 800);
       this.logger.warn(`OpenProvider ${path} failed: ${msg}`);
       throw new ServiceUnavailableException(`OpenProvider: ${msg}`);
