@@ -3,6 +3,7 @@ import { Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { nazwaWezla, pozaPula } from '../admin-dashboard/stan-platformy.js';
 import { pojemnoscSprzedazowa } from '../subscriptions/node-capacity.js';
+import { PLAN_PRODUKCYJNY } from '../plans/plan-produkcyjny.js';
 
 /**
  * Widok admina „Flota — wykresy”: CPU i RAM węzłów w czasie z `UsageMetric` (próbki per konto,
@@ -87,6 +88,40 @@ export function sumyWezlow(prisma: PrismaService, od: Date, krok: string, server
     ORDER BY 1, 2`;
 }
 
+export interface WezelPojemnosc {
+  totalCpuCores: number | null;
+  totalMemoryMb: number | null;
+  totalDiskMb: number | null;
+  allocatedCpu: number;
+  allocatedMemory: number;
+  allocatedDisk: number;
+  overcommitCpu: number;
+  overcommitRam: number;
+  overcommitDisk: number;
+  reservedHeadroomPercent: number;
+  maxAccounts: number | null;
+}
+
+/**
+ * Ile jeszcze „standardowych kont” (limity PLAN_PRODUKCYJNY) zmieści księga sprzedaży węzła
+ * (sprzedawalne = fizyczne × overcommit, minus sprzedane) i za ile dni pula się skończy przy tempie
+ * nowych kont z ostatnich 30 dni.
+ */
+export function zapasPuli(s: WezelPojemnosc, a: { konta: number; swieza: boolean; nowe30: number }, plan = PLAN_PRODUKCYJNY) {
+  if (!s.totalCpuCores || !s.totalMemoryMb || !s.totalDiskMb) return null;
+  const sp = pojemnoscSprzedazowa({ cpu: s.totalCpuCores * 100, ramMb: s.totalMemoryMb, diskMb: s.totalDiskMb }, s, a.swieza);
+  const wymiary: [string, number][] = [
+    ['CPU', (sp.cpu - s.allocatedCpu) / plan.cpuLimit],
+    ['RAM', (sp.ramMb - s.allocatedMemory) / plan.ramLimitMb],
+    ['dysk', (sp.diskMb - s.allocatedDisk) / plan.diskLimitMb],
+  ];
+  if (s.maxAccounts != null) wymiary.push(['limit kont', s.maxAccounts - a.konta]);
+  const [wymiar, ile] = wymiary.map(([w, v]) => [w, Math.max(0, Math.floor(v))] as const).sort((x, y) => x[1] - y[1])[0]!;
+  const naDzien = a.nowe30 / 30;
+  return { kont: ile, wymiar, noweKonta30d: a.nowe30, dniDoWyczerpania: naDzien > 0 ? Math.round(ile / naDzien) : null };
+}
+export type Zapas = NonNullable<ReturnType<typeof zapasPuli>>;
+
 const proc = (v: number, razem: number) => Math.round(Math.min(100, (v / razem) * 100) * 10) / 10;
 
 /** Wiersze SQL (suma kont uśredniona w kubełku) → serie % per węzeł. CPU w % rdzenia, więc / (rdzenie × 100). */
@@ -117,6 +152,28 @@ export function seriaFloty(serie: Punkt[][]): Punkt[] {
 }
 
 const srednia = (s: Punkt[]) => (s.length ? Math.round(s.reduce((a, p) => a + p.v, 0) / s.length) : null);
+
+/**
+ * Pojemność węzła w dwóch osobnych miarach (strona „Pojemność floty”):
+ * - `zuzyte` — realne zużycie kont teraz (suma próbek LVE) wobec pojemności FIZYCZNEJ: ryzyko przeciążenia;
+ * - `przydzielone` — suma limitów planów wobec SPRZEDAWALNEJ (fizyczna × overcommit): ile można jeszcze sprzedać.
+ * Te same reguły co przydział kont (node-capacity.ts czyZmiesciSie) i prognoza (zapasPuli).
+ */
+export function zasobyWezla(
+  s: WezelPojemnosc & { _count: { accounts: number } },
+  teraz: { cpu: number; ram: number; dysk: number } | null,
+) {
+  if (!s.totalCpuCores || !s.totalMemoryMb || !s.totalDiskMb) return null;
+  const fizyczna = { cpu: s.totalCpuCores * 100, ramMb: s.totalMemoryMb, diskMb: s.totalDiskMb };
+  const swieza = teraz !== null;
+  return {
+    fizyczna,
+    sprzedawalna: pojemnoscSprzedazowa(fizyczna, s, swieza),
+    przydzielone: { cpu: s.allocatedCpu, ramMb: s.allocatedMemory, diskMb: s.allocatedDisk },
+    zuzyte: teraz && { cpu: teraz.cpu, ramMb: teraz.ram, diskMb: teraz.dysk },
+    zapas: zapasPuli(s, { konta: s._count.accounts, swieza, nowe30: 0 }),
+  };
+}
 
 @Injectable()
 export class WykresyFlotyService {
@@ -150,6 +207,7 @@ export class WykresyFlotyService {
           overcommitRam: true,
           overcommitDisk: true,
           reservedHeadroomPercent: true,
+          maxAccounts: true,
           lastOffsiteBackupAt: true,
           _count: { select: { accounts: { where: { status: { not: 'DELETED' } } } } },
         },
@@ -185,6 +243,10 @@ export class WykresyFlotyService {
         lastOffsiteBackupAt: s.lastOffsiteBackupAt,
         cpu: serie.get(s.id)?.cpu ?? [],
         ram: serie.get(s.id)?.ram ?? [],
+        acceptsNewAccounts: s.acceptsNewAccounts,
+        reservedHeadroomPercent: s.reservedHeadroomPercent,
+        maxAccounts: s.maxAccounts,
+        zasoby: zasobyWezla(s, b ?? null),
       };
       return { ...w, stan: stanWezlaWykresy(w, teraz) };
     });

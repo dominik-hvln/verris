@@ -325,14 +325,16 @@ export default function ServiceOverviewV2({
           }
         >
           {cpu.values.length ? (
-            <Wykres
-              wariant="slupki"
-              punkty={cpu.values.map((v, i) => ({ v: (v / cpuLimit) * 100, label: `od ${cpu.labels[i] ?? ''}` }))}
-              limit={100}
-              format={(v) => `${Math.round(v)}% limitu CPU`}
-              nazwa="Wydajność konta w ostatnich 24 godzinach: szczyt CPU w każdej godzinie, w procentach limitu"
-              wysokosc={44}
-            />
+            <div className="mt-3">
+              <Wykres
+                wariant="slupki"
+                punkty={cpu.values.map((v, i) => ({ v: (v / cpuLimit) * 100, label: `od ${cpu.labels[i] ?? ''}` }))}
+                limit={100}
+                format={(v) => `${Math.round(v)}% limitu CPU`}
+                nazwa="Wydajność konta w ostatnich 24 godzinach: szczyt CPU w każdej godzinie, w procentach limitu"
+                wysokosc={44}
+              />
+            </div>
           ) : null}
         </Kpi>
         <Kpi
@@ -346,32 +348,35 @@ export default function ServiceOverviewV2({
           }
         >
           {ram.values.length ? (
-            <Wykres
-              punkty={ram.values.map((v, i) => ({ v, label: `od ${ram.labels[i] ?? ''}` }))}
-              limit={ramLimit}
-              format={fmtMb}
-              nazwa="Pamięć RAM w ostatnich 24 godzinach: szczyt w każdej godzinie"
-              wysokosc={44}
-            />
+            <div className="mt-3">
+              <Wykres
+                punkty={ram.values.map((v, i) => ({ v, label: `od ${ram.labels[i] ?? ''}` }))}
+                limit={ramLimit}
+                format={fmtMb}
+                nazwa="Pamięć RAM w ostatnich 24 godzinach: szczyt w każdej godzinie"
+                wysokosc={44}
+              />
+            </div>
           ) : null}
         </Kpi>
         <Kpi
           label="Dysk i transfer"
-          value={diskPct ?? '—'}
-          unit={diskPct != null ? '% dysku' : undefined}
-          foot={<span>{diskUsed != null && diskLimit ? `zostało ${fmtMb(diskLimit - diskUsed)}` : 'dane pojawią się po pierwszym pomiarze'}</span>}
+          foot={<span>{diskUsed != null && diskLimit ? `zostało ${fmtMb(diskLimit - diskUsed)} na dysku` : 'dane pojawią się po pierwszym pomiarze'}</span>}
         >
           <div className="flex flex-col text-[12.5px] text-muted-foreground">
-            <div className="flex justify-between gap-2">
+            <div className="flex flex-wrap justify-between gap-x-2">
               <span>Dysk</span>
-              <span className="font-mono text-foreground">{procentGb(diskUsed, diskLimit)}</span>
+              <span className="ml-auto whitespace-nowrap font-mono text-foreground">{procentGb(diskUsed, diskLimit)}</span>
             </div>
             <Meter pct={diskPct ?? 0} tone={(diskPct ?? 0) >= 80 ? 'warn' : 'data'} tipText={tip(procentGb(diskUsed, diskLimit), 'miejsce na dysku')} />
-            <div className="mt-2 flex justify-between gap-2">
-              <span>Transfer · miesiąc</span>
-              <span className="font-mono text-foreground">{procentGb(bw?.used, bw?.limit)}</span>
+            {/* Krótka etykieta mieści się z wartością w jednym wierszu; w wąskiej karcie wartość spada w całości pod etykietę. */}
+            <div className="mt-3 flex flex-wrap justify-between gap-x-2">
+              <span data-tip="Transfer w tym miesiącu">Transfer</span>
+              <span className="ml-auto whitespace-nowrap font-mono text-foreground">{procentGb(bw?.used, bw?.limit)}</span>
             </div>
-            <Meter pct={bwPct ?? 0} tone={(bwPct ?? 0) >= 80 ? 'warn' : 'data'} tipText={tip(procentGb(bw?.used, bw?.limit), 'transfer w tym miesiącu')} />
+            {bw?.limit ? (
+              <Meter pct={bwPct ?? 0} tone={(bwPct ?? 0) >= 80 ? 'warn' : 'data'} tipText={tip(procentGb(bw?.used, bw?.limit), 'transfer w tym miesiącu')} />
+            ) : null}
           </div>
         </Kpi>
         <Kpi

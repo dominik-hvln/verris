@@ -1,4 +1,4 @@
-import { WykresyFlotyService, seriaFloty, serieWezlow, sortZ, sortujWezly, stanWezlaWykresy, zakresZ, type StanWykresu } from './wykresy-floty.js';
+import { WykresyFlotyService, seriaFloty, serieWezlow, sortZ, sortujWezly, stanWezlaWykresy, zakresZ, zasobyWezla, type StanWykresu } from './wykresy-floty.js';
 
 const TERAZ = Date.parse('2026-10-05T12:00:00Z');
 const MIN = 60_000;
@@ -164,5 +164,33 @@ describe('Flota — wykresy: serie', () => {
       // dysk 27 000 / 30 000 MB — najbliżej limitu (CPU 600/1200, RAM 12 288/24 576)
       pojemnosc: { wymiar: 'dysk', proc: 90 },
     });
+  });
+});
+
+describe('Pojemność floty: realne zużycie osobno od sprzedanych limitów', () => {
+  // t1 z produkcji 06.10: limity planu 200% / 8 GB / 50 GB, a realnie konto prawie nic nie zużywa.
+  const t1 = {
+    totalCpuCores: 4, totalMemoryMb: 7_475, totalDiskMb: 76_800,
+    allocatedCpu: 200, allocatedMemory: 8_192, allocatedDisk: 51_200,
+    overcommitCpu: 2, overcommitRam: 1.5, overcommitDisk: 1.2,
+    reservedHeadroomPercent: 10, maxAccounts: null, _count: { accounts: 1 },
+  };
+
+  it('zużycie to próbki LVE, nie limity planów', () => {
+    const z = zasobyWezla(t1, { cpu: 3, ram: 71, dysk: 2_662 })!;
+    expect(z.zuzyte).toEqual({ cpu: 3, ramMb: 71, diskMb: 2_662 });
+    expect(z.przydzielone).toEqual({ cpu: 200, ramMb: 8_192, diskMb: 51_200 });
+  });
+
+  it('sprzedawalne = fizyczne × overcommit przy świeżej telemetrii, × 1 bez niej (jak przydział kont)', () => {
+    expect(zasobyWezla(t1, { cpu: 0, ram: 0, dysk: 0 })!.sprzedawalna).toEqual({ cpu: 800, ramMb: 11_212.5, diskMb: 92_160 });
+    const bez = zasobyWezla(t1, null)!;
+    expect(bez.sprzedawalna).toEqual({ cpu: 400, ramMb: 7_475, diskMb: 76_800 });
+    expect(bez.zuzyte).toBeNull();
+    expect(bez.zapas).toMatchObject({ kont: 0, wymiar: 'RAM' });
+  });
+
+  it('węzeł bez raportu pojemności → brak danych', () => {
+    expect(zasobyWezla({ ...t1, totalDiskMb: null }, null)).toBeNull();
   });
 });

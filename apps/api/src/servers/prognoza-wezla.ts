@@ -5,12 +5,11 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AiService } from '../ai/ai.service.js';
 import { AiProviderService } from '../ai/ai-provider.service.js';
 import { HORYZONT_DNI, opisPrognozy, policzPrognoze, type LimityPlanu, type Pomiar } from '../ai/prognoza-zasobow.js';
-import { PLAN_PRODUKCYJNY } from '../plans/plan-produkcyjny.js';
-import { SWIEZOSC_TELEMETRII_MIN, pojemnoscSprzedazowa } from '../subscriptions/node-capacity.js';
+import { SWIEZOSC_TELEMETRII_MIN } from '../subscriptions/node-capacity.js';
 import { nazwaWezla, pozaPula } from '../admin-dashboard/stan-platformy.js';
 import { StosWezlaService } from './stos-wezla.service.js';
 import { zgodnoscZManifestem } from './stos-wezla.js';
-import { sumyWezlow, type WierszSerii } from './wykresy-floty.js';
+import { sumyWezlow, zapasPuli, type WierszSerii, type Zapas } from './wykresy-floty.js';
 
 /**
  * Prognozy węzłów dla operatora (koncepcja zatwierdzona 2026-10-05): WSZYSTKIE liczby liczy panel —
@@ -64,39 +63,7 @@ export function najcichszaGodzina(pomiary: Pomiar[], cpuLimit: number): { godzin
   return { godzina, cpuProc: Math.round((srednia / cpuLimit) * 100) };
 }
 
-export interface WezelPojemnosc {
-  totalCpuCores: number | null;
-  totalMemoryMb: number | null;
-  totalDiskMb: number | null;
-  allocatedCpu: number;
-  allocatedMemory: number;
-  allocatedDisk: number;
-  overcommitCpu: number;
-  overcommitRam: number;
-  overcommitDisk: number;
-  reservedHeadroomPercent: number;
-  maxAccounts: number | null;
-}
-
-/**
- * Ile jeszcze „standardowych kont” (limity PLAN_PRODUKCYJNY) zmieści księga sprzedaży węzła
- * (sprzedawalne = fizyczne × overcommit, minus sprzedane) i za ile dni pula się skończy przy tempie
- * nowych kont z ostatnich 30 dni.
- */
-export function zapasPuli(s: WezelPojemnosc, a: { konta: number; swieza: boolean; nowe30: number }, plan = PLAN_PRODUKCYJNY) {
-  if (!s.totalCpuCores || !s.totalMemoryMb || !s.totalDiskMb) return null;
-  const sp = pojemnoscSprzedazowa({ cpu: s.totalCpuCores * 100, ramMb: s.totalMemoryMb, diskMb: s.totalDiskMb }, s, a.swieza);
-  const wymiary: [string, number][] = [
-    ['CPU', (sp.cpu - s.allocatedCpu) / plan.cpuLimit],
-    ['RAM', (sp.ramMb - s.allocatedMemory) / plan.ramLimitMb],
-    ['dysk', (sp.diskMb - s.allocatedDisk) / plan.diskLimitMb],
-  ];
-  if (s.maxAccounts != null) wymiary.push(['limit kont', s.maxAccounts - a.konta]);
-  const [wymiar, ile] = wymiary.map(([w, v]) => [w, Math.max(0, Math.floor(v))] as const).sort((x, y) => x[1] - y[1])[0]!;
-  const naDzien = a.nowe30 / 30;
-  return { kont: ile, wymiar, noweKonta30d: a.nowe30, dniDoWyczerpania: naDzien > 0 ? Math.round(ile / naDzien) : null };
-}
-export type Zapas = NonNullable<ReturnType<typeof zapasPuli>>;
+export { zapasPuli, type WezelPojemnosc, type Zapas } from './wykresy-floty.js';
 
 /** Konta o największym udziale w CPU węzła (średnia 7 dni). Etykiety „konto N” idą do AI zamiast domen. */
 export function kandydaciDoPrzeniesienia(konta: { accountId: string; cpu: number }[], cpuLimit: number, n = 3) {

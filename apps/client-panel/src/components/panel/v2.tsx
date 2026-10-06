@@ -266,7 +266,8 @@ export function Kpi({
   foot,
 }: {
   label: ReactNode;
-  value: ReactNode;
+  /** Bez wartości karta pokazuje od razu treść (np. paski z liczbami — bez dublowania nagłówkiem). */
+  value?: ReactNode;
   unit?: ReactNode;
   children?: ReactNode;
   foot?: ReactNode;
@@ -274,10 +275,12 @@ export function Kpi({
   return (
     <div className="flex min-w-0 flex-col gap-2.5 px-[18px] pb-3.5 pt-4">
       <Label>{label}</Label>
-      <div className="font-display text-[30px] font-extrabold leading-none tracking-[-0.03em] text-foreground tabular-nums">
-        {value}
-        {unit ? <small className="ml-1 font-mono text-[13px] font-medium tracking-normal text-muted-foreground">{unit}</small> : null}
-      </div>
+      {value != null ? (
+        <div className="font-display text-[30px] font-extrabold leading-none tracking-[-0.03em] text-foreground tabular-nums">
+          {value}
+          {unit ? <small className="ml-1 font-mono text-[13px] font-medium tracking-normal text-muted-foreground">{unit}</small> : null}
+        </div>
+      ) : null}
       {children}
       {foot ? <div className="flex min-h-[19px] justify-between gap-2 text-[12.5px] text-muted-foreground">{foot}</div> : null}
     </div>
