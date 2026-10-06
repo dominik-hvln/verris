@@ -33,7 +33,7 @@ function stanowisko(opts: { zadania?: unknown[]; wToku?: boolean; automaty?: unk
       update: vi.fn(async () => undefined),
     },
   };
-  const da = { assertDomainOwnedBySubscription: vi.fn(async (_s: string, _u: string, d: string) => d.trim().toLowerCase()) };
+  const da = { witrynaKonta: vi.fn(async (_s: string, _u: string, d: string) => ({ nazwa: d.trim().toLowerCase() })) };
   const svc = new WpUpdateService(prisma as never, { record: vi.fn(async () => undefined) } as never, da as never);
   return { svc, prisma, da };
 }
@@ -45,7 +45,7 @@ describe('WpUpdateService', () => {
   it('aktualizacja z panelu: domena sprawdzona, wybór spłaszczony do listy dla skryptu', async () => {
     const s = stanowisko();
     await s.svc.aktualizuj('s1', 'u1', { domain: ' Sklep.PL ', core: 'minor', plugins: ['akismet', 'akismet', 'woocommerce'], themes: '*' });
-    expect(s.da.assertDomainOwnedBySubscription).toHaveBeenCalledWith('s1', 'u1', ' Sklep.PL ');
+    expect(s.da.witrynaKonta).toHaveBeenCalledWith('s1', 'u1', ' Sklep.PL ');
     const d = payload(s);
     expect(d.kind).toBe('WP_UPDATE');
     expect(d.payload).toEqual({ mode: 'update', domain: 'sklep.pl', core: 'minor', plugins: 'akismet,woocommerce', themes: '*', auto: false, daUser: 'klient1' });
@@ -145,21 +145,27 @@ describe('WpUpdateService — wiele stron naraz (I-14)', () => {
     const z = Buffer.from(JSON.stringify({ edytorPlikow: true, debug: false, uzytkownikAdmin: true, uprawnieniaConfig: '644', sumyRdzenia: 'ok' })).toString('base64');
     const sprawdzenie = { id: 't', status: 'COMPLETED', outputLog: `VERRIS_WP_PRZED=${b64(PRZED)}\nVERRIS_WP_ZABEZPIECZENIA=${z}\n`, createdAt: new Date(), completedAt: new Date(), payload: { mode: 'check', domain: 'a.pl' } };
     const s = stanowisko();
-    (s.da as unknown as { listHostingDomainsForSubscription: Mock }).listHostingDomainsForSubscription = vi.fn(async () => ({ domains: [{ name: 'A.pl' }, { name: 'b.pl' }], fetchError: null }));
+    // Poddomena (próba bety 06.10) też jest stroną konta do sprawdzenia.
+    (s.da as unknown as { witrynyKonta: Mock }).witrynyKonta = vi.fn(async () => ({
+      witryny: [{ nazwa: 'a.pl' }, { nazwa: 'b.pl' }, { nazwa: 'sklep.b.pl' }],
+      fetchError: null,
+    }));
     s.prisma.nodeTask.findMany.mockImplementation((async (a: { where: { payload?: { equals: string }; status?: unknown } }) => {
       if (a.where.status) return [{ payload: { domain: 'b.pl' } }];
       return a.where.payload?.equals === 'a.pl' ? [sprawdzenie] : [];
     }) as never);
     const r = await s.svc.sprawdzWszystkie('s1', 'u1');
-    expect(s.prisma.nodeTask.create).toHaveBeenCalledTimes(1);
+    expect(s.prisma.nodeTask.create).toHaveBeenCalledTimes(2);
     expect(payload(s).payload).toMatchObject({ mode: 'check', domain: 'a.pl' });
+    expect(s.prisma.nodeTask.create.mock.calls[1]![0].data.payload).toMatchObject({ mode: 'check', domain: 'sklep.b.pl' });
     expect(r.strony[0]).toMatchObject({ domena: 'a.pl', wersja: PRZED.version, wtyczki: 1, motywy: 0, doPoprawy: 2 });
     expect(r.strony[1]).toMatchObject({ domena: 'b.pl', wersja: null });
+    expect(r.strony[2]).toMatchObject({ domena: 'sklep.b.pl' });
   });
 
   it('serwer nie odpowiada → komunikat o niedostępności, nie pusta lista', async () => {
     const s = stanowisko();
-    (s.da as unknown as { listHostingDomainsForSubscription: Mock }).listHostingDomainsForSubscription = vi.fn(async () => ({ domains: [], fetchError: 'x' }));
+    (s.da as unknown as { witrynyKonta: Mock }).witrynyKonta = vi.fn(async () => ({ witryny: [], fetchError: 'x' }));
     await expect(s.svc.przeglad('s1', 'u1')).rejects.toThrow('chwilowo niedostępny');
   });
 });

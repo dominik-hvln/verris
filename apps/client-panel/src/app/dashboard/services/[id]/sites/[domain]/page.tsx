@@ -167,6 +167,37 @@ export default function SitePage() {
       ? { tone: 'warn', text: 'Certyfikat wygasł' }
       : { tone: 'muted', text: 'Bez monitoringu' };
 
+  // Poddomena (sklep.firma.pl) nie ma własnego DNS, poczty ani PHP — to strona w katalogu domeny
+  // nadrzędnej. Z listy „Wszystkie strony WordPress” trafia tu tylko po WordPressa (próba bety 06.10).
+  const rodzic = domainList.find((d) => domain.endsWith(`.${d}`));
+  if (unknownDomain && rodzic) {
+    return (
+      <div className="mx-auto flex w-full min-w-0 max-w-[1280px] flex-col gap-6">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 text-[13.5px] text-muted-foreground">
+          <Link href={`/dashboard/services/${serviceId}`} className="inline-flex items-center gap-1.5 rounded px-1 py-0.5 hover:bg-raised hover:text-foreground">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            {planName ?? 'Hosting'}
+          </Link>
+          <span aria-hidden>/</span>
+          <Link href={`/dashboard/services/${serviceId}/sites/${encodeURIComponent(rodzic)}`} className="rounded px-1 py-0.5 hover:bg-raised hover:text-foreground">
+            {rodzic}
+          </Link>
+        </div>
+        <header className="flex flex-wrap items-end justify-between gap-[18px]">
+          <div className="min-w-0">
+            <div className="font-mono text-[11px] font-medium uppercase leading-none tracking-[0.08em] text-muted-foreground">poddomena · {rodzic}</div>
+            <h1 className="mb-0 mt-1.5 break-words font-display text-[clamp(28px,4vw,40px)] font-extrabold leading-none tracking-[-0.03em] text-foreground">{domain}</h1>
+          </div>
+          <a className={BTN} href={`https://${domain}`} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="h-[15px] w-[15px]" />
+            Otwórz stronę
+          </a>
+        </header>
+        <WpUpdatesPanel serviceId={serviceId} domain={domain} />
+      </div>
+    );
+  }
+
   if (unknownDomain) {
     return (
       <div className="mx-auto max-w-[1280px]">

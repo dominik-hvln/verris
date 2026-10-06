@@ -4,7 +4,8 @@
 # Uruchamiany przez agenta zadań (WP_UPDATE) z env:
 #   WPU_MODE      check | update | cache | harden
 #   WPU_DA_USER   login konta DA (z rekordu konta w API)
-#   WPU_DOMAIN    domena; WordPress w domains/<domena>/public_html
+#   WPU_DOMAIN    domena albo poddomena; WordPress w domains/<domena>/public_html albo
+#                 domains/<domena nadrzędna>/public_html/<poddomena> (układ DirectAdmina)
 #   WPU_CORE      (update) none | minor | all
 #   WPU_PLUGINS   (update) pusta = bez wtyczek, „*” = wszystkie z aktualizacją, albo slug,slug
 #   WPU_THEMES    (update) jak WPU_PLUGINS, dla motywów
@@ -26,7 +27,7 @@
 # Wszystko jako KLIENT (su -l, w jego klatce CageFS i jego wersją PHP).
 # Wynik dla API: VERRIS_WP_PRZED= / VERRIS_WP_PO= (base64 JSON stanu), VERRIS_WP_BRAK=1 gdy
 # w katalogu nie ma WordPressa, VERRIS_WPU_WYCOFANO=1 gdy zadziałało wycofanie.
-# ponytail: tylko WordPress w katalogu głównym domeny; instalacje w podkatalogach — gdy ktoś zapyta.
+# ponytail: WordPress w katalogu głównym domeny albo poddomeny; instalacje w podkatalogach (domena.pl/blog) — gdy ktoś zapyta.
 # WPU_HEALTH_BASE (adres kontroli strony) daje się podmienić wyłącznie w testach.
 # =============================================================================
 set -Eeuo pipefail
@@ -50,9 +51,22 @@ id "$WPU_DA_USER" >/dev/null 2>&1 || fail "brak użytkownika systemowego $WPU_DA
 
 HOME_DIR="$(getent passwd "$WPU_DA_USER" | cut -d: -f6)"
 [ -n "$HOME_DIR" ] && [ -d "$HOME_DIR" ] || fail "brak katalogu domowego konta"
-DOCROOT_WZGL="domains/$WPU_DOMAIN/public_html"
+# Katalog strony: domena → domains/<domena>/public_html; poddomena (sklep.firma.pl) → katalog, w którym
+# trzyma ją DirectAdmin: domains/<domena nadrzędna>/public_html/<etykieta>. API sprawdziło, że nazwa należy
+# do konta (DirectAdminService.witrynaKonta).
+katalog_strony() { # <katalog domowy> <nazwa> → ścieżka względem katalogu domowego
+  local dom="$1" nazwa="$2"
+  if [ -d "$dom/domains/$nazwa/public_html" ]; then echo "domains/$nazwa/public_html"; return 0; fi
+  if [ -d "$dom/domains/${nazwa#*.}/public_html/${nazwa%%.*}" ]; then echo "domains/${nazwa#*.}/public_html/${nazwa%%.*}"; return 0; fi
+  return 1
+}
+# Root pracuje w katalogach klienta — żadna część ścieżki nie może być dowiązaniem (np. public_html → /etc).
+bez_dowiazan() { # <katalog domowy> <ścieżka względna>
+  [ "$(realpath -e -- "$1/$2" 2>/dev/null)" = "$(realpath -e -- "$1")/$2" ]
+}
+DOCROOT_WZGL="$(katalog_strony "$HOME_DIR" "$WPU_DOMAIN")" || fail "brak katalogu strony domains/$WPU_DOMAIN/public_html"
 DOCROOT="$HOME_DIR/$DOCROOT_WZGL"
-[ -d "$DOCROOT" ] || fail "brak katalogu strony $DOCROOT_WZGL"
+bez_dowiazan "$HOME_DIR" "$DOCROOT_WZGL" || fail "katalog strony $DOCROOT_WZGL prowadzi przez dowiązanie"
 WP_DIR="$HOME_DIR/.verris"
 WP_PHAR="$WP_DIR/wp-cli.phar"
 HEALTH_BASE="${WPU_HEALTH_BASE:-http://127.0.0.1}"

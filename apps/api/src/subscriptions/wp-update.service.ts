@@ -333,18 +333,19 @@ export class WpUpdateService {
     const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
     if (!sub) throw new NotFoundException('Service not found');
     if (!sub.account) throw new BadRequestException('Usługa nie ma jeszcze konta hostingowego.');
-    const lista = await this.directAdmin.listHostingDomainsForSubscription(subscriptionId, userId);
-    if (!lista.domains.length && lista.fetchError) {
+    // Domeny i poddomeny — WordPress na poddomenie (sklep.firma.pl) też ma być w przeglądzie.
+    const lista = await this.directAdmin.witrynyKonta(subscriptionId, userId);
+    if (!lista.witryny.length && lista.fetchError) {
       throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny — nie możemy pobrać listy stron. Spróbuj ponownie za chwilę.');
     }
-    return { account: sub.account, domeny: lista.domains.map((d) => d.name.toLowerCase()).slice(0, 100) };
+    return { account: sub.account, domeny: lista.witryny.map((w) => w.nazwa).slice(0, 100) };
   }
 
   private async wymagajDomeny(subscriptionId: string, userId: string, domain: string) {
     const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
     if (!sub) throw new NotFoundException('Service not found');
     if (!sub.account) throw new BadRequestException('Usługa nie ma jeszcze konta hostingowego.');
-    const domena = await this.directAdmin.assertDomainOwnedBySubscription(subscriptionId, userId, domain);
+    const { nazwa: domena } = await this.directAdmin.witrynaKonta(subscriptionId, userId, domain);
     return { sub, account: sub.account, domena };
   }
 }

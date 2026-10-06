@@ -2319,6 +2319,41 @@ export class DirectAdminService {
     return wanted;
   }
 
+  /**
+   * Strona konta: domena albo jej poddomena (jedna etykieta). DirectAdmin trzyma poddomenę w katalogu
+   * domains/<domena>/public_html/<poddomena> — skrypty WordPressa na węźle znajdują go same po nazwie.
+   * Poddomenę sprawdzamy w DA (CMD_API_SUBDOMAINS) tylko wtedy, gdy nazwa nie jest domeną konta.
+   */
+  async witrynaKonta(subscriptionId: string, userId: string, nazwa: string): Promise<WitrynaKonta> {
+    const wanted = String(nazwa || '').trim().toLowerCase();
+    if (!wanted) throw new BadRequestException('Brak domeny.');
+    const lista = await this.listHostingDomainsForSubscription(subscriptionId, userId);
+    const domeny = lista.domains.map((d) => d.name.toLowerCase());
+    if (domeny.includes(wanted)) return { nazwa: wanted, domena: wanted, sub: null };
+    const rodzic = domeny.filter((d) => wanted.endsWith(`.${d}`)).sort((a, b) => b.length - a.length)[0];
+    const sub = rodzic ? wanted.slice(0, -rodzic.length - 1) : '';
+    if (rodzic && /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/.test(sub)) {
+      const raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_SUBDOMAINS', { domain: rodzic });
+      if (parseDaSubdomainList(raw).some((x) => x.toLowerCase() === sub)) return { nazwa: wanted, domena: rodzic, sub };
+    }
+    if (!domeny.length && lista.fetchError) {
+      throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny — nie możemy potwierdzić domen konta. Spróbuj ponownie za chwilę.');
+    }
+    throw new BadRequestException('Domena nie należy do tej usługi.');
+  }
+
+  /** Wszystkie strony konta: domeny, potem ich poddomeny (lista do wyboru i „Sprawdź wszystkie”). */
+  async witrynyKonta(subscriptionId: string, userId: string): Promise<{ witryny: WitrynaKonta[]; fetchError: string | null }> {
+    const s = await this.listHostingSubdomains(subscriptionId, userId);
+    return {
+      witryny: [
+        ...s.domains.map((d) => ({ nazwa: d.toLowerCase(), domena: d.toLowerCase(), sub: null })),
+        ...s.rows.map((r) => ({ nazwa: r.id.toLowerCase(), domena: r.domain.toLowerCase(), sub: r.subdomain.toLowerCase() })),
+      ],
+      fetchError: s.fetchError,
+    };
+  }
+
   /* ===================== A-06: katalog główny strony (DocumentRoot) ===================== */
 
   /**
@@ -3451,6 +3486,13 @@ function emptyMetric(): { used: number | null; limit: number | null } {
  * `qatest2=`. Starsze/inne wersje używają `list0=qatest2` lub `list[]=qatest2`
  * — obsługujemy oba warianty. Pomijamy meta-klucze (error/text/details).
  */
+/** Strona konta: `sub` = etykieta poddomeny domeny `domena`, null = sama domena. */
+export interface WitrynaKonta {
+  nazwa: string;
+  domena: string;
+  sub: string | null;
+}
+
 function parseDaSubdomainList(raw: URLSearchParams): string[] {
   const META = new Set(['error', 'text', 'details']);
   const out: string[] = [];

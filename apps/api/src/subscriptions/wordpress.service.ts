@@ -38,10 +38,10 @@ export class WordpressService {
       where: { accountId: sub.account!.id, kind: NodeTaskKind.WP_INSTALL },
       orderBy: { createdAt: 'desc' },
     });
-    const lista = await this.da.listHostingDomainsForSubscription(subscriptionId, userId).catch(() => null);
+    const lista = await this.da.witrynyKonta(subscriptionId, userId).catch(() => null);
     return {
       domain: sub.account!.domain,
-      domains: lista?.domains.length ? lista.domains.map((d) => d.name) : [sub.account!.domain],
+      domains: lista?.witryny.length ? lista.witryny.map((w) => w.nazwa) : [sub.account!.domain],
       task: task
         ? {
             id: task.id,
@@ -77,9 +77,8 @@ export class WordpressService {
 
     // Test D3 29.09: WordPress szedł zawsze na domenę główną — przy drugiej domenie usługi nie dało się go
     // postawić z panelu. Domena spoza usługi odpada PRZED założeniem bazy (jak w instalatorze aplikacji).
-    const domena = input.domain?.trim()
-      ? await this.da.assertDomainOwnedBySubscription(subscriptionId, userId, input.domain)
-      : account.domain;
+    // Próba bety 06.10: także poddomena (beta.d3.hvln.pl, u klienta np. sklep.firma.pl).
+    const domena = input.domain?.trim() ? (await this.da.witrynaKonta(subscriptionId, userId, input.domain)).nazwa : account.domain;
     const siteTitle = input.siteTitle?.trim() || domena;
     const adminUser = (input.adminUser || '').trim();
     const adminEmail = (input.adminEmail || '').trim();

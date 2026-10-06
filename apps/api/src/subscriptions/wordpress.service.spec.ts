@@ -17,10 +17,10 @@ function stanowisko(domenyUslugi: string[], ostatnie: Record<string, unknown> | 
   const client = { createMysqlDatabase: vi.fn(async () => ({ database: 'klient1_wpab12', username: 'klient1_wpab12' })) };
   const da = {
     getClientForHostingAccount: vi.fn(async () => client),
-    listHostingDomainsForSubscription: vi.fn(async () => ({ domains: domenyUslugi.map((name) => ({ name })) })),
-    assertDomainOwnedBySubscription: vi.fn(async (_s: string, _u: string, d: string) => {
+    witrynyKonta: vi.fn(async () => ({ witryny: domenyUslugi.map((nazwa) => ({ nazwa })), fetchError: null })),
+    witrynaKonta: vi.fn(async (_s: string, _u: string, d: string) => {
       if (!domenyUslugi.includes(d.trim().toLowerCase())) throw new BadRequestException('Ta domena nie należy do tej usługi.');
-      return d.trim().toLowerCase();
+      return { nazwa: d.trim().toLowerCase() };
     }),
   };
   const svc = new WordpressService(prisma as never, { record: vi.fn(async () => undefined) } as never, da as never);
@@ -37,6 +37,13 @@ describe('WordpressService — domena instalacji', () => {
     expect(s.prisma.nodeTask.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ payload: expect.objectContaining({ domain: 'sklep.pl', siteTitle: 'sklep.pl' }) }),
     }));
+  });
+
+  it('poddomena konta (próba bety 06.10) → instalacja na niej', async () => {
+    const s = stanowisko(['firma.pl', 'sklep.firma.pl']);
+    const r = await s.svc.install('sub1', 'u1', { ...s.wejscie, domain: 'sklep.firma.pl' });
+    expect(r.adminUrl).toBe('https://sklep.firma.pl/wp-admin');
+    expect((await s.svc.statusForSubscription('sub1', 'u1')).domains).toContain('sklep.firma.pl');
   });
 
   it('domena spoza usługi → odmowa bez zakładania bazy', async () => {

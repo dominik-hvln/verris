@@ -3,7 +3,7 @@
 # Verris — instalator WordPress per konto (A4). Uruchamiany przez agenta zadań
 # (verris-task-run.sh) z payloadem w zmiennych środowiskowych:
 #
-#   WP_DA_USER, WP_DOMAIN, WP_DB_*, WP_ADMIN_*, WP_SITE_TITLE, WP_LOCALE
+#   WP_DA_USER, WP_DOMAIN (domena albo poddomena konta), WP_DB_*, WP_ADMIN_*, WP_SITE_TITLE, WP_LOCALE
 #
 # Instalacja jako użytkownik konta DA (CageFS). Rdzeń WP: curl + tar (bez limitu
 # pamięci PHP). Konfiguracja: wp-cli z podniesionym memory_limit (512M).
@@ -17,7 +17,22 @@ set -Eeuo pipefail
 WP_SITE_TITLE="${WP_SITE_TITLE:-Moja strona}"
 WP_LOCALE="${WP_LOCALE:-pl_PL}"
 
-DOCROOT="/home/${WP_DA_USER}/domains/${WP_DOMAIN}/public_html"
+[[ "$WP_DOMAIN" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$ ]] || { echo "[wp-install] ERROR: nieprawidłowa domena" >&2; exit 1; }
+# Katalog strony: domena → domains/<domena>/public_html; poddomena (sklep.firma.pl) → katalog, w którym
+# trzyma ją DirectAdmin: domains/<domena nadrzędna>/public_html/<etykieta>. API sprawdziło, że nazwa należy
+# do konta (DirectAdminService.witrynaKonta).
+katalog_strony() { # <katalog domowy> <nazwa> → ścieżka względem katalogu domowego
+  local dom="$1" nazwa="$2"
+  if [ -d "$dom/domains/$nazwa/public_html" ]; then echo "domains/$nazwa/public_html"; return 0; fi
+  if [ -d "$dom/domains/${nazwa#*.}/public_html/${nazwa%%.*}" ]; then echo "domains/${nazwa#*.}/public_html/${nazwa%%.*}"; return 0; fi
+  return 1
+}
+# Root pracuje w katalogach klienta — żadna część ścieżki nie może być dowiązaniem (np. public_html → /etc).
+bez_dowiazan() { # <katalog domowy> <ścieżka względna>
+  [ "$(realpath -e -- "$1/$2" 2>/dev/null)" = "$(realpath -e -- "$1")/$2" ]
+}
+DOCROOT_WZGL="$(katalog_strony "/home/${WP_DA_USER}" "$WP_DOMAIN" || echo "domains/${WP_DOMAIN}/public_html")"
+DOCROOT="/home/${WP_DA_USER}/${DOCROOT_WZGL}"
 WP_DIR="/home/${WP_DA_USER}/.verris"
 WP_PHAR="${WP_DIR}/wp-cli.phar"
 WP_PHP_ARGS="-d memory_limit=512M -d max_execution_time=900"
@@ -33,7 +48,8 @@ chown_user() {
   chown -R "$WP_DA_USER:$(account_group)" "$1"
 }
 
-[ -d "$DOCROOT" ] || die "Brak katalogu strony domains/${WP_DOMAIN}/public_html — sprawdź, czy domena jest dodana do usługi."
+[ -d "$DOCROOT" ] || die "Brak katalogu strony ${DOCROOT_WZGL} — sprawdź, czy domena jest dodana do usługi."
+bez_dowiazan "/home/${WP_DA_USER}" "$DOCROOT_WZGL" || die "Katalog strony ${DOCROOT_WZGL} prowadzi przez dowiązanie — instalacja przerwana."
 
 # wp-cli w ~/.verris klienta — zapis wyłącznie jako klient. Katalog domowy należy do klienta, więc root
 # idący za jego dowiązaniem symbolicznym (curl -o, chmod, chown) nadpisałby albo otworzył dowolny plik
