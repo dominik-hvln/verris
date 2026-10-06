@@ -49,6 +49,7 @@ describe('MigrationOrchestratorService', () => {
       notifications as never,
       directAdmin as never,
       preflight as never,
+      null as never,
     );
   }
 
@@ -333,7 +334,7 @@ describe('MigrationOrchestratorService', () => {
       migrationRequest: { update: vi.fn().mockResolvedValue({}) },
     };
     const leased = await new MigrationOrchestratorService(
-      fullPrisma as never, crypto as never, audit as never, notifications as never, directAdmin as never, preflight as never,
+      fullPrisma as never, crypto as never, audit as never, notifications as never, directAdmin as never, preflight as never, null as never,
     ).leaseFileWorkerJobForNode('srv_1');
     expect(leased).toMatchObject({
       sshFallback: { host: 'old.example', port: 22, username: 'fu', password: 'fp' },
@@ -396,6 +397,7 @@ describe('MigrationOrchestratorService', () => {
       notifications as never,
       directAdmin as never,
       preflight as never,
+      null as never,
     ).leaseFileWorkerJobForNode('srv_1');
 
     expect(leased).toMatchObject({
@@ -443,6 +445,7 @@ describe('MigrationOrchestratorService', () => {
       notifications as never,
       directAdmin as never,
       preflight as never,
+      null as never,
     ).leaseFileWorkerJobForNode('srv_1');
 
     expect(leased).toBeNull();
@@ -526,7 +529,7 @@ describe('MigrationOrchestratorService', () => {
       attempts: 1,
       maxAttempts: 3,
     });
-    const { service, prisma } = buildWorkerLifecycleMocks(runningJob);
+    const { service, prisma, tickets } = buildWorkerLifecycleMocks(runningJob);
 
     const result = await service.failWorkerJobFromNode({
       serverId: 'srv_1',
@@ -549,7 +552,7 @@ describe('MigrationOrchestratorService', () => {
       data: expect.objectContaining({ type: 'MIGRATION_WORKER_JOB_RETRYING' }),
     });
     // Retry nie eskaluje do staffa.
-    expect(prisma.ticket.create).not.toHaveBeenCalled();
+    expect(tickets.create).not.toHaveBeenCalled();
   });
 
   it('escalates to staff (ATTENTION + URGENT ticket) when attempts are exhausted', async () => {
@@ -560,7 +563,7 @@ describe('MigrationOrchestratorService', () => {
       attempts: 3,
       maxAttempts: 3,
     });
-    const { service, prisma } = buildWorkerLifecycleMocks(runningJob);
+    const { service, prisma, tickets } = buildWorkerLifecycleMocks(runningJob);
 
     const result = await service.failWorkerJobFromNode({
       serverId: 'srv_1',
@@ -570,11 +573,12 @@ describe('MigrationOrchestratorService', () => {
     });
 
     expect(result).toEqual({ ok: true, status: MigrationWorkerJobStatus.FAILED });
-    expect(prisma.ticket.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ priority: 'URGENT' }),
-      }),
-    );
+    // Zwykła ścieżka zgłoszenia (opiekun, termin SLA, potwierdzenie), treść bez powodu technicznego —
+    // klient widzi ją jako swoją wiadomość (d3, 03.10: „imap sync failed (rc=2)”, „Sekrety źródła…”).
+    expect(prisma.ticket.create).not.toHaveBeenCalled();
+    expect(tickets.create).toHaveBeenCalledWith('user_1', expect.objectContaining({ priority: 'URGENT', department: 'TECHNICAL' }));
+    const zgloszenie = tickets.create.mock.calls[0][1] as { subject: string; message: string };
+    expect(`${zgloszenie.subject}\n${zgloszenie.message}`).not.toMatch(/invalid credentials|staff|Sekret|PILNE/);
     expect(prisma.migrationRequest.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'mig_1' },
@@ -662,6 +666,7 @@ function buildWorkerLifecycleMocks(
   const notifications = { create: vi.fn().mockResolvedValue(undefined) };
   const directAdmin = { createHostingMysqlDatabase: vi.fn() };
   const preflight = { sprawdzSkrzynke: vi.fn() };
+  const tickets = { create: vi.fn().mockResolvedValue({ id: 'ticket_1' }) };
   const service = new MigrationOrchestratorService(
     prisma as never,
     crypto as never,
@@ -669,6 +674,7 @@ function buildWorkerLifecycleMocks(
     notifications as never,
     directAdmin as never,
     preflight as never,
+    tickets as never,
   );
-  return { service, prisma };
+  return { service, prisma, tickets };
 }

@@ -1,3 +1,4 @@
+import { TicketsService } from '../tickets/tickets.service.js';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   MigrationStatus,
@@ -97,6 +98,7 @@ export class MigrationOrchestratorService {
     private readonly notifications: NotificationsService,
     private readonly directAdmin: DirectAdminService,
     private readonly preflight: MigrationPreflightService,
+    private readonly tickets: TicketsService,
   ) {}
 
   /**
@@ -924,20 +926,16 @@ export class MigrationOrchestratorService {
     const domain = request.targetDomain ?? request.subscription.account?.domain ?? '—';
     let ticketId = request.ticketId;
     if (!ticketId) {
-      const ticket = await this.prisma.ticket.create({
-        data: {
-          userId: request.userId,
-          subject: `[PILNE] Migracja ${domain} wymaga dokończenia przez zespół`,
-          message: [
-            `Automatyczna migracja #${request.id.slice(0, 8)} została zatrzymana.`,
-            `Powód: ${reason}`,
-            '',
-            'Zlecenie czeka w kolejce migracji staff (sekcja „Pilne”). Sekrety źródła',
-            'dostępne wyłącznie przez panel staff (odsłonięcie audytowane).',
-          ].join('\n'),
-          department: 'TECHNICAL',
-          priority: 'URGENT',
-        },
+      // Przez TicketsService — opiekun, termin SLA i potwierdzenie dla klienta jak przy zwykłym zgłoszeniu.
+      // Treść widzi klient jako swoją wiadomość: bez powodu technicznego (jest w kolejce migracji staff).
+      const ticket = await this.tickets.create(request.userId, {
+        subject: `Przeniesienie strony ${domain} dokończy nasz zespół`,
+        message: [
+          `Zgłoszenie utworzone automatycznie: przeniesienie strony ${domain} (#${request.id.slice(0, 8)})`,
+          'zatrzymało się i dokończymy je ręcznie. Nic nie musisz robić — napiszemy, gdy skończymy.',
+        ].join('\n'),
+        department: 'TECHNICAL',
+        priority: 'URGENT',
       });
       ticketId = ticket.id;
     }

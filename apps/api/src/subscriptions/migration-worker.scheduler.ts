@@ -1,3 +1,4 @@
+import { TicketsService } from '../tickets/tickets.service.js';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { MigrationStatus } from '@verris/database';
@@ -31,6 +32,7 @@ export class MigrationWorkerScheduler {
     private readonly audit: AuditService,
     private readonly mailer: MailerService,
     private readonly orchestrator: MigrationOrchestratorService,
+    private readonly tickets: TicketsService,
   ) {}
 
   /**
@@ -379,17 +381,14 @@ export class MigrationWorkerScheduler {
         continue;
       }
 
-      const ticket = await this.prisma.ticket.create({
-        data: {
-          userId: req.subscription.userId,
-          subject:
-            req.type === 'MIGRATION_EXTERNAL_REQUESTED'
-              ? `Migracja zewnętrzna #${req.subscriptionId}`
-              : `Migracja wewnętrzna #${req.subscriptionId}`,
-          message: this.buildTicketMessage(req.type, req.details, req.subscription.account?.domain ?? null),
-          department: 'TECHNICAL',
-          priority: 'HIGH',
-        },
+      const ticket = await this.tickets.create(req.subscription.userId, {
+        subject:
+          req.type === 'MIGRATION_EXTERNAL_REQUESTED'
+            ? `Przeniesienie strony ${req.subscription.account?.domain ?? ''} do Verris`
+            : `Przeniesienie konta ${req.subscription.account?.domain ?? ''} na inny serwer`,
+        message: this.buildTicketMessage(req.type, req.details, req.subscription.account?.domain ?? null),
+        department: 'TECHNICAL',
+        priority: 'HIGH',
       });
 
       const queuedType =
@@ -422,33 +421,32 @@ export class MigrationWorkerScheduler {
     }
   }
 
+  /** Treść widzi klient jako swoją wiadomość — bez kodów zadań, id węzła i uwag o sekretach. */
   private buildTicketMessage(
     type: string,
     rawDetails: unknown,
     domain: string | null,
   ): string {
     const details = rawDetails && typeof rawDetails === 'object' ? (rawDetails as Record<string, unknown>) : {};
+    const notatki = details.notes ? String(details.notes) : '—';
     if (type === 'MIGRATION_EXTERNAL_REQUESTED') {
       return [
-        'Automatyczne zgłoszenie migracji zewnętrznej (G-6).',
-        `Domena docelowa: ${domain ?? '—'}`,
-        `Typ źródła: ${String(details.sourceType ?? '—')}`,
-        `Host źródła: ${String(details.sourceHost ?? '—')}:${String(details.sourcePort ?? '—')}`,
-        `Użytkownik źródła: ${String(details.sourceUsername ?? '—')}`,
+        'Zgłoszenie utworzone automatycznie z formularza przeniesienia strony.',
+        `Domena: ${domain ?? '—'}`,
+        `Źródło: ${String(details.sourceType ?? '—')} ${String(details.sourceHost ?? '—')}:${String(details.sourcePort ?? '—')}`,
+        `Użytkownik: ${String(details.sourceUsername ?? '—')}`,
         `Ścieżka: ${String(details.sourcePath ?? '—')}`,
-        `Notatki klienta: ${String(details.notes ?? '—')}`,
-        '',
-        'Uwaga: sekret źródłowy zapisany szyfrowany w details zdarzenia migracyjnego.',
+        `Twoje uwagi: ${notatki}`,
       ].join('\n');
     }
     return [
-      'Automatyczne zgłoszenie migracji wewnętrznej (G-7).',
+      'Zgłoszenie utworzone automatycznie: przeniesienie konta na inny serwer.',
       `Domena: ${domain ?? '—'}`,
-      `Docelowy serverId: ${String(details.targetServerId ?? '—')}`,
-      `Notatki: ${String(details.notes ?? '—')}`,
+      `Twoje uwagi: ${notatki}`,
       '',
-      'Przed migracją wykonaliśmy kopię zapasową konta.',
+      'Przed przeniesieniem wykonaliśmy kopię zapasową konta.',
     ].join('\n');
   }
+
 }
 

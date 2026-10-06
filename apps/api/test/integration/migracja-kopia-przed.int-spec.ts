@@ -10,7 +10,7 @@ import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } fr
  */
 const orkiestrator = () => {
   const p = prisma() as never;
-  return new MigrationOrchestratorService(p, { decrypt: () => JSON.stringify({ ftp: { host: 'src.example', port: 22, username: 'u', password: 'p' } }), encrypt: (s: string) => s } as never, new AuditService(p), { notify: async () => undefined } as never, null as never, null as never);
+  return new MigrationOrchestratorService(p, { decrypt: () => JSON.stringify({ ftp: { host: 'src.example', port: 22, username: 'u', password: 'p' } }), encrypt: (s: string) => s } as never, new AuditService(p), { notify: async () => undefined } as never, null as never, null as never, null as never);
 };
 
 async function zlecenie(opts: { preBackupAt: Date | null; status: MigrationStatus }) {

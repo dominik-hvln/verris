@@ -1,3 +1,4 @@
+import { TicketsModule } from '../tickets/tickets.module.js';
 import { WarunkiIndywidualneService } from './warunki-indywidualne.service.js';
 import { WarunkiIndywidualneAdminController } from './warunki-indywidualne.admin.controller.js';
 import { forwardRef, Module } from '@nestjs/common';
@@ -76,7 +77,7 @@ import { EcoModule } from '../eco/eco.module.js';
 import { ComplianceModule } from '../compliance/compliance.module.js';
 
 @Module({
-  imports: [ServersModule, PlatformSettingsModule, EcoModule, forwardRef(() => BillingModule), MailModule, NotificationsModule, ApiTokensModule, ComplianceModule],
+  imports: [ServersModule, PlatformSettingsModule, EcoModule, forwardRef(() => BillingModule), MailModule, NotificationsModule, ApiTokensModule, ComplianceModule, TicketsModule],
   providers: [
     SubscriptionsService,
     WarunkiIndywidualneService,

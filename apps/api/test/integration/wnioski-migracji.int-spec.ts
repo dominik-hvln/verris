@@ -1,5 +1,7 @@
 import { AuditService } from '../../src/common/audit/audit.service.js';
 import { MigrationWorkerScheduler } from '../../src/subscriptions/migration-worker.scheduler.js';
+import { OpiekaZgloszenService } from '../../src/tickets/opieka-zgloszen.service.js';
+import { TicketsService } from '../../src/tickets/tickets.service.js';
 import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } from './setup.js';
 
 /**
@@ -10,10 +12,14 @@ import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } fr
 let kopie = 0;
 const uslugi = () => {
   const p = prisma() as never;
+  const audit = new AuditService(p);
+  const mailer = { send: async () => ({}) };
+  const nic = { get: () => undefined, create: async () => undefined, supportSuggestion: async () => null };
+  const tickets = new TicketsService(p, mailer as never, nic as never, null as never, audit, nic as never, new OpiekaZgloszenService(p, mailer as never, nic as never, audit, nic as never, nic as never));
   return new MigrationWorkerScheduler(
     p,
     { createHostingSiteBackupNow: async () => { kopie += 1; await new Promise((r) => setTimeout(r, 50)); } } as never,
-    new AuditService(p), { send: async () => ({}) } as never, null as never,
+    audit, mailer as never, null as never, tickets,
   );
 };
 
