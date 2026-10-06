@@ -61,10 +61,13 @@ export class TrialService {
   async eligibility(userId: string): Promise<{ eligible: boolean; reason?: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { role: true, emailVerifiedAt: true, trialStartedAt: true, anonymizedAt: true },
+      select: { role: true, emailVerifiedAt: true, trialStartedAt: true, anonymizedAt: true, billingOutside: true },
     });
     if (!user || user.anonymizedAt) return { eligible: false, reason: 'NO_USER' };
     if (user.role !== Role.USER) return { eligible: false, reason: 'NOT_CUSTOMER' };
+    // PB-28 — ten sam warunek co w SubscriptionsService.create: klient rozliczany przez
+    // właściciela zamawia nowe usługi (także próbne) u opiekuna.
+    if (user.billingOutside) return { eligible: false, reason: 'BILLING_OUTSIDE' };
     if (!user.emailVerifiedAt) return { eligible: false, reason: 'EMAIL_UNVERIFIED' };
     if (user.trialStartedAt) return { eligible: false, reason: 'ALREADY_USED' };
     return { eligible: true };
@@ -83,6 +86,9 @@ export class TrialService {
     if (!elig.eligible) {
       if (elig.reason === 'EMAIL_UNVERIFIED') {
         throw new ForbiddenException('Potwierdź adres e-mail, aby uruchomić okres próbny.');
+      }
+      if (elig.reason === 'BILLING_OUTSIDE') {
+        throw new ForbiddenException('Twoje usługi rozliczasz bezpośrednio ze swoim opiekunem — nową usługę zamówisz u niego.');
       }
       if (elig.reason === 'ALREADY_USED') {
         throw new ConflictException('Wykorzystałeś już swój darmowy okres próbny.');

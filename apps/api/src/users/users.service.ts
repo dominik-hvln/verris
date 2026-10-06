@@ -26,6 +26,7 @@ import { MailerService } from '../mail/mailer.service.js';
 import { passwordChangedTemplate } from '../mail/templates/security-notifications.js';
 import { EcoBadgeService } from './eco-badge.service.js';
 import { EcoPointsService, isBillingProfileComplete } from '../eco/eco-points.service.js';
+import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
 
 @Injectable()
 export class UsersService {
@@ -39,6 +40,7 @@ export class UsersService {
     private readonly config: ConfigService,
     private readonly ecoBadge: EcoBadgeService,
     private readonly ecoPoints: EcoPointsService,
+    private readonly walletLedger: WalletLedgerService,
   ) {}
 
   getEcoBadgeStats(userId: string) {
@@ -435,26 +437,20 @@ export class UsersService {
     const steps = points / UsersService.ECO_REDEEM_STEP;
     const creditAmount = UsersService.ECO_REDEEM_PLN_PER_STEP.mul(steps);
 
+    // Punkty schodzą dekrementem warunkowym, a środki wchodzą przez księgę portfela
+    // (blokada wiersza, odmowa dla subkonta) — w jednej transakcji. Wcześniej oba pola
+    // zapisywano wartością absolutną z odczytu: dwa równoległe żądania zaliczały te same
+    // punkty dwa razy, a równoległy wpis księgi mógł zostać nadpisany.
     const result = await this.prisma.$transaction(async (tx) => {
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-        select: { id: true, ecoPoints: true, walletBalance: true, walletCurrency: true },
+      const spent = await tx.user.updateMany({
+        where: { id: userId, ecoPoints: { gte: points } },
+        data: { ecoPoints: { decrement: points } },
       });
-      if (!user) throw new NotFoundException('User not found');
-      if (user.ecoPoints < points) {
+      if (spent.count === 0) {
+        const exists = await tx.user.count({ where: { id: userId } });
+        if (!exists) throw new NotFoundException('User not found');
         throw new BadRequestException('Za mało punktów EKO do tej wymiany.');
       }
-
-      const walletBalanceAfter = new Prisma.Decimal(user.walletBalance).plus(creditAmount);
-      const pointsAfter = user.ecoPoints - points;
-
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          ecoPoints: pointsAfter,
-          walletBalance: walletBalanceAfter,
-        },
-      });
 
       await tx.ecoPointsLedgerEntry.create({
         data: {
@@ -464,13 +460,12 @@ export class UsersService {
         },
       });
 
-      await tx.walletTransaction.create({
-        data: {
+      const entry = await this.walletLedger.zapiszWpis(
+        tx,
+        {
           userId,
           type: WalletTxType.PROMO_CREDIT,
           amount: creditAmount,
-          currency: user.walletCurrency,
-          balanceAfter: walletBalanceAfter,
           paymentProvider: 'EKO',
           description: `Wymiana punktów EKO: ${points} pkt`,
           metadata: {
@@ -479,9 +474,16 @@ export class UsersService {
             step: UsersService.ECO_REDEEM_STEP,
           },
         },
-      });
+        'credit',
+        creditAmount,
+        creditAmount,
+      );
 
-      return { pointsAfter, walletBalanceAfter };
+      const { ecoPoints: pointsAfter } = await tx.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: { ecoPoints: true },
+      });
+      return { pointsAfter, walletBalanceAfter: new Prisma.Decimal(entry.balanceAfter) };
     });
 
     return {

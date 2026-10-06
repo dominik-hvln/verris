@@ -14,7 +14,7 @@ describe('UsersService.listMyActivity', () => {
       auditLog: { findMany: vi.fn(async () => rows) },
       user: { findMany: vi.fn(async () => [{ id: 'sub', email: 'anna@firma.pl', role: 'USER' }, { id: 'staff', email: 'staff@x', role: 'STAFF' }]) },
     };
-    const svc = new UsersService(prisma as never, {} as never, {} as never, {} as never, {} as never);
+    const svc = new UsersService(prisma as never, {} as never, {} as never, {} as never, {} as never, {} as never);
     const r = await svc.listMyActivity('u1');
     expect(prisma.auditLog.findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: { AND: [expect.objectContaining({ OR: expect.arrayContaining([{ action: { startsWith: 'HOSTING_' } }]) }), { OR: [{ userId: 'u1' }, { actorUserId: 'u1' }] }] },

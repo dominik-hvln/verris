@@ -20,6 +20,7 @@ describe('UsersService.getProfile (IAM)', () => {
     {} as never,
     {} as never,
     { safeAward: vi.fn(), awardBillingProfileComplete: vi.fn() } as never,
+    {} as never,
   );
 
   beforeEach(() => {

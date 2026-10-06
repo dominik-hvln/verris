@@ -10,7 +10,7 @@ describe('UsersService.changePassword', () => {
       user: { findUnique: vi.fn(async () => ({ id: 'u1', email: 'k@x.pl', firstName: 'K', passwordHash })), update: vi.fn(async () => ({})) },
       userSession: { updateMany: vi.fn(async () => ({ count: 2 })) },
     };
-    const svc = new UsersService(prisma as never, {} as never, {} as never, {} as never, { send: vi.fn(async () => undefined) } as never);
+    const svc = new UsersService(prisma as never, {} as never, {} as never, {} as never, { send: vi.fn(async () => undefined) } as never, {} as never);
     vi.spyOn(svc as unknown as { notifyPasswordChanged: () => Promise<void> }, 'notifyPasswordChanged').mockResolvedValue(undefined);
     return { svc, prisma };
   }
