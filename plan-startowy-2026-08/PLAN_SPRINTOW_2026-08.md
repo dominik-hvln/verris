@@ -419,7 +419,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 **Definicja ukończenia**
 
 - `X-41` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- `SEC-03` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `SEC-03` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `PB-22` — Badge widoczne na prod na domenie klienta; pieczęć znika przy niespełnionych warunkach; kliknięcia polecenia liczone; testy D2 zielone.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
@@ -434,8 +434,8 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `SEC-05` | Log egressu jest próbką, nie zapisem | 6 | WYSOKA | ops/scripts/security-control-plane-egress.sh — apply_egress_seen: lancuch VERRIS_EGRESS_SEEN (pierwszy w OUTPUT) dopisuje KAZDE nowe polaczenie TCP/UD |
 | `SEC-04` | Host rozmawia z kontenerami przez OUTPUT — ruch wewnętrzny liczony jako egress | 6 | WYSOKA | security-control-plane-egress.sh — RETURN dla -o lo/docker0/br-+ w VERRIS_EGRESS_STRICT i br-+ w VERRIS_EGRESS_BOGON przed DROP; test apps/api/src/tes |
 | `SEC-01` | Tryb `--strict` jest atrapą | 16 | WYSOKA | security-control-plane-egress.sh — apply_strict_allowlist: DROP bez testu cgroup, kontrola po fakcie (iptables -S; brak reguly = exit 1), warunek wste |
-| `SEC-06` | Allowlista pokrywa to, o czym ktoś pomyślał, nie to, co host robi | 16 | WYSOKA | ipset test verris_egress_https na 4 celach z logu egressu |
-| `SEC-02` | Stripe jest w allowliście wyłącznie po nazwie, a ipset powstaje z rozwiązania nazw | 6 | ŚREDNIA | `egress-allow-hostnames.txt`; ipset `verris_egress_https` = 65 wpisów |
+| `SEC-06` | Allowlista pokrywa to, o czym ktoś pomyślał, nie to, co host robi | 16 | WYSOKA | verris-egress-odswiez.timer (co 15 s) → security-control-plane-egress.sh --odswiez; Panel 06.10: timer active, „Odświeżenie: 12 nowych adresów” |
+| `SEC-02` | Stripe jest w allowliście wyłącznie po nazwie, a ipset powstaje z rozwiązania nazw | 6 | ŚREDNIA | pomiar --pomiar 2026-10-06 (host 14 d): zero połączeń hosta do Stripe; Stripe tylko z kontenera API (FORWARD) |
 | `NODE-02` | `main()` nie sprawdza kodów powrotu | 6 | WYSOKA | ops/scripts/lib/przerwij-po-etapie.sh — przerwij_po_etapie zamienia zebrane [FAIL] w exit 1; node-onboard-live.sh main() — bramka po preflight_stack,  |
 | `PB-23` | Każdy widok osiągalny z menu (klient, admin, staff) | 10 | ŚREDNI | Zasada właściciela 2026-09-23: żaden ekran nie może wymagać szukania po panelu. Przegląd wszystkich tras (page.tsx) w trzech panelach i ich wejść w me |
 | `PB-30` | Jeden plik wersji dla floty + test zgodności | 12 | WYSOKI | Decyzja właściciela 2026-09-26: manifest z przypiętymi wersjami (kanał i commit DirectAdmin, LiteSpeed, PHP, MariaDB, reguły CRS), szablon options.con |
@@ -448,7 +448,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 - `SEC-05` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `SEC-04` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `SEC-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `SEC-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `SEC-06` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `SEC-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `NODE-02` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
