@@ -2,8 +2,8 @@
 # shellcheck disable=SC2034  # tablice GRUPA_* czytane przez declare -n
 # =============================================================================
 # Ustawienie kluczy integracji w .env.prod i restart API — wpisuje właściciel na serwerze.
-#   cd /opt/verris && sudo bash ops/scripts/prod-ustaw-klucze.sh [ai|paynow|openprovider|stripe ...]
-# Bez argumentów: wszystkie grupy. Puste pole (Enter) = wartość bez zmian.
+#   cd /opt/verris && sudo bash ops/scripts/prod-ustaw-klucze.sh [ai|paynow|openprovider|stripe|vps ...]
+# Bez argumentów: wszystkie grupy. Puste pole (Enter) = wartość bez zmian, „-” = wyczyść wartość.
 # Sekrety czytane bez echa (read -s), nie trafiają do historii powłoki ani na ekran.
 # Przed zmianą kopia .env.prod (prod-env-backup.sh). Klucze NIE są w panelu celowo:
 # przejęta sesja admina nie może podmienić klucza bramki i przekierować płatności klientów.
@@ -34,6 +34,9 @@ GRUPA_openprovider=(
   "OPENPROVIDER_PASSWORD|s|OpenProvider — hasło API"
   "OPENPROVIDER_OWNER_HANDLE|j|OpenProvider — uchwyt operatora (admin/tech/billing)"
 )
+GRUPA_vps=(
+  "HETZNER_API_TOKEN|s|Hetzner Cloud — token projektu (Read & Write) do sprzedaży VPS"
+)
 GRUPA_stripe=(
   "STRIPE_SECRET_KEY|s|Stripe — klucz tajny (sk_live_… / sk_test_…)"
   "STRIPE_WEBHOOK_SECRET|s|Stripe — sekret webhooka (whsec_…)"
@@ -50,9 +53,9 @@ ustaw() { # KLUCZ WARTOŚĆ — zamiana linii albo dopisanie; wartość w apostr
   ZMIENIONE+=("$k")
 }
 
-grupy=("$@"); [[ ${#grupy[@]} -gt 0 ]] || grupy=(ai paynow openprovider stripe)
+grupy=("$@"); [[ ${#grupy[@]} -gt 0 ]] || grupy=(ai paynow openprovider stripe vps)
 for g in "${grupy[@]}"; do
-  declare -p "GRUPA_$g" &>/dev/null || { echo "Nieznana grupa: $g (ai|paynow|openprovider|stripe)" >&2; exit 1; }
+  declare -p "GRUPA_$g" &>/dev/null || { echo "Nieznana grupa: $g (ai|paynow|openprovider|stripe|vps)" >&2; exit 1; }
 done
 bash ops/scripts/prod-env-backup.sh >/dev/null && echo "Kopia $ENV_FILE: /root/verris-secrets/latest"
 ZMIENIONE=()
@@ -69,7 +72,8 @@ for g in "${grupy[@]}"; do
     else
       read -rp "$opis [${teraz:-brak}]: " v
     fi
-    [[ -n "$v" ]] && ustaw "$k" "$v"
+    # „-” czyści wartość (np. AI_TYLKO_KONTA po publikacji dokumentów = AI dla wszystkich); Enter = bez zmian.
+    if [[ "$v" == "-" ]]; then ustaw "$k" ""; elif [[ -n "$v" ]]; then ustaw "$k" "$v"; fi
   done
   unset -n lista
 done

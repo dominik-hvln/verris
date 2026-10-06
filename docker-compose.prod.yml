@@ -287,6 +287,9 @@ services:
       DOMAIN_FX_NBP_MAX_AGE_MS: ${DOMAIN_FX_NBP_MAX_AGE_MS:-14400000}
       DOMAIN_FX_USD_PLN: ${DOMAIN_FX_USD_PLN:-3.65}
       DOMAIN_FX_EUR_PLN: ${DOMAIN_FX_EUR_PLN:-4.32}
+      # Q-06 — sprzedaż VPS (Hetzner Cloud API, token projektu Read & Write). Do 06.10 brakowało tej linii:
+      # token wpisany w .env.prod nie docierał do API, więc VPS był nieczynny mimo konfiguracji.
+      HETZNER_API_TOKEN: ${HETZNER_API_TOKEN:-}
       # O-07 — narzut resellera doliczany do ceny klienta (prowizja resellera); domyślnie wyłączony.
       FEATURE_RESELLER_MARKUP: ${FEATURE_RESELLER_MARKUP:-false}
     volumes:
