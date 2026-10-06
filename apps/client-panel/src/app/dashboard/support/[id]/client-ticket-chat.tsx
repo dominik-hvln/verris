@@ -146,7 +146,7 @@ export default function ClientTicketChat({ ticket }: { ticket: TicketDetail }) {
                   {reply.automatic === "PODZIEKOWANIE" ? "♥" : reply.automatic === "WCIAZ_PRACUJEMY" ? "↻" : "✓"}
                 </span>
                 <span className="min-w-0 flex-1 whitespace-pre-wrap">{reply.message}</span>
-                <span className="shrink-0 font-mono text-[11.5px] text-muted-foreground">{format(new Date(reply.createdAt), "HH:mm", { locale: pl })}</span>
+                <span className="shrink-0 font-mono text-[11.5px] text-muted-foreground">{format(new Date(reply.createdAt), "d MMM, HH:mm", { locale: pl })}</span>
               </div>
             );
           }
