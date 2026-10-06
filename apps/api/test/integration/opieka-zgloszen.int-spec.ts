@@ -106,6 +106,21 @@ describe('PB-37 — opieka nad zgłoszeniem', () => {
     expect(await opieka.wciazPracujemy()).toBe(0);
   });
 
+  it('„wciąż pracujemy” nie dubluje się: dwa procesy naraz i znacznik wyzerowany po wysyłce (06.10)', async () => {
+    const { tickets, opieka } = uslugi();
+    const { klient } = await ludzie();
+    const t = await tickets.create(klient.id, { subject: 'Pilne', message: 'Sklep leży', priority: 'URGENT' } as never);
+    const temu = new Date(Date.now() - 40 * 60_000);
+    await prisma().ticket.update({ where: { id: t.id }, data: { createdAt: temu, lastReplyAt: temu } });
+    const wyniki = await Promise.all([opieka.wciazPracujemy(), opieka.wciazPracujemy(), opieka.wciazPracujemy()]);
+    expect(wyniki.reduce((a, b) => a + b, 0)).toBe(1);
+    // ktoś wyzerował znacznik (stary proces, ręczna zmiana) — historia wątku nadal blokuje powtórkę w ciągu doby
+    await prisma().ticket.update({ where: { id: t.id }, data: { progressNoticeAt: null } });
+    expect(await opieka.wciazPracujemy()).toBe(0);
+    expect((await auto(t.id)).filter((r) => r.automatic === 'WCIAZ_PRACUJEMY')).toHaveLength(1);
+    expect(maile.filter((m) => m.to === klient.email && m.tag === 'ticket.auto')).toHaveLength(2); // potwierdzenie + jedno „wciąż”
+  });
+
   it('zamknięcie: podziękowanie z oceną zamiast maila o stanie; ocena opiekuna + supportu; ponowne otwarcie do 7 dni', async () => {
     const { tickets, opieka } = uslugi();
     const { agent, klient } = await ludzie();

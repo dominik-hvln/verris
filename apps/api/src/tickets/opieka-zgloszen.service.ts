@@ -171,6 +171,14 @@ export class OpiekaZgloszenService {
       const juz = await this.prisma.ticketReply.count({ where: { ticketId, automatic: rodzaj } });
       if (juz) return false;
     }
+    // „Raz na dobę” sprawdzone też po historii wątku, nie tylko po znaczniku na zgłoszeniu (06.10: 11 wiadomości
+    // w pół godziny przy znaczniku, który nie zatrzymał powtórek).
+    if (rodzaj === 'WCIAZ_PRACUJEMY') {
+      const ostatnia = await this.prisma.ticketReply.count({
+        where: { ticketId, automatic: rodzaj, createdAt: { gte: new Date(Date.now() - DOBA_MS) } },
+      });
+      if (ostatnia) return false;
+    }
     const link = `${this.panelUrl()}/dashboard/support/${t.id}${rodzaj === 'PODZIEKOWANIE' ? '#ocena' : ''}`;
     const wartosci: Record<(typeof ZMIENNE_AUTO)[number], string> = {
       nr: t.id.slice(0, 8),
@@ -240,7 +248,16 @@ export class OpiekaZgloszenService {
     for (const t of kandydaci) {
       const od = t.lastReplyAt ?? t.createdAt;
       if (teraz.getTime() - od.getTime() < (godzinySla(t.priority) / 2) * 3600_000) continue;
-      await this.prisma.ticket.update({ where: { id: t.id }, data: { progressNoticeAt: teraz } });
+      // Atomowe zajęcie zgłoszenia: przy dwóch procesach API naraz (np. w trakcie wdrożenia) wysyła tylko ten,
+      // którego warunkowy UPDATE trafił — drugi czeka na blokadę wiersza i widzi już świeży znacznik.
+      const zajete = await this.prisma.ticket.updateMany({
+        where: {
+          id: t.id,
+          OR: [{ progressNoticeAt: null }, { progressNoticeAt: { lt: new Date(teraz.getTime() - DOBA_MS) } }],
+        },
+        data: { progressNoticeAt: teraz },
+      });
+      if (zajete.count === 0) continue;
       if (!(await this.wyslij(t.id, 'WCIAZ_PRACUJEMY'))) continue;
       wyslane += 1;
       if (t.assignedToId) {
