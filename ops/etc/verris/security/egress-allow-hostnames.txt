@@ -14,6 +14,9 @@ raw.githubusercontent.com
 registry-1.docker.io
 auth.docker.io
 production.cloudflare.docker.com
+# Warstwy obrazów Docker Hub idą też z CloudFront (przekierowanie z registry-1 na production.cloudfront.docker.com
+# z podpisanym URL) — Panel 06.10 po --wymus-strict: docker pull hello-world odcięty na 3.171.139.x / 2600:9000:….
+production.cloudfront.docker.com
 index.docker.io
 # Zapas dla obrazu Node w migracji www (prod-migrate-www.sh), gdy Docker Hub nie odpowiada.
 mirror.gcr.io

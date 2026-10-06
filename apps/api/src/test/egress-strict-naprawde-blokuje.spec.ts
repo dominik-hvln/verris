@@ -715,3 +715,15 @@ describe('Domeny klientów poza allowlistą hosta (decyzja 06.10: DNS ustawia kl
     }
   });
 });
+
+describe('Allowlista hosta pokrywa pobieranie obrazów Docker Hub (Panel 06.10 po --wymus-strict)', () => {
+  it('rejestr, uwierzytelnianie i oba CDN warstw (Cloudflare i CloudFront)', () => {
+    const nazwy = readFileSync(join(KORZEN, 'ops', 'etc', 'verris', 'security', 'egress-allow-hostnames.txt'), 'utf8')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith('#'));
+    for (const n of ['registry-1.docker.io', 'auth.docker.io', 'production.cloudflare.docker.com', 'production.cloudfront.docker.com']) {
+      expect(nazwy).toContain(n);
+    }
+  });
+});
