@@ -796,6 +796,12 @@ def ostatnie_zmiany(D, dni=7):
             glowa = opis = re.sub(r"^[a-z]+(\([^)]*\))?!?:\s*", "", temat)
         ids = list(dict.fromkeys(re.findall(r"\b([A-Z]{1,4}-\d{1,3})\b", glowa)))
         if not ids:
+            # Trzeci format: „Audyt: opis — SEC-01, SEC-02 …” / „Temat (Q-07)” — ID-y po myślniku albo w nawiasie.
+            # Do 2026-10-07 takie commity znikały z „Ostatnich zmian” (tablica stała na 6.10 21:00 — uwaga właściciela).
+            ids = list(dict.fromkeys(re.findall(r"\b([A-Z]{1,4}-\d{1,3})\b", temat)))
+            if ids:
+                opis = re.sub(r"^[A-Za-zÀ-ž ]+:\s*", "", temat)
+        if not ids:
             continue
         t = datetime.datetime.fromisoformat(kiedy).astimezone(tz)
         stan = [[i, D["wg_id"][i][2], D["wg_id"][i][10]] if i in D["wg_id"] else [i, "", ""] for i in ids]
