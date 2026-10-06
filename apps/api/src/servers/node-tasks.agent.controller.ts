@@ -16,6 +16,7 @@ import { ServerIdentityGuard } from './guards/server-identity.guard.js';
 import { NodeTasksService } from './node-tasks.service.js';
 import {
   buildDefaultHostingPageBundle,
+  buildWebmailBrandBundle,
   loadDefaultHostingPageInstallScript,
 } from './default-hosting-page.assets.js';
 import { hostingProfileScriptForNode } from './hosting-profile.script.js';
@@ -379,6 +380,13 @@ export class NodeTasksAgentController {
   @Header('Content-Disposition', 'attachment; filename="verris-default-page.tar.gz"')
   defaultHostingPageBundle() {
     return buildDefaultHostingPageBundle();
+  }
+
+  @Get('hosting-profile/webmail/bundle')
+  @Header('Content-Type', 'application/gzip')
+  @Header('Content-Disposition', 'attachment; filename="verris-webmail.tar.gz"')
+  webmailBrandBundle() {
+    return buildWebmailBrandBundle();
   }
 
   /** Desired CloudLinux LVE state for the calling node (plans + accounts). */

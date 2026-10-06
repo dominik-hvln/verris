@@ -41,3 +41,17 @@ export function buildDefaultHostingPageBundle(): Promise<Buffer> {
     void archive.finalize();
   });
 }
+
+/** Marka webmaila (plugin Roundcube verris_marka: CSS, logo, czcionki, watermark) — profil węzła kładzie go w custom/roundcube/plugins. */
+export function buildWebmailBrandBundle(): Promise<Buffer> {
+  const srcDir = join(resolveOpsRoot(), 'roundcube/verris_marka');
+  return new Promise((resolve, reject) => {
+    const archive = new archiver.TarArchive({ gzip: true });
+    const chunks: Buffer[] = [];
+    archive.on('data', (chunk: Buffer) => chunks.push(chunk));
+    archive.on('error', reject);
+    archive.on('end', () => resolve(Buffer.concat(chunks)));
+    archive.directory(srcDir, false);
+    void archive.finalize();
+  });
+}

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title></title>
+<!-- Pusta ramka podglądu (blankpage_url) z logo Verris Poczta zamiast logo Roundcube. -->
+<style type="text/css">
+html, body { height: 100%; margin: 0; overflow: hidden; }
+body { background: url(logo.svg) center no-repeat #fff; background-size: 28%; }
+body:before { content: ""; position: absolute; inset: 0; background: rgba(255, 255, 255, .88); }
+html.dark-mode > body { background-image: url(logo-dark.svg); background-color: #091410; }
+html.dark-mode > body:before { background: rgba(9, 20, 16, .85); }
+</style>
+<script>
+  try {
+    if (document.cookie.indexOf('colorMode=dark') > -1
+      || (document.cookie.indexOf('colorMode=light') === -1 && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    ) {
+      document.documentElement.className += ' dark-mode';
+    }
+  } catch (e) { }
+</script>
+</head>
+<body></body>
+</html>

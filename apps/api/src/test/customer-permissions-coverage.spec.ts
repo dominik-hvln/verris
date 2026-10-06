@@ -83,6 +83,7 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   'GET /agent/tasks/site-stats/script',
   'GET /agent/tasks/deploy-ssh-pubkey',
   'GET /agent/tasks/hosting-profile/default-page/bundle',
+  'GET /agent/tasks/hosting-profile/webmail/bundle',
   'GET /agent/tasks/hosting-profile/default-page/script',
   'GET /agent/tasks/hosting-profile/script',
   'GET /agent/tasks/lease',

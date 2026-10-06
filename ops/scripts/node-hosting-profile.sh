@@ -1355,6 +1355,86 @@ configure_hosting_capabilities() {
   # roundcube). one_click_pma_login — SSO phpMyAdmin (/CMD_PMA/), z którego korzysta panel.
   da_set_conf one_click_webmail_login 1
   da_set_conf one_click_pma_login 1
+  # Webmail Verris: po polsku i w marce (logo Verris Poczta, kolory, czcionka). Próba bety 06.10: Roundcube
+  # 1.7.4 z CustomBuild otwierał się po angielsku (mimo przeglądarki pl-PL) i z logo Roundcube.
+  # Wg dokumentacji DA (https://docs.directadmin.com/other-hosting-services/webmail/) pliki z custom/roundcube
+  # zastępują odpowiedniki z configure/roundcube przy `da build roundcube`; do config.inc.php CustomBuild
+  # dopisuje bazę i klucze (na t1: szablon 615 B → wynikowy config 852 B). Marka to plugin verris_marka
+  # (ops/roundcube, podpisany pakiet z control-plane), a opcje Roundcube (language, product_name, skin_logo,
+  # blankpage_url — config/defaults.inc.php) stoją w bloku między znacznikami, odtwarzanym przy każdym przebiegu.
+  # Język dotyczy nowych skrzynek — Roundcube zapamiętuje go użytkownikowi przy pierwszym logowaniu.
+  # ponytail: kopia szablonu DA zamraża jego treść; po nowej wersji DA porównać z configure/ i odświeżyć.
+  RC_DA="${RC_DA:-/usr/local/directadmin/custombuild}"
+  RC_CUSTOM_DIR="$RC_DA/custom/roundcube"
+  RC_CUSTOM="$RC_CUSTOM_DIR/config.inc.php"
+  RC_SZABLON="$RC_DA/configure/roundcube/config.inc.php"
+  if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && command -v da >/dev/null 2>&1 && [ -f "$RC_SZABLON" ]; then
+    rc_przebuduj=0
+    rc_marka=0
+    if command -v verris-fetch >/dev/null 2>&1; then
+      rc_tmp="$(mktemp -d)"
+      if verris-fetch /agent/tasks/hosting-profile/webmail/bundle "$rc_tmp/marka.tgz" 120 \
+        && mkdir -p "$rc_tmp/x" && tar -xzf "$rc_tmp/marka.tgz" -C "$rc_tmp/x" --no-same-owner; then
+        # custom/roundcube/plugins zastępuje configure/roundcube/plugins w całości — zaczynamy od kopii DA.
+        [ -d "$RC_CUSTOM_DIR/plugins" ] || { mkdir -p "$RC_CUSTOM_DIR"; cp -a "$RC_DA/configure/roundcube/plugins" "$RC_CUSTOM_DIR/plugins" 2>/dev/null || mkdir -p "$RC_CUSTOM_DIR/plugins"; }
+        if ! diff -rq "$rc_tmp/x" "$RC_CUSTOM_DIR/plugins/verris_marka" >/dev/null 2>&1; then
+          rm -rf "$RC_CUSTOM_DIR/plugins/verris_marka"
+          cp -r "$rc_tmp/x" "$RC_CUSTOM_DIR/plugins/verris_marka"
+          rc_przebuduj=1
+        fi
+      else
+        log_warn "Webmail: nie pobrano marki Verris (logo, kolory) — zostaje wygląd Roundcube"
+      fi
+      rm -rf "$rc_tmp"
+    fi
+    [ -f "$RC_CUSTOM_DIR/plugins/verris_marka/verris_marka.php" ] && rc_marka=1
+    rc_host="$(hostname -f 2>/dev/null || hostname)"
+    rc_p="plugins/verris_marka"
+    rc_blok="// >>> Verris (node-hosting-profile.sh) — blok odtwarzany przy każdym przebiegu profilu
+\$config['language'] = 'pl_PL';"
+    if [ "$rc_marka" = 1 ]; then
+      rc_blok="$rc_blok
+\$config['product_name'] = 'Verris Poczta';
+\$config['plugins'][] = 'verris_marka';
+\$config['skin_logo'] = [
+  'elastic:login' => '$rc_p/logo.svg',
+  'elastic:login[dark]' => '$rc_p/logo-dark.svg',
+  'elastic:*' => '$rc_p/znak.svg',
+  'elastic:*[dark]' => '$rc_p/znak.svg',
+  'elastic:*[small]' => '$rc_p/logo-dark.svg',
+  'elastic:*[small-dark]' => '$rc_p/logo-dark.svg',
+  '[favicon]' => '$rc_p/favicon.svg',
+];
+\$config['blankpage_url'] = 'https://$rc_host/roundcube/static.php/$rc_p/watermark.html';"
+    fi
+    rc_blok="$rc_blok
+// <<< Verris"
+    mkdir -p "$RC_CUSTOM_DIR"
+    [ -f "$RC_CUSTOM" ] || cp "$RC_SZABLON" "$RC_CUSTOM"
+    rc_nowy="$(sed '/^\/\/ >>> Verris/,/^\/\/ <<< Verris/d' "$RC_CUSTOM")
+$rc_blok"
+    if [ "$rc_nowy" != "$(cat "$RC_CUSTOM")" ]; then
+      printf '%s\n' "$rc_nowy" > "$RC_CUSTOM"
+      rc_przebuduj=1
+    fi
+    RC_KONF="$(readlink -f "${RC_WWW:-/var/www/html/roundcube}" 2>/dev/null)/../config/config.inc.php"
+    grep -q "'language'.*pl_PL" "$RC_KONF" 2>/dev/null || rc_przebuduj=1
+    if [ "$rc_przebuduj" = 1 ]; then
+      da build roundcube >>/var/log/verris-roundcube.log 2>&1 || true
+    fi
+    if grep -q "'language'.*pl_PL" "$RC_KONF" 2>/dev/null; then
+      log_ok "Webmail po polsku (Roundcube: language pl_PL)"
+    else
+      log_fail "Webmail: brak language pl_PL w konfiguracji Roundcube — /var/log/verris-roundcube.log"
+    fi
+    if [ "$rc_marka" = 1 ]; then
+      if grep -q "Verris Poczta" "$RC_KONF" 2>/dev/null; then
+        log_ok "Webmail w marce Verris Poczta (plugin verris_marka)"
+      else
+        log_warn "Webmail: marka Verris w custom/, ale nie w konfiguracji Roundcube — /var/log/verris-roundcube.log"
+      fi
+    fi
+  fi
   if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && command -v da >/dev/null 2>&1; then
     if [ ! -d /var/www/html/roundcube/direct_login ]; then
       { da build dovecot_conf && da build exim_conf && da build roundcube; } >>/var/log/verris-roundcube.log 2>&1 || true
