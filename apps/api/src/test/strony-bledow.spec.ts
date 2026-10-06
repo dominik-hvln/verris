@@ -84,7 +84,12 @@ describe('Profil węzła — strony błędów serwera WWW bez nazwy producenta',
       expect(vh).toContain(`\nErrorDocument ${c} /verris-bledy/${c}.html\n`);
       const html = w.czytaj(`www/verris-bledy/${c}.html`);
       expect(html).toContain('<html lang="pl">');
-      expect(html).toContain(`<p class="kod">${c}</p>`);
+      expect(html).toContain(`<p class="kod">BŁĄD ${c}</p>`);
+      // Marka Verris jak na verris.pl (06.10: Dominik — strona bez kolorów i logo): znak, wordmark, mięta, tło pine.
+      expect(html).toContain('aria-label="Verris"');
+      expect(html).toMatch(/#34e5a0/i);
+      expect(html).toMatch(/#091410/i);
+      expect(html).toMatch(/class="btn" href="[^"]*">(Przejdź na stronę główną|Odśwież stronę)</);
       expect(html).not.toMatch(/litespeed|apache|directadmin|https?:\/\//i);
     }
     expect(w.czytaj('www/verris-bledy/404.html')).toContain('Nie znaleziono strony');
