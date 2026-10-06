@@ -2117,6 +2117,103 @@ configure_http3_firewall() {
 }
 
 # -----------------------------------------------------------------------------
+# Strony błędów 403/404/500/503 dla wszystkich stron klientów (white label). Próba bety 06.10:
+# d3.hvln.pl/nieistniejacy-plik pokazywał domyślną stronę serwera z nazwą jego producenta.
+# - LiteSpeed obsługuje apache'owe ErrorDocument na poziomie serwera i w .htaccess
+#   (https://docs.litespeedtech.com/lsws/cp/cpanel/switch-apache/ → Custom Error Pages).
+# - Ścieżka lokalna, nie URL: przy URL serwer odsyła przekierowanie zamiast kodu 404/500
+#   (https://httpd.apache.org/docs/current/mod/core.html#errordocument; kontekst: server config … .htaccess).
+#   Alias do wspólnego katalogu — jak httpd-multilang-errordoc.conf (https://httpd.apache.org/docs/current/custom-error.html).
+# - Plik /etc/httpd/conf/extra/httpd-includes.conf: „will not be touched by CustomBuild or DirectAdmin”
+#   (https://docs.directadmin.com/webservices/apache/customizing.html) — przetrwa rewrite_confs i aktualizacje;
+#   ten sam plik, którego LiteSpeed używa dla CacheRoot (docs.litespeedtech.com/lsws/cp/directadmin/configuration/).
+# - ErrorDocument klienta w .htaccess (także z panelu, node-htaccess.sh) ma pierwszeństwo przed serwerowym.
+# Restart LiteSpeed tylko po zmianie bloku konfiguracji; same pliki HTML są statyczne.
+# -----------------------------------------------------------------------------
+verris_error_html() {
+  cat <<VERRIS_BLAD
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>$1 — $2</title>
+<!-- verris-error-page -->
+<style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f5f6f8;color:#1c2330;font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:34rem;margin:1.5rem;padding:2rem 2.25rem;background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.kod{margin:0 0 .5rem;font-weight:700;font-size:2.5rem;line-height:1;color:#2952cc}
+h1{margin:0 0 .75rem;font-size:1.35rem;line-height:1.35}
+p{margin:0}
+a{color:#2952cc}
+@media (prefers-color-scheme:dark){body{background:#12161d;color:#e4e7ec}main{background:#1b212b;box-shadow:none}.kod,a{color:#8aa8ff}}
+</style>
+</head>
+<body>
+<main>
+<p class="kod">$1</p>
+<h1>$2</h1>
+<p>$3</p>
+</main>
+</body>
+</html>
+VERRIS_BLAD
+}
+
+configure_error_pages() {
+  echo "--- Strony błędów serwera WWW ---"
+  local inc="${VERRIS_ERR_INC:-/etc/httpd/conf/extra/httpd-includes.conf}"
+  local dir="${VERRIS_ERR_DIR:-/var/www/html/verris-bledy}"
+  local ctl="${VERRIS_LSWSCTRL:-/usr/local/lsws/bin/lswsctrl}"
+  local url=/verris-bledy kod tytul opis blok nowy
+  if [ ! -f "$inc" ]; then
+    log_skip "Brak $inc — pomijam strony błędów"
+    return 0
+  fi
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    log_info "dry-run: $dir/{403,404,500,503}.html + ErrorDocument w $inc"
+    return 0
+  fi
+  mkdir -p "$dir"
+  while IFS='|' read -r kod tytul opis; do
+    verris_error_html "$kod" "$tytul" "$opis" > "$dir/$kod.html"
+  done <<'VERRIS_BLEDY'
+403|Brak dostępu|Nie masz uprawnień do wyświetlenia tej strony.
+404|Nie znaleziono strony|Strona, której szukasz, nie istnieje albo została przeniesiona. Sprawdź adres lub przejdź na <a href="/">stronę główną</a>.
+500|Błąd serwera|Wystąpił nieoczekiwany błąd. Spróbuj ponownie za chwilę.
+503|Strona chwilowo niedostępna|Strona jest przeciążona albo trwają prace. Spróbuj ponownie za kilka minut.
+VERRIS_BLEDY
+  chmod 0755 "$dir"; chmod 0644 "$dir"/*.html
+  blok="# >>> verris-bledy (node-hosting-profile.sh) - blok odtwarzany przy kazdym przebiegu
+Alias $url/ \"$dir/\"
+<Directory \"$dir\">
+  AllowOverride None
+  Require all granted
+</Directory>
+ErrorDocument 403 $url/403.html
+ErrorDocument 404 $url/404.html
+ErrorDocument 500 $url/500.html
+ErrorDocument 503 $url/503.html
+# <<< verris-bledy"
+  nowy="$(sed '/^# >>> verris-bledy/,/^# <<< verris-bledy/d' "$inc")"
+  nowy="${nowy:+$nowy
+}$blok"
+  if [ "$nowy" != "$(cat "$inc")" ]; then
+    printf '%s\n' "$nowy" > "$inc"
+    if [ -x "$ctl" ]; then
+      "$ctl" restart >/dev/null 2>&1 || log_warn "LiteSpeed restart po zmianie stron błędów zwrócił błąd"
+    fi
+  fi
+  if grep -qx "ErrorDocument 404 $url/404.html" "$inc" && grep -q 'verris-error-page' "$dir/404.html" \
+    && ! grep -qiE 'litespeed|apache|directadmin' "$dir"/*.html; then
+    log_ok "Strony błędów Verris 403/404/500/503 ($dir, ErrorDocument w $inc)"
+  else
+    log_fail "Strony błędów: brak ErrorDocument w $inc albo treści Verris w $dir"
+  fi
+}
+
+# -----------------------------------------------------------------------------
 # Strona zawieszonego konta (white label). DA serwuje ją jako zwykły katalog (odpowiedź 200, kod
 # zostaje jak w DA): pliki domyślne w data/templates/suspended, własne w data/templates/custom/suspended;
 # od DA 1.51 kopia w katalogu każdego resellera i admina: /home/<reseller>/domains/suspended/
@@ -2354,6 +2451,7 @@ configure_da_panel_firewall
 configure_http3_firewall
 configure_firewall_cockpit
 configure_suspended_page
+configure_error_pages
 configure_pma_white_label
 print_lve_info
 print_summary || exit

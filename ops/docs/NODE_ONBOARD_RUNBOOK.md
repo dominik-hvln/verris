@@ -200,6 +200,7 @@ Weryfikacja techniczna (prod, Node-PL-01):
 - [ ] Smoke provisioning → klient widzi dane w Magic Login
 - [ ] Port 2222 tylko z control-plane (decyzja 2026-09-29): profil z panelu → `[OK] CSF: panel DA :2222 tylko z: …` (wymaga `VERRIS_CONTROL_PLANE_IPS` w env API); operator — tunel `ssh -L 2222:127.0.0.1:2222 root@<węzeł>`
 - [ ] Strona zawieszonego konta Verris (`templates/custom/suspended` + `admin/domains/suspended`) — `[OK] Strona zawieszenia Verris`
+- [ ] Strony błędów Verris (`ErrorDocument` w `/etc/httpd/conf/extra/httpd-includes.conf`) — `[OK] Strony błędów Verris`; `curl -s https://<domena klienta>/nieistniejacy-plik` → kod 404, bez nazwy serwera WWW
 - [ ] Szablon strony domyślnej Verris w DA (`templates/custom/default` + `admin/domains/default`)
 
 ## Kolejne węzły (skrót)
