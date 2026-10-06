@@ -23,19 +23,22 @@ if [ ! -f "$BASE_FILE" ]; then
 fi
 
 PG_CONTAINER="${PG_CONTAINER:-${COMPOSE_PROJECT_NAME}-postgres-1}"
+# Baza i użytkownik z env kontenera (docker-compose.prod.yml: POSTGRES_DB domyślnie verris_db). Do 2026-10-06
+# stało tu na sztywno `-d verris` — baza nie istniała, błąd szedł do /dev/null i domeny klientów nigdy nie
+# trafiały do allowlisty.
+psql_cp() {
+  docker exec "$PG_CONTAINER" sh -c 'psql -U "${POSTGRES_USER:-verris}" -d "${POSTGRES_DB:-verris_db}" -tAc "$1"' sh "$1" | sed '/^$/d' \
+    || { log "WARN: zapytanie do Postgresa nie powiodło się — domeny klientów pominięte"; true; }
+}
 DOMAINS=""
 
 if docker ps --format '{{.Names}}' | grep -qx "$PG_CONTAINER"; then
   DOMAINS="$(
-    docker exec "$PG_CONTAINER" psql -U verris -d verris -tAc \
-      "SELECT DISTINCT lower(trim(domain)) FROM \"Account\" WHERE domain IS NOT NULL AND trim(domain) <> '' ORDER BY 1;" \
-      2>/dev/null | sed '/^$/d' || true
+    psql_cp "SELECT DISTINCT lower(trim(domain)) FROM \"Account\" WHERE domain IS NOT NULL AND trim(domain) <> '' ORDER BY 1;"
   )"
   # Domeny z tabeli Domain (rejestracja / hosting)
   EXTRA="$(
-    docker exec "$PG_CONTAINER" psql -U verris -d verris -tAc \
-      "SELECT DISTINCT lower(trim(\"domainName\")) FROM \"Domain\" WHERE \"domainName\" IS NOT NULL AND trim(\"domainName\") <> '' ORDER BY 1;" \
-      2>/dev/null | sed '/^$/d' || true
+    psql_cp "SELECT DISTINCT lower(trim(\"domainName\")) FROM \"Domain\" WHERE \"domainName\" IS NOT NULL AND trim(\"domainName\") <> '' ORDER BY 1;"
   )"
   DOMAINS="$(printf '%s\n%s' "$DOMAINS" "$EXTRA" | sed '/^$/d' | sort -u)"
 else
