@@ -100,15 +100,15 @@ if [ "$ROLE" = "control-plane" ]; then
     run "systemctl daemon-reload"
     run "systemctl enable verris-egress.service"
     run "systemctl enable --now verris-egress-odswiez.timer"
-    if [ -x "$REPO_ROOT/ops/scripts/security-sync-cp-egress-hosts.sh" ]; then
-      run "bash '$REPO_ROOT/ops/scripts/security-sync-cp-egress-hosts.sh' || true"
-      # SEC-01: strict NIE jest włączany automatycznie. Do 2026-09-22 stało tu
-      # wywołanie z `|| true` — przy atrapie strict było nieszkodliwe, bo nic
-      # nie odrzucało. Po naprawie strict naprawdę odrzuca i odmawia bez
-      # tygodnia pomiaru, więc `|| true` zamieniłoby odmowę w ciszę, a
-      # automatyczny sukces — w odcięcie ruchu, którego nikt nie zmierzył.
-      log "Strict egress: po ${POMIAR_MIN_DNI:-7} dniach pomiaru — sudo bash ops/scripts/security-control-plane-egress.sh --pomiar, potem --strict"
-    fi
+    # Domeny klientów nie wchodzą już do allowlisty hosta (decyzja 06.10) — usuń plik zapisany przez
+    # dawny security-sync-cp-egress-hosts.sh (nagłówek „# Auto-generated”), żeby nic go nie czytało.
+    run "grep -qs '^# Auto-generated' /etc/verris/security/egress-allow-hostnames.local.txt && rm -f /etc/verris/security/egress-allow-hostnames.local.txt || true"
+    # SEC-01: strict NIE jest włączany automatycznie. Do 2026-09-22 stało tu
+    # wywołanie z `|| true` — przy atrapie strict było nieszkodliwe, bo nic
+    # nie odrzucało. Po naprawie strict naprawdę odrzuca i odmawia bez
+    # tygodnia pomiaru, więc `|| true` zamieniłoby odmowę w ciszę, a
+    # automatyczny sukces — w odcięcie ruchu, którego nikt nie zmierzył.
+    log "Strict egress: po ${POMIAR_MIN_DNI:-7} dniach pomiaru — sudo bash ops/scripts/security-control-plane-egress.sh --pomiar, potem --strict"
     # UFW deny out to IOC (backup layer)
     if [ -f /etc/verris/security/ioc-ips.txt ] && command -v ufw >/dev/null 2>&1; then
       while IFS= read -r line || [ -n "$line" ]; do

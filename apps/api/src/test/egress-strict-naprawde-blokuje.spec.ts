@@ -19,7 +19,6 @@ import { join } from 'path';
 const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const SKRYPT = join(KORZEN, 'ops', 'scripts', 'security-control-plane-egress.sh');
 const INSTALATOR = join(KORZEN, 'ops', 'scripts', 'security-install-verris-security.sh');
-const SYNC = join(KORZEN, 'ops', 'scripts', 'security-sync-cp-egress-hosts.sh');
 const DZIEN = 86400;
 
 interface Scena {
@@ -50,7 +49,7 @@ interface Scena {
   getent?: Record<string, string[]>;
   /** Zbiory allowlisty już istnieją (strict albo --allowlist działał wcześniej). */
   zbioryAllow?: boolean;
-  /** Zawartość egress-allow-hostnames.local.txt (domeny klientów z security-sync-cp-egress-hosts.sh). */
+  /** Zawartość egress-allow-hostnames.local.txt (dawny plik domen klientów — skrypt ma go ignorować). */
   lokalne?: string;
 }
 
@@ -689,78 +688,30 @@ describe('Tryb strict zostaje, dopóki nie wyłączy go jawna flaga', () => {
   });
 });
 
-describe('Domeny klientów (egress-allow-hostnames.local.txt) — jedna ścieżka dla strict, startu i odświeżania', () => {
+describe('Domeny klientów poza allowlistą hosta (decyzja 06.10: DNS ustawia klient)', () => {
   const getent = { 'ghcr.io': ['140.82.121.33'], 'sklep-klienta.pl': ['5.6.7.8'] };
 
-  it('--odswiez (timer) dopisuje adresy domen klientów', () => {
-    const r = uruchom({
-      zmierzone: null,
-      wAllowliscie: ['140.82.121.33'],
-      pomiarOdDni: null,
-      argumenty: ['--odswiez'],
-      zbioryAllow: true,
-      nazwy: 'ghcr.io',
-      lokalne: '# Auto-generated\nsklep-klienta.pl\n',
-      getent,
-    });
-    expect(r.kod).toBe(0);
-    expect(r.wywolania).toContain('ipset add verris_egress_https 5.6.7.8 -exist');
+  it('--odswiez i --przy-starcie ignorują dawny plik domen klientów', () => {
+    for (const [argumenty, extra] of [
+      [['--odswiez'], { zmierzone: null, pomiarOdDni: null, zbioryAllow: true }],
+      [['--przy-starcie'], { zmierzone: [], pomiarOdDni: 1, tryb: 'strict\n' }],
+    ] as const) {
+      const r = uruchom({ wAllowliscie: [], argumenty: [...argumenty], nazwy: 'ghcr.io', lokalne: '# Auto-generated\nsklep-klienta.pl\n', getent, ...extra } as never);
+      expect(r.kod).toBe(0);
+      expect(r.wywolania.join('\n')).toContain('140.82.121.33');
+      expect(r.wywolania.join('\n')).not.toContain('5.6.7.8');
+    }
   });
 
-  it('--przy-starcie (verris-egress.service) buduje zbiór z bazy i domen klientów', () => {
-    const r = uruchom({
-      zmierzone: [],
-      wAllowliscie: [],
-      pomiarOdDni: 1,
-      argumenty: ['--przy-starcie'],
-      tryb: 'strict\n',
-      nazwy: 'ghcr.io',
-      lokalne: '# Auto-generated\nsklep-klienta.pl\n',
-      getent,
-    });
-    expect(r.kod).toBe(0);
-    expect(r.wywolania).toContain('ipset add verris_egress_https_new 140.82.121.33 -exist');
-    expect(r.wywolania).toContain('ipset add verris_egress_https_new 5.6.7.8 -exist');
+  it('instalator nie synchronizuje domen klientów i kasuje plik zapisany przez dawny sync', () => {
+    const inst = readFileSync(join(KORZEN, 'ops', 'scripts', 'security-install-verris-security.sh'), 'utf8');
+    expect(inst).not.toMatch(/^[^#]*security-sync-cp-egress-hosts\.sh/m);
+    expect(inst).toMatch(/rm -f \/etc\/verris\/security\/egress-allow-hostnames\.local\.txt/);
   });
 
   it('jednostki systemd nie podmieniają ALLOW_HOSTS — czytają domyślną ścieżkę skryptu', () => {
     for (const plik of ['verris-egress.service', 'verris-egress-odswiez.service']) {
       expect(readFileSync(join(KORZEN, 'ops', 'systemd', plik), 'utf8')).not.toMatch(/ALLOW_HOSTS/);
     }
-  });
-});
-
-describe('security-sync-cp-egress-hosts.sh — ostrzeżenia nie trafiają do listy domen', () => {
-  function sync(docker: string) {
-    const kat = mkdtempSync(join(tmpdir(), 'egress-sync-'));
-    const bin = join(kat, 'bin');
-    mkdirSync(bin);
-    const atrapa = (nazwa: string, tresc: string) => {
-      writeFileSync(join(bin, nazwa), `#!/usr/bin/env bash\n${tresc}\n`);
-      chmodSync(join(bin, nazwa), 0o755);
-    };
-    atrapa('id', 'echo 0');
-    atrapa('docker', ['case "$1" in', '  ps) echo verris-postgres-1 ;;', `  exec) ${docker} ;;`, 'esac'].join('\n'));
-    mkdirSync(join(kat, 'security'));
-    const lokalny = join(kat, 'security', 'egress-allow-hostnames.local.txt');
-    const r = spawnSync('bash', [SYNC], {
-      encoding: 'utf8',
-      env: { PATH: `${bin}:${process.env.PATH ?? '/usr/bin:/bin'}`, LOCAL_FILE: lokalny },
-    });
-    return { kod: r.status, stderr: r.stderr, lokalny: readFileSync(lokalny, 'utf8') };
-  }
-
-  it('błąd zapytania psql: WARN na stderr, w pliku tylko nagłówek', () => {
-    const r = sync('echo "psql: error: database does not exist" >&2; exit 2');
-    expect(r.kod).toBe(0);
-    expect(r.stderr).toContain('WARN: zapytanie do Postgresa nie powiodło się');
-    expect(r.lokalny).not.toMatch(/WARN|\[20/);
-    expect(r.lokalny.split('\n').filter((l) => l && !l.startsWith('#'))).toEqual([]);
-  });
-
-  it('udane zapytanie: domeny klientów w pliku czytanym przez skrypt egress', () => {
-    const r = sync('printf "sklep-klienta.pl\\n\\n"');
-    expect(r.kod).toBe(0);
-    expect(r.lokalny.split('\n').filter((l) => l && !l.startsWith('#'))).toEqual(['sklep-klienta.pl']);
   });
 });

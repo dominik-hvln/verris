@@ -1,5 +1,5 @@
 # Allowlist dla security-control-plane-egress.sh --strict
-# Po edycji: sudo bash ops/scripts/security-sync-cp-egress-hosts.sh && sudo bash ops/scripts/security-control-plane-egress.sh --strict
+# Po edycji: sudo install -m 0644 ops/etc/verris/security/egress-allow-hostnames.txt /etc/verris/security/ (timer --odswiez dopisze adresy w 15 s)
 #
 # X-36: ta lista ma teraz DWA zastosowania. Poza trybem --strict zwalnia też
 # swoje cele z licznika anty-skanu. Wpisanie tu hosta znaczy więc „ufamy mu",

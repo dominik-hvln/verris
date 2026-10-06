@@ -17,10 +17,9 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SECURITY_DIR="${SECURITY_DIR:-/etc/verris/security}"
 IOC_FILE="${IOC_FILE:-$SECURITY_DIR/ioc-ips.txt}"
 ALLOW_HOSTS="${ALLOW_HOSTS:-$SECURITY_DIR/egress-allow-hostnames.txt}"
-# Domeny klientów z security-sync-cp-egress-hosts.sh. Czytane OBOK pliku bazowego przy każdej
-# budowie zbioru i w --odswiez — do 2026-10-06 sync pisał osobny *.merged.txt, którego nie czytała
-# żadna jednostka systemd, więc domeny klientów wypadały ze strict po restarcie i z odświeżania.
-ALLOW_HOSTS_LOCAL="${ALLOW_HOSTS_LOCAL:-$SECURITY_DIR/egress-allow-hostnames.local.txt}"
+# Domen klientów NIE ma w allowliście hosta (decyzja 06.10): ich DNS ustawia klient, więc wpis domeny
+# klienta pozwalał mu skierować strict i anty-skan hosta na dowolny adres. Host ich nie potrzebuje —
+# sprawdzanie stron klientów idzie z kontenera API (FORWARD), którego strict i anty-skan nie dotyczą.
 # X-36 — zakresy CIDR obok nazw. Nazwa rozwiazana w jednej chwili nie obejmuje
 # round-robinu: 2026-08-24 do zbioru trafilo 140.82.121.34, a docker pull
 # poszedl na .33 i zginal na i/o timeout. Zbior jest `hash:net`, wiec podsiec
@@ -223,11 +222,8 @@ done
 [ "$(id -u)" = "0" ] || die "Run as root"
 command -v iptables >/dev/null 2>&1 || die "iptables not found"
 
-# Nazwy z allowlisty: plik bazowy + domeny klientów (ALLOW_HOSTS_LOCAL), jeśli sync go zapisał.
-# `awk 1` — plik bez końcowego znaku nowej linii nie skleja ostatniej nazwy z pierwszą z kolejnego.
-nazwy_allowlisty() {
-  if [ -f "$ALLOW_HOSTS_LOCAL" ]; then awk 1 "$ALLOW_HOSTS" "$ALLOW_HOSTS_LOCAL"; else awk 1 "$ALLOW_HOSTS"; fi
-}
+# Nazwy z allowlisty. `awk 1` — plik bez końcowego znaku nowej linii nie gubi ostatniej nazwy.
+nazwy_allowlisty() { awk 1 "$ALLOW_HOSTS"; }
 
 # SEC-06 — adresy usług za CDN (CloudFront, AWS, Fastly) rotują co minutę. Pomiar 2026-10-06:
 # 12 adresów CloudFront i AWS (apt, Docker Hub) poza zbiorem, bo zbiór buduje się z nazw RAZ.

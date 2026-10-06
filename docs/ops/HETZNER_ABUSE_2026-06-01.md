@@ -114,8 +114,7 @@ Zainstaluj na control-plane i węzłach stos z `docs/ops/SECURITY_PREVENTION_STA
 ```bash
 cd /opt/verris
 sudo bash ops/scripts/security-install-verris-security.sh --role control-plane
-sudo bash ops/scripts/security-sync-cp-egress-hosts.sh
-sudo bash ops/scripts/security-control-plane-egress.sh --strict   # domeny klientów czyta sam (egress-allow-hostnames.local.txt)
+sudo bash ops/scripts/security-control-plane-egress.sh --strict   # domen klientów w allowliście hosta nie ma (decyzja 2026-10-06)
 sudo bash ops/scripts/security-egress-lockdown.sh --role node --apply   # na każdym węźle DA
 ```
 

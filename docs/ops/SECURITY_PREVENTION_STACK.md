@@ -88,7 +88,6 @@ Ogranicza **nowe** połączenia TCP/80 i /443 tylko do hostów z allowlisty (ips
 
 ```bash
 cd /opt/verris
-sudo bash ops/scripts/security-sync-cp-egress-hosts.sh
 sudo bash ops/scripts/security-control-plane-egress.sh --strict
 ```
 
@@ -103,11 +102,11 @@ sudo bash ops/scripts/security-control-plane-egress.sh --strict
 >
 > Zdejmuje `VERRIS_EGRESS_STRICT` (IPv4 i IPv6), zapisuje tryb domyślny i utrwala reguły.
 >
-> **Domeny klientów.** `security-sync-cp-egress-hosts.sh` zapisuje je do
-> `/etc/verris/security/egress-allow-hostnames.local.txt`, a skrypt egress czyta ten plik obok
-> `egress-allow-hostnames.txt` przy każdej budowie zbioru (`--strict`, `--allowlist`, start hosta
-> przez `verris-egress.service`) i w `--odswiez` (timer co 15 s). Osobnego pliku `*.merged.txt` nie ma —
-> do 2026-10-06 sync go pisał, ale nie czytała go żadna jednostka systemd.
+> **Domeny klientów — poza allowlistą hosta (decyzja 2026-10-06).** DNS domeny ustawia klient, więc
+> wpis domeny klienta pozwalał mu skierować strict i anty-skan hosta na dowolny adres. Host ich nie
+> potrzebuje: sprawdzanie stron i webhooki idą z kontenera API (FORWARD, X-41), którego strict ani
+> anty-skan nie dotyczą. `security-sync-cp-egress-hosts.sh` usunięty; instalator kasuje plik
+> `egress-allow-hostnames.local.txt` zapisany kiedyś przez sync, a skrypt egress go nie czyta.
 
 > **SEC-01/05/06 (od 2026-09-22):** instalator **nie** włącza już strict automatycznie
 > (wcześniej robił to z `|| true`, a sam strict był atrapą — nic nie odrzucał).
@@ -127,7 +126,7 @@ sudo bash ops/scripts/security-control-plane-egress.sh --strict
 > w raporcie jako „NIE” — gdy każdy taki cel ma przypisaną nazwę z allowlisty (raport 2026-10-06
 > w audycie, SEC-06), strict włącza się `--wymus-strict`.
 
-**Ryzyko:** niepełna lista → ucięcie deploy/Stripe; po nowej domenie klienta uruchom `security-sync-cp-egress-hosts.sh` — timer `--odswiez` dopisze jej adresy w ciągu 15 s.
+**Ryzyko:** niepełna lista → ucięcie deploy/Stripe/apt hosta; nowa usługa zewnętrzna hosta = nowa nazwa w `egress-allow-hostnames.txt` (timer `--odswiez` dopisze jej adresy w ciągu 15 s).
 
 ## Co dalej operacyjnie
 
