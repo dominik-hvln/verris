@@ -38,7 +38,8 @@ function wezel(opcje: { marka: boolean }) {
   const przebieg = () => {
     const r = spawnSync('bash', ['-c', `log_ok() { echo "[OK] $*"; }\nlog_warn() { echo "[WARN] $*"; }\nlog_fail() { echo "[FAIL] $*"; }\nDRY_RUN=0\nPREFLIGHT_ONLY=0\n${FRAGMENT}`], {
       encoding: 'utf8',
-      env: { PATH: `${join(k, 'bin')}:${process.env.PATH}`, RC_DA: join(k, 'da'), RC_WWW: join(k, 'roundcube') },
+      // Log w katalogu testu — CI nie jest rootem, a nieudane przekierowanie do /var/log nie uruchamia `da`.
+      env: { PATH: `${join(k, 'bin')}:${process.env.PATH}`, RC_DA: join(k, 'da'), RC_WWW: join(k, 'roundcube'), RC_LOG: join(k, 'roundcube.log') },
     });
     return r.stdout + r.stderr;
   };
@@ -68,7 +69,7 @@ describe('Profil węzła — webmail po polsku i w marce Verris', () => {
     const w = wezel({ marka: true });
     w.przebieg();
     w.przebieg();
-    expect(w.czytaj('da.log').trim().split('\n')).toHaveLength(1);
+    expect(w.czytaj('da.log').trim().split('\n')).toEqual(['da build roundcube']);
     expect(w.czytaj('da/custom/roundcube/config.inc.php').match(/>>> Verris/g)).toHaveLength(1);
   });
 

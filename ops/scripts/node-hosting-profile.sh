@@ -1365,6 +1365,7 @@ configure_hosting_capabilities() {
   # Język dotyczy nowych skrzynek — Roundcube zapamiętuje go użytkownikowi przy pierwszym logowaniu.
   # ponytail: kopia szablonu DA zamraża jego treść; po nowej wersji DA porównać z configure/ i odświeżyć.
   RC_DA="${RC_DA:-/usr/local/directadmin/custombuild}"
+  RC_LOG="${RC_LOG:-/var/log/verris-roundcube.log}"
   RC_CUSTOM_DIR="$RC_DA/custom/roundcube"
   RC_CUSTOM="$RC_CUSTOM_DIR/config.inc.php"
   RC_SZABLON="$RC_DA/configure/roundcube/config.inc.php"
@@ -1420,18 +1421,18 @@ $rc_blok"
     RC_KONF="$(readlink -f "${RC_WWW:-/var/www/html/roundcube}" 2>/dev/null)/../config/config.inc.php"
     grep -q "'language'.*pl_PL" "$RC_KONF" 2>/dev/null || rc_przebuduj=1
     if [ "$rc_przebuduj" = 1 ]; then
-      da build roundcube >>/var/log/verris-roundcube.log 2>&1 || true
+      da build roundcube >>"$RC_LOG" 2>&1 || true
     fi
     if grep -q "'language'.*pl_PL" "$RC_KONF" 2>/dev/null; then
       log_ok "Webmail po polsku (Roundcube: language pl_PL)"
     else
-      log_fail "Webmail: brak language pl_PL w konfiguracji Roundcube — /var/log/verris-roundcube.log"
+      log_fail "Webmail: brak language pl_PL w konfiguracji Roundcube — $RC_LOG"
     fi
     if [ "$rc_marka" = 1 ]; then
       if grep -q "Verris Poczta" "$RC_KONF" 2>/dev/null; then
         log_ok "Webmail w marce Verris Poczta (plugin verris_marka)"
       else
-        log_warn "Webmail: marka Verris w custom/, ale nie w konfiguracji Roundcube — /var/log/verris-roundcube.log"
+        log_warn "Webmail: marka Verris w custom/, ale nie w konfiguracji Roundcube — $RC_LOG"
       fi
     fi
   fi
