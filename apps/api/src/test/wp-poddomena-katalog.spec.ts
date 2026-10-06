@@ -68,3 +68,12 @@ describe('API — strona konta: domena albo poddomena znana DirectAdminowi', () 
     await expect(da.witrynaKonta('s', 'u', n)).rejects.toThrow('Domena nie należy do tej usługi.');
   });
 });
+
+describe('Instalator WordPressa — bezpieczne ustawienia od razu', () => {
+  it('wyłącza edytor plików w kokpicie przed zgłoszeniem sukcesu (I-08; próba bety 06.10)', () => {
+    const s = readFileSync(join(KORZEN, 'ops', 'scripts', 'node-wp-install.sh'), 'utf8');
+    const edytor = s.indexOf('config set DISALLOW_FILE_EDIT true --raw');
+    expect(edytor).toBeGreaterThan(s.indexOf('core install'));
+    expect(edytor).toBeLessThan(s.indexOf('status=installed'));
+  });
+});

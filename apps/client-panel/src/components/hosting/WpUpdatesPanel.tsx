@@ -69,7 +69,8 @@ function stanWtyczki(status: string): string {
   if (status === 'dropin') return 'działa (drop-in)';
   return 'wyłączony';
 }
-export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domain: string }) {
+/** `katalog` — gdy strona nie leży w /domains/<domena>/public_html (poddomena w katalogu domeny nadrzędnej). */
+export function WpUpdatesPanel({ serviceId, domain, katalog }: { serviceId: string; domain: string; katalog?: string }) {
   const [stan, setStan] = useState<WpStatus | null>(null);
   const [blad, setBlad] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -256,8 +257,8 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
           title={wp ? `WordPress ${wp.version}` : 'WordPress'}
           desc={
             stan?.sprawdzono
-              ? `Sprawdzono ${data(stan.sprawdzono)}. Katalog /domains/${domain}/public_html.`
-              : `Katalog /domains/${domain}/public_html.`
+              ? `Sprawdzono ${data(stan.sprawdzono)}. Katalog ${katalog ?? `/domains/${domain}/public_html`}.`
+              : `Katalog ${katalog ?? `/domains/${domain}/public_html`}.`
           }
         />
         <div className="flex flex-wrap items-center gap-2">

@@ -152,6 +152,10 @@ wp_as_user "core install --path='$DOCROOT' --url='https://$WP_DOMAIN' --title=$(
 
 log "Konfiguruję wtyczki i ustawienia…"
 wp_as_user "rewrite structure '/%postname%/' --path='$DOCROOT'" || true
+# I-08: edytor plików w kokpicie wyłączony od początku — panel i tak oznacza go jako „do poprawy”
+# (próba bety 06.10: świeża instalacja startowała z jednym punktem zabezpieczeń do poprawy).
+wp_as_user "config set DISALLOW_FILE_EDIT true --raw --type=constant --path='$DOCROOT'" || log "WARN: nie udało się wyłączyć edytora plików"
+
 wp_as_user "plugin install litespeed-cache --activate --path='$DOCROOT'" 2>/dev/null || \
   log "LiteSpeed Cache — pominięto (brak sieci lub repo WP)."
 wp_as_user "post delete 1 2 --force --path='$DOCROOT'" 2>/dev/null || true

@@ -193,7 +193,7 @@ export default function SitePage() {
             Otwórz stronę
           </a>
         </header>
-        <WpUpdatesPanel serviceId={serviceId} domain={domain} />
+        <WpUpdatesPanel serviceId={serviceId} domain={domain} katalog={`/domains/${rodzic}/public_html/${domain.slice(0, -rodzic.length - 1)}`} />
       </div>
     );
   }
