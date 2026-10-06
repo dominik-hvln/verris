@@ -93,3 +93,26 @@ describe('Skrypty węzła serwowane przez API są obecne w obrazie', () => {
     expect(nieistniejace.sort()).toEqual([]);
   });
 });
+
+/**
+ * Ta sama klasa błędu dla katalogów pakowanych w tar (`join(resolveOpsRoot(), '<katalog>…')`):
+ * ops/roundcube nie był kopiowany do obrazu, a archiver z brakującego katalogu robi pusty tar.gz,
+ * więc węzeł dostawał „markę” bez plików (t1, 06.10 — webmail bez logo Verris Poczta).
+ */
+describe('Katalogi ops pakowane przez API są obecne w obrazie', () => {
+  const dockerfile = readFileSync(DOCKERFILE, 'utf8');
+  const katalogi = new Set<string>();
+  for (const plik of plikiTs(API_SRC)) {
+    for (const m of readFileSync(plik, 'utf8').matchAll(/join\(resolveOpsRoot\(\),\s*'([a-z0-9_-]+)\//g)) katalogi.add(m[1]);
+    for (const m of readFileSync(plik, 'utf8').matchAll(/join\(resolveOpsRoot\(\),\s*'([a-z0-9_-]+)'/g)) katalogi.add(m[1]);
+  }
+
+  it('znajduje katalogi (hosting-default-page, roundcube)', () => {
+    expect([...katalogi]).toEqual(expect.arrayContaining(['hosting-default-page', 'roundcube']));
+  });
+
+  it('każdy jest kopiowany do obrazu', () => {
+    const brak = [...katalogi].filter((k) => !new RegExp(`^COPY\\s+ops/${k}[\\s/]`, 'm').test(dockerfile));
+    expect(brak).toEqual([]);
+  });
+});

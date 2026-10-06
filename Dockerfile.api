@@ -151,6 +151,7 @@ COPY ops/scripts/node-image-optimize.sh ./ops/scripts/node-image-optimize.sh
 COPY ops/scripts/node-php-info.sh ./ops/scripts/node-php-info.sh
 COPY ops/scripts/node-file-search.sh ./ops/scripts/node-file-search.sh
 COPY ops/hosting-default-page ./ops/hosting-default-page
+COPY ops/roundcube ./ops/roundcube
 # PB-31 — pakiet Onboard LIVE serwowany agentowi (/agent/tasks/onboard-live/bundle) w układzie repo:
 # skrypty węzła z lib/, listy bezpieczeństwa i unity security-watch (buildOnboardBundle wybiera podzbiór).
 COPY ops/scripts ./ops/scripts

@@ -43,8 +43,11 @@ export function buildDefaultHostingPageBundle(): Promise<Buffer> {
 }
 
 /** Marka webmaila (plugin Roundcube verris_marka: CSS, logo, czcionki, watermark) — profil węzła kładzie go w custom/roundcube/plugins. */
-export function buildWebmailBrandBundle(): Promise<Buffer> {
-  const srcDir = join(resolveOpsRoot(), 'roundcube/verris_marka');
+export function buildWebmailBrandBundle(srcDir = join(resolveOpsRoot(), 'roundcube/verris_marka')): Promise<Buffer> {
+  // archiver z brakującego katalogu robi pusty tar.gz z kodem 200 — węzeł brał go za markę (t1, 06.10).
+  if (!existsSync(join(srcDir, 'verris_marka.php'))) {
+    return Promise.reject(new Error(`ops/roundcube/verris_marka not found (${srcDir})`));
+  }
   return new Promise((resolve, reject) => {
     const archive = new archiver.TarArchive({ gzip: true });
     const chunks: Buffer[] = [];

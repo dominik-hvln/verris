@@ -1,5 +1,5 @@
 import { spawnSync } from 'child_process';
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
@@ -22,10 +22,11 @@ function wezel(opcje: { marka: boolean }) {
   writeFileSync(join(k, 'da/configure/roundcube/plugins/readme-about-this-dir.md'), 'DA\n');
   writeFileSync(join(k, 'app/config/config.inc.php'), "$config['skin'] = 'elastic';\n");
   symlinkSync(join(k, 'app/public_html'), join(k, 'roundcube'));
-  // `da build roundcube` jak CustomBuild: custom (albo szablon) + dopisana baza.
+  // `da build roundcube` jak CustomBuild: custom (albo szablon) + dopisana baza, instalacja do nowego katalogu
+  // z losowym sufiksem (t1: roundcubemail-1.7.4-ehlr) i przestawienie dowiązania.
   writeFileSync(
     join(k, 'bin/da'),
-    `#!/usr/bin/env bash\necho "da $*" >> "${k}/da.log"\nsrc="${k}/da/custom/roundcube/config.inc.php"; [ -f "$src" ] || src="${k}/da/configure/roundcube/config.inc.php"\n{ cat "$src"; echo "\\$config['db_dsnw'] = 'x';"; } > "${k}/app/config/config.inc.php"\n`,
+    `#!/usr/bin/env bash\necho "da $*" >> "${k}/da.log"\nsrc="${k}/da/custom/roundcube/config.inc.php"; [ -f "$src" ] || src="${k}/da/configure/roundcube/config.inc.php"\nn="${k}/app-$(date +%N)"; mkdir -p "$n/public_html" "$n/config"\n{ cat "$src"; echo "\\$config['db_dsnw'] = 'x';"; } > "$n/config/config.inc.php"\nln -sfn "$n/public_html" "${k}/roundcube"\n`,
   );
   writeFileSync(
     join(k, 'bin/verris-fetch'),
@@ -60,7 +61,7 @@ describe('Profil węzła — webmail po polsku i w marce Verris', () => {
     // custom/plugins zastępuje configure/plugins — pliki DA zostają.
     expect(w.czytaj('da/custom/roundcube/plugins/readme-about-this-dir.md')).toBe('DA\n');
     expect(w.czytaj('da/custom/roundcube/plugins/verris_marka/verris_marka.php')).toContain('class verris_marka');
-    expect(w.czytaj('app/config/config.inc.php')).toMatch(/Verris Poczta[\s\S]*db_dsnw/);
+    expect(readFileSync(join(realpathSync(join(w.k, 'roundcube')), '../config/config.inc.php'), 'utf8')).toMatch(/Verris Poczta[\s\S]*db_dsnw/);
     expect(wyjscie).toContain('[OK] Webmail po polsku');
     expect(wyjscie).toContain('[OK] Webmail w marce Verris Poczta');
   });
@@ -81,5 +82,13 @@ describe('Profil węzła — webmail po polsku i w marce Verris', () => {
     expect(custom).not.toContain('verris_marka');
     expect(wyjscie).toContain('[WARN] Webmail: nie pobrano marki Verris');
     expect(wyjscie).toContain('[OK] Webmail po polsku');
+  });
+});
+
+describe('Pakiet marki webmaila z control-plane', () => {
+  it('brak plików marki → błąd zamiast pustego archiwum z kodem 200', async () => {
+    const { buildWebmailBrandBundle } = await import('../servers/default-hosting-page.assets.js');
+    await expect(buildWebmailBrandBundle(mkdtempSync(join(tmpdir(), 'brak-')))).rejects.toThrow(/verris_marka/);
+    expect((await buildWebmailBrandBundle()).length).toBeGreaterThan(1000);
   });
 });

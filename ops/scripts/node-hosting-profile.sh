@@ -1418,15 +1418,19 @@ $rc_blok"
       printf '%s\n' "$rc_nowy" > "$RC_CUSTOM"
       rc_przebuduj=1
     fi
-    RC_KONF="$(readlink -f "${RC_WWW:-/var/www/html/roundcube}" 2>/dev/null)/../config/config.inc.php"
-    grep -q "'language'.*pl_PL" "$RC_KONF" 2>/dev/null || rc_przebuduj=1
+    # Ścieżkę liczymy po budowie: katalog z losowym sufiksem (t1: /var/www/webapps/roundcubemail-1.7.4-ehlr)
+    # wskazuje, że CustomBuild instaluje do nowego katalogu i przestawia dowiązanie — stara ścieżka kłamie.
+    rc_konf() { printf '%s/../config/config.inc.php' "$(readlink -f "${RC_WWW:-/var/www/html/roundcube}" 2>/dev/null)"; }
+    grep -q "'language'.*pl_PL" "$(rc_konf)" 2>/dev/null || rc_przebuduj=1
     if [ "$rc_przebuduj" = 1 ]; then
       da build roundcube >>"$RC_LOG" 2>&1 || true
     fi
+    RC_KONF="$(rc_konf)"
     if grep -q "'language'.*pl_PL" "$RC_KONF" 2>/dev/null; then
       log_ok "Webmail po polsku (Roundcube: language pl_PL)"
     else
-      log_fail "Webmail: brak language pl_PL w konfiguracji Roundcube — $RC_LOG"
+      log_fail "Webmail: brak language pl_PL w $RC_KONF — koniec $RC_LOG poniżej"
+      tail -n 15 "$RC_LOG" 2>/dev/null | sed 's/^/    /'
     fi
     if [ "$rc_marka" = 1 ]; then
       if grep -q "Verris Poczta" "$RC_KONF" 2>/dev/null; then
