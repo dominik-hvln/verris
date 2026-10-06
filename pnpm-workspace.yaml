@@ -64,3 +64,6 @@ overrides:
   # @payloadcms/plugin-cloud-storage deklaruje find-node-modules, ale dist go nie importuje (martwa zależność
   # → findup-sync → micromatch → braces). Sprawdzone grepem po paczce 3.90.2 — przy podbiciu Payloada sprawdzić ponownie.
   "find-node-modules": "-"
+  # GHSA-wq5f-xc86-pv6w (sharp 0.35.4 z libvips 1.3.3 → librsvg CVE-2026-96889): next przypina 0.35.4,
+  # sharp 0.35.5 ma libvips 1.3.4.
+  sharp: "^0.35.5"
