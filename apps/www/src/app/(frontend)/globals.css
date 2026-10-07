@@ -181,7 +181,6 @@ footer{border-top:1px solid var(--line);background:var(--pine);padding:40px 0 28
 
 /* ===== Generic grids / CTA band / info cards ===== */
 .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
 .icard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:26px}
 .icard .ico{width:42px;height:42px;border-radius:11px;background:rgba(52,229,160,.1);border:1px solid rgba(52,229,160,.22);display:grid;place-items:center;margin-bottom:15px}
 .icard .ico svg{width:21px;height:21px;stroke:var(--mint);fill:none}
@@ -232,10 +231,10 @@ footer{border-top:1px solid var(--line);background:var(--pine);padding:40px 0 28
 
 @media(max-width:900px){
   .grid-3,.blog-grid{grid-template-columns:1fr 1fr}
-  .grid-2,.contact-grid{grid-template-columns:1fr}
+  .contact-grid{grid-template-columns:1fr}
 }
 @media(max-width:600px){
-  .grid-3,.grid-2,.blog-grid{grid-template-columns:1fr}
+  .grid-3,.blog-grid{grid-template-columns:1fr}
   .form{padding:28px}
 }
 
