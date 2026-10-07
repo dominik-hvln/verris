@@ -8,12 +8,12 @@ import { prisma, rozlacz, utworzWezel, wyczyscBaze } from './setup.js';
  * i godzin, mapowanie sond na usługi dla klienta oraz brak nazw węzłów i hostów w odpowiedzi.
  */
 const DZIEN = 86_400_000;
-/** Południe UTC danego dnia kalendarzowego sprzed `n` dni — daleko od granic doby w Warszawie. */
-const poludnie = (n: number) => {
-  const d = new Date(Date.now() - n * DZIEN);
-  d.setUTCHours(12, 0, 0, 0);
-  return d;
-};
+/**
+ * Okolice południa dnia w Warszawie sprzed `n` dni (10:00 UTC = 11:00/12:00 w Warszawie). Liczone od dnia
+ * warszawskiego, nie UTC: między 00:00 a 02:00 w Warszawie data UTC to jeszcze poprzedni dzień i test
+ * wkładał próbki o dzień za wcześnie (czerwony 08.10 o 00:10).
+ */
+const poludnie = (n: number) => new Date(`${dniWstecz(dzienWarszawski(new Date()), n + 1)[0]}T10:00:00Z`);
 
 describe('GET /status — agregacja historii z próbek sond', () => {
   beforeEach(wyczyscBaze);
@@ -37,7 +37,8 @@ describe('GET /status — agregacja historii z próbek sond', () => {
     // dzień -1 — celowo bez próbek
     await probka(imap.id, 3, 2880, 2870, 50); // 99,65% → spowolnienie
     await p.probeSample.create({
-      data: { probeId: https.id, bucketStart: new Date(Date.now() - 30 * 60_000), totalCount: 2, successCount: 2, avgLatencyMs: 120, maxLatencyMs: 120 },
+      // Dziś w Warszawie: 30 s temu (30 min temu tuż po północy to jeszcze wczoraj).
+      data: { probeId: https.id, bucketStart: new Date(Date.now() - 30_000), totalCount: 2, successCount: 2, avgLatencyMs: 120, maxLatencyMs: 120 },
     });
 
     await p.probeIncident.create({
