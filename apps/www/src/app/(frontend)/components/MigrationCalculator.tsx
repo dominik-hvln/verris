@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, type CSSProperties } from 'react';
+import { STAWKI } from '@/lib/kalkulator';
 
-// Stawki godzinowe brutto (PLN): CPU za 1% · RAM za 1 GB · dysk za 1 GB.
-const RATE = { cpu: 0.001323, ram: 0.0882, disk: 0.0008 };
 const HOURS_MONTH = 730;
 
 const zlH = (n: number) =>
@@ -18,7 +17,7 @@ export function MigrationCalculator() {
   const [ram, setRam] = useState(1);
   const [disk, setDisk] = useState(0);
 
-  const hour = cpu * RATE.cpu + ram * RATE.ram + disk * RATE.disk;
+  const hour = cpu * STAWKI.cpu + ram * STAWKI.ram + disk * STAWKI.dysk;
   const month = hour * HOURS_MONTH;
 
   return (
