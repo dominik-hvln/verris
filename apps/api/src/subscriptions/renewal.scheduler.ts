@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { ClientWebhooksService } from '../client-webhooks/client-webhooks.service.js';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { SubscriptionStatus, WalletTxType } from '@verris/database';
+import { Prisma, SubscriptionStatus, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
@@ -256,7 +256,8 @@ export class RenewalScheduler {
       individualPrice: sub.individualPrice,
     });
 
-    try {
+    // PB-27 — cena 0 zł: przedłużenie bez obciążenia (księga odrzuca kwotę 0, odnowienie stałoby co godzinę).
+    if (new Prisma.Decimal(renewalAmount).greaterThan(0)) try {
       await this.walletLedger.debit({
         userId: sub.userId,
         type: WalletTxType.CHARGE_SUBSCRIPTION,

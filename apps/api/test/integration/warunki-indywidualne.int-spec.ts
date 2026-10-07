@@ -102,6 +102,30 @@ describe('PB-27 / PB-28 — indywidualne warunki i rozliczenie poza Verris', () 
     ).rejects.toMatchObject({ status: 403 });
   });
 
+  it('cena 0 zł (portfel): usługa rusza bez obciążenia, odnowienie przedłuża okres bez obciążenia', async () => {
+    // D3 07.10: „Załóż usługę” z ceną 0 kończyło się „Amount must be positive” (księga odrzuca 0),
+    // a odnowienie z ceną 0 rzucało przy każdym przebiegu i nie przedłużało okresu.
+    const k = await klient(0);
+    const op = await operator();
+    const plan = await utworzPlan();
+    const wynik = await uslugi().warunki.zalozUsluge(op.id, k.id, {
+      planId: plan.id, interval: 'MONTH', domain: 'klient-zero.pl', individualPrice: 0, powod: 'test O-05',
+    });
+    const s = await sub(wynik.subscription.id);
+    expect(s).toMatchObject({ paymentSource: 'WALLET', status: 'PROVISIONING' });
+    expect(s.individualPrice?.toFixed(2)).toBe('0.00');
+    expect(kolejka).toEqual([s.id]);
+
+    const u = await usluga(k.id, { individualPrice: 0 });
+    const koniec = (await sub(u.id)).currentPeriodEnd!;
+    await scheduler().handleHourlyTick();
+    const po = await sub(u.id);
+    expect(po.status).toBe('ACTIVE');
+    expect(po.currentPeriodEnd!.getTime()).toBeGreaterThan(koniec.getTime());
+    expect(await prisma().walletTransaction.count({ where: { userId: k.id } })).toBe(0);
+    expect(await saldo(k.id)).toBe(0);
+  });
+
   it('rozliczenie poza Verris: usługi na MANUAL, zaległość znika, okres przedłuża się bez obciążenia', async () => {
     const k = await klient(5);
     const op = await operator();

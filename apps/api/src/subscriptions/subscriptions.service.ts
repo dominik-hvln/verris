@@ -980,8 +980,10 @@ export class SubscriptionsService {
       ? subscription.currentPeriodEnd.toISOString()
       : 'no-period';
     let renewalTxId: string | null = null;
-    // PB-28 — usługa rozliczana poza Verris nie pobiera nic z portfela.
-    if (opts.chargeRenewal && subscription.paymentSource !== 'MANUAL') {
+    // PB-28 — usługa rozliczana poza Verris nie pobiera nic z portfela; PB-27 — przy cenie 0 zł też nie.
+    const kwotaOdnowienia = new Prisma.Decimal(subscription.individualPrice ?? subscription.priceAmount);
+    const pobierz = opts.chargeRenewal && subscription.paymentSource !== 'MANUAL' && kwotaOdnowienia.greaterThan(0);
+    if (pobierz) {
       const debit = await this.walletLedger.debit({
         userId: subscription.userId,
         type: WalletTxType.CHARGE_SUBSCRIPTION,
@@ -1003,7 +1005,7 @@ export class SubscriptionsService {
         this.logger.error(
           `DA unsuspend failed for sub=${opts.subscriptionId}: ${daError}`,
         );
-        if (opts.chargeRenewal) {
+        if (pobierz) {
           // Best-effort refund if renewal was charged but DA refused to bring
           // the account back online.
           await this.walletLedger
@@ -1446,6 +1448,8 @@ export class SubscriptionsService {
     dto: CreateSubscriptionDto,
     userId: string,
   ): Promise<CreatedSubscription> {
+    // PB-27 — cena 0 zł (np. operator): nie ma czego pobrać ani zwracać; księga odrzuca kwotę 0.
+    if (!amount.greaterThan(0)) return this.provisionWithoutCharge(subscriptionId, dto, userId);
     // Debit first — if the user is broke we don't want to start any DA work.
     const debit = await this.walletLedger.debit({
       userId,
