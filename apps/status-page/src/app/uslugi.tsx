@@ -10,6 +10,9 @@ import { dzienKrotko, pct, plForm } from '@/lib/format';
  * pierwszy render (SSR) i hydratacja są identyczne.
  */
 const NOTATKI: Record<string, string> = {
+  panel: 'logowanie i zarządzanie usługami',
+  www: 'strona, cennik i zamówienia',
+  api: 'interfejs programistyczny',
   strony: 'strony na hostingu Verris',
   poczta: 'serwery poczty',
   bazy: 'bazy MySQL',
@@ -22,6 +25,7 @@ const STAN_DNIA: Record<DayState, string> = {
   DEGRADED: 'spowolnienie',
   DOWN: 'awaria',
   NO_DATA: 'brak danych',
+  MAINTENANCE: 'planowane prace',
 };
 
 function opisDnia(d: DayDto): string {
@@ -34,9 +38,11 @@ function podsumowanie(dni: DayDto[]): string {
   const awarie = dni.filter((d) => d.state === 'DOWN').length;
   const wolne = dni.filter((d) => d.state === 'DEGRADED').length;
   const brak = dni.filter((d) => d.state === 'NO_DATA').length;
+  const prace = dni.filter((d) => d.state === 'MAINTENANCE').length;
   const czesci = [
     awarie ? `${awarie} ${plForm(awarie, 'dzień', 'dni', 'dni')} awarii` : null,
     wolne ? `${wolne} ${plForm(wolne, 'dzień', 'dni', 'dni')} spowolnienia` : null,
+    prace ? `${prace} ${plForm(prace, 'dzień', 'dni', 'dni')} planowanych prac` : null,
     brak ? `${brak} ${plForm(brak, 'dzień', 'dni', 'dni')} bez danych` : null,
   ].filter(Boolean);
   return czesci.length ? czesci.join(', ') : 'bez zakłóceń';
@@ -117,6 +123,10 @@ export function Uslugi({ services }: { services: PublicServiceDto[] }) {
           <span>
             <i className="st-swatch" data-state="DOWN" />
             awaria
+          </span>
+          <span>
+            <i className="st-swatch" data-state="MAINTENANCE" />
+            planowane prace
           </span>
           <span>
             <i className="st-swatch" data-state="NO_DATA" />

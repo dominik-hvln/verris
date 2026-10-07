@@ -1,5 +1,6 @@
 export type ServiceState = 'OK' | 'DEGRADED' | 'DOWN';
-export type DayState = ServiceState | 'NO_DATA';
+/** MAINTENANCE — dzień planowanych prac bez awarii. */
+export type DayState = ServiceState | 'NO_DATA' | 'MAINTENANCE';
 
 export interface DayDto {
   /** 'YYYY-MM-DD', dzień czasu polskiego. */

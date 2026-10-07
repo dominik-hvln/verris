@@ -17,6 +17,7 @@
   --bad: #b3423f;
   --bad-text: #f08a87;
   --none: #22352c;
+  --maint: #6aa8e8;
   --line: rgba(255, 255, 255, 0.08);
 }
 
@@ -356,6 +357,11 @@ a:hover {
 .st-bar[data-state='NO_DATA'],
 .st-swatch[data-state='NO_DATA'] {
   background: var(--none);
+}
+/* planowane prace: osobny kolor + ukośne paski (kształt, nie sam kolor) */
+.st-bar[data-state='MAINTENANCE'],
+.st-swatch[data-state='MAINTENANCE'] {
+  background: repeating-linear-gradient(135deg, var(--maint) 0 3px, #3b6690 3px 6px);
 }
 .st-uslugi[data-range='90'] .st-bars {
   gap: 1px;
