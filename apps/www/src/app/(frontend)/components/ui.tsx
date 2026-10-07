@@ -1,6 +1,13 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 import { PANEL } from '@/lib/site';
 import { breadcrumbList } from '@/lib/schema';
+
+/*
+ * Wspólne klocki verris.pl (style: globals.css, sekcja „Komponenty 2026-10”). Mobile-first:
+ * bazowe style są pod telefon, większe ekrany dostają układ przez @media (min-width).
+ *   Button, Card, SectionHead, Steps, CTABand, StickyBuy, Accordion, SpecTable — opis przy każdym.
+ */
 
 export function JsonLd({ data }: { data: object }) {
   return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
@@ -30,11 +37,11 @@ export function Breadcrumbs({ items }: { items: Crumb[] }) {
   return (
     <nav className="crumbs" aria-label="Ścieżka">
       <JsonLd data={breadcrumbList(items)} />
-      <Link href="/">Home</Link>
+      <Link href="/">Strona główna</Link>
       {items.map((c, i) => (
         <span key={i} style={{ display: 'contents' }}>
           <span className="sep" aria-hidden="true">
-            ›
+            /
           </span>
           {c.href ? <a href={c.href}>{c.label}</a> : <span className="cur">{c.label}</span>}
         </span>
@@ -72,21 +79,14 @@ export function SubHero({
           {(primary || secondary) && (
             <div className="hero-cta">
               {primary && (
-                <a
-                  className="btn btn-primary"
-                  href={primary.href}
-                  data-event="cta_click"
-                  data-cta="subhero"
-                  data-conv={primary.conv}
-                  data-plan={primary.plan}
-                >
+                <Button href={primary.href} cta="subhero" conv={primary.conv} plan={primary.plan}>
                   {primary.label}
-                </a>
+                </Button>
               )}
               {secondary && (
-                <a className="btn btn-ghost" href={secondary.href} data-event="cta_click" data-cta="subhero-alt">
+                <Button href={secondary.href} variant="ghost" cta="subhero-alt">
                   {secondary.label}
-                </a>
+                </Button>
               )}
             </div>
           )}
@@ -96,37 +96,219 @@ export function SubHero({
   );
 }
 
+/**
+ * Przycisk-link (min. 48 px wysokości). `cta` → data-event="cta_click" + data-cta (lib/analytics.ts),
+ * `conv="checkout_intent"` → zdarzenie zamiaru zakupu; `plan` doprecyzowuje usługę.
+ */
+export function Button({
+  href,
+  children,
+  variant = 'primary',
+  cta,
+  conv,
+  plan,
+  className,
+}: {
+  href: string;
+  children: ReactNode;
+  variant?: 'primary' | 'ghost';
+  cta?: string;
+  conv?: string;
+  plan?: string;
+  className?: string;
+}) {
+  const props = {
+    className: `btn btn-${variant}${className ? ` ${className}` : ''}`,
+    'data-event': cta ? 'cta_click' : undefined,
+    'data-cta': cta,
+    'data-conv': conv,
+    'data-plan': plan,
+  };
+  // Podstrony verris.pl przez <Link> (nawigacja bez przeładowania), panel i kotwice zwykłym <a>.
+  return href.startsWith('/') ? (
+    <Link href={href} {...props}>
+      {children}
+    </Link>
+  ) : (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  );
+}
+
+/** Karta (tło --card, zaokrąglenie 18–20 px). `accent` = miętowa ramka wyróżnienia. */
+export function Card({
+  children,
+  accent,
+  className,
+}: {
+  children: ReactNode;
+  accent?: boolean;
+  className?: string;
+}) {
+  return <div className={`card${accent ? ' card-accent' : ''}${className ? ` ${className}` : ''}`}>{children}</div>;
+}
+
+/** Nagłówek sekcji: eyebrow (mono, mięta) + h2 + opcjonalny lead. `center` wyśrodkowuje. */
+export function SectionHead({
+  eyebrow,
+  title,
+  lead,
+  center,
+  id,
+}: {
+  eyebrow?: string;
+  title: ReactNode;
+  lead?: ReactNode;
+  center?: boolean;
+  id?: string;
+}) {
+  return (
+    <div className={`shead${center ? ' center' : ''}`}>
+      {eyebrow && <p className="kicker">{eyebrow}</p>}
+      <h2 id={id}>{title}</h2>
+      {lead && <p className="lead">{lead}</p>}
+    </div>
+  );
+}
+
+export type Step = { label: string; title: string; text: ReactNode; bar?: number; accent?: boolean };
+
+/**
+ * „Jak to działa” — kroki z etykietą (01/02/03 albo godzina).
+ *  - karty: telefon jedna pod drugą (numer z lewej), od 768 px trzy kolumny z dużym numerem;
+ *  - lista: zawsze karty jedna pod drugą (np. obok tekstu w dwukolumnowej sekcji);
+ *  - os: oś czasu — telefon pionowa linia, od 768 px trzy kolumny w jednej karcie; `bar` (0–100)
+ *    rysuje słupek obciążenia nad krokiem.
+ */
+export function Steps({ items, variant = 'karty' }: { items: Step[]; variant?: 'karty' | 'lista' | 'os' }) {
+  return (
+    <ol className={`steps2 steps2-${variant}`}>
+      {items.map((s) => (
+        <li key={s.title} className={s.accent ? 'on' : undefined}>
+          <span className="steps2-n">{s.label}</span>
+          {s.bar !== undefined && (
+            <span className="steps2-bar" aria-hidden="true">
+              <span className={s.accent ? 'hot' : undefined} style={{ height: `${s.bar}%` }} />
+            </span>
+          )}
+          <div>
+            <h3>{s.title}</h3>
+            <p>{s.text}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** Pas CTA: zielony gradient + pattern marki (public/pattern.svg). Tekst z lewej, przyciski z prawej od 900 px. */
 export function CTABand({
   title,
   text,
-  primaryLabel = 'Załóż konto',
+  primaryLabel = 'Zamów hosting',
   primaryHref = PANEL,
   secondary,
 }: {
   title: string;
-  text: string;
+  text?: string;
   primaryLabel?: string;
   primaryHref?: string;
   secondary?: { label: string; href: string };
 }) {
   return (
-    <section>
+    <section className="ctaband-sec">
       <div className="wrap">
-        <div className="ctaband rv">
-          <h2>{title}</h2>
-          <p>{text}</p>
-          <div className="hero-cta" style={{ justifyContent: 'center' }}>
-            <a className="btn btn-primary" href={primaryHref} data-event="cta_click" data-cta="ctaband" data-conv="checkout_intent">
+        <div className="ctaband">
+          <div className="bg-pat-full" aria-hidden="true" />
+          <div className="ctaband-txt">
+            <h2>{title}</h2>
+            {text && <p>{text}</p>}
+          </div>
+          <div className="ctaband-btns">
+            <Button href={primaryHref} cta="ctaband" conv="checkout_intent">
               {primaryLabel}
-            </a>
+            </Button>
             {secondary && (
-              <a className="btn btn-ghost" href={secondary.href} data-event="cta_click" data-cta="ctaband-alt">
+              <Button href={secondary.href} variant="ghost" cta="ctaband-alt">
                 {secondary.label}
-              </a>
+              </Button>
             )}
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * Przyklejony pasek zakupu — tylko telefon (< 768 px). Wstaw jako OSTATNIE dziecko <main>: przykleja się
+ * do dołu ekranu, dopóki widać treść strony, i nie zasłania stopki.
+ */
+export function StickyBuy({ href = PANEL, label = 'Zamów hosting' }: { href?: string; label?: string }) {
+  return (
+    <div className="stickybuy">
+      <p>
+        <strong>45 zł/mies</strong>
+        <span>albo 449 zł/rok brutto</span>
+      </p>
+      <Button href={href} cta="sticky" conv="checkout_intent">
+        {label}
+      </Button>
+    </div>
+  );
+}
+
+export type AccordionItem = { title: ReactNode; body: ReactNode; open?: boolean };
+
+/** Akordeon na natywnych <details>/<summary> (klawiatura i czytniki ekranu za darmo). */
+export function Accordion({ items, className }: { items: AccordionItem[]; className?: string }) {
+  return (
+    <div className={`acc${className ? ` ${className}` : ''}`}>
+      {items.map((it, i) => (
+        <details key={i} open={it.open}>
+          <summary>{it.title}</summary>
+          <div className="acc-body">{it.body}</div>
+        </details>
+      ))}
+    </div>
+  );
+}
+
+export type SpecGroup = { title: string; rows: [string, string][] };
+
+/**
+ * Specyfikacja w grupach: od 768 px siatka kart z tabelami, na telefonie akordeon (pierwsza grupa otwarta).
+ * Puste grupy (np. po odfiltrowaniu pozycji czekających na weryfikację) są pomijane.
+ */
+export function SpecTable({ groups }: { groups: SpecGroup[] }) {
+  const pelne = groups.filter((g) => g.rows.length > 0);
+  const tabela = (g: SpecGroup, podpis: boolean) => (
+    <table className="spec">
+      {podpis && <caption>{g.title}</caption>}
+      <tbody>
+        {g.rows.map(([k, v]) => (
+          <tr key={k}>
+            <th scope="row">{k}</th>
+            <td>{v}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+  return (
+    <>
+      <div className="spec-grid tylko-szeroki">
+        {pelne.map((g) => (
+          <div className="card" key={g.title}>
+            {tabela(g, true)}
+          </div>
+        ))}
+      </div>
+      <Accordion
+        className="tylko-telefon"
+        items={pelne.map((g, i) => ({ title: g.title, body: tabela(g, false), open: i === 0 }))}
+      />
+    </>
   );
 }

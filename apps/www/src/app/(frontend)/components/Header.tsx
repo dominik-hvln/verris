@@ -1,73 +1,81 @@
 'use client';
 
-import { useState } from 'react';
-import { Menu, X, ChevronDown } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Menu, X } from 'lucide-react';
 import { Logo } from './ui';
-import { megaServices, headerLinks, PANEL } from '@/lib/site';
+import { headerLinks, PANEL } from '@/lib/site';
 
+/**
+ * Nagłówek całego verris.pl: logo, nawigacja, „Panel klienta”, „Zamów hosting”.
+ * Poniżej 1024 px menu chowa się pod przyciskiem (aria-expanded/aria-controls, Esc zamyka i oddaje fokus).
+ */
 export function Header() {
   const [open, setOpen] = useState(false);
+  const btn = useRef<HTMLButtonElement>(null);
+  const path = usePathname();
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setOpen(false);
+      btn.current?.focus();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open]);
+
+  const links = headerLinks.map((l) => (
+    <Link
+      key={l.href}
+      href={l.href}
+      aria-current={path === l.href ? 'page' : undefined}
+      onClick={() => setOpen(false)}
+    >
+      {l.label}
+    </Link>
+  ));
 
   return (
-    <header>
+    <header className="site-head">
       <div className="wrap nav">
         <Logo />
         <nav className="nav-links" aria-label="Główne">
-          <div className="nav-item">
-            <button className="nav-trigger" aria-haspopup="true">
-              Usługi <ChevronDown size={15} />
-            </button>
-            <div className="mega" role="menu">
-              {megaServices.map((s) => (
-                <a key={s.href} href={s.href} role="menuitem">
-                  {s.label}
-                  <span>{s.desc}</span>
-                </a>
-              ))}
-            </div>
-          </div>
-          {headerLinks.map((l) => (
-            <a key={l.href} href={l.href}>
-              {l.label}
-            </a>
-          ))}
+          {links}
         </nav>
-        <div className="nav-act">
-          <a className="login" href={PANEL}>
-            Zaloguj
-          </a>
-          <a
-            className="btn btn-primary btn-sm"
-            href={PANEL}
-            data-event="cta_click"
-            data-cta="nav"
-            data-conv="checkout_intent"
-          >
-            Załóż konto
-          </a>
-          <button className="burger" aria-label="Menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-            {open ? <X /> : <Menu />}
-          </button>
-        </div>
+        <a className="nav-login" href={PANEL}>
+          Panel klienta
+        </a>
+        <a
+          className="btn btn-primary nav-cta"
+          href={PANEL}
+          data-event="cta_click"
+          data-cta="nav"
+          data-conv="checkout_intent"
+        >
+          Zamów<span className="nav-cta-long">hosting</span>
+        </a>
+        <button
+          ref={btn}
+          type="button"
+          className="burger"
+          aria-label={open ? 'Zamknij menu' : 'Otwórz menu'}
+          aria-expanded={open}
+          aria-controls="menu-mobilne"
+          onClick={() => setOpen((o) => !o)}
+        >
+          {open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
+        </button>
       </div>
 
-      {open && (
-        <div className="mobile-menu">
-          <div className="m-head">Usługi</div>
-          {megaServices.map((s) => (
-            <a key={s.href} href={s.href} onClick={() => setOpen(false)}>
-              {s.label}
-            </a>
-          ))}
-          <div className="m-head">Więcej</div>
-          {headerLinks.map((l) => (
-            <a key={l.href} href={l.href} onClick={() => setOpen(false)}>
-              {l.label}
-            </a>
-          ))}
-          <a href={PANEL}>Zaloguj</a>
-        </div>
-      )}
+      <nav id="menu-mobilne" className="mobile-menu" aria-label="Menu" hidden={!open}>
+        {links}
+        <a className="btn btn-ghost" href={PANEL}>
+          Panel klienta
+        </a>
+      </nav>
     </header>
   );
 }

@@ -35,3 +35,16 @@ export const OFERTA_KROTKO = VPS_W_SPRZEDAZY
  * przez właściciela 27.09.2026 (docs/marketing/akceptacja-tresci-2026-09.md).
  */
 export const SPECYFIKACJA_OPUBLIKOWANA = true;
+
+/**
+ * Funkcje zrobione w kodzie, ale czekające na sprawdzenie na pierwszym węźle (wezel.csv) — m.in. LiteSpeed,
+ * Redis, PostgreSQL, WAF, ImunifyAV, izolacja kont. Do decyzji właściciela po D3 verris.pl ich nie obiecuje:
+ * ukrywa je /specyfikacja i sekcje strony głównej oraz /hosting (pole `po` w listach). Przełączenie na true
+ * pokazuje je wszędzie naraz.
+ */
+export const SPEC_PO_WERYFIKACJI = false;
+
+/** Zostawia pozycje oznaczone `po: true` (po weryfikacji na węźle) tylko, gdy SPEC_PO_WERYFIKACJI. */
+export function zweryfikowane<T extends { po?: boolean }>(lista: T[]): T[] {
+  return lista.filter((x) => SPEC_PO_WERYFIKACJI || !x.po);
+}

@@ -34,7 +34,7 @@ export const organization = {
 type Crumb = { label: string; href?: string };
 
 export function breadcrumbList(items: Crumb[]) {
-  const all: Crumb[] = [{ label: 'Home', href: '/' }, ...items];
+  const all: Crumb[] = [{ label: 'Strona główna', href: '/' }, ...items];
   return {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',

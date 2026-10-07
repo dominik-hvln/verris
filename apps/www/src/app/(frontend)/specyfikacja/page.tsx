@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { SPECYFIKACJA_OPUBLIKOWANA } from '@/lib/oferta';
+import { SPEC_PO_WERYFIKACJI, SPECYFIKACJA_OPUBLIKOWANA } from '@/lib/oferta';
 import { SubHero, CTABand } from '../components/ui';
 import { RevealInit } from '../components/RevealInit';
 
@@ -14,9 +14,8 @@ export const metadata: Metadata = {
 /**
  * PB-07 — publiczna specyfikacja pakietu. Każdy wiersz ma pokrycie w macierzy audytu (audyt/dane/macierz.csv).
  * Wiersze `poWeryfikacji` są zrobione w kodzie, ale czekają na sprawdzenie na pierwszym węźle (wezel.csv) —
- * pokazujemy je dopiero, gdy przełączymy SPEC_PO_WERYFIKACJI na true (decyzja właściciela po D3).
+ * pokazujemy je dopiero, gdy przełączymy SPEC_PO_WERYFIKACJI (lib/oferta.ts) na true (decyzja właściciela po D3).
  */
-const SPEC_PO_WERYFIKACJI = false;
 
 type Wiersz = [parametr: string, wartosc: string, poWeryfikacji?: boolean];
 

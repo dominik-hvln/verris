@@ -26,8 +26,22 @@ describe('verris.pl — dostępność', () => {
     expect(z_h4).toEqual([]);
   });
 
-  it('pole wyszukiwania domeny ma widoczny fokus (input ma outline:none, więc obramowanie opakowania)', () => {
-    expect(CSS).toMatch(/\.dsearch:focus-within\{[^}]*border-color/);
+  it('suwaki kalkulatora piku mają widoczny fokus (globalnie input[type=range] ma outline:none)', () => {
+    expect(CSS).toMatch(/\.kalk input\[type=range\]:focus-visible\{[^}]*outline:2px/);
+  });
+
+  it('menu mobilne: przycisk z aria-expanded i aria-controls, Esc zamyka', () => {
+    const h = readFileSync(join(DIR, 'components/Header.tsx'), 'utf8');
+    expect(h).toMatch(/aria-expanded=\{open\}/);
+    expect(h).toMatch(/aria-controls="menu-mobilne"/);
+    expect(h).toMatch(/id="menu-mobilne"/);
+    expect(h).toMatch(/e\.key !== 'Escape'/);
+  });
+
+  it('animacja wykresu w hero tylko przy prefers-reduced-motion: no-preference', () => {
+    const z_animacja = CSS.match(/[^}]*animation:grow[^}]*\}/g) || [];
+    expect(z_animacja.length).toBeGreaterThan(0);
+    for (const r of z_animacja) expect(CSS.slice(0, CSS.indexOf(r) + r.length)).toMatch(/@media\(prefers-reduced-motion:no-preference\)\{[^@]*$/);
   });
 
   it('ogłoszenie i baner cookies są w landmarkach (region)', () => {

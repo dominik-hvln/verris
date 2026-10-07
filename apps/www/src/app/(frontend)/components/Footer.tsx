@@ -9,6 +9,7 @@ const DEFAULT_LEGAL =
 const DEFAULT_PAY =
   'Płatności: karta · BLIK · Przelewy24 · Paynow · SLA 99,5% z rekompensatami na wniosek wg regulaminu';
 
+// Stopka całego verris.pl: kolumny z CMS (global Footer) albo z lib/site.ts; na telefonie dwie kolumny linków.
 type Col = { heading: string; links: { label: string; href: string }[] };
 
 export async function Footer() {
@@ -33,10 +34,10 @@ export async function Footer() {
   return (
     <footer>
       <div className="wrap">
-        <div className="foot-grid" style={{ gridTemplateColumns: '1.3fr 1fr 1fr 1fr 1fr' }}>
+        <div className="foot-grid">
           <div className="foot-brand">
             <Logo />
-            <p>Nowoczesny polski hosting z uczciwymi zasadami. Skaluj świadomie.</p>
+            <p>Hosting z autoskalowaniem. Polska firma, dane w EOG.</p>
           </div>
           {cols.map((col) => (
             <div className="foot-col" key={col.heading}>

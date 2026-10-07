@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { SubHero, CTABand } from '../components/ui';
+import { SubHero, CTABand, StickyBuy } from '../components/ui';
 import { Pricing } from '../components/Pricing';
 import { RevealInit } from '../components/RevealInit';
 import { VPS_W_SPRZEDAZY } from '@/lib/oferta';
@@ -21,7 +21,7 @@ export default function Page() {
         lead={`Odnowienie zawsze po cenie z cennika — bez szoku po pierwszym okresie. Rabat na start, jeśli trwa, widzisz przed zapłatą. ${VPS_W_SPRZEDAZY ? 'VPS i domeny mają' : 'Domeny mają'} osobną wycenę w panelu.`}
         crumbs={[{ label: 'Cennik' }]}
       />
-      <Pricing />
+      <Pricing naglowek={false} />
       <section className="band">
         <div className="wrap">
           <div className="prose rv">
@@ -59,6 +59,7 @@ export default function Page() {
         secondary={{ label: 'Jak działa migracja', href: '/przenies-strone' }}
       />
       <RevealInit />
+      <StickyBuy />
     </main>
   );
 }

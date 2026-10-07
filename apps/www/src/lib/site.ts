@@ -4,23 +4,14 @@ import { EMAIL_MARKETING_W_SPRZEDAZY, SPECYFIKACJA_OPUBLIKOWANA, VPS_W_SPRZEDAZY
 export const PANEL = 'https://panel.verris.pl';
 export const LEGAL = 'https://panel.verris.pl/legal';
 
-export const megaServices: { label: string; href: string; desc: string }[] = [
-  { label: 'Hosting z autoskalowaniem', href: '/hosting', desc: 'Płacisz za realne użycie' },
-  { label: 'Hosting WordPress', href: '/hosting/wordpress', desc: 'Zoptymalizowany pod WP' },
-  { label: 'Hosting pod sklep', href: '/hosting/sklep', desc: 'WooCommerce, piki sprzedaży' },
-  ...(VPS_W_SPRZEDAZY ? [{ label: 'VPS', href: '/vps', desc: 'Niezarządzany, pełny root' }] : []),
-  { label: 'Domeny', href: '/domeny', desc: 'Rejestracja i transfer' },
-  ...(EMAIL_MARKETING_W_SPRZEDAZY ? [{ label: 'E-mail marketing', href: '/email-marketing', desc: 'Wysyłki z panelu' }] : []),
-  { label: 'Poczta', href: '/poczta', desc: 'Skrzynki w hostingu' },
-  { label: 'Program resellerski', href: '/reseller', desc: 'Wielu klientów z jednego panelu' },
-];
-
 export const KB_URL = 'https://pomoc.verris.pl';
 
 export const headerLinks: { label: string; href: string }[] = [
-  { label: 'Funkcje', href: '/funkcje' },
+  { label: 'Hosting', href: '/hosting' },
   { label: 'Cennik', href: '/cennik' },
-  { label: 'Blog', href: '/blog' },
+  { label: 'Przenieś stronę', href: '/przenies-strone' },
+  { label: 'Domeny', href: '/domeny' },
+  ...(SPECYFIKACJA_OPUBLIKOWANA ? [{ label: 'Specyfikacja', href: '/specyfikacja' }] : []),
   { label: 'Pomoc', href: KB_URL },
 ];
 
@@ -29,8 +20,11 @@ export const footerCols: { heading: string; links: { label: string; href: string
     heading: 'Usługi',
     links: [
       { label: 'Hosting z autoskalowaniem', href: '/hosting' },
+      { label: 'Hosting WordPress', href: '/hosting/wordpress' },
+      { label: 'Hosting dla sklepu', href: '/hosting/sklep' },
       ...(VPS_W_SPRZEDAZY ? [{ label: 'VPS', href: '/vps' }] : []),
       { label: 'Domeny', href: '/domeny' },
+      { label: 'Poczta', href: '/poczta' },
       ...(EMAIL_MARKETING_W_SPRZEDAZY ? [{ label: 'E-mail marketing', href: '/email-marketing' }] : []),
       { label: 'Program resellerski', href: '/reseller' },
     ],
