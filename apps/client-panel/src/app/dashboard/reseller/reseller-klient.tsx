@@ -17,11 +17,15 @@ import {
   type UslugaKlienta,
 } from './actions';
 
-const STATUS: Record<string, [string, Tone]> = {
+// Klucze = enum SubscriptionStatus (schema.prisma) — pilnuje stan-uslug-resellera.spec.ts.
+export const STATUS: Record<string, [string, Tone]> = {
+  PENDING_PAYMENT: ['czeka na płatność', 'muted'],
+  PROVISIONING: ['zakładanie', 'muted'],
   ACTIVE: ['działa', 'data'],
-  SUSPENDED: ['wstrzymana', 'warn'],
   PAST_DUE: ['zaległa płatność', 'warn'],
-  PENDING: ['zakładanie', 'muted'],
+  SUSPENDED: ['wstrzymana', 'warn'],
+  CANCELED: ['anulowana', 'muted'],
+  EXPIRED: ['wygasła', 'muted'],
 };
 const ZDROWIE: Record<UslugaKlienta['zdrowie'], string> = {
   healthy: 'zdrowa',
