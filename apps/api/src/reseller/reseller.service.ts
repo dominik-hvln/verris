@@ -81,7 +81,7 @@ export class ResellerService {
     return this.repo.findUnique({ where: { userId } });
   }
 
-  private async clientsWithServices(resellerId: string, markupPct: number): Promise<ResellerClientView[]> {
+  private async clientsWithServices(resellerId: string): Promise<ResellerClientView[]> {
     const clients = await (this.prisma as unknown as {
       user: {
         findMany(a: Record<string, unknown>): Promise<Array<{
@@ -107,7 +107,7 @@ export class ResellerService {
       name: [c.firstName, c.lastName].filter(Boolean).join(' ') || null,
       createdAt: c.createdAt.toISOString(),
       services: c.subscriptions.map((s) => {
-        const { hurt, detal } = cenyDlaResellera(s.priceAmount, s.resellerMarkupPct, markupPct);
+        const { hurt, detal } = cenyDlaResellera(s.priceAmount, s.resellerMarkupPct);
         return { id: s.id, plan: s.plan?.name ?? null, status: s.status, wholesale: hurt, retail: detal, currency: s.currency };
       }),
     }));
@@ -116,7 +116,7 @@ export class ResellerService {
   async getOverview(userId: string): Promise<ResellerOverview> {
     const p = await this.getProfile(userId);
     if (!p) throw new ForbiddenException('Konto nie jest resellerem.');
-    const clients = await this.clientsWithServices(userId, p.markupPct);
+    const clients = await this.clientsWithServices(userId);
     let wholesale = 0;
     let retail = 0;
     for (const c of clients) for (const s of c.services) { wholesale += s.wholesale; retail += s.retail; }
@@ -282,7 +282,7 @@ export class ResellerService {
   async listClients(userId: string): Promise<ResellerClientView[]> {
     const p = await this.getProfile(userId);
     if (!p) throw new ForbiddenException('Konto nie jest resellerem.');
-    return this.clientsWithServices(userId, p.markupPct);
+    return this.clientsWithServices(userId);
   }
 
   // ---- Admin ----

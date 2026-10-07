@@ -56,8 +56,9 @@ describe('O-07 — narzut resellera: helper', () => {
   });
 
   it('widok resellera: usługa ze snapshotem ma narzut już w cenie (bez podwójnego doliczania)', () => {
-    expect(cenyDlaResellera(D(54), 20, 30)).toEqual({ hurt: 45, detal: 54 });
-    expect(cenyDlaResellera(D(45), null, 20)).toEqual({ hurt: 45, detal: 54 });
+    expect(cenyDlaResellera(D(54), 20)).toEqual({ hurt: 45, detal: 54 });
+    // Bez snapshotu klient płaci swoją cenę (sprzed narzutu) — detal = hurt, nie „po bieżącym narzucie” (07.10).
+    expect(cenyDlaResellera(D(45), null)).toEqual({ hurt: 45, detal: 45 });
   });
 });
 

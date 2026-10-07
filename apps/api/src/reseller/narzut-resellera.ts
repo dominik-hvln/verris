@@ -54,11 +54,13 @@ export function czescNarzutu(kwota: Prisma.Decimal | number | string, pct: numbe
 
 /**
  * Widok resellera: cena hurtowa i detaliczna usługi. Usługa ze snapshotem narzutu ma go już w cenie
- * (klient płaci detal), starsza usługa — cena z cennika, detal liczony bieżącym narzutem profilu.
+ * (klient płaci detal). Usługa bez snapshotu (sprzed narzutu, cena operatora) odnawia się swoją ceną —
+ * klient płaci tyle co hurt, więc detal = hurt (decyzja 07.10: pokazujemy faktyczną cenę, nie potencjalną).
  */
-export function cenyDlaResellera(priceAmount: Prisma.Decimal | number | string, snapshotPct: number | null, markupPct: number) {
+export function cenyDlaResellera(priceAmount: Prisma.Decimal | number | string, snapshotPct: number | null) {
   if (snapshotPct && snapshotPct > 0) {
     return { hurt: bezNarzutu(priceAmount, snapshotPct).toNumber(), detal: new Prisma.Decimal(priceAmount).toNumber() };
   }
-  return { hurt: new Prisma.Decimal(priceAmount).toNumber(), detal: zNarzutem(priceAmount, markupPct).toNumber() };
+  const cena = new Prisma.Decimal(priceAmount).toNumber();
+  return { hurt: cena, detal: cena };
 }

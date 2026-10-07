@@ -68,7 +68,8 @@ describe('O-05 — reseller na kontach swoich klientów', () => {
     expect(json).not.toContain('123.45');
     expect(json).not.toContain('5260250274');
     expect(json).not.toContain('Firma Klienta');
-    expect(k.uslugi[0].cenaDetaliczna).toBe(54);
+    // Usługa bez snapshotu narzutu odnawia się swoją ceną — detal = faktyczna cena (decyzja 07.10), nie 45 + 20%.
+    expect(k.uslugi[0].cenaDetaliczna).toBe(45);
   });
 
   it('cudzy klient wygląda jak nieistniejący (404), także przy działaniach', async () => {

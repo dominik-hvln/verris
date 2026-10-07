@@ -111,7 +111,7 @@ export class ResellerKlienciService {
   }
 
   async szczegoly(resellerId: string, clientId: string): Promise<KlientResellera> {
-    const p = await this.profil(resellerId, false);
+    await this.profil(resellerId, false); // autoryzacja: tylko aktywny reseller
     const c = await this.klient(resellerId, clientId);
     const subs = await this.prisma.subscription.findMany({
       where: { userId: c.id, status: { notIn: [SubscriptionStatus.CANCELED, SubscriptionStatus.EXPIRED] } },
@@ -141,7 +141,7 @@ export class ResellerKlienciService {
         status: s.status,
         zdrowie: zdrowie(s.healthSnapshots[0]?.score),
         odnowienie: s.currentPeriodEnd?.toISOString() ?? null,
-        cenaDetaliczna: cenyDlaResellera(s.priceAmount, s.resellerMarkupPct, p.markupPct).detal,
+        cenaDetaliczna: cenyDlaResellera(s.priceAmount, s.resellerMarkupPct).detal,
         waluta: s.currency,
         wstrzymanaPrzezCiebie: s.status === SubscriptionStatus.SUSPENDED && ostatniPowodWstrzymania(s.events) === 'RESELLER',
       })),
