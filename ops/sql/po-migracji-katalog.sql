@@ -36,8 +36,8 @@ BEGIN
     RAISE EXCEPTION 'Z-13: cena miesięczna to %, oczekiwano 45.00 (BRUTTO)', p."priceMonthly";
   END IF;
 
-  IF p."priceYearly" <> 399.00 THEN
-    RAISE EXCEPTION 'Z-13: cena roczna to %, oczekiwano 399.00 (BRUTTO)', p."priceYearly";
+  IF p."priceYearly" <> 449.00 THEN
+    RAISE EXCEPTION 'Z-13: cena roczna to %, oczekiwano 449.00 (BRUTTO)', p."priceYearly";
   END IF;
 
   IF p."cpuLimit" <> 200 OR p."ramLimitMb" <> 8192 OR p."diskLimitMb" <> 51200 THEN
@@ -63,7 +63,7 @@ BEGIN
       p."autoscalingMaxOverscaleCpu", p."autoscalingMaxOverscaleRam", p."autoscalingMaxOverscaleDisk";
   END IF;
 
-  RAISE NOTICE 'Z-13 OK — verris-hosting: 45.00/399.00 brutto, 200/8192/51200, skalowanie 12x/8x/20x';
+  RAISE NOTICE 'Z-13 OK — verris-hosting: 45.00/449.00 brutto, 200/8192/51200, skalowanie 12x/8x/20x';
 END $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────

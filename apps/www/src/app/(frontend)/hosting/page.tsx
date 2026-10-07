@@ -9,7 +9,7 @@ import { serviceSchema, HOSTING_OFFERS } from '@/lib/schema';
 export const metadata: Metadata = {
   title: 'Hosting z autoskalowaniem — 45 zł/mies | Verris',
   description:
-    'Hosting współdzielony z autoskalowaniem. Baza 50 GB NVMe, do 8 GB RAM, do 2 vCPU — skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł, bez limitu stron i skrzynek. 45 zł/mies lub 399 zł/rok brutto.',
+    'Hosting współdzielony z autoskalowaniem. Baza 50 GB NVMe, do 8 GB RAM, do 2 vCPU — skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł, bez limitu stron i skrzynek. 45 zł/mies lub 449 zł/rok brutto.',
   alternates: { canonical: '/hosting' },
 };
 
@@ -75,7 +75,7 @@ export default function HostingPage() {
               godzinowo tylko wtedy, gdy naprawdę jej potrzebujesz.
             </p>
             <ul>
-              <li>Baza pakietu: 50 GB NVMe oraz do 8 GB RAM i do 2 vCPU (limity CloudLinux/LVE).</li>
+              <li>Baza pakietu: 50 GB NVMe oraz do 8 GB RAM i do 2 vCPU (limity izolowanego konta).</li>
               <li>Autoskalowanie do 1000 GB dysku, 64 GB RAM i 24 vCPU — do 12× mocy CPU względem bazy.</li>
               <li>Po piku autoskalowanie zwalnia nadwyżkę, a naliczanie się kończy.</li>
               <li>Bez limitu stron, skrzynek i transferu — w ramach zasobów konta i zasad fair use.</li>

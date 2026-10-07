@@ -100,7 +100,7 @@ export const PLAN_PRODUKCYJNY: DefinicjaPlanu = {
 
   // ── Cena — BRUTTO, patrz nagłówek pliku ────────────────────────────────────
   priceMonthly: '45.00',
-  priceYearly: '399.00',
+  priceYearly: '449.00', // 07.10.2026: 399 → 449 (migracja 20261007120000_cena_roczna_449)
   currency: 'PLN',
 
   isPublic: true,

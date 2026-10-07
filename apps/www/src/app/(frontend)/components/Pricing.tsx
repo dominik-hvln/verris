@@ -6,7 +6,7 @@ import { VPS_W_SPRZEDAZY } from '@/lib/oferta';
 const RESOURCES = [
   { base: '50 GB', max: '→ 1000 GB', label: 'dysk NVMe' },
   { base: 'do 8 GB', max: '→ 64 GB', label: 'RAM' },
-  { base: 'do 2 vCPU', max: '→ 24 vCPU', label: 'CloudLinux' },
+  { base: 'do 2 vCPU', max: '→ 24 vCPU', label: 'procesor' },
 ];
 
 const GROUPS: { title: string; note?: string; items: (string | [string, string])[] }[] = [
@@ -82,7 +82,7 @@ export function Pricing() {
               aria-selected={!monthly}
               onClick={() => setMonthly(false)}
             >
-              Rocznie <span className="save">−141 zł</span>
+              Rocznie <span className="save">−91 zł</span>
             </button>
           </div>
 
@@ -118,16 +118,16 @@ export function Pricing() {
 
             <div className="pcard-side">
               <div className="price-big">
-                {monthly ? '45 zł' : '399 zł'}
+                {monthly ? '45 zł' : '449 zł'}
                 <span className="u">{monthly ? ' / mies' : ' / rok'}</span>
               </div>
               <p className="price-sub">
                 {monthly
                   ? 'brutto (z VAT), rozliczenie miesięczne'
-                  : 'brutto (z VAT), równowartość ok. 33 zł/mies'}
+                  : 'brutto (z VAT), równowartość ok. 37 zł/mies'}
               </p>
               <p className="price-alt">
-                {monthly ? 'albo 399 zł/rok — taniej o 141 zł' : 'albo 45 zł/mies bez zobowiązania rocznego'}
+                {monthly ? 'albo 449 zł/rok — taniej o 91 zł' : 'albo 45 zł/mies bez zobowiązania rocznego'}
               </p>
               <a
                 className="btn btn-primary"

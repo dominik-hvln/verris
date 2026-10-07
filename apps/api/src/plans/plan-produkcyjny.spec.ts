@@ -82,15 +82,15 @@ describe('Z-13 — pakiet ze strony istnieje w bazie i zgadza się z ofertą', (
   });
 
   describe('cena zgadza się z cennikiem i jest w BRUTTO', () => {
-    it('45 zł miesięcznie i 399 zł rocznie', () => {
+    it('45 zł miesięcznie i 449 zł rocznie (od 07.10.2026)', () => {
       expect(PLAN_PRODUKCYJNY.priceMonthly).toBe('45.00');
-      expect(PLAN_PRODUKCYJNY.priceYearly).toBe('399.00');
+      expect(PLAN_PRODUKCYJNY.priceYearly).toBe('449.00');
     });
 
-    it('cena roczna daje oszczędność reklamowaną na stronie (−141 zł)', () => {
+    it('cena roczna daje oszczędność reklamowaną na stronie (−91 zł)', () => {
       const roczniePoMiesiecznej = Number(PLAN_PRODUKCYJNY.priceMonthly) * 12;
       const oszczednosc = roczniePoMiesiecznej - Number(PLAN_PRODUKCYJNY.priceYearly);
-      expect(oszczednosc).toBe(141);
+      expect(oszczednosc).toBe(91);
     });
 
     it('te same liczby stoją w treści strony', () => {
@@ -99,8 +99,8 @@ describe('Z-13 — pakiet ze strony istnieje w bazie i zgadza się z ofertą', (
         'utf-8',
       );
       expect(pricing).toContain("'45 zł'");
-      expect(pricing).toContain("'399 zł'");
-      expect(pricing).toContain('−141 zł');
+      expect(pricing).toContain("'449 zł'");
+      expect(pricing).toContain('−91 zł');
     });
   });
 
@@ -114,7 +114,12 @@ describe('Z-13 — pakiet ze strony istnieje w bazie i zgadza się z ofertą', (
       expect(w).toContain(`'${PLAN_PRODUKCYJNY.id}'`);
       expect(w).toContain(`'${PLAN_PRODUKCYJNY.slug}'`);
       expect(w).toContain(PLAN_PRODUKCYJNY.priceMonthly);
-      expect(w).toContain(PLAN_PRODUKCYJNY.priceYearly);
+    });
+
+    it('aktualną cenę roczną ustawia migracja podwyżki z 07.10.2026 (pierwotna wstawiła 399.00)', () => {
+      const podwyzka = readFileSync(resolve(KORZEN, 'libs/database/prisma/migrations/20261007120000_cena_roczna_449/migration.sql'), 'utf-8');
+      expect(podwyzka).toContain(`"priceYearly" = ${PLAN_PRODUKCYJNY.priceYearly}`);
+      expect(podwyzka).toContain(`'${PLAN_PRODUKCYJNY.id}'`);
     });
 
     it('limity bazowe w SQL zgadzają się z definicją', () => {

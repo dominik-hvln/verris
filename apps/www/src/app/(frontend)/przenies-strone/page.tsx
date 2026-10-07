@@ -10,12 +10,12 @@ import { PANEL } from '@/lib/site';
 export const metadata: Metadata = {
   title: 'Zmiana hostingu bez stresu — darmowa migracja strony | Verris',
   description:
-    'Przeniesiemy Twoją stronę i pocztę za darmo — albo zrobisz to sam migratorem w panelu. Odnowienie po cenie z cennika: 45 zł/mies lub 399 zł/rok brutto. Autoskalowanie zamiast pakietu na zapas, SLA 99,5% z rekompensatami.',
+    'Przeniesiemy Twoją stronę i pocztę za darmo — albo zrobisz to sam migratorem w panelu. Odnowienie po cenie z cennika: 45 zł/mies lub 449 zł/rok brutto. Autoskalowanie zamiast pakietu na zapas, SLA 99,5% z rekompensatami.',
   alternates: { canonical: '/przenies-strone' },
   openGraph: {
     title: 'Zmiana hostingu bez stresu — przeniesiemy Twoją stronę za darmo',
     description:
-      'Darmowa migracja strony i poczty. Odnowienie po cenie z cennika: 45 zł/mies lub 399 zł/rok brutto, bez szoku po pierwszym roku. Autoskalowanie zamiast pakietu na zapas.',
+      'Darmowa migracja strony i poczty. Odnowienie po cenie z cennika: 45 zł/mies lub 449 zł/rok brutto, bez szoku po pierwszym roku. Autoskalowanie zamiast pakietu na zapas.',
     url: 'https://verris.pl/przenies-strone',
     locale: 'pl_PL',
     type: 'website',
@@ -34,18 +34,18 @@ const FAQ: [string, string][] = [
   ['Jak działa autoskalowanie i ile kosztuje?', 'W cenie pakietu masz bazowe zasoby. Gdy strona potrzebuje więcej — np. w piku kampanii — zasoby rosną automatycznie, a dodatkowa moc rozliczana jest godzinowo, tylko za czas faktycznego użycia. Gdy ruch spada, autoskalowanie wraca do bazy i naliczanie się kończy. Orientacyjny koszt policzysz w kalkulatorze powyżej.'],
   ['Co z pocztą e-mail przy zmianie hostingu?', 'Hosting Verris obejmuje pocztę (webmail Roundcube). W ramach migracji przenosimy również skrzynki — szczegóły zakresu ustalimy przy przekazaniu dostępów. Do czasu przełączenia DNS poczta działa u obecnego dostawcy, więc żadna wiadomość nie ginie w trakcie przeprowadzki.'],
   ['Czy migracja jest naprawdę bezpłatna?', 'Tak. Zarówno migrator w panelu, jak i pomoc naszego zespołu są bezpłatne w ramach zamówienia hostingu. Nie ma limitu „do X plików" ani dopłat za bazy danych.'],
-  ['Czy cena wzrośnie przy odnowieniu?', 'Nie stosujemy modelu „tani pierwszy rok, kilkukrotnie droższe odnowienie". Rabat na start, jeśli trwa, widzisz przed zapłatą, a odnowienie następuje według cennika obowiązującego w dniu odnowienia (dziś 45 zł/mies lub 399 zł/rok), a przed każdym odnowieniem wyślemy przypomnienie e-mail (7, 3 i 1 dzień wcześniej). Z odnowienia zrezygnujesz w panelu w dwóch kliknięciach, bez opłat.'],
+  ['Czy cena wzrośnie przy odnowieniu?', 'Nie stosujemy modelu „tani pierwszy rok, kilkukrotnie droższe odnowienie". Rabat na start, jeśli trwa, widzisz przed zapłatą, a odnowienie następuje według cennika obowiązującego w dniu odnowienia (dziś 45 zł/mies lub 449 zł/rok), a przed każdym odnowieniem wyślemy przypomnienie e-mail (7, 3 i 1 dzień wcześniej). Z odnowienia zrezygnujesz w panelu w dwóch kliknięciach, bez opłat.'],
   ['Czy mogę zrezygnować po zakupie?', 'Jako konsument masz prawo odstąpienia od umowy. Zasady odstąpienia i zwrotu opisuje regulamin, który zobaczysz przed zakupem — zwrot realizuje nasze wsparcie.'],
 ];
 
 const STEPS: [string, string, string][] = [
-  ['01', 'Zamów hosting Verris', 'Załóż konto i wybierz rozliczenie — 45 zł/mies lub 399 zł/rok brutto. Płatność kartą, BLIK-iem albo przelewem online. Twoja obecna strona dalej działa.'],
+  ['01', 'Zamów hosting Verris', 'Załóż konto i wybierz rozliczenie — 45 zł/mies lub 449 zł/rok brutto. Płatność kartą, BLIK-iem albo przelewem online. Twoja obecna strona dalej działa.'],
   ['02', 'Wybierz sposób migracji', 'Przekaż dostępy do obecnego hostingu, a my bezpłatnie przeniesiemy pliki, bazy danych i pocztę. Wolisz mieć wszystko pod kontrolą? Uruchom darmowy migrator w panelu.'],
   ['03', 'Przełącz DNS i gotowe', 'Sprawdzasz stronę na nowym serwerze, zmieniasz rekordy DNS — i to wszystko. Stara strona działa do momentu przełączenia, więc odwiedzający nie zobaczą żadnej przerwy.'],
 ];
 
 const COMPARE: [string, string, string][] = [
-  ['Cena', 'Niska w pierwszym okresie, znacznie wyższa przy odnowieniu', 'Odnowienie po cenie z cennika — 45 zł/mies lub 399 zł/rok brutto'],
+  ['Cena', 'Niska w pierwszym okresie, znacznie wyższa przy odnowieniu', 'Odnowienie po cenie z cennika — 45 zł/mies lub 449 zł/rok brutto'],
   ['Zasoby', 'Sztywne pakiety — płacisz za moc „na zapas" 24 h/dobę', 'Autoskalowanie godzinowe — dodatkowa moc tylko wtedy, gdy jest używana'],
   ['Odnowienia domen', 'Automatyczne obciążenie, czasem bez wyraźnej zgody', 'Nie odnowi się bez Twojej decyzji — przypomnienia 30, 14 i 7 dni przed wygaśnięciem'],
   ['Awarie', 'Rekompensata uznaniowa, jeśli w ogóle', 'SLA 99,5% i progi rekompensat zapisane w regulaminie — przyznajemy je na Twoje zgłoszenie'],
@@ -64,7 +64,7 @@ const jsonLd = {
       brand: { '@type': 'Organization', name: 'Verris' },
       offers: [
         { '@type': 'Offer', price: '45.00', priceCurrency: 'PLN', availability: 'https://schema.org/InStock', url: 'https://verris.pl/przenies-strone', description: 'Rozliczenie miesięczne, cena brutto' },
-        { '@type': 'Offer', price: '399.00', priceCurrency: 'PLN', availability: 'https://schema.org/InStock', url: 'https://verris.pl/przenies-strone', description: 'Rozliczenie roczne, cena brutto' },
+        { '@type': 'Offer', price: '449.00', priceCurrency: 'PLN', availability: 'https://schema.org/InStock', url: 'https://verris.pl/przenies-strone', description: 'Rozliczenie roczne, cena brutto' },
       ],
     },
     {
@@ -110,7 +110,7 @@ export default function Page() {
               </a>
             </div>
             <p className="hero-price">
-              Hosting z autoskalowaniem: <strong>45 zł/mies</strong> lub <strong>399 zł/rok</strong> brutto
+              Hosting z autoskalowaniem: <strong>45 zł/mies</strong> lub <strong>449 zł/rok</strong> brutto
             </p>
           </div>
 
@@ -169,7 +169,7 @@ export default function Page() {
               <span className="tag">Pułapka nr 1</span>
               <h3>Promocja-przynęta</h3>
               <p className="pain-desc">Pierwszy rok za grosze, a przy odnowieniu pełna stawka — często kilkukrotnie wyższa. Rachunek przychodzi po roku, kiedy przenosiny wydają się trudniejsze niż dopłata.</p>
-              <p className="fix"><strong>W Verris:</strong> odnowienie idzie po cenie z cennika — 45 zł/mies lub 399 zł/rok brutto. Rabat na start, jeśli trwa, widzisz przed zapłatą; po nim nie ma skoku do kilkuset złotych.</p>
+              <p className="fix"><strong>W Verris:</strong> odnowienie idzie po cenie z cennika — 45 zł/mies lub 449 zł/rok brutto. Rabat na start, jeśli trwa, widzisz przed zapłatą; po nim nie ma skoku do kilkuset złotych.</p>
             </div>
             <div className="pain-card rv">
               <span className="tag">Pułapka nr 2</span>

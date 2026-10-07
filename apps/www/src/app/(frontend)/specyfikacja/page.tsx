@@ -38,7 +38,7 @@ const SEKCJE: { tytul: string; wiersze: Wiersz[] }[] = [
     tytul: 'Oprogramowanie serwera',
     wiersze: [
       ['Panel', 'panel Verris po polsku'],
-      ['System', 'CloudLinux — izolacja kont (LVE, CageFS)', true],
+      ['Izolacja kont', 'własne limity CPU, RAM i procesów oraz osobny system plików dla każdego konta', true],
       ['Serwer WWW', 'LiteSpeed Enterprise', true],
       ['PHP', '7.4, 8.0, 8.1, 8.2, 8.3 — wersja osobno dla każdej domeny'],
       ['PHP w podkatalogu', 'inna wersja dla wybranego katalogu strony', true],
@@ -46,7 +46,7 @@ const SEKCJE: { tytul: string; wiersze: Wiersz[] }[] = [
       ['MariaDB', 'bazy MySQL/MariaDB, phpMyAdmin z automatycznym logowaniem, zdalny dostęp'],
       ['PostgreSQL', 'PostgreSQL 16, do 5 baz na konto', true],
       ['Redis i Memcached', 'osobna instancja dla konta, dostęp tylko przez gniazdo UNIX', true],
-      ['Node.js i Python', 'aplikacje przez CloudLinux Selector', true],
+      ['Node.js i Python', 'aplikacje uruchamiane z panelu', true],
       ['WordPress', 'instalacja jednym kliknięciem, kopia testowa (staging)'],
       ['Cron', 'zadania harmonogramu w panelu'],
       ['FTP', 'konta FTP'],

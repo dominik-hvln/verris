@@ -39,7 +39,7 @@ export const features: Feature[] = [
       {
         h: 'Zakres skalowania',
         ul: [
-          'Baza pakietu: 50 GB NVMe oraz do 8 GB RAM i do 2 vCPU (limity CloudLinux/LVE).',
+          'Baza pakietu: 50 GB NVMe oraz do 8 GB RAM i do 2 vCPU (limity izolowanego konta).',
           'Maksymalnie: 1000 GB dysku, 64 GB RAM, 24 vCPU — do 12× mocy CPU względem bazy.',
           'Krok skalowania dobierany automatycznie; po piku zasoby wracają do bazy.',
           'Rozliczenie godzinowe brutto — płacisz tylko za faktyczny czas nadwyżki.',
@@ -48,7 +48,7 @@ export const features: Feature[] = [
       {
         h: 'Ile to kosztuje',
         p: [
-          'Bazowe zasoby są objęte abonamentem (45 zł/mies lub 399 zł/rok brutto). Nadwyżka nalicza się godzinowo według stawek z cennika. Orientacyjny koszt policzysz w kalkulatorze autoskalowania na stronie migracji.',
+          'Bazowe zasoby są objęte abonamentem (45 zł/mies lub 449 zł/rok brutto). Nadwyżka nalicza się godzinowo według stawek z cennika. Orientacyjny koszt policzysz w kalkulatorze autoskalowania na stronie migracji.',
         ],
       },
     ],

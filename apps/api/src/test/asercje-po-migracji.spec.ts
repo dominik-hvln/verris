@@ -134,7 +134,7 @@ describe('katalog — blokuje, ale tylko w CI', () => {
     // Cennik zmienia się w CI razem z PLAN_PRODUKCYJNY i treścią strony,
     // w jednym commicie — i właśnie o zgodę tych trzech miejsc chodzi.
     expect(tresc).toContain('45.00');
-    expect(tresc).toContain('399.00');
+    expect(tresc).toContain('449.00');
     expect(tresc).toContain('8192');
   });
 });

@@ -36,7 +36,7 @@ Uwagi, które oszczędzą Ci pół dnia:
   potwierdzenia nie zdubluje konwersji.
 - `user_data` pojawia się **przed** zdarzeniem konwersji i znika (`user_data: null`) przy wycofaniu
   zgody marketingowej.
-- `value` przy `generate_lead` to **wartość umowna** (399 PLN), nie przychód. Służy wyłącznie
+- `value` przy `generate_lead` to **wartość umowna** (449 PLN), nie przychód. Służy wyłącznie
   kalibracji Smart Biddingu.
 
 ---

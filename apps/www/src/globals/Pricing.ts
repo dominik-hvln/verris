@@ -8,7 +8,7 @@ export const Pricing: GlobalConfig = {
   fields: [
     { name: 'planName', type: 'text', defaultValue: 'Hosting Verris z autoskalowaniem' },
     { name: 'priceMonthly', type: 'number', defaultValue: 45, label: 'Cena miesięczna (brutto PLN)' },
-    { name: 'priceYearly', type: 'number', defaultValue: 399, label: 'Cena roczna (brutto PLN)' },
+    { name: 'priceYearly', type: 'number', defaultValue: 449, label: 'Cena roczna (brutto PLN)' },
     {
       name: 'resources',
       type: 'array',

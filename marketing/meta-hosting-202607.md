@@ -13,7 +13,7 @@ Pixel: `2263705751037556` (wpięty przez GTM, consent-gated). Status: **do uruch
 
 | Poziom | Cel | KPI | Wartość docelowa (pierwsze 60 dni) |
 |---|---|---|---|
-| Główny | Rejestracje i zamówienia hostingu | `purchase`, `sign_up` | CPA ≤ 120 zł (LTV roczne 399 zł) |
+| Główny | Rejestracje i zamówienia hostingu | `purchase`, `sign_up` | CPA ≤ 120 zł (LTV roczne 449 zł) |
 | Pośredni | Intencja zakupu | `begin_checkout` | koszt/zdarzenie ≤ 25 zł |
 | Górny lejek | Ruch jakościowy na LP | CTR, koszt/sesję | CTR ≥ 1,0%, ≤ 0,60 zł/klik |
 

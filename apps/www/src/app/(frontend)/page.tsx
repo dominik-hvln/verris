@@ -35,7 +35,7 @@ const SERVICES_BAZA = [
     icon: Server,
     title: 'Hosting z autoskalowaniem',
     desc: 'Strony, sklepy i poczta w jednym panelu. Zasoby rosną automatycznie w piku i wracają do bazy, gdy ruch spada — nie kupujesz pakietu „na zapas".',
-    tag: '45 zł/mies · 399 zł/rok brutto',
+    tag: '45 zł/mies · 449 zł/rok brutto',
     tagClass: 'price',
     cta: 'Zobacz cennik →',
     href: '#cennik',
@@ -88,14 +88,14 @@ const SERVICES: typeof SERVICES_BAZA = VPS_W_SPRZEDAZY
 const USP = [
   { icon: ShieldCheck, title: 'SLA 99,5% z rekompensatami', desc: 'Nie „obiecujemy" — gwarantujemy w umowie. Gdy dostępność spadnie poniżej 99,5%, na Twoje zgłoszenie przyznajemy kredyty wg regulaminu.' },
   { icon: Gauge, title: 'Płacisz za realne użycie', desc: 'Autoskalowanie: moc rośnie w piku i wraca do bazy po nim. Nie płacisz za pakiet „na zapas".' },
-  { icon: FileText, title: 'Jedna cena, bez pułapek', desc: 'Odnowienie zawsze po cenie z cennika — 45 zł/mies lub 399 zł/rok. Bez szoku po pierwszym roku.' },
+  { icon: FileText, title: 'Jedna cena, bez pułapek', desc: 'Odnowienie zawsze po cenie z cennika — 45 zł/mies lub 449 zł/rok. Bez szoku po pierwszym roku.' },
   { icon: Undo2, title: 'Przywracanie z siatką bezpieczeństwa', desc: 'Domyślnie przed odtworzeniem kopii zapisujemy stan obecny, więc nieudane przywrócenie da się cofnąć.' },
   { icon: RefreshCw, title: 'Domeny bez pułapek', desc: 'Brak cichych auto-odnowień z karty. Przypominamy przed wygaśnięciem, a decyzję zostawiamy Tobie.' },
   { icon: Database, title: 'Kopie z samodzielnym odtwarzaniem', desc: 'Backup i przywracanie z panelu Verris — bez czekania na support i bez dopłat.' },
 ];
 
 const COMPARE: [string, string, string][] = [
-  ['Cena po pierwszym okresie', 'Tania przynęta, odnowienie kilka razy drożej', 'Odnowienie po cenie z cennika: 45 zł/mies lub 399 zł/rok'],
+  ['Cena po pierwszym okresie', 'Tania przynęta, odnowienie kilka razy drożej', 'Odnowienie po cenie z cennika: 45 zł/mies lub 449 zł/rok'],
   ['Model zasobów', 'Sztywny pakiet — płacisz za moc „na zapas"', 'Autoskalowanie — płacisz za realne użycie'],
   ['Migracja strony i poczty', 'Często płatna lub „zrób to sam"', 'Zespół albo migrator w panelu — 0 zł'],
   ['Certyfikat SSL', 'Bywa dopłatą przy odnowieniu', "Let's Encrypt w cenie"],
@@ -107,11 +107,11 @@ const COMPARE: [string, string, string][] = [
 const FAQ: [string, string][] = [
   ['Czym hosting Verris różni się od zwykłego pakietu?', 'Zamiast sztywnego pakietu, który przez większość roku się nudzi, dostajesz bazowe zasoby (50 GB NVMe, do 8 GB RAM, do 2 vCPU) i autoskalowanie. W piku ruchu moc rośnie automatycznie — do 24 vCPU, 64 GB RAM i 1000 GB — i rozliczana jest godzinowo. Gdy ruch spada, autoskalowanie wraca do bazy i naliczanie się kończy. Nie kupujesz mocy na zapas.'],
   ['Czy mogę przenieść stronę z innego hostingu?', 'Tak. Przeprowadzkę strony i poczty wykonuje zespół Verris albo migrator w panelu — oba bezpłatne w ramach zamówienia hostingu. Migracja odbywa się obok działającej strony, bez przestoju, a przełączenie następuje przez zmianę DNS. Bez limitu liczby plików i bez dopłat za bazy danych.'],
-  ['Ile kosztuje autoskalowanie?', 'Bazowe zasoby są objęte abonamentem (45 zł/mies lub 399 zł/rok brutto). Nadwyżkę ponad bazę rozliczamy godzinowo — płacisz tylko za czas faktycznego użycia. Orientacyjny koszt policzysz w kalkulatorze autoskalowania.'],
+  ['Ile kosztuje autoskalowanie?', 'Bazowe zasoby są objęte abonamentem (45 zł/mies lub 449 zł/rok brutto). Nadwyżkę ponad bazę rozliczamy godzinowo — płacisz tylko za czas faktycznego użycia. Orientacyjny koszt policzysz w kalkulatorze autoskalowania.'],
   ['Co znaczy „bez limitu" stron, skrzynek i transferu?', 'Nie nakładamy sztywnego licznika na liczbę stron, skrzynek e-mail ani na transfer. Realnym ogranicznikiem są zasoby konta (CPU, RAM, dysk) oraz zasady uczciwego korzystania — dzięki autoskalowaniu te zasoby możesz zwiększać na żądanie.'],
   ['Jak płacę i czy dostanę fakturę?', 'Kartą, BLIK-iem, przelewem online (Paynow, Przelewy24) lub Kredytami Verris. Fakturę VAT wystawiamy w programie księgowym zintegrowanym z KSeF — jej numer zobaczysz w panelu.'],
   ['Gdzie stoją serwery Verris?', 'W centrach danych w Unii Europejskiej (Niemcy/Finlandia). Dane pozostają w EOG, co upraszcza zgodność z RODO.'],
-  ['Czy cena wzrośnie przy odnowieniu?', 'Nie stosujemy modelu taniego pierwszego roku i kilkukrotnie droższego odnowienia. Na start możesz dostać rabat — jego wysokość widzisz przed zapłatą — a odnowienie idzie po cenie z cennika (dziś 45 zł/mies lub 399 zł/rok). Przed każdym odnowieniem wyślemy przypomnienie e-mail, a z odnowienia zrezygnujesz w panelu w każdej chwili, bez opłat.'],
+  ['Czy cena wzrośnie przy odnowieniu?', 'Nie stosujemy modelu taniego pierwszego roku i kilkukrotnie droższego odnowienia. Na start możesz dostać rabat — jego wysokość widzisz przed zapłatą — a odnowienie idzie po cenie z cennika (dziś 45 zł/mies lub 449 zł/rok). Przed każdym odnowieniem wyślemy przypomnienie e-mail, a z odnowienia zrezygnujesz w panelu w każdej chwili, bez opłat.'],
 ];
 
 const homeJsonLd = {
@@ -170,7 +170,7 @@ export default function HomePage() {
               </button>
             </form>
             <p className="hero-fine">
-              Hosting z autoskalowaniem: <strong>45 zł/mies</strong> lub <strong>399 zł/rok</strong>{' '}
+              Hosting z autoskalowaniem: <strong>45 zł/mies</strong> lub <strong>449 zł/rok</strong>{' '}
               brutto · SSL i migracja gratis
             </p>
           </div>
