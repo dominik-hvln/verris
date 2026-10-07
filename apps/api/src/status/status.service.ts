@@ -4,34 +4,35 @@ import {
   IncidentStatus,
   ProbeIncident,
   ProbeKind,
-  ProbeSeverity,
   ServerStatus,
   ServiceProbe,
 } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { isManualIncident } from './probe-ingest.service.js';
+import {
+  USLUGI_PUBLICZNE,
+  dniWstecz,
+  dzienWarszawski,
+  godzinyWstecz,
+  lacz,
+  paskiDni,
+  procentDostepnosci,
+  scalPoKluczu,
+  seriaGodzin,
+  sredniCzas,
+  uslugaDlaRodzaju,
+  zbijDuplikaty,
+  type DzienDto,
+  type GodzinaDto,
+  type WierszKubelka,
+  type ZdarzenieDto,
+} from './status-historia.js';
 
 const CACHE_TTL_MS = 30 * 1000;
-const UPTIME_DEFAULT_DAYS = 30;
+/** Długość paska dni na stronie (telefon pokazuje ostatnie 30 z tych 90). */
+const HISTORIA_DNI = 90;
 
-/**
- * White label (przegląd tekstów 30.09): na zewnątrz — publiczna strona statusu i panel klienta — nie
- * wychodzi adres sondy (host węzła, port), sonda panelu serwera (DA_API) ani automatyczny tytuł
- * incydentu („HTTPS probe failing for <host:port>”). Zamiast adresu — nazwa usługi.
- */
-const NAZWA_USLUGI: Record<ProbeKind, string> = {
-  HTTP: 'Strony WWW',
-  HTTPS: 'Strony WWW (HTTPS)',
-  SMTP: 'Poczta — wysyłanie',
-  IMAP: 'Poczta — odbiór (IMAP)',
-  POP3: 'Poczta — odbiór (POP3)',
-  MYSQL: 'Bazy danych',
-  SSH: 'Dostęp SSH',
-  DA_API: 'Panel usług',
-  DNS: 'DNS',
-};
-
-/** Tytuł incydentu dla klienta: wpisany przez obsługę (incydent ręczny) albo opis ogólny. */
+/** Tytuł incydentu dla klienta: wpisany przez obsługę (incydent ręczny) albo opis ogólny — bez adresu sondy. */
 export function tytulIncydentuDlaKlienta(i: { title: string; severity: string; detectionMeta: unknown }): string {
   if (isManualIncident(i.detectionMeta)) return i.title;
   return i.severity === 'MAJOR'
@@ -39,51 +40,38 @@ export function tytulIncydentuDlaKlienta(i: { title: string; severity: string; d
     : 'Usługa może działać wolniej niż zwykle — pracujemy nad tym.';
 }
 
-export interface ProbeStatusDto {
-  id: string;
-  kind: ProbeKind;
-  /** Nazwa dla odwiedzających: etykieta sondy albo nazwa usługi (bez adresu węzła). */
-  nazwa: string;
-  severity: ProbeSeverity;
-  state: 'OK' | 'DEGRADED' | 'DOWN';
-  lastSampleAt: string | null;
-  declaredSlaPct: string;
-  computedUptimePct: string;
-  computedWindowDays: number;
-  avgLatencyMs: number | null;
-}
-
-export interface ServerStatusDto {
-  id: string;
+/** Usługa widoczna klientom (np. „Strony klientów”) — bez nazw węzłów, hostów i rodzajów sond. */
+export interface PublicServiceDto {
+  key: string;
   name: string;
-  region: string | null;
-  status: ServerStatus;
   state: 'OK' | 'DEGRADED' | 'DOWN';
-  probes: ProbeStatusDto[];
+  /** Dostępność z 90 dni w %, obcięta do 2 miejsc; null = brak jakichkolwiek próbek. */
+  uptime90Pct: number | null;
+  avgLatencyMs: number | null;
+  /** 90 dni, rosnąco (ostatni = dziś, czas polski). Dzień bez próbek ma state NO_DATA. */
+  days: DzienDto[];
+  /** 24 godziny, rosnąco; avgLatencyMs null = brak próbek w tej godzinie. */
+  latency24h: GodzinaDto[];
 }
 
-export interface PublicIncidentDto {
-  id: string;
-  serverId: string;
-  serverName: string;
-  probeKind: ProbeKind;
-  severity: 'MINOR' | 'MAJOR';
-  status: IncidentStatus;
-  title: string;
-  publicMessage: string | null;
-  startedAt: string;
-  resolvedAt: string | null;
-  durationMinutes: number | null;
+export type PublicIncidentDto = ZdarzenieDto;
+
+export interface PublicAvailabilityDto {
+  h24: number | null;
+  d7: number | null;
+  d30: number | null;
+  d90: number | null;
 }
 
 export interface PublicStatusDto {
   generatedAt: string;
   overall: 'OK' | 'DEGRADED' | 'DOWN';
-  servers: ServerStatusDto[];
+  availability: PublicAvailabilityDto;
+  services: PublicServiceDto[];
   activeIncidents: PublicIncidentDto[];
   recentIncidents: PublicIncidentDto[];
   /** N-11 — zaplanowane i trwające prace (najbliższe 14 dni), globalne lub na publicznych serwerach. */
-  maintenance: PublicMaintenanceDto[];
+  maintenance: Array<Omit<PublicMaintenanceDto, 'serverName'>>;
 }
 
 export interface PublicMaintenanceDto {
@@ -229,121 +217,132 @@ export class StatusService {
   // ---------------------------------------------------------------------------
 
   private async buildPublicStatus(): Promise<PublicStatusDto> {
-    const since = new Date(Date.now() - UPTIME_DEFAULT_DAYS * 24 * 60 * 60 * 1000);
+    const teraz = new Date();
 
-    const servers = await this.prisma.server.findMany({
-      where: {
-        status: { in: [ServerStatus.ACTIVE, ServerStatus.MAINTENANCE] },
-      },
-      include: {
-        probes: {
-          // Sonda panelu serwera to nasza wewnętrzna sprawa — nie trafia na publiczną stronę.
-          where: { isEnabled: true, isPublic: true, kind: { not: 'DA_API' } },
-          orderBy: [{ severity: 'desc' }, { kind: 'asc' }],
+    // Publiczne są tylko sondy mapujące się na usługę dla klienta (SSH / DA_API zostają wewnętrzne).
+    const probes = (
+      await this.prisma.serviceProbe.findMany({
+        where: {
+          isEnabled: true,
+          isPublic: true,
+          server: { status: { in: [ServerStatus.ACTIVE, ServerStatus.MAINTENANCE] } },
         },
-      },
-      orderBy: { name: 'asc' },
-    });
+      })
+    ).filter((p) => uslugaDlaRodzaju(p.kind));
+    const probeIds = probes.map((p) => p.id);
+    const kluczUslugi = new Map(probes.map((p) => [p.id, uslugaDlaRodzaju(p.kind)!.key]));
 
-    // Aggregate samples in one query for all visible probes — Prisma's
-    // groupBy keeps us O(probes) regardless of bucket count.
-    const probeIds = servers.flatMap((s) => s.probes.map((p) => p.id));
-    const aggregates = probeIds.length
-      ? await this.prisma.probeSample.groupBy({
-          by: ['probeId'],
-          where: { probeId: { in: probeIds }, bucketStart: { gte: since } },
-          _sum: { totalCount: true, successCount: true },
-          _avg: { avgLatencyMs: true },
-        })
-      : [];
-    const aggByProbe = new Map(
-      aggregates.map((row) => [
-        row.probeId,
-        {
-          total: row._sum.totalCount ?? 0,
-          success: row._sum.successCount ?? 0,
-          avgLatency: Math.round(row._avg.avgLatencyMs ?? 0),
-        },
-      ]),
-    );
+    // Surowe kubełki 1-min zbijamy w SQL do dni (czas polski) i godzin — 90 dni × sondy to setki tysięcy wierszy.
+    const [dzienne, godzinowe] = probeIds.length
+      ? await Promise.all([
+          this.prisma.$queryRaw<Array<WierszProbki>>`
+            SELECT "probeId",
+                   to_char(date_trunc('day', "bucketStart" AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Warsaw'), 'YYYY-MM-DD') AS key,
+                   SUM("totalCount")::int AS total,
+                   SUM("successCount")::int AS success,
+                   SUM("avgLatencyMs" * "totalCount")::float8 AS "latencyWeighted"
+            FROM "ProbeSample"
+            WHERE "probeId" = ANY(${probeIds}) AND "bucketStart" >= ${new Date(teraz.getTime() - (HISTORIA_DNI + 2) * 86_400_000)}
+            GROUP BY 1, 2`,
+          this.prisma.$queryRaw<Array<WierszProbki>>`
+            SELECT "probeId",
+                   to_char(date_trunc('hour', "bucketStart"), 'YYYY-MM-DD"T"HH24":00:00.000Z"') AS key,
+                   SUM("totalCount")::int AS total,
+                   SUM("successCount")::int AS success,
+                   SUM("avgLatencyMs" * "totalCount")::float8 AS "latencyWeighted"
+            FROM "ProbeSample"
+            WHERE "probeId" = ANY(${probeIds}) AND "bucketStart" >= ${new Date(teraz.getTime() - 25 * 3_600_000)}
+            GROUP BY 1, 2`,
+        ])
+      : [[], []];
+
+    const dni = dniWstecz(dzienWarszawski(teraz), HISTORIA_DNI);
+    const godziny = godzinyWstecz(teraz, 24);
+    const poUsludze = (wiersze: WierszProbki[], klucz?: string): WierszKubelka[] =>
+      wiersze.filter((w) => !klucz || kluczUslugi.get(w.probeId) === klucz);
 
     const openIncidents = probeIds.length
       ? await this.prisma.probeIncident.findMany({
           where: { probeId: { in: probeIds }, status: IncidentStatus.OPEN },
-          include: { probe: { include: { server: { select: { id: true, name: true } } } } },
+          include: { probe: true },
         })
       : [];
     const openByProbe = new Map(openIncidents.map((i) => [i.probeId, i]));
 
-    const recentIncidents = probeIds.length
+    const services: PublicServiceDto[] = USLUGI_PUBLICZNE.flatMap((u) => {
+      const sondy = probes.filter((p) => uslugaDlaRodzaju(p.kind)?.key === u.key);
+      if (!sondy.length) return []; // pokazujemy tylko to, co realnie monitorujemy
+      const dziennie = scalPoKluczu(poUsludze(dzienne, u.key));
+      const godzinowo = scalPoKluczu(poUsludze(godzinowe, u.key));
+      const pasek = paskiDni(dni, dziennie);
+      return [
+        {
+          key: u.key,
+          name: u.name,
+          state: aggregateState(sondy.map((p) => ({ state: stanSondy(p, openByProbe.get(p.id)) }))),
+          uptime90Pct: procentDostepnosci(dni.map((d) => dziennie.get(d))),
+          avgLatencyMs: sredniCzas(lacz(godziny.map((g) => godzinowo.get(g)))),
+          days: pasek,
+          latency24h: seriaGodzin(godziny, godzinowo),
+        },
+      ];
+    });
+
+    const wszystkieDni = scalPoKluczu(dzienne);
+    const wszystkieGodziny = scalPoKluczu(godzinowe);
+    const okno = (n: number) => procentDostepnosci(dni.slice(-n).map((d) => wszystkieDni.get(d)));
+
+    const recent = probeIds.length
       ? await this.prisma.probeIncident.findMany({
           where: { probeId: { in: probeIds } },
           orderBy: { startedAt: 'desc' },
           take: 10,
-          include: { probe: { include: { server: { select: { id: true, name: true } } } } },
+          include: { probe: true },
         })
       : [];
 
-    const serverDtos: ServerStatusDto[] = servers.map((server) => {
-      const probeDtos: ProbeStatusDto[] = server.probes.map((probe) =>
-        toProbeStatusDto(probe, aggByProbe.get(probe.id), openByProbe.get(probe.id)),
-      );
-      return {
-        id: server.id,
-        name: server.name ?? server.id,
-        region: server.region,
-        status: server.status,
-        state: aggregateState(probeDtos),
-        probes: probeDtos,
-      };
+    const serwery = await this.prisma.server.findMany({
+      where: { status: { in: [ServerStatus.ACTIVE, ServerStatus.MAINTENANCE] } },
+      select: { id: true },
     });
-
-    const overall = aggregateState(serverDtos.flatMap((s) => s.probes));
     const maintenance = await this.prisma.maintenanceWindow.findMany({
-      where: maintenanceVisibleWhere(new Date(), servers.map((s) => s.id)),
+      where: maintenanceVisibleWhere(teraz, serwery.map((x) => x.id)),
       orderBy: { scheduledStart: 'asc' },
       take: 20,
-      include: { server: { select: { name: true } } },
     });
 
     return {
-      generatedAt: new Date().toISOString(),
-      overall,
-      servers: serverDtos,
-      activeIncidents: openIncidents.map(toPublicIncidentDto),
-      recentIncidents: recentIncidents.map(toPublicIncidentDto),
-      maintenance: maintenance.map(toPublicMaintenanceDto),
+      generatedAt: teraz.toISOString(),
+      overall: aggregateState(services),
+      availability: {
+        h24: procentDostepnosci(godziny.map((g) => wszystkieGodziny.get(g))),
+        d7: okno(7),
+        d30: okno(30),
+        d90: okno(HISTORIA_DNI),
+      },
+      services,
+      activeIncidents: zbijDuplikaty(openIncidents.map(toPublicIncidentDto)),
+      recentIncidents: zbijDuplikaty(recent.map(toPublicIncidentDto)),
+      // Okno przypięte do węzła nie zdradza jego nazwy — klient widzi tytuł i termin.
+      maintenance: maintenance.map((w) => ({
+        id: w.id,
+        title: w.title,
+        publicMessage: w.publicMessage,
+        status: w.status,
+        scheduledStart: w.scheduledStart.toISOString(),
+        scheduledEnd: w.scheduledEnd.toISOString(),
+      })),
     };
   }
 }
 
-function toProbeStatusDto(
-  probe: ServiceProbe,
-  agg: { total: number; success: number; avgLatency: number } | undefined,
-  open: ProbeIncident | undefined,
-): ProbeStatusDto {
-  const total = agg?.total ?? 0;
-  const success = agg?.success ?? 0;
-  const computedUptimePct = total > 0 ? (success / total) * 100 : 100;
-  const state: 'OK' | 'DEGRADED' | 'DOWN' = open
-    ? open.severity === 'MAJOR'
-      ? 'DOWN'
-      : 'DEGRADED'
-    : probe.consecutiveFailures > 0
-      ? 'DEGRADED'
-      : 'OK';
-  return {
-    id: probe.id,
-    kind: probe.kind,
-    nazwa: probe.label ?? NAZWA_USLUGI[probe.kind],
-    severity: probe.severity,
-    state,
-    lastSampleAt: probe.lastSampleAt?.toISOString() ?? null,
-    declaredSlaPct: probe.declaredSlaPct.toFixed(4),
-    computedUptimePct: computedUptimePct.toFixed(4),
-    computedWindowDays: UPTIME_DEFAULT_DAYS,
-    avgLatencyMs: agg ? agg.avgLatency : null,
-  };
+interface WierszProbki extends WierszKubelka {
+  probeId: string;
+}
+
+function stanSondy(probe: ServiceProbe, open: ProbeIncident | undefined): 'OK' | 'DEGRADED' | 'DOWN' {
+  if (open) return open.severity === 'MAJOR' ? 'DOWN' : 'DEGRADED';
+  return probe.consecutiveFailures > 0 ? 'DEGRADED' : 'OK';
 }
 
 function aggregateState(probes: { state: string }[]): 'OK' | 'DEGRADED' | 'DOWN' {
@@ -352,17 +351,12 @@ function aggregateState(probes: { state: string }[]): 'OK' | 'DEGRADED' | 'DOWN'
   return 'OK';
 }
 
-function toPublicIncidentDto(
-  incident: ProbeIncident & {
-    probe: ServiceProbe & { server: { id: string; name: string | null } };
-  },
-): PublicIncidentDto {
+function toPublicIncidentDto(incident: ProbeIncident & { probe: ServiceProbe }): PublicIncidentDto {
+  const usluga = uslugaDlaRodzaju(incident.probe.kind)?.name ?? 'Usługi';
   const ended = incident.resolvedAt ?? null;
   return {
     id: incident.id,
-    serverId: incident.probe.serverId,
-    serverName: incident.probe.server.name ?? incident.probe.serverId,
-    probeKind: incident.probe.kind,
+    service: usluga,
     severity: incident.severity,
     status: incident.status,
     title: tytulIncydentuDlaKlienta(incident),
