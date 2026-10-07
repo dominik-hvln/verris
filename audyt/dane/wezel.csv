@@ -81,7 +81,7 @@ E-23,sprawdzone,2026-10-04,"29.09 profil: WARN — gniazdo /var/run/dovecot/auth
 J-06,sprawdzone,2026-10-01,"„Optymalizuj obrazy” (cała strona) → 43 pliki, 2,9 MB → 2,9 MB (obrazy rdzenia WP już zopt | 01.10: optymalizacja całego public_html zmieniała obrazy rdzenia WordPressa (43 pliki, 0% zysku) i psuła sumy kontrolne → 50dccf7 (pomija wp-admin, wp-includes)."
 PB-29,sprawdzone,2026-10-01,"węzeł testowy | 01.10 t1: weryfikacja onboardu zielona (28.09, 0 FAIL/0 WARN), cldetect → DirectAdmin 1.710, /proc/lve obecne, verris-security-watch.timer aktywny (ostatni przebieg success), brak plików licencji w /root i /etc/verris (tylko deploy-key.last), MariaDB 11.4.13 z manifestu."
 PB-30,sprawdzone,2026-10-01,"węzeł testowy | 01.10 t1: /etc/verris-stack.env z manifestu; DA_COMMIT 694f22b2… (build z t1) przypięty w Admin → Wersje stosu floty → manifest 2026-10-01.1, panel od razu pokazał różnicę dla t1, po przywróceniu łączności (SEC-04) t1 pobrał nowy manifest i audyt zgodności zielony. Warunek „dwa węzły z jednego manifestu” — przy węźle #2."
-PB-31,czeka,,węzeł testowy
+PB-31,czeka,,"węzeł testowy — przejście kreatora od czystego systemu; najbliżej przy onboardingu AX102 (9–20.11, razem z NODE-01) — przeniesione z „bez węzła” 08.10"
 PB-32,czeka,,dwa węzły
 PB-33,czeka,,węzły testowe
 PB-36,sprawdzone,2026-10-01,"weryfikacja podpisu na węźle | 01.10 t1: verris-fetch z kluczem Verris rc=0, z obcym kluczem Ed25519 — „PODPIS NIEPRAWIDŁOWY — plik odrzucony” rc=3 (OpenSSL 3.5.8 na CloudLinux 10); authorized_keys: jeden klucz control-plane (verris-control-plane) z from=""IP control-plane"" i bez przekierowań; drugi wpis to osobisty klucz właściciela do pracy ręcznej."
@@ -106,3 +106,4 @@ Q-08,sprawdzone,2026-10-06,"snapshot 0,61 GB utworzony, przywrócenie zakończon
 Q-07,sprawdzone,2026-10-06,konsola noVNC połączona (ekran logowania Ubuntu 24.04) po poprawce CSP 1ab4fcb; serwer test-d3 usunięty
 G-08,czeka,,"sandbox OP: zamówienie DV, walidacja DNS, instalacja na t1 | 07.10: CSR i zamówienie przechodzą (348, REQ); rekord DNS po 60e6496 — do potwierdzenia po deployu; wydanie tylko na produkcyjnym OP. | 07.10 18:00 UTC rekord CNAME dodany do strefy test2.d3.hvln.pl i widoczny publicznie."
 K-06,sprawdzone,2026-10-07,"07.10 t1 d3.hvln.pl: Logi WWW → Pobierz — plik .log ze 100 liniami (chronologicznie), wpisy ModSecurity z testu WAF"
+NODE-01,czeka,,"pierwszy węzeł produkcyjny (AX102, 9–20.11): kreator z bootstrapem v2 — razem z PB-31"
