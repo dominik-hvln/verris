@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Verris — strona główna, telefon (projekt)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@600;700;800&amp;family=Hanken+Grotesk:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#091410}
+.bg-pat{position:absolute;inset:0;background-image:url('/_blob/83881a00bd214342392cb391636a7843');background-size:220px 90px;opacity:.16;pointer-events:none;-webkit-mask-image:linear-gradient(180deg,#000,transparent 70%);mask-image:linear-gradient(180deg,#000,transparent 70%)}
+.bg-pat-full{position:absolute;inset:0;background-image:url('/_blob/83881a00bd214342392cb391636a7843');background-size:220px 90px;opacity:.14;pointer-events:none}
+a{color:#34E5A0;text-decoration:none}
+.px{padding-left:16px;padding-right:16px;position:relative}
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#34E5A0}
+.h2{font-family:'Schibsted Grotesk',sans-serif;font-weight:700;font-size:30px;line-height:1.1;letter-spacing:-.02em;color:#F4F4EE;margin:8px 0 0}
+.lead{font-size:16px;line-height:1.6;margin:12px 0 0}
+.card{background:#0E1F17;border:1px solid rgba(255,255,255,.08);border-radius:18px}
+.btn{display:flex;align-items:center;justify-content:center;min-height:52px;padding:0 20px;border-radius:12px;font-weight:600;font-size:17px;box-sizing:border-box}
+.btn-p{background:#34E5A0;color:#06130D}
+.btn-s{border:1px solid rgba(255,255,255,.2);color:#F4F4EE}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1px solid rgba(52,229,160,.35);background:rgba(52,229,160,.08);color:#5BFFC0;font-size:13px;font-weight:500;white-space:nowrap}
+.mono{font-family:'JetBrains Mono',monospace}
+.snap{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-inline:16px;padding:0 16px 8px;scrollbar-width:none}
+.snap::after{content:"";flex:0 0 4px}
+.snap > *{scroll-snap-align:start;flex:none}
+details summary{cursor:pointer;list-style:none;min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+details summary::-webkit-details-marker{display:none}
+details[open] .plus{transform:rotate(45deg)}
+.plus{transition:transform .2s;flex:none}
+.sec{padding:48px 0}
+</style>
+</helmet>
+<div style="width: 390px; font-family: 'Hanken Grotesk', sans-serif; color: #B4C2BB; background: #091410; position: relative">
+
+<!-- NAGŁÓWEK -->
+<header style="position: sticky; top: 0; z-index: 10; background: rgba(9,20,16,.94); border-bottom: 1px solid rgba(255,255,255,.07)">
+<div class="px" style="display: flex; align-items: center; gap: 10px; height: 64px">
+<a href="#" style="display: flex; align-items: center; gap: 8px; color: #F4F4EE; font-family: 'Schibsted Grotesk', sans-serif; font-weight: 800; font-size: 22px; flex: 1"><span style="width: 26px; height: 26px; border-radius: 8px; background: linear-gradient(135deg,#34E5A0,#0F7A52)"></span>verris</a>
+<a href="#cennik-m" class="btn btn-p" style="min-height: 44px; font-size: 15px; padding: 0 14px">Zamów</a>
+<button type="button" aria-label="{{menuLabel}}" onClick="{{toggleMenu}}" style="width: 44px; height: 44px; border-radius: 12px; border: 1px solid rgba(255,255,255,.18); background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer">
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#F4F4EE" stroke-width="2"><path d="M4 4l12 12M16 4L4 16"/></svg></sc-if>
+<sc-if value="{{menuClosed}}" hint-placeholder-val="{{ true }}"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#F4F4EE" stroke-width="2"><path d="M3 5h14M3 10h14M3 15h14"/></svg></sc-if>
+</button>
+</div>
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{ false }}">
+<nav style="border-top: 1px solid rgba(255,255,255,.07); padding: 8px 16px 20px; display: flex; flex-direction: column">
+<a href="HostingMobile.dc.html" style="color: #F4F4EE; font-size: 20px; font-weight: 600; min-height: 52px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,.06)">Hosting</a>
+<a href="#cennik-m" onClick="{{toggleMenu}}" style="color: #F4F4EE; font-size: 20px; font-weight: 600; min-height: 52px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,.06)">Cennik</a>
+<a href="#migracja-m" onClick="{{toggleMenu}}" style="color: #F4F4EE; font-size: 20px; font-weight: 600; min-height: 52px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,.06)">Przenieś stronę</a>
+<a href="#" style="color: #F4F4EE; font-size: 20px; font-weight: 600; min-height: 52px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,.06)">Domeny</a>
+<a href="#" style="color: #F4F4EE; font-size: 20px; font-weight: 600; min-height: 52px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,.06)">Specyfikacja</a>
+<a href="#" style="color: #F4F4EE; font-size: 20px; font-weight: 600; min-height: 52px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,.06)">Pomoc</a>
+<a href="#" class="btn btn-s" style="margin-top: 18px">Panel klienta</a>
+</nav>
+</sc-if>
+</header>
+
+<!-- HERO -->
+<section style="position: relative; overflow: hidden; padding: 36px 0 32px; background: radial-gradient(420px 320px at 90% 10%, rgba(52,229,160,.12), transparent 70%)">
+<div class="bg-pat"></div>
+<div class="px">
+<span class="chip">Hosting z autoskalowaniem</span>
+<h1 style="font-family: 'Schibsted Grotesk', sans-serif; font-weight: 800; font-size: 40px; line-height: 1.04; letter-spacing: -.03em; color: #F4F4EE; margin: 16px 0 0">Hosting, który rośnie razem z Twoim ruchem</h1>
+<p class="lead" style="font-size: 17px">W piku zasoby rosną same — do 24 vCPU i 64 GB RAM — a po nim wracają do bazy. Płacisz abonament i tylko za realną nadwyżkę.</p>
+<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 22px">
+<a href="#cennik-m" class="btn btn-p">Zamów hosting — 45 zł/mies</a>
+<a href="#migracja-m" class="btn btn-s">Przenieś stronę za darmo</a>
+</div>
+<p style="margin: 14px 0 0; font-size: 14px; color: #93A29A">449 zł/rok brutto · odnowienie po tej samej cenie</p>
+</div>
+<div class="px" style="margin-top: 26px">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: rgba(255,255,255,.08); border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,.08)">
+<div style="background: #0C1A14; padding: 14px"><div style="font-family: 'Schibsted Grotesk', sans-serif; font-size: 21px; font-weight: 700; color: #F4F4EE">50 GB</div><div style="font-size: 13px">NVMe · <span style="color: #34E5A0">do 1000 GB</span></div></div>
+<div style="background: #0C1A14; padding: 14px"><div style="font-family: 'Schibsted Grotesk', sans-serif; font-size: 21px; font-weight: 700; color: #F4F4EE">8 GB</div><div style="font-size: 13px">RAM · <span style="color: #34E5A0">do 64 GB</span></div></div>
+<div style="background: #0C1A14; padding: 14px"><div style="font-family: 'Schibsted Grotesk', sans-serif; font-size: 21px; font-weight: 700; color: #F4F4EE">2 vCPU</div><div style="font-size: 13px">procesor · <span style="color: #34E5A0">do 24</span></div></div>
+<div style="background: #0C1A14; padding: 14px"><div style="font-family: 'Schibsted Grotesk', sans-serif; font-size: 21px; font-weight: 700; color: #F4F4EE">99,5%</div><div style="font-size: 13px">SLA w umowie</div></div>
+</div>
+</div>
+</section>
+
+<!-- NOWOŚCI -->
+<section style="padding: 28px 0 8px">
+<div class="px" style="display: flex; justify-content: space-between; align-items: flex-end; gap: 12px"><h2 class="h2" style="font-size: 24px; margin: 0">Nowości w Verris</h2><a href="#" style="font-weight: 600; font-size: 15px; min-height: 44px; display: flex; align-items: center">Wszystkie →</a></div>
+<div class="snap" style="margin-top: 12px">
+<div class="card" style="width: 270px; padding: 18px; display: flex; flex-direction: column; gap: 10px"><span class="chip" style="align-self: flex-start; font-size: 12px">Kopie zapasowe</span><div style="color: #F4F4EE; font-weight: 600; font-size: 17px; line-height: 1.3">Kopia poza serwerem z każdego z 30 dni</div><div style="font-size: 14px">Przywracasz pliki, bazy i pocztę sam, z panelu.</div></div>
+<div class="card" style="width: 270px; padding: 18px; display: flex; flex-direction: column; gap: 10px"><span class="chip" style="align-self: flex-start; font-size: 12px">WordPress</span><div style="color: #F4F4EE; font-weight: 600; font-size: 17px; line-height: 1.3">Staging jednym kliknięciem</div><div style="font-size: 14px">Sprawdzasz aktualizacje na kopii, zanim trafią na stronę.</div></div>
+<div class="card" style="width: 270px; padding: 18px; display: flex; flex-direction: column; gap: 10px"><span class="chip" style="align-self: flex-start; font-size: 12px">Domeny</span><div style="color: #F4F4EE; font-weight: 600; font-size: 17px; line-height: 1.3">Ukrycie danych w WHOIS — bezpłatnie</div><div style="font-size: 14px">Włączasz jednym przyciskiem przy domenie.</div></div>
+<div class="card" style="width: 270px; padding: 18px; display: flex; flex-direction: column; gap: 10px"><span class="chip" style="align-self: flex-start; font-size: 12px">Bezpieczeństwo</span><div style="color: #F4F4EE; font-weight: 600; font-size: 17px; line-height: 1.3">Logowanie kluczem dostępu</div><div style="font-size: 14px">Bez hasła do zgubienia. Subkonta dla współpracowników.</div></div>
+</div>
+</section>
+
+<!-- JAK TO DZIAŁA -->
+<section class="sec">
+<div class="px">
+<div class="eyebrow">Autoskalowanie</div>
+<h2 class="h2">Jak to działa?</h2>
+<div class="card" style="margin-top: 18px; padding: 16px">
+<div style="display: flex; justify-content: space-between; font-size: 13px"><span style="color: #F4F4EE; font-weight: 600">Moc CPU — 24 h</span><span style="color: #93A29A">przykład</span></div>
+<div style="position: relative; height: 110px; margin-top: 12px; display: flex; align-items: flex-end; gap: 4px; border-bottom: 1px solid rgba(255,255,255,.1)">
+<div style="position: absolute; left: 0; right: 0; bottom: 24px; border-top: 1px dashed rgba(52,229,160,.55)"></div>
+<div style="flex: 1; height: 14px; background: #1A3328; border-radius: 3px 3px 0 0"></div><div style="flex: 1; height: 18px; background: #1A3328; border-radius: 3px 3px 0 0"></div><div style="flex: 1; height: 16px; background: #1A3328; border-radius: 3px 3px 0 0"></div><div style="flex: 1; height: 22px; background: #1A3328; border-radius: 3px 3px 0 0"></div>
+<div style="flex: 1; height: 58px; background: linear-gradient(#34E5A0,#0F7A52); border-radius: 3px 3px 0 0"></div><div style="flex: 1; height: 96px; background: linear-gradient(#5BFFC0,#0F7A52); border-radius: 3px 3px 0 0"></div><div style="flex: 1; height: 104px; background: linear-gradient(#5BFFC0,#0F7A52); border-radius: 3px 3px 0 0"></div><div style="flex: 1; height: 70px; background: linear-gradient(#34E5A0,#0F7A52); border-radius: 3px 3px 0 0"></div>
+<div style="flex: 1; height: 22px; background: #1A3328; border-radius: 3px 3px 0 0"></div><div style="flex: 1; height: 16px; background: #1A3328; border-radius: 3px 3px 0 0"></div><div style="flex: 1; height: 18px; background: #1A3328; border-radius: 3px 3px 0 0"></div><div style="flex: 1; height: 14px; background: #1A3328; border-radius: 3px 3px 0 0"></div>
+</div>
+<div style="font-size: 13px; margin-top: 10px">Pik 2,5 h: +7 vCPU i +4 GB RAM → dopłata <strong style="color: #5BFFC0">3,20 zł</strong></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px">
+<div class="card" style="padding: 16px; display: flex; gap: 14px"><span class="mono" style="font-size: 22px; color: #34E5A0">01</span><div><strong style="color: #F4F4EE; font-size: 17px">Baza w abonamencie</strong><div style="font-size: 15px; margin-top: 4px; line-height: 1.5">50 GB NVMe, do 8 GB RAM i 2 vCPU za 45 zł/mies.</div></div></div>
+<div class="card" style="padding: 16px; display: flex; gap: 14px; border-color: rgba(52,229,160,.4)"><span class="mono" style="font-size: 22px; color: #34E5A0">02</span><div><strong style="color: #F4F4EE; font-size: 17px">Pik — więcej mocy</strong><div style="font-size: 15px; margin-top: 4px; line-height: 1.5">Zasoby rosną automatycznie, rozliczenie w blokach po 15 minut.</div></div></div>
+<div class="card" style="padding: 16px; display: flex; gap: 14px"><span class="mono" style="font-size: 22px; color: #34E5A0">03</span><div><strong style="color: #F4F4EE; font-size: 17px">Powrót do bazy</strong><div style="font-size: 15px; margin-top: 4px; line-height: 1.5">Po piku naliczanie kończy się w kilkanaście minut.</div></div></div>
+</div>
+<div class="card" style="margin-top: 14px; padding: 18px">
+<strong style="color: #F4F4EE; font-size: 18px">Co zyskujesz?</strong>
+<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px; font-size: 15px; line-height: 1.5">
+<div>✓ Nie płacisz za pakiet „na zapas”.</div>
+<div>✓ Strona nie zwalnia w kampanii.</div>
+<div>✓ Limit kosztów ustawiasz sam.</div>
+<div>✓ Każdy kwadrans widzisz w panelu.</div>
+</div>
+<a href="HostingMobile.dc.html" style="display: flex; align-items: center; min-height: 44px; margin-top: 8px; font-weight: 600">Policz dopłatę za pik →</a>
+</div>
+</div>
+</section>
+
+<!-- PANEL -->
+<section class="sec" style="background: #0C1A14">
+<div class="px">
+<div class="eyebrow">Panel Verris</div>
+<h2 class="h2">Wszystko pod kontrolą w jednym panelu</h2>
+<p class="lead">Strony, poczta, domeny i kopie — po polsku, także na telefonie.</p>
+</div>
+<div class="snap" style="margin-top: 16px"><span class="chip" style="background: #34E5A0; color: #06130D; border-color: #34E5A0">Pulpit</span><span class="chip">Kopie</span><span class="chip">WordPress</span><span class="chip">Poczta</span><span class="chip">Domeny</span></div>
+<div class="px" style="margin-top: 14px">
+<div style="width: 100%; box-sizing: border-box; border-radius: 28px; border: 8px solid #1C2B24; background: #091410; overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,.5)">
+<div style="padding: 16px 14px 10px; display: flex; justify-content: space-between; align-items: center"><span style="color: #F4F4EE; font-weight: 700; font-family: 'Schibsted Grotesk', sans-serif">verris</span><span class="chip" style="font-size: 11px; padding: 3px 8px">● online</span></div>
+<div style="padding: 0 14px 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="color: #F4F4EE; font-weight: 600">Dzień dobry, Anna</div>
+<div style="background: #0E1F17; border-radius: 12px; padding: 12px"><div style="font-size: 12px; color: #93A29A">Dysk</div><div style="color: #F4F4EE; font-weight: 600">12,4 / 50 GB</div><div style="height: 5px; background: #1A3328; border-radius: 5px; margin-top: 8px"><div style="width: 25%; height: 5px; background: #34E5A0; border-radius: 5px"></div></div></div>
+<div style="background: #0E1F17; border-radius: 12px; padding: 12px"><div style="font-size: 12px; color: #93A29A">Ostatnia kopia</div><div style="color: #F4F4EE; font-weight: 600">dziś, 03:12</div><div style="font-size: 12px; color: #34E5A0; margin-top: 4px">Przywróć →</div></div>
+<div style="background: #0E1F17; border-radius: 12px; padding: 12px"><div style="font-size: 12px; color: #93A29A">WordPress</div><div style="color: #F4F4EE; font-weight: 600">aktualny · staging gotowy</div></div>
+<div style="background: #0E1F17; border-radius: 12px; padding: 12px"><div style="font-size: 12px; color: #93A29A">SSL</div><div style="color: #F4F4EE; font-weight: 600">Aktywny</div></div>
+</div>
+</div>
+</div>
+<p class="px" style="font-size: 12px; color: #93A29A; text-align: center; margin: 12px 0 0">[Produkcyjnie: zrzut mobilnego panelu z konta demo]</p>
+</section>
+
+<!-- KONKRETY: akordeon -->
+<section class="sec">
+<div class="px">
+<div class="eyebrow">Specyfikacja w skrócie</div>
+<h2 class="h2">Konkrety, nie obietnice</h2>
+<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 18px">
+<details class="card" style="padding: 8px 18px" open="open"><summary><strong style="color: #F4F4EE; font-size: 18px">Wydajność</strong><svg class="plus" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#34E5A0" stroke-width="2"><path d="M9 3v12M3 9h12"/></svg></summary><div style="display: flex; flex-direction: column; gap: 10px; padding: 4px 0 12px; font-size: 15px; line-height: 1.5"><div><strong style="color: #F4F4EE">LiteSpeed Enterprise</strong> — cache dla WordPress</div><div><strong style="color: #F4F4EE">Dyski NVMe</strong> — szybsze strony i bazy</div><div><strong style="color: #F4F4EE">PHP 7.4–8.3</strong> — osobno dla domeny</div><div><strong style="color: #F4F4EE">Redis i Memcached</strong> — dla konta</div></div></details>
+<details class="card" style="padding: 8px 18px"><summary><strong style="color: #F4F4EE; font-size: 18px">Bezpieczeństwo</strong><svg class="plus" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#34E5A0" stroke-width="2"><path d="M9 3v12M3 9h12"/></svg></summary><div style="display: flex; flex-direction: column; gap: 10px; padding: 4px 0 12px; font-size: 15px; line-height: 1.5"><div><strong style="color: #F4F4EE">Izolacja kont</strong> — sąsiad nie spowolni strony</div><div><strong style="color: #F4F4EE">ImunifyAV</strong> — skan w tle i na żądanie</div><div><strong style="color: #F4F4EE">WAF OWASP</strong> — typowe ataki zablokowane</div><div><strong style="color: #F4F4EE">Kopie 30 dni</strong> — szyfrowane, poza serwerem</div></div></details>
+<details class="card" style="padding: 8px 18px"><summary><strong style="color: #F4F4EE; font-size: 18px">Opieka</strong><svg class="plus" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#34E5A0" stroke-width="2"><path d="M9 3v12M3 9h12"/></svg></summary><div style="display: flex; flex-direction: column; gap: 10px; padding: 4px 0 12px; font-size: 15px; line-height: 1.5"><div><strong style="color: #F4F4EE">Odpowiedź do 12 h, 24/7</strong></div><div><strong style="color: #F4F4EE">Bezpłatna migracja</strong></div><div><strong style="color: #F4F4EE">SLA 99,5% z rekompensatą</strong></div><div><strong style="color: #F4F4EE">Dane w EOG</strong> — Niemcy lub Finlandia</div></div></details>
+</div>
+<a href="#" class="btn btn-s" style="margin-top: 14px">Pełna specyfikacja</a>
+</div>
+</section>
+
+<!-- CENNIK z przełącznikiem -->
+<section id="cennik-m" class="sec" style="position: relative; overflow: hidden; background: radial-gradient(360px 260px at 50% 0%, rgba(52,229,160,.10), transparent 70%)">
+<div class="bg-pat" style="opacity: .1"></div>
+<div class="px">
+<div class="eyebrow">Cennik</div>
+<h2 class="h2">Jedna cena. Także przy odnowieniu.</h2>
+<div class="card" style="margin-top: 18px; padding: 20px; border-color: rgba(52,229,160,.35)">
+<div role="tablist" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid rgba(255,255,255,.14); border-radius: 12px; padding: 4px">
+<button type="button" role="tab" aria-selected="{{monthlySel}}" onClick="{{pickMonthly}}" style="min-height: 44px; border: 0; border-radius: 9px; font: inherit; font-size: 15px; cursor: pointer; background: {{monthlyBg}}; color: {{monthlyFg}}">Miesięcznie</button>
+<button type="button" role="tab" aria-selected="{{yearlySel}}" onClick="{{pickYearly}}" style="min-height: 44px; border: 0; border-radius: 9px; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; background: {{yearlyBg}}; color: {{yearlyFg}}">Rocznie −91 zł</button>
+</div>
+<div style="font-family: 'Schibsted Grotesk', sans-serif; font-size: 52px; font-weight: 800; color: #F4F4EE; margin-top: 16px; letter-spacing: -.03em">{{price}}<span style="font-size: 18px; font-weight: 500; color: #93A29A"> {{per}}</span></div>
+<div style="font-size: 14px">{{priceSub}}</div>
+<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 18px; font-size: 15px">
+<div>✓ Bezpłatna migracja</div><div>✓ Kopie przez 30 dni</div><div>✓ SSL i poczta dla każdej domeny</div><div>✓ Staging WordPress</div><div>✓ Bez limitu stron i transferu</div>
+</div>
+<a href="#" class="btn btn-p" style="margin-top: 20px">Zamów hosting</a>
+<div style="text-align: center; font-size: 13px; color: #93A29A; margin-top: 10px">Odnowienie po tej samej cenie</div>
+</div>
+</div>
+</section>
+
+<!-- MIGRACJA -->
+<section id="migracja-m" class="sec">
+<div class="px">
+<div class="eyebrow">Przeprowadzka</div>
+<h2 class="h2">Przenosimy stronę za Ciebie. Za darmo.</h2>
+<div style="display: flex; flex-direction: column; gap: 0; margin-top: 18px; border-left: 2px solid rgba(52,229,160,.35); padding-left: 18px">
+<div style="padding-bottom: 18px"><span class="mono" style="color: #34E5A0">1</span> <strong style="color: #F4F4EE; font-size: 17px">Podajesz dostęp do starego hostingu</strong><div style="font-size: 15px; margin-top: 4px">Formularz w panelu albo zgłoszenie do zespołu.</div></div>
+<div style="padding-bottom: 18px"><span class="mono" style="color: #34E5A0">2</span> <strong style="color: #F4F4EE; font-size: 17px">Kopiujemy pliki, bazy i pocztę</strong><div style="font-size: 15px; margin-top: 4px">Stara strona działa w tym czasie dalej.</div></div>
+<div><span class="mono" style="color: #34E5A0">3</span> <strong style="color: #F4F4EE; font-size: 17px">Sprawdzasz i przełączasz domenę</strong><div style="font-size: 15px; margin-top: 4px">Podgląd przed przełączeniem, potem jedna zmiana DNS.</div></div>
+</div>
+<a href="#" class="btn btn-p" style="margin-top: 22px">Zleć bezpłatną migrację</a>
+</div>
+</section>
+
+<!-- PORÓWNANIE jako karty -->
+<section class="sec" style="background: #0C1A14">
+<div class="px">
+<div class="eyebrow">Porównanie</div>
+<h2 class="h2">Na co patrzeć przy wyborze hostingu</h2>
+<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 18px">
+<div class="card" style="padding: 16px"><div style="color: #F4F4EE; font-weight: 600">Cena po pierwszym roku</div><div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; font-size: 14px"><div><div style="color: #93A29A; font-size: 12px">Typowy hosting</div>kilka razy drożej</div><div><div style="color: #34E5A0; font-size: 12px">Verris</div><span style="color: #F4F4EE">ta sama cena</span></div></div></div>
+<div class="card" style="padding: 16px"><div style="color: #F4F4EE; font-weight: 600">Pik ruchu</div><div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; font-size: 14px"><div><div style="color: #93A29A; font-size: 12px">Typowy hosting</div>limit i błąd 508</div><div><div style="color: #34E5A0; font-size: 12px">Verris</div><span style="color: #F4F4EE">do 24 vCPU</span></div></div></div>
+<div class="card" style="padding: 16px"><div style="color: #F4F4EE; font-weight: 600">Kopie zapasowe</div><div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; font-size: 14px"><div><div style="color: #93A29A; font-size: 12px">Typowy hosting</div>płatny dodatek</div><div><div style="color: #34E5A0; font-size: 12px">Verris</div><span style="color: #F4F4EE">30 dni w cenie</span></div></div></div>
+</div>
+</div>
+</section>
+
+<!-- FAQ -->
+<section class="sec">
+<div class="px">
+<h2 class="h2">Częste pytania</h2>
+<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 18px">
+<details class="card" style="padding: 8px 18px"><summary><strong style="color: #F4F4EE; font-size: 16px">Ile kosztuje autoskalowanie?</strong><svg class="plus" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#34E5A0" stroke-width="2"><path d="M9 3v12M3 9h12"/></svg></summary><p style="margin: 0 0 12px; font-size: 15px; line-height: 1.6">Baza jest w abonamencie. Nadwyżkę liczymy według jawnych stawek w blokach po 15 minut, a limit ustawiasz sam.</p></details>
+<details class="card" style="padding: 8px 18px"><summary><strong style="color: #F4F4EE; font-size: 16px">Czy cena wzrośnie przy odnowieniu?</strong><svg class="plus" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#34E5A0" stroke-width="2"><path d="M9 3v12M3 9h12"/></svg></summary><p style="margin: 0 0 12px; font-size: 15px; line-height: 1.6">Nie. 45 zł/mies albo 449 zł/rok brutto.</p></details>
+<details class="card" style="padding: 8px 18px"><summary><strong style="color: #F4F4EE; font-size: 16px">Gdzie są moje dane?</strong><svg class="plus" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#34E5A0" stroke-width="2"><path d="M9 3v12M3 9h12"/></svg></summary><p style="margin: 0 0 12px; font-size: 15px; line-height: 1.6">W centrach danych w Niemczech lub Finlandii (EOG).</p></details>
+</div>
+</div>
+</section>
+
+<!-- CTA -->
+<section style="padding: 0 16px 40px">
+<div style="position: relative; overflow: hidden; border-radius: 22px; padding: 30px 22px; background: linear-gradient(135deg,#0F7A52,#0C3A28)">
+<div class="bg-pat-full"></div>
+<h2 class="h2" style="position: relative; margin: 0; font-size: 28px">Hosting bez pułapek</h2>
+<p style="position: relative; margin: 10px 0 0; color: #D9F5E8">Zamawiasz online, migrację robimy za Ciebie.</p>
+<a href="#" class="btn btn-p" style="position: relative; margin-top: 18px">Zamów hosting</a>
+</div>
+</section>
+
+<!-- STOPKA -->
+<footer style="border-top: 1px solid rgba(255,255,255,.07); padding: 28px 16px 96px">
+<div style="color: #F4F4EE; font-family: 'Schibsted Grotesk', sans-serif; font-weight: 800; font-size: 22px">verris</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 16px; margin-top: 16px; font-size: 15px">
+<a href="#" style="color: #B4C2BB; min-height: 44px; display: flex; align-items: center">Hosting</a><a href="#" style="color: #B4C2BB; min-height: 44px; display: flex; align-items: center">Domeny</a>
+<a href="#" style="color: #B4C2BB; min-height: 44px; display: flex; align-items: center">Przenieś stronę</a><a href="#" style="color: #B4C2BB; min-height: 44px; display: flex; align-items: center">Specyfikacja</a>
+<a href="StatusMobile.dc.html" style="color: #B4C2BB; min-height: 44px; display: flex; align-items: center">Status usług</a><a href="#" style="color: #B4C2BB; min-height: 44px; display: flex; align-items: center">Kontakt</a>
+<a href="#" style="color: #B4C2BB; min-height: 44px; display: flex; align-items: center">Dokumenty prawne</a><a href="#" style="color: #B4C2BB; min-height: 44px; display: flex; align-items: center">O nas</a>
+</div>
+</footer>
+
+<!-- przyklejony pasek zakupu -->
+<div style="position: sticky; bottom: 0; z-index: 9; padding: 10px 16px; background: rgba(9,20,16,.96); border-top: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; gap: 12px">
+<div style="flex: 1"><div style="color: #F4F4EE; font-weight: 700">45 zł/mies</div><div style="font-size: 12px; color: #93A29A">albo 449 zł/rok brutto</div></div>
+<a href="#cennik-m" class="btn btn-p" style="min-height: 48px; font-size: 16px">Zamów hosting</a>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":9800}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { menu: false, yearly: true };
+  }
+  renderVals() {
+    const { menu, yearly } = this.state;
+    const on = '#34E5A0', onFg = '#06130D', off = 'transparent', offFg = '#B4C2BB';
+    return {
+      menuOpen: menu,
+      menuClosed: !menu,
+      menuLabel: menu ? 'Zamknij menu' : 'Otwórz menu',
+      toggleMenu: () => this.setState({ menu: !this.state.menu }),
+      pickMonthly: () => this.setState({ yearly: false }),
+      pickYearly: () => this.setState({ yearly: true }),
+      monthlySel: String(!yearly), yearlySel: String(yearly),
+      monthlyBg: yearly ? off : on, monthlyFg: yearly ? offFg : onFg,
+      yearlyBg: yearly ? on : off, yearlyFg: yearly ? onFg : offFg,
+      price: yearly ? '449 zł' : '45 zł',
+      per: yearly ? '/ rok' : '/ mies',
+      priceSub: yearly ? 'brutto, ok. 37 zł/mies · albo 45 zł/mies' : 'brutto, bez zobowiązania · albo 449 zł/rok (−91 zł)',
+    };
+  }
+}
+</script>
+</body>
+</html>

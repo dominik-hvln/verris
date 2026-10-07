@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Verris — status, telefon (projekt)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@600;700;800&amp;family=Hanken+Grotesk:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#091410}
+.bg-pat-full{position:absolute;inset:0;background-image:url('/_blob/83881a00bd214342392cb391636a7843');background-size:220px 90px;opacity:.14;pointer-events:none}
+a{color:#34E5A0;text-decoration:none}
+.card{background:#0E1F17;border:1px solid rgba(255,255,255,.08);border-radius:16px}
+.mono{font-family:'JetBrains Mono',monospace}
+</style>
+</helmet>
+<div style="width: 390px; font-family: 'Hanken Grotesk', sans-serif; color: #B4C2BB; background: #091410; padding-bottom: 40px">
+
+<header style="border-bottom: 1px solid rgba(255,255,255,.07); padding: 0 16px; height: 64px; display: flex; align-items: center; gap: 10px">
+<a href="MainMobile.dc.html" style="display: flex; align-items: center; gap: 8px; color: #F4F4EE; font-family: 'Schibsted Grotesk', sans-serif; font-weight: 800; font-size: 20px; flex: 1"><span style="width: 24px; height: 24px; border-radius: 7px; background: linear-gradient(135deg,#34E5A0,#0F7A52)"></span>verris <span style="font-weight: 600; color: #93A29A; font-size: 16px">status</span></a>
+<a href="#" aria-label="Powiadomienia e-mail" style="width: 44px; height: 44px; border-radius: 12px; border: 1px solid rgba(255,255,255,.18); display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#F4F4EE" stroke-width="1.8"><path d="M10 3a5 5 0 0 0-5 5v3l-1.5 3h13L15 11V8a5 5 0 0 0-5-5zM8 16.5a2 2 0 0 0 4 0"/></svg></a>
+</header>
+
+<div style="padding: 20px 16px 0">
+<div style="position: relative; overflow: hidden; border-radius: 16px; padding: 20px; background: linear-gradient(135deg,#0F7A52,#0C3A28)">
+<div class="bg-pat-full"></div>
+<div style="position: relative; display: flex; align-items: center; gap: 12px">
+<span style="width: 36px; height: 36px; border-radius: 50%; background: #34E5A0; display: flex; align-items: center; justify-content: center; flex: none"><svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="#06130D" stroke-width="3"><path d="M5 11.5l4 4L17 7"/></svg></span>
+<div style="font-family: 'Schibsted Grotesk', sans-serif; font-weight: 700; font-size: 21px; color: #F4F4EE; line-height: 1.15">Wszystkie usługi działają</div>
+</div>
+<div style="position: relative; display: flex; justify-content: space-between; margin-top: 14px; color: #D9F5E8; font-size: 14px"><span>sprawdzone 30 s temu</span><span class="mono" style="color: #F4F4EE">99,98% · 90 dni</span></div>
+</div>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 22px">
+<strong style="color: #F4F4EE; font-size: 18px">Usługi</strong>
+<div role="tablist" style="display: flex; border: 1px solid rgba(255,255,255,.14); border-radius: 11px; padding: 3px">
+<button type="button" role="tab" aria-selected="{{sel30}}" onClick="{{pick30}}" style="min-height: 40px; min-width: 64px; border: 0; border-radius: 8px; font: inherit; font-size: 14px; cursor: pointer; background: {{bg30}}; color: {{fg30}}">30 dni</button>
+<button type="button" role="tab" aria-selected="{{sel90}}" onClick="{{pick90}}" style="min-height: 40px; min-width: 64px; border: 0; border-radius: 8px; font: inherit; font-size: 14px; cursor: pointer; background: {{bg90}}; color: {{fg90}}">90 dni</button>
+</div>
+</div>
+
+<div class="card" style="margin-top: 12px">
+<sc-for list="{{services}}" as="s" hint-placeholder-count="7">
+<div style="padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.06)">
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 10px">
+<div style="display: flex; align-items: center; gap: 8px; min-width: 0"><span style="width: 9px; height: 9px; border-radius: 50%; background: #34E5A0; flex: none"></span><strong style="color: #F4F4EE; font-size: 15px">{{s.name}}</strong></div>
+<span class="mono" style="color: #F4F4EE; font-size: 13px">{{s.uptime}}</span>
+</div>
+<div style="display: flex; gap: {{gap}}; margin-top: 10px">
+<sc-for list="{{s.days}}" as="d" hint-placeholder-count="30"><span style="flex: 1 1 0; height: 28px; border-radius: 2px; background: {{d.c}}" title="{{d.t}}"></span></sc-for>
+</div>
+</div>
+</sc-for>
+<div style="display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 12px 16px; font-size: 13px">
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 12px; height: 12px; border-radius: 3px; background: #34E5A0"></span>działa</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 12px; height: 12px; border-radius: 3px; background: #F0B54A"></span>spowolnienie</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 12px; height: 12px; border-radius: 3px; background: #B3423F"></span>awaria</span>
+</div>
+</div>
+
+<div class="card" style="margin-top: 16px; padding: 16px">
+<div style="display: flex; justify-content: space-between"><strong style="color: #F4F4EE">Panel — czas odpowiedzi</strong><span class="mono" style="font-size: 12px">śr. 184 ms</span></div>
+<div style="display: flex; align-items: flex-end; gap: 3px; height: 80px; margin-top: 12px; border-bottom: 1px solid rgba(255,255,255,.1)">
+<sc-for list="{{latency}}" as="l" hint-placeholder-count="24"><span style="flex: 1 1 0; height: {{l}}; background: #1FA871; border-radius: 2px 2px 0 0"></span></sc-for>
+</div>
+<div class="mono" style="display: flex; justify-content: space-between; font-size: 11px; color: #6F8178; margin-top: 4px"><span>24 h temu</span><span>teraz</span></div>
+</div>
+
+<strong style="display: block; color: #F4F4EE; font-size: 18px; margin-top: 26px">Historia zdarzeń</strong>
+<div class="card" style="margin-top: 12px; padding: 16px">
+<div style="display: flex; justify-content: space-between; gap: 10px"><strong style="color: #F4F4EE; font-size: 15px">Planowane prace: aktualizacja serwerów</strong><span style="color: #F0B54A; font-size: 13px; white-space: nowrap">zaplanowane</span></div>
+<div class="mono" style="font-size: 12px; color: #93A29A; margin-top: 4px">wt 04:00–04:20</div>
+</div>
+<div class="card" style="margin-top: 10px; padding: 16px">
+<div style="display: flex; justify-content: space-between; gap: 10px"><strong style="color: #F4F4EE; font-size: 15px">Spowolnienie panelu klienta</strong><span style="color: #34E5A0; font-size: 13px; white-space: nowrap">rozwiązane</span></div>
+<div class="mono" style="font-size: 12px; color: #93A29A; margin-top: 4px">[data] · 17 min</div>
+<div style="margin-top: 10px; border-left: 2px solid rgba(255,255,255,.1); padding-left: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 14px">
+<div><span class="mono" style="font-size: 12px; color: #34E5A0">14:19</span> Rozwiązane</div>
+<div><span class="mono" style="font-size: 12px; color: #93A29A">14:08</span> Przyczyna znaleziona</div>
+<div><span class="mono" style="font-size: 12px; color: #93A29A">14:02</span> Wykryte</div>
+</div>
+</div>
+<a href="#" style="display: flex; align-items: center; justify-content: center; min-height: 52px; margin-top: 20px; border-radius: 12px; background: #34E5A0; color: #06130D; font-weight: 600">Powiadamiaj mnie e-mailem</a>
+<p style="font-size: 12px; color: #93A29A; margin: 14px 0 0">[Projekt: dane przykładowe]</p>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":3000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { days: 30 };
+  }
+  renderVals() {
+    const n = this.state.days;
+    const OK = '#34E5A0', WARN = '#F0B54A', BAD = '#B3423F';
+    const pasek = (wyjatki) => Array.from({ length: n }, (_, i) => {
+      const w = wyjatki[n - 1 - i];
+      const ile = (n - i) + ' dni temu: ';
+      if (w === 'w') return { c: WARN, t: ile + 'spowolnienie' };
+      if (w === 'b') return { c: BAD, t: ile + 'awaria' };
+      return { c: OK, t: ile + 'działa' };
+    });
+    const services = [
+      { name: 'Strony klientów', uptime: '99,99%', days: pasek({ 48: 'w' }) },
+      { name: 'Panel klienta', uptime: '99,97%', days: pasek({ 12: 'w' }) },
+      { name: 'Poczta', uptime: '100%', days: pasek({}) },
+      { name: 'DNS', uptime: '100%', days: pasek({}) },
+      { name: 'Kopie zapasowe', uptime: '100%', days: pasek({ 26: 'w' }) },
+      { name: 'Płatności', uptime: '99,95%', days: pasek({ 67: 'b' }) },
+      { name: 'Strona verris.pl', uptime: '100%', days: pasek({}) },
+    ];
+    const on = '#34E5A0', onFg = '#06130D', off = 'transparent', offFg = '#B4C2BB';
+    const h = [42, 40, 38, 36, 35, 37, 44, 55, 62, 70, 66, 61, 64, 72, 88, 74, 66, 60, 58, 54, 50, 48, 45, 43];
+    return {
+      services,
+      gap: n === 30 ? '3px' : '1px',
+      latency: h.map((v) => v + '%'),
+      sel30: String(n === 30), sel90: String(n === 90),
+      bg30: n === 30 ? on : off, fg30: n === 30 ? onFg : offFg,
+      bg90: n === 90 ? on : off, fg90: n === 90 ? onFg : offFg,
+      pick30: () => this.setState({ days: 30 }),
+      pick90: () => this.setState({ days: 90 }),
+    };
+  }
+}
+</script>
+</body>
+</html>
