@@ -148,6 +148,13 @@ Policy: https://panel.verris.pl/legal/security
 {$CADDY_API_DOMAIN:api.verris.local} {
     import security_headers
     import block_scanners
+    # Webhook OpenProvidera tylko z ich adresów (klucz + podpis HMAC sprawdza też API).
+    # https://support.openprovider.eu/hc/en-us/articles/34308521422610--Webhook-Notification-System
+    @op_webhook_obcy {
+        path /webhooks/openprovider
+        not remote_ip 185.87.187.130 34.34.72.46
+    }
+    respond @op_webhook_obcy 403
     # API zwraca JSON — niczego nie renderuje, więc najostrzejszy CSP.
     # `?` = tylko gdy API nie ustawiło własnego: badge na stronę klienta
     # (/public/badges/*) wysyłają CSP z nonce i frame-ancestors *.

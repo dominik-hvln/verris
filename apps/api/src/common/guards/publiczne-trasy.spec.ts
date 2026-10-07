@@ -94,6 +94,8 @@ const PUBLICZNE = [
   'NodeBootstrapAgentController.report',
   'NodeBootstrapAgentController.script',
   'NodeBootstrapAgentController.secrets',
+  // Webhook OpenProvidera — klucz Bearer + podpis HMAC (sprawdzWebhookOp), na Caddy tylko adresy OpenProvidera.
+  'OpenproviderWebhookController.odbierz',
   'PaynowPowiadomieniaController.powiadomienie',
   'PlansController.get',
   'PlansController.list',

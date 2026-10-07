@@ -48,6 +48,8 @@ export interface RegistrarProvider {
   setWhoisPrivacy(externalId: string, enabled: boolean): Promise<void>;
   /** Zmiana serwerów nazw zarejestrowanej domeny. */
   setNameservers(externalId: string, nameservers: string[]): Promise<void>;
+  /** Powiadomienia rejestratora o zdarzeniach domen (tylko OpenProvider). */
+  configureWebhook?(host: string, apiKey: string, signatureSecret: string): Promise<void>;
   /** A-09 — kod do transferu domeny do innego rejestratora. */
   authCode(externalId: string): Promise<string>;
   /** Uchwyt operatora (admin/tech/billing). Abonent nim NIE jest — patrz A-13. */
@@ -266,6 +268,7 @@ class OpenProviderRegistrarProvider implements RegistrarProvider, SslReseller {
   private readonly logger = new Logger(OpenProviderRegistrarProvider.name);
   private token: string | null = null;
   private tokenExpiresAt = 0;
+  private resellerId: number | null = null;
 
   constructor(
     private readonly baseUrl: string,
@@ -494,6 +497,22 @@ class OpenProviderRegistrarProvider implements RegistrarProvider, SslReseller {
     await this.request(`/v1/domains/${encodeURIComponent(externalId)}`, { name_servers: nameservers.map((name) => ({ name })) }, 'PUT');
   }
 
+  /**
+   * Powiadomienia o zdarzeniach domen (transfery, rejestracje, usunięcia). Konfiguracja konta resellera:
+   * PUT /v1beta/resellers/{id} z notifications_settings; id resellera zwraca logowanie (`reseller_id`).
+   * OpenProvider od razu wysyła zdarzenie testowe — adres musi odpowiedzieć 200.
+   * https://support.openprovider.eu/hc/en-us/articles/34308521422610--Webhook-Notification-System
+   */
+  async configureWebhook(host: string, apiKey: string, signatureSecret: string): Promise<void> {
+    await this.ensureToken();
+    if (!this.resellerId) throw new ServiceUnavailableException('OpenProvider nie zwrócił identyfikatora konta resellera.');
+    await this.request(
+      `/v1beta/resellers/${this.resellerId}`,
+      { notifications_settings: { is_webhook_enabled: true, webhook_settings: { host, api_key: apiKey, signature_secret: signatureSecret } } },
+      'PUT',
+    );
+  }
+
   async authCode(externalId: string): Promise<string> {
     const res = await this.request<{ data: { auth_code?: string } }>(
       `/v1/domains/${encodeURIComponent(externalId)}/authcode`, null, 'GET');
@@ -582,12 +601,13 @@ class OpenProviderRegistrarProvider implements RegistrarProvider, SslReseller {
       body: JSON.stringify({ username: this.username, password: this.password }),
       signal: AbortSignal.timeout(OP_TIMEOUT_MS),
     });
-    const body = (await res.json().catch(() => null)) as { data?: { token?: string }; desc?: string } | null;
+    const body = (await res.json().catch(() => null)) as { data?: { token?: string; reseller_id?: number }; desc?: string } | null;
     if (!res.ok || !body?.data?.token) {
       this.logger.warn(`OpenProvider auth failed: ${body?.desc ?? res.status}`);
       throw new ServiceUnavailableException('Rejestr domen jest chwilowo niedostępny — spróbuj za chwilę.');
     }
     this.token = body.data.token;
+    this.resellerId = body.data.reseller_id ?? null;
     this.tokenExpiresAt = Date.now() + 50 * 60 * 1000;
     return this.token;
   }

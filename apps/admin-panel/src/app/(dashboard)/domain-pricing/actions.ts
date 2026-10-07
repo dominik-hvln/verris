@@ -48,3 +48,13 @@ export async function updateSslPricesAction(
     return { ok: false, error: e instanceof Error ? e.message : 'Nie udało się zapisać cennika SSL.' };
   }
 }
+
+// Powiadomienia OpenProvidera (webhook) — zgłasza adres API; OpenProvider od razu wysyła zdarzenie testowe.
+export async function wlaczWebhookOpAction(): Promise<{ ok?: boolean; host?: string; error?: string }> {
+  try {
+    const r = await adminApi<{ host: string }>('/admin/registrar/webhook', { method: 'POST', body: {} });
+    return { ok: true, host: r.host };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Nie udało się włączyć powiadomień OpenProvidera.' };
+  }
+}

@@ -130,6 +130,8 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   'POST /reseller/me/clients',
   'POST /reseller/me/markup',
   'POST /servers/handshake',
+  // Webhook OpenProvidera — bez sesji klienta (klucz + podpis HMAC).
+  'POST /webhooks/openprovider',
   'POST /users/iam/invites',
   'POST /users/iam/invites/accept',
   // A-09/A-13: kod transferu i dane abonenta domeny — przeniesienie albo przejęcie domeny.

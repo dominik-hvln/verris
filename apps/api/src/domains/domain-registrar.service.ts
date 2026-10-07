@@ -897,6 +897,96 @@ export class DomainRegistrarService {
   }
 
   /**
+   * Zdarzenie z webhooka OpenProvidera (podpis sprawdzony w kontrolerze). Każde trafia do dziennika;
+   * transfery przychodzące domyka ten sam przebieg co godzinne sprawdzanie, a domena przeniesiona
+   * do innego rejestratora albo usunięta znika z naszej obsługi. Obsługa jest idempotentna — ponowione
+   * doręczenie nic nie psuje.
+   */
+  async zdarzenieOp(ev: ZdarzenieOp): Promise<void> {
+    const typ = String(ev.eventType ?? '');
+    const externalId = ev.data?.domainId != null ? String(ev.data.domainId) : null;
+    await this.audit.record({
+      action: 'REGISTRAR_WEBHOOK',
+      details: { id: ev.id ?? null, eventType: typ, domain: ev.data?.domain ?? null, status: ev.data?.status ?? null, info: ev.data?.action ?? null },
+    });
+    if (/^incomingTransfer(Completed|Failed|Canceled)$/.test(typ)) {
+      await this.domknijTransfery();
+    } else if ((typ === 'outgoingTransferCompleted' || typ === 'deletionCompleted') && externalId) {
+      await this.domenaOpuscila(externalId, typ === 'deletionCompleted' ? 'DELETED' : 'TRANSFERRED_OUT');
+    }
+  }
+
+  /**
+   * Domena nie jest już u nas (transfer do innego rejestratora albo usunięcie): bez przypomnień i odnowień,
+   * bez blokady/kodu/WHOIS w panelu. Wiersz zostaje — domena może dalej działać na hostingu Verris.
+   * t1 07.10: wcześniej transfer wychodzący nie był obsługiwany wcale.
+   */
+  async domenaOpuscila(externalId: string, powod: 'TRANSFERRED_OUT' | 'DELETED' | 'REGISTRAR_DEL') {
+    const d = await this.prisma.domain.findFirst({ where: { registrarExternalId: externalId } });
+    if (!d) return null;
+    await this.prisma.domain.update({
+      where: { id: d.id },
+      data: {
+        registrarExternalId: null, registrarProvider: null, registrarStatus: powod, expiresAt: null,
+        autoRenew: false, whoisPrivacy: false, transferLock: false, lastRegistrarSyncAt: new Date(),
+      },
+    });
+    await this.audit.record({
+      action: 'DOMAIN_LEFT_REGISTRAR',
+      userId: d.userId,
+      details: { domain: d.name, powod, externalId, expiresAt: d.expiresAt?.toISOString() ?? null },
+    });
+    return { domain: d.name, powod };
+  }
+
+  /**
+   * Zabezpieczenie, gdyby webhook nie doszedł (OpenProvider ponawia tylko 5 razy): raz dziennie stan każdej
+   * domeny u rejestratora; „DEL/FAI” przy domenie u nas = domena odeszła.
+   * ponytail: jedno zapytanie na domenę po kolei; przy tysiącach domen paczkami albo lista /v1/domains.
+   */
+  @Cron('41 5 * * *', { name: 'domains:left-registrar-sync' })
+  async sprawdzOpuszczone(): Promise<{ sprawdzone: number; odeszly: number }> {
+    const domeny = await this.prisma.domain.findMany({
+      where: { registrarExternalId: { not: null } },
+      select: { registrarExternalId: true },
+      take: 1000,
+    });
+    if (!domeny.length) return { sprawdzone: 0, odeszly: 0 };
+    let provider: ReturnType<RegistrarProviderFactory['get']>;
+    try {
+      provider = this.providerFactory.get();
+    } catch {
+      return { sprawdzone: 0, odeszly: 0 };
+    }
+    let odeszly = 0;
+    for (const d of domeny) {
+      try {
+        const info = await provider.domainInfo(d.registrarExternalId!);
+        if (info.state === 'failed' && (await this.domenaOpuscila(d.registrarExternalId!, 'REGISTRAR_DEL'))) odeszly += 1;
+      } catch (e) {
+        this.logger.warn(`stan domeny ${d.registrarExternalId}: ${(e as Error).message}`);
+      }
+    }
+    return { sprawdzone: domeny.length, odeszly };
+  }
+
+  /** Admin: zgłasza OpenProviderowi adres webhooka z kluczem i sekretem z .env.prod (prod-ustaw-klucze.sh openprovider). */
+  async wlaczWebhookOp(actorUserId: string): Promise<{ host: string }> {
+    const apiKey = this.config.get<string>('OPENPROVIDER_WEBHOOK_API_KEY');
+    const secret = this.config.get<string>('OPENPROVIDER_WEBHOOK_SECRET');
+    if (!apiKey || !secret) {
+      throw new BadRequestException('Brak OPENPROVIDER_WEBHOOK_API_KEY albo OPENPROVIDER_WEBHOOK_SECRET — ustaw je skryptem prod-ustaw-klucze.sh openprovider.');
+    }
+    const provider = this.providerFactory.get();
+    if (!provider.configureWebhook) throw new BadRequestException('Ten rejestrator nie obsługuje powiadomień.');
+    const base = this.config.get<string>('PUBLIC_API_URL') ?? 'https://api.verris.pl';
+    const host = `${base.replace(/\/$/, '')}/webhooks/openprovider`;
+    await provider.configureWebhook(host, apiKey, secret);
+    await this.audit.record({ action: 'REGISTRAR_WEBHOOK_CONFIGURED', actorUserId, userId: actorUserId, details: { host } });
+    return { host };
+  }
+
+  /**
    * A-09 — domknięcie transferów. Do 2026-09-27 zlecony transfer zostawał na zawsze „wysłany do rejestru”:
    * klient płacił, a domena nigdy nie pojawiała się na koncie (bez odnowień, przypomnień, blokady, kodu).
    * Co godzinę pytamy rejestratora o stan: aktywna → domena na koncie płacącego; nieudana → zwrot.
@@ -1014,6 +1104,13 @@ function sanitizeDomainLabel(value: string): string {
     .split('.')[0]
     .replace(/[^a-z0-9-]/g, '')
     .replace(/^-+|-+$/g, '');
+}
+
+/** Treść webhooka OpenProvidera (pola, z których korzystamy). */
+export interface ZdarzenieOp {
+  id?: number | string;
+  eventType?: string;
+  data?: { domainId?: number | string; domain?: string; status?: string; action?: string };
 }
 
 function sanitizeNameservers(value?: string[]): string[] {

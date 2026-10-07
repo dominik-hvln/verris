@@ -1,5 +1,6 @@
 import { fetchSslProducts, fetchWhoisPrivacyPrice } from "./actions";
 import { WhoisPrivacyForm } from "./whois-privacy-form";
+import { WebhookOpForm } from "./webhook-op-form";
 import { SslPricesForm } from "./ssl-prices-form";
 import { BladStrony, wynik } from "@/components/blad-strony";
 
@@ -18,6 +19,7 @@ export default async function DomainPricingPage() {
         <p className="mt-1 text-sm text-muted-foreground">Ceny dodatków do domen widoczne w panelu klienta. Pusta cena = usługa niedostępna.</p>
       </header>
       <WhoisPrivacyForm initial={whois.whoisPrivacyPrice} />
+      <WebhookOpForm />
       <SslPricesForm dane={ssl} />
     </div>
   );

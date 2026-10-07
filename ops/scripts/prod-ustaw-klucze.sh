@@ -33,6 +33,8 @@ GRUPA_openprovider=(
   "OPENPROVIDER_USERNAME|j|OpenProvider — login API"
   "OPENPROVIDER_PASSWORD|s|OpenProvider — hasło API"
   "OPENPROVIDER_OWNER_HANDLE|j|OpenProvider — uchwyt operatora (admin/tech/billing)"
+  "OPENPROVIDER_WEBHOOK_API_KEY|s|OpenProvider — klucz webhooka (wymyślony przez nas, np. openssl rand -hex 32)"
+  "OPENPROVIDER_WEBHOOK_SECRET|s|OpenProvider — sekret podpisu webhooka (inny niż klucz, np. openssl rand -hex 32)"
 )
 GRUPA_vps=(
   "HETZNER_API_TOKEN|s|Hetzner Cloud — token projektu (Read & Write) do sprzedaży VPS"
