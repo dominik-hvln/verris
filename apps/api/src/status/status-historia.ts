@@ -5,7 +5,8 @@ import type { ProbeKind } from '@verris/database';
  * procent dostępności, zdarzenia bez nazw węzłów. Bez bazy, żeby dało się testować.
  */
 
-export type StanDnia = 'OK' | 'DEGRADED' | 'DOWN' | 'NO_DATA';
+/** MAINTENANCE — dzień z oknem planowanych prac, w którym nie było awarii. */
+export type StanDnia = 'OK' | 'DEGRADED' | 'DOWN' | 'NO_DATA' | 'MAINTENANCE';
 
 /**
  * Usługi widoczne klientom. SSH i DA_API to sondy wewnętrzne (węzeł / panel hostingowy),
@@ -20,6 +21,19 @@ export const USLUGI_PUBLICZNE: ReadonlyArray<{ key: string; name: string; kinds:
 
 export function uslugaDlaRodzaju(kind: ProbeKind) {
   return USLUGI_PUBLICZNE.find((u) => u.kinds.includes(kind)) ?? null;
+}
+
+/** Usługi platformy — sondy bez węzła, rozpoznawane po `ServiceProbe.grupa`. Na stronie statusu przed usługami węzłów. */
+export const USLUGI_PLATFORMY: ReadonlyArray<{ key: string; name: string }> = [
+  { key: 'panel', name: 'Panel klienta' },
+  { key: 'www', name: 'Strona verris.pl' },
+  { key: 'api', name: 'API' },
+];
+
+/** Usługa publiczna sondy: platformy po `grupa` (sonda bez węzła), węzła po rodzaju. null = sonda wewnętrzna. */
+export function uslugaSondy(p: { serverId: string | null; grupa: string | null; kind: ProbeKind }) {
+  if (p.serverId === null) return USLUGI_PLATFORMY.find((u) => u.key === p.grupa) ?? null;
+  return uslugaDlaRodzaju(p.kind);
 }
 
 /** Suma próbek z jednego dnia / godziny. `latencyWeighted` = Σ(avgLatencyMs × totalCount). */
@@ -111,10 +125,34 @@ export function godzinyWstecz(teraz: Date, n: number): string[] {
   return Array.from({ length: n }, (_, i) => new Date(koniec - (n - 1 - i) * 3_600_000).toISOString());
 }
 
-export function paskiDni(dni: string[], kubelki: Map<string, Kubelek>): DzienDto[] {
+/**
+ * Dzień z planowanymi pracami: działający albo spowolniony (prace zwykle spowalniają) dostaje stan MAINTENANCE.
+ * Awaria zostaje awarią — prace jej nie tłumaczą; brak danych zostaje brakiem danych.
+ */
+export function stanDniaZPracami(stan: StanDnia, prace: boolean): StanDnia {
+  return prace && (stan === 'OK' || stan === 'DEGRADED') ? 'MAINTENANCE' : stan;
+}
+
+/** Dni z listy `dni` (czas polski), w które trwało którekolwiek okno prac `[od, do)`. */
+export function dniPrac(okna: Array<{ od: Date; do: Date }>, dni: string[]): Set<string> {
+  const wynik = new Set<string>();
+  for (const o of okna) {
+    const pierwszy = dzienWarszawski(o.od);
+    const ostatni = dzienWarszawski(new Date(Math.max(o.od.getTime(), o.do.getTime() - 1)));
+    for (const d of dni) if (d >= pierwszy && d <= ostatni) wynik.add(d);
+  }
+  return wynik;
+}
+
+export function paskiDni(dni: string[], kubelki: Map<string, Kubelek>, prace: Set<string> = new Set()): DzienDto[] {
   return dni.map((date) => {
     const k = kubelki.get(date);
-    return { date, state: stanDnia(k), uptimePct: procentDostepnosci([k]), avgLatencyMs: sredniCzas(k) };
+    return {
+      date,
+      state: stanDniaZPracami(stanDnia(k), prace.has(date)),
+      uptimePct: procentDostepnosci([k]),
+      avgLatencyMs: sredniCzas(k),
+    };
   });
 }
 

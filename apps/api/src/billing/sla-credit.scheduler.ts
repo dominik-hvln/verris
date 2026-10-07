@@ -275,9 +275,11 @@ export class SlaCreditScheduler {
 
     const byServer = new Map<string, Interval[]>();
     for (const inc of incidents) {
-      const list = byServer.get(inc.probe.serverId) ?? [];
+      const serverId = inc.probe.serverId;
+      if (!serverId) continue; // zapytanie filtruje po węzłach — sonda platformy tu nie trafi
+      const list = byServer.get(serverId) ?? [];
       list.push({ start: inc.startedAt, end: inc.resolvedAt ?? inc.startedAt });
-      byServer.set(inc.probe.serverId, list);
+      byServer.set(serverId, list);
     }
     // Równoległe sondy tego samego serwera dają nakładające się incydenty —
     // bez scalenia liczylibyśmy ten sam przestój wielokrotnie.

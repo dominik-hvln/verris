@@ -11,10 +11,18 @@ import {
   Min,
 } from 'class-validator';
 import { ProbeKind, ProbeSeverity } from '@verris/database';
+import { USLUGI_PLATFORMY } from '../status-historia.js';
 
 export class CreateProbeDto {
+  /** Brak = sonda platformy (bez węzła) — wtedy wymagana `grupa`. */
+  @IsOptional()
   @IsUUID()
-  serverId!: string;
+  serverId?: string;
+
+  /** Usługa platformy na stronie statusu (tylko dla sondy bez węzła). */
+  @IsOptional()
+  @IsIn(USLUGI_PLATFORMY.map((u) => u.key))
+  grupa?: string;
 
   @IsEnum(ProbeKind)
   kind!: ProbeKind;

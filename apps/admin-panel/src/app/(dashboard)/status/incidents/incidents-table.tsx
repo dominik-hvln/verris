@@ -82,7 +82,7 @@ function IncidentRow({ incident }: { incident: IncidentDto }) {
     <tr className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] align-top">
       <td className="px-4 py-4">
         <div className="font-semibold text-white text-xs">
-          {incident.probe.server.name ?? incident.probe.server.id}
+          {incident.probe.server ? (incident.probe.server.name ?? incident.probe.server.id) : "Platforma"}
         </div>
         <div className="text-[11px] text-muted-foreground mt-1 font-mono">
           {incident.probe.kind} → {incident.probe.target}

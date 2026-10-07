@@ -119,8 +119,8 @@ export class ProbesAdminController {
       res.write(
         [
           row.id,
-          probe.server.id,
-          csv(probe.server.name ?? ''),
+          probe.server?.id ?? '',
+          csv(probe.server?.name ?? 'platforma'),
           probe.kind,
           csv(probe.target),
           row.severity,

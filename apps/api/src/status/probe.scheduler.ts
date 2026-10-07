@@ -9,7 +9,7 @@ const PROBE_BATCH_LIMIT = 200;
 
 /**
  * Server-side prober (H-2). Every 30 s walks every enabled probe whose server
- * is ACTIVE/MAINTENANCE and runs the matching protocol check. Each result is
+ * is ACTIVE/MAINTENANCE (or that has no server — platform probe) and runs the matching protocol check. Each result is
  * pushed through `ProbeIngestService`, which handles bucketed persistence and
  * the incident state machine.
  *
@@ -34,9 +34,11 @@ export class ProbeScheduler {
       const probes = await this.prisma.serviceProbe.findMany({
         where: {
           isEnabled: true,
-          server: {
-            status: { in: [ServerStatus.ACTIVE, ServerStatus.MAINTENANCE] },
-          },
+          // Sondy platformy (bez węzła: panel, www, API) biegną zawsze.
+          OR: [
+            { serverId: null },
+            { server: { status: { in: [ServerStatus.ACTIVE, ServerStatus.MAINTENANCE] } } },
+          ],
         },
         take: PROBE_BATCH_LIMIT,
         orderBy: { lastSampleAt: { sort: 'asc', nulls: 'first' } },

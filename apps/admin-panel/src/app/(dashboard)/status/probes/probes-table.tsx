@@ -13,6 +13,7 @@ import {
   type ServerSummary,
 } from "../actions";
 import { potwierdz } from "@/components/potwierdz";
+import { miejsceSondy } from "./platforma";
 import { Checkbox } from '@/components/checkbox';
 
 interface Props {
@@ -33,8 +34,6 @@ const KIND_LABELS: Record<ProbeKind, string> = {
 };
 
 export function ProbesTable({ probes, servers }: Props) {
-  const serverMap = new Map(servers.map((s) => [s.id, s.name ?? s.id] as const));
-
   if (probes.length === 0) {
     return (
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-10 text-center">
@@ -66,7 +65,7 @@ export function ProbesTable({ probes, servers }: Props) {
             <ProbeRow
               key={probe.id}
               probe={probe}
-              serverName={serverMap.get(probe.serverId) ?? probe.serverId}
+              serverName={miejsceSondy(probe, servers)}
             />
           ))}
         </tbody>
@@ -136,7 +135,9 @@ function ProbeRow({ probe, serverName }: { probe: ProbeDto; serverName: string }
     <tr className="border-b border-white/5 last:border-0 hover:bg-white/[0.02]">
       <td className="px-4 py-4 align-top">
         <div className="font-semibold text-white text-xs">{serverName}</div>
-        <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{probe.serverId.slice(0, 8)}…</div>
+        {probe.serverId ? (
+          <div className="text-[10px] text-muted-foreground font-mono mt-0.5">{probe.serverId.slice(0, 8)}…</div>
+        ) : null}
       </td>
       <td className="px-4 py-4 align-top">
         <span className="inline-flex items-center rounded-md border border-indigo-400/30 bg-indigo-400/10 px-2 py-0.5 text-[11px] font-bold text-indigo-200">

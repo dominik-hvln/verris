@@ -2517,8 +2517,11 @@ enum ProbeSeverity {
 model ServiceProbe {
   id             String         @id @default(uuid())
 
-  serverId       String
-  server         Server         @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  // null = sonda platformy (panel, www, API) — bez węzła; wtedy `grupa` mówi, gdzie ją pokazać.
+  serverId       String?
+  server         Server?        @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  // Usługa platformy na publicznej stronie statusu: 'panel' | 'www' | 'api' (USLUGI_PLATFORMY w apps/api/src/status).
+  grupa          String?
 
   kind           ProbeKind
   // Probe target — host:port for TCP, full URL for HTTP/S, hostname for DNS.
@@ -2550,6 +2553,7 @@ model ServiceProbe {
   samples        ProbeSample[]
   incidents      ProbeIncident[]
 
+  // Sondy platformy (serverId null) pilnuje częściowy indeks ServiceProbe_platforma_key (migracja sondy_platformy).
   @@unique([serverId, kind, target])
   @@index([serverId, kind])
   @@index([isEnabled, lastSampleAt])

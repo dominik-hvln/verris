@@ -20,7 +20,9 @@ export type IncidentStatus = "OPEN" | "RESOLVED";
 
 export interface ProbeDto {
   id: string;
-  serverId: string;
+  /** null = sonda platformy (bez węzła), wtedy `grupa` = panel | www | api. */
+  serverId: string | null;
+  grupa: string | null;
   kind: ProbeKind;
   target: string;
   label: string | null;
@@ -48,8 +50,9 @@ export interface IncidentDto {
     id: string;
     kind: ProbeKind;
     target: string;
-    serverId: string;
-    server: { id: string; name: string | null };
+    serverId: string | null;
+    grupa: string | null;
+    server: { id: string; name: string | null } | null;
   };
 }
 
@@ -65,7 +68,9 @@ export interface ServerSummary {
 }
 
 export interface CreateProbeInput {
-  serverId: string;
+  /** Brak = sonda platformy (bez węzła) — wtedy wymagana `grupa`. */
+  serverId?: string;
+  grupa?: string;
   kind: ProbeKind;
   target: string;
   label?: string;

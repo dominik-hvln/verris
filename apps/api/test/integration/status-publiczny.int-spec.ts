@@ -1,3 +1,4 @@
+import { ProbeScheduler } from '../../src/status/probe.scheduler.js';
 import { StatusService } from '../../src/status/status.service.js';
 import { dniWstecz, dzienWarszawski } from '../../src/status/status-historia.js';
 import { prisma, rozlacz, utworzWezel, wyczyscBaze } from './setup.js';
@@ -83,6 +84,71 @@ describe('GET /status — agregacja historii z próbek sond', () => {
 
     const json = JSON.stringify(r);
     for (const tajne of ['sekret', 'probe failing', 'SSH', 'DA_API', '2222', w.id]) expect(json).not.toContain(tajne);
+  });
+
+  it('sonda platformy bez węzła: własna usługa, dzień prac bez awarii, banner i automat jej nie gubią', async () => {
+    const w = await utworzWezel({ name: 'wezel-sekret-02' });
+    const p = prisma();
+    const panel = await p.serviceProbe.create({
+      data: { serverId: null, grupa: 'panel', kind: 'HTTPS', target: 'https://panel-sekret.example.net/', severity: 'MAJOR' },
+    });
+    const strony = await p.serviceProbe.create({
+      data: { serverId: w.id, kind: 'HTTPS', target: 'https://host-sekret.example.net/', severity: 'MAJOR' },
+    });
+    // Ta sama para (rodzaj, cel) bez węzła drugi raz — indeks częściowy nie pozwala na dubel.
+    await expect(
+      p.serviceProbe.create({ data: { serverId: null, grupa: 'panel', kind: 'HTTPS', target: 'https://panel-sekret.example.net/' } }),
+    ).rejects.toMatchObject({ code: 'P2002' });
+
+    for (const probeId of [panel.id, strony.id]) {
+      for (const n of [3, 2]) {
+        await p.probeSample.create({
+          data: { probeId, bucketStart: poludnie(n), totalCount: 2880, successCount: 2880, avgLatencyMs: 80, maxLatencyMs: 80 },
+        });
+      }
+    }
+    // Okno węzła 2 dni temu — dotyczy tylko „Stron klientów”, nie panelu.
+    await p.maintenanceWindow.create({
+      data: {
+        serverId: w.id, title: 'Prace na węźle', status: 'COMPLETED',
+        scheduledStart: poludnie(2), scheduledEnd: new Date(poludnie(2).getTime() + 3_600_000),
+        startedAt: poludnie(2), completedAt: new Date(poludnie(2).getTime() + 3_600_000),
+      },
+    });
+    // Odwołane okno nie maluje paska.
+    await p.maintenanceWindow.create({
+      data: { title: 'Odwołane', status: 'CANCELED', scheduledStart: poludnie(3), scheduledEnd: new Date(poludnie(3).getTime() + 3_600_000) },
+    });
+    await p.probeIncident.create({
+      data: { probeId: panel.id, severity: 'MAJOR', status: 'OPEN', title: 'HTTPS probe failing for https://panel-sekret.example.net/', detectionMeta: {} },
+    });
+
+    const status = new StatusService(p as never);
+    const r = await status.getPublicStatus();
+
+    expect(r.services.map((s) => s.name)).toEqual(['Panel klienta', 'Strony klientów']);
+    const [uPanel, uStrony] = r.services;
+    expect(uPanel.state).toBe('DOWN');
+    expect(uPanel.days[87].state).toBe('OK');
+    expect(uPanel.days[86].state).toBe('OK');
+    expect(uStrony.days[87].state).toBe('MAINTENANCE');
+    expect(uStrony.days[86].state).toBe('OK');
+    expect(r.activeIncidents).toEqual([expect.objectContaining({ service: 'Panel klienta' })]);
+    expect(JSON.stringify(r)).not.toContain('sekret');
+
+    // Banner klienta i karta klienta w adminie pytają po węzłach — incydent platformy ich nie wywraca.
+    expect(await status.findActiveIncidentForServer(w.id)).toBeNull();
+    expect(await status.findOpenIncidentsForServers([w.id])).toEqual([]);
+
+    // Automat sond bierze też sondę bez węzła.
+    const sprawdzone: string[] = [];
+    const scheduler = new ProbeScheduler(
+      p as never,
+      { run: async () => ({ ok: true, latencyMs: 5 }) } as never,
+      { ingestSample: async (id: string) => void sprawdzone.push(id) } as never,
+    );
+    await scheduler.tick();
+    expect(sprawdzone.sort()).toEqual([panel.id, strony.id].sort());
   });
 
   it('bez sond i bez próbek: pusta lista usług, null zamiast 100%', async () => {

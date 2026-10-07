@@ -10,7 +10,9 @@ import {
 import { PrismaService } from '../prisma/prisma.service.js';
 import { isManualIncident } from './probe-ingest.service.js';
 import {
+  USLUGI_PLATFORMY,
   USLUGI_PUBLICZNE,
+  dniPrac,
   dniWstecz,
   dzienWarszawski,
   godzinyWstecz,
@@ -20,7 +22,7 @@ import {
   scalPoKluczu,
   seriaGodzin,
   sredniCzas,
-  uslugaDlaRodzaju,
+  uslugaSondy,
   zbijDuplikaty,
   type DzienDto,
   type GodzinaDto,
@@ -197,9 +199,10 @@ export class StatusService {
       },
     });
 
-    return rows.map((i) => ({
+    // Zapytanie filtruje po serverId, więc sonda ma węzeł — sondy platformy tu nie trafiają.
+    return rows.flatMap((i) => (i.probe.server ? [{
       id: i.id,
-      serverId: i.probe.serverId,
+      serverId: i.probe.server.id,
       serverName: i.probe.server.name ?? i.probe.server.id,
       probeKind: i.probe.kind,
       probeTarget: i.probe.target,
@@ -207,7 +210,7 @@ export class StatusService {
       title: i.title,
       publicMessage: i.publicMessage,
       startedAt: i.startedAt.toISOString(),
-    }));
+    }] : []));
   }
 
   invalidate(): void {
@@ -220,17 +223,18 @@ export class StatusService {
     const teraz = new Date();
 
     // Publiczne są tylko sondy mapujące się na usługę dla klienta (SSH / DA_API zostają wewnętrzne).
+    // Sondy platformy (bez węzła) nie zależą od stanu żadnego węzła.
     const probes = (
       await this.prisma.serviceProbe.findMany({
         where: {
           isEnabled: true,
           isPublic: true,
-          server: { status: { in: [ServerStatus.ACTIVE, ServerStatus.MAINTENANCE] } },
+          OR: [{ serverId: null }, { server: { status: { in: [ServerStatus.ACTIVE, ServerStatus.MAINTENANCE] } } }],
         },
       })
-    ).filter((p) => uslugaDlaRodzaju(p.kind));
+    ).filter((p) => uslugaSondy(p));
     const probeIds = probes.map((p) => p.id);
-    const kluczUslugi = new Map(probes.map((p) => [p.id, uslugaDlaRodzaju(p.kind)!.key]));
+    const kluczUslugi = new Map(probes.map((p) => [p.id, uslugaSondy(p)!.key]));
 
     // Surowe kubełki 1-min zbijamy w SQL do dni (czas polski) i godzin — 90 dni × sondy to setki tysięcy wierszy.
     const [dzienne, godzinowe] = probeIds.length
@@ -269,12 +273,32 @@ export class StatusService {
       : [];
     const openByProbe = new Map(openIncidents.map((i) => [i.probeId, i]));
 
-    const services: PublicServiceDto[] = USLUGI_PUBLICZNE.flatMap((u) => {
-      const sondy = probes.filter((p) => uslugaDlaRodzaju(p.kind)?.key === u.key);
+    // Okna prac, które faktycznie trwały w ostatnich 90 dniach — dzień bez awarii dostaje na pasku stan „planowane prace”.
+    const oknaPrac = await this.prisma.maintenanceWindow.findMany({
+      where: {
+        status: { in: [MaintenanceWindowStatus.IN_PROGRESS, MaintenanceWindowStatus.COMPLETED] },
+        scheduledStart: { gte: new Date(teraz.getTime() - (HISTORIA_DNI + 2) * 86_400_000), lte: teraz },
+      },
+      select: { serverId: true, scheduledStart: true, scheduledEnd: true, startedAt: true, completedAt: true, status: true },
+    });
+
+    const services: PublicServiceDto[] = [...USLUGI_PLATFORMY, ...USLUGI_PUBLICZNE].flatMap((u) => {
+      const sondy = probes.filter((p) => kluczUslugi.get(p.id) === u.key);
       if (!sondy.length) return []; // pokazujemy tylko to, co realnie monitorujemy
       const dziennie = scalPoKluczu(poUsludze(dzienne, u.key));
       const godzinowo = scalPoKluczu(poUsludze(godzinowe, u.key));
-      const pasek = paskiDni(dni, dziennie);
+      // Okno globalne dotyczy każdej usługi, okno węzła — usług z sondami na tym węźle.
+      const wezly = new Set(sondy.map((p) => p.serverId));
+      const prace = dniPrac(
+        oknaPrac
+          .filter((o) => o.serverId === null || wezly.has(o.serverId))
+          .map((o) => ({
+            od: o.startedAt ?? o.scheduledStart,
+            do: o.completedAt ?? (o.status === MaintenanceWindowStatus.IN_PROGRESS ? teraz : o.scheduledEnd),
+          })),
+        dni,
+      );
+      const pasek = paskiDni(dni, dziennie, prace);
       return [
         {
           key: u.key,
@@ -352,7 +376,7 @@ function aggregateState(probes: { state: string }[]): 'OK' | 'DEGRADED' | 'DOWN'
 }
 
 function toPublicIncidentDto(incident: ProbeIncident & { probe: ServiceProbe }): PublicIncidentDto {
-  const usluga = uslugaDlaRodzaju(incident.probe.kind)?.name ?? 'Usługi';
+  const usluga = uslugaSondy(incident.probe)?.name ?? 'Usługi';
   const ended = incident.resolvedAt ?? null;
   return {
     id: incident.id,

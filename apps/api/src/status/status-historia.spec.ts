@@ -1,11 +1,14 @@
 import {
+  dniPrac,
   dniWstecz,
   godzinyWstecz,
   paskiDni,
   procentDostepnosci,
   scalPoKluczu,
   stanDnia,
+  stanDniaZPracami,
   uslugaDlaRodzaju,
+  uslugaSondy,
   zbijDuplikaty,
   type ZdarzenieDto,
 } from './status-historia.js';
@@ -107,5 +110,49 @@ describe('status — zdarzenia dla klienta', () => {
     expect(w).toHaveLength(3);
     expect(w.find((x) => x.service === 'Strony klientów' && x.status === 'OPEN')).toBeTruthy();
     expect(w.filter((x) => x.service === 'Strony klientów')).toHaveLength(2);
+  });
+});
+
+describe('status — sondy platformy i planowane prace', () => {
+  it('sonda bez węzła trafia do usługi platformy po grupie; z węzłem — po rodzaju', () => {
+    expect(uslugaSondy({ serverId: null, grupa: 'panel', kind: 'HTTPS' })?.name).toBe('Panel klienta');
+    expect(uslugaSondy({ serverId: null, grupa: 'www', kind: 'HTTPS' })?.name).toBe('Strona verris.pl');
+    expect(uslugaSondy({ serverId: null, grupa: 'api', kind: 'HTTP' })?.name).toBe('API');
+    // grupa na sondzie węzła nie przenosi jej do platformy; nieznana grupa = sonda wewnętrzna
+    expect(uslugaSondy({ serverId: 's1', grupa: 'panel', kind: 'HTTPS' })?.name).toBe('Strony klientów');
+    expect(uslugaSondy({ serverId: null, grupa: null, kind: 'HTTPS' })).toBeNull();
+    expect(uslugaSondy({ serverId: null, grupa: 'xyz', kind: 'HTTPS' })).toBeNull();
+  });
+
+  it('stan dnia z pracami: działa/spowolnienie → prace, awaria i brak danych bez zmian', () => {
+    expect(stanDniaZPracami('OK', true)).toBe('MAINTENANCE');
+    expect(stanDniaZPracami('DEGRADED', true)).toBe('MAINTENANCE');
+    expect(stanDniaZPracami('DOWN', true)).toBe('DOWN');
+    expect(stanDniaZPracami('NO_DATA', true)).toBe('NO_DATA');
+    expect(stanDniaZPracami('OK', false)).toBe('OK');
+  });
+
+  it('dniPrac liczy dni czasu polskiego, a okno do północy nie zahacza o następny dzień', () => {
+    const dni = ['2026-10-04', '2026-10-05', '2026-10-06', '2026-10-07'];
+    // 23:30–00:30 czasu polskiego (CEST = UTC+2) → dwa dni
+    expect([...dniPrac([{ od: new Date('2026-10-04T21:30:00Z'), do: new Date('2026-10-04T22:30:00Z') }], dni)]).toEqual([
+      '2026-10-04',
+      '2026-10-05',
+    ]);
+    // kończy się równo o północy polskiej → tylko 6.10
+    expect([...dniPrac([{ od: new Date('2026-10-06T20:00:00Z'), do: new Date('2026-10-06T22:00:00Z') }], dni)]).toEqual([
+      '2026-10-06',
+    ]);
+  });
+
+  it('pasek dni: dzień prac bez awarii ma stan MAINTENANCE, dzień prac z awarią zostaje awarią', () => {
+    const m = new Map([
+      ['2026-10-05', k(1000, 1000)],
+      ['2026-10-06', k(1000, 900)],
+      ['2026-10-07', k(1000, 1000)],
+    ]);
+    const pasek = paskiDni(['2026-10-05', '2026-10-06', '2026-10-07'], m, new Set(['2026-10-05', '2026-10-06']));
+    expect(pasek.map((d) => d.state)).toEqual(['MAINTENANCE', 'DOWN', 'OK']);
+    expect(pasek[0].uptimePct).toBe(100);
   });
 });

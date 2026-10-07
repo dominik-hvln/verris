@@ -11,6 +11,10 @@ import {
   type ServerSummary,
 } from "../actions";
 import { Checkbox } from '@/components/checkbox';
+import { GRUPY_PLATFORMY } from "./platforma";
+
+/** Wartość listy „Serwer” dla sondy bez węzła (panel, www, API). */
+const PLATFORMA = "platforma";
 
 interface Props {
   servers: ServerSummary[];
@@ -43,7 +47,8 @@ const KIND_DEFAULT_SEVERITY: Record<ProbeKind, ProbeSeverity> = {
 export function CreateProbeForm({ servers }: Props) {
   const probeFieldId = useId();
   const router = useRouter();
-  const [serverId, setServerId] = useState<string>(servers[0]?.id ?? "");
+  const [serverId, setServerId] = useState<string>(servers[0]?.id ?? PLATFORMA);
+  const [grupa, setGrupa] = useState<string>("panel");
   const [kind, setKind] = useState<ProbeKind>("HTTPS");
   const [target, setTarget] = useState("");
   const [label, setLabel] = useState("");
@@ -74,9 +79,11 @@ export function CreateProbeForm({ servers }: Props) {
       setError("SLA musi być liczbą 0–100");
       return;
     }
+    const platforma = serverId === PLATFORMA;
     startTransition(async () => {
       const res = await createProbe({
-        serverId,
+        serverId: platforma ? undefined : serverId,
+        grupa: platforma ? grupa : undefined,
         kind,
         target: target.trim(),
         label: label.trim() || undefined,
@@ -107,7 +114,7 @@ export function CreateProbeForm({ servers }: Props) {
 
       {servers.length === 0 ? (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-          Brak serwerów. Najpierw zarejestruj serwer w sekcji „Węzły”.
+          Brak serwerów — można dodać tylko monitor platformy (bez węzła).
         </div>
       ) : null}
 
@@ -117,12 +124,27 @@ export function CreateProbeForm({ servers }: Props) {
           value={serverId}
           onChange={setServerId}
           className="w-full rounded-md bg-black/60 border border-white/10 px-2 py-2 text-white text-sm"
-          options={servers.map((s) => ({
-            value: s.id,
-            label: `${s.name ?? s.id}${s.region ? ` (${s.region})` : ""}`,
-          }))}
+          options={[
+            ...servers.map((s) => ({
+              value: s.id,
+              label: `${s.name ?? s.id}${s.region ? ` (${s.region})` : ""}`,
+            })),
+            { value: PLATFORMA, label: "Platforma (bez węzła)" },
+          ]}
         />
       </Field>
+
+      {serverId === PLATFORMA ? (
+        <Field label="Usługa na stronie statusu" htmlFor={`${probeFieldId}-grupa`}>
+          <Select
+            id={`${probeFieldId}-grupa`}
+            value={grupa}
+            onChange={setGrupa}
+            className="w-full rounded-md bg-black/60 border border-white/10 px-2 py-2 text-white text-sm"
+            options={Object.entries(GRUPY_PLATFORMY).map(([value, label]) => ({ value, label }))}
+          />
+        </Field>
+      ) : null}
 
       <Field label="Typ monitora" htmlFor={`${probeFieldId}-kind`}>
         <Select
@@ -205,7 +227,7 @@ export function CreateProbeForm({ servers }: Props) {
 
       <button
         type="submit"
-        disabled={pending || servers.length === 0}
+        disabled={pending}
         className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-400/40 px-3 py-2.5 text-sm font-bold text-indigo-200 disabled:opacity-50"
       >
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}

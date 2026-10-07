@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Megaphone } from "lucide-react";
 import { composeIncident, type ProbeDto, type ProbeSeverity, type ServerSummary } from "../actions";
 import { potwierdz } from "@/components/potwierdz";
+import { miejsceSondy } from "../probes/platforma";
 
 /**
  * N-07 — ogłoszenie awarii na status page, gdy monitoring jej nie widzi
@@ -22,7 +23,6 @@ export function IncidentCompose({ probes, servers }: { probes: ProbeDto[]; serve
   const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const serverName = (id: string) => servers.find((s) => s.id === id)?.name ?? id.slice(0, 8);
 
   if (!open) {
     return (
@@ -75,7 +75,7 @@ export function IncidentCompose({ probes, servers }: { probes: ProbeDto[]; serve
                 className="w-full rounded-md border border-white/10 bg-black/60 px-2 py-2 text-white"
                 options={probes.map((p) => ({
                   value: p.id,
-                  label: `${serverName(p.serverId)} · ${p.label ?? `${p.kind} → ${p.target}`}`,
+                  label: `${miejsceSondy(p, servers)} · ${p.label ?? `${p.kind} → ${p.target}`}`,
                 }))}
               />
             </div>

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
@@ -38,13 +39,18 @@ export class ProbesAdminService {
   }
 
   async create(dto: CreateProbeDto, actorUserId: string): Promise<ServiceProbe> {
-    const server = await this.prisma.server.findUnique({ where: { id: dto.serverId } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (dto.serverId) {
+      const server = await this.prisma.server.findUnique({ where: { id: dto.serverId } });
+      if (!server) throw new NotFoundException('Server not found');
+    } else if (!dto.grupa) {
+      throw new BadRequestException('Sonda platformy (bez węzła) wymaga grupy: panel, www albo api.');
+    }
 
     try {
       const probe = await this.prisma.serviceProbe.create({
         data: {
-          serverId: dto.serverId,
+          serverId: dto.serverId ?? null,
+          grupa: dto.serverId ? null : dto.grupa,
           kind: dto.kind,
           target: dto.target,
           label: dto.label ?? null,
@@ -171,7 +177,7 @@ export class ProbesAdminService {
   }): Promise<
     AsyncIterable<
       ProbeIncident & {
-        probe: ServiceProbe & { server: { id: string; name: string | null } };
+        probe: ServiceProbe & { server: { id: string; name: string | null } | null };
       }
     >
   > {

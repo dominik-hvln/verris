@@ -532,7 +532,7 @@ export class ProductOpsAdminController {
       incidentId: incident.id,
       probeId: probe.id,
       serverId: probe.serverId,
-      serverName: probe.server.name,
+      serverName: probe.server?.name ?? null,
       severity: incident.severity,
       title: incident.title,
       publicMessage: incident.publicMessage,

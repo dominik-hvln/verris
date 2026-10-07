@@ -39,8 +39,8 @@ export default async function StatusProbesPage() {
         <div className="flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
           <AlertCircle className="h-4 w-4" />
           <span>
-            Nie udało się pobrać listy serwerów: {serversResult.error}. Bez serwerów nie da się
-            dodać nowego monitora.
+            Nie udało się pobrać listy serwerów: {serversResult.error}. Bez listy można dodać
+            tylko monitor platformy (bez węzła).
           </span>
         </div>
       )}
