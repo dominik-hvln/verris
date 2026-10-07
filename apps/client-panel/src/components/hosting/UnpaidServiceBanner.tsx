@@ -51,7 +51,7 @@ export function UnpaidServiceBanner({
 
   const confirmTitle = isPending ? 'Anulować zamówienie?' : 'Anulować usługę?';
   const confirmDescription = isPending
-    ? 'Zamówienie zniknie z listy usług. Nie zostało jeszcze opłacone — konto hostingowe nie zostanie utworzone. Możesz zamówić usługę ponownie w dowolnym momencie.'
+    ? 'Zamówienie zniknie z listy usług. Nie zostało jeszcze opłacone — usługa nie zostanie uruchomiona. Możesz zamówić usługę ponownie w dowolnym momencie.'
     : 'Usługa zostanie anulowana. Jeśli masz aktywne konto hostingowe, zostanie zawieszone. Tej operacji nie cofniesz z poziomu panelu — w razie wątpliwości skontaktuj się z pomocą.';
 
   const onRetryPayment = () => {
@@ -106,7 +106,7 @@ export function UnpaidServiceBanner({
         </p>
         <p className="mt-1 text-xs text-warn">
           {isPending
-            ? 'Dokończ płatność lub anuluj zamówienie. Nieopłacone zamówienia bez konta hostingowego są usuwane automatycznie po 48 godzinach.'
+            ? 'Dokończ płatność lub anuluj zamówienie. Nieopłacone zamówienia, dla których nie założyliśmy jeszcze konta, są usuwane automatycznie po 48 godzinach.'
             : zawieszona
               ? `Odwiedzający widzą komunikat o zawieszeniu strony. Pliki, bazy i poczta są nietknięte. ${
                   isStripe
@@ -185,7 +185,7 @@ export function UnpaidServiceBanner({
           <AlertTriangle className="h-5 w-5 shrink-0 text-warn" aria-hidden />
           <p>
             {isPending
-              ? 'Po anulowaniu nie będziesz mógł dokończyć tej samej płatności — utwórz nowe zamówienie, jeśli nadal chcesz hosting.'
+              ? 'Po anulowaniu nie będziesz mógł dokończyć tej samej płatności — utwórz nowe zamówienie, jeśli nadal chcesz tę usługę.'
               : 'Upewnij się, że rozliczyłeś zaległość, zanim anulujesz — inaczej stracisz dostęp do usługi.'}
           </p>
         </div>
