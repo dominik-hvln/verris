@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Headers, HttpCode, NotFoundException, Post, Req, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Controller, Headers, HttpCode, Logger, NotFoundException, Post, Req, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 import { createHmac, timingSafeEqual } from 'crypto';
@@ -28,6 +28,8 @@ export function sprawdzWebhookOp(o: { raw: Buffer; auth?: string; podpis?: strin
 /** Bez logowania — autentyczność: klucz + podpis; na Caddy dodatkowo tylko adresy OpenProvidera. */
 @Controller('webhooks')
 export class OpenproviderWebhookController {
+  private readonly logger = new Logger(OpenproviderWebhookController.name);
+
   constructor(
     private readonly config: ConfigService,
     private readonly registrar: DomainRegistrarService,
@@ -42,9 +44,19 @@ export class OpenproviderWebhookController {
   ): Promise<{ ok: true }> {
     const apiKey = this.config.get<string>('OPENPROVIDER_WEBHOOK_API_KEY');
     const secret = this.config.get<string>('OPENPROVIDER_WEBHOOK_SECRET');
-    if (!apiKey || !secret) throw new NotFoundException();
+    if (!apiKey || !secret) {
+      this.logger.warn('webhook OpenProvidera: brak OPENPROVIDER_WEBHOOK_API_KEY/SECRET w konfiguracji → 404');
+      throw new NotFoundException();
+    }
     const raw = req.rawBody ?? Buffer.alloc(0);
-    if (!sprawdzWebhookOp({ raw, auth, podpis, apiKey, secret })) throw new UnauthorizedException();
+    if (!sprawdzWebhookOp({ raw, auth, podpis, apiKey, secret })) {
+      // Bez wartości nagłówków — tylko czy są i jaki mają kształt (07.10: test z panelu OP „not delivered”).
+      this.logger.warn(
+        `webhook OpenProvidera odrzucony (401): authorization=${auth ? (auth.startsWith('Bearer ') ? 'Bearer …' : 'inny format') : 'brak'}, ` +
+          `x-webhook-signature=${podpis ? (/t=\d+,\s*v1=[0-9a-f]+/i.test(podpis) ? 't=…,v1=…' : 'inny format') : 'brak'}`,
+      );
+      throw new UnauthorizedException();
+    }
     let ev: ZdarzenieOp;
     try {
       ev = JSON.parse(raw.toString('utf8')) as ZdarzenieOp;
