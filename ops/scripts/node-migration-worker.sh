@@ -211,6 +211,11 @@ bwlimit_to_bytes() {
 
 SSH_OPTS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=20 -o PreferredAuthentications=password -o PubkeyAuthentication=no)
 
+# Z-09 — adres do połączenia: IP rozwiązane i sprawdzone raz (vg_pin_public), nie nazwa, którą
+# narzędzie rozwiązałoby ponownie (DNS-rebinding na adres prywatny). IPv6 w nawiasach (URL, rsync).
+pin_host() { vg_pin_public "$1"; }
+w_nawiasach() { [[ "$1" == *:* ]] && printf '[%s]' "$1" || printf '%s' "$1"; }
+
 MIG_USER="${VERRIS_MIG_USER:-verris-mig}"
 MIG_HOME="${VERRIS_MIG_HOME:-/var/lib/verris-mig}"
 
@@ -291,6 +296,7 @@ run_files() {
   vg_require protocol "$proto" "source.protocol" 2>>"$logfile" || return 2
   vg_require path "$spath" "source.remotePath" 2>>"$logfile" || return 2
   vg_require account "$user" "target.accountUsername" 2>>"$logfile" || return 2
+  local hip; hip=$(pin_host "$host") || { echo "odrzucone pole migracji 'source.host': host nie rozwiązuje się albo wskazuje na sieć prywatną/lokalną" >>"$logfile"; return 2; }
   dst=$(docroot_for "$user" "$domain")
   [[ "$dst" == "/home/${user}/"* ]] || { echo "nieoczekiwana ścieżka docelowa" >>"$logfile"; return 2; }
   id -u "$user" >/dev/null 2>&1 || { echo "konto ${user} nie istnieje na węźle" >>"$logfile"; return 2; }
@@ -323,7 +329,7 @@ run_files() {
         --exclude '.cache' --exclude 'tmp/' \
         --timeout=120 --info=stats2 "${rsync_bw[@]}" \
         -e "ssh ${SSH_OPTS[*]} -p ${port}" \
-        "${suser}@${host}:${spath%/}/" "${stage}/" >>"$logfile" 2>&1; then
+        "${suser}@$(w_nawiasach "$hip"):${spath%/}/" "${stage}/" >>"$logfile" 2>&1; then
       transferred=true
     else
       echo "== rsync failed (brak shella na źródle?) — fallback lftp mirror" >>"$logfile"
@@ -344,7 +350,7 @@ run_files() {
       -e "set sftp:auto-confirm yes; set net:max-retries 3; set net:timeout 30; \
           set ssl:verify-certificate no; ${lftp_bw} ${ssl_setting} \
           mirror --continue --parallel=4 --verbose '${spath}' '${stage}'; bye" \
-      "${proto}://${host}:${port}" >>"$logfile" 2>&1 </dev/null; then
+      "${proto}://$(w_nawiasach "$hip"):${port}" >>"$logfile" 2>&1 </dev/null; then
       transferred=true
     fi
   fi
@@ -533,6 +539,7 @@ mysql_przez_php() {
   zdalny=$(jako_mig cat "${MIG_HOME}/stage/${user}/${domain}.zrodlo" 2>/dev/null | head -1) \
     || zdalny=$(jq -r '.ftpFallback.remotePath // "/"' <<<"$job")
   vg_require path "$zdalny" katalog_strony_zrodla 2>>"$logfile" || return 1
+  local fip; fip=$(pin_host "$host") || return 1
 
   local nazwa token; nazwa="verris-export-$(openssl rand -hex 12).php"; token=$(openssl rand -hex 32)
   ( umask 077
@@ -597,7 +604,7 @@ PHP
   lftp_zrodlo() {
     jako_mig_env LFTP_PASSWORD "$fpf" lftp --env-password -u "$fuser" \
       -e "set sftp:auto-confirm yes; set net:max-retries 2; set net:timeout 30; set ssl:verify-certificate no; ${ssl_setting} $1; bye" \
-      "${proto}://${host}:${port}" </dev/null
+      "${proto}://$(w_nawiasach "$fip"):${port}" </dev/null
   }
   echo "== eksport bazy przez PHP: wgrywam jednorazowy skrypt do katalogu strony na źródle" >>"$logfile"
   lftp_zrodlo "put '$sek/$nazwa' -o '${cel}'" >>"$logfile" 2>&1 || { echo "== nie udało się wgrać skryptu eksportu" >>"$logfile"; return 1; }
@@ -668,6 +675,7 @@ run_mysql() {
   [ -n "$suser" ] && [ -n "$spass" ] || { echo "brak loginu/hasła bazy ${sdb}" >>"$logfile"; return 2; }
   vg_require host "$shost" source.host 2>>"$logfile" || return 2
   vg_require publichost "$shost" source.host 2>>"$logfile" || return 2
+  local ship; ship=$(pin_host "$shost") || { echo "odrzucone pole migracji 'source.host': host nie rozwiązuje się albo wskazuje na sieć prywatną/lokalną" >>"$logfile"; return 2; }
   vg_require port "$sport" source.port 2>>"$logfile" || return 2
   vg_require username "$suser" source.username 2>>"$logfile" || return 2
   vg_require host "$dbhost" DB_HOST 2>>"$logfile" || return 2
@@ -704,7 +712,7 @@ SQL
   mysqldump --help 2>/dev/null | grep -q -- '--set-gtid-purged' && gtid=(--set-gtid-purged=OFF)
   if jako_mig_env MYSQL_PWD "$src_pf" mysqldump --single-transaction --quick --routines --triggers \
       --no-tablespaces --hex-blob "${gtid[@]}" \
-      -h "$shost" -P "$sport" -u "$suser" "$sdb" 2>>"$logfile" \
+      -h "$ship" -P "$sport" -u "$suser" "$sdb" 2>>"$logfile" \
       | oczysc_zrzut | "${importuj[@]}" 2>>"$logfile"; then
     dumped=true
     remote_reachable=true
@@ -718,7 +726,8 @@ SQL
     sshport=$(jq -r '.sshFallback.port // empty' <<<"$job")
     sshuser=$(jq -r '.sshFallback.username // empty' <<<"$job")
     sshpass_=$(jq -r '.sshFallback.password // empty' <<<"$job")
-    if [ -n "$sshhost" ] && ! vg_require publichost "$sshhost" sshFallback.host 2>>"$logfile"; then
+    local sship=""
+    if [ -n "$sshhost" ] && { ! vg_require publichost "$sshhost" sshFallback.host 2>>"$logfile" || ! sship=$(pin_host "$sshhost"); }; then
       sshhost=""
     fi
     if [ -n "$sshhost" ] && command -v sshpass >/dev/null 2>&1; then
@@ -727,7 +736,7 @@ SQL
       # Hasło MySQL źródła idzie do zdalnej powłoki przez stdin (pierwsza linia), nie w poleceniu —
       # wcześniej było w argv lokalnego ssh, widoczne w `ps` dla wszystkich kont węzła.
       # shellcheck disable=SC2029
-      if { cat "$src_pf"; echo; } | jako_mig_env SSHPASS "$ssh_pf" sshpass -e ssh "${SSH_OPTS[@]}" -p "$sshport" "${sshuser}@${sshhost}" \
+      if { cat "$src_pf"; echo; } | jako_mig_env SSHPASS "$ssh_pf" sshpass -e ssh "${SSH_OPTS[@]}" -p "$sshport" "${sshuser}@${sship}" \
           "IFS= read -r MYSQL_PWD; export MYSQL_PWD; exec mysqldump --single-transaction --quick --routines --triggers --no-tablespaces --hex-blob -h $(printf %q "$dbhost") ${dbport:+-P $dbport} -u $(printf %q "$suser") $(printf %q "$sdb")" \
           2>>"$logfile" | oczysc_zrzut | "${importuj[@]}" 2>>"$logfile"; then
         dumped=true
@@ -756,7 +765,7 @@ SQL
     "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${tdb}' AND table_type='BASE TABLE';" 2>/dev/null || echo 0)
   tgt_rows=$(mysql_row_total "$tdb" mysql --protocol=socket 2>/dev/null || echo 0)
   if [ "$remote_reachable" = true ]; then
-    src_rows=$(mysql_row_total "$sdb" jako_mig_env MYSQL_PWD "$src_pf" mysql -h "$shost" -P "$sport" -u "$suser" 2>/dev/null || echo null)
+    src_rows=$(mysql_row_total "$sdb" jako_mig_env MYSQL_PWD "$src_pf" mysql -h "$ship" -P "$sport" -u "$suser" 2>/dev/null || echo null)
     [ "$src_rows" != "null" ] && { [ "${src_rows:-0}" -eq "${tgt_rows:-0}" ] 2>/dev/null && match=true || match=false; }
   fi
   jq -nc \
@@ -786,6 +795,7 @@ run_imap() {
   # zatrzymały się na wejściu, a nie w połowie transferu.
   vg_check_source "$job" "$logfile" || return 2
   vg_require email "$email" "source.email" 2>>"$logfile" || return 2
+  local ship; ship=$(pin_host "$shost") || { echo "odrzucone pole migracji 'source.host': host nie rozwiązuje się albo wskazuje na sieć prywatną/lokalną" >>"$logfile"; return 2; }
 
   # Master-user login to the local dovecot (configured during node bootstrap).
   local master_user="${VERRIS_DOVECOT_MASTER_USER:-}" master_pass="${VERRIS_DOVECOT_MASTER_PASS:-}"
@@ -794,6 +804,9 @@ run_imap() {
 
   local tls1=()
   [ "$sport" = "993" ] && tls1=(--ssl1) || tls1=(--tls1)
+  # Łączymy się z przypiętym IP; nazwa idzie jako SNI (IO::Socket::SSL SSL_hostname przez --sslargs1,
+  # https://imapsync.lamiral.info/README) — serwery z wieloma certyfikatami podają właściwy.
+  [[ "$shost" == "$ship" ]] || tls1+=(--sslargs1 "SSL_hostname=${shost}")
 
   # imapsync jako verris-mig, hasła przez --passfile (nie w argv).
   # ponytail: hasło mastera dovecota trafia do procesu verris-mig — przejęcie imapsync przez złośliwy
@@ -803,7 +816,7 @@ run_imap() {
   local sek; sek=$(katalog_sekretow)
   local pf1 pf2; pf1=$(plik_sekretu "$sek" imap1 "$spass"); pf2=$(plik_sekretu "$sek" imap2 "$master_pass")
   jako_mig imapsync \
-    --host1 "$shost" --port1 "$sport" --user1 "$suser" --passfile1 "$pf1" "${tls1[@]}" \
+    --host1 "$ship" --port1 "$sport" --user1 "$suser" --passfile1 "$pf1" "${tls1[@]}" \
     --host2 127.0.0.1 --port2 143 --user2 "$email" \
     --authuser2 "$master_user" --passfile2 "$pf2" --authmech2 PLAIN \
     --no-modulesversion --automap --skipcrossduplicates \

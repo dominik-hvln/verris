@@ -241,6 +241,34 @@ describe('Z-09 — guard węzła odrzuca hosty prywatne i lokalne', () => {
 
   it.each(['8.8.8.8', '185.12.64.1', '2001:4860:4860::8888'])('przepuszcza publiczny %s', (v) => expect(przepuszcza(v)).toBe(true));
 
+  // Z-09 (07.10): sprawdzenie nazwy i połączenie po nazwie to dwa zapytania DNS — narzędzia łączą się
+  // teraz z adresem z jednego, sprawdzonego rozwiązania (vg_pin_public), nie z nazwą.
+  const pin = (v: string) => {
+    try {
+      return execFileSync('bash', [GUARD, 'pin', v], { stdio: 'pipe' }).toString().trim();
+    } catch {
+      return null;
+    }
+  };
+  it.each(['127.0.0.1', 'localhost', '10.1.2.3', '::1'])('pin odrzuca %s', (v) => expect(pin(v)).toBeNull());
+  it.each(['8.8.8.8', '2001:4860:4860::8888'])('pin zwraca sprawdzony adres %s', (v) => expect(pin(v)).toBe(v));
+
+  it('worker łączy się z przypiętym IP (rsync, lftp, mysqldump, ssh, imapsync), nie z nazwą', () => {
+    const z = readFileSync(WORKER, 'utf8');
+    for (const fragment of [
+      '"${suser}@$(w_nawiasach "$hip"):${spath%/}/"',
+      '"${proto}://$(w_nawiasach "$hip"):${port}"',
+      '"${proto}://$(w_nawiasach "$fip"):${port}"',
+      '-h "$ship" -P "$sport" -u "$suser" "$sdb"',
+      '"${sshuser}@${sship}"',
+      '--host1 "$ship"',
+      'SSL_hostname=${shost}',
+    ]) expect(z).toContain(fragment);
+    for (const zle of ['"${suser}@${host}:', '"${proto}://${host}:${port}"', '-h "$shost"', '--host1 "$shost"', '"${sshuser}@${sshhost}"']) {
+      expect(z).not.toContain(zle);
+    }
+  });
+
   it('worker sprawdza publiczność hosta źródła i hosta SSH przed połączeniem', () => {
     const zrodlo = readFileSync(WORKER, 'utf8');
     expect(zrodlo).toContain("vg_require publichost \"$(jq -r '.source.host // empty' <<<\"$job\")\" source.host");

@@ -141,6 +141,21 @@ vg_is_public_host() {
   return 0
 }
 
+# Z-09 (07.10) — host rozwiązany RAZ i sprawdzony: wypisuje jeden publiczny adres (IPv4, jeśli jest),
+# z którym narzędzia mają się łączyć. Sprawdzenie nazwy i późniejsze połączenie po nazwie to dwa
+# zapytania DNS — złośliwy DNS mógł w drugim podać adres prywatny (DNS-rebinding). Każdy adres
+# z odpowiedzi musi być publiczny; adres IP w polu wraca bez zmian (po sprawdzeniu). 1 = odmowa.
+vg_pin_public() {
+  local host="$1" adresy ip
+  vg_is_public_host "$host" || return 1
+  if [[ "$host" =~ ^[0-9.]+$ || "$host" == *:* ]]; then printf '%s\n' "$host"; return 0; fi
+  adresy=$(getent ahosts "$host" 2>/dev/null | awk '{print $1}' | sort -u)
+  [ -n "$adresy" ] || return 1
+  for ip in $adresy; do vg_ip_prywatny "$ip" && return 1; done
+  ip=$(grep -m1 -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' <<<"$adresy" || head -n1 <<<"$adresy")
+  printf '%s\n' "$ip"
+}
+
 # vg_require <typ> <wartość> [<etykieta do logu>]
 # Zwraca 0 gdy wartość przechodzi walidację; w przeciwnym razie wypisuje na
 # stderr komunikat BEZ samej wartości (mogłaby zawierać sekret albo ładunek,
@@ -169,6 +184,10 @@ vg_require() {
 
 # Tryb CLI — używany przez testy. Nie uruchamia się przy `source`.
 if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+  if [ "${1:-}" = "pin" ] && [ "$#" -ge 2 ]; then
+    vg_pin_public "$2"
+    exit $?
+  fi
   if [ "${1:-}" = "check" ] && [ "$#" -ge 2 ]; then
     vg_require "$2" "${3-}" >/dev/null 2>&1
     exit $?
