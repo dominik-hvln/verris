@@ -384,7 +384,7 @@ export default function ServiceOverviewTab({
             <dd className="text-foreground">{service.plan.name}</dd>
             <dt className="text-muted-foreground">Cena</dt>
             <dd className="text-foreground">
-              {liczba(Number(service.priceAmount), 2)} {service.currency}
+              {liczba(Number(service.renewalAmount ?? service.priceAmount), 2)} {service.currency}
               {service.interval === 'MONTH' ? ' / mies.' : ' / rok'}
             </dd>
             {periodEnd ? (

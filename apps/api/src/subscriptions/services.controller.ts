@@ -126,6 +126,7 @@ import {
   WersjaPhpDto,
   ZadanieDeployDto,
 } from './dto/hosting-body.dto.js';
+import { PromoService } from '../billing/promo.service.js';
 
 /**
  * Customer-facing "services" view — denormalized projection over Subscription
@@ -173,6 +174,7 @@ export class UserServicesController {
     private readonly migrationDiscovery: MigrationDiscoveryService,
     private readonly migrationPreflight: MigrationPreflightService,
     private readonly migrationCutover: MigrationCutoverService,
+    private readonly promo: PromoService,
   ) {}
 
   // PERF-1 — bardzo lekki endpoint zwracający tylko typ usługi (productKind).
@@ -396,7 +398,10 @@ export class UserServicesController {
       },
     });
 
-    return subs.map((s) => ({
+    // Kwota najbliższego odnowienia (to samo źródło co scheduler i mail przypominający) — lista pokazywała
+    // ostatnią opłatę, czyli cenę z rabatem na start, choć odnowienie idzie pełną (t1 07.10).
+    const odnowienia = await Promise.all(subs.map((s) => this.promo.resolveNextRenewalAmount(s)));
+    return subs.map((s, i) => ({
       id: s.id,
       status: s.status,
       serviceTag: s.serviceTag ?? s.account?.daUsername ?? null,
@@ -405,6 +410,7 @@ export class UserServicesController {
       planName: s.plan.name,
       interval: s.interval,
       priceAmount: s.priceAmount.toString(),
+      renewalAmount: odnowienia[i].toFixed(2),
       currency: s.currency,
       currentPeriodEnd: s.currentPeriodEnd?.toISOString() ?? null,
       ecoModeEnabled: s.ecoModeEnabled,
@@ -1829,6 +1835,7 @@ export class UserServicesController {
       interval: sub.interval,
       paymentSource: sub.paymentSource,
       priceAmount: sub.priceAmount.toString(),
+      renewalAmount: (await this.promo.resolveNextRenewalAmount(sub)).toFixed(2),
       currency: sub.currency,
       currentPeriodStart: sub.currentPeriodStart?.toISOString() ?? null,
       currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,

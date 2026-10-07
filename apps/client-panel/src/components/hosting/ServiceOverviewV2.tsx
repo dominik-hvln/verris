@@ -270,7 +270,7 @@ export default function ServiceOverviewV2({
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <Label>
-            Usługa{service.currentPeriodEnd ? ` · odnawia się ${date(service.currentPeriodEnd)}` : ''} · {money(service.priceAmount, service.currency)} {perMonth}
+            Usługa{service.currentPeriodEnd ? ` · odnawia się ${date(service.currentPeriodEnd)}` : ''} · {money(service.renewalAmount ?? service.priceAmount, service.currency)} {perMonth}
           </Label>
           <h1 className="mb-2 mt-1.5 font-display text-[clamp(28px,4vw,40px)] font-extrabold leading-none tracking-[-0.03em] text-foreground">
             {service.plan.name}
@@ -593,14 +593,14 @@ export default function ServiceOverviewV2({
             }
           >
             <div className="px-4 pt-2.5 font-display text-[26px] font-extrabold leading-none tracking-[-0.02em] text-foreground tabular-nums">
-              {money(service.priceAmount, service.currency)}
+              {money(service.renewalAmount ?? service.priceAmount, service.currency)}
               <small className="ml-1 font-mono text-[13px] font-medium tracking-normal text-muted-foreground">{perMonth}</small>
             </div>
             <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-4 px-4 pb-1 pt-2 text-[13.5px] [&>dd]:m-0 [&>dd]:py-1.5 [&>dd]:text-right [&>dd]:text-foreground [&>dt]:py-1.5 [&>dt]:text-muted-foreground">
               <dt>{service.isTrial ? 'Koniec okresu próbnego' : 'Następna płatność'}</dt>
               <dd>
                 <b>{date(service.isTrial ? service.trialEndsAt : service.currentPeriodEnd)}</b>
-                {!service.isTrial ? ` · ${money(service.priceAmount, service.currency)}` : ''}
+                {!service.isTrial ? ` · ${money(service.renewalAmount ?? service.priceAmount, service.currency)}` : ''}
               </dd>
               <dt>Sposób</dt>
               <dd>{PAYMENT_SOURCE[service.paymentSource] ?? '—'}</dd>

@@ -181,7 +181,7 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
         <Kpi label="Plan" value={<span className="text-[24px]">{service.plan.name}</span>} foot={<span>{service.interval === 'MONTH' ? 'rozliczenie miesięczne' : 'rozliczenie roczne'}</span>} />
         <Kpi
           label="Cena"
-          value={Number(service.priceAmount).toLocaleString('pl-PL', { minimumFractionDigits: 2 })}
+          value={Number(service.renewalAmount ?? service.priceAmount).toLocaleString('pl-PL', { minimumFractionDigits: 2 })}
           unit={`${service.currency === 'PLN' ? 'zł' : service.currency} / ${service.interval === 'MONTH' ? 'mies.' : 'rok'}`}
           foot={<span>brutto</span>}
         />

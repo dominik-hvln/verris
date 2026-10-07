@@ -85,6 +85,8 @@ export interface ServiceSummaryDto {
   planName: string;
   interval: BillingInterval;
   priceAmount: string;
+  /** Kwota najbliższego odnowienia (po rabacie na start pełna cena; kod/cena operatora, jeśli obowiązują). */
+  renewalAmount?: string;
   currency: string;
   currentPeriodEnd: string | null;
   ecoModeEnabled: boolean;

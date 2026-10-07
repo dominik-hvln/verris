@@ -201,7 +201,7 @@ function ServicesTable({ services }: { services: ServiceSummaryDto[] }) {
                   {s.currentPeriodEnd ? new Date(s.currentPeriodEnd).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                 </td>
                 <td className={`${TD} whitespace-nowrap tabular-nums`} data-label="Cena">
-                  {Number(s.priceAmount).toLocaleString('pl-PL', { minimumFractionDigits: 2 })} {s.currency === 'PLN' ? 'zł' : s.currency}
+                  {Number(s.renewalAmount ?? s.priceAmount).toLocaleString('pl-PL', { minimumFractionDigits: 2 })} {s.currency === 'PLN' ? 'zł' : s.currency}
                   {s.interval === 'MONTH' ? ' / mies.' : ' / rok'}
                 </td>
                 <td data-label="Akcje" className={`${TD} w-[1%]`}>
