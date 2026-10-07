@@ -37,12 +37,11 @@ export const OFERTA_KROTKO = VPS_W_SPRZEDAZY
 export const SPECYFIKACJA_OPUBLIKOWANA = true;
 
 /**
- * Funkcje zrobione w kodzie, ale czekające na sprawdzenie na pierwszym węźle (wezel.csv) — m.in. LiteSpeed,
- * Redis, PostgreSQL, WAF, ImunifyAV, izolacja kont. Do decyzji właściciela po D3 verris.pl ich nie obiecuje:
- * ukrywa je /specyfikacja i sekcje strony głównej oraz /hosting (pole `po` w listach). Przełączenie na true
- * pokazuje je wszędzie naraz.
+ * Funkcje sprawdzane na pierwszym węźle (wezel.csv) — m.in. LiteSpeed, Redis, PostgreSQL, WAF, ImunifyAV,
+ * izolacja kont (pole `po` w listach /specyfikacja, strony głównej i /hosting). 07.10 wszystkie sprawdzone na t1
+ * (WAF: blokowanie domyślnie od migracji 20261007200000) — włączone. false chowa je wszędzie naraz.
  */
-export const SPEC_PO_WERYFIKACJI = false;
+export const SPEC_PO_WERYFIKACJI = true;
 
 /** Zostawia pozycje oznaczone `po: true` (po weryfikacji na węźle) tylko, gdy SPEC_PO_WERYFIKACJI. */
 export function zweryfikowane<T extends { po?: boolean }>(lista: T[]): T[] {
