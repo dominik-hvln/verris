@@ -46,7 +46,7 @@ export function MigrationLeadForm() {
 
   if (sent) {
     return (
-      <div className="leadband rv">
+      <div className="leadband">
         <div className="form-ok" role="status">
           Sprawdź skrzynkę — wysłaliśmy wiadomość z prośbą o potwierdzenie adresu. Bez tego kroku nie
           wyślemy Ci nic więcej. Jeśli mail nie dotarł w ciągu kilku minut, zajrzyj do spamu.
@@ -56,7 +56,7 @@ export function MigrationLeadForm() {
   }
 
   return (
-    <div className="leadband rv">
+    <div className="leadband">
       <div className="leadband-copy">
         <h2>Zaplanuj migrację</h2>
         <p>

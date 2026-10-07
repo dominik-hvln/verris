@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
-import { ShieldCheck, Boxes, CreditCard, Database, Check } from 'lucide-react';
+import { Accordion, Breadcrumbs, Button, Card, CTABand, JsonLd, SectionHead, StickyBuy, Steps } from '../components/ui';
+import { KalkulatorPiku } from '../components/KalkulatorPiku';
 import { Pricing } from '../components/Pricing';
-import { CTABand } from '../components/ui';
-import { RevealInit } from '../components/RevealInit';
-import { MigrationCalculator } from '../components/MigrationCalculator';
 import { MigrationLeadForm } from '../components/MigrationLeadForm';
+import { KROKI_MIGRACJI } from '@/lib/migracja';
 import { PANEL } from '@/lib/site';
 
 export const metadata: Metadata = {
@@ -38,12 +37,6 @@ const FAQ: [string, string][] = [
   ['Czy mogę zrezygnować po zakupie?', 'Jako konsument masz prawo odstąpienia od umowy. Zasady odstąpienia i zwrotu opisuje regulamin, który zobaczysz przed zakupem — zwrot realizuje nasze wsparcie.'],
 ];
 
-const STEPS: [string, string, string][] = [
-  ['01', 'Zamów hosting Verris', 'Załóż konto i wybierz rozliczenie — 45 zł/mies lub 449 zł/rok brutto. Płatność kartą, BLIK-iem albo przelewem online. Twoja obecna strona dalej działa.'],
-  ['02', 'Wybierz sposób migracji', 'Przekaż dostępy do obecnego hostingu, a my bezpłatnie przeniesiemy pliki, bazy danych i pocztę. Wolisz mieć wszystko pod kontrolą? Uruchom darmowy migrator w panelu.'],
-  ['03', 'Przełącz DNS i gotowe', 'Sprawdzasz stronę na nowym serwerze, zmieniasz rekordy DNS — i to wszystko. Stara strona działa do momentu przełączenia, więc odwiedzający nie zobaczą żadnej przerwy.'],
-];
-
 const COMPARE: [string, string, string][] = [
   ['Cena', 'Niska w pierwszym okresie, znacznie wyższa przy odnowieniu', 'Odnowienie po cenie z cennika — 45 zł/mies lub 449 zł/rok brutto'],
   ['Zasoby', 'Sztywne pakiety — płacisz za moc „na zapas" 24 h/dobę', 'Autoskalowanie godzinowe — dodatkowa moc tylko wtedy, gdy jest używana'],
@@ -51,6 +44,35 @@ const COMPARE: [string, string, string][] = [
   ['Awarie', 'Rekompensata uznaniowa, jeśli w ogóle', 'SLA 99,5% i progi rekompensat zapisane w regulaminie — przyznajemy je na Twoje zgłoszenie'],
   ['Przywrócenie kopii', 'Zgłoszenie do supportu, czasem płatne, bez możliwości cofnięcia', 'Samodzielnie w panelu — wybierasz pliki, bazę lub pocztę, a system domyślnie robi kopię bezpieczeństwa przed operacją'],
   ['Rezygnacja', 'Ukryte kroki, konsultant „zatrzymujący"', 'Rezygnacja z odnowienia w panelu w dwóch kliknięciach, bez opłat'],
+];
+
+
+const PULAPKI: { tag: string; t: string; opis: string; fix: string }[] = [
+  {
+    tag: 'Pułapka nr 1',
+    t: 'Promocja-przynęta',
+    opis: 'Pierwszy rok za grosze, a przy odnowieniu pełna stawka — często kilkukrotnie wyższa. Rachunek przychodzi po roku, kiedy przenosiny wydają się trudniejsze niż dopłata.',
+    fix: 'odnowienie idzie po cenie z cennika — 45 zł/mies lub 449 zł/rok brutto. Rabat na start, jeśli trwa, widzisz przed zapłatą; po nim nie ma skoku do kilkuset złotych.',
+  },
+  {
+    tag: 'Pułapka nr 2',
+    t: 'Pakiet na zapas',
+    opis: 'Kupujesz większy pakiet „na wszelki wypadek” — i przez większość roku płacisz za moc, której strona nie używa. Nadpłacony zapas nie wraca.',
+    fix: 'jedna baza + autoskalowanie rozliczane godzinowo. Dodatkowe zasoby tylko wtedy, gdy strona ich naprawdę potrzebuje — a gdy ruch spada, wracają do bazy.',
+  },
+  {
+    tag: 'Pułapka nr 3',
+    t: 'Cicha dopłata',
+    opis: 'Automatyczne odnowienia domen i dodatków, o których dowiadujesz się z obciążenia karty. Rezygnacja? Przez konsultanta, który „ma dla Ciebie lepszą ofertę”.',
+    fix: 'domena nie odnowi się bez Twojej decyzji (przypomnienia 30/14/7 dni), a z odnowienia subskrypcji zrezygnujesz w panelu w dwóch kliknięciach.',
+  },
+];
+
+const PARAMETRY: [string, string][] = [
+  ['0 zł', 'migracja strony i poczty'],
+  ['Bez limitu', 'stron i skrzynek'],
+  ['SLA 99,5%', 'rekompensata na zgłoszenie'],
+  ['BLIK i karta', 'także przelew online'],
 ];
 
 const jsonLd = {
@@ -71,7 +93,7 @@ const jsonLd = {
       '@type': 'HowTo',
       name: 'Jak przenieść stronę na inny hosting bez przestoju',
       description: 'Przeniesienie strony do Verris w trzech krokach, bez przerwy w działaniu.',
-      step: STEPS.map(([, name, text], i) => ({ '@type': 'HowToStep', position: i + 1, name, text })),
+      step: KROKI_MIGRACJI.map((s, i) => ({ '@type': 'HowToStep', position: i + 1, name: s.title, text: s.text })),
     },
     {
       '@type': 'FAQPage',
@@ -80,172 +102,146 @@ const jsonLd = {
   ],
 };
 
+
 export default function Page() {
   return (
     <main>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLd data={jsonLd} />
 
-      {/* HERO */}
-      <section className="lp-hero">
+      <section className="hero2">
         <div className="bg-pat" aria-hidden="true" />
-        <div className="wrap lp-hero-grid">
-          <div>
-            <span className="eyebrow">Darmowa migracja hostingu</span>
-            <h1>
-              Zmiana hostingu bez stresu <span className="accent">i bez przepłacania</span>.
-            </h1>
-            <p className="lead">
-              Przeniesiemy Twoją stronę za darmo — albo zrobisz to sam migratorem w panelu. Uczciwe
-              odnowienie po cenie z cennika — bez szoku po pierwszym roku.
-            </p>
-            <p className="note">
-              Migracja jest bezpłatna w ramach zamówienia hostingu — bez gwiazdek i ukrytych warunków.
-            </p>
-            <div className="cta-row">
-              <a className="btn btn-primary" href={PANEL} data-event="cta_click" data-cta="hero" data-conv="checkout_intent">
-                Przenieś stronę za darmo
-              </a>
-              <a className="btn btn-ghost" href="#kalkulator" data-event="cta_click" data-cta="hero-calc">
-                Policz koszt autoskalowania
-              </a>
-            </div>
-            <p className="hero-price">
-              Hosting z autoskalowaniem: <strong>45 zł/mies</strong> lub <strong>449 zł/rok</strong> brutto
-            </p>
-          </div>
-
-          <div className="migration-card" role="img" aria-label="Podgląd migracji w panelu: pliki, bazy i skrzynki przeniesione, przełączenie DNS czeka na potwierdzenie">
-            <div className="mc-head">
-              <span className="mc-title">Migracja: twojafirma.pl</span>
-              <span className="mc-badge">W toku</span>
-            </div>
-            {[
-              ['Pliki strony', '1,2 GB'],
-              ['Bazy danych', '2 bazy'],
-              ['Skrzynki e-mail', '5 kont'],
-            ].map(([lbl, val]) => (
-              <div className="mc-row" key={lbl}>
-                <span className="mc-ok" aria-hidden="true"><Check /></span>
-                <span className="lbl">{lbl}</span>
-                <span className="val">{val}</span>
+        <div className="wrap">
+          <div className="hero2-grid">
+            <div>
+              <Breadcrumbs items={[{ label: 'Przenieś stronę' }]} />
+              <h1>
+                Zmiana hostingu bez stresu <span className="mint">i bez przepłacania</span>
+              </h1>
+              <p className="lead">
+                Przeniesiemy Twoją stronę za darmo — albo zrobisz to sam migratorem w panelu. Uczciwe odnowienie po cenie
+                z cennika — bez szoku po pierwszym roku.
+              </p>
+              <div className="hero2-cta">
+                <Button href={PANEL} cta="hero" conv="checkout_intent" plan="hosting">
+                  Przenieś stronę za darmo
+                </Button>
+                <Button href="#kalkulator" variant="ghost" cta="hero-calc">
+                  Policz koszt autoskalowania
+                </Button>
               </div>
+              <p className="hero2-fine">
+                Hosting z autoskalowaniem: <strong>45 zł/mies</strong> lub <strong>449 zł/rok</strong> brutto. Migracja jest
+                bezpłatna w ramach zamówienia — bez gwiazdek.
+              </p>
+            </div>
+            <Card className="incl">
+              <h2 className="incl-h">Przykład: migracja twojafirma.pl</h2>
+              <dl>
+                <div>
+                  <dt>Pliki strony</dt>
+                  <dd>1,2 GB ✓</dd>
+                </div>
+                <div>
+                  <dt>Bazy danych</dt>
+                  <dd>2 bazy ✓</dd>
+                </div>
+                <div>
+                  <dt>Skrzynki e-mail</dt>
+                  <dd>5 kont ✓</dd>
+                </div>
+                <div>
+                  <dt>Przełączenie DNS</dt>
+                  <dd>gdy potwierdzisz</dd>
+                </div>
+              </dl>
+              <p className="incl-peak">Twoja obecna strona cały czas działa</p>
+            </Card>
+          </div>
+          <ul className="params">
+            {PARAMETRY.map(([b, s]) => (
+              <li key={b}>
+                <b>{b}</b>
+                <span>{s}</span>
+              </li>
             ))}
-            <div className="mc-row">
-              <span className="mc-wait" aria-hidden="true" />
-              <span className="lbl">Przełączenie DNS</span>
-              <span className="val">gdy potwierdzisz</span>
-            </div>
-            <p className="mc-foot">
-              <span className="dot" aria-hidden="true" />
-              Twoja obecna strona cały czas działa
-            </p>
-          </div>
+          </ul>
         </div>
       </section>
 
-      {/* TRUST */}
-      <div className="trust">
+      <section className="sec" id="przeplacasz">
         <div className="wrap">
-          <div className="row">
-            <span><ShieldCheck /> Awaria? Rekompensata SLA na zgłoszenie</span>
-            <span><Boxes /> Bez limitu stron i skrzynek</span>
-            <span><CreditCard /> Płatność BLIK i kartą</span>
-            {/* Brand-review: KSeF/„polski support" to standard, nie wyróżnik — mówimy korzyścią. */}
-            <span><Database /> Cofniesz nieudaną aktualizację</span>
-          </div>
-        </div>
-      </div>
-
-      {/* ZA CO PRZEPŁACASZ */}
-      <section id="przeplacasz">
-        <div className="wrap">
-          <div className="sec-head rv">
-            <p className="kicker">Sprawdź swoją fakturę</p>
-            <h2>Za co dziś przepłacasz u swojego dostawcy hostingu?</h2>
-            <p>Rynek hostingu ma trzy sprawdzone sposoby na Twoje pieniądze. Wszystkie są legalne. Żaden nie jest uczciwy. Zbudowaliśmy Verris tak, żeby nie dało się na nich zarabiać.</p>
-          </div>
-          <div className="pains">
-            <div className="pain-card rv">
-              <span className="tag">Pułapka nr 1</span>
-              <h3>Promocja-przynęta</h3>
-              <p className="pain-desc">Pierwszy rok za grosze, a przy odnowieniu pełna stawka — często kilkukrotnie wyższa. Rachunek przychodzi po roku, kiedy przenosiny wydają się trudniejsze niż dopłata.</p>
-              <p className="fix"><strong>W Verris:</strong> odnowienie idzie po cenie z cennika — 45 zł/mies lub 449 zł/rok brutto. Rabat na start, jeśli trwa, widzisz przed zapłatą; po nim nie ma skoku do kilkuset złotych.</p>
-            </div>
-            <div className="pain-card rv">
-              <span className="tag">Pułapka nr 2</span>
-              <h3>Pakiet na zapas</h3>
-              <p className="pain-desc">Kupujesz większy pakiet „na wszelki wypadek” — i przez większość roku płacisz za moc, której strona nie używa. Nadpłacony zapas nie wraca.</p>
-              <p className="fix"><strong>W Verris:</strong> jedna baza + autoskalowanie rozliczane godzinowo. Dodatkowe zasoby tylko wtedy, gdy strona ich naprawdę potrzebuje — a gdy ruch spada, wracają do bazy.</p>
-            </div>
-            <div className="pain-card rv">
-              <span className="tag">Pułapka nr 3</span>
-              <h3>Cicha dopłata</h3>
-              <p className="pain-desc">Automatyczne odnowienia domen i dodatków, o których dowiadujesz się z obciążenia karty. Rezygnacja? Przez konsultanta, który „ma dla Ciebie lepszą ofertę”.</p>
-              <p className="fix"><strong>W Verris:</strong> domena nie odnowi się bez Twojej decyzji (przypomnienia 30/14/7 dni), a z odnowienia subskrypcji zrezygnujesz w panelu w dwóch kliknięciach.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* KALKULATOR */}
-      <section id="kalkulator" className="band">
-        <div className="wrap">
-          <div className="sec-head rv">
-            <p className="kicker">Kalkulator autoskalowania</p>
-            <h2>Nie kupuj mocy na zapas. Policz, ile kosztuje moc na godziny.</h2>
-            <p>Podstawa to cały hosting w ramach abonamentu. Gdy strona potrzebuje więcej — np. w piku kampanii reklamowej albo w Black Friday — zasoby rosną automatycznie, a Ty płacisz godzinowo tylko za nadwyżkę.</p>
-          </div>
-          <div className="rv">
-            <MigrationCalculator />
-          </div>
-        </div>
-      </section>
-
-      {/* JAK TO DZIAŁA */}
-      <section id="jak-to-dziala">
-        <div className="wrap">
-          <div className="sec-head rv">
-            <p className="kicker">Jak to działa</p>
-            <h2>Jak przenieść stronę na inny hosting — w 3 krokach, bez przestoju</h2>
-            <p>Przeniesienie strony nie wymaga wiedzy technicznej ani przerwy w działaniu. Migracja odbywa się „obok” działającej strony, a Ty przełączasz się dopiero wtedy, gdy wszystko jest sprawdzone.</p>
-          </div>
-          <div className="steps">
-            {STEPS.map(([n, h, p]) => (
-              <div className="step rv" key={n}>
-                <span className="n">{n}</span>
-                <h3>{h}</h3>
-                <p>{p}</p>
-              </div>
+          <SectionHead
+            eyebrow="Sprawdź swoją fakturę"
+            title="Za co dziś przepłacasz u swojego dostawcy hostingu?"
+            lead="Rynek hostingu ma trzy sprawdzone sposoby na Twoje pieniądze. Wszystkie są legalne. Żaden nie jest uczciwy. Zbudowaliśmy Verris tak, żeby nie dało się na nich zarabiać."
+          />
+          <div className="grid3">
+            {PULAPKI.map((p) => (
+              <Card key={p.t}>
+                <p className="kicker kicker-stone">{p.tag}</p>
+                <h3>{p.t}</h3>
+                <p>{p.opis}</p>
+                <p className="pain-fix">
+                  <strong>W Verris:</strong> {p.fix}
+                </p>
+              </Card>
             ))}
           </div>
         </div>
       </section>
 
-      {/* LEAD — wejście do sekwencji e-mail */}
-      <section>
+      <section className="sec sec-alt" id="kalkulator">
+        <div className="wrap split">
+          <SectionHead
+            eyebrow="Kalkulator autoskalowania"
+            title="Nie kupuj mocy na zapas. Policz, ile kosztuje moc na godziny."
+            lead="Podstawa to cały hosting w ramach abonamentu. Gdy strona potrzebuje więcej — np. w piku kampanii reklamowej albo w Black Friday — zasoby rosną automatycznie, a Ty płacisz tylko za nadwyżkę, w blokach po 15 minut."
+          />
+          <KalkulatorPiku />
+        </div>
+      </section>
+
+      <section className="sec" id="jak-to-dziala">
+        <div className="wrap">
+          <SectionHead
+            eyebrow="Jak to działa"
+            title="Jak przenieść stronę na inny hosting — w 3 krokach, bez przestoju"
+            lead="Przeniesienie strony nie wymaga wiedzy technicznej ani przerwy w działaniu. Migracja odbywa się „obok” działającej strony, a Ty przełączasz się dopiero wtedy, gdy wszystko jest sprawdzone."
+          />
+          <Steps items={KROKI_MIGRACJI} />
+        </div>
+      </section>
+
+      {/* Lead — wejście do sekwencji e-mail (zgoda i double opt-in w MigrationLeadForm) */}
+      <section className="sec">
         <div className="wrap">
           <MigrationLeadForm />
         </div>
       </section>
 
-      {/* PORÓWNANIE */}
-      <section className="band">
+      <section className="sec sec-alt">
         <div className="wrap">
-          <div className="sec-head rv">
-            <p className="kicker">Uczciwe zasady</p>
-            <h2>Czym Verris różni się od typowego hostingu?</h2>
-            <p>Konkrety zamiast deklaracji — każdy punkt po stronie Verris ma pokrycie w regulaminie albo w specyfikacji usługi.</p>
-          </div>
-          <table className="cmp rv">
+          <SectionHead
+            eyebrow="Uczciwe zasady"
+            title="Czym Verris różni się od typowego hostingu?"
+            lead="Konkrety zamiast deklaracji — każdy punkt po stronie Verris ma pokrycie w regulaminie albo w specyfikacji usługi."
+          />
+          <table className="cmp2">
             <thead>
-              <tr><th scope="col">Obszar</th><th scope="col">Typowy model rynkowy</th><th scope="col">Verris</th></tr>
+              <tr>
+                <th scope="col">Obszar</th>
+                <th scope="col">Typowy model rynkowy</th>
+                <th scope="col">Verris</th>
+              </tr>
             </thead>
             <tbody>
-              {COMPARE.map((r) => (
-                <tr key={r[0]}>
-                  <th scope="row">{r[0]}</th>
-                  <td className="other">{r[1]}</td>
-                  <td className="vr">{r[2]}</td>
+              {COMPARE.map(([k, inni, my]) => (
+                <tr key={k}>
+                  <th scope="row">{k}</th>
+                  <td data-label="Typowy model rynkowy">{inni}</td>
+                  <td data-label="Verris" className="vr">
+                    {my}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -253,24 +249,12 @@ export default function Page() {
         </div>
       </section>
 
-      {/* CENNIK */}
       <Pricing />
 
-      {/* FAQ */}
-      <section className="band" id="faq">
-        <div className="wrap">
-          <div className="sec-head rv">
-            <p className="kicker">FAQ</p>
-            <h2>Częste pytania o przeniesienie strony</h2>
-          </div>
-          <div className="faq">
-            {FAQ.map(([q, a]) => (
-              <details className="rv" key={q}>
-                <summary>{q}</summary>
-                <p>{a}</p>
-              </details>
-            ))}
-          </div>
+      <section className="sec" id="faq">
+        <div className="wrap narrow">
+          <SectionHead eyebrow="FAQ" title="Częste pytania o przeniesienie strony" />
+          <Accordion items={FAQ.map(([q, a], i) => ({ title: q, body: <p>{a}</p>, open: i === 0 }))} />
           <p className="updated">Ostatnia aktualizacja: 8 lipca 2026</p>
         </div>
       </section>
@@ -281,7 +265,7 @@ export default function Page() {
         primaryLabel="Przenieś stronę za darmo"
         secondary={{ label: 'Zobacz cennik', href: '/cennik' }}
       />
-      <RevealInit />
+      <StickyBuy />
     </main>
   );
 }
