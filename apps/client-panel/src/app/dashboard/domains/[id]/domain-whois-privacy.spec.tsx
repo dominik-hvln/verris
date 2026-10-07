@@ -60,4 +60,17 @@ describe('DomainWhoisPrivacy', () => {
     expect(ukrycieWhoisAction).not.toHaveBeenCalled();
     act(() => root.unmount());
   });
+
+  it('cena 0 → „Bezpłatnie”, potwierdzenie bez kwoty i bez „zapłać” (decyzja 07.10)', async () => {
+    const { el, root } = await renderuj({ domainId: 'd1', enabled: false, pricePerYear: '0.00' });
+    expect(el.textContent).toContain('Bezpłatnie.');
+    expect(el.textContent).not.toContain('K za rok');
+    potwierdz.mockResolvedValue(true);
+    ukrycieWhoisAction.mockResolvedValue({ ok: true });
+    await act(async () => el.querySelector('button')!.click());
+    expect(potwierdz.mock.calls[0][0]).toContain('Usługa jest bezpłatna');
+    expect(potwierdz.mock.calls[0][1]).toMatchObject({ akcja: 'Włącz' });
+    expect(ukrycieWhoisAction).toHaveBeenCalledWith('d1', true);
+    act(() => root.unmount());
+  });
 });

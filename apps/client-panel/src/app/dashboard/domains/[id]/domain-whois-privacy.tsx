@@ -14,7 +14,7 @@ function lataDoKonca(expiresAt: string | null | undefined): number {
   return Math.max(1, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (365.25 * 24 * 3600_000)));
 }
 
-/** A-14 — ukrycie danych abonenta w WHOIS. Bez ceny w ustawieniach platformy usługa nie jest oferowana. */
+/** A-14 — ukrycie danych abonenta w WHOIS. Bez ceny w ustawieniach platformy usługa nie jest oferowana; cena 0 = bezpłatnie. */
 export function DomainWhoisPrivacy({
   domainId, enabled, pricePerYear, expiresAt,
 }: { domainId: string; enabled: boolean; pricePerYear: string | null | undefined; expiresAt?: string | null }) {
@@ -25,15 +25,23 @@ export function DomainWhoisPrivacy({
 
   const lata = lataDoKonca(expiresAt);
   const cena = Number(pricePerYear ?? 0);
+  const darmowe = cena === 0;
   const okres = `${lata} ${plForm(lata, 'rok', 'lata', 'lat')}`;
 
   const przelacz = async () => {
     const nowe = !wlaczone;
     const ok = await potwierdz(
       nowe
-        ? `Z portfela pobierzemy ${liczba(cena * lata, 2)} K (${okres} do końca ważności domeny). Przy odnowieniu domeny opłata za ukrycie danych doliczy się do ceny odnowienia.`
-        : 'Dane abonenta znów będą widoczne w WHOIS. Wyłączenie nie zwraca opłaty za pozostały okres.',
-      { tytul: nowe ? 'Włączyć ukrycie danych w WHOIS?' : 'Wyłączyć ukrycie danych w WHOIS?', akcja: nowe ? 'Włącz i zapłać' : 'Wyłącz' },
+        ? darmowe
+          ? 'W publicznym WHOIS zamiast Twoich danych pojawią się dane zastępcze. Usługa jest bezpłatna.'
+          : `Z portfela pobierzemy ${liczba(cena * lata, 2)} K (${okres} do końca ważności domeny). Przy odnowieniu domeny opłata za ukrycie danych doliczy się do ceny odnowienia.`
+        : darmowe
+          ? 'Dane abonenta znów będą widoczne w WHOIS.'
+          : 'Dane abonenta znów będą widoczne w WHOIS. Wyłączenie nie zwraca opłaty za pozostały okres.',
+      {
+        tytul: nowe ? 'Włączyć ukrycie danych w WHOIS?' : 'Wyłączyć ukrycie danych w WHOIS?',
+        akcja: nowe ? (darmowe ? 'Włącz' : 'Włącz i zapłać') : 'Wyłącz',
+      },
     );
     if (!ok) return;
     setBusy(true);
@@ -52,7 +60,7 @@ export function DomainWhoisPrivacy({
         <p className="text-neutral-500">
           {wlaczone
             ? 'W publicznym WHOIS zamiast Twoich danych widać dane zastępcze.'
-            : `Twoje dane abonenta nie będą widoczne publicznie. ${liczba(cena, 2)} K za rok.`}
+            : `Twoje dane abonenta nie będą widoczne publicznie. ${darmowe ? 'Bezpłatnie.' : `${liczba(cena, 2)} K za rok.`}`}
         </p>
         <p className="text-neutral-500">Niektóre rejestry (np. .pl) nie pozwalają ukryć danych — dane osób prywatnych i tak nie są tam publikowane.</p>
       </div>

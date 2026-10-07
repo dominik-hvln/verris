@@ -4,7 +4,7 @@ import { useActionState } from 'react';
 import { Loader2, Save, EyeOff } from 'lucide-react';
 import { updateWhoisPrivacyPriceAction } from './actions';
 
-/** A-14 — cena ukrycia danych w WHOIS dla klienta; puste = usługa niedostępna. */
+/** A-14 — cena ukrycia danych w WHOIS dla klienta; 0 = bezpłatnie, puste = usługa niedostępna. */
 export function WhoisPrivacyForm({ initial }: { initial: string | null }) {
   const [state, action, pending] = useActionState(updateWhoisPrivacyPriceAction, {});
 
@@ -24,7 +24,7 @@ export function WhoisPrivacyForm({ initial }: { initial: string | null }) {
           className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-emerald-400/60"
         />
         <span className="block text-[11px] text-neutral-500">
-          OpenProvider pobiera opłatę za każdą domenę — wpisz cenę brutto za rok dla klienta; puste = usługa niedostępna.
+          Cena brutto za rok dla klienta. 0 = bezpłatnie (WPP w członkostwie OpenProvidera nic nie kosztuje); puste = usługa niedostępna.
         </span>
       </label>
       <div className="flex items-center gap-3 pt-2">

@@ -507,8 +507,8 @@ export class DomainRegistrarService {
   }
 
   /**
-   * A-14 — ukrycie danych abonenta w WHOIS. Włączenie jest płatne (cena za rok z ustawień platformy ×
-   * rozpoczęte lata do końca ważności domeny) — portfel PRZED rejestratorem, zwrot przy jego błędzie.
+   * A-14 — ukrycie danych abonenta w WHOIS. Włączenie kosztuje cenę za rok z ustawień platformy × rozpoczęte
+   * lata do końca ważności domeny — portfel PRZED rejestratorem, zwrot przy jego błędzie. Cena 0 = bezpłatnie.
    * Wyłączenie: bez opłaty i bez zwrotu za niewykorzystany okres.
    */
   async setWhoisPrivacy(userId: string, actorUserId: string, domainId: string, enabled: boolean) {
@@ -523,7 +523,16 @@ export class DomainRegistrarService {
     }
     if (domain.whoisPrivacy) return { whoisPrivacy: true };
     const cenaRok = await this.platformSettings.getWhoisPrivacyPrice();
-    if (!cenaRok) throw new BadRequestException('Ukrycie danych w WHOIS nie jest jeszcze dostępne.');
+    if (cenaRok == null) throw new BadRequestException('Ukrycie danych w WHOIS nie jest jeszcze dostępne.');
+    // Cena 0 (decyzja 07.10: WPP w członkostwie OpenProvidera nic nie kosztuje) — bez zamówienia i portfela.
+    if (new Prisma.Decimal(cenaRok).isZero()) {
+      try {
+        await provider.setWhoisPrivacy(externalId, true);
+      } catch (err) {
+        throw bladWhois(err, false);
+      }
+      return this.zapiszWhois(userId, actorUserId, domain, true, { priceAmount: '0.00' });
+    }
     const years = rozpoczeteLata(domain.expiresAt);
     const price = { amount: new Prisma.Decimal(cenaRok).mul(years).toFixed(2), currency: 'PLN' };
 
@@ -586,7 +595,7 @@ export class DomainRegistrarService {
   private async doplataWhois(domain: { whoisPrivacy: boolean }, years: number): Promise<string | null> {
     if (!domain.whoisPrivacy) return null;
     const cenaRok = await this.platformSettings.getWhoisPrivacyPrice();
-    return cenaRok ? new Prisma.Decimal(cenaRok).mul(years).toFixed(2) : null;
+    return cenaRok && !new Prisma.Decimal(cenaRok).isZero() ? new Prisma.Decimal(cenaRok).mul(years).toFixed(2) : null;
   }
 
   async authCode(userId: string, actorUserId: string, domainId: string) {
@@ -1040,12 +1049,12 @@ export function rozpoczeteLata(expiresAt: Date | null, teraz = new Date()): numb
  * stałego kodu tego błędu — rozpoznajemy go po treści (privacy/WPP/„not supported/allowed/available”).
  * ponytail: dopasowanie po tekście; gdy poznamy kod błędu z sandboxa, zamienić na kod.
  */
-export function bladWhois(err: unknown): Error {
+export function bladWhois(err: unknown, platne = true): Error {
   const msg = err instanceof Error ? err.message : String(err);
   // Konto resellera bez podpisanej umowy WPP (sandbox D3 06.10: „Wpp contract is not signed”) — to po naszej
   // stronie, nie ograniczenie rejestru. Wcześniej łapał to wzorzec „wpp” i klient czytał, że rejestr nie pozwala.
   if (/contract is not signed|contract not signed/i.test(msg)) {
-    return new ServiceUnavailableException('Ukrycie danych w WHOIS jest chwilowo niedostępne. Opłata wróciła do portfela.');
+    return new ServiceUnavailableException(`Ukrycie danych w WHOIS jest chwilowo niedostępne.${platne ? ' Opłata wróciła do portfela.' : ''}`);
   }
   if (/privacy|wpp|not (supported|allowed|available)|unsupported/i.test(msg)) {
     return new BadRequestException(

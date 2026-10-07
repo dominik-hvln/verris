@@ -4,6 +4,8 @@ import { validateSync } from 'class-validator';
 import { DomainRegistrarService, rozpoczeteLata } from './domain-registrar.service.js';
 import { WhoisPrivacyDto } from './dto/registrar.dto.js';
 import { RegistrarProviderFactory } from './registrar.provider.js';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
+import { PLATFORM_SETTING_KEYS } from '../platform-settings/platform-settings.keys.js';
 
 /** A-14 — ukrycie danych w WHOIS (decyzja właściciela 2026-10-05): płatne, cena ustawiana przez admina. */
 
@@ -60,6 +62,21 @@ describe('A-14 — włączenie ukrycia danych w WHOIS', () => {
     expect(provider.setWhoisPrivacy).toHaveBeenCalledWith('777', true);
     expect(prisma.domain.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ whoisPrivacy: true }) }));
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'DOMAIN_WHOIS_PRIVACY_ENABLED' }));
+  });
+
+  it('cena 0 (decyzja 07.10) → bezpłatnie: rejestrator + stan + audyt, bez zamówienia i portfela', async () => {
+    const { service, wallet, provider, prisma, audit, db } = zbuduj({ cena: '0.00' });
+    await expect(service.setWhoisPrivacy('u1', 'u1', 'd1', true)).resolves.toEqual({ whoisPrivacy: true });
+    expect(provider.setWhoisPrivacy).toHaveBeenCalledWith('777', true);
+    expect(wallet.debit).not.toHaveBeenCalled();
+    expect(db.domainRegistrarOrder.create).not.toHaveBeenCalled();
+    expect(prisma.domain.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ whoisPrivacy: true }) }));
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'DOMAIN_WHOIS_PRIVACY_ENABLED', details: { domain: 'jan.com', priceAmount: '0.00' } }));
+  });
+
+  it('cena 0 i błąd umowy WPP → bez wzmianki o zwrocie (nic nie pobrano)', async () => {
+    const { service } = zbuduj({ cena: '0.00', provider: { setWhoisPrivacy: vi.fn().mockRejectedValue(new Error('OpenProvider: Wpp contract is not signed')) } });
+    await expect(service.setWhoisPrivacy('u1', 'u1', 'd1', true)).rejects.toThrow(/^Ukrycie danych w WHOIS jest chwilowo niedostępne\.$/);
   });
 
   it('zamówienie w toku → odmowa bez drugiej opłaty (dwuklik)', async () => {
@@ -131,6 +148,21 @@ describe('A-14 — wyłączenie i odnowienie', () => {
     await z.service.renew('u1', 'u1', 'd1', 2);
     expect(z.wallet.debit).toHaveBeenCalledTimes(1);
     expect(z.wallet.debit).toHaveBeenCalledWith(expect.objectContaining({ amount: qZ.priceAmount, description: expect.stringContaining('z ukryciem danych w WHOIS') }));
+  });
+
+  it('cena 0 → odnowienie bez dopłaty za ukrycie danych', async () => {
+    const z = zbuduj({ cena: '0.00', domena: { whoisPrivacy: true } });
+    const q = await z.service.renewQuote('u1', 'd1', 2);
+    expect(q.whoisPrivacyAmount).toBeNull();
+  });
+
+  it('ustawienia: „0” = bezpłatnie („0.00”), puste = niedostępne, ujemne odrzucone', async () => {
+    const usluga = (value: string) =>
+      new PlatformSettingsService({ platformSetting: { findMany: async () => [{ key: PLATFORM_SETTING_KEYS.DOMAIN_WHOIS_PRIVACY_PRICE, value }] } } as never, {} as never, {} as never);
+    await expect(usluga('0').getWhoisPrivacyPrice()).resolves.toBe('0.00');
+    await expect(usluga('9,99').getWhoisPrivacyPrice()).resolves.toBe('9.99');
+    await expect(usluga('').getWhoisPrivacyPrice()).resolves.toBeNull();
+    await expect(usluga('').updateWhoisPrivacyPrice('-1', 'a')).rejects.toThrow(/0 = bezpłatnie/);
   });
 
   it('rozpoczęte lata: brak daty i <1 rok → 1; 1,5 roku → 2', () => {
