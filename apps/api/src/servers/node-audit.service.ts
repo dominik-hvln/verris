@@ -63,7 +63,7 @@ export class NodeAuditService {
 
   async runAudit(serverId: string): Promise<NodeAuditReportDto> {
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
 
     const plans = await this.loadManagedPlans();
 
@@ -112,7 +112,7 @@ export class NodeAuditService {
     _input: { confirm?: string } = {},
   ): Promise<NodeRepairResultDto> {
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
 
     if (actionId === 'repair-da-host') {
       return this.repairDaHost(server, actorUserId);

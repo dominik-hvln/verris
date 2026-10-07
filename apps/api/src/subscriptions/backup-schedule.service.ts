@@ -62,7 +62,7 @@ export class BackupScheduleService {
 
   private async assertOwnership(subscriptionId: string, userId: string): Promise<void> {
     const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, select: { id: true } });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
   }
 
   async get(subscriptionId: string, userId: string): Promise<BackupScheduleRow> {
@@ -92,7 +92,7 @@ export class BackupScheduleService {
       where: { id: subscriptionId, userId },
       select: { plan: { select: { offsiteRetentionMaxDays: true } } },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     return sub.plan;
   }
 

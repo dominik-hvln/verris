@@ -284,7 +284,7 @@ export class PrognozaWezlaService {
   async wezel(id: string, actorUserId: string, teraz = Date.now()) {
     const ctx = await this.kontekst(teraz);
     const w = ctx.find((x) => x.s.id === id);
-    if (!w) throw new NotFoundException('Server not found');
+    if (!w) throw new NotFoundException('Nie znaleziono węzła.');
     const od = new Date(teraz - 7 * DZIEN);
     const [wiersze, naKonto] = await Promise.all([
       sumyWezlow(this.prisma, od, '1 hour', id),

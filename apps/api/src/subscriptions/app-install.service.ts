@@ -251,7 +251,7 @@ export class AppInstallService {
       where: { id: subscriptionId, userId },
       include: { account: true },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     if (!sub.account) throw new BadRequestException('Usługa nie ma jeszcze konta hostingowego.');
     return sub;
   }

@@ -856,7 +856,7 @@ export class UsersAdminService {
     const target = await this.prisma.user.findUnique({
       where: { id: opts.targetUserId },
     });
-    if (!target) throw new NotFoundException('Target user not found');
+    if (!target) throw new NotFoundException('Nie znaleziono konta.');
 
     // Hard rule: only ADMIN can impersonate other ADMIN/STAFF accounts. STAFF
     // is restricted to USER accounts to limit privilege escalation paths.
@@ -961,7 +961,7 @@ export class UsersAdminService {
         loginBlockedReason: true,
       },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Nie znaleziono konta.');
 
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const lockoutSince = new Date(Date.now() - 15 * 60 * 1000);
@@ -1071,7 +1071,7 @@ export class UsersAdminService {
       where: { id: opts.targetUserId },
       select: { id: true, email: true, role: true },
     });
-    if (!target) throw new NotFoundException('User not found');
+    if (!target) throw new NotFoundException('Nie znaleziono konta.');
 
     const where: Prisma.AuditLogWhereInput = {
       OR: [{ userId: target.id }, { actorUserId: target.id }],

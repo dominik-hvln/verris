@@ -53,7 +53,7 @@ export class EcoReportService {
       where: { id: subscriptionId, userId },
       include: { plan: true, account: true },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     if (!sub.account) {
       throw new BadRequestException('Raport EKO będzie dostępny po aktywacji konta hostingowego.');
     }

@@ -147,7 +147,7 @@ export class VpnService {
 
   async revokePeer(id: string, actorUserId: string) {
     const peer = await this.prisma.vpnPeer.findUnique({ where: { id } });
-    if (!peer) throw new NotFoundException('Peer not found');
+    if (!peer) throw new NotFoundException('Nie znaleziono urządzenia VPN.');
     if (!peer.enabled) return this.toPublicPeer(peer);
 
     const updated = await this.prisma.vpnPeer.update({

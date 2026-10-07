@@ -111,7 +111,7 @@ export class NodeTasksService {
     payload: HostingProfileTaskPayload = {},
   ) {
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
     if (server.status !== ServerStatus.ACTIVE) {
       throw new BadRequestException(
         `Profil hostingowy można uruchomić tylko na węźle ACTIVE (obecny: ${server.status}).`,
@@ -175,7 +175,7 @@ export class NodeTasksService {
     }
 
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
     if (server.status !== ServerStatus.ACTIVE) {
       throw new BadRequestException(
         `Upgrade DB można uruchomić tylko na węźle ACTIVE (obecny: ${server.status}).`,
@@ -247,7 +247,7 @@ export class NodeTasksService {
    */
   async queueOnboardLive(serverId: string, actorUserId: string | null) {
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
     if (!server.identityToken) {
       throw new BadRequestException('Węzeł nie ma jeszcze agenta — najpierw bootstrap (krok 2).');
     }
@@ -279,7 +279,7 @@ export class NodeTasksService {
    */
   async queueNodeUpdate(serverId: string, actorUserId: string | null, fala?: FalaAktualizacji) {
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
     if (server.status !== ServerStatus.ACTIVE) {
       throw new BadRequestException(`Aktualizację można zlecić tylko na węźle ACTIVE (obecny: ${server.status}).`);
     }

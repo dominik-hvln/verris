@@ -333,7 +333,7 @@ export class CustomerIamService {
     const invite = await this.prisma.customerSubaccountInvite.findFirst({
       where: { id: inviteId, ownerUserId },
     });
-    if (!invite) throw new NotFoundException('Invite not found');
+    if (!invite) throw new NotFoundException('Nie znaleziono zaproszenia.');
     await this.prisma.customerSubaccountInvite.update({
       where: { id: invite.id },
       data: { status: CustomerSubaccountInviteStatus.REVOKED, revokedAt: new Date() },
@@ -473,7 +473,7 @@ export class CustomerIamService {
       where: { id: memberId, customerOwnerId: ownerUserId },
       select: { id: true },
     });
-    if (!member) throw new NotFoundException('Subaccount not found');
+    if (!member) throw new NotFoundException('Nie znaleziono subkonta.');
     return member;
   }
 

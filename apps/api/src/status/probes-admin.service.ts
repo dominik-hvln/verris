@@ -41,7 +41,7 @@ export class ProbesAdminService {
   async create(dto: CreateProbeDto, actorUserId: string): Promise<ServiceProbe> {
     if (dto.serverId) {
       const server = await this.prisma.server.findUnique({ where: { id: dto.serverId } });
-      if (!server) throw new NotFoundException('Server not found');
+      if (!server) throw new NotFoundException('Nie znaleziono węzła.');
     } else if (!dto.grupa) {
       throw new BadRequestException('Sonda platformy (bez węzła) wymaga grupy: panel, www albo api.');
     }
@@ -144,7 +144,7 @@ export class ProbesAdminService {
     actorUserId: string,
   ): Promise<ProbeIncident> {
     const incident = await this.prisma.probeIncident.findUnique({ where: { id } });
-    if (!incident) throw new NotFoundException('Incident not found');
+    if (!incident) throw new NotFoundException('Nie znaleziono incydentu.');
     const resolving = dto.status === 'RESOLVED' && incident.status === IncidentStatus.OPEN;
     const updated = await this.prisma.probeIncident.update({
       where: { id },
@@ -214,7 +214,7 @@ export class ProbesAdminService {
 
   private async getById(id: string): Promise<ServiceProbe> {
     const probe = await this.prisma.serviceProbe.findUnique({ where: { id } });
-    if (!probe) throw new NotFoundException('Probe not found');
+    if (!probe) throw new NotFoundException('Nie znaleziono monitora.');
     return probe;
   }
 }

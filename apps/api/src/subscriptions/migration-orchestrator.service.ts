@@ -112,7 +112,7 @@ export class MigrationOrchestratorService {
     const request = await this.prisma.migrationRequest.findUnique({
       where: { id: migrationRequestId },
     });
-    if (!request) throw new NotFoundException('Migration request not found');
+    if (!request) throw new NotFoundException('Nie znaleziono zlecenia migracji.');
 
     const bundle = JSON.parse(this.crypto.decrypt(request.sourceBundleEnc)) as {
       mysql?: Array<{ database: string }> | null;
@@ -156,7 +156,7 @@ export class MigrationOrchestratorService {
       where: { id: subscriptionId, userId },
       include: { account: true },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     return sub;
   }
 
@@ -216,7 +216,7 @@ export class MigrationOrchestratorService {
       where: { id: subscriptionId },
       include: { account: true },
     });
-    if (!sub) throw new NotFoundException('Subscription not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
 
     const event = await this.prisma.subscriptionEvent.create({
       data: {
@@ -460,7 +460,7 @@ export class MigrationOrchestratorService {
     const request = await this.prisma.migrationRequest.findUnique({
       where: { id: opts.migrationRequestId },
     });
-    if (!request) throw new NotFoundException('Migration request not found');
+    if (!request) throw new NotFoundException('Nie znaleziono zlecenia migracji.');
     if (request.secretsPurgedAt) {
       throw new BadRequestException(
         'Dane dostępowe tej migracji zostały już usunięte zgodnie z retencją (po zakończeniu). Nie ma ich w systemie.',
@@ -512,7 +512,7 @@ export class MigrationOrchestratorService {
     const request = await this.prisma.migrationRequest.findUnique({
       where: { id: opts.migrationRequestId },
     });
-    if (!request) throw new NotFoundException('Migration request not found');
+    if (!request) throw new NotFoundException('Nie znaleziono zlecenia migracji.');
     if (opts.status === MigrationStatus.CANCELED) {
       // Anulowanie przez obsługę = to samo co u klienta: kroki w kolejce też stają.
       await this.prisma.migrationWorkerJob.updateMany({
@@ -994,7 +994,7 @@ export class MigrationOrchestratorService {
       where: { id: opts.migrationRequestId },
       include: { workerJobs: true },
     });
-    if (!request) throw new NotFoundException('Migration request not found');
+    if (!request) throw new NotFoundException('Nie znaleziono zlecenia migracji.');
     if (!request.needsAttention && request.status !== MigrationStatus.ATTENTION) {
       throw new BadRequestException('Zlecenie nie jest w stanie eskalacji.');
     }
@@ -1062,7 +1062,7 @@ export class MigrationOrchestratorService {
     const job = await this.prisma.migrationWorkerJob.findFirst({
       where: { id: opts.jobId, migrationRequestId: opts.migrationRequestId },
     });
-    if (!job) throw new NotFoundException('Worker job not found');
+    if (!job) throw new NotFoundException('Nie znaleziono zadania migracji.');
     if (job.status === MigrationWorkerJobStatus.RUNNING) {
       throw new BadRequestException('Job jest w trakcie wykonywania.');
     }
@@ -1113,7 +1113,7 @@ export class MigrationOrchestratorService {
       where: { id: migrationRequestId, subscriptionId },
       include: { workerJobs: true },
     });
-    if (!request) throw new NotFoundException('Migration request not found');
+    if (!request) throw new NotFoundException('Nie znaleziono zlecenia migracji.');
     if (request.status !== MigrationStatus.COMPLETED) {
       throw new BadRequestException('Delta-sync jest dostępny po zakończeniu pierwszego transferu.');
     }
@@ -1206,7 +1206,7 @@ export class MigrationOrchestratorService {
       where: { id: migrationRequestId, subscriptionId },
       select: { id: true, status: true },
     });
-    if (!request) throw new NotFoundException('Migration request not found');
+    if (!request) throw new NotFoundException('Nie znaleziono zlecenia migracji.');
     const cancelable: MigrationStatus[] = [
       MigrationStatus.QUEUED,
       MigrationStatus.RUNNING,
@@ -1272,7 +1272,7 @@ export class MigrationOrchestratorService {
       where: { id: migrationRequestId, subscriptionId },
       include: { workerJobs: { orderBy: { sequence: 'asc' } } },
     });
-    if (!request) throw new NotFoundException('Migration request not found');
+    if (!request) throw new NotFoundException('Nie znaleziono zlecenia migracji.');
     return {
       ...this.toSummary(request),
       jobs: request.workerJobs.map((j) => this.toJobView(j)),
@@ -1294,7 +1294,7 @@ export class MigrationOrchestratorService {
         },
       },
     });
-    if (!request) throw new NotFoundException('Migration request not found');
+    if (!request) throw new NotFoundException('Nie znaleziono zlecenia migracji.');
     return {
       ...this.toSummary(request),
       clientEmail: request.subscription.user.email,
@@ -1708,7 +1708,7 @@ export class MigrationOrchestratorService {
 
   async listMigrationTimelineForAdmin(subscriptionId: string): Promise<MigrationViewRow[]> {
     const sub = await this.prisma.subscription.findUnique({ where: { id: subscriptionId }, select: { id: true } });
-    if (!sub) throw new NotFoundException('Subscription not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     return this.listMigrationTimelineRaw(subscriptionId);
   }
 

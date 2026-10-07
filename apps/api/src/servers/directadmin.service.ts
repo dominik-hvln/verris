@@ -70,7 +70,7 @@ export class DirectAdminService {
 
   async getClientForServer(serverId: string): Promise<DirectAdminClient> {
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
 
     if (!server.daHost || !server.daPort || !server.daUsername || !server.daPasswordEnc) {
       throw new BadRequestException(
@@ -331,7 +331,7 @@ export class DirectAdminService {
       where: { id: accountId, userId: ownerUserId },
       include: { server: true },
     });
-    if (!account) throw new NotFoundException('Hosting account not found');
+    if (!account) throw new NotFoundException('Nie znaleziono konta hostingowego.');
     if (!account.daPasswordEnc) {
       throw new BadRequestException(
         'Konto hostingowe nie jest jeszcze w pełni gotowe (brak danych dostępowych do serwera). Napisz do nas — dokończymy konfigurację.',
@@ -365,7 +365,7 @@ export class DirectAdminService {
       where: { id: subscriptionId, userId },
       include: { account: true },
     });
-    if (!sub?.account) throw new NotFoundException('Service not found');
+    if (!sub?.account) throw new NotFoundException('Nie znaleziono usługi.');
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
     try {
       await client.requestLetsEncrypt(sub.account.domain);
@@ -415,7 +415,7 @@ export class DirectAdminService {
       where: { id: subscriptionId, userId },
       include: { account: true },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     if (!sub.account) {
       return { domains: [], daUsername: null, primaryDomain: null, fetchError: null };
     }
@@ -544,7 +544,7 @@ export class DirectAdminService {
       where: { id: subscriptionId, userId },
       include: { account: { include: { server: true } } },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     if (!sub.account) {
       return { databases: [], daUsername: null, engine: null, fetchError: null };
     }
@@ -653,7 +653,7 @@ export class DirectAdminService {
       where: { id: subscriptionId, userId },
       include: { account: true },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     if (!sub.account?.id || !sub.account.daPasswordEnc) {
       throw new BadRequestException('Konto hostingowe nie jest jeszcze gotowe.');
     }
@@ -694,7 +694,7 @@ export class DirectAdminService {
       where: { id: subscriptionId, userId },
       include: { account: true },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     if (!sub.account?.id || !sub.account.daPasswordEnc) {
       throw new BadRequestException('Konto hostingowe nie jest jeszcze gotowe.');
     }
@@ -842,8 +842,8 @@ export class DirectAdminService {
       where: { id: subscriptionId, userId },
       include: { account: true },
     });
-    if (!sub) throw new NotFoundException('Service not found');
-    if (!sub.account?.id) throw new BadRequestException('Subscription has no hosting account yet');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
+    if (!sub.account?.id) throw new BadRequestException('Konto hostingowe nie jest jeszcze gotowe.');
     this.assertAccountMutable(sub.account);
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
     const axiosClient = (client as unknown as { client?: SurowyKlientDa }).client;
@@ -874,7 +874,7 @@ export class DirectAdminService {
       where: { id: subscriptionId, userId },
       include: { account: { include: { server: true } } },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
 
     const account = sub.account;
     const server = account?.server ?? null;
@@ -1209,7 +1209,7 @@ export class DirectAdminService {
       include: { account: { select: { domain: true } } },
     });
     if (!sub?.account?.domain) {
-      throw new BadRequestException('Subscription has no hosting account yet');
+      throw new BadRequestException('Konto hostingowe nie jest jeszcze gotowe.');
     }
     return sub.account.domain;
   }
@@ -1253,7 +1253,7 @@ export class DirectAdminService {
       where: { id: subscriptionId, userId },
       include: { account: { select: { domain: true, daUsername: true } } },
     });
-    if (!sub?.account?.domain || !sub.account.daUsername) throw new BadRequestException('Subscription has no hosting account yet');
+    if (!sub?.account?.domain || !sub.account.daUsername) throw new BadRequestException('Konto hostingowe nie jest jeszcze gotowe.');
     const domain = sub.account.domain;
     // DA wymaga `type` (domain | ftp | user | custom) i przy custom pełnej ścieżki w `custom_val` — t1 02.10: bez typu
     // odpowiadał „Użytkownik, hasło, hasło i typ są wymagane” (pole `path` DA ignoruje). Bez katalogu: katalog domeny
@@ -1333,7 +1333,7 @@ export class DirectAdminService {
       where: { id: subscriptionId, userId },
       include: { account: true },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     if (!sub.account) {
       return { rows: [], fetchError: null as string | null };
     }
@@ -1377,7 +1377,7 @@ export class DirectAdminService {
     input: { email: string; password: string; quotaMb?: number },
   ) {
     const [user, domain] = input.email.split('@');
-    if (!user || !domain) throw new BadRequestException('Email must be in user@domain format');
+    if (!user || !domain) throw new BadRequestException('Adres e-mail musi mieć postać nazwa@domena.');
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_POP', {
       action: 'create',
       user,
@@ -1397,7 +1397,7 @@ export class DirectAdminService {
 
   async deleteHostingEmailAccount(subscriptionId: string, userId: string, email: string) {
     const [user, domain] = email.split('@');
-    if (!user || !domain) throw new BadRequestException('Email must be in user@domain format');
+    if (!user || !domain) throw new BadRequestException('Adres e-mail musi mieć postać nazwa@domena.');
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_POP', {
       action: 'delete',
       user,
@@ -1418,7 +1418,7 @@ export class DirectAdminService {
     input: { email: string; password: string },
   ) {
     const [user, domain] = input.email.split('@');
-    if (!user || !domain) throw new BadRequestException('Email must be in user@domain format');
+    if (!user || !domain) throw new BadRequestException('Adres e-mail musi mieć postać nazwa@domena.');
     if (!input.password || input.password.length < 8) {
       throw new BadRequestException('Hasło skrzynki musi mieć co najmniej 8 znaków.');
     }
@@ -1457,7 +1457,7 @@ export class DirectAdminService {
     input: { email: string; quotaMb: number },
   ) {
     const [user, domain] = input.email.split('@');
-    if (!user || !domain) throw new BadRequestException('Email must be in user@domain format');
+    if (!user || !domain) throw new BadRequestException('Adres e-mail musi mieć postać nazwa@domena.');
     // DA 1.710 (t1, 29.09): bez pól passwd/passwd2 odpowiada „wymagane jest podanie nazwy użytkownika
     // i domeny”. PUSTE passwd/passwd2 zachowują hasło (tak robi formularz DA); newuser = ta sama nazwa.
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_POP', {
@@ -2152,7 +2152,7 @@ export class DirectAdminService {
       where: { id: subscriptionId, userId },
       include: { account: true },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     if (!sub.account?.id || !sub.account.daPasswordEnc) {
       throw new BadRequestException('Konto hostingowe nie jest jeszcze gotowe.');
     }
@@ -2608,7 +2608,7 @@ export class DirectAdminService {
     actorUserId: string,
   ): Promise<{ url: string; sshHost: string | null; sshCommand: string | null }> {
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
     const client = await this.getClientForServer(serverId);
     const url = await client.createOneTimeLoginUrl({ redirectUrl: '/', expiry: '2m' });
     const sshHost = server.hostname ?? server.ipAddress ?? null;
@@ -3036,8 +3036,8 @@ export class DirectAdminService {
       where: { id: subscriptionId, userId },
       include: { account: true },
     });
-    if (!sub) throw new NotFoundException('Service not found');
-    if (!sub.account?.id) throw new BadRequestException('Subscription has no hosting account yet');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
+    if (!sub.account?.id) throw new BadRequestException('Konto hostingowe nie jest jeszcze gotowe.');
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
     const axiosClient = (client as unknown as { client?: SurowyKlientDa }).client;
     if (!axiosClient) throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny. Spróbuj ponownie za chwilę.');
@@ -3161,7 +3161,7 @@ export class DirectAdminService {
       where: { id: subscriptionId, userId },
       include: { account: { include: { server: true } } },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
 
     // S-1 — status ochrony off-site (utrata węzła ≠ utrata danych). Czytany z
     // ostatniego raportu node-offsite-backup.sh zapisanego na Server.
@@ -3402,7 +3402,7 @@ export class DirectAdminService {
     fetchError: string | null;
   }> {
     const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, select: { id: true } });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     return {
       panelBaseUrl: '',
       panelDisplayHost: '',

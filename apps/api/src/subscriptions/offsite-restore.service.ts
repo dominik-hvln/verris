@@ -98,7 +98,7 @@ export class OffsiteRestoreService {
       where: { id: accountId },
       include: { server: true },
     });
-    if (!account) throw new NotFoundException('Account not found');
+    if (!account) throw new NotFoundException('Nie znaleziono konta hostingowego.');
     if (account.status !== 'ACTIVE') {
       throw new BadRequestException('Konto hostingowe nie jest aktywne.');
     }
@@ -138,7 +138,7 @@ export class OffsiteRestoreService {
       where: { id: accountId },
       include: { server: true },
     });
-    if (!account) throw new NotFoundException('Account not found');
+    if (!account) throw new NotFoundException('Nie znaleziono konta hostingowego.');
 
     // Zadania przeniesienia na inny węzeł (H-16, operator) nie należą do widoku klienta.
     const tasks = (
@@ -235,7 +235,7 @@ export class OffsiteRestoreService {
       where: { id: subscriptionId, userId },
       include: { account: true },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     if (!sub.account) throw new BadRequestException('Usługa nie ma jeszcze konta hostingowego.');
     return sub;
   }

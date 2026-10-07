@@ -160,7 +160,7 @@ export class WalletLedgerService {
           Array<{ id: string; walletBalance: Prisma.Decimal; walletCurrency: string; customerOwnerId: string | null }>
         >`SELECT "id", "walletBalance", "walletCurrency", "customerOwnerId" FROM "User" WHERE "id" = ${input.userId} FOR UPDATE`;
         const user = locked[0];
-        if (!user) throw new NotFoundException('User not found');
+        if (!user) throw new NotFoundException('Nie znaleziono konta.');
         // Subkonto nie ma własnego portfela — działa na portfelu właściciela. Wpis tutaj to pieniądze,
         // których nikt nie zobaczy ani nie wyda (np. „Dodaj kredyty” w adminie na karcie subkonta).
         if (user.customerOwnerId) {

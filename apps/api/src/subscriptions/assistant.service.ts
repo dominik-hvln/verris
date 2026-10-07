@@ -57,7 +57,7 @@ export class AssistantService {
         usageMetrics: { orderBy: { bucketStart: 'desc' }, take: 1, select: { diskUsageMb: true } },
       },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     const account = sub.account;
     const usluga = {
       id: subscriptionId,

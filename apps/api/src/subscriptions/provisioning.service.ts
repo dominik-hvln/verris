@@ -117,7 +117,7 @@ export class ProvisioningService {
       include: { plan: true, user: true, account: true },
     });
 
-    if (!subscription) throw new NotFoundException('Subscription not found');
+    if (!subscription) throw new NotFoundException('Nie znaleziono usługi.');
     if (subscription.account) {
       throw new ConflictException('Subscription already has a provisioned account');
     }

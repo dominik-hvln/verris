@@ -64,7 +64,7 @@ export class GrafanaAuthController {
       where: { id: payload.sub },
       select: { id: true, email: true, role: true, canAccessGrafana: true, loginBlocked: true, anonymizedAt: true, tokenVersion: true },
     });
-    if (!user) throw new UnauthorizedException('User not found');
+    if (!user) throw new UnauthorizedException('Nie znaleziono konta.');
     // Te same bramki co JwtStrategy: wylogowanie wszędzie (tokenVersion), zablokowanie konta,
     // anonimizacja i unieważniona sesja urządzenia odcinają też Grafanę — nie tylko panel.
     if ((payload.tv ?? 0) !== user.tokenVersion) throw new UnauthorizedException('Session has been invalidated');

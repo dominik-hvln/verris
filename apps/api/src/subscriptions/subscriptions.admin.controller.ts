@@ -312,7 +312,7 @@ export class SubscriptionsAdminController {
       where: { id: actor.userId },
       select: { role: true },
     });
-    if (!user) throw new BadRequestException('Actor not found');
+    if (!user) throw new BadRequestException('Nie znaleziono operatora.');
     return this.planChange.changeForAdmin(
       actor.userId,
       user.role,

@@ -54,7 +54,7 @@ export class ServiceHealthService {
         healthSnapshots: { orderBy: { computedAt: 'desc' }, take: 1 },
       },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
 
     const latest = sub.healthSnapshots[0];
     const stale =
@@ -98,7 +98,7 @@ export class ServiceHealthService {
       where: { id: subscriptionId },
       include: { account: { include: { server: true } }, plan: { select: { productKind: true } } },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
 
     if (sub.status !== 'ACTIVE' || !sub.account) {
       const summary = this.pendingSummary(

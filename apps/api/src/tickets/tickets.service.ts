@@ -453,7 +453,7 @@ export class TicketsService {
         },
       },
     });
-    if (!ticket) throw new NotFoundException('Ticket not found');
+    if (!ticket) throw new NotFoundException('Nie znaleziono zgłoszenia.');
     return ticket;
   }
 
@@ -462,7 +462,7 @@ export class TicketsService {
       where: { id: ticketId },
       include: { user: { select: { email: true } } },
     });
-    if (!existing) throw new NotFoundException('Ticket not found');
+    if (!existing) throw new NotFoundException('Nie znaleziono zgłoszenia.');
 
     const dataToUpdate: Prisma.TicketUncheckedUpdateInput = { ...dto };
     if (dto.status === 'CLOSED') {
@@ -627,7 +627,7 @@ export class TicketsService {
 
   async adminAddReply(ticketId: string, staffId: string, dto: AddTicketReplyDto) {
     const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
-    if (!ticket) throw new NotFoundException('Ticket not found');
+    if (!ticket) throw new NotFoundException('Nie znaleziono zgłoszenia.');
 
     const czekaj = dto.czekaj !== 'nie';
     const dataToUpdate: Prisma.TicketUncheckedUpdateInput = {
@@ -888,7 +888,7 @@ export class TicketsService {
     }
 
     const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
-    if (!ticket) throw new NotFoundException('Ticket not found');
+    if (!ticket) throw new NotFoundException('Nie znaleziono zgłoszenia.');
 
     const dataToUpdate: Record<string, unknown> = {
       status: czekaj === 'nie' ? 'IN_PROGRESS' : 'WAITING_CUSTOMER',

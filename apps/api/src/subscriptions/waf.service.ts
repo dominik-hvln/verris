@@ -47,7 +47,7 @@ export class WafService {
   /** Admin: change WAF mode for any account. */
   async setModeForAccount(accountId: string, mode: WafMode, actorUserId: string) {
     const account = await this.prisma.account.findUnique({ where: { id: accountId } });
-    if (!account) throw new NotFoundException('Account not found');
+    if (!account) throw new NotFoundException('Nie znaleziono konta hostingowego.');
     return this.queueApply(accountId, mode, actorUserId, 'admin');
   }
 
@@ -77,7 +77,7 @@ export class WafService {
     source: 'customer' | 'admin',
   ) {
     const account = await this.prisma.account.findUnique({ where: { id: accountId } });
-    if (!account) throw new NotFoundException('Account not found');
+    if (!account) throw new NotFoundException('Nie znaleziono konta hostingowego.');
     if (account.status !== 'ACTIVE') {
       throw new BadRequestException('Konto hostingowe nie jest aktywne.');
     }
@@ -132,7 +132,7 @@ export class WafService {
       where: { id: accountId },
       select: { id: true, domain: true, wafMode: true, wafAppliedAt: true },
     });
-    if (!account) throw new NotFoundException('Account not found');
+    if (!account) throw new NotFoundException('Nie znaleziono konta hostingowego.');
     const lastTask = await this.prisma.nodeTask.findFirst({
       where: { accountId, kind: NodeTaskKind.WAF_APPLY },
       orderBy: { createdAt: 'desc' },
@@ -159,7 +159,7 @@ export class WafService {
       where: { id: subscriptionId, userId },
       include: { account: true },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     if (!sub.account) throw new BadRequestException('Usługa nie ma jeszcze konta hostingowego.');
     return sub;
   }

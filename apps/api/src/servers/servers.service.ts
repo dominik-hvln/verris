@@ -76,7 +76,7 @@ export class ServersService {
       where: { id },
       select: { id: true, ns1: true, ns2: true, ns3: true },
     });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
     const [effective, platformDefault] = await Promise.all([
       this.resolveNameservers(server),
       this.platformSettings.getHostingNameservers(),
@@ -93,7 +93,7 @@ export class ServersService {
 
   async setNodeNameservers(id: string, dto: UpdateNameserversDto, actorUserId: string) {
     const server = await this.prisma.server.findUnique({ where: { id } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
 
     const ns1 = normaliseNs(dto.ns1);
     const ns2 = normaliseNs(dto.ns2);
@@ -172,7 +172,7 @@ export class ServersService {
    */
   async generateBootstrapScript(serverId: string, actorUserId: string) {
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
     if (server.status !== ServerStatus.INIT && server.status !== ServerStatus.PENDING_APPROVAL) {
       throw new BadRequestException(
         `Bootstrap script is only available for servers in INIT or PENDING_APPROVAL state (current: ${server.status}).`,
@@ -297,7 +297,7 @@ export class ServersService {
     ctx?: { ip?: string; userAgent?: string },
   ) {
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
     if (server.status !== ServerStatus.PENDING_APPROVAL) {
       throw new BadRequestException(
         `Only servers in PENDING_APPROVAL state can be approved (current: ${server.status}).`,
@@ -438,7 +438,7 @@ export class ServersService {
       where: { id },
       include: { _count: { select: { accounts: KONTA_NA_WEZLE } } },
     });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
     return this.toPublicServer(server);
   }
 
@@ -452,7 +452,7 @@ export class ServersService {
       where: { id },
       select: { id: true },
     });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
 
     const accounts = await this.prisma.account.findMany({
       where: { serverId: id },
@@ -530,7 +530,7 @@ export class ServersService {
    */
   async getNodeUsage(id: string, window: '24h' | '7d' = '24h') {
     const server = await this.prisma.server.findUnique({ where: { id } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
 
     const accounts = await this.prisma.account.findMany({
       where: { serverId: id },
@@ -645,7 +645,7 @@ export class ServersService {
 
   async updateServer(id: string, dto: UpdateServerDto, actorUserId: string) {
     const server = await this.prisma.server.findUnique({ where: { id } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
 
     if (dto.status && dto.status !== server.status) {
       const allowed = ServersService.PATCH_STATUS_TRANSITIONS[server.status] ?? [];
@@ -690,7 +690,7 @@ export class ServersService {
     input: { enable: boolean; reason?: string | null },
   ) {
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
 
     if (input.enable) {
       if (server.status !== ServerStatus.ACTIVE && server.status !== ServerStatus.MAINTENANCE) {
@@ -775,7 +775,7 @@ export class ServersService {
     },
   ) {
     const server = await this.prisma.server.findUnique({ where: { id } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
 
     const data: Record<string, unknown> = {};
     if (typeof input.acceptsNewAccounts === 'boolean') {
@@ -828,7 +828,7 @@ export class ServersService {
    */
   async drainNode(serverId: string, actorUserId: string, reason?: string | null) {
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
     const updated = await this.prisma.server.update({
       where: { id: serverId },
       data: { acceptsNewAccounts: false },
@@ -849,7 +849,7 @@ export class ServersService {
    */
   async getNodeMigrationPlan(serverId: string) {
     const source = await this.prisma.server.findUnique({ where: { id: serverId } });
-    if (!source) throw new NotFoundException('Server not found');
+    if (!source) throw new NotFoundException('Nie znaleziono węzła.');
 
     const accounts = await this.prisma.account.findMany({
       where: { serverId },
@@ -959,7 +959,7 @@ export class ServersService {
 
   async setDirectAdminConfig(id: string, dto: UpdateDirectAdminConfigDto, actorUserId: string) {
     const server = await this.prisma.server.findUnique({ where: { id } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
 
     const data: Record<string, unknown> = {
       daHost: dto.daHost,

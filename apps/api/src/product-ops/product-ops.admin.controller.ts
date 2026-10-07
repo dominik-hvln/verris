@@ -511,7 +511,7 @@ export class ProductOpsAdminController {
       include: { server: { select: { id: true, name: true } } },
     });
     if (!probe) {
-      throw new NotFoundException('Probe not found');
+      throw new NotFoundException('Nie znaleziono monitora.');
     }
     const incident = await this.prisma.probeIncident.create({
       data: {

@@ -524,7 +524,7 @@ export class AuthService {
       where: { id: userId },
       select: { id: true, email: true, firstName: true, passwordHash: true, role: true },
     });
-    if (!user) throw new UnauthorizedException('User not found');
+    if (!user) throw new UnauthorizedException('Nie znaleziono konta.');
     if (user.role !== Role.USER) {
       throw new BadRequestException('Zmiana e-mail z panelu dotyczy kont klientów.');
     }
@@ -823,7 +823,7 @@ export class AuthService {
     }
 
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
-    if (!user) throw new UnauthorizedException('User not found');
+    if (!user) throw new UnauthorizedException('Nie znaleziono konta.');
 
     this.assertNotLoginBlocked(user);
     this.assertEmailVerified(user);
@@ -964,7 +964,7 @@ export class AuthService {
     method = 'passkey',
   ): Promise<LoginSuccess> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new UnauthorizedException('User not found');
+    if (!user) throw new UnauthorizedException('Nie znaleziono konta.');
 
     this.assertNotLoginBlocked(user);
     this.assertEmailVerified(user);

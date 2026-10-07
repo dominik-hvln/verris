@@ -148,7 +148,7 @@ export class BadgesService {
     const owned = UUID_RE.test(subscriptionId)
       ? await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, select: { id: true } })
       : null;
-    if (!owned) throw new NotFoundException('Service not found');
+    if (!owned) throw new NotFoundException('Nie znaleziono usługi.');
     this.cache.delete(subscriptionId);
     const [site, user, partner] = await Promise.all([
       this.site(subscriptionId),

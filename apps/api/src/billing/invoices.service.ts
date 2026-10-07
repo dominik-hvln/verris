@@ -138,7 +138,7 @@ export class InvoicesService {
     const invoice = await this.prisma.invoice.findFirst({
       where: { id: invoiceId, userId },
     });
-    if (!invoice) throw new NotFoundException('Invoice not found');
+    if (!invoice) throw new NotFoundException('Nie znaleziono faktury.');
     return toDto(invoice);
   }
 

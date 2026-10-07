@@ -84,7 +84,7 @@ export class DeliverabilityService {
       where: { id: subscriptionId, userId },
       include: { account: { include: { server: { select: { ipAddress: true, ns1: true, ns2: true, ns3: true } } } } },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     let domain = sub.account?.domain ?? null;
     const d = (wybrana ?? '').trim().toLowerCase();
     if (d && domain && d !== domain.toLowerCase()) {

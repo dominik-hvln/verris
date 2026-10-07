@@ -154,7 +154,7 @@ export class PasskeyPolicyService {
     totpCode: string,
   ): Promise<{ codes: string[] }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new UnauthorizedException('User not found');
+    if (!user) throw new UnauthorizedException('Nie znaleziono konta.');
     if (!this.isPrivileged(user)) {
       throw new UnauthorizedException('Break-glass dotyczy tylko kont ADMIN/STAFF.');
     }

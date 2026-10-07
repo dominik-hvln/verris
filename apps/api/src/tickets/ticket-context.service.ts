@@ -35,7 +35,7 @@ export class TicketContextService {
         user: { select: { firstName: true, lastName: true, email: true, companyName: true, walletBalance: true, createdAt: true } },
       },
     });
-    if (!ticket) throw new NotFoundException('Ticket not found');
+    if (!ticket) throw new NotFoundException('Nie znaleziono zgłoszenia.');
     const [subs, invoices, tickets] = await Promise.all([
       this.prisma.subscription.findMany({
         where: { userId: ticket.userId },

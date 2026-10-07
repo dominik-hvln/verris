@@ -130,12 +130,12 @@ export class SubscriptionsService {
   async previewSubscriptionPromo(userId: string, dto: PreviewSubscriptionPromoDto) {
     const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
     if (!plan || !plan.isActive || !plan.isPublic) {
-      throw new NotFoundException('Plan not found or unavailable');
+      throw new NotFoundException('Ten plan nie istnieje albo nie jest dostępny.');
     }
     const listPriceRaw =
       dto.interval === BillingInterval.MONTH ? plan.priceMonthly : plan.priceYearly;
     if (listPriceRaw === null || listPriceRaw === undefined) {
-      throw new BadRequestException('Plan does not have a price for the requested interval');
+      throw new BadRequestException('Ten plan nie ma ceny dla wybranego okresu rozliczenia.');
     }
     // O-07 — klient resellera widzi i płaci cenę z narzutem; kod rabatowy liczy się od niej.
     const listPrice = zNarzutem(listPriceRaw, await narzutResellera(this.prisma, this.config, userId));
@@ -214,7 +214,7 @@ export class SubscriptionsService {
         account: { include: { server: { select: { id: true, name: true, region: true } } } },
       },
     });
-    if (!subscription) throw new NotFoundException('Subscription not found');
+    if (!subscription) throw new NotFoundException('Nie znaleziono usługi.');
     // Zaszyfrowane hasło konta hostingowego nie wychodzi do panelu (także do subkont z podglądem) —
     // hasło w jawnej postaci daje tylko hosting-da-links, z kontrolą uprawnień.
     if (!subscription.account) return subscription;
@@ -237,7 +237,7 @@ export class SubscriptionsService {
       where: { id: subscriptionId, userId },
       include: { account: { select: { id: true } } },
     });
-    if (!prev) throw new NotFoundException('Subscription not found');
+    if (!prev) throw new NotFoundException('Nie znaleziono usługi.');
 
     const ecoToggle = dto.ecoModeEnabled;
     let ecoPointsAwarded = false;
@@ -307,7 +307,7 @@ export class SubscriptionsService {
     const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
     // Operator może założyć usługę także na planie ukrytym (np. oferta indywidualna).
     if (!plan || !plan.isActive || (!plan.isPublic && !op)) {
-      throw new NotFoundException('Plan not found or unavailable');
+      throw new NotFoundException('Ten plan nie istnieje albo nie jest dostępny.');
     }
     // M-09: klient rozliczany bez polskiego VAT płaci cenę netto — przez portfel
     // (1 zł = 1,23 K). Karta obciążyłaby go ceną brutto z cennika.
@@ -344,7 +344,7 @@ export class SubscriptionsService {
       dto.interval === BillingInterval.MONTH ? plan.priceMonthly : plan.priceYearly;
 
     if (listPriceRaw === null || listPriceRaw === undefined) {
-      throw new BadRequestException('Plan does not have a price for the requested interval');
+      throw new BadRequestException('Ten plan nie ma ceny dla wybranego okresu rozliczenia.');
     }
 
     const listPrice = zNarzutem(listPriceRaw, narzutPct);
@@ -573,7 +573,7 @@ export class SubscriptionsService {
       where: { id: subscriptionId, userId },
       include: { account: true },
     });
-    if (!subscription) throw new NotFoundException('Subscription not found');
+    if (!subscription) throw new NotFoundException('Nie znaleziono usługi.');
     if (subscription.status === SubscriptionStatus.CANCELED) {
       throw new ConflictException('Subscription is already canceled');
     }
@@ -727,7 +727,7 @@ export class SubscriptionsService {
       where: { id: subscriptionId },
       include: { account: true },
     });
-    if (!subscription) throw new NotFoundException('Subscription not found');
+    if (!subscription) throw new NotFoundException('Nie znaleziono usługi.');
     if (
       subscription.status === SubscriptionStatus.CANCELED ||
       subscription.status === SubscriptionStatus.EXPIRED
@@ -829,7 +829,7 @@ export class SubscriptionsService {
       where: { id: opts.subscriptionId },
       include: { account: true },
     });
-    if (!subscription) throw new NotFoundException('Subscription not found');
+    if (!subscription) throw new NotFoundException('Nie znaleziono usługi.');
     // ponytail: sprawdzenie przy odczycie zawęża okno do czasu wywołania DirectAdmina; pełne
     // domknięcie = warunkowe przejście w bazie przed zawieszeniem na serwerze (jak expireTrial).
     if (opts.tylkoGdyStatus && subscription.status !== opts.tylkoGdyStatus) return subscription;
@@ -965,7 +965,7 @@ export class SubscriptionsService {
       where: { id: opts.subscriptionId },
       include: { account: true, plan: true },
     });
-    if (!subscription) throw new NotFoundException('Subscription not found');
+    if (!subscription) throw new NotFoundException('Nie znaleziono usługi.');
     if (subscription.status !== SubscriptionStatus.SUSPENDED) {
       throw new ConflictException(
         `Cannot unsuspend subscription in status=${subscription.status}`,
@@ -1095,7 +1095,7 @@ export class SubscriptionsService {
     const subscription = await this.prisma.subscription.findFirst({
       where: { id: opts.subscriptionId, userId: opts.userId },
     });
-    if (!subscription) throw new NotFoundException('Subscription not found');
+    if (!subscription) throw new NotFoundException('Nie znaleziono usługi.');
     if (subscription.status === SubscriptionStatus.CANCELED) {
       throw new ConflictException('Cannot modify autoscaling on a canceled subscription');
     }
@@ -1198,7 +1198,7 @@ export class SubscriptionsService {
         autoscalingScaleDisk: true,
       },
     });
-    if (!subscription) throw new NotFoundException('Subscription not found');
+    if (!subscription) throw new NotFoundException('Nie znaleziono usługi.');
 
     const [events, charges] = await Promise.all([
       this.prisma.autoscalingEvent.findMany({
@@ -1262,7 +1262,7 @@ export class SubscriptionsService {
       where: { id: subscriptionId },
       include: { account: true },
     });
-    if (!subscription) throw new NotFoundException('Subscription not found');
+    if (!subscription) throw new NotFoundException('Nie znaleziono usługi.');
     if (!subscription.isTrial) {
       throw new ConflictException('Subscription is not a trial');
     }
@@ -1639,7 +1639,7 @@ export class SubscriptionsService {
     userId: string,
   ): Promise<CreatedSubscription> {
     if (!plan) {
-      throw new NotFoundException('Plan not found');
+      throw new NotFoundException('Ten plan nie istnieje albo nie jest dostępny.');
     }
     const priceId =
       dto.interval === BillingInterval.MONTH
@@ -1665,7 +1665,7 @@ export class SubscriptionsService {
         stripeCustomerId: true,
       },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Nie znaleziono konta.');
 
     const customerId = await this.ensureStripeCustomer(user);
 
@@ -1746,7 +1746,7 @@ export class SubscriptionsService {
     const subscription = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
     });
-    if (!subscription) throw new NotFoundException('Subscription not found');
+    if (!subscription) throw new NotFoundException('Nie znaleziono usługi.');
     if (subscription.status !== SubscriptionStatus.PENDING_PAYMENT) {
       throw new BadRequestException(
         'Link do płatności jest dostępny tylko dla nieopłaconych zamówień.',

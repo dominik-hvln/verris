@@ -26,7 +26,7 @@ export class NodeStackReadinessService {
 
   async getReadiness(serverId: string): Promise<NodeStackReadinessDto> {
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });
-    if (!server) throw new NotFoundException('Server not found');
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
 
     const probeHost = this.resolveProbeHost(server);
     const checks: NodeStackServiceCheckDto[] = [

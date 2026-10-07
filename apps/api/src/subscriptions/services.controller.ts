@@ -1713,7 +1713,7 @@ export class UserServicesController {
       where: { id, userId: user.userId },
       select: { id: true },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     return this.migrationDiscovery.discover(body, user.userId, id);
   }
 
@@ -1736,7 +1736,7 @@ export class UserServicesController {
       where: { id, userId: user.userId },
       select: { id: true },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     return this.migrationPreflight.preflightBundle(body, user.userId, id);
   }
 
@@ -1804,7 +1804,7 @@ export class UserServicesController {
         healthSnapshots: { orderBy: { computedAt: 'desc' }, take: 1 },
       },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
 
     // Synchronizacja domeny z DirectAdminem w tle — nie w drodze żądania. Czekanie na nią sprawiało,
     // że przy niedostępnym węźle nagłówek usługi ładował się ok. 20 s (timeouty DA, produkcja 26.09).
@@ -1885,7 +1885,7 @@ export class UserServicesController {
       where: { id: subscriptionId, userId },
       select: { id: true },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     return sub;
   }
 }

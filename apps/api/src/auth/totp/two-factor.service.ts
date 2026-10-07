@@ -46,7 +46,7 @@ export class TwoFactorService {
    */
   async startEnrollment(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Nie znaleziono konta.');
     if (user.isTwoFactorEnabled) {
       throw new ConflictException('2FA is already enabled. Disable it first to re-enroll.');
     }
@@ -75,7 +75,7 @@ export class TwoFactorService {
    */
   async confirmEnrollment(userId: string, code: string, ip?: string | null) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Nie znaleziono konta.');
     if (user.isTwoFactorEnabled) {
       throw new ConflictException('2FA is already enabled');
     }
@@ -134,7 +134,7 @@ export class TwoFactorService {
     ip?: string | null;
   }) {
     const user = await this.prisma.user.findUnique({ where: { id: opts.userId } });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Nie znaleziono konta.');
     if (!user.isTwoFactorEnabled) {
       throw new ConflictException('2FA is not enabled');
     }
@@ -229,7 +229,7 @@ export class TwoFactorService {
         twoFactorRecoveryCodesEnc: true,
       },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Nie znaleziono konta.');
     let recoveryCodesRemaining = 0;
     if (user.twoFactorRecoveryCodesEnc) {
       try {

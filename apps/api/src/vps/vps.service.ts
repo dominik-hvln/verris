@@ -148,7 +148,7 @@ export class VpsService {
       where: { id, userId },
       include: { plan: true },
     });
-    if (!v) throw new NotFoundException('VPS not found');
+    if (!v) throw new NotFoundException('Nie znaleziono serwera VPS.');
     return this.toDto(v);
   }
 
@@ -574,7 +574,7 @@ export class VpsService {
 
   private async requireOwned(userId: string, id: string) {
     const v = await this.prisma.vpsInstance.findFirst({ where: { id, userId } });
-    if (!v || v.status === VpsStatus.DELETED) throw new NotFoundException('VPS not found');
+    if (!v || v.status === VpsStatus.DELETED) throw new NotFoundException('Nie znaleziono serwera VPS.');
     return v;
   }
 

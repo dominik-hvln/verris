@@ -76,7 +76,7 @@ export class TrialService {
   async startTrial(userId: string, dto: StartTrialDto): Promise<CreatedSubscription> {
     const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
     if (!plan || !plan.isActive || !plan.isPublic) {
-      throw new NotFoundException('Plan not found or unavailable');
+      throw new NotFoundException('Ten plan nie istnieje albo nie jest dostępny.');
     }
     if (plan.trialDays <= 0) {
       throw new BadRequestException('Ten plan nie ma dostępnego okresu próbnego.');
@@ -194,7 +194,7 @@ export class TrialService {
       where: { id: subscriptionId, userId },
       include: { plan: true },
     });
-    if (!subscription) throw new NotFoundException('Subscription not found');
+    if (!subscription) throw new NotFoundException('Nie znaleziono usługi.');
     if (!subscription.isTrial || subscription.trialConvertedAt) {
       throw new ConflictException('Ta usługa nie jest już w okresie próbnym.');
     }

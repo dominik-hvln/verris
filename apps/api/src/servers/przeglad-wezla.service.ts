@@ -54,7 +54,7 @@ export class PrzegladWezlaService {
   async przeglad(id: string) {
     const teraz = Date.now();
     const s = await this.prisma.server.findUnique({ where: { id } });
-    if (!s) throw new NotFoundException('Server not found');
+    if (!s) throw new NotFoundException('Nie znaleziono węzła.');
 
     const [manifest, konta, probki, zadania] = await Promise.all([
       this.stos.pobierz(),

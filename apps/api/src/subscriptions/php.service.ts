@@ -73,7 +73,7 @@ export class PhpService {
       throw new BadRequestException(`Nieobsługiwana wersja PHP. Dostępne: ${available.join(', ')}.`);
     }
     const account = await this.prisma.account.findUnique({ where: { id: accountId } });
-    if (!account) throw new NotFoundException('Account not found');
+    if (!account) throw new NotFoundException('Nie znaleziono konta hostingowego.');
     if (account.status !== 'ACTIVE') {
       throw new BadRequestException('Konto hostingowe nie jest aktywne.');
     }
@@ -122,7 +122,7 @@ export class PhpService {
       where: { id: accountId },
       select: { id: true, domain: true, phpVersion: true, phpAppliedAt: true },
     });
-    if (!account) throw new NotFoundException('Account not found');
+    if (!account) throw new NotFoundException('Nie znaleziono konta hostingowego.');
     const [available, lastTask] = await Promise.all([
       this.settings.getAvailablePhpVersions(),
       this.prisma.nodeTask.findFirst({
@@ -153,7 +153,7 @@ export class PhpService {
       where: { id: subscriptionId, userId },
       include: { account: true },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     if (!sub.account) throw new BadRequestException('Usługa nie ma jeszcze konta hostingowego.');
     return sub;
   }

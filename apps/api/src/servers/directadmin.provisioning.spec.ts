@@ -43,7 +43,7 @@ describe('Klient admina węzła (getClientForServer)', () => {
 
   it('brak konfiguracji DA → 400; brak węzła → 404', async () => {
     await expect(serwis({ ...WEZEL, daPasswordEnc: null }).svc.getClientForServer('n1')).rejects.toThrow('nie jest jeszcze skonfigurowany');
-    await expect(serwis(null).svc.getClientForServer('n1')).rejects.toThrow('Server not found');
+    await expect(serwis(null).svc.getClientForServer('n1')).rejects.toThrow('Nie znaleziono węzła.');
   });
 });
 

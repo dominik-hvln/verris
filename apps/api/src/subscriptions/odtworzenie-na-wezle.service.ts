@@ -97,7 +97,7 @@ export class OdtworzenieNaWezleService {
 
   private async konto(subscriptionId: string) {
     const sub = await this.prisma.subscription.findUnique({ where: { id: subscriptionId }, include: { account: { include: { server: true } } } });
-    if (!sub) throw new NotFoundException('Subscription not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     if (!sub.account?.daUsername) throw new BadRequestException('Usługa nie ma konta hostingowego.');
     return { sub, account: sub.account };
   }

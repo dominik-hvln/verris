@@ -102,7 +102,7 @@ export class BillingService {
       where: { id: userId },
       select: { id: true, walletBalance: true, walletCurrency: true },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Nie znaleziono konta.');
 
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const aggregates = await this.prisma.walletTransaction.groupBy({
@@ -448,7 +448,7 @@ export class BillingService {
       where: { id: opts.userId },
       select: { id: true, email: true, walletCurrency: true },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Nie znaleziono konta.');
 
     // Optional percent-bonus promo code applied during checkout. We pass the
     // promo metadata through Stripe so the post-payment webhook can credit

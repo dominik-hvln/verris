@@ -106,12 +106,12 @@ export class MigrationCutoverService {
       where: { id: subscriptionId, userId },
       select: { id: true },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     const request = await this.prisma.migrationRequest.findFirst({
       where: { id: migrationRequestId, subscriptionId },
       include: { workerJobs: true },
     });
-    if (!request) throw new NotFoundException('Migration request not found');
+    if (!request) throw new NotFoundException('Nie znaleziono zlecenia migracji.');
     if (request.status === MigrationStatus.QUEUED || request.status === MigrationStatus.DRAFT) {
       throw new BadRequestException('Cutover DNS będzie dostępny po zakończeniu transferu danych.');
     }

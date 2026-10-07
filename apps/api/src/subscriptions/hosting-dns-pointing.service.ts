@@ -40,7 +40,7 @@ export class HostingDnsPointingService {
       where: { id: subscriptionId, userId },
       include: { account: { include: { server: true } } },
     });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
 
     if (sub.account?.daPasswordEnc) {
       await this.directAdmin.syncPrimaryDomainForSubscription(subscriptionId, userId);

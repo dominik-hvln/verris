@@ -299,7 +299,7 @@ export class SslService {
 
   private async usluga(userId: string, subscriptionId: string) {
     const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, select: { id: true } });
-    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
   }
 
   private async dodajRekordDns(o: SslOrder, dns: NonNullable<SslOrderInfo['dns']>): Promise<SslOrder> {

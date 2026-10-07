@@ -44,7 +44,7 @@ export class PlansService {
 
   async getBySlug(slug: string): Promise<Plan> {
     const plan = await this.prisma.plan.findUnique({ where: { slug } });
-    if (!plan || !plan.isActive) throw new NotFoundException('Plan not found');
+    if (!plan || !plan.isActive) throw new NotFoundException('Ten plan nie istnieje albo nie jest dostępny.');
     return plan;
   }
 
@@ -61,7 +61,7 @@ export class PlansService {
 
   async getById(id: string): Promise<Plan> {
     const plan = await this.prisma.plan.findUnique({ where: { id } });
-    if (!plan) throw new NotFoundException('Plan not found');
+    if (!plan) throw new NotFoundException('Ten plan nie istnieje albo nie jest dostępny.');
     return plan;
   }
 

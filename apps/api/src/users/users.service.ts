@@ -52,7 +52,7 @@ export class UsersService {
       where: { id: userId },
       select: { ecoPoints: true },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Nie znaleziono konta.');
 
     const ecoHostingStatuses: SubscriptionStatus[] = [
       SubscriptionStatus.ACTIVE,
@@ -141,7 +141,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('Nie znaleziono konta.');
     }
 
     const dziala = Boolean(dzialanie?.actingFor);
@@ -227,7 +227,7 @@ export class UsersService {
       where: { id: userId },
       select: { id: true, isTwoFactorEnabled: true },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Nie znaleziono konta.');
 
     if (enabled) {
       const passkeys = await this.prisma.webAuthnCredential.count({ where: { userId } });
@@ -253,7 +253,7 @@ export class UsersService {
       where: { id: userId },
       select: { referralCode: true, ecoBadgeToken: true },
     });
-    if (!u) throw new NotFoundException('User not found');
+    if (!u) throw new NotFoundException('Nie znaleziono konta.');
 
     if (u.referralCode && u.ecoBadgeToken) {
       return { referralCode: u.referralCode, ecoBadgeToken: u.ecoBadgeToken };
@@ -299,7 +299,7 @@ export class UsersService {
   async applyReferralCode(userId: string, dto: ApplyReferralCodeDto) {
     const normalized = dto.code.trim().toUpperCase();
     const me = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!me) throw new NotFoundException('User not found');
+    if (!me) throw new NotFoundException('Nie znaleziono konta.');
     if (me.referredByUserId) {
       throw new BadRequestException('To konto ma już przypisane polecenie.');
     }
@@ -348,7 +348,7 @@ export class UsersService {
         select: { referralCode: true },
       }),
     ]);
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Nie znaleziono konta.');
 
     const approved = enrollment?.status === 'APPROVED';
     return {
@@ -448,7 +448,7 @@ export class UsersService {
       });
       if (spent.count === 0) {
         const exists = await tx.user.count({ where: { id: userId } });
-        if (!exists) throw new NotFoundException('User not found');
+        if (!exists) throw new NotFoundException('Nie znaleziono konta.');
         throw new BadRequestException('Za mało punktów EKO do tej wymiany.');
       }
 
@@ -519,7 +519,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('Nie znaleziono konta.');
     }
 
     const isSubaccount = Boolean(user.customerOwnerId);
@@ -627,7 +627,7 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('Nie znaleziono konta.');
     }
 
     // Weryfikacja aktualnego hasła

@@ -40,7 +40,7 @@ export class AutoscalingPricingService {
 
   async getById(id: string): Promise<AutoscalingPriceRule> {
     const rule = await this.prisma.autoscalingPriceRule.findUnique({ where: { id } });
-    if (!rule) throw new NotFoundException('Price rule not found');
+    if (!rule) throw new NotFoundException('Nie znaleziono reguły cenowej.');
     return rule;
   }
 

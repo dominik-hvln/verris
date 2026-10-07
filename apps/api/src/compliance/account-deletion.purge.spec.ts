@@ -48,7 +48,7 @@ describe('AccountDeletionService.purgeAccountOnDa', () => {
   });
 
   it.each([
-    ['węzeł zniknął z bazy', new NotFoundException('Server not found')],
+    ['węzeł zniknął z bazy', new NotFoundException('Nie znaleziono węzła.')],
     ['404 z proxy przed DA', new Error('Request failed with status code 404 Not Found')],
     ['polski błąd z „brak”', new DirectAdminApiError('DirectAdmin API Error: Brak uprawnień', 'Brak uprawnień')],
     ['sieć', new Error('connect ECONNREFUSED 10.0.0.1:2222')],

@@ -23,7 +23,7 @@ export class AiService {
         replies: { where: { automatic: null }, orderBy: { createdAt: 'asc' }, take: 20 },
       },
     });
-    if (!ticket) throw new NotFoundException('Ticket not found');
+    if (!ticket) throw new NotFoundException('Nie znaleziono zgłoszenia.');
     const poza = await this.provider.kontoPozaTestemAi(ticket.userId);
     if (poza) throw new ServiceUnavailableException(poza);
     const system = [
@@ -62,7 +62,7 @@ export class AiService {
       where: { id: subscriptionId, userId },
       include: { plan: true },
     });
-    if (!subscription) throw new NotFoundException('Service not found');
+    if (!subscription) throw new NotFoundException('Nie znaleziono usługi.');
 
     // Telemetria przychodzi co 60 s: „96 ostatnich próbek” to ~1,5 h, więc trend na 7 dni liczył się
     // z półtorej godziny i pewność zawsze wychodziła niska (t1 05.10). Średnie godzinowe z 7 dni.

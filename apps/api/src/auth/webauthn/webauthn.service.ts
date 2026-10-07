@@ -52,7 +52,7 @@ export class WebAuthnService {
       where: { id: userId },
       include: { webauthnCredentials: true },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Nie znaleziono konta.');
 
     const options = await generateRegistrationOptions({
       rpName: this.rpName,
@@ -84,7 +84,7 @@ export class WebAuthnService {
   ) {
     this.assertConfigured();
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Nie znaleziono konta.');
 
     const verification = await verifyRegistrationResponse({
       response,
@@ -246,7 +246,7 @@ export class WebAuthnService {
     const row = await this.prisma.webAuthnCredential.findFirst({
       where: { id, userId },
     });
-    if (!row) throw new NotFoundException('Passkey not found');
+    if (!row) throw new NotFoundException('Nie znaleziono klucza dostępu (passkey).');
     await this.prisma.webAuthnCredential.delete({ where: { id } });
 
     // SEC-7 — alert bezpieczeństwa o usunięciu passkey.

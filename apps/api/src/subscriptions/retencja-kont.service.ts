@@ -205,7 +205,7 @@ export class RetencjaKontService {
       where: { id: subscriptionId },
       select: { id: true, serviceTag: true, account: { select: { id: true, domain: true, status: true } } },
     });
-    if (!sub) throw new NotFoundException('Subscription not found');
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     const oczekiwane = sub.account?.domain ?? sub.serviceTag ?? sub.id;
     if ((dto.potwierdzenie ?? '').trim().toLowerCase() !== oczekiwane.toLowerCase()) {
       throw new BadRequestException(`Aby potwierdzić, wpisz dokładnie: ${oczekiwane}`);
