@@ -33,6 +33,27 @@ CHAIN_BOGON="VERRIS_EGRESS_BOGON"
 # niż cała reszta: w DOCKER-USER (FORWARD), nie w OUTPUT.
 CHAIN_FWD_OBS="VERRIS_FWD_OBSERW"
 CHAIN_FWD_META="VERRIS_FWD_METADANE"
+# X-41 etap 2 — egzekwowanie dla kontenerów (DOCKER-USER). Bez allowlisty
+# domen: API/www muszą sięgać do dowolnych hostów klientów (migrator, monitoring
+# stron, webhooki). Zostają IOC, limit SMTP i limit tempa nowych połączeń.
+CHAIN_FWD_EGZ="VERRIS_FWD_EGZEKW"
+CHAIN_FWD_SMTP="VERRIS_FWD_SMTP"
+CHAIN_FWD_SKAN="VERRIS_FWD_SKAN"
+# Progi per kontener (hashlimit, tryb srcip — źródłem w FORWARD jest adres
+# kontenera, przed MASQUERADE). Dobrane z zapasem nad normalną pracą API:
+# monitoring stron sprawdza po 10 równolegle co minutę, preflight migracji to
+# pojedyncze połączenia, poczta aplikacji idzie przez Postfix hosta
+# (host.docker.internal → INPUT, nie FORWARD). Przed egzekwowaniem sprawdź
+# w pomiarze (log VERRIS-FWD-SKAN / VERRIS-FWD-SMTP), czy nikt legalny ich nie przekracza.
+FWD_NOWE_LIMIT="${FWD_NOWE_LIMIT:-20/sec}"   # nowe połączenia (każdy port/protokół)
+FWD_NOWE_BURST="${FWD_NOWE_BURST:-1000}"     # zapas na falę monitoringu
+FWD_SMTP_LIMIT="${FWD_SMTP_LIMIT:-60/min}"   # nowe TCP na 25/465/587
+FWD_SMTP_BURST="${FWD_SMTP_BURST:-120}"
+# Ile ms licznik źródła żyje bez ruchu. Krócej niż czas napełnienia zapasu =
+# kontener, który przeczeka chwilę, dostaje pełny zapas od nowa.
+FWD_HASHLIMIT_EXPIRE_MS="${FWD_HASHLIMIT_EXPIRE_MS:-300000}"
+# Ile dni pomiaru (--kontenery-pomiar) przed --kontenery-egzekwuj (48 h, jak host).
+FWD_POMIAR_MIN_DNI="${FWD_POMIAR_MIN_DNI:-2}"
 # Jedna nazwa zbioru dla --strict i dla zwolnienia z licznika anty-skanu (X-36).
 # Wcześniej siedziała jako `local setname` wewnątrz apply_strict_allowlist i nie
 # dało się jej użyć nigdzie indziej.
@@ -72,6 +93,10 @@ POMIAR_OD_PLIK="${POMIAR_OD_PLIK:-$SECURITY_DIR/egress-pomiar-od}"
 # X-41 — osobna data dla kontenerów: ich pomiar rusza dopiero z --obserwuj-kontenery.
 POMIAR_FWD_OD_PLIK="${POMIAR_FWD_OD_PLIK:-$SECURITY_DIR/egress-pomiar-kontenery-od}"
 POMIAR_MIN_DNI="${POMIAR_MIN_DNI:-7}"
+POMIAR_FWD_EGZ_OD_PLIK="${POMIAR_FWD_EGZ_OD_PLIK:-$SECURITY_DIR/egress-kontenery-egzekw-od}"
+# Tryb kontenerów (pomiar/egzekwuj) — odtwarzany przez verris-egress.service (--przy-starcie).
+FWD_TRYB_PLIK="${FWD_TRYB_PLIK:-$SECURITY_DIR/egress-kontenery-tryb}"
+FWD_TRYB=""
 WYMUS_STRICT=0
 WYLACZ_STRICT=0
 # 1 = strict odtworzony z egress-tryb (zatwierdzony wcześniej), nie włączany teraz po raz pierwszy.
@@ -190,6 +215,15 @@ Opcje:
   --obserwuj-kontenery
                Wpina do DOCKER-USER łańcuch, który TYLKO LOGUJE ruch wychodzący
                z kontenerów. Nic nie blokuje. Tryb wyłączny — nie rusza OUTPUT.
+  --kontenery-pomiar
+               X-41 etap 2: łańcuch VERRIS_FWD_EGZEKW w DOCKER-USER — IOC (ioc-ips.txt),
+               limit SMTP i limit tempa nowych połączeń per kontener. Tylko LOG
+               (VERRIS-FWD-IOC / -SMTP / -SKAN). Tryb wyłączny — nie rusza OUTPUT.
+               Ponowne uruchomienie przy włączonym egzekwowaniu = powrót do pomiaru.
+  --kontenery-egzekwuj
+               To samo + DROP. Odmawia (kod 1) przed FWD_POMIAR_MIN_DNI dniami pomiaru.
+  --kontenery-wylacz
+               Rollback: wypina i usuwa łańcuchy kontenerów (IOC, SMTP, skan).
 
 Domyślnie włączone (bez --strict): IOC drop, logowanie egress, anty-netscan
 (rate-limit burst nowych TCP/80,443 → DROP; env ANTISCAN_HITCOUNT / ANTISCAN_WINDOW).
@@ -213,6 +247,9 @@ while [ $# -gt 0 ]; do
     --przy-starcie) PRZY_STARCIE=1; shift ;;
     --zapisz-pomiar) ZAPISZ_POMIAR=1; shift ;;
     --odswiez) ODSWIEZ=1; shift ;;
+    --kontenery-pomiar) FWD_TRYB=pomiar; shift ;;
+    --kontenery-egzekwuj) FWD_TRYB=egzekwuj; shift ;;
+    --kontenery-wylacz) FWD_TRYB=wylacz; shift ;;
     -h|--help) usage; exit 0 ;;
     *) die "Unknown argument: $1" ;;
   esac
@@ -301,23 +338,35 @@ ipv6_aktywne() {
 }
 
 IOC6=()
-apply_ioc_drop() {
-  run "iptables -N '$CHAIN_IOC' 2>/dev/null || iptables -F '$CHAIN_IOC'"
-  run "iptables -C OUTPUT -j '$CHAIN_IOC' 2>/dev/null || iptables -I OUTPUT 1 -j '$CHAIN_IOC'"
+# Adresy IOC z $IOC_FILE (IPv4 i IPv6), po jednym na linię. Jedno źródło i jedna
+# walidacja dla hosta (OUTPUT) i kontenerów (DOCKER-USER, X-41).
+ioc_adresy() {
+  local line
   while IFS= read -r line || [ -n "$line" ]; do
     line="${line%%#*}"
     line="$(echo "$line" | tr -d '[:space:]')"
     [ -z "$line" ] && continue
     if [[ "$line" == *:* && "$line" =~ ^[0-9a-fA-F:]+$ ]]; then
-      IOC6+=("$line")
+      echo "$line"
       continue
     fi
     if ! [[ "$line" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-      log "SKIP invalid IOC line: $line"
+      log "SKIP invalid IOC line: $line" >&2
       continue
     fi
-    run "iptables -C '$CHAIN_IOC' -d '$line' -j DROP 2>/dev/null || iptables -A '$CHAIN_IOC' -d '$line' -j DROP -m comment --comment 'verris-ioc'"
+    echo "$line"
   done <"$IOC_FILE"
+}
+
+apply_ioc_drop() {
+  local line
+  run "iptables -N '$CHAIN_IOC' 2>/dev/null || iptables -F '$CHAIN_IOC'"
+  run "iptables -C OUTPUT -j '$CHAIN_IOC' 2>/dev/null || iptables -I OUTPUT 1 -j '$CHAIN_IOC'"
+  # Pętla w bieżącej powłoce (podstawienie procesu tylko na wejściu) — IOC6 zostaje dla apply_ipv6.
+  while read -r line; do
+    if [[ "$line" == *:* ]]; then IOC6+=("$line"); continue; fi
+    run "iptables -C '$CHAIN_IOC' -d '$line' -j DROP 2>/dev/null || iptables -A '$CHAIN_IOC' -d '$line' -j DROP -m comment --comment 'verris-ioc'"
+  done < <(ioc_adresy)
   log "IOC drop rules loaded from $IOC_FILE"
 }
 
@@ -1084,6 +1133,117 @@ usun_strict() {
   done
 }
 
+# ---------------------------------------------------------------------------
+# X-41 — ETAP 2: egzekwowanie egressu KONTENERÓW (DOCKER-USER).
+# ---------------------------------------------------------------------------
+#
+# Etap 1 (VERRIS_FWD_OBSERW) tylko liczy i z założenia zostaje bez blokad.
+# Tu osobny łańcuch, w dwóch trybach:
+#   pomiar   — reguły tylko LOG (liczniki: iptables -L <łańcuch> -v -n),
+#   egzekwuj — LOG + DROP.
+# Każde uruchomienie buduje łańcuchy od zera (-F), więc ponowne nie dubluje
+# reguł, a pomiar po egzekwowaniu jest zarazem powrotem do samego logowania.
+#
+# Allowlisty domen dla kontenerów NIE MA — świadomie: API/www łączą się
+# z dowolnymi hostami klientów. Na 80/443 pilnują strażniki SSRF w aplikacji.
+#
+# hashlimit jest sprawdzany RAZ na pakiet, a LOG/DROP siedzą w łańcuchach-
+# akcjach. Dwie reguły z tym samym --hashlimit-name (LOG, potem DROP)
+# zużywałyby dwa żetony na pakiet — faktyczny próg byłby o połowę niższy.
+#
+# Bez ipset — łańcuch nie zależy od zbioru, którego może nie być po
+# odtworzeniu reguł przy starcie (iptables-restore z brakującym zbiorem pada).
+#
+# ponytail: limit tempa per źródło łapie szybki skan/spam, nie wolny (~1/s do
+# 256 hostów, incydent 2026-06-11) — taki wygląda jak monitoring stron.
+# Różnorodność celów to zadanie dla security-egress-watch.sh.
+# ponytail: SMTP limitowany jednakowo dla wszystkich kontenerów, bez wyjątku
+# dla API — w DOCKER-USER kontener to tylko adres IP, zmienny przy każdym
+# wdrożeniu. Wyjątek per serwis wymaga stałych adresów w docker-compose.
+sprawdz_pomiar_kontenerow() {
+  local od dni
+  od="$(cat "$POMIAR_FWD_EGZ_OD_PLIK" 2>/dev/null || true)"
+  [[ "$od" =~ ^[0-9]+$ ]] \
+    || die "Brak pomiaru kontenerów ($POMIAR_FWD_EGZ_OD_PLIK). Najpierw --kontenery-pomiar, ${FWD_POMIAR_MIN_DNI} d obserwacji logu, potem --kontenery-egzekwuj."
+  dni=$(( ($(date +%s) - od) / 86400 ))
+  [ "$dni" -ge "$FWD_POMIAR_MIN_DNI" ] \
+    || die "Pomiar kontenerów trwa ${dni} d, wymagane ${FWD_POMIAR_MIN_DNI} d. Przy incydencie świadomie: FWD_POMIAR_MIN_DNI=0."
+  log "Pomiar kontenerów: ${dni} d (wymagane ${FWD_POMIAR_MIN_DNI} d)."
+}
+
+apply_fwd_egzekwowanie() {
+  local tryb="$1" ip ch
+  iptables -L DOCKER-USER -n >/dev/null 2>&1 \
+    || die "Brak łańcucha DOCKER-USER (Docker nie działa?) — reguły kontenerów nie miałyby gdzie działać."
+  if [ "$tryb" = "egzekwuj" ]; then
+    sprawdz_pomiar_kontenerow
+  elif [ ! -f "$POMIAR_FWD_EGZ_OD_PLIK" ]; then
+    run "date +%s > '$POMIAR_FWD_EGZ_OD_PLIK'"
+  fi
+  local limit_log="-m limit --limit 30/min --limit-burst 30"
+  local hl="--hashlimit-mode srcip --hashlimit-htable-expire '$FWD_HASHLIMIT_EXPIRE_MS'"
+
+  for ch in "$CHAIN_FWD_SMTP" "$CHAIN_FWD_SKAN" "$CHAIN_FWD_EGZ"; do
+    run "iptables -N '$ch' 2>/dev/null || iptables -F '$ch'"
+  done
+  run "iptables -A '$CHAIN_FWD_SMTP' $limit_log -j LOG --log-prefix 'VERRIS-FWD-SMTP ' --log-level 4"
+  run "iptables -A '$CHAIN_FWD_SKAN' $limit_log -j LOG --log-prefix 'VERRIS-FWD-SKAN ' --log-level 4"
+  if [ "$tryb" = "egzekwuj" ]; then
+    run "iptables -A '$CHAIN_FWD_SMTP' -j DROP -m comment --comment 'verris-fwd-smtp'"
+    run "iptables -A '$CHAIN_FWD_SKAN' -j DROP -m comment --comment 'verris-fwd-skan'"
+  fi
+
+  # IOC przed zwolnieniem ESTABLISHED — jak w OUTPUT: nowy wpis na liście
+  # ucina także trwające połączenia. Tylko IPv4 — sieci compose nie mają IPv6
+  # (brak enable_ipv6), więc ruch kontenerów po IPv6 nie istnieje.
+  while read -r ip; do
+    [[ "$ip" == *:* ]] && continue
+    run "iptables -A '$CHAIN_FWD_EGZ' -d '$ip' $limit_log -j LOG --log-prefix 'VERRIS-FWD-IOC ' --log-level 4"
+    if [ "$tryb" = "egzekwuj" ]; then
+      run "iptables -A '$CHAIN_FWD_EGZ' -d '$ip' -j DROP -m comment --comment 'verris-fwd-ioc'"
+    fi
+  done < <(ioc_adresy)
+
+  # Odpowiedzi i ruch DO kontenerów (kontener→kontener, wejście z internetu)
+  # to nie egress — nie liczą się do limitów.
+  run "iptables -A '$CHAIN_FWD_EGZ' -m conntrack --ctstate RELATED,ESTABLISHED -j RETURN"
+  run "iptables -A '$CHAIN_FWD_EGZ' -o docker0 -j RETURN"
+  run "iptables -A '$CHAIN_FWD_EGZ' -o br-+ -j RETURN"
+  run "iptables -A '$CHAIN_FWD_EGZ' -p tcp --syn -m multiport --dports 25,465,587 -m conntrack --ctstate NEW -m hashlimit --hashlimit-above '$FWD_SMTP_LIMIT' --hashlimit-burst '$FWD_SMTP_BURST' $hl --hashlimit-name verris_fwd_smtp -j '$CHAIN_FWD_SMTP'"
+  run "iptables -A '$CHAIN_FWD_EGZ' -m conntrack --ctstate NEW -m hashlimit --hashlimit-above '$FWD_NOWE_LIMIT' --hashlimit-burst '$FWD_NOWE_BURST' $hl --hashlimit-name verris_fwd_nowe -j '$CHAIN_FWD_SKAN'"
+  run "iptables -A '$CHAIN_FWD_EGZ' -j RETURN"
+  run "iptables -C DOCKER-USER -j '$CHAIN_FWD_EGZ' 2>/dev/null || iptables -I DOCKER-USER 1 -j '$CHAIN_FWD_EGZ'"
+
+  # Kontrola po fakcie — X-41 to właśnie łańcuch poprawny, ale niewpięty.
+  if [ "$DRY_RUN" -eq 0 ]; then
+    iptables -C DOCKER-USER -j "$CHAIN_FWD_EGZ" 2>/dev/null \
+      || die "Łańcuch $CHAIN_FWD_EGZ nie jest wpięty w DOCKER-USER — kontenery NIE są objęte."
+    if [ "$tryb" = "egzekwuj" ]; then
+      for ch in "$CHAIN_FWD_SMTP:verris-fwd-smtp" "$CHAIN_FWD_SKAN:verris-fwd-skan"; do
+        iptables -S "${ch%%:*}" 2>/dev/null | grep -- "${ch#*:}" >/dev/null \
+          || die "Łańcuch ${ch%%:*} nie zawiera reguły ${ch#*:} — egzekwowanie NIE działa."
+      done
+    fi
+  fi
+  log "Kontenery (DOCKER-USER, tryb ${tryb}): IOC, SMTP > ${FWD_SMTP_LIMIT} (zapas ${FWD_SMTP_BURST}), nowe > ${FWD_NOWE_LIMIT} (zapas ${FWD_NOWE_BURST}) per kontener → $([ "$tryb" = egzekwuj ] && echo 'LOG + DROP' || echo 'tylko LOG')"
+  log "Log: journalctl -k | grep -E 'VERRIS-FWD-(IOC|SMTP|SKAN)'   liczniki: iptables -L $CHAIN_FWD_EGZ -v -n"
+}
+
+# Rollback: kontenery wracają do stanu sprzed etapu 2 (obserwacja i blokada
+# metadanych zostają — to osobne łańcuchy).
+wylacz_fwd_egzekwowanie() {
+  local ch
+  run "iptables -D DOCKER-USER -j '$CHAIN_FWD_EGZ' 2>/dev/null || true"
+  for ch in "$CHAIN_FWD_EGZ" "$CHAIN_FWD_SMTP" "$CHAIN_FWD_SKAN"; do
+    run "iptables -F '$ch' 2>/dev/null || true"
+    run "iptables -X '$ch' 2>/dev/null || true"
+  done
+  if [ "$DRY_RUN" -eq 0 ] && iptables -S DOCKER-USER 2>/dev/null | grep -- "-j $CHAIN_FWD_EGZ" >/dev/null; then
+    die "$CHAIN_FWD_EGZ nadal wpięty w DOCKER-USER (wpięty ręcznie kilka razy?) — usuń: iptables -D DOCKER-USER -j $CHAIN_FWD_EGZ"
+  fi
+  log "Egzekwowanie dla kontenerów wyłączone (DOCKER-USER bez $CHAIN_FWD_EGZ)."
+}
+
 persist_rules() {
   if command -v netfilter-persistent >/dev/null 2>&1; then
     run "netfilter-persistent save"
@@ -1128,6 +1288,16 @@ if [ "$PRZY_STARCIE" -eq 1 ]; then
   zbuduj_ipset_allow
   # Obserwacja kontenerów jest dodatkiem do trybu hosta, nie zamiast niego.
   if [ -f "$POMIAR_FWD_OD_PLIK" ]; then apply_forward_observe; fi
+  # X-41 etap 2 — tryb kontenerów z ostatniego przebiegu. Brak DOCKER-USER nie może
+  # wywrócić odtwarzania reguł hosta, więc tylko ostrzeżenie.
+  _fwd="$(cat "$FWD_TRYB_PLIK" 2>/dev/null || true)"
+  case "$_fwd" in
+    pomiar|egzekwuj)
+      if iptables -L DOCKER-USER -n >/dev/null 2>&1; then apply_fwd_egzekwowanie "$_fwd"
+      else log "WARN: brak DOCKER-USER — tryb kontenerów ($_fwd) NIEodtworzony; po starcie Dockera: sudo bash $0 --kontenery-$_fwd"; fi ;;
+    "") ;;
+    *) log "WARN: nieznany tryb kontenerów w $FWD_TRYB_PLIK: $_fwd" ;;
+  esac
 fi
 
 # SEC-05: raport tylko do odczytu — nic nie zmienia.
@@ -1154,6 +1324,15 @@ if [ "$OBSERWUJ_KONTENERY" -eq 1 ]; then
   log "Obserwacja gotowa. NIC nie zostało zablokowane."
   exit 0
 fi
+
+# X-41 etap 2: tryby wyłączne — tylko DOCKER-USER, OUTPUT hosta nietknięty.
+case "$FWD_TRYB" in
+  pomiar|egzekwuj)
+    apply_fwd_egzekwowanie "$FWD_TRYB"
+    run "echo '$FWD_TRYB' > '$FWD_TRYB_PLIK'"
+    persist_rules; exit 0 ;;
+  wylacz) wylacz_fwd_egzekwowanie; run "rm -f '$FWD_TRYB_PLIK'"; persist_rules; exit 0 ;;
+esac
 
 # Zapisany tryb zostaje, dopóki nie zmieni go jawna flaga (--strict / --wylacz-strict). Do 2026-10-06
 # każdy przebieg bez --strict zdejmował strict — a instalator (i baseline przez instalator) woła skrypt

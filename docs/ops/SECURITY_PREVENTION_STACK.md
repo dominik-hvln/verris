@@ -128,6 +128,63 @@ sudo bash ops/scripts/security-control-plane-egress.sh --strict
 
 **Ryzyko:** niepełna lista → ucięcie deploy/Stripe/apt hosta; nowa usługa zewnętrzna hosta = nowa nazwa w `egress-allow-hostnames.txt` (timer `--odswiez` dopisze jej adresy w ciągu 15 s).
 
+## Kontenery — DOCKER-USER (X-41 etap 2)
+
+Strict, IOC i anty-skan powyżej działają w **OUTPUT**, czyli tylko dla ruchu hosta.
+Ruch kontenerów (API, www, panele) idzie przez **FORWARD → DOCKER-USER**. Dla niego
+osobny łańcuch `VERRIS_FWD_EGZEKW` — **bez allowlisty domen** (API musi sięgać do
+dowolnych hostów klientów), za to:
+
+| Reguła | Dopasowanie | Log (prefiks) | Próg (zmienna na górze skryptu) |
+|---|---|---|---|
+| IOC | `-d` adres z `/etc/verris/security/ioc-ips.txt` (ta sama lista co host) | `VERRIS-FWD-IOC` | — |
+| SMTP | nowe TCP na 25/465/587, per kontener (`hashlimit srcip`) | `VERRIS-FWD-SMTP` | `FWD_SMTP_LIMIT=60/min`, `FWD_SMTP_BURST=120` |
+| Skan | każde nowe połączenie, per kontener (`hashlimit srcip`) | `VERRIS-FWD-SKAN` | `FWD_NOWE_LIMIT=20/sec`, `FWD_NOWE_BURST=1000` |
+
+Ruch do kontenerów (`-o br-+`, `-o docker0`) i odpowiedzi (`ESTABLISHED`) nie liczą się
+do limitów. Poczta aplikacji idzie przez Postfix hosta (`host.docker.internal`, łańcuch
+INPUT), więc limit SMTP dotyczy tylko bezpośrednich połączeń z kontenera.
+Łańcuchy z obserwacji (`VERRIS_FWD_OBSERW`) i blokady metadanych (`VERRIS_FWD_METADANE`)
+zostają bez zmian.
+
+Kolejność (na Panelu, `cd /opt/verris`, po `git pull`):
+
+```bash
+# 1. Pomiar — reguły tylko logują, nic nie odrzucają. Zapisuje datę początku pomiaru.
+sudo bash ops/scripts/security-control-plane-egress.sh --kontenery-pomiar
+
+# 2. Po >= 48 h — kto przekroczyłby próg (adres SRC = kontener) i ile razy:
+sudo journalctl -k --since "2 days ago" | grep -E 'VERRIS-FWD-(IOC|SMTP|SKAN)'
+sudo iptables -L VERRIS_FWD_EGZEKW -v -n      # liczniki pakietów ponad próg
+docker ps -q | xargs docker inspect --format '{{.Name}} {{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}'
+#    Pusto = można egzekwować. Wpisy od API (monitoring, webhooki) = podnieś próg, np.:
+#    sudo FWD_NOWE_LIMIT=40/sec bash ops/scripts/security-control-plane-egress.sh --kontenery-pomiar
+
+# 3. Egzekwowanie (odmawia z kodem 1 przed 48 h pomiaru):
+sudo bash ops/scripts/security-control-plane-egress.sh --kontenery-egzekwuj
+#    Przy incydencie, świadomie bez pomiaru:
+#    sudo FWD_POMIAR_MIN_DNI=0 bash ops/scripts/security-control-plane-egress.sh --kontenery-egzekwuj
+
+# 4a. Rollback do samego logowania:
+sudo bash ops/scripts/security-control-plane-egress.sh --kontenery-pomiar
+# 4b. Rollback całkowity (wypina i usuwa łańcuchy kontenerów):
+sudo bash ops/scripts/security-control-plane-egress.sh --kontenery-wylacz
+#    Awaryjnie, bez skryptu (plik trybu też, inaczej restart serwera przywróci egzekwowanie):
+#    sudo iptables -D DOCKER-USER -j VERRIS_FWD_EGZEKW && sudo rm -f /etc/verris/security/egress-kontenery-tryb
+```
+
+Progi zmienione przez zmienną obowiązują do następnego uruchomienia bez niej (także do
+restartu serwera) — trwała zmiana to edycja wartości domyślnych na górze
+`security-control-plane-egress.sh`. Każde uruchomienie buduje łańcuchy od zera i nie dubluje
+skoku w DOCKER-USER. Tryb kontenerów zapisuje się w `/etc/verris/security/egress-kontenery-tryb`;
+po restarcie serwera `verris-egress.service` (`--przy-starcie`, po `docker.service`) odtwarza go
+razem z regułami hosta, a `--kontenery-wylacz` kasuje ten plik. Docker nie modyfikuje reguł
+dodanych do DOCKER-USER (https://docs.docker.com/engine/network/packet-filtering-firewalls/),
+a łańcuchy `VERRIS_FWD_*` są nasze, więc restart samego demona ich nie rusza. Po restarcie
+Dockera albo serwera sprawdź: `sudo iptables -S DOCKER-USER` (ma być `-j VERRIS_FWD_EGZEKW`);
+brak = ponów polecenie z kroku 1 albo 3 (usługa tylko ostrzega, gdy przy starcie nie było
+jeszcze DOCKER-USER: `journalctl -u verris-egress`).
+
 ## Co dalej operacyjnie
 
 1. Rotacja sekretów po incydencie (JWT, KMS, Stripe, DA) — jednorazowo.
