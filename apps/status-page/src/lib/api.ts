@@ -70,5 +70,15 @@ export async function fetchPublicStatus(): Promise<PublicStatusDto> {
   if (!res.ok) {
     throw new Error(`status fetch failed: ${res.status}`);
   }
-  return (await res.json()) as PublicStatusDto;
+  const body = (await res.json()) as Partial<PublicStatusDto>;
+  // Inny kształt (API sprzed widoku „uptime monitor” albo błąd pośrednika) = „niedostępne”, nie wyjątek przy
+  // renderowaniu. 07.10: build w CI pobiera produkcyjne /status, które jeszcze było w starym formacie — `next build`
+  // padał na `services.find` (to samo groziło w trakcie wdrożenia, gdy strona statusu wyprzedza API).
+  if (!Array.isArray(body.services)) throw new Error('status: nieoczekiwany format odpowiedzi');
+  return {
+    ...(body as PublicStatusDto),
+    activeIncidents: body.activeIncidents ?? [],
+    recentIncidents: body.recentIncidents ?? [],
+    maintenance: body.maintenance ?? [],
+  };
 }
