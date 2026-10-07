@@ -89,7 +89,7 @@ export class WalletLedgerService {
   ): Promise<WalletTransaction> {
     const amount = new Prisma.Decimal(input.amount);
     if (amount.lessThanOrEqualTo(0)) {
-      throw new BadRequestException('Amount must be positive');
+      throw new BadRequestException('Kwota musi być większa od zera.');
     }
 
     // Fast-path idempotency check (outside the transaction). The authoritative
@@ -170,7 +170,7 @@ export class WalletLedgerService {
         const newBalance = new Prisma.Decimal(user.walletBalance).plus(signedAmount);
         if (newBalance.isNegative()) {
           throw new ConflictException(
-            'Insufficient wallet balance for this charge',
+            'Za mało środków w portfelu — doładuj portfel i spróbuj ponownie.',
           );
         }
 
