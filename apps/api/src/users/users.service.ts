@@ -4,7 +4,9 @@ import {
   Logger,
   NotFoundException,
   UnauthorizedException,
+  Optional,
 } from '@nestjs/common';
+import { AuditService } from '../common/audit/audit.service.js';
 import { ConfigService } from '@nestjs/config';
 import {
   CustomerPermission,
@@ -41,6 +43,8 @@ export class UsersService {
     private readonly ecoBadge: EcoBadgeService,
     private readonly ecoPoints: EcoPointsService,
     private readonly walletLedger: WalletLedgerService,
+    // G-18 — zmiana hasła w dzienniku konta. Opcjonalny: testy budują serwis bez niego.
+    @Optional() private readonly audit?: AuditService,
   ) {}
 
   getEcoBadgeStats(userId: string) {
@@ -655,6 +659,8 @@ export class UsersService {
       data: { revokedAt: new Date() },
     });
 
+    await this.audit?.record({ action: 'PASSWORD_CHANGED', userId, actorUserId: userId, ipAddress: ctx.ip, userAgent: ctx.userAgent });
+
     void this.notifyPasswordChanged({
       to: user.email,
       firstName: user.firstName,
@@ -715,7 +721,14 @@ export class UsersService {
     // nowy rodzaj pojawia się sam, bez dopisywania do listy) + wybrane działania konta. Kto to zrobił:
     // subkonto (e-mail) albo obsługa Verris — właściciel widzi też cudze zmiany na swoim koncie.
     const KONTO = ['ASSISTANT_FIX_APPLIED', 'ASSISTANT_FIX_UNDONE', 'CLIENT_WEBHOOK_CREATED', 'CLIENT_WEBHOOK_DELETED',
-      'RESELLER_APPLIED', 'RESELLER_MARKUP_CHANGED', 'RESELLER_CLIENT_CREATED'];
+      'RESELLER_APPLIED', 'RESELLER_MARKUP_CHANGED', 'RESELLER_CLIENT_CREATED',
+      // 07.10 — bezpieczeństwo konta, dostępy, domeny i stan usług (wcześniej poza dziennikiem klienta).
+      'PASSWORD_CHANGED', 'PASSKEY_ADDED', 'PASSKEY_REMOVED', 'TWO_FACTOR_ENABLED', 'TWO_FACTOR_DISABLED',
+      'TWO_FACTOR_RECOVERY_CODE_USED', 'EMAIL_CHANGE_CONFIRMED', 'SESSIONS_INVALIDATED_ALL',
+      'API_TOKEN_CREATED', 'API_TOKEN_REVOKED',
+      'CUSTOMER_IAM_INVITE_CREATED', 'CUSTOMER_IAM_INVITE_ACCEPTED', 'CUSTOMER_IAM_INVITE_REVOKED', 'CUSTOMER_IAM_MEMBER_DISABLED',
+      'DOMAIN_NAMESERVERS_UPDATED', 'DOMAIN_WHOIS_PRIVACY_ENABLED', 'DOMAIN_WHOIS_PRIVACY_DISABLED', 'DOMAIN_AUTHCODE_REVEALED',
+      'DOMAIN_TRANSFER_UNLOCKED', 'DOMAIN_REGISTRANT_UPDATED', 'SUBSCRIPTION_SUSPENDED', 'SUBSCRIPTION_UNSUSPENDED'];
     const take = Math.min(Math.max(limit, 1), 100);
     const rows = await this.prisma.auditLog.findMany({
       where: {

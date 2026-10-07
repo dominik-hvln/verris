@@ -10,9 +10,10 @@ describe('UsersService.changePassword', () => {
       user: { findUnique: vi.fn(async () => ({ id: 'u1', email: 'k@x.pl', firstName: 'K', passwordHash })), update: vi.fn(async () => ({})) },
       userSession: { updateMany: vi.fn(async () => ({ count: 2 })) },
     };
-    const svc = new UsersService(prisma as never, {} as never, {} as never, {} as never, { send: vi.fn(async () => undefined) } as never, {} as never);
+    const audit = { record: vi.fn(async () => undefined) };
+    const svc = new UsersService(prisma as never, {} as never, {} as never, {} as never, { send: vi.fn(async () => undefined) } as never, {} as never, audit as never);
     vi.spyOn(svc as unknown as { notifyPasswordChanged: () => Promise<void> }, 'notifyPasswordChanged').mockResolvedValue(undefined);
-    return { svc, prisma };
+    return { svc, prisma, audit };
   }
 
   it('złe aktualne hasło → 401, bez zmian i bez wylogowania', async () => {
@@ -20,6 +21,7 @@ describe('UsersService.changePassword', () => {
     await expect(s.svc.changePassword('u1', { currentPassword: 'zle', newPassword: 'Nowe-haslo-123!' } as never)).rejects.toBeInstanceOf(UnauthorizedException);
     expect(s.prisma.user.update).not.toHaveBeenCalled();
     expect(s.prisma.userSession.updateMany).not.toHaveBeenCalled();
+    expect(s.audit.record).not.toHaveBeenCalled();
   });
 
   it('poprawne → nowe hasło i unieważnienie wszystkich sesji poza bieżącą', async () => {
@@ -29,5 +31,7 @@ describe('UsersService.changePassword', () => {
       where: { userId: 'u1', revokedAt: null, NOT: { id: 'biezaca' } },
       data: { revokedAt: expect.any(Date) },
     });
+    // G-18 (07.10): zmiana hasła trafia do dziennika konta (wcześniej nie było po niej śladu).
+    expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'PASSWORD_CHANGED', userId: 'u1', actorUserId: 'u1' }));
   });
 });

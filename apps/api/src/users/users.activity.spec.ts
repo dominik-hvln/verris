@@ -22,4 +22,13 @@ describe('UsersService.listMyActivity', () => {
     expect(r.events.map((e) => e.actor)).toEqual(['anna@firma.pl', 'obsługa Verris', null, 'obsługa Verris']);
     expect(r.events[2].context).toBe('k_db');
   });
+  it('07.10: dziennik obejmuje zmiany bezpieczeństwa konta, domen i stanu usług', async () => {
+    const prisma = { auditLog: { findMany: vi.fn(async () => []) }, user: { findMany: vi.fn(async () => []) } };
+    await new UsersService(prisma as never, {} as never, {} as never, {} as never, {} as never, {} as never).listMyActivity('u1');
+    const where = (prisma.auditLog.findMany.mock.calls[0] as unknown as [{ where: { AND: [{ OR: Array<{ action?: { in?: string[] } }> }] } }])[0].where;
+    const lista = where.AND[0].OR.find((x) => x.action?.in)!.action!.in!;
+    for (const a of ['PASSWORD_CHANGED', 'PASSKEY_ADDED', 'PASSKEY_REMOVED', 'TWO_FACTOR_DISABLED', 'API_TOKEN_CREATED', 'DOMAIN_NAMESERVERS_UPDATED', 'SUBSCRIPTION_SUSPENDED']) {
+      expect(lista).toContain(a);
+    }
+  });
 });

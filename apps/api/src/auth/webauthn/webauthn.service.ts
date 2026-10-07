@@ -5,7 +5,9 @@ import {
   Logger,
   NotFoundException,
   UnauthorizedException,
+  Optional,
 } from '@nestjs/common';
+import { AuditService } from '../../common/audit/audit.service.js';
 import { ConfigService } from '@nestjs/config';
 import {
   generateAuthenticationOptions,
@@ -40,6 +42,8 @@ export class WebAuthnService {
     private readonly config: ConfigService,
     private readonly ecoPoints: EcoPointsService,
     private readonly mailer: MailerService,
+    // G-18 — dodanie/usunięcie passkey w dzienniku konta. Opcjonalny: testy budują serwis bez niego.
+    @Optional() private readonly audit?: AuditService,
   ) {}
 
   isConfigured(): boolean {
@@ -127,6 +131,8 @@ export class WebAuthnService {
         await this.ecoPoints.awardPasskeyRegistered(this.prisma, userId, credentialId);
       });
     }
+
+    await this.audit?.record({ action: 'PASSKEY_ADDED', userId, actorUserId: userId, details: { name: deviceName?.trim() || null } });
 
     // SEC-7 — alert bezpieczeństwa o dodaniu passkey (ATO persistence vector).
     void this.notifyPasskeyChange(user, 'added', deviceName?.trim() || null).catch((err) =>
@@ -248,6 +254,7 @@ export class WebAuthnService {
     });
     if (!row) throw new NotFoundException('Nie znaleziono klucza dostępu (passkey).');
     await this.prisma.webAuthnCredential.delete({ where: { id } });
+    await this.audit?.record({ action: 'PASSKEY_REMOVED', userId, actorUserId: userId, details: { name: row.name ?? null } });
 
     // SEC-7 — alert bezpieczeństwa o usunięciu passkey.
     const user = await this.prisma.user.findUnique({

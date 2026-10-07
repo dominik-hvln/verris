@@ -107,6 +107,25 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   RESELLER_LOGO_CHANGED: 'Zmieniono logo resellera',
   RESELLER_CLIENT_PASSWORD_LINK: 'Reseller wysłał klientowi link do ustawienia hasła',
   RESELLER_CLIENT_DETACHED: 'Reseller odpiął klienta',
+  // 07.10 — bezpieczeństwo konta, dostępy, domeny, stan usług
+  PASSWORD_CHANGED: 'Zmieniono hasło do panelu',
+  PASSKEY_ADDED: 'Dodano klucz dostępu (passkey)',
+  PASSKEY_REMOVED: 'Usunięto klucz dostępu (passkey)',
+  TWO_FACTOR_ENABLED: 'Włączono weryfikację dwuetapową (2FA)',
+  TWO_FACTOR_DISABLED: 'Wyłączono weryfikację dwuetapową (2FA)',
+  TWO_FACTOR_RECOVERY_CODE_USED: 'Zalogowano kodem zapasowym 2FA',
+  EMAIL_CHANGE_CONFIRMED: 'Zmieniono adres e-mail konta',
+  SESSIONS_INVALIDATED_ALL: 'Wylogowano ze wszystkich urządzeń',
+  API_TOKEN_CREATED: 'Utworzono token API',
+  API_TOKEN_REVOKED: 'Unieważniono token API',
+  DOMAIN_NAMESERVERS_UPDATED: 'Zmieniono serwery nazw domeny',
+  DOMAIN_WHOIS_PRIVACY_ENABLED: 'Włączono ukrycie danych w WHOIS',
+  DOMAIN_WHOIS_PRIVACY_DISABLED: 'Wyłączono ukrycie danych w WHOIS',
+  DOMAIN_AUTHCODE_REVEALED: 'Wyświetlono kod transferu domeny',
+  DOMAIN_TRANSFER_UNLOCKED: 'Zdjęto blokadę transferu domeny',
+  DOMAIN_REGISTRANT_UPDATED: 'Zmieniono dane abonenta domeny',
+  SUBSCRIPTION_SUSPENDED: 'Usługa wstrzymana',
+  SUBSCRIPTION_UNSUSPENDED: 'Usługa wznowiona',
 };
 
 export function etykietaDziennika(akcja: string): string {
