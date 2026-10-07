@@ -2117,7 +2117,8 @@ configure_http3_firewall() {
 }
 
 # -----------------------------------------------------------------------------
-# Strony błędów 403/404/500/503 dla wszystkich stron klientów (white label). Próba bety 06.10:
+# Strony błędów 403/404/500/502/503/504 dla wszystkich stron klientów (white label, styl jak strona zawieszenia —
+# decyzja właściciela 07.10; 502/504 to typowe odpowiedzi serwera, gdy PHP strony nie odpowiada). Próba bety 06.10:
 # d3.hvln.pl/nieistniejacy-plik pokazywał domyślną stronę serwera z nazwą jego producenta.
 # - Ścieżka lokalna, nie URL: przy URL serwer odsyła przekierowanie zamiast kodu 404/500
 #   (https://httpd.apache.org/docs/current/mod/core.html#errordocument; kontekst: server config … .htaccess).
@@ -2196,7 +2197,7 @@ configure_error_pages() {
     return 0
   fi
   if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
-    log_info "dry-run: $dir/{403,404,500,503}.html + Alias w $inc + ErrorDocument w $vh"
+    log_info "dry-run: $dir/{403,404,500,502,503,504}.html + Alias w $inc + ErrorDocument w $vh"
     return 0
   fi
   mkdir -p "$dir" "$(dirname "$vh")"
@@ -2206,7 +2207,9 @@ configure_error_pages() {
 403|Brak dostępu|Nie masz uprawnień do wyświetlenia tej strony.|Przejdź na stronę główną|/
 404|Nie znaleziono strony|Strona, której szukasz, nie istnieje albo została przeniesiona. Sprawdź adres albo zacznij od strony głównej.|Przejdź na stronę główną|/
 500|Błąd serwera|Wystąpił nieoczekiwany błąd. Spróbuj ponownie za chwilę.|Odśwież stronę|
+502|Strona chwilowo nie odpowiada|Serwer strony nie odpowiedział poprawnie. Spróbuj ponownie za chwilę.|Odśwież stronę|
 503|Strona chwilowo niedostępna|Strona jest przeciążona albo trwają prace. Spróbuj ponownie za kilka minut.|Odśwież stronę|
+504|Strona odpowiada zbyt długo|Serwer strony nie zdążył odpowiedzieć. Spróbuj ponownie za chwilę.|Odśwież stronę|
 VERRIS_BLEDY
   chmod 0755 "$dir"; chmod 0644 "$dir"/*.html
   blok="# >>> verris-bledy (node-hosting-profile.sh) - blok odtwarzany przy kazdym przebiegu
@@ -2221,7 +2224,9 @@ Alias $url/ \"$dir/\"
 ErrorDocument 403 $url/403.html
 ErrorDocument 404 $url/404.html
 ErrorDocument 500 $url/500.html
+ErrorDocument 502 $url/502.html
 ErrorDocument 503 $url/503.html
+ErrorDocument 504 $url/504.html
 # <<< verris-bledy"
   verris_blok_w_pliku "$vh" "$blok" && zm_vh=1
   if [ "$zm_vh" = "1" ]; then
@@ -2258,7 +2263,7 @@ ErrorDocument 503 $url/503.html
     odp="$(curl -sk -m 10 --resolve "$domena:443:$ip" -w '\n%{http_code}' \
       "https://$domena/verris-sprawdz-404-$RANDOM$RANDOM" 2>/dev/null || true)"
     if [ "${odp##*$'\n'}" = "404" ] && grep -q 'verris-error-page' <<<"$odp"; then
-      log_ok "Strony błędów Verris 403/404/500/503 — https://$domena/<brak> zwraca 404 ze stroną Verris"
+      log_ok "Strony błędów Verris 403/404/500/502/503/504 — https://$domena/<brak> zwraca 404 ze stroną Verris"
       return 0
     fi
     [ "$i" = "5" ] || sleep "${VERRIS_ERR_WAIT:-2}"

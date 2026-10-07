@@ -80,7 +80,7 @@ describe('Profil węzła — strony błędów serwera WWW bez nazwy producenta',
     expect(inc).not.toContain('ErrorDocument');
     const vh = w.czytaj('custom/cust_httpd.CUSTOM.4.pre');
     expect(vh).toContain('Header set X-Admin tak');
-    for (const c of ['403', '404', '500', '503']) {
+    for (const c of ['403', '404', '500', '502', '503', '504']) {
       expect(vh).toContain(`\nErrorDocument ${c} /verris-bledy/${c}.html\n`);
       const html = w.czytaj(`www/verris-bledy/${c}.html`);
       expect(html).toContain('<html lang="pl">');
@@ -93,7 +93,7 @@ describe('Profil węzła — strony błędów serwera WWW bez nazwy producenta',
       expect(html).not.toMatch(/litespeed|apache|directadmin|https?:\/\//i);
     }
     expect(w.czytaj('www/verris-bledy/404.html')).toContain('Nie znaleziono strony');
-    expect(readdirSync(join(w.k, 'www/verris-bledy')).sort()).toEqual(['403.html', '404.html', '500.html', '503.html']);
+    expect(readdirSync(join(w.k, 'www/verris-bledy')).sort()).toEqual(['403.html', '404.html', '500.html', '502.html', '503.html', '504.html']);
     expect(w.czytaj('build.log').trim()).toBe(`build rewrite_confs (${join(w.k, 'cb')})`);
     expect(w.czytaj('lsws.log')).toBe('');
     expect(w.czytaj('curl.log')).toMatch(
