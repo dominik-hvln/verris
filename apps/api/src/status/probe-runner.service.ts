@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ProbeKind } from '@verris/database';
 import { connect, type Socket } from 'net';
+import { connect as tlsConnect } from 'tls';
 import { lookup as dnsLookup } from 'dns/promises';
 
 export interface ProbeRunResult {
@@ -10,6 +11,13 @@ export interface ProbeRunResult {
 }
 
 const DEFAULT_TIMEOUT_MS = 5_000;
+
+/**
+ * Porty z TLS od pierwszego bajtu (SMTPS 465, IMAPS 993, POP3S 995): powitanie serwera przychodzi dopiero
+ * po uzgodnieniu TLS. 07.10: sonda IMAP na 143 (zamkniętym na węźle) dawała fałszywą awarię „Poczty”,
+ * a na 993 zwykłe gniazdo nigdy nie dostawało powitania. Certyfikat jest sprawdzany (wygasły = awaria).
+ */
+export const PORTY_TLS = new Set([465, 993, 995]);
 
 /**
  * Stateless protocol-aware prober used by both the server-side cron and any
@@ -108,9 +116,11 @@ export class ProbeRunnerService {
         resolve(result);
       };
 
-      const socket: Socket = connect({ host, port }, () => {
-        // Wait for server greeting.
-      });
+      const socket: Socket = PORTY_TLS.has(port)
+        ? tlsConnect({ host, port, servername: host })
+        : connect({ host, port }, () => {
+            // Wait for server greeting.
+          });
       socket.setTimeout(timeoutMs);
 
       socket.on('data', (chunk: Buffer | string) => {
