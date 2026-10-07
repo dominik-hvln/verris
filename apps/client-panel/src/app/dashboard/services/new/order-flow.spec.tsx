@@ -43,6 +43,7 @@ jest.mock('@/app/dashboard/domains/components/registrant-fields', () => ({
 jest.mock('@/lib/analytics-events', () => ({ trackBeginCheckout: jest.fn(), trackPurchase: jest.fn() }));
 
 import { OrderFlow } from './order-flow';
+import type { TrialOffer } from '../data';
 import { FeatureFlagsProvider } from '@/lib/feature-flags';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -57,17 +58,17 @@ const PLANY = [
   plan({ id: 'n1', slug: 'newsletter-start', name: 'Newsletter Start', productKind: 'EMAIL_MARKETING', priceMonthly: '19.00', priceYearly: '190.00', emmMaxContacts: 1000, emmMonthlySends: 5000 }),
   plan({ id: 'n2', slug: 'newsletter-plus', name: 'Newsletter Plus', productKind: 'EMAIL_MARKETING', priceMonthly: '49.00', priceYearly: '490.00', emmMaxContacts: 5000, emmMonthlySends: 25000 }),
 ];
-const OFERTA = { freeEnabled: false, cardEnabled: false, annualDiscountPct: 0, monthlyDiscountPct: 0, annualPromoCode: '', monthlyPromoCode: '' };
+const OFERTA: TrialOffer = { freeEnabled: false, cardEnabled: false, annualDiscountPct: 0, monthlyDiscountPct: 0, annualPromoCode: '', monthlyPromoCode: '' };
 
 let root: Root;
 let el: HTMLDivElement;
-async function pokaz(query: string, flaga: boolean) {
+async function pokaz(query: string, flaga: boolean, offer: TrialOffer = OFERTA, plans: PlanDto[] = PLANY) {
   mockFlags.emailMarketing = flaga;
   mockParams.value = new URLSearchParams(query);
   await act(async () =>
     root.render(
       <FeatureFlagsProvider>
-        <OrderFlow plans={PLANY} offer={OFERTA} />
+        <OrderFlow plans={plans} offer={offer} />
       </FeatureFlagsProvider>,
     ),
   );
@@ -128,4 +129,13 @@ it('VPS w zamówieniu tylko, gdy API zwraca vps=true dla konta', async () => {
   expect(await pokaz('', false)).toContain('VPS');
   expect(el.querySelector('a[href="/dashboard/services/new?type=vps"]')).not.toBeNull();
   expect(await pokaz('type=vps', false)).toContain('Otwórz sekcję VPS');
+});
+
+// O-07 na t1 07.10: poczta pokazała „Do zapłaty 12,49 K”, a API pobrało 11,24 K (rabat na start −10%
+// liczy się dla każdego pakietu z portfela, panel pokazywał go tylko przy hostingu).
+it('rabat na start widoczny przed zapłatą także przy poczcie', async () => {
+  const poczta = plan({ id: 'e1', slug: 'poczta-standard', name: 'Poczta Standard', productKind: 'EMAIL', priceMonthly: '9.99', priceYearly: '99.99' });
+  const t = await pokaz('type=email', false, { ...OFERTA, cardEnabled: true, monthlyDiscountPct: 10, annualDiscountPct: 15 }, [poczta]);
+  expect(t).toContain('Rabat na start −10%');
+  expect(t).toMatch(/8,99\s?K/);
 });

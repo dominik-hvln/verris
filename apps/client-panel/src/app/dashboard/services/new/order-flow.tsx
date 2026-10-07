@@ -68,15 +68,12 @@ export function OrderFlow({ plans, offer, bezKarty }: { plans: PlanDto[]; offer:
                 initialInterval={initialInterval}
                 initialPromo={promo}
                 bezKarty={bezKarty}
-                startOffer={
-                  type === 'hosting'
-                    ? {
-                        cardEnabled: offer.cardEnabled,
-                        monthlyDiscountPct: offer.monthlyDiscountPct,
-                        annualDiscountPct: offer.annualDiscountPct,
-                      }
-                    : undefined
-                }
+                // API nalicza rabat na start każdemu pakietowi z portfela — klient widzi go przed zapłatą.
+                startOffer={{
+                  cardEnabled: offer.cardEnabled,
+                  monthlyDiscountPct: offer.monthlyDiscountPct,
+                  annualDiscountPct: offer.annualDiscountPct,
+                }}
               />
             </div>
           </>
