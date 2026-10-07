@@ -1,357 +1,274 @@
-import { AlertTriangle, CheckCircle2, Clock, Leaf, ShieldAlert, XCircle } from 'lucide-react';
 import {
   fetchPublicStatus,
-  type ProbeStatusDto,
   type PublicIncidentDto,
-  type PublicStatusDto,
-  type ServerStatusDto,
-  type ServiceState,
   type PublicMaintenanceDto,
+  type PublicServiceDto,
+  type PublicStatusDto,
 } from '@/lib/api';
+import Link from 'next/link';
+import { czasTrwania, dataKrotko, godzina, pct, przedzial } from '@/lib/format';
+import { Uslugi } from './uslugi';
 
 export const revalidate = 30;
 
 export default async function StatusPage() {
   let payload: PublicStatusDto | null = null;
-  let error: string | null = null;
   try {
     payload = await fetchPublicStatus();
-  } catch (err) {
-    error = err instanceof Error ? err.message : 'Unknown error';
+  } catch {
+    // Treści błędu nie pokazujemy — w komunikacie sieciowym bywają adresy wewnętrzne.
+    payload = null;
   }
 
   return (
-    <main className="min-h-screen px-6 py-12 md:px-10">
-      <div className="mx-auto max-w-5xl">
-        <header className="mb-10 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-400">
-              <Leaf className="h-5 w-5" />
-            </span>
-            <div>
-              <h1 className="text-2xl font-bold">Verris Status</h1>
-              <p className="text-sm text-neutral-400">Aktualny stan serwerów i usług</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <a
-              href="/zaufanie"
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-emerald-300 transition hover:bg-white/[0.08]"
-            >
-              <ShieldAlert className="h-4 w-4" /> Zaufanie i gwarancje
-            </a>
-            {payload ? <RefreshNote generatedAt={payload.generatedAt} /> : null}
-          </div>
-        </header>
-
-        {error ? (
-          <ErrorBanner message={error} />
-        ) : payload ? (
-          <>
-            <OverallBanner state={payload.overall} />
-
-            {payload.activeIncidents.length > 0 ? (
-              <IncidentsBlock title="Aktywne incydenty" incidents={payload.activeIncidents} />
-            ) : null}
-
-            {payload.maintenance && payload.maintenance.length > 0 ? (
-              <MaintenanceBlock windows={payload.maintenance} />
-            ) : null}
-
-            <section className="mt-10 space-y-4">
-              <h2 className="text-lg font-bold">Serwery i usługi</h2>
-              <div className="space-y-4">
-                {payload.servers.length === 0 ? (
-                  <EmptyServers />
-                ) : (
-                  payload.servers.map((server) => <ServerCard key={server.id} server={server} />)
-                )}
-              </div>
-            </section>
-
-            {payload.recentIncidents.length > 0 ? (
-              <IncidentsBlock
-                title="Ostatnie incydenty (10)"
-                incidents={payload.recentIncidents}
-                showResolved
-              />
-            ) : null}
-
-            <Legend />
-          </>
-        ) : (
-          <p className="text-neutral-400">Ładowanie...</p>
-        )}
-
-        <footer className="mt-16 border-t border-white/5 pt-6 text-sm text-neutral-500">
-          <p>
-            Probes są aktualizowane co 30 sekund z punktu widzenia naszej kontroli + dodatkowo z
-            samego serwera. <strong>Live %</strong> to faktyczny uptime z ostatnich 30 dni;{' '}
-            <strong>Deklarowany SLA</strong> to nasze zobowiązanie umowne.
-          </p>
-        </footer>
-      </div>
-    </main>
-  );
-}
-
-function OverallBanner({ state }: { state: ServiceState }) {
-  const visual: Record<ServiceState, { tone: string; icon: React.ReactNode; label: string }> = {
-    OK: {
-      tone: 'border-emerald-400/30 bg-emerald-400/5 text-emerald-100',
-      icon: <CheckCircle2 className="h-6 w-6" />,
-      label: 'Wszystkie systemy działają',
-    },
-    DEGRADED: {
-      tone: 'border-amber-400/30 bg-amber-400/5 text-amber-100',
-      icon: <AlertTriangle className="h-6 w-6" />,
-      label: 'Pogorszona jakość usług',
-    },
-    DOWN: {
-      tone: 'border-rose-400/30 bg-rose-400/5 text-rose-100',
-      icon: <XCircle className="h-6 w-6" />,
-      label: 'Zakłócenie działania',
-    },
-  };
-  const v = visual[state];
-  return (
-    <div className={`flex items-center gap-4 rounded-3xl border ${v.tone} p-6`}>
-      <div className="rounded-2xl border border-current/30 bg-black/20 p-3">{v.icon}</div>
-      <div>
-        <p className="text-xl font-bold">{v.label}</p>
-        <p className="text-sm opacity-80">Sprawdzamy każdą usługę co 30 sekund.</p>
-      </div>
-    </div>
-  );
-}
-
-function ServerCard({ server }: { server: ServerStatusDto }) {
-  return (
-    <article className="overflow-hidden rounded-3xl border border-white/5 bg-white/[0.02]">
-      <header className="flex items-center justify-between gap-4 border-b border-white/5 px-6 py-4">
-        <div>
-          <h3 className="font-semibold">{server.name}</h3>
-          {server.region ? (
-            <p className="text-xs text-neutral-500 uppercase tracking-widest">{server.region}</p>
-          ) : null}
+    <>
+      <header className="st-header">
+        <div className="st-wrap">
+          <Link href="/" className="st-brand" aria-label="Verris — status usług">
+            <Logo />
+            verris <small>status</small>
+          </Link>
+          <Link href="/zaufanie" className="st-btn">
+            Zaufanie i gwarancje
+          </Link>
         </div>
-        <StateChip state={server.state} />
       </header>
-      <div className="divide-y divide-white/5">
-        {server.probes.map((probe) => (
-          <ProbeRow key={probe.id} probe={probe} />
-        ))}
-      </div>
-    </article>
+
+      <main className="st-wrap" style={{ marginTop: 20, paddingBottom: 40 }}>
+        {payload ? <Widok data={payload} /> : <Niedostepny />}
+
+        <footer className="st-footer">
+          <p>
+            Sondy sprawdzają usługi co 30 sekund. Dostępność to odsetek udanych prób w danym okresie; dni liczymy w czasie
+            polskim, a dzień bez pomiarów oznaczamy jako „brak danych”, nie jako „działa”.
+          </p>
+          <p>SLA: 99,5% w miesiącu — zasady rekompensat opisuje regulamin.</p>
+        </footer>
+      </main>
+    </>
   );
 }
 
-function ProbeRow({ probe }: { probe: ProbeStatusDto }) {
-  const live = Number.parseFloat(probe.computedUptimePct);
-  const declared = Number.parseFloat(probe.declaredSlaPct);
-  const meetingSla = live >= declared;
+function Widok({ data }: { data: PublicStatusDto }) {
+  const { services } = data;
+  const wykres = services.find((s) => s.key === 'strony' && maDane(s)) ?? services.find(maDane);
+  const zdarzenia = scalZdarzenia(data.activeIncidents, data.recentIncidents);
+
   return (
-    <div className="grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-[2fr_1fr_1fr_auto]">
-      <div>
-        <p className="font-mono text-sm break-all">
-          <span className="rounded-md border border-white/10 bg-white/[0.03] px-2 py-0.5 mr-2 text-xs text-neutral-300">
-            {probe.kind}
-          </span>
-          {probe.nazwa}
-        </p>
+    <>
+      <Baner data={data} />
+
+      {services.length > 0 ? (
+        <Uslugi services={services} />
+      ) : (
+        <div className="st-card st-empty" style={{ marginTop: 24 }}>
+          Brak skonfigurowanych sond — stan usług pojawi się tutaj po ich uruchomieniu.
+        </div>
+      )}
+
+      {services.length > 0 ? (
+        <div className="st-panels" style={wykres ? undefined : { gridTemplateColumns: '1fr' }}>
+          {wykres ? <Czas usluga={wykres} /> : null}
+          <Dostepnosc a={data.availability} />
+        </div>
+      ) : null}
+
+      <section aria-labelledby="zdarzenia-h" style={{ marginTop: 28 }}>
+        <h2 id="zdarzenia-h" className="st-h2">
+          Historia zdarzeń
+        </h2>
+        {data.maintenance.length === 0 && zdarzenia.length === 0 ? (
+          <div className="st-card st-empty" style={{ marginTop: 12 }}>
+            Brak zdarzeń do pokazania. Gdy coś się wydarzy, opiszemy to tutaj: od wykrycia do rozwiązania.
+          </div>
+        ) : (
+          <ul className="st-events">
+            {data.maintenance.map((w) => (
+              <Prace key={w.id} w={w} />
+            ))}
+            {zdarzenia.map((z) => (
+              <Zdarzenie key={z.id} z={z} />
+            ))}
+          </ul>
+        )}
+      </section>
+    </>
+  );
+}
+
+const maDane = (s: PublicServiceDto) => s.latency24h.some((h) => h.avgLatencyMs !== null);
+
+function scalZdarzenia(aktywne: PublicIncidentDto[], ostatnie: PublicIncidentDto[]): PublicIncidentDto[] {
+  const widziane = new Set<string>();
+  return [...aktywne, ...ostatnie].filter((z) => !widziane.has(z.id) && widziane.add(z.id));
+}
+
+const BANER = {
+  OK: { tytul: 'Wszystkie usługi działają', ikona: 'ok' },
+  DEGRADED: { tytul: 'Część usług działa wolniej lub z przerwami', ikona: 'warn' },
+  DOWN: { tytul: 'Awaria — część usług jest niedostępna', ikona: 'bad' },
+  NONE: { tytul: 'Brak danych o usługach', ikona: 'none' },
+} as const;
+
+function Baner({ data }: { data: PublicStatusDto }) {
+  const stan = data.services.length === 0 ? 'NONE' : data.overall;
+  const b = BANER[stan];
+  return (
+    <div className="st-banner" data-state={stan}>
+      <div className="st-banner-main">
+        <span className="st-banner-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            {b.ikona === 'ok' ? <path d="M5 11.5l4 4L17 7" /> : null}
+            {b.ikona === 'warn' ? <path d="M11 5v7M11 17v.01" /> : null}
+            {b.ikona === 'bad' ? <path d="M6 6l10 10M16 6L6 16" /> : null}
+            {b.ikona === 'none' ? <path d="M6 11h10" /> : null}
+          </svg>
+        </span>
+        <h1>{b.tytul}</h1>
       </div>
-      <Metric label="Dostępność (30 dni)" value={`${live.toFixed(2)}%`} tone={meetingSla ? 'good' : 'bad'} />
-      <Metric label="Deklarowany SLA" value={`${declared.toFixed(2)}%`} tone="muted" />
-      <StateChip state={probe.state} compact />
+      <div className="st-banner-meta">
+        <span>Stan na {godzina(data.generatedAt)} · odświeżamy co 30 s</span>
+        <span>
+          <strong className="st-mono">{pct(data.availability.d90)}</strong> dostępność, 90 dni
+        </span>
+      </div>
     </div>
   );
 }
 
-function Metric({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone: 'good' | 'bad' | 'muted';
-}) {
-  const palette = {
-    good: 'text-emerald-300',
-    bad: 'text-rose-300',
-    muted: 'text-neutral-300',
-  }[tone];
+function Czas({ usluga }: { usluga: PublicServiceDto }) {
+  const wartosci = usluga.latency24h.map((h) => h.avgLatencyMs);
+  const max = Math.max(...wartosci.map((v) => v ?? 0), 1);
   return (
-    <div className="md:text-right">
-      <p className="text-xs uppercase tracking-widest text-neutral-500">{label}</p>
-      <p className={`text-base font-semibold tabular-nums ${palette}`}>{value}</p>
-    </div>
-  );
-}
-
-function StateChip({ state, compact = false }: { state: ServiceState; compact?: boolean }) {
-  const v = {
-    OK: { dot: 'bg-emerald-400', label: 'Działa' },
-    DEGRADED: { dot: 'bg-amber-400', label: 'Pogorszone' },
-    DOWN: { dot: 'bg-rose-400', label: 'Niedostępne' },
-  }[state];
-  return (
-    <span
-      className={`inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] ${
-        compact ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-sm'
-      } font-semibold`}
-    >
-      <span className={`h-2 w-2 rounded-full ${v.dot}`} />
-      {v.label}
-    </span>
-  );
-}
-
-function IncidentsBlock({
-  title,
-  incidents,
-  showResolved = false,
-}: {
-  title: string;
-  incidents: PublicIncidentDto[];
-  showResolved?: boolean;
-}) {
-  return (
-    <section className="mt-10 space-y-4">
-      <h2 className="text-lg font-bold">{title}</h2>
-      <div className="space-y-3">
-        {incidents.map((incident) => {
-          const tone =
-            incident.status === 'RESOLVED'
-              ? 'border-white/5 bg-white/[0.02]'
-              : incident.severity === 'MAJOR'
-                ? 'border-rose-400/30 bg-rose-400/5'
-                : 'border-amber-400/30 bg-amber-400/5';
+    <section className="st-card st-panel" aria-labelledby="czas-h">
+      <div className="st-panel-head">
+        <strong id="czas-h">Czas odpowiedzi — {usluga.name.toLowerCase()}, 24 h</strong>
+        {usluga.avgLatencyMs !== null ? <span className="st-mono" style={{ fontSize: 13 }}>średnio {usluga.avgLatencyMs} ms</span> : null}
+      </div>
+      <div className="st-chart" role="group" aria-label="Średni czas odpowiedzi godzina po godzinie">
+        {usluga.latency24h.map((h) => {
+          const opis = h.avgLatencyMs !== null ? `${godzina(h.hour)}: ${h.avgLatencyMs} ms` : `${godzina(h.hour)}: brak danych`;
           return (
-            <article key={incident.id} className={`rounded-2xl border ${tone} p-4`}>
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="font-semibold">{incident.title}</p>
-                  <p className="text-xs text-neutral-400 mt-1">
-                    {incident.serverName} • {incident.probeKind}
-                  </p>
-                  {incident.publicMessage ? (
-                    <p className="text-sm text-neutral-200 mt-2">{incident.publicMessage}</p>
-                  ) : null}
-                </div>
-                <span
-                  className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${
-                    incident.status === 'OPEN'
-                      ? 'border-rose-400/30 text-rose-200'
-                      : 'border-emerald-400/30 text-emerald-200'
-                  }`}
-                >
-                  {incident.status === 'OPEN' ? 'Aktywny' : 'Zamknięty'}
-                </span>
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-neutral-500">
-                <span className="inline-flex items-center gap-1">
-                  <Clock className="h-3 w-3" /> Start:{' '}
-                  {new Date(incident.startedAt).toLocaleString('pl-PL')}
-                </span>
-                {showResolved && incident.resolvedAt ? (
-                  <span className="inline-flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3" /> Rozwiązany:{' '}
-                    {new Date(incident.resolvedAt).toLocaleString('pl-PL')}
-                  </span>
-                ) : null}
-                {incident.durationMinutes !== null ? (
-                  <span>Czas trwania: {incident.durationMinutes} min</span>
-                ) : null}
-              </div>
-            </article>
+            <span
+              key={h.hour}
+              role="img"
+              title={opis}
+              aria-label={opis}
+              data-empty={h.avgLatencyMs === null ? '' : undefined}
+              style={{ height: h.avgLatencyMs === null ? undefined : `${Math.max(6, Math.round((h.avgLatencyMs / max) * 100))}%` }}
+            />
           );
         })}
       </div>
+      <div className="st-axis st-mono">
+        <span>24 h temu</span>
+        <span>teraz</span>
+      </div>
     </section>
   );
 }
 
-function MaintenanceBlock({ windows }: { windows: PublicMaintenanceDto[] }) {
-  const fmt = (iso: string) =>
-    new Date(iso).toLocaleString('pl-PL', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+function Dostepnosc({ a }: { a: PublicStatusDto['availability'] }) {
   return (
-    <section className="mt-10 space-y-4">
-      <h2 className="text-lg font-bold">Prace serwisowe</h2>
-      <div className="space-y-3">
-        {windows.map((w) => (
-          <article key={w.id} className="rounded-2xl border border-sky-400/30 bg-sky-400/5 p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="font-semibold">{w.title}</p>
-                <p className="text-xs text-neutral-400 mt-1">
-                  {w.serverName ?? 'Cała platforma'} • {fmt(w.scheduledStart)} – {fmt(w.scheduledEnd)}
-                </p>
-                {w.publicMessage ? <p className="text-sm text-neutral-200 mt-2">{w.publicMessage}</p> : null}
-              </div>
-              <span className="rounded-full border border-sky-400/30 px-2 py-0.5 text-xs font-semibold text-sky-200">
-                {w.status === 'IN_PROGRESS' ? 'W toku' : 'Zaplanowane'}
-              </span>
-            </div>
-          </article>
+    <section className="st-card st-panel" aria-labelledby="dost-h">
+      <strong id="dost-h" style={{ color: 'var(--strong)' }}>
+        Dostępność
+      </strong>
+      <dl className="st-avail">
+        {(
+          [
+            ['24 godziny', a.h24],
+            ['7 dni', a.d7],
+            ['30 dni', a.d30],
+            ['90 dni', a.d90],
+          ] as const
+        ).map(([nazwa, v]) => (
+          <div key={nazwa}>
+            <dt>{nazwa}</dt>
+            <dd className="st-mono">{pct(v)}</dd>
+          </div>
         ))}
-      </div>
+      </dl>
+      <p className="st-note">Wszystkie usługi łącznie. Okresy bez pomiarów nie wchodzą do średniej.</p>
     </section>
   );
 }
 
-function Legend() {
+function Prace({ w }: { w: PublicMaintenanceDto }) {
   return (
-    <section className="mt-12 grid grid-cols-1 gap-4 rounded-3xl border border-white/5 bg-white/[0.02] p-6 md:grid-cols-3">
-      <div>
-        <p className="text-xs uppercase tracking-widest text-neutral-500">Live</p>
-        <p className="mt-1 text-sm text-neutral-200">
-          Faktyczny uptime z ostatnich 30 dni — agregat 1-minutowych prób z naszej sondy +
-          lokalnych testów na samym serwerze.
-        </p>
+    <li className="st-card st-event">
+      <div className="st-event-head">
+        <strong>Planowane prace: {w.title}</strong>
+        <span className="st-tag" data-tone="warn">
+          {w.status === 'IN_PROGRESS' ? 'w toku' : 'zaplanowane'}
+        </span>
       </div>
-      <div>
-        <p className="text-xs uppercase tracking-widest text-neutral-500">Deklarowany SLA</p>
-        <p className="mt-1 text-sm text-neutral-200">
-          Nasze zobowiązanie umowne — jeśli Live spadnie poniżej, mogą Ci przysługiwać kredyty SLA.
-        </p>
-      </div>
-      <div>
-        <p className="text-xs uppercase tracking-widest text-neutral-500">Severity</p>
-        <p className="mt-1 text-sm text-neutral-200">
-          MAJOR (HTTP/HTTPS/MySQL/DA-API) traktujemy jako pełne zakłócenie. MINOR (SMTP/IMAP/POP3)
-          jako pogorszenie usługi.
-        </p>
-      </div>
-    </section>
+      <p className="st-event-when st-mono">{przedzial(w.scheduledStart, w.scheduledEnd)}</p>
+      {w.publicMessage ? <p className="st-event-msg">{w.publicMessage}</p> : null}
+    </li>
   );
 }
 
-function RefreshNote({ generatedAt }: { generatedAt: string }) {
+function Zdarzenie({ z }: { z: PublicIncidentDto }) {
+  const trwa = z.status === 'OPEN';
+  const kiedy = z.resolvedAt
+    ? `${przedzial(z.startedAt, z.resolvedAt)}${z.durationMinutes !== null ? ` · ${czasTrwania(z.durationMinutes)}` : ''}`
+    : `${dataKrotko(z.startedAt)}, ${godzina(z.startedAt)} · trwa`;
   return (
-    <p className="text-xs text-neutral-500">
-      Aktualizacja: {new Date(generatedAt).toLocaleTimeString('pl-PL')}
-    </p>
-  );
-}
-
-function EmptyServers() {
-  return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-10 text-center">
-      <ShieldAlert className="h-10 w-10 mx-auto text-neutral-500" />
-      <h3 className="mt-4 text-xl font-bold">Brak skonfigurowanych probes</h3>
-      <p className="mt-2 text-neutral-400 max-w-md mx-auto">
-        Administrator nie skonfigurował jeszcze probes. Status pojawi się tutaj po ich dodaniu.
+    <li className="st-card st-event">
+      <div className="st-event-head">
+        <strong>{z.title}</strong>
+        <span className="st-tag" data-tone={trwa ? (z.severity === 'MAJOR' ? 'bad' : 'warn') : 'ok'}>
+          {trwa ? 'trwa' : 'rozwiązane'}
+        </span>
+      </div>
+      <p className="st-event-when st-mono">
+        {z.service} · {kiedy}
       </p>
+      {/* Oś czasu tylko z tego, co zapisujemy: wykrycie, komunikat zespołu, rozwiązanie. */}
+      <ol className="st-timeline">
+        {z.resolvedAt ? (
+          <li data-tone="ok">
+            <time dateTime={z.resolvedAt}>{godzina(z.resolvedAt)}</time>Rozwiązane
+          </li>
+        ) : null}
+        {z.publicMessage ? (
+          <li>
+            <b>Komunikat</b>
+            {z.publicMessage}
+          </li>
+        ) : null}
+        <li data-tone={trwa ? 'bad' : undefined}>
+          <time dateTime={z.startedAt}>{godzina(z.startedAt)}</time>Wykryte
+        </li>
+      </ol>
+    </li>
+  );
+}
+
+function Niedostepny() {
+  return (
+    <div className="st-banner" data-state="NONE" role="alert">
+      <div className="st-banner-main">
+        <span className="st-banner-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+            <path d="M11 5v7M11 17v.01" />
+          </svg>
+        </span>
+        <h1>Nie udało się pobrać statusu</h1>
+      </div>
+      <div className="st-banner-meta">
+        <span>To problem tej strony, nie musi oznaczać awarii usług. Spróbuj odświeżyć za chwilę.</span>
+      </div>
     </div>
   );
 }
 
-function ErrorBanner({ message }: { message: string }) {
+function Logo() {
   return (
-    <div className="rounded-3xl border border-rose-400/30 bg-rose-400/5 p-6 text-rose-200">
-      <h3 className="text-lg font-bold">Nie udało się pobrać statusu</h3>
-      <p className="text-sm mt-1 opacity-80">{message}</p>
-    </div>
+    <svg width="28" height="28" viewBox="20 24 60 60" aria-hidden="true">
+      <rect x="20" y="24" width="60" height="60" rx="14" fill="#0f7a52" />
+      <path d="M26 30 L40 30 L50 52 L60 30 L74 30 L50 78 Z M44 55 L56 55 L50 69 Z" fill="#34e5a0" fillRule="evenodd" transform="translate(0 0)" />
+    </svg>
   );
 }

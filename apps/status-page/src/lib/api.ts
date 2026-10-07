@@ -1,44 +1,37 @@
-export type ProbeKind =
-  | 'HTTP'
-  | 'HTTPS'
-  | 'SMTP'
-  | 'IMAP'
-  | 'POP3'
-  | 'MYSQL'
-  | 'SSH'
-  | 'DA_API'
-  | 'DNS';
-
 export type ServiceState = 'OK' | 'DEGRADED' | 'DOWN';
+export type DayState = ServiceState | 'NO_DATA';
 
-export interface ProbeStatusDto {
-  id: string;
-  kind: ProbeKind;
-  /** Etykieta sondy albo nazwa usługi — API nie wysyła adresu węzła (white label). */
-  nazwa: string;
-  severity: 'MINOR' | 'MAJOR';
-  state: ServiceState;
-  lastSampleAt: string | null;
-  declaredSlaPct: string;
-  computedUptimePct: string;
-  computedWindowDays: number;
+export interface DayDto {
+  /** 'YYYY-MM-DD', dzień czasu polskiego. */
+  date: string;
+  state: DayState;
+  /** Dostępność dnia w %, obcięta do 2 miejsc; null = brak próbek. */
+  uptimePct: number | null;
   avgLatencyMs: number | null;
 }
 
-export interface ServerStatusDto {
-  id: string;
+export interface HourDto {
+  /** ISO początku godziny (UTC). */
+  hour: string;
+  avgLatencyMs: number | null;
+}
+
+export interface PublicServiceDto {
+  key: string;
   name: string;
-  region: string | null;
-  status: string;
   state: ServiceState;
-  probes: ProbeStatusDto[];
+  uptime90Pct: number | null;
+  /** Średni czas odpowiedzi z ostatnich 24 h. */
+  avgLatencyMs: number | null;
+  /** 90 dni, rosnąco — ostatni element to dziś. */
+  days: DayDto[];
+  /** 24 godziny, rosnąco. */
+  latency24h: HourDto[];
 }
 
 export interface PublicIncidentDto {
   id: string;
-  serverId: string;
-  serverName: string;
-  probeKind: ProbeKind;
+  service: string;
   severity: 'MINOR' | 'MAJOR';
   status: 'OPEN' | 'RESOLVED';
   title: string;
@@ -48,16 +41,6 @@ export interface PublicIncidentDto {
   durationMinutes: number | null;
 }
 
-export interface PublicStatusDto {
-  generatedAt: string;
-  overall: ServiceState;
-  servers: ServerStatusDto[];
-  activeIncidents: PublicIncidentDto[];
-  recentIncidents: PublicIncidentDto[];
-  /** N-11 — zaplanowane i trwające prace (starsze API może go nie zwracać). */
-  maintenance?: PublicMaintenanceDto[];
-}
-
 export interface PublicMaintenanceDto {
   id: string;
   title: string;
@@ -65,7 +48,16 @@ export interface PublicMaintenanceDto {
   status: string;
   scheduledStart: string;
   scheduledEnd: string;
-  serverName: string | null;
+}
+
+export interface PublicStatusDto {
+  generatedAt: string;
+  overall: ServiceState;
+  availability: { h24: number | null; d7: number | null; d30: number | null; d90: number | null };
+  services: PublicServiceDto[];
+  activeIncidents: PublicIncidentDto[];
+  recentIncidents: PublicIncidentDto[];
+  maintenance: PublicMaintenanceDto[];
 }
 
 const API_URL =
