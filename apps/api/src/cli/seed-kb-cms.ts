@@ -665,20 +665,22 @@ Okresowo czyść bazę (rewizje, spam, transient) i utrzymuj porządek we wtyczk
 - Instaluj wtyczki tylko z zaufanych źródeł.
 
 ## Ochrona logowania i plików
-Ogranicz próby logowania i rozważ zmianę domyślnego adresu /wp-admin. Zablokuj dostęp do wrażliwych plików w \`.htaccess\`:
+Ogranicz próby logowania i rozważ zmianę domyślnego adresu /wp-admin. Dostęp do wp-config.php zablokujesz w pliku \`.htaccess\` w katalogu strony (public_html):
 
 \`\`\`apache
 # Zablokuj dostęp do wp-config.php
 <Files wp-config.php>
   Require all denied
 </Files>
+\`\`\`
 
-# Wyłącz wykonywanie PHP w katalogu uploads
-<Directory "/home/user/public_html/wp-content/uploads">
-  <FilesMatch "\\.php$">
-    Require all denied
-  </FilesMatch>
-</Directory>
+Wykonywanie PHP w katalogu uploads wyłączysz osobnym plikiem \`.htaccess\` w \`wp-content/uploads\` (dyrektywa \`<Directory>\` nie działa w \`.htaccess\` i kończy się błędem 500):
+
+\`\`\`apache
+# wp-content/uploads/.htaccess
+<FilesMatch "\\.php$">
+  Require all denied
+</FilesMatch>
 \`\`\`
 
 WAF na hostingu dodatkowo blokuje typowe ataki.
