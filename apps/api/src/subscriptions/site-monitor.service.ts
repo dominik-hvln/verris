@@ -228,6 +228,10 @@ export class SiteMonitorService {
       if (!cfg.paidOffered) {
         throw new BadRequestException('Płatny monitoring jest obecnie niedostępny.');
       }
+      // Opłata za monitoring usługi, która nie działa (wstrzymana, anulowana), nie ma sensu — i nie byłaby rozliczana.
+      if (sub.status !== SubscriptionStatus.ACTIVE) {
+        throw new BadRequestException('Płatny monitoring włączysz dla działającej usługi.');
+      }
       // Już aktywny i nie w trakcie anulowania — nic nie rób.
       if (monitor?.paidTier && !monitor.paidCancelAtPeriodEnd) {
         return this.statusForSubscription(subscriptionId, userId);
@@ -324,6 +328,7 @@ export class SiteMonitorService {
           select: {
             id: true,
             userId: true,
+            status: true,
             user: { select: { email: true, firstName: true, anonymizedAt: true } },
             account: { select: { domain: true } },
           },
@@ -338,6 +343,19 @@ export class SiteMonitorService {
 
     for (const m of due) {
       const domain = m.subscription.account?.domain ?? 'strona';
+      // Usługa zakończona — płatny monitoring kończy się razem z nią. Wcześniej rozliczanie nie patrzyło
+      // na stan usługi i co miesiąc pobierało opłatę za monitoring strony, której już nie ma.
+      if (m.subscription.status === SubscriptionStatus.CANCELED || m.subscription.status === SubscriptionStatus.EXPIRED) {
+        await this.revertToFree(m.id);
+        await this.audit.record({
+          action: 'SITE_MONITOR_PAID_ENDED',
+          userId: m.subscription.userId,
+          details: { subscriptionId: m.subscriptionId, reason: 'service_ended' },
+        });
+        continue;
+      }
+      // Usługa wstrzymana / bez opłaty — monitoring nie działa (tick sprawdza tylko ACTIVE), więc nie pobieramy.
+      if (m.subscription.status !== SubscriptionStatus.ACTIVE) continue;
       // Zaplanowane anulowanie — z końcem okresu wracamy do darmowego.
       if (m.paidCancelAtPeriodEnd) {
         await this.revertToFree(m.id);
@@ -360,9 +378,12 @@ export class SiteMonitorService {
             subscriptionId: m.subscriptionId,
           });
         }
+        // Po przerwie (usługa wstrzymana) nowy okres liczy się od dziś — bez nadrabiania zaległych miesięcy
+        // co godzinę za monitoring, który w przerwie nie działał.
+        const nastepny = addOneMonth(m.paidNextChargeAt ?? now);
         await this.prisma.siteMonitor.update({
           where: { id: m.id },
-          data: { paidNextChargeAt: addOneMonth(m.paidNextChargeAt ?? now) },
+          data: { paidNextChargeAt: nastepny > now ? nastepny : addOneMonth(now) },
         });
       } catch (err) {
         // Tylko realny brak środków powoduje zejście do darmowego. Błędy
