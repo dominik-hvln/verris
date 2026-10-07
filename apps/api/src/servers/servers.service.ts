@@ -31,6 +31,9 @@ import { UpdateNameserversDto } from './dto/nameservers.dto.js';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
 import { renderBootstrapNodeTasksInstallFragment, renderNodeDeploySshKeyBootstrapCall, renderProbesTasksHook } from './node-tasks-agent.install.js';
 
+/** Konta, które są na węźle — usunięte zostają w bazie („~usuniete-<id>”), ale nie zajmują węzła. */
+const KONTA_NA_WEZLE = { where: { status: { not: AccountStatus.DELETED } } } as const;
+
 @Injectable()
 export class ServersService {
   private readonly logger = new Logger(ServersService.name);
@@ -424,7 +427,7 @@ export class ServersService {
     const servers = await this.prisma.server.findMany({
       orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
       include: {
-        _count: { select: { accounts: true } },
+        _count: { select: { accounts: KONTA_NA_WEZLE } },
       },
     });
     return servers.map((s) => this.toPublicServer(s));
@@ -433,7 +436,7 @@ export class ServersService {
   async getServer(id: string) {
     const server = await this.prisma.server.findUnique({
       where: { id },
-      include: { _count: { select: { accounts: true } } },
+      include: { _count: { select: { accounts: KONTA_NA_WEZLE } } },
     });
     if (!server) throw new NotFoundException('Server not found');
     return this.toPublicServer(server);

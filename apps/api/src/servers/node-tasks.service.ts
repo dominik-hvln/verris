@@ -333,7 +333,7 @@ export class NodeTasksService {
 
     const servers = await this.prisma.server.findMany({
       where: { status: ServerStatus.ACTIVE },
-      select: { id: true, identityToken: true, _count: { select: { accounts: true } } },
+      select: { id: true, identityToken: true, _count: { select: { accounts: { where: { status: { not: AccountStatus.DELETED } } } } } },
     });
     const zAgentem = servers.filter((s) => s.identityToken).sort((a, b) => a._count.accounts - b._count.accounts);
     const skipped = servers.length - zAgentem.length;

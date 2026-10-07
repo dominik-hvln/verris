@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { NodeTaskKind, NodeTaskStatus, WafMode } from '@verris/database';
+import { AccountStatus, NodeTaskKind, NodeTaskStatus, WafMode } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { bladZadaniaDlaKlienta } from './blad-zadania.js';
@@ -54,7 +54,7 @@ export class WafService {
   /** Admin: WAF overview for all accounts on a node. */
   async overviewForServer(serverId: string) {
     const accounts = await this.prisma.account.findMany({
-      where: { serverId },
+      where: { serverId, status: { not: AccountStatus.DELETED } },
       select: {
         id: true,
         domain: true,
