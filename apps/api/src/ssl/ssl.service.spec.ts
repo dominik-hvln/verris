@@ -120,11 +120,30 @@ describe('G-08 OpenProvider SSL — wywołania wg dokumentacji /v1/ssl', () => {
     odp = { status: 'ACT', certificate: 'CERT', intermediate_certificate: 'CA' };
     await expect(ssl().sslOrder('77')).resolves.toEqual({ state: 'issued', certificate: 'CERT', caBundle: 'CA', dns: null });
     expect(f.mock.calls[1][0]).toBe('https://api.sandbox.openprovider.nl/v1/ssl/orders/77');
-    odp = { status: 'REQ', certificate: '', additional_data: [{ dns_record: 'firma.pl', dns_value: 'abc' }] };
-    await expect(ssl().sslOrder('77')).resolves.toMatchObject({ state: 'pending', dns: { record: 'firma.pl', value: 'abc' } });
-    // Ogłoszenie OpenProvidera (DCV): pola dnsrecord/dnsValue — też muszą dać rekord.
-    odp = { status: 'REQ', certificate: '', additional_data: [{ dnsrecord: '_x.firma.pl', dnsValue: 'y.sectigo.com' }] };
-    await expect(ssl().sslOrder('77')).resolves.toMatchObject({ state: 'pending', dns: { record: '_x.firma.pl', value: 'y.sectigo.com' } });
+    // Prawdziwa odpowiedź sandboxa OP (zamówienie 348, D3 07.10): skróty CSR zamiast gotowego rekordu,
+    // additional_data.domain = domena testowa wystawcy — rekord idzie na common_name zamówienia.
+    odp = {
+      status: 'REQ', common_name: 'test2.d3.hvln.pl',
+      additional_data: [{
+        md5: '6b18649cd54368d21569ae97312438cd',
+        sha256: 'd041768fb2c8f557238d3867d3a222aae533afe8e9c370f77119daa7b652b289',
+        file_location: 'test1.ssl-test.nl/.well-known/pki-validation/DE95FA0A64E839C76387F19B80BB22E6.txt',
+        file_contents: 'C9EFE136FE4BE8B2E0710478704E869C81A04EB4603B930079B4D422EC34AC51\nsectigo.com',
+        domain: 'test1.ssl-test.nl',
+      }],
+    };
+    await expect(ssl().sslOrder('77')).resolves.toMatchObject({
+      state: 'pending',
+      dns: { record: '_6b18649cd54368d21569ae97312438cd.test2.d3.hvln.pl', value: 'd041768fb2c8f557238d3867d3a222aa.e533afe8e9c370f77119daa7b652b289.sectigo.com' },
+    });
+    // uniqueValue z trzeciej linii pliku DCV wchodzi do celu CNAME (przykład Sectigo).
+    odp = { status: 'REQ', common_name: 'example.com', additional_data: [{ md5: 'c7fbc2039e400c8ef74129ec7db1842c', sha256: 'c9c863405fe7675a3988b97664ea6baf442019e4e52fa335f406f7c5f26cf14f', file_contents: 'X\nsectigo.com\n10af9db9tu' }] };
+    await expect(ssl().sslOrder('77')).resolves.toMatchObject({
+      dns: { record: '_c7fbc2039e400c8ef74129ec7db1842c.example.com', value: 'c9c863405fe7675a3988b97664ea6baf.442019e4e52fa335f406f7c5f26cf14f.10af9db9tu.sectigo.com' },
+    });
+    // Bez poprawnych skrótów — brak rekordu (nic nie trafia do strefy).
+    odp = { status: 'REQ', common_name: 'firma.pl', additional_data: [{ md5: 'zly', sha256: 'x' }] };
+    await expect(ssl().sslOrder('77')).resolves.toMatchObject({ state: 'pending', dns: null });
     odp = { status: 'REJ' };
     await expect(ssl().sslOrder('77')).resolves.toMatchObject({ state: 'failed' });
   });

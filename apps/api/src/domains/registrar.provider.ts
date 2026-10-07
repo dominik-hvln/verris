@@ -582,14 +582,11 @@ class OpenProviderRegistrarProvider implements RegistrarProvider, SslReseller {
     const res = await this.request<{ data: OpSslOrder }>(`/v1/ssl/orders/${encodeURIComponent(id)}`, null, 'GET');
     const o = res.data ?? ({} as OpSslOrder);
     const status = (o.status ?? '').toUpperCase();
-    const dane = (o.additional_data ?? [])
-      .map((d) => ({ dns_record: d.dns_record ?? d.dnsrecord ?? d.dnsRecord, dns_value: d.dns_value ?? d.dnsValue }))
-      .find((d) => d.dns_record && d.dns_value);
     return {
       state: status === 'ACT' && o.certificate ? 'issued' : ['REJ', 'FAI', 'EXP'].includes(status) ? 'failed' : 'pending',
       certificate: o.certificate || null,
       caBundle: o.intermediate_certificate || null,
-      dns: dane ? { record: dane.dns_record!, value: dane.dns_value! } : null,
+      dns: rekordCnameSectigo(o),
     };
   }
 
@@ -700,9 +697,26 @@ interface OpSslOrder {
   status?: string;
   certificate?: string;
   intermediate_certificate?: string;
-  // Nazwy pól DCV: REST zwykle snake_case (dns_record/dns_value), dawne API i ogłoszenie OpenProvidera — dnsrecord/dnsValue
-  // (https://www.openprovider.com/blog/company-updates/update-openprovider-api-getting-information-dcv-validation).
-  additional_data?: { dns_record?: string; dns_value?: string; dnsrecord?: string; dnsRecord?: string; dnsValue?: string }[];
+  common_name?: string;
+  // GET /v1/ssl/orders/{id} (sandbox D3 07.10, zamówienie Sectigo/Comodo): skróty CSR i treść pliku DCV
+  // („<SHA-256>\n<domena CA>[\n<uniqueValue>]”), bez gotowego rekordu DNS — rekord składamy wg Sectigo.
+  additional_data?: { md5?: string; sha256?: string; file_contents?: string; domain?: string }[];
+}
+
+/**
+ * Rekord CNAME do weryfikacji domeny wg Sectigo (Alternative Methods of DCV):
+ *   _<MD5>.<domena> CNAME <SHA-256 [0,32)>.<SHA-256 [32,64)>.[<uniqueValue>.]sectigo.com
+ * https://www.sectigo.com/knowledge-base/detail/Alternative-Methods-of-Domain-Control-Validation-DCV-1527076114398
+ * Domena = common_name zamówienia (sandbox zwraca w additional_data.domain domenę testową wystawcy).
+ */
+export function rekordCnameSectigo(o: OpSslOrder): { record: string; value: string } | null {
+  const d = (o.additional_data ?? []).find((x) => /^[0-9a-f]{32}$/i.test(x.md5 ?? '') && /^[0-9a-f]{64}$/i.test(x.sha256 ?? ''));
+  const domena = (o.common_name ?? '').trim().toLowerCase();
+  if (!d || !domena) return null;
+  const [, ca = 'sectigo.com', unikat] = (d.file_contents ?? '').split(/\r?\n/).map((l) => l.trim().toLowerCase());
+  if (!/^([a-z0-9-]+\.)+[a-z]{2,}$/.test(ca) || (unikat && !/^[a-z0-9-]{1,63}$/.test(unikat))) return null;
+  const h = d.sha256!.toLowerCase();
+  return { record: `_${d.md5!.toLowerCase()}.${domena}`, value: `${h.slice(0, 32)}.${h.slice(32)}.${unikat ? `${unikat}.` : ''}${ca}` };
 }
 
 interface OpCustomer {
