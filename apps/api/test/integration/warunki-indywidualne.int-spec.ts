@@ -126,6 +126,19 @@ describe('PB-27 / PB-28 — indywidualne warunki i rozliczenie poza Verris', () 
     expect(await saldo(k.id)).toBe(0);
   });
 
+  it('operator, klient bez środków: odmowa i bez wiszącej usługi „czeka na płatność”', async () => {
+    const k = await klient(0);
+    const op = await operator();
+    const plan = await utworzPlan();
+    await expect(
+      uslugi().warunki.zalozUsluge(op.id, k.id, { planId: plan.id, interval: 'MONTH', domain: 'klient-brak.pl', individualPrice: 30, powod: 'test' }),
+    ).rejects.toMatchObject({ status: 409 });
+    const s = await prisma().subscription.findMany({ where: { userId: k.id } });
+    expect(s).toHaveLength(1);
+    expect(s[0].status).toBe('CANCELED');
+    expect(kolejka).toEqual([]);
+  });
+
   it('rozliczenie poza Verris: usługi na MANUAL, zaległość znika, okres przedłuża się bez obciążenia', async () => {
     const k = await klient(5);
     const op = await operator();

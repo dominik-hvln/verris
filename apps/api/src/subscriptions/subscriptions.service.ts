@@ -485,6 +485,14 @@ export class SubscriptionsService {
         } catch (err) {
           // Brak środków albo zwrot po nieudanym zakładaniu — kod wraca do klienta.
           await oddajKod();
+          // PB-27 — operator nie dostał usługi; nie zostawiamy klientowi (i resellerowi) wiszącego
+          // „czeka na płatność” na 48 h (D3 07.10). Klient sam kupujący zostaje przy zamówieniu jak dotąd.
+          if (op) {
+            await this.prisma.subscription.updateMany({
+              where: { id: subscription.id, status: SubscriptionStatus.PENDING_PAYMENT, account: null },
+              data: { status: SubscriptionStatus.CANCELED, canceledAt: new Date(), cancelAt: new Date() },
+            });
+          }
           throw err;
         }
       }
