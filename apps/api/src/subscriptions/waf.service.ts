@@ -16,8 +16,8 @@ import { bladZadaniaDlaKlienta } from './blad-zadania.js';
  * The node profile installs ModSecurity + OWASP CRS server-wide (CustomBuild).
  * The per-account MODE (OFF / DETECTION / ON) is applied by the on-node agent
  * via a WAF_APPLY task that maintains a managed block in the domain's
- * .htaccess (SecRuleEngine). Default for new accounts: DETECTION (log only) —
- * the customer or admin can switch to ON (blocking) per account.
+ * .htaccess (SecRuleEngine). Default for new accounts: ON (blocking; decision 07.10) —
+ * the customer or admin can switch to DETECTION (log only) or OFF per account.
  */
 @Injectable()
 export class WafService {

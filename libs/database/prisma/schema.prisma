@@ -1233,7 +1233,7 @@ model Account {
   status          AccountStatus @default(PROVISIONING)
 
   // B2 — ModSecurity WAF mode for this account (applied via WAF_APPLY task).
-  wafMode         WafMode       @default(DETECTION)
+  wafMode         WafMode       @default(ON)
   wafAppliedAt    DateTime?
 
   // P-6 — per-account PHP version (CloudLinux PHP Selector), applied by the
