@@ -40,7 +40,7 @@ describe('CSP paneli', () => {
     const api = CADDY.slice(CADDY.indexOf('{$CADDY_API_DOMAIN'));
     const blok = /@op_webhook_obcy \{([\s\S]*?)\}/.exec(api)?.[1] ?? '';
     expect(blok).toMatch(/path \/webhooks\/openprovider\n/);
-    expect(blok).toMatch(/not remote_ip 185\.87\.187\.130 34\.34\.72\.46\n/);
+    expect(blok).toMatch(/not remote_ip 185\.87\.187\.130 34\.34\.72\.46 34\.91\.59\.39\n/); // + sandbox OP (07.10)
     expect(api).toMatch(/respond @op_webhook_obcy 403/);
   });
 });
