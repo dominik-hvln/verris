@@ -31,6 +31,8 @@ export function ServiceNav({ serviceId, name, domainsCount }: { serviceId: strin
   const [kind, setKind] = useState<string | null>(kindHint);
   const [domains, setDomains] = useState<string[]>([]);
   const [simple, setSimple] = useState(false);
+  // Usługa nie istnieje albo nie należy do konta (API odmawia) — bez menu usługi, sam komunikat strony (07.10).
+  const [brak, setBrak] = useState(false);
   const pathname = usePathname();
   const base = `/dashboard/services/${serviceId}`;
   const siteOpen = pathname.startsWith(`${base}/sites/`) ? decodeURIComponent(pathname.slice(base.length + 7)) : null;
@@ -41,7 +43,7 @@ export function ServiceNav({ serviceId, name, domainsCount }: { serviceId: strin
     let off = false;
     fetchServiceKindAction(serviceId)
       .then((s) => !off && setKind(s?.productKind ?? 'HOSTING'))
-      .catch(() => !off && setKind((k) => k ?? 'HOSTING'));
+      .catch(() => !off && setBrak(true));
     return () => {
       off = true;
     };
@@ -72,6 +74,7 @@ export function ServiceNav({ serviceId, name, domainsCount }: { serviceId: strin
     return () => window.removeEventListener('verris-mode', sync);
   }, []);
 
+  if (brak) return null;
   const email = kind === 'EMAIL';
   const visible = visibleTabIds({ email, kindResolved: kind != null, simple });
   const href = (t: string) => `/dashboard/services/${serviceId}?tab=${t}${kind ? `&kind=${kind}` : ''}`;
