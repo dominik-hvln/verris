@@ -47,7 +47,8 @@ export class PartnerCommissionScheduler {
     try {
       const cfg = await this.settings.getPartnerProgram();
 
-      // 1) Maturacja prowizji % (bonusy są AVAILABLE od razu).
+      // 1) Maturacja prowizji % (bonusy są AVAILABLE od razu). Najpierw zwroty z karencji.
+      await this.uwzglednijZwroty();
       const matured = await this.commissions.updateMany({
         where: { status: 'PENDING', availableAt: { lte: new Date() } },
         data: { status: 'AVAILABLE' },
@@ -89,7 +90,7 @@ export class PartnerCommissionScheduler {
         });
         if (enr?.status !== 'APPROVED') continue;
 
-        const base = new Prisma.Decimal(tx.amount).abs();
+        const base = await this.podstawaPoZwrotach(tx);
         const amount = base.times(cfg.commissionPct).dividedBy(100).toDecimalPlaces(2);
         if (amount.lessThanOrEqualTo(0)) continue;
 
@@ -147,7 +148,7 @@ export class PartnerCommissionScheduler {
       },
       orderBy: { createdAt: 'asc' },
       take: 2000,
-      select: { id: true, userId: true, amount: true, currency: true, createdAt: true, subscription: { select: { resellerMarkupPct: true } } },
+      select: { id: true, userId: true, amount: true, currency: true, createdAt: true, subscriptionId: true, subscription: { select: { resellerMarkupPct: true } } },
     });
     for (const tx of txs) {
       const pct = tx.subscription?.resellerMarkupPct ?? 0;
@@ -156,7 +157,7 @@ export class PartnerCommissionScheduler {
       if (exists) continue;
       const klient = await this.prisma.user.findUnique({ where: { id: tx.userId }, select: { resellerOwnerId: true } });
       if (!klient?.resellerOwnerId) continue;
-      const base = new Prisma.Decimal(tx.amount).abs();
+      const base = await this.podstawaPoZwrotach(tx);
       const amount = czescNarzutu(base, pct);
       if (amount.lessThanOrEqualTo(0)) continue;
       try {
@@ -180,6 +181,47 @@ export class PartnerCommissionScheduler {
           this.logger.warn(`Nie udało się naliczyć narzutu resellera tx=${tx.id}: ${(err as Error).message}`);
         }
       }
+    }
+  }
+
+  /**
+   * Opłata pomniejszona o to, co klient dostał z powrotem: zwroty (REFUND) na tę usługę zapisane po opłacie,
+   * minus późniejsze obciążenia tej usługi (zwrot za nieudane wznowienie czy zmianę planu oddaje tamtą
+   * opłatę, nie tę). Na t1 07.10: zakup poczty bez wolnego węzła → automatyczny zwrot, a prowizja zostawała.
+   * ponytail: zwroty liczone per usługa, nie per opłata — przy dwóch opłatach w karencji i jednym zwrocie
+   * pomniejszą obie; powiązanie zwrotu z opłatą (kolumna w księdze), jeśli to wyjdzie w praktyce.
+   */
+  private async podstawaPoZwrotach(tx: { amount: Prisma.Decimal; subscriptionId: string | null; createdAt: Date }): Promise<Prisma.Decimal> {
+    const base = new Prisma.Decimal(tx.amount).abs();
+    if (!tx.subscriptionId) return base;
+    const po = { subscriptionId: tx.subscriptionId, createdAt: { gt: tx.createdAt } };
+    const [zwroty, obciazenia] = await Promise.all([
+      this.prisma.walletTransaction.aggregate({ where: { ...po, type: WalletTxType.REFUND }, _sum: { amount: true } }),
+      this.prisma.walletTransaction.aggregate({ where: { ...po, type: { in: [WalletTxType.CHARGE_SUBSCRIPTION, WalletTxType.CHARGE_PLAN_UPGRADE] } }, _sum: { amount: true } }),
+    ]);
+    const oddane = new Prisma.Decimal(zwroty._sum.amount ?? 0).abs().minus(new Prisma.Decimal(obciazenia._sum.amount ?? 0).abs());
+    const netto = oddane.greaterThan(0) ? base.minus(oddane) : base;
+    return netto.greaterThan(0) ? netto : new Prisma.Decimal(0);
+  }
+
+  /** Prowizje w karencji od opłat, które potem zwróciliśmy: całość zwrócona → CANCELED, część → mniejsza kwota. */
+  private async uwzglednijZwroty(): Promise<void> {
+    const wKarencji = await this.prisma.partnerCommission.findMany({
+      where: { status: 'PENDING', kind: { in: ['RECURRING_PCT', 'RESELLER_MARKUP'] } },
+      select: { id: true, dedupeKey: true, baseAmount: true, amount: true },
+    });
+    for (const k of wKarencji) {
+      const txId = k.dedupeKey.replace(/^(tx|rsl):/, '');
+      const tx = await this.prisma.walletTransaction.findUnique({ where: { id: txId }, select: { amount: true, subscriptionId: true, createdAt: true } });
+      if (!tx || k.baseAmount == null) continue;
+      const netto = await this.podstawaPoZwrotach(tx);
+      if (netto.greaterThanOrEqualTo(k.baseAmount)) continue;
+      await this.prisma.partnerCommission.updateMany({
+        where: { id: k.id, status: 'PENDING' },
+        data: netto.lessThanOrEqualTo(0)
+          ? { status: 'CANCELED' }
+          : { baseAmount: netto, amount: new Prisma.Decimal(k.amount).mul(netto).div(k.baseAmount).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP) },
+      });
     }
   }
 

@@ -50,4 +50,50 @@ describe('O-07 narzut resellera', () => {
     expect((await p.user.findUniqueOrThrow({ where: { id: klient.id } })).resellerOwnerId).toBeNull();
     expect(await p.subscriptionEvent.count({ where: { subscriptionId: sub.id, type: 'RESELLER_MARKUP_REMOVED' } })).toBe(1);
   });
+
+  // Na t1 07.10: poczta kupiona bez wolnego węzła → automatyczny zwrot; prowizja od zwróconej opłaty zostawała.
+  it('zwrot opłaty: przed naliczeniem bez prowizji, w karencji anuluje, częściowy zmniejsza', async () => {
+    const p = prisma();
+    const t = Date.now();
+    const karencja = { getPartnerProgram: async () => ({ enabled: true, commissionPct: 10, holdDays: 30, minPayout: 50, freeHostingThreshold: 0, freeHostingCredit: 0 }) };
+    const reseller = await p.user.create({ data: { email: `rsl-z-${t}@test.verris.pl`, passwordHash: 'x' } });
+    await p.resellerProfile.create({ data: { userId: reseller.id, status: 'ACTIVE', markupPct: 25, code: `rslz_${t}` } });
+    const plan = await p.plan.create({ data: { slug: `pz-${t}`, name: 'P', cpuLimit: 100, ramLimitMb: 1024, diskLimitMb: 1024, priceMonthly: 9.99, priceYearly: 99.99 } });
+    const scheduler = new PartnerCommissionScheduler(p as never, karencja as never);
+    const zakup = async (n: number, kwota: number) => {
+      const klient = await p.user.create({ data: { email: `kl-z${n}-${t}@test.verris.pl`, passwordHash: 'x', resellerOwnerId: reseller.id } });
+      const sub = await p.subscription.create({
+        data: { userId: klient.id, planId: plan.id, interval: 'MONTH', priceAmount: kwota, listPriceAmount: kwota, resellerMarkupPct: 25, status: 'ACTIVE', paymentSource: 'WALLET' },
+      });
+      await p.walletTransaction.create({ data: { userId: klient.id, type: 'CHARGE_SUBSCRIPTION', amount: -kwota, balanceAfter: 0, subscriptionId: sub.id, createdAt: new Date(Date.now() - 60_000) } });
+      return { klient, sub };
+    };
+    const zwrot = (u: { klient: { id: string }; sub: { id: string } }, kwota: number) =>
+      p.walletTransaction.create({ data: { userId: u.klient.id, type: 'REFUND', amount: kwota, balanceAfter: kwota, subscriptionId: u.sub.id } });
+    const prowizja = (u: { klient: { id: string } }) => p.partnerCommission.findFirst({ where: { referredUserId: u.klient.id } });
+
+    // 1) zwrot przed przebiegiem — prowizji nie ma wcale
+    const a = await zakup(1, 11.24);
+    await zwrot(a, 11.24);
+    // 2) zwrot w karencji — prowizja anulowana; 3) częściowy zwrot — prowizja od reszty
+    const b = await zakup(2, 12.5);
+    const c = await zakup(3, 12.5);
+    await scheduler.run();
+    expect(await prowizja(a)).toBeNull();
+    expect(Number((await prowizja(b))!.amount)).toBe(2.5);
+    await zwrot(b, 12.5);
+    await zwrot(c, 5);
+    // nieudane wznowienie: osobna opłata i jej zwrot nie ruszają prowizji od pierwszej opłaty
+    const d = await zakup(4, 12.5);
+    await scheduler.run();
+    await p.walletTransaction.create({ data: { userId: d.klient.id, type: 'CHARGE_SUBSCRIPTION', amount: -12.5, balanceAfter: 0, subscriptionId: d.sub.id } });
+    await zwrot(d, 12.5);
+    await scheduler.run();
+
+    expect((await prowizja(b))!.status).toBe('CANCELED');
+    expect(await prowizja(c)).toMatchObject({ status: 'PENDING' });
+    expect(Number((await prowizja(c))!.amount)).toBe(1.5);
+    expect(Number((await prowizja(c))!.baseAmount)).toBe(7.5);
+    expect(Number((await p.partnerCommission.findFirst({ where: { referredUserId: d.klient.id }, orderBy: { createdAt: 'asc' } }))!.amount)).toBe(2.5);
+  });
 });

@@ -200,6 +200,7 @@ describe('O-07 — prowizja resellera (scheduler)', () => {
       user: { findUnique: vi.fn(async () => ({ resellerOwnerId: 'r1', referredByUserId: null })) },
       partnerCommission: {
         updateMany: vi.fn(async () => ({ count: 0 })),
+        findMany: vi.fn(async () => []),
         findFirst: vi.fn(async (a: { where: { dedupeKey: string } }) => (klucze.has(a.where.dedupeKey) ? { id: 'x' } : null)),
         create: vi.fn(async (a: { data: Record<string, unknown> }) => {
           klucze.set(a.data.dedupeKey as string, a.data);
