@@ -76,6 +76,24 @@ describe('X-04 zakup usługi z portfela', () => {
     expect(s.introDiscountPeriodsLeft).toBe(11);
   });
 
+  // Decyzja 07.10: rabat na start i kody to promocja Verris, nie partnera — także gdy narzut jest wyłączony.
+  it('klient aktywnego resellera: bez rabatu na start, kod rabatowy odrzucony', async () => {
+    oferta = { cardEnabled: true, monthlyDiscountPct: 20, annualDiscountPct: 0, introDiscountPeriods: 12 } as typeof oferta;
+    const r = await klient(0);
+    await prisma().resellerProfile.create({ data: { userId: r.id, status: 'ACTIVE', markupPct: 25, code: `rsl_z${Date.now()}` } });
+    const k = await klient(100, { resellerOwnerId: r.id });
+    const plan = await utworzPlan({ priceMonthly: 45 });
+    const zKodem = { ...(zamowienie(plan.id) as object), promoCode: 'START20' } as never;
+    await expect(uslugi().create(k.id, zKodem)).rejects.toThrow('kody rabatowe Verris nie obejmują');
+    await expect(uslugi().previewSubscriptionPromo(k.id, { planId: plan.id, interval: 'MONTH', code: 'START20' } as never)).rejects.toThrow('kody rabatowe Verris nie obejmują');
+    expect(await saldo(k.id)).toBe(100);
+
+    const { subscription } = await uslugi().create(k.id, zamowienie(plan.id));
+    expect(await saldo(k.id)).toBe(55);
+    const s = await prisma().subscription.findUniqueOrThrow({ where: { id: subscription.id } });
+    expect(s.introDiscountPct).toBe(0);
+  });
+
   it('brak środków: odmowa, portfel nietknięty, nic nie trafia do zakładania', async () => {
     const k = await klient(10);
     const plan = await utworzPlan({ priceMonthly: 45 });

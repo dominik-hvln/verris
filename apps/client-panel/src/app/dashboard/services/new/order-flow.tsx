@@ -17,7 +17,19 @@ import { useFlagi } from '@/lib/feature-flags';
  * jednej zmieszanej listy. Poczta przestaje być schowana. Po wyborze typu
  * pokazujemy warianty (plany) tego typu + (dla hostingu) atrakcyjny start trial.
  */
-export function OrderFlow({ plans, offer, bezKarty }: { plans: PlanDto[]; offer: TrialOffer; bezKarty?: boolean }) {
+export function OrderFlow({
+  plans,
+  offer: ofertaVerris,
+  bezKarty,
+  uPartnera,
+}: {
+  plans: PlanDto[];
+  offer: TrialOffer;
+  bezKarty?: boolean;
+  /** Klient aktywnego resellera — bez promocji Verris (rabat na start, kody), jak w API (07.10). */
+  uPartnera?: boolean;
+}) {
+  const offer = uPartnera ? { ...ofertaVerris, cardEnabled: false } : ofertaVerris;
   // VPS ukryty do wejścia do sprzedaży (2026-09-23); włącza API per konto (FEATURE_VPS / FEATURE_VPS_TYLKO_KONTA).
   const vps = useFlagi().vps === true;
   // Q-05 — pakiety Newsletter tylko przy włączonej fladze (domyślnie wyłączona, 2026-09-28).
@@ -26,7 +38,7 @@ export function OrderFlow({ plans, offer, bezKarty }: { plans: PlanDto[]; offer:
   const router = useRouter();
   const type = params.get('type');
   const interval = params.get('interval');
-  const promo = params.get('promo') ?? undefined;
+  const promo = uPartnera ? undefined : (params.get('promo') ?? undefined);
 
   const hostingPlans = plans.filter((p) => p.productKind === 'HOSTING');
   const emailPlans = plans.filter((p) => p.productKind === 'EMAIL');
@@ -68,6 +80,7 @@ export function OrderFlow({ plans, offer, bezKarty }: { plans: PlanDto[]; offer:
                 initialInterval={initialInterval}
                 initialPromo={promo}
                 bezKarty={bezKarty}
+                bezKodu={uPartnera}
                 // API nalicza rabat na start każdemu pakietowi z portfela — klient widzi go przed zapłatą.
                 startOffer={{
                   cardEnabled: offer.cardEnabled,

@@ -13,7 +13,8 @@ export default async function NewServicePage() {
   let loadError: string | null = null;
   const offer: TrialOffer = await getTrialOffer();
   // O-07 — klient resellera widzi ceny z narzutem (tak liczy je API) i płaci z portfela.
-  const narzutPct = (await pobierzPartnera())?.narzutPct ?? 0;
+  const partner = await pobierzPartnera();
+  const narzutPct = partner?.narzutPct ?? 0;
   try {
     plans = planyZNarzutem(await listPublicPlans(), narzutPct);
   } catch (err) {
@@ -56,7 +57,7 @@ export default async function NewServicePage() {
         <EmptyPlans />
       ) : (
         <Suspense fallback={null}>
-          <OrderFlow plans={plans} offer={offer} bezKarty={narzutPct > 0} />
+          <OrderFlow plans={plans} offer={offer} bezKarty={narzutPct > 0} uPartnera={partner != null} />
         </Suspense>
       )}
     </div>

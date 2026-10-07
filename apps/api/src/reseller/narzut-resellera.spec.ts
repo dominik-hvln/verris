@@ -93,10 +93,12 @@ describe('O-07 — zakup usługi', () => {
     expect(d.resellerMarkupPct).toBe(20);
   });
 
-  it('rabat startowy liczy się od ceny z narzutem', async () => {
+  // Decyzja 07.10: rabat na start to promocja Verris — klient resellera płaci pełną cenę z narzutem.
+  it('rabat startowy nie obejmuje klienta resellera', async () => {
     const { svc, create } = zbuduj({ oferta: { cardEnabled: true, monthlyDiscountPct: 50, annualDiscountPct: 0, introDiscountPeriods: 1 } });
     await expect(svc.create('u1', dto(SubscriptionPaymentSource.WALLET))).rejects.toBe(STOP);
-    expect(String(zapisane(create).priceAmount)).toBe('27');
+    expect(String(zapisane(create).priceAmount)).toBe('54');
+    expect(zapisane(create).introDiscountPct).toBe(0);
   });
 
   it('flaga wyłączona: cennik, bez snapshotu', async () => {
@@ -126,12 +128,12 @@ describe('O-07 — zakup usługi', () => {
     expect(create).not.toHaveBeenCalled();
   });
 
-  it('podgląd kodu rabatowego liczy od ceny z narzutem', async () => {
+  it('kod rabatowy Verris odrzucony dla klienta resellera', async () => {
     const { svc } = zbuduj();
-    const promo = { previewServicePercentOff: vi.fn(async (_u: string, _c: string, lista: Prisma.Decimal) => ({ code: 'X', percent: 0, listPrice: lista, discountedAmount: lista, savingsAmount: D(0), appliesToRenewals: false, description: null })) };
+    const promo = { previewServicePercentOff: vi.fn() };
     (svc as unknown as { promo: unknown }).promo = promo;
-    const r = await svc.previewSubscriptionPromo('u1', { planId: 'p1', interval: 'MONTH', code: 'X' } as never);
-    expect(r.listPrice).toBe('54.00');
+    await expect(svc.previewSubscriptionPromo('u1', { planId: 'p1', interval: 'MONTH', code: 'X' } as never)).rejects.toThrow(/partner/);
+    expect(promo.previewServicePercentOff).not.toHaveBeenCalled();
   });
 });
 

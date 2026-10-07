@@ -43,7 +43,7 @@ import {
 import { accountSuspendedPaymentTemplate } from '../mail/templates/hosting-notifications.js';
 import { orderReceivedTemplate } from '../mail/templates/order-notifications.js';
 import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service.js';
-import { narzutResellera, zNarzutem } from '../reseller/narzut-resellera.js';
+import { KOD_U_PARTNERA, klientAktywnegoResellera, narzutResellera, zNarzutem } from '../reseller/narzut-resellera.js';
 
 export type SuspendReason =
   | 'PAYMENT_FAILED'
@@ -137,7 +137,8 @@ export class SubscriptionsService {
     if (listPriceRaw === null || listPriceRaw === undefined) {
       throw new BadRequestException('Ten plan nie ma ceny dla wybranego okresu rozliczenia.');
     }
-    // O-07 — klient resellera widzi i płaci cenę z narzutem; kod rabatowy liczy się od niej.
+    if (await klientAktywnegoResellera(this.prisma, userId)) throw new BadRequestException(KOD_U_PARTNERA);
+    // O-07 — klient resellera widzi i płaci cenę z narzutem.
     const listPrice = zNarzutem(listPriceRaw, await narzutResellera(this.prisma, this.config, userId));
     const preview = await this.promo.previewServicePercentOff(userId, dto.code, listPrice);
 
@@ -1376,11 +1377,14 @@ export class SubscriptionsService {
     introDiscountPeriodsLeft: number;
   }> {
     const isWallet = paymentSource === SubscriptionPaymentSource.WALLET;
+    // Promocje Verris nie obejmują klientów resellera (07.10).
+    const uPartnera = await klientAktywnegoResellera(this.prisma, userId);
+    if (uPartnera && promoCode?.trim()) throw new BadRequestException(KOD_U_PARTNERA);
 
     // Rabat startowy z ustawień — tylko portfel (jak istniejący silnik promo).
     const offer = await this.platformSettings.getTrialOffer();
     const startPct =
-      isWallet && offer.cardEnabled
+      isWallet && offer.cardEnabled && !uPartnera
         ? interval === BillingInterval.MONTH
           ? offer.monthlyDiscountPct
           : offer.annualDiscountPct

@@ -32,6 +32,20 @@ export async function narzutResellera(
   return Math.max(0, p.markupPct);
 }
 
+/**
+ * Klient aktywnego resellera — promocje Verris (rabat na start, kody rabatowe przy zakupie usługi) go nie
+ * obejmują: to nasza promocja, nie partnera (decyzja właściciela 07.10). Ten sam warunek co `/me/partner`,
+ * więc panel i API mówią to samo, także przy wyłączonym narzucie.
+ */
+export async function klientAktywnegoResellera(prisma: Pick<PrismaService, 'user' | 'resellerProfile'>, userId: string): Promise<boolean> {
+  const u = await prisma.user.findUnique({ where: { id: userId }, select: { resellerOwnerId: true } });
+  if (!u?.resellerOwnerId) return false;
+  const p = await prisma.resellerProfile.findUnique({ where: { userId: u.resellerOwnerId }, select: { status: true } });
+  return p?.status === 'ACTIVE';
+}
+
+export const KOD_U_PARTNERA = 'Twoje konto prowadzi partner — kody rabatowe Verris nie obejmują jego klientów. O rabat zapytaj partnera.';
+
 /** Cena z narzutem, 2 miejsca, HALF_UP. Panel klienta liczy tak samo (`lib/narzut.ts`). */
 export function zNarzutem(cena: Prisma.Decimal | number | string, pct: number): Prisma.Decimal {
   const c = new Prisma.Decimal(cena);

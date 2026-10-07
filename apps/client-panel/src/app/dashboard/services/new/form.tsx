@@ -38,9 +38,11 @@ interface Props {
   startOffer?: StartOffer;
   /** O-07 — klient resellera płaci z portfela (karta odnawiałaby się ceną z cennika). */
   bezKarty?: boolean;
+  /** Klient resellera — kody rabatowe Verris go nie obejmują (API odrzuca kod). */
+  bezKodu?: boolean;
 }
 
-export function NewSubscriptionForm({ plans, initialInterval, initialPromo, startOffer, bezKarty }: Props) {
+export function NewSubscriptionForm({ plans, initialInterval, initialPromo, startOffer, bezKarty, bezKodu }: Props) {
   const router = useRouter();
   const hasEmailPlans = useMemo(() => plans.some((p) => p.productKind === 'EMAIL'), [plans]);
   const hasHostingPlans = useMemo(
@@ -462,7 +464,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
         ) : null}
       </section>
 
-      {paymentSource === 'WALLET' ? (
+      {paymentSource === 'WALLET' && !bezKodu ? (
         <section className="max-w-2xl">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Tag className="h-5 w-5 text-emerald-400" aria-hidden />

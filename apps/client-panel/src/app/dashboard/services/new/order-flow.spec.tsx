@@ -139,3 +139,20 @@ it('rabat na start widoczny przed zapłatą także przy poczcie', async () => {
   expect(t).toContain('Rabat na start −10%');
   expect(t).toMatch(/8,99\s?K/);
 });
+
+// Decyzja 07.10: rabat na start i kody to promocja Verris, nie partnera.
+it('klient resellera: bez rabatu na start i bez pola kodu rabatowego', async () => {
+  const poczta = plan({ id: 'e1', slug: 'poczta-standard', name: 'Poczta Standard', productKind: 'EMAIL', priceMonthly: '12.49', priceYearly: '124.99' });
+  mockParams.value = new URLSearchParams('type=email&promo=START20');
+  await act(async () =>
+    root.render(
+      <FeatureFlagsProvider>
+        <OrderFlow plans={[poczta]} offer={{ ...OFERTA, cardEnabled: true, monthlyDiscountPct: 10 }} uPartnera />
+      </FeatureFlagsProvider>,
+    ),
+  );
+  const t = el.textContent ?? '';
+  expect(t).not.toContain('Rabat na start');
+  expect(t).not.toContain('Kod rabatowy');
+  expect(t).toMatch(/Do zapłaty teraz12,49\s?K/);
+});
