@@ -341,7 +341,9 @@ describe('profil węzła — strona zawieszonego konta (white label)', () => {
   it('samodzielna strona po polsku z marką Verris: noindex, bez nazwy DirectAdmin i zasobów zewnętrznych', () => {
     expect(html).toContain('<html lang="pl">');
     expect(html).toContain('<meta name="robots" content="noindex, nofollow">');
-    expect(html).toContain('<p class="marka">Verris</p>');
+    // Marka jak na stronach błędów (07.10): znak + logotyp Verris, ciemne tło.
+    expect(html).toContain('aria-label="Verris"');
+    expect(html).toContain('background:#091410');
     expect(html).toContain('Ta strona jest tymczasowo niedostępna.');
     expect(html).toContain(
       'Jeśli jesteś właścicielem, zaloguj się do panelu Verris (<a href="https://panel.verris.pl" rel="nofollow">panel.verris.pl</a>), aby sprawdzić status usługi.',
