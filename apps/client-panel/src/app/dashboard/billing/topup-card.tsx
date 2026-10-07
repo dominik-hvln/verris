@@ -13,6 +13,8 @@ interface Props {
   balance: string;
   /** 2026-10-05 — Paynow (BLIK, przelew, karta) włączony: domyślna bramka dla PLN. */
   paynowDostepny?: boolean;
+  /** Klient resellera — kody promocyjne Verris go nie obejmują (API odmawia, 07.10). */
+  bezKodu?: boolean;
 }
 
 interface PromoState {
@@ -21,7 +23,7 @@ interface PromoState {
   error?: string;
 }
 
-export function TopupCard({ balance, paynowDostepny = false }: Props) {
+export function TopupCard({ balance, paynowDostepny = false, bezKodu = false }: Props) {
   const [amount, setAmount] = useState<string>('50');
   const [currency, setCurrency] = useState<WalutaWplaty>('PLN');
   const [metoda, setMetoda] = useState<MetodaDoladowania>('paynow');
@@ -207,13 +209,15 @@ export function TopupCard({ balance, paynowDostepny = false }: Props) {
           ) : null}
           {quote ? <VatInfo quote={quote} currency={currency} /> : null}
 
-          <PromoSubform
-            promoCode={promoCode}
-            setPromoCode={setPromoCode}
-            promoState={promoState}
-            onApply={onApplyPromo}
-            onClear={onClearPromo}
-          />
+          {bezKodu ? null : (
+            <PromoSubform
+              promoCode={promoCode}
+              setPromoCode={setPromoCode}
+              promoState={promoState}
+              onApply={onApplyPromo}
+              onClear={onClearPromo}
+            />
+          )}
 
           {error ? (
             <div className="rounded-xl border border-rose-400/30 bg-rose-400/5 p-3 text-sm text-rose-200">

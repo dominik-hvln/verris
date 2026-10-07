@@ -71,3 +71,13 @@ it('05.10: klient nie widzi nazw dostawców zaplecza (mBank, Stripe)', async () 
     act(() => root.unmount());
   }
 });
+
+// Decyzja 07.10: kody promocyjne Verris nie obejmują klientów resellera.
+it('klient resellera: bez pola kodu promocyjnego przy doładowaniu', async () => {
+  const { el, root } = await renderuj({ balance: '0', bezKodu: true });
+  expect(el.querySelector('[aria-label="Kod promocyjny"]')).toBeNull();
+  act(() => root.unmount());
+  const zwykly = await renderuj({ balance: '0' });
+  expect(zwykly.el.querySelector('[aria-label="Kod promocyjny"]')).not.toBeNull();
+  act(() => zwykly.root.unmount());
+});

@@ -73,6 +73,19 @@ describe('X-04 kody promocyjne', () => {
     expect(await saldo(k.id)).toBe(0);
   });
 
+  // Decyzja 07.10: kody Verris (kredyt na portfel i bonus do doładowania) nie obejmują klientów resellera.
+  it('klient aktywnego resellera: voucher i bonus do doładowania odrzucone, portfel bez zmian', async () => {
+    const r = await klient();
+    await prisma().resellerProfile.create({ data: { userId: r.id, status: 'ACTIVE', markupPct: 0, code: `rsl_p${Date.now()}` } });
+    const k = await prisma().user.create({ data: { email: `promo-rsl-${Date.now()}@test.verris.pl`, passwordHash: 'x', walletBalance: 0, resellerOwnerId: r.id } });
+    await kod('PARTNER50');
+    await kod('BONUS10', { kind: PromoKind.PERCENT_BONUS, value: 10 });
+    await expect(promo().redeemPromo(k.id, 'PARTNER50')).rejects.toThrow('zapytaj partnera');
+    await expect(promo().previewPercentBonus(k.id, 'BONUS10', new (await import('@verris/database')).Prisma.Decimal(100))).rejects.toThrow('zapytaj partnera');
+    expect(await saldo(k.id)).toBe(0);
+    expect(await kredyty(k.id)).toBe(0);
+  });
+
   it('bonus procentowy do doładowania: ponowny webhook nie dubluje bonusu', async () => {
     const k = await klient();
     const c = await kod('PLUS10', { kind: PromoKind.PERCENT_BONUS, value: 10 });

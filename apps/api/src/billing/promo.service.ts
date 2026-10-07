@@ -11,6 +11,7 @@ import { AuditService } from '../common/audit/audit.service.js';
 import { WalletLedgerService } from './wallet-ledger.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { promoCodeRedeemedTemplate } from '../mail/templates/promo-notifications.js';
+import { KOD_U_PARTNERA, klientAktywnegoResellera } from '../reseller/narzut-resellera.js';
 
 @Injectable()
 export class PromoService {
@@ -25,6 +26,8 @@ export class PromoService {
   ) {}
 
   async redeemPromo(userId: string, rawCode: string) {
+    // Promocje Verris nie obejmują klientów aktywnego resellera (decyzja właściciela 07.10).
+    if (await klientAktywnegoResellera(this.prisma, userId)) throw new BadRequestException(KOD_U_PARTNERA);
     const code = rawCode.trim().toUpperCase();
     if (!code || code.length < 3 || code.length > 40) {
       throw new BadRequestException('Podaj kod promocyjny (3–40 znaków).');
@@ -408,6 +411,8 @@ export class PromoService {
   }
 
   private async resolveActiveServicePercentPromo(userId: string, rawCode: string) {
+    // Promocje Verris nie obejmują klientów aktywnego resellera (decyzja właściciela 07.10).
+    if (await klientAktywnegoResellera(this.prisma, userId)) throw new BadRequestException(KOD_U_PARTNERA);
     const code = rawCode.trim().toUpperCase();
     if (!code || code.length < 3 || code.length > 40) {
       throw new BadRequestException('Podaj kod promocyjny (3–40 znaków).');
@@ -618,6 +623,8 @@ export class PromoService {
   }
 
   private async resolveActivePercentPromo(userId: string, rawCode: string) {
+    // Promocje Verris nie obejmują klientów aktywnego resellera (decyzja właściciela 07.10).
+    if (await klientAktywnegoResellera(this.prisma, userId)) throw new BadRequestException(KOD_U_PARTNERA);
     const code = rawCode.trim().toUpperCase();
     if (!code || code.length < 3 || code.length > 40) {
       throw new BadRequestException('Podaj kod promocyjny (3–40 znaków).');

@@ -17,6 +17,7 @@ import { getSavedPaymentMethods, getWalletAutoTopup, getWalletSummary, sprawdzPl
 import { TopupCard } from './topup-card';
 import { BillingExtrasForms } from './billing-extras-forms';
 import { BillingWalletRefresh } from './billing-wallet-refresh';
+import { pobierzPartnera } from '@/app/dashboard/settings/partner-actions';
 
 
 export default async function BillingPage({
@@ -28,6 +29,8 @@ export default async function BillingPage({
   // Powrót z Paynow (continueUrl): sprawdzenie statusu PRZED odczytem salda — zgubione powiadomienie
   // zostaje zaksięgowane tutaj, więc saldo poniżej jest już po wpłacie.
   const paynow = params.paynow ? await sprawdzPlatnoscPaynow(params.paynow) : null;
+  // Klient resellera — promocje Verris (kody) go nie obejmują; API i tak odmawia (07.10).
+  const uPartnera = (await pobierzPartnera()) != null;
   const paynowWynik = params.paynow ? wynikPaynow(paynow?.status) : null;
   let summary: WalletSummaryDto | null = null;
   let loadError: string | null = null;
@@ -193,9 +196,10 @@ export default async function BillingPage({
             </div>
 
             <div className="flex min-w-0 flex-col gap-6">
-              <TopupCard balance={summary.balance} paynowDostepny={summary.paynowDostepny === true} />
+              <TopupCard balance={summary.balance} paynowDostepny={summary.paynowDostepny === true} bezKodu={uPartnera} />
               {billingExtras ? (
                 <BillingExtrasForms
+                  bezKodu={uPartnera}
                   key={[
                     billingExtras.initialAuto.thresholdPln,
                     billingExtras.initialAuto.topupAmountPln,

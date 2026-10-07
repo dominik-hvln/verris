@@ -44,7 +44,7 @@ export async function klientAktywnegoResellera(prisma: Pick<PrismaService, 'user
   return p?.status === 'ACTIVE';
 }
 
-export const KOD_U_PARTNERA = 'Twoje konto prowadzi partner — kody rabatowe Verris nie obejmują jego klientów. O rabat zapytaj partnera.';
+export const KOD_U_PARTNERA = 'Twoje konto prowadzi partner — kody rabatowe i promocyjne Verris nie obejmują jego klientów. O rabat zapytaj partnera.';
 
 /** Cena z narzutem, 2 miejsca, HALF_UP. Panel klienta liczy tak samo (`lib/narzut.ts`). */
 export function zNarzutem(cena: Prisma.Decimal | number | string, pct: number): Prisma.Decimal {

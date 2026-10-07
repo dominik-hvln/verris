@@ -14,12 +14,14 @@ import { Checkbox } from '@/components/panel/checkbox';
 interface Props {
   initialAuto: WalletAutoTopupSettingsDto;
   savedCards: SavedPaymentMethodDto[];
+  /** Klient resellera — bez kodów promocyjnych Verris (07.10). */
+  bezKodu?: boolean;
 }
 
-export function BillingExtrasForms({ initialAuto, savedCards }: Props) {
+export function BillingExtrasForms({ initialAuto, savedCards, bezKodu }: Props) {
   return (
     <div className="flex flex-col gap-6">
-      <PromoRedeemBlock />
+      {bezKodu ? null : <PromoRedeemBlock />}
       <SavedCardsBlock cards={savedCards} />
       <WalletAutotopupBlock initialAuto={initialAuto} savedCards={savedCards} />
     </div>

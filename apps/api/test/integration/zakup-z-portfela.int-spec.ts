@@ -91,8 +91,8 @@ describe('X-04 zakup usługi z portfela', () => {
     const k = await klient(100, { resellerOwnerId: r.id });
     const plan = await utworzPlan({ priceMonthly: 45 });
     const zKodem = { ...(zamowienie(plan.id) as object), promoCode: 'START20' } as never;
-    await expect(uslugi().create(k.id, zKodem)).rejects.toThrow('kody rabatowe Verris nie obejmują');
-    await expect(uslugi().previewSubscriptionPromo(k.id, { planId: plan.id, interval: 'MONTH', code: 'START20' } as never)).rejects.toThrow('kody rabatowe Verris nie obejmują');
+    await expect(uslugi().create(k.id, zKodem)).rejects.toThrow('kody rabatowe i promocyjne Verris nie obejmują');
+    await expect(uslugi().previewSubscriptionPromo(k.id, { planId: plan.id, interval: 'MONTH', code: 'START20' } as never)).rejects.toThrow('kody rabatowe i promocyjne Verris nie obejmują');
     expect(await saldo(k.id)).toBe(100);
 
     const { subscription } = await uslugi().create(k.id, zamowienie(plan.id));
