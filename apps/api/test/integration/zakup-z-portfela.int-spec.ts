@@ -3,6 +3,7 @@ import { AuditService } from '../../src/common/audit/audit.service.js';
 import { WalletLedgerService } from '../../src/billing/wallet-ledger.service.js';
 import { PromoService } from '../../src/billing/promo.service.js';
 import { SubscriptionsService } from '../../src/subscriptions/subscriptions.service.js';
+import { NodeSelectorService } from '../../src/subscriptions/node-selector.service.js';
 import { PLANY_NEWSLETTER } from '../../src/plans/plany-newsletter.js';
 import { prisma, rozlacz, utworzPlan, wyczyscBaze } from './setup.js';
 
@@ -13,6 +14,8 @@ import { prisma, rozlacz, utworzPlan, wyczyscBaze } from './setup.js';
 
 const kolejka: string[] = [];
 let kolejkaPada = false;
+/** true = prawdziwy wybór węzła (baza testowa nie ma węzłów); false = węzeł jest. */
+let bezWezla = false;
 let oferta = { cardEnabled: false, monthlyDiscountPct: 0, annualDiscountPct: 0 };
 function uslugi() {
   const p = prisma() as never;
@@ -27,8 +30,11 @@ function uslugi() {
       kolejka.push(o.subscriptionId);
     },
   };
+  const provisioning = {
+    sprawdzMiejsce: async (plan: never) => (bezWezla ? new NodeSelectorService(p).sprawdzMiejsceDlaZakupu(plan) : undefined),
+  };
   return new SubscriptionsService(
-    p, audit, ledger, null as never, null as never, queue as never, null as never,
+    p, audit, ledger, null as never, provisioning as never, queue as never, null as never,
     mailer as never, { get: () => undefined } as never, promo, { safeAward: () => undefined } as never,
     { getTrialOffer: async () => oferta } as never, null as never,
   );
@@ -48,6 +54,7 @@ describe('X-04 zakup usługi z portfela', () => {
     await wyczyscBaze();
     kolejka.length = 0;
     kolejkaPada = false;
+    bezWezla = false;
     oferta = { cardEnabled: false, monthlyDiscountPct: 0, annualDiscountPct: 0 };
   });
   afterAll(rozlacz);
@@ -92,6 +99,17 @@ describe('X-04 zakup usługi z portfela', () => {
     expect(await saldo(k.id)).toBe(55);
     const s = await prisma().subscription.findUniqueOrThrow({ where: { id: subscription.id } });
     expect(s.introDiscountPct).toBe(0);
+  });
+
+  // t1 07.10: zakup poczty przy wstrzymanym węźle — pobranie, ~8 min prób, zwrot. Teraz odmowa przed pobraniem.
+  it('żaden węzeł nie przyjmie konta: odmowa przed pobraniem, bez usługi i bez kolejki', async () => {
+    bezWezla = true;
+    const k = await klient(100);
+    const plan = await utworzPlan({ priceMonthly: 45 });
+    await expect(uslugi().create(k.id, zamowienie(plan.id))).rejects.toThrow('Sprzedaż jest chwilowo wstrzymana');
+    expect(await saldo(k.id)).toBe(100);
+    expect(await prisma().subscription.count({ where: { userId: k.id } })).toBe(0);
+    expect(kolejka).toEqual([]);
   });
 
   it('brak środków: odmowa, portfel nietknięty, nic nie trafia do zakładania', async () => {

@@ -48,6 +48,25 @@ export class NodeSelectorService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Przed pobraniem opłaty: czy jakiś węzeł przyjmie konto (ten sam wybór co przy zakładaniu). Bez tego
+   * sklep pobierał pieniądze, przez kilka minut próbował założyć konto i dopiero wtedy je oddawał
+   * (t1 07.10: zakup poczty przy wstrzymanym węźle). Serwis zapowiedziany przez admina ma własny komunikat.
+   */
+  async sprawdzMiejsceDlaZakupu(plan: Plan, preferredRegion?: string | null): Promise<void> {
+    try {
+      await this.pickServerForPlan(plan, { preferredRegion });
+    } catch (err) {
+      if (!(err instanceof ServiceUnavailableException)) throw err;
+      if (err.message.startsWith('Sprzedaż wstrzymana')) throw err;
+      this.logger.warn(`Zakup planu ${plan.slug} odrzucony przed pobraniem opłaty: ${err.message}`);
+      throw new ServiceUnavailableException(
+        'Sprzedaż jest chwilowo wstrzymana — nie mamy teraz wolnego miejsca na serwerach. Nic nie pobraliśmy. ' +
+          'Spróbuj ponownie później albo napisz do pomocy.',
+      );
+    }
+  }
+
   async pickServerForPlan(plan: Plan, ctx: NodeSelectionContext = {}): Promise<Server> {
     // Q-05 — produkt aplikacyjny (e-mail marketing) nie ma konta na węźle. Jedno miejsce, przez które
     // przechodzi każde zakładanie konta (zakup, kolejka, okres próbny, ponowienie przez admina).

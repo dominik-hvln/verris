@@ -103,7 +103,7 @@ describe('X-04 kody promocyjne', () => {
       };
       const oferta = { cardEnabled: false, monthlyDiscountPct: 0, annualDiscountPct: 0, introDiscountPeriods: 0 };
       return new SubscriptionsService(
-        p, audit, ledger, null as never, null as never, queue as never, null as never,
+        p, audit, ledger, null as never, { sprawdzMiejsce: async () => undefined } as never, queue as never, null as never,
         mailer as never, { get: () => undefined } as never, pr, null as never,
         { getTrialOffer: async () => oferta } as never, null as never,
       );

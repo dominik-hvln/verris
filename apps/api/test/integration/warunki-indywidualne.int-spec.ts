@@ -28,7 +28,7 @@ function uslugi() {
     },
   };
   const subs = new SubscriptionsService(
-    p, audit, ledger, null as never, null as never, queue as never, null as never,
+    p, audit, ledger, null as never, { sprawdzMiejsce: async () => undefined } as never, queue as never, null as never,
     mailer as never, { get: () => undefined } as never, promo, null as never, null as never, null as never,
   );
   return { subs, warunki: new WarunkiIndywidualneService(p, audit, subs), ledger, audit, promo };

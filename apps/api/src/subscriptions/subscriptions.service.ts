@@ -340,6 +340,8 @@ export class SubscriptionsService {
     if (!isAppLevel && !dto.domain) {
       throw new BadRequestException('Domena jest wymagana dla tego produktu.');
     }
+    // Brak węzła, który przyjmie konto → odmowa przed rezerwacją kodu i pobraniem opłaty.
+    if (!isAppLevel) await this.provisioning.sprawdzMiejsce(plan, dto.preferredRegion);
 
     const listPriceRaw =
       dto.interval === BillingInterval.MONTH ? plan.priceMonthly : plan.priceYearly;

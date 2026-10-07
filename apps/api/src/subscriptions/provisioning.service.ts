@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import {
   AccountStatus,
+  Plan,
   Server,
   Subscription,
   SubscriptionStatus,
@@ -102,6 +103,11 @@ export class ProvisioningService {
     private readonly ecoPoints: EcoPointsService,
     private readonly waf: WafService,
   ) {}
+
+  /** Przed pobraniem opłaty — czy jest węzeł dla planu (patrz NodeSelectorService.sprawdzMiejsceDlaZakupu). */
+  sprawdzMiejsce(plan: Plan, preferredRegion?: string | null): Promise<void> {
+    return this.nodeSelector.sprawdzMiejsceDlaZakupu(plan, preferredRegion);
+  }
 
   /**
    * Provisions an account on a node for a subscription that's already paid for.
