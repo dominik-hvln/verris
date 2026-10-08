@@ -262,8 +262,14 @@ export class UsersAdminController {
     });
   }
 
+  /**
+   * PB-41 (decyzja właściciela 08.10): staff wchodzi na konto klienta z osobnym uprawnieniem — powód, 30 min i wpis
+   * w dzienniku jak u admina. Wcześniej @Roles(ADMIN) przy serwisie dopuszczającym STAFF: przycisk w panelu staff
+   * kończył się 403. Staff tylko na konta USER (pilnuje serwis).
+   */
   @Post(':id/impersonate')
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('CUSTOMERS_VIEW', 'CUSTOMERS_IMPERSONATE')
   async impersonate(
     @CurrentUser() user: AuthedUser,
     @Param('id') id: string,
@@ -301,7 +307,14 @@ export class UsersAdminController {
     return this.users.reviewReferralEnrollment(userId, body, actor.userId);
   }
 
+  /**
+   * Zakończenie wołane z panelu klienta tokenem impersonacji (rola klienta: USER). Role i uprawnienia klasy
+   * (ADMIN/STAFF + CUSTOMERS_VIEW) odrzucały je 403, panel klienta ignorował błąd — w dzienniku był tylko
+   * USER_IMPERSONATION_STARTED, bez zakończenia (o05, 07–08.10). Warunek: token z impersonatedBy (niżej).
+   */
   @Post('impersonate/stop')
+  @Roles(Role.ADMIN, Role.STAFF, Role.USER)
+  @StaffPerm()
   async stop(@CurrentUser() user: AuthedUser, @Req() req: Request) {
     if (!user.impersonatedBy) {
       throw new BadRequestException('Not currently impersonating');

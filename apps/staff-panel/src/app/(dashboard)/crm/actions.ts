@@ -24,6 +24,10 @@ export async function staffImpersonateUserAction(
     });
   } catch (err) {
     if (err instanceof StaffApiError) {
+      // PB-41: bez uprawnienia CUSTOMERS_IMPERSONATE API odmawia — mówimy, czego brakuje i kto może to nadać.
+      if (err.status === 403) {
+        return { ok: false, error: "Twoja rola nie ma uprawnienia „Wejście na konto klienta”. Poproś administratora o jego nadanie." };
+      }
       return { ok: false, error: err.message };
     }
     return { ok: false, error: "Nie udało się zainicjować impersonacji." };

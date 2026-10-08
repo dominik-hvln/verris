@@ -7,6 +7,7 @@ export const STAFF_PERMISSIONS = [
   { key: 'DASHBOARD_VIEW', area: 'Ogólne', label: 'Pulpit i metryki biznesowe' },
   { key: 'CUSTOMERS_VIEW', area: 'Klienci', label: 'Podgląd klientów' },
   { key: 'CUSTOMERS_MANAGE', area: 'Klienci', label: 'Zarządzanie klientami (edycja, blokady)' },
+  { key: 'CUSTOMERS_IMPERSONATE', area: 'Klienci', label: 'Wejście na konto klienta („Zaloguj jako klient”, z powodem, 30 min)' },
   { key: 'SUBSCRIPTIONS_MANAGE', area: 'Usługi', label: 'Subskrypcje i usługi' },
   { key: 'TICKETS_VIEW', area: 'Wsparcie', label: 'Podgląd zgłoszeń' },
   { key: 'TICKETS_MANAGE', area: 'Wsparcie', label: 'Obsługa zgłoszeń (odpowiedzi, status)' },

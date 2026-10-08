@@ -79,4 +79,22 @@ describe('UsersAdminController (metadane RBAC)', () => {
     );
     expect(uprawnieniaPod('createCustomer')).toEqual(['CUSTOMERS_MANAGE']);
   });
+
+  describe('PB-41 (08.10): „Zaloguj jako klient” dla staff z uprawnieniem', () => {
+    it('start: ADMIN + STAFF, staff musi mieć CUSTOMERS_VIEW i CUSTOMERS_IMPERSONATE', () => {
+      expect((rolePod('impersonate') as Role[]).slice().sort()).toEqual([Role.ADMIN, Role.STAFF].sort());
+      expect(uprawnieniaPod('impersonate')).toEqual(['CUSTOMERS_VIEW', 'CUSTOMERS_IMPERSONATE']);
+    });
+
+    it('zakończenie przechodzi guardy z tokenem impersonacji (rola klienta) — wcześniej 403 i brak wpisu o końcu', async () => {
+      const kontekst = {
+        getHandler: () => UsersAdminController.prototype.stop,
+        getClass: () => UsersAdminController,
+        switchToHttp: () => ({ getRequest: () => ({ user: { userId: 'u1', role: Role.USER, impersonatedBy: 'staff1' } }) }),
+      };
+      const reflector = new (await import('@nestjs/core')).Reflector();
+      expect(new RolesGuard(reflector).canActivate(kontekst as never)).toBe(true);
+      await expect(new StaffPermissionsGuard(reflector, {} as never).canActivate(kontekst as never)).resolves.toBe(true);
+    });
+  });
 });

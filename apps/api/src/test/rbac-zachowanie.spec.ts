@@ -95,7 +95,9 @@ describe('X-10 — RBAC paneli operatorskich sprawdzany zachowaniem', () => {
   it('konto klienta (USER) nie wchodzi na ŻADNĄ trasę admin/*', async () => {
     const wpuszczone: string[] = [];
     for (const t of TRASY) if (await wpuszcza(t, KLIENT, ['*'])) wpuszczone.push(nazwa(t));
-    expect(wpuszczone).toEqual([]);
+    // Jedyny wyjątek: zakończenie impersonacji woła panel klienta tokenem impersonacji (rola USER) — handler wymaga
+    // impersonatedBy w tokenie i bez niego odrzuca (users.admin.controller.ts stop, PB-41 08.10).
+    expect(wpuszczone.filter((n) => !n.startsWith('UsersAdminController.stop '))).toEqual([]);
   });
 
   it('operator bez żadnych uprawnień wchodzi tylko tam, gdzie trasa nie wymaga uprawnienia', async () => {
