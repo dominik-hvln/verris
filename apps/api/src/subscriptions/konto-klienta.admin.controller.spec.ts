@@ -201,6 +201,27 @@ describe('PB-42 maskujSekretyCrona', () => {
     ["mysql --password='a b' -e 'select 1'", "mysql --password=*** -e 'select 1'"],
     ['/usr/local/bin/php /home/u1/domains/klient.pl/public_html/wp-cron.php', '/usr/local/bin/php /home/u1/domains/klient.pl/public_html/wp-cron.php'],
     ['mkdir -p /home/u1/tmp && cp -pr a b', 'mkdir -p /home/u1/tmp && cp -pr a b'],
+    // Ustalenia recenzenta PB-42 — formy, które wcześniej przechodziły bez maski.
+    ['MYSQL_PWD=S3kret mysqldump -u u1 baza > b.sql', 'MYSQL_PWD=*** mysqldump -u u1 baza > b.sql'],
+    ['DB_PASS=S3kret php /home/u1/cron.php', 'DB_PASS=*** php /home/u1/cron.php'],
+    ["export API_TOKEN='a b'; php x.php", 'export API_TOKEN=***; php x.php'],
+    ['cd /home/u1 && SECRET_KEY=abc php x.php', 'cd /home/u1 && SECRET_KEY=*** php x.php'],
+    ['curl -u admin:S3kret https://klient.pl/cron', 'curl -u admin:*** https://klient.pl/cron'],
+    ["curl --user 'admin:S3 kret' https://klient.pl/cron", "curl --user 'admin:***' https://klient.pl/cron"],
+    ['curl -uadmin:S3kret https://klient.pl/cron', 'curl -uadmin:*** https://klient.pl/cron'],
+    ['wget -q https://admin:S3kret@klient.pl/cron.php', 'wget -q https://admin:***@klient.pl/cron.php'],
+    ['wget --http-password=S3kret https://klient.pl/c', 'wget --http-password=*** https://klient.pl/c'],
+    ['wget --http-password S3kret https://klient.pl/c', 'wget --http-password *** https://klient.pl/c'],
+    ['wget -O- https://klient.pl/cron.php?cron_key=S3kret', 'wget -O- https://klient.pl/cron.php?cron_key=***'],
+    ['curl "https://klient.pl/c?a=1&api-token=zz&b=2"', 'curl "https://klient.pl/c?a=1&api-token=***&b=2"'],
+    // -pHASLO tylko jako argument tego samego wywołania mysql/mysqldump — inne polecenia w linii bez zmian.
+    ['cp -pr a b && mysqldump -u u1 baza', 'cp -pr a b && mysqldump -u u1 baza'],
+    ['mysqldump -u u1 -pS3kret baza && cp -pr a b', 'mysqldump -u u1 -p*** baza && cp -pr a b'],
+    ['mysqldump -u u1 -p baza | gzip > b.gz; mkdir -p x', 'mysqldump -u u1 -p baza | gzip > b.gz; mkdir -p x'],
+    ['mysql -uu1 -p"S3 kret" baza < x.sql', 'mysql -uu1 -p*** baza < x.sql'],
+    // Bez fałszywych masek w zwykłych poleceniach.
+    ['PATH=/usr/local/bin php -d memory_limit=256M /home/u1/x.php', 'PATH=/usr/local/bin php -d memory_limit=256M /home/u1/x.php'],
+    ['curl -s https://klient.pl/wp-cron.php?doing_wp_cron', 'curl -s https://klient.pl/wp-cron.php?doing_wp_cron'],
   ])('%s', (wej, wyj) => {
     expect(maskujSekretyCrona(wej)).toBe(wyj);
   });

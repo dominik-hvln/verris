@@ -17,16 +17,38 @@ import { LogiHostinguQueryDto } from './dto/hosting-logs.dto.js';
 
 export type SekcjaKonta = 'domeny' | 'dns' | 'poczta' | 'bazy' | 'php' | 'ssl' | 'cron' | 'logi' | 'logi-poczty';
 
+/** Nazwa parametru/zmiennej/flagi, której wartość jest poświadczeniem (MYSQL_PWD, DB_PASS, cron_key, api-token, --http-password…). */
+const NAZWA_SEKRETU = String.raw`[\w-]*(?:pass|pwd|token|secret|key|auth)[\w-]*`;
+/** Wartość: w cudzysłowie albo do spacji / separatora poleceń / następnego parametru adresu. */
+const WARTOSC = String.raw`(?:'[^']*'|"[^"]*"|[^&;|\s'"]+)`;
+
+const PRZYPISANIE = new RegExp(String.raw`((?:^|[?&;|\s])${NAZWA_SEKRETU}=)${WARTOSC}`, 'gi');
+const FLAGA_ZE_SPACJA = new RegExp(String.raw`((?:^|\s)--${NAZWA_SEKRETU}\s+)(?!-)${WARTOSC}`, 'gi');
+/** Dane logowania w adresie: scheme://user:hasło@host. */
+const USERINFO = /(:\/\/[^\s/?#@:'"]+:)[^\s/?#@'"]+@/g;
+/** curl -u/--user user:hasło (z cudzysłowem albo bez, także -uuser:hasło). */
+const CURL_USER = /((?:^|\s)(?:-u|--user)(?:\s+|=)?)(?:'([^':]*):[^']*'|"([^":]*):[^"]*"|([^\s:'"]+):[^\s'"]+)/g;
+/** Jedno wywołanie klienta MySQL — od nazwy programu do najbliższego ; & | (koniec tego polecenia). */
+const WYWOLANIE_MYSQL = /\bmysql(?:dump|admin|check|import|show|slap)?\b[^;&|]*/g;
+
 /**
- * Sekrety w poleceniach crona (hasło do bazy, token w adresie) — operator widzi polecenie, ale nie poświadczenia.
- * `-pHASLO` maskujemy tylko przy mysql/mysqldump (gdzie indziej `-p…` to zwykle inna flaga).
+ * Sekrety w poleceniach crona (hasło do bazy, token w adresie, dane logowania) — operator widzi polecenie,
+ * ale nie poświadczenia. `-pHASLO` maskujemy tylko jako argument tego samego wywołania mysql/mysqldump
+ * (gdzie indziej `-p…` to zwykle inna flaga, np. `cp -pr`, `mkdir -p`).
  */
 export function maskujSekretyCrona(polecenie: string): string {
-  let out = polecenie
-    .replace(/([?&;\s](?:password|passwd|pass|pwd|token|key|secret|apikey|api_key|auth)=)[^&\s'"]+/gi, '$1***')
-    .replace(/(--(?:password|pass|token|secret|key)[= ])(?:'[^']*'|"[^"]*"|\S+)/gi, '$1***');
-  if (/\bmysql(?:dump)?\b/.test(out)) out = out.replace(/(\s-p)(?!\s)(?:'[^']*'|"[^"]*"|\S+)/g, '$1***');
-  return out;
+  return polecenie
+    .replace(WYWOLANIE_MYSQL, (wywolanie) => wywolanie.replace(/(\s-p)(?!\s)(?:'[^']*'|"[^"]*"|\S+)/g, '$1***'))
+    .replace(PRZYPISANIE, '$1***')
+    .replace(FLAGA_ZE_SPACJA, '$1***')
+    .replace(USERINFO, '$1***@')
+    .replace(CURL_USER, (_c, flaga: string, wPojedynczym?: string, wPodwojnym?: string, bez?: string) =>
+      wPojedynczym !== undefined
+        ? `${flaga}'${wPojedynczym}:***'`
+        : wPodwojnym !== undefined
+          ? `${flaga}"${wPodwojnym}:***"`
+          : `${flaga}${bez}:***`,
+    );
 }
 
 /**
