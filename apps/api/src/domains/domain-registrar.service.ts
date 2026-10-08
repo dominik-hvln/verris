@@ -41,6 +41,9 @@ import { PlatformSettingsService } from '../platform-settings/platform-settings.
 export const lata = (n: number) =>
   `${n} ${n === 1 ? 'rok' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'lata' : 'lat'}`;
 
+/** Odnowienie tej samej domeny zakończone w tym oknie traktujemy jako dwuklik (jedno obciążenie). */
+export const ODNOWIENIE_DUPLIKAT_MS = 60_000;
+
 @Injectable()
 export class DomainRegistrarService {
   private readonly logger = new Logger(DomainRegistrarService.name);
@@ -644,11 +647,25 @@ export class DomainRegistrarService {
         where: {
           domainId: domain.id,
           type: DomainRegistrarOrderType.RENEW,
-          status: { in: [DomainRegistrarOrderStatus.QUEUED, DomainRegistrarOrderStatus.SUBMITTED] },
-          createdAt: { gte: new Date(Date.now() - 15 * 60_000) },
+          OR: [
+            {
+              status: { in: [DomainRegistrarOrderStatus.QUEUED, DomainRegistrarOrderStatus.SUBMITTED] },
+              createdAt: { gte: new Date(Date.now() - 15 * 60_000) },
+            },
+            // Drugie kliknięcie, które dostało blokadę dopiero PO zakończeniu pierwszego (szybki rejestrator,
+            // obciążony serwer), nie widziało zamówienia „w toku” i odnawiało drugi raz (drugie obciążenie).
+            // Odnowienie zakończone przed chwilą też jest więc duplikatem.
+            {
+              status: DomainRegistrarOrderStatus.COMPLETED,
+              createdAt: { gte: new Date(Date.now() - ODNOWIENIE_DUPLIKAT_MS) },
+            },
+          ],
         },
-        select: { id: true },
+        select: { id: true, status: true },
       });
+      if (wToku?.status === DomainRegistrarOrderStatus.COMPLETED) {
+        throw new ConflictException('Ta domena została właśnie odnowiona. Jeśli chcesz przedłużyć ją o kolejny okres, spróbuj ponownie za minutę.');
+      }
       if (wToku) throw new ConflictException('Odnowienie tej domeny jest już w toku — odśwież stronę za chwilę.');
       return db.domainRegistrarOrder.create({
       data: {

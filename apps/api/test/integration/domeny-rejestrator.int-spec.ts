@@ -167,6 +167,17 @@ describe('X-04 domeny u rejestratora', () => {
     expect(wywolania.filter((w) => w.startsWith('renew:'))).toHaveLength(1);
     expect(await prisma().walletTransaction.count({ where: { userId: u.id, type: WalletTxType.CHARGE_DOMAIN, description: { startsWith: 'Odnowienie domeny dwuklik.pl' } } })).toBe(1);
   });
+  it('dwuklik „Odnów”, gdy drugie kliknięcie dostaje blokadę dopiero po zakończeniu pierwszego: 409, jedno obciążenie', async () => {
+    const { rejestr } = uslugi();
+    const u = await klient(500);
+    await rejestr.register(u.id, u.id, { name: 'dwuklik-po.pl', registrant: abonent });
+    const d = await prisma().domain.findUniqueOrThrow({ where: { name: 'dwuklik-po.pl' } });
+    wywolania.length = 0;
+    await rejestr.renew(u.id, u.id, d.id, 1);
+    await expect(rejestr.renew(u.id, u.id, d.id, 1)).rejects.toThrow('właśnie odnowiona');
+    expect(wywolania.filter((w) => w.startsWith('renew:'))).toHaveLength(1);
+    expect(await prisma().walletTransaction.count({ where: { userId: u.id, type: WalletTxType.CHARGE_DOMAIN, description: { startsWith: 'Odnowienie domeny dwuklik-po.pl' } } })).toBe(1);
+  });
   it('A-14 ukrycie WHOIS: dwuklik = jedno obciążenie; odmowa rejestru = zwrot i stan bez zmian', async () => {
     const { rejestr } = uslugi();
     const u = await klient(500);
