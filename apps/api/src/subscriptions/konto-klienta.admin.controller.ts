@@ -1,4 +1,4 @@
-import { Controller, Get, NotFoundException, Param, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { Role } from '@verris/database';
 import { hostingFetchErrorMessage } from '@verris/contracts';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -14,6 +14,8 @@ import { DirectAdminService, type DomenyKontaHostingu } from '../servers/directa
 import { PhpService } from './php.service.js';
 import { MailLogService } from './mail-log.service.js';
 import { LogiHostinguQueryDto } from './dto/hosting-logs.dto.js';
+import { DziennikPocztyDto } from './dto/hosting-body.dto.js';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
 
 export type SekcjaKonta = 'domeny' | 'dns' | 'poczta' | 'bazy' | 'php' | 'ssl' | 'cron' | 'logi' | 'logi-poczty';
 
@@ -53,7 +55,8 @@ export function maskujSekretyCrona(polecenie: string): string {
 
 /**
  * PB-42 (decyzja właściciela 08.10) — obsługa widzi konto klienta bez wchodzenia na serwer i bez impersonacji.
- * Tylko odczyt, te same metody co panel klienta (services.controller.ts), wołane z identyfikatorem WŁAŚCICIELA
+ * Tylko odczyt (jedyny POST — wczytanie dziennika poczty — zleca węzłowi czytanie logu, nic na koncie nie zmienia),
+ * te same metody co panel klienta (services.controller.ts), wołane z identyfikatorem WŁAŚCICIELA
  * usługi — nigdy operatora. Każdy odczyt (także nieudany na węźle) trafia do dziennika jako OPERATOR_ACCOUNT_VIEWED
  * z sekcją; klient tego wpisu nie widzi w „Aktywności konta” (nie jest HOSTING_*). Zasoby i kopie są w
  * subscriptions.admin.controller.ts (usage, hosting-backups).
@@ -199,5 +202,17 @@ export class KontoKlientaAdminController {
   async logiPoczty(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
     const userId = await this.wlasciciel(id, actor.userId, 'logi-poczty');
     return this.mailLog.status(id, userId);
+  }
+
+  /**
+   * Świeży odczyt dziennika poczty z węzła (zadanie MAIL_LOG — tylko czyta log exima dla domen konta, niczego
+   * na koncie nie zmienia), żeby obsługa nie musiała prosić klienta ani się pod niego podszywać. Domeny liczone
+   * dla właściciela, zlecający w zadaniu i w dzienniku to operator. Limit jak u klienta.
+   */
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'admin:konto-mail-log' })
+  @Post('logi-poczty')
+  async zlecLogiPoczty(@Param('id') id: string, @Body() body: DziennikPocztyDto, @CurrentUser() actor: { userId: string }) {
+    const userId = await this.wlasciciel(id, actor.userId, 'logi-poczty', { zlecenie: 'wczytanie z serwera', address: body.address });
+    return this.mailLog.zlec(id, userId, body.address, actor.userId);
   }
 }

@@ -28,6 +28,15 @@ describe('MailLogService', () => {
     });
   });
 
+  it('zlecający: domyślnie właściciel; obsługa (PB-42) zapisana jako zlecający, domeny nadal właściciela', async () => {
+    const s = stanowisko();
+    await s.svc.zlec('s1', 'u1');
+    expect(s.prisma.nodeTask.create.mock.calls[0][0].data.requestedById).toBe('u1');
+    await s.svc.zlec('s1', 'u1', undefined, 'operator-1');
+    expect(s.prisma.nodeTask.create.mock.calls[1][0].data.requestedById).toBe('operator-1');
+    expect(s.prisma.subscription.findFirst).toHaveBeenLastCalledWith(expect.objectContaining({ where: { id: 's1', userId: 'u1' } }));
+  });
+
   it('wpisy z logu', () => {
     expect(wpisyPocztyZLogu('VERRIS_ML 2026-09-24 11:00:00|1tA2c1-000AbE-Dg|**|zly@x.pl|550 5.1.1 User unknown\nVERRIS_ML_RAZEM 1')).toEqual([
       { czas: '2026-09-24 11:00:00', id: '1tA2c1-000AbE-Dg', znak: '**', adres: 'zly@x.pl', szczegoly: '550 5.1.1 User unknown' },

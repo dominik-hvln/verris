@@ -21,10 +21,33 @@ export async function wczytajSekcjeKontaAction(
     const dane = await staffApi(`/admin/subscriptions/${encodeURIComponent(subscriptionId)}/konto/${sekcja}${qs ? `?${qs}` : ""}`);
     return { ok: true, wynik: { sekcja, dane } as DaneSekcji };
   } catch (err) {
-    if (err instanceof StaffApiError && err.status === 403) {
-      return { ok: false, error: "Twoja rola nie ma uprawnienia „Podgląd konta klienta”. Poproś administratora o jego nadanie." };
-    }
-    if (err instanceof StaffApiError) return { ok: false, error: err.message };
-    return { ok: false, error: "Nie udało się wczytać danych konta. Spróbuj ponownie." };
+    return { ok: false, error: komunikatBledu(err) };
   }
+}
+
+/**
+ * PB-42 — świeży odczyt dziennika poczty z serwera (zadanie na węźle tylko czyta log; wpis w dzienniku po stronie API).
+ * Zwraca stan dziennika (zwykle „wczytywanie w toku”) — wynik pokazuje „Odśwież” sekcji.
+ */
+export async function zlecDziennikPocztyAction(
+  subscriptionId: string,
+  adres?: string,
+): Promise<{ ok: true; wynik: DaneSekcji } | { ok: false; error: string }> {
+  try {
+    const dane = await staffApi(`/admin/subscriptions/${encodeURIComponent(subscriptionId)}/konto/logi-poczty`, {
+      method: "POST",
+      body: adres?.trim() ? { address: adres.trim() } : {},
+    });
+    return { ok: true, wynik: { sekcja: "logi-poczty", dane } as DaneSekcji };
+  } catch (err) {
+    return { ok: false, error: komunikatBledu(err) };
+  }
+}
+
+function komunikatBledu(err: unknown): string {
+  if (err instanceof StaffApiError && err.status === 403) {
+    return "Twoja rola nie ma uprawnienia „Podgląd konta klienta”. Poproś administratora o jego nadanie.";
+  }
+  if (err instanceof StaffApiError) return err.message;
+  return "Nie udało się wczytać danych konta. Spróbuj ponownie.";
 }

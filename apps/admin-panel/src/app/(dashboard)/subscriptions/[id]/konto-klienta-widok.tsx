@@ -367,8 +367,8 @@ export function WidokSekcjiKonta({ wynik }: { wynik: DaneSekcji }) {
           <p className="text-xs text-muted-foreground">
             {d.wczytano
               ? `Ostatnio wczytany dziennik: ${data(d.wczytano)}${d.adres ? ` · adres ${d.adres}` : ""} · ${ile(d.wpisy.length, "wpis", "wpisy", "wpisów")}`
-              : "Dziennik poczty nie był jeszcze wczytany. Wczytanie (zadanie na serwerze) zleca klient w panelu w zakładce Poczta."}
-            {d.wToku ? " Wczytywanie w toku." : ""}
+              : "Dziennik poczty nie był jeszcze wczytany. Wczytaj go z serwera przyciskiem „Wczytaj z serwera” (opcjonalnie zawężając do adresu)."}
+            {d.wToku ? " Wczytywanie z serwera w toku — kliknij „Odśwież” za chwilę." : ""}
           </p>
           {d.wpisy.length ? (
             <Tabela

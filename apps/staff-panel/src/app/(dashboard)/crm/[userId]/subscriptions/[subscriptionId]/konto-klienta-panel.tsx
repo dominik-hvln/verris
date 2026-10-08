@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Select } from "@/components/select";
-import { wczytajSekcjeKontaAction } from "./konto-klienta-actions";
+import { wczytajSekcjeKontaAction, zlecDziennikPocztyAction } from "./konto-klienta-actions";
 import {
   BladSekcji,
   SEKCJE_KONTA,
@@ -13,7 +13,6 @@ import {
 } from "./konto-klienta-widok";
 
 type Stan = { wynik?: DaneSekcji; blad?: string; parametry: ParametrySekcji };
-
 /** Domeny do przełącznika — z odpowiedzi sekcji (DNS, PHP, logi zwracają listę domen konta). */
 function domenySekcji(w?: DaneSekcji): string[] {
   if (!w) return [];
@@ -37,6 +36,7 @@ export function KontoKlientaPanel({ subscriptionId }: { subscriptionId: string }
   const [aktywna, setAktywna] = useState<SekcjaKonta | null>(null);
   const [stany, setStany] = useState<Partial<Record<SekcjaKonta, Stan>>>({});
   const [pending, start] = useTransition();
+  const [adresPoczty, setAdresPoczty] = useState("");
 
   const wczytaj = (sekcja: SekcjaKonta, parametry: ParametrySekcji) => {
     setAktywna(sekcja);
@@ -45,6 +45,17 @@ export function KontoKlientaPanel({ subscriptionId }: { subscriptionId: string }
       setStany((s) => ({
         ...s,
         [sekcja]: res.ok ? { wynik: res.wynik, parametry } : { blad: res.error, parametry, wynik: s[sekcja]?.wynik },
+      }));
+    });
+  };
+
+  /** Logi poczty: zlecenie świeżego odczytu z serwera (obsługa nie musi prosić klienta ani się pod niego podszywać). */
+  const zlecDziennik = () => {
+    start(async () => {
+      const res = await zlecDziennikPocztyAction(subscriptionId, adresPoczty);
+      setStany((s) => ({
+        ...s,
+        "logi-poczty": res.ok ? { wynik: res.wynik, parametry: {} } : { blad: res.error, parametry: {}, wynik: s["logi-poczty"]?.wynik },
       }));
     });
   };
@@ -118,6 +129,22 @@ export function KontoKlientaPanel({ subscriptionId }: { subscriptionId: string }
                     {n} linii
                   </button>
                 ))}
+              </>
+            ) : null}
+            {aktywna === "logi-poczty" ? (
+              <>
+                <input
+                  type="email"
+                  value={adresPoczty}
+                  onChange={(e) => setAdresPoczty(e.target.value)}
+                  placeholder="adres e-mail (opcjonalnie)"
+                  aria-label="Zawęź dziennik do adresu e-mail"
+                  disabled={pending}
+                  className="w-64 rounded-md border border-white/10 bg-black/40 px-2.5 py-1 text-xs text-neutral-200 placeholder:text-neutral-500"
+                />
+                <button type="button" disabled={pending} onClick={zlecDziennik} className={`${przycisk(false)} disabled:opacity-60`}>
+                  Wczytaj z serwera
+                </button>
               </>
             ) : null}
             <button

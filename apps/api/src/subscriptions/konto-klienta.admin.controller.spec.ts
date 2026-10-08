@@ -64,7 +64,10 @@ function zbuduj(sub: unknown = { userId: WLASCICIEL, account: { id: 'acc1' } }) 
       lastTask: null,
     })),
   };
-  const mailLog = { status: vi.fn(async () => ({ wToku: false, wczytano: null, adres: null, wpisy: [], blad: null })) };
+  const mailLog = {
+    status: vi.fn(async () => ({ wToku: false, wczytano: null, adres: null, wpisy: [], blad: null })),
+    zlec: vi.fn(async () => ({ wToku: true, wczytano: null, adres: null, wpisy: [], blad: null })),
+  };
   const audit = { record: vi.fn(async () => undefined) };
   const ctrl = new KontoKlientaAdminController(prisma as never, directAdmin as never, php as never, mailLog as never, audit as never);
   return { ctrl, prisma, directAdmin, php, mailLog, audit };
@@ -92,7 +95,7 @@ describe('PB-42 KontoKlientaAdminController — uprawnienia', () => {
     expect(STAFF_PERMISSION_KEYS).toContain('ACCOUNT_DIAGNOSTICS_VIEW');
   });
 
-  it.each(['domeny', 'dns', 'poczta', 'bazy', 'phpKonta', 'ssl', 'cron', 'logi', 'logiPoczty'] as const)(
+  it.each(['domeny', 'dns', 'poczta', 'bazy', 'phpKonta', 'ssl', 'cron', 'logi', 'logiPoczty', 'zlecLogiPoczty'] as const)(
     '%s: klient nie, staff tylko z ACCOUNT_DIAGNOSTICS_VIEW, admin tak',
     async (m) => {
       expect(await wpuszcza(m, { userId: 'c', role: Role.USER }, ['ACCOUNT_DIAGNOSTICS_VIEW'])).toBe(false);
@@ -162,6 +165,26 @@ describe('PB-42 KontoKlientaAdminController — odczyty', () => {
     const domeny = await directAdmin.listHostingDomainsForSubscription.mock.results[0].value;
     const args = (directAdmin[metoda].mock.calls as unknown[][])[0];
     expect(args[args.length - 1]).toBe(domeny);
+  });
+
+  it('logi poczty: obsługa zleca świeży odczyt bez klienta — w imieniu właściciela, zlecający i wpis w dzienniku to operator', async () => {
+    const { ctrl, mailLog, audit } = zbuduj();
+    const wynik = await ctrl.zlecLogiPoczty('s1', { address: 'jan@klient.pl' }, OPERATOR);
+    expect(mailLog.zlec).toHaveBeenCalledWith('s1', WLASCICIEL, 'jan@klient.pl', 's-operator');
+    expect(wynik.wToku).toBe(true);
+    expect(audit.record).toHaveBeenCalledWith({
+      action: 'OPERATOR_ACCOUNT_VIEWED',
+      userId: WLASCICIEL,
+      actorUserId: 's-operator',
+      details: { subscriptionId: 's1', sekcja: 'logi-poczty', zlecenie: 'wczytanie z serwera', address: 'jan@klient.pl' },
+    });
+  });
+
+  it('logi poczty: brak usługi → 404 bez zlecenia zadania i bez wpisu', async () => {
+    const { ctrl, mailLog, audit } = zbuduj(null);
+    await expect(ctrl.zlecLogiPoczty('brak', {}, OPERATOR)).rejects.toBeInstanceOf(NotFoundException);
+    expect(mailLog.zlec).not.toHaveBeenCalled();
+    expect(audit.record).not.toHaveBeenCalled();
   });
 
   it('poczta: tylko adres, rozmiar i cele przekierowań — nic poza tym z odpowiedzi węzła', async () => {

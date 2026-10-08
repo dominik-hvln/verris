@@ -22,7 +22,11 @@ export class MailLogService {
     return this.opis(account.id);
   }
 
-  async zlec(subscriptionId: string, userId: string, address?: string) {
+  /**
+   * `userId` — właściciel usługi (z nim liczymy domeny i konto); `zlecajacyId` — kto zlecił (obsługa w podglądzie
+   * konta, PB-42); domyślnie sam właściciel.
+   */
+  async zlec(subscriptionId: string, userId: string, address?: string, zlecajacyId: string = userId) {
     const { account } = await this.wymagajKonta(subscriptionId, userId);
     if (account.status !== 'ACTIVE') throw new BadRequestException('Konto hostingowe nie jest aktywne.');
     const wToku = await this.prisma.nodeTask.findFirst({
@@ -38,7 +42,7 @@ export class MailLogService {
         accountId: account.id,
         kind: NodeTaskKind.MAIL_LOG,
         status: NodeTaskStatus.QUEUED,
-        requestedById: userId,
+        requestedById: zlecajacyId,
         payload: { domains: domeny.join(','), address: (address ?? '').trim().toLowerCase() },
       },
     });
