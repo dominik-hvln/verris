@@ -1,7 +1,6 @@
 id,rodzaj,co_zostalo
 X-04,KOD,testy integracyjne kolejnych ścieżek zapisu na prawdziwym PostgreSQL
 P-12,WŁAŚCICIEL,"przejście VoiceOverem głównych ścieżek (logowanie, zakup, usługa) — kontrola ręczna, skan automatyczny czysty"
-O-09,PRODUKCJA,marka resellera w panelu klienta testowego (mail sprawdzony 27.09)
 B-19,KOD PO STARCIE,usunięty wyłączony kod 2026-09-25; kreator po starcie jako nowa funkcja
 Q-06,KOD PO STARCIE,"VPS przez Hetzner Cloud API — potrzebne konto Hetzner Cloud, nie węzeł"
 Q-07,KOD PO STARCIE,konsola VPS (Hetzner Cloud API)
@@ -11,7 +10,6 @@ J-05,KOD PO STARCIE,CDN (Cloudflare) — plus konto Cloudflare
 PB-20,PRODUKCJA,"zaproszenie deweloperskiego konta testowego z wybraną usługą, przełączenie, odmowa poza zakresem — na produkcji"
 L-10,PRODUKCJA,zdarzenie rozliczeń (invoice.issued) przy pierwszej fakturze — ping i podpis sprawdzone 26.09
 N-10,PRODUKCJA,wpis SUPPRESSED przy pierwszym alercie limitu (przełącznik zapisany 26.09; alert wymaga telemetrii węzła)
-O-06,PRODUKCJA,konto klienta założone przez resellera testowego na produkcji
 L-11,WŁAŚCICIEL,decyzja 04.10: klucze w .env.prod teraz z AI_TYLKO_KONTA (tylko konta bety wewnętrznej); dla wszystkich po publikacji dokumentów z podprocesorami AI (PB-03)
 L-12,WŁAŚCICIEL,"05.10: liczby prognozy liczy panel (regresja, bez klucza), AI (poziom szybki) dopisuje komentarz — sprawdzić po wdrożeniu na usłudze d3; komentarz po kluczach z AI_TYLKO_KONTA"
 P-15,WŁAŚCICIEL,"Hetzner: potwierdzić, że accounts.hetzner.com → Data protection pokazuje zawartą umowę powierzenia (data); reszta potwierdzona przez właściciela 27.09"
@@ -35,7 +33,6 @@ SEC-03,PRODUKCJA,"kod gotowy (D2/D3 obserwacji); zostaje włączenie na control-
 SEC-04,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
 SEC-06,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
 X-41,PRODUKCJA,"kod gotowy (D2/D3 obserwacji); zostaje włączenie na control-plane po pomiarze 7-dniowym (6.10): 48 h logowania odmów, potem blokada po OK właściciela"
-PB-27,PRODUKCJA,"odnowienie z ceną indywidualną 22.10.2026 (mailtest-verris.pl, 6 zł) — reszta sprawdzona 26.09"
 PB-28,PRODUKCJA,na produkcji: przedłużenie okresu bez obciążenia przy pierwszym odnowieniu usługi klienta poza Verris; pulpit bez portfela po wdrożeniu (26.09 — konto Smoke Test przełączone)
 PB-29,OD 29.09,"test na węźle testowym (D3): bootstrap z manifestem, Governor 11.4, raport gotowości, zgodność floty"
 PB-30,OD 29.09,"test na węźle testowym (D3): bootstrap z manifestem, Governor 11.4, raport gotowości, zgodność floty"
