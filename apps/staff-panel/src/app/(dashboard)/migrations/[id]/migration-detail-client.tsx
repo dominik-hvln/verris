@@ -91,9 +91,31 @@ export interface MigrationDetail {
   subscriptionId: string;
   secretsPurgedAt: string | null;
   /** PB-45 — migracja przygotowana przez obsługę: powód i decyzja klienta. */
-  zaKlienta?: { operatorId: string; powod: string | null; wygasa: string | null; decyzjaAt: string | null } | null;
+  zaKlienta?: { operatorId: string; powod: string | null; wygasa: string | null; decyzjaAt: string | null; stan: StanProsbyZgody } | null;
   sourceForm: SourceForm | null;
   jobs: DetailJob[];
+}
+
+export type StanProsbyZgody = "oczekuje" | "zaakceptowana" | "odrzucona" | "wygasla" | "anulowana";
+
+/**
+ * ADMIN-MIGR — co się stało z prośbą o zgodę. Stan liczy API (stanProsbyZgody w migration-orchestrator.service.ts),
+ * panel tylko go opisuje: anulowanie przez zespół to nie „klient nie zdecydował w terminie”, a odmowa to nie zgoda.
+ */
+export function opisProsbyZgody(z: { stan: StanProsbyZgody; wygasa: string | null; decyzjaAt: string | null }): string {
+  const data = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL") : "—");
+  switch (z.stan) {
+    case "oczekuje":
+      return `Czeka na zgodę klienta do ${data(z.wygasa)} — bez niej nie wystartuje.`;
+    case "zaakceptowana":
+      return `Klient zgodził się ${data(z.decyzjaAt)}.`;
+    case "odrzucona":
+      return `Klient odmówił ${data(z.decyzjaAt)}.`;
+    case "wygasla":
+      return "Klient nie zdecydował w terminie — prośba wygasła.";
+    case "anulowana":
+      return "Prośba anulowana przez zespół przed decyzją klienta.";
+  }
 }
 
 const JOB_LABELS: Record<string, string> = {
@@ -220,11 +242,7 @@ export function MigrationDetailClient({ initial }: { initial: MigrationDetail })
           <p className="font-semibold text-white">Migracja przygotowana przez obsługę</p>
           <p className="mt-1">Powód: {detail.zaKlienta.powod ?? "—"}</p>
           <p className="mt-1">
-            {detail.status === "DRAFT"
-              ? `Czeka na zgodę klienta do ${detail.zaKlienta.wygasa ? new Date(detail.zaKlienta.wygasa).toLocaleString("pl-PL") : "—"} — bez niej nie wystartuje.`
-              : detail.zaKlienta.decyzjaAt
-                ? `Klient zdecydował ${new Date(detail.zaKlienta.decyzjaAt).toLocaleString("pl-PL")}.`
-                : "Klient nie zdecydował w terminie."}
+            {opisProsbyZgody(detail.zaKlienta)}
           </p>
           {detail.status === "DRAFT" ? (
             <button

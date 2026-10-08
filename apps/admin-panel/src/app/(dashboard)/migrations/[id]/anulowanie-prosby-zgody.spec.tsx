@@ -61,7 +61,7 @@ const szczegoly = (z: Partial<MigrationDetail> = {}): MigrationDetail => ({
   secretsPurgedAt: null,
   sourceForm: null,
   jobs: [],
-  zaKlienta: { operatorId: "adm-1", powod: "Zgłoszenie #77", wygasa: "2026-10-15T10:00:00.000Z", decyzjaAt: null },
+  zaKlienta: { operatorId: "adm-1", powod: "Zgłoszenie #77", wygasa: "2026-10-15T10:00:00.000Z", decyzjaAt: null, stan: "oczekuje" },
   ...z,
 });
 
@@ -99,12 +99,16 @@ it("anulowanie po potwierdzeniu woła akcję i odświeża szczegóły", async ()
   render(szczegoly());
   await act(async () => przycisk()!.click());
   expect(okno).toHaveBeenCalledWith(expect.stringContaining("dane dostępowe"), expect.objectContaining({ niebezpieczne: true }));
+  // Przycisk akcji w oknie nie może zaczynać się jak przycisk zamknięcia („Anuluj”) — inaczej łatwo je pomylić.
+  const akcja = (okno.mock.calls[0]![1] as { akcja: string }).akcja;
+  expect(akcja).toBe("Wycofaj prośbę i usuń dane");
+  expect(akcja).not.toMatch(/^Anuluj/);
   expect(anuluj).toHaveBeenCalledWith({ migrationId: "mig-1" });
   expect(k.textContent).toContain("Prośba anulowana, dane dostępowe usunięte.");
   expect(przycisk()).toBeUndefined();
 });
 
-it("„Anuluj” w oknie potwierdzenia → nic nie wysyła", async () => {
+it("zamknięcie okna potwierdzenia („Anuluj”) → nic nie wysyła", async () => {
   okno.mockResolvedValue(false);
   render(szczegoly());
   await act(async () => przycisk()!.click());
@@ -119,10 +123,35 @@ it("błąd API → czytelny komunikat", async () => {
   expect(k.textContent).toContain("Migracja już wystartowała.");
 });
 
-it("po decyzji klienta — bez przycisku anulowania prośby", () => {
-  render(szczegoly({ status: "QUEUED", zaKlienta: { operatorId: "adm-1", powod: "x", wygasa: null, decyzjaAt: "2026-10-09T08:00:00.000Z" } }));
-  expect(k.textContent).toContain("Klient zdecydował");
+it("po zgodzie klienta — „zgodził się” i bez przycisku anulowania prośby", () => {
+  render(szczegoly({ status: "QUEUED", zaKlienta: { operatorId: "adm-1", powod: "x", wygasa: null, decyzjaAt: "2026-10-09T08:00:00.000Z", stan: "zaakceptowana" } }));
+  expect(k.textContent).toContain("Klient zgodził się");
+  expect(k.textContent).not.toContain("odmówił");
   expect(przycisk()).toBeUndefined();
+});
+
+it("po anulowaniu przez admina tekst nie twierdzi, że klient nie zdecydował w terminie", async () => {
+  okno.mockResolvedValue(true);
+  anuluj.mockResolvedValue({ ok: true });
+  pobierz.mockResolvedValue({
+    ok: true,
+    detail: szczegoly({ status: "CANCELED", zaKlienta: { operatorId: "adm-1", powod: "x", wygasa: "2026-10-15T10:00:00.000Z", decyzjaAt: null, stan: "anulowana" } }),
+  });
+  render(szczegoly());
+  await act(async () => przycisk()!.click());
+  expect(k.textContent).toContain("Prośba anulowana przez zespół przed decyzją klienta.");
+  expect(k.textContent).not.toContain("nie zdecydował w terminie");
+});
+
+it("klient odmówił — tekst mówi o odmowie, nie o samej decyzji", () => {
+  render(szczegoly({ status: "CANCELED", zaKlienta: { operatorId: "adm-1", powod: "x", wygasa: null, decyzjaAt: "2026-10-09T08:00:00.000Z", stan: "odrzucona" } }));
+  expect(k.textContent).toContain("Klient odmówił");
+  expect(k.textContent).not.toContain("zgodził się");
+});
+
+it("termin minął bez decyzji — „nie zdecydował w terminie”", () => {
+  render(szczegoly({ status: "CANCELED", zaKlienta: { operatorId: "adm-1", powod: "x", wygasa: "2026-10-01T10:00:00.000Z", decyzjaAt: null, stan: "wygasla" } }));
+  expect(k.textContent).toContain("Klient nie zdecydował w terminie");
 });
 
 it("zwykła migracja (bez „za klienta”) — bez sekcji", () => {

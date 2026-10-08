@@ -96,6 +96,8 @@ describe('PB-45 — migracja za klienta startuje dopiero po jego zgodzie', () =>
     expect(req.consentTokenHash).toBe(hashTokenuZgody(token));
     expect(req.consentTokenHash).not.toBe(token);
     expect(req.consentExpiresAt!.getTime() - req.createdAt.getTime()).toBeGreaterThan((ZGODA_WAZNOSC_DNI - 1) * 86_400_000);
+    // Szczegóły w panelu obsługi/admina mówią, na jakim etapie jest prośba (ADMIN-MIGR).
+    expect((await orkiestrator.getBundleDetailForStaff(req.id)).zaKlienta).toMatchObject({ stan: 'oczekuje', decyzjaAt: null });
 
     // Worker węzła nie dostaje żadnego kroku, a obsługa nie „wznowi” jej z pominięciem zgody.
     expect(await orkiestrator.leaseFileWorkerJobForNode(serverId)).toBeNull();
@@ -140,7 +142,7 @@ describe('PB-45 — migracja za klienta startuje dopiero po jego zgodzie', () =>
 
   it('zgoda → QUEUED z krokami workera, IP i czas zgody zapisane; ponowne użycie tokenu odrzucone', async () => {
     const { k, operator } = await przygotuj();
-    const { zaKlienta, maile, notifications } = uslugi();
+    const { orkiestrator, zaKlienta, maile, notifications } = uslugi();
     const { migracja } = await zaKlienta.utworz({ subscriptionId: k.subscription.id, actorUserId: operator.id, powod: 'Zgłoszenie #2', zlecenie: zlecenie() });
     const token = tokenZMaila(maile);
 
@@ -153,6 +155,7 @@ describe('PB-45 — migracja za klienta startuje dopiero po jego zgodzie', () =>
     expect(req.consentIp).toBe('198.51.100.7');
     expect(req.consentDecidedAt).not.toBeNull();
     expect(req.workerJobs.map((j) => j.kind).sort()).toEqual(['FILES_SFTP_RSYNC', 'HTTP_POST_CHECK', 'MYSQL_IMPORT', 'WP_FIXUP']);
+    expect((await orkiestrator.getBundleDetailForStaff(migracja.id)).zaKlienta?.stan).toBe('zaakceptowana');
     // Jedno zlecenie — przejście tego samego wiersza, nie drugie.
     expect(await prisma().migrationRequest.count({ where: { subscriptionId: k.subscription.id } })).toBe(1);
 
@@ -204,7 +207,7 @@ describe('PB-45 — migracja za klienta startuje dopiero po jego zgodzie', () =>
 
   it('odrzucenie → anulowana, dane źródła skasowane od razu; potem zgoda niemożliwa', async () => {
     const { k, operator } = await przygotuj();
-    const { zaKlienta, maile } = uslugi();
+    const { orkiestrator, zaKlienta, maile } = uslugi();
     const { migracja } = await zaKlienta.utworz({ subscriptionId: k.subscription.id, actorUserId: operator.id, powod: 'Zgłoszenie #3', zlecenie: zlecenie() });
     const token = tokenZMaila(maile);
 
@@ -217,6 +220,8 @@ describe('PB-45 — migracja za klienta startuje dopiero po jego zgodzie', () =>
     expect(req.secretsPurgedAt).not.toBeNull();
     expect(req.workerJobs).toHaveLength(0);
     expect(await prisma().auditLog.count({ where: { action: 'MIGRATION_CONSENT_REJECTED', userId: k.user.id } })).toBe(1);
+    // Panel obsługi/admina: „klient odmówił”, nie samo „zdecydował”.
+    expect((await orkiestrator.getBundleDetailForStaff(migracja.id)).zaKlienta?.stan).toBe('odrzucona');
 
     await expect(
       zaKlienta.przyjmij({ subscriptionId: k.subscription.id, userId: k.user.id, actorUserId: k.user.id, migrationId: migracja.id, token, ip: null }),
@@ -226,7 +231,7 @@ describe('PB-45 — migracja za klienta startuje dopiero po jego zgodzie', () =>
   it('wygaśnięcie: po terminie zgoda odrzucona, cron anuluje i kasuje dane źródła; świeże prośby zostają', async () => {
     const { k, operator } = await przygotuj();
     const inny = await utworzKonto({ serverId: (await utworzWezel()).id, planId: (await utworzPlan({ productKind: 'HOSTING' })).id });
-    const { zaKlienta, maile } = uslugi();
+    const { orkiestrator, zaKlienta, maile } = uslugi();
     const { migracja } = await zaKlienta.utworz({ subscriptionId: k.subscription.id, actorUserId: operator.id, powod: 'Zgłoszenie #4', zlecenie: zlecenie() });
     const token = tokenZMaila(maile);
     const swieza = await zaKlienta.utworz({ subscriptionId: inny.subscription.id, actorUserId: operator.id, powod: 'Zgłoszenie #5', zlecenie: zlecenie() });
@@ -248,6 +253,7 @@ describe('PB-45 — migracja za klienta startuje dopiero po jego zgodzie', () =>
     // Idempotentne — drugi przebieg nic nie robi.
     expect(await zaKlienta.wygasPrzeterminowane()).toEqual({ wygasle: 0 });
     expect((await zaKlienta.szczegoly({ subscriptionId: k.subscription.id, userId: k.user.id, migrationId: migracja.id })).stan).toBe('wygasla');
+    expect((await orkiestrator.getBundleDetailForStaff(migracja.id)).zaKlienta?.stan).toBe('wygasla');
   });
 
   it('te same walidacje co kreator: limit aktywnych migracji przy zakładaniu i ponownie przy zgodzie; druga prośba dla usługi odrzucona', async () => {
@@ -283,6 +289,8 @@ describe('PB-45 — migracja za klienta startuje dopiero po jego zgodzie', () =>
     const req = await prisma().migrationRequest.findUniqueOrThrow({ where: { id: migracja.id } });
     expect(req.sourceBundleEnc).toBe('');
     expect(req.secretsPurgedAt).not.toBeNull();
+    // Anulował operator, termin jeszcze trwał — panel nie może twierdzić, że klient nie zdecydował w terminie (ADMIN-MIGR).
+    expect((await orkiestrator.getBundleDetailForStaff(migracja.id)).zaKlienta).toMatchObject({ stan: 'anulowana', decyzjaAt: null });
     await expect(
       zaKlienta.przyjmij({ subscriptionId: k.subscription.id, userId: k.user.id, actorUserId: k.user.id, migrationId: migracja.id, token, ip: null }),
     ).rejects.toThrow(/anulowana/);

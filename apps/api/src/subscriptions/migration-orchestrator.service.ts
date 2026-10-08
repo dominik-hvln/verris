@@ -107,6 +107,26 @@ export function szkicBezDecyzji(teraz: Date): { status: MigrationStatus; OR: Pri
   };
 }
 
+export type StanProsby = 'oczekuje' | 'zaakceptowana' | 'odrzucona' | 'wygasla' | 'anulowana';
+
+/**
+ * PB-45 — co się stało z prośbą o zgodę. Jedno źródło dla klienta (MigracjaZaKlientaService) i dla paneli
+ * obsługi/admina (szczegóły zlecenia): odrzucenie i wygaśnięcie znaczy `currentStep`, zgodę — `consentDecidedAt`,
+ * a anulowanie przez operatora nie zostawia ani jednego, ani drugiego.
+ */
+export function stanProsbyZgody(
+  req: { status: MigrationStatus; currentStep: string | null; consentDecidedAt: Date | null; consentExpiresAt: Date | null },
+  teraz: Date,
+): StanProsby {
+  if (req.status === MigrationStatus.DRAFT) {
+    return req.consentExpiresAt && req.consentExpiresAt > teraz ? 'oczekuje' : 'wygasla';
+  }
+  if (req.currentStep === 'consent-rejected') return 'odrzucona';
+  if (req.currentStep === 'consent-expired') return 'wygasla';
+  if (req.consentDecidedAt) return 'zaakceptowana';
+  return 'anulowana';
+}
+
 @Injectable()
 export class MigrationOrchestratorService {
   private readonly logger = new Logger(MigrationOrchestratorService.name);
@@ -1509,6 +1529,7 @@ export class MigrationOrchestratorService {
             powod: request.operatorReason,
             wygasa: request.consentExpiresAt?.toISOString() ?? null,
             decyzjaAt: request.consentDecidedAt?.toISOString() ?? null,
+            stan: stanProsbyZgody(request, new Date()),
           }
         : null,
       sourceForm: request.secretsPurgedAt ? null : this.decodeSanitizedBundle(request.sourceBundleEnc),

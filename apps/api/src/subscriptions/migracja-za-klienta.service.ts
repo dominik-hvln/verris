@@ -14,7 +14,9 @@ import {
   MigrationOrchestratorService,
   MigrationRequestSummary,
   PROSBA_JUZ_ROZPATRZONA,
+  type StanProsby,
   normalizujZlecenie,
+  stanProsbyZgody,
   szkicBezDecyzji,
 } from './migration-orchestrator.service.js';
 
@@ -30,7 +32,7 @@ export const ZGODA_WAZNOSC_DNI = 7;
 const JUZ_CZEKA =
   'Dla tej usługi czeka już migracja na zgodę klienta. Anuluj ją w szczegółach zlecenia (kolejka migracji) albo poczekaj na decyzję.';
 
-export type StanProsby = 'oczekuje' | 'zaakceptowana' | 'odrzucona' | 'wygasla' | 'anulowana';
+export type { StanProsby };
 
 export interface ProsbaOZgode {
   id: string;
@@ -406,19 +408,7 @@ export class MigracjaZaKlientaService {
   }
 
   private widok(req: Wiersz): ProsbaOZgode {
-    const teraz = new Date();
-    let stan: StanProsby;
-    if (req.status === MigrationStatus.DRAFT) {
-      stan = req.consentExpiresAt && req.consentExpiresAt > teraz ? 'oczekuje' : 'wygasla';
-    } else if (req.currentStep === 'consent-rejected') {
-      stan = 'odrzucona';
-    } else if (req.currentStep === 'consent-expired') {
-      stan = 'wygasla';
-    } else if (req.consentDecidedAt) {
-      stan = 'zaakceptowana';
-    } else {
-      stan = 'anulowana';
-    }
+    const stan = stanProsbyZgody(req, new Date());
     let zrodlo: ProsbaOZgode['zrodlo'] = null;
     if (!req.secretsPurgedAt && req.sourceBundleEnc) {
       try {
