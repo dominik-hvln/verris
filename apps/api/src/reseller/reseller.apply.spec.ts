@@ -81,7 +81,10 @@ describe('ResellerService.createClient (O-06)', () => {
     const r = await s.svc.createClient('r1', dto);
     expect(s.tx.user.create).toHaveBeenCalledWith({ data: expect.objectContaining({ email: 'klient@firma.pl', role: 'USER', resellerOwnerId: 'r1' }) });
     const mail = (s.send.mock.calls[0] as unknown as [{ subject: string; text: string }])[0];
-    expect(mail.subject).toContain('Studio X');
+    // 08.10: „Konto założyła dla Ciebie firma …” — bez „założył(a)”
+    expect(mail.subject).toBe('Konto założyła dla Ciebie firma Studio X');
+    expect(mail.text).toContain('Konto założyła dla Ciebie firma Studio X');
+    expect(`${mail.subject}\n${mail.text}`).not.toContain('założył(a)');
     expect(mail.text).toContain('reset-password?token=');
     expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'RESELLER_CLIENT_CREATED', actorUserId: 'r1' }));
     expect(r.pozostaloDzis).toBe(9);

@@ -206,13 +206,16 @@ export class ResellerService {
 
     const panelUrl = this.clientUrl();
     const marka = p.brandName || 'Twój partner';
+    // 08.10 (decyzja właściciela): „Konto założyła dla Ciebie firma Test Verris” zamiast „Test Verris założył(a) Ci konto”.
+    const kto = (m: string) => (p.brandName ? `firma ${m}` : m);
+    const zalozyl = p.brandName ? 'założyła' : 'założył';
     const { html, text } = renderEmailShell({
       title: 'Konto w Verris czeka na Ciebie',
-      preheader: `${marka} założył(a) Ci konto hostingowe w Verris.`,
+      preheader: `Konto w Verris ${zalozyl} dla Ciebie ${kto(marka)}.`,
       bodyMarkdown: [
         `Cześć${dto.firstName.trim() ? ` **${md(dto.firstName.trim())}**` : ''},`,
         '',
-        `**${md(marka)}** założył(a) Ci konto w Verris — hostingu, z którego korzysta przy Twojej stronie. Żeby się zalogować, ustaw hasło (link ważny ${WAZNOSC_LINKU_H} godziny).`,
+        `Konto ${zalozyl} dla Ciebie ${kto(`**${md(marka)}**`)}. Verris to hosting, z którego korzysta przy Twojej stronie. Żeby się zalogować, ustaw hasło (link ważny ${WAZNOSC_LINKU_H} godziny).`,
         '',
         `Jeśli nie znasz ${md(marka)} albo nie spodziewałeś(-aś) się tego konta — nic nie rób: bez hasła konto jest nieaktywne. Jeśli ktoś podszywa się pod Ciebie albo dostajesz takie maile wielokrotnie, zgłoś to: ${(process.env.WWW_URL ?? 'https://verris.pl').replace(/\/$/, '')}/zglos-naduzycie`,
       ].join('\n'),
@@ -223,7 +226,7 @@ export class ResellerService {
     });
     let mailWyslany = true;
     try {
-      await this.mailer.send({ to: email, userId: user.id, subject: `${marka} założył(a) Ci konto w Verris`, text, html, tag: 'reseller.client-created', category: 'TRANSACTIONAL', fromRole: 'NOREPLY' });
+      await this.mailer.send({ to: email, userId: user.id, subject: `Konto ${zalozyl} dla Ciebie ${kto(marka)}`, text, html, tag: 'reseller.client-created', category: 'TRANSACTIONAL', fromRole: 'NOREPLY' });
     } catch {
       mailWyslany = false;
     }
