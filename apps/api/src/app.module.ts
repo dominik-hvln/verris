@@ -61,6 +61,7 @@ import { ControlPlaneMailModule } from './control-plane-mail/control-plane-mail.
 import { VpnModule } from './vpn/vpn.module.js';
 import { KsefModule } from './ksef/ksef.module.js';
 import { DeliverabilityModule } from './deliverability/deliverability.module.js';
+import { WnioskiModule } from './wnioski/wnioski.module.js';
 
 @Module({
   imports: [
@@ -124,6 +125,8 @@ import { DeliverabilityModule } from './deliverability/deliverability.module.js'
     FontsProxyModule,
     BrandModule,
     KbModule,
+    // PB-48 — wnioski o operację wymagającą wyższego uprawnienia.
+    WnioskiModule,
   ],
   controllers: [],
   providers: [

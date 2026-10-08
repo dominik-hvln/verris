@@ -58,6 +58,7 @@ model StaffRole {
   updatedAt   DateTime @updatedAt
 
   members     User[]
+  assignments StaffRoleAssignment[]
 }
 
 model User {
@@ -70,6 +71,12 @@ model User {
   // Dotyczy tylko kont STAFF; ADMIN ma pełny dostęp niezależnie od roli.
   staffRoleId              String?
   staffRole                StaffRole? @relation(fields: [staffRoleId], references: [id], onDelete: SetNull)
+  /// PB-47 — wszystkie role operatora (uprawnienia = suma); staffRoleId zostaje dla zgodności.
+  staffRoleAssignments     StaffRoleAssignment[]
+  /// PB-48 — wnioski o operację: złożone przez operatora, rozstrzygnięte przez niego, dotyczące klienta.
+  operatorRequestsMade     OperatorRequest[] @relation("OperatorRequestRequester")
+  operatorRequestsDecided  OperatorRequest[] @relation("OperatorRequestDecider")
+  operatorRequestsAbout    OperatorRequest[] @relation("OperatorRequestCustomer")
 
   // Profile
   firstName                String?
@@ -4078,4 +4085,57 @@ model WpPodatnosc {
   aktualizacja DateTime  @updatedAt
 
   @@index([typ, slug])
+}
+
+/// PB-47 — przypisanie roli do operatora (STAFF może mieć kilka ról; uprawnienia się sumują).
+model StaffRoleAssignment {
+  userId    String
+  roleId    String
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      StaffRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+}
+
+/// PB-48 — status wniosku o operację.
+enum OperatorRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  FAILED
+}
+
+/// PB-48 — wniosek pracownika o operację wymagającą wyższego uprawnienia. Akceptuje admin albo operator
+/// z REQUESTS_APPROVE i uprawnieniem samej operacji; operacja wykonuje się z uprawnieniem akceptującego.
+model OperatorRequest {
+  id             String                @id @default(uuid())
+  /// Typ z rejestru w kodzie (apps/api/src/wnioski/rejestr-wnioskow.ts) — tekst, nie enum bazy (nowy typ bez migracji).
+  type           String
+  customerId     String?
+  customer       User?                 @relation("OperatorRequestCustomer", fields: [customerId], references: [id], onDelete: SetNull)
+  /// Kontekst usługi (bez klucza obcego — wniosek zostaje po usunięciu subskrypcji).
+  subscriptionId String?
+  /// Parametry operacji po walidacji DTO typu (bez sekretów).
+  payload        Json
+  /// Uzasadnienie wnioskującego (wymagane).
+  justification  String                @db.Text
+  requestedById  String
+  requestedBy    User                  @relation("OperatorRequestRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  status         OperatorRequestStatus @default(PENDING)
+  decidedById    String?
+  decidedBy      User?                 @relation("OperatorRequestDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+  /// Powód decyzji — wymagany przy odrzuceniu.
+  decisionReason String?               @db.Text
+  decidedAt      DateTime?
+  /// Wynik wykonania (APPROVED) albo komunikat błędu (FAILED).
+  result         Json?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  @@index([status, createdAt])
+  @@index([customerId, createdAt])
+  @@index([requestedById, createdAt])
 }

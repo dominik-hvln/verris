@@ -81,6 +81,21 @@ export interface AuditLogWithUsers extends AuditLog {
   actor: { id: string; email: string } | null;
 }
 
+/**
+ * PB-48 — operacja wykonana z akceptacji wniosku zapisuje się tak samo jak bezpośrednia (actor = akceptujący),
+ * plus wniosekId i wnioskujący w szczegółach — dziennik ma oba nazwiska bez zmian w serwisach operacji.
+ */
+export function zWnioskiem(
+  details: Prisma.InputJsonValue | undefined,
+  wniosek: { wniosekId: string; wnioskujacyUserId: string } | undefined,
+): Prisma.InputJsonValue | undefined {
+  if (!wniosek) return details;
+  const dopisek = { wniosekId: wniosek.wniosekId, wnioskujacyUserId: wniosek.wnioskujacyUserId };
+  if (details === undefined || details === null) return dopisek;
+  if (typeof details === 'object' && !Array.isArray(details)) return { ...(details as Record<string, Prisma.InputJsonValue>), ...dopisek };
+  return { wartosc: details, ...dopisek };
+}
+
 @Injectable()
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
@@ -101,7 +116,7 @@ export class AuditService {
           userId: payload.userId ?? null,
           actorUserId,
           impersonatedBy: payload.impersonatedBy ?? kontekstZadania.getStore()?.impersonatedBy ?? null,
-          details: payload.details ?? Prisma.JsonNull,
+          details: zWnioskiem(payload.details, kontekstZadania.getStore()?.wniosek) ?? Prisma.JsonNull,
           ipAddress: payload.ipAddress ?? null,
           userAgent: payload.userAgent ?? null,
         },

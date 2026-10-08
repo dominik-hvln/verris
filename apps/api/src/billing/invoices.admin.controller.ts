@@ -31,6 +31,7 @@ import { FakturaZewnetrznaDto } from './dto/faktura-zewnetrzna.dto.js';
 import { FakturyZewnetrzneService } from './faktury-zewnetrzne.service.js';
 import { AnulowanieService } from './anulowanie.service.js';
 import { AnulujDokumentDto } from './dto/anuluj.dto.js';
+import { WniosekMozliwy } from '../wnioski/wniosek-mozliwy.decorator.js';
 
 const VALID_STATUSES: InvoiceStatus[] = [
   InvoiceStatus.DRAFT,
@@ -214,6 +215,7 @@ export class InvoicesAdminController {
   @UseGuards(StaffPermissionsGuard)
   @Roles(Role.ADMIN, Role.STAFF)
   @StaffPerm('BILLING_MANAGE')
+  @WniosekMozliwy('INVOICE_VOID')
   async anuluj(
     @Param('invoiceId') invoiceId: string,
     @Body() dto: AnulujDokumentDto,

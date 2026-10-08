@@ -23,6 +23,7 @@ import { AdminCreditWalletDto } from './dto/admin-credit.dto.js';
 import { PromoService } from './promo.service.js';
 import { AdminCreatePromoDto } from './dto/promo.dto.js';
 import { ZwrotPaynowDto } from './dto/checkout.dto.js';
+import { WniosekMozliwy } from '../wnioski/wniosek-mozliwy.decorator.js';
 
 @Controller('admin/billing')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -38,6 +39,7 @@ export class BillingAdminController {
   @UseGuards(StaffPermissionsGuard)
   @Roles(Role.ADMIN, Role.STAFF)
   @StaffPerm('BILLING_MANAGE')
+  @WniosekMozliwy('WALLET_CREDIT')
   creditWallet(
     @Body() dto: AdminCreditWalletDto,
     @CurrentUser() actor: { userId: string },

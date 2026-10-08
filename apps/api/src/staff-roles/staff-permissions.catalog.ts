@@ -8,9 +8,11 @@ export const STAFF_PERMISSIONS = [
   { key: 'CUSTOMERS_VIEW', area: 'Klienci', label: 'Podgląd klientów' },
   { key: 'CUSTOMERS_MANAGE', area: 'Klienci', label: 'Zarządzanie klientami (edycja, blokady)' },
   { key: 'CUSTOMERS_IMPERSONATE', area: 'Klienci', label: 'Wejście na konto klienta („Zaloguj jako klient”, z powodem, 30 min)' },
+  { key: 'CUSTOMERS_INTERNAL_FLAG', area: 'Klienci', label: 'Oznaczanie konta jako wewnętrzne (poza MRR i churnem)' },
   { key: 'SUBSCRIPTIONS_MANAGE', area: 'Usługi', label: 'Subskrypcje i usługi' },
   { key: 'TICKETS_VIEW', area: 'Wsparcie', label: 'Podgląd zgłoszeń' },
   { key: 'TICKETS_MANAGE', area: 'Wsparcie', label: 'Obsługa zgłoszeń (odpowiedzi, status)' },
+  { key: 'REQUESTS_APPROVE', area: 'Obsługa', label: 'Akceptacja wniosków o operację' },
   { key: 'BILLING_VIEW', area: 'Finanse', label: 'Podgląd faktur i rozliczeń' },
   { key: 'BILLING_MANAGE', area: 'Finanse', label: 'Faktury, korekty, portfel, kredyty' },
   { key: 'NODES_VIEW', area: 'Infrastruktura', label: 'Podgląd węzłów i floty' },
@@ -35,3 +37,9 @@ export const STAFF_PERMISSION_KEYS: StaffPermission[] = STAFF_PERMISSIONS.map((p
 export function isValidStaffPermission(key: string): key is StaffPermission {
   return STAFF_PERMISSION_KEYS.includes(key as StaffPermission);
 }
+
+/**
+ * PB-47 — uprawnienia tylko dla administratora: nie trafiają do żadnej roli systemowej (test spójności
+ * w role-systemowe.spec.ts). Administrator może je świadomie nadać roli własnej.
+ */
+export const ADMIN_ONLY: readonly StaffPermission[] = ['SETTINGS_MANAGE', 'STAFF_MANAGE'];

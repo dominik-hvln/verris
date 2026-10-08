@@ -240,6 +240,8 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
           pod: [
             { name: "Operatorzy", href: "/operators", perm: "STAFF_MANAGE", szukaj: "zespół pracownicy staff" },
             { name: "Role i uprawnienia", href: "/roles", perm: "STAFF_MANAGE" },
+            // PB-48 — wnioski pracowników o operację wymagającą wyższego uprawnienia.
+            { name: "Wnioski o operacje", href: "/wnioski", perm: "REQUESTS_APPROVE", szukaj: "akceptacja zgoda prośba uprawnienie" },
           ],
         },
       ],

@@ -52,6 +52,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message,
       // Odmowa serwera hostingu: panel klienta tłumaczy ją na polski (`daErrorMessage`).
       ...(odmowaDa ? { zrodlo: 'serwer-hostingu' } : {}),
+      // PB-47 — kod odmowy „wymaga wniosku” (np. { code: 'WYMAGA_WNIOSKU', operacja }) — panel zamienia go na przycisk wniosku.
+      ...(exception instanceof HttpException ? kodOdmowy(exception.getResponse()) : {}),
     });
   }
 }
@@ -65,4 +67,14 @@ function normalizeExceptionMessage(response: string | object): string | object {
     return m.filter((x): x is string => typeof x === 'string').join(', ');
   }
   return response;
+}
+
+/** PB-47 — przepuszczamy tylko znane pola kodu odmowy (reszta treści wyjątku nie wychodzi). */
+function kodOdmowy(response: string | object): { code?: string; operacja?: string } {
+  if (typeof response !== 'object' || response === null) return {};
+  const { code, operacja } = response as { code?: unknown; operacja?: unknown };
+  return {
+    ...(typeof code === 'string' ? { code } : {}),
+    ...(typeof operacja === 'string' ? { operacja } : {}),
+  };
 }

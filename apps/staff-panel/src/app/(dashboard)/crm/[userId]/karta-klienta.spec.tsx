@@ -24,6 +24,8 @@ jest.mock("@/lib/staff-api", () => {
 });
 // Warunki indywidualne mają własne testy — tu liczy się tylko miejsce karty.
 jest.mock("./warunki-indywidualne", () => ({ WarunkiIndywidualne: () => null }));
+// PB-48: karta wniosków to osobny komponent serwerowy (ma własne testy) — tu tylko jej miejsce na karcie.
+jest.mock("./operacje-z-wnioskiem", () => ({ OperacjeZWnioskiem: () => <section data-karta="operacje-wnioski" /> }));
 
 import { staffApi, StaffApiError } from "@/lib/staff-api";
 import type { StaffCustomerProfile } from "@/lib/crm-profile-data";
@@ -106,7 +108,9 @@ describe("PB-46 karta klienta w panelu obsługi", () => {
 
   it.each(SEKCJE_KARTY_KLIENTA)("zakładka %s: karty jak w panelu admina, bez operacji tylko-admin", async (sekcja) => {
     odpowiedzi(PELNE);
-    expect(karty(await render(sekcja))).toEqual(KARTY_SEKCJI[sekcja].filter((k) => !KARTY_TYLKO_ADMIN.includes(k)));
+    // PB-48: obsługa ma dodatkowo kartę „Operacje wymagające uprawnień” (wniosek) — administrator wniosków nie składa.
+    const tylkoObsluga: string[] = sekcja === "dostepy" ? ["operacje-wnioski"] : [];
+    expect(karty(await render(sekcja))).toEqual([...KARTY_SEKCJI[sekcja].filter((k) => !KARTY_TYLKO_ADMIN.includes(k)), ...tylkoObsluga]);
   });
 
   it("zakładki w tej samej kolejności i z tymi samymi nazwami co w adminie", async () => {
@@ -124,7 +128,7 @@ describe("PB-46 karta klienta w panelu obsługi", () => {
     expect(przeglad).not.toContain("<textarea");
     expect(przeglad).not.toContain("Operacje wrażliwe");
     expect(karty(przeglad)).not.toContain("operacje");
-    expect(karty(await render("dostepy"))).toEqual(["dostep"]);
+    expect(karty(await render("dostepy"))).toEqual(["dostep", "operacje-wnioski"]);
   });
 
   it("CUSTOMERS_MANAGE: notatka edytowalna, blokada logowania dostępna", async () => {
@@ -146,7 +150,7 @@ describe("PB-46 karta klienta w panelu obsługi", () => {
 
   it("administrator zalogowany do panelu obsługi też nie dostaje operacji tylko-admin", async () => {
     odpowiedzi([], true);
-    expect(karty(await render("dostepy"))).toEqual(["dostep", "blokada"]);
+    expect(karty(await render("dostepy"))).toEqual(["dostep", "blokada", "operacje-wnioski"]);
   });
 
   it("zablokowany klient: baner i karta blokady nie obiecują, że wejście na konto działa (JwtStrategy odrzuca zablokowanych)", async () => {

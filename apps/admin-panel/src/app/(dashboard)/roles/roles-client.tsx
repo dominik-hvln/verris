@@ -8,7 +8,7 @@ import {
   createRole,
   updateRole,
   deleteRole,
-  assignOperatorRole,
+  cloneRole,
   createOperator,
   setOperatorActive,
   type PermItem,
@@ -19,6 +19,7 @@ import {
 import { potwierdz } from "@/components/potwierdz";
 import { Checkbox } from '@/components/checkbox';
 import { plForm } from "@/lib/pl";
+import { WyborRolOperatora } from "./wybor-rol-operatora";
 
 type Editing = { id: string | null; name: string; description: string; permissions: Set<string> } | null;
 
@@ -86,10 +87,11 @@ export function RolesClient({
     });
   };
 
-  const assign = (userId: string, roleId: string) => {
+  // PB-47 — rola systemowa jest stała: zmiany na kopii (rola własna).
+  const clone = (r: RoleRow) => {
     setErr(null);
     start(async () => {
-      const res = await assignOperatorRole(userId, roleId || null);
+      const res = await cloneRole(r.id);
       if (!res.ok) { setErr(res.error); return; }
       router.refresh();
     });
@@ -144,7 +146,11 @@ export function RolesClient({
                       {plForm(r.memberCount, "operator", "operatorzy", "operatorów")}</p>
                   </div>
                   <div className="flex shrink-0 gap-1">
-                    <button onClick={() => startEdit(r)} className="rounded-md border border-white/10 px-2 py-1 text-xs text-neutral-200 hover:text-white">Edytuj</button>
+                    {r.isSystem ? (
+                      <button onClick={() => clone(r)} disabled={pending} title="Rola systemowa jest stała — powstanie edytowalna kopia" className="rounded-md border border-white/10 px-2 py-1 text-xs text-neutral-200 hover:text-white disabled:opacity-50">Sklonuj</button>
+                    ) : (
+                      <button onClick={() => startEdit(r)} className="rounded-md border border-white/10 px-2 py-1 text-xs text-neutral-200 hover:text-white">Edytuj</button>
+                    )}
                     {!r.isSystem && (
                       <button onClick={() => remove(r)} className="rounded-md border border-white/10 px-2 py-1 text-xs text-rose-300 hover:bg-rose-500/10" title="Usuń">
                         <Trash2 className="h-3.5 w-3.5" />
@@ -226,7 +232,7 @@ export function RolesClient({
         <h2 className="mb-3 text-sm font-bold uppercase tracking-widest text-neutral-400">Operatorzy i ich role</h2>
         <div className="overflow-hidden rounded-xl border border-white/10">
           {initialOperators.map((o) => (
-            <div key={o.id} className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-2.5 last:border-0">
+            <div key={o.id} className="flex flex-wrap items-start justify-between gap-3 border-b border-white/5 px-4 py-2.5 last:border-0">
               <div className="min-w-0">
                 <p className="truncate text-sm text-white">{[o.firstName, o.lastName].filter(Boolean).join(" ") || o.email}</p>
                 <p className="truncate text-[11px] text-neutral-500">{o.email} · {o.role}</p>
@@ -234,23 +240,13 @@ export function RolesClient({
               {o.role === "ADMIN" ? (
                 <span className="rounded bg-emerald-500/15 px-2 py-1 text-xs text-emerald-300">Pełny dostęp</span>
               ) : (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-start gap-2">
                   {o.loginBlocked ? (
                     <span className="rounded bg-rose-500/15 px-2 py-1 text-[11px] text-rose-300">Wyłączony</span>
                   ) : (
                     <span className="rounded bg-emerald-500/15 px-2 py-1 text-[11px] text-emerald-300">Aktywny</span>
                   )}
-                  <Select
-                    aria-label="Rola operatora"
-                    value={o.staffRoleId ?? ""}
-                    onChange={(v) => assign(o.id, v)}
-                    disabled={pending || o.loginBlocked}
-                    className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-sm text-white disabled:opacity-50"
-                    options={[
-                      { value: "", label: "— brak roli (brak dostępu) —" },
-                      ...initialRoles.map((r) => ({ value: r.id, label: r.name })),
-                    ]}
-                  />
+                  <WyborRolOperatora operator={o} role={initialRoles} zablokowane={pending || Boolean(o.loginBlocked)} onBlad={setErr} />
                   <button
                     onClick={() => toggleActive(o)}
                     disabled={pending}

@@ -114,7 +114,7 @@ describe('PB-46 strażnicy karty klienta (zachowanie, nie metadane)', () => {
   });
 });
 
-describe('PB-46 PATCH operational — pola tylko dla admina', () => {
+describe('PB-46 PATCH operational — blokada, notatka i flaga konta wewnętrznego', () => {
   function kontroler() {
     const admin = { patchCustomerOperational: vi.fn(async () => ({ ok: true })) };
     const c = new UsersAdminController(admin as never, {} as never, {} as never);
@@ -123,13 +123,16 @@ describe('PB-46 PATCH operational — pola tylko dla admina', () => {
   const req = { headers: {}, ip: '127.0.0.1', socket: {} } as never;
   const staff = { userId: 's1', email: 's@verris.pl', role: Role.STAFF };
 
-  it('STAFF z CUSTOMERS_MANAGE nie oznaczy klienta jako konta wewnętrznego (wyłącza go z MRR i faktur VAT) — 403', async () => {
+  it('flagę „konto wewnętrzne” od STAFF rozstrzyga serwis wg uprawnień (PB-47: CUSTOMERS_INTERNAL_FLAG, inaczej 403 WYMAGA_WNIOSKU) — kontroler przekazuje aktora', async () => {
     const { c, admin } = kontroler();
-    await expect(c.patchOperational(staff, 'u1', { isInternal: true }, req)).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(
-      c.patchOperational(staff, 'u1', { loginBlocked: true, isInternal: false }, req),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(admin.patchCustomerOperational).not.toHaveBeenCalled();
+    await c.patchOperational(staff, 'u1', { loginBlocked: true, isInternal: true }, req);
+    expect(admin.patchCustomerOperational).toHaveBeenCalledWith(
+      'u1',
+      's1',
+      { loginBlocked: true, isInternal: true },
+      expect.any(Object),
+      { role: Role.STAFF, userId: 's1' },
+    );
   });
 
   it('STAFF zapisze blokadę i notatkę (bez flagi konta wewnętrznego)', async () => {
@@ -140,6 +143,7 @@ describe('PB-46 PATCH operational — pola tylko dla admina', () => {
       's1',
       { loginBlocked: true, loginBlockedReason: 'spam', adminInternalNote: 'x' },
       expect.any(Object),
+      { role: Role.STAFF, userId: 's1' },
     );
   });
 

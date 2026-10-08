@@ -11,6 +11,7 @@ import {
   resetCustomerPasswordAction,
 } from "../actions";
 import { Checkbox } from '@/components/checkbox';
+import { PrzelacznikKontaWewnetrznego } from "./konto-wewnetrzne";
 
 interface Props {
   detail: AdminCustomerOperationalDetail;
@@ -144,20 +145,7 @@ export function CustomerOperationalForms({ detail }: Props) {
           />
           <span className="text-sm text-white">Login zablokowany</span>
         </label>
-        <label className="flex items-start gap-3 cursor-pointer">
-          <Checkbox
-            checked={isInternal}
-            disabled={pending}
-            onChange={(e) => setIsInternal(e.target.checked)}
-            className="mt-0.5 rounded border-white/20"
-          />
-          <span className="text-sm text-white">
-            Konto wewnętrzne (testowe)
-            <span className="block text-xs text-muted-foreground">
-              Poza metrykami biznesowymi (MRR, churn, saldo portfeli); w kolejce „czeka na fakturę” oznaczone — prawdziwa wpłata nadal wymaga faktury VAT.
-            </span>
-          </span>
-        </label>
+        <PrzelacznikKontaWewnetrznego userId={detail.id} checked={isInternal} disabled={pending} onChange={setIsInternal} />
         <label className="block">
           <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
             Powód blokady (opcjonalnie)

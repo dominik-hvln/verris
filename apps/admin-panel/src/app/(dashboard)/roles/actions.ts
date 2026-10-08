@@ -23,6 +23,8 @@ export interface OperatorRow {
   lastName: string | null;
   role: string;
   staffRoleId: string | null;
+  /** PB-47 — wszystkie role operatora (uprawnienia = suma). */
+  roleIds?: string[];
   loginBlocked?: boolean;
 }
 type Result = { ok: true } | { ok: false; error: string };
@@ -102,6 +104,28 @@ export async function setOperatorActive(userId: string, active: boolean): Promis
 export async function assignOperatorRole(userId: string, roleId: string | null): Promise<Result> {
   try {
     await adminApi(`/admin/staff-roles/operators/${userId}/assign`, { method: "POST", body: { roleId } });
+    revalidatePath("/roles");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: err(e) };
+  }
+}
+
+/** PB-47 — pełna lista ról operatora (pusta = bez ról, bez dostępu). */
+export async function setOperatorRoles(userId: string, roleIds: string[]): Promise<Result> {
+  try {
+    await adminApi(`/admin/staff-roles/operators/${userId}/roles`, { method: "POST", body: { roleIds } });
+    revalidatePath("/roles");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: err(e) };
+  }
+}
+
+/** PB-47 — rola systemowa jest stała; zmiany robi się na kopii. */
+export async function cloneRole(id: string, name?: string): Promise<Result> {
+  try {
+    await adminApi(`/admin/staff-roles/${id}/clone`, { method: "POST", body: name ? { name } : {} });
     revalidatePath("/roles");
     return { ok: true };
   } catch (e) {

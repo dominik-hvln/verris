@@ -43,6 +43,7 @@ const TYTULY: [RegExp, string[]][] = [
   [/^\/knowledge\/odpowiedzi/, ["Baza odpowiedzi"]],
   [/^\/knowledge/, ["Baza wiedzy"]],
   [/^\/settings/, ["Ustawienia"]],
+  [/^\/wnioski/, ["Wnioski"]],
 ];
 
 function okruszki(pathname: string, widok: string | null): string[] {
@@ -84,6 +85,7 @@ export function StaffShell({
         { name: "Migracje", href: "/migrations" },
         { name: "Nadużycia", href: "/abuse" },
         { name: "Program partnerski", href: "/referral-enrollments" },
+        { name: "Wnioski", href: "/wnioski" },
       ],
     },
     {

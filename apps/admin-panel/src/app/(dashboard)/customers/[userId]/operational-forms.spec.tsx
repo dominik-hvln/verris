@@ -7,6 +7,9 @@
  * więc samo przełączenie blokady kasowało notatkę dopisaną w międzyczasie w panelu obsługi i zostawiało
  * w dzienniku fałszywy wpis „zmiana notatki”. Teraz idą tylko pola zmienione względem danych z serwera.
  */
+jest.mock("next/cache", () => ({ revalidatePath: jest.fn() }));
+// PB-47: przełącznik „konto wewnętrzne” pyta o uprawnienie — tu administrator (dozwolone).
+jest.mock("./konto-wewnetrzne-actions", () => ({ mozeOznaczacKontoWewnetrzne: jest.fn(async () => true) }));
 jest.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => undefined, push: () => undefined }) }));
 jest.mock("../actions", () => ({
   patchCustomerOperationalAction: jest.fn(async () => ({ ok: true })),
@@ -47,12 +50,12 @@ const DETAIL: AdminCustomerOperationalDetail = {
 let root: Root;
 let k: HTMLElement;
 
-beforeEach(() => {
+beforeEach(async () => {
   zapis.mockClear();
   k = document.createElement("div");
   document.body.appendChild(k);
   root = createRoot(k);
-  act(() => root.render(<CustomerOperationalForms detail={DETAIL} />));
+  await act(async () => root.render(<CustomerOperationalForms detail={DETAIL} />));
 });
 afterEach(() => {
   act(() => root.unmount());

@@ -8,6 +8,7 @@ import { rozliczeniePoza, ustawWarunki, zalozUsluge } from "./warunki-actions";
 import { staffGetCustomerProfile } from "@/lib/crm-profile-data";
 import { StaffImpersonateButton } from "../impersonate-button";
 import { StaffDnsTlsPanel } from "../dns-tls-panel";
+import { OperacjeZWnioskiem } from "./operacje-z-wnioskiem";
 import { formatPlnAndCredits } from "@/lib/credits";
 import { plForm, services } from "@/lib/pl";
 import { maUprawnienie, pobierzDostepOperatora } from "@/lib/staff-access";
@@ -606,6 +607,7 @@ export default async function StaffCustomerProfilePage({
           {mozeZarzadzac ? (
             <BlokadaLogowania userId={user.id} zablokowane={!!user.loginBlocked} powod={user.loginBlockedReason ?? null} />
           ) : null}
+          <OperacjeZWnioskiem userId={user.id} faktury={recentInvoices} />
         </>
       ) : null}
 

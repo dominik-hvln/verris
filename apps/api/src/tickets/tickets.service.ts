@@ -8,6 +8,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MailerService } from '../mail/mailer.service.js';
+import { uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
 import {
   STAN_ZGLOSZENIA_KLIENT,
   newTicketCreatedTemplate,
@@ -1035,11 +1036,8 @@ export class TicketsService {
     }
     // Pracownik widzi załączniki tylko z uprawnieniem do zgłoszeń — jak lista i szczegóły (przegląd 28.09).
     if (role === 'STAFF') {
-      const pracownik = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { staffRole: { select: { permissions: true } } },
-      });
-      if (!pracownik?.staffRole?.permissions.includes('TICKETS_VIEW')) {
+      // PB-47 — suma uprawnień ze wszystkich ról operatora.
+      if (!(await uprawnieniaOperatora(this.prisma, userId)).includes('TICKETS_VIEW')) {
         throw new ForbiddenException('Twoja rola nie ma uprawnień do zgłoszeń.');
       }
     }

@@ -319,3 +319,31 @@ export const ADMIN_OPS_ACTION_SET: ReadonlySet<string> = new Set([
 export function isAdminOpsAction(action: string): boolean {
   return ADMIN_OPS_ACTION_SET.has(action);
 }
+
+// ---------------------------------------------------------------------------
+// PB-47 — role operatorów
+// ---------------------------------------------------------------------------
+
+export const StaffRoleActions = {
+  /** Zmiana ról operatora; details: { przed: [{id,name}], po: [{id,name}] }, userId = operator, którego dotyczy. */
+  STAFF_ROLE_ASSIGNED: 'STAFF_ROLE_ASSIGNED',
+  /** Sklonowano rolę (zwykle systemową) jako rolę własną; details: { zRoli, roleId, name }. */
+  STAFF_ROLE_CLONED: 'STAFF_ROLE_CLONED',
+} as const;
+
+// ---------------------------------------------------------------------------
+// PB-48 — wnioski o operację wymagającą wyższego uprawnienia
+// ---------------------------------------------------------------------------
+
+export const OperatorRequestActions = {
+  /** Złożono wniosek; actor = wnioskujący, userId = klient; details: { wniosekId, typ, payload, uzasadnienie }. */
+  OPERATOR_REQUEST_SUBMITTED: 'OPERATOR_REQUEST_SUBMITTED',
+  /** Zaakceptowano i wykonano; actor = akceptujący; details: { wniosekId, typ, wnioskujacyUserId, payload, wynik }. */
+  OPERATOR_REQUEST_APPROVED: 'OPERATOR_REQUEST_APPROVED',
+  /** Odrzucono; actor = decydujący; details: { wniosekId, typ, wnioskujacyUserId, powod }. */
+  OPERATOR_REQUEST_REJECTED: 'OPERATOR_REQUEST_REJECTED',
+  /** Wnioskujący wycofał wniosek przed decyzją. */
+  OPERATOR_REQUEST_CANCELLED: 'OPERATOR_REQUEST_CANCELLED',
+  /** Akceptacja, ale wykonanie się nie powiodło; details: { wniosekId, typ, wnioskujacyUserId, blad }. */
+  OPERATOR_REQUEST_FAILED: 'OPERATOR_REQUEST_FAILED',
+} as const;

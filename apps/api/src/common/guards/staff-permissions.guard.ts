@@ -2,13 +2,15 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { STAFF_PERMISSIONS_KEY } from '../decorators/staff-permissions.decorator.js';
+import { uprawnieniaOperatora } from '../../staff-roles/uprawnienia-operatora.js';
+import { WNIOSEK_MOZLIWY_KEY } from '../../wnioski/wniosek-mozliwy.decorator.js';
 
 /**
  * RBAC — egzekwuje granularne uprawnienia operatorów.
  *  - ADMIN: zawsze dozwolony (pełny dostęp).
- *  - STAFF: musi mieć przypisaną rolę zawierającą WSZYSTKIE wymagane uprawnienia.
+ *  - STAFF: suma uprawnień jego ról (może mieć kilka) musi zawierać WSZYSTKIE wymagane uprawnienia.
  *  - USER: brak dostępu do endpointów oznaczonych @StaffPerm.
- * Uprawnienia roli czytane są z DB (StaffRole.permissions). Stosować PO JwtAuthGuard.
+ * Uprawnienia czytane są z DB przez uprawnieniaOperatora (StaffRole.permissions wszystkich ról). Stosować PO JwtAuthGuard.
  */
 @Injectable()
 export class StaffPermissionsGuard implements CanActivate {
@@ -30,16 +32,21 @@ export class StaffPermissionsGuard implements CanActivate {
     if (user.role !== 'STAFF') throw new ForbiddenException('Brak uprawnień do tej operacji.');
 
     const principalId = user.principalUserId ?? user.userId;
-    type UserDelegate = {
-      findUnique(args: unknown): Promise<{ staffRole: { permissions: string[] } | null } | null>;
-    };
-    const repo = (this.prisma as unknown as { user: UserDelegate }).user;
-    const row = await repo
-      .findUnique({ where: { id: principalId }, select: { staffRole: { select: { permissions: true } } } })
-      .catch(() => null);
-    const perms: string[] = row?.staffRole?.permissions ?? [];
+    // PB-47 — suma uprawnień ze wszystkich ról operatora (jedno źródło: uprawnienia-operatora.ts).
+    const perms: string[] = await uprawnieniaOperatora(this.prisma, principalId).catch(() => []);
     const ok = required.every((p) => perms.includes(p));
-    if (!ok) throw new ForbiddenException('Twoja rola nie ma uprawnień do tej operacji.');
+    if (!ok) {
+      // PB-48 — operacja z rejestru wniosków: kod odmowy, po którym panel proponuje „Wyślij wniosek”.
+      const operacja = this.reflector.get<string | undefined>(WNIOSEK_MOZLIWY_KEY, context.getHandler());
+      if (operacja) {
+        throw new ForbiddenException({
+          code: 'WYMAGA_WNIOSKU',
+          operacja,
+          message: 'Twoja rola nie ma uprawnień do tej operacji. Możesz wysłać wniosek do osoby z uprawnieniem.',
+        });
+      }
+      throw new ForbiddenException('Twoja rola nie ma uprawnień do tej operacji.');
+    }
     return true;
   }
 }

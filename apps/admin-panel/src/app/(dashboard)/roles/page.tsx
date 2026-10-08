@@ -16,8 +16,8 @@ export default async function RolesPage() {
       <header>
         <h1 className="text-[28px] lg:text-[34px]">Role i uprawnienia</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Działy firmy z granularnym dostępem do panelu. ADMIN ma zawsze pełny dostęp; operatorzy (STAFF) widzą tylko to,
-          na co pozwala ich rola. Role systemowe możesz edytować, ale nie usunąć.
+          Szczeble obsługi (L1–L4) i działy z granularnym dostępem do panelu. ADMIN ma zawsze pełny dostęp; operator (STAFF)
+          może mieć kilka ról naraz — widzi sumę ich uprawnień. Role systemowe są stałe: żeby je zmienić, sklonuj je jako własne.
         </p>
       </header>
       <RolesClient catalog={catalog.permissions} initialRoles={roles} initialOperators={operators} initialActivity={activity} />

@@ -15,6 +15,7 @@ import { Prisma, Role, SubscriptionStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { AdminCustomerActions } from '../common/audit/audit.actions.js';
+import { uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
 import { StatusService } from '../status/status.service.js';
 import { StripeService } from '../billing/stripe/stripe.service.js';
 import { MailerService } from '../mail/mailer.service.js';
@@ -510,6 +511,33 @@ export class UsersAdminService {
     };
   }
 
+  /**
+   * PB-47 (decyzja 08.10) — konto wewnętrzne wypada z MRR i churnu, więc zmienić flagę może tylko ADMIN
+   * albo STAFF z CUSTOMERS_INTERNAL_FLAG. Bez uprawnienia: 403 z kodem WYMAGA_WNIOSKU (panel proponuje
+   * wniosek, PB-48). Wysłanie niezmienionej wartości (formularz zapisuje wszystkie pola) nie jest zmianą.
+   *
+   * Zwraca wartość do zapisu: przy niezmienionej wartości od osoby bez uprawnienia — undefined (pole
+   * pomijamy). Zapis „tej samej” wartości mógłby cofnąć równoczesną zmianę osoby z uprawnieniem.
+   */
+  private async sprawdzZmianeKontaWewnetrznego(
+    userId: string,
+    isInternal: boolean | undefined,
+    aktor: { role: string; userId: string },
+  ): Promise<boolean | undefined> {
+    if (isInternal === undefined || aktor.role === 'ADMIN') return isInternal;
+    if (aktor.role === 'STAFF' && (await uprawnieniaOperatora(this.prisma, aktor.userId)).includes('CUSTOMERS_INTERNAL_FLAG')) {
+      return isInternal;
+    }
+    const obecne = await this.prisma.user.findUnique({ where: { id: userId }, select: { isInternal: true } });
+    if (Boolean(obecne?.isInternal) === isInternal) return undefined;
+    throw new ForbiddenException({
+      code: 'WYMAGA_WNIOSKU',
+      operacja: 'CUSTOMER_INTERNAL_FLAG',
+      message:
+        'Oznaczenie konta jako wewnętrzne wymaga uprawnienia „Oznaczanie konta jako wewnętrzne” (kierownik zmiany). Poproś o to we wniosku.',
+    });
+  }
+
   async patchCustomerOperational(
     userId: string,
     actorUserId: string,
@@ -520,8 +548,11 @@ export class UsersAdminService {
       isInternal?: boolean;
     },
     ctx: { ipAddress?: string | null; userAgent?: string | null },
+    /** PB-47 — kto zmienia (rola i konto operatora, przy impersonacji: principal). */
+    aktor: { role: string; userId: string },
   ) {
     await this.requireEndUserForAdminOps(userId);
+    const isInternal = await this.sprawdzZmianeKontaWewnetrznego(userId, dto.isInternal, aktor);
     if (
       dto.loginBlocked === undefined &&
       dto.loginBlockedReason === undefined &&
@@ -539,18 +570,20 @@ export class UsersAdminService {
     if (dto.adminInternalNote !== undefined) {
       data.adminInternalNote = dto.adminInternalNote;
     }
-    if (dto.isInternal !== undefined) data.isInternal = dto.isInternal;
+    if (isInternal !== undefined) data.isInternal = isInternal;
+    // Np. sama niezmieniona flaga od osoby bez uprawnienia — nic do zapisania.
+    if (Object.keys(data).length === 0) return { ok: true };
 
     await this.prisma.user.update({ where: { id: userId }, data });
 
-    if (dto.isInternal !== undefined) {
+    if (isInternal !== undefined) {
       await this.audit.record({
         action: AdminCustomerActions.CUSTOMER_INTERNAL_FLAG_UPDATED,
         userId,
         actorUserId,
         ipAddress: ctx.ipAddress ?? undefined,
         userAgent: ctx.userAgent ?? undefined,
-        details: { isInternal: dto.isInternal },
+        details: { isInternal },
       });
     }
 

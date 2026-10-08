@@ -1,4 +1,4 @@
-import { BadRequestException, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, ServiceUnavailableException } from '@nestjs/common';
 import { DirectAdminApiError } from '@verris/directadmin-sdk';
 import { KOMUNIKAT_OGOLNY } from '../biala-etykieta.js';
 import { AllExceptionsFilter } from './all-exceptions.filter.js';
@@ -10,7 +10,7 @@ function obsluz(e: unknown, url = '/x') {
   new AllExceptionsFilter().catch(e, host as never);
   return {
     kod: (status.mock.calls[0] as unknown[])[0],
-    tresc: (json.mock.calls[0] as unknown[])[0] as { message: unknown; zrodlo?: string },
+    tresc: (json.mock.calls[0] as unknown[])[0] as { message: unknown; zrodlo?: string; code?: string; operacja?: string },
   };
 }
 
@@ -43,5 +43,16 @@ describe('AllExceptionsFilter', () => {
     expect(obsluz(new BadRequestException('Tej bazy nie da się usunąć')).tresc.message).toBe('Tej bazy nie da się usunąć');
     expect(obsluz(provisioning(), '/admin/subscriptions/s1/retry').tresc.message).toMatch(/^DirectAdmin package/);
     expect(obsluz(provisioning(), '/staff/migrations/m1').tresc.message).toMatch(/^DirectAdmin package/);
+  });
+
+  it('PB-47 — kod odmowy „wymaga wniosku” dociera do panelu, inne pola wyjątku nie', () => {
+    const r = obsluz(
+      new ForbiddenException({ code: 'WYMAGA_WNIOSKU', operacja: 'CUSTOMER_INTERNAL_FLAG', message: 'Wymaga wniosku.', sekret: 'x' }),
+      '/admin/users/u1/operational',
+    );
+    expect(r.kod).toBe(403);
+    expect(r.tresc).toMatchObject({ message: 'Wymaga wniosku.', code: 'WYMAGA_WNIOSKU', operacja: 'CUSTOMER_INTERNAL_FLAG' });
+    expect(r.tresc).not.toHaveProperty('sekret');
+    expect(obsluz(new BadRequestException('Zła domena')).tresc).not.toHaveProperty('code');
   });
 });

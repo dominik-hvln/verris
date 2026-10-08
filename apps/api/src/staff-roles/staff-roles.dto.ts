@@ -15,6 +15,8 @@ export class NowyOperatorDto {
   @IsOptional() @IsString() @MaxLength(80) firstName?: string;
   @IsOptional() @IsString() @MaxLength(80) lastName?: string;
   @IsOptional() @IsString() @MaxLength(64) roleId?: string | null;
+  /** PB-47 — kilka ról od razu (pierwszeństwo przed roleId). */
+  @IsOptional() @IsArray() @ArrayMaxSize(50) @IsString({ each: true }) @MaxLength(64, { each: true }) roleIds?: string[];
 }
 
 export class PrzypisanieRoliDto {
@@ -24,4 +26,14 @@ export class PrzypisanieRoliDto {
 
 export class AktywnoscOperatoraDto {
   @IsBoolean() active!: boolean;
+}
+
+/** PB-47 — pełna lista ról operatora (pusta = brak ról, brak dostępu). */
+export class RoleOperatoraDto {
+  @IsArray() @ArrayMaxSize(50) @IsString({ each: true }) @MaxLength(64, { each: true }) roleIds!: string[];
+}
+
+/** PB-47 — klon roli jako własnej; bez nazwy → „<nazwa> (kopia)”. */
+export class KlonRoliDto {
+  @IsOptional() @IsString() @MaxLength(80) name?: string;
 }
