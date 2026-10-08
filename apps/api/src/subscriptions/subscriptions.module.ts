@@ -14,6 +14,7 @@ import { SubscriptionsService } from './subscriptions.service.js';
 import { PlanChangeService } from './plan-change.service.js';
 import { SubscriptionsController } from './subscriptions.controller.js';
 import { SubscriptionsAdminController } from './subscriptions.admin.controller.js';
+import { KontoKlientaAdminController } from './konto-klienta.admin.controller.js';
 import { MigrationsAdminController } from './migrations.admin.controller.js';
 import { UserServicesController } from './services.controller.js';
 import { RenewalScheduler } from './renewal.scheduler.js';
@@ -148,6 +149,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
     MigrationsStaffController,
     MigrationWorkerController,
     WafAdminController,
+    KontoKlientaAdminController,
   ],
   exports: [
     SubscriptionsService,
