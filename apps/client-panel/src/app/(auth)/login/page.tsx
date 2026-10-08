@@ -11,6 +11,7 @@ import { PasskeyConditionalAutofill } from "./passkey-conditional-autofill";
 import { VerrisLockup } from "@/components/logo";
 import { VerrisPatternLayer } from "@/components/brand/brand-pattern";
 import { Captcha } from "@/components/captcha";
+import { PolePowrotu } from "./pole-powrotu";
 
 const initialLoginState = {} as Awaited<ReturnType<typeof submitLogin>>;
 const initialTwoFactorState = {} as Awaited<ReturnType<typeof submitTwoFactor>>;
@@ -26,6 +27,7 @@ export default function LoginPage() {
       <TwoFactorScreen
         challengeToken={loginState.challengeToken}
         email={loginState.email ?? ""}
+        next={loginState.next}
       />
     );
   }
@@ -38,6 +40,9 @@ export default function LoginPage() {
       </div>
 
       <form action={loginAction}>
+        <Suspense fallback={null}>
+          <PolePowrotu />
+        </Suspense>
         <PasskeyConditionalAutofill />
         <div className="space-y-5 p-8">
           <Suspense fallback={null}>
@@ -126,9 +131,11 @@ export default function LoginPage() {
 function TwoFactorScreen({
   challengeToken,
   email,
+  next,
 }: {
   challengeToken: string;
   email: string;
+  next?: string;
 }) {
   const [state, action, pending] = useActionState(
     submitTwoFactor,
@@ -159,6 +166,7 @@ function TwoFactorScreen({
 
       <form action={action}>
         <input type="hidden" name="challengeToken" value={challengeToken} />
+        {next ? <input type="hidden" name="next" value={next} /> : null}
         <div className="space-y-5 p-8">
           {state?.error && (
             <div className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm font-medium text-destructive">

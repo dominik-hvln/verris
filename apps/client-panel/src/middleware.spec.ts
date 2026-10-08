@@ -48,3 +48,35 @@ describe('middleware — sesja właściciela po impersonacji', () => {
     expect(res.headers.get('location')).toContain('/login?reason=session-ended');
   });
 });
+
+/** PB-45 — link z maila (zgoda na migracji) bez sesji: po zalogowaniu klient wraca na tę samą stronę. */
+describe('middleware — powrót po zalogowaniu (next)', () => {
+  const { fetchSessionProfileState } = jest.requireMock('@/lib/session-profile') as { fetchSessionProfileState: jest.Mock };
+  const link = '/dashboard/migrations/zgoda?serviceId=s1&id=m1&token=abc_-123';
+
+  it('bez sesji: /login z next = ścieżka z parametrami (serviceId, id, token)', async () => {
+    const res = await middleware(new NextRequest(`http://localhost:3001${link}`));
+    const cel = new URL(res.headers.get('location')!);
+    expect(cel.pathname).toBe('/login');
+    expect(cel.searchParams.get('next')).toBe(link);
+  });
+
+  it('wygasła sesja: reason=session-ended i ten sam next', async () => {
+    fetchSessionProfileState.mockResolvedValueOnce({ profile: null, unauthorized: true });
+    const res = await middleware(new NextRequest(`http://localhost:3001${link}`, { headers: { cookie: 'auth_token=stary' } }));
+    const cel = new URL(res.headers.get('location')!);
+    expect(cel.searchParams.get('reason')).toBe('session-ended');
+    expect(cel.searchParams.get('next')).toBe(link);
+  });
+
+  it('zalogowany na /login?next=…: prosto na next, obcy adres → /dashboard', async () => {
+    const dobry = await middleware(
+      new NextRequest(`http://localhost:3001/login?next=${encodeURIComponent(link)}`, { headers: { cookie: 'auth_token=t' } }),
+    );
+    expect(dobry.headers.get('location')).toBe(`http://localhost:3001${link}`);
+    const zly = await middleware(
+      new NextRequest(`http://localhost:3001/login?next=${encodeURIComponent('//zly.example/x')}`, { headers: { cookie: 'auth_token=t' } }),
+    );
+    expect(zly.headers.get('location')).toBe('http://localhost:3001/dashboard');
+  });
+});

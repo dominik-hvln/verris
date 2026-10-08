@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { startAuthentication, type PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 import { fetchPasskeyLoginOptions, verifyPasskeyLoginClient } from '@/lib/passkey-client';
 import { getPasskeyAvailability, setPasskeyAuthCookie } from './passkey-actions';
+import { powrotZAdresu } from './pole-powrotu';
 
 // Wsparcie WebAuthn nie zmienia się w trakcie życia strony — nie ma czego subskrybować.
 const subscribeNoop = () => () => {};
@@ -66,7 +67,7 @@ export function PasskeyLoginButton() {
       });
       const { access_token } = await verifyPasskeyLoginClient(asseResp);
       await setPasskeyAuthCookie(access_token);
-      router.push('/dashboard');
+      router.push(powrotZAdresu());
       router.refresh();
     } catch (err) {
       prefetchedOptions.current = null;

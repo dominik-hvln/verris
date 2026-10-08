@@ -4,6 +4,7 @@ import { setAuthCookie } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { captchaTokenFromForm } from "@/lib/captcha";
+import { sciezkaPowrotu } from "@/lib/sciezka-powrotu";
 
 interface LoginState {
   error?: string;
@@ -11,6 +12,8 @@ interface LoginState {
   twoFactorRequired?: boolean;
   challengeToken?: string;
   email?: string;
+  /** Dokąd wrócić po kodzie 2FA (z `?next=` strony logowania, już sprawdzone). */
+  next?: string;
 }
 
 interface VerifyState {
@@ -24,6 +27,7 @@ export async function submitLogin(
   const email = formData.get("email")?.toString().trim();
   const password = formData.get("password")?.toString();
   const captchaToken = captchaTokenFromForm(formData);
+  const next = sciezkaPowrotu(formData.get("next"));
 
   if (!email || !password) {
     return { error: "Wypełnij wszystkie pola" };
@@ -42,7 +46,7 @@ export async function submitLogin(
     });
     if (data.twoFactorRequired) {
       if (!data.challengeToken) return { error: "Brak tokenu 2FA — spróbuj ponownie." };
-      return { twoFactorRequired: true, challengeToken: data.challengeToken, email };
+      return { twoFactorRequired: true, challengeToken: data.challengeToken, email, next };
     }
     if (data.access_token) {
       await setAuthCookie(data.access_token);
@@ -65,7 +69,7 @@ export async function submitLogin(
     return { error: "Nieprawidłowe dane logowania", email };
   }
 
-  if (shouldRedirect) redirect("/dashboard");
+  if (shouldRedirect) redirect(next);
   return { error: "Nieoczekiwana odpowiedź serwera" };
 }
 
@@ -75,6 +79,7 @@ export async function submitTwoFactor(
 ): Promise<VerifyState> {
   const challengeToken = formData.get("challengeToken")?.toString();
   const code = formData.get("code")?.toString().trim();
+  const next = sciezkaPowrotu(formData.get("next"));
 
   if (!challengeToken || !code) {
     return { error: "Wprowadź 6-cyfrowy kod z aplikacji TOTP." };
@@ -94,6 +99,6 @@ export async function submitTwoFactor(
     return { error: "Niepoprawny kod 2FA" };
   }
 
-  if (shouldRedirect) redirect("/dashboard");
+  if (shouldRedirect) redirect(next);
   return { error: "Brak tokenu sesji w odpowiedzi" };
 }

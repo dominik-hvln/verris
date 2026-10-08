@@ -10,6 +10,7 @@ import {
 import { fetchPasskeyLoginOptions, verifyPasskeyLoginClient } from '@/lib/passkey-client';
 import { setPasskeyAuthCookie } from './passkey-actions';
 import { isAppleWebKit } from './passkey-env';
+import { powrotZAdresu } from './pole-powrotu';
 
 /**
  * Conditional UI — passkey w autouzupełnianiu pola e-mail (Safari / Chrome).
@@ -40,7 +41,7 @@ export function PasskeyConditionalAutofill() {
         });
         const { access_token } = await verifyPasskeyLoginClient(asseResp);
         await setPasskeyAuthCookie(access_token);
-        router.push('/dashboard');
+        router.push(powrotZAdresu());
         router.refresh();
       } catch {
         // Użytkownik może zalogować się hasłem lub przyciskiem passkey.

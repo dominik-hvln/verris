@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { canAccessDashboardRoute } from "@/lib/client-nav-access";
 import { fetchSessionProfileState } from "@/lib/session-profile";
 import { CIASTECZKO_WLASCICIELA, opcjeSesji } from "@/lib/auth";
+import { sciezkaPowrotu } from "@/lib/sciezka-powrotu";
 
 const PANEL_CHWILOWO_NIEDOSTEPNY = `<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="15"><title>Panel chwilowo niedostępny — Verris</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#091410;color:#b4c2bb;font-family:system-ui,sans-serif}main{max-width:420px;padding:24px;text-align:center}h1{color:#f4f4ee;font-size:20px}a{color:#34e5a0}</style></head><body><main><h1>Panel chwilowo niedostępny</h1><p>Wprowadzamy aktualizację albo mamy krótką przerwę w łączności. Jesteś nadal zalogowany — strona odświeży się sama za kilkanaście sekund.</p><p><a href="https://status.verris.pl">Status usług</a></p></main></body></html>`;
 
@@ -33,21 +34,28 @@ export async function middleware(request: NextRequest) {
   /** Regulamin, polityka prywatności, cookies, DPA — publiczne (API /legal bez JWT). */
   const isPublicLegal = pathname.startsWith("/legal");
 
+  // Strona panelu bez sesji (np. link z maila do zgody na migrację) → logowanie z powrotem w `next`.
+  const logowanieZPowrotem = (powod?: string) => {
+    const login = publicPanelUrl(request, "/login");
+    if (powod) login.searchParams.set("reason", powod);
+    if (pathname.startsWith("/dashboard")) login.searchParams.set("next", `${pathname}${request.nextUrl.search}`);
+    return login;
+  };
+
   if (!token && !isAuthPage && !isPublicHandoff && !isPublicLegal && pathname !== "/") {
-    return NextResponse.redirect(publicPanelUrl(request, "/login"));
+    return NextResponse.redirect(logowanieZPowrotem());
   }
 
   if (token && isAuthPage) {
-    return NextResponse.redirect(publicPanelUrl(request, "/dashboard"));
+    const cel = pathname.startsWith("/login") ? sciezkaPowrotu(request.nextUrl.searchParams.get("next")) : "/dashboard";
+    return NextResponse.redirect(publicPanelUrl(request, cel));
   }
 
   if (token && pathname.startsWith("/dashboard")) {
     const { profile: session, unauthorized } = await fetchSessionProfileState(token, request.headers.get("x-forwarded-for"));
     if (unauthorized) {
       if (wlasciciel && wlasciciel !== token) return przywrocWlasciciela();
-      const login = publicPanelUrl(request, "/login");
-      login.searchParams.set("reason", "session-ended");
-      const res = NextResponse.redirect(login);
+      const res = NextResponse.redirect(logowanieZPowrotem("session-ended"));
       res.cookies.delete("auth_token");
       return res;
     }
