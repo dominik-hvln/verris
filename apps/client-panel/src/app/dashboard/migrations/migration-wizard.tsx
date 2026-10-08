@@ -9,6 +9,7 @@ import {
   preflightMigrationAction,
   type MigrationMysqlInput,
 } from './actions';
+import { bezpiecznaAkcja } from '@/lib/akcja';
 import type { DiscoveryResult, PreflightSummary } from './types';
 import { Checkbox } from '@/components/panel/checkbox';
 import { Stepper } from '@/components/panel/stepper';
@@ -128,14 +129,16 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
   async function runDiscovery() {
     setMsg(null);
     setDiscovering(true);
-    const res = await discoverMigrationSourceAction({
-      serviceId,
-      host: panelHost.trim(),
-      port: preset.panelPort,
-      username: panelUser,
-      password: panelPass,
-      panelType: preset.panelType,
-    });
+    const res = await bezpiecznaAkcja(() =>
+      discoverMigrationSourceAction({
+        serviceId,
+        host: panelHost.trim(),
+        port: preset.panelPort,
+        username: panelUser,
+        password: panelPass,
+        panelType: preset.panelType,
+      }),
+    );
     setDiscovering(false);
     if ('error' in res) {
       setMsg({ type: 'err', text: `${res.error} — możesz też przejść dalej i wpisać dane ręcznie.` });
@@ -197,7 +200,7 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
   async function runPreflight() {
     setMsg(null);
     setPreflighting(true);
-    const res = await preflightMigrationAction(buildInput());
+    const res = await bezpiecznaAkcja(() => preflightMigrationAction(buildInput()));
     setPreflighting(false);
     if ('error' in res) {
       setMsg({ type: 'err', text: res.error });
@@ -217,11 +220,13 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
       return;
     }
     setBusy(true);
-    const res = await createMigrationBundleAction({
-      ...buildInput(),
-      notes: notes.trim() || undefined,
-      consentAccepted: true,
-    });
+    const res = await bezpiecznaAkcja(() =>
+      createMigrationBundleAction({
+        ...buildInput(),
+        notes: notes.trim() || undefined,
+        consentAccepted: true,
+      }),
+    );
     setBusy(false);
     if ('error' in res) {
       setMsg({ type: 'err', text: res.error });

@@ -86,3 +86,25 @@ it('błąd startu znika po cofnięciu do formularza', async () => {
   await klik(przycisk('Wstecz'));
   expect(el.textContent).not.toContain('Host wskazuje na sieć prywatną');
 });
+
+it('akcja nieznana po deployu: test dostępów nie wisi na „Sprawdzam dostępy…”, tylko prosi o odświeżenie', async () => {
+  mockPreflight.mockRejectedValue(
+    Object.assign(new Error('Server Action "00be95" was not found on the server.'), { name: 'UnrecognizedActionError' }),
+  );
+  await klik(przycisk('Dalej: test dostępów'));
+  expect(el.textContent).not.toContain('Sprawdzam dostępy');
+  expect(el.textContent).toContain('odśwież stronę');
+});
+
+it('akcja nieznana po deployu przy starcie: przycisk wraca, komunikat o odświeżeniu', async () => {
+  mockPreflight.mockResolvedValue({
+    result: { ok: true, checks: [{ kind: 'ftp', target: 'ftp://x:21', status: 'ok', message: 'OK', latencyMs: 1 }], checkedAt: 'x' },
+  });
+  mockCreate.mockRejectedValue(Object.assign(new Error('Server Action "00d7" was not found on the server.'), { name: 'UnrecognizedActionError' }));
+  await klik(przycisk('Dalej: test dostępów'));
+  await klik(przycisk('Dalej: podsumowanie'));
+  await klik([...el.querySelectorAll('input')].find((i) => i.type === 'checkbox')!);
+  await klik(przycisk('Uruchom migrację'));
+  expect(el.textContent).toContain('odśwież stronę');
+  expect(przycisk('Uruchom migrację').disabled).toBe(false);
+});

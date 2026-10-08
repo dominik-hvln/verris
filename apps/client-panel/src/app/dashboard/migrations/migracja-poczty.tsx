@@ -6,6 +6,7 @@ import { Select } from '@/components/panel';
 import { Checkbox } from '@/components/panel/checkbox';
 import { fetchHostingEmailAction } from '@/app/dashboard/services/[id]/hosting-email-actions';
 import { createMigrationBundleAction, preflightMigrationAction } from './actions';
+import { bezpiecznaAkcja } from '@/lib/akcja';
 import type { PreflightCheckResult, PreflightSummary } from './types';
 
 /**
@@ -55,7 +56,7 @@ export function MigracjaPoczty({ serviceId, onQueued }: { serviceId: string; onQ
   async function sprawdzZrodlo() {
     setTestujeZrodlo(true);
     setTestZrodla(null);
-    const res = await preflightMigrationAction({ serviceId, imap: [zrodlo()] });
+    const res = await bezpiecznaAkcja(() => preflightMigrationAction({ serviceId, imap: [zrodlo()] }));
     setTestujeZrodlo(false);
     if ('error' in res) return setTestZrodla({ ok: false, tekst: res.error });
     const c: PreflightCheckResult | undefined = (res.result as PreflightSummary).checks.find((x) => x.kind === 'imap');
@@ -78,7 +79,7 @@ export function MigracjaPoczty({ serviceId, onQueued }: { serviceId: string; onQ
   async function start() {
     setStartuje(true);
     setKomunikat(null);
-    const res = await createMigrationBundleAction({ serviceId, imap: [zrodlo()], consentAccepted: true });
+    const res = await bezpiecznaAkcja(() => createMigrationBundleAction({ serviceId, imap: [zrodlo()], consentAccepted: true }));
     setStartuje(false);
     if ('error' in res) return setKomunikat({ ok: false, tekst: res.error });
     setKomunikat({ ok: true, tekst: 'Przenoszenie poczty ruszyło — postęp zobaczysz poniżej.' });

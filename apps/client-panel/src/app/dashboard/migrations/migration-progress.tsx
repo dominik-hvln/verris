@@ -9,6 +9,7 @@ import {
   queueMigrationDeltaSyncAction,
   verifyMigrationCutoverAction,
 } from './actions';
+import { bezpiecznaAkcja } from '@/lib/akcja';
 import {
   JOB_LABELS,
   STATUS_LABELS,
@@ -53,7 +54,9 @@ export function MigrationProgress({ serviceId, initial }: Props) {
   // i brałby setState po odpowiedzi za synchroniczny setState w efekcie.
   const refresh = useCallback(
     () =>
-      getMigrationBundleDetailAction({ serviceId, migrationId: initial.id }).then((res) => {
+      bezpiecznaAkcja(() => getMigrationBundleDetailAction({ serviceId, migrationId: initial.id })).then((res) => {
+        // Po deployu odpytywanie co 5 s rzucało wyjątkiem (nieobsłużony) — teraz jeden komunikat.
+        if ('error' in res) setMsg(res.error);
         if ('ok' in res) {
           const d = res.detail as MigrationBundleDetail;
           setDetail(d);
@@ -73,7 +76,7 @@ export function MigrationProgress({ serviceId, initial }: Props) {
 
   const loadCutover = useCallback(
     () =>
-      getMigrationCutoverPlanAction({ serviceId, migrationId: initial.id }).then((res) => {
+      bezpiecznaAkcja(() => getMigrationCutoverPlanAction({ serviceId, migrationId: initial.id })).then((res) => {
         if ('ok' in res) setCutover(res.plan as CutoverPlan);
       }),
     [serviceId, initial.id],
@@ -92,7 +95,7 @@ export function MigrationProgress({ serviceId, initial }: Props) {
   async function runDelta() {
     setBusy('delta');
     setMsg(null);
-    const res = await queueMigrationDeltaSyncAction({ serviceId, migrationId: initial.id });
+    const res = await bezpiecznaAkcja(() => queueMigrationDeltaSyncAction({ serviceId, migrationId: initial.id }));
     setBusy(null);
     if ('error' in res) {
       setMsg(res.error);
@@ -105,7 +108,7 @@ export function MigrationProgress({ serviceId, initial }: Props) {
   async function verifyDns() {
     setBusy('verify');
     setMsg(null);
-    const res = await verifyMigrationCutoverAction({ serviceId, migrationId: initial.id });
+    const res = await bezpiecznaAkcja(() => verifyMigrationCutoverAction({ serviceId, migrationId: initial.id }));
     setBusy(null);
     if ('error' in res) {
       setMsg(res.error);
@@ -120,7 +123,7 @@ export function MigrationProgress({ serviceId, initial }: Props) {
     }
     setBusy('cancel');
     setMsg(null);
-    const res = await cancelMigrationBundleAction({ serviceId, migrationId: initial.id });
+    const res = await bezpiecznaAkcja(() => cancelMigrationBundleAction({ serviceId, migrationId: initial.id }));
     setBusy(null);
     if ('error' in res) {
       setMsg(res.error);
