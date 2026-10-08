@@ -10,7 +10,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { SupportActions } from '../common/audit/audit.actions.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { DirectAdminService } from '../servers/directadmin.service.js';
+import { DirectAdminService, type DomenyKontaHostingu } from '../servers/directadmin.service.js';
 import { PhpService } from './php.service.js';
 import { MailLogService } from './mail-log.service.js';
 import { LogiHostinguQueryDto } from './dto/hosting-logs.dto.js';
@@ -95,16 +95,19 @@ export class KontoKlientaAdminController {
     return sub.userId;
   }
 
-  private async nazwyDomen(id: string, userId: string): Promise<string[]> {
-    const d = await this.directAdmin.listHostingDomainsForSubscription(id, userId);
-    return d.domains.map((x) => x.name);
+  /**
+   * Lista domen konta — czytana z węzła RAZ na żądanie i przekazywana do metody sekcji, która inaczej
+   * przeczytałaby ją sama drugi raz (getDomains + CMD_API_SHOW_USER_CONFIG to dwa zapytania do węzła).
+   */
+  private domenyKonta(id: string, userId: string): Promise<DomenyKontaHostingu> {
+    return this.directAdmin.listHostingDomainsForSubscription(id, userId);
   }
 
   @Get('domeny')
   async domeny(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
     const userId = await this.wlasciciel(id, actor.userId, 'domeny');
-    const domeny = await this.directAdmin.listHostingDomainsForSubscription(id, userId);
-    const poddomeny = await this.directAdmin.listHostingSubdomains(id, userId);
+    const domeny = await this.domenyKonta(id, userId);
+    const poddomeny = await this.directAdmin.listHostingSubdomains(id, userId, domeny);
     return {
       domeny: domeny.domains.map((d) => d.name),
       glowna: domeny.primaryDomain,
@@ -116,9 +119,9 @@ export class KontoKlientaAdminController {
   @Get('dns')
   async dns(@Param('id') id: string, @Query('domain') domain: string | undefined, @CurrentUser() actor: { userId: string }) {
     const userId = await this.wlasciciel(id, actor.userId, 'dns', { domain });
-    const domeny = await this.nazwyDomen(id, userId);
-    const strefa = await this.directAdmin.listHostingDnsRecords(id, userId, domain || undefined);
-    return { domeny, ...strefa };
+    const domeny = await this.domenyKonta(id, userId);
+    const strefa = await this.directAdmin.listHostingDnsRecords(id, userId, domain || undefined, domeny);
+    return { domeny: domeny.domains.map((d) => d.name), ...strefa };
   }
 
   @Get('poczta')
@@ -143,14 +146,13 @@ export class KontoKlientaAdminController {
   @Get('php')
   async phpKonta(@Param('id') id: string, @Query('domain') domain: string | undefined, @CurrentUser() actor: { userId: string }) {
     const userId = await this.wlasciciel(id, actor.userId, 'php', { domain });
-    const stan = await this.php.statusForSubscription(id, userId);
-    const domeny = await this.nazwyDomen(id, userId);
+    const [stan, domeny] = await Promise.all([this.php.statusForSubscription(id, userId), this.domenyKonta(id, userId)]);
     const cel = domain || stan.domain;
     // Odczyt .user.ini domeny z węzła — awaria to komunikat w sekcji, nie błąd całej karty.
     let ini: { domain: string; values: Record<string, string>; wlasneDyrektywy: number } | null = null;
     let iniBlad: string | null = null;
     try {
-      ini = await this.directAdmin.getHostingPhpIni(id, userId, cel);
+      ini = await this.directAdmin.getHostingPhpIni(id, userId, cel, domeny);
     } catch (err) {
       iniBlad = hostingFetchErrorMessage(err instanceof Error ? err.message : String(err));
     }
@@ -159,7 +161,7 @@ export class KontoKlientaAdminController {
       dostepneWersje: stan.availableVersions,
       zastosowano: stan.appliedAt,
       ostatnieZadanie: stan.lastTask,
-      domeny,
+      domeny: domeny.domains.map((d) => d.name),
       domena: cel,
       ini: ini?.values ?? null,
       wlasneDyrektywy: ini?.wlasneDyrektywy ?? null,
@@ -187,9 +189,9 @@ export class KontoKlientaAdminController {
   @Get('logi')
   async logi(@Param('id') id: string, @Query() q: LogiHostinguQueryDto, @CurrentUser() actor: { userId: string }) {
     const userId = await this.wlasciciel(id, actor.userId, 'logi', { type: q.type, domain: q.domain, lines: q.lines });
-    const domeny = await this.nazwyDomen(id, userId);
-    const log = await this.directAdmin.readHostingLog(id, userId, q);
-    return { domeny, ...log };
+    const domeny = await this.domenyKonta(id, userId);
+    const log = await this.directAdmin.readHostingLog(id, userId, q, domeny);
+    return { domeny: domeny.domains.map((d) => d.name), ...log };
   }
 
   /** Ostatni wczytany dziennik dostarczania poczty (bez zlecania nowego zadania na węźle — tylko odczyt). */

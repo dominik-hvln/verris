@@ -44,6 +44,17 @@ import { PlatformSettingsService } from '../platform-settings/platform-settings.
 import { PLANY_Z_PAKIETEM_DA, buildDaPackageSpecFromPlan, planResourceFields } from './da-package-spec.js';
 import { resolveHostingPrimaryDomain } from './hosting-primary-domain.js';
 
+/**
+ * Wynik `listHostingDomainsForSubscription` — wołający, który już go ma (podgląd konta przez obsługę, PB-42),
+ * przekazuje go dalej, żeby ta sama lista domen nie była czytana z węzła drugi raz w jednym żądaniu.
+ */
+export interface DomenyKontaHostingu {
+  domains: { name: string }[];
+  daUsername: string | null;
+  primaryDomain: string | null;
+  fetchError: string | null;
+}
+
 export interface WebToolsState {
   redirects: Array<{ from: string; to: string; type: '301' | '302' }>;
   hotlink: { enabled: boolean; extensions: string; allow: string[] };
@@ -402,15 +413,7 @@ export class DirectAdminService {
   /**
    * Lista domen przypiętych do konta DA dla subskrypcji (panel klienta → szczegóły usługi).
    */
-  async listHostingDomainsForSubscription(
-    subscriptionId: string,
-    userId: string,
-  ): Promise<{
-    domains: { name: string }[];
-    daUsername: string | null;
-    primaryDomain: string | null;
-    fetchError: string | null;
-  }> {
+  async listHostingDomainsForSubscription(subscriptionId: string, userId: string): Promise<DomenyKontaHostingu> {
     const sub = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
       include: { account: true },
@@ -1050,9 +1053,10 @@ export class DirectAdminService {
     subscriptionId: string,
     userId: string,
     input: { type: 'access' | 'error'; domain?: string; lines?: number },
+    wczytaneDomeny?: DomenyKontaHostingu,
   ): Promise<HostingLogDto> {
     const type = input.type;
-    const domains = await this.listHostingDomainsForSubscription(subscriptionId, userId);
+    const domains = wczytaneDomeny ?? (await this.listHostingDomainsForSubscription(subscriptionId, userId));
     const chciana = input.domain?.trim().toLowerCase();
     if (chciana && !domains.domains.some((d) => d.name.toLowerCase() === chciana)) {
       throw new BadRequestException('Ta domena nie jest przypisana do konta hostingowego tej usługi.');
@@ -1084,12 +1088,13 @@ export class DirectAdminService {
     subscriptionId: string,
     userId: string,
     domain?: string,
+    wczytaneDomeny?: DomenyKontaHostingu,
   ): Promise<{
     domain: string | null;
     records: Array<{ id: string; name: string; type: string; value: string; ttl: number | null }>;
     fetchError: string | null;
   }> {
-    const domains = await this.listHostingDomainsForSubscription(subscriptionId, userId);
+    const domains = wczytaneDomeny ?? (await this.listHostingDomainsForSubscription(subscriptionId, userId));
     // F-01: domena z zapytania musi należeć do konta tej usługi — inaczej
     // bezpieczeństwo odczytu strefy zależy wyłącznie od uprawnień po stronie DA.
     if (domain && !domains.domains.some((d) => d.name.toLowerCase() === domain.trim().toLowerCase())) {
@@ -2423,10 +2428,11 @@ export class DirectAdminService {
     subscriptionId: string,
     userId: string,
     domain: string,
+    wczytaneDomeny?: DomenyKontaHostingu,
   ): Promise<string> {
     const wanted = String(domain || '').trim().toLowerCase();
     if (!wanted) throw new BadRequestException('Brak domeny.');
-    const res = await this.listHostingDomainsForSubscription(subscriptionId, userId);
+    const res = wczytaneDomeny ?? (await this.listHostingDomainsForSubscription(subscriptionId, userId));
     const names = res.domains.map((d) => d.name.toLowerCase());
     // Serwer nie odpowiedział — to nie jest „cudza domena”; klient ma wiedzieć, co się stało naprawdę.
     if (!names.length && res.fetchError) {
@@ -2683,8 +2689,8 @@ export class DirectAdminService {
     return { key, output: tresc.slice(-20_000), obciete: tresc.length > 20_000 };
   }
 
-  async getHostingPhpIni(subscriptionId: string, userId: string, domain: string) {
-    const dom = await this.assertDomainOwnedBySubscription(subscriptionId, userId, domain);
+  async getHostingPhpIni(subscriptionId: string, userId: string, domain: string, wczytaneDomeny?: DomenyKontaHostingu) {
+    const dom = await this.assertDomainOwnedBySubscription(subscriptionId, userId, domain, wczytaneDomeny);
     const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
     if (!sub?.account?.id) throw new BadRequestException('Brak konta hostingowego.');
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
@@ -2979,12 +2985,13 @@ export class DirectAdminService {
   async listHostingSubdomains(
     subscriptionId: string,
     userId: string,
+    wczytaneDomeny?: DomenyKontaHostingu,
   ): Promise<{
     rows: Array<{ id: string; subdomain: string; domain: string; url: string }>;
     domains: string[];
     fetchError: string | null;
   }> {
-    const domainsRes = await this.listHostingDomainsForSubscription(subscriptionId, userId);
+    const domainsRes = wczytaneDomeny ?? (await this.listHostingDomainsForSubscription(subscriptionId, userId));
     const domains = domainsRes.domains.map((d) => d.name);
     if (domainsRes.fetchError) {
       return { rows: [], domains, fetchError: domainsRes.fetchError };

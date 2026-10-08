@@ -121,7 +121,7 @@ describe('PB-42 KontoKlientaAdminController — odczyty', () => {
   it('DNS: węzeł pytany w imieniu właściciela usługi, wpis w dzienniku z operatorem i sekcją', async () => {
     const { ctrl, directAdmin, audit } = zbuduj();
     const wynik = await ctrl.dns('s1', 'drugi.pl', OPERATOR);
-    expect(directAdmin.listHostingDnsRecords).toHaveBeenCalledWith('s1', WLASCICIEL, 'drugi.pl');
+    expect(directAdmin.listHostingDnsRecords).toHaveBeenCalledWith('s1', WLASCICIEL, 'drugi.pl', expect.objectContaining({ primaryDomain: 'klient.pl' }));
     expect(wynik.domeny).toEqual(['klient.pl', 'drugi.pl']);
     expect(wynik.records).toHaveLength(1);
     expect(audit.record).toHaveBeenCalledWith({
@@ -148,6 +148,20 @@ describe('PB-42 KontoKlientaAdminController — odczyty', () => {
     const wywolania = [...Object.values(directAdmin), php.statusForSubscription, mailLog.status].flatMap((f) => f.mock.calls);
     expect(wywolania.length).toBeGreaterThan(9);
     for (const args of wywolania) expect((args as unknown[])[1]).toBe(WLASCICIEL);
+  });
+
+  it.each([
+    ['domeny', (c: KontoKlientaAdminController) => c.domeny('s1', OPERATOR), 'listHostingSubdomains'],
+    ['dns', (c: KontoKlientaAdminController) => c.dns('s1', undefined, OPERATOR), 'listHostingDnsRecords'],
+    ['php', (c: KontoKlientaAdminController) => c.phpKonta('s1', undefined, OPERATOR), 'getHostingPhpIni'],
+    ['logi', (c: KontoKlientaAdminController) => c.logi('s1', { type: 'error', lines: 200 }, OPERATOR), 'readHostingLog'],
+  ] as const)('%s: lista domen czytana z węzła raz i przekazana do odczytu sekcji (bez drugiego odczytu)', async (_s, wolaj, metoda) => {
+    const { ctrl, directAdmin } = zbuduj();
+    await wolaj(ctrl);
+    expect(directAdmin.listHostingDomainsForSubscription).toHaveBeenCalledTimes(1);
+    const domeny = await directAdmin.listHostingDomainsForSubscription.mock.results[0].value;
+    const args = (directAdmin[metoda].mock.calls as unknown[][])[0];
+    expect(args[args.length - 1]).toBe(domeny);
   });
 
   it('poczta: tylko adres, rozmiar i cele przekierowań — nic poza tym z odpowiedzi węzła', async () => {
@@ -185,7 +199,12 @@ describe('PB-42 KontoKlientaAdminController — odczyty', () => {
   it('logi: parametry jak u klienta (typ, domena, liczba linii) trafiają do odczytu i do dziennika', async () => {
     const { ctrl, directAdmin, audit } = zbuduj();
     const wynik = await ctrl.logi('s1', { type: 'access', domain: 'drugi.pl', lines: 500 }, OPERATOR);
-    expect(directAdmin.readHostingLog).toHaveBeenCalledWith('s1', WLASCICIEL, { type: 'access', domain: 'drugi.pl', lines: 500 });
+    expect(directAdmin.readHostingLog).toHaveBeenCalledWith(
+      's1',
+      WLASCICIEL,
+      { type: 'access', domain: 'drugi.pl', lines: 500 },
+      expect.objectContaining({ primaryDomain: 'klient.pl' }),
+    );
     expect(wynik.domeny).toEqual(['klient.pl', 'drugi.pl']);
     expect(audit.record.mock.calls[0]).toEqual([
       expect.objectContaining({ details: { subscriptionId: 's1', sekcja: 'logi', type: 'access', domain: 'drugi.pl', lines: 500 } }),

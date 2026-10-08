@@ -87,3 +87,50 @@ describe('Logi WWW — interpretujLogDa', () => {
     expect(interpretujLogDa('', 100)).toEqual({ lines: [], truncated: false, fetchError: null });
   });
 });
+
+describe('PB-42 — lista domen przekazana przez wołającego nie jest czytana z węzła drugi raz', () => {
+  const wczytane = { domains: [{ name: 'firma.pl' }, { name: 'sklep.pl' }], daUsername: 'klient1', primaryDomain: 'firma.pl', fetchError: null };
+  const pytaniaODomeny = (get: ReturnType<typeof stanowisko>['get']) =>
+    get.mock.calls.filter((c) => c[0] === '/CMD_API_SHOW_DOMAINS' || c[0] === '/CMD_API_SHOW_USER_CONFIG').length;
+
+  it('readHostingLog: bez listy czyta domeny z węzła, z listą — tylko log', async () => {
+    const bez = stanowisko();
+    await bez.svc.readHostingLog('s1', 'u1', { type: 'error' });
+    expect(pytaniaODomeny(bez.get)).toBeGreaterThan(0);
+
+    const z = stanowisko();
+    const r = await z.svc.readHostingLog('s1', 'u1', { type: 'access', domain: 'sklep.pl' }, wczytane);
+    expect(pytaniaODomeny(z.get)).toBe(0);
+    expect(z.zapytanieLogu()?.params.domain).toBe('sklep.pl');
+    expect(r.fetchError).toBeNull();
+  });
+
+  it('readHostingLog: domena spoza przekazanej listy nadal → 400', async () => {
+    const s = stanowisko();
+    await expect(s.svc.readHostingLog('s1', 'u1', { type: 'access', domain: 'obca.pl' }, wczytane)).rejects.toBeInstanceOf(BadRequestException);
+    expect(s.zapytanieLogu()).toBeUndefined();
+  });
+
+  it('listHostingDnsRecords i listHostingSubdomains korzystają z przekazanej listy', async () => {
+    const s = stanowisko();
+    const spy = vi.spyOn(s.svc, 'listHostingDomainsForSubscription');
+    const wnetrze = s.svc as unknown as { daGetRawForSubscription: () => Promise<unknown>; daGetForSubscription: () => Promise<unknown> };
+    vi.spyOn(wnetrze, 'daGetRawForSubscription').mockResolvedValue({ records: [] });
+    vi.spyOn(wnetrze, 'daGetForSubscription').mockResolvedValue('');
+    await s.svc.listHostingDnsRecords('s1', 'u1', 'sklep.pl', wczytane);
+    await expect(s.svc.listHostingDnsRecords('s1', 'u1', 'obca.pl', wczytane)).rejects.toBeInstanceOf(BadRequestException);
+    const pod = await s.svc.listHostingSubdomains('s1', 'u1', wczytane);
+    expect(pod.domains).toEqual(['firma.pl', 'sklep.pl']);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('assertDomainOwnedBySubscription: przekazana lista — bez odczytu węzła; awaria węzła w liście nadal zgłaszana', async () => {
+    const s = stanowisko();
+    const spy = vi.spyOn(s.svc, 'listHostingDomainsForSubscription');
+    await expect(s.svc.assertDomainOwnedBySubscription('s1', 'u1', 'Sklep.pl', wczytane)).resolves.toBe('sklep.pl');
+    await expect(
+      s.svc.assertDomainOwnedBySubscription('s1', 'u1', 'sklep.pl', { ...wczytane, domains: [], fetchError: 'Serwer hostingowy jest chwilowo niedostępny.' }),
+    ).rejects.toThrow(/chwilowo niedostępny/);
+    expect(spy).not.toHaveBeenCalled();
+  });
+});
