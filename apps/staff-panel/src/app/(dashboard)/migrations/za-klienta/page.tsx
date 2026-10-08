@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { staffGetAdminSubscription } from "@/lib/crm-subscription-data";
-import { StaffApiError } from "@/lib/staff-api";
+import { staffApi, StaffApiError } from "@/lib/staff-api";
 import { FormularzZaKlienta } from "./formularz-za-klienta";
 
 export const dynamic = "force-dynamic";
@@ -9,25 +8,34 @@ export const dynamic = "force-dynamic";
 /**
  * PB-45 — migracja za klienta. Obsługa wypełnia źródło (np. z danych ze zgłoszenia), klient dostaje mail
  * z prośbą o zgodę, a migracja rusza dopiero po jego „Zgadzam się”. Wejście z karty usługi klienta (CRM)
- * albo z kolejki migracji (wtedy ID usługi podaje się ręcznie).
+ * albo z kolejki migracji (wtedy ID usługi podaje się ręcznie). Usługę czyta za tym samym uprawnieniem co założenie
+ * (MIGRATIONS_MANAGE) — nie przez GET /admin/subscriptions/:id, które wymaga jeszcze SUBSCRIPTIONS_MANAGE.
  */
+
+/** Odpowiedź `GET /staff/migrations/za-klienta/usluga/:id`. */
+interface UslugaZaKlienta {
+  id: string;
+  user: { email: string; firstName: string | null; lastName: string | null };
+  account: { domain: string } | null;
+}
+
 export default async function MigracjaZaKlientaPage({
   searchParams,
 }: {
   searchParams: Promise<{ subscriptionId?: string }>;
 }) {
   const { subscriptionId } = await searchParams;
-  let usluga: Awaited<ReturnType<typeof staffGetAdminSubscription>> | null = null;
+  let usluga: UslugaZaKlienta | null = null;
   let blad: string | null = null;
   if (subscriptionId) {
     try {
-      usluga = await staffGetAdminSubscription(subscriptionId.trim());
+      usluga = await staffApi<UslugaZaKlienta>(`/staff/migrations/za-klienta/usluga/${encodeURIComponent(subscriptionId.trim())}`);
     } catch (e) {
       blad =
         e instanceof StaffApiError && e.status === 404
           ? "Nie znaleziono usługi o tym ID."
           : e instanceof StaffApiError && e.status === 403
-            ? "Brak uprawnienia do podglądu usług klienta."
+            ? "Twoja rola nie ma uprawnienia „Migracje (cockpit)”. Poproś administratora o jego nadanie."
             : "Nie udało się pobrać usługi — spróbuj ponownie.";
     }
   }

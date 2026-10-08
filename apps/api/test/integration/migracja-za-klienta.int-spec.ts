@@ -113,6 +113,18 @@ describe('PB-45 — migracja za klienta startuje dopiero po jego zgodzie', () =>
     expect(JSON.stringify(wpis.details)).not.toContain(HASLO_FTP);
   });
 
+  it('nagłówek formularza obsługi: usługa, klient i domena konta; nieznana usługa → 404', async () => {
+    const { k } = await przygotuj();
+    const { zaKlienta } = uslugi();
+    const u = await zaKlienta.uslugaDoFormularza(k.subscription.id);
+    expect(u).toEqual({
+      id: k.subscription.id,
+      user: { email: k.user.email, firstName: k.user.firstName, lastName: k.user.lastName },
+      account: { domain: k.account.domain },
+    });
+    await expect(zaKlienta.uslugaDoFormularza('00000000-0000-4000-8000-000000000000')).rejects.toThrow(/Nie znaleziono usługi/);
+  });
+
   it('szczegóły dla klienta: co i skąd, bez haseł', async () => {
     const { k, operator } = await przygotuj();
     const { zaKlienta, maile } = uslugi();

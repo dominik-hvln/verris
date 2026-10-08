@@ -76,6 +76,24 @@ export class MigracjaZaKlientaService {
     private readonly preflight: MigrationPreflightService,
   ) {}
 
+  /**
+   * Usługa i klient do nagłówka formularza „Migracja za klienta”. Za tym samym uprawnieniem co założenie
+   * (MIGRATIONS_MANAGE): formularz brał to z GET admin/subscriptions/:id (SUBSCRIPTIONS_MANAGE), więc operator
+   * z samym MIGRATIONS_MANAGE (rola „Operacje”) nie mógł otworzyć formularza, choć API pozwalało założyć migrację.
+   */
+  async uslugaDoFormularza(subscriptionId: string): Promise<{
+    id: string;
+    user: { email: string; firstName: string | null; lastName: string | null };
+    account: { domain: string } | null;
+  }> {
+    const sub = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      select: { id: true, user: { select: { email: true, firstName: true, lastName: true } }, account: { select: { domain: true } } },
+    });
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
+    return sub;
+  }
+
   /** Test dostępów z formularza obsługi — ten sam co „Test dostępów” w kreatorze klienta, w dzienniku operator. */
   async testDostepow(opts: { subscriptionId: string; actorUserId: string; zlecenie: CreateMigrationBundleDto }): Promise<PreflightSummary> {
     const sub = await this.prisma.subscription.findUnique({ where: { id: opts.subscriptionId }, select: { id: true, userId: true } });

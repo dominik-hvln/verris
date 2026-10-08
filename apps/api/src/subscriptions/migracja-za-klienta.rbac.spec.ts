@@ -11,7 +11,9 @@ import { MigrationsStaffController } from './migrations.staff.controller.js';
  */
 type U = { userId: string; role: 'USER' | 'STAFF' | 'ADMIN' };
 
-async function wpuszcza(metoda: 'utworzZaKlienta' | 'testDostepowZaKlienta', user: U, uprawnienia: string[] = []): Promise<boolean> {
+type Metoda = 'utworzZaKlienta' | 'testDostepowZaKlienta' | 'uslugaZaKlienta';
+
+async function wpuszcza(metoda: Metoda, user: U, uprawnienia: string[] = []): Promise<boolean> {
   const handler = MigrationsStaffController.prototype[metoda] as unknown as () => unknown;
   const ctx = {
     getHandler: () => handler,
@@ -36,7 +38,9 @@ async function wpuszcza(metoda: 'utworzZaKlienta' | 'testDostepowZaKlienta', use
   return true;
 }
 
-describe.each(['utworzZaKlienta', 'testDostepowZaKlienta'] as const)('PB-45 — %s', (metoda) => {
+// uslugaZaKlienta — nagłówek formularza; za tym samym uprawnieniem co założenie (wcześniej formularz wymagał
+// dodatkowo SUBSCRIPTIONS_MANAGE przez GET admin/subscriptions/:id).
+describe.each(['utworzZaKlienta', 'testDostepowZaKlienta', 'uslugaZaKlienta'] as const)('PB-45 — %s', (metoda) => {
   it('klient (USER) nie wchodzi nawet z kompletem uprawnień', async () => {
     expect(await wpuszcza(metoda, { userId: 'c', role: 'USER' }, ['*'])).toBe(false);
   });

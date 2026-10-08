@@ -96,6 +96,12 @@ export class MigrationsStaffController {
     });
   }
 
+  /** PB-45 — usługa i klient do nagłówka formularza (to samo uprawnienie co założenie migracji za klienta). */
+  @Get('za-klienta/usluga/:subscriptionId')
+  uslugaZaKlienta(@Param('subscriptionId') subscriptionId: string) {
+    return this.zaKlienta.uslugaDoFormularza(subscriptionId);
+  }
+
   /** PB-45 — test dostępów do starego hostingu z formularza obsługi (realne logowanie, bez zapisu danych). */
   @Post('za-klienta/preflight')
   @HttpCode(200)
