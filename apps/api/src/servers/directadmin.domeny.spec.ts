@@ -358,3 +358,38 @@ describe('assertDomainOwnedBySubscription — awaria serwera to nie „cudza dom
     await expect(svc.assertDomainOwnedBySubscription('s1', 'u1', 'a.pl')).rejects.toThrow('nie należy do tej usługi');
   });
 });
+
+describe('usunięcie domeny dodatkowej będącej poddomeną — delegacja w strefie rodzica (t1, 08.10)', () => {
+  // DA przy dodaniu domeny sklep.firma.pl dopisuje do strefy firma.pl rekordy NS (i DS przy DNSSEC — „automated
+  // adding of the DS records over to the parent zone”, https://docs.directadmin.com/other-hosting-services/dns/maintaining-records.html),
+  // a przy usunięciu domeny ich nie zdejmuje: w d3.hvln.pl zostały sieroty test3/4/5, z09.
+  const strefa = {
+    records: [
+      { name: 'firma.pl.', type: 'NS', value: 'ns3.verris.pl.' },
+      { name: 'firma.pl.', type: 'NS', value: 'ns4.verris.pl.' },
+      { name: 'sklep.firma.pl.', type: 'NS', value: 'ns3.verris.pl.' },
+      { name: 'sklep.firma.pl.', type: 'NS', value: 'ns4.verris.pl.' },
+      { name: 'sklep.firma.pl.', type: 'DS', value: '55243 13 2 ABCD' },
+      { name: 'obcy.firma.pl.', type: 'NS', value: 'ns1.inny.pl.' },
+      { name: 'sklep.firma.pl.', type: 'A', value: '1.2.3.4' },
+    ],
+  };
+
+  it('zdejmuje NS (nasze serwery nazw) i DS delegacji, nie rusza innych rekordów', async () => {
+    const s = stanowisko({ get: { '/CMD_API_SHOW_DOMAINS': 'list0=firma.pl&list1=sklep.firma.pl', '/CMD_API_DNS_CONTROL': strefa } });
+    await s.svc.deleteHostingAdditionalDomain('s1', 'u1', 'sklep.firma.pl');
+    expect(s.wyslane(0)).toEqual({ delete: 'yes', confirmed: 'yes', select0: 'sklep.firma.pl', api: 'yes' });
+    const usuniete = s.post.mock.calls.slice(1).map((c) => Object.fromEntries(new URLSearchParams(String(c[1]))));
+    expect(usuniete).toEqual([
+      { action: 'select', delete: 'yes', domain: 'firma.pl', nsrecs0: 'name=sklep.firma.pl.&value=ns3.verris.pl.', api: 'yes' },
+      { action: 'select', delete: 'yes', domain: 'firma.pl', nsrecs0: 'name=sklep.firma.pl.&value=ns4.verris.pl.', api: 'yes' },
+      { action: 'select', delete: 'yes', domain: 'firma.pl', dsrecs0: 'name=sklep.firma.pl.&value=55243%2013%202%20ABCD', api: 'yes' },
+    ]);
+  });
+
+  it('domena niebędąca poddomeną innej na koncie — tylko polecenie usunięcia', async () => {
+    const s = stanowisko({ get: { '/CMD_API_DNS_CONTROL': strefa } });
+    await s.svc.deleteHostingAdditionalDomain('s1', 'u1', 'sklep.pl');
+    expect(s.post).toHaveBeenCalledTimes(1);
+  });
+});

@@ -1896,17 +1896,65 @@ export class DirectAdminService {
     if (!domain) throw new BadRequestException('Brak domeny do usunięcia.');
     const primary = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
     if (domain === primary) throw new BadRequestException('Nie można usunąć domeny głównej konta.');
+    const naKoncie = (await this.listHostingDomainsForSubscription(subscriptionId, userId)).domains.map((d) => d.name.toLowerCase());
     // DA: usuwanie domeny przez select0 + delete=yes + confirmed=yes (bez action).
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DOMAIN', {
       delete: 'yes',
       confirmed: 'yes',
       select0: domain,
     });
+    await this.usunDelegacjeWStrefieRodzica(subscriptionId, userId, domain, naKoncie);
     await this.audit.record({
       action: HostingResourceActions.HOSTING_ADDON_DOMAIN_DELETED,
       userId, actorUserId: userId, details: { subscriptionId, domain },
     });
     return { ok: true as const };
+  }
+
+  /**
+   * Domena będąca poddomeną innej domeny konta (sklep.firma.pl przy firma.pl): DA przy jej dodaniu dopisuje do strefy
+   * rodzica NS (nasze serwery nazw) i DS — „automated adding of the DS records over to the parent zone”
+   * (https://docs.directadmin.com/other-hosting-services/dns/maintaining-records.html) — a przy usunięciu domeny ich
+   * nie zdejmuje (t1 08.10: sieroty test3/4/5, z09 w d3.hvln.pl). Zostający DS z kluczem nieistniejącej strefy psuje
+   * rozwiązywanie tej nazwy, gdy ktoś doda ją ponownie. Zdejmujemy NS wskazujące nasze serwery (jak NS samej strefy)
+   * i DS tej nazwy; delegację na obce serwery zostawiamy. Nieudane sprzątanie nie cofa usunięcia domeny — log + audyt.
+   */
+  private async usunDelegacjeWStrefieRodzica(subscriptionId: string, userId: string, domena: string, naKoncie: string[]) {
+    const rodzic = naKoncie.filter((d) => d !== domena && domena.endsWith(`.${d}`)).sort((a, b) => b.length - a.length)[0];
+    if (!rodzic) return;
+    const strefa = await this.listHostingDnsRecords(subscriptionId, userId, rodzic);
+    if (strefa.fetchError) {
+      this.logger.warn(`delegacja ${domena} w ${rodzic}: nie odczytano strefy (${strefa.fetchError})`);
+      return;
+    }
+    const etykieta = nazwaRekorduDns(domena, rodzic);
+    const naszeNs = new Set(strefa.records.filter((r) => r.type === 'NS' && nazwaRekorduDns(r.name, rodzic) === '@').map((r) => r.value.toLowerCase()));
+    const delegacja = strefa.records.filter(
+      (r) =>
+        nazwaRekorduDns(r.name, rodzic) === etykieta &&
+        (r.type === 'DS' || (r.type === 'NS' && naszeNs.has(r.value.toLowerCase()))),
+    );
+    let pozostale = 0;
+    for (const r of delegacja) {
+      try {
+        await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DNS_CONTROL', {
+          action: 'select',
+          delete: 'yes',
+          domain: rodzic,
+          [`${r.type.toLowerCase()}recs0`]: zaznaczenieRekorduDns(r.name, r.value),
+        });
+      } catch (err) {
+        pozostale += 1;
+        this.logger.warn(`delegacja ${domena}: ${r.type} ${r.value} — ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+    if (delegacja.length) {
+      await this.audit.record({
+        action: HostingResourceActions.HOSTING_ADDON_DOMAIN_DELETED,
+        userId, actorUserId: userId,
+        details: { subscriptionId, domain: domena, delegacjaWStrefie: rodzic, usunieteRekordy: delegacja.length - pozostale, pozostale },
+      });
+    }
   }
 
   /* ===================== PANEL-12: statystyki konta (transfer/dysk) ===================== */

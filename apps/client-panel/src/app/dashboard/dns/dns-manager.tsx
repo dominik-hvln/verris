@@ -231,18 +231,21 @@ export function DnsManager({
                 </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingId(r.id);
-                    setAdding(false);
-                  }}
-                  className="p-2 rounded-lg border border-white/10 hover:bg-white/5"
-                  title="Edytuj"
-                  aria-label={`Edytuj rekord ${r.type} ${r.name}`}
-                >
-                  <Pencil className="h-3.5 w-3.5 text-neutral-300" />
-                </button>
+                {/* DS (delegacja DNSSEC) zakłada serwer DNS — formularz go nie zna; można go tylko usunąć (t1, 08.10). */}
+                {(TYPES as readonly string[]).includes(r.type) ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingId(r.id);
+                      setAdding(false);
+                    }}
+                    className="p-2 rounded-lg border border-white/10 hover:bg-white/5"
+                    title="Edytuj"
+                    aria-label={`Edytuj rekord ${r.type} ${r.name}`}
+                  >
+                    <Pencil className="h-3.5 w-3.5 text-neutral-300" />
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => onDelete(r)}

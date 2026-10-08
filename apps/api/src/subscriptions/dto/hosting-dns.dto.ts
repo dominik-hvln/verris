@@ -7,6 +7,12 @@ import { Type } from 'class-transformer';
  * dowolna długość, znaki nowej linii w wartości.
  */
 export const TYPY_REKORDOW_DNS = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'SRV', 'NS', 'CAA'] as const;
+/**
+ * DS (delegacja DNSSEC w strefie rodzica) zakłada serwer DNS przy domenie-poddomenie — klient może go tylko usunąć
+ * (sieroty po usuniętych domenach, t1 08.10), nie dodać ani zmienić.
+ */
+export const TYPY_REKORDOW_DNS_DO_USUNIECIA = [...TYPY_REKORDOW_DNS, 'DS'] as const;
+const NIEOBSLUGIWANY_TYP = { message: 'Nieobsługiwany typ rekordu DNS.' };
 
 class RekordDnsBaza {
   @IsString()
@@ -19,9 +25,6 @@ class RekordDnsBaza {
   @Matches(/^(@|[A-Za-z0-9_*]([A-Za-z0-9_*.-]{0,252})?\.?)$/, { message: 'Niepoprawna nazwa rekordu.' })
   name!: string;
 
-  @IsIn(TYPY_REKORDOW_DNS)
-  type!: (typeof TYPY_REKORDOW_DNS)[number];
-
   /** Bez znaków sterujących — wartość trafia do pliku strefy. */
   @IsString()
   @MinLength(1)
@@ -31,6 +34,9 @@ class RekordDnsBaza {
 }
 
 export class UtworzRekordDnsDto extends RekordDnsBaza {
+  @IsIn(TYPY_REKORDOW_DNS, NIEOBSLUGIWANY_TYP)
+  type!: (typeof TYPY_REKORDOW_DNS)[number];
+
   @IsOptional()
   @IsInt()
   @Min(60)
@@ -38,7 +44,10 @@ export class UtworzRekordDnsDto extends RekordDnsBaza {
   ttl?: number;
 }
 
-export class UsunRekordDnsDto extends RekordDnsBaza {}
+export class UsunRekordDnsDto extends RekordDnsBaza {
+  @IsIn(TYPY_REKORDOW_DNS_DO_USUNIECIA, NIEOBSLUGIWANY_TYP)
+  type!: (typeof TYPY_REKORDOW_DNS_DO_USUNIECIA)[number];
+}
 
 /** Rekord bez domeny — część edycji (domena jest raz, na zewnątrz). */
 class RekordDnsCzesc {
@@ -46,7 +55,7 @@ class RekordDnsCzesc {
   @Matches(/^(@|[A-Za-z0-9_*]([A-Za-z0-9_*.-]{0,252})?\.?)$/, { message: 'Niepoprawna nazwa rekordu.' })
   name!: string;
 
-  @IsIn(TYPY_REKORDOW_DNS)
+  @IsIn(TYPY_REKORDOW_DNS, NIEOBSLUGIWANY_TYP)
   type!: (typeof TYPY_REKORDOW_DNS)[number];
 
   @IsString()
