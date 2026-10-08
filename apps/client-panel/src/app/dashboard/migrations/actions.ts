@@ -37,6 +37,8 @@ export interface MigrationBundleInput {
   imap?: MigrationImapInput[];
   notes?: string;
   consentAccepted?: boolean;
+  /** Tryb „Wszystko naraz”: brakujące skrzynki docelowe zakładamy z hasłem ze starego hostingu. */
+  utworzBrakujaceSkrzynki?: boolean;
 }
 
 type ActionOk<T> = ({ ok: true } & T) | { error: string };
@@ -60,6 +62,7 @@ function bundleBody(input: MigrationBundleInput) {
     imap: input.imap && input.imap.length > 0 ? input.imap : undefined,
     notes: input.notes?.trim() || undefined,
     consentAccepted: input.consentAccepted === true ? true : undefined,
+    utworzBrakujaceSkrzynki: input.utworzBrakujaceSkrzynki === true ? true : undefined,
   };
 }
 

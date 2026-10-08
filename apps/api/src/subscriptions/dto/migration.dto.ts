@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsEnum,
   IsIn,
   IsInt,
@@ -229,6 +230,13 @@ export class CreateMigrationBundleDto {
 
   @IsOptional() @IsString() @MaxLength(5000)
   notes?: string;
+
+  /**
+   * Tryb „Wszystko naraz” (08.10): skrzynki docelowe, których jeszcze nie ma na koncie, zakładamy przed startem z tym
+   * samym hasłem co u poprzedniego dostawcy — klient loguje się po przeniesieniu tak jak wcześniej.
+   */
+  @IsOptional() @IsBoolean()
+  utworzBrakujaceSkrzynki?: boolean;
 
   /**
    * Zgoda/upoważnienie klienta (RODO): potwierdza prawo do przeniesienia danych

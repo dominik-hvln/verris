@@ -82,6 +82,16 @@ export interface MigrationBundleDetail extends MigrationBundleSummary {
 export interface DiscoveredDatabase {
   name: string;
   sizeMb: number | null;
+  /** Plesk: subskrypcja (konto) bazy. */
+  konto?: string;
+}
+/** Strona na starym hostingu — katalog względem startu FTP konta (null = nieznany). */
+export interface DiscoveredSite {
+  domain: string;
+  kind: 'main' | 'addon' | 'sub';
+  ftpPath: string | null;
+  konto?: string;
+  ftpUser?: string;
 }
 export interface DiscoveredMailbox {
   email: string;
@@ -95,6 +105,8 @@ export interface DiscoveryResult {
   domains: string[];
   databases: DiscoveredDatabase[];
   mailboxes: DiscoveredMailbox[];
+  /** Starsze API mogło nie zwracać — traktuj brak jak pustą listę. */
+  sites?: DiscoveredSite[];
   ftpHint: { host: string; port: number; username: string; protocol: 'ftp' } | null;
   warnings: string[];
 }

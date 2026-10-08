@@ -34,6 +34,8 @@ describe('MigrationOrchestratorService', () => {
   const directAdmin = {
     createHostingMysqlDatabase: vi.fn(),
     assertDomainOwnedBySubscription: vi.fn(async (_s: string, _u: string, d: string) => d),
+    skrzynkiNaDomenie: vi.fn(async () => ['jest@target.example']),
+    createHostingEmailAccount: vi.fn(async () => ({ ok: true })),
   };
   const preflight = {
     sprawdzSkrzynke: vi.fn(async () => ({ kind: 'imap', target: 'imap://x', status: 'ok', message: 'ok', latencyMs: 1 })),
@@ -273,6 +275,47 @@ describe('MigrationOrchestratorService', () => {
     ).rejects.toThrow('stop-po-walidacji');
     const bundle = JSON.parse(String(prisma.migrationRequest.create.mock.calls[0][0].data.sourceBundleEnc).replace('enc:', ''));
     expect(bundle.imap[0]).toMatchObject({ port: 993, username: 'biuro@target.example', email: 'biuro@target.example' });
+  });
+
+  it('„Wszystko naraz” (08.10): brakujące skrzynki docelowe zakładane z hasłem ze starego hostingu, istniejące zostają', async () => {
+    prisma.subscription.findFirst.mockResolvedValue({ id: 'sub_1', userId: 'user_1', account: { domain: 'target.example' } });
+    prisma.migrationRequest.create.mockImplementationOnce(async () => {
+      throw new Error('stop-po-walidacji');
+    });
+    await expect(
+      service().createBundle('sub_1', 'user_1', {
+        consentAccepted: true,
+        utworzBrakujaceSkrzynki: true,
+        imap: [
+          { host: 'imap.stary.pl', email: 'jest@target.example', password: 'a' },
+          { host: 'imap.stary.pl', email: 'Nowa@Target.example', password: 'stare-haslo' },
+        ],
+      }),
+    ).rejects.toThrow('stop-po-walidacji');
+    expect(directAdmin.skrzynkiNaDomenie).toHaveBeenCalledTimes(1);
+    expect(directAdmin.createHostingEmailAccount).toHaveBeenCalledTimes(1);
+    expect(directAdmin.createHostingEmailAccount).toHaveBeenCalledWith('sub_1', 'user_1', { email: 'nowa@target.example', password: 'stare-haslo' });
+  });
+
+  it('„Wszystko naraz”: nieudane założenie skrzynki zatrzymuje start z jej adresem; bez trybu nic nie zakładamy', async () => {
+    prisma.subscription.findFirst.mockResolvedValue({ id: 'sub_1', userId: 'user_1', account: { domain: 'target.example' } });
+    directAdmin.createHostingEmailAccount.mockRejectedValueOnce(new Error('Hasło jest za słabe'));
+    await expect(
+      service().createBundle('sub_1', 'user_1', {
+        consentAccepted: true,
+        utworzBrakujaceSkrzynki: true,
+        imap: [{ host: 'imap.stary.pl', email: 'nowa@target.example', password: '123' }],
+      }),
+    ).rejects.toThrow(/Nie udało się założyć skrzynki nowa@target.example: Hasło jest za słabe/);
+    expect(prisma.migrationRequest.create).not.toHaveBeenCalled();
+
+    prisma.migrationRequest.create.mockImplementationOnce(async () => {
+      throw new Error('stop-po-walidacji');
+    });
+    await expect(
+      service().createBundle('sub_1', 'user_1', { consentAccepted: true, imap: [{ host: 'imap.stary.pl', email: 'nowa@target.example', password: 'x' }] }),
+    ).rejects.toThrow('stop-po-walidacji');
+    expect(directAdmin.createHostingEmailAccount).toHaveBeenCalledTimes(1);
   });
 
   it('rejects a migration without RODO consent', async () => {

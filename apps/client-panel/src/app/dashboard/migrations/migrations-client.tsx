@@ -23,6 +23,11 @@ const OPCJE: Array<{ id: Wybor; tytul: string; opis: string }> = [
   { id: 'pliki', tytul: 'Pliki', opis: 'Same pliki z serwera FTP/SFTP.' },
   { id: 'baza', tytul: 'Baza danych', opis: 'Jedna lub kilka baz MySQL.' },
   { id: 'poczta', tytul: 'Poczta', opis: 'Wiadomości i foldery jednej skrzynki (IMAP).' },
+  {
+    id: 'wszystko',
+    tytul: 'Wszystko naraz',
+    opis: 'Zaawansowane: pliki, bazy i skrzynki w jednej migracji — brakujące skrzynki założymy u nas.',
+  },
 ];
 
 export function MigrationsClient({ serviceId, bundles, tylkoPoczta = false }: Props) {
@@ -38,7 +43,7 @@ export function MigrationsClient({ serviceId, bundles, tylkoPoczta = false }: Pr
             Hasła szyfrujemy, używamy wyłącznie podczas transferu i usuwamy po zakończeniu.
           </p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" role="radiogroup" aria-label="Co przenosimy">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5" role="radiogroup" aria-label="Co przenosimy">
           {OPCJE.map((o) => (
             <button
               key={o.id}

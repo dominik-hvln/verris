@@ -10,7 +10,7 @@ import {
   type MigrationMysqlInput,
 } from './actions';
 import { bezpiecznaAkcja } from '@/lib/akcja';
-import type { DiscoveryResult, PreflightSummary } from './types';
+import type { DiscoveredSite, DiscoveryResult, PreflightSummary } from './types';
 import { Checkbox } from '@/components/panel/checkbox';
 import { Stepper } from '@/components/panel/stepper';
 import { plForm } from '@/lib/pl';
@@ -22,12 +22,46 @@ interface Props {
   zakres: Zakres;
 }
 
-export type Zakres = 'strona' | 'pliki' | 'baza';
+export type Zakres = 'strona' | 'pliki' | 'baza' | 'wszystko';
 
 interface DbRow extends MigrationMysqlInput {
   key: string;
   username: string;
   password: string;
+  /** Wykryte bazy przychodzą odznaczone, gdy nie wiadomo, która należy do wybranej strony. */
+  wlaczona: boolean;
+  wykryta?: boolean;
+}
+
+interface SkrzynkaRow {
+  key: string;
+  /** Adres u nas = adres u starego dostawcy. */
+  email: string;
+  host: string;
+  port: number;
+  /** Login u starego dostawcy — puste = adres skrzynki. */
+  login: string;
+  password: string;
+}
+
+const RODZAJ_STRONY: Record<DiscoveredSite['kind'], string> = { main: 'strona główna', addon: 'strona dodatkowa', sub: 'poddomena' };
+
+/** Katalog strony, gdy panel go nie podał — domyślne układy paneli. */
+function katalogDomyslny(panel: string | undefined, domena: string, glowna: boolean): string {
+  if (panel === 'cpanel') return glowna ? '/public_html' : '';
+  if (panel === 'directadmin') return domena ? `/domains/${domena}/public_html` : '';
+  if (panel === 'plesk') return glowna ? '/httpdocs' : '';
+  return '';
+}
+
+/** Bazy do zaznaczenia przy stronie: Plesk wie, do której subskrypcji należy baza; gdzie indziej — tylko gdy jest jedna. */
+function bazyDlaStrony(d: DiscoveryResult, strona: DiscoveredSite | undefined): (nazwa: string) => boolean {
+  if (d.databases.length === 1) return () => true;
+  if (strona?.konto && d.databases.some((b) => b.konto)) {
+    const nalezace = d.databases.filter((b) => b.konto === strona.konto);
+    return (nazwa) => nalezace.length === 1 ? nalezace[0]!.name === nazwa : nalezace.some((b) => b.name === nazwa);
+  }
+  return () => false;
 }
 
 const PROVIDER_PRESETS: Array<{
@@ -68,6 +102,10 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
 
   const includeFiles = zakres !== 'baza';
   const includeDbs = zakres !== 'pliki';
+  const includeMail = zakres === 'wszystko';
+  const [skrzynki, setSkrzynki] = useState<SkrzynkaRow[]>([]);
+  const [zalozSkrzynki, setZalozSkrzynki] = useState(true);
+  const [wybranaStrona, setWybranaStrona] = useState('');
   const [ftpProtocol, setFtpProtocol] = useState<'ftp' | 'ftps' | 'sftp'>('sftp');
   const [ftpHost, setFtpHost] = useState('');
   const [ftpPort, setFtpPort] = useState(22);
@@ -77,7 +115,7 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
   const [ftpPath, setFtpPath] = useState('');
 
   const [dbs, setDbs] = useState<DbRow[]>(() =>
-    zakres === 'baza' ? [{ key: nextKey(), host: '', port: 3306, username: '', password: '', database: '' }] : [],
+    zakres === 'baza' ? [{ key: nextKey(), host: '', port: 3306, username: '', password: '', database: '', wlaczona: true }] : [],
   );
 
   const [panelHost, setPanelHost] = useState('');
@@ -92,8 +130,11 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   const hasAnySource = useMemo(
-    () => (includeFiles && ftpHost.trim().length > 0) || (includeDbs && dbs.some((d) => d.database.trim())),
-    [includeFiles, includeDbs, ftpHost, dbs],
+    () =>
+      (includeFiles && ftpHost.trim().length > 0) ||
+      (includeDbs && dbs.some((d) => d.wlaczona && d.database.trim())) ||
+      (includeMail && skrzynki.some((m) => m.email.trim() && m.password)),
+    [includeFiles, includeDbs, includeMail, ftpHost, dbs, skrzynki],
   );
 
   function buildInput() {
@@ -115,15 +156,37 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
           : undefined,
       mysql: includeDbs
         ? dbs
-            .filter((d) => d.database.trim())
-            .map(({ key: _k, username, password, ...db }) => ({
+            .filter((d) => d.wlaczona && d.database.trim())
+            .map(({ key: _k, wlaczona: _w, wykryta: _wy, username, password, ...db }) => ({
               ...db,
               ...(username.trim() ? { username: username.trim() } : {}),
               ...(password ? { password } : {}),
             }))
         : [],
-      imap: [],
+      imap: includeMail
+        ? skrzynki
+            .filter((m) => m.email.trim() && m.host.trim() && m.password)
+            .map((m) => ({
+              host: m.host.trim(),
+              port: m.port,
+              username: m.login.trim() || m.email.trim().toLowerCase(),
+              password: m.password,
+              email: m.email.trim().toLowerCase(),
+            }))
+        : [],
     };
+  }
+
+  /** Wybór strony z listy wykrytych: domena źródłowa, katalog plików, login FTP (Plesk) i bazy tej strony. */
+  function wybierzStrone(domena: string, d: DiscoveryResult | null = discovery) {
+    setWybranaStrona(domena);
+    if (!d) return;
+    const strona = (d.sites ?? []).find((x) => x.domain === domena);
+    setSourceDomain(domena);
+    setFtpPath(strona?.ftpPath ?? katalogDomyslny(d.panelType, domena, (strona?.kind ?? 'main') === 'main'));
+    if (strona?.ftpUser) setFtpUser(strona.ftpUser);
+    const zaznacz = bazyDlaStrony(d, strona);
+    setDbs((rows) => rows.map((r) => (r.wykryta ? { ...r, wlaczona: zaznacz(r.database) } : r)));
   }
 
   async function runDiscovery() {
@@ -158,18 +221,6 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
     setFtpHost(d.ftpHint?.host ?? panelHost.trim());
     setFtpUser(d.ftpHint?.username ?? panelUser);
     setFtpPass(panelPass);
-    // Katalog strony, nie katalog domowy konta (tam są poczta i hasła skrzynek).
-    const dom = d.primaryDomain ?? '';
-    setFtpPath(
-      preset.panelType === 'cpanel'
-        ? '/public_html'
-        : preset.panelType === 'directadmin' && dom
-          ? `/domains/${dom}/public_html`
-          : preset.panelType === 'plesk'
-            ? '/httpdocs'
-            : '',
-    );
-    if (d.primaryDomain && !sourceDomain) setSourceDomain(d.primaryDomain);
     if (includeDbs) setDbs(
       d.databases.map((db) => ({
         key: nextKey(),
@@ -178,8 +229,19 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
         username: '',
         password: '',
         database: db.name,
+        wlaczona: false,
+        wykryta: true,
       })),
     );
+    if (includeMail) setSkrzynki(
+      d.mailboxes.map((m) => ({ key: nextKey(), email: m.email, host: panelHost.trim(), port: 993, login: '', password: '' })),
+    );
+    // Katalog strony, nie katalog domowy konta (tam są poczta i hasła skrzynek). Strona główna na start —
+    // przy kilku stronach klient wybiera z listy w następnym kroku (uwaga Dominika 08.10).
+    const sites = d.sites ?? [];
+    const start = sites.find((x) => x.kind === 'main')?.domain ?? sites[0]?.domain ?? d.primaryDomain ?? '';
+    if (start) wybierzStrone(start, d);
+    else setFtpPath(katalogDomyslny(preset.panelType, d.primaryDomain ?? '', true));
     setStep(1);
   }
 
@@ -212,7 +274,7 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
   async function submit() {
     setMsg(null);
     if (!hasAnySource) {
-      setMsg({ type: 'err', text: zakres === 'baza' ? 'Wpisz nazwę bazy.' : 'Wpisz adres serwera z plikami.' });
+      setMsg({ type: 'err', text: zakres === 'baza' ? 'Wpisz nazwę bazy.' : zakres === 'wszystko' ? 'Wpisz dane plików, bazy albo skrzynki.' : 'Wpisz adres serwera z plikami.' });
       return;
     }
     if (!consent) {
@@ -225,6 +287,7 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
         ...buildInput(),
         notes: notes.trim() || undefined,
         consentAccepted: true,
+        utworzBrakujaceSkrzynki: includeMail && zalozSkrzynki ? true : undefined,
       }),
     );
     setBusy(false);
@@ -235,6 +298,7 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
     setMsg({ type: 'ok', text: 'Migracja została uruchomiona. Poniżej zobaczysz postęp na żywo.' });
     setFtpPass('');
     setDbs((rows) => rows.map((r) => ({ ...r, password: '' })));
+    setSkrzynki((rows) => rows.map((r) => ({ ...r, password: '' })));
     onQueued?.();
   }
 
@@ -298,6 +362,13 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
           setFtpPath={setFtpPath}
           dbs={dbs}
           setDbs={setDbs}
+          wybranaStrona={wybranaStrona}
+          onWybierzStrone={(d) => wybierzStrone(d)}
+          skrzynki={skrzynki}
+          setSkrzynki={setSkrzynki}
+          zalozSkrzynki={zalozSkrzynki}
+          setZalozSkrzynki={setZalozSkrzynki}
+          panelHost={panelHost}
         />
       ) : null}
 
@@ -310,6 +381,8 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
           zakres={zakres}
           ftpHost={ftpHost}
           dbs={dbs}
+          skrzynki={skrzynki}
+          zalozSkrzynki={zalozSkrzynki}
           targetDomain={targetDomain}
           notes={notes}
           setNotes={setNotes}
@@ -389,6 +462,7 @@ const OPIS_ZAKRESU: Record<Zakres, string> = {
   strona: 'Przeniesiemy całą stronę: pliki i bazy danych (WordPress, sklep).',
   pliki: 'Przeniesiemy same pliki z serwera FTP/SFTP starego hostingu.',
   baza: 'Przeniesiemy bazę danych MySQL ze starego hostingu.',
+  wszystko: 'Przeniesiemy wszystko naraz: pliki strony, bazy danych i skrzynki pocztowe — brakujące skrzynki założymy u nas.',
 };
 
 function StepMethod(props: {
@@ -532,10 +606,20 @@ function StepSources(props: {
   setFtpPath: (v: string) => void;
   dbs: DbRow[];
   setDbs: React.Dispatch<React.SetStateAction<DbRow[]>>;
+  wybranaStrona: string;
+  onWybierzStrone: (domena: string) => void;
+  skrzynki: SkrzynkaRow[];
+  setSkrzynki: React.Dispatch<React.SetStateAction<SkrzynkaRow[]>>;
+  zalozSkrzynki: boolean;
+  setZalozSkrzynki: (v: boolean) => void;
+  panelHost: string;
 }) {
   const protocolId = useId();
+  const stronaId = useId();
   const { discovery } = props;
   const includeFiles = props.zakres !== 'baza';
+  const sites = discovery?.sites ?? [];
+  const wybrana = sites.find((x) => x.domain === props.wybranaStrona);
   return (
     <div className="space-y-5">
       {discovery ? (
@@ -543,7 +627,7 @@ function StepSources(props: {
           <p className="font-semibold text-emerald-200">
             Wykryto: {discovery.domains.length} {plForm(discovery.domains.length, 'domena', 'domeny', 'domen')}, {discovery.databases.length} {plForm(discovery.databases.length, 'baza', 'bazy', 'baz')} ({discovery.panelType}).
           </p>
-          {props.zakres === 'strona' ? (
+          {props.zakres === 'strona' || props.zakres === 'wszystko' ? (
             <p className="mt-1 text-emerald-100/70">Strona na WordPressie? Login i hasło bazy zostaw puste, odczytamy je sami.</p>
           ) : null}
           {discovery.warnings.map((w) => (
@@ -552,12 +636,36 @@ function StepSources(props: {
         </div>
       ) : null}
 
+      {includeFiles && sites.length > 1 ? (
+        <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-2">
+          <label htmlFor={stronaId} className="space-y-1.5 block">
+            <span className="text-sm font-semibold text-white">Którą stronę przenosimy?</span>
+            <Select
+              id={stronaId}
+              value={props.wybranaStrona}
+              onChange={props.onWybierzStrone}
+              aria-label="Strona do przeniesienia"
+              options={sites.map((x) => ({
+                value: x.domain,
+                label: `${x.domain} — ${RODZAJ_STRONY[x.kind]}${x.konto && x.konto !== x.domain ? ` (konto ${x.konto})` : ''}`,
+              }))}
+            />
+          </label>
+          <p className="text-xs text-neutral-500">
+            Na starym hostingu {plForm(sites.length, 'jest', 'są', 'jest')} {sites.length} {plForm(sites.length, 'strona', 'strony', 'stron')}.
+            Przeniesiemy tylko wybraną —{' '}
+            {wybrana?.ftpPath ? <>pliki z katalogu <span className="text-neutral-300">{wybrana.ftpPath}</span></> : 'katalog znajdziemy sami'}
+            {discovery?.databases.length ? ', zaznacz poniżej jej bazy.' : '.'} Kolejną stronę przeniesiesz osobną migracją.
+          </p>
+        </section>
+      ) : null}
+
       <div className="grid gap-3 md:grid-cols-2">
         <label className="space-y-1.5 block">
           <span className={labelText}>Domena docelowa (u nas)</span>
           <input value={props.targetDomain} onChange={(e) => props.setTargetDomain(e.target.value)} className={input} placeholder="twojadomena.pl" />
         </label>
-        {props.zakres === 'strona' ? (
+        {props.zakres === 'strona' || props.zakres === 'wszystko' ? (
           <label className="space-y-1.5 block">
             <span className={labelText}>Domena na starym hostingu (dla podmiany URL w WordPress)</span>
             <input value={props.sourceDomain} onChange={(e) => props.setSourceDomain(e.target.value)} className={input} placeholder="np. stara-domena.pl (jeśli inna)" />
@@ -611,17 +719,31 @@ function StepSources(props: {
       {props.zakres !== 'pliki' ? (
       <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-white">Bazy danych MySQL ({props.dbs.length})</p>
+          <p className="text-sm font-semibold text-white">
+            Bazy danych MySQL ({props.dbs.filter((d) => d.wlaczona).length}
+            {props.dbs.some((d) => !d.wlaczona) ? ` z ${props.dbs.length}` : ''})
+          </p>
           <Button
             type="button"
-            onClick={() => props.setDbs((r) => [...r, { key: nextKey(), host: props.ftpHost || '', port: 3306, username: '', password: '', database: '' }])}
+            onClick={() => props.setDbs((r) => [...r, { key: nextKey(), host: props.ftpHost || '', port: 3306, username: '', password: '', database: '', wlaczona: true }])}
             className="bg-white/10 hover:bg-white/20 text-white text-xs"
           >
             + dodaj bazę
           </Button>
         </div>
         {props.dbs.map((row, i) => (
-          <div key={row.key} className="grid gap-2 md:grid-cols-6 rounded-xl border border-white/5 p-2">
+          <div key={row.key} className={`grid gap-2 md:grid-cols-6 rounded-xl border border-white/5 p-2 ${row.wlaczona ? '' : 'opacity-60'}`}>
+            {row.wykryta ? (
+              <label className="flex items-center gap-2 text-xs text-neutral-300 md:col-span-6">
+                <Checkbox
+                  checked={row.wlaczona}
+                  onChange={(e) => patch(props.setDbs, i, { wlaczona: e.target.checked })}
+                  aria-label={`Przenieś bazę ${row.database}`}
+                  className="h-4 w-4 accent-cyan-500"
+                />
+                Przenieś bazę <span className="text-white">{row.database}</span>
+              </label>
+            ) : null}
             <input className={`${input} md:col-span-2`} aria-label="Serwer bazy" placeholder="serwer bazy" value={row.host} onChange={(e) => patch(props.setDbs, i, { host: e.target.value })} />
             <input className={input} type="number" aria-label="Port bazy" placeholder="port" value={row.port} onChange={(e) => patch(props.setDbs, i, { port: Number(e.target.value) })} />
             <input className={input} aria-label="Nazwa bazy" placeholder="nazwa bazy" value={row.database} onChange={(e) => patch(props.setDbs, i, { database: e.target.value })} />
@@ -632,6 +754,11 @@ function StepSources(props: {
             </div>
           </div>
         ))}
+        {props.dbs.some((d) => d.wykryta) && !props.dbs.some((d) => d.wlaczona) ? (
+          <p className="text-xs text-amber-200/80">
+            Zaznacz bazę wybranej strony — przy WordPressie jej nazwę znajdziesz w pliku wp-config.php (DB_NAME).
+          </p>
+        ) : null}
         {props.dbs.length === 0 ? (
           <p className="text-xs text-neutral-500">Brak baz. Dodaj, jeśli Twoja strona ich używa (np. WordPress, sklep).</p>
         ) : includeFiles ? (
@@ -641,6 +768,51 @@ function StepSources(props: {
           </p>
         ) : null}
       </section>
+      ) : null}
+
+      {props.zakres === 'wszystko' ? (
+        <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-white">Skrzynki pocztowe ({props.skrzynki.length})</p>
+            <Button
+              type="button"
+              onClick={() =>
+                props.setSkrzynki((r) => [...r, { key: nextKey(), email: '', host: props.panelHost.trim() || props.ftpHost.trim(), port: 993, login: '', password: '' }])
+              }
+              className="bg-white/10 hover:bg-white/20 text-white text-xs"
+            >
+              + dodaj skrzynkę
+            </Button>
+          </div>
+          {props.skrzynki.map((row, i) => (
+            <div key={row.key} className="grid gap-2 md:grid-cols-6 rounded-xl border border-white/5 p-2">
+              <input className={`${input} md:col-span-2`} aria-label="Adres skrzynki" placeholder="adres, np. biuro@firma.pl" value={row.email} onChange={(e) => patch(props.setSkrzynki, i, { email: e.target.value })} />
+              <input className={input} aria-label="Serwer poczty (IMAP)" placeholder="serwer IMAP" value={row.host} onChange={(e) => patch(props.setSkrzynki, i, { host: e.target.value })} />
+              <input className={input} type="number" aria-label="Port IMAP" value={row.port} onChange={(e) => patch(props.setSkrzynki, i, { port: Number(e.target.value) })} />
+              <input className={input} aria-label="Login skrzynki" placeholder="login (puste = adres)" autoComplete="off" value={row.login} onChange={(e) => patch(props.setSkrzynki, i, { login: e.target.value })} />
+              <div className="flex gap-1">
+                <input className={input} type="password" aria-label="Hasło skrzynki" placeholder="hasło" autoComplete="new-password" value={row.password} onChange={(e) => patch(props.setSkrzynki, i, { password: e.target.value })} />
+                <button type="button" onClick={() => props.setSkrzynki((r) => r.filter((_, j) => j !== i))} className="px-2 text-rose-300 hover:text-rose-200" aria-label="Usuń skrzynkę">×</button>
+              </div>
+            </div>
+          ))}
+          {props.skrzynki.length === 0 ? (
+            <p className="text-xs text-neutral-500">Brak skrzynek. Dodaj te, które chcesz przenieść — podaj adres i hasło u obecnego dostawcy.</p>
+          ) : (
+            <p className="text-xs text-neutral-500">Skrzynki bez hasła pominiemy. Port 993 to standard (IMAP z szyfrowaniem).</p>
+          )}
+          <label className="flex items-start gap-2.5 text-xs text-neutral-300">
+            <Checkbox
+              checked={props.zalozSkrzynki}
+              onChange={(e) => props.setZalozSkrzynki(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-cyan-500"
+            />
+            <span>
+              Załóż u nas skrzynki, których jeszcze nie ma — z tym samym hasłem co u obecnego dostawcy. Adres musi być
+              na domenie tej usługi.
+            </span>
+          </label>
+        </section>
       ) : null}
     </div>
   );
@@ -711,6 +883,8 @@ function StepStart(props: {
   zakres: Zakres;
   ftpHost: string;
   dbs: DbRow[];
+  skrzynki: SkrzynkaRow[];
+  zalozSkrzynki: boolean;
   targetDomain: string;
   notes: string;
   setNotes: (v: string) => void;
@@ -729,8 +903,17 @@ function StepStart(props: {
         ) : null}
         {props.zakres !== 'pliki' ? (
           <li className="flex items-center gap-2">
-            <span className={props.dbs.length > 0 ? 'text-emerald-400' : 'text-neutral-600'}>●</span>
-            <span className="text-neutral-200">Bazy danych: {props.dbs.filter((d) => d.database.trim()).length}</span>
+            <span className={props.dbs.some((d) => d.wlaczona) ? 'text-emerald-400' : 'text-neutral-600'}>●</span>
+            <span className="text-neutral-200">Bazy danych: {props.dbs.filter((d) => d.wlaczona && d.database.trim()).length}</span>
+          </li>
+        ) : null}
+        {props.zakres === 'wszystko' ? (
+          <li className="flex items-center gap-2">
+            <span className={props.skrzynki.some((m) => m.email.trim() && m.password) ? 'text-emerald-400' : 'text-neutral-600'}>●</span>
+            <span className="text-neutral-200">
+              Skrzynki: {props.skrzynki.filter((m) => m.email.trim() && m.password).length}
+              {props.zalozSkrzynki ? ' (brakujące założymy)' : ''}
+            </span>
           </li>
         ) : null}
         <li className="flex items-center gap-2">

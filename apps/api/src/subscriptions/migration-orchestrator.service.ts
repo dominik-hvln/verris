@@ -249,6 +249,25 @@ export class MigrationOrchestratorService {
     return { ok: true as const, migrationId: event.id };
   }
 
+  private async zalozBrakujaceSkrzynki(subscriptionId: string, userId: string, skrzynki: CreateMigrationBundleDto['imap']): Promise<void> {
+    const naDomenie = new Map<string, Set<string>>();
+    for (const box of skrzynki ?? []) {
+      const cel = String(box.email || box.username || '').trim().toLowerCase();
+      const domena = cel.slice(cel.lastIndexOf('@') + 1);
+      if (!naDomenie.has(domena)) naDomenie.set(domena, new Set(await this.directAdmin.skrzynkiNaDomenie(subscriptionId, userId, domena)));
+      const istniejace = naDomenie.get(domena)!;
+      if (istniejace.has(cel)) continue;
+      try {
+        await this.directAdmin.createHostingEmailAccount(subscriptionId, userId, { email: cel, password: box.password });
+        istniejace.add(cel);
+      } catch (e) {
+        throw new BadRequestException(
+          `Nie udało się założyć skrzynki ${cel}: ${e instanceof Error ? e.message : String(e)}. Załóż ją w zakładce Poczta i uruchom migrację ponownie.`,
+        );
+      }
+    }
+  }
+
   /**
    * Sprint 7 / R-MIG-1 — pakietowe zlecenie migracji (FTP+MySQL+IMAP+target).
    * Zwraca summary zlecenia (bez sekretów). Sekrety wracają **tylko** gdy
@@ -334,6 +353,10 @@ export class MigrationOrchestratorService {
           'albo dograj różnice funkcją delta-sync, zamiast uruchamiać nową.',
       );
     }
+
+    // Tryb „Wszystko naraz” (08.10): brakujące skrzynki docelowe zakładamy z hasłem ze starego hostingu — po
+    // teście logowania do źródła i po limicie migracji, żeby nie zostawić skrzynek bez migracji.
+    if (dto.utworzBrakujaceSkrzynki && dto.imap?.length) await this.zalozBrakujaceSkrzynki(subscriptionId, userId, dto.imap);
 
     const bundle = JSON.stringify({
       targetDomain: dto.targetDomain ?? null,

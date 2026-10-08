@@ -31,6 +31,22 @@ export interface DiscoverSourceInput {
 export interface DiscoveredDatabase {
   name: string;
   sizeMb: number | null;
+  /** Plesk: subskrypcja (konto), do której należy baza — kreator zaznacza bazy wybranej strony. */
+  konto?: string;
+}
+
+/**
+ * Strona na starym hostingu do wyboru w kreatorze (08.10, uwaga Dominika: klient z kilkoma stronami chce przenieść
+ * jedną). `ftpPath` — katalog strony względem katalogu startowego FTP konta; null = nieznany (kreator zostawia
+ * pole puste i worker szuka katalogu sam).
+ */
+export interface DiscoveredSite {
+  domain: string;
+  kind: 'main' | 'addon' | 'sub';
+  ftpPath: string | null;
+  /** Plesk: subskrypcja (konto) strony i jej login FTP. */
+  konto?: string;
+  ftpUser?: string;
 }
 
 export interface DiscoveredMailbox {
@@ -46,6 +62,8 @@ export interface DiscoveryResult {
   domains: string[];
   databases: DiscoveredDatabase[];
   mailboxes: DiscoveredMailbox[];
+  /** Strony z katalogami — do wyboru jednej w kreatorze. */
+  sites: DiscoveredSite[];
   /** Podpowiedź dla kroku „pliki”: panelowe konto FTP zwykle działa na porcie 21. */
   ftpHint: { host: string; port: number; username: string; protocol: 'ftp' } | null;
   warnings: string[];
@@ -164,17 +182,23 @@ export class MigrationDiscoveryService {
       return inner.data;
     };
 
+    // https://api.docs.cpanel.net/specifications/cpanel.openapi/domain-information/domaininfo-domains_data —
+    // documentroot i homedir to ścieżki bezwzględne; main_domain w przykładzie dokumentacji jest obiektem, w schemacie
+    // tablicą, więc przyjmujemy oba kształty.
+    type WierszCpanel = { domain?: string; documentroot?: string; homedir?: string };
     const domainsData = (await call('/execute/DomainInfo/domains_data?format=hash')) as {
-      main_domain?: { domain?: string };
-      addon_domains?: Array<{ domain?: string }>;
-      sub_domains?: Array<{ domain?: string }>;
-      parked_domains?: Array<{ domain?: string } | string>;
+      main_domain?: WierszCpanel | WierszCpanel[];
+      addon_domains?: WierszCpanel[];
+      sub_domains?: WierszCpanel[];
+      parked_domains?: Array<WierszCpanel | string>;
     } | null;
 
+    const glowne = ([] as WierszCpanel[]).concat(domainsData?.main_domain ?? []);
     const domains = new Set<string>();
-    const primaryDomain = domainsData?.main_domain?.domain ?? null;
+    const primaryDomain = glowne[0]?.domain ?? null;
     if (primaryDomain) domains.add(primaryDomain);
     for (const row of domainsData?.addon_domains ?? []) if (row?.domain) domains.add(row.domain);
+    const sites = stronyCpanel(glowne, domainsData?.addon_domains ?? [], domainsData?.sub_domains ?? []);
     for (const row of domainsData?.parked_domains ?? []) {
       const d = typeof row === 'string' ? row : row?.domain;
       if (d) domains.add(d);
@@ -231,6 +255,7 @@ export class MigrationDiscoveryService {
       domains: [...domains],
       databases,
       mailboxes,
+      sites,
       ftpHint: { host, port: 21, username, protocol: 'ftp' },
       warnings,
     };
@@ -264,6 +289,20 @@ export class MigrationDiscoveryService {
     const domains = domainList.list;
     const primaryDomain = domains[0] ?? null;
 
+    // Katalogi stron: CMD_API_DOMAIN?action=document_root (JSON, od DA 1.59.2) —
+    // https://docs.directadmin.com/directadmin/general-usage/directadmin-binary.html#show-documentroots
+    // („These values are very dynamic… the only way to know the true value is to fully compute it”). Gdy panel tego nie
+    // obsługuje — domyślny układ /domains/<domena>/public_html względem katalogu domowego (start FTP konta).
+    let sites: DiscoveredSite[];
+    try {
+      const res = await this.panelHttp(host, port, '/CMD_API_DOMAIN?action=document_root', basicAuth(username, password), warnings);
+      if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
+      sites = stronyDirectAdmin(JSON.parse(res.body) as unknown, primaryDomain);
+      if (!sites.length) throw new Error('pusta lista katalogów');
+    } catch {
+      sites = domains.map((d) => ({ domain: d, kind: d === primaryDomain ? ('main' as const) : ('addon' as const), ftpPath: `/domains/${d}/public_html` }));
+    }
+
     let databases: DiscoveredDatabase[] = [];
     try {
       const dbList = await call('/CMD_API_DATABASES');
@@ -292,13 +331,21 @@ export class MigrationDiscoveryService {
       domains,
       databases,
       mailboxes,
+      sites,
       ftpHint: { host, port: 21, username, protocol: 'ftp' },
       warnings,
     };
   }
 
-  // --- Plesk (REST API v2, best-effort) ---------------------------------------
+  // --- Plesk (XML API) ---------------------------------------------------------
 
+  /**
+   * XML API zamiast REST: REST v2 jest tylko dla administratora Pleska („Only the Plesk administrator can use REST API”,
+   * https://docs.plesk.com/en-US/obsidian/api-rpc/about-rest-api.79359/), a klient migruje swoim loginem. XML API jest
+   * dostępne także dla klientów („Access to XML API is granted to all customers by default”,
+   * https://docs.plesk.com/en-US/obsidian/api-rpc/about-xml-api.28709/). Nagłówki HTTP_AUTH_LOGIN/HTTP_AUTH_PASSWD
+   * i Content-Type text/xml — https://docs.plesk.com/en-US/obsidian/api-rpc/about-xml-api/xml-api-packets/a-sample-packet.50169/
+   */
   private async discoverPlesk(
     host: string,
     port: number,
@@ -306,27 +353,80 @@ export class MigrationDiscoveryService {
     password: string,
     warnings: string[],
   ): Promise<DiscoveryResult> {
-    const res = await this.panelHttp(host, port, '/api/v2/domains', basicAuth(username, password), warnings);
-    if (res.status === 401 || res.status === 403) {
-      throw new BadRequestException('Plesk odrzucił dane logowania (401/403).');
+    const pakiet = async (tresc: string): Promise<string> => {
+      const res = await this.panelHttp(host, port, '/enterprise/control/agent.php', '', warnings, {
+        method: 'POST',
+        body: `<?xml version="1.0" encoding="UTF-8"?><packet>${tresc}</packet>`,
+        headers: { HTTP_AUTH_LOGIN: username, HTTP_AUTH_PASSWD: password, 'Content-Type': 'text/xml' },
+      });
+      if (res.status === 401 || res.status === 403) throw new BadRequestException('Plesk odrzucił dane logowania (401/403).');
+      if (res.status !== 200) throw new Error(`Plesk HTTP ${res.status} dla XML API`);
+      const system = blokiXml(res.body, 'system')[0];
+      if (system && tekstXml(system, 'status') === 'error') {
+        // 1001 — błędny login lub hasło (kody błędów XML API Pleska).
+        if (tekstXml(system, 'errcode') === '1001') throw new BadRequestException('Plesk odrzucił dane logowania.');
+        throw new Error(`Plesk XML API: ${tekstXml(system, 'errtext') ?? 'błąd'}`);
+      }
+      return res.body;
+    };
+
+    // Subskrypcje (konta) — https://docs.plesk.com/en-US/obsidian/api-rpc/about-xml-api/reference/managing-subscriptions/getting-information-about-subscriptions.33899/
+    const webspaces = wynikiXml(await pakiet('<webspace><get><filter/><dataset><gen_info/></dataset></get></webspace>'))
+      .map((r) => ({ id: tekstXml(r, 'id'), name: tekstXml(blokiXml(r, 'gen_info')[0] ?? '', 'name')?.toLowerCase() ?? null }))
+      .filter((w): w is { id: string; name: string } => !!w.id && !!w.name)
+      .slice(0, 50);
+    const kontoPoId = new Map(webspaces.map((w) => [w.id, w.name]));
+
+    // Strony: główna strona subskrypcji tylko z filtrem po nazwie, pozostałe strony i poddomeny z pustym filtrem —
+    // https://docs.plesk.com/en-US/obsidian/api-rpc/about-xml-api/reference/managing-sites-domains/getting-information-about-sites.66583/
+    const strony: DiscoveredSite[] = [];
+    const dodaj = (wynik: string, kind: DiscoveredSite['kind'] | null) => {
+      const gen = blokiXml(wynik, 'gen_info')[0] ?? '';
+      const domain = tekstXml(gen, 'name')?.toLowerCase();
+      if (!domain || strony.some((x) => x.domain === domain)) return;
+      const konto = kontoPoId.get(tekstXml(gen, 'webspace-id') ?? '') ?? (kind === 'main' ? domain : undefined);
+      const wl = wlasciwosciXml(blokiXml(wynik, 'hosting')[0] ?? '');
+      const wwwRoot = wl.get('www_root') ?? null;
+      const rodzaj = kind ?? (strony.some((x) => domain.endsWith(`.${x.domain}`)) ? 'sub' : 'addon');
+      strony.push({ domain, kind: rodzaj, ftpPath: sciezkaFtpPleska(wwwRoot, konto), konto, ftpUser: wl.get('ftp_login') ?? undefined });
+    };
+    for (const w of webspaces.slice(0, 30)) {
+      const wynik = wynikiXml(await pakiet(`<site><get><filter><name>${escXml(w.name)}</name></filter><dataset><gen_info/><hosting/></dataset></get></site>`))[0];
+      if (wynik && tekstXml(wynik, 'status') === 'ok') dodaj(wynik, 'main');
     }
-    if (res.status !== 200) throw new Error(`Plesk HTTP ${res.status} dla /api/v2/domains`);
+    try {
+      for (const wynik of wynikiXml(await pakiet('<site><get><filter/><dataset><gen_info/><hosting/></dataset></get></site>'))) {
+        if (tekstXml(wynik, 'status') === 'ok') dodaj(wynik, null);
+      }
+    } catch {
+      warnings.push('Plesk: nie udało się pobrać dodatkowych stron i poddomen — wybierz stronę główną albo wpisz katalog ręcznie.');
+    }
+    // Kolejność: strona główna, potem jej dodatkowe strony i poddomeny.
+    strony.sort((a, b) => (a.konto ?? '').localeCompare(b.konto ?? '') || Number(b.kind === 'main') - Number(a.kind === 'main'));
 
-    const rows = JSON.parse(res.body) as Array<{ name?: string; hosting_type?: string }>;
-    const domains = rows.map((r) => r.name).filter((n): n is string => !!n);
-    warnings.push(
-      'Plesk: API nie udostępnia listy baz i skrzynek w trybie klienta — uzupełnij je ręcznie w kolejnym kroku.',
-    );
+    // Bazy — https://docs.plesk.com/en-US/obsidian/api-rpc/about-xml-api/reference/managing-databases/retrieving-information-about-databases.34431/
+    let databases: DiscoveredDatabase[] = [];
+    try {
+      databases = wynikiXml(await pakiet('<database><get-db><filter/></get-db></database>'))
+        .filter((r) => tekstXml(r, 'status') === 'ok' && (tekstXml(r, 'type') ?? 'mysql') === 'mysql')
+        .map((r) => ({ name: tekstXml(r, 'name') ?? '', sizeMb: null, konto: kontoPoId.get(tekstXml(r, 'webspace-id') ?? '') }))
+        .filter((d) => !!d.name);
+    } catch {
+      warnings.push('Plesk: nie udało się pobrać listy baz — dodaj bazy ręcznie.');
+    }
+    warnings.push('Plesk: listy skrzynek nie pobieramy — pocztę przenosisz w formularzu „Poczta” albo w trybie „Wszystko naraz”.');
 
+    const domains = strony.filter((x) => x.kind !== 'sub').map((x) => x.domain);
     return {
       panelType: 'plesk',
       panelHost: host,
       panelPort: port,
-      primaryDomain: domains[0] ?? null,
+      primaryDomain: strony.find((x) => x.kind === 'main')?.domain ?? domains[0] ?? null,
       domains,
-      databases: [],
+      databases,
       mailboxes: [],
-      ftpHint: { host, port: 21, username, protocol: 'ftp' },
+      sites: strony,
+      ftpHint: { host, port: 21, username: strony.find((x) => x.kind === 'main')?.ftpUser ?? username, protocol: 'ftp' },
       warnings,
     };
   }
@@ -344,6 +444,7 @@ export class MigrationDiscoveryService {
     path: string,
     authorization: string,
     warnings: string[],
+    opcje?: { method: 'POST'; body: string; headers: Record<string, string> },
   ): Promise<PanelHttpResponse> {
     // Anti-rebinding: rozwiązujemy host raz i łączymy się z tym IP; SNI i
     // nagłówek Host zostają oryginalną nazwą (weryfikacja certyfikatu panelu).
@@ -356,13 +457,14 @@ export class MigrationDiscoveryService {
             servername: host,
             port,
             path,
-            method: 'GET',
+            method: opcje?.method ?? 'GET',
             rejectUnauthorized,
             timeout: HTTP_TIMEOUT_MS,
             headers: {
               Host: host,
-              Authorization: authorization,
+              ...(authorization ? { Authorization: authorization } : {}),
               Accept: 'application/json, text/plain, */*',
+              ...(opcje ? { ...opcje.headers, 'Content-Length': String(Buffer.byteLength(opcje.body)) } : {}),
             },
           },
           (res) => {
@@ -387,7 +489,7 @@ export class MigrationDiscoveryService {
         );
         req.on('timeout', () => req.destroy(new Error(`Timeout ${HTTP_TIMEOUT_MS / 1000}s`)));
         req.on('error', reject);
-        req.end();
+        req.end(opcje?.body);
       });
 
     return attempt(true).catch((err: NodeJS.ErrnoException) => {
@@ -428,4 +530,102 @@ function parseDaList(body: string): { list: string[]; error: string | null } {
   }
   const list = params.getAll('list[]').filter(Boolean);
   return { list, error: null };
+}
+
+// --- strony i katalogi ---------------------------------------------------------
+
+/** cPanel: katalog strony względem katalogu domowego (start głównego konta FTP). Poddomeny-bliźniaki domen dodatkowych pomijamy. */
+export function stronyCpanel(
+  glowne: Array<{ domain?: string; documentroot?: string; homedir?: string }>,
+  dodatkowe: Array<{ domain?: string; documentroot?: string; homedir?: string }>,
+  poddomeny: Array<{ domain?: string; documentroot?: string; homedir?: string }>,
+): DiscoveredSite[] {
+  const wzgledna = (w: { documentroot?: string; homedir?: string }): string | null => {
+    const doc = w.documentroot?.replace(/\/+$/, '');
+    const dom = w.homedir?.replace(/\/+$/, '');
+    if (!doc || !dom || !doc.startsWith(`${dom}/`)) return null;
+    return doc.slice(dom.length);
+  };
+  const strony: DiscoveredSite[] = [];
+  const katalogi = new Set<string>();
+  for (const [lista, kind] of [[glowne, 'main'], [dodatkowe, 'addon'], [poddomeny, 'sub']] as const) {
+    for (const w of lista) {
+      const domain = w.domain?.toLowerCase();
+      if (!domain || strony.some((x) => x.domain === domain)) continue;
+      const ftpPath = wzgledna(w);
+      // cPanel zakłada dla domeny dodatkowej poddomenę z tym samym katalogiem — to ta sama strona.
+      if (kind === 'sub' && ftpPath && katalogi.has(ftpPath)) continue;
+      if (ftpPath) katalogi.add(ftpPath);
+      strony.push({ domain, kind, ftpPath });
+    }
+  }
+  return strony;
+}
+
+/**
+ * DirectAdmin `action=document_root`: { "domena": { public_html, private_html, subdomains: { sub: { public_html } } } }.
+ * Ścieżki są bezwzględne (/home/<użytkownik>/…); FTP głównego konta startuje w katalogu domowym.
+ */
+export function stronyDirectAdmin(json: unknown, glowna: string | null): DiscoveredSite[] {
+  if (!json || typeof json !== 'object') return [];
+  const wzgledna = (p: unknown): string | null => {
+    if (typeof p !== 'string') return null;
+    const m = /^\/home\/[^/]+(\/.+?)\/*$/.exec(p);
+    return m ? m[1]! : null;
+  };
+  const strony: DiscoveredSite[] = [];
+  for (const [nazwa, wpis] of Object.entries(json as Record<string, unknown>)) {
+    if (!wpis || typeof wpis !== 'object' || !('public_html' in wpis)) continue;
+    const domain = nazwa.toLowerCase();
+    const w = wpis as { public_html?: unknown; subdomains?: Record<string, { public_html?: unknown }> };
+    strony.push({ domain, kind: domain === glowna?.toLowerCase() ? 'main' : 'addon', ftpPath: wzgledna(w.public_html) });
+    for (const [sub, sw] of Object.entries(w.subdomains ?? {})) {
+      strony.push({ domain: `${sub.toLowerCase()}.${domain}`, kind: 'sub', ftpPath: wzgledna(sw?.public_html) });
+    }
+  }
+  return strony.sort((a, b) => Number(b.kind === 'main') - Number(a.kind === 'main'));
+}
+
+/** Plesk: www_root względem katalogu subskrypcji /var/www/vhosts/<subskrypcja> (start FTP subskrypcji); Windows i inne układy — null. */
+export function sciezkaFtpPleska(wwwRoot: string | null, konto: string | undefined): string | null {
+  if (!wwwRoot || !konto) return null;
+  const prefiks = `/var/www/vhosts/${konto}`;
+  const sciezka = wwwRoot.replace(/\/+$/, '');
+  return sciezka.startsWith(`${prefiks}/`) ? sciezka.slice(prefiks.length) : null;
+}
+
+// --- minimalny odczyt odpowiedzi XML API Pleska (płaskie węzły, bez atrybutów) ----
+
+const ENCJE: Record<string, string> = { '&lt;': '<', '&gt;': '>', '&quot;': '"', '&apos;': "'", '&amp;': '&' };
+
+function odkodujXml(v: string): string {
+  return v.replace(/&(lt|gt|quot|apos|amp);/g, (m) => ENCJE[m] ?? m).trim();
+}
+
+function escXml(v: string): string {
+  return v.replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[c]!);
+}
+
+/** Wszystkie wystąpienia <tag>…</tag> (bez zagnieżdżeń tego samego tagu). */
+export function blokiXml(xml: string, tag: string): string[] {
+  return [...xml.matchAll(new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)</${tag}>`, 'g'))].map((m) => m[1]!);
+}
+
+export function tekstXml(xml: string, tag: string): string | null {
+  const b = blokiXml(xml, tag)[0];
+  return b === undefined ? null : odkodujXml(b);
+}
+
+function wynikiXml(xml: string): string[] {
+  return blokiXml(xml, 'result');
+}
+
+/** <property><name>…</name><value>…</value></property> → mapa. */
+export function wlasciwosciXml(xml: string): Map<string, string> {
+  const m = new Map<string, string>();
+  for (const p of blokiXml(xml, 'property')) {
+    const n = tekstXml(p, 'name');
+    if (n) m.set(n, tekstXml(p, 'value') ?? '');
+  }
+  return m;
 }

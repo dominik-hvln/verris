@@ -1371,6 +1371,16 @@ export class DirectAdminService {
     }
   }
 
+  /** Adresy skrzynek na domenie usługi (małe litery) — tryb migracji „Wszystko naraz” zakłada tylko brakujące. */
+  async skrzynkiNaDomenie(subscriptionId: string, userId: string, domain: string): Promise<string[]> {
+    await this.assertDomainOwnedBySubscription(subscriptionId, userId, domain);
+    const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
+    if (!sub?.account) throw new BadRequestException('Konto hostingowe nie jest jeszcze gotowe.');
+    const client = await this.getClientForHostingAccount(sub.account.id, userId);
+    const rows = await client.listEmailAccounts(domain, { accountUsername: sub.account.daUsername });
+    return rows.map((r) => (r.localPart.includes('@') ? r.localPart : `${r.localPart}@${domain}`).toLowerCase());
+  }
+
   async createHostingEmailAccount(
     subscriptionId: string,
     userId: string,
