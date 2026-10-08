@@ -26,6 +26,29 @@ const CHECK_AREA: Record<ServiceHealthCheckKey, DiagnosticArea> = {
  * DA, węzeł, health-checki DNS/SSL/poczty/backupu/CPU) wraz z sugerowaną akcją.
  * Bez słowa „AI" — to deterministyczne reguły na realnych danych.
  */
+/** Polska odmiana liczebnika: 1 → one, końcówka 2–4 poza 12–14 → few, reszta → many. */
+function liczba(n: number, one: string, few: string, many: string): string {
+  const n10 = n % 10;
+  const n100 = n % 100;
+  const forma = n === 1 ? one : n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14) ? few : many;
+  return `${n} ${forma}`;
+}
+
+/** Jednozdaniowe podsumowanie diagnostyki (karta usługi i rozmowa w obsłudze) — z poprawną odmianą liczebników. */
+export function podsumowanieDiagnostyki(findings: readonly { status: string }[]): string {
+  if (findings.length === 0) {
+    return 'Nie wykryto problemów — subskrypcja, konto, węzeł i parametry usługi wyglądają poprawnie.';
+  }
+  const krytyczne = findings.filter((f) => f.status === 'critical').length;
+  const ostrzezenia = findings.filter((f) => f.status === 'warn').length;
+  return `${liczba(findings.length, 'ustalenie', 'ustalenia', 'ustaleń')}: ${liczba(krytyczne, 'krytyczne', 'krytyczne', 'krytycznych')}, ${liczba(
+    ostrzezenia,
+    'ostrzeżenie',
+    'ostrzeżenia',
+    'ostrzeżeń',
+  )}.`;
+}
+
 @Injectable()
 export class DiagnosticsService {
   private readonly logger = new Logger(DiagnosticsService.name);
@@ -155,12 +178,7 @@ export class DiagnosticsService {
     const hasCritical = findings.some((f) => f.status === 'critical');
     const hasWarn = findings.some((f) => f.status === 'warn');
     const overall = hasCritical ? 'critical' : hasWarn ? 'attention' : 'ok';
-    const summary =
-      findings.length === 0
-        ? 'Nie wykryto problemów — subskrypcja, konto, węzeł i parametry usługi wyglądają poprawnie.'
-        : `${findings.length} ustaleń: ${findings.filter((f) => f.status === 'critical').length} krytycznych, ${
-            findings.filter((f) => f.status === 'warn').length
-          } ostrzeżeń.`;
+    const summary = podsumowanieDiagnostyki(findings);
 
     return {
       subscriptionId,
