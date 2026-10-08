@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **1714 h** — przy 65 h tygodniowo około **6 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **1740 h** — przy 65 h tygodniowo około **6 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1270 h) oraz roadmapę po starcie (444 h, 18 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1296 h) oraz roadmapę po starcie (444 h, 18 pozycji) rozpisaną na epiki kwartalne.
 
 - **2026-11-13** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-08** — koniec sprintu 20, decyzja GO.
@@ -270,7 +270,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 # Faza 2 — Odzyskanie funkcji-widm i luki pierwszego tygodnia
 
-*Sprinty 9–14 · 240 h · 2026-10-26 – 2026-10-23*
+*Sprinty 9–14 · 266 h · 2026-10-26 – 2026-10-23*
 
 Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. Najlepszy stosunek wartości do pracy w całym backlogu.
 
@@ -373,7 +373,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 ## Sprint 14 — Beta wewnętrzna na t1, rozliczenia klienta i pomiar
 
-`2026-10-19 – 2026-10-23` · **102 h** z 65 h pojemności
+`2026-10-19 – 2026-10-23` · **128 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -387,6 +387,8 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 | `PB-44` | Obsługa: zasoby, kopie i odtwarzanie, historia i migracja wewnętrzna w panelu staff | 10 | ŚREDNI | Decyzja właściciela 2026-10-08: po rdzeniu, w trakcie bety. API już to obsługuje dla staff z SUBSCRIPTIONS_MANAGE (subscriptions.admin.controller.ts:  |
 | `PB-45` | Obsługa: migracja w imieniu klienta z jego zgodą | 16 | ŚREDNI | Decyzja właściciela 2026-10-08: staff wypełnia kreator migracji za klienta (np. z danych ze zgłoszenia), migracja startuje dopiero po kliknięciu przez |
 | `PB-46` | Obsługa: spójna karta klienta w staff i admin | 8 | ŚREDNI | Decyzja właściciela 2026-10-08: notatka wewnętrzna w staff, diagnostyka DNS/TLS i ryzyko klienta w admin, operacje wrażliwe w staff według uprawnień,  |
+| `PB-47` | Role pracowników L1–L4 z uprawnieniami | 10 | WYSOKI | Decyzja właściciela 2026-10-08: trzeba zaplanować wszystkie role pracowników wraz z uprawnieniami (szczebel L1–L4 + administrator). Dziś StaffRole two |
+| `PB-48` | Wnioski o operację wymagającą wyższego uprawnienia | 16 | ŚREDNI | Decyzja właściciela 2026-10-08: gdy pracownik nie ma uprawnienia do operacji (np. oznaczenie konta jako wewnętrzne), zamiast ukrytego przycisku widzi  |
 
 **Definicja ukończenia**
 
@@ -400,6 +402,8 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 - `PB-44` — Panel staff pokazuje zasoby, kopie z odtwarzaniem, historię migracji i migrację wewnętrzną zgodnie z uprawnieniami; testy panelu.
 - `PB-45` — Staff zakłada migrację za klienta, klient dostaje prośbę o zgodę, start po zgodzie; bez zgody — nic nie rusza i dane źródła są usuwane po terminie; testy na PostgreSQL.
 - `PB-46` — Obie karty klienta mają te same sekcje (różnią się tylko uprawnieniami); testy panelu.
+- `PB-47` — Role L1–L4 zdefiniowane w kodzie (seed/migracja danych), widoczne w panelu admina przy przypisywaniu operatora; każde uprawnienie z katalogu przypisane do co najmniej jednej roli albo świadomie tylko admin; test spójności katalogu i ról.
+- `PB-48` — Wniosek z panelu staff, powiadomienie dla uprawnionych, akceptacja wykonuje operację, odrzucenie z powodem; wszystko w dzienniku; testy na PostgreSQL.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
 **Ryzyko sprintu.** Ostatni sprint kodowy przed blokiem dokumentow. PB-08 (Consent Mode v2 + dedup event_id) jest tu, a nie przy landingu, bo to kod w panelu, nie tresc — landing tylko z niego korzysta. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. NODE-03 (pojemnosc wezla z telemetrii) dolozone tutaj z sprintu 13 dla pojemnosci — kod bez wezla, dowod przy wezle. | 2026-10-04 HARMONOGRAM STARTU (wariant A, decyzja właściciela): beta wewnętrzna na t1 19.10–6.11 (PB-40); w tym oknie wypadają testy PB-27 (22.10) i PB-28 (odnowienie d3 28.10).
