@@ -7,7 +7,6 @@ Q-07,KOD PO STARCIE,konsola VPS (Hetzner Cloud API)
 Q-08,KOD PO STARCIE,snapshoty i rebuild VPS (Hetzner Cloud API)
 G-08,KOD PO STARCIE,sprzedaż certyfikatów DV/OV/EV — plus umowa z dostawcą
 J-05,KOD PO STARCIE,CDN (Cloudflare) — plus konto Cloudflare
-PB-20,PRODUKCJA,"zaproszenie deweloperskiego konta testowego z wybraną usługą, przełączenie, odmowa poza zakresem — na produkcji"
 L-10,PRODUKCJA,zdarzenie rozliczeń (invoice.issued) przy pierwszej fakturze — ping i podpis sprawdzone 26.09
 N-10,PRODUKCJA,wpis SUPPRESSED przy pierwszym alercie limitu (przełącznik zapisany 26.09; alert wymaga telemetrii węzła)
 L-11,WŁAŚCICIEL,decyzja 04.10: klucze w .env.prod teraz z AI_TYLKO_KONTA (tylko konta bety wewnętrznej); dla wszystkich po publikacji dokumentów z podprocesorami AI (PB-03)
