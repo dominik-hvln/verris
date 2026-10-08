@@ -49,10 +49,11 @@ describe('PB-43 — uprawnienia', () => {
     expect(await wpuszcza(TicketsController, 'adminLinkSubscription', 'ADMIN')).toBe(true);
   });
 
-  it('diagnostyka z rozmowy: TICKETS_VIEW; klient i operator bez zgłoszeń — nie', async () => {
+  it('diagnostyka z rozmowy: TICKETS_MANAGE (odpytuje węzeł i zapisuje stan); sam podgląd, klient i operator bez zgłoszeń — nie', async () => {
     expect(await wpuszcza(ZgloszenieDiagnostykaController, 'diagnostyka', 'USER')).toBe(false);
     expect(await wpuszcza(ZgloszenieDiagnostykaController, 'diagnostyka', 'STAFF', ['NODES_VIEW'])).toBe(false);
-    expect(await wpuszcza(ZgloszenieDiagnostykaController, 'diagnostyka', 'STAFF', ['TICKETS_VIEW'])).toBe(true);
+    expect(await wpuszcza(ZgloszenieDiagnostykaController, 'diagnostyka', 'STAFF', ['TICKETS_VIEW'])).toBe(false);
+    expect(await wpuszcza(ZgloszenieDiagnostykaController, 'diagnostyka', 'STAFF', ['TICKETS_MANAGE'])).toBe(true);
     expect(await wpuszcza(ZgloszenieDiagnostykaController, 'diagnostyka', 'ADMIN')).toBe(true);
   });
 });

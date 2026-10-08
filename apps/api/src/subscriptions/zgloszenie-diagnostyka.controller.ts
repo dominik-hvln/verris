@@ -13,13 +13,15 @@ import { DiagnosticsService } from './diagnostics.service.js';
 /**
  * PB-43 — diagnostyka usługi uruchamiana z rozmowy w obsłudze. Ta sama diagnostyka co na karcie usługi
  * (ADM-2, `GET admin/subscriptions/:id/diagnostics`), ale wyłącznie dla usługi powiązanej ze zgłoszeniem
- * i za uprawnieniem do zgłoszeń — konsultant nie potrzebuje do tego zarządzania subskrypcjami.
+ * i za uprawnieniem do prowadzenia zgłoszeń (TICKETS_MANAGE) — konsultant nie potrzebuje do tego zarządzania
+ * subskrypcjami. Nie za samym podglądem (TICKETS_VIEW): diagnostyka odpytuje węzeł i zapisuje stan zdrowia usługi
+ * (forSubscription → computeAndPersist), więc to operacja, a nie odczyt.
  * Mieszka w module subskrypcji, bo DiagnosticsService jest tutaj (moduł zgłoszeń jest importowany przez ten).
  */
 @Controller('tickets/admin')
 @UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
 @Roles('STAFF', 'ADMIN')
-@StaffPerm('TICKETS_VIEW')
+@StaffPerm('TICKETS_MANAGE')
 export class ZgloszenieDiagnostykaController {
   constructor(
     private readonly prisma: PrismaService,
