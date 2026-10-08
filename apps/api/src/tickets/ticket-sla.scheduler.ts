@@ -66,7 +66,7 @@ export class TicketSlaScheduler {
     }
   }
 
-  /** PB-37 — „Wciąż nad tym pracujemy” po połowie czasu odpowiedzi (URGENT = 30 min, więc co 5 min). */
+  /** PB-37 — „Wciąż nad tym pracujemy” po połowie czasu odpowiedzi, najwcześniej po 2 h (sprawdzane co 5 min). */
   @Cron('*/5 * * * *', { name: 'tickets:wciaz-pracujemy' })
   async wciazPracujemyTick(): Promise<void> {
     try {

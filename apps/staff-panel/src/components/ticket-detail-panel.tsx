@@ -64,8 +64,9 @@ const KATEGORIE = [
   { k: "ZAMKNIECIE", nazwa: "Zamknięcie" },
 ] as const;
 const NAZWA_KAT: Record<string, string> = Object.fromEntries(KATEGORIE.map((k) => [k.k, k.nazwa]));
-/** Godziny na odpowiedź wg priorytetu — to samo co API (połowa = „Wciąż nad tym pracujemy”). */
+/** Godziny na odpowiedź wg priorytetu — to samo co API (połowa, najwcześniej po 2 h = „Wciąż nad tym pracujemy”). */
 const SLA_H: Record<string, number> = { URGENT: 1, HIGH: 4, NORMAL: 12, LOW: 24 };
+const WCIAZ_MIN_H = 2;
 
 // Czas zawsze polski — serwer (UTC) i przeglądarka pokazują to samo (bez rozjazdu przy hydracji).
 const TZ = "Europe/Warsaw";
@@ -243,7 +244,7 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
   const nastepnaAuto = (() => {
     if (!czekaNaNas) return null;
     const od = new Date(ticket.lastReplyAt ?? ticket.createdAt).getTime();
-    const kiedyAuto = od + ((SLA_H[ticket.priority] ?? 12) / 2) * 3_600_000;
+    const kiedyAuto = od + Math.max((SLA_H[ticket.priority] ?? 12) / 2, WCIAZ_MIN_H) * 3_600_000;
     const ostatnia = ticket.progressNoticeAt ? new Date(ticket.progressNoticeAt).getTime() : 0;
     return Math.max(kiedyAuto, ostatnia + 86_400_000);
   })();

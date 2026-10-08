@@ -83,11 +83,15 @@ describe('PB-37 — opieka nad zgłoszeniem', () => {
     expect((await prisma().ticket.findUniqueOrThrow({ where: { id: t.id } })).staffReadAt).not.toBeNull();
   });
 
-  it('„wciąż pracujemy” po połowie SLA, najwyżej raz na dobę, z przypomnieniem dla opiekuna', async () => {
+  it('„wciąż pracujemy” po połowie SLA (najwcześniej po 2 h), najwyżej raz na dobę, z przypomnieniem dla opiekuna', async () => {
     const { tickets, opieka } = uslugi();
     const { agent, klient } = await ludzie();
     const t = await tickets.create(klient.id, { subject: 'Pilne', message: 'Sklep leży', priority: 'URGENT' } as never);
-    const temu = new Date(Date.now() - 40 * 60_000);
+    // 08.10: URGENT (1 h) po 40 min jeszcze bez „wciąż pracujemy” — najwcześniej po 2 h
+    const czterdziesci = new Date(Date.now() - 40 * 60_000);
+    await prisma().ticket.update({ where: { id: t.id }, data: { createdAt: czterdziesci, lastReplyAt: czterdziesci } });
+    expect(await opieka.wciazPracujemy()).toBe(0);
+    const temu = new Date(Date.now() - 130 * 60_000);
     await prisma().ticket.update({ where: { id: t.id }, data: { createdAt: temu, lastReplyAt: temu } });
     expect(await opieka.wciazPracujemy()).toBe(1);
     expect(await opieka.wciazPracujemy()).toBe(0);
@@ -110,7 +114,7 @@ describe('PB-37 — opieka nad zgłoszeniem', () => {
     const { tickets, opieka } = uslugi();
     const { klient } = await ludzie();
     const t = await tickets.create(klient.id, { subject: 'Pilne', message: 'Sklep leży', priority: 'URGENT' } as never);
-    const temu = new Date(Date.now() - 40 * 60_000);
+    const temu = new Date(Date.now() - 130 * 60_000);
     await prisma().ticket.update({ where: { id: t.id }, data: { createdAt: temu, lastReplyAt: temu } });
     const wyniki = await Promise.all([opieka.wciazPracujemy(), opieka.wciazPracujemy(), opieka.wciazPracujemy()]);
     expect(wyniki.reduce((a, b) => a + b, 0)).toBe(1);

@@ -43,7 +43,7 @@ export const DOMYSLNE_AUTO: Record<RodzajAuto, UstawienieAuto & { nazwa: string;
   },
   WCIAZ_PRACUJEMY: {
     nazwa: '„Wciąż nad tym pracujemy”',
-    kiedy: 'Gdy zgłoszenie czeka na nas dłużej niż połowa czasu odpowiedzi — najwyżej raz na dobę.',
+    kiedy: 'Gdy zgłoszenie czeka na nas dłużej niż połowa czasu odpowiedzi, ale nie krócej niż 2 godziny — najwyżej raz na dobę.',
     tytul: 'Wciąż pracujemy nad Twoim zgłoszeniem',
     wlaczone: true,
     tresc:
@@ -76,6 +76,16 @@ const REOPEN_DNI = 7;
 /** Godziny na pierwszą odpowiedź wg priorytetu (to samo co SLA przy tworzeniu zgłoszenia). */
 export function godzinySla(priority: string): number {
   return priority === 'URGENT' ? 1 : priority === 'HIGH' ? 4 : priority === 'NORMAL' ? 12 : 24;
+}
+
+/**
+ * Po ilu godzinach czekania na nas klient dostaje „Wciąż nad tym pracujemy”: połowa czasu odpowiedzi, ale nie
+ * wcześniej niż po 2 h (decyzja właściciela 2026-10-08). Przy URGENT (1 h) połowa to 30 min — klient z eskalacji
+ * migracji dostawał „wciąż pracujemy”, zanim minął termin z poprzedniego maila.
+ */
+export const WCIAZ_PRACUJEMY_MIN_GODZ = 2;
+export function godzinyDoWciazPracujemy(priority: string): number {
+  return Math.max(godzinySla(priority) / 2, WCIAZ_PRACUJEMY_MIN_GODZ);
 }
 
 const fmt = new Intl.DateTimeFormat('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' });
@@ -246,7 +256,7 @@ export class OpiekaZgloszenService {
   }
 
   /**
-   * Co 5 minut: zgłoszenia czekające na nas dłużej niż połowa czasu odpowiedzi → klient dostaje
+   * Co 5 minut: zgłoszenia czekające na nas dłużej niż `godzinyDoWciazPracujemy` → klient dostaje
    * „Wciąż nad tym pracujemy”, opiekun przypomnienie. Najwyżej raz na dobę na zgłoszenie.
    */
   async wciazPracujemy(teraz = new Date()): Promise<number> {
@@ -256,7 +266,7 @@ export class OpiekaZgloszenService {
         // tylko gdy ostatnia wiadomość jest od klienta; null (zgłoszenia sprzed SUP-V2) = nie wiemy → nie wysyłamy
         lastReplyIsStaff: false,
         AND: [{ OR: [{ progressNoticeAt: null }, { progressNoticeAt: { lt: new Date(teraz.getTime() - DOBA_MS) } }] }],
-        createdAt: { lt: new Date(teraz.getTime() - (godzinySla('URGENT') / 2) * 3600_000) },
+        createdAt: { lt: new Date(teraz.getTime() - WCIAZ_PRACUJEMY_MIN_GODZ * 3600_000) },
       },
       select: { id: true, subject: true, priority: true, lastReplyAt: true, createdAt: true, assignedToId: true },
       take: 200,
@@ -264,7 +274,7 @@ export class OpiekaZgloszenService {
     let wyslane = 0;
     for (const t of kandydaci) {
       const od = t.lastReplyAt ?? t.createdAt;
-      if (teraz.getTime() - od.getTime() < (godzinySla(t.priority) / 2) * 3600_000) continue;
+      if (teraz.getTime() - od.getTime() < godzinyDoWciazPracujemy(t.priority) * 3600_000) continue;
       // Atomowe zajęcie zgłoszenia: przy dwóch procesach API naraz (np. w trakcie wdrożenia) wysyła tylko ten,
       // którego warunkowy UPDATE trafił — drugi czeka na blokadę wiersza i widzi już świeży znacznik.
       const zajete = await this.prisma.ticket.updateMany({

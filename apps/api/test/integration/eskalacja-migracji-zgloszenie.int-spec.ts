@@ -26,7 +26,7 @@ describe('Eskalacja migracji do zespołu — zgłoszenie jak każde inne', () =>
   beforeEach(wyczyscBaze);
   afterAll(rozlacz);
 
-  it('opiekun, termin SLA i potwierdzenie; treść bez powodu technicznego', async () => {
+  it('opiekun i termin SLA, bez osobnego potwierdzenia (08.10: jeden mail migracji); treść bez powodu technicznego', async () => {
     const agent = await prisma().user.create({ data: { email: `ag-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'STAFF', firstName: 'Anna' } });
     const k = await utworzKonto({ serverId: (await utworzWezel()).id, planId: (await utworzPlan({ productKind: 'HOSTING' })).id });
     const req = await prisma().migrationRequest.create({
@@ -39,7 +39,8 @@ describe('Eskalacja migracji do zespołu — zgłoszenie jak każde inne', () =>
     expect(t.assignedToId).toBe(agent.id);
     expect(t.priority).toBe('URGENT');
     expect(t.slaResponseDueAt).not.toBeNull();
-    expect(t.replies.some((r) => r.automatic === 'POTWIERDZENIE')).toBe(true);
+    // 217f5a2a: opiekun, termin i link idą w mailu „Migrację przejął nasz zespół” — bez drugiego maila z potwierdzeniem
+    expect(t.replies.some((r) => r.automatic === 'POTWIERDZENIE')).toBe(false);
     expect(`${t.subject}\n${t.message}`).not.toMatch(/rc=2|imap|staff|Sekret/i);
     const m = await prisma().migrationRequest.findUniqueOrThrow({ where: { id: req.id } });
     expect(m.ticketId).toBe(t.id);
