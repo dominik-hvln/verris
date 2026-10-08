@@ -128,16 +128,58 @@ vg_ip_prywatny() {
   return 1
 }
 
+# Z-09 (08.10) — adres samego węzła. Połączenie z węzła na jego własny publiczny adres idzie
+# lokalnie i omija zaporę (panel :2222 tylko z control-plane, MariaDB, Radicale) — dla workera
+# to to samo co 127.0.0.1. Lista z interfejsów (ip -o addr show); VG_TEST_ADRESY_WLASNE (testy)
+# tylko DOKŁADA adresy — zmienną da się wyłącznie zaostrzyć odmowę, nigdy jej znieść.
+# IPv6 w jednej postaci (8 grup bez zer wiodących), żeby 2001:db8:0:0::1 i 2001:db8::1 były równe.
+vg_ipv6_pelny() {
+  local ip="$1" lewa prawa brak i g wynik=()
+  local -a L=() P=()
+  if [[ "$ip" == *::* ]]; then
+    lewa="${ip%%::*}"; prawa="${ip#*::}"
+    [ -n "$lewa" ] && IFS=: read -r -a L <<<"$lewa"
+    [ -n "$prawa" ] && IFS=: read -r -a P <<<"$prawa"
+    brak=$(( 8 - ${#L[@]} - ${#P[@]} ))
+    wynik=("${L[@]}"); for ((i = 0; i < brak; i++)); do wynik+=(0); done; wynik+=("${P[@]}")
+  else
+    IFS=: read -r -a wynik <<<"$ip"
+  fi
+  for i in "${!wynik[@]}"; do g=$(sed 's/^0*//' <<<"${wynik[$i]}"); wynik[$i]="${g:-0}"; done
+  (IFS=:; printf '%s\n' "${wynik[*]}")
+}
+
+vg_ip_postac() {
+  local ip
+  ip=$(printf %s "$1" | tr '[:upper:]' '[:lower:]')
+  [[ "$ip" == ::ffff:* && "${ip#::ffff:}" == *.* ]] && ip="${ip#::ffff:}"
+  if [[ "$ip" == *:* ]]; then vg_ipv6_pelny "$ip"; else printf '%s\n' "$ip"; fi
+}
+
+vg_adresy_wlasne() {
+  local a
+  for a in $(ip -o addr show 2>/dev/null | awk '{split($4, x, "/"); print x[1]}') ${VG_TEST_ADRESY_WLASNE:-}; do
+    vg_ip_postac "$a"
+  done | sort -u
+}
+
+vg_ip_wlasny() {
+  vg_adresy_wlasne | grep -qxF -- "$(vg_ip_postac "$1")"
+}
+
+# Adres, z którym worker nie może się łączyć: sieć prywatna/lokalna albo sam węzeł.
+vg_ip_zakazany() { vg_ip_prywatny "$1" || vg_ip_wlasny "$1"; }
+
 vg_is_public_host() {
   local host="$1" adresy ip
   vg_is_host "$host" || return 1
   if [[ "$host" =~ ^[0-9.]+$ || "$host" == *:* ]]; then
-    vg_ip_prywatny "$host" && return 1
+    vg_ip_zakazany "$host" && return 1
     return 0
   fi
   adresy=$(getent ahosts "$host" 2>/dev/null | awk '{print $1}' | sort -u)
   [ -n "$adresy" ] || return 1                  # nierozwiązywalny = odmowa
-  for ip in $adresy; do vg_ip_prywatny "$ip" && return 1; done
+  for ip in $adresy; do vg_ip_zakazany "$ip" && return 1; done
   return 0
 }
 
@@ -151,7 +193,7 @@ vg_pin_public() {
   if [[ "$host" =~ ^[0-9.]+$ || "$host" == *:* ]]; then printf '%s\n' "$host"; return 0; fi
   adresy=$(getent ahosts "$host" 2>/dev/null | awk '{print $1}' | sort -u)
   [ -n "$adresy" ] || return 1
-  for ip in $adresy; do vg_ip_prywatny "$ip" && return 1; done
+  for ip in $adresy; do vg_ip_zakazany "$ip" && return 1; done
   ip=$(grep -m1 -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' <<<"$adresy" || head -n1 <<<"$adresy")
   printf '%s\n' "$ip"
 }

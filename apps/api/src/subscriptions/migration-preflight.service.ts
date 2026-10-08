@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import * as net from 'node:net';
 import * as tls from 'node:tls';
 import * as crypto from 'node:crypto';
@@ -22,9 +22,11 @@ import { Client as SshClient } from 'ssh2';
  *  - reachable    — usługa odpowiada, ale pełna weryfikacja hasła nastąpi przy transferze
  *  - auth_failed  — usługa odrzuciła login/hasło
  *  - unreachable  — brak połączenia (firewall, zły host/port)
+ *  - blocked      — host odrzucony PRZED połączeniem (sieć prywatna, serwer Verris — Z-09);
+ *                   zlecenie i tak zostanie odrzucone, więc kreator nie przepuszcza dalej
  */
 
-export type PreflightStatus = 'ok' | 'reachable' | 'auth_failed' | 'unreachable';
+export type PreflightStatus = 'ok' | 'reachable' | 'auth_failed' | 'unreachable' | 'blocked';
 
 export interface PreflightCheckResult {
   kind: 'ftp' | 'sftp' | 'mysql' | 'imap';
@@ -237,6 +239,10 @@ export class MigrationPreflightService {
   ): PreflightCheckResult {
     const message = err instanceof Error ? err.message : String(err);
     this.logger.debug(`preflight ${kind} ${target}: ${message}`);
+    // resolvePublicHost rzuca BadRequestException dla hosta zakazanego — to nie „brak połączenia”.
+    if (err instanceof BadRequestException) {
+      return { kind, target, status: 'blocked', message, latencyMs: Date.now() - started };
+    }
     return {
       kind,
       target,

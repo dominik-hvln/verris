@@ -253,6 +253,30 @@ describe('Z-09 — guard węzła odrzuca hosty prywatne i lokalne', () => {
   it.each(['127.0.0.1', 'localhost', '10.1.2.3', '::1'])('pin odrzuca %s', (v) => expect(pin(v)).toBeNull());
   it.each(['8.8.8.8', '2001:4860:4860::8888'])('pin zwraca sprawdzony adres %s', (v) => expect(pin(v)).toBe(v));
 
+  // Z-09 (08.10): połączenie z węzła na JEGO WŁASNY publiczny adres idzie lokalnie i omija zaporę
+  // (panel :2222 tylko z control-plane, MariaDB). Adresy interfejsów węzła = odmowa jak sieć prywatna.
+  // VG_TEST_ADRESY_WLASNE tylko DOKŁADA adresy do listy (nie da się nim niczego odblokować).
+  const zWlasnymi = (tryb: 'pin' | 'check', v: string) => {
+    try {
+      const args = tryb === 'pin' ? [GUARD, 'pin', v] : [GUARD, 'check', 'publichost', v];
+      return execFileSync('bash', args, { stdio: 'pipe', env: { ...process.env, VG_TEST_ADRESY_WLASNE: '8.8.4.4 2001:4860:4860::8844' } })
+        .toString()
+        .trim();
+    } catch {
+      return null;
+    }
+  };
+  it.each(['8.8.4.4', '2001:4860:4860::8844', '2001:4860:4860:0:0:0:0:8844', '::ffff:8.8.4.4'])('własny adres węzła %s — pin i check odmawiają', (v) => {
+    expect(zWlasnymi('pin', v)).toBeNull();
+    expect(zWlasnymi('check', v)).toBeNull();
+  });
+  it('inny publiczny adres przechodzi także z ustawionymi adresami węzła', () => {
+    expect(zWlasnymi('pin', '8.8.8.8')).toBe('8.8.8.8');
+  });
+  it('adresy węzła czyta z interfejsów (ip -o addr), nie tylko ze zmiennej testowej', () => {
+    expect(readFileSync(GUARD, 'utf8')).toMatch(/ip -o addr show/);
+  });
+
   it('worker łączy się z przypiętym IP (rsync, lftp, mysqldump, ssh, imapsync), nie z nazwą', () => {
     const z = readFileSync(WORKER, 'utf8');
     for (const fragment of [

@@ -187,6 +187,8 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
   }, [step]);
   // Złe hasło = STOP przed startem: inaczej klient dowiaduje się o literówce z maila po godzinie.
   const zleHaslo = preflight?.checks.some((c) => c.status === 'auth_failed') ?? false;
+  // Host odrzucony przed połączeniem (sieć prywatna, serwer Verris) — tego nie dokończy też obsługa.
+  const hostZablokowany = preflight?.checks.some((c) => c.status === 'blocked') ?? false;
   // Sama baza bez plików: zapasowej drogi (mysqldump przez SSH konta plikowego) nie ma — bez zdalnego dostępu
   // migracja by padła po starcie, więc zatrzymujemy tutaj.
   const bazaNiedostepna =
@@ -319,7 +321,14 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
       <div className="flex items-center justify-between border-t border-white/10 pt-4">
         <div>
           {step > 0 ? (
-            <Button type="button" onClick={() => setStep((s) => s - 1)} className="bg-white/10 hover:bg-white/20 text-white">
+            <Button
+              type="button"
+              onClick={() => {
+                setMsg(null); // błąd z kroku, z którego wychodzimy, nie dotyczy poprzedniego
+                setStep((s) => s - 1);
+              }}
+              className="bg-white/10 hover:bg-white/20 text-white"
+            >
               ← Wstecz
             </Button>
           ) : null}
@@ -345,7 +354,7 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
               </Button>
               <Button
                 type="button"
-                disabled={preflighting || !preflight || zleHaslo || bazaNiedostepna}
+                disabled={preflighting || !preflight || zleHaslo || hostZablokowany || bazaNiedostepna}
                 onClick={() => setStep(3)}
                 className="bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-40"
               >
@@ -658,7 +667,9 @@ function StepPreflight({
           <p className="font-semibold text-white">
             {preflight.ok
               ? 'Wszystko wygląda dobrze ✓'
-              : preflight.checks.some((c) => c.status === 'auth_failed')
+              : preflight.checks.some((c) => c.status === 'blocked')
+                ? 'Tego adresu nie można użyć jako źródła migracji — wróć krok wstecz i podaj adres serwera starego hostingu'
+                : preflight.checks.some((c) => c.status === 'auth_failed')
                 ? 'Serwer odrzucił login lub hasło — wróć krok wstecz, popraw dane oznaczone czerwoną kropką i sprawdź ponownie'
                 : 'Część źródeł wymaga uwagi — możesz kontynuować, resztę dokończymy po naszej stronie'}
           </p>
@@ -760,6 +771,6 @@ function patch<T>(setter: React.Dispatch<React.SetStateAction<T[]>>, index: numb
 function preflightDot(status: string): string {
   if (status === 'ok') return 'text-emerald-400';
   if (status === 'reachable') return 'text-cyan-400';
-  if (status === 'auth_failed') return 'text-rose-400';
+  if (status === 'auth_failed' || status === 'blocked') return 'text-rose-400';
   return 'text-amber-400';
 }

@@ -100,7 +100,8 @@ export interface DiscoveryResult {
 export interface PreflightCheckResult {
   kind: 'ftp' | 'sftp' | 'mysql' | 'imap';
   target: string;
-  status: 'ok' | 'reachable' | 'auth_failed' | 'unreachable';
+  /** blocked — host odrzucony przed połączeniem (sieć prywatna, serwer Verris): tej migracji nie da się dokończyć. */
+  status: 'ok' | 'reachable' | 'auth_failed' | 'unreachable' | 'blocked';
   message: string;
   latencyMs: number | null;
 }
