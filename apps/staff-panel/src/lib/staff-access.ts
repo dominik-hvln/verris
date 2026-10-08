@@ -5,6 +5,8 @@ export interface StaffAccess {
   isAdmin: boolean;
   roleName?: string | null;
   permissions: string[];
+  /** L1-KARTA — odczyt `/staff/me/access` zawiódł; uprawnienia nieznane (nie: „brak uprawnień”). */
+  nieOdczytano?: true;
 }
 
 /**
@@ -16,7 +18,7 @@ export async function pobierzDostepOperatora(): Promise<StaffAccess> {
   try {
     return await staffApi<StaffAccess>("/staff/me/access");
   } catch {
-    return { role: "STAFF", isAdmin: false, permissions: [] };
+    return { role: "STAFF", isAdmin: false, permissions: [], nieOdczytano: true };
   }
 }
 

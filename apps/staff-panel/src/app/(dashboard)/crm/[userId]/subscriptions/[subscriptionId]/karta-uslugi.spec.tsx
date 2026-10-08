@@ -105,6 +105,17 @@ describe("karta usługi — L1 Konsultant (podgląd)", () => {
     expect(html).not.toContain('data-sekcja="diagnostyka"');
     expect(html).not.toContain("Migracja za klienta");
     expect(wolane()).not.toContain(`/admin/subscriptions/${SUB}/plan/eligible-plans`);
+    // Nie wiadomo, kim jest operator — neutralny komunikat zamiast informacji dla L1 (L2/NOC też tu trafiają).
+    expect(html).toContain("Nie udało się odczytać uprawnień — karta w trybie podglądu.");
+    expect(html).not.toContain("wykonuje obsługa od poziomu L2");
+  });
+
+  it("rola z migracją za klienta bez zarządzania usługami: informacja nie mówi, że migracje robi L2", async () => {
+    odpowiedzi([...L1, "MIGRATIONS_MANAGE"]);
+    const html = await render();
+    expect(html).toContain("Migracja za klienta");
+    expect(html).toContain("Zmiany w usłudze (plan, odtwarzanie z kopii, przeniesienie na inny węzeł) wykonuje obsługa od poziomu L2");
+    expect(html).not.toContain("migracje) wykonuje");
   });
 });
 

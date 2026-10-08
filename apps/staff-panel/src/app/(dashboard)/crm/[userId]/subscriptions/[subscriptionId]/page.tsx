@@ -48,6 +48,8 @@ export default async function StaffSubscriptionReadonlyPage({
   const mozeMigrowacZaKlienta = maUprawnienie(dostep, "MIGRATIONS_MANAGE");
   const widziKontoKlienta = maUprawnienie(dostep, "ACCOUNT_DIAGNOSTICS_VIEW");
   const mozeDiagnozowac = DIAGNOSTYKA.some((k) => maUprawnienie(dostep, k));
+  // Migrację za klienta rola może mieć osobno (MIGRATIONS_MANAGE) — wtedy nie piszemy, że migracje robi L2.
+  const zmianyDlaL2 = `plan, odtwarzanie z kopii, ${mozeMigrowacZaKlienta ? "przeniesienie na inny węzeł" : "migracje"}`;
 
   // Lista planów do zmiany tylko z SUBSCRIPTIONS_MANAGE (API: 403 bez niego). Błąd odczytu — komunikat w sekcji, nie wywrócona karta.
   let eligiblePlans: { id: string; name: string; slug: string }[] = [];
@@ -124,10 +126,13 @@ export default async function StaffSubscriptionReadonlyPage({
         </dl>
       </header>
 
-      {!mozeZmieniacUsluge ? (
+      {dostep.nieOdczytano ? (
+        <p className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-sm text-amber-200">
+          Nie udało się odczytać uprawnień — karta w trybie podglądu. Odśwież stronę za chwilę.
+        </p>
+      ) : !mozeZmieniacUsluge ? (
         <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-muted-foreground">
-          Podgląd usługi. Zmiany w usłudze (plan, odtwarzanie z kopii, migracje) wykonuje obsługa od poziomu L2 — jeśli
-          klient o nie prosi, przekaż zgłoszenie dalej.
+          {`Podgląd usługi. Zmiany w usłudze (${zmianyDlaL2}) wykonuje obsługa od poziomu L2 — jeśli klient o nie prosi, przekaż zgłoszenie dalej.`}
         </p>
       ) : null}
 
