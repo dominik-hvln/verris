@@ -255,8 +255,10 @@ export class TicketsService {
 
   /**
    * Pobiera pojedyncze zgłoszenie dla klienta.
+   * @param zakresUslug — zakres usług subkonta / członkostwa (PB-20). Zgłoszenia konta są wspólne, ale usługa
+   *   spoza zakresu nie wychodzi w odpowiedzi (domena, tag, plan) — zgłoszenie wygląda wtedy jak niepowiązane.
    */
-  async findOne(ticketId: string, userId: string) {
+  async findOne(ticketId: string, userId: string, zakresUslug?: readonly string[] | null) {
     const ticket = await this.prisma.ticket.findUnique({
       where: { id: ticketId },
       include: {
@@ -314,7 +316,9 @@ export class TicketsService {
       authorId: r.isStaff ? null : authorId,
       autor: r.isStaff && !r.automatic ? opiekunSlownie(obsluga.find((u) => u.id === authorId)) : null,
     }));
-    return { ...widoczne, replies, opiekun: assignedTo ? opiekunSlownie(assignedTo) : null, supportSlaHours };
+    const poza = !!zakresUslug?.length && !!widoczne.subscriptionId && !zakresUslug.includes(widoczne.subscriptionId);
+    const usluga = poza ? { subscriptionId: null, subscription: null } : {};
+    return { ...widoczne, ...usluga, replies, opiekun: assignedTo ? opiekunSlownie(assignedTo) : null, supportSlaHours };
   }
 
   /** SUP-5 — highest support SLA (hours) across the user's active subscriptions. */
@@ -778,7 +782,7 @@ export class TicketsService {
         files: list,
       });
     }
-    return this.findOne(row.id, userId);
+    return this.findOne(row.id, userId, zakresUslug);
   }
 
   /** Załączniki do pierwszej wiadomości (bez odpowiedzi w wątku) — tylko właściciel ticketa. */
@@ -786,6 +790,7 @@ export class TicketsService {
     ticketId: string,
     userId: string,
     files: Express.Multer.File[],
+    zakresUslug?: readonly string[] | null,
   ) {
     const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Zgłoszenie nie zostało znalezione');
@@ -804,7 +809,7 @@ export class TicketsService {
       uploadedById: userId,
       files,
     });
-    return this.findOne(ticketId, userId);
+    return this.findOne(ticketId, userId, zakresUslug);
   }
 
   private async saveAttachmentFiles(opts: {

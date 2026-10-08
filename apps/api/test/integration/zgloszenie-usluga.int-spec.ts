@@ -77,6 +77,24 @@ describe('PB-43 — zgłoszenie powiązane z usługą', () => {
     expect(bez.subscriptionId).toBeNull();
   });
 
+  it('subkonto z zakresem usług: widok zgłoszenia nie ujawnia usługi spoza zakresu', async () => {
+    const { tickets } = uslugi();
+    const { a, drugaA } = await dwaKonta();
+    // zgłoszenie konta powiązane z usługą S2 (np. założone przez właściciela); subkonto widzi tylko S1
+    const t = await tickets.create(a.user.id, { ...tresc, subscriptionId: drugaA.id });
+    type Widok = { subscriptionId: string | null; subscription: { id: string } | null; subject: string };
+
+    const subkonto = (await tickets.findOne(t.id, a.user.id, [a.subscription.id])) as unknown as Widok;
+    expect(subkonto.subscription).toBeNull();
+    expect(subkonto.subscriptionId).toBeNull();
+    expect(subkonto.subject).toBe(tresc.subject);
+
+    const wZakresie = (await tickets.findOne(t.id, a.user.id, [drugaA.id])) as unknown as Widok;
+    expect(wZakresie.subscription?.id).toBe(drugaA.id);
+    const wlasciciel = (await tickets.findOne(t.id, a.user.id)) as unknown as Widok;
+    expect(wlasciciel.subscription?.id).toBe(drugaA.id);
+  });
+
   it('obsługa zmienia powiązanie: oś zgłoszenia + dziennik; cudza usługa odrzucona; odłączenie', async () => {
     const { tickets } = uslugi();
     const { a, b, drugaA } = await dwaKonta();

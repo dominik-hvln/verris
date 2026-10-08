@@ -258,10 +258,10 @@ export class TicketsController {
   @UseInterceptors(FILES_MEMORY)
   async addOpeningAttachments(
     @Param('ticketId') ticketId: string,
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: { userId: string; serviceScope?: string[] },
     @UploadedFiles() files: Express.Multer.File[],
   ) {
-    return this.ticketsService.addOpeningAttachments(ticketId, user.userId, files ?? []);
+    return this.ticketsService.addOpeningAttachments(ticketId, user.userId, files ?? [], user.serviceScope);
   }
 
   @Post(':ticketId/replies/with-files')
@@ -295,8 +295,8 @@ export class TicketsController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string, @CurrentUser() user: { userId: string }) {
-    return this.ticketsService.findOne(id, user.userId);
+  async findOne(@Param('id') id: string, @CurrentUser() user: { userId: string; serviceScope?: string[] }) {
+    return this.ticketsService.findOne(id, user.userId, user.serviceScope);
   }
 
   @Post(':id/replies')
