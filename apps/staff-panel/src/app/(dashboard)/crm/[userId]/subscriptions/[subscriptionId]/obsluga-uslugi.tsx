@@ -2,12 +2,12 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { SERVICE_EVENT_PL, etykieta } from "@verris/contracts";
 import { staffApi, StaffApiError } from "@/lib/staff-api";
+import { maUprawnienie, pobierzDostepOperatora } from "@/lib/staff-access";
 import { pobierzKopieAction, pobierzZuzycieAction } from "./obsluga-actions";
 import { ZasobyPanel } from "./zasoby-panel";
 import { KopiePanel } from "./kopie-panel";
 import { MigracjaWewnetrznaForm, type WezelDocelowy } from "./migracja-wewnetrzna-form";
 
-type Dostep = { isAdmin: boolean; permissions: string[] };
 type Wezel = WezelDocelowy & { status: string };
 type WpisMigracji = { id: string; type: string; createdAt: string; details: Record<string, unknown> | null };
 
@@ -32,7 +32,8 @@ function Sekcja({ tytul, opis, children, ton = "neutral" }: { tytul: string; opi
 /**
  * PB-44 (decyzja 08.10) — sekcje obsługi na karcie usługi: zasoby, kopie z odtwarzaniem, migracja wewnętrzna
  * i historia migracji. Każdy odczyt osobno: błąd jednego (węzeł, 403) to komunikat w jego sekcji, reszta karty działa.
- * Akcje widać tylko z uprawnieniem; gdy uprawnień nie da się odczytać, decyduje API (403 → komunikat).
+ * Akcje widać tylko z uprawnieniem. Uprawnienia czyta wspólny `pobierzDostepOperatora` (jak karta klienta, PB-46):
+ * gdy się nie da — podgląd bez akcji; twarda egzekucja i tak jest w API (403 → komunikat).
  */
 export async function ObslugaUslugi({
   subscriptionId,
@@ -43,14 +44,12 @@ export async function ObslugaUslugi({
   userId: string;
   account: { domain: string; serverId: string | null } | null;
 }) {
-  const [dostepR, migracjeR] = await Promise.allSettled([
-    staffApi<Dostep>("/staff/me/access"),
-    staffApi<WpisMigracji[]>(`/admin/subscriptions/${subscriptionId}/migrations`),
+  const [dostep, migracjeR] = await Promise.all([
+    pobierzDostepOperatora(),
+    Promise.allSettled([staffApi<WpisMigracji[]>(`/admin/subscriptions/${subscriptionId}/migrations`)]).then(([r]) => r),
   ]);
-  const dostep = dostepR.status === "fulfilled" ? dostepR.value : null;
-  const ma = (perm: string) => !dostep || dostep.isAdmin || dostep.permissions.includes(perm);
-  const mozeZarzadzac = ma("SUBSCRIPTIONS_MANAGE");
-  const widziWezly = ma("NODES_VIEW");
+  const mozeZarzadzac = maUprawnienie(dostep, "SUBSCRIPTIONS_MANAGE");
+  const widziWezly = maUprawnienie(dostep, "NODES_VIEW");
 
   let zuzycie: Awaited<ReturnType<typeof pobierzZuzycieAction>> | null = null;
   let kopie: Awaited<ReturnType<typeof pobierzKopieAction>> | null = null;

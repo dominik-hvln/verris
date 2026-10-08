@@ -135,6 +135,16 @@ describe("ObslugaUslugi — uprawnienia (403)", () => {
     expect(api.mock.calls.map((c) => c[0])).not.toContain("/admin/servers");
   });
 
+  it("awaria /staff/me/access → podgląd bez odtwarzania i migracji (jak karta klienta, PB-46)", async () => {
+    odpowiedzi({ "/staff/me/access": new Blad("Bad Gateway", 502) });
+    const html = await render();
+    expect(html).toContain("backup-2026-10-07.tar.zst");
+    expect(html).toContain("Zlecono przeniesienie konta na inny serwer");
+    expect(html).not.toContain("Odtwórz konto z kopii");
+    expect(html).not.toContain("Zleć migrację wewnętrzną");
+    expect(api.mock.calls.map((c) => c[0])).not.toContain("/admin/servers");
+  });
+
   it("rola bez NODES_VIEW → migracja z komunikatem zamiast formularza, lista węzłów nie wołana", async () => {
     odpowiedzi({ "/staff/me/access": { isAdmin: false, permissions: ["SUBSCRIPTIONS_MANAGE"] } });
     const html = await render();
