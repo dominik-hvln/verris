@@ -64,7 +64,7 @@ export function isRodoAction(action: string): boolean {
 export const SupportActions = {
   /** Staff/admin uruchomił diagnostykę DNS+TLS z profilu klienta. */
   STAFF_DNS_TLS_DIAGNOSTIC: 'STAFF_DNS_TLS_DIAGNOSTIC',
-  /** PB-42 — operator podejrzał sekcję konta klienta (domeny, DNS, poczta, bazy, PHP, SSL, cron, logi); details.sekcja. */
+  /** PB-42 — operator podejrzał sekcję konta klienta (domeny, DNS, poczta, bazy, PHP, SSL, cron, logi, kopie); details.sekcja. */
   OPERATOR_ACCOUNT_VIEWED: 'OPERATOR_ACCOUNT_VIEWED',
 } as const;
 

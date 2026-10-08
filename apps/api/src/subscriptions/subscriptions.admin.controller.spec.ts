@@ -72,6 +72,28 @@ describe('SubscriptionsAdminController — obsługa (PB-44)', () => {
     expect(hostingRestore.enqueue).toHaveBeenCalled();
   });
 
+  /**
+   * Przegląd przekrojowy pakietu: lista kopii to odczyt konta klienta z węzła — jak sekcje konta z PB-42
+   * (konto-klienta.admin.controller.ts, OPERATOR_ACCOUNT_VIEWED). PB-44 pokazał ją obsłudze bez wpisu w dzienniku.
+   */
+  it('lista kopii konta → wpis OPERATOR_ACCOUNT_VIEWED (operator = aktor, klient = właściciel), potem odczyt z węzła', async () => {
+    const audit = { record: vi.fn().mockResolvedValue(undefined) };
+    const prisma = { subscription: { findUnique: vi.fn().mockResolvedValue({ userId: 'klient' }) } };
+    const directAdmin = { listHostingBackups: vi.fn().mockResolvedValue({ rows: [], fetchError: null }) };
+    const c = new (SubscriptionsAdminController as unknown as new (...a: unknown[]) => SubscriptionsAdminController)(
+      null, prisma, null, null, null, null, directAdmin, null, null, audit,
+    );
+    await c.hostingBackups('s1', { userId: 'op' });
+    expect(audit.record).toHaveBeenCalledWith({
+      action: 'OPERATOR_ACCOUNT_VIEWED',
+      userId: 'klient',
+      actorUserId: 'op',
+      details: { subscriptionId: 's1', sekcja: 'kopie' },
+    });
+    expect(directAdmin.listHostingBackups).toHaveBeenCalledWith('s1', 'klient');
+    expect(audit.record.mock.invocationCallOrder[0]).toBeLessThan(directAdmin.listHostingBackups.mock.invocationCallOrder[0]!);
+  });
+
   it('migracja wewnętrzna przez STAFF bez powodu → 400', () => {
     const { c, migrations } = kontroler();
     expect(() => c.requestInternalMigration('s1', { targetServerId: 'n2' }, { userId: 'op', role: Role.STAFF })).toThrow(BadRequestException);

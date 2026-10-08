@@ -18,6 +18,8 @@ import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.
 import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { SupportActions } from '../common/audit/audit.actions.js';
 import {
   SubscriptionsService,
   SuspendReason,
@@ -74,6 +76,7 @@ export class SubscriptionsAdminController {
     private readonly directAdmin: DirectAdminService,
     private readonly naWezle: OdtworzenieNaWezleService,
     private readonly retencja: RetencjaKontService,
+    private readonly audit: AuditService,
   ) {}
 
   // H-16 — odtworzenie konta z kopii off-site na innym węźle (utrata węzła). Tylko ADMIN: przepina konto.
@@ -92,12 +95,21 @@ export class SubscriptionsAdminController {
     return this.naWezle.start(id, actor.userId, body);
   }
 
-  /** H-18 — lista kopii konta dla operatora (wybór kopii do odtworzenia). */
+  /**
+   * H-18 — lista kopii konta dla operatora (wybór kopii do odtworzenia). Odczyt konta klienta z węzła, więc
+   * w dzienniku jak sekcje podglądu konta (PB-42, konto-klienta.admin.controller.ts) — od PB-44 czyta ją też obsługa.
+   */
   @Get(':id/hosting-backups')
   @Roles(Role.ADMIN, Role.STAFF)
-  async hostingBackups(@Param('id') id: string) {
+  async hostingBackups(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
     const sub = await this.prisma.subscription.findUnique({ where: { id }, select: { userId: true } });
     if (!sub) throw new NotFoundException('Usługa nie istnieje.');
+    await this.audit.record({
+      action: SupportActions.OPERATOR_ACCOUNT_VIEWED,
+      userId: sub.userId,
+      actorUserId: actor.userId,
+      details: { subscriptionId: id, sekcja: 'kopie' },
+    });
     return this.directAdmin.listHostingBackups(id, sub.userId);
   }
 
