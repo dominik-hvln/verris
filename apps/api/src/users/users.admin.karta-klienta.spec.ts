@@ -113,3 +113,39 @@ describe('PB-46 strażnicy karty klienta (zachowanie, nie metadane)', () => {
     expect(await wpuszcza(m, Role.ADMIN, [])).toBe(true);
   });
 });
+
+describe('PB-46 PATCH operational — pola tylko dla admina', () => {
+  function kontroler() {
+    const admin = { patchCustomerOperational: vi.fn(async () => ({ ok: true })) };
+    const c = new UsersAdminController(admin as never, {} as never, {} as never);
+    return { c, admin };
+  }
+  const req = { headers: {}, ip: '127.0.0.1', socket: {} } as never;
+  const staff = { userId: 's1', email: 's@verris.pl', role: Role.STAFF };
+
+  it('STAFF z CUSTOMERS_MANAGE nie oznaczy klienta jako konta wewnętrznego (wyłącza go z MRR i faktur VAT) — 403', async () => {
+    const { c, admin } = kontroler();
+    await expect(c.patchOperational(staff, 'u1', { isInternal: true }, req)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      c.patchOperational(staff, 'u1', { loginBlocked: true, isInternal: false }, req),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(admin.patchCustomerOperational).not.toHaveBeenCalled();
+  });
+
+  it('STAFF zapisze blokadę i notatkę (bez flagi konta wewnętrznego)', async () => {
+    const { c, admin } = kontroler();
+    await c.patchOperational(staff, 'u1', { loginBlocked: true, loginBlockedReason: 'spam', adminInternalNote: 'x' }, req);
+    expect(admin.patchCustomerOperational).toHaveBeenCalledWith(
+      'u1',
+      's1',
+      { loginBlocked: true, loginBlockedReason: 'spam', adminInternalNote: 'x' },
+      expect.any(Object),
+    );
+  });
+
+  it('ADMIN nadal zmienia flagę konta wewnętrznego', async () => {
+    const { c, admin } = kontroler();
+    await c.patchOperational({ userId: 'a1', email: 'a@verris.pl', role: Role.ADMIN }, 'u1', { isInternal: true }, req);
+    expect(admin.patchCustomerOperational).toHaveBeenCalledTimes(1);
+  });
+});

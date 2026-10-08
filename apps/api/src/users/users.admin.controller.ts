@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   HttpCode,
   Param,
@@ -150,6 +151,11 @@ export class UsersAdminController {
     @Body() dto: AdminCustomerOperationalDto,
     @Req() req: Request,
   ) {
+    // PB-46: CUSTOMERS_MANAGE daje obsłudze blokadę i notatkę, ale nie flagę „konto wewnętrzne” —
+    // ta wyłącza klienta z MRR, churnu, sald portfeli i kolejki faktur VAT, więc zostaje przy adminie.
+    if (user.role !== Role.ADMIN && dto.isInternal !== undefined) {
+      throw new ForbiddenException('Oznaczenie konta wewnętrznego może zmienić tylko administrator.');
+    }
     return this.admin.patchCustomerOperational(id, user.userId, dto, {
       ipAddress: extractIp(req),
       userAgent: req.headers['user-agent']?.toString() ?? null,
