@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **1634 h** — przy 65 h tygodniowo około **6 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **1714 h** — przy 65 h tygodniowo około **6 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1190 h) oraz roadmapę po starcie (444 h, 18 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1270 h) oraz roadmapę po starcie (444 h, 18 pozycji) rozpisaną na epiki kwartalne.
 
 - **2026-11-13** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-08** — koniec sprintu 20, decyzja GO.
@@ -270,7 +270,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 # Faza 2 — Odzyskanie funkcji-widm i luki pierwszego tygodnia
 
-*Sprinty 9–14 · 206 h · 2026-10-26 – 2026-10-23*
+*Sprinty 9–14 · 240 h · 2026-10-26 – 2026-10-23*
 
 Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. Najlepszy stosunek wartości do pracy w całym backlogu.
 
@@ -373,7 +373,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 ## Sprint 14 — Beta wewnętrzna na t1, rozliczenia klienta i pomiar
 
-`2026-10-19 – 2026-10-23` · **68 h** z 65 h pojemności
+`2026-10-19 – 2026-10-23` · **102 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -384,6 +384,9 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 | `PB-08` | Pomiar: Consent Mode v2 + GTM + dedup event_id | 16 | ŚREDNI | Wdrożenie ustaleń z audytu pomiaru: www linkuje, panel działa, deduplikacja po event_id, cookie Domain=.verris.pl. | PRZEGLĄD GTM 2026-09-23 (tylko od |
 | `PB-27` | Indywidualne warunki usługi: cena i autoskalowanie | 12 | WYSOKI | Decyzja właściciela 2026-09-26: operator (admin albo pracownik z uprawnieniem „Indywidualne warunki”) zakłada usługę na istniejącym lub nowym koncie i |
 | `PB-28` | Rozliczenie poza Verris (całe konto) | 10 | WYSOKI | Decyzja właściciela 2026-09-26: klient oznaczony „rozliczany przez właściciela” — system nie pobiera opłat, nie blokuje za brak płatności, sam przedłu |
+| `PB-44` | Obsługa: zasoby, kopie i odtwarzanie, historia i migracja wewnętrzna w panelu staff | 10 | ŚREDNI | Decyzja właściciela 2026-10-08: po rdzeniu, w trakcie bety. API już to obsługuje dla staff z SUBSCRIPTIONS_MANAGE (subscriptions.admin.controller.ts:  |
+| `PB-45` | Obsługa: migracja w imieniu klienta z jego zgodą | 16 | ŚREDNI | Decyzja właściciela 2026-10-08: staff wypełnia kreator migracji za klienta (np. z danych ze zgłoszenia), migracja startuje dopiero po kliknięciu przez |
+| `PB-46` | Obsługa: spójna karta klienta w staff i admin | 8 | ŚREDNI | Decyzja właściciela 2026-10-08: notatka wewnętrzna w staff, diagnostyka DNS/TLS i ryzyko klienta w admin, operacje wrażliwe w staff według uprawnień,  |
 
 **Definicja ukończenia**
 
@@ -394,6 +397,9 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 - `PB-08` — Zdarzenie zakupu dociera raz, nie dwa. Consent Mode nie blokuje pomiaru po zgodzie. Zweryfikowane w GTM Preview i w raporcie.
 - `PB-27` — Operator zakłada usługę z własną ceną; odnowienie pobiera tę cenę; autoskalowanie liczone z rabatem; każda zmiana w dzienniku audytu z autorem i powodem; test na PostgreSQL.
 - `PB-28` — Flaga na koncie ustawiana z panelu admina/obsługi; testy: brak obciążeń, przedłużanie okresu, brak maili, brak blokady, raport zużycia autoskalowania.
+- `PB-44` — Panel staff pokazuje zasoby, kopie z odtwarzaniem, historię migracji i migrację wewnętrzną zgodnie z uprawnieniami; testy panelu.
+- `PB-45` — Staff zakłada migrację za klienta, klient dostaje prośbę o zgodę, start po zgodzie; bez zgody — nic nie rusza i dane źródła są usuwane po terminie; testy na PostgreSQL.
+- `PB-46` — Obie karty klienta mają te same sekcje (różnią się tylko uprawnieniami); testy panelu.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
 **Ryzyko sprintu.** Ostatni sprint kodowy przed blokiem dokumentow. PB-08 (Consent Mode v2 + dedup event_id) jest tu, a nie przy landingu, bo to kod w panelu, nie tresc — landing tylko z niego korzysta. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. NODE-03 (pojemnosc wezla z telemetrii) dolozone tutaj z sprintu 13 dla pojemnosci — kod bez wezla, dowod przy wezle. | 2026-10-04 HARMONOGRAM STARTU (wariant A, decyzja właściciela): beta wewnętrzna na t1 19.10–6.11 (PB-40); w tym oknie wypadają testy PB-27 (22.10) i PB-28 (odnowienie d3 28.10).
@@ -402,7 +408,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 # Faza 3 — Wejście na rynek
 
-*Sprinty 15–19 · 312 h · 2026-10-05 – 2026-12-04*
+*Sprinty 15–19 · 358 h · 2026-10-05 – 2026-12-04*
 
 Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, baza wiedzy, przejście ścieżki pierwszego klienta na produkcji i zapisana decyzja GO.
 
@@ -427,7 +433,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 ## Sprint 16 — Strict egress na control-plane
 
-`2026-10-12 – 2026-10-16` · **121 h** z 65 h pojemności
+`2026-10-12 – 2026-10-16` · **167 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -443,6 +449,9 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `PB-32` | Aktualizacje węzłów falami | 8 | ŚREDNI | Decyzja właściciela 2026-09-26: najpierw węzeł kanarkowy, potem reszta po jednym; prawdziwy status (dziś skrypt zawsze zwraca ok); aktualizacje z pane |
 | `PB-33` | Wersje stosu floty w panelu + wyrównanie falą | 12 | WYSOKI | Decyzja właściciela 2026-09-26: strona „Wersje stosu floty” w panelu admina (DB, PHP, LiteSpeed, DirectAdmin) z dozwolonymi wartościami z oficjalnych  |
 | `PB-35` | Automatyczna fala aktualizacji węzłów co tydzień | 3 | WYSOKI | Decyzja właściciela 2026-09-26: fala rusza sama we wtorki o 4:00 (kanarek → reszta po jednym, błąd zatrzymuje, powiadomienie). Węzły same już niczego  |
+| `PB-41` | Obsługa: „Zaloguj jako klient” dla pracownika z uprawnieniem | 4 | WYSOKI | Decyzja właściciela 2026-10-08: staff wchodzi na konto klienta z osobnym uprawnieniem, obowiązkowym powodem (np. numer zgłoszenia), sesją 30 min i wpi |
+| `PB-42` | Obsługa: podgląd konta klienta (DNS, domeny, poczta, bazy, PHP, SSL, cron, logi, zasoby, kopie) | 30 | WYSOKI | Decyzja właściciela 2026-10-08: rdzeń przed betą — testerzy zgłaszają problemy, obsługa musi je widzieć bez wchodzenia na serwer. Karta usługi w staff |
+| `PB-43` | Obsługa: zgłoszenie powiązane z usługą + diagnostyka z poziomu zgłoszenia | 12 | WYSOKI | Decyzja właściciela 2026-10-08: rdzeń przed betą. Zgłoszenie ma usługę (wybór klienta przy tworzeniu, zmiana przez obsługę), obok rozmowy diagnostyka  |
 
 **Definicja ukończenia**
 
@@ -458,6 +467,9 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - `PB-32` — Fala zatrzymuje się na pierwszym błędzie; status w panelu zgodny z logiem.
 - `PB-33` — Zmiana wersji w panelu → nowy węzeł instaluje ją, istniejące wyrównane falą; audyt zgodności zielony.
 - `PB-35` — Fala startuje sama w oknie; zatrzymanie widoczne w powiadomieniach admina.
+- `PB-41` — Pracownik z uprawnieniem wchodzi na konto klienta z panelu staff, bez uprawnienia — odmowa z komunikatem; powód i czas w dzienniku obu stron; testy guardu i kontrolera.
+- `PB-42` — W panelu staff i admin karta usługi pokazuje wymienione sekcje z żywego węzła; odczyt wymaga uprawnienia i trafia do dziennika; testy kontrolera (uprawnienia, cudza usługa) i panelu; sprawdzone na t1 na koncie d3.
+- `PB-43` — Zgłoszenie zapisuje usługę (migracja bazy), panel klienta pozwala ją wybrać, staff widzi diagnostykę i kartę usługi przy rozmowie; testy na PostgreSQL.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
 **Ryzyko sprintu.** Kod SEC-05/04/01 gotowy 2026-09-22 (pomiar na produkcji od 09:23 UTC). Tutaj: allowlista z kilku tygodni pelnego pomiaru (SEC-06), odswiezanie adresow Stripe (SEC-02), wlaczenie --strict (warunek wstepny w skrypcie sam odmowi, jesli pomiar widzi cele spoza listy). | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. | 2026-10-04 DECYZJA WŁAŚCICIELA: drugi węzeł testowy t2 (Hetzner Cloud, czysty AlmaLinux 10) teraz — kreator od zera (PB-31, NODE-02), flota na t1 + t2 (PB-30/32/33/35), H-16 między t1 a t2. AX102 w sprincie 21 już tylko PB-02.
