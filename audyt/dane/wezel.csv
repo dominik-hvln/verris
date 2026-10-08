@@ -107,3 +107,6 @@ Q-07,sprawdzone,2026-10-06,konsola noVNC połączona (ekran logowania Ubuntu 24.
 G-08,czeka,,"sandbox OP: zamówienie DV, walidacja DNS, instalacja na t1 | 07.10: CSR i zamówienie przechodzą (348, REQ); rekord DNS po 60e6496 — do potwierdzenia po deployu; wydanie tylko na produkcyjnym OP. | 07.10 18:00 UTC rekord CNAME dodany do strefy test2.d3.hvln.pl i widoczny publicznie."
 K-06,sprawdzone,2026-10-07,"07.10 t1 d3.hvln.pl: Logi WWW → Pobierz — plik .log ze 100 liniami (chronologicznie), wpisy ModSecurity z testu WAF"
 NODE-01,czeka,,"pierwszy węzeł produkcyjny (AX102, 9–20.11): kreator z bootstrapem v2 — razem z PB-31"
+Z-09,sprawdzone,2026-10-08,"t1: odmowa 127.0.0.1 / 10.0.0.1 / rekord mieszany w API (test dostępów + start) i w guardzie `pin` na węźle (także własne adresy t1); pozytywny FTP z Pleska → z09.d3.hvln.pl 3864 pliki / 109 MB"
+I-19,sprawdzone,2026-10-08,"t1: migracja „Pliki” FTP z Pleska (hvln.pl) → z09.d3.hvln.pl, 3864 pliki / 109 MB (#da592220); WordPress bez bazy → 500, oczekiwane"
+A-02,sprawdzone,2026-10-08,"t1: domena dodatkowa z10.d3.hvln.pl dodana i usunięta — delegacja NS/DS w strefie d3.hvln.pl znika razem z domeną (60ff05ba)"
