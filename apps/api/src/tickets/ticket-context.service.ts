@@ -12,6 +12,19 @@ import {
 
 const KB_BASE = () => (process.env.KB_PUBLIC_URL || 'https://pomoc.verris.pl').replace(/\/$/, '');
 const ACTIVE = ['ACTIVE', 'PAST_DUE', 'PROVISIONING', 'SUSPENDED'] as const;
+/** Ile najnowszych usług klienta pokazuje podgląd. */
+const USLUGI_W_PODGLADZIE = 10;
+
+const USLUGA_PODGLADU = {
+  id: true,
+  status: true,
+  currentPeriodEnd: true,
+  plan: { select: { name: true } },
+  account: { select: { domain: true } },
+  siteMonitor: { select: { tlsExpiresAt: true, lastStatus: true } },
+  healthSnapshots: { orderBy: { computedAt: 'desc' }, take: 1, select: { score: true } },
+  events: { orderBy: { createdAt: 'desc' }, take: 5, select: { type: true, createdAt: true } },
+} as const;
 
 /**
  * PB-18 — boczny podgląd klienta w tickecie (usługi, saldo, dokumenty,
@@ -41,17 +54,8 @@ export class TicketContextService {
       this.prisma.subscription.findMany({
         where: { userId: ticket.userId },
         orderBy: { createdAt: 'desc' },
-        take: 10,
-        select: {
-          id: true,
-          status: true,
-          currentPeriodEnd: true,
-          plan: { select: { name: true } },
-          account: { select: { domain: true } },
-          siteMonitor: { select: { tlsExpiresAt: true, lastStatus: true } },
-          healthSnapshots: { orderBy: { computedAt: 'desc' }, take: 1, select: { score: true } },
-          events: { orderBy: { createdAt: 'desc' }, take: 5, select: { type: true, createdAt: true } },
-        },
+        take: USLUGI_W_PODGLADZIE,
+        select: USLUGA_PODGLADU,
       }),
       this.prisma.invoice.findMany({
         where: { userId: ticket.userId },
@@ -66,6 +70,15 @@ export class TicketContextService {
         select: { id: true, subject: true, status: true, createdAt: true },
       }),
     ]);
+    // PB-43 — usługa powiązana ze zgłoszeniem musi być w podglądzie, nawet gdy jest starsza niż najnowsze
+    // USLUGI_W_PODGLADZIE: z tej listy panel buduje wybór „Zmień:”, oś zgłoszenia i szkic odpowiedzi.
+    if (ticket.subscriptionId && !subs.some((s) => s.id === ticket.subscriptionId)) {
+      const powiazana = await this.prisma.subscription.findFirst({
+        where: { id: ticket.subscriptionId, userId: ticket.userId },
+        select: USLUGA_PODGLADU,
+      });
+      if (powiazana) subs.push(powiazana);
+    }
     return { ticket, subs, invoices, tickets };
   }
 

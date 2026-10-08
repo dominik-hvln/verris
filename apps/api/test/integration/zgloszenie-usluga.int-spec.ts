@@ -125,6 +125,24 @@ describe('PB-43 — zgłoszenie powiązane z usługą', () => {
     expect(vars.domena).toBe(a.account.domain);
   });
 
+  it('powiązana usługa starsza niż 10 najnowszych: jest w podglądzie (wybór „Zmień:”) i w szkicu odpowiedzi', async () => {
+    const { tickets } = uslugi();
+    const { a } = await dwaKonta();
+    // a.subscription — najstarsza; nad nią 10 nowszych aktywnych usług (z drugaA z dwaKonta jest ich 11)
+    await prisma().subscription.update({ where: { id: a.subscription.id }, data: { createdAt: new Date(Date.now() - 86_400_000) } });
+    for (let i = 0; i < 9; i++) {
+      await prisma().subscription.create({ data: { userId: a.user.id, planId: a.subscription.planId, interval: 'MONTH', priceAmount: 45 } });
+    }
+    await prisma().subscription.updateMany({ where: { userId: a.user.id }, data: { status: 'ACTIVE' } });
+    const t = await tickets.create(a.user.id, { subject: 'Pytanie', message: 'Mam pytanie o konfigurację.', subscriptionId: a.subscription.id });
+
+    const ctx = new TicketContextService(prisma() as never);
+    const podglad = await ctx.contextFor(t.id);
+    expect(podglad.services.map((s) => s.id)).toContain(a.subscription.id);
+    expect(podglad.services).toHaveLength(11);
+    expect((await ctx.varsFor(t.id)).domena).toBe(a.account.domain);
+  });
+
   it('diagnostyka z rozmowy: tylko powiązana usługa, wpis w dzienniku', async () => {
     const { tickets, audit } = uslugi();
     const { a } = await dwaKonta();
