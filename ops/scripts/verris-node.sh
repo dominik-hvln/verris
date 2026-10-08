@@ -51,16 +51,19 @@ psql_q() {
     psql -U "$PG_USER" -d "$PG_DB" -tA -F$'\t' -c "$1"
 }
 
-# Zwraca wiersze: name<TAB>id<TAB>ip<TAB>status<TAB>region (bez usuniętych).
+# Zwraca wiersze: name<TAB>id<TAB>ip<TAB>status<TAB>region — wszystkie węzły z bazy.
+# Bez filtra statusu: usunięty węzeł znika z tabeli (enum ServerStatus nie ma DELETED),
+# a wycofywany (DEPROVISIONING) nadal bywa celem SSH. Status widać w kolumnie `list`.
 all_nodes() {
   psql_q "SELECT COALESCE(name,'(bez nazwy)'), id, \"ipAddress\", status, COALESCE(region,'') \
-          FROM \"Server\" WHERE status <> 'DELETED' ORDER BY name NULLS LAST;"
+          FROM \"Server\" ORDER BY name NULLS LAST;"
 }
 
 # Rozwiązuje selektor (nazwa / prefix id / dokładne IP) → wiersz węzła.
 resolve_node() {
   local sel="$1" rows match
-  rows="$(all_nodes)"
+  # Wołane w $(…), gdzie set -e nie działa — błąd psql musi przerwać jawnie, nie udawać pustej floty.
+  rows="$(all_nodes)" || die "zapytanie o węzły do bazy nie powiodło się (komunikat psql wyżej)"
   [ -n "$rows" ] || die "brak węzłów w bazie"
   # 1) dokładne IP, 2) dokładna nazwa (ci), 3) prefix id, 4) fragment nazwy (ci)
   match="$(awk -F'\t' -v s="$sel" 'tolower($3)==tolower(s){print; exit}' <<<"$rows")"
