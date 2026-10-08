@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, BookOpen, Loader2, Send } from "lucide-react";
-import { createTicketWithFiles, fetchBetaStatus, fetchKbSuggestions, type KbSuggestion } from "../actions";
+import { createTicketWithFiles, fetchBetaStatus, fetchKbSuggestions, fetchUslugiDoZgloszenia, type KbSuggestion } from "../actions";
+import { opcjeUslug, type UslugaDoZgloszenia } from "../usluga-zgloszenia";
 import { Select } from "@/components/panel";
 import { PoleZalacznikow } from "@/components/panel/pole-zalacznikow";
 import { toast } from "sonner";
@@ -27,8 +28,15 @@ export default function NewTicketPage() {
   const [subject, setSubject] = useState("");
   const [kb, setKb] = useState<KbSuggestion[]>([]);
   const [tester, setTester] = useState(false);
+  // PB-43 — usługa, której dotyczy zgłoszenie; undefined = jeszcze wczytujemy, null = lista niedostępna.
+  const [uslugi, setUslugi] = useState<UslugaDoZgloszenia[] | null | undefined>(undefined);
+  const [usluga, setUsluga] = useState("");
   useEffect(() => {
     void fetchBetaStatus().then(setTester);
+    void fetchUslugiDoZgloszenia().then((lista) => {
+      setUslugi(lista);
+      if (lista) setUsluga(opcjeUslug(lista).domyslna);
+    });
   }, []);
 
   // SUP-1 — pobierz podpowiedzi KB gdy temat+tytuł dają sensowne zapytanie.
@@ -111,6 +119,26 @@ export default function NewTicketPage() {
               options={(tester ? [TEMAT_BETA, ...TOPICS] : TOPICS).map((t) => ({ value: t.value, label: t.label }))}
             />
           </div>
+
+          {uslugi === null ? (
+            <p className="text-sm text-muted-foreground">
+              Nie udało się wczytać listy usług — wyślij zgłoszenie bez wskazania usługi i napisz w treści, której strony dotyczy.
+            </p>
+          ) : uslugi && uslugi.length > 0 ? (
+            <div className="space-y-2">
+              <label htmlFor="usluga" className="text-sm font-medium">
+                Której usługi dotyczy?
+              </label>
+              <input type="hidden" name="subscriptionId" value={usluga} />
+              <Select
+                id="usluga"
+                value={usluga}
+                onChange={setUsluga}
+                aria-label="Której usługi dotyczy?"
+                options={opcjeUslug(uslugi).opcje}
+              />
+            </div>
+          ) : null}
 
           <div className="space-y-2">
             <label htmlFor="subject" className="text-sm font-medium">

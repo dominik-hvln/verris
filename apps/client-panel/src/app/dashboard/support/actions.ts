@@ -2,6 +2,8 @@
 
 import { apiFetch } from "@/lib/api";
 import { getAuthToken } from "@/lib/auth";
+import type { ServiceSummaryDto } from "@verris/contracts";
+import { nazwaUslugi, type UslugaDoZgloszenia, type UslugaZApi } from "./usluga-zgloszenia";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
 
@@ -64,6 +66,21 @@ export interface TicketDetail {
   agentRating?: number | null;
   csatResolved?: boolean | null;
   csatComment?: string | null;
+  /** PB-43 — usługa, której dotyczy zgłoszenie (null = konto ogólnie). */
+  subscription?: (UslugaZApi & { status?: string }) | null;
+}
+
+/**
+ * PB-43 — usługi do wyboru w formularzu zgłoszenia (subkonto widzi tylko swój zakres — API zawęża listę).
+ * Awaria → null: formularz mówi, że listy nie ma, i pozwala wysłać zgłoszenie bez usługi.
+ */
+export async function fetchUslugiDoZgloszenia(): Promise<UslugaDoZgloszenia[] | null> {
+  try {
+    const lista = await apiFetch<ServiceSummaryDto[]>("/services");
+    return lista.map((u) => ({ id: u.id, nazwa: nazwaUslugi(u) }));
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -167,6 +184,9 @@ export async function createTicketWithFiles(formData: FormData) {
   outbound.append("message", message);
   const topic = formData.get("topic")?.toString();
   if (topic) outbound.append("topic", topic);
+  // PB-43 — usługa, której dotyczy zgłoszenie (puste = nie dotyczy konkretnej usługi).
+  const subscriptionId = formData.get("subscriptionId")?.toString();
+  if (subscriptionId) outbound.append("subscriptionId", subscriptionId);
   for (const entry of rawFiles) {
     if (entry instanceof File && entry.size > 0) {
       outbound.append("files", entry);

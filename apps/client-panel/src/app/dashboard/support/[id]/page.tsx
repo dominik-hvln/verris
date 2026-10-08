@@ -8,6 +8,7 @@ import { fetchTicketDetail } from "../actions";
 import ClientTicketChat from "./client-ticket-chat";
 import { stanZgloszenia } from "../stan";
 import { TicketCsat } from "./ticket-csat";
+import { nazwaUslugi } from "../usluga-zgloszenia";
 
 export const dynamic = "force-dynamic";
 
@@ -111,6 +112,19 @@ export default async function ClientTicketPage(props: { params: Promise<{ id: st
               status={ticket.status}
             />
             <span className="text-[13.5px] leading-[1.5]">O każdej zmianie napiszemy e-mailem — nie musisz tu zaglądać.</span>
+          </section>
+          {/* PB-43 — usługa, której dotyczy zgłoszenie */}
+          <section className="flex flex-col gap-1.5 rounded-[10px] border border-line bg-card p-4" aria-labelledby="usl">
+            <h2 id="usl" className="font-display text-[15px] font-bold">
+              Usługa
+            </h2>
+            {ticket.subscription ? (
+              <Link href={`/dashboard/services/${ticket.subscription.id}`} className="text-[13.5px] font-semibold">
+                {nazwaUslugi(ticket.subscription)}
+              </Link>
+            ) : (
+              <span className="text-[13.5px] text-muted-foreground">Zgłoszenie nie dotyczy konkretnej usługi.</span>
+            )}
           </section>
           <section className="flex flex-col gap-2 rounded-[10px] border border-line bg-card p-4" aria-labelledby="cd">
             <h2 id="cd" className="font-display text-[15px] font-bold">
