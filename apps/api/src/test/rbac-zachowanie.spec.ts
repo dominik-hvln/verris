@@ -20,13 +20,15 @@ type Uzytkownik = { userId: string; role: 'USER' | 'STAFF' | 'ADMIN' };
 type Trasa = { kontroler: string; klasa: Type<unknown>; metoda: string; handler: (...args: unknown[]) => unknown; sciezka: string };
 
 const SRC = resolve(import.meta.dirname, '..');
+/** Trasy paneli operatorskich: `admin/*`, `staff/*` i `…/admin/*` (np. `tickets/admin/:id/usluga`). */
+const TRASA_OPERATORA = /^(admin|staff)(\/|$)|\/admin(\/|$)/;
 
 function plikiKontrolerow(dir: string): string[] {
   const out: string[] = [];
   for (const n of readdirSync(dir)) {
     const p = join(dir, n);
     if (statSync(p).isDirectory()) out.push(...plikiKontrolerow(p));
-    else if (n.endsWith('.controller.ts') && /@Controller\(\s*['"`]admin/.test(readFileSync(p, 'utf-8'))) out.push(p);
+    else if (n.endsWith('.controller.ts') && /@Controller\(\s*['"`](admin|staff|tickets)/.test(readFileSync(p, 'utf-8'))) out.push(p);
   }
   return out;
 }
@@ -38,12 +40,20 @@ async function trasyAdmina(): Promise<Trasa[]> {
     for (const [nazwa, klasa] of Object.entries(mod)) {
       if (typeof klasa !== 'function') continue;
       const sciezka = Reflect.getMetadata(PATH_METADATA, klasa) as string | undefined;
-      if (typeof sciezka !== 'string' || !sciezka.startsWith('admin')) continue;
+      if (typeof sciezka !== 'string') continue;
       for (const metoda of Object.getOwnPropertyNames(klasa.prototype)) {
         const handler = (klasa.prototype as Record<string, unknown>)[metoda];
         if (metoda === 'constructor' || typeof handler !== 'function') continue;
         if (Reflect.getMetadata(METHOD_METADATA, handler) === undefined) continue;
-        out.push({ kontroler: nazwa, klasa: klasa as Type<unknown>, metoda, handler: handler as (...args: unknown[]) => unknown, sciezka });
+        // Pełna ścieżka (kontroler + metoda): trasy operatorów mieszkają też poza `admin/*` — `staff/*`
+        // i `tickets/admin/*` (PB-43 powiązanie i diagnostyka zgłoszenia, PB-45 migracja za klienta).
+        const pelna = [sciezka, String(Reflect.getMetadata(PATH_METADATA, handler) ?? '')]
+          .join('/')
+          .split('/')
+          .filter(Boolean)
+          .join('/');
+        if (!TRASA_OPERATORA.test(pelna)) continue;
+        out.push({ kontroler: nazwa, klasa: klasa as Type<unknown>, metoda, handler: handler as (...args: unknown[]) => unknown, sciezka: pelna });
       }
     }
   }
@@ -92,7 +102,21 @@ describe('X-10 — RBAC paneli operatorskich sprawdzany zachowaniem', () => {
     expect(TRASY.length).toBeGreaterThan(100);
   });
 
-  it('konto klienta (USER) nie wchodzi na ŻADNĄ trasę admin/*', async () => {
+  it('trasy operatorów poza admin/* też są sprawdzane (staff/*, tickets/admin/*)', () => {
+    const sciezki = TRASY.map((t) => t.sciezka);
+    expect(sciezki).toEqual(
+      expect.arrayContaining([
+        'tickets/admin/:id/usluga',
+        'tickets/admin/:id/diagnostyka',
+        'staff/migrations/za-klienta',
+        'staff/migrations/za-klienta/preflight',
+      ]),
+    );
+    // Trasy klienta z tych samych kontrolerów (np. `tickets/:id`) nie są trasami operatora.
+    expect(sciezki.filter((s) => !TRASA_OPERATORA.test(s))).toEqual([]);
+  });
+
+  it('konto klienta (USER) nie wchodzi na ŻADNĄ trasę operatora (admin/*, staff/*, tickets/admin/*)', async () => {
     const wpuszczone: string[] = [];
     for (const t of TRASY) if (await wpuszcza(t, KLIENT, ['*'])) wpuszczone.push(nazwa(t));
     // Jedyny wyjątek: zakończenie impersonacji woła panel klienta tokenem impersonacji (rola USER) — handler wymaga
