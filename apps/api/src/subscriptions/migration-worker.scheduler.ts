@@ -449,15 +449,15 @@ export class MigrationWorkerScheduler {
     }
   }
 
-  /** Treść widzi klient jako swoją wiadomość — bez kodów zadań, id węzła i uwag o sekretach. */
+  /** Treść widzi klient jako swoją wiadomość — bez kodów zadań, id węzła, uwag o sekretach i powodu operatora. */
   private buildTicketMessage(
     type: string,
     rawDetails: unknown,
     domain: string | null,
   ): string {
     const details = rawDetails && typeof rawDetails === 'object' ? (rawDetails as Record<string, unknown>) : {};
-    const notatki = details.notes ? String(details.notes) : '—';
     if (type === 'MIGRATION_EXTERNAL_REQUESTED') {
+      const notatki = details.notes ? String(details.notes) : '—';
       return [
         'Zgłoszenie utworzone automatycznie z formularza przeniesienia strony.',
         `Domena: ${domain ?? '—'}`,
@@ -468,9 +468,10 @@ export class MigrationWorkerScheduler {
       ].join('\n');
     }
     return [
+      // Migrację wewnętrzną zleca obsługa: `notes` to wewnętrzny powód operatora (np. „węzeł n1 przeciążony”) —
+      // zostaje w dzienniku i w historii migracji dla obsługi, nie w wiadomości klienta (PB-44, white label).
       'Zgłoszenie utworzone automatycznie: przeniesienie konta na inny serwer.',
       `Domena: ${domain ?? '—'}`,
-      `Twoje uwagi: ${notatki}`,
       '',
       'Przed przeniesieniem wykonaliśmy kopię zapasową konta.',
     ].join('\n');

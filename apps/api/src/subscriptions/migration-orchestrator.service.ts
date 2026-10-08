@@ -1,5 +1,5 @@
 import { TicketsService } from '../tickets/tickets.service.js';
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
   MigrationStatus,
   MigrationWorkerJobKind,
@@ -229,19 +229,48 @@ export class MigrationOrchestratorService {
     if (!cel) throw new BadRequestException('Docelowy węzeł nie istnieje.');
     if (cel.status !== 'ACTIVE') throw new BadRequestException('Docelowy węzeł nie jest aktywny — wybierz aktywny węzeł.');
 
-    const event = await this.prisma.subscriptionEvent.create({
-      data: {
-        subscriptionId,
-        type: 'MIGRATION_INTERNAL_REQUESTED',
-        details: {
-          targetServerId: dto.targetServerId,
-          notes: dto.notes ?? null,
-          requestedAt: new Date().toISOString(),
-          requestedBy: actorUserId,
-          accountDomain: sub.account?.domain ?? null,
-          accountUsername: sub.account?.daUsername ?? null,
+    // PB-44 (recenzja) — zlecić może każdy operator z SUBSCRIPTIONS_MANAGE, a stan „zlecono” w formularzu żyje tylko
+    // do przeładowania strony. Drugi wniosek dawał drugą kopię konta, drugie zgłoszenie i drugi e-mail do klienta.
+    // Wniosek jest otwarty, dopóki nie ma porażki (FAILED) ani zamkniętego zgłoszenia przeniesienia (QUEUED → ticket CLOSED).
+    // Blokada doradcza na usługę w transakcji: dwa równoczesne kliknięcia nie przejdą obu sprawdzeń naraz.
+    const event = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'migracja-wewnetrzna:' + subscriptionId}))`;
+      const otwarte = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT r.id FROM "SubscriptionEvent" r
+        WHERE r."subscriptionId" = ${subscriptionId}
+          AND r.type = 'MIGRATION_INTERNAL_REQUESTED'
+          AND NOT EXISTS (
+            SELECT 1 FROM "SubscriptionEvent" f
+            WHERE f."subscriptionId" = r."subscriptionId"
+              AND f.type = 'MIGRATION_INTERNAL_FAILED'
+              AND f.details->>'requestId' = r.id
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM "SubscriptionEvent" q
+            LEFT JOIN "Ticket" t ON t.id = q.details->>'ticketId'
+            WHERE q."subscriptionId" = r."subscriptionId"
+              AND q.type = 'MIGRATION_INTERNAL_QUEUED'
+              AND q.details->>'requestId' = r.id
+              AND (t.id IS NULL OR t.status = 'CLOSED')
+          )
+        LIMIT 1`;
+      if (otwarte.length > 0) {
+        throw new ConflictException('Migracja tej usługi jest już zlecona — poczekaj na zamknięcie zgłoszenia przeniesienia.');
+      }
+      return tx.subscriptionEvent.create({
+        data: {
+          subscriptionId,
+          type: 'MIGRATION_INTERNAL_REQUESTED',
+          details: {
+            targetServerId: dto.targetServerId,
+            notes: dto.notes ?? null,
+            requestedAt: new Date().toISOString(),
+            requestedBy: actorUserId,
+            accountDomain: sub.account?.domain ?? null,
+            accountUsername: sub.account?.daUsername ?? null,
+          },
         },
-      },
+      });
     });
 
     await this.audit.record({
@@ -1768,7 +1797,8 @@ export class MigrationOrchestratorService {
 
   async listMigrationTimelineForUser(subscriptionId: string, userId: string): Promise<MigrationViewRow[]> {
     await this.assertSubscriptionForUser(subscriptionId, userId);
-    return this.listMigrationTimelineRaw(subscriptionId);
+    const rows = await this.listMigrationTimelineRaw(subscriptionId);
+    return rows.map((row) => (row.type.startsWith('MIGRATION_INTERNAL_') ? { ...row, details: tylkoDlaKlienta(row.details) } : row));
   }
 
   async listMigrationTimelineForAdmin(subscriptionId: string): Promise<MigrationViewRow[]> {
@@ -1800,6 +1830,17 @@ export class MigrationOrchestratorService {
     }
     return d;
   }
+}
+
+/**
+ * PB-44 — migrację wewnętrzną zleca obsługa. W zdarzeniach są: wewnętrzny powód operatora (`notes`), id węzła
+ * docelowego, id operatora, login konta na węźle i surowy błąd kopii — klient dostaje tylko to, co jego dotyczy.
+ */
+const POLA_MIGRACJI_WEWNETRZNEJ_DLA_KLIENTA = ['requestId', 'ticketId', 'requestedAt', 'queuedAt', 'createdAt', 'accountDomain', 'backupTriggered', 'stage'];
+
+function tylkoDlaKlienta(details: Record<string, unknown> | null): Record<string, unknown> | null {
+  if (!details) return null;
+  return Object.fromEntries(POLA_MIGRACJI_WEWNETRZNEJ_DLA_KLIENTA.filter((k) => k in details).map((k) => [k, details[k]]));
 }
 
 async function assertSourceHostsPublic(hosts: Array<string | undefined | null>): Promise<void> {
