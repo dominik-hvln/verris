@@ -8,6 +8,7 @@ import { AuditService } from '../common/audit/audit.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { escapeMarkdown, renderEmailShell } from '../mail/templates/_layouts/email-shell.js';
 import { MigrationOrchestratorService } from './migration-orchestrator.service.js';
+import { opiekunSlownie, terminSlownie } from '../tickets/opieka-zgloszen.service.js';
 
 function formatBytes(value: bigint): string {
   const bytes = Number(value);
@@ -185,10 +186,18 @@ export class MigrationWorkerScheduler {
       });
       if (alreadyNotified) continue;
       try {
+        // Zgłoszenie z eskalacji nie wysyła własnego potwierdzenia — opiekun, termin i link idą w tym mailu.
+        const tik = row.ticketId
+          ? await this.prisma.ticket.findUnique({
+              where: { id: row.ticketId },
+              select: { id: true, slaResponseDueAt: true, assignedTo: { select: { firstName: true, lastName: true } } },
+            })
+          : null;
+        const zgloszenie = tik ? { id: tik.id, opiekun: opiekunSlownie(tik.assignedTo), termin: terminSlownie(tik.slaResponseDueAt) } : null;
         await this.mailer.send({
           to: row.subscription.user.email,
           subject: `Migracja ${row.targetDomain ?? row.subscription.account?.domain ?? ''} — przejął ją nasz zespół`,
-          ...this.buildAttentionMail(row.subscription.user.email, row, row.subscription.user.firstName),
+          ...this.buildAttentionMail(row.subscription.user.email, row, row.subscription.user.firstName, zgloszenie),
           tag: 'migration.attention',
           category: 'TRANSACTIONAL',
           fromRole: 'NOREPLY',
@@ -248,15 +257,23 @@ export class MigrationWorkerScheduler {
     to: string,
     req: { id: string; targetDomain: string | null; subscription: { account: { domain: string } | null } },
     firstName: string | null,
+    zgloszenie: { id: string; opiekun: string; termin: string } | null = null,
   ) {
     const domena = escapeMarkdown(req.targetDomain ?? req.subscription.account?.domain ?? '');
+    const panelUrl = (process.env.CLIENT_PANEL_URL || 'https://panel.verris.pl').replace(/\/$/, '');
     return this.mailMigracji(to, firstName, {
       title: 'Migrację przejął nasz zespół',
       preheader: 'Nie musisz nic robić — dokończymy przenosiny i damy znać.',
       akapity: [
         `Automatyczna migracja **${domena}** napotkała przeszkodę, więc przejął ją nasz zespół techniczny. Nie musisz nic robić — dokończymy przenosiny i poinformujemy Cię o zakończeniu. Twoja obecna strona cały czas działa u starego dostawcy.`,
+        ...(zgloszenie
+          ? [
+              `Prowadzimy to w zgłoszeniu **#${zgloszenie.id.slice(0, 8)}** — zajmuje się nim **${escapeMarkdown(zgloszenie.opiekun)}**, odezwiemy się ${zgloszenie.termin}. W zgłoszeniu możesz też dopisać pytania.`,
+            ]
+          : []),
         `Numer zlecenia: **${req.id.slice(0, 8)}**`,
       ],
+      ...(zgloszenie ? { cta: { label: 'Otwórz zgłoszenie', url: `${panelUrl}/dashboard/support/${zgloszenie.id}` } } : {}),
     });
   }
 

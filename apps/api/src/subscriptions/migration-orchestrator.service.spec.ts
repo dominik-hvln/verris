@@ -573,10 +573,15 @@ describe('MigrationOrchestratorService', () => {
     });
 
     expect(result).toEqual({ ok: true, status: MigrationWorkerJobStatus.FAILED });
-    // Zwykła ścieżka zgłoszenia (opiekun, termin SLA, potwierdzenie), treść bez powodu technicznego —
-    // klient widzi ją jako swoją wiadomość (d3, 03.10: „imap sync failed (rc=2)”, „Sekrety źródła…”).
+    // Zwykła ścieżka zgłoszenia (opiekun, termin SLA), treść bez powodu technicznego — klient widzi ją jako
+    // swoją wiadomość (d3, 03.10: „imap sync failed (rc=2)”, „Sekrety źródła…”). Bez osobnego potwierdzenia:
+    // jeden mail „Migrację przejął nasz zespół” z opiekunem i linkiem (t1, 08.10: dwa maile).
     expect(prisma.ticket.create).not.toHaveBeenCalled();
-    expect(tickets.create).toHaveBeenCalledWith('user_1', expect.objectContaining({ priority: 'URGENT', department: 'TECHNICAL' }));
+    expect(tickets.create).toHaveBeenCalledWith(
+      'user_1',
+      expect.objectContaining({ priority: 'URGENT', department: 'TECHNICAL' }),
+      { bezPotwierdzenia: true },
+    );
     const zgloszenie = tickets.create.mock.calls[0][1] as { subject: string; message: string };
     expect(`${zgloszenie.subject}\n${zgloszenie.message}`).not.toMatch(/invalid credentials|staff|Sekret|PILNE/);
     // Pierwsza wiadomość wątku podpisana „Ty” — mówi wprost, kto ją założył.

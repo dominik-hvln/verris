@@ -107,7 +107,12 @@ export class TicketsService {
   /**
    * Tworzy nowe zgłoszenie od klienta i przypisuje agenta.
    */
-  async create(userId: string, dto: CreateTicketDto) {
+  /**
+   * @param opcje.bezPotwierdzenia — zgłoszenie założone przez system (eskalacja migracji), o którym klient
+   *   dostaje własny mail z tymi samymi danymi (opiekun, termin, link). Bez tego klient dostawał dwa maile
+   *   naraz (t1, 08.10).
+   */
+  async create(userId: string, dto: CreateTicketDto, opcje: { bezPotwierdzenia?: boolean } = {}) {
     const assignedToId = await this.getLeastBusyAgentId();
 
     // P-8 — active priority-support add-on bumps the ticket to at least HIGH.
@@ -163,7 +168,7 @@ export class TicketsService {
 
     await this.logEvent(row.id, 'TICKET_CREATED', userId);
     // PB-37 — potwierdzenie z imieniem opiekuna i terminem; wyłączone w panelu → dotychczasowy e-mail.
-    if (!(await this.opieka.wyslij(row.id, 'POTWIERDZENIE'))) {
+    if (!opcje.bezPotwierdzenia && !(await this.opieka.wyslij(row.id, 'POTWIERDZENIE'))) {
       void this.mailer
         .send({
           ...newTicketCreatedTemplate({
