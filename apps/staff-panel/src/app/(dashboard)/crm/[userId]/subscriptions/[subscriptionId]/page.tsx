@@ -9,6 +9,7 @@ import { PlanChangeTicketTemplate } from "./ticket-template";
 import { StaffPlanChangeForm } from "./staff-plan-change-form";
 import { StaffDiagnosticsPanel } from "./diagnostics-panel";
 import { KontoKlientaPanel } from "./konto-klienta-panel";
+import { ObslugaUslugi } from "./obsluga-uslugi";
 
 import { SUBSCRIPTION_STATUS_PL as SUB_STATUS_PL } from "@verris/contracts";
 
@@ -127,6 +128,12 @@ export default async function StaffSubscriptionReadonlyPage({
           <p className="p-6 text-sm text-muted-foreground">Brak konta hostingowego.</p>
         )}
       </section>
+
+      <ObslugaUslugi
+        subscriptionId={sub.id}
+        userId={userId}
+        account={sub.account ? { domain: sub.account.domain, serverId: sub.account.serverId ?? sub.account.server?.id ?? null } : null}
+      />
 
       {sub.status === "ACTIVE" && sub.account && eligiblePlans.length > 0 ? (
         <section className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4 space-y-4">
