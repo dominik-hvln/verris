@@ -76,7 +76,7 @@ const profil: ProfilKlienta = {
 beforeEach(() => {
   api.mockReset();
   api.mockImplementation(async (sciezka: string) => {
-    if (sciezka === `/admin/users/${UID}/customer-profile`) return profil;
+    if (sciezka.split("?")[0] === `/admin/users/${UID}/customer-profile`) return profil;
     if (sciezka === `/admin/users/${UID}/operational-detail`)
       return { ...profil.user, loginBlockedReason: null, adminInternalNote: "notatka", isInternal: false, subscriptionsCount: 1 };
     if (sciezka.startsWith("/admin/custom-terms/user/")) return { uslugi: [] };

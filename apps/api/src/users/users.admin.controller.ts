@@ -110,10 +110,12 @@ export class UsersAdminController {
    * Sprint 3 / R-01 — agregowany widok klienta dla BOK (subskrypcje, tickety, domeny).
    */
   @Get(':id/customer-profile')
-  async customerProfile(@CurrentUser() user: AuthedUser, @Param('id') id: string) {
+  async customerProfile(@CurrentUser() user: AuthedUser, @Param('id') id: string, @Query('sekcja') sekcja?: string) {
     return this.admin.getCustomer360(id, {
       actorUserId: user.userId,
       actorRole: user.role,
+      // Zakładka karty do dziennika — tylko krótki identyfikator, nic innego z adresu nie trafia do wpisu.
+      sekcja: typeof sekcja === 'string' && /^[a-z]{1,20}$/.test(sekcja) ? sekcja : undefined,
     });
   }
 

@@ -70,7 +70,7 @@ export default async function StaffCustomerProfilePage({
 
   let profile: Awaited<ReturnType<typeof staffGetCustomerProfile>>;
   try {
-    profile = await staffGetCustomerProfile(userId);
+    profile = await staffGetCustomerProfile(userId, sekcja);
   } catch (e) {
     if (e instanceof StaffApiError && e.status === 401) redirect("/login");
     if (e instanceof StaffApiError && e.status === 404) notFound();

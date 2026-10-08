@@ -98,7 +98,7 @@ export default async function AdminCustomerCardPage({
   let p: ProfilKlienta;
   let detail: Awaited<ReturnType<typeof getCustomerOperationalDetail>>;
   try {
-    [p, detail] = await Promise.all([pobierzProfilKlienta(userId), getCustomerOperationalDetail(userId)]);
+    [p, detail] = await Promise.all([pobierzProfilKlienta(userId, sekcja), getCustomerOperationalDetail(userId)]);
   } catch (e) {
     if (e instanceof AdminApiError && (e.status === 404 || e.status === 400)) notFound();
     return <BladStrony blad={e} tytul="Klient" powrot={{ href: "/customers", label: "Klienci" }} />;

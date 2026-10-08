@@ -262,7 +262,7 @@ describe("X-05 karta klienta", () => {
   beforeEach(() => {
     api.mockReset();
     api.mockImplementation(async (sciezka: string) => {
-      if (sciezka === `/admin/users/${UID}/customer-profile`) return profil;
+      if (sciezka.split("?")[0] === `/admin/users/${UID}/customer-profile`) return profil;
       if (sciezka === `/admin/users/${UID}/operational-detail`)
         return { ...profil.user, loginBlocked: false, loginBlockedReason: null, adminInternalNote: null, subscriptionsCount: 2 };
       throw new Error(`nieoczekiwane ${sciezka}`);

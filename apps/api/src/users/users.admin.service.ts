@@ -14,7 +14,7 @@ import { randomBytes } from 'crypto';
 import { Prisma, Role, SubscriptionStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
-import { AdminCustomerActions } from '../common/audit/audit.actions.js';
+import { AdminCustomerActions, SupportActions } from '../common/audit/audit.actions.js';
 import { uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
 import { StatusService } from '../status/status.service.js';
 import { StripeService } from '../billing/stripe/stripe.service.js';
@@ -151,7 +151,7 @@ export class UsersAdminService {
    */
   async getCustomer360(
     targetUserId: string,
-    actor: { actorUserId: string; actorRole: Role },
+    actor: { actorUserId: string; actorRole: Role; sekcja?: string },
   ) {
     const target = await this.prisma.user.findUnique({
       where: { id: targetUserId },
@@ -191,6 +191,15 @@ export class UsersAdminService {
         'Personel może przeglądać wyłącznie profile klientów (USER).',
       );
     }
+
+    // Decyzja właściciela 08.10: każde otwarcie karty klienta przez operatora (także zmiana zakładki) jest w dzienniku.
+    // Dopiero po sprawdzeniu dostępu — odmowa i brak konta nie są „otwarciem”. Klient tego wpisu nie widzi (SUPPORT).
+    await this.audit.record({
+      action: SupportActions.OPERATOR_CUSTOMER_CARD_VIEWED,
+      userId: target.id,
+      actorUserId: actor.actorUserId,
+      details: actor.sekcja ? { sekcja: actor.sekcja } : {},
+    });
 
     const [
       subscriptions,
@@ -287,7 +296,8 @@ export class UsersAdminService {
         },
       }),
       this.prisma.auditLog.findMany({
-        where: { userId: targetUserId },
+        // Otwarcia karty (wpis wyżej) nie wypychają z karty 40 ostatnich zdarzeń konta — są w pełnym dzienniku (AUDIT_VIEW).
+        where: { userId: targetUserId, action: { not: SupportActions.OPERATOR_CUSTOMER_CARD_VIEWED } },
         orderBy: { createdAt: 'desc' },
         take: 40,
         select: {

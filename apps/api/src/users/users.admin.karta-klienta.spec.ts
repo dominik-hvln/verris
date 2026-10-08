@@ -37,10 +37,10 @@ const TARGET = {
   customerOwner: null,
 };
 
-function serwis() {
+function serwis(audit: { record: ReturnType<typeof vi.fn> } = { record: vi.fn(async () => undefined) }, cel: typeof TARGET | Record<string, unknown> = TARGET) {
   const pusto = { findMany: vi.fn(async () => []) };
   const prisma = {
-    user: { findUnique: vi.fn(async () => TARGET) },
+    user: { findUnique: vi.fn(async () => cel) },
     subscription: pusto,
     ticket: pusto,
     domain: pusto,
@@ -51,7 +51,7 @@ function serwis() {
     paynowPlatnosc: pusto,
   };
   const status = { findOpenIncidentsForServers: vi.fn(async () => []) };
-  return new UsersAdminService(prisma as never, {} as never, {} as never, {} as never, status as never, {} as never, {} as never);
+  return new UsersAdminService(prisma as never, {} as never, audit as never, {} as never, status as never, {} as never, {} as never);
 }
 
 describe('PB-46 profil 360° — notatka wewnętrzna', () => {
@@ -63,6 +63,57 @@ describe('PB-46 profil 360° — notatka wewnętrzna', () => {
   it('ADMIN dostaje notatkę jak dotąd', async () => {
     const p = await serwis().getCustomer360('u1', { actorUserId: 'a1', actorRole: Role.ADMIN });
     expect(p.user.adminInternalNote).toBe(TARGET.adminInternalNote);
+  });
+});
+
+describe('decyzja 08.10 — otwarcie karty klienta przez operatora w dzienniku', () => {
+  it('STAFF otwiera kartę → wpis OPERATOR_CUSTOMER_CARD_VIEWED (klient = userId, operator = actor, zakładka)', async () => {
+    const audit = { record: vi.fn(async () => undefined) };
+    await serwis(audit).getCustomer360('u1', { actorUserId: 's1', actorRole: Role.STAFF, sekcja: 'rozliczenia' });
+    expect(audit.record).toHaveBeenCalledTimes(1);
+    expect(audit.record).toHaveBeenCalledWith({
+      action: 'OPERATOR_CUSTOMER_CARD_VIEWED',
+      userId: 'u1',
+      actorUserId: 's1',
+      details: { sekcja: 'rozliczenia' },
+    });
+  });
+
+  it('zakładka „Dziennik” na karcie nie liczy otwarć karty do 40 ostatnich zdarzeń', async () => {
+    const svc = serwis();
+    await svc.getCustomer360('u1', { actorUserId: 's1', actorRole: Role.STAFF });
+    const prisma = (svc as unknown as { prisma: { auditLog: { findMany: ReturnType<typeof vi.fn> } } }).prisma;
+    expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: 'u1', action: { not: 'OPERATOR_CUSTOMER_CARD_VIEWED' } } }),
+    );
+  });
+
+  it('ADMIN też zostawia wpis (każdy operator)', async () => {
+    const audit = { record: vi.fn(async () => undefined) };
+    await serwis(audit).getCustomer360('u1', { actorUserId: 'a1', actorRole: Role.ADMIN });
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'OPERATOR_CUSTOMER_CARD_VIEWED', actorUserId: 'a1', details: {} }));
+  });
+
+  it('odmowa (STAFF na koncie nie-klienta) nie jest otwarciem — brak wpisu', async () => {
+    const audit = { record: vi.fn(async () => undefined) };
+    await expect(
+      serwis(audit, { ...TARGET, role: Role.STAFF }).getCustomer360('u1', { actorUserId: 's1', actorRole: Role.STAFF }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(audit.record).not.toHaveBeenCalled();
+  });
+
+  it('kontroler przekazuje do dziennika tylko krótki identyfikator zakładki', async () => {
+    const admin = { getCustomer360: vi.fn(async () => ({})) };
+    const c = new UsersAdminController(admin as never, {} as never, {} as never);
+    const op = { userId: 's1', email: 's@verris.pl', role: Role.STAFF };
+    await c.customerProfile(op as never, 'u1', 'uslugi');
+    await c.customerProfile(op as never, 'u1', 'x<script>');
+    await c.customerProfile(op as never, 'u1');
+    expect(admin.getCustomer360.mock.calls.map((a) => (a as unknown[])[1])).toEqual([
+      { actorUserId: 's1', actorRole: Role.STAFF, sekcja: 'uslugi' },
+      { actorUserId: 's1', actorRole: Role.STAFF, sekcja: undefined },
+      { actorUserId: 's1', actorRole: Role.STAFF, sekcja: undefined },
+    ]);
   });
 });
 

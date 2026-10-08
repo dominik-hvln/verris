@@ -149,8 +149,10 @@ export interface StaffCustomerProfile {
   };
 }
 
-export async function staffGetCustomerProfile(userId: string): Promise<StaffCustomerProfile> {
-  return staffApi<StaffCustomerProfile>(`/admin/users/${userId}/customer-profile`);
+/** `sekcja` — zakładka karty; API zapisuje otwarcie karty w dzienniku (decyzja 08.10). */
+export async function staffGetCustomerProfile(userId: string, sekcja?: string): Promise<StaffCustomerProfile> {
+  const q = sekcja ? `?sekcja=${encodeURIComponent(sekcja)}` : "";
+  return staffApi<StaffCustomerProfile>(`/admin/users/${userId}/customer-profile${q}`);
 }
 
 export async function staffRunDnsTlsDiagnostic(

@@ -86,7 +86,7 @@ const profil: StaffCustomerProfile = {
 
 function odpowiedzi(uprawnienia: string[] | "awaria", isAdmin = false, p: StaffCustomerProfile = profil) {
   api.mockImplementation(async (sciezka: string) => {
-    if (sciezka === `/admin/users/${UID}/customer-profile`) return p;
+    if (sciezka.split("?")[0] === `/admin/users/${UID}/customer-profile`) return p;
     if (sciezka.startsWith("/admin/custom-terms/user/")) return { uslugi: [] };
     if (sciezka === "/staff/me/access") {
       if (uprawnienia === "awaria") throw new Error("ECONNREFUSED");
@@ -111,6 +111,12 @@ describe("PB-46 karta klienta w panelu obsługi", () => {
     // PB-48: obsługa ma dodatkowo kartę „Operacje wymagające uprawnień” (wniosek) — administrator wniosków nie składa.
     const tylkoObsluga: string[] = sekcja === "dostepy" ? ["operacje-wnioski"] : [];
     expect(karty(await render(sekcja))).toEqual([...KARTY_SEKCJI[sekcja].filter((k) => !KARTY_TYLKO_ADMIN.includes(k)), ...tylkoObsluga]);
+  });
+
+  it("otwarcie karty przekazuje zakładkę do API (dziennik otwarć karty, decyzja 08.10)", async () => {
+    odpowiedzi(PELNE);
+    await render("rozliczenia");
+    expect(api).toHaveBeenCalledWith(`/admin/users/${UID}/customer-profile?sekcja=rozliczenia`);
   });
 
   it("zakładki w tej samej kolejności i z tymi samymi nazwami co w adminie", async () => {

@@ -136,6 +136,8 @@ export interface ProfilKlienta {
   };
 }
 
-export async function pobierzProfilKlienta(userId: string): Promise<ProfilKlienta> {
-  return adminApi<ProfilKlienta>(`/admin/users/${userId}/customer-profile`);
+/** `sekcja` — zakładka karty; API zapisuje otwarcie karty w dzienniku (decyzja 08.10). */
+export async function pobierzProfilKlienta(userId: string, sekcja?: string): Promise<ProfilKlienta> {
+  const q = sekcja ? `?sekcja=${encodeURIComponent(sekcja)}` : "";
+  return adminApi<ProfilKlienta>(`/admin/users/${userId}/customer-profile${q}`);
 }
