@@ -90,7 +90,11 @@ function stanowisko(konta: ReturnType<typeof konto>[], daBlad?: (username: strin
     if (blad) throw blad;
     return { success: true };
   });
-  const da = { getClientForServer: vi.fn(async () => ({ deleteAccount })) };
+  const da = {
+    getClientForServer: vi.fn(async () => ({ deleteAccount })),
+    domenyKontaPrzedUsunieciem: vi.fn(async (a: { domain: string }) => [a.domain]),
+    usunDelegacjeUsunietegoKonta: vi.fn(async () => undefined),
+  };
   const mailer = { send: vi.fn(async () => ({ delivered: true })) };
   const config = { get: () => undefined };
   const purge = new AccountDeletionService(prisma as never, audit as never, da as never, {} as never, config as never);

@@ -17,6 +17,8 @@ const da = {
     },
     suspendAccount: async () => undefined,
   }),
+  domenyKontaPrzedUsunieciem: async (a: { domain: string }) => [a.domain],
+  usunDelegacjeUsunietegoKonta: async () => undefined,
 };
 const serwis = () => {
   const p = prisma() as never;

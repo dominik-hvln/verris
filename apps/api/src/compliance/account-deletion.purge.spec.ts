@@ -14,10 +14,14 @@ function stanowisko(blad?: Error) {
     $transaction: vi.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
   };
   const deleteAccount = vi.fn(async () => (blad ? Promise.reject(blad) : { success: true }));
-  const da = { getClientForServer: vi.fn(async () => ({ deleteAccount })) };
+  const da = {
+    getClientForServer: vi.fn(async () => ({ deleteAccount })),
+    domenyKontaPrzedUsunieciem: vi.fn(async () => ['klient.pl', 'sklep.klient.pl']),
+    usunDelegacjeUsunietegoKonta: vi.fn(async () => undefined),
+  };
   const audit = { record: vi.fn(async () => undefined) };
   const svc = new AccountDeletionService(prisma as never, audit as never, da as never, {} as never, { get: () => undefined } as never);
-  return { svc, tx, da, audit };
+  return { svc, tx, da, audit, deleteAccount };
 }
 
 describe('AccountDeletionService.purgeAccountOnDa', () => {
@@ -57,5 +61,18 @@ describe('AccountDeletionService.purgeAccountOnDa', () => {
     await s.svc.purgeAccountOnDa('a1');
     expect(s.tx.account.updateMany).not.toHaveBeenCalled();
     expect(s.tx.server.update).not.toHaveBeenCalled();
+    expect(s.da.usunDelegacjeUsunietegoKonta).not.toHaveBeenCalled();
+  });
+
+  it('z18b (08.10): domeny czytane przed usunięciem, delegacja w strefach innych kont zdejmowana po nim', async () => {
+    const s = stanowisko();
+    await s.svc.purgeAccountOnDa('a1');
+    expect(s.da.domenyKontaPrzedUsunieciem).toHaveBeenCalledWith(expect.objectContaining({ id: 'a1', userId: 'u1', domain: 'klient.pl' }));
+    const przed = s.da.domenyKontaPrzedUsunieciem.mock.invocationCallOrder[0]!;
+    const usuniecie = s.deleteAccount.mock.invocationCallOrder[0]!;
+    const sprzatanie = s.da.usunDelegacjeUsunietegoKonta.mock.invocationCallOrder[0]!;
+    expect(przed).toBeLessThan(usuniecie);
+    expect(usuniecie).toBeLessThan(sprzatanie);
+    expect(s.da.usunDelegacjeUsunietegoKonta).toHaveBeenCalledWith('n1', 'a1', ['klient.pl', 'sklep.klient.pl']);
   });
 });

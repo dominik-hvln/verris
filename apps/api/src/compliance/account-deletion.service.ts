@@ -486,6 +486,8 @@ export class AccountDeletionService {
     if (!acc) return { ok: false, error: 'Konto nie istnieje w bazie' };
     if (acc.status === AccountStatus.DELETED) return { ok: true };
 
+    // Domeny konta przed usunięciem — po nim trzeba zdjąć ich delegację w strefach innych kont (z18b, 08.10).
+    const domenyKonta = await this.da.domenyKontaPrzedUsunieciem(acc);
     let daResult: { ok: boolean; error?: string } = { ok: true };
     try {
       const client = await this.da.getClientForServer(acc.serverId);
@@ -556,6 +558,7 @@ export class AccountDeletionService {
       // `domain` = domena sprzed zwolnienia (odwrócenie: przywróć ją w Account.domain, jeśli wolna).
       details: { ...audyt?.details, accountId, domain: acc.domain, daUsername: acc.daUsername, serverId: acc.serverId },
     });
+    await this.da.usunDelegacjeUsunietegoKonta(acc.serverId, acc.id, domenyKonta);
     return { ok: true };
   }
 

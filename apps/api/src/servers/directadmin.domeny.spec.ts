@@ -13,7 +13,7 @@ import { DirectAdminService } from './directadmin.service.js';
 type Odp = { data: unknown };
 const odp = (v: unknown): Promise<Odp> => (v instanceof Error ? Promise.reject(v) : Promise.resolve({ data: v }));
 
-function stanowisko(o: { status?: string; get?: Record<string, unknown>; post?: Record<string, unknown>; sloty?: string[] } = {}) {
+function stanowisko(o: { status?: string; get?: Record<string, unknown>; post?: Record<string, unknown>; sloty?: string[]; kontaNaWezle?: Array<{ domain: string; userId: string; subscriptionId: string }> } = {}) {
   const trasyGet: Record<string, unknown> = {
     '/CMD_API_SHOW_DOMAINS': 'list0=firma.pl&list1=sklep.pl',
     '/CMD_API_SHOW_USER_CONFIG': 'domain=firma.pl',
@@ -32,6 +32,8 @@ function stanowisko(o: { status?: string; get?: Record<string, unknown>; post?: 
       update: vi.fn(async () => account),
       // Z-10: domena główna innego klienta.
       findFirst: vi.fn(async (a: { where: { domain: { in: string[] } } }) => (a.where.domain.in.includes('cudza.pl') ? { id: 'a2' } : null)),
+      // z18b: domeny główne innych kont na węźle (szukanie strefy rodzica po usunięciu konta).
+      findMany: vi.fn(async (a: { where: { domain: { in: string[] } } }) => (o.kontaNaWezle ?? []).filter((k) => a.where.domain.in.includes(k.domain))),
     },
     domain: { findFirst: vi.fn(async (a: { where: { name: { in: string[] } } }) => (a.where.name.in.includes('zarejestrowana.pl') ? { id: 'd2' } : null)) },
   };
@@ -40,7 +42,7 @@ function stanowisko(o: { status?: string; get?: Record<string, unknown>; post?: 
   const svc = new DirectAdminService(prisma as never, {} as never, platformSettings as never, audit as never);
   vi.spyOn(svc, 'getClientForHostingAccount').mockResolvedValue(klient);
   const wyslane = (n = 0) => Object.fromEntries(new URLSearchParams(String(post.mock.calls[n]?.[1] ?? '')));
-  return { svc, get, post, audit, wyslane };
+  return { svc, get, post, audit, wyslane, prisma };
 }
 
 describe('DNS (CMD_API_DNS_CONTROL)', () => {
@@ -391,5 +393,56 @@ describe('usunięcie domeny dodatkowej będącej poddomeną — delegacja w stre
     const s = stanowisko({ get: { '/CMD_API_DNS_CONTROL': strefa } });
     await s.svc.deleteHostingAdditionalDomain('s1', 'u1', 'sklep.pl');
     expect(s.post).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('usunięcie CAŁEGO konta z domeną-poddomeną innego konta — delegacja w cudzej strefie (z18b, t1 08.10)', () => {
+  // Konto z18b.d3.hvln.pl (inny użytkownik DA niż właściciel d3.hvln.pl): po usunięciu konta w strefie d3.hvln.pl
+  // zostały NS i DS dopisane przez DA przy zakładaniu konta. Sprzątamy jako właściciel strefy rodzica.
+  const strefa = {
+    records: [
+      { name: 'firma.pl.', type: 'NS', value: 'ns3.verris.pl.' },
+      { name: 'sklep.firma.pl.', type: 'NS', value: 'ns3.verris.pl.' },
+      { name: 'sklep.firma.pl.', type: 'DS', value: '55243 13 2 ABCD' },
+      { name: 'www.firma.pl.', type: 'A', value: '1.2.3.4' },
+    ],
+  };
+  const rodzic = { domain: 'firma.pl', userId: 'u1', subscriptionId: 's1' };
+
+  it('zdejmuje NS i DS w strefie konta-rodzica na tym samym węźle, audyt bez autora z powodem', async () => {
+    const s = stanowisko({ kontaNaWezle: [rodzic], get: { '/CMD_API_SHOW_DOMAINS': 'list0=firma.pl', '/CMD_API_DNS_CONTROL': strefa } });
+    await s.svc.usunDelegacjeUsunietegoKonta('n1', 'a9', ['SKLEP.firma.pl']);
+    expect(s.prisma.account.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { serverId: 'n1', id: { not: 'a9' }, status: { not: 'DELETED' }, domain: { in: ['firma.pl'] } } }),
+    );
+    const usuniete = s.post.mock.calls.map((c) => Object.fromEntries(new URLSearchParams(String(c[1]))));
+    expect(usuniete).toEqual([
+      { action: 'select', delete: 'yes', domain: 'firma.pl', nsrecs0: 'name=sklep.firma.pl.&value=ns3.verris.pl.', api: 'yes' },
+      { action: 'select', delete: 'yes', domain: 'firma.pl', dsrecs0: 'name=sklep.firma.pl.&value=55243%2013%202%20ABCD', api: 'yes' },
+    ]);
+    expect(s.audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'HOSTING_DNS_DELEGATION_REMOVED',
+        userId: 'u1',
+        actorUserId: null,
+        details: expect.objectContaining({ powod: 'usuniecie-konta', usunieteKonto: 'a9', delegacjaWStrefie: 'firma.pl', usunieteRekordy: 2 }),
+      }),
+    );
+  });
+
+  it('strefa rodzica należała do usuwanego konta — nic do zdejmowania; brak rodzica na węźle — też nic', async () => {
+    const s = stanowisko({ kontaNaWezle: [rodzic], get: { '/CMD_API_DNS_CONTROL': strefa } });
+    await s.svc.usunDelegacjeUsunietegoKonta('n1', 'a9', ['a.sklep.firma.pl', 'sklep.firma.pl']);
+    // a.sklep.firma.pl: najbliższy przodek to własne sklep.firma.pl (strefa znikła z kontem) — tylko sklep.firma.pl w firma.pl
+    expect(s.post.mock.calls.every((c) => new URLSearchParams(String(c[1])).get('nsrecs0') !== 'name=a.sklep.firma.pl.&value=ns3.verris.pl.')).toBe(true);
+    const t = stanowisko({ kontaNaWezle: [], get: { '/CMD_API_DNS_CONTROL': strefa } });
+    await t.svc.usunDelegacjeUsunietegoKonta('n1', 'a9', ['sklep.firma.pl', 'pl', 'firma.pl']);
+    expect(t.post).not.toHaveBeenCalled();
+  });
+
+  it('błąd odczytu strefy rodzica nie rzuca (usunięcie konta już się stało)', async () => {
+    const s = stanowisko({ kontaNaWezle: [rodzic], get: { '/CMD_API_DNS_CONTROL': new Error('socket hang up') } });
+    await expect(s.svc.usunDelegacjeUsunietegoKonta('n1', 'a9', ['sklep.firma.pl'])).resolves.toBeUndefined();
+    expect(s.post).not.toHaveBeenCalled();
   });
 });

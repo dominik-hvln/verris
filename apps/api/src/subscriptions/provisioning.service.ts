@@ -482,6 +482,8 @@ export class ProvisioningService {
     const wspolne = { subscriptionId: c.subscription.id, serverId: c.serverId, daUsername: c.daUsername, domain: c.domain };
     try {
       await daClient.deleteAccount(c.daUsername);
+      // Konto z domeną-poddomeną innego konta zostawiłoby jej NS/DS w strefie rodzica (z18b, 08.10).
+      await this.da.usunDelegacjeUsunietegoKonta(c.serverId, '', [c.domain]);
       await this.audit.record({
         action: 'PROVISIONING_ROLLBACK',
         userId: c.subscription.userId,

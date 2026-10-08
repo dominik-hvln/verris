@@ -1903,7 +1903,10 @@ export class DirectAdminService {
       confirmed: 'yes',
       select0: domain,
     });
-    await this.usunDelegacjeWStrefieRodzica(subscriptionId, userId, domain, naKoncie);
+    await this.usunDelegacjeWStrefieRodzica(subscriptionId, userId, domain, naKoncie, {
+      action: HostingResourceActions.HOSTING_ADDON_DOMAIN_DELETED,
+      actorUserId: userId,
+    });
     await this.audit.record({
       action: HostingResourceActions.HOSTING_ADDON_DOMAIN_DELETED,
       userId, actorUserId: userId, details: { subscriptionId, domain },
@@ -1919,7 +1922,13 @@ export class DirectAdminService {
    * rozwiązywanie tej nazwy, gdy ktoś doda ją ponownie. Zdejmujemy NS wskazujące nasze serwery (jak NS samej strefy)
    * i DS tej nazwy; delegację na obce serwery zostawiamy. Nieudane sprzątanie nie cofa usunięcia domeny — log + audyt.
    */
-  private async usunDelegacjeWStrefieRodzica(subscriptionId: string, userId: string, domena: string, naKoncie: string[]) {
+  private async usunDelegacjeWStrefieRodzica(
+    subscriptionId: string,
+    userId: string,
+    domena: string,
+    naKoncie: string[],
+    audyt: { action: string; actorUserId: string | null; details?: Record<string, string> },
+  ) {
     const rodzic = naKoncie.filter((d) => d !== domena && domena.endsWith(`.${d}`)).sort((a, b) => b.length - a.length)[0];
     if (!rodzic) return;
     const strefa = await this.listHostingDnsRecords(subscriptionId, userId, rodzic);
@@ -1950,10 +1959,61 @@ export class DirectAdminService {
     }
     if (delegacja.length) {
       await this.audit.record({
-        action: HostingResourceActions.HOSTING_ADDON_DOMAIN_DELETED,
-        userId, actorUserId: userId,
-        details: { subscriptionId, domain: domena, delegacjaWStrefie: rodzic, usunieteRekordy: delegacja.length - pozostale, pozostale },
+        action: audyt.action,
+        userId, actorUserId: audyt.actorUserId,
+        details: { ...audyt.details, subscriptionId, domain: domena, delegacjaWStrefie: rodzic, usunieteRekordy: delegacja.length - pozostale, pozostale },
       });
+    }
+  }
+
+  /**
+   * Domeny konta DA odczytane tuż przed usunięciem użytkownika (CMD_API_SHOW_DOMAINS) — potrzebne do sprzątnięcia
+   * delegacji po usunięciu. Gdy odczyt się nie uda (konto bez danych dostępowych, węzeł chwilowo niedostępny),
+   * zostaje sama domena główna z bazy; usunięcia konta to nie blokuje.
+   */
+  async domenyKontaPrzedUsunieciem(account: { id: string; userId: string; domain: string }): Promise<string[]> {
+    try {
+      const client = await this.getClientForHostingAccount(account.id, account.userId);
+      const domeny = (await client.getDomains()).map((d) => d.toLowerCase());
+      return domeny.length ? domeny : [account.domain.toLowerCase()];
+    } catch (err) {
+      this.logger.warn(`domeny konta ${account.id} przed usunięciem: ${err instanceof Error ? err.message : String(err)}`);
+      return [account.domain.toLowerCase()];
+    }
+  }
+
+  /**
+   * Po usunięciu CAŁEGO konta DA (retencja, operator, RODO, wycofanie provisioningu): domena konta będąca poddomeną
+   * domeny INNEGO konta na tym węźle (z18b.d3.hvln.pl przy d3.hvln.pl) zostawiała w strefie rodzica NS i DS, które DA
+   * dopisał przy jej dodaniu (https://docs.directadmin.com/other-hosting-services/dns/maintaining-records.html,
+   * „automated adding of the DS records over to the parent zone”) — t1 08.10: z18b. Strefę rodzica edytujemy jako jej
+   * właściciel (to samo CMD_API_DNS_CONTROL co przy usunięciu domeny dodatkowej, sprawdzone na t1). Rodzic szukany
+   * wśród domen głównych kont na tym samym węźle; gdy najbliższym przodkiem jest domena samego usuwanego konta,
+   * strefa znika razem z kontem. Nie rzuca — błąd sprzątania nie cofa usunięcia konta (log + audyt pozostałych).
+   */
+  async usunDelegacjeUsunietegoKonta(serverId: string, accountId: string, domeny: string[]): Promise<void> {
+    const wlasne = new Set(domeny.map((d) => d.toLowerCase()));
+    for (const domena of wlasne) {
+      try {
+        const etykiety = domena.split('.');
+        const przodkowie = etykiety.slice(1, -1).map((_, i) => etykiety.slice(i + 1).join('.'));
+        if (!przodkowie.length) continue;
+        const najblizszyWlasny = przodkowie.find((p) => wlasne.has(p));
+        const kandydaci = await this.prisma.account.findMany({
+          where: { serverId, id: { not: accountId }, status: { not: 'DELETED' }, domain: { in: przodkowie } },
+          select: { domain: true, userId: true, subscriptionId: true },
+        });
+        const rodzic = kandydaci.sort((a, b) => b.domain.length - a.domain.length)[0];
+        if (!rodzic) continue;
+        if (najblizszyWlasny && najblizszyWlasny.length > rodzic.domain.length) continue;
+        await this.usunDelegacjeWStrefieRodzica(rodzic.subscriptionId, rodzic.userId, domena, [rodzic.domain.toLowerCase()], {
+          action: HostingResourceActions.HOSTING_DNS_DELEGATION_REMOVED,
+          actorUserId: null,
+          details: { powod: 'usuniecie-konta', usunieteKonto: accountId },
+        });
+      } catch (err) {
+        this.logger.warn(`delegacja ${domena} po usunięciu konta ${accountId}: ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
   }
 

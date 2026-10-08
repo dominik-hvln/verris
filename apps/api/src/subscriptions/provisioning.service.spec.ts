@@ -46,16 +46,18 @@ function stanowisko(o: { kontoZDomena?: boolean; limity?: Error; zapis?: Error; 
   };
   const audit = { record: vi.fn(async () => undefined) };
   const le = vi.fn(async () => undefined);
+  const daSvc = {
+    getClientForServer: vi.fn(async () => daClient),
+    usunDelegacjeUsunietegoKonta: vi.fn(async () => undefined),
+    applyEcoModeBackupCronPolicy: vi.fn(),
+    requestLetsEncryptDirect: le,
+  };
   const svc = new ProvisioningService(
     prisma as never,
     { encrypt: (v: string) => `enc:${v}` } as never,
     audit as never,
     { pickServerForPlan: vi.fn(async () => ({ id: 'n1', ipAddress: o.ip ?? '0.0.0.0' })) } as never,
-    {
-      getClientForServer: vi.fn(async () => daClient),
-      applyEcoModeBackupCronPolicy: vi.fn(),
-      requestLetsEncryptDirect: le,
-    } as never,
+    daSvc as never,
     { resolveNameservers: vi.fn(async () => ({ ns1: 'ns1.verris.pl', ns2: 'ns2.verris.pl' })) } as never,
     { send: vi.fn(async () => undefined) } as never,
     { get: () => undefined } as never,
@@ -64,7 +66,7 @@ function stanowisko(o: { kontoZDomena?: boolean; limity?: Error; zapis?: Error; 
   );
   vi.spyOn(svc as unknown as { notifyAccountProvisioned: () => Promise<void> }, 'notifyAccountProvisioned').mockResolvedValue();
   const akcje = () => (audit.record.mock.calls as unknown as Array<[{ action: string; details: Record<string, unknown> }]>).map((c) => c[0]);
-  return { svc, daClient, prisma, akcje, le };
+  return { svc, daClient, prisma, akcje, le, daSvc };
 }
 
 describe('emailKontaDa — DA nie pisze do klientów sam', () => {
@@ -107,7 +109,8 @@ describe('ProvisioningService — zakładanie konta DA', () => {
     const e = await s.svc.provisionForSubscription('sub-1', { domain: 'firma.pl' }).catch((x: unknown) => x);
     expect(e).toMatchObject({ etap: 'zapisKonta', przyczyna: expect.stringContaining('Unique constraint') });
     expect(s.daClient.deleteAccount).toHaveBeenCalledWith('abc12345');
-    expect(s.akcje().map((a) => a.action)).toEqual(['PROVISIONING_ROLLBACK']);
+    expect(s.akcje().map((a) => a.action)).toEqual(['PROVISIONING_ROLLBACK']);    // z18b (08.10): domena-poddomena innego konta nie zostawia NS/DS w jego strefie po wycofaniu
+    expect(s.daSvc.usunDelegacjeUsunietegoKonta).toHaveBeenCalledWith('n1', '', ['firma.pl']);
   });
 
   it('nieudane sprzątanie → PROVISIONING_ROLLBACK_FAILED w audycie (ręczne sprzątanie), błąd etapu leci dalej', async () => {

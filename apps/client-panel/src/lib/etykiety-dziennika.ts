@@ -5,6 +5,7 @@
 export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   HOSTING_ADDON_DOMAIN_CREATED: 'Dodano domenę',
   HOSTING_ADDON_DOMAIN_DELETED: 'Usunięto domenę',
+  HOSTING_DNS_DELEGATION_REMOVED: 'Usunięto delegację domeny usuniętego konta',
   HOSTING_AUTORESPONDER_SET: 'Ustawiono autoodpowiedź',
   HOSTING_AUTORESPONDER_DELETED: 'Usunięto autoodpowiedź',
   HOSTING_CATCHALL_SET: 'Zmieniono pocztę na nieistniejące adresy',

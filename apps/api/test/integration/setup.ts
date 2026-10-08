@@ -290,5 +290,7 @@ export const atrapy = {
       deleteAccount: vi.fn().mockResolvedValue(undefined),
       accountExists: vi.fn().mockResolvedValue(true),
     }),
+    domenyKontaPrzedUsunieciem: vi.fn(async (a: { domain: string }) => [a.domain]),
+    usunDelegacjeUsunietegoKonta: vi.fn().mockResolvedValue(undefined),
   }),
 };

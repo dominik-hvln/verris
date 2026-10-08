@@ -30,7 +30,7 @@ function usluga() {
   const noop = { send: async () => ({}), get: () => undefined, safeAward: () => undefined, awardOnce: async () => undefined, setModeForAccount: async () => undefined };
   return new ProvisioningService(
     p, { encrypt: (v: string) => `enc:${v}` } as never, new AuditService(p), new NodeSelectorService(p),
-    { getClientForServer: async () => klient, requestLetsEncryptDirect: async () => undefined } as never, { resolveNameservers: async () => ({ ns1: 'ns1.verris.pl', ns2: 'ns2.verris.pl' }) } as never,
+    { getClientForServer: async () => klient, requestLetsEncryptDirect: async () => undefined, usunDelegacjeUsunietegoKonta: async () => undefined } as never, { resolveNameservers: async () => ({ ns1: 'ns1.verris.pl', ns2: 'ns2.verris.pl' }) } as never,
     noop as never, noop as never, noop as never, noop as never,
   );
 }
