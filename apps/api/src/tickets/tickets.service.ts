@@ -31,6 +31,13 @@ import { TicketOpsActions } from '../common/audit/audit.actions.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import type { Readable } from 'stream';
 import { OpiekaZgloszenService, opiekunSlownie, terminSlownie } from './opieka-zgloszen.service.js';
+import { ZAKRES_ODMOWA } from '../common/guards/zakres-uslug.js';
+import { RUNBOOK_KLUCZE } from '@verris/contracts';
+
+/** PB-43 — co o powiązanej usłudze widzi klient i obsługa (bez danych węzła — te są w diagnostyce). */
+const USLUGA_ZGLOSZENIA = {
+  select: { id: true, serviceTag: true, status: true, plan: { select: { name: true } }, account: { select: { domain: true } } },
+} as const;
 
 @Injectable()
 export class TicketsService {
@@ -112,7 +119,29 @@ export class TicketsService {
    *   dostaje własny mail z tymi samymi danymi (opiekun, termin, link). Bez tego klient dostawał dwa maile
    *   naraz (t1, 08.10).
    */
-  async create(userId: string, dto: CreateTicketDto, opcje: { bezPotwierdzenia?: boolean } = {}) {
+  /**
+   * PB-43 — usługa wskazana przy zgłoszeniu musi należeć do tego konta, a subkonto z zakresem usług
+   * może wskazać tylko usługę ze swojego zakresu. Ten sam komunikat dla cudzej i nieistniejącej usługi.
+   */
+  private async sprawdzUsluge(userId: string, subscriptionId: string, zakres?: readonly string[] | null): Promise<void> {
+    const sub = await this.prisma.subscription.findUnique({ where: { id: subscriptionId }, select: { userId: true } });
+    if (!sub || sub.userId !== userId) {
+      throw new BadRequestException('Wskazana usługa nie należy do tego konta.');
+    }
+    if (zakres?.length && !zakres.includes(subscriptionId)) {
+      throw new ForbiddenException(ZAKRES_ODMOWA);
+    }
+  }
+
+  /**
+   * @param opcje.zakresUslug — zakres usług subkonta / członkostwa (PB-20); pusty = całe konto.
+   */
+  async create(
+    userId: string,
+    dto: CreateTicketDto,
+    opcje: { bezPotwierdzenia?: boolean; zakresUslug?: readonly string[] | null } = {},
+  ) {
+    if (dto.subscriptionId) await this.sprawdzUsluge(userId, dto.subscriptionId, opcje.zakresUslug);
     const assignedToId = await this.getLeastBusyAgentId();
 
     // P-8 — active priority-support add-on bumps the ticket to at least HIGH.
@@ -137,6 +166,7 @@ export class TicketsService {
         priority,
         department: dto.department || 'TECHNICAL',
         topic: dto.topic || null,
+        subscriptionId: dto.subscriptionId || null,
         userId,
         assignedToId,
         lastReplyAt: new Date(),
@@ -166,7 +196,7 @@ export class TicketsService {
         .catch(() => undefined);
     }
 
-    await this.logEvent(row.id, 'TICKET_CREATED', userId);
+    await this.logEvent(row.id, 'TICKET_CREATED', userId, row.subscriptionId ? { subscriptionId: row.subscriptionId } : undefined);
     // PB-37 — potwierdzenie z imieniem opiekuna i terminem; wyłączone w panelu → dotychczasowy e-mail.
     if (!opcje.bezPotwierdzenia && !(await this.opieka.wyslij(row.id, 'POTWIERDZENIE'))) {
       void this.mailer
@@ -198,6 +228,7 @@ export class TicketsService {
       status: row.status,
       createdAt: row.createdAt,
       assignedToId: row.assignedToId,
+      subscriptionId: row.subscriptionId,
     };
   }
 
@@ -230,6 +261,7 @@ export class TicketsService {
       where: { id: ticketId },
       include: {
         assignedTo: { select: { firstName: true, lastName: true } },
+        subscription: USLUGA_ZGLOSZENIA,
         attachments: {
           orderBy: { createdAt: 'asc' },
           select: {
@@ -423,6 +455,7 @@ export class TicketsService {
         assignedTo: {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
+        subscription: USLUGA_ZGLOSZENIA,
         events: {
           orderBy: { createdAt: 'asc' },
           select: { id: true, type: true, actorId: true, meta: true, createdAt: true },
@@ -594,7 +627,8 @@ export class TicketsService {
 
   async adminApplyRunbook(ticketId: string, actorUserId: string, runbookKey: string) {
     const key = runbookKey.trim();
-    if (key.length < 3) throw new BadRequestException('Runbook key is required.');
+    // PB-43 — tylko runbooki z katalogu (lista kroków w panelu obsługi); wcześniej przechodził dowolny napis.
+    if (!RUNBOOK_KLUCZE.includes(key)) throw new BadRequestException('Nieznany runbook.');
     const ticket = await this.prisma.ticket.update({
       where: { id: ticketId },
       data: { runbookKey: key },
@@ -628,6 +662,31 @@ export class TicketsService {
       details: { ticketId, riskFlag: ticket.riskFlag, reason: ticket.riskReason },
     });
     return ticket;
+  }
+
+  /**
+   * PB-43 — obsługa zmienia usługę, której dotyczy zgłoszenie. Tylko usługa klienta tego zgłoszenia;
+   * zmiana trafia na oś zgłoszenia i do dziennika (operator = aktor, klient = właściciel).
+   */
+  async adminLinkSubscription(ticketId: string, actorUserId: string, subscriptionId: string | null) {
+    const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId }, select: { userId: true, subscriptionId: true } });
+    if (!ticket) throw new NotFoundException('Nie znaleziono zgłoszenia.');
+    const nowa = subscriptionId || null;
+    if (nowa) await this.sprawdzUsluge(ticket.userId, nowa);
+    if (nowa !== ticket.subscriptionId) {
+      await this.prisma.ticket.update({ where: { id: ticketId }, data: { subscriptionId: nowa } });
+      await this.logEvent(ticketId, 'SERVICE_LINK_CHANGED', actorUserId, { from: ticket.subscriptionId, to: nowa });
+      await this.audit.record({
+        action: TicketOpsActions.TICKET_SERVICE_LINK_CHANGED,
+        userId: ticket.userId,
+        actorUserId,
+        details: { ticketId, from: ticket.subscriptionId, to: nowa },
+      });
+    }
+    return this.prisma.ticket.findUniqueOrThrow({
+      where: { id: ticketId },
+      select: { id: true, subscriptionId: true, subscription: USLUGA_ZGLOSZENIA },
+    });
   }
 
   async adminAddReply(ticketId: string, staffId: string, dto: AddTicketReplyDto) {
@@ -693,8 +752,9 @@ export class TicketsService {
    */
   async createWithOptionalFiles(
     userId: string,
-    fields: { subject: string; message: string; priority?: string; department?: string; topic?: string },
+    fields: { subject: string; message: string; priority?: string; department?: string; topic?: string; subscriptionId?: string },
     files?: Express.Multer.File[] | null,
+    zakresUslug?: readonly string[] | null,
   ) {
     const dto: CreateTicketDto = {
       subject: fields.subject,
@@ -702,9 +762,10 @@ export class TicketsService {
       priority: (fields.priority as CreateTicketDto['priority']) ?? 'NORMAL',
       department: (fields.department as CreateTicketDto['department']) ?? 'TECHNICAL',
       topic: fields.topic as CreateTicketDto['topic'],
+      subscriptionId: fields.subscriptionId || undefined,
     };
 
-    const row = await this.create(userId, dto);
+    const row = await this.create(userId, dto, { zakresUslug });
     const list = files?.filter(Boolean) ?? [];
     if (list.length > 0) {
       if (list.length > TICKET_UPLOAD_MAX_FILES_PER_BATCH) {

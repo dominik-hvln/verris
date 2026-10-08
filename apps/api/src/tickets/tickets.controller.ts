@@ -29,6 +29,7 @@ import {
   RunbookZgloszeniaDto,
   RyzykoZgloszeniaDto,
   ZmianaSzablonuDto,
+  PowiazanieUslugiDto,
 } from './tickets.dto.js';
 import { CannedResponseService } from './canned-response.service.js';
 import { TicketContextService } from './ticket-context.service.js';
@@ -106,20 +107,20 @@ export class TicketsController {
   }
 
   @Post()
-  async create(@CurrentUser() user: { userId: string }, @Body() dto: CreateTicketDto) {
-    return await this.ticketsService.create(user.userId, dto);
+  async create(@CurrentUser() user: { userId: string; serviceScope?: string[] }, @Body() dto: CreateTicketDto) {
+    return await this.ticketsService.create(user.userId, dto, { zakresUslug: user.serviceScope });
   }
 
   /** multipart: subject, message, priority?, department?, files[] */
   @Post('with-attachments')
   @UseInterceptors(FILES_MEMORY)
   async createWithAttachments(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: { userId: string; serviceScope?: string[] },
     // Pola multipart przechodzą przez ten sam DTO co JSON — wcześniej `@Body('pole')` omijało walidację.
     @Body() dto: CreateTicketDto,
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
-    return this.ticketsService.createWithOptionalFiles(user.userId, dto, files);
+    return this.ticketsService.createWithOptionalFiles(user.userId, dto, files, user.serviceScope);
   }
 
   @Get('admin/all')
@@ -189,6 +190,20 @@ export class TicketsController {
     @Body() body: RunbookZgloszeniaDto,
   ) {
     return this.ticketsService.adminApplyRunbook(id, user.userId, body.runbookKey ?? '');
+  }
+
+  // PB-43 — zmiana usługi, której dotyczy zgłoszenie (oś zgłoszenia + dziennik).
+  @Post('admin/:id/usluga')
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
+  @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_MANAGE')
+  @HttpCode(200)
+  adminLinkSubscription(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: { userId: string },
+    @Body() body: PowiazanieUslugiDto,
+  ) {
+    return this.ticketsService.adminLinkSubscription(id, user.userId, body.subscriptionId ?? null);
   }
 
   @Post('admin/:id/risk')

@@ -263,6 +263,9 @@ export const TicketOpsActions = {
   TICKET_ESCALATED: 'TICKET_ESCALATED',
   TICKET_RUNBOOK_APPLIED: 'TICKET_RUNBOOK_APPLIED',
   CUSTOMER_RISK_FLAG_UPDATED: 'CUSTOMER_RISK_FLAG_UPDATED',
+  // PB-43 — powiązanie zgłoszenia z usługą i diagnostyka uruchomiona z rozmowy.
+  TICKET_SERVICE_LINK_CHANGED: 'TICKET_SERVICE_LINK_CHANGED',
+  TICKET_DIAGNOSTICS_RUN: 'TICKET_DIAGNOSTICS_RUN',
 } as const;
 
 export const ControlPlaneMailActions = {

@@ -958,6 +958,9 @@ export class MigrationOrchestratorService {
         message: `Przenoszenie strony ${domain} zatrzymało się — Verris założył to zgłoszenie automatycznie, żeby zespół dokończył je ręcznie. Nic nie musisz robić, napiszemy tu, gdy skończymy.`,
         department: 'TECHNICAL',
         priority: 'URGENT',
+        // PB-43 — obsługa ma przy rozmowie kartę usługi i diagnostykę. Warunek: eskalacja nie może paść na walidacji
+        // usługi, gdyby wniosek i usługa miały różnych właścicieli (wtedy zgłoszenie bez usługi, jak dotąd).
+        subscriptionId: request.subscription.userId === request.userId ? request.subscriptionId : undefined,
         // Klient dostaje jeden mail „Migrację przejął nasz zespół” (scheduler) z opiekunem, terminem
         // i linkiem do tego zgłoszenia — bez osobnego potwierdzenia zgłoszenia (t1, 08.10: dwa maile).
       }, { bezPotwierdzenia: true });

@@ -1,4 +1,4 @@
-import { IsBoolean, IsString, MinLength, MaxLength, IsOptional, IsIn, IsInt, Min, Max } from 'class-validator';
+import { IsBoolean, IsString, MinLength, MaxLength, IsOptional, IsIn, IsInt, IsUUID, Min, Max } from 'class-validator';
 import { Czesciowy } from '../common/validation/czesciowy.js';
 
 export class CreateTicketDto {
@@ -26,6 +26,11 @@ export class CreateTicketDto {
   @IsString()
   @IsIn(['HOSTING', 'DOMAIN', 'EMAIL', 'DNS', 'BILLING', 'SSL', 'OTHER', 'BETA'])
   topic?: string;
+
+  /** PB-43 — usługa, której dotyczy zgłoszenie (serwis sprawdza, że należy do konta i mieści się w zakresie subkonta). */
+  @IsOptional()
+  @IsUUID('all', { message: 'Nieprawidłowa usługa' })
+  subscriptionId?: string;
 }
 
 /** SUP-1 — szybkie podpowiedzi z bazy wiedzy w formularzu zgłoszenia. */
@@ -160,4 +165,11 @@ export class SubmitCsatDto {
   @IsOptional()
   @IsBoolean()
   resolved?: boolean;
+}
+
+/** PB-43 — obsługa zmienia usługę, której dotyczy zgłoszenie (null = bez usługi). */
+export class PowiazanieUslugiDto {
+  @IsOptional()
+  @IsUUID('all', { message: 'Nieprawidłowa usługa' })
+  subscriptionId?: string | null;
 }

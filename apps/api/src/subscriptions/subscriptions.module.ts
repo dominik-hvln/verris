@@ -57,6 +57,7 @@ import { GitWebhookController } from './git-webhook.controller.js';
 import { ApiTokensModule } from '../api-tokens/api-tokens.module.js';
 import { WpAutoUpdateScheduler } from './wp-auto-update.scheduler.js';
 import { DiagnosticsService } from './diagnostics.service.js';
+import { ZgloszenieDiagnostykaController } from './zgloszenie-diagnostyka.controller.js';
 import { HostingRestoreScheduler } from './hosting-restore.scheduler.js';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module.js';
 import { WordpressService } from './wordpress.service.js';
@@ -139,6 +140,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
   ],
   controllers: [
     SubscriptionsController,
+    ZgloszenieDiagnostykaController,
     SubscriptionsAdminController,
     WarunkiIndywidualneAdminController,
     UserServicesController,

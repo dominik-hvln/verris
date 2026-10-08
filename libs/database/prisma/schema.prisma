@@ -1020,6 +1020,8 @@ model Subscription {
   // #11 — kredyty SLA przyznane tej subskrypcji
   slaCredits           SlaCredit[]
   sslOrders            SslOrder[]
+  // PB-43 — zgłoszenia powiązane z tą usługą
+  tickets              Ticket[]
 
   // Autoscaling (per service)
   autoscalingEnabled   Boolean                   @default(false)
@@ -2121,6 +2123,10 @@ model Ticket {
   aiDraft          String?   @db.Text // szkic asystenta (JSON: szkic, checklista) — tylko obsługa
   aiDraftAt        DateTime?
 
+  // PB-43 — usługa, której dotyczy zgłoszenie (wybór klienta albo obsługi; null = konto ogólnie).
+  subscriptionId   String?
+  subscription     Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -2129,6 +2135,7 @@ model Ticket {
   @@index([riskFlag])
   @@index([status, waitingSince])
   @@index([csatAgentId, csatAt])
+  @@index([subscriptionId])
 }
 
 model TicketReply {

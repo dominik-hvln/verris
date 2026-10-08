@@ -239,6 +239,8 @@ export class AddonService {
           department: 'TECHNICAL',
           topic: 'OTHER',
           priority: 'HIGH',
+          // PB-43 — zgłoszenie od razu przy usłudze, której dotyczy dodatek (obsługa widzi kartę i diagnostykę).
+          subscriptionId: subscriptionId ?? undefined,
         });
         ticketId = (ticket as { id?: string } | null)?.id ?? null;
         status = 'QUEUED';

@@ -242,6 +242,13 @@ describe('Z-06 — idempotencja zakupu dodatku', () => {
       expect(message).not.toMatch(/c0a80123|Klient wykupił|Proszę o realizację/);
     });
 
+    it('PB-43: zgłoszenie dodatku jest powiązane z usługą, której dotyczy', async () => {
+      const { service, tickets } = zbuduj();
+      await service.purchase('user-1', 'manual_setup', 'c0a80123-aaaa-bbbb-cccc-0123456789ab', 'k-usluga');
+      const dto = (tickets.create.mock.calls[0] as unknown as [string, { subscriptionId?: string }])[1];
+      expect(dto.subscriptionId).toBe('c0a80123-aaaa-bbbb-cccc-0123456789ab');
+    });
+
     it('Z-10: cudza usługa w ciele żądania → 404 bez obciążenia i bez zgłoszenia', async () => {
       const { service, wallet, tickets, prisma } = zbuduj();
       await expect(service.purchase('user-1', 'manual_setup', 'obca-sub', 'k3')).rejects.toThrow('Usługa nie istnieje');

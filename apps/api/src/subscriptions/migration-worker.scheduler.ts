@@ -416,6 +416,7 @@ export class MigrationWorkerScheduler {
         message: this.buildTicketMessage(req.type, req.details, req.subscription.account?.domain ?? null),
         department: 'TECHNICAL',
         priority: 'HIGH',
+        subscriptionId: req.subscriptionId, // PB-43
       });
 
       const queuedType =

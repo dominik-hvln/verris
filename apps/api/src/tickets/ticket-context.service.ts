@@ -32,6 +32,7 @@ export class TicketContextService {
         topic: true,
         slaResolveDueAt: true,
         userId: true,
+        subscriptionId: true,
         user: { select: { firstName: true, lastName: true, email: true, companyName: true, walletBalance: true, createdAt: true } },
       },
     });
@@ -73,10 +74,14 @@ export class TicketContextService {
     kb: { title: string; url: string }[],
   ): TicketDraftContext {
     const { ticket, subs, invoices } = d;
-    // ponytail: zgłoszenie nie wskazuje usługi — bierzemy domenę wymienioną w treści, inaczej pierwszą aktywną.
+    // PB-43 — usługa wskazana przy zgłoszeniu ma pierwszeństwo; bez niej domena wymieniona w treści, inaczej pierwsza aktywna.
     const text = `${ticket.subject} ${ticket.message}`.toLowerCase();
     const live = subs.filter((s) => (ACTIVE as readonly string[]).includes(s.status));
-    const svc = live.find((s) => s.account?.domain && text.includes(s.account.domain.toLowerCase())) ?? live[0] ?? null;
+    const svc =
+      subs.find((s) => s.id === ticket.subscriptionId) ??
+      live.find((s) => s.account?.domain && text.includes(s.account.domain.toLowerCase())) ??
+      live[0] ??
+      null;
     return {
       firstName: ticket.user.firstName,
       lastName: ticket.user.lastName,

@@ -38,6 +38,8 @@ describe('Eskalacja migracji do zespołu — zgłoszenie jak każde inne', () =>
     const t = await prisma().ticket.findFirstOrThrow({ where: { userId: k.user.id }, include: { replies: true } });
     expect(t.assignedToId).toBe(agent.id);
     expect(t.priority).toBe('URGENT');
+    // PB-43 — obsługa ma przy rozmowie kartę usługi i diagnostykę
+    expect(t.subscriptionId).toBe(k.subscription.id);
     expect(t.slaResponseDueAt).not.toBeNull();
     // 217f5a2a: opiekun, termin i link idą w mailu „Migrację przejął nasz zespół” — bez drugiego maila z potwierdzeniem
     expect(t.replies.some((r) => r.automatic === 'POTWIERDZENIE')).toBe(false);
