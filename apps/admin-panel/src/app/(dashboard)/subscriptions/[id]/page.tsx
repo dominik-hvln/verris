@@ -5,6 +5,7 @@ import { InternalMigrationForm } from "./internal-migration-form";
 import { PlanChangeForm } from "./plan-change-form";
 import { ServiceUsagePanel } from "./usage-panel";
 import { DiagnosticsPanel } from "./diagnostics-panel";
+import { KontoKlientaPanel } from "./konto-klienta-panel";
 import { SuspendForm, ZakonczIUsunForm } from "./suspend-form";
 import { RestorePanel } from "./restore-panel";
 import { OdtworzenieNaWezlePanel } from "./odtworzenie-na-wezle-panel";
@@ -108,6 +109,8 @@ export default async function AdminSubscriptionDetailPage({ params }: { params: 
           </div>
 
           <DiagnosticsPanel subscriptionId={detail.id} />
+
+          {detail.account ? <KontoKlientaPanel subscriptionId={detail.id} /> : null}
 
           <div className={`rounded-xl border p-4 ${detail.status === "SUSPENDED" ? "border-amber-500/30 bg-amber-500/5" : "border-rose-500/20 bg-rose-500/5"}`}>
             <h2 className="text-sm font-semibold text-white mb-3">

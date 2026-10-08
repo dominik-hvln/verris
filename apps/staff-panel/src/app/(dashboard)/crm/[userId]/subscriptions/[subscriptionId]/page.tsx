@@ -8,6 +8,7 @@ import { staffGetAdminSubscription } from "@/lib/crm-subscription-data";
 import { PlanChangeTicketTemplate } from "./ticket-template";
 import { StaffPlanChangeForm } from "./staff-plan-change-form";
 import { StaffDiagnosticsPanel } from "./diagnostics-panel";
+import { KontoKlientaPanel } from "./konto-klienta-panel";
 
 import { SUBSCRIPTION_STATUS_PL as SUB_STATUS_PL } from "@verris/contracts";
 
@@ -102,6 +103,8 @@ export default async function StaffSubscriptionReadonlyPage({
       </header>
 
       <StaffDiagnosticsPanel subscriptionId={subscriptionId} />
+
+      {sub.account ? <KontoKlientaPanel subscriptionId={subscriptionId} /> : null}
 
       <section className="rounded-2xl border border-white/10 bg-black/30">
         <h2 className="border-b border-white/10 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white">
