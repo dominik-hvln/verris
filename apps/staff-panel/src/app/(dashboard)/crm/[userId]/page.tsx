@@ -154,7 +154,7 @@ export default async function StaffCustomerProfilePage({
             <p className="mt-2 text-xs text-rose-100/85">{user.loginBlockedReason}</p>
           ) : (
             <p className="mt-2 text-xs text-muted-foreground">
-              Klient nie zaloguje się hasłem ani po 2FA — wejście na konto klienta z panelu nadal działa.
+              Zablokowany klient nie zaloguje się, a wejście na jego konto z panelu też nie zadziała, dopóki blokada trwa.
             </p>
           )}
         </div>

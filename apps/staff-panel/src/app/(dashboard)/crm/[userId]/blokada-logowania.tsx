@@ -36,7 +36,7 @@ export function BlokadaLogowania({ userId, zablokowane, powod }: { userId: strin
     <section id="blokada" data-karta="blokada" className="scroll-mt-24 space-y-4 rounded-2xl border border-white/10 bg-black/30 p-5">
       <h2 className="text-sm font-bold uppercase tracking-wide text-white">Blokada logowania</h2>
       <p className="text-xs leading-relaxed text-muted-foreground">
-        Zablokowany klient nie zaloguje się ani hasłem, ani po 2FA. Wejście na konto klienta z panelu nadal działa. Zmiana trafia do dziennika.
+        Zablokowany klient nie zaloguje się, a wejście na jego konto z panelu też nie zadziała, dopóki blokada trwa. Zmiana trafia do dziennika.
       </p>
       <label className="flex cursor-pointer items-center gap-3">
         <Checkbox checked={blokada} disabled={pending} onChange={(e) => setBlokada(e.target.checked)} />

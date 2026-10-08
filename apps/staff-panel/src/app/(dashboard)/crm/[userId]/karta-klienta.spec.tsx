@@ -82,9 +82,9 @@ const profil: StaffCustomerProfile = {
   supportInsights: { riskScore: 40, riskLevel: "medium", reasons: ["Otwarte zgłoszenie bez odpowiedzi"], suggestions: ["Zadzwoń do klienta"] },
 };
 
-function odpowiedzi(uprawnienia: string[] | "awaria", isAdmin = false) {
+function odpowiedzi(uprawnienia: string[] | "awaria", isAdmin = false, p: StaffCustomerProfile = profil) {
   api.mockImplementation(async (sciezka: string) => {
-    if (sciezka === `/admin/users/${UID}/customer-profile`) return profil;
+    if (sciezka === `/admin/users/${UID}/customer-profile`) return p;
     if (sciezka.startsWith("/admin/custom-terms/user/")) return { uslugi: [] };
     if (sciezka === "/staff/me/access") {
       if (uprawnienia === "awaria") throw new Error("ECONNREFUSED");
@@ -147,6 +147,13 @@ describe("PB-46 karta klienta w panelu obsługi", () => {
   it("administrator zalogowany do panelu obsługi też nie dostaje operacji tylko-admin", async () => {
     odpowiedzi([], true);
     expect(karty(await render("dostepy"))).toEqual(["dostep", "blokada"]);
+  });
+
+  it("zablokowany klient: baner i karta blokady nie obiecują, że wejście na konto działa (JwtStrategy odrzuca zablokowanych)", async () => {
+    odpowiedzi(PELNE, false, { ...profil, user: { ...profil.user, loginBlocked: true } });
+    const html = await render("dostepy");
+    expect(html).not.toContain("nadal działa");
+    expect(html.match(/wejście na jego konto z panelu też nie zadziała/g)).toHaveLength(2);
   });
 
   it("ryzyko i sugestie na przeglądzie", async () => {

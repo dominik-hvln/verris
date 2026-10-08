@@ -122,7 +122,7 @@ export function CustomerOperationalForms({ detail }: Props) {
       <section id="blokada" data-karta="blokada" className="scroll-mt-24 rounded-2xl border border-white/10 bg-black/35 p-6 space-y-4">
         <h2 className="text-sm font-bold uppercase tracking-wide text-white">Blokada logowania i notatka</h2>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Zablokowane konto USER nie zaloguje się ani hasłem, ani po 2FA. Impersonacja z panelu nadal działa.
+          Zablokowany klient nie zaloguje się, a wejście na jego konto z panelu też nie zadziała, dopóki blokada trwa.
         </p>
         <label className="flex items-center gap-3 cursor-pointer">
           <Checkbox
