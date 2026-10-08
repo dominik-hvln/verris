@@ -41,9 +41,9 @@ export function StaffDnsTlsPanel({ userId, subscriptions }: Props) {
   };
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-black/30">
+    <section className="rounded-2xl border border-white/10 bg-black/30" data-karta="dns-tls">
       <h2 className="border-b border-white/10 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white">
-        Diagnostyka DNS + TLS
+        Diagnostyka DNS i TLS
       </h2>
       <div className="space-y-4 p-4">
         <p className="text-xs leading-relaxed text-muted-foreground">

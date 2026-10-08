@@ -3,6 +3,7 @@ import { stanUslugi } from "@/lib/stan-uslugi";
 import { notFound } from "next/navigation";
 import { UserCog } from "lucide-react";
 import {
+  DOMAIN_STATUS_PL,
   INVOICE_STATUS_PL,
   TICKET_PRIORITY_PL,
   TICKET_STATUS_PL,
@@ -26,6 +27,8 @@ import { pobierzProfilKlienta, type ProfilKlienta } from "./profil-data";
 import { NotatkaWewnetrzna } from "./notatka-wewnetrzna";
 import { ZwrotPaynowButton } from "./zwrot-paynow-button";
 import { services, plForm } from "@/lib/pl";
+import { sekcjaKarty, zakladkiKartyKlienta } from "@/lib/sekcje-karty-klienta";
+import { DiagnostykaDnsTls } from "./diagnostyka-dns-tls";
 
 export const dynamic = "force-dynamic";
 
@@ -33,9 +36,9 @@ export const dynamic = "force-dynamic";
  * PB-34 — karta klienta 1:1 z makiety AdminKlient.dc.html. Dane z tego samego widoku 360° co w panelu
  * obsługi (`/admin/users/:id/customer-profile`); formularze operacyjne i warunki indywidualne bez zmian,
  * tylko w zakładkach.
+ * PB-46 — zakładki i karty jak w panelu obsługi (`@/lib/sekcje-karty-klienta`, atrybut `data-karta`);
+ * dochodzą „Ryzyko i sugestie”, incydenty na węzłach klienta i diagnostyka DNS/TLS.
  */
-const SEKCJE = ["przeglad", "uslugi", "rozliczenia", "warunki", "zgloszenia", "dostepy", "dziennik"] as const;
-type Sekcja = (typeof SEKCJE)[number];
 const STREFA = "Europe/Warsaw";
 
 const data = (iso: string | null | undefined, rok = true) =>
@@ -90,7 +93,7 @@ export default async function AdminCustomerCardPage({
 }) {
   const { userId } = await params;
   const q = await searchParams;
-  const sekcja: Sekcja = (SEKCJE as readonly string[]).includes(q.sekcja ?? "") ? (q.sekcja as Sekcja) : "przeglad";
+  const sekcja = sekcjaKarty(q.sekcja);
 
   let p: ProfilKlienta;
   let detail: Awaited<ReturnType<typeof getCustomerOperationalDetail>>;
@@ -213,6 +216,21 @@ export default async function AdminCustomerCardPage({
         </div>
       </div>
 
+      {p.statusPageOpenIncidents.length > 0 ? (
+        <section className={`${KARTA} border-[color-mix(in_srgb,var(--warn)_40%,transparent)] px-[18px] py-3`} aria-labelledby="incydenty">
+          <h2 id="incydenty" className="text-sm font-semibold text-warn">
+            Otwarte incydenty na węzłach klienta
+          </h2>
+          <ul className="mt-1.5 flex flex-col gap-1 text-[13px]">
+            {p.statusPageOpenIncidents.map((i) => (
+              <li key={i.id}>
+                <span className="font-mono text-xs text-muted-foreground">{i.severity}</span> · {i.title} · {i.serverName} — {i.probeTarget} (od {kiedy(i.startedAt)})
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <RzadKpi etykieta="Podsumowanie klienta">
         <Kpi
           etykieta="Saldo portfela"
@@ -251,21 +269,13 @@ export default async function AdminCustomerCardPage({
 
       <Zakladki
         etykieta="Sekcje klienta"
-        pozycje={[
-          { nazwa: "Przegląd", href: baza, on: sekcja === "przeglad" },
-          { nazwa: `Usługi (${zywe.length})`, href: `${baza}?sekcja=uslugi`, on: sekcja === "uslugi" },
-          { nazwa: "Rozliczenia", href: `${baza}?sekcja=rozliczenia`, on: sekcja === "rozliczenia" },
-          ...(warunki ? [{ nazwa: "Warunki indywidualne", href: `${baza}?sekcja=warunki`, on: sekcja === "warunki" }] : []),
-          { nazwa: `Zgłoszenia (${otwarteZgl.length})`, href: `${baza}?sekcja=zgloszenia`, on: sekcja === "zgloszenia" },
-          { nazwa: "Dostępy i bezpieczeństwo", href: `${baza}?sekcja=dostepy`, on: sekcja === "dostepy" },
-          { nazwa: "Dziennik", href: `${baza}?sekcja=dziennik`, on: sekcja === "dziennik" },
-        ]}
+        pozycje={zakladkiKartyKlienta(baza, sekcja, { uslugi: zywe.length, zgloszenia: otwarteZgl.length, warunki: !!warunki })}
       />
 
       {sekcja === "przeglad" ? (
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
           <div className="flex flex-col gap-5">
-            <section className={KARTA} aria-labelledby="us">
+            <section className={KARTA} aria-labelledby="us" data-karta="uslugi">
               <NaglowekKarty id="us" tytul="Usługi">
                 {warunki ? (
                   <Link href={`${baza}?sekcja=warunki`} className={`${PRZYCISK} ml-auto !h-[34px] !text-[13px]`}>
@@ -282,7 +292,7 @@ export default async function AdminCustomerCardPage({
               {zywe.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Klient nie ma aktywnych usług.</div> : zywe.map(wierszUslugi)}
             </section>
 
-            <section className={KARTA} aria-labelledby="tl">
+            <section className={KARTA} aria-labelledby="tl" data-karta="os-czasu">
               <NaglowekKarty id="tl" tytul="Oś czasu">
                 <LinkKarty href={`${baza}?sekcja=dziennik`}>Pełny dziennik →</LinkKarty>
               </NaglowekKarty>
@@ -304,7 +314,37 @@ export default async function AdminCustomerCardPage({
           </div>
 
           <div className="flex flex-col gap-5">
-            <section className={`${KARTA} flex flex-col gap-2.5 p-[18px]`} aria-labelledby="war">
+            <section className={`${KARTA} flex flex-col gap-2.5 p-[18px]`} aria-labelledby="ryz" data-karta="ryzyko">
+              <h2 id="ryz" className="font-display text-[17px] font-bold">
+                Ryzyko i sugestie
+              </h2>
+              <p className={`font-mono text-[22px] font-bold ${ton(p.supportInsights.riskLevel)}`}>
+                {p.supportInsights.riskScore}/100 <span className="font-sans text-[13px] font-normal text-muted-foreground">ryzyko</span>
+              </p>
+              {p.supportInsights.reasons.length ? (
+                <ul className="list-disc pl-5 text-[13px] text-verris-body">
+                  {p.supportInsights.reasons.map((r) => (
+                    <li key={r}>{r}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[13px] text-muted-foreground">Brak aktywnych sygnałów ryzyka.</p>
+              )}
+              {p.supportInsights.suggestions.length ? (
+                <>
+                  <span className="mt-1 font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground">Sugestie odpowiedzi / działań</span>
+                  <ul className="flex flex-col gap-1.5 text-sm">
+                    {p.supportInsights.suggestions.map((s) => (
+                      <li key={s} className="rounded-[9px] border border-line px-3 py-2">
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+            </section>
+
+            <section className={`${KARTA} flex flex-col gap-2.5 p-[18px]`} aria-labelledby="war" data-karta="rozliczenie">
               <div className="flex items-center">
                 <h2 id="war" className="font-display text-[17px] font-bold">
                   Rozliczenie
@@ -317,14 +357,14 @@ export default async function AdminCustomerCardPage({
               <Para k="Metoda płatności" v={p.paymentMethods.find((m) => m.isDefault) ? `${p.paymentMethods.find((m) => m.isDefault)!.brand ?? "karta"} •••• ${p.paymentMethods.find((m) => m.isDefault)!.last4 ?? ""}` : "brak zapisanej"} />
             </section>
 
-            <section className={`${KARTA} flex flex-col gap-2.5 p-[18px]`} aria-labelledby="nt">
+            <section className={`${KARTA} flex flex-col gap-2.5 p-[18px]`} aria-labelledby="nt" data-karta="notatka">
               <h2 id="nt" className="font-display text-[17px] font-bold">
                 Notatka wewnętrzna
               </h2>
               <NotatkaWewnetrzna userId={u.id} poczatkowa={detail.adminInternalNote ?? ""} />
             </section>
 
-            <section className={KARTA} aria-labelledby="wr">
+            <section className={KARTA} aria-labelledby="wr" data-karta="operacje">
               <div className="flex flex-col px-[18px] py-4">
                 <h2 id="wr" className="font-display text-[17px] font-bold">
                   Operacje wrażliwe
@@ -355,7 +395,8 @@ export default async function AdminCustomerCardPage({
       ) : null}
 
       {sekcja === "uslugi" ? (
-        <section className={KARTA} aria-label="Wszystkie usługi">
+        <>
+        <section className={KARTA} aria-label="Wszystkie usługi" data-karta="uslugi">
           <div className={`${WIERSZ} !border-t-0 !py-[9px] font-mono text-[10.5px] uppercase tracking-[0.1em] text-muted-foreground`}>
             <span className="flex-1">Usługa</span>
             <span className="w-[120px] sm:w-[150px]">Cena klienta</span>
@@ -363,22 +404,24 @@ export default async function AdminCustomerCardPage({
             <span className="w-[100px]">Stan</span>
           </div>
           {p.subscriptions.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak usług.</div> : p.subscriptions.map(wierszUslugi)}
-          {p.domains.length ? (
-            <div className={`${WIERSZ} flex-wrap text-sm`}>
-              <span className="text-muted-foreground">Domeny:</span>
-              {p.domains.map((d) => (
-                <span key={d.id} className="font-mono text-[13px]">
-                  {d.name}
-                </span>
-              ))}
-            </div>
-          ) : null}
         </section>
+        <section className={KARTA} aria-labelledby="dom" data-karta="domeny">
+          <NaglowekKarty id="dom" tytul={`Domeny (${p.domains.length})`} />
+          {p.domains.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak domen w panelu.</div> : null}
+          {p.domains.map((d) => (
+            <div key={d.id} className={WIERSZ}>
+              <span className="flex-1 font-mono text-[13px]">{d.name}</span>
+              <span className="text-[13px] text-muted-foreground">{etykieta(DOMAIN_STATUS_PL, d.status)}</span>
+            </div>
+          ))}
+        </section>
+        <DiagnostykaDnsTls userId={u.id} subscriptions={p.subscriptions} />
+        </>
       ) : null}
 
       {sekcja === "rozliczenia" ? (
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-          <section className={KARTA} aria-labelledby="portfel">
+          <section className={KARTA} aria-labelledby="portfel" data-karta="portfel">
             <NaglowekKarty id="portfel" tytul="Portfel">
               <span className="ml-auto font-mono text-[13px]">{formatPlnAndCredits(u.walletBalance, u.walletCurrency)}</span>
             </NaglowekKarty>
@@ -398,7 +441,7 @@ export default async function AdminCustomerCardPage({
             ))}
           </section>
           <div className="flex flex-col gap-5">
-            <section className={KARTA} aria-labelledby="faktury">
+            <section className={KARTA} aria-labelledby="faktury" data-karta="faktury">
               <NaglowekKarty id="faktury" tytul="Faktury" />
               {p.recentInvoices.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak faktur.</div> : null}
               {p.recentInvoices.map((f) => (
@@ -409,7 +452,7 @@ export default async function AdminCustomerCardPage({
                 </div>
               ))}
             </section>
-            <section className={KARTA} aria-labelledby="metody">
+            <section className={KARTA} aria-labelledby="metody" data-karta="metody">
               <NaglowekKarty id="metody" tytul="Metody płatności" />
               {p.paymentMethods.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak zapisanych metod.</div> : null}
               {p.paymentMethods.map((m) => (
@@ -431,11 +474,13 @@ export default async function AdminCustomerCardPage({
       ) : null}
 
       {sekcja === "warunki" && warunki ? (
-        <WarunkiIndywidualne userId={u.id} dane={warunki} akcje={{ zaloz: zalozUsluge, ustaw: ustawWarunki, poza: rozliczeniePoza }} />
+        <div data-karta="warunki">
+          <WarunkiIndywidualne userId={u.id} dane={warunki} akcje={{ zaloz: zalozUsluge, ustaw: ustawWarunki, poza: rozliczeniePoza }} />
+        </div>
       ) : null}
 
       {sekcja === "zgloszenia" ? (
-        <section className={KARTA} aria-label="Zgłoszenia klienta">
+        <section className={KARTA} aria-label="Zgłoszenia klienta" data-karta="zgloszenia">
           {p.recentTickets.length === 0 ? <div className={`${WIERSZ} !border-t-0 text-sm text-muted-foreground`}>Klient nie pisał jeszcze do obsługi.</div> : null}
           {p.recentTickets.map((t, i) => {
             const po = !t.firstResponseAt && t.status !== "CLOSED" && t.slaResponseDueAt && new Date(t.slaResponseDueAt).getTime() < teraz;
@@ -465,7 +510,7 @@ export default async function AdminCustomerCardPage({
 
       {sekcja === "dostepy" ? (
         <>
-          <section className={`${KARTA} flex flex-col gap-2 p-5`} aria-label="Dostęp do konta">
+          <section className={`${KARTA} flex flex-col gap-2 p-5`} aria-label="Dostęp do konta" data-karta="dostep">
             <Para k="Logowanie dwuetapowe (2FA)" v={u.isTwoFactorEnabled ? "włączone" : "wyłączone"} />
             <Para k="Logowanie" v={u.loginBlocked ? `zablokowane${u.loginBlockedReason ? ` — ${u.loginBlockedReason}` : ""}` : "dozwolone"} />
             <Para k="Klient Stripe" v={u.stripeCustomerId ?? "—"} mono />
@@ -476,7 +521,7 @@ export default async function AdminCustomerCardPage({
       ) : null}
 
       {sekcja === "dziennik" ? (
-        <section className={KARTA} aria-label="Dziennik klienta">
+        <section className={KARTA} aria-label="Dziennik klienta" data-karta="dziennik">
           {p.auditTrail.length === 0 ? <div className={`${WIERSZ} !border-t-0 text-sm text-muted-foreground`}>Brak wpisów.</div> : null}
           {p.auditTrail.map((a, i) => (
             <div key={a.id} className={`${WIERSZ} ${i === 0 ? "!border-t-0" : ""} items-start`}>
@@ -502,6 +547,8 @@ export default async function AdminCustomerCardPage({
     </div>
   );
 }
+
+const ton = (poziom: "low" | "medium" | "high") => (poziom === "high" ? "text-crit" : poziom === "medium" ? "text-warn" : "text-data-hi");
 
 function Para({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
   return (

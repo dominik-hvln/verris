@@ -42,7 +42,7 @@ export interface StaffCustomerProfile {
     deletionRequestedAt: string | null;
     loginBlocked?: boolean;
     loginBlockedReason?: string | null;
-    /** Tylko dla ADMIN w API; dla STAFF zwykle `null`. */
+    /** PB-46 — notatka wewnętrzna; czyta każdy operator z CUSTOMERS_VIEW, zapis z CUSTOMERS_MANAGE. */
     adminInternalNote?: string | null;
   };
   subscriptions: Array<{
@@ -57,6 +57,9 @@ export interface StaffCustomerProfile {
     currentPeriodEnd: string | null;
     cancelAt: string | null;
     autoscalingEnabled: boolean;
+    /** PB-27 — cena indywidualna i rabat autoskalowania (karta klienta: „Rozliczenie”). */
+    individualPrice?: string | null;
+    autoscalingDiscountPct?: number;
     plan: { id: string; name: string; slug: string };
     account: null | {
       id: string;
