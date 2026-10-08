@@ -99,11 +99,13 @@ api() {
   # api METHOD PATH [JSON_BODY]
   local method="$1" path="$2" body="${3:-}"
   if [ -n "$body" ]; then
-    curl -fsS --max-time 60 -X "$method" \
+    # Body przez stdin (printf to builtin): raport z logiem ma do 200 KB, a pojedynczy argument
+    # programu nie może przekroczyć 128 KiB (MAX_ARG_STRLEN) — „Argument list too long” (t1, 08.10).
+    printf '%s' "$body" | curl -fsS --max-time 60 -X "$method" \
       -H "X-Server-Id: $VERRIS_SERVER_ID" \
       -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \
       -H "Content-Type: application/json" \
-      --data "$body" "${VERRIS_API_URL}${path}"
+      --data-binary @- "${VERRIS_API_URL}${path}"
   else
     curl -fsS --max-time 60 -X "$method" \
       -H "X-Server-Id: $VERRIS_SERVER_ID" \
@@ -119,7 +121,8 @@ complete_job() {
   # Dołącza raport spójności z pliku "${logfile}.integrity" (zapisanego przez
   # run_* — te działają w subshellu $(...), więc przekazujemy przez plik).
   local id="$1" bytes="$2" files="$3" dbs="$4" mboxes="$5" logfile="$6"
-  local logtext; logtext=$(tail -c 200000 "$logfile" 2>/dev/null | jq -Rs . || echo '""')
+  # Końcówka logu do pliku i do jq przez --rawfile — jako argument (--argjson) przekraczała 128 KiB.
+  local logtail; logtail=$(mktemp); tail -c 200000 "$logfile" >"$logtail" 2>/dev/null || true
   local integrity=""
   [ -f "${logfile}.integrity" ] && integrity=$(cat "${logfile}.integrity")
   echo "$integrity" | jq empty >/dev/null 2>&1 || integrity=""
@@ -128,15 +131,16 @@ complete_job() {
     body=$(jq -nc \
       --argjson bytes "${bytes:-0}" --argjson files "${files:-0}" \
       --argjson dbs "${dbs:-0}" --argjson mboxes "${mboxes:-0}" \
-      --argjson log "$logtext" --argjson integrity "$integrity" \
+      --rawfile log "$logtail" --argjson integrity "$integrity" \
       '{bytesTransferred:$bytes,filesTransferred:$files,databasesMigrated:$dbs,mailboxesMigrated:$mboxes,log:$log,integrity:$integrity}')
   else
     body=$(jq -nc \
       --argjson bytes "${bytes:-0}" --argjson files "${files:-0}" \
       --argjson dbs "${dbs:-0}" --argjson mboxes "${mboxes:-0}" \
-      --argjson log "$logtext" \
+      --rawfile log "$logtail" \
       '{bytesTransferred:$bytes,filesTransferred:$files,databasesMigrated:$dbs,mailboxesMigrated:$mboxes,log:$log}')
   fi
+  rm -f "$logtail"
   api POST "/node/migration-worker/${id}/complete" "$body" >/dev/null
   log "job $id completed (bytes=$bytes files=$files dbs=$dbs mboxes=$mboxes)"
 }
@@ -144,10 +148,11 @@ complete_job() {
 fail_job() {
   # fail_job JOB_ID "error" LOGFILE RETRYABLE(true|false)
   local id="$1" err="$2" logfile="$3" retryable="${4:-true}"
-  local logtext; logtext=$(tail -c 200000 "$logfile" 2>/dev/null | jq -Rs . || echo '""')
+  local logtail; logtail=$(mktemp); tail -c 200000 "$logfile" >"$logtail" 2>/dev/null || true
   local body
-  body=$(jq -nc --arg err "$err" --argjson log "$logtext" --argjson retry "$retryable" \
+  body=$(jq -nc --arg err "$err" --rawfile log "$logtail" --argjson retry "$retryable" \
     '{error:$err,log:$log,retryable:$retry}')
+  rm -f "$logtail"
   api POST "/node/migration-worker/${id}/fail" "$body" >/dev/null || true
   log "job $id failed: $err (retryable=$retryable)"
 }
