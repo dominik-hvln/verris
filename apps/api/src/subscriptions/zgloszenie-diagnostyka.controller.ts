@@ -16,6 +16,10 @@ import { DiagnosticsService } from './diagnostics.service.js';
  * i za uprawnieniem do prowadzenia zgłoszeń (TICKETS_MANAGE) — konsultant nie potrzebuje do tego zarządzania
  * subskrypcjami. Nie za samym podglądem (TICKETS_VIEW): diagnostyka odpytuje węzeł i zapisuje stan zdrowia usługi
  * (forSubscription → computeAndPersist), więc to operacja, a nie odczyt.
+ * L1-KARTA (decyzja właściciela 08.10): ograniczenie TICKETS_MANAGE do usługi ze zgłoszenia obowiązuje już tylko
+ * tutaj — z karty usługi (`GET admin/subscriptions/:id/diagnostics`) TICKETS_MANAGE uruchamia diagnostykę dowolnej
+ * usługi. Ten sam zabieg ma w dzienniku dwie akcje: stąd TICKET_DIAGNOSTICS_RUN (z wynikiem), z karty
+ * OPERATOR_ACCOUNT_VIEWED, sekcja 'diagnostyka' (wpis przed odpytaniem węzła, bez wyniku) — filtruj po obu.
  * Mieszka w module subskrypcji, bo DiagnosticsService jest tutaj (moduł zgłoszeń jest importowany przez ten).
  */
 @Controller('tickets/admin')
