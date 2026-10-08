@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { StaffApiError } from "@/lib/staff-api";
 import { staffApi } from "@/lib/staff-api";
 import { staffGetAdminSubscription } from "@/lib/crm-subscription-data";
+import { maUprawnienie, pobierzDostepOperatora } from "@/lib/staff-access";
 import { PlanChangeTicketTemplate } from "./ticket-template";
 import { StaffPlanChangeForm } from "./staff-plan-change-form";
 import { StaffDiagnosticsPanel } from "./diagnostics-panel";
@@ -15,6 +16,12 @@ import { SUBSCRIPTION_STATUS_PL as SUB_STATUS_PL } from "@verris/contracts";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * L1-KARTA (decyzja 08.10) — karta usługi otwiera się każdemu operatorowi z podglądem klientów (L1) albo
+ * z zarządzaniem usługami (API: @StaffPermAny na odczytach karty). Sekcje i akcje wg uprawnień — te same klucze
+ * co strażnicy API (subscriptions.admin.controller.ts, migrations.staff.controller.ts, konto-klienta.admin.controller.ts).
+ */
+const DIAGNOSTYKA = ["SUBSCRIPTIONS_MANAGE", "ACCOUNT_DIAGNOSTICS_VIEW", "TICKETS_MANAGE"] as const;
 
 export default async function StaffSubscriptionReadonlyPage({
   params,
@@ -24,14 +31,9 @@ export default async function StaffSubscriptionReadonlyPage({
   const { userId, subscriptionId } = await params;
 
   let sub: Awaited<ReturnType<typeof staffGetAdminSubscription>>;
-  let eligiblePlans: { id: string; name: string; slug: string }[] = [];
+  let dostep: Awaited<ReturnType<typeof pobierzDostepOperatora>>;
   try {
-    sub = await staffGetAdminSubscription(subscriptionId);
-    if (sub.status === "ACTIVE" && sub.account) {
-      eligiblePlans = await staffApi<{ id: string; name: string; slug: string }[]>(
-        `/admin/subscriptions/${subscriptionId}/plan/eligible-plans`,
-      );
-    }
+    [sub, dostep] = await Promise.all([staffGetAdminSubscription(subscriptionId), pobierzDostepOperatora()]);
   } catch (e) {
     if (e instanceof StaffApiError && e.status === 401) redirect("/login");
     if (e instanceof StaffApiError && e.status === 404) notFound();
@@ -40,6 +42,25 @@ export default async function StaffSubscriptionReadonlyPage({
 
   if (sub.user.id !== userId) {
     notFound();
+  }
+
+  const mozeZmieniacUsluge = maUprawnienie(dostep, "SUBSCRIPTIONS_MANAGE");
+  const mozeMigrowacZaKlienta = maUprawnienie(dostep, "MIGRATIONS_MANAGE");
+  const widziKontoKlienta = maUprawnienie(dostep, "ACCOUNT_DIAGNOSTICS_VIEW");
+  const mozeDiagnozowac = DIAGNOSTYKA.some((k) => maUprawnienie(dostep, k));
+
+  // Lista planów do zmiany tylko z SUBSCRIPTIONS_MANAGE (API: 403 bez niego). Błąd odczytu — komunikat w sekcji, nie wywrócona karta.
+  let eligiblePlans: { id: string; name: string; slug: string }[] = [];
+  let bladPlanow: string | null = null;
+  if (mozeZmieniacUsluge && sub.status === "ACTIVE" && sub.account) {
+    try {
+      eligiblePlans = await staffApi<{ id: string; name: string; slug: string }[]>(
+        `/admin/subscriptions/${subscriptionId}/plan/eligible-plans`,
+      );
+    } catch (e) {
+      if (e instanceof StaffApiError && e.status === 401) redirect("/login");
+      bladPlanow = "Nie udało się pobrać planów do zmiany. Odśwież stronę za chwilę.";
+    }
   }
 
   const customerName =
@@ -103,9 +124,16 @@ export default async function StaffSubscriptionReadonlyPage({
         </dl>
       </header>
 
-      <StaffDiagnosticsPanel subscriptionId={subscriptionId} />
+      {!mozeZmieniacUsluge ? (
+        <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-muted-foreground">
+          Podgląd usługi. Zmiany w usłudze (plan, odtwarzanie z kopii, migracje) wykonuje obsługa od poziomu L2 — jeśli
+          klient o nie prosi, przekaż zgłoszenie dalej.
+        </p>
+      ) : null}
 
-      {sub.account ? <KontoKlientaPanel subscriptionId={subscriptionId} /> : null}
+      {mozeDiagnozowac ? <StaffDiagnosticsPanel subscriptionId={subscriptionId} /> : null}
+
+      {sub.account && widziKontoKlienta ? <KontoKlientaPanel subscriptionId={subscriptionId} /> : null}
 
       <section className="rounded-2xl border border-white/10 bg-black/30">
         <h2 className="border-b border-white/10 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white">
@@ -116,12 +144,14 @@ export default async function StaffSubscriptionReadonlyPage({
             <p className="font-mono text-cyan-100/90">{sub.account.domain}</p>
             <p className="mt-1 text-xs text-muted-foreground">DA: {sub.account.daUsername}</p>
             <p className="mt-1 text-xs text-muted-foreground">Status konta: {sub.account.status}</p>
-            <Link
-              href={`/migrations/za-klienta?subscriptionId=${sub.id}`}
-              className="mt-3 inline-block rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/20"
-            >
-              Migracja za klienta
-            </Link>
+            {mozeMigrowacZaKlienta ? (
+              <Link
+                href={`/migrations/za-klienta?subscriptionId=${sub.id}`}
+                className="mt-3 inline-block rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/20"
+              >
+                Migracja za klienta
+              </Link>
+            ) : null}
             {sub.account.server ? (
               <p className="mt-2 text-xs text-muted-foreground">
                 Węzeł:{" "}
@@ -141,7 +171,14 @@ export default async function StaffSubscriptionReadonlyPage({
         account={sub.account ? { domain: sub.account.domain, serverId: sub.account.serverId ?? sub.account.server?.id ?? null } : null}
       />
 
-      {sub.status === "ACTIVE" && sub.account && eligiblePlans.length > 0 ? (
+      {bladPlanow ? (
+        <section className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-white">Zmiana planu</h2>
+          <p className="mt-2 text-sm text-rose-300">{bladPlanow}</p>
+        </section>
+      ) : null}
+
+      {mozeZmieniacUsluge && sub.status === "ACTIVE" && sub.account && eligiblePlans.length > 0 ? (
         <section className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4 space-y-4">
           <h2 className="text-sm font-bold uppercase tracking-wide text-white">Zmiana planu</h2>
           <StaffPlanChangeForm

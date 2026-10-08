@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { STAFF_PERMISSIONS_KEY } from '../decorators/staff-permissions.decorator.js';
+import { STAFF_PERMISSIONS_ANY_KEY, STAFF_PERMISSIONS_KEY } from '../decorators/staff-permissions.decorator.js';
 import { uprawnieniaOperatora } from '../../staff-roles/uprawnienia-operatora.js';
 import { WNIOSEK_MOZLIWY_KEY } from '../../wnioski/wniosek-mozliwy.decorator.js';
 
@@ -9,7 +9,9 @@ import { WNIOSEK_MOZLIWY_KEY } from '../../wnioski/wniosek-mozliwy.decorator.js'
  * RBAC — egzekwuje granularne uprawnienia operatorów.
  *  - ADMIN: zawsze dozwolony (pełny dostęp).
  *  - STAFF: suma uprawnień jego ról (może mieć kilka) musi zawierać WSZYSTKIE wymagane uprawnienia.
- *  - USER: brak dostępu do endpointów oznaczonych @StaffPerm.
+ *  - @StaffPermAny na metodzie (L1-KARTA): wystarcza JEDNO z wymienionych uprawnień, a @StaffPerm klasy
+ *    wtedy nie obowiązuje (@StaffPerm samej metody — nadal wszystkie).
+ *  - USER: brak dostępu do endpointów oznaczonych @StaffPerm / @StaffPermAny.
  * Uprawnienia czytane są z DB przez uprawnieniaOperatora (StaffRole.permissions wszystkich ról). Stosować PO JwtAuthGuard.
  */
 @Injectable()
@@ -20,11 +22,12 @@ export class StaffPermissionsGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const required = this.reflector.getAllAndOverride<string[]>(STAFF_PERMISSIONS_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-    if (!required || required.length === 0) return true;
+    const anyOf = this.reflector.get<string[] | undefined>(STAFF_PERMISSIONS_ANY_KEY, context.getHandler()) ?? [];
+    const required =
+      (anyOf.length > 0
+        ? this.reflector.get<string[] | undefined>(STAFF_PERMISSIONS_KEY, context.getHandler())
+        : this.reflector.getAllAndOverride<string[]>(STAFF_PERMISSIONS_KEY, [context.getHandler(), context.getClass()])) ?? [];
+    if (required.length === 0 && anyOf.length === 0) return true;
 
     const { user } = context.switchToHttp().getRequest();
     if (!user) throw new ForbiddenException('Brak autoryzacji.');
@@ -34,7 +37,7 @@ export class StaffPermissionsGuard implements CanActivate {
     const principalId = user.principalUserId ?? user.userId;
     // PB-47 — suma uprawnień ze wszystkich ról operatora (jedno źródło: uprawnienia-operatora.ts).
     const perms: string[] = await uprawnieniaOperatora(this.prisma, principalId).catch(() => []);
-    const ok = required.every((p) => perms.includes(p));
+    const ok = required.every((p) => perms.includes(p)) && (anyOf.length === 0 || anyOf.some((p) => perms.includes(p)));
     if (!ok) {
       // PB-48 — operacja z rejestru wniosków: kod odmowy, po którym panel proponuje „Wyślij wniosek”.
       const operacja = this.reflector.get<string | undefined>(WNIOSEK_MOZLIWY_KEY, context.getHandler());

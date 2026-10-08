@@ -15,7 +15,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
-import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
+import { StaffPerm, StaffPermAny } from '../common/decorators/staff-permissions.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
@@ -61,6 +61,14 @@ function wymagajPowoduOdStaff(actor: { role?: string }, powod: string | undefine
   }
 }
 
+/**
+ * L1-KARTA (decyzja 08.10) — karta usługi w panelu obsługi otwiera się każdemu, kto widzi klientów (L1 Konsultant:
+ * CUSTOMERS_VIEW) albo zarządza usługami (np. NOC: SUBSCRIPTIONS_MANAGE bez CUSTOMERS_VIEW). Odczyty karty mają
+ * na metodzie @StaffPermAny (zastępuje @StaffPerm klasy); odczyty z węzła — za uprawnieniem do podglądu konta,
+ * a wszystkie zapisy i lista planów do zmiany zostają za SUBSCRIPTIONS_MANAGE z klasy.
+ */
+const ODCZYT_KARTY = ['CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE'] as const;
+
 @Controller('admin/subscriptions')
 @UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
 @Roles(Role.ADMIN)
@@ -101,6 +109,7 @@ export class SubscriptionsAdminController {
    */
   @Get(':id/hosting-backups')
   @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPermAny('SUBSCRIPTIONS_MANAGE', 'ACCOUNT_DIAGNOSTICS_VIEW')
   async hostingBackups(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
     const sub = await this.prisma.subscription.findUnique({ where: { id }, select: { userId: true } });
     if (!sub) throw new NotFoundException('Usługa nie istnieje.');
@@ -113,10 +122,23 @@ export class SubscriptionsAdminController {
     return this.directAdmin.listHostingBackups(id, sub.userId);
   }
 
-  /** ADM-2 — Centrum diagnostyki: jedno wywołanie składa pełen obraz usługi. */
+  /**
+   * ADM-2 — Centrum diagnostyki: jedno wywołanie składa pełen obraz usługi. Od L1-KARTA także za TICKETS_MANAGE,
+   * jak diagnostyka z rozmowy (PB-43, zgloszenie-diagnostyka.controller.ts) — konsultant uruchamia ją z karty.
+   * Odpytuje węzeł, więc w dzienniku jak pozostałe odczyty konta (OPERATOR_ACCOUNT_VIEWED, klient = właściciel).
+   */
   @Get(':id/diagnostics')
   @Roles(Role.ADMIN, Role.STAFF)
-  runDiagnostics(@Param('id') id: string) {
+  @StaffPermAny('SUBSCRIPTIONS_MANAGE', 'ACCOUNT_DIAGNOSTICS_VIEW', 'TICKETS_MANAGE')
+  async runDiagnostics(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    const sub = await this.prisma.subscription.findUnique({ where: { id }, select: { userId: true } });
+    if (!sub) throw new NotFoundException('Usługa nie istnieje.');
+    await this.audit.record({
+      action: SupportActions.OPERATOR_ACCOUNT_VIEWED,
+      userId: sub.userId,
+      actorUserId: actor.userId,
+      details: { subscriptionId: id, sekcja: 'diagnostyka' },
+    });
     return this.diagnostics.forSubscription(id);
   }
 
@@ -142,6 +164,7 @@ export class SubscriptionsAdminController {
 
   @Get(':id/hosting-restore/status')
   @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPermAny(...ODCZYT_KARTY)
   hostingRestoreStatus(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
     return this.hostingRestore.latestForSubscription(id, actor.userId, true);
   }
@@ -173,6 +196,7 @@ export class SubscriptionsAdminController {
 
   @Get(':id')
   @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPermAny(...ODCZYT_KARTY)
   detail(@Param('id') id: string) {
     return this.prisma.subscription.findUniqueOrThrow({
       where: { id },
@@ -188,6 +212,7 @@ export class SubscriptionsAdminController {
   /** Per-service resource usage drill-down for ops (CPU/RAM/disk/IO buckets + effective LVE limits). */
   @Get(':id/usage')
   @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPermAny(...ODCZYT_KARTY)
   async usage(@Param('id') id: string, @Query('window') window = '24h') {
     const hours = window === '7d' ? 24 * 7 : 24;
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
@@ -308,6 +333,7 @@ export class SubscriptionsAdminController {
 
   @Get(':id/migrations')
   @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPermAny(...ODCZYT_KARTY)
   migrationTimeline(@Param('id') id: string) {
     return this.migrations.listMigrationTimelineForAdmin(id);
   }

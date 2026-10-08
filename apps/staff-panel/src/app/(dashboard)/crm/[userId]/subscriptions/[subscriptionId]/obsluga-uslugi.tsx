@@ -34,6 +34,8 @@ function Sekcja({ tytul, opis, children, ton = "neutral" }: { tytul: string; opi
  * i historia migracji. Każdy odczyt osobno: błąd jednego (węzeł, 403) to komunikat w jego sekcji, reszta karty działa.
  * Akcje widać tylko z uprawnieniem. Uprawnienia czyta wspólny `pobierzDostepOperatora` (jak karta klienta, PB-46):
  * gdy się nie da — podgląd bez akcji; twarda egzekucja i tak jest w API (403 → komunikat).
+ * L1-KARTA: zasoby i historię migracji widzi każdy, kto otworzył kartę (L1); kopie czytane z węzła tylko
+ * z SUBSCRIPTIONS_MANAGE lub ACCOUNT_DIAGNOSTICS_VIEW (jak API), odtwarzanie i migracja — z SUBSCRIPTIONS_MANAGE.
  */
 export async function ObslugaUslugi({
   subscriptionId,
@@ -50,6 +52,7 @@ export async function ObslugaUslugi({
   ]);
   const mozeZarzadzac = maUprawnienie(dostep, "SUBSCRIPTIONS_MANAGE");
   const widziWezly = maUprawnienie(dostep, "NODES_VIEW");
+  const widziKopie = mozeZarzadzac || maUprawnienie(dostep, "ACCOUNT_DIAGNOSTICS_VIEW");
 
   let zuzycie: Awaited<ReturnType<typeof pobierzZuzycieAction>> | null = null;
   let kopie: Awaited<ReturnType<typeof pobierzKopieAction>> | null = null;
@@ -58,7 +61,7 @@ export async function ObslugaUslugi({
   if (account) {
     const [z, k, w] = await Promise.allSettled([
       pobierzZuzycieAction(subscriptionId),
-      pobierzKopieAction(subscriptionId),
+      widziKopie ? pobierzKopieAction(subscriptionId) : Promise.resolve(null),
       mozeZarzadzac && widziWezly ? staffApi<Wezel[]>("/admin/servers") : Promise.resolve(null),
     ]);
     zuzycie = z.status === "fulfilled" ? z.value : { ok: false, error: "Nie udało się pobrać zużycia zasobów." };

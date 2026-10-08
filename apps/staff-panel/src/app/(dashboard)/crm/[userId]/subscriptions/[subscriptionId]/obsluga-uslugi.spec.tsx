@@ -110,7 +110,12 @@ describe("ObslugaUslugi — błędy", () => {
   });
 
   it("awaria API (bez odpowiedzi) → komunikaty zamiast wyjątku", async () => {
-    api.mockRejectedValue(new Error("ECONNREFUSED"));
+    const brak = new Error("ECONNREFUSED");
+    odpowiedzi({
+      [`/admin/subscriptions/${SUB}/usage?window=24h`]: brak,
+      [`/admin/subscriptions/${SUB}/hosting-backups`]: brak,
+      [`/admin/subscriptions/${SUB}/migrations`]: brak,
+    });
     const html = await render();
     expect(html).toContain("Nie udało się pobrać zużycia zasobów.");
     expect(html).toContain("Nie udało się pobrać kopii konta z serwera.");
@@ -126,8 +131,24 @@ describe("ObslugaUslugi — uprawnienia (403)", () => {
     expect(html).not.toContain("Odtwórz konto z kopii");
   });
 
-  it("rola bez SUBSCRIPTIONS_MANAGE → bez odtwarzania i bez migracji (lista kopii zostaje)", async () => {
-    odpowiedzi({ "/staff/me/access": { isAdmin: false, permissions: ["CUSTOMERS_VIEW", "NODES_VIEW"] } });
+  // L1-KARTA — uprawnienia roli systemowej „L1 Konsultant” (apps/api/src/staff-roles/role-systemowe.ts).
+  const L1 = ["DASHBOARD_VIEW", "CUSTOMERS_VIEW", "TICKETS_VIEW", "TICKETS_MANAGE", "BILLING_VIEW"];
+
+  it("L1 (bez SUBSCRIPTIONS_MANAGE i podglądu konta) → zasoby i historia migracji; bez kopii z węzła, odtwarzania i migracji", async () => {
+    odpowiedzi({ "/staff/me/access": { isAdmin: false, permissions: L1 } });
+    const html = await render();
+    expect(html).toContain("37 / 100%");
+    expect(html).toContain("Zlecono przeniesienie konta na inny serwer");
+    expect(html).not.toContain("Kopie i odtwarzanie");
+    expect(html).not.toContain("Odtwórz konto z kopii");
+    expect(html).not.toContain("Migracja wewnętrzna");
+    const wolane = api.mock.calls.map((c) => c[0]);
+    expect(wolane).not.toContain(`/admin/subscriptions/${SUB}/hosting-backups`);
+    expect(wolane).not.toContain("/admin/servers");
+  });
+
+  it("podgląd konta (ACCOUNT_DIAGNOSTICS_VIEW) bez SUBSCRIPTIONS_MANAGE → lista kopii bez odtwarzania i bez migracji", async () => {
+    odpowiedzi({ "/staff/me/access": { isAdmin: false, permissions: [...L1, "ACCOUNT_DIAGNOSTICS_VIEW", "NODES_VIEW"] } });
     const html = await render();
     expect(html).toContain("backup-2026-10-07.tar.zst");
     expect(html).not.toContain("Odtwórz konto z kopii");
@@ -135,12 +156,12 @@ describe("ObslugaUslugi — uprawnienia (403)", () => {
     expect(api.mock.calls.map((c) => c[0])).not.toContain("/admin/servers");
   });
 
-  it("awaria /staff/me/access → podgląd bez odtwarzania i migracji (jak karta klienta, PB-46)", async () => {
+  it("awaria /staff/me/access → podgląd bez kopii, odtwarzania i migracji (jak karta klienta, PB-46)", async () => {
     odpowiedzi({ "/staff/me/access": new Blad("Bad Gateway", 502) });
     const html = await render();
-    expect(html).toContain("backup-2026-10-07.tar.zst");
+    expect(html).toContain("37 / 100%");
     expect(html).toContain("Zlecono przeniesienie konta na inny serwer");
-    expect(html).not.toContain("Odtwórz konto z kopii");
+    expect(html).not.toContain("Kopie i odtwarzanie");
     expect(html).not.toContain("Zleć migrację wewnętrzną");
     expect(api.mock.calls.map((c) => c[0])).not.toContain("/admin/servers");
   });

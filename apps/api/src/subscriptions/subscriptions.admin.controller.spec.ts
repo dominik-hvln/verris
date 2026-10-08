@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { Role } from '@verris/database';
 import { ROLES_KEY } from '../common/decorators/roles.decorator.js';
-import { STAFF_PERMISSIONS_KEY } from '../common/decorators/staff-permissions.decorator.js';
+import { STAFF_PERMISSIONS_ANY_KEY, STAFF_PERMISSIONS_KEY } from '../common/decorators/staff-permissions.decorator.js';
 import { SubscriptionsAdminController } from './subscriptions.admin.controller.js';
 
 describe('SubscriptionsAdminController (RBAC metadata)', () => {
@@ -35,11 +35,18 @@ describe('SubscriptionsAdminController — obsługa (PB-44)', () => {
   const proto = SubscriptionsAdminController.prototype as unknown as Record<string, object>;
   const dlaStaff = ['usage', 'hostingBackups', 'runHostingRestore', 'hostingRestoreStatus', 'requestInternalMigration', 'migrationTimeline'];
 
-  it.each(dlaStaff)('%s: ADMIN i STAFF, uprawnienie z klasy (SUBSCRIPTIONS_MANAGE)', (m) => {
+  it.each(dlaStaff)('%s: ADMIN i STAFF, bez własnego @StaffPerm (klasa: SUBSCRIPTIONS_MANAGE; odczyty — @StaffPermAny, L1-KARTA)', (m) => {
     expect((Reflect.getMetadata(ROLES_KEY, proto[m]!) as string[]).sort()).toEqual([Role.ADMIN, Role.STAFF].sort());
     expect(Reflect.getMetadata(STAFF_PERMISSIONS_KEY, proto[m]!)).toBeUndefined();
     expect(Reflect.getMetadata(STAFF_PERMISSIONS_KEY, SubscriptionsAdminController)).toEqual(['SUBSCRIPTIONS_MANAGE']);
   });
+
+  it.each(['runHostingRestore', 'requestInternalMigration', 'listEligiblePlans', 'previewPlanChange', 'changePlan'])(
+    '%s: zapis / zmiana planu bez @StaffPermAny — zostaje za SUBSCRIPTIONS_MANAGE z klasy',
+    (m) => {
+      expect(Reflect.getMetadata(STAFF_PERMISSIONS_ANY_KEY, proto[m]!)).toBeUndefined();
+    },
+  );
 
   it.each(['odtworzenieNaWezle', 'odtworzenieNaWezleLista', 'odtworzenieNaWezleStart'])('%s: tylko ADMIN', (m) => {
     expect(Reflect.getMetadata(ROLES_KEY, proto[m]!)).toBeUndefined();
@@ -92,6 +99,36 @@ describe('SubscriptionsAdminController — obsługa (PB-44)', () => {
     });
     expect(directAdmin.listHostingBackups).toHaveBeenCalledWith('s1', 'klient');
     expect(audit.record.mock.invocationCallOrder[0]).toBeLessThan(directAdmin.listHostingBackups.mock.invocationCallOrder[0]!);
+  });
+
+  /** L1-KARTA — diagnostyka z karty usługi odpytuje węzeł: w dzienniku jak diagnostyka z rozmowy (PB-43) i lista kopii. */
+  it('diagnostyka z karty → wpis OPERATOR_ACCOUNT_VIEWED (sekcja diagnostyka), potem diagnostyka', async () => {
+    const audit = { record: vi.fn().mockResolvedValue(undefined) };
+    const prisma = { subscription: { findUnique: vi.fn().mockResolvedValue({ userId: 'klient' }) } };
+    const diagnostics = { forSubscription: vi.fn().mockResolvedValue({ overall: 'ok' }) };
+    const c = new (SubscriptionsAdminController as unknown as new (...a: unknown[]) => SubscriptionsAdminController)(
+      null, prisma, null, null, null, diagnostics, null, null, null, audit,
+    );
+    await expect(c.runDiagnostics('s1', { userId: 'op' })).resolves.toEqual({ overall: 'ok' });
+    expect(audit.record).toHaveBeenCalledWith({
+      action: 'OPERATOR_ACCOUNT_VIEWED',
+      userId: 'klient',
+      actorUserId: 'op',
+      details: { subscriptionId: 's1', sekcja: 'diagnostyka' },
+    });
+    expect(audit.record.mock.invocationCallOrder[0]).toBeLessThan(diagnostics.forSubscription.mock.invocationCallOrder[0]!);
+  });
+
+  it('diagnostyka nieistniejącej usługi → 404, bez wpisu i bez odpytywania węzła', async () => {
+    const audit = { record: vi.fn() };
+    const prisma = { subscription: { findUnique: vi.fn().mockResolvedValue(null) } };
+    const diagnostics = { forSubscription: vi.fn() };
+    const c = new (SubscriptionsAdminController as unknown as new (...a: unknown[]) => SubscriptionsAdminController)(
+      null, prisma, null, null, null, diagnostics, null, null, null, audit,
+    );
+    await expect(c.runDiagnostics('brak', { userId: 'op' })).rejects.toThrow('Usługa nie istnieje.');
+    expect(audit.record).not.toHaveBeenCalled();
+    expect(diagnostics.forSubscription).not.toHaveBeenCalled();
   });
 
   it('migracja wewnętrzna przez STAFF bez powodu → 400', () => {

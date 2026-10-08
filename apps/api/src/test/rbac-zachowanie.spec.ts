@@ -5,7 +5,8 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
-import { STAFF_PERMISSIONS_KEY } from '../common/decorators/staff-permissions.decorator.js';
+import { STAFF_PERMISSIONS_ANY_KEY, STAFF_PERMISSIONS_KEY } from '../common/decorators/staff-permissions.decorator.js';
+import { ROLE_SYSTEMOWE } from '../staff-roles/role-systemowe.js';
 
 /**
  * X-10 — RBAC sprawdzany ZACHOWANIEM, nie metadanymi.
@@ -128,7 +129,9 @@ describe('X-10 — RBAC paneli operatorskich sprawdzany zachowaniem', () => {
     const wpuszczoneMimoWymogu: string[] = [];
     for (const t of TRASY) {
       const wymagane = new Reflector().getAllAndOverride<string[]>(STAFF_PERMISSIONS_KEY, [t.handler, t.klasa]);
-      if (!wymagane?.length) continue;
+      // L1-KARTA — @StaffPermAny na metodzie to też wymóg uprawnienia (jednego z listy).
+      const ktorekolwiek = Reflect.getMetadata(STAFF_PERMISSIONS_ANY_KEY, t.handler) as string[] | undefined;
+      if (!wymagane?.length && !ktorekolwiek?.length) continue;
       if (await wpuszcza(t, OPERATOR, [])) wpuszczoneMimoWymogu.push(nazwa(t));
     }
     expect(wpuszczoneMimoWymogu).toEqual([]);
@@ -152,5 +155,74 @@ describe('X-10 — RBAC paneli operatorskich sprawdzany zachowaniem', () => {
     expect(zaloz).toBeDefined();
     expect(await wpuszcza(zaloz!, OPERATOR, ['CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE'])).toBe(true);
     expect(await wpuszcza(zaloz!, OPERATOR, ['CUSTOMERS_VIEW'])).toBe(false);
+  });
+});
+
+/**
+ * L1-KARTA (decyzja 08.10) — karta usługi w panelu obsługi dla ról systemowych: L1 Konsultant otwiera ją
+ * w podglądzie (nagłówek, zasoby, historia migracji, stan odtwarzania), ale nie zmienia planu, nie odtwarza
+ * i nie czyta kopii z węzła. NOC (SUBSCRIPTIONS_MANAGE bez CUSTOMERS_VIEW) nie traci karty.
+ */
+describe('L1-KARTA — karta usługi dla ról systemowych', () => {
+  const uprawnieniaRoli = (nazwa: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === nazwa)!.permissions];
+  const L1 = uprawnieniaRoli('L1 Konsultant');
+  const NOC = uprawnieniaRoli('Inżynier infrastruktury (NOC/DevOps)');
+  const trasa = (metoda: string) => {
+    const t = TRASY.find((x) => x.kontroler === 'SubscriptionsAdminController' && x.metoda === metoda);
+    expect(t, metoda).toBeDefined();
+    return t!;
+  };
+  const wynik = async (uprawnienia: string[], metody: string[]) =>
+    Object.fromEntries(await Promise.all(metody.map(async (m) => [m, await wpuszcza(trasa(m), OPERATOR, uprawnienia)] as const)));
+
+  it('L1: odczyty karty tak; zmiana planu, odtworzenie, migracja, kopie z węzła i zawieszenie — nie', async () => {
+    expect(L1).not.toContain('SUBSCRIPTIONS_MANAGE');
+    expect(
+      await wynik(L1, [
+        'detail',
+        'usage',
+        'migrationTimeline',
+        'hostingRestoreStatus',
+        'runDiagnostics',
+        'listEligiblePlans',
+        'previewPlanChange',
+        'changePlan',
+        'runHostingRestore',
+        'requestInternalMigration',
+        'hostingBackups',
+        'suspend',
+      ]),
+    ).toEqual({
+      detail: true,
+      usage: true,
+      migrationTimeline: true,
+      hostingRestoreStatus: true,
+      runDiagnostics: true, // TICKETS_MANAGE — jak diagnostyka z rozmowy (PB-43)
+      listEligiblePlans: false,
+      previewPlanChange: false,
+      changePlan: false,
+      runHostingRestore: false,
+      requestInternalMigration: false,
+      hostingBackups: false,
+      suspend: false,
+    });
+  });
+
+  it('NOC (bez CUSTOMERS_VIEW) nadal ma kartę i jej akcje', async () => {
+    expect(NOC).not.toContain('CUSTOMERS_VIEW');
+    const metody = ['detail', 'usage', 'migrationTimeline', 'hostingRestoreStatus', 'hostingBackups', 'runDiagnostics', 'listEligiblePlans', 'runHostingRestore'];
+    expect(await wynik(NOC, metody)).toEqual(Object.fromEntries(metody.map((m) => [m, true])));
+  });
+
+  it('kopie z węzła: wystarcza sam podgląd konta (ACCOUNT_DIAGNOSTICS_VIEW); sam podgląd klientów nie wystarcza', async () => {
+    expect(await wpuszcza(trasa('hostingBackups'), OPERATOR, ['ACCOUNT_DIAGNOSTICS_VIEW'])).toBe(true);
+    expect(await wpuszcza(trasa('hostingBackups'), OPERATOR, ['CUSTOMERS_VIEW'])).toBe(false);
+    expect(await wpuszcza(trasa('runDiagnostics'), OPERATOR, ['CUSTOMERS_VIEW', 'TICKETS_VIEW'])).toBe(false);
+  });
+
+  it('klient (USER) nie wchodzi na kartę nawet z uprawnieniami z listy', async () => {
+    for (const m of ['detail', 'usage', 'migrationTimeline', 'hostingRestoreStatus', 'runDiagnostics', 'hostingBackups']) {
+      expect(await wpuszcza(trasa(m), KLIENT, ['CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE', 'TICKETS_MANAGE', 'ACCOUNT_DIAGNOSTICS_VIEW'])).toBe(false);
+    }
   });
 });
