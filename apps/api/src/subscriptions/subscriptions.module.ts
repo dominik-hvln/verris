@@ -27,6 +27,8 @@ import { MigrationCutoverService } from './migration-cutover.service.js';
 import { MigrationsStaffController } from './migrations.staff.controller.js';
 import { MigrationWorkerScheduler } from './migration-worker.scheduler.js';
 import { MigrationWorkerController } from './migration-worker.controller.js';
+import { MigracjaZaKlientaService } from './migracja-za-klienta.service.js';
+import { MigracjaZgodaController } from './migracja-zgoda.controller.js';
 import { ServiceHealthService } from './service-health.service.js';
 import { HostingDnsPointingService } from './hosting-dns-pointing.service.js';
 import { AssistantService } from './assistant.service.js';
@@ -137,6 +139,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
     QuotaAlertScheduler,
     RetencjaKontService,
     WiadomosciWezlaScheduler,
+    MigracjaZaKlientaService,
   ],
   controllers: [
     SubscriptionsController,
@@ -152,6 +155,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
     MigrationWorkerController,
     WafAdminController,
     KontoKlientaAdminController,
+    MigracjaZgodaController,
   ],
   exports: [
     SubscriptionsService,

@@ -50,6 +50,8 @@ export interface MigrationRequestSummary {
   updatedAt: string;
   lastError: string | null;
   ticketId: string | null;
+  /** PB-45 — migracja przygotowana przez obsługę czeka na zgodę klienta do tej chwili (null = nie czeka). */
+  consentExpiresAt: string | null;
 }
 
 /** Widok pojedynczego kroku dla klienta/staffa (bez sekretów). */
@@ -318,10 +320,26 @@ export class MigrationOrchestratorService {
     userId: string,
     wejscie: CreateMigrationBundleDto,
   ): Promise<MigrationRequestSummary> {
-    // E-21 — skrzynka = adres + host + hasło (port domyślnie 993, login = adres); do bundla
-    // i workera idą już uzupełnione wartości.
-    const dto: CreateMigrationBundleDto = wejscie.imap ? { ...wejscie, imap: wejscie.imap.map(uzupelnijSkrzynke) } : wejscie;
+    const dto = normalizujZlecenie(wejscie);
     const sub = await this.assertSubscriptionForUser(subscriptionId, userId);
+    await this.sprawdzZlecenie(subscriptionId, userId, dto, { wymagajZgody: true });
+    return this.zakolejkujZlecenie(sub, userId, dto, {
+      actorUserId: userId,
+      zgoda: { accepted: true, at: new Date().toISOString(), basis: 'client_authorization_dpa' },
+    });
+  }
+
+  /**
+   * Wspólne walidacje zlecenia — kreator klienta (`createBundle`), migracja przygotowana przez obsługę
+   * (PB-45, bez zgody: ta przyjdzie od klienta) i przyjęcie zgody klienta (ponownie, bo minęły dni).
+   * `dto` musi być po `normalizujZlecenie`.
+   */
+  async sprawdzZlecenie(
+    subscriptionId: string,
+    userId: string,
+    dto: CreateMigrationBundleDto,
+    opcje: { wymagajZgody: boolean },
+  ): Promise<void> {
     if (!dto.ftp && (!dto.mysql || dto.mysql.length === 0) && (!dto.imap || dto.imap.length === 0)) {
       throw new BadRequestException(
         'Wskaż co najmniej jedno źródło (FTP/SFTP, MySQL lub IMAP) do migracji.',
@@ -338,7 +356,7 @@ export class MigrationOrchestratorService {
 
     // RODO / powierzenie przetwarzania — bez wyraźnego upoważnienia nie ruszamy
     // cudzych systemów ani nie kopiujemy danych. Wymóg egzekwowany serwerowo.
-    if (dto.consentAccepted !== true) {
+    if (opcje.wymagajZgody && dto.consentAccepted !== true) {
       throw new BadRequestException(
         'Aby uruchomić migrację, potwierdź upoważnienie do przeniesienia danych (zgoda RODO).',
       );
@@ -393,36 +411,86 @@ export class MigrationOrchestratorService {
           'albo dograj różnice funkcją delta-sync, zamiast uruchamiać nową.',
       );
     }
+  }
 
+  /**
+   * Zaszyfrowany pakiet źródła (hasła) — ten sam format dla kreatora klienta i migracji przygotowanej przez
+   * obsługę. `utworzBrakujaceSkrzynki` i `sourcePanelType` jadą w pakiecie, żeby po zgodzie klienta
+   * odtworzyć dokładnie to zlecenie, które obsługa przygotowała.
+   */
+  zaszyfrujPakiet(dto: CreateMigrationBundleDto): string {
+    return this.crypto.encrypt(
+      JSON.stringify({
+        targetDomain: dto.targetDomain ?? null,
+        sourceDomain: dto.sourceDomain ?? null,
+        ftp: dto.ftp ?? null,
+        mysql: dto.mysql ?? null,
+        imap: dto.imap ?? null,
+        notes: dto.notes ?? null,
+        ...(dto.utworzBrakujaceSkrzynki ? { utworzBrakujaceSkrzynki: true } : {}),
+        ...(dto.sourcePanelType ? { sourcePanelType: dto.sourcePanelType } : {}),
+        submittedAt: new Date().toISOString(),
+      }),
+    );
+  }
+
+  /** Odwrotność `zaszyfrujPakiet` — zlecenie do ponownej walidacji i kolejkowania po zgodzie klienta. */
+  odszyfrujPakiet(sourceBundleEnc: string): CreateMigrationBundleDto {
+    const b = JSON.parse(this.crypto.decrypt(sourceBundleEnc)) as Record<string, unknown>;
+    const pole = <T>(k: string): T | undefined => (b[k] === null || b[k] === undefined ? undefined : (b[k] as T));
+    return {
+      targetDomain: pole<string>('targetDomain'),
+      sourceDomain: pole<string>('sourceDomain'),
+      sourcePanelType: pole<string>('sourcePanelType'),
+      ftp: pole<CreateMigrationBundleDto['ftp']>('ftp'),
+      mysql: pole<CreateMigrationBundleDto['mysql']>('mysql'),
+      imap: pole<CreateMigrationBundleDto['imap']>('imap'),
+      notes: pole<string>('notes'),
+      utworzBrakujaceSkrzynki: b.utworzBrakujaceSkrzynki === true ? true : undefined,
+    };
+  }
+
+  /**
+   * Kolejkowanie zlecenia po walidacji (`sprawdzZlecenie`): brakujące skrzynki, zlecenie QUEUED z krokami
+   * workera, zdarzenie i dziennik ze śladem zgody. `szkic` (PB-45) — przyjęcie zgody na migrację
+   * przygotowaną przez obsługę: przestawiamy TEN wiersz z DRAFT, warunkowo (podwójne kliknięcie
+   * albo wygaśnięcie w międzyczasie kończy się P2025, a nie drugim zleceniem).
+   */
+  async zakolejkujZlecenie(
+    sub: { id: string; account: { domain: string } | null },
+    userId: string,
+    dto: CreateMigrationBundleDto,
+    opcje: {
+      actorUserId: string;
+      zgoda: Record<string, unknown>;
+      szkic?: { id: string; dane: Prisma.MigrationRequestUpdateInput };
+    },
+  ): Promise<MigrationRequestSummary> {
+    const subscriptionId = sub.id;
     // Tryb „Wszystko naraz” (08.10): brakujące skrzynki docelowe zakładamy z hasłem ze starego hostingu — po
     // teście logowania do źródła i po limicie migracji, żeby nie zostawić skrzynek bez migracji.
     if (dto.utworzBrakujaceSkrzynki && dto.imap?.length) await this.zalozBrakujaceSkrzynki(subscriptionId, userId, dto.imap);
 
-    const bundle = JSON.stringify({
-      targetDomain: dto.targetDomain ?? null,
-      sourceDomain: dto.sourceDomain ?? null,
-      ftp: dto.ftp ?? null,
-      mysql: dto.mysql ?? null,
-      imap: dto.imap ?? null,
-      notes: dto.notes ?? null,
-      submittedAt: new Date().toISOString(),
-    });
-
-    const request = await this.prisma.migrationRequest.create({
-      data: {
-        subscriptionId,
-        userId,
-        sourceBundleEnc: this.crypto.encrypt(bundle),
-        targetDomain: dto.targetDomain ?? null,
-        sourcePanelType: dto.sourcePanelType ?? 'manual',
-        status: MigrationStatus.QUEUED,
-        currentStep: 'queued',
-        workerJobs: {
-          create: buildWorkerJobs(subscriptionId, dto, sub.account?.domain ?? null),
-        },
-      },
-      include: { workerJobs: true },
-    });
+    const workerJobs = { create: buildWorkerJobs(subscriptionId, dto, sub.account?.domain ?? null) };
+    const request = opcje.szkic
+      ? await this.prisma.migrationRequest.update({
+          where: { id: opcje.szkic.id, status: MigrationStatus.DRAFT, consentDecidedAt: null, consentExpiresAt: { gt: new Date() } },
+          data: { ...opcje.szkic.dane, status: MigrationStatus.QUEUED, currentStep: 'queued', workerJobs },
+          include: { workerJobs: true },
+        })
+      : await this.prisma.migrationRequest.create({
+          data: {
+            subscriptionId,
+            userId,
+            sourceBundleEnc: this.zaszyfrujPakiet(dto),
+            targetDomain: dto.targetDomain ?? null,
+            sourcePanelType: dto.sourcePanelType ?? 'manual',
+            status: MigrationStatus.QUEUED,
+            currentStep: 'queued',
+            workerJobs,
+          },
+          include: { workerJobs: true },
+        });
 
     await this.prisma.subscriptionEvent.create({
       data: {
@@ -444,26 +512,22 @@ export class MigrationOrchestratorService {
     await this.audit.record({
       action: MigrationActions.MIGRATION_BUNDLE_QUEUED,
       userId,
-      actorUserId: userId,
+      actorUserId: opcje.actorUserId,
       details: {
         subscriptionId,
         migrationRequestId: request.id,
         targetDomain: request.targetDomain,
         firstWorkerJobId: request.workerJobs[0]?.id ?? null,
         // Ślad zgody/upoważnienia (RODO) — kto, kiedy, na jakiej podstawie.
-        consent: {
-          accepted: true,
-          at: new Date().toISOString(),
-          basis: 'client_authorization_dpa',
-        },
-      },
+        consent: opcje.zgoda,
+      } as Prisma.InputJsonValue,
     });
 
     for (const job of request.workerJobs) {
       await this.audit.record({
         action: MigrationActions.MIGRATION_WORKER_JOB_QUEUED,
         userId,
-        actorUserId: userId,
+        actorUserId: opcje.actorUserId,
         details: {
           subscriptionId,
           migrationRequestId: request.id,
@@ -578,6 +642,13 @@ export class MigrationOrchestratorService {
       where: { id: opts.migrationRequestId },
     });
     if (!request) throw new NotFoundException('Nie znaleziono zlecenia migracji.');
+    // PB-45 — migracja przygotowana za klienta rusza wyłącznie po jego zgodzie: obsługa może ją tylko anulować.
+    const czekaNaZgode = request.status === MigrationStatus.DRAFT;
+    if (czekaNaZgode && opts.status !== MigrationStatus.CANCELED) {
+      throw new BadRequestException(
+        'Ta migracja czeka na zgodę klienta — wystartuje dopiero po jego kliknięciu „Zgadzam się”. Możesz ją tylko anulować.',
+      );
+    }
     if (opts.status === MigrationStatus.CANCELED) {
       // Anulowanie przez obsługę = to samo co u klienta: kroki w kolejce też stają.
       await this.prisma.migrationWorkerJob.updateMany({
@@ -598,6 +669,8 @@ export class MigrationOrchestratorService {
       data: {
         status,
         ...(opts.status === MigrationStatus.CANCELED ? { needsAttention: false, attentionReason: null } : {}),
+        // Dane źródła bez zgody klienta nie czekają na retencję — kasujemy od razu, link przestaje działać.
+        ...(czekaNaZgode ? { sourceBundleEnc: '', secretsPurgedAt: new Date() } : {}),
         startedAt:
           status === MigrationStatus.RUNNING && !request.startedAt
             ? new Date()
@@ -1382,6 +1455,15 @@ export class MigrationOrchestratorService {
       // Hasła nadal dostępne wyłącznie przez audytowane `revealSecretsForStaff`.
       // Po retencji (secretsPurgedAt) bundle jest pusty — sygnalizujemy to staffowi.
       secretsPurgedAt: request.secretsPurgedAt?.toISOString() ?? null,
+      // PB-45 — migracja przygotowana przez obsługę: kto, dlaczego i co z decyzją klienta.
+      zaKlienta: request.requestedByOperatorId
+        ? {
+            operatorId: request.requestedByOperatorId,
+            powod: request.operatorReason,
+            wygasa: request.consentExpiresAt?.toISOString() ?? null,
+            decyzjaAt: request.consentDecidedAt?.toISOString() ?? null,
+          }
+        : null,
       sourceForm: request.secretsPurgedAt ? null : this.decodeSanitizedBundle(request.sourceBundleEnc),
       jobs: request.workerJobs.map((j) => ({
         ...this.toJobView(j),
@@ -1398,7 +1480,7 @@ export class MigrationOrchestratorService {
    * żeby operator widział u góry komplet wprowadzonych danych i miał kontrolę
    * nad każdym elementem osobno.
    */
-  private decodeSanitizedBundle(sourceBundleEnc: string): {
+  decodeSanitizedBundle(sourceBundleEnc: string): {
     targetDomain: string | null;
     sourceDomain: string | null;
     notes: string | null;
@@ -1721,6 +1803,8 @@ export class MigrationOrchestratorService {
     updatedAt: Date;
     lastError: string | null;
     ticketId: string | null;
+    consentExpiresAt?: Date | null;
+    consentDecidedAt?: Date | null;
   }): MigrationRequestSummary {
     return {
       id: row.id,
@@ -1742,6 +1826,11 @@ export class MigrationOrchestratorService {
       updatedAt: row.updatedAt.toISOString(),
       lastError: row.lastError,
       ticketId: row.ticketId,
+      // Tylko prośba wciąż ważna — po terminie (zanim cron ją anuluje) baner już się nie pokazuje.
+      consentExpiresAt:
+        row.status === MigrationStatus.DRAFT && !row.consentDecidedAt && row.consentExpiresAt && row.consentExpiresAt > new Date()
+          ? row.consentExpiresAt.toISOString()
+          : null,
     };
   }
 
@@ -1841,6 +1930,11 @@ const POLA_MIGRACJI_WEWNETRZNEJ_DLA_KLIENTA = ['requestId', 'ticketId', 'request
 function tylkoDlaKlienta(details: Record<string, unknown> | null): Record<string, unknown> | null {
   if (!details) return null;
   return Object.fromEntries(POLA_MIGRACJI_WEWNETRZNEJ_DLA_KLIENTA.filter((k) => k in details).map((k) => [k, details[k]]));
+}
+
+/** E-21 — skrzynka = adres + host + hasło (port domyślnie 993, login = adres); do bundla i workera idą uzupełnione wartości. */
+export function normalizujZlecenie(wejscie: CreateMigrationBundleDto): CreateMigrationBundleDto {
+  return wejscie.imap ? { ...wejscie, imap: wejscie.imap.map(uzupelnijSkrzynke) } : wejscie;
 }
 
 async function assertSourceHostsPublic(hosts: Array<string | undefined | null>): Promise<void> {

@@ -1140,6 +1140,18 @@ model MigrationRequest {
   /// (hasła źródła skasowane po zakończeniu migracji + oknie na delta-sync).
   secretsPurgedAt DateTime?
 
+  /// PB-45 — migracja przygotowana przez obsługę za klienta: zostaje w DRAFT (worker jej nie widzi),
+  /// dopóki klient nie kliknie „Zgadzam się”. W bazie tylko SHA-256 jednorazowego tokenu z linku.
+  consentTokenHash      String?   @unique
+  consentExpiresAt      DateTime?
+  /// Decyzja klienta (zgoda albo odrzucenie) — po niej link jest martwy.
+  consentDecidedAt      DateTime?
+  /// Adres IP, z którego klient wyraził zgodę (ślad upoważnienia RODO/DPA).
+  consentIp             String?
+  /// Operator, który przygotował migrację, i powód / numer zgłoszenia (dziennik).
+  requestedByOperatorId String?
+  operatorReason        String?   @db.Text
+
   /// Audit-friendly liczniki wykonanych transferów.
   bytesTransferred BigInt         @default(0)
   filesTransferred Int            @default(0)

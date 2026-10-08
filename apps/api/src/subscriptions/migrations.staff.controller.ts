@@ -25,6 +25,9 @@ import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.
 import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { MigrationOrchestratorService } from './migration-orchestrator.service.js';
+import { MigracjaZaKlientaService } from './migracja-za-klienta.service.js';
+import { MigracjaZaKlientaDto, PreflightZaKlientaDto } from './dto/migration.dto.js';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
 
 class RevealSecretsDto {
   @IsOptional()
@@ -70,7 +73,37 @@ interface AuthedUser {
 @Roles(Role.STAFF, Role.ADMIN)
 @StaffPerm('MIGRATIONS_MANAGE')
 export class MigrationsStaffController {
-  constructor(private readonly migrations: MigrationOrchestratorService) {}
+  constructor(
+    private readonly migrations: MigrationOrchestratorService,
+    private readonly zaKlienta: MigracjaZaKlientaService,
+  ) {}
+
+  /**
+   * PB-45 — migracja za klienta: obsługa wypełnia źródło (np. z danych ze zgłoszenia), klient dostaje mail
+   * z prośbą o zgodę, a migracja rusza dopiero po jego „Zgadzam się”. Powód / numer zgłoszenia — do dziennika.
+   */
+  @Post('za-klienta')
+  // Przyjęcie loguje się do starych serwerów IMAP (E-21) — limit jak przy kreatorze klienta.
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'migration:preflight' })
+  async utworzZaKlienta(@CurrentUser() user: AuthedUser, @Body() dto: MigracjaZaKlientaDto) {
+    const { subscriptionId, powod, ticketId, ...zlecenie } = dto;
+    return this.zaKlienta.utworz({
+      subscriptionId,
+      actorUserId: user.userId,
+      powod: powod.trim(),
+      ticketId: ticketId?.trim() || null,
+      zlecenie,
+    });
+  }
+
+  /** PB-45 — test dostępów do starego hostingu z formularza obsługi (realne logowanie, bez zapisu danych). */
+  @Post('za-klienta/preflight')
+  @HttpCode(200)
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'migration:preflight' })
+  async testDostepowZaKlienta(@CurrentUser() user: AuthedUser, @Body() dto: PreflightZaKlientaDto) {
+    const { subscriptionId, ...zlecenie } = dto;
+    return this.zaKlienta.testDostepow({ subscriptionId, actorUserId: user.userId, zlecenie });
+  }
 
   @Get()
   async list(@Query('status') status?: string) {

@@ -54,6 +54,8 @@ export class MigrationPreflightService {
     dto: CreateMigrationBundleDto,
     userId: string,
     subscriptionId: string,
+    /** PB-45 — test dostępów z formularza obsługi: w dzienniku operator, nie klient. */
+    actorUserId: string = userId,
   ): Promise<PreflightSummary> {
     const checks: Array<Promise<PreflightCheckResult>> = [];
 
@@ -89,7 +91,7 @@ export class MigrationPreflightService {
     await this.audit.record({
       action: MigrationActions.MIGRATION_PREFLIGHT_RUN,
       userId,
-      actorUserId: userId,
+      actorUserId,
       details: {
         subscriptionId,
         ok,

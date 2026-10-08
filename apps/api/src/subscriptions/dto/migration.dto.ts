@@ -249,6 +249,34 @@ export class CreateMigrationBundleDto {
   consentAccepted?: boolean;
 }
 
+/**
+ * PB-45 — migracja przygotowana przez obsługę za klienta: to samo zlecenie co kreator klienta plus usługa,
+ * powód (do dziennika) i opcjonalnie zgłoszenie. `consentAccepted` z tego formularza serwis ignoruje —
+ * zgodę daje wyłącznie klient.
+ */
+export class MigracjaZaKlientaDto extends CreateMigrationBundleDto {
+  @IsString() @MinLength(1) @MaxLength(64)
+  subscriptionId!: string;
+
+  @IsString() @MinLength(5, { message: 'Podaj powód lub numer zgłoszenia (min. 5 znaków) — trafia do dziennika.' }) @MaxLength(500)
+  powod!: string;
+
+  @IsOptional() @IsString() @MaxLength(64)
+  ticketId?: string;
+}
+
+/** PB-45 — test dostępów z formularza obsługi (przed założeniem migracji za klienta). */
+export class PreflightZaKlientaDto extends CreateMigrationBundleDto {
+  @IsString() @MinLength(1) @MaxLength(64)
+  subscriptionId!: string;
+}
+
+/** PB-45 — decyzja klienta: token z linku w mailu (opcjonalny — z banera w panelu wchodzi się bez niego). */
+export class DecyzjaZgodyDto {
+  @IsOptional() @IsString() @MinLength(20) @MaxLength(128)
+  token?: string;
+}
+
 /** O-2/#18 — auto-discovery: dane logowania do panelu starego hostingu. */
 export class DiscoverMigrationSourceDto {
   @IsString() @MinLength(3) @MaxLength(253)
