@@ -13,6 +13,17 @@ import {
 } from "./konto-klienta-widok";
 
 type Stan = { wynik?: DaneSekcji; blad?: string; parametry: ParametrySekcji };
+type WynikAkcji = { ok: true; wynik: DaneSekcji } | { ok: false; error: string };
+
+/** Akcja serwera może się nie udać sama (sieć, restart panelu) — wtedy komunikat w sekcji, a nie wywrócona karta. */
+async function bezpiecznie(akcja: () => Promise<WynikAkcji>): Promise<WynikAkcji> {
+  try {
+    return await akcja();
+  } catch {
+    return { ok: false, error: "Nie udało się połączyć z panelem. Spróbuj ponownie za chwilę." };
+  }
+}
+
 /** Domeny do przełącznika — z odpowiedzi sekcji (DNS, PHP, logi zwracają listę domen konta). */
 function domenySekcji(w?: DaneSekcji): string[] {
   if (!w) return [];
@@ -41,7 +52,7 @@ export function KontoKlientaPanel({ subscriptionId }: { subscriptionId: string }
   const wczytaj = (sekcja: SekcjaKonta, parametry: ParametrySekcji) => {
     setAktywna(sekcja);
     start(async () => {
-      const res = await wczytajSekcjeKontaAction(subscriptionId, sekcja, parametry);
+      const res = await bezpiecznie(() => wczytajSekcjeKontaAction(subscriptionId, sekcja, parametry));
       setStany((s) => ({
         ...s,
         [sekcja]: res.ok ? { wynik: res.wynik, parametry } : { blad: res.error, parametry, wynik: s[sekcja]?.wynik },
@@ -52,7 +63,7 @@ export function KontoKlientaPanel({ subscriptionId }: { subscriptionId: string }
   /** Logi poczty: zlecenie świeżego odczytu z serwera (obsługa nie musi prosić klienta ani się pod niego podszywać). */
   const zlecDziennik = () => {
     start(async () => {
-      const res = await zlecDziennikPocztyAction(subscriptionId, adresPoczty);
+      const res = await bezpiecznie(() => zlecDziennikPocztyAction(subscriptionId, adresPoczty));
       setStany((s) => ({
         ...s,
         "logi-poczty": res.ok ? { wynik: res.wynik, parametry: {} } : { blad: res.error, parametry: {}, wynik: s["logi-poczty"]?.wynik },
