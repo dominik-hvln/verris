@@ -201,7 +201,7 @@ export function MigrationProgress({ serviceId, initial }: Props) {
   );
 }
 
-function JobRow({ job }: { job: MigrationJobView }) {
+export function JobRow({ job }: { job: MigrationJobView }) {
   const icon =
     job.status === 'COMPLETED' ? '✓'
       : job.status === 'RUNNING' ? '⟳'
@@ -229,6 +229,12 @@ function JobRow({ job }: { job: MigrationJobView }) {
         {/* Surowy błąd workera (po angielsku, techniczny) widzi zespół w panelu obsługi. */}
         {job.status === 'FAILED' ? <span className="ml-2 text-xs text-rose-400/80">nie udało się — przejmuje to nasz zespół</span> : null}
         {job.status === 'COMPLETED' && job.integrity ? <IntegrityLine integrity={job.integrity} /> : null}
+        {job.status === 'COMPLETED' && job.uwaga === 'strona-bez-bazy' ? (
+          <span className="mt-0.5 block text-xs text-amber-300/90">
+            Strona odpowiada błędem — najczęściej dlatego, że jej baza danych została u poprzedniego dostawcy. Przenieś ją
+            w Migracje → Baza danych.
+          </span>
+        ) : null}
       </span>
     </li>
   );

@@ -962,7 +962,7 @@ run_one() {
   set +e
   case "$kind" in
     FILES_SFTP_RSYNC|FILES_DELTA)
-      start_heartbeat "$id" "${MIG_HOME}/stage/${user}/${domain}" "kopiowanie plików ($kind)"
+      start_heartbeat "$id" "${MIG_HOME}/stage/${user}/${domain}" "kopiowanie plików"
       out=$(run_files "$job" "$logfile"); rc=$?
       stop_heartbeat
       if [ $rc -eq 0 ]; then complete_job "$id" "${out% *}" "${out#* }" 0 0 "$logfile"
@@ -974,7 +974,7 @@ run_one() {
       if [ $rc -eq 0 ]; then complete_job "$id" "${out:-0}" 0 1 0 "$logfile"
       else fail_job "$id" "mysql import failed (rc=$rc)" "$logfile" true; fi ;;
     IMAP_SYNC|IMAP_DELTA)
-      start_heartbeat "$id" "" "synchronizacja skrzynki IMAP ($kind)"
+      start_heartbeat "$id" "" "synchronizacja skrzynki pocztowej"
       out=$(run_imap "$job" "$logfile"); rc=$?
       stop_heartbeat
       if [ $rc -eq 0 ]; then complete_job "$id" 0 0 0 "${out:-1}" "$logfile"

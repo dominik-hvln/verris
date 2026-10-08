@@ -63,6 +63,8 @@ export interface MigrationJobView {
   lastError: string | null;
   progress: { bytes: string; files: number; note: string | null; at: string } | null;
   integrity: Record<string, unknown> | null;
+  /** Wskazówka dla klienta przy zakończonym kroku: `strona-bez-bazy` — test strony bez przeniesionej bazy. */
+  uwaga: 'strona-bez-bazy' | null;
   lastHeartbeatAt: string | null;
   startedAt: string | null;
   completedAt: string | null;
@@ -1532,6 +1534,27 @@ export class MigrationOrchestratorService {
       return { ok: true as const, status: MigrationWorkerJobStatus.CANCELED };
     }
 
+    // Test strony w zleceniu bez bazy — błąd strony to oczekiwany skutek (baza zostaje u starego dostawcy):
+    // krok kończy się z uwagą dla klienta, migracja się domyka, zespół nic nie dostaje.
+    const payloadJoba =
+      job.payload && typeof job.payload === 'object' && !Array.isArray(job.payload)
+        ? (job.payload as Record<string, unknown>)
+        : {};
+    if (job.kind === MigrationWorkerJobKind.HTTP_POST_CHECK && payloadJoba.bezBazy === true) {
+      const wynik = await this.completeWorkerJobFromNode({
+        serverId: opts.serverId,
+        jobId: opts.jobId,
+        bytesTransferred: 0n,
+        filesTransferred: 0,
+        log: opts.log,
+      });
+      await this.prisma.migrationWorkerJob.update({
+        where: { id: job.id },
+        data: { lastError: opts.error, payload: { ...payloadJoba, uwaga: 'strona-bez-bazy' } as Prisma.InputJsonValue },
+      });
+      return wynik;
+    }
+
     const nextStatus =
       opts.retryable === true && job.attempts < job.maxAttempts
         ? MigrationWorkerJobStatus.RETRYING
@@ -1671,8 +1694,10 @@ export class MigrationOrchestratorService {
   }): MigrationJobView {
     let progress: MigrationJobView['progress'] = null;
     let integrity: Record<string, unknown> | null = null;
+    let uwaga: MigrationJobView['uwaga'] = null;
     if (job.payload && typeof job.payload === 'object' && !Array.isArray(job.payload)) {
       const payloadObj = job.payload as Record<string, unknown>;
+      if (payloadObj.uwaga === 'strona-bez-bazy') uwaga = 'strona-bez-bazy';
       const raw = payloadObj.progress;
       if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
         const p = raw as Record<string, unknown>;
@@ -1697,6 +1722,7 @@ export class MigrationOrchestratorService {
       lastError: job.lastError,
       progress,
       integrity,
+      uwaga,
       lastHeartbeatAt: job.lastHeartbeatAt?.toISOString() ?? null,
       startedAt: job.startedAt?.toISOString() ?? null,
       completedAt: job.completedAt?.toISOString() ?? null,
@@ -1820,7 +1846,9 @@ function buildWorkerJobs(
       status: MigrationWorkerJobStatus.QUEUED,
       idempotencyKey: `migration:${subscriptionId}:${stamp}:http-post-check`,
       sequence: 90,
-      payload: { targetDomain, url: `https://${targetDomain}` },
+      // Bez bazy w zleceniu (zakres „Pliki”) strona dynamiczna i tak odpowie błędem bazy — test jest wtedy
+      // informacyjny: nie eskaluje, klient dostaje wskazówkę (t1, 08.10: WordPress bez bazy → 500 → „Pilne”).
+      payload: { targetDomain, url: `https://${targetDomain}`, bezBazy: (dto.mysql?.length ?? 0) === 0 },
     });
   }
   return jobs;

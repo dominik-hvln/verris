@@ -134,10 +134,15 @@ export class MigrationWorkerScheduler {
         subscription: {
           include: { account: true, user: { select: { email: true, firstName: true } } },
         },
+        workerJobs: { where: { kind: 'HTTP_POST_CHECK' }, select: { payload: true } },
       },
     });
     for (const row of finished) {
       const ok = row.status === MigrationStatus.COMPLETED;
+      // Test strony bez przeniesionej bazy wrócił z błędem (zakres „Pliki”) — mail mówi, czego brakuje.
+      const stronaBezBazy = row.workerJobs.some(
+        (j) => !!j.payload && typeof j.payload === 'object' && (j.payload as Record<string, unknown>).uwaga === 'strona-bez-bazy',
+      );
       try {
         await this.mailer.send({
           to: row.subscription.user.email,
@@ -145,7 +150,7 @@ export class MigrationWorkerScheduler {
             ? `Migracja zakończona sukcesem — ${row.subscription.account?.domain ?? row.targetDomain ?? '—'}`
             : `Migracja zatrzymana — ${row.targetDomain ?? row.subscription.account?.domain ?? '—'}`,
           ...(ok
-            ? this.buildSuccessMail(row.subscription.user.email, row, row.subscription.user.firstName)
+            ? this.buildSuccessMail(row.subscription.user.email, row, row.subscription.user.firstName, stronaBezBazy)
             : this.buildFailureMail(row.subscription.user.email, row, row.subscription.user.firstName)),
           tag: ok ? 'migration.completed' : 'migration.failed',
           category: 'TRANSACTIONAL',
@@ -285,13 +290,18 @@ export class MigrationWorkerScheduler {
     mailboxesMigrated: number;
     targetDomain: string | null;
     subscription: { account: { domain: string } | null };
-  }, firstName: string | null) {
+  }, firstName: string | null, stronaBezBazy = false) {
     const domena = escapeMarkdown(req.targetDomain ?? req.subscription.account?.domain ?? '');
     return this.mailMigracji(to, firstName, {
       title: 'Migracja zakończona',
       preheader: 'Został ostatni krok: przełączenie DNS.',
       akapity: [
         `Migracja Twojej strony **${domena}** została zakończona pomyślnie.`,
+        ...(stronaBezBazy
+          ? [
+              'Przenieśliśmy same pliki, a strona na nowym serwerze odpowiada błędem — najczęściej dlatego, że korzysta z bazy danych, która została u poprzedniego dostawcy. Przenieś ją w zakładce Migracje → **Baza danych** (albo uruchom migrację **Cała strona**).',
+            ]
+          : []),
         [
           `- **Pliki:** ${req.filesTransferred} (${formatBytes(req.bytesTransferred)})`,
           `- **Bazy danych:** ${req.databasesMigrated}`,

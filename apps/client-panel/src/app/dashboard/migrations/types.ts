@@ -34,6 +34,8 @@ export interface MigrationJobView {
   lastError: string | null;
   progress: { bytes: string; files: number; note: string | null; at: string } | null;
   integrity: MigrationIntegrity | null;
+  /** `strona-bez-bazy` — test strony po migracji bez bazy wrócił z błędem (oczekiwane, nie eskalujemy). */
+  uwaga?: 'strona-bez-bazy' | null;
   lastHeartbeatAt: string | null;
   startedAt: string | null;
   completedAt: string | null;
