@@ -179,7 +179,12 @@ export function MigrationProgress({ serviceId, initial }: Props) {
         {jobs.map((job) => (
           <JobRow key={job.id} job={job} />
         ))}
-        {jobs.length === 0 ? <li className="text-xs text-neutral-500">Przygotowuję kroki migracji…</li> : null}
+        {jobs.length === 0 ? (
+          <li className="text-xs text-neutral-500">
+            {/* Anulowana przed startem (np. bez zgody na migrację przygotowaną przez obsługę) nie ma kroków. */}
+            {detail && summary.status === 'CANCELED' ? 'Migracja nie wystartowała.' : 'Przygotowuję kroki migracji…'}
+          </li>
+        ) : null}
       </ol>
 
       {/* Tylko liczniki rodzajów, które ta migracja przenosi (sama poczta nie pokazuje „Pliki 0” i „Bazy 0”). */}

@@ -12,6 +12,7 @@ import {
 import { bezpiecznaAkcja } from '@/lib/akcja';
 import type { DiscoveredSite, DiscoveryResult, PreflightSummary } from './types';
 import { Checkbox } from '@/components/panel/checkbox';
+import { TrescUpowaznienia } from './upowaznienie';
 import { Stepper } from '@/components/panel/stepper';
 import { plForm } from '@/lib/pl';
 
@@ -937,14 +938,7 @@ function StepStart(props: {
           onChange={(e) => props.setConsent(e.target.checked)}
           className="mt-0.5 h-4 w-4 shrink-0 accent-cyan-500"
         />
-        <span>
-          Oświadczam, że mam prawo przenieść wskazane dane i <strong>upoważniam Verris</strong> do
-          jednorazowego dostępu do wskazanego hostingu źródłowego w celu wykonania migracji. Rozumiem,
-          że dane dostępowe są szyfrowane i usuwane po zakończeniu. Akceptuję{' '}
-          <a href="/legal/dpa" target="_blank" className="text-cyan-300 underline">Umowę powierzenia (DPA)</a>,{' '}
-          <a href="/legal/privacy" target="_blank" className="text-cyan-300 underline">Politykę prywatności</a>{' '}
-          i <a href="/legal/terms" target="_blank" className="text-cyan-300 underline">Regulamin</a>.
-        </span>
+        <TrescUpowaznienia />
       </label>
     </div>
   );

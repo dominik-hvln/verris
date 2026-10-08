@@ -6,7 +6,7 @@ const STATUS_PL: Record<string, string> = {
   RETRYING: "Ponawiane",
   FAILED: "Nieudane",
   COMPLETED: "Ukończone",
-  DRAFT: "Szkic",
+  DRAFT: "Czeka na zgodę klienta",
   CANCELED: "Anulowane",
 };
 

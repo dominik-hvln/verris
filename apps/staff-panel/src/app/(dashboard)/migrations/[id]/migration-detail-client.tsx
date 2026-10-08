@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  anulujProsbeZgodyAction,
   getMigrationDetailAction,
   resolveMigrationAttentionAction,
   retryMigrationJobAction,
@@ -89,6 +90,8 @@ export interface MigrationDetail {
   serverId: string | null;
   subscriptionId: string;
   secretsPurgedAt: string | null;
+  /** PB-45 — migracja przygotowana przez obsługę: powód i decyzja klienta. */
+  zaKlienta?: { operatorId: string; powod: string | null; wygasa: string | null; decyzjaAt: string | null } | null;
   sourceForm: SourceForm | null;
   jobs: DetailJob[];
 }
@@ -209,6 +212,30 @@ export function MigrationDetailClient({ initial }: { initial: MigrationDetail })
               Oznacz nieudane
             </button>
           </div>
+        </section>
+      ) : null}
+
+      {detail.zaKlienta ? (
+        <section className="rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-4 text-xs text-cyan-50/90">
+          <p className="font-semibold text-white">Migracja przygotowana przez obsługę</p>
+          <p className="mt-1">Powód: {detail.zaKlienta.powod ?? "—"}</p>
+          <p className="mt-1">
+            {detail.status === "DRAFT"
+              ? `Czeka na zgodę klienta do ${detail.zaKlienta.wygasa ? new Date(detail.zaKlienta.wygasa).toLocaleString("pl-PL") : "—"} — bez niej nie wystartuje.`
+              : detail.zaKlienta.decyzjaAt
+                ? `Klient zdecydował ${new Date(detail.zaKlienta.decyzjaAt).toLocaleString("pl-PL")}.`
+                : "Klient nie zdecydował w terminie."}
+          </p>
+          {detail.status === "DRAFT" ? (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => act(() => anulujProsbeZgodyAction({ migrationId: detail.id }), "Prośba anulowana, dane dostępowe usunięte.")}
+              className="mt-3 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-100 hover:bg-rose-500/20 disabled:opacity-50"
+            >
+              Anuluj prośbę i usuń dane dostępowe
+            </button>
+          ) : null}
         </section>
       ) : null}
 

@@ -127,6 +127,11 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   DOMAIN_REGISTRANT_UPDATED: 'Zmieniono dane abonenta domeny',
   SUBSCRIPTION_SUSPENDED: 'Usługa wstrzymana',
   SUBSCRIPTION_UNSUSPENDED: 'Usługa wznowiona',
+  // PB-45 — migracja przygotowana przez obsługę
+  MIGRATION_CONSENT_REQUESTED: 'Obsługa przygotowała migrację — czeka na Twoją zgodę',
+  MIGRATION_CONSENT_ACCEPTED: 'Zatwierdzono migrację przygotowaną przez obsługę',
+  MIGRATION_CONSENT_REJECTED: 'Odrzucono migrację przygotowaną przez obsługę',
+  MIGRATION_CONSENT_EXPIRED: 'Prośba o zgodę na migrację wygasła — dane dostępowe usunięte',
 };
 
 export function etykietaDziennika(akcja: string): string {

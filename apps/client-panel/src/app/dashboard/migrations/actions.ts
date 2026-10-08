@@ -203,3 +203,39 @@ export async function verifyMigrationCutoverAction(input: {
     return { error: e instanceof Error ? e.message : 'Nie udało się zweryfikować DNS.' };
   }
 }
+
+/** PB-45 — „Zgadzam się”: migracja przygotowana przez obsługę trafia do kolejki. */
+export async function przyjmijZgodeMigracjiAction(input: {
+  serviceId: string;
+  migrationId: string;
+  token?: string;
+}): Promise<ActionOk<{ migration: unknown }>> {
+  try {
+    const migration = await apiFetch<unknown>(
+      `/services/${input.serviceId}/migrations/bundles/${input.migrationId}/zgoda`,
+      { method: 'POST', body: JSON.stringify({ token: input.token || undefined }) },
+    );
+    revalidatePath('/dashboard/migrations');
+    return { ok: true, migration };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Nie udało się zatwierdzić migracji.' };
+  }
+}
+
+/** PB-45 — „Nie zgadzam się”: migracja anulowana, dane dostępowe usunięte od razu. */
+export async function odrzucZgodeMigracjiAction(input: {
+  serviceId: string;
+  migrationId: string;
+  token?: string;
+}): Promise<ActionOk<{ prosba: unknown }>> {
+  try {
+    const prosba = await apiFetch<unknown>(
+      `/services/${input.serviceId}/migrations/bundles/${input.migrationId}/zgoda/odrzuc`,
+      { method: 'POST', body: JSON.stringify({ token: input.token || undefined }) },
+    );
+    revalidatePath('/dashboard/migrations');
+    return { ok: true, prosba };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Nie udało się odrzucić migracji.' };
+  }
+}

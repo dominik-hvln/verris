@@ -116,6 +116,12 @@ export default async function StaffSubscriptionReadonlyPage({
             <p className="font-mono text-cyan-100/90">{sub.account.domain}</p>
             <p className="mt-1 text-xs text-muted-foreground">DA: {sub.account.daUsername}</p>
             <p className="mt-1 text-xs text-muted-foreground">Status konta: {sub.account.status}</p>
+            <Link
+              href={`/migrations/za-klienta?subscriptionId=${sub.id}`}
+              className="mt-3 inline-block rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/20"
+            >
+              Migracja za klienta
+            </Link>
             {sub.account.server ? (
               <p className="mt-2 text-xs text-muted-foreground">
                 Węzeł:{" "}

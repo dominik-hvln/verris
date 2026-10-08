@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PanelCard } from '@/components/panel';
 import { MigrationWizard, type Zakres } from './migration-wizard';
@@ -33,9 +34,15 @@ const OPCJE: Array<{ id: Wybor; tytul: string; opis: string }> = [
 export function MigrationsClient({ serviceId, bundles, tylkoPoczta = false }: Props) {
   const router = useRouter();
   const [wybor, setWybor] = useState<Wybor | null>(tylkoPoczta ? 'poczta' : null);
+  // PB-45 — migracje przygotowane przez obsługę: dopóki klient nie zdecyduje, to prośba (baner), nie postęp.
+  const doZgody = bundles.filter((b) => b.status === 'DRAFT' && b.consentExpiresAt);
+  const historia = bundles.filter((b) => b.status !== 'DRAFT');
 
   return (
     <div className="space-y-6">
+      {doZgody.map((b) => (
+        <BanerZgody key={b.id} serviceId={serviceId} bundle={b} />
+      ))}
       <PanelCard className="space-y-4">
         <div>
           <h2 className="font-semibold text-white">Co przenosimy?</h2>
@@ -71,16 +78,38 @@ export function MigrationsClient({ serviceId, bundles, tylkoPoczta = false }: Pr
         </PanelCard>
       ) : null}
 
-      {bundles.length > 0 ? (
+      {historia.length > 0 ? (
         <PanelCard className="space-y-4">
           <h2 className="font-semibold text-white">Twoje migracje</h2>
           <div className="space-y-3">
-            {bundles.map((bundle) => (
+            {historia.map((bundle) => (
               <MigrationProgress key={bundle.id} serviceId={serviceId} initial={bundle} />
             ))}
           </div>
         </PanelCard>
       ) : null}
+    </div>
+  );
+}
+
+/** PB-45 — „Obsługa przygotowała migrację — sprawdź i zatwierdź” (link do strony zgody, bez tokenu z maila). */
+export function BanerZgody({ serviceId, bundle }: { serviceId: string; bundle: MigrationBundleSummary }) {
+  const termin = bundle.consentExpiresAt
+    ? new Date(bundle.consentExpiresAt).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' })
+    : null;
+  const href = `/dashboard/migrations/zgoda?serviceId=${encodeURIComponent(serviceId)}&id=${encodeURIComponent(bundle.id)}`;
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cyan-400/40 bg-cyan-500/[0.08] p-4">
+      <div>
+        <p className="font-semibold text-white">Obsługa przygotowała migrację — sprawdź i zatwierdź</p>
+        <p className="mt-1 text-xs text-neutral-300">
+          Przeniesienie {bundle.targetDomain ?? 'strony'} wystartuje dopiero po Twojej zgodzie
+          {termin ? ` (prośba ważna do ${termin})` : ''}.
+        </p>
+      </div>
+      <Link href={href} className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500">
+        Sprawdź i zatwierdź
+      </Link>
     </div>
   );
 }

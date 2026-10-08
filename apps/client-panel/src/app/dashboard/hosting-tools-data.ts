@@ -100,8 +100,14 @@ export async function getHostingMigrationTimeline(serviceId: string) {
   return apiFetch<HostingMigrationTimelineRow[]>(`/services/${serviceId}/migrations`);
 }
 
-import type { MigrationBundleSummary } from './migrations/types';
+import type { MigrationBundleSummary, ProsbaOZgode } from './migrations/types';
 
 export async function getHostingMigrationBundles(serviceId: string) {
   return apiFetch<MigrationBundleSummary[]>(`/services/${serviceId}/migrations/bundles`);
+}
+
+/** PB-45 — prośba o zgodę na migrację przygotowaną przez obsługę (token z linku w mailu, gdy jest). */
+export async function getProsbaOZgodeMigracji(serviceId: string, migrationId: string, token?: string) {
+  const q = token ? `?token=${encodeURIComponent(token)}` : '';
+  return apiFetch<ProsbaOZgode>(`/services/${serviceId}/migrations/bundles/${migrationId}/zgoda${q}`);
 }

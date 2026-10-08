@@ -73,6 +73,26 @@ export interface MigrationBundleSummary {
   updatedAt: string;
   lastError: string | null;
   ticketId: string | null;
+  /** PB-45 — migracja przygotowana przez obsługę czeka na Twoją zgodę do tej chwili (null = nie czeka). */
+  consentExpiresAt?: string | null;
+}
+
+/** PB-45 — prośba o zgodę na migrację przygotowaną przez obsługę (co i skąd — bez haseł). */
+export interface ProsbaOZgode {
+  id: string;
+  stan: 'oczekuje' | 'zaakceptowana' | 'odrzucona' | 'wygasla' | 'anulowana';
+  targetDomain: string | null;
+  createdAt: string;
+  wygasa: string | null;
+  decyzjaAt: string | null;
+  ticketId: string | null;
+  zrodlo: {
+    ftp: { protocol: string; host: string; port: number; username: string; remotePath: string } | null;
+    mysql: Array<{ host: string; port: number; database: string; username: string | null }>;
+    imap: Array<{ email: string; host: string }>;
+    utworzBrakujaceSkrzynki: boolean;
+    notes: string | null;
+  } | null;
 }
 
 export interface MigrationBundleDetail extends MigrationBundleSummary {
@@ -155,7 +175,7 @@ export const JOB_LABELS: Record<MigrationJobKind, string> = {
 };
 
 export const STATUS_LABELS: Record<MigrationStatus, string> = {
-  DRAFT: 'Szkic',
+  DRAFT: 'Czeka na Twoją zgodę',
   QUEUED: 'W kolejce',
   RUNNING: 'W toku',
   ATTENTION: 'Przejął zespół',
