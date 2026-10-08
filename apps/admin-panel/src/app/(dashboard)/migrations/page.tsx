@@ -48,7 +48,7 @@ const STATUS_STYLE: Record<string, string> = {
   CANCELED: "border-white/15 bg-white/5 text-muted-foreground",
 };
 
-const FILTERS = ["", "ATTENTION", "QUEUED", "RUNNING", "FAILED", "COMPLETED"] as const;
+const FILTERS = ["", "ATTENTION", "DRAFT", "QUEUED", "RUNNING", "FAILED", "COMPLETED"] as const;
 
 export default async function MigrationsCockpitPage({
   searchParams,
@@ -71,12 +71,20 @@ export default async function MigrationsCockpitPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-[28px] lg:text-[34px]">Migracje</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Flota zleceń migracji. Migracje są automatyczne — te oznaczone „Pilne” zatrzymał
-          automat i czekają na dokończenie przez zespół (wznów, ponów krok lub oznacz jako ukończone).
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[28px] lg:text-[34px]">Migracje</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Flota zleceń migracji. Migracje są automatyczne — te oznaczone „Pilne” zatrzymał
+            automat i czekają na dokończenie przez zespół (wznów, ponów krok lub oznacz jako ukończone).
+          </p>
+        </div>
+        <Link
+          href="/migrations/za-klienta"
+          className="rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3 py-2 text-xs font-semibold text-indigo-100 hover:bg-indigo-500/20"
+        >
+          Migracja za klienta
+        </Link>
       </div>
 
       {attentionCount > 0 ? (

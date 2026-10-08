@@ -105,6 +105,14 @@ export default async function AdminSubscriptionDetailPage({ params }: { params: 
               <p className="text-white">
                 {detail.account ? `${detail.account.domain} (${detail.account.daUsername})` : "Brak konta"}
               </p>
+              {detail.account ? (
+                <Link
+                  href={`/migrations/za-klienta?subscriptionId=${detail.id}`}
+                  className="mt-2 inline-block rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3 py-1.5 text-xs font-semibold text-indigo-100 hover:bg-indigo-500/20"
+                >
+                  Migracja za klienta
+                </Link>
+              ) : null}
             </div>
           </div>
 

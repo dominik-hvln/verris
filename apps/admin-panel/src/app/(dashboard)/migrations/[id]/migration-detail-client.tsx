@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { potwierdz } from "@/components/potwierdz";
 import {
+  anulujProsbeZgodyAction,
   getMigrationDetailAction,
   resolveMigrationAttentionAction,
   retryMigrationJobAction,
@@ -91,6 +93,8 @@ export interface MigrationDetail {
   secretsPurgedAt: string | null;
   sourceForm: SourceForm | null;
   jobs: DetailJob[];
+  /** PB-45 — migracja przygotowana przez obsługę/admina („za klienta”): powód i decyzja klienta. */
+  zaKlienta?: { operatorId: string; powod: string | null; wygasa: string | null; decyzjaAt: string | null } | null;
 }
 
 const JOB_LABELS: Record<string, string> = {
@@ -209,6 +213,37 @@ export function MigrationDetailClient({ initial }: { initial: MigrationDetail })
               Oznacz nieudane
             </button>
           </div>
+        </section>
+      ) : null}
+
+      {/* ADMIN-MIGR — migracja za klienta: czeka na zgodę klienta, admin może anulować prośbę. */}
+      {detail.zaKlienta ? (
+        <section className="rounded-xl border border-indigo-500/30 bg-indigo-500/5 p-4 text-xs text-indigo-50/90">
+          <p className="font-semibold text-white">Migracja przygotowana za klienta</p>
+          <p className="mt-1">Powód: {detail.zaKlienta.powod ?? "—"}</p>
+          <p className="mt-1">
+            {detail.status === "DRAFT"
+              ? `Czeka na zgodę klienta do ${detail.zaKlienta.wygasa ? new Date(detail.zaKlienta.wygasa).toLocaleString("pl-PL") : "—"} — bez niej nie wystartuje.`
+              : detail.zaKlienta.decyzjaAt
+                ? `Klient zdecydował ${new Date(detail.zaKlienta.decyzjaAt).toLocaleString("pl-PL")}.`
+                : "Klient nie zdecydował w terminie."}
+          </p>
+          {detail.status === "DRAFT" ? (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={async () => {
+                const ok = await potwierdz(
+                  "Anulować prośbę o zgodę? Link w mailu do klienta przestanie działać, a dane dostępowe do starego hostingu zostaną od razu usunięte.",
+                  { akcja: "Anuluj prośbę", niebezpieczne: true, tytul: "Migracja za klienta" },
+                );
+                if (ok) act(() => anulujProsbeZgodyAction({ migrationId: detail.id }), "Prośba anulowana, dane dostępowe usunięte.");
+              }}
+              className="mt-3 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-100 hover:bg-rose-500/20 disabled:opacity-50"
+            >
+              Anuluj prośbę o zgodę
+            </button>
+          ) : null}
         </section>
       ) : null}
 
