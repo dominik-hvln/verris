@@ -389,6 +389,17 @@ run_files() {
     return 2
   fi
 
+  # Klient musi przejść przez katalogi pośrednie (stage, domains/<d>/) do katalogu strony: samo x.
+  # Najpierw x, POTEM rX na katalogu strony — gdy konto FTP wskazuje wprost katalog strony
+  # (Plesk, konta FTP cPanela), katalogiem strony jest sam $stage i późniejsze `x` odbierało
+  # mu prawo odczytu: „opendir … Permission denied”, kopia lokalna padała (t1, 08.10).
+  jako_mig setfacl -m "u:${user}:x" "$stage" >>"$logfile" 2>&1 || true
+  if [ -n "$pod" ]; then
+    local p="$zrodlo_kopii"
+    while p=$(dirname "$p"); [ "$p" != "$stage" ] && [ "${#p}" -gt "${#stage}" ]; do
+      jako_mig setfacl -m "u:${user}:x" "$p" >>"$logfile" 2>&1 || true
+    done
+  fi
   # Klient czyta swój katalog roboczy (ACL ustawia właściciel plików, czyli verris-mig —
   # root nie chodzi po drzewie, które kontroluje proces rozmawiający z obcym serwerem).
   jako_mig setfacl -R -P -m "u:${user}:rX" "$zrodlo_kopii" >>"$logfile" 2>&1 \
@@ -399,14 +410,6 @@ run_files() {
   # na niego prawa katalogu źródłowego.
   echo "== kopia lokalna do ${dst} (jako ${user})" >>"$logfile"
   local tryb_dst; tryb_dst=$(stat -c %a "$dst")
-  # Klient musi przejść przez katalogi pośrednie (domains/<d>/) do katalogu strony.
-  if [ -n "$pod" ]; then
-    local p="$zrodlo_kopii"
-    while p=$(dirname "$p"); [ "$p" != "$stage" ] && [ "${#p}" -gt "${#stage}" ]; do
-      jako_mig setfacl -m "u:${user}:x" "$p" >>"$logfile" 2>&1 || true
-    done
-  fi
-  jako_mig setfacl -m "u:${user}:x" "$stage" >>"$logfile" 2>&1 || true
   runuser -u "$user" -- rsync -a --delete --delete-excluded --exclude '.cache' --exclude 'tmp/' \
     "${zrodlo_kopii}/" "${dst}/" >>"$logfile" 2>&1 || { echo "kopia lokalna nie powiodła się" >>"$logfile"; return 3; }
   runuser -u "$user" -- chmod "$tryb_dst" "$dst" >>"$logfile" 2>&1 || true

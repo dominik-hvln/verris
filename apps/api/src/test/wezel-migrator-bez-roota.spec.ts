@@ -95,3 +95,24 @@ describe('worker migracji — bez roota przy obcych serwerach', () => {
     expect(w).toMatch(/\[ "\$tryb" = pelne \] \|\| return 0/);
   });
 });
+
+describe('worker migracji — prawa klienta do katalogu roboczego (t1, 08.10)', () => {
+  // Konto FTP wskazujące wprost katalog strony (Plesk, konta FTP cPanela): katalogiem strony jest sam
+  // stage/<konto>/<domena>. `setfacl u:konto:x` na nim PO rekurencyjnym `rX` odbierało odczyt —
+  // rsync jako klient: „opendir … Permission denied”, kopia lokalna padała przy każdym takim źródle.
+  const kod = czytaj('ops/scripts/node-migration-worker.sh');
+  const runFiles = kod.slice(kod.indexOf('run_files() {'), kod.indexOf('\n}\n', kod.indexOf('run_files() {')));
+  const rX = runFiles.indexOf('setfacl -R -P -m "u:${user}:rX" "$zrodlo_kopii"');
+  const kopia = runFiles.indexOf('runuser -u "$user" -- rsync');
+
+  it('samo x na katalogach pośrednich ustawiane przed rX na katalogu strony', () => {
+    expect(rX).toBeGreaterThan(-1);
+    expect(runFiles.indexOf('setfacl -m "u:${user}:x" "$stage"')).toBeGreaterThan(-1);
+    expect(runFiles.indexOf('setfacl -m "u:${user}:x" "$stage"')).toBeLessThan(rX);
+  });
+
+  it('między rX a kopią jako klient nic nie zawęża ACL', () => {
+    expect(kopia).toBeGreaterThan(rX);
+    expect(runFiles.slice(rX + 10, kopia)).not.toMatch(/jako_mig setfacl/);
+  });
+});
