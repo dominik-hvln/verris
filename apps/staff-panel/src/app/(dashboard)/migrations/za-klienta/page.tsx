@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
  * PB-45 — migracja za klienta. Obsługa wypełnia źródło (np. z danych ze zgłoszenia), klient dostaje mail
  * z prośbą o zgodę, a migracja rusza dopiero po jego „Zgadzam się”. Wejście z karty usługi klienta (CRM)
  * albo z kolejki migracji (wtedy ID usługi podaje się ręcznie). Usługę czyta za tym samym uprawnieniem co założenie
- * (MIGRATIONS_MANAGE) — nie przez GET /admin/subscriptions/:id, które wymaga jeszcze SUBSCRIPTIONS_MANAGE.
+ * (MIGRATIONS_MANAGE) — nie przez GET /admin/subscriptions/:id, które wymaga innego uprawnienia (CUSTOMERS_VIEW
+ * albo SUBSCRIPTIONS_MANAGE, L1-KARTA), więc rola z samą migracją by go nie przeszła.
  */
 
 /** Odpowiedź `GET /staff/migrations/za-klienta/usluga/:id`. */

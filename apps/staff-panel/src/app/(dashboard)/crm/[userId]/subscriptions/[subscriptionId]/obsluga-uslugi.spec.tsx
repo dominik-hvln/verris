@@ -124,11 +124,22 @@ describe("ObslugaUslugi — błędy", () => {
 });
 
 describe("ObslugaUslugi — uprawnienia (403)", () => {
-  it("403 z API → komunikat o brakującym uprawnieniu „Subskrypcje i usługi”", async () => {
+  it("403 z API → komunikat o brakującym uprawnieniu; zasoby i historię migracji otwiera też „Podgląd klientów” (L1-KARTA)", async () => {
     api.mockRejectedValue(new Blad("Twoja rola nie ma uprawnień do tej operacji.", 403));
     const html = await render();
-    expect(html).toContain("Twoja rola nie ma uprawnienia „Subskrypcje i usługi”");
+    const ktorekolwiek = "Twoja rola nie ma uprawnienia „Podgląd klientów” ani „Subskrypcje i usługi”. Poproś administratora o nadanie jednego z nich.";
+    expect(html.split(ktorekolwiek)).toHaveLength(3); // Zasoby + Historia migracji
+    expect(html).not.toContain("Twoja rola nie ma uprawnienia „Subskrypcje i usługi”");
     expect(html).not.toContain("Odtwórz konto z kopii");
+  });
+
+  it("403 przy kopiach → oba uprawnienia, które je otwierają", async () => {
+    odpowiedzi({
+      "/staff/me/access": { isAdmin: false, permissions: ["ACCOUNT_DIAGNOSTICS_VIEW"] },
+      [`/admin/subscriptions/${SUB}/hosting-backups`]: new Blad("Twoja rola nie ma uprawnień do tej operacji.", 403),
+    });
+    const html = await render();
+    expect(html).toContain("Twoja rola nie ma uprawnienia „Subskrypcje i usługi” ani „Podgląd konta klienta”.");
   });
 
   // L1-KARTA — uprawnienia roli systemowej „L1 Konsultant” (apps/api/src/staff-roles/role-systemowe.ts).

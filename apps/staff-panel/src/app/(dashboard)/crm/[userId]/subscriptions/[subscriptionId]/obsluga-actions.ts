@@ -2,11 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { staffApi, StaffApiError } from "@/lib/staff-api";
+import { brakUprawnien, PODGLAD_KLIENTOW, PODGLAD_KONTA, SUBSKRYPCJE } from "./brak-uprawnien";
 
 /**
  * PB-44 (decyzja 08.10) — obsługa na karcie usługi: zasoby, kopie z odtwarzaniem, historia migracji
- * i migracja wewnętrzna. Te same endpointy co panel admina (`/admin/subscriptions/:id/...`), wpuszczają
- * STAFF z uprawnieniem SUBSCRIPTIONS_MANAGE. Odtworzenie na innym węźle (H-16) zostaje tylko dla admina.
+ * i migracja wewnętrzna. Te same endpointy co panel admina (`/admin/subscriptions/:id/...`). Zapisy (odtworzenie,
+ * migracja wewnętrzna) wpuszczają STAFF z SUBSCRIPTIONS_MANAGE; odczyty karty (zużycie, historia migracji, stan
+ * odtwarzania) — z CUSTOMERS_VIEW albo SUBSCRIPTIONS_MANAGE, lista kopii z węzła — z SUBSCRIPTIONS_MANAGE albo
+ * ACCOUNT_DIAGNOSTICS_VIEW (L1-KARTA, @StaffPermAny). Odtworzenie na innym węźle (H-16) zostaje tylko dla admina.
  */
 
 export type Wynik<T> = { ok: true; data: T } | { ok: false; error: string; brakUprawnien?: boolean };
@@ -52,10 +55,14 @@ export interface KopieKonta {
   last: StanOdtwarzania;
 }
 
-/** Komunikat dla operatora: przy 403 — czego brakuje, inaczej treść błędu z API. */
-function komunikat(e: unknown, domyslny: string, uprawnienie = "Subskrypcje i usługi"): { error: string; brakUprawnien?: boolean } {
+/** Komunikat dla operatora: przy 403 — czego brakuje (którekolwiek z `uprawnienia`), inaczej treść błędu z API. */
+function komunikat(
+  e: unknown,
+  domyslny: string,
+  uprawnienia: [string, ...string[]] = [SUBSKRYPCJE],
+): { error: string; brakUprawnien?: boolean } {
   if (e instanceof StaffApiError && e.status === 403) {
-    return { error: `Twoja rola nie ma uprawnienia „${uprawnienie}”. Poproś administratora o jego nadanie.`, brakUprawnien: true };
+    return { error: brakUprawnien(...uprawnienia), brakUprawnien: true };
   }
   if (e instanceof StaffApiError) return { error: e.message };
   return { error: domyslny };
@@ -65,7 +72,7 @@ export async function pobierzZuzycieAction(subscriptionId: string): Promise<Wyni
   try {
     return { ok: true, data: await staffApi<ZuzycieUslugi>(`/admin/subscriptions/${subscriptionId}/usage?window=24h`) };
   } catch (e) {
-    return { ok: false, ...komunikat(e, "Nie udało się pobrać zużycia zasobów.") };
+    return { ok: false, ...komunikat(e, "Nie udało się pobrać zużycia zasobów.", [PODGLAD_KLIENTOW, SUBSKRYPCJE]) };
   }
 }
 
@@ -77,7 +84,7 @@ export async function pobierzKopieAction(subscriptionId: string): Promise<Wynik<
     ]);
     return { ok: true, data: { backups: b.rows ?? [], fetchError: b.fetchError ?? null, last } };
   } catch (e) {
-    return { ok: false, ...komunikat(e, "Nie udało się pobrać kopii konta z serwera.") };
+    return { ok: false, ...komunikat(e, "Nie udało się pobrać kopii konta z serwera.", [SUBSKRYPCJE, PODGLAD_KONTA]) };
   }
 }
 

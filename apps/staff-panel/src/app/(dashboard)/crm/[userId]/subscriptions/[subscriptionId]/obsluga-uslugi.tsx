@@ -4,6 +4,7 @@ import { SERVICE_EVENT_PL, etykieta } from "@verris/contracts";
 import { staffApi, StaffApiError } from "@/lib/staff-api";
 import { maUprawnienie, pobierzDostepOperatora } from "@/lib/staff-access";
 import { pobierzKopieAction, pobierzZuzycieAction } from "./obsluga-actions";
+import { brakUprawnien, PODGLAD_KLIENTOW, SUBSKRYPCJE } from "./brak-uprawnien";
 import { ZasobyPanel } from "./zasoby-panel";
 import { KopiePanel } from "./kopie-panel";
 import { MigracjaWewnetrznaForm, type WezelDocelowy } from "./migracja-wewnetrzna-form";
@@ -11,10 +12,8 @@ import { MigracjaWewnetrznaForm, type WezelDocelowy } from "./migracja-wewnetrzn
 type Wezel = WezelDocelowy & { status: string };
 type WpisMigracji = { id: string; type: string; createdAt: string; details: Record<string, unknown> | null };
 
-const BRAK = (uprawnienie: string) => `Twoja rola nie ma uprawnienia „${uprawnienie}”. Poproś administratora o jego nadanie.`;
-
-function blad(e: unknown, domyslny: string, uprawnienie: string): string {
-  if (e instanceof StaffApiError && e.status === 403) return BRAK(uprawnienie);
+function blad(e: unknown, domyslny: string, ...uprawnienia: [string, ...string[]]): string {
+  if (e instanceof StaffApiError && e.status === 403) return brakUprawnien(...uprawnienia);
   if (e instanceof StaffApiError) return e.message;
   return domyslny;
 }
@@ -88,7 +87,7 @@ export async function ObslugaUslugi({
       {account && mozeZarzadzac ? (
         <Sekcja tytul="Migracja wewnętrzna" opis="Przeniesienie konta na inny węzeł platformy: kopia konta i zgłoszenie dla zespołu technicznego.">
           {!widziWezly ? (
-            <p className="text-sm text-amber-200">{BRAK("Podgląd węzłów i floty")} Bez listy węzłów nie wybierzesz celu migracji.</p>
+            <p className="text-sm text-amber-200">{brakUprawnien("Podgląd węzłów i floty")} Bez listy węzłów nie wybierzesz celu migracji.</p>
           ) : bladWezlow ? (
             <p className="text-sm text-rose-300">{bladWezlow}</p>
           ) : (
@@ -104,7 +103,7 @@ export async function ObslugaUslugi({
 
       <Sekcja tytul="Historia migracji">
         {migracjeR.status === "rejected" ? (
-          <p className="text-sm text-rose-300">{blad(migracjeR.reason, "Nie udało się pobrać historii migracji.", "Subskrypcje i usługi")}</p>
+          <p className="text-sm text-rose-300">{blad(migracjeR.reason, "Nie udało się pobrać historii migracji.", PODGLAD_KLIENTOW, SUBSKRYPCJE)}</p>
         ) : migracjeR.value.length === 0 ? (
           <p className="text-sm text-muted-foreground">Brak zdarzeń migracji.</p>
         ) : (
