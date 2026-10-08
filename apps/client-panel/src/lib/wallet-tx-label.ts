@@ -4,7 +4,12 @@
  * a w panelu klient ma zobaczyć zdanie, nie identyfikator. Oryginał zostaje
  * w dymku, więc nic nie ginie.
  */
-const PLAN_NAMES: Record<string, string> = { starter: 'Starter', 'poczta-standard': 'Poczta Standard' };
+// 08.10: brak 'verris-hosting' dawał w historii portfela „Odnowienie miesięczne · verris hosting” (slug zamiast nazwy).
+const PLAN_NAMES: Record<string, string> = {
+  starter: 'Starter',
+  'poczta-standard': 'Poczta Standard',
+  'verris-hosting': 'Hosting Verris z autoskalowaniem',
+};
 
 function planLabel(slug: string): string {
   return PLAN_NAMES[slug.toLowerCase()] ?? slug.replace(/-/g, ' ');

@@ -4,6 +4,8 @@ describe('walletTxDescription', () => {
   it('odnowienie z nazwą planu', () => {
     expect(walletTxDescription('Auto-renewal starter (MONTH)')).toBe('Odnowienie miesięczne · Starter');
     expect(walletTxDescription('Auto-renewal poczta-standard (MONTH)')).toBe('Odnowienie miesięczne · Poczta Standard');
+    // 08.10: pakiet produkcyjny — nazwa z oferty, nie slug
+    expect(walletTxDescription('Auto-renewal verris-hosting (MONTH)')).toBe('Odnowienie miesięczne · Hosting Verris z autoskalowaniem');
   });
   it('pierwsza opłata bez identyfikatora usługi', () => {
     expect(walletTxDescription('Subscription 80a46b65-96b8-438b-9ef8-ca5623393816 (initial payment)')).toBe('Pierwsza opłata za usługę');
