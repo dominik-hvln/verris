@@ -41,3 +41,4 @@ PB-35,PRODUKCJA,pierwszy wtorek po wdrożeniu: fala ruszyła sama o 4:00
 O-07,PRODUKCJA,"po 18.10 (t1 przyjmuje konta): klient resellera zamawia z portfela → konto założone → prowizja RESELLER_MARKUP po karencji → wypłata do portfela; flagi już włączone dla d3 (07.10), cena z narzutem i zwrot z prowizją sprawdzone 07.10"
 Q-05,KOD PO STARCIE,"decyzja 08.10: Newsletter po starcie — dostawca SMTP pod EMM_SMTP_URL (osobna subdomena nadawcza, podprocesor) wybierany po starcie"
 E-24,KOD PO STARCIE,decyzja 08.10: 2FA w Roundcube po starcie; na start webmail przez SSO z panelu (2FA panelu)
+I-17,PRODUKCJA,"wybór strony z wykrycia: Plesk (login klienta i administratora), DirectAdmin, cPanel — katalog i bazy wybranej strony; „Wszystko naraz” z Pleska na t1 (pliki + baza + skrzynka, zakładanie brakującej skrzynki)"
