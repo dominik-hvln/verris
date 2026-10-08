@@ -10,7 +10,7 @@ import { WNIOSEK_MOZLIWY_KEY } from '../../wnioski/wniosek-mozliwy.decorator.js'
  *  - ADMIN: zawsze dozwolony (pełny dostęp).
  *  - STAFF: suma uprawnień jego ról (może mieć kilka) musi zawierać WSZYSTKIE wymagane uprawnienia.
  *  - @StaffPermAny na metodzie (L1-KARTA): wystarcza JEDNO z wymienionych uprawnień, a @StaffPerm klasy
- *    wtedy nie obowiązuje (@StaffPerm samej metody — nadal wszystkie).
+ *    wtedy nie obowiązuje (@StaffPerm samej metody — nadal wszystkie). Na klasie — błąd konfiguracji (odmowa).
  *  - USER: brak dostępu do endpointów oznaczonych @StaffPerm / @StaffPermAny.
  * Uprawnienia czytane są z DB przez uprawnieniaOperatora (StaffRole.permissions wszystkich ról). Stosować PO JwtAuthGuard.
  */
@@ -22,6 +22,11 @@ export class StaffPermissionsGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // L1-KARTA — any-of czytamy tylko z metody; na klasie byłby po cichu pominięty i trasa bez @StaffPerm
+    // stałaby otworem. Błąd konfiguracji zatrzymuje każde wywołanie (także ADMIN-a), więc wyjdzie od razu.
+    if (this.reflector.get<string[] | undefined>(STAFF_PERMISSIONS_ANY_KEY, context.getClass())?.length) {
+      throw new Error(`Błąd konfiguracji RBAC: @StaffPermAny tylko na metodzie (klasa ${context.getClass().name}).`);
+    }
     const anyOf = this.reflector.get<string[] | undefined>(STAFF_PERMISSIONS_ANY_KEY, context.getHandler()) ?? [];
     const required =
       (anyOf.length > 0

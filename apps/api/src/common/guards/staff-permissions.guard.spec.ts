@@ -1,6 +1,6 @@
-import { Controller, ExecutionContext, ForbiddenException, Get } from '@nestjs/common';
+import { Controller, ExecutionContext, ForbiddenException, Get, SetMetadata } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { StaffPerm, StaffPermAny } from '../decorators/staff-permissions.decorator.js';
+import { STAFF_PERMISSIONS_ANY_KEY, StaffPerm, StaffPermAny } from '../decorators/staff-permissions.decorator.js';
 import { WniosekMozliwy } from '../../wnioski/wniosek-mozliwy.decorator.js';
 import { StaffPermissionsGuard } from './staff-permissions.guard.js';
 
@@ -17,6 +17,21 @@ class Atrapa {
   @Get('d') @StaffPerm('BILLING_VIEW') @StaffPermAny('CUSTOMERS_VIEW', 'NODES_VIEW') obie() {}
   @Get('e') @StaffPermAny('BILLING_MANAGE') @WniosekMozliwy('WALLET_CREDIT') wniosek() {}
 }
+
+/**
+ * Błędne użycie: any-of na KLASIE. Typ dekoratora (MethodDecorator) nie pozwala na to w TS — metadane
+ * nakładamy wprost, jak zrobiłby to kod JS albo rzutowanie. Strażnik ma odmówić, a nie wpuścić bez sprawdzania.
+ */
+@Controller('test-klasa')
+@SetMetadata(STAFF_PERMISSIONS_ANY_KEY, ['BILLING_MANAGE'])
+class AtrapaKlasa {
+  @Get('a') odczyt() {}
+}
+
+// @ts-expect-error — @StaffPermAny jest dekoratorem metody; na klasie nie przechodzi kompilacji (L1-KARTA).
+@StaffPermAny('BILLING_MANAGE')
+class AtrapaKlasaTs {}
+void AtrapaKlasaTs;
 
 type Metoda = 'odczyt' | 'zapis' | 'wszystkie' | 'obie' | 'wniosek';
 
@@ -80,5 +95,17 @@ describe('StaffPermissionsGuard — @StaffPermAny (L1-KARTA)', () => {
     await expect(guard([]).canActivate(ctx('wniosek', OP))).rejects.toMatchObject({
       response: { code: 'WYMAGA_WNIOSKU', operacja: 'WALLET_CREDIT' },
     });
+  });
+
+  it('@StaffPermAny na klasie (błędne użycie) — strażnik odmawia każdemu, zamiast wpuścić bez sprawdzania', async () => {
+    const naKlasie = (user: unknown, uprawnienia: string[]) =>
+      guard(uprawnienia).canActivate({
+        getHandler: () => AtrapaKlasa.prototype.odczyt,
+        getClass: () => AtrapaKlasa,
+        switchToHttp: () => ({ getRequest: () => ({ user }) }),
+      } as unknown as ExecutionContext);
+    await expect(naKlasie(OP, [])).rejects.toThrow(/tylko na metodzie/);
+    await expect(naKlasie(OP, ['BILLING_MANAGE'])).rejects.toThrow(/tylko na metodzie/);
+    await expect(naKlasie({ userId: 'a', role: 'ADMIN' }, [])).rejects.toThrow(/tylko na metodzie/);
   });
 });

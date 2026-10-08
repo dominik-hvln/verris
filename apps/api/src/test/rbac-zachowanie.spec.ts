@@ -137,6 +137,11 @@ describe('X-10 — RBAC paneli operatorskich sprawdzany zachowaniem', () => {
     expect(wpuszczoneMimoWymogu).toEqual([]);
   });
 
+  it('@StaffPermAny tylko na metodach — żaden kontroler operatora nie ma any-of na klasie (L1-KARTA)', () => {
+    const klasy = [...new Set(TRASY.map((t) => t.klasa))];
+    expect(klasy.filter((k) => Reflect.getMetadata(STAFF_PERMISSIONS_ANY_KEY, k) !== undefined).map((k) => k.name)).toEqual([]);
+  });
+
   it('administrator wchodzi wszędzie', async () => {
     const odrzucone: string[] = [];
     for (const t of TRASY) if (!(await wpuszcza(t, ADMIN))) odrzucone.push(nazwa(t));

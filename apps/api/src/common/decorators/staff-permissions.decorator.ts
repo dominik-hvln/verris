@@ -14,5 +14,8 @@ export const StaffPerm = (...perms: StaffPermission[]) => SetMetadata(STAFF_PERM
  * L1-KARTA — RBAC „którekolwiek z”: wystarcza JEDNO ze wskazanych uprawnień. Tylko na metodzie: zastępuje
  * wtedy @StaffPerm klasy (np. odczyt karty usługi: podgląd klientów ALBO zarządzanie usługami).
  * ADMIN ma dostęp zawsze, jak przy @StaffPerm.
+ * Typ MethodDecorator: użycie na klasie nie przechodzi kompilacji, a gdyby metadane trafiły na klasę
+ * inną drogą, StaffPermissionsGuard odmawia (błąd konfiguracji), zamiast wpuścić bez sprawdzania.
  */
-export const StaffPermAny = (...perms: [StaffPermission, ...StaffPermission[]]) => SetMetadata(STAFF_PERMISSIONS_ANY_KEY, perms);
+export const StaffPermAny = (...perms: [StaffPermission, ...StaffPermission[]]): MethodDecorator =>
+  SetMetadata(STAFF_PERMISSIONS_ANY_KEY, perms);
