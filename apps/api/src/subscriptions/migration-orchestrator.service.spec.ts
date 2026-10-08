@@ -728,3 +728,38 @@ function buildWorkerLifecycleMocks(
   );
   return { service, prisma, tickets };
 }
+
+/** PB-44 — migracja wewnętrzna zlecana z panelu obsługi: wniosek tylko na istniejący, aktywny, inny węzeł. */
+describe('requestInternalMigrationByAdmin — walidacja węzła docelowego (PB-44)', () => {
+  function przygotuj(opts: { konto?: { serverId: string; domain: string; daUsername: string } | null; cel?: { status: string } | null }) {
+    const prisma = {
+      subscription: {
+        findUnique: vi.fn().mockResolvedValue({ id: 's1', userId: 'u1', account: opts.konto === undefined ? { serverId: 'n1', domain: 'firma.pl', daUsername: 'firma' } : opts.konto }),
+      },
+      server: { findUnique: vi.fn().mockResolvedValue(opts.cel === undefined ? { status: 'ACTIVE' } : opts.cel) },
+      subscriptionEvent: { create: vi.fn().mockResolvedValue({ id: 'ev1' }) },
+    };
+    const audit = { record: vi.fn() };
+    const svc = new MigrationOrchestratorService(prisma as never, null as never, audit as never, null as never, null as never, null as never, null as never);
+    return { svc, prisma, audit };
+  }
+
+  it('aktywny inny węzeł → wniosek i wpis w dzienniku z powodem', async () => {
+    const { svc, prisma, audit } = przygotuj({});
+    await expect(svc.requestInternalMigrationByAdmin('s1', 'op', { targetServerId: 'n2', notes: 'Węzeł n1 przeciążony — zgłoszenie #12' })).resolves.toEqual({ ok: true, migrationId: 'ev1' });
+    expect(prisma.subscriptionEvent.create).toHaveBeenCalled();
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ actorUserId: 'op', userId: 'u1', details: expect.objectContaining({ targetServerId: 'n2', notes: 'Węzeł n1 przeciążony — zgłoszenie #12' }) }));
+  });
+
+  it.each([
+    ['ten sam węzeł', { cel: { status: 'ACTIVE' } }, 'n1', /już jest na tym węźle/],
+    ['węzeł nie istnieje', { cel: null }, 'n9', /nie istnieje/],
+    ['węzeł nieaktywny', { cel: { status: 'MAINTENANCE' } }, 'n2', /nie jest aktywny/],
+    ['usługa bez konta', { konto: null }, 'n2', /nie ma konta hostingowego/],
+  ] as const)('%s → 400, bez wniosku', async (_n, opts, cel, komunikat) => {
+    const { svc, prisma, audit } = przygotuj(opts as never);
+    await expect(svc.requestInternalMigrationByAdmin('s1', 'op', { targetServerId: cel })).rejects.toThrow(komunikat);
+    expect(prisma.subscriptionEvent.create).not.toHaveBeenCalled();
+    expect(audit.record).not.toHaveBeenCalled();
+  });
+});

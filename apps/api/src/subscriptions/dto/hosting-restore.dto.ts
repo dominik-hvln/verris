@@ -26,6 +26,12 @@ export class HostingRestoreDto {
   @IsString()
   @MaxLength(253)
   confirmDomain?: string;
+
+  /** PB-44 — powód odtworzenia (do dziennika); dla pracownika obsługi wymagany (min. 10 znaków). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
 }
 
 /** H-16 — lista kopii off-site konta widziana z węzła docelowego. */

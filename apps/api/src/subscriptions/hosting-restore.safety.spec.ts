@@ -150,3 +150,25 @@ describe('stan odtwarzania dla klienta — bez surowego błędu serwera (white l
     expect((await zJobem(null).latestForSubscription('s1', 'u1', false))?.error).toBeNull();
   });
 });
+
+/** PB-44 — odtworzenie zlecone przez operatora zapisuje w dzienniku jego powód. */
+describe('zlecenie odtworzenia — powód operatora w dzienniku', () => {
+  it('reason trafia do szczegółów HOSTING_RESTORE_QUEUED', async () => {
+    const audit = { record: vi.fn() };
+    const prisma = {
+      subscription: { findUnique: vi.fn().mockResolvedValue({ id: 's1', account: { userId: 'u1', domain: 'firma.pl' } }) },
+      hostingRestoreJob: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockImplementation(({ data }: { data: Record<string, unknown> }) =>
+          Promise.resolve({ ...data, id: 'j1', status: 'QUEUED', error: null, startedAt: null, completedAt: null, createdAt: new Date() }),
+        ),
+      },
+    };
+    const da = { listHostingBackups: vi.fn().mockResolvedValue({ rows: [{ id: 'b1', fileName: 'a.tar.zst' }], fetchError: null }) };
+    const svc = new (HostingRestoreService as unknown as new (...a: unknown[]) => HostingRestoreService)(prisma, audit, da);
+    await svc.enqueue('s1', 'op', { backupId: 'b1', isAdmin: true, reason: '  Zgłoszenie #77 — wczorajsza kopia  ' });
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'HOSTING_RESTORE_QUEUED', userId: 'u1', actorUserId: 'op', details: expect.objectContaining({ reason: 'Zgłoszenie #77 — wczorajsza kopia' }) }),
+    );
+  });
+});

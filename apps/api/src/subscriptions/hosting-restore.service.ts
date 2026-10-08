@@ -40,6 +40,8 @@ export interface EnqueueRestoreInput {
   /** Required for client-initiated restores: must equal the account domain. */
   confirmDomain?: string;
   isAdmin?: boolean;
+  /** PB-44 — powód operatora (staff musi go podać); trafia do dziennika. */
+  reason?: string;
 }
 
 @Injectable()
@@ -128,6 +130,7 @@ export class HostingRestoreService {
         scope: { files: scopeFiles, databases: scopeDatabases, email: scopeEmail },
         safetyBackup: job.safetyBackup,
         isAdminInitiated: job.isAdminInitiated,
+        reason: input.reason?.trim() || null,
       } as Prisma.InputJsonValue,
     });
 

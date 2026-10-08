@@ -219,6 +219,15 @@ export class MigrationOrchestratorService {
       include: { account: true },
     });
     if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
+    // PB-44: wcześniej wniosek przechodził bez konta i z dowolnym ID węzła — worker robił kopię i zakładał
+    // zgłoszenie do przeniesienia na węzeł, którego nie ma, który nie przyjmuje kont albo na ten sam.
+    if (!sub.account) throw new BadRequestException('Usługa nie ma konta hostingowego — nie ma czego przenosić.');
+    if (sub.account.serverId === dto.targetServerId) {
+      throw new BadRequestException('Konto już jest na tym węźle — wybierz inny węzeł docelowy.');
+    }
+    const cel = await this.prisma.server.findUnique({ where: { id: dto.targetServerId }, select: { status: true } });
+    if (!cel) throw new BadRequestException('Docelowy węzeł nie istnieje.');
+    if (cel.status !== 'ACTIVE') throw new BadRequestException('Docelowy węzeł nie jest aktywny — wybierz aktywny węzeł.');
 
     const event = await this.prisma.subscriptionEvent.create({
       data: {
@@ -243,6 +252,8 @@ export class MigrationOrchestratorService {
         subscriptionId,
         migrationEventId: event.id,
         targetServerId: dto.targetServerId,
+        // Powód operatora (staff musi go podać) — w dzienniku, nie tylko w zdarzeniu usługi.
+        notes: dto.notes ?? null,
       },
     });
 

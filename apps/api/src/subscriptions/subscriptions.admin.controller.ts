@@ -49,6 +49,16 @@ const ALLOWED_REASONS: SuspendReason[] = [
   'CUSTOMER_REQUEST',
 ];
 
+/**
+ * PB-44 — odtworzenie z kopii i migracja wewnętrzna zlecone przez pracownika obsługi wymagają powodu
+ * (trafia do dziennika). Admin może go pominąć (jego panel nie ma tego pola).
+ */
+function wymagajPowoduOdStaff(actor: { role?: string }, powod: string | undefined): void {
+  if (actor.role === Role.STAFF && (powod ?? '').trim().length < 10) {
+    throw new BadRequestException('Podaj powód operacji (min. 10 znaków) — zapisze się w dzienniku.');
+  }
+}
+
 @Controller('admin/subscriptions')
 @UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
 @Roles(Role.ADMIN)
@@ -104,8 +114,9 @@ export class SubscriptionsAdminController {
   runHostingRestore(
     @Param('id') id: string,
     @Body() dto: HostingRestoreDto,
-    @CurrentUser() actor: { userId: string },
+    @CurrentUser() actor: { userId: string; role?: string },
   ) {
+    wymagajPowoduOdStaff(actor, dto.reason);
     return this.hostingRestore.enqueue(id, actor.userId, {
       backupId: dto.backupId,
       scopeFiles: dto.scopeFiles,
@@ -113,6 +124,7 @@ export class SubscriptionsAdminController {
       scopeEmail: dto.scopeEmail,
       safetyBackup: dto.safetyBackup,
       isAdmin: true,
+      reason: dto.reason,
     });
   }
 
@@ -276,8 +288,9 @@ export class SubscriptionsAdminController {
   requestInternalMigration(
     @Param('id') id: string,
     @Body() dto: RequestInternalMigrationDto,
-    @CurrentUser() actor: { userId: string },
+    @CurrentUser() actor: { userId: string; role?: string },
   ) {
+    wymagajPowoduOdStaff(actor, dto.notes);
     return this.migrations.requestInternalMigrationByAdmin(id, actor.userId, dto);
   }
 
