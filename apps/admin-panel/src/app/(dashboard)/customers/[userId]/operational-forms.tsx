@@ -62,13 +62,24 @@ export function CustomerOperationalForms({ detail }: Props) {
   const saveOperational = () => {
     setOpErr(null);
     setOpOk(false);
+    // PB-46: notatkę i blokadę zapisuje też obsługa (CUSTOMERS_MANAGE) — wysyłamy tylko pola zmienione
+    // względem danych z serwera, inaczej samo przełączenie blokady nadpisywało cudzą notatkę stanem
+    // z chwili wczytania strony i zostawiało w dzienniku fałszywy wpis „zmiana notatki”.
+    const zmiany: Parameters<typeof patchCustomerOperationalAction>[1] = {};
+    const powod = blockReason.trim() || null;
+    if (loginBlocked !== detail.loginBlocked || powod !== (detail.loginBlockedReason?.trim() || null)) {
+      zmiany.loginBlocked = loginBlocked;
+      zmiany.loginBlockedReason = powod;
+    }
+    const notatka = internalNote.trim() || null;
+    if (notatka !== (detail.adminInternalNote?.trim() || null)) zmiany.adminInternalNote = notatka;
+    if (isInternal !== Boolean(detail.isInternal)) zmiany.isInternal = isInternal;
+    if (Object.keys(zmiany).length === 0) {
+      setOpErr("Brak zmian do zapisania.");
+      return;
+    }
     start(async () => {
-      const res = await patchCustomerOperationalAction(detail.id, {
-        loginBlocked,
-        loginBlockedReason: blockReason.trim() || null,
-        adminInternalNote: internalNote.trim() || null,
-        isInternal,
-      });
+      const res = await patchCustomerOperationalAction(detail.id, zmiany);
       if (!res.ok) {
         setOpErr(res.error);
         return;
