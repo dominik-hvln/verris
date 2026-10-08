@@ -1,0 +1,115 @@
+import { ForbiddenException } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { Role } from '@verris/database';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { UsersAdminController } from './users.admin.controller.js';
+import { UsersAdminService } from './users.admin.service.js';
+
+/**
+ * PB-46 (decyzja 08.10) — karta klienta w panelu obsługi i admina ma te same sekcje, różni się tylko
+ * uprawnieniami. Notatka wewnętrzna: podgląd z CUSTOMERS_VIEW, zapis z CUSTOMERS_MANAGE; blokada logowania
+ * z CUSTOMERS_MANAGE; zmiana e-maila i reset hasła — tylko ADMIN. Sprawdzamy zachowanie prawdziwych
+ * strażników i to, co API oddaje operatorowi STAFF.
+ */
+
+const TARGET = {
+  id: 'u1',
+  email: 'anna@test.pl',
+  firstName: 'Anna',
+  lastName: null,
+  companyName: null,
+  nip: null,
+  role: Role.USER,
+  walletBalance: { toString: () => '0.00' },
+  walletCurrency: 'PLN',
+  createdAt: new Date('2026-01-10T00:00:00Z'),
+  isTwoFactorEnabled: false,
+  stripeCustomerId: null,
+  anonymizedAt: null,
+  deletionRequestedAt: null,
+  loginBlocked: false,
+  loginBlockedReason: null,
+  adminInternalNote: 'Dzwoni zwykle po 16, woli telefon niż mail.',
+  canAccessGrafana: false,
+  resellerOwner: null,
+  walletAutoTopup: null,
+  customerOwner: null,
+};
+
+function serwis() {
+  const pusto = { findMany: vi.fn(async () => []) };
+  const prisma = {
+    user: { findUnique: vi.fn(async () => TARGET) },
+    subscription: pusto,
+    ticket: pusto,
+    domain: pusto,
+    walletTransaction: pusto,
+    invoice: pusto,
+    paymentMethod: pusto,
+    auditLog: pusto,
+    paynowPlatnosc: pusto,
+  };
+  const status = { findOpenIncidentsForServers: vi.fn(async () => []) };
+  return new UsersAdminService(prisma as never, {} as never, {} as never, {} as never, status as never, {} as never, {} as never);
+}
+
+describe('PB-46 profil 360° — notatka wewnętrzna', () => {
+  it('STAFF dostaje notatkę (wcześniej null, choć `operational-detail` ją oddawał)', async () => {
+    const p = await serwis().getCustomer360('u1', { actorUserId: 's1', actorRole: Role.STAFF });
+    expect(p.user.adminInternalNote).toBe(TARGET.adminInternalNote);
+  });
+
+  it('ADMIN dostaje notatkę jak dotąd', async () => {
+    const p = await serwis().getCustomer360('u1', { actorUserId: 'a1', actorRole: Role.ADMIN });
+    expect(p.user.adminInternalNote).toBe(TARGET.adminInternalNote);
+  });
+});
+
+type Metoda = 'customerProfile' | 'operationalDetail' | 'patchOperational' | 'runDnsTls' | 'changeEmail' | 'resetPassword';
+
+async function wpuszcza(metoda: Metoda, role: Role, uprawnienia: string[]): Promise<boolean> {
+  const reflector = new Reflector();
+  const kontekst = {
+    getHandler: () => UsersAdminController.prototype[metoda],
+    getClass: () => UsersAdminController,
+    switchToHttp: () => ({ getRequest: () => ({ user: { userId: 'op1', role } }) }),
+  } as never;
+  const prisma = { user: { findUnique: async () => ({ staffRole: { permissions: uprawnienia } }) } };
+  try {
+    if (!new RolesGuard(reflector).canActivate(kontekst)) return false;
+    return await new StaffPermissionsGuard(reflector, prisma as never).canActivate(kontekst);
+  } catch (e) {
+    if (e instanceof ForbiddenException) return false;
+    throw e;
+  }
+}
+
+describe('PB-46 strażnicy karty klienta (zachowanie, nie metadane)', () => {
+  const PODGLAD = ['CUSTOMERS_VIEW'];
+  const ZARZADZANIE = ['CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE'];
+
+  it.each(['customerProfile', 'operationalDetail', 'runDnsTls'] as const)(
+    'STAFF z CUSTOMERS_VIEW: %s wpuszczony (podgląd notatki, diagnostyka DNS/TLS)',
+    async (m) => {
+      expect(await wpuszcza(m, Role.STAFF, PODGLAD)).toBe(true);
+    },
+  );
+
+  it('STAFF z samym CUSTOMERS_VIEW nie zapisze notatki ani blokady (PATCH operational → 403)', async () => {
+    expect(await wpuszcza('patchOperational', Role.STAFF, PODGLAD)).toBe(false);
+  });
+
+  it('STAFF z CUSTOMERS_MANAGE zapisze notatkę i blokadę', async () => {
+    expect(await wpuszcza('patchOperational', Role.STAFF, ZARZADZANIE)).toBe(true);
+  });
+
+  it('STAFF bez roli nie widzi karty', async () => {
+    expect(await wpuszcza('customerProfile', Role.STAFF, [])).toBe(false);
+  });
+
+  it.each(['changeEmail', 'resetPassword'] as const)('%s: STAFF nawet z CUSTOMERS_MANAGE — 403; ADMIN — tak', async (m) => {
+    expect(await wpuszcza(m, Role.STAFF, ZARZADZANIE)).toBe(false);
+    expect(await wpuszcza(m, Role.ADMIN, [])).toBe(true);
+  });
+});

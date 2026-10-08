@@ -352,8 +352,10 @@ export class UsersAdminService {
         deletionRequestedAt: target.deletionRequestedAt?.toISOString() ?? null,
         loginBlocked: target.loginBlocked,
         loginBlockedReason: target.loginBlockedReason,
-        adminInternalNote:
-          actor.actorRole === Role.ADMIN ? target.adminInternalNote : null,
+        // PB-46 (decyzja 08.10): notatkę wewnętrzną czyta każdy operator z CUSTOMERS_VIEW (jak w
+        // `operational-detail`), zapis — PATCH `:id/operational` z CUSTOMERS_MANAGE. Wcześniej STAFF dostawał
+        // tu `null`, choć ten sam tekst miał w `operational-detail` — karta obsługi nie mogła go pokazać.
+        adminInternalNote: target.adminInternalNote,
         canAccessGrafana: target.canAccessGrafana,
         reseller: target.resellerOwner
           ? {
