@@ -2,7 +2,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 /**
  * ADMIN-MIGR — karta usługi w adminie ma „Migrację za klienta” przy koncie hostingowym (jak karta usługi w obsłudze);
- * bez konta hostingowego przycisku nie ma (nie ma dokąd przenieść danych).
+ * bez konta hostingowego przycisku nie ma (nie ma dokąd przenieść danych), a operator bez MIGRATIONS_MANAGE go nie widzi
+ * (kliknięcie prowadziłoby tylko do odmowy na stronie formularza).
  */
 jest.mock("next/link", () => ({ __esModule: true, default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a> }));
 jest.mock("@/lib/api", () => ({ adminApi: jest.fn() }));
@@ -38,8 +39,11 @@ const usluga = (account: unknown) => ({
   events: [],
 });
 
-const render = async (account: unknown) => {
-  api.mockImplementation(async (p: string) => (p === `/admin/subscriptions/${SUB}` ? usluga(account) : []));
+const ADMIN = { role: "ADMIN", isAdmin: true, permissions: [] };
+const render = async (account: unknown, dostep: unknown = ADMIN) => {
+  api.mockImplementation(async (p: string) =>
+    p === `/admin/subscriptions/${SUB}` ? usluga(account) : p === "/staff/me/access" ? dostep : [],
+  );
   return renderToStaticMarkup(await AdminSubscriptionDetailPage({ params: Promise.resolve({ id: SUB }) }));
 };
 
@@ -55,4 +59,21 @@ it("bez konta hostingowego → bez przycisku", async () => {
   const html = await render(null);
   expect(html).toContain("Brak konta");
   expect(html).not.toContain("/migrations/za-klienta");
+});
+
+it("operator STAFF bez MIGRATIONS_MANAGE → bez przycisku (karta usługi dalej działa)", async () => {
+  const html = await render(
+    { id: "a1", domain: "firma.pl", daUsername: "firma", status: "ACTIVE", server: null },
+    { role: "STAFF", isAdmin: false, permissions: ["SUBSCRIPTIONS_MANAGE"] },
+  );
+  expect(html).toContain("firma.pl (firma)");
+  expect(html).not.toContain("/migrations/za-klienta");
+});
+
+it("operator STAFF z MIGRATIONS_MANAGE → przycisk jest", async () => {
+  const html = await render(
+    { id: "a1", domain: "firma.pl", daUsername: "firma", status: "ACTIVE", server: null },
+    { role: "STAFF", isAdmin: false, permissions: ["SUBSCRIPTIONS_MANAGE", "MIGRATIONS_MANAGE"] },
+  );
+  expect(html).toContain(`href="/migrations/za-klienta?subscriptionId=${SUB}"`);
 });

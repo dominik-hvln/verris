@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { adminApi } from "@/lib/api";
+import { canAccess, fetchStaffAccess, type StaffAccess } from "@/lib/staff-access";
 import { listAdminPlans } from "../../plans/data";
 import { InternalMigrationForm } from "./internal-migration-form";
 import { PlanChangeForm } from "./plan-change-form";
@@ -43,13 +44,15 @@ export default async function AdminSubscriptionDetailPage({ params }: { params: 
   let servers: AdminServerRow[] = [];
   let migrations: MigrationRow[] = [];
   let plans: Awaited<ReturnType<typeof listAdminPlans>> = [];
+  let access: StaffAccess | null = null;
   let error: string | null = null;
   try {
-    [detail, servers, migrations, plans] = await Promise.all([
+    [detail, servers, migrations, plans, access] = await Promise.all([
       adminApi<SubscriptionDetail>(`/admin/subscriptions/${id}`),
       adminApi<AdminServerRow[]>("/admin/servers"),
       adminApi<MigrationRow[]>(`/admin/subscriptions/${id}/migrations`),
       listAdminPlans(),
+      fetchStaffAccess(),
     ]);
   } catch {
     error = "Nie udało się wczytać subskrypcji (sprawdź ID i sesję).";
@@ -105,7 +108,8 @@ export default async function AdminSubscriptionDetailPage({ params }: { params: 
               <p className="text-white">
                 {detail.account ? `${detail.account.domain} (${detail.account.daUsername})` : "Brak konta"}
               </p>
-              {detail.account ? (
+              {/* Operator bez MIGRATIONS_MANAGE nie dostanie przycisku, który prowadzi tylko do odmowy (API i tak egzekwuje). */}
+              {detail.account && access && canAccess(access, "MIGRATIONS_MANAGE") ? (
                 <Link
                   href={`/migrations/za-klienta?subscriptionId=${detail.id}`}
                   className="mt-2 inline-block rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3 py-1.5 text-xs font-semibold text-indigo-100 hover:bg-indigo-500/20"
