@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -678,7 +679,15 @@ export class TicketsService {
     const nowa = subscriptionId || null;
     if (nowa) await this.sprawdzUsluge(ticket.userId, nowa);
     if (nowa !== ticket.subscriptionId) {
-      await this.prisma.ticket.update({ where: { id: ticketId }, data: { subscriptionId: nowa } });
+      // Zmiana warunkowa: przechodzi tylko z powiązania, które operator widział. Dwie równoległe zmiany
+      // (dwóch operatorów, podwójny wybór) nie zapiszą dwóch przejść z tym samym „from” na oś i do dziennika.
+      const { count } = await this.prisma.ticket.updateMany({
+        where: { id: ticketId, subscriptionId: ticket.subscriptionId },
+        data: { subscriptionId: nowa },
+      });
+      if (count !== 1) {
+        throw new ConflictException('Usługę tego zgłoszenia ktoś właśnie zmienił — odśwież zgłoszenie i spróbuj ponownie.');
+      }
       await this.logEvent(ticketId, 'SERVICE_LINK_CHANGED', actorUserId, { from: ticket.subscriptionId, to: nowa });
       await this.audit.record({
         action: TicketOpsActions.TICKET_SERVICE_LINK_CHANGED,

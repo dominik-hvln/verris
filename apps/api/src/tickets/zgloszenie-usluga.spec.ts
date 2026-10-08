@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, type ExecutionContext, type Type } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, type ExecutionContext, type Type } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { plainToInstance } from 'class-transformer';
@@ -67,6 +67,26 @@ describe('PB-43 — zakres usług subkonta w widoku zgłoszenia', () => {
     expect(svc.findOne).toHaveBeenCalledWith('t1', 'k1', ['s1']);
     await c.addOpeningAttachments('t1', subkonto, []);
     expect(svc.addOpeningAttachments).toHaveBeenCalledWith('t1', 'k1', [], ['s1']);
+  });
+});
+
+describe('PB-43 — zmiana usługi zgłoszenia przy równoległej zmianie', () => {
+  it('ktoś zmienił powiązanie między odczytem a zapisem → 409, bez wpisu na osi i w dzienniku', async () => {
+    const prisma = {
+      ticket: {
+        findUnique: vi.fn(async () => ({ userId: 'k1', subscriptionId: 's-a' })),
+        // drugi operator zdążył przepiąć zgłoszenie — warunek „z s-a” już nie pasuje
+        updateMany: vi.fn(async () => ({ count: 0 })),
+      },
+      subscription: { findUnique: vi.fn(async () => ({ userId: 'k1' })) },
+      ticketEvent: { create: vi.fn(async () => ({})) },
+    };
+    const audit = { record: vi.fn(async () => undefined) };
+    const s = new TicketsService(prisma as never, {} as never, {} as never, {} as never, audit as never, {} as never, {} as never);
+    await expect(s.adminLinkSubscription('t1', 'op', 's-b')).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.ticket.updateMany).toHaveBeenCalledWith({ where: { id: 't1', subscriptionId: 's-a' }, data: { subscriptionId: 's-b' } });
+    expect(prisma.ticketEvent.create).not.toHaveBeenCalled();
+    expect(audit.record).not.toHaveBeenCalled();
   });
 });
 

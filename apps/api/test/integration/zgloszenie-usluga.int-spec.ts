@@ -119,6 +119,11 @@ describe('PB-43 — zgłoszenie powiązane z usługą', () => {
     await tickets.adminLinkSubscription(t.id, operator.id, null);
     expect((await prisma().ticket.findUniqueOrThrow({ where: { id: t.id } })).subscriptionId).toBeNull();
     expect(await prisma().auditLog.count({ where: { action: 'TICKET_SERVICE_LINK_CHANGED' } })).toBe(2);
+
+    // z „bez usługi” z powrotem na usługę — zmiana warunkowa działa też dla pustego powiązania
+    await tickets.adminLinkSubscription(t.id, operator.id, a.subscription.id);
+    expect((await prisma().ticket.findUniqueOrThrow({ where: { id: t.id } })).subscriptionId).toBe(a.subscription.id);
+    expect(await prisma().auditLog.count({ where: { action: 'TICKET_SERVICE_LINK_CHANGED' } })).toBe(3);
   });
 
   it('usunięcie usługi zostawia zgłoszenie bez powiązania (ON DELETE SET NULL)', async () => {
