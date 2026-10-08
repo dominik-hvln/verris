@@ -26,6 +26,12 @@ import { join, relative } from 'path';
 
 const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const PANEL = join(KORZEN, 'apps', 'admin-panel', 'src');
+/**
+ * Panel obsługi woła te same trasy funkcją `staffApi` (w części plików importowaną jako `adminApi`).
+ * Do 08.10 strażnik go nie czytał — pakiet obsługi (PB-42…46) dodał tam kilkanaście wywołań
+ * (`/admin/subscriptions/:id/konto/…`, `/tickets/admin/:id/usluga`, `/staff/migrations/za-klienta`…) bez pokrycia.
+ */
+const PANEL_OBSLUGI = join(KORZEN, 'apps', 'staff-panel', 'src');
 const API = join(import.meta.dirname, '..');
 
 type Metoda = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
@@ -83,7 +89,7 @@ export function kandydaci(sciezka: string): string[] {
   const doklejona = /[^/]\$\{/.test(bezZapytania);
   if (doklejona) {
     const uciety = bezZapytania.replace(/\$\{[\s\S]*$/, '').replace(/\/$/, '');
-    if (uciety.startsWith('/admin')) out.push(uciety);
+    if (uciety.startsWith('/admin') || uciety.startsWith('/staff') || uciety.startsWith('/tickets')) out.push(uciety);
   }
   return out;
 }
@@ -113,22 +119,27 @@ export function pasuje(wywolanie: string, wzorzec: string): boolean {
   return a.every((s, i) => s === '*' || b[i] === '*' || s === b[i]);
 }
 
-function zbierzWywolania(): Wywolanie[] {
+function zbierzWywolania(
+  panel = PANEL,
+  funkcja = /adminApi/,
+  czyTrasa: (s: string) => boolean = (s) => s.startsWith('/admin'),
+): Wywolanie[] {
   const out: Wywolanie[] = [];
-  for (const p of pliki(PANEL, ['.ts', '.tsx'])) {
+  for (const p of pliki(panel, ['.ts', '.tsx'])) {
+    if (/\.spec\.tsx?$/.test(p)) continue;
     const tekst = readFileSync(p, 'utf8');
     // adminApi<...>( "ścieżka" | `ścieżka` , { method: "POST" ... } )
-    const re = /adminApi\s*(?:<[^>]*>)?\s*\(\s*[`"']([^`"']+)[`"']([\s\S]{0,400})/g;
+    const re = new RegExp(String.raw`(?:${funkcja.source})\s*(?:<[^>]*>)?\s*\(\s*[\x60"']([^\x60"']+)[\x60"']([\s\S]{0,400})`, 'g');
     let m: RegExpExecArray | null;
     while ((m = re.exec(tekst)) !== null) {
       const sciezka = m[1];
-      if (!sciezka.startsWith('/admin')) continue;
+      if (!czyTrasa(sciezka)) continue;
       // Ogon przycięty do KOŃCA TEGO wywołania. Pierwsza wersja czytała 220
       // znaków na ślepo i łapała `method: "POST"` z NASTĘPNEGO wywołania —
       // przez co zwykły `adminApi("/…/activity")` raportowany był jako POST
       // do trasy, która jest GET-em. Strażnik wskazujący nie ten wiersz
       // kosztuje tyle samo czasu co brak strażnika.
-      const ogon = m[2].split(';')[0].split('adminApi')[0];
+      const ogon = m[2].split(';')[0].split(new RegExp(funkcja.source))[0];
       const mm = /method:\s*["'](GET|POST|PATCH|PUT|DELETE)["']/.exec(ogon);
       const metoda = (mm?.[1] as Metoda) ?? 'GET';
       for (const s of kandydaci(sciezka)) {
@@ -143,10 +154,14 @@ function zbierzTrasy(): Trasa[] {
   const out: Trasa[] = [];
   for (const p of pliki(API, ['.controller.ts'])) {
     const tekst = readFileSync(p, 'utf8');
-    const baza = /@Controller\(\s*['"`]([^'"`]*)['"`]/.exec(tekst)?.[1] ?? '';
+    // Plik bywa domem kilku kontrolerów (`admin/staff-roles` i `staff/me`) — trasa należy do najbliższego
+    // `@Controller` nad nią, nie do pierwszego w pliku.
+    const kontrolery = [...tekst.matchAll(/@Controller\(\s*(?:['"`]([^'"`]*)['"`])?\s*\)/g)].map((k) => ({ od: k.index, baza: k[1] ?? '' }));
     const re = /@(Get|Post|Patch|Put|Delete)\(\s*(?:['"`]([^'"`]*)['"`])?\s*\)/g;
     let m: RegExpExecArray | null;
     while ((m = re.exec(tekst)) !== null) {
+      const at = m.index;
+      const baza = kontrolery.filter((k) => k.od < at).at(-1)?.baza ?? '';
       out.push({
         metoda: m[1].toUpperCase() as Metoda,
         wzorzec: wzorzecTrasy(baza, m[2] ?? ''),
@@ -168,40 +183,18 @@ describe('Panel admina i API mówią tymi samymi ścieżkami', () => {
   });
 
   it('każde wywołanie z panelu ma odpowiadającą trasę w API', () => {
-    // Warianty tej samej ścieżki grupujemy po pliku i metodzie — wystarczy,
-    // że pasuje jeden z nich.
-    const wgKlucza = new Map<string, Wywolanie[]>();
-    for (const w of wywolania) {
-      // Grupujemy po ORYGINALE, nie po wariancie. Pierwsza poprawka
-      // grupowała po ściętej ścieżce i rozdzielała warianty tego samego
-      // wywołania do osobnych grup — czyli wariant „pełny" zawsze zostawał sam
-      // i zawsze wyglądał na niepokryty.
-      const k = `${w.plik}|${w.metoda}|${w.oryginal}`;
-      wgKlucza.set(k, [...(wgKlucza.get(k) ?? []), w]);
-    }
-    const bezPokrycia = [...wgKlucza.values()]
-      .filter(
-        (grupa) =>
-          !grupa.some((w) =>
-            trasy.some((t) => t.metoda === w.metoda && pasuje(w.sciezka, t.wzorzec)),
-          ),
-      )
-      .map((grupa) => grupa[0]);
-    const opis = bezPokrycia
-      .map((w) => {
-        const tenSamKsztalt = trasy.filter((t) => pasuje(w.sciezka, t.wzorzec));
-        const podpowiedz = tenSamKsztalt.length
-          ? ` (ścieżka istnieje, ale dla metod: ${tenSamKsztalt.map((t) => t.metoda).join(', ')})`
-          : '';
-        return `  ${w.plik}: ${w.metoda} ${w.oryginal}${podpowiedz}`;
-      })
-      .join('\n');
-    expect(
-      bezPokrycia.length === 0
-        ? ''
-        : `Panel woła ścieżki, których API nie wystawia — kod się kompiluje, ` +
-          `panel się buduje, a 404 wychodzi dopiero pod palcem operatora:\n${opis}`,
-    ).toBe('');
+    expect(bezPokrycia(wywolania, trasy)).toBe('');
+  });
+
+  it('panel obsługi: każde wywołanie staffApi ma odpowiadającą trasę w API', () => {
+    const obslugi = zbierzWywolania(PANEL_OBSLUGI, /staffApi|adminApi/, (s) => /^\/(admin|staff|tickets)(\/|$|\?|\$)/.test(s));
+    // Próg: bez niego zmiana wyciągania, która nic nie znajduje, dałaby wiecznie zielony test.
+    expect(obslugi.length).toBeGreaterThan(40);
+    // Wywołania dodane w pakiecie obsługi (PB-42…46) są w zbiorze.
+    expect(obslugi.map((w) => w.oryginal)).toEqual(
+      expect.arrayContaining(['/tickets/admin/${ticketId}/usluga', '/staff/migrations/za-klienta', '/staff/me/access']),
+    );
+    expect(bezPokrycia(obslugi, trasy)).toBe('');
   });
 
   it('rozpoznaje ścieżkę, której nie ma', () => {
@@ -221,3 +214,39 @@ describe('Panel admina i API mówią tymi samymi ścieżkami', () => {
     expect(normalizuj('/admin/invoices?status=PAID&page=2')).toBe('/admin/invoices');
   });
 });
+
+/** Opis wywołań bez pokrycia w API ('' = wszystkie pokryte). */
+function bezPokrycia(wywolania: Wywolanie[], trasy: Trasa[]): string {
+  // Warianty tej samej ścieżki grupujemy po pliku i metodzie — wystarczy,
+  // że pasuje jeden z nich.
+  const wgKlucza = new Map<string, Wywolanie[]>();
+  for (const w of wywolania) {
+    // Grupujemy po ORYGINALE, nie po wariancie. Pierwsza poprawka
+    // grupowała po ściętej ścieżce i rozdzielała warianty tego samego
+    // wywołania do osobnych grup — czyli wariant „pełny" zawsze zostawał sam
+    // i zawsze wyglądał na niepokryty.
+    const k = `${w.plik}|${w.metoda}|${w.oryginal}`;
+    wgKlucza.set(k, [...(wgKlucza.get(k) ?? []), w]);
+  }
+  const brak = [...wgKlucza.values()]
+    .filter(
+      (grupa) =>
+        !grupa.some((w) =>
+          trasy.some((t) => t.metoda === w.metoda && pasuje(w.sciezka, t.wzorzec)),
+        ),
+    )
+    .map((grupa) => grupa[0]);
+  const opis = brak
+    .map((w) => {
+      const tenSamKsztalt = trasy.filter((t) => pasuje(w.sciezka, t.wzorzec));
+      const podpowiedz = tenSamKsztalt.length
+        ? ` (ścieżka istnieje, ale dla metod: ${tenSamKsztalt.map((t) => t.metoda).join(', ')})`
+        : '';
+      return `  ${w.plik}: ${w.metoda} ${w.oryginal}${podpowiedz}`;
+    })
+    .join('\n');
+  return brak.length === 0
+    ? ''
+    : `Panel woła ścieżki, których API nie wystawia — kod się kompiluje, ` +
+        `panel się buduje, a 404 wychodzi dopiero pod palcem operatora:\n${opis}`;
+}
