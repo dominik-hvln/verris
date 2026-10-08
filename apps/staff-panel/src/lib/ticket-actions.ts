@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { ServiceDiagnosticsDto } from "@verris/contracts";
 import { StaffApiError, staffApi, staffApiMultipart } from "./staff-api";
 
 export interface CannedResponseRow {
@@ -178,5 +179,30 @@ export async function staffGetAiStatus(): Promise<{ provider: string; configured
     return await staffApi<{ provider: string; configured: boolean }>("/ai/status");
   } catch {
     return { provider: "openai-compatible", configured: false };
+  }
+}
+
+/** PB-43 — zmiana usługi, której dotyczy zgłoszenie (null = bez usługi). */
+export async function staffLinkTicketService(
+  ticketId: string,
+  subscriptionId: string | null,
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await staffApi(`/tickets/admin/${ticketId}/usluga`, { method: "POST", body: { subscriptionId } });
+    revalidatePath(`/tickets/${ticketId}`);
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof StaffApiError ? e.message : "Nie udało się zmienić usługi zgłoszenia." };
+  }
+}
+
+/** PB-43 — diagnostyka usługi powiązanej ze zgłoszeniem (ta sama co na karcie usługi). */
+export async function staffTicketDiagnostics(
+  ticketId: string,
+): Promise<{ ok: true; data: ServiceDiagnosticsDto } | { ok: false; error: string }> {
+  try {
+    return { ok: true, data: await staffApi<ServiceDiagnosticsDto>(`/tickets/admin/${ticketId}/diagnostyka`) };
+  } catch (e) {
+    return { ok: false, error: e instanceof StaffApiError ? e.message : "Nie udało się uruchomić diagnostyki." };
   }
 }

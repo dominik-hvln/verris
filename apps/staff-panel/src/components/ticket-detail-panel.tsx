@@ -8,7 +8,6 @@ import type { AgentOption, OcenaAgenta, StaffTicketDetail, TicketAttachmentRow, 
 import { Select } from "@/components/select";
 import { Karta, TicketClientAside } from "@/components/ticket-client-aside";
 import {
-  staffApplyRunbook,
   staffEscalateTicket,
   staffFetchCanned,
   staffGenerateAiSuggestion,
@@ -22,7 +21,8 @@ import { odczytajSugestie, type SugestiaAi } from "@/lib/ai-sugestia";
 import { staffTicketAttachmentDownloadHref } from "@/lib/ticket-attachment-links";
 import { TICKET_DEPARTMENT_PL, TICKET_PRIORITY_PL, TICKET_STATUS_PL, etykieta } from "@verris/contracts";
 import { PoleZalacznikow } from "./pole-zalacznikow";
-import { Checkbox } from "./checkbox";
+import { TicketUsluga, nazwaUslugiZgloszenia } from "./ticket-usluga";
+import { TicketRunbook } from "./ticket-runbook";
 import { plForm } from "@/lib/pl";
 
 interface Props {
@@ -49,6 +49,7 @@ const EVENT_LABELS: Record<string, string> = {
   ESCALATED: "Eskalacja",
   AUTO_MESSAGE: "Automatyczna wiadomość",
   REOPENED: "Klient otworzył ponownie",
+  SERVICE_LINK_CHANGED: "Zmiana usługi zgłoszenia",
 };
 const AUTO: Record<string, string> = {
   POTWIERDZENIE: "potwierdzenie",
@@ -257,6 +258,12 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
       (!szukaj.trim() || [c.title, c.content, c.shortcut ?? ""].join(" ").toLowerCase().includes(szukaj.trim().toLowerCase())),
   );
 
+  // PB-43 — nazwy usług na osi zgłoszenia (id → domena z podglądu klienta).
+  const nazwaUslugi = (id: unknown) => {
+    if (!id) return "bez usługi";
+    const s = context?.services.find((x) => x.id === id);
+    return s ? nazwaUslugiZgloszenia(s) : "inna usługa";
+  };
   const watek = [...ticket.replies].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   const nazwaKlienta = [ticket.user.firstName, ticket.user.lastName].filter(Boolean).join(" ") || ticket.user.email;
 
@@ -619,6 +626,7 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
 
       {/* ---------- kolumna boczna */}
       <aside className="flex flex-col gap-4 xl:sticky xl:top-[86px] xl:self-start">
+        <TicketUsluga ticketId={ticket.id} userId={ticket.user.id} usluga={ticket.subscription ?? null} uslugiKlienta={context?.services ?? null} />
         <TicketClientAside context={context} userId={ticket.user.id} email={ticket.user.email} />
 
         <Karta>
@@ -675,30 +683,7 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
           </div>
         </Karta>
 
-        <Karta>
-          <div className="flex flex-col gap-2 px-4 py-3.5">
-            <h2 className="font-display text-[15px] font-bold">Lista kontrolna</h2>
-            {(ticket.department === "BILLING"
-              ? ["Status ostatniej faktury i płatności", "Portfel i metoda płatności", "Jasny termin dla klienta"]
-              : ["Przyczyna w logu / zdarzeniach usługi", "Strona znów działa", "Klient wie, co dalej"]
-            ).map((x) => (
-              <label key={x} className="flex items-center gap-2 text-[13.5px]">
-                <Checkbox /> {x}
-              </label>
-            ))}
-            <div className="mt-1 flex flex-wrap items-center gap-2 border-t border-line pt-2.5">
-              <span className="text-[12.5px] text-muted-foreground">Runbook: {ticket.runbookKey ?? "brak"}</span>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => operacja(() => staffApplyRunbook(ticket.id, ticket.department === "BILLING" ? "billing-payment-check" : "hosting-dns-tls-check"))}
-                className="ml-auto inline-flex h-8 items-center rounded-[9px] border border-line-strong bg-card px-2.5 text-[12.5px] font-semibold text-foreground hover:border-primary disabled:opacity-50"
-              >
-                Zastosuj zalecany
-              </button>
-            </div>
-          </div>
-        </Karta>
+        <TicketRunbook ticketId={ticket.id} runbookKey={ticket.runbookKey} kategoria={context?.category} dzial={ticket.department} />
 
         <Karta>
           <div className="flex flex-col gap-2 px-4 py-3.5">
@@ -740,7 +725,9 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
                       ? ` (${TICKET_STATUS_PL[String(meta.from)] ?? String(meta.from ?? "—")} → ${TICKET_STATUS_PL[String(meta.to)] ?? String(meta.to ?? "—")})`
                       : e.type === "AUTO_MESSAGE"
                         ? `: ${AUTO[String(meta.rodzaj)] ?? String(meta.rodzaj ?? "")}`
-                        : "";
+                        : e.type === "SERVICE_LINK_CHANGED"
+                          ? ` (${nazwaUslugi(meta.from)} → ${nazwaUslugi(meta.to)})`
+                          : "";
                   return (
                     <li key={e.id} className="flex justify-between gap-3 text-[12.5px]">
                       <span>

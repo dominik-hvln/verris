@@ -124,6 +124,15 @@ export interface StaffTicketDetail extends StaffTicketRow {
   csatComment?: string | null;
   csatAt?: string | null;
   runbookKey?: string | null;
+  /** PB-43 — usługa, której dotyczy zgłoszenie */
+  subscriptionId?: string | null;
+  subscription?: {
+    id: string;
+    serviceTag: string | null;
+    status: string;
+    plan: { name: string } | null;
+    account: { domain: string } | null;
+  } | null;
   replies: Array<{
     id: string;
     message: string;

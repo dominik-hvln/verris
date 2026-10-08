@@ -14,6 +14,8 @@ jest.mock("@/lib/ticket-actions", () => ({
   staffPostReplyWithFiles: jest.fn(),
   staffSetRiskFlag: jest.fn(),
   staffUpdateTicket: jest.fn(),
+  staffLinkTicketService: jest.fn(),
+  staffTicketDiagnostics: jest.fn(),
 }));
 
 import { TicketDetailPanel } from "./ticket-detail-panel";
@@ -80,6 +82,15 @@ describe("X-05 szczegół zgłoszenia (obsługa)", () => {
     expect(t).toContain("Czekamy na odpowiedź klienta");
     expect(t).not.toContain("Wciąż nad tym pracujemy");
     expect(t).toContain("zamknięcie po 5 dniach bez odpowiedzi");
+  });
+
+  it("PB-43: przy rozmowie usługa zgłoszenia z diagnostyką i runbook z krokami", () => {
+    const t = render(zgl({ subscription: { id: "sub1", serviceTag: null, status: "ACTIVE", plan: { name: "Hosting" }, account: { domain: "sklep.pl" } } }));
+    expect(t).toContain("Usługa zgłoszenia");
+    expect(t).toContain("sklep.pl");
+    expect(t).toContain("Diagnostyka");
+    expect(t).toContain("Runbook");
+    expect(t).not.toContain("Lista kontrolna");
   });
 
   it("zamknięte z oceną: oceny opiekuna i obsługi widoczne", () => {
