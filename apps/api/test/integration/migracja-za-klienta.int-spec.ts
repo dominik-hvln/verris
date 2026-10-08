@@ -3,6 +3,7 @@ import { AuditService } from '../../src/common/audit/audit.service.js';
 import { CryptoService } from '../../src/common/crypto/crypto.service.js';
 import { MigrationOrchestratorService } from '../../src/subscriptions/migration-orchestrator.service.js';
 import { MigracjaZaKlientaService, ZGODA_WAZNOSC_DNI, hashTokenuZgody } from '../../src/subscriptions/migracja-za-klienta.service.js';
+import { MigracjaZgodaController } from '../../src/subscriptions/migracja-zgoda.controller.js';
 import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } from './setup.js';
 
 // Z-09 — hosty źródła rozwiązywane w DNS; w teście atrapa („publiczny”), reszta jak na produkcji.
@@ -41,7 +42,7 @@ function uslugi() {
   };
   const orkiestrator = new MigrationOrchestratorService(p, crypto, audit, notifications as never, directAdmin as never, preflight as never, null as never);
   const zaKlienta = new MigracjaZaKlientaService(p, orkiestrator, audit, mailer as never, notifications as never, preflight as never);
-  return { orkiestrator, zaKlienta, maile, preflight, notifications };
+  return { orkiestrator, zaKlienta, maile, mailer, preflight, notifications, directAdmin };
 }
 
 async function przygotuj() {
@@ -56,6 +57,13 @@ const zlecenie = () => ({
   targetDomain: 'sklep.example.pl',
   ftp: { host: 'ftp.stary-hosting.pl', port: 21, username: 'sklep', password: HASLO_FTP, protocol: 'ftp' as const },
   mysql: [{ host: 'mysql.stary-hosting.pl', port: 3306, database: 'sklep_db' }],
+});
+
+/** Skrzynka do przeniesienia z „załóż brakujące” — przyjęcie zgody zakłada ją na węźle (atrapa DA). */
+const zleceniePoczty = () => ({
+  targetDomain: 'sklep.example.pl',
+  imap: [{ host: 'imap.stary-hosting.pl', email: 'biuro@sklep.example.pl', password: 'HasloSkrzynki-1' }],
+  utworzBrakujaceSkrzynki: true,
 });
 
 /** Token z linku w mailu (dokładnie to, co dostaje klient). */
@@ -266,5 +274,123 @@ describe('PB-45 — migracja za klienta startuje dopiero po jego zgodzie', () =>
     await expect(
       zaKlienta.przyjmij({ subscriptionId: k.subscription.id, userId: k.user.id, actorUserId: k.user.id, migrationId: migracja.id, token, ip: null }),
     ).rejects.toThrow(/anulowana/);
+  });
+  it('operator w sesji „Zaloguj jako klient” nie zatwierdzi ani nie odrzuci zgody; subkonto też nie — tylko właściciel', async () => {
+    const { k, operator } = await przygotuj();
+    const { zaKlienta, maile } = uslugi();
+    const { migracja } = await zaKlienta.utworz({ subscriptionId: k.subscription.id, actorUserId: operator.id, powod: 'Zgłoszenie #10', zlecenie: zlecenie() });
+    const token = tokenZMaila(maile);
+    const kontroler = new MigracjaZgodaController(zaKlienta);
+    const zadanie = { ip: '203.0.113.99' } as never;
+    // Dokładnie to, co JwtStrategy.validate zwraca dla tokenu impersonacji (sub = klient, impersonatedBy = operator).
+    const sesjaWsparcia = { userId: k.user.id, principalUserId: k.user.id, impersonatedBy: operator.id, customerOwnerId: null };
+    const subkonto = { userId: k.user.id, principalUserId: 'subkonto-1', customerOwnerId: k.user.id };
+
+    await expect(kontroler.przyjmij(sesjaWsparcia, k.subscription.id, migracja.id, { token }, zadanie)).rejects.toMatchObject({ status: 403 });
+    await expect(kontroler.odrzuc(sesjaWsparcia, k.subscription.id, migracja.id, { token }, zadanie)).rejects.toMatchObject({ status: 403 });
+    await expect(kontroler.przyjmij(subkonto, k.subscription.id, migracja.id, { token }, zadanie)).rejects.toMatchObject({ status: 403 });
+    await expect(kontroler.odrzuc(subkonto, k.subscription.id, migracja.id, { token }, zadanie)).rejects.toMatchObject({ status: 403 });
+
+    const req = await prisma().migrationRequest.findUniqueOrThrow({ where: { id: migracja.id }, include: { workerJobs: true } });
+    expect(req.status).toBe(MigrationStatus.DRAFT);
+    expect(req.consentDecidedAt).toBeNull();
+    expect(req.consentIp).toBeNull();
+    expect(req.workerJobs).toHaveLength(0);
+    expect(await prisma().auditLog.count({ where: { action: { in: ['MIGRATION_CONSENT_ACCEPTED', 'MIGRATION_CONSENT_REJECTED', 'MIGRATION_BUNDLE_QUEUED'] } } })).toBe(0);
+
+    // Właściciel we własnej sesji — przechodzi.
+    const wlasciciel = { userId: k.user.id, principalUserId: k.user.id, customerOwnerId: null };
+    const wynik = await kontroler.przyjmij(wlasciciel, k.subscription.id, migracja.id, { token }, { ip: '198.51.100.20' } as never);
+    expect(wynik.status).toBe(MigrationStatus.QUEUED);
+  });
+
+  it('podwójne „Zgadzam się” zakłada brakującą skrzynkę raz; nieudane założenie zdejmuje rezerwację i można spróbować ponownie', async () => {
+    const { k, operator } = await przygotuj();
+    const { zaKlienta, maile, directAdmin } = uslugi();
+    const { migracja } = await zaKlienta.utworz({ subscriptionId: k.subscription.id, actorUserId: operator.id, powod: 'Zgłoszenie #11', zlecenie: zleceniePoczty() });
+    const token = tokenZMaila(maile);
+    const zgoda = () =>
+      zaKlienta.przyjmij({ subscriptionId: k.subscription.id, userId: k.user.id, actorUserId: k.user.id, migrationId: migracja.id, token, ip: null });
+
+    // Pierwsza próba: węzeł odrzuca założenie skrzynki — prośba wraca do „oczekuje”, nic w kolejce.
+    directAdmin.createHostingEmailAccount.mockRejectedValueOnce(new Error('limit skrzynek'));
+    await expect(zgoda()).rejects.toThrow(/Nie udało się założyć skrzynki/);
+    let req = await prisma().migrationRequest.findUniqueOrThrow({ where: { id: migracja.id }, include: { workerJobs: true } });
+    expect(req.status).toBe(MigrationStatus.DRAFT);
+    expect(req.consentDecidedAt).toBeNull();
+    expect(req.workerJobs).toHaveLength(0);
+    directAdmin.createHostingEmailAccount.mockClear();
+
+    // Dwa kliknięcia naraz (mail + baner): jedno przechodzi, drugie dostaje czytelny komunikat, skrzynka zakładana raz.
+    directAdmin.createHostingEmailAccount.mockImplementation(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+      return { ok: true };
+    });
+    const wyniki = await Promise.allSettled([zgoda(), zgoda()]);
+    expect(wyniki.filter((w) => w.status === 'fulfilled')).toHaveLength(1);
+    const odrzucone = wyniki.find((w): w is PromiseRejectedResult => w.status === 'rejected');
+    expect(String(odrzucone?.reason)).toMatch(/już rozpatrzona/);
+    expect(directAdmin.createHostingEmailAccount).toHaveBeenCalledTimes(1);
+    req = await prisma().migrationRequest.findUniqueOrThrow({ where: { id: migracja.id }, include: { workerJobs: true } });
+    expect(req.status).toBe(MigrationStatus.QUEUED);
+    expect(await prisma().auditLog.count({ where: { action: 'MIGRATION_CONSENT_ACCEPTED' } })).toBe(1);
+  });
+
+  it('zatwierdzana właśnie prośba (rezerwacja): obsługa jej nie anuluje, cron nie wygasza; porzucona rezerwacja po godzinie — tak', async () => {
+    const { k, operator } = await przygotuj();
+    const { orkiestrator, zaKlienta } = uslugi();
+    const { migracja } = await zaKlienta.utworz({ subscriptionId: k.subscription.id, actorUserId: operator.id, powod: 'Zgłoszenie #12', zlecenie: zlecenie() });
+    // Stan „w trakcie przyjmowania”: rezerwacja założona, termin właśnie minął.
+    await prisma().migrationRequest.update({
+      where: { id: migracja.id },
+      data: { consentDecidedAt: new Date(), consentExpiresAt: new Date(Date.now() - 1000) },
+    });
+    await expect(
+      orkiestrator.setStatusForStaff({ migrationRequestId: migracja.id, actorUserId: operator.id, status: MigrationStatus.CANCELED }),
+    ).rejects.toThrow(/właśnie zdecydował/);
+    expect(await zaKlienta.wygasPrzeterminowane()).toEqual({ wygasle: 0 });
+    expect((await prisma().migrationRequest.findUniqueOrThrow({ where: { id: migracja.id } })).status).toBe(MigrationStatus.DRAFT);
+
+    // Proces padł w trakcie — po godzinie wygaśnięcie zamyka szkic i kasuje dane źródła.
+    await prisma().migrationRequest.update({ where: { id: migracja.id }, data: { consentDecidedAt: new Date(Date.now() - 2 * 3_600_000) } });
+    expect(await zaKlienta.wygasPrzeterminowane()).toEqual({ wygasle: 1 });
+    const req = await prisma().migrationRequest.findUniqueOrThrow({ where: { id: migracja.id } });
+    expect(req.status).toBe(MigrationStatus.CANCELED);
+    expect(req.sourceBundleEnc).toBe('');
+  });
+
+  it('dwa równoległe założenia dla jednej usługi: jedna prośba i jeden mail (indeks w bazie)', async () => {
+    const { k, operator } = await przygotuj();
+    const { zaKlienta, maile } = uslugi();
+    const wyniki = await Promise.allSettled([
+      zaKlienta.utworz({ subscriptionId: k.subscription.id, actorUserId: operator.id, powod: 'Operator A', zlecenie: zlecenie() }),
+      zaKlienta.utworz({ subscriptionId: k.subscription.id, actorUserId: operator.id, powod: 'Operator B', zlecenie: zlecenie() }),
+    ]);
+    expect(wyniki.filter((w) => w.status === 'fulfilled')).toHaveLength(1);
+    const odrzucone = wyniki.find((w): w is PromiseRejectedResult => w.status === 'rejected');
+    expect(String(odrzucone?.reason)).toMatch(/czeka już migracja na zgodę/);
+    expect(await prisma().migrationRequest.count({ where: { subscriptionId: k.subscription.id, status: MigrationStatus.DRAFT } })).toBe(1);
+    expect(maile).toHaveLength(1);
+  });
+
+  it('przeterminowana prośba (przed przebiegiem crona) nie blokuje nowej — zostaje zamknięta i skasowana', async () => {
+    const { k, operator } = await przygotuj();
+    const { zaKlienta } = uslugi();
+    const stara = await zaKlienta.utworz({ subscriptionId: k.subscription.id, actorUserId: operator.id, powod: 'Zgłoszenie #13', zlecenie: zlecenie() });
+    await prisma().migrationRequest.update({ where: { id: stara.migracja.id }, data: { consentExpiresAt: new Date(Date.now() - 60_000) } });
+
+    const nowa = await zaKlienta.utworz({ subscriptionId: k.subscription.id, actorUserId: operator.id, powod: 'Zgłoszenie #14', zlecenie: zlecenie() });
+    expect(nowa.migracja.status).toBe(MigrationStatus.DRAFT);
+    const req = await prisma().migrationRequest.findUniqueOrThrow({ where: { id: stara.migracja.id } });
+    expect(req.status).toBe(MigrationStatus.CANCELED);
+    expect(req.currentStep).toBe('consent-expired');
+    expect(req.secretsPurgedAt).not.toBeNull();
+  });
+
+  it('mail z prośbą idzie z userId klienta (marka partnera dla klientów resellera, EmailLog przy koncie)', async () => {
+    const { k, operator } = await przygotuj();
+    const { zaKlienta, mailer } = uslugi();
+    await zaKlienta.utworz({ subscriptionId: k.subscription.id, actorUserId: operator.id, powod: 'Zgłoszenie #15', zlecenie: zlecenie() });
+    expect(mailer.send).toHaveBeenCalledWith(expect.objectContaining({ to: k.user.email, userId: k.user.id }));
   });
 });

@@ -13,7 +13,9 @@ import { MigrationPreflightService, PreflightSummary } from './migration-preflig
 import {
   MigrationOrchestratorService,
   MigrationRequestSummary,
+  PROSBA_JUZ_ROZPATRZONA,
   normalizujZlecenie,
+  szkicBezDecyzji,
 } from './migration-orchestrator.service.js';
 
 /**
@@ -24,6 +26,9 @@ import {
  * Dane źródła leżą zaszyfrowane jak przy kreatorze; bez decyzji w terminie — anulowane i skasowane.
  */
 export const ZGODA_WAZNOSC_DNI = 7;
+
+const JUZ_CZEKA =
+  'Dla tej usługi czeka już migracja na zgodę klienta. Anuluj ją w szczegółach zlecenia (kolejka migracji) albo poczekaj na decyzję.';
 
 export type StanProsby = 'oczekuje' | 'zaakceptowana' | 'odrzucona' | 'wygasla' | 'anulowana';
 
@@ -104,14 +109,12 @@ export class MigracjaZaKlientaService {
     }
 
     const teraz = new Date();
+    // Przeterminowana prośba tej usługi (cron chodzi co godzinę) nie blokuje nowej — zamykamy ją od razu.
+    await this.wygasPrzeterminowane(teraz, sub.id);
     const oczekujace = await this.prisma.migrationRequest.count({
       where: { subscriptionId: sub.id, status: MigrationStatus.DRAFT, consentDecidedAt: null, consentExpiresAt: { gt: teraz } },
     });
-    if (oczekujace > 0) {
-      throw new BadRequestException(
-        'Dla tej usługi czeka już migracja na zgodę klienta. Anuluj ją w szczegółach zlecenia (kolejka migracji) albo poczekaj na decyzję.',
-      );
-    }
+    if (oczekujace > 0) throw new BadRequestException(JUZ_CZEKA);
 
     // Zgoda klienta nigdy nie przychodzi od operatora — nawet gdyby formularz ją przysłał.
     const dto = normalizujZlecenie({ ...opts.zlecenie, consentAccepted: undefined });
@@ -120,6 +123,8 @@ export class MigracjaZaKlientaService {
 
     const token = nodeCrypto.randomBytes(32).toString('base64url');
     const wygasa = new Date(teraz.getTime() + ZGODA_WAZNOSC_DNI * 24 * 60 * 60 * 1000);
+    // Równoległe założenie (dwóch operatorów, dwie karty) zatrzymuje częściowy indeks unikalny
+    // MigrationRequest_oczekujaca_zgoda_key — drugi dostaje ten sam komunikat, bez drugiego maila.
     const req = await this.prisma.migrationRequest.create({
       data: {
         subscriptionId: sub.id,
@@ -135,6 +140,9 @@ export class MigracjaZaKlientaService {
         requestedByOperatorId: opts.actorUserId,
         operatorReason: opts.powod,
       },
+    }).catch((e: unknown) => {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') throw new BadRequestException(JUZ_CZEKA);
+      throw e;
     });
 
     const domena = dto.targetDomain ?? sub.account.domain;
@@ -165,6 +173,8 @@ export class MigracjaZaKlientaService {
     try {
       const wynik = await this.mailer.send({
         to: sub.user.email,
+        // userId — marka partnera dla klienta resellera (applyPartnerBrand) i EmailLog przypięty do konta.
+        userId: sub.userId,
         subject: `Przygotowaliśmy przeniesienie ${domena} — potrzebna Twoja zgoda`,
         ...this.mailProsby(sub.user.email, sub.user.firstName, {
           domena,
@@ -232,7 +242,7 @@ export class MigracjaZaKlientaService {
     } catch (e) {
       // Warunkowe przejście DRAFT → QUEUED nie trafiło: równoległe kliknięcie, odrzucenie albo wygaśnięcie.
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
-        throw new BadRequestException('Ta prośba o zgodę została już rozpatrzona albo wygasła.');
+        throw new BadRequestException(PROSBA_JUZ_ROZPATRZONA);
       }
       throw e;
     }
@@ -267,7 +277,7 @@ export class MigracjaZaKlientaService {
     this.wymagajOczekujacej(req);
     const teraz = new Date();
     const zamkniete = await this.zamknij(req.id, 'consent-rejected', teraz);
-    if (!zamkniete) throw new BadRequestException('Ta prośba o zgodę została już rozpatrzona albo wygasła.');
+    if (!zamkniete) throw new BadRequestException(PROSBA_JUZ_ROZPATRZONA);
 
     await this.prisma.subscriptionEvent.create({
       data: { subscriptionId: req.subscriptionId, type: 'MIGRATION_CONSENT_REJECTED', details: { migrationRequestId: req.id } },
@@ -283,10 +293,18 @@ export class MigracjaZaKlientaService {
     return this.widok(await this.prisma.migrationRequest.findUniqueOrThrow({ where: { id: req.id } }));
   }
 
-  /** Bez decyzji w terminie — anulowane, dane źródła skasowane (cron co godzinę, idempotentne). */
-  async wygasPrzeterminowane(teraz = new Date()): Promise<{ wygasle: number }> {
+  /**
+   * Bez decyzji w terminie — anulowane, dane źródła skasowane (cron co godzinę, idempotentne; przy zakładaniu
+   * nowej prośby — tylko dla tej usługi). Prośby właśnie zatwierdzanej (rezerwacja) nie ruszamy.
+   */
+  async wygasPrzeterminowane(teraz = new Date(), subscriptionId?: string): Promise<{ wygasle: number }> {
     const przeterminowane = await this.prisma.migrationRequest.findMany({
-      where: { status: MigrationStatus.DRAFT, consentDecidedAt: null, consentExpiresAt: { lt: teraz } },
+      where: {
+        ...szkicBezDecyzji(teraz),
+        requestedByOperatorId: { not: null },
+        consentExpiresAt: { lt: teraz },
+        ...(subscriptionId ? { subscriptionId } : {}),
+      },
       take: 100,
     });
     let wygasle = 0;
@@ -355,7 +373,8 @@ export class MigracjaZaKlientaService {
   /** Warunkowe zamknięcie oczekującej prośby (odrzucenie/wygaśnięcie) z natychmiastowym skasowaniem danych źródła. */
   private async zamknij(id: string, krok: 'consent-rejected' | 'consent-expired', teraz: Date): Promise<boolean> {
     const { count } = await this.prisma.migrationRequest.updateMany({
-      where: { id, status: MigrationStatus.DRAFT, consentDecidedAt: null },
+      // Odrzucenie przegrywa z trwającym przyjęciem (rezerwacja); wygaśnięcie zamyka też porzuconą rezerwację.
+      where: krok === 'consent-rejected' ? { id, status: MigrationStatus.DRAFT, consentDecidedAt: null } : { id, ...szkicBezDecyzji(teraz) },
       data: {
         status: MigrationStatus.CANCELED,
         currentStep: krok,

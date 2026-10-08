@@ -5,13 +5,16 @@ import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { DecyzjaZgodyDto } from './dto/migration.dto.js';
 import { MigracjaZaKlientaService } from './migracja-za-klienta.service.js';
+import { tylkoKlient } from '../compliance/consents.controller.js';
 
-type Klient = { userId: string; principalUserId?: string };
+type Klient = { userId: string; principalUserId?: string; impersonatedBy?: string; customerOwnerId?: string | null };
 
 /**
  * PB-45 — zgoda klienta na migrację przygotowaną przez obsługę (link z maila albo baner w Migracjach).
- * Trasy pod `/services/:id/migrations/…` — subkonta jak przy kreatorze: podgląd z SERVICES_READ,
- * decyzja z FILES_MANAGE (reguła migracji w customer-permissions.guard).
+ * Trasy pod `/services/:id/migrations/…` — podgląd jak przy kreatorze (subkonto z SERVICES_READ też).
+ * Decyzję (zgoda albo odrzucenie) podejmuje wyłącznie właściciel konta (`tylkoKlient`): nie operator
+ * w sesji „Zaloguj jako klient” — ten sam, który migrację przygotował, wpisałby sobie zgodę klienta — ani
+ * subkonto/członek zespołu, bo upoważnienie RODO/DPA zapisuje się jako zgoda właściciela usługi.
  */
 @Controller('services')
 @UseGuards(JwtAuthGuard)
@@ -39,6 +42,7 @@ export class MigracjaZgodaController {
     @Body() body: DecyzjaZgodyDto,
     @Req() req: Request,
   ) {
+    tylkoKlient(user);
     return this.zaKlienta.przyjmij({
       subscriptionId: id,
       userId: user.userId,
@@ -58,6 +62,7 @@ export class MigracjaZgodaController {
     @Body() body: DecyzjaZgodyDto,
     @Req() req: Request,
   ) {
+    tylkoKlient(user);
     return this.zaKlienta.odrzuc({
       subscriptionId: id,
       userId: user.userId,

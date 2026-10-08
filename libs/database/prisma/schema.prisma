@@ -1149,6 +1149,8 @@ model MigrationRequest {
   /// Adres IP, z którego klient wyraził zgodę (ślad upoważnienia RODO/DPA).
   consentIp             String?
   /// Operator, który przygotował migrację, i powód / numer zgłoszenia (dziennik).
+  /// Jedna oczekująca prośba na usługę — częściowy indeks unikalny MigrationRequest_oczekujaca_zgoda_key
+  /// (tylko w SQL migracji 20261008160000, Prisma nie opisuje indeksów z WHERE).
   requestedByOperatorId String?
   operatorReason        String?   @db.Text
 

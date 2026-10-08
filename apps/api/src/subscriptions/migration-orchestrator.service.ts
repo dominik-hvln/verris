@@ -91,6 +91,22 @@ export const MIGRATION_SECRET_TTL_FAILED_DAYS = 3;
 /** Ile zleceń migracji „w toku" dopuszczamy jednocześnie na jedną subskrypcję. */
 export const MIGRATION_MAX_ACTIVE_PER_SUBSCRIPTION = 1;
 
+/** Komunikat dla przyjęcia/odrzucenia zgody, której już nie da się rozpatrzyć (PB-45). */
+export const PROSBA_JUZ_ROZPATRZONA = 'Ta prośba o zgodę została już rozpatrzona albo wygasła.';
+
+/**
+ * PB-45 — przyjmowanie zgody najpierw rezerwuje szkic (`consentDecidedAt`), potem zakłada skrzynki i kolejkuje.
+ * Szkic bez decyzji = DRAFT bez rezerwacji albo z rezerwacją starszą niż godzina (proces padł w trakcie) —
+ * tylko taki wolno zamknąć wygaśnięciem lub anulowaniem przez obsługę, żeby dane źródła nie zostały na zawsze.
+ */
+export const REZERWACJA_ZGODY_MS = 60 * 60 * 1000;
+export function szkicBezDecyzji(teraz: Date): { status: MigrationStatus; OR: Prisma.MigrationRequestWhereInput[] } {
+  return {
+    status: MigrationStatus.DRAFT,
+    OR: [{ consentDecidedAt: null }, { consentDecidedAt: { lt: new Date(teraz.getTime() - REZERWACJA_ZGODY_MS) } }],
+  };
+}
+
 @Injectable()
 export class MigrationOrchestratorService {
   private readonly logger = new Logger(MigrationOrchestratorService.name);
@@ -467,30 +483,55 @@ export class MigrationOrchestratorService {
     },
   ): Promise<MigrationRequestSummary> {
     const subscriptionId = sub.id;
-    // Tryb „Wszystko naraz” (08.10): brakujące skrzynki docelowe zakładamy z hasłem ze starego hostingu — po
-    // teście logowania do źródła i po limicie migracji, żeby nie zostawić skrzynek bez migracji.
-    if (dto.utworzBrakujaceSkrzynki && dto.imap?.length) await this.zalozBrakujaceSkrzynki(subscriptionId, userId, dto.imap);
+    // PB-45 — szkic najpierw rezerwujemy (warunkowo, jeden wygrywa), a dopiero potem zakładamy skrzynki na
+    // węźle: podwójne „Zgadzam się”, wygaśnięcie albo anulowanie w międzyczasie nie zakłada skrzynek dla
+    // zlecenia, które i tak nie trafi do kolejki.
+    let rezerwacja: Date | null = null;
+    if (opcje.szkic) {
+      rezerwacja = new Date();
+      const { count } = await this.prisma.migrationRequest.updateMany({
+        where: { id: opcje.szkic.id, status: MigrationStatus.DRAFT, consentDecidedAt: null, consentExpiresAt: { gt: rezerwacja } },
+        data: { consentDecidedAt: rezerwacja },
+      });
+      if (count !== 1) throw new BadRequestException(PROSBA_JUZ_ROZPATRZONA);
+    }
 
-    const workerJobs = { create: buildWorkerJobs(subscriptionId, dto, sub.account?.domain ?? null) };
-    const request = opcje.szkic
-      ? await this.prisma.migrationRequest.update({
-          where: { id: opcje.szkic.id, status: MigrationStatus.DRAFT, consentDecidedAt: null, consentExpiresAt: { gt: new Date() } },
-          data: { ...opcje.szkic.dane, status: MigrationStatus.QUEUED, currentStep: 'queued', workerJobs },
-          include: { workerJobs: true },
-        })
-      : await this.prisma.migrationRequest.create({
-          data: {
-            subscriptionId,
-            userId,
-            sourceBundleEnc: this.zaszyfrujPakiet(dto),
-            targetDomain: dto.targetDomain ?? null,
-            sourcePanelType: dto.sourcePanelType ?? 'manual',
-            status: MigrationStatus.QUEUED,
-            currentStep: 'queued',
-            workerJobs,
-          },
-          include: { workerJobs: true },
+    let request;
+    try {
+      // Tryb „Wszystko naraz” (08.10): brakujące skrzynki docelowe zakładamy z hasłem ze starego hostingu — po
+      // teście logowania do źródła i po limicie migracji, żeby nie zostawić skrzynek bez migracji.
+      if (dto.utworzBrakujaceSkrzynki && dto.imap?.length) await this.zalozBrakujaceSkrzynki(subscriptionId, userId, dto.imap);
+
+      const workerJobs = { create: buildWorkerJobs(subscriptionId, dto, sub.account?.domain ?? null) };
+      request = opcje.szkic
+        ? await this.prisma.migrationRequest.update({
+            where: { id: opcje.szkic.id, status: MigrationStatus.DRAFT, consentDecidedAt: rezerwacja },
+            data: { ...opcje.szkic.dane, status: MigrationStatus.QUEUED, currentStep: 'queued', workerJobs },
+            include: { workerJobs: true },
+          })
+        : await this.prisma.migrationRequest.create({
+            data: {
+              subscriptionId,
+              userId,
+              sourceBundleEnc: this.zaszyfrujPakiet(dto),
+              targetDomain: dto.targetDomain ?? null,
+              sourcePanelType: dto.sourcePanelType ?? 'manual',
+              status: MigrationStatus.QUEUED,
+              currentStep: 'queued',
+              workerJobs,
+            },
+            include: { workerJobs: true },
+          });
+    } catch (e) {
+      // Np. skrzynka nie dała się założyć — zdejmujemy rezerwację, klient może spróbować ponownie.
+      if (opcje.szkic && rezerwacja) {
+        await this.prisma.migrationRequest.updateMany({
+          where: { id: opcje.szkic.id, status: MigrationStatus.DRAFT, consentDecidedAt: rezerwacja },
+          data: { consentDecidedAt: null },
         });
+      }
+      throw e;
+    }
 
     await this.prisma.subscriptionEvent.create({
       data: {
@@ -665,7 +706,8 @@ export class MigrationOrchestratorService {
     const status = opts.status === MigrationStatus.RUNNING ? this.statusWznowienia(request) : opts.status;
 
     const updated = await this.prisma.migrationRequest.update({
-      where: { id: request.id },
+      // PB-45 — szkic, który klient właśnie zatwierdza (rezerwacja), zostaje: inaczej skrzynki powstałyby bez migracji.
+      where: czekaNaZgode ? { id: request.id, ...szkicBezDecyzji(new Date()) } : { id: request.id },
       data: {
         status,
         ...(opts.status === MigrationStatus.CANCELED ? { needsAttention: false, attentionReason: null } : {}),
@@ -688,6 +730,11 @@ export class MigrationOrchestratorService {
               ? (request.currentStep ?? 'running')
               : status.toLowerCase(),
       },
+    }).catch((e: unknown) => {
+      if (czekaNaZgode && e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
+        throw new BadRequestException('Klient właśnie zdecydował w sprawie tej migracji — odśwież widok.');
+      }
+      throw e;
     });
 
     await this.audit.record({
