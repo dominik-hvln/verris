@@ -167,3 +167,24 @@ describe.each(DOCKERFILE)('%s bierze Node z lustra, nie z Docker Huba', (plik) =
     for (const obraz of fromy) expect(obraz).toBe('${NODE_IMAGE}:${NODE_VERSION}-trixie-slim');
   });
 });
+
+/**
+ * 10.10.2026 — CI dependabota padało na Docker Hubie: kontener Postgresa w testach („Docker pull failed”)
+ * i obraz BuildKit (`docker.io/moby/buildkit` → 504 z auth.docker.io). Ten sam BuildKit buduje obrazy deployu.
+ */
+describe('workflowy nie pobierają obrazów z Docker Huba', () => {
+  const wf = (n: string) => readFileSync(join(KORZEN, '.github', 'workflows', n), 'utf8');
+
+  it('kontenery usług w CI idą z mirror.gcr.io', () => {
+    const obrazy = [...wf('ci.yml').matchAll(/^\s+image:\s*(\S+)/gm)].map((m) => m[1]);
+    expect(obrazy.length).toBeGreaterThanOrEqual(2);
+    for (const o of obrazy) expect(o).toMatch(/^mirror\.gcr\.io\//);
+  });
+
+  it.each(['ci.yml', 'deploy.yml', 'obraz-minio.yml'])('%s: BuildKit z lustra', (n) => {
+    const t = wf(n);
+    const ile = (t.match(/docker\/setup-buildx-action@/g) ?? []).length;
+    expect(ile).toBeGreaterThanOrEqual(1);
+    expect((t.match(/driver-opts:\s*image=mirror\.gcr\.io\/moby\/buildkit:/g) ?? []).length).toBe(ile);
+  });
+});

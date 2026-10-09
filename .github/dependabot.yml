@@ -21,6 +21,11 @@ updates:
       interval: weekly
       day: monday
     labels: [docker, security]
+    ignore:
+      # docker-compose.pg16.yml to plik AWARYJNEGO powrotu na Postgres 16 (ops/scripts/prod-infra-upgrade.sh) —
+      # musi zostać na 16; pilnuje tego deploy-nie-rusza-infrastruktury.spec.ts. Postgres 18 aktualizujemy ręcznie.
+      - dependency-name: postgres
+        update-types: [version-update:semver-major]
 
   # Akcje GitHub w workflowach.
   - package-ecosystem: github-actions
