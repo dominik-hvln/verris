@@ -49,6 +49,13 @@ describe("Karta operatora", () => {
     expect(html.match(/title="Wymaga roli administratora"/g)).toHaveLength(3);
   });
 
+  it("operator bez roli administratora widzi bieżące role i Grafanę (dawniej na /roles i liście /operators)", async () => {
+    (fetchStaffAccess as jest.Mock).mockResolvedValue({ role: "STAFF", isAdmin: false, permissions: ["STAFF_MANAGE"] });
+    const html = await render();
+    expect(html).toContain("L2 Specjalista techniczny");
+    expect(html).toContain("Włączony");
+  });
+
   it("historia logowań niedostępna — karta i tak pokazuje dostęp", async () => {
     (fetchStaffAccess as jest.Mock).mockResolvedValue(ADMIN);
     (getOperatorLoginHistory as jest.Mock).mockRejectedValue(new Error("Brak uprawnień."));

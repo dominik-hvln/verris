@@ -26,8 +26,8 @@ const REASON_LABELS: Record<string, string> = {
   session_expired: "Sesja wygasła",
 };
 
-/** Wiersz sekcji „Dostęp”: nazwa, jedno zdanie, sterowanie albo wyszarzony powód. */
-function Wiersz({ nazwa, opis, powod, children }: { nazwa: string; opis: string; powod: string | null; children: React.ReactNode }) {
+/** Wiersz sekcji „Dostęp”: nazwa, jedno zdanie, sterowanie albo (bez uprawnień) bieżąca wartość i wyszarzony powód. */
+function Wiersz({ nazwa, opis, powod, wartosc, children }: { nazwa: string; opis: string; powod: string | null; wartosc?: string; children: React.ReactNode }) {
   return (
     <li className="flex flex-wrap items-start justify-between gap-3 border-t border-line py-3 first:border-0" data-dostep={nazwa}>
       <span className="min-w-0">
@@ -35,8 +35,11 @@ function Wiersz({ nazwa, opis, powod, children }: { nazwa: string; opis: string;
         <span className="block text-xs text-muted-foreground">{opis}</span>
       </span>
       {powod ? (
-        <span aria-disabled="true" title={powod} className="cursor-not-allowed text-sm text-muted-foreground opacity-60">
-          {powod}
+        <span className="flex flex-col items-end gap-0.5 text-right">
+          {wartosc ? <span className="text-sm">{wartosc}</span> : null}
+          <span aria-disabled="true" title={powod} className="cursor-not-allowed text-xs text-muted-foreground opacity-60">
+            {powod}
+          </span>
         </span>
       ) : (
         children
@@ -85,6 +88,10 @@ export default async function OperatorDetailPage({ params }: PageProps) {
   const rola = operator?.role ?? data!.user.role;
   const zablokowany = operator?.loginBlocked ?? data!.user.loginBlocked;
   const tylkoAdmin = brakUprawnienia("ADMIN", dostep);
+  // Bez roli administratora — podgląd (jak dawniej na /roles i liście /operators), zmiana wyszarzona.
+  // Inline, bo roleOperatora() jest w module "use client" (granica-serwer-klient.spec.ts).
+  const idRol = operator ? (operator.roleIds ?? (operator.staffRoleId ? [operator.staffRoleId] : [])) : [];
+  const nazwyRol = idRol.map((r) => role.find((x) => x.id === r)?.name ?? "rola usunięta").join(", ") || "brak ról";
   const dostepSekcja = (
     <section className={`${KARTA} p-5`} aria-labelledby="dostep-operatora">
       <h2 id="dostep-operatora" className="font-display text-[17px] font-bold">
@@ -94,13 +101,18 @@ export default async function OperatorDetailPage({ params }: PageProps) {
         <p className="mt-2 text-sm text-muted-foreground">Administrator ma pełny dostęp do paneli i Grafany.</p>
       ) : (
         <ul className="m-0 mt-2 list-none p-0">
-          <Wiersz nazwa="Role" opis="Uprawnienia operatora to suma jego ról." powod={operator ? tylkoAdmin : "Brak danych o rolach."}>
+          <Wiersz nazwa="Role" opis="Uprawnienia operatora to suma jego ról." powod={operator ? tylkoAdmin : "Brak danych o rolach."} wartosc={operator ? nazwyRol : undefined}>
             {operator ? <WyborRolOperatora operator={operator} role={role} zablokowane={zablokowany} /> : null}
           </Wiersz>
           <Wiersz nazwa="Logowanie" opis={zablokowany ? "Konto wyłączone — operator się nie zaloguje." : "Konto aktywne."} powod={tylkoAdmin}>
             <BlokadaOperatora userId={id} email={email} zablokowany={zablokowany} />
           </Wiersz>
-          <Wiersz nazwa="Grafana" opis="Dostęp do dashboardów floty." powod={operator?.canAccessGrafana === undefined ? "Brak danych o Grafanie." : tylkoAdmin}>
+          <Wiersz
+            nazwa="Grafana"
+            opis="Dostęp do dashboardów floty."
+            powod={operator?.canAccessGrafana === undefined ? "Brak danych o Grafanie." : tylkoAdmin}
+            wartosc={operator?.canAccessGrafana === undefined ? undefined : operator.canAccessGrafana ? "Włączony" : "Wyłączony"}
+          >
             <GrafanaAccessToggle userId={id} initialValue={Boolean(operator?.canAccessGrafana)} role={ROLA_STAFF} />
           </Wiersz>
         </ul>

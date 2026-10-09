@@ -25,12 +25,10 @@ export function WyborRolOperatora({
   operator,
   role,
   zablokowane = false,
-  onBlad,
 }: {
   operator: OperatorRow;
   role: RoleRow[];
   zablokowane?: boolean;
-  onBlad?: (tekst: string | null) => void;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -38,13 +36,15 @@ export function WyborRolOperatora({
   const przypisane = roleOperatora(operator);
   const [wybrane, setWybrane] = useState<string[]>(przypisane);
   const nazwy = przypisane.map((id) => role.find((r) => r.id === id)?.name ?? "rola usunięta");
+  // Błąd zapisu przy samym wyborze (karta operatora to Server Component — nie poda funkcji onBlad jak dawniej /roles).
+  const [blad, setBlad] = useState<string | null>(null);
 
   const zapisz = () => {
-    onBlad?.(null);
+    setBlad(null);
     start(async () => {
       const res = await setOperatorRoles(operator.id, wybrane);
       if (!res.ok) {
-        onBlad?.(res.error);
+        setBlad(res.error);
         return;
       }
       setOtwarte(false);
@@ -110,6 +110,11 @@ export function WyborRolOperatora({
             </button>
           </div>
         </div>
+      ) : null}
+      {blad ? (
+        <p role="alert" className="mt-1.5 text-xs text-rose-300">
+          {blad}
+        </p>
       ) : null}
     </div>
   );
