@@ -2048,17 +2048,8 @@ function buildServiceRecommendations(s: {
       title: 'Włącz autoscaling limitów',
       body: 'Usługa korzystała już z podwyższonych limitów. Autoscaling ograniczy ryzyko błędów 508.',
     });
-  } else if (s.autoscalingEnabled && usedScaling && s.status === 'ACTIVE') {
-    // #19 — upsell oparty na realnym użyciu: konto regularnie sięga po
-    // dopłacane (godzinowe) zasoby autoskalowania, więc wyższy plan ze stałą
-    // ceną bywa tańszy i stabilniejszy niż ciągłe dopłaty.
-    out.push({
-      type: 'plan',
-      severity: 'info',
-      title: 'Rozważ wyższy plan',
-      body: 'Twoja usługa regularnie korzysta z autoskalowania (dopłaty godzinowe). Wyższy plan ze stałą ceną może być tańszy i bardziej przewidywalny.',
-    });
   }
+  // Bez „Rozważ wyższy plan” — jeden pakiet + autoskalowanie, nie ma wyższego planu (decyzja 09.10).
   if (latest?.backupFresh === false) {
     out.push({
       type: 'backup',

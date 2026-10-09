@@ -152,15 +152,10 @@ export function buildHints(i: HintInput): AssistantHint[] {
       detail: 'Usługa korzystała już z podwyższonych limitów. Autoskalowanie ograniczy ryzyko błędów 508 przy skokach ruchu.',
       action: { kind: 'href', label: 'Ustaw autoskalowanie', href: `/dashboard/services/${u.id}/autoscaling` },
     });
-  } else if (u && u.autoscalingEnabled && u.usedScaling && u.active) {
-    out.push({
-      key: 'plan',
-      severity: 'info',
-      title: 'Rozważ wyższy plan',
-      detail: 'Usługa regularnie korzysta z autoskalowania (dopłaty godzinowe). Wyższy plan ze stałą ceną może być tańszy i bardziej przewidywalny.',
-      action: { kind: 'href', label: 'Zobacz plany', href: `/dashboard/services/${u.id}/plan` },
-    });
   }
+  // Bez podpowiedzi „Rozważ wyższy plan”: Verris ma jeden pakiet + autoskalowanie, więc nie ma wyższego
+  // planu do polecenia (decyzja właściciela 09.10). Wcześniej podpowiedź wyskakiwała już po pierwszym
+  // podbiciu limitu i twierdziła, że usługa „regularnie” korzysta z autoskalowania.
 
   const waga: Record<HintSeverity, number> = { crit: 0, warn: 100, info: 200 };
   const rank = (h: AssistantHint) => waga[h.severity] + ORDER.indexOf(h.key);

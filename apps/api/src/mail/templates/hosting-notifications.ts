@@ -244,7 +244,7 @@ export function accountQuotaAlertTemplate(ctx: AccountQuotaAlertContext): MailMe
   if (ctx.diskPct != null || ctx.bandwidthPct != null) rady.push('Usuń zbędne pliki i stare kopie lub wyczyść logi.');
   if (ctx.cpuHotPct != null || ctx.ramHotPct != null)
     rady.push('Włącz cache strony (np. LSCache dla WordPressa) i sprawdź wtyczki oraz zadania cron, które obciążają konto.');
-  rady.push('Rozważ wyższy plan albo autoskalowanie, jeśli potrzebujesz więcej zasobów.');
+  rady.push('Włącz autoskalowanie, jeśli potrzebujesz więcej zasobów w szczytach ruchu (zakładka „Autoskalowanie i EKO”).');
   rady.push('Szczegóły i wykresy znajdziesz w panelu (zakładka „Zużycie zasobów”).');
   rady.forEach((r, i) => lines.push(`${i + 1}. ${r}`));
   const { html, text } = renderEmailShell({
@@ -354,7 +354,7 @@ function komunikat(rodzaj: KomunikatKontaRodzaj, d: string, domena: string): Kom
         rady: [
           'Usuń zbędne pliki, stare kopie i logi (zakładka „Menedżer plików”) oraz sprawdź rozmiar skrzynek pocztowych.',
           'Szczegóły wykorzystania znajdziesz w zakładce „Zużycie zasobów”.',
-          'Rozważ wyższy plan, jeśli potrzebujesz więcej miejsca.',
+          'Jeśli potrzebujesz więcej miejsca, włącz autoskalowanie dysku (zakładka „Autoskalowanie i EKO”).',
         ],
         tab: 'usage',
         cta: 'Sprawdź wykorzystanie',
@@ -366,7 +366,7 @@ function komunikat(rodzaj: KomunikatKontaRodzaj, d: string, domena: string): Kom
         rady: [
           'Sprawdź w zakładce „Zużycie zasobów”, co generuje ruch — częstą przyczyną są boty i duże pliki do pobrania.',
           'Włącz cache strony (np. LSCache dla WordPressa), żeby ograniczyć transfer.',
-          'Rozważ wyższy plan, jeśli ruch jest naturalny.',
+          'Jeśli ruch jest naturalny, napisz do nas — dobierzemy rozwiązanie.',
         ],
         tab: 'usage',
         cta: 'Sprawdź wykorzystanie',

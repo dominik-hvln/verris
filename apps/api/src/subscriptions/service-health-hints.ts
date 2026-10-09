@@ -122,7 +122,7 @@ export function buildHealthCheckDetails(
       meta.cpuUsageAvg != null && meta.cpuLimit != null
         ? `Wysokie obciążenie: ~${Math.round(meta.cpuUsageAvg)}% przy limicie ${meta.cpuLimit}% planu.`
         : 'Wykryto wysokie obciążenie CPU konta.',
-      'Rozważ autoskalowanie lub wyższy plan, zoptymalizuj wtyczki/cache lub skontaktuj się ze wsparciem.',
+      'Włącz autoskalowanie, zoptymalizuj wtyczki/cache lub skontaktuj się ze wsparciem.',
     );
   }
 
