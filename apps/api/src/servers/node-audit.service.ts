@@ -731,7 +731,7 @@ export class NodeAuditService {
           : 'Wersje zgodne z manifestem floty.',
       records: pozycje.map((p) => ({ label: p.co, expected: p.oczekiwane, actual: p.faktyczne ?? 'brak raportu', ok: p.zgodne ?? undefined })),
       docAttestation: [
-        { vendor: 'Verris', statement: `Manifest stosu ${m.wersja}: DirectAdmin ${m.daKanal}, MariaDB ${m.mariadb}, PHP ${m.php1}, LiteSpeed ${m.litespeedLinia}.x.`, reference: 'Admin → Wersje stosu floty' },
+        { vendor: 'Verris', statement: `Manifest stosu ${m.wersja}: DirectAdmin ${m.daKanal}, MariaDB ${m.mariadb}, PHP ${m.php1}, LiteSpeed ${m.litespeedLinia}.x.`, reference: 'Admin → Flota → Operacje floty' },
       ],
       repair: null,
     };

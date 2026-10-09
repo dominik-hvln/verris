@@ -59,12 +59,36 @@ describe("Menu admina — żadna strona nie jest ukryta", () => {
   it("strzałka rozwija sekcję bez przechodzenia na stronę", async () => {
     sciezka = "/";
     await render();
-    await act(async () => sekcja("Oferta i ceny").click());
-    expect(sekcja("Oferta i ceny").getAttribute("aria-expanded")).toBe("true");
-    expect(menu().querySelector('a[href="/domain-pricing"]')?.textContent).toBe("Domeny i SSL");
+    await act(async () => sekcja("Autoskalowanie").click());
+    expect(sekcja("Autoskalowanie").getAttribute("aria-expanded")).toBe("true");
+    expect(menu().querySelector('a[href="/autoscaling/revenue"]')?.textContent).toBe("Przychody");
     expect(push).not.toHaveBeenCalled();
-    await act(async () => sekcja("Oferta i ceny").click());
-    expect(menu().querySelector('a[href="/domain-pricing"]')).toBeNull();
+    await act(async () => sekcja("Autoskalowanie").click());
+    expect(menu().querySelector('a[href="/autoscaling/revenue"]')).toBeNull();
+  });
+
+  it("7 grup z propozycji 10.10 (sekcja A) i jedna pozycja w stopce", async () => {
+    sciezka = "/";
+    await render();
+    const naglowki = [...menu().querySelectorAll("div.uppercase")].map((d) => d.textContent);
+    expect(naglowki).toEqual(["Flota", "Klienci i usługi", "Finanse", "Oferta", "Wiedza i AI", "System"]);
+    expect(menu().querySelector('a[href="/nodes/wizard"]')?.textContent).toBe("Dodaj węzeł");
+    expect(menu().querySelector('a[href="/nodes/stack"]')?.textContent).toBe("Operacje floty");
+    expect(menu().querySelector('a[href="/product-ops"]')?.textContent).toBe("Komunikaty i flagi");
+    expect(sekcja("Zespół")).not.toBeNull();
+    expect(sekcja("Bezpieczeństwo i zgodność")).not.toBeNull();
+    const stopka = [...el.querySelectorAll("aside a")].filter((a) => !a.closest("nav"));
+    expect(stopka.map((a) => a.getAttribute("href"))).toEqual(["/settings"]);
+  });
+
+  it("Operacje floty z NODES_MANAGE (nie PLANS_MANAGE); kreator tylko dla administratora", async () => {
+    sciezka = "/nodes";
+    await render(["NODES_VIEW", "NODES_MANAGE"], false);
+    expect(menu().querySelector('a[href="/nodes/stack"]')).not.toBeNull();
+    expect(menu().querySelector('a[href="/nodes/wizard"]')).toBeNull();
+    await render(["NODES_VIEW", "PLANS_MANAGE"], false);
+    expect(menu().querySelector('a[href="/nodes/stack"]')).toBeNull();
+    expect(menu().querySelector('a[href="/plans"]')).not.toBeNull();
   });
 
   it("operator widzi tylko strony ze swoimi uprawnieniami; sekcja z jedną stroną to zwykły link", async () => {
@@ -185,6 +209,13 @@ describe("Cmd+K — słowa kluczowe i strony spoza menu", () => {
     expect(await wpisz("kreator")).toContain("Wymaga roli administratora");
   });
 
+  it("strona menu o adresie działania pojawia się raz — jako działanie", async () => {
+    await otworz();
+    await wpisz("kreator");
+    const pozycje = [...document.querySelectorAll('[role="dialog"] button')].filter((b) => b.textContent?.startsWith("Dodaj węzeł"));
+    expect(pozycje).toHaveLength(1);
+  });
+
   it("puste wyniki z powodu uprawnień — komunikat zamiast „Brak wyników”", async () => {
     odpowiedziApi["zzz9"] = { results: [], pominiete: ["node", "invoice"] };
     await otworz(["CUSTOMERS_VIEW"], false);
@@ -233,7 +264,7 @@ describe("Wyszukiwarka „/” w nagłówku", () => {
       pole.dispatchEvent(new Event("input", { bubbles: true }));
     });
     expect(document.querySelector('[role="dialog"]')!.textContent).toContain("Domeny i SSL");
-    expect(document.querySelector('[role="dialog"]')!.textContent).toContain("Strona · Oferta i ceny");
+    expect(document.querySelector('[role="dialog"]')!.textContent).toContain("Strona · Oferta");
     await act(async () => pole.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
     expect(push).toHaveBeenCalledWith("/domain-pricing");
     act(() => root.unmount());

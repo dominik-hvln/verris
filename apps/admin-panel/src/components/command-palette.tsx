@@ -154,12 +154,15 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
   );
 
   const szukaj = q.trim().length >= 2;
+  const globalne = szukaj ? szukajAkcjiGlobalnych(q, dostep) : [];
+  // Strona menu o tym samym adresie co działanie (np. „Dodaj węzeł”) — raz, jako działanie.
+  const adresyDzialan = new Set(globalne.map((a) => a.href));
   const wyniki: Wynik[] = obiekt
     ? akcjeWezlaDlaZapytania({ id: obiekt.id, status: obiekt.status ?? "" }, q, dostep).map(jakoWynik)
     : [
         ...dzialaniaNaWezlach.map(jakoWynik),
-        ...(szukaj ? szukajAkcjiGlobalnych(q, dostep) : []).map(jakoWynik),
-        ...(szukaj ? szukajStron(strony, q) : []).map((st) => ({ type: "strona" as const, id: st.href, title: st.name, subtitle: st.sekcja ? `Strona · ${st.sekcja}` : "Strona", href: st.href })),
+        ...globalne.map(jakoWynik),
+        ...(szukaj ? szukajStron(strony, q).filter((st) => !adresyDzialan.has(st.href)) : []).map((st) => ({ type: "strona" as const, id: st.href, title: st.name, subtitle: st.sekcja ? `Strona · ${st.sekcja}` : "Strona", href: st.href })),
         ...results,
       ];
 

@@ -71,6 +71,22 @@ const IKONY = {
       <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
     </>
   ),
+  dodaj: <path d="M12 5v14M5 12h14" />,
+  flota: <path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" />,
+  poczta: <path d="M3 6h18v12H3zM3 6l9 7 9-7" />,
+  portfel: (
+    <>
+      <rect x="3" y="6" width="18" height="13" rx="2" />
+      <path d="M16 12.5h2M3 10h18" />
+    </>
+  ),
+  domeny: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" />
+    </>
+  ),
+  czat: <path d="M4 5h16v11H9l-5 4z" />,
   operatorzy: (
     <>
       <circle cx="9" cy="8" r="4" />
@@ -88,8 +104,9 @@ function Ikona({ nazwa }: { nazwa: keyof typeof IKONY }) {
 }
 
 /**
- * Menu: grupy → pozycje → podstrony. Pozycja z kilkoma podstronami ma strzałkę i rozwija się w menu
- * (aktywna sama), więc żadna strona nie jest ukryta. Te same wpisy (oraz UKRYTE) zasilają wyszukiwarkę stron (⌘K / Ctrl+K, „/”).
+ * Menu (propozycja 10.10, sekcja A): 7 grup → pozycje → podstrony. Pozycja z kilkoma podstronami ma strzałkę,
+ * rozwija się w menu i pokazuje podstrony jako zakładki. Te same wpisy (oraz UKRYTE) zasilają wyszukiwarkę
+ * stron (⌘K / Ctrl+K, „/”). `perm: "ADMIN"` — tylko administrator (jak @Roles(ADMIN) w API).
  */
 function grupy(l: LicznikiMenu | null): Grupa[] {
   return [
@@ -105,47 +122,56 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
           licznik: l?.wezlyUwaga ? `${l.wezlyUwaga} ${plForm(l.wezlyUwaga, "wymaga uwagi", "wymagają uwagi", "wymaga uwagi")}` : undefined,
           ostrzezenie: true,
           pod: [
-            { name: "Lista węzłów", href: "/nodes", perm: "NODES_VIEW", szukaj: "serwery dodaj węzeł kreator onboard live drain cordon waf tryb serwisowy offline wycofanie directadmin sso ssh" },
+            { name: "Lista węzłów", href: "/nodes", perm: "NODES_VIEW", szukaj: "serwery onboard live drain cordon waf tryb serwisowy offline wycofanie directadmin sso ssh" },
             { name: "Wykresy i prognozy", href: "/nodes/wykresy", perm: "NODES_VIEW", szukaj: "cpu ram pamięć dysk obciążenie prognoza ai przeciążenie" },
             { name: "Pojemność", href: "/nodes/capacity", perm: "NODES_VIEW", szukaj: "zużycie sprzedane overcommit miejsce na konta" },
-            { name: "Wersje stosu", href: "/nodes/stack", perm: "PLANS_MANAGE", szukaj: "php mariadb aktualizacje manifest wyrównaj flotę" },
+          ],
+        },
+        // POST /admin/servers — tylko ADMIN; kreator służy wyłącznie do zakładania nowego węzła (decyzja 10.10).
+        { name: "Dodaj węzeł", ikona: "dodaj", pod: [{ name: "Dodaj węzeł", href: "/nodes/wizard", perm: "ADMIN", szukaj: "kreator nowy węzeł serwer instalacja" }] },
+        // Aktualizuj flotę — NODES_MANAGE; manifest, wyrównanie i pakiety — w API tylko ADMIN (strona je wyszarza).
+        {
+          name: "Operacje floty",
+          ikona: "flota",
+          pod: [
+            {
+              name: "Operacje floty",
+              href: "/nodes/stack",
+              perm: "NODES_MANAGE",
+              szukaj: "wersje stosu manifest php mariadb litespeed aktualizacje aktualizuj flotę wyrównaj flotę wyślij pakiety directadmin",
+            },
           ],
         },
         {
-          name: "Kolejka zakładania",
+          name: "Kolejka zadań",
           ikona: "kolejka",
           licznik: l?.zakladane ? String(l.zakladane) : undefined,
-          pod: [{ name: "Kolejka zakładania", href: "/provisioning-queue", perm: "PROVISIONING_MANAGE", szukaj: "provisioning nowe konta" }],
+          pod: [{ name: "Kolejka zadań", href: "/provisioning-queue", perm: "PROVISIONING_MANAGE", szukaj: "kolejka zakładania provisioning nowe konta zadania węzłów" }],
         },
         {
           name: "Migracje",
           ikona: "migracje",
           licznik: l?.migracje ? String(l.migracje) : undefined,
-          pod: [{ name: "Migracje", href: "/migrations", perm: "MIGRATIONS_MANAGE", szukaj: "przeniesienie stron" }],
+          pod: [
+            { name: "Migracje", href: "/migrations", perm: "MIGRATIONS_MANAGE", szukaj: "przeniesienie stron" },
+            { name: "Migracja za klienta", href: "/migrations/za-klienta", perm: "MIGRATIONS_MANAGE", szukaj: "przeniesienie strony zgoda" },
+          ],
         },
         {
           name: "Monitoring",
           ikona: "monitoring",
           pod: [
-            { name: "Monitory (status)", href: "/status/probes", perm: "NODES_VIEW", szukaj: "sondy uptime dostępność" },
-            { name: "Historia incydentów", href: "/status/incidents", perm: "NODES_VIEW", szukaj: "awarie status page" },
+            { name: "Sondy", href: "/status/probes", perm: "NODES_VIEW", szukaj: "monitory status uptime dostępność" },
+            { name: "Incydenty", href: "/status/incidents", perm: "NODES_VIEW", szukaj: "awarie historia status page" },
             { name: "Błędy aplikacji", href: "/observability/errors", perm: "NODES_VIEW", szukaj: "logi wyjątki" },
-            { name: "Product Ops / NOC", href: "/product-ops", perm: "NODES_VIEW", szukaj: "alerty operacje" },
           ],
         },
       ],
     },
     {
-      naglowek: "Klienci",
+      naglowek: "Klienci i usługi",
       pozycje: [
-        {
-          name: "Klienci",
-          ikona: "klienci",
-          pod: [
-            { name: "Klienci", href: "/customers", perm: "CUSTOMERS_VIEW", szukaj: "konta użytkownicy portfel" },
-            { name: "Blokady wysyłki poczty", href: "/deliverability", perm: "CUSTOMERS_MANAGE", szukaj: "spam dostarczalność mail" },
-          ],
-        },
+        { name: "Klienci", ikona: "klienci", pod: [{ name: "Klienci", href: "/customers", perm: "CUSTOMERS_VIEW", szukaj: "konta użytkownicy portfel" }] },
         { name: "Usługi", ikona: "uslugi", pod: [{ name: "Usługi", href: "/subscriptions", perm: "SUBSCRIPTIONS_MANAGE", szukaj: "subskrypcje hosting abonamenty" }] },
         {
           name: "Zgłoszenia",
@@ -163,104 +189,98 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
           ikona: "partnerzy",
           pod: [
             { name: "Resellerzy", href: "/resellers", perm: "CUSTOMERS_MANAGE" },
-            { name: "Prowizje partnerów", href: "/partners", perm: "BILLING_VIEW", szukaj: "afiliacja wypłaty" },
-            { name: "Program partnerski", href: "/referral-enrollments", perm: "PROMO_MANAGE", szukaj: "polecenia zgłoszenia" },
+            { name: "Program partnerski", href: "/partners", perm: "BILLING_VIEW", szukaj: "prowizje afiliacja wypłaty" },
+            { name: "Wnioski partnerskie", href: "/referral-enrollments", perm: "PROMO_MANAGE", szukaj: "polecenia zgłoszenia akceptacja" },
           ],
         },
-      ],
-    },
-    {
-      naglowek: "Sprzedaż",
-      pozycje: [
-        {
-          name: "Oferta i ceny",
-          ikona: "cenniki",
-          pod: [
-            { name: "Plany produktowe", href: "/plans", perm: "PLANS_MANAGE", szukaj: "pakiety cennik hosting poczta" },
-            { name: "VPS / Cloud", href: "/vps", perm: "PLANS_MANAGE", szukaj: "serwery wirtualne snapshoty" },
-            { name: "Cennik autoskalowania", href: "/autoscaling", perm: "PLANS_MANAGE", szukaj: "burst przychody" },
-            { name: "Domeny i SSL", href: "/domain-pricing", perm: "SETTINGS_MANAGE", szukaj: "certyfikaty ssl dv ov whois prywatność ceny" },
-            { name: "Kody promocyjne", href: "/promo-codes", perm: "PROMO_MANAGE", szukaj: "rabaty kupony" },
-          ],
-        },
-        {
-          name: "Marketing",
-          ikona: "marketing",
-          pod: [
-            { name: "Newsletter / mailing", href: "/marketing", perm: "PROMO_MANAGE", szukaj: "kampanie e-mail" },
-            { name: "Testy (beta)", href: "/beta", perm: "PROMO_MANAGE", szukaj: "testerzy zaproszenia" },
-          ],
-        },
+        { name: "Blokady poczty", ikona: "poczta", pod: [{ name: "Blokady poczty", href: "/deliverability", perm: "CUSTOMERS_MANAGE", szukaj: "blokady wysyłki spam dostarczalność mail" }] },
       ],
     },
     {
       naglowek: "Finanse",
       pozycje: [
         {
-          name: "Faktury i rozliczenia",
+          name: "Faktury",
           ikona: "faktury",
           pod: [
             { name: "Faktury", href: "/invoices", perm: "BILLING_VIEW", szukaj: "ksef korekta korekty proforma pdf anuluj" },
-            { name: "Rozliczenia (CSV)", href: "/billing", perm: "BILLING_VIEW", szukaj: "eksport płatności portfel" },
+            { name: "Faktura ręczna", href: "/invoices/reczna", perm: "BILLING_MANAGE", szukaj: "wystaw fakturę nowa" },
+            { name: "Czeka na fakturę", href: "/invoices/czeka-na-fakture", perm: "BILLING_VIEW", szukaj: "faktura zewnętrzna dopisz" },
+          ],
+        },
+        {
+          name: "Portfel i płatności",
+          ikona: "portfel",
+          pod: [
+            { name: "Portfel i płatności", href: "/billing", perm: "BILLING_VIEW", szukaj: "rozliczenia eksport csv płatności portfel" },
             // Z-05 — zdarzenia płatności, których handler nie obsłużył.
             { name: "Webhooki płatności", href: "/billing/webhooki", perm: "BILLING_MANAGE", szukaj: "stripe paynow zdarzenia" },
           ],
         },
-        { name: "Metryki biznesowe", ikona: "pojemnosc", pod: [{ name: "Metryki biznesowe", href: "/metrics", perm: "DASHBOARD_VIEW", szukaj: "mrr przychody churn kpi" }] },
+        { name: "Metryki", ikona: "pojemnosc", pod: [{ name: "Metryki", href: "/metrics", perm: "DASHBOARD_VIEW", szukaj: "metryki biznesowe mrr przychody churn kpi" }] },
+      ],
+    },
+    {
+      naglowek: "Oferta",
+      pozycje: [
+        { name: "Plany", ikona: "cenniki", pod: [{ name: "Plany", href: "/plans", perm: "PLANS_MANAGE", szukaj: "plany produktowe pakiety cennik hosting poczta" }] },
+        { name: "VPS", ikona: "wezly", pod: [{ name: "VPS", href: "/vps", perm: "PLANS_MANAGE", szukaj: "cloud serwery wirtualne snapshoty" }] },
+        {
+          name: "Autoskalowanie",
+          ikona: "pojemnosc",
+          pod: [
+            { name: "Reguły cenowe", href: "/autoscaling", perm: "PLANS_MANAGE", szukaj: "cennik autoskalowania burst" },
+            { name: "Przychody", href: "/autoscaling/revenue", perm: "PLANS_MANAGE", szukaj: "przychody z autoskalowania burst" },
+          ],
+        },
+        { name: "Domeny i SSL", ikona: "domeny", pod: [{ name: "Domeny i SSL", href: "/domain-pricing", perm: "SETTINGS_MANAGE", szukaj: "certyfikaty ssl dv ov whois prywatność ceny" }] },
+        { name: "Kody promocyjne", ikona: "cenniki", pod: [{ name: "Kody promocyjne", href: "/promo-codes", perm: "PROMO_MANAGE", szukaj: "rabaty kupony" }] },
+        { name: "Marketing", ikona: "marketing", pod: [{ name: "Marketing", href: "/marketing", perm: "PROMO_MANAGE", szukaj: "newsletter mailing kampanie e-mail" }] },
+        { name: "Beta", ikona: "marketing", pod: [{ name: "Beta", href: "/beta", perm: "PROMO_MANAGE", szukaj: "testy testerzy zaproszenia" }] },
       ],
     },
     {
       naglowek: "Wiedza i AI",
       pozycje: [
-        {
-          name: "Baza wiedzy",
-          ikona: "wiedza",
-          pod: [
-            { name: "Artykuły", href: "/knowledge-base", perm: "DASHBOARD_VIEW", szukaj: "baza wiedzy pomoc poradniki" },
-            { name: "Baza wiedzy AI", href: "/ai-knowledge", perm: "DASHBOARD_VIEW", szukaj: "embeddingi asystent źródła" },
-            { name: "Asystent AI", href: "/settings/ai", perm: "SETTINGS_MANAGE", szukaj: "czat model budżet klucze" },
-          ],
-        },
+        { name: "Baza wiedzy", ikona: "wiedza", pod: [{ name: "Baza wiedzy", href: "/knowledge-base", perm: "DASHBOARD_VIEW", szukaj: "artykuły pomoc poradniki" }] },
+        { name: "Wiedza AI", ikona: "wiedza", pod: [{ name: "Wiedza AI", href: "/ai-knowledge", perm: "DASHBOARD_VIEW", szukaj: "baza wiedzy ai embeddingi asystent źródła" }] },
+        { name: "Konfiguracja asystenta", ikona: "czat", pod: [{ name: "Konfiguracja asystenta", href: "/settings/ai", perm: "SETTINGS_MANAGE", szukaj: "asystent ai czat model budżet klucze" }] },
       ],
     },
     {
-      naglowek: "Bezpieczeństwo",
+      naglowek: "System",
       pozycje: [
         {
-          name: "Dziennik i zgodność",
-          ikona: "dziennik",
-          pod: [
-            { name: "Dziennik bezpieczeństwa", href: "/audit", perm: "AUDIT_VIEW", szukaj: "audyt logi zdarzenia" },
-            { name: "Compliance (RODO)", href: "/compliance", perm: "COMPLIANCE_MANAGE", szukaj: "gdpr dane osobowe eksport usunięcie" },
-            { name: "VPN (dostęp paneli)", href: "/vpn", perm: "SETTINGS_MANAGE", szukaj: "wireguard dostęp" },
-          ],
-        },
-        {
-          name: "Operatorzy i role",
-          ikona: "operatorzy",
-          pod: [
-            { name: "Operatorzy", href: "/operators", perm: "STAFF_MANAGE", szukaj: "zespół pracownicy staff" },
-            { name: "Role i uprawnienia", href: "/roles", perm: "STAFF_MANAGE" },
-            // PB-48 — wnioski pracowników o operację wymagającą wyższego uprawnienia.
-            { name: "Wnioski o operacje", href: "/wnioski", perm: "REQUESTS_APPROVE", szukaj: "akceptacja zgoda prośba uprawnienie" },
-          ],
-        },
-      ],
-    },
-    {
-      naglowek: "Ustawienia",
-      pozycje: [
-        {
-          name: "Ustawienia platformy",
+          name: "Ustawienia",
           ikona: "ustawienia",
           pod: [
             { name: "Platforma", href: "/settings/platform", perm: "SETTINGS_MANAGE", szukaj: "eko sesje okres próbny monitoring sla" },
             { name: "Dane firmy", href: "/settings/company", perm: "SETTINGS_MANAGE", szukaj: "nip adres faktury ksef token ponów wysyłkę" },
-            { name: "Gotowość do startu", href: "/settings/live-readiness", perm: "SETTINGS_MANAGE", szukaj: "go live checklista" },
             { name: "Kopie offsite", href: "/settings/kopie-offsite", perm: "SETTINGS_MANAGE", szukaj: "backup kopie zapasowe storage box rclone onboard" },
             { name: "Poczta (SMTP)", href: "/settings/mail", perm: "SETTINGS_MANAGE", szukaj: "e-mail wysyłka" },
-            { name: "Dziennik poczty", href: "/settings/mail/log", perm: "SETTINGS_MANAGE", szukaj: "wysłane maile" },
+            { name: "Dziennik poczty", href: "/settings/mail/log", perm: "SETTINGS_MANAGE", szukaj: "log wysłane maile" },
             { name: "Poczta zespołu", href: "/settings/team-mail", perm: "SETTINGS_MANAGE", szukaj: "skrzynki" },
+            { name: "Gotowość do startu", href: "/settings/live-readiness", perm: "SETTINGS_MANAGE", szukaj: "gotowość live go live checklista" },
+          ],
+        },
+        { name: "Komunikaty i flagi", ikona: "marketing", pod: [{ name: "Komunikaty i flagi", href: "/product-ops", perm: "NODES_VIEW", szukaj: "product ops noc ogłoszenia komunikaty o pracach flagi funkcji" }] },
+        {
+          name: "Zespół",
+          ikona: "operatorzy",
+          pod: [
+            { name: "Operatorzy", href: "/operators", perm: "STAFF_MANAGE", szukaj: "zespół pracownicy staff blokada grafana" },
+            { name: "Role", href: "/roles", perm: "STAFF_MANAGE", szukaj: "role i uprawnienia" },
+            // PB-48 — wnioski pracowników o operację wymagającą wyższego uprawnienia.
+            { name: "Wnioski o operacje", href: "/wnioski", perm: "REQUESTS_APPROVE", szukaj: "akceptacja zgoda prośba uprawnienie" },
+          ],
+        },
+        {
+          name: "Bezpieczeństwo i zgodność",
+          ikona: "dziennik",
+          pod: [
+            { name: "Dziennik bezpieczeństwa", href: "/audit", perm: "AUDIT_VIEW", szukaj: "audyt logi zdarzenia" },
+            { name: "RODO", href: "/compliance", perm: "COMPLIANCE_MANAGE", szukaj: "compliance gdpr dane osobowe eksport usunięcie" },
+            { name: "VPN", href: "/vpn", perm: "SETTINGS_MANAGE", szukaj: "wireguard dostęp paneli" },
           ],
         },
       ],
@@ -270,13 +290,11 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
 
 /**
  * Strony spoza menu (dostępne z przycisków na innych stronach) — tylko dla wyszukiwarki, z tym samym filtrem
- * uprawnień co menu. Kreator węzła, faktura ręczna i migracja za klienta są działaniami (lib/akcje/globalne.ts).
+ * uprawnień co menu.
  */
 const UKRYTE: (Pod & { sekcja: string })[] = [
-  { name: "Czeka na fakturę", href: "/invoices/czeka-na-fakture", perm: "BILLING_VIEW", sekcja: "Faktury", szukaj: "faktura zewnętrzna dopisz" },
-  { name: "Przychody z autoskalowania", href: "/autoscaling/revenue", perm: "PLANS_MANAGE", sekcja: "Oferta i ceny", szukaj: "burst" },
-  { name: "Nowy plan", href: "/plans/new", perm: "PLANS_MANAGE", sekcja: "Oferta i ceny", szukaj: "dodaj plan hostingu" },
-  { name: "Nowy plan poczty", href: "/plans/new-email", perm: "PLANS_MANAGE", sekcja: "Oferta i ceny", szukaj: "dodaj plan e-mail" },
+  { name: "Nowy plan", href: "/plans/new", perm: "PLANS_MANAGE", sekcja: "Oferta", szukaj: "dodaj plan hostingu" },
+  { name: "Nowy plan poczty", href: "/plans/new-email", perm: "PLANS_MANAGE", sekcja: "Oferta", szukaj: "dodaj plan e-mail" },
   { name: "Twoje konto", href: "/settings", sekcja: "Konto", szukaj: "2fa totp weryfikacja dwuetapowa" },
   { name: "Bezpieczeństwo logowania", href: "/settings/security", sekcja: "Konto", szukaj: "passkey klucz break-glass" },
 ];

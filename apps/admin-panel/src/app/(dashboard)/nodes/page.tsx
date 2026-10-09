@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { Plus, Gauge } from "lucide-react";
+import { Plus, Gauge, RefreshCw } from "lucide-react";
 import type { ServerSummaryDto } from "@verris/contracts";
 import { adminApi } from "@/lib/api";
 import { plural, plForm } from "@/lib/pl";
 import { Eyebrow, KARTA, Pasek, Pigulka, PRZYCISK, PRZYCISK_GLOWNY, WIERSZ } from "@/components/v2";
 import { fetchServers } from "./actions";
-import { FleetUpdateButton } from "./fleet-update-button";
 
 export const dynamic = "force-dynamic";
 
@@ -89,8 +88,11 @@ export default async function AdminNodesPage() {
             <Gauge className="h-4 w-4" />
             Pojemność floty
           </Link>
-          {/* Kotwica dla Cmd+K („Aktualizuj flotę”, lib/akcje/globalne.ts). */}
-          <FleetUpdateButton id="aktualizuj-flote" />
+          {/* Aktualizacja, wyrównanie i pakiety na całej flocie — w jednym miejscu (10.10). */}
+          <Link href="/nodes/stack" className={PRZYCISK}>
+            <RefreshCw className="h-4 w-4" />
+            Operacje floty
+          </Link>
           <Link href="/nodes/wizard" className={PRZYCISK_GLOWNY}>
             <Plus className="h-[15px] w-[15px]" strokeWidth={2.4} />
             Dodaj węzeł

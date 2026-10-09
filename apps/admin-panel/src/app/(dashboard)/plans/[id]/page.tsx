@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { getAdminPlan } from "../data";
 import { PlanEditForm } from "./plan-edit-form";
-import { PakietyNaFlocie } from "./pakiety-na-flocie";
 import { BladStrony } from "@/components/blad-strony";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +47,13 @@ export default async function AdminPlanEditPage({ params }: PageProps) {
 
       <PlanEditForm plan={plan} />
 
-      <PakietyNaFlocie planId={plan.id} slug={plan.slug} />
+      {/* Wysyłka pakietów obejmuje wszystkie plany i węzły — jest w Operacjach floty (10.10). */}
+      <p className="text-sm text-muted-foreground">
+        Nowe limity trafią do kont po wysłaniu pakietów:{" "}
+        <Link href="/nodes/stack#pakiety" className="font-semibold text-foreground underline-offset-2 hover:underline">
+          Operacje floty → Pakiety DirectAdmina
+        </Link>
+      </p>
     </div>
   );
 }

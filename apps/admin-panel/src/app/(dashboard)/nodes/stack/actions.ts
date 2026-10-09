@@ -2,7 +2,7 @@
 
 import { adminApi, AdminApiError } from "@/lib/api";
 
-/** PB-33 — „Wersje stosu floty” (tylko admin). */
+/** Operacje floty: PB-33 manifest i wyrównanie, pakiety DA na flocie (w API tylko admin). */
 export interface WidokStosu {
   manifest: { wersja: string; daKanal: string; daCommit: string; php1: string; mariadb: string; litespeedLinia: string; phpAlt: string[] };
   dozwolone: Record<"mariadb" | "php1" | "daKanal" | "litespeedLinia", { v: string; opis: string }[]>;
@@ -37,6 +37,32 @@ export async function zapiszStos(dane: Record<string, string>): Promise<Wynik<Wi
 export async function wyrownajFlote(): Promise<Wynik<{ queued: number; skipped: number; kanarek: string | null }>> {
   try {
     return { ok: true, data: await adminApi("/admin/stack-manifest/align", { method: "POST" }) };
+  } catch (e) {
+    return { ok: false, error: blad(e) };
+  }
+}
+
+/** Węzły z DA i liczba kont, które dostaną nowe limity po wysłaniu pakietów. */
+export interface PakietyFloty {
+  wezly: Array<{ id: string; name: string; konta: number }>;
+  konta: number;
+}
+export interface WynikSyncuFloty {
+  wyniki: Array<{ id: string; name: string; ok: boolean; pakiety?: string[]; blad?: string }>;
+}
+
+export async function pobierzPakietyFloty(): Promise<Wynik<PakietyFloty>> {
+  try {
+    return { ok: true, data: await adminApi<PakietyFloty>("/admin/servers/pakiety-floty") };
+  } catch (e) {
+    return { ok: false, error: blad(e) };
+  }
+}
+
+/** Pakiety DA wszystkich aktywnych planów → każdy węzeł z DA (po potwierdzeniu admina). */
+export async function wyslijPakietyNaFlote(): Promise<Wynik<WynikSyncuFloty>> {
+  try {
+    return { ok: true, data: await adminApi<WynikSyncuFloty>("/admin/servers/pakiety-floty/sync", { method: "POST" }) };
   } catch (e) {
     return { ok: false, error: blad(e) };
   }

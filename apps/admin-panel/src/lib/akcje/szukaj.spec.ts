@@ -34,7 +34,7 @@ describe("Cmd+K — rejestr działań", () => {
   });
 
   it("działania globalne: Dodaj węzeł, Aktualizuj flotę, Faktura ręczna, Migracja za klienta", () => {
-    expect(szukajAkcjiGlobalnych("flote", ADMIN)).toEqual([expect.objectContaining({ id: "aktualizuj-flote", href: "/nodes#aktualizuj-flote", zablokowane: null })]);
+    expect(szukajAkcjiGlobalnych("flote", ADMIN)).toEqual([expect.objectContaining({ id: "aktualizuj-flote", href: "/nodes/stack#aktualizuj-flote", zablokowane: null })]);
     expect(szukajAkcjiGlobalnych("dodaj wezel", FLOTA_PODGLAD)[0]).toMatchObject({ id: "dodaj-wezel", zablokowane: "Wymaga roli administratora" });
     expect(szukajAkcjiGlobalnych("faktura", { isAdmin: false, permissions: ["BILLING_MANAGE"] })[0]).toMatchObject({ id: "faktura-reczna", zablokowane: null });
     expect(szukajAkcjiGlobalnych("za klienta", ADMIN)[0]?.href).toBe("/migrations/za-klienta");

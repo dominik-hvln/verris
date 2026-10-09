@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import type { AdminDashboardOverview } from "@/lib/admin-overview-data";
 import { stanUslugi } from "@/lib/stan-uslugi";
-import { FleetUpdateButton } from "@/app/(dashboard)/nodes/fleet-update-button";
 import { Eyebrow, LinkKarty, NaglowekKarty, Pasek, Pigulka } from "./v2";
 import { clients, days, plForm, plural } from "@/lib/pl";
 
@@ -79,7 +78,13 @@ export function AdminDashboardReal({ o }: { o: AdminDashboardOverview }) {
           </div>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2.5">
-          <FleetUpdateButton />
+          <Link
+            href="/nodes/stack"
+            className="inline-flex h-[38px] items-center gap-2 rounded-[9px] border border-line-strong bg-transparent px-3.5 text-sm font-semibold text-foreground hover:border-primary"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Operacje floty
+          </Link>
           <Link
             href="/nodes/wizard"
             className="inline-flex h-[38px] items-center gap-2 rounded-[9px] border border-primary bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:opacity-90"

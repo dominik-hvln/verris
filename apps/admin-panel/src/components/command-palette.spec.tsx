@@ -95,6 +95,6 @@ describe("Cmd+K — tryb obiekt → działanie (prowadzi do karty, nie wykonuje)
     await klawisz("Tab");
     expect(okno()).not.toContain("Węzeł ");
     await klawisz("Enter");
-    expect(push).toHaveBeenCalledWith("/nodes#aktualizuj-flote");
+    expect(push).toHaveBeenCalledWith("/nodes/stack#aktualizuj-flote");
   });
 });
