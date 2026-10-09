@@ -16,9 +16,13 @@ interface TimelineEntry {
   charge?: AutoscalingChargeDto;
 }
 
+const ZDARZENIE_KSIEGOWE = /^(block_charge|outside_block)\b/;
+
 export function AutoscalingTimeline({ events, charges }: Props) {
   const merged: TimelineEntry[] = [
-    ...events.map((e) => ({
+    // Zdarzenia księgowe bloku („block_charge 15min tx=…”, „outside_block …”) dublują wiersz naliczenia
+    // i pokazywały klientowi surowy znacznik techniczny pod „Zwiększono zasoby” (test na d3, 09.10).
+    ...events.filter((e) => !ZDARZENIE_KSIEGOWE.test(e.reason ?? '')).map((e) => ({
       id: `evt-${e.id}`,
       kind: 'event' as const,
       createdAt: e.createdAt,
@@ -135,7 +139,8 @@ function ChargeRow({ charge }: { charge: AutoscalingChargeDto }) {
       </div>
       <div className="text-right shrink-0">
         <div className="text-sm font-bold text-rose-200 tabular-nums">
-          −{formatCredits(charge.amount)}
+          {/* Obciążenie jest zapisane jako kwota ujemna — formatCredits sam dodawał „−”, stąd było „−−0,02 K”. */}
+          −{formatCredits(Math.abs(Number(charge.amount)))}
         </div>
         <div className="text-[11px] text-neutral-500">
           {new Date(charge.createdAt).toLocaleString('pl-PL')}
