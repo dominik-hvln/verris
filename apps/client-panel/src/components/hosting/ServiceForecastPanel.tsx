@@ -180,7 +180,7 @@ function WykresZasobu({
         </div>
       </div>
       <Wykres
-        nazwa={`${NAZWA[r.resource]}: ${HISTORIA_DNI} dni historii i prognoza na ${days(horyzont)}, w procentach limitu planu`}
+        nazwa={`${NAZWA[r.resource]}: ${HISTORIA_DNI} dni historii (szczyt w każdej godzinie) i prognoza na ${days(horyzont)}, w procentach limitu planu`}
         punkty={punkty}
         prognoza={prognoza}
         limit={100}

@@ -9,7 +9,10 @@ export const HORYZONT_DNI = 7;
 export interface Pomiar {
   bucketStart: Date;
   cpuUsageAvg: number;
+  /** Szczyt w godzinie (wykres). Brak = średnia (np. seria węzła). */
+  cpuUsageMax?: number;
   memUsageAvgMb: number;
+  memUsageMaxMb?: number;
   diskUsageMb: number;
   ioUsageKbps: number;
 }
@@ -22,7 +25,11 @@ export interface LimityPlanu {
 }
 
 const DZIEN_MS = 86_400_000;
-/** Wykres w panelu: 7 dni średnich godzinowych. */
+/**
+ * Wykres w panelu: 7 dni, punkt na godzinę. Linia pokazuje SZCZYT w godzinie (CPU, RAM), trend i „teraz”
+ * liczymy ze średnich. Na żywo 09.10 (d3): benchmark 12 min na 99% limitu CPU dawał na wykresie 21,4% —
+ * średnia z całej godziny chowała skok, który klient widział na karcie „Wydajność konta” jako 99%.
+ */
 export const HISTORIA_PUNKTY = 7 * 24;
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -40,15 +47,15 @@ export function policzPrognoze(plan: LimityPlanu, pomiary: Pomiar[]) {
   const posort = [...pomiary].sort((a, b) => a.bucketStart.getTime() - b.bucketStart.getTime());
   const t0 = posort[0]?.bucketStart.getTime() ?? 0;
   const zakresDni = posort.length ? (posort[posort.length - 1].bucketStart.getTime() - t0) / DZIEN_MS : 0;
-  const zasoby: [ForecastResource, number, (p: Pomiar) => number][] = [
-    ['CPU', plan.cpuLimit, (p) => p.cpuUsageAvg],
-    ['RAM', plan.ramLimitMb, (p) => p.memUsageAvgMb],
-    ['DISK', plan.diskLimitMb, (p) => p.diskUsageMb],
-    ['IO', plan.ioLimitKbps, (p) => p.ioUsageKbps],
+  const zasoby: [ForecastResource, number, (p: Pomiar) => number, (p: Pomiar) => number][] = [
+    ['CPU', plan.cpuLimit, (p) => p.cpuUsageAvg, (p) => Math.max(Number(p.cpuUsageAvg), Number(p.cpuUsageMax ?? 0))],
+    ['RAM', plan.ramLimitMb, (p) => p.memUsageAvgMb, (p) => Math.max(Number(p.memUsageAvgMb), Number(p.memUsageMaxMb ?? 0))],
+    ['DISK', plan.diskLimitMb, (p) => p.diskUsageMb, (p) => p.diskUsageMb],
+    ['IO', plan.ioLimitKbps, (p) => p.ioUsageKbps, (p) => p.ioUsageKbps],
   ];
   const resources: ServiceForecastResourceDto[] = zasoby
     .filter(([, limit]) => limit > 0)
-    .map(([resource, limit, wart]) => {
+    .map(([resource, limit, wart, szczyt]) => {
       const pkt = posort.map((p) => ({ x: (p.bucketStart.getTime() - t0) / DZIEN_MS, y: (wart(p) / limit) * 100 }));
       const ostatnie = pkt.slice(-3);
       const teraz = ostatnie.reduce((a, p) => a + p.y, 0) / (ostatnie.length || 1);
@@ -62,7 +69,7 @@ export function policzPrognoze(plan: LimityPlanu, pomiary: Pomiar[]) {
         trend,
         daysToLimit: dni === null || dni > 365 ? null : dni === 0 ? 0 : Math.max(1, Math.ceil(dni)),
         note: null,
-        historia: posort.slice(-HISTORIA_PUNKTY).map((p) => ({ t: p.bucketStart.toISOString(), v: r1((Number(wart(p)) / limit) * 100) })),
+        historia: posort.slice(-HISTORIA_PUNKTY).map((p) => ({ t: p.bucketStart.toISOString(), v: r1((Number(szczyt(p)) / limit) * 100) })),
       };
     });
   const confidence: ForecastConfidence = zakresDni >= 3 ? 'high' : zakresDni >= 1 ? 'medium' : 'low';

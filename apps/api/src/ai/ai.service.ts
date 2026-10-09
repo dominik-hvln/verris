@@ -65,10 +65,12 @@ export class AiService {
     if (!subscription) throw new NotFoundException('Nie znaleziono usługi.');
 
     // Telemetria przychodzi co 60 s: „96 ostatnich próbek” to ~1,5 h, więc trend na 7 dni liczył się
-    // z półtorej godziny i pewność zawsze wychodziła niska (t1 05.10). Średnie godzinowe z 7 dni.
+    // z półtorej godziny i pewność zawsze wychodziła niska (t1 05.10). Średnie godzinowe z 7 dni (trend)
+    // i szczyty godzinowe (linia wykresu, d3 09.10).
     const pomiary = await this.prisma.$queryRaw<Pomiar[]>`
       SELECT date_trunc('hour', "bucketStart") AS "bucketStart",
-             avg("cpuUsageAvg") AS "cpuUsageAvg", avg("memUsageAvgMb") AS "memUsageAvgMb",
+             avg("cpuUsageAvg") AS "cpuUsageAvg", max("cpuUsageMax") AS "cpuUsageMax",
+             avg("memUsageAvgMb") AS "memUsageAvgMb", max("memUsageMaxMb") AS "memUsageMaxMb",
              max("diskUsageMb") AS "diskUsageMb", avg("ioUsageKbps") AS "ioUsageKbps"
       FROM "UsageMetric"
       WHERE "subscriptionId" = ${subscriptionId} AND "bucketStart" >= ${new Date(Date.now() - 7 * 86_400_000)}

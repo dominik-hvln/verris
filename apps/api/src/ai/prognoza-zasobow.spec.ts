@@ -108,4 +108,20 @@ describe('budżet AI całej platformy', () => {
     expect(global.fetch).not.toHaveBeenCalled();
     expect(notifications.create).toHaveBeenCalledWith(expect.objectContaining({ userId: 'admin1', dedupeKey: 'ai-budzet-platformy' }));
   });
+
+  it('wykres pokazuje szczyt w godzinie, trend i „teraz” liczone ze średnich (d3 09.10: 99% limitu, nie 21,4%)', () => {
+    const godz = (h: number) => new Date(Date.UTC(2026, 9, 9, h));
+    const pom: Pomiar[] = Array.from({ length: 12 }, (_, h) => ({
+      bucketStart: godz(h),
+      cpuUsageAvg: h === 11 ? 42.8 : 1, // 12 min na 198% w godzinie 11 → średnia z godziny ~42,8% rdzenia
+      cpuUsageMax: h === 11 ? 198 : 2,
+      memUsageAvgMb: 100,
+      memUsageMaxMb: 400,
+      diskUsageMb: 500,
+      ioUsageKbps: 0,
+    }));
+    const cpu = policzPrognoze({ cpuLimit: 200, ramLimitMb: 1000, diskLimitMb: 1000, ioLimitKbps: 100 }, pom).resources.find((r) => r.resource === 'CPU')!;
+    expect(cpu.historia!.at(-1)!.v).toBe(99);
+    expect(cpu.currentPct).toBeLessThan(10); // średnia z 3 ostatnich godzin, nie szczyt
+  });
 });
