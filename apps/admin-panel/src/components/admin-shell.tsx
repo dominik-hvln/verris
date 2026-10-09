@@ -88,7 +88,7 @@ function Ikona({ nazwa }: { nazwa: keyof typeof IKONY }) {
 
 /**
  * Menu: grupy → pozycje → podstrony. Pozycja z kilkoma podstronami ma strzałkę i rozwija się w menu
- * (aktywna sama), więc żadna strona nie jest ukryta. Te same wpisy zasilają wyszukiwarkę stron („/”).
+ * (aktywna sama), więc żadna strona nie jest ukryta. Te same wpisy (oraz UKRYTE) zasilają wyszukiwarkę stron (⌘K / Ctrl+K, „/”).
  */
 function grupy(l: LicznikiMenu | null): Grupa[] {
   return [
@@ -104,10 +104,10 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
           licznik: l?.wezlyUwaga ? `${l.wezlyUwaga} ${plForm(l.wezlyUwaga, "wymaga uwagi", "wymagają uwagi", "wymaga uwagi")}` : undefined,
           ostrzezenie: true,
           pod: [
-            { name: "Lista węzłów", href: "/nodes", perm: "NODES_VIEW", szukaj: "serwery dodaj węzeł kreator" },
+            { name: "Lista węzłów", href: "/nodes", perm: "NODES_VIEW", szukaj: "serwery dodaj węzeł kreator onboard live drain cordon waf tryb serwisowy offline wycofanie directadmin sso ssh" },
             { name: "Wykresy i prognozy", href: "/nodes/wykresy", perm: "NODES_VIEW", szukaj: "cpu ram pamięć dysk obciążenie prognoza ai przeciążenie" },
             { name: "Pojemność", href: "/nodes/capacity", perm: "NODES_VIEW", szukaj: "zużycie sprzedane overcommit miejsce na konta" },
-            { name: "Wersje stosu", href: "/nodes/stack", perm: "PLANS_MANAGE", szukaj: "php mariadb aktualizacje manifest" },
+            { name: "Wersje stosu", href: "/nodes/stack", perm: "PLANS_MANAGE", szukaj: "php mariadb aktualizacje manifest wyrównaj flotę" },
           ],
         },
         {
@@ -199,7 +199,7 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
           name: "Faktury i rozliczenia",
           ikona: "faktury",
           pod: [
-            { name: "Faktury", href: "/invoices", perm: "BILLING_VIEW", szukaj: "ksef korekty proforma" },
+            { name: "Faktury", href: "/invoices", perm: "BILLING_VIEW", szukaj: "ksef korekta korekty proforma pdf anuluj" },
             { name: "Rozliczenia (CSV)", href: "/billing", perm: "BILLING_VIEW", szukaj: "eksport płatności portfel" },
             // Z-05 — zdarzenia płatności, których handler nie obsłużył.
             { name: "Webhooki płatności", href: "/billing/webhooki", perm: "BILLING_MANAGE", szukaj: "stripe paynow zdarzenia" },
@@ -254,7 +254,7 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
           ikona: "ustawienia",
           pod: [
             { name: "Platforma", href: "/settings/platform", perm: "SETTINGS_MANAGE", szukaj: "eko sesje okres próbny monitoring sla" },
-            { name: "Dane firmy", href: "/settings/company", perm: "SETTINGS_MANAGE", szukaj: "nip adres faktury" },
+            { name: "Dane firmy", href: "/settings/company", perm: "SETTINGS_MANAGE", szukaj: "nip adres faktury ksef token ponów wysyłkę" },
             { name: "Gotowość do startu", href: "/settings/live-readiness", perm: "SETTINGS_MANAGE", szukaj: "go live checklista" },
             { name: "Kopie offsite", href: "/settings/kopie-offsite", perm: "SETTINGS_MANAGE", szukaj: "backup kopie zapasowe storage box rclone onboard" },
             { name: "Poczta (SMTP)", href: "/settings/mail", perm: "SETTINGS_MANAGE", szukaj: "e-mail wysyłka" },
@@ -266,6 +266,22 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
     },
   ];
 }
+
+/**
+ * Strony spoza menu (dostępne z przycisków na innych stronach) — tylko dla wyszukiwarki, z tym samym filtrem
+ * uprawnień co menu. `perm: "ADMIN"` — strona dla administratora (żadna rola operatora nie ma takiego klucza).
+ */
+const UKRYTE: (Pod & { sekcja: string })[] = [
+  { name: "Dodaj węzeł (kreator)", href: "/nodes/wizard", perm: "ADMIN", sekcja: "Węzły", szukaj: "nowy węzeł kreator instalacja bootstrap" },
+  { name: "Migracja za klienta", href: "/migrations/za-klienta", perm: "MIGRATIONS_MANAGE", sekcja: "Migracje", szukaj: "przeniesienie strony zgoda klienta" },
+  { name: "Faktura ręczna", href: "/invoices/reczna", perm: "BILLING_MANAGE", sekcja: "Faktury", szukaj: "wystaw fakturę" },
+  { name: "Czeka na fakturę", href: "/invoices/czeka-na-fakture", perm: "BILLING_VIEW", sekcja: "Faktury", szukaj: "faktura zewnętrzna dopisz" },
+  { name: "Przychody z autoskalowania", href: "/autoscaling/revenue", perm: "PLANS_MANAGE", sekcja: "Oferta i ceny", szukaj: "burst" },
+  { name: "Nowy plan", href: "/plans/new", perm: "PLANS_MANAGE", sekcja: "Oferta i ceny", szukaj: "dodaj plan hostingu" },
+  { name: "Nowy plan poczty", href: "/plans/new-email", perm: "PLANS_MANAGE", sekcja: "Oferta i ceny", szukaj: "dodaj plan e-mail" },
+  { name: "Twoje konto", href: "/settings", sekcja: "Konto", szukaj: "2fa totp weryfikacja dwuetapowa" },
+  { name: "Bezpieczeństwo logowania", href: "/settings/security", sekcja: "Konto", szukaj: "passkey klucz break-glass" },
+];
 
 /** Nazwa szczegółu w ścieżce (np. „Węzły / node-pl-01”) — ustawia ją strona komponentem <Okruszek>. */
 type Szczegol = { tekst: string; mono?: boolean; dla: string } | null;
@@ -336,9 +352,12 @@ export function AdminShell({
 
   // Rozwinięcie sekcji wybrane przez operatora; bez wyboru rozwinięta jest tylko sekcja bieżącej strony.
   const [stanSekcji, setStanSekcji] = useState<Record<string, boolean>>({});
-  const strony: StronaMenu[] = menuGrupy.flatMap((g) =>
-    g.pozycje.flatMap((p) => p.pod.map((x) => ({ name: x.name, href: x.href, szukaj: x.szukaj, sekcja: x.name === p.name ? (g.naglowek ?? "") : p.name }))),
-  );
+  const strony: StronaMenu[] = [
+    ...menuGrupy.flatMap((g) =>
+      g.pozycje.flatMap((p) => p.pod.map((x) => ({ name: x.name, href: x.href, szukaj: x.szukaj, sekcja: x.name === p.name ? (g.naglowek ?? "") : p.name }))),
+    ),
+    ...UKRYTE.filter((x) => wolno(x.perm)).map(({ name, href, szukaj, sekcja }) => ({ name, href, szukaj, sekcja })),
+  ];
 
   const [otwarteDla, setOtwarteDla] = useState<string | null>(null);
   const otwarte = otwarteDla === pathname;

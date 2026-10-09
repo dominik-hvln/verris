@@ -103,6 +103,79 @@ describe("Wyszukiwarka stron", () => {
     expect(szukajStron(strony, "ceny").map((s) => s.href)).toEqual(["/domain-pricing", "/plans"]);
     expect(szukajStron(strony, "  ")).toEqual([]);
   });
+
+  it("początek nazwy > słowo w nazwie > fragment > słowa kluczowe", () => {
+    const s: StronaMenu[] = [
+      { name: "Kopie offsite", href: "/a", sekcja: "Ustawienia", szukaj: "backup" },
+      { name: "Lista węzłów", href: "/b", sekcja: "Węzły", szukaj: "kopie" },
+      { name: "Twoje kopie", href: "/c", sekcja: "Konto" },
+      { name: "Odkopie", href: "/d", sekcja: "Konto" },
+    ];
+    expect(szukajStron(s, "kopie").map((x) => x.href)).toEqual(["/a", "/c", "/d", "/b"]);
+  });
+});
+
+describe("Cmd+K — słowa kluczowe i strony spoza menu", () => {
+  let root: Root;
+  let el: HTMLElement;
+  const otworz = async (permissions: string[] = [], isAdmin = true) => {
+    sciezka = "/";
+    await act(async () =>
+      root.render(
+        <AdminShell uzytkownik="Admin" inicjaly="AV" rola="administrator" isAdmin={isAdmin} permissions={permissions} liczniki={null}>
+          <p>treść</p>
+        </AdminShell>,
+      ),
+    );
+    await act(async () => document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true })));
+    await act(async () => new Promise((r) => setTimeout(r, 40)));
+  };
+  const wpisz = async (tekst: string) => {
+    const pole = document.querySelector<HTMLInputElement>('input[aria-label="Szukaj"]')!;
+    const ustaw = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    await act(async () => {
+      ustaw.call(pole, tekst);
+      pole.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    return document.querySelector('[role="dialog"][aria-label="Wyszukiwarka"]')!.textContent ?? "";
+  };
+  beforeEach(() => {
+    el = document.createElement("div");
+    document.body.appendChild(el);
+    root = createRoot(el);
+  });
+  afterEach(() => {
+    act(() => root.unmount());
+    el.remove();
+  });
+
+  it.each([
+    ["onboard", "Lista węzłów"],
+    ["drain", "Lista węzłów"],
+    ["offsite", "Kopie offsite"],
+    ["korekta", "Faktury"],
+    ["ksef", "Dane firmy"],
+    ["kreator", "Dodaj węzeł (kreator)"],
+    ["za klienta", "Migracja za klienta"],
+    ["passkey", "Bezpieczeństwo logowania"],
+  ])("„%s” → %s", async (q, strona) => {
+    await otworz();
+    expect(await wpisz(q)).toContain(strona);
+  });
+
+  it("strony spoza menu z tym samym filtrem uprawnień", async () => {
+    await otworz(["BILLING_VIEW"], false);
+    const tekst = await wpisz("faktur");
+    expect(tekst).toContain("Czeka na fakturę");
+    expect(tekst).not.toContain("Faktura ręczna");
+    expect(await wpisz("kreator")).not.toContain("Dodaj węzeł");
+  });
+
+  it("przycisk pokazuje skrót Ctrl K (⌘K na Macu)", async () => {
+    await otworz();
+    const przycisk = el.querySelector<HTMLButtonElement>('button[aria-keyshortcuts]')!;
+    expect(przycisk.querySelector("kbd")?.textContent).toBe("Ctrl K");
+  });
 });
 
 describe("Wyszukiwarka „/” w nagłówku", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Loader2, User, Server, Globe, FileText, CornerDownLeft, ArrowRight } from "lucide-react";
 import { globalSearchAction, type GlobalSearchResult } from "./command-palette-actions";
@@ -17,18 +17,50 @@ export type StronaMenu = { name: string; href: string; sekcja: string; szukaj?: 
 
 const bezOgonkow = (t: string) => t.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "").replace(/ł/g, "l");
 
-/** Strony, których nazwa, sekcja albo słowa kluczowe zawierają każde wpisane słowo (bez polskich znaków). */
-export function szukajStron(strony: StronaMenu[], q: string, max = 6): StronaMenu[] {
-  const slowa = bezOgonkow(q).split(/\s+/).filter(Boolean);
-  if (!slowa.length) return [];
-  const trafione = strony.filter((s) => {
-    const tekst = bezOgonkow(`${s.name} ${s.sekcja} ${s.szukaj ?? ""}`);
-    return slowa.every((w) => tekst.includes(w));
-  });
-  // Najpierw strony, których sama nazwa pasuje.
-  const wNazwie = (s: StronaMenu) => (slowa.every((w) => bezOgonkow(s.name).includes(w)) ? 0 : 1);
-  return trafione.sort((a, b) => wNazwie(a) - wNazwie(b)).slice(0, max);
+/** 0 — tekst zaczyna się od słowa, 1 — któreś słowo tekstu się od niego zaczyna, 2 — fragment; null — brak. */
+function trafienie(tekst: string, w: string): number | null {
+  if (tekst.startsWith(w)) return 0;
+  if (tekst.split(/[^a-z0-9]+/).some((t) => t.startsWith(w))) return 1;
+  return tekst.includes(w) ? 2 : null;
 }
+
+/** Ocena dopasowania (mniej = lepiej); null — któreś słowo nie pasuje. Nazwa przed sekcją i słowami kluczowymi. */
+export function ocenaTrafienia(nazwa: string, dodatkowe: string, slowa: string[]): number | null {
+  const n = bezOgonkow(nazwa);
+  const d = bezOgonkow(dodatkowe);
+  let suma = 0;
+  for (const w of slowa) {
+    const wNazwie = trafienie(n, w);
+    if (wNazwie !== null) {
+      suma += wNazwie;
+      continue;
+    }
+    const wDodatkowych = trafienie(d, w);
+    if (wDodatkowych === null) return null;
+    suma += 3 + wDodatkowych;
+  }
+  return suma;
+}
+
+export const slowaZapytania = (q: string) => bezOgonkow(q).split(/\s+/).filter(Boolean);
+
+/**
+ * Strony, których nazwa, sekcja albo słowa kluczowe zawierają każde wpisane słowo (bez polskich znaków).
+ * Kolejność: początek nazwy > słowo w nazwie > fragment nazwy > słowa kluczowe.
+ */
+export function szukajStron(strony: StronaMenu[], q: string, max = 6): StronaMenu[] {
+  const slowa = slowaZapytania(q);
+  if (!slowa.length) return [];
+  return strony
+    .map((s, i) => ({ s, i, o: ocenaTrafienia(s.name, `${s.sekcja} ${s.szukaj ?? ""}`, slowa) }))
+    .filter((x): x is { s: StronaMenu; i: number; o: number } => x.o !== null)
+    .sort((a, b) => a.o - b.o || a.i - b.i)
+    .slice(0, max)
+    .map((x) => x.s);
+}
+
+const bezSubskrypcji = () => () => {};
+const naMacu = () => /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 
 type Wynik = { type: "strona"; id: string; title: string; subtitle: string; href: string } | GlobalSearchResult;
 
@@ -42,6 +74,7 @@ export function CommandPalette({ strony = [] }: { strony?: StronaMenu[] }) {
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mac = useSyncExternalStore(bezSubskrypcji, naMacu, () => false);
 
   // Zerowanie w miejscu zamknięcia, nie efektem po zmianie `open`.
   const close = useCallback(() => {
@@ -122,11 +155,12 @@ export function CommandPalette({ strony = [] }: { strony?: StronaMenu[] }) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Szukaj strony, klienta, domeny"
+        aria-keyshortcuts="Meta+K Control+K"
         className="flex h-[38px] items-center gap-2.5 rounded-[9px] border border-line-strong bg-card px-3 text-sm text-muted-foreground hover:border-primary md:w-[360px]"
       >
         <Search className="h-[15px] w-[15px] shrink-0" />
         <span className="hidden md:inline">Szukaj strony, klienta, domeny…</span>
-        <kbd className="ml-auto hidden rounded-[5px] border border-line-strong px-1.5 py-px font-mono text-[11px] md:inline">/</kbd>
+        <kbd className="ml-auto hidden rounded-[5px] border border-line-strong px-1.5 py-px font-mono text-[11px] md:inline">{mac ? "⌘K" : "Ctrl K"}</kbd>
       </button>
 
       {open ? (
@@ -164,7 +198,7 @@ export function CommandPalette({ strony = [] }: { strony?: StronaMenu[] }) {
               {wyniki.length === 0 ? (
                 <p className="px-3 py-8 text-center text-xs text-muted-foreground">
                   {q.trim().length < 2
-                    ? "Wpisz co najmniej 2 znaki: strona panelu (np. wykresy, ssl), klient, domena, faktura."
+                    ? "Wpisz co najmniej 2 znaki: strona (np. onboard, ksef), klient, domena, faktura."
                     : loading
                       ? "Szukam…"
                       : "Brak wyników."}
