@@ -54,7 +54,7 @@ export default async function OperacjeFlotyPage() {
     <div className="flex flex-col gap-6">
       <header>
         <h1 className="text-[28px] lg:text-[34px]">Operacje floty</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Działają na wszystkich węzłach — najpierw kanarek, potem reszta po jednym.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Zmiany obejmujące całą flotę.</p>
       </header>
 
       <Sekcja id="aktualizuj-flote" tytul="Aktualizuj flotę" opis="Najnowsza stabilna wersja DirectAdmina, CloudLinux i LiteSpeed na każdym węźle.">

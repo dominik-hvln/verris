@@ -26,7 +26,7 @@ export default async function PlatformSettingsPage() {
       <header>
         <h1 className="text-[28px] lg:text-[34px]">Ustawienia platformy</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Progi EKO, sesje bez ruchu, okres próbny, monitoring i kredyty SLA. Ceny ukrycia WHOIS i certyfikatów SSL: Oferta i ceny → Domeny i SSL.
+          Progi EKO, sesje bez ruchu, okres próbny, monitoring i kredyty SLA. Ceny ukrycia WHOIS i certyfikatów SSL: Oferta → Domeny i SSL.
         </p>
       </header>
       <PlatformSettingsForm initial={settings} />
