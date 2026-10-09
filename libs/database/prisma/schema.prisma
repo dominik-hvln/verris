@@ -1293,6 +1293,10 @@ model Account {
   // by block (round up). `scaledBilledUntil` = end of the last billed block.
   scaledSince       DateTime?
   scaledBilledUntil DateTime?
+  // Reszta groszy między blokami: koszt bloku liczony dokładnie (np. 0,0165 zł), do portfela idzie
+  // kwota zaokrąglona z (koszt + reszta), a różnica przechodzi na następny blok. Bez tego każdy blok
+  // był zaokrąglany osobno (+21% przy 0,0165 → 0,02), a bloki < 0,005 zł nie były liczone wcale.
+  scaledCostCarryPln Decimal @default(0) @db.Decimal(12, 6)
 
   // Last time a backup was triggered for this account (manual "backup now" or a
   // platform-initiated snapshot). Feeds the health-score backup-freshness check.

@@ -20,6 +20,7 @@ function uslugi() {
 }
 
 async function przygotuj(saldo: number, sub: Record<string, unknown> = {}) {
+  await prisma().autoscalingPriceRule.deleteMany({}); // cennik nie jest czyszczony między testami
   await prisma().autoscalingPriceRule.create({
     data: { resource: AutoscalingResource.CPU, unit: 'cpu_pct', pricePerUnit: 0.04 },
   });
@@ -74,6 +75,43 @@ describe('X-04 rozliczanie autoskalowania', () => {
     expect(await obciazenia(k.user.id)).toBe(4);
     expect(await saldo(k.user.id)).toBe(8);
     expect(await zdarzenia(k.subscription.id)).toBe(4);
+  });
+
+  it('reszta groszy: blok 0,0165 zł (cennik produkcyjny, +50% CPU) — suma pobrań zgodna z cennikiem, nie +21%', async () => {
+    // Na żywo 09.10 (d3): 0,001323 zł za 1% CPU/h × 50% × 0,25 h = 0,0165375 zł, a portfel tracił 0,02 zł na blok.
+    await prisma().autoscalingPriceRule.deleteMany({}); // cennik nie jest czyszczony między testami
+    await prisma().autoscalingPriceRule.create({
+      data: { resource: AutoscalingResource.CPU, unit: 'cpu_pct', pricePerUnit: 0.001323 },
+    });
+    const wezel = await utworzWezel();
+    const plan = await utworzPlan({ productKind: 'HOSTING' });
+    const k = await utworzKonto({ serverId: wezel.id, planId: plan.id, scaledCpu: 50 });
+    await prisma().user.update({ where: { id: k.user.id }, data: { walletBalance: 10 } });
+    await prisma().subscription.update({ where: { id: k.subscription.id }, data: { status: 'ACTIVE' } });
+    await prisma().account.update({ where: { id: k.account.id }, data: { scaledSince: T0, scaledBilledUntil: T0 } });
+    const { cron } = uslugi();
+    for (const m of [1, 16, 31, 46, 61, 76, 91, 106]) await cron.chargeDueBlocks(min(m));
+    // 8 bloków × 0,0165375 = 0,1323 zł → 0,13 zł (stare zaokrąglanie bloków osobno: 8 × 0,02 = 0,16 zł).
+    expect(await saldo(k.user.id)).toBeCloseTo(10 - 0.13, 2);
+    const reszta = Number((await prisma().account.findUniqueOrThrow({ where: { id: k.account.id } })).scaledCostCarryPln);
+    expect(Math.abs(reszta)).toBeLessThanOrEqual(0.005);
+  });
+
+  it('blok tańszy niż pół grosza nie przepada — zlicza się w kolejnych blokach', async () => {
+    await prisma().autoscalingPriceRule.deleteMany({}); // cennik nie jest czyszczony między testami
+    await prisma().autoscalingPriceRule.create({
+      data: { resource: AutoscalingResource.CPU, unit: 'cpu_pct', pricePerUnit: 0.0001 },
+    });
+    const wezel = await utworzWezel();
+    const plan = await utworzPlan({ productKind: 'HOSTING' });
+    const k = await utworzKonto({ serverId: wezel.id, planId: plan.id, scaledCpu: 50 });
+    await prisma().user.update({ where: { id: k.user.id }, data: { walletBalance: 10 } });
+    await prisma().subscription.update({ where: { id: k.subscription.id }, data: { status: 'ACTIVE' } });
+    await prisma().account.update({ where: { id: k.account.id }, data: { scaledSince: T0, scaledBilledUntil: T0 } });
+    const { cron } = uslugi();
+    // 0,0001 × 50 × 0,25 = 0,00125 zł na blok; po 4 blokach 0,005 zł → pierwszy grosz.
+    for (const m of [1, 16, 31, 46]) await cron.chargeDueBlocks(min(m));
+    expect(await saldo(k.user.id)).toBeCloseTo(9.99, 2);
   });
 
   it('rabat operatora 50%: blok za 0,50 zł', async () => {

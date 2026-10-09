@@ -26,7 +26,7 @@ function rule(resource: string, price: string) {
 
 function buildService(opts?: { debitError?: Error }) {
   const prisma = {
-    account: { update: vi.fn().mockResolvedValue({}), updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    account: { update: vi.fn().mockResolvedValue({}), findUnique: vi.fn().mockResolvedValue({ scaledCostCarryPln: 0 }), updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
     subscription: { findUnique: vi.fn().mockResolvedValue({ autoscalingDiscountPct: 0, paymentSource: 'WALLET' }) },
     autoscalingEvent: { create: vi.fn().mockResolvedValue({}) },
     walletTransaction: { aggregate: vi.fn() },

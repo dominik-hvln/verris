@@ -153,9 +153,24 @@ export class AutoscalingBillingService {
       // to samo konto naraz. Klucz idempotencji chronił portfel, ale historia zdarzeń dostawała
       // każdy blok dwa razy, a przy rozliczeniu poza Verris (MANUAL) — zestawienie do faktury
       // właściciela liczyło blok podwójnie. Wygrywa jeden przebieg; drugi kończy.
+      // Reszta groszy (test na żywo 09.10: blok 0,0165 zł pobrany jako 0,02 zł, +21%): do portfela idzie
+      // zaokrąglone (koszt bloku + reszta z poprzednich), różnica przechodzi dalej. Suma pobrań trzyma się
+      // cennika z dokładnością do pół grosza, a bloki tańsze niż 0,005 zł w końcu też się zliczą.
+      const stan = await this.prisma.account.findUnique({
+        where: { id: account.id },
+        select: { scaledCostCarryPln: true },
+      });
+      const resztaPrzed = Number(stan?.scaledCostCarryPln ?? 0);
+      const dokladnie = block.total + resztaPrzed;
+      const amount = Math.max(0, roundToCurrency(dokladnie));
+      const resztaPo = dokladnie - amount;
       const zajety = await this.prisma.account.updateMany({
         where: { id: account.id, scaledBilledUntil: blockStart },
-        data: { scaledSince: since, scaledBilledUntil: blockEnd },
+        data: {
+          scaledSince: since,
+          scaledBilledUntil: blockEnd,
+          scaledCostCarryPln: new Prisma.Decimal(resztaPo.toFixed(6)),
+        },
       });
       if (zajety.count === 0) break;
       // ponytail: awaria procesu między zajęciem a obciążeniem gubi jeden blok (na korzyść klienta);
@@ -163,9 +178,11 @@ export class AutoscalingBillingService {
       const zwolnij = () =>
         this.prisma.account.updateMany({
           where: { id: account.id, scaledBilledUntil: blockEnd },
-          data: { scaledBilledUntil: blockStart },
+          data: {
+            scaledBilledUntil: blockStart,
+            scaledCostCarryPln: new Prisma.Decimal(resztaPrzed.toFixed(6)),
+          },
         });
-      const amount = roundToCurrency(block.total);
 
       if (amount >= MIN_CHARGEABLE_PLN && poza) {
         // Bez obciążenia portfela: blok trafia do zestawienia zużycia, z którego
