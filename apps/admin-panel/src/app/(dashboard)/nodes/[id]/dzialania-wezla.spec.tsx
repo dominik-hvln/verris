@@ -68,4 +68,10 @@ describe("Działania węzła na karcie", () => {
       }
     }
   });
+
+  it("kotwica obejmuje panel działania — pusty znacznik nie ma czego podświetlić po Cmd+K", () => {
+    const strona = readFileSync(join(__dirname, "page.tsx"), "utf8");
+    const kotwice = new Set(AKCJE_WEZLA.map((a) => a.href({ id: "w1", status: "ACTIVE" }).split("#")[1]).filter(Boolean));
+    for (const k of kotwice) expect(strona).not.toMatch(new RegExp(`<[a-z]+ id="${k}"[^>]*/>`));
+  });
 });

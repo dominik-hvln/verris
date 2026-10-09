@@ -302,25 +302,27 @@ export default async function ServerDetailPage({
           <div id="status" className="scroll-mt-4">
             <NodeStatusPanel serverId={server.id} status={server.status} />
           </div>
-          <div id="serwis" className="scroll-mt-4" />
-          <MaintenanceToggle
-            serverId={server.id}
-            status={server.status}
-            maintenanceReason={server.maintenanceReason}
-            maintenanceStartedAt={server.maintenanceStartedAt}
-          />
-          <div id="pojemnosc" className="scroll-mt-4" />
-          {dziala && (
-            <CapacityPolicyPanel
+          <div id="serwis" className="scroll-mt-4">
+            <MaintenanceToggle
               serverId={server.id}
-              acceptsNewAccounts={server.acceptsNewAccounts}
-              maxAccounts={server.maxAccounts}
-              reservedHeadroomPercent={server.reservedHeadroomPercent}
-              overcommitCpu={server.overcommitCpu}
-              overcommitRam={server.overcommitRam}
-              overcommitDisk={server.overcommitDisk}
-              accountCount={server._count?.accounts ?? 0}
+              status={server.status}
+              maintenanceReason={server.maintenanceReason}
+              maintenanceStartedAt={server.maintenanceStartedAt}
             />
+          </div>
+          {dziala && (
+            <div id="pojemnosc" className="scroll-mt-4">
+              <CapacityPolicyPanel
+                serverId={server.id}
+                acceptsNewAccounts={server.acceptsNewAccounts}
+                maxAccounts={server.maxAccounts}
+                reservedHeadroomPercent={server.reservedHeadroomPercent}
+                overcommitCpu={server.overcommitCpu}
+                overcommitRam={server.overcommitRam}
+                overcommitDisk={server.overcommitDisk}
+                accountCount={server._count?.accounts ?? 0}
+              />
+            </div>
           )}
           <div id="directadmin">
             <DirectAdminConfigForm
