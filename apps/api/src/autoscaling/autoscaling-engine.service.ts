@@ -51,6 +51,16 @@ export class AutoscalingEngineService {
   private readonly logger = new Logger(AutoscalingEngineService.name);
 
   private readonly BUCKET_WINDOW_MIN = 5;
+  /**
+   * Opóźnienie telemetrii względem zegara silnika. Agent węzła (verris-lve, co minutę) wysyła kubełek
+   * POPRZEDNIEJ minuty, a API wyrównuje bucketStart w dół do pełnej minuty — najnowszy kubełek ma więc
+   * w chwili ticku silnika 1–2 min. Okno „ostatnie 5 min” od zegara silnika łapało 3–4 kubełki, więc
+   * DOWN_HITS_REQUIRED = 5 było nieosiągalne: konto nigdy nie schodziło z autoskalowania i płaciło
+   * kolejne bloki 15 min przy zerowym zużyciu (na żywo d3, 09.10: +50% CPU od 13:43, zużycie 0% od
+   * 13:44, drugi blok naliczony 14:00). Szukamy w oknie powiększonym o opóźnienie, a bierzemy
+   * BUCKET_WINDOW_MIN najnowszych kubełków.
+   */
+  private readonly TELEMETRY_LAG_MIN = 2;
   private readonly UP_PRESSURE_RATIO = 0.8;
   private readonly DOWN_RELAX_RATIO = 0.3;
   private readonly UP_HITS_REQUIRED = 3;
@@ -129,7 +139,9 @@ export class AutoscalingEngineService {
     if (!sub.account) return 'HOLD';
     if (sub.account.status !== 'ACTIVE') return 'HOLD';
 
-    const since = new Date(Date.now() - this.BUCKET_WINDOW_MIN * 60 * 1000);
+    const since = new Date(
+      Date.now() - (this.BUCKET_WINDOW_MIN + this.TELEMETRY_LAG_MIN) * 60 * 1000,
+    );
     const recent = await this.prisma.usageMetric.findMany({
       where: {
         subscriptionId: sub.id,
@@ -232,7 +244,25 @@ export class AutoscalingEngineService {
         diskMb: scaledDiskMb + limit.przyznane.diskMb,
       };
 
-      if (limit.obciete) {
+      const powodOgraniczenia =
+        `node_capacity_limited|cpu:${limit.przyznane.cpu}/${nextScaledCpu - scaledCpu}` +
+        `|ram:${limit.przyznane.ramMb}/${nextScaledRamMb - scaledRamMb}` +
+        `|disk:${limit.przyznane.diskMb}/${nextScaledDiskMb - scaledDiskMb}`;
+      // Ten sam brak pojemności zapisujemy raz na blok rozliczeniowy, nie co minutę: na żywo (d3, 09.10)
+      // każdy tick dopisywał zdarzenie i wpis w dzienniku, a historia klienta (100 zdarzeń) po ok. 1,5 h
+      // zostałaby wypchnięta samymi „Serwer dał mniej zasobów”, bez naliczeń.
+      const juzZapisane =
+        limit.obciete &&
+        (await this.prisma.autoscalingEvent.findFirst({
+          where: {
+            subscriptionId: sub.id,
+            reason: powodOgraniczenia,
+            createdAt: { gte: new Date(Date.now() - BILLING_BLOCK_MINUTES * 60_000) },
+          },
+          select: { id: true },
+        })) !== null;
+
+      if (limit.obciete && !juzZapisane) {
         this.logger.warn(
           `Autoscaling: węzeł ${limit.serverId} nie ma pełnej nadwyżki dla sub=${sub.id} — ` +
             `przyznano cpu=${limit.przyznane.cpu}/${nextScaledCpu - scaledCpu}, ` +
@@ -267,10 +297,7 @@ export class AutoscalingEngineService {
           data: {
             subscriptionId: sub.id,
             direction: AutoscalingDirection.UP,
-            reason:
-              `node_capacity_limited|cpu:${limit.przyznane.cpu}/${nextScaledCpu - scaledCpu}` +
-              `|ram:${limit.przyznane.ramMb}/${nextScaledRamMb - scaledRamMb}` +
-              `|disk:${limit.przyznane.diskMb}/${nextScaledDiskMb - scaledDiskMb}`,
+            reason: powodOgraniczenia,
           },
         });
       }
