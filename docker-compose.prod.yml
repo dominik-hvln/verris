@@ -517,7 +517,7 @@ services:
     networks: [verris_internal]
 
   redis-exporter:
-    image: oliver006/redis_exporter:v1.92.0-alpine
+    image: oliver006/redis_exporter:v1.93.0-alpine
     restart: always
     logging: *default-logging
     depends_on:
