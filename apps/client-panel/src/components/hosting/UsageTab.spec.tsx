@@ -16,7 +16,8 @@ jest.mock('@/app/dashboard/services/[id]/hosting-usage-actions', () => ({
     dane: {
       window: '24h',
       rows: [0, 1, 2].map((m) => ({
-        bucketStart: new Date(Date.UTC(2026, 9, 5, 12, m)).toISOString(),
+        // Wykres 24 h liczy słupki od zegara (bucketize po czasie) — próbki muszą być z ostatniej doby.
+        bucketStart: new Date(Date.now() - (3 - m) * 60_000).toISOString(),
         cpuUsageAvg: 12 + m,
         cpuUsageMax: 30,
         memUsageAvgMb: 300,

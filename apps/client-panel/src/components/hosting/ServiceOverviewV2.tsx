@@ -318,7 +318,11 @@ export default function ServiceOverviewV2({
           unit={cpuPeak != null ? '% limitu · szczyt' : undefined}
           foot={
             cpuHot ? (
-              <span className="text-warn">blisko limitu — rozważ autoskalowanie</span>
+              asEnabled ? (
+                <span className="text-warn">przy limicie — autoskalowanie dokłada moc</span>
+              ) : (
+                <span className="text-warn">blisko limitu — rozważ autoskalowanie</span>
+              )
             ) : (
               <span>{cpu.values.length ? 'w normie' : 'brak pomiarów z 24 h'}</span>
             )

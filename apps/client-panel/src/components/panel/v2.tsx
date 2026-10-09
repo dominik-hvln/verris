@@ -543,19 +543,35 @@ export function procentGb(usedMb: number | null | undefined, limitMb: number | n
 }
 
 /** Szereg 24 h → `n` kubełków (maksimum w kubełku) + etykiety godzin. Czysta funkcja — testowana. */
+/**
+ * Słupki po CZASIE, nie po liczbie próbek: `n` przedziałów na ostatnie 24 h (24 → pełne godziny,
+ * 48 → pół godziny), wyrównanych do zegara. Wartość = szczyt w przedziale, 0 gdy brak próbek.
+ * Wcześniej dzielono listę próbek na `n` równych kawałków — ostatni słupek zaczynał się w dowolnym
+ * miejscu (na żywo 09.10: „od 13:15” o 14:10), a przy lukach w telemetrii słupki obejmowały różny czas.
+ */
 export function bucketize(
   rows: { bucketStart: string; value: number }[],
   n: number,
+  now: Date = new Date(),
 ): { values: number[]; labels: string[] } {
   if (rows.length === 0) return { values: [], labels: [] };
-  const size = Math.ceil(rows.length / n);
-  const values: number[] = [];
-  const labels: string[] = [];
-  for (let i = 0; i < rows.length; i += size) {
-    const chunk = rows.slice(i, i + size);
-    values.push(Math.max(...chunk.map((r) => r.value)));
-    labels.push(new Date(chunk[0]!.bucketStart).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }));
+  const slotMs = (24 * 3_600_000) / n;
+  const koniec = Math.floor(now.getTime() / slotMs) * slotMs; // początek bieżącego przedziału
+  const start = koniec - (n - 1) * slotMs;
+  const values: number[] = Array.from({ length: n }, () => 0);
+  let pierwszy = n;
+  for (const r of rows) {
+    const t = new Date(r.bucketStart).getTime();
+    if (!Number.isFinite(t) || t < start || t >= koniec + slotMs) continue;
+    const i = Math.floor((t - start) / slotMs);
+    values[i] = Math.max(values[i]!, r.value);
+    pierwszy = Math.min(pierwszy, i);
   }
-  return { values, labels };
+  if (pierwszy === n) return { values: [], labels: [] };
+  const labels = values.map((_, i) =>
+    new Date(start + i * slotMs).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }),
+  );
+  // Bez pustych słupków sprzed pierwszej próbki (świeże konto) — oś zaczyna się od pierwszego pomiaru.
+  return { values: values.slice(pierwszy), labels: labels.slice(pierwszy) };
 }
 
