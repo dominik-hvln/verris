@@ -7,7 +7,7 @@ jest.mock("next/cache", () => ({ revalidatePath: jest.fn() }));
 jest.mock("next/navigation", () => ({ redirect: jest.fn() }));
 import { AdminApiError } from "@/lib/api";
 import { cofnijWeryfikacjeVatAction, weryfikacjaVatAction } from "../actions";
-import { opisStatusuVat } from "./status-vat-nabywcy";
+import { opisStatusuVat } from "./status-vat-opis";
 
 /** Decyzja 09.10 — „Zweryfikuj status VAT nabywcy” na karcie klienta: walidacja, wywołanie API, opis statusu. */
 describe("weryfikacja VAT nabywcy — karta klienta", () => {

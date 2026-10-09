@@ -29,7 +29,8 @@ import { ZwrotPaynowButton } from "./zwrot-paynow-button";
 import { services, plForm } from "@/lib/pl";
 import { sekcjaKarty, zakladkiKartyKlienta } from "@/lib/sekcje-karty-klienta";
 import { DiagnostykaDnsTls } from "./diagnostyka-dns-tls";
-import { opisStatusuVat, StatusVatNabywcyAkcje, type StatusVatNabywcy } from "./status-vat-nabywcy";
+import { StatusVatNabywcyAkcje } from "./status-vat-nabywcy";
+import { opisStatusuVat, type StatusVatNabywcy } from "./status-vat-opis";
 
 export const dynamic = "force-dynamic";
 

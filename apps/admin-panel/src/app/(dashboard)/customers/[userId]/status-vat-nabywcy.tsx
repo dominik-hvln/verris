@@ -3,24 +3,7 @@
 import { useTransition } from "react";
 import { potwierdz, zapytaj } from "@/components/potwierdz";
 import { cofnijWeryfikacjeVatAction, weryfikacjaVatAction } from "../actions";
-
-/** Odpowiedź GET /admin/billing/nabywcy/:userId/vat. */
-export interface StatusVatNabywcy {
-  kraj: string;
-  pozaUe: boolean;
-  wymagaWeryfikacji: boolean;
-  weryfikacja: { at: string; przez: string | null; podstawa: string | null; kraj: string | null; aktualna: boolean } | null;
-}
-
-/** Tekst do wiersza „Status VAT nabywcy” na karcie klienta. */
-export function opisStatusuVat(s: StatusVatNabywcy): string {
-  if (!s.pozaUe) return s.kraj === "PL" ? "Polska — 23%" : `UE (${s.kraj}) — stawka wg VIES przy płatności`;
-  if (s.weryfikacja?.aktualna) {
-    const kiedy = new Date(s.weryfikacja.at).toLocaleDateString("pl-PL");
-    return `spoza UE (${s.kraj}) — zweryfikowany ${kiedy}, cena netto · ${s.weryfikacja.podstawa ?? ""}`.trim();
-  }
-  return `spoza UE (${s.kraj}) — NIEZWERYFIKOWANY, płatności z 23% VAT`;
-}
+import type { StatusVatNabywcy } from "./status-vat-opis";
 
 /**
  * Decyzja 09.10 — „Zweryfikuj status VAT nabywcy”: klient spoza UE dostaje cenę netto dopiero po weryfikacji
