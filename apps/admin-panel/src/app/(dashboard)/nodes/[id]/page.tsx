@@ -25,6 +25,8 @@ import { DaSsoButton } from "./da-sso-button";
 import { NoweKontaButton } from "./nowe-konta-button";
 import { AktualizujWezelButton } from "./aktualizuj-wezel-button";
 import { WezelPrzeglad } from "./wezel-przeglad";
+import { DzialaniaWezla } from "./dzialania-wezla";
+import { OnboardLivePanel } from "../wizard/onboard-panele";
 import { fetchPrognozaWezla, fetchPrzegladWezla } from "./przeglad-data";
 import { PrognozaWezlaKarta } from "./prognoza-wezla";
 import { listNodeTasks } from "../../provisioning-queue/data";
@@ -207,6 +209,7 @@ export default async function ServerDetailPage({
               <NodeBootstrapProgress serverId={server.id} />
             </section>
           )}
+          <DzialaniaWezla baza={baza} dziala={dziala} instalacja={canBootstrap} />
           {prognoza ? <PrognozaWezlaKarta p={prognoza} bazaHref={baza} /> : null}
           {p ? <WezelPrzeglad p={p} bazaHref={baza} /> : null}
         </>
@@ -230,7 +233,23 @@ export default async function ServerDetailPage({
 
       {sekcja === "aktualizacje" ? (
         <>
-          {dziala ? <AktualizujWezelButton serverId={server.id} /> : null}
+          {dziala ? (
+            <section id="onboard-live" className={`${KARTA} flex scroll-mt-4 flex-col gap-2 p-5`}>
+              <h2 className="font-display text-[17px] font-bold">Skrypty i zabezpieczenia (Onboard LIVE)</h2>
+              <p className="text-sm text-muted-foreground">
+                Wgrywa na węzeł aktualne skrypty Verris (worker migracji, guard, agent zadań), hardening i blokadę ruchu
+                wychodzącego. Uruchom po deployu zmian w skryptach węzła. Nie włącza nowych kont.
+              </p>
+              <OnboardLivePanel serverId={server.id} />
+            </section>
+          ) : null}
+          {dziala ? (
+            <section id="stos" className={`${KARTA} flex scroll-mt-4 flex-col gap-2 p-5`}>
+              <h2 className="font-display text-[17px] font-bold">Stos serwera</h2>
+              <p className="text-sm text-muted-foreground">DirectAdmin, CloudLinux i LiteSpeed do najnowszych stabilnych wersji.</p>
+              <AktualizujWezelButton serverId={server.id} />
+            </section>
+          ) : null}
           {dziala ? (
             <DbUpgradePanel
               serverId={server.id}
@@ -240,7 +259,9 @@ export default async function ServerDetailPage({
               dbUpgradeRequestedAt={server.dbUpgradeRequestedAt}
             />
           ) : null}
-          <HostingProfilePanel serverId={server.id} serverStatus={server.status} />
+          <div id="profil" className="scroll-mt-4">
+            <HostingProfilePanel serverId={server.id} serverStatus={server.status} />
+          </div>
         </>
       ) : null}
 
@@ -255,12 +276,14 @@ export default async function ServerDetailPage({
             {server.notes && <DefRow label="Notatki" value={server.notes} />}
           </section>
           <NodeStatusPanel serverId={server.id} status={server.status} />
+          <div id="serwis" className="scroll-mt-4" />
           <MaintenanceToggle
             serverId={server.id}
             status={server.status}
             maintenanceReason={server.maintenanceReason}
             maintenanceStartedAt={server.maintenanceStartedAt}
           />
+          <div id="pojemnosc" className="scroll-mt-4" />
           {dziala && (
             <CapacityPolicyPanel
               serverId={server.id}
