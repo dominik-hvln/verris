@@ -543,13 +543,10 @@ export default function ServiceOverviewV2({
                 { label: 'Baza danych', values: ['localhost'], port: '3306' },
               ]}
             />
-            {/* P-13 — gdzie fizycznie leżą dane usługi (region węzła albo ogólne EOG, gdy nieustalony). */}
+            {/* P-13 — gdzie fizycznie leżą dane usługi (region węzła albo ogólne EOG, gdy nieustalony). 09.10: jedna
+                krótka linia — szczegóły (kopie, podmioty przetwarzające) są w polityce prywatności. */}
             <p className="mx-4 mb-3 mt-2 text-[12.5px] text-muted-foreground">
-              Dane usługi i kopie zapasowe: {opisLokalizacji(account?.server?.region).opis}. Kopie poza serwerem są
-              szyfrowane i również przechowywane w EOG.{' '}
-              <Link href="/legal/privacy" className="underline underline-offset-2 hover:text-foreground">
-                Podmioty przetwarzające dane
-              </Link>
+              Lokalizacja danych: {opisLokalizacji(account?.server?.region).opis}
             </p>
           </Box>
 

@@ -37,7 +37,8 @@ describe('TopupCard — wybór bramki', () => {
     expect(paynow.textContent).toContain('przez Paynow');
     expect(paynow.getAttribute('aria-pressed')).toBe('true');
     expect(metoda(el)).toBe('paynow');
-    expect(el.textContent).toContain('Płatność przez Paynow');
+    // 09.10 — bez akapitu z opisem bramki/kursu NBP/faktur pod formularzem (decyzja Dominika: za długi).
+    expect(el.textContent).not.toContain('kursie średnim NBP');
     await act(async () => przyciskMetody(el, 'płatność kartą').click());
     expect(metoda(el)).toBe('stripe');
     expect(paynow.getAttribute('aria-pressed')).toBe('false');
@@ -48,7 +49,7 @@ describe('TopupCard — wybór bramki', () => {
     const { el, root } = await renderuj({ balance: '10.00' });
     expect(el.querySelector('[aria-label="Sposób płatności"]')).toBeNull();
     expect(metoda(el)).toBe('stripe');
-    expect(el.textContent).toContain('Płatność online: w PLN karta, BLIK i Przelewy24');
+    expect(el.textContent).not.toContain('Płatność online');
     act(() => root.unmount());
   });
 

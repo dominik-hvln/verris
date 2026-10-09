@@ -507,7 +507,7 @@ export function SectionHead({ title, desc, action }: { title: ReactNode; desc?: 
     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
       <div>
         <h2 className="m-0 font-display text-[17px] font-bold leading-tight tracking-[-0.01em] text-foreground">{title}</h2>
-        {desc ? <p className="mt-1 max-w-[60ch] text-[13.5px] text-muted-foreground">{desc}</p> : null}
+        {desc ? <p className="mt-1 text-pretty text-[13.5px] text-muted-foreground">{desc}</p> : null}
       </div>
       {action}
     </div>

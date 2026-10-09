@@ -47,7 +47,7 @@ export function HostingTabShell({
         <div className="min-w-0">
           <h2 className="m-0 font-display text-[17px] font-bold leading-tight tracking-[-0.01em] text-foreground">{title}</h2>
           {description ? (
-            <p className="mt-1 max-w-[60ch] text-[13.5px] text-muted-foreground">{description}</p>
+            <p className="mt-1 text-pretty text-[13.5px] text-muted-foreground">{description}</p>
           ) : null}
         </div>
         {actions ? (

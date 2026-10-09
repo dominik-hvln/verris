@@ -43,7 +43,7 @@ export function PanelPageHeader({
       <h1 className="m-0 font-display text-[clamp(28px,4vw,40px)] font-extrabold leading-none tracking-[-0.03em] text-foreground">
         {title}
       </h1>
-      {description ? <p className="max-w-[60ch] text-[13.5px] text-muted-foreground">{description}</p> : null}
+      {description ? <p className="text-pretty text-[13.5px] text-muted-foreground">{description}</p> : null}
     </header>
   );
 }
