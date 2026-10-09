@@ -72,6 +72,20 @@ describe("Menu admina — żadna strona nie jest ukryta", () => {
     expect(sekcja("Zgłoszenia")).toBeNull();
     expect(menu().querySelector('a[href="/plans"]')).toBeNull();
   });
+
+  it("uprawnienia niedostępne: komunikat i menu bez modułów wymagających uprawnień", async () => {
+    sciezka = "/";
+    await act(async () =>
+      root.render(
+        <AdminShell uzytkownik="Admin" inicjaly="AV" rola="brak uprawnień" isAdmin={false} permissions={[]} uprawnieniaNiedostepne liczniki={null}>
+          <p>treść</p>
+        </AdminShell>,
+      ),
+    );
+    expect(el.querySelector('[role="alert"]')?.textContent).toContain("Nie udało się pobrać Twoich uprawnień");
+    expect(menu().querySelector('a[href="/nodes"]')).toBeNull();
+    expect(menu().querySelector('a[href="/settings/platform"]')).toBeNull();
+  });
 });
 
 describe("Wyszukiwarka stron", () => {

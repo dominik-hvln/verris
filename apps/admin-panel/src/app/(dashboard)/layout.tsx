@@ -23,9 +23,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <AdminShell
         uzytkownik={[session.firstName, session.lastName].filter(Boolean).join(" ") || session.email}
         inicjaly={inicjaly(session)}
-        rola={access.isAdmin ? "administrator" : access.roleName || "operator"}
+        rola={access.niedostepne ? "brak uprawnień" : access.isAdmin ? "administrator" : access.roleName || "operator"}
         isAdmin={access.isAdmin}
         permissions={access.permissions}
+        uprawnieniaNiedostepne={access.niedostepne}
         liczniki={l}
       >
         {children}

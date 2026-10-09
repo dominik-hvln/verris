@@ -1,4 +1,8 @@
-import { canAccess, type StaffAccess } from './staff-access';
+jest.mock('./api', () => ({ adminApi: jest.fn() }));
+
+import { adminApi } from './api';
+import { canAccess, fetchStaffAccess, type StaffAccess } from './staff-access';
+
 
 /**
  * Bramkowanie nawigacji panelu admina po uprawnieniach operatora. Twarda egzekucja jest w API;
@@ -19,5 +23,23 @@ describe('X-05 canAccess', () => {
 
   it('element bez wymaganego uprawnienia widzi każdy operator', () => {
     expect(canAccess(operator([]), undefined)).toBe(true);
+  });
+});
+
+describe('fetchStaffAccess — API uprawnień nie odpowiada', () => {
+  it('fail-closed: brak uprawnień i flaga niedostępności zamiast dostępu ADMIN-a', async () => {
+    (adminApi as jest.Mock).mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    const dostep = await fetchStaffAccess();
+    expect(dostep.isAdmin).toBe(false);
+    expect(dostep.niedostepne).toBe(true);
+    expect(canAccess(dostep, 'NODES_MANAGE')).toBe(false);
+    expect(canAccess(dostep, 'SETTINGS_MANAGE')).toBe(false);
+  });
+
+  it('odpowiedź API przechodzi bez zmian', async () => {
+    (adminApi as jest.Mock).mockResolvedValueOnce({ role: 'ADMIN', isAdmin: true, permissions: [] });
+    const dostep = await fetchStaffAccess();
+    expect(dostep.isAdmin).toBe(true);
+    expect(dostep.niedostepne).toBeUndefined();
   });
 });
