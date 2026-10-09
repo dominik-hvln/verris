@@ -44,13 +44,15 @@ describe("PB-47 — role operatora w panelu admina", () => {
   });
 
   it("lista ról: systemowe oznaczone, z opisem i przyciskiem „Sklonuj” zamiast „Edytuj”", () => {
-    const html = renderToStaticMarkup(<RolesClient catalog={[]} initialRoles={role} initialOperators={[op({ roleIds: ["l2"] })]} />);
+    const html = renderToStaticMarkup(<RolesClient catalog={[]} initialRoles={role} />);
     const t = tekst(html);
     expect(t.match(/systemowa/g)).toHaveLength(2);
     expect(t.match(/Sklonuj/g)).toHaveLength(2);
     expect(t.match(/Edytuj/g)).toHaveLength(1);
     expect(t).toContain("Wszystko z L1 oraz podgląd konta klienta.");
-    expect(html).toContain("data-role-operatora");
+    // 10.10 — operatorzy (role, blokada) są na /operators i karcie operatora; tu tylko definicja ról.
+    expect(html).not.toContain("data-role-operatora");
+    expect(html).toContain('href="/operators"');
   });
 
   it("akcje wołają API: pełna lista ról operatora i klon roli", async () => {

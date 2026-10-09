@@ -1,6 +1,6 @@
 "use client";
 
-import { Select } from "@/components/select";
+import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Save, Trash2, ShieldCheck, Loader2, X } from "lucide-react";
@@ -9,39 +9,21 @@ import {
   updateRole,
   deleteRole,
   cloneRole,
-  createOperator,
-  setOperatorActive,
   type PermItem,
   type RoleRow,
-  type OperatorRow,
-  type ActivityRow,
 } from "./actions";
 import { potwierdz } from "@/components/potwierdz";
 import { Checkbox } from '@/components/checkbox';
 import { plForm } from "@/lib/pl";
-import { WyborRolOperatora } from "./wybor-rol-operatora";
 
 type Editing = { id: string | null; name: string; description: string; permissions: Set<string> } | null;
 
-export function RolesClient({
-  catalog,
-  initialRoles,
-  initialOperators,
-  initialActivity = [],
-}: {
-  catalog: PermItem[];
-  initialRoles: RoleRow[];
-  initialOperators: OperatorRow[];
-  initialActivity?: ActivityRow[];
-}) {
+/** Definicja ról (uprawnienia). Operatorzy, ich role i blokada — na /operators i karcie operatora (10.10). */
+export function RolesClient({ catalog, initialRoles }: { catalog: PermItem[]; initialRoles: RoleRow[] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [editing, setEditing] = useState<Editing>(null);
   const [err, setErr] = useState<string | null>(null);
-  const [opEmail, setOpEmail] = useState("");
-  const [opFirst, setOpFirst] = useState("");
-  const [opLast, setOpLast] = useState("");
-  const [opRoleId, setOpRoleId] = useState("");
 
   const areas = useMemo(() => {
     const map = new Map<string, PermItem[]>();
@@ -92,26 +74,6 @@ export function RolesClient({
     setErr(null);
     start(async () => {
       const res = await cloneRole(r.id);
-      if (!res.ok) { setErr(res.error); return; }
-      router.refresh();
-    });
-  };
-
-  const addOperator = () => {
-    if (!opEmail.trim()) { setErr("Podaj e-mail operatora."); return; }
-    setErr(null);
-    start(async () => {
-      const res = await createOperator({ email: opEmail.trim(), firstName: opFirst.trim() || undefined, lastName: opLast.trim() || undefined, roleId: opRoleId || null });
-      if (!res.ok) { setErr(res.error); return; }
-      setOpEmail(""); setOpFirst(""); setOpLast(""); setOpRoleId("");
-      router.refresh();
-    });
-  };
-
-  const toggleActive = (o: OperatorRow) => {
-    setErr(null);
-    start(async () => {
-      const res = await setOperatorActive(o.id, Boolean(o.loginBlocked));
       if (!res.ok) { setErr(res.error); return; }
       router.refresh();
     });
@@ -204,90 +166,13 @@ export function RolesClient({
         </section>
       </div>
 
-      {/* Mój zespół — dodawanie operatora */}
-      <section>
-        <h2 className="mb-3 text-sm font-bold uppercase tracking-widest text-neutral-400">Mój zespół — dodaj operatora</h2>
-        <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-          <div className="grid gap-2 sm:grid-cols-[1.4fr_1fr_1fr_1fr_auto]">
-            <input value={opEmail} onChange={(e) => setOpEmail(e.target.value)} aria-label="E-mail operatora" placeholder="e-mail operatora" className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
-            <input value={opFirst} onChange={(e) => setOpFirst(e.target.value)} aria-label="Imię operatora" placeholder="imię" className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
-            <input value={opLast} onChange={(e) => setOpLast(e.target.value)} aria-label="Nazwisko operatora" placeholder="nazwisko" className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
-            <Select
-              aria-label="Dział (rola) operatora"
-              value={opRoleId}
-              onChange={setOpRoleId}
-              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
-              options={[{ value: "", label: "— dział (rola) —" }, ...initialRoles.map((r) => ({ value: r.id, label: r.name }))]}
-            />
-            <button onClick={addOperator} disabled={pending} className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-40">
-              <Plus className="h-4 w-4" /> Dodaj
-            </button>
-          </div>
-          <p className="mt-2 text-[11px] text-neutral-500">Tworzy konto operatora (STAFF) i wysyła e-mail z hasłem tymczasowym. Pierwsze logowanie wymusi ustawienie klucza dostępu (passkey).</p>
-        </div>
-      </section>
-
-      {/* Przypisanie operatorów */}
-      <section>
-        <h2 className="mb-3 text-sm font-bold uppercase tracking-widest text-neutral-400">Operatorzy i ich role</h2>
-        <div className="overflow-hidden rounded-xl border border-white/10">
-          {initialOperators.map((o) => (
-            <div key={o.id} className="flex flex-wrap items-start justify-between gap-3 border-b border-white/5 px-4 py-2.5 last:border-0">
-              <div className="min-w-0">
-                <p className="truncate text-sm text-white">{[o.firstName, o.lastName].filter(Boolean).join(" ") || o.email}</p>
-                <p className="truncate text-[11px] text-neutral-500">{o.email} · {o.role}</p>
-              </div>
-              {o.role === "ADMIN" ? (
-                <span className="rounded bg-emerald-500/15 px-2 py-1 text-xs text-emerald-300">Pełny dostęp</span>
-              ) : (
-                <div className="flex flex-wrap items-start gap-2">
-                  {o.loginBlocked ? (
-                    <span className="rounded bg-rose-500/15 px-2 py-1 text-[11px] text-rose-300">Wyłączony</span>
-                  ) : (
-                    <span className="rounded bg-emerald-500/15 px-2 py-1 text-[11px] text-emerald-300">Aktywny</span>
-                  )}
-                  <WyborRolOperatora operator={o} role={initialRoles} zablokowane={pending || Boolean(o.loginBlocked)} onBlad={setErr} />
-                  <button
-                    onClick={() => toggleActive(o)}
-                    disabled={pending}
-                    className={`rounded-md border px-2 py-1.5 text-xs ${o.loginBlocked ? "border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10" : "border-rose-500/30 text-rose-300 hover:bg-rose-500/10"}`}
-                  >
-                    {o.loginBlocked ? "Aktywuj" : "Wyłącz"}
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Dziennik aktywności operatorów */}
-      <section>
-        <h2 className="mb-3 text-sm font-bold uppercase tracking-widest text-neutral-400">Dziennik aktywności operatorów</h2>
-        {initialActivity.length === 0 ? (
-          <p className="text-sm text-neutral-500">Brak zarejestrowanych działań.</p>
-        ) : (
-          <div className="overflow-hidden rounded-xl border border-white/10">
-            <div className="grid grid-cols-[150px_1fr_1fr] gap-2 border-b border-white/10 bg-white/[0.03] px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-neutral-500">
-              <span>Kiedy</span><span>Operator → akcja</span><span>Cel / IP</span>
-            </div>
-            <div className="max-h-[420px] overflow-auto">
-              {initialActivity.map((a) => (
-                <div key={a.id} className="grid grid-cols-[150px_1fr_1fr] gap-2 border-b border-white/5 px-4 py-2 text-sm last:border-0">
-                  <span className="text-neutral-400">{new Date(a.createdAt).toLocaleString("pl-PL")}</span>
-                  <span className="min-w-0">
-                    <span className="text-white">{a.actor ?? "—"}</span>
-                    <span className="text-neutral-500"> · </span>
-                    <span className="font-mono text-[12px] text-indigo-300">{a.action}</span>
-                  </span>
-                  <span className="min-w-0 truncate text-neutral-400">{a.target ?? ""}{a.ip ? ` · ${a.ip}` : ""}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        <p className="mt-2 text-[11px] text-neutral-500">Ostatnie działania wykonane przez operatorów (pełny audyt z filtrami i eksportem CSV jest w „Dzienniku bezpieczeństwa”).</p>
-      </section>
+      <p className="text-sm text-muted-foreground">
+        Operatorów, ich role i blokadę zmienisz w{" "}
+        <Link href="/operators" className="font-semibold text-foreground underline-offset-2 hover:underline">
+          Zespół → Operatorzy
+        </Link>
+        .
+      </p>
     </div>
   );
 }

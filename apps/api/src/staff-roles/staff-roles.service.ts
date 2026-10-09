@@ -261,6 +261,8 @@ export class StaffRolesService implements OnModuleInit {
         role: true,
         staffRoleId: true,
         loginBlocked: true,
+        // Karta operatora w panelu admina (10.10) — dostęp do Grafany obok ról i blokady.
+        canAccessGrafana: true,
         staffRoleAssignments: { select: { roleId: true } },
       },
       orderBy: [{ role: 'asc' }, { email: 'asc' }],

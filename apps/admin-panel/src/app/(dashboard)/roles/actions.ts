@@ -26,6 +26,7 @@ export interface OperatorRow {
   /** PB-47 — wszystkie role operatora (uprawnienia = suma). */
   roleIds?: string[];
   loginBlocked?: boolean;
+  canAccessGrafana?: boolean;
 }
 type Result = { ok: true } | { ok: false; error: string };
 function err(e: unknown): string {
@@ -85,6 +86,7 @@ export async function createOperator(input: { email: string; firstName?: string;
   try {
     await adminApi("/admin/staff-roles/operators", { method: "POST", body: input });
     revalidatePath("/roles");
+    revalidatePath("/operators", "layout");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: err(e) };
@@ -95,6 +97,7 @@ export async function setOperatorActive(userId: string, active: boolean): Promis
   try {
     await adminApi(`/admin/staff-roles/operators/${userId}/active`, { method: "POST", body: { active } });
     revalidatePath("/roles");
+    revalidatePath("/operators", "layout");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: err(e) };
@@ -116,6 +119,7 @@ export async function setOperatorRoles(userId: string, roleIds: string[]): Promi
   try {
     await adminApi(`/admin/staff-roles/operators/${userId}/roles`, { method: "POST", body: { roleIds } });
     revalidatePath("/roles");
+    revalidatePath("/operators", "layout");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: err(e) };

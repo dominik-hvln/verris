@@ -295,8 +295,7 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
 const UKRYTE: (Pod & { sekcja: string })[] = [
   { name: "Nowy plan", href: "/plans/new", perm: "PLANS_MANAGE", sekcja: "Oferta", szukaj: "dodaj plan hostingu" },
   { name: "Nowy plan poczty", href: "/plans/new-email", perm: "PLANS_MANAGE", sekcja: "Oferta", szukaj: "dodaj plan e-mail" },
-  { name: "Twoje konto", href: "/settings", sekcja: "Konto", szukaj: "2fa totp weryfikacja dwuetapowa" },
-  { name: "Bezpieczeństwo logowania", href: "/settings/security", sekcja: "Konto", szukaj: "passkey klucz break-glass" },
+  { name: "Twoje konto", href: "/settings", sekcja: "Konto", szukaj: "2fa totp weryfikacja dwuetapowa passkey klucz break-glass bezpieczeństwo logowania hasło" },
 ];
 
 /** Nazwa szczegółu w ścieżce (np. „Węzły / node-pl-01”) — ustawia ją strona komponentem <Okruszek>. */
@@ -313,11 +312,8 @@ export function Okruszek({ tekst, mono }: { tekst: string; mono?: boolean }) {
   return null;
 }
 
-/** Konto operatora (bez uprawnień) — z karty użytkownika w stopce menu. */
-const KONTO: Pod[] = [
-  { name: "Twoje konto", href: "/settings" },
-  { name: "Bezpieczeństwo logowania", href: "/settings/security" },
-];
+/** Konto operatora (bez uprawnień) — z karty użytkownika w stopce menu; 2FA, passkey i break-glass na jednej stronie. */
+const KONTO: Pod[] = [{ name: "Twoje konto", href: "/settings" }];
 
 const pasuje = (href: string, pathname: string) =>
   href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);

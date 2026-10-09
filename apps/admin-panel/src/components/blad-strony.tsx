@@ -28,7 +28,7 @@ export function BladStrony({ blad, tytul, powrot }: { blad: unknown; tytul: stri
       <h1 className="text-2xl font-bold tracking-tight text-white">{tytul}</h1>
       <p role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
         {odmowa
-          ? "Twoje konto nie ma uprawnienia do tego widoku (Role i uprawnienia)."
+          ? "Twoje konto nie ma uprawnienia do tego widoku — role nadaje administrator na karcie operatora."
           : "Nie udało się pobrać danych z API. Odśwież stronę za chwilę — w trakcie wdrożenia API bywa niedostępne przez kilkadziesiąt sekund."}
       </p>
     </div>

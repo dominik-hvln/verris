@@ -28,7 +28,7 @@ export async function setGrafanaAccessAction(input: {
         body: { enabled: input.enabled, reason: input.reason },
       },
     );
-    revalidatePath("/operators");
+    revalidatePath("/operators", "layout");
     revalidatePath(`/customers/${input.userId}`);
     return {
       ok: true,

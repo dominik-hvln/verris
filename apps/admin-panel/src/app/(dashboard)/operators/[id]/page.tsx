@@ -1,5 +1,12 @@
 import Link from "next/link";
 import { ArrowLeft, ShieldAlert, ShieldCheck, AlertTriangle } from "lucide-react";
+import { KARTA } from "@/components/v2";
+import { brakUprawnienia } from "@/lib/akcje/wezel";
+import { fetchStaffAccess } from "@/lib/staff-access";
+import { getOperators, getRoles, type OperatorRow, type RoleRow } from "../../roles/actions";
+import { WyborRolOperatora } from "../../roles/wybor-rol-operatora";
+import { GrafanaAccessToggle } from "../grafana-toggle";
+import { BlokadaOperatora } from "./blokada-operatora";
 import { getOperatorLoginHistory } from "./data";
 
 export const dynamic = "force-dynamic";
@@ -7,6 +14,9 @@ export const dynamic = "force-dynamic";
 interface PageProps {
   params: Promise<{ id: string }>;
 }
+
+/** Gałąź karty dla operatora STAFF (ADMIN ma pełny dostęp bez przełączników). */
+const ROLA_STAFF = "STAFF" as const;
 
 const REASON_LABELS: Record<string, string> = {
   unknown_user: "Nieznany e-mail",
@@ -16,17 +26,46 @@ const REASON_LABELS: Record<string, string> = {
   session_expired: "Sesja wygasła",
 };
 
+/** Wiersz sekcji „Dostęp”: nazwa, jedno zdanie, sterowanie albo wyszarzony powód. */
+function Wiersz({ nazwa, opis, powod, children }: { nazwa: string; opis: string; powod: string | null; children: React.ReactNode }) {
+  return (
+    <li className="flex flex-wrap items-start justify-between gap-3 border-t border-line py-3 first:border-0" data-dostep={nazwa}>
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold">{nazwa}</span>
+        <span className="block text-xs text-muted-foreground">{opis}</span>
+      </span>
+      {powod ? (
+        <span aria-disabled="true" title={powod} className="cursor-not-allowed text-sm text-muted-foreground opacity-60">
+          {powod}
+        </span>
+      ) : (
+        children
+      )}
+    </li>
+  );
+}
+
+/**
+ * Karta operatora (propozycja 10.10, sekcja B): role, blokada i dostęp do Grafany — wcześniej rozrzucone
+ * po /roles i liście /operators — oraz historia logowań. Zmiany w API tylko dla ADMIN-a
+ * (staff-roles.admin.controller.ts, users.admin.controller.ts); operatorowi z STAFF_MANAGE są wyszarzone.
+ */
 export default async function OperatorDetailPage({ params }: PageProps) {
   const { id } = await params;
-  let data: Awaited<ReturnType<typeof getOperatorLoginHistory>> | null = null;
-  let error: string | null = null;
-  try {
-    data = await getOperatorLoginHistory(id);
-  } catch (err) {
-    error = err instanceof Error ? err.message : "Nie udało się pobrać historii logowań.";
-  }
+  const [dostep, historia, operatorzy, role] = await Promise.all([
+    fetchStaffAccess(),
+    getOperatorLoginHistory(id).then(
+      (d) => ({ d, blad: null }),
+      (e: unknown) => ({ d: null, blad: e instanceof Error ? e.message : "Nie udało się pobrać historii logowań." }),
+    ),
+    getOperators().catch((): OperatorRow[] => []),
+    getRoles().catch((): RoleRow[] => []),
+  ]);
+  const operator = operatorzy.find((o) => o.id === id) ?? null;
+  const data = historia.d;
+  const error = historia.blad;
 
-  if (error) {
+  if (!operator && !data) {
     return (
       <div className="p-6">
         <Link
@@ -36,13 +75,51 @@ export default async function OperatorDetailPage({ params }: PageProps) {
           <ArrowLeft className="h-4 w-4" /> Powrót do operatorów
         </Link>
         <div className="rounded-md border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-200">
-          {error}
+          {error ?? "Nie ma takiego operatora."}
         </div>
       </div>
     );
   }
 
-  if (!data) return null;
+  const email = operator?.email ?? data!.user.email;
+  const rola = operator?.role ?? data!.user.role;
+  const zablokowany = operator?.loginBlocked ?? data!.user.loginBlocked;
+  const tylkoAdmin = brakUprawnienia("ADMIN", dostep);
+  const dostepSekcja = (
+    <section className={`${KARTA} p-5`} aria-labelledby="dostep-operatora">
+      <h2 id="dostep-operatora" className="font-display text-[17px] font-bold">
+        Dostęp
+      </h2>
+      {rola === "ADMIN" ? (
+        <p className="mt-2 text-sm text-muted-foreground">Administrator ma pełny dostęp do paneli i Grafany.</p>
+      ) : (
+        <ul className="m-0 mt-2 list-none p-0">
+          <Wiersz nazwa="Role" opis="Uprawnienia operatora to suma jego ról." powod={operator ? tylkoAdmin : "Brak danych o rolach."}>
+            {operator ? <WyborRolOperatora operator={operator} role={role} zablokowane={zablokowany} /> : null}
+          </Wiersz>
+          <Wiersz nazwa="Logowanie" opis={zablokowany ? "Konto wyłączone — operator się nie zaloguje." : "Konto aktywne."} powod={tylkoAdmin}>
+            <BlokadaOperatora userId={id} email={email} zablokowany={zablokowany} />
+          </Wiersz>
+          <Wiersz nazwa="Grafana" opis="Dostęp do dashboardów floty." powod={operator?.canAccessGrafana === undefined ? "Brak danych o Grafanie." : tylkoAdmin}>
+            <GrafanaAccessToggle userId={id} initialValue={Boolean(operator?.canAccessGrafana)} role={ROLA_STAFF} />
+          </Wiersz>
+        </ul>
+      )}
+    </section>
+  );
+
+  if (!data) {
+    return (
+      <div className="space-y-6 p-6">
+        <Link href="/operators" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-white">
+          <ArrowLeft className="h-4 w-4" /> Powrót do operatorów
+        </Link>
+        <h1 className="text-[28px] lg:text-[34px]">{email}</h1>
+        {dostepSekcja}
+        <p className="text-sm text-muted-foreground">Historia logowań niedostępna: {error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -58,6 +135,8 @@ export default async function OperatorDetailPage({ params }: PageProps) {
           Rola: <span className="font-mono">{data.user.role}</span>
         </p>
       </div>
+
+      {dostepSekcja}
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card

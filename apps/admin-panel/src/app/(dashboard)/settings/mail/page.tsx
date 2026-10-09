@@ -7,7 +7,7 @@ export const metadata = { title: 'Poczta — admin Verris' };
 
 export default async function MailSettingsPage() {
   const w = await wynik(fetchMailSettings());
-  if (!w.ok) return <BladStrony blad={w.blad} tytul="Poczta wychodząca" powrot={{ href: "/settings", label: "Ustawienia" }} />;
+  if (!w.ok) return <BladStrony blad={w.blad} tytul="Poczta wychodząca" powrot={{ href: "/", label: "Pulpit" }} />;
   const settings = w.dane;
 
   return (

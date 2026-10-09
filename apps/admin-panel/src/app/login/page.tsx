@@ -33,7 +33,7 @@ export default function AdminLoginPage() {
           setError(res.error);
           return;
         }
-        router.replace("/settings/security");
+        router.replace("/settings");
         router.refresh();
         return;
       }
@@ -44,7 +44,7 @@ export default function AdminLoginPage() {
       }
       router.replace(
         "passkeyEnrollmentRequired" in result && result.passkeyEnrollmentRequired
-          ? "/settings/security?enroll=1"
+          ? "/settings?enroll=1"
           : "/",
       );
       router.refresh();

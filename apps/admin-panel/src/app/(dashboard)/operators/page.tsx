@@ -2,7 +2,10 @@ import { Select } from "@/components/select";
 import Link from "next/link";
 import { Search, ShieldCheck, ShieldAlert } from "lucide-react";
 import { listOperators, type OperatorRole } from "./data";
-import { GrafanaAccessToggle } from "./grafana-toggle";
+import { DodajOperatora } from "./dodaj-operatora";
+import { getOperatorActivity, getRoles, type ActivityRow, type RoleRow } from "../roles/actions";
+import { brakUprawnienia } from "@/lib/akcje/wezel";
+import { fetchStaffAccess } from "@/lib/staff-access";
 import { plForm } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
@@ -21,11 +24,18 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
 
   let data: Awaited<ReturnType<typeof listOperators>> | null = null;
   let error: string | null = null;
+  const [dostep, role_, aktywnosc] = await Promise.all([
+    fetchStaffAccess(),
+    getRoles().catch((): RoleRow[] => []),
+    getOperatorActivity().catch((): ActivityRow[] => []),
+  ]);
   try {
     data = await listOperators({ search, role, page });
   } catch (e) {
     error = e instanceof Error ? e.message : "Nieznany błąd";
   }
+  // POST /admin/staff-roles/operators — tylko ADMIN.
+  const tylkoAdmin = brakUprawnienia("ADMIN", dostep);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -35,8 +45,7 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
             Operatorzy (STAFF / ADMIN)
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Konta wewnętrzne. Tu włączasz/wyłączasz dostęp do Grafany dla STAFF
-            (ADMIN ma dostęp domyślnie). Każda zmiana flagi jest audytowana.
+            Role, blokadę i dostęp do Grafany zmienisz na karcie operatora.
           </p>
         </div>
         {data ? (
@@ -167,12 +176,8 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
                           <span className="text-muted-foreground">aktywny</span>
                         )}
                       </td>
-                      <td className="px-6 py-4">
-                        <GrafanaAccessToggle
-                          userId={op.id}
-                          initialValue={op.canAccessGrafana}
-                          role={op.role}
-                        />
+                      <td className="px-6 py-4 text-xs text-muted-foreground">
+                        {op.role === "ADMIN" ? "zawsze" : op.canAccessGrafana ? "tak" : "nie"}
                       </td>
                     </tr>
                   ))}
@@ -183,11 +188,52 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        STAFF bez aktywnej flagi Grafana otrzyma 403 z `forward_auth` Caddy. ADMIN
-        nie wymaga toggle&apos;a. Toggle audytowany jako{" "}
-        <code>ADMIN_CUSTOMER_GRAFANA_ACCESS_TOGGLED</code>.
-      </p>
+      <section aria-labelledby="dodaj-operatora">
+        <h2 id="dodaj-operatora" className="mb-3 text-sm font-bold uppercase tracking-widest text-neutral-400">
+          Dodaj operatora
+        </h2>
+        {tylkoAdmin ? (
+          <p aria-disabled="true" title={tylkoAdmin} className="cursor-not-allowed text-sm text-muted-foreground opacity-60">
+            Dodaj operatora — {tylkoAdmin}
+          </p>
+        ) : (
+          <DodajOperatora role={role_} />
+        )}
+      </section>
+
+      <section aria-labelledby="aktywnosc-operatorow">
+        <h2 id="aktywnosc-operatorow" className="mb-3 text-sm font-bold uppercase tracking-widest text-neutral-400">
+          Dziennik aktywności operatorów
+        </h2>
+        {aktywnosc.length === 0 ? (
+          <p className="text-sm text-neutral-500">Brak zarejestrowanych działań.</p>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-white/10">
+            <div className="grid grid-cols-[150px_1fr_1fr] gap-2 border-b border-white/10 bg-white/[0.03] px-4 py-2 text-[11px] font-bold uppercase tracking-widest text-neutral-500">
+              <span>Kiedy</span>
+              <span>Operator → akcja</span>
+              <span>Cel / IP</span>
+            </div>
+            <div className="max-h-[420px] overflow-auto">
+              {aktywnosc.map((a) => (
+                <div key={a.id} className="grid grid-cols-[150px_1fr_1fr] gap-2 border-b border-white/5 px-4 py-2 text-sm last:border-0">
+                  <span className="text-neutral-400">{new Date(a.createdAt).toLocaleString("pl-PL")}</span>
+                  <span className="min-w-0">
+                    <span className="text-white">{a.actor ?? "—"}</span>
+                    <span className="text-neutral-500"> · </span>
+                    <span className="font-mono text-[12px] text-indigo-300">{a.action}</span>
+                  </span>
+                  <span className="min-w-0 truncate text-neutral-400">
+                    {a.target ?? ""}
+                    {a.ip ? ` · ${a.ip}` : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <p className="mt-2 text-[11px] text-neutral-500">Pełny audyt z filtrami jest w „Dzienniku bezpieczeństwa”.</p>
+      </section>
     </div>
   );
 }

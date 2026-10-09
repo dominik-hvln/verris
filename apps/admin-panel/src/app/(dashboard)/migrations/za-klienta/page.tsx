@@ -34,7 +34,7 @@ export default async function MigracjaZaKlientaPage({
         e instanceof AdminApiError && e.status === 404
           ? "Nie znaleziono usługi o tym ID."
           : e instanceof AdminApiError && e.status === 403
-            ? "Twoja rola nie ma uprawnienia „Migracje (cockpit)”. Nada je administrator w „Role i uprawnienia”."
+            ? "Twoja rola nie ma uprawnienia „Migracje (cockpit)”. Nada je administrator na karcie operatora (Zespół → Operatorzy)."
             : "Nie udało się pobrać usługi — spróbuj ponownie.";
     }
   }

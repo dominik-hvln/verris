@@ -1,40 +1,25 @@
 import { TwoFactorSection } from "./two-factor-section";
+import { PasskeySection } from "./security/passkey-section";
+import { BreakGlassSection } from "./security/break-glass-section";
 
 export const dynamic = "force-dynamic";
 
-export default function AdminSettingsPage() {
+/**
+ * Twoje konto — całe bezpieczeństwo logowania na jednej stronie: 2FA, passkey, kody break-glass
+ * (10.10; wcześniej 2FA tu, passkey i break-glass na /settings/security, a obok drugi spis ustawień).
+ * `?enroll=1` — po logowaniu bez passkeya (login/page.tsx).
+ */
+export default async function TwojeKontoPage({ searchParams }: { searchParams: Promise<{ enroll?: string }> }) {
+  const sp = await searchParams;
   return (
-    <div className="space-y-6 p-6">
+    <div className="max-w-4xl space-y-6">
       <header>
-        <h1 className="text-[28px] lg:text-[34px]">Ustawienia konta admina</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Bezpieczeństwo Twojego konta administratora.
-        </p>
+        <h1 className="text-[28px] lg:text-[34px]">Twoje konto</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Logowanie: weryfikacja dwuetapowa, passkey i kody awaryjne.</p>
       </header>
       <TwoFactorSection />
-      <p className="text-sm text-muted-foreground space-x-4">
-        <a href="/settings/live-readiness" className="text-emerald-400 hover:text-emerald-300 underline">
-          Gotowość do startu LIVE
-        </a>
-        <a href="/settings/security" className="text-emerald-400 hover:text-emerald-300 underline">
-          Bezpieczeństwo (passkey, break-glass)
-        </a>
-        <a href="/settings/company" className="text-emerald-400 hover:text-emerald-300 underline">
-          Firma i faktury (KSeF)
-        </a>
-        <a href="/settings/canned-responses" className="text-emerald-400 hover:text-emerald-300 underline">
-          Szablony odpowiedzi (BOK)
-        </a>
-        <a href="/settings/support" className="text-emerald-400 hover:text-emerald-300 underline">
-          Opieka nad zgłoszeniami (auto-wiadomości, oceny)
-        </a>
-        <a href="/settings/platform" className="text-emerald-400 hover:text-emerald-300 underline">
-          Ustawienia platformy (EKO, sesje)
-        </a>
-        <a href="/settings/mail" className="text-emerald-400 hover:text-emerald-300 underline">
-          Poczta wychodząca (SMTP)
-        </a>
-      </p>
+      <PasskeySection enrollHint={sp?.enroll === "1"} />
+      <BreakGlassSection />
     </div>
   );
 }

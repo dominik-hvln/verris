@@ -163,6 +163,7 @@ describe('PB-47 — role operatorów (PostgreSQL)', () => {
     });
     const lista = await svc.listOperators();
     expect(lista.find((o) => o.id === op.id)!.roleIds.sort()).toEqual([b.id, c.id].sort());
+    expect(lista.find((o) => o.id === op.id)!.canAccessGrafana).toBe(false);
     // Rola z członkami (przez przypisanie) nie daje się usunąć.
     await expect(svc.deleteRole(b.id, { userId: 'adm', role: 'ADMIN' })).rejects.toThrow(/odepnij/);
   });

@@ -193,7 +193,8 @@ describe("Cmd+K — słowa kluczowe i strony spoza menu", () => {
     ["ksef", "Dane firmy"],
     ["kreator", "Dodaj węzeł"],
     ["za klienta", "Migracja za klienta"],
-    ["passkey", "Bezpieczeństwo logowania"],
+    ["passkey", "Twoje konto"],
+    ["break-glass", "Twoje konto"],
   ])("„%s” → %s", async (q, strona) => {
     await otworz();
     expect(await wpisz(q)).toContain(strona);

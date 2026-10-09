@@ -1,25 +1,7 @@
-import { PasskeySection } from "./passkey-section";
-import { BreakGlassSection } from "./break-glass-section";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default async function SecuritySettingsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ enroll?: string }>;
-}) {
+/** Stary adres (linki w e-mailach) — passkey i break-glass są teraz na „Twoje konto” (10.10). */
+export default async function SecuritySettingsPage({ searchParams }: { searchParams: Promise<{ enroll?: string }> }) {
   const sp = await searchParams;
-  const enroll = sp?.enroll === "1";
-  return (
-    <div className="space-y-6 p-6 max-w-4xl">
-      <header>
-        <h1 className="text-[28px] lg:text-[34px]">Bezpieczeństwo konta</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Passkeys i awaryjne kody logowania dla Twojego konta administratora.
-        </p>
-      </header>
-      <PasskeySection enrollHint={enroll} />
-      <BreakGlassSection />
-    </div>
-  );
+  redirect(sp?.enroll === "1" ? "/settings?enroll=1" : "/settings");
 }
