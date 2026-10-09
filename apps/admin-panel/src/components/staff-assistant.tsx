@@ -35,9 +35,15 @@ export function StaffAssistant({
     setMessages((p) => [...p, { role: "user", content: question }]);
     setInput("");
     setLoading(true);
-    const res = await zapytajAsystenta({ question, history, kontekst });
-    setMessages((p) => [...p, { role: "assistant", content: res.answer, sources: res.sources }]);
-    setLoading(false);
+    try {
+      const res = await zapytajAsystenta({ question, history, kontekst });
+      setMessages((p) => [...p, { role: "assistant", content: res.answer, sources: res.sources }]);
+    } catch {
+      // Sama akcja serwera nie doszła (sieć, nowe wdrożenie) — bez tego czat zostaje zablokowany na „pisze…”.
+      setMessages((p) => [...p, { role: "assistant", content: "Asystent nie odpowiedział — spróbuj ponownie." }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

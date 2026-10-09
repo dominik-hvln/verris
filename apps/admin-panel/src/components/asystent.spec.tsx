@@ -95,6 +95,16 @@ describe("Asystent pracowników w AdminShell", () => {
     expect(mockZapytaj).toHaveBeenCalledTimes(1);
   });
 
+  it("przegląd: nieudana akcja serwera nie blokuje czatu na „pisze…”", async () => {
+    mockZapytaj.mockRejectedValueOnce(new Error("Failed to find Server Action"));
+    await render(true);
+    await act(async () => el.querySelector<HTMLButtonElement>('button[aria-label="Pomoc: Onboard LIVE"]')!.click());
+    await act(async () => [...dymek()!.querySelectorAll("button")].find((b) => b.textContent?.includes("Zapytaj"))!.click());
+    expect(okno()!.textContent).toContain("Asystent nie odpowiedział");
+    expect(okno()!.textContent).not.toContain("Asystent pisze");
+    expect(okno()!.querySelector<HTMLInputElement>('input[aria-label="Pytanie do asystenta"]')!.disabled).toBe(false);
+  });
+
   it("AI nieskonfigurowane: bez asystenta, pod „?” „Przejdź do funkcji”", async () => {
     await render(false);
     expect(okno()).toBeNull();
