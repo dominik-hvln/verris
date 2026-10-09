@@ -52,6 +52,13 @@ describe("Działania węzła na karcie", () => {
     expect(lista.find((d) => d.id === "sonda-da")!.zablokowane).toBe("Wymaga roli administratora");
   });
 
+  it("kreator: instalacja z NODES_MANAGE, akceptacja węzła tylko dla admina (API: POST :id/approve bez @StaffPerm)", () => {
+    const manage = operator("NODES_VIEW", "NODES_MANAGE");
+    expect(akcjeWezla({ id: "w1", status: "INIT" }, manage).find((d) => d.id === "kreator")!.zablokowane).toBeNull();
+    expect(akcjeWezla({ id: "w1", status: "PENDING_APPROVAL" }, manage).find((d) => d.id === "kreator")!.zablokowane).toBe("Wymaga roli administratora");
+    expect(akcjeWezla({ id: "w1", status: "PENDING_APPROVAL" }, ADMIN).find((d) => d.id === "kreator")!.zablokowane).toBeNull();
+  });
+
   it("każda kotwica z rejestru istnieje na stronie węzła", () => {
     const strona = readFileSync(join(__dirname, "page.tsx"), "utf8");
     for (const status of ["INIT", "ACTIVE", "OFFLINE"]) {

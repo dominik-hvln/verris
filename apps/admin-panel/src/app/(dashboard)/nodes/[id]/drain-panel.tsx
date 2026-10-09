@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Loader2, LogOut, ArrowRight, AlertTriangle } from "lucide-react";
 import { drainNode, fetchMigrationPlan, type MigrationPlan } from "../actions";
 import { Pomoc } from "@/components/pomoc";
+import { potwierdz } from "@/components/potwierdz";
 
 interface Props {
   serverId: string;
@@ -17,8 +18,15 @@ export function DrainPanel({ serverId, acceptsNewAccounts }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [reason, setReason] = useState("");
 
-  const doDrain = () => {
+  // Okno potwierdzenia PRZED transition (React 19: okno otwarte w środku async transition się nie pokazuje).
+  const doDrain = async () => {
     setError(null);
+    const ok = await potwierdz("Węzeł przestanie przyjmować nowe konta — istniejące działają, dane zostają na miejscu.", {
+      tytul: "Rozpocząć wycofanie węzła?",
+      akcja: "Rozpocznij wycofanie",
+      niebezpieczne: true,
+    });
+    if (!ok) return;
     startTransition(async () => {
       const res = await drainNode(serverId, reason.trim() || undefined);
       if (res.error) setError(res.error);
@@ -58,7 +66,7 @@ export function DrainPanel({ serverId, acceptsNewAccounts }: Props) {
         </label>
         <button
           type="button"
-          onClick={doDrain}
+          onClick={() => void doDrain()}
           disabled={pending || drained}
           className="inline-flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-200 hover:bg-rose-500/20 disabled:opacity-50"
         >

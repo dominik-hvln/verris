@@ -64,7 +64,7 @@ export const POMOC = {
     tytul: "Tryb serwisowy",
     opis: "Blokuje zakładanie kont na czas prac i pokazuje klientom powód zamiast błędu.",
     kiedy: "Na czas planowanych prac na węźle.",
-    rozniSieOd: "„Komunikaty o pracach” w Product Ops to tylko ogłoszenia dla klientów — węzła nie zmieniają.",
+    rozniSieOd: "„Komunikaty o pracach” w Product Ops to zapowiedzi dla klientów (zapowiedziane 48 h wcześniej nie liczą się do SLA) — węzła nie zmieniają.",
   },
   offline: {
     tytul: "Offline",

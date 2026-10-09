@@ -23,7 +23,7 @@ export interface AkcjaWezla {
   grupa: GrupaAkcji;
   nazwa: string | ((w: WezelDlaAkcji) => string);
   opis: string;
-  perm: UprawnienieAkcji;
+  perm: UprawnienieAkcji | ((w: WezelDlaAkcji) => UprawnienieAkcji);
   kiedy: (w: WezelDlaAkcji) => boolean;
   href: (w: WezelDlaAkcji) => string;
   /** Hasło w słowniku pomocy „?” (lib/pomoc.ts). */
@@ -45,7 +45,8 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
       return k ? `Dokończ w kreatorze: krok ${k.numer}` : "Kreator węzła";
     },
     opis: "Kreator prowadzi dalej: akceptacja, kopie offsite, Onboard LIVE i profil.",
-    perm: "NODES_MANAGE",
+    // Instalacja (INIT) — NODES_MANAGE; akceptacja i konfiguracja DA (PENDING_APPROVAL) — w API tylko ADMIN.
+    perm: (w) => (w.status === "INIT" ? "NODES_MANAGE" : "ADMIN"),
     kiedy: (w) => krokKreatoraDla(w.status) !== null,
     href: (w) => `/nodes/wizard?server=${encodeURIComponent(w.id)}&step=${krokKreatoraDla(w.status)?.id ?? "bootstrap"}`,
     pomocId: "kreator",
@@ -260,6 +261,6 @@ export function akcjeWezla(w: WezelDlaAkcji, dostep: DostepDoAkcji): DzialanieNa
     opis: a.opis,
     href: a.href(w),
     pomocId: a.pomocId,
-    zablokowane: brakUprawnienia(a.perm, dostep),
+    zablokowane: brakUprawnienia(typeof a.perm === "function" ? a.perm(w) : a.perm, dostep),
   }));
 }

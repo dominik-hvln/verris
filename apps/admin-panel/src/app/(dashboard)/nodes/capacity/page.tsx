@@ -112,7 +112,7 @@ export default async function FleetCapacityPage() {
           </p>
         </div>
         <div className="rounded-xl border border-white/5 bg-black/30 backdrop-blur-md p-4">
-          <p className="text-xs text-muted-foreground">Cordon (wstrzymane)</p>
+          <p className="text-xs text-muted-foreground">Nowe konta wstrzymane</p>
           <p className={`mt-1 text-2xl font-semibold ${cordoned > 0 ? "text-amber-300" : "text-white"}`}>{cordoned}</p>
           <p className="text-xs text-muted-foreground mt-1">
             z {hostujace.length} {plForm(hostujace.length, "węzła", "węzłów", "węzłów")}
@@ -155,7 +155,7 @@ function NodeRow({ w }: { w: Wezel }) {
         <div className="flex shrink-0 items-center gap-2">
           {!w.acceptsNewAccounts ? (
             <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-300">
-              <Ban className="h-3 w-3" /> cordon
+              <Ban className="h-3 w-3" /> nowe konta wstrzymane
             </span>
           ) : null}
           {w.reservedHeadroomPercent > 0 ? (
