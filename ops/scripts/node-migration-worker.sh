@@ -931,13 +931,21 @@ run_http_check() {
   local domain node_ip
   domain=$(jq -r '.target.domain // empty' <<<"$job")
   node_ip=$(hostname -I 2>/dev/null | awk '{print $1}')
-  local resolve_opts=()
-  if [ -n "$domain" ] && [ -n "$node_ip" ]; then
-    resolve_opts=(--resolve "${domain}:443:${node_ip}" --resolve "${domain}:80:${node_ip}")
+  # Audyt bezpieczeństwa 09.10 (A10/SSRF): bez pinu na node_ip połączenie szłoby pod adres z DNS
+  # kontrolowanego przez klienta (jego domena) — mógłby wskazać 169.254.169.254/10.x/control-plane.
+  # Fail-closed: sprawdzamy TYLKO gdy host URL == target.domain i mamy node_ip do przypięcia.
+  local url_host; url_host=$(printf '%s' "$url" | sed -E 's#^[a-zA-Z][a-zA-Z0-9+.-]*://##; s#[/?#].*$##; s#^[^@]*@##; s#:[0-9]+$##')
+  if [ -z "$domain" ] || [ -z "$node_ip" ] || [ "$url_host" != "$domain" ]; then
+    echo "skip http check: brak pinu (domain=$domain node_ip=${node_ip:-} url_host=$url_host)" >>"$logfile"
+    return 2
   fi
+  local resolve_opts=(--resolve "${domain}:443:${node_ip}" --resolve "${domain}:80:${node_ip}")
   ensure_mig_user
-  code=$(jako_mig curl -sSk -o /dev/null -w '%{http_code}' --max-time 30 -L "${resolve_opts[@]}" "$url" 2>>"$logfile" || echo 000)
-  echo "HTTP $code for $url (resolved to ${node_ip:-public DNS})" >>"$logfile"
+  # --max-redirs 0: 3xx i tak liczymy jako UP, a podążanie za Location prowadziłoby POZA pin (SSRF do
+  # metadanych/sieci wewnętrznej). --proto =http,https: bez file://, gopher:// itd. -k zostaje: świeżo
+  # migrowany site bywa jeszcze bez ważnego certu, a treść i tak idzie do /dev/null (to kontrola osiągalności).
+  code=$(jako_mig curl -sSk -o /dev/null -w '%{http_code}' --max-time 30 --max-redirs 0 --proto '=http,https' "${resolve_opts[@]}" "$url" 2>>"$logfile" || echo 000)
+  echo "HTTP $code for $url (pinned to ${node_ip})" >>"$logfile"
   [[ "$code" =~ ^(2|3)[0-9][0-9]$ ]]
 }
 
