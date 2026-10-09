@@ -1297,6 +1297,13 @@ model Account {
   // kwota zaokrąglona z (koszt + reszta), a różnica przechodzi na następny blok. Bez tego każdy blok
   // był zaokrąglany osobno (+21% przy 0,0165 → 0,02), a bloki < 0,005 zł nie były liczone wcale.
   scaledCostCarryPln Decimal @default(0) @db.Decimal(12, 6)
+  // Co już opłacono za bieżący blok (ten, który kończy się o `scaledBilledUntil`): koszt pełnego bloku
+  // po rabacie i poziom, przy którym go pobrano. Podbicie w trakcie bloku dopłaca różnicę za resztę minut.
+  // NULL = nieznane (konto skalowane przed wdrożeniem kolumn) — bieżący poziom przyjmujemy jako opłacony.
+  scaledBlockPaidPln    Decimal? @db.Decimal(12, 6)
+  scaledBlockPaidCpu    Int?
+  scaledBlockPaidRamMb  Int?
+  scaledBlockPaidDiskMb Int?
 
   // Last time a backup was triggered for this account (manual "backup now" or a
   // platform-initiated snapshot). Feeds the health-score backup-freshness check.

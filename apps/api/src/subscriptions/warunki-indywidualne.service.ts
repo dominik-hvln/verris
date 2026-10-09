@@ -82,6 +82,17 @@ export class WarunkiIndywidualneService {
       _sum: { costSnapshot: true },
       _count: { _all: true },
     });
+    // Dopłaty za podbicie w trakcie bloku są w kwocie, ale to nie osobne bloki 15 min.
+    const doplaty = await this.prisma.autoscalingEvent.groupBy({
+      by: ['subscriptionId'],
+      where: {
+        subscription: { userId },
+        reason: { startsWith: 'outside_block topup' },
+        createdAt: { gte: poczatek, lte: koniec },
+      },
+      _count: { _all: true },
+    });
+    const ileDoplat = (id: string) => doplaty.find((d) => d.subscriptionId === id)?._count._all ?? 0;
     // Operator może założyć usługę także na planie ukrytym (oferta indywidualna).
     const plany = await this.prisma.plan.findMany({
       where: { isActive: true },
@@ -114,7 +125,8 @@ export class WarunkiIndywidualneService {
       })),
       autoskalowaniePoza: bloki.map((b) => ({
         subscriptionId: b.subscriptionId,
-        bloki: b._count._all,
+        bloki: b._count._all - ileDoplat(b.subscriptionId),
+        doplaty: ileDoplat(b.subscriptionId),
         kwota: (b._sum.costSnapshot ?? new Prisma.Decimal(0)).toFixed(2),
       })),
     };

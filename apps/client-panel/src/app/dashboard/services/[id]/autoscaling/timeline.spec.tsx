@@ -17,3 +17,18 @@ it('historia autoskalowania: jeden minus przy naliczeniu, bez zdarzeń księgowy
   expect(html).toContain('−0,02');
   expect(html).toContain('+0% → +50%');
 });
+
+/** Dopłata za podbicie w trakcie bloku (09.10): zdarzenie księgowe nie wycieka, wiersz naliczenia ma opis po polsku. */
+it('historia autoskalowania: dopłata w bloku bez surowego znacznika', () => {
+  const html = renderToStaticMarkup(
+    <AutoscalingTimeline
+      events={[
+        { id: 'e1', type: 'SCALE_UP', resource: null, fromValue: null, toValue: null, costAccrued: '0.50', reason: 'block_charge topup tx=ab12', createdAt: '2026-10-09T16:21:00Z' },
+        { id: 'e2', type: 'SCALE_UP', resource: null, fromValue: null, toValue: null, costAccrued: '0.50', reason: 'outside_block topup 2026-10-09T16:14:00.000Z cpu+200 ram+0 disk+0', createdAt: '2026-10-09T16:21:00Z' },
+      ]}
+      charges={[{ id: 'c1', amount: '-0.50', description: 'Autoskalowanie — dopłata za podbicie w bloku (cpu+50%→+200%, 7,5 min)', createdAt: '2026-10-09T16:21:00Z' }]}
+    />,
+  );
+  expect(html).not.toMatch(/topup|block_charge|outside_block|tx=/);
+  expect(html).toContain('dopłata za podbicie w bloku (cpu+50%→+200%, 7,5 min)');
+});

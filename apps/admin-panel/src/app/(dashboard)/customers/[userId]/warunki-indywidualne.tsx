@@ -24,7 +24,7 @@ export interface PodgladWarunkow {
     pozaVerris: boolean;
     odnowienie: string | null;
   }[];
-  autoskalowaniePoza: { subscriptionId: string; bloki: number; kwota: string }[];
+  autoskalowaniePoza: { subscriptionId: string; bloki: number; doplaty?: number; kwota: string }[];
 }
 
 type Wynik = { ok: true } | { ok: false; error: string };
@@ -312,7 +312,8 @@ export function WarunkiIndywidualne({ userId, dane, akcje }: { userId: string; d
             <ul className="text-sm text-white space-y-1">
               {dane.autoskalowaniePoza.map((a) => (
                 <li key={a.subscriptionId} className="tabular-nums">
-                  {domenaUslugi(a.subscriptionId)}: <strong>{a.kwota} zł</strong> wg cennika autoskalowania, po rabacie ({a.bloki} {plForm(a.bloki, "blok", "bloki", "bloków")} po 15 min)
+                  {domenaUslugi(a.subscriptionId)}: <strong>{a.kwota} zł</strong> wg cennika autoskalowania, po rabacie ({a.bloki} {plForm(a.bloki, "blok", "bloki", "bloków")} po 15 min
+                  {a.doplaty ? ` + ${a.doplaty} ${plForm(a.doplaty, "dopłata", "dopłaty", "dopłat")} za podbicie w trakcie bloku` : ""})
                 </li>
               ))}
             </ul>
