@@ -2,8 +2,12 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Loader2, User, Server, Globe, FileText, HardDrive, LifeBuoy, ArrowRightLeft, CornerDownLeft, ArrowRight } from "lucide-react";
+import { Search, Loader2, User, Server, Globe, FileText, HardDrive, LifeBuoy, ArrowRightLeft, CornerDownLeft, ArrowRight, Zap, X } from "lucide-react";
 import { globalSearchAction, type GlobalSearchResult, type TypWyniku } from "./command-palette-actions";
+import { ocenaTrafienia, slowaZapytania } from "@/lib/dopasowanie";
+import { akcjeDlaWezlow, akcjeWezlaDlaZapytania, rozbierzZapytanie, szukajAkcjiGlobalnych, type AkcjaWPalecie } from "@/lib/akcje/szukaj";
+import type { DostepDoAkcji } from "@/lib/akcje/wezel";
+import { podswietlKotwice } from "@/lib/podswietl";
 
 const TYPE_ICON = {
   user: User,
@@ -38,35 +42,6 @@ export function komunikatPominietych(pominiete: TypWyniku[]): string | null {
 /** Strona menu dla wyszukiwarki: nazwa, sekcja, słowa kluczowe (admin-shell.tsx). */
 export type StronaMenu = { name: string; href: string; sekcja: string; szukaj?: string };
 
-const bezOgonkow = (t: string) => t.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "").replace(/ł/g, "l");
-
-/** 0 — tekst zaczyna się od słowa, 1 — któreś słowo tekstu się od niego zaczyna, 2 — fragment; null — brak. */
-function trafienie(tekst: string, w: string): number | null {
-  if (tekst.startsWith(w)) return 0;
-  if (tekst.split(/[^a-z0-9]+/).some((t) => t.startsWith(w))) return 1;
-  return tekst.includes(w) ? 2 : null;
-}
-
-/** Ocena dopasowania (mniej = lepiej); null — któreś słowo nie pasuje. Nazwa przed sekcją i słowami kluczowymi. */
-export function ocenaTrafienia(nazwa: string, dodatkowe: string, slowa: string[]): number | null {
-  const n = bezOgonkow(nazwa);
-  const d = bezOgonkow(dodatkowe);
-  let suma = 0;
-  for (const w of slowa) {
-    const wNazwie = trafienie(n, w);
-    if (wNazwie !== null) {
-      suma += wNazwie;
-      continue;
-    }
-    const wDodatkowych = trafienie(d, w);
-    if (wDodatkowych === null) return null;
-    suma += 3 + wDodatkowych;
-  }
-  return suma;
-}
-
-export const slowaZapytania = (q: string) => bezOgonkow(q).split(/\s+/).filter(Boolean);
-
 /**
  * Strony, których nazwa, sekcja albo słowa kluczowe zawierają każde wpisane słowo (bez polskich znaków).
  * Kolejność: początek nazwy > słowo w nazwie > fragment nazwy > słowa kluczowe.
@@ -85,26 +60,47 @@ export function szukajStron(strony: StronaMenu[], q: string, max = 6): StronaMen
 const bezSubskrypcji = () => () => {};
 const naMacu = () => /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
 
-type Wynik = { type: "strona"; id: string; title: string; subtitle: string; href: string } | GlobalSearchResult;
+type Wynik =
+  | { type: "strona"; id: string; title: string; subtitle: string; href: string }
+  /** Działanie (węzła albo globalne) — prowadzi do miejsca z podświetleniem, nie wykonuje. */
+  | { type: "akcja"; id: string; title: string; subtitle: string; href: string; zablokowane: string | null }
+  | GlobalSearchResult;
 
-/** ADM-4 — globalna wyszukiwarka (Cmd/Ctrl-K, „/”): strony panelu + klienci, usługi, domeny, faktury, węzły, zgłoszenia, migracje. */
-export function CommandPalette({ strony = [] }: { strony?: StronaMenu[] }) {
+const jakoWynik = (a: AkcjaWPalecie): Wynik => ({ type: "akcja", id: a.id, title: a.nazwa, subtitle: a.zablokowane ?? a.opis, href: a.href, zablokowane: a.zablokowane });
+
+/**
+ * ADM-4 — globalna wyszukiwarka (Cmd/Ctrl-K, „/”): strony panelu, działania (lib/akcje/*) oraz klienci, usługi,
+ * domeny, faktury, węzły, zgłoszenia, migracje. Tryb obiekt → działanie: na węźle Tab albo → pokazuje jego
+ * działania; „onboard t1” trafia w to samo. Wybór działania prowadzi do karty z podświetlonym miejscem
+ * (decyzja 10.10) — operacja uruchamia się tam, z potwierdzeniem. Bez uprawnień — wyszarzone z powodem.
+ */
+export function CommandPalette({ strony = [], dostep = { isAdmin: false, permissions: [] } }: { strony?: StronaMenu[]; dostep?: DostepDoAkcji }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<GlobalSearchResult[]>([]);
   const [pominiete, setPominiete] = useState<TypWyniku[]>([]);
+  const [dzialaniaNaWezlach, setDzialaniaNaWezlach] = useState<AkcjaWPalecie[]>([]);
+  /** Wybrany węzeł (tryb obiekt → działanie). */
+  const [obiekt, setObiekt] = useState<GlobalSearchResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const zapytanie = useRef(0);
   const mac = useSyncExternalStore(bezSubskrypcji, naMacu, () => false);
 
   // Zerowanie w miejscu zamknięcia, nie efektem po zmianie `open`.
   const close = useCallback(() => {
+    if (debounce.current) clearTimeout(debounce.current);
+    zapytanie.current++;
     setOpen(false);
     setQ("");
     setResults([]);
+    setPominiete([]);
+    setDzialaniaNaWezlach([]);
+    setObiekt(null);
+    setLoading(false);
     setActive(0);
   }, []);
 
@@ -131,46 +127,80 @@ export function CommandPalette({ strony = [] }: { strony?: StronaMenu[] }) {
     if (open) setTimeout(() => inputRef.current?.focus(), 30);
   }, [open]);
 
-  const doSearch = useCallback((value: string) => {
-    if (debounce.current) clearTimeout(debounce.current);
-    debounce.current = setTimeout(async () => {
-      if (value.trim().length < 2) {
-        setResults([]);
+  const doSearch = useCallback(
+    (value: string) => {
+      if (debounce.current) clearTimeout(debounce.current);
+      debounce.current = setTimeout(async () => {
+        const nr = ++zapytanie.current;
+        if (value.trim().length < 2) {
+          setResults([]);
+          setDzialaniaNaWezlach([]);
+          setLoading(false);
+          return;
+        }
+        setLoading(true);
+        // „onboard t1” — osobno szukamy węzła „t1”, żeby pokazać „Onboard LIVE · t1”.
+        const rozbior = rozbierzZapytanie(value);
+        const [res, wezly] = await Promise.all([globalSearchAction(value), rozbior ? globalSearchAction(rozbior.obiekt) : null]);
+        if (nr !== zapytanie.current) return;
+        setResults(res.results);
+        setPominiete(res.pominiete);
+        setDzialaniaNaWezlach(rozbior && wezly ? akcjeDlaWezlow(wezly.results.filter((r) => r.type === "node"), rozbior.dzialanie, dostep) : []);
+        setActive(0);
         setLoading(false);
-        return;
-      }
-      setLoading(true);
-      const res = await globalSearchAction(value);
-      setResults(res.results);
-      setPominiete(res.pominiete);
-      setActive(0);
-      setLoading(false);
-    }, 220);
-  }, []);
+      }, 220);
+    },
+    [dostep],
+  );
 
-  const wyniki: Wynik[] = [
-    ...(q.trim().length >= 2 ? szukajStron(strony, q) : []).map((st) => ({ type: "strona" as const, id: st.href, title: st.name, subtitle: st.sekcja ? `Strona · ${st.sekcja}` : "Strona", href: st.href })),
-    ...results,
-  ];
+  const szukaj = q.trim().length >= 2;
+  const wyniki: Wynik[] = obiekt
+    ? akcjeWezlaDlaZapytania({ id: obiekt.id, status: obiekt.status ?? "" }, q, dostep).map(jakoWynik)
+    : [
+        ...dzialaniaNaWezlach.map(jakoWynik),
+        ...(szukaj ? szukajAkcjiGlobalnych(q, dostep) : []).map(jakoWynik),
+        ...(szukaj ? szukajStron(strony, q) : []).map((st) => ({ type: "strona" as const, id: st.href, title: st.name, subtitle: st.sekcja ? `Strona · ${st.sekcja}` : "Strona", href: st.href })),
+        ...results,
+      ];
 
   const go = useCallback(
     (r: Wynik) => {
+      if (r.type === "akcja" && r.zablokowane) return;
       close();
       router.push(r.href);
+      if (r.href.includes("#")) podswietlKotwice(r.href);
     },
     [router, close],
   );
 
-  const onKeyDown = (e: React.KeyboardEvent) => {
+  const wybierzObiekt = (r: GlobalSearchResult) => {
+    if (debounce.current) clearTimeout(debounce.current);
+    zapytanie.current++;
+    setObiekt(r);
+    setQ("");
+    setLoading(false);
+    setActive(0);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const biezacy = wyniki[active];
+    const kursorNaKoncu = e.currentTarget.selectionStart === e.currentTarget.value.length;
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setActive((a) => Math.min(a + 1, wyniki.length - 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActive((a) => Math.max(a - 1, 0));
-    } else if (e.key === "Enter" && wyniki[active]) {
+    } else if (e.key === "Enter" && biezacy) {
       e.preventDefault();
-      go(wyniki[active]);
+      go(biezacy);
+    } else if (!obiekt && biezacy?.type === "node" && ((e.key === "Tab" && !e.shiftKey) || (e.key === "ArrowRight" && kursorNaKoncu))) {
+      e.preventDefault();
+      wybierzObiekt(biezacy);
+    } else if (obiekt && e.key === "Backspace" && q === "") {
+      e.preventDefault();
+      setObiekt(null);
+      setActive(0);
     }
   };
 
@@ -204,16 +234,27 @@ export function CommandPalette({ strony = [] }: { strony?: StronaMenu[] }) {
           >
             <div className="flex items-center gap-3 border-b border-white/10 px-4">
               <Search className="h-4 w-4 text-muted-foreground" />
+              {obiekt ? (
+                <button
+                  type="button"
+                  onClick={() => setObiekt(null)}
+                  aria-label={`Węzeł ${obiekt.title} — wróć do wyszukiwania`}
+                  className="flex shrink-0 items-center gap-1 rounded-md border border-line-strong px-2 py-0.5 text-xs text-foreground hover:border-primary"
+                >
+                  Węzeł {obiekt.title} <X className="h-3 w-3" />
+                </button>
+              ) : null}
               <input
                 ref={inputRef}
                 value={q}
                 onChange={(e) => {
                   setQ(e.target.value);
-                  doSearch(e.target.value);
+                  setActive(0);
+                  if (!obiekt) doSearch(e.target.value);
                 }}
                 onKeyDown={onKeyDown}
                 aria-label="Szukaj"
-                placeholder="Strona, węzeł (nazwa, IP), klient, domena, NIP, faktura…"
+                placeholder={obiekt ? "Działanie, np. onboard, drain, waf…" : "Strona, węzeł (nazwa, IP), klient, domena, NIP, faktura…"}
                 className="flex-1 bg-transparent py-4 text-sm text-white outline-none placeholder:text-neutral-600"
               />
               {loading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : null}
@@ -222,22 +263,27 @@ export function CommandPalette({ strony = [] }: { strony?: StronaMenu[] }) {
             <div className="max-h-[50vh] overflow-y-auto p-2">
               {wyniki.length === 0 ? (
                 <p className="px-3 py-8 text-center text-xs text-muted-foreground">
-                  {q.trim().length < 2
-                    ? "Wpisz co najmniej 2 znaki: strona (np. onboard, ksef), klient, domena, faktura."
-                    : loading
-                      ? "Szukam…"
-                      : (komunikatPominietych(pominiete) ?? "Brak wyników.")}
+                  {obiekt
+                    ? "Brak takiego działania dla tego węzła."
+                    : !szukaj
+                      ? "Wpisz co najmniej 2 znaki: strona (np. onboard, ksef), węzeł, klient, faktura."
+                      : loading
+                        ? "Szukam…"
+                        : (komunikatPominietych(pominiete) ?? "Brak wyników.")}
                 </p>
               ) : (
                 wyniki.map((r, i) => {
-                  const Icon = r.type === "strona" ? ArrowRight : TYPE_ICON[r.type];
+                  const Icon = r.type === "strona" ? ArrowRight : r.type === "akcja" ? Zap : TYPE_ICON[r.type];
+                  const zablokowane = r.type === "akcja" ? r.zablokowane : null;
                   return (
                     <button
                       key={`${r.type}-${r.id}`}
                       type="button"
                       onMouseEnter={() => setActive(i)}
                       onClick={() => go(r)}
-                      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left ${
+                      aria-disabled={zablokowane ? true : undefined}
+                      title={zablokowane ?? undefined}
+                      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left ${zablokowane ? "cursor-not-allowed opacity-60" : ""} ${
                         i === active ? "bg-data-soft" : "hover:bg-raised"
                       }`}
                     >
@@ -248,7 +294,11 @@ export function CommandPalette({ strony = [] }: { strony?: StronaMenu[] }) {
                         <span className="block truncate text-sm font-medium text-white">{r.title}</span>
                         <span className="block truncate text-[11px] text-muted-foreground">{r.subtitle}</span>
                       </span>
-                      {i === active ? <CornerDownLeft className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null}
+                      {i === active && r.type === "node" && !obiekt ? (
+                        <kbd className="shrink-0 rounded-[5px] border border-line-strong px-1.5 font-mono text-[10.5px] text-muted-foreground">Tab · działania</kbd>
+                      ) : i === active && !zablokowane ? (
+                        <CornerDownLeft className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      ) : null}
                     </button>
                   );
                 })

@@ -10,7 +10,7 @@ import { potwierdz } from "@/components/potwierdz";
  * FLEET_UPDATE na każdym węźle ACTIVE z agentem; agent każdego węzła wykona je
  * osobno (CustomBuild + yum). Potwierdzenie przed uruchomieniem.
  */
-export function FleetUpdateButton() {
+export function FleetUpdateButton({ id }: { id?: string } = {}) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
 
@@ -29,6 +29,7 @@ export function FleetUpdateButton() {
   return (
     <div className="flex flex-row-reverse items-center gap-2">
       <button
+        id={id}
         onClick={run}
         disabled={pending}
         className="inline-flex h-[38px] items-center gap-2 rounded-[9px] border border-line-strong bg-transparent px-3.5 text-sm font-semibold text-foreground hover:border-primary disabled:opacity-50"

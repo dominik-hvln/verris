@@ -898,3 +898,11 @@ html.dark.eco-tint {
 .v2-skin .hover\:text-rose-400:hover { color: var(--crit); }
 .v2-skin .hover\:border-rose-500\/40:hover { border-color: color-mix(in srgb, var(--crit) 40%, transparent); }
 .v2-skin .ring-emerald-400\/40 { --tw-ring-color: color-mix(in srgb, var(--data) 40%, transparent); }
+
+/* Cmd+K → miejsce działania na karcie (lib/podswietl.ts). */
+[data-podswietl] {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+  border-radius: 10px;
+  transition: outline-color 0.3s;
+}

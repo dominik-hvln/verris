@@ -89,7 +89,8 @@ export default async function AdminNodesPage() {
             <Gauge className="h-4 w-4" />
             Pojemność floty
           </Link>
-          <FleetUpdateButton />
+          {/* Kotwica dla Cmd+K („Aktualizuj flotę”, lib/akcje/globalne.ts). */}
+          <FleetUpdateButton id="aktualizuj-flote" />
           <Link href="/nodes/wizard" className={PRZYCISK_GLOWNY}>
             <Plus className="h-[15px] w-[15px]" strokeWidth={2.4} />
             Dodaj węzeł

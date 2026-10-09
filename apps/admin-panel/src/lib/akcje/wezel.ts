@@ -30,6 +30,8 @@ export interface AkcjaWezla {
   pomocId?: PomocId;
   /** Bezpieczne do uruchomienia od razu (Cmd+K): otwarcie, SSO, odświeżenie. */
   bezpieczna?: boolean;
+  /** Słowa dla Cmd+K (także angielskie nazwy z runbooków: drain, cordon). */
+  slowa: string;
 }
 
 const dziala = (w: WezelDlaAkcji) => w.status === "ACTIVE" || w.status === "MAINTENANCE";
@@ -39,6 +41,7 @@ const karta = (w: WezelDlaAkcji, reszta = "") => `/nodes/${w.id}${reszta}`;
 export const AKCJE_WEZLA: AkcjaWezla[] = [
   {
     id: "kreator",
+    slowa: "kreator dokończ instalację",
     grupa: "Instalacja",
     nazwa: (w) => {
       const k = krokKreatoraDla(w.status);
@@ -53,6 +56,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "instalacja",
+    slowa: "bootstrap skrypt instalacyjny licencja one-liner",
     grupa: "Instalacja",
     nazwa: "Instalacja węzła",
     opis: "Skrypt instalacyjny, klucze licencji i postęp instalacji.",
@@ -62,6 +66,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "onboard-live",
+    slowa: "onboard live skrypty hardening guard",
     grupa: "Aktualizacje",
     nazwa: "Onboard LIVE",
     opis: "Wgrywa aktualne skrypty Verris, hardening i blokadę ruchu wychodzącego.",
@@ -72,6 +77,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "stos",
+    slowa: "aktualizuj stos update directadmin cloudlinux litespeed",
     grupa: "Aktualizacje",
     nazwa: "Aktualizuj stos serwera",
     opis: "DirectAdmin, CloudLinux i LiteSpeed do najnowszych stabilnych wersji.",
@@ -82,6 +88,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "baza-danych",
+    slowa: "mariadb mysql upgrade db",
     grupa: "Aktualizacje",
     nazwa: "Aktualizacja bazy danych",
     opis: "MariaDB do wersji docelowej floty.",
@@ -92,6 +99,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "profil",
+    slowa: "profil hostingu poczta ftp cagefs php",
     grupa: "Aktualizacje",
     nazwa: "Profil hostingu",
     opis: "Poczta, FTP, bazy, CageFS i PHP — ponowne zastosowanie ustawień.",
@@ -102,6 +110,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "audyt",
+    slowa: "audyt zgodność napraw",
     grupa: "Audyt i naprawa",
     nazwa: "Audyt zgodności",
     opis: "Sprawdza węzeł z planem i dokumentacją; naprawy wykrytych różnic.",
@@ -112,6 +121,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "uslugi",
+    slowa: "usługi pakiety da napraw",
     grupa: "Audyt i naprawa",
     nazwa: "Usługi hostingowe i pakiety DA",
     opis: "Instaluje brakujące usługi i naprawia limity pakietów DA.",
@@ -122,6 +132,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "sonda-da",
+    slowa: "sonda api da",
     grupa: "Audyt i naprawa",
     nazwa: "Sonda API DirectAdmina",
     opis: "Czy odpowiedzi API DA mają kształt, którego używa panel.",
@@ -132,6 +143,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "nowe-konta",
+    slowa: "cordon wstrzymaj nowe konta limity nadsubskrypcja pojemność",
     grupa: "Dostępność",
     nazwa: "Przyjmuje nowe konta",
     opis: "Wstrzymanie nowych kont na tym węźle, limity i nadsubskrypcja.",
@@ -142,6 +154,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "serwis",
+    slowa: "tryb serwisowy maintenance",
     grupa: "Dostępność",
     nazwa: "Tryb serwisowy",
     opis: "Wstrzymuje zakładanie kont na czas prac, z komunikatem dla klienta.",
@@ -152,6 +165,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "offline",
+    slowa: "offline wyłącz",
     grupa: "Dostępność",
     nazwa: "Offline",
     opis: "Wyłącza węzeł z użycia, gdy serwera już nie ma.",
@@ -162,6 +176,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "wycofanie",
+    slowa: "drain wycofaj opróżnij",
     grupa: "Dostępność",
     nazwa: "Wycofanie węzła",
     opis: "Zamyka węzeł dla nowych kont i pokazuje plan przeniesienia kont.",
@@ -172,6 +187,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "directadmin",
+    slowa: "directadmin da api login",
     grupa: "Konfiguracja",
     nazwa: "DirectAdmin API",
     opis: "Adres, login i test połączenia z API panelu.",
@@ -182,6 +198,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "nameservers",
+    slowa: "ns dns ovh",
     grupa: "Konfiguracja",
     nazwa: "Serwery nazw i OVH",
     opis: "NS dla kont zakładanych na węźle i podpięcie w OVH.",
@@ -191,6 +208,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "region",
+    slowa: "region centrum danych",
     grupa: "Konfiguracja",
     nazwa: "Lokalizacja danych",
     opis: "Centrum danych, które widzą klienci tego węzła.",
@@ -200,6 +218,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "waf",
+    slowa: "waf zapora modsecurity",
     grupa: "Konfiguracja",
     nazwa: "WAF",
     opis: "Tryb zapory aplikacji dla kont na węźle.",
@@ -209,6 +228,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "sso",
+    slowa: "sso ssh zaloguj directadmin",
     grupa: "Dostęp i historia",
     nazwa: "DirectAdmin (SSO) i SSH",
     opis: "Jednorazowe logowanie do panelu DA i komenda SSH — w nagłówku karty.",
@@ -219,6 +239,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "zadania",
+    slowa: "zadania historia log agent",
     grupa: "Dostęp i historia",
     nazwa: "Historia zadań",
     opis: "Co agent wykonał na węźle i z jakim wynikiem.",
@@ -235,7 +256,7 @@ export interface DostepDoAkcji {
 }
 
 /** Tekst dymka przy wyszarzonym działaniu; null — operator może je wykonać. */
-export function brakUprawnienia(perm: UprawnienieAkcji, dostep: DostepDoAkcji): string | null {
+export function brakUprawnienia(perm: string, dostep: DostepDoAkcji): string | null {
   if (dostep.isAdmin) return null;
   if (perm === "ADMIN") return "Wymaga roli administratora";
   return dostep.permissions.includes(perm) ? null : `Wymaga ${perm}`;
@@ -248,6 +269,7 @@ export interface DzialanieNaKarcie {
   opis: string;
   href: string;
   pomocId?: PomocId;
+  slowa: string;
   /** Działanie wyszarzone — powód (dymek); null, gdy dostępne. */
   zablokowane: string | null;
 }
@@ -261,6 +283,7 @@ export function akcjeWezla(w: WezelDlaAkcji, dostep: DostepDoAkcji): DzialanieNa
     opis: a.opis,
     href: a.href(w),
     pomocId: a.pomocId,
+    slowa: a.slowa,
     zablokowane: brakUprawnienia(typeof a.perm === "function" ? a.perm(w) : a.perm, dostep),
   }));
 }

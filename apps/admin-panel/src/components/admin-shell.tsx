@@ -269,12 +269,9 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
 
 /**
  * Strony spoza menu (dostępne z przycisków na innych stronach) — tylko dla wyszukiwarki, z tym samym filtrem
- * uprawnień co menu. `perm: "ADMIN"` — strona dla administratora (żadna rola operatora nie ma takiego klucza).
+ * uprawnień co menu. Kreator węzła, faktura ręczna i migracja za klienta są działaniami (lib/akcje/globalne.ts).
  */
 const UKRYTE: (Pod & { sekcja: string })[] = [
-  { name: "Dodaj węzeł (kreator)", href: "/nodes/wizard", perm: "ADMIN", sekcja: "Węzły", szukaj: "nowy węzeł kreator instalacja bootstrap" },
-  { name: "Migracja za klienta", href: "/migrations/za-klienta", perm: "MIGRATIONS_MANAGE", sekcja: "Migracje", szukaj: "przeniesienie strony zgoda klienta" },
-  { name: "Faktura ręczna", href: "/invoices/reczna", perm: "BILLING_MANAGE", sekcja: "Faktury", szukaj: "wystaw fakturę" },
   { name: "Czeka na fakturę", href: "/invoices/czeka-na-fakture", perm: "BILLING_VIEW", sekcja: "Faktury", szukaj: "faktura zewnętrzna dopisz" },
   { name: "Przychody z autoskalowania", href: "/autoscaling/revenue", perm: "PLANS_MANAGE", sekcja: "Oferta i ceny", szukaj: "burst" },
   { name: "Nowy plan", href: "/plans/new", perm: "PLANS_MANAGE", sekcja: "Oferta i ceny", szukaj: "dodaj plan hostingu" },
@@ -509,7 +506,7 @@ export function AdminShell({
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-3.5">
-            <CommandPalette strony={strony} />
+            <CommandPalette strony={strony} dostep={{ isAdmin, permissions }} />
             <span className="hidden sm:contents">
               <StatusFloty l={liczniki} />
             </span>

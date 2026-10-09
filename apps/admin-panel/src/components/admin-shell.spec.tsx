@@ -167,7 +167,7 @@ describe("Cmd+K — słowa kluczowe i strony spoza menu", () => {
     ["offsite", "Kopie offsite"],
     ["korekta", "Faktury"],
     ["ksef", "Dane firmy"],
-    ["kreator", "Dodaj węzeł (kreator)"],
+    ["kreator", "Dodaj węzeł"],
     ["za klienta", "Migracja za klienta"],
     ["passkey", "Bezpieczeństwo logowania"],
   ])("„%s” → %s", async (q, strona) => {
@@ -175,12 +175,14 @@ describe("Cmd+K — słowa kluczowe i strony spoza menu", () => {
     expect(await wpisz(q)).toContain(strona);
   });
 
-  it("strony spoza menu z tym samym filtrem uprawnień", async () => {
+  it("strony spoza menu z tym samym filtrem uprawnień; działania bez uprawnień wyszarzone z powodem", async () => {
     await otworz(["BILLING_VIEW"], false);
     const tekst = await wpisz("faktur");
     expect(tekst).toContain("Czeka na fakturę");
-    expect(tekst).not.toContain("Faktura ręczna");
-    expect(await wpisz("kreator")).not.toContain("Dodaj węzeł");
+    const reczna = [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button[aria-disabled="true"]')].find((b) => b.textContent?.includes("Faktura ręczna"));
+    expect(reczna?.title).toBe("Wymaga BILLING_MANAGE");
+    expect(await wpisz("przychody")).not.toContain("Przychody z autoskalowania");
+    expect(await wpisz("kreator")).toContain("Wymaga roli administratora");
   });
 
   it("puste wyniki z powodu uprawnień — komunikat zamiast „Brak wyników”", async () => {

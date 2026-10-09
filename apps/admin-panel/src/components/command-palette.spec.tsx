@@ -1,0 +1,100 @@
+/**
+ * @jest-environment jsdom
+ */
+import { act } from "react";
+import { createRoot, type Root } from "react-dom/client";
+
+const push = jest.fn();
+jest.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+const WEZEL = { type: "node", id: "n1", title: "t1", subtitle: "Węzeł · t1.verris.net", href: "/nodes/n1", status: "ACTIVE" };
+const odpowiedzi: Record<string, unknown> = { t1: { results: [WEZEL], pominiete: [] } };
+const mockSzukaj = jest.fn(async (q: string) => odpowiedzi[q] ?? { results: [], pominiete: [] });
+jest.mock("./command-palette-actions", () => ({ globalSearchAction: (q: string) => mockSzukaj(q) }));
+
+import { CommandPalette } from "./command-palette";
+
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+
+describe("Cmd+K — tryb obiekt → działanie (prowadzi do karty, nie wykonuje)", () => {
+  let root: Root;
+  let el: HTMLElement;
+  const czekaj = (ms: number) => act(async () => new Promise((r) => setTimeout(r, ms)));
+  const pole = () => document.querySelector<HTMLInputElement>('input[aria-label="Szukaj"]')!;
+  const okno = () => document.querySelector('[role="dialog"][aria-label="Wyszukiwarka"]')!.textContent ?? "";
+  const klawisz = (key: string) => act(async () => pole().dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true })));
+  const wpisz = async (tekst: string) => {
+    const ustaw = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    await act(async () => {
+      ustaw.call(pole(), tekst);
+      pole().dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await czekaj(300);
+  };
+  const otworz = async (dostep = { isAdmin: true, permissions: [] as string[] }) => {
+    await act(async () => root.render(<CommandPalette dostep={dostep} />));
+    await act(async () => document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true })));
+    await czekaj(40);
+  };
+  beforeEach(() => {
+    push.mockReset();
+    el = document.createElement("div");
+    document.body.appendChild(el);
+    root = createRoot(el);
+  });
+  afterEach(() => {
+    act(() => root.unmount());
+    el.remove();
+  });
+
+  it("węzeł + Tab → jego działania; wybór prowadzi do zakładki z kotwicą; Backspace wraca", async () => {
+    await otworz();
+    await wpisz("t1");
+    expect(okno()).toContain("Tab · działania");
+    await klawisz("Tab");
+    expect(okno()).toContain("Węzeł t1");
+    expect(okno()).toContain("Onboard LIVE");
+    expect(okno()).toContain("Wycofanie węzła");
+    await wpisz("onb");
+    expect(okno()).not.toContain("Wycofanie węzła");
+    await klawisz("Enter");
+    expect(push).toHaveBeenCalledWith("/nodes/n1?sekcja=aktualizacje#onboard-live");
+  });
+
+  it("Backspace w pustym polu wychodzi z trybu węzła", async () => {
+    await otworz();
+    await wpisz("t1");
+    await klawisz("ArrowRight");
+    expect(okno()).toContain("Węzeł t1");
+    await klawisz("Backspace");
+    expect(okno()).not.toContain("Węzeł t1");
+  });
+
+  it("„onboard t1” → „Onboard LIVE · t1” na górze listy", async () => {
+    await otworz();
+    await wpisz("onboard t1");
+    expect(mockSzukaj).toHaveBeenCalledWith("t1");
+    const pierwszy = document.querySelector('[role="dialog"] button:not([aria-label])')!;
+    expect(pierwszy.textContent).toContain("Onboard LIVE · t1");
+    await klawisz("Enter");
+    expect(push).toHaveBeenCalledWith("/nodes/n1?sekcja=aktualizacje#onboard-live");
+  });
+
+  it("bez NODES_MANAGE — działanie wyszarzone z powodem, Enter nic nie robi", async () => {
+    await otworz({ isAdmin: false, permissions: ["NODES_VIEW"] });
+    await wpisz("onboard t1");
+    const b = [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button[aria-disabled="true"]')].find((x) => x.textContent?.includes("Onboard LIVE · t1"));
+    expect(b?.title).toBe("Wymaga NODES_MANAGE");
+    await klawisz("Enter");
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("Tab na wyniku innym niż węzeł nie zmienia trybu", async () => {
+    await otworz();
+    await wpisz("flotę");
+    expect(okno()).toContain("Aktualizuj flotę");
+    await klawisz("Tab");
+    expect(okno()).not.toContain("Węzeł ");
+    await klawisz("Enter");
+    expect(push).toHaveBeenCalledWith("/nodes#aktualizuj-flote");
+  });
+});
