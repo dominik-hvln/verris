@@ -907,33 +907,192 @@ token`). Węzły NIE wymagają żadnej akcji.
 
 ## VPN WireGuard dla paneli wewnętrznych (ETAP 8)
 
-Panele **admin** i **staff** mogą (i powinny) być dostępne wyłącznie przez VPN.
+Panele **admin**, **staff** (i GlitchTip) są dostępne wyłącznie przez VPN — decyzja 09.10.2026.
 Zarządzanie dostępami pracowników odbywa się w panelu admina (**/vpn**):
 generowanie konfiguracji per urządzenie (klucz prywatny zwracany jednorazowo,
 nigdy nie zapisywany), cofanie dostępu działa do ~1 min.
 
-Kolejność wdrożenia (WAŻNA — inaczej można odciąć sobie panel):
+**Od 09.10 restrykcja jest fail-closed** (`ops/caddy/Caddyfile` → `vpn_only`):
 
-1. Na control-plane: `bash ops/scripts/vpn-wireguard-setup.sh`
-   (instaluje wireguard-tools, generuje klucze serwera, stawia `wg0` 10.88.0.1/24:51820/udp).
-2. Wypisane wartości wpisz do `.env.prod`:
-   `VPN_WG_SERVER_PUBLIC_KEY`, `VPN_WG_ENDPOINT`, `VPN_SYNC_TOKEN`
-   oraz zalecane `VPN_WG_CLIENT_ALLOWED_IPS=10.88.0.0/24,<public-ip>/32`
-   (publiczny IP control-plane — żeby ruch do paneli szedł tunelem).
-3. `docker compose ... up -d api` (restart API z nowym env).
-4. Timer synchronizacji peerów na hoście:
-   `bash ops/scripts/vpn-sync-peers.sh --install`
-   → uzupełnij `/etc/default/verris-vpn-sync` (URL API od strony hosta + token).
-5. Panel admin → **VPN (dostęp paneli)** → wygeneruj profil dla SIEBIE,
-   zaimportuj do aplikacji WireGuard, połącz się i sprawdź, że panele działają.
-6. Dopiero teraz włącz restrykcję: `CADDY_INTERNAL_ALLOW_CIDR=10.88.0.0/24`
-   w `.env.prod` + `docker compose ... up -d caddy`. Od tej chwili
-   staff./admin. odpowiadają 403 spoza tunelu.
+| `CADDY_INTERNAL_ALLOW_CIDR` | staff / admin |
+| --- | --- |
+| `10.88.0.0/24` (podsieć VPN) | działa z tunelu, spoza tunelu 403 „Brak dostępu” |
+| puste / nieustawione | 403 dla wszystkich |
+| zakres `/0`–`/7`, np. stary domyślny `0.0.0.0/0 ::/0` | 403 dla wszystkich |
+| zła składnia (np. przecinek) | 403 dla wszystkich (`ops/caddy/start.sh`), reszta stron działa; przy `caddy reload` Caddy odrzuca konfigurację i zostaje poprzednia |
 
-Rollback awaryjny (utrata dostępu): na hoście usuń/zmień
-`CADDY_INTERNAL_ALLOW_CIDR` w `.env.prod` i `docker compose ... up -d caddy`.
+Do 09.10 puste = panele publiczne. **Wdrożenie tej zmiany bez ustawionej zmiennej zamyka panele
+od razu** (deploy robi `caddy reload`, a w env działającego kontenera siedzi stary domyślny
+`0.0.0.0/0 ::/0`, który teraz znaczy „zamknij”). Dlatego kolejność poniżej.
 
-Audyt: każde utworzenie/cofnięcie peera trafia do logu audytowego
+### Kolejność (żeby się nie odciąć) — WSZYSTKO przed scaleniem zmiany do `main`
+
+Push na `main` = automatyczny deploy. Kroki 1–7 robisz na starym kodzie, w którym panele są
+jeszcze otwarte, więc panel admina (/vpn) jest osiągalny bez VPN.
+
+1. **Serwer WireGuard** (SSH na control-plane):
+   `sudo bash ops/scripts/vpn-wireguard-setup.sh`
+   (wireguard-tools, klucze serwera, `wg0` 10.88.0.1/24, port 51820/udp).
+   Otwórz **UDP 51820**: firewall Hetznera (Cloud Firewall / Robot) oraz `sudo ufw allow 51820/udp`,
+   jeśli ufw jest aktywny. Sprawdź: `sudo wg show wg0` (interfejs jest, peerów jeszcze brak).
+2. **`.env.prod`** — wartości wypisane przez skrypt:
+   `VPN_WG_SERVER_PUBLIC_KEY`, `VPN_WG_ENDPOINT`, `VPN_SYNC_TOKEN` oraz
+   `VPN_WG_CLIENT_ALLOWED_IPS=10.88.0.0/24,<publiczny IPv4 control-plane>/32`
+   (bez publicznego IP przeglądarka idzie do paneli z pominięciem tunelu i dostanie 403).
+   Potem restart api na TYM SAMYM obrazie, który działa (override GHCR, jak w deployu —
+   bez niego compose próbowałby budować api na serwerze):
+   `IMAGE_TAG=$(cat .last-good-image-tag) docker compose -f docker-compose.prod.yml -f docker-compose.ghcr.yml --env-file .env.prod up -d --no-build --no-deps api`.
+3. **Timer synchronizacji peerów:** `sudo bash ops/scripts/vpn-sync-peers.sh --install`,
+   w `/etc/default/verris-vpn-sync` wpisz token i `VPN_SYNC_API_URL=https://api.verris.pl`.
+   Jeśli plik istniał wcześniej z `http://127.0.0.1:3000` — popraw ręcznie (`--install` go nie
+   nadpisuje; port 3000 kontenera api nie jest wystawiony na hoście, więc timer nigdy by nie
+   pobrał listy peerów).
+4. **Panel admin → VPN (dostęp paneli)** → wygeneruj profil dla SIEBIE (np. „Mac Dominik”),
+   pobierz `.conf`. Klucz prywatny jest pokazany tylko raz.
+   Po ~1 min: `sudo wg show wg0 peers` pokazuje Twój klucz publiczny
+   (log: `/var/log/verris-vpn-sync.log`).
+5. **Mac** → aplikacja WireGuard (niżej) → importuj `.conf` → Aktywuj.
+   Sprawdź: `ping 10.88.0.1` z Maca, `sudo wg show wg0` na serwerze → „latest handshake” sprzed chwili.
+6. **Czy ruch do paneli idzie tunelem:**
+   - `dig +short AAAA admin.verris.pl staff.verris.pl` → musi być **pusto**. Jeśli są rekordy AAAA,
+     usuń je (przeglądarka wybierze IPv6 z pominięciem tunelu i dostanie 403).
+   - Na serwerze `sudo tcpdump -ni wg0 tcp port 443`, na Macu (VPN włączony) otwórz
+     https://admin.verris.pl → w tcpdumpie pakiety z `10.88.0.x`. Brak pakietów = profil nie ma
+     publicznego IP w AllowedIPs (wróć do kroku 2 i wygeneruj profil od nowa).
+7. **Włącz restrykcję** na starym kodzie: w `.env.prod`
+   `CADDY_INTERNAL_ALLOW_CIDR=10.88.0.0/24`, potem
+   `docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --no-deps caddy`
+   (env zmienia się tylko przy odtworzeniu kontenera; kilka sekund przerwy na wszystkich stronach).
+   Sprawdź: `docker compose -f docker-compose.prod.yml --env-file .env.prod exec caddy printenv CADDY_INTERNAL_ALLOW_CIDR`
+   → `10.88.0.0/24`; z VPN admin/staff działają, bez VPN (albo z telefonu na LTE) → 403.
+8. **Dopiero teraz scal zmianę** (deploy). Po deployu raz, w spokojnym momencie:
+   `docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --no-deps caddy`
+   — kontener przejdzie na `ops/caddy/start.sh` (deploy sam Caddy nie odtwarza, tylko przeładowuje).
+
+### Sprawdzenie po deployu
+
+- Bez VPN: `curl -s -o /dev/null -w '%{http_code}\n' https://admin.verris.pl/` → `403`
+  (to samo `staff`), strona „Brak dostępu”.
+- Bez VPN: `https://panel.verris.pl/` → 200/307, `https://api.verris.pl/healthz` → 200,
+  `https://status.verris.pl/` → 200.
+- Z VPN: admin i staff → logowanie jak dotąd.
+- `docker compose -f docker-compose.prod.yml --env-file .env.prod logs caddy | grep niepoprawne` → pusto.
+- GlitchTip (jeśli włączony): `grep '^SENTRY_DSN' .env.prod` — host w DSN musi być wewnętrzny
+  (`http://<klucz>@glitchtip-web:8000/<id>`), nie `glitchtip.verris.pl`. Kontener api nie jest w VPN,
+  więc przez domenę publiczną dostanie teraz 403 i błędy zostaną tylko lokalnie (ring + /metrics).
+- Bramka wdrożenia (`prod-deploy-ghcr.sh`) sprawdza `/healthz` wewnątrz kontenera api i robi
+  `caddy reload` — paneli z zewnątrz nie odpytuje, więc się nie wywróci.
+- Skrypty ręczne odpalane NA serwerze (`prod-health-snapshot.sh`, `prod-smoke-grafana-bok.sh`)
+  pytają admin/staff z hosta — Caddy widzi wtedy adres bramki Dockera, nie 10.88.0.x, więc
+  pokażą 403 / `[FAIL] …/grafana/sso → 403`. To oczekiwane, nie awaria.
+
+### Awaryjnie (odciąłeś się)
+
+SSH na serwer nie jest za VPN. Tymczasowo dopisz swój bieżący publiczny IP
+(na Macu: `curl -s https://api.ipify.org`) i na czas naprawy **wyłącz tunel w aplikacji WireGuard**
+(z włączonym, niedziałającym tunelem ruch do paneli i tak idzie w tunel):
+
+```bash
+cd /opt/verris
+MOJ_IP=<TWOJ_IP>
+# Usuń starą linię i dopisz nową. Samo podmienianie przez sed nic nie zmieni, gdy zmiennej w .env.prod
+# jeszcze nie ma (np. jest zakomentowana jak w .env.prod.example, bo zmiana weszła przed krokiem 7).
+sudo sed -i '/^CADDY_INTERNAL_ALLOW_CIDR=/d' .env.prod
+printf '\nCADDY_INTERNAL_ALLOW_CIDR="10.88.0.0/24 %s/32"\n' "$MOJ_IP" | sudo tee -a .env.prod
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --no-deps caddy
+docker compose -f docker-compose.prod.yml --env-file .env.prod exec caddy printenv CADDY_INTERNAL_ALLOW_CIDR
+# → 10.88.0.0/24 <TWOJ_IP>/32 (pusto = zmienna nie trafiła do kontenera, panele dalej zamknięte)
+```
+
+Po naprawie VPN usuń swój IP i powtórz `up -d --no-deps caddy`. **Nie wpisuj `0.0.0.0/0`** —
+od 09.10 to zamyka panele zamiast je otwierać. Samo `caddy reload` nie wystarczy: zmienna
+jest czytana z env kontenera, który zmienia się tylko przy `up -d`.
+
+### Klient VPN na Macu
+
+**WireGuard** — oficjalna aplikacja „WireGuard” (Mac App Store, bezpłatna):
+„Importuj tunele z pliku…” → wybierz `.conf` z panelu → „Aktywuj”. Opcjonalnie „Na żądanie”
+(automatyczne łączenie). Plik `.conf` zawiera klucz prywatny — po imporcie usuń go z Pobranych.
+
+**Tunnelblick i FortiClient nie połączą się z tym serwerem.** Tunnelblick obsługuje wyłącznie
+OpenVPN, FortiClient — bramy Fortinet (FortiGate, SSL-VPN/IPsec). Żaden nie mówi protokołem
+WireGuard, więc profilu `.conf` z /vpn nie zaimportują. FortiClienta nie polecam w ogóle
+(wymagałby postawienia bramy IPsec pod niego).
+
+Jeśli Tunnelblick jest konieczny, potrzebny jest **drugi, osobny serwer OpenVPN** — poza modułem
+/vpn: bez cofania dostępu jednym kliknięciem i bez wpisów `VPN_PEER_*` w dzienniku audytu
+(cofanie przez listę CRL). Szkic (Ubuntu 24.04, podsieć 10.89.0.0/24):
+
+```bash
+sudo apt-get install -y openvpn easy-rsa
+sudo make-cadir /etc/openvpn/easy-rsa && cd /etc/openvpn/easy-rsa
+sudo ./easyrsa init-pki
+sudo EASYRSA_BATCH=1 EASYRSA_REQ_CN=verris-zespol ./easyrsa build-ca nopass
+sudo EASYRSA_BATCH=1 ./easyrsa build-server-full server nopass
+sudo EASYRSA_BATCH=1 ./easyrsa build-client-full mac-dominik nopass
+sudo EASYRSA_CRL_DAYS=3650 ./easyrsa gen-crl
+sudo cp pki/ca.crt pki/issued/server.crt pki/private/server.key pki/crl.pem /etc/openvpn/server/
+sudo chmod 644 /etc/openvpn/server/crl.pem
+sudo openvpn --genkey secret /etc/openvpn/server/tc.key
+```
+
+`/etc/openvpn/server/server.conf`:
+
+```
+port 1194
+proto udp
+dev tun
+topology subnet
+server 10.89.0.0 255.255.255.0
+ca ca.crt
+cert server.crt
+key server.key
+dh none
+tls-crypt tc.key
+crl-verify crl.pem
+keepalive 10 60
+persist-key
+persist-tun
+user nobody
+group nogroup
+verb 3
+```
+
+`sudo systemctl enable --now openvpn-server@server`, otwórz **UDP 1194** (Hetzner + ufw).
+Profil dla Tunnelblicka (`mac-dominik.ovpn`) — dwuklik importuje go do Tunnelblicka:
+
+```
+client
+dev tun
+proto udp
+remote <publiczny IPv4 control-plane> 1194
+nobind
+persist-key
+persist-tun
+remote-cert-tls server
+verb 3
+<ca>
+(treść pki/ca.crt)
+</ca>
+<cert>
+(treść pki/issued/mac-dominik.crt — od "-----BEGIN CERTIFICATE-----")
+</cert>
+<key>
+(treść pki/private/mac-dominik.key)
+</key>
+<tls-crypt>
+(treść /etc/openvpn/server/tc.key)
+</tls-crypt>
+```
+
+Tunel niesie tylko 10.89.0.0/24, więc panele kieruje się na adres serwera w tunelu — na Macu
+w `/etc/hosts`: `10.89.0.1 admin.verris.pl staff.verris.pl` (certyfikat pasuje, bo nazwa się
+nie zmienia; Docker wystawia 443 na wszystkich adresach hosta). Następnie
+`CADDY_INTERNAL_ALLOW_CIDR=10.88.0.0/24 10.89.0.0/24` i `up -d --no-deps caddy`.
+Cofnięcie dostępu: `sudo ./easyrsa revoke mac-dominik && sudo EASYRSA_CRL_DAYS=3650 ./easyrsa gen-crl`
+i ponowne skopiowanie `crl.pem` (przeterminowana lista CRL blokuje WSZYSTKICH klientów).
+
+Audyt: każde utworzenie/cofnięcie peera WireGuard trafia do logu audytowego
 (`VPN_PEER_CREATED` / `VPN_PEER_REVOKED`).
 
 ## CI/CD — auto-deploy z GitHub (DEPLOY-1)

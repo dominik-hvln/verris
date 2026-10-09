@@ -670,9 +670,13 @@ services:
       CADDY_KB_DOMAIN: ${CADDY_KB_DOMAIN:-pomoc.verris.local}
       CADDY_WWW_DOMAIN: ${CADDY_WWW_DOMAIN:-verris.local}
       CADDY_WWW_REDIRECT_DOMAIN: ${CADDY_WWW_REDIRECT_DOMAIN:-www.verris.local}
-      # ETAP 8: po uruchomieniu VPN ustaw np. "10.88.0.0/24" — panele staff/admin
-      # przestaną odpowiadać spoza tunelu (puste = brak restrykcji).
-      CADDY_INTERNAL_ALLOW_CIDR: ${CADDY_INTERNAL_ALLOW_CIDR:-0.0.0.0/0 ::/0}
+      # ETAP 8 (decyzja 09.10): podsieć VPN, np. "10.88.0.0/24". FAIL-CLOSED —
+      # puste/niepoprawne = staff/admin odpowiadają 403 wszystkim (ops/caddy/Caddyfile → vpn_only).
+      # Kolejność włączania (najpierw VPN, potem ta zmienna, potem deploy): DEPLOY.md.
+      CADDY_INTERNAL_ALLOW_CIDR: ${CADDY_INTERNAL_ALLOW_CIDR:-}
+    # Zła składnia CADDY_INTERNAL_ALLOW_CIDR nie może położyć całego Caddy przy starcie — start.sh
+    # uruchamia go wtedy z pustą listą (panele wewnętrzne 403, reszta działa).
+    command: ['/bin/sh', '/etc/caddy/start.sh']
     ports:
       - '80:80'
       - '443:443'

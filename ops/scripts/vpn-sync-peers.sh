@@ -8,7 +8,9 @@
 #
 # Instalacja timera (co 1 min):  bash ops/scripts/vpn-sync-peers.sh --install
 # Wymagane env (np. /etc/default/verris-vpn-sync):
-#   VPN_SYNC_API_URL   np. http://127.0.0.1:3000  (API z hosta; nie przez Caddy)
+#   VPN_SYNC_API_URL   np. https://api.verris.pl  (publiczne API, endpoint chroniony tokenem;
+#                      NIE http://127.0.0.1:3000 — kontener api ma tylko `expose`, port 3000
+#                      nie jest wystawiony na hoście, więc timer nigdy nie dostałby listy peerów)
 #   VPN_SYNC_TOKEN     ten sam co w .env.prod
 # =============================================================================
 set -Eeuo pipefail
@@ -24,7 +26,7 @@ install_units() {
   chmod 755 /usr/local/bin/verris-vpn-sync.sh
   if [ ! -f "$ENV_FILE" ]; then
     cat > "$ENV_FILE" <<'ENV'
-VPN_SYNC_API_URL=http://127.0.0.1:3000
+VPN_SYNC_API_URL=https://api.verris.pl
 VPN_SYNC_TOKEN=__UZUPELNIJ__
 ENV
     chmod 600 "$ENV_FILE"

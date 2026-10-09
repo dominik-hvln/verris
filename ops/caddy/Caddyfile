@@ -85,16 +85,31 @@ Policy: https://panel.verris.pl/legal/security
 }
 
 # -----------------------------------------------------------------------------
-# Internal panels (staff/admin) — VPN-only access (ETAP 8).
+# Internal panels (staff/admin, GlitchTip) — tylko z VPN (ETAP 8, decyzja 09.10).
 #
-# Set CADDY_INTERNAL_ALLOW_CIDR to the WireGuard subnet (e.g. "10.88.0.0/24")
-# in .env.prod AFTER the VPN is up and your own peer works — the default
-# allows everything so a fresh deploy can't lock the operator out.
-# Multiple CIDRs: space-separated ("10.88.0.0/24 203.0.113.7/32").
+# CADDY_INTERNAL_ALLOW_CIDR = podsieć WireGuard (np. "10.88.0.0/24"), kilka
+# zakresów po spacji. FAIL-CLOSED (do 09.10 było odwrotnie — puste = wszyscy):
+#   - puste / nieustawione  → 403 dla wszystkich (na liście zostaje tylko
+#     192.0.2.1 z TEST-NET-1, RFC 5737 — adres, z którego nic nie przychodzi),
+#   - zakres /0–/7 (np. stary domyślny "0.0.0.0/0 ::/0", który nadal może
+#     siedzieć w env działającego kontenera) → 403 dla wszystkich,
+#   - zła składnia → Caddy odrzuca konfigurację: reload zostawia poprzednią,
+#     a przy starcie kontenera ops/caddy/start.sh uruchamia go z pustą listą.
+# remote_ip, nie client_ip: przed Caddy nie ma proxy (brak trusted_proxies);
+# ruch z tunelu dochodzi z adresu 10.88.0.x (DNAT Dockera zachowuje źródło).
+# Kolejność włączania i powrót awaryjny: DEPLOY.md → „VPN WireGuard…”.
 # -----------------------------------------------------------------------------
+(vpn_odmowa) {
+    header {args[0]} Content-Type "text/html; charset=utf-8"
+    header {args[0]} Cache-Control "no-store"
+    respond {args[0]} `<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Brak dostępu</title></head><body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif;background:#f6f7f9;color:#1f2933"><main style="max-width:30rem;padding:2rem;text-align:center"><h1 style="font-size:1.4rem;margin:0 0 .75rem">Brak dostępu</h1><p style="margin:0 0 .5rem;line-height:1.5">Ten panel jest dostępny wyłącznie z sieci wewnętrznej zespołu.</p><p style="margin:0;line-height:1.5;color:#52606d">Jeśli pracujesz w zespole, połącz się z siecią firmową i odśwież stronę.</p></main></body></html>` 403
+}
+
 (vpn_only) {
-    @outside_vpn not remote_ip {$CADDY_INTERNAL_ALLOW_CIDR:0.0.0.0/0 ::/0}
-    respond @outside_vpn "403 — dostęp do tego panelu wyłącznie przez VPN Verris." 403
+    @spoza_vpn not remote_ip 192.0.2.1/32 {$CADDY_INTERNAL_ALLOW_CIDR}
+    @vpn_lista_otwarta expression `'{$CADDY_INTERNAL_ALLOW_CIDR}'.matches('/[0-7]($|[^0-9])')`
+    import vpn_odmowa @vpn_lista_otwarta
+    import vpn_odmowa @spoza_vpn
 }
 
 {$CADDY_STAFF_DOMAIN:staff.verris.local} {
