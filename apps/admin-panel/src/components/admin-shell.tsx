@@ -256,6 +256,7 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
             { name: "Platforma", href: "/settings/platform", perm: "SETTINGS_MANAGE", szukaj: "eko sesje okres próbny monitoring sla" },
             { name: "Dane firmy", href: "/settings/company", perm: "SETTINGS_MANAGE", szukaj: "nip adres faktury" },
             { name: "Gotowość do startu", href: "/settings/live-readiness", perm: "SETTINGS_MANAGE", szukaj: "go live checklista" },
+            { name: "Kopie offsite", href: "/settings/kopie-offsite", perm: "SETTINGS_MANAGE", szukaj: "backup kopie zapasowe storage box rclone onboard" },
             { name: "Poczta (SMTP)", href: "/settings/mail", perm: "SETTINGS_MANAGE", szukaj: "e-mail wysyłka" },
             { name: "Dziennik poczty", href: "/settings/mail/log", perm: "SETTINGS_MANAGE", szukaj: "wysłane maile" },
             { name: "Poczta zespołu", href: "/settings/team-mail", perm: "SETTINGS_MANAGE", szukaj: "skrzynki" },

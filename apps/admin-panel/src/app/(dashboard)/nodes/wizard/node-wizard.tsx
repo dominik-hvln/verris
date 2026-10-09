@@ -45,20 +45,12 @@ import {
   WIZARD_STEPS,
 } from "./wizard-content";
 import { Checkbox } from '@/components/checkbox';
-import { KopieOffsiteFormularz, OnboardLivePanel } from "./onboard-panele";
+import { OnboardLivePanel } from "./onboard-panele";
+import { krokDlaStatusu, stanStartowyKreatora, type PersistedWizard } from "./stan-kreatora";
+import { KopieOffsiteFormularz } from "@/components/kopie-offsite-formularz";
 
 const WIZARD_STORAGE_KEY = "verris-node-wizard-v1";
 const APPROVE_DA_STEP_INDEX = WIZARD_STEPS.findIndex((s) => s.id === "approve-da");
-
-type PersistedWizard = {
-  stepIndex: number;
-  name: string;
-  hostname: string;
-  region: string;
-  notes: string;
-  serverId: string | null;
-  checked: Record<string, boolean>;
-};
 
 function loadPersistedWizard(): Partial<PersistedWizard> | null {
   if (typeof window === "undefined") return null;
@@ -208,16 +200,12 @@ export function NodeWizard() {
     let cancelled = false;
 
     async function hydrate() {
-      const saved = loadPersistedWizard();
-      const paramServer = searchParams.get("server");
-      const paramStep = searchParams.get("step");
-
-      if (paramStep) {
-        const idx = WIZARD_STEPS.findIndex((s) => s.id === paramStep);
-        if (idx >= 0) setStepIndex(idx);
-      } else if (saved?.stepIndex != null) {
-        setStepIndex(saved.stepIndex);
-      }
+      // Zapis z sessionStorage tylko dla tego samego węzła — `?server=B` nie bierze stanu węzła A.
+      const { zapisany: saved, serverId: serverIdToLoad, stepIndex: krok } = stanStartowyKreatora(loadPersistedWizard(), {
+        server: searchParams.get("server"),
+        step: searchParams.get("step"),
+      });
+      if (krok != null) setStepIndex(krok);
 
       if (saved?.name) setName(saved.name);
       if (saved?.hostname) setHostname(saved.hostname);
@@ -225,9 +213,9 @@ export function NodeWizard() {
       if (saved?.notes) setNotes(saved.notes);
       if (saved?.checked) setChecked(saved.checked);
 
-      const serverIdToLoad = paramServer ?? saved?.serverId ?? null;
       if (serverIdToLoad) {
         const { data } = await fetchServer(serverIdToLoad);
+        if (!cancelled && krok == null) setStepIndex(krokDlaStatusu(data?.status));
         if (!cancelled && data) {
           setCreated({
             server: data,

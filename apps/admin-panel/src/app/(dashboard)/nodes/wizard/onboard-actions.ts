@@ -2,11 +2,7 @@
 
 import { adminApi, AdminApiError } from "@/lib/api";
 
-/** PB-31 — kopie off-site floty i Onboard LIVE z panelu. */
-export type PodgladOffsite =
-  | { skonfigurowany: false }
-  | { skonfigurowany: true; host: string; port: number; user: string; sciezka: string; retencjaDni: number; zmienionoAt: string | null };
-
+/** PB-31 — Onboard LIVE z panelu (kopie off-site floty: components/kopie-offsite-actions.ts). */
 export interface StanOnboardu {
   zweryfikowany: string | null;
   /** acceptsNewAccounts — admin może wstrzymać węzeł mimo zielonego onboardu. */
@@ -19,22 +15,6 @@ export interface StanOnboardu {
 type Wynik<T> = { ok: true; data: T } | { ok: false; error: string };
 
 const blad = (e: unknown) => (e instanceof AdminApiError ? e.message : "Nie udało się — spróbuj ponownie.");
-
-export async function pobierzOffsite(): Promise<Wynik<PodgladOffsite>> {
-  try {
-    return { ok: true, data: await adminApi<PodgladOffsite>("/admin/node-onboard/backup-offsite") };
-  } catch (e) {
-    return { ok: false, error: blad(e) };
-  }
-}
-
-export async function zapiszOffsite(dane: Record<string, unknown>): Promise<Wynik<PodgladOffsite>> {
-  try {
-    return { ok: true, data: await adminApi<PodgladOffsite>("/admin/node-onboard/backup-offsite", { method: "PUT", body: dane }) };
-  } catch (e) {
-    return { ok: false, error: blad(e) };
-  }
-}
 
 export async function pobierzStanOnboardu(serverId: string): Promise<Wynik<StanOnboardu>> {
   try {
