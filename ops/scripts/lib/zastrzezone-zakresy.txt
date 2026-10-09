@@ -1,0 +1,39 @@
+# Zakresy adresów, z którymi Verris nie łączy się w imieniu klienta (SSRF) — JEDNO źródło listy.
+#
+# Czyta to API (apps/api/src/common/net/webhook-post.ts: webhooki, sondy, migrator) przy starcie,
+# a ops/scripts/lib/migration-input-guard.sh (węzeł, bez Node) ma tę samą listę w tablicy
+# VG_ZASTRZEZONE — test apps/api/src/common/net/zastrzezone-zakresy.spec.ts czerwieni się,
+# gdy obie listy się rozjadą. Zmiana tutaj = przepisz te same linie do tablicy w guardzie
+# i wgraj guard na węzły.
+#
+# Format: jeden CIDR w linii (IPv4 albo IPv6), `#` = komentarz.
+# IPv4 zapisany w IPv6 (::ffff:0:0/96) NIE jest tu wpisany jako zakres — obie strony sprawdzają
+# osadzony IPv4 względem tej listy (::ffff:127.0.0.1 = 127.0.0.1), a zapis szesnastkowy
+# (::ffff:7f00:1) odrzucają w całości.
+
+# --- IPv4
+0.0.0.0/8
+10.0.0.0/8
+100.64.0.0/10
+127.0.0.0/8
+169.254.0.0/16
+172.16.0.0/12
+192.0.0.0/24
+192.0.2.0/24
+192.168.0.0/16
+198.18.0.0/15
+198.51.100.0/24
+203.0.113.0/24
+224.0.0.0/3
+
+# --- IPv6
+::/127
+64:ff9b::/96
+64:ff9b:1::/48
+100::/64
+2001::/32
+2001:db8::/32
+2002::/16
+fc00::/7
+fe80::/10
+ff00::/8

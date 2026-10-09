@@ -74,10 +74,19 @@ export function linijkaAuthorizedKeys(pubkey: string | null | undefined): string
   return `from="${from}",no-agent-forwarding,no-port-forwarding,no-X11-forwarding,no-user-rc ${m[1]} ${m[2]} verris-control-plane`;
 }
 
-/** Start API w produkcji: bez klucza podpisu albo z kluczem deploy bez adresów control-plane — odmowa. */
+/** Start API w produkcji: bez klucza podpisu, bez VERRIS_CONTROL_PLANE_IPS albo z kluczem deploy bez adresów — odmowa. */
 export function sprawdzKonfiguracjeWezlow(isProd: boolean): void {
   if (!isProd) return;
   kluczPrywatny();
+  // 09.10 (decyzja Dominika) — bez listy control-plane strażnik SSRF migratora i sond nie odróżnia
+  // własnego adresu serwera od hosta klienta (połączenie lokalne omija zaporę), a węzły nie zawężają
+  // panelu :2222. W produkcji to błąd konfiguracji, nie tryb pracy.
+  if (!adresyControlPlane()) {
+    throw new Error(
+      'Brak VERRIS_CONTROL_PLANE_IPS — w produkcji API nie wystartuje bez adresów control-plane ' +
+        '(adresy wyjściowe serwera API, IPv4 i IPv6, po przecinku, np. VERRIS_CONTROL_PLANE_IPS=203.0.113.10,2001:db8::/64).',
+    );
+  }
   const deploy = (process.env.VERRIS_NODE_DEPLOY_SSH_PUBKEY ?? '').trim();
   if (deploy && !linijkaAuthorizedKeys(deploy)) {
     throw new Error('VERRIS_NODE_DEPLOY_SSH_PUBKEY wymaga VERRIS_CONTROL_PLANE_IPS (i poprawnego klucza SSH) — klucz deploy tylko z adresów control-plane.');

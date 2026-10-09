@@ -826,7 +826,8 @@ export class SiteMonitorService {
  */
 async function hostPubliczny(host: string): Promise<boolean> {
   try {
-    await resolvePublicHost(host);
+    // Strona klienta hostowana u nas wskazuje na węzeł — to jej właściwy adres, nie SSRF.
+    await resolvePublicHost(host, { wezly: 'dozwolone' });
     return true;
   } catch {
     return false;

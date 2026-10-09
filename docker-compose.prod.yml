@@ -164,7 +164,8 @@ services:
       # PB-36 — klucz podpisu skryptów dla węzłów (bez niego API nie wystartuje; brak w .env.prod = compose
       # odmawia od razu, stare kontenery działają dalej) i adresy control-plane dla klucza deploy SSH.
       VERRIS_SCRIPT_SIGNING_KEY: ${VERRIS_SCRIPT_SIGNING_KEY:?VERRIS_SCRIPT_SIGNING_KEY is required - openssl genpkey -algorithm ed25519 | base64 -w0}
-      VERRIS_CONTROL_PLANE_IPS: ${VERRIS_CONTROL_PLANE_IPS:-}
+      # 09.10 — bez adresów control-plane API w produkcji nie startuje (strażnik SSRF); compose odmawia od razu.
+      VERRIS_CONTROL_PLANE_IPS: ${VERRIS_CONTROL_PLANE_IPS:?VERRIS_CONTROL_PLANE_IPS is required - adresy wyjsciowe control-plane (IPv4/IPv6, przecinek)}
       # Dodatkowe adresy operatora z dostępem do panelu DA :2222 na węzłach (domyślnie brak).
       VERRIS_DA_ADMIN_ALLOW: ${VERRIS_DA_ADMIN_ALLOW:-}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}

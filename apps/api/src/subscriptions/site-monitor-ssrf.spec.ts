@@ -1,6 +1,7 @@
 import type { Mock } from 'vitest';
 import { probeUrl } from './site-monitor.service.js';
 import { getBezpiecznie } from '../common/net/webhook-post.js';
+import { ustawZrodloAdresowWezlow } from './migration-net.util.js';
 
 vi.mock('../common/net/webhook-post.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -33,5 +34,15 @@ describe('monitor strony a SSRF', () => {
     expect(get).toHaveBeenCalledTimes(1);
     get.mockResolvedValueOnce(503);
     expect(await probeUrl('https://1.1.1.1')).toMatchObject({ up: false, reason: 'HTTP 503' });
+  });
+
+  it('strona klienta hostowana na naszym węźle jest sprawdzana (blokada węzłów dotyczy tylko migratora)', async () => {
+    ustawZrodloAdresowWezlow(async () => ['1.1.1.1']);
+    try {
+      expect(await probeUrl('https://1.1.1.1')).toMatchObject({ up: true, httpStatus: 301 });
+      expect(get).toHaveBeenCalledTimes(1);
+    } finally {
+      ustawZrodloAdresowWezlow(null);
+    }
   });
 });

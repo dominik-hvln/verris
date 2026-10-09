@@ -22,6 +22,7 @@ import { SubscriptionAbandonmentScheduler } from './subscription-abandonment.sch
 import { RenewalReminderScheduler } from './renewal-reminder.scheduler.js';
 import { MigrationOrchestratorService } from './migration-orchestrator.service.js';
 import { MigrationDiscoveryService } from './migration-discovery.service.js';
+import { AdresyWezlowRejestr } from './adresy-wezlow.rejestr.js';
 import { MigrationPreflightService } from './migration-preflight.service.js';
 import { MigrationCutoverService } from './migration-cutover.service.js';
 import { MigrationsStaffController } from './migrations.staff.controller.js';
@@ -94,6 +95,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
     RenewalReminderScheduler,
     MigrationOrchestratorService,
     MigrationDiscoveryService,
+    AdresyWezlowRejestr,
     MigrationPreflightService,
     MigrationCutoverService,
     MigrationWorkerScheduler,

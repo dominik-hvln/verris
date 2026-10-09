@@ -2,6 +2,8 @@ import { lookup as dnsLookupCb } from 'node:dns';
 import { BlockList, isIP } from 'node:net';
 import { request as httpsRequest } from 'node:https';
 import { request as httpRequest } from 'node:http';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 /**
  * Wysyłka webhooka z kontrolą adresu W CHWILI POŁĄCZENIA (nie tylko przed nią). Samo
@@ -72,19 +74,43 @@ export function bezpiecznyLookup(host: string, opts: { all?: boolean } & Record<
  * (NAT64 64:ff9b::/96, 6to4 2002::/16, Teredo 2001::/32) — przez nie da się dojść do 127.0.0.1
  * czy 169.254.169.254 adresem wyglądającym na publiczny. `net.BlockList` zamiast porównań prefiksów
  * tekstowych (np. „fe80:” nie obejmowało fe81::–febf::). Jedna lista dla webhooków, sond i migratora.
+ *
+ * 09.10 — lista żyje w ops/scripts/lib/zastrzezone-zakresy.txt: ten sam plik jest źródłem tablicy
+ * VG_ZASTRZEZONE w guardzie węzła (migration-input-guard.sh), więc obie strony odrzucają te same
+ * zakresy (wcześniej guard przepuszczał m.in. NAT64 i 6to4). Brak pliku = API nie startuje.
  */
+export function wczytajZastrzezoneZakresy(tresc = plikZakresow()): Array<{ adres: string; prefiks: number; rodzina: 'ipv4' | 'ipv6' }> {
+  const zakresy = [];
+  for (const linia of tresc.split('\n')) {
+    const wpis = linia.replace(/#.*/, '').trim();
+    if (!wpis) continue;
+    const [adres, prefiks, ...reszta] = wpis.split('/');
+    const rodzina = isIP(adres);
+    if (!rodzina || reszta.length || !/^\d{1,3}$/.test(prefiks ?? '') || Number(prefiks) > (rodzina === 4 ? 32 : 128)) {
+      throw new Error(`zastrzezone-zakresy.txt: nieprawidłowy wpis „${wpis}”.`);
+    }
+    zakresy.push({ adres, prefiks: Number(prefiks), rodzina: rodzina === 4 ? ('ipv4' as const) : ('ipv6' as const) });
+  }
+  if (!zakresy.length) throw new Error('zastrzezone-zakresy.txt: pusta lista zakresów.');
+  return zakresy;
+}
+
+function plikZakresow(): string {
+  const wzgledna = 'ops/scripts/lib/zastrzezone-zakresy.txt';
+  const kandydaci = [
+    join(process.cwd(), wzgledna),
+    join(process.cwd(), '../..', wzgledna),
+    join(import.meta.dirname, '../../../../..', wzgledna),
+    join(import.meta.dirname, '../../../..', wzgledna),
+  ];
+  for (const p of kandydaci) if (existsSync(p)) return readFileSync(p, 'utf8');
+  throw new Error(`Brak ${wzgledna} — lista adresów zastrzeżonych (SSRF) jest wymagana.`);
+}
+
+// Bez ::ffff:0:0/96 — BlockList sprawdza IPv4 także względem reguł IPv6 (jako ::ffff:a.b.c.d),
+// więc ten prefiks zablokowałby cały IPv4. Zapis szesnastkowy ::ffff:7f00:1 obsługuje funkcja niżej.
 const ZASTRZEZONE = new BlockList();
-for (const [adres, prefiks] of [
-  ['0.0.0.0', 8], ['10.0.0.0', 8], ['100.64.0.0', 10], ['127.0.0.0', 8], ['169.254.0.0', 16],
-  ['172.16.0.0', 12], ['192.0.0.0', 24], ['192.0.2.0', 24], ['192.168.0.0', 16], ['198.18.0.0', 15],
-  ['198.51.100.0', 24], ['203.0.113.0', 24], ['224.0.0.0', 3],
-] as const) ZASTRZEZONE.addSubnet(adres, prefiks, 'ipv4');
-for (const [adres, prefiks] of [
-  // Bez ::ffff:0:0/96 — BlockList sprawdza IPv4 także względem reguł IPv6 (jako ::ffff:a.b.c.d),
-  // więc ten prefiks zablokowałby cały IPv4. Zapis szesnastkowy ::ffff:7f00:1 obsługuje funkcja niżej.
-  ['::', 127], ['64:ff9b::', 96], ['64:ff9b:1::', 48], ['100::', 64],
-  ['2001::', 32], ['2001:db8::', 32], ['2002::', 16], ['fc00::', 7], ['fe80::', 10], ['ff00::', 8],
-] as const) ZASTRZEZONE.addSubnet(adres, prefiks, 'ipv6');
+for (const { adres, prefiks, rodzina } of wczytajZastrzezoneZakresy()) ZASTRZEZONE.addSubnet(adres, prefiks, rodzina);
 
 export function isPrivateOrReservedIp(ip: string): boolean {
   const lower = ip.toLowerCase();

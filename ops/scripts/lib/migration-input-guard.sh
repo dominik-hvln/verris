@@ -110,21 +110,138 @@ vg_is_account() {
 # druga warstwa, tuż przed połączeniem.
 # ponytail: rozwiązujemy raz, a rsync/mysqldump/imapsync rozwiązują ponownie
 # (okno na DNS-rebinding); przypięcie IP do każdego narzędzia, gdy będzie potrzebne.
+#
+# 09.10 — lista zakresów to KOPIA ops/scripts/lib/zastrzezone-zakresy.txt (to samo źródło czyta
+# API: apps/api/src/common/net/webhook-post.ts). Węzeł nie ma Node ani jq, a guard musi działać
+# sam, więc linie są przepisane tutaj; test zastrzezone-zakresy.spec.ts czerwieni się przy rozjeździe.
+# Wcześniej guard znał tylko kilka sieci IPv4 i prefiksy fe8-/fc/fd/ff — przepuszczał NAT64
+# (64:ff9b::7f00:1 = 127.0.0.1), 6to4 (2002:7f00:1::1), Teredo, 192.0.0.0/24, 198.18.0.0/15 itd.
+# >>> zastrzezone-zakresy.txt (nie edytuj ręcznie bez zmiany pliku źródłowego)
+readonly -a VG_ZASTRZEZONE=(
+  0.0.0.0/8
+  10.0.0.0/8
+  100.64.0.0/10
+  127.0.0.0/8
+  169.254.0.0/16
+  172.16.0.0/12
+  192.0.0.0/24
+  192.0.2.0/24
+  192.168.0.0/16
+  198.18.0.0/15
+  198.51.100.0/24
+  203.0.113.0/24
+  224.0.0.0/3
+  ::/127
+  64:ff9b::/96
+  64:ff9b:1::/48
+  100::/64
+  2001::/32
+  2001:db8::/32
+  2002::/16
+  fc00::/7
+  fe80::/10
+  ff00::/8
+)
+# <<< zastrzezone-zakresy.txt
+
+# Ścisły IPv4: cztery oktety dziesiętne 0-255, bez zer wiodących (010 to dla inet_aton ósemkowo 8,
+# więc guard i narzędzie widziałyby różne adresy). Wypisuje liczbę 32-bitową; 1 = to nie IPv4.
+vg_ipv4_liczba() {
+  local a b c d x
+  IFS=. read -r a b c d x <<<"$1"
+  [ -z "$x" ] || return 1
+  [[ "$1" == *.*.*.* && "$1" != *.*.*.*.* ]] || return 1
+  for x in "$a" "$b" "$c" "$d"; do
+    [[ "$x" =~ ^(0|[1-9][0-9]{0,2})$ ]] && (( x <= 255 )) || return 1
+  done
+  printf '%s\n' $(( (a << 24) | (b << 16) | (c << 8) | d ))
+}
+
+# Ścisły IPv6 (z opcjonalnym IPv4 na końcu): wypisuje 8 grup jako liczby dziesiętne; 1 = to nie IPv6.
+vg_ipv6_grupy() {
+  local ip="$1" ogon v4 lewa prawa g n
+  local -a L=() P=() W=()
+  [[ "$ip" =~ ^[0-9a-f:.]+$ ]] || return 1
+  if [[ "$ip" == *.* ]]; then                   # ::ffff:1.2.3.4, 64:ff9b::1.2.3.4
+    ogon="${ip##*:}"
+    v4=$(vg_ipv4_liczba "$ogon") || return 1
+    ip="${ip%:*}:$(printf '%x:%x' $(( v4 >> 16 )) $(( v4 & 65535 )))"
+  fi
+  [[ "$ip" == *:::* ]] && return 1
+  if [[ "$ip" == *::* ]]; then
+    lewa="${ip%%::*}"; prawa="${ip#*::}"
+    [[ "$prawa" == *::* ]] && return 1
+    # `read -a` gubi pusty ostatni element: bez tego „1::2:” wyglądałoby jak poprawne 1::2.
+    [[ "$prawa" == *: ]] && return 1
+    [ -n "$lewa" ] && IFS=: read -r -a L <<<"$lewa"
+    [ -n "$prawa" ] && IFS=: read -r -a P <<<"$prawa"
+    n=$(( 8 - ${#L[@]} - ${#P[@]} ))
+    (( n >= 1 )) || return 1
+    W=("${L[@]}"); for ((g = 0; g < n; g++)); do W+=(0); done; W+=("${P[@]}")
+  else
+    [[ "$ip" == *: || "$ip" == :* ]] && return 1
+    IFS=: read -r -a W <<<"$ip"
+  fi
+  (( ${#W[@]} == 8 )) || return 1
+  for g in "${W[@]}"; do [[ "$g" =~ ^[0-9a-f]{1,4}$ ]] || return 1; printf '%d ' "0x$g"; done
+  printf '\n'
+}
+
+# Zakresy rozbite raz, przy wczytaniu biblioteki: IPv4 jako „sieć maska”, IPv6 jako „8 grup prefiks”.
+# Wpis, którego nie da się odczytać, przerywa wczytanie — guard bez pełnej listy nie może działać.
+VG_ZAKRESY_4=(); VG_ZAKRESY_6=()
+vg_wczytaj_zakresy() {
+  local z siec prefiks liczba grupy
+  for z in "${VG_ZASTRZEZONE[@]}"; do
+    siec="${z%/*}"; prefiks="${z#*/}"
+    [[ "$z" == */* && "$prefiks" =~ ^[0-9]{1,3}$ ]] || return 1
+    if [[ "$siec" == *:* ]]; then
+      (( prefiks <= 128 )) && grupy=$(vg_ipv6_grupy "$siec") || return 1
+      VG_ZAKRESY_6+=("$grupy$prefiks")
+    else
+      (( prefiks <= 32 )) && liczba=$(vg_ipv4_liczba "$siec") || return 1
+      VG_ZAKRESY_4+=("$liczba $(( (0xffffffff << (32 - prefiks)) & 0xffffffff ))")
+    fi
+  done
+}
+vg_wczytaj_zakresy || { echo "migration-input-guard: nieprawidłowa lista VG_ZASTRZEZONE" >&2; return 1 2>/dev/null || exit 1; }
+
+# Adres IPv6 (8 grup dziesiętnie) należy do zakresu „8 grup prefiks”.
+vg_w_zakresie6() {
+  local -a A=($1) S=($2)
+  local prefiks="${S[8]}" i bity maska
+  for ((i = 0; i < 8; i++)); do
+    bity=$(( prefiks - 16 * i )); (( bity <= 0 )) && return 0; (( bity > 16 )) && bity=16
+    maska=$(( (0xffff << (16 - bity)) & 0xffff ))
+    (( (A[i] & maska) == (S[i] & maska) )) || return 1
+  done
+  return 0
+}
+
+# 0 = adres zastrzeżony albo niepoprawny (odmowa), 1 = publiczny. Te same reguły co
+# isPrivateOrReservedIp w API: IPv4 w IPv6 (::ffff:a.b.c.d, 0:0:0:0:0:ffff:7f00:1) sprawdzany jako
+# IPv4; zapis zaczynający się od ::ffff: bez kropek (::ffff:7f00:1) odrzucany w całości;
+# wszystko, co nie jest poprawnym IP — odmowa.
 vg_ip_prywatny() {
-  local ip a b c d x
-  ip=$(printf %s "$1" | tr "[:upper:]" "[:lower:]")
+  local ip="${1,,}" z liczba grupy
+  if [[ "$ip" == ::ffff:* ]]; then
+    vg_ipv4_liczba "${ip#::ffff:}" >/dev/null || return 0
+    vg_ip_prywatny "${ip#::ffff:}"; return $?
+  fi
   if [[ "$ip" == *:* ]]; then
-    [[ "$ip" == ::ffff:* ]] && { vg_ip_prywatny "${ip#::ffff:}"; return $?; }
-    [[ "$ip" == "::" || "$ip" == "::1" || "$ip" == fe[89ab]* || "$ip" == fc* || "$ip" == fd* || "$ip" == ff* ]] && return 0
+    grupy=$(vg_ipv6_grupy "$ip") || return 0
+    # ::ffff:0:0/96 w innym zapisie (0:0:0:0:0:ffff:7f00:1) — jak w API (BlockList): osadzony IPv4
+    if [[ "$grupy" == "0 0 0 0 0 65535 "* ]]; then
+      read -r _ _ _ _ _ _ z liczba <<<"$grupy"
+      vg_ip_prywatny "$(( z >> 8 )).$(( z & 255 )).$(( liczba >> 8 )).$(( liczba & 255 ))"; return $?
+    fi
+    for z in "${VG_ZAKRESY_6[@]}"; do vg_w_zakresie6 "$grupy" "$z" && return 0; done
     return 1
   fi
-  IFS=. read -r a b c d <<<"$ip"
-  for x in "$a" "$b" "$c" "$d"; do [[ "$x" =~ ^[0-9]{1,3}$ ]] || return 0; done
-  (( a == 0 || a == 10 || a == 127 || a >= 224 )) && return 0
-  (( a == 100 && b >= 64 && b <= 127 )) && return 0
-  (( a == 169 && b == 254 )) && return 0
-  (( a == 172 && b >= 16 && b <= 31 )) && return 0
-  (( a == 192 && b == 168 )) && return 0
+  liczba=$(vg_ipv4_liczba "$ip") || return 0
+  for z in "${VG_ZAKRESY_4[@]}"; do
+    (( (liczba & ${z#* }) == (${z% *} & ${z#* }) )) && return 0
+  done
   return 1
 }
 
