@@ -36,6 +36,13 @@ const config = [
   // X-42: reguły react-hooks tylko w zasięgu, w którym eslint-config-next rejestruje wtyczkę
   // (bez .cjs — inaczej jest.config.cjs wywraca lintera: „could not find plugin react-hooks”).
   { files: ['**/*.{js,jsx,mjs,ts,tsx,mts,cts}'], rules: ODSLONIETE_PRZEZ_NEXT_16 },
+  // Build nie może zależeć od odpowiedzi Google Fonts (CI 09.10) — fonty są w public/fonts.
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': ['error', { paths: [{ name: 'next/font/google', message: 'Fonty z public/fonts (@font-face w globals.css), nie z Google przy buildzie.' }] }],
+    },
+  },
 ];
 
 export default config;
