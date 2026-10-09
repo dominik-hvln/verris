@@ -278,8 +278,8 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('webauthn/register/options')
   @HttpCode(HttpStatus.OK)
-  webauthnRegisterOptions(@CurrentUser() user: { principalUserId?: string; userId: string }) {
-    return this.webauthn.registrationOptions(user.principalUserId ?? user.userId);
+  webauthnRegisterOptions(@CurrentUser() user: Osoba2fa) {
+    return this.webauthn.registrationOptions(wlasnyPasskey(user));
   }
 
   /** Weryfikacja i zapis nowego passkey. */
@@ -287,11 +287,11 @@ export class AuthController {
   @Post('webauthn/register/verify')
   @HttpCode(HttpStatus.OK)
   webauthnRegisterVerify(
-    @CurrentUser() user: { principalUserId?: string; userId: string },
+    @CurrentUser() user: Osoba2fa,
     @Body() dto: WebauthnRejestracjaDto,
   ) {
     return this.webauthn.verifyRegistration(
-      user.principalUserId ?? user.userId,
+      wlasnyPasskey(user),
       dto.response,
       dto.deviceName,
     );
@@ -320,8 +320,8 @@ export class AuthController {
   /** Lista zarejestrowanych passkeys. */
   @UseGuards(JwtAuthGuard)
   @Get('webauthn/credentials')
-  webauthnList(@CurrentUser() user: { principalUserId?: string; userId: string }) {
-    return this.webauthn.listCredentials(user.principalUserId ?? user.userId);
+  webauthnList(@CurrentUser() user: Osoba2fa) {
+    return this.webauthn.listCredentials(wlasnyPasskey(user));
   }
 
   /** Usunięcie passkey. */
@@ -329,10 +329,10 @@ export class AuthController {
   @Post('webauthn/credentials/:id/delete')
   @HttpCode(HttpStatus.OK)
   webauthnDelete(
-    @CurrentUser() user: { principalUserId?: string; userId: string },
+    @CurrentUser() user: Osoba2fa,
     @Param('id') id: string,
   ) {
-    return this.webauthn.deleteCredential(user.principalUserId ?? user.userId, id);
+    return this.webauthn.deleteCredential(wlasnyPasskey(user), id);
   }
 
   /**
@@ -397,6 +397,14 @@ type Osoba2fa = { userId: string; principalUserId?: string; impersonatedBy?: str
 
 function wlasne2fa(user: Osoba2fa): string {
   if (user.impersonatedBy) throw new ForbiddenException('Drugi składnik ustawia wyłącznie klient — nie w sesji wsparcia.');
+  return user.principalUserId ?? user.userId;
+}
+
+// Audyt bezpieczeństwa 09.10 (A07): passkey to silny czynnik logowania — zarejestrowany/usunięty w sesji
+// „Zaloguj jako klient” (impersonacja, PB-41) dałby operatorowi trwały dostęp do konta klienta poza 30-min
+// limitem (albo odciął klienta od jego klucza). Zarządza nimi WYŁĄCZNIE właściciel, jak przy 2FA (wlasne2fa).
+function wlasnyPasskey(user: Osoba2fa): string {
+  if (user.impersonatedBy) throw new ForbiddenException('Klucze passkey ustawia wyłącznie klient — nie w sesji wsparcia.');
   return user.principalUserId ?? user.userId;
 }
 
