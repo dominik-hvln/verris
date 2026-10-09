@@ -74,7 +74,10 @@ export async function updateUserProfile(data: Partial<UserProfile>) {
       body: JSON.stringify(data),
     });
     return { success: true, data: updated };
-  } catch {
+  } catch (err) {
+    // Decyzja 09.10 — API odmawia zmiany kraju/NIP po pierwszej płatności („Zmianę kraju rozliczenia
+    // zgłoś obsłudze.”) i odrzuca zły kod pocztowy; klient ma zobaczyć ten powód, nie „błąd połączenia”.
+    if (err instanceof ApiError) return { error: err.message };
     return { error: "Błąd połączenia z serwerem" };
   }
 }

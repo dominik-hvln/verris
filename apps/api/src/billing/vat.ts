@@ -17,7 +17,10 @@ import type { WynikVies } from './vies.service.js';
  *     operator zarejestrował się w OSS i włączył to w ustawieniach. Bez tego
  *     zostaje 23% z flagą `wymagaOss`, żeby alarm krzyczał, a panel nie wystawiał
  *     dokumentu ze stawką obcego kraju bez rejestracji.
- *   · spoza UE                                → „np”, miejsce świadczenia poza krajem
+ *   · spoza UE, zweryfikowany przez obsługę    → „np”, miejsce świadczenia poza krajem
+ *   · spoza UE, bez weryfikacji               → 23% jak w Polsce (decyzja 2026-10-09:
+ *     kraj z profilu klient wpisuje sam, więc sam w sobie nie daje ceny netto;
+ *     kwalifikację potwierdza księgowa, obsługa zaznacza ją na karcie klienta)
  *
  * Nie 0%: stawka 0% dotyczy towarów (WDT, eksport). Dokument z „0%” zamiast „np”
  * przy usłudze to błąd w JPK.
@@ -68,6 +71,11 @@ export interface NabywcaVat {
   /** Sprzedaż konsumentom z UE w PLN: większa z (rok bieżący, rok poprzedni). */
   sprzedazB2cUePln: number;
   ossWlaczone: boolean;
+  /**
+   * Nabywca spoza UE zweryfikowany ręcznie przez obsługę (kto/kiedy/na jakiej podstawie —
+   * `User.vatWeryfikacja*`) DLA TEGO kraju. Bez tego kraj spoza UE = 23%.
+   */
+  pozaUeZweryfikowany?: boolean;
 }
 
 export function normalizujKraj(kraj: string | null | undefined): string {
@@ -81,6 +89,7 @@ export function ustalTraktowanieVat(n: NabywcaVat): TraktowanieVat {
   const baza = { kraj, adnotacja: null, cenaNetto: false, wymagaOss: false, b2cUe: false };
   if (kraj === 'PL') return { ...baza, kod: 'PL', stawka: STAWKA_PL };
   if (!(kraj in STAWKI_UE)) {
+    if (n.pozaUeZweryfikowany !== true) return { ...baza, kod: 'PL', stawka: STAWKA_PL };
     return { ...baza, kod: 'POZA_UE', stawka: null, adnotacja: ADNOTACJA_POZA_UE, cenaNetto: true };
   }
   if (n.viesWazny === true) {

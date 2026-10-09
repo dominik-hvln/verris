@@ -1,5 +1,5 @@
 import type { Mock } from 'vitest';
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { CustomerPermission } from '@verris/database';
 import { UsersService } from './users.service.js';
 
@@ -12,6 +12,9 @@ describe('UsersService.getProfile (IAM)', () => {
     // wywala się na `Cannot read properties of undefined (reading 'count')`,
     // co wygląda jak błąd produktu, a jest brakiem w mocku.
     webAuthnCredential: { count: vi.fn() },
+    // Decyzja 09.10 — zmiana kraju/NIP sprawdza, czy była już płatność.
+    walletTransaction: { count: vi.fn() },
+    invoice: { count: vi.fn() },
   };
 
   const service = new UsersService(
@@ -26,6 +29,8 @@ describe('UsersService.getProfile (IAM)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prisma.webAuthnCredential.count.mockResolvedValue(0);
+    prisma.walletTransaction.count.mockResolvedValue(0);
+    prisma.invoice.count.mockResolvedValue(0);
     vi
       .spyOn(
         service as unknown as { ensureReferralAndBadgeTokens: () => Promise<unknown> },
@@ -133,5 +138,47 @@ describe('UsersService.getProfile (IAM)', () => {
     // Inny kraj — inny format, nie blokujemy.
     await expect(service.updateProfile('u1', { country: 'DE', postalCode: '10115' })).resolves.toBeDefined();
     expect(update).toHaveBeenCalledTimes(2);
+  });
+  describe('kraj rozliczenia i NIP po pierwszej płatności (decyzja 09.10)', () => {
+    const klient = { id: 'u1', customerOwnerId: null, companyName: 'ACME', nip: '123 456', address: null, city: null, postalCode: null, country: 'US' };
+
+    it('klient po płatności nie zmieni sam kraju — 403 z komunikatem po polsku, bez zapisu', async () => {
+      const update = vi.fn();
+      (prisma.user as unknown as { update: Mock }).update = update;
+      prisma.user.findUnique.mockResolvedValue(klient);
+      prisma.walletTransaction.count.mockResolvedValue(1);
+      const p = service.updateProfile('u1', { country: 'CH' });
+      await expect(p).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(service.updateProfile('u1', { country: 'CH' })).rejects.toThrow('Zmianę kraju rozliczenia zgłoś obsłudze');
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it('klient po opłaconej fakturze nie zmieni sam NIP', async () => {
+      const update = vi.fn();
+      (prisma.user as unknown as { update: Mock }).update = update;
+      prisma.user.findUnique.mockResolvedValue(klient);
+      prisma.invoice.count.mockResolvedValue(1);
+      await expect(service.updateProfile('u1', { nip: '999' })).rejects.toBeInstanceOf(ForbiddenException);
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it('ponowny zapis formularza z tym samym krajem i NIP (inny zapis spacji) przechodzi po płatności', async () => {
+      const update = vi.fn().mockResolvedValue({ id: 'u1', sidebarQuickLinks: [] });
+      (prisma.user as unknown as { update: Mock }).update = update;
+      prisma.user.findUnique.mockResolvedValue(klient);
+      prisma.walletTransaction.count.mockResolvedValue(3);
+      await expect(service.updateProfile('u1', { country: 'US', nip: '123-456', city: 'Austin' })).resolves.toBeDefined();
+      expect(update.mock.calls[0][0].data).not.toHaveProperty('vatWeryfikacjaAt');
+    });
+
+    it('przed pierwszą płatnością klient zmienia kraj sam, a weryfikacja VAT się zeruje', async () => {
+      const update = vi.fn().mockResolvedValue({ id: 'u1', sidebarQuickLinks: [] });
+      (prisma.user as unknown as { update: Mock }).update = update;
+      prisma.user.findUnique.mockResolvedValue(klient);
+      await expect(service.updateProfile('u1', { country: 'CH' })).resolves.toBeDefined();
+      expect(update.mock.calls[0][0].data).toMatchObject({
+        country: 'CH', vatWeryfikacjaAt: null, vatWeryfikacjaPrzez: null, vatWeryfikacjaPodstawa: null, vatWeryfikacjaKraj: null,
+      });
+    });
   });
 });

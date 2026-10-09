@@ -29,6 +29,7 @@ import { ZwrotPaynowButton } from "./zwrot-paynow-button";
 import { services, plForm } from "@/lib/pl";
 import { sekcjaKarty, zakladkiKartyKlienta } from "@/lib/sekcje-karty-klienta";
 import { DiagnostykaDnsTls } from "./diagnostyka-dns-tls";
+import { opisStatusuVat, StatusVatNabywcyAkcje, type StatusVatNabywcy } from "./status-vat-nabywcy";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +106,8 @@ export default async function AdminCustomerCardPage({
   }
   // PB-27 / PB-28 — sekcja tylko dla admina i pracownika z CUSTOM_TERMS_MANAGE (403 = bez sekcji).
   const warunki = await adminApi<PodgladWarunkow>(`/admin/custom-terms/user/${encodeURIComponent(userId)}`).catch(() => null);
+  // Decyzja 09.10 — status VAT nabywcy (BILLING_VIEW; 403 = bez wiersza).
+  const statusVat = await adminApi<StatusVatNabywcy>(`/admin/billing/nabywcy/${encodeURIComponent(userId)}/vat`).catch(() => null);
 
   const u = p.user;
   const osoba = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
@@ -354,6 +357,14 @@ export default async function AdminCustomerCardPage({
               <Para k="Sposób" v={zrodla.join(", ") || "—"} />
               <Para k="Warunki indywidualne" v={indywidualne.length ? services(indywidualne.length) : "brak"} />
               <Para k="Dane do faktury" v={u.companyName && u.nip ? `komplet · NIP ${u.nip}` : u.nip ? `NIP ${u.nip} · bez nazwy firmy` : "osoba prywatna / brak NIP"} />
+              {statusVat ? (
+                <div className="flex flex-col items-end gap-1.5" data-status-vat={statusVat.wymagaWeryfikacji ? "wymaga-weryfikacji" : "ok"}>
+                  <div className="w-full">
+                    <Para k="Status VAT nabywcy" v={opisStatusuVat(statusVat)} />
+                  </div>
+                  <StatusVatNabywcyAkcje userId={u.id} status={statusVat} />
+                </div>
+              ) : null}
               <Para k="Metoda płatności" v={p.paymentMethods.find((m) => m.isDefault) ? `${p.paymentMethods.find((m) => m.isDefault)!.brand ?? "karta"} •••• ${p.paymentMethods.find((m) => m.isDefault)!.last4 ?? ""}` : "brak zapisanej"} />
             </section>
 

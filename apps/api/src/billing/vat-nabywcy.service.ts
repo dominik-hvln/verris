@@ -5,6 +5,7 @@ import { ViesService, type WynikVies } from './vies.service.js';
 import {
   normalizujKraj, numerVatUe, odczytajOss, sprzedazB2cUe, STAWKI_UE, ustalTraktowanieVat, type TraktowanieVat,
 } from './vat.js';
+import { weryfikacjaPozaUeAktualna } from './vat-weryfikacja.js';
 
 /**
  * M-09 — traktowanie VAT dla konkretnego klienta: profil (kraj, NIP/VAT-UE) +
@@ -22,7 +23,10 @@ export class VatNabywcyService {
   ) {}
 
   async ustal(userId: string): Promise<{ traktowanie: TraktowanieVat; vies: WynikVies | null }> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { country: true, nip: true } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { country: true, nip: true, vatWeryfikacjaAt: true, vatWeryfikacjaKraj: true },
+    });
     const kraj = normalizujKraj(user?.country);
     let vies: WynikVies | null = null;
     if (kraj !== 'PL' && kraj in STAWKI_UE) {
@@ -38,6 +42,8 @@ export class VatNabywcyService {
       viesWazny: vies?.wazny ?? null,
       sprzedazB2cUePln: Math.max(s.biezacy, s.poprzedni),
       ossWlaczone: oss,
+      // Decyzja 09.10: kraj spoza UE z profilu nie wystarcza — netto dopiero po weryfikacji obsługi.
+      pozaUeZweryfikowany: weryfikacjaPozaUeAktualna(user),
     });
     if (traktowanie.wymagaOss) {
       this.logger.error(`OSS: sprzedaż konsumentom z UE przekroczyła próg — włącz OSS po rejestracji (user=${userId})`);

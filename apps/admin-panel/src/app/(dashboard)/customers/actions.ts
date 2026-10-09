@@ -265,3 +265,38 @@ export async function zwrotPaynowAction(
     return { ok: false, error: err instanceof AdminApiError ? err.message : "Nie udało się zlecić zwrotu." };
   }
 }
+
+/**
+ * Decyzja 09.10 — „Zweryfikuj status VAT nabywcy” (klient spoza UE): od następnej płatności cena netto (np).
+ * API wymaga BILLING_MANAGE i zapisuje kto/kiedy/na jakiej podstawie w dzienniku.
+ */
+export async function weryfikacjaVatAction(
+  userId: string,
+  podstawa: string,
+): Promise<{ ok: true } | ActionResultErr> {
+  const t = podstawa.trim();
+  if (t.length < 10) return { ok: false, error: "Podaj podstawę weryfikacji (co najmniej 10 znaków: dokument, rejestr, kto potwierdził)." };
+  try {
+    await adminApi(`/admin/billing/nabywcy/${encodeURIComponent(userId)}/vat/weryfikacja`, { method: "POST", body: { podstawa: t } });
+    revalidatePath(`/customers/${userId}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof AdminApiError ? err.message : "Nie udało się zapisać weryfikacji." };
+  }
+}
+
+/** Cofnięcie weryfikacji VAT nabywcy — od następnej płatności znów 23%. */
+export async function cofnijWeryfikacjeVatAction(
+  userId: string,
+  powod: string,
+): Promise<{ ok: true } | ActionResultErr> {
+  const t = powod.trim();
+  if (t.length < 5) return { ok: false, error: "Podaj powód (co najmniej 5 znaków)." };
+  try {
+    await adminApi(`/admin/billing/nabywcy/${encodeURIComponent(userId)}/vat/cofniecie`, { method: "POST", body: { powod: t } });
+    revalidatePath(`/customers/${userId}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof AdminApiError ? err.message : "Nie udało się cofnąć weryfikacji." };
+  }
+}

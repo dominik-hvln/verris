@@ -26,8 +26,15 @@ describe('M-09 — traktowanie VAT', () => {
     expect(etykietaStawki(25.5)).toBe('25,5%');
   });
 
-  it('spoza UE: np, cena netto; Grecja jako EL traktowana jak GR', () => {
-    expect(t('US')).toMatchObject({ kod: 'POZA_UE', stawka: null, cenaNetto: true });
+  it('spoza UE: domyślnie 23% jak w PL; np i cena netto dopiero po weryfikacji obsługi (decyzja 09.10)', () => {
+    expect(t('US')).toMatchObject({ kod: 'PL', stawka: 23, cenaNetto: false, adnotacja: null });
+    const zw = ustalTraktowanieVat({ kraj: 'US', viesWazny: null, sprzedazB2cUePln: 0, ossWlaczone: false, pozaUeZweryfikowany: true });
+    expect(zw).toMatchObject({ kod: 'POZA_UE', stawka: null, cenaNetto: true });
+    expect(kredytZaWplate(new Prisma.Decimal('100'), t('US')).toFixed(2)).toBe('100.00');
+    expect(kredytZaWplate(new Prisma.Decimal('100'), zw).toFixed(2)).toBe('123.00');
+  });
+
+  it('Grecja jako EL traktowana jak GR', () => {
     expect(t('EL', true).kraj).toBe('GR');
   });
 

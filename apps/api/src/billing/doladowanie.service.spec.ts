@@ -13,6 +13,8 @@ function zbuduj(opts: {
   model?: string;
   vies?: boolean | null;
   kurs?: number;
+  /** Kraj, dla którego obsługa zweryfikowała nabywcę spoza UE (decyzja 09.10). */
+  zweryfikowanyKraj?: string;
 } = {}) {
   const ustawienia: Record<string, string> = { 'faktury.model': opts.model ?? 'przy_doladowaniu', 'faktury.tryb': 'zewnetrzny' };
   const wpisy: Array<Record<string, unknown>> = [];
@@ -31,7 +33,12 @@ function zbuduj(opts: {
     }),
     user: {
       update: vi.fn(async () => ({})),
-      findUnique: vi.fn(async () => ({ country: opts.kraj ?? 'PL', nip: opts.nip ?? null })),
+      findUnique: vi.fn(async () => ({
+        country: opts.kraj ?? 'PL',
+        nip: opts.nip ?? null,
+        vatWeryfikacjaAt: opts.zweryfikowanyKraj ? new Date('2026-10-09T08:00:00Z') : null,
+        vatWeryfikacjaKraj: opts.zweryfikowanyKraj ?? null,
+      })),
     },
     walletTransaction: {
       create: vi.fn(async (a: { data: Record<string, unknown> }) => {
@@ -90,6 +97,37 @@ describe('DoladowanieService', () => {
     const d = t.dokumenty[0] as { vatAmount: Prisma.Decimal; buyerSnapshot: { vat: { kod: string; adnotacja: string; vies: { identyfikator: string } } } };
     expect(d.vatAmount.toFixed(2)).toBe('0.00');
     expect(d.buyerSnapshot.vat).toMatchObject({ kod: 'OO', adnotacja: 'odwrotne obciążenie', vies: { identyfikator: 'WAPI' } });
+  });
+
+  // Decyzja 09.10 — kraj spoza UE wpisany przez klienta nie daje ceny netto sam z siebie.
+  it('spoza UE bez weryfikacji obsługi: 23%, 1 zł = 1 K, dokument z VAT zgodny z pobraną kwotą', async () => {
+    const t = zbuduj({ kraj: 'US' });
+    const r = await zaksieguj(t.svc, 10000);
+    t.przywroc();
+    expect(r.kredytK.toFixed(2)).toBe('100.00');
+    const d = t.dokumenty[0] as { amount: Prisma.Decimal; netAmount: Prisma.Decimal; vatAmount: Prisma.Decimal; buyerSnapshot: { vat: { kod: string; stawka: number | null; adnotacja: string | null } } };
+    expect(d.amount.toFixed(2)).toBe('100.00');
+    expect(d.vatAmount.toFixed(2)).toBe('18.70');
+    expect(d.netAmount.plus(d.vatAmount).toFixed(2)).toBe('100.00');
+    expect(d.buyerSnapshot.vat).toMatchObject({ kod: 'PL', stawka: 23, adnotacja: null });
+  });
+
+  it('spoza UE zweryfikowany przez obsługę: np, 1,23 K za 1 zł, dokument bez VAT', async () => {
+    const t = zbuduj({ kraj: 'US', zweryfikowanyKraj: 'US' });
+    const r = await zaksieguj(t.svc, 10000);
+    t.przywroc();
+    expect(r.kredytK.toFixed(2)).toBe('123.00');
+    const d = t.dokumenty[0] as { amount: Prisma.Decimal; vatAmount: Prisma.Decimal; buyerSnapshot: { vat: { kod: string; stawka: number | null } } };
+    expect(d.amount.toFixed(2)).toBe('100.00');
+    expect(d.vatAmount.toFixed(2)).toBe('0.00');
+    expect(d.buyerSnapshot.vat).toMatchObject({ kod: 'POZA_UE', stawka: null });
+  });
+
+  it('weryfikacja dla innego kraju niż obecny w profilu nie daje ceny netto', async () => {
+    const t = zbuduj({ kraj: 'US', zweryfikowanyKraj: 'CH' });
+    const r = await zaksieguj(t.svc, 10000);
+    t.przywroc();
+    expect(r.kredytK.toFixed(2)).toBe('100.00');
   });
 
   it('wpłata w EUR: K po kursie NBP z dnia poprzedniego, dokument w EUR z VAT w PLN', async () => {

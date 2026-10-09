@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -29,6 +30,7 @@ import { passwordChangedTemplate } from '../mail/templates/security-notification
 import { EcoBadgeService } from './eco-badge.service.js';
 import { EcoPointsService, isBillingProfileComplete } from '../eco/eco-points.service.js';
 import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
+import { BEZ_WERYFIKACJI, KOMUNIKAT_ZMIANA_PO_PLATNOSCI, maPierwszaPlatnosc, zmianaDanychVat } from '../billing/vat-weryfikacja.js';
 
 @Injectable()
 export class UsersService {
@@ -543,6 +545,17 @@ export class UsersService {
       }
     }
 
+    // Decyzja 09.10 — kraj i NIP decydują o stawce VAT (cena netto poza UE / odwrotne obciążenie).
+    // Po pierwszej płatności zmienia je tylko obsługa (z wpisem w dzienniku); każda zmiana zeruje
+    // weryfikację nabywcy, więc kolejne doładowanie wraca do 23%, dopóki obsługa jej nie potwierdzi.
+    const zmianaVat = zmianaDanychVat(user, { country: dto.country, nip: dto.nip });
+    const zmienia = !isSubaccount && (zmianaVat.kraj || zmianaVat.nip);
+    if (zmienia && (await maPierwszaPlatnosc(this.prisma, profileId))) {
+      throw new ForbiddenException(
+        zmianaVat.kraj ? KOMUNIKAT_ZMIANA_PO_PLATNOSCI : 'Zmianę NIP / numeru VAT-UE zgłoś obsłudze.',
+      );
+    }
+
     // Kod pocztowy trafia na faktury (i do KSeF) — dla Polski tylko format NN-NNN.
     // Na produkcji przyjmował „1” (sprawdzone 26.09).
     const kraj = dto.country ?? user.country ?? 'PL';
@@ -575,6 +588,7 @@ export class UsersService {
         ...(!isSubaccount && dto.city !== undefined && { city: dto.city }),
         ...(!isSubaccount && dto.postalCode !== undefined && { postalCode: dto.postalCode }),
         ...(!isSubaccount && dto.country !== undefined && { country: dto.country }),
+        ...(zmienia && BEZ_WERYFIKACJI),
         ...(dto.locale !== undefined && { locale: dto.locale }),
         ...(!isSubaccount && sidebarQuickLinks !== undefined && { sidebarQuickLinks }),
         // Preferencje wyglądu są osobiste — subkonto też je ma (każdy widzi panel po swojemu).

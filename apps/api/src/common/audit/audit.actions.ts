@@ -104,6 +104,15 @@ export const AdminInvoiceActions = {
   INVOICES_CSV_EXPORTED: 'ADMIN_INVOICES_CSV_EXPORTED',
 } as const;
 
+/** Decyzja 09.10 — status VAT nabywcy (cena netto poza UE tylko po weryfikacji obsługi). */
+export const VatNabywcyActions = {
+  ZWERYFIKOWANY: 'VAT_NABYWCA_ZWERYFIKOWANY',
+  WERYFIKACJA_COFNIETA: 'VAT_NABYWCA_WERYFIKACJA_COFNIETA',
+  DANE_ZMIENIONE: 'VAT_NABYWCA_DANE_ZMIENIONE',
+  /** Wpis z migracji 20261009180000 — konto spoza UE do weryfikacji, do tego czasu 23%. */
+  WERYFIKACJA_WYMAGANA: 'VAT_NABYWCA_WERYFIKACJA_WYMAGANA',
+} as const;
+
 /**
  * Akcje powiązane z infrastrukturą węzłów (maintenance mode, A-08).
  */
@@ -310,6 +319,7 @@ export const ADMIN_OPS_ACTION_SET: ReadonlySet<string> = new Set([
   ...Object.values(AdminCustomerActions),
   ...Object.values(AdminPlanActions),
   ...Object.values(AdminInvoiceActions),
+  ...Object.values(VatNabywcyActions),
   ...Object.values(AdminNodeActions),
   ...Object.values(ProvisioningActions),
   ...Object.values(MigrationActions),

@@ -16,6 +16,8 @@ import { ProformaService } from './proforma.service.js';
 import { DoladowanieService } from './doladowanie.service.js';
 import { ViesService } from './vies.service.js';
 import { VatNabywcyService } from './vat-nabywcy.service.js';
+import { VatWeryfikacjaService } from './vat-weryfikacja.service.js';
+import { VatWeryfikacjaAdminController } from './vat-weryfikacja.admin.controller.js';
 import { InvoicePdfService } from './invoice-pdf.service.js';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module.js';
 import { PromoService } from './promo.service.js';
@@ -44,6 +46,7 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
     StripeWebhookEventsAdminController,
     InvoicesController,
     InvoicesAdminController,
+    VatWeryfikacjaAdminController,
   ],
   providers: [
     BillingService,
@@ -56,6 +59,7 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
     DoladowanieService,
     ViesService,
     VatNabywcyService,
+    VatWeryfikacjaService,
     PromoService,
     WalletAutoTopupService,
     WalletAutoTopupScheduler,

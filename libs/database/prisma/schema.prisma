@@ -88,6 +88,13 @@ model User {
   postalCode               String?
   country                  String?   @default("PL")
   locale                   String    @default("pl")
+  /// Decyzja 09.10 — cena netto (np, poza UE) tylko po ręcznej weryfikacji nabywcy przez obsługę.
+  /// Weryfikacja dotyczy kraju z `vatWeryfikacjaKraj`; zmiana kraju albo NIP ją zeruje.
+  /// Firma z UE nie potrzebuje tego pola — jej status sprawdza VIES przy każdej płatności.
+  vatWeryfikacjaAt         DateTime?
+  vatWeryfikacjaPrzez      String?
+  vatWeryfikacjaPodstawa   String?
+  vatWeryfikacjaKraj       String?
 
   // C3 — bumped to invalidate every issued JWT for this user ("wyloguj
   // wszystkie urządzenia" / forced logout after password change/compromise).
