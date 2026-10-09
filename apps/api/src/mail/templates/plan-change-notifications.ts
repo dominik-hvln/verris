@@ -37,7 +37,7 @@ export function planChangedTemplate(ctx: PlanChangedContext): MailMessage {
       `- **Jest:** ${escapeMarkdown(ctx.toPlanName)}`,
       `- ${amountLine}`,
       ``,
-      `Limity LVE i dysku zostały ustawione według nowego planu. Delty autoskalowania (jeśli były) zostały zresetowane — możesz je ponownie skonfigurować w panelu.`,
+      `Limity zasobów (CPU, RAM, dysk) zostały ustawione według nowego planu. Delty autoskalowania (jeśli były) zostały zresetowane — możesz je ponownie skonfigurować w panelu.`,
     ].join('\n'),
     cta: {
       label: 'Otwórz usługę',

@@ -107,7 +107,7 @@ export class EcoReportService {
       treeMonthsEquivalent: round2(treeMonthsEquivalent),
       ecoModeEnabled: sub.ecoModeEnabled,
       methodology:
-        `Szacunek z rzeczywistych metryk CloudLinux LVE (próbki co 60 s): ` +
+        `Szacunek z rzeczywistych pomiarów zużycia konta (próbki co 60 s): ` +
         `CPU ${WATTS_PER_CORE} W/rdzeń, RAM ${WATTS_PER_GB_RAM} W/GB, PUE ${PUE}, ` +
         `emisyjność ${CO2_KG_PER_KWH} kg CO₂e/kWh (śr. PL). Punkt odniesienia: ` +
         `serwer o parametrach planu zaalokowany na stałe 24/7.`,
