@@ -70,4 +70,35 @@ describe('Patch 7 — synchronizacja wiedzy STAFF', () => {
     expect((await zarzadzane()).map((d) => d.sourceRef)).toEqual(['pomoc:a']);
     expect(await prisma().aiKnowledgeDoc.findUnique({ where: { id: reczny.id } })).toBeTruthy();
   });
+
+  it('przegląd: dokumentu ze słownika/runbooka nie da się w panelu udostępnić klientom (ALL/CLIENT)', async () => {
+    await kb().synchronizujWiedzeStaff([
+      { sourceRef: 'docs-ops:X.md', sourceType: 'MARKDOWN', title: 'X', content: 'Runbook tylko dla pracowników.' },
+    ]);
+    const id = idDokumentuStaff('docs-ops:X.md');
+    for (const audience of [AiKnowledgeAudience.ALL, AiKnowledgeAudience.CLIENT]) {
+      await expect(kb().updateDoc(id, { audience }, 'admin')).rejects.toThrow('tylko dla pracowników');
+    }
+    expect((await prisma().aiKnowledgeDoc.findUniqueOrThrow({ where: { id } })).audience).toBe(AiKnowledgeAudience.STAFF);
+    // Archiwizacja i ręczne dokumenty — bez zmian.
+    await kb().updateDoc(id, { status: AiKnowledgeStatus.ARCHIVED }, 'admin');
+    const reczny = await prisma().aiKnowledgeDoc.create({
+      data: { title: 'Ręczny', audience: AiKnowledgeAudience.STAFF, sourceRef: 'reczny', charCount: 10 },
+    });
+    await kb().updateDoc(reczny.id, { audience: AiKnowledgeAudience.ALL }, 'admin');
+  });
+
+  it('przegląd: dokument zindeksowany bez embeddingów dostaje je po włączeniu dostawcy', async () => {
+    const a = { sourceRef: 'pomoc:a', sourceType: 'TEXT' as const, title: 'A', content: 'Opis funkcji A.' };
+    await kb().synchronizujWiedzeStaff([a]);
+    const p = prisma() as never;
+    const embed = vi.fn(async (wej: string[]) => wej.map(() => [0.1, 0.2]));
+    const zEmbeddingami = new KnowledgeBaseService(p, { embeddingsEnabled: () => true, embed } as never, new AuditService(p));
+
+    expect(await zEmbeddingami.synchronizujWiedzeStaff([a])).toMatchObject({ zmienione: 1, bezZmian: 0 });
+    const chunki = await prisma().aiKnowledgeChunk.findMany({ where: { docId: idDokumentuStaff('pomoc:a') } });
+    expect(chunki.map((c) => c.embedding)).toEqual([[0.1, 0.2]]);
+    expect(await zEmbeddingami.synchronizujWiedzeStaff([a])).toMatchObject({ zmienione: 0, bezZmian: 1 });
+    expect(embed).toHaveBeenCalledTimes(1);
+  });
 });

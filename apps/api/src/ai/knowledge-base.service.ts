@@ -159,6 +159,14 @@ export class KnowledgeBaseService implements OnApplicationBootstrap {
   ) {
     const existing = await this.prisma.aiKnowledgeDoc.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Dokument nie istnieje.');
+    // Słownik „?” i runbooki tylko dla pracowników — ALL/CLIENT pokazałby je w Bazie wiedzy klienta (GET /ai/kb).
+    if (
+      input.audience !== undefined &&
+      input.audience !== AiKnowledgeAudience.STAFF &&
+      PREFIKSY_WIEDZY_STAFF.some((p) => existing.sourceRef?.startsWith(p))
+    ) {
+      throw new BadRequestException('Ten dokument jest tylko dla pracowników.');
+    }
 
     const data: Prisma.AiKnowledgeDocUpdateInput = {};
     if (input.title !== undefined) data.title = input.title.trim();
@@ -224,20 +232,23 @@ export class KnowledgeBaseService implements OnApplicationBootstrap {
     usuniete: number;
   }> {
     const w = { dodane: 0, zmienione: 0, bezZmian: 0, usuniete: 0 };
+    const embeddingi = this.provider.embeddingsEnabled();
     for (const d of dokumenty) {
       const id = idDokumentuStaff(d.sourceRef);
       const content = d.content.trim();
       const czesci = chunkText(content);
       const istniejacy = await this.prisma.aiKnowledgeDoc.findUnique({
         where: { id },
-        include: { chunks: { orderBy: { ordinal: 'asc' }, select: { content: true } } },
+        include: { chunks: { orderBy: { ordinal: 'asc' }, select: { content: true, embedding: true } } },
       });
       if (
         istniejacy &&
         istniejacy.title === d.title &&
         istniejacy.audience === AiKnowledgeAudience.STAFF &&
         istniejacy.chunks.length === czesci.length &&
-        istniejacy.chunks.every((c, i) => c.content === czesci[i])
+        istniejacy.chunks.every((c, i) => c.content === czesci[i]) &&
+        // Zindeksowany bez embeddingów (klucz dodany później albo błąd dostawcy) — przelicz.
+        (!embeddingi || istniejacy.chunks.every((c) => c.embedding.length > 0))
       ) {
         w.bezZmian += 1;
         continue;
