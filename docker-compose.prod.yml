@@ -573,7 +573,7 @@ services:
   # PB-38: Grafana Alloy zamiast Promtaila (EOL 2026-03-02). Konfiguracja przekonwertowana
   # oficjalnym `alloy convert --source-format=promtail` (ops/observability/alloy/config.alloy).
   alloy:
-    image: grafana/alloy:v1.20.0
+    image: grafana/alloy:v1.20.1
     restart: always
     logging: *default-logging
     command:
