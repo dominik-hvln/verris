@@ -11,10 +11,13 @@ jest.mock("next/headers", () => ({ headers: async () => new Headers(), cookies: 
 jest.mock("@/lib/api", () => ({ AdminApiError: class extends Error {}, adminApi: jest.fn().mockResolvedValue([]) }));
 jest.mock("./notification-bell", () => ({ NotificationBell: () => null }));
 jest.mock("./logout-button", () => ({ LogoutButton: () => null }));
-jest.mock("./command-palette-actions", () => ({ globalSearchAction: jest.fn().mockResolvedValue([]) }));
+/** Odpowiedzi API wyszukiwarki według zapytania (debounce z poprzedniego testu nie zjada odpowiedzi następnego). */
+const odpowiedziApi: Record<string, unknown> = {};
+const mockSzukaj = jest.fn(async (q: string) => odpowiedziApi[q] ?? { results: [], pominiete: [] });
+jest.mock("./command-palette-actions", () => ({ globalSearchAction: (...a: unknown[]) => mockSzukaj(...a) }));
 
 import { AdminShell } from "./admin-shell";
-import { szukajStron, type StronaMenu } from "./command-palette";
+import { komunikatPominietych, szukajStron, type StronaMenu } from "./command-palette";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -115,6 +118,15 @@ describe("Wyszukiwarka stron", () => {
   });
 });
 
+describe("Komunikat przy braku uprawnień", () => {
+  it("lista typów w dopełniaczu; wszystkie — tylko strony; żadnego — null", () => {
+    expect(komunikatPominietych([])).toBeNull();
+    expect(komunikatPominietych(["node"])).toBe("Brak wyników. Twoja rola nie przeszukuje węzłów.");
+    expect(komunikatPominietych(["user", "node", "invoice"])).toBe("Brak wyników. Twoja rola nie przeszukuje klientów, węzłów ani faktur.");
+    expect(komunikatPominietych(["user", "service", "domain", "invoice", "node", "ticket", "migration"])).toBe("Brak wyników. Twoja rola przeszukuje tylko strony panelu.");
+  });
+});
+
 describe("Cmd+K — słowa kluczowe i strony spoza menu", () => {
   let root: Root;
   let el: HTMLElement;
@@ -169,6 +181,25 @@ describe("Cmd+K — słowa kluczowe i strony spoza menu", () => {
     expect(tekst).toContain("Czeka na fakturę");
     expect(tekst).not.toContain("Faktura ręczna");
     expect(await wpisz("kreator")).not.toContain("Dodaj węzeł");
+  });
+
+  it("puste wyniki z powodu uprawnień — komunikat zamiast „Brak wyników”", async () => {
+    odpowiedziApi["zzz9"] = { results: [], pominiete: ["node", "invoice"] };
+    await otworz(["CUSTOMERS_VIEW"], false);
+    await wpisz("zzz9");
+    await act(async () => new Promise((r) => setTimeout(r, 300)));
+    expect(document.querySelector('[role="dialog"][aria-label="Wyszukiwarka"]')!.textContent).toContain("Brak wyników. Twoja rola nie przeszukuje węzłów ani faktur.");
+  });
+
+  it("węzeł z API jest wynikiem i prowadzi do karty", async () => {
+    odpowiedziApi["t1"] = { results: [{ type: "node", id: "n1", title: "t1", subtitle: "Węzeł · t1.verris.net", href: "/nodes/n1", status: "ACTIVE" }], pominiete: [] };
+    await otworz();
+    await wpisz("t1");
+    await act(async () => new Promise((r) => setTimeout(r, 300)));
+    expect(document.querySelector('[role="dialog"][aria-label="Wyszukiwarka"]')!.textContent).toContain("Węzeł · t1.verris.net");
+    const pole = document.querySelector<HTMLInputElement>('input[aria-label="Szukaj"]')!;
+    await act(async () => pole.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+    expect(push).toHaveBeenLastCalledWith("/nodes/n1");
   });
 
   it("przycisk pokazuje skrót Ctrl K (⌘K na Macu)", async () => {

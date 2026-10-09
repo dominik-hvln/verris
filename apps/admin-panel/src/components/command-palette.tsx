@@ -2,15 +2,38 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Loader2, User, Server, Globe, FileText, CornerDownLeft, ArrowRight } from "lucide-react";
-import { globalSearchAction, type GlobalSearchResult } from "./command-palette-actions";
+import { Search, Loader2, User, Server, Globe, FileText, HardDrive, LifeBuoy, ArrowRightLeft, CornerDownLeft, ArrowRight } from "lucide-react";
+import { globalSearchAction, type GlobalSearchResult, type TypWyniku } from "./command-palette-actions";
 
 const TYPE_ICON = {
   user: User,
   service: Server,
   domain: Globe,
   invoice: FileText,
+  node: HardDrive,
+  ticket: LifeBuoy,
+  migration: ArrowRightLeft,
 } as const;
+
+/** Dopełniacz l.mn. — „Twoja rola nie przeszukuje węzłów ani faktur”. */
+const TYP_DOPELNIACZ: Record<TypWyniku, string> = {
+  user: "klientów",
+  service: "usług",
+  domain: "domen",
+  invoice: "faktur",
+  node: "węzłów",
+  ticket: "zgłoszeń",
+  migration: "migracji",
+};
+
+/** Komunikat przy pustej liście, gdy część typów pominięto z braku uprawnień; null — nic nie pominięto. */
+export function komunikatPominietych(pominiete: TypWyniku[]): string | null {
+  if (!pominiete.length) return null;
+  if (pominiete.length === Object.keys(TYP_DOPELNIACZ).length) return "Brak wyników. Twoja rola przeszukuje tylko strony panelu.";
+  const nazwy = pominiete.map((t) => TYP_DOPELNIACZ[t]);
+  const lista = nazwy.length > 1 ? `${nazwy.slice(0, -1).join(", ")} ani ${nazwy.at(-1)}` : nazwy[0];
+  return `Brak wyników. Twoja rola nie przeszukuje ${lista}.`;
+}
 
 /** Strona menu dla wyszukiwarki: nazwa, sekcja, słowa kluczowe (admin-shell.tsx). */
 export type StronaMenu = { name: string; href: string; sekcja: string; szukaj?: string };
@@ -64,12 +87,13 @@ const naMacu = () => /Mac|iPhone|iPad/.test(navigator.platform || navigator.user
 
 type Wynik = { type: "strona"; id: string; title: string; subtitle: string; href: string } | GlobalSearchResult;
 
-/** ADM-4 — globalna wyszukiwarka (Cmd/Ctrl-K, „/”): strony panelu + klienci, usługi, domeny, faktury. */
+/** ADM-4 — globalna wyszukiwarka (Cmd/Ctrl-K, „/”): strony panelu + klienci, usługi, domeny, faktury, węzły, zgłoszenia, migracje. */
 export function CommandPalette({ strony = [] }: { strony?: StronaMenu[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<GlobalSearchResult[]>([]);
+  const [pominiete, setPominiete] = useState<TypWyniku[]>([]);
   const [loading, setLoading] = useState(false);
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -117,7 +141,8 @@ export function CommandPalette({ strony = [] }: { strony?: StronaMenu[] }) {
       }
       setLoading(true);
       const res = await globalSearchAction(value);
-      setResults(res);
+      setResults(res.results);
+      setPominiete(res.pominiete);
       setActive(0);
       setLoading(false);
     }, 220);
@@ -188,7 +213,7 @@ export function CommandPalette({ strony = [] }: { strony?: StronaMenu[] }) {
                 }}
                 onKeyDown={onKeyDown}
                 aria-label="Szukaj"
-                placeholder="Strona panelu, klient, usługa (ID), domena, NIP, faktura…"
+                placeholder="Strona, węzeł (nazwa, IP), klient, domena, NIP, faktura…"
                 className="flex-1 bg-transparent py-4 text-sm text-white outline-none placeholder:text-neutral-600"
               />
               {loading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : null}
@@ -201,7 +226,7 @@ export function CommandPalette({ strony = [] }: { strony?: StronaMenu[] }) {
                     ? "Wpisz co najmniej 2 znaki: strona (np. onboard, ksef), klient, domena, faktura."
                     : loading
                       ? "Szukam…"
-                      : "Brak wyników."}
+                      : (komunikatPominietych(pominiete) ?? "Brak wyników.")}
                 </p>
               ) : (
                 wyniki.map((r, i) => {

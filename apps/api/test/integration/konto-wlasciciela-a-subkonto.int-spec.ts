@@ -137,17 +137,29 @@ describe('Przegląd 28.09 — subkonto nie działa na danych osobistych właści
     expect((await zadanie('PATCH', '/me/marketing-preferences', k.wlasciciel, { loginAlertsEmail: false })).status).toBe(200);
   });
 
-  it('wyszukiwarka klientów wymaga CUSTOMERS_VIEW', async () => {
+  it('wyszukiwarka: klienci tylko z CUSTOMERS_VIEW, węzły z NODES_VIEW, bez żadnego uprawnienia typu — 403', async () => {
     const t = Math.random().toString(36).slice(2, 8);
-    const bez = await prisma().staffRole.create({ data: { name: `kb-${t}`, permissions: ['NODES_VIEW'] } });
+    const pulpit = await prisma().staffRole.create({ data: { name: `pulpit-${t}`, permissions: ['DASHBOARD_VIEW'] } });
+    const flota = await prisma().staffRole.create({ data: { name: `kb-${t}`, permissions: ['NODES_VIEW'] } });
     const z = await prisma().staffRole.create({ data: { name: `bok-${t}`, permissions: ['CUSTOMERS_VIEW'] } });
-    const op1 = await prisma().user.create({ data: { email: `op1-${t}@test.verris.pl`, passwordHash: 'x', role: 'STAFF', staffRoleId: bez.id } });
+    const op0 = await prisma().user.create({ data: { email: `op0-${t}@test.verris.pl`, passwordHash: 'x', role: 'STAFF', staffRoleId: pulpit.id } });
+    const op1 = await prisma().user.create({ data: { email: `op1-${t}@test.verris.pl`, passwordHash: 'x', role: 'STAFF', staffRoleId: flota.id } });
     const op2 = await prisma().user.create({ data: { email: `op2-${t}@test.verris.pl`, passwordHash: 'x', role: 'STAFF', staffRoleId: z.id } });
     await prisma().user.create({ data: { email: `klient-${t}@test.verris.pl`, passwordHash: 'x', nip: '1234567890' } });
+    const wezel = await prisma().server.create({ data: { name: `klient-${t}-wezel`, hostname: `n-${t}.test.verris.net`, ipAddress: `10.${Math.floor(Math.random() * 250) + 1}.${Math.floor(Math.random() * 250) + 1}.${Math.floor(Math.random() * 250) + 1}` } });
 
-    expect((await zadanie('GET', '/admin/search?q=klient', op1.id, undefined, 'STAFF')).status).toBe(403);
-    const ok = await zadanie('GET', '/admin/search?q=klient', op2.id, undefined, 'STAFF');
+    expect((await zadanie('GET', '/admin/search?q=klient', op0.id, undefined, 'STAFF')).status).toBe(403);
+
+    const kb = await zadanie('GET', `/admin/search?q=klient-${t}`, op1.id, undefined, 'STAFF');
+    expect(kb.status).toBe(200);
+    expect(kb.body?.results).toEqual([expect.objectContaining({ type: 'node', id: wezel.id, href: `/nodes/${wezel.id}`, status: 'INIT' })]);
+    expect(kb.body?.pominiete).toContain('user');
+    const poIp = await zadanie('GET', `/admin/search?q=${wezel.ipAddress}`, op1.id, undefined, 'STAFF');
+    expect((poIp.body?.results as { id: string }[]).map((r) => r.id)).toEqual([wezel.id]);
+
+    const ok = await zadanie('GET', `/admin/search?q=klient-${t}`, op2.id, undefined, 'STAFF');
     expect(ok.status).toBe(200);
-    expect((ok.body?.results as unknown[]).length).toBe(1);
+    expect(ok.body?.results).toEqual([expect.objectContaining({ type: 'user' })]);
+    expect(ok.body?.pominiete).toContain('node');
   });
 });

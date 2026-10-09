@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Loader2, User, Server, Globe, FileText, CornerDownLeft } from "lucide-react";
+import { Search, Loader2, User, Server, Globe, FileText, LifeBuoy, CornerDownLeft } from "lucide-react";
 import { staffGlobalSearchAction, type StaffSearchResult } from "./command-palette-actions";
 
-const TYPE_ICON = { user: User, service: Server, domain: Globe, invoice: FileText } as const;
+const TYPE_ICON = { user: User, service: Server, domain: Globe, invoice: FileText, ticket: LifeBuoy } as const;
 
 /** Staff routuje przez profil klienta (/crm/:userId) — brak tras adminowych. */
 function staffHref(r: StaffSearchResult): string {
+  if (r.type === "ticket") return `/tickets/${r.id}`;
   if (!r.userId) return "/crm";
   if (r.type === "service") return `/crm/${r.userId}/subscriptions/${r.id}`;
   return `/crm/${r.userId}`;
