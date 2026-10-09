@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { CheckCircle2, Copy, Eye, EyeOff, Loader2, Play, RefreshCw, XCircle } from "lucide-react";
 import { Checkbox } from "@/components/checkbox";
+import { potwierdz } from "@/components/potwierdz";
 import {
   pobierzOffsite,
   pobierzStanOnboardu,
@@ -177,8 +178,14 @@ export function OnboardLivePanel({ serverId }: { serverId: string }) {
     return () => clearInterval(t);
   }, [stan?.trwa, odswiez]);
 
-  const uruchom = () => {
+  // Okno potwierdzenia PRZED transition (React 19: okno otwarte w środku async transition się nie pokazuje).
+  const uruchom = async () => {
     setBlad(null);
+    const ok = await potwierdz("Agent wgra na węzeł aktualne skrypty i zabezpieczenia. Trwa kilkanaście minut.", {
+      tytul: "Uruchomić Onboard LIVE?",
+      akcja: "Uruchom",
+    });
+    if (!ok) return;
     start(async () => {
       const r = await uruchomOnboard(serverId);
       if (!r.ok) setBlad(r.error);
@@ -190,7 +197,7 @@ export function OnboardLivePanel({ serverId }: { serverId: string }) {
   return (
     <div className="space-y-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" className={przycisk} disabled={pending || stan?.trwa} onClick={uruchom}>
+        <button type="button" className={przycisk} disabled={pending || stan?.trwa} onClick={() => void uruchom()}>
           {pending || stan?.trwa ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
           {stan?.trwa ? "Onboard trwa…" : "Uruchom Onboard LIVE z panelu"}
         </button>

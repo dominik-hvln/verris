@@ -32,6 +32,7 @@ import { PrognozaWezlaKarta } from "./prognoza-wezla";
 import { listNodeTasks } from "../../provisioning-queue/data";
 import { NodeTasksSection } from "../../provisioning-queue/node-tasks-section";
 import { Okruszek } from "@/components/admin-shell";
+import { fetchStaffAccess } from "@/lib/staff-access";
 import { Eyebrow, KARTA, Kpi, Pasek, Pigulka, RzadKpi, Zakladki } from "@/components/v2";
 
 export const dynamic = "force-dynamic";
@@ -72,7 +73,12 @@ export default async function ServerDetailPage({
   const q = await searchParams;
   const sekcja: Sekcja = (SEKCJE as readonly string[]).includes(q.sekcja ?? "") ? (q.sekcja as Sekcja) : "przeglad";
   // Prognoza tylko na Przeglądzie: komentarz AI (raz na 24 h) nie jest liczony przy innych zakładkach.
-  const [{ data: server, error }, p, prognoza] = await Promise.all([fetchServer(id), fetchPrzegladWezla(id), sekcja === "przeglad" ? fetchPrognozaWezla(id) : null]);
+  const [{ data: server, error }, p, prognoza, dostep] = await Promise.all([
+    fetchServer(id),
+    fetchPrzegladWezla(id),
+    sekcja === "przeglad" ? fetchPrognozaWezla(id) : null,
+    sekcja === "przeglad" ? fetchStaffAccess() : null,
+  ]);
   if (!server) {
     if (error?.toLowerCase().includes("not found")) notFound();
     return (
@@ -130,7 +136,7 @@ export default async function ServerDetailPage({
             ) : null}
           </div>
         </div>
-        <div className="ml-auto flex flex-wrap items-center gap-2.5">
+        <div id="dostep" className="ml-auto flex scroll-mt-4 flex-wrap items-center gap-2.5">
           {isPending && <ApproveServerButton serverId={server.id} />}
           <DaSsoButton
             serverId={server.id}
@@ -209,7 +215,7 @@ export default async function ServerDetailPage({
               <NodeBootstrapProgress serverId={server.id} />
             </section>
           )}
-          <DzialaniaWezla baza={baza} dziala={dziala} instalacja={canBootstrap} />
+          {dostep ? <DzialaniaWezla wezel={{ id: server.id, status: server.status }} dostep={dostep} /> : null}
           {prognoza ? <PrognozaWezlaKarta p={prognoza} bazaHref={baza} /> : null}
           {p ? <WezelPrzeglad p={p} bazaHref={baza} /> : null}
         </>
@@ -221,8 +227,12 @@ export default async function ServerDetailPage({
         dziala ? (
           <>
             <NodeAuditPanel serverId={server.id} serverName={server.name} />
-            <NodeStackReadinessPanel serverId={server.id} serverStatus={server.status} />
-            <SondaDaPanel serverId={server.id} />
+            <div id="uslugi" className="scroll-mt-4">
+              <NodeStackReadinessPanel serverId={server.id} serverStatus={server.status} />
+            </div>
+            <div id="sonda-da" className="scroll-mt-4">
+              <SondaDaPanel serverId={server.id} />
+            </div>
           </>
         ) : (
           <p className="text-sm text-muted-foreground">Audyt i naprawa są dostępne, gdy węzeł jest aktywny albo w serwisie.</p>
@@ -251,13 +261,15 @@ export default async function ServerDetailPage({
             </section>
           ) : null}
           {dziala ? (
-            <DbUpgradePanel
-              serverId={server.id}
-              dbEngine={server.dbEngine}
-              dbVersion={server.dbVersion}
-              targetDbVersion={server.targetDbVersion}
-              dbUpgradeRequestedAt={server.dbUpgradeRequestedAt}
-            />
+            <div id="baza-danych" className="scroll-mt-4">
+              <DbUpgradePanel
+                serverId={server.id}
+                dbEngine={server.dbEngine}
+                dbVersion={server.dbVersion}
+                targetDbVersion={server.targetDbVersion}
+                dbUpgradeRequestedAt={server.dbUpgradeRequestedAt}
+              />
+            </div>
           ) : null}
           <div id="profil" className="scroll-mt-4">
             <HostingProfilePanel serverId={server.id} serverStatus={server.status} />
@@ -275,7 +287,9 @@ export default async function ServerDetailPage({
             <DefRow label="Ostatni handshake" value={server.lastHandshakeAt ? new Date(server.lastHandshakeAt).toLocaleString("pl-PL") : "brak"} />
             {server.notes && <DefRow label="Notatki" value={server.notes} />}
           </section>
-          <NodeStatusPanel serverId={server.id} status={server.status} />
+          <div id="status" className="scroll-mt-4">
+            <NodeStatusPanel serverId={server.id} status={server.status} />
+          </div>
           <div id="serwis" className="scroll-mt-4" />
           <MaintenanceToggle
             serverId={server.id}
@@ -312,7 +326,9 @@ export default async function ServerDetailPage({
           <div id="nameservers">
             <NameserversForm serverId={server.id} />
           </div>
-          <RegionForm serverId={server.id} region={server.region ?? null} />
+          <div id="region" className="scroll-mt-4">
+            <RegionForm serverId={server.id} region={server.region ?? null} />
+          </div>
           <div id="waf">
             <WafPanel serverId={server.id} />
           </div>

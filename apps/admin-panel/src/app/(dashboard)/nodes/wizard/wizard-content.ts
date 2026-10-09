@@ -58,6 +58,16 @@ export const WIZARD_STEPS: WizardStep[] = [
   },
 ];
 
+/**
+ * Krok kreatora, na którym stoi węzeł w trakcie zakładania (INIT → instalacja, PENDING_APPROVAL → akceptacja).
+ * null — węzeł jest już założony: operacje na nim są na karcie węzła, nie w kreatorze (decyzja 10.10).
+ */
+export function krokKreatoraDla(status: string): { id: WizardStepId; numer: number; tytul: string } | null {
+  const id: WizardStepId | null = status === "INIT" ? "bootstrap" : status === "PENDING_APPROVAL" ? "approve-da" : null;
+  const i = id ? WIZARD_STEPS.findIndex((s) => s.id === id) : -1;
+  return id && i >= 0 ? { id, numer: i + 1, tytul: WIZARD_STEPS[i]!.title } : null;
+}
+
 export const INSTALL_OS_PREP = `# 0) AlmaLinux 9.x lub 10.2 — minimal install, potem jako root:
 hostnamectl set-hostname node-pl-01.example.com   # dostosuj
 dnf -y update
