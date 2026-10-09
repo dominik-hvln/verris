@@ -36,14 +36,14 @@ export default async function ProvisioningQueuePage({
   const sp = await searchParams;
   const state = sp.state ?? "";
   const w = await wynik(listProvisioningQueue(state || undefined));
-  if (!w.ok) return <BladStrony blad={w.blad} tytul="Kolejka zakładania" />;
+  if (!w.ok) return <BladStrony blad={w.blad} tytul="Kolejka zadań" />;
   const data = w.dane;
   const nodeTasks = await listNodeTasks().catch(() => []);
 
   return (
     <div className="space-y-6 p-6">
       <header>
-        <h1 className="text-[28px] lg:text-[34px]">Kolejka zakładania</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Kolejka zadań</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Zakładanie kont na węzłach po zakupie — ponowienia, błędy i odrzucone zadania.
         </p>

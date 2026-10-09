@@ -10,12 +10,12 @@ const rekordy = (n: number) => plural(n, "rekord", "rekordy", "rekordów");
 
 export default async function ProductOpsPage() {
   const w = await wynik(getProductOpsDashboard());
-  if (!w.ok) return <BladStrony blad={w.blad} tytul="Product Ops / NOC" />;
+  if (!w.ok) return <BladStrony blad={w.blad} tytul="Komunikaty i flagi" />;
   const data = w.dane;
   return (
     <div className="space-y-6 p-6">
       <header>
-        <h1 className="text-[28px] lg:text-[34px]">Product Ops / NOC</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Komunikaty i flagi</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Gotowość do startu (preflight GO-LIVE), flagi funkcji, ogłoszenia i kalendarz prac serwisowych.
         </p>
