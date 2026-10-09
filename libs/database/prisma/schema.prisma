@@ -302,6 +302,8 @@ model User {
 
   // NTF-2 — powiadomienia in-app (dzwonek w panelu klienta)
   notifications             Notification[]
+  @@index([role, createdAt])
+  @@index([referredByUserId])
 }
 
 // NTF-2 — trwałe powiadomienia in-app (dzwonek panelu klienta).
@@ -1087,6 +1089,7 @@ model SubscriptionEvent {
   createdAt      DateTime     @default(now())
 
   @@index([subscriptionId])
+  @@index([type, createdAt])
 }
 
 // -----------------------------------------------------------------------------
@@ -1386,6 +1389,7 @@ model Domain {
 
   checklists DomainChecklist[]
   registrarOrders DomainRegistrarOrder[]
+  @@index([userId, createdAt])
 }
 
 enum DomainRegistrarOrderType {
@@ -1571,6 +1575,8 @@ model WalletTransaction {
   @@index([type])
   @@index([invoiceId])
   @@index([type, invoiceId, createdAt])
+  @@index([subscriptionId])
+  @@index([type, createdAt])
 }
 
 model PaymentMethod {
@@ -1833,6 +1839,8 @@ model AutoscalingEvent {
   createdAt      DateTime              @default(now())
 
   @@index([subscriptionId, createdAt])
+  @@index([createdAt])
+  @@index([reason, createdAt])
 }
 
 // -----------------------------------------------------------------------------
@@ -2157,6 +2165,8 @@ model Ticket {
   @@index([status, waitingSince])
   @@index([csatAgentId, csatAt])
   @@index([subscriptionId])
+  @@index([userId, createdAt])
+  @@index([assignedToId])
 }
 
 model TicketReply {
@@ -2265,6 +2275,8 @@ model AuditLog {
 
   @@index([userId, createdAt])
   @@index([action, createdAt])
+  @@index([createdAt])
+  @@index([actorUserId, createdAt])
 }
 
 enum AiInteractionStatus {
