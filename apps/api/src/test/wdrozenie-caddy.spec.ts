@@ -22,18 +22,21 @@ describe('wdrożenie przeładowuje Caddy', () => {
 
 describe('CSP paneli', () => {
   const CADDY = readFileSync(join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'caddy', 'Caddyfile'), 'utf8');
-  const panel = CADDY.slice(CADDY.indexOf('(panel_headers) {'));
+  const panel = CADDY.slice(CADDY.indexOf('(panel_headers) {'), CADDY.indexOf('# Blok oczywistych skanerów'));
 
-  it('form-action dopuszcza węzły *.verris.pl (webmail skrzynki: POST z tokenem do Roundcube), nic szerszego', () => {
-    const fa = /form-action ('self'[^;]+);/.exec(panel)?.[1] ?? ''; // pierwsza CSP po (panel_headers)
-    expect(fa.split(' ')).toContain('https://*.verris.pl');
-    expect(fa).not.toMatch(/\bhttps:(?!\/\/)|\*(?!\.verris\.pl)/);
+  // 09.10: CSP paneli z nonce ustawia aplikacja (libs/ui/src/csp.ts; testy form-action/connect-src są
+  // w apps/client-panel/src/middleware.spec.ts). Drugi CSP z Caddy przeglądarka stosuje RAZEM z nim —
+  // polityka bez nonce zablokowałaby skrypty Nexta. Caddy daje tylko wartość domyślną (`?`), gdy upstream jej nie wysłał.
+  it('Caddy nie nadpisuje CSP paneli — tylko domyślny (?) dla odpowiedzi bez CSP z aplikacji', () => {
+    const linie = panel.split('\n').map((l) => l.trim()).filter((l) => /^[?+-]?Content-Security-Policy\b/.test(l));
+    expect(linie).toHaveLength(1);
+    expect(linie[0]).toMatch(/^\?Content-Security-Policy "/);
   });
 
-  it('connect-src dopuszcza websocket konsoli VPS (wss_url z request_console), tylko wss i tylko *.hetzner.cloud', () => {
-    const cs = /connect-src ([^;]+);/.exec(panel)?.[1] ?? '';
-    expect(cs.split(' ')).toContain('wss://*.hetzner.cloud');
-    expect(cs).not.toMatch(/(^| )wss:(?!\/\/\*\.hetzner\.cloud)/);
+  it('domyślny CSP z Caddy bez skryptów inline i bez obcych hostów w script-src', () => {
+    const csp = /\?Content-Security-Policy "([^"]+)"/.exec(panel)?.[1] ?? '';
+    const ss = /script-src ([^;]+)/.exec(csp)?.[1]?.trim();
+    expect(ss).toBe("'self'");
   });
 
   it('webhook OpenProvidera na API tylko z adresów OpenProvidera (inne → 403)', () => {

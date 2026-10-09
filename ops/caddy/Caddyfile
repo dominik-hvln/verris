@@ -21,21 +21,17 @@
     }
 }
 
-# CSP + nagłówki paneli w jednym bloku header (osobne dyrektywy się nadpisują).
+# Nagłówki paneli w jednym bloku header (osobne dyrektywy się nadpisują).
 (panel_headers) {
     import security_headers
     header {
-        # script/connect/frame-src rozszerzone o GTM/GA4/Google Ads/Meta Pixel
-        # (Consent Mode v2 — tagi i tak odpalają się dopiero po zgodzie z banera;
-        # CSP musi jedynie nie blokować ich ładowania). img-src `https:` pokrywa
-        # piksele zliczające (google-analytics collect, facebook /tr).
-        # form-action *.verris.pl: webmail skrzynki jednym kliknięciem wysyła formularz POST z tokenem
-        # do Roundcube na węźle (https://<węzeł>.verris.pl/roundcube/direct_login/). Nowe okno about:blank
-        # dziedziczy CSP panelu, więc bez tego przeglądarka blokowała logowanie (retest D3 29.09).
-        # Websocket *.hetzner.cloud w CSP połączeń: konsola VPS (noVNC) łączy się z websocketem z request_console
-        # (https://docs.hetzner.cloud/reference/cloud#server-actions-request-console-for-a-server — wss_url).
-        # Bez tego konsola wisiała na „łączenie…” (D3 06.10, naruszenie CSP połączeń).
-        Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self' https://www.facebook.com https://*.verris.pl; img-src 'self' data: blob: https:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://*.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://connect.facebook.net; connect-src 'self' https://api.verris.pl wss://*.hetzner.cloud https://*.stripe.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.doubleclick.net https://*.googlesyndication.com https://www.googleadservices.com https://www.google.com https://www.facebook.com; frame-src https://js.stripe.com https://hooks.stripe.com https://td.doubleclick.net https://www.googletagmanager.com https://www.facebook.com https://api.verris.pl"
+        # CSP paneli ustawia aplikacja (proxy/middleware Next) z nonce per żądanie, bez 'unsafe-inline'
+        # w script-src — źródło: libs/ui/src/csp.ts (decyzja 09.10). Caddy NIE może dawać drugiego CSP:
+        # przeglądarka stosuje oba nagłówki naraz (każdy zasób musi przejść obie polityki), więc stara polityka
+        # bez nonce zablokowałaby skrypty Nexta, a z 'unsafe-inline' nic by nie wnosiła.
+        # `?` = wartość domyślna, wpisywana tylko gdy upstream nie wysłał CSP (trasy poza matcherem proxy:
+        # /api, /_next/static, pliki publiczne, strona błędu Caddy). Bez skryptów inline i bez obcych hostów.
+        ?Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:"
         X-Frame-Options "DENY"
         Permissions-Policy "camera=(), microphone=(), geolocation=()"
     }

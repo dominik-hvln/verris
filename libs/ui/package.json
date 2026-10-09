@@ -4,6 +4,7 @@
   "private": true,
   "exports": {
     ".": "./src/index.ts",
+    "./csp": "./src/csp.ts",
     "./globals.css": "./src/globals.css"
   },
   "dependencies": {

@@ -1,5 +1,5 @@
 import { runInNewContext } from "node:vm";
-import { consentDefault } from "./analytics-scripts";
+import { consentDefault, gtmLoader } from "./analytics-scripts";
 import { applyConsent, CONSENT_COOKIE, type CookieConsent } from "@/lib/cookie-consent";
 
 /**
@@ -83,5 +83,31 @@ describe("CL-05 Consent Mode v2 — default przed GTM (panel)", () => {
     const dl = uruchomInline(ciasteczko(c));
     expect(dl.map((a) => a[1])).toEqual(["default", "update"]);
     expect(dl[1][2]).toEqual(updateZApplyConsent(c));
+  });
+});
+
+/** CSP z nonce (09.10): snippet GTM przekazuje nonce do gtm.js, żeby GTM nadał go tagom z własnym HTML. */
+describe("GTM — nonce dla gtm.js", () => {
+  it("gtm.js dostaje nonce strony i ładuje się z googletagmanager.com", () => {
+    const wstawione: Array<Record<string, unknown>> = [];
+    const nowy = () => {
+      const el: Record<string, unknown> = {};
+      el.setAttribute = (k: string, v: string) => (el[k] = v);
+      return el;
+    };
+    const pierwszy = { parentNode: { insertBefore: (el: Record<string, unknown>) => wstawione.push(el) } };
+    const ctx: Record<string, unknown> = {
+      document: {
+        getElementsByTagName: () => [pierwszy],
+        createElement: nowy,
+        // Przeglądarka ukrywa wartość atrybutu nonce (getAttribute → ""), zostaje własność .nonce.
+        querySelector: (sel: string) => (sel === "[nonce]" ? { nonce: "N0nce", getAttribute: () => "" } : null),
+      },
+    };
+    ctx.window = ctx;
+    runInNewContext(gtmLoader("GTM-TEST"), ctx);
+    expect(wstawione).toHaveLength(1);
+    expect(wstawione[0].src).toBe("https://www.googletagmanager.com/gtm.js?id=GTM-TEST");
+    expect(wstawione[0].nonce).toBe("N0nce");
   });
 });

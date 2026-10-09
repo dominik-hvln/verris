@@ -1,5 +1,6 @@
 import { ThemedToaster } from "@/components/themed-toaster";
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 import { AnalyticsScripts } from "@/components/analytics-scripts";
 import { CookieConsentManager } from "@/components/cookie-consent";
@@ -13,11 +14,14 @@ export const viewport: Viewport = {
   themeColor: "#091410",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Nonce z middleware (CSP bez 'unsafe-inline'); odczyt nagłówków renderuje każdą stronę dynamicznie,
+  // czego nonce wymaga — strona z buildu nie miałaby nonce zgodnego z nagłówkiem żądania.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html
       lang="pl"
@@ -27,6 +31,7 @@ export default function RootLayout({
       <head>
         {/* Motyw jasny/ciemny treści panelu — przed malowaniem, bez mignięcia. */}
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: "try{if(localStorage.getItem('verris-theme')==='light')document.documentElement.dataset.vtheme='light'}catch(e){}",
           }}
@@ -40,7 +45,7 @@ export default function RootLayout({
         >
           Przejdź do treści
         </a>
-        <AnalyticsScripts />
+        <AnalyticsScripts nonce={nonce} />
         {children}
         <CookieConsentManager />
         <ThemedToaster />
