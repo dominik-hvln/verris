@@ -25,6 +25,7 @@ import { Prisma, SubscriptionStatus } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { dlaKlienta } from '../common/biala-etykieta.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
 import { MigrationOrchestratorService } from './migration-orchestrator.service.js';
 import { ServiceHealthService } from './service-health.service.js';
@@ -1881,7 +1882,9 @@ export class UserServicesController {
       events: sub.events.map((e) => ({
         id: e.id,
         type: e.type,
-        details: e.details as Prisma.JsonValue,
+        // Audyt 09.10 (A02): details zapisują m.in. surowy błąd DA/węzła (error/daError) i wewnętrzną
+        // notatkę obsługi (note) — czyścimy przed oddaniem klientowi (teksty przez dlaKlienta, note usuwamy).
+        details: oczyscDetailsZdarzeniaKlienta(e.details as Prisma.JsonValue),
         createdAt: e.createdAt.toISOString(),
       })),
     };
@@ -1902,6 +1905,25 @@ export class UserServicesController {
  * stacktrace ani treści odpowiedzi DA, tylko klasę awarii zrozumiałą dla
  * użytkownika. Dokładny payload jest dostępny tylko w panelu admina.
  */
+/** Pola zdarzeń widoczne tylko dla obsługi — nie trafiają do klienta w GET /services/:id. */
+const POLA_ZDARZENIA_WEWNETRZNE = new Set(['note', 'daError', 'stderr', 'stdout', 'command']);
+
+/**
+ * Audyt bezpieczeństwa 09.10 (A02) — SubscriptionEvent.details bywa zapisywane z surowym tekstem błędu
+ * DA/CloudLinux/węzła (ścieżki, nazwy, IP) i z notatką operatora. Przed oddaniem klientowi: teksty przez
+ * dlaKlienta (zdradzające panel serwera → komunikat ogólny), a pola czysto wewnętrzne (note/daError…) wycinamy.
+ */
+export function oczyscDetailsZdarzeniaKlienta(details: Prisma.JsonValue): Prisma.JsonValue {
+  if (typeof details === 'string') return dlaKlienta(details);
+  if (details === null || typeof details !== 'object' || Array.isArray(details)) return details;
+  const out: Record<string, Prisma.JsonValue> = {};
+  for (const [k, v] of Object.entries(details as Record<string, Prisma.JsonValue>)) {
+    if (POLA_ZDARZENIA_WEWNETRZNE.has(k)) continue;
+    out[k] = oczyscDetailsZdarzeniaKlienta(v);
+  }
+  return out;
+}
+
 function humanizeProvisioningError(raw: string): string {
   const lower = raw.toLowerCase();
   if (lower.includes('timeout') || lower.includes('etimedout')) {
