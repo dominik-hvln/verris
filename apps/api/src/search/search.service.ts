@@ -221,7 +221,8 @@ export class SearchService {
         id: t.id,
         title: t.subject,
         subtitle: `Zgłoszenie #${t.id.slice(0, 8)} · ${t.user?.email ?? ''}`.trim(),
-        href: `/customers/${t.userId}?sekcja=zgloszenia`,
+        // Zakładka zgłoszeń na karcie klienta wymaga CUSTOMERS_VIEW; z samym TICKETS_VIEW — lista zgłoszeń.
+        href: wolno.has('user') ? `/customers/${t.userId}?sekcja=zgloszenia` : '/tickets',
         userId: t.userId,
       });
     }

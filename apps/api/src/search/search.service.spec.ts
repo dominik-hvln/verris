@@ -55,6 +55,13 @@ describe('SearchService — typy według uprawnień', () => {
     expect(zKlientami.results.find((x) => x.type === 'invoice')?.href).toBe('/customers/u1');
   });
 
+  it('zgłoszenie z samym TICKETS_VIEW prowadzi do listy zgłoszeń, nie do karty klienta (CUSTOMERS_VIEW)', async () => {
+    const r = await stanowisko(['TICKETS_VIEW']).svc.search('poczta', { role: 'STAFF', userId: 'op' });
+    expect(r.results).toEqual([expect.objectContaining({ type: 'ticket', href: '/tickets' })]);
+    const zKlientami = await stanowisko(['TICKETS_VIEW', 'CUSTOMERS_VIEW']).svc.search('poczta', { role: 'STAFF', userId: 'op' });
+    expect(zKlientami.results.find((x) => x.type === 'ticket')?.href).toBe('/customers/u1?sekcja=zgloszenia');
+  });
+
   it('zgłoszenie po numerze „#abcd1234” szuka po początku ID; zwykły tekst — tylko po temacie', async () => {
     const s = stanowisko(['TICKETS_VIEW']);
     await s.svc.search('#ABCD1234', { role: 'STAFF', userId: 'op' });
