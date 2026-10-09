@@ -148,3 +148,22 @@ describe('obraz paneli chroni przed rozjazdem wersji po wdrożeniu', () => {
     expect(kod('Dockerfile.panel')).toMatch(/^RUN NEXT_DEPLOYMENT_ID="\$\(date -u \+%Y%m%d%H%M%S\)" pnpm --filter @verris\/\$\{APP_NAME\} build$/m);
   });
 });
+
+/**
+ * Deploy 09.10.2026 dwa razy z rzędu padł na `429 Too Many Requests` z Docker Huba przy pobieraniu
+ * `node:24-trixie-slim` — anonimowy limit liczony na IP współdzielone przez runnery GitHuba.
+ * Obraz bazowy idzie z lustra Google (ten sam oficjalny `library/node`, ten sam digest).
+ */
+describe.each(DOCKERFILE)('%s bierze Node z lustra, nie z Docker Huba', (plik) => {
+  const tresc = kod(plik);
+
+  it('domyślne NODE_IMAGE to mirror.gcr.io/library/node', () => {
+    expect(tresc).toMatch(/^ARG NODE_IMAGE=mirror\.gcr\.io\/library\/node$/m);
+  });
+
+  it('każdy FROM z Node używa ${NODE_IMAGE}', () => {
+    const fromy = [...tresc.matchAll(/^FROM\s+(\S+)/gm)].map((m) => m[1]).filter((o) => /node/i.test(o));
+    expect(fromy.length).toBeGreaterThanOrEqual(2);
+    for (const obraz of fromy) expect(obraz).toBe('${NODE_IMAGE}:${NODE_VERSION}-trixie-slim');
+  });
+});

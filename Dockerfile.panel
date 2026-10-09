@@ -12,10 +12,14 @@
 # Node 26 wchodzi, gdy zostanie LTS (koniec października 2026). Debian 13 „trixie” = obecny stable
 # (bookworm od 06.2026 ma już tylko wsparcie LTS).
 ARG NODE_VERSION=24
+# Obraz bazowy z lustra Google (mirror.gcr.io) zamiast Docker Huba — ten sam oficjalny obraz `library/node`
+# (identyczny digest), bez limitu anonimowych pobrań Docker Huba, który na współdzielonych runnerach GitHuba
+# kończył deploy błędem 429 Too Many Requests (09.10.2026). Powrót do Docker Huba: --build-arg NODE_IMAGE=node.
+ARG NODE_IMAGE=mirror.gcr.io/library/node
 ARG APP_NAME=client-panel
 ARG APP_PORT=3001
 
-FROM node:${NODE_VERSION}-trixie-slim AS base
+FROM ${NODE_IMAGE}:${NODE_VERSION}-trixie-slim AS base
 # Tajność projektu: bez telemetrii Next.js / Turborepo / Prismy przy buildzie i w działaniu.
 ENV PNPM_HOME=/pnpm \
     PATH=/pnpm:$PATH \
@@ -100,7 +104,7 @@ RUN NEXT_DEPLOYMENT_ID="$(date -u +%Y%m%d%H%M%S)" pnpm --filter @verris/${APP_NA
 # -----------------------------------------------------------------------------
 # 3. Runtime
 # -----------------------------------------------------------------------------
-FROM node:${NODE_VERSION}-trixie-slim AS runtime
+FROM ${NODE_IMAGE}:${NODE_VERSION}-trixie-slim AS runtime
 ARG APP_NAME
 ARG APP_PORT
 # TZ — daty renderowane na serwerze (komponenty serwerowe) po polsku, jak w przeglądarce klienta.
