@@ -261,6 +261,14 @@ describe('PB-42 maskujSekretyCrona', () => {
     ['mysqldump -u u1 -pS3kret baza && cp -pr a b', 'mysqldump -u u1 -p*** baza && cp -pr a b'],
     ['mysqldump -u u1 -p baza | gzip > b.gz; mkdir -p x', 'mysqldump -u u1 -p baza | gzip > b.gz; mkdir -p x'],
     ['mysql -uu1 -p"S3 kret" baza < x.sql', 'mysql -uu1 -p*** baza < x.sql'],
+    // Audyt 09.10 (A02) — sekret w nagłówku HTTP (po dwukropku) i w ciele żądania (po apostrofie).
+    ['curl -H "Authorization: Bearer S3kretToken" https://api.example/cron', 'curl -H "Authorization: ***" https://api.example/cron'],
+    ["curl -H 'X-Api-Key: tajneabc' https://api.example/c", "curl -H 'X-Api-Key: ***' https://api.example/c"],
+    ['curl --header "X-Auth-Token: zzz" https://x', 'curl --header "X-Auth-Token: ***" https://x'],
+    ["wget --post-data='password=S3kret' https://x", "wget --post-data='password=***' https://x"],
+    ["curl --data 'token=S3kret' https://x", "curl --data 'token=***' https://x"],
+    // Zwykły nagłówek bez sekretu — bez maski.
+    ['curl -H "Accept: application/json" https://x', 'curl -H "Accept: application/json" https://x'],
     // Bez fałszywych masek w zwykłych poleceniach.
     ['PATH=/usr/local/bin php -d memory_limit=256M /home/u1/x.php', 'PATH=/usr/local/bin php -d memory_limit=256M /home/u1/x.php'],
     ['curl -s https://klient.pl/wp-cron.php?doing_wp_cron', 'curl -s https://klient.pl/wp-cron.php?doing_wp_cron'],

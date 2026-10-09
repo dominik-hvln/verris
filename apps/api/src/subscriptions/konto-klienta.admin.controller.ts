@@ -24,7 +24,7 @@ const NAZWA_SEKRETU = String.raw`[\w-]*(?:pass|pwd|token|secret|key|auth)[\w-]*`
 /** Wartość: w cudzysłowie albo do spacji / separatora poleceń / następnego parametru adresu. */
 const WARTOSC = String.raw`(?:'[^']*'|"[^"]*"|[^&;|\s'"]+)`;
 
-const PRZYPISANIE = new RegExp(String.raw`((?:^|[?&;|\s])${NAZWA_SEKRETU}=)${WARTOSC}`, 'gi');
+const PRZYPISANIE = new RegExp(String.raw`((?:^|[?&;|\s'"])${NAZWA_SEKRETU}=)${WARTOSC}`, 'gi');
 const FLAGA_ZE_SPACJA = new RegExp(String.raw`((?:^|\s)--${NAZWA_SEKRETU}\s+)(?!-)${WARTOSC}`, 'gi');
 /** Dane logowania w adresie: scheme://user:hasło@host. */
 const USERINFO = /(:\/\/[^\s/?#@:'"]+:)[^\s/?#@'"]+@/g;
@@ -32,6 +32,8 @@ const USERINFO = /(:\/\/[^\s/?#@:'"]+:)[^\s/?#@'"]+@/g;
 const CURL_USER = /((?:^|\s)(?:-u|--user)(?:\s+|=)?)(?:'([^':]*):[^']*'|"([^":]*):[^"]*"|([^\s:'"]+):[^\s'"]+)/g;
 /** Jedno wywołanie klienta MySQL — od nazwy programu do najbliższego ; & | (koniec tego polecenia). */
 const WYWOLANIE_MYSQL = /\bmysql(?:dump|admin|check|import|show|slap)?\b[^;&|]*/g;
+/** Sekret po dwukropku w nagłówku HTTP crona: -H/--header "Authorization: Bearer …", "X-Api-Key: …" (nazwa pasuje do NAZWA_SEKRETU — 'auth'/'key'/'token'). */
+const NAGLOWEK = new RegExp(String.raw`((?:^|\s)(?:-H|--header)(?:\s+|=)['"]?${NAZWA_SEKRETU}\s*:\s*)[^'"\n]+`, 'gi');
 
 /**
  * Sekrety w poleceniach crona (hasło do bazy, token w adresie, dane logowania) — operator widzi polecenie,
@@ -43,6 +45,7 @@ export function maskujSekretyCrona(polecenie: string): string {
     .replace(WYWOLANIE_MYSQL, (wywolanie) => wywolanie.replace(/(\s-p)(?!\s)(?:'[^']*'|"[^"]*"|\S+)/g, '$1***'))
     .replace(PRZYPISANIE, '$1***')
     .replace(FLAGA_ZE_SPACJA, '$1***')
+    .replace(NAGLOWEK, '$1***')
     .replace(USERINFO, '$1***@')
     .replace(CURL_USER, (_c, flaga: string, wPojedynczym?: string, wPodwojnym?: string, bez?: string) =>
       wPojedynczym !== undefined
