@@ -161,6 +161,11 @@ COPY ops/roundcube ./ops/roundcube
 COPY ops/scripts ./ops/scripts
 COPY ops/etc/verris/security ./ops/etc/verris/security
 COPY ops/systemd ./ops/systemd
+# Patch 7 — runbooki z białej listy asystenta pracowników (apps/api/src/ai/wiedza-staff.ts), tylko te pliki:
+# incydenty i zgłoszenia abuse nie trafiają do obrazu. Zgodność listy pilnuje src/ai/wiedza-staff.spec.ts.
+COPY docs/ops/SUPPORT_MODEL_24-7.md ./docs/ops/SUPPORT_MODEL_24-7.md
+COPY docs/ops/EMAIL_DELIVERABILITY_WARMUP.md ./docs/ops/EMAIL_DELIVERABILITY_WARMUP.md
+COPY docs/ops/BETA_TESTY.md ./docs/ops/BETA_TESTY.md
 RUN chmod +x /usr/local/bin/api-entrypoint.sh
 
 EXPOSE 3000

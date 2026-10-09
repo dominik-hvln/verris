@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
 import { ChevronRight, Menu, X } from "lucide-react";
 import { CommandPalette, type StronaMenu } from "./command-palette";
+import { AsystentPracownika } from "./asystent";
 import { VerrisMark, VerrisWordmark } from "./verris-mark";
 import { NotificationBell } from "./notification-bell";
 import { ThemeToggle } from "./theme-toggle";
@@ -311,6 +312,7 @@ export function AdminShell({
   permissions,
   uprawnieniaNiedostepne = false,
   liczniki,
+  asystent = false,
   children,
 }: {
   uzytkownik: string;
@@ -321,6 +323,8 @@ export function AdminShell({
   /** API uprawnień nie odpowiedziało — menu bez modułów wymagających uprawnień, na górze komunikat. */
   uprawnieniaNiedostepne?: boolean;
   liczniki: LicznikiMenu | null;
+  /** AI skonfigurowane (GET /ai/status) — pływający asystent pracowników i „Zapytaj asystenta” pod „?”. */
+  asystent?: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -467,80 +471,82 @@ export function AdminShell({
   const zakladki = aktywna && aktywna.pod.length > 1 && podAktywna && pathname === podAktywna.href ? aktywna.pod : null;
 
   return (
-    <div className="grid min-h-screen grid-cols-1 bg-verris-page lg:grid-cols-[252px_minmax(0,1fr)]">
-      {/* WCAG 2.4.1 — skip link: pierwszy element fokusowalny, omija menu boczne. */}
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[200] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-black"
-      >
-        Przejdź do treści
-      </a>
+    <AsystentPracownika dostepny={asystent}>
+      <div className="grid min-h-screen grid-cols-1 bg-verris-page lg:grid-cols-[252px_minmax(0,1fr)]">
+        {/* WCAG 2.4.1 — skip link: pierwszy element fokusowalny, omija menu boczne. */}
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[200] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-black"
+        >
+          Przejdź do treści
+        </a>
 
-      <aside className="sticky top-0 hidden h-screen flex-col gap-[18px] border-r border-verris-hairline bg-verris-pine px-4 py-[22px] text-verris-paper lg:flex">
-        {menu}
-      </aside>
+        <aside className="sticky top-0 hidden h-screen flex-col gap-[18px] border-r border-verris-hairline bg-verris-pine px-4 py-[22px] text-verris-paper lg:flex">
+          {menu}
+        </aside>
 
-      {otwarte ? (
-        <div className="fixed inset-0 z-[90] flex lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
-          <aside className="flex h-full w-[min(300px,86vw)] flex-col gap-[18px] overflow-y-auto bg-verris-pine px-4 py-[22px] text-verris-paper">
-            <button type="button" onClick={() => setOtwarte(false)} aria-label="Zamknij menu" className="flex h-10 w-10 items-center justify-center self-end rounded-lg text-verris-stone hover:bg-verris-card hover:text-verris-paper">
-              <X className="h-5 w-5" />
-            </button>
-            {menu}
-          </aside>
-          <button type="button" aria-label="Zamknij menu" className="flex-1 bg-black/55" onClick={() => setOtwarte(false)} />
-        </div>
-      ) : null}
-
-      <div className="v2-content v2-skin flex min-w-0 flex-col bg-background text-foreground">
-        <header className="sticky top-0 z-40 flex h-16 items-center gap-3.5 border-b border-line bg-background px-4 lg:px-8">
-          <button type="button" onClick={() => setOtwarte(true)} aria-label="Otwórz menu" className="-ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line-strong bg-card lg:hidden">
-            <Menu className="h-5 w-5" />
-          </button>
-          <nav aria-label="Ścieżka" className="flex min-w-0 items-center gap-2 text-[15px]">
-            {okruszki.map((s, i) => (
-              <span key={`${s}-${i}`} className={`flex items-center gap-2 whitespace-nowrap ${i < okruszki.length - 1 ? "max-sm:hidden" : ""}`}>
-                {i > 0 ? <span className="text-muted-foreground max-sm:hidden">/</span> : null}
-                <span className={i === okruszki.length - 1 ? `font-semibold ${nazwaSzczegolu?.mono && s === nazwaSzczegolu.tekst ? "font-mono" : ""}` : "text-muted-foreground"}>{s}</span>
-              </span>
-            ))}
-          </nav>
-          <div className="ml-auto flex items-center gap-3.5">
-            <CommandPalette strony={strony} dostep={{ isAdmin, permissions }} />
-            <span className="hidden sm:contents">
-              <StatusFloty l={liczniki} />
-            </span>
-            <NotificationBell />
-            <ThemeToggle />
+        {otwarte ? (
+          <div className="fixed inset-0 z-[90] flex lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+            <aside className="flex h-full w-[min(300px,86vw)] flex-col gap-[18px] overflow-y-auto bg-verris-pine px-4 py-[22px] text-verris-paper">
+              <button type="button" onClick={() => setOtwarte(false)} aria-label="Zamknij menu" className="flex h-10 w-10 items-center justify-center self-end rounded-lg text-verris-stone hover:bg-verris-card hover:text-verris-paper">
+                <X className="h-5 w-5" />
+              </button>
+              {menu}
+            </aside>
+            <button type="button" aria-label="Zamknij menu" className="flex-1 bg-black/55" onClick={() => setOtwarte(false)} />
           </div>
-        </header>
-        {zakladki ? (
-          <nav aria-label={aktywna!.name} className="flex gap-1 overflow-x-auto border-b border-line px-4 lg:px-8">
-            {zakladki.map((z) => {
-              const on = z === podAktywna;
-              return (
-                <Link
-                  key={z.href}
-                  href={z.href}
-                  aria-current={on ? "page" : undefined}
-                  className={`-mb-px whitespace-nowrap border-b-2 px-3 py-2.5 text-sm ${on ? "border-primary font-semibold text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-                >
-                  {z.name}
-                </Link>
-              );
-            })}
-          </nav>
         ) : null}
-        <main id="main" tabIndex={-1} className="flex-1 px-4 py-[26px] outline-none lg:px-8">
-          {uprawnieniaNiedostepne ? (
-            <p role="alert" className="mb-4 rounded-[10px] border border-warn/40 bg-warn-soft px-4 py-3 text-sm text-warn">
-              Nie udało się pobrać Twoich uprawnień, więc widać tylko podstawowe strony — odśwież za chwilę.
-            </p>
+
+        <div className="v2-content v2-skin flex min-w-0 flex-col bg-background text-foreground">
+          <header className="sticky top-0 z-40 flex h-16 items-center gap-3.5 border-b border-line bg-background px-4 lg:px-8">
+            <button type="button" onClick={() => setOtwarte(true)} aria-label="Otwórz menu" className="-ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line-strong bg-card lg:hidden">
+              <Menu className="h-5 w-5" />
+            </button>
+            <nav aria-label="Ścieżka" className="flex min-w-0 items-center gap-2 text-[15px]">
+              {okruszki.map((s, i) => (
+                <span key={`${s}-${i}`} className={`flex items-center gap-2 whitespace-nowrap ${i < okruszki.length - 1 ? "max-sm:hidden" : ""}`}>
+                  {i > 0 ? <span className="text-muted-foreground max-sm:hidden">/</span> : null}
+                  <span className={i === okruszki.length - 1 ? `font-semibold ${nazwaSzczegolu?.mono && s === nazwaSzczegolu.tekst ? "font-mono" : ""}` : "text-muted-foreground"}>{s}</span>
+                </span>
+              ))}
+            </nav>
+            <div className="ml-auto flex items-center gap-3.5">
+              <CommandPalette strony={strony} dostep={{ isAdmin, permissions }} />
+              <span className="hidden sm:contents">
+                <StatusFloty l={liczniki} />
+              </span>
+              <NotificationBell />
+              <ThemeToggle />
+            </div>
+          </header>
+          {zakladki ? (
+            <nav aria-label={aktywna!.name} className="flex gap-1 overflow-x-auto border-b border-line px-4 lg:px-8">
+              {zakladki.map((z) => {
+                const on = z === podAktywna;
+                return (
+                  <Link
+                    key={z.href}
+                    href={z.href}
+                    aria-current={on ? "page" : undefined}
+                    className={`-mb-px whitespace-nowrap border-b-2 px-3 py-2.5 text-sm ${on ? "border-primary font-semibold text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {z.name}
+                  </Link>
+                );
+              })}
+            </nav>
           ) : null}
-          <OkruszekKontekst.Provider value={setSzczegol}>{children}</OkruszekKontekst.Provider>
-        </main>
+          <main id="main" tabIndex={-1} className="flex-1 px-4 py-[26px] outline-none lg:px-8">
+            {uprawnieniaNiedostepne ? (
+              <p role="alert" className="mb-4 rounded-[10px] border border-warn/40 bg-warn-soft px-4 py-3 text-sm text-warn">
+                Nie udało się pobrać Twoich uprawnień, więc widać tylko podstawowe strony — odśwież za chwilę.
+              </p>
+            ) : null}
+            <OkruszekKontekst.Provider value={setSzczegol}>{children}</OkruszekKontekst.Provider>
+          </main>
+        </div>
       </div>
-    </div>
+    </AsystentPracownika>
   );
 }
 

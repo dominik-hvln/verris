@@ -32,7 +32,7 @@ describe("Pomoc „?”", () => {
     expect(dymek()).toBeNull();
   });
 
-  it("klik otwiera dymek ze słownika, fokus w dymku, link do asystenta", async () => {
+  it("klik otwiera dymek ze słownika, fokus w dymku; poza AdminShell i bez href — bez odnośników", async () => {
     await act(async () => przycisk().click());
     const d = dymek()!;
     expect(d.getAttribute("aria-label")).toBe("Onboard LIVE");
@@ -41,7 +41,9 @@ describe("Pomoc „?”", () => {
     expect(przycisk().getAttribute("aria-expanded")).toBe("true");
     expect(przycisk().getAttribute("aria-controls")).toBe(d.id);
     expect(document.activeElement).toBe(d);
-    expect(d.querySelector('a[href="/ai-knowledge"]')?.textContent).toContain("Zapytaj asystenta");
+    // „Zapytaj asystenta” i „Przejdź do funkcji” — components/asystent.spec.tsx.
+    expect(d.querySelector("a")).toBeNull();
+    expect(d.textContent).not.toContain("Zapytaj asystenta");
   });
 
   it("Esc zamyka i wraca fokusem na „?”", async () => {

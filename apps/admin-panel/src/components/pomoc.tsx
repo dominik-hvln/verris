@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { HelpCircle } from "lucide-react";
 import { POMOC, type PomocId, type WpisPomocy } from "@/lib/pomoc";
+import { useAsystent } from "./asystent";
 
 /**
  * Pozycja dymka w granicach ekranu: nad elementem, a gdy brak miejsca — pod nim
@@ -28,10 +29,12 @@ const bezSubskrypcji = () => () => {};
 /**
  * Ikonka „?” z opisem funkcji ze słownika lib/pomoc.ts (propozycja 10.10, sekcja D). Otwiera się
  * kliknięciem (działa na dotyku), Esc zamyka i wraca fokusem na „?”; dymek renderowany na body, żeby nie
- * chował się pod kartami z backdrop-filter.
+ * chował się pod kartami z backdrop-filter. „Zapytaj asystenta” otwiera pływającego asystenta z pytaniem
+ * o tę funkcję; bez AI (GET /ai/status) — „Przejdź do funkcji”, gdy podano `href`.
  */
-export function Pomoc({ id }: { id: PomocId }) {
+export function Pomoc({ id, href }: { id: PomocId; href?: string }) {
   const wpis: WpisPomocy = POMOC[id];
+  const asystent = useAsystent();
   const [otwarty, setOtwarty] = useState(false);
   const [pozycja, setPozycja] = useState<{ left: number; top: number } | null>(null);
   const przycisk = useRef<HTMLButtonElement>(null);
@@ -116,9 +119,22 @@ export function Pomoc({ id }: { id: PomocId }) {
                 </p>
               ) : null}
               {wpis.rozniSieOd ? <p className="m-0 mt-1.5 text-muted-foreground">{wpis.rozniSieOd}</p> : null}
-              <Link href="/ai-knowledge" className="mt-2 inline-block text-[13px] font-semibold text-data-hi hover:underline">
-                Zapytaj asystenta →
-              </Link>
+              {asystent ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    zamknij(false);
+                    asystent.zapytaj(id);
+                  }}
+                  className="mt-2 inline-block p-0 text-[13px] font-semibold text-data-hi hover:underline"
+                >
+                  Zapytaj asystenta →
+                </button>
+              ) : href ? (
+                <Link href={href} onClick={() => zamknij(false)} className="mt-2 inline-block text-[13px] font-semibold text-data-hi hover:underline">
+                  Przejdź do funkcji →
+                </Link>
+              ) : null}
             </div>,
             document.body,
           )

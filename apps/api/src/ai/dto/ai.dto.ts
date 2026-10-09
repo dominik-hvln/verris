@@ -16,6 +16,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AiKnowledgeAudience, AiKnowledgeStatus } from '@verris/database';
+import { FUNKCJE_POMOCY, OBIEKTY_ASYSTENTA } from '../wiedza-staff.js';
 
 export class AiChatTurnDto {
   @IsIn(['user', 'assistant'])
@@ -24,6 +25,29 @@ export class AiChatTurnDto {
   @IsString()
   @MaxLength(4000)
   content!: string;
+}
+
+/**
+ * Kontekst pytania pracownika (patch 7): bez wolnego tekstu — trafia do promptu systemowego. Strona to sama
+ * ścieżka panelu, funkcja to klucz słownika „?”, obiekt to typ z listy i ID; dane obiektu nie są pobierane.
+ */
+export class KontekstAsystentaDto {
+  @IsString()
+  @MaxLength(200)
+  @Matches(/^\/[A-Za-z0-9/_.-]*$/)
+  strona!: string;
+
+  @IsOptional()
+  @IsIn(FUNKCJE_POMOCY)
+  funkcja?: string;
+
+  @IsOptional()
+  @IsIn(OBIEKTY_ASYSTENTA)
+  obiektTyp?: (typeof OBIEKTY_ASYSTENTA)[number];
+
+  @IsOptional()
+  @Matches(/^[A-Za-z0-9_-]{1,64}$/)
+  obiektId?: string;
 }
 
 export class AiChatRequestDto {
@@ -41,6 +65,13 @@ export class AiChatRequestDto {
   @IsOptional()
   @IsString()
   subscriptionId?: string;
+
+  /** Tylko asystent pracowników (POST /ai/staff/chat); czat klienta go nie używa. */
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => KontekstAsystentaDto)
+  kontekst?: KontekstAsystentaDto;
 }
 
 export class CreateKnowledgeDocDto {

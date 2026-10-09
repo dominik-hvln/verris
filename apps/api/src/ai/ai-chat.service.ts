@@ -6,6 +6,8 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { AiProviderService } from './ai-provider.service.js';
 import { KnowledgeBaseService } from './knowledge-base.service.js';
+import { opisKontekstuPracownika, tytulFunkcji } from './wiedza-staff.js';
+import type { KontekstAsystentaDto } from '@verris/contracts';
 
 export interface ChatTurn {
   role: 'user' | 'assistant';
@@ -71,6 +73,8 @@ export class AiChatService {
     userId?: string | null;
     actorUserId: string;
     subscriptionId?: string | null;
+    /** Tylko STAFF: strona, funkcja ze słownika „?” i obiekt z karty (bez danych obiektu). */
+    kontekst?: KontekstAsystentaDto | null;
   }): Promise<ChatAnswer> {
     const question = (input.question ?? '').trim().slice(0, MAX_QUESTION_CHARS);
     if (!question) {
@@ -91,17 +95,20 @@ export class AiChatService {
       if (limit) return { available: false, answer: limit, sources: [], unavailableReason: 'AI monthly limit reached' };
     }
 
-    const retrieved = await this.kb.retrieve(question, input.audience, 6);
+    const kontekst = input.audience === 'STAFF' ? (input.kontekst ?? null) : null;
+    const funkcja = tytulFunkcji(kontekst?.funkcja);
+    const retrieved = await this.kb.retrieve(funkcja ? `${question} ${funkcja}` : question, input.audience, 6);
     const context = retrieved
       .map((c, i) => `[#${i + 1}] (${c.title})\n${c.content}`)
       .join('\n\n---\n\n');
 
-    const serviceContext = await this.buildServiceContext(
-      input.subscriptionId ?? null,
-      input.userId ?? null,
-    );
+    // Kontekst usługi tylko dla klienta — dla pracownika userId to jego własne konto, nie klient z karty.
+    const serviceContext =
+      input.audience === 'CLIENT'
+        ? await this.buildServiceContext(input.subscriptionId ?? null, input.userId ?? null)
+        : null;
 
-    const system = this.buildSystemPrompt(input.audience, context, serviceContext);
+    const system = this.buildSystemPrompt(input.audience, context, serviceContext, kontekst);
     const history = (input.history ?? [])
       .filter((t) => t && (t.role === 'user' || t.role === 'assistant') && t.content)
       .slice(-MAX_HISTORY_TURNS)
@@ -129,6 +136,7 @@ export class AiChatService {
             chars: question.length,
             sources: sources.length,
             subscriptionId: input.subscriptionId ?? null,
+            ...(kontekst ? { kontekst: { strona: kontekst.strona, funkcja: kontekst.funkcja ?? null, obiektTyp: kontekst.obiektTyp ?? null } } : {}),
           } as Prisma.InputJsonValue,
           output: { answer, sources } as Prisma.InputJsonValue,
           userId: input.userId ?? null,
@@ -176,6 +184,7 @@ export class AiChatService {
     audience: 'CLIENT' | 'STAFF',
     context: string,
     serviceContext: string | null,
+    kontekst: KontekstAsystentaDto | null = null,
   ): string {
     const lines = [
       'Jesteś asystentem hostingu Verris. Odpowiadasz po polsku, rzeczowo i przyjaźnie.',
@@ -189,6 +198,13 @@ export class AiChatService {
       '- Gdy pytanie dotyczy konkretnej akcji w panelu, podaj krótkie kroki.',
       '- Odpowiadaj zwięźle (maksymalnie kilka akapitów), zwykłym tekstem — bez Markdown (bez **, #, tabel).',
     ];
+    if (audience === 'STAFF') {
+      // Patch 7 — asystent nie ma danych klientów, węzłów ani faktur: nie ujawni niczego spoza uprawnień pracownika.
+      lines.push(
+        '- Nie masz dostępu do danych klientów, usług, węzłów ani faktur. Nie podawaj ich i nie zgaduj — odeślij do karty obiektu w panelu, która pokaże tylko to, do czego pracownik ma uprawnienia.',
+      );
+      if (kontekst) lines.push('', 'KONTEKST PRACOWNIKA:', ...opisKontekstuPracownika(kontekst));
+    }
     if (serviceContext) {
       lines.push('', 'KONTEKST USŁUGI KLIENTA:', serviceContext);
     }

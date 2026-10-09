@@ -2,7 +2,7 @@ import { AlertCircle, Brain } from "lucide-react";
 import type { AiKnowledgeDocSummaryDto, AiStatusDto } from "@verris/contracts";
 import { fetchAiStatus, listKnowledgeDocs } from "./data";
 import { KnowledgeManager } from "./knowledge-manager";
-import { StaffAssistant } from "./staff-assistant";
+import { StaffAssistant } from "@/components/staff-assistant";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +47,12 @@ export default async function AiKnowledgePage() {
       ) : (
         <>
           <KnowledgeManager initialDocs={docs} embeddings={Boolean(status?.embeddings)} />
-          {status?.configured ? <StaffAssistant /> : null}
+          {status?.configured ? (
+            <section className="flex h-[28rem] flex-col gap-3 rounded-2xl border border-line bg-card p-5" aria-label="Test bazy wiedzy">
+              <h2 className="m-0 text-sm font-semibold">Test bazy wiedzy (dokumenty STAFF i ALL)</h2>
+              <StaffAssistant />
+            </section>
+          ) : null}
         </>
       )}
     </div>

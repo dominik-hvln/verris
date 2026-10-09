@@ -3,6 +3,7 @@ import { fetchStaffAccess } from "@/lib/staff-access";
 import { adminApi } from "@/lib/api";
 import { AdminShell, type LicznikiMenu } from "@/components/admin-shell";
 import { PlatformConfigLoader } from "@/components/platform-config-loader";
+import { asystentDostepny } from "@/components/asystent-actions";
 
 /** Liczniki w menu i stan floty w nagłówku; bez API menu działa, tylko bez liczb. */
 async function liczniki(): Promise<LicznikiMenu | null> {
@@ -15,7 +16,7 @@ async function liczniki(): Promise<LicznikiMenu | null> {
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await requireAdminSession();
-  const [access, l] = await Promise.all([fetchStaffAccess(), liczniki()]);
+  const [access, l, asystent] = await Promise.all([fetchStaffAccess(), liczniki(), asystentDostepny()]);
 
   return (
     <>
@@ -28,6 +29,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         permissions={access.permissions}
         uprawnieniaNiedostepne={access.niedostepne}
         liczniki={l}
+        asystent={asystent}
       >
         {children}
       </AdminShell>

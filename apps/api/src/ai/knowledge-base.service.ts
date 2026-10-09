@@ -1,8 +1,15 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, OnApplicationBootstrap } from '@nestjs/common';
 import { AiKnowledgeAudience, AiKnowledgeStatus, Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { AiProviderService } from './ai-provider.service.js';
+import {
+  czytajRunbook,
+  dokumentyWiedzyStaff,
+  idDokumentuStaff,
+  PREFIKSY_WIEDZY_STAFF,
+  type DokumentWiedzyStaff,
+} from './wiedza-staff.js';
 
 const CHUNK_SIZE = 900;
 const CHUNK_OVERLAP = 150;
@@ -18,7 +25,7 @@ export interface RetrievedChunk {
 }
 
 @Injectable()
-export class KnowledgeBaseService {
+export class KnowledgeBaseService implements OnApplicationBootstrap {
   private readonly logger = new Logger(KnowledgeBaseService.name);
 
   constructor(
@@ -188,6 +195,84 @@ export class KnowledgeBaseService {
       details: { docId: id, title: existing.title },
     });
     return { ok: true as const };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Wiedza pracowników: słownik „?” + runbooki (patch 7)
+  // ---------------------------------------------------------------------------
+
+  /** Przy starcie API, w tle — wzorem ról systemowych: treść żyje w kodzie, wdrożenie odświeża indeks. */
+  onApplicationBootstrap(): void {
+    if (process.env.NODE_ENV === 'test') return;
+    const { dokumenty, pominiete } = dokumentyWiedzyStaff(czytajRunbook);
+    for (const p of pominiete) this.logger.warn(`Wiedza STAFF: pominięto ${p.plik} (${p.powod})`);
+    void this.synchronizujWiedzeStaff(dokumenty)
+      .then((w) => this.logger.log(`Wiedza STAFF: +${w.dodane} ~${w.zmienione} =${w.bezZmian} -${w.usuniete}`))
+      .catch((e: unknown) => this.logger.warn(`Wiedza STAFF: synchronizacja nieudana: ${(e as Error).message}`));
+  }
+
+  /**
+   * Idempotentna synchronizacja dokumentów STAFF zarządzanych z kodu (`pomoc:*`, `docs-ops:*`): dokument
+   * bez zmian zostaje (bez ponownego liczenia embeddingów), zmieniony — przeindeksowany, a zarządzany
+   * dokument, którego nie ma już na liście, znika. Odbiorca zawsze STAFF — zmiana na ALL w panelu nie
+   * przetrwa synchronizacji, więc runbook nie trafi do czatu klienta. Status (np. archiwizacja) zostaje.
+   */
+  async synchronizujWiedzeStaff(dokumenty: DokumentWiedzyStaff[]): Promise<{
+    dodane: number;
+    zmienione: number;
+    bezZmian: number;
+    usuniete: number;
+  }> {
+    const w = { dodane: 0, zmienione: 0, bezZmian: 0, usuniete: 0 };
+    for (const d of dokumenty) {
+      const id = idDokumentuStaff(d.sourceRef);
+      const content = d.content.trim();
+      const czesci = chunkText(content);
+      const istniejacy = await this.prisma.aiKnowledgeDoc.findUnique({
+        where: { id },
+        include: { chunks: { orderBy: { ordinal: 'asc' }, select: { content: true } } },
+      });
+      if (
+        istniejacy &&
+        istniejacy.title === d.title &&
+        istniejacy.audience === AiKnowledgeAudience.STAFF &&
+        istniejacy.chunks.length === czesci.length &&
+        istniejacy.chunks.every((c, i) => c.content === czesci[i])
+      ) {
+        w.bezZmian += 1;
+        continue;
+      }
+      const dane = {
+        title: d.title,
+        audience: AiKnowledgeAudience.STAFF,
+        sourceType: d.sourceType,
+        sourceRef: d.sourceRef,
+        charCount: content.length,
+      };
+      if (istniejacy) {
+        await this.prisma.aiKnowledgeDoc.update({ where: { id }, data: dane });
+        await this.prisma.aiKnowledgeChunk.deleteMany({ where: { docId: id } });
+        w.zmienione += 1;
+      } else {
+        try {
+          await this.prisma.aiKnowledgeDoc.create({ data: { id, ...dane, status: AiKnowledgeStatus.ACTIVE } });
+        } catch (e) {
+          // Druga instancja API założyła ten dokument w tej samej chwili — jej indeks wystarczy.
+          if ((e as { code?: string }).code === 'P2002') continue;
+          throw e;
+        }
+        w.dodane += 1;
+      }
+      await this.indexDocContent(id, content);
+    }
+    const usuniete = await this.prisma.aiKnowledgeDoc.deleteMany({
+      where: {
+        OR: PREFIKSY_WIEDZY_STAFF.map((p) => ({ sourceRef: { startsWith: p } })),
+        sourceRef: { notIn: dokumenty.map((d) => d.sourceRef) },
+      },
+    });
+    w.usuniete = usuniete.count;
+    return w;
   }
 
   // ---------------------------------------------------------------------------

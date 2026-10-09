@@ -21,3 +21,4 @@ export * from './sciezka-api.ts';
 export * from './kopie.ts';
 export * from './komunikaty-hostingu.ts';
 export * from './runbooki.ts';
+export * from './pomoc-admina.ts';

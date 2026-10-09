@@ -2,8 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import type {
-  AiChatMessageDto,
-  AiChatResponseDto,
   AiKnowledgeAudience,
   AiKnowledgeDocDetailDto,
   AiKnowledgeDocSummaryDto,
@@ -75,16 +73,6 @@ export async function updateKnowledgeDoc(
   } catch (e) {
     return { data: null, error: err(e) };
   }
-}
-
-export async function askStaffAssistant(input: {
-  question: string;
-  history?: AiChatMessageDto[];
-}): Promise<AiChatResponseDto> {
-  return adminApi<AiChatResponseDto>(`/ai/staff/chat`, {
-    method: "POST",
-    body: { question: input.question, history: input.history ?? [] },
-  });
 }
 
 export async function deleteKnowledgeDoc(id: string) {

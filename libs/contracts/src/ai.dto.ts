@@ -39,10 +39,23 @@ export interface AiChatMessageDto {
   content: string;
 }
 
+/** Typy obiektów, na których karcie pracownik może pytać asystenta (asystent dostaje tylko typ i ID, nie dane). */
+export const OBIEKTY_ASYSTENTA = ['wezel', 'klient', 'usluga', 'faktura', 'zgloszenie', 'migracja', 'operator'] as const;
+export type ObiektAsystenta = (typeof OBIEKTY_ASYSTENTA)[number];
+
+/** Kontekst pytania pracownika: strona panelu admina, funkcja ze słownika „?” i obiekt z karty. */
+export interface KontekstAsystentaDto {
+  strona: string;
+  funkcja?: string;
+  obiektTyp?: ObiektAsystenta;
+  obiektId?: string;
+}
+
 export interface AiChatRequestDto {
   question: string;
   history?: AiChatMessageDto[];
   subscriptionId?: string | null;
+  kontekst?: KontekstAsystentaDto;
 }
 
 export interface AiChatSourceDto {

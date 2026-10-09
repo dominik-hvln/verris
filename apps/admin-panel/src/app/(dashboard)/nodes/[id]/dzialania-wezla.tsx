@@ -34,7 +34,7 @@ export function DzialaniaWezla({ wezel, dostep }: { wezel: WezelDlaAkcji; dostep
                         {d.nazwa} →
                       </Link>
                     )}
-                    {d.pomocId ? <Pomoc id={d.pomocId} /> : null}
+                    {d.pomocId ? <Pomoc id={d.pomocId} href={d.zablokowane ? undefined : d.href} /> : null}
                   </span>
                   <span className="text-xs text-muted-foreground">{d.opis}</span>
                 </li>

@@ -85,6 +85,7 @@ export class AiController {
       history: dto.history,
       userId: user.userId,
       actorUserId: user.principalUserId ?? user.userId,
+      kontekst: dto.kontekst ?? null,
     });
   }
 
