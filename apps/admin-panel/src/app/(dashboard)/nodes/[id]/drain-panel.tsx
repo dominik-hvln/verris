@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Loader2, LogOut, ArrowRight, AlertTriangle } from "lucide-react";
 import { drainNode, fetchMigrationPlan, type MigrationPlan } from "../actions";
+import { Pomoc } from "@/components/pomoc";
 
 interface Props {
   serverId: string;
@@ -37,14 +38,12 @@ export function DrainPanel({ serverId, acceptsNewAccounts }: Props) {
   return (
     <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md p-5 space-y-4">
       <div className="flex items-center gap-2 text-sm font-semibold text-white">
-        <LogOut className="h-4 w-4 text-rose-300" /> Wycofywanie węzła (drain)
+        <LogOut className="h-4 w-4 text-rose-300" /> Wycofanie <Pomoc id="wycofanie" />
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Drain wyłącza węzeł z rotacji (cordon) — nowe konta nie będą tu trafiać, a istniejące
-        działają dalej. <strong className="text-white">Nie przenosi danych</strong>. Plan migracji
-        poniżej pokazuje, dokąd przenieść konta — samo przeniesienie wykonujesz świadomie
-        (backup→restore), najlepiej po godzinach i z kopią.
+        Zamyka węzeł dla nowych kont, istniejące działają. <strong className="text-white">Nie przenosi danych</strong> — plan
+        poniżej pokazuje, dokąd przenieść konta.
       </p>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -64,7 +63,7 @@ export function DrainPanel({ serverId, acceptsNewAccounts }: Props) {
           className="inline-flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-200 hover:bg-rose-500/20 disabled:opacity-50"
         >
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-          {drained ? "Węzeł w drain (cordon)" : "Rozpocznij drain"}
+          {drained ? "Wycofanie rozpoczęte" : "Rozpocznij wycofanie"}
         </button>
         <button
           type="button"

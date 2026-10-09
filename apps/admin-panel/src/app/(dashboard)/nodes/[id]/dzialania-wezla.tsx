@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { KARTA } from "@/components/v2";
+import { Pomoc } from "@/components/pomoc";
 import { akcjeWezla, type DostepDoAkcji, type DzialanieNaKarcie, type GrupaAkcji, type WezelDlaAkcji } from "@/lib/akcje/wezel";
 
 /**
@@ -22,16 +23,19 @@ export function DzialaniaWezla({ wezel, dostep }: { wezel: WezelDlaAkcji; dostep
             <ul className="m-0 flex list-none flex-col gap-2 p-0">
               {lista.map((d) => (
                 <li key={d.id} className="flex flex-col" data-akcja={d.id}>
-                  {d.zablokowane ? (
-                    <span aria-disabled="true" title={d.zablokowane} className="cursor-not-allowed text-sm font-semibold text-muted-foreground opacity-60">
-                      {d.nazwa}
-                      <span className="sr-only"> — {d.zablokowane}</span>
-                    </span>
-                  ) : (
-                    <Link href={d.href} className="text-sm font-semibold text-foreground underline-offset-2 hover:underline">
-                      {d.nazwa} →
-                    </Link>
-                  )}
+                  <span className="flex items-center gap-1">
+                    {d.zablokowane ? (
+                      <span aria-disabled="true" title={d.zablokowane} className="cursor-not-allowed text-sm font-semibold text-muted-foreground opacity-60">
+                        {d.nazwa}
+                        <span className="sr-only"> — {d.zablokowane}</span>
+                      </span>
+                    ) : (
+                      <Link href={d.href} className="text-sm font-semibold text-foreground underline-offset-2 hover:underline">
+                        {d.nazwa} →
+                      </Link>
+                    )}
+                    {d.pomocId ? <Pomoc id={d.pomocId} /> : null}
+                  </span>
                   <span className="text-xs text-muted-foreground">{d.opis}</span>
                 </li>
               ))}

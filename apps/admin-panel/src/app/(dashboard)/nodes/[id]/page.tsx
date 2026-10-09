@@ -32,6 +32,7 @@ import { PrognozaWezlaKarta } from "./prognoza-wezla";
 import { listNodeTasks } from "../../provisioning-queue/data";
 import { NodeTasksSection } from "../../provisioning-queue/node-tasks-section";
 import { Okruszek } from "@/components/admin-shell";
+import { Pomoc } from "@/components/pomoc";
 import { fetchStaffAccess } from "@/lib/staff-access";
 import { Eyebrow, KARTA, Kpi, Pasek, Pigulka, RzadKpi, Zakladki } from "@/components/v2";
 
@@ -142,7 +143,14 @@ export default async function ServerDetailPage({
             serverId={server.id}
             sshHost={server.hostname ?? server.ipAddress ?? null}
             daGotowe={Boolean(server.daHost)}
-            srodek={dziala ? <NoweKontaButton serverId={server.id} przyjmuje={server.acceptsNewAccounts} /> : null}
+            srodek={
+              dziala ? (
+                <span className="inline-flex items-center gap-1">
+                  <NoweKontaButton serverId={server.id} przyjmuje={server.acceptsNewAccounts} />
+                  <Pomoc id="nowe-konta" />
+                </span>
+              ) : null
+            }
           />
         </div>
       </div>
@@ -245,7 +253,9 @@ export default async function ServerDetailPage({
         <>
           {dziala ? (
             <section id="onboard-live" className={`${KARTA} flex scroll-mt-4 flex-col gap-2 p-5`}>
-              <h2 className="font-display text-[17px] font-bold">Skrypty i zabezpieczenia (Onboard LIVE)</h2>
+              <h2 className="flex items-center gap-1.5 font-display text-[17px] font-bold">
+                Skrypty i zabezpieczenia (Onboard LIVE) <Pomoc id="onboard-live" />
+              </h2>
               <p className="text-sm text-muted-foreground">
                 Wgrywa na węzeł aktualne skrypty Verris (worker migracji, guard, agent zadań), hardening i blokadę ruchu
                 wychodzącego. Uruchom po deployu zmian w skryptach węzła. Nie włącza nowych kont.
@@ -255,7 +265,9 @@ export default async function ServerDetailPage({
           ) : null}
           {dziala ? (
             <section id="stos" className={`${KARTA} flex scroll-mt-4 flex-col gap-2 p-5`}>
-              <h2 className="font-display text-[17px] font-bold">Stos serwera</h2>
+              <h2 className="flex items-center gap-1.5 font-display text-[17px] font-bold">
+                Stos serwera <Pomoc id="stos" />
+              </h2>
               <p className="text-sm text-muted-foreground">DirectAdmin, CloudLinux i LiteSpeed do najnowszych stabilnych wersji.</p>
               <AktualizujWezelButton serverId={server.id} />
             </section>

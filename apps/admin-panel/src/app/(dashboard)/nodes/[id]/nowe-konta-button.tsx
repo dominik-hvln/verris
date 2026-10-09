@@ -6,7 +6,7 @@ import { PRZYCISK } from "@/components/v2";
 import { potwierdz } from "@/components/potwierdz";
 import { setNodeCapacityPolicy } from "../actions";
 
-/** PB-34 — „Wstrzymaj nowe konta” z nagłówka węzła (ta sama flaga co w polityce pojemności). */
+/** PB-34 — „Przyjmuje nowe konta” z nagłówka węzła (ta sama flaga co w Konfiguracji → Nowe konta i pojemność; F3 10.10). */
 export function NoweKontaButton({ serverId, przyjmuje }: { serverId: string; przyjmuje: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();

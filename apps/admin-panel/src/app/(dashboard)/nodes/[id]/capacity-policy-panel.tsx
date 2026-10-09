@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Loader2, Gauge, Ban, CheckCircle2 } from "lucide-react";
 import { setNodeCapacityPolicy } from "../actions";
+import { Pomoc } from "@/components/pomoc";
 
 interface Props {
   serverId: string;
@@ -89,16 +90,14 @@ export function CapacityPolicyPanel({
     <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md p-5 space-y-4">
       <div className="flex items-center gap-2 text-sm font-semibold text-white">
         <Gauge className="h-4 w-4 text-sky-300" />
-        Pojemność i przyjmowanie kont (OPS-1)
+        Nowe konta i pojemność <Pomoc id="nowe-konta" />
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Steruje doborem węzła przez scheduler — niezależnie od trybu maintenance.
-        „Cordon” wstrzymuje tylko nowe konta na TYM węźle (istniejące działają),
-        bez wstrzymywania sprzedaży na całej platformie.
+        Wstrzymanie dotyczy tylko nowych kont na tym węźle — istniejące działają, sprzedaż na platformie trwa.
       </p>
 
-      {/* Cordon toggle */}
+      {/* Przełącznik „Przyjmuje nowe konta” (F3: dawniej „Cordonuj”) — ta sama flaga co w nagłówku karty. */}
       <div className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2 text-sm font-medium text-white">
@@ -107,7 +106,7 @@ export function CapacityPolicyPanel({
             ) : (
               <Ban className="h-4 w-4 text-amber-300" />
             )}
-            {accepts ? "Przyjmuje nowe konta" : "Cordon — nowe konta wstrzymane"}
+            {accepts ? "Przyjmuje nowe konta" : "Nowe konta wstrzymane"}
           </div>
           <p className="text-[11px] text-muted-foreground">
             Aktualnie kont na węźle: <strong className="text-white">{accountCount}</strong>
@@ -124,7 +123,7 @@ export function CapacityPolicyPanel({
           }`}
         >
           {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-          {accepts ? "Cordonuj węzeł" : "Wznów przyjmowanie"}
+          {accepts ? "Wstrzymaj nowe konta" : "Wznów nowe konta"}
         </button>
       </div>
 

@@ -4,6 +4,7 @@ import { Select } from "@/components/select";
 import { useCallback, useEffect, useRef, useState, useTransition, useId } from "react";
 import { Database, Loader2, AlertTriangle, Check, RefreshCw, ShieldAlert } from "lucide-react";
 import type { NodeTaskDto } from "@verris/contracts";
+import { Pomoc } from "@/components/pomoc";
 import { queueDbUpgrade, fetchDbUpgradeTasks } from "../actions";
 
 /**
@@ -112,7 +113,7 @@ export function DbUpgradePanel({
   return (
     <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md p-5 space-y-4">
       <div className="flex items-center gap-2 text-sm font-semibold text-white">
-        <Database className="h-4 w-4 text-indigo-300" /> Silnik bazy danych (MariaDB)
+        <Database className="h-4 w-4 text-indigo-300" /> Silnik bazy danych (MariaDB) <Pomoc id="baza-danych" />
       </div>
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">

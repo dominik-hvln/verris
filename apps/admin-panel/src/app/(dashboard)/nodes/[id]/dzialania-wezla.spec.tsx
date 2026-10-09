@@ -18,6 +18,7 @@ describe("Działania węzła na karcie", () => {
     const html = renderToStaticMarkup(<DzialaniaWezla wezel={{ id: "w1", status: "ACTIVE" }} dostep={ADMIN} />);
     expect(html).toContain('href="/nodes/w1?sekcja=aktualizacje#onboard-live"');
     expect(html).not.toContain("#bootstrap");
+    expect(html).toContain('aria-label="Pomoc: Onboard LIVE"');
   });
 
   it("węzeł w instalacji: „Dokończ w kreatorze: krok X” z właściwym krokiem, bez operacji na działającym węźle", () => {

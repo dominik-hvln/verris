@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Loader2, PowerOff, Power } from "lucide-react";
 import { potwierdz } from "@/components/potwierdz";
 import { setNodeStatus } from "../actions";
+import { Pomoc } from "@/components/pomoc";
 
 /**
  * Węzeł, którego fizycznie już nie ma (albo wyłączony na dłużej), oznaczamy jako OFFLINE — wtedy
@@ -37,7 +38,8 @@ export function NodeStatusPanel({ serverId, status }: { serverId: string; status
     <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md p-5 space-y-3">
       <div className="flex items-center gap-2 text-sm font-semibold text-white">
         {offline ? <PowerOff className="h-4 w-4 text-rose-300" /> : <Power className="h-4 w-4 text-emerald-300" />}
-        Status węzła: {offline ? "offline" : status === "MAINTENANCE" ? "konserwacja" : "aktywny"}
+        Offline <Pomoc id="offline" />
+        <span className="font-normal text-muted-foreground">· teraz: {offline ? "offline" : status === "MAINTENANCE" ? "tryb serwisowy" : "aktywny"}</span>
       </div>
       <p className="text-xs text-muted-foreground">
         {offline

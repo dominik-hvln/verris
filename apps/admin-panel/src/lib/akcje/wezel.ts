@@ -1,4 +1,5 @@
 import { krokKreatoraDla } from "@/app/(dashboard)/nodes/wizard/wizard-content";
+import type { PomocId } from "@/lib/pomoc";
 
 /**
  * Rejestr działań na węźle (propozycja 10.10, sekcja B) — jedno źródło dla sekcji „Działania” na karcie,
@@ -26,7 +27,7 @@ export interface AkcjaWezla {
   kiedy: (w: WezelDlaAkcji) => boolean;
   href: (w: WezelDlaAkcji) => string;
   /** Hasło w słowniku pomocy „?” (lib/pomoc.ts). */
-  pomocId?: string;
+  pomocId?: PomocId;
   /** Bezpieczne do uruchomienia od razu (Cmd+K): otwarcie, SSO, odświeżenie. */
   bezpieczna?: boolean;
 }
@@ -245,7 +246,7 @@ export interface DzialanieNaKarcie {
   nazwa: string;
   opis: string;
   href: string;
-  pomocId?: string;
+  pomocId?: PomocId;
   /** Działanie wyszarzone — powód (dymek); null, gdy dostępne. */
   zablokowane: string | null;
 }

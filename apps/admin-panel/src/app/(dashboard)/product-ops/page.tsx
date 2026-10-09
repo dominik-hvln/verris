@@ -68,7 +68,7 @@ export default async function ProductOpsPage() {
         <Panel title="Ogłoszenia dla klientów">
           <Announcements rows={data.announcements} />
         </Panel>
-        <Panel title="Prace serwisowe">
+        <Panel title="Komunikaty o pracach">
           <Maintenance
             rows={data.maintenance}
             servers={data.capacity.map((c) => ({ id: c.id, name: c.name }))}

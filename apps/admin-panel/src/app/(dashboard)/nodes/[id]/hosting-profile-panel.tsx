@@ -10,6 +10,7 @@ import {
   Copy,
   RefreshCw,
 } from "lucide-react";
+import { Pomoc } from "@/components/pomoc";
 import type { NodeTaskDto } from "@verris/contracts";
 import {
   fetchHostingProfileTasks,
@@ -140,7 +141,7 @@ export function HostingProfilePanel({
     >
       <div>
         <h2 className={`font-semibold flex items-center gap-2 ${compact ? "text-base" : "text-lg"}`}>
-          <Terminal className="h-4 w-4 text-indigo-300" /> Profil hostingowy
+          <Terminal className="h-4 w-4 text-indigo-300" /> Profil hostingowy <Pomoc id="profil" />
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
           Jednym kliknięciem: profil hostingowy (Exim/Dovecot, FTP, MariaDB/Governor, CageFS,

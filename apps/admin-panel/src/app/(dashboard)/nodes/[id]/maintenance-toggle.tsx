@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Loader2, Wrench, ShieldCheck, AlertTriangle } from "lucide-react";
 import { setNodeMaintenance } from "../actions";
+import { Pomoc } from "@/components/pomoc";
 
 interface Props {
   serverId: string;
@@ -28,7 +29,7 @@ export function MaintenanceToggle({
   const enable = () => {
     setError(null);
     if (!reason.trim()) {
-      setError("Podaj powód maintenance — będzie widoczny w audycie i komunikacie dla klienta.");
+      setError("Podaj powód — zobaczy go klient i dziennik.");
       return;
     }
     startTransition(async () => {
@@ -48,18 +49,18 @@ export function MaintenanceToggle({
     <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md p-5 space-y-4">
       <div className="flex items-center gap-2 text-sm font-semibold text-white">
         <Wrench className="h-4 w-4 text-amber-300" />
-        Maintenance mode (A-08)
+        Tryb serwisowy <Pomoc id="serwis" />
       </div>
       {!canToggle ? (
         <p className="text-xs text-muted-foreground">
-          Maintenance mode można przełączać tylko z węzłów w statusie ACTIVE/MAINTENANCE.
-          Aktualnie: <strong className="text-white">{status}</strong>.
+          Tryb serwisowy działa tylko dla węzła aktywnego albo w serwisie. Teraz:{" "}
+          <strong className="text-white">{status}</strong>.
         </p>
       ) : isMaintenance ? (
         <div className="space-y-3">
           <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100 space-y-1">
             <div className="flex items-center gap-2 font-bold">
-              <AlertTriangle className="h-3.5 w-3.5" /> Węzeł jest w trybie maintenance
+              <AlertTriangle className="h-3.5 w-3.5" /> Węzeł w trybie serwisowym
             </div>
             {maintenanceReason ? (
               <div className="text-xs">
@@ -79,15 +80,13 @@ export function MaintenanceToggle({
             className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-50"
           >
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-            Wyłącz maintenance — przywróć ACTIVE
+            Wyłącz tryb serwisowy
           </button>
         </div>
       ) : (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Włączenie maintenance natychmiast blokuje NodeSelector dla tego węzła.
-            Klient widzi komunikat z powodu (poniżej) zamiast generycznego błędu.
-            Istniejące konta działają dalej, tylko nowe provisioningy są wstrzymane.
+            Od razu wstrzymuje zakładanie kont na węźle; klient widzi powód zamiast błędu, istniejące konta działają.
           </p>
           <textarea
             aria-label="Powód konserwacji widoczny dla klienta"
@@ -104,7 +103,7 @@ export function MaintenanceToggle({
             className="inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-200 hover:bg-amber-500/20 disabled:opacity-50"
           >
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wrench className="h-4 w-4" />}
-            Włącz maintenance — zablokuj nowe provisioningi
+            Włącz tryb serwisowy
           </button>
         </div>
       )}
