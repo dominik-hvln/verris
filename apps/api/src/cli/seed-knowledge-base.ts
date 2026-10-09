@@ -310,13 +310,16 @@ Dane nabywcy (Twojej firmy) do faktur ustawisz w ustawieniach konta — uzupełn
 Obsługujemy KSeF (Krajowy System e-Faktur): faktury są wysyłane do KSeF zgodnie z przepisami, a w panelu widzisz status wysyłki. Jeśli zmienisz dane firmy, dotyczą one faktur wystawianych po zmianie.`,
   },
   {
-    title: 'Zmiana planu usługi (upgrade / downgrade)',
+    title: 'Zmiana planu — jeden pakiet i autoskalowanie',
     audience: AiKnowledgeAudience.ALL,
-    content: `Plan usługi zmienisz w panelu: Usługa → „Zmiana planu". Wybierz nowy plan — panel pokaże różnicę w parametrach (CPU/RAM/dysk) i cenie.
+    content: `Verris ma jeden pakiet hostingu — nie ma wyższych ani niższych planów, na które trzeba przechodzić. Gdy strona potrzebuje więcej mocy, robi to autoskalowanie: przy większym ruchu dokładamy procesor i pamięć, a po szczycie wracamy do zasobów pakietu. Za dodatkową moc płacisz z portfela, tylko za czas, w którym była potrzebna.
 
-Upgrade (wyższy plan) zwiększa limity zasobów i jest zwykle stosowany od razu. Przy planach o stałej cenie wyższy plan bywa tańszy i stabilniejszy niż ciągłe dopłaty za autoskalowanie — jeśli usługa regularnie sięga po dodatkowe zasoby, rozważ wyższy plan.
+Wydatki kontrolujesz bezpiecznikiem kosztów — miesięcznym limitem w złotych (liczonym z ostatnich 30 dni). Po jego osiągnięciu nie dokładamy już mocy, a strona działa dalej na zasobach pakietu. Autoskalowanie i bezpiecznik ustawisz w panelu: Usługa → Autoskalowanie.
 
-Dane, pliki i bazy pozostają nienaruszone przy zmianie planu. Rozliczenie różnicy odbywa się przez portfel.`,
+Jeśli duży ruch jest stały, a nie tylko chwilowy:
+- włącz cache strony — zwykle najbardziej odciąża serwer,
+- sprawdź, co obciąża stronę: ciężkie wtyczki, częste zadania cron, wolne zapytania do bazy, ruch botów,
+- napisz do nas — przejrzymy zużycie i podpowiemy, co poprawić.`,
   },
   {
     title: 'Zgłoszenia do wsparcia (tickety) i gwarancja SLA',

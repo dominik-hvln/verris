@@ -815,14 +815,23 @@ Dane firmowe możesz zaktualizować w każdej chwili — kolejne faktury uwzglę
 Gdy strona ma większy ruch, usługa może chwilowo zwiększyć zasoby (CPU/RAM), aby działała płynnie. Po szczycie wraca do bazowego poziomu.
 
 ## Bezpiecznik kosztów
-Ustaw miesięczny limit wydatków na autoskalowanie. Po jego osiągnięciu skalowanie się zatrzyma, więc nie przekroczysz budżetu.
+Ustaw miesięczny limit wydatków na autoskalowanie (liczony z ostatnich 30 dni). Po jego osiągnięciu nie dokładamy już mocy — strona działa dalej na zasobach pakietu, a Ty nie przekroczysz budżetu.
+
+## Jeden pakiet zamiast wyższych planów
+Verris ma jeden pakiet hostingu — nie ma wyższego planu, na który trzeba przechodzić. Dodatkową moc daje autoskalowanie, a płacisz tylko za czas, w którym była potrzebna.
+
+## Gdy duży ruch jest stały
+Jeśli strona regularnie korzysta z dodatkowej mocy:
+- włącz cache strony — zwykle najbardziej odciąża serwer,
+- sprawdź, co ją obciąża: ciężkie wtyczki, częste zadania cron, wolne zapytania do bazy, ruch botów,
+- napisz do nas — przejrzymy zużycie i podpowiemy, co poprawić.
 
 ## Podgląd
-W panelu zobaczysz historię skalowania i bieżące zużycie. Otrzymasz też rekomendacje zmiany planu, jeśli skalujesz często.`,
+W panelu zobaczysz historię skalowania, bieżące zużycie i wydatki względem bezpiecznika.`,
     { d: 'Autoskalowanie w Verris i bezpiecznik kosztów: więcej mocy w szczycie ruchu przy pełnej kontroli miesięcznego budżetu.',
       faq: [
         { q: 'Czy autoskalowanie może niespodziewanie podnieść rachunek?', a: 'Nie, jeśli ustawisz bezpiecznik kosztów. Po osiągnięciu miesięcznego limitu skalowanie się zatrzymuje, więc masz pełną kontrolę nad budżetem.' },
-        { q: 'Kiedy lepiej zmienić plan zamiast skalować?', a: 'Jeśli skalujesz często i regularnie osiągasz limit, tańszy i stabilniejszy bywa wyższy plan. Panel podpowie rekomendację na podstawie Twojego zużycia.' },
+        { q: 'Czy mogę przejść na wyższy plan?', a: 'Verris ma jeden pakiet — nie ma wyższego planu. Gdy strona potrzebuje więcej mocy, autoskalowanie dokłada ją na czas większego ruchu, a bezpiecznik kosztów pilnuje miesięcznego limitu wydatków. Jeśli duży ruch jest stały, włącz cache, sprawdź, co obciąża stronę, albo napisz do nas — pomożemy.' },
       ], related: ['portfel-i-platnosci'] }),
 
   // ---------------- Migracja

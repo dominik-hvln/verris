@@ -44,6 +44,7 @@ import { fetchSidebarUser } from '@/app/dashboard/sidebar-actions';
 import { EcoModeCard } from '@/app/dashboard/services/[id]/autoscaling/eco-mode-card';
 import { FirstStepsAssistant } from '@/components/hosting/FirstStepsAssistant';
 import { HealthCheckDetails } from '@/components/hosting/HealthCheckDetails';
+import { KafelWydajnosci } from '@/components/hosting/kafel-wydajnosci';
 import DomainPointingPanel from '@/components/hosting/DomainPointingPanel';
 import {
   fetchHostingBackupsAction as fetchHostingBackupsActionAkcja,
@@ -202,8 +203,6 @@ export default function ServiceOverviewV2({
   const bw = conn?.bandwidthMb;
   const cpuLimit = account?.cpuLimit ?? 100;
   const ramLimit = account?.ramLimitMb ?? null;
-  const cpuPeak = cpu.values.length ? Math.max(...cpu.values) : null;
-  const cpuHot = cpuPeak != null && cpuPeak / cpuLimit >= 0.8;
   const ramPeak = ram.values.length ? Math.max(...ram.values) : null;
   const ramNow = usage?.rows.at(-1)?.memUsageAvgMb ?? null;
   const diskPct = diskUsed != null && diskLimit ? Math.round((diskUsed / diskLimit) * 100) : null;
@@ -312,35 +311,7 @@ export default function ServiceOverviewV2({
       {/* Pasek liczb */}
       <div className="v2-comet rounded-[10px]" style={comet('a', 13, -2, 0.55)}>
       <KpiStrip>
-        <Kpi
-          label="Wydajność konta · 24 h"
-          value={cpuPeak != null ? Math.round((cpuPeak / cpuLimit) * 100) : '—'}
-          unit={cpuPeak != null ? '% limitu · szczyt' : undefined}
-          foot={
-            cpuHot ? (
-              asEnabled ? (
-                <span className="text-warn">przy limicie — autoskalowanie dokłada moc</span>
-              ) : (
-                <span className="text-warn">blisko limitu — rozważ autoskalowanie</span>
-              )
-            ) : (
-              <span>{cpu.values.length ? 'w normie' : 'brak pomiarów z 24 h'}</span>
-            )
-          }
-        >
-          {cpu.values.length ? (
-            <div className="mt-3">
-              <Wykres
-                wariant="slupki"
-                punkty={cpu.values.map((v, i) => ({ v: (v / cpuLimit) * 100, label: `od ${cpu.labels[i] ?? ''}` }))}
-                limit={100}
-                format={(v) => `${Math.round(v)}% limitu CPU`}
-                nazwa="Wydajność konta w ostatnich 24 godzinach: szczyt CPU w każdej godzinie, w procentach limitu"
-                wysokosc={44}
-              />
-            </div>
-          ) : null}
-        </Kpi>
+        <KafelWydajnosci wartosci={cpu.values} etykiety={cpu.labels} limitPlanu={cpuLimit} autoskalowanie={asEnabled} />
         <Kpi
           label="Pamięć (RAM)"
           value={ramPeak != null ? fmtMb(ramPeak).split(' ')[0] : '—'}
