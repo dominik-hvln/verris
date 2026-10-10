@@ -66,7 +66,7 @@ export default async function ProbyOdtworzeniaPage() {
               <span className="break-all font-mono text-[13px]">{p.objectName}</span>
               <span className="text-[12.5px] text-muted-foreground">
                 {czas(p.durationSec)} · {p.owner}
-                {p.rowCounts ? ` · ${Object.entries(p.rowCounts).map(([t, n]) => `${t}: ${n}`).join(", ")}` : ""}
+                {p.rowCounts && Object.keys(p.rowCounts).length ? ` · ${Object.entries(p.rowCounts).map(([t, n]) => `${t}: ${n}`).join(", ")}` : ""}
               </span>
               {p.notes ? <span className="text-[12.5px] [overflow-wrap:anywhere]">{p.notes}</span> : null}
             </span>

@@ -37,6 +37,13 @@ describe("próby odtworzenia kopii", () => {
     expect(html).toContain("User: 120");
   });
 
+  // Przegląd 1B: nieudana próba zapisuje rowCounts = {} (restore-drill-isolated.sh) — bez wiszącego „ · ” w opisie.
+  it("nieudana próba bez liczników wierszy: opis kończy się na właścicielu", async () => {
+    api.mockResolvedValue([proba({ id: "a", result: "FAILED", rowCounts: {}, notes: "Skrypt przerwany" })]);
+    const historia = renderToStaticMarkup(await ProbyOdtworzeniaPage()).split('data-karta="historia"')[1]!;
+    expect(historia).toContain("2 min 5 s · Dominik</span>");
+  });
+
   it("brak prób: ostrzeżenie zamiast pustej tabeli", async () => {
     api.mockResolvedValue([]);
     expect(renderToStaticMarkup(await ProbyOdtworzeniaPage())).toContain("Nie było jeszcze żadnej próby odtworzenia.");
