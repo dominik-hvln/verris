@@ -32,6 +32,12 @@ export interface AdminUserListOptions {
   role?: Role;
   limit?: number;
   offset?: number;
+  /**
+   * Rola czytającego. STAFF (przegląd Fali 2A, zasada D9 „logowania zespołu zostają dla ADMIN-a”) dostaje konta
+   * zespołu bez stanu bezpieczeństwa: bez ostatniego logowania, 2FA, passkey i dostępu do Grafany (null) — lista
+   * zespołu służy obsłudze tylko do przypisania zgłoszenia.
+   */
+  aktorRola?: Role;
 }
 
 export interface AdminUserRow {
@@ -42,11 +48,13 @@ export interface AdminUserRow {
   role: Role;
   walletBalance: string;
   createdAt: string;
-  isTwoFactorEnabled: boolean;
+  /** null — konto zespołu oglądane przez STAFF (AdminUserListOptions.aktorRola). */
+  isTwoFactorEnabled: boolean | null;
   subscriptionsCount: number;
   lastLoginAt: string | null;
   loginBlocked: boolean;
-  canAccessGrafana: boolean;
+  /** null — konto zespołu oglądane przez STAFF. */
+  canAccessGrafana: boolean | null;
   /** Konto zanonimizowane (RODO) — szczegóły operacyjne i impersonacja są zablokowane. */
   anonymizedAt: string | null;
   /** PROD-03 — konto wewnętrzne (testowe). */
@@ -140,7 +148,9 @@ export class UsersAdminService {
       total,
       limit,
       offset,
-      rows: rows.map<AdminUserRow>((u) => ({
+      rows: rows.map<AdminUserRow>((u) => {
+        const ukryj = opts.aktorRola === Role.STAFF && u.role !== Role.USER;
+        return {
         id: u.id,
         email: u.email,
         firstName: u.firstName,
@@ -148,15 +158,16 @@ export class UsersAdminService {
         role: u.role,
         walletBalance: u.walletBalance.toString(),
         createdAt: u.createdAt.toISOString(),
-        isTwoFactorEnabled: u.isTwoFactorEnabled,
+        isTwoFactorEnabled: ukryj ? null : u.isTwoFactorEnabled,
         subscriptionsCount: u._count.subscriptions,
-        lastLoginAt: lastLoginByUser.get(u.id)?.toISOString() ?? null,
+        lastLoginAt: ukryj ? null : (lastLoginByUser.get(u.id)?.toISOString() ?? null),
         loginBlocked: u.loginBlocked,
-        canAccessGrafana: u.canAccessGrafana,
+        canAccessGrafana: ukryj ? null : u.canAccessGrafana,
         anonymizedAt: u.anonymizedAt?.toISOString() ?? null,
         isInternal: u.isInternal,
-        passkeys: u.role === Role.STAFF || u.role === Role.ADMIN ? (passkeyByUser.get(u.id) ?? 0) : null,
-      })),
+        passkeys: !ukryj && (u.role === Role.STAFF || u.role === Role.ADMIN) ? (passkeyByUser.get(u.id) ?? 0) : null,
+        };
+      }),
     };
   }
 

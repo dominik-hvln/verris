@@ -261,3 +261,35 @@ describe('przegląd Fali 2A — staff-audit dla STAFF', () => {
     expect(prisma.auditLog.findMany).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * Przegląd Fali 2A — lista kont (GET admin/users, CUSTOMERS_VIEW) zwraca też konta zespołu (obsługa przypisuje im
+ * zgłoszenia). Dla STAFF bez stanu bezpieczeństwa zespołu: ostatnie logowanie, 2FA, passkey, Grafana — D9 zostawia
+ * logowania operatorów administratorowi, a panel operatora pokazuje teraz tę listę L1.
+ */
+describe('przegląd Fali 2A — lista kont: zespół bez stanu bezpieczeństwa dla STAFF', () => {
+  const konto = (id: string, role: Role) => ({
+    id, email: `${id}@x.pl`, firstName: null, lastName: null, role, walletBalance: { toString: () => '0' }, createdAt: new Date('2026-10-01T00:00:00Z'),
+    isTwoFactorEnabled: true, loginBlocked: false, canAccessGrafana: true, anonymizedAt: null, isInternal: false, _count: { subscriptions: 0 },
+  });
+  const serwis = () => {
+    const prisma = {
+      user: { count: vi.fn(() => 'count'), findMany: vi.fn(() => 'rows') },
+      $transaction: vi.fn(async () => [2, [konto('k1', Role.USER), konto('a1', Role.ADMIN)]]),
+      webAuthnCredential: { groupBy: vi.fn(async () => [{ userId: 'a1', _count: { _all: 2 } }]) },
+      loginEvent: { groupBy: vi.fn(async () => [{ userId: 'a1', _max: { createdAt: new Date('2026-10-09T00:00:00Z') } }, { userId: 'k1', _max: { createdAt: new Date('2026-10-08T00:00:00Z') } }]) },
+    };
+    return new UsersAdminService(prisma as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never);
+  };
+
+  it('STAFF: konto administratora bez logowania, 2FA, passkey i Grafany; klient bez zmian', async () => {
+    const { rows } = await serwis().list({ aktorRola: Role.STAFF });
+    expect(rows.find((r) => r.id === 'a1')).toMatchObject({ email: 'a1@x.pl', role: Role.ADMIN, lastLoginAt: null, isTwoFactorEnabled: null, passkeys: null, canAccessGrafana: null });
+    expect(rows.find((r) => r.id === 'k1')).toMatchObject({ lastLoginAt: '2026-10-08T00:00:00.000Z', isTwoFactorEnabled: true });
+  });
+
+  it('ADMIN: pełny stan zespołu (lista operatorów)', async () => {
+    const { rows } = await serwis().list({ aktorRola: Role.ADMIN });
+    expect(rows.find((r) => r.id === 'a1')).toMatchObject({ lastLoginAt: '2026-10-09T00:00:00.000Z', isTwoFactorEnabled: true, passkeys: 2, canAccessGrafana: true });
+  });
+});

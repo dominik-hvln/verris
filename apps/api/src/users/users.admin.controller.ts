@@ -80,7 +80,7 @@ export class UsersAdminController {
   ) {}
 
   @Get()
-  async list(@Query() query: ListUsersQuery) {
+  async list(@Query() query: ListUsersQuery, @CurrentUser() user: AuthedUser) {
     const limit = parseIntSafe(query.limit, 50);
     const page = Math.max(parseIntSafe(query.page, 1), 1);
     const offset = (page - 1) * limit;
@@ -89,6 +89,7 @@ export class UsersAdminController {
       role: query.role,
       limit,
       offset,
+      aktorRola: user.role,
     });
     return {
       ...result,
