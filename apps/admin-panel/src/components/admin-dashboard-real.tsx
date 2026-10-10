@@ -46,7 +46,12 @@ function godzina(iso: string) {
     : d.toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit", timeZone: STREFA });
 }
 
-export function AdminDashboardReal({ o }: { o: AdminDashboardOverview }) {
+/**
+ * `dostep` — co pokazać w nagłówku (fala 1B): „Dodaj węzeł” tylko administratorowi (POST admin/servers),
+ * „Operacje floty” z NODES_MANAGE. Bez `dostep` — oba (pulpit i tak wymaga dziś roli administratora).
+ */
+export function AdminDashboardReal({ o, dostep }: { o: AdminDashboardOverview; dostep?: { dodajWezel: boolean; operacjeFloty: boolean } }) {
+  const { dodajWezel = true, operacjeFloty = true } = dostep ?? {};
   const teraz = new Date(o.generatedAt);
   const dzien = teraz.toLocaleDateString("pl-PL", { weekday: "long", day: "numeric", month: "long", timeZone: STREFA });
   const czas = teraz.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit", timeZone: STREFA });
@@ -78,20 +83,24 @@ export function AdminDashboardReal({ o }: { o: AdminDashboardOverview }) {
           </div>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2.5">
-          <Link
-            href="/nodes/stack"
-            className="inline-flex h-[38px] items-center gap-2 rounded-[9px] border border-line-strong bg-transparent px-3.5 text-sm font-semibold text-foreground hover:border-primary"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Operacje floty
-          </Link>
-          <Link
-            href="/nodes/wizard"
-            className="inline-flex h-[38px] items-center gap-2 rounded-[9px] border border-primary bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
-          >
-            <Plus className="h-[15px] w-[15px]" strokeWidth={2.4} />
-            Dodaj węzeł
-          </Link>
+          {operacjeFloty ? (
+            <Link
+              href="/nodes/stack"
+              className="inline-flex h-[38px] items-center gap-2 rounded-[9px] border border-line-strong bg-transparent px-3.5 text-sm font-semibold text-foreground hover:border-primary"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Operacje floty
+            </Link>
+          ) : null}
+          {dodajWezel ? (
+            <Link
+              href="/nodes/wizard"
+              className="inline-flex h-[38px] items-center gap-2 rounded-[9px] border border-primary bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            >
+              <Plus className="h-[15px] w-[15px]" strokeWidth={2.4} />
+              Dodaj węzeł
+            </Link>
+          ) : null}
         </div>
       </div>
 

@@ -1,5 +1,7 @@
 import { fetchAdminDashboardOverview } from "@/lib/admin-overview-data";
 import { AdminDashboardReal } from "@/components/admin-dashboard-real";
+import { fetchStaffAccess } from "@/lib/staff-access";
+import { brakUprawnienia } from "@/lib/akcje/wezel";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +18,8 @@ export default async function AdminDashboardHomePage() {
   }
 
   if (overview) {
-    return <AdminDashboardReal o={overview} />;
+    const dostep = await fetchStaffAccess();
+    return <AdminDashboardReal o={overview} dostep={{ dodajWezel: !brakUprawnienia("ADMIN", dostep), operacjeFloty: !brakUprawnienia("NODES_MANAGE", dostep) }} />;
   }
 
   return (

@@ -83,6 +83,13 @@ describe("X-05 pulpit „Stan platformy”", () => {
     expect(html).toMatch(/href="https?:\/\/[^"]+\/tickets\/t1"/);
   });
 
+  it("fala 1B: „Dodaj węzeł” tylko dla administratora, „Operacje floty” z NODES_MANAGE", () => {
+    expect(renderToStaticMarkup(<AdminDashboardReal o={pulpit()} />)).toContain('href="/nodes/wizard"');
+    const bez = renderToStaticMarkup(<AdminDashboardReal o={pulpit()} dostep={{ dodajWezel: false, operacjeFloty: false }} />);
+    expect(bez).not.toContain('href="/nodes/wizard"');
+    expect(bez).not.toContain('href="/nodes/stack"');
+  });
+
   it("flota: węzeł bez sygnału pokazuje powód zamiast paska CPU", () => {
     const t = tekst(renderToStaticMarkup(<AdminDashboardReal o={pulpit()} />));
     expect(t).toContain("fsn-01");

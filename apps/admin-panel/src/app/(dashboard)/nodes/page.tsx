@@ -5,6 +5,8 @@ import { adminApi } from "@/lib/api";
 import { plural, plForm } from "@/lib/pl";
 import { Eyebrow, KARTA, Pasek, Pigulka, PRZYCISK, PRZYCISK_GLOWNY, WIERSZ } from "@/components/v2";
 import { fetchServers } from "./actions";
+import { fetchStaffAccess } from "@/lib/staff-access";
+import { brakUprawnienia } from "@/lib/akcje/wezel";
 import { NieWczytano } from "@/components/nie-wczytano";
 
 export const dynamic = "force-dynamic";
@@ -39,10 +41,14 @@ const gb = (mb: number | null | undefined) => (mb ? `${Math.round(mb / 1024).toL
 
 /** PB-34 — lista węzłów w języku makiety (tabela jak karta „Flota” na pulpicie). */
 export default async function AdminNodesPage() {
-  const [{ data: servers, error }, flota] = await Promise.all([
+  const [{ data: servers, error }, flota, dostep] = await Promise.all([
     fetchServers(),
     adminApi<WierszFloty[]>("/admin/servers/flota").catch(() => null),
+    fetchStaffAccess(),
   ]);
+  // Fala 1B — „Dodaj węzeł” (POST admin/servers) tylko dla administratora, „Operacje floty” z NODES_MANAGE.
+  const dodajWezel = !brakUprawnienia("ADMIN", dostep);
+  const operacjeFloty = !brakUprawnienia("NODES_MANAGE", dostep);
   const wg = new Map(servers.map((s) => [s.id, s]));
   const wiersze: WierszFloty[] =
     flota ??
@@ -90,14 +96,18 @@ export default async function AdminNodesPage() {
             Pojemność floty
           </Link>
           {/* Aktualizacja, wyrównanie i pakiety na całej flocie — w jednym miejscu (10.10). */}
-          <Link href="/nodes/stack" className={PRZYCISK}>
-            <RefreshCw className="h-4 w-4" />
-            Operacje floty
-          </Link>
-          <Link href="/nodes/wizard" className={PRZYCISK_GLOWNY}>
-            <Plus className="h-[15px] w-[15px]" strokeWidth={2.4} />
-            Dodaj węzeł
-          </Link>
+          {operacjeFloty ? (
+            <Link href="/nodes/stack" className={PRZYCISK}>
+              <RefreshCw className="h-4 w-4" />
+              Operacje floty
+            </Link>
+          ) : null}
+          {dodajWezel ? (
+            <Link href="/nodes/wizard" className={PRZYCISK_GLOWNY}>
+              <Plus className="h-[15px] w-[15px]" strokeWidth={2.4} />
+              Dodaj węzeł
+            </Link>
+          ) : null}
         </div>
       </div>
 
@@ -117,9 +127,13 @@ export default async function AdminNodesPage() {
           <div className={`${WIERSZ} flex-col items-start gap-3 py-8`}>
             <span className="font-semibold">Nie masz jeszcze żadnych węzłów</span>
             <span className="text-sm text-muted-foreground">Kreator wygeneruje jednorazowy skrypt instalacyjny i przeprowadzi przez zatwierdzenie, kopie i onboard.</span>
-            <Link href="/nodes/wizard" className={PRZYCISK_GLOWNY}>
-              <Plus className="h-4 w-4" /> Uruchom kreator węzła
-            </Link>
+            {dodajWezel ? (
+              <Link href="/nodes/wizard" className={PRZYCISK_GLOWNY}>
+                <Plus className="h-4 w-4" /> Uruchom kreator węzła
+              </Link>
+            ) : (
+              <span className="text-xs text-muted-foreground">Nowy węzeł doda administrator.</span>
+            )}
           </div>
         ) : (
           wiersze.map((w) => {

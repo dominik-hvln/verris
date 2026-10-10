@@ -36,6 +36,8 @@ import { wynik } from "@/components/blad-strony";
 import { NieWczytano } from "@/components/nie-wczytano";
 import { Pomoc } from "@/components/pomoc";
 import { fetchStaffAccess } from "@/lib/staff-access";
+import { blokadaAkcjiWezla, brakUprawnienia } from "@/lib/akcje/wezel";
+import { WymagaUprawnienia } from "@/components/wymaga-uprawnienia";
 import { Eyebrow, KARTA, Kpi, Pasek, Pigulka, RzadKpi, Zakladki } from "@/components/v2";
 
 export const dynamic = "force-dynamic";
@@ -80,7 +82,8 @@ export default async function ServerDetailPage({
     fetchServer(id),
     fetchPrzegladWezla(id),
     sekcja === "przeglad" ? fetchPrognozaWezla(id) : null,
-    sekcja === "przeglad" ? fetchStaffAccess() : null,
+    // Fala 1B — dostęp na każdej zakładce: przyciski w Aktualizacjach, Konfiguracji i Wycofaniu wyszarzone jak w „Działaniach”.
+    fetchStaffAccess(),
   ]);
   if (!server) {
     if (error?.toLowerCase().includes("not found")) notFound();
@@ -103,6 +106,8 @@ export default async function ServerDetailPage({
   const baza = `/nodes/${server.id}`;
   const nazwa = p?.nazwa ?? server.name ?? server.ipAddress;
   const z = p?.zasoby;
+  const wezelAkcji = { id: server.id, status: server.status };
+  const wymaga = (id: string) => blokadaAkcjiWezla(id, wezelAkcji, dostep);
   const zadania = sekcja === "zadania" ? await wynik(listNodeTasks(undefined, server.id)) : null;
 
   return (
@@ -225,7 +230,7 @@ export default async function ServerDetailPage({
               <NodeBootstrapProgress serverId={server.id} />
             </section>
           )}
-          {dostep ? <DzialaniaWezla wezel={{ id: server.id, status: server.status }} dostep={dostep} /> : null}
+          <DzialaniaWezla wezel={wezelAkcji} dostep={dostep} />
           {prognoza ? <PrognozaWezlaKarta p={prognoza} bazaHref={baza} /> : null}
           {p ? <WezelPrzeglad p={p} bazaHref={baza} /> : null}
         </>
@@ -238,10 +243,14 @@ export default async function ServerDetailPage({
           <>
             <NodeAuditPanel serverId={server.id} serverName={server.name} />
             <div id="uslugi" className="scroll-mt-4">
-              <NodeStackReadinessPanel serverId={server.id} serverStatus={server.status} />
+              <WymagaUprawnienia powod={wymaga("uslugi")}>
+                <NodeStackReadinessPanel serverId={server.id} serverStatus={server.status} />
+              </WymagaUprawnienia>
             </div>
             <div id="sonda-da" className="scroll-mt-4">
-              <SondaDaPanel serverId={server.id} />
+              <WymagaUprawnienia powod={wymaga("sonda-da")}>
+                <SondaDaPanel serverId={server.id} />
+              </WymagaUprawnienia>
             </div>
           </>
         ) : (
@@ -262,7 +271,9 @@ export default async function ServerDetailPage({
                 Wgrywa na węzeł aktualne skrypty Verris (worker migracji, guard, agent zadań), hardening i blokadę ruchu
                 wychodzącego. Uruchom po deployu zmian w skryptach węzła. Nie włącza nowych kont.
               </p>
-              <OnboardLivePanel serverId={server.id} />
+              <WymagaUprawnienia powod={wymaga("onboard-live")}>
+                <OnboardLivePanel serverId={server.id} />
+              </WymagaUprawnienia>
             </section>
           ) : null}
           {dziala ? (
@@ -271,22 +282,28 @@ export default async function ServerDetailPage({
                 Stos serwera <Pomoc id="stos" />
               </h2>
               <p className="text-sm text-muted-foreground">DirectAdmin, CloudLinux i LiteSpeed do najnowszych stabilnych wersji.</p>
-              <AktualizujWezelButton serverId={server.id} />
+              <WymagaUprawnienia powod={wymaga("stos")}>
+                <AktualizujWezelButton serverId={server.id} />
+              </WymagaUprawnienia>
             </section>
           ) : null}
           {dziala ? (
             <div id="baza-danych" className="scroll-mt-4">
-              <DbUpgradePanel
-                serverId={server.id}
-                dbEngine={server.dbEngine}
-                dbVersion={server.dbVersion}
-                targetDbVersion={server.targetDbVersion}
-                dbUpgradeRequestedAt={server.dbUpgradeRequestedAt}
-              />
+              <WymagaUprawnienia powod={wymaga("baza-danych")}>
+                <DbUpgradePanel
+                  serverId={server.id}
+                  dbEngine={server.dbEngine}
+                  dbVersion={server.dbVersion}
+                  targetDbVersion={server.targetDbVersion}
+                  dbUpgradeRequestedAt={server.dbUpgradeRequestedAt}
+                />
+              </WymagaUprawnienia>
             </div>
           ) : null}
           <div id="profil" className="scroll-mt-4">
-            <HostingProfilePanel serverId={server.id} serverStatus={server.status} />
+            <WymagaUprawnienia powod={wymaga("profil")}>
+              <HostingProfilePanel serverId={server.id} serverStatus={server.status} />
+            </WymagaUprawnienia>
           </div>
         </>
       ) : null}
@@ -302,51 +319,65 @@ export default async function ServerDetailPage({
             {server.notes && <DefRow label="Notatki" value={server.notes} />}
           </section>
           <div id="status" className="scroll-mt-4">
-            <NodeStatusPanel serverId={server.id} status={server.status} />
+            <WymagaUprawnienia powod={wymaga("offline")}>
+              <NodeStatusPanel serverId={server.id} status={server.status} />
+            </WymagaUprawnienia>
           </div>
           <div id="serwis" className="scroll-mt-4">
-            <MaintenanceToggle
-              serverId={server.id}
-              status={server.status}
-              maintenanceReason={server.maintenanceReason}
-              maintenanceStartedAt={server.maintenanceStartedAt}
-            />
+            <WymagaUprawnienia powod={wymaga("serwis")}>
+              <MaintenanceToggle
+                serverId={server.id}
+                status={server.status}
+                maintenanceReason={server.maintenanceReason}
+                maintenanceStartedAt={server.maintenanceStartedAt}
+              />
+            </WymagaUprawnienia>
           </div>
           {dziala && (
             <div id="pojemnosc" className="scroll-mt-4">
-              <CapacityPolicyPanel
-                serverId={server.id}
-                acceptsNewAccounts={server.acceptsNewAccounts}
-                maxAccounts={server.maxAccounts}
-                reservedHeadroomPercent={server.reservedHeadroomPercent}
-                overcommitCpu={server.overcommitCpu}
-                overcommitRam={server.overcommitRam}
-                overcommitDisk={server.overcommitDisk}
-                accountCount={server._count?.accounts ?? 0}
-              />
+              <WymagaUprawnienia powod={wymaga("nowe-konta")}>
+                <CapacityPolicyPanel
+                  serverId={server.id}
+                  acceptsNewAccounts={server.acceptsNewAccounts}
+                  maxAccounts={server.maxAccounts}
+                  reservedHeadroomPercent={server.reservedHeadroomPercent}
+                  overcommitCpu={server.overcommitCpu}
+                  overcommitRam={server.overcommitRam}
+                  overcommitDisk={server.overcommitDisk}
+                  accountCount={server._count?.accounts ?? 0}
+                />
+              </WymagaUprawnienia>
             </div>
           )}
           <div id="directadmin">
-            <DirectAdminConfigForm
-              serverId={server.id}
-              initial={{
-                daHost: server.daHost ?? "",
-                daPort: server.daPort ?? 2222,
-                daUsername: server.daUsername ?? "",
-                daUseTls: server.daUseTls,
-                daAllowInvalidCert: server.daAllowInvalidCert ?? false,
-                daPasswordSet: server.daPasswordSet,
-              }}
-            />
+            <WymagaUprawnienia powod={wymaga("directadmin")}>
+              <DirectAdminConfigForm
+                serverId={server.id}
+                initial={{
+                  daHost: server.daHost ?? "",
+                  daPort: server.daPort ?? 2222,
+                  daUsername: server.daUsername ?? "",
+                  daUseTls: server.daUseTls,
+                  daAllowInvalidCert: server.daAllowInvalidCert ?? false,
+                  daPasswordSet: server.daPasswordSet,
+                }}
+              />
+            </WymagaUprawnienia>
           </div>
           <div id="nameservers">
-            <NameserversForm serverId={server.id} />
+            <WymagaUprawnienia powod={wymaga("nameservers")}>
+              <NameserversForm serverId={server.id} />
+            </WymagaUprawnienia>
           </div>
           <div id="region" className="scroll-mt-4">
-            <RegionForm serverId={server.id} region={server.region ?? null} />
+            <WymagaUprawnienia powod={wymaga("region")}>
+              <RegionForm serverId={server.id} region={server.region ?? null} />
+            </WymagaUprawnienia>
           </div>
           <div id="waf">
-            <WafPanel serverId={server.id} />
+            <WymagaUprawnienia powod={wymaga("waf")}>
+              <WafPanel serverId={server.id} />
+            </WymagaUprawnienia>
           </div>
         </>
       ) : null}
@@ -354,13 +385,18 @@ export default async function ServerDetailPage({
       {sekcja === "wycofanie" ? (
         dziala ? (
           <div className="space-y-6">
-            <DrainPanel serverId={server.id} acceptsNewAccounts={server.acceptsNewAccounts} />
-            <WycofajMartwyPanel
-              serverId={server.id}
-              nazwa={server.name ?? server.hostname ?? server.id}
-              konta={server._count?.accounts ?? 0}
-              martwy={!server.lastHeartbeatAt || teraz - new Date(server.lastHeartbeatAt).getTime() >= 7 * 24 * 3600_000}
-            />
+            <WymagaUprawnienia powod={wymaga("wycofanie")}>
+              <DrainPanel serverId={server.id} acceptsNewAccounts={server.acceptsNewAccounts} />
+            </WymagaUprawnienia>
+            {/* POST admin/servers/:id/wycofaj-martwy — tylko ADMIN. */}
+            <WymagaUprawnienia powod={brakUprawnienia("ADMIN", dostep)}>
+              <WycofajMartwyPanel
+                serverId={server.id}
+                nazwa={server.name ?? server.hostname ?? server.id}
+                konta={server._count?.accounts ?? 0}
+                martwy={!server.lastHeartbeatAt || teraz - new Date(server.lastHeartbeatAt).getTime() >= 7 * 24 * 3600_000}
+              />
+            </WymagaUprawnienia>
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">Wycofanie (przeniesienie kont na inne węzły) jest dostępne dla węzła aktywnego albo w serwisie.</p>

@@ -316,3 +316,13 @@ export function akcjeWezla(w: WezelDlaAkcji, dostep: DostepDoAkcji): DzialanieNa
     ...(a.uruchom ? { uruchom: { rodzaj: a.uruchom, id: w.id } } : {}),
   }));
 }
+
+/**
+ * Powód blokady działania z rejestru (dymek „Wymaga …”) dla przycisków w zakładkach karty — te same
+ * uprawnienia co w sekcji „Działania” (fala 1B). null — wolno; nieznane ID — tylko administrator.
+ */
+export function blokadaAkcjiWezla(id: string, w: WezelDlaAkcji, dostep: DostepDoAkcji): string | null {
+  const a = AKCJE_WEZLA.find((x) => x.id === id);
+  if (!a) return brakUprawnienia("ADMIN", dostep);
+  return brakUprawnienia(typeof a.perm === "function" ? a.perm(w) : a.perm, dostep);
+}

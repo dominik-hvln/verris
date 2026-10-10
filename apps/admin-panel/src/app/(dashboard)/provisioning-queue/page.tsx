@@ -1,10 +1,12 @@
-import Link from "next/link";
 import { listProvisioningQueue, listNodeTasks } from "./data";
 import { RetryButton } from "./retry-button";
 import { OdrzucButton } from "./odrzuc-button";
 import { NodeTasksSection } from "./node-tasks-section";
 import { BladStrony, wynik } from "@/components/blad-strony";
 import { NieWczytano } from "@/components/nie-wczytano";
+import { LinkJesli } from "@/components/link-jesli";
+import { fetchStaffAccess } from "@/lib/staff-access";
+import { brakUprawnienia } from "@/lib/akcje/wezel";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +42,11 @@ export default async function ProvisioningQueuePage({
   const w = await wynik(listProvisioningQueue(state || undefined));
   if (!w.ok) return <BladStrony blad={w.blad} tytul="Kolejka zadań" />;
   const data = w.dane;
-  const nodeTasks = await wynik(listNodeTasks());
+  const [nodeTasks, dostep] = await Promise.all([wynik(listNodeTasks()), fetchStaffAccess()]);
+  // Fala 1B — linki tylko do kart, które rola otworzy (jak na karcie faktury i usługi); bez uprawnienia sam tekst.
+  const doKlienta = !brakUprawnienia("CUSTOMERS_VIEW", dostep);
+  const doUslugi = !brakUprawnienia(["CUSTOMERS_VIEW", "SUBSCRIPTIONS_MANAGE"], dostep);
+  const doWezla = !brakUprawnienia("NODES_VIEW", dostep);
 
   return (
     <div className="space-y-6 p-6">
@@ -129,19 +135,19 @@ export default async function ProvisioningQueuePage({
                       <td className="px-4 py-3 font-mono text-xs">{row.id}</td>
                       <td className="px-4 py-3">
                         <div>
-                          <Link href={`/subscriptions/${row.data.subscriptionId}`} className="font-semibold hover:underline">
+                          <LinkJesli wolno={doUslugi} href={`/subscriptions/${row.data.subscriptionId}`} className="font-semibold hover:underline">
                             {row.data.domain || "(bez domeny)"}
-                          </Link>
+                          </LinkJesli>
                           <p className="font-mono text-[11px] text-muted-foreground">{row.data.subscriptionId}</p>
-                          <Link href={`/customers/${row.data.userId}`} className="block text-[11px] text-muted-foreground hover:underline">
+                          <LinkJesli wolno={doKlienta} href={`/customers/${row.data.userId}`} className="block text-[11px] text-muted-foreground hover:underline">
                             {row.subscription?.user.email ?? row.data.userId}
-                          </Link>
+                          </LinkJesli>
                           {row.subscription?.account && (
                             <p className="text-[11px] text-muted-foreground">
                               DA: {row.subscription.account.daUsername} ·{" "}
-                              <Link href={`/nodes/${row.subscription.account.serverId}`} className="hover:underline">
+                              <LinkJesli wolno={doWezla} href={`/nodes/${row.subscription.account.serverId}`} className="hover:underline">
                                 węzeł
-                              </Link>
+                              </LinkJesli>
                             </p>
                           )}
                         </div>
