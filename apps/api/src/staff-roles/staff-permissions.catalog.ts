@@ -22,6 +22,7 @@ export const STAFF_PERMISSIONS = [
   { key: 'MIGRATIONS_MANAGE', area: 'Operacje', label: 'Migracje (cockpit)' },
   { key: 'CUSTOM_TERMS_MANAGE', area: 'Finanse', label: 'Indywidualne warunki: własna cena usługi, rabat autoskalowania, rozliczenie poza Verris' },
   { key: 'PROMO_MANAGE', area: 'Marketing', label: 'Kody promocyjne i program partnerski' },
+  { key: 'KB_MANAGE', area: 'Marketing', label: 'Baza wiedzy: dodawanie, edycja i usuwanie artykułów i kategorii' },
   { key: 'ABUSE_MANAGE', area: 'Bezpieczeństwo', label: 'Nadużycia / abuse' },
   { key: 'AUDIT_VIEW', area: 'Bezpieczeństwo', label: 'Logi bezpieczeństwa (audyt)' },
   { key: 'COMPLIANCE_MANAGE', area: 'Bezpieczeństwo', label: 'Compliance / RODO' },

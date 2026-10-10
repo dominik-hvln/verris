@@ -66,7 +66,14 @@ describe('PB-47 — katalog uprawnień i role systemowe', () => {
     ]);
     const audytor = ROLE_FUNKCYJNE.find((r) => r.name.startsWith('Audytor'))!;
     expect(audytor.permissions.filter((k) => !k.endsWith('_VIEW'))).toEqual([]);
-    expect(ROLE_FUNKCYJNE.find((r) => r.name === 'Marketing')!.permissions).toEqual(['DASHBOARD_VIEW', 'PROMO_MANAGE']);
+    expect(ROLE_FUNKCYJNE.find((r) => r.name === 'Marketing')!.permissions).toEqual(['DASHBOARD_VIEW', 'PROMO_MANAGE', 'KB_MANAGE']);
+  });
+
+  it('B2: baza wiedzy (KB_MANAGE) tylko dla L4 i Marketingu — L1–L3 jej nie zmieniają', () => {
+    const [l1, l2, l3, l4] = SZCZEBLE;
+    for (const r of [l1, l2, l3]) expect(r.permissions).not.toContain('KB_MANAGE');
+    expect(l4.permissions).toContain('KB_MANAGE');
+    expect(ROLE_SYSTEMOWE.filter((r) => r.permissions.includes('KB_MANAGE')).map((r) => r.name)).toEqual(['L4 Kierownik zmiany', 'Marketing']);
   });
 
   it('nazwy unikalne, każda rola ma opis po polsku (1–2 zdania)', () => {

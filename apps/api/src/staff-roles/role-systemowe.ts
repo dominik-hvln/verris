@@ -35,6 +35,7 @@ const L4: readonly StaffPermission[] = [
   'COMPLIANCE_MANAGE',
   'CUSTOMERS_INTERNAL_FLAG',
   'REQUESTS_APPROVE',
+  'KB_MANAGE',
 ];
 
 /** Szczeble obsługi w kolejności rosnącej. */
@@ -60,7 +61,7 @@ export const SZCZEBLE: readonly RolaSystemowa[] = [
   {
     name: 'L4 Kierownik zmiany',
     description:
-      'Wszystko z L3 oraz faktury, korekty, portfel i kredyty, zarządzanie węzłami i planami, dziennik bezpieczeństwa, RODO, oznaczanie kont wewnętrznych i akceptacja wniosków zespołu. Bez ustawień platformy i zarządzania pracownikami.',
+      'Wszystko z L3 oraz faktury, korekty, portfel i kredyty, zarządzanie węzłami i planami, dziennik bezpieczeństwa, RODO, baza wiedzy, oznaczanie kont wewnętrznych i akceptacja wniosków zespołu. Bez ustawień platformy i zarządzania pracownikami.',
     permissions: L4,
   },
 ];
@@ -81,8 +82,8 @@ export const ROLE_FUNKCYJNE: readonly RolaSystemowa[] = [
   },
   {
     name: 'Marketing',
-    description: 'Kampanie i promocje: pulpit z metrykami oraz kody promocyjne i program partnerski. Nie widzi danych klientów ani zgłoszeń.',
-    permissions: ['DASHBOARD_VIEW', 'PROMO_MANAGE'],
+    description: 'Kampanie i treści: pulpit z metrykami, kody promocyjne, program partnerski i baza wiedzy. Nie widzi danych klientów ani zgłoszeń.',
+    permissions: ['DASHBOARD_VIEW', 'PROMO_MANAGE', 'KB_MANAGE'],
   },
   {
     name: 'Nadużycia i bezpieczeństwo',
