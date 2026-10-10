@@ -104,6 +104,24 @@ export class DirectAdminService {
   }
 
   /**
+   * F3.1 (D4) — blokada wysyłki konta na węźle: lista `blacklist_usernames` exima DirectAdmina, kluczem administratora
+   * węzła (SDK: getEmailSendBlacklist / setEmailSendBlocked, dokumentacja w komentarzu SDK). Błąd węzła = błąd.
+   */
+  async blokadaWysylkiNaWezle(serverId: string, daUsername: string): Promise<{ obslugiwana: boolean; zablokowana: boolean }> {
+    const lista = await (await this.getClientForServer(serverId)).getEmailSendBlacklist();
+    return { obslugiwana: lista.dostepne, zablokowana: lista.uzytkownicy.includes(daUsername) };
+  }
+
+  /** Ustawia blokadę wysyłki konta na węźle; idempotentnie — gdy stan już jest taki, niczego nie wysyła. */
+  async ustawBlokadeWysylki(serverId: string, daUsername: string, zablokuj: boolean): Promise<{ zmieniono: boolean }> {
+    const klient = await this.getClientForServer(serverId);
+    const lista = await klient.getEmailSendBlacklist();
+    if (lista.dostepne && lista.uzytkownicy.includes(daUsername) === zablokuj) return { zmieniono: false };
+    await klient.setEmailSendBlocked(daUsername, zablokuj);
+    return { zmieniono: true };
+  }
+
+  /**
    * Sonda API DA węzła: te same odczyty co panel (ODCZYTY_DA), z json=yes i bez, na pierwszym aktywnym
    * koncie węzła i kluczem admina. Zwraca tylko kształt odpowiedzi — bez wartości (sonda-da.ts).
    */

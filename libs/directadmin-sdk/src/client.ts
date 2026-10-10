@@ -1386,6 +1386,55 @@ export class DirectAdminClient {
   }
 
   // ---------------------------------------------------------------------------
+  // F3.1 (D4) — blokada wysyłki poczty konta: lista `blacklist_usernames` exima DirectAdmina.
+  // https://docs.directadmin.com/other-hosting-services/preventing-spam/outgoing-spam.html#how-to-block-user-account-from-sending-any-messages
+  // https://docs.directadmin.com/changelog/version-1.60.0.html#admin-settings-json-manage-e-mail-blacklist-usernames-blacklist-smtp-usernames-blacklist-script-usernames-blocked-authenticated-users
+  // Odczyt: CMD_ADMIN_SETTINGS?json=yes → email_settings.HAVE_BLACKLIST_USERNAMES == "yes" i
+  // email_settings.blacklist_usernames {"user": "<czas unix>"}. Zapis: POST CMD_ADMIN_SETTINGS json=yes,
+  // action=add_to_email_blacklist|remove_from_email_blacklist, blacklist_usernames=yes, select0=<user>.
+  // `blacklist_usernames` blokuje KAŻDĄ wysyłkę użytkownika DA — SMTP z logowaniem i skrypty (mail() z PHP);
+  // wiadomość nie trafia do kolejki. Limit dobowy (/etc/virtual/limit) zostaje nietknięty, więc zwolnienie
+  // przywraca dokładnie poprzedni stan. Wywołania wymagają klucza administratora węzła.
+  // ---------------------------------------------------------------------------
+
+  /** Użytkownicy DA z blokadą wysyłki; `dostepne: false` — exim.conf węzła nie obsługuje listy. */
+  async getEmailSendBlacklist(): Promise<DaEmailBlacklist> {
+    const res = await this.client.get('/CMD_ADMIN_SETTINGS', { params: { json: 'yes' }, timeout: 20_000 });
+    this.parseDaResponseBody(res.data);
+    return parseEmailBlacklist(res.data);
+  }
+
+  /**
+   * Dodaje użytkownika do `blacklist_usernames` albo go z niej usuwa. Sukces dopiero po ponownym odczycie listy
+   * (DA potrafi odpowiedzieć bez `error` i nic nie zapisać) — inaczej błąd, bez „zapasowych” wywołań.
+   */
+  async setEmailSendBlocked(username: string, blocked: boolean): Promise<void> {
+    if (!/^[a-z][a-z0-9]{0,15}$/.test(username)) throw new Error(`Niepoprawna nazwa użytkownika: ${username.slice(0, 20)}`);
+    const przed = await this.getEmailSendBlacklist();
+    if (!przed.dostepne) {
+      throw bladDa('Węzeł nie obsługuje blokady wysyłki (brak HAVE_BLACKLIST_USERNAMES w ustawieniach exima — zaktualizuj exim.conf przez CustomBuild).');
+    }
+    const res = await this.client.post(
+      '/CMD_ADMIN_SETTINGS',
+      new URLSearchParams({
+        json: 'yes',
+        action: blocked ? 'add_to_email_blacklist' : 'remove_from_email_blacklist',
+        blacklist_usernames: 'yes',
+        select0: username,
+      }).toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 20_000 },
+    );
+    if (typeof res.data === 'string' && res.data.trim().startsWith('<')) {
+      throw bladDa('CMD_ADMIN_SETTINGS odpowiedział stroną HTML zamiast wyniku zapisu');
+    }
+    this.parseDaResponseBody(res.data);
+    const po = await this.getEmailSendBlacklist();
+    if (po.uzytkownicy.includes(username) !== blocked) {
+      throw bladDa(blocked ? 'Węzeł nie potwierdził blokady wysyłki' : 'Węzeł nie potwierdził zdjęcia blokady wysyłki');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Internals
   // ---------------------------------------------------------------------------
 
@@ -1733,6 +1782,26 @@ const ADMIN_SETTINGS_SKIP_KEYS = new Set([
 ]);
 
 /** Wyciąga pola formularza Admin Settings do POST action=save. */
+/** F3.1 — stan listy `blacklist_usernames` (CMD_ADMIN_SETTINGS?json=yes → email_settings). */
+export interface DaEmailBlacklist {
+  /** HAVE_BLACKLIST_USERNAMES == "yes" — exim.conf węzła czyta listę. */
+  dostepne: boolean;
+  uzytkownicy: string[];
+}
+
+/** Lista z `email_settings.blacklist_usernames` (obiekt {"user": "czas"} albo tablica nazw). */
+export function parseEmailBlacklist(data: unknown): DaEmailBlacklist {
+  const root = typeof data === 'object' && data !== null ? (data as Record<string, unknown>) : {};
+  const es = typeof root.email_settings === 'object' && root.email_settings !== null ? (root.email_settings as Record<string, unknown>) : {};
+  const lista = es.blacklist_usernames;
+  const nazwy = Array.isArray(lista)
+    ? lista.map((v) => String(v))
+    : typeof lista === 'object' && lista !== null
+      ? Object.keys(lista as Record<string, unknown>)
+      : [];
+  return { dostepne: String(es.HAVE_BLACKLIST_USERNAMES ?? '') === 'yes', uzytkownicy: nazwy.map((n) => n.trim()).filter(Boolean) };
+}
+
 /** Wiadomość systemowa z listy CMD_API_TICKET. */
 export interface DaMessage {
   /** Numer tak, jak podaje węzeł (np. „000000006”) — do `getMessage`. */

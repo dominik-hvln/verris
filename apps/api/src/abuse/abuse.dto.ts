@@ -50,4 +50,11 @@ export class DecyzjaNaduzyciaDto {
    */
   @IsOptional() @IsBoolean()
   suspendService?: boolean;
+
+  /**
+   * F3.1 (D4, 10.10) — przy „Podjęto działania” zablokuj wysyłkę poczty dopasowanej usługi (na węźle, z kordonem).
+   * Te same uprawnienia co z karty usługi (MAIL_SEND_BLOCK); można łączyć z zawieszeniem albo użyć zamiast niego.
+   */
+  @IsOptional() @IsBoolean()
+  blockSending?: boolean;
 }

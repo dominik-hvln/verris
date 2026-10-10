@@ -724,6 +724,7 @@ enum NodeTaskKind {
   PGSQL             // D-14 — bazy PostgreSQL konta (node-pgsql.sh)
   IMAGE_OPTIMIZE    // J-06 — bezstratna optymalizacja obrazów strony (node-image-optimize.sh)
   ONBOARD_LIVE      // PB-31 — Onboard LIVE z panelu: pakiet do /opt/verris + node-onboard-live.sh
+  MAIL_QUEUE        // F3.1 — kolejka exima: nagłówki (konta albo węzła), usunięcie wiadomości konta, wypchnięcie
 }
 
 enum WafMode {
@@ -1322,6 +1323,12 @@ model Account {
   // Ostatnia przetworzona wiadomość systemowa węzła (numer z CMD_API_TICKET). NULL = konto jeszcze
   // nie przeglądane — pierwszy przebieg tylko zapamiętuje najnowszy numer, bez wysyłki zaległych.
   daMessageSeen   Int?
+
+  // F3.1 (D4) — blokada wysyłki poczty konta przez obsługę: konto na liście `blacklist_usernames` DirectAdmina
+  // (exim odrzuca wysyłkę SMTP i z PHP). Kto, kiedy i dlaczego; NULL = wysyłka nie jest blokowana przez obsługę.
+  mailBlockedAt     DateTime?
+  mailBlockedById   String?
+  mailBlockedReason String?
 
   wpAutoUpdates   WpAutoUpdate[]
   gitWebhooks     GitWebhook[]

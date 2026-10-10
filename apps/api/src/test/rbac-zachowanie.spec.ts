@@ -304,6 +304,34 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     for (const t of akcje) expect(await wpuszcza(t, ADMIN)).toBe(true);
   });
 
+  it('F3.1 (D4): blokada wysyłki konta — L3, L4, zespół abuse i NOC; stan wysyłki od L2; L1 i audytor nic', async () => {
+    const poczta = TRASY.filter((t) => t.kontroler === 'PocztaKontaAdminController');
+    const t = (m: string) => {
+      const x = poczta.find((p) => p.metoda === m);
+      expect(x, m).toBeDefined();
+      return x!;
+    };
+    const wolno = async (rola: string, metody: string[]) => {
+      const out: Record<string, boolean> = {};
+      for (const m of metody) out[m] = await wpuszcza(t(m), OPERATOR, uprawnieniaRoli(rola));
+      return out;
+    };
+    const blokada = ['zablokuj', 'zwolnij'];
+    for (const rola of ['L3 Starszy specjalista', 'L4 Kierownik zmiany', 'Nadużycia i bezpieczeństwo', 'Inżynier infrastruktury (NOC/DevOps)']) {
+      expect({ rola, w: await wolno(rola, [...blokada, 'stanWysylki']) }).toEqual({ rola, w: { zablokuj: true, zwolnij: true, stanWysylki: true } });
+    }
+    expect(await wolno('L2 Specjalista techniczny', [...blokada, 'stanWysylki'])).toEqual({ zablokuj: false, zwolnij: false, stanWysylki: true });
+    for (const rola of ['L1 Konsultant', 'Audytor (tylko podgląd)']) {
+      expect({ rola, w: await wolno(rola, [...blokada, 'stanWysylki']) }).toEqual({ rola, w: { zablokuj: false, zwolnij: false, stanWysylki: false } });
+    }
+    // Sam podgląd kolejki nie daje blokady; samo NODES_MANAGE / ABUSE_MANAGE też nie.
+    for (const m of blokada) {
+      expect(await wpuszcza(t(m), OPERATOR, ['MAIL_QUEUE_VIEW', 'NODES_MANAGE', 'ABUSE_MANAGE', 'ACCOUNT_ACTIONS'])).toBe(false);
+      expect(await wpuszcza(t(m), ADMIN)).toBe(true);
+      expect(await wpuszcza(t(m), KLIENT, ['*', 'MAIL_SEND_BLOCK'])).toBe(false);
+    }
+  });
+
   it('NOC (bez CUSTOMERS_VIEW) nadal ma kartę i jej akcje', async () => {
     expect(NOC).not.toContain('CUSTOMERS_VIEW');
     const metody = ['detail', 'usage', 'migrationTimeline', 'hostingRestoreStatus', 'hostingBackups', 'runDiagnostics', 'listEligiblePlans', 'runHostingRestore'];

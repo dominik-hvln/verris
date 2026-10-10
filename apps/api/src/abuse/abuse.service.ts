@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { ZawieszenieOperatoraService } from '../subscriptions/zawieszenie-operatora.service.js';
+import { PocztaKontaOperatoraService } from '../subscriptions/poczta-konta-operatora.service.js';
 import { uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
 import type { DecyzjaNaduzyciaDto, ZgloszenieNaduzyciaDto } from './abuse.dto.js';
 import {
@@ -33,8 +34,8 @@ export function kandydaciDomeny(host: string): string[] {
  * N-13 — kolejka zgłoszeń nadużyć. DSA art. 16 (zgłoszenie z URL, uzasadnieniem, danymi
  * zgłaszającego i oświadczeniem o dobrej wierze, potwierdzenie przyjęcia) i art. 17
  * (uzasadnienie dla klienta przy ograniczeniu). F2.3 (10.10): decyzja „Podjęto działania” może od razu
- * zawiesić dopasowaną usługę (te same uprawnienia co z karty usługi) albo tylko powiadomić; kordon wysyłki
- * i usunięcie pliku zostają w innych narzędziach.
+ * zawiesić dopasowaną usługę (te same uprawnienia co z karty usługi) albo tylko powiadomić; F3.1 — może też
+ * zablokować wysyłkę poczty usługi (spam z konta). Usunięcie pliku zostaje w innych narzędziach.
  */
 @Injectable()
 export class AbuseService {
@@ -45,6 +46,7 @@ export class AbuseService {
     private readonly mailer: MailerService,
     private readonly audit: AuditService,
     private readonly zawieszenie: ZawieszenieOperatoraService,
+    private readonly poczta: PocztaKontaOperatoraService,
   ) {}
 
   private adresObslugi(): string {
@@ -147,6 +149,23 @@ export class AbuseService {
       throw new BadRequestException('Decyzja wymaga uzasadnienia (min. 20 znaków) — dostanie je zgłaszający.');
     }
     let zawieszono = false;
+    let wysylkaZablokowana = false;
+    // F3.1 — blokada wysyłki przed zawieszeniem: gdy się nie uda, decyzja nie zapisuje się, a maile nie wychodzą.
+    if (dto.blockSending) {
+      if (dto.status !== 'ACTION_TAKEN') throw new BadRequestException('Wysyłkę blokuje się razem z decyzją „Podjęto działania”.');
+      if (!r.subscriptionId) throw new BadRequestException('Zgłoszenie nie jest dopasowane do usługi — zablokuj wysyłkę z karty usługi.');
+      if (rola !== 'ADMIN' && !(await uprawnieniaOperatora(this.prisma, staffId)).includes('MAIL_SEND_BLOCK')) {
+        throw new ForbiddenException('Blokada wysyłki wymaga uprawnienia MAIL_SEND_BLOCK. Zapisz decyzję bez blokady albo poproś osobę z uprawnieniem.');
+      }
+      await this.poczta.zablokuj({
+        subscriptionId: r.subscriptionId,
+        operatorUserId: staffId,
+        operatorRole: rola ?? 'STAFF',
+        powod: `Nadużycie #${r.id.slice(0, 8)}: ${uzasadnienie}`.slice(0, 500),
+        zgloszenie: null,
+      });
+      wysylkaZablokowana = true;
+    }
     if (dto.suspendService) {
       if (dto.status !== 'ACTION_TAKEN') throw new BadRequestException('Usługę zawiesza się razem z decyzją „Podjęto działania”.');
       if (!r.subscriptionId) throw new BadRequestException('Zgłoszenie nie jest dopasowane do usługi — zawieś ją z karty usługi.');
@@ -189,7 +208,7 @@ export class AbuseService {
       action: `ABUSE_REPORT_${dto.status}`,
       userId: r.userId,
       actorUserId: staffId,
-      details: { reportId: id, customerNotified: klientPowiadomiony, ...(zawieszono ? { subscriptionId: r.subscriptionId, serviceSuspended: true } : {}) },
+      details: { reportId: id, customerNotified: klientPowiadomiony, ...(zawieszono ? { subscriptionId: r.subscriptionId, serviceSuspended: true } : {}), ...(wysylkaZablokowana ? { subscriptionId: r.subscriptionId, sendingBlocked: true } : {}) },
     }).catch(() => undefined);
     return po;
   }

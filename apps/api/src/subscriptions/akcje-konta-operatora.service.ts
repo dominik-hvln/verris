@@ -23,7 +23,11 @@ export type AkcjaKonta =
   | 'skan'
   | 'dns-dodaj'
   | 'dns-zmien'
-  | 'dns-usun';
+  | 'dns-usun'
+  // F3.1 (D4) — poczta konta (poczta-konta-operatora.service.ts).
+  | 'blokada-wysylki'
+  | 'zwolnienie-wysylki'
+  | 'kolejka-usun';
 
 /** Kto i dlaczego (D2): powód obowiązkowy, numer zgłoszenia klienta opcjonalny. */
 export interface ZlecenieOperatora {
@@ -38,12 +42,13 @@ export interface ZlecenieOperatora {
 type RekordDns = { domain: string; name: string; type: string; value: string; ttl?: number };
 type Szczegoly = Record<string, string | number | boolean | null | undefined>;
 
-interface Wlasciciel {
+export interface Wlasciciel {
   userId: string;
   email: string;
   firstName: string | null;
   domena: string;
   zgloszenieId: string | null;
+  konto: { id: string; daUsername: string; serverId: string };
 }
 
 export const MIN_POWOD = 10;
@@ -85,8 +90,9 @@ export class AkcjeKontaOperatoraService {
   /**
    * Wspólny przebieg: usługa z kontem (404 bez wpisu), powód, zgłoszenie klienta, operacja w kontekście operatora,
    * wpis klienta i wpis zespołu. Błąd węzła = błąd dla operatora (z treścią) i wpis „blad” w dzienniku zespołu.
+   * Publiczne dla akcji poczty konta (F3.1, poczta-konta-operatora.service.ts) — te same reguły D2/D3.
    */
-  private async wykonaj<T>(
+  async wykonaj<T>(
     z: ZlecenieOperatora,
     akcja: AkcjaKonta,
     cel: Szczegoly,
@@ -95,7 +101,7 @@ export class AkcjeKontaOperatoraService {
   ): Promise<T> {
     const sub = await this.prisma.subscription.findUnique({
       where: { id: z.subscriptionId },
-      select: { userId: true, user: { select: { email: true, firstName: true, role: true } }, account: { select: { id: true, domain: true } } },
+      select: { userId: true, user: { select: { email: true, firstName: true, role: true } }, account: { select: { id: true, domain: true, daUsername: true, serverId: true } } },
     });
     if (!sub) throw new NotFoundException('Usługa nie istnieje.');
     if (!sub.account) throw new NotFoundException('Usługa nie ma konta hostingowego.');
@@ -108,7 +114,8 @@ export class AkcjeKontaOperatoraService {
     const powod = (z.powod ?? '').trim();
     if (powod.length < MIN_POWOD) throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD} znaków) — zapisze się w dzienniku.`);
     const zgloszenieId = await this.zgloszenia.zgloszenieKlienta(sub.userId, z.zgloszenie);
-    const w: Wlasciciel = { userId: sub.userId, email: sub.user.email, firstName: sub.user.firstName, domena: sub.account.domain, zgloszenieId };
+    const konto = { id: sub.account.id, daUsername: sub.account.daUsername, serverId: sub.account.serverId };
+    const w: Wlasciciel = { userId: sub.userId, email: sub.user.email, firstName: sub.user.firstName, domena: sub.account.domain, zgloszenieId, konto };
 
     const dziennik = (wynik: Szczegoly) =>
       this.audit.record({

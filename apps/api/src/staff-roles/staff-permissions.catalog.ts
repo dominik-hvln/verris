@@ -36,6 +36,10 @@ export const STAFF_PERMISSIONS = [
   // F2.2 (D2, 10.10) — odwracalne akcje na koncie klienta z karty usługi, bez wchodzenia na konto; powód w dzienniku.
   { key: 'ACCOUNT_ACTIONS', area: 'Wsparcie', label: 'Akcje na koncie klienta: reset haseł (klient ustawia nowe), SSL, PHP, kopia, skan (z powodem, w dzienniku)' },
   { key: 'DNS_MANAGE', area: 'Wsparcie', label: 'Edycja rekordów DNS na koncie klienta (z powodem, w dzienniku)' },
+  // F3.1 (D4, 10.10) — poczta konta i węzła: kolejka exima (tylko nagłówki), blokada wysyłki konta.
+  { key: 'MAIL_QUEUE_VIEW', area: 'Wsparcie', label: 'Kolejka poczty konta klienta: nagłówki oczekujących wiadomości, bez treści (w dzienniku)' },
+  { key: 'MAIL_SEND_BLOCK', area: 'Bezpieczeństwo', label: 'Blokada i zwolnienie wysyłki poczty konta, usuwanie jego wiadomości z kolejki (z powodem, w dzienniku)' },
+  { key: 'MAIL_QUEUE_NODE', area: 'Infrastruktura', label: 'Kolejka poczty całego węzła: podgląd nagłówków i wypchnięcie kolejki' },
 ] as const;
 
 export type StaffPermission = (typeof STAFF_PERMISSIONS)[number]['key'];

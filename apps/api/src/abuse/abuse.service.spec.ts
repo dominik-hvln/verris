@@ -19,7 +19,7 @@ function zbuduj(opts: { konto?: object | null; domena?: object | null; raport?: 
   };
   const mailer = { send: vi.fn().mockResolvedValue({}) };
   const audit = { record: vi.fn().mockResolvedValue(undefined) };
-  return { s: new AbuseService(prisma as never, mailer as never, audit as never, {} as never), prisma, mailer, audit };
+  return { s: new AbuseService(prisma as never, mailer as never, audit as never, {} as never, {} as never), prisma, mailer, audit };
 }
 
 const ZGL = {
@@ -102,8 +102,9 @@ describe('N-13 — zgłoszenia nadużyć', () => {
         a.select?.staffRole ? { staffRole: { id: 'r', name: 'r', permissions: o.uprawnienia ?? [] } } : { id: 'u1', email: 'klient@example.pl' },
       );
       const zawieszenie = { zawies: o.blad ? vi.fn().mockRejectedValue(o.blad) : vi.fn().mockResolvedValue({ status: 'SUSPENDED' }) };
-      const s = new AbuseService(b.prisma as never, b.mailer as never, b.audit as never, zawieszenie as never);
-      return { ...b, s, zawieszenie };
+      const poczta = { zablokuj: o.blad ? vi.fn().mockRejectedValue(o.blad) : vi.fn().mockResolvedValue({ ok: true, zablokowana: true }) };
+      const s = new AbuseService(b.prisma as never, b.mailer as never, b.audit as never, zawieszenie as never, poczta as never);
+      return { ...b, s, zawieszenie, poczta };
     }
 
     it('STAFF z SUBSCRIPTIONS_SUSPEND: zawiesza dopasowaną usługę (ABUSE, powód z numerem zgłoszenia nadużycia), potem decyzja i dziennik', async () => {
@@ -143,6 +144,32 @@ describe('N-13 — zgłoszenia nadużyć', () => {
       const { s, zawieszenie } = zZawieszeniem({ uprawnienia: ['SUBSCRIPTIONS_SUSPEND'] });
       await s.decyzja('r1', { status: 'ACTION_TAKEN', decision: UZ, notifyCustomer: true }, 'staff1', 'STAFF');
       expect(zawieszenie.zawies).not.toHaveBeenCalled();
+    });
+
+    /** F3.1 (D4) — „zablokuj wysyłkę” obok zawieszenia i powiadomienia: te same uprawnienia co z karty usługi. */
+    it('F3.1: STAFF z MAIL_SEND_BLOCK blokuje wysyłkę usługi (powód z numerem nadużycia), bez zawieszenia; dziennik ma sendingBlocked', async () => {
+      const { s, poczta, zawieszenie, prisma, audit } = zZawieszeniem({ uprawnienia: ['ABUSE_MANAGE', 'MAIL_SEND_BLOCK'] });
+      await s.decyzja('r1', { status: 'ACTION_TAKEN', decision: UZ, blockSending: true }, 'staff1', 'STAFF');
+      expect(poczta.zablokuj).toHaveBeenCalledWith({ subscriptionId: 's1', operatorUserId: 'staff1', operatorRole: 'STAFF', powod: `Nadużycie #r1abcdef: ${UZ}`, zgloszenie: null });
+      expect(zawieszenie.zawies).not.toHaveBeenCalled();
+      expect(poczta.zablokuj.mock.invocationCallOrder[0]).toBeLessThan(prisma.abuseReport.update.mock.invocationCallOrder[0]!);
+      expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ details: expect.objectContaining({ sendingBlocked: true, subscriptionId: 's1' }) }));
+    });
+
+    it('F3.1: bez MAIL_SEND_BLOCK → 403 bez blokady i bez zapisu decyzji; tylko przy „Podjęto działania” i dopasowanej usłudze', async () => {
+      const bez = zZawieszeniem({ uprawnienia: ['ABUSE_MANAGE', 'SUBSCRIPTIONS_SUSPEND'] });
+      await expect(bez.s.decyzja('r1', { status: 'ACTION_TAKEN', decision: UZ, blockSending: true }, 'staff1', 'STAFF')).rejects.toBeInstanceOf(ForbiddenException);
+      expect(bez.poczta.zablokuj).not.toHaveBeenCalled();
+      expect(bez.prisma.abuseReport.update).not.toHaveBeenCalled();
+      await expect(zZawieszeniem().s.decyzja('r1', { status: 'REJECTED', decision: UZ, blockSending: true }, 'adm', 'ADMIN')).rejects.toThrow(/Podjęto działania/);
+      await expect(zZawieszeniem({ subscriptionId: null }).s.decyzja('r1', { status: 'ACTION_TAKEN', decision: UZ, blockSending: true }, 'adm', 'ADMIN')).rejects.toThrow(/karty usługi/);
+    });
+
+    it('F3.1: blokada się nie udała (błąd węzła) → błąd, nic nie zawieszone, decyzja niezapisana', async () => {
+      const { s, prisma, zawieszenie } = zZawieszeniem({ blad: new Error('węzeł nie potwierdził blokady') });
+      await expect(s.decyzja('r1', { status: 'ACTION_TAKEN', decision: UZ, blockSending: true, suspendService: true }, 'adm', 'ADMIN')).rejects.toThrow(/węzeł/);
+      expect(zawieszenie.zawies).not.toHaveBeenCalled();
+      expect(prisma.abuseReport.update).not.toHaveBeenCalled();
     });
   });
 });

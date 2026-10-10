@@ -45,6 +45,9 @@ import { DiskUsageService } from './disk-usage.service.js';
 import { MalwareScanService } from './malware-scan.service.js';
 import { RedisAccessService } from './redis-access.service.js';
 import { MailLogService } from './mail-log.service.js';
+import { PocztaKontaOperatoraService } from './poczta-konta-operatora.service.js';
+import { PocztaKontaAdminController } from './poczta-konta.admin.controller.js';
+import { DeliverabilityModule } from '../deliverability/deliverability.module.js';
 import { GitDeployService } from './git-deploy.service.js';
 import { SiteCloneService } from './site-clone.service.js';
 import { HtaccessService } from './htaccess.service.js';
@@ -85,9 +88,10 @@ import { ZawieszenieOperatoraService } from './zawieszenie-operatora.service.js'
 import { ComplianceModule } from '../compliance/compliance.module.js';
 
 @Module({
-  imports: [ServersModule, PlatformSettingsModule, EcoModule, forwardRef(() => BillingModule), MailModule, NotificationsModule, ApiTokensModule, ComplianceModule, TicketsModule],
+  imports: [ServersModule, DeliverabilityModule, PlatformSettingsModule, EcoModule, forwardRef(() => BillingModule), MailModule, NotificationsModule, ApiTokensModule, ComplianceModule, TicketsModule],
   providers: [
     SubscriptionsService,
+    PocztaKontaOperatoraService,
     WarunkiIndywidualneService,
     PlanChangeService,
     ProvisioningService,
@@ -163,6 +167,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
     WafAdminController,
     KontoKlientaAdminController,
     KontoKlientaAkcjeAdminController,
+    PocztaKontaAdminController,
     MigracjaZgodaController,
   ],
   exports: [
@@ -171,6 +176,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
     ProvisioningQueueService,
     MigrationOrchestratorService,
     ZawieszenieOperatoraService,
+    PocztaKontaOperatoraService,
   ],
 })
 export class SubscriptionsModule {}

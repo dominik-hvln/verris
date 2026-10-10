@@ -76,6 +76,11 @@ export const SupportActions = {
    * HOSTING_* jako „obsługa Verris (zgłoszenie #…)” — ten jest dziennikiem zespołu.
    */
   OPERATOR_ACCOUNT_CHANGED: 'OPERATOR_ACCOUNT_CHANGED',
+  /** F3.1 — węzeł usunął z kolejki wiadomości konta (zlecenie „Usuń wiadomości konta z kolejki”); details.usunieto. */
+  MAIL_QUEUE_MESSAGES_REMOVED: 'MAIL_QUEUE_MESSAGES_REMOVED',
+  /** F3.1 — operator odczytał albo wypchnął kolejkę poczty całego węzła; details.serverId, tryb. */
+  NODE_MAIL_QUEUE_VIEWED: 'NODE_MAIL_QUEUE_VIEWED',
+  NODE_MAIL_QUEUE_FLUSHED: 'NODE_MAIL_QUEUE_FLUSHED',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -263,6 +268,10 @@ export const HostingResourceActions = {
   HOSTING_DNS_RECORD_UPDATED: 'HOSTING_DNS_RECORD_UPDATED',
   HOSTING_DNS_RECORD_DELETED: 'HOSTING_DNS_RECORD_DELETED',
   HOSTING_PHP_VERSION_CHANGED: 'HOSTING_PHP_VERSION_CHANGED',
+  // F3.1 (D3/D4) — poczta konta: blokada i zwolnienie wysyłki, usunięcie wiadomości z kolejki (klient widzi w aktywności).
+  HOSTING_MAIL_SENDING_BLOCKED: 'HOSTING_MAIL_SENDING_BLOCKED',
+  HOSTING_MAIL_SENDING_UNBLOCKED: 'HOSTING_MAIL_SENDING_UNBLOCKED',
+  HOSTING_MAIL_QUEUE_PURGE_QUEUED: 'HOSTING_MAIL_QUEUE_PURGE_QUEUED',
 } as const;
 
 export const MigrationActions = {

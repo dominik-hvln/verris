@@ -86,6 +86,24 @@ export class OutboundAbuseGuard implements OnModuleDestroy {
     return this.memCordon.has(userId);
   }
 
+  /** Powód aktywnego kordonu albo null (F3.1 — zwolnienie blokady obsługi zdejmuje tylko kordon z tej blokady). */
+  async powodKordonu(userId: string): Promise<string | null> {
+    if (this.redis) {
+      try {
+        const raw = await this.redis.get(this.cordonKey(userId));
+        if (raw === null) return null;
+        try {
+          return (JSON.parse(raw) as { reason?: string }).reason ?? '';
+        } catch {
+          return '';
+        }
+      } catch {
+        /* fallthrough to memory */
+      }
+    }
+    return this.memCordon.get(userId)?.reason ?? null;
+  }
+
   /** Rzuca 403, gdy konto jest cordonowane. Wołane przed startem wysyłki. */
   async assertNotCordoned(userId: string): Promise<void> {
     if (await this.isCordoned(userId)) {
@@ -160,7 +178,8 @@ export class OutboundAbuseGuard implements OnModuleDestroy {
       })
       .catch(() => undefined);
 
-    const inbox = process.env.SECURITY_ALERT_EMAIL;
+    // F3.1 — kordon z blokady nałożonej przez obsługę: operator już wie, alert „auto-cordon” wprowadzałby w błąd.
+    const inbox = ctx?.source === 'operator' ? undefined : process.env.SECURITY_ALERT_EMAIL;
     if (inbox) {
       await this.mailer
         .send({

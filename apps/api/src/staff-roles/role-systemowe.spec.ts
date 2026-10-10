@@ -78,6 +78,17 @@ describe('PB-47 — katalog uprawnień i role systemowe', () => {
     expect(ROLE_FUNKCYJNE.find((r) => r.name === 'Nadużycia i bezpieczeństwo')!.permissions).toContain('ACCOUNT_ACTIONS');
   });
 
+  it('F3.1 (D4): kolejka poczty konta od L2, blokada wysyłki od L3 (i abuse, NOC), kolejka węzła tylko NOC', () => {
+    const rola = (n: string) => ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions as readonly string[];
+    expect(rola('L1 Konsultant')).not.toContain('MAIL_QUEUE_VIEW');
+    expect(rola('L2 Specjalista techniczny')).toContain('MAIL_QUEUE_VIEW');
+    expect(rola('L2 Specjalista techniczny')).not.toContain('MAIL_SEND_BLOCK');
+    for (const n of ['L3 Starszy specjalista', 'L4 Kierownik zmiany', 'Nadużycia i bezpieczeństwo', 'Inżynier infrastruktury (NOC/DevOps)']) {
+      expect({ n, p: rola(n).includes('MAIL_SEND_BLOCK') && rola(n).includes('MAIL_QUEUE_VIEW') }).toEqual({ n, p: true });
+    }
+    expect(ROLE_SYSTEMOWE.filter((r) => r.permissions.includes('MAIL_QUEUE_NODE' as never)).map((r) => r.name)).toEqual(['Inżynier infrastruktury (NOC/DevOps)']);
+  });
+
   it('B2: baza wiedzy (KB_MANAGE) tylko dla L4 i Marketingu — L1–L3 jej nie zmieniają', () => {
     const [l1, l2, l3, l4] = SZCZEBLE;
     for (const r of [l1, l2, l3]) expect(r.permissions).not.toContain('KB_MANAGE');

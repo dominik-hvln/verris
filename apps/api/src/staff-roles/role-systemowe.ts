@@ -21,6 +21,8 @@ const L2: readonly StaffPermission[] = [
   'ACCOUNT_DIAGNOSTICS_VIEW',
   // F2.2 (D2, 10.10) — odwracalne akcje na koncie (hasła, SSL, PHP, kopia, skan) z powodem.
   'ACCOUNT_ACTIONS',
+  // F3.1 (10.10) — kolejka poczty konta (nagłówki, bez treści): „gdzie jest mój mail” bez SSH.
+  'MAIL_QUEUE_VIEW',
   'SUBSCRIPTIONS_MANAGE',
   'MIGRATIONS_MANAGE',
   'CUSTOMERS_IMPERSONATE',
@@ -36,6 +38,8 @@ const L3: readonly StaffPermission[] = [
   'SUBSCRIPTIONS_SUSPEND',
   // F2.2 — rekordy DNS klienta (zła zmiana wyłącza stronę i pocztę) od L3.
   'DNS_MANAGE',
+  // F3.1 (D4) — blokada wysyłki konta i usunięcie jego wiadomości z kolejki (nieodwracalne) od L3.
+  'MAIL_SEND_BLOCK',
 ];
 const L4: readonly StaffPermission[] = [
   ...L3,
@@ -63,13 +67,13 @@ export const SZCZEBLE: readonly RolaSystemowa[] = [
   {
     name: 'L2 Specjalista techniczny',
     description:
-      'Wszystko z L1 oraz podgląd konta klienta (DNS, poczta, bazy, logi), akcje na koncie (hasła, SSL, PHP, kopia, skan), zmiany usług, migracje, wejście na konto klienta i podgląd węzłów. Nie blokuje klientów i nie rusza finansów.',
+      'Wszystko z L1 oraz podgląd konta klienta (DNS, poczta, bazy, logi, kolejka poczty), akcje na koncie (hasła, SSL, PHP, kopia, skan), zmiany usług, migracje, wejście na konto klienta i podgląd węzłów. Nie blokuje klientów i nie rusza finansów.',
     permissions: L2,
   },
   {
     name: 'L3 Starszy specjalista',
     description:
-      'Wszystko z L2 oraz zarządzanie klientami (edycja, blokady), zawieszanie usług, edycja DNS klienta, nadużycia, indywidualne warunki i kolejka provisioningu. Kredyty, korekty i portfel zostają dla L4.',
+      'Wszystko z L2 oraz zarządzanie klientami (edycja, blokady), zawieszanie usług, edycja DNS klienta, blokada wysyłki poczty, nadużycia, indywidualne warunki i kolejka provisioningu. Kredyty, korekty i portfel zostają dla L4.',
     permissions: L3,
   },
   {
@@ -102,7 +106,7 @@ export const ROLE_FUNKCYJNE: readonly RolaSystemowa[] = [
   {
     name: 'Nadużycia i bezpieczeństwo',
     description:
-      'Zespół abuse: zgłoszenia nadużyć, blokady kont, zawieszanie usług, podgląd konta klienta i akcje na nim (reset hasła, skan), węzły i dziennik bezpieczeństwa. Nie rusza rozliczeń.',
+      'Zespół abuse: zgłoszenia nadużyć, blokady kont i wysyłki poczty, zawieszanie usług, podgląd konta klienta i akcje na nim (reset hasła, skan), węzły i dziennik bezpieczeństwa. Nie rusza rozliczeń.',
     permissions: [
       'CUSTOMERS_VIEW',
       'CUSTOMERS_MANAGE',
@@ -110,6 +114,9 @@ export const ROLE_FUNKCYJNE: readonly RolaSystemowa[] = [
       'ACCOUNT_DIAGNOSTICS_VIEW',
       // F2.2 — przejęta skrzynka wysyła spam: reset hasła i skan bez wchodzenia na konto.
       'ACCOUNT_ACTIONS',
+      // F3.1 — spam z konta: podgląd kolejki, blokada wysyłki i usunięcie wiadomości z kolejki.
+      'MAIL_QUEUE_VIEW',
+      'MAIL_SEND_BLOCK',
       'ABUSE_MANAGE',
       'AUDIT_VIEW',
       'NODES_VIEW',
@@ -120,7 +127,7 @@ export const ROLE_FUNKCYJNE: readonly RolaSystemowa[] = [
   {
     name: 'Inżynier infrastruktury (NOC/DevOps)',
     description:
-      'Utrzymanie floty: węzły, provisioning, migracje i usługi, podgląd konta klienta przy awariach. Nie widzi rozliczeń i nie odpowiada klientom w zgłoszeniach.',
+      'Utrzymanie floty: węzły, kolejka poczty i blokada wysyłki kont, provisioning, migracje i usługi, podgląd konta klienta przy awariach. Nie widzi rozliczeń i nie odpowiada klientom w zgłoszeniach.',
     permissions: [
       'DASHBOARD_VIEW',
       'NODES_VIEW',
@@ -129,6 +136,10 @@ export const ROLE_FUNKCYJNE: readonly RolaSystemowa[] = [
       'MIGRATIONS_MANAGE',
       'SUBSCRIPTIONS_MANAGE',
       'ACCOUNT_DIAGNOSTICS_VIEW',
+      // F3.1 (D4) — kolejka MTA węzła (podgląd, wypchnięcie) oraz blokada wysyłki konta przy incydencie.
+      'MAIL_QUEUE_NODE',
+      'MAIL_QUEUE_VIEW',
+      'MAIL_SEND_BLOCK',
       'TICKETS_VIEW',
     ],
   },
