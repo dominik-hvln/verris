@@ -1,9 +1,12 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { FakturaRecznaForm } from "./form";
 
 export const dynamic = "force-dynamic";
 
-export default function FakturaRecznaPage() {
+export default async function FakturaRecznaPage() {
+  const bramka = await bramkaStrony("/invoices/reczna");
+  if (bramka) return bramka;
   return (
     <div className="space-y-6 p-6">
       <header>

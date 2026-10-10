@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { getRolesCatalog, getRoles } from "./actions";
 import { RolesClient } from "./roles-client";
 import { NieWczytano } from "@/components/nie-wczytano";
@@ -6,6 +7,8 @@ import { wynik } from "@/components/blad-strony";
 export const dynamic = "force-dynamic";
 
 export default async function RolesPage() {
+  const bramka = await bramkaStrony("/roles");
+  if (bramka) return bramka;
   // Fala 1B — bez katalogu albo ról lista byłaby pusta i wyglądała jak „brak ról”; komunikat z ponowieniem.
   const w = await wynik(Promise.all([getRolesCatalog(), getRoles()]));
 

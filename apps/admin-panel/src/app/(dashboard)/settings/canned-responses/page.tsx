@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { MessageSquare } from "lucide-react";
 import { fetchCanned } from "./actions";
 import { CannedClient } from "./canned-client";
@@ -7,6 +8,8 @@ import { NieWczytano } from "@/components/nie-wczytano";
 export const dynamic = "force-dynamic";
 
 export default async function CannedResponsesPage() {
+  const bramka = await bramkaStrony("/settings/canned-responses");
+  if (bramka) return bramka;
   const rows = await wynik(fetchCanned());
   return (
     <div className="space-y-6 p-6 max-w-4xl">

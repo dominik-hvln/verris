@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { fetchAdminDashboardOverview } from "@/lib/admin-overview-data";
 import { WalletCsvExportButton } from "./csv-export-button";
 import { days, plForm } from "@/lib/pl";
@@ -5,6 +6,8 @@ import { days, plForm } from "@/lib/pl";
 export const dynamic = "force-dynamic";
 
 export default async function BillingPage() {
+  const bramka = await bramkaStrony("/billing");
+  if (bramka) return bramka;
   let overview = null as Awaited<ReturnType<typeof fetchAdminDashboardOverview>> | null;
   let err: string | null = null;
   try {

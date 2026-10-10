@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { listProvisioningQueue, listNodeTasks } from "./data";
 import { RetryButton } from "./retry-button";
 import { OdrzucButton } from "./odrzuc-button";
@@ -37,6 +38,8 @@ export default async function ProvisioningQueuePage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  const bramka = await bramkaStrony("/provisioning-queue");
+  if (bramka) return bramka;
   const sp = await searchParams;
   const state = sp.state ?? "";
   const w = await wynik(listProvisioningQueue(state || undefined));

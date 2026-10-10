@@ -1,9 +1,12 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { fetchVpnOverview } from "./actions";
 import { VpnManager } from "./vpn-manager";
 
 export const dynamic = "force-dynamic";
 
 export default async function VpnPage() {
+  const bramka = await bramkaStrony("/vpn");
+  if (bramka) return bramka;
   const { data, error } = await fetchVpnOverview();
 
   return (

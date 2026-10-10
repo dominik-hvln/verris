@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { ArrowLeft, AlertCircle, Cpu, MemoryStick, HardDrive, Gauge, Ban } from "lucide-react";
 import { adminApi } from "@/lib/api";
@@ -40,6 +41,8 @@ const WYMIARY = [
  * Te same reguły co automatyczny przydział kont i prognoza węzła.
  */
 export default async function FleetCapacityPage() {
+  const bramka = await bramkaStrony("/nodes/capacity");
+  if (bramka) return bramka;
   let wezly: Wezel[] = [];
   let error: string | null = null;
   try {

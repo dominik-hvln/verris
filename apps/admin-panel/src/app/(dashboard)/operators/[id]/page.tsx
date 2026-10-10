@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { ArrowLeft, ShieldAlert, ShieldCheck, AlertTriangle } from "lucide-react";
 import { KARTA } from "@/components/v2";
@@ -56,6 +57,8 @@ function Wiersz({ nazwa, opis, powod, wartosc, children }: { nazwa: string; opis
  * (staff-roles.admin.controller.ts, users.admin.controller.ts); operatorowi z STAFF_MANAGE są wyszarzone.
  */
 export default async function OperatorDetailPage({ params }: PageProps) {
+  const bramka = await bramkaStrony("/operators/[id]");
+  if (bramka) return bramka;
   const { id } = await params;
   const [dostep, historia, operatorzyW, roleW] = await Promise.all([
     fetchStaffAccess(),

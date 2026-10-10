@@ -6,6 +6,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Wykres, najblizszy } from "@/components/wykres";
 
+// D1 — bramka strony (uprawnienia z mapy STRONY) ma własne testy (uprawnienia-stron.spec.tsx); tu treść strony.
+jest.mock("@/lib/bramka-strony", () => ({ bramkaStrony: async () => null }));
 jest.mock("next/headers", () => ({ headers: async () => new Headers(), cookies: async () => ({ get: () => undefined }) }));
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push: () => undefined }) }));
 jest.mock("@/lib/api", () => ({ AdminApiError: class extends Error {}, adminApi: jest.fn() }));

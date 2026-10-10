@@ -3,6 +3,9 @@
 import { redirect } from "next/navigation";
 import { adminApi, AdminApiError } from "./api";
 import { setAdminAuthCookie, removeAdminAuthCookie } from "./auth";
+import { rolaPaneluOperatora } from "./rola-operatora";
+
+const BRAK_DOSTEPU = "To konto nie ma dostępu do panelu operatora Verris.";
 
 export async function adminLogin(email: string, password: string) {
   try {
@@ -14,8 +17,9 @@ export async function adminLogin(email: string, password: string) {
       method: "POST",
       body: { email, password },
     });
-    if (res.user.role !== "ADMIN") {
-      return { error: "To konto nie ma uprawnień administratora Verris Core." };
+    // D1 — panel operatora dla ADMIN i STAFF (zakres STAFF wyznaczają uprawnienia ról).
+    if (!rolaPaneluOperatora(res.user.role)) {
+      return { error: BRAK_DOSTEPU };
     }
     await setAdminAuthCookie(res.access_token);
     return {
@@ -44,8 +48,9 @@ export async function adminBreakGlassLogin(input: {
       "/auth/login/break-glass",
       { method: "POST", body: input },
     );
-    if (res.user.role !== "ADMIN") {
-      return { error: "To konto nie ma uprawnień administratora Verris Core." };
+    // D1 — panel operatora dla ADMIN i STAFF (zakres STAFF wyznaczają uprawnienia ról).
+    if (!rolaPaneluOperatora(res.user.role)) {
+      return { error: BRAK_DOSTEPU };
     }
     await setAdminAuthCookie(res.access_token);
     return { success: true as const };

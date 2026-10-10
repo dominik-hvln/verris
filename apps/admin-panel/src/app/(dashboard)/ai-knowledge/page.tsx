@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { AlertCircle, Brain } from "lucide-react";
 import type { AiKnowledgeDocSummaryDto, AiStatusDto } from "@verris/contracts";
 import { fetchAiStatus, listKnowledgeDocs } from "./data";
@@ -7,6 +8,8 @@ import { StaffAssistant } from "@/components/staff-assistant";
 export const dynamic = "force-dynamic";
 
 export default async function AiKnowledgePage() {
+  const bramka = await bramkaStrony("/ai-knowledge");
+  if (bramka) return bramka;
   let docs: AiKnowledgeDocSummaryDto[] = [];
   let error: string | null = null;
   let status: AiStatusDto | null = null;

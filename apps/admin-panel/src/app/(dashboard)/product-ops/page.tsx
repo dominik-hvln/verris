@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { plForm, plural } from "@/lib/pl";
 import { getProductOpsDashboard } from "./data";
 import { Announcements, Maintenance } from "./notices";
@@ -9,6 +10,8 @@ export const dynamic = "force-dynamic";
 const rekordy = (n: number) => plural(n, "rekord", "rekordy", "rekordów");
 
 export default async function ProductOpsPage() {
+  const bramka = await bramkaStrony("/product-ops");
+  if (bramka) return bramka;
   const w = await wynik(getProductOpsDashboard());
   if (!w.ok) return <BladStrony blad={w.blad} tytul="Komunikaty i flagi" />;
   const data = w.dane;

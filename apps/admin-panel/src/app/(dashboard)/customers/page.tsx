@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { Search, UserCog } from "lucide-react";
 import { formatCredits } from "@/lib/credits";
@@ -8,6 +9,8 @@ import { CreditWalletButton } from "./credit-wallet-button";
 import { CreateCustomerButton } from "./create-customer-button";
 import { getAdminSession } from "@/lib/session";
 import { plForm } from "@/lib/pl";
+import { fetchStaffAccess } from "@/lib/staff-access";
+import { brakUprawnienia } from "@/lib/akcje/wezel";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +19,8 @@ interface PageProps {
 }
 
 export default async function AdminCustomersPage({ searchParams }: PageProps) {
+  const bramka = await bramkaStrony("/customers");
+  if (bramka) return bramka;
   const params = await searchParams;
   const search = params.search?.trim() || undefined;
   const page = Number.parseInt(params.page ?? "1", 10) || 1;
@@ -30,6 +35,12 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
 
   // Tylko oznaczenie „to Ty” na liście — bez sesji lista działa bez niego.
   const ja = (await getAdminSession().catch(() => null))?.id;
+  // D1 — przyciski wg uprawnień (jak strażniki API): zakładanie konta CUSTOMERS_MANAGE, kredyty BILLING_MANAGE,
+  // wejście na konto CUSTOMERS_IMPERSONATE (operator — tylko na konta klientów).
+  const dostep = await fetchStaffAccess();
+  const zalozy = !brakUprawnienia("CUSTOMERS_MANAGE", dostep);
+  const kredyty = !brakUprawnienia("BILLING_MANAGE", dostep);
+  const wejdzie = !brakUprawnienia({ wszystkie: ["CUSTOMERS_VIEW", "CUSTOMERS_IMPERSONATE"] }, dostep);
   const MALY = `${PRZYCISK} !h-8 !px-3 !text-[13px]`;
   return (
     <div className="flex flex-col gap-[22px]">
@@ -40,7 +51,7 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
           {data ? <span className="text-[15px] text-muted-foreground">{data.total.toLocaleString("pl-PL")} {plForm(data.total, "konto", "konta", "kont")} (klienci, obsługa i administratorzy)</span> : null}
         </div>
         <div className="ml-auto flex items-center gap-2.5">
-          <CreateCustomerButton />
+          {zalozy ? <CreateCustomerButton /> : null}
         </div>
       </div>
 
@@ -139,8 +150,8 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
                     </span>
                   ) : (
                     <>
-                      <CreditWalletButton userId={user.id} email={user.email} currentBalance={user.walletBalance} className={MALY} etykieta="+ K" />
-                      {user.id !== ja ? (
+                      {kredyty ? <CreditWalletButton userId={user.id} email={user.email} currentBalance={user.walletBalance} className={MALY} etykieta="+ K" /> : null}
+                      {wejdzie && user.id !== ja && (dostep.isAdmin || user.role === "USER") ? (
                         <ImpersonateButton userId={user.id} email={user.email} accountRole={user.role} className={MALY} etykieta="Zaloguj" />
                       ) : null}
                     </>

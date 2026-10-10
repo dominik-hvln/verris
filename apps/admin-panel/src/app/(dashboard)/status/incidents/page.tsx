@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { ShieldAlert, AlertCircle } from "lucide-react";
 import { listIncidents, listProbes, listServersForProbes } from "../actions";
 import { IncidentCompose } from "./incident-compose";
@@ -11,6 +12,8 @@ interface PageProps {
 }
 
 export default async function StatusIncidentsPage({ searchParams }: PageProps) {
+  const bramka = await bramkaStrony("/status/incidents");
+  if (bramka) return bramka;
   const params = await searchParams;
   const status = params.status === "RESOLVED" ? "RESOLVED" : params.status === "OPEN" ? "OPEN" : undefined;
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);

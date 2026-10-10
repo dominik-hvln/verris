@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { listAuditLogs } from "./data";
 import { AuditFiltersBar } from "./filters-bar";
 import { AuditTable } from "./table";
@@ -22,6 +23,8 @@ export default async function AuditLogPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  const bramka = await bramkaStrony("/audit");
+  if (bramka) return bramka;
   const sp = await searchParams;
   const limit = 50;
   const page = Math.max(1, Number.parseInt(sp.page ?? "1", 10) || 1);

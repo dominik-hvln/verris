@@ -6,11 +6,35 @@ import type { PartnerConfig, AdminPayout } from "./data";
 import { updatePartnerConfigAction, processPayoutAction } from "./actions";
 import { Checkbox } from '@/components/checkbox';
 
-export function PartnersClient({ config, payouts }: { config: PartnerConfig; payouts: AdminPayout[] }) {
+export function PartnersClient({
+  config,
+  payouts,
+  zasady = true,
+  wyplaty = true,
+}: {
+  config: PartnerConfig;
+  payouts: AdminPayout[];
+  /** D1 — zasady programu (PUT admin/partners/config) zmienia tylko administrator. */
+  zasady?: boolean;
+  /** Wypłaty — BILLING_MANAGE. */
+  wyplaty?: boolean;
+}) {
   return (
     <div className="space-y-8">
-      <ConfigForm config={config} />
-      <PayoutQueue payouts={payouts} />
+      {zasady ? (
+        <ConfigForm config={config} />
+      ) : (
+        <fieldset disabled className="contents" data-tylko-podglad="">
+          <ConfigForm config={config} />
+        </fieldset>
+      )}
+      {wyplaty ? (
+        <PayoutQueue payouts={payouts} />
+      ) : (
+        <fieldset disabled className="contents" data-tylko-podglad="">
+          <PayoutQueue payouts={payouts} />
+        </fieldset>
+      )}
     </div>
   );
 }

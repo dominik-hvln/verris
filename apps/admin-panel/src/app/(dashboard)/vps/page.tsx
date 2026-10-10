@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { Server } from "lucide-react";
 import { fetchVpsAvailability, fetchVpsPlans, fetchHetznerServerTypes, fetchVpsSnapshotSettings } from "./actions";
 import { VpsPlansClient } from "./vps-plans-client";
@@ -8,6 +9,8 @@ import { NieWczytano } from "@/components/nie-wczytano";
 export const dynamic = "force-dynamic";
 
 export default async function AdminVpsPage() {
+  const bramka = await bramkaStrony("/vps");
+  if (bramka) return bramka;
   const [available, plans, serverTypes, snapshotSettings] = await Promise.all([
     fetchVpsAvailability(),
     wynik(fetchVpsPlans()),

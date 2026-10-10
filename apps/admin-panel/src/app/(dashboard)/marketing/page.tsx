@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { AlertCircle, Mail } from "lucide-react";
 import { listCampaigns, type CampaignRow } from "./data";
 import { MarketingClient } from "./marketing-client";
@@ -5,6 +6,8 @@ import { MarketingClient } from "./marketing-client";
 export const dynamic = "force-dynamic";
 
 export default async function MarketingPage() {
+  const bramka = await bramkaStrony("/marketing");
+  if (bramka) return bramka;
   let rows: CampaignRow[] = [];
   let error: string | null = null;
   try {

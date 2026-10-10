@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { fetchKosztyAi, fetchUstawieniaAi } from './actions';
 import { UstawieniaAiForm } from './ustawienia-ai-form';
 import { KosztyAiPanel } from './koszty-ai';
@@ -6,6 +7,8 @@ import { BladStrony, wynik } from "@/components/blad-strony";
 export const dynamic = 'force-dynamic';
 
 export default async function UstawieniaAiPage() {
+  const bramka = await bramkaStrony("/settings/ai");
+  if (bramka) return bramka;
   const w = await wynik(Promise.all([fetchUstawieniaAi(), fetchKosztyAi()]));
   if (!w.ok) return <BladStrony blad={w.blad} tytul="Asystent AI" powrot={{ href: "/", label: "Pulpit" }} />;
   const [ustawienia, koszty] = w.dane;

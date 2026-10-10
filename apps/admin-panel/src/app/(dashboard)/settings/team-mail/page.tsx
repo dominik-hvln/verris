@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { Mail } from "lucide-react";
 import { listSystemAddresses, listTeamMailboxes } from "./actions";
@@ -6,6 +7,8 @@ import { TeamMailClient } from "./team-mail-client";
 export const dynamic = "force-dynamic";
 
 export default async function TeamMailPage() {
+  const bramka = await bramkaStrony("/settings/team-mail");
+  if (bramka) return bramka;
   let mailboxes: Awaited<ReturnType<typeof listTeamMailboxes>> = [];
   let systemAddresses: Awaited<ReturnType<typeof listSystemAddresses>> = [];
   let loadError: string | null = null;

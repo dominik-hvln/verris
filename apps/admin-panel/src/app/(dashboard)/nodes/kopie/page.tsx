@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { adminApi } from "@/lib/api";
 import { BladStrony } from "@/components/blad-strony";
 import { Pomoc } from "@/components/pomoc";
@@ -17,6 +18,8 @@ const chwila = () => Date.now();
  * Próbę zapisuje skrypt ops/scripts/restore-drill-isolated.sh; model nie ma węzła ani konta — grupujemy po źródle kopii.
  */
 export default async function ProbyOdtworzeniaPage() {
+  const bramka = await bramkaStrony("/nodes/kopie");
+  if (bramka) return bramka;
   let proby: ProbaOdtworzenia[];
   try {
     proby = await adminApi<ProbaOdtworzenia[]>("/admin/live-readiness/proby-odtworzenia");

@@ -4,6 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
  * Fala 1B (audyt OP-11) — błąd API pod listą to „Nie udało się wczytać — Spróbuj ponownie”, nie pusta lista
  * („Brak operacji”, „Brak zarejestrowanych działań”), która wygląda na prawdziwy stan. Reszta strony działa.
  */
+// D1 — bramka strony (uprawnienia z mapy STRONY) ma własne testy (uprawnienia-stron.spec.tsx); tu treść strony.
+jest.mock("@/lib/bramka-strony", () => ({ bramkaStrony: async () => null }));
 jest.mock("next/headers", () => ({ headers: async () => new Headers(), cookies: async () => ({ get: () => undefined }) }));
 jest.mock("next/navigation", () => ({
   notFound: () => {

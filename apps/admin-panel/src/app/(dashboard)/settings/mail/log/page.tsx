@@ -1,9 +1,12 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { ScrollText } from 'lucide-react';
 import { EmailLogClient } from './email-log-client';
 
 export const metadata = { title: 'Dziennik poczty — admin Verris' };
 
-export default function EmailLogPage() {
+export default async function EmailLogPage() {
+  const bramka = await bramkaStrony("/settings/mail/log");
+  if (bramka) return bramka;
   return (
     <div className="space-y-6 p-8">
       <div className="flex items-center gap-3">

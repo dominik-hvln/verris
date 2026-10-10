@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { Mail } from 'lucide-react';
 import { fetchMailSettings } from './actions';
 import { MailSettingsForm } from './mail-settings-form';
@@ -6,6 +7,8 @@ import { BladStrony, wynik } from "@/components/blad-strony";
 export const metadata = { title: 'Poczta — admin Verris' };
 
 export default async function MailSettingsPage() {
+  const bramka = await bramkaStrony("/settings/mail");
+  if (bramka) return bramka;
   const w = await wynik(fetchMailSettings());
   if (!w.ok) return <BladStrony blad={w.blad} tytul="Poczta wychodząca" powrot={{ href: "/", label: "Pulpit" }} />;
   const settings = w.dane;

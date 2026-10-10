@@ -1,10 +1,13 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { NewPlanForm } from "./new-plan-form";
 
 export const dynamic = "force-dynamic";
 
-export default function NewPlanPage() {
+export default async function NewPlanPage() {
+  const bramka = await bramkaStrony("/plans/new");
+  if (bramka) return bramka;
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-5xl">
       <div className="flex items-center gap-3 text-sm">

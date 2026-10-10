@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { Plus, Gauge, RefreshCw } from "lucide-react";
 import type { ServerSummaryDto } from "@verris/contracts";
@@ -41,6 +42,8 @@ const gb = (mb: number | null | undefined) => (mb ? `${Math.round(mb / 1024).toL
 
 /** PB-34 — lista węzłów w języku makiety (tabela jak karta „Flota” na pulpicie). */
 export default async function AdminNodesPage() {
+  const bramka = await bramkaStrony("/nodes");
+  if (bramka) return bramka;
   const [{ data: servers, error }, flota, dostep] = await Promise.all([
     fetchServers(),
     adminApi<WierszFloty[]>("/admin/servers/flota").catch(() => null),

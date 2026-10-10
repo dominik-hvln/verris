@@ -112,9 +112,10 @@ function Ikona({ nazwa }: { nazwa: keyof typeof IKONY }) {
 /**
  * Menu (propozycja 10.10, sekcja A): 7 grup → pozycje → podstrony. Pozycja z kilkoma podstronami ma strzałkę,
  * rozwija się w menu i pokazuje podstrony jako zakładki. Te same wpisy (oraz UKRYTE) zasilają wyszukiwarkę
- * stron (⌘K / Ctrl+K, „/”). `perm: "ADMIN"` — tylko administrator (jak @Roles(ADMIN) w API).
+ * stron (⌘K / Ctrl+K, „/”). `perm: "ADMIN"` — tylko administrator (jak @Roles(ADMIN) w API). D1 (10.10): perm każdej
+ * pozycji = STRONY w lib/uprawnienia-stron.ts (bramka strony) — pilnuje test uprawnienia-stron.spec.tsx.
  */
-function grupy(l: LicznikiMenu | null): Grupa[] {
+export function grupy(l: LicznikiMenu | null): Grupa[] {
   return [
     {
       pozycje: [{ name: "Pulpit", ikona: "pulpit", pod: [{ name: "Pulpit", href: "/", perm: "DASHBOARD_VIEW", szukaj: "start strona główna" }] }],
@@ -173,8 +174,9 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
           name: "Monitoring",
           ikona: "monitoring",
           pod: [
-            { name: "Sondy", href: "/status/probes", perm: "NODES_VIEW", szukaj: "monitory status uptime dostępność" },
-            { name: "Incydenty", href: "/status/incidents", perm: "NODES_VIEW", szukaj: "awarie historia status page" },
+            // admin/status/* — tylko ADMIN (D1); błędy aplikacji — NODES_VIEW.
+            { name: "Sondy", href: "/status/probes", perm: "ADMIN", szukaj: "monitory status uptime dostępność" },
+            { name: "Incydenty", href: "/status/incidents", perm: "ADMIN", szukaj: "awarie historia status page" },
             { name: "Błędy aplikacji", href: "/observability/errors", perm: "NODES_VIEW", szukaj: "logi wyjątki" },
           ],
         },
@@ -192,8 +194,9 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
           ostrzezenie: (l?.zgloszeniaPoTerminie ?? 0) > 0,
           pod: [
             { name: "Zgłoszenia", href: "/tickets", perm: "TICKETS_VIEW", szukaj: "tickety pomoc support" },
-            { name: "Szablony odpowiedzi", href: "/settings/canned-responses", perm: "SETTINGS_MANAGE", szukaj: "gotowe odpowiedzi makra" },
-            { name: "Opieka nad zgłoszeniami", href: "/settings/support", perm: "SETTINGS_MANAGE", szukaj: "sla terminy dyżur" },
+            // D1 — konfiguracja (tickets/canned/all, admin/support/auto-messages) tylko ADMIN.
+            { name: "Szablony odpowiedzi", href: "/settings/canned-responses", perm: "ADMIN", szukaj: "gotowe odpowiedzi makra" },
+            { name: "Opieka nad zgłoszeniami", href: "/settings/support", perm: "ADMIN", szukaj: "sla terminy dyżur" },
           ],
         },
         {
@@ -205,7 +208,7 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
             { name: "Wnioski partnerskie", href: "/referral-enrollments", perm: "PROMO_MANAGE", szukaj: "polecenia zgłoszenia akceptacja" },
           ],
         },
-        { name: "Blokady poczty", ikona: "poczta", pod: [{ name: "Blokady poczty", href: "/deliverability", perm: "CUSTOMERS_MANAGE", szukaj: "blokady wysyłki spam dostarczalność mail" }] },
+        { name: "Blokady poczty", ikona: "poczta", pod: [{ name: "Blokady poczty", href: "/deliverability", perm: "CUSTOMERS_VIEW", szukaj: "blokady wysyłki spam dostarczalność mail" }] },
       ],
     },
     {
@@ -247,7 +250,7 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
             { name: "Przychody", href: "/autoscaling/revenue", perm: "ADMIN", szukaj: "przychody z autoskalowania burst" },
           ],
         },
-        { name: "Domeny i SSL", ikona: "domeny", pod: [{ name: "Domeny i SSL", href: "/domain-pricing", perm: "SETTINGS_MANAGE", szukaj: "certyfikaty ssl dv ov whois prywatność ceny" }] },
+        { name: "Domeny i SSL", ikona: "domeny", pod: [{ name: "Domeny i SSL", href: "/domain-pricing", perm: "ADMIN", szukaj: "certyfikaty ssl dv ov whois prywatność ceny" }] },
         { name: "Kody promocyjne", ikona: "cenniki", pod: [{ name: "Kody promocyjne", href: "/promo-codes", perm: "PROMO_MANAGE", szukaj: "rabaty kupony" }] },
         { name: "Marketing", ikona: "marketing", pod: [{ name: "Marketing", href: "/marketing", perm: "PROMO_MANAGE", szukaj: "newsletter mailing kampanie e-mail" }] },
         { name: "Beta", ikona: "marketing", pod: [{ name: "Beta", href: "/beta", perm: "PROMO_MANAGE", szukaj: "testy testerzy zaproszenia" }] },
@@ -259,7 +262,7 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
         // GET admin/kb/* — każdy pracownik (odczyt); zapis — KB_MANAGE (fala 1A), strona wyszarza edycję.
         { name: "Baza wiedzy", ikona: "wiedza", pod: [{ name: "Baza wiedzy", href: "/knowledge-base", szukaj: "artykuły pomoc poradniki" }] },
         { name: "Wiedza AI", ikona: "wiedza", pod: [{ name: "Wiedza AI", href: "/ai-knowledge", perm: "DASHBOARD_VIEW", szukaj: "baza wiedzy ai embeddingi asystent źródła" }] },
-        { name: "Konfiguracja asystenta", ikona: "czat", pod: [{ name: "Konfiguracja asystenta", href: "/settings/ai", perm: "SETTINGS_MANAGE", szukaj: "asystent ai czat model budżet klucze" }] },
+        { name: "Konfiguracja asystenta", ikona: "czat", pod: [{ name: "Konfiguracja asystenta", href: "/settings/ai", perm: "ADMIN", szukaj: "asystent ai czat model budżet klucze" }] },
       ],
     },
     {
@@ -269,24 +272,25 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
           name: "Ustawienia",
           ikona: "ustawienia",
           pod: [
-            { name: "Platforma", href: "/settings/platform", perm: "SETTINGS_MANAGE", szukaj: "eko sesje okres próbny monitoring sla" },
-            { name: "Dane firmy", href: "/settings/company", perm: "SETTINGS_MANAGE", szukaj: "nip adres faktury ksef token ponów wysyłkę" },
-            { name: "Kopie offsite", href: "/settings/kopie-offsite", perm: "SETTINGS_MANAGE", szukaj: "backup kopie zapasowe storage box rclone onboard" },
-            { name: "Poczta (SMTP)", href: "/settings/mail", perm: "SETTINGS_MANAGE", szukaj: "e-mail wysyłka" },
-            { name: "Dziennik poczty", href: "/settings/mail/log", perm: "SETTINGS_MANAGE", szukaj: "log wysłane maile" },
-            { name: "Poczta zespołu", href: "/settings/team-mail", perm: "SETTINGS_MANAGE", szukaj: "skrzynki" },
-            { name: "Gotowość do startu", href: "/settings/live-readiness", perm: "SETTINGS_MANAGE", szukaj: "gotowość live go live checklista" },
+            { name: "Platforma", href: "/settings/platform", perm: "ADMIN", szukaj: "eko sesje okres próbny monitoring sla" },
+            { name: "Dane firmy", href: "/settings/company", perm: "ADMIN", szukaj: "nip adres faktury ksef token ponów wysyłkę" },
+            { name: "Kopie offsite", href: "/settings/kopie-offsite", perm: "ADMIN", szukaj: "backup kopie zapasowe storage box rclone onboard" },
+            { name: "Poczta (SMTP)", href: "/settings/mail", perm: "ADMIN", szukaj: "e-mail wysyłka" },
+            { name: "Dziennik poczty", href: "/settings/mail/log", perm: "ADMIN", szukaj: "log wysłane maile" },
+            { name: "Poczta zespołu", href: "/settings/team-mail", perm: "ADMIN", szukaj: "skrzynki" },
+            { name: "Gotowość do startu", href: "/settings/live-readiness", perm: "ADMIN", szukaj: "gotowość live go live checklista" },
           ],
         },
-        { name: "Komunikaty i flagi", ikona: "marketing", pod: [{ name: "Komunikaty i flagi", href: "/product-ops", perm: "NODES_VIEW", szukaj: "product ops noc ogłoszenia komunikaty o pracach flagi funkcji" }] },
+        { name: "Komunikaty i flagi", ikona: "marketing", pod: [{ name: "Komunikaty i flagi", href: "/product-ops", perm: "ADMIN", szukaj: "product ops noc ogłoszenia komunikaty o pracach flagi funkcji" }] },
         {
           name: "Zespół",
           ikona: "operatorzy",
           pod: [
             { name: "Operatorzy", href: "/operators", perm: "STAFF_MANAGE", szukaj: "zespół pracownicy staff blokada grafana" },
             { name: "Role", href: "/roles", perm: "STAFF_MANAGE", szukaj: "role i uprawnienia" },
-            // PB-48 — wnioski pracowników o operację wymagającą wyższego uprawnienia.
-            { name: "Wnioski o operacje", href: "/wnioski", perm: "REQUESTS_APPROVE", szukaj: "akceptacja zgoda prośba uprawnienie" },
+            // PB-48 — wnioski pracowników o operację wymagającą wyższego uprawnienia. Każdy widzi swoje („Moje”),
+            // decyzje — REQUESTS_APPROVE (D1).
+            { name: "Wnioski o operacje", href: "/wnioski", szukaj: "akceptacja zgoda prośba uprawnienie moje wnioski" },
           ],
         },
         {
@@ -297,7 +301,7 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
             // publikacja dokumentu i wymuszona anonimizacja tylko ADMIN (fala 1A).
             { name: "Dziennik bezpieczeństwa", href: "/audit", perm: "AUDIT_VIEW", szukaj: "audyt logi zdarzenia" },
             { name: "RODO", href: "/compliance", perm: "COMPLIANCE_MANAGE", szukaj: "compliance gdpr dane osobowe eksport usunięcie" },
-            { name: "VPN", href: "/vpn", perm: "SETTINGS_MANAGE", szukaj: "wireguard dostęp paneli" },
+            { name: "VPN", href: "/vpn", perm: "ADMIN", szukaj: "wireguard dostęp paneli" },
           ],
         },
       ],
@@ -309,9 +313,10 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
  * Strony spoza menu (dostępne z przycisków na innych stronach) — tylko dla wyszukiwarki, z tym samym filtrem
  * uprawnień co menu.
  */
-const UKRYTE: (Pod & { sekcja: string })[] = [
-  { name: "Nowy plan", href: "/plans/new", perm: "PLANS_MANAGE", sekcja: "Oferta", szukaj: "dodaj plan hostingu" },
-  { name: "Nowy plan poczty", href: "/plans/new-email", perm: "PLANS_MANAGE", sekcja: "Oferta", szukaj: "dodaj plan e-mail" },
+export const UKRYTE: (Pod & { sekcja: string })[] = [
+  // D1 — plany i ceny zmienia tylko administrator.
+  { name: "Nowy plan", href: "/plans/new", perm: "ADMIN", sekcja: "Oferta", szukaj: "dodaj plan hostingu" },
+  { name: "Nowy plan poczty", href: "/plans/new-email", perm: "ADMIN", sekcja: "Oferta", szukaj: "dodaj plan e-mail" },
   { name: "Twoje konto", href: "/settings", sekcja: "Konto", szukaj: "2fa totp weryfikacja dwuetapowa passkey klucz break-glass bezpieczeństwo logowania hasło" },
 ];
 

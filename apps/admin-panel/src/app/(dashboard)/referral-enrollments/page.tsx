@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { UserPlus } from "lucide-react";
 import { listReferralEnrollments, type ReferralEnrollmentStatus } from "./data";
@@ -49,6 +50,8 @@ export default async function ReferralEnrollmentsPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
+  const bramka = await bramkaStrony("/referral-enrollments");
+  if (bramka) return bramka;
   const sp = await searchParams;
   const statusParam = sp.status ?? "";
   const status =

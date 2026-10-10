@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { stanUslugi } from "@/lib/stan-uslugi";
 import { notFound } from "next/navigation";
@@ -108,6 +109,8 @@ export default async function AdminCustomerCardPage({
   params: Promise<{ userId: string }>;
   searchParams: Promise<{ sekcja?: string; mail?: string }>;
 }) {
+  const bramka = await bramkaStrony("/customers/[userId]");
+  if (bramka) return bramka;
   const { userId } = await params;
   const q = await searchParams;
   const sekcja = sekcjaKarty(q.sekcja, { komunikacja: true });

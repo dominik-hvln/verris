@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import {
   fetchPlatformSettings,
   fetchTrialOffer,
@@ -15,6 +16,8 @@ import { BladStrony, wynik } from "@/components/blad-strony";
 export const dynamic = 'force-dynamic';
 
 export default async function PlatformSettingsPage() {
+  const bramka = await bramkaStrony("/settings/platform");
+  if (bramka) return bramka;
   const w = await wynik(
     Promise.all([fetchPlatformSettings(), fetchTrialOffer(), fetchMonitoringSettings(), fetchSlaCreditPolicy(), fetchSlaPodglad()]),
   );

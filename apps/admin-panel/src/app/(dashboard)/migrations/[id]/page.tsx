@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { adminApi } from "@/lib/api";
 import { MigrationDetailClient, type MigrationDetail } from "./migration-detail-client";
@@ -9,6 +10,8 @@ export default async function MigrationDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const bramka = await bramkaStrony("/migrations/[id]");
+  if (bramka) return bramka;
   const { id } = await params;
   let detail: MigrationDetail | null = null;
   let error: string | null = null;

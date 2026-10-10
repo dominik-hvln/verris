@@ -4,6 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
  * X-05 — kluczowe ekrany admina z danymi (uzupełnia strony-przy-awarii-api: tam awaria, tu treść).
  * Pulpit „Stan platformy” i zgłoszenia — to, co admin ogląda pierwsze i na czym podejmuje decyzje.
  */
+// D1 — bramka strony (uprawnienia z mapy STRONY) ma własne testy (uprawnienia-stron.spec.tsx); tu treść strony.
+jest.mock("@/lib/bramka-strony", () => ({ bramkaStrony: async () => null }));
 jest.mock("next/headers", () => ({ headers: async () => new Headers(), cookies: async () => ({ get: () => undefined }) }));
 jest.mock("next/navigation", () => ({
   notFound: () => {

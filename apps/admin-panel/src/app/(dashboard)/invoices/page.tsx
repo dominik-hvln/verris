@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { Select } from "@/components/select";
 import Link from "next/link";
 import { formatPlnAndCredits } from "@/lib/credits";
@@ -8,6 +9,8 @@ import {
   type AdminInvoiceStatus,
 } from "./data";
 import { VoidButton } from "./void-button";
+import { fetchStaffAccess } from "@/lib/staff-access";
+import { brakUprawnienia } from "@/lib/akcje/wezel";
 import { PoleDaty } from "@/components/pole-daty";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +43,8 @@ function statusLabel(status: AdminInvoiceStatus): string {
 }
 
 export default async function AdminInvoicesPage({ searchParams }: PageProps) {
+  const bramka = await bramkaStrony("/invoices");
+  if (bramka) return bramka;
   const params = await searchParams;
   const search = params.search?.trim() || undefined;
   const userId = params.userId?.trim() || undefined;
@@ -59,6 +64,8 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
   }
 
   const csvHref = buildCsvHref({ search, userId, statuses, from, to });
+  // D1 — faktura ręczna: BILLING_MANAGE (strona /invoices/reczna ma bramkę); bez uprawnienia link znika.
+  const reczna = !brakUprawnienia("BILLING_MANAGE", await fetchStaffAccess());
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
 
   return (
@@ -72,6 +79,7 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
             Faktury Verris — własne PDF (VFV/…) i dokumenty ze Stripe. Filtruj po kliencie, statusie i dacie.
           </p>
           {/* Z-01 — droga wewnątrz systemu dla przypadków nietypowych. */}
+          {reczna ? (
           <Link
             href="/invoices/reczna"
             className="mt-3 inline-flex items-center gap-2 rounded-md border border-indigo-500/40 bg-indigo-500/10 px-3 py-1.5 text-sm text-indigo-200 hover:bg-indigo-500/20"
@@ -79,6 +87,7 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
             <FileText className="h-4 w-4" />
             Wystaw fakturę ręcznie
           </Link>
+          ) : null}
           {/* FAK-01 — faktury VAT z programu księgowego. */}
           <Link
             href="/invoices/czeka-na-fakture"

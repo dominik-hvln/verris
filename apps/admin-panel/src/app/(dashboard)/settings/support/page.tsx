@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { adminApi } from "@/lib/api";
 import { BladStrony } from "@/components/blad-strony";
 import { AutoWiadomosciEdytor } from "./auto-wiadomosci";
@@ -7,6 +8,8 @@ export const dynamic = "force-dynamic";
 
 /** PB-37 — opieka nad zgłoszeniami: treści automatycznych wiadomości do klienta i oceny opiekunów. */
 export default async function OpiekaZgloszenPage({ searchParams }: { searchParams: Promise<{ dni?: string }> }) {
+  const bramka = await bramkaStrony("/settings/support");
+  if (bramka) return bramka;
   const { dni: d } = await searchParams;
   const dni = d === "90" ? 90 : d === "365" ? 365 : 30;
   let widok: WidokAuto;

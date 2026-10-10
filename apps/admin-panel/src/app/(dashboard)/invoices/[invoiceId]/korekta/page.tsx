@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { getFaktura, getKorekty } from "./data";
 import { KorektaForm } from "./form";
@@ -13,6 +14,8 @@ export default async function KorektaPage({
 }: {
   params: Promise<{ invoiceId: string }>;
 }) {
+  const bramka = await bramkaStrony("/invoices/[invoiceId]/korekta");
+  if (bramka) return bramka;
   const { invoiceId } = await params;
   const w = await wynik(Promise.all([getFaktura(invoiceId), wynik(getKorekty(invoiceId))]));
   if (!w.ok) return <BladStrony blad={w.blad} tytul="Korekta faktury" powrot={{ href: `/invoices/${invoiceId}`, label: "Faktura" }} />;

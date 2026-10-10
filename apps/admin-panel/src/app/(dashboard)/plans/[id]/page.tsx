@@ -1,9 +1,11 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { getAdminPlan } from "../data";
 import { PlanEditForm } from "./plan-edit-form";
 import { BladStrony } from "@/components/blad-strony";
+import { fetchStaffAccess } from "@/lib/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +14,11 @@ interface PageProps {
 }
 
 export default async function AdminPlanEditPage({ params }: PageProps) {
+  const bramka = await bramkaStrony("/plans/[id]");
+  if (bramka) return bramka;
   const { id } = await params;
+  // D1 — plany i ceny zmienia tylko administrator (PATCH admin/plans — @Roles(ADMIN)); PLANS_MANAGE to podgląd.
+  const edycja = (await fetchStaffAccess()).isAdmin;
   let plan;
   try {
     plan = await getAdminPlan(id);
@@ -37,7 +43,7 @@ export default async function AdminPlanEditPage({ params }: PageProps) {
 
       <header>
         <h1 className="text-[28px] lg:text-[34px]">
-          Edycja planu: {plan.name}
+          {edycja ? "Edycja planu" : "Plan"}: {plan.name}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Zmiany w cenach i Price ID są walidowane przeciwko Stripe API. Audit
@@ -45,7 +51,18 @@ export default async function AdminPlanEditPage({ params }: PageProps) {
         </p>
       </header>
 
-      <PlanEditForm plan={plan} />
+      {edycja ? (
+        <PlanEditForm plan={plan} />
+      ) : (
+        <>
+          <p role="note" className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100" data-tylko-podglad="">
+            Podgląd. Plany i ceny zmienia administrator.
+          </p>
+          <fieldset disabled className="contents">
+            <PlanEditForm plan={plan} />
+          </fieldset>
+        </>
+      )}
 
       {/* Wysyłka pakietów obejmuje wszystkie plany i węzły — jest w Operacjach floty (10.10). */}
       <p className="text-sm text-muted-foreground">

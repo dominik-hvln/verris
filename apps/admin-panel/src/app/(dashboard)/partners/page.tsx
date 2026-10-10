@@ -1,10 +1,16 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { AlertCircle, Handshake } from "lucide-react";
 import { getPartnerConfig, listPartnerPayouts, type PartnerConfig, type AdminPayout } from "./data";
 import { PartnersClient } from "./partners-client";
+import { fetchStaffAccess } from "@/lib/staff-access";
+import { brakUprawnienia } from "@/lib/akcje/wezel";
 
 export const dynamic = "force-dynamic";
 
 export default async function PartnersPage() {
+  const bramka = await bramkaStrony("/partners");
+  if (bramka) return bramka;
+  const dostep = await fetchStaffAccess();
   let config: PartnerConfig | null = null;
   let payouts: AdminPayout[] = [];
   let error: string | null = null;
@@ -33,7 +39,7 @@ export default async function PartnersPage() {
           Nie udało się pobrać danych: {error}
         </div>
       ) : config ? (
-        <PartnersClient config={config} payouts={payouts} />
+        <PartnersClient config={config} payouts={payouts} zasady={dostep.isAdmin} wyplaty={!brakUprawnienia("BILLING_MANAGE", dostep)} />
       ) : null}
     </div>
   );

@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { listWebhookEvents, type WebhookEventRow } from "./data";
 import { ReplayButton } from "./replay-button";
 import { BladStrony, wynik } from "@/components/blad-strony";
@@ -46,6 +47,8 @@ export default async function WebhookiPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
+  const bramka = await bramkaStrony("/billing/webhooki");
+  if (bramka) return bramka;
   const sp = await searchParams;
   const status = sp.status ?? "";
   const w = await wynik(listWebhookEvents(status || undefined));

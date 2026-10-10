@@ -3,7 +3,7 @@ jest.mock("@/lib/api", () => ({ API_URL: "http://api.test" }));
 import { setAdminAuthCookie } from "@/lib/auth";
 import { setAdminPasskeyAuthCookie } from "./passkey-actions";
 
-/** Token z przeglądarki trafia do ciasteczka admina tylko, gdy API potwierdzi rolę ADMIN. */
+/** Token z przeglądarki trafia do ciasteczka panelu operatora tylko, gdy API potwierdzi rolę ADMIN albo STAFF (D1). */
 const ustaw = setAdminAuthCookie as jest.Mock;
 const fetchMock = jest.fn();
 beforeAll(() => {
@@ -16,7 +16,7 @@ beforeEach(() => {
 
 it.each([
   ["ADMIN", true],
-  ["STAFF", false],
+  ["STAFF", true],
   ["USER", false],
 ])("rola %s → %s", async (role, ok) => {
   fetchMock.mockResolvedValue({ ok: true, json: async () => ({ role }) });

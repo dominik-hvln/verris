@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { Tag, Calendar, Users2, AlertCircle } from "lucide-react";
 import { listPromoCodes, type PromoCodeRow } from "./data";
 import { CreatePromoForm } from "./create-promo-form";
@@ -7,6 +8,8 @@ import { AkcjeKodu } from "./akcje-kodu";
 export const dynamic = "force-dynamic";
 
 export default async function PromoCodesPage() {
+  const bramka = await bramkaStrony("/promo-codes");
+  if (bramka) return bramka;
   let rows: PromoCodeRow[] = [];
   let error: string | null = null;
   try {

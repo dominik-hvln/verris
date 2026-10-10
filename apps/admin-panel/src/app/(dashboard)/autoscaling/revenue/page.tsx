@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { plForm } from "@/lib/pl";
 import Link from 'next/link';
 import { BarChart3, Download } from 'lucide-react';
@@ -6,6 +7,8 @@ import { getAutoscalingRevenueReport } from '../actions';
 export const dynamic = 'force-dynamic';
 
 export default async function AutoscalingRevenuePage() {
+  const bramka = await bramkaStrony("/autoscaling/revenue");
+  if (bramka) return bramka;
   const result = await getAutoscalingRevenueReport();
   const report = result.ok ? result.data : null;
 

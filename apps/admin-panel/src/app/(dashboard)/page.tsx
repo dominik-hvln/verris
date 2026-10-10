@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { fetchAdminDashboardOverview } from "@/lib/admin-overview-data";
 import { AdminDashboardReal } from "@/components/admin-dashboard-real";
 import { fetchStaffAccess } from "@/lib/staff-access";
@@ -6,6 +7,8 @@ import { brakUprawnienia } from "@/lib/akcje/wezel";
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardHomePage() {
+  const bramka = await bramkaStrony("/");
+  if (bramka) return bramka;
   // JSX powstaje POZA try/catch. Wcześniej `return <AdminDashboardReal />` stał
   // wewnątrz try — a to nie chroni przed niczym: React renderuje zwrócony
   // element dopiero po wyjściu z tej funkcji, więc błąd renderu i tak by tędy
@@ -30,7 +33,7 @@ export default async function AdminDashboardHomePage() {
         (np. `http://localhost:3000`).
       </p>
       <p className="text-xs text-rose-200/90">
-        Endpoint `GET /admin/dashboard/overview` wymaga JWT administratora — po zalogowaniu
+        Endpoint `GET /admin/dashboard/overview` wymaga roli z uprawnieniem do pulpitu — po zalogowaniu
         cookie `admin_session` musi być ustawiane przez panel.
       </p>
     </div>

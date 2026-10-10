@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { adminApi } from "@/lib/api";
 import { nodes as nodesLabel, accounts as accountsLabel, plForm } from "@/lib/pl";
@@ -53,6 +54,8 @@ function Bar({ label, pct }: { label: string; pct: number | null }) {
 }
 
 export default async function BusinessMetricsPage() {
+  const bramka = await bramkaStrony("/metrics");
+  if (bramka) return bramka;
   let m: BusinessMetrics | null = null;
   let error: string | null = null;
   try {

@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { Select } from "@/components/select";
 import Link from "next/link";
 import { Search, ShieldCheck, ShieldAlert } from "lucide-react";
@@ -28,6 +29,8 @@ interface PageProps {
 }
 
 export default async function OperatorsPage({ searchParams }: PageProps) {
+  const bramka = await bramkaStrony("/operators");
+  if (bramka) return bramka;
   const params = await searchParams;
   const search = params.search?.trim() || undefined;
   const roleFilter = (params.role?.toUpperCase() as OperatorRole | undefined) ?? undefined;

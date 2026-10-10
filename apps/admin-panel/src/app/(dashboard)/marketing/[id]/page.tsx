@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { notFound } from "next/navigation";
 import { AdminApiError, adminApi } from "@/lib/api";
 import { Okruszek } from "@/components/admin-shell";
@@ -27,6 +28,8 @@ const kiedy = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL
  * wysyłki. Wysyłka, planowanie i odwołanie zostają na liście /marketing.
  */
 export default async function KampaniaPage({ params }: { params: Promise<{ id: string }> }) {
+  const bramka = await bramkaStrony("/marketing/[id]");
+  if (bramka) return bramka;
   const { id } = await params;
   let k: CampaignRow;
   try {

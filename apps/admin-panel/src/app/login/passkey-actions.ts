@@ -2,6 +2,7 @@
 
 import { API_URL } from "@/lib/api";
 import { setAdminAuthCookie } from "@/lib/auth";
+import { rolaPaneluOperatora } from "@/lib/rola-operatora";
 
 /**
  * Passkey (WebAuthn) dla panelu admina. Logowanie passkey jest MFA odporne na
@@ -28,7 +29,8 @@ export async function setAdminPasskeyAuthCookie(accessToken: string): Promise<bo
     cache: "no-store",
   }).catch(() => null);
   const me = res?.ok ? ((await res.json().catch(() => null)) as { role?: string } | null) : null;
-  if (me?.role !== "ADMIN") return false;
+  // D1 — ADMIN i STAFF (panel operatora).
+  if (!rolaPaneluOperatora(me?.role)) return false;
   await setAdminAuthCookie(accessToken);
   return true;
 }

@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { AlertCircle } from "lucide-react";
 import { listResellers, type ResellerRow } from "./data";
 import { ResellersClient } from "./resellers-client";
@@ -5,6 +6,8 @@ import { ResellersClient } from "./resellers-client";
 export const dynamic = "force-dynamic";
 
 export default async function ResellersPage() {
+  const bramka = await bramkaStrony("/resellers");
+  if (bramka) return bramka;
   let rows: ResellerRow[] = [];
   let error: string | null = null;
   try {

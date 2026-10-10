@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { adminApi } from "@/lib/api";
 import { TICKET_DEPARTMENT_PL, TICKET_PRIORITY_PL, TICKET_STATUS_PL, etykieta } from "@verris/contracts";
@@ -23,6 +24,8 @@ type Widok = keyof typeof WIDOKI;
 const teraz = () => Date.now();
 
 export default async function AdminTicketsPage({ searchParams }: { searchParams: Promise<{ widok?: string }> }) {
+  const bramka = await bramkaStrony("/tickets");
+  if (bramka) return bramka;
   const q = await searchParams;
   const widok: Widok = (q.widok ?? "") in WIDOKI ? (q.widok as Widok) : "otwarte";
   let rows: AdminTicket[] = [];

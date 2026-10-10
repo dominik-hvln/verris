@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { KopieOffsiteFormularz } from "@/components/kopie-offsite-formularz";
 import { fetchStaffAccess } from "@/lib/staff-access";
 import { Pomoc } from "@/components/pomoc";
@@ -9,6 +10,8 @@ export const dynamic = "force-dynamic";
  * w kroku 4 kreatora węzła (10.10). API przyjmuje wyłącznie ADMIN-a (onboard.admin.controller.ts).
  */
 export default async function KopieOffsitePage() {
+  const bramka = await bramkaStrony("/settings/kopie-offsite");
+  if (bramka) return bramka;
   const dostep = await fetchStaffAccess();
   return (
     <div className="max-w-3xl space-y-4">

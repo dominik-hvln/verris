@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { services } from "@/lib/pl";
 import { formatCredits } from "@/lib/credits";
@@ -12,6 +13,8 @@ const KOLEJNOSC = ["ACTIVE", "PROVISIONING", "PENDING_PAYMENT", "PAST_DUE", "SUS
 
 /** PB-34 — lista usług w języku makiety; filtr stanu w adresie (?stan=), bez JS. */
 export default async function AdminSubscriptionsPage({ searchParams }: { searchParams: Promise<{ stan?: string }> }) {
+  const bramka = await bramkaStrony("/subscriptions");
+  if (bramka) return bramka;
   const { stan } = await searchParams;
   let rows: Awaited<ReturnType<typeof listAdminSubscriptions>> = [];
   let error: string | null = null;

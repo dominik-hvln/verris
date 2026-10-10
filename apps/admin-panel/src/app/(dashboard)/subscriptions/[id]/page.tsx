@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { AdminApiError, adminApi } from "@/lib/api";
 import { NieWczytano } from "@/components/nie-wczytano";
@@ -81,6 +82,8 @@ export default async function AdminSubscriptionDetailPage({
   params: Promise<{ id: string }>;
   searchParams?: Promise<{ sekcja?: string }>;
 }) {
+  const bramka = await bramkaStrony("/subscriptions/[id]");
+  if (bramka) return bramka;
   const { id } = await params;
   const q = (await searchParams) ?? {};
   const sekcja: SekcjaUslugi = SEKCJE_USLUGI.some((s) => s.klucz === q.sekcja) ? (q.sekcja as SekcjaUslugi) : "przeglad";

@@ -78,13 +78,23 @@ describe("PB-48 — strona „Wnioski o operacje”", () => {
 
   it("403 → czytelny komunikat o uprawnieniu, strona zostaje", async () => {
     api.mockImplementation(async (s: string) => {
-      if (s === "/staff/me/access") return { isAdmin: false };
+      if (s === "/staff/me/access") return { isAdmin: false, permissions: ["REQUESTS_APPROVE"] };
       throw new (AdminApiError as unknown as new (m: string, st: number) => Error)("Forbidden", 403);
     });
     const t = tekst(renderToStaticMarkup(await WnioskiPage({ searchParams: Promise.resolve({}) })));
     expect(t).toContain("Wnioski o operacje");
     expect(t).toContain("REQUESTS_APPROVE");
     expect(t).toContain("Moje");
+  });
+
+  it("D1 — operator bez REQUESTS_APPROVE: od razu „Moje”, bez zakładek decyzji (wcześniej błąd 403)", async () => {
+    trasy({ "/staff/me/access": { isAdmin: false, permissions: ["CUSTOMERS_VIEW"] }, "/admin/wnioski/moje": [wniosek()] });
+    const html = renderToStaticMarkup(await WnioskiPage({ searchParams: Promise.resolve({ zakladka: "historia" }) }));
+    expect(api).toHaveBeenCalledWith("/admin/wnioski/moje");
+    expect(api).not.toHaveBeenCalledWith(expect.stringMatching(/do-decyzji|historia/));
+    expect(tekst(html)).toContain("Oznaczenie konta jako wewnętrzne");
+    expect(html).not.toContain(">Do decyzji<");
+    expect(tekst(html)).not.toContain("REQUESTS_APPROVE");
   });
 
   it("odrzucenie bez powodu nie idzie do API", async () => {

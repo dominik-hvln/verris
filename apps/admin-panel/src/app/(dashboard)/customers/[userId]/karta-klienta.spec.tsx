@@ -5,6 +5,8 @@ import { renderToStaticMarkup } from "react-dom/server";
  * w panelu obsługi (`KARTY_SEKCJI`, plik identyczny w obu panelach). Doszły: ryzyko i sugestie, diagnostyka
  * DNS/TLS i otwarte incydenty na węzłach klienta.
  */
+// D1 — bramka strony (uprawnienia z mapy STRONY) ma własne testy (uprawnienia-stron.spec.tsx); tu treść strony.
+jest.mock("@/lib/bramka-strony", () => ({ bramkaStrony: async () => null }));
 jest.mock("next/headers", () => ({ headers: async () => new Headers(), cookies: async () => ({ get: () => undefined }) }));
 jest.mock("next/navigation", () => ({
   notFound: () => {

@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { plForm } from "@/lib/pl";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -74,6 +75,8 @@ export default async function ServerDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ sekcja?: string }>;
 }) {
+  const bramka = await bramkaStrony("/nodes/[id]");
+  if (bramka) return bramka;
   const { id } = await params;
   const q = await searchParams;
   const sekcja: Sekcja = (SEKCJE as readonly string[]).includes(q.sekcja ?? "") ? (q.sekcja as Sekcja) : "przeglad";

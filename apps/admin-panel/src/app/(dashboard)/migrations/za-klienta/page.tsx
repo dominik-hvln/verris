@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { adminApi, AdminApiError } from "@/lib/api";
 import { FormularzZaKlienta } from "./formularz-za-klienta";
@@ -23,6 +24,8 @@ export default async function MigracjaZaKlientaPage({
 }: {
   searchParams: Promise<{ subscriptionId?: string }>;
 }) {
+  const bramka = await bramkaStrony("/migrations/za-klienta");
+  if (bramka) return bramka;
   const { subscriptionId } = await searchParams;
   let usluga: UslugaZaKlienta | null = null;
   let blad: string | null = null;

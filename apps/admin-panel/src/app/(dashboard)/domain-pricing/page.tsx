@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { fetchSslProducts, fetchWhoisPrivacyPrice } from "./actions";
 import { WhoisPrivacyForm } from "./whois-privacy-form";
 import { WebhookOpForm } from "./webhook-op-form";
@@ -8,6 +9,8 @@ export const dynamic = "force-dynamic";
 
 /** Ceny dodatków do domen: ukrycie danych WHOIS (A-14) i płatne certyfikaty SSL (G-08). */
 export default async function DomainPricingPage() {
+  const bramka = await bramkaStrony("/domain-pricing");
+  if (bramka) return bramka;
   const w = await wynik(Promise.all([fetchWhoisPrivacyPrice(), fetchSslProducts()]));
   if (!w.ok) return <BladStrony blad={w.blad} tytul="Domeny i SSL" />;
   const [whois, ssl] = w.dane;

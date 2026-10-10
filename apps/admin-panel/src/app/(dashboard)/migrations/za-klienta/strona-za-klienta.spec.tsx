@@ -4,6 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
  * ADMIN-MIGR — strona „Migracja za klienta” w panelu admina czyta usługę trasą `staff/migrations/za-klienta/usluga/:id`
  * (to samo uprawnienie co założenie migracji), błędy 404/403 mówi po ludzku, bez konta hostingowego nie pokazuje formularza.
  */
+// D1 — bramka strony (uprawnienia z mapy STRONY) ma własne testy (uprawnienia-stron.spec.tsx); tu treść strony.
+jest.mock("@/lib/bramka-strony", () => ({ bramkaStrony: async () => null }));
 jest.mock("next/link", () => ({ __esModule: true, default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a> }));
 jest.mock("./formularz-za-klienta", () => ({
   FormularzZaKlienta: (p: { subscriptionId: string; klient: string; email: string; domenaKonta: string }) => (

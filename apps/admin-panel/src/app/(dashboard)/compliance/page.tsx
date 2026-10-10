@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { Suspense } from "react";
 import { FileText, ClipboardCheck, FileDown, ShieldOff } from "lucide-react";
 import {
@@ -12,6 +13,7 @@ import { DocumentsTable } from "./documents-table";
 import { ConsentsTable } from "./consents-table";
 import { DataExportsTable } from "./data-exports-table";
 import { DeletionRequestsTable } from "./deletion-requests-table";
+import { fetchStaffAccess } from "@/lib/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,8 @@ export default async function CompliancePage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  const bramka = await bramkaStrony("/compliance");
+  if (bramka) return bramka;
   const sp = await searchParams;
   const tab = (sp.tab ?? "documents") as
     | "documents"
@@ -105,7 +109,8 @@ async function DocumentsTabContent() {
   return (
     <div className="space-y-6">
       <DocumentsTable docs={docs} error={error} />
-      <PublishDocForm />
+      {/* D1 — publikacja dokumentów prawnych tylko administrator. */}
+      {(await fetchStaffAccess()).isAdmin ? <PublishDocForm /> : <p className="text-sm text-muted-foreground">Nową wersję dokumentu publikuje administrator.</p>}
     </div>
   );
 }
@@ -121,6 +126,6 @@ async function ExportsTabContent() {
 }
 
 async function DeletionsTabContent() {
-  const rows = await fetchDeletionRequests();
-  return <DeletionRequestsTable rows={rows} />;
+  const [rows, dostep] = await Promise.all([fetchDeletionRequests(), fetchStaffAccess()]);
+  return <DeletionRequestsTable rows={rows} anonimizacja={dostep.isAdmin} />;
 }

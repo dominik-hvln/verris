@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { CheckCircle2, AlertTriangle, XCircle, Rocket } from "lucide-react";
 import { fetchLiveReadiness, type ReadinessCheck } from "./actions";
 import { plForm } from "@/lib/pl";
@@ -17,6 +18,8 @@ const ROW = {
 };
 
 export default async function LiveReadinessPage() {
+  const bramka = await bramkaStrony("/settings/live-readiness");
+  if (bramka) return bramka;
   const res = await fetchLiveReadiness();
 
   return (

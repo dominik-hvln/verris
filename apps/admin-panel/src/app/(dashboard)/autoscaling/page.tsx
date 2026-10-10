@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { AlertCircle, BarChart3, Gauge } from "lucide-react";
 import { listPriceRules } from "./actions";
@@ -15,6 +16,8 @@ const RESOURCE_LABELS: Record<string, string> = {
 };
 
 export default async function AutoscalingPricingPage() {
+  const bramka = await bramkaStrony("/autoscaling");
+  if (bramka) return bramka;
   const result = await listPriceRules();
   const rules = result.ok ? (result.data ?? []) : [];
 

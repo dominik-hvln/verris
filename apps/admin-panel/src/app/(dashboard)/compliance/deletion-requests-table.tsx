@@ -5,7 +5,8 @@ import { AlertTriangle, Loader2, Skull } from "lucide-react";
 import { forceAnonymizeAction } from "./actions";
 import type { AdminDeletionRow } from "./data";
 
-export function DeletionRequestsTable({ rows }: { rows: AdminDeletionRow[] }) {
+/** `anonimizacja` — D1: wymuszona anonimizacja tylko administrator (POST …/force-anonymize @Roles(ADMIN)). */
+export function DeletionRequestsTable({ rows, anonimizacja = true }: { rows: AdminDeletionRow[]; anonimizacja?: boolean }) {
   const [target, setTarget] = useState<AdminDeletionRow | null>(null);
   const [reason, setReason] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -81,7 +82,7 @@ export function DeletionRequestsTable({ rows }: { rows: AdminDeletionRow[] }) {
                     {r.anonymizedByAdmin?.email ?? (r.anonymizedAt ? "auto (cron)" : "—")}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {!r.anonymizedAt && !r.cancelledAt && (
+                    {anonimizacja && !r.anonymizedAt && !r.cancelledAt && (
                       <button
                         onClick={() => setTarget(r)}
                         className="inline-flex items-center gap-1 rounded-lg border border-rose-500/40 bg-rose-500/10 px-2.5 py-1 text-xs text-rose-200 hover:bg-rose-500/20"

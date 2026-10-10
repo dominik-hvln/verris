@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { plForm } from "@/lib/pl";
 import { adminApi } from "@/lib/api";
@@ -55,6 +56,8 @@ export default async function MigrationsCockpitPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
+  const bramka = await bramkaStrony("/migrations");
+  if (bramka) return bramka;
   const { status } = await searchParams;
   let rows: MigrationRow[] = [];
   let attentionCount = 0;

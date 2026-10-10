@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { BladStrony } from "@/components/blad-strony";
 import { KARTA } from "@/components/v2";
 import { adminApi } from "@/lib/api";
@@ -38,6 +39,8 @@ function Sekcja({ id, tytul, opis, children }: { id: string; tytul: string; opis
  * servers.admin.controller.ts). Wcześniej w trzech miejscach: lista węzłów, „Wersje stosu”, karta planu.
  */
 export default async function OperacjeFlotyPage() {
+  const bramka = await bramkaStrony("/nodes/stack");
+  if (bramka) return bramka;
   const dostep = await fetchStaffAccess();
   let stos: WidokStosu | null = null;
   if (dostep.isAdmin) {

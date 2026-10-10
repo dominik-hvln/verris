@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { getCzekajace } from "./data";
 import { DopiszNumerForm } from "./form";
@@ -15,6 +16,8 @@ const PLN = new Intl.NumberFormat("pl-PL", { minimumFractionDigits: 2, maximumFr
  * sprzedaży (do 15. dnia następnego miesiąca).
  */
 export default async function CzekaNaFakturePage() {
+  const bramka = await bramkaStrony("/invoices/czeka-na-fakture");
+  if (bramka) return bramka;
   const w = await wynik(getCzekajace());
   if (!w.ok) return <BladStrony blad={w.blad} tytul="Czeka na fakturę VAT" powrot={{ href: "/invoices", label: "Faktury" }} />;
   const wiersze = w.dane;

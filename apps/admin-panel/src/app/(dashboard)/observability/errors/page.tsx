@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { plForm } from "@/lib/pl";
 import { getRuntimeErrors } from "./data";
 
@@ -9,6 +10,8 @@ export const dynamic = "force-dynamic";
  * self-hosted GlitchTip (link poniżej).
  */
 export default async function RuntimeErrorsPage() {
+  const bramka = await bramkaStrony("/observability/errors");
+  if (bramka) return bramka;
   let data: Awaited<ReturnType<typeof getRuntimeErrors>> | null = null;
   let error: string | null = null;
   try {

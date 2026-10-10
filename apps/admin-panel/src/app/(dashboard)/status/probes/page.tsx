@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { Activity, AlertCircle } from "lucide-react";
 import { listProbes, listServersForProbes } from "../actions";
 import { ProbesTable } from "./probes-table";
@@ -6,6 +7,8 @@ import { CreateProbeForm } from "./create-probe-form";
 export const dynamic = "force-dynamic";
 
 export default async function StatusProbesPage() {
+  const bramka = await bramkaStrony("/status/probes");
+  if (bramka) return bramka;
   const [probesResult, serversResult] = await Promise.all([
     listProbes(),
     listServersForProbes(),

@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 
 /** ADMIN-MIGR — lista migracji w adminie: wejście „Migracja za klienta” i filtr/etykieta oczekiwania na zgodę po polsku. */
+// D1 — bramka strony (uprawnienia z mapy STRONY) ma własne testy (uprawnienia-stron.spec.tsx); tu treść strony.
+jest.mock("@/lib/bramka-strony", () => ({ bramkaStrony: async () => null }));
 jest.mock("next/link", () => ({ __esModule: true, default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a> }));
 jest.mock("./migration-row-actions", () => ({ MigrationRowActions: () => null }));
 jest.mock("@/lib/api", () => ({ adminApi: jest.fn() }));

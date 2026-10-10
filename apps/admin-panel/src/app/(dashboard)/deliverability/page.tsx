@@ -1,7 +1,9 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { MailWarning } from "lucide-react";
 import { listCordons } from "./actions";
 import { ReleaseCordonButton } from "./release-button";
+import { fetchStaffAccess } from "@/lib/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +13,11 @@ export const dynamic = "force-dynamic";
  * operator widzi, kogo i dlaczego zablokowano, i zdejmuje blokadę.
  */
 export default async function DeliverabilityPage() {
-  const res = await listCordons();
+  const bramka = await bramkaStrony("/deliverability");
+  if (bramka) return bramka;
+  const [res, dostep] = await Promise.all([listCordons(), fetchStaffAccess()]);
+  // D1 — lista: CUSTOMERS_VIEW; zdjęcie blokady (POST …/cordons/release) tylko administrator.
+  const zdejmie = dostep.isAdmin;
   return (
     <div className="space-y-6">
       <header>
@@ -51,7 +57,11 @@ export default async function DeliverabilityPage() {
                   <td className="px-4 py-3 text-neutral-200 [overflow-wrap:anywhere]">{c.reason}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">{c.at ? new Date(c.at).toLocaleString("pl-PL") : "—"}</td>
                   <td className="px-4 py-3 text-right">
-                    <ReleaseCordonButton userId={c.userId} label={c.email ?? c.userId} />
+                    {zdejmie ? (
+                      <ReleaseCordonButton userId={c.userId} label={c.email ?? c.userId} />
+                    ) : (
+                      <span className="text-xs text-muted-foreground" title="Wymaga roli administratora">Zdejmie administrator</span>
+                    )}
                   </td>
                 </tr>
               ))}

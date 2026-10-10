@@ -87,9 +87,11 @@ function Karta({ w, akcje }: { w: Wniosek; akcje?: React.ReactNode }) {
 export default async function WnioskiPage({ searchParams }: { searchParams: Promise<{ zakladka?: string; status?: string }> }) {
   const { zakladka, status } = await searchParams;
   // Bez odpowiedzi — tylko bez zakładki „Moje” (listy wniosków mają własny komunikat błędu).
-  const dostep = await adminApi<{ isAdmin?: boolean }>("/staff/me/access").catch(() => null);
+  const dostep = await adminApi<{ isAdmin?: boolean; permissions?: string[] }>("/staff/me/access").catch(() => null);
   const operator = dostep ? !dostep.isAdmin : false;
-  const aktywna = zakladka === "historia" ? "historia" : zakladka === "moje" && operator ? "moje" : "do-decyzji";
+  // D1 — strona dla każdego operatora: bez REQUESTS_APPROVE tylko „Moje” (decyzje i historia odpowiadają 403).
+  const decyduje = !operator || !!dostep?.permissions?.includes("REQUESTS_APPROVE");
+  const aktywna = !decyduje && operator ? "moje" : zakladka === "historia" ? "historia" : zakladka === "moje" && operator ? "moje" : "do-decyzji";
   const filtr = FILTRY.some((f) => f.klucz === status) ? (status ?? "") : "";
 
   const biezaca =
@@ -100,8 +102,12 @@ export default async function WnioskiPage({ searchParams }: { searchParams: Prom
         : await lista("/admin/wnioski/do-decyzji");
 
   const zakladki = [
-    { klucz: "do-decyzji", nazwa: "Do decyzji", href: "/wnioski" },
-    { klucz: "historia", nazwa: "Historia", href: "/wnioski?zakladka=historia" },
+    ...(decyduje
+      ? [
+          { klucz: "do-decyzji", nazwa: "Do decyzji", href: "/wnioski" },
+          { klucz: "historia", nazwa: "Historia", href: "/wnioski?zakladka=historia" },
+        ]
+      : []),
     ...(operator ? [{ klucz: "moje", nazwa: "Moje", href: "/wnioski?zakladka=moje" }] : []),
   ];
 

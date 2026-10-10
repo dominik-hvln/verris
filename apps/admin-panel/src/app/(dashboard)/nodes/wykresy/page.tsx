@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { REGIONY_DANYCH, type RegionDanych } from "@verris/contracts";
 import { adminApi } from "@/lib/api";
@@ -105,6 +106,8 @@ const OPCJA = "inline-flex min-h-9 items-center gap-2 rounded-[7px] px-3.5 text-
 const opcja = (on: boolean) => `${OPCJA} ${on ? "bg-raised font-semibold text-foreground" : "font-medium text-muted-foreground hover:text-foreground"}`;
 
 export default async function WykresyWezlowStrona({ searchParams }: { searchParams: Promise<{ zakres?: string; stan?: string; sort?: string }> }) {
+  const bramka = await bramkaStrony("/nodes/wykresy");
+  if (bramka) return bramka;
   const q = await searchParams;
   const zakres = ZAKRESY.some((z) => z.v === q.zakres) ? q.zakres! : "24h";
   const stan = STANY.some((s) => s.v === q.stan) ? q.stan! : "wszystkie";

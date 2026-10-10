@@ -1,5 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 
+// D1 — bramka strony (uprawnienia z mapy STRONY) ma własne testy (uprawnienia-stron.spec.tsx); tu treść strony.
+jest.mock("@/lib/bramka-strony", () => ({ bramkaStrony: async () => null }));
 jest.mock("@/lib/staff-access", () => ({ fetchStaffAccess: jest.fn() }));
 jest.mock("@/lib/api", () => ({ AdminApiError: class extends Error {}, adminApi: jest.fn() }));
 jest.mock("../fleet-update-button", () => ({ FleetUpdateButton: () => <button data-op="aktualizuj" /> }));

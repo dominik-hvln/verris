@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { INVOICE_STATUS_PL, WALLET_TX_STATUS_PL, etykieta, etykietaWpisuPortfela } from "@verris/contracts";
@@ -43,6 +44,8 @@ const kiedy = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL
  * Wynik wyszukiwarki i faktury na karcie klienta prowadzą tutaj.
  */
 export default async function FakturaPage({ params }: { params: Promise<{ invoiceId: string }> }) {
+  const bramka = await bramkaStrony("/invoices/[invoiceId]");
+  if (bramka) return bramka;
   const { invoiceId } = await params;
   let f: FakturaSzczegoly;
   try {

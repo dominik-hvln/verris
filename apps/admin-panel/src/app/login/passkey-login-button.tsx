@@ -51,12 +51,13 @@ export function AdminPasskeyLoginButton() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const asseResp = await startAuthentication({ optionsJSON: options as any });
       const { access_token, user } = await verifyPasskeyLoginClient(asseResp);
-      if (user?.role !== "ADMIN") {
-        setError("To konto nie ma uprawnień administratora Verris Core.");
+      // D1 — panel operatora dla ADMIN i STAFF; rolę i tak sprawdza serwer (setAdminPasskeyAuthCookie).
+      if (user?.role !== "ADMIN" && user?.role !== "STAFF") {
+        setError("To konto nie ma dostępu do panelu operatora Verris.");
         return;
       }
       if (!(await setAdminPasskeyAuthCookie(access_token))) {
-        setError("To konto nie ma uprawnień administratora Verris Core.");
+        setError("To konto nie ma dostępu do panelu operatora Verris.");
         return;
       }
       router.push("/");

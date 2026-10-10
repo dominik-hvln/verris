@@ -1,3 +1,4 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { AlertCircle, UserPlus } from "lucide-react";
 import { listTesters, type TesterRow } from "./actions";
 import { InviteForm } from "./invite-form";
@@ -17,6 +18,8 @@ const data = (iso: string | null) =>
 
 /** PB-26 — otwarte testy przed startem: zaproszenia i postęp testerów (docs/ops/BETA_TESTY.md). */
 export default async function BetaPage() {
+  const bramka = await bramkaStrony("/beta");
+  if (bramka) return bramka;
   let rows: TesterRow[] = [];
   let error: string | null = null;
   try {

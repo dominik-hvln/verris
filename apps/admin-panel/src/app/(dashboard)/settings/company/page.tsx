@@ -1,9 +1,12 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import { CompanyForm } from "./company-form";
 import { KsefForm } from "./ksef-form";
 
 export const dynamic = "force-dynamic";
 
-export default function CompanySettingsPage() {
+export default async function CompanySettingsPage() {
+  const bramka = await bramkaStrony("/settings/company");
+  if (bramka) return bramka;
   return (
     <div className="space-y-6 p-6 max-w-4xl">
       <header>

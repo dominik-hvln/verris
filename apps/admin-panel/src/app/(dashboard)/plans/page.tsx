@@ -1,7 +1,9 @@
+import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
 import { Box, Plus, AlertTriangle, CheckCircle2, EyeOff, EyeIcon, Mail } from "lucide-react";
 import { listAdminPlans, type AdminPlanRow } from "./data";
 import { plForm } from "@/lib/pl";
+import { fetchStaffAccess } from "@/lib/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +17,7 @@ function formatPrice(value: string, currency: string) {
   }).format(n);
 }
 
-function PlanRow({ plan }: { plan: AdminPlanRow }) {
+function PlanRow({ plan, edycja = true }: { plan: AdminPlanRow; edycja?: boolean }) {
   const monthlyOk = !!plan.stripePriceMonthlyId;
   const yearlyOk = !!plan.stripePriceYearlyId;
   const sellable = plan.isActive && plan.isPublic && (monthlyOk || yearlyOk);
@@ -71,7 +73,7 @@ function PlanRow({ plan }: { plan: AdminPlanRow }) {
           href={`/plans/${plan.id}`}
           className="whitespace-nowrap rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-neutral-200 hover:bg-white/10"
         >
-          Edytuj
+          {edycja ? "Edytuj" : "Podgląd"}
         </Link>
       </td>
     </tr>
@@ -133,6 +135,10 @@ function SaleStatus({ plan, sellable }: { plan: AdminPlanRow; sellable: boolean 
 }
 
 export default async function AdminPlansPage() {
+  const bramka = await bramkaStrony("/plans");
+  if (bramka) return bramka;
+  // D1 — plany i ceny zmienia tylko administrator; PLANS_MANAGE to podgląd.
+  const edycja = (await fetchStaffAccess()).isAdmin;
   let plans: AdminPlanRow[] | null = null;
   let error: string | null = null;
   try {
@@ -157,6 +163,7 @@ export default async function AdminPlansPage() {
             i powiązanie ze Stripe Subscription.
           </p>
         </div>
+        {edycja ? (
         <div className="flex items-center gap-2">
           <Link
             href="/plans/new"
@@ -173,6 +180,9 @@ export default async function AdminPlansPage() {
             Nowy plan poczty
           </Link>
         </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">Podgląd. Plany i ceny zmienia administrator.</p>
+        )}
       </header>
 
       <div className="relative rounded-2xl p-[1px] overflow-hidden">
@@ -211,7 +221,7 @@ export default async function AdminPlansPage() {
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {plans.map((plan) => (
-                    <PlanRow key={plan.id} plan={plan} />
+                    <PlanRow key={plan.id} plan={plan} edycja={edycja} />
                   ))}
                 </tbody>
               </table>
