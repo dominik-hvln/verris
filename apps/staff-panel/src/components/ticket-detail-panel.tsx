@@ -52,6 +52,7 @@ const EVENT_LABELS: Record<string, string> = {
   AUTO_MESSAGE: "Automatyczna wiadomość",
   REOPENED: "Klient otworzył ponownie",
   SERVICE_LINK_CHANGED: "Zmiana usługi zgłoszenia",
+  INTERNAL_NOTE: "Notatka wewnętrzna",
 };
 const AUTO: Record<string, string> = {
   POTWIERDZENIE: "potwierdzenie",
@@ -170,6 +171,10 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
   const [katFiltr, setKatFiltr] = useState<string | null>(null);
   const [szukaj, setSzukaj] = useState("");
   const czekajRef = useRef<HTMLInputElement>(null);
+  const rodzajRef = useRef<HTMLInputElement>(null);
+  const ustawRodzaj = (r: "odpowiedz" | "notatka") => {
+    if (rodzajRef.current) rodzajRef.current.value = r;
+  };
   const formRef = useRef<HTMLFormElement>(null);
   const replyId = useId();
   const filesId = useId();
@@ -358,7 +363,19 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
             <Zalaczniki ticketId={ticket.id} items={(ticket.attachments ?? []).filter((a) => a.replyId == null)} />
           </div>
           {watek.map((r) =>
-            r.automatic ? (
+            r.internal ? (
+              <div
+                key={r.id}
+                data-wpis="notatka"
+                className="flex flex-col gap-1.5 rounded-[10px] border border-dashed border-warn/50 bg-warn-soft/60 px-4 py-3 text-[14px] leading-[1.5]"
+              >
+                <div className="flex flex-wrap items-baseline gap-2">
+                  <b>Notatka wewnętrzna · {agents.find((a) => a.id === r.authorId)?.firstName ?? "obsługa"}</b>
+                  <span className="text-[12.5px] text-muted-foreground">{kd(r.createdAt)} · klient jej nie widzi</span>
+                </div>
+                <span className="whitespace-pre-wrap">{r.message}</span>
+              </div>
+            ) : r.automatic ? (
               <div key={r.id} className="flex items-center gap-2.5 rounded-[10px] border border-dashed border-line-strong bg-raised/60 px-3.5 py-[9px] text-[13px] text-[color:var(--verris-body)]">
                 <span aria-hidden className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-raised text-xs">
                   {r.automatic === "PODZIEKOWANIE" ? "♥" : r.automatic === "WCIAZ_PRACUJEMY" ? "↻" : "✓"}
@@ -438,6 +455,7 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
               <PoleZalacznikow id={filesId} name="files" />
             </div>
             <input ref={czekajRef} type="hidden" name="czekaj" defaultValue="tak" />
+            <input ref={rodzajRef} type="hidden" name="rodzaj" defaultValue="odpowiedz" />
             {replyErr ? (
               <p role="alert" className="text-sm text-crit">
                 {replyErr}
@@ -447,7 +465,19 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
               <button
                 type="submit"
                 disabled={pending}
-                onClick={() => czekajRef.current && (czekajRef.current.value = "nie")}
+                onClick={() => ustawRodzaj("notatka")}
+                title="Zapisuje w wątku tylko dla zespołu — bez maila, stan bez zmian. Pisz tak, jakby klient mógł to przeczytać (eksport RODO)."
+                className="mr-auto inline-flex h-[38px] items-center rounded-[9px] border border-dashed border-warn/60 bg-warn-soft px-3.5 text-sm font-semibold text-warn disabled:opacity-50"
+              >
+                Zapisz jako notatkę
+              </button>
+              <button
+                type="submit"
+                disabled={pending}
+                onClick={() => {
+                  ustawRodzaj("odpowiedz");
+                  if (czekajRef.current) czekajRef.current.value = "nie";
+                }}
                 title="Sprawa zostaje u nas (W realizacji)"
                 className="inline-flex h-[38px] items-center rounded-[9px] border border-line-strong bg-card px-3.5 text-sm font-semibold text-foreground hover:border-primary disabled:opacity-50"
               >
@@ -456,7 +486,10 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
               <button
                 type="submit"
                 disabled={pending}
-                onClick={() => czekajRef.current && (czekajRef.current.value = "tak")}
+                onClick={() => {
+                  ustawRodzaj("odpowiedz");
+                  if (czekajRef.current) czekajRef.current.value = "tak";
+                }}
                 className="inline-flex h-[38px] items-center rounded-[9px] border border-primary bg-primary px-3.5 text-sm font-semibold text-primary-foreground hover:bg-data-hi disabled:opacity-50"
               >
                 Wyślij i czekaj na klienta

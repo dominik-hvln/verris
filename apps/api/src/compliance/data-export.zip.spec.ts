@@ -46,7 +46,7 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
     subscription: { findMany: lista([{ id: 's1' }]) },
     walletTransaction: { findMany: lista([]) },
     invoice: { findMany: lista([{ id: 'i1', number: 'FV/1/2026' }]) },
-    ticket: { findMany: lista([{ id: 't1', subject: 'Pomoc' }]) },
+    ticket: { findMany: lista([{ id: 't1', subject: 'Pomoc', openedByStaffId: null }, { id: 't2', subject: 'Awaria', openedByStaffId: 'operator-7' }]) },
     ticketAttachment: {
       findMany: lista([
         { id: 'z1', originalName: 'faktura.pdf', storageKey: 'k1' },
@@ -54,7 +54,13 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
         { id: 'z3', originalName: '../../etc/passwd', storageKey: 'k3' },
       ]),
     },
-    ticketReply: { findMany: lista([]) },
+    ticketReply: {
+      findMany: lista([
+        { id: 'r1', ticketId: 't1', authorId: 'u1', isStaff: false, internal: false, automatic: null, message: 'Dalej nie działa.' },
+        { id: 'r2', ticketId: 't1', authorId: 'operator-7', isStaff: true, internal: false, automatic: null, message: 'Sprawdzamy.' },
+        { id: 'r3', ticketId: 't1', authorId: 'operator-7', isStaff: true, internal: true, automatic: null, message: 'Klient zgłaszał to już w marcu.' },
+      ]),
+    },
     userConsent: { findMany: lista([{ id: 'c1', documentType: 'TERMS' }]) },
     marketingPreferences: { findUnique: lista({ userId: 'u1', marketingEmail: false }) },
     dataExportRequest: { findMany: lista([]) },
@@ -123,6 +129,19 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
       { body: 'Klient prosił o kontakt telefoniczny.', pinned: true, createdAt: '2026-10-01T10:00:00.000Z', updatedAt: '2026-10-01T10:00:00.000Z', autor: 'Obsługa Verris' },
     ]);
     expect(pliki.get('customer-notes.json')).not.toContain('operator-7');
+  });
+
+  it('F2.5 — notatki obsługi w wątku zgłoszenia są w eksporcie (internal: true), wpisy obsługi bez id pracownika', async () => {
+    const pliki = await zbudujZip(zbuduj().svc);
+    const wpisy = JSON.parse(pliki.get('ticket-replies.json')!) as Array<Record<string, unknown>>;
+    expect(wpisy.find((r) => r.id === 'r3')).toMatchObject({ internal: true, message: 'Klient zgłaszał to już w marcu.', authorId: null, autor: 'Obsługa Verris' });
+    expect(wpisy.find((r) => r.id === 'r2')).toMatchObject({ authorId: null, autor: 'Obsługa Verris' });
+    expect(wpisy.find((r) => r.id === 'r1')).toMatchObject({ authorId: 'u1' });
+    const zgl = JSON.parse(pliki.get('tickets.json')!) as Array<Record<string, unknown>>;
+    expect(zgl.map((t) => t.zalozylaObsluga)).toEqual([false, true]);
+    expect(pliki.get('ticket-replies.json')).not.toContain('operator-7');
+    expect(pliki.get('tickets.json')).not.toContain('operator-7');
+    expect(pliki.get('README.txt')).toContain('notatki obsługi (internal: true)');
   });
 
   it('nazwa załącznika nie wychodzi poza katalog attachments/ (zip slip)', async () => {

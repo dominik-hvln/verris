@@ -490,3 +490,36 @@ describe('D1 — panel operatora dla STAFF: macierz tras', () => {
     }
   });
 });
+
+/**
+ * F2.5 — helpdesk: notatki wewnętrzne, zgłoszenie w imieniu klienta, tagi, eskalacja i jej cofnięcie, flaga
+ * ryzyka, kroki runbooka — TICKETS_MANAGE (L1 i wyżej); skrzynka i lista tagów — TICKETS_VIEW. Klient (USER)
+ * nie wchodzi na żadną z tych tras (sprawdza to test ogólny wyżej).
+ */
+describe('F2.5 — trasy helpdesku', () => {
+  const t = (metoda: string) => {
+    const x = TRASY.find((r) => r.kontroler === 'TicketsController' && r.metoda === metoda);
+    expect(x, metoda).toBeDefined();
+    return x!;
+  };
+  const L1 = [...ROLE_SYSTEMOWE.find((r) => r.name === 'L1 Konsultant')!.permissions];
+  const MARKETING = [...ROLE_SYSTEMOWE.find((r) => r.name === 'Marketing')!.permissions];
+  const ZAPIS = ['adminAddNote'];
+  const ODCZYT: string[] = [];
+
+  it('zapis — TICKETS_MANAGE: L1 tak, sam TICKETS_VIEW nie, Marketing nie', async () => {
+    for (const m of ZAPIS) {
+      expect({ m, ok: await wpuszcza(t(m), OPERATOR, L1) }).toEqual({ m, ok: true });
+      expect({ m, ok: await wpuszcza(t(m), OPERATOR, ['TICKETS_VIEW']) }).toEqual({ m, ok: false });
+      expect({ m, ok: await wpuszcza(t(m), OPERATOR, MARKETING) }).toEqual({ m, ok: false });
+      expect({ m, ok: await wpuszcza(t(m), KLIENT, ['*']) }).toEqual({ m, ok: false });
+    }
+  });
+
+  it('odczyt — TICKETS_VIEW', async () => {
+    for (const m of ODCZYT) {
+      expect({ m, ok: await wpuszcza(t(m), OPERATOR, ['TICKETS_VIEW']) }).toEqual({ m, ok: true });
+      expect({ m, ok: await wpuszcza(t(m), OPERATOR, MARKETING) }).toEqual({ m, ok: false });
+    }
+  });
+});

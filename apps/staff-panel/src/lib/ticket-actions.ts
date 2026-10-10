@@ -50,6 +50,19 @@ export async function staffPostReply(
   }
 }
 
+/** F2.5 — notatka wewnętrzna w wątku: bez maila do klienta i bez zmiany stanu zgłoszenia. */
+export async function staffPostNote(ticketId: string, message: string): Promise<{ ok: true } | { error: string }> {
+  const m = message.trim();
+  if (m.length < 2) return { error: "Notatka jest za krótka." };
+  try {
+    await staffApi(`/tickets/admin/${ticketId}/notatki`, { method: "POST", body: { message: m } });
+    revalidatePath(`/tickets/${ticketId}`);
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof StaffApiError ? e.message : "Nie udało się zapisać notatki." };
+  }
+}
+
 export async function staffPostReplyWithFiles(
   ticketId: string,
   formData: FormData,
@@ -60,6 +73,11 @@ export async function staffPostReplyWithFiles(
   let fileCount = 0;
   for (const entry of inbound) {
     if (entry instanceof File && entry.size > 0) fileCount += 1;
+  }
+  // F2.5 — „Zapisz jako notatkę”: ta sama treść idzie do notatek wewnętrznych, nigdy do klienta.
+  if (formData.get("rodzaj")?.toString() === "notatka") {
+    if (fileCount > 0) return { error: "Notatka nie przyjmuje załączników — wyślij je w odpowiedzi albo usuń z pola." };
+    return staffPostNote(ticketId, message);
   }
 
   const trimmed = message.trim();

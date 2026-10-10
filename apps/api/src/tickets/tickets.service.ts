@@ -41,6 +41,11 @@ const USLUGA_ZGLOSZENIA = {
   select: { id: true, serviceTag: true, status: true, plan: { select: { name: true } }, account: { select: { domain: true } } },
 } as const;
 
+/** F2.5 — załączniki, które klient może zobaczyć: pierwszej wiadomości albo odpowiedzi, która nie jest notatką. */
+const WIDOCZNE_DLA_KLIENTA_ZALACZNIKI = {
+  OR: [{ replyId: null }, { reply: { is: { internal: false } } }],
+} satisfies Prisma.TicketAttachmentWhereInput;
+
 @Injectable()
 export class TicketsService {
   constructor(
@@ -250,7 +255,8 @@ export class TicketsService {
         department: true,
         createdAt: true,
         updatedAt: true,
-        _count: { select: { replies: true } },
+        // F2.5 — notatki wewnętrzne obsługi nie liczą się do wiadomości, które widzi klient.
+        _count: { select: { replies: { where: { internal: false } } } },
       },
     });
   }
@@ -267,7 +273,8 @@ export class TicketsService {
         assignedTo: { select: { firstName: true, lastName: true } },
         subscription: USLUGA_ZGLOSZENIA,
         attachments: {
-          orderBy: { createdAt: 'asc' },
+          // F2.5 — załącznik notatki wewnętrznej nie wychodzi do klienta (notatki dziś są bez plików — na zapas).
+          where: WIDOCZNE_DLA_KLIENTA_ZALACZNIKI,
           select: {
             id: true,
             originalName: true,
@@ -279,6 +286,8 @@ export class TicketsService {
           },
         },
         replies: {
+          // F2.5 — notatki wewnętrzne obsługi zostają u nas.
+          where: { internal: false },
           orderBy: { createdAt: 'asc' },
           include: {
             attachments: {
@@ -306,21 +315,29 @@ export class TicketsService {
     // PB-37 — klient widzi opiekuna (imię + inicjał) i „przeczytane”; notatki wewnętrzne obsługi zostają u nas.
     const {
       assignedTo, aiDraft: _a, aiDraftAt: _b, riskFlag: _c, riskReason: _d, escalationReason: _e,
-      escalatedById: _f, runbookKey: _g, csatAgentId: _h, ...widoczne
+      escalatedById: _f, runbookKey: _g, csatAgentId: _h, tags: _i, openedByStaffId, ...widoczne
     } = ticket;
     // Kto z obsługi odpisał (imię + inicjał) — klient wie, z kim rozmawia; id pracowników nie wychodzą.
     const idObslugi = [...new Set(widoczne.replies.filter((r) => r.isStaff && !r.automatic).map((r) => r.authorId))];
     const obsluga = idObslugi.length
       ? await this.prisma.user.findMany({ where: { id: { in: idObslugi } }, select: { id: true, firstName: true, lastName: true } })
       : [];
-    const replies = widoczne.replies.map(({ authorId, ...r }) => ({
+    const replies = widoczne.replies.map(({ authorId, internal: _wew, ...r }) => ({
       ...r,
       authorId: r.isStaff ? null : authorId,
       autor: r.isStaff && !r.automatic ? opiekunSlownie(obsluga.find((u) => u.id === authorId)) : null,
     }));
     const poza = !!zakresUslug?.length && !!widoczne.subscriptionId && !zakresUslug.includes(widoczne.subscriptionId);
     const usluga = poza ? { subscriptionId: null, subscription: null } : {};
-    return { ...widoczne, ...usluga, replies, opiekun: assignedTo ? opiekunSlownie(assignedTo) : null, supportSlaHours };
+    return {
+      ...widoczne,
+      ...usluga,
+      replies,
+      opiekun: assignedTo ? opiekunSlownie(assignedTo) : null,
+      supportSlaHours,
+      // F2.5 — zgłoszenie założone przez obsługę: pierwsza wiadomość jest od „Obsługa Verris” (bez nazwiska, D3).
+      zalozylaObsluga: !!openedByStaffId,
+    };
   }
 
   /** SUP-5 — highest support SLA (hours) across the user's active subscriptions. */
@@ -749,6 +766,23 @@ export class TicketsService {
     return reply;
   }
 
+  /**
+   * F2.5 — notatka wewnętrzna w wątku: widzi ją tylko zespół. Nie zmienia stanu, terminów ani „kto pisał
+   * ostatni” (od tego zależą auto-wiadomości i SLA), nie wysyła maila i nie trafia do szkicu asystenta.
+   * Pisana tak, jakby klient mógł ją przeczytać — jest w jego eksporcie RODO (decyzja 10.10).
+   */
+  async adminAddNote(ticketId: string, staffId: string, message: string, opcje: { zrodlo?: string } = {}) {
+    const tresc = message.trim();
+    if (tresc.length < 2) throw new BadRequestException('Notatka jest za krótka.');
+    const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId }, select: { id: true } });
+    if (!ticket) throw new NotFoundException('Nie znaleziono zgłoszenia.');
+    const note = await this.prisma.ticketReply.create({
+      data: { ticketId, authorId: staffId, message: tresc, isStaff: true, internal: true },
+    });
+    await this.logEvent(ticketId, 'INTERNAL_NOTE', staffId, opcje.zrodlo ? { zrodlo: opcje.zrodlo } : undefined);
+    return note;
+  }
+
   async getCannedResponses() {
     return this.prisma.cannedResponse.findMany({
       orderBy: { title: 'asc' },
@@ -1043,7 +1077,7 @@ export class TicketsService {
     }
 
     const att = await this.prisma.ticketAttachment.findFirst({
-      where: { id: attachmentId, ticketId },
+      where: { id: attachmentId, ticketId, ...(isStaffOrAdmin ? {} : WIDOCZNE_DLA_KLIENTA_ZALACZNIKI) },
     });
     if (!att) throw new NotFoundException('Załącznik nie został znaleziony');
 

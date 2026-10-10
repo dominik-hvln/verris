@@ -119,6 +119,14 @@ export class AddTicketReplyDto {
   czekaj?: 'tak' | 'nie';
 }
 
+/** F2.5 — notatka wewnętrzna w wątku (klient jej nie widzi). */
+export class NotatkaZgloszeniaDto {
+  @IsString()
+  @MinLength(2, { message: 'Notatka musi mieć minimum 2 znaki' })
+  @MaxLength(20_000, { message: 'Notatka jest za długa' })
+  message!: string;
+}
+
 /** Eskalacja zgłoszenia (panel obsługi) — powód min. 10 znaków sprawdza serwis. */
 export class EskalacjaZgloszeniaDto {
   @IsString()

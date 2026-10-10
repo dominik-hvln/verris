@@ -2184,6 +2184,11 @@ model Ticket {
   subscriptionId   String?
   subscription     Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
 
+  // F2.5 — tagi obsługi (filtr skrzynki; klient ich nie widzi) i zgłoszenie założone przez operatora w imieniu
+  // klienta (id operatora; null = założył klient lub system). Klient widzi tylko „założyła Obsługa Verris”.
+  tags             String[]      @default([])
+  openedByStaffId  String?
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -2208,6 +2213,9 @@ model TicketReply {
   authorId  String
   /// PB-37 — automatyczna wiadomość (POTWIERDZENIE, ZAJMUJE_SIE, WCIAZ_PRACUJEMY, PODZIEKOWANIE); null = napisana przez człowieka
   automatic String?
+  /// F2.5 — notatka wewnętrzna obsługi: nie wychodzi do klienta (panel, maile, auto-wiadomości, szkic asystenta).
+  /// W eksporcie RODO jest — autor jako „Obsługa Verris” (decyzja 10.10).
+  internal  Boolean  @default(false)
 
   attachments TicketAttachment[]
 

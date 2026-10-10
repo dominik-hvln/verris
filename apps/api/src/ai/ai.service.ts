@@ -20,7 +20,8 @@ export class AiService {
       where: { id: ticketId },
       include: {
         user: { select: { id: true, email: true, companyName: true } },
-        replies: { where: { automatic: null }, orderBy: { createdAt: 'asc' }, take: 20 },
+        // F2.5 — notatki wewnętrzne poza kontekstem: szkic idzie do klienta, notatka mogłaby się w nim znaleźć.
+        replies: { where: { automatic: null, internal: false }, orderBy: { createdAt: 'asc' }, take: 20 },
       },
     });
     if (!ticket) throw new NotFoundException('Nie znaleziono zgłoszenia.');

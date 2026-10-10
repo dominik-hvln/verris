@@ -49,6 +49,24 @@ function zgl(zmiany: Partial<StaffTicketDetail> = {}): StaffTicketDetail {
 const render = (t: StaffTicketDetail) =>
   tekst(renderToStaticMarkup(<TicketDetailPanel ticket={t} agents={[]} context={null} mojeOceny={null} teraz={TERAZ} />));
 
+describe("F2.5 — notatki wewnętrzne w wątku", () => {
+  it("notatka wyróżniona i opisana „klient jej nie widzi”; przycisk „Zapisz jako notatkę”", () => {
+    const html = renderToStaticMarkup(
+      <TicketDetailPanel
+        ticket={zgl({ replies: [{ id: "r1", message: "Klient VIP — nie zamykać bez telefonu.", createdAt: h(-1), isStaff: true, internal: true, authorId: "s1" }] })}
+        agents={[{ id: "s1", email: "p@verris.pl", firstName: "Piotr", lastName: "Kowal" }]}
+        context={null}
+        mojeOceny={null}
+        teraz={TERAZ}
+      />,
+    );
+    expect(html).toContain('data-wpis="notatka"');
+    expect(tekst(html)).toContain("Notatka wewnętrzna · Piotr");
+    expect(tekst(html)).toContain("klient jej nie widzi");
+    expect(tekst(html)).toContain("Zapisz jako notatkę");
+  });
+});
+
 describe("X-05 szczegół zgłoszenia (obsługa)", () => {
   it("bez pierwszej odpowiedzi po terminie: czerwona informacja z czasem spóźnienia", () => {
     expect(render(zgl())).toMatch(/Pierwsza odpowiedź: .*po terminie/);

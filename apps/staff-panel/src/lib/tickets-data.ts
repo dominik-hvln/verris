@@ -136,6 +136,8 @@ export interface StaffTicketDetail extends StaffTicketRow {
     isStaff: boolean;
     /** PB-37 — automatyczna wiadomość (POTWIERDZENIE, ZAJMUJE_SIE, WCIAZ_PRACUJEMY, PODZIEKOWANIE) */
     automatic?: string | null;
+    /** F2.5 — notatka wewnętrzna (widzi tylko zespół). */
+    internal?: boolean;
     authorId?: string | null;
     attachments?: TicketAttachmentRow[];
   }>;

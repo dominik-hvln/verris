@@ -30,6 +30,7 @@ import {
   RyzykoZgloszeniaDto,
   ZmianaSzablonuDto,
   PowiazanieUslugiDto,
+  NotatkaZgloszeniaDto,
 } from './tickets.dto.js';
 import { CannedResponseService } from './canned-response.service.js';
 import { TicketContextService } from './ticket-context.service.js';
@@ -233,6 +234,19 @@ export class TicketsController {
     @Body() dto: AddTicketReplyDto,
   ) {
     return this.ticketsService.adminAddReply(id, user.userId, dto);
+  }
+
+  // F2.5 — notatka wewnętrzna w wątku: bez maila, bez zmiany stanu, klient jej nie widzi.
+  @Post('admin/:id/notatki')
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
+  @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_MANAGE')
+  adminAddNote(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: { userId: string },
+    @Body() dto: NotatkaZgloszeniaDto,
+  ) {
+    return this.ticketsService.adminAddNote(id, user.userId, dto.message);
   }
 
   @Post('admin/:id/replies/with-files')
