@@ -108,6 +108,34 @@ describe("Menu admina — żadna strona nie jest ukryta", () => {
     expect(menu().querySelector('a[href="/plans"]')).toBeNull();
   });
 
+  // Fala 1B — menu wg strażników API pod stroną (uprawnienia podpięte w fali 1A).
+  it.each([
+    ["AUDIT_VIEW", "/audit"],
+    ["COMPLIANCE_MANAGE", "/compliance"],
+    ["PLANS_MANAGE", "/plans"],
+  ])("%s otwiera %s w menu; bez niego pozycji nie ma", async (perm, href) => {
+    sciezka = "/";
+    await render([perm], false);
+    expect(menu().querySelector(`a[href="${href}"]`)).not.toBeNull();
+    await render(["DASHBOARD_VIEW"], false);
+    expect(menu().querySelector(`a[href="${href}"]`)).toBeNull();
+  });
+
+  it("VPS i autoskalowanie tylko dla administratora (API: @Roles(ADMIN)), nie z PLANS_MANAGE", async () => {
+    sciezka = "/";
+    await render(["PLANS_MANAGE"], false);
+    expect(menu().querySelector('a[href="/vps"]')).toBeNull();
+    expect(menu().querySelector('a[href="/autoscaling"]')).toBeNull();
+    await render([], true);
+    expect(menu().querySelector('a[href="/vps"]')).not.toBeNull();
+  });
+
+  it("Baza wiedzy: odczyt dla każdego pracownika (API: GET admin/kb bez uprawnienia), także bez DASHBOARD_VIEW", async () => {
+    sciezka = "/";
+    await render(["TICKETS_VIEW"], false);
+    expect(menu().querySelector('a[href="/knowledge-base"]')).not.toBeNull();
+  });
+
   it("uprawnienia niedostępne: komunikat i menu bez modułów wymagających uprawnień", async () => {
     sciezka = "/";
     await act(async () =>
@@ -220,6 +248,23 @@ describe("Cmd+K — słowa kluczowe i strony spoza menu", () => {
     expect(reczna?.title).toBe("Wymaga BILLING_MANAGE");
     expect(await wpisz("przychody")).not.toContain("Przychody z autoskalowania");
     expect(await wpisz("kreator")).toContain("Wymaga roli administratora");
+  });
+
+  it("fala 1B: Cmd+K filtruje strony tak jak menu (Dziennik z AUDIT_VIEW, RODO z COMPLIANCE_MANAGE, VPS tylko admin)", async () => {
+    await otworz(["AUDIT_VIEW"], false);
+    expect(await wpisz("dziennik bezp")).toContain("Dziennik bezpieczeństwa");
+    expect(await wpisz("rodo")).not.toContain("RODO");
+    expect(await wpisz("vps")).not.toContain("Strona · Oferta");
+    act(() => root.unmount());
+    root = createRoot(el);
+    await otworz(["COMPLIANCE_MANAGE", "PLANS_MANAGE"], false);
+    expect(await wpisz("rodo")).toContain("RODO");
+    expect(await wpisz("plany")).toContain("Plany");
+    expect(await wpisz("vps")).not.toContain("Strona · Oferta");
+    act(() => root.unmount());
+    root = createRoot(el);
+    await otworz();
+    expect(await wpisz("vps")).toContain("Strona · Oferta");
   });
 
   it("strona menu o adresie działania pojawia się raz — jako działanie", async () => {

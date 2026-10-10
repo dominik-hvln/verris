@@ -235,14 +235,16 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
     {
       naglowek: "Oferta",
       pozycje: [
+        // Fala 1B — perm jak strażnik API pod stroną: admin/plans — PLANS_MANAGE (fala 1A); admin/vps
+        // i admin/autoscaling/pricing — tylko @Roles(ADMIN).
         { name: "Plany", ikona: "cenniki", pod: [{ name: "Plany", href: "/plans", perm: "PLANS_MANAGE", szukaj: "plany produktowe pakiety cennik hosting poczta" }] },
-        { name: "VPS", ikona: "wezly", pod: [{ name: "VPS", href: "/vps", perm: "PLANS_MANAGE", szukaj: "cloud serwery wirtualne snapshoty" }] },
+        { name: "VPS", ikona: "wezly", pod: [{ name: "VPS", href: "/vps", perm: "ADMIN", szukaj: "cloud serwery wirtualne snapshoty" }] },
         {
           name: "Autoskalowanie",
           ikona: "pojemnosc",
           pod: [
-            { name: "Reguły cenowe", href: "/autoscaling", perm: "PLANS_MANAGE", szukaj: "cennik autoskalowania burst" },
-            { name: "Przychody", href: "/autoscaling/revenue", perm: "PLANS_MANAGE", szukaj: "przychody z autoskalowania burst" },
+            { name: "Reguły cenowe", href: "/autoscaling", perm: "ADMIN", szukaj: "cennik autoskalowania burst" },
+            { name: "Przychody", href: "/autoscaling/revenue", perm: "ADMIN", szukaj: "przychody z autoskalowania burst" },
           ],
         },
         { name: "Domeny i SSL", ikona: "domeny", pod: [{ name: "Domeny i SSL", href: "/domain-pricing", perm: "SETTINGS_MANAGE", szukaj: "certyfikaty ssl dv ov whois prywatność ceny" }] },
@@ -254,7 +256,8 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
     {
       naglowek: "Wiedza i AI",
       pozycje: [
-        { name: "Baza wiedzy", ikona: "wiedza", pod: [{ name: "Baza wiedzy", href: "/knowledge-base", perm: "DASHBOARD_VIEW", szukaj: "artykuły pomoc poradniki" }] },
+        // GET admin/kb/* — każdy pracownik (odczyt); zapis — KB_MANAGE (fala 1A), strona wyszarza edycję.
+        { name: "Baza wiedzy", ikona: "wiedza", pod: [{ name: "Baza wiedzy", href: "/knowledge-base", szukaj: "artykuły pomoc poradniki" }] },
         { name: "Wiedza AI", ikona: "wiedza", pod: [{ name: "Wiedza AI", href: "/ai-knowledge", perm: "DASHBOARD_VIEW", szukaj: "baza wiedzy ai embeddingi asystent źródła" }] },
         { name: "Konfiguracja asystenta", ikona: "czat", pod: [{ name: "Konfiguracja asystenta", href: "/settings/ai", perm: "SETTINGS_MANAGE", szukaj: "asystent ai czat model budżet klucze" }] },
       ],
@@ -290,6 +293,8 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
           name: "Bezpieczeństwo i zgodność",
           ikona: "dziennik",
           pod: [
+            // admin/audit-logs — AUDIT_VIEW; admin/compliance — odczyt i ponowienie eksportu COMPLIANCE_MANAGE,
+            // publikacja dokumentu i wymuszona anonimizacja tylko ADMIN (fala 1A).
             { name: "Dziennik bezpieczeństwa", href: "/audit", perm: "AUDIT_VIEW", szukaj: "audyt logi zdarzenia" },
             { name: "RODO", href: "/compliance", perm: "COMPLIANCE_MANAGE", szukaj: "compliance gdpr dane osobowe eksport usunięcie" },
             { name: "VPN", href: "/vpn", perm: "SETTINGS_MANAGE", szukaj: "wireguard dostęp paneli" },

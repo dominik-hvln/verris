@@ -77,7 +77,8 @@ function mdToHtml(md: string): string {
 
 const EMPTY: ArticleInput = { title: '', categoryId: '', excerpt: '', bodyMarkdown: '', status: 'DRAFT', seoTitle: '', seoDescription: '', faq: [], relatedSlugs: [] };
 
-export function KbManager() {
+/** `blokada` — powód, gdy rola nie ma KB_MANAGE (API: zapis tylko z KB_MANAGE, odczyt każdy pracownik). */
+export function KbManager({ blokada = null }: { blokada?: string | null } = {}) {
   const [cats, setCats] = useState<KbCategory[]>([]);
   const [selCat, setSelCat] = useState<string | null>(null);
   const [articles, setArticles] = useState<KbArticleListItem[]>([]);
@@ -177,13 +178,14 @@ export function KbManager() {
 
   return (
     <div className="space-y-6">
-    <CtaPanel />
+    {blokada ? <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-muted-foreground">Tylko podgląd. {blokada}.</p> : null}
+    <CtaPanel blokada={blokada} />
     <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
       {/* Kategorie */}
       <aside className="space-y-2 rounded-2xl border border-white/10 bg-black/30 p-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold uppercase tracking-widest text-amber-400">Kategorie</h2>
-          <button onClick={() => void addCategory(null)} className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-white hover:bg-white/10">
+          <button onClick={() => void addCategory(null)} disabled={!!blokada} title={blokada ?? undefined} className="disabled:cursor-not-allowed disabled:opacity-50 inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-white hover:bg-white/10">
             <Plus className="h-3.5 w-3.5" /> Kategoria
           </button>
         </div>
@@ -195,12 +197,12 @@ export function KbManager() {
         <ul className="space-y-1">
           {tops.map((c) => (
             <li key={c.id}>
-              <CatRow c={c} sel={selCat === c.id} onSelect={() => setSelCat(c.id)} onAddSub={() => void addCategory(c.id)} onRename={() => void renameCategory(c)} onDelete={() => void removeCategory(c)} />
+              <CatRow c={c} sel={selCat === c.id} tylkoOdczyt={!!blokada} onSelect={() => setSelCat(c.id)} onAddSub={() => void addCategory(c.id)} onRename={() => void renameCategory(c)} onDelete={() => void removeCategory(c)} />
               {childrenOf(c.id).length > 0 ? (
                 <ul className="ml-4 mt-1 space-y-1 border-l border-white/10 pl-2">
                   {childrenOf(c.id).map((ch) => (
                     <li key={ch.id}>
-                      <CatRow c={ch} sel={selCat === ch.id} onSelect={() => setSelCat(ch.id)} onRename={() => void renameCategory(ch)} onDelete={() => void removeCategory(ch)} />
+                      <CatRow c={ch} sel={selCat === ch.id} tylkoOdczyt={!!blokada} onSelect={() => setSelCat(ch.id)} onRename={() => void renameCategory(ch)} onDelete={() => void removeCategory(ch)} />
                     </li>
                   ))}
                 </ul>
@@ -221,7 +223,7 @@ export function KbManager() {
               <h2 className="text-lg font-bold text-white">
                 {selCat ? cats.find((c) => c.id === selCat)?.name ?? 'Artykuły' : 'Wybierz kategorię'}
               </h2>
-              <button onClick={openNew} disabled={!selCat} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-40">
+              <button onClick={openNew} disabled={!selCat || !!blokada} title={blokada ?? undefined} className="disabled:cursor-not-allowed inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-40">
                 <Plus className="h-4 w-4" /> Nowy artykuł
               </button>
             </div>
@@ -259,7 +261,7 @@ export function KbManager() {
           <Editor
             form={form} set={set} setForm={setForm} cats={cats} busy={busy}
             isNew={editing === 'new'}
-            onSave={() => void save()} onDelete={() => void removeArticle()} onClose={() => setEditing(null)}
+            onSave={() => void save()} onDelete={() => void removeArticle()} onClose={() => setEditing(null)} blokada={blokada}
           />
         )}
       </section>
@@ -268,7 +270,7 @@ export function KbManager() {
   );
 }
 
-function CtaPanel() {
+function CtaPanel({ blokada }: { blokada: string | null }) {
   const [cta, setCta] = useState<KbCtaConfig | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -319,7 +321,7 @@ function CtaPanel() {
           <input className={inputCls} value={cta.statusLabel} onChange={(e) => upd('statusLabel', e.target.value)} /></label>
       </div>
       <div className="mt-3 flex items-center gap-3">
-        <button type="button" onClick={() => void submit()} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-50">
+        <button type="button" onClick={() => void submit()} disabled={saving || !!blokada} title={blokada ?? undefined} className="disabled:cursor-not-allowed inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-50">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Zapisz baner
         </button>
         {saved ? <span className="text-sm text-emerald-300">Zapisano.</span> : null}
@@ -328,13 +330,13 @@ function CtaPanel() {
   );
 }
 
-function CatRow({ c, sel, onSelect, onAddSub, onRename, onDelete }: {
-  c: KbCategory; sel: boolean; onSelect: () => void; onAddSub?: () => void; onRename: () => void; onDelete: () => void;
+function CatRow({ c, sel, tylkoOdczyt, onSelect, onAddSub, onRename, onDelete }: {
+  c: KbCategory; sel: boolean; tylkoOdczyt?: boolean; onSelect: () => void; onAddSub?: () => void; onRename: () => void; onDelete: () => void;
 }) {
   return (
     <div className={`group flex items-center justify-between rounded-lg px-2 py-1.5 ${sel ? 'bg-emerald-500/15 text-emerald-100' : 'text-white/80 hover:bg-white/5'}`}>
       <button onClick={onSelect} className="flex-1 truncate text-left text-sm">{c.name}</button>
-      <span className="ml-1 hidden items-center gap-1 group-hover:flex">
+      <span className={`ml-1 hidden items-center gap-1 ${tylkoOdczyt ? "" : "group-hover:flex"}`}>
         {onAddSub ? <button title="Podkategoria" onClick={onAddSub} className="text-white/55 hover:text-white"><FolderPlus className="h-3.5 w-3.5" /></button> : null}
         <button title="Zmień nazwę" onClick={onRename} className="text-white/55 hover:text-white"><Pencil className="h-3.5 w-3.5" /></button>
         <button title="Usuń" onClick={onDelete} className="text-white/55 hover:text-rose-400"><Trash2 className="h-3.5 w-3.5" /></button>
@@ -343,12 +345,12 @@ function CatRow({ c, sel, onSelect, onAddSub, onRename, onDelete }: {
   );
 }
 
-function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete, onClose }: {
+function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete, onClose, blokada }: {
   form: ArticleInput;
   set: (k: keyof ArticleInput) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   setForm: React.Dispatch<React.SetStateAction<ArticleInput>>;
   cats: KbCategory[]; busy: boolean; isNew: boolean;
-  onSave: () => void; onDelete: () => void; onClose: () => void;
+  onSave: () => void; onDelete: () => void; onClose: () => void; blokada: string | null;
 }) {
   const kbFieldId = useId();
   const preview = useMemo(() => mdToHtml(form.bodyMarkdown || ''), [form.bodyMarkdown]);
@@ -359,8 +361,8 @@ function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete, onClo
         <h2 className="text-lg font-bold text-white">{isNew ? 'Nowy artykuł' : 'Edycja artykułu'}</h2>
         <div className="flex gap-2">
           <button onClick={onClose} className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10">Wróć</button>
-          {!isNew ? <button onClick={onDelete} className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-sm text-rose-300 hover:bg-rose-500/20"><Trash2 className="h-4 w-4" /> Usuń</button> : null}
-          <button onClick={onSave} disabled={busy} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-5 py-2 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-50">
+          {!isNew ? <button onClick={onDelete} disabled={!!blokada} title={blokada ?? undefined} className="disabled:cursor-not-allowed disabled:opacity-50 inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-sm text-rose-300 hover:bg-rose-500/20"><Trash2 className="h-4 w-4" /> Usuń</button> : null}
+          <button onClick={onSave} disabled={busy || !!blokada} title={blokada ?? undefined} className="disabled:cursor-not-allowed inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-5 py-2 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-50">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Zapisz
           </button>
         </div>
