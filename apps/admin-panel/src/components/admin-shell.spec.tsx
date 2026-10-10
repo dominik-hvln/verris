@@ -91,10 +91,12 @@ describe("Menu admina — żadna strona nie jest ukryta", () => {
     expect(menu().querySelector('a[href="/plans"]')).not.toBeNull();
   });
 
-  it("Flota → Kopie (próby odtworzenia) tylko dla administratora — API: @Roles(ADMIN)", async () => {
+  it("Flota → Kopie (kopie floty, F3.3) z NODES_VIEW — API: admin/servers/kopie; bez NODES_VIEW — nie", async () => {
     sciezka = "/nodes";
-    await render(["NODES_VIEW", "NODES_MANAGE"], false);
+    await render(["TICKETS_VIEW"], false);
     expect(menu().querySelector('a[href="/nodes/kopie"]')).toBeNull();
+    await render(["NODES_VIEW"], false);
+    expect(menu().querySelector('a[href="/nodes/kopie"]')?.textContent).toBe("Kopie");
     await render([], true);
     expect(menu().querySelector('a[href="/nodes/kopie"]')?.textContent).toBe("Kopie");
   });
@@ -232,9 +234,10 @@ describe("Cmd+K — słowa kluczowe i strony spoza menu", () => {
     ["passkey", "Twoje konto"],
     ["break-glass", "Twoje konto"],
     // Fala 1B — Flota → Kopie.
-    ["odtworzenie", "Próby odtworzenia"],
-    ["restore", "Próby odtworzenia"],
-    ["kopie", "Próby odtworzenia"],
+    ["odtworzenie", "Kopie floty"],
+    ["restore", "Kopie floty"],
+    ["kopie", "Kopie floty"],
+    ["backup", "Kopie floty"],
   ])("„%s” → %s", async (q, strona) => {
     await otworz();
     expect(await wpisz(q)).toContain(strona);

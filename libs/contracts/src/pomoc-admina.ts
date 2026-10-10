@@ -111,6 +111,11 @@ export const POMOC = {
     opis: "Nadaje numer i tworzy PDF opłaconej faktury, której automat nie dokończył.",
     kiedy: "Gdy opłacona faktura wisi bez PDF-u mimo ponowień automatu.",
   },
+  "kopie-floty": {
+    tytul: "Kopie floty",
+    opis: "Kopia każdego konta poza serwerem: ostatni przebieg każdego węzła, konta z nieudaną albo starą kopią, harmonogram, retencja i kopia bazy panelu.",
+    kiedy: "Przy porannym przeglądzie floty i po alercie o koncie bez świeżej kopii — zanim klient będzie jej potrzebował.",
+  },
   "proby-odtworzenia": {
     tytul: "Próby odtworzenia kopii",
     opis: "Historia testów odtworzenia bazy z kopii: data, wynik, czas i kto odpowiada.",

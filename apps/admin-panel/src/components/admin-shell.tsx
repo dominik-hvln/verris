@@ -157,11 +157,18 @@ export function grupy(l: LicznikiMenu | null): Grupa[] {
           licznik: l?.zakladane ? String(l.zakladane) : undefined,
           pod: [{ name: "Kolejka zadań", href: "/provisioning-queue", perm: "PROVISIONING_MANAGE", szukaj: "kolejka zakładania provisioning nowe konta zadania węzłów" }],
         },
-        // GET /admin/live-readiness/proby-odtworzenia — tylko ADMIN (fala 1B, zaczątek F3.3).
+        // F3.3 — GET /admin/servers/kopie — NODES_VIEW (admin, NOC); próby odtworzenia na tej samej stronie.
         {
           name: "Kopie",
           ikona: "kopie",
-          pod: [{ name: "Próby odtworzenia", href: "/nodes/kopie", perm: "ADMIN", szukaj: "kopie odtworzenie restore backup kopia zapasowa drill test rto" }],
+          pod: [
+            {
+              name: "Kopie floty",
+              href: "/nodes/kopie",
+              perm: "NODES_VIEW",
+              szukaj: "kopie backup kopia zapasowa offsite poza serwerem nieudane retencja harmonogram odtworzenie restore drill rto",
+            },
+          ],
         },
         {
           name: "Migracje",

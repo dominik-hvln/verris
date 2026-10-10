@@ -46,7 +46,8 @@ export const STRONY = {
   "/nodes/capacity": { perm: "NODES_VIEW", tytul: "Pojemność" },
   // Przekierowanie na kreator.
   "/nodes/init": { perm: "ADMIN", tytul: "Dodaj węzeł" },
-  "/nodes/kopie": { perm: "ADMIN", tytul: "Próby odtworzenia" },
+  // F3.3 — admin/servers/kopie — NODES_VIEW (admin, NOC); historia prób odtworzenia na stronie tylko dla ADMIN.
+  "/nodes/kopie": { perm: "NODES_VIEW", tytul: "Kopie floty" },
   "/nodes/przekroczenia": { perm: "NODES_VIEW", tytul: "Przekroczenia limitów" },
   // F3.2 (G-11/G-12) — admin/servers/malware — ACCOUNT_DIAGNOSTICS_VIEW (L2+, NOC, abuse): ścieżki plików klientów.
   "/nodes/malware": { perm: "ACCOUNT_DIAGNOSTICS_VIEW", tytul: "Złośliwe pliki" },

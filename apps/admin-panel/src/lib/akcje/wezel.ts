@@ -205,6 +205,18 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
     pomocId: "przekroczenia-limitow",
   },
   {
+    id: "kopie-wezla",
+    slowa: "kopie backup kopia zapasowa offsite poza serwerem nieudane retencja harmonogram",
+    grupa: "Audyt i naprawa",
+    nazwa: "Kopie kont węzła",
+    opis: "Ostatni przebieg kopii poza serwerem i konta węzła z nieudaną albo starą kopią.",
+    // F3.3 — admin/servers/kopie?wezel= — NODES_VIEW (NOC).
+    perm: "NODES_VIEW",
+    kiedy: dziala,
+    href: (w) => `/nodes/kopie?wezel=${encodeURIComponent(w.id)}`,
+    pomocId: "kopie-floty",
+  },
+  {
     id: "kolejka-poczty",
     slowa: "kolejka poczty mail queue exim mta wypchnij qff zamrożone spam",
     grupa: "Poczta",
