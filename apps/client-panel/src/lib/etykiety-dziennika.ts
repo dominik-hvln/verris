@@ -134,6 +134,10 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   DOMAIN_AUTHCODE_REVEALED: 'Wyświetlono kod transferu domeny',
   DOMAIN_TRANSFER_UNLOCKED: 'Zdjęto blokadę transferu domeny',
   DOMAIN_REGISTRANT_UPDATED: 'Zmieniono dane abonenta domeny',
+  DOMAIN_TRANSFER_LOCKED: 'Włączono blokadę transferu domeny',
+  DOMAIN_REGISTRAR_RENEWED: 'Odnowiono domenę',
+  DOMAIN_REGISTRAR_REGISTERED: 'Zarejestrowano domenę',
+  DOMAIN_REGISTRAR_TRANSFER_SUBMITTED: 'Zlecono transfer domeny',
   SUBSCRIPTION_SUSPENDED: 'Usługa wstrzymana',
   SUBSCRIPTION_UNSUSPENDED: 'Usługa wznowiona',
   // PB-45 — migracja przygotowana przez obsługę

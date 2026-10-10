@@ -241,11 +241,25 @@ export class DomainRegistrarService {
         userId,
         years,
         nameservers,
+        ownerHandle,
         priceAmount: new Prisma.Decimal(price.amount),
         currency: price.currency,
       },
     });
+    return this.zrealizujRejestracje(userId, actorUserId, order, ownerHandle, price);
+  }
 
+  /** Obciążenie → rejestrator → domena na koncie płacącego → dziennik. Wspólne dla zamówienia klienta i ponowienia (F2.7). */
+  private async zrealizujRejestracje(
+    userId: string,
+    actorUserId: string,
+    order: DomainRegistrarOrder,
+    ownerHandle: string,
+    price: { amount: string; currency: string },
+    ponowienie?: { zamowienieId: string },
+  ) {
+    const provider = this.providerFactory.get();
+    const { domainName: domain, years, nameservers } = order;
     // 2. Charge the wallet (fail-closed: no funds → no registration).
     const tx = await this.charge(userId, order, price, `Rejestracja domeny ${domain} (${lata(years)})`);
 
@@ -298,6 +312,8 @@ export class DomainRegistrarService {
         // żądanie natychmiastowej rejestracji + wiedza o utracie prawa
         // odstąpienia z chwilą zarejestrowania domeny (Regulamin §12 ust. 7–8).
         ...(poprzedni ? { replacedClaimOfUserId: poprzedni } : {}),
+        // F2.7 — ponowienie przez obsługę realizuje zamówienie klienta (i jego oświadczenie) z pierwotnego zlecenia.
+        ...(ponowienie ? { ponowienieZamowieniaId: ponowienie.zamowienieId } : {}),
         withdrawalWaiverConsent: true,
         consentStatement:
           'Żądam natychmiastowego wykonania usługi rejestracji domeny i przyjmuję do wiadomości, że z chwilą jej zarejestrowania tracę prawo odstąpienia od umowy w tym zakresie.',
@@ -339,16 +355,31 @@ export class DomainRegistrarService {
         userId,
         years,
         nameservers,
+        ownerHandle,
         priceAmount: new Prisma.Decimal(price.amount),
         currency: price.currency,
       },
     });
+    return this.zrealizujTransfer(userId, actorUserId, order, ownerHandle, input.authCode, price);
+  }
 
+  /** Obciążenie → zlecenie transferu u rejestratora → dziennik. Wspólne dla zamówienia klienta i ponowienia (F2.7). */
+  private async zrealizujTransfer(
+    userId: string,
+    actorUserId: string,
+    order: DomainRegistrarOrder,
+    ownerHandle: string,
+    authCode: string,
+    price: { amount: string; currency: string },
+    ponowienie?: { zamowienieId: string },
+  ) {
+    const provider = this.providerFactory.get();
+    const { domainName: domain, years, nameservers } = order;
     const tx = await this.charge(userId, order, price, `Transfer domeny ${domain}`);
 
     let result: RegistrarOrderResult;
     try {
-      result = await provider.transfer({ domain, years, nameservers, authCode: input.authCode, ownerHandle });
+      result = await provider.transfer({ domain, years, nameservers, authCode, ownerHandle });
     } catch (err) {
       await this.refundAndFail(userId, order, tx.id, err, price);
       throw err;
@@ -375,7 +406,8 @@ export class DomainRegistrarService {
         priceAmount: price.amount,
         currency: price.currency,
         walletTxId: tx.id,
-        authCodeHash: hashSecret(input.authCode),
+        authCodeHash: hashSecret(authCode),
+        ...(ponowienie ? { ponowienieZamowieniaId: ponowienie.zamowienieId } : {}),
       },
     });
     return submitted;
@@ -630,7 +662,13 @@ export class DomainRegistrarService {
     };
   }
 
-  async renew(userId: string, actorUserId: string, domainId: string, years = 1) {
+  /**
+   * Odnowienie domeny. Domyślnie z portfela klienta (klient sam albo obsługa — F2.7, L3). `naKosztVerris` (D8,
+   * 10.10 — tylko L4/ADMIN, powód w dzienniku zespołu): bez obciążenia portfela; zamówienie ma wartość odnowienia,
+   * ale bez transakcji portfela, a błąd rejestratora kończy je bez zwrotu (nic nie pobrano).
+   */
+  async renew(userId: string, actorUserId: string, domainId: string, years = 1, opcje: { naKosztVerris?: boolean } = {}) {
+    const naKosztVerris = opcje.naKosztVerris === true;
     const domain = await this.prisma.domain.findFirst({ where: { id: domainId, userId } });
     if (!domain) throw new NotFoundException('Domena nie została znaleziona.');
     const provider = this.providerFactory.get();
@@ -681,9 +719,11 @@ export class DomainRegistrarService {
       });
     });
 
-    const tx = await this.charge(
-      userId, order, price, `Odnowienie domeny ${domain.name} (${lata(years)})${whois ? ' z ukryciem danych w WHOIS' : ''}`,
-    );
+    const tx = naKosztVerris
+      ? null
+      : await this.charge(
+          userId, order, price, `Odnowienie domeny ${domain.name} (${lata(years)})${whois ? ' z ukryciem danych w WHOIS' : ''}`,
+        );
 
     let result: RegistrarOrderResult;
     try {
@@ -693,7 +733,8 @@ export class DomainRegistrarService {
         externalId: domain.registrarExternalId,
       });
     } catch (err) {
-      await this.refundAndFail(userId, order, tx.id, err, price);
+      if (tx) await this.refundAndFail(userId, order, tx.id, err, price);
+      else await this.zamowienieNieudane(userId, order, err);
       throw err;
     }
 
@@ -723,23 +764,144 @@ export class DomainRegistrarService {
       details: {
         orderId: completed.id,
         domainId,
+        // F2.7 — nazwa domeny: kontekst wpisu w „Aktywności konta” klienta (users.service.ts listMyActivity).
+        domain: domain.name,
         years,
         priceAmount: price.amount,
         ...(whois ? { whoisPrivacyAmount: whois } : {}),
         currency: price.currency,
-        walletTxId: tx.id,
+        walletTxId: tx?.id ?? null,
+        ...(naKosztVerris ? { naKosztVerris: true } : {}),
       },
     });
 
-    void this.ecoPoints.safeAward(`domain_renewal:${completed.id}`, async () => {
-      await this.ecoPoints.awardDomainRenewal(this.prisma, {
-        userId,
-        domainId,
-        referenceId: completed.id,
+    // Punkty eko za odnowienie opłacone przez klienta — nie za odnowienie na koszt Verris.
+    if (!naKosztVerris) {
+      void this.ecoPoints.safeAward(`domain_renewal:${completed.id}`, async () => {
+        await this.ecoPoints.awardDomainRenewal(this.prisma, {
+          userId,
+          domainId,
+          referenceId: completed.id,
+        });
+      });
+    }
+
+    return completed;
+  }
+
+  /**
+   * F2.7 (OI-09) — ponowienie nieudanej rejestracji albo transferu przez obsługę (WHMCS „Reattempt”). Nowe
+   * zamówienie (nowy klucz obciążenia — pierwsze zostało zwrócone albo w ogóle niepobrane) na tego samego klienta,
+   * z tym samym uchwytem abonenta, okresem i NS; portfel klienta jak przy zamówieniu, zwrot przy błędzie rejestratora.
+   * Transfer bierze zapisany kod EPP albo nowy (klient podał go w zgłoszeniu). Jedno ponowienie naraz: blokada wiersza
+   * zamówienia i odmowa, gdy po nim jest już zamówienie w toku albo zakończone.
+   */
+  async ponowZamowienie(orderId: string, actorUserId: string, opcje: { authCode?: string | null } = {}) {
+    const stare = await this.prisma.domainRegistrarOrder.findUnique({ where: { id: orderId } });
+    if (!stare) throw new NotFoundException('Zamówienie nie istnieje.');
+    if (
+      (stare.type !== DomainRegistrarOrderType.REGISTER && stare.type !== DomainRegistrarOrderType.TRANSFER) ||
+      (stare.status !== DomainRegistrarOrderStatus.FAILED && stare.status !== DomainRegistrarOrderStatus.PENDING_PAYMENT)
+    ) {
+      throw new BadRequestException('Ponowić można tylko nieudaną (albo nieopłaconą) rejestrację lub transfer.');
+    }
+    if (!stare.ownerHandle) {
+      throw new BadRequestException(
+        'Zamówienie sprzed zapisu abonenta — nie ma danych, na które zarejestrować domenę. Klient musi zamówić ją ponownie.',
+      );
+    }
+    const ownerHandle = stare.ownerHandle;
+    const nowyKod = opcje.authCode?.trim() || null;
+    const authCode = stare.type === DomainRegistrarOrderType.TRANSFER ? (nowyKod ?? (stare.authCodeEnc ? this.crypto.decrypt(stare.authCodeEnc) : null)) : null;
+    if (stare.type === DomainRegistrarOrderType.TRANSFER && !authCode) throw new BadRequestException('Podaj kod transferu (EPP).');
+
+    const provider = this.providerFactory.get();
+    const cena = async () => {
+      if (stare.type === DomainRegistrarOrderType.TRANSFER) return this.resolvePrice(provider, stare.domainName, stare.years, 'transfer');
+      const availability = await provider.availability(stare.domainName);
+      if (!availability.available) throw new BadRequestException('Domena nie jest już dostępna do rejestracji.');
+      return this.resolvePrice(provider, stare.domainName, stare.years, 'register', {
+        amount: availability.priceAmount,
+        currency: availability.currency,
+      });
+    };
+    const price = await cena();
+
+    const nowe = await this.prisma.$transaction(async (db) => {
+      await db.$queryRaw`SELECT id FROM "DomainRegistrarOrder" WHERE id = ${stare.id} FOR UPDATE`;
+      const pozniejsze = await db.domainRegistrarOrder.findFirst({
+        where: {
+          userId: stare.userId,
+          domainName: stare.domainName,
+          type: stare.type,
+          createdAt: { gt: stare.createdAt },
+          status: { in: [DomainRegistrarOrderStatus.QUEUED, DomainRegistrarOrderStatus.SUBMITTED, DomainRegistrarOrderStatus.COMPLETED] },
+        },
+        select: { id: true },
+      });
+      if (pozniejsze) throw new ConflictException('To zamówienie zostało już ponowione albo klient zamówił domenę ponownie.');
+      return db.domainRegistrarOrder.create({
+        data: {
+          domainName: stare.domainName,
+          type: stare.type,
+          status: DomainRegistrarOrderStatus.QUEUED,
+          userId: stare.userId,
+          years: stare.years,
+          nameservers: stare.nameservers,
+          ownerHandle,
+          authCodeEnc: authCode ? this.crypto.encrypt(authCode) : null,
+          priceAmount: new Prisma.Decimal(price.amount),
+          currency: price.currency,
+        },
       });
     });
 
-    return completed;
+    const ponowienie = { zamowienieId: stare.id };
+    return stare.type === DomainRegistrarOrderType.REGISTER
+      ? this.zrealizujRejestracje(stare.userId, actorUserId, nowe, ownerHandle, price, ponowienie)
+      : this.zrealizujTransfer(stare.userId, actorUserId, nowe, ownerHandle, authCode!, price, ponowienie);
+  }
+
+  /**
+   * F2.7 (OI-01) — synchronizacja jednej domeny na żądanie (WHMCS Domain Sync): stan u rejestratora → baza
+   * (ważność, blokada transferu, ukrycie WHOIS). Domena usunięta albo przeniesiona u rejestratora („failed”) —
+   * jak w codziennym sprawdzeniu (domenaOpuscila). Zwraca, co się zmieniło.
+   */
+  async synchronizuj(domainId: string, actorUserId: string) {
+    const d = await this.prisma.domain.findUnique({ where: { id: domainId } });
+    if (!d) throw new NotFoundException('Domena nie została znaleziona.');
+    if (!d.registrarExternalId) {
+      throw new BadRequestException('Domena nie jest zarejestrowana przez Verris — u rejestratora nie ma czego sprawdzać.');
+    }
+    const info = await this.providerFactory.get().domainInfo(d.registrarExternalId);
+    if (info.state === 'failed') {
+      await this.domenaOpuscila(d.registrarExternalId, 'REGISTRAR_DEL');
+      await this.audit.record({ action: 'DOMAIN_REGISTRAR_SYNCED', userId: d.userId, actorUserId, details: { domain: d.name, odeszla: true } });
+      return { odeszla: true, zmiany: {} as Record<string, { z: unknown; na: unknown }> };
+    }
+    const zmiany: Record<string, { z: unknown; na: unknown }> = {};
+    const dane: Prisma.DomainUpdateInput = { lastRegistrarSyncAt: new Date() };
+    const wygasa = info.expiresAt ? new Date(info.expiresAt) : null;
+    if (wygasa && !Number.isNaN(wygasa.getTime()) && wygasa.getTime() !== d.expiresAt?.getTime()) {
+      zmiany.expiresAt = { z: d.expiresAt?.toISOString() ?? null, na: wygasa.toISOString() };
+      dane.expiresAt = wygasa;
+    }
+    if (info.locked != null && info.locked !== d.transferLock) {
+      zmiany.transferLock = { z: d.transferLock, na: info.locked };
+      dane.transferLock = info.locked;
+    }
+    if (info.privateWhois != null && info.privateWhois !== d.whoisPrivacy) {
+      zmiany.whoisPrivacy = { z: d.whoisPrivacy, na: info.privateWhois };
+      dane.whoisPrivacy = info.privateWhois;
+    }
+    await this.prisma.domain.update({ where: { id: d.id }, data: dane });
+    await this.audit.record({
+      action: 'DOMAIN_REGISTRAR_SYNCED',
+      userId: d.userId,
+      actorUserId,
+      details: { domain: d.name, stan: info.state ?? null, zmiany } as Prisma.InputJsonValue,
+    });
+    return { odeszla: false, zmiany };
   }
 
   // ---------------------------------------------------------------------------
@@ -1104,6 +1266,21 @@ export class DomainRegistrarService {
       action: 'DOMAIN_REGISTRAR_FAILED',
       userId,
       details: { orderId: order.id, domain: order.domainName, type: order.type, error: message },
+    });
+  }
+
+  /** Zamówienie bez obciążenia portfela (odnowienie na koszt Verris) nie powiodło się — nic do zwrotu. */
+  private async zamowienieNieudane(userId: string, order: DomainRegistrarOrder, err: unknown): Promise<void> {
+    const message = err instanceof Error ? err.message : String(err);
+    this.logger.error(`Registrar ${order.type} ${order.domainName} failed (bez obciążenia): ${message}`);
+    await this.prisma.domainRegistrarOrder.update({
+      where: { id: order.id },
+      data: { status: DomainRegistrarOrderStatus.FAILED, lastError: message.slice(0, 1000) },
+    });
+    await this.audit.record({
+      action: 'DOMAIN_REGISTRAR_FAILED',
+      userId,
+      details: { orderId: order.id, domain: order.domainName, type: order.type, error: message, bezObciazenia: true },
     });
   }
 }

@@ -746,7 +746,10 @@ export class UsersService {
       // PB-45 — migracja przygotowana przez obsługę: prośba o zgodę i decyzja klienta.
       'MIGRATION_CONSENT_REQUESTED', 'MIGRATION_CONSENT_ACCEPTED', 'MIGRATION_CONSENT_REJECTED', 'MIGRATION_CONSENT_EXPIRED',
       // F2.5 — obsługa założyła zgłoszenie w imieniu klienta (D3: „obsługa Verris (zgłoszenie #…)”).
-      'TICKET_OPENED_BY_STAFF'];
+      'TICKET_OPENED_BY_STAFF',
+      // F2.7 — domena u rejestratora: blokada, odnowienie (też przez obsługę, z portfela albo na koszt Verris),
+      // rejestracja i transfer (także ponowione przez obsługę).
+      'DOMAIN_TRANSFER_LOCKED', 'DOMAIN_REGISTRAR_RENEWED', 'DOMAIN_REGISTRAR_REGISTERED', 'DOMAIN_REGISTRAR_TRANSFER_SUBMITTED'];
     const take = Math.min(Math.max(limit, 1), 100);
     const rows = await this.prisma.auditLog.findMany({
       where: {

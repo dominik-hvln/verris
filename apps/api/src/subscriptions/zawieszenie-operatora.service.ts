@@ -1,12 +1,11 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
 import type { Subscription } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SubscriptionsService, type SuspendReason } from './subscriptions.service.js';
+import { zgloszenieKlienta } from '../tickets/zgloszenie-klienta.js';
 
 export { POWODY_ZAWIESZENIA_OPERATORA } from './powody-zawieszenia.js';
-
-const ID_ZGLOSZENIA = /^#?([0-9a-f]{8}(?:-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?)$/i;
 
 /**
  * F2.3 — zawieszenie i odwieszenie usługi przez operatora (karta usługi, wniosek, decyzja abuse). Jedno miejsce,
@@ -25,19 +24,7 @@ export class ZawieszenieOperatoraService {
    * do którego należy usługa — cudzego numeru nie przyjmujemy (klient zobaczy go w swojej aktywności).
    */
   async zgloszenieKlienta(klientId: string, wpis: string | null | undefined): Promise<string | null> {
-    const tekst = (wpis ?? '').trim();
-    if (!tekst) return null;
-    const m = ID_ZGLOSZENIA.exec(tekst);
-    if (!m) throw new BadRequestException('Numer zgłoszenia ma postać #ab12cd34 (8 znaków z panelu obsługi).');
-    const id = m[1]!.toLowerCase();
-    const trafienia = await this.prisma.ticket.findMany({
-      where: { userId: klientId, ...(id.length > 8 ? { id } : { id: { startsWith: id } }) },
-      select: { id: true },
-      take: 2,
-    });
-    if (trafienia.length === 0) throw new BadRequestException('Nie ma takiego zgłoszenia u tego klienta.');
-    if (trafienia.length > 1) throw new BadRequestException('Numer pasuje do kilku zgłoszeń — wklej pełny identyfikator.');
-    return trafienia[0]!.id;
+    return zgloszenieKlienta(this.prisma, klientId, wpis);
   }
 
   /**

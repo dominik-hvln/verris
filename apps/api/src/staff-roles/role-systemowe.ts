@@ -40,6 +40,9 @@ const L3: readonly StaffPermission[] = [
   'DNS_MANAGE',
   // F3.1 (D4) — blokada wysyłki konta i usunięcie jego wiadomości z kolejki (nieodwracalne) od L3.
   'MAIL_SEND_BLOCK',
+  // F2.7 — domeny u rejestratora (blokada, EPP, NS, odnowienie z portfela klienta, ponowienie) od L3.
+  // Odnowienie na koszt Verris (D8) wymaga jeszcze BILLING_MANAGE — czyli L4.
+  'DOMAINS_MANAGE',
 ];
 const L4: readonly StaffPermission[] = [
   ...L3,
@@ -73,7 +76,7 @@ export const SZCZEBLE: readonly RolaSystemowa[] = [
   {
     name: 'L3 Starszy specjalista',
     description:
-      'Wszystko z L2 oraz zarządzanie klientami (edycja, blokady), zawieszanie usług, edycja DNS klienta, blokada wysyłki poczty, nadużycia, indywidualne warunki i kolejka provisioningu. Kredyty, korekty i portfel zostają dla L4.',
+      'Wszystko z L2 oraz zarządzanie klientami (edycja, blokady), zawieszanie usług, edycja DNS klienta, blokada wysyłki poczty, domeny u rejestratora (blokada, kod EPP, NS, odnowienie z portfela klienta, ponowienie rejestracji), nadużycia, indywidualne warunki i kolejka provisioningu. Kredyty, korekty, portfel i odnowienie domeny na koszt Verris zostają dla L4.',
     permissions: L3,
   },
   {

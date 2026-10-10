@@ -36,6 +36,8 @@ export const STAFF_PERMISSIONS = [
   // F2.2 (D2, 10.10) — odwracalne akcje na koncie klienta z karty usługi, bez wchodzenia na konto; powód w dzienniku.
   { key: 'ACCOUNT_ACTIONS', area: 'Wsparcie', label: 'Akcje na koncie klienta: reset haseł (klient ustawia nowe), SSL, PHP, kopia, skan (z powodem, w dzienniku)' },
   { key: 'DNS_MANAGE', area: 'Wsparcie', label: 'Edycja rekordów DNS na koncie klienta (z powodem, w dzienniku)' },
+  // F2.7 (D2/D8, 10.10) — operacje na domenach klientów u rejestratora; odnowienie na koszt Verris dodatkowo BILLING_MANAGE.
+  { key: 'DOMAINS_MANAGE', area: 'Wsparcie', label: 'Domeny klientów u rejestratora: blokada, kod EPP, NS, synchronizacja, odnowienie z portfela klienta, ponowienie rejestracji (z powodem, w dzienniku)' },
   // F3.1 (D4, 10.10) — poczta konta i węzła: kolejka exima (tylko nagłówki), blokada wysyłki konta.
   { key: 'MAIL_QUEUE_VIEW', area: 'Wsparcie', label: 'Kolejka poczty konta klienta: nagłówki oczekujących wiadomości, bez treści (w dzienniku)' },
   { key: 'MAIL_SEND_BLOCK', area: 'Bezpieczeństwo', label: 'Blokada i zwolnienie wysyłki poczty konta, usuwanie jego wiadomości z kolejki (z powodem, w dzienniku)' },

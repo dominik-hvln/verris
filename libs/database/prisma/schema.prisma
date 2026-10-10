@@ -1444,6 +1444,8 @@ model DomainRegistrarOrder {
   provider        String?
   providerOrderId String?
   authCodeEnc     String?                    @db.Text
+  /// F2.7 — uchwyt abonenta u rejestratora (kontakt klienta); potrzebny do ponowienia nieudanej rejestracji/transferu.
+  ownerHandle     String?
   nameservers     String[]                   @default([])
   years           Int                        @default(1)
   priceAmount     Decimal?                   @db.Decimal(10, 2)

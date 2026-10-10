@@ -10,14 +10,16 @@ import { NbpFxService } from './nbp-fx.service.js';
 import { RegistrarProviderFactory } from './registrar.provider.js';
 import { OpenproviderWebhookController } from './openprovider-webhook.controller.js';
 import { RegistrarAdminController } from './registrar.admin.controller.js';
+import { DomenyAdminController } from './domeny.admin.controller.js';
+import { DomenyOperatoraService } from './domeny-operatora.service.js';
 import { BillingModule } from '../billing/billing.module.js';
 import { EcoModule } from '../eco/eco.module.js';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module.js';
 
 @Module({
   imports: [PrismaModule, ConfigModule, CryptoModule, BillingModule, EcoModule, PlatformSettingsModule],
-  controllers: [DomainsController, OpenproviderWebhookController, RegistrarAdminController],
-  providers: [DomainsService, DomainRegistrarService, RegistrarProviderFactory, NbpFxService, DomainExpiryReminderScheduler],
+  controllers: [DomainsController, OpenproviderWebhookController, RegistrarAdminController, DomenyAdminController],
+  providers: [DomainsService, DomainRegistrarService, DomenyOperatoraService, RegistrarProviderFactory, NbpFxService, DomainExpiryReminderScheduler],
   // G-08 — SslModule korzysta z tego samego klienta rejestratora i kursów NBP (jeden harmonogram kursów).
   exports: [RegistrarProviderFactory, NbpFxService],
 })

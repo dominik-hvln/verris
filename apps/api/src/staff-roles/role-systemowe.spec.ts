@@ -69,6 +69,16 @@ describe('PB-47 — katalog uprawnień i role systemowe', () => {
     expect(ROLE_FUNKCYJNE.find((r) => r.name === 'Marketing')!.permissions).toEqual(['DASHBOARD_VIEW', 'PROMO_MANAGE', 'KB_MANAGE']);
   });
 
+  it('F2.7 (D8): domeny u rejestratora (DOMAINS_MANAGE) od L3; na koszt Verris potrzeba jeszcze BILLING_MANAGE (L4)', () => {
+    const [l1, l2, l3, l4] = SZCZEBLE;
+    for (const r of [l1, l2]) expect(r.permissions).not.toContain('DOMAINS_MANAGE');
+    for (const r of [l3, l4]) expect(r.permissions).toContain('DOMAINS_MANAGE');
+    expect(l3.permissions).not.toContain('BILLING_MANAGE');
+    expect(l4.permissions).toContain('BILLING_MANAGE');
+    // Finanse mają BILLING_MANAGE, ale nie operacje na domenach — sami nie odnowią domeny na koszt Verris.
+    expect(ROLE_FUNKCYJNE.find((r) => r.name === 'Finanse i księgowość')!.permissions).not.toContain('DOMAINS_MANAGE');
+  });
+
   it('F2.2 (D2): akcje na koncie klienta (ACCOUNT_ACTIONS) od L2, edycja DNS (DNS_MANAGE) od L3', () => {
     const [l1, l2, l3] = SZCZEBLE;
     expect(l1.permissions).not.toContain('ACCOUNT_ACTIONS');

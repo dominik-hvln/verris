@@ -76,6 +76,12 @@ export const SupportActions = {
    * HOSTING_* jako „obsługa Verris (zgłoszenie #…)” — ten jest dziennikiem zespołu.
    */
   OPERATOR_ACCOUNT_CHANGED: 'OPERATOR_ACCOUNT_CHANGED',
+  /**
+   * F2.7 — operator zmienił domenę klienta u rejestratora z karty domeny (blokada, kod EPP, NS, odnowienie z portfela
+   * albo na koszt Verris, ponowienie rejestracji/transferu); details: domain, akcja, powod, zgloszenieId, wynik.
+   * Klient widzi osobny wpis DOMAIN_* jako „obsługa Verris (zgłoszenie #…)” — ten jest dziennikiem zespołu.
+   */
+  OPERATOR_DOMAIN_CHANGED: 'OPERATOR_DOMAIN_CHANGED',
   /** F3.1 — węzeł usunął z kolejki wiadomości konta (zlecenie „Usuń wiadomości konta z kolejki”); details.usunieto. */
   MAIL_QUEUE_MESSAGES_REMOVED: 'MAIL_QUEUE_MESSAGES_REMOVED',
   /** F3.1 — operator odczytał albo wypchnął kolejkę poczty całego węzła; details.serverId, tryb. */

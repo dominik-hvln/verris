@@ -350,6 +350,37 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     }
   });
 
+  it('F2.7 (D2/D8): domeny — odczyt od L1, operacje od L3, odnowienie na koszt Verris tylko L4 i ADMIN', async () => {
+    const domeny = TRASY.filter((t) => t.kontroler === 'DomenyAdminController');
+    const t = (m: string) => {
+      const x = domeny.find((p) => p.metoda === m);
+      if (!x) throw new Error(`brak trasy DomenyAdminController.${m}`);
+      return x;
+    };
+    const odczyt = ['lista', 'zamowienia', 'karta', 'abonent'];
+    const operacje = ['synchronizuj', 'blokada', 'kodEpp', 'serweryNazw', 'odnow', 'wycena', 'ponow', 'sprawdzTransfery'];
+    const kosztVerris = ['odnowNaKosztVerris'];
+    expect(domeny.map((x) => x.metoda).sort()).toEqual([...odczyt, ...operacje, ...kosztVerris].sort());
+    const wolno = async (rola: string, metody: string[]) => {
+      const out: Record<string, boolean> = {};
+      for (const m of metody) out[m] = await wpuszcza(t(m), OPERATOR, uprawnieniaRoli(rola));
+      return out;
+    };
+    const wszystkie = (metody: string[], v: boolean) => Object.fromEntries(metody.map((m) => [m, v]));
+    for (const rola of ['L1 Konsultant', 'L2 Specjalista techniczny', 'Audytor (tylko podgląd)']) {
+      expect({ rola, ...(await wolno(rola, odczyt)) }).toEqual({ rola, ...wszystkie(odczyt, true) });
+      expect({ rola, ...(await wolno(rola, [...operacje, ...kosztVerris])) }).toEqual({ rola, ...wszystkie([...operacje, ...kosztVerris], false) });
+    }
+    expect(await wolno('L3 Starszy specjalista', [...odczyt, ...operacje])).toEqual(wszystkie([...odczyt, ...operacje], true));
+    expect(await wolno('L3 Starszy specjalista', kosztVerris)).toEqual(wszystkie(kosztVerris, false));
+    expect(await wolno('L4 Kierownik zmiany', [...odczyt, ...operacje, ...kosztVerris])).toEqual(wszystkie([...odczyt, ...operacje, ...kosztVerris], true));
+    // Finanse (BILLING_MANAGE bez DOMAINS_MANAGE) i NOC — bez operacji na domenach.
+    for (const rola of ['Finanse i księgowość', 'Inżynier infrastruktury (NOC/DevOps)']) {
+      expect({ rola, ...(await wolno(rola, [...operacje, ...kosztVerris])) }).toEqual({ rola, ...wszystkie([...operacje, ...kosztVerris], false) });
+    }
+    for (const x of domeny) expect(await wpuszcza(x, ADMIN)).toBe(true);
+  });
+
   it('NOC (bez CUSTOMERS_VIEW) nadal ma kartę i jej akcje', async () => {
     expect(NOC).not.toContain('CUSTOMERS_VIEW');
     const metody = ['detail', 'usage', 'migrationTimeline', 'hostingRestoreStatus', 'hostingBackups', 'runDiagnostics', 'listEligiblePlans', 'runHostingRestore'];
