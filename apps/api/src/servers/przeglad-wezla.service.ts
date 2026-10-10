@@ -36,6 +36,7 @@ export const ZADANIA: Record<string, string> = {
   IMAGE_OPTIMIZE: 'Optymalizacja obrazów',
   ONBOARD_LIVE: 'Onboard LIVE',
   MAIL_QUEUE: 'Kolejka poczty',
+  IP_BLOCKS: 'Blokady IP',
 };
 
 type Stan = 'ok' | 'warn' | 'crit' | 'brak';

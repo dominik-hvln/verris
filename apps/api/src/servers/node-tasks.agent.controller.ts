@@ -37,6 +37,7 @@ import { loadMalwareScanScript } from './malware-scan.script.js';
 import { loadRedisScript } from './redis.script.js';
 import { loadMailLogScript } from './mail-log.script.js';
 import { loadMailQueueScript } from './mail-queue.script.js';
+import { loadIpBlocksScript } from './ip-blocks.script.js';
 import { loadGitDeployScript } from './git-deploy.script.js';
 import { loadSiteCloneScript } from './site-clone.script.js';
 import { loadHtaccessScript } from './htaccess.script.js';
@@ -238,6 +239,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   mailQueueScript() {
     return loadMailQueueScript();
+  }
+
+  /** F3.2 (D5) — blokady IP fail2ban: lista, odblokowanie, biała lista (run with IPB_* env). */
+  @Get('ip-blocks/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  ipBlocksScript() {
+    return loadIpBlocksScript();
   }
 
   /** C-25/C-26 — repozytorium Git strony (run with GD_* env). */

@@ -71,6 +71,7 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   HOSTING_MAIL_SENDING_BLOCKED: 'Wstrzymano wysyłkę poczty z konta',
   HOSTING_MAIL_SENDING_UNBLOCKED: 'Przywrócono wysyłkę poczty z konta',
   HOSTING_MAIL_QUEUE_PURGE_QUEUED: 'Zlecono usunięcie wiadomości konta czekających na wysyłkę',
+  HOSTING_IP_UNBLOCK_QUEUED: 'Zlecono odblokowanie adresu IP na serwerze',
   HOSTING_DNSSEC_ENABLED: 'Włączono DNSSEC dla domeny',
   HOSTING_DNSSEC_DISABLED: 'Wyłączono DNSSEC dla domeny',
   HOSTING_QUOTA_ALERT: 'Konto zbliża się do limitu',

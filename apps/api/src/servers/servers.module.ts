@@ -30,12 +30,14 @@ import { NodeBootstrapAdminController } from './node-bootstrap.admin.controller.
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module.js';
 
 import { KolejkaPocztyWezlaAdminController, KolejkaPocztyWezlaService } from './kolejka-poczty-wezla.admin.controller.js';
+import { BlokadyIpWezlaAdminController, BlokadyIpWezlaService } from './blokady-ip-wezla.admin.controller.js';
 
 @Module({
   imports: [PlatformSettingsModule, NotificationsModule, AiModule],
   controllers: [
     ServersController,
     KolejkaPocztyWezlaAdminController,
+    BlokadyIpWezlaAdminController,
     StosWezlaAdminController,
     OnboardAdminController,
     ServersAdminController,
@@ -48,6 +50,7 @@ import { KolejkaPocztyWezlaAdminController, KolejkaPocztyWezlaService } from './
   providers: [
     ServersService,
     KolejkaPocztyWezlaService,
+    BlokadyIpWezlaService,
     StosWezlaService,
     PrzegladWezlaService,
     WykresyFlotyService,
@@ -67,6 +70,7 @@ import { KolejkaPocztyWezlaAdminController, KolejkaPocztyWezlaService } from './
   ],
   exports: [
     ServersService,
+    BlokadyIpWezlaService,
     DirectAdminService,
     ServerIdentityGuard,
     NodeTasksService,

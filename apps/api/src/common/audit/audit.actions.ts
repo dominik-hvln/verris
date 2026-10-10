@@ -87,6 +87,10 @@ export const SupportActions = {
   /** F3.1 — operator odczytał albo wypchnął kolejkę poczty całego węzła; details.serverId, tryb. */
   NODE_MAIL_QUEUE_VIEWED: 'NODE_MAIL_QUEUE_VIEWED',
   NODE_MAIL_QUEUE_FLUSHED: 'NODE_MAIL_QUEUE_FLUSHED',
+  /** F3.2 (D5) — blokady IP fail2ban węzła: odczyt listy, odblokowanie adresu i zmiana białej listy (z powodem). */
+  NODE_IP_BLOCKS_VIEWED: 'NODE_IP_BLOCKS_VIEWED',
+  NODE_IP_UNBLOCK_QUEUED: 'NODE_IP_UNBLOCK_QUEUED',
+  NODE_IP_ALLOWLIST_CHANGED: 'NODE_IP_ALLOWLIST_CHANGED',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -278,6 +282,8 @@ export const HostingResourceActions = {
   HOSTING_MAIL_SENDING_BLOCKED: 'HOSTING_MAIL_SENDING_BLOCKED',
   HOSTING_MAIL_SENDING_UNBLOCKED: 'HOSTING_MAIL_SENDING_UNBLOCKED',
   HOSTING_MAIL_QUEUE_PURGE_QUEUED: 'HOSTING_MAIL_QUEUE_PURGE_QUEUED',
+  // F3.2 (D3/D5) — obsługa zdjęła blokadę adresu IP klienta na serwerze („zablokowało mi IP”).
+  HOSTING_IP_UNBLOCK_QUEUED: 'HOSTING_IP_UNBLOCK_QUEUED',
 } as const;
 
 export const MigrationActions = {

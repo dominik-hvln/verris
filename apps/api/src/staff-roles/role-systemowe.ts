@@ -23,6 +23,8 @@ const L2: readonly StaffPermission[] = [
   'ACCOUNT_ACTIONS',
   // F3.1 (10.10) — kolejka poczty konta (nagłówki, bez treści): „gdzie jest mój mail” bez SSH.
   'MAIL_QUEUE_VIEW',
+  // F3.2 (D5, 10.10) — „zablokowało mi IP”: odblokowanie IP klienta powiązanego z jego zgłoszeniem.
+  'IP_UNBLOCK',
   'SUBSCRIPTIONS_MANAGE',
   'MIGRATIONS_MANAGE',
   'CUSTOMERS_IMPERSONATE',
@@ -70,7 +72,7 @@ export const SZCZEBLE: readonly RolaSystemowa[] = [
   {
     name: 'L2 Specjalista techniczny',
     description:
-      'Wszystko z L1 oraz podgląd konta klienta (DNS, poczta, bazy, logi, kolejka poczty), akcje na koncie (hasła, SSL, PHP, kopia, skan), zmiany usług, migracje, wejście na konto klienta i podgląd węzłów. Nie blokuje klientów i nie rusza finansów.',
+      'Wszystko z L1 oraz podgląd konta klienta (DNS, poczta, bazy, logi, kolejka poczty), akcje na koncie (hasła, SSL, PHP, kopia, skan, kwarantanna), odblokowanie IP klienta ze zgłoszenia, zmiany usług, migracje, wejście na konto klienta i podgląd węzłów. Nie blokuje klientów i nie rusza finansów.',
     permissions: L2,
   },
   {
@@ -130,7 +132,7 @@ export const ROLE_FUNKCYJNE: readonly RolaSystemowa[] = [
   {
     name: 'Inżynier infrastruktury (NOC/DevOps)',
     description:
-      'Utrzymanie floty: węzły, kolejka poczty i blokada wysyłki kont, provisioning, migracje i usługi, podgląd konta klienta przy awariach. Nie widzi rozliczeń i nie odpowiada klientom w zgłoszeniach.',
+      'Utrzymanie floty: węzły, kolejka poczty i blokada wysyłki kont, blokady IP i biała lista, provisioning, migracje i usługi, podgląd konta klienta przy awariach. Nie widzi rozliczeń i nie odpowiada klientom w zgłoszeniach.',
     permissions: [
       'DASHBOARD_VIEW',
       'NODES_VIEW',
@@ -143,6 +145,9 @@ export const ROLE_FUNKCYJNE: readonly RolaSystemowa[] = [
       'MAIL_QUEUE_NODE',
       'MAIL_QUEUE_VIEW',
       'MAIL_SEND_BLOCK',
+      // F3.2 (D5) — blokady IP węzła: dowolne IP i biała lista (ignoreip) tylko NOC.
+      'IP_BLOCKS_NODE',
+      'IP_UNBLOCK',
       'TICKETS_VIEW',
     ],
   },

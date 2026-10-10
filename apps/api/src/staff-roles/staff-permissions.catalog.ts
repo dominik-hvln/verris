@@ -42,6 +42,9 @@ export const STAFF_PERMISSIONS = [
   { key: 'MAIL_QUEUE_VIEW', area: 'Wsparcie', label: 'Kolejka poczty konta klienta: nagłówki oczekujących wiadomości, bez treści (w dzienniku)' },
   { key: 'MAIL_SEND_BLOCK', area: 'Bezpieczeństwo', label: 'Blokada i zwolnienie wysyłki poczty konta, usuwanie jego wiadomości z kolejki (z powodem, w dzienniku)' },
   { key: 'MAIL_QUEUE_NODE', area: 'Infrastruktura', label: 'Kolejka poczty całego węzła: podgląd nagłówków i wypchnięcie kolejki' },
+  // F3.2 (D5, 10.10) — blokady IP fail2ban: L2 odblokowuje tylko IP klienta ze zgłoszenia, NOC — dowolne IP i biała lista.
+  { key: 'IP_UNBLOCK', area: 'Wsparcie', label: 'Odblokowanie adresu IP klienta zablokowanego na serwerze (IP z logowań albo zgłoszenia klienta, z powodem, w dzienniku)' },
+  { key: 'IP_BLOCKS_NODE', area: 'Infrastruktura', label: 'Blokady IP całego węzła: lista, odblokowanie dowolnego adresu i biała lista (z powodem, w dzienniku)' },
 ] as const;
 
 export type StaffPermission = (typeof STAFF_PERMISSIONS)[number]['key'];

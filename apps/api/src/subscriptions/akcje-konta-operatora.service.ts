@@ -27,7 +27,11 @@ export type AkcjaKonta =
   // F3.1 (D4) — poczta konta (poczta-konta-operatora.service.ts).
   | 'blokada-wysylki'
   | 'zwolnienie-wysylki'
-  | 'kolejka-usun';
+  | 'kolejka-usun'
+  // F3.2 — bezpieczeństwo konta: odblokowanie IP (blokady-ip-konta.service.ts), kwarantanna malware (G-12).
+  | 'odblokowanie-ip'
+  | 'kwarantanna'
+  | 'przywrocenie-z-kwarantanny';
 
 /** Kto i dlaczego (D2): powód obowiązkowy, numer zgłoszenia klienta opcjonalny. */
 export interface ZlecenieOperatora {

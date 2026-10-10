@@ -622,3 +622,42 @@ describe('F2.6 — zasoby i diagnoza 508', () => {
     expect(await wpuszcza(t, KLIENT, ['NODES_VIEW'])).toBe(false);
   });
 });
+
+/**
+ * F3.2 (D5, 10.10) — bezpieczeństwo węzła. Blokady IP: na karcie usługi „Zablokowało mi IP” — IP_UNBLOCK (L2+, NOC)
+ * albo IP_BLOCKS_NODE; lista blokad węzła, dowolne IP i biała lista — tylko IP_BLOCKS_NODE (NOC) i ADMIN.
+ */
+describe('F3.2 — bezpieczeństwo węzła', () => {
+  const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
+  const trasy = (kontroler: string, metody: string[]) => {
+    const t = TRASY.filter((x) => x.kontroler === kontroler);
+    expect(t.map((x) => x.metoda).sort()).toEqual([...metody].sort());
+    return t;
+  };
+
+  it('karta usługi „Zablokowało mi IP”: L2, L3, L4, NOC — tak; L1, audytor, abuse, Marketing — nie', async () => {
+    for (const t of trasy('BlokadyIpKontaAdminController', ['stan', 'sprawdz', 'odblokuj'])) {
+      for (const r of ['L2 Specjalista techniczny', 'L3 Starszy specjalista', 'L4 Kierownik zmiany', 'Inżynier infrastruktury (NOC/DevOps)']) {
+        expect({ m: t.metoda, r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ m: t.metoda, r, ok: true });
+      }
+      for (const r of ['L1 Konsultant', 'Audytor (tylko podgląd)', 'Marketing']) {
+        expect({ m: t.metoda, r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ m: t.metoda, r, ok: false });
+      }
+      expect(await wpuszcza(t, OPERATOR, ['IP_BLOCKS_NODE'])).toBe(true);
+      expect(await wpuszcza(t, OPERATOR, ['ACCOUNT_DIAGNOSTICS_VIEW', 'ACCOUNT_ACTIONS'])).toBe(false);
+      expect(await wpuszcza(t, ADMIN)).toBe(true);
+      expect(await wpuszcza(t, KLIENT, ['IP_UNBLOCK'])).toBe(false);
+    }
+  });
+
+  it('blokady IP węzła (lista, dowolne IP, biała lista): tylko NOC i ADMIN; L2–L4 z IP_UNBLOCK — nie', async () => {
+    for (const t of trasy('BlokadyIpWezlaAdminController', ['stan', 'wczytaj', 'odblokuj', 'bialaLista'])) {
+      expect(t.sciezka.startsWith('admin/servers/:id/blokady-ip')).toBe(true);
+      expect({ m: t.metoda, ok: await wpuszcza(t, OPERATOR, rola('Inżynier infrastruktury (NOC/DevOps)')) }).toEqual({ m: t.metoda, ok: true });
+      for (const r of ['L1 Konsultant', 'L2 Specjalista techniczny', 'L3 Starszy specjalista', 'L4 Kierownik zmiany', 'Nadużycia i bezpieczeństwo', 'Audytor (tylko podgląd)']) {
+        expect({ m: t.metoda, r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ m: t.metoda, r, ok: false });
+      }
+      expect(await wpuszcza(t, ADMIN)).toBe(true);
+    }
+  });
+});

@@ -99,6 +99,15 @@ describe('PB-47 — katalog uprawnień i role systemowe', () => {
     expect(ROLE_SYSTEMOWE.filter((r) => r.permissions.includes('MAIL_QUEUE_NODE' as never)).map((r) => r.name)).toEqual(['Inżynier infrastruktury (NOC/DevOps)']);
   });
 
+  it('F3.2 (D5): odblokowanie IP klienta od L2, blokady węzła i biała lista tylko NOC', () => {
+    const rola = (n: string) => ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions as readonly string[];
+    expect(rola('L1 Konsultant')).not.toContain('IP_UNBLOCK');
+    for (const n of ['L2 Specjalista techniczny', 'L3 Starszy specjalista', 'L4 Kierownik zmiany', 'Inżynier infrastruktury (NOC/DevOps)']) {
+      expect({ n, p: rola(n).includes('IP_UNBLOCK') }).toEqual({ n, p: true });
+    }
+    expect(ROLE_SYSTEMOWE.filter((r) => r.permissions.includes('IP_BLOCKS_NODE' as never)).map((r) => r.name)).toEqual(['Inżynier infrastruktury (NOC/DevOps)']);
+  });
+
   it('B2: baza wiedzy (KB_MANAGE) tylko dla L4 i Marketingu — L1–L3 jej nie zmieniają', () => {
     const [l1, l2, l3, l4] = SZCZEBLE;
     for (const r of [l1, l2, l3]) expect(r.permissions).not.toContain('KB_MANAGE');

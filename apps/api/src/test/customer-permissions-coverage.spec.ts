@@ -71,6 +71,7 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   'GET /agent/tasks/redis/script',
   'GET /agent/tasks/mail-log/script',
   'GET /agent/tasks/mail-queue/script',
+  'GET /agent/tasks/ip-blocks/script',
   'GET /agent/tasks/git-deploy/script',
   'GET /agent/tasks/site-clone/script',
   'GET /agent/tasks/htaccess/script',

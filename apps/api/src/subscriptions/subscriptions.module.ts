@@ -49,6 +49,8 @@ import { RedisAccessService } from './redis-access.service.js';
 import { MailLogService } from './mail-log.service.js';
 import { PocztaKontaOperatoraService } from './poczta-konta-operatora.service.js';
 import { PocztaKontaAdminController } from './poczta-konta.admin.controller.js';
+import { BlokadyIpKontaService } from './blokady-ip-konta.service.js';
+import { BlokadyIpKontaAdminController } from './blokady-ip-konta.admin.controller.js';
 import { DeliverabilityModule } from '../deliverability/deliverability.module.js';
 import { GitDeployService } from './git-deploy.service.js';
 import { SiteCloneService } from './site-clone.service.js';
@@ -95,6 +97,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
   providers: [
     SubscriptionsService,
     PocztaKontaOperatoraService,
+    BlokadyIpKontaService,
     WarunkiIndywidualneService,
     PlanChangeService,
     ProvisioningService,
@@ -173,6 +176,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
     KontoKlientaAdminController,
     KontoKlientaAkcjeAdminController,
     PocztaKontaAdminController,
+    BlokadyIpKontaAdminController,
     MigracjaZgodaController,
     TablicaMigracjiController,
   ],
