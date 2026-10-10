@@ -115,13 +115,18 @@ export class BillingAdminController {
     return this.promo.listPromoCodes();
   }
 
+  /**
+   * Eksport transakcji portfela wszystkich klientów (e-maile, kwoty). Decyzja 10.10: L1 widzi stan płatności
+   * w panelu (BILLING_VIEW), ale eksport list to EXPORT_DATA (L4) — jak eksport klientów i usług — z wpisem w dzienniku.
+   */
   @Get('wallet/transactions.csv')
   @UseGuards(StaffPermissionsGuard)
   @Roles(Role.ADMIN, Role.STAFF)
-  @StaffPerm('BILLING_VIEW')
+  @StaffPerm('BILLING_VIEW', 'EXPORT_DATA')
   @Header('Cache-Control', 'no-store')
   async exportTransactionsCsv(
     @Res() res: Response,
+    @CurrentUser() actor: { userId: string },
     @Query('userId') userId?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
@@ -145,7 +150,7 @@ export class BillingAdminController {
       filters.type = upper;
     }
 
-    const { csv, filename } = await this.billing.exportTransactionsCsv(filters);
+    const { csv, filename } = await this.billing.exportTransactionsCsv(filters, actor.userId);
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(csv);

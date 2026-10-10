@@ -14,6 +14,7 @@ import { createHash } from 'crypto';
 import { Prisma, WalletTransaction, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
+import { SupportActions } from '../common/audit/audit.actions.js';
 import { WalletLedgerService } from './wallet-ledger.service.js';
 import { DoladowanieService, type WalutaWplaty } from './doladowanie.service.js';
 import { StripeService } from './stripe/stripe.service.js';
@@ -305,7 +306,15 @@ export class BillingService {
 
   private static readonly TX_CSV_MAX_ROWS = 50_000;
 
-  async exportTransactionsCsv(filters: TransactionsCsvFilters): Promise<{ filename: string; csv: string }> {
+  /**
+   * `operatorId` — eksport z panelu operatora (lista wszystkich klientów, dane osobowe): od 10.10 wymaga EXPORT_DATA
+   * i trafia do dziennika jak eksport list klientów i usług (OPERATOR_LIST_EXPORTED). Eksport klienta (własny portfel)
+   * wołany jest bez `operatorId` i nie jest logowany jako eksport operatora.
+   */
+  async exportTransactionsCsv(
+    filters: TransactionsCsvFilters,
+    operatorId?: string,
+  ): Promise<{ filename: string; csv: string }> {
     const where: Prisma.WalletTransactionWhereInput = {};
     if (filters.userId) where.userId = filters.userId;
     if (filters.type) where.type = filters.type;
@@ -342,6 +351,24 @@ export class BillingService {
       { header: 'subscriptionId', value: (r) => r.subscriptionId ?? '' },
       { header: 'idempotencyKey', value: (r) => r.idempotencyKey ?? '' },
     ]);
+
+    if (operatorId) {
+      await this.audit.record({
+        action: SupportActions.OPERATOR_LIST_EXPORTED,
+        userId: filters.userId ?? null,
+        actorUserId: operatorId,
+        details: {
+          lista: 'transakcje-portfela',
+          filtry: {
+            userId: filters.userId ?? null,
+            typ: filters.type ?? null,
+            od: filters.from?.toISOString() ?? null,
+            do: filters.to?.toISOString() ?? null,
+          },
+          wierszy: rows.length,
+        },
+      });
+    }
 
     const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const scope = filters.userId ? `user-${filters.userId.slice(0, 8)}` : 'all';

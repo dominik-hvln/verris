@@ -65,7 +65,10 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
 
   const csvHref = buildCsvHref({ search, userId, statuses, from, to });
   // D1 — faktura ręczna: BILLING_MANAGE (strona /invoices/reczna ma bramkę); bez uprawnienia link znika.
-  const reczna = !brakUprawnienia("BILLING_MANAGE", await fetchStaffAccess());
+  const dostep = await fetchStaffAccess();
+  const reczna = !brakUprawnienia("BILLING_MANAGE", dostep);
+  // Decyzja 10.10: przegląd faktur od BILLING_VIEW (L1 widzi, czy usługa jest opłacona), eksport listy — EXPORT_DATA, jak API.
+  const eksport = !brakUprawnienia({ wszystkie: ["BILLING_VIEW", "EXPORT_DATA"] }, dostep);
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
 
   return (
@@ -97,9 +100,10 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
             Czeka na fakturę VAT
           </Link>
         </div>
-        {data ? (
+        {data && eksport ? (
           <a
             href={csvHref}
+            data-eksport="faktury"
             className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-200 hover:bg-emerald-500/20"
           >
             <FileDown className="h-4 w-4" />

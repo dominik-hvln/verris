@@ -102,7 +102,13 @@ export class InvoicesAdminController {
     });
   }
 
+  /**
+   * Eksport listy faktur (nabywcy, NIP-y, kwoty). Decyzja 10.10: przegląd faktur od BILLING_VIEW (L1 widzi, czy usługa
+   * jest opłacona), eksport list od EXPORT_DATA (L4). Wpis w dzienniku robi serwis (ADMIN_INVOICES_CSV_EXPORTED).
+   */
   @Get('export.csv')
+  @UseGuards(StaffPermissionsGuard)
+  @StaffPerm('BILLING_VIEW', 'EXPORT_DATA')
   @Header('Cache-Control', 'no-store')
   @Header('Content-Type', 'text/csv; charset=utf-8')
   async exportCsv(

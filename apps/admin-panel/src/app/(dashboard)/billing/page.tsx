@@ -2,6 +2,8 @@ import { bramkaStrony } from "@/lib/bramka-strony";
 import { fetchAdminDashboardOverview } from "@/lib/admin-overview-data";
 import { WalletCsvExportButton } from "./csv-export-button";
 import { days, plForm } from "@/lib/pl";
+import { fetchStaffAccess } from "@/lib/staff-access";
+import { brakUprawnienia } from "@/lib/akcje/wezel";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +18,8 @@ export default async function BillingPage() {
     err = e instanceof Error ? e.message : "Błąd";
   }
 
+  // Decyzja 10.10: eksport transakcji wszystkich klientów (dane osobowe) — EXPORT_DATA, jak API.
+  const eksport = !brakUprawnienia({ wszystkie: ["BILLING_VIEW", "EXPORT_DATA"] }, await fetchStaffAccess());
   const b = overview?.billing;
   const types = b?.walletByTypePln ?? {};
 
@@ -24,9 +28,8 @@ export default async function BillingPage() {
       <header>
         <h1 className="text-[28px] lg:text-[34px]">Rozliczenia (portfel)</h1>
         <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
-          Agregaty z rzeczywistego ledgera (`WalletTransaction`). Pełny wyciąg anonimowych / wszystkich
-          ruchów w CSV — zgodnie z uprawnieniami API administratora (401 przy braku ważnego JWT lub roli ADMIN).
-          Upewnij się, że jesteś zalogowany i API działa na <code className="text-indigo-300">API_URL</code>.
+          Sumy z historii portfela. Wyciąg wszystkich ruchów w CSV wymaga uprawnienia do eksportu danych
+          i trafia do dziennika.
         </p>
       </header>
 
@@ -47,10 +50,12 @@ export default async function BillingPage() {
               Suma ze znakiem (+wpływy / −obciążenia), status COMPLETED — netto OKRESU.
             </p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-black/35 p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">Eksport Ledgera</h2>
-            <WalletCsvExportButton />
-          </div>
+          {eksport ? (
+            <div className="rounded-2xl border border-white/10 bg-black/35 p-6" data-eksport="portfel">
+              <h2 className="text-lg font-semibold text-white mb-4">Eksport transakcji</h2>
+              <WalletCsvExportButton />
+            </div>
+          ) : null}
         </div>
       ) : null}
 

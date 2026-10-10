@@ -249,6 +249,32 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     }
   });
 
+  it('decyzja 10.10: dane dostępowe migracji (stary hosting) odkrywa L2 — support migracji; L1 (helpdesk) nie', async () => {
+    const t = TRASY.find((x) => x.kontroler === 'MigrationsStaffController' && x.metoda === 'revealSecrets');
+    expect(t).toBeDefined();
+    expect(await wpuszcza(t!, OPERATOR, uprawnieniaRoli('L1 Konsultant'))).toBe(false);
+    expect(await wpuszcza(t!, OPERATOR, uprawnieniaRoli('L2 Specjalista techniczny'))).toBe(true);
+  });
+
+  it('decyzja 10.10: eksport faktur i transakcji portfela tylko z EXPORT_DATA — L1 przegląda płatności, ale nie eksportuje', async () => {
+    const eksporty = TRASY.filter(
+      (t) =>
+        (t.kontroler === 'InvoicesAdminController' && t.metoda === 'exportCsv') ||
+        (t.kontroler === 'BillingAdminController' && t.metoda === 'exportTransactionsCsv'),
+    );
+    expect(eksporty).toHaveLength(2);
+    for (const t of eksporty) {
+      for (const rola of ['L1 Konsultant', 'L3 Starszy specjalista']) {
+        expect({ t: nazwa(t), rola, w: await wpuszcza(t, OPERATOR, uprawnieniaRoli(rola)) }).toEqual({ t: nazwa(t), rola, w: false });
+      }
+      expect({ t: nazwa(t), l4: await wpuszcza(t, OPERATOR, uprawnieniaRoli('L4 Kierownik zmiany')) }).toEqual({ t: nazwa(t), l4: true });
+    }
+    // Przegląd faktur zostaje dla L1 (stan opłacenia usługi).
+    const lista = TRASY.find((t) => t.kontroler === 'InvoicesAdminController' && t.metoda === 'list');
+    expect(lista).toBeDefined();
+    expect(await wpuszcza(lista!, OPERATOR, uprawnieniaRoli('L1 Konsultant'))).toBe(true);
+  });
+
   it('NOC (bez CUSTOMERS_VIEW) nadal ma kartę i jej akcje', async () => {
     expect(NOC).not.toContain('CUSTOMERS_VIEW');
     const metody = ['detail', 'usage', 'migrationTimeline', 'hostingRestoreStatus', 'hostingBackups', 'runDiagnostics', 'listEligiblePlans', 'runHostingRestore'];
