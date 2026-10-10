@@ -257,6 +257,23 @@ export class AkcjeKontaOperatoraService {
     return this.wykonaj(z, 'skan', {}, (w) => this.malware.zlec(z.subscriptionId, w.userId, 'scan'));
   }
 
+  /**
+   * F3.2 (G-12) — kwarantanna wykrytych plików przez obsługę: ta sama metoda co panel klienta (tylko pliki z ostatnich
+   * wyników skanera; węzeł przenosi plik do ~/.verris-kwarantanna z manifestem sha256 — kopia zostaje, nic nie znika
+   * bezpowrotnie). Wpis klienta HOSTING_MALWARE_QUARANTINE_QUEUED robi malware-scan.service.ts — w kontekście operatora
+   * jako „obsługa Verris (zgłoszenie #…)”. Trwałe usunięcie z kwarantanny zostaje decyzją klienta.
+   */
+  async kwarantanna(z: ZlecenieOperatora, sciezki: string[]) {
+    return this.wykonaj(z, 'kwarantanna', { pliki: sciezki.length, pierwszy: sciezki[0] }, (w) => this.malware.doKwarantanny(z.subscriptionId, w.userId, sciezki));
+  }
+
+  /** G-12 — cofnięcie kwarantanny przez obsługę (np. fałszywy alarm); plik wraca pod oryginalną ścieżkę. */
+  async przywrocZKwarantanny(z: ZlecenieOperatora, wpisy: string[]) {
+    return this.wykonaj(z, 'przywrocenie-z-kwarantanny', { pliki: wpisy.length, pierwszy: wpisy[0] }, (w) =>
+      this.malware.wpisyKwarantanny(z.subscriptionId, w.userId, 'przywroc', wpisy),
+    );
+  }
+
   async dnsDodaj(z: ZlecenieOperatora, r: RekordDns) {
     return this.wykonaj(
       z,

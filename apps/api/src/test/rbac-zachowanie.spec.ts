@@ -277,7 +277,7 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
 
   it('F2.2 (D2): pasek akcji konta — akcje odwracalne od L2 i zespołu abuse, DNS od L3; L1, NOC i audytor nie', async () => {
     const akcje = TRASY.filter((t) => t.kontroler === 'KontoKlientaAkcjeAdminController');
-    const odwracalne = ['hasloSkrzynki', 'hasloFtp', 'hasloBazy', 'ssl', 'php', 'kopia', 'skan'];
+    const odwracalne = ['hasloSkrzynki', 'hasloFtp', 'hasloBazy', 'ssl', 'php', 'kopia', 'skan', 'kwarantanna', 'przywrocZKwarantanny'];
     const dns = ['dnsDodaj', 'dnsZmien', 'dnsUsun'];
     expect(akcje.map((t) => t.metoda).sort()).toEqual([...odwracalne, ...dns].sort());
     const wolno = async (rola: string, metody: string[]) => {
@@ -647,6 +647,29 @@ describe('F3.2 — bezpieczeństwo węzła', () => {
       expect(await wpuszcza(t, OPERATOR, ['ACCOUNT_DIAGNOSTICS_VIEW', 'ACCOUNT_ACTIONS'])).toBe(false);
       expect(await wpuszcza(t, ADMIN)).toBe(true);
       expect(await wpuszcza(t, KLIENT, ['IP_UNBLOCK'])).toBe(false);
+    }
+  });
+
+  it('malware floty: ACCOUNT_DIAGNOSTICS_VIEW (L2+, NOC, abuse); L1, audytor, Marketing — nie', async () => {
+    const t = TRASY.find((x) => x.kontroler === 'ServersAdminController' && x.metoda === 'malware')!;
+    expect(t.sciezka).toBe('admin/servers/malware');
+    for (const r of ['L2 Specjalista techniczny', 'L4 Kierownik zmiany', 'Inżynier infrastruktury (NOC/DevOps)', 'Nadużycia i bezpieczeństwo']) {
+      expect({ r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ r, ok: true });
+    }
+    for (const r of ['L1 Konsultant', 'Audytor (tylko podgląd)', 'Marketing']) expect({ r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ r, ok: false });
+    expect(await wpuszcza(t, ADMIN)).toBe(true);
+  });
+
+  it('kwarantanna i przywrócenie z karty usługi: ACCOUNT_ACTIONS (L2+, abuse); L1, NOC, audytor — nie', async () => {
+    for (const m of ['kwarantanna', 'przywrocZKwarantanny']) {
+      const t = TRASY.find((x) => x.kontroler === 'KontoKlientaAkcjeAdminController' && x.metoda === m)!;
+      for (const r of ['L2 Specjalista techniczny', 'L3 Starszy specjalista', 'Nadużycia i bezpieczeństwo']) {
+        expect({ m, r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ m, r, ok: true });
+      }
+      for (const r of ['L1 Konsultant', 'Inżynier infrastruktury (NOC/DevOps)', 'Audytor (tylko podgląd)']) {
+        expect({ m, r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ m, r, ok: false });
+      }
+      expect(await wpuszcza(t, ADMIN)).toBe(true);
     }
   });
 

@@ -16,6 +16,7 @@ import { WykresyFlotyService, sortZ, zakresZ } from './wykresy-floty.js';
 import { PrognozaWezlaService } from './prognoza-wezla.js';
 import { flotaZBazy } from '../admin-dashboard/stan-platformy.js';
 import { przekroczeniaZBazy } from './przekroczenia-limitow.js';
+import { malwareFloty } from './malware-floty.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PolitykaPojemnosciDto, WygaszenieWezlaDto } from './dto/capacity-policy.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -129,6 +130,19 @@ export class ServersAdminController {
   @StaffPerm('NODES_VIEW')
   przekroczenia(@Query('wezel') wezel?: string) {
     return przekroczeniaZBazy(this.prisma, wezel || undefined, Date.now());
+  }
+
+  /**
+   * F3.2 (G-11/G-12) — konta z wykrytym złośliwym kodem albo plikami w kwarantannie, we flocie albo na węźle
+   * (`?wezel=`), z ostatnich wyników MALWARE_SCAN. Ścieżki plików klientów — ACCOUNT_DIAGNOSTICS_VIEW (L2+, abuse, NOC).
+   * Trasa przed :id.
+   */
+  @Get('malware')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('ACCOUNT_DIAGNOSTICS_VIEW')
+  malware(@Query('wezel') wezel?: string) {
+    return malwareFloty(this.prisma, wezel || undefined);
   }
 
   /** Prognoza floty: liczby z panelu + komentarz AI raz na 24 h (AI niczego nie wykonuje). Trasa przed :id. */

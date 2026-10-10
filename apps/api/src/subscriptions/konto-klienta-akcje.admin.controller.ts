@@ -19,6 +19,21 @@ import {
   UsunRekordDnsOperatoraDto,
   ZmienRekordDnsOperatoraDto,
 } from './dto/akcje-konta.dto.js';
+import { MALWARE_MAX_POZYCJI, MALWARE_WZORCE } from './dto/malware.dto.js';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsString, Matches } from 'class-validator';
+
+/** F3.2 (G-12) — kwarantanna przez obsługę: te same wzorce ścieżek co panel klienta (malware.dto.ts) i skrypt węzła. */
+export class KwarantannaOperatoraDto extends PowodOperatoraDto {
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(MALWARE_MAX_POZYCJI, { message: `Najwyżej ${MALWARE_MAX_POZYCJI} plików naraz.` })
+  @IsString({ each: true }) @Matches(MALWARE_WZORCE.sciezka, { each: true, message: 'Tego pliku nie można przenieść do kwarantanny.' })
+  sciezki!: string[];
+}
+
+export class PrzywrocZKwarantannyOperatoraDto extends PowodOperatoraDto {
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(MALWARE_MAX_POZYCJI, { message: `Najwyżej ${MALWARE_MAX_POZYCJI} plików naraz.` })
+  @IsString({ each: true }) @Matches(MALWARE_WZORCE.wpis, { each: true, message: 'Nieprawidłowy wpis kwarantanny.' })
+  wpisy!: string[];
+}
 
 type Aktor = { userId: string; role: string };
 const zlecenie = (id: string, actor: Aktor, b: PowodOperatoraDto): ZlecenieOperatora => ({
@@ -82,6 +97,19 @@ export class KontoKlientaAkcjeAdminController {
   @HttpCode(200)
   skan(@Param('id') id: string, @Body() b: PowodOperatoraDto, @CurrentUser() actor: Aktor) {
     return this.akcje.skan(zlecenie(id, actor, b));
+  }
+
+  /** F3.2 (G-12) — kwarantanna wykrytych plików (odwracalna: kopia w ~/.verris-kwarantanna). */
+  @Post('kwarantanna')
+  @HttpCode(200)
+  kwarantanna(@Param('id') id: string, @Body() b: KwarantannaOperatoraDto, @CurrentUser() actor: Aktor) {
+    return this.akcje.kwarantanna(zlecenie(id, actor, b), b.sciezki);
+  }
+
+  @Post('kwarantanna/przywroc')
+  @HttpCode(200)
+  przywrocZKwarantanny(@Param('id') id: string, @Body() b: PrzywrocZKwarantannyOperatoraDto, @CurrentUser() actor: Aktor) {
+    return this.akcje.przywrocZKwarantanny(zlecenie(id, actor, b), b.wpisy);
   }
 
   @Post('dns')

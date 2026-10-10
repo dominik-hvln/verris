@@ -34,7 +34,7 @@ export const STAFF_PERMISSIONS = [
   { key: 'EXPORT_DATA', area: 'Klienci', label: 'Eksport list do CSV: klienci, usługi, faktury i transakcje portfela (dane osobowe, w dzienniku)' },
   { key: 'ACCOUNT_DIAGNOSTICS_VIEW', area: 'Wsparcie', label: 'Podgląd konta klienta: domeny, DNS, poczta, bazy, PHP, SSL, cron, logi (tylko odczyt, w dzienniku)' },
   // F2.2 (D2, 10.10) — odwracalne akcje na koncie klienta z karty usługi, bez wchodzenia na konto; powód w dzienniku.
-  { key: 'ACCOUNT_ACTIONS', area: 'Wsparcie', label: 'Akcje na koncie klienta: reset haseł (klient ustawia nowe), SSL, PHP, kopia, skan (z powodem, w dzienniku)' },
+  { key: 'ACCOUNT_ACTIONS', area: 'Wsparcie', label: 'Akcje na koncie klienta: reset haseł (klient ustawia nowe), SSL, PHP, kopia, skan i kwarantanna plików (z powodem, w dzienniku)' },
   { key: 'DNS_MANAGE', area: 'Wsparcie', label: 'Edycja rekordów DNS na koncie klienta (z powodem, w dzienniku)' },
   // F2.7 (D2/D8, 10.10) — operacje na domenach klientów u rejestratora; odnowienie na koszt Verris dodatkowo BILLING_MANAGE.
   { key: 'DOMAINS_MANAGE', area: 'Wsparcie', label: 'Domeny klientów u rejestratora: blokada, kod EPP, NS, synchronizacja, odnowienie z portfela klienta, ponowienie rejestracji (z powodem, w dzienniku)' },
