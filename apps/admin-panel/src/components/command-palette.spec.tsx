@@ -19,6 +19,8 @@ const odpowiedzi: Record<string, unknown> = {
 };
 const mockSzukaj = jest.fn(async (q: string) => odpowiedzi[q] ?? { results: [], pominiete: [] });
 jest.mock("./command-palette-actions", () => ({ globalSearchAction: (q: string) => mockSzukaj(q) }));
+const mockSso = jest.fn();
+jest.mock("@/app/(dashboard)/nodes/[id]/da-sso-actions", () => ({ createNodeSsoUrl: (id: string) => mockSso(id) }));
 
 import { CommandPalette } from "./command-palette";
 
@@ -30,6 +32,7 @@ describe("Cmd+K — tryb obiekt → działanie (prowadzi do karty, nie wykonuje)
   const czekaj = (ms: number) => act(async () => new Promise((r) => setTimeout(r, ms)));
   const pole = () => document.querySelector<HTMLInputElement>('input[aria-label="Szukaj"]')!;
   const okno = () => document.querySelector('[role="dialog"][aria-label="Wyszukiwarka"]')!.textContent ?? "";
+  const okno_ = okno;
   const klawisz = (key: string) => act(async () => pole().dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true })));
   const wpisz = async (tekst: string) => {
     const ustaw = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
@@ -171,5 +174,63 @@ describe("Cmd+K — tryb obiekt → działanie (prowadzi do karty, nie wykonuje)
     await act(async () => ponow.click());
     await czekaj(300);
     expect(mockSzukaj).toHaveBeenCalledWith("awaria");
+  });
+
+  describe("fala 1B — SSO do DA węzła uruchamia się od razu z palety", () => {
+    const okno = { location: { href: "" }, close: jest.fn() };
+    let open: jest.SpyInstance;
+    beforeEach(() => {
+      mockSso.mockReset();
+      okno.location.href = "";
+      okno.close.mockReset();
+      open = jest.spyOn(window, "open").mockReturnValue(okno as unknown as Window);
+    });
+    afterEach(() => open.mockRestore());
+
+    it("admin: węzeł + Tab + „sso” + Enter — ta sama akcja serwera co przycisk na karcie, bez przechodzenia na kartę", async () => {
+      mockSso.mockResolvedValue({ data: { url: "https://t1.example:2222/api/login/url?key=jednorazowy", sshHost: null, sshCommand: null } });
+      await otworz();
+      await wpisz("t1");
+      await klawisz("Tab");
+      await wpisz("sso");
+      expect(okno_()).toContain("Zaloguj do DA węzła (SSO)");
+      await klawisz("Enter");
+      expect(open).toHaveBeenCalledWith("about:blank", "_blank", "noopener");
+      expect(mockSso).toHaveBeenCalledWith("n1");
+      expect(okno.location.href).toBe("https://t1.example:2222/api/login/url?key=jednorazowy");
+      expect(push).not.toHaveBeenCalled();
+      expect(document.querySelector('[role="dialog"][aria-label="Wyszukiwarka"]')).toBeNull();
+    });
+
+    it("„sso t1” w polu też uruchamia od razu", async () => {
+      mockSso.mockResolvedValue({ data: { url: "https://x/login", sshHost: null, sshCommand: null } });
+      await otworz();
+      await wpisz("sso t1");
+      await klawisz("Enter");
+      expect(mockSso).toHaveBeenCalledWith("n1");
+      expect(push).not.toHaveBeenCalled();
+    });
+
+    it("błąd API: okno zamknięte, komunikat w palecie, paleta zostaje", async () => {
+      mockSso.mockResolvedValue({ error: "Węzeł nie ma skonfigurowanego DirectAdmina." });
+      await otworz();
+      await wpisz("t1");
+      await klawisz("Tab");
+      await wpisz("sso");
+      await klawisz("Enter");
+      expect(okno.close).toHaveBeenCalled();
+      expect(okno_()).toContain("Węzeł nie ma skonfigurowanego DirectAdmina.");
+    });
+
+    it("bez roli administratora: wyszarzone, nic się nie uruchamia", async () => {
+      await otworz({ isAdmin: false, permissions: ["NODES_VIEW"] });
+      await wpisz("t1");
+      await klawisz("Tab");
+      await wpisz("sso");
+      expect(okno_()).toContain("Wymaga roli administratora");
+      await klawisz("Enter");
+      expect(mockSso).not.toHaveBeenCalled();
+      expect(open).not.toHaveBeenCalled();
+    });
   });
 });

@@ -30,9 +30,16 @@ export interface AkcjaWezla {
   pomocId?: PomocId;
   /** Bezpieczne do uruchomienia od razu (Cmd+K): otwarcie, SSO, odświeżenie. */
   bezpieczna?: boolean;
+  /**
+   * Cmd+K uruchamia działanie od razu zamiast prowadzić do karty (decyzja 10.10: tylko bezpieczne).
+   * „sso-da” — jednorazowy link logowania do DirectAdmina węzła, ta sama akcja serwera co przycisk na karcie.
+   */
+  uruchom?: RodzajUruchomienia;
   /** Słowa dla Cmd+K (także angielskie nazwy z runbooków: drain, cordon). */
   slowa: string;
 }
+
+export type RodzajUruchomienia = "sso-da";
 
 const dziala = (w: WezelDlaAkcji) => w.status === "ACTIVE" || w.status === "MAINTENANCE";
 const zawsze = () => true;
@@ -230,12 +237,14 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
     id: "sso",
     slowa: "sso ssh zaloguj directadmin",
     grupa: "Dostęp i historia",
-    nazwa: "DirectAdmin (SSO) i SSH",
-    opis: "Jednorazowe logowanie do panelu DA i komenda SSH — w nagłówku karty.",
+    nazwa: "Zaloguj do DA węzła (SSO)",
+    opis: "Jednorazowy link logowania do panelu DA (2 minuty); SSH — w nagłówku karty.",
+    // POST admin/servers/:id/sso-url — tylko ADMIN, tworzenie linku trafia do dziennika (NODE_ADMIN_SSO_URL_CREATED).
     perm: "ADMIN",
     kiedy: zawsze,
     href: (w) => karta(w, "#dostep"),
     bezpieczna: true,
+    uruchom: "sso-da",
   },
   {
     id: "zadania",
@@ -289,6 +298,8 @@ export interface DzialanieNaKarcie {
   wniosek?: boolean;
   /** Prowadzi poza panel admina (panel obsługi) — otwiera się w nowej karcie. */
   zewnetrzny?: boolean;
+  /** Cmd+K uruchamia od razu (bezpieczne działanie) — rodzaj i ID obiektu. */
+  uruchom?: { rodzaj: RodzajUruchomienia; id: string };
 }
 
 /** Działania dostępne dla węzła w danym stanie; bez uprawnień — wyszarzone, nie ukryte (decyzja 10.10). */
@@ -302,5 +313,6 @@ export function akcjeWezla(w: WezelDlaAkcji, dostep: DostepDoAkcji): DzialanieNa
     pomocId: a.pomocId,
     slowa: a.slowa,
     zablokowane: brakUprawnienia(typeof a.perm === "function" ? a.perm(w) : a.perm, dostep),
+    ...(a.uruchom ? { uruchom: { rodzaj: a.uruchom, id: w.id } } : {}),
   }));
 }

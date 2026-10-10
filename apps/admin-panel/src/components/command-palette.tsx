@@ -9,6 +9,7 @@ import { akcjeDlaWezlow, akcjeObiektuDlaZapytania, OBIEKTY_Z_DZIALANIAMI, rozbie
 import type { DostepDoAkcji } from "@/lib/akcje/wezel";
 import { podswietlKotwice } from "@/lib/podswietl";
 import { NieWczytano } from "./nie-wczytano";
+import { createNodeSsoUrl } from "@/app/(dashboard)/nodes/[id]/da-sso-actions";
 
 const TYPE_ICON = {
   user: User,
@@ -64,7 +65,7 @@ const naMacu = () => /Mac|iPhone|iPad/.test(navigator.platform || navigator.user
 type Wynik =
   | { type: "strona"; id: string; title: string; subtitle: string; href: string }
   /** Działanie (węzła albo globalne) — prowadzi do miejsca z podświetleniem, nie wykonuje. */
-  | { type: "akcja"; id: string; title: string; subtitle: string; href: string; zablokowane: string | null; wniosek?: boolean }
+  | { type: "akcja"; id: string; title: string; subtitle: string; href: string; zablokowane: string | null; wniosek?: boolean; uruchom?: AkcjaWPalecie["uruchom"] }
   | GlobalSearchResult;
 
 const jakoWynik = (a: AkcjaWPalecie): Wynik => ({
@@ -75,6 +76,7 @@ const jakoWynik = (a: AkcjaWPalecie): Wynik => ({
   href: a.href,
   zablokowane: a.zablokowane,
   ...(a.wniosek ? { wniosek: true } : {}),
+  ...(a.uruchom ? { uruchom: a.uruchom } : {}),
 });
 
 /** Podpowiedź w polu w trybie obiekt → działanie. */
@@ -103,6 +105,8 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
   /** Wybrany obiekt: węzeł, klient, usługa, faktura (tryb obiekt → działanie). */
   const [obiekt, setObiekt] = useState<GlobalSearchResult | null>(null);
   const [loading, setLoading] = useState(false);
+  /** Błąd działania uruchomionego z palety (np. SSO) — paleta zostaje otwarta z komunikatem. */
+  const [bladAkcji, setBladAkcji] = useState<string | null>(null);
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -121,6 +125,7 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
     setDzialaniaNaWezlach([]);
     setObiekt(null);
     setLoading(false);
+    setBladAkcji(null);
     setActive(0);
   }, []);
 
@@ -189,15 +194,41 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
         ...results,
       ];
 
+  /**
+   * Fala 1B — SSO do DA węzła od razu z palety (decyzja 10.10: bezpieczne działania wykonują się od razu).
+   * Ta sama akcja serwera co przycisk na karcie (da-sso-button.tsx): POST admin/servers/:id/sso-url, tylko ADMIN,
+   * wpis NODE_ADMIN_SSO_URL_CREATED w dzienniku. Okno otwieramy przed awaitem (blokada wyskakujących okien).
+   */
+  const uruchomSso = useCallback(
+    async (serverId: string) => {
+      setBladAkcji(null);
+      const okno = window.open("about:blank", "_blank", "noopener");
+      const res = await createNodeSsoUrl(serverId);
+      if ("error" in res) {
+        if (okno) okno.close();
+        setBladAkcji(res.error);
+        return;
+      }
+      if (okno) okno.location.href = res.data.url;
+      else window.open(res.data.url, "_blank");
+      close();
+    },
+    [close],
+  );
+
   const go = useCallback(
     (r: Wynik) => {
       // Bez uprawnień — nic; chyba że można wysłać wniosek: wtedy do formularza z „Wyślij wniosek”.
       if (r.type === "akcja" && r.zablokowane && !r.wniosek) return;
+      if (r.type === "akcja" && !r.zablokowane && r.uruchom?.rodzaj === "sso-da") {
+        void uruchomSso(r.uruchom.id);
+        return;
+      }
       close();
       router.push(r.href);
       if (r.href.includes("#")) podswietlKotwice(r.href);
     },
-    [router, close],
+    [router, close, uruchomSso],
   );
 
   const wybierzObiekt = (r: GlobalSearchResult) => {
@@ -291,6 +322,11 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
             </div>
 
             <div className="max-h-[50vh] overflow-y-auto p-2">
+              {bladAkcji ? (
+                <p role="alert" className="m-1 rounded-lg border border-crit/30 bg-crit/10 px-3 py-2 text-xs text-crit">
+                  {bladAkcji}
+                </p>
+              ) : null}
               {pokazBlad ? (
                 <div className="p-1">
                   <NieWczytano co="wyników wyszukiwania" onPonow={() => doSearch(q)} />
