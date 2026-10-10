@@ -158,8 +158,10 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
       mysql: includeDbs
         ? dbs
             .filter((d) => d.wlaczona && d.database.trim())
-            .map(({ key: _k, wlaczona: _w, wykryta: _wy, username, password, ...db }) => ({
-              ...db,
+            .map(({ host, port, database, username, password }) => ({
+              host,
+              port,
+              database,
               ...(username.trim() ? { username: username.trim() } : {}),
               ...(password ? { password } : {}),
             }))
