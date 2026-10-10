@@ -215,6 +215,32 @@ export const POMOC = {
     opis: "Podnosi priorytet do pilnego z powodem w dzienniku, a cofnięcie przywraca poprzedni priorytet.",
     kiedy: "Gdy sprawa przerasta Twój szczebel albo grozi utratą klienta.",
   },
+  domeny: {
+    tytul: "Domeny",
+    opis: "Wszystkie domeny platformy z rejestratorem, datą wygaśnięcia i blokadą, a obok nieudane rejestracje i transfery.",
+    kiedy: "Gdy klient pyta o domenę albo trzeba wyłapać wygasające domeny i niezrealizowane zamówienia.",
+  },
+  "kod-epp": {
+    tytul: "Kod EPP",
+    opis: "Pokazuje kod transferu domeny od rejestratora, a w dzienniku zostaje tylko fakt pokazania z powodem.",
+    kiedy: "Gdy klient przenosi domenę do innego rejestratora i nie umie sam pobrać kodu z panelu.",
+  },
+  "synchronizacja-domeny": {
+    tytul: "Synchronizacja z rejestratorem",
+    opis: "Pobiera od rejestratora datę wygaśnięcia, blokadę transferu i ukrycie WHOIS, a domenę usuniętą u niego oznacza jako odeszłą.",
+    kiedy: "Gdy dane na karcie nie zgadzają się z rejestratorem, na przykład po zmianie w jego panelu.",
+  },
+  "odnowienie-domeny": {
+    tytul: "Odnowienie domeny",
+    opis: "Odnawia domenę u rejestratora z portfela klienta (od L3) albo na koszt Verris (tylko L4 i administrator, z powodem).",
+    kiedy: "Gdy automatyczne odnowienie się nie udało, a domena zaraz wygaśnie.",
+    rozniSieOd: "Na koszt Verris nie pobiera nic z portfela klienta — używaj, gdy błąd był po naszej stronie.",
+  },
+  "ponowienie-rejestracji": {
+    tytul: "Ponowienie rejestracji lub transferu",
+    opis: "Składa nieudane zamówienie jeszcze raz na dane tego samego abonenta i znów pobiera opłatę z portfela klienta.",
+    kiedy: "Gdy rejestr miał przerwę albo transfer odrzucono przez zły kod, a klient nadal chce domenę.",
+  },
 } satisfies Record<string, WpisPomocy>;
 
 export type PomocId = keyof typeof POMOC;

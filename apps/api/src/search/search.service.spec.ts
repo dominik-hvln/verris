@@ -11,6 +11,7 @@ function stanowisko(uprawnienia: string[]) {
       findMany: vi.fn(async () => [{ id: 'u1', email: 'jan@firma.pl', firstName: 'Jan', lastName: null, companyName: null }]),
     },
     account: { findMany: vi.fn(async () => []) },
+    domain: { findMany: vi.fn(async () => [{ id: 'd1', name: 't1-sklep.pl', userId: 'u1', registrarExternalId: 'op-1', user: { email: 'jan@firma.pl' } }]) },
     subscription: { findMany: vi.fn(async () => []) },
     invoice: { findMany: vi.fn(async () => [{ id: 'f1', number: 'FV/1/2026', userId: 'u1', status: 'OPEN', ksefStatus: 'REJECTED' }]) },
     server: { findMany: vi.fn(async () => [{ id: 'n1', name: 't1', hostname: 't1.verris.net', ipAddress: '10.0.0.1', status: 'ACTIVE' }]) },
@@ -25,7 +26,9 @@ describe('SearchService — typy według uprawnień', () => {
     const s = stanowisko([]);
     const r = await s.svc.search('t1', { role: 'ADMIN', userId: 'a' });
     expect(r.pominiete).toEqual([]);
-    expect(new Set(r.results.map((x) => x.type))).toEqual(new Set(['user', 'invoice', 'node', 'ticket', 'migration']));
+    expect(new Set(r.results.map((x) => x.type))).toEqual(new Set(['user', 'domena', 'invoice', 'node', 'ticket', 'migration']));
+    // F2.7 — domena platformy prowadzi do jej karty; stan dla działań w palecie (u nas / poza Verris).
+    expect(r.results.find((x) => x.type === 'domena')).toMatchObject({ href: '/domains/d1', status: 'U_NAS', subtitle: 'Domena u rejestratora · jan@firma.pl', userId: 'u1' });
     expect(r.results.find((x) => x.type === 'node')).toMatchObject({ title: 't1', href: '/nodes/n1', status: 'ACTIVE', subtitle: 'Węzeł · t1.verris.net · 10.0.0.1' });
     expect(r.results.find((x) => x.type === 'ticket')).toMatchObject({ subtitle: 'Zgłoszenie #abcd1234 · jan@firma.pl', href: '/customers/u1?sekcja=zgloszenia' });
     expect(r.results.find((x) => x.type === 'migration')).toMatchObject({ href: '/migrations/m1', subtitle: 'Migracja · wymaga uwagi' });
@@ -36,7 +39,7 @@ describe('SearchService — typy według uprawnień', () => {
     const s = stanowisko(['NODES_VIEW']);
     const r = await s.svc.search('t1', { role: 'STAFF', userId: 'op' });
     expect(r.results.map((x) => x.type)).toEqual(['node']);
-    expect(r.pominiete).toEqual(['user', 'service', 'domain', 'invoice', 'ticket', 'migration']);
+    expect(r.pominiete).toEqual(['user', 'service', 'domain', 'domena', 'invoice', 'ticket', 'migration']);
     expect(s.prisma.user.findMany).not.toHaveBeenCalled();
     expect(s.prisma.invoice.findMany).not.toHaveBeenCalled();
     expect(s.prisma.server.findMany).toHaveBeenCalled();
@@ -101,14 +104,15 @@ describe('SearchService — typy według uprawnień', () => {
 
   it('krótkie zapytanie — bez zapytań do bazy, ale z listą pominiętych typów', async () => {
     const s = stanowisko(['NODES_VIEW']);
-    expect(await s.svc.search('t', { role: 'STAFF', userId: 'op' })).toEqual({ results: [], pominiete: ['user', 'service', 'domain', 'invoice', 'ticket', 'migration'] });
+    expect(await s.svc.search('t', { role: 'STAFF', userId: 'op' })).toEqual({ results: [], pominiete: ['user', 'service', 'domain', 'domena', 'invoice', 'ticket', 'migration'] });
     expect(s.prisma.server.findMany).not.toHaveBeenCalled();
   });
 
   it('typyDozwolone i lista uprawnień wejścia do endpointu', () => {
     expect([...typyDozwolone(false, ['SUBSCRIPTIONS_MANAGE'])]).toEqual(['service', 'domain']);
     expect(typyDozwolone(false, ['DASHBOARD_VIEW']).size).toBe(0);
-    expect(typyDozwolone(true, []).size).toBe(7);
+    expect(typyDozwolone(true, []).size).toBe(8);
+    expect([...typyDozwolone(false, ['CUSTOMERS_VIEW'])]).toEqual(['user', 'service', 'domain', 'domena', 'invoice']);
     expect([...UPRAWNIENIA_WYSZUKIWARKI].sort()).toEqual(
       ['BILLING_VIEW', 'CUSTOMERS_VIEW', 'MIGRATIONS_MANAGE', 'NODES_VIEW', 'SUBSCRIPTIONS_MANAGE', 'TICKETS_VIEW'].sort(),
     );

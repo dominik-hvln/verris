@@ -22,7 +22,7 @@ it("przekazuje wyniki i pominięte typy", async () => {
 
 it("403 — wszystkie typy pominięte; inny błąd — pusto z flagą błędu", async () => {
   mockApi.mockRejectedValue(new AdminApiError("Brak uprawnień", 403));
-  expect((await globalSearchAction("t1")).pominiete).toHaveLength(7);
+  expect((await globalSearchAction("t1")).pominiete).toHaveLength(8);
   mockApi.mockRejectedValue(new AdminApiError("Błąd", 500));
   // Fala 1B — inny błąd niż 403: paleta mówi „Nie udało się wczytać” (blad), nie „Brak wyników”.
   await expect(globalSearchAction("t1")).resolves.toEqual({ results: [], pominiete: [], blad: true });

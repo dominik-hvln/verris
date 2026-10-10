@@ -188,6 +188,11 @@ export function grupy(l: LicznikiMenu | null): Grupa[] {
         { name: "Klienci", ikona: "klienci", pod: [{ name: "Klienci", href: "/customers", perm: "CUSTOMERS_VIEW", szukaj: "konta użytkownicy portfel" }] },
         { name: "Usługi", ikona: "uslugi", pod: [{ name: "Usługi", href: "/subscriptions", perm: "SUBSCRIPTIONS_MANAGE", szukaj: "subskrypcje hosting abonamenty" }] },
         {
+          name: "Domeny",
+          ikona: "domeny",
+          pod: [{ name: "Domeny", href: "/domains", perm: "CUSTOMERS_VIEW", szukaj: "rejestrator wygasające odnowienie transfer kod epp authinfo ns nieudane rejestracje blokada" }],
+        },
+        {
           name: "Zgłoszenia",
           ikona: "zgloszenia",
           licznik: l?.zgloszenia ? String(l.zgloszenia) : undefined,

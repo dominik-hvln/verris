@@ -23,6 +23,9 @@ export const STRONY = {
   "/customers/[userId]": { perm: "CUSTOMERS_VIEW", tytul: "Klient" },
   "/deliverability": { perm: "CUSTOMERS_VIEW", tytul: "Blokady poczty" },
   "/domain-pricing": { perm: "ADMIN", tytul: "Domeny i SSL" },
+  // F2.7 — domeny platformy: odczyt od L1 (admin/domains — CUSTOMERS_VIEW); operacje DOMAINS_MANAGE wyszarzone na karcie.
+  "/domains": { perm: "CUSTOMERS_VIEW", tytul: "Domeny" },
+  "/domains/[id]": { perm: "CUSTOMERS_VIEW", tytul: "Domena" },
   "/invoices": { perm: "BILLING_VIEW", tytul: "Faktury" },
   "/invoices/[invoiceId]": { perm: "BILLING_VIEW", tytul: "Faktura" },
   "/invoices/[invoiceId]/korekta": { perm: "BILLING_MANAGE", tytul: "Korekta faktury" },

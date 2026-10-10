@@ -2,7 +2,8 @@
 
 import { AdminApiError, adminApi } from "@/lib/api";
 
-export type TypWyniku = "user" | "service" | "domain" | "invoice" | "node" | "ticket" | "migration";
+/** `domain` — domena konta hostingu; `domena` — domena platformy u rejestratora (F2.7, /domains/[id]). */
+export type TypWyniku = "user" | "service" | "domain" | "domena" | "invoice" | "node" | "ticket" | "migration";
 
 export interface GlobalSearchResult {
   type: TypWyniku;
@@ -36,7 +37,7 @@ export async function globalSearchAction(q: string): Promise<WynikWyszukiwania> 
   } catch (e) {
     // 403 — rola nie ma żadnego z uprawnień wyszukiwarki (apps/api/src/search/search.service.ts).
     if (e instanceof AdminApiError && e.status === 403) {
-      return { results: [], pominiete: ["user", "service", "domain", "invoice", "node", "ticket", "migration"] };
+      return { results: [], pominiete: ["user", "service", "domain", "domena", "invoice", "node", "ticket", "migration"] };
     }
     return { results: [], pominiete: [], blad: true };
   }

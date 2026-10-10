@@ -1,4 +1,5 @@
 import { bezOgonkow, ocenaTrafienia, slowaZapytania } from "@/lib/dopasowanie";
+import { AKCJE_DOMENY } from "./domena";
 import { AKCJE_FAKTURY } from "./faktura";
 import { AKCJE_GLOBALNE } from "./globalne";
 import { AKCJE_KLIENTA } from "./klient";
@@ -55,7 +56,7 @@ export interface ObiektPalety {
 }
 
 /** Typy wyników z rejestrem działań; nazwa do chipa w polu („Klient jan@firma.pl”). */
-export const OBIEKTY_Z_DZIALANIAMI: Record<string, string> = { node: "Węzeł", user: "Klient", service: "Usługa", invoice: "Faktura" };
+export const OBIEKTY_Z_DZIALANIAMI: Record<string, string> = { node: "Węzeł", user: "Klient", service: "Usługa", invoice: "Faktura", domena: "Domena" };
 
 /**
  * Działania obiektu z wyszukiwarki (plan E, patche 9–11). Stan znany tylko częściowo (status, właściciel) —
@@ -70,6 +71,9 @@ export function akcjeObiektuDlaZapytania(o: ObiektPalety, q: string, dostep: Dos
       return dopasuj(dzialaniaObiektu(AKCJE_KLIENTA, { id: o.id }, dostep), q);
     case "service":
       return dopasuj(dzialaniaObiektu(AKCJE_USLUGI, { id: o.id, status: o.status, zakladanieNieudane: o.zakladanieNieudane, klientId: o.userId ?? null }, dostep), q);
+    case "domena":
+      // F2.7 — status z wyszukiwarki: U_NAS (u rejestratora) albo POZA (tylko dopisana do konta).
+      return dopasuj(dzialaniaObiektu(AKCJE_DOMENY, { id: o.id, uNas: o.status === undefined ? undefined : o.status === "U_NAS", klientId: o.userId ?? null }, dostep), q);
     case "invoice":
       return dopasuj(dzialaniaObiektu(AKCJE_FAKTURY, { id: o.id, status: o.status, ksefStatus: o.ksefStatus, klientId: o.userId ?? null }, dostep), q);
     default:

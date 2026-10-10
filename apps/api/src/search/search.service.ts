@@ -3,7 +3,8 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import type { StaffPermission } from '../staff-roles/staff-permissions.catalog.js';
 import { uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
 
-export type SearchResultType = 'user' | 'service' | 'domain' | 'invoice' | 'node' | 'ticket' | 'migration';
+/** `domain` — domena konta hostingu (Account); `domena` — domena platformy (Domain, rejestrator; F2.7 karta /domains/[id]). */
+export type SearchResultType = 'user' | 'service' | 'domain' | 'domena' | 'invoice' | 'node' | 'ticket' | 'migration';
 
 export interface SearchResult {
   type: SearchResultType;
@@ -31,6 +32,8 @@ export const UPRAWNIENIA_TYPOW: Record<SearchResultType, readonly StaffPermissio
   user: ['CUSTOMERS_VIEW'],
   service: ['CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE'],
   domain: ['CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE'],
+  // F2.7 — karta domeny (admin/domains/:id) wymaga CUSTOMERS_VIEW.
+  domena: ['CUSTOMERS_VIEW'],
   invoice: ['CUSTOMERS_VIEW', 'BILLING_VIEW'],
   node: ['NODES_VIEW'],
   ticket: ['TICKETS_VIEW'],
@@ -88,7 +91,7 @@ export class SearchService {
     const gdy = <T>(typ: SearchResultType, zapytanie: () => Promise<T[]>): Promise<T[]> =>
       wolno.has(typ) ? zapytanie() : Promise.resolve([]);
 
-    const [users, accounts, subs, invoices, nodes, tickets, migrations] = await Promise.all([
+    const [users, accounts, domeny, subs, invoices, nodes, tickets, migrations] = await Promise.all([
       gdy('user', () =>
         this.prisma.user.findMany({
           where: {
@@ -110,6 +113,14 @@ export class SearchService {
           where: { OR: [{ domain: contains }, { daUsername: contains }] },
           select: { id: true, domain: true, daUsername: true, subscriptionId: true, userId: true },
           take: 6,
+        }),
+      ),
+      gdy('domena', () =>
+        this.prisma.domain.findMany({
+          where: { name: contains },
+          select: { id: true, name: true, userId: true, registrarExternalId: true, user: { select: { email: true } } },
+          take: 5,
+          orderBy: { createdAt: 'desc' },
         }),
       ),
       gdy('service', () =>
@@ -200,6 +211,18 @@ export class SearchService {
         subtitle: `Domena · konto ${a.daUsername}`,
         href: a.subscriptionId ? `/subscriptions/${a.subscriptionId}` : '/subscriptions',
         userId: a.userId,
+      });
+    }
+    for (const d of domeny) {
+      results.push({
+        type: 'domena',
+        id: d.id,
+        title: d.name,
+        subtitle: `${d.registrarExternalId ? 'Domena u rejestratora' : 'Domena poza Verris'} · ${d.user?.email ?? ''}`.trim(),
+        href: `/domains/${d.id}`,
+        userId: d.userId,
+        // Tryb obiekt → działanie: operacje u rejestratora tylko dla domen kupionych u nas.
+        status: d.registrarExternalId ? 'U_NAS' : 'POZA',
       });
     }
     for (const inv of invoices) {

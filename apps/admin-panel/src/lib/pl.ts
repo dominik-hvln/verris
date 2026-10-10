@@ -23,3 +23,4 @@ export const services = (n: number) => plural(n, "usługa", "usługi", "usług")
 export const clients = (n: number) => plural(n, "klient", "klienci", "klientów");
 export const tickets = (n: number) => plural(n, "zgłoszenie", "zgłoszenia", "zgłoszeń");
 export const days = (n: number) => plural(n, "dzień", "dni", "dni");
+export const years = (n: number) => plural(n, "rok", "lata", "lat");

@@ -183,7 +183,7 @@ describe("Komunikat przy braku uprawnień", () => {
     expect(komunikatPominietych([])).toBeNull();
     expect(komunikatPominietych(["node"])).toBe("Brak wyników. Twoja rola nie przeszukuje węzłów.");
     expect(komunikatPominietych(["user", "node", "invoice"])).toBe("Brak wyników. Twoja rola nie przeszukuje klientów, węzłów ani faktur.");
-    expect(komunikatPominietych(["user", "service", "domain", "invoice", "node", "ticket", "migration"])).toBe("Brak wyników. Twoja rola przeszukuje tylko strony panelu.");
+    expect(komunikatPominietych(["user", "service", "domain", "domena", "invoice", "node", "ticket", "migration"])).toBe("Brak wyników. Twoja rola przeszukuje tylko strony panelu.");
   });
 });
 

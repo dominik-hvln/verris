@@ -1,4 +1,5 @@
 import { POMOC } from "@/lib/pomoc";
+import { AKCJE_DOMENY } from "./domena";
 import { AKCJE_FAKTURY } from "./faktura";
 import { AKCJE_KLIENTA } from "./klient";
 import { AKCJE_USLUGI } from "./usluga";
@@ -21,6 +22,10 @@ const OCZEKIWANE: [string, string, string, readonly { id: string; pomocId?: stri
   ["klient", "reseller", "reseller", AKCJE_KLIENTA],
   ["klient", "partner", "program-partnerski", AKCJE_KLIENTA],
   ["klient", "nowe-zgloszenie", "zgloszenie-w-imieniu", AKCJE_KLIENTA],
+  ["domena", "synchronizuj", "synchronizacja-domeny", AKCJE_DOMENY],
+  ["domena", "odnow", "odnowienie-domeny", AKCJE_DOMENY],
+  ["domena", "odnow-verris", "odnowienie-domeny", AKCJE_DOMENY],
+  ["domena", "kod-epp", "kod-epp", AKCJE_DOMENY],
 ];
 
 it.each(OCZEKIWANE)("%s, działanie %s → hasło „%s” w słowniku, opis i „kiedy” po jednym zdaniu", (_obiekt, id, pomocId, rejestr) => {
@@ -35,7 +40,7 @@ it.each(OCZEKIWANE)("%s, działanie %s → hasło „%s” w słowniku, opis i �
 });
 
 it("każde pomocId w rejestrach usługi, faktury i klienta istnieje w słowniku", () => {
-  for (const a of [...AKCJE_USLUGI, ...AKCJE_FAKTURY, ...AKCJE_KLIENTA]) {
+  for (const a of [...AKCJE_USLUGI, ...AKCJE_FAKTURY, ...AKCJE_KLIENTA, ...AKCJE_DOMENY]) {
     if (a.pomocId) expect(Object.keys(POMOC)).toContain(a.pomocId);
   }
 });

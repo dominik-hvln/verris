@@ -16,6 +16,7 @@ const TYPE_ICON = {
   user: User,
   service: Server,
   domain: Globe,
+  domena: Globe,
   invoice: FileText,
   node: HardDrive,
   ticket: LifeBuoy,
@@ -27,6 +28,7 @@ const TYP_DOPELNIACZ: Record<TypWyniku, string> = {
   user: "klientów",
   service: "usług",
   domain: "domen",
+  domena: "domen u rejestratora",
   invoice: "faktur",
   node: "węzłów",
   ticket: "zgłoszeń",
@@ -86,6 +88,7 @@ const PRZYKLADY: Record<string, string> = {
   user: "Działanie, np. reseller, blokada, kredyty…",
   service: "Działanie, np. ponów, migracja, zawieś…",
   invoice: "Działanie, np. korekta, ksef, anuluj…",
+  domena: "Działanie, np. odnów, epp, ns…",
 };
 const maDzialania = (r: { type: string }) => r.type in OBIEKTY_Z_DZIALANIAMI;
 
