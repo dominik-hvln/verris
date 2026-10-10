@@ -12,7 +12,7 @@ function stanowisko(uprawnienia: string[]) {
     },
     account: { findMany: vi.fn(async () => []) },
     subscription: { findMany: vi.fn(async () => []) },
-    invoice: { findMany: vi.fn(async () => [{ id: 'f1', number: 'FV/1/2026', userId: 'u1' }]) },
+    invoice: { findMany: vi.fn(async () => [{ id: 'f1', number: 'FV/1/2026', userId: 'u1', status: 'OPEN', ksefStatus: 'REJECTED' }]) },
     server: { findMany: vi.fn(async () => [{ id: 'n1', name: 't1', hostname: 't1.verris.net', ipAddress: '10.0.0.1', status: 'ACTIVE' }]) },
     ticket: { findMany: vi.fn(async () => [{ id: 'abcd1234-0000', subject: 'Nie działa poczta', userId: 'u1', user: { email: 'jan@firma.pl' } }]) },
     migrationRequest: { findMany: vi.fn(async () => [{ id: 'm1', targetDomain: 'sklep.pl', status: 'ATTENTION', userId: 'u1' }]) },
@@ -54,7 +54,17 @@ describe('SearchService — typy według uprawnień', () => {
     const zKlientami = await stanowisko(['CUSTOMERS_VIEW']).svc.search('FV/1', { role: 'STAFF', userId: 'op' });
     expect(zKlientami.results.find((x) => x.type === 'invoice')?.href).toBe('/customers/u1?sekcja=rozliczenia');
     const admin = await stanowisko([]).svc.search('FV/1', { role: 'ADMIN', userId: 'a' });
-    expect(admin.results.find((x) => x.type === 'invoice')?.href).toBe('/invoices/f1');
+    // Stan dla trybu obiekt → działanie w palecie (anulowanie nieopłaconej, ponowienie odrzuconej w KSeF).
+    expect(admin.results.find((x) => x.type === 'invoice')).toMatchObject({ href: '/invoices/f1', status: 'OPEN', ksefStatus: 'REJECTED', userId: 'u1' });
+  });
+
+  it('usługa ma status i właściciela (paleta: działania usługi, karta klienta)', async () => {
+    const s = stanowisko([]);
+    s.prisma.subscription.findMany.mockResolvedValueOnce([
+      { id: 's1', serviceTag: 'H-1', status: 'PROVISIONING', userId: 'u1', plan: { name: 'Hosting' }, user: { email: 'jan@firma.pl' } },
+    ] as never);
+    const r = await s.svc.search('H-1', { role: 'ADMIN', userId: 'a' });
+    expect(r.results.find((x) => x.type === 'service')).toMatchObject({ id: 's1', status: 'PROVISIONING', userId: 'u1', href: '/subscriptions/s1' });
   });
 
   it('zgłoszenie z samym TICKETS_VIEW prowadzi do listy zgłoszeń, nie do karty klienta (CUSTOMERS_VIEW)', async () => {

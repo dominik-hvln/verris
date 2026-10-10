@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search, Loader2, User, Server, Globe, FileText, HardDrive, LifeBuoy, ArrowRightLeft, CornerDownLeft, ArrowRight, Zap, X } from "lucide-react";
 import { globalSearchAction, type GlobalSearchResult, type TypWyniku } from "./command-palette-actions";
 import { ocenaTrafienia, slowaZapytania } from "@/lib/dopasowanie";
-import { akcjeDlaWezlow, akcjeWezlaDlaZapytania, rozbierzZapytanie, szukajAkcjiGlobalnych, type AkcjaWPalecie } from "@/lib/akcje/szukaj";
+import { akcjeDlaWezlow, akcjeObiektuDlaZapytania, OBIEKTY_Z_DZIALANIAMI, rozbierzZapytanie, szukajAkcjiGlobalnych, type AkcjaWPalecie } from "@/lib/akcje/szukaj";
 import type { DostepDoAkcji } from "@/lib/akcje/wezel";
 import { podswietlKotwice } from "@/lib/podswietl";
 
@@ -68,10 +68,19 @@ type Wynik =
 
 const jakoWynik = (a: AkcjaWPalecie): Wynik => ({ type: "akcja", id: a.id, title: a.nazwa, subtitle: a.zablokowane ?? a.opis, href: a.href, zablokowane: a.zablokowane });
 
+/** Podpowiedź w polu w trybie obiekt → działanie. */
+const PRZYKLADY: Record<string, string> = {
+  node: "Działanie, np. onboard, drain, waf…",
+  user: "Działanie, np. reseller, blokada, kredyty…",
+  service: "Działanie, np. ponów, migracja, zawieś…",
+  invoice: "Działanie, np. korekta, ksef, anuluj…",
+};
+const maDzialania = (r: { type: string }) => r.type in OBIEKTY_Z_DZIALANIAMI;
+
 /**
  * ADM-4 — globalna wyszukiwarka (Cmd/Ctrl-K, „/”): strony panelu, działania (lib/akcje/*) oraz klienci, usługi,
- * domeny, faktury, węzły, zgłoszenia, migracje. Tryb obiekt → działanie: na węźle Tab albo → pokazuje jego
- * działania; „onboard t1” trafia w to samo. Wybór działania prowadzi do karty z podświetlonym miejscem
+ * domeny, faktury, węzły, zgłoszenia, migracje. Tryb obiekt → działanie: na węźle, kliencie, usłudze albo
+ * fakturze Tab albo → pokazuje jego działania; „onboard t1” trafia w to samo. Wybór działania prowadzi do karty z podświetlonym miejscem
  * (decyzja 10.10) — operacja uruchamia się tam, z potwierdzeniem. Bez uprawnień — wyszarzone z powodem.
  */
 export function CommandPalette({ strony = [], dostep = { isAdmin: false, permissions: [] } }: { strony?: StronaMenu[]; dostep?: DostepDoAkcji }) {
@@ -81,7 +90,7 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
   const [results, setResults] = useState<GlobalSearchResult[]>([]);
   const [pominiete, setPominiete] = useState<TypWyniku[]>([]);
   const [dzialaniaNaWezlach, setDzialaniaNaWezlach] = useState<AkcjaWPalecie[]>([]);
-  /** Wybrany węzeł (tryb obiekt → działanie). */
+  /** Wybrany obiekt: węzeł, klient, usługa, faktura (tryb obiekt → działanie). */
   const [obiekt, setObiekt] = useState<GlobalSearchResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [active, setActive] = useState(0);
@@ -158,7 +167,7 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
   // Strona menu o tym samym adresie co działanie (np. „Dodaj węzeł”) — raz, jako działanie.
   const adresyDzialan = new Set(globalne.map((a) => a.href));
   const wyniki: Wynik[] = obiekt
-    ? akcjeWezlaDlaZapytania({ id: obiekt.id, status: obiekt.status ?? "" }, q, dostep).map(jakoWynik)
+    ? akcjeObiektuDlaZapytania(obiekt, q, dostep).map(jakoWynik)
     : [
         ...dzialaniaNaWezlach.map(jakoWynik),
         ...globalne.map(jakoWynik),
@@ -197,7 +206,7 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
     } else if (e.key === "Enter" && biezacy) {
       e.preventDefault();
       go(biezacy);
-    } else if (!obiekt && biezacy?.type === "node" && ((e.key === "Tab" && !e.shiftKey) || (e.key === "ArrowRight" && kursorNaKoncu))) {
+    } else if (!obiekt && biezacy && biezacy.type !== "strona" && biezacy.type !== "akcja" && maDzialania(biezacy) && ((e.key === "Tab" && !e.shiftKey) || (e.key === "ArrowRight" && kursorNaKoncu))) {
       e.preventDefault();
       wybierzObiekt(biezacy);
     } else if (obiekt && e.key === "Backspace" && q === "") {
@@ -241,10 +250,13 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
                 <button
                   type="button"
                   onClick={() => setObiekt(null)}
-                  aria-label={`Węzeł ${obiekt.title} — wróć do wyszukiwania`}
-                  className="flex shrink-0 items-center gap-1 rounded-md border border-line-strong px-2 py-0.5 text-xs text-foreground hover:border-primary"
+                  aria-label={`${OBIEKTY_Z_DZIALANIAMI[obiekt.type]} ${obiekt.title} — wróć do wyszukiwania`}
+                  className="flex max-w-[45%] shrink-0 items-center gap-1 rounded-md border border-line-strong px-2 py-0.5 text-xs text-foreground hover:border-primary"
                 >
-                  Węzeł {obiekt.title} <X className="h-3 w-3" />
+                  <span className="truncate">
+                    {OBIEKTY_Z_DZIALANIAMI[obiekt.type]} {obiekt.title}
+                  </span>
+                  <X className="h-3 w-3 shrink-0" />
                 </button>
               ) : null}
               <input
@@ -257,7 +269,7 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
                 }}
                 onKeyDown={onKeyDown}
                 aria-label="Szukaj"
-                placeholder={obiekt ? "Działanie, np. onboard, drain, waf…" : "Strona, węzeł (nazwa, IP), klient, domena, NIP, faktura…"}
+                placeholder={obiekt ? PRZYKLADY[obiekt.type] : "Strona, węzeł (nazwa, IP), klient, domena, NIP, faktura…"}
                 className="flex-1 bg-transparent py-4 text-sm text-white outline-none placeholder:text-neutral-600"
               />
               {loading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : null}
@@ -267,7 +279,7 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
               {wyniki.length === 0 ? (
                 <p className="px-3 py-8 text-center text-xs text-muted-foreground">
                   {obiekt
-                    ? "Brak takiego działania dla tego węzła."
+                    ? "Brak takiego działania."
                     : !szukaj
                       ? "Wpisz co najmniej 2 znaki: strona (np. onboard, ksef), węzeł, klient, faktura."
                       : loading
@@ -297,7 +309,7 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
                         <span className="block truncate text-sm font-medium text-white">{r.title}</span>
                         <span className="block truncate text-[11px] text-muted-foreground">{r.subtitle}</span>
                       </span>
-                      {i === active && r.type === "node" && !obiekt ? (
+                      {i === active && r.type !== "strona" && r.type !== "akcja" && maDzialania(r) && !obiekt ? (
                         <kbd className="shrink-0 rounded-[5px] border border-line-strong px-1.5 font-mono text-[10.5px] text-muted-foreground">Tab · działania</kbd>
                       ) : i === active && !zablokowane ? (
                         <CornerDownLeft className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />

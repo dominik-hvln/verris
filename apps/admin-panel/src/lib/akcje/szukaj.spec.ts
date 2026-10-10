@@ -1,4 +1,4 @@
-import { akcjeDlaWezlow, akcjeWezlaDlaZapytania, rozbierzZapytanie, szukajAkcjiGlobalnych } from "./szukaj";
+import { akcjeDlaWezlow, akcjeObiektuDlaZapytania, akcjeWezlaDlaZapytania, rozbierzZapytanie, szukajAkcjiGlobalnych } from "./szukaj";
 
 const ADMIN = { isAdmin: true, permissions: [] };
 const FLOTA_PODGLAD = { isAdmin: false, permissions: ["NODES_VIEW"] };
@@ -39,5 +39,34 @@ describe("Cmd+K — rejestr działań", () => {
     expect(szukajAkcjiGlobalnych("faktura", { isAdmin: false, permissions: ["BILLING_MANAGE"] })[0]).toMatchObject({ id: "faktura-reczna", zablokowane: null });
     expect(szukajAkcjiGlobalnych("za klienta", ADMIN)[0]?.href).toBe("/migrations/za-klienta");
     expect(szukajAkcjiGlobalnych(" ", ADMIN)).toEqual([]);
+  });
+});
+
+describe("Cmd+K — tryb obiekt → działanie dla klienta, usługi i faktury (plan E, patche 9–11)", () => {
+  const ids = (o: Parameters<typeof akcjeObiektuDlaZapytania>[0], q = "", d = ADMIN) => akcjeObiektuDlaZapytania(o, q, d).map((a) => a.id);
+
+  it("klient: działania z karty, w tym reseller, blokada poczty i program partnerski; odpowiedź → zakładka zgłoszeń", () => {
+    const r = akcjeObiektuDlaZapytania({ type: "user", id: "u1" }, "", ADMIN);
+    for (const id of ["reseller", "blokada-poczty", "partner", "odpowiedz", "kredyty"]) expect(r.map((a) => a.id)).toContain(id);
+    expect(r.find((a) => a.id === "odpowiedz")?.href).toBe("/customers/u1?sekcja=zgloszenia");
+    expect(ids({ type: "user", id: "u1" }, "narzut")).toEqual(["reseller"]);
+    expect(ids({ type: "user", id: "u1" }, "spam")).toEqual(["blokada-poczty"]);
+  });
+
+  it("usługa: ponowienie zakładania tylko w PROVISIONING; karta klienta z właściciela", () => {
+    expect(ids({ type: "service", id: "s1", status: "PROVISIONING", userId: "u1" })).toContain("zakladanie");
+    expect(ids({ type: "service", id: "s1", status: "ACTIVE", userId: "u1" })).not.toContain("zakladanie");
+    expect(akcjeObiektuDlaZapytania({ type: "service", id: "s1", status: "ACTIVE", userId: "u1" }, "właściciel", ADMIN)[0]?.href).toBe("/customers/u1");
+  });
+
+  it("faktura: korekta opłaconej, anulowanie nieopłaconej, KSeF tylko odrzuconej i tylko dla admina", () => {
+    expect(ids({ type: "invoice", id: "f1", status: "PAID", ksefStatus: "ACCEPTED", userId: "u1" })).toEqual(["pdf", "korekta", "klient", "platnosci"]);
+    expect(ids({ type: "invoice", id: "f1", status: "OPEN", ksefStatus: "REJECTED", userId: "u1" })).toEqual(["pdf", "anuluj", "ksef", "klient", "platnosci"]);
+    const ksef = akcjeObiektuDlaZapytania({ type: "invoice", id: "f1", status: "PAID", ksefStatus: "REJECTED" }, "ksef", { isAdmin: false, permissions: ["BILLING_VIEW"] });
+    expect(ksef[0]).toMatchObject({ id: "ksef", href: "/invoices/f1#ksef", zablokowane: "Wymaga roli administratora" });
+  });
+
+  it("inne typy (zgłoszenie, migracja) — bez trybu działań", () => {
+    expect(ids({ type: "ticket", id: "t1" })).toEqual([]);
   });
 });

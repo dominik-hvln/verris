@@ -10,8 +10,12 @@ export interface GlobalSearchResult {
   title: string;
   subtitle: string;
   href: string;
-  /** Węzeł: ServerStatus (działania dostępne w tym stanie). */
+  /** Węzeł: ServerStatus; usługa: SubscriptionStatus; faktura: InvoiceStatus (działania dostępne w tym stanie). */
   status?: string;
+  /** Faktura: KsefStatus (ponowienie tylko odrzuconej). */
+  ksefStatus?: string;
+  /** Właściciel (usługa, faktura) — działanie „Karta klienta”. */
+  userId?: string | null;
 }
 
 export interface WynikWyszukiwania {

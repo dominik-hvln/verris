@@ -7,7 +7,13 @@ import { createRoot, type Root } from "react-dom/client";
 const push = jest.fn();
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 const WEZEL = { type: "node", id: "n1", title: "t1", subtitle: "Węzeł · t1.verris.net", href: "/nodes/n1", status: "ACTIVE" };
-const odpowiedzi: Record<string, unknown> = { t1: { results: [WEZEL], pominiete: [] } };
+const KLIENT = { type: "user", id: "u1", title: "jan@firma.pl", subtitle: "Klient · Jan", href: "/customers/u1" };
+const FAKTURA = { type: "invoice", id: "f1", title: "VFV/2026/10/0001", subtitle: "Faktura", href: "/invoices/f1", status: "PAID", ksefStatus: "REJECTED", userId: "u1" };
+const odpowiedzi: Record<string, unknown> = {
+  t1: { results: [WEZEL], pominiete: [] },
+  jan: { results: [KLIENT], pominiete: [] },
+  VFV: { results: [FAKTURA], pominiete: [] },
+};
 const mockSzukaj = jest.fn(async (q: string) => odpowiedzi[q] ?? { results: [], pominiete: [] });
 jest.mock("./command-palette-actions", () => ({ globalSearchAction: (q: string) => mockSzukaj(q) }));
 
@@ -96,5 +102,29 @@ describe("Cmd+K — tryb obiekt → działanie (prowadzi do karty, nie wykonuje)
     expect(okno()).not.toContain("Węzeł ");
     await klawisz("Enter");
     expect(push).toHaveBeenCalledWith("/nodes/stack#aktualizuj-flote");
+  });
+
+  it("klient + Tab → jego działania (reseller); Enter prowadzi do sekcji na karcie", async () => {
+    await otworz();
+    await wpisz("jan");
+    expect(okno()).toContain("Tab · działania");
+    await klawisz("Tab");
+    expect(okno()).toContain("Klient jan@firma.pl");
+    expect(okno()).toContain("Zdejmij blokadę wysyłki poczty");
+    await wpisz("narzut");
+    await klawisz("Enter");
+    expect(push).toHaveBeenCalledWith("/customers/u1?sekcja=rozliczenia#reseller");
+  });
+
+  it("faktura + → : ponowienie KSeF dla admina prowadzi do sekcji KSeF na stronie faktury", async () => {
+    await otworz();
+    await wpisz("VFV");
+    await klawisz("ArrowRight");
+    expect(okno()).toContain("Faktura VFV/2026/10/0001");
+    expect(okno()).toContain("Wystaw korektę");
+    expect(okno()).not.toContain("Anuluj dokument");
+    await wpisz("ksef");
+    await klawisz("Enter");
+    expect(push).toHaveBeenCalledWith("/invoices/f1#ksef");
   });
 });

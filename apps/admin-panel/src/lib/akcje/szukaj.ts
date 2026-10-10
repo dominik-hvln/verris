@@ -1,5 +1,9 @@
 import { bezOgonkow, ocenaTrafienia, slowaZapytania } from "@/lib/dopasowanie";
+import { AKCJE_FAKTURY } from "./faktura";
 import { AKCJE_GLOBALNE } from "./globalne";
+import { AKCJE_KLIENTA } from "./klient";
+import { dzialaniaObiektu } from "./rejestr";
+import { AKCJE_USLUGI } from "./usluga";
 import { AKCJE_WEZLA, akcjeWezla, brakUprawnienia, type DostepDoAkcji, type DzialanieNaKarcie, type WezelDlaAkcji } from "./wezel";
 
 /** Pozycja „działanie” w Cmd+K: prowadzi do miejsca na karcie/stronie; wyszarzona bez uprawnień. */
@@ -19,14 +23,51 @@ const doPalety = (d: DzialanieNaKarcie, przyrostek = ""): AkcjaWPalecie => ({
   zablokowane: d.zablokowane,
 });
 
-/** Działania węzła pasujące do zapytania (puste — wszystkie dostępne w jego stanie). */
-export function akcjeWezlaDlaZapytania(w: WezelDlaAkcji, q: string, dostep: DostepDoAkcji): AkcjaWPalecie[] {
+/** Działania pasujące do zapytania (puste — wszystkie), w kolejności trafienia, potem rejestru. */
+function dopasuj(dzialania: DzialanieNaKarcie[], q: string): AkcjaWPalecie[] {
   const slowa = slowaZapytania(q);
-  return akcjeWezla(w, dostep)
+  return dzialania
     .map((d, i) => ({ d, i, o: slowa.length ? ocenaTrafienia(d.nazwa, `${d.grupa} ${d.slowa}`, slowa) : 0 }))
     .filter((x): x is { d: DzialanieNaKarcie; i: number; o: number } => x.o !== null)
     .sort((a, b) => a.o - b.o || a.i - b.i)
     .map((x) => doPalety(x.d));
+}
+
+/** Działania węzła pasujące do zapytania (puste — wszystkie dostępne w jego stanie). */
+export function akcjeWezlaDlaZapytania(w: WezelDlaAkcji, q: string, dostep: DostepDoAkcji): AkcjaWPalecie[] {
+  return dopasuj(akcjeWezla(w, dostep), q);
+}
+
+/** Wynik wyszukiwarki, dla którego paleta ma tryb obiekt → działanie (Tab albo →). */
+export interface ObiektPalety {
+  type: string;
+  id: string;
+  status?: string;
+  userId?: string | null;
+  ksefStatus?: string;
+}
+
+/** Typy wyników z rejestrem działań; nazwa do chipa w polu („Klient jan@firma.pl”). */
+export const OBIEKTY_Z_DZIALANIAMI: Record<string, string> = { node: "Węzeł", user: "Klient", service: "Usługa", invoice: "Faktura" };
+
+/**
+ * Działania obiektu z wyszukiwarki (plan E, patche 9–11). Stan znany tylko częściowo (status, właściciel) —
+ * rejestr pokazuje to, czego nie da się wykluczyć; operator widzi resztę na karcie. W palecie nie ma linków
+ * zewnętrznych: „Odpowiedz na zgłoszenie” prowadzi do zakładki zgłoszeń klienta.
+ */
+export function akcjeObiektuDlaZapytania(o: ObiektPalety, q: string, dostep: DostepDoAkcji): AkcjaWPalecie[] {
+  switch (o.type) {
+    case "node":
+      return akcjeWezlaDlaZapytania({ id: o.id, status: o.status ?? "" }, q, dostep);
+    case "user":
+      return dopasuj(dzialaniaObiektu(AKCJE_KLIENTA, { id: o.id }, dostep), q);
+    case "service":
+      return dopasuj(dzialaniaObiektu(AKCJE_USLUGI, { id: o.id, status: o.status, klientId: o.userId ?? null }, dostep), q);
+    case "invoice":
+      return dopasuj(dzialaniaObiektu(AKCJE_FAKTURY, { id: o.id, status: o.status, ksefStatus: o.ksefStatus, klientId: o.userId ?? null }, dostep), q);
+    default:
+      return [];
+  }
 }
 
 /** Działania globalne pasujące do zapytania. */

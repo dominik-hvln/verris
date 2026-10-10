@@ -14,8 +14,11 @@ export interface SearchResult {
   href: string;
   /** Właściciel (do budowy tras w panelu staffa /crm/:userId). */
   userId: string | null;
-  /** Węzeł: ServerStatus — paleta pokazuje działania dostępne w tym stanie. */
+  /** Węzeł: ServerStatus; usługa: SubscriptionStatus; faktura: InvoiceStatus — paleta pokazuje działania
+   *  dostępne w tym stanie (tryb obiekt → działanie). */
   status?: string;
+  /** Faktura: KsefStatus (ponowienie wysyłki tylko odrzuconej). */
+  ksefStatus?: string;
 }
 
 /**
@@ -113,6 +116,7 @@ export class SearchService {
           select: {
             id: true,
             serviceTag: true,
+            status: true,
             userId: true,
             plan: { select: { name: true } },
             user: { select: { email: true } },
@@ -125,11 +129,11 @@ export class SearchService {
         this.prisma.invoice
           .findMany({
             where: { number: contains },
-            select: { id: true, number: true, userId: true },
+            select: { id: true, number: true, userId: true, status: true, ksefStatus: true },
             take: 5,
             orderBy: { createdAt: 'desc' },
           })
-          .catch(() => [] as { id: string; number: string; userId: string }[]),
+          .catch(() => [] as { id: string; number: string; userId: string; status: string; ksefStatus: string }[]),
       ),
       gdy('node', () =>
         this.prisma.server.findMany({
@@ -180,6 +184,7 @@ export class SearchService {
         subtitle: `Usługa · ${s.plan?.name ?? ''} · ${s.user?.email ?? ''}`.trim(),
         href: `/subscriptions/${s.id}`,
         userId: s.userId,
+        status: s.status,
       });
     }
     for (const a of accounts) {
@@ -203,6 +208,8 @@ export class SearchService {
         // rozliczenia na karcie klienta.
         href: isAdmin || uprawnienia.includes('BILLING_VIEW') ? `/invoices/${inv.id}` : `/customers/${inv.userId}?sekcja=rozliczenia`,
         userId: inv.userId,
+        status: inv.status,
+        ksefStatus: inv.ksefStatus,
       });
     }
     for (const n of nodes) {
