@@ -22,6 +22,14 @@ describe("Cmd+K — rejestr działań", () => {
     expect(akcjeWezlaDlaZapytania(aktywny, "", ADMIN).length).toBeGreaterThan(10);
   });
 
+  it("F3.1: „kolejka” / „exim” → kolejka poczty węzła (zakładka Poczta); bez MAIL_QUEUE_NODE wyszarzona", () => {
+    expect(akcjeWezlaDlaZapytania(aktywny, "exim", ADMIN).map((a) => a.id)).toEqual(["kolejka-poczty"]);
+    expect(akcjeWezlaDlaZapytania(aktywny, "kolejka", FLOTA_PODGLAD)[0]).toMatchObject({
+      href: "/nodes/n1?sekcja=poczta#kolejka-poczty",
+      zablokowane: "Wymaga MAIL_QUEUE_NODE",
+    });
+  });
+
   it("bez uprawnień — wyszarzone z powodem, nie ukryte", () => {
     const [onboard] = akcjeWezlaDlaZapytania(aktywny, "onboard", FLOTA_PODGLAD);
     expect(onboard).toMatchObject({ id: "onboard-live", href: "/nodes/n1?sekcja=aktualizacje#onboard-live", zablokowane: "Wymaga NODES_MANAGE" });

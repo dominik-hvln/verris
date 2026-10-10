@@ -25,6 +25,7 @@ import { ServiceUsagePanel } from "./usage-panel";
 import { DiagnosticsPanel } from "./diagnostics-panel";
 import { KontoKlientaPanel } from "./konto-klienta-panel";
 import { PasekAkcjiKonta } from "./pasek-akcji-konta";
+import { PocztaKontaPanel } from "./poczta-konta-panel";
 import { SuspendForm, ZakonczIUsunForm } from "./suspend-form";
 import { RestorePanel } from "./restore-panel";
 import { OdtworzenieNaWezlePanel } from "./odtworzenie-na-wezle-panel";
@@ -227,6 +228,12 @@ export default async function AdminSubscriptionDetailPage({
           {kontoZostalo ? (
             <section id="akcje-konta" className="scroll-mt-24">
               <PasekAkcjiKonta subscriptionId={d.id} dostep={access} />
+            </section>
+          ) : null}
+          {/* F3.1 (D4) — blokada wysyłki konta i kolejka poczty konta (nagłówki, bez treści). */}
+          {kontoZostalo ? (
+            <section id="poczta-konta" className="scroll-mt-24">
+              <PocztaKontaPanel subscriptionId={d.id} dostep={access} />
             </section>
           ) : null}
           {d.account ? (

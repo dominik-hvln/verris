@@ -27,6 +27,7 @@ import { NoweKontaButton } from "./nowe-konta-button";
 import { AktualizujWezelButton } from "./aktualizuj-wezel-button";
 import { WezelPrzeglad } from "./wezel-przeglad";
 import { DzialaniaWezla } from "./dzialania-wezla";
+import { KolejkaWezlaPanel } from "./kolejka-wezla-panel";
 import { OnboardLivePanel } from "../wizard/onboard-panele";
 import { fetchPrognozaWezla, fetchPrzegladWezla } from "./przeglad-data";
 import { PrognozaWezlaKarta } from "./prognoza-wezla";
@@ -43,7 +44,7 @@ import { Eyebrow, KARTA, Kpi, Pasek, Pigulka, RzadKpi, Zakladki } from "@/compon
 
 export const dynamic = "force-dynamic";
 
-const SEKCJE = ["przeglad", "konta", "audyt", "zadania", "aktualizacje", "konfiguracja", "wycofanie"] as const;
+const SEKCJE = ["przeglad", "konta", "audyt", "zadania", "poczta", "aktualizacje", "konfiguracja", "wycofanie"] as const;
 type Sekcja = (typeof SEKCJE)[number];
 
 const STATUS: Record<string, string> = {
@@ -211,6 +212,7 @@ export default async function ServerDetailPage({
           { nazwa: `Konta (${server._count?.accounts ?? 0})`, href: `${baza}?sekcja=konta`, on: sekcja === "konta" },
           { nazwa: "Audyt i naprawa", href: `${baza}?sekcja=audyt`, on: sekcja === "audyt", licznik: p?.doNaprawy },
           { nazwa: "Zadania", href: `${baza}?sekcja=zadania`, on: sekcja === "zadania" },
+          { nazwa: "Poczta", href: `${baza}?sekcja=poczta`, on: sekcja === "poczta" },
           { nazwa: "Aktualizacje", href: `${baza}?sekcja=aktualizacje`, on: sekcja === "aktualizacje" },
           { nazwa: "Konfiguracja", href: `${baza}?sekcja=konfiguracja`, on: sekcja === "konfiguracja" },
           { nazwa: "Wycofanie węzła", href: `${baza}?sekcja=wycofanie`, on: sekcja === "wycofanie" },
@@ -262,6 +264,24 @@ export default async function ServerDetailPage({
       ) : null}
 
       {zadania ? zadania.ok ? <NodeTasksSection rows={zadania.dane} /> : <NieWczytano co="historii zadań" /> : null}
+
+      {/* F3.1 (D4) — kolejka MTA węzła: tylko MAIL_QUEUE_NODE (NOC) i ADMIN; nagłówki wszystkich klientów węzła. */}
+      {sekcja === "poczta" ? (
+        dziala ? (
+          wymaga("kolejka-poczty") ? (
+            // Bez uprawnienia panel się nie ładuje — sam odczyt to nagłówki poczty wszystkich klientów węzła.
+            <p className="text-sm text-muted-foreground" data-zablokowane={wymaga("kolejka-poczty") ?? ""}>
+              {wymaga("kolejka-poczty")} — kolejka poczty węzła jest dla zespołu NOC.
+            </p>
+          ) : (
+            <div id="kolejka-poczty" className="scroll-mt-4">
+              <KolejkaWezlaPanel serverId={server.id} />
+            </div>
+          )
+        ) : (
+          <p className="text-sm text-muted-foreground">Kolejka poczty jest dostępna, gdy węzeł jest aktywny albo w serwisie.</p>
+        )
+      ) : null}
 
       {sekcja === "aktualizacje" ? (
         <>

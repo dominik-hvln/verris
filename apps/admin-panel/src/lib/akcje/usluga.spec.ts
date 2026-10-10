@@ -61,6 +61,14 @@ describe("Działania usługi", () => {
     }
   });
 
+  it("F3.1: blokada wysyłki (MAIL_SEND_BLOCK) i kolejka poczty konta (MAIL_QUEUE_VIEW) prowadzą do sekcji #poczta-konta", () => {
+    const l2 = dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("MAIL_QUEUE_VIEW"));
+    const po = (id: string) => l2.find((x) => x.id === id)!;
+    expect(po("kolejka-poczty")).toMatchObject({ zablokowane: null, href: "/subscriptions/s1?sekcja=konto#poczta-konta" });
+    expect(po("blokada-wysylki")).toMatchObject({ zablokowane: "Wymaga MAIL_SEND_BLOCK", href: "/subscriptions/s1?sekcja=konto#poczta-konta" });
+    expect(ids({ ...aktywna, kontoUsuniete: true })).not.toContain("blokada-wysylki");
+  });
+
   it("Cmd+K bez pełnego stanu (sam status z wyszukiwarki): pokazuje to, czego nie da się wykluczyć", () => {
     const zPalety = ids({ id: "s1", status: "PROVISIONING", klientId: "u1" });
     expect(zPalety).toContain("zakladanie");

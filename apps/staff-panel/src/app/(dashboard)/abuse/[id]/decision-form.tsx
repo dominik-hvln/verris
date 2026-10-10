@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { decyzjaAction } from "../actions";
 import { Checkbox } from '@/components/checkbox';
 
-/** F2.3 — dopasowana usługa; `mozeZawiesic` — operator ma SUBSCRIPTIONS_SUSPEND (API sprawdza to samo). */
+/**
+ * F2.3 — dopasowana usługa; `mozeZawiesic` — operator ma SUBSCRIPTIONS_SUSPEND, `mozeBlokowac` (F3.1) — MAIL_SEND_BLOCK
+ * (API sprawdza to samo).
+ */
 export interface UslugaZgloszenia {
   domena: string | null;
   status: string;
@@ -16,16 +19,19 @@ export function DecisionForm({
   maKlienta,
   usluga = null,
   mozeZawiesic = false,
+  mozeBlokowac = false,
 }: {
   id: string;
   maKlienta: boolean;
   usluga?: UslugaZgloszenia | null;
   mozeZawiesic?: boolean;
+  mozeBlokowac?: boolean;
 }) {
   const router = useRouter();
   const [decision, setDecision] = useState("");
   const [notify, setNotify] = useState(true);
   const [zawies, setZawies] = useState(false);
+  const [blokuj, setBlokuj] = useState(false);
   const [potwierdzenie, setPotwierdzenie] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -33,6 +39,7 @@ export function DecisionForm({
   const nazwa = usluga?.domena ?? "usługę";
   const run = (status: "IN_REVIEW" | "ACTION_TAKEN" | "REJECTED") => {
     const zawiesTeraz = status === "ACTION_TAKEN" && zawies && dzialajaca && mozeZawiesic;
+    const blokujTeraz = status === "ACTION_TAKEN" && blokuj && dzialajaca && mozeBlokowac;
     // Zawieszenie odcina stronę i pocztę klienta — drugi krok z opisem skutków przed wysłaniem.
     if (zawiesTeraz && !potwierdzenie) {
       setPotwierdzenie(true);
@@ -40,9 +47,9 @@ export function DecisionForm({
     }
     setPotwierdzenie(false);
     start(async () => {
-      const r = await decyzjaAction({ id, status, decision, notifyCustomer: status === "ACTION_TAKEN" && notify, suspendService: zawiesTeraz });
+      const r = await decyzjaAction({ id, status, decision, notifyCustomer: status === "ACTION_TAKEN" && notify, suspendService: zawiesTeraz, blockSending: blokujTeraz });
       if ("error" in r) return setMsg(r.error);
-      setMsg(zawiesTeraz ? "Zapisano. Usługa zawieszona." : "Zapisano.");
+      setMsg(["Zapisano.", blokujTeraz ? "Wysyłka poczty usługi zablokowana." : "", zawiesTeraz ? "Usługa zawieszona." : ""].filter(Boolean).join(" "));
       router.refresh();
     });
   };
@@ -50,7 +57,7 @@ export function DecisionForm({
     <div className="space-y-3 rounded-xl border border-white/10 bg-black/30 p-4">
       <h2 className="text-sm font-semibold text-white">Decyzja</h2>
       <p className="text-xs text-muted-foreground">
-        „Podjęto działania” może od razu zawiesić dopasowaną usługę albo tylko powiadomić klienta. Kordon wysyłki i usunięcie pliku robisz w panelu operatora lub na węźle.
+        „Podjęto działania” może od razu zablokować wysyłkę poczty dopasowanej usługi, zawiesić ją albo tylko powiadomić klienta. Usunięcie pliku robisz w panelu operatora lub na węźle.
       </p>
       <textarea aria-label="Uzasadnienie decyzji" value={decision} onChange={(e) => setDecision(e.target.value)} rows={5}
         placeholder="Uzasadnienie (min. 20 znaków): co sprawdzono, co zrobiono i na jakiej podstawie. Dostanie je zgłaszający."
@@ -64,6 +71,17 @@ export function DecisionForm({
       {usluga && !dzialajaca ? (
         <p className="text-xs text-muted-foreground" data-usluga="niedzialajaca">
           Usługa {nazwa} jest już {usluga.status === "SUSPENDED" ? "zawieszona" : "zakończona"}.
+        </p>
+      ) : null}
+      {dzialajaca && mozeBlokowac ? (
+        <label className="flex items-center gap-2 text-xs text-neutral-300" data-blokada="opcja">
+          <Checkbox checked={blokuj} onChange={(e) => setBlokuj(e.target.checked)} />
+          Przy „Podjęto działania” zablokuj wysyłkę poczty usługi {nazwa} (strona i odbiór poczty działają dalej)
+        </label>
+      ) : null}
+      {dzialajaca && !mozeBlokowac ? (
+        <p className="text-xs text-muted-foreground" data-blokada="brak-uprawnien">
+          Blokada wysyłki poczty {nazwa} wymaga uprawnienia MAIL_SEND_BLOCK.
         </p>
       ) : null}
       {dzialajaca && mozeZawiesic ? (

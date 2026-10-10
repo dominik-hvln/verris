@@ -94,3 +94,16 @@ it("administrator: nic nie jest wyszarzone", async () => {
   zDostepem({ role: "ADMIN", isAdmin: true, permissions: [] });
   for (const s of ["aktualizacje", "konfiguracja", "wycofanie", "audyt"]) expect(await render(s)).not.toContain("data-zablokowane");
 });
+
+it("F3.1: zakładka „Poczta” — bez MAIL_QUEUE_NODE panel kolejki się nie renderuje (nagłówki wszystkich klientów); NOC i admin — tak", async () => {
+  zDostepem({ role: "STAFF", isAdmin: false, permissions: ["NODES_VIEW", "NODES_MANAGE", "MAIL_QUEUE_VIEW"] });
+  const bez = await render("poczta");
+  expect(bez).toContain('data-zablokowane="Wymaga MAIL_QUEUE_NODE"');
+  expect(bez).not.toContain('id="kolejka-poczty"');
+  zDostepem({ role: "STAFF", isAdmin: false, permissions: ["NODES_VIEW", "MAIL_QUEUE_NODE"] });
+  expect(await render("poczta")).toContain('id="kolejka-poczty"');
+  zDostepem({ role: "ADMIN", isAdmin: true, permissions: [] });
+  const adm = await render("poczta");
+  expect(adm).toContain("Wypchnij kolejkę");
+  expect(adm).toContain("Poczta");
+});

@@ -10,6 +10,8 @@ export async function decyzjaAction(input: {
   notifyCustomer?: boolean;
   /** F2.3 — zawieś dopasowaną usługę razem z decyzją „Podjęto działania”. */
   suspendService?: boolean;
+  /** F3.1 — zablokuj wysyłkę poczty dopasowanej usługi razem z decyzją „Podjęto działania”. */
+  blockSending?: boolean;
 }): Promise<{ ok: true } | { error: string }> {
   try {
     await staffApi(`/staff/abuse/${input.id}/decision`, {
@@ -19,6 +21,7 @@ export async function decyzjaAction(input: {
         decision: input.decision || undefined,
         notifyCustomer: input.notifyCustomer ?? false,
         ...(input.suspendService ? { suspendService: true } : {}),
+        ...(input.blockSending ? { blockSending: true } : {}),
       },
     });
     revalidatePath('/abuse');

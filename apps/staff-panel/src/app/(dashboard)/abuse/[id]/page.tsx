@@ -25,7 +25,10 @@ export default async function AbuseDetail({ params }: { params: Promise<{ id: st
   }
   if (!r) return <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{error}</p>;
   // F2.3 — „Zawieś usługę” tylko dla operatora z SUBSCRIPTIONS_SUSPEND (API sprawdza to samo; nieodczytane = brak).
-  const mozeZawiesic = r.usluga ? maUprawnienie(await pobierzDostepOperatora(), "SUBSCRIPTIONS_SUSPEND") : false;
+  // F3.1 — „Zablokuj wysyłkę” tylko z MAIL_SEND_BLOCK (tak samo).
+  const dostep = r.usluga ? await pobierzDostepOperatora() : null;
+  const mozeZawiesic = dostep ? maUprawnienie(dostep, "SUBSCRIPTIONS_SUSPEND") : false;
+  const mozeBlokowac = dostep ? maUprawnienie(dostep, "MAIL_SEND_BLOCK") : false;
 
   const wiersz = (k: string, v: React.ReactNode) => (
     <div className="grid gap-1 sm:grid-cols-[180px_1fr]"><dt className="text-xs text-muted-foreground">{k}</dt><dd className="break-all text-sm text-white">{v}</dd></div>
@@ -47,7 +50,7 @@ export default async function AbuseDetail({ params }: { params: Promise<{ id: st
         {r.decidedAt ? wiersz("Decyzja z", new Date(r.decidedAt).toLocaleString("pl-PL")) : null}
         {r.customerNotifiedAt ? wiersz("Klient powiadomiony", new Date(r.customerNotifiedAt).toLocaleString("pl-PL")) : null}
       </dl>
-      {r.status === "ACTION_TAKEN" || r.status === "REJECTED" ? null : <DecisionForm id={r.id} maKlienta={Boolean(r.userId)} usluga={r.usluga ?? null} mozeZawiesic={mozeZawiesic} />}
+      {r.status === "ACTION_TAKEN" || r.status === "REJECTED" ? null : <DecisionForm id={r.id} maKlienta={Boolean(r.userId)} usluga={r.usluga ?? null} mozeZawiesic={mozeZawiesic} mozeBlokowac={mozeBlokowac} />}
     </div>
   );
 }

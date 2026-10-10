@@ -9,9 +9,9 @@ import type { PomocId } from "@/lib/pomoc";
  * `perm` odpowiada egzekucji w API (apps/api/src/servers/*.admin.controller.ts): metody bez własnego
  * @Roles w `admin/servers` i `admin/waf` są tylko dla ADMIN-a, reszta — @StaffPerm.
  */
-export type UprawnienieAkcji = "NODES_VIEW" | "NODES_MANAGE" | "ADMIN";
+export type UprawnienieAkcji = "NODES_VIEW" | "NODES_MANAGE" | "MAIL_QUEUE_NODE" | "ADMIN";
 
-export type GrupaAkcji = "Instalacja" | "Aktualizacje" | "Audyt i naprawa" | "Dostępność" | "Konfiguracja" | "Dostęp i historia";
+export type GrupaAkcji = "Instalacja" | "Aktualizacje" | "Audyt i naprawa" | "Dostępność" | "Poczta" | "Konfiguracja" | "Dostęp i historia";
 
 export interface WezelDlaAkcji {
   id: string;
@@ -191,6 +191,18 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
     kiedy: dziala,
     href: (w) => karta(w, "?sekcja=wycofanie"),
     pomocId: "wycofanie",
+  },
+  {
+    id: "kolejka-poczty",
+    slowa: "kolejka poczty mail queue exim mta wypchnij qff zamrożone spam",
+    grupa: "Poczta",
+    nazwa: "Kolejka poczty węzła",
+    opis: "Nagłówki wiadomości czekających na wysyłkę, wyszukiwanie i wypchnięcie kolejki.",
+    // F3.1 — admin/servers/:id/kolejka-poczty — MAIL_QUEUE_NODE (NOC); nagłówki wszystkich klientów węzła.
+    perm: "MAIL_QUEUE_NODE",
+    kiedy: dziala,
+    href: (w) => karta(w, "?sekcja=poczta#kolejka-poczty"),
+    pomocId: "kolejka-wezla",
   },
   {
     id: "directadmin",

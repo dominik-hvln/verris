@@ -73,4 +73,30 @@ describe("F2.3 — zawieszenie z decyzji abuse", () => {
     trasy(new Error("503"));
     expect(renderToStaticMarkup(await AbuseDetail({ params: Promise.resolve({ id: "r1" }) }))).not.toContain('data-zawies="opcja"');
   });
+
+  /** F3.1 (D4) — „zablokuj wysyłkę” obok zawieszenia: z MAIL_SEND_BLOCK, w API jako blockSending. */
+  it("F3.1: opcja blokady wysyłki tylko z MAIL_SEND_BLOCK; blockSending idzie do API tylko, gdy zaznaczone", async () => {
+    const z = renderToStaticMarkup(<DecisionForm id="r1" maKlienta usluga={{ domena: "sklep.pl", status: "ACTIVE" }} mozeBlokowac />);
+    expect(z).toContain('data-blokada="opcja"');
+    expect(z).toContain("zablokuj wysyłkę poczty usługi sklep.pl");
+    const bez = renderToStaticMarkup(<DecisionForm id="r1" maKlienta usluga={{ domena: "sklep.pl", status: "ACTIVE" }} />);
+    expect(bez).toContain('data-blokada="brak-uprawnien"');
+    expect(bez).toContain("MAIL_SEND_BLOCK");
+    api.mockResolvedValue({});
+    await decyzjaAction({ id: "r1", status: "ACTION_TAKEN", decision: "x".repeat(25), blockSending: true });
+    await decyzjaAction({ id: "r1", status: "ACTION_TAKEN", decision: "x".repeat(25) });
+    expect(api.mock.calls[0][1].body).toMatchObject({ blockSending: true });
+    expect(api.mock.calls[1][1].body).not.toHaveProperty("blockSending");
+  });
+
+  it("F3.1: strona — opcja blokady według /staff/me/access", async () => {
+    api.mockImplementation(async (p: string) => {
+      if (p === "/staff/abuse/r1") return { ...RAPORT, usluga: { domena: "sklep.pl", status: "ACTIVE" } };
+      if (p === "/staff/me/access") return { isAdmin: false, permissions: ["ABUSE_MANAGE", "MAIL_SEND_BLOCK"] };
+      throw new Error(`nieoczekiwane ${p}`);
+    });
+    const html = renderToStaticMarkup(await AbuseDetail({ params: Promise.resolve({ id: "r1" }) }));
+    expect(html).toContain('data-blokada="opcja"');
+    expect(html).toContain('data-zawies="brak-uprawnien"');
+  });
 });

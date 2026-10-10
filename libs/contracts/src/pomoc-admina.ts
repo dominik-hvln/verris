@@ -145,6 +145,23 @@ export const POMOC = {
     kiedy: "Gdy klient prosi o pomoc albo konto trzeba szybko zabezpieczyć — zawsze z powodem i numerem zgłoszenia.",
     rozniSieOd: "Wejście na konto klienta otwiera cały jego panel; tu są tylko wybrane akcje, a nowych haseł nikt z obsługi nie widzi.",
   },
+  "blokada-wysylki": {
+    tytul: "Blokada wysyłki konta",
+    opis: "Zatrzymuje na serwerze całą wysyłkę poczty konta (skrzynki i skrypty PHP), a zwolnienie przywraca poprzedni stan.",
+    kiedy: "Gdy z konta idzie spam albo IP serwera trafiło na listę RBL — przed zawieszeniem usługi.",
+    rozniSieOd: "Zawieszenie wyłącza całą usługę; blokada zatrzymuje tylko wysyłkę, a strona i odbiór poczty działają.",
+  },
+  "kolejka-poczty": {
+    tytul: "Kolejka poczty konta",
+    opis: "Pokazuje nagłówki wiadomości konta czekających na wysyłkę (nadawca, odbiorcy, temat, wiek) bez treści.",
+    kiedy: "Gdy klient pyta, czemu mail nie doszedł, albo trzeba usunąć spam konta, zanim wyjdzie.",
+    rozniSieOd: "Dziennik poczty pokazuje to, co już wyszło albo zostało odrzucone; kolejka — to, co jeszcze czeka.",
+  },
+  "kolejka-wezla": {
+    tytul: "Kolejka poczty węzła",
+    opis: "Nagłówki wszystkich wiadomości czekających na wysyłkę z węzła, z wyszukiwaniem i wypchnięciem kolejki.",
+    kiedy: "Gdy kolejka rośnie, poczta stoi po awarii albo trzeba znaleźć konto, z którego idzie spam.",
+  },
   "edycja-dns": {
     tytul: "Edycja DNS",
     opis: "Dodaje, zmienia i usuwa rekordy strefy domeny klienta z powodem w dzienniku.",

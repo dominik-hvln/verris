@@ -124,6 +124,30 @@ export const AKCJE_USLUGI: AkcjaObiektu<UslugaDlaAkcji>[] = [
     pomocId: "edycja-dns",
   },
   {
+    id: "blokada-wysylki",
+    grupa: "Konto",
+    nazwa: "Zablokuj wysyłkę poczty",
+    opis: "Zatrzymuje wysyłkę z konta na serwerze; zwolnienie przywraca poprzedni stan.",
+    // F3.1 — admin/subscriptions/:id/konto/wysylka/(zablokuj|zwolnij) — MAIL_SEND_BLOCK (L3, NOC, abuse).
+    perm: "MAIL_SEND_BLOCK",
+    kiedy: (u) => konto(u) && !u.kontoUsuniete,
+    href: (u) => karta(u, "konto", "poczta-konta"),
+    slowa: "spam blokada wysyłki poczta smtp mail rbl zwolnij kordon",
+    pomocId: "blokada-wysylki",
+  },
+  {
+    id: "kolejka-poczty",
+    grupa: "Konto",
+    nazwa: "Kolejka poczty konta",
+    opis: "Wiadomości konta czekające na wysyłkę — nagłówki, bez treści.",
+    // F3.1 — admin/subscriptions/:id/konto/kolejka-poczty — MAIL_QUEUE_VIEW (L2); usunięcie — MAIL_SEND_BLOCK.
+    perm: "MAIL_QUEUE_VIEW",
+    kiedy: (u) => konto(u) && !u.kontoUsuniete,
+    href: (u) => karta(u, "konto", "poczta-konta"),
+    slowa: "kolejka poczty mail queue exim zamrożone nie doszedł usuń spam",
+    pomocId: "kolejka-poczty",
+  },
+  {
     id: "diagnostyka",
     grupa: "Konto",
     nazwa: "Diagnostyka",
