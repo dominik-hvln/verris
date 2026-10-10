@@ -63,29 +63,43 @@ require_conf() {
   DA_BACKUP="${DA_BACKUP:-1}"
 }
 
+# F3.3 — wynik per konto do raportu: linie „<login> <0|1> <bajty>” (plik KONTA_WYNIK). Panel zapisuje z nich stan
+# ostatniej kopii każdego konta (kiedy udana, rozmiar, kiedy nieudana) — widok „Kopie floty” i alert o kopii konta.
+KONTA_WYNIK=""
+
 report() {
-  # report OK ACCOUNTS BYTES DURATION INFO
+  # report OK ACCOUNTS BYTES DURATION INFO — z listą kont, gdy KONTA_WYNIK wskazuje plik
   local ok="$1" accounts="$2" bytes="$3" dur="$4" info="$5"
-  local body
-  body=$(jq -nc --argjson ok "$ok" --argjson accounts "${accounts:-0}" \
-    --argjson bytes "${bytes:-0}" --argjson dur "${dur:-0}" --arg info "$info" \
-    '{ok:($ok==1),accounts:$accounts,bytes:$bytes,durationSec:$dur,info:$info}')
+  local body konta='null'
+  body="$(mktemp)"
+  if [ -n "$KONTA_WYNIK" ] && [ -r "$KONTA_WYNIK" ]; then
+    konta="$(jq -Rsc '[split("\n")[] | select(test("^[a-z][a-z0-9]{0,15} [01] [0-9]+$")) | split(" ")
+      | {u: .[0], ok: (.[1] == "1"), b: (.[2] | tonumber)}]' < "$KONTA_WYNIK")"
+  fi
+  jq -nc --argjson ok "$ok" --argjson accounts "${accounts:-0}" \
+    --argjson bytes "${bytes:-0}" --argjson dur "${dur:-0}" --arg info "$info" --argjson konta "$konta" \
+    '{ok:($ok==1),accounts:$accounts,bytes:$bytes,durationSec:$dur,info:$info} + (if $konta == null then {} else {konta:$konta} end)' > "$body"
+  # --data-binary @plik: lista kont floty nie mieści się w jednym argumencie (limit 128 kB).
   curl -fsS --max-time 30 -X POST \
     -H "X-Server-Id: $VERRIS_SERVER_ID" \
     -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \
     -H "Content-Type: application/json" \
-    --data "$body" "${VERRIS_API_URL}/agent/backup/offsite-report" >/dev/null 2>&1 || \
+    --data-binary "@$body" "${VERRIS_API_URL}/agent/backup/offsite-report" >/dev/null 2>&1 || \
     log "warn: report to control-plane failed"
+  rm -f "$body"
 }
 
-DA_BIN=/usr/local/directadmin/directadmin
-TREE=/home/.verris-offsite
+# VERRIS_DA_DIR / VERRIS_HOME dają się podmienić wyłącznie w testach (test/kopie-kont-raport.spec.ts).
+DA_DIR="${VERRIS_DA_DIR:-/usr/local/directadmin}"
+HOME_DIR="${VERRIS_HOME:-/home}"
+DA_BIN="$DA_DIR/directadmin"
+TREE="$HOME_DIR/.verris-offsite"
 
 # admin-backup każdego konta po kolei (synchronicznie), archiwum do drzewa tylko dla roota.
 # Konta, których kopia się nie udała, trafiają do FAILED — ich poprzednie archiwa zostają na zdalnym.
 FAILED=()
 make_da_backups() {
-  local users_dir=/usr/local/directadmin/data/users u user owner adir f
+  local users_dir="$DA_DIR/data/users" u user owner adir f
   rm -rf "$TREE"; install -d -m 0700 "$TREE"
   for u in "$users_dir"/*; do
     [ -f "$u/user.conf" ] || continue
@@ -94,7 +108,7 @@ make_da_backups() {
     grep -q '^usertype=user$' "$u/user.conf" 2>/dev/null || continue
     owner="$(sed -n 's/^creator=//p' "$u/user.conf" | head -1)"
     [[ "$owner" =~ ^[a-z][a-z0-9]{0,15}$ ]] || owner=admin
-    adir="/home/${owner}/admin_backups"
+    adir="$HOME_DIR/${owner}/admin_backups"
     [ -d "$adir" ] || install -d -m 0700 -o "$owner" -g "$owner" "$adir"
     rm -f "$adir"/user."$owner"."$user".tar.*
     if ! "$DA_BIN" admin-backup --destination="$adir" --user="$user" >>/tmp/verris-offsite.log 2>&1; then
@@ -189,6 +203,14 @@ run() {
   local accounts=0 bytes=0
   accounts=$(find "$TREE" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | awk '{print $1+0}')
   bytes=$(du -sb "$TREE" 2>/dev/null | awk '{print $1+0}')
+  # Rozmiar archiwum każdego konta — przed rclone, bo potem drzewo znika.
+  local rozmiary; rozmiary="$(mktemp)"
+  for u in "$TREE"/*/; do
+    [ -d "$u" ] || continue
+    u="${u%/}"; u="${u##*/}"
+    [[ "$u" =~ ^[a-z][a-z0-9]{0,15}$ ]] || continue
+    echo "$u $(du -sb "$TREE/$u" 2>/dev/null | awk '{print $1+0}')" >> "$rozmiary"
+  done
 
   local dst="${RCLONE_REMOTE}${BACKUP_PREFIX}"
   log "rclone sync ${TREE} -> ${dst} (retention ${RETENTION_DAYS}d)"
@@ -200,6 +222,16 @@ run() {
   local rc=$?
   set -e
   rm -rf "$TREE"
+  # Konto skopiowane = archiwum w drzewie i rclone sync zakończony zerem. Błąd synchronizacji = żadne konto z tego
+  # przebiegu nie jest potwierdzone poza serwerem (nie wiemy, które pliki doszły). Konta z FAILED — nieudane.
+  KONTA_WYNIK="$(mktemp)"
+  local _u _b
+  while read -r _u _b; do
+    [ -n "$_u" ] || continue
+    if [ $rc -eq 0 ]; then echo "$_u 1 ${_b:-0}"; else echo "$_u 0 0"; fi
+  done < "$rozmiary" > "$KONTA_WYNIK"
+  for _u in "${FAILED[@]}"; do echo "$_u 0 0" >> "$KONTA_WYNIK"; done
+  rm -f "$rozmiary"
   # Kopia części kont się nie udała — nie zgłaszamy sukcesu.
   if [ $rc -eq 0 ] && [ "${#FAILED[@]}" -gt 0 ]; then
     rc=3; echo "admin-backup failed for: ${FAILED[*]}" >> /tmp/verris-offsite.log
@@ -219,8 +251,10 @@ run() {
     local tail; tail=$(tail -c 1200 /tmp/verris-offsite.log 2>/dev/null | tr '\n' ' ')
     log "offsite backup FAILED rc=$rc"
     report 0 "$accounts" "$bytes" "$dur" "rclone rc=$rc: $tail"
+    rm -f "$KONTA_WYNIK"
     exit $rc
   fi
+  rm -f "$KONTA_WYNIK"
 }
 
 install_timer() {

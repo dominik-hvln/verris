@@ -13,6 +13,8 @@ import { ObjectStorageService } from '../storage/object-storage.service.js';
 import { ProvisioningQueueService } from '../subscriptions/provisioning-queue.service.js';
 import { HttpMetricsService } from './http-metrics.service.js';
 import { RuntimeErrorTracker } from './runtime-error-tracker.service.js';
+import { KOPIA_KONTA_ALERT_DNI } from '@verris/contracts';
+import { warunekKontaBezSwiezejKopii } from '../servers/kopie-kont.js';
 
 /**
  * F-13: produces a Prometheus text-format metrics snapshot. We emit a small,
@@ -509,6 +511,18 @@ export class MetricsService {
         );
       }
     }
+
+    // --- F3.3 — konta bez świeżej kopii poza serwerem (raport węzła per konto) -----
+    // Z bazy, poza strażnikiem objectStorage: emisja znika tylko razem z całym eksporterem
+    // (pilnuje verris_process_uptime_seconds). Próg i warunek: kopie-floty.ts (te same co widok „Kopie floty”).
+    const kontaBezKopii = await this.prisma.account.count({ where: warunekKontaBezSwiezejKopii(Date.now()) });
+    write(
+      lines,
+      'verris_backup_accounts_stale',
+      `Hosting accounts older than ${KOPIA_KONTA_ALERT_DNI}d without a successful offsite backup in the last ${KOPIA_KONTA_ALERT_DNI}d`,
+      'gauge',
+    );
+    lines.push(`verris_backup_accounts_stale ${kontaBezKopii}`);
 
     // --- Migration worker jobs (failed backlog) ---------------------------
     const failedMigrationJobs = await this.prisma.migrationWorkerJob.count({

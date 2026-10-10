@@ -1,9 +1,26 @@
 import { Body, Controller, HttpCode, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { IsBoolean, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsInt, IsOptional, IsString, Matches, MaxLength, Min, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ServerIdentityGuard } from './guards/server-identity.guard.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
+import { zapiszKopieKont } from './kopie-kont.js';
+
+/** F3.3 — wynik kopii jednego konta w przebiegu (node-offsite-backup.sh): login DA, czy archiwum trafiło poza serwer, rozmiar. */
+class KontoKopiiDto {
+  @IsString()
+  @Matches(/^[a-z][a-z0-9]{0,15}$/)
+  u!: string;
+
+  @IsBoolean()
+  ok!: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  b?: number;
+}
 
 class OffsiteBackupReportDto {
   @IsBoolean()
@@ -28,6 +45,14 @@ class OffsiteBackupReportDto {
   @IsString()
   @MaxLength(2000)
   info?: string;
+
+  /** F3.3 — wynik per konto; brak pola = stary skrypt węzła (stan kont bez zmian). */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(5000)
+  @ValidateNested({ each: true })
+  @Type(() => KontoKopiiDto)
+  konta?: KontoKopiiDto[];
 }
 
 /**
@@ -60,18 +85,22 @@ export class NodeBackupAgentController {
       .filter(Boolean)
       .join(' ');
 
+    const kiedy = new Date();
     await this.prisma.server.update({
       where: { id: serverId },
       data: {
-        lastOffsiteBackupAt: new Date(),
+        lastOffsiteBackupAt: kiedy,
         lastOffsiteBackupOk: dto.ok,
         lastOffsiteBackupInfo: info.slice(0, 2000),
       },
     });
 
+    const kontZapisanych = dto.konta ? await zapiszKopieKont(this.prisma, serverId, dto.konta, kiedy) : null;
+    const nieudane = dto.konta?.filter((k) => !k.ok).map((k) => k.u).slice(0, 50) ?? null;
+
     await this.audit.record({
       action: dto.ok ? 'NODE_OFFSITE_BACKUP_OK' : 'NODE_OFFSITE_BACKUP_FAILED',
-      details: { serverId, accounts: dto.accounts ?? null, bytes: dto.bytes ?? null, info },
+      details: { serverId, accounts: dto.accounts ?? null, bytes: dto.bytes ?? null, info, kontZapisanych, nieudane },
     });
 
     return { received: true };

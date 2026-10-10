@@ -7,6 +7,7 @@ import { StosWezlaAdminController } from './stos-wezla.admin.controller.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { FalaTygodniowaScheduler } from './fala-tygodniowa.scheduler.js';
 import { OnboardAdminController } from './onboard.admin.controller.js';
+import { KopieFlotyService } from './kopie-floty.js';
 import { BackupOffsiteService } from './backup-offsite.service.js';
 import { Module } from '@nestjs/common';
 import { ServersService } from './servers.service.js';
@@ -57,6 +58,7 @@ import { BlokadyIpWezlaAdminController, BlokadyIpWezlaService } from './blokady-
     PrognozaWezlaService,
     FalaTygodniowaScheduler,
     BackupOffsiteService,
+    KopieFlotyService,
     NodeTasksService,
     NodeAuditService,
     NodeStackReadinessService,

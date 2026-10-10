@@ -1391,6 +1391,13 @@ model Account {
   mailBlockedById   String?
   mailBlockedReason String?
 
+  // F3.3 — ostatnia kopia konta poza serwerem wg raportu węzła (node-offsite-backup.sh, lista kont w raporcie):
+  // udana — kiedy i rozmiar archiwum; nieudana — kiedy. Kopia nieudana po udanej: offsiteBackupFailedAt > offsiteBackupOkAt.
+  // Oba NULL — węzeł nie raportował jeszcze kont (stary skrypt); wtedy obowiązuje przebieg węzła (offsite-status.ts).
+  offsiteBackupOkAt     DateTime?
+  offsiteBackupBytes    BigInt?
+  offsiteBackupFailedAt DateTime?
+
   wpAutoUpdates   WpAutoUpdate[]
   gitWebhooks     GitWebhook[]
 

@@ -90,6 +90,9 @@ const DOPISANE_POZNIEJ = [
   'VerrisEksporterApiNiemy',
   'VerrisMetrykiBackupuNieobecne',
   'VerrisMetrykiKolejkiNieobecne',
+  // F3.3 — konta klientów bez świeżej kopii poza serwerem (verris_backup_accounts_stale, liczone z bazy —
+  // bez własnego strażnika ciszy: emisja znika tylko z całym eksporterem, a to łapie VerrisEksporterApiNiemy).
+  'VerrisKopieKontNieaktualne',
 ] as const;
 
 /** Te pięć musi mieć `severity: critical` — inaczej wyciszy je grupowanie. */

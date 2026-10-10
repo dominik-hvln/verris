@@ -452,6 +452,56 @@ groups:
       summary: Brak świeżego backupu Postgres w MinIO (>25h)
       description: Sprawdź cron verris-backup i bucket verris-backups/postgres/ w MinIO.
     isPaused: false
+  # F3.3 — kopia KONTA klienta poza serwerem starsza niż próg (KOPIA_KONTA_ALERT_DNI, libs/contracts kopie.ts).
+  # Metryka liczy konta z bazy (wynik per konto z raportu node-offsite-backup.sh), więc emituje się zawsze,
+  # gdy żyje eksporter — wyrażenie całkowite jak przy kopii Postgresa (X-35): zdrowie to jawne 0.
+  # Szczegóły (które konta, który węzeł): panel operatora → Węzły → Kopie floty.
+  - uid: verris-kopie-kont-nieaktualne
+    title: VerrisKopieKontNieaktualne
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: max(verris_backup_accounts_stale) or vector(0)
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 1h
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: warning
+    annotations:
+      summary: Konta klientów bez świeżej kopii poza serwerem (>2 dni)
+      description: Panel operatora → Węzły → Kopie floty pokazuje konta i węzły. Sprawdź timer verris-offsite-backup na węźle i ostatni raport przebiegu.
+    isPaused: false
   - uid: verris-migration-jobs-failed
     title: VerrisMigrationJobsFailed
     condition: C

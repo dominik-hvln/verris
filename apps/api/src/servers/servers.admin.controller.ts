@@ -17,6 +17,7 @@ import { PrognozaWezlaService } from './prognoza-wezla.js';
 import { flotaZBazy } from '../admin-dashboard/stan-platformy.js';
 import { przekroczeniaZBazy } from './przekroczenia-limitow.js';
 import { malwareFloty } from './malware-floty.js';
+import { KopieFlotyService } from './kopie-floty.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PolitykaPojemnosciDto, WygaszenieWezlaDto } from './dto/capacity-policy.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -92,6 +93,7 @@ export class ServersAdminController {
     private readonly wykresyFloty: WykresyFlotyService,
     private readonly prognozaWezla: PrognozaWezlaService,
     private readonly prisma: PrismaService,
+    private readonly kopieFloty: KopieFlotyService,
   ) {}
 
   /**
@@ -143,6 +145,19 @@ export class ServersAdminController {
   @StaffPerm('ACCOUNT_DIAGNOSTICS_VIEW')
   malware(@Query('wezel') wezel?: string) {
     return malwareFloty(this.prisma, wezel || undefined);
+  }
+
+  /**
+   * F3.3 — kopie floty: kopia bazy panelu, ostatni przebieg kopii poza serwerem każdego węzła, konta bez świeżej albo
+   * z nieudaną kopią, harmonogram i retencja (odczyt), ostatnie próby odtworzenia. Admin i NOC (NODES_VIEW).
+   * Trasa przed :id.
+   */
+  @Get('kopie')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_VIEW')
+  kopie(@Query('wezel') wezel?: string) {
+    return this.kopieFloty.stan(wezel || undefined);
   }
 
   /** Prognoza floty: liczby z panelu + komentarz AI raz na 24 h (AI niczego nie wykonuje). Trasa przed :id. */

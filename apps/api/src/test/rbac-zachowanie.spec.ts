@@ -698,3 +698,19 @@ describe('F3.2 — bezpieczeństwo węzła', () => {
     }
   });
 });
+
+/** F3.3 — kopie floty: admin i NOC (NODES_VIEW, jak lista węzłów); L1 i Marketing — nie. */
+describe('F3.3 — kopie floty', () => {
+  const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
+
+  it('GET admin/servers/kopie: NODES_VIEW (NOC, L2+, audytor); L1 i Marketing — nie; klient — nie', async () => {
+    const t = TRASY.find((x) => x.kontroler === 'ServersAdminController' && x.metoda === 'kopie')!;
+    expect(t.sciezka).toBe('admin/servers/kopie');
+    for (const r of ['Inżynier infrastruktury (NOC/DevOps)', 'L2 Specjalista techniczny', 'Audytor (tylko podgląd)']) {
+      expect({ r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ r, ok: true });
+    }
+    for (const r of ['L1 Konsultant', 'Marketing']) expect({ r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ r, ok: false });
+    expect(await wpuszcza(t, ADMIN)).toBe(true);
+    expect(await wpuszcza(t, KLIENT, ['NODES_VIEW'])).toBe(false);
+  });
+});

@@ -28,3 +28,10 @@ export function retencjaOffsiteDni(wybranaDni: number | null | undefined, planMa
   const wybrana = Number.isFinite(n) ? n : KOPIE_OFFSITE_DNI;
   return Math.min(sufitRetencjiOffsite(planMaxDni), Math.max(KOPIE_OFFSITE_DNI, wybrana));
 }
+
+/**
+ * F3.3 — po ilu dniach bez udanej kopii poza serwerem konto jest „bez świeżej kopii” (widok „Kopie floty”, metryka
+ * verris_backup_accounts_stale i alert w Grafanie). Węzeł robi kopię raz na dobę (03:30), więc 2 dni = jeden
+ * opuszczony przebieg zapasu.
+ */
+export const KOPIA_KONTA_ALERT_DNI = 2;
