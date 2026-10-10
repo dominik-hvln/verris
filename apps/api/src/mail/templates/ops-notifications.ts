@@ -234,7 +234,7 @@ export function nodeRblAlertTemplate(ctx: NodeRblContext): MailMessage {
       `## Co zrobić`,
       ``,
       `1. Sprawdź, czy żadne konto nie zostało przejęte/nie wysyła spamu (logi SMTP, kolejka).`,
-      `2. Złóż wniosek o delisting w danym RBL (Spamhaus/Spamcop/Barracuda/SORBS).`,
+      `2. Złóż wniosek o delisting w danym RBL (Spamhaus/SpamCop/Barracuda).`,
       `3. Zweryfikuj SPF/DKIM/DMARC i rate-limit wysyłki na węźle.`,
     ].join('\n'),
     cta: { label: 'Otwórz panel floty', url: `${ctx.panelUrl}/nodes` },
@@ -268,6 +268,34 @@ export function nodeRblClearedTemplate(ctx: NodeRblContext): MailMessage {
     category: 'TRANSACTIONAL',
   });
   return { to: ctx.to, tag: 'ops.node-rbl-cleared', subject: `[Verris] ✅ IP węzła ${ctx.nodeName} znów czyste (RBL)`, text, html };
+}
+
+/** Pozycja 23 — reputacji IP nie dało się sprawdzić (timeout / odmowa listy). „Nie wiemy” to nie „czysto”. */
+export function nodeRblNieznanyTemplate(ctx: NodeRblContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
+  const zonesList = ctx.zones.map((z) => `- \`${escapeMarkdown(z)}\``).join('\n');
+  const { html, text } = renderEmailShell({
+    title: `Nie udało się sprawdzić reputacji IP węzła ${ctx.nodeName}`,
+    preheader: 'Część blacklist nie odpowiedziała — stan reputacji IP nieznany.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `**Nie wiemy, czy IP \`${escapeMarkdown(ctx.ip)}\` (węzeł ${escapeMarkdown(ctx.nodeName)}) jest na blacklistach.** Te listy nie odpowiedziały albo odmówiły odpowiedzi:`,
+      ``,
+      zonesList,
+      ``,
+      `## Co zrobić`,
+      ``,
+      `1. Sprawdź IP ręcznie na stronie danej listy.`,
+      `2. Jeśli problem wraca: Spamhaus odmawia zapytań z publicznych resolverów (np. 1.1.1.1, 8.8.8.8), a Barracuda odpowiada tylko zarejestrowanym — API potrzebuje własnego resolvera albo rejestracji.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz panel floty', url: `${ctx.panelUrl}/nodes` },
+    footnote: 'Alert wysyłany najwyżej raz na dobę na węzeł. Otrzymują go wszyscy administratorzy.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'ops.node-rbl-unknown', subject: `[Verris] Reputacja IP węzła ${ctx.nodeName} nieznana (RBL)`, text, html };
 }
 
 /* ===================== MAIL-W1 — watchdog wysyłki poczty ===================== */

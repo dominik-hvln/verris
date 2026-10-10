@@ -3,7 +3,7 @@ import { promises as dns } from 'dns';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
-import { rblListed } from './rbl.js';
+import { RBL_ZONES, rblListed } from './rbl.js';
 import { buildMailAuthChecks, type CheckStatus, type MailAuthSuggestion, type ZoneRecord } from './mail-auth.js';
 
 export type { CheckStatus };
@@ -30,8 +30,6 @@ export interface DeliverabilityReport {
 
 // Common DKIM selectors to probe (DirectAdmin defaults to "x").
 const DKIM_SELECTORS = ['x', 'default', 'mail', 'dkim', 's1', 'selector1', 'google', 'k1'];
-// Widely-used DNS blocklists.
-const RBL_ZONES = ['zen.spamhaus.org', 'bl.spamcop.net', 'b.barracudacentral.org', 'dnsbl.sorbs.net'];
 
 async function withTimeout<T>(p: Promise<T>, ms = 4000): Promise<T> {
   return Promise.race([

@@ -6,12 +6,13 @@ import { Role, ServerStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
-import { nodeRblAlertTemplate, nodeRblClearedTemplate } from '../mail/templates/ops-notifications.js';
-import { rblListed } from '../deliverability/rbl.js';
+import { nodeRblAlertTemplate, nodeRblClearedTemplate, nodeRblNieznanyTemplate } from '../mail/templates/ops-notifications.js';
+import { RBL_ZONES, rblBrakWpisu, rblListed, rblOdmowa } from '../deliverability/rbl.js';
 
-// Widely-used DNS blocklists (parytet z DeliverabilityService).
-const RBL_ZONES = ['zen.spamhaus.org', 'bl.spamcop.net', 'b.barracudacentral.org', 'dnsbl.sorbs.net'];
+// Strefy: RBL_ZONES w deliverability/rbl.ts (wspólne z DeliverabilityService, tam uzasadnienie listy).
 const ALERT_COOLDOWN_MS = 12 * 60 * 60 * 1000; // re-alert max co 12h/węzeł
+// Stan „nieznany” to luka w monitoringu, nie incydent — przypomnienie najwyżej raz na dobę na węzeł.
+const NIEZNANY_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const DNS_TIMEOUT_MS = 3500;
 
 async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
@@ -57,20 +58,27 @@ export class RblReputationScheduler {
     });
   }
 
-  /** Zwraca listę stref RBL, na których IP jest wpisane (puste = czyste). */
-  private async listedZones(ip: string): Promise<string[]> {
+  /**
+   * Wynik per strefa: `listed` — wpis; `unknown` — timeout, błąd DNS inny niż NXDOMAIN/ENODATA albo odmowa
+   * listy (127.255.255.x). Pozycja 23: wcześniej timeout liczył się jako „brak wpisu”, więc awaria DNS
+   * po alercie dawała fałszywe „IP znów czyste”.
+   */
+  async sprawdzIp(ip: string): Promise<{ listed: string[]; unknown: string[] }> {
     const reversed = ip.split('.').reverse().join('.');
-    const results = await Promise.all(
+    const listed: string[] = [];
+    const unknown: string[] = [];
+    await Promise.all(
       RBL_ZONES.map(async (zone) => {
         try {
           const res: string[] = await withTimeout(dns.resolve4(`${reversed}.${zone}`), DNS_TIMEOUT_MS);
-          return rblListed(res) ? zone : null;
-        } catch {
-          return null; // NXDOMAIN / timeout = traktujemy jako brak wpisu
+          if (rblListed(res)) listed.push(zone);
+          else if (rblOdmowa(res)) unknown.push(zone);
+        } catch (err) {
+          if (!rblBrakWpisu(err)) unknown.push(zone);
         }
       }),
     );
-    return results.filter((z): z is string => z !== null);
+    return { listed, unknown };
   }
 
   @Cron('0 */6 * * *')
@@ -87,7 +95,7 @@ export class RblReputationScheduler {
       const now = Date.now();
       const since = new Date(now - 25 * 60 * 60 * 1000);
       const recent = await this.prisma.auditLog.findMany({
-        where: { action: { in: ['NODE_RBL_ALERT', 'NODE_RBL_CLEARED'] }, createdAt: { gte: since } },
+        where: { action: { in: ['NODE_RBL_ALERT', 'NODE_RBL_CLEARED', 'NODE_RBL_UNKNOWN'] }, createdAt: { gte: since } },
         orderBy: { createdAt: 'desc' },
         select: { action: true, details: true, createdAt: true },
       });
@@ -99,7 +107,7 @@ export class RblReputationScheduler {
       for (const s of targets) {
         const ip = s.ipAddress as string;
         const name = s.name ?? s.hostname ?? s.id;
-        const zones = await this.listedZones(ip);
+        const { listed: zones, unknown } = await this.sprawdzIp(ip);
         const lastAlert = lastFor(s.id, 'NODE_RBL_ALERT');
         const lastCleared = lastFor(s.id, 'NODE_RBL_CLEARED');
 
@@ -113,6 +121,17 @@ export class RblReputationScheduler {
             );
           }
           this.logger.warn(`RBL alert: ${name} (${ip}) listed on ${zones.join(', ')}`);
+        } else if (unknown.length > 0) {
+          // Nie wiemy — ani „czysto”, ani przywrócenie reputacji. Alert, że monitoring nie widzi części list.
+          const lastUnknown = lastFor(s.id, 'NODE_RBL_UNKNOWN');
+          if (lastUnknown && now - lastUnknown.getTime() < NIEZNANY_COOLDOWN_MS) continue;
+          await this.audit.record({ action: 'NODE_RBL_UNKNOWN', details: { serverId: s.id, name, ip, zones: unknown } });
+          if (admins.length > 0) {
+            await this.fanOut(admins, (a) =>
+              nodeRblNieznanyTemplate({ to: a.email, firstName: a.firstName, nodeName: name, nodeId: s.id, ip, zones: unknown, panelUrl: this.panelUrl() }),
+            );
+          }
+          this.logger.warn(`RBL unknown: ${name} (${ip}) — no answer from ${unknown.join(', ')}`);
         } else if (lastAlert && (!lastCleared || lastCleared < lastAlert)) {
           // Był alert, IP już czyste i jeszcze nie potwierdzone → przywrócenie.
           await this.audit.record({ action: 'NODE_RBL_CLEARED', details: { serverId: s.id, name, ip } });

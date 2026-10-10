@@ -146,6 +146,7 @@ export const ZDARZENIA: Record<string, string> = {
   NODE_CAPACITY_ALERT: 'Węzeł blisko limitu pojemności',
   NODE_RBL_ALERT: 'IP węzła na liście blokad poczty',
   NODE_RBL_CLEARED: 'IP węzła zdjęte z listy blokad',
+  NODE_RBL_UNKNOWN: 'Nie udało się sprawdzić reputacji IP węzła',
   ADMIN_NODE_MAINTENANCE_MODE_TOGGLED: 'Zmieniono tryb serwisowy węzła',
   FLEET_UPDATE_QUEUED: 'Uruchomiono falę aktualizacji floty',
   FLEET_UPDATE_FINISHED: 'Fala aktualizacji floty zakończona',

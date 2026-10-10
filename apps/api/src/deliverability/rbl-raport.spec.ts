@@ -32,11 +32,11 @@ describe('DeliverabilityService.check — RBL', () => {
   it('odmowa Spamhausa (127.255.255.254) albo timeout → warn „nie udało się sprawdzić”, nie ok', async () => {
     const c = await rbl({
       'zen.spamhaus.org': ['127.255.255.254'],
-      'dnsbl.sorbs.net': Object.assign(new Error('t'), { code: 'ETIMEOUT' }),
+      'bl.spamcop.net': Object.assign(new Error('t'), { code: 'ETIMEOUT' }),
     });
     expect(c.status).toBe('warn');
     expect(c.detail).toContain('Nie udało się sprawdzić: ');
     expect(c.detail).toContain('zen.spamhaus.org');
-    expect(c.detail).toContain('dnsbl.sorbs.net');
+    expect(c.detail).toContain('bl.spamcop.net');
   });
 });
