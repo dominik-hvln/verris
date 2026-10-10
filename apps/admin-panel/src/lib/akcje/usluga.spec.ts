@@ -37,7 +37,11 @@ describe("Działania usługi", () => {
     const lista = dzialaniaObiektu(AKCJE_USLUGI, { ...aktywna, status: "PROVISIONING", zakladanieNieudane: true }, op);
     const po = (id: string) => lista.find((x) => x.id === id)!;
     expect(po("zakladanie").zablokowane).toBe("Wymaga PROVISIONING_MANAGE");
-    expect(po("zawieszenie").zablokowane).toBe("Wymaga roli administratora");
+    // F2.3 — zawieszenie od L3 (SUBSCRIPTIONS_SUSPEND); L2 (SUBSCRIPTIONS_MANAGE) — wyszarzone z „Wyślij wniosek”.
+    expect(po("zawieszenie").zablokowane).toBe("Wymaga SUBSCRIPTIONS_SUSPEND");
+    expect(po("zawieszenie").wniosek).toBe(true);
+    expect(dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("CUSTOMERS_VIEW")).find((x) => x.id === "zawieszenie")?.wniosek).toBeUndefined();
+    expect(dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("SUBSCRIPTIONS_SUSPEND")).find((x) => x.id === "zawieszenie")?.zablokowane).toBeNull();
     expect(po("diagnostyka").zablokowane).toBeNull();
     expect(dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("NODES_VIEW")).find((x) => x.id === "diagnostyka")?.zablokowane).toBe(
       "Wymaga SUBSCRIPTIONS_MANAGE lub ACCOUNT_DIAGNOSTICS_VIEW lub TICKETS_MANAGE",

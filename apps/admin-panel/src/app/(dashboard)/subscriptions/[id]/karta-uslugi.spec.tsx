@@ -22,7 +22,7 @@ jest.mock("./plan-change-form", () => ({ PlanChangeForm: () => null }));
 jest.mock("./usage-panel", () => ({ ServiceUsagePanel: () => null }));
 jest.mock("./diagnostics-panel", () => ({ DiagnosticsPanel: () => null }));
 jest.mock("./konto-klienta-panel", () => ({ KontoKlientaPanel: () => null }));
-jest.mock("./suspend-form", () => ({ SuspendForm: () => null, ZakonczIUsunForm: () => null }));
+jest.mock("./suspend-form", () => ({ SuspendForm: () => <i data-test="zawieszenie" />, ZakonczIUsunForm: () => <i data-test="zakoncz" /> }));
 jest.mock("./restore-panel", () => ({ RestorePanel: () => null }));
 jest.mock("./odtworzenie-na-wezle-panel", () => ({ OdtworzenieNaWezlePanel: () => null }));
 
@@ -67,6 +67,15 @@ function render(sekcja: string | undefined, odpowiedzi: Record<string, unknown>,
 beforeEach(() => api.mockReset());
 
 describe("karta usługi", () => {
+  it("D1/F2.3 — operacje: zawieszenie dla STAFF (formularz sam sprawdza uprawnienia), zakończenie i usunięcie tylko dla administratora", async () => {
+    const staff = await render("operacje", { [`/admin/subscriptions/${SUB}`]: usluga() }, { role: "STAFF", isAdmin: false, permissions: ["SUBSCRIPTIONS_MANAGE", "SUBSCRIPTIONS_SUSPEND"] });
+    expect(staff).toContain('data-test="zawieszenie"');
+    expect(staff).not.toContain('id="zakonczenie"');
+    expect(staff).not.toContain('data-test="zakoncz"');
+    const admin = await render("operacje", { [`/admin/subscriptions/${SUB}`]: usluga() });
+    expect(admin).toContain('data-test="zakoncz"');
+  });
+
   it("przegląd: klient i węzeł są linkami, „Działania” z rejestru", async () => {
     const html = await render(undefined, { [`/admin/subscriptions/${SUB}`]: usluga() });
     expect(html).toContain('href="/customers/u1"');

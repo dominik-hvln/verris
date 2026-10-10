@@ -60,8 +60,10 @@ export const AKCJE_USLUGI: AkcjaObiektu<UslugaDlaAkcji>[] = [
     id: "zawieszenie",
     grupa: "Usługa",
     nazwa: (u) => (u.status === "SUSPENDED" ? "Odwieś usługę" : "Zawieś usługę"),
-    opis: "Blokuje konto klienta z powodem; odwieszenie przywraca dostęp.",
-    perm: "ADMIN",
+    opis: "Wyłącza stronę, pocztę i FTP klienta z powodem; odwieszenie przywraca dostęp.",
+    // F2.3 (D2) — POST admin/subscriptions/:id/(un)suspend: SUBSCRIPTIONS_SUSPEND (L3); L2 składa wniosek z karty.
+    perm: "SUBSCRIPTIONS_SUSPEND",
+    wniosek: ["SUBSCRIPTIONS_MANAGE"],
     kiedy: (u) => !zakonczona(u),
     href: (u) => karta(u, "operacje", "zawieszenie"),
     slowa: "zawieś odwieś suspend blokada",

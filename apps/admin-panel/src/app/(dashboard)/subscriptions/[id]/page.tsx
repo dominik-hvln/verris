@@ -236,9 +236,10 @@ export default async function AdminSubscriptionDetailPage({
       {sekcja === "operacje" ? (
         <>
           <Sekcja id="zawieszenie" tytul={d.status === "SUSPENDED" ? "Odwieszenie usługi" : "Zawieszenie usługi"}>
-            <SuspendForm subscriptionId={d.id} status={d.status} domain={d.account?.domain ?? null} />
+            <SuspendForm subscriptionId={d.id} userId={d.user.id} status={d.status} domain={d.account?.domain ?? null} dostep={access} />
           </Sekcja>
-          {zakonczona && !kontoZostalo ? null : (
+          {/* D1 — zakończenie i usunięcie konta jest nieodwracalne: tylko administrator (API odrzuca STAFF). */}
+          {(zakonczona && !kontoZostalo) || !access.isAdmin ? null : (
             <Sekcja id="zakonczenie" tytul={kontoZostalo ? "Zakończenie usługi i usunięcie konta" : "Zakończenie usługi"}>
               <p className="text-xs text-muted-foreground">
                 {zakonczona

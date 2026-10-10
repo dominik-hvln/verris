@@ -6,10 +6,13 @@ import { adminApi, AdminApiError } from '@/lib/api';
 type Result = { ok: true } | { error: string };
 const msg = (e: unknown) => (e instanceof AdminApiError || e instanceof Error ? e.message : 'Nie udało się.');
 
-/** A-25 — ręczne zawieszenie usługi (konto w DirectAdminie też zostaje zawieszone). */
-export async function suspendSubscriptionAction(id: string, reason: string, note: string): Promise<Result> {
+/** A-25 — ręczne zawieszenie usługi (konto na węźle też zostaje zawieszone); F2.3 — z numerem zgłoszenia. */
+export async function suspendSubscriptionAction(id: string, reason: string, note: string, zgloszenie = ''): Promise<Result> {
   try {
-    await adminApi(`/admin/subscriptions/${id}/suspend`, { method: 'POST', body: { reason, note: note.trim() || undefined } });
+    await adminApi(`/admin/subscriptions/${id}/suspend`, {
+      method: 'POST',
+      body: { reason, note: note.trim() || undefined, zgloszenie: zgloszenie.trim() || undefined },
+    });
     revalidatePath(`/subscriptions/${id}`);
     return { ok: true };
   } catch (e) {
@@ -32,11 +35,11 @@ export async function zakonczIUsunAction(id: string, powod: string, potwierdzeni
 }
 
 /** A-26 — odwieszenie; opcjonalnie od razu obciąża odnowienie okresu. */
-export async function unsuspendSubscriptionAction(id: string, note: string, chargeRenewal: boolean): Promise<Result> {
+export async function unsuspendSubscriptionAction(id: string, note: string, chargeRenewal: boolean, zgloszenie = ''): Promise<Result> {
   try {
     await adminApi(`/admin/subscriptions/${id}/unsuspend`, {
       method: 'POST',
-      body: { note: note.trim() || undefined, chargeRenewal },
+      body: { note: note.trim() || undefined, chargeRenewal, zgloszenie: zgloszenie.trim() || undefined },
     });
     revalidatePath(`/subscriptions/${id}`);
     return { ok: true };

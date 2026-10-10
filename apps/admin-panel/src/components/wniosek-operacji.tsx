@@ -12,12 +12,15 @@ import { zlozWniosekAction, type TypWniosku } from "@/lib/wnioski-actions";
 export function WyslijWniosek({
   typ,
   userId,
+  subscriptionId,
   payload,
   gotowe = true,
   podpowiedz,
 }: {
   typ: TypWniosku;
   userId: string;
+  /** Usługa, której dotyczy wniosek (lista wniosków, odświeżenie karty usługi). */
+  subscriptionId?: string;
   payload: Record<string, unknown>;
   /** false — parametry operacji jeszcze niekompletne (przycisk nieaktywny). */
   gotowe?: boolean;
@@ -44,7 +47,7 @@ export function WyslijWniosek({
       return;
     }
     start(async () => {
-      const r = await zlozWniosekAction({ typ, userId, payload, uzasadnienie });
+      const r = await zlozWniosekAction({ typ, userId, subscriptionId, payload, uzasadnienie });
       if (r.ok) setWyslany(true);
       else setBlad(r.error);
     });

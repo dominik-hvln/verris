@@ -9,7 +9,14 @@ import { AdminApiError, adminApi } from "./api";
  * Ten sam kontrakt co w panelu obsługi (apps/staff-panel/src/lib/wnioski-actions.ts).
  */
 
-export type TypWniosku = "CUSTOMER_INTERNAL_FLAG" | "WALLET_CREDIT" | "INVOICE_VOID" | "CUSTOMER_EMAIL_CHANGE" | "CUSTOMER_PASSWORD_RESET";
+export type TypWniosku =
+  | "CUSTOMER_INTERNAL_FLAG"
+  | "WALLET_CREDIT"
+  | "INVOICE_VOID"
+  | "CUSTOMER_EMAIL_CHANGE"
+  | "CUSTOMER_PASSWORD_RESET"
+  | "SUBSCRIPTION_SUSPEND"
+  | "SUBSCRIPTION_UNSUSPEND";
 
 export interface Wniosek {
   id: string;
@@ -30,6 +37,8 @@ export interface Wniosek {
 export async function zlozWniosekAction(input: {
   typ: TypWniosku;
   userId: string;
+  /** F2.3 — usługa, której dotyczy wniosek (zawieszenie). */
+  subscriptionId?: string;
   payload: Record<string, unknown>;
   uzasadnienie: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -37,13 +46,20 @@ export async function zlozWniosekAction(input: {
   try {
     await adminApi(`/admin/wnioski`, {
       method: "POST",
-      body: { typ: input.typ, userId: input.userId, payload: input.payload, uzasadnienie: input.uzasadnienie.trim() },
+      body: {
+        typ: input.typ,
+        userId: input.userId,
+        ...(input.subscriptionId ? { subscriptionId: input.subscriptionId } : {}),
+        payload: input.payload,
+        uzasadnienie: input.uzasadnienie.trim(),
+      },
     });
   } catch (err) {
     return { ok: false, error: err instanceof AdminApiError ? err.message : "Nie udało się wysłać wniosku." };
   }
   revalidatePath("/wnioski");
   revalidatePath(`/customers/${input.userId}`);
+  if (input.subscriptionId) revalidatePath(`/subscriptions/${input.subscriptionId}`);
   return { ok: true };
 }
 
