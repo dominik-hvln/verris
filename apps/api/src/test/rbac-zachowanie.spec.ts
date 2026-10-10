@@ -239,6 +239,16 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     }
   });
 
+  it('F2.4: eksport list do CSV (dane osobowe) — tylko z EXPORT_DATA (L4), obok uprawnienia do samej listy', async () => {
+    const eksporty = TRASY.filter((t) => t.metoda === 'exportCsv' && ['SubscriptionsAdminController', 'UsersAdminController'].includes(t.kontroler));
+    expect(eksporty).toHaveLength(2);
+    for (const t of eksporty) {
+      expect({ t: nazwa(t), l3: await wpuszcza(t, OPERATOR, uprawnieniaRoli('L3 Starszy specjalista')) }).toEqual({ t: nazwa(t), l3: false });
+      expect({ t: nazwa(t), l4: await wpuszcza(t, OPERATOR, uprawnieniaRoli('L4 Kierownik zmiany')) }).toEqual({ t: nazwa(t), l4: true });
+      expect({ t: nazwa(t), sam: await wpuszcza(t, OPERATOR, ['EXPORT_DATA']) }).toEqual({ t: nazwa(t), sam: false });
+    }
+  });
+
   it('NOC (bez CUSTOMERS_VIEW) nadal ma kartę i jej akcje', async () => {
     expect(NOC).not.toContain('CUSTOMERS_VIEW');
     const metody = ['detail', 'usage', 'migrationTimeline', 'hostingRestoreStatus', 'hostingBackups', 'runDiagnostics', 'listEligiblePlans', 'runHostingRestore'];

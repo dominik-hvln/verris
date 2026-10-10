@@ -21,6 +21,7 @@ import { StripeService } from '../billing/stripe/stripe.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { accountCreatedByOperatorTemplate, passwordResetByOperatorTemplate } from '../mail/templates/auth-notifications.js';
 import { generateAuthToken, hashAuthToken } from '../auth/auth-token.util.js';
+import { rowsToCsv } from '../billing/csv.util.js';
 
 /** A-24 — link „ustaw hasło” z konta od operatora (dłuższy niż reset, klient może odebrać mail później). */
 export const OPERATOR_ACCOUNT_LINK_TTL_HOURS = 72;
@@ -32,6 +33,12 @@ export interface AdminUserListOptions {
   role?: Role;
   limit?: number;
   offset?: number;
+  /** F2.4 — stan konta klienta (STATUSY_KLIENTA), saldo portfela od–do (zł), data założenia od–do (YYYY-MM-DD). */
+  status?: string;
+  saldoOd?: string;
+  saldoDo?: string;
+  od?: string;
+  do?: string;
   /**
    * Rola czytającego. STAFF (przegląd Fali 2A, zasada D9 „logowania zespołu zostają dla ADMIN-a”) dostaje konta
    * zespołu bez stanu bezpieczeństwa: bez ostatniego logowania, 2FA, passkey i dostępu do Grafany (null) — lista
@@ -74,6 +81,69 @@ export interface ImpersonationContext {
   alreadyImpersonating?: string | null;
 }
 
+/** F2.4 — stany konta na liście klientów (filtr `status`). */
+export const STATUSY_KLIENTA = ['aktywne', 'zablokowane', 'zalegle', 'zawieszone', 'usuwane', 'zanonimizowane', 'wewnetrzne'] as const;
+export const KLIENCI_MAX_EKSPORT = 50_000;
+
+function liczbaLubBlad(v: string | undefined, pole: string): Prisma.Decimal | null {
+  const t = v?.trim().replace(',', '.');
+  if (!t) return null;
+  if (!/^-?\d+(\.\d{1,2})?$/.test(t)) throw new BadRequestException(`Nieprawidłowa kwota w polu ${pole}.`);
+  return new Prisma.Decimal(t);
+}
+
+function dataLubBlad(v: string | undefined, pole: string, koniecDnia = false): Date | null {
+  const t = v?.trim();
+  if (!t) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) throw new BadRequestException(`Nieprawidłowa data w polu ${pole} (RRRR-MM-DD).`);
+  const d = new Date(`${t}T${koniecDnia ? '23:59:59.999' : '00:00:00.000'}Z`);
+  if (Number.isNaN(d.getTime())) throw new BadRequestException(`Nieprawidłowa data w polu ${pole}.`);
+  return d;
+}
+
+/**
+ * F2.4 — filtry listy kont (i eksportu): rola, wyszukiwanie (e-mail, imię, nazwisko, firma, NIP, skrót id),
+ * stan konta, saldo portfela i data założenia. Niepoprawna wartość filtra → 400, nie pusta lista.
+ */
+export function warunkiListyKont(opts: AdminUserListOptions): Prisma.UserWhereInput {
+  const and: Prisma.UserWhereInput[] = [];
+  if (opts.role) and.push({ role: opts.role });
+  const term = opts.search?.trim();
+  if (term) {
+    const lub: Prisma.UserWhereInput[] = [
+      { email: { contains: term, mode: 'insensitive' } },
+      { firstName: { contains: term, mode: 'insensitive' } },
+      { lastName: { contains: term, mode: 'insensitive' } },
+      { companyName: { contains: term, mode: 'insensitive' } },
+      { nip: { contains: term.replace(/[\s-]/g, '') } },
+    ];
+    const id = term.replace(/^#/, '').toLowerCase();
+    if (/^[0-9a-f-]{6,36}$/.test(id)) lub.push({ id: { startsWith: id } });
+    and.push({ OR: lub });
+  }
+  const status = opts.status?.trim();
+  if (status) {
+    const warunek: Record<(typeof STATUSY_KLIENTA)[number], Prisma.UserWhereInput> = {
+      aktywne: { loginBlocked: false, anonymizedAt: null, deletionRequestedAt: null },
+      zablokowane: { loginBlocked: true },
+      zalegle: { subscriptions: { some: { status: SubscriptionStatus.PAST_DUE } } },
+      zawieszone: { subscriptions: { some: { status: SubscriptionStatus.SUSPENDED } } },
+      usuwane: { deletionRequestedAt: { not: null }, anonymizedAt: null },
+      zanonimizowane: { anonymizedAt: { not: null } },
+      wewnetrzne: { isInternal: true },
+    };
+    if (!(STATUSY_KLIENTA as readonly string[]).includes(status)) throw new BadRequestException(`Nieznany stan konta: ${status}`);
+    and.push(warunek[status as (typeof STATUSY_KLIENTA)[number]]);
+  }
+  const saldoOd = liczbaLubBlad(opts.saldoOd, 'saldo od');
+  const saldoDo = liczbaLubBlad(opts.saldoDo, 'saldo do');
+  if (saldoOd || saldoDo) and.push({ walletBalance: { ...(saldoOd ? { gte: saldoOd } : {}), ...(saldoDo ? { lte: saldoDo } : {}) } });
+  const od = dataLubBlad(opts.od, 'od');
+  const do_ = dataLubBlad(opts.do, 'do', true);
+  if (od || do_) and.push({ createdAt: { ...(od ? { gte: od } : {}), ...(do_ ? { lte: do_ } : {}) } });
+  return and.length ? { AND: and } : {};
+}
+
 @Injectable()
 export class UsersAdminService {
   private readonly logger = new Logger(UsersAdminService.name);
@@ -98,18 +168,7 @@ export class UsersAdminService {
     const limit = Math.min(Math.max(opts.limit ?? 50, 1), 200);
     const offset = Math.max(opts.offset ?? 0, 0);
 
-    const where: Prisma.UserWhereInput = {};
-    if (opts.role) where.role = opts.role;
-    if (opts.search) {
-      const term = opts.search.trim();
-      if (term.length > 0) {
-        where.OR = [
-          { email: { contains: term, mode: 'insensitive' } },
-          { firstName: { contains: term, mode: 'insensitive' } },
-          { lastName: { contains: term, mode: 'insensitive' } },
-        ];
-      }
-    }
+    const where = warunkiListyKont(opts);
 
     const [total, rows] = await this.prisma.$transaction([
       this.prisma.user.count({ where }),
@@ -169,6 +228,59 @@ export class UsersAdminService {
         };
       }),
     };
+  }
+
+  /**
+   * F2.4 — eksport listy klientów (tylko konta USER, bez zanonimizowanych) do CSV z tymi samymi filtrami co lista.
+   * Dane osobowe: wołający ma EXPORT_DATA, a każdy eksport trafia do dziennika (filtry i liczba wierszy).
+   */
+  async exportCustomersCsv(opts: AdminUserListOptions, actorUserId: string): Promise<string> {
+    const where: Prisma.UserWhereInput = { AND: [warunkiListyKont({ ...opts, role: Role.USER }), { anonymizedAt: null }] };
+    const total = await this.prisma.user.count({ where });
+    if (total > KLIENCI_MAX_EKSPORT) {
+      throw new BadRequestException(`Za dużo klientów do eksportu (${total}). Zawęź filtry do ${KLIENCI_MAX_EKSPORT}.`);
+    }
+    const rows = await this.prisma.user.findMany({
+      where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        companyName: true,
+        nip: true,
+        walletBalance: true,
+        loginBlocked: true,
+        isInternal: true,
+        isTwoFactorEnabled: true,
+        createdAt: true,
+        _count: { select: { subscriptions: { where: { status: { notIn: [SubscriptionStatus.CANCELED, SubscriptionStatus.EXPIRED] } } } } },
+      },
+    });
+    const filtry = Object.fromEntries(
+      (['search', 'status', 'saldoOd', 'saldoDo', 'od', 'do'] as const).filter((k) => opts[k]?.trim()).map((k) => [k, opts[k]!.trim()]),
+    );
+    await this.audit.record({
+      action: SupportActions.OPERATOR_LIST_EXPORTED,
+      userId: null,
+      actorUserId,
+      details: { lista: 'klienci', filtry, wierszy: rows.length },
+    });
+    return rowsToCsv(rows, [
+      { header: 'id', value: (r) => r.id },
+      { header: 'email', value: (r) => r.email },
+      { header: 'imie', value: (r) => r.firstName },
+      { header: 'nazwisko', value: (r) => r.lastName },
+      { header: 'firma', value: (r) => r.companyName },
+      { header: 'nip', value: (r) => r.nip },
+      { header: 'saldo', value: (r) => r.walletBalance.toString() },
+      { header: 'uslugi', value: (r) => r._count.subscriptions },
+      { header: 'blokada_logowania', value: (r) => (r.loginBlocked ? 'tak' : 'nie') },
+      { header: 'wewnetrzne', value: (r) => (r.isInternal ? 'tak' : 'nie') },
+      { header: '2fa', value: (r) => (r.isTwoFactorEnabled ? 'tak' : 'nie') },
+      { header: 'zalozone', value: (r) => r.createdAt.toISOString() },
+    ]);
   }
 
   /**

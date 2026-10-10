@@ -5,13 +5,16 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   HttpCode,
   Param,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import { Role, SubscriptionStatus } from '@verris/database';
+import type { Response } from 'express';
+import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
@@ -41,11 +44,24 @@ import { RetencjaKontService } from './retencja-kont.service.js';
 import { POWODY_ZAWIESZENIA_OPERATORA, ZawieszenieOperatoraService } from './zawieszenie-operatora.service.js';
 import { WniosekMozliwy } from '../wnioski/wniosek-mozliwy.decorator.js';
 import { uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
+import { rowsToCsv } from '../billing/csv.util.js';
+import { filtryDoDziennika, ListaUslugQuery, stronaListy, USLUGI_MAX_EKSPORT, warunkiListyUslug } from './lista-uslug.js';
 import { RequestInternalMigrationDto } from './dto/migration.dto.js';
 import {
   AdminChangePlanDto,
   AdminPreviewPlanChangeDto,
 } from './dto/admin-plan-change.dto.js';
+
+const WIERSZ_USLUGI = {
+  plan: { select: { slug: true, name: true } },
+  user: { select: { email: true, firstName: true, lastName: true } },
+  account: { select: { id: true, daUsername: true, domain: true, status: true, serverId: true } },
+} as const;
+const WIERSZ_USLUGI_CSV = {
+  plan: { select: { name: true } },
+  user: { select: { email: true } },
+  account: { select: { daUsername: true, domain: true, server: { select: { name: true } } } },
+} as const;
 
 const ALLOWED_REASONS: SuspendReason[] = [
   'PAYMENT_FAILED',
@@ -174,29 +190,76 @@ export class SubscriptionsAdminController {
     return this.hostingRestore.latestForSubscription(id, actor.userId, true);
   }
 
+  /**
+   * F2.4 — lista usług: filtry (stan, w tym PAST_DUE, węzeł, plan, klient, wyszukiwanie) i stronicowanie w API;
+   * wcześniej cichy limit 200 najnowszych. `liczby` — ile usług w każdym stanie przy pozostałych filtrach (zakładki).
+   */
   @Get()
   @Roles(Role.ADMIN, Role.STAFF)
-  list(@Query('status') status?: string, @Query('userId') userId?: string) {
-    const where: Record<string, unknown> = {};
-    if (status) {
-      if (!Object.values(SubscriptionStatus).includes(status as SubscriptionStatus)) {
-        throw new BadRequestException(`Invalid status filter: ${status}`);
-      }
-      where.status = status;
+  async list(@Query() q: ListaUslugQuery) {
+    const where = warunkiListyUslug(q);
+    const { limit, page, skip } = stronaListy(q);
+    const [total, rows, grupy] = await Promise.all([
+      this.prisma.subscription.count({ where }),
+      this.prisma.subscription.findMany({
+        where,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        include: WIERSZ_USLUGI,
+        take: limit,
+        skip,
+      }),
+      this.prisma.subscription.groupBy({ by: ['status'], where: warunkiListyUslug(q, { bezStatusu: true }), _count: { _all: true } }),
+    ]);
+    return {
+      rows,
+      total,
+      page,
+      limit,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+      liczby: Object.fromEntries(grupy.map((g) => [g.status, g._count._all])),
+    };
+  }
+
+  /**
+   * F2.4 — eksport listy usług do CSV (te same filtry co lista). Dane osobowe (e-mail klienta), więc osobne
+   * uprawnienie EXPORT_DATA (L4; obok uprawnienia do samej listy) i wpis w dzienniku z filtrami i liczbą wierszy. Przed `:id`, inaczej Nest
+   * potraktowałby „export.csv” jak id usługi.
+   */
+  @Get('export.csv')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('SUBSCRIPTIONS_MANAGE', 'EXPORT_DATA')
+  @Header('Cache-Control', 'no-store')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  async exportCsv(@Query() q: ListaUslugQuery, @CurrentUser() actor: { userId: string }, @Res() res: Response) {
+    const where = warunkiListyUslug(q);
+    const total = await this.prisma.subscription.count({ where });
+    if (total > USLUGI_MAX_EKSPORT) {
+      throw new BadRequestException(`Za dużo usług do eksportu (${total}). Zawęź filtry do ${USLUGI_MAX_EKSPORT}.`);
     }
-    if (userId) where.userId = userId;
-    return this.prisma.subscription.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        plan: { select: { slug: true, name: true } },
-        user: { select: { email: true, firstName: true, lastName: true } },
-        account: {
-          select: { id: true, daUsername: true, domain: true, status: true, serverId: true },
-        },
-      },
-      take: 200,
+    const rows = await this.prisma.subscription.findMany({ where, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], include: WIERSZ_USLUGI_CSV });
+    await this.audit.record({
+      action: SupportActions.OPERATOR_LIST_EXPORTED,
+      userId: null,
+      actorUserId: actor.userId,
+      details: { lista: 'uslugi', filtry: filtryDoDziennika(q), wierszy: rows.length },
     });
+    const csv = rowsToCsv(rows, [
+      { header: 'id', value: (r) => r.id },
+      { header: 'usluga', value: (r) => r.serviceTag ?? r.account?.daUsername ?? null },
+      { header: 'domena', value: (r) => r.account?.domain ?? null },
+      { header: 'plan', value: (r) => r.plan.name },
+      { header: 'stan', value: (r) => r.status },
+      { header: 'cena', value: (r) => (r.individualPrice ?? r.priceAmount).toString() },
+      { header: 'waluta', value: (r) => r.currency },
+      { header: 'okres', value: (r) => r.interval },
+      { header: 'koniec_okresu', value: (r) => r.currentPeriodEnd?.toISOString() ?? null },
+      { header: 'klient_id', value: (r) => r.userId },
+      { header: 'klient_email', value: (r) => r.user.email },
+      { header: 'wezel', value: (r) => r.account?.server?.name ?? null },
+      { header: 'zalozona', value: (r) => r.createdAt.toISOString() },
+    ]);
+    res.setHeader('Content-Disposition', `attachment; filename="verris-uslugi-${new Date().toISOString().slice(0, 10)}.csv"`);
+    res.send(csv);
   }
 
   @Get(':id')

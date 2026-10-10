@@ -27,13 +27,24 @@ export interface ListUsersResponse {
   offset: number;
 }
 
-export async function listAdminUsers(opts: {
+/** F2.4 — filtry listy klientów (nazwy jak w API; puste pomijane). */
+export interface FiltryKlientow {
   search?: string;
-  page?: number;
-  limit?: number;
-}): Promise<ListUsersResponse> {
+  status?: string;
+  saldoOd?: string;
+  saldoDo?: string;
+  od?: string;
+  do?: string;
+}
+
+const KLUCZE_FILTROW = ["search", "status", "saldoOd", "saldoDo", "od", "do"] as const;
+
+export async function listAdminUsers(opts: FiltryKlientow & { page?: number; limit?: number }): Promise<ListUsersResponse> {
   const params = new URLSearchParams();
-  if (opts.search) params.set("search", opts.search);
+  for (const k of KLUCZE_FILTROW) {
+    const v = opts[k]?.trim();
+    if (v) params.set(k, v);
+  }
   if (opts.page && opts.page > 1) params.set("page", String(opts.page));
   if (opts.limit) params.set("limit", String(opts.limit));
   const qs = params.toString();

@@ -3,15 +3,17 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   HttpCode,
   Param,
   Patch,
   Post,
   Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -57,6 +59,33 @@ class ListUsersQuery {
   @IsOptional()
   @IsString()
   limit?: string;
+
+  /** F2.4 — stan konta (aktywne, zablokowane, zalegle, zawieszone, usuwane, zanonimizowane, wewnetrzne). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  status?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  saldoOd?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  saldoDo?: string;
+
+  /** Data założenia konta od–do (RRRR-MM-DD). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  od?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  do?: string;
 }
 
 interface AuthedUser {
@@ -87,6 +116,11 @@ export class UsersAdminController {
     const result = await this.admin.list({
       search: query.search,
       role: query.role,
+      status: query.status,
+      saldoOd: query.saldoOd,
+      saldoDo: query.saldoDo,
+      od: query.od,
+      do: query.do,
       limit,
       offset,
       aktorRola: user.role,
@@ -96,6 +130,24 @@ export class UsersAdminController {
       page,
       totalPages: Math.max(1, Math.ceil(result.total / result.limit)),
     };
+  }
+
+  /**
+   * F2.4 — eksport listy klientów do CSV (filtry jak lista; zawsze tylko konta klientów). Dane osobowe: osobne
+   * uprawnienie EXPORT_DATA (L4) i wpis w dzienniku (OPERATOR_LIST_EXPORTED z filtrami i liczbą wierszy).
+   */
+  @Get('export.csv')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('CUSTOMERS_VIEW', 'EXPORT_DATA')
+  @Header('Cache-Control', 'no-store')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  async exportCsv(@Query() query: ListUsersQuery, @CurrentUser() user: AuthedUser, @Res() res: Response) {
+    const csv = await this.admin.exportCustomersCsv(
+      { search: query.search, status: query.status, saldoOd: query.saldoOd, saldoDo: query.saldoDo, od: query.od, do: query.do },
+      user.principalUserId ?? user.userId,
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="verris-klienci-${new Date().toISOString().slice(0, 10)}.csv"`);
+    res.send(csv);
   }
 
   /**

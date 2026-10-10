@@ -30,6 +30,8 @@ export const STAFF_PERMISSIONS = [
   { key: 'COMPLIANCE_MANAGE', area: 'Bezpieczeństwo', label: 'Compliance / RODO' },
   { key: 'SETTINGS_MANAGE', area: 'Administracja', label: 'Ustawienia platformy' },
   { key: 'STAFF_MANAGE', area: 'Administracja', label: 'Operatorzy, role i uprawnienia' },
+  // F2.4 — eksport list klientów i usług do CSV (dane osobowe; każdy eksport w dzienniku).
+  { key: 'EXPORT_DATA', area: 'Klienci', label: 'Eksport list klientów i usług do CSV (dane osobowe, w dzienniku)' },
   { key: 'ACCOUNT_DIAGNOSTICS_VIEW', area: 'Wsparcie', label: 'Podgląd konta klienta: domeny, DNS, poczta, bazy, PHP, SSL, cron, logi (tylko odczyt, w dzienniku)' },
 ] as const;
 

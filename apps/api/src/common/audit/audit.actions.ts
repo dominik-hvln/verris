@@ -68,6 +68,8 @@ export const SupportActions = {
   OPERATOR_ACCOUNT_VIEWED: 'OPERATOR_ACCOUNT_VIEWED',
   /** Decyzja 08.10 — operator (staff/admin) otworzył kartę klienta (profil 360° z notatką); details.sekcja = zakładka. */
   OPERATOR_CUSTOMER_CARD_VIEWED: 'OPERATOR_CUSTOMER_CARD_VIEWED',
+  /** F2.4 — operator wyeksportował listę (klienci / usługi) do CSV; details: lista, filtry, wierszy. Dane osobowe. */
+  OPERATOR_LIST_EXPORTED: 'OPERATOR_LIST_EXPORTED',
 } as const;
 
 // ---------------------------------------------------------------------------

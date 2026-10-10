@@ -1,9 +1,10 @@
 import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
-import { Search, UserCog } from "lucide-react";
+import { Download, Search, UserCog } from "lucide-react";
 import { formatCredits } from "@/lib/credits";
 import { Eyebrow, KARTA, Pigulka, PRZYCISK, WIERSZ } from "@/components/v2";
-import { listAdminUsers } from "./data";
+import { listAdminUsers, type FiltryKlientow } from "./data";
+import { PoleDaty } from "@/components/pole-daty";
 import { ImpersonateButton } from "./impersonate-button";
 import { CreditWalletButton } from "./credit-wallet-button";
 import { CreateCustomerButton } from "./create-customer-button";
@@ -15,7 +16,30 @@ import { brakUprawnienia } from "@/lib/akcje/wezel";
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ search?: string; page?: string }>;
+  searchParams: Promise<FiltryKlientow & { page?: string }>;
+}
+
+/** F2.4 — stany konta (API: warunkiListyKont); „Wszystkie” bez filtra. */
+const STANY: { klucz: string; nazwa: string }[] = [
+  { klucz: "aktywne", nazwa: "Aktywne" },
+  { klucz: "zalegle", nazwa: "Zaległe" },
+  { klucz: "zawieszone", nazwa: "Z zawieszoną usługą" },
+  { klucz: "zablokowane", nazwa: "Blokada logowania" },
+  { klucz: "usuwane", nazwa: "Do usunięcia" },
+  { klucz: "wewnetrzne", nazwa: "Wewnętrzne" },
+  { klucz: "zanonimizowane", nazwa: "Zanonimizowane" },
+];
+const KLUCZE = ["search", "status", "saldoOd", "saldoDo", "od", "do"] as const;
+
+function adresListy(f: FiltryKlientow, page = 1, baza = "/customers"): string {
+  const p = new URLSearchParams();
+  for (const k of KLUCZE) {
+    const v = f[k]?.trim();
+    if (v) p.set(k, v);
+  }
+  if (page > 1) p.set("page", String(page));
+  const qs = p.toString();
+  return qs ? `${baza}?${qs}` : baza;
 }
 
 export default async function AdminCustomersPage({ searchParams }: PageProps) {
@@ -24,11 +48,20 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const search = params.search?.trim() || undefined;
   const page = Number.parseInt(params.page ?? "1", 10) || 1;
+  const filtry: FiltryKlientow = {
+    search,
+    status: STANY.some((s) => s.klucz === params.status) ? params.status : undefined,
+    saldoOd: params.saldoOd?.trim() || undefined,
+    saldoDo: params.saldoDo?.trim() || undefined,
+    od: params.od?.trim() || undefined,
+    do: params.do?.trim() || undefined,
+  };
+  const filtrowane = KLUCZE.some((k) => filtry[k]);
 
   let data: Awaited<ReturnType<typeof listAdminUsers>> | null = null;
   let error: string | null = null;
   try {
-    data = await listAdminUsers({ search, page, limit: 50 });
+    data = await listAdminUsers({ ...filtry, page, limit: 50 });
   } catch (err) {
     error = err instanceof Error ? err.message : "Nieznany błąd";
   }
@@ -41,6 +74,8 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
   const zalozy = !brakUprawnienia("CUSTOMERS_MANAGE", dostep);
   const kredyty = !brakUprawnienia("BILLING_MANAGE", dostep);
   const wejdzie = !brakUprawnienia({ wszystkie: ["CUSTOMERS_VIEW", "CUSTOMERS_IMPERSONATE"] }, dostep);
+  // F2.4 — eksport CSV (dane osobowe): EXPORT_DATA, jak API; eksportuje tylko konta klientów.
+  const eksport = !brakUprawnienia({ wszystkie: ["CUSTOMERS_VIEW", "EXPORT_DATA"] }, dostep);
   const MALY = `${PRZYCISK} !h-8 !px-3 !text-[13px]`;
   return (
     <div className="flex flex-col gap-[22px]">
@@ -51,27 +86,67 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
           {data ? <span className="text-[15px] text-muted-foreground">{data.total.toLocaleString("pl-PL")} {plForm(data.total, "konto", "konta", "kont")} (klienci, obsługa i administratorzy)</span> : null}
         </div>
         <div className="ml-auto flex items-center gap-2.5">
+          {eksport ? (
+            <a href={adresListy({ ...filtry }, 1, "/api/klienci-csv")} className={`${PRZYCISK} inline-flex items-center gap-2`} data-eksport="klienci">
+              <Download className="h-4 w-4" /> Eksport CSV
+            </a>
+          ) : null}
           {zalozy ? <CreateCustomerButton /> : null}
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-2" aria-label="Filtr stanu konta">
+        {[{ klucz: "", nazwa: "Wszystkie" }, ...STANY].map((s) => {
+          const on = (filtry.status ?? "") === s.klucz;
+          return (
+            <Link
+              key={s.klucz || "wszystkie"}
+              href={adresListy({ ...filtry, status: s.klucz || undefined })}
+              aria-current={on ? "page" : undefined}
+              className={`rounded-full border px-3 py-1 text-[13px] ${on ? "border-primary bg-data-soft font-semibold text-data-hi" : "border-line-strong text-muted-foreground hover:text-foreground"}`}
+            >
+              {s.nazwa}
+            </Link>
+          );
+        })}
+      </div>
+
       <section className={KARTA} aria-label="Lista klientów">
-        <form action="/customers" className="flex flex-wrap items-center gap-2.5 px-[18px] py-4">
+        <form action="/customers" className="flex flex-wrap items-end gap-2.5 px-[18px] py-4">
+          {filtry.status ? <input type="hidden" name="status" value={filtry.status} /> : null}
           <label className="flex h-[38px] w-full max-w-[420px] items-center gap-2.5 rounded-[9px] border border-line-strong bg-background px-3 text-sm focus-within:border-primary">
             <Search className="h-[15px] w-[15px] shrink-0 text-muted-foreground" />
             <input
               type="text"
               name="search"
               defaultValue={search ?? ""}
-              aria-label="Szukaj klienta: ID, imię lub e-mail"
-              placeholder="ID, imię lub e-mail…"
+              aria-label="Szukaj klienta: ID, imię, e-mail, firma lub NIP"
+              placeholder="ID, imię, e-mail, firma lub NIP…"
               className="w-full bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
             />
           </label>
+          <input
+            name="saldoOd"
+            inputMode="decimal"
+            defaultValue={filtry.saldoOd ?? ""}
+            aria-label="Saldo portfela od (zł)"
+            placeholder="Saldo od"
+            className="h-[38px] w-[110px] rounded-[9px] border border-line-strong bg-background px-3 text-sm"
+          />
+          <input
+            name="saldoDo"
+            inputMode="decimal"
+            defaultValue={filtry.saldoDo ?? ""}
+            aria-label="Saldo portfela do (zł)"
+            placeholder="Saldo do"
+            className="h-[38px] w-[110px] rounded-[9px] border border-line-strong bg-background px-3 text-sm"
+          />
+          <PoleDaty name="od" aria-label="Konto założone od" placeholder="Założone od" defaultValue={filtry.od ?? ""} wrapperClassName="w-[160px]" />
+          <PoleDaty name="do" aria-label="Konto założone do" placeholder="Założone do" defaultValue={filtry.do ?? ""} wrapperClassName="w-[160px]" />
           <button type="submit" className={PRZYCISK}>
             Szukaj
           </button>
-          {search ? (
+          {filtrowane ? (
             <Link href="/customers" className="text-[13px] font-semibold text-data-hi hover:underline">
               Wyczyść
             </Link>
@@ -163,7 +238,7 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
         )}
         {data && data.totalPages > 1 ? (
           <div className="flex items-center justify-end gap-2 border-t border-line p-4">
-            <PageNav search={search} page={page} totalPages={data.totalPages} />
+            <PageNav filtry={filtry} page={page} totalPages={data.totalPages} />
           </div>
         ) : null}
       </section>
@@ -177,21 +252,15 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
 }
 
 function PageNav({
-  search,
+  filtry,
   page,
   totalPages,
 }: {
-  search?: string;
+  filtry: FiltryKlientow;
   page: number;
   totalPages: number;
 }) {
-  const buildHref = (target: number) => {
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (target > 1) params.set("page", String(target));
-    const qs = params.toString();
-    return qs ? `/customers?${qs}` : "/customers";
-  };
+  const buildHref = (target: number) => adresListy(filtry, target);
 
   return (
     <>

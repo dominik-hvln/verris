@@ -1,9 +1,15 @@
 import { bramkaStrony } from "@/lib/bramka-strony";
 import Link from "next/link";
+import { Download, Search } from "lucide-react";
 import { services } from "@/lib/pl";
 import { formatCredits } from "@/lib/credits";
-import { Eyebrow, KARTA, Pigulka, WIERSZ } from "@/components/v2";
-import { listAdminSubscriptions } from "./data";
+import { adminApi } from "@/lib/api";
+import { Eyebrow, KARTA, Pigulka, PRZYCISK, WIERSZ } from "@/components/v2";
+import { Select } from "@/components/select";
+import { fetchStaffAccess } from "@/lib/staff-access";
+import { brakUprawnienia } from "@/lib/akcje/wezel";
+import { listAdminPlans } from "../plans/data";
+import { listAdminSubscriptions, parametryUslug, type FiltryUslug } from "./data";
 import { STAN_USLUGI, stanUslugi } from "@/lib/stan-uslugi";
 
 export const dynamic = "force-dynamic";
@@ -11,20 +17,49 @@ export const dynamic = "force-dynamic";
 const STAN = STAN_USLUGI;
 const KOLEJNOSC = ["ACTIVE", "PROVISIONING", "PENDING_PAYMENT", "PAST_DUE", "SUSPENDED", "CANCELED", "EXPIRED"];
 
-/** PB-34 — lista usług w języku makiety; filtr stanu w adresie (?stan=), bez JS. */
-export default async function AdminSubscriptionsPage({ searchParams }: { searchParams: Promise<{ stan?: string }> }) {
+type Parametry = { stan?: string; wezel?: string; plan?: string; q?: string; strona?: string };
+
+/** Adres listy z filtrami w języku panelu (?stan=&wezel=&plan=&q=&strona=). */
+function adres(f: Parametry): string {
+  const p = new URLSearchParams();
+  for (const k of ["stan", "wezel", "plan", "q", "strona"] as const) {
+    const v = f[k]?.trim();
+    if (v && !(k === "strona" && v === "1")) p.set(k, v);
+  }
+  const qs = p.toString();
+  return qs ? `/subscriptions?${qs}` : "/subscriptions";
+}
+
+/**
+ * PB-34 — lista usług w języku makiety. F2.4 — filtry (stan, w tym zaległe, węzeł, plan, wyszukiwanie) i stronicowanie
+ * w API zamiast 200 najnowszych; eksport CSV tych samych wierszy z EXPORT_DATA (wpis w dzienniku). Bez JS: zwykły GET.
+ */
+export default async function AdminSubscriptionsPage({ searchParams }: { searchParams: Promise<Parametry> }) {
   const bramka = await bramkaStrony("/subscriptions");
   if (bramka) return bramka;
-  const { stan } = await searchParams;
-  let rows: Awaited<ReturnType<typeof listAdminSubscriptions>> = [];
-  let error: string | null = null;
-  try {
-    rows = await listAdminSubscriptions();
-  } catch (e) {
-    error = e instanceof Error ? e.message : "Nie udało się pobrać listy.";
-  }
-  const liczby = rows.reduce<Record<string, number>>((a, r) => ({ ...a, [r.status]: (a[r.status] ?? 0) + 1 }), {});
-  const widoczne = stan && STAN[stan] ? rows.filter((r) => r.status === stan) : rows;
+  const sp = await searchParams;
+  const stan = sp.stan && STAN[sp.stan] ? sp.stan : undefined;
+  const strona = Math.max(Number.parseInt(sp.strona ?? "1", 10) || 1, 1);
+  const filtry: FiltryUslug = { status: stan, serverId: sp.wezel, planId: sp.plan, search: sp.q };
+  const biezace: Parametry = { stan, wezel: sp.wezel, plan: sp.plan, q: sp.q };
+
+  // Węzły (NODES_VIEW) i plany (PLANS_MANAGE) tylko do list wyboru — bez uprawnienia filtr znika, lista działa.
+  const [wynik, wezly, plany, dostep] = await Promise.all([
+    listAdminSubscriptions(filtry, strona).then(
+      (d) => ({ d, error: null as string | null }),
+      (e: unknown) => ({ d: null, error: e instanceof Error ? e.message : "Nie udało się pobrać listy." }),
+    ),
+    adminApi<{ id: string; name: string | null }[]>("/admin/servers").then((r) => (Array.isArray(r) ? r : null), () => null),
+    listAdminPlans().then((r) => (Array.isArray(r) ? r : null), () => null),
+    fetchStaffAccess(),
+  ]);
+  const { d, error } = wynik;
+  const eksport = !brakUprawnienia({ wszystkie: ["SUBSCRIPTIONS_MANAGE", "EXPORT_DATA"] }, dostep);
+  const csv = (() => {
+    const qs = parametryUslug(filtry).toString();
+    return qs ? `/api/uslugi-csv?${qs}` : "/api/uslugi-csv";
+  })();
+  const wszystkie = Object.values(d?.liczby ?? {}).reduce((a, b) => a + b, 0);
   const filtr = (href: string, on: boolean, tekst: string) => (
     <Link
       key={href}
@@ -38,16 +73,64 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
 
   return (
     <div className="flex flex-col gap-[22px]">
-      <div className="flex flex-col gap-2">
-        <Eyebrow>Klienci i usługi</Eyebrow>
-        <h1 className="text-[32px] lg:text-[40px]">Usługi</h1>
-        <span className="text-[15px] text-muted-foreground">{rows.length >= 200 ? "200 najnowszych usług — starsze znajdziesz przez kartę klienta" : services(rows.length)}</span>
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="flex flex-col gap-2">
+          <Eyebrow>Klienci i usługi</Eyebrow>
+          <h1 className="text-[32px] lg:text-[40px]">Usługi</h1>
+          {d ? <span className="text-[15px] text-muted-foreground">{services(d.total)}</span> : null}
+        </div>
+        {eksport ? (
+          <a href={csv} className={`${PRZYCISK} ml-auto inline-flex items-center gap-2`} data-eksport="uslugi">
+            <Download className="h-4 w-4" /> Eksport CSV
+          </a>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap gap-2" aria-label="Filtr stanu">
-        {filtr("/subscriptions", !stan || !STAN[stan], `Wszystkie · ${rows.length}`)}
-        {KOLEJNOSC.filter((k) => liczby[k]).map((k) => filtr(`/subscriptions?stan=${k}`, stan === k, `${STAN[k]!.t} · ${liczby[k]}`))}
+        {filtr(adres({ ...biezace, stan: undefined }), !stan, `Wszystkie · ${wszystkie}`)}
+        {KOLEJNOSC.filter((k) => d?.liczby[k] || k === stan).map((k) => filtr(adres({ ...biezace, stan: k }), stan === k, `${STAN[k]!.t} · ${d?.liczby[k] ?? 0}`))}
       </div>
+
+      <form action="/subscriptions" className="flex flex-wrap items-end gap-2.5" aria-label="Filtry usług">
+        {stan ? <input type="hidden" name="stan" value={stan} /> : null}
+        <label className="flex h-[38px] w-full max-w-[360px] items-center gap-2.5 rounded-[9px] border border-line-strong bg-background px-3 text-sm focus-within:border-primary">
+          <Search className="h-[15px] w-[15px] shrink-0 text-muted-foreground" />
+          <input
+            type="text"
+            name="q"
+            defaultValue={sp.q ?? ""}
+            aria-label="Szukaj usługi: domena, login, e-mail klienta lub ID"
+            placeholder="Domena, login, e-mail lub ID…"
+            className="w-full bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
+          />
+        </label>
+        {wezly ? (
+          <Select
+            name="wezel"
+            aria-label="Węzeł"
+            defaultValue={sp.wezel ?? ""}
+            wrapperClassName="w-[180px]"
+            options={[{ value: "", label: "Każdy węzeł" }, ...wezly.map((w) => ({ value: w.id, label: w.name ?? w.id.slice(0, 8) }))]}
+          />
+        ) : null}
+        {plany ? (
+          <Select
+            name="plan"
+            aria-label="Plan"
+            defaultValue={sp.plan ?? ""}
+            wrapperClassName="w-[180px]"
+            options={[{ value: "", label: "Każdy plan" }, ...plany.map((p) => ({ value: p.id, label: p.name }))]}
+          />
+        ) : null}
+        <button type="submit" className={PRZYCISK}>
+          Filtruj
+        </button>
+        {sp.q || sp.wezel || sp.plan || stan ? (
+          <Link href="/subscriptions" className="text-[13px] font-semibold text-data-hi hover:underline">
+            Wyczyść
+          </Link>
+        ) : null}
+      </form>
 
       {error ? (
         <p className="text-sm text-crit">{error}</p>
@@ -59,8 +142,8 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
             <span className="hidden w-[100px] lg:block">Założona</span>
             <span className="w-[130px]">Stan</span>
           </div>
-          {widoczne.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak usług.</div> : null}
-          {widoczne.map((r) => {
+          {!d || d.rows.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak usług dla tych filtrów.</div> : null}
+          {d?.rows.map((r) => {
             const s = stanUslugi(r.status, r.provisioningStage);
             const klient = [r.user.firstName, r.user.lastName].filter(Boolean).join(" ") || r.user.email;
             return (
@@ -88,6 +171,23 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
               </Link>
             );
           })}
+          {d && d.totalPages > 1 ? (
+            <nav className="flex items-center justify-end gap-2 border-t border-line p-4" aria-label="Strony">
+              {strona > 1 ? (
+                <Link href={adres({ ...biezace, strona: String(strona - 1) })} className="rounded-lg border border-line-strong px-3 py-1.5 text-xs hover:border-primary">
+                  Poprzednia
+                </Link>
+              ) : null}
+              <span className="text-xs text-muted-foreground">
+                {strona} / {d.totalPages}
+              </span>
+              {strona < d.totalPages ? (
+                <Link href={adres({ ...biezace, strona: String(strona + 1) })} className="rounded-lg border border-line-strong px-3 py-1.5 text-xs hover:border-primary">
+                  Następna
+                </Link>
+              ) : null}
+            </nav>
+          ) : null}
         </section>
       )}
     </div>
