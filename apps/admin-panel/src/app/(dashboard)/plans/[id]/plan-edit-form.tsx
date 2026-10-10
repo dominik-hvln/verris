@@ -3,6 +3,7 @@
 import { KOPIE_OFFSITE_DNI, KOPIE_OFFSITE_MAX_DNI } from "@verris/contracts";
 import { Select } from "@/components/select";
 import { useState, useTransition, useId } from "react";
+import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
   AlertTriangle,
@@ -83,6 +84,7 @@ interface ValidationFeedback {
 }
 
 export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
+  const router = useRouter();
   const kindId = useId();
   const [state, setState] = useState<FormState>(() => toFormState(plan));
   const [stripeManual, setStripeManual] = useState(false);
@@ -204,7 +206,7 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
     if (!(await potwierdz(`Usunąć plan „${plan.name}” na stałe? Da się to zrobić tylko, gdy nikt go nigdy nie kupił — inaczej wyłącz go ze sprzedaży.`, { akcja: 'Usuń na stałe', niebezpieczne: true }))) return;
     startTransition(async () => {
       const res = await usunPlanTrwaleAction(plan.id);
-      if (res.ok) window.location.assign("/plans");
+      if (res.ok) router.push("/plans");
       else setGlobalError(res.error);
     });
   };
