@@ -4,7 +4,8 @@ import { staffListaZgloszen, type ListaZgloszen } from "@/lib/tickets-data";
 import { staffListTags } from "@/lib/ticket-actions";
 import { StaffApiError } from "@/lib/staff-api";
 import { FILTRY, linkStrony, type ParametrySkrzynki } from "@/lib/skrzynka";
-import { FiltrySkrzynki, Stronicowanie } from "@/components/filtry-skrzynki";
+import { FiltrySkrzynki } from "@/components/filtry-skrzynki";
+import { Stronicowanie } from "@/components/stronicowanie";
 
 export const dynamic = "force-dynamic";
 

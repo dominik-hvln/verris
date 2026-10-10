@@ -58,8 +58,61 @@ function naruszenia(src: string): string[] {
   return zle;
 }
 
+/**
+ * Przegląd F2.5 (10.10): skrzynka obsługi (Server Component) dawała `<Stronicowanie link={(s) => …} />`, a
+ * Stronicowanie siedziało w module "use client". Funkcji nie da się przekazać przez granicę (Next: „Functions
+ * cannot be passed directly to Client Components”) — skrzynka nie wczytałaby się wcale, a renderToStaticMarkup
+ * w testach jednostkowych tego nie widzi. Strona/layout (Server Component) nie może dawać komponentowi z modułu
+ * "use client" propsa z funkcją strzałkową / `function` (akcje serwera przekazane z nazwy są w porządku).
+ */
+function atrybutyZnacznika(kod: string, od: number): string {
+  let glebokosc = 0;
+  for (let i = od; i < kod.length; i++) {
+    const z = kod[i];
+    if (z === "{") glebokosc++;
+    else if (z === "}") glebokosc--;
+    else if (z === ">" && glebokosc === 0 && kod[i - 1] !== "=") return kod.slice(od, i);
+  }
+  return kod.slice(od);
+}
+
+function funkcjeWPropsach(src: string): string[] {
+  const zle: string[] = [];
+  const cache = new Map<string, boolean>();
+  for (const plik of pliki(src)) {
+    // Tylko wejścia App Routera — bez "use client" są zawsze serwerowe (plik bez dyrektywy importowany wyłącznie
+    // z modułu klienckiego też jest kliencki, więc ogólny skan dawałby fałszywe alarmy).
+    if (!/[\\/](page|layout|template|not-found)\.tsx$/.test(plik)) continue;
+    const kod = readFileSync(plik, "utf8");
+    if (czyKliencki(kod)) continue;
+    const klienckie: string[] = [];
+    for (const m of kod.matchAll(/import\s+(type\s+)?\{([^}]*)\}\s*from\s*["']([^"']+)["']/g)) {
+      if (m[1]) continue;
+      const cel = rozwiaz(plik, m[3], src);
+      if (!cel) continue;
+      if (!cache.has(cel)) cache.set(cel, czyKliencki(readFileSync(cel, "utf8")));
+      if (!cache.get(cel)) continue;
+      for (const nazwa of m[2].split(",").map((x) => x.trim()).filter(Boolean)) {
+        const lokalna = (nazwa.split(/\s+as\s+/)[1] ?? nazwa).trim();
+        if (/^[A-Z]/.test(lokalna)) klienckie.push(lokalna);
+      }
+    }
+    for (const komp of klienckie) {
+      for (const m of kod.matchAll(new RegExp(`<${komp}[\\s/>]`, "g"))) {
+        const attr = atrybutyZnacznika(kod, m.index! + komp.length + 1);
+        if (/[\w-]=\{\s*(?:async\s+)?(?:function\b|(?:\([^()]*\)|[A-Za-z_$][\w$]*)\s*=>)/.test(attr)) zle.push(`${plik.slice(src.length - 20)} → <${komp}> dostaje funkcję`);
+      }
+    }
+  }
+  return zle;
+}
+
 describe("granica Server/Client Components", () => {
   it.each(APPS)("%s: serwer nie importuje funkcji z modułów \"use client\"", (src) => {
     expect(naruszenia(src)).toEqual([]);
+  });
+
+  it.each(APPS)("%s: serwer nie przekazuje funkcji w propsach komponentom \"use client\"", (src) => {
+    expect(funkcjeWPropsach(src)).toEqual([]);
   });
 });
