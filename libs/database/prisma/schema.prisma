@@ -4190,3 +4190,24 @@ model CustomerNote {
 
   @@index([userId, pinned, createdAt])
 }
+
+/// F2.8 (OJ-01, 10.10) — przebieg zadania w tle (@Cron w API). Zapis po zakończeniu przebiegu
+/// (apps/api/src/zadania-w-tle); retencja 30 dni. Widok: panel operatora → System → Zadania w tle.
+model ScheduledJobRun {
+  id         String   @id @default(uuid())
+  /// Stały klucz „Klasa.metoda” — nie każde zadanie ma `name` w @Cron.
+  job        String
+  startedAt  DateTime
+  finishedAt DateTime
+  durationMs Int
+  ok         Boolean
+  /// Komunikat wyjątku, gdy zadanie rzuciło (skrócony). Zadania, które same łapią błędy, zapisują się jako udane.
+  error      String?  @db.Text
+  /// Ręczne uruchomienie z panelu — id administratora; null — z harmonogramu.
+  manualBy   String?
+
+  @@index([job, startedAt])
+  /// Ostatni błąd zadania bez przeglądania udanych przebiegów (widok „Zadania w tle”).
+  @@index([job, ok, startedAt])
+  @@index([startedAt])
+}

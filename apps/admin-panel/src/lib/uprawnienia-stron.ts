@@ -76,6 +76,8 @@ export const STRONY = {
   "/settings/team-mail": { perm: "ADMIN", tytul: "Poczta zespołu" },
   "/status/incidents": { perm: "ADMIN", tytul: "Incydenty" },
   "/status/probes": { perm: "ADMIN", tytul: "Sondy" },
+  // F2.8 — odczyt jak „Błędy aplikacji”; „Uruchom teraz” tylko ADMIN (API: mozeUruchomic + @Roles(ADMIN)).
+  "/system/zadania": { perm: "NODES_VIEW", tytul: "Zadania w tle" },
   "/subscriptions": { perm: "SUBSCRIPTIONS_MANAGE", tytul: "Usługi" },
   // Karta usługi — @StaffPermAny(CUSTOMERS_VIEW, SUBSCRIPTIONS_MANAGE) (L1-KARTA).
   "/subscriptions/[id]": { perm: ["CUSTOMERS_VIEW", "SUBSCRIPTIONS_MANAGE"], tytul: "Usługa" },

@@ -281,6 +281,12 @@ export function grupy(l: LicznikiMenu | null): Grupa[] {
             { name: "Gotowość do startu", href: "/settings/live-readiness", perm: "ADMIN", szukaj: "gotowość live go live checklista" },
           ],
         },
+        // F2.8 — harmonogramy API (GET admin/zadania-w-tle — NODES_VIEW).
+        {
+          name: "Zadania w tle",
+          ikona: "kolejka",
+          pod: [{ name: "Zadania w tle", href: "/system/zadania", perm: "NODES_VIEW", szukaj: "harmonogram cron automaty zadania automatyczne ostatnie uruchomienie" }],
+        },
         { name: "Komunikaty i flagi", ikona: "marketing", pod: [{ name: "Komunikaty i flagi", href: "/product-ops", perm: "ADMIN", szukaj: "product ops noc ogłoszenia komunikaty o pracach flagi funkcji" }] },
         {
           name: "Zespół",

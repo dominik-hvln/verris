@@ -116,6 +116,12 @@ export const POMOC = {
     opis: "Historia testów odtworzenia bazy z kopii: data, wynik, czas i kto odpowiada.",
     kiedy: "Przed startem i po zmianach w kopiach — kopia bez udanej próby nie jest dowodem.",
   },
+  "zadania-w-tle": {
+    tytul: "Zadania w tle",
+    opis: "Automaty API (odnowienia, faktury, sondy, retencja): kiedy biegły, ile trwały, ostatni błąd i następny termin.",
+    kiedy: "Gdy coś „samo się nie zrobiło” albo przyszedł alert, że zadanie nie biegnie od dwóch terminów.",
+    rozniSieOd: "Kolejka zadań to operacje na węzłach; tu są harmonogramy samego API.",
+  },
   "zawies-skrzynke": {
     tytul: "Zawieś skrzynkę",
     opis: "Wyłącza skrzynkę zespołu: znika z map poczty, więc nie przyjmuje maili, aliasów ani logowania IMAP.",

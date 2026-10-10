@@ -593,3 +593,51 @@ export function progOssTemplate(ctx: ProgOssContext): MailMessage {
   });
   return { to: ctx.to, tag: 'ops.prog-oss', subject: `[Verris] ${ctx.przekroczony ? 'Próg OSS przekroczony' : `Próg OSS: ${ctx.procent}%`}`, text, html };
 }
+
+// -----------------------------------------------------------------------------
+// F2.8 (OJ-01) — zadanie w tle nie biegło dłużej niż 2× interwał z harmonogramu
+// -----------------------------------------------------------------------------
+
+export interface ZadaniaZalegleContext {
+  to: string;
+  firstName: string | null;
+  zadania: Array<{ nazwa: string; harmonogram: string; ostatnio: Date | null }>;
+  panelUrl: string;
+}
+
+export function zadaniaZalegleTemplate(ctx: ZadaniaZalegleContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
+  const ile = ctx.zadania.length;
+  const { html, text } = renderEmailShell({
+    title: ile === 1 ? 'Zadanie w tle przestało biec' : `Zadania w tle przestały biec (${ile})`,
+    preheader: 'Harmonogram nie uruchomił zadania od dwóch terminów.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `**Od dwóch kolejnych terminów z harmonogramu nie było przebiegu:**`,
+      ``,
+      ...ctx.zadania.map(
+        (z) =>
+          `- **${escapeMarkdown(z.nazwa)}** (\`${escapeMarkdown(z.harmonogram)}\`) — ostatnio: ${z.ostatnio ? fmt(z.ostatnio) : 'brak przebiegu od startu API'}`,
+      ),
+      ``,
+      `## Co sprawdzić`,
+      ``,
+      `1. Czy proces API działa i nie restartuje się w pętli.`,
+      `2. Czy poprzedni przebieg nie wisi (kolumna „Trwa” w widoku zadań).`,
+      `3. Log procesu API z chwili ostatniego przebiegu.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz zadania w tle', url: `${ctx.panelUrl}/system/zadania` },
+    footnote: 'Alert najwyżej raz na dobę na zadanie. Otrzymują go wszyscy administratorzy.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'ops.zadania-zalegle',
+    subject: `[Verris] ⚠️ Zadania w tle nie biegną (${ile})`,
+    text,
+    html,
+  };
+}

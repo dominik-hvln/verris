@@ -62,6 +62,7 @@ import { VpnModule } from './vpn/vpn.module.js';
 import { KsefModule } from './ksef/ksef.module.js';
 import { DeliverabilityModule } from './deliverability/deliverability.module.js';
 import { WnioskiModule } from './wnioski/wnioski.module.js';
+import { ZadaniaWTleModule } from './zadania-w-tle/zadania-w-tle.module.js';
 
 @Module({
   imports: [
@@ -127,6 +128,8 @@ import { WnioskiModule } from './wnioski/wnioski.module.js';
     KbModule,
     // PB-48 — wnioski o operację wymagającą wyższego uprawnienia.
     WnioskiModule,
+    // F2.8 — rejestr przebiegów zadań w tle (@Cron) i widok System → Zadania w tle.
+    ZadaniaWTleModule,
   ],
   controllers: [],
   providers: [
