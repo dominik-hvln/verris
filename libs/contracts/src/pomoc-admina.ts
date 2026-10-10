@@ -241,6 +241,38 @@ export const POMOC = {
     opis: "Składa nieudane zamówienie jeszcze raz na dane tego samego abonenta i znów pobiera opłatę z portfela klienta.",
     kiedy: "Gdy rejestr miał przerwę albo transfer odrzucono przez zły kod, a klient nadal chce domenę.",
   },
+  // D11 — tablica migracji obsługi (wzorzec kolejki migracji z Jiry).
+  "tablica-migracji": {
+    tytul: "Tablica migracji",
+    opis: "Migracje w etapach: Nowa, Testy u nas, Do zmiany DNS, Po przełączeniu, Zamknięta; dalej przechodzą dopiero po checkliście.",
+    kiedy: "Gdy prowadzisz przeniesienia stron klientów i pilnujesz terminów.",
+    rozniSieOd: "Status automatu (w toku, ukończona) mówi, czy dane są przeniesione; etap tablicy mówi, co z migracją robi zespół.",
+  },
+  "termin-migracji": {
+    tytul: "Terminy migracji",
+    opis: "Termin migracji (domyślnie 3 dni od zlecenia), wygaśnięcie hostingu u starego dostawcy i domeny; dzwonek ostrzega dobę, a przy wygaśnięciu 3 doby wcześniej.",
+    kiedy: "Gdy klientowi kończy się stary hosting albo domena i DNS trzeba przełączyć wcześniej.",
+  },
+  przerywacz: {
+    tytul: "Przerywacz",
+    opis: "Pilna migracja, która przerywa kolejkę i stoi na górze tablicy.",
+    kiedy: "Gdy stary hosting wygasa za chwilę albo strona klienta nie działa.",
+  },
+  "checklista-migracji": {
+    tytul: "Checklista migracji",
+    opis: "Przed zmianą DNS: TTL 300 i wynik testu na tymczasowym adresie. Przy zamknięciu: podsumowanie, optymalizacja i test przed i po, wysłane raportem.",
+    kiedy: "Na każdym etapie — bez kompletu etap nie pójdzie dalej.",
+  },
+  "raport-pomigracyjny": {
+    tytul: "Raport pomigracyjny",
+    opis: "Mail do klienta z szablonu: podsumowanie, optymalizacja i wynik testu przed i po; w aktywności klienta jako działanie obsługi.",
+    kiedy: "Po przełączeniu DNS, gdy checklista zamknięcia jest gotowa — bez wysłanego raportu migracji nie zamkniesz.",
+  },
+  "kontakty-migracji": {
+    tytul: "Kontakty i oś czasu",
+    opis: "Rozmowy i maile z klientem w sprawie migracji z datą i numerem zgłoszenia, obok zdarzeń automatu i zmian etapu.",
+    kiedy: "Po każdym telefonie albo mailu — pisz tak, jakby klient to czytał, bo trafia do eksportu jego danych.",
+  },
 } satisfies Record<string, WpisPomocy>;
 
 export type PomocId = keyof typeof POMOC;

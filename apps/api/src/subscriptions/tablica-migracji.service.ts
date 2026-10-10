@@ -482,7 +482,7 @@ export class TablicaMigracjiService {
     const m = await this.wczytaj(id);
     const magazyn = { ...(kontekstZadania.getStore() ?? {}), operator: { wlasciciel: m.userId, operatorUserId: aktor.userId, zgloszenieId: m.ticketId } };
     const plan = await kontekstZadania.run(magazyn, () => this.cutover.verify(m.subscriptionId, m.userId, id));
-    return { status: plan.status, komunikat: plan.message, cutoverAt: plan.cutoverAt };
+    return { ...(await this.obsluga(id)), dns: { status: plan.status, komunikat: plan.message } };
   }
 
   // ------------------------------------------------------------------ alert terminów

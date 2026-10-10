@@ -38,6 +38,8 @@ export const STRONY = {
   "/metrics": { perm: "DASHBOARD_VIEW", tytul: "Metryki" },
   "/migrations": { perm: "MIGRATIONS_MANAGE", tytul: "Migracje" },
   "/migrations/[id]": { perm: "MIGRATIONS_MANAGE", tytul: "Migracja" },
+  // D11 — tablica migracji (admin/migrations/tablica — MIGRATIONS_MANAGE: L2 support migracji i wyżej, NOC).
+  "/migrations/tablica": { perm: "MIGRATIONS_MANAGE", tytul: "Tablica migracji" },
   "/migrations/za-klienta": { perm: "MIGRATIONS_MANAGE", tytul: "Migracja za klienta" },
   "/nodes": { perm: "NODES_VIEW", tytul: "Węzły" },
   "/nodes/[id]": { perm: "NODES_VIEW", tytul: "Węzeł" },

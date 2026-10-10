@@ -166,6 +166,7 @@ export function grupy(l: LicznikiMenu | null): Grupa[] {
           ikona: "migracje",
           licznik: l?.migracje ? String(l.migracje) : undefined,
           pod: [
+            { name: "Tablica migracji", href: "/migrations/tablica", perm: "MIGRATIONS_MANAGE", szukaj: "kanban etapy terminy przerywacz checklista raport pomigracyjny dns ttl" },
             { name: "Migracje", href: "/migrations", perm: "MIGRATIONS_MANAGE", szukaj: "przeniesienie stron" },
             { name: "Migracja za klienta", href: "/migrations/za-klienta", perm: "MIGRATIONS_MANAGE", szukaj: "przeniesienie strony zgoda" },
           ],

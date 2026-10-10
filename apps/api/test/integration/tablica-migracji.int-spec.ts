@@ -73,7 +73,7 @@ describe('D11 — tablica migracji obsługi', () => {
     await svc.zmienEtap(mig.id, { etap: 'DO_ZMIANY_DNS' }, op);
 
     await expect(svc.zmienEtap(mig.id, { etap: 'PO_PRZELACZENIU' }, op)).rejects.toThrow(/Sprawdź DNS/);
-    expect(await svc.sprawdzDns(mig.id, op)).toMatchObject({ status: 'done' });
+    expect(await svc.sprawdzDns(mig.id, op)).toMatchObject({ dns: { status: 'done' }, dalej: { etap: 'PO_PRZELACZENIU', braki: [] } });
     // Sprawdzenie z panelu obsługi zapisuje operatora, nie klienta.
     const dns = await p.auditLog.findFirstOrThrow({ where: { action: 'MIGRATION_CUTOVER_DNS_APPLIED', userId: k.user.id } });
     expect(dns.actorUserId).toBe(l2.id);
