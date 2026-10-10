@@ -8,6 +8,7 @@ import { brakUprawnienia } from "@/lib/akcje/wezel";
 import { AKCJE_FAKTURY, type FakturaDlaAkcji } from "@/lib/akcje/faktura";
 import { Okruszek } from "@/components/admin-shell";
 import { BladStrony } from "@/components/blad-strony";
+import { LinkJesli } from "@/components/link-jesli";
 import { Eyebrow, KARTA, LinkKarty, NaglowekKarty, Pigulka, PRZYCISK, WIERSZ } from "@/components/v2";
 import type { AdminInvoiceRow } from "../data";
 import type { KorektaRow } from "./korekta/data";
@@ -65,6 +66,9 @@ export default async function FakturaPage({ params }: { params: Promise<{ invoic
   // Wniosek o anulowanie składa się z CUSTOMERS_VIEW (rejestr wniosków API: doZlozenia).
   const wniosekAnulowania = !!anuluj?.zablokowane && !brakUprawnienia("CUSTOMERS_VIEW", dostep);
   const nabywca = f.user.companyName ?? f.user.name ?? f.user.email;
+  // Strona faktury wymaga BILLING_VIEW — karta klienta i usługi mogą być poza rolą (link bez drogi do odmowy).
+  const doKlienta = !brakUprawnienia("CUSTOMERS_VIEW", dostep);
+  const doUslugi = !brakUprawnienia(["CUSTOMERS_VIEW", "SUBSCRIPTIONS_MANAGE"], dostep);
   const stanKsef = KSEF[f.ksef.status] ?? { t: f.ksef.status, ton: "muted" as const };
 
   return (
@@ -85,9 +89,9 @@ export default async function FakturaPage({ params }: { params: Promise<{ invoic
                 KSeF: {stanKsef.t}
               </Pigulka>
             ) : null}
-            <Link href={`/customers/${f.user.id}`} className="hover:underline">
+            <LinkJesli wolno={doKlienta} href={`/customers/${f.user.id}`} className="hover:underline">
               {nabywca}
-            </Link>
+            </LinkJesli>
           </div>
         </div>
       </div>
@@ -98,15 +102,15 @@ export default async function FakturaPage({ params }: { params: Promise<{ invoic
         <Para k="Termin">{kiedy(f.dueAt)}</Para>
         <Para k="Zapłacona">{kiedy(f.paidAt)}</Para>
         <Para k="Nabywca">
-          <Link href={`/customers/${f.user.id}`} className="hover:underline">
+          <LinkJesli wolno={doKlienta} href={`/customers/${f.user.id}`} className="hover:underline">
             {f.user.email}
-          </Link>
+          </LinkJesli>
         </Para>
         <Para k="Usługa">
           {f.subscription ? (
-            <Link href={`/subscriptions/${f.subscription.id}`} className="hover:underline">
+            <LinkJesli wolno={doUslugi} href={`/subscriptions/${f.subscription.id}`} className="hover:underline">
               {f.subscription.domain ?? f.subscription.planName ?? "usługa"}
-            </Link>
+            </LinkJesli>
           ) : (
             "—"
           )}
@@ -195,7 +199,7 @@ export default async function FakturaPage({ params }: { params: Promise<{ invoic
 
       <section className={KARTA} aria-labelledby="platnosci">
         <NaglowekKarty id="platnosci" tytul="Płatności">
-          <LinkKarty href={`/customers/${f.user.id}?sekcja=rozliczenia#portfel`}>Portfel klienta →</LinkKarty>
+          {doKlienta ? <LinkKarty href={`/customers/${f.user.id}?sekcja=rozliczenia#portfel`}>Portfel klienta →</LinkKarty> : null}
         </NaglowekKarty>
         {f.platnosci.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak wpisów portfela pokrytych tą fakturą.</div> : null}
         {f.platnosci.map((w) => (

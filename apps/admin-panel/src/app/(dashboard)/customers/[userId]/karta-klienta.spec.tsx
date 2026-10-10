@@ -115,9 +115,16 @@ describe("PB-46 karta klienta admina", () => {
       if (sciezka.split("?")[0] === `/admin/users/${UID}/customer-profile`) return zFaktura;
       if (sciezka === `/admin/users/${UID}/operational-detail`) return { ...profil.user, loginBlockedReason: null, adminInternalNote: "", isInternal: false, subscriptionsCount: 1 };
       if (sciezka.startsWith("/admin/custom-terms/user/")) return { uslugi: [] };
+      if (sciezka === "/staff/me/access") return dostep;
       throw new Error(`nieoczekiwane ${sciezka}`);
     });
+    let dostep: unknown = { role: "ADMIN", isAdmin: true, permissions: [] };
     expect(await render("rozliczenia")).toContain('href="/invoices/f1"');
+    // Przegląd 10.10: strona faktury wymaga BILLING_VIEW — konsultant z samym CUSTOMERS_VIEW dostawał link do odmowy.
+    dostep = { role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW"] };
+    const bezFaktur = await render("rozliczenia");
+    expect(bezFaktur).toContain("VFV/2026/10/0001");
+    expect(bezFaktur).not.toContain('href="/invoices/f1"');
   });
 
   it("otwarte incydenty na węzłach klienta widać nad zakładkami", async () => {

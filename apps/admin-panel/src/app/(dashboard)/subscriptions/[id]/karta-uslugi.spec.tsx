@@ -125,4 +125,21 @@ describe("karta usługi", () => {
       if (kotwica) expect(strona).toContain(`id="${kotwica}"`);
     }
   });
+
+  // Przegląd 10.10: kartę otwiera też NOC (SUBSCRIPTIONS_MANAGE bez CUSTOMERS_VIEW i NODES_VIEW) — linki do kart
+  // klienta i węzła kończyły się dla niego odmową.
+  it("bez CUSTOMERS_VIEW i NODES_VIEW: klient i węzeł jako tekst; bez linku do Kolejki zadań bez PROVISIONING_MANAGE", async () => {
+    const html = await render(
+      undefined,
+      {
+        [`/admin/subscriptions/${SUB}`]: usluga({ status: "PROVISIONING", provisioningStage: "failed" }),
+        [`/admin/provisioning-queue?subscriptionId=${SUB}`]: new Error("403"),
+      },
+      { role: "STAFF", isAdmin: false, permissions: ["SUBSCRIPTIONS_MANAGE"] },
+    );
+    expect(html).toContain("jan@firma.pl");
+    expect(html).not.toContain('href="/customers/u1"');
+    expect(html).not.toContain('href="/nodes/w1"');
+    expect(html).not.toContain('href="/provisioning-queue');
+  });
 });

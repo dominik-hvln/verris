@@ -5,8 +5,10 @@ import { stanUslugi } from "@/lib/stan-uslugi";
 import { plForm } from "@/lib/pl";
 import { Okruszek } from "@/components/admin-shell";
 import { DzialaniaKarty } from "@/components/dzialania-karty";
+import { LinkJesli } from "@/components/link-jesli";
 import { Eyebrow, KARTA, NaglowekKarty, Pigulka, WIERSZ, Zakladki } from "@/components/v2";
 import { dzialaniaObiektu } from "@/lib/akcje/rejestr";
+import { brakUprawnienia } from "@/lib/akcje/wezel";
 import { AKCJE_USLUGI, SEKCJE_USLUGI, type SekcjaUslugi, type UslugaDlaAkcji } from "@/lib/akcje/usluga";
 import { listAdminPlans } from "../../plans/data";
 import type { ProvisioningJobRow } from "../../provisioning-queue/data";
@@ -130,6 +132,9 @@ export default async function AdminSubscriptionDetailPage({
     sekcja === "operacje" ? listAdminPlans().catch(() => []) : [],
   ]);
   const aktywne = servers.filter((s) => s.status === "ACTIVE");
+  // Karta otwiera się z CUSTOMERS_VIEW albo SUBSCRIPTIONS_MANAGE (L1-KARTA) — link tylko do strony, którą operator otworzy.
+  const doKlienta = !brakUprawnienia("CUSTOMERS_VIEW", access);
+  const doWezla = !brakUprawnienia("NODES_VIEW", access);
 
   return (
     <div className="flex flex-col gap-5">
@@ -145,13 +150,13 @@ export default async function AdminSubscriptionDetailPage({
             <Pigulka ton={stan.ton} className="!text-xs">
               {stan.t}
             </Pigulka>
-            <Link href={`/customers/${d.user.id}`} className="font-mono hover:underline">
+            <LinkJesli wolno={doKlienta} href={`/customers/${d.user.id}`} className="font-mono hover:underline">
               {d.user.email}
-            </Link>
+            </LinkJesli>
             {wezel ? (
-              <Link href={`/nodes/${wezel.id}`} className="text-muted-foreground hover:underline">
+              <LinkJesli wolno={doWezla} href={`/nodes/${wezel.id}`} className="text-muted-foreground hover:underline">
                 · węzeł {wezel.name ?? wezel.id.slice(0, 8)}
-              </Link>
+              </LinkJesli>
             ) : null}
           </div>
         </div>
@@ -166,9 +171,9 @@ export default async function AdminSubscriptionDetailPage({
         <>
           <section className={`${KARTA} grid grid-cols-1 gap-4 p-5 text-sm md:grid-cols-2`} aria-label="Dane usługi">
             <Para k="Klient">
-              <Link href={`/customers/${d.user.id}`} className="font-mono hover:underline">
+              <LinkJesli wolno={doKlienta} href={`/customers/${d.user.id}`} className="font-mono hover:underline">
                 {d.user.email}
-              </Link>
+              </LinkJesli>
             </Para>
             <Para k="Stan">{stan.t}</Para>
             <Para k="Plan">
@@ -186,10 +191,10 @@ export default async function AdminSubscriptionDetailPage({
             <Para k="Konto hostingowe">{d.account ? `${d.account.domain} (${d.account.daUsername})` : "Brak konta"}</Para>
             <Para k="Węzeł">
               {wezel ? (
-                <Link href={`/nodes/${wezel.id}`} className="hover:underline">
+                <LinkJesli wolno={doWezla} href={`/nodes/${wezel.id}`} className="hover:underline">
                   {wezel.name ?? wezel.id.slice(0, 8)}
                   {wezel.region ? ` · ${wezel.region}` : ""}
-                </Link>
+                </LinkJesli>
               ) : (
                 "—"
               )}
@@ -336,9 +341,11 @@ function ZakladaniePanel({ joby }: { joby: ProvisioningJobRow[] | null }) {
   return (
     <section id="zakladanie" className={`${KARTA} scroll-mt-24 border-[color-mix(in_srgb,var(--crit)_40%,transparent)]`} aria-labelledby="zakladanie-naglowek">
       <NaglowekKarty id="zakladanie-naglowek" tytul="Zakładanie konta nie powiodło się">
-        <Link href="/provisioning-queue?state=failed" className="ml-auto text-[13px] font-semibold text-data-hi hover:underline">
-          Kolejka zadań
-        </Link>
+        {joby === null ? null : (
+          <Link href="/provisioning-queue?state=failed" className="ml-auto text-[13px] font-semibold text-data-hi hover:underline">
+            Kolejka zadań
+          </Link>
+        )}
       </NaglowekKarty>
       {joby === null ? (
         <div className={`${WIERSZ} text-sm text-muted-foreground`}>Ponowienie wymaga PROVISIONING_MANAGE.</div>

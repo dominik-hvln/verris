@@ -101,4 +101,14 @@ describe("strona faktury", () => {
       if (href.startsWith("/invoices/f1#")) expect(strona).toContain(`id="${href.split("#")[1]}"`);
     }
   });
+
+  // Przegląd 10.10: strona wymaga BILLING_VIEW; księgowa bez CUSTOMERS_VIEW dostawała linki do kart, które kończą się odmową.
+  it("operator z samym BILLING_VIEW: klient i usługa jako tekst, bez linków do kart spoza roli", async () => {
+    const html = await render(faktura(), { role: "STAFF", isAdmin: false, permissions: ["BILLING_VIEW"] });
+    expect(html).toContain("jan@firma.pl");
+    expect(html).not.toContain('href="/customers/u1');
+    expect(html).not.toContain('href="/subscriptions/s1"');
+    const zUslugami = await render(faktura(), { role: "STAFF", isAdmin: false, permissions: ["BILLING_VIEW", "SUBSCRIPTIONS_MANAGE"] });
+    expect(zUslugami).toContain('href="/subscriptions/s1"');
+  });
 });

@@ -35,6 +35,8 @@ import { fetchStaffAccess } from "@/lib/staff-access";
 import { dzialaniaObiektu } from "@/lib/akcje/rejestr";
 import { AKCJE_KLIENTA } from "@/lib/akcje/klient";
 import { DzialaniaKarty } from "@/components/dzialania-karty";
+import { LinkJesli } from "@/components/link-jesli";
+import { brakUprawnienia } from "@/lib/akcje/wezel";
 import type { CordonRow } from "../../deliverability/actions";
 import type { ResellerRow } from "../../resellers/data";
 import type { ReferralEnrollmentRow } from "../../referral-enrollments/data";
@@ -129,6 +131,7 @@ export default async function AdminCustomerCardPage({
       ])
     : [null, undefined, undefined, undefined];
 
+  const doFaktury = !!dostep && !brakUprawnienia("BILLING_VIEW", dostep);
   const u = p.user;
   const osoba = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
   const nazwa = u.companyName?.trim() || osoba || u.email;
@@ -494,13 +497,13 @@ export default async function AdminCustomerCardPage({
             <section className={KARTA} aria-labelledby="faktury" data-karta="faktury">
               <NaglowekKarty id="faktury" tytul="Faktury" />
               {p.recentInvoices.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak faktur.</div> : null}
-              {/* Plan E, patch 10 — faktura prowadzi do swojej strony (PDF, korekta, anulowanie, KSeF). */}
+              {/* Plan E, patch 10 — faktura prowadzi do swojej strony (PDF, korekta, anulowanie, KSeF); strona wymaga BILLING_VIEW. */}
               {p.recentInvoices.map((f) => (
-                <Link key={f.id} href={`/invoices/${f.id}`} className={`${WIERSZ} hover:bg-raised`}>
+                <LinkJesli key={f.id} wolno={doFaktury} href={`/invoices/${f.id}`} className={`${WIERSZ} hover:bg-raised`}>
                   <span className="flex-1 font-mono text-[13px]">{f.number}</span>
                   <span className="text-[13px] text-muted-foreground">{etykieta(INVOICE_STATUS_PL, f.status)}</span>
                   <span className="w-[110px] text-right font-mono text-[13px]">{formatPlnAndCredits(f.amount, f.currency)}</span>
-                </Link>
+                </LinkJesli>
               ))}
             </section>
             <section className={KARTA} aria-labelledby="metody" data-karta="metody">
