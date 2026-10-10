@@ -74,8 +74,12 @@ function zbuduj(sub: unknown = { userId: WLASCICIEL, account: { id: 'acc1' } }) 
   };
   const audit = { record: vi.fn(async () => undefined) };
   const malware = { status: vi.fn(async () => ({ wToku: false, sprawdzono: null, ostatniSkan: null, razem: 0, znaleziska: [], kwarantanna: [], odrzucone: [], blad: null })) };
-  const ctrl = new KontoKlientaAdminController(prisma as never, directAdmin as never, php as never, mailLog as never, audit as never, malware as never);
-  return { ctrl, prisma, directAdmin, php, mailLog, audit, malware };
+  const zasobyKonta = {
+    widok: vi.fn(async () => ({ login: 'u1', faulty: { doba: null } })),
+    odczytaj: vi.fn(async () => ({ login: 'u1', faulty: { doba: null } })),
+  };
+  const ctrl = new KontoKlientaAdminController(prisma as never, directAdmin as never, php as never, mailLog as never, audit as never, malware as never, zasobyKonta as never);
+  return { ctrl, prisma, directAdmin, php, mailLog, audit, malware, zasobyKonta };
 }
 
 async function wpuszcza(metoda: keyof KontoKlientaAdminController, user: { userId: string; role: Role }, perms: string[]) {
@@ -100,7 +104,7 @@ describe('PB-42 KontoKlientaAdminController — uprawnienia', () => {
     expect(STAFF_PERMISSION_KEYS).toContain('ACCOUNT_DIAGNOSTICS_VIEW');
   });
 
-  it.each(['domeny', 'dns', 'poczta', 'bazy', 'phpKonta', 'ssl', 'cron', 'logi', 'logiPoczty', 'zlecLogiPoczty', 'ftp', 'malwareKonta'] as const)(
+  it.each(['domeny', 'dns', 'poczta', 'bazy', 'phpKonta', 'ssl', 'cron', 'logi', 'logiPoczty', 'zlecLogiPoczty', 'ftp', 'malwareKonta', 'zasoby', 'odczytajZasoby'] as const)(
     '%s: klient nie, staff tylko z ACCOUNT_DIAGNOSTICS_VIEW, admin tak',
     async (m) => {
       expect(await wpuszcza(m, { userId: 'c', role: Role.USER }, ['ACCOUNT_DIAGNOSTICS_VIEW'])).toBe(false);
@@ -110,6 +114,29 @@ describe('PB-42 KontoKlientaAdminController — uprawnienia', () => {
       expect(await wpuszcza(m, { userId: 'a', role: Role.ADMIN }, [])).toBe(true);
     },
   );
+});
+
+describe('F2.6 — zasoby i diagnoza 508 na karcie usługi', () => {
+  it('odczyt: dla właściciela usługi, wpis w dzienniku z sekcją „zasoby”', async () => {
+    const { ctrl, zasobyKonta, audit } = zbuduj();
+    await ctrl.zasoby('s1', OPERATOR);
+    expect(zasobyKonta.widok).toHaveBeenCalledWith('s1', WLASCICIEL);
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ actorUserId: 's-operator', userId: WLASCICIEL, details: { subscriptionId: 's1', sekcja: 'zasoby' } }));
+  });
+
+  it('wczytanie z serwera: zleca operator (nie właściciel), wpis z „wczytanie z serwera”', async () => {
+    const { ctrl, zasobyKonta, audit } = zbuduj();
+    await ctrl.odczytajZasoby('s1', OPERATOR);
+    expect(zasobyKonta.odczytaj).toHaveBeenCalledWith('s1', WLASCICIEL, 's-operator');
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ details: { subscriptionId: 's1', sekcja: 'zasoby', zlecenie: 'wczytanie z serwera' } }));
+  });
+
+  it('usługa bez konta → 404 bez wpisu i bez odczytu', async () => {
+    const { ctrl, zasobyKonta, audit } = zbuduj({ userId: WLASCICIEL, account: null });
+    await expect(ctrl.zasoby('s1', OPERATOR)).rejects.toBeInstanceOf(NotFoundException);
+    expect(zasobyKonta.widok).not.toHaveBeenCalled();
+    expect(audit.record).not.toHaveBeenCalled();
+  });
 });
 
 describe('PB-42 KontoKlientaAdminController — odczyty', () => {

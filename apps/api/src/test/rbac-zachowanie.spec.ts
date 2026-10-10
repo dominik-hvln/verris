@@ -582,3 +582,43 @@ describe('D11 — tablica migracji', () => {
     }
   });
 });
+
+/**
+ * F2.6 (10.10) — zasoby i diagnoza „508”: karta usługi (faulty, inody, wolne SQL, 5xx) — ACCOUNT_DIAGNOSTICS_VIEW
+ * (L2 i wyżej, NOC, abuse); konta przekraczające limity we flocie / na węźle — NODES_VIEW (NOC, L2+, audytor).
+ */
+describe('F2.6 — zasoby i diagnoza 508', () => {
+  const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
+  const trasa = (kontroler: string, metoda: string) => {
+    const t = TRASY.find((x) => x.kontroler === kontroler && x.metoda === metoda);
+    if (!t) throw new Error(`brak trasy ${kontroler}.${metoda}`);
+    return t;
+  };
+
+  it('karta usługi: odczyt i „wczytaj z serwera” — L2, L3, L4, NOC; L1, audytor i Marketing — nie', async () => {
+    for (const m of ['zasoby', 'odczytajZasoby']) {
+      const t = trasa('KontoKlientaAdminController', m);
+      for (const r of ['L2 Specjalista techniczny', 'L3 Starszy specjalista', 'L4 Kierownik zmiany', 'Inżynier infrastruktury (NOC/DevOps)']) {
+        expect({ m, r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ m, r, ok: true });
+      }
+      for (const r of ['L1 Konsultant', 'Audytor (tylko podgląd)', 'Marketing']) {
+        expect({ m, r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ m, r, ok: false });
+      }
+      expect(await wpuszcza(t, OPERATOR, ['NODES_VIEW', 'CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE'])).toBe(false);
+      expect(await wpuszcza(t, ADMIN)).toBe(true);
+      expect(await wpuszcza(t, KLIENT, ['ACCOUNT_DIAGNOSTICS_VIEW'])).toBe(false);
+    }
+  });
+
+  it('flota i węzeł: przekroczenia limitów — NODES_VIEW (NOC, audytor, L2+); L1 i Marketing — nie', async () => {
+    const t = trasa('ServersAdminController', 'przekroczenia');
+    expect(t.sciezka).toBe('admin/servers/przekroczenia');
+    for (const r of ['Inżynier infrastruktury (NOC/DevOps)', 'Audytor (tylko podgląd)', 'L2 Specjalista techniczny']) {
+      expect({ r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ r, ok: true });
+    }
+    for (const r of ['L1 Konsultant', 'Marketing']) expect({ r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ r, ok: false });
+    expect(await wpuszcza(t, OPERATOR, ['ACCOUNT_DIAGNOSTICS_VIEW'])).toBe(false);
+    expect(await wpuszcza(t, ADMIN)).toBe(true);
+    expect(await wpuszcza(t, KLIENT, ['NODES_VIEW'])).toBe(false);
+  });
+});

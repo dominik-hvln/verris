@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Account, Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CloudLinuxTelemetryDto } from './telemetry.dto.js';
+import { raportDoZapisu } from './faulty-lve.js';
 
 const DEFAULT_BUCKET_S = 60;
 const MIN_BUCKET_S = 15;
@@ -50,6 +51,10 @@ export class TelemetryService {
       data: {
         lastHeartbeatAt: new Date(),
         agentVersion: data.agentVersion ?? undefined,
+        // F2.6 — raport faultów nadpisuje poprzedni (także błędem narzędzia); bez bloku — zostaje ostatni raport.
+        ...(data.faults
+          ? { lveFaults: raportDoZapisu(data.faults) as unknown as Prisma.InputJsonValue, lveFaultsAt: new Date() }
+          : {}),
         ...(data.node
           ? {
               cagefsEnabled: data.node.cagefsEnabled ?? null,

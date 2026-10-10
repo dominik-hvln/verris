@@ -17,8 +17,9 @@ import { MalwareScanService } from './malware-scan.service.js';
 import { LogiHostinguQueryDto } from './dto/hosting-logs.dto.js';
 import { DziennikPocztyDto } from './dto/hosting-body.dto.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
+import { ZasobyKontaOperatoraService } from './zasoby-konta-operatora.service.js';
 
-export type SekcjaKonta = 'domeny' | 'dns' | 'poczta' | 'bazy' | 'php' | 'ssl' | 'cron' | 'logi' | 'logi-poczty' | 'ftp' | 'malware';
+export type SekcjaKonta = 'domeny' | 'dns' | 'poczta' | 'bazy' | 'php' | 'ssl' | 'cron' | 'logi' | 'logi-poczty' | 'ftp' | 'malware' | 'zasoby';
 
 /** Nazwa parametru/zmiennej/flagi, której wartość jest poświadczeniem (MYSQL_PWD, DB_PASS, cron_key, api-token, --http-password…). */
 const NAZWA_SEKRETU = String.raw`[\w-]*(?:pass|pwd|token|secret|key|auth)[\w-]*`;
@@ -77,6 +78,7 @@ export class KontoKlientaAdminController {
     private readonly mailLog: MailLogService,
     private readonly audit: AuditService,
     private readonly malware: MalwareScanService,
+    private readonly zasobyKonta: ZasobyKontaOperatoraService,
   ) {}
 
   /** Właściciel usługi z kontem hostingowym + wpis w dzienniku; brak usługi albo konta → 404 bez wpisu. */
@@ -206,6 +208,24 @@ export class KontoKlientaAdminController {
   async malwareKonta(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
     const userId = await this.wlasciciel(id, actor.userId, 'malware');
     return this.malware.status(id, userId);
+  }
+
+  /**
+   * F2.6 — „Zasoby i diagnoza 508”: faulty limitów (24 h / 7 dni) z raportu węzła, limity konta, inody, wolne SQL
+   * i błędy 5xx strony obok siebie (ostatnie odczyty — bez zlecania nowych zadań).
+   */
+  @Get('zasoby')
+  async zasoby(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    const userId = await this.wlasciciel(id, actor.userId, 'zasoby');
+    return this.zasobyKonta.widok(id, userId);
+  }
+
+  /** F2.6 — świeży odczyt wolnych SQL i statystyk strony z węzła (SLOW_SQL + SITE_STATS, tylko czytają logi). */
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'admin:konto-zasoby' })
+  @Post('zasoby')
+  async odczytajZasoby(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    const userId = await this.wlasciciel(id, actor.userId, 'zasoby', { zlecenie: 'wczytanie z serwera' });
+    return this.zasobyKonta.odczytaj(id, userId, actor.userId);
   }
 
   /** Ostatnie N linii logu dostępu/błędów domeny — jak u klienta (domyślnie 200, 20–1000). */

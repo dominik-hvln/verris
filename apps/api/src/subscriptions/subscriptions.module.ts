@@ -62,6 +62,7 @@ import { SlowSqlService } from './slow-sql.service.js';
 import { PgsqlService } from './pgsql.service.js';
 import { ObrazyService } from './obrazy.service.js';
 import { SiteStatsService } from './site-stats.service.js';
+import { ZasobyKontaOperatoraService } from './zasoby-konta-operatora.service.js';
 import { PublicApiWriteController } from './public-api-write.controller.js';
 import { GitWebhookController } from './git-webhook.controller.js';
 import { ApiTokensModule } from '../api-tokens/api-tokens.module.js';
@@ -135,6 +136,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
     PgsqlService,
     ObrazyService,
     SiteStatsService,
+    ZasobyKontaOperatoraService,
     WpAutoUpdateScheduler,
     WordpressService,
     WafService,

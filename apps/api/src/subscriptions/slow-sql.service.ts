@@ -18,7 +18,8 @@ export class SlowSqlService {
     return this.opis(account.id);
   }
 
-  async odswiez(subscriptionId: string, userId: string) {
+  /** `zlecajacyId` — kto zlecił odczyt (operator z karty usługi, F2.6); domyślnie właściciel. */
+  async odswiez(subscriptionId: string, userId: string, zlecajacyId: string = userId) {
     const account = await this.konto(subscriptionId, userId);
     if (account.status !== 'ACTIVE') throw new BadRequestException('Konto hostingowe nie jest aktywne.');
     const wToku = await this.prisma.nodeTask.findFirst({
@@ -31,7 +32,7 @@ export class SlowSqlService {
         accountId: account.id,
         kind: NodeTaskKind.SLOW_SQL,
         status: NodeTaskStatus.QUEUED,
-        requestedById: userId,
+        requestedById: zlecajacyId,
         payload: { daUser: account.daUsername },
       },
     });

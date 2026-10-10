@@ -1,7 +1,9 @@
 import {
+  ArrayMaxSize,
   ArrayMinSize,
   IsArray,
   IsBoolean,
+  IsIn,
   IsInt,
   IsISO8601,
   IsNotEmpty,
@@ -111,6 +113,54 @@ export class NodeStatusDto {
   totalDiskMb?: number;
 }
 
+/**
+ * F2.6 — faulty limitów jednego konta w oknie (liczba odbić od limitu). Źródło na węźle: `cloudlinux-statistics
+ * --json --period=1d|7d --order-by=any_faults`, sekcja `faults.<zasób>.lve` (format i jednostki:
+ * https://docs.cloudlinux.com/cloudlinuxos/command-line_tools/#cloudlinux-statistics, LVE-Stats 2 jak lveinfo:
+ * https://docs.cloudlinux.com/cloudlinuxos/command-line_tools/#lveinfo). Brak pola = węzeł go nie podał (np. IOPS < LVE 8).
+ */
+export class LveFaultsAccountDto {
+  @IsString() @IsNotEmpty() @MaxLength(64)
+  username!: string;
+
+  @IsOptional() @IsInt() @Min(0) cpu?: number;
+  @IsOptional() @IsInt() @Min(0) ep?: number;
+  @IsOptional() @IsInt() @Min(0) nproc?: number;
+  @IsOptional() @IsInt() @Min(0) pmem?: number;
+  @IsOptional() @IsInt() @Min(0) io?: number;
+  @IsOptional() @IsInt() @Min(0) iops?: number;
+}
+
+export class LveFaultsWindowDto {
+  /** Długość okna w godzinach: 24 (doba) albo 168 (7 dni). */
+  @IsInt() @IsIn([24, 168])
+  hours!: number;
+
+  /** Tylko konta z co najmniej jednym faultem (agent odfiltrowuje zera). */
+  @IsArray() @ArrayMaxSize(200)
+  @ValidateNested({ each: true })
+  @Type(() => LveFaultsAccountDto)
+  accounts!: LveFaultsAccountDto[];
+
+  /** Węzeł ma więcej kont z faultami niż limit raportu (lista ucięta do najgorszych). */
+  @IsOptional() @IsBoolean()
+  truncated?: boolean;
+}
+
+/**
+ * F2.6 — raport faultów z węzła (co ~10 min, niezależnie od kubełków zużycia). `error` = narzędzie zwróciło błąd
+ * (`result` ≠ `success`) — wtedy okien nie ma, a panel pokazuje błąd zamiast zer.
+ */
+export class LveFaultsReportDto {
+  @IsOptional() @IsArray() @ArrayMaxSize(2)
+  @ValidateNested({ each: true })
+  @Type(() => LveFaultsWindowDto)
+  windows?: LveFaultsWindowDto[];
+
+  @IsOptional() @IsString() @MaxLength(300)
+  error?: string;
+}
+
 export class CloudLinuxTelemetryDto {
   // serverId is authoritative from X-Server-Id; kept optional for self-tests.
   @IsOptional()
@@ -137,6 +187,12 @@ export class CloudLinuxTelemetryDto {
   @IsOptional()
   @IsISO8601()
   bucketStart?: string;
+
+  /** F2.6 — faulty limitów kont (opcjonalne: stary agent ich nie wysyła i nie psuje to raportu). */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => LveFaultsReportDto)
+  faults?: LveFaultsReportDto;
 
   /** Optional version of the agent — useful for compatibility checks. */
   @IsOptional()

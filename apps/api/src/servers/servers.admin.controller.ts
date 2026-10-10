@@ -15,6 +15,7 @@ import { PrzegladWezlaService } from './przeglad-wezla.service.js';
 import { WykresyFlotyService, sortZ, zakresZ } from './wykresy-floty.js';
 import { PrognozaWezlaService } from './prognoza-wezla.js';
 import { flotaZBazy } from '../admin-dashboard/stan-platformy.js';
+import { przekroczeniaZBazy } from './przekroczenia-limitow.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PolitykaPojemnosciDto, WygaszenieWezlaDto } from './dto/capacity-policy.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -116,6 +117,18 @@ export class ServersAdminController {
   @StaffPerm('NODES_VIEW')
   flota() {
     return flotaZBazy(this.prisma, Date.now()).then((f) => f.wiersze);
+  }
+
+  /**
+   * F2.6 — konta przekraczające limity (faulty LVE 24 h / 7 dni) we flocie albo na węźle (`wezel`), ze stanem raportu
+   * każdego węzła (kiedy, nieaktualny, błąd narzędzia). Trasa przed :id.
+   */
+  @Get('przekroczenia')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_VIEW')
+  przekroczenia(@Query('wezel') wezel?: string) {
+    return przekroczeniaZBazy(this.prisma, wezel || undefined, Date.now());
   }
 
   /** Prognoza floty: liczby z panelu + komentarz AI raz na 24 h (AI niczego nie wykonuje). Trasa przed :id. */

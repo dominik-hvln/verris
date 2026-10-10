@@ -28,7 +28,8 @@ export class SiteStatsService {
     return this.opis(account.id, domena);
   }
 
-  async odswiez(subscriptionId: string, userId: string, domain: string) {
+  /** `zlecajacyId` — kto zlecił odczyt (operator z karty usługi, F2.6); domyślnie właściciel. */
+  async odswiez(subscriptionId: string, userId: string, domain: string, zlecajacyId: string = userId) {
     const { account, domena } = await this.wymagaj(subscriptionId, userId, domain);
     if (account.status !== 'ACTIVE') throw new BadRequestException('Konto hostingowe nie jest aktywne.');
     const wToku = await this.prisma.nodeTask.findFirst({
@@ -41,7 +42,7 @@ export class SiteStatsService {
         accountId: account.id,
         kind: NodeTaskKind.SITE_STATS,
         status: NodeTaskStatus.QUEUED,
-        requestedById: userId,
+        requestedById: zlecajacyId,
         payload: { daUser: account.daUsername, domain: domena },
       },
     });

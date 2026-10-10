@@ -12,6 +12,11 @@
 #   2. TELEMETRY — read live per-LVE usage from /proc/lve/list (no dependency on
 #      the CloudLinux stats daemon) and POST per-account CPU%/RAM/IO/disk to
 #      /telemetry/lve so the autoscaling engine has real data.
+#   3. FAULTS (F2.6, co ~10 min) — liczba odbić kont od limitów (CPU, EP, NPROC,
+#      PMEM, IO, IOPS) w oknach 24 h i 7 dni z historii LVE-Stats 2
+#      (`cloudlinux-statistics --json`, format: https://docs.cloudlinux.com/cloudlinuxos/command-line_tools/#cloudlinux-statistics
+#      — to samo źródło co lveinfo: https://docs.cloudlinux.com/cloudlinuxos/command-line_tools/#lveinfo).
+#      Osobny POST /telemetry/lve z blokiem `faults`; błąd narzędzia idzie jako `faults.error`, nie jako zera.
 #
 # WHY lvectl and not DirectAdmin: verified on DA 1.697 + CloudLinux 10 that
 # CMD_API_MODIFY_USER / CMD_API_MANAGE_USER_PACKAGES return error=0 but do NOT
@@ -75,7 +80,11 @@ SID   = os.environ["VERRIS_SERVER_ID"]
 TOK   = os.environ["VERRIS_IDENTITY_TOKEN"]
 STATE = os.environ.get("STATE", "/var/run/verris-lve.state.json")
 LOG   = os.environ.get("LOG", "/var/log/verris-lve.log")
-AGENT_VERSION = "lve-agent/1.1"
+AGENT_VERSION = "lve-agent/1.2"
+FAULTS_STATE = "/var/run/verris-lve.faults.json"
+FAULTS_EVERY_S = 600
+FAULTS_LIMIT = 200
+FAULTS_STAT_BIN = "cloudlinux-statistics"
 HDR = {"X-Server-Id": SID, "X-Server-Token": TOK}
 
 def log(msg):
@@ -404,6 +413,100 @@ def report_node_status():
         log("node status POST failed: %s" % e)
 
 # --------------------------------------------------------------------------
+# 4) FAULTS — odbicia od limitów (F2.6, diagnoza „508”)
+# --------------------------------------------------------------------------
+# cloudlinux-statistics --json (LVE-Stats 2): {"result": "success", "users": [{"username", "faults": <lve_section>}]},
+# <lve_section> = {"cpu": {"lve": N}, "ep": {...}, "nproc": {...}, "pmem": {...}, "io": {...}, "iops": {...}}.
+# Błąd: "result" ≠ "success" (komunikat z "context"). --order-by=any_faults + --limit: najgorsze konta pierwsze,
+# bez niejednoznacznego --threshold. https://docs.cloudlinux.com/cloudlinuxos/command-line_tools/#cloudlinux-statistics
+FAULT_KEYS = ("cpu", "ep", "nproc", "pmem", "io", "iops")
+
+class FaultsError(Exception):
+    pass
+
+def faults_window(period, managed):
+    name = os.path.basename(FAULTS_STAT_BIN)
+    try:
+        r = subprocess.run([FAULTS_STAT_BIN, "--json", "--period=%s" % period, "--order-by=any_faults",
+                            "--limit=%d" % FAULTS_LIMIT], capture_output=True, text=True, timeout=120)
+    except FileNotFoundError:
+        raise FaultsError("brak %s (LVE-Stats 2)" % name)
+    except subprocess.TimeoutExpired:
+        raise FaultsError("%s --period=%s: przekroczony czas" % (name, period))
+    try:
+        j = json.loads(r.stdout or "")
+    except Exception:
+        raise FaultsError("%s --period=%s: exit %d, %s" % (name, period, r.returncode,
+                          ((r.stderr or r.stdout or "").strip() or "brak odpowiedzi")[:200]))
+    if not isinstance(j, dict) or j.get("result") != "success":
+        res = str(j.get("result") if isinstance(j, dict) else j)
+        ctx = j.get("context") if isinstance(j, dict) else None
+        try:
+            res = res % ctx if isinstance(ctx, dict) else res
+        except Exception:
+            pass
+        raise FaultsError(("%s --period=%s: %s" % (name, period, res))[:300])
+    users = j.get("users") or []
+    accounts = []
+    for u in users:
+        name = u.get("username") if isinstance(u, dict) else None
+        if not name or name not in managed:
+            continue
+        f = u.get("faults") or {}
+        row = {"username": name}
+        for k in FAULT_KEYS:
+            v = (f.get(k) or {}).get("lve") if isinstance(f.get(k), dict) else None
+            if isinstance(v, (int, float)) and v >= 0:
+                row[k] = int(v)
+        if any(row.get(k, 0) > 0 for k in FAULT_KEYS):
+            accounts.append(row)
+    # Pełna strona i ostatnie konto nadal z faultami = na węźle jest ich więcej, niż zmieściło się w raporcie.
+    last = users[-1] if users and isinstance(users[-1], dict) else {}
+    last_f = last.get("faults") or {}
+    truncated = len(users) >= FAULTS_LIMIT and any(
+        isinstance(last_f.get(k), dict) and (last_f[k].get("lve") or 0) > 0 for k in FAULT_KEYS)
+    return accounts, truncated
+
+def faults_report(managed):
+    windows = []
+    try:
+        for period, hours in (("1d", 24), ("7d", 168)):
+            accounts, truncated = faults_window(period, managed)
+            windows.append({"hours": hours, "accounts": accounts, "truncated": truncated})
+    except FaultsError as e:
+        return {"error": str(e)[:300]}
+    return {"windows": windows}
+
+def faults_due(now):
+    try:
+        with open(FAULTS_STATE) as f:
+            return now - float(json.load(f).get("ts", 0)) >= FAULTS_EVERY_S
+    except Exception:
+        return True
+
+def report_faults(desired):
+    now = time.time()
+    if not faults_due(now):
+        return
+    managed = set(d["username"] for d in desired.get("accounts", []) if d.get("username"))
+    report = faults_report(managed)
+    try:
+        # Osobny POST: API bez obsługi `faults` odrzuci tylko ten raport, nie telemetrię zużycia.
+        api_post("/telemetry/lve", {"agentVersion": AGENT_VERSION, "accounts": [], "faults": report})
+    except Exception as e:
+        log("faults POST failed: %s" % e)
+        return
+    try:
+        with open(FAULTS_STATE, "w") as f:
+            json.dump({"ts": now}, f)
+    except Exception as e:
+        log("faults state save failed: %s" % e)
+    if "error" in report:
+        log("faults: %s" % report["error"])
+    else:
+        log("faults: %s" % ", ".join("%dh=%d" % (w["hours"], len(w["accounts"])) for w in report["windows"]))
+
+# --------------------------------------------------------------------------
 def main():
     try:
         desired = api_get("/agent/tasks/lve/desired")
@@ -425,6 +528,10 @@ def main():
         report_node_status()
     except Exception as e:
         log("node status error: %s" % e)
+    try:
+        report_faults(desired)
+    except Exception as e:
+        log("faults error: %s" % e)
 
 main()
 PYEOF
