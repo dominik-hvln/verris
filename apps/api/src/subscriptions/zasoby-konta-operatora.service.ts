@@ -65,7 +65,8 @@ export class ZasobyKontaOperatoraService {
         ioKbps: a.ioLimitKbps,
         iops: a.iopsLimit,
       },
-      faulty: faultyKonta(a.server, a.daUsername, Date.now()),
+      // Audyt Fal 2 — konto zawieszone nie trafia do raportu agenta: brak danych, nie „0 odbić”.
+      faulty: faultyKonta(a.server, a.daUsername, Date.now(), a.status === 'ACTIVE'),
       inody: { uzyte: polaczenie.inodes.used, limit: polaczenie.inodes.limit, blad: polaczenie.fetchError },
       wolneSql,
       strona,

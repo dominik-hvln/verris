@@ -87,6 +87,15 @@ describe("F2.6 — zasoby i diagnoza 508 na karcie usługi", () => {
     expect(opis).not.toContain("Bez przekroczeń");
   });
 
+  it("audyt Fal 2: konto zawieszone (poza raportem węzła) — „—” i informacja, nie „Raport węzła … temu”", async () => {
+    akcja.mockResolvedValue({ ok: true, wynik: { ...DANE, faulty: { ...DANE.faulty, doba: null, tydzien: null, pozaRaportem: true } } });
+    await render(op("ACCOUNT_DIAGNOSTICS_VIEW"));
+    expect(komorka("ep")).toEqual(["Procesy wejściowe (EP)", "30", "—", "—"]);
+    expect(k.querySelector("[data-diagnoza]")).toBeNull();
+    expect(k.querySelector("[data-raport]")?.getAttribute("data-raport")).toBe("poza");
+    expect(k.querySelector("[data-raport]")?.textContent).toContain("brak danych");
+  });
+
   it("błąd narzędzia na węźle widoczny jako błąd; „Wczytaj” zleca odczyt z serwera", async () => {
     akcja.mockResolvedValueOnce({ ok: true, wynik: { ...DANE, faulty: { ...DANE.faulty, blad: "cloudlinux-statistics --period=1d: database is locked", doba: null, tydzien: null } } });
     await render({ isAdmin: true, permissions: [] });

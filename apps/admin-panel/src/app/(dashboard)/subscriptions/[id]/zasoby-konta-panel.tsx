@@ -167,7 +167,11 @@ export function ZasobyKontaPanel({ subscriptionId, dostep }: { subscriptionId: s
                 })}
               </tbody>
             </table>
-            {raport ? (
+            {d.faulty.pozaRaportem ? (
+              <p className="text-xs text-amber-200" data-raport="poza">
+                Konto nie jest aktywne — węzeł nie raportuje jego odbić od limitów (brak danych, także sprzed zawieszenia).
+              </p>
+            ) : raport ? (
               <p className={`text-xs ${TON[raport.ton]}`} data-raport={raport.ton}>
                 {raport.tekst}
                 {d.faulty.doba ? ` Razem w dobie: ${liczba(sumaFaultow(d.faulty.doba))}.` : ""}

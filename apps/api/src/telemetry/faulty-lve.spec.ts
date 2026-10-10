@@ -61,6 +61,13 @@ describe('F2.6 — faulty limitów z węzła', () => {
     expect(faultyKonta({ ...swiezy, lveFaultsAt: new Date(TERAZ - 60 * 60_000) }, 'u1', TERAZ).nieaktualne).toBe(true);
   });
 
+  it('audyt Fal 2: konto nieaktywne (zawieszone) — agent go nie raportuje, więc brak danych, nie zera', () => {
+    const raport = raportDoZapisu({ windows: [{ hours: 24, accounts: [{ username: 'u1', ep: 5 }] }, { hours: 168, accounts: [] }] });
+    const serwer = { lveFaults: raport, lveFaultsAt: new Date(TERAZ - 60_000) };
+    expect(faultyKonta(serwer, 'u9', TERAZ, false)).toMatchObject({ doba: null, tydzien: null, pozaRaportem: true, nieaktualne: false });
+    expect(faultyKonta(serwer, 'u9', TERAZ)).toMatchObject({ doba: { ep: 0 }, tydzien: { ep: 0 }, pozaRaportem: false });
+  });
+
   it('okno ucięte (więcej kont z faultami niż w raporcie) bez konta = brak danych, nie zera', () => {
     const raport = raportDoZapisu({
       windows: [

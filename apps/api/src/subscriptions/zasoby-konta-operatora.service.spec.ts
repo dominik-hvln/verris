@@ -37,6 +37,12 @@ function zbuduj(konto: unknown = KONTO) {
 }
 
 describe('ZasobyKontaOperatoraService', () => {
+  it('audyt Fal 2: konto zawieszone — faulty jako brak danych (agent raportuje tylko konta ACTIVE), nie „0 odbić”', async () => {
+    const { svc } = zbuduj({ ...KONTO, daUsername: 'zawieszony', status: 'SUSPENDED' });
+    const w = await svc.widok('s1', 'k1');
+    expect(w.faulty).toMatchObject({ doba: null, tydzien: null, pozaRaportem: true });
+  });
+
   it('widok: faulty 24 h i 7 dni konta, limity efektywne, inody, wolne SQL i 5xx — wszystko dla właściciela', async () => {
     const { svc, directAdmin, slowSql, siteStats } = zbuduj();
     const w = await svc.widok('s1', 'wlasciciel');

@@ -12,7 +12,7 @@ export type ZasobyKonta = {
   login: string;
   domena: string | null;
   limity: { cpuProcent: number; ep: number; nproc: number; ramMb: number; ioKbps: number; iops: number };
-  faulty: { odczytano: string | null; nieaktualne: boolean; blad: string | null; doba: Faulty | null; tydzien: Faulty | null };
+  faulty: { odczytano: string | null; nieaktualne: boolean; blad: string | null; doba: Faulty | null; tydzien: Faulty | null; pozaRaportem?: boolean };
   inody: { uzyte: number | null; limit: number | null; blad: string | null };
   wolneSql: {
     wToku: boolean;

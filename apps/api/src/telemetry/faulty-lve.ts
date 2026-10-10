@@ -58,15 +58,21 @@ export type FaultyKontaWidok = {
   /** Raport starszy niż 30 min — agent przestał raportować. */
   nieaktualne: boolean;
   blad: string | null;
-  /** null = węzeł nie podał tego okna. */
+  /** null = węzeł nie podał tego okna (albo konto jest poza raportem — `pozaRaportem`). */
   doba: FaultyKonta | null;
   tydzien: FaultyKonta | null;
+  /**
+   * Audyt Fal 2 — konto nieaktywne (zawieszone): agent raportuje faulty tylko kont z /lve/desired (ACTIVE,
+   * node-tasks.service.ts getDesiredLveForServer), więc brak konta w oknie to brak danych, nie zero.
+   */
+  pozaRaportem: boolean;
 };
 
 const ZERO: FaultyKonta = { cpu: 0, ep: 0, nproc: 0, pmem: 0, io: 0, iops: 0 };
 
 /**
- * Faulty jednego konta z raportu węzła — zera tylko wtedy, gdy węzeł faktycznie podał okno bez tego konta.
+ * Faulty jednego konta z raportu węzła — zera tylko wtedy, gdy węzeł faktycznie podał okno bez tego konta
+ * i konto było objęte raportem (`kontoAktywne`; agent filtruje do kont ACTIVE).
  * Okno ucięte (`obcieto`: węzeł ma więcej kont z faultami niż mieści raport) bez tego konta = brak danych, nie zera —
  * konto spoza 200 najgorszych też mogło się odbijać od limitów.
  */
@@ -74,11 +80,12 @@ export function faultyKonta(
   serwer: { lveFaults: unknown; lveFaultsAt: Date | null },
   username: string,
   teraz: number,
+  kontoAktywne = true,
 ): FaultyKontaWidok {
   const r = raportZBazy(serwer.lveFaults);
   const okno = (h: 24 | 168) => {
     const o = r?.okna.find((x) => x.godzin === h);
-    if (!o) return null;
+    if (!o || !kontoAktywne) return null;
     if (Object.hasOwn(o.konta, username)) return o.konta[username];
     return o.obcieto ? null : ZERO;
   };
@@ -88,6 +95,7 @@ export function faultyKonta(
     blad: r?.blad ?? null,
     doba: okno(24),
     tydzien: okno(168),
+    pozaRaportem: !kontoAktywne,
   };
 }
 
