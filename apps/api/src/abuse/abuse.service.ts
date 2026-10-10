@@ -150,13 +150,24 @@ export class AbuseService {
     }
     let zawieszono = false;
     let wysylkaZablokowana = false;
-    // F3.1 — blokada wysyłki przed zawieszeniem: gdy się nie uda, decyzja nie zapisuje się, a maile nie wychodzą.
+    // Przegląd F3.1 — wszystkie warunki (status, usługa, uprawnienia) blokady i zawieszenia sprawdzone, ZANIM
+    // cokolwiek zmieni się na węźle: inaczej odmowa zawieszenia zostawiała zablokowaną wysyłkę bez zapisanej decyzji.
     if (dto.blockSending) {
       if (dto.status !== 'ACTION_TAKEN') throw new BadRequestException('Wysyłkę blokuje się razem z decyzją „Podjęto działania”.');
       if (!r.subscriptionId) throw new BadRequestException('Zgłoszenie nie jest dopasowane do usługi — zablokuj wysyłkę z karty usługi.');
       if (rola !== 'ADMIN' && !(await uprawnieniaOperatora(this.prisma, staffId)).includes('MAIL_SEND_BLOCK')) {
         throw new ForbiddenException('Blokada wysyłki wymaga uprawnienia MAIL_SEND_BLOCK. Zapisz decyzję bez blokady albo poproś osobę z uprawnieniem.');
       }
+    }
+    if (dto.suspendService) {
+      if (dto.status !== 'ACTION_TAKEN') throw new BadRequestException('Usługę zawiesza się razem z decyzją „Podjęto działania”.');
+      if (!r.subscriptionId) throw new BadRequestException('Zgłoszenie nie jest dopasowane do usługi — zawieś ją z karty usługi.');
+      if (rola !== 'ADMIN' && !(await uprawnieniaOperatora(this.prisma, staffId)).includes('SUBSCRIPTIONS_SUSPEND')) {
+        throw new ForbiddenException('Zawieszenie usługi wymaga uprawnienia SUBSCRIPTIONS_SUSPEND. Zapisz decyzję bez zawieszenia albo wyślij wniosek z karty usługi.');
+      }
+    }
+    // F3.1 — blokada wysyłki przed zawieszeniem: gdy się nie uda, decyzja nie zapisuje się, a maile nie wychodzą.
+    if (dto.blockSending && r.subscriptionId) {
       await this.poczta.zablokuj({
         subscriptionId: r.subscriptionId,
         operatorUserId: staffId,
@@ -166,12 +177,7 @@ export class AbuseService {
       });
       wysylkaZablokowana = true;
     }
-    if (dto.suspendService) {
-      if (dto.status !== 'ACTION_TAKEN') throw new BadRequestException('Usługę zawiesza się razem z decyzją „Podjęto działania”.');
-      if (!r.subscriptionId) throw new BadRequestException('Zgłoszenie nie jest dopasowane do usługi — zawieś ją z karty usługi.');
-      if (rola !== 'ADMIN' && !(await uprawnieniaOperatora(this.prisma, staffId)).includes('SUBSCRIPTIONS_SUSPEND')) {
-        throw new ForbiddenException('Zawieszenie usługi wymaga uprawnienia SUBSCRIPTIONS_SUSPEND. Zapisz decyzję bez zawieszenia albo wyślij wniosek z karty usługi.');
-      }
+    if (dto.suspendService && r.subscriptionId) {
       // Najpierw zawieszenie — gdy się nie uda, decyzja nie zapisuje się, a maile nie wychodzą.
       await this.zawieszenie.zawies({
         subscriptionId: r.subscriptionId,

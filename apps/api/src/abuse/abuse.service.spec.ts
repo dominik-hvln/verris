@@ -165,6 +165,16 @@ describe('N-13 — zgłoszenia nadużyć', () => {
       await expect(zZawieszeniem({ subscriptionId: null }).s.decyzja('r1', { status: 'ACTION_TAKEN', decision: UZ, blockSending: true }, 'adm', 'ADMIN')).rejects.toThrow(/karty usługi/);
     });
 
+    it('przegląd F3.1: blokada + zawieszenie bez SUBSCRIPTIONS_SUSPEND → 403 ZANIM węzeł zablokuje wysyłkę (bez stanu połowicznego)', async () => {
+      const { s, poczta, zawieszenie, prisma } = zZawieszeniem({ uprawnienia: ['ABUSE_MANAGE', 'MAIL_SEND_BLOCK'] });
+      await expect(
+        s.decyzja('r1', { status: 'ACTION_TAKEN', decision: UZ, blockSending: true, suspendService: true }, 'staff1', 'STAFF'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(poczta.zablokuj).not.toHaveBeenCalled();
+      expect(zawieszenie.zawies).not.toHaveBeenCalled();
+      expect(prisma.abuseReport.update).not.toHaveBeenCalled();
+    });
+
     it('F3.1: blokada się nie udała (błąd węzła) → błąd, nic nie zawieszone, decyzja niezapisana', async () => {
       const { s, prisma, zawieszenie } = zZawieszeniem({ blad: new Error('węzeł nie potwierdził blokady') });
       await expect(s.decyzja('r1', { status: 'ACTION_TAKEN', decision: UZ, blockSending: true, suspendService: true }, 'adm', 'ADMIN')).rejects.toThrow(/węzeł/);

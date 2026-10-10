@@ -218,8 +218,9 @@ export class SubscriptionsService {
     if (!subscription) throw new NotFoundException('Nie znaleziono usługi.');
     // Zaszyfrowane hasło konta hostingowego nie wychodzi do panelu (także do subkont z podglądem) —
     // hasło w jawnej postaci daje tylko hosting-da-links, z kontrolą uprawnień.
+    // Przegląd F3.1 — powód blokady wysyłki i kto ją nałożył to notatka zespołu (D3); klient widzi tylko mailBlockedAt.
     if (!subscription.account) return subscription;
-    const { daPasswordEnc, ...account } = subscription.account;
+    const { daPasswordEnc, mailBlockedById, mailBlockedReason, ...account } = subscription.account;
     return { ...subscription, account };
   }
 

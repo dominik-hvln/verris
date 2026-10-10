@@ -90,10 +90,14 @@ export class PocztaKontaOperatoraService {
           where: { id: w.konto.id, mailBlockedAt: null },
           data: { mailBlockedAt: new Date(), mailBlockedById: z.operatorUserId, mailBlockedReason: z.powod.trim().slice(0, 500) },
         });
-        await this.kordon.cordon(w.userId, `${KORDON_Z_BLOKADY}: ${z.powod.trim()}`.slice(0, 300), {
-          subscriptionId: z.subscriptionId,
-          source: 'operator',
-        });
+        // Przegląd F3.1 — kordon już nałożony (np. automatyczny po skoku wysyłki) zostaje ze swoim powodem: cordon()
+        // nadpisuje powód, a „Zwolnij” zdjęłoby wtedy kordon, którego obsługa nie nakładała.
+        if (!(await this.kordon.isCordoned(w.userId))) {
+          await this.kordon.cordon(w.userId, `${KORDON_Z_BLOKADY}: ${z.powod.trim()}`.slice(0, 300), {
+            subscriptionId: z.subscriptionId,
+            source: 'operator',
+          });
+        }
         return { ok: true as const, zablokowana: true, juzByla: juz.count === 0, zmienionoNaWezle: zmieniono };
       },
       { action: HostingResourceActions.HOSTING_MAIL_SENDING_BLOCKED, details: {} },

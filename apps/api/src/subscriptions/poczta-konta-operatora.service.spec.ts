@@ -166,6 +166,15 @@ describe('F3.1 PocztaKontaOperatoraService — blokada wysyłki', () => {
     expect(await dwa.kordon.isCordoned(WLASCICIEL)).toBe(true);
   });
 
+  it('przegląd: blokada na koncie już w kordonie automatycznym nie podmienia jego powodu — zwolnienie blokady go nie zdejmuje', async () => {
+    const { svc, kordon } = zbuduj();
+    await kordon.cordon(WLASCICIEL, 'skok wysyłki: 500/min > 200');
+    await svc.zablokuj(z());
+    expect(await kordon.powodKordonu(WLASCICIEL)).toBe('skok wysyłki: 500/min > 200');
+    expect((await svc.zwolnij(z('Klient usunął formularz, skan czysty'))).kordonZdjety).toBe(false);
+    expect(await kordon.isCordoned(WLASCICIEL)).toBe(true);
+  });
+
   it('stan: baza (kto, kiedy, powód) i węzeł; błąd odczytu z węzła nie ukrywa stanu z bazy', async () => {
     const ok = zbuduj();
     await ok.svc.zablokuj(z());
