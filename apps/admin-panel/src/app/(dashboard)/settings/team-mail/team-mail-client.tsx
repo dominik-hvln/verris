@@ -4,6 +4,8 @@ import { plForm } from "@/lib/pl";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, RefreshCw, Plus, KeyRound, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { potwierdz } from "@/components/potwierdz";
+import { Pomoc } from "@/components/pomoc";
 import type {
   ControlPlaneMailboxDetail,
   ControlPlaneMailboxRow,
@@ -18,6 +20,7 @@ import {
   removeTeamMailboxAliasAction,
   removeTeamMailboxForwardAction,
   resetTeamMailboxPasswordAction,
+  suspendTeamMailboxAction,
   syncPostfixMapsAction,
   updateSystemAddressesAction,
 } from "./actions";
@@ -195,6 +198,16 @@ export function TeamMailClient({
     });
   };
 
+  const zawies = async (row: ControlPlaneMailboxRow) => {
+    if (!(await potwierdz(`Zawiesić ${row.email}? Skrzynka przestanie przyjmować pocztę i logowanie.`, { tytul: "Zawieś skrzynkę", akcja: "Zawieś", niebezpieczne: true }))) return;
+    setErr(null);
+    start(async () => {
+      const res = await suspendTeamMailboxAction(row.id);
+      if (!res.ok) setErr(res.error ?? "Błąd");
+      router.refresh();
+    });
+  };
+
   const syncMaps = () => {
     setSyncMsg(null);
     start(async () => {
@@ -331,9 +344,22 @@ export function TeamMailClient({
                           <KeyRound className="h-3 w-3" />
                           Generuj hasło IMAP
                         </button>
-                      ) : (
-                        "—"
-                      )}
+                      ) : null}
+                      {row.status === "ACTIVE" ? (
+                        <span className="ml-1.5 inline-flex items-center gap-1">
+                          <button
+                            type="button"
+                            disabled={pending}
+                            onClick={() => void zawies(row)}
+                            data-akcja="zawies-skrzynke"
+                            className="inline-flex items-center gap-1 rounded border border-rose-500/30 px-2 py-1 text-xs text-rose-200 hover:bg-rose-500/10"
+                          >
+                            Zawieś
+                          </button>
+                          <Pomoc id="zawies-skrzynke" />
+                        </span>
+                      ) : null}
+                      {row.status !== "ACTIVE" ? "—" : null}
                     </td>
                   </tr>
                   {open ? (

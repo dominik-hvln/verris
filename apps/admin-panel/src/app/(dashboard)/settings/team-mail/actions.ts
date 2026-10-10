@@ -133,6 +133,17 @@ export async function resetTeamMailboxPasswordAction(
   }
 }
 
+/** Fala 1B — „Zawieś skrzynkę” (POST /admin/mailboxes/:id/suspend, ADMIN): znika z map poczty przy synchronizacji. */
+export async function suspendTeamMailboxAction(mailboxId: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await adminApi(`/admin/mailboxes/${encodeURIComponent(mailboxId)}/suspend`, { method: "POST" });
+    revalidatePath("/settings/team-mail");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof AdminApiError ? e.message : "Nie udało się zawiesić skrzynki." };
+  }
+}
+
 export async function addTeamMailboxForwardAction(
   mailboxId: string,
   forwardTo: string,
