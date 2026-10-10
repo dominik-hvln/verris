@@ -48,6 +48,19 @@ describe("Działania usługi", () => {
     );
   });
 
+  it("F2.2: akcje na koncie od ACCOUNT_ACTIONS (L2), edycja DNS od DNS_MANAGE (L3); bez konta albo po usunięciu — brak", () => {
+    const l2 = dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("ACCOUNT_DIAGNOSTICS_VIEW", "ACCOUNT_ACTIONS"));
+    const po = (id: string) => l2.find((x) => x.id === id)!;
+    expect(po("akcje-konta")).toMatchObject({ zablokowane: null, href: "/subscriptions/s1?sekcja=konto#akcje-konta" });
+    expect(po("edycja-dns").zablokowane).toBe("Wymaga DNS_MANAGE");
+    expect(dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("DNS_MANAGE")).find((x) => x.id === "edycja-dns")?.zablokowane).toBeNull();
+    expect(dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("CUSTOMERS_VIEW")).find((x) => x.id === "akcje-konta")?.zablokowane).toBe("Wymaga ACCOUNT_ACTIONS");
+    for (const u of [{ ...aktywna, maKonto: false }, { ...aktywna, kontoUsuniete: true }]) {
+      expect(ids(u)).not.toContain("akcje-konta");
+      expect(ids(u)).not.toContain("edycja-dns");
+    }
+  });
+
   it("Cmd+K bez pełnego stanu (sam status z wyszukiwarki): pokazuje to, czego nie da się wykluczyć", () => {
     const zPalety = ids({ id: "s1", status: "PROVISIONING", klientId: "u1" });
     expect(zPalety).toContain("zakladanie");

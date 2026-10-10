@@ -138,6 +138,18 @@ export const POMOC = {
     opis: "Migracje tej usługi z krokami: ponowienie kroku, który padł, i zamknięcie uwagi przy migracji.",
     kiedy: "Gdy migracja stoi na błędzie albo czeka na decyzję zespołu.",
   },
+  // F2.2 — pasek akcji konta na karcie usługi.
+  "akcje-konta": {
+    tytul: "Akcje na koncie",
+    opis: "Reset hasła skrzynki, FTP i bazy, ponowny certyfikat SSL, zmiana PHP, kopia i skan malware na koncie klienta bez wchodzenia na nie.",
+    kiedy: "Gdy klient prosi o pomoc albo konto trzeba szybko zabezpieczyć — zawsze z powodem i numerem zgłoszenia.",
+    rozniSieOd: "Wejście na konto klienta otwiera cały jego panel; tu są tylko wybrane akcje, a nowych haseł nikt z obsługi nie widzi.",
+  },
+  "edycja-dns": {
+    tytul: "Edycja DNS",
+    opis: "Dodaje, zmienia i usuwa rekordy strefy domeny klienta z powodem w dzienniku.",
+    kiedy: "Gdy klient prosi o zmianę rekordu — zła wartość może wyłączyć stronę albo pocztę, więc tylko od L3.",
+  },
   korekta: {
     tytul: "Wystaw korektę",
     opis: "Wystawia fakturę korygującą (seria VFK) do opłaconej faktury: zwrot, rabat albo poprawka danych nabywcy.",

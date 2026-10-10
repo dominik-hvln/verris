@@ -24,6 +24,7 @@ import { PlanChangeForm } from "./plan-change-form";
 import { ServiceUsagePanel } from "./usage-panel";
 import { DiagnosticsPanel } from "./diagnostics-panel";
 import { KontoKlientaPanel } from "./konto-klienta-panel";
+import { PasekAkcjiKonta } from "./pasek-akcji-konta";
 import { SuspendForm, ZakonczIUsunForm } from "./suspend-form";
 import { RestorePanel } from "./restore-panel";
 import { OdtworzenieNaWezlePanel } from "./odtworzenie-na-wezle-panel";
@@ -222,6 +223,12 @@ export default async function AdminSubscriptionDetailPage({
           <section id="diagnostyka" className="scroll-mt-24">
             <DiagnosticsPanel subscriptionId={d.id} />
           </section>
+          {/* F2.2 — akcje na koncie bez impersonacji (powód, zgłoszenie, dziennik); bez konta albo po jego usunięciu — nic do zmiany. */}
+          {kontoZostalo ? (
+            <section id="akcje-konta" className="scroll-mt-24">
+              <PasekAkcjiKonta subscriptionId={d.id} dostep={access} />
+            </section>
+          ) : null}
           {d.account ? (
             <section id="konto-klienta" className="scroll-mt-24">
               <KontoKlientaPanel subscriptionId={d.id} />

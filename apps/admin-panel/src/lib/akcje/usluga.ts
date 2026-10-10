@@ -100,6 +100,30 @@ export const AKCJE_USLUGI: AkcjaObiektu<UslugaDlaAkcji>[] = [
     slowa: "dns poczta bazy php logi dziennik poczty cron ssl",
   },
   {
+    id: "akcje-konta",
+    grupa: "Konto",
+    nazwa: "Akcje na koncie",
+    opis: "Reset haseł, SSL, PHP, kopia i skan bez wchodzenia na konto klienta.",
+    // F2.2 — admin/subscriptions/:id/konto/akcje/* — ACCOUNT_ACTIONS (L2).
+    perm: "ACCOUNT_ACTIONS",
+    kiedy: (u) => konto(u) && !u.kontoUsuniete,
+    href: (u) => karta(u, "konto", "akcje-konta"),
+    slowa: "hasło reset skrzynka poczta ftp baza ssl certyfikat php kopia backup skan malware wirus",
+    pomocId: "akcje-konta",
+  },
+  {
+    id: "edycja-dns",
+    grupa: "Konto",
+    nazwa: "Edycja DNS",
+    opis: "Dodanie, zmiana i usunięcie rekordów strefy klienta.",
+    // F2.2 — admin/subscriptions/:id/konto/akcje/dns* — DNS_MANAGE (L3).
+    perm: "DNS_MANAGE",
+    kiedy: (u) => konto(u) && !u.kontoUsuniete,
+    href: (u) => karta(u, "konto", "akcje-konta"),
+    slowa: "dns rekord strefa a aaaa mx txt cname spf dkim",
+    pomocId: "edycja-dns",
+  },
+  {
     id: "diagnostyka",
     grupa: "Konto",
     nazwa: "Diagnostyka",

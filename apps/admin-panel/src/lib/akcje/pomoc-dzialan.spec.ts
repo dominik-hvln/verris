@@ -10,6 +10,8 @@ import { AKCJE_USLUGI } from "./usluga";
 const OCZEKIWANE: [string, string, string, readonly { id: string; pomocId?: string }[]][] = [
   ["usługa", "zakladanie", "zakladanie", AKCJE_USLUGI],
   ["usługa", "migracje", "zlecenia-migracji", AKCJE_USLUGI],
+  ["usługa", "akcje-konta", "akcje-konta", AKCJE_USLUGI],
+  ["usługa", "edycja-dns", "edycja-dns", AKCJE_USLUGI],
   ["faktura", "korekta", "korekta", AKCJE_FAKTURY],
   ["faktura", "anuluj", "anuluj-fakture", AKCJE_FAKTURY],
   ["faktura", "ksef", "ksef-ponow", AKCJE_FAKTURY],
