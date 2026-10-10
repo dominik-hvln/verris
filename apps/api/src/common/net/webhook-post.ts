@@ -15,14 +15,15 @@ import { adresyWezlow, isControlPlaneIp, naLiscie } from './adresy-verris.js';
 export function postWebhookBezpiecznie(raw: string, headers: Record<string, string>, body: string, timeoutMs = 10_000): Promise<number> {
   const url = new URL(raw);
   if (url.protocol !== 'https:') return Promise.reject(new Error('Webhook URL must use HTTPS.'));
-  return new Promise((resolve, reject) => {
+  const opcje = opcjeDlaPortu(url);
+  return odrzucAdresWprost(url, opcje).then(() => new Promise<number>((resolve, reject) => {
     const req = httpsRequest(
       url,
       {
         method: 'POST',
         headers: { ...headers, 'content-length': String(Buffer.byteLength(body)) },
         timeout: timeoutMs,
-        lookup: lookupBezpieczny(opcjeDlaPortu(url)) as never,
+        lookup: lookupBezpieczny(opcje) as never,
       },
       (res) => {
         res.resume();
@@ -32,7 +33,7 @@ export function postWebhookBezpiecznie(raw: string, headers: Record<string, stri
     req.on('timeout', () => req.destroy(new Error('Timeout')));
     req.on('error', reject);
     req.end(body);
-  });
+  }));
 }
 
 /**
@@ -43,15 +44,16 @@ export function getBezpiecznie(raw: string, headers: Record<string, string>, tim
   const url = new URL(raw);
   const req = url.protocol === 'https:' ? httpsRequest : url.protocol === 'http:' ? httpRequest : null;
   if (!req) return Promise.reject(new Error('Nieobsługiwany protokół.'));
-  return new Promise((resolve, reject) => {
-    const r = req(url, { method: 'GET', headers, timeout: timeoutMs, lookup: lookupBezpieczny(opcjeDlaPortu(url)) as never }, (res) => {
+  const opcje = opcjeDlaPortu(url);
+  return odrzucAdresWprost(url, opcje).then(() => new Promise<number>((resolve, reject) => {
+    const r = req(url, { method: 'GET', headers, timeout: timeoutMs, lookup: lookupBezpieczny(opcje) as never }, (res) => {
       res.resume();
       resolve(res.statusCode ?? 0);
     });
     r.on('timeout', () => r.destroy(Object.assign(new Error('timeout'), { name: 'AbortError' })));
     r.on('error', reject);
     r.end();
-  });
+  }));
 }
 
 type LookupCb = (err: NodeJS.ErrnoException | null, address?: string | { address: string; family: number }[], family?: number) => void;
@@ -92,23 +94,44 @@ export function lookupBezpieczny(opcje: OpcjeLookup = {}): LookupFn {
     dnsLookupCb(host, { ...opts, all: true }, (err, adresy) => {
       if (err) return cb(err);
       const lista = adresy as unknown as { address: string; family: number }[];
-      if (!lista.length || lista.some((a) => isPrivateOrReservedIp(a.address))) {
-        return cb(blad('Webhook URL resolves to a private or reserved address.', 'EPRIVATE'));
-      }
-      const dalej = () => (opts.all ? cb(null, lista) : cb(null, lista[0].address, lista[0].family));
-      const serwerVerris = () => cb(blad('Adres wskazuje na serwer Verris — odrzucono.', 'EVERRIS'));
-      try {
-        if (lista.some((a) => isControlPlaneIp(a.address))) return serwerVerris();
-      } catch (e) {
-        return cb(e as NodeJS.ErrnoException); // nieprawidłowe VERRIS_CONTROL_PLANE_IPS — odmowa, nie przepuszczenie
-      }
-      if (opcje.wezly === 'dozwolone') return dalej();
-      adresyWezlow().then(
-        (wezly) => (lista.some((a) => naLiscie(a.address, wezly)) ? serwerVerris() : dalej()),
-        (e: NodeJS.ErrnoException) => cb(e),
-      );
+      sprawdzAdresy(
+        lista.map((a) => a.address),
+        opcje,
+      ).then((odmowa) => (odmowa ? cb(odmowa) : opts.all ? cb(null, lista) : cb(null, lista[0].address, lista[0].family)));
     });
   };
+}
+
+/**
+ * Wspólna reguła adresów połączenia (lookup i adres IP wpisany wprost w URL): prywatne/zarezerwowane → EPRIVATE,
+ * control-plane i — przy `wezly: 'zakazane'` — węzły → EVERRIS. Błąd (zły VERRIS_CONTROL_PLANE_IPS, brak
+ * rejestru węzłów w produkcji) = odmowa, nie przepuszczenie. Zwraca błąd albo null; nigdy nie odrzuca.
+ */
+export async function sprawdzAdresy(adresy: string[], opcje: OpcjeLookup = {}): Promise<NodeJS.ErrnoException | null> {
+  if (!adresy.length || adresy.some((a) => isPrivateOrReservedIp(a))) {
+    return blad('Webhook URL resolves to a private or reserved address.', 'EPRIVATE');
+  }
+  const serwerVerris = blad('Adres wskazuje na serwer Verris — odrzucono.', 'EVERRIS');
+  try {
+    if (adresy.some((a) => isControlPlaneIp(a))) return serwerVerris;
+    if (opcje.wezly === 'dozwolone') return null;
+    const wezly = await adresyWezlow();
+    return adresy.some((a) => naLiscie(a, wezly)) ? serwerVerris : null;
+  } catch (e) {
+    return e as NodeJS.ErrnoException;
+  }
+}
+
+/**
+ * Przegląd D12 (10.10): Node NIE woła `lookup` gniazda, gdy host w URL jest adresem IP — `https://<adres CP>/`
+ * albo `https://<adres węzła>:2222/` omijały lookupBezpieczny (assertPublicWebhookUrl sprawdza tylko zakresy
+ * prywatne). Adres wpisany wprost sprawdzamy więc tą samą regułą przed połączeniem.
+ */
+async function odrzucAdresWprost(url: URL, opcje: OpcjeLookup): Promise<void> {
+  const host = url.hostname.replace(/^\[|\]$/g, '');
+  if (!isIP(host)) return;
+  const odmowa = await sprawdzAdresy([host], opcje);
+  if (odmowa) throw odmowa;
 }
 
 /** Domyślny strażnik połączenia: prywatne, control-plane i węzły zakazane. */

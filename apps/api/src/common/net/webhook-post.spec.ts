@@ -1,6 +1,6 @@
 import type { Mock } from 'vitest';
 import { lookup } from 'node:dns';
-import { bezpiecznyLookup, isPrivateOrReservedIp, lookupUslugiKlienta, opcjeDlaPortu, postWebhookBezpiecznie } from './webhook-post.js';
+import { bezpiecznyLookup, getBezpiecznie, isPrivateOrReservedIp, lookupUslugiKlienta, opcjeDlaPortu, postWebhookBezpiecznie } from './webhook-post.js';
 import { ustawZrodloAdresowWezlow } from './adresy-verris.js';
 
 vi.mock('node:dns', () => ({ lookup: vi.fn() }));
@@ -20,11 +20,11 @@ describe('bezpiecznyLookup', () => {
     await vi.waitFor(() => expect(cb).toHaveBeenLastCalledWith(null, [{ address: '93.184.216.34', family: 4 }]));
   });
 
-  it.each([['127.0.0.1'], ['10.0.0.5'], ['169.254.169.254'], ['::1'], ['::ffff:192.168.1.1']])('%s → błąd EPRIVATE, bez połączenia', (ip) => {
+  it.each([['127.0.0.1'], ['10.0.0.5'], ['169.254.169.254'], ['::1'], ['::ffff:192.168.1.1']])('%s → błąd EPRIVATE, bez połączenia', async (ip) => {
     const cb = vi.fn();
     odpowiedz([{ address: '93.184.216.34', family: 4 }, { address: ip, family: ip.includes(':') ? 6 : 4 }]);
     bezpiecznyLookup('rebind.example.com', {}, cb);
-    expect(cb.mock.calls[0][0]).toMatchObject({ code: 'EPRIVATE' });
+    await vi.waitFor(() => expect(cb.mock.calls[0][0]).toMatchObject({ code: 'EPRIVATE' }));
   });
 
   it('klasyfikacja adresów i tylko https', async () => {
@@ -79,5 +79,28 @@ describe('bezpiecznyLookup — adresy serwerów Verris (DNS rebinding)', () => {
     expect(opcjeDlaPortu(new URL('https://hook.example.com:443/x'))).toEqual({ wezly: 'dozwolone' });
     expect(opcjeDlaPortu(new URL('http://strona.example.com/'))).toEqual({ wezly: 'dozwolone' });
     expect(opcjeDlaPortu(new URL('https://hook.example.com:2222/x'))).toEqual({ wezly: 'zakazane' });
+  });
+
+  /**
+   * Przegląd D12: Node nie woła `lookup`, gdy host w URL jest adresem IP — adres control-plane albo węzła
+   * wpisany wprost omijał strażnika (assertPublicWebhookUrl sprawdza tylko zakresy prywatne).
+   * Krótki timeout: na starym kodzie żądanie idzie w sieć i kończy się innym błędem niż EVERRIS.
+   */
+  it.each([
+    ['webhook na adres control-plane', () => postWebhookBezpiecznie('https://8.8.4.4:8443/x', {}, '{}', 300)],
+    ['webhook na adres control-plane :443', () => postWebhookBezpiecznie('https://8.8.4.4/x', {}, '{}', 300)],
+    ['webhook na adres IPv6 control-plane', () => postWebhookBezpiecznie('https://[2001:4860:4860::8844]/x', {}, '{}', 300)],
+    ['webhook na adres węzła :2222', () => postWebhookBezpiecznie('https://9.9.9.9:2222/x', {}, '{}', 300)],
+    ['GET na adres control-plane', () => getBezpiecznie('http://8.8.4.4/', {}, 300)],
+  ])('%s wpisany wprost (bez DNS) → EVERRIS przed połączeniem', async (_opis, wywolaj) => {
+    process.env.VERRIS_CONTROL_PLANE_IPS = '8.8.4.4,2001:4860:4860::/64';
+    ustawZrodloAdresowWezlow(async () => ['9.9.9.9']);
+    dnsLookup.mockClear();
+    await expect(wywolaj()).rejects.toMatchObject({ code: 'EVERRIS' });
+    expect(dnsLookup).not.toHaveBeenCalled();
+  });
+
+  it('adres prywatny wpisany wprost → EPRIVATE przed połączeniem', async () => {
+    await expect(getBezpiecznie('http://169.254.169.254/latest/meta-data/', {}, 300)).rejects.toMatchObject({ code: 'EPRIVATE' });
   });
 });
