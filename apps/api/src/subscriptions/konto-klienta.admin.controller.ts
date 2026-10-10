@@ -18,8 +18,9 @@ import { LogiHostinguQueryDto } from './dto/hosting-logs.dto.js';
 import { DziennikPocztyDto } from './dto/hosting-body.dto.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { ZasobyKontaOperatoraService } from './zasoby-konta-operatora.service.js';
+import { TrafieniaWafKontaService } from './trafienia-waf-konta.service.js';
 
-export type SekcjaKonta = 'domeny' | 'dns' | 'poczta' | 'bazy' | 'php' | 'ssl' | 'cron' | 'logi' | 'logi-poczty' | 'ftp' | 'malware' | 'zasoby';
+export type SekcjaKonta = 'domeny' | 'dns' | 'poczta' | 'bazy' | 'php' | 'ssl' | 'cron' | 'logi' | 'logi-poczty' | 'ftp' | 'malware' | 'zasoby' | 'waf';
 
 /** Nazwa parametru/zmiennej/flagi, której wartość jest poświadczeniem (MYSQL_PWD, DB_PASS, cron_key, api-token, --http-password…). */
 const NAZWA_SEKRETU = String.raw`[\w-]*(?:pass|pwd|token|secret|key|auth)[\w-]*`;
@@ -79,6 +80,7 @@ export class KontoKlientaAdminController {
     private readonly audit: AuditService,
     private readonly malware: MalwareScanService,
     private readonly zasobyKonta: ZasobyKontaOperatoraService,
+    private readonly waf: TrafieniaWafKontaService,
   ) {}
 
   /** Właściciel usługi z kontem hostingowym + wpis w dzienniku; brak usługi albo konta → 404 bez wpisu. */
@@ -226,6 +228,24 @@ export class KontoKlientaAdminController {
   async odczytajZasoby(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
     const userId = await this.wlasciciel(id, actor.userId, 'zasoby', { zlecenie: 'wczytanie z serwera' });
     return this.zasobyKonta.odczytaj(id, userId, actor.userId);
+  }
+
+  /**
+   * F3.2 — ostatnie trafienia reguł WAF (ModSecurity) dla domen konta i tryb WAF konta (tylko odczyt; zmiana trybu —
+   * ADMIN, WafAdminController). Bez treści żądań: czas, domena, adres, ścieżka bez query, reguła.
+   */
+  @Get('waf')
+  async trafieniaWaf(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    await this.wlasciciel(id, actor.userId, 'waf');
+    return this.waf.widok(id);
+  }
+
+  /** F3.2 — świeży odczyt dziennika WAF z węzła (zadanie WAF_HITS, tylko czyta dziennik audytu). */
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'admin:konto-waf' })
+  @Post('waf')
+  async wczytajTrafieniaWaf(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    const userId = await this.wlasciciel(id, actor.userId, 'waf', { zlecenie: 'wczytanie z serwera' });
+    return this.waf.wczytaj(id, userId, actor.userId);
   }
 
   /** Ostatnie N linii logu dostępu/błędów domeny — jak u klienta (domyślnie 200, 20–1000). */

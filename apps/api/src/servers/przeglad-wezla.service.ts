@@ -37,6 +37,7 @@ export const ZADANIA: Record<string, string> = {
   ONBOARD_LIVE: 'Onboard LIVE',
   MAIL_QUEUE: 'Kolejka poczty',
   IP_BLOCKS: 'Blokady IP',
+  WAF_HITS: 'Trafienia WAF',
 };
 
 type Stan = 'ok' | 'warn' | 'crit' | 'brak';

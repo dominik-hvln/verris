@@ -78,8 +78,12 @@ function zbuduj(sub: unknown = { userId: WLASCICIEL, account: { id: 'acc1' } }) 
     widok: vi.fn(async () => ({ login: 'u1', faulty: { doba: null } })),
     odczytaj: vi.fn(async () => ({ login: 'u1', faulty: { doba: null } })),
   };
-  const ctrl = new KontoKlientaAdminController(prisma as never, directAdmin as never, php as never, mailLog as never, audit as never, malware as never, zasobyKonta as never);
-  return { ctrl, prisma, directAdmin, php, mailLog, audit, malware, zasobyKonta };
+  const waf = {
+    widok: vi.fn(async () => ({ tryb: 'ON', trafienia: [] })),
+    wczytaj: vi.fn(async () => ({ tryb: 'ON', wToku: true, trafienia: [] })),
+  };
+  const ctrl = new KontoKlientaAdminController(prisma as never, directAdmin as never, php as never, mailLog as never, audit as never, malware as never, zasobyKonta as never, waf as never);
+  return { ctrl, prisma, directAdmin, php, mailLog, audit, malware, zasobyKonta, waf };
 }
 
 async function wpuszcza(metoda: keyof KontoKlientaAdminController, user: { userId: string; role: Role }, perms: string[]) {
@@ -104,7 +108,7 @@ describe('PB-42 KontoKlientaAdminController — uprawnienia', () => {
     expect(STAFF_PERMISSION_KEYS).toContain('ACCOUNT_DIAGNOSTICS_VIEW');
   });
 
-  it.each(['domeny', 'dns', 'poczta', 'bazy', 'phpKonta', 'ssl', 'cron', 'logi', 'logiPoczty', 'zlecLogiPoczty', 'ftp', 'malwareKonta', 'zasoby', 'odczytajZasoby'] as const)(
+  it.each(['domeny', 'dns', 'poczta', 'bazy', 'phpKonta', 'ssl', 'cron', 'logi', 'logiPoczty', 'zlecLogiPoczty', 'ftp', 'malwareKonta', 'zasoby', 'odczytajZasoby', 'trafieniaWaf', 'wczytajTrafieniaWaf'] as const)(
     '%s: klient nie, staff tylko z ACCOUNT_DIAGNOSTICS_VIEW, admin tak',
     async (m) => {
       expect(await wpuszcza(m, { userId: 'c', role: Role.USER }, ['ACCOUNT_DIAGNOSTICS_VIEW'])).toBe(false);
@@ -114,6 +118,18 @@ describe('PB-42 KontoKlientaAdminController — uprawnienia', () => {
       expect(await wpuszcza(m, { userId: 'a', role: Role.ADMIN }, [])).toBe(true);
     },
   );
+});
+
+describe('F3.2 — trafienia WAF na karcie usługi', () => {
+  it('odczyt i „wczytaj z serwera”: dla właściciela usługi (domeny konta), zlecający = operator, wpis w dzienniku z sekcją „waf”', async () => {
+    const { ctrl, waf, audit } = zbuduj();
+    await ctrl.trafieniaWaf('s1', OPERATOR);
+    expect(waf.widok).toHaveBeenCalledWith('s1');
+    await ctrl.wczytajTrafieniaWaf('s1', OPERATOR);
+    expect(waf.wczytaj).toHaveBeenCalledWith('s1', WLASCICIEL, 's-operator');
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ actorUserId: 's-operator', userId: WLASCICIEL, details: { subscriptionId: 's1', sekcja: 'waf' } }));
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ details: { subscriptionId: 's1', sekcja: 'waf', zlecenie: 'wczytanie z serwera' } }));
+  });
 });
 
 describe('F2.6 — zasoby i diagnoza 508 na karcie usługi', () => {

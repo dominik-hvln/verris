@@ -261,6 +261,10 @@ elif [ "$TASK_KIND" = "IP_BLOCKS" ]; then
   RUN_BIN="/usr/local/bin/verris-ip-blocks.sh"
   fetch_task_script "/agent/tasks/ip-blocks/script" "$RUN_BIN"
   payload_env "IPB" "{'mode':'MODE','ip':'IP'}"
+elif [ "$TASK_KIND" = "WAF_HITS" ]; then
+  RUN_BIN="/usr/local/bin/verris-waf-hits.sh"
+  fetch_task_script "/agent/tasks/waf-hits/script" "$RUN_BIN"
+  payload_env "WH" "{'domains':'DOMAINS'}"
 elif [ "$TASK_KIND" = "GIT_DEPLOY" ]; then
   RUN_BIN="/usr/local/bin/verris-git-deploy.sh"
   fetch_task_script "/agent/tasks/git-deploy/script" "$RUN_BIN"
@@ -494,7 +498,7 @@ dispatch_generic() {
 
 case "$KIND" in
   HOSTING_PROFILE) dispatch_hosting_profile ;;
-  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE|DB_TRANSFER|FILE_RESTORE|SSH_ACCESS|WP_UPDATE|DISK_USAGE|MALWARE_SCAN|REDIS_ACCESS|MAIL_LOG|GIT_DEPLOY|SITE_CLONE|HTACCESS|PHP_INFO|FILE_SEARCH|APP_SELECTOR|SLOW_SQL|MEMCACHED_ACCESS|SITE_STATS|PGSQL|IMAGE_OPTIMIZE|ONBOARD_LIVE|MAIL_QUEUE|IP_BLOCKS) dispatch_generic ;;
+  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE|DB_TRANSFER|FILE_RESTORE|SSH_ACCESS|WP_UPDATE|DISK_USAGE|MALWARE_SCAN|REDIS_ACCESS|MAIL_LOG|GIT_DEPLOY|SITE_CLONE|HTACCESS|PHP_INFO|FILE_SEARCH|APP_SELECTOR|SLOW_SQL|MEMCACHED_ACCESS|SITE_STATS|PGSQL|IMAGE_OPTIMIZE|ONBOARD_LIVE|MAIL_QUEUE|IP_BLOCKS|WAF_HITS) dispatch_generic ;;
   *)
     report_task_fail "Unknown task kind: $KIND"
     exit 1

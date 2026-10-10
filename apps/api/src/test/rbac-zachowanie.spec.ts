@@ -673,6 +673,20 @@ describe('F3.2 — bezpieczeństwo węzła', () => {
     }
   });
 
+  it('trafienia WAF konta (odczyt i wczytanie): ACCOUNT_DIAGNOSTICS_VIEW (L2+, NOC); zmiana trybu WAF — tylko ADMIN', async () => {
+    for (const m of ['trafieniaWaf', 'wczytajTrafieniaWaf']) {
+      const t = TRASY.find((x) => x.kontroler === 'KontoKlientaAdminController' && x.metoda === m)!;
+      expect(t.sciezka).toBe('admin/subscriptions/:id/konto/waf');
+      for (const r of ['L2 Specjalista techniczny', 'L3 Starszy specjalista', 'Inżynier infrastruktury (NOC/DevOps)']) {
+        expect({ m, r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ m, r, ok: true });
+      }
+      for (const r of ['L1 Konsultant', 'Audytor (tylko podgląd)', 'Marketing']) expect({ m, r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ m, r, ok: false });
+    }
+    const zmianaTrybu = TRASY.find((x) => x.kontroler === 'WafAdminController' && x.metoda === 'setMode')!;
+    expect(await wpuszcza(zmianaTrybu, OPERATOR, [...STAFF_PERMISSION_KEYS])).toBe(false);
+    expect(await wpuszcza(zmianaTrybu, ADMIN)).toBe(true);
+  });
+
   it('blokady IP węzła (lista, dowolne IP, biała lista): tylko NOC i ADMIN; L2–L4 z IP_UNBLOCK — nie', async () => {
     for (const t of trasy('BlokadyIpWezlaAdminController', ['stan', 'wczytaj', 'odblokuj', 'bialaLista'])) {
       expect(t.sciezka.startsWith('admin/servers/:id/blokady-ip')).toBe(true);

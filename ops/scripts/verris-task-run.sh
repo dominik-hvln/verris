@@ -196,6 +196,10 @@ elif [ "$TASK_KIND" = "IP_BLOCKS" ]; then
   RUN_BIN="/usr/local/bin/verris-ip-blocks.sh"
   fetch_task_script "/agent/tasks/ip-blocks/script" "$RUN_BIN"
   payload_env "IPB" "{'mode':'MODE','ip':'IP'}"
+elif [ "$TASK_KIND" = "WAF_HITS" ]; then
+  RUN_BIN="/usr/local/bin/verris-waf-hits.sh"
+  fetch_task_script "/agent/tasks/waf-hits/script" "$RUN_BIN"
+  payload_env "WH" "{'domains':'DOMAINS'}"
 elif [ "$TASK_KIND" = "GIT_DEPLOY" ]; then
   RUN_BIN="/usr/local/bin/verris-git-deploy.sh"
   fetch_task_script "/agent/tasks/git-deploy/script" "$RUN_BIN"
