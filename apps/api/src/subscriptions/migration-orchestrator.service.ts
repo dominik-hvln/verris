@@ -614,28 +614,6 @@ export class MigrationOrchestratorService {
     return rows.map((r) => this.toSummary(r));
   }
 
-  async listAllBundlesForStaff(opts: {
-    status?: MigrationStatus;
-    limit?: number;
-  } = {}): Promise<Array<MigrationRequestSummary & { clientEmail: string; accountDomain: string | null }>> {
-    const where: Prisma.MigrationRequestWhereInput = {};
-    if (opts.status) where.status = opts.status;
-    const rows = await this.prisma.migrationRequest.findMany({
-      where,
-      // Eskalacje („Pilne”) zawsze na górze kolejki staffa.
-      orderBy: [{ needsAttention: 'desc' }, { createdAt: 'desc' }],
-      take: Math.min(opts.limit ?? 100, 200),
-      include: {
-        subscription: { include: { account: true, user: { select: { email: true } } } },
-      },
-    });
-    return rows.map((r) => ({
-      ...this.toSummary(r),
-      clientEmail: r.subscription.user.email,
-      accountDomain: r.subscription.account?.domain ?? null,
-    }));
-  }
-
   /**
    * Wywoływane wyłącznie przez staffowy panel migracji. Każde wywołanie
    * jest audytowane (kto, kiedy, dla jakiego ticketu). Nie wracamy nigdy

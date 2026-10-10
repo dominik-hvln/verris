@@ -6,7 +6,6 @@ import {
   HttpCode,
   Param,
   Post,
-  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -109,21 +108,6 @@ export class MigrationsStaffController {
   async testDostepowZaKlienta(@CurrentUser() user: AuthedUser, @Body() dto: PreflightZaKlientaDto) {
     const { subscriptionId, ...zlecenie } = dto;
     return this.zaKlienta.testDostepow({ subscriptionId, actorUserId: user.userId, zlecenie });
-  }
-
-  @Get()
-  async list(@Query('status') status?: string) {
-    let parsed: MigrationStatus | undefined;
-    if (status) {
-      const upper = status.toUpperCase();
-      if (!(upper in MigrationStatus)) {
-        throw new BadRequestException(
-          `Niepoprawny status migracji: "${status}". Dozwolone: ${Object.values(MigrationStatus).join(', ')}.`,
-        );
-      }
-      parsed = upper as MigrationStatus;
-    }
-    return this.migrations.listAllBundlesForStaff({ status: parsed });
   }
 
   @Post(':id/reveal-secrets')

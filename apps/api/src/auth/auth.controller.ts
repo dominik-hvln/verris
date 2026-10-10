@@ -382,15 +382,6 @@ export class AuthController {
       user,
     };
   }
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.ADMIN, Role.STAFF)
-  @Get('staff-only')
-  getStaffInfo() {
-    return {
-      message: 'You have access to the staff zone.',
-    };
-  }
 }
 
 type Osoba2fa = { userId: string; principalUserId?: string; impersonatedBy?: string };
