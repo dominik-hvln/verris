@@ -49,7 +49,8 @@ export const AKCJE_FAKTURY: AkcjaObiektu<FakturaDlaAkcji>[] = [
     kiedy: (f) => nieWiadomo(f.status) || f.status === "DRAFT" || f.status === "OPEN",
     href: (f) => strona(f, "anuluj"),
     slowa: "anuluj void unieważnij",
-    wniosek: true,
+    // Strona faktury — BILLING_VIEW; wniosek INVOICE_VOID składa się z CUSTOMERS_VIEW.
+    wniosek: ["BILLING_VIEW", "CUSTOMERS_VIEW"],
   },
   {
     id: "ksef",

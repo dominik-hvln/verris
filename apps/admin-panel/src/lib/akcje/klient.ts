@@ -64,7 +64,7 @@ export const AKCJE_KLIENTA: AkcjaObiektu<KlientDlaAkcji>[] = [
     kiedy: () => true,
     href: (k) => karta(k, "dostepy", "blokada"),
     slowa: "konto wewnętrzne testowe zespół",
-    wniosek: true,
+    wniosek: ["CUSTOMERS_VIEW"],
   },
   {
     id: "email",

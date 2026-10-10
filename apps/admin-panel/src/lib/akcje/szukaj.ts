@@ -13,6 +13,8 @@ export interface AkcjaWPalecie {
   opis: string;
   href: string;
   zablokowane: string | null;
+  /** Wyszarzone, ale prowadzi do formularza z „Wyślij wniosek” (decyzja 10.10). */
+  wniosek?: boolean;
 }
 
 const doPalety = (d: DzialanieNaKarcie, przyrostek = ""): AkcjaWPalecie => ({
@@ -21,6 +23,7 @@ const doPalety = (d: DzialanieNaKarcie, przyrostek = ""): AkcjaWPalecie => ({
   opis: d.opis,
   href: d.href,
   zablokowane: d.zablokowane,
+  ...(d.zablokowane && d.wniosek ? { wniosek: true } : {}),
 });
 
 /** Działania pasujące do zapytania (puste — wszystkie), w kolejności trafienia, potem rejestru. */

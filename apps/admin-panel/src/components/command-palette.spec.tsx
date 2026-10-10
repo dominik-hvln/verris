@@ -9,7 +9,9 @@ jest.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 const WEZEL = { type: "node", id: "n1", title: "t1", subtitle: "Węzeł · t1.verris.net", href: "/nodes/n1", status: "ACTIVE" };
 const KLIENT = { type: "user", id: "u1", title: "jan@firma.pl", subtitle: "Klient · Jan", href: "/customers/u1" };
 const FAKTURA = { type: "invoice", id: "f1", title: "VFV/2026/10/0001", subtitle: "Faktura", href: "/invoices/f1", status: "PAID", ksefStatus: "REJECTED", userId: "u1" };
+const NIEOPLACONA = { ...FAKTURA, id: "f2", title: "VFV/2026/10/0002", href: "/invoices/f2", status: "OPEN", ksefStatus: "NOT_APPLICABLE" };
 const odpowiedzi: Record<string, unknown> = {
+  VFO: { results: [NIEOPLACONA], pominiete: [] },
   t1: { results: [WEZEL], pominiete: [] },
   jan: { results: [KLIENT], pominiete: [] },
   VFV: { results: [FAKTURA], pominiete: [] },
@@ -126,5 +128,35 @@ describe("Cmd+K — tryb obiekt → działanie (prowadzi do karty, nie wykonuje)
     await wpisz("ksef");
     await klawisz("Enter");
     expect(push).toHaveBeenCalledWith("/invoices/f1#ksef");
+  });
+
+  // Przegląd 10.10: działanie z mechanizmem wniosków było w palecie martwe (wyszarzone, Enter nic nie robił),
+  // choć decyzja właściciela: wyszarzone z „Wyślij wniosek” tam, gdzie wnioski istnieją.
+  it("bez uprawnienia, ale z wnioskiem: Enter prowadzi do formularza z „Wyślij wniosek”", async () => {
+    await otworz({ isAdmin: false, permissions: ["CUSTOMERS_VIEW"] });
+    await wpisz("jan");
+    await klawisz("Tab");
+    await wpisz("wewnętrzne");
+    expect(okno()).toContain("Wymaga CUSTOMERS_INTERNAL_FLAG · wyślij wniosek");
+    await klawisz("Enter");
+    expect(push).toHaveBeenCalledWith("/customers/u1?sekcja=dostepy#blokada");
+  });
+
+  it("anulowanie faktury: wniosek tylko z BILLING_VIEW i CUSTOMERS_VIEW (strona faktury + złożenie wniosku)", async () => {
+    await otworz({ isAdmin: false, permissions: ["BILLING_VIEW"] });
+    await wpisz("VFO");
+    await klawisz("Tab");
+    await wpisz("anuluj");
+    expect(okno()).not.toContain("wyślij wniosek");
+    await klawisz("Enter");
+    expect(push).not.toHaveBeenCalled();
+    act(() => root.unmount());
+    root = createRoot(el);
+    await otworz({ isAdmin: false, permissions: ["BILLING_VIEW", "CUSTOMERS_VIEW"] });
+    await wpisz("VFO");
+    await klawisz("Tab");
+    await wpisz("anuluj");
+    await klawisz("Enter");
+    expect(push).toHaveBeenCalledWith("/invoices/f2#anuluj");
   });
 });

@@ -22,8 +22,11 @@ export interface AkcjaObiektu<T> {
   pomocId?: PomocId;
   /** Bezpieczne do uruchomienia od razu (Cmd+K): otwarcie karty, odświeżenie. */
   bezpieczna?: boolean;
-  /** Bez uprawnień można wysłać wniosek (API: @WniosekMozliwy) z miejsca, do którego prowadzi href. */
-  wniosek?: boolean;
+  /**
+   * Bez uprawnień można wysłać wniosek (API: @WniosekMozliwy) z miejsca, do którego prowadzi href — lista
+   * uprawnień (wszystkie) potrzebnych, żeby tam wejść i wniosek złożyć (rejestr wniosków API: doZlozenia).
+   */
+  wniosek?: readonly string[];
   /** Prowadzi poza panel admina (panel obsługi). */
   zewnetrzna?: (o: T) => boolean;
 }
@@ -32,16 +35,21 @@ export interface AkcjaObiektu<T> {
 export function dzialaniaObiektu<T>(rejestr: readonly AkcjaObiektu<T>[], o: T, dostep: DostepDoAkcji): DzialanieNaKarcie[] {
   return rejestr
     .filter((a) => a.kiedy(o))
-    .map((a) => ({
-      id: a.id,
-      grupa: a.grupa,
-      nazwa: typeof a.nazwa === "function" ? a.nazwa(o) : a.nazwa,
-      opis: a.opis,
-      href: a.href(o),
-      pomocId: a.pomocId,
-      slowa: a.slowa,
-      zablokowane: brakUprawnienia(a.perm, dostep),
-      ...(a.wniosek ? { wniosek: true } : {}),
-      ...(a.zewnetrzna?.(o) ? { zewnetrzny: true } : {}),
-    }));
+    .map((a) => {
+      const zablokowane = brakUprawnienia(a.perm, dostep);
+      // „Wyślij wniosek” tylko temu, kto może go złożyć — inaczej pozycja prowadziłaby do odmowy.
+      const wniosek = !!zablokowane && !!a.wniosek && a.wniosek.every((p) => !brakUprawnienia(p, dostep));
+      return {
+        id: a.id,
+        grupa: a.grupa,
+        nazwa: typeof a.nazwa === "function" ? a.nazwa(o) : a.nazwa,
+        opis: a.opis,
+        href: a.href(o),
+        pomocId: a.pomocId,
+        slowa: a.slowa,
+        zablokowane,
+        ...(wniosek ? { wniosek: true } : {}),
+        ...(a.zewnetrzna?.(o) ? { zewnetrzny: true } : {}),
+      };
+    });
 }

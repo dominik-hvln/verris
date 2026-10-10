@@ -63,10 +63,18 @@ const naMacu = () => /Mac|iPhone|iPad/.test(navigator.platform || navigator.user
 type Wynik =
   | { type: "strona"; id: string; title: string; subtitle: string; href: string }
   /** Działanie (węzła albo globalne) — prowadzi do miejsca z podświetleniem, nie wykonuje. */
-  | { type: "akcja"; id: string; title: string; subtitle: string; href: string; zablokowane: string | null }
+  | { type: "akcja"; id: string; title: string; subtitle: string; href: string; zablokowane: string | null; wniosek?: boolean }
   | GlobalSearchResult;
 
-const jakoWynik = (a: AkcjaWPalecie): Wynik => ({ type: "akcja", id: a.id, title: a.nazwa, subtitle: a.zablokowane ?? a.opis, href: a.href, zablokowane: a.zablokowane });
+const jakoWynik = (a: AkcjaWPalecie): Wynik => ({
+  type: "akcja",
+  id: a.id,
+  title: a.nazwa,
+  subtitle: a.zablokowane ? (a.wniosek ? `${a.zablokowane} · wyślij wniosek` : a.zablokowane) : a.opis,
+  href: a.href,
+  zablokowane: a.zablokowane,
+  ...(a.wniosek ? { wniosek: true } : {}),
+});
 
 /** Podpowiedź w polu w trybie obiekt → działanie. */
 const PRZYKLADY: Record<string, string> = {
@@ -177,7 +185,8 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
 
   const go = useCallback(
     (r: Wynik) => {
-      if (r.type === "akcja" && r.zablokowane) return;
+      // Bez uprawnień — nic; chyba że można wysłać wniosek: wtedy do formularza z „Wyślij wniosek”.
+      if (r.type === "akcja" && r.zablokowane && !r.wniosek) return;
       close();
       router.push(r.href);
       if (r.href.includes("#")) podswietlKotwice(r.href);
@@ -290,15 +299,16 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
                 wyniki.map((r, i) => {
                   const Icon = r.type === "strona" ? ArrowRight : r.type === "akcja" ? Zap : TYPE_ICON[r.type];
                   const zablokowane = r.type === "akcja" ? r.zablokowane : null;
+                  const wniosek = r.type === "akcja" && !!r.wniosek;
                   return (
                     <button
                       key={`${r.type}-${r.id}`}
                       type="button"
                       onMouseEnter={() => setActive(i)}
                       onClick={() => go(r)}
-                      aria-disabled={zablokowane ? true : undefined}
+                      aria-disabled={zablokowane && !wniosek ? true : undefined}
                       title={zablokowane ?? undefined}
-                      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left ${zablokowane ? "cursor-not-allowed opacity-60" : ""} ${
+                      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left ${zablokowane ? `opacity-60 ${wniosek ? "" : "cursor-not-allowed"}` : ""} ${
                         i === active ? "bg-data-soft" : "hover:bg-raised"
                       }`}
                     >
@@ -311,7 +321,7 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
                       </span>
                       {i === active && r.type !== "strona" && r.type !== "akcja" && maDzialania(r) && !obiekt ? (
                         <kbd className="shrink-0 rounded-[5px] border border-line-strong px-1.5 font-mono text-[10.5px] text-muted-foreground">Tab · działania</kbd>
-                      ) : i === active && !zablokowane ? (
+                      ) : i === active && (!zablokowane || wniosek) ? (
                         <CornerDownLeft className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                       ) : null}
                     </button>
