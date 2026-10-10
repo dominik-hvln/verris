@@ -133,6 +133,7 @@ export function grupy(l: LicznikiMenu | null): Grupa[] {
             { name: "Wykresy i prognozy", href: "/nodes/wykresy", perm: "NODES_VIEW", szukaj: "cpu ram pamięć dysk obciążenie prognoza ai przeciążenie" },
             { name: "Pojemność", href: "/nodes/capacity", perm: "NODES_VIEW", szukaj: "zużycie sprzedane overcommit miejsce na konta" },
             { name: "Przekroczenia limitów", href: "/nodes/przekroczenia", perm: "NODES_VIEW", szukaj: "508 faulty lve limity ep nproc pamięć cpu io konta przekraczające" },
+            { name: "Złośliwe pliki", href: "/nodes/malware", perm: "ACCOUNT_DIAGNOSTICS_VIEW", szukaj: "malware wirus skaner kwarantanna backdoor zainfekowane bezpieczeństwo" },
           ],
         },
         // POST /admin/servers — tylko ADMIN; kreator służy wyłącznie do zakładania nowego węzła (decyzja 10.10).

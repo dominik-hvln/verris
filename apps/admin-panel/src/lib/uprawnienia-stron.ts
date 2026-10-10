@@ -48,6 +48,8 @@ export const STRONY = {
   "/nodes/init": { perm: "ADMIN", tytul: "Dodaj węzeł" },
   "/nodes/kopie": { perm: "ADMIN", tytul: "Próby odtworzenia" },
   "/nodes/przekroczenia": { perm: "NODES_VIEW", tytul: "Przekroczenia limitów" },
+  // F3.2 (G-11/G-12) — admin/servers/malware — ACCOUNT_DIAGNOSTICS_VIEW (L2+, NOC, abuse): ścieżki plików klientów.
+  "/nodes/malware": { perm: "ACCOUNT_DIAGNOSTICS_VIEW", tytul: "Złośliwe pliki" },
   "/nodes/stack": { perm: "NODES_MANAGE", tytul: "Operacje floty" },
   "/nodes/wizard": { perm: "ADMIN", tytul: "Dodaj węzeł" },
   "/nodes/wykresy": { perm: "NODES_VIEW", tytul: "Wykresy i prognozy" },

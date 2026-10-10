@@ -51,6 +51,9 @@ const KIND_LABEL: Record<string, string> = {
   PGSQL: "PostgreSQL",
   IMAGE_OPTIMIZE: "Optymalizacja obrazów",
   ONBOARD_LIVE: "Onboard LIVE",
+  MAIL_QUEUE: "Kolejka poczty",
+  IP_BLOCKS: "Blokady IP",
+  WAF_HITS: "Trafienia WAF",
 };
 
 function fmt(iso: string | null): string {

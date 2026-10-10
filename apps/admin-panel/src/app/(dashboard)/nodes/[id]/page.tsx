@@ -28,6 +28,8 @@ import { AktualizujWezelButton } from "./aktualizuj-wezel-button";
 import { WezelPrzeglad } from "./wezel-przeglad";
 import { DzialaniaWezla } from "./dzialania-wezla";
 import { KolejkaWezlaPanel } from "./kolejka-wezla-panel";
+import { BlokadyIpWezlaPanel } from "./blokady-ip-wezla-panel";
+import { MalwareFlotyTabela, type MalwareFloty } from "@/components/malware-floty";
 import { PrzekroczeniaLimitow, type Przekroczenia } from "@/components/przekroczenia-limitow";
 import { adminApi } from "@/lib/api";
 import { OnboardLivePanel } from "../wizard/onboard-panele";
@@ -46,7 +48,7 @@ import { Eyebrow, KARTA, Kpi, Pasek, Pigulka, RzadKpi, Zakladki } from "@/compon
 
 export const dynamic = "force-dynamic";
 
-const SEKCJE = ["przeglad", "konta", "audyt", "zadania", "poczta", "aktualizacje", "konfiguracja", "wycofanie"] as const;
+const SEKCJE = ["przeglad", "konta", "audyt", "zadania", "poczta", "bezpieczenstwo", "aktualizacje", "konfiguracja", "wycofanie"] as const;
 type Sekcja = (typeof SEKCJE)[number];
 
 const STATUS: Record<string, string> = {
@@ -117,6 +119,9 @@ export default async function ServerDetailPage({
   const zadania = sekcja === "zadania" ? await wynik(listNodeTasks(undefined, server.id)) : null;
   // F2.6 — konta tego węzła odbijające się od limitów (raport agenta verris-lve), na zakładce „Konta”.
   const przekroczenia = sekcja === "konta" ? await wynik(adminApi<Przekroczenia>(`/admin/servers/przekroczenia?wezel=${encodeURIComponent(server.id)}`)) : null;
+  // F3.2 — złośliwe pliki kont tego węzła (ostatnie wyniki skanera); bez ACCOUNT_DIAGNOSTICS_VIEW nie pytamy API.
+  const malware =
+    sekcja === "bezpieczenstwo" && !wymaga("malware-wezla") ? await wynik(adminApi<MalwareFloty>(`/admin/servers/malware?wezel=${encodeURIComponent(server.id)}`)) : null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -217,6 +222,7 @@ export default async function ServerDetailPage({
           { nazwa: "Audyt i naprawa", href: `${baza}?sekcja=audyt`, on: sekcja === "audyt", licznik: p?.doNaprawy },
           { nazwa: "Zadania", href: `${baza}?sekcja=zadania`, on: sekcja === "zadania" },
           { nazwa: "Poczta", href: `${baza}?sekcja=poczta`, on: sekcja === "poczta" },
+          { nazwa: "Bezpieczeństwo", href: `${baza}?sekcja=bezpieczenstwo`, on: sekcja === "bezpieczenstwo" },
           { nazwa: "Aktualizacje", href: `${baza}?sekcja=aktualizacje`, on: sekcja === "aktualizacje" },
           { nazwa: "Konfiguracja", href: `${baza}?sekcja=konfiguracja`, on: sekcja === "konfiguracja" },
           { nazwa: "Wycofanie węzła", href: `${baza}?sekcja=wycofanie`, on: sekcja === "wycofanie" },
@@ -294,6 +300,38 @@ export default async function ServerDetailPage({
           )
         ) : (
           <p className="text-sm text-muted-foreground">Kolejka poczty jest dostępna, gdy węzeł jest aktywny albo w serwisie.</p>
+        )
+      ) : null}
+
+      {/* F3.2 (D5, G-11) — blokady IP (IP_BLOCKS_NODE: NOC i ADMIN) i złośliwe pliki kont węzła (ACCOUNT_DIAGNOSTICS_VIEW). */}
+      {sekcja === "bezpieczenstwo" ? (
+        dziala ? (
+          <>
+            <div id="blokady-ip" className="scroll-mt-4">
+              {wymaga("blokady-ip") ? (
+                // Bez uprawnienia panel się nie ładuje — lista to adresy wszystkich klientów węzła.
+                <p className="text-sm text-muted-foreground" data-zablokowane={wymaga("blokady-ip") ?? ""}>
+                  {wymaga("blokady-ip")} — blokady IP węzła są dla zespołu NOC; „Zablokowało mi IP” klienta jest na karcie usługi.
+                </p>
+              ) : (
+                <BlokadyIpWezlaPanel serverId={server.id} />
+              )}
+            </div>
+            <section id="malware-wezla" className="flex scroll-mt-4 flex-col gap-2" aria-labelledby="malware-wezla-naglowek">
+              <h2 id="malware-wezla-naglowek" className="flex items-center gap-2 font-display text-lg font-bold">
+                Złośliwe pliki <Pomoc id="malware-floty" />
+              </h2>
+              {wymaga("malware-wezla") ? (
+                <p className="text-sm text-muted-foreground">{wymaga("malware-wezla")}.</p>
+              ) : malware?.ok ? (
+                <MalwareFlotyTabela dane={malware.dane} zWezlem={false} />
+              ) : (
+                <NieWczytano co="wyników skanera" />
+              )}
+            </section>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">Bezpieczeństwo jest dostępne, gdy węzeł jest aktywny albo w serwisie.</p>
         )
       ) : null}
 

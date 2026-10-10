@@ -38,6 +38,15 @@ describe("Cmd+K — rejestr działań", () => {
     });
   });
 
+  it("F3.2: „fail2ban” / „malware” → zakładka Bezpieczeństwo węzła; blokady bez IP_BLOCKS_NODE wyszarzone", () => {
+    expect(akcjeWezlaDlaZapytania(aktywny, "fail2ban", ADMIN).map((a) => a.id)).toEqual(["blokady-ip"]);
+    expect(akcjeWezlaDlaZapytania(aktywny, "ignoreip", FLOTA_PODGLAD)[0]).toMatchObject({
+      href: "/nodes/n1?sekcja=bezpieczenstwo#blokady-ip",
+      zablokowane: "Wymaga IP_BLOCKS_NODE",
+    });
+    expect(akcjeWezlaDlaZapytania(aktywny, "malware", ADMIN)[0]).toMatchObject({ id: "malware-wezla", href: "/nodes/n1?sekcja=bezpieczenstwo#malware-wezla" });
+  });
+
   it("bez uprawnień — wyszarzone z powodem, nie ukryte", () => {
     const [onboard] = akcjeWezlaDlaZapytania(aktywny, "onboard", FLOTA_PODGLAD);
     expect(onboard).toMatchObject({ id: "onboard-live", href: "/nodes/n1?sekcja=aktualizacje#onboard-live", zablokowane: "Wymaga NODES_MANAGE" });

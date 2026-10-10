@@ -107,3 +107,17 @@ it("F3.1: zakładka „Poczta” — bez MAIL_QUEUE_NODE panel kolejki się nie 
   expect(adm).toContain("Wypchnij kolejkę");
   expect(adm).toContain("Poczta");
 });
+
+it("F3.2: zakładka „Bezpieczeństwo” — bez IP_BLOCKS_NODE panel blokad się nie renderuje, bez ACCOUNT_DIAGNOSTICS_VIEW lista malware się nie wczytuje", async () => {
+  zDostepem({ role: "STAFF", isAdmin: false, permissions: ["NODES_VIEW", "NODES_MANAGE"] });
+  const bez = await render("bezpieczenstwo");
+  expect(bez).toContain('data-zablokowane="Wymaga IP_BLOCKS_NODE"');
+  expect(bez).not.toContain('id="blokady-ip-naglowek"');
+  expect(bez).toContain("Wymaga ACCOUNT_DIAGNOSTICS_VIEW");
+  expect(api.mock.calls.map((c) => c[0])).not.toContain("/admin/servers/malware?wezel=w1");
+  zDostepem({ role: "STAFF", isAdmin: false, permissions: ["NODES_VIEW", "IP_BLOCKS_NODE", "ACCOUNT_DIAGNOSTICS_VIEW"] });
+  const noc = await render("bezpieczenstwo");
+  expect(noc).toContain('id="blokady-ip-naglowek"');
+  expect(api.mock.calls.map((c) => c[0])).toContain("/admin/servers/malware?wezel=w1");
+  expect(noc).toContain("Bezpieczeństwo");
+});

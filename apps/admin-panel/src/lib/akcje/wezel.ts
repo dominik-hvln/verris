@@ -9,9 +9,9 @@ import type { PomocId } from "@/lib/pomoc";
  * `perm` odpowiada egzekucji w API (apps/api/src/servers/*.admin.controller.ts): metody bez własnego
  * @Roles w `admin/servers` i `admin/waf` są tylko dla ADMIN-a, reszta — @StaffPerm.
  */
-export type UprawnienieAkcji = "NODES_VIEW" | "NODES_MANAGE" | "MAIL_QUEUE_NODE" | "ADMIN";
+export type UprawnienieAkcji = "NODES_VIEW" | "NODES_MANAGE" | "MAIL_QUEUE_NODE" | "IP_BLOCKS_NODE" | "ACCOUNT_DIAGNOSTICS_VIEW" | "ADMIN";
 
-export type GrupaAkcji = "Instalacja" | "Aktualizacje" | "Audyt i naprawa" | "Dostępność" | "Poczta" | "Konfiguracja" | "Dostęp i historia";
+export type GrupaAkcji = "Instalacja" | "Aktualizacje" | "Audyt i naprawa" | "Dostępność" | "Poczta" | "Bezpieczeństwo" | "Konfiguracja" | "Dostęp i historia";
 
 export interface WezelDlaAkcji {
   id: string;
@@ -215,6 +215,30 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
     kiedy: dziala,
     href: (w) => karta(w, "?sekcja=poczta#kolejka-poczty"),
     pomocId: "kolejka-wezla",
+  },
+  {
+    id: "blokady-ip",
+    slowa: "blokady ip fail2ban ban unban odblokuj biała lista ignoreip whitelist zgadywanie haseł",
+    grupa: "Bezpieczeństwo",
+    nazwa: "Blokady IP",
+    opis: "Zablokowane adresy z powodem i czasem, odblokowanie i biała lista.",
+    // F3.2 (D5) — admin/servers/:id/blokady-ip — IP_BLOCKS_NODE (NOC); dowolny adres i biała lista.
+    perm: "IP_BLOCKS_NODE",
+    kiedy: dziala,
+    href: (w) => karta(w, "?sekcja=bezpieczenstwo#blokady-ip"),
+    pomocId: "blokady-ip-wezla",
+  },
+  {
+    id: "malware-wezla",
+    slowa: "malware wirus skaner kwarantanna złośliwe pliki zainfekowane",
+    grupa: "Bezpieczeństwo",
+    nazwa: "Złośliwe pliki na węźle",
+    opis: "Konta węzła z wykrytym złośliwym kodem albo plikami w kwarantannie.",
+    // F3.2 (G-11/G-12) — admin/servers/malware?wezel= — ACCOUNT_DIAGNOSTICS_VIEW (ścieżki plików klientów).
+    perm: "ACCOUNT_DIAGNOSTICS_VIEW",
+    kiedy: dziala,
+    href: (w) => karta(w, "?sekcja=bezpieczenstwo#malware-wezla"),
+    pomocId: "malware-floty",
   },
   {
     id: "directadmin",

@@ -160,6 +160,42 @@ export const AKCJE_USLUGI: AkcjaObiektu<UslugaDlaAkcji>[] = [
     pomocId: "zasoby-508",
   },
   {
+    id: "blokady-ip",
+    grupa: "Konto",
+    nazwa: "Zablokowało mi IP",
+    opis: "Sprawdzenie i odblokowanie adresu klienta zablokowanego na serwerze po nieudanych logowaniach.",
+    // F3.2 (D5) — admin/subscriptions/:id/konto/blokady-ip — IP_UNBLOCK (L2) albo IP_BLOCKS_NODE (NOC).
+    perm: ["IP_UNBLOCK", "IP_BLOCKS_NODE"],
+    kiedy: (u) => konto(u) && !u.kontoUsuniete,
+    href: (u) => karta(u, "konto", "bezpieczenstwo-konta"),
+    slowa: "ip blokada odblokuj zablokowało fail2ban ban unban nie mogę odebrać poczty ftp",
+    pomocId: "blokady-ip",
+  },
+  {
+    id: "kwarantanna",
+    grupa: "Konto",
+    nazwa: "Złośliwe pliki i kwarantanna",
+    opis: "Wynik skanera konta, przeniesienie plików do kwarantanny i przywrócenie.",
+    // F3.2 (G-12) — odczyt konto/malware (ACCOUNT_DIAGNOSTICS_VIEW), kwarantanna konto/akcje/kwarantanna (ACCOUNT_ACTIONS).
+    perm: "ACCOUNT_DIAGNOSTICS_VIEW",
+    kiedy: (u) => konto(u) && !u.kontoUsuniete,
+    href: (u) => karta(u, "konto", "bezpieczenstwo-konta"),
+    slowa: "malware wirus kwarantanna złośliwy kod backdoor skaner przywróć",
+    pomocId: "kwarantanna",
+  },
+  {
+    id: "trafienia-waf",
+    grupa: "Konto",
+    nazwa: "Trafienia WAF",
+    opis: "Żądania do stron konta zablokowane albo wykryte przez zaporę aplikacji.",
+    // F3.2 — admin/subscriptions/:id/konto/waf — ACCOUNT_DIAGNOSTICS_VIEW; tryb WAF zmienia tylko ADMIN.
+    perm: "ACCOUNT_DIAGNOSTICS_VIEW",
+    kiedy: (u) => konto(u) && !u.kontoUsuniete,
+    href: (u) => karta(u, "konto", "bezpieczenstwo-konta"),
+    slowa: "waf modsecurity zapora 403 forbidden reguła zablokowane",
+    pomocId: "trafienia-waf",
+  },
+  {
     id: "diagnostyka",
     grupa: "Konto",
     nazwa: "Diagnostyka",

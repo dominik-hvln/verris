@@ -77,6 +77,19 @@ describe("Działania usługi", () => {
     expect(ids({ ...aktywna, kontoUsuniete: true })).not.toContain("zasoby-508");
   });
 
+  it("F3.2: „Zablokowało mi IP” (IP_UNBLOCK lub IP_BLOCKS_NODE), kwarantanna i WAF (ACCOUNT_DIAGNOSTICS_VIEW) → sekcja #bezpieczenstwo-konta", () => {
+    const l2 = dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("IP_UNBLOCK", "ACCOUNT_DIAGNOSTICS_VIEW"));
+    const po = (lista: typeof l2, id: string) => lista.find((x) => x.id === id)!;
+    for (const id of ["blokady-ip", "kwarantanna", "trafienia-waf"]) {
+      expect(po(l2, id)).toMatchObject({ zablokowane: null, href: "/subscriptions/s1?sekcja=konto#bezpieczenstwo-konta" });
+    }
+    const noc = dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("IP_BLOCKS_NODE"));
+    expect(po(noc, "blokady-ip").zablokowane).toBeNull();
+    const l1 = dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("CUSTOMERS_VIEW"));
+    expect(po(l1, "blokady-ip").zablokowane).toBe("Wymaga IP_UNBLOCK lub IP_BLOCKS_NODE");
+    expect(ids({ ...aktywna, kontoUsuniete: true })).not.toContain("blokady-ip");
+  });
+
   it("Cmd+K bez pełnego stanu (sam status z wyszukiwarki): pokazuje to, czego nie da się wykluczyć", () => {
     const zPalety = ids({ id: "s1", status: "PROVISIONING", klientId: "u1" });
     expect(zPalety).toContain("zakladanie");

@@ -27,6 +27,7 @@ import { KontoKlientaPanel } from "./konto-klienta-panel";
 import { PasekAkcjiKonta } from "./pasek-akcji-konta";
 import { PocztaKontaPanel } from "./poczta-konta-panel";
 import { ZasobyKontaPanel } from "./zasoby-konta-panel";
+import { BezpieczenstwoKontaPanel } from "./bezpieczenstwo-konta-panel";
 import { SuspendForm, ZakonczIUsunForm } from "./suspend-form";
 import { RestorePanel } from "./restore-panel";
 import { OdtworzenieNaWezlePanel } from "./odtworzenie-na-wezle-panel";
@@ -241,6 +242,12 @@ export default async function AdminSubscriptionDetailPage({
           {kontoZostalo ? (
             <section id="poczta-konta" className="scroll-mt-24">
               <PocztaKontaPanel subscriptionId={d.id} dostep={access} />
+            </section>
+          ) : null}
+          {/* F3.2 (D5, G-12) — „Zablokowało mi IP”, złośliwe pliki i kwarantanna, trafienia WAF. */}
+          {kontoZostalo ? (
+            <section id="bezpieczenstwo-konta" className="scroll-mt-24">
+              <BezpieczenstwoKontaPanel subscriptionId={d.id} dostep={access} />
             </section>
           ) : null}
           {d.account ? (

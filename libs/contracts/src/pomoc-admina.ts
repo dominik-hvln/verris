@@ -284,6 +284,34 @@ export const POMOC = {
     opis: "Konta, które w dobie albo w 7 dni odbijały się od limitów zasobów, we flocie albo na jednym węźle — od najgorszego.",
     kiedy: "Przy przeglądzie węzła, przed rozmową o autoskalowaniu i gdy klienci zgłaszają błędy 508.",
   },
+  // F3.2 (D5, G-12) — bezpieczeństwo węzła i konta.
+  "blokady-ip": {
+    tytul: "Zablokowało mi IP",
+    opis: "Sprawdza, czy adres klienta jest zablokowany na serwerze po nieudanych logowaniach (poczta, FTP, SSH, panel), i zdejmuje blokadę.",
+    kiedy: "Gdy klient nagle nie może odebrać poczty ani połączyć się przez FTP — zwykle po zmianie hasła w telefonie.",
+    rozniSieOd: "Obsługa odblokowuje tylko adres z logowań klienta albo z jego zgłoszenia; dowolny adres i białą listę zmienia NOC na karcie węzła.",
+  },
+  "blokady-ip-wezla": {
+    tytul: "Blokady IP węzła",
+    opis: "Wszystkie zablokowane adresy węzła z powodem i czasem, odblokowanie dowolnego adresu i biała lista adresów, których serwer nigdy nie blokuje.",
+    kiedy: "Przy awarii po stronie dużego klienta (np. biuro za jednym IP) albo gdy trzeba zwolnić adres partnera — z powodem w dzienniku.",
+  },
+  kwarantanna: {
+    tytul: "Kwarantanna plików",
+    opis: "Przenosi pliki wykryte przez skaner poza stronę; kopia z sumą kontrolną zostaje na koncie, więc da się je przywrócić.",
+    kiedy: "Gdy skaner wykrył złośliwy kod, a klient nie może sam zareagować — przed zawieszeniem usługi.",
+    rozniSieOd: "Trwałe usunięcie z kwarantanny zostaje decyzją klienta w jego panelu.",
+  },
+  "malware-floty": {
+    tytul: "Złośliwe pliki we flocie",
+    opis: "Konta z wykrytym złośliwym kodem albo plikami w kwarantannie, we wszystkich węzłach albo na jednym, z datą ostatniego wyniku.",
+    kiedy: "Przy porannym przeglądzie bezpieczeństwa i przy zgłoszeniu abuse — kwarantanna jest na karcie usługi.",
+  },
+  "trafienia-waf": {
+    tytul: "Trafienia WAF",
+    opis: "Ostatnie żądania do stron konta zablokowane albo wykryte przez zaporę aplikacji, z regułą, ścieżką i adresem — bez treści żądań.",
+    kiedy: "Gdy formularz albo panel strony zwraca 403 — sprawdź, która reguła blokuje, zanim poprosisz administratora o zmianę trybu.",
+  },
 } satisfies Record<string, WpisPomocy>;
 
 export type PomocId = keyof typeof POMOC;
