@@ -169,9 +169,14 @@ if tryb == "remove":
             continue
         do_usuniecia.append(mid)
     usunieto = 0
+    # Exim: „Message <id> has been removed” albo „… has been removed or did not exist” (spool już pusty — liczone
+    # jako pominięte). Kod ≠ 0 bez żadnego usunięcia w paczce = błąd zadania, nie „usunięto 0”.
     for i in range(0, len(do_usuniecia), 50):
         r = exim("-Mrm", *do_usuniecia[i:i + 50])
-        usunieto += len(re.findall(r"has been removed", r.stdout + r.stderr))
+        w_paczce = len(re.findall(r"^Message \S+ has been removed$", r.stdout + "\n" + r.stderr, re.M))
+        if r.returncode != 0 and w_paczce == 0:
+            fail("exim -Mrm: " + (r.stderr.strip()[:200] or f"kod {r.returncode}"))
+        usunieto += w_paczce
     print(f"VERRIS_MQ_USUNIETO {usunieto}")
     print(f"VERRIS_MQ_POMINIETO {pominiete + len(do_usuniecia) - usunieto}")
     print("[mail-queue] Gotowe.")

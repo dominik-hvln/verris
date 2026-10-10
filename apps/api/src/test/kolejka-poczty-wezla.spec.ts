@@ -21,7 +21,12 @@ case "$1" in
   -bpc) ls "$K" | grep -c '\\.bp$' || true ;;
   -bp) cat "$K"/*.bp 2>/dev/null; true ;;
   -Mvh) [ -f "$K/$2-H" ] || { echo "Spool file for $2 not found" >&2; exit 1; }; cat "$K/$2-H" ;;
-  -Mrm) shift; for id in "$@"; do rm -f "$K/$id-H" "$K/$id.bp" && echo "Message $id has been removed"; done ;;
+  -Mrm) shift
+    [ "\${FAKE_MRM:-}" = blad ] && { echo "exim: Permission denied" >&2; exit 1; }
+    for id in "$@"; do
+      rm -f "$K/$id-H" "$K/$id.bp"
+      if [ "\${FAKE_MRM:-}" = zniklo ]; then echo "Message $id has been removed or did not exist"; else echo "Message $id has been removed"; fi
+    done ;;
   -qff) rm -f "$K"/* ;;
   *) echo "nieoczekiwana opcja $1" >&2; exit 2 ;;
 esac
@@ -99,6 +104,22 @@ describe('F3.1 — node-mail-queue.sh (kolejka exima)', () => {
     expect(r.out).toContain('VERRIS_MQ_POMINIETO 1');
     expect(s.zostalo()).toEqual([M_OBCY]);
     expect(s.wywolania().filter((w) => w.startsWith('-Mrm'))).toEqual([`-Mrm ${M_PHP} ${M_SMTP}`]);
+  });
+
+  it('przegląd: „has been removed or did not exist” (wiadomość zniknęła przed -Mrm) nie liczy się jako usunięta', () => {
+    const s = srodowisko();
+    const r = s.uruchom({ MQ_MODE: 'remove', ...KONTO, MQ_IDS: `${M_PHP},${M_SMTP}`, FAKE_MRM: 'zniklo' });
+    expect(r.rc).toBe(0);
+    expect(r.out).toContain('VERRIS_MQ_USUNIETO 0');
+    expect(r.out).toContain('VERRIS_MQ_POMINIETO 2');
+  });
+
+  it('przegląd: błąd exim -Mrm bez żadnego usunięcia = błąd zadania (nie „usunięto 0” jako sukces)', () => {
+    const s = srodowisko();
+    const r = s.uruchom({ MQ_MODE: 'remove', ...KONTO, MQ_IDS: M_PHP, FAKE_MRM: 'blad' });
+    expect(r.rc).not.toBe(0);
+    expect(r.err).toContain('[mail-queue] BŁĄD: exim -Mrm: exim: Permission denied');
+    expect(r.out).not.toContain('VERRIS_MQ_USUNIETO');
   });
 
   it('usunięcie bez konta albo bez identyfikatorów — odmowa; wypchnięcie tylko dla całego węzła', () => {
