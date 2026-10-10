@@ -187,6 +187,34 @@ describe('D11 — tablica migracji obsługi', () => {
     expect((await tytuly(l2b.id)).filter(([t]) => String(t).includes('po terminie'))).toEqual([]);
   });
 
+  it('przegląd D11 — ponowne otwarcie zamkniętej migracji daje nowe okno poprawek; zmiana etapu nie powtarza alertu', async () => {
+    const { p, l2, mig, svc } = await przygotuj({ createdAt: new Date(Date.now() - 50 * 3600_000) });
+    const op = { userId: l2.id, role: 'STAFF' };
+    // Termin się zbliża — jeden alert; przejście do „Testy u nas” przy tym samym terminie nie wysyła go drugi raz.
+    expect(await svc.alertTerminow()).toBe(1);
+    await svc.zmienEtap(mig.id, { etap: 'TESTY' }, op);
+    expect(await svc.alertTerminow()).toBe(0);
+
+    // Zamknięta 10 dni temu (okno poprawek dawno minęło), klient zgłasza błąd — obsługa otwiera ją ponownie.
+    const dawno = new Date(Date.now() - 10 * 86400_000);
+    await p.migrationRequest.update({
+      where: { id: mig.id },
+      data: { etapObslugi: 'ZAMKNIETA', cutoverAt: dawno, poprawkiDo: new Date(dawno.getTime() + 7 * 86400_000), raportWyslanyAt: dawno },
+    });
+    const o = await svc.zmienEtap(mig.id, { etap: 'PO_PRZELACZENIU', powod: 'Klient zgłosił błąd formularza po przeniesieniu' }, op);
+    expect(new Date(o.poprawkiDo!).getTime()).toBeGreaterThan(Date.now() + 6.9 * 86400_000);
+    expect(o.terminStan).toMatchObject({ rodzaj: 'okno-poprawek', stan: 'ok' });
+    expect(await svc.alertTerminow()).toBe(0);
+  });
+
+  it('przegląd D11 — wynik testu na tymczasowym adresie też trafia do klienta (eksport RODO): bez adresu węzła', async () => {
+    const { l2, mig, svc } = await przygotuj();
+    const op = { userId: l2.id, role: 'STAFF' };
+    await expect(svc.checklista(mig.id, { pole: 'testTymczasowy', wartosc: 'Podgląd na 203.0.113.7 działa, PageSpeed 92' }, op)).rejects.toThrow(/trafi do klienta/);
+    await expect(svc.checklista(mig.id, { pole: 'testTymczasowy', wartosc: 'Podgląd przez CageFS: OK' }, op)).rejects.toThrow(/trafi do klienta/);
+    await svc.checklista(mig.id, { pole: 'testTymczasowy', wartosc: 'Podgląd na adresie tymczasowym działa, PageSpeed 92' }, op);
+  });
+
   it('nieudana wysyłka raportu — raport nie jest oznaczony jako wysłany, zamknięcie dalej zablokowane', async () => {
     const { p, l2, mig, svc, wylaczMail } = await przygotuj();
     await p.migrationRequest.update({

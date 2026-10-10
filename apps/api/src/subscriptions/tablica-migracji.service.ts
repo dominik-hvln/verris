@@ -37,8 +37,6 @@ import {
 
 const DZIEN_MS = 24 * 60 * 60 * 1000;
 const UPRAWNIENIE = 'MIGRATIONS_MANAGE';
-/** Pola checklisty, które wychodzą do klienta w raporcie — white label sprawdzamy już przy zapisie. */
-const DO_KLIENTA = new Set<PoleChecklisty>(POLA_RAPORTU);
 /** Poza wzorcem panelu serwera: MTA i dostawca serwerów, adresy IP (węzły). */
 const ZDRADZA_INFRASTRUKTURE = /\bExim\b|Hetzner|\b\d{1,3}(\.\d{1,3}){3}\b/i;
 
@@ -278,11 +276,14 @@ export class TablicaMigracjiService {
       throw new BadRequestException(`Okno poprawek: od 1 do ${OKNO_POPRAWEK_MAX_DNI} dni.`);
     }
     const teraz = new Date();
-    const poprawkiDo = cel === 'PO_PRZELACZENIU' && wynik.kierunek === 'naprzod' ? new Date(teraz.getTime() + oknoDni * DZIEN_MS) : undefined;
+    // Okno poprawek otwiera każde wejście na „Po przełączeniu” — także ponowne otwarcie zamkniętej migracji
+    // (klient zgłosił błąd); stare okno już minęło i dawało od razu alert „po terminie”.
+    const poprawkiDo = cel === 'PO_PRZELACZENIU' ? new Date(teraz.getTime() + oknoDni * DZIEN_MS) : undefined;
     // Warunek na etap z odczytu: dwa równoczesne przejścia — drugie dostaje 409, a nie przeskok o dwa etapy.
+    // terminAlert zostaje: klucz alertu niesie rodzaj i datę terminu, więc sama zmiana etapu nie powtarza alertu.
     const { count } = await this.prisma.migrationRequest.updateMany({
       where: { id, etapObslugi: s.etap },
-      data: { etapObslugi: cel, etapOd: teraz, terminAlert: null, ...(poprawkiDo ? { poprawkiDo } : {}) },
+      data: { etapObslugi: cel, etapOd: teraz, ...(poprawkiDo ? { poprawkiDo } : {}) },
     });
     if (count === 0) throw new ConflictException('Ktoś właśnie zmienił etap tej migracji — odśwież stronę.');
     await this.audit.record({
@@ -378,7 +379,9 @@ export class TablicaMigracjiService {
       if (z.wartosc !== null && typeof z.wartosc !== 'string') throw new BadRequestException(`${POLE_PL[pole]}: wpisz tekst.`);
       const tekst = (z.wartosc ?? '').trim();
       if (tekst && (tekst.length < 3 || tekst.length > 2000)) throw new BadRequestException(`${POLE_PL[pole]}: od 3 do 2000 znaków.`);
-      if (tekst && DO_KLIENTA.has(pole)) {
+      // Pola raportu idą mailem, a cała checklista (także wynik testu na tymczasowym adresie) — w eksporcie RODO
+      // klienta (decyzja 10.10). White label sprawdzamy więc przy zapisie każdego pola tekstowego.
+      if (tekst) {
         const blad = bialaEtykietaRaportu(tekst);
         if (blad) throw new BadRequestException(blad);
       }
