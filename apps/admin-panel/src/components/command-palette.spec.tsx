@@ -138,7 +138,7 @@ describe("Cmd+K — tryb obiekt → działanie (prowadzi do karty, nie wykonuje)
     await wpisz("jan");
     await klawisz("Tab");
     await wpisz("wewnętrzne");
-    expect(okno()).toContain("Wymaga CUSTOMERS_INTERNAL_FLAG · wyślij wniosek");
+    expect(okno()).toContain("Wymaga CUSTOMERS_INTERNAL_FLAG i CUSTOMERS_MANAGE · wyślij wniosek");
     await klawisz("Enter");
     expect(push).toHaveBeenCalledWith("/customers/u1?sekcja=dostepy#blokada");
   });

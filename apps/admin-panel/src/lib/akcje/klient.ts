@@ -59,8 +59,9 @@ export const AKCJE_KLIENTA: AkcjaObiektu<KlientDlaAkcji>[] = [
     grupa: "Konto",
     nazwa: "Konto wewnętrzne",
     opis: "Konto testowe — poza metrykami biznesowymi (MRR, churn).",
-    // PATCH admin/users/:id/operational — CUSTOMERS_MANAGE + CUSTOMERS_INTERNAL_FLAG; wniosek CUSTOMER_INTERNAL_FLAG.
-    perm: "CUSTOMERS_INTERNAL_FLAG",
+    // PATCH admin/users/:id/operational — strażnik CUSTOMERS_MANAGE i serwis CUSTOMERS_INTERNAL_FLAG (oba);
+    // wniosek CUSTOMER_INTERNAL_FLAG (rejestr-wnioskow.ts: uprawnienie + uprawnieniaDodatkowe).
+    perm: { wszystkie: ["CUSTOMERS_INTERNAL_FLAG", "CUSTOMERS_MANAGE"] },
     kiedy: () => true,
     href: (k) => karta(k, "dostepy", "blokada"),
     slowa: "konto wewnętrzne testowe zespół",

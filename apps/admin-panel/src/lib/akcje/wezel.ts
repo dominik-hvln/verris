@@ -256,11 +256,20 @@ export interface DostepDoAkcji {
 }
 
 /**
- * Tekst dymka przy wyszarzonym działaniu; null — operator może je wykonać. Lista — wystarcza którekolwiek
- * (jak @StaffPermAny w API).
+ * Warunek uprawnień działania, jak w API: nazwa; lista — wystarcza którekolwiek (@StaffPermAny);
+ * `{ wszystkie }` — potrzebne każde z listy (np. strażnik kontrolera + sprawdzenie w serwisie);
+ * „ADMIN” — tylko administrator.
  */
-export function brakUprawnienia(perm: string | readonly string[], dostep: DostepDoAkcji): string | null {
+export type WarunekUprawnien = string | readonly string[] | { readonly wszystkie: readonly string[] };
+
+/** Tekst dymka przy wyszarzonym działaniu; null — operator może je wykonać. */
+export function brakUprawnienia(perm: WarunekUprawnien, dostep: DostepDoAkcji): string | null {
   if (dostep.isAdmin) return null;
+  if (typeof perm === "object" && "wszystkie" in perm) {
+    if (perm.wszystkie.includes("ADMIN")) return "Wymaga roli administratora";
+    const brakuje = perm.wszystkie.filter((p) => !dostep.permissions.includes(p));
+    return brakuje.length ? `Wymaga ${brakuje.join(" i ")}` : null;
+  }
   const lista = typeof perm === "string" ? [perm] : perm;
   if (lista.includes("ADMIN")) return "Wymaga roli administratora";
   return lista.some((p) => dostep.permissions.includes(p)) ? null : `Wymaga ${lista.join(" lub ")}`;

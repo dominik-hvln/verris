@@ -1,5 +1,6 @@
 import { dzialaniaObiektu } from "./rejestr";
 import { AKCJE_KLIENTA, type KlientDlaAkcji } from "./klient";
+import { brakUprawnienia } from "./wezel";
 
 const ADMIN = { isAdmin: true, permissions: [] };
 const operator = (...permissions: string[]) => ({ isAdmin: false, permissions });
@@ -38,7 +39,26 @@ describe("Działania klienta", () => {
   });
 
   it("konto wewnętrzne bez uprawnienia: wyszarzone, ale z wnioskiem (CUSTOMER_INTERNAL_FLAG)", () => {
-    expect(po({ id: "u1" }, "konto-wewnetrzne", operator("CUSTOMERS_VIEW"))).toMatchObject({ zablokowane: "Wymaga CUSTOMERS_INTERNAL_FLAG", wniosek: true });
+    expect(po({ id: "u1" }, "konto-wewnetrzne", operator("CUSTOMERS_VIEW"))).toMatchObject({ zablokowane: "Wymaga CUSTOMERS_INTERNAL_FLAG i CUSTOMERS_MANAGE", wniosek: true });
     expect(po({ id: "u1" }, "blokada-logowania", operator("CUSTOMERS_VIEW"))?.wniosek).toBeUndefined();
+  });
+
+  it("konto wewnętrzne wymaga obu uprawnień, jak API (strażnik CUSTOMERS_MANAGE + serwis CUSTOMERS_INTERNAL_FLAG)", () => {
+    expect(po({ id: "u1" }, "konto-wewnetrzne", operator("CUSTOMERS_VIEW", "CUSTOMERS_INTERNAL_FLAG"))?.zablokowane).toBe("Wymaga CUSTOMERS_MANAGE");
+    expect(po({ id: "u1" }, "konto-wewnetrzne", operator("CUSTOMERS_VIEW", "CUSTOMERS_MANAGE"))?.zablokowane).toBe("Wymaga CUSTOMERS_INTERNAL_FLAG");
+    expect(po({ id: "u1" }, "konto-wewnetrzne", operator("CUSTOMERS_MANAGE", "CUSTOMERS_INTERNAL_FLAG"))?.zablokowane).toBeNull();
+    expect(po({ id: "u1" }, "konto-wewnetrzne")?.zablokowane).toBeNull();
+  });
+});
+
+describe("brakUprawnienia — warunki jak w API", () => {
+  it("lista = którekolwiek (@StaffPermAny), { wszystkie } = każde, ADMIN = tylko administrator", () => {
+    expect(brakUprawnienia(["A", "B"], operator("B"))).toBeNull();
+    expect(brakUprawnienia(["A", "B"], operator())).toBe("Wymaga A lub B");
+    expect(brakUprawnienia({ wszystkie: ["A", "B"] }, operator("B"))).toBe("Wymaga A");
+    expect(brakUprawnienia({ wszystkie: ["A", "B"] }, operator())).toBe("Wymaga A i B");
+    expect(brakUprawnienia({ wszystkie: ["A", "B"] }, operator("A", "B"))).toBeNull();
+    expect(brakUprawnienia({ wszystkie: ["A", "ADMIN"] }, operator("A"))).toBe("Wymaga roli administratora");
+    expect(brakUprawnienia({ wszystkie: ["A", "B"] }, ADMIN)).toBeNull();
   });
 });

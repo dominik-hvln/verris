@@ -1,5 +1,5 @@
 import type { PomocId } from "@/lib/pomoc";
-import { brakUprawnienia, type DostepDoAkcji, type DzialanieNaKarcie } from "./wezel";
+import { brakUprawnienia, type DostepDoAkcji, type DzialanieNaKarcie, type WarunekUprawnien } from "./wezel";
 
 /**
  * Wspólny kształt rejestru działań karty (klient, usługa, faktura — propozycja 10.10, sekcja B). Jedno źródło
@@ -14,8 +14,8 @@ export interface AkcjaObiektu<T> {
   grupa: string;
   nazwa: string | ((o: T) => string);
   opis: string;
-  /** Uprawnienie jak w API; lista — wystarcza którekolwiek; „ADMIN” — tylko administrator. */
-  perm: string | readonly string[];
+  /** Uprawnienie jak w API; lista — wystarcza którekolwiek; `{ wszystkie }` — każde z listy; „ADMIN” — tylko administrator. */
+  perm: WarunekUprawnien;
   kiedy: (o: T) => boolean;
   href: (o: T) => string;
   slowa: string;
