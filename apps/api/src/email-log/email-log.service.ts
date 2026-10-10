@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { EmailCategory, EmailStatus, Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { maskujTekst, maskujWartosc } from './maskowanie.js';
 
 export interface EmailLogFilters {
   category?: EmailCategory;
@@ -107,8 +108,19 @@ export class EmailLogService {
     return { items, nextCursor, stats };
   }
 
+  /**
+   * Podgląd wpisu (karta klienta → Komunikacja). Linki jednorazowe i tokeny maskowane w API
+   * (`maskowanie.ts`) — operator nie dostaje ich w całości. Brak wpisu = 404, nie pusta odpowiedź.
+   */
   async detail(id: string) {
-    return this.prisma.emailLog.findUnique({ where: { id } });
+    const wpis = await this.prisma.emailLog.findUnique({ where: { id } });
+    if (!wpis) throw new NotFoundException('Nie ma takiego wpisu dziennika poczty.');
+    return {
+      ...wpis,
+      subject: maskujTekst(wpis.subject),
+      errorMessage: wpis.errorMessage ? maskujTekst(wpis.errorMessage) : null,
+      metadata: maskujWartosc(wpis.metadata),
+    };
   }
 
   async listForUser(userId: string, limit = 50) {
