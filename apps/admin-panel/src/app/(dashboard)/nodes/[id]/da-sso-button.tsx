@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { PRZYCISK, PRZYCISK_GLOWNY } from "@/components/v2";
 import { ExternalLink, Loader2, TerminalSquare } from "lucide-react";
 import { createNodeSsoUrl } from "./da-sso-actions";
+import { otworzLinkJednorazowy } from "@/lib/otworz-link-jednorazowy";
 
 /**
  * FALA-2c — szybkie wejście na węzeł jako admin:
@@ -20,17 +21,10 @@ export function DaSsoButton({ serverId, sshHost, srodek, daGotowe = true }: { se
     if (busy) return;
     setBusy(true);
     setError(null);
-    // Okno otwieramy PRZED awaitem (polityka popupów), potem podmieniamy adres.
-    const win = window.open("about:blank", "_blank", "noopener");
-    const res = await createNodeSsoUrl(serverId);
+    // Okno przed awaitem (polityka popupów), potem podmiana adresu — wspólne z Cmd+K.
+    const blad = await otworzLinkJednorazowy(() => createNodeSsoUrl(serverId));
     setBusy(false);
-    if ("error" in res) {
-      if (win) win.close();
-      setError(res.error);
-      return;
-    }
-    if (win) win.location.href = res.data.url;
-    else window.open(res.data.url, "_blank");
+    if (blad) setError(blad);
   };
 
   const copySsh = async () => {

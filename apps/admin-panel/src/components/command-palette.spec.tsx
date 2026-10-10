@@ -177,13 +177,17 @@ describe("Cmd+K — tryb obiekt → działanie (prowadzi do karty, nie wykonuje)
   });
 
   describe("fala 1B — SSO do DA węzła uruchamia się od razu z palety", () => {
-    const okno = { location: { href: "" }, close: jest.fn() };
+    const okno = { location: { href: "" }, close: jest.fn(), opener: {} as unknown };
     let open: jest.SpyInstance;
     beforeEach(() => {
       mockSso.mockReset();
       okno.location.href = "";
+      okno.opener = {};
       okno.close.mockReset();
-      open = jest.spyOn(window, "open").mockReturnValue(okno as unknown as Window);
+      // Jak przeglądarka (specyfikacja HTML): z cechą „noopener” window.open zwraca null.
+      open = jest
+        .spyOn(window, "open")
+        .mockImplementation((_u?: string | URL, _t?: string, cechy?: string) => (cechy?.includes("noopener") ? null : (okno as unknown as Window)));
     });
     afterEach(() => open.mockRestore());
 
@@ -195,7 +199,10 @@ describe("Cmd+K — tryb obiekt → działanie (prowadzi do karty, nie wykonuje)
       await wpisz("sso");
       expect(okno_()).toContain("Zaloguj do DA węzła (SSO)");
       await klawisz("Enter");
-      expect(open).toHaveBeenCalledWith("about:blank", "_blank", "noopener");
+      // Jedna karta: otwarta przed awaitem, z zerwanym opener, i podmieniony adres (przegląd 1B-2).
+      expect(open).toHaveBeenCalledTimes(1);
+      expect(open).toHaveBeenCalledWith("about:blank", "_blank");
+      expect(okno.opener).toBeNull();
       expect(mockSso).toHaveBeenCalledWith("n1");
       expect(okno.location.href).toBe("https://t1.example:2222/api/login/url?key=jednorazowy");
       expect(push).not.toHaveBeenCalled();
@@ -220,6 +227,20 @@ describe("Cmd+K — tryb obiekt → działanie (prowadzi do karty, nie wykonuje)
       await klawisz("Enter");
       expect(okno.close).toHaveBeenCalled();
       expect(okno_()).toContain("Węzeł nie ma skonfigurowanego DirectAdmina.");
+    });
+
+    it("drugi Enter w trakcie nie tworzy drugiego linku SSO", async () => {
+      let oddaj: (v: unknown) => void = () => undefined;
+      mockSso.mockImplementation(() => new Promise((r) => (oddaj = r)));
+      await otworz();
+      await wpisz("t1");
+      await klawisz("Tab");
+      await wpisz("sso");
+      await klawisz("Enter");
+      await klawisz("Enter");
+      expect(mockSso).toHaveBeenCalledTimes(1);
+      await act(async () => oddaj({ data: { url: "https://x/login", sshHost: null, sshCommand: null } }));
+      expect(open).toHaveBeenCalledTimes(1);
     });
 
     it("bez roli administratora: wyszarzone, nic się nie uruchamia", async () => {

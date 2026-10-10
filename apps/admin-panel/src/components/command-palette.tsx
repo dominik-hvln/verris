@@ -10,6 +10,7 @@ import type { DostepDoAkcji } from "@/lib/akcje/wezel";
 import { podswietlKotwice } from "@/lib/podswietl";
 import { NieWczytano } from "./nie-wczytano";
 import { createNodeSsoUrl } from "@/app/(dashboard)/nodes/[id]/da-sso-actions";
+import { otworzLinkJednorazowy } from "@/lib/otworz-link-jednorazowy";
 
 const TYPE_ICON = {
   user: User,
@@ -199,19 +200,20 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
    * Ta sama akcja serwera co przycisk na karcie (da-sso-button.tsx): POST admin/servers/:id/sso-url, tylko ADMIN,
    * wpis NODE_ADMIN_SSO_URL_CREATED w dzienniku. Okno otwieramy przed awaitem (blokada wyskakujących okien).
    */
+  const ssoTrwa = useRef(false);
   const uruchomSso = useCallback(
     async (serverId: string) => {
+      // Drugi Enter w trakcie nie tworzy drugiego linku (każdy to osobny wpis w dzienniku).
+      if (ssoTrwa.current) return;
+      ssoTrwa.current = true;
       setBladAkcji(null);
-      const okno = window.open("about:blank", "_blank", "noopener");
-      const res = await createNodeSsoUrl(serverId);
-      if ("error" in res) {
-        if (okno) okno.close();
-        setBladAkcji(res.error);
-        return;
+      try {
+        const blad = await otworzLinkJednorazowy(() => createNodeSsoUrl(serverId));
+        if (blad) setBladAkcji(blad);
+        else close();
+      } finally {
+        ssoTrwa.current = false;
       }
-      if (okno) okno.location.href = res.data.url;
-      else window.open(res.data.url, "_blank");
-      close();
     },
     [close],
   );
