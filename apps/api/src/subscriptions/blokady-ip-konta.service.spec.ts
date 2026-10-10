@@ -69,7 +69,7 @@ const z = (o: { zgloszenie?: string; rola?: string } = {}) => ({
 describe('F3.2 BlokadyIpKontaService — „Zablokowało mi IP”', () => {
   it('adresy klienta: logowania (bez prefiksu ::ffff:, bez powtórzeń) i adresy z jego zgłoszeń; odczyt w dzienniku', async () => {
     const { svc, wiersze } = zbuduj();
-    const s = await svc.stan('s1', 'op');
+    const s = await svc.stan('s1', 'op', 'STAFF');
     expect(s.adresy.map((a) => [a.ip, a.zrodla])).toEqual(
       expect.arrayContaining([
         ['46.205.1.10', ['logowanie']],
@@ -84,9 +84,9 @@ describe('F3.2 BlokadyIpKontaService — „Zablokowało mi IP”', () => {
   it('odpytywanie w trakcie sprawdzania nie dopisuje wpisów odczytu (tylko wydanie wyniku)', async () => {
     const { svc, wiersze, prisma } = zbuduj();
     prisma.nodeTask.findMany.mockResolvedValueOnce([{ status: 'RUNNING', payload: { mode: 'list', ip: '83.12.44.201' }, outputLog: null, errorMessage: null, createdAt: new Date(), completedAt: null }] as never);
-    expect((await svc.stan('s1', 'op')).wToku).toBe(true);
+    expect((await svc.stan('s1', 'op', 'STAFF')).wToku).toBe(true);
     expect(wiersze.filter((w) => w.action === 'OPERATOR_ACCOUNT_VIEWED')).toEqual([]);
-    await svc.stan('s1', 'op');
+    await svc.stan('s1', 'op', 'STAFF');
     expect(wiersze.filter((w) => w.action === 'OPERATOR_ACCOUNT_VIEWED')).toHaveLength(1);
   });
 
@@ -136,6 +136,19 @@ describe('F3.2 BlokadyIpKontaService — „Zablokowało mi IP”', () => {
     await expect(obcy.svc.sprawdz('s1', 'op', 'STAFF', '203.0.113.99')).rejects.toMatchObject({ status: 403 });
     expect(obcy.zadania).toEqual([]);
     await expect(obcy.svc.sprawdz('s1', 'op', 'STAFF', '1.2.3.4; reboot')).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('przegląd: usługa konta zespołu — personel (także NOC) nie widzi adresów logowań ani nie sprawdza IP; ADMIN tak', async () => {
+    for (const rola of ['ADMIN', 'STAFF']) {
+      const { svc, zadania, wiersze, prisma } = zbuduj({ wlascicielRola: rola, uprawnienia: ['IP_BLOCKS_NODE', 'IP_UNBLOCK'] });
+      await expect(svc.stan('s1', 'op', 'STAFF')).rejects.toMatchObject({ status: 403 });
+      await expect(svc.sprawdz('s1', 'op', 'STAFF', '46.205.1.10')).rejects.toMatchObject({ status: 403 });
+      expect(prisma.loginEvent.findMany).not.toHaveBeenCalled();
+      expect(zadania).toEqual([]);
+      expect(wiersze).toEqual([]);
+      const s = await svc.stan('s1', 'op', 'ADMIN');
+      expect(s.adresy.map((a) => a.ip)).toContain('46.205.1.10');
+    }
   });
 
   it('usługa konta zespołu: personel nie odblokowuje (jak inne akcje F2.2)', async () => {

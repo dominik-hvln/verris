@@ -151,6 +151,17 @@ describe('F3.2 — node-ip-blocks.sh (fail2ban)', () => {
     }
   });
 
+  it('przegląd: usunięcie z białej listy tylko adresu dodanego przez panel (nie ::1 z wartości domyślnej, nie spoza listy)', () => {
+    for (const ip of ['::1', '198.51.100.9']) {
+      const s = srodowisko();
+      const r = s.uruchom({ IPB_MODE: 'disallow', IPB_IP: ip });
+      expect(r.rc).not.toBe(0);
+      expect(r.err).toContain('nie ma na białej liście');
+      expect(s.wywolania().filter((w) => w.startsWith('set') || w.startsWith('unban'))).toEqual([]);
+      expect(existsSync(s.plik)).toBe(false);
+    }
+  });
+
   it('unban bez adresu i nieznany tryb — odmowa', () => {
     expect(srodowisko().uruchom({ IPB_MODE: 'unban' }).rc).not.toBe(0);
     expect(srodowisko().uruchom({ IPB_MODE: 'restart' }).rc).not.toBe(0);

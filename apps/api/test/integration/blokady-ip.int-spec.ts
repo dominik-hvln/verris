@@ -82,14 +82,14 @@ else:
       await zadania.completeTaskFromNode({ serverId: wezel.id, taskId: t!.id, outputLog: atrapa.uruchom(t!.payload as Record<string, unknown>) });
     };
 
-    const start = await svc.stan(k.subscription.id, l2.id);
+    const start = await svc.stan(k.subscription.id, l2.id, 'STAFF');
     expect(start.adresy).toEqual([expect.objectContaining({ ip: '83.12.44.201', zrodla: ['zgloszenie'], zgloszenia: [zgl.id] })]);
 
     // L2 nie sprawdzi cudzego adresu (blokada innego klienta węzła).
     await expect(svc.sprawdz(k.subscription.id, l2.id, 'STAFF', '203.0.113.50')).rejects.toMatchObject({ status: 403 });
     expect((await svc.sprawdz(k.subscription.id, l2.id, 'STAFF', '83.12.44.201')).wToku).toBe(true);
     await agent();
-    const sprawdzone = await svc.stan(k.subscription.id, l2.id);
+    const sprawdzone = await svc.stan(k.subscription.id, l2.id, 'STAFF');
     expect(sprawdzone.sprawdzenie).toMatchObject({ ip: '83.12.44.201', wToku: false, blokady: [{ ip: '83.12.44.201', jail: 'dovecot', powod: 'nieudane logowania IMAP/POP3 (odbiór poczty)' }] });
     expect(JSON.stringify(sprawdzone)).not.toContain('203.0.113.50');
 
@@ -97,7 +97,7 @@ else:
     await expect(svc.odblokuj(z, '83.12.44.201')).rejects.toMatchObject({ status: 400 });
     expect(await svc.odblokuj({ ...z, zgloszenie: `#${zgl.id.slice(0, 8)}` }, '83.12.44.201')).toMatchObject({ ok: true });
     await agent();
-    const po = await svc.stan(k.subscription.id, l2.id);
+    const po = await svc.stan(k.subscription.id, l2.id, 'STAFF');
     expect(po.operacja).toMatchObject({ tryb: 'unban', ip: '83.12.44.201', wToku: false, odblokowano: 1, blad: null });
     // Pełna lista węzła po operacji nie trafia na kartę usługi (L2).
     expect(JSON.stringify(po)).not.toContain('203.0.113.50');

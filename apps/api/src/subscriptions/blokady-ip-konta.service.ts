@@ -38,13 +38,21 @@ export class BlokadyIpKontaService {
     private readonly wezel: BlokadyIpWezlaService,
   ) {}
 
-  private async konto(subscriptionId: string) {
+  /**
+   * Usługa i jej właściciel. Przegląd F3.2: personel (STAFF) widzi i sprawdza adresy tylko na usługach klientów (USER) —
+   * historia logowań administratora czy pracownika to nie „adres klienta” (ta sama reguła co karta klienta
+   * w users.admin.service.ts i akcje F2.2). Usługi kont zespołu — tylko ADMIN.
+   */
+  private async konto(subscriptionId: string, operatorRole: string) {
     const sub = await this.prisma.subscription.findUnique({
       where: { id: subscriptionId },
-      select: { userId: true, account: { select: { id: true, serverId: true, status: true } } },
+      select: { userId: true, user: { select: { role: true } }, account: { select: { id: true, serverId: true, status: true } } },
     });
     if (!sub) throw new NotFoundException('Usługa nie istnieje.');
     if (!sub.account) throw new NotFoundException('Usługa nie ma konta hostingowego.');
+    if (operatorRole !== 'ADMIN' && sub.user?.role !== 'USER') {
+      throw new ForbiddenException('Personel widzi adresy IP wyłącznie na usługach klientów — usługę konta zespołu sprawdza administrator.');
+    }
     return { userId: sub.userId, account: sub.account };
   }
 
@@ -90,8 +98,8 @@ export class BlokadyIpKontaService {
   }
 
   /** Stan na karcie usługi: adresy klienta i wynik ostatniego sprawdzenia / odblokowania z tej karty. */
-  async stan(subscriptionId: string, operatorUserId: string) {
-    const { userId, account } = await this.konto(subscriptionId);
+  async stan(subscriptionId: string, operatorUserId: string, operatorRole: string) {
+    const { userId, account } = await this.konto(subscriptionId, operatorRole);
     const adresy = await this.adresyKlienta(userId);
     const karta = this.stanKarty(await this.zadaniaKonta(account.id));
     // Wpis przy wydaniu adresów i wyniku — nie przy każdym odpytaniu panelu w trakcie sprawdzania (co 5 s).
@@ -118,7 +126,7 @@ export class BlokadyIpKontaService {
 
   /** „Sprawdź IP” — czy adres jest zablokowany na węźle konta (wszystkie jaile). L2: tylko adresy klienta. */
   async sprawdz(subscriptionId: string, operatorUserId: string, operatorRole: string, ip: string) {
-    const { userId, account } = await this.konto(subscriptionId);
+    const { userId, account } = await this.konto(subscriptionId, operatorRole);
     const adres = kanonicznyIp(ip);
     if (!adres) throw new BadRequestException('Podaj jeden adres IPv4 albo IPv6 (np. 203.0.113.7).');
     if (!(await this.pelnyDostep(operatorUserId, operatorRole))) {
@@ -163,7 +171,7 @@ export class BlokadyIpKontaService {
       },
       { action: HostingResourceActions.HOSTING_IP_UNBLOCK_QUEUED, details: { target: adres } },
     );
-    const { userId, account } = await this.konto(z.subscriptionId);
+    const { userId, account } = await this.konto(z.subscriptionId, z.operatorRole);
     return { ...wynik, adresy: await this.adresyKlienta(userId), ...this.stanKarty(await this.zadaniaKonta(account.id)) };
   }
 }

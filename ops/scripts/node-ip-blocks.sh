@@ -204,6 +204,10 @@ if tryb in ("allow", "disallow"):
         for j in lista_jaili:
             f2b("set", j, "addignoreip", s)
     else:
+        # Tylko adres dodany przez panel: delignoreip zdjąłby też ::1 z wartości domyślnej (do restartu fail2ban),
+        # a adres spoza listy kończy się w fail2ban wyjątkiem w połowie jaili (filter.py delIgnoreIP → list.remove).
+        if s not in biala:
+            fail("tego adresu nie ma na białej liście panelu")
         biala = [a for a in biala if a != s]
         zapisz_liste(biala)
         for j in lista_jaili:

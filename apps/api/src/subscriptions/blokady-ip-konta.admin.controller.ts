@@ -35,7 +35,7 @@ export class BlokadyIpKontaAdminController {
   @Get()
   @StaffPermAny('IP_UNBLOCK', 'IP_BLOCKS_NODE')
   stan(@Param('id') id: string, @CurrentUser() actor: Aktor) {
-    return this.blokady.stan(id, actor.userId);
+    return this.blokady.stan(id, actor.userId, actor.role);
   }
 
   @Post('sprawdz')
