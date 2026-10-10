@@ -78,6 +78,15 @@ describe("F2.6 — zasoby i diagnoza 508 na karcie usługi", () => {
     expect(k.querySelector("[data-raport]")?.textContent).toContain("redeploy agenta");
   });
 
+  it("doba bez odbić, 7 dni bez danych (raport ucięty): nie twierdzi, że w 7 dni było czysto", async () => {
+    akcja.mockResolvedValue({ ok: true, wynik: { ...DANE, faulty: { ...DANE.faulty, doba: F0, tydzien: null } } });
+    await render(op("ACCOUNT_DIAGNOSTICS_VIEW"));
+    expect(komorka("ep")).toEqual(["Procesy wejściowe (EP)", "30", "0", "—"]);
+    const opis = k.querySelector("[data-diagnoza]")?.textContent ?? "";
+    expect(opis).toContain("7 dni — brak danych");
+    expect(opis).not.toContain("Bez przekroczeń");
+  });
+
   it("błąd narzędzia na węźle widoczny jako błąd; „Wczytaj” zleca odczyt z serwera", async () => {
     akcja.mockResolvedValueOnce({ ok: true, wynik: { ...DANE, faulty: { ...DANE.faulty, blad: "cloudlinux-statistics --period=1d: database is locked", doba: null, tydzien: null } } });
     await render({ isAdmin: true, permissions: [] });

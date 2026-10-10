@@ -61,6 +61,20 @@ describe('F2.6 — faulty limitów z węzła', () => {
     expect(faultyKonta({ ...swiezy, lveFaultsAt: new Date(TERAZ - 60 * 60_000) }, 'u1', TERAZ).nieaktualne).toBe(true);
   });
 
+  it('okno ucięte (więcej kont z faultami niż w raporcie) bez konta = brak danych, nie zera', () => {
+    const raport = raportDoZapisu({
+      windows: [
+        { hours: 24, accounts: [{ username: 'u1', ep: 5 }], truncated: false },
+        { hours: 168, accounts: [{ username: 'u1', ep: 50 }], truncated: true },
+      ],
+    });
+    const serwer = { lveFaults: raport, lveFaultsAt: new Date(TERAZ - 60_000) };
+    expect(faultyKonta(serwer, 'u9', TERAZ)).toMatchObject({ doba: { ep: 0 }, tydzien: null });
+    expect(faultyKonta(serwer, 'u1', TERAZ).tydzien).toMatchObject({ ep: 50 });
+    // Klucz z prototypu obiektu to nie konto z raportu.
+    expect(faultyKonta(serwer, 'constructor', TERAZ).doba).toEqual({ cpu: 0, ep: 0, nproc: 0, pmem: 0, io: 0, iops: 0 });
+  });
+
   it('flota: konta z faultami z wielu węzłów, od najgorszego w dobie, z usługą po (węzeł, login)', () => {
     const r1 = raportDoZapisu({
       windows: [

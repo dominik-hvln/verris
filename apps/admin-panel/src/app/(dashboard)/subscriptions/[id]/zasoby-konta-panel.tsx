@@ -43,6 +43,8 @@ function diagnoza(d: ZasobyKonta): string | null {
   if (doba.length) return `W ostatniej dobie konto odbijało się od limitu: ${doba.map((z) => `${z.nazwa} — ${z.skutek}`).join("; ")}.`;
   const tydzien = ZASOBY.filter((z) => (f.tydzien?.[z.klucz] ?? 0) > 0);
   if (tydzien.length) return `W dobie bez przekroczeń; w 7 dni: ${tydzien.map((z) => z.nazwa).join(", ")}.`;
+  // Brak okna (węzeł go nie podał albo raport ucięty bez tego konta) to nie „zero” — nie twierdzimy, że było czysto.
+  if (!f.doba || !f.tydzien) return f.doba ? "W dobie bez przekroczeń; 7 dni — brak danych z węzła." : "Doba — brak danych z węzła.";
   return "Bez przekroczeń limitów w 7 dni — przyczyny szukaj w błędach 5xx i wolnych zapytaniach.";
 }
 

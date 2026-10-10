@@ -65,7 +65,11 @@ export type FaultyKontaWidok = {
 
 const ZERO: FaultyKonta = { cpu: 0, ep: 0, nproc: 0, pmem: 0, io: 0, iops: 0 };
 
-/** Faulty jednego konta z raportu węzła — zera tylko wtedy, gdy węzeł faktycznie podał okno bez tego konta. */
+/**
+ * Faulty jednego konta z raportu węzła — zera tylko wtedy, gdy węzeł faktycznie podał okno bez tego konta.
+ * Okno ucięte (`obcieto`: węzeł ma więcej kont z faultami niż mieści raport) bez tego konta = brak danych, nie zera —
+ * konto spoza 200 najgorszych też mogło się odbijać od limitów.
+ */
 export function faultyKonta(
   serwer: { lveFaults: unknown; lveFaultsAt: Date | null },
   username: string,
@@ -74,7 +78,9 @@ export function faultyKonta(
   const r = raportZBazy(serwer.lveFaults);
   const okno = (h: 24 | 168) => {
     const o = r?.okna.find((x) => x.godzin === h);
-    return o ? (o.konta[username] ?? ZERO) : null;
+    if (!o) return null;
+    if (Object.hasOwn(o.konta, username)) return o.konta[username];
+    return o.obcieto ? null : ZERO;
   };
   return {
     odczytano: serwer.lveFaultsAt?.toISOString() ?? null,
