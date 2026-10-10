@@ -14,13 +14,21 @@ import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
 import { RolesGuard } from '../guards/roles.guard.js';
 import { Roles } from '../decorators/roles.decorator.js';
+import { StaffPermissionsGuard } from '../guards/staff-permissions.guard.js';
+import { StaffPerm } from '../decorators/staff-permissions.decorator.js';
 import { AuditService, AuditCategory, AuditLogWithUsers, AUDIT_CATEGORIES } from './audit.service.js';
 
 const VALID_CATEGORIES = new Set<string>(Object.values(AUDIT_CATEGORIES));
 
+/**
+ * Dziennik audytu — wyłącznie odczyt (lista i eksport CSV). Pozycja 13: STAFF z AUDIT_VIEW
+ * („Logi bezpieczeństwa”: L4, Nadużycia, IOD, Audytor) czyta, ADMIN bez zmian. Kontroler nie ma
+ * i nie może dostać tras zapisu pod tym uprawnieniem.
+ */
 @Controller('admin/audit-logs')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
+@UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
+@Roles(Role.ADMIN, Role.STAFF)
+@StaffPerm('AUDIT_VIEW')
 export class AuditAdminController {
   constructor(private readonly audit: AuditService) {}
 

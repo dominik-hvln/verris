@@ -13,6 +13,8 @@ import {
 import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { PlansService } from './plans.service.js';
@@ -23,9 +25,15 @@ import {
 } from './dto/plan.dto.js';
 import { StripeService } from '../billing/stripe/stripe.service.js';
 
+/**
+ * Plany produktowe. Pozycja 13: STAFF z PLANS_MANAGE („Plany produktowe i VPS”, L4 — decyzja właściciela
+ * 08.10, opis roli: „zarządzanie węzłami i planami”) ma te same operacje co ADMIN; zmiany i tak idą do
+ * dziennika z aktorem (PlansService). Trasy VPS (vps.admin.controller.ts) bez zmian.
+ */
 @Controller('admin/plans')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
+@UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
+@Roles(Role.ADMIN, Role.STAFF)
+@StaffPerm('PLANS_MANAGE')
 export class PlansAdminController {
   constructor(
     private readonly plans: PlansService,

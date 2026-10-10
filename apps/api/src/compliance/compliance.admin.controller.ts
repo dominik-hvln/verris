@@ -25,6 +25,8 @@ import type { Request } from 'express';
 import { LegalDocumentKind, Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { extractRequestContext } from '../common/decorators/request-context.js';
@@ -98,7 +100,7 @@ class ForceAnonymizeDto {
 /**
  * Sprint 1 / L-08 — admin "Compliance" tab API.
  *
- * Routes (all require ADMIN role):
+ * Routes (ADMIN; STAFF z COMPLIANCE_MANAGE — wszystkie poza publish i force-anonymize):
  *  - `GET    /admin/compliance/documents`                                — list latest version per kind
  *  - `GET    /admin/compliance/documents/:kind/versions`                  — full archive
  *  - `POST   /admin/compliance/documents/publish`                         — publish a new version
@@ -108,8 +110,12 @@ class ForceAnonymizeDto {
  *  - `GET    /admin/compliance/deletion-requests`                         — list deletion requests
  *  - `POST   /admin/compliance/deletion-requests/:userId/force-anonymize` — admin override (UODO)
  */
+// Pozycja 13 — COMPLIANCE_MANAGE (L4, IOD): odczyt dokumentów, zgód, eksportów i wniosków o usunięcie
+// oraz ponowienie eksportu danych. Zostają tylko dla ADMIN: publikacja nowej wersji dokumentu prawnego
+// (wiąże wszystkich klientów — decyzja właściciela) i wymuszona anonimizacja (nieodwracalna, a trasa nie
+// sprawdza roli konta docelowego — operator mógłby zanonimizować konto administratora lub innego operatora).
 @Controller('admin/compliance')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
 @Roles(Role.ADMIN)
 export class ComplianceAdminController {
   constructor(
@@ -126,11 +132,15 @@ export class ComplianceAdminController {
   // ---------------------------------------------------------------------------
 
   @Get('documents')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('COMPLIANCE_MANAGE')
   async listDocuments(@Query('locale') locale = 'pl') {
     return this.legal.getCurrentMap(locale);
   }
 
   @Get('documents/:kind/versions')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('COMPLIANCE_MANAGE')
   listVersions(
     @Param('kind', new ParseEnumPipe(LegalDocumentKind)) kind: LegalDocumentKind,
     @Query('locale') locale = 'pl',
@@ -159,6 +169,8 @@ export class ComplianceAdminController {
   // ---------------------------------------------------------------------------
 
   @Get('consents')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('COMPLIANCE_MANAGE')
   listConsents(@Query() query: ConsentsQuery) {
     return this.consents.adminList({
       userId: query.userId,
@@ -174,6 +186,8 @@ export class ComplianceAdminController {
   // ---------------------------------------------------------------------------
 
   @Get('data-exports')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('COMPLIANCE_MANAGE')
   async listDataExports(@Query('limit') limitRaw?: string) {
     const limit = Math.min(Math.max(Number(limitRaw ?? '100'), 1), 500);
     return this.prisma.dataExportRequest.findMany({
@@ -186,6 +200,8 @@ export class ComplianceAdminController {
   }
 
   @Post('data-exports/:id/retry')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('COMPLIANCE_MANAGE')
   async retryDataExport(
     @Param('id') id: string,
     @CurrentUser() actor: { userId: string },
@@ -209,6 +225,8 @@ export class ComplianceAdminController {
   // ---------------------------------------------------------------------------
 
   @Get('deletion-requests')
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('COMPLIANCE_MANAGE')
   listDeletionRequests() {
     return this.prisma.accountDeletionRequest.findMany({
       orderBy: { requestedAt: 'desc' },
