@@ -24,6 +24,8 @@ export interface WynikWyszukiwania {
   results: GlobalSearchResult[];
   /** Typy pominięte z braku uprawnień (paleta mówi o tym zamiast pustej listy). */
   pominiete: TypWyniku[];
+  /** API nie odpowiedziało — paleta mówi „Nie udało się wczytać” zamiast „Brak wyników” (fala 1B). */
+  blad?: boolean;
 }
 
 export async function globalSearchAction(q: string): Promise<WynikWyszukiwania> {
@@ -36,6 +38,6 @@ export async function globalSearchAction(q: string): Promise<WynikWyszukiwania> 
     if (e instanceof AdminApiError && e.status === 403) {
       return { results: [], pominiete: ["user", "service", "domain", "invoice", "node", "ticket", "migration"] };
     }
-    return { results: [], pominiete: [] };
+    return { results: [], pominiete: [], blad: true };
   }
 }

@@ -26,12 +26,9 @@ export interface CannedInput {
 type Result = { ok: true } | { ok: false; error: string };
 const err = (e: unknown) => (e instanceof AdminApiError ? e.message : "Błąd");
 
+/** Fala 1B — błąd API leci do strony (komunikat z ponowieniem), nie udaje pustej listy szablonów. */
 export async function fetchCanned(): Promise<CannedResponseRow[]> {
-  try {
-    return await adminApi<CannedResponseRow[]>("/tickets/canned/all");
-  } catch {
-    return [];
-  }
+  return adminApi<CannedResponseRow[]>("/tickets/canned/all");
 }
 
 export async function createCanned(input: CannedInput): Promise<Result> {

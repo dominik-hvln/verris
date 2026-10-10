@@ -1,11 +1,13 @@
 import { MessageSquare } from "lucide-react";
 import { fetchCanned } from "./actions";
 import { CannedClient } from "./canned-client";
+import { wynik } from "@/components/blad-strony";
+import { NieWczytano } from "@/components/nie-wczytano";
 
 export const dynamic = "force-dynamic";
 
 export default async function CannedResponsesPage() {
-  const rows = await fetchCanned();
+  const rows = await wynik(fetchCanned());
   return (
     <div className="space-y-6 p-6 max-w-4xl">
       <header>
@@ -17,7 +19,7 @@ export default async function CannedResponsesPage() {
           danego rodzaju (szablony bez tematu są globalne).
         </p>
       </header>
-      <CannedClient rows={rows} />
+      {rows.ok ? <CannedClient rows={rows.dane} /> : <NieWczytano co="szablonów odpowiedzi" />}
     </div>
   );
 }

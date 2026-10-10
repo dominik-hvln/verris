@@ -5,6 +5,7 @@ import { adminApi } from "@/lib/api";
 import { plural, plForm } from "@/lib/pl";
 import { Eyebrow, KARTA, Pasek, Pigulka, PRZYCISK, PRZYCISK_GLOWNY, WIERSZ } from "@/components/v2";
 import { fetchServers } from "./actions";
+import { NieWczytano } from "@/components/nie-wczytano";
 
 export const dynamic = "force-dynamic";
 
@@ -100,9 +101,8 @@ export default async function AdminNodesPage() {
         </div>
       </div>
 
-      {error ? (
-        <div className="rounded-[10px] border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">Nie udało się pobrać listy węzłów: {error}</div>
-      ) : null}
+      {/* Fala 1B — przy błędzie API komunikat z ponowieniem; pusta lista z kreatorem tylko, gdy węzłów naprawdę nie ma. */}
+      {error ? <NieWczytano co="listy węzłów" /> : null}
 
       <section className={KARTA} aria-label="Węzły">
         <div className={`${WIERSZ} !border-t-0 !py-2.5 font-mono text-[10.5px] uppercase tracking-[0.1em] text-muted-foreground`}>
@@ -113,7 +113,7 @@ export default async function AdminNodesPage() {
           <span className="hidden w-[110px] lg:block">Manifest</span>
           <span className="w-[80px] text-right">Sygnał</span>
         </div>
-        {wiersze.length === 0 ? (
+        {wiersze.length === 0 && error ? null : wiersze.length === 0 ? (
           <div className={`${WIERSZ} flex-col items-start gap-3 py-8`}>
             <span className="font-semibold">Nie masz jeszcze żadnych węzłów</span>
             <span className="text-sm text-muted-foreground">Kreator wygeneruje jednorazowy skrypt instalacyjny i przeprowadzi przez zatwierdzenie, kopie i onboard.</span>

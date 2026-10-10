@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Shield, ShieldCheck, Loader2, Copy, AlertCircle, Check } from "lucide-react";
 import { plForm } from "@/lib/pl";
+import { NieWczytano } from "@/components/nie-wczytano";
 import {
   confirmTwoFactorAction,
   disableTwoFactorAction,
@@ -15,6 +16,8 @@ type Stage = "idle" | "confirming" | "enabled" | "disabling";
 
 export function TwoFactorSection() {
   const [status, setStatus] = useState<TwoFactorStatus | null>(null);
+  // Fala 1B — błąd API: komunikat z ponowieniem zamiast wiecznego „Ładowanie statusu 2FA…”.
+  const [blad, setBlad] = useState(false);
   const [stage, setStage] = useState<Stage>("idle");
   const [secret, setSecret] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -29,6 +32,7 @@ export function TwoFactorSection() {
     let cancelled = false;
     getTwoFactorStatus().then((s) => {
       if (cancelled) return;
+      setBlad(s === null);
       setStatus(s);
       if (s?.enabled) setStage("enabled");
     });
@@ -39,6 +43,7 @@ export function TwoFactorSection() {
 
   const reload = async () => {
     const s = await getTwoFactorStatus();
+    setBlad(s === null);
     setStatus(s);
   };
 
@@ -110,6 +115,14 @@ export function TwoFactorSection() {
       await reload();
     });
   };
+
+  if (!status && blad) {
+    return (
+      <Shell>
+        <NieWczytano co="stanu 2FA" onPonow={() => void reload()} />
+      </Shell>
+    );
+  }
 
   if (!status) {
     return (

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { KARTA, NaglowekKarty, Pigulka, WIERSZ } from "@/components/v2";
 import { Pomoc } from "@/components/pomoc";
+import { NieWczytano } from "@/components/nie-wczytano";
 import type { LoginHistoryResponse } from "../../operators/[id]/data";
 
 /**
@@ -54,7 +55,7 @@ export function KomunikacjaKlienta({ baza, maile, podglad }: { baza: string; mai
         <NaglowekKarty id="maile" tytul="Maile do klienta">
           <Pomoc id="komunikacja" />
         </NaglowekKarty>
-        {maile === undefined ? <Brak>Nie udało się wczytać dziennika poczty.</Brak> : maile.length === 0 ? <Brak>Do klienta nie wysłano jeszcze żadnego maila.</Brak> : null}
+        {maile === undefined ? <NieWczytano co="dziennika poczty" /> : maile.length === 0 ? <Brak>Do klienta nie wysłano jeszcze żadnego maila.</Brak> : null}
         {maile?.map((m) => {
           const st = stanMaila(m.status);
           return (
@@ -119,7 +120,7 @@ export function LogowaniaKlienta({ historia }: { historia: LoginHistoryResponse 
           </Pigulka>
         ) : null}
       </NaglowekKarty>
-      {historia === undefined ? <Brak>Nie udało się wczytać historii logowań.</Brak> : historia.rows.length === 0 ? <Brak>Brak logowań w ostatnich 30 dniach.</Brak> : null}
+      {historia === undefined ? <NieWczytano co="historii logowań" /> : historia.rows.length === 0 ? <Brak>Brak logowań w ostatnich 30 dniach.</Brak> : null}
       {historia?.suspiciousAlerts.length ? (
         <div className={`${WIERSZ} text-sm text-warn`}>Podejrzane logowania: {historia.suspiciousAlerts.length} — ostatnie {kiedy(historia.suspiciousAlerts[0]!.createdAt)}.</div>
       ) : null}
@@ -168,7 +169,7 @@ export function KtoOgladal({ dziennik }: { dziennik: DziennikOperatorow | undefi
   return (
     <section className={KARTA} aria-labelledby="kto-ogladal" data-karta="kto-ogladal">
       <NaglowekKarty id="kto-ogladal" tytul="Kto oglądał" />
-      {wpisy === undefined ? <Brak>Nie udało się wczytać dziennika operatorów.</Brak> : wpisy.length === 0 ? <Brak>Nikt z zespołu nie otwierał danych klienta.</Brak> : null}
+      {wpisy === undefined ? <NieWczytano co="dziennika operatorów" /> : wpisy.length === 0 ? <Brak>Nikt z zespołu nie otwierał danych klienta.</Brak> : null}
       {wpisy?.map((r) => (
         <div key={r.id} className={WIERSZ}>
           <span className="w-[120px] shrink-0 font-mono text-xs text-muted-foreground">{kiedy(r.createdAt)}</span>

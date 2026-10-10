@@ -1,5 +1,6 @@
 import { BarChart3 } from 'lucide-react';
 import type { KosztyAi } from './actions';
+import { NieWczytano } from '@/components/nie-wczytano';
 
 const usd = (v: number) => `$${v < 1 ? v.toFixed(4) : v.toFixed(2)}`;
 const liczba = (v: number) => v.toLocaleString('pl-PL');
@@ -17,7 +18,7 @@ export function KosztyAiPanel({ koszty }: { koszty: KosztyAi | null }) {
         <BarChart3 className="h-4 w-4" aria-hidden /> Koszty
       </h2>
       {!koszty ? (
-        <p className="text-sm text-neutral-400">Nie udało się pobrać kosztów. Odśwież stronę za chwilę.</p>
+        <NieWczytano co="kosztów AI" />
       ) : (
         <>
           <dl className="grid gap-3 sm:grid-cols-2">

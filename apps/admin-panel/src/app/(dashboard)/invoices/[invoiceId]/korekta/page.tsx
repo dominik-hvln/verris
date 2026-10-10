@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getFaktura, getKorekty } from "./data";
 import { KorektaForm } from "./form";
 import { BladStrony, wynik } from "@/components/blad-strony";
+import { NieWczytano } from "@/components/nie-wczytano";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export default async function KorektaPage({
   params: Promise<{ invoiceId: string }>;
 }) {
   const { invoiceId } = await params;
-  const w = await wynik(Promise.all([getFaktura(invoiceId), getKorekty(invoiceId).catch(() => [])]));
+  const w = await wynik(Promise.all([getFaktura(invoiceId), wynik(getKorekty(invoiceId))]));
   if (!w.ok) return <BladStrony blad={w.blad} tytul="Korekta faktury" powrot={{ href: `/invoices/${invoiceId}`, label: "Faktura" }} />;
   const [faktura, korekty] = w.dane;
 
@@ -64,13 +65,15 @@ export default async function KorektaPage({
             </dl>
           </section>
 
-          {korekty.length > 0 && (
+          {/* Fala 1B — bez listy korekt operator nie wie, co już skorygowano; komunikat zamiast pustki. */}
+          {!korekty.ok ? <NieWczytano co="wystawionych już korekt" /> : null}
+          {korekty.ok && korekty.dane.length > 0 && (
             <section className="rounded-lg border border-white/10 p-4">
               <h2 className="mb-2 text-xs uppercase tracking-wide text-neutral-400">
                 Wystawione już korekty
               </h2>
               <ul className="space-y-1 text-sm">
-                {korekty.map((k) => (
+                {korekty.dane.map((k) => (
                   <li key={k.id} className="flex flex-wrap gap-3 text-neutral-300">
                     <span className="font-mono text-xs">{k.number}</span>
                     <span className="text-xs text-neutral-500">{k.correctionKind}</span>

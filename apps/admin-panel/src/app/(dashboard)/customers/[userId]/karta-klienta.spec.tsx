@@ -199,8 +199,15 @@ describe("karta klienta — działania (patch 11)", () => {
   });
 
   it("rozliczenia bez CUSTOMERS_MANAGE (403 z /admin/reseller): sekcja mówi, czego brakuje", async () => {
-    dane({ resellers: new Error("403") });
+    dane({ resellers: new Error("403"), dostep: { role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW"] } });
     expect(await render("rozliczenia")).toContain("Wymaga CUSTOMERS_MANAGE.");
+  });
+
+  it("fala 1B: z CUSTOMERS_MANAGE błąd /admin/reseller to „Nie udało się wczytać”, nie „Wymaga …”", async () => {
+    dane({ resellers: new Error("ECONNREFUSED") });
+    const html = (await render("rozliczenia")).split('id="reseller"')[1];
+    expect(html).toContain("Nie udało się wczytać danych resellera.");
+    expect(html).not.toContain("Wymaga CUSTOMERS_MANAGE.");
   });
 });
 
@@ -317,5 +324,12 @@ describe("karta klienta — dane nabywcy (fala 1B)", () => {
   it("bez BILLING_VIEW (403 statusu VAT): sekcja mówi, czego brakuje", async () => {
     dane({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW"] }, new Error("403"));
     expect((await render("rozliczenia")).split('id="dane-nabywcy"')[1]).toContain("Wymaga BILLING_VIEW.");
+  });
+
+  it("fala 1B: z BILLING_VIEW błąd statusu VAT to „Nie udało się wczytać”, nie „Wymaga BILLING_VIEW”", async () => {
+    dane({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "BILLING_VIEW"] }, new Error("ECONNREFUSED"));
+    const sekcja = (await render("rozliczenia")).split('id="dane-nabywcy"')[1]!;
+    expect(sekcja).toContain("Nie udało się wczytać danych nabywcy.");
+    expect(sekcja).not.toContain("Wymaga BILLING_VIEW.");
   });
 });

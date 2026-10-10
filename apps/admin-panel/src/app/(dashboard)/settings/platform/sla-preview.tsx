@@ -1,5 +1,6 @@
 import type { SlaPodglad } from './actions';
 import { plForm } from '@/lib/pl';
+import { NieWczytano } from '@/components/nie-wczytano';
 
 /** N-16 — podgląd rekompensat za poprzedni miesiąc na prawdziwych danych sond, przed włączeniem. */
 export function SlaPreview({ data }: { data: SlaPodglad | null }) {
@@ -7,7 +8,7 @@ export function SlaPreview({ data }: { data: SlaPodglad | null }) {
     <section className="max-w-2xl space-y-3 rounded-2xl border border-white/10 bg-black/30 p-6">
       <h2 className="text-sm font-bold uppercase tracking-widest text-emerald-400">Podgląd kredytów SLA</h2>
       {!data ? (
-        <p className="text-xs text-neutral-400">Nie udało się policzyć podglądu.</p>
+        <NieWczytano co="podglądu kredytów SLA" />
       ) : data.pozycje.length === 0 ? (
         <p className="text-xs text-neutral-400">
           Za {data.okres} nikomu nie przysługuje rekompensata — każda usługa hostingowa miała dostępność co najmniej 99,5%

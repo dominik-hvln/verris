@@ -7,7 +7,8 @@ import { fetchStaffAccess } from "@/lib/staff-access";
 import { brakUprawnienia } from "@/lib/akcje/wezel";
 import { AKCJE_FAKTURY, type FakturaDlaAkcji } from "@/lib/akcje/faktura";
 import { Okruszek } from "@/components/admin-shell";
-import { BladStrony } from "@/components/blad-strony";
+import { BladStrony, wynik } from "@/components/blad-strony";
+import { NieWczytano } from "@/components/nie-wczytano";
 import { LinkJesli } from "@/components/link-jesli";
 import { Eyebrow, KARTA, LinkKarty, NaglowekKarty, Pigulka, PRZYCISK, WIERSZ } from "@/components/v2";
 import type { AdminInvoiceRow } from "../data";
@@ -52,7 +53,8 @@ export default async function FakturaPage({ params }: { params: Promise<{ invoic
   }
   const [dostep, korekty] = await Promise.all([
     fetchStaffAccess(),
-    f.kind === "KOREKTA" ? ([] as KorektaRow[]) : adminApi<KorektaRow[]>(`/admin/invoices/${encodeURIComponent(f.id)}/korekty`).catch(() => [] as KorektaRow[]),
+    // Fala 1B — błąd listy korekt to komunikat, nie „brak korekt” (operator wystawiłby drugą).
+    f.kind === "KOREKTA" ? null : wynik(adminApi<KorektaRow[]>(`/admin/invoices/${encodeURIComponent(f.id)}/korekty`)),
   ]);
 
   const obiekt: FakturaDlaAkcji = { id: f.id, status: f.status, kind: f.kind, ksefStatus: f.ksef.status, maPdf: f.hasVerrisPdf, klientId: f.user.id };
@@ -237,10 +239,11 @@ export default async function FakturaPage({ params }: { params: Promise<{ invoic
         ))}
       </section>
 
-      {korekty.length ? (
+      {korekty && !korekty.ok ? <NieWczytano co="korekt tej faktury" /> : null}
+      {korekty?.ok && korekty.dane.length ? (
         <section className={KARTA} aria-labelledby="korekty">
           <NaglowekKarty id="korekty" tytul="Korekty" />
-          {korekty.map((k) => (
+          {korekty.dane.map((k) => (
             <Link key={k.id} href={`/invoices/${k.id}`} className={`${WIERSZ} hover:bg-raised`}>
               <span className="flex-1 font-mono text-[13px]">{k.number}</span>
               <span className="text-[13px] text-muted-foreground">{k.correctionReason ?? ""}</span>

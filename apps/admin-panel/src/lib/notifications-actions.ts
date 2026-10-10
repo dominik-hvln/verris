@@ -13,6 +13,7 @@ export interface AdminNotification {
   createdAt: string;
 }
 
+/** Dzwonek odpytuje co chwilę — przy błędzie pusty, następne odpytanie spróbuje znowu (świadomie bez komunikatu). */
 export async function listNotifications(): Promise<{
   items: AdminNotification[];
   unread: number;

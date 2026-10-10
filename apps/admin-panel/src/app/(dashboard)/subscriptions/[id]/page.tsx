@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { adminApi } from "@/lib/api";
+import { AdminApiError, adminApi } from "@/lib/api";
+import { NieWczytano } from "@/components/nie-wczytano";
 import { fetchStaffAccess, type StaffAccess } from "@/lib/staff-access";
 import { stanUslugi } from "@/lib/stan-uslugi";
 import { plForm } from "@/lib/pl";
@@ -120,6 +121,8 @@ export default async function AdminSubscriptionDetailPage({
   const kontoZostalo = !!d.account && d.account.status !== "DELETED";
 
   // Dane tylko dla otwartej zakładki; brak uprawnienia (403) = null — sekcja mówi, czego brakuje.
+  // Fala 1B — przebieg migracji, węzły i plany: 403 = pusta lista jak dotąd, inny błąd = null → „Nie udało się wczytać”.
+  const odmowa = <T,>(pusta: T) => (e: unknown) => (e instanceof AdminApiError && e.status === 403 ? pusta : null);
   const [joby, zlecenia, przebieg, servers, plans] = await Promise.all([
     sekcja === "przeglad" && zakladanieNieudane
       ? adminApi<{ rows?: ProvisioningJobRow[] }>(`/admin/provisioning-queue?subscriptionId=${encodeURIComponent(d.id)}`).then((r) => r?.rows ?? [], () => null)
@@ -127,11 +130,11 @@ export default async function AdminSubscriptionDetailPage({
     sekcja === "migracje"
       ? adminApi<{ rows?: ZlecenieMigracji[] }>(`/admin/migrations?subscriptionId=${encodeURIComponent(d.id)}`).then((r) => r?.rows ?? [], () => null)
       : [],
-    sekcja === "migracje" ? adminApi<MigrationEvent[]>(`/admin/subscriptions/${d.id}/migrations`).then((r) => (Array.isArray(r) ? r : []), () => []) : [],
-    sekcja === "migracje" || sekcja === "kopie" ? adminApi<AdminServerRow[]>("/admin/servers").then((r) => (Array.isArray(r) ? r : []), () => []) : [],
-    sekcja === "operacje" ? listAdminPlans().catch(() => []) : [],
+    sekcja === "migracje" ? adminApi<MigrationEvent[]>(`/admin/subscriptions/${d.id}/migrations`).then((r) => (Array.isArray(r) ? r : []), odmowa<MigrationEvent[]>([])) : [],
+    sekcja === "migracje" || sekcja === "kopie" ? adminApi<AdminServerRow[]>("/admin/servers").then((r) => (Array.isArray(r) ? r : []), odmowa<AdminServerRow[]>([])) : [],
+    sekcja === "operacje" ? listAdminPlans().catch(odmowa<Awaited<ReturnType<typeof listAdminPlans>>>([])) : [],
   ]);
-  const aktywne = servers.filter((s) => s.status === "ACTIVE");
+  const aktywne = servers?.filter((s) => s.status === "ACTIVE") ?? null;
   // Karta otwiera się z CUSTOMERS_VIEW albo SUBSCRIPTIONS_MANAGE (L1-KARTA) — link tylko do strony, którą operator otworzy.
   const doKlienta = !brakUprawnienia("CUSTOMERS_VIEW", access);
   const doWezla = !brakUprawnienia("NODES_VIEW", access);
@@ -240,13 +243,17 @@ export default async function AdminSubscriptionDetailPage({
           )}
           {d.status === "ACTIVE" && d.account ? (
             <Sekcja id="zmiana-planu" tytul="Zmiana planu">
-              <PlanChangeForm
-                subscriptionId={d.id}
-                currentPlanId={d.plan.id}
-                currentPlanName={d.plan.name}
-                plans={plans.filter((p) => p.isActive).map((p) => ({ id: p.id, name: p.name, slug: p.slug }))}
-                isAdmin
-              />
+              {plans ? (
+                <PlanChangeForm
+                  subscriptionId={d.id}
+                  currentPlanId={d.plan.id}
+                  currentPlanName={d.plan.name}
+                  plans={plans.filter((p) => p.isActive).map((p) => ({ id: p.id, name: p.name, slug: p.slug }))}
+                  isAdmin
+                />
+              ) : (
+                <NieWczytano co="listy planów" />
+              )}
             </Sekcja>
           ) : null}
         </>
@@ -286,13 +293,14 @@ export default async function AdminSubscriptionDetailPage({
           </section>
 
           <Sekcja id="migracja-wewnetrzna" tytul="Migracja na inny węzeł">
-            <InternalMigrationForm subscriptionId={d.id} currentServerId={wezel?.id ?? null} servers={aktywne} />
+            {aktywne ? <InternalMigrationForm subscriptionId={d.id} currentServerId={wezel?.id ?? null} servers={aktywne} /> : <NieWczytano co="listy węzłów" />}
           </Sekcja>
 
           <section className={KARTA} aria-labelledby="przebieg-migracji">
             <NaglowekKarty id="przebieg-migracji" tytul="Przebieg migracji" />
-            {przebieg.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak zdarzeń migracji.</div> : null}
-            {przebieg.map((row) => (
+            {przebieg === null ? <NieWczytano co="przebiegu migracji" /> : null}
+            {przebieg?.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak zdarzeń migracji.</div> : null}
+            {przebieg?.map((row) => (
               <div key={row.id} className={WIERSZ}>
                 <span className="w-[150px] shrink-0 font-mono text-xs text-muted-foreground">{kiedy(row.createdAt)}</span>
                 <span className="flex-1 font-mono text-[13px]">{row.type}</span>
@@ -310,7 +318,11 @@ export default async function AdminSubscriptionDetailPage({
               <RestorePanel subscriptionId={d.id} domain={d.account.domain} />
             </Sekcja>
             <Sekcja id="odtworzenie-na-wezle" tytul="Odtworzenie na innym węźle (awaria węzła)">
-              <OdtworzenieNaWezlePanel subscriptionId={d.id} domain={d.account.domain} currentServerId={wezel?.id ?? null} servers={aktywne} />
+              {aktywne ? (
+                <OdtworzenieNaWezlePanel subscriptionId={d.id} domain={d.account.domain} currentServerId={wezel?.id ?? null} servers={aktywne} />
+              ) : (
+                <NieWczytano co="listy węzłów" />
+              )}
             </Sekcja>
           </>
         ) : (

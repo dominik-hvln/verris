@@ -33,6 +33,7 @@ export interface PrzegladWezla {
   zadania: { id: string; status: string; tekst: string; blad: string | null; at: string }[];
 }
 
+/** null — błąd API; karta pokazuje wtedy „Nie udało się wczytać zasobów węzła” (fala 1B), reszta karty działa. */
 export async function fetchPrzegladWezla(id: string): Promise<PrzegladWezla | null> {
   try {
     return await adminApi<PrzegladWezla>(`/admin/servers/${id}/przeglad`);
@@ -69,6 +70,7 @@ export interface PrognozaWezla {
   komentarzAi: boolean;
 }
 
+/** Prognoza to dodatek na Przeglądzie — przy błędzie karta jej nie pokazuje. */
 export async function fetchPrognozaWezla(id: string): Promise<PrognozaWezla | null> {
   try {
     return await adminApi<PrognozaWezla>(`/admin/servers/${id}/prognoza`);

@@ -53,6 +53,7 @@ function err(e: unknown): string {
   return e instanceof AdminApiError ? e.message : e instanceof Error ? e.message : "Błąd";
 }
 
+/** Tylko baner „Hetzner nie jest skonfigurowany” — przy błędzie lepiej go pokazać niż ukryć. */
 export async function fetchVpsAvailability(): Promise<boolean> {
   try {
     const r = await adminApi<{ available: boolean }>("/admin/vps/availability");
@@ -62,14 +63,12 @@ export async function fetchVpsAvailability(): Promise<boolean> {
   }
 }
 
+/** Fala 1B — błąd API leci do strony (komunikat z ponowieniem), nie udaje pustej listy planów. */
 export async function fetchVpsPlans(): Promise<VpsPlanRow[]> {
-  try {
-    return await adminApi<VpsPlanRow[]>("/admin/vps/plans");
-  } catch {
-    return [];
-  }
+  return adminApi<VpsPlanRow[]>("/admin/vps/plans");
 }
 
+/** Katalog typów służy tylko do podpowiedzi specyfikacji w formularzu — przy błędzie formularz działa bez nich. */
 export async function fetchHetznerServerTypes(): Promise<HetznerServerType[]> {
   try {
     return await adminApi<HetznerServerType[]>("/admin/vps/server-types");
@@ -114,12 +113,8 @@ export interface VpsSnapshotSettings {
   limit: number;
 }
 
-export async function fetchVpsSnapshotSettings(): Promise<VpsSnapshotSettings | null> {
-  try {
-    return await adminApi<VpsSnapshotSettings>("/admin/vps/snapshot-settings");
-  } catch {
-    return null;
-  }
+export async function fetchVpsSnapshotSettings(): Promise<VpsSnapshotSettings> {
+  return adminApi<VpsSnapshotSettings>("/admin/vps/snapshot-settings");
 }
 
 export async function updateVpsSnapshotSettingsAction(

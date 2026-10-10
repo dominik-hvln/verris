@@ -14,7 +14,8 @@ import {
 } from "@verris/contracts";
 import { formatCredits, formatPlnAndCredits } from "@/lib/credits";
 import { AdminApiError, adminApi } from "@/lib/api";
-import { BladStrony } from "@/components/blad-strony";
+import { BladStrony, wynik } from "@/components/blad-strony";
+import { NieWczytano } from "@/components/nie-wczytano";
 import { Okruszek } from "@/components/admin-shell";
 import { Eyebrow, KARTA, Kpi, LinkKarty, NaglowekKarty, Pigulka, PRZYCISK, PRZYCISK_GLOWNY, RzadKpi, WIERSZ, Zakladki } from "@/components/v2";
 import { getCustomerOperationalDetail } from "../data";
@@ -120,8 +121,12 @@ export default async function AdminCustomerCardPage({
     return <BladStrony blad={e} tytul="Klient" powrot={{ href: "/customers", label: "Klienci" }} />;
   }
   // PB-27 / PB-28 — sekcja tylko dla admina i pracownika z CUSTOM_TERMS_MANAGE (403 = bez sekcji).
-  const warunki = await adminApi<PodgladWarunkow>(`/admin/custom-terms/user/${encodeURIComponent(userId)}`).catch(() => null);
-  // Decyzja 09.10 — status VAT nabywcy (BILLING_VIEW; 403 = bez wiersza).
+  // Fala 1B — inny błąd niż 403 to „Nie udało się wczytać” w zakładce, nie ukryta zakładka.
+  const warunkiW = await wynik(adminApi<PodgladWarunkow>(`/admin/custom-terms/user/${encodeURIComponent(userId)}`));
+  const warunki = warunkiW.ok ? warunkiW.dane : null;
+  const warunkiBlad = !warunkiW.ok && !(warunkiW.blad instanceof AdminApiError && warunkiW.blad.status === 403);
+  // Decyzja 09.10 — status VAT nabywcy (BILLING_VIEW; 403 = bez wiersza). Przy awarii API wiersz na Przeglądzie
+  // znika (dodatek), a Rozliczenia → Dane nabywcy mówią „Nie udało się wczytać” (fala 1B).
   const statusVat = await adminApi<StatusVatNabywcy>(`/admin/billing/nabywcy/${encodeURIComponent(userId)}/vat`).catch(() => null);
   // Plan E, patch 11 — blokada poczty, reseller i program partnerski na karcie (wcześniej osobne strony).
   // undefined = nie udało się odczytać (zwykle brak uprawnienia) — sekcja mówi wtedy, czego brakuje.
@@ -310,7 +315,7 @@ export default async function AdminCustomerCardPage({
 
       <Zakladki
         etykieta="Sekcje klienta"
-        pozycje={zakladkiKartyKlienta(baza, sekcja, { uslugi: zywe.length, zgloszenia: otwarteZgl.length, warunki: !!warunki, komunikacja: true })}
+        pozycje={zakladkiKartyKlienta(baza, sekcja, { uslugi: zywe.length, zgloszenia: otwarteZgl.length, warunki: !!warunki || warunkiBlad, komunikacja: true })}
       />
 
       {sekcja === "przeglad" && dostep ? (
@@ -545,16 +550,19 @@ export default async function AdminCustomerCardPage({
               </h2>
               {statusVat && dostep ? (
                 <DaneNabywcy userId={u.id} kraj={statusVat.kraj} nip={statusVat.nip ?? u.nip ?? null} zablokowane={brakUprawnienia("BILLING_MANAGE", dostep)} />
+              ) : dostep && !brakUprawnienia("BILLING_VIEW", dostep) ? (
+                <NieWczytano co="danych nabywcy" />
               ) : (
                 <p className="text-[13px] text-muted-foreground">Wymaga BILLING_VIEW.</p>
               )}
             </section>
-            <Reseller userId={u.id} reseller={reseller} />
-            <ProgramPartnerski zgloszenie={partner} />
+            <Reseller userId={u.id} reseller={reseller} wolno={!!dostep && !brakUprawnienia("CUSTOMERS_MANAGE", dostep)} />
+            <ProgramPartnerski zgloszenie={partner} wolno={!!dostep && !brakUprawnienia("PROMO_MANAGE", dostep)} />
           </div>
         </div>
       ) : null}
 
+      {sekcja === "warunki" && warunkiBlad ? <NieWczytano co="warunków indywidualnych" /> : null}
       {sekcja === "warunki" && warunki ? (
         <div data-karta="warunki">
           <WarunkiIndywidualne userId={u.id} dane={warunki} akcje={{ zaloz: zalozUsluge, ustaw: ustawWarunki, poza: rozliczeniePoza }} />

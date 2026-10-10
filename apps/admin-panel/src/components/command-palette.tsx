@@ -8,6 +8,7 @@ import { ocenaTrafienia, slowaZapytania } from "@/lib/dopasowanie";
 import { akcjeDlaWezlow, akcjeObiektuDlaZapytania, OBIEKTY_Z_DZIALANIAMI, rozbierzZapytanie, szukajAkcjiGlobalnych, type AkcjaWPalecie } from "@/lib/akcje/szukaj";
 import type { DostepDoAkcji } from "@/lib/akcje/wezel";
 import { podswietlKotwice } from "@/lib/podswietl";
+import { NieWczytano } from "./nie-wczytano";
 
 const TYPE_ICON = {
   user: User,
@@ -97,6 +98,7 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
   const [q, setQ] = useState("");
   const [results, setResults] = useState<GlobalSearchResult[]>([]);
   const [pominiete, setPominiete] = useState<TypWyniku[]>([]);
+  const [bladSzukania, setBladSzukania] = useState(false);
   const [dzialaniaNaWezlach, setDzialaniaNaWezlach] = useState<AkcjaWPalecie[]>([]);
   /** Wybrany obiekt: węzeł, klient, usługa, faktura (tryb obiekt → działanie). */
   const [obiekt, setObiekt] = useState<GlobalSearchResult | null>(null);
@@ -115,6 +117,7 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
     setQ("");
     setResults([]);
     setPominiete([]);
+    setBladSzukania(false);
     setDzialaniaNaWezlach([]);
     setObiekt(null);
     setLoading(false);
@@ -151,6 +154,7 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
         const nr = ++zapytanie.current;
         if (value.trim().length < 2) {
           setResults([]);
+          setBladSzukania(false);
           setDzialaniaNaWezlach([]);
           setLoading(false);
           return;
@@ -162,6 +166,7 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
         if (nr !== zapytanie.current) return;
         setResults(res.results);
         setPominiete(res.pominiete);
+        setBladSzukania(!!res.blad);
         setDzialaniaNaWezlach(rozbior && wezly ? akcjeDlaWezlow(wezly.results.filter((r) => r.type === "node"), rozbior.dzialanie, dostep) : []);
         setActive(0);
         setLoading(false);
@@ -171,6 +176,7 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
   );
 
   const szukaj = q.trim().length >= 2;
+  const pokazBlad = bladSzukania && szukaj && !obiekt && !loading;
   const globalne = szukaj ? szukajAkcjiGlobalnych(q, dostep) : [];
   // Strona menu o tym samym adresie co działanie (np. „Dodaj węzeł”) — raz, jako działanie.
   const adresyDzialan = new Set(globalne.map((a) => a.href));
@@ -285,7 +291,12 @@ export function CommandPalette({ strony = [], dostep = { isAdmin: false, permiss
             </div>
 
             <div className="max-h-[50vh] overflow-y-auto p-2">
-              {wyniki.length === 0 ? (
+              {pokazBlad ? (
+                <div className="p-1">
+                  <NieWczytano co="wyników wyszukiwania" onPonow={() => doSearch(q)} />
+                </div>
+              ) : null}
+              {pokazBlad && wyniki.length === 0 ? null : wyniki.length === 0 ? (
                 <p className="px-3 py-8 text-center text-xs text-muted-foreground">
                   {obiekt
                     ? "Brak takiego działania."

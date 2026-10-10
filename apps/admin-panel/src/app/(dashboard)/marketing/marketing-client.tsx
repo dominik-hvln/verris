@@ -67,6 +67,7 @@ function CreateCampaignForm() {
     let active = true;
     estimateSegment(segment)
       .then((r) => active && setEstimate(r.count))
+      // Szacunek odbiorców to podpowiedź — przy błędzie pole jest puste, wysyłka i tak liczy odbiorców w API.
       .catch(() => active && setEstimate(null));
     return () => {
       active = false;

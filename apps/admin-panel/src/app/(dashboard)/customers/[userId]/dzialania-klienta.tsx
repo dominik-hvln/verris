@@ -5,11 +5,12 @@ import type { ResellerRow } from "../../resellers/data";
 import type { ReferralEnrollmentRow } from "../../referral-enrollments/data";
 import { ReferralReviewActions } from "../../referral-enrollments/review-actions";
 import { ResellerKlienta } from "./reseller-klienta";
+import { NieWczytano } from "@/components/nie-wczytano";
 
 /**
  * Plan E, patch 11 — operacje na kliencie, które były tylko na osobnych stronach (/deliverability,
- * /resellers, /referral-enrollments), na jego karcie. `undefined` — nie udało się odczytać (zwykle brak
- * uprawnienia); karta mówi wtedy, czego brakuje, zamiast udawać, że nic nie ma.
+ * /resellers, /referral-enrollments), na jego karcie. `undefined` — nie udało się odczytać: bez uprawnienia
+ * karta mówi, czego brakuje; z uprawnieniem — „Nie udało się wczytać” z ponowieniem (fala 1B).
  */
 function Sekcja({ id, tytul, children }: { id: string; tytul: string; children: React.ReactNode }) {
   return (
@@ -28,7 +29,7 @@ export function BlokadaPoczty({ blokada, email, isAdmin }: { blokada: CordonRow 
   return (
     <Sekcja id="blokada-poczty" tytul="Blokada wysyłki poczty">
       {blokada === undefined ? (
-        <Brak>Nie udało się sprawdzić blokady.</Brak>
+        <NieWczytano co="stanu blokady poczty" />
       ) : blokada === null ? (
         <Brak>Wysyłka poczty nie jest zablokowana.</Brak>
       ) : (
@@ -53,21 +54,28 @@ export function BlokadaPoczty({ blokada, email, isAdmin }: { blokada: CordonRow 
   );
 }
 
-export function Reseller({ userId, reseller }: { userId: string; reseller: ResellerRow | null | undefined }) {
+/** `wolno` — rola ma uprawnienie do odczytu; wtedy `undefined` znaczy błąd API, nie brak uprawnienia (fala 1B). */
+export function Reseller({ userId, reseller, wolno = false }: { userId: string; reseller: ResellerRow | null | undefined; wolno?: boolean }) {
   return (
     <Sekcja id="reseller" tytul="Reseller">
-      {reseller === undefined ? <Brak>Wymaga CUSTOMERS_MANAGE.</Brak> : <ResellerKlienta userId={userId} reseller={reseller} />}
+      {reseller !== undefined ? (
+        <ResellerKlienta userId={userId} reseller={reseller} />
+      ) : wolno ? (
+        <NieWczytano co="danych resellera" />
+      ) : (
+        <Brak>Wymaga CUSTOMERS_MANAGE.</Brak>
+      )}
     </Sekcja>
   );
 }
 
 const STATUS_PARTNERA: Record<string, string> = { APPROVED: "zaakceptowany", REJECTED: "odrzucony", PENDING: "czeka na decyzję" };
 
-export function ProgramPartnerski({ zgloszenie }: { zgloszenie: ReferralEnrollmentRow | null | undefined }) {
+export function ProgramPartnerski({ zgloszenie, wolno = false }: { zgloszenie: ReferralEnrollmentRow | null | undefined; wolno?: boolean }) {
   return (
     <Sekcja id="program-partnerski" tytul="Program partnerski">
       {zgloszenie === undefined ? (
-        <Brak>Wymaga PROMO_MANAGE.</Brak>
+        wolno ? <NieWczytano co="zgłoszenia do programu" /> : <Brak>Wymaga PROMO_MANAGE.</Brak>
       ) : zgloszenie === null ? (
         <Brak>Klient nie zgłosił się do programu.</Brak>
       ) : (

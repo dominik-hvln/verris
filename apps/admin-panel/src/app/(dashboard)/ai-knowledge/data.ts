@@ -15,6 +15,7 @@ function err(e: unknown): string {
   return e instanceof Error ? e.message : "Nieznany błąd";
 }
 
+/** Tylko podpowiedź „AI nie jest skonfigurowane” — lista dokumentów ma własny komunikat błędu. */
 export async function fetchAiStatus(): Promise<AiStatusDto | null> {
   try {
     return await adminApi<AiStatusDto>(`/ai/status`);

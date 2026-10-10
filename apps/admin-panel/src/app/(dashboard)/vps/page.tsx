@@ -2,15 +2,17 @@ import { Server } from "lucide-react";
 import { fetchVpsAvailability, fetchVpsPlans, fetchHetznerServerTypes, fetchVpsSnapshotSettings } from "./actions";
 import { VpsPlansClient } from "./vps-plans-client";
 import { SnapshotSettingsForm } from "./snapshot-settings-form";
+import { wynik } from "@/components/blad-strony";
+import { NieWczytano } from "@/components/nie-wczytano";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminVpsPage() {
   const [available, plans, serverTypes, snapshotSettings] = await Promise.all([
     fetchVpsAvailability(),
-    fetchVpsPlans(),
+    wynik(fetchVpsPlans()),
     fetchHetznerServerTypes(),
-    fetchVpsSnapshotSettings(),
+    wynik(fetchVpsSnapshotSettings()),
   ]);
 
   return (
@@ -24,8 +26,8 @@ export default async function AdminVpsPage() {
           Hetznera (auto-uzupełnianie specyfikacji).
         </p>
       </header>
-      <VpsPlansClient available={available} plans={plans} serverTypes={serverTypes} />
-      {snapshotSettings ? <SnapshotSettingsForm initial={snapshotSettings} /> : null}
+      {plans.ok ? <VpsPlansClient available={available} plans={plans.dane} serverTypes={serverTypes} /> : <NieWczytano co="planów VPS" />}
+      {snapshotSettings.ok ? <SnapshotSettingsForm initial={snapshotSettings.dane} /> : <NieWczytano co="ustawień snapshotów" />}
     </div>
   );
 }

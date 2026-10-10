@@ -15,6 +15,7 @@ const odpowiedzi: Record<string, unknown> = {
   t1: { results: [WEZEL], pominiete: [] },
   jan: { results: [KLIENT], pominiete: [] },
   VFV: { results: [FAKTURA], pominiete: [] },
+  awaria: { results: [], pominiete: [], blad: true },
 };
 const mockSzukaj = jest.fn(async (q: string) => odpowiedzi[q] ?? { results: [], pominiete: [] });
 jest.mock("./command-palette-actions", () => ({ globalSearchAction: (q: string) => mockSzukaj(q) }));
@@ -158,5 +159,17 @@ describe("Cmd+K — tryb obiekt → działanie (prowadzi do karty, nie wykonuje)
     await wpisz("anuluj");
     await klawisz("Enter");
     expect(push).toHaveBeenCalledWith("/invoices/f2#anuluj");
+  });
+
+  it("błąd wyszukiwarki API: „Nie udało się wczytać” z ponowieniem zamiast „Brak wyników” (fala 1B)", async () => {
+    await otworz();
+    await wpisz("awaria");
+    expect(okno()).toContain("Nie udało się wczytać wyników wyszukiwania.");
+    expect(okno()).not.toContain("Brak wyników.");
+    mockSzukaj.mockClear();
+    const ponow = [...document.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find((b) => b.textContent === "Spróbuj ponownie")!;
+    await act(async () => ponow.click());
+    await czekaj(300);
+    expect(mockSzukaj).toHaveBeenCalledWith("awaria");
   });
 });

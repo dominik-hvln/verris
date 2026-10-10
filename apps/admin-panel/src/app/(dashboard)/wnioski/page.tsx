@@ -86,6 +86,7 @@ function Karta({ w, akcje }: { w: Wniosek; akcje?: React.ReactNode }) {
  */
 export default async function WnioskiPage({ searchParams }: { searchParams: Promise<{ zakladka?: string; status?: string }> }) {
   const { zakladka, status } = await searchParams;
+  // Bez odpowiedzi — tylko bez zakładki „Moje” (listy wniosków mają własny komunikat błędu).
   const dostep = await adminApi<{ isAdmin?: boolean }>("/staff/me/access").catch(() => null);
   const operator = dostep ? !dostep.isAdmin : false;
   const aktywna = zakladka === "historia" ? "historia" : zakladka === "moje" && operator ? "moje" : "do-decyzji";

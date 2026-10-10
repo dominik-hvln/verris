@@ -32,6 +32,8 @@ import { PrognozaWezlaKarta } from "./prognoza-wezla";
 import { listNodeTasks } from "../../provisioning-queue/data";
 import { NodeTasksSection } from "../../provisioning-queue/node-tasks-section";
 import { Okruszek } from "@/components/admin-shell";
+import { wynik } from "@/components/blad-strony";
+import { NieWczytano } from "@/components/nie-wczytano";
 import { Pomoc } from "@/components/pomoc";
 import { fetchStaffAccess } from "@/lib/staff-access";
 import { Eyebrow, KARTA, Kpi, Pasek, Pigulka, RzadKpi, Zakladki } from "@/components/v2";
@@ -101,7 +103,7 @@ export default async function ServerDetailPage({
   const baza = `/nodes/${server.id}`;
   const nazwa = p?.nazwa ?? server.name ?? server.ipAddress;
   const z = p?.zasoby;
-  const zadania = sekcja === "zadania" ? await listNodeTasks(undefined, server.id).catch(() => []) : [];
+  const zadania = sekcja === "zadania" ? await wynik(listNodeTasks(undefined, server.id)) : null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -191,7 +193,7 @@ export default async function ServerDetailPage({
           </Kpi>
         </RzadKpi>
       ) : (
-        <div className={`${KARTA} p-4 text-sm text-muted-foreground`}>Nie udało się wczytać zasobów węzła z API.</div>
+        <NieWczytano co="zasobów węzła" />
       )}
 
       <Zakladki
@@ -247,7 +249,7 @@ export default async function ServerDetailPage({
         )
       ) : null}
 
-      {sekcja === "zadania" ? <NodeTasksSection rows={zadania} /> : null}
+      {zadania ? zadania.ok ? <NodeTasksSection rows={zadania.dane} /> : <NieWczytano co="historii zadań" /> : null}
 
       {sekcja === "aktualizacje" ? (
         <>

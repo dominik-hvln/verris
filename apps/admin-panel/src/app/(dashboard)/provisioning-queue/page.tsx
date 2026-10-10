@@ -4,6 +4,7 @@ import { RetryButton } from "./retry-button";
 import { OdrzucButton } from "./odrzuc-button";
 import { NodeTasksSection } from "./node-tasks-section";
 import { BladStrony, wynik } from "@/components/blad-strony";
+import { NieWczytano } from "@/components/nie-wczytano";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export default async function ProvisioningQueuePage({
   const w = await wynik(listProvisioningQueue(state || undefined));
   if (!w.ok) return <BladStrony blad={w.blad} tytul="Kolejka zadań" />;
   const data = w.dane;
-  const nodeTasks = await listNodeTasks().catch(() => []);
+  const nodeTasks = await wynik(listNodeTasks());
 
   return (
     <div className="space-y-6 p-6">
@@ -205,7 +206,7 @@ export default async function ProvisioningQueuePage({
             możesz ponowić (agent węzła podejmie je ponownie).
           </p>
         </div>
-        <NodeTasksSection rows={nodeTasks} />
+        {nodeTasks.ok ? <NodeTasksSection rows={nodeTasks.dane} /> : <NieWczytano co="operacji węzłów" />}
       </section>
     </div>
   );

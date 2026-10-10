@@ -40,11 +40,12 @@ function err(e: unknown): string {
 }
 
 // ---- categories
-export async function fetchCategories(): Promise<KbCategory[]> {
+/** null — błąd API (fala 1B: panel pokazuje „Nie udało się wczytać”, nie „Brak kategorii”). */
+export async function fetchCategories(): Promise<KbCategory[] | null> {
   try {
     return await adminApi<KbCategory[]>('/admin/kb/categories');
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -86,12 +87,13 @@ export async function deleteCategory(id: string): Promise<Res> {
 }
 
 // ---- articles
-export async function fetchArticles(categoryId?: string): Promise<KbArticleListItem[]> {
+/** null — błąd API (fala 1B). */
+export async function fetchArticles(categoryId?: string): Promise<KbArticleListItem[] | null> {
   try {
     const qs = categoryId ? `?categoryId=${encodeURIComponent(categoryId)}` : '';
     return await adminApi<KbArticleListItem[]>(`/admin/kb/articles${qs}`);
   } catch {
-    return [];
+    return null;
   }
 }
 

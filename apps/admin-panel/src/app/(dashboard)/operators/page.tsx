@@ -3,7 +3,9 @@ import Link from "next/link";
 import { Search, ShieldCheck, ShieldAlert } from "lucide-react";
 import { listOperators, type OperatorRole } from "./data";
 import { DodajOperatora } from "./dodaj-operatora";
-import { getOperatorActivity, getRoles, type ActivityRow, type RoleRow } from "../roles/actions";
+import { getOperatorActivity, getRoles } from "../roles/actions";
+import { wynik } from "@/components/blad-strony";
+import { NieWczytano } from "@/components/nie-wczytano";
 import { brakUprawnienia } from "@/lib/akcje/wezel";
 import { fetchStaffAccess } from "@/lib/staff-access";
 import { plForm } from "@/lib/pl";
@@ -26,8 +28,9 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
   let error: string | null = null;
   const [dostep, role_, aktywnosc] = await Promise.all([
     fetchStaffAccess(),
-    getRoles().catch((): RoleRow[] => []),
-    getOperatorActivity().catch((): ActivityRow[] => []),
+    // Fala 1B — błąd API to komunikat z ponowieniem, nie pusty wybór ról ani „Brak zarejestrowanych działań”.
+    wynik(getRoles()),
+    wynik(getOperatorActivity()),
   ]);
   try {
     data = await listOperators({ search, role, page });
@@ -196,8 +199,10 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
           <p aria-disabled="true" title={tylkoAdmin} className="cursor-not-allowed text-sm text-muted-foreground opacity-60">
             Dodaj operatora — {tylkoAdmin}
           </p>
+        ) : role_.ok ? (
+          <DodajOperatora role={role_.dane} />
         ) : (
-          <DodajOperatora role={role_} />
+          <NieWczytano co="ról do wyboru" />
         )}
       </section>
 
@@ -205,7 +210,9 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
         <h2 id="aktywnosc-operatorow" className="mb-3 text-sm font-bold uppercase tracking-widest text-neutral-400">
           Dziennik aktywności operatorów
         </h2>
-        {aktywnosc.length === 0 ? (
+        {!aktywnosc.ok ? (
+          <NieWczytano co="dziennika aktywności" />
+        ) : aktywnosc.dane.length === 0 ? (
           <p className="text-sm text-neutral-500">Brak zarejestrowanych działań.</p>
         ) : (
           <div className="overflow-hidden rounded-xl border border-white/10">
@@ -215,7 +222,7 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
               <span>Cel / IP</span>
             </div>
             <div className="max-h-[420px] overflow-auto">
-              {aktywnosc.map((a) => (
+              {aktywnosc.dane.map((a) => (
                 <div key={a.id} className="grid grid-cols-[150px_1fr_1fr] gap-2 border-b border-white/5 px-4 py-2 text-sm last:border-0">
                   <span className="text-neutral-400">{new Date(a.createdAt).toLocaleString("pl-PL")}</span>
                   <span className="min-w-0">

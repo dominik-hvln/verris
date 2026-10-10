@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ArrowLeft, ShieldAlert, ShieldCheck, AlertTriangle } from "lucide-react";
 import { KARTA } from "@/components/v2";
+import { wynik } from "@/components/blad-strony";
+import { NieWczytano } from "@/components/nie-wczytano";
 import { brakUprawnienia } from "@/lib/akcje/wezel";
 import { fetchStaffAccess } from "@/lib/staff-access";
 import { getOperators, getRoles, type OperatorRow, type RoleRow } from "../../roles/actions";
@@ -55,15 +57,19 @@ function Wiersz({ nazwa, opis, powod, wartosc, children }: { nazwa: string; opis
  */
 export default async function OperatorDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const [dostep, historia, operatorzy, role] = await Promise.all([
+  const [dostep, historia, operatorzyW, roleW] = await Promise.all([
     fetchStaffAccess(),
     getOperatorLoginHistory(id).then(
       (d) => ({ d, blad: null }),
       (e: unknown) => ({ d: null, blad: e instanceof Error ? e.message : "Nie udało się pobrać historii logowań." }),
     ),
-    getOperators().catch((): OperatorRow[] => []),
-    getRoles().catch((): RoleRow[] => []),
+    wynik(getOperators()),
+    wynik(getRoles()),
   ]);
+  // Fala 1B — bez listy operatorów albo ról wiersz „Role” pokazywał „brak ról” / „rola usunięta”; teraz komunikat z ponowieniem.
+  const operatorzy: OperatorRow[] = operatorzyW.ok ? operatorzyW.dane : [];
+  const role: RoleRow[] = roleW.ok ? roleW.dane : [];
+  const roleNiewczytane = !operatorzyW.ok || !roleW.ok;
   const operator = operatorzy.find((o) => o.id === id) ?? null;
   const data = historia.d;
   const error = historia.blad;
@@ -101,8 +107,13 @@ export default async function OperatorDetailPage({ params }: PageProps) {
         <p className="mt-2 text-sm text-muted-foreground">Administrator ma pełny dostęp do paneli i Grafany.</p>
       ) : (
         <ul className="m-0 mt-2 list-none p-0">
-          <Wiersz nazwa="Role" opis="Uprawnienia operatora to suma jego ról." powod={operator ? tylkoAdmin : "Brak danych o rolach."} wartosc={operator ? nazwyRol : undefined}>
-            {operator ? <WyborRolOperatora operator={operator} role={role} zablokowane={zablokowany} /> : null}
+          <Wiersz
+            nazwa="Role"
+            opis="Uprawnienia operatora to suma jego ról."
+            powod={roleNiewczytane ? null : operator ? tylkoAdmin : "Brak danych o rolach."}
+            wartosc={operator && !roleNiewczytane ? nazwyRol : undefined}
+          >
+            {roleNiewczytane ? <NieWczytano co="ról operatora" /> : operator ? <WyborRolOperatora operator={operator} role={role} zablokowane={zablokowany} /> : null}
           </Wiersz>
           <Wiersz nazwa="Logowanie" opis={zablokowany ? "Konto wyłączone — operator się nie zaloguje." : "Konto aktywne."} powod={tylkoAdmin}>
             <BlokadaOperatora userId={id} email={email} zablokowany={zablokowany} />

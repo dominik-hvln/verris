@@ -28,6 +28,7 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
     error = err instanceof Error ? err.message : "Nieznany błąd";
   }
 
+  // Tylko oznaczenie „to Ty” na liście — bez sesji lista działa bez niego.
   const ja = (await getAdminSession().catch(() => null))?.id;
   const MALY = `${PRZYCISK} !h-8 !px-3 !text-[13px]`;
   return (

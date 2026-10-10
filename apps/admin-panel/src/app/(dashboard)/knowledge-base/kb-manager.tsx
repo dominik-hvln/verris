@@ -23,6 +23,7 @@ import {
 } from './actions';
 import { potwierdz, zapytaj } from "@/components/potwierdz";
 import { Checkbox } from '@/components/checkbox';
+import { NieWczytano } from '@/components/nie-wczytano';
 
 /** Lekki renderer Markdown → HTML na potrzeby podglądu (treść od autora). */
 function mdToHtml(md: string): string {
@@ -84,15 +85,27 @@ export function KbManager() {
   const [form, setForm] = useState<ArticleInput>(EMPTY);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok?: string; err?: string }>({});
+  // Fala 1B — błąd API to „Nie udało się wczytać” z ponowieniem, nie „Brak kategorii / artykułów”.
+  const [bladKat, setBladKat] = useState(false);
+  const [bladArt, setBladArt] = useState(false);
 
   // `.then` zamiast `await`: lint React Compilera nie śledzi `await` i brałby
   // setState po odpowiedzi za synchroniczny setState w efekcie.
   function reloadCats() {
-    return fetchCategories().then(setCats);
+    return fetchCategories().then((r) => {
+      setBladKat(r === null);
+      setCats(r ?? []);
+    });
+  }
+  function reloadArticles(kat: string) {
+    return fetchArticles(kat).then((r) => {
+      setBladArt(r === null);
+      setArticles(r ?? []);
+    });
   }
   useEffect(() => { void reloadCats(); }, []);
   useEffect(() => {
-    if (selCat) void fetchArticles(selCat).then(setArticles);
+    if (selCat) void reloadArticles(selCat);
   }, [selCat]);
 
   const tops = useMemo(() => cats.filter((c) => !c.parentId), [cats]);
@@ -148,7 +161,7 @@ export function KbManager() {
     if (!r.ok) { setMsg({ err: r.error }); return; }
     setMsg({ ok: 'Zapisano.' });
     setEditing(r.ok ? (r.data as KbArticle) : null);
-    if (selCat) setArticles(await fetchArticles(selCat));
+    if (selCat) await reloadArticles(selCat);
   }
   async function removeArticle() {
     if (editing === 'new' || !editing) return;
@@ -156,7 +169,7 @@ export function KbManager() {
     const r = await deleteArticle(editing.id);
     if (!r.ok) { setMsg({ err: r.error }); return; }
     setEditing(null);
-    if (selCat) setArticles(await fetchArticles(selCat));
+    if (selCat) await reloadArticles(selCat);
   }
 
   const set = (k: keyof ArticleInput) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
@@ -174,7 +187,11 @@ export function KbManager() {
             <Plus className="h-3.5 w-3.5" /> Kategoria
           </button>
         </div>
-        {tops.length === 0 ? <p className="text-xs text-white/55">Brak kategorii — dodaj pierwszą.</p> : null}
+        {bladKat ? (
+          <NieWczytano co="kategorii" onPonow={() => void reloadCats()} />
+        ) : tops.length === 0 ? (
+          <p className="text-xs text-white/55">Brak kategorii — dodaj pierwszą.</p>
+        ) : null}
         <ul className="space-y-1">
           {tops.map((c) => (
             <li key={c.id}>
@@ -224,7 +241,13 @@ export function KbManager() {
                     </button>
                   </li>
                 ))}
-                {articles.length === 0 ? <li className="px-4 py-8 text-center text-white/55">Brak artykułów w tej kategorii.</li> : null}
+                {bladArt ? (
+                  <li className="p-3">
+                    <NieWczytano co="artykułów" onPonow={() => void reloadArticles(selCat)} />
+                  </li>
+                ) : articles.length === 0 ? (
+                  <li className="px-4 py-8 text-center text-white/55">Brak artykułów w tej kategorii.</li>
+                ) : null}
               </ul>
             ) : (
               <p className="rounded-2xl border border-white/10 bg-black/20 px-4 py-10 text-center text-white/55">
@@ -249,7 +272,15 @@ function CtaPanel() {
   const [cta, setCta] = useState<KbCtaConfig | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  useEffect(() => { void fetchCta().then(setCta); }, []);
+  const [blad, setBlad] = useState(false);
+  const wczytaj = () =>
+    fetchCta().then((r) => {
+      setBlad(r === null);
+      setCta(r);
+    });
+  useEffect(() => { void wczytaj(); }, []);
+  // Fala 1B — błąd API: komunikat z ponowieniem zamiast cichego zniknięcia panelu banera.
+  if (blad) return <NieWczytano co="ustawień banera" onPonow={() => void wczytaj()} />;
   if (!cta) return null;
   const upd = (k: keyof KbCtaConfig, v: unknown) => setCta((c) => (c ? { ...c, [k]: v } : c));
   const inputCls = 'w-full rounded-lg border border-white/10 bg-black/50 px-3 py-2 text-sm text-white focus:border-emerald-500/40 focus:outline-none';
