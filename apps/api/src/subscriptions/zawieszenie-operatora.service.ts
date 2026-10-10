@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
 import type { Subscription } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SubscriptionsService, type SuspendReason } from './subscriptions.service.js';
@@ -39,6 +40,28 @@ export class ZawieszenieOperatoraService {
     return trafienia[0]!.id;
   }
 
+  /**
+   * Przegląd F2.3 — zawieszenie „za brak płatności” (PAYMENT_FAILED, GRACE_EXPIRED) ustawia tylko administrator
+   * i harmonogram karencji; jego cofnięcie to decyzja rozliczeniowa (usługa wraca bez zapłaty, a licznik wygaśnięcia
+   * po 14 dniach się zeruje). Odwiesza administrator albo pracownik z BILLING_MANAGE — także przez wniosek.
+   */
+  private async wymagajRozliczenPrzyZaleglosci(subscriptionId: string, aktorUserId: string): Promise<void> {
+    const ostatnie = await this.prisma.subscriptionEvent.findFirst({
+      where: { subscriptionId, type: 'SUSPENDED' },
+      orderBy: { createdAt: 'desc' },
+      select: { details: true },
+    });
+    const d = ostatnie?.details;
+    const powod = d && typeof d === 'object' && !Array.isArray(d) ? (d as Record<string, unknown>).reason : null;
+    if (powod !== 'PAYMENT_FAILED' && powod !== 'GRACE_EXPIRED') return;
+    const aktor = await this.prisma.user.findUnique({ where: { id: aktorUserId }, select: { role: true } });
+    if (aktor?.role === 'ADMIN') return;
+    if (aktor?.role === 'STAFF' && (await uprawnieniaOperatora(this.prisma, aktorUserId)).includes('BILLING_MANAGE')) return;
+    throw new ForbiddenException(
+      'Usługa jest zawieszona za brak płatności — odwiesza administrator albo osoba z uprawnieniem do rozliczeń (BILLING_MANAGE). Klient może opłacić zaległość.',
+    );
+  }
+
   private async usluga(subscriptionId: string) {
     const s = await this.prisma.subscription.findUnique({ where: { id: subscriptionId }, select: { id: true, userId: true, status: true } });
     if (!s) throw new NotFoundException('Nie znaleziono usługi.');
@@ -60,6 +83,8 @@ export class ZawieszenieOperatoraService {
       note: input.powod?.trim() || undefined,
       actorUserId: input.aktorUserId,
       zgloszenieId,
+      // Przegląd F2.3 — błąd węzła = błąd dla operatora (nie „zawieszona” przy działającej stronie).
+      bladWezlaPrzerywa: true,
     });
   }
 
@@ -71,6 +96,7 @@ export class ZawieszenieOperatoraService {
     chargeRenewal?: boolean;
   }): Promise<Subscription> {
     const s = await this.usluga(input.subscriptionId);
+    await this.wymagajRozliczenPrzyZaleglosci(s.id, input.aktorUserId);
     const zgloszenieId = await this.zgloszenieKlienta(s.userId, input.zgloszenie);
     return this.subs.unsuspend({
       subscriptionId: s.id,

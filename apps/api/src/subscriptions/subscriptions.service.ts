@@ -840,6 +840,12 @@ export class SubscriptionsService {
      * mógł ją opłacić po wybraniu listy, a wtedy zawieszenie opłaconej usługi to błąd.
      */
     tylkoGdyStatus?: SubscriptionStatus;
+    /**
+     * Przegląd F2.3 — zawieszenie przez operatora (karta usługi, wniosek, decyzja abuse): błąd węzła przerywa
+     * zawieszenie, zanim baza oznaczy usługę jako zawieszoną. Bez tego operator i zgłaszający nadużycie słyszą
+     * „usługa zawieszona”, a strona dalej działa (a ponowne zawieszenie jest już no-opem).
+     */
+    bladWezlaPrzerywa?: boolean;
   }): Promise<Subscription> {
     const subscription = await this.prisma.subscription.findUnique({
       where: { id: opts.subscriptionId },
@@ -873,6 +879,7 @@ export class SubscriptionsService {
         this.logger.error(
           `DA suspend failed for sub=${opts.subscriptionId} (${subscription.account.daUsername}): ${daError}`,
         );
+        if (opts.bladWezlaPrzerywa) throw err;
       }
     }
 

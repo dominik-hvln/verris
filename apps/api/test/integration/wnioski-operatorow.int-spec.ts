@@ -69,7 +69,10 @@ async function wczytajDziennik() {
           m, { get: () => undefined } as never, null as never, null as never, null as never, null as never,
         );
         const naWezle = subs as unknown as Record<'suspendOnDa' | 'unsuspendOnDa', (s: string, u: string) => Promise<void>>;
-        naWezle.suspendOnDa = async (_s, u) => void zawieszoneNaWezle.push(u);
+        naWezle.suspendOnDa = async (_s, u) => {
+          if (wezelPada) throw new Error('węzeł nie odpowiada');
+          zawieszoneNaWezle.push(u);
+        };
         naWezle.unsuspendOnDa = async (_s, u) => void zawieszoneNaWezle.push(`-${u}`);
         return new ZawieszenieOperatoraService(p, subs);
       },
@@ -87,6 +90,8 @@ class Aplikacja {}
 
 let app: INestApplication;
 const zawieszoneNaWezle: string[] = [];
+/** Przegląd F2.3 — węzeł odmawia zawieszenia. */
+let wezelPada = false;
 let url: string;
 
 async function zadanie(metoda: 'GET' | 'POST', sciezka: string, kto: { id: string; role: string }, body?: unknown) {
@@ -128,6 +133,7 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     startTestu = new Date();
     dziennik = [];
     zawieszoneNaWezle.length = 0;
+    wezelPada = false;
   });
 
   it('złożenie → dwie równoległe akceptacje: portfel zasilony RAZ, druga dostaje 409; dziennik z oba nazwiskami', async () => {
@@ -348,6 +354,54 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
 
     // Drugi wniosek o to samo — usługa już zawieszona.
     expect((await wniosek(l2, '')).status).toBe(400);
+  });
+
+  it('przegląd F2.3: węzeł odmawia zawieszenia → wniosek FAILED, usługa i konto dalej aktywne (nie „zawieszona” przy działającej stronie)', async () => {
+    const l2 = await operator(['CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE']);
+    const l4 = await operator(['REQUESTS_APPROVE', 'SUBSCRIPTIONS_SUSPEND']);
+    const wezel = await utworzWezel();
+    const plan = await utworzPlan({ productKind: 'HOSTING' });
+    const k = await utworzKonto({ serverId: wezel.id, planId: plan.id });
+    await prisma().subscription.update({ where: { id: k.subscription.id }, data: { status: 'ACTIVE' } });
+    const zl = await zadanie('POST', '/admin/wnioski', l2, {
+      typ: 'SUBSCRIPTION_SUSPEND',
+      userId: k.user.id,
+      payload: { subscriptionId: k.subscription.id, reason: 'ABUSE' },
+      uzasadnienie: 'Phishing potwierdzony, klient nie odpowiada.',
+    });
+    expect(zl.status).toBe(201);
+    wezelPada = true;
+    const akc = await zadanie('POST', `/admin/wnioski/${zl.body.id as string}/akceptuj`, l4, {});
+    expect(akc.body).toMatchObject({ status: 'FAILED' });
+    expect((await prisma().subscription.findUniqueOrThrow({ where: { id: k.subscription.id } })).status).toBe('ACTIVE');
+    expect((await prisma().account.findUniqueOrThrow({ where: { id: k.account.id } })).status).not.toBe('SUSPENDED');
+  });
+
+  it('przegląd F2.3: usługa zawieszona za brak płatności — decydujący bez BILLING_MANAGE nie odwiesza (FAILED), z BILLING_MANAGE tak', async () => {
+    const l2 = await operator(['CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE']);
+    const l3kier = await operator(['REQUESTS_APPROVE', 'SUBSCRIPTIONS_SUSPEND']);
+    const l4 = await operator(['REQUESTS_APPROVE', 'SUBSCRIPTIONS_SUSPEND', 'BILLING_MANAGE']);
+    const wezel = await utworzWezel();
+    const plan = await utworzPlan({ productKind: 'HOSTING' });
+    const k = await utworzKonto({ serverId: wezel.id, planId: plan.id });
+    await prisma().subscription.update({ where: { id: k.subscription.id }, data: { status: 'SUSPENDED' } });
+    await prisma().subscriptionEvent.create({ data: { subscriptionId: k.subscription.id, type: 'SUSPENDED', details: { reason: 'GRACE_EXPIRED' } } });
+    const wniosek = () =>
+      zadanie('POST', '/admin/wnioski', l2, {
+        typ: 'SUBSCRIPTION_UNSUSPEND',
+        userId: k.user.id,
+        payload: { subscriptionId: k.subscription.id },
+        uzasadnienie: 'Klient obiecał zapłacić jutro.',
+      });
+    const pierwszy = await wniosek();
+    expect(pierwszy.status).toBe(201);
+    expect((await zadanie('POST', `/admin/wnioski/${pierwszy.body.id as string}/akceptuj`, l3kier, {})).body).toMatchObject({ status: 'FAILED' });
+    expect((await prisma().subscription.findUniqueOrThrow({ where: { id: k.subscription.id } })).status).toBe('SUSPENDED');
+
+    const drugi = await wniosek();
+    expect(drugi.status).toBe(201);
+    expect((await zadanie('POST', `/admin/wnioski/${drugi.body.id as string}/akceptuj`, l4, {})).body).toMatchObject({ status: 'APPROVED' });
+    expect((await prisma().subscription.findUniqueOrThrow({ where: { id: k.subscription.id } })).status).toBe('ACTIVE');
   });
 
   it('konto klienta (USER) nie wchodzi na wnioski', async () => {

@@ -1,12 +1,23 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ZawieszenieOperatoraService } from './zawieszenie-operatora.service.js';
 
 /** F2.3 (D2/D3, 10.10) — zawieszenie przez operatora: numer zgłoszenia musi być zgłoszeniem właściciela usługi. */
 describe('ZawieszenieOperatoraService', () => {
   const ID = 'ab12cd34-1111-4222-8333-444455556666';
-  function serwis(zgloszenia: { id: string; userId: string }[] = [{ id: ID, userId: 'k1' }]) {
+  function serwis(
+    zgloszenia: { id: string; userId: string }[] = [{ id: ID, userId: 'k1' }],
+    o: { powodZawieszenia?: string; aktor?: { role: string; uprawnienia?: string[] } } = {},
+  ) {
     const prisma = {
       subscription: { findUnique: vi.fn(async ({ where }: { where: { id: string } }) => (where.id === 's1' ? { id: 's1', userId: 'k1', status: 'ACTIVE' } : null)) },
+      subscriptionEvent: { findFirst: vi.fn(async () => (o.powodZawieszenia ? { details: { reason: o.powodZawieszenia } } : null)) },
+      user: {
+        findUnique: vi.fn(async (a: { select?: { staffRole?: unknown } }) =>
+          a.select?.staffRole
+            ? { staffRole: { id: 'r', name: 'r', permissions: o.aktor?.uprawnienia ?? [] } }
+            : { role: o.aktor?.role ?? 'STAFF' },
+        ),
+      },
       ticket: {
         findMany: vi.fn(async ({ where }: { where: { userId: string; id: string | { startsWith: string } } }) =>
           zgloszenia.filter((t) => t.userId === where.userId && (typeof where.id === 'string' ? t.id === where.id : t.id.startsWith(where.id.startsWith))),
@@ -38,7 +49,7 @@ describe('ZawieszenieOperatoraService', () => {
   it('zawieszenie: istniejący SubscriptionsService.suspend z powodem jako notatką i pełnym id zgłoszenia', async () => {
     const { svc, subs } = serwis();
     await svc.zawies({ subscriptionId: 's1', aktorUserId: 'op', reason: 'ABUSE', powod: ' phishing ', zgloszenie: '#ab12cd34' });
-    expect(subs.suspend).toHaveBeenCalledWith({ subscriptionId: 's1', reason: 'ABUSE', note: 'phishing', actorUserId: 'op', zgloszenieId: ID });
+    expect(subs.suspend).toHaveBeenCalledWith({ subscriptionId: 's1', reason: 'ABUSE', note: 'phishing', actorUserId: 'op', zgloszenieId: ID, bladWezlaPrzerywa: true });
   });
 
   it('zgłoszenie obcego klienta zatrzymuje zawieszenie przed węzłem; brak usługi → 404', async () => {
@@ -47,6 +58,33 @@ describe('ZawieszenieOperatoraService', () => {
     await expect(svc.odwies({ subscriptionId: 'brak', aktorUserId: 'op' })).rejects.toThrow(NotFoundException);
     expect(subs.suspend).not.toHaveBeenCalled();
     expect(subs.unsuspend).not.toHaveBeenCalled();
+  });
+
+  it('przegląd: zawieszenie operatora przerywa się na błędzie węzła (bladWezlaPrzerywa), nie oznacza usługi jako zawieszonej', async () => {
+    const { svc, subs } = serwis();
+    await svc.zawies({ subscriptionId: 's1', aktorUserId: 'op', reason: 'MANUAL_ADMIN' });
+    expect(subs.suspend).toHaveBeenCalledWith(expect.objectContaining({ bladWezlaPrzerywa: true }));
+  });
+
+  it.each(['PAYMENT_FAILED', 'GRACE_EXPIRED'])(
+    'przegląd: usługa zawieszona za brak płatności (%s) — STAFF bez BILLING_MANAGE nie odwiesza (403), z nim i ADMIN tak',
+    async (powod) => {
+      const l3 = serwis(undefined, { powodZawieszenia: powod, aktor: { role: 'STAFF', uprawnienia: ['SUBSCRIPTIONS_SUSPEND'] } });
+      await expect(l3.svc.odwies({ subscriptionId: 's1', aktorUserId: 'op', powod: 'klient obiecał zapłacić' })).rejects.toThrow(ForbiddenException);
+      expect(l3.subs.unsuspend).not.toHaveBeenCalled();
+      const l4 = serwis(undefined, { powodZawieszenia: powod, aktor: { role: 'STAFF', uprawnienia: ['SUBSCRIPTIONS_SUSPEND', 'BILLING_MANAGE'] } });
+      await l4.svc.odwies({ subscriptionId: 's1', aktorUserId: 'op' });
+      expect(l4.subs.unsuspend).toHaveBeenCalled();
+      const adm = serwis(undefined, { powodZawieszenia: powod, aktor: { role: 'ADMIN' } });
+      await adm.svc.odwies({ subscriptionId: 's1', aktorUserId: 'adm' });
+      expect(adm.subs.unsuspend).toHaveBeenCalled();
+    },
+  );
+
+  it('przegląd: zawieszenie z innego powodu (nadużycie) — L3 odwiesza bez BILLING_MANAGE', async () => {
+    const { svc, subs } = serwis(undefined, { powodZawieszenia: 'ABUSE', aktor: { role: 'STAFF', uprawnienia: ['SUBSCRIPTIONS_SUSPEND'] } });
+    await svc.odwies({ subscriptionId: 's1', aktorUserId: 'op' });
+    expect(subs.unsuspend).toHaveBeenCalled();
   });
 
   it('odwieszenie: unsuspend z obciążeniem tylko, gdy wołający o nie poprosił', async () => {
