@@ -359,6 +359,8 @@ export class AccountDeletionService {
           stripeCustomerId: null,
           defaultPaymentMethodId: null,
           deletionRequestedAt: null,
+          // F2.4 — notatka obsługi o osobie (stare pole; nowe notatki — krok 3c).
+          adminInternalNote: null,
           anonymizedAt: now,
         },
       });
@@ -384,6 +386,9 @@ export class AccountDeletionService {
           },
         });
       }
+
+      // 3c) F2.4 — notatki obsługi o osobie to też jej dane.
+      await tx.customerNote.deleteMany({ where: { userId } });
 
       // 4) Wipe payment methods (raw card brand/last4 alone is PII when tied
       //    to identity).

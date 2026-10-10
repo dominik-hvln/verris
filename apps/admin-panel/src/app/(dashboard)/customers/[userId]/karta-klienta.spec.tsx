@@ -337,3 +337,47 @@ describe("karta klienta — dane nabywcy (fala 1B)", () => {
     expect(sekcja).not.toContain("Wymaga BILLING_VIEW.");
   });
 });
+
+/** F2.4 — notatki wewnętrzne: wiele, z autorem i datą, przypięte pierwsze; dopisuje L1 (TICKETS_MANAGE), audytor tylko czyta. */
+describe("F2.4 — notatki na karcie klienta", () => {
+  const NOTATKI = {
+    notatki: [
+      { id: "n1", tresc: "VIP — dzwonić przed zmianami", przypieta: true, utworzono: "2026-10-01T08:00:00Z", autor: null },
+      { id: "n2", tresc: "Zaległość wyjaśniona", przypieta: false, utworzono: "2026-10-09T08:00:00Z", autor: { id: "op", nazwa: "Anna Nowak" } },
+    ],
+  };
+  const z = (dostep: unknown, notatki: unknown = NOTATKI) => {
+    const baza = api.getMockImplementation()!;
+    api.mockImplementation(async (s: string) => {
+      if (s === "/staff/me/access") return dostep;
+      if (s === `/admin/users/${UID}/notes`) {
+        if (notatki instanceof Error) throw notatki;
+        return notatki;
+      }
+      return baza(s);
+    });
+  };
+  const karta = (html: string) => html.slice(html.indexOf('data-karta="notatka"'), html.indexOf('data-karta="operacje"'));
+
+  it("lista z autorem; stara notatka bez autora; formularz dla L1 (CUSTOMERS_VIEW + TICKETS_MANAGE)", async () => {
+    z({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "TICKETS_MANAGE"] });
+    const k = karta(await render("przeglad"));
+    expect(k).toContain("Notatki wewnętrzne");
+    expect(k.indexOf("VIP — dzwonić")).toBeLessThan(k.indexOf("Zaległość wyjaśniona"));
+    expect(k).toContain('data-notatka="przypieta"');
+    expect(k).toContain("Anna Nowak");
+    expect(k).toContain("notatka sprzed zmian");
+    expect(k).toContain('data-notatki="dodaj"');
+    expect(k).toContain("Odepnij");
+  });
+
+  it("audytor (bez TICKETS_MANAGE i CUSTOMERS_MANAGE) — tylko odczyt; błąd API — „Nie udało się wczytać”", async () => {
+    z({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "TICKETS_VIEW"] });
+    const k = karta(await render("przeglad"));
+    expect(k).toContain("Zaległość wyjaśniona");
+    expect(k).not.toContain('data-notatki="dodaj"');
+    expect(k).not.toContain("Przypnij");
+    z({ role: "ADMIN", isAdmin: true, permissions: [] }, new Error("500"));
+    expect(karta(await render("przeglad"))).toContain("Nie udało się wczytać notatek");
+  });
+});

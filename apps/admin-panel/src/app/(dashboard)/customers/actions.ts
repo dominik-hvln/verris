@@ -318,3 +318,26 @@ export async function zmienDaneNabywcyAction(
     return { ok: false, error: err instanceof AdminApiError ? err.message : "Nie udało się zapisać danych nabywcy." };
   }
 }
+
+/** F2.4 — dopisanie notatki wewnętrznej o kliencie (autor = zalogowany operator). */
+export async function dodajNotatkeAction(userId: string, tresc: string, przypieta: boolean): Promise<ActionResultOk | ActionResultErr> {
+  if (!tresc.trim()) return { ok: false, error: "Napisz treść notatki." };
+  try {
+    await adminApi(`/admin/users/${encodeURIComponent(userId)}/notes`, { method: "POST", body: { tresc: tresc.trim(), przypieta } });
+  } catch (err) {
+    return { ok: false, error: err instanceof AdminApiError ? err.message : "Nie udało się zapisać notatki." };
+  }
+  revalidatePath(`/customers/${userId}`);
+  return { ok: true };
+}
+
+/** F2.4 — przypięcie albo odpięcie notatki. */
+export async function przypnijNotatkeAction(userId: string, noteId: string, przypieta: boolean): Promise<ActionResultOk | ActionResultErr> {
+  try {
+    await adminApi(`/admin/users/${encodeURIComponent(userId)}/notes/${encodeURIComponent(noteId)}`, { method: "PATCH", body: { przypieta } });
+  } catch (err) {
+    return { ok: false, error: err instanceof AdminApiError ? err.message : "Nie udało się zmienić przypięcia." };
+  }
+  revalidatePath(`/customers/${userId}`);
+  return { ok: true };
+}

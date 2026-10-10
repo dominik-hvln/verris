@@ -83,10 +83,11 @@ describe("PB-46 formularz admina — zapis tylko zmienionych pól", () => {
     expect(zapis).toHaveBeenCalledWith(UID, { loginBlocked: true, loginBlockedReason: null });
   });
 
-  it("zmiana samej notatki wysyła tylko notatkę", async () => {
-    act(() => wpisz(obszary()[1], "  Notatka B  "));
+  it("F2.4 — bez pola notatki (notatki są na Przeglądzie); zapis blokady nie dotyka notatki", async () => {
+    expect(obszary()).toHaveLength(1);
+    act(() => wpisz(obszary()[0], "  spam  "));
     await zapisz();
-    expect(zapis).toHaveBeenCalledWith(UID, { adminInternalNote: "Notatka B" });
+    expect(zapis).toHaveBeenCalledWith(UID, { loginBlocked: false, loginBlockedReason: "spam" });
   });
 
   it("zmiana flagi konta wewnętrznego wysyła tylko flagę", async () => {

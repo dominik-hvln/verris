@@ -104,7 +104,7 @@ describe('decyzja 08.10 — otwarcie karty klienta przez operatora w dzienniku',
 
   it('kontroler przekazuje do dziennika tylko krótki identyfikator zakładki', async () => {
     const admin = { getCustomer360: vi.fn(async () => ({})) };
-    const c = new UsersAdminController(admin as never, {} as never, {} as never);
+    const c = new UsersAdminController(admin as never, {} as never, {} as never, {} as never);
     const op = { userId: 's1', email: 's@verris.pl', role: Role.STAFF };
     await c.customerProfile(op as never, 'u1', 'uslugi');
     await c.customerProfile(op as never, 'u1', 'x<script>');
@@ -174,7 +174,7 @@ describe('PB-46 strażnicy karty klienta (zachowanie, nie metadane)', () => {
 describe('PB-46 PATCH operational — blokada, notatka i flaga konta wewnętrznego', () => {
   function kontroler() {
     const admin = { patchCustomerOperational: vi.fn(async () => ({ ok: true })) };
-    const c = new UsersAdminController(admin as never, {} as never, {} as never);
+    const c = new UsersAdminController(admin as never, {} as never, {} as never, {} as never);
     return { c, admin };
   }
   const req = { headers: {}, ip: '127.0.0.1', socket: {} } as never;

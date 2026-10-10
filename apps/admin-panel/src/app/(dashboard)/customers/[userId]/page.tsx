@@ -26,7 +26,7 @@ import { ImpersonateButton } from "../impersonate-button";
 import { WarunkiIndywidualne, type PodgladWarunkow } from "./warunki-indywidualne";
 import { rozliczeniePoza, ustawWarunki, zalozUsluge } from "./warunki-actions";
 import { pobierzProfilKlienta, type ProfilKlienta } from "./profil-data";
-import { NotatkaWewnetrzna } from "./notatka-wewnetrzna";
+import { NotatkiKlienta, type NotatkaKlienta } from "./notatki-klienta";
 import { ZwrotPaynowButton } from "./zwrot-paynow-button";
 import { services, plForm } from "@/lib/pl";
 import { sekcjaKarty, zakladkiKartyKlienta } from "@/lib/sekcje-karty-klienta";
@@ -93,6 +93,8 @@ const AKCJE: Record<string, string> = {
   PROMO_CODE_REDEEMED: "Użyto kodu promocyjnego",
   SLA_CREDIT_GRANTED: "Przyznano rekompensatę SLA",
   HOSTING_RESTORE_COMPLETED: "Odtworzono kopię",
+  ADMIN_CUSTOMER_NOTE_ADDED: "Dodano notatkę wewnętrzną",
+  ADMIN_CUSTOMER_NOTE_PINNED: "Zmieniono przypięcie notatki",
 };
 
 function wpisOsi(e: ProfilKlienta["customerTimeline"][number]) {
@@ -145,13 +147,15 @@ export default async function AdminCustomerCardPage({
   // Fala 1B — gotowe endpointy API na karcie: maile do klienta (tokeny maskuje API), logowania, „Kto oglądał”.
   // undefined = nie udało się odczytać (karta mówi to wprost).
   const id = encodeURIComponent(userId);
-  const [maile, podglad, logowania, dziennikOperatorow] = await Promise.all([
+  const [maile, podglad, logowania, dziennikOperatorow, notatki] = await Promise.all([
     sekcja === "komunikacja" ? adminApi<MailKlienta[]>(`/admin/email-log/user/${id}?limit=50`).catch(() => undefined) : undefined,
     sekcja === "komunikacja" && q.mail
       ? adminApi<PodgladMaila>(`/admin/email-log/${encodeURIComponent(q.mail)}`).then((m) => (m.userId === userId ? m : undefined), () => undefined)
       : null,
     sekcja === "dostepy" ? adminApi<LoginHistoryResponse>(`/admin/users/${id}/login-history`).catch(() => undefined) : undefined,
     sekcja === "dziennik" ? adminApi<DziennikOperatorow>(`/admin/users/${id}/staff-audit?limit=200`).catch(() => undefined) : undefined,
+    // F2.4 — notatki wewnętrzne (wiele, z autorem); undefined = nie udało się wczytać.
+    sekcja === "przeglad" ? adminApi<{ notatki: NotatkaKlienta[] }>(`/admin/users/${id}/notes`).then((r) => r.notatki, () => undefined) : undefined,
   ]);
 
   const doFaktury = !!dostep && !brakUprawnienia("BILLING_VIEW", dostep);
@@ -435,9 +439,17 @@ export default async function AdminCustomerCardPage({
 
             <section className={`${KARTA} flex flex-col gap-2.5 p-[18px]`} aria-labelledby="nt" data-karta="notatka">
               <h2 id="nt" className="font-display text-[17px] font-bold">
-                Notatka wewnętrzna
+                Notatki wewnętrzne
               </h2>
-              <NotatkaWewnetrzna userId={u.id} poczatkowa={detail.adminInternalNote ?? ""} />
+              {notatki ? (
+                <NotatkiKlienta
+                  userId={u.id}
+                  notatki={notatki}
+                  mozePisac={!!dostep && !brakUprawnienia("CUSTOMERS_VIEW", dostep) && !brakUprawnienia(["TICKETS_MANAGE", "CUSTOMERS_MANAGE"], dostep)}
+                />
+              ) : (
+                <NieWczytano co="notatek" />
+              )}
             </section>
 
             <section className={KARTA} aria-labelledby="wr" data-karta="operacje">

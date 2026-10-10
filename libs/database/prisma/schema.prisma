@@ -77,6 +77,9 @@ model User {
   operatorRequestsMade     OperatorRequest[] @relation("OperatorRequestRequester")
   operatorRequestsDecided  OperatorRequest[] @relation("OperatorRequestDecider")
   operatorRequestsAbout    OperatorRequest[] @relation("OperatorRequestCustomer")
+  /// F2.4 — notatki wewnętrzne o kliencie (wiele, z autorem i przypięciem) i notatki napisane przez operatora.
+  customerNotes            CustomerNote[]    @relation("CustomerNoteCustomer")
+  customerNotesWritten     CustomerNote[]    @relation("CustomerNoteAuthor")
 
   // Profile
   firstName                String?
@@ -4168,4 +4171,22 @@ model OperatorRequest {
   @@index([status, createdAt])
   @@index([customerId, createdAt])
   @@index([requestedById, createdAt])
+}
+
+/// F2.4 (10.10) — notatki wewnętrzne o kliencie: wiele, z autorem, datą i przypięciem. Zastępują pojedyncze
+/// User.adminInternalNote (migracja przeniosła je jako pierwszą, przypiętą notatkę; kolumna zostaje dla zgodności).
+/// Klient ich nie widzi. Usuwane przy anonimizacji konta (RODO).
+model CustomerNote {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation("CustomerNoteCustomer", fields: [userId], references: [id], onDelete: Cascade)
+  /// Autor (operator); null — notatka sprzed F2.4 albo konto autora usunięte.
+  authorId  String?
+  author    User?    @relation("CustomerNoteAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  body      String   @db.Text
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, pinned, createdAt])
 }

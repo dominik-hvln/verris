@@ -33,7 +33,6 @@ export function CustomerOperationalForms({ detail, dostep = ADMIN }: Props) {
 
   const [loginBlocked, setLoginBlocked] = useState(detail.loginBlocked);
   const [blockReason, setBlockReason] = useState(detail.loginBlockedReason ?? "");
-  const [internalNote, setInternalNote] = useState(detail.adminInternalNote ?? "");
   const [isInternal, setIsInternal] = useState(Boolean(detail.isInternal));
   const [opErr, setOpErr] = useState<string | null>(null);
   const [opOk, setOpOk] = useState(false);
@@ -59,14 +58,12 @@ export function CustomerOperationalForms({ detail, dostep = ADMIN }: Props) {
     syncedDetail.id !== detail.id ||
     syncedDetail.loginBlocked !== detail.loginBlocked ||
     syncedDetail.loginBlockedReason !== detail.loginBlockedReason ||
-    syncedDetail.adminInternalNote !== detail.adminInternalNote ||
     syncedDetail.isInternal !== detail.isInternal
   ) {
     setSyncedDetail(detail);
     setIsInternal(Boolean(detail.isInternal));
     setLoginBlocked(detail.loginBlocked);
     setBlockReason(detail.loginBlockedReason ?? "");
-    setInternalNote(detail.adminInternalNote ?? "");
   }
 
   const saveOperational = () => {
@@ -81,8 +78,6 @@ export function CustomerOperationalForms({ detail, dostep = ADMIN }: Props) {
       zmiany.loginBlocked = loginBlocked;
       zmiany.loginBlockedReason = powod;
     }
-    const notatka = internalNote.trim() || null;
-    if (notatka !== (detail.adminInternalNote?.trim() || null)) zmiany.adminInternalNote = notatka;
     if (isInternal !== Boolean(detail.isInternal)) zmiany.isInternal = isInternal;
     if (Object.keys(zmiany).length === 0) {
       setOpErr("Brak zmian do zapisania.");
@@ -150,11 +145,11 @@ export function CustomerOperationalForms({ detail, dostep = ADMIN }: Props) {
   return (
     <div className="space-y-8">
       <section id="blokada" data-karta="blokada" className="scroll-mt-24 rounded-2xl border border-white/10 bg-black/35 p-6 space-y-4">
-        <h2 className="text-sm font-bold uppercase tracking-wide text-white">Blokada logowania i notatka</h2>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-white">Blokada logowania</h2>
         <p className="text-xs text-muted-foreground leading-relaxed">
           Zablokowany klient nie zaloguje się, a wejście na jego konto z panelu też nie zadziała, dopóki blokada trwa.
         </p>
-        {bezZarzadzania ? <p className="text-xs text-amber-200">{bezZarzadzania} — blokadę i notatkę zmienia starszy specjalista (L3).</p> : null}
+        {bezZarzadzania ? <p className="text-xs text-amber-200">{bezZarzadzania} — blokadę zmienia starszy specjalista (L3).</p> : null}
         <label className="flex items-center gap-3 cursor-pointer">
           <Checkbox
             checked={loginBlocked}
@@ -177,18 +172,7 @@ export function CustomerOperationalForms({ detail, dostep = ADMIN }: Props) {
             className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-sm text-white"
           />
         </label>
-        <label className="block">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
-            Notatka wewnętrzna (nie dla klienta)
-          </span>
-          <textarea
-            value={internalNote}
-            onChange={(e) => setInternalNote(e.target.value)}
-            disabled={pending || !!bezZarzadzania}
-            rows={5}
-            className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-xs text-white font-mono"
-          />
-        </label>
+        {/* F2.4 — notatki wewnętrzne (wiele, z autorem i przypięciem) są na Przeglądzie karty. */}
         {opErr ? <p className="text-sm text-rose-300">{opErr}</p> : null}
         {opOk ? <p className="text-sm text-emerald-300">Zapisano.</p> : null}
         <button

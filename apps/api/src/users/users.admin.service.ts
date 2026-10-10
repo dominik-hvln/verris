@@ -699,7 +699,7 @@ export class UsersAdminService {
     /** PB-47 — kto zmienia (rola i konto operatora, przy impersonacji: principal). */
     aktor: { role: string; userId: string },
   ) {
-    await this.requireEndUserForAdminOps(userId);
+    const przed = await this.requireEndUserForAdminOps(userId);
     const isInternal = await this.sprawdzZmianeKontaWewnetrznego(userId, dto.isInternal, aktor);
     if (
       dto.loginBlocked === undefined &&
@@ -723,6 +723,12 @@ export class UsersAdminService {
     if (Object.keys(data).length === 0) return { ok: true };
 
     await this.prisma.user.update({ where: { id: userId }, data });
+    // F2.4 — stara karta (jedno pole notatki) dopisuje zmienioną treść do listy notatek, żeby obie karty
+    // pokazywały to samo; lista (CustomerNote) jest źródłem prawdy, pole zostaje dla zgodności.
+    const nowaNotatka = dto.adminInternalNote?.trim();
+    if (nowaNotatka && nowaNotatka !== (przed.adminInternalNote ?? '').trim()) {
+      await this.prisma.customerNote.create({ data: { userId, authorId: aktor.userId, body: nowaNotatka } });
+    }
 
     if (isInternal !== undefined) {
       await this.audit.record({

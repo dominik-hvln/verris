@@ -8,6 +8,7 @@ import { KontaController } from './konta.controller.js';
 import { EcoPublicController } from './eco-public.controller.js';
 import { UsersService } from './users.service.js';
 import { UsersAdminService } from './users.admin.service.js';
+import { NotatkiKlientaService } from './notatki-klienta.service.js';
 import { CustomerIamService } from './customer-iam.service.js';
 import { MailModule } from '../mail/mail.module.js';
 import { StatusModule } from '../status/status.module.js';
@@ -37,7 +38,7 @@ import { EcoModule } from '../eco/eco.module.js';
     EcoModule,
   ],
   controllers: [UsersController, UsersAdminController, CustomerIamController, EcoPublicController, KontaController],
-  providers: [UsersService, UsersAdminService, CustomerIamService, EcoBadgeService],
+  providers: [UsersService, UsersAdminService, CustomerIamService, EcoBadgeService, NotatkiKlientaService],
   exports: [UsersService, UsersAdminService, EcoBadgeService],
 })
 export class UsersModule {}

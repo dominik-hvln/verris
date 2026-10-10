@@ -17,6 +17,7 @@ function zbuduj(opts: { wewnetrzne?: boolean; uprawnienia?: string[] } = {}) {
       }),
       update: vi.fn(async () => ({})),
     },
+    customerNote: { create: vi.fn(async () => ({})) },
   };
   const audit = { record: vi.fn(async () => undefined) };
   const svc = new UsersAdminService(prisma as never, {} as never, audit as never, {} as never, {} as never, {} as never, {} as never);
@@ -55,6 +56,8 @@ describe('PB-47 — zmiana flagi „konto wewnętrzne”', () => {
       where: { id: 'k1' },
       data: { loginBlocked: true, adminInternalNote: 'n' },
     });
+    // F2.4 — zmieniona notatka ze starej karty trafia też na listę notatek (autor = operator).
+    expect(prisma.customerNote.create).toHaveBeenCalledWith({ data: { userId: 'k1', authorId: 'op1', body: 'n' } });
   });
 
   it('STAFF bez uprawnienia, sama niezmieniona flaga: bez zapisu i bez wpisu o zmianie flagi (nie cofa równoczesnej decyzji L4)', async () => {
@@ -70,7 +73,7 @@ describe('PB-47 — zmiana flagi „konto wewnętrzne”', () => {
    */
   it('kontroler nie odrzuca STAFF z flagą sam — przekazuje decyzję serwisowi razem z aktorem', async () => {
     const admin = { patchCustomerOperational: vi.fn(async () => ({ ok: true })) };
-    const ctrl = new UsersAdminController(admin as never, {} as never, {} as never);
+    const ctrl = new UsersAdminController(admin as never, {} as never, {} as never, {} as never);
     const req = { ip: '10.0.0.1', headers: {} } as never;
     await ctrl.patchOperational({ userId: 'op1', role: 'STAFF' } as never, 'k1', { isInternal: true } as never, req);
     expect(admin.patchCustomerOperational).toHaveBeenCalledWith('k1', 'op1', { isInternal: true }, expect.anything(), {

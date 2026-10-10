@@ -20,6 +20,7 @@ function stanowisko(opts: { juzZanonimizowany?: boolean; subkonta?: string[] } =
     walletAutoTopup: { deleteMany: vi.fn(async () => ({})) },
     clientWebhookEndpoint: { deleteMany: vi.fn(async () => ({})) },
     apiToken: { updateMany: vi.fn(async () => ({})) },
+    customerNote: { deleteMany: vi.fn(async () => ({})) },
     accountDeletionRequest: { update: vi.fn(async () => ({})), updateMany: vi.fn(async () => ({ count: 1 })) },
     invoice: { deleteMany: vi.fn() },
   };
@@ -63,6 +64,9 @@ describe('AccountDeletionService.executeAnonymization (P-02)', () => {
     expect(s.tx.invoice.deleteMany).not.toHaveBeenCalled();
     expect(s.tx.clientWebhookEndpoint.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
     expect(s.tx.apiToken.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: 'u1', revokedAt: null } }));
+    // F2.4 — notatki obsługi o osobie (lista i stare pole) znikają razem z danymi.
+    expect(s.tx.customerNote.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
+    expect(dane.adminInternalNote).toBeNull();
   });
 
   it('subkonta: wyłączone, zanonimizowane i wylogowane razem z właścicielem', async () => {

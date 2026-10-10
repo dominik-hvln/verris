@@ -13,6 +13,7 @@ import { MailerService } from '../../src/mail/mailer.service.js';
 import { PrismaService } from '../../src/prisma/prisma.service.js';
 import { UsersAdminController } from '../../src/users/users.admin.controller.js';
 import { UsersAdminService } from '../../src/users/users.admin.service.js';
+import { NotatkiKlientaService } from '../../src/users/notatki-klienta.service.js';
 import { UsersService } from '../../src/users/users.service.js';
 import { HostingDiagnosticsService } from '../../src/diagnostics/hosting-diagnostics.service.js';
 import { StatusService } from '../../src/status/status.service.js';
@@ -69,6 +70,7 @@ async function nalozMigracje() {
     { provide: StripeService, useValue: {} },
     { provide: UsersService, useValue: {} },
     { provide: HostingDiagnosticsService, useValue: {} },
+    { provide: NotatkiKlientaService, useValue: {} },
   ],
 })
 class Aplikacja {}

@@ -98,3 +98,21 @@ export class OcenaZgloszeniaPolecenDto {
   @MaxLength(1000)
   reviewNote?: string;
 }
+
+/** F2.4 — nowa notatka wewnętrzna o kliencie. */
+export class NowaNotatkaKlientaDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(5000)
+  tresc!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  przypieta?: boolean;
+}
+
+/** F2.4 — przypięcie albo odpięcie notatki. */
+export class PrzypiecieNotatkiDto {
+  @IsBoolean()
+  przypieta!: boolean;
+}

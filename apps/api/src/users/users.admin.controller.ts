@@ -20,7 +20,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
-import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
+import { StaffPerm, StaffPermAny } from '../common/decorators/staff-permissions.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { WniosekMozliwy } from '../wnioski/wniosek-mozliwy.decorator.js';
 import { UsersAdminService } from './users.admin.service.js';
@@ -34,7 +34,10 @@ import {
   AdminSetGrafanaAccessDto,
   AdminCreateCustomerDto,
   OcenaZgloszeniaPolecenDto,
+  NowaNotatkaKlientaDto,
+  PrzypiecieNotatkiDto,
 } from './users.admin.dto.js';
+import { NotatkiKlientaService } from './notatki-klienta.service.js';
 
 class ImpersonateDto {
   @IsOptional()
@@ -106,6 +109,7 @@ export class UsersAdminController {
     private readonly admin: UsersAdminService,
     private readonly diagnostics: HostingDiagnosticsService,
     private readonly users: UsersService,
+    private readonly notatki: NotatkiKlientaService,
   ) {}
 
   @Get()
@@ -193,6 +197,30 @@ export class UsersAdminController {
       ipAddress: extractIp(req),
       userAgent: req.headers['user-agent']?.toString() ?? null,
     });
+  }
+
+  /** F2.4 — notatki wewnętrzne o kliencie (przypięte pierwsze, potem od najnowszej). Odczyt: CUSTOMERS_VIEW. */
+  @Get(':id/notes')
+  notes(@Param('id') id: string) {
+    return this.notatki.lista(id);
+  }
+
+  /**
+   * F2.4 — dopisanie notatki: kto widzi klienta i prowadzi obsługę (TICKETS_MANAGE — L1) albo zarządza klientem
+   * (CUSTOMERS_MANAGE). Audytor (sam podgląd) nie dopisuje. Autor = operator, nie edytowalne.
+   */
+  @Post(':id/notes')
+  @StaffPerm('CUSTOMERS_VIEW')
+  @StaffPermAny('TICKETS_MANAGE', 'CUSTOMERS_MANAGE')
+  addNote(@CurrentUser() user: AuthedUser, @Param('id') id: string, @Body() dto: NowaNotatkaKlientaDto) {
+    return this.notatki.dodaj(id, user.principalUserId ?? user.userId, dto);
+  }
+
+  @Patch(':id/notes/:noteId')
+  @StaffPerm('CUSTOMERS_VIEW')
+  @StaffPermAny('TICKETS_MANAGE', 'CUSTOMERS_MANAGE')
+  pinNote(@CurrentUser() user: AuthedUser, @Param('id') id: string, @Param('noteId') noteId: string, @Body() dto: PrzypiecieNotatkiDto) {
+    return this.notatki.przypnij(id, noteId, user.principalUserId ?? user.userId, dto.przypieta);
   }
 
   /**
