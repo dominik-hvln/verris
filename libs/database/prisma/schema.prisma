@@ -1391,6 +1391,11 @@ model Account {
   mailBlockedById   String?
   mailBlockedReason String?
 
+  // F3.1 — dobowy limit wysyłki konta ustawiony przez obsługę (plik /etc/virtual/limit_<login> na węźle). Zapisywany
+  // dopiero po potwierdzeniu przez węzeł (zadanie MAIL_QUEUE, tryb limit). NULL = limit domyślny serwera
+  // (HOSTING_MAIL_DAILY_SEND_LIMIT) — ta sama liczba co w panelu klienta.
+  mailSendLimit     Int?
+
   // F3.3 — ostatnia kopia konta poza serwerem wg raportu węzła (node-offsite-backup.sh, lista kont w raporcie):
   // udana — kiedy i rozmiar archiwum; nieudana — kiedy. Kopia nieudana po udanej: offsiteBackupFailedAt > offsiteBackupOkAt.
   // Oba NULL — węzeł nie raportował jeszcze kont (stary skrypt); wtedy obowiązuje przebieg węzła (offsite-status.ts).

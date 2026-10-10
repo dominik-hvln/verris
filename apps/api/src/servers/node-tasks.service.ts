@@ -8,6 +8,7 @@ import { AccountStatus, NodeTaskKind, NodeTaskStatus, Prisma, ServerStatus } fro
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { SupportActions } from '../common/audit/audit.actions.js';
+import { limitZLogu } from './poczta-wezla.js';
 import { wynikUsuwania } from './kolejka-poczty.js';
 import { DirectAdminService } from './directadmin.service.js';
 import { PLANY_Z_PAKIETEM_DA } from './da-package-spec.js';
@@ -636,6 +637,22 @@ export class NodeTasksService {
         actorUserId: task.requestedById ?? undefined,
         details: { taskId: task.id, serverId: opts.serverId, subscriptionId: konto?.subscriptionId ?? null, usunieto, pominieto },
       });
+    }
+
+    // F3.1 — limit wysyłki konta: w bazie (i w panelu klienta) dopiero wartość potwierdzona przez węzeł dla TEGO
+    // konta — także po samym odczycie (ręczna zmiana na serwerze). Nieczytelny plik na węźle niczego nie nadpisuje.
+    if (task.kind === NodeTaskKind.MAIL_QUEUE && p.mode === 'limit' && task.accountId) {
+      const l = limitZLogu(log);
+      const konto = await this.prisma.account.findUnique({ where: { id: task.accountId }, select: { daUsername: true, mailSendLimit: true, userId: true } });
+      if (l && konto && l.login === konto.daUsername && !l.nieczytelny && l.limit !== konto.mailSendLimit) {
+        await this.prisma.account.update({ where: { id: task.accountId }, data: { mailSendLimit: l.limit } });
+        await this.audit.record({
+          action: SupportActions.MAIL_SEND_LIMIT_CONFIRMED,
+          userId: konto.userId,
+          actorUserId: task.requestedById ?? undefined,
+          details: { taskId: task.id, serverId: opts.serverId, przed: konto.mailSendLimit, po: l.limit },
+        });
+      }
     }
 
     if (task.kind === NodeTaskKind.HOSTING_PROFILE) {

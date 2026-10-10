@@ -8,7 +8,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { daErrorMessage, hostingFetchErrorMessage } from '@verris/contracts';
+import { daErrorMessage, hostingFetchErrorMessage, HOSTING_MAIL_DAILY_SEND_LIMIT } from '@verris/contracts';
 import { DirectAdminApiError, DirectAdminClient, mergeAdminSettingsPayload } from '@verris/directadmin-sdk';
 import type {
   DeployFrequency,
@@ -920,6 +920,7 @@ export class DirectAdminService {
       ftpAccounts: emptyMetric(),
       databases: emptyMetric(),
       inodes: emptyMetric(),
+      limitWysylki: account?.mailSendLimit ?? HOSTING_MAIL_DAILY_SEND_LIMIT,
       fetchError: null,
     };
 

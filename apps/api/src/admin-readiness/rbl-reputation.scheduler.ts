@@ -1,23 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
-import { promises as dns } from 'dns';
 import { Role, ServerStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { nodeRblAlertTemplate, nodeRblClearedTemplate, nodeRblNieznanyTemplate } from '../mail/templates/ops-notifications.js';
-import { RBL_ZONES, rblBrakWpisu, rblListed, rblOdmowa } from '../deliverability/rbl.js';
+import { sprawdzIpNaRbl } from '../deliverability/rbl.js';
 
 // Strefy: RBL_ZONES w deliverability/rbl.ts (wspólne z DeliverabilityService, tam uzasadnienie listy).
 const ALERT_COOLDOWN_MS = 12 * 60 * 60 * 1000; // re-alert max co 12h/węzeł
 // Stan „nieznany” to luka w monitoringu, nie incydent — przypomnienie najwyżej raz na dobę na węzeł.
 const NIEZNANY_COOLDOWN_MS = 24 * 60 * 60 * 1000;
-const DNS_TIMEOUT_MS = 3500;
-
-async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([p, new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))]);
-}
 
 /**
  * CMP-5b — proaktywny monitoring reputacji IP floty.
@@ -64,21 +58,7 @@ export class RblReputationScheduler {
    * po alercie dawała fałszywe „IP znów czyste”.
    */
   async sprawdzIp(ip: string): Promise<{ listed: string[]; unknown: string[] }> {
-    const reversed = ip.split('.').reverse().join('.');
-    const listed: string[] = [];
-    const unknown: string[] = [];
-    await Promise.all(
-      RBL_ZONES.map(async (zone) => {
-        try {
-          const res: string[] = await withTimeout(dns.resolve4(`${reversed}.${zone}`), DNS_TIMEOUT_MS);
-          if (rblListed(res)) listed.push(zone);
-          else if (rblOdmowa(res)) unknown.push(zone);
-        } catch (err) {
-          if (!rblBrakWpisu(err)) unknown.push(zone);
-        }
-      }),
-    );
-    return { listed, unknown };
+    return sprawdzIpNaRbl(ip);
   }
 
   @Cron('0 */6 * * *')

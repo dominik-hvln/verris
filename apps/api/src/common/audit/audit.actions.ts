@@ -91,6 +91,11 @@ export const SupportActions = {
   NODE_IP_BLOCKS_VIEWED: 'NODE_IP_BLOCKS_VIEWED',
   NODE_IP_UNBLOCK_QUEUED: 'NODE_IP_UNBLOCK_QUEUED',
   NODE_IP_ALLOWLIST_CHANGED: 'NODE_IP_ALLOWLIST_CHANGED',
+  /** F3.1 — najwięksi nadawcy i odrzucenia węzła (agregat z logu poczty) i sprawdzenie IP węzła na listach RBL. */
+  NODE_MAIL_STATS_VIEWED: 'NODE_MAIL_STATS_VIEWED',
+  NODE_RBL_CHECKED: 'NODE_RBL_CHECKED',
+  /** F3.1 — węzeł potwierdził limit wysyłki konta (po zmianie albo odczycie); details.przed, po (null = domyślny). */
+  MAIL_SEND_LIMIT_CONFIRMED: 'MAIL_SEND_LIMIT_CONFIRMED',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -284,6 +289,8 @@ export const HostingResourceActions = {
   HOSTING_MAIL_QUEUE_PURGE_QUEUED: 'HOSTING_MAIL_QUEUE_PURGE_QUEUED',
   // F3.2 (D3/D5) — obsługa zdjęła blokadę adresu IP klienta na serwerze („zablokowało mi IP”).
   HOSTING_IP_UNBLOCK_QUEUED: 'HOSTING_IP_UNBLOCK_QUEUED',
+  // F3.1 — obsługa zmieniła dobowy limit wysyłki poczty konta (albo przywróciła domyślny).
+  HOSTING_MAIL_SEND_LIMIT_CHANGED: 'HOSTING_MAIL_SEND_LIMIT_CHANGED',
 } as const;
 
 export const MigrationActions = {

@@ -28,6 +28,7 @@ export type AkcjaKonta =
   | 'blokada-wysylki'
   | 'zwolnienie-wysylki'
   | 'kolejka-usun'
+  | 'limit-wysylki'
   // F3.2 — bezpieczeństwo konta: odblokowanie IP (blokady-ip-konta.service.ts), kwarantanna malware (G-12).
   | 'odblokowanie-ip'
   | 'kwarantanna'

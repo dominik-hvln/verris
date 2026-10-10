@@ -8,6 +8,7 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
 import { FalaTygodniowaScheduler } from './fala-tygodniowa.scheduler.js';
 import { OnboardAdminController } from './onboard.admin.controller.js';
 import { KopieFlotyService } from './kopie-floty.js';
+import { PocztaWezlaAdminController, PocztaWezlaService } from './poczta-wezla.admin.controller.js';
 import { BackupOffsiteService } from './backup-offsite.service.js';
 import { Module } from '@nestjs/common';
 import { ServersService } from './servers.service.js';
@@ -38,6 +39,7 @@ import { BlokadyIpWezlaAdminController, BlokadyIpWezlaService } from './blokady-
   controllers: [
     ServersController,
     KolejkaPocztyWezlaAdminController,
+    PocztaWezlaAdminController,
     BlokadyIpWezlaAdminController,
     StosWezlaAdminController,
     OnboardAdminController,
@@ -51,6 +53,7 @@ import { BlokadyIpWezlaAdminController, BlokadyIpWezlaService } from './blokady-
   providers: [
     ServersService,
     KolejkaPocztyWezlaService,
+    PocztaWezlaService,
     BlokadyIpWezlaService,
     StosWezlaService,
     PrzegladWezlaService,

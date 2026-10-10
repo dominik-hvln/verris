@@ -4,9 +4,14 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { HostingResourceActions, SupportActions } from '../common/audit/audit.actions.js';
 import { FRAZA_KOLEJKI, ID_WIADOMOSCI_EXIMA, stanKolejki } from '../servers/kolejka-poczty.js';
+import { LIMIT_WYSYLKI_MAX, limitZLogu, stanZadan } from '../servers/poczta-wezla.js';
+import { HOSTING_MAIL_DAILY_SEND_LIMIT } from '@verris/contracts';
 import { DirectAdminService } from '../servers/directadmin.service.js';
 import { OutboundAbuseGuard } from '../deliverability/outbound-abuse.guard.js';
 import { AkcjeKontaOperatoraService, type ZlecenieOperatora } from './akcje-konta-operatora.service.js';
+
+/** Tryby zadania MAIL_QUEUE, które należą do kolejki (tryb `limit` — limit wysyłki, osobno). */
+const TRYBY_KOLEJKI = ['list', 'remove', 'flush'] as const;
 
 /** Usuwać można tylko wiadomości z podglądu nie starszego niż godzina (operator widział, co usuwa). */
 export const WAZNOSC_PODGLADU_MS = 60 * 60 * 1000;
@@ -33,6 +38,11 @@ export const KORDON_Z_BLOKADY = 'Blokada wysyłki konta przez obsługę';
  * użytkownik DA (mail() z PHP), skrzynka konta (SMTP) albo adres w domenach konta — sprawdza to węzeł. Usunięcie
  * (nieodwracalne): tylko identyfikatory z ostatniego podglądu, węzeł ponownie sprawdza przynależność do konta,
  * a liczbę usuniętych zapisuje NodeTasksService po zakończeniu zadania (MAIL_QUEUE_MESSAGES_REMOVED).
+ *
+ * Limit wysyłki konta (F3.1 reszta): dobowy limit użytkownika DA = plik /etc/virtual/limit_<login> (dokumentacja DA
+ * w ops/scripts/node-mail-queue.sh, tryb `limit`). Odczyt — L2 (MAIL_QUEUE_VIEW), zmiana — L3 (MAIL_SEND_BLOCK) przez
+ * wspólny przebieg akcji (powód, zgłoszenie, dziennik, wpis klienta). Account.mailSendLimit zapisuje NodeTasksService
+ * dopiero, gdy węzeł potwierdzi wartość — panel klienta pokazuje limit, który naprawdę działa.
  */
 @Injectable()
 export class PocztaKontaOperatoraService {
@@ -139,12 +149,86 @@ export class PocztaKontaOperatoraService {
     return { userId: sub.userId, account: sub.account };
   }
 
+  /** Zadania kolejki konta (bez zadań limitu — te mają własne okno, inaczej wypychałyby podgląd z ostatnich 10). */
   private zadania(accountId: string) {
     return this.prisma.nodeTask.findMany({
-      where: { accountId, kind: NodeTaskKind.MAIL_QUEUE },
+      where: { accountId, kind: NodeTaskKind.MAIL_QUEUE, OR: TRYBY_KOLEJKI.map((t) => ({ payload: { path: ['mode'], equals: t } })) },
       orderBy: { createdAt: 'desc' },
       take: 10,
     });
+  }
+
+  private zadaniaLimitu(accountId: string) {
+    return this.prisma.nodeTask.findMany({
+      where: { accountId, kind: NodeTaskKind.MAIL_QUEUE, payload: { path: ['mode'], equals: 'limit' } },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    });
+  }
+
+  /** Limit z bazy (potwierdzony przez węzeł) i ostatni odczyt z węzła; `obowiazuje` — to, co widzi klient. */
+  async limit(subscriptionId: string) {
+    const { account } = await this.konto(subscriptionId);
+    const a = await this.prisma.account.findUnique({ where: { id: account.id }, select: { mailSendLimit: true } });
+    const stan = stanZadan(await this.zadaniaLimitu(account.id), limitZLogu);
+    return {
+      limitKonta: a?.mailSendLimit ?? null,
+      domyslny: HOSTING_MAIL_DAILY_SEND_LIMIT,
+      obowiazuje: a?.mailSendLimit ?? HOSTING_MAIL_DAILY_SEND_LIMIT,
+      max: LIMIT_WYSYLKI_MAX,
+      ...stan,
+    };
+  }
+
+  private async zlecLimit(account: { id: string; serverId: string; daUsername: string; status: string }, operatorUserId: string, wartosc?: number | null) {
+    if (account.status === 'DELETED' || account.status === 'PROVISIONING') throw new BadRequestException('Konto hostingowe nie działa na serwerze.');
+    const zadania = await this.zadaniaLimitu(account.id);
+    if (zadania.some((t) => t.status === NodeTaskStatus.QUEUED || t.status === NodeTaskStatus.RUNNING)) {
+      throw new ConflictException('Poprzednia operacja na limicie jeszcze trwa — chwila.');
+    }
+    return this.prisma.nodeTask.create({
+      data: {
+        serverId: account.serverId,
+        accountId: account.id,
+        kind: NodeTaskKind.MAIL_QUEUE,
+        status: NodeTaskStatus.QUEUED,
+        requestedById: operatorUserId,
+        payload: {
+          mode: 'limit',
+          daUser: account.daUsername,
+          ...(wartosc === undefined ? {} : { limit: wartosc === null ? 'domyslny' : String(wartosc) }),
+        },
+      },
+    });
+  }
+
+  /** Odczyt limitu z węzła (np. po ręcznej zmianie na serwerze); wynik nadpisuje stan w bazie. */
+  async wczytajLimit(subscriptionId: string, operatorUserId: string) {
+    const { userId, account } = await this.konto(subscriptionId);
+    await this.zlecLimit(account, operatorUserId);
+    await this.audit.record({ action: SupportActions.OPERATOR_ACCOUNT_VIEWED, userId, actorUserId: operatorUserId, details: { subscriptionId, sekcja: 'limit-wysylki' } });
+    return this.limit(subscriptionId);
+  }
+
+  /**
+   * Ustawia dobowy limit wysyłki konta (1–LIMIT_WYSYLKI_MAX) albo przywraca domyślny serwera (`null`). Odwracalne —
+   * bezpośrednio z powodem (D2); klient widzi „obsługa Verris (zgłoszenie #…)” i nową wartość po potwierdzeniu węzła.
+   */
+  async ustawLimit(z: ZlecenieOperatora, wartosc: number | null) {
+    if (wartosc !== null && (!Number.isInteger(wartosc) || wartosc < 1 || wartosc > LIMIT_WYSYLKI_MAX)) {
+      throw new BadRequestException(`Limit: liczba od 1 do ${LIMIT_WYSYLKI_MAX} albo domyślny serwera.`);
+    }
+    const { account } = await this.konto(z.subscriptionId);
+    return this.akcje.wykonaj(
+      z,
+      'limit-wysylki',
+      { limit: wartosc ?? 'domyslny' },
+      async (w) => {
+        const t = await this.zlecLimit({ ...account, id: w.konto.id, serverId: w.konto.serverId, daUsername: w.konto.daUsername }, z.operatorUserId, wartosc);
+        return { ok: true as const, zadanieId: t.id, limit: wartosc };
+      },
+      { action: HostingResourceActions.HOSTING_MAIL_SEND_LIMIT_CHANGED, details: { limit: wartosc ?? HOSTING_MAIL_DAILY_SEND_LIMIT, domyslny: wartosc === null } },
+    );
   }
 
   /**

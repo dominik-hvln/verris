@@ -254,6 +254,8 @@ export interface ServiceConnectionInfoDto {
   ftpAccounts: ConnectionMetricDto;
   databases: ConnectionMetricDto;
   inodes: ConnectionMetricDto;
+  /** F3.1 — dobowy limit wysyłki poczty konta, który naprawdę działa na serwerze (domyślny albo ustawiony przez obsługę). */
+  limitWysylki: number;
   fetchError: string | null;
 }
 

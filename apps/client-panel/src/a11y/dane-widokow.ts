@@ -200,6 +200,7 @@ const polaczenie = {
       ftpAccounts: { used: 1, limit: 10 },
       databases: { used: 2, limit: 10 },
       inodes: { used: 20000, limit: 500000 },
+      limitWysylki: 1000,
       fetchError: null,
     }),
 } satisfies Partial<typeof import('@/app/dashboard/services/[id]/hosting-connection-actions')>;

@@ -1,3 +1,5 @@
+import { promises as dns } from 'dns';
+
 /**
  * Sprawdzane listy DNSBL — jedna lista dla diagnostyki klienta (DeliverabilityService) i monitoringu
  * floty (RblReputationScheduler).
@@ -29,4 +31,41 @@ export function rblBrakWpisu(err: unknown): boolean {
 /** Odpowiedź 127.255.255.x — lista odmówiła odpowiedzi (np. publiczny resolver, limit zapytań). */
 export function rblOdmowa(answers: string[]): boolean {
   return !rblListed(answers) && answers.some((a) => a.startsWith('127.255.255.'));
+}
+
+const DNS_TIMEOUT_MS = 3500;
+
+async function zLimitem<T>(p: Promise<T>, ms: number): Promise<T> {
+  let t: NodeJS.Timeout | undefined;
+  try {
+    return await Promise.race([p, new Promise<T>((_, reject) => { t = setTimeout(() => reject(new Error('timeout')), ms); })]);
+  } finally {
+    if (t) clearTimeout(t);
+  }
+}
+
+/**
+ * Wynik IPv4 na listach RBL_ZONES: `listed` — wpis; `unknown` — timeout, błąd DNS inny niż NXDOMAIN/ENODATA albo
+ * odmowa listy (127.255.255.x); reszta stref — czysto. Wspólne dla monitoringu floty (RblReputationScheduler)
+ * i sprawdzenia na żądanie z karty węzła (F3.1). `resolve4` podmienialne w testach.
+ */
+export async function sprawdzIpNaRbl(
+  ip: string,
+  resolve4: (host: string) => Promise<string[]> = (h) => dns.resolve4(h),
+): Promise<{ listed: string[]; unknown: string[] }> {
+  const reversed = ip.split('.').reverse().join('.');
+  const listed: string[] = [];
+  const unknown: string[] = [];
+  await Promise.all(
+    RBL_ZONES.map(async (zone) => {
+      try {
+        const res: string[] = await zLimitem(resolve4(`${reversed}.${zone}`), DNS_TIMEOUT_MS);
+        if (rblListed(res)) listed.push(zone);
+        else if (rblOdmowa(res)) unknown.push(zone);
+      } catch (err) {
+        if (!rblBrakWpisu(err)) unknown.push(zone);
+      }
+    }),
+  );
+  return { listed, unknown };
 }

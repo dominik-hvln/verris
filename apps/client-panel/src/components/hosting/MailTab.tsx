@@ -73,6 +73,8 @@ export default function MailTab({ serviceId }: Props) {
   };
   const [mailHost, setMailHost] = useState<string | null>(null);
   const [emailQuota, setEmailQuota] = useState<{ used: string; limit: string } | null>(null);
+  // F3.1 — limit, który naprawdę działa na serwerze (obsługa może go zmienić); do odpowiedzi — domyślny.
+  const [limitWysylki, setLimitWysylki] = useState<number>(HOSTING_MAIL_DAILY_SEND_LIMIT);
   const [domains, setDomains] = useState<string[]>([]);
 
   // create form
@@ -155,6 +157,7 @@ export default function MailTab({ serviceId }: Props) {
       setDomains(domNames);
       setDomain((cur) => cur || domNames[0] || '');
       setMailHost(conn?.mailHost ?? null);
+      if (typeof conn?.limitWysylki === 'number') setLimitWysylki(conn.limitWysylki);
       if (conn?.emails) {
         const used =
           conn.emails.used == null ? '—' : String(Math.round(conn.emails.used));
@@ -319,7 +322,7 @@ export default function MailTab({ serviceId }: Props) {
         <Kpi label="Serwer poczty" value={<span className="font-mono text-[15px] font-semibold tracking-normal">{imapHost}</span>} foot={<span>IMAP 993 · SMTP 465</span>} />
         <Kpi
           label="Limit wysyłki"
-          value={HOSTING_MAIL_DAILY_SEND_LIMIT}
+          value={limitWysylki}
           unit="/ dobę"
           foot={<span>wiadomości z całego konta, licznik zeruje się raz na dobę</span>}
         />

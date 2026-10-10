@@ -187,11 +187,11 @@ elif [ "$TASK_KIND" = "REDIS_ACCESS" ]; then
 elif [ "$TASK_KIND" = "MAIL_LOG" ]; then
   RUN_BIN="/usr/local/bin/verris-mail-log.sh"
   fetch_task_script "/agent/tasks/mail-log/script" "$RUN_BIN"
-  payload_env "ML" "{'domains':'DOMAINS','address':'ADDRESS'}"
+  payload_env "ML" "{'mode':'MODE','domains':'DOMAINS','address':'ADDRESS'}"
 elif [ "$TASK_KIND" = "MAIL_QUEUE" ]; then
   RUN_BIN="/usr/local/bin/verris-mail-queue.sh"
   fetch_task_script "/agent/tasks/mail-queue/script" "$RUN_BIN"
-  payload_env "MQ" "{'mode':'MODE','daUser':'USER','domains':'DOMAINS','ids':'IDS','szukaj':'SZUKAJ'}"
+  payload_env "MQ" "{'mode':'MODE','daUser':'USER','domains':'DOMAINS','ids':'IDS','szukaj':'SZUKAJ','limit':'LIMIT'}"
 elif [ "$TASK_KIND" = "IP_BLOCKS" ]; then
   RUN_BIN="/usr/local/bin/verris-ip-blocks.sh"
   fetch_task_script "/agent/tasks/ip-blocks/script" "$RUN_BIN"

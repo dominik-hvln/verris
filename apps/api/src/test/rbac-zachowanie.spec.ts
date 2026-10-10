@@ -328,7 +328,14 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     expect(await wolno('L1 Konsultant', ['kolejka', 'wczytajKolejke', 'usunZKolejki'])).toEqual({ kolejka: false, wczytajKolejke: false, usunZKolejki: false });
     expect(await wolno('L2 Specjalista techniczny', ['kolejka', 'wczytajKolejke', 'usunZKolejki'])).toEqual({ kolejka: true, wczytajKolejke: true, usunZKolejki: false });
     expect(await wolno('L3 Starszy specjalista', ['kolejka', 'wczytajKolejke', 'usunZKolejki'])).toEqual({ kolejka: true, wczytajKolejke: true, usunZKolejki: true });
-    expect(poczta.map((p) => p.metoda).sort()).toEqual(['kolejka', 'stanWysylki', 'usunZKolejki', 'wczytajKolejke', 'zablokuj', 'zwolnij']);
+    // F3.1 reszta — limit wysyłki konta: odczyt od L2, zmiana od L3 (to samo uprawnienie co blokada).
+    expect(await wolno('L1 Konsultant', ['limit', 'wczytajLimit', 'ustawLimit'])).toEqual({ limit: false, wczytajLimit: false, ustawLimit: false });
+    expect(await wolno('L2 Specjalista techniczny', ['limit', 'wczytajLimit', 'ustawLimit'])).toEqual({ limit: true, wczytajLimit: true, ustawLimit: false });
+    for (const rola of ['L3 Starszy specjalista', 'Nadużycia i bezpieczeństwo', 'Inżynier infrastruktury (NOC/DevOps)']) {
+      expect({ rola, w: await wolno(rola, ['limit', 'wczytajLimit', 'ustawLimit']) }).toEqual({ rola, w: { limit: true, wczytajLimit: true, ustawLimit: true } });
+    }
+    expect(await wpuszcza(t('ustawLimit'), KLIENT, ['*', 'MAIL_SEND_BLOCK'])).toBe(false);
+    expect(poczta.map((p) => p.metoda).sort()).toEqual(['kolejka', 'limit', 'stanWysylki', 'ustawLimit', 'usunZKolejki', 'wczytajKolejke', 'wczytajLimit', 'zablokuj', 'zwolnij']);
     // Sam podgląd kolejki nie daje blokady; samo NODES_MANAGE / ABUSE_MANAGE też nie.
     for (const m of blokada) {
       expect(await wpuszcza(t(m), OPERATOR, ['MAIL_QUEUE_VIEW', 'NODES_MANAGE', 'ABUSE_MANAGE', 'ACCOUNT_ACTIONS'])).toBe(false);
@@ -347,6 +354,20 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
       }
       expect(await wpuszcza(t, OPERATOR, ['NODES_VIEW', 'NODES_MANAGE', 'MAIL_QUEUE_VIEW', 'MAIL_SEND_BLOCK'])).toBe(false);
       expect(await wpuszcza(t, ADMIN)).toBe(true);
+    }
+  });
+
+  it('F3.1 reszta: nadawcy i odrzucenia węzła, RBL na żądanie — tylko NOC i ADMIN', async () => {
+    const trasy = TRASY.filter((t) => t.kontroler === 'PocztaWezlaAdminController');
+    expect(trasy.map((t) => t.metoda).sort()).toEqual(['rbl', 'statystyki', 'wczytajStatystyki']);
+    for (const t of trasy) {
+      expect(t.sciezka.startsWith('admin/servers/:id/poczta')).toBe(true);
+      expect(await wpuszcza(t, OPERATOR, uprawnieniaRoli('Inżynier infrastruktury (NOC/DevOps)'))).toBe(true);
+      for (const rola of ['L1 Konsultant', 'L2 Specjalista techniczny', 'L3 Starszy specjalista', 'L4 Kierownik zmiany', 'Nadużycia i bezpieczeństwo', 'Audytor (tylko podgląd)']) {
+        expect({ t: nazwa(t), rola, w: await wpuszcza(t, OPERATOR, uprawnieniaRoli(rola)) }).toEqual({ t: nazwa(t), rola, w: false });
+      }
+      expect(await wpuszcza(t, ADMIN)).toBe(true);
+      expect(await wpuszcza(t, KLIENT, ['MAIL_QUEUE_NODE'])).toBe(false);
     }
   });
 

@@ -2,11 +2,20 @@
 # =============================================================================
 # Verris — kolejka poczty exima na węźle (F3.1, zadanie MAIL_QUEUE).
 # Uruchamiany przez agenta zadań z env:
-#   MQ_MODE      list | remove | flush
+#   MQ_MODE      list | remove | flush | limit
 #   MQ_USER      (konto) użytkownik DA — lista zawężona do konta, remove tylko z nim
 #   MQ_DOMAINS   (konto) domeny konta po przecinku (z API, nie od klienta)
 #   MQ_IDS       (remove) identyfikatory wiadomości po przecinku (z podglądu operatora)
 #   MQ_SZUKAJ    (list, opcjonalnie) fragment nadawcy, odbiorcy albo tematu
+#   MQ_LIMIT     (limit, opcjonalnie) dobowy limit wysyłki konta 1–100000 albo „domyslny”; pusty = tylko odczyt
+# F3.1 — tryb `limit`: dobowy limit wysyłki użytkownika DA = plik /etc/virtual/limit_<użytkownik> (jedna liczba, bez
+# nowej linii), domyślny dla wszystkich — /etc/virtual/limit. Dokumentacja DirectAdmina:
+#   https://docs.directadmin.com/other-hosting-services/preventing-spam/outgoing-spam.html#how-to-customize-the-daily-user-email-limit-based-on-a-custom-package-item
+#   (zapis `echo -n "$limit" > /etc/virtual/limit_$username` tylko dla liczby > 0; per-User limit „daily cap … sum of all
+#   their email account's sends”). „domyslny” usuwa plik konta — NIEZWERYFIKOWANE z dokumentacją, że bez pliku exim.pl
+#   bierze /etc/virtual/limit (dokumentacja tego nie mówi wprost) — sprawdzić na t1. Wartości 0 („bez limitu” dla
+#   limit_unknown) nie przyjmujemy. Zapis atomowy (plik tymczasowy w /etc/virtual + rename) z właścicielem i prawami
+#   pliku /etc/virtual/limit; po zapisie ponowny odczyt — rozjazd = błąd.
 # Komendy wyłącznie z dokumentacji DirectAdmina / Exima i tylko z tej białej listy:
 #   exim -bp (lista), exim -bpc (liczba), exim -Mvh <id> (nagłówki -H, bez treści), exim -Mrm <id>… (usuń),
 #   exim -qff (wypchnij kolejkę, także zamrożone)
@@ -16,18 +25,22 @@
 # Dane wejściowe nie trafiają do powłoki: Python woła exim listą argumentów (bez shell=True), każdy identyfikator
 # sprawdzony wzorcem Exima (6-11-4 od 4.97, wcześniej 6-6-2). Treści wiadomości (-Mvb) skrypt nie czyta nigdy.
 # Wyjście: VERRIS_MQ <id>|<wiek>|<rozmiar>|<zamrożona 0/1>|<nadawca>|<odbiorcy>|<temat>
+#          VERRIS_MQ_LIMIT <użytkownik> <limit konta|domyslny> <limit domyślny|->
 #          VERRIS_MQ_RAZEM <w kolejce> <przeczytano> <pasuje> <pokazano>
 #          VERRIS_MQ_USUNIETO <n> / VERRIS_MQ_POMINIETO <n> / VERRIS_MQ_PRZED <n> / VERRIS_MQ_PO <n>
 # =============================================================================
 set -Eeuo pipefail
 
-: "${MQ_MODE:?}"; : "${MQ_USER:=}"; : "${MQ_DOMAINS:=}"; : "${MQ_IDS:=}"; : "${MQ_SZUKAJ:=}"
+: "${MQ_MODE:?}"; : "${MQ_USER:=}"; : "${MQ_DOMAINS:=}"; : "${MQ_IDS:=}"; : "${MQ_SZUKAJ:=}"; : "${MQ_LIMIT:=}"
+# Katalogi podmieniane wyłącznie w testach (test/kolejka-poczty-wezla.spec.ts).
+: "${MQ_VIRTUAL_DIR:=/etc/virtual}"; : "${MQ_DA_USERS:=/usr/local/directadmin/data/users}"
 
 fail() { echo "[mail-queue] BŁĄD: $*" >&2; exit 1; }
 command -v python3 >/dev/null 2>&1 || fail "brak python3 na serwerze"
 
-MQ_MODE="$MQ_MODE" MQ_USER="$MQ_USER" MQ_DOMAINS="$MQ_DOMAINS" MQ_IDS="$MQ_IDS" MQ_SZUKAJ="$MQ_SZUKAJ" python3 -I - <<'PY'
-import os, re, shutil, subprocess, sys
+MQ_MODE="$MQ_MODE" MQ_USER="$MQ_USER" MQ_DOMAINS="$MQ_DOMAINS" MQ_IDS="$MQ_IDS" MQ_SZUKAJ="$MQ_SZUKAJ" MQ_LIMIT="$MQ_LIMIT" \
+  MQ_VIRTUAL_DIR="$MQ_VIRTUAL_DIR" MQ_DA_USERS="$MQ_DA_USERS" python3 -I - <<'PY'
+import os, re, shutil, subprocess, sys, tempfile
 from email.header import decode_header, make_header
 
 def fail(msg):
@@ -47,13 +60,15 @@ domeny = [d for d in os.environ["MQ_DOMAINS"].split(",") if d]
 szukaj = os.environ["MQ_SZUKAJ"].strip().lower()
 ids = [i for i in os.environ["MQ_IDS"].split(",") if i]
 
-if tryb not in ("list", "remove", "flush"):
+limit = os.environ["MQ_LIMIT"].strip()
+
+if tryb not in ("list", "remove", "flush", "limit"):
     fail("nieznany tryb")
 if uzytkownik and not USER_RE.match(uzytkownik):
     fail("nieprawidłowy użytkownik")
 if len(domeny) > 200 or any(not DOM_RE.match(d) for d in domeny):
     fail("nieprawidłowa lista domen")
-if bool(uzytkownik) != bool(domeny):
+if tryb != "limit" and bool(uzytkownik) != bool(domeny):
     fail("konto wymaga użytkownika i domen")
 if len(szukaj) > 100 or any(ord(c) < 32 for c in szukaj):
     fail("nieprawidłowa fraza")
@@ -63,6 +78,66 @@ if tryb == "remove" and (not uzytkownik or not ids):
     fail("usuwanie tylko wiadomości konta, z listą identyfikatorów")
 if tryb == "flush" and uzytkownik:
     fail("wypchnięcie dotyczy całej kolejki węzła")
+
+if tryb == "limit":
+    # Bez exima: tylko plik limitu konta w katalogu exima DirectAdmina (komentarz w nagłówku, link do dokumentacji).
+    VIRTUAL = os.environ["MQ_VIRTUAL_DIR"]
+    if not uzytkownik:
+        fail("limit dotyczy konta — brak użytkownika")
+    if limit and limit != "domyslny" and not re.fullmatch(r"[1-9][0-9]{0,5}", limit):
+        fail("limit: liczba 1–100000 albo „domyslny”")
+    if limit and limit != "domyslny" and int(limit) > 100000:
+        fail("limit: liczba 1–100000 albo „domyslny”")
+    if not os.path.isfile(os.path.join(os.environ["MQ_DA_USERS"], uzytkownik, "user.conf")):
+        fail("nie ma takiego konta na serwerze")
+    if not os.path.isdir(VIRTUAL):
+        fail("brak katalogu ustawień poczty na serwerze")
+    plik = os.path.join(VIRTUAL, "limit_" + uzytkownik)
+
+    def czytaj(sciezka):
+        try:
+            with open(sciezka, encoding="ascii", errors="replace") as f:
+                t = f.read().strip()
+        except FileNotFoundError:
+            return None
+        return t if re.fullmatch(r"[0-9]{1,9}", t) else "?"
+
+    if limit == "domyslny":
+        try:
+            os.unlink(plik)
+        except FileNotFoundError:
+            pass
+        except OSError as e:
+            fail(f"nie usunięto limitu konta: {e.strerror}")
+    elif limit:
+        wzor = os.path.join(VIRTUAL, "limit")
+        try:
+            st = os.stat(wzor)
+            tryb_pliku, wlasciciel, grupa = st.st_mode & 0o777, st.st_uid, st.st_gid
+        except FileNotFoundError:
+            tryb_pliku, wlasciciel, grupa = 0o644, None, None
+        fd, tmp = tempfile.mkstemp(prefix=".limit_" + uzytkownik + ".", dir=VIRTUAL)
+        try:
+            with os.fdopen(fd, "w", encoding="ascii") as f:
+                f.write(limit)
+            os.chmod(tmp, tryb_pliku)
+            if wlasciciel is not None and os.geteuid() == 0:
+                os.chown(tmp, wlasciciel, grupa)
+            os.replace(tmp, plik)
+        except OSError as e:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            fail(f"nie zapisano limitu konta: {e.strerror}")
+    teraz = czytaj(plik)
+    oczekiwane = None if limit == "domyslny" else (limit or teraz)
+    if limit and teraz != oczekiwane:
+        fail("serwer nie potwierdził limitu po zapisie")
+    domyslny = czytaj(os.path.join(VIRTUAL, "limit"))
+    print(f"VERRIS_MQ_LIMIT {uzytkownik} {teraz if teraz is not None else 'domyslny'} {domyslny if domyslny is not None else '-'}")
+    print("[mail-queue] Gotowe.")
+    sys.exit(0)
 
 EXIM = shutil.which("exim") or "/usr/sbin/exim"
 KOMENDY = {"-bp", "-bpc", "-Mvh", "-Mrm", "-qff"}
