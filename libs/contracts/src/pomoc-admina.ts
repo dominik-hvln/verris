@@ -89,6 +89,38 @@ export const POMOC = {
     opis: "Jedna konfiguracja Storage Boxa i szyfrowania dla całej floty — bez niej Onboard LIVE się zatrzymuje.",
     kiedy: "Raz przed pierwszym węzłem; zmiana hasła lub soli odcina dostęp do starszych kopii.",
   },
+  // Fala 1B — działania na kartach z gotowych endpointów API.
+  "dane-nabywcy": {
+    tytul: "Dane nabywcy",
+    opis: "Zmienia kraj i NIP klienta, które trafiają na kolejne faktury.",
+    kiedy: "Gdy klient zgłosi błędny NIP albo kraj, a sam nie może go już zmienić.",
+    rozniSieOd: "Wystawionej faktury nie poprawia — do tego służy korekta.",
+  },
+  komunikacja: {
+    tytul: "Komunikacja",
+    opis: "Maile wysłane do klienta z dziennika poczty; linki jednorazowe są zamaskowane.",
+    kiedy: "Gdy klient mówi, że nie dostał maila (reset hasła, faktura, aktywacja).",
+  },
+  upo: {
+    tytul: "Pobierz UPO",
+    opis: "Pobiera z KSeF urzędowe poświadczenie przyjęcia faktury (XML).",
+    kiedy: "Do archiwum albo gdy księgowa lub klient prosi o dowód przesłania.",
+  },
+  "dokoncz-fakture": {
+    tytul: "Dokończ wystawienie",
+    opis: "Nadaje numer i tworzy PDF opłaconej faktury, której automat nie dokończył.",
+    kiedy: "Gdy opłacona faktura wisi bez PDF-u mimo ponowień automatu.",
+  },
+  "proby-odtworzenia": {
+    tytul: "Próby odtworzenia kopii",
+    opis: "Historia testów odtworzenia bazy z kopii: data, wynik, czas i kto odpowiada.",
+    kiedy: "Przed startem i po zmianach w kopiach — kopia bez udanej próby nie jest dowodem.",
+  },
+  "zawies-skrzynke": {
+    tytul: "Zawieś skrzynkę",
+    opis: "Wyłącza skrzynkę zespołu: znika z map poczty, więc nie przyjmuje maili, aliasów ani logowania IMAP.",
+    kiedy: "Gdy pracownik odchodzi albo hasło mogło wyciec.",
+  },
 } satisfies Record<string, WpisPomocy>;
 
 export type PomocId = keyof typeof POMOC;

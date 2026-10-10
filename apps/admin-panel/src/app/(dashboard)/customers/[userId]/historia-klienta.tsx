@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { KARTA, NaglowekKarty, Pigulka, WIERSZ } from "@/components/v2";
+import { Pomoc } from "@/components/pomoc";
 import type { LoginHistoryResponse } from "../../operators/[id]/data";
 
 /**
@@ -50,7 +51,9 @@ export function KomunikacjaKlienta({ baza, maile, podglad }: { baza: string; mai
   return (
     <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]" data-karta="komunikacja">
       <section className={KARTA} aria-labelledby="maile">
-        <NaglowekKarty id="maile" tytul="Maile do klienta" />
+        <NaglowekKarty id="maile" tytul="Maile do klienta">
+          <Pomoc id="komunikacja" />
+        </NaglowekKarty>
         {maile === undefined ? <Brak>Nie udało się wczytać dziennika poczty.</Brak> : maile.length === 0 ? <Brak>Do klienta nie wysłano jeszcze żadnego maila.</Brak> : null}
         {maile?.map((m) => {
           const st = stanMaila(m.status);

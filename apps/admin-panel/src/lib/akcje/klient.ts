@@ -128,6 +128,18 @@ export const AKCJE_KLIENTA: AkcjaObiektu<KlientDlaAkcji>[] = [
     slowa: "reseller narzut marka odsprzedaż",
   },
   {
+    id: "dane-nabywcy",
+    grupa: "Rozliczenia",
+    nazwa: "Dane nabywcy",
+    opis: "Kraj i NIP na fakturach; zmiana zeruje weryfikację VAT.",
+    // PATCH admin/billing/nabywcy/:userId/vat/dane — BILLING_MANAGE.
+    perm: "BILLING_MANAGE",
+    kiedy: () => true,
+    href: (k) => karta(k, "rozliczenia", "dane-nabywcy"),
+    slowa: "nip vat kraj dane nabywcy faktura firma",
+    pomocId: "dane-nabywcy",
+  },
+  {
     id: "partner",
     grupa: "Rozliczenia",
     nazwa: "Program partnerski",

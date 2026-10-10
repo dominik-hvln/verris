@@ -4,6 +4,7 @@
 /** Odpowiedź GET /admin/billing/nabywcy/:userId/vat. */
 export interface StatusVatNabywcy {
   kraj: string;
+  nip?: string | null;
   pozaUe: boolean;
   wymagaWeryfikacji: boolean;
   weryfikacja: { at: string; przez: string | null; podstawa: string | null; kraj: string | null; aktualna: boolean } | null;

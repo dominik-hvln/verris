@@ -278,3 +278,44 @@ describe("karta klienta — komunikacja, logowania, kto oglądał (fala 1B)", ()
     expect(sekcja).not.toContain("anna@test.pl");
   });
 });
+
+/** Fala 1B — działanie „Dane nabywcy” (PATCH /admin/billing/nabywcy/:id/vat/dane, BILLING_MANAGE). */
+describe("karta klienta — dane nabywcy (fala 1B)", () => {
+  function dane(dostep: unknown, vat: unknown = { kraj: "PL", nip: "7792512345", pozaUe: false, wymagaWeryfikacji: false, weryfikacja: null }) {
+    api.mockImplementation(async (sciezka: string) => {
+      if (sciezka.split("?")[0] === `/admin/users/${UID}/customer-profile`) return profil;
+      if (sciezka === `/admin/users/${UID}/operational-detail`) return { ...profil.user, loginBlockedReason: null, adminInternalNote: "", isInternal: false, subscriptionsCount: 1 };
+      if (sciezka.startsWith("/admin/custom-terms/user/")) return { uslugi: [] };
+      if (sciezka === `/admin/billing/nabywcy/${UID}/vat`) {
+        if (vat instanceof Error) throw vat;
+        return vat;
+      }
+      if (sciezka === "/staff/me/access") return dostep;
+      if (sciezka === "/admin/deliverability/cordons") return { cordons: [] };
+      if (sciezka === "/admin/reseller" || sciezka === "/admin/users/referral-enrollments") return [];
+      throw new Error(`nieoczekiwane ${sciezka}`);
+    });
+  }
+
+  it("z BILLING_MANAGE: formularz z bieżącym krajem i NIP-em; działanie w rejestrze prowadzi do sekcji", async () => {
+    dane({ role: "ADMIN", isAdmin: true, permissions: [] });
+    const html = await render("rozliczenia");
+    const sekcja = html.slice(html.indexOf('id="dane-nabywcy"'));
+    expect(sekcja).toContain('value="7792512345"');
+    expect(sekcja).toContain("Zmień dane nabywcy</button>");
+    expect(AKCJE_KLIENTA.find((a) => a.id === "dane-nabywcy")?.href({ id: UID })).toBe(`/customers/${UID}?sekcja=rozliczenia#dane-nabywcy`);
+    expect(await render("przeglad")).toContain(`href="/customers/${UID}?sekcja=rozliczenia#dane-nabywcy"`);
+  });
+
+  it("z samym BILLING_VIEW: przycisk wyszarzony z dymkiem „Wymaga BILLING_MANAGE”", async () => {
+    dane({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "BILLING_VIEW"] });
+    const sekcja = (await render("rozliczenia")).split('id="dane-nabywcy"')[1]!;
+    expect(sekcja).toContain('title="Wymaga BILLING_MANAGE"');
+    expect(sekcja).not.toContain("Zmień dane nabywcy</button>");
+  });
+
+  it("bez BILLING_VIEW (403 statusu VAT): sekcja mówi, czego brakuje", async () => {
+    dane({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW"] }, new Error("403"));
+    expect((await render("rozliczenia")).split('id="dane-nabywcy"')[1]).toContain("Wymaga BILLING_VIEW.");
+  });
+});

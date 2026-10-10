@@ -300,3 +300,24 @@ export async function cofnijWeryfikacjeVatAction(
     return { ok: false, error: err instanceof AdminApiError ? err.message : "Nie udało się cofnąć weryfikacji." };
   }
 }
+
+/**
+ * Fala 1B — „Dane nabywcy” na karcie klienta: kraj i NIP / numer VAT-UE (PATCH /admin/billing/nabywcy/:id/vat/dane,
+ * BILLING_MANAGE). API zapisuje powód, stan przed i po w dzienniku i zeruje weryfikację VAT nabywcy.
+ */
+export async function zmienDaneNabywcyAction(
+  userId: string,
+  dane: { kraj: string; nip: string; powod: string },
+): Promise<{ ok: true } | ActionResultErr> {
+  const powod = dane.powod.trim();
+  const kraj = dane.kraj.trim().toUpperCase();
+  if (powod.length < 5) return { ok: false, error: "Podaj powód zmiany (co najmniej 5 znaków, np. numer zgłoszenia)." };
+  if (!/^[A-Z]{2}$/.test(kraj)) return { ok: false, error: "Kraj: dwuliterowy kod ISO (np. PL, DE)." };
+  try {
+    await adminApi(`/admin/billing/nabywcy/${encodeURIComponent(userId)}/vat/dane`, { method: "PATCH", body: { country: kraj, nip: dane.nip.trim(), powod } });
+    revalidatePath(`/customers/${userId}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof AdminApiError ? err.message : "Nie udało się zapisać danych nabywcy." };
+  }
+}

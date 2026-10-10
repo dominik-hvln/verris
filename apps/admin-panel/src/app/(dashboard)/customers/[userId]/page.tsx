@@ -41,6 +41,8 @@ import type { CordonRow } from "../../deliverability/actions";
 import type { ResellerRow } from "../../resellers/data";
 import type { ReferralEnrollmentRow } from "../../referral-enrollments/data";
 import { BlokadaPoczty, ProgramPartnerski, Reseller } from "./dzialania-klienta";
+import { DaneNabywcy } from "./dane-nabywcy";
+import { Pomoc } from "@/components/pomoc";
 import { KomunikacjaKlienta, KtoOgladal, LogowaniaKlienta, type DziennikOperatorow, type MailKlienta, type PodgladMaila } from "./historia-klienta";
 import type { LoginHistoryResponse } from "../../operators/[id]/data";
 
@@ -535,6 +537,17 @@ export default async function AdminCustomerCardPage({
                   ) : null}
                 </div>
               ))}
+            </section>
+            {/* Fala 1B — „Dane nabywcy”: odczyt z BILLING_VIEW (status VAT), zmiana z BILLING_MANAGE. */}
+            <section id="dane-nabywcy" className={`${KARTA} flex scroll-mt-24 flex-col gap-2.5 p-[18px]`} aria-labelledby="dane-nabywcy-naglowek">
+              <h2 id="dane-nabywcy-naglowek" className="flex items-center gap-1.5 font-display text-[17px] font-bold">
+                Dane nabywcy <Pomoc id="dane-nabywcy" />
+              </h2>
+              {statusVat && dostep ? (
+                <DaneNabywcy userId={u.id} kraj={statusVat.kraj} nip={statusVat.nip ?? u.nip ?? null} zablokowane={brakUprawnienia("BILLING_MANAGE", dostep)} />
+              ) : (
+                <p className="text-[13px] text-muted-foreground">Wymaga BILLING_VIEW.</p>
+              )}
             </section>
             <Reseller userId={u.id} reseller={reseller} />
             <ProgramPartnerski zgloszenie={partner} />
