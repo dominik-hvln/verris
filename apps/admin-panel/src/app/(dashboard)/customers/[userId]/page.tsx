@@ -109,7 +109,7 @@ export default async function AdminCustomerCardPage({
 }) {
   const { userId } = await params;
   const q = await searchParams;
-  const sekcja = sekcjaKarty(q.sekcja);
+  const sekcja = sekcjaKarty(q.sekcja, { komunikacja: true });
 
   let p: ProfilKlienta;
   let detail: Awaited<ReturnType<typeof getCustomerOperationalDetail>>;

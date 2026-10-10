@@ -29,7 +29,9 @@ export const KARTY_SEKCJI: Record<SekcjaKartyKlienta, readonly string[]> = {
  */
 export const KARTY_TYLKO_ADMIN: readonly string[] = ["email", "reset", "usuniecie", "komunikacja", "logowania", "kto-ogladal"];
 
-export function sekcjaKarty(z: string | undefined): SekcjaKartyKlienta {
+/** „Komunikacja” tylko tam, gdzie panel ją pokazuje (admin) — w panelu obsługi `?sekcja=komunikacja` to Przegląd, nie pusta karta. */
+export function sekcjaKarty(z: string | undefined, o: { komunikacja?: boolean } = {}): SekcjaKartyKlienta {
+  if (z === "komunikacja" && !o.komunikacja) return "przeglad";
   return (SEKCJE_KARTY_KLIENTA as readonly string[]).includes(z ?? "") ? (z as SekcjaKartyKlienta) : "przeglad";
 }
 

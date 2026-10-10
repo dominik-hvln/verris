@@ -110,7 +110,17 @@ describe("PB-46 karta klienta w panelu obsługi", () => {
     odpowiedzi(PELNE);
     // PB-48: obsługa ma dodatkowo kartę „Operacje wymagające uprawnień” (wniosek) — administrator wniosków nie składa.
     const tylkoObsluga: string[] = sekcja === "dostepy" ? ["operacje-wnioski"] : [];
-    expect(karty(await render(sekcja))).toEqual([...KARTY_SEKCJI[sekcja].filter((k) => !KARTY_TYLKO_ADMIN.includes(k)), ...tylkoObsluga]);
+    // „Komunikacja” jest tylko w adminie — tu otwiera Przegląd (test niżej).
+    const widoczna = sekcja === "komunikacja" ? "przeglad" : sekcja;
+    expect(karty(await render(sekcja))).toEqual([...KARTY_SEKCJI[widoczna].filter((k) => !KARTY_TYLKO_ADMIN.includes(k)), ...tylkoObsluga]);
+  });
+
+  // Przegląd 1B: `?sekcja=komunikacja` (zakładka tylko w adminie) dawała tu kartę bez treści i bez aktywnej zakładki.
+  it("?sekcja=komunikacja w panelu obsługi → Przegląd", async () => {
+    odpowiedzi(PELNE);
+    const html = await render("komunikacja");
+    expect(api).toHaveBeenCalledWith(`/admin/users/${UID}/customer-profile?sekcja=przeglad`);
+    expect(karty(html)).toEqual(KARTY_SEKCJI.przeglad.filter((k) => !KARTY_TYLKO_ADMIN.includes(k)));
   });
 
   it("otwarcie karty przekazuje zakładkę do API (dziennik otwarć karty, decyzja 08.10)", async () => {
