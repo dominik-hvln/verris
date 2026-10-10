@@ -12,6 +12,9 @@ import { plForm } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
+/** Operator loguje się drugim składnikiem: TOTP albo co najmniej jeden passkey. */
+const drugiSkladnik = (op: { isTwoFactorEnabled: boolean; passkeys?: number | null }) => op.isTwoFactorEnabled || (op.passkeys ?? 0) > 0;
+
 interface PageProps {
   searchParams: Promise<{ search?: string; role?: string; page?: string }>;
 }
@@ -52,8 +55,14 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
           </p>
         </div>
         {data ? (
-          <div className="text-xs text-muted-foreground">
-            {data.rows.length} z {data.total.toLocaleString("pl-PL")} {plForm(data.total, "operatora", "operatorów", "operatorów")}
+          <div className="text-right text-xs text-muted-foreground">
+            <div>
+              {data.rows.length} z {data.total.toLocaleString("pl-PL")} {plForm(data.total, "operatora", "operatorów", "operatorów")}
+            </div>
+            {/* Fala 1B — stan 2FA zespołu tylko do odczytu; wymuszenie zostaje w REQUIRE_2FA_FOR_STAFF (decyzja D10). */}
+            <div data-stan-2fa="">
+              Drugi składnik (TOTP lub passkey): {data.rows.filter(drugiSkladnik).length} z {data.rows.length}
+            </div>
           </div>
         ) : null}
       </header>
@@ -127,7 +136,7 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
                   <tr>
                     <th className="px-6 py-4 font-medium">Operator</th>
                     <th className="px-6 py-4 font-medium">Rola</th>
-                    <th className="px-6 py-4 font-medium">2FA</th>
+                    <th className="px-6 py-4 font-medium">2FA / passkey</th>
                     <th className="px-6 py-4 font-medium">Login</th>
                     <th className="px-6 py-4 font-medium">Grafana</th>
                   </tr>
@@ -157,11 +166,11 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
                           {op.role}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
-                        {op.isTwoFactorEnabled ? (
+                      <td className="px-6 py-4" data-drugi-skladnik={drugiSkladnik(op) ? "tak" : "brak"}>
+                        {drugiSkladnik(op) ? (
                           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
                             <ShieldCheck className="h-3 w-3" />
-                            tak
+                            {[op.isTwoFactorEnabled ? "TOTP" : null, op.passkeys ? `passkey ×${op.passkeys}` : null].filter(Boolean).join(" · ")}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-300 border border-rose-500/30">

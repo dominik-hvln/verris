@@ -11,6 +11,8 @@ export interface OperatorRow {
   lastName: string | null;
   role: OperatorRole;
   isTwoFactorEnabled: boolean;
+  /** Liczba passkey (API liczy tylko dla STAFF/ADMIN); null/brak — starsze API. */
+  passkeys?: number | null;
   loginBlocked: boolean;
   canAccessGrafana: boolean;
   createdAt: string;

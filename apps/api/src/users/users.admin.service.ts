@@ -50,6 +50,11 @@ export interface AdminUserRow {
   anonymizedAt: string | null;
   /** PROD-03 — konto wewnętrzne (testowe). */
   isInternal: boolean;
+  /**
+   * Fala 1B — liczba passkey (WebAuthn) tylko dla kont zespołu (STAFF/ADMIN), do odczytu stanu 2FA zespołu
+   * na liście operatorów; dla klientów zawsze null (lista klientów nie dostaje nowych danych).
+   */
+  passkeys: number | null;
 }
 
 export interface ImpersonationContext {
@@ -109,6 +114,14 @@ export class UsersAdminService {
       }),
     ]);
 
+    // Fala 1B — passkey operatorów na tej stronie (jedno zapytanie grupujące, bez N+1; klientów nie liczymy).
+    const passkeyByUser = new Map<string, number>();
+    const zespol = rows.filter((u) => u.role === Role.STAFF || u.role === Role.ADMIN).map((u) => u.id);
+    if (zespol.length > 0) {
+      const passkeys = await this.prisma.webAuthnCredential.groupBy({ by: ['userId'], where: { userId: { in: zespol } }, _count: { _all: true } });
+      for (const g of passkeys) passkeyByUser.set(g.userId, g._count._all);
+    }
+
     // Last successful login per user on this page (single grouped query — no N+1).
     const lastLoginByUser = new Map<string, Date>();
     if (rows.length > 0) {
@@ -141,6 +154,7 @@ export class UsersAdminService {
         canAccessGrafana: u.canAccessGrafana,
         anonymizedAt: u.anonymizedAt?.toISOString() ?? null,
         isInternal: u.isInternal,
+        passkeys: u.role === Role.STAFF || u.role === Role.ADMIN ? (passkeyByUser.get(u.id) ?? 0) : null,
       })),
     };
   }
