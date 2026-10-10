@@ -359,6 +359,7 @@ export class TicketsService {
         attachments: {
           // F2.5 — załącznik notatki wewnętrznej nie wychodzi do klienta (notatki dziś są bez plików — na zapas).
           where: WIDOCZNE_DLA_KLIENTA_ZALACZNIKI,
+          orderBy: { createdAt: 'asc' },
           select: {
             id: true,
             originalName: true,

@@ -595,13 +595,16 @@ export class MetricsService {
       : Prisma.empty;
     const rows = await this.prisma.$queryRaw<Array<{ avg_seconds: number | null }>>`
       WITH timeline AS (
-        SELECT t.id AS ticket_id, t."createdAt" AS ts, 'client'::text AS side
+        -- Przegląd F2.5: zgłoszenie założone przez obsługę zaczyna się wiadomością obsługi, nie klienta.
+        SELECT t.id AS ticket_id, t."createdAt" AS ts,
+          CASE WHEN t."openedByStaffId" IS NOT NULL THEN 'staff' ELSE 'client' END AS side
         FROM "Ticket" t
         UNION ALL
         SELECT r."ticketId", r."createdAt",
           CASE WHEN r."isStaff" THEN 'staff' ELSE 'client' END
         FROM "TicketReply" r
         WHERE r."automatic" IS NULL -- PB-37: automatyczne wiadomości nie są odpowiedzią człowieka
+          AND r."internal" = false -- przegląd F2.5: notatka wewnętrzna nie jest odpowiedzią dla klienta
       ),
       responses AS (
         SELECT
@@ -628,6 +631,7 @@ export class MetricsService {
       SELECT AVG(EXTRACT(EPOCH FROM (t."firstResponseAt" - t."createdAt")))::float AS avg_seconds
       FROM "Ticket" t
       WHERE t."firstResponseAt" IS NOT NULL
+        AND t."openedByStaffId" IS NULL -- przegląd F2.5: założone przez obsługę mają firstResponseAt = createdAt (0 s)
       ${since ? Prisma.sql`AND t."createdAt" >= ${since}` : Prisma.empty}
     `;
     return rows[0]?.avg_seconds ?? null;
