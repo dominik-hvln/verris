@@ -60,6 +60,15 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
     dataExportRequest: { findMany: lista([]) },
     accountDeletionRequest: { findMany: lista([]) },
     auditLog: { findMany: lista([]) },
+    customerNote: {
+      findMany: vi.fn(async (args: { select?: Record<string, boolean> }) => {
+        // Prawdziwy wiersz ma authorId — eksport ma go nie wybierać (select), więc mock oddaje tylko wybrane pola.
+        const wiersz = { id: 'n1', authorId: 'operator-7', body: 'Klient prosił o kontakt telefoniczny.', pinned: true,
+          createdAt: new Date('2026-10-01T10:00:00Z'), updatedAt: new Date('2026-10-01T10:00:00Z') };
+        const sel = args?.select;
+        return [sel ? Object.fromEntries(Object.entries(wiersz).filter(([k]) => sel[k])) : wiersz];
+      }),
+    },
     $transaction: vi.fn(async (ops: Array<Promise<unknown>>) => Promise.all(ops)),
   };
   const storage = {
@@ -104,6 +113,16 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
     expect(JSON.parse(pliki.get('accounts.json')!)[0].daPasswordEnc).toBe('[REDACTED]');
     const calosc = [...pliki.values()].join('\n');
     for (const sekret of ['$2b$10$tajne', 'SEKRET-TOTP', 'enc:haslo-da', 'enc:kody-awaryjne']) expect(calosc).not.toContain(sekret);
+  });
+
+  it('F2.4 — notatki obsługi o kliencie są w eksporcie, bez autora (art. 15 RODO, D3)', async () => {
+    const pliki = await zbudujZip(zbuduj().svc);
+    expect(pliki.get('README.txt')).toContain('customer-notes.json');
+    const notatki = JSON.parse(pliki.get('customer-notes.json')!);
+    expect(notatki).toEqual([
+      { body: 'Klient prosił o kontakt telefoniczny.', pinned: true, createdAt: '2026-10-01T10:00:00.000Z', updatedAt: '2026-10-01T10:00:00.000Z', autor: 'Obsługa Verris' },
+    ]);
+    expect(pliki.get('customer-notes.json')).not.toContain('operator-7');
   });
 
   it('nazwa załącznika nie wychodzi poza katalog attachments/ (zip slip)', async () => {

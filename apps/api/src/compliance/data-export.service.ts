@@ -461,7 +461,7 @@ export class DataExportService implements OnApplicationBootstrap {
 
   private async collectSections(userId: string): Promise<Record<string, unknown>> {
     const [user, accounts, subscriptions, walletTxs, invoices, tickets, ticketAttachments,
-      ticketReplies, consents, prefs, exports, deletions, auditLogs] =
+      ticketReplies, consents, prefs, exports, deletions, auditLogs, customerNotes] =
       await this.prisma.$transaction([
         this.prisma.user.findUniqueOrThrow({ where: { id: userId } }),
         this.prisma.account.findMany({ where: { userId } }),
@@ -492,6 +492,14 @@ export class DataExportService implements OnApplicationBootstrap {
         this.prisma.dataExportRequest.findMany({ where: { userId } }),
         this.prisma.accountDeletionRequest.findMany({ where: { userId } }),
         this.prisma.auditLog.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } }),
+        // F2.4 (decyzja 10.10) — notatki operatorów o kliencie to jego dane osobowe (art. 15 ust. 1 i 3 RODO;
+        // TSUE C-434/16 Nowak: także oceny i adnotacje o osobie). Autor nie wychodzi z eksportu — art. 15 ust. 4
+        // (prawa innych osób, tu pracowników) i D3: klient widzi „Obsługa Verris”, bez nazwiska.
+        this.prisma.customerNote.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'asc' },
+          select: { body: true, pinned: true, createdAt: true, updatedAt: true },
+        }),
       ]);
 
     const sanitizedUser = {
@@ -527,6 +535,7 @@ export class DataExportService implements OnApplicationBootstrap {
       'data-export-requests': exports,
       'account-deletion-requests': deletions,
       'audit-log': auditLogs,
+      'customer-notes': customerNotes.map((n) => ({ ...n, autor: 'Obsługa Verris' })),
     };
   }
 
@@ -674,6 +683,7 @@ function buildReadme(userId: string): string {
     '  ticket-replies.json              — odpowiedzi w wątkach.',
     '  ticket-attachments.json          — metadane załączników (lista plików).',
     '  audit-log.json                   — log audytowy operacji na koncie.',
+    '  customer-notes.json              — notatki obsługi o koncie (treść i daty, autor jako „Obsługa Verris”).',
     '  data-export-requests.json        — historia żądań eksportu danych.',
     '  account-deletion-requests.json   — historia żądań usunięcia konta.',
     '  attachments/<plik>               — fizyczne kopie załączników z ticketów.',
