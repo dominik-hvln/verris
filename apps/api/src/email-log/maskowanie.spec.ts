@@ -59,6 +59,12 @@ describe('EmailLogService.detail', () => {
     expect(d.subject).toBe('Twój link: https://panel.verris.pl/reset-password?token=•••');
   });
 
+  it('lista maili klienta też bez tokenów w temacie i błędzie', async () => {
+    const s = new EmailLogService({ emailLog: { findMany: vi.fn().mockResolvedValue([{ id: 'e1', subject: wpis.subject, errorMessage: `550 ${TOKEN}` }]) } } as never);
+    const [w] = await s.listForUser('u1');
+    expect(JSON.stringify(w)).not.toContain(TOKEN);
+  });
+
   it('brak wpisu → 404', async () => {
     await expect(svc(null).detail('x')).rejects.toBeInstanceOf(NotFoundException);
   });

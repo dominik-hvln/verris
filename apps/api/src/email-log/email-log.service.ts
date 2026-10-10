@@ -124,7 +124,7 @@ export class EmailLogService {
   }
 
   async listForUser(userId: string, limit = 50) {
-    return this.prisma.emailLog.findMany({
+    const wpisy = await this.prisma.emailLog.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: Math.min(limit, EmailLogService.MAX_LIMIT),
@@ -139,6 +139,8 @@ export class EmailLogService {
         errorMessage: true,
       },
     });
+    // Lista na karcie klienta (zakładka Komunikacja) — temat i błąd maskowane jak w podglądzie.
+    return wpisy.map((w) => ({ ...w, subject: maskujTekst(w.subject), errorMessage: w.errorMessage ? maskujTekst(w.errorMessage) : null }));
   }
 
   // ---------------------------------------------------------------------------
