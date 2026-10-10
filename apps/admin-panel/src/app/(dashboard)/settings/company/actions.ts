@@ -90,12 +90,3 @@ export async function fetchKsefOverview() {
     return { error: err(e) };
   }
 }
-
-export async function retryKsefInvoice(id: string) {
-  try {
-    await adminApi(`/admin/ksef/invoices/${id}/retry`, { method: "POST" });
-    return { ok: true as const };
-  } catch (e) {
-    return { error: err(e) };
-  }
-}

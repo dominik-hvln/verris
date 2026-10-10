@@ -14,7 +14,7 @@ export default async function KorektaPage({
 }) {
   const { invoiceId } = await params;
   const w = await wynik(Promise.all([getFaktura(invoiceId), getKorekty(invoiceId).catch(() => [])]));
-  if (!w.ok) return <BladStrony blad={w.blad} tytul="Korekta faktury" powrot={{ href: "/invoices", label: "Faktury" }} />;
+  if (!w.ok) return <BladStrony blad={w.blad} tytul="Korekta faktury" powrot={{ href: `/invoices/${invoiceId}`, label: "Faktura" }} />;
   const [faktura, korekty] = w.dane;
 
   const juzKorekta = faktura.kind === "KOREKTA";
@@ -22,8 +22,8 @@ export default async function KorektaPage({
   return (
     <div className="space-y-6 p-6">
       <header>
-        <Link href="/invoices" className="text-xs text-neutral-500 hover:text-white">
-          ← Faktury
+        <Link href={`/invoices/${faktura.id}`} className="text-xs text-neutral-500 hover:text-white">
+          ← Faktura {faktura.number}
         </Link>
         <h1 className="mt-1 text-[28px] lg:text-[34px]">
           Korekta faktury {faktura.number}

@@ -773,7 +773,11 @@ export class InvoicesService {
     };
   }
 
-  async getForAdmin(invoiceId: string): Promise<AdminInvoiceDto> {
+  /**
+   * Strona faktury w panelu admina (plan E, patch 10): obok danych z listy — stan KSeF (ponowienie było
+   * tylko w „Danych firmy”), wpisy portfela pokryte fakturą i faktura korygowana (dla korekty).
+   */
+  async getForAdmin(invoiceId: string): Promise<AdminInvoiceDetailDto> {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: invoiceId },
       include: {
@@ -785,10 +789,37 @@ export class InvoicesService {
             account: { select: { domain: true } },
           },
         },
+        corrected: { select: { id: true, number: true } },
+        walletEntries: {
+          orderBy: { createdAt: 'asc' },
+          take: 50,
+          select: { id: true, type: true, status: true, amount: true, paymentProvider: true, description: true, createdAt: true },
+        },
       },
     });
     if (!invoice) throw new NotFoundException('Faktura nie znaleziona');
-    return toAdminDto(invoice);
+    return {
+      ...toAdminDto(invoice),
+      kind: invoice.kind,
+      korygowana: invoice.corrected ?? null,
+      ksef: {
+        status: invoice.ksefStatus,
+        numer: invoice.ksefNumber,
+        blad: invoice.ksefError,
+        wyslano: invoice.ksefSubmittedAt?.toISOString() ?? null,
+        przyjeto: invoice.ksefAcceptedAt?.toISOString() ?? null,
+        terminDo: invoice.ksefTerminDo?.toISOString() ?? null,
+      },
+      platnosci: invoice.walletEntries.map((w) => ({
+        id: w.id,
+        type: w.type,
+        status: w.status,
+        amount: w.amount.toFixed(2),
+        paymentProvider: w.paymentProvider,
+        description: w.description,
+        createdAt: w.createdAt.toISOString(),
+      })),
+    };
   }
 
   async openAdminPdfStream(
@@ -939,6 +970,30 @@ export interface AdminInvoiceDto extends InvoiceDto {
     domain: string | null;
   } | null;
   hasVerrisPdf: boolean;
+}
+
+export interface AdminInvoiceDetailDto extends AdminInvoiceDto {
+  kind: string;
+  /** Dla korekty — faktura korygowana. */
+  korygowana: { id: string; number: string } | null;
+  ksef: {
+    status: string;
+    numer: string | null;
+    blad: string | null;
+    wyslano: string | null;
+    przyjeto: string | null;
+    terminDo: string | null;
+  };
+  /** Wpisy portfela pokryte fakturą (WalletTransaction.invoiceId). */
+  platnosci: Array<{
+    id: string;
+    type: string;
+    status: string;
+    amount: string;
+    paymentProvider: string | null;
+    description: string | null;
+    createdAt: string;
+  }>;
 }
 
 export interface AdminInvoiceListDto {

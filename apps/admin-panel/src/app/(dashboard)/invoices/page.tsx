@@ -234,7 +234,9 @@ function InvoiceRow({ inv }: { inv: AdminInvoiceRow }) {
   return (
     <tr className="hover:bg-white/5 transition-colors">
       <td className="px-6 py-4">
-        <div className="font-mono text-xs text-white">{inv.number}</div>
+        <Link href={`/invoices/${inv.id}`} className="font-mono text-xs text-white hover:underline">
+          {inv.number}
+        </Link>
         {inv.providerRef ? (
           <div className="text-[10px] text-muted-foreground font-mono">{inv.providerRef}</div>
         ) : null}

@@ -107,6 +107,17 @@ describe("PB-46 karta klienta admina", () => {
     expect(html).toContain("Hosting — sklep.pl");
   });
 
+  it("rozliczenia: faktura prowadzi do swojej strony (plan E, patch 10)", async () => {
+    const zFaktura = { ...profil, recentInvoices: [{ id: "f1", number: "VFV/2026/10/0001", status: "PAID", amount: "45.00", currency: "PLN", paidAt: null, createdAt: "2026-10-01T00:00:00Z" }] };
+    api.mockImplementation(async (sciezka: string) => {
+      if (sciezka.split("?")[0] === `/admin/users/${UID}/customer-profile`) return zFaktura;
+      if (sciezka === `/admin/users/${UID}/operational-detail`) return { ...profil.user, loginBlockedReason: null, adminInternalNote: "", isInternal: false, subscriptionsCount: 1 };
+      if (sciezka.startsWith("/admin/custom-terms/user/")) return { uslugi: [] };
+      throw new Error(`nieoczekiwane ${sciezka}`);
+    });
+    expect(await render("rozliczenia")).toContain('href="/invoices/f1"');
+  });
+
   it("otwarte incydenty na węzłach klienta widać nad zakładkami", async () => {
     expect(await render("dziennik")).toContain("fsn-01 nie odpowiada");
   });

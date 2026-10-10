@@ -456,12 +456,13 @@ export default async function AdminCustomerCardPage({
             <section className={KARTA} aria-labelledby="faktury" data-karta="faktury">
               <NaglowekKarty id="faktury" tytul="Faktury" />
               {p.recentInvoices.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak faktur.</div> : null}
+              {/* Plan E, patch 10 — faktura prowadzi do swojej strony (PDF, korekta, anulowanie, KSeF). */}
               {p.recentInvoices.map((f) => (
-                <div key={f.id} className={WIERSZ}>
+                <Link key={f.id} href={`/invoices/${f.id}`} className={`${WIERSZ} hover:bg-raised`}>
                   <span className="flex-1 font-mono text-[13px]">{f.number}</span>
                   <span className="text-[13px] text-muted-foreground">{etykieta(INVOICE_STATUS_PL, f.status)}</span>
                   <span className="w-[110px] text-right font-mono text-[13px]">{formatPlnAndCredits(f.amount, f.currency)}</span>
-                </div>
+                </Link>
               ))}
             </section>
             <section className={KARTA} aria-labelledby="metody" data-karta="metody">

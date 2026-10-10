@@ -199,8 +199,9 @@ export class SearchService {
         id: inv.id,
         title: inv.number,
         subtitle: 'Faktura',
-        // Karta klienta wymaga CUSTOMERS_VIEW; z samym BILLING_VIEW — lista faktur z tym numerem.
-        href: wolno.has('user') ? `/customers/${inv.userId}` : `/invoices?search=${encodeURIComponent(inv.number)}`,
+        // Strona faktury (plan E, patch 10) wymaga BILLING_VIEW (GET admin/invoices/:id); z samym CUSTOMERS_VIEW —
+        // rozliczenia na karcie klienta.
+        href: isAdmin || uprawnienia.includes('BILLING_VIEW') ? `/invoices/${inv.id}` : `/customers/${inv.userId}?sekcja=rozliczenia`,
         userId: inv.userId,
       });
     }

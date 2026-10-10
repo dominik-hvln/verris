@@ -48,11 +48,13 @@ describe('SearchService — typy według uprawnień', () => {
     expect(s.prisma.user.findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'op' } }));
   });
 
-  it('faktura z samym BILLING_VIEW prowadzi do listy faktur, nie do karty klienta', async () => {
+  it('faktura prowadzi do strony faktury (BILLING_VIEW); z samym CUSTOMERS_VIEW — do rozliczeń klienta', async () => {
     const r = await stanowisko(['BILLING_VIEW']).svc.search('FV/1', { role: 'STAFF', userId: 'op' });
-    expect(r.results).toEqual([expect.objectContaining({ type: 'invoice', href: '/invoices?search=FV%2F1%2F2026' })]);
+    expect(r.results).toEqual([expect.objectContaining({ type: 'invoice', href: '/invoices/f1' })]);
     const zKlientami = await stanowisko(['CUSTOMERS_VIEW']).svc.search('FV/1', { role: 'STAFF', userId: 'op' });
-    expect(zKlientami.results.find((x) => x.type === 'invoice')?.href).toBe('/customers/u1');
+    expect(zKlientami.results.find((x) => x.type === 'invoice')?.href).toBe('/customers/u1?sekcja=rozliczenia');
+    const admin = await stanowisko([]).svc.search('FV/1', { role: 'ADMIN', userId: 'a' });
+    expect(admin.results.find((x) => x.type === 'invoice')?.href).toBe('/invoices/f1');
   });
 
   it('zgłoszenie z samym TICKETS_VIEW prowadzi do listy zgłoszeń, nie do karty klienta (CUSTOMERS_VIEW)', async () => {

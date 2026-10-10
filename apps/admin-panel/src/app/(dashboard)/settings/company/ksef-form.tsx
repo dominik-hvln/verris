@@ -6,12 +6,12 @@ import { AlertCircle, Check, FileText, Loader2, ShieldCheck } from "lucide-react
 import {
   fetchKsef,
   fetchKsefOverview,
-  retryKsefInvoice,
   saveKsef,
   type KsefOverview,
   type KsefSettings,
 } from "./actions";
 import { Checkbox } from '@/components/checkbox';
+import Link from "next/link";
 
 export function KsefForm() {
   const envId = useId();
@@ -58,13 +58,6 @@ export function KsefForm() {
         setSavedAt(new Date());
         load();
       }
-    });
-  };
-
-  const onRetry = (id: string) => {
-    startTransition(async () => {
-      await retryKsefInvoice(id);
-      load();
     });
   };
 
@@ -177,14 +170,13 @@ export function KsefForm() {
                   <span className="truncate">
                     <code>{r.number}</code> — {r.error ?? "błąd"}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => onRetry(r.id)}
-                    disabled={isPending}
-                    className="shrink-0 px-2 py-0.5 rounded border border-white/15 hover:bg-white/5 disabled:opacity-50"
+                  {/* Ponowienie jest na stronie faktury (plan E, patch 10) — tam też stan KSeF i dane nabywcy. */}
+                  <Link
+                    href={`/invoices/${r.id}#ksef`}
+                    className="shrink-0 px-2 py-0.5 rounded border border-white/15 hover:bg-white/5"
                   >
-                    Ponów
-                  </button>
+                    Otwórz fakturę
+                  </Link>
                 </div>
               ))}
             </div>

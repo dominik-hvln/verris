@@ -73,10 +73,10 @@ export function KorektaForm({ faktura }: { faktura: FakturaDoKorekty }) {
           PDF powstaje w tle i trafia do klienta mailem, tą samą drogą co zwykła faktura.
         </p>
         <Link
-          href="/invoices"
+          href={`/invoices/${faktura.id}`}
           className="mt-4 inline-block rounded-md border border-white/15 px-4 py-2 text-sm text-white hover:bg-white/5"
         >
-          Wróć do listy faktur
+          Wróć do faktury
         </Link>
       </div>
     );
@@ -288,7 +288,7 @@ export function KorektaForm({ faktura }: { faktura: FakturaDoKorekty }) {
         >
           {pending ? "Wystawiam…" : "Wystaw korektę"}
         </button>
-        <Link href="/invoices" className="text-sm text-neutral-400 hover:text-white">
+        <Link href={`/invoices/${faktura.id}`} className="text-sm text-neutral-400 hover:text-white">
           Anuluj
         </Link>
       </div>
