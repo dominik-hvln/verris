@@ -9,7 +9,7 @@ jest.mock("next/cache", () => ({ revalidatePath: jest.fn() }));
 jest.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => undefined }), usePathname: () => "/settings/team-mail" }));
 
 import { AdminApiError } from "@/lib/api";
-import { suspendTeamMailboxAction, type ControlPlaneMailboxRow } from "./actions";
+import { resumeTeamMailboxAction, suspendTeamMailboxAction, type ControlPlaneMailboxRow } from "./actions";
 import { TeamMailClient } from "./team-mail-client";
 
 /** Fala 1B — System → Poczta zespołu: „Zawieś skrzynkę” (POST /admin/mailboxes/:id/suspend). */
@@ -39,5 +39,22 @@ describe("zawieszenie skrzynki zespołu", () => {
   it("„Zawieś” tylko przy aktywnej skrzynce", () => {
     const html = renderToStaticMarkup(<TeamMailClient initial={[skrzynka({}), skrzynka({ id: "m2", email: "stary@verris.pl", status: "SUSPENDED" })]} systemAddresses={[]} />);
     expect(html.match(/data-akcja="zawies-skrzynke"/g)).toHaveLength(1);
+  });
+
+  // Przegląd 1B: „Zawieś” stał też przy skrzynkach systemowych (ich aliasy abuse@/postmaster@ znikają z map),
+  // a zawieszonej skrzynki nie dało się w panelu wznowić.
+  it("„Zawieś” tylko przy skrzynce pracownika; systemowa i aliasowa bez przycisku", () => {
+    const html = renderToStaticMarkup(
+      <TeamMailClient initial={[skrzynka({ id: "s1", email: "bok@verris.pl", kind: "SYSTEM" }), skrzynka({ id: "a1", email: "abuse@verris.pl", kind: "ALIAS_ONLY" })]} systemAddresses={[]} />,
+    );
+    expect(html).not.toContain('data-akcja="zawies-skrzynke"');
+  });
+
+  it("zawieszona skrzynka pracownika ma „Wznów” → PATCH status ACTIVE", async () => {
+    const html = renderToStaticMarkup(<TeamMailClient initial={[skrzynka({ status: "SUSPENDED" })]} systemAddresses={[]} />);
+    expect(html.match(/data-akcja="wznow-skrzynke"/g)).toHaveLength(1);
+    adminApi.mockResolvedValue({});
+    expect(await resumeTeamMailboxAction("m1")).toEqual({ ok: true });
+    expect(adminApi).toHaveBeenCalledWith("/admin/mailboxes/m1", { method: "PATCH", body: { status: "ACTIVE" } });
   });
 });

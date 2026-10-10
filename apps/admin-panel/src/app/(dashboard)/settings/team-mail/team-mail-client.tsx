@@ -20,6 +20,7 @@ import {
   removeTeamMailboxAliasAction,
   removeTeamMailboxForwardAction,
   resetTeamMailboxPasswordAction,
+  resumeTeamMailboxAction,
   suspendTeamMailboxAction,
   syncPostfixMapsAction,
   updateSystemAddressesAction,
@@ -208,6 +209,17 @@ export function TeamMailClient({
     });
   };
 
+  // Bez tego zawieszenie byłoby w panelu nieodwracalne (wznowić dało się tylko wywołaniem API).
+  const wznow = async (row: ControlPlaneMailboxRow) => {
+    if (!(await potwierdz(`Wznowić ${row.email}? Wraca poczta i logowanie dotychczasowym hasłem IMAP.`, { tytul: "Wznów skrzynkę", akcja: "Wznów" }))) return;
+    setErr(null);
+    start(async () => {
+      const res = await resumeTeamMailboxAction(row.id);
+      if (!res.ok) setErr(res.error ?? "Błąd");
+      router.refresh();
+    });
+  };
+
   const syncMaps = () => {
     setSyncMsg(null);
     start(async () => {
@@ -345,7 +357,8 @@ export function TeamMailClient({
                           Generuj hasło IMAP
                         </button>
                       ) : null}
-                      {row.status === "ACTIVE" ? (
+                      {/* Tylko skrzynki pracowników: zawieszenie systemowej zdejmuje z map jej aliasy (abuse@, postmaster@). */}
+                      {row.kind === "STAFF" && row.status === "ACTIVE" ? (
                         <span className="ml-1.5 inline-flex items-center gap-1">
                           <button
                             type="button"
@@ -359,7 +372,18 @@ export function TeamMailClient({
                           <Pomoc id="zawies-skrzynke" />
                         </span>
                       ) : null}
-                      {row.status !== "ACTIVE" ? "—" : null}
+                      {row.kind === "STAFF" && row.status === "SUSPENDED" ? (
+                        <button
+                          type="button"
+                          disabled={pending}
+                          onClick={() => void wznow(row)}
+                          data-akcja="wznow-skrzynke"
+                          className="inline-flex items-center gap-1 rounded border border-white/15 px-2 py-1 text-xs text-neutral-200 hover:bg-white/5"
+                        >
+                          Wznów
+                        </button>
+                      ) : null}
+                      {row.kind !== "STAFF" || (row.status !== "ACTIVE" && row.status !== "SUSPENDED") ? "—" : null}
                     </td>
                   </tr>
                   {open ? (

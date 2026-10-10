@@ -144,6 +144,17 @@ export async function suspendTeamMailboxAction(mailboxId: string): Promise<{ ok:
   }
 }
 
+/** Przegląd 1B — „Wznów” zawieszoną skrzynkę (PATCH /admin/mailboxes/:id, status ACTIVE; ADMIN). */
+export async function resumeTeamMailboxAction(mailboxId: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await adminApi(`/admin/mailboxes/${encodeURIComponent(mailboxId)}`, { method: "PATCH", body: { status: "ACTIVE" } });
+    revalidatePath("/settings/team-mail");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof AdminApiError ? e.message : "Nie udało się wznowić skrzynki." };
+  }
+}
+
 export async function addTeamMailboxForwardAction(
   mailboxId: string,
   forwardTo: string,
