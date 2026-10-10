@@ -70,6 +70,12 @@ export const SupportActions = {
   OPERATOR_CUSTOMER_CARD_VIEWED: 'OPERATOR_CUSTOMER_CARD_VIEWED',
   /** F2.4 — operator wyeksportował listę (klienci / usługi) do CSV; details: lista, filtry, wierszy. Dane osobowe. */
   OPERATOR_LIST_EXPORTED: 'OPERATOR_LIST_EXPORTED',
+  /**
+   * F2.2 — operator zmienił coś na koncie klienta z paska akcji karty usługi (reset hasła skrzynki/FTP/bazy, SSL,
+   * PHP, kopia, skan, DNS); details: akcja, powod, zgloszenieId, cel, wynik (ok/blad). Klient widzi osobny wpis
+   * HOSTING_* jako „obsługa Verris (zgłoszenie #…)” — ten jest dziennikiem zespołu.
+   */
+  OPERATOR_ACCOUNT_CHANGED: 'OPERATOR_ACCOUNT_CHANGED',
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -250,6 +256,13 @@ export const HostingResourceActions = {
   HOSTING_APP_SELECTOR_QUEUED: 'HOSTING_APP_SELECTOR_QUEUED',
   HOSTING_DB_MAINTENANCE_QUEUED: 'HOSTING_DB_MAINTENANCE_QUEUED',
   HOSTING_DB_PRIVILEGES_QUEUED: 'HOSTING_DB_PRIVILEGES_QUEUED',
+  // F2.2 — działania obsługi z paska akcji konta, których serwisy hostingu same nie zapisują (klient widzi je w aktywności).
+  HOSTING_SSL_REQUESTED: 'HOSTING_SSL_REQUESTED',
+  HOSTING_BACKUP_CREATED: 'HOSTING_BACKUP_CREATED',
+  HOSTING_DNS_RECORD_CREATED: 'HOSTING_DNS_RECORD_CREATED',
+  HOSTING_DNS_RECORD_UPDATED: 'HOSTING_DNS_RECORD_UPDATED',
+  HOSTING_DNS_RECORD_DELETED: 'HOSTING_DNS_RECORD_DELETED',
+  HOSTING_PHP_VERSION_CHANGED: 'HOSTING_PHP_VERSION_CHANGED',
 } as const;
 
 export const MigrationActions = {

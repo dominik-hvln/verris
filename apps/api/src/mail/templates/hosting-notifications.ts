@@ -465,3 +465,67 @@ export function sslPlatnyTemplate(ctx: {
   });
   return { to: ctx.to, tag: `hosting.ssl-platny.${ctx.rodzaj}`, subject: `[Verris] ${k.tytul}`, text, html };
 }
+
+/* ===================== F2.2 — reset hasła przez Obsługę Verris ===================== */
+export type HasloResetowaneRodzaj = 'skrzynka' | 'ftp' | 'baza';
+
+const HASLO_RODZAJ: Record<HasloResetowaneRodzaj, { czego: string; skutek: string; gdzie: string }> = {
+  skrzynka: {
+    czego: 'skrzynki e-mail',
+    skutek: 'Programy pocztowe i telefon przestaną pobierać pocztę, dopóki nie wpiszesz w nich nowego hasła.',
+    gdzie: 'Przycisk poniżej otwiera zakładkę „Poczta” — przy skrzynce wybierz „Zmień hasło”.',
+  },
+  ftp: {
+    czego: 'konta FTP',
+    skutek: 'Program FTP nie połączy się, dopóki nie wpiszesz w nim nowego hasła.',
+    gdzie: 'Przycisk poniżej otwiera zakładkę „FTP i SSH” — przy koncie wybierz „Zmień hasło”.',
+  },
+  baza: {
+    czego: 'użytkownika bazy danych',
+    skutek: 'Strona korzystająca z tego użytkownika nie połączy się z bazą, dopóki nie wpiszesz nowego hasła w jej konfiguracji (np. wp-config.php).',
+    gdzie: 'Przycisk poniżej otwiera zakładkę „Baza” — przy użytkowniku wybierz „Zmień hasło”.',
+  },
+};
+
+export interface HasloResetowaneContext {
+  to: string;
+  firstName: string | null;
+  rodzaj: HasloResetowaneRodzaj;
+  /** Adres skrzynki, login FTP albo użytkownik bazy. */
+  nazwa: string;
+  /** Skrót zgłoszenia (#ab12cd34) albo null. */
+  zgloszenie: string | null;
+  /** Zakładka panelu, w której klient ustawi własne hasło. */
+  ctaUrl: string;
+  panelUrl: string;
+}
+
+/**
+ * F2.2 (D3, 10.10) — Obsługa Verris ustawiła losowe hasło, którego nikt nie zna (nie ma go w mailu ani w panelu
+ * operatora); klient ustawia własne w panelu. Bez nazwiska operatora i bez nazw oprogramowania serwera.
+ */
+export function hasloResetowaneTemplate(ctx: HasloResetowaneContext): MailMessage {
+  const r = HASLO_RODZAJ[ctx.rodzaj];
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Ustaw nowe hasło',
+    preheader: `Obsługa Verris zresetowała hasło ${r.czego} ${ctx.nazwa}.`,
+    bodyMarkdown: [
+      greeting,
+      '',
+      `Obsługa Verris zresetowała hasło ${r.czego} **${escapeMarkdown(ctx.nazwa)}**${ctx.zgloszenie ? ` (zgłoszenie ${escapeMarkdown(ctx.zgloszenie)})` : ''}. Dotychczasowe hasło już nie działa, a nowego nie zna nikt — ustaw własne w panelu.`,
+      '',
+      r.skutek,
+      '',
+      r.gdzie,
+      '',
+      'Jeśli nie kontaktowałeś się z nami w tej sprawie — od razu napisz do Obsługi Verris.',
+    ].join('\n'),
+    cta: { label: 'Ustaw nowe hasło', url: ctx.ctaUrl },
+    footnote: 'Nigdy nie prosimy o hasło mailem ani telefonicznie.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: `hosting.haslo-reset.${ctx.rodzaj}`, subject: 'Ustaw nowe hasło — Verris', text, html };
+}

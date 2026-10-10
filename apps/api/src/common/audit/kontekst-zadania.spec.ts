@@ -42,4 +42,25 @@ describe('KontekstZadaniaInterceptor + AuditService', () => {
       ['SUBSCRIPTION_CREATED', 'sub-1'], ['X', 'sub-1'], ['Y', 'operator'], ['Z', 'inny'],
     ]);
   });
+
+  it('F2.2 — akcja operatora z karty usługi: wpis „właściciel sam” dostaje autora = operator i numer zgłoszenia', async () => {
+    const { svc, create } = audyt();
+    const magazyn = { operator: { wlasciciel: 'wlasciciel', operatorUserId: 'operator-1', zgloszenieId: 'z-1' } };
+    await kontekstZadania.run(magazyn, async () => {
+      await svc.record({ action: 'HOSTING_EMAIL_PASSWORD_CHANGED', userId: 'wlasciciel', actorUserId: 'wlasciciel', details: { email: 'a@b.pl' } });
+      await svc.record({ action: 'X', userId: 'wlasciciel' });
+      await svc.record({ action: 'Y', userId: 'wlasciciel', actorUserId: 'ktos-inny' });
+      await svc.record({ action: 'Z', userId: 'inny', actorUserId: 'inny', details: { a: 1 } });
+    });
+    const dane = (create.mock.calls as unknown as [{ data: { action: string; actorUserId: string; details: unknown } }][]).map(([a]) => [a.data.action, a.data.actorUserId, a.data.details]);
+    expect(dane).toEqual([
+      ['HOSTING_EMAIL_PASSWORD_CHANGED', 'operator-1', { zgloszenieId: 'z-1', email: 'a@b.pl' }],
+      ['X', 'operator-1', { zgloszenieId: 'z-1' }],
+      ['Y', 'ktos-inny', { zgloszenieId: 'z-1' }],
+      ['Z', 'inny', { a: 1 }],
+    ]);
+    // Poza kontekstem — bez zmian.
+    await svc.record({ action: 'W', userId: 'wlasciciel', actorUserId: 'wlasciciel' });
+    expect(create).toHaveBeenLastCalledWith({ data: expect.objectContaining({ action: 'W', actorUserId: 'wlasciciel' }) });
+  });
 });

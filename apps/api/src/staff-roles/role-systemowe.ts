@@ -19,6 +19,8 @@ const L1: readonly StaffPermission[] = ['DASHBOARD_VIEW', 'CUSTOMERS_VIEW', 'TIC
 const L2: readonly StaffPermission[] = [
   ...L1,
   'ACCOUNT_DIAGNOSTICS_VIEW',
+  // F2.2 (D2, 10.10) — odwracalne akcje na koncie (hasła, SSL, PHP, kopia, skan) z powodem.
+  'ACCOUNT_ACTIONS',
   'SUBSCRIPTIONS_MANAGE',
   'MIGRATIONS_MANAGE',
   'CUSTOMERS_IMPERSONATE',
@@ -32,6 +34,8 @@ const L3: readonly StaffPermission[] = [
   'PROVISIONING_MANAGE',
   // F2.3 (D2, 10.10) — zawieszenie i odwieszenie bezpośrednio od L3; L2 składa wniosek.
   'SUBSCRIPTIONS_SUSPEND',
+  // F2.2 — rekordy DNS klienta (zła zmiana wyłącza stronę i pocztę) od L3.
+  'DNS_MANAGE',
 ];
 const L4: readonly StaffPermission[] = [
   ...L3,
@@ -59,13 +63,13 @@ export const SZCZEBLE: readonly RolaSystemowa[] = [
   {
     name: 'L2 Specjalista techniczny',
     description:
-      'Wszystko z L1 oraz podgląd konta klienta (DNS, poczta, bazy, logi), zmiany usług, migracje, wejście na konto klienta i podgląd węzłów. Nie blokuje klientów i nie rusza finansów.',
+      'Wszystko z L1 oraz podgląd konta klienta (DNS, poczta, bazy, logi), akcje na koncie (hasła, SSL, PHP, kopia, skan), zmiany usług, migracje, wejście na konto klienta i podgląd węzłów. Nie blokuje klientów i nie rusza finansów.',
     permissions: L2,
   },
   {
     name: 'L3 Starszy specjalista',
     description:
-      'Wszystko z L2 oraz zarządzanie klientami (edycja, blokady), zawieszanie usług, nadużycia, indywidualne warunki i kolejka provisioningu. Kredyty, korekty i portfel zostają dla L4.',
+      'Wszystko z L2 oraz zarządzanie klientami (edycja, blokady), zawieszanie usług, edycja DNS klienta, nadużycia, indywidualne warunki i kolejka provisioningu. Kredyty, korekty i portfel zostają dla L4.',
     permissions: L3,
   },
   {
@@ -98,12 +102,14 @@ export const ROLE_FUNKCYJNE: readonly RolaSystemowa[] = [
   {
     name: 'Nadużycia i bezpieczeństwo',
     description:
-      'Zespół abuse: zgłoszenia nadużyć, blokady kont, zawieszanie usług, podgląd konta klienta, węzłów i dziennika bezpieczeństwa. Nie rusza rozliczeń.',
+      'Zespół abuse: zgłoszenia nadużyć, blokady kont, zawieszanie usług, podgląd konta klienta i akcje na nim (reset hasła, skan), węzły i dziennik bezpieczeństwa. Nie rusza rozliczeń.',
     permissions: [
       'CUSTOMERS_VIEW',
       'CUSTOMERS_MANAGE',
       'SUBSCRIPTIONS_SUSPEND',
       'ACCOUNT_DIAGNOSTICS_VIEW',
+      // F2.2 — przejęta skrzynka wysyła spam: reset hasła i skan bez wchodzenia na konto.
+      'ACCOUNT_ACTIONS',
       'ABUSE_MANAGE',
       'AUDIT_VIEW',
       'NODES_VIEW',

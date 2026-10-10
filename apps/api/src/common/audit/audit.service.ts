@@ -96,6 +96,17 @@ export function zWnioskiem(
   return { wartosc: details, ...dopisek };
 }
 
+/**
+ * F2.2 (D3) — wpis o koncie klienta z akcji operatora niesie numer zgłoszenia: klient widzi w aktywności
+ * „obsługa Verris (zgłoszenie #…)” (users.service.ts listMyActivity). Jawny zgloszenieId w wywołaniu zostaje.
+ */
+function zeZgloszeniem(details: Prisma.InputJsonValue | undefined, zgloszenieId: string | null): Prisma.InputJsonValue | undefined {
+  if (!zgloszenieId) return details;
+  if (details === undefined || details === null) return { zgloszenieId };
+  if (typeof details === 'object' && !Array.isArray(details)) return { zgloszenieId, ...(details as Record<string, Prisma.InputJsonValue>) };
+  return { wartosc: details, zgloszenieId };
+}
+
 @Injectable()
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
@@ -103,20 +114,27 @@ export class AuditService {
   constructor(private readonly prisma: PrismaService) {}
 
   async record(payload: AuditPayload): Promise<void> {
+    const magazyn = kontekstZadania.getStore();
+    const jakoWlasciciel = (w: string) => payload.userId === w && (!payload.actorUserId || payload.actorUserId === w);
     // O-03 — w żądaniu subkonta „działał właściciel” znaczy: działała osoba z subkonta.
-    const sub = kontekstZadania.getStore()?.subkonto;
+    const sub = magazyn?.subkonto;
+    // F2.2 — akcja operatora z karty usługi: serwis hostingu wołany z id właściciela działał w imieniu operatora.
+    const op = magazyn?.operator;
     const actorUserId =
-      sub && payload.userId === sub.wlasciciel && (!payload.actorUserId || payload.actorUserId === sub.wlasciciel)
+      sub && jakoWlasciciel(sub.wlasciciel)
         ? sub.osoba
-        : payload.actorUserId ?? null;
+        : op && jakoWlasciciel(op.wlasciciel)
+          ? op.operatorUserId
+          : payload.actorUserId ?? null;
+    const details = op && payload.userId === op.wlasciciel ? zeZgloszeniem(payload.details, op.zgloszenieId) : payload.details;
     try {
       await this.prisma.auditLog.create({
         data: {
           action: payload.action,
           userId: payload.userId ?? null,
           actorUserId,
-          impersonatedBy: payload.impersonatedBy ?? kontekstZadania.getStore()?.impersonatedBy ?? null,
-          details: zWnioskiem(payload.details, kontekstZadania.getStore()?.wniosek) ?? Prisma.JsonNull,
+          impersonatedBy: payload.impersonatedBy ?? magazyn?.impersonatedBy ?? null,
+          details: zWnioskiem(details, magazyn?.wniosek) ?? Prisma.JsonNull,
           ipAddress: payload.ipAddress ?? null,
           userAgent: payload.userAgent ?? null,
         },

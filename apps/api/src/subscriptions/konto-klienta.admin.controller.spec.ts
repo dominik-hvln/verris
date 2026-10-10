@@ -53,6 +53,10 @@ function zbuduj(sub: unknown = { userId: WLASCICIEL, account: { id: 'acc1' } }) 
       fetchError: null,
     })),
     readHostingLog: vi.fn(async () => ({ domain: 'klient.pl', type: 'error', lines: ['PHP Fatal'], truncated: false, fetchError: null })),
+    listHostingFtpAccounts: vi.fn(async () => ({
+      rows: [{ id: 'ftp@klient.pl', username: 'ftp@klient.pl', path: '/home/u1/domains/klient.pl/public_html', suspended: false }],
+      fetchError: null,
+    })),
   };
   const php = {
     statusForSubscription: vi.fn(async () => ({
@@ -69,8 +73,9 @@ function zbuduj(sub: unknown = { userId: WLASCICIEL, account: { id: 'acc1' } }) 
     zlec: vi.fn(async () => ({ wToku: true, wczytano: null, adres: null, wpisy: [], blad: null })),
   };
   const audit = { record: vi.fn(async () => undefined) };
-  const ctrl = new KontoKlientaAdminController(prisma as never, directAdmin as never, php as never, mailLog as never, audit as never);
-  return { ctrl, prisma, directAdmin, php, mailLog, audit };
+  const malware = { status: vi.fn(async () => ({ wToku: false, sprawdzono: null, ostatniSkan: null, razem: 0, znaleziska: [], kwarantanna: [], odrzucone: [], blad: null })) };
+  const ctrl = new KontoKlientaAdminController(prisma as never, directAdmin as never, php as never, mailLog as never, audit as never, malware as never);
+  return { ctrl, prisma, directAdmin, php, mailLog, audit, malware };
 }
 
 async function wpuszcza(metoda: keyof KontoKlientaAdminController, user: { userId: string; role: Role }, perms: string[]) {
@@ -95,7 +100,7 @@ describe('PB-42 KontoKlientaAdminController — uprawnienia', () => {
     expect(STAFF_PERMISSION_KEYS).toContain('ACCOUNT_DIAGNOSTICS_VIEW');
   });
 
-  it.each(['domeny', 'dns', 'poczta', 'bazy', 'phpKonta', 'ssl', 'cron', 'logi', 'logiPoczty', 'zlecLogiPoczty'] as const)(
+  it.each(['domeny', 'dns', 'poczta', 'bazy', 'phpKonta', 'ssl', 'cron', 'logi', 'logiPoczty', 'zlecLogiPoczty', 'ftp', 'malwareKonta'] as const)(
     '%s: klient nie, staff tylko z ACCOUNT_DIAGNOSTICS_VIEW, admin tak',
     async (m) => {
       expect(await wpuszcza(m, { userId: 'c', role: Role.USER }, ['ACCOUNT_DIAGNOSTICS_VIEW'])).toBe(false);
@@ -136,7 +141,7 @@ describe('PB-42 KontoKlientaAdminController — odczyty', () => {
   });
 
   it('każda sekcja zapisuje jeden wpis i nigdy nie woła węzła z identyfikatorem operatora', async () => {
-    const { ctrl, directAdmin, php, mailLog, audit } = zbuduj();
+    const { ctrl, directAdmin, php, mailLog, audit, malware } = zbuduj();
     await ctrl.domeny('s1', OPERATOR);
     await ctrl.dns('s1', undefined, OPERATOR);
     await ctrl.poczta('s1', OPERATOR);
@@ -146,11 +151,21 @@ describe('PB-42 KontoKlientaAdminController — odczyty', () => {
     await ctrl.cron('s1', OPERATOR);
     await ctrl.logi('s1', { type: 'error', lines: 200 }, OPERATOR);
     await ctrl.logiPoczty('s1', OPERATOR);
+    await ctrl.ftp('s1', OPERATOR);
+    await ctrl.malwareKonta('s1', OPERATOR);
     const sekcje = audit.record.mock.calls.map((c) => (c as unknown as [{ details: { sekcja: string } }])[0].details.sekcja);
-    expect(sekcje).toEqual(['domeny', 'dns', 'poczta', 'bazy', 'php', 'ssl', 'cron', 'logi', 'logi-poczty']);
-    const wywolania = [...Object.values(directAdmin), php.statusForSubscription, mailLog.status].flatMap((f) => f.mock.calls);
+    expect(sekcje).toEqual(['domeny', 'dns', 'poczta', 'bazy', 'php', 'ssl', 'cron', 'logi', 'logi-poczty', 'ftp', 'malware']);
+    const wywolania = [...Object.values(directAdmin), php.statusForSubscription, mailLog.status, malware.status].flatMap((f) => f.mock.calls);
     expect(wywolania.length).toBeGreaterThan(9);
     for (const args of wywolania) expect((args as unknown[])[1]).toBe(WLASCICIEL);
+  });
+
+  it('F2.2 FTP: login i katalog, bez pola hasła i bez stanu wewnętrznego', async () => {
+    const { ctrl } = zbuduj();
+    expect(await ctrl.ftp('s1', OPERATOR)).toEqual({
+      konta: [{ username: 'ftp@klient.pl', path: '/home/u1/domains/klient.pl/public_html' }],
+      fetchError: null,
+    });
   });
 
   it.each([

@@ -29,7 +29,7 @@ describe('PB-42 — podgląd konta klienta przez obsługę', () => {
         return { domain, values: { memory_limit: '512M' }, wlasneDyrektywy: 0 };
       },
     };
-    const ctrl = new KontoKlientaAdminController(p, da as never, php, null as never, audit);
+    const ctrl = new KontoKlientaAdminController(p, da as never, php, null as never, audit, null as never);
 
     const wynik = await ctrl.phpKonta(k.subscription.id, undefined, { userId: operator.id });
     expect(wynik).toMatchObject({ wersja: '8.3', domena: k.account.domain, ini: { memory_limit: '512M' }, iniBlad: null });
@@ -45,7 +45,7 @@ describe('PB-42 — podgląd konta klienta przez obsługę', () => {
   it('nieistniejąca usługa → 404 i brak wpisu', async () => {
     const p = prisma() as never;
     const audit = new AuditService(p);
-    const ctrl = new KontoKlientaAdminController(p, {} as never, {} as never, {} as never, audit);
+    const ctrl = new KontoKlientaAdminController(p, {} as never, {} as never, {} as never, audit, {} as never);
     await expect(ctrl.bazy('00000000-0000-4000-8000-000000000000', { userId: 'x' })).rejects.toThrow('Usługa nie istnieje.');
     expect(await prisma().auditLog.count({ where: { action: 'OPERATOR_ACCOUNT_VIEWED', details: { path: ['subscriptionId'], equals: '00000000-0000-4000-8000-000000000000' } } })).toBe(0);
   });

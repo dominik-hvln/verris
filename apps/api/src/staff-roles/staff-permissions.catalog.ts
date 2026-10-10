@@ -33,6 +33,9 @@ export const STAFF_PERMISSIONS = [
   // F2.4 — eksport list klientów i usług do CSV (dane osobowe; każdy eksport w dzienniku).
   { key: 'EXPORT_DATA', area: 'Klienci', label: 'Eksport list do CSV: klienci, usługi, faktury i transakcje portfela (dane osobowe, w dzienniku)' },
   { key: 'ACCOUNT_DIAGNOSTICS_VIEW', area: 'Wsparcie', label: 'Podgląd konta klienta: domeny, DNS, poczta, bazy, PHP, SSL, cron, logi (tylko odczyt, w dzienniku)' },
+  // F2.2 (D2, 10.10) — odwracalne akcje na koncie klienta z karty usługi, bez wchodzenia na konto; powód w dzienniku.
+  { key: 'ACCOUNT_ACTIONS', area: 'Wsparcie', label: 'Akcje na koncie klienta: reset haseł (klient ustawia nowe), SSL, PHP, kopia, skan (z powodem, w dzienniku)' },
+  { key: 'DNS_MANAGE', area: 'Wsparcie', label: 'Edycja rekordów DNS na koncie klienta (z powodem, w dzienniku)' },
 ] as const;
 
 export type StaffPermission = (typeof STAFF_PERMISSIONS)[number]['key'];

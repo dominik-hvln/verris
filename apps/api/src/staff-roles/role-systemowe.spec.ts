@@ -69,6 +69,15 @@ describe('PB-47 — katalog uprawnień i role systemowe', () => {
     expect(ROLE_FUNKCYJNE.find((r) => r.name === 'Marketing')!.permissions).toEqual(['DASHBOARD_VIEW', 'PROMO_MANAGE', 'KB_MANAGE']);
   });
 
+  it('F2.2 (D2): akcje na koncie klienta (ACCOUNT_ACTIONS) od L2, edycja DNS (DNS_MANAGE) od L3', () => {
+    const [l1, l2, l3] = SZCZEBLE;
+    expect(l1.permissions).not.toContain('ACCOUNT_ACTIONS');
+    expect(l2.permissions).toContain('ACCOUNT_ACTIONS');
+    expect(l2.permissions).not.toContain('DNS_MANAGE');
+    expect(l3.permissions).toContain('DNS_MANAGE');
+    expect(ROLE_FUNKCYJNE.find((r) => r.name === 'Nadużycia i bezpieczeństwo')!.permissions).toContain('ACCOUNT_ACTIONS');
+  });
+
   it('B2: baza wiedzy (KB_MANAGE) tylko dla L4 i Marketingu — L1–L3 jej nie zmieniają', () => {
     const [l1, l2, l3, l4] = SZCZEBLE;
     for (const r of [l1, l2, l3]) expect(r.permissions).not.toContain('KB_MANAGE');

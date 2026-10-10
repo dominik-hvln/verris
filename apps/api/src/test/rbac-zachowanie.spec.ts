@@ -275,6 +275,35 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     expect(await wpuszcza(lista!, OPERATOR, uprawnieniaRoli('L1 Konsultant'))).toBe(true);
   });
 
+  it('F2.2 (D2): pasek akcji konta — akcje odwracalne od L2 i zespołu abuse, DNS od L3; L1, NOC i audytor nie', async () => {
+    const akcje = TRASY.filter((t) => t.kontroler === 'KontoKlientaAkcjeAdminController');
+    const odwracalne = ['hasloSkrzynki', 'hasloFtp', 'hasloBazy', 'ssl', 'php', 'kopia', 'skan'];
+    const dns = ['dnsDodaj', 'dnsZmien', 'dnsUsun'];
+    expect(akcje.map((t) => t.metoda).sort()).toEqual([...odwracalne, ...dns].sort());
+    const wolno = async (rola: string, metody: string[]) => {
+      const out: Record<string, boolean> = {};
+      for (const m of metody) out[m] = await wpuszcza(akcje.find((t) => t.metoda === m)!, OPERATOR, uprawnieniaRoli(rola));
+      return out;
+    };
+    const wszystkie = (metody: string[], v: boolean) => Object.fromEntries(metody.map((m) => [m, v]));
+    for (const rola of ['L2 Specjalista techniczny', 'L3 Starszy specjalista', 'L4 Kierownik zmiany', 'Nadużycia i bezpieczeństwo']) {
+      expect({ rola, w: await wolno(rola, odwracalne) }).toEqual({ rola, w: wszystkie(odwracalne, true) });
+    }
+    for (const rola of ['L1 Konsultant', 'Inżynier infrastruktury (NOC/DevOps)', 'Audytor (tylko podgląd)']) {
+      expect({ rola, w: await wolno(rola, [...odwracalne, ...dns]) }).toEqual({ rola, w: wszystkie([...odwracalne, ...dns], false) });
+    }
+    for (const rola of ['L2 Specjalista techniczny', 'Nadużycia i bezpieczeństwo']) {
+      expect({ rola, w: await wolno(rola, dns) }).toEqual({ rola, w: wszystkie(dns, false) });
+    }
+    for (const rola of ['L3 Starszy specjalista', 'L4 Kierownik zmiany']) {
+      expect({ rola, w: await wolno(rola, dns) }).toEqual({ rola, w: wszystkie(dns, true) });
+    }
+    // DNS to osobne uprawnienie — samo ACCOUNT_ACTIONS go nie daje, samo DNS_MANAGE nie daje resetu haseł.
+    for (const m of dns) expect(await wpuszcza(akcje.find((t) => t.metoda === m)!, OPERATOR, ['ACCOUNT_ACTIONS'])).toBe(false);
+    expect(await wpuszcza(akcje.find((t) => t.metoda === 'hasloSkrzynki')!, OPERATOR, ['DNS_MANAGE'])).toBe(false);
+    for (const t of akcje) expect(await wpuszcza(t, ADMIN)).toBe(true);
+  });
+
   it('NOC (bez CUSTOMERS_VIEW) nadal ma kartę i jej akcje', async () => {
     expect(NOC).not.toContain('CUSTOMERS_VIEW');
     const metody = ['detail', 'usage', 'migrationTimeline', 'hostingRestoreStatus', 'hostingBackups', 'runDiagnostics', 'listEligiblePlans', 'runHostingRestore'];

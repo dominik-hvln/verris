@@ -13,11 +13,12 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { DirectAdminService, type DomenyKontaHostingu } from '../servers/directadmin.service.js';
 import { PhpService } from './php.service.js';
 import { MailLogService } from './mail-log.service.js';
+import { MalwareScanService } from './malware-scan.service.js';
 import { LogiHostinguQueryDto } from './dto/hosting-logs.dto.js';
 import { DziennikPocztyDto } from './dto/hosting-body.dto.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 
-export type SekcjaKonta = 'domeny' | 'dns' | 'poczta' | 'bazy' | 'php' | 'ssl' | 'cron' | 'logi' | 'logi-poczty';
+export type SekcjaKonta = 'domeny' | 'dns' | 'poczta' | 'bazy' | 'php' | 'ssl' | 'cron' | 'logi' | 'logi-poczty' | 'ftp' | 'malware';
 
 /** Nazwa parametru/zmiennej/flagi, której wartość jest poświadczeniem (MYSQL_PWD, DB_PASS, cron_key, api-token, --http-password…). */
 const NAZWA_SEKRETU = String.raw`[\w-]*(?:pass|pwd|token|secret|key|auth)[\w-]*`;
@@ -75,6 +76,7 @@ export class KontoKlientaAdminController {
     private readonly php: PhpService,
     private readonly mailLog: MailLogService,
     private readonly audit: AuditService,
+    private readonly malware: MalwareScanService,
   ) {}
 
   /** Właściciel usługi z kontem hostingowym + wpis w dzienniku; brak usługi albo konta → 404 bez wpisu. */
@@ -189,6 +191,21 @@ export class KontoKlientaAdminController {
       rows: c.rows.map((r) => ({ id: r.id, schedule: r.schedule, command: maskujSekretyCrona(r.command) })),
       fetchError: c.fetchError,
     };
+  }
+
+  /** F2.2 — konta FTP (login i katalog; bez haseł) — do resetu hasła z paska akcji. */
+  @Get('ftp')
+  async ftp(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    const userId = await this.wlasciciel(id, actor.userId, 'ftp');
+    const f = await this.directAdmin.listHostingFtpAccounts(id, userId);
+    return { konta: f.rows.map(({ username, path }) => ({ username, path })), fetchError: f.fetchError };
+  }
+
+  /** F2.2 — wynik skanera malware (ostatnie zadanie MALWARE_SCAN, jak „Skaner” w panelu klienta). */
+  @Get('malware')
+  async malwareKonta(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    const userId = await this.wlasciciel(id, actor.userId, 'malware');
+    return this.malware.status(id, userId);
   }
 
   /** Ostatnie N linii logu dostępu/błędów domeny — jak u klienta (domyślnie 200, 20–1000). */
