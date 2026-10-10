@@ -653,7 +653,7 @@ services:
   # Caddy is a tiny reverse-proxy that auto-issues TLS via Let's Encrypt.
   # Replace with nginx/Traefik if you prefer; the upstreams stay the same.
   caddy:
-    image: caddy:2.11.4-alpine
+    image: caddy:2.11.7-alpine
     restart: always
     logging: *default-logging
     depends_on: [api, client-panel, staff-panel, admin-panel, status-page, www, grafana]
