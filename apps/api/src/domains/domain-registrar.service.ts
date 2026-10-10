@@ -828,7 +828,21 @@ export class DomainRegistrarService {
     const price = await cena();
 
     const nowe = await this.prisma.$transaction(async (db) => {
-      await db.$queryRaw`SELECT id FROM "DomainRegistrarOrder" WHERE id = ${stare.id} FOR UPDATE`;
+      // Przegląd F2.7 — blokada WSZYSTKICH zamówień tego klienta na tę domenę (tego typu), nie tylko ponawianego:
+      // dwa „Ponów” naraz na dwóch nieudanych zamówieniach tej samej domeny (pierwotnym i nieudanym ponowieniu)
+      // brały blokady różnych wierszy, oba nie widziały nowego zamówienia drugiego i oba obciążały portfel.
+      await db.$queryRaw`SELECT id FROM "DomainRegistrarOrder" WHERE "userId" = ${stare.userId} AND "domainName" = ${stare.domainName} AND "type"::text = ${stare.type} FOR UPDATE`;
+      // Przegląd F2.7 — pierwsze zamówienie opłacone, a zwrot nie zaksięgowany (refundAndFail loguje „wymaga ręcznej
+      // korekty” i idzie dalej): ponowienie pobrałoby drugi raz za tę samą domenę. Najpierw korekta portfela.
+      const [oplata, zwrot] = await Promise.all([
+        db.walletTransaction.findUnique({ where: { idempotencyKey: `domain-${stare.type.toLowerCase()}:${stare.id}` }, select: { id: true } }),
+        db.walletTransaction.findUnique({ where: { idempotencyKey: `domain-${stare.type.toLowerCase()}-refund:${stare.id}` }, select: { id: true } }),
+      ]);
+      if (oplata && !zwrot) {
+        throw new ConflictException(
+          'Za to zamówienie pobrano opłatę z portfela klienta, a zwrot nie został zaksięgowany. Najpierw korekta portfela (L4), dopiero potem nowe zamówienie.',
+        );
+      }
       const pozniejsze = await db.domainRegistrarOrder.findFirst({
         where: {
           userId: stare.userId,

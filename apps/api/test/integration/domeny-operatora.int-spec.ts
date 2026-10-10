@@ -196,6 +196,63 @@ describe('F2.7 — operacje obsługi na domenach (pieniądze)', () => {
     expect(wywolania).toEqual([]);
   });
 
+  it('przegląd: opłacone pierwsze zamówienie bez zaksięgowanego zwrotu — ponowienie odmówione, bez drugiego obciążenia', async () => {
+    const { domeny } = uslugi();
+    const k = await uzytkownik(500);
+    const op = await uzytkownik(0, 'STAFF');
+    const stare = await prisma().domainRegistrarOrder.create({
+      data: { domainName: 'bez-zwrotu.pl', type: 'REGISTER', status: 'FAILED', userId: k.id, years: 1, priceAmount: '40.00', ownerHandle: 'H-ABONENT' },
+    });
+    // Obciążenie jak w charge(), a zwrot z refundAndFail się nie zapisał („wymaga ręcznej korekty”).
+    await new WalletLedgerService(prisma() as never).debit({
+      userId: k.id, amount: '40.00', type: WalletTxType.CHARGE_DOMAIN, description: 'Rejestracja domeny bez-zwrotu.pl',
+      idempotencyKey: `domain-register:${stare.id}`,
+    });
+    const przed = await saldo(k.id);
+
+    await expect(domeny.ponow(stare.id, { operatorUserId: op.id, operatorRole: 'STAFF', powod: 'Rejestr miał przerwę, ponawiam' })).rejects.toThrow('zwrot nie został zaksięgowany');
+
+    expect(await saldo(k.id)).toBe(przed);
+    expect(wywolania).toEqual([]);
+    expect(await prisma().domainRegistrarOrder.count({ where: { userId: k.id } })).toBe(1);
+  });
+
+  it('przegląd: nieudane ponowienie zastępuje pierwotne zamówienie — na liście jedno „Ponów” na domenę', async () => {
+    const { domeny } = uslugi();
+    const k = await uzytkownik(500);
+    const dane = { domainName: 'dwa-razy.pl', type: 'REGISTER' as const, status: 'FAILED' as const, userId: k.id, years: 1, priceAmount: '40.00', ownerHandle: 'H-ABONENT' };
+    await prisma().domainRegistrarOrder.create({ data: { ...dane, createdAt: new Date(Date.now() - 60_000) } });
+    const ponowione = await prisma().domainRegistrarOrder.create({ data: dane });
+
+    expect((await domeny.zamowienia()).nieudane.map((z) => z.id)).toEqual([ponowione.id]);
+  });
+
+  it('przegląd: „Ponów” na dwóch nieudanych zamówieniach tej samej domeny naraz — drugie czeka i dostaje 409, jedno obciążenie', async () => {
+    const { domeny } = uslugi();
+    const k = await uzytkownik(500);
+    const op = await uzytkownik(0, 'STAFF');
+    const dane = { domainName: 'naraz.pl', type: 'REGISTER' as const, status: 'FAILED' as const, userId: k.id, years: 1, priceAmount: '40.00', ownerHandle: 'H-ABONENT' };
+    const pierwotne = await prisma().domainRegistrarOrder.create({ data: { ...dane, createdAt: new Date(Date.now() - 120_000) } });
+    const ponowienie = await prisma().domainRegistrarOrder.create({ data: { ...dane, createdAt: new Date(Date.now() - 60_000) } });
+
+    // Inny operator ponawia `ponowienie` w tej chwili: trzyma blokadę jego wiersza i ma już nowe (niezatwierdzone) zamówienie.
+    let zablokowane!: () => void;
+    const gotowe = new Promise<void>((r) => (zablokowane = r));
+    const drugi = prisma().$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "DomainRegistrarOrder" WHERE id = ${ponowienie.id} FOR UPDATE`;
+      await tx.domainRegistrarOrder.create({ data: { ...dane, status: 'QUEUED' } });
+      zablokowane();
+      await new Promise((r) => setTimeout(r, 400));
+    });
+    await gotowe;
+
+    await expect(domeny.ponow(pierwotne.id, { operatorUserId: op.id, operatorRole: 'STAFF', powod: 'Rejestr miał przerwę, ponawiam' })).rejects.toThrow('już ponowione');
+    await drugi;
+
+    expect(wywolania).toEqual([]);
+    expect(await saldo(k.id)).toBe(500);
+  });
+
   it('lista: filtr „wygasające w N dni” bierze tylko domeny u nas, od najbliższej', async () => {
     const { domeny } = uslugi();
     const k = await uzytkownik(0);

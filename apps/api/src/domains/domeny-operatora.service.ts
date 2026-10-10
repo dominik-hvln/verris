@@ -101,7 +101,7 @@ export class DomenyOperatoraService {
 
   /**
    * OI-09 — nieudane (albo nieopłacone) rejestracje i transfery, których nikt jeszcze nie ponowił: po nich nie ma
-   * zamówienia tego klienta na tę domenę w toku ani zakończonego. Klient zapłacił albo chciał zapłacić, a domeny nie ma.
+   * żadnego późniejszego zamówienia tego klienta na tę domenę (w toku, zakończonego ani kolejnego nieudanego). Klient zapłacił albo chciał zapłacić, a domeny nie ma.
    * ponytail: 200 najnowszych kandydatów i filtr w pamięci; przy tysiącach nieudanych — zapytanie z NOT EXISTS.
    */
   private async nieudaneZamowienia() {
@@ -122,7 +122,8 @@ export class DomenyOperatoraService {
       where: {
         domainName: { in: [...new Set(kandydaci.map((k) => k.domainName))] },
         type: { in: [DomainRegistrarOrderType.REGISTER, DomainRegistrarOrderType.TRANSFER] },
-        status: { in: [DomainRegistrarOrderStatus.QUEUED, DomainRegistrarOrderStatus.SUBMITTED, DomainRegistrarOrderStatus.COMPLETED] },
+        // Przegląd F2.7 — każde późniejsze zamówienie (także nieudane ponowienie) zastępuje wcześniejsze: na liście
+        // zostaje tylko najnowsze nieudane, a nie dwa „Ponów” dla tej samej domeny.
       },
       select: { userId: true, domainName: true, type: true, createdAt: true },
     });
