@@ -50,4 +50,10 @@ describe("Działania usługi", () => {
     expect(zPalety).toContain("odtworzenie");
     expect(zPalety).not.toContain("wezel");
   });
+
+  // Przegląd 10.10: na karcie sekcji #zakonczenie nie ma, gdy usługa jest zakończona, a konto już usunięte.
+  it("zakończona usługa z usuniętym kontem — bez „Zakończ i usuń konto” (kotwicy nie ma na karcie)", () => {
+    expect(ids({ ...aktywna, status: "CANCELED", kontoUsuniete: true })).not.toContain("zakonczenie");
+    expect(ids({ ...aktywna, status: "CANCELED", kontoUsuniete: false })).toContain("zakonczenie");
+  });
 });

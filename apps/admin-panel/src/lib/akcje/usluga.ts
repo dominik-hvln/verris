@@ -11,6 +11,8 @@ export interface UslugaDlaAkcji {
   /** Zakładanie konta padło (PROVISIONING + stage failed); undefined — nie wiadomo (Cmd+K). */
   zakladanieNieudane?: boolean;
   maKonto?: boolean;
+  /** Konto jest, ale już usunięte (DELETED) — nie ma czego usuwać. */
+  kontoUsuniete?: boolean;
   klientId?: string | null;
   wezelId?: string | null;
 }
@@ -68,7 +70,8 @@ export const AKCJE_USLUGI: AkcjaObiektu<UslugaDlaAkcji>[] = [
     nazwa: "Zakończ i usuń konto",
     opis: "Od razu, bez czekania na koniec okresu i bez 14 dni retencji.",
     perm: "ADMIN",
-    kiedy: (u) => !zakonczona(u) || konto(u),
+    // Jak sekcja #zakonczenie na karcie: usługa trwa albo zostało konto do usunięcia.
+    kiedy: (u) => !zakonczona(u) || (konto(u) && !u.kontoUsuniete),
     href: (u) => karta(u, "operacje", "zakonczenie"),
     slowa: "zakończ usuń anuluj cancel",
   },

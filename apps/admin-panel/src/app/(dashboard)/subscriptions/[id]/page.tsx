@@ -102,7 +102,15 @@ export default async function AdminSubscriptionDetailPage({
   const d = detail;
   const zakladanieNieudane = d.status === "PROVISIONING" && d.provisioningStage === "failed";
   const wezel = d.account?.server ?? null;
-  const usluga: UslugaDlaAkcji = { id: d.id, status: d.status, zakladanieNieudane, maKonto: !!d.account, klientId: d.user.id, wezelId: wezel?.id ?? null };
+  const usluga: UslugaDlaAkcji = {
+    id: d.id,
+    status: d.status,
+    zakladanieNieudane,
+    maKonto: !!d.account,
+    kontoUsuniete: d.account?.status === "DELETED",
+    klientId: d.user.id,
+    wezelId: wezel?.id ?? null,
+  };
   const baza = `/subscriptions/${d.id}`;
   const nazwa = d.account?.domain ?? d.serviceTag ?? d.plan.name;
   const stan = stanUslugi(d.status, d.provisioningStage);

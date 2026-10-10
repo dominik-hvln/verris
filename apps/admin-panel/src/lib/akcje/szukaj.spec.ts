@@ -56,6 +56,9 @@ describe("Cmd+K — tryb obiekt → działanie dla klienta, usługi i faktury (p
   it("usługa: ponowienie zakładania tylko w PROVISIONING; karta klienta z właściciela", () => {
     expect(ids({ type: "service", id: "s1", status: "PROVISIONING", userId: "u1" })).toContain("zakladanie");
     expect(ids({ type: "service", id: "s1", status: "ACTIVE", userId: "u1" })).not.toContain("zakladanie");
+    // Przegląd 10.10: zakładanie w toku — sekcji #zakladanie na karcie nie ma; wyszukiwarka mówi, czy padło.
+    expect(ids({ type: "service", id: "s1", status: "PROVISIONING", zakladanieNieudane: false, userId: "u1" })).not.toContain("zakladanie");
+    expect(ids({ type: "service", id: "s1", status: "PROVISIONING", zakladanieNieudane: true, userId: "u1" })).toContain("zakladanie");
     expect(akcjeObiektuDlaZapytania({ type: "service", id: "s1", status: "ACTIVE", userId: "u1" }, "właściciel", ADMIN)[0]?.href).toBe("/customers/u1");
   });
 

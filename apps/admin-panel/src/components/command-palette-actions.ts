@@ -14,6 +14,8 @@ export interface GlobalSearchResult {
   status?: string;
   /** Faktura: KsefStatus (ponowienie tylko odrzuconej). */
   ksefStatus?: string;
+  /** Usługa: zakładanie konta padło — tylko wtedy „Ponów albo odrzuć zakładanie”. */
+  zakladanieNieudane?: boolean;
   /** Właściciel (usługa, faktura) — działanie „Karta klienta”. */
   userId?: string | null;
 }

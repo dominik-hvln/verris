@@ -67,6 +67,21 @@ describe('SearchService — typy według uprawnień', () => {
     expect(r.results.find((x) => x.type === 'service')).toMatchObject({ id: 's1', status: 'PROVISIONING', userId: 'u1', href: '/subscriptions/s1' });
   });
 
+  // Przegląd 10.10: paleta pokazywała „Ponów albo odrzuć zakładanie” dla każdej usługi w PROVISIONING, a sekcja
+  // #zakladanie jest na karcie tylko po nieudanym zakładaniu.
+  it('usługa: zakładanieNieudane tylko po nieudanym zakładaniu (etap failed)', async () => {
+    const s = stanowisko([]);
+    s.prisma.subscription.findMany.mockResolvedValueOnce([
+      { id: 's1', serviceTag: 'H-1', status: 'PROVISIONING', provisioningStage: 'failed', userId: 'u1', plan: null, user: null },
+      { id: 's2', serviceTag: 'H-2', status: 'PROVISIONING', provisioningStage: 'da_account', userId: 'u1', plan: null, user: null },
+    ] as never);
+    const r = await s.svc.search('H-', { role: 'ADMIN', userId: 'a' });
+    const usluga = (id: string) => r.results.find((x) => x.type === 'service' && x.id === id);
+    expect(usluga('s1')?.zakladanieNieudane).toBe(true);
+    expect(usluga('s2')?.zakladanieNieudane).toBe(false);
+    expect(s.prisma.subscription.findMany).toHaveBeenCalledWith(expect.objectContaining({ select: expect.objectContaining({ provisioningStage: true }) }));
+  });
+
   it('zgłoszenie z samym TICKETS_VIEW prowadzi do listy zgłoszeń, nie do karty klienta (CUSTOMERS_VIEW)', async () => {
     const r = await stanowisko(['TICKETS_VIEW']).svc.search('poczta', { role: 'STAFF', userId: 'op' });
     expect(r.results).toEqual([expect.objectContaining({ type: 'ticket', href: '/tickets' })]);

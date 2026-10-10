@@ -19,6 +19,8 @@ export interface SearchResult {
   status?: string;
   /** Faktura: KsefStatus (ponowienie wysyłki tylko odrzuconej). */
   ksefStatus?: string;
+  /** Usługa: zakładanie konta padło (Ponów / Odrzuć jest na karcie tylko wtedy). */
+  zakladanieNieudane?: boolean;
 }
 
 /**
@@ -117,6 +119,7 @@ export class SearchService {
             id: true,
             serviceTag: true,
             status: true,
+            provisioningStage: true,
             userId: true,
             plan: { select: { name: true } },
             user: { select: { email: true } },
@@ -185,6 +188,7 @@ export class SearchService {
         href: `/subscriptions/${s.id}`,
         userId: s.userId,
         status: s.status,
+        zakladanieNieudane: s.status === 'PROVISIONING' && s.provisioningStage === 'failed',
       });
     }
     for (const a of accounts) {

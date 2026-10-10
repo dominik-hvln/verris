@@ -48,6 +48,7 @@ export interface ObiektPalety {
   status?: string;
   userId?: string | null;
   ksefStatus?: string;
+  zakladanieNieudane?: boolean;
 }
 
 /** Typy wyników z rejestrem działań; nazwa do chipa w polu („Klient jan@firma.pl”). */
@@ -65,7 +66,7 @@ export function akcjeObiektuDlaZapytania(o: ObiektPalety, q: string, dostep: Dos
     case "user":
       return dopasuj(dzialaniaObiektu(AKCJE_KLIENTA, { id: o.id }, dostep), q);
     case "service":
-      return dopasuj(dzialaniaObiektu(AKCJE_USLUGI, { id: o.id, status: o.status, klientId: o.userId ?? null }, dostep), q);
+      return dopasuj(dzialaniaObiektu(AKCJE_USLUGI, { id: o.id, status: o.status, zakladanieNieudane: o.zakladanieNieudane, klientId: o.userId ?? null }, dostep), q);
     case "invoice":
       return dopasuj(dzialaniaObiektu(AKCJE_FAKTURY, { id: o.id, status: o.status, ksefStatus: o.ksefStatus, klientId: o.userId ?? null }, dostep), q);
     default:
