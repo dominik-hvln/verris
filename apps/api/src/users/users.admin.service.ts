@@ -115,8 +115,11 @@ export function warunkiListyKont(opts: AdminUserListOptions): Prisma.UserWhereIn
       { firstName: { contains: term, mode: 'insensitive' } },
       { lastName: { contains: term, mode: 'insensitive' } },
       { companyName: { contains: term, mode: 'insensitive' } },
-      { nip: { contains: term.replace(/[\s-]/g, '') } },
     ];
+    // Przegląd F2.4 — NIP bez spacji i myślników; z samych separatorów („-”) zostaje pusty ciąg, który pasowałby
+    // do każdego konta z NIP-em.
+    const nip = term.replace(/[\s-]/g, '');
+    if (nip) lub.push({ nip: { contains: nip } });
     const id = term.replace(/^#/, '').toLowerCase();
     if (/^[0-9a-f-]{6,36}$/.test(id)) lub.push({ id: { startsWith: id } });
     and.push({ OR: lub });
