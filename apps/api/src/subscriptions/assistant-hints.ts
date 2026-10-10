@@ -12,7 +12,7 @@ export type HintAction =
   | { kind: 'href'; label: string; href: string };
 
 export interface AssistantHint {
-  key: 'provisioning' | 'ssl' | 'pointing' | 'disk' | 'backup' | 'domain-expiry' | 'spf' | 'dmarc' | 'dkim' | 'autoscaling' | 'plan';
+  key: 'provisioning' | 'ssl' | 'pointing' | 'disk' | 'backup' | 'domain-expiry' | 'spf' | 'dmarc' | 'dkim' | 'limity' | 'autoscaling' | 'plan';
   severity: HintSeverity;
   title: string;
   detail: string;
@@ -35,10 +35,15 @@ export interface HintInput {
    * reguły, których nie pokrywają powyższe (zakładanie, autoskalowanie, plan). Brak = pomijamy.
    */
   usluga?: { id: string; provisioningFailed: boolean; autoscalingEnabled: boolean; usedScaling: boolean; active: boolean };
+  /**
+   * F2.6 — ile razy w ostatniej dobie konto odbiło się od limitu, który odwiedzający widzą jako błąd (procesy wejściowe,
+   * procesy, pamięć) — z raportu węzła. null/brak = brak danych (bez dymka).
+   */
+  odbiciaOdLimitowDoba?: number | null;
 }
 
 const DAY = 86_400_000;
-const ORDER: AssistantHint['key'][] = ['provisioning', 'ssl', 'pointing', 'disk', 'backup', 'domain-expiry', 'spf', 'dmarc', 'dkim', 'autoscaling', 'plan'];
+const ORDER: AssistantHint['key'][] = ['provisioning', 'ssl', 'pointing', 'disk', 'backup', 'domain-expiry', 'spf', 'dmarc', 'dkim', 'limity', 'autoscaling', 'plan'];
 const days = (ms: number) => Math.ceil(ms / DAY);
 const plDays = (n: number) => `${n} ${n === 1 ? 'dzień' : 'dni'}`;
 
@@ -144,7 +149,23 @@ export function buildHints(i: HintInput): AssistantHint[] {
       action: { kind: 'href', label: 'Napisz do nas', href: '/dashboard/support' },
     });
   }
-  if (u && !u.autoscalingEnabled && u.usedScaling) {
+  // F2.6 — komunikat dla klienta bez nazw technologii: strona odbijała się od limitu pakietu (błąd 508/503 u odwiedzających).
+  const odbicia = i.odbiciaOdLimitowDoba ?? 0;
+  const limitZAutoskalowaniem = !!u && u.active && !u.autoscalingEnabled;
+  if (u && odbicia > 0) {
+    out.push({
+      key: 'limity',
+      severity: 'warn',
+      title: 'Strona trafiała na limit zasobów',
+      detail:
+        `W ostatniej dobie strona ${odbicia} ${odbicia === 1 ? 'raz' : 'razy'} osiągnęła limit zasobów pakietu — odwiedzający mogli wtedy zobaczyć błąd. ` +
+        (limitZAutoskalowaniem ? 'Autoskalowanie podniesie limity przy skokach ruchu.' : 'Napisz do nas — sprawdzimy, co obciąża stronę.'),
+      action: limitZAutoskalowaniem
+        ? { kind: 'href', label: 'Ustaw autoskalowanie', href: `/dashboard/services/${u.id}/autoscaling` }
+        : { kind: 'href', label: 'Napisz do nas', href: '/dashboard/support' },
+    });
+  }
+  if (u && !u.autoscalingEnabled && u.usedScaling && !(odbicia > 0 && limitZAutoskalowaniem)) {
     out.push({
       key: 'autoscaling',
       severity: 'warn',

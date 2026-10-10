@@ -5,6 +5,7 @@ import { DirectAdminService } from '../servers/directadmin.service.js';
 import { DeliverabilityService } from '../deliverability/deliverability.service.js';
 import { HostingDnsPointingService } from './hosting-dns-pointing.service.js';
 import { buildHints, type AssistantHint } from './assistant-hints.js';
+import { faultyKonta } from '../telemetry/faulty-lve.js';
 
 export const ASSISTANT_FIX_APPLIED = 'ASSISTANT_FIX_APPLIED';
 export const ASSISTANT_FIX_UNDONE = 'ASSISTANT_FIX_UNDONE';
@@ -50,7 +51,8 @@ export class AssistantService {
             scaledCpu: true,
             scaledRamMb: true,
             scaledDiskMb: true,
-            server: { select: { lastOffsiteBackupAt: true, lastOffsiteBackupOk: true } },
+            daUsername: true,
+            server: { select: { lastOffsiteBackupAt: true, lastOffsiteBackupOk: true, lveFaults: true, lveFaultsAt: true } },
           },
         },
         siteMonitor: { select: { tlsExpiresAt: true } },
@@ -83,6 +85,9 @@ export class AssistantService {
       within(this.deliverability.forSubscription(subscriptionId, userId, undefined, { rbl: false })),
     ]);
     const usage = sub.usageMetrics[0];
+    // F2.6 — odbicia od limitów widoczne dla odwiedzających (EP, NPROC, pamięć) z aktualnego raportu węzła.
+    const faulty = account.server ? faultyKonta(account.server, account.daUsername, Date.now()) : null;
+    const odbiciaOdLimitowDoba = faulty?.doba && !faulty.nieaktualne ? faulty.doba.ep + faulty.doba.nproc + faulty.doba.pmem : null;
 
     return buildHints({
       now: new Date(),
@@ -95,6 +100,7 @@ export class AssistantService {
       mail: (mail?.checks ?? []).map((c) => ({ key: c.key, status: c.status, detail: c.detail, suggestion: c.suggestion })),
       usesPlatformDns: mail?.usesPlatformDns ?? null,
       usluga,
+      odbiciaOdLimitowDoba,
     });
   }
 

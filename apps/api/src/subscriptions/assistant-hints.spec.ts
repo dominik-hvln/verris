@@ -80,4 +80,20 @@ describe('PB-17 reguły dymków asystenta', () => {
     expect(keys({ usluga: { ...u, provisioningFailed: true }, disk: { usedMb: 860, limitMb: 1000 } })).toEqual(['provisioning:crit', 'disk:warn']);
     expect(buildHints({ ...base, usluga: { ...u, usedScaling: true } })[0].action).toEqual({ kind: 'href', label: 'Ustaw autoskalowanie', href: '/dashboard/services/s1/autoscaling' });
   });
+
+  it('F2.6: odbicia od limitów w dobie — przyjazny komunikat bez nazw technologii; brak danych = brak dymka', () => {
+    const u = { id: 's1', provisioningFailed: false, autoscalingEnabled: false, usedScaling: false, active: true };
+    expect(keys({ usluga: u, odbiciaOdLimitowDoba: null })).toEqual([]);
+    expect(keys({ usluga: u, odbiciaOdLimitowDoba: 0 })).toEqual([]);
+    const [h] = buildHints({ ...base, usluga: u, odbiciaOdLimitowDoba: 12 });
+    expect(h).toMatchObject({ key: 'limity', severity: 'warn', title: 'Strona trafiała na limit zasobów' });
+    expect(h.detail).toContain('12 razy');
+    expect(h.action).toEqual({ kind: 'href', label: 'Ustaw autoskalowanie', href: '/dashboard/services/s1/autoscaling' });
+    expect(`${h.title} ${h.detail}`).not.toMatch(/LVE|CloudLinux|DirectAdmin|EP\b|NPROC|fault/i);
+    expect(buildHints({ ...base, usluga: u, odbiciaOdLimitowDoba: 1 })[0].detail).toContain('1 raz osiągnęła');
+    // Bez powtórzenia: z odbiciami i bez autoskalowania jeden dymek zamiast dwóch z tym samym przyciskiem.
+    expect(keys({ usluga: { ...u, usedScaling: true }, odbiciaOdLimitowDoba: 3 })).toEqual(['limity:warn']);
+    // Autoskalowanie już włączone — kierujemy do obsługi.
+    expect(buildHints({ ...base, usluga: { ...u, autoscalingEnabled: true }, odbiciaOdLimitowDoba: 3 })[0].action).toEqual({ kind: 'href', label: 'Napisz do nas', href: '/dashboard/support' });
+  });
 });
