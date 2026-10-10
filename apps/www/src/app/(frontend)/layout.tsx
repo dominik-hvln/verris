@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import './globals.css';
 import { Analytics } from './components/Analytics';
 import { CookieConsent } from './components/CookieConsent';
@@ -8,8 +9,9 @@ import { Footer } from './components/Footer';
 import { ANALYTICS } from '@/lib/analytics';
 import { VPS_W_SPRZEDAZY, OFERTA_KROTKO } from '@/lib/oferta';
 
-// ISR: strony odświeżają treść z CMS (globalsy/kolekcje) co 60 s.
-export const revalidate = 60;
+// D12 (10.10): CSP z nonce (src/proxy.ts) wymaga renderu per żądanie — layout czyta `x-nonce` przez headers(),
+// więc strony nie są już ISR. Treść z CMS dalej z cache danych: stopka przez unstable_cache (60 s, lib/globals.ts),
+// blog był już force-dynamic; pozostałe strony mają treść w kodzie. Koszt: render HTML przy każdym żądaniu.
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://verris.pl'),
@@ -39,7 +41,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function FrontendLayout({ children }: { children: ReactNode }) {
+export default async function FrontendLayout({ children }: { children: ReactNode }) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
   return (
     <html lang="pl">
       <head>
@@ -52,7 +55,7 @@ export default function FrontendLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body>
-        <Analytics />
+        <Analytics nonce={nonce} />
         {ANALYTICS.gtmId ? (
           <noscript>
             <iframe

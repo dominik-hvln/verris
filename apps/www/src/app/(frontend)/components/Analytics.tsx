@@ -45,10 +45,17 @@ gtag('set','ads_data_redaction',true);
 gtag('set','url_passthrough',true);
 `;
 
-const gtmLoader = (id: string) => `
+/**
+ * Snippet GTM z przekazaniem nonce do gtm.js (wariant Google dla CSP z nonce, jak w panelu klienta):
+ * https://developers.google.com/tag-platform/security/guides/csp — gtm.js przechodzi przez 'strict-dynamic',
+ * a nonce na jego elemencie GTM nadaje ewentualnym tagom „Niestandardowy kod HTML” (GTM-PJQNXCF5 ich nie ma).
+ * Eksport dla testu (Analytics.spec.ts).
+ */
+export const gtmLoader = (id: string) => `
 (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});
 var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
 j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+var n=d.querySelector('[nonce]');n&&j.setAttribute('nonce',n.nonce||n.getAttribute('nonce'));
 f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${id}');
 `;
 
@@ -57,7 +64,8 @@ f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${id}');
 
 const SCROLL_THRESHOLDS = [25, 50, 75, 90] as const;
 
-export function Analytics() {
+/** `nonce` — z nagłówka `x-nonce` (layout); bez niego CSP strony zablokuje Consent Mode i loader GTM. */
+export function Analytics({ nonce }: { nonce?: string }) {
   const pathname = usePathname();
   const firstRender = useRef(true);
 
@@ -170,10 +178,10 @@ export function Analytics() {
 
   return (
     <>
-      <Script id="consent-default" strategy="beforeInteractive">
+      <Script id="consent-default" strategy="beforeInteractive" nonce={nonce}>
         {consentDefault}
       </Script>
-      <Script id="gtm" strategy="afterInteractive">
+      <Script id="gtm" strategy="afterInteractive" nonce={nonce}>
         {gtmLoader(ANALYTICS.gtmId)}
       </Script>
     </>

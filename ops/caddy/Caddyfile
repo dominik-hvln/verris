@@ -280,11 +280,15 @@ Policy: https://panel.verris.pl/legal/security
 # CSP dopuszcza Google Fonts, GTM, Google Ads i Meta (tagi i tak odpalają się
 # wyłącznie po zgodzie — Consent Mode v2). Panel Payload /admin jest login-gated;
 # rozważ dodatkowe ograniczenie (VPN/rate-limit) jeśli ma być niepubliczny.
+# D12 (10.10): strony publiczne dostają CSP z nonce od aplikacji (apps/www/src/proxy.ts, lib/csp.ts),
+# bez 'unsafe-inline' w script-src. Caddy daje poniższą politykę tylko jako wartość domyślną (`?`), gdy
+# upstream nie wysłał CSP: panel Payload /admin, API /api, pliki statyczne — dla nich bez zmian.
+# Drugi CSP z Caddy przeglądarka stosowałaby RAZEM z polityką aplikacji (jak w panel_headers).
 # -----------------------------------------------------------------------------
 {$CADDY_WWW_DOMAIN:verris.local} {
     import security_headers
     import block_scanners
-    header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self' https://www.facebook.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://*.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://connect.facebook.net; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.doubleclick.net https://*.googlesyndication.com https://www.googleadservices.com https://www.google.com https://www.facebook.com https://connect.facebook.net; frame-src https://td.doubleclick.net https://www.googletagmanager.com https://www.facebook.com"
+    header ?Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self' https://www.facebook.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://*.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://connect.facebook.net; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.doubleclick.net https://*.googlesyndication.com https://www.googleadservices.com https://www.google.com https://www.facebook.com https://connect.facebook.net; frame-src https://td.doubleclick.net https://www.googletagmanager.com https://www.facebook.com"
     reverse_proxy www:3005 {
         health_uri /healthz
         health_interval 3s

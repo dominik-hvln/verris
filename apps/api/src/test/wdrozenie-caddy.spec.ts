@@ -39,6 +39,17 @@ describe('CSP paneli', () => {
     expect(ss).toBe("'self'");
   });
 
+  // D12 (10.10): CSP stron publicznych www z nonce daje aplikacja (apps/www/src/proxy.ts). Caddy nie może jej
+  // nadpisać ani dołożyć drugiej (przeglądarka stosuje obie) — dotychczasowa polityka zostaje tylko jako
+  // wartość domyślna dla /admin i /api Payload (proxy www ich nie dotyka).
+  it('www: Caddy daje CSP tylko jako wartość domyślną (?), dla /admin Payload polityka bez zmian', () => {
+    const www = CADDY.slice(CADDY.indexOf('{$CADDY_WWW_DOMAIN'), CADDY.indexOf('{$CADDY_WWW_REDIRECT_DOMAIN'));
+    const linie = www.split('\n').map((l) => l.trim()).filter((l) => /^(header )?[?+-]?Content-Security-Policy\b/.test(l));
+    expect(linie).toHaveLength(1);
+    expect(linie[0]).toMatch(/^header \?Content-Security-Policy "/);
+    expect(linie[0]).toContain("script-src 'self' 'unsafe-inline'");
+  });
+
   it('webhook OpenProvidera na API tylko z adresów OpenProvidera (inne → 403)', () => {
     const api = CADDY.slice(CADDY.indexOf('{$CADDY_API_DOMAIN'));
     const blok = /@op_webhook_obcy \{([\s\S]*?)\}/.exec(api)?.[1] ?? '';
