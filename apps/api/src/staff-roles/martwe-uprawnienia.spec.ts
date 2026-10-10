@@ -30,7 +30,7 @@ async function wpuszcza(klasa: Type, metoda: string, user: { role: string; userI
 
 const trasy = (klasa: Type) =>
   Object.getOwnPropertyNames(klasa.prototype).filter(
-    (m) => m !== 'constructor' && Reflect.getMetadata(METHOD_METADATA, (klasa.prototype as Record<string, unknown>)[m]) !== undefined,
+    (m) => m !== 'constructor' && Reflect.getMetadata(METHOD_METADATA, (klasa.prototype as Record<string, object>)[m]) !== undefined,
   );
 const STAFF = { role: 'STAFF', userId: 'op' };
 const ADMIN = { role: 'ADMIN', userId: 'adm' };
