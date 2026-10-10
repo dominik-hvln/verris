@@ -41,6 +41,8 @@ import type { CordonRow } from "../../deliverability/actions";
 import type { ResellerRow } from "../../resellers/data";
 import type { ReferralEnrollmentRow } from "../../referral-enrollments/data";
 import { BlokadaPoczty, ProgramPartnerski, Reseller } from "./dzialania-klienta";
+import { KomunikacjaKlienta, KtoOgladal, LogowaniaKlienta, type DziennikOperatorow, type MailKlienta, type PodgladMaila } from "./historia-klienta";
+import type { LoginHistoryResponse } from "../../operators/[id]/data";
 
 export const dynamic = "force-dynamic";
 
@@ -101,7 +103,7 @@ export default async function AdminCustomerCardPage({
   searchParams,
 }: {
   params: Promise<{ userId: string }>;
-  searchParams: Promise<{ sekcja?: string }>;
+  searchParams: Promise<{ sekcja?: string; mail?: string }>;
 }) {
   const { userId } = await params;
   const q = await searchParams;
@@ -130,6 +132,17 @@ export default async function AdminCustomerCardPage({
         adminApi<ReferralEnrollmentRow[]>("/admin/users/referral-enrollments").then((r) => (Array.isArray(r) ? (r.find((x) => x.userId === userId) ?? null) : undefined), () => undefined),
       ])
     : [null, undefined, undefined, undefined];
+  // Fala 1B — gotowe endpointy API na karcie: maile do klienta (tokeny maskuje API), logowania, „Kto oglądał”.
+  // undefined = nie udało się odczytać (karta mówi to wprost).
+  const id = encodeURIComponent(userId);
+  const [maile, podglad, logowania, dziennikOperatorow] = await Promise.all([
+    sekcja === "komunikacja" ? adminApi<MailKlienta[]>(`/admin/email-log/user/${id}?limit=50`).catch(() => undefined) : undefined,
+    sekcja === "komunikacja" && q.mail
+      ? adminApi<PodgladMaila>(`/admin/email-log/${encodeURIComponent(q.mail)}`).then((m) => (m.userId === userId ? m : undefined), () => undefined)
+      : null,
+    sekcja === "dostepy" ? adminApi<LoginHistoryResponse>(`/admin/users/${id}/login-history`).catch(() => undefined) : undefined,
+    sekcja === "dziennik" ? adminApi<DziennikOperatorow>(`/admin/users/${id}/staff-audit?limit=200`).catch(() => undefined) : undefined,
+  ]);
 
   const doFaktury = !!dostep && !brakUprawnienia("BILLING_VIEW", dostep);
   const u = p.user;
@@ -295,7 +308,7 @@ export default async function AdminCustomerCardPage({
 
       <Zakladki
         etykieta="Sekcje klienta"
-        pozycje={zakladkiKartyKlienta(baza, sekcja, { uslugi: zywe.length, zgloszenia: otwarteZgl.length, warunki: !!warunki })}
+        pozycje={zakladkiKartyKlienta(baza, sekcja, { uslugi: zywe.length, zgloszenia: otwarteZgl.length, warunki: !!warunki, komunikacja: true })}
       />
 
       {sekcja === "przeglad" && dostep ? (
@@ -564,6 +577,8 @@ export default async function AdminCustomerCardPage({
         </section>
       ) : null}
 
+      {sekcja === "komunikacja" ? <KomunikacjaKlienta baza={baza} maile={maile} podglad={podglad} /> : null}
+
       {sekcja === "dostepy" ? (
         <>
           <section className={`${KARTA} flex flex-col gap-2 p-5`} aria-label="Dostęp do konta" data-karta="dostep">
@@ -574,10 +589,12 @@ export default async function AdminCustomerCardPage({
           </section>
           <CustomerOperationalForms detail={detail} />
           <BlokadaPoczty blokada={blokadaPoczty} email={u.email} isAdmin={!!dostep?.isAdmin} />
+          <LogowaniaKlienta historia={logowania} />
         </>
       ) : null}
 
       {sekcja === "dziennik" ? (
+        <>
         <section className={KARTA} aria-label="Dziennik klienta" data-karta="dziennik">
           {p.auditTrail.length === 0 ? <div className={`${WIERSZ} !border-t-0 text-sm text-muted-foreground`}>Brak wpisów.</div> : null}
           {p.auditTrail.map((a, i) => (
@@ -600,6 +617,8 @@ export default async function AdminCustomerCardPage({
             .
           </p>
         </section>
+        <KtoOgladal dziennik={dziennikOperatorow} />
+        </>
       ) : null}
     </div>
   );

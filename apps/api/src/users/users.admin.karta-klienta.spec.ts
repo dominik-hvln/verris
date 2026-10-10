@@ -204,3 +204,20 @@ describe('PB-46 PATCH operational — blokada, notatka i flaga konta wewnętrzne
     expect(admin.patchCustomerOperational).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('Fala 1B — „Kto oglądał” (staff-audit) z adresem operatora', () => {
+  it('wiersz ma actorEmail operatora, który otworzył kartę', async () => {
+    const wpis = { id: 'l1', action: 'OPERATOR_CUSTOMER_CARD_VIEWED', ipAddress: null, userAgent: null, actorUserId: 'op1', impersonatedBy: null, details: { sekcja: 'dziennik' }, createdAt: new Date('2026-10-10T08:00:00Z') };
+    const prisma = {
+      user: {
+        findUnique: vi.fn(async () => ({ id: 'u1', email: 'anna@test.pl', role: Role.USER })),
+        findMany: vi.fn(async () => [{ id: 'op1', email: 'ola@verris.pl' }]),
+      },
+      auditLog: { findMany: vi.fn(async () => [wpis]) },
+    };
+    const s = new UsersAdminService(prisma as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never);
+    const r = await s.getCustomerAuditTrail({ targetUserId: 'u1', actorUserId: 'a1', actorRole: Role.ADMIN, limit: 200 });
+    expect(r.rows[0]).toMatchObject({ action: 'OPERATOR_CUSTOMER_CARD_VIEWED', actorUserId: 'op1', actorEmail: 'ola@verris.pl' });
+    expect(prisma.user.findMany).toHaveBeenCalledWith({ where: { id: { in: ['op1'] } }, select: { id: true, email: true } });
+  });
+});

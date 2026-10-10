@@ -1142,6 +1142,14 @@ export class UsersAdminService {
       },
     });
 
+    // Fala 1B — „Kto oglądał” na karcie klienta: operator po adresie, nie po samym ID.
+    const aktorzy = [...new Set(rows.flatMap((r) => [r.actorUserId, r.impersonatedBy]).filter((x): x is string => !!x))];
+    const adresy = new Map(
+      aktorzy.length
+        ? (await this.prisma.user.findMany({ where: { id: { in: aktorzy } }, select: { id: true, email: true } })).map((u) => [u.id, u.email])
+        : [],
+    );
+
     return {
       target: {
         id: target.id,
@@ -1152,6 +1160,7 @@ export class UsersAdminService {
       rows: rows.map((r) => ({
         id: r.id,
         action: r.action,
+        actorEmail: r.actorUserId ? (adresy.get(r.actorUserId) ?? null) : null,
         ipAddress: r.ipAddress,
         userAgent: r.userAgent
           ? r.userAgent.length > 80

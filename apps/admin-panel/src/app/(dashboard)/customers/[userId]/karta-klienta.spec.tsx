@@ -211,3 +211,70 @@ it("każda kotwica z rejestru działań klienta istnieje na karcie", () => {
     if (kotwica) expect(zrodla).toMatch(new RegExp(`id="${kotwica}"`));
   }
 });
+
+/** Fala 1B — gotowe endpointy API na karcie: maile do klienta, historia logowań, „Kto oglądał”. */
+describe("karta klienta — komunikacja, logowania, kto oglądał (fala 1B)", () => {
+  const mail = { id: "m1", category: "TRANSACTIONAL", tag: "security.password-reset", subject: "Ustaw nowe hasło", status: "SENT", createdAt: "2026-10-09T10:00:00Z", sentAt: "2026-10-09T10:00:01Z", errorMessage: null };
+  function dane(extra: Record<string, unknown>) {
+    api.mockImplementation(async (sciezka: string) => {
+      if (sciezka.split("?")[0] === `/admin/users/${UID}/customer-profile`) return profil;
+      if (sciezka === `/admin/users/${UID}/operational-detail`) return { ...profil.user, loginBlockedReason: null, adminInternalNote: "", isInternal: false, subscriptionsCount: 1 };
+      if (sciezka.startsWith("/admin/custom-terms/user/")) return { uslugi: [] };
+      if (sciezka in extra) return extra[sciezka];
+      throw new Error(`nieoczekiwane ${sciezka}`);
+    });
+  }
+  const renderZ = async (sekcja: SekcjaKartyKlienta, mailId?: string) =>
+    renderToStaticMarkup(await KlientStrona({ params: Promise.resolve({ userId: UID }), searchParams: Promise.resolve({ sekcja, mail: mailId }) }));
+
+  it("zakładka „Komunikacja” jest w adminie, lista prowadzi do podglądu", async () => {
+    dane({ [`/admin/email-log/user/${UID}?limit=50`]: [mail] });
+    const html = await renderZ("komunikacja");
+    expect(html).toContain(">Komunikacja</a>");
+    expect(html).toContain("Ustaw nowe hasło");
+    expect(html).toContain(`href="/customers/${UID}?sekcja=komunikacja&amp;mail=m1#podglad"`);
+    expect(html).toContain("Wybierz mail z listy.");
+  });
+
+  it("podgląd pokazuje to, co oddało API (tokeny zamaskowane w API), a mail innego klienta — nie", async () => {
+    const podglad = { ...mail, toEmail: "anna@test.pl", userId: UID, providerId: "smtp", messageId: null, campaignId: null, metadata: { listUnsubscribeUrl: "https://api.verris.pl/unsubscribe?token=•••" } };
+    dane({ [`/admin/email-log/user/${UID}?limit=50`]: [mail], "/admin/email-log/m1": podglad });
+    const html = await renderZ("komunikacja", "m1");
+    expect(html).toContain("unsubscribe?token=•••");
+    expect(html).toContain("zamaskowane");
+    dane({ [`/admin/email-log/user/${UID}?limit=50`]: [mail], "/admin/email-log/m1": { ...podglad, userId: "inny" } });
+    expect(await renderZ("komunikacja", "m1")).toContain("Nie udało się wczytać maila.");
+  });
+
+  it("dostępy: historia logowań klienta z IP i wynikiem", async () => {
+    dane({
+      [`/admin/users/${UID}/login-history`]: {
+        user: { id: UID, email: "anna@test.pl", role: "USER", loginBlocked: false, loginBlockedReason: null },
+        lockout: { windowMinutes: 15, threshold: 10, recentFailures: 0, currentlyLockedOut: false },
+        suspiciousAlerts: [],
+        rows: [{ id: "l1", kind: "failure", occurredAt: "2026-10-09T09:00:00Z", ip: "203.0.113.7", userAgent: "Firefox", isNewDevice: true, method: null, countryCode: "PL", reason: "bad_password" }],
+      },
+    });
+    const html = await renderZ("dostepy");
+    expect(html).toContain('id="logowania"');
+    expect(html).toContain("203.0.113.7");
+    expect(html).toContain("błędne hasło");
+    expect(html).toContain("nowe urządzenie");
+  });
+
+  it("dziennik: „Kto oglądał” — tylko otwarcia przez operatorów, z adresem operatora", async () => {
+    dane({
+      [`/admin/users/${UID}/staff-audit?limit=200`]: {
+        rows: [
+          { id: "a1", action: "OPERATOR_CUSTOMER_CARD_VIEWED", actorUserId: "op1", actorEmail: "ola@verris.pl", impersonatedBy: null, details: null, createdAt: "2026-10-10T08:00:00Z" },
+          { id: "a2", action: "PLAN_CHANGED", actorUserId: UID, actorEmail: "anna@test.pl", impersonatedBy: null, details: null, createdAt: "2026-10-10T07:00:00Z" },
+        ],
+      },
+    });
+    const html = await renderZ("dziennik");
+    const sekcja = html.slice(html.indexOf('data-karta="kto-ogladal"'));
+    expect(sekcja).toContain('href="/operators/op1"');
+    expect(sekcja).toContain("ola@verris.pl");
+    expect(sekcja).not.toContain("anna@test.pl");
+  });
+});
