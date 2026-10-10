@@ -74,6 +74,8 @@ export interface StaffTicketRow {
   riskFlag?: string | null;
   runbookKey?: string | null;
   topic?: string | null;
+  /** F2.5 — tagi obsługi (klient ich nie widzi). */
+  tags?: string[];
   _count: { replies: number };
 }
 

@@ -32,6 +32,9 @@ import {
   PowiazanieUslugiDto,
   NotatkaZgloszeniaDto,
   ZgloszenieWImieniuDto,
+  TagiZgloszeniaDto,
+  CofniecieEskalacjiDto,
+  KrokiRunbookaDto,
 } from './tickets.dto.js';
 import { CannedResponseService } from './canned-response.service.js';
 import { TicketContextService } from './ticket-context.service.js';
@@ -150,6 +153,15 @@ export class TicketsController {
     return this.ticketsService.getCannedResponses();
   }
 
+  // F2.5 — tagi w użyciu (podpowiedzi i filtr skrzynki). Przed `admin/:id`, inaczej „tagi” byłoby id zgłoszenia.
+  @Get('admin/tagi')
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
+  @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_VIEW')
+  adminListTags() {
+    return this.ticketsService.adminListTags();
+  }
+
   // PB-18 — podgląd klienta, klasyfikacja i szkic odpowiedzi (tylko odczyt).
   @Get('admin/:id/context')
   @UseGuards(RolesGuard, StaffPermissionsGuard)
@@ -189,6 +201,47 @@ export class TicketsController {
     @Body() body: EskalacjaZgloszeniaDto,
   ) {
     return this.ticketsService.adminEscalateTicket(id, user.userId, body.reason ?? '');
+  }
+
+  // F2.5 — cofnięcie eskalacji z powodem (priorytet wraca do sprzed eskalacji).
+  @Post('admin/:id/escalate/cofnij')
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
+  @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_MANAGE')
+  @HttpCode(200)
+  adminUndoEscalation(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: { userId: string },
+    @Body() body: CofniecieEskalacjiDto,
+  ) {
+    return this.ticketsService.adminUndoEscalation(id, user.userId, body.reason ?? '');
+  }
+
+  // F2.5 — tagi zgłoszenia (cała lista).
+  @Post('admin/:id/tagi')
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
+  @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_MANAGE')
+  @HttpCode(200)
+  adminSetTags(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: { userId: string },
+    @Body() body: TagiZgloszeniaDto,
+  ) {
+    return this.ticketsService.adminSetTags(id, user.userId, body.tagi);
+  }
+
+  // F2.5 — odhaczone kroki runbooka jako notatka wewnętrzna w wątku.
+  @Post('admin/:id/runbook/kroki')
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
+  @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_MANAGE')
+  adminRunbookSteps(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: { userId: string },
+    @Body() body: KrokiRunbookaDto,
+  ) {
+    return this.ticketsService.adminRunbookSteps(id, user.userId, body.runbookKey, body.kroki);
   }
 
   @Post('admin/:id/runbook')

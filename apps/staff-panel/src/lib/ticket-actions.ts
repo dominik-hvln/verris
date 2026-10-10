@@ -245,3 +245,46 @@ export async function staffTicketDiagnostics(
     return { ok: false, error: e instanceof StaffApiError ? e.message : "Nie udało się uruchomić diagnostyki." };
   }
 }
+
+/** F2.5 — cofnięcie eskalacji (powód obowiązkowy; priorytet wraca do sprzed eskalacji). */
+export async function staffUndoEscalation(ticketId: string, reason: string): Promise<{ ok: true } | { error: string }> {
+  try {
+    await staffApi(`/tickets/admin/${ticketId}/escalate/cofnij`, { method: "POST", body: { reason } });
+    revalidatePath(`/tickets/${ticketId}`);
+    revalidatePath("/");
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof StaffApiError ? e.message : "Nie udało się cofnąć eskalacji." };
+  }
+}
+
+/** F2.5 — tagi zgłoszenia (cała lista). */
+export async function staffSetTags(ticketId: string, tagi: string[]): Promise<{ ok: true; tags: string[] } | { error: string }> {
+  try {
+    const r = await staffApi<{ tags: string[] }>(`/tickets/admin/${ticketId}/tagi`, { method: "POST", body: { tagi } });
+    revalidatePath(`/tickets/${ticketId}`);
+    return { ok: true, tags: r.tags };
+  } catch (e) {
+    return { error: e instanceof StaffApiError ? e.message : "Nie udało się zapisać tagów." };
+  }
+}
+
+/** F2.5 — tagi w użyciu (podpowiedzi); przy błędzie pusta lista. */
+export async function staffListTags(): Promise<{ tag: string; liczba: number }[]> {
+  try {
+    return await staffApi<{ tag: string; liczba: number }[]>("/tickets/admin/tagi");
+  } catch {
+    return [];
+  }
+}
+
+/** F2.5 — odhaczone kroki runbooka zapisane w wątku jako notatka wewnętrzna. */
+export async function staffRunbookSteps(ticketId: string, runbookKey: string, kroki: number[]): Promise<{ ok: true } | { error: string }> {
+  try {
+    await staffApi(`/tickets/admin/${ticketId}/runbook/kroki`, { method: "POST", body: { runbookKey, kroki } });
+    revalidatePath(`/tickets/${ticketId}`);
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof StaffApiError ? e.message : "Nie udało się zapisać kroków." };
+  }
+}

@@ -1,4 +1,4 @@
-import { IsBoolean, IsString, MinLength, MaxLength, IsOptional, IsIn, IsInt, IsUUID, Min, Max } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsString, MinLength, MaxLength, IsOptional, IsIn, IsInt, IsUUID, Min, Max } from 'class-validator';
 import { Czesciowy } from '../common/validation/czesciowy.js';
 
 export class CreateTicketDto {
@@ -195,4 +195,33 @@ export class PowiazanieUslugiDto {
   @IsOptional()
   @IsUUID('all', { message: 'Nieprawidłowa usługa' })
   subscriptionId?: string | null;
+}
+
+/** F2.5 — tagi zgłoszenia (cała lista; pusta = bez tagów). Normalizację i limity sprawdza serwis. */
+export class TagiZgloszeniaDto {
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  @MaxLength(64, { each: true })
+  tagi!: string[];
+}
+
+/** F2.5 — cofnięcie eskalacji: powód obowiązkowy (min. 10 znaków sprawdza serwis). */
+export class CofniecieEskalacjiDto {
+  @IsString()
+  @MaxLength(2000)
+  reason!: string;
+}
+
+/** F2.5 — zapis odhaczonych kroków runbooka w wątku (notatka wewnętrzna). `kroki` — numery od 0. */
+export class KrokiRunbookaDto {
+  @IsString()
+  @MaxLength(64)
+  runbookKey!: string;
+
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsInt({ each: true })
+  @Min(0, { each: true })
+  kroki!: number[];
 }

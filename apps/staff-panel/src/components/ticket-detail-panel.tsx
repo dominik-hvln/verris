@@ -8,15 +8,15 @@ import type { AgentOption, OcenaAgenta, StaffTicketDetail, TicketAttachmentRow, 
 import { Select } from "@/components/select";
 import { Karta, TicketClientAside } from "@/components/ticket-client-aside";
 import {
-  staffEscalateTicket,
   staffFetchCanned,
   staffGenerateAiSuggestion,
   staffGetAiStatus,
   staffPostReplyWithFiles,
-  staffSetRiskFlag,
   staffUpdateTicket,
   type CannedResponseRow,
 } from "@/lib/ticket-actions";
+import { TicketTagi } from "./ticket-tagi";
+import { TicketEskalacja } from "./ticket-eskalacja";
 import { odczytajSugestie, type SugestiaAi } from "@/lib/ai-sugestia";
 import { staffTicketAttachmentDownloadHref } from "@/lib/ticket-attachment-links";
 import { TICKET_DEPARTMENT_PL, TICKET_PRIORITY_PL, TICKET_STATUS_PL, etykieta } from "@verris/contracts";
@@ -53,6 +53,10 @@ const EVENT_LABELS: Record<string, string> = {
   REOPENED: "Klient otworzył ponownie",
   SERVICE_LINK_CHANGED: "Zmiana usługi zgłoszenia",
   INTERNAL_NOTE: "Notatka wewnętrzna",
+  TAGS_CHANGED: "Tagi",
+  ESCALATION_UNDONE: "Cofnięto eskalację",
+  RISK_FLAG_SET: "Flaga ryzyka",
+  RISK_FLAG_CLEARED: "Zdjęto flagę ryzyka",
 };
 const AUTO: Record<string, string> = {
   POTWIERDZENIE: "potwierdzenie",
@@ -228,15 +232,6 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
     transition(async () => {
       await staffUpdateTicket(ticket.id, patch);
       router.refresh();
-    });
-  }
-
-  function operacja(fn: () => Promise<{ error: string } | object>) {
-    transition(async () => {
-      setOpsErr(null);
-      const res = await fn();
-      if ("error" in res) setOpsErr((res as { error: string }).error);
-      else router.refresh();
     });
   }
 
@@ -725,33 +720,16 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
 
         <TicketRunbook ticketId={ticket.id} runbookKey={ticket.runbookKey} kategoria={context?.category} dzial={ticket.department} />
 
-        <Karta>
-          <div className="flex flex-col gap-2 px-4 py-3.5">
-            <h2 className="font-display text-[15px] font-bold">Eskalacja i ryzyko</h2>
-            <p className="text-[13px] text-muted-foreground">
-              {ticket.escalatedAt ? `Eskalowano ${kd(ticket.escalatedAt)}${ticket.escalationReason ? ` — ${ticket.escalationReason}` : ""}` : "Nieeskalowane"}
-              {ticket.riskFlag ? ` · ryzyko: ${ticket.riskReason ?? ticket.riskFlag}` : ""}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => operacja(() => staffEscalateTicket(ticket.id, "Eskalacja z panelu obsługi: wymagane wsparcie seniora / operatora węzła"))}
-                className="inline-flex h-8 items-center rounded-[9px] border border-warn/40 bg-warn-soft px-2.5 text-[12.5px] font-semibold text-warn disabled:opacity-50"
-              >
-                Eskaluj
-              </button>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => operacja(() => staffSetRiskFlag(ticket.id, "SUPPORT_RISK", "Wysokie ryzyko odejścia lub awarii po sygnałach ze zgłoszenia"))}
-                className="inline-flex h-8 items-center rounded-[9px] border border-crit/40 bg-[color-mix(in_srgb,var(--crit)_10%,transparent)] px-2.5 text-[12.5px] font-semibold text-crit disabled:opacity-50"
-              >
-                Oznacz ryzyko
-              </button>
-            </div>
-          </div>
-        </Karta>
+        <TicketTagi ticketId={ticket.id} tagi={ticket.tags ?? []} />
+
+        <TicketEskalacja
+          ticketId={ticket.id}
+          eskalowane={!!ticket.escalatedAt}
+          kiedyEskalowano={ticket.escalatedAt ? kd(ticket.escalatedAt) : null}
+          powodEskalacji={ticket.escalationReason ?? null}
+          ryzyko={ticket.riskFlag ?? null}
+          opisRyzyka={ticket.riskReason ?? null}
+        />
 
         {ticket.events?.length ? (
           <Karta>
@@ -759,9 +737,13 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
               <summary className="cursor-pointer font-display text-[15px] font-bold">Historia zgłoszenia ({ticket.events.length})</summary>
               <ol className="mt-2 flex flex-col gap-1.5">
                 {ticket.events.map((e) => {
-                  const meta = (e.meta ?? {}) as { from?: unknown; to?: unknown; rodzaj?: unknown };
+                  const meta = (e.meta ?? {}) as { from?: unknown; to?: unknown; rodzaj?: unknown; reason?: unknown; dodane?: unknown; usuniete?: unknown };
                   const dodatek =
-                    e.type === "STATUS_CHANGED"
+                    e.type === "TAGS_CHANGED"
+                      ? `: ${[meta.dodane ? `+ ${String(meta.dodane)}` : "", meta.usuniete ? `− ${String(meta.usuniete)}` : ""].filter(Boolean).join(" ")}`
+                      : ["ESCALATED", "ESCALATION_UNDONE", "RISK_FLAG_SET", "RISK_FLAG_CLEARED"].includes(e.type) && meta.reason
+                        ? ` — ${String(meta.reason)}`
+                        : e.type === "STATUS_CHANGED"
                       ? ` (${TICKET_STATUS_PL[String(meta.from)] ?? String(meta.from ?? "—")} → ${TICKET_STATUS_PL[String(meta.to)] ?? String(meta.to ?? "—")})`
                       : e.type === "AUTO_MESSAGE"
                         ? `: ${AUTO[String(meta.rodzaj)] ?? String(meta.rodzaj ?? "")}`

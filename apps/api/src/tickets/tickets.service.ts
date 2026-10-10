@@ -35,7 +35,7 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 import type { Readable } from 'stream';
 import { OpiekaZgloszenService, opiekunSlownie, terminSlownie } from './opieka-zgloszen.service.js';
 import { ZAKRES_ODMOWA } from '../common/guards/zakres-uslug.js';
-import { RUNBOOK_KLUCZE } from '@verris/contracts';
+import { RUNBOOK_KLUCZE, runbook as runbookZKatalogu } from '@verris/contracts';
 
 /** PB-43 — co o powiązanej usłudze widzi klient i obsługa (bez danych węzła — te są w diagnostyce). */
 const USLUGA_ZGLOSZENIA = {
@@ -694,8 +694,11 @@ export class TicketsService {
     if (reason.trim().length < 10) {
       throw new BadRequestException('Powód eskalacji jest wymagany (min. 10 znaków).');
     }
-    const ticket = await this.prisma.ticket.update({
-      where: { id: ticketId },
+    const przed = await this.prisma.ticket.findUnique({ where: { id: ticketId }, select: { priority: true, status: true } });
+    if (!przed) throw new NotFoundException('Nie znaleziono zgłoszenia.');
+    // F2.5 — warunkowo: druga eskalacja nadpisałaby „poprzedni priorytet” (URGENT) i cofnięcie nie miałoby do czego wrócić.
+    const { count } = await this.prisma.ticket.updateMany({
+      where: { id: ticketId, escalatedAt: null },
       data: {
         escalatedAt: new Date(),
         escalatedById: actorUserId,
@@ -704,14 +707,89 @@ export class TicketsService {
         status: 'IN_PROGRESS',
       },
     });
+    if (count !== 1) throw new ConflictException('Zgłoszenie jest już eskalowane.');
+    const ticket = await this.prisma.ticket.findUniqueOrThrow({ where: { id: ticketId } });
     await this.audit.record({
       action: TicketOpsActions.TICKET_ESCALATED,
       userId: ticket.userId,
       actorUserId,
-      details: { ticketId, reason: reason.trim(), priority: 'URGENT' },
+      details: { ticketId, reason: reason.trim(), priority: 'URGENT', zPriorytetu: przed.priority },
     });
-    await this.logEvent(ticketId, 'ESCALATED', actorUserId, { reason: reason.trim() });
+    await this.logEvent(ticketId, 'ESCALATED', actorUserId, { reason: reason.trim(), zPriorytetu: przed.priority, zeStanu: przed.status });
     return ticket;
+  }
+
+  /**
+   * F2.5 — cofnięcie eskalacji (pomyłka albo sprawa rozwiązana niżej): powód obowiązkowy, priorytet wraca do tego
+   * sprzed eskalacji (z osi zgłoszenia; eskalacje sprzed tej zmiany nie mają go zapisanego — priorytet zostaje),
+   * stan zostaje. Oś zgłoszenia i dziennik.
+   */
+  async adminUndoEscalation(ticketId: string, actorUserId: string, reason: string) {
+    const powod = reason.trim();
+    if (powod.length < 10) throw new BadRequestException('Powód cofnięcia eskalacji jest wymagany (min. 10 znaków).');
+    const t = await this.prisma.ticket.findUnique({ where: { id: ticketId }, select: { userId: true, escalatedAt: true, priority: true } });
+    if (!t) throw new NotFoundException('Nie znaleziono zgłoszenia.');
+    if (!t.escalatedAt) throw new BadRequestException('Zgłoszenie nie jest eskalowane.');
+    const ostatnia = await this.prisma.ticketEvent.findFirst({
+      where: { ticketId, type: 'ESCALATED' },
+      orderBy: { createdAt: 'desc' },
+      select: { meta: true },
+    });
+    const zapisany = (ostatnia?.meta as { zPriorytetu?: unknown } | null)?.zPriorytetu;
+    const priorytet = typeof zapisany === 'string' && ['LOW', 'NORMAL', 'HIGH', 'URGENT'].includes(zapisany) ? zapisany : t.priority;
+    const { count } = await this.prisma.ticket.updateMany({
+      where: { id: ticketId, escalatedAt: t.escalatedAt },
+      data: { escalatedAt: null, escalatedById: null, escalationReason: null, priority: priorytet },
+    });
+    if (count !== 1) throw new ConflictException('Eskalację tego zgłoszenia ktoś właśnie zmienił — odśwież i spróbuj ponownie.');
+    await this.audit.record({
+      action: TicketOpsActions.TICKET_ESCALATION_UNDONE,
+      userId: t.userId,
+      actorUserId,
+      details: { ticketId, reason: powod, priority: priorytet },
+    });
+    await this.logEvent(ticketId, 'ESCALATION_UNDONE', actorUserId, { reason: powod, priorytet });
+    return this.prisma.ticket.findUniqueOrThrow({ where: { id: ticketId } });
+  }
+
+  /**
+   * F2.5 — tagi obsługi (filtr skrzynki). Klient ich nie widzi. Zapis całej listy; zmiana na osi zgłoszenia.
+   */
+  async adminSetTags(ticketId: string, actorUserId: string, tagi: string[]) {
+    const nowe = normalizujTagi(tagi);
+    const t = await this.prisma.ticket.findUnique({ where: { id: ticketId }, select: { tags: true } });
+    if (!t) throw new NotFoundException('Nie znaleziono zgłoszenia.');
+    const dodane = nowe.filter((x) => !t.tags.includes(x));
+    const usuniete = t.tags.filter((x) => !nowe.includes(x));
+    if (dodane.length || usuniete.length) {
+      await this.prisma.ticket.update({ where: { id: ticketId }, data: { tags: nowe } });
+      await this.logEvent(ticketId, 'TAGS_CHANGED', actorUserId, { dodane: dodane.join(', ') || null, usuniete: usuniete.join(', ') || null });
+    }
+    return { id: ticketId, tags: nowe };
+  }
+
+  /** F2.5 — tagi w użyciu (podpowiedź w zgłoszeniu i filtr skrzynki), najczęstsze pierwsze. */
+  async adminListTags(): Promise<{ tag: string; liczba: number }[]> {
+    return this.prisma.$queryRaw<{ tag: string; liczba: number }[]>`
+      SELECT t AS tag, count(*)::int AS liczba
+      FROM "Ticket", unnest("tags") AS t
+      GROUP BY t ORDER BY liczba DESC, t ASC LIMIT 200`;
+  }
+
+  /**
+   * F2.5 — odhaczone kroki runbooka zapisane w wątku jako notatka wewnętrzna (krótko: nazwa, „n z m”, wykonane
+   * kroki). Kroki z katalogu (libs/contracts runbooki.ts), nie z treści od przeglądarki.
+   */
+  async adminRunbookSteps(ticketId: string, actorUserId: string, runbookKey: string, kroki: number[]) {
+    const rb = runbookZKatalogu(runbookKey.trim());
+    if (!rb) throw new BadRequestException('Nieznany runbook.');
+    const numery = [...new Set(kroki)].sort((a, b) => a - b);
+    if (!numery.length) throw new BadRequestException('Zaznacz co najmniej jeden wykonany krok.');
+    if (numery.some((n) => !Number.isInteger(n) || n < 0 || n >= rb.kroki.length)) {
+      throw new BadRequestException('Nieznany krok runbooka.');
+    }
+    const tresc = [`Runbook „${rb.nazwa}” — wykonane ${numery.length} z ${rb.kroki.length}:`, ...numery.map((n) => `✓ ${rb.kroki[n]}`)].join('\n');
+    return this.adminAddNote(ticketId, actorUserId, tresc, { zrodlo: `runbook:${rb.klucz}` });
   }
 
   async adminApplyRunbook(ticketId: string, actorUserId: string, runbookKey: string) {
@@ -731,25 +809,35 @@ export class TicketsService {
     return ticket;
   }
 
+  /**
+   * Flaga ryzyka zgłoszenia. F2.5 — zdejmowana: `riskFlag` null zdejmuje flagę, a `riskReason` jest wtedy powodem
+   * zdjęcia (dziennik i oś, nie zostaje na zgłoszeniu). Powód obowiązkowy w obu kierunkach (min. 10 znaków).
+   */
   async adminSetRiskFlag(
     ticketId: string,
     actorUserId: string,
     riskFlag: string | null,
     riskReason: string | null,
   ) {
+    const flaga = riskFlag?.trim() || null;
+    const powod = riskReason?.trim() || '';
+    if (powod.length < 10) {
+      throw new BadRequestException(flaga ? 'Opisz ryzyko (min. 10 znaków).' : 'Podaj powód zdjęcia flagi (min. 10 znaków).');
+    }
+    const przed = await this.prisma.ticket.findUnique({ where: { id: ticketId }, select: { riskFlag: true } });
+    if (!przed) throw new NotFoundException('Nie znaleziono zgłoszenia.');
+    if (!flaga && !przed.riskFlag) throw new BadRequestException('Zgłoszenie nie ma flagi ryzyka.');
     const ticket = await this.prisma.ticket.update({
       where: { id: ticketId },
-      data: {
-        riskFlag: riskFlag?.trim() || null,
-        riskReason: riskReason?.trim() || null,
-      },
+      data: { riskFlag: flaga, riskReason: flaga ? powod : null },
     });
     await this.audit.record({
       action: TicketOpsActions.CUSTOMER_RISK_FLAG_UPDATED,
       userId: ticket.userId,
       actorUserId,
-      details: { ticketId, riskFlag: ticket.riskFlag, reason: ticket.riskReason },
+      details: { ticketId, riskFlag: flaga, from: przed.riskFlag, reason: powod },
     });
+    await this.logEvent(ticketId, flaga ? 'RISK_FLAG_SET' : 'RISK_FLAG_CLEARED', actorUserId, { flaga: flaga ?? przed.riskFlag, reason: powod });
     return ticket;
   }
 
@@ -1228,6 +1316,22 @@ export class TicketsService {
       })
       .catch(() => undefined);
   }
+}
+
+/** F2.5 — tag: małe litery, cyfry i myślnik (spacje → myślnik), 1–32 znaki; najwyżej 10 na zgłoszeniu. */
+export const TAGI_MAX = 10;
+export function normalizujTagi(tagi: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const surowy of tagi) {
+    const tag = surowy.trim().toLowerCase().replace(/\s+/g, '-');
+    if (!tag) continue;
+    if (tag.length > 32 || !/^[\p{L}\p{N}-]+$/u.test(tag)) {
+      throw new BadRequestException(`Tag „${surowy.trim().slice(0, 40)}”: litery, cyfry i myślnik, do 32 znaków.`);
+    }
+    if (!out.includes(tag)) out.push(tag);
+  }
+  if (out.length > TAGI_MAX) throw new BadRequestException(`Najwyżej ${TAGI_MAX} tagów na zgłoszeniu.`);
+  return out;
 }
 
 function computeSlaResponseDueAt(priority: string): Date {

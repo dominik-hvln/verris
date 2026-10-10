@@ -16,6 +16,10 @@ jest.mock("@/lib/ticket-actions", () => ({
   staffUpdateTicket: jest.fn(),
   staffLinkTicketService: jest.fn(),
   staffTicketDiagnostics: jest.fn(),
+  staffUndoEscalation: jest.fn(),
+  staffSetTags: jest.fn(),
+  staffListTags: jest.fn(async () => []),
+  staffRunbookSteps: jest.fn(),
 }));
 
 import { TicketDetailPanel } from "./ticket-detail-panel";
@@ -64,6 +68,31 @@ describe("F2.5 — notatki wewnętrzne w wątku", () => {
     expect(tekst(html)).toContain("Notatka wewnętrzna · Piotr");
     expect(tekst(html)).toContain("klient jej nie widzi");
     expect(tekst(html)).toContain("Zapisz jako notatkę");
+  });
+});
+
+describe("F2.5 — tagi, eskalacja z cofnięciem, zdejmowana flaga ryzyka, kroki runbooka", () => {
+  it("bez eskalacji i flagi: „Eskaluj” i „Oznacz ryzyko” (wymagają powodu); tagi z listą", () => {
+    const html = renderToStaticMarkup(<TicketDetailPanel ticket={zgl({ tags: ["vip", "poczta"] })} agents={[]} context={null} mojeOceny={null} teraz={TERAZ} />);
+    const t = tekst(html);
+    expect(html).toContain('data-karta="tagi"');
+    expect(t).toMatch(/vip .*poczta/);
+    expect(t).toContain("Eskaluj");
+    expect(t).not.toContain("Cofnij eskalację");
+    expect(t).toContain("Oznacz ryzyko");
+    expect(t).toContain("Powód (trafi do dziennika)");
+    // pusty powód → przyciski wyłączone
+    expect(html).toMatch(/<button type="button" disabled=""[^>]*>Eskaluj<\/button>/);
+    expect(t).toContain("Zapisz kroki w wątku");
+  });
+
+  it("eskalowane i z flagą: „Cofnij eskalację” i „Zdejmij flagę ryzyka”", () => {
+    const t = render(zgl({ escalatedAt: h(-1), escalationReason: "Potrzebny L3", riskFlag: "SUPPORT_RISK", riskReason: "Grozi odejściem" }));
+    expect(t).toContain("Cofnij eskalację");
+    expect(t).toContain("Zdejmij flagę ryzyka");
+    expect(t).toContain("Potrzebny L3");
+    expect(t).toContain("ryzyko: Grozi odejściem");
+    expect(t).not.toMatch(/>\s*Eskaluj\s*</);
   });
 });
 

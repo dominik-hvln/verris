@@ -3,7 +3,7 @@
 import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RUNBOOKI, runbook, zalecanyRunbook } from "@verris/contracts";
-import { staffApplyRunbook } from "@/lib/ticket-actions";
+import { staffApplyRunbook, staffRunbookSteps } from "@/lib/ticket-actions";
 import { Select } from "@/components/select";
 import { Karta } from "@/components/ticket-client-aside";
 import { Checkbox } from "./checkbox";
@@ -11,7 +11,8 @@ import { Checkbox } from "./checkbox";
 /**
  * PB-43 — runbook przy zgłoszeniu: zalecany z rozpoznanej kategorii (strona nie działa, poczta, SSL,
  * migracja…) albo wybrany ręcznie; kroki jako lista kontrolna. „Zapisz przy zgłoszeniu” utrwala wybór
- * (widać go w kolejce i w dzienniku). Odhaczenia kroków są robocze — nie zapisują się.
+ * (widać go w kolejce i w dzienniku). F2.5 — „Zapisz kroki w wątku” dopisuje odhaczone kroki jako notatkę
+ * wewnętrzną (klient jej nie widzi); bez zapisu odhaczenia są robocze.
  */
 export function TicketRunbook({
   ticketId,
@@ -30,6 +31,7 @@ export function TicketRunbook({
   const zalecany = zalecanyRunbook(kategoria, dzial);
   const zapisany = runbook(runbookKey);
   const [wybrany, setWybrany] = useState((zapisany ?? zalecany).klucz);
+  const [odhaczone, setOdhaczone] = useState<number[]>([]);
   const rb = runbook(wybrany) ?? zalecany;
   const poleId = useId();
 
@@ -39,6 +41,17 @@ export function TicketRunbook({
       const r = await staffApplyRunbook(ticketId, rb.klucz);
       if ("error" in r) setBlad(r.error);
       else router.refresh();
+    });
+
+  const zapiszKroki = () =>
+    start(async () => {
+      setBlad(null);
+      const r = await staffRunbookSteps(ticketId, rb.klucz, odhaczone);
+      if ("error" in r) setBlad(r.error);
+      else {
+        setOdhaczone([]);
+        router.refresh();
+      }
     });
 
   return (
@@ -55,15 +68,23 @@ export function TicketRunbook({
           <Select
             id={poleId}
             value={rb.klucz}
-            onChange={setWybrany}
+            onChange={(v) => {
+              setWybrany(v);
+              setOdhaczone([]);
+            }}
             options={RUNBOOKI.map((r) => ({ value: r.klucz, label: r.nazwa }))}
           />
         </div>
         <p className="text-[12.5px] text-muted-foreground">{rb.kiedy}</p>
         <div key={rb.klucz} className="flex flex-col gap-1.5">
-          {rb.kroki.map((x) => (
+          {rb.kroki.map((x, i) => (
             <label key={x} className="flex items-start gap-2 text-[13.5px] leading-[1.4]">
-              <Checkbox className="mt-0.5 h-4 w-4" /> {x}
+              <Checkbox
+                className="mt-0.5 h-4 w-4"
+                checked={odhaczone.includes(i)}
+                onChange={(e) => setOdhaczone((o) => (e.target.checked ? [...o, i] : o.filter((n) => n !== i)))}
+              />{" "}
+              {x}
             </label>
           ))}
         </div>
@@ -71,6 +92,15 @@ export function TicketRunbook({
           <span className="text-[12.5px] text-muted-foreground">
             {runbookKey ? `Przy zgłoszeniu: ${zapisany?.nazwa ?? runbookKey}` : "Przy zgłoszeniu: brak"}
           </span>
+          <button
+            type="button"
+            disabled={pending || odhaczone.length === 0}
+            onClick={zapiszKroki}
+            title="Notatka wewnętrzna z odhaczonymi krokami — klient jej nie widzi"
+            className="inline-flex h-8 items-center rounded-[9px] border border-dashed border-warn/60 bg-warn-soft px-2.5 text-[12.5px] font-semibold text-warn disabled:opacity-50"
+          >
+            Zapisz kroki w wątku
+          </button>
           {runbookKey !== rb.klucz ? (
             <button
               type="button"
