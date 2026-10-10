@@ -227,3 +227,37 @@ describe('Fala 1B — „Kto oglądał” (staff-audit) z adresem operatora', ()
     expect(prisma.user.findMany).toHaveBeenCalledWith({ where: { id: { in: ['op1'] } }, select: { id: true, email: true } });
   });
 });
+
+/**
+ * Przegląd Fali 2A — panel operatora otwiera kartę klienta dla STAFF (D1). Zakładka „Dziennik” (staff-audit) dla STAFF
+ * miała pokazywać własne działania operatora na tym kliencie, a filtr gubił klienta: wychodziły działania operatora
+ * na wszystkich kontach. Konto operatora/administratora — tylko dla ADMIN-a.
+ */
+describe('przegląd Fali 2A — staff-audit dla STAFF', () => {
+  const serwis = (rola: Role = Role.USER) => {
+    const prisma = {
+      user: { findUnique: vi.fn(async () => ({ id: 'u1', email: 'anna@test.pl', role: rola })), findMany: vi.fn(async () => []) },
+      auditLog: { findMany: vi.fn(async () => []) },
+    };
+    return { prisma, s: new UsersAdminService(prisma as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never) };
+  };
+
+  it('STAFF: tylko własne wpisy dotyczące tego klienta', async () => {
+    const { prisma, s } = serwis();
+    const r = await s.getCustomerAuditTrail({ targetUserId: 'u1', actorUserId: 'op1', actorRole: Role.STAFF, limit: 50 });
+    expect(r.scope).toBe('self');
+    expect(prisma.auditLog.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: 'u1', actorUserId: 'op1' } }));
+  });
+
+  it('ADMIN: wszystko o kliencie i przez klienta', async () => {
+    const { prisma, s } = serwis();
+    await s.getCustomerAuditTrail({ targetUserId: 'u1', actorUserId: 'a1', actorRole: Role.ADMIN, limit: 50 });
+    expect(prisma.auditLog.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { OR: [{ userId: 'u1' }, { actorUserId: 'u1' }] } }));
+  });
+
+  it('STAFF na koncie operatora — 403 bez odczytu dziennika', async () => {
+    const { prisma, s } = serwis(Role.STAFF);
+    await expect(s.getCustomerAuditTrail({ targetUserId: 'u1', actorUserId: 'op1', actorRole: Role.STAFF, limit: 50 })).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.auditLog.findMany).not.toHaveBeenCalled();
+  });
+});

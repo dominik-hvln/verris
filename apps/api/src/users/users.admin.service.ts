@@ -748,7 +748,8 @@ export class UsersAdminService {
     ctx: { ipAddress?: string | null; userAgent?: string | null },
   ) {
     const prev = await this.requireEndUserForAdminOps(userId);
-    // Hasło nieużywalne: losowe, nikt go nie zna — logowanie dopiero po ustawieniu nowego z linku.
+    // Hasło nieużywalne: losowe, nikt go nie zna — logowanie dopiero po ustawieniu nowego z linku. Otwarte sesje
+    // (np. przejęte konto) kończą się od razu — tokenVersion jak przy resecie z linku (auth.service C3).
     const passwordHash = await bcrypt.hash(randomBytes(32).toString('base64url'), 10);
     const rawToken = generateAuthToken();
     const expiresAt = new Date(Date.now() + OPERATOR_RESET_LINK_TTL_HOURS * 3600 * 1000);
@@ -758,6 +759,7 @@ export class UsersAdminService {
         where: { id: userId },
         data: {
           passwordHash,
+          tokenVersion: { increment: 1 },
           twoFactorSecret: null,
           isTwoFactorEnabled: false,
           twoFactorEnrolledAt: null,
@@ -1159,13 +1161,16 @@ export class UsersAdminService {
     });
     if (!target) throw new NotFoundException('Nie znaleziono konta.');
 
-    const where: Prisma.AuditLogWhereInput = {
-      OR: [{ userId: target.id }, { actorUserId: target.id }],
-    };
-    if (opts.actorRole === Role.STAFF) {
-      where.actorUserId = opts.actorUserId;
-      delete where.OR;
+    // STAFF — własne działania na TYM koncie (przegląd Fali 2A: wcześniej filtr zostawał sam `actorUserId == self`,
+    // więc karta klienta w panelu operatora pokazywała działania operatora na wszystkich klientach) i tylko konta
+    // klientów (dziennik zespołu zostaje dla ADMIN-a, jak historia logowań — D9).
+    if (opts.actorRole === Role.STAFF && target.role !== Role.USER) {
+      throw new ForbiddenException('Personel widzi wyłącznie dziennik kont klientów.');
     }
+    const where: Prisma.AuditLogWhereInput =
+      opts.actorRole === Role.STAFF
+        ? { userId: target.id, actorUserId: opts.actorUserId }
+        : { OR: [{ userId: target.id }, { actorUserId: target.id }] };
 
     const rows = await this.prisma.auditLog.findMany({
       where,

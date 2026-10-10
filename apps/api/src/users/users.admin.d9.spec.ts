@@ -88,6 +88,8 @@ describe('D9/D3 — reset hasła klienta przez operatora', () => {
     expect(prisma.user.update).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: 'u1' }, data: expect.objectContaining({ isTwoFactorEnabled: false, twoFactorSecret: null }) }),
     );
+    // Przegląd Fali 2A — „dotychczasowe hasło już nie działa”, więc otwarte sesje (np. przejętego konta) też nie.
+    expect(prisma.user.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ tokenVersion: { increment: 1 } }) }));
     expect(audit.record).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'ADMIN_CUSTOMER_PASSWORD_RESET_BY_ADMIN', actorUserId: 'op1', details: { reason: 'zgłoszenie #12: nie pamięta hasła', linkDoKlienta: true } }),
     );
