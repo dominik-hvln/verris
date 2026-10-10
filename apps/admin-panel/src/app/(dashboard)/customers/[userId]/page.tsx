@@ -27,6 +27,7 @@ import { WarunkiIndywidualne, type PodgladWarunkow } from "./warunki-indywidualn
 import { rozliczeniePoza, ustawWarunki, zalozUsluge } from "./warunki-actions";
 import { pobierzProfilKlienta, type ProfilKlienta } from "./profil-data";
 import { NotatkiKlienta, type NotatkaKlienta } from "./notatki-klienta";
+import { ZespolKlientaKarta, type ZespolKlienta } from "./zespol-klienta";
 import { ZwrotPaynowButton } from "./zwrot-paynow-button";
 import { services, plForm } from "@/lib/pl";
 import { sekcjaKarty, zakladkiKartyKlienta } from "@/lib/sekcje-karty-klienta";
@@ -147,7 +148,7 @@ export default async function AdminCustomerCardPage({
   // Fala 1B — gotowe endpointy API na karcie: maile do klienta (tokeny maskuje API), logowania, „Kto oglądał”.
   // undefined = nie udało się odczytać (karta mówi to wprost).
   const id = encodeURIComponent(userId);
-  const [maile, podglad, logowania, dziennikOperatorow, notatki] = await Promise.all([
+  const [maile, podglad, logowania, dziennikOperatorow, notatki, zespol] = await Promise.all([
     sekcja === "komunikacja" ? adminApi<MailKlienta[]>(`/admin/email-log/user/${id}?limit=50`).catch(() => undefined) : undefined,
     sekcja === "komunikacja" && q.mail
       ? adminApi<PodgladMaila>(`/admin/email-log/${encodeURIComponent(q.mail)}`).then((m) => (m.userId === userId ? m : undefined), () => undefined)
@@ -156,6 +157,8 @@ export default async function AdminCustomerCardPage({
     sekcja === "dziennik" ? adminApi<DziennikOperatorow>(`/admin/users/${id}/staff-audit?limit=200`).catch(() => undefined) : undefined,
     // F2.4 — notatki wewnętrzne (wiele, z autorem); undefined = nie udało się wczytać.
     sekcja === "przeglad" ? adminApi<{ notatki: NotatkaKlienta[] }>(`/admin/users/${id}/notes`).then((r) => r.notatki, () => undefined) : undefined,
+    // F2.4 — zespół klienta (subkonta, członkostwa, zaproszenia) — tylko odczyt.
+    sekcja === "dostepy" ? adminApi<ZespolKlienta>(`/admin/users/${id}/zespol`).catch(() => undefined) : undefined,
   ]);
 
   const doFaktury = !!dostep && !brakUprawnienia("BILLING_VIEW", dostep);
@@ -623,6 +626,7 @@ export default async function AdminCustomerCardPage({
             <Para k="Klient Stripe" v={u.stripeCustomerId ?? "—"} mono />
             <Para k="ID konta" v={u.id} mono />
           </section>
+          <ZespolKlientaKarta zespol={zespol} />
           <CustomerOperationalForms detail={detail} dostep={dostep ?? { isAdmin: false, permissions: [] }} />
           <BlokadaPoczty blokada={blokadaPoczty} email={u.email} isAdmin={!!dostep?.isAdmin} />
           <LogowaniaKlienta historia={logowania} />

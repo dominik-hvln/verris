@@ -38,6 +38,7 @@ import {
   PrzypiecieNotatkiDto,
 } from './users.admin.dto.js';
 import { NotatkiKlientaService } from './notatki-klienta.service.js';
+import { CustomerIamService } from './customer-iam.service.js';
 
 class ImpersonateDto {
   @IsOptional()
@@ -110,6 +111,7 @@ export class UsersAdminController {
     private readonly diagnostics: HostingDiagnosticsService,
     private readonly users: UsersService,
     private readonly notatki: NotatkiKlientaService,
+    private readonly iam: CustomerIamService,
   ) {}
 
   @Get()
@@ -197,6 +199,12 @@ export class UsersAdminController {
       ipAddress: extractIp(req),
       userAgent: req.headers['user-agent']?.toString() ?? null,
     });
+  }
+
+  /** F2.4 — członkowie zespołu klienta (subkonta, członkostwa, zaproszenia) — tylko odczyt, w dzienniku. */
+  @Get(':id/zespol')
+  zespol(@CurrentUser() user: AuthedUser, @Param('id') id: string) {
+    return this.iam.zespolDlaOperatora(id, user.principalUserId ?? user.userId);
   }
 
   /** F2.4 — notatki wewnętrzne o kliencie (przypięte pierwsze, potem od najnowszej). Odczyt: CUSTOMERS_VIEW. */

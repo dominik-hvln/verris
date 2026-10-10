@@ -14,12 +14,13 @@ import { PrismaService } from '../../src/prisma/prisma.service.js';
 import { UsersAdminController } from '../../src/users/users.admin.controller.js';
 import { UsersAdminService } from '../../src/users/users.admin.service.js';
 import { NotatkiKlientaService } from '../../src/users/notatki-klienta.service.js';
+import { CustomerIamService } from '../../src/users/customer-iam.service.js';
 import { UsersService } from '../../src/users/users.service.js';
 import { HostingDiagnosticsService } from '../../src/diagnostics/hosting-diagnostics.service.js';
 import { StatusService } from '../../src/status/status.service.js';
 import { StripeService } from '../../src/billing/stripe/stripe.service.js';
 import { AllExceptionsFilter } from '../../src/common/filters/all-exceptions.filter.js';
-import { prisma, rozlacz, wyczyscBaze } from './setup.js';
+import { prisma, rozlacz, utworzPlan, wyczyscBaze } from './setup.js';
 
 /**
  * F2.4 — notatki wewnętrzne o kliencie na prawdziwym PostgreSQL: migracja przenosi starą notatkę jako pierwszą,
@@ -36,6 +37,7 @@ const MIGRACJA = resolve(import.meta.dirname, '../../../../libs/database/prisma/
     JwtStrategy,
     UsersAdminService,
     NotatkiKlientaService,
+    CustomerIamService,
     AuditService,
     { provide: PrismaService, useFactory: () => prisma() },
     { provide: JwtService, useValue: jwt },
@@ -140,5 +142,34 @@ describe('F2.4 — notatki klienta (PostgreSQL)', () => {
     expect((await zadanie('PATCH', `/admin/users/${k.id}/operational`, l3, { adminInternalNote: 'nowa treść' })).status).toBe(200);
     const n = await prisma().customerNote.findMany({ where: { userId: k.id } });
     expect(n.map((x) => [x.body, x.authorId])).toEqual([['nowa treść', l3.id]]);
+  });
+
+  it('zespół klienta (odczyt): subkonta, członkostwa i ważne zaproszenia bez tokenu; zakres jako nazwy usług; wpis w dzienniku', async () => {
+    const l1 = await operator(['CUSTOMERS_VIEW', 'TICKETS_MANAGE']);
+    const k = await klient();
+    const plan = await utworzPlan({ name: 'Hosting' });
+    const usluga = await prisma().subscription.create({ data: { userId: k.id, planId: plan.id, interval: 'MONTH', priceAmount: 45 } });
+    await prisma().user.create({
+      data: { email: `sub-${t()}@test.verris.pl`, passwordHash: 'tajne-haslo', customerOwnerId: k.id, firstName: 'Ola', customerPermissions: ['SERVICES_READ'], subaccountServiceIds: [usluga.id], subaccountLabel: 'Księgowa' },
+    });
+    const agencja = await klient({ firstName: 'Agencja' });
+    await prisma().customerMembership.create({ data: { ownerUserId: k.id, memberUserId: agencja.id, permissions: ['SERVICES_MANAGE', 'DNS_MANAGE'] } });
+    await prisma().customerSubaccountInvite.create({ data: { ownerUserId: k.id, email: 'nowy@firma.pl', tokenHash: `hash-${t()}`, permissions: ['TICKETS_READ'], expiresAt: new Date(Date.now() + 864e5) } });
+    await prisma().customerSubaccountInvite.create({ data: { ownerUserId: k.id, email: 'stare@firma.pl', tokenHash: `hash-${t()}`, permissions: [], expiresAt: new Date(Date.now() - 864e5) } });
+
+    const r = await zadanie('GET', `/admin/users/${k.id}/zespol`, l1);
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({
+      jestSubkontem: false,
+      subkonta: [{ nazwa: 'Ola', etykieta: 'Księgowa', uprawnienia: ['SERVICES_READ'], uslugi: ['Hosting'], wylaczone: false }],
+      czlonkostwa: [{ email: agencja.email, nazwa: 'Agencja', uprawnienia: ['SERVICES_MANAGE', 'DNS_MANAGE'], uslugi: null }],
+      zaproszenia: [{ email: 'nowy@firma.pl', uprawnienia: ['TICKETS_READ'] }],
+    });
+    expect(JSON.stringify(r.body)).not.toMatch(/hash-|tajne-haslo|passwordHash|tokenHash/);
+    const wpis = await prisma().auditLog.findFirst({ where: { userId: k.id, action: 'OPERATOR_CUSTOMER_CARD_VIEWED' } });
+    expect(wpis?.details).toEqual({ sekcja: 'zespol' });
+    // Bez CUSTOMERS_VIEW — 403; konto pracownika — 403.
+    expect((await zadanie('GET', `/admin/users/${k.id}/zespol`, await operator(['TICKETS_MANAGE']))).status).toBe(403);
+    expect((await zadanie('GET', `/admin/users/${l1.id}/zespol`, await operator(['CUSTOMERS_VIEW']))).status).toBe(403);
   });
 });

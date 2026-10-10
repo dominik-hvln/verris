@@ -18,16 +18,16 @@ export const KARTY_SEKCJI: Record<SekcjaKartyKlienta, readonly string[]> = {
   warunki: ["warunki"],
   zgloszenia: ["zgloszenia"],
   komunikacja: ["komunikacja"],
-  dostepy: ["dostep", "blokada", "email", "reset", "usuniecie", "logowania"],
+  dostepy: ["dostep", "zespol", "blokada", "email", "reset", "usuniecie", "logowania"],
   dziennik: ["dziennik", "kto-ogladal"],
 };
 
 /**
  * Operacje i podglądy tylko dla administratora — panel obsługi ich nie pokazuje (API i tak odmawia STAFF).
  * Fala 1B: maile do klienta, historia logowań i „Kto oglądał” — API ma je dziś tylko dla ADMIN (dostęp STAFF
- * to decyzja D9).
+ * to decyzja D9). F2.4: „Zespół klienta” tylko w panelu operatora — stara karta obsługi już się nie rozwija (D1).
  */
-export const KARTY_TYLKO_ADMIN: readonly string[] = ["email", "reset", "usuniecie", "komunikacja", "logowania", "kto-ogladal"];
+export const KARTY_TYLKO_ADMIN: readonly string[] = ["email", "reset", "usuniecie", "komunikacja", "logowania", "kto-ogladal", "zespol"];
 
 /** „Komunikacja” tylko tam, gdzie panel ją pokazuje (admin) — w panelu obsługi `?sekcja=komunikacja` to Przegląd, nie pusta karta. */
 export function sekcjaKarty(z: string | undefined, o: { komunikacja?: boolean } = {}): SekcjaKartyKlienta {

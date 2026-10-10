@@ -97,6 +97,71 @@ export class CustomerIamService {
     };
   }
 
+  /**
+   * F2.4 — członkowie zespołu klienta dla operatora (karta klienta, tylko odczyt): subkonta, osoby z własnym kontem
+   * Verris (członkostwa) i oczekujące zaproszenia — bez tokenów i haseł. Zakres usług jako nazwy (domena albo plan).
+   * Każdy odczyt w dzienniku (OPERATOR_CUSTOMER_CARD_VIEWED, sekcja „zespol”) — jak pozostałe zakładki karty.
+   */
+  async zespolDlaOperatora(ownerUserId: string, aktorUserId: string) {
+    const wlasciciel = await this.prisma.user.findUnique({ where: { id: ownerUserId }, select: { role: true, anonymizedAt: true, customerOwnerId: true } });
+    if (!wlasciciel || wlasciciel.anonymizedAt) throw new NotFoundException('Klient nie istnieje.');
+    if (wlasciciel.role !== Role.USER) throw new ForbiddenException('Zespół klienta jest tylko na koncie klienta.');
+    await this.audit.record({ action: 'OPERATOR_CUSTOMER_CARD_VIEWED', userId: ownerUserId, actorUserId: aktorUserId, details: { sekcja: 'zespol' } });
+    const [subkonta, czlonkostwa, zaproszenia, uslugi] = await Promise.all([
+      this.prisma.user.findMany({
+        where: { customerOwnerId: ownerUserId, anonymizedAt: null },
+        orderBy: { createdAt: 'asc' },
+        select: { id: true, email: true, firstName: true, lastName: true, customerPermissions: true, subaccountLabel: true, subaccountDisabledAt: true, subaccountServiceIds: true, createdAt: true },
+      }),
+      this.prisma.customerMembership.findMany({
+        where: { ownerUserId, disabledAt: null },
+        orderBy: { createdAt: 'asc' },
+        select: { id: true, permissions: true, serviceIds: true, label: true, createdAt: true, member: { select: { id: true, email: true, firstName: true, lastName: true } } },
+      }),
+      this.prisma.customerSubaccountInvite.findMany({
+        where: { ownerUserId, status: CustomerSubaccountInviteStatus.PENDING, expiresAt: { gt: new Date() } },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, email: true, permissions: true, serviceIds: true, label: true, expiresAt: true, createdAt: true },
+      }),
+      this.prisma.subscription.findMany({ where: { userId: ownerUserId }, select: { id: true, plan: { select: { name: true } }, account: { select: { domain: true } } } }),
+    ]);
+    const nazwaUslugi = new Map(uslugi.map((x) => [x.id, x.account?.domain ?? x.plan?.name ?? 'usługa']));
+    const zakres = (ids: string[]) => (ids.length ? ids.map((id) => nazwaUslugi.get(id) ?? 'usługa usunięta') : null);
+    const osoba = (o: { firstName: string | null; lastName: string | null }) => [o.firstName, o.lastName].filter(Boolean).join(' ').trim() || null;
+    return {
+      jestSubkontem: !!wlasciciel.customerOwnerId,
+      subkonta: subkonta.map((u) => ({
+        id: u.id,
+        email: u.email,
+        nazwa: osoba(u),
+        etykieta: u.subaccountLabel,
+        uprawnienia: u.customerPermissions,
+        uslugi: zakres(u.subaccountServiceIds),
+        wylaczone: !!u.subaccountDisabledAt,
+        utworzono: u.createdAt.toISOString(),
+      })),
+      czlonkostwa: czlonkostwa.map((c) => ({
+        id: c.id,
+        czlonekId: c.member.id,
+        email: c.member.email,
+        nazwa: osoba(c.member),
+        etykieta: c.label,
+        uprawnienia: c.permissions,
+        uslugi: zakres(c.serviceIds),
+        utworzono: c.createdAt.toISOString(),
+      })),
+      zaproszenia: zaproszenia.map((z) => ({
+        id: z.id,
+        email: z.email,
+        etykieta: z.label,
+        uprawnienia: z.permissions,
+        uslugi: zakres(z.serviceIds),
+        wygasa: z.expiresAt.toISOString(),
+        utworzono: z.createdAt.toISOString(),
+      })),
+    };
+  }
+
   /** Usługi do wyboru zakresu (żywe subskrypcje właściciela). */
   private async uslugiWlasciciela(ownerUserId: string) {
     const subs = await this.prisma.subscription.findMany({

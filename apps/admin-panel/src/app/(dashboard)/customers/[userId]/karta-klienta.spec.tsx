@@ -380,4 +380,26 @@ describe("F2.4 — notatki na karcie klienta", () => {
     z({ role: "ADMIN", isAdmin: true, permissions: [] }, new Error("500"));
     expect(karta(await render("przeglad"))).toContain("Nie udało się wczytać notatek");
   });
+
+  it("Dostępy → „Zespół klienta”: subkonta, osoby z własnym kontem i zaproszenia, tylko odczyt", async () => {
+    const baza = api.getMockImplementation()!;
+    api.mockImplementation(async (s: string) =>
+      s === `/admin/users/${UID}/zespol`
+        ? {
+            jestSubkontem: false,
+            subkonta: [{ id: "s1", email: "ola@firma.pl", nazwa: "Ola", etykieta: "Księgowa", uprawnienia: ["BILLING_READ"], uslugi: null, wylaczone: false, utworzono: "2026-09-01T00:00:00Z" }],
+            czlonkostwa: [{ id: "m1", czlonekId: "u9", email: "dev@agencja.pl", nazwa: null, etykieta: null, uprawnienia: ["SERVICES_MANAGE", "DNS_MANAGE"], uslugi: ["sklep.pl"], utworzono: "2026-09-02T00:00:00Z" }],
+            zaproszenia: [{ id: "z1", email: "nowy@firma.pl", etykieta: null, uprawnienia: [], uslugi: null, wygasa: "2026-10-15T00:00:00Z", utworzono: "2026-10-08T00:00:00Z" }],
+          }
+        : baza(s),
+    );
+    const html = await render("dostepy");
+    const k = html.slice(html.indexOf('data-karta="zespol"'), html.indexOf('data-karta="blokada"'));
+    expect(k).toContain("Ola · Księgowa");
+    expect(k).toContain("płatności (podgląd) · całe konto");
+    expect(k).toContain("usługi, DNS · tylko: sklep.pl");
+    expect(k).toContain("własne konto Verris");
+    expect(k).toContain("nowy@firma.pl");
+    expect(k).not.toContain("<button");
+  });
 });

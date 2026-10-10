@@ -73,7 +73,7 @@ describe('PB-47 — zmiana flagi „konto wewnętrzne”', () => {
    */
   it('kontroler nie odrzuca STAFF z flagą sam — przekazuje decyzję serwisowi razem z aktorem', async () => {
     const admin = { patchCustomerOperational: vi.fn(async () => ({ ok: true })) };
-    const ctrl = new UsersAdminController(admin as never, {} as never, {} as never, {} as never);
+    const ctrl = new UsersAdminController(admin as never, {} as never, {} as never, {} as never, {} as never);
     const req = { ip: '10.0.0.1', headers: {} } as never;
     await ctrl.patchOperational({ userId: 'op1', role: 'STAFF' } as never, 'k1', { isInternal: true } as never, req);
     expect(admin.patchCustomerOperational).toHaveBeenCalledWith('k1', 'op1', { isInternal: true }, expect.anything(), {
