@@ -4,14 +4,15 @@ import { canAccessDashboardRoute } from "@/lib/client-nav-access";
 import { fetchSessionProfileState } from "@/lib/session-profile";
 import { CIASTECZKO_WLASCICIELA, opcjeSesji } from "@/lib/auth";
 import { sciezkaPowrotu } from "@/lib/sciezka-powrotu";
-import { naglowkiCsp } from "@verris/ui/csp";
+import { dostawcaCaptchy, naglowkiCsp } from "@verris/ui/csp";
 
 /**
  * Dalej do strony z CSP z nonce per żądanie (bez `'unsafe-inline'` w script-src). Next czyta nonce
  * z nagłówka CSP żądania i dokleja go do swoich skryptów; własne skrypty inline biorą go z `x-nonce`.
  */
 function dalejZCsp(request: NextRequest): NextResponse {
-  const { headers, csp } = naglowkiCsp(request.headers);
+  // Widget captchy (logowanie, rejestracja, reset hasła) — iframe i skrypty dostawcy z NEXT_PUBLIC_CAPTCHA_PROVIDER.
+  const { headers, csp } = naglowkiCsp(request.headers, { captcha: dostawcaCaptchy() });
   const res = NextResponse.next({ request: { headers } });
   res.headers.set("Content-Security-Policy", csp);
   return res;

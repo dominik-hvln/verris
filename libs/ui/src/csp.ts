@@ -37,6 +37,43 @@ const DYREKTYWY_STALE: ReadonlyArray<string> = [
 /** Zapas dla przeglądarek bez `'strict-dynamic'` (CSP2) — CSP3 tę listę ignoruje. */
 const SKRYPTY_ZAPAS = "'self' https://js.stripe.com https://*.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://connect.facebook.net";
 
+/**
+ * D12 (10.10) — źródła widgetu captchy (CYBER-2, tylko panel klienta: logowanie, rejestracja, reset hasła).
+ * Dostawcę wybiera `NEXT_PUBLIC_CAPTCHA_PROVIDER` (apps/client-panel/src/components/captcha.tsx), więc CSP
+ * dopuszcza wyłącznie jego hosty. Skrypt api.js ładuje komponent z nonce'owanego kodu Nexta, a `'strict-dynamic'`
+ * przenosi zaufanie — wpisy script-src działają tylko jako zapas CSP2. Bez frame-src widget (iframe) się nie wyświetlał.
+ * Wartości dokładnie wg dokumentacji dostawców:
+ *  - reCAPTCHA: https://developers.google.com/recaptcha/docs/faq (pytanie o Content-Security-Policy)
+ *  - hCaptcha: https://docs.hcaptcha.com/#content-security-policy-settings
+ *  - Turnstile: https://developers.cloudflare.com/turnstile/reference/content-security-policy/
+ */
+export type DostawcaCaptchy = "recaptcha" | "recaptcha-v3" | "hcaptcha" | "turnstile";
+
+const RECAPTCHA = {
+  "script-src": ["https://www.google.com/recaptcha/", "https://www.gstatic.com/recaptcha/"],
+  "frame-src": ["https://www.google.com/recaptcha/", "https://recaptcha.google.com/recaptcha/"],
+  "connect-src": ["https://www.google.com/recaptcha/"],
+};
+const HCAPTCHA_HOSTY = ["https://hcaptcha.com", "https://*.hcaptcha.com"];
+
+export const ZRODLA_CAPTCHY: Record<DostawcaCaptchy, Partial<Record<"script-src" | "frame-src" | "connect-src" | "style-src", string[]>>> = {
+  recaptcha: RECAPTCHA,
+  "recaptcha-v3": RECAPTCHA,
+  hcaptcha: { "script-src": HCAPTCHA_HOSTY, "frame-src": HCAPTCHA_HOSTY, "style-src": HCAPTCHA_HOSTY, "connect-src": HCAPTCHA_HOSTY },
+  turnstile: { "script-src": ["https://challenges.cloudflare.com"], "frame-src": ["https://challenges.cloudflare.com"] },
+};
+
+/** Dostawca z env — ta sama reguła co w komponencie Captcha (pusta/nieznana wartość = reCAPTCHA v2). */
+export function dostawcaCaptchy(wartosc = process.env.NEXT_PUBLIC_CAPTCHA_PROVIDER): DostawcaCaptchy {
+  return wartosc && wartosc in ZRODLA_CAPTCHY ? (wartosc as DostawcaCaptchy) : "recaptcha";
+}
+
+/** Dokleja źródła do dyrektywy o danej nazwie (dyrektywy w formacie „nazwa wartość…”). */
+function dopisz(dyrektywy: string[], nazwa: string, zrodla: string[] | undefined): string[] {
+  if (!zrodla?.length) return dyrektywy;
+  return dyrektywy.map((d) => (d.startsWith(`${nazwa} `) ? `${d} ${zrodla.join(" ")}` : d));
+}
+
 /** Losowy nonce (128 bitów, base64) — Web Crypto działa i w runtime Node, i Edge. */
 export function nowyNonce(): string {
   const bajty = new Uint8Array(16);
@@ -64,20 +101,26 @@ function originApiDev(): string {
  * przed 09.10 CSP dawał tylko Caddy, więc `next dev` działał bez CSP, a przeglądarka woła API wprost
  * (logowanie kluczem dostępu: passkey-client.ts, podgląd badge). Nigdy w produkcji.
  */
-export function cspPanelu(nonce: string, dev = false): string {
+export function cspPanelu(nonce: string, dev = false, captcha: DostawcaCaptchy | null = null): string {
   const skrypty = `script-src 'nonce-${nonce}' 'strict-dynamic' ${SKRYPTY_ZAPAS}${dev ? " 'unsafe-eval'" : ""}`;
   const api = dev ? originApiDev() : "";
-  const stale = dev ? DYREKTYWY_STALE.map((d) => (DYREKTYWY_Z_API_DEV.some((p) => d.startsWith(p)) ? `${d} ${api}` : d)) : DYREKTYWY_STALE;
-  return [...stale, skrypty].join("; ");
+  let dyrektywy = [...(dev ? DYREKTYWY_STALE.map((d) => (DYREKTYWY_Z_API_DEV.some((p) => d.startsWith(p)) ? `${d} ${api}` : d)) : DYREKTYWY_STALE), skrypty];
+  if (captcha) {
+    for (const [nazwa, zrodla] of Object.entries(ZRODLA_CAPTCHY[captcha])) dyrektywy = dopisz(dyrektywy, nazwa, zrodla);
+  }
+  return dyrektywy.join("; ");
 }
 
 /**
  * Nagłówki żądania do przekazania dalej (`NextResponse.next({ request: { headers } })`) i wartość CSP
- * odpowiedzi. Nadpisuje ewentualne `x-nonce`/CSP przysłane przez klienta.
+ * odpowiedzi. Nadpisuje ewentualne `x-nonce`/CSP przysłane przez klienta. `captcha` — tylko panel klienta.
  */
-export function naglowkiCsp(zadanie: Headers, dev = process.env.NODE_ENV === "development"): { headers: Headers; csp: string; nonce: string } {
+export function naglowkiCsp(
+  zadanie: Headers,
+  opcje: { dev?: boolean; captcha?: DostawcaCaptchy | null } = {},
+): { headers: Headers; csp: string; nonce: string } {
   const nonce = nowyNonce();
-  const csp = cspPanelu(nonce, dev);
+  const csp = cspPanelu(nonce, opcje.dev ?? process.env.NODE_ENV === "development", opcje.captcha ?? null);
   const headers = new Headers(zadanie);
   headers.set("x-nonce", nonce);
   headers.set("Content-Security-Policy", csp);

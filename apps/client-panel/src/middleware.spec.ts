@@ -5,7 +5,7 @@ jest.mock('@/lib/session-profile', () => ({
 }));
 
 import { middleware } from './middleware';
-import { cspPanelu } from '@verris/ui/csp';
+import { cspPanelu, dostawcaCaptchy } from '@verris/ui/csp';
 
 /** API chwilowo nie odpowiada na /users/me: strona → 503 z komunikatem, akcja serwera → dalej (API ją oceni). */
 describe('middleware przy niedostępnym API', () => {
@@ -153,5 +153,30 @@ describe('middleware — CSP z nonce', () => {
     expect(prod).not.toContain('localhost');
     expect(dyrektywa(dev, 'script-src')).toContain("'unsafe-eval'");
     expect(dyrektywa(prod, 'script-src')).not.toContain("'unsafe-eval'");
+  });
+
+  // D12 (10.10) — widget captchy to iframe dostawcy; bez frame-src nie wyświetlał się na logowaniu/rejestracji.
+  it('strona logowania dopuszcza captchę dostawcy (domyślnie reCAPTCHA) w frame-src, wg dokumentacji Google', async () => {
+    const csp = (await strona()).headers.get('content-security-policy')!;
+    const dyrektywa = (nazwa: string) => csp.split('; ').find((d) => d.startsWith(`${nazwa} `))?.split(' ') ?? [];
+    expect(dyrektywa('frame-src')).toEqual(expect.arrayContaining(['https://www.google.com/recaptcha/', 'https://recaptcha.google.com/recaptcha/']));
+    expect(dyrektywa('script-src')).toEqual(expect.arrayContaining(['https://www.google.com/recaptcha/', 'https://www.gstatic.com/recaptcha/']));
+    expect(dyrektywa('script-src')).not.toContain("'unsafe-inline'");
+  });
+
+  it('źródła tylko wybranego dostawcy; panele bez captchy ich nie dostają', () => {
+    const dyrektywa = (csp: string, nazwa: string) => csp.split('; ').find((d) => d.startsWith(`${nazwa} `))?.split(' ') ?? [];
+    const turnstile = cspPanelu('n', false, 'turnstile');
+    expect(dyrektywa(turnstile, 'frame-src')).toContain('https://challenges.cloudflare.com');
+    expect(dyrektywa(turnstile, 'script-src')).toContain('https://challenges.cloudflare.com');
+    expect(turnstile).not.toContain('recaptcha');
+    const hcaptcha = cspPanelu('n', false, 'hcaptcha');
+    for (const d of ['script-src', 'frame-src', 'style-src', 'connect-src']) {
+      expect(dyrektywa(hcaptcha, d)).toEqual(expect.arrayContaining(['https://hcaptcha.com', 'https://*.hcaptcha.com']));
+    }
+    expect(cspPanelu('n')).not.toMatch(/recaptcha|hcaptcha|challenges\.cloudflare/);
+    expect(dostawcaCaptchy('hcaptcha')).toBe('hcaptcha');
+    expect(dostawcaCaptchy('')).toBe('recaptcha');
+    expect(dostawcaCaptchy('cos-innego')).toBe('recaptcha');
   });
 });
