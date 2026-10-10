@@ -341,3 +341,25 @@ export async function przypnijNotatkeAction(userId: string, noteId: string, przy
   revalidatePath(`/customers/${userId}`);
   return { ok: true };
 }
+
+/**
+ * F2.5 — zgłoszenie założone przez obsługę w imieniu klienta (z karty). Klient dostaje mail od „Obsługa Verris”;
+ * wątek prowadzi się w panelu obsługi — zwracamy id, karta pokazuje link.
+ */
+export async function zgloszenieWImieniuAction(
+  userId: string,
+  dane: { subject: string; message: string; priority: string },
+): Promise<{ ok: true; id: string } | ActionResultErr> {
+  if (dane.subject.trim().length < 3) return { ok: false, error: "Temat: co najmniej 3 znaki." };
+  if (dane.message.trim().length < 10) return { ok: false, error: "Wiadomość: co najmniej 10 znaków." };
+  try {
+    const r = await adminApi<{ id: string }>("/tickets/admin/w-imieniu", {
+      method: "POST",
+      body: { userId, subject: dane.subject.trim(), message: dane.message.trim(), priority: dane.priority || "NORMAL" },
+    });
+    revalidatePath(`/customers/${userId}`);
+    return { ok: true, id: r.id };
+  } catch (err) {
+    return { ok: false, error: err instanceof AdminApiError ? err.message : "Nie udało się założyć zgłoszenia." };
+  }
+}

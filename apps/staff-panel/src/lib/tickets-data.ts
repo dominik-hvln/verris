@@ -120,6 +120,8 @@ export interface StaffTicketDetail extends StaffTicketRow {
   csatComment?: string | null;
   csatAt?: string | null;
   runbookKey?: string | null;
+  /** F2.5 — operator, który założył zgłoszenie w imieniu klienta (null = klient). */
+  openedByStaffId?: string | null;
   /** PB-43 — usługa, której dotyczy zgłoszenie */
   subscriptionId?: string | null;
   subscription?: {

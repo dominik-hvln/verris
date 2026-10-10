@@ -354,10 +354,15 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
 
         {/* ---------- wątek */}
         <section className="flex flex-col gap-2.5" aria-label="Wątek">
-          <div className="flex flex-col gap-2 rounded-[10px] border border-line bg-card px-4 py-3.5 text-[14.5px] leading-[1.55]">
+          <div
+            className={`flex flex-col gap-2 rounded-[10px] border px-4 py-3.5 text-[14.5px] leading-[1.55] ${ticket.openedByStaffId ? "border-data/25 bg-data-soft/60" : "border-line bg-card"}`}
+          >
             <div className="flex items-baseline gap-2">
-              <b>{nazwaKlienta}</b>
-              <span className="text-[12.5px] text-muted-foreground">klient · {kd(ticket.createdAt)}</span>
+              {/* F2.5 — zgłoszenie założone przez obsługę: pierwsza wiadomość jest nasza (klient widzi „Obsługa Verris”). */}
+              <b>{ticket.openedByStaffId ? `Verris — ${agents.find((a) => a.id === ticket.openedByStaffId)?.firstName ?? "obsługa"}` : nazwaKlienta}</b>
+              <span className="text-[12.5px] text-muted-foreground">
+                {ticket.openedByStaffId ? "obsługa · założone w imieniu klienta" : "klient"} · {kd(ticket.createdAt)}
+              </span>
             </div>
             <span className="whitespace-pre-wrap">{ticket.message}</span>
             <Zalaczniki ticketId={ticket.id} items={(ticket.attachments ?? []).filter((a) => a.replyId == null)} />

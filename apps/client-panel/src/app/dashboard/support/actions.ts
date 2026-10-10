@@ -68,6 +68,8 @@ export interface TicketDetail {
   csatComment?: string | null;
   /** PB-43 — usługa, której dotyczy zgłoszenie (null = konto ogólnie). */
   subscription?: (UslugaZApi & { status?: string }) | null;
+  /** F2.5 — zgłoszenie założyła obsługa: pierwsza wiadomość jest od „Obsługa Verris”, nie od klienta. */
+  zalozylaObsluga?: boolean;
 }
 
 /**

@@ -35,6 +35,8 @@ export function grupyMenu(liczniki: LicznikiMenu | null, dostep: DostepMenu): Gr
         { name: "Moje", href: "/?widok=moje", perm: "TICKETS_VIEW", licznik: liczniki?.moje },
         { name: "Czeka na klienta", href: "/?widok=czeka", perm: "TICKETS_VIEW", licznik: liczniki?.czeka },
         { name: "Zamknięte", href: "/tickets/closed", perm: "TICKETS_VIEW" },
+        // F2.5 — zgłoszenie w imieniu klienta (API: TICKETS_MANAGE).
+        { name: "Nowe zgłoszenie", href: "/tickets/nowe", perm: "TICKETS_MANAGE" },
       ],
     },
     {

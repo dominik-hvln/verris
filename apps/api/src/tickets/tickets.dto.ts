@@ -119,6 +119,21 @@ export class AddTicketReplyDto {
   czekaj?: 'tak' | 'nie';
 }
 
+/**
+ * F2.5 — zgłoszenie założone przez obsługę w imieniu klienta (z karty klienta albo ze skrzynki). Klienta
+ * wskazuje `userId` (karta) albo dokładny `email` (skrzynka) — jedno z dwóch.
+ */
+export class ZgloszenieWImieniuDto extends CreateTicketDto {
+  @IsOptional()
+  @IsUUID('all', { message: 'Nieprawidłowy klient' })
+  userId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(320)
+  email?: string;
+}
+
 /** F2.5 — notatka wewnętrzna w wątku (klient jej nie widzi). */
 export class NotatkaZgloszeniaDto {
   @IsString()

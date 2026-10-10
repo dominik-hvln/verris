@@ -15,6 +15,7 @@ import {
   ticketReplyNotificationTemplate,
   ticketStatusChangedTemplate,
   ticketStaffAssignedTemplate,
+  ticketOpenedByStaffTemplate,
 } from '../mail/templates/ticket-notifications.js';
 import {
   assertAllowedMime,
@@ -24,7 +25,7 @@ import {
   TICKET_UPLOAD_MAX_BYTES,
   TICKET_UPLOAD_MAX_FILES_PER_BATCH,
 } from './ticket-attachment.utils.js';
-import { CreateTicketDto, AddTicketReplyDto, AdminUpdateTicketDto } from './tickets.dto.js';
+import { CreateTicketDto, AddTicketReplyDto, AdminUpdateTicketDto, ZgloszenieWImieniuDto } from './tickets.dto.js';
 import type { Prisma } from '@verris/database';
 import { ObjectStorageService } from '../storage/object-storage.service.js';
 import { ObjectBuckets } from '../storage/object-storage.types.js';
@@ -240,6 +241,71 @@ export class TicketsService {
   }
 
   /**
+   * F2.5 — obsługa zakłada zgłoszenie w imieniu klienta (awaria, nadużycie, sprawa z telefonu). Pierwsza
+   * wiadomość jest od obsługi: zgłoszenie od razu czeka na klienta (cykl przypomnienia i auto-zamknięcia jak po
+   * odpowiedzi), bez terminu pierwszej odpowiedzi, przypisane do zakładającego. Klient dostaje mail
+   * „Obsługa Verris napisała do Ciebie” (bez nazwiska, D3), a w dzienniku aktywności „obsługa Verris (zgłoszenie #…)”.
+   */
+  async adminCreateOnBehalf(actorUserId: string, dto: ZgloszenieWImieniuDto) {
+    if (!dto.userId === !dto.email?.trim()) {
+      throw new BadRequestException('Wskaż klienta: konto albo adres e-mail.');
+    }
+    const klient = await this.prisma.user.findFirst({
+      where: dto.userId
+        ? { id: dto.userId }
+        : { email: { equals: dto.email!.trim(), mode: 'insensitive' } },
+      select: { id: true, email: true, role: true, anonymizedAt: true },
+    });
+    if (!klient || klient.role !== 'USER' || klient.anonymizedAt) {
+      throw new NotFoundException('Nie znaleziono konta klienta.');
+    }
+    if (dto.subscriptionId) await this.sprawdzUsluge(klient.id, dto.subscriptionId);
+    const priority = dto.priority || 'NORMAL';
+    const teraz = new Date();
+    const row = await this.prisma.ticket.create({
+      data: {
+        subject: dto.subject.trim(),
+        message: dto.message.trim(),
+        priority,
+        department: dto.department || 'TECHNICAL',
+        topic: dto.topic || null,
+        subscriptionId: dto.subscriptionId || null,
+        userId: klient.id,
+        assignedToId: actorUserId,
+        openedByStaffId: actorUserId,
+        status: 'WAITING_CUSTOMER',
+        waitingSince: teraz,
+        firstResponseAt: teraz,
+        lastReplyAt: teraz,
+        lastReplyIsStaff: true,
+        slaResolveDueAt: computeSlaResolveDueAt(priority),
+      },
+      select: { id: true, subject: true, userId: true },
+    });
+    await this.logEvent(row.id, 'TICKET_CREATED', actorUserId, { przezObsluge: true });
+    await this.audit.record({
+      action: TicketOpsActions.TICKET_OPENED_BY_STAFF,
+      userId: klient.id,
+      actorUserId,
+      details: { zgloszenieId: row.id, subject: row.subject },
+    });
+    void this.mailer
+      .send({
+        ...ticketOpenedByStaffTemplate({
+          ticketId: row.id,
+          subject: row.subject,
+          customerEmail: klient.email,
+          panelUrl: this.clientPanelBaseUrl(),
+          excerpt: dto.message.trim(),
+        }),
+        category: 'TRANSACTIONAL',
+        fromRole: 'SUPPORT',
+      })
+      .catch(() => undefined);
+    return { id: row.id, userId: row.userId };
+  }
+
+  /**
    * Pobiera listę zgłoszeń użytkownika (obcięty widok klienta).
    */
   async findAllByUser(userId: string) {
@@ -315,7 +381,7 @@ export class TicketsService {
     // PB-37 — klient widzi opiekuna (imię + inicjał) i „przeczytane”; notatki wewnętrzne obsługi zostają u nas.
     const {
       assignedTo, aiDraft: _a, aiDraftAt: _b, riskFlag: _c, riskReason: _d, escalationReason: _e,
-      escalatedById: _f, runbookKey: _g, csatAgentId: _h, tags: _i, openedByStaffId, ...widoczne
+      escalatedById: _f, runbookKey: _g, csatAgentId: _h, tags: _i, openedByStaffId, assignedToId: _j, ...widoczne
     } = ticket;
     // Kto z obsługi odpisał (imię + inicjał) — klient wie, z kim rozmawia; id pracowników nie wychodzą.
     const idObslugi = [...new Set(widoczne.replies.filter((r) => r.isStaff && !r.automatic).map((r) => r.authorId))];

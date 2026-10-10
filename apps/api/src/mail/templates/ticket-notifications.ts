@@ -109,6 +109,41 @@ export function ticketReplyNotificationTemplate(ctx: TicketReplyContext): MailMe
   };
 }
 
+/**
+ * F2.5 — zgłoszenie założone przez obsługę w imieniu klienta (np. awaria, nadużycie, sprawa z telefonu).
+ * Bez nazwiska operatora (D3) — klient widzi „Obsługa Verris”; odpowiada w panelu jak na zwykłe zgłoszenie.
+ */
+export function ticketOpenedByStaffTemplate(ctx: TicketContext & { excerpt: string }): MailMessage {
+  const shortId = ctx.ticketId.slice(0, 8);
+  const ticketUrl = `${ctx.panelUrl}/dashboard/support/${ctx.ticketId}`;
+  const safeSubject = escapeMarkdown(ctx.subject);
+  const excerpt = escapeMarkdown(ctx.excerpt.slice(0, 500));
+  const { html, text } = renderEmailShell({
+    title: 'Obsługa Verris napisała do Ciebie',
+    preheader: `Nowe zgłoszenie #${shortId}: ${ctx.subject}`,
+    bodyMarkdown: [
+      `Dzień dobry,`,
+      ``,
+      `Obsługa Verris założyła zgłoszenie **"${safeSubject}"** (#${shortId}) w sprawie Twojego konta.`,
+      ``,
+      `> ${excerpt}${ctx.excerpt.length > 500 ? '…' : ''}`,
+      ``,
+      `Odpowiedz w panelu — cała rozmowa zostaje przy zgłoszeniu.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz zgłoszenie', url: ticketUrl },
+    recipientEmail: ctx.customerEmail,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.customerEmail,
+    tag: 'ticket.opened-by-staff',
+    subject: `[#${shortId}] ${ctx.subject}`,
+    text,
+    html,
+  };
+}
+
 export function ticketStatusChangedTemplate(
   ctx: TicketContext & { newStatus: string },
 ): MailMessage {

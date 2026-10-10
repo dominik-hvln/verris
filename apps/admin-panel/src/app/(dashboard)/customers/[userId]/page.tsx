@@ -35,6 +35,7 @@ import { DiagnostykaDnsTls } from "./diagnostyka-dns-tls";
 import { StatusVatNabywcyAkcje } from "./status-vat-nabywcy";
 import { opisStatusuVat, type StatusVatNabywcy } from "./status-vat-opis";
 import { fetchStaffAccess } from "@/lib/staff-access";
+import { NoweZgloszenieKlienta } from "./nowe-zgloszenie";
 import { dzialaniaObiektu } from "@/lib/akcje/rejestr";
 import { AKCJE_KLIENTA } from "@/lib/akcje/klient";
 import { DzialaniaKarty } from "@/components/dzialania-karty";
@@ -136,7 +137,8 @@ export default async function AdminCustomerCardPage({
   const statusVat = await adminApi<StatusVatNabywcy>(`/admin/billing/nabywcy/${encodeURIComponent(userId)}/vat`).catch(() => null);
   // Plan E, patch 11 — blokada poczty, reseller i program partnerski na karcie (wcześniej osobne strony).
   // undefined = nie udało się odczytać (zwykle brak uprawnienia) — sekcja mówi wtedy, czego brakuje.
-  const zDzialaniami = sekcja === "przeglad" || sekcja === "dostepy" || sekcja === "rozliczenia";
+  // F2.5 — Zgłoszenia: „Nowe zgłoszenie w imieniu klienta” tylko z TICKETS_MANAGE (jak API).
+  const zDzialaniami = sekcja === "przeglad" || sekcja === "dostepy" || sekcja === "rozliczenia" || sekcja === "zgloszenia";
   const [dostep, blokadaPoczty, reseller, partner] = zDzialaniami
     ? await Promise.all([
         fetchStaffAccess(),
@@ -180,6 +182,7 @@ export default async function AdminCustomerCardPage({
   const zrodla = [...new Set(zywe.map((s) => ZRODLO[s.paymentSource] ?? s.paymentSource))];
   const obsluga = process.env.NEXT_PUBLIC_STAFF_PANEL_URL?.trim() || "https://staff.verris.pl";
   const zgloszenieHref = (id: string) => new URL(`/tickets/${id}`, obsluga).toString();
+  const mozeZalozyc = sekcja === "zgloszenia" && !!dostep && !brakUprawnienia("TICKETS_MANAGE", dostep);
 
   const wierszUslugi = (s: ProfilKlienta["subscriptions"][number]) => {
     const st = s.account?.server && serweryZAwaria.has(s.account.server.id) && s.status === "ACTIVE" ? { t: "awaria", ton: "crit" as const } : stanUslugi(s.status, s.provisioningStage);
@@ -589,11 +592,12 @@ export default async function AdminCustomerCardPage({
 
       {sekcja === "zgloszenia" ? (
         <section className={KARTA} aria-label="Zgłoszenia klienta" data-karta="zgloszenia">
-          {p.recentTickets.length === 0 ? <div className={`${WIERSZ} !border-t-0 text-sm text-muted-foreground`}>Klient nie pisał jeszcze do obsługi.</div> : null}
+          {mozeZalozyc ? <NoweZgloszenieKlienta userId={u.id} panelObslugi={obsluga} /> : null}
+          {p.recentTickets.length === 0 ? <div className={`${WIERSZ} ${mozeZalozyc ? "" : "!border-t-0"} text-sm text-muted-foreground`}>Klient nie pisał jeszcze do obsługi.</div> : null}
           {p.recentTickets.map((t, i) => {
             const po = !t.firstResponseAt && t.status !== "CLOSED" && t.slaResponseDueAt && new Date(t.slaResponseDueAt).getTime() < teraz;
             return (
-              <a key={t.id} href={zgloszenieHref(t.id)} className={`${WIERSZ} ${i === 0 ? "!border-t-0" : ""} hover:bg-raised`}>
+              <a key={t.id} href={zgloszenieHref(t.id)} className={`${WIERSZ} ${i === 0 && !mozeZalozyc ? "!border-t-0" : ""} hover:bg-raised`}>
                 <span className="w-[92px] shrink-0 font-mono text-xs text-muted-foreground">{kiedy(t.createdAt)}</span>
                 <span className="flex min-w-0 flex-1 flex-col text-sm">
                   <span className="font-semibold">{t.subject}</span>

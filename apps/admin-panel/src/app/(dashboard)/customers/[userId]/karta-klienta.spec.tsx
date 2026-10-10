@@ -179,6 +179,18 @@ describe("karta klienta — działania (patch 11)", () => {
     expect(html).toContain('id="akcje-klienta"');
   });
 
+  it("F2.5 — Zgłoszenia: „Nowe zgłoszenie w imieniu klienta” z TICKETS_MANAGE, bez niego — brak formularza", async () => {
+    dane();
+    const html = await render("zgloszenia");
+    expect(html).toContain('id="nowe-zgloszenie"');
+    expect(html).toContain("Napisz do klienta");
+    dane({ dostep: { role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "TICKETS_VIEW"] } });
+    const podglad = await render("zgloszenia");
+    expect(podglad).not.toContain('id="nowe-zgloszenie"');
+    expect(podglad).toContain("Nie działa poczta");
+    expect(AKCJE_KLIENTA.find((a) => a.id === "nowe-zgloszenie")?.href({ id: UID })).toBe(`/customers/${UID}?sekcja=zgloszenia#nowe-zgloszenie`);
+  });
+
   it("przegląd bez blokady poczty: bez działania „Zdejmij blokadę”", async () => {
     dane();
     expect(await render("przeglad")).not.toContain("#blokada-poczty");
@@ -216,7 +228,7 @@ describe("karta klienta — działania (patch 11)", () => {
 });
 
 it("każda kotwica z rejestru działań klienta istnieje na karcie", () => {
-  const zrodla = ["page.tsx", "operational-forms.tsx", "dzialania-klienta.tsx", "diagnostyka-dns-tls.tsx"].map((f) => readFileSync(`${__dirname}/${f}`, "utf8")).join("\n");
+  const zrodla = ["page.tsx", "operational-forms.tsx", "dzialania-klienta.tsx", "diagnostyka-dns-tls.tsx", "nowe-zgloszenie.tsx"].map((f) => readFileSync(`${__dirname}/${f}`, "utf8")).join("\n");
   for (const a of AKCJE_KLIENTA) {
     const kotwica = a.href({ id: UID }).split("#")[1];
     if (kotwica) expect(zrodla).toMatch(new RegExp(`id="${kotwica}"`));

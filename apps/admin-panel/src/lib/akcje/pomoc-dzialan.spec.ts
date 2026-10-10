@@ -20,6 +20,7 @@ const OCZEKIWANE: [string, string, string, readonly { id: string; pomocId?: stri
   ["klient", "blokada-poczty", "blokada-poczty", AKCJE_KLIENTA],
   ["klient", "reseller", "reseller", AKCJE_KLIENTA],
   ["klient", "partner", "program-partnerski", AKCJE_KLIENTA],
+  ["klient", "nowe-zgloszenie", "zgloszenie-w-imieniu", AKCJE_KLIENTA],
 ];
 
 it.each(OCZEKIWANE)("%s, działanie %s → hasło „%s” w słowniku, opis i „kiedy” po jednym zdaniu", (_obiekt, id, pomocId, rejestr) => {

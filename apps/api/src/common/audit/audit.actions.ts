@@ -309,6 +309,9 @@ export const TicketOpsActions = {
   // PB-43 — powiązanie zgłoszenia z usługą i diagnostyka uruchomiona z rozmowy.
   TICKET_SERVICE_LINK_CHANGED: 'TICKET_SERVICE_LINK_CHANGED',
   TICKET_DIAGNOSTICS_RUN: 'TICKET_DIAGNOSTICS_RUN',
+  // F2.5 — zgłoszenie założone przez obsługę w imieniu klienta; cofnięcie eskalacji.
+  TICKET_OPENED_BY_STAFF: 'TICKET_OPENED_BY_STAFF',
+  TICKET_ESCALATION_UNDONE: 'TICKET_ESCALATION_UNDONE',
 } as const;
 
 export const ControlPlaneMailActions = {

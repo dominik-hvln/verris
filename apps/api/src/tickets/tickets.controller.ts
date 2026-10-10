@@ -31,6 +31,7 @@ import {
   ZmianaSzablonuDto,
   PowiazanieUslugiDto,
   NotatkaZgloszeniaDto,
+  ZgloszenieWImieniuDto,
 } from './tickets.dto.js';
 import { CannedResponseService } from './canned-response.service.js';
 import { TicketContextService } from './ticket-context.service.js';
@@ -122,6 +123,15 @@ export class TicketsController {
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
     return this.ticketsService.createWithOptionalFiles(user.userId, dto, files, user.serviceScope);
+  }
+
+  // F2.5 — zgłoszenie założone przez obsługę w imieniu klienta (karta klienta, skrzynka).
+  @Post('admin/w-imieniu')
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
+  @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_MANAGE')
+  adminCreateOnBehalf(@CurrentUser() user: { userId: string }, @Body() dto: ZgloszenieWImieniuDto) {
+    return this.ticketsService.adminCreateOnBehalf(user.userId, dto);
   }
 
   @Get('admin/all')

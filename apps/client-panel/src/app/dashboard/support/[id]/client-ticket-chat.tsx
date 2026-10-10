@@ -125,16 +125,29 @@ export default function ClientTicketChat({ ticket }: { ticket: TicketDetail }) {
       {/* Lista Wiadomości */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 scrollbar-hide bg-muted/10">
         
-        {/* Główna wiadomość */}
-        <div className="flex flex-col gap-1.5 items-end max-w-[90%] md:max-w-[75%] ml-auto">
-          <span className="text-xs text-muted-foreground mr-2 font-medium">
-            Ty - {format(new Date(ticket.createdAt), "d MMM, HH:mm", { locale: pl })}
-          </span>
-          <div className="rounded-2xl rounded-tr-sm px-5 py-3.5 text-sm bg-primary text-primary-foreground shadow-sm shadow-primary/20 leading-relaxed whitespace-pre-wrap">
-            {ticket.message}
-            <AttachmentChips ticketId={ticket.id} attachments={openingAttachments(ticket)} />
+        {/* Główna wiadomość — F2.5: zgłoszenie założone przez obsługę zaczyna się od wiadomości „Obsługa Verris”. */}
+        {ticket.zalozylaObsluga ? (
+          <div className="flex flex-col gap-1.5 items-start max-w-[90%] md:max-w-[75%]" data-pierwsza="obsluga">
+            <span className="text-xs text-muted-foreground ml-2 font-medium flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+              Obsługa Verris - {format(new Date(ticket.createdAt), "d MMM, HH:mm", { locale: pl })}
+            </span>
+            <div className="rounded-2xl rounded-tl-sm px-5 py-3.5 text-sm bg-background border border-border text-foreground shadow-sm leading-relaxed whitespace-pre-wrap">
+              {ticket.message}
+              <AttachmentChips ticketId={ticket.id} attachments={openingAttachments(ticket)} variant="neutral" align="start" />
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col gap-1.5 items-end max-w-[90%] md:max-w-[75%] ml-auto">
+            <span className="text-xs text-muted-foreground mr-2 font-medium">
+              Ty - {format(new Date(ticket.createdAt), "d MMM, HH:mm", { locale: pl })}
+            </span>
+            <div className="rounded-2xl rounded-tr-sm px-5 py-3.5 text-sm bg-primary text-primary-foreground shadow-sm shadow-primary/20 leading-relaxed whitespace-pre-wrap">
+              {ticket.message}
+              <AttachmentChips ticketId={ticket.id} attachments={openingAttachments(ticket)} />
+            </div>
+          </div>
+        )}
 
         {/* Odpowiedzi i Logi */}
         {ticket.replies.map((reply) => {

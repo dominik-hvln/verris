@@ -96,7 +96,13 @@ export default async function StaffInboxPage({
             )}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href={filterUserId ? `/tickets/nowe?userId=${encodeURIComponent(filterUserId)}` : "/tickets/nowe"}
+            className="inline-flex h-[38px] items-center rounded-[9px] border border-line-strong bg-card px-3.5 text-sm font-semibold text-foreground no-underline hover:border-primary"
+          >
+            Nowe zgłoszenie
+          </Link>
           <Licznik etykieta="Otwarte" wartosc={rows.length} />
           <Licznik etykieta="Po terminie" wartosc={poTerminie} alarm={poTerminie > 0} />
         </div>

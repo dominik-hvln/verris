@@ -504,7 +504,7 @@ describe('F2.5 — trasy helpdesku', () => {
   };
   const L1 = [...ROLE_SYSTEMOWE.find((r) => r.name === 'L1 Konsultant')!.permissions];
   const MARKETING = [...ROLE_SYSTEMOWE.find((r) => r.name === 'Marketing')!.permissions];
-  const ZAPIS = ['adminAddNote'];
+  const ZAPIS = ['adminAddNote', 'adminCreateOnBehalf'];
   const ODCZYT: string[] = [];
 
   it('zapis — TICKETS_MANAGE: L1 tak, sam TICKETS_VIEW nie, Marketing nie', async () => {

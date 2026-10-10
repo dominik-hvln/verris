@@ -199,6 +199,22 @@ export const POMOC = {
     opis: "Akceptacja albo odrzucenie zgłoszenia klienta do programu poleceń.",
     kiedy: "Gdy zgłoszenie czeka na decyzję.",
   },
+  "zgloszenie-w-imieniu": {
+    tytul: "Nowe zgłoszenie w imieniu klienta",
+    opis: "Zakłada zgłoszenie z Twoją wiadomością do klienta, a klient dostaje mail od „Obsługa Verris” bez Twojego nazwiska.",
+    kiedy: "Gdy sprawa przyszła telefonem albo to my piszemy pierwsi, na przykład o awarii lub nadużyciu.",
+    rozniSieOd: "Notatka o kliencie zostaje w zespole, a zgłoszenie trafia do klienta.",
+  },
+  "notatka-zgloszenia": {
+    tytul: "Notatka wewnętrzna w zgłoszeniu",
+    opis: "Wpis w wątku widoczny tylko dla zespołu, bez maila i bez zmiany stanu zgłoszenia.",
+    kiedy: "Do przekazania sprawy dalej, ale pisz tak, jakby klient mógł to przeczytać, bo notatki są w jego eksporcie RODO.",
+  },
+  "eskalacja-zgloszenia": {
+    tytul: "Eskalacja zgłoszenia",
+    opis: "Podnosi priorytet do pilnego z powodem w dzienniku, a cofnięcie przywraca poprzedni priorytet.",
+    kiedy: "Gdy sprawa przerasta Twój szczebel albo grozi utratą klienta.",
+  },
 } satisfies Record<string, WpisPomocy>;
 
 export type PomocId = keyof typeof POMOC;

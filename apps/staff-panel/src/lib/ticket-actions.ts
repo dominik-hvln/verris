@@ -50,6 +50,27 @@ export async function staffPostReply(
   }
 }
 
+/**
+ * F2.5 — zgłoszenie założone przez obsługę w imieniu klienta. Klient: `userId` (z karty / filtra skrzynki)
+ * albo dokładny e-mail. Zwraca id nowego zgłoszenia — formularz przechodzi do jego wątku.
+ */
+export async function staffCreateTicketOnBehalf(fd: FormData): Promise<{ ok: true; id: string } | { error: string }> {
+  const pole = (k: string) => fd.get(k)?.toString().trim() ?? "";
+  const userId = pole("userId");
+  const email = pole("email");
+  if (!userId && !email) return { error: "Podaj e-mail klienta." };
+  const body: Record<string, string> = { subject: pole("subject"), message: pole("message"), priority: pole("priority") || "NORMAL", department: pole("department") || "TECHNICAL" };
+  if (userId) body.userId = userId;
+  else body.email = email;
+  try {
+    const r = await staffApi<{ id: string }>("/tickets/admin/w-imieniu", { method: "POST", body });
+    revalidatePath("/");
+    return { ok: true, id: r.id };
+  } catch (e) {
+    return { error: e instanceof StaffApiError ? e.message : "Nie udało się założyć zgłoszenia." };
+  }
+}
+
 /** F2.5 — notatka wewnętrzna w wątku: bez maila do klienta i bez zmiany stanu zgłoszenia. */
 export async function staffPostNote(ticketId: string, message: string): Promise<{ ok: true } | { error: string }> {
   const m = message.trim();

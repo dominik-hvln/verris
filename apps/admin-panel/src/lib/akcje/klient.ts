@@ -168,6 +168,18 @@ export const AKCJE_KLIENTA: AkcjaObiektu<KlientDlaAkcji>[] = [
     slowa: "warunki cena rabat indywidualne",
   },
   {
+    id: "nowe-zgloszenie",
+    grupa: "Obsługa",
+    nazwa: "Nowe zgłoszenie w imieniu klienta",
+    opis: "Wiadomość do klienta jako zgłoszenie; mail od „Obsługa Verris”.",
+    // POST tickets/admin/w-imieniu — TICKETS_MANAGE.
+    perm: "TICKETS_MANAGE",
+    kiedy: () => true,
+    href: (k) => karta(k, "zgloszenia", "nowe-zgloszenie"),
+    slowa: "nowe zgłoszenie w imieniu napisz do klienta ticket wychodzący",
+    pomocId: "zgloszenie-w-imieniu",
+  },
+  {
     id: "odpowiedz",
     grupa: "Obsługa",
     nazwa: "Odpowiedz na zgłoszenie",

@@ -23,3 +23,19 @@ describe('ClientTicketChat — wiadomości automatyczne z datą', () => {
     expect(html).toMatch(/28 wrz, \d\d:35/);
   });
 });
+
+/** F2.5 — zgłoszenie założone przez obsługę: pierwsza wiadomość od „Obsługa Verris”, nie podpisana „Ty”. */
+describe('ClientTicketChat — zgłoszenie założone przez obsługę', () => {
+  const baza = { id: 't2', subject: 'Awaria poczty', message: 'Wykryliśmy problem z pocztą na Twoim koncie.', status: 'WAITING_CUSTOMER', priority: 'NORMAL', createdAt: '2026-10-10T10:00:00Z', replies: [], attachments: [] };
+  it('zalozylaObsluga → „Obsługa Verris”, bez „Ty”', () => {
+    const html = renderToStaticMarkup(<ClientTicketChat ticket={{ ...baza, zalozylaObsluga: true } as never} />);
+    expect(html).toContain('data-pierwsza="obsluga"');
+    expect(html).toContain('Obsługa Verris');
+    expect(html).not.toMatch(/>Ty - /);
+  });
+  it('zwykłe zgłoszenie dalej od „Ty”', () => {
+    const html = renderToStaticMarkup(<ClientTicketChat ticket={baza as never} />);
+    expect(html).toMatch(/Ty - /);
+    expect(html).not.toContain('data-pierwsza="obsluga"');
+  });
+});

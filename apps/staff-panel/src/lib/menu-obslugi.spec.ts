@@ -13,7 +13,12 @@ describe("menu obsługi według uprawnień (pozycja 12)", () => {
   });
 
   it("administrator widzi wszystko", () => {
-    expect(nazwy({ isAdmin: true, permissions: [] })).toHaveLength(12);
+    expect(nazwy({ isAdmin: true, permissions: [] })).toHaveLength(13);
+  });
+
+  it("F2.5 — „Nowe zgłoszenie” tylko z TICKETS_MANAGE (L1 tak, sam podgląd nie)", () => {
+    expect(nazwy({ isAdmin: false, permissions: L1 })).toContain("Nowe zgłoszenie");
+    expect(nazwy({ isAdmin: false, permissions: ["TICKETS_VIEW"] })).not.toContain("Nowe zgłoszenie");
   });
 
   it("uprawnienie odsłania swoją pozycję (MIGRATIONS_MANAGE → Migracje)", () => {
