@@ -158,6 +158,7 @@ export default async function FakturaPage({ params }: { params: Promise<{ invoic
               </Link>
             )
           ) : null}
+          {korekta ? <Pomoc id="korekta" /> : null}
         </div>
         {dokoncz ? (
           <div id="dokoncz" className="flex scroll-mt-24 flex-col gap-2 border-t border-line pt-4">
@@ -169,7 +170,9 @@ export default async function FakturaPage({ params }: { params: Promise<{ invoic
         ) : null}
         {anuluj ? (
           <div id="anuluj" className="flex scroll-mt-24 flex-col gap-2 border-t border-line pt-4">
-            <h3 className="text-sm font-semibold">Anulowanie dokumentu</h3>
+            <h3 className="flex items-center gap-1.5 text-sm font-semibold">
+              Anulowanie dokumentu <Pomoc id="anuluj-fakture" />
+            </h3>
             {anuluj.zablokowane && !wniosekAnulowania ? (
               <Zablokowane powod={anuluj.zablokowane}>Anuluj dokument</Zablokowane>
             ) : (
@@ -219,7 +222,12 @@ export default async function FakturaPage({ params }: { params: Promise<{ invoic
             <Pomoc id="upo" />
           </span>
         ) : null}
-        {ksef ? ksef.zablokowane ? <Zablokowane powod={ksef.zablokowane}>Ponów wysyłkę do KSeF</Zablokowane> : <PonowKsef invoiceId={f.id} number={f.number} /> : null}
+        {ksef ? (
+          <span className="flex items-center gap-1.5">
+            {ksef.zablokowane ? <Zablokowane powod={ksef.zablokowane}>Ponów wysyłkę do KSeF</Zablokowane> : <PonowKsef invoiceId={f.id} number={f.number} />}
+            <Pomoc id="ksef-ponow" />
+          </span>
+        ) : null}
       </section>
 
       <section className={KARTA} aria-labelledby="platnosci">

@@ -42,6 +42,7 @@ export const AKCJE_USLUGI: AkcjaObiektu<UslugaDlaAkcji>[] = [
     kiedy: (u) => u.zakladanieNieudane ?? (u.status === undefined || u.status === "PROVISIONING"),
     href: (u) => karta(u, "przeglad", "zakladanie"),
     slowa: "provisioning retry ponów odrzuć kolejka zakładania",
+    pomocId: "zakladanie",
   },
   {
     id: "migracje",
@@ -53,6 +54,7 @@ export const AKCJE_USLUGI: AkcjaObiektu<UslugaDlaAkcji>[] = [
     kiedy: () => true,
     href: (u) => karta(u, "migracje", "zlecenia-migracji"),
     slowa: "migracja ponów krok uwaga pilne wznów",
+    pomocId: "zlecenia-migracji",
   },
   {
     id: "zawieszenie",

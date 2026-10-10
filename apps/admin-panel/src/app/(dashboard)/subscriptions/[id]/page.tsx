@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AdminApiError, adminApi } from "@/lib/api";
 import { NieWczytano } from "@/components/nie-wczytano";
+import { Pomoc } from "@/components/pomoc";
 import { fetchStaffAccess, type StaffAccess } from "@/lib/staff-access";
 import { stanUslugi } from "@/lib/stan-uslugi";
 import { plForm } from "@/lib/pl";
@@ -263,6 +264,7 @@ export default async function AdminSubscriptionDetailPage({
         <>
           <section id="zlecenia-migracji" className={`${KARTA} scroll-mt-24`} aria-labelledby="zlecenia-migracji-naglowek">
             <NaglowekKarty id="zlecenia-migracji-naglowek" tytul="Zlecenia migracji">
+              <Pomoc id="zlecenia-migracji" />
               {d.account && canMigrate(access) ? (
                 <Link href={`/migrations/za-klienta?subscriptionId=${d.id}`} className="ml-auto text-[13px] font-semibold text-data-hi hover:underline">
                   Migracja za klienta
@@ -353,6 +355,7 @@ function ZakladaniePanel({ joby }: { joby: ProvisioningJobRow[] | null }) {
   return (
     <section id="zakladanie" className={`${KARTA} scroll-mt-24 border-[color-mix(in_srgb,var(--crit)_40%,transparent)]`} aria-labelledby="zakladanie-naglowek">
       <NaglowekKarty id="zakladanie-naglowek" tytul="Zakładanie konta nie powiodło się">
+        <Pomoc id="zakladanie" />
         {joby === null ? null : (
           <Link href="/provisioning-queue?state=failed" className="ml-auto text-[13px] font-semibold text-data-hi hover:underline">
             Kolejka zadań

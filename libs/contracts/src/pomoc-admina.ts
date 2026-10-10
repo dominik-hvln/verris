@@ -121,6 +121,49 @@ export const POMOC = {
     opis: "Wyłącza skrzynkę zespołu: znika z map poczty, więc nie przyjmuje maili, aliasów ani logowania IMAP.",
     kiedy: "Gdy pracownik odchodzi albo hasło mogło wyciec.",
   },
+  // Fala 1B — działania z patchy 9–11 porządków (usługa, faktura, klient), których brakowało w słowniku.
+  zakladanie: {
+    tytul: "Ponów albo odrzuć zakładanie",
+    opis: "Ponawia nieudane zakładanie konta na węźle albo usuwa martwe zadanie z kolejki, z powodem w dzienniku.",
+    kiedy: "Gdy usługa utknęła w zakładaniu: ponów po usunięciu przyczyny, odrzuć, gdy konta nie da się założyć.",
+  },
+  "zlecenia-migracji": {
+    tytul: "Zlecenia migracji",
+    opis: "Migracje tej usługi z krokami: ponowienie kroku, który padł, i zamknięcie uwagi przy migracji.",
+    kiedy: "Gdy migracja stoi na błędzie albo czeka na decyzję zespołu.",
+  },
+  korekta: {
+    tytul: "Wystaw korektę",
+    opis: "Wystawia fakturę korygującą (seria VFK) do opłaconej faktury: zwrot, rabat albo poprawka danych nabywcy.",
+    kiedy: "Gdy opłaconą fakturę trzeba zmienić — anulować jej już nie można.",
+    rozniSieOd: "Anulowanie dotyczy tylko dokumentu nieopłaconego.",
+  },
+  "anuluj-fakture": {
+    tytul: "Anuluj dokument",
+    opis: "Unieważnia nieopłacony dokument; bez uprawnienia można wysłać wniosek.",
+    kiedy: "Gdy dokument wystawiono przez pomyłkę i nikt go jeszcze nie opłacił.",
+    rozniSieOd: "Opłaconą fakturę zmienia się korektą.",
+  },
+  "ksef-ponow": {
+    tytul: "Ponów wysyłkę do KSeF",
+    opis: "Wysyła ponownie fakturę odrzuconą przez KSeF.",
+    kiedy: "Po poprawieniu danych, które spowodowały odrzucenie.",
+  },
+  "blokada-poczty": {
+    tytul: "Blokada wysyłki poczty",
+    opis: "Wysyłka z konta klienta została zablokowana, bo szło z niego podejrzanie dużo poczty.",
+    kiedy: "Zdejmij dopiero po usunięciu przyczyny, czyli zmianie hasła skrzynki albo usunięciu skryptu.",
+  },
+  reseller: {
+    tytul: "Reseller",
+    opis: "Klient sprzedaje usługi pod własną marką z ustalonym narzutem.",
+    kiedy: "Gdy klient zgłosił się jako reseller albo trzeba zmienić jego narzut.",
+  },
+  "program-partnerski": {
+    tytul: "Program partnerski",
+    opis: "Akceptacja albo odrzucenie zgłoszenia klienta do programu poleceń.",
+    kiedy: "Gdy zgłoszenie czeka na decyzję.",
+  },
 } satisfies Record<string, WpisPomocy>;
 
 export type PomocId = keyof typeof POMOC;

@@ -107,6 +107,7 @@ export const AKCJE_KLIENTA: AkcjaObiektu<KlientDlaAkcji>[] = [
     kiedy: (k) => k.blokadaPoczty !== false,
     href: (k) => karta(k, "dostepy", "blokada-poczty"),
     slowa: "blokada poczty spam cordon deliverability wysyłka",
+    pomocId: "blokada-poczty",
   },
   {
     id: "dns-tls",
@@ -127,6 +128,7 @@ export const AKCJE_KLIENTA: AkcjaObiektu<KlientDlaAkcji>[] = [
     kiedy: () => true,
     href: (k) => karta(k, "rozliczenia", "reseller"),
     slowa: "reseller narzut marka odsprzedaż",
+    pomocId: "reseller",
   },
   {
     id: "dane-nabywcy",
@@ -149,6 +151,7 @@ export const AKCJE_KLIENTA: AkcjaObiektu<KlientDlaAkcji>[] = [
     kiedy: (k) => k.partner === undefined || k.partner === "PENDING",
     href: (k) => karta(k, "rozliczenia", "program-partnerski"),
     slowa: "partner polecenia referral akceptuj",
+    pomocId: "program-partnerski",
   },
   {
     id: "warunki",

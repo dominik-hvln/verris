@@ -39,6 +39,7 @@ export const AKCJE_FAKTURY: AkcjaObiektu<FakturaDlaAkcji>[] = [
     kiedy: (f) => (nieWiadomo(f.status) || f.status === "PAID") && f.kind !== "KOREKTA",
     href: (f) => `/invoices/${f.id}/korekta`,
     slowa: "korekta koryguj zwrot vfk",
+    pomocId: "korekta",
   },
   {
     id: "anuluj",
@@ -51,6 +52,7 @@ export const AKCJE_FAKTURY: AkcjaObiektu<FakturaDlaAkcji>[] = [
     slowa: "anuluj void unieważnij",
     // Strona faktury — BILLING_VIEW; wniosek INVOICE_VOID składa się z CUSTOMERS_VIEW.
     wniosek: ["BILLING_VIEW", "CUSTOMERS_VIEW"],
+    pomocId: "anuluj-fakture",
   },
   {
     id: "dokoncz",
@@ -87,6 +89,7 @@ export const AKCJE_FAKTURY: AkcjaObiektu<FakturaDlaAkcji>[] = [
     kiedy: (f) => nieWiadomo(f.ksefStatus) || f.ksefStatus === "REJECTED",
     href: (f) => strona(f, "ksef"),
     slowa: "ksef ponów odrzucona e-faktura",
+    pomocId: "ksef-ponow",
   },
   {
     id: "klient",
