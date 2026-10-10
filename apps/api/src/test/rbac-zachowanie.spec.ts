@@ -354,4 +354,18 @@ describe('D1 — panel operatora dla STAFF: macierz tras', () => {
       expect({ k, m, ok: await wpuszcza(t(k, m), OPERATOR, WSZYSTKIE.filter((p) => p !== perm)) }).toEqual({ k, m, ok: false });
     }
   });
+
+  /**
+   * Przegląd Fali 2A — wiedza AI zasila chatbota w panelu klienta (dokumenty CLIENT/ALL). Panel operatora otwiera
+   * stronę „Wiedza AI” dla DASHBOARD_VIEW (L1, audytor, NOC, finanse), więc zapis musi wymagać KB_MANAGE jak artykuły.
+   */
+  it('wiedza AI: odczyt DASHBOARD_VIEW, zapis (dodanie, zmiana, usunięcie) tylko KB_MANAGE', async () => {
+    const t = (metoda: string) => TRASY.find((x) => x.kontroler === 'AiKnowledgeAdminController' && x.metoda === metoda)!;
+    for (const m of ['list', 'get']) expect({ m, ok: await wpuszcza(t(m), OPERATOR, ['DASHBOARD_VIEW']) }).toEqual({ m, ok: true });
+    for (const m of ['create', 'update', 'remove']) {
+      expect({ m, ok: await wpuszcza(t(m), OPERATOR, WSZYSTKIE.filter((p) => p !== 'KB_MANAGE')) }).toEqual({ m, ok: false });
+      expect({ m, ok: await wpuszcza(t(m), OPERATOR, ['KB_MANAGE']) }).toEqual({ m, ok: true });
+      expect(await wpuszcza(t(m), ADMIN)).toBe(true);
+    }
+  });
 });

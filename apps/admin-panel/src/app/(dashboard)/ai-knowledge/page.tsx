@@ -4,12 +4,16 @@ import type { AiKnowledgeDocSummaryDto, AiStatusDto } from "@verris/contracts";
 import { fetchAiStatus, listKnowledgeDocs } from "./data";
 import { KnowledgeManager } from "./knowledge-manager";
 import { StaffAssistant } from "@/components/staff-assistant";
+import { brakUprawnienia } from "@/lib/akcje/wezel";
+import { fetchStaffAccess } from "@/lib/staff-access";
 
 export const dynamic = "force-dynamic";
 
 export default async function AiKnowledgePage() {
   const bramka = await bramkaStrony("/ai-knowledge");
   if (bramka) return bramka;
+  // Zapis (POST/PATCH/DELETE admin/ai/knowledge) — KB_MANAGE; sam odczyt — DASHBOARD_VIEW (bramka strony).
+  const bezZapisu = brakUprawnienia("KB_MANAGE", await fetchStaffAccess());
   let docs: AiKnowledgeDocSummaryDto[] = [];
   let error: string | null = null;
   let status: AiStatusDto | null = null;
@@ -49,7 +53,7 @@ export default async function AiKnowledgePage() {
         </div>
       ) : (
         <>
-          <KnowledgeManager initialDocs={docs} embeddings={Boolean(status?.embeddings)} />
+          <KnowledgeManager initialDocs={docs} embeddings={Boolean(status?.embeddings)} bezZapisu={bezZapisu} />
           {status?.configured ? (
             <section className="flex h-[28rem] flex-col gap-3 rounded-2xl border border-line bg-card p-5" aria-label="Test bazy wiedzy">
               <h2 className="m-0 text-sm font-semibold">Test bazy wiedzy (dokumenty STAFF i ALL)</h2>

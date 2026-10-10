@@ -23,7 +23,11 @@ import { CreateKnowledgeDocDto, UpdateKnowledgeDocDto } from './dto/ai.dto.js';
 /** Tożsamość z JWT: `principalUserId` = człowiek za subkontem albo impersonacją. */
 type Uzytkownik = { userId: string; principalUserId?: string };
 
-/** Admin/Staff management of the AI knowledge base ("train the AI"). */
+/**
+ * Admin/Staff management of the AI knowledge base ("train the AI"). Odczyt — DASHBOARD_VIEW; zapis (dodanie, zmiana,
+ * archiwizacja, usunięcie) — KB_MANAGE: dokumenty CLIENT/ALL czyta chatbot w panelu klienta, więc to publikacja
+ * treści dla klientów jak artykuł bazy wiedzy (przegląd Fali 2A — wcześniej pisał każdy z pulpitem: L1, audytor, NOC).
+ */
 @Controller('admin/ai/knowledge')
 @UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
 @Roles(Role.ADMIN, Role.STAFF)
@@ -48,17 +52,20 @@ export class AiKnowledgeAdminController {
   }
 
   @Post()
+  @StaffPerm('KB_MANAGE')
   @HttpCode(201)
   create(@Body() dto: CreateKnowledgeDocDto, @CurrentUser() user: Uzytkownik) {
     return this.kb.createDoc(dto, user.principalUserId ?? user.userId);
   }
 
   @Patch(':id')
+  @StaffPerm('KB_MANAGE')
   update(@Param('id') id: string, @Body() dto: UpdateKnowledgeDocDto, @CurrentUser() user: Uzytkownik) {
     return this.kb.updateDoc(id, dto, user.principalUserId ?? user.userId);
   }
 
   @Delete(':id')
+  @StaffPerm('KB_MANAGE')
   @HttpCode(200)
   remove(@Param('id') id: string, @CurrentUser() user: Uzytkownik) {
     return this.kb.deleteDoc(id, user.principalUserId ?? user.userId);
