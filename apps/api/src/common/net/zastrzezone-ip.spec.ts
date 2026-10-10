@@ -23,7 +23,8 @@ describe('isPrivateOrReservedIp', () => {
   );
 });
 
-describe('sondy TLS na domeny klientów idą przez bezpiecznyLookup', () => {
+// D12 (10.10): lookupUslugiKlienta = strażnik połączenia (prywatne i control-plane zakazane), węzeł dozwolony.
+describe('sondy TLS na domeny klientów idą przez strażnika połączenia (lookupUslugiKlienta)', () => {
   it.each([
     'domains/domains.service.ts',
     'diagnostics/hosting-diagnostics.service.ts',
@@ -35,6 +36,6 @@ describe('sondy TLS na domeny klientów idą przez bezpiecznyLookup', () => {
     const kod = readFileSync(join(import.meta.dirname, '..', '..', plik), 'utf8');
     const wywolania = kod.split('tls.connect(').slice(1).map((r) => r.slice(0, 300));
     expect(wywolania.length).toBeGreaterThan(0);
-    for (const w of wywolania) expect(w).toMatch(/lookup: bezpiecznyLookup/);
+    for (const w of wywolania) expect(w).toMatch(/lookup: lookupUslugiKlienta as never/);
   });
 });

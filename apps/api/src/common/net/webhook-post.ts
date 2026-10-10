@@ -4,6 +4,7 @@ import { request as httpsRequest } from 'node:https';
 import { request as httpRequest } from 'node:http';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { adresyWezlow, isControlPlaneIp, naLiscie } from './adresy-verris.js';
 
 /**
  * Wysyłka webhooka z kontrolą adresu W CHWILI POŁĄCZENIA (nie tylko przed nią). Samo
@@ -21,7 +22,7 @@ export function postWebhookBezpiecznie(raw: string, headers: Record<string, stri
         method: 'POST',
         headers: { ...headers, 'content-length': String(Buffer.byteLength(body)) },
         timeout: timeoutMs,
-        lookup: bezpiecznyLookup as never,
+        lookup: lookupBezpieczny(opcjeDlaPortu(url)) as never,
       },
       (res) => {
         res.resume();
@@ -43,7 +44,7 @@ export function getBezpiecznie(raw: string, headers: Record<string, string>, tim
   const req = url.protocol === 'https:' ? httpsRequest : url.protocol === 'http:' ? httpRequest : null;
   if (!req) return Promise.reject(new Error('Nieobsługiwany protokół.'));
   return new Promise((resolve, reject) => {
-    const r = req(url, { method: 'GET', headers, timeout: timeoutMs, lookup: bezpiecznyLookup as never }, (res) => {
+    const r = req(url, { method: 'GET', headers, timeout: timeoutMs, lookup: lookupBezpieczny(opcjeDlaPortu(url)) as never }, (res) => {
       res.resume();
       resolve(res.statusCode ?? 0);
     });
@@ -54,19 +55,67 @@ export function getBezpiecznie(raw: string, headers: Record<string, string>, tim
 }
 
 type LookupCb = (err: NodeJS.ErrnoException | null, address?: string | { address: string; family: number }[], family?: number) => void;
+type LookupFn = (host: string, opts: { all?: boolean } & Record<string, unknown>, cb: LookupCb) => void;
 
-/** dns.lookup, który nie oddaje adresu prywatnego/zarezerwowanego (obsługa trybu all:true). */
-export function bezpiecznyLookup(host: string, opts: { all?: boolean } & Record<string, unknown>, cb: LookupCb): void {
-  dnsLookupCb(host, { ...opts, all: true }, (err, adresy) => {
-    if (err) return cb(err);
-    const lista = adresy as unknown as { address: string; family: number }[];
-    if (!lista.length || lista.some((a) => isPrivateOrReservedIp(a.address))) {
-      return cb(Object.assign(new Error('Webhook URL resolves to a private or reserved address.'), { code: 'EPRIVATE' }));
-    }
-    if (opts.all) return cb(null, lista);
-    cb(null, lista[0].address, lista[0].family);
-  });
+/**
+ * `wezly: 'dozwolone'` — połączenie z usługą klienta hostowaną na naszym węźle na porcie wybranym przez
+ * nasz kod (strona :443, poczta :993/:587 — sondy stron, TLS domen, diagnostyka, zdrowie usługi).
+ * Domyślnie węzły są zakazane jak w migratorze (resolvePublicHost).
+ */
+export interface OpcjeLookup {
+  wezly?: 'zakazane' | 'dozwolone';
 }
+
+/**
+ * Węzeł tylko na porcie WWW (80/443), czyli tam, gdzie są strony klientów (np. odbiornik webhooka
+ * na stronie hostowanej u nas). Port wybrany przez klienta (np. :2222, :22, :3306) na adres węzła —
+ * odmowa: zapora węzła wpuszcza control-plane na panel, SSH i MariaDB.
+ */
+export function opcjeDlaPortu(url: URL): OpcjeLookup {
+  const port = url.port || (url.protocol === 'https:' ? '443' : '80');
+  return { wezly: port === '443' || port === '80' ? 'dozwolone' : 'zakazane' };
+}
+
+function blad(komunikat: string, code: string): NodeJS.ErrnoException {
+  return Object.assign(new Error(komunikat), { code });
+}
+
+/**
+ * dns.lookup, który w chwili połączenia (DNS rebinding) nie oddaje adresu prywatnego/zarezerwowanego,
+ * adresu control-plane (VERRIS_CONTROL_PLANE_IPS) ani — przy `wezly: 'zakazane'` — adresu węzła z bazy.
+ * D12 (10.10): wcześniej sprawdzał tylko zakresy prywatne, więc domena przełączona po sprawdzeniu
+ * (resolvePublicHost) na publiczny adres control-plane trafiała do niego z pominięciem zapory.
+ * Obsługa trybu all:true.
+ */
+export function lookupBezpieczny(opcje: OpcjeLookup = {}): LookupFn {
+  return (host, opts, cb) => {
+    dnsLookupCb(host, { ...opts, all: true }, (err, adresy) => {
+      if (err) return cb(err);
+      const lista = adresy as unknown as { address: string; family: number }[];
+      if (!lista.length || lista.some((a) => isPrivateOrReservedIp(a.address))) {
+        return cb(blad('Webhook URL resolves to a private or reserved address.', 'EPRIVATE'));
+      }
+      const dalej = () => (opts.all ? cb(null, lista) : cb(null, lista[0].address, lista[0].family));
+      const serwerVerris = () => cb(blad('Adres wskazuje na serwer Verris — odrzucono.', 'EVERRIS'));
+      try {
+        if (lista.some((a) => isControlPlaneIp(a.address))) return serwerVerris();
+      } catch (e) {
+        return cb(e as NodeJS.ErrnoException); // nieprawidłowe VERRIS_CONTROL_PLANE_IPS — odmowa, nie przepuszczenie
+      }
+      if (opcje.wezly === 'dozwolone') return dalej();
+      adresyWezlow().then(
+        (wezly) => (lista.some((a) => naLiscie(a.address, wezly)) ? serwerVerris() : dalej()),
+        (e: NodeJS.ErrnoException) => cb(e),
+      );
+    });
+  };
+}
+
+/** Domyślny strażnik połączenia: prywatne, control-plane i węzły zakazane. */
+export const bezpiecznyLookup: LookupFn = lookupBezpieczny();
+
+/** Usługa klienta na naszym węźle na porcie wybranym przez nasz kod (sondy :443/:993/:587). */
+export const lookupUslugiKlienta: LookupFn = lookupBezpieczny({ wezly: 'dozwolone' });
 
 /**
  * Adresy, do których serwer nie łączy się w imieniu klienta (SSRF): sieci prywatne, pętla, link-local,

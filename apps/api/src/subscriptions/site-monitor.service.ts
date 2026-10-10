@@ -23,7 +23,7 @@ import { PlatformSettingsService } from '../platform-settings/platform-settings.
 import { NotificationsService } from '../notifications/notifications.service.js';
 import * as tls from 'node:tls';
 import { resolvePublicHost } from './migration-net.util.js';
-import { bezpiecznyLookup, getBezpiecznie } from '../common/net/webhook-post.js';
+import { getBezpiecznie, lookupUslugiKlienta } from '../common/net/webhook-post.js';
 import {
   siteDownTemplate,
   siteRecoveredTemplate,
@@ -839,7 +839,8 @@ export async function probeUrl(
   url: string,
 ): Promise<{ up: boolean; httpStatus?: number; responseMs?: number; reason: string }> {
   // Adres literalny (bez DNS) sprawdzamy tu; nazwę — w chwili połączenia (getBezpiecznie →
-  // bezpiecznyLookup), więc DNS rebinding między sprawdzeniem a połączeniem nie działa.
+  // lookupBezpieczny: prywatne i control-plane zakazane, węzeł na :443 dozwolony), więc DNS rebinding
+  // między sprawdzeniem a połączeniem nie działa.
   if (!(await hostPubliczny(new URL(url).hostname))) {
     return { up: false, reason: 'domena wskazuje na adres prywatny lub zastrzeżony — nie sprawdzamy' };
   }
@@ -892,7 +893,7 @@ function probeTlsExpiryRaw(domain: string): Promise<Date | null> {
         port: 443,
         servername: domain,
         // SSRF: domena klienta nie może prowadzić do adresu prywatnego (przegląd 28.09).
-        lookup: bezpiecznyLookup as never,
+        lookup: lookupUslugiKlienta as never,
         rejectUnauthorized: false,
         timeout: TLS_PROBE_TIMEOUT_MS,
       },

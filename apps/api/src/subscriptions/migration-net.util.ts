@@ -2,7 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import * as dns from 'node:dns/promises';
 import * as net from 'node:net';
 import { isPrivateOrReservedIp } from '../common/net/webhook-post.js';
-import { adresyControlPlane } from '../servers/podpis-skryptow.js';
+import { adresyWezlow, isControlPlaneIp, naLiscie, ustawZrodloAdresowWezlow } from '../common/net/adresy-verris.js';
 
 /**
  * Wspólne pomocniki sieciowe migratora (discovery + preflight).
@@ -15,57 +15,9 @@ export function isPrivateIp(ip: string): boolean {
   return isPrivateOrReservedIp(ip);
 }
 
-/**
- * Z-09 (08.10) — adres samego control-plane'u (VERRIS_CONTROL_PLANE_IPS, adresy i sieci).
- * API łączy się z hostem klienta z control-plane'u; połączenie na własny publiczny adres idzie
- * lokalnie i omija zaporę, więc jest zakazane jak 127.0.0.1. Adresy węzła odrzuca guard na węźle.
- * W produkcji pusta lista zatrzymuje start API (sprawdzKonfiguracjeWezlow, 09.10).
- */
-export function isControlPlaneIp(ip: string): boolean {
-  return naLiscie(ip, adresyControlPlane().split(',').filter(Boolean));
-}
-
-/** Adres (także ::ffff:a.b.c.d) należy do listy adresów/sieci (CIDR). Wpisy niebędące IP pomijamy. */
-function naLiscie(ip: string, lista: string[]): boolean {
-  if (!lista.length) return false;
-  const blokada = new net.BlockList();
-  for (const wpis of lista) {
-    const [adres, maska] = wpis.split('/');
-    const wersja = net.isIP(adres);
-    if (!wersja) continue;
-    const typ = wersja === 6 ? 'ipv6' : 'ipv4';
-    if (maska === undefined) blokada.addAddress(adres, typ);
-    else blokada.addSubnet(adres, Number(maska), typ);
-  }
-  const lower = ip.toLowerCase();
-  const v4 = lower.startsWith('::ffff:') && net.isIP(lower.slice(7)) === 4 ? lower.slice(7) : null;
-  if (v4) return blokada.check(v4, 'ipv4');
-  const wersja = net.isIP(lower);
-  if (!wersja) return false;
-  return blokada.check(lower, wersja === 6 ? 'ipv6' : 'ipv4');
-}
-
-/**
- * 09.10 — adresy węzłów hostingu z bazy (Server.ipAddress / ipv6Address). Control-plane łączy się
- * z węzłami z adresu, który zapora węzła wpuszcza na panel :2222, SSH i MariaDB — host „starego
- * hostingu” wskazujący na węzeł dawałby klientowi te porty z naszego zaufanego adresu. Blokada
- * nie zależy od VERRIS_CONTROL_PLANE_IPS. Źródło rejestruje AdresyWezlowRejestr (Prisma) przy
- * starcie modułu; w produkcji brak źródła = odmowa (fail-closed), w testach = pusta lista.
- */
-type ZrodloAdresowWezlow = () => Promise<Array<string | null | undefined>>;
-let zrodloWezlow: ZrodloAdresowWezlow | null = null;
-
-export function ustawZrodloAdresowWezlow(zrodlo: ZrodloAdresowWezlow | null): void {
-  zrodloWezlow = zrodlo;
-}
-
-async function adresyWezlow(): Promise<string[]> {
-  if (!zrodloWezlow) {
-    if (process.env.NODE_ENV === 'production') throw new BadRequestException('Nie można teraz sprawdzić hosta — spróbuj ponownie za chwilę.');
-    return [];
-  }
-  return (await zrodloWezlow()).filter((a): a is string => !!a && !!a.trim()).map((a) => a.trim());
-}
+// Z-09 / 09.10 — adresy control-plane i węzłów: common/net/adresy-verris.ts (wspólne z kontrolą
+// w chwili połączenia, lookupBezpieczny). Eksport dalej dla dotychczasowych importów.
+export { isControlPlaneIp, ustawZrodloAdresowWezlow };
 
 function odrzucZakazany(ip: string, wezly: string[]): void {
   if (isPrivateIp(ip)) throw new BadRequestException('Host wskazuje na sieć prywatną — odrzucono.');
