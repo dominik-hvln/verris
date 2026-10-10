@@ -91,6 +91,14 @@ describe("Menu admina — żadna strona nie jest ukryta", () => {
     expect(menu().querySelector('a[href="/plans"]')).not.toBeNull();
   });
 
+  it("Flota → Kopie (próby odtworzenia) tylko dla administratora — API: @Roles(ADMIN)", async () => {
+    sciezka = "/nodes";
+    await render(["NODES_VIEW", "NODES_MANAGE"], false);
+    expect(menu().querySelector('a[href="/nodes/kopie"]')).toBeNull();
+    await render([], true);
+    expect(menu().querySelector('a[href="/nodes/kopie"]')?.textContent).toBe("Kopie");
+  });
+
   it("operator widzi tylko strony ze swoimi uprawnieniami; sekcja z jedną stroną to zwykły link", async () => {
     sciezka = "/tickets";
     await render(["TICKETS_VIEW", "NODES_VIEW"], false);
@@ -195,6 +203,10 @@ describe("Cmd+K — słowa kluczowe i strony spoza menu", () => {
     ["za klienta", "Migracja za klienta"],
     ["passkey", "Twoje konto"],
     ["break-glass", "Twoje konto"],
+    // Fala 1B — Flota → Kopie.
+    ["odtworzenie", "Próby odtworzenia"],
+    ["restore", "Próby odtworzenia"],
+    ["kopie", "Próby odtworzenia"],
   ])("„%s” → %s", async (q, strona) => {
     await otworz();
     expect(await wpisz(q)).toContain(strona);

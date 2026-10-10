@@ -72,6 +72,12 @@ const IKONY = {
     </>
   ),
   dodaj: <path d="M12 5v14M5 12h14" />,
+  kopie: (
+    <>
+      <ellipse cx="12" cy="6" rx="8" ry="3" />
+      <path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
+    </>
+  ),
   flota: <path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" />,
   poczta: <path d="M3 6h18v12H3zM3 6l9 7 9-7" />,
   portfel: (
@@ -147,6 +153,12 @@ function grupy(l: LicznikiMenu | null): Grupa[] {
           ikona: "kolejka",
           licznik: l?.zakladane ? String(l.zakladane) : undefined,
           pod: [{ name: "Kolejka zadań", href: "/provisioning-queue", perm: "PROVISIONING_MANAGE", szukaj: "kolejka zakładania provisioning nowe konta zadania węzłów" }],
+        },
+        // GET /admin/live-readiness/proby-odtworzenia — tylko ADMIN (fala 1B, zaczątek F3.3).
+        {
+          name: "Kopie",
+          ikona: "kopie",
+          pod: [{ name: "Próby odtworzenia", href: "/nodes/kopie", perm: "ADMIN", szukaj: "kopie odtworzenie restore backup kopia zapasowa drill test rto" }],
         },
         {
           name: "Migracje",
