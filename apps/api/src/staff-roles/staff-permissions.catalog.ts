@@ -17,7 +17,7 @@ export const STAFF_PERMISSIONS = [
   { key: 'BILLING_MANAGE', area: 'Finanse', label: 'Faktury, korekty, portfel, kredyty' },
   { key: 'NODES_VIEW', area: 'Infrastruktura', label: 'Podgląd węzłów i floty' },
   { key: 'NODES_MANAGE', area: 'Infrastruktura', label: 'Zarządzanie węzłami (cordon, drain, zadania)' },
-  { key: 'PLANS_MANAGE', area: 'Infrastruktura', label: 'Plany produktowe i VPS' },
+  { key: 'PLANS_MANAGE', area: 'Infrastruktura', label: 'Podgląd planów produktowych (zmiany planów i cen — tylko administrator)' },
   { key: 'PROVISIONING_MANAGE', area: 'Operacje', label: 'Kolejka provisioningu' },
   { key: 'MIGRATIONS_MANAGE', area: 'Operacje', label: 'Migracje (cockpit)' },
   { key: 'CUSTOM_TERMS_MANAGE', area: 'Finanse', label: 'Indywidualne warunki: własna cena usługi, rabat autoskalowania, rozliczenie poza Verris' },

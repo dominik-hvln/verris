@@ -6,7 +6,9 @@ import { join, resolve } from 'node:path';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
 import { STAFF_PERMISSIONS_ANY_KEY, STAFF_PERMISSIONS_KEY } from '../common/decorators/staff-permissions.decorator.js';
+import { ROLES_KEY } from '../common/decorators/roles.decorator.js';
 import { ROLE_SYSTEMOWE } from '../staff-roles/role-systemowe.js';
+import { STAFF_PERMISSION_KEYS } from '../staff-roles/staff-permissions.catalog.js';
 
 /**
  * X-10 — RBAC sprawdzany ZACHOWANIEM, nie metadanymi.
@@ -23,13 +25,22 @@ type Trasa = { kontroler: string; klasa: Type<unknown>; metoda: string; handler:
 const SRC = resolve(import.meta.dirname, '..');
 /** Trasy paneli operatorskich: `admin/*`, `staff/*` i `…/admin/*` (np. `tickets/admin/:id/usluga`). */
 const TRASA_OPERATORA = /^(admin|staff)(\/|$)|\/admin(\/|$)/;
+/** Fala 2A (D1) — role z @Roles trasy (metoda nadpisuje klasę, jak w RolesGuard). */
+const roleTrasy = (handler: object, klasa: object) => new Reflector().getAllAndOverride<string[] | undefined>(ROLES_KEY, [handler as never, klasa as never]);
+/**
+ * Trasa operatora: ścieżka panelu operatora albo @Roles dopuszczające STAFF bez klienta (USER) — np. `ai/staff/chat`,
+ * `auth/break-glass/*`. Panel admina wpuszcza STAFF (D1), więc liczy się każda trasa, którą STAFF może wywołać.
+ */
+const jestTrasaOperatora = (pelna: string, role: string[] | undefined) =>
+  TRASA_OPERATORA.test(pelna) || (!!role?.includes('STAFF') && !role.includes('USER'));
 
 function plikiKontrolerow(dir: string): string[] {
   const out: string[] = [];
   for (const n of readdirSync(dir)) {
     const p = join(dir, n);
     if (statSync(p).isDirectory()) out.push(...plikiKontrolerow(p));
-    else if (n.endsWith('.controller.ts') && /@Controller\(\s*['"`](admin|staff|tickets)/.test(readFileSync(p, 'utf-8'))) out.push(p);
+    // Fala 2A — wszystkie kontrolery (także `@Controller()` i `ai`, `auth`): trasę operatora rozpoznaje jestTrasaOperatora.
+    else if (n.endsWith('.controller.ts') && readFileSync(p, 'utf-8').includes('@Controller(')) out.push(p);
   }
   return out;
 }
@@ -53,7 +64,7 @@ async function trasyAdmina(): Promise<Trasa[]> {
           .split('/')
           .filter(Boolean)
           .join('/');
-        if (!TRASA_OPERATORA.test(pelna)) continue;
+        if (!jestTrasaOperatora(pelna, roleTrasy(handler, klasa))) continue;
         out.push({ kontroler: nazwa, klasa: klasa as Type<unknown>, metoda, handler: handler as (...args: unknown[]) => unknown, sciezka: pelna });
       }
     }
@@ -113,8 +124,12 @@ describe('X-10 — RBAC paneli operatorskich sprawdzany zachowaniem', () => {
         'staff/migrations/za-klienta/preflight',
       ]),
     );
-    // Trasy klienta z tych samych kontrolerów (np. `tickets/:id`) nie są trasami operatora.
-    expect(sciezki.filter((s) => !TRASA_OPERATORA.test(s))).toEqual([]);
+    // Trasy klienta z tych samych kontrolerów (np. `tickets/:id`) nie są trasami operatora; poza `admin/*`
+    // liczą się tylko trasy z @Roles dla STAFF (np. asystent pracowników, break-glass).
+    expect(sciezki.filter((s) => !TRASA_OPERATORA.test(s)).sort()).toEqual(
+      expect.arrayContaining(['ai/staff/chat', 'auth/break-glass/status']),
+    );
+    expect(TRASY.filter((t) => !TRASA_OPERATORA.test(t.sciezka) && !roleTrasy(t.handler, t.klasa)?.includes('STAFF'))).toEqual([]);
   });
 
   it('konto klienta (USER) nie wchodzi na ŻADNĄ trasę operatora (admin/*, staff/*, tickets/admin/*)', async () => {
@@ -145,7 +160,8 @@ describe('X-10 — RBAC paneli operatorskich sprawdzany zachowaniem', () => {
   it('administrator wchodzi wszędzie', async () => {
     const odrzucone: string[] = [];
     for (const t of TRASY) if (!(await wpuszcza(t, ADMIN))) odrzucone.push(nazwa(t));
-    expect(odrzucone).toEqual([]);
+    // Konfiguracja sesji panelu obsługi — tylko STAFF (panel admina ma własną: platform-settings/admin).
+    expect(odrzucone).toEqual(['PlatformSettingsController.getStaffSessionConfig (platform-settings/staff)']);
   });
 
   it('trasy tylko dla administratora odrzucają operatora nawet z kompletem uprawnień', async () => {
@@ -228,6 +244,114 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
   it('klient (USER) nie wchodzi na kartę nawet z uprawnieniami z listy', async () => {
     for (const m of ['detail', 'usage', 'migrationTimeline', 'hostingRestoreStatus', 'runDiagnostics', 'hostingBackups']) {
       expect(await wpuszcza(trasa(m), KLIENT, ['CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE', 'TICKETS_MANAGE', 'ACCOUNT_DIAGNOSTICS_VIEW'])).toBe(false);
+    }
+  });
+});
+
+/**
+ * Fala 2A (decyzja D1, 10.10) — panel admina wpuszcza STAFF, więc każda trasa, którą STAFF może wywołać, musi mieć
+ * uprawnienie (@StaffPerm / @StaffPermAny), a akcje nieodwracalne i konfiguracja zostają tylko dla ADMIN-a.
+ */
+describe('D1 — panel operatora dla STAFF: macierz tras', () => {
+  const straznicy = (t: Trasa) => [
+    ...((Reflect.getMetadata(GUARDS_METADATA, t.klasa) as unknown[]) ?? []),
+    ...((Reflect.getMetadata(GUARDS_METADATA, t.handler) as unknown[]) ?? []),
+  ];
+  const WSZYSTKIE = [...STAFF_PERMISSION_KEYS];
+
+  it('każda trasa operatora ma @Roles i RolesGuard; @StaffPerm/@StaffPermAny ma StaffPermissionsGuard', () => {
+    const bez: string[] = [];
+    for (const t of TRASY) {
+      const g = straznicy(t);
+      if (!roleTrasy(t.handler, t.klasa)?.length) bez.push(`bez @Roles: ${nazwa(t)}`);
+      else if (!g.includes(RolesGuard)) bez.push(`bez RolesGuard: ${nazwa(t)}`);
+      const perm =
+        new Reflector().getAllAndOverride<string[]>(STAFF_PERMISSIONS_KEY, [t.handler, t.klasa])?.length ||
+        (Reflect.getMetadata(STAFF_PERMISSIONS_ANY_KEY, t.handler) as string[] | undefined)?.length;
+      if (perm && !g.includes(StaffPermissionsGuard)) bez.push(`bez StaffPermissionsGuard: ${nazwa(t)}`);
+    }
+    expect(bez).toEqual([]);
+  });
+
+  /**
+   * Trasy, które STAFF wywołuje bez uprawnienia — tylko własne konto albo świadoma decyzja. Każda nowa pozycja
+   * tutaj to decyzja, nie przeoczenie.
+   */
+  const BEZ_UPRAWNIENIA: Record<string, string> = {
+    'StaffMeController.access': 'własne uprawnienia (menu panelu)',
+    'ControlPlaneMailStaffController.connectionInfo': 'własna skrzynka pracownika',
+    'AuthController.breakGlassStatus': 'własne kody awaryjne',
+    'AuthController.breakGlassRegenerate': 'własne kody awaryjne',
+    'PlatformSettingsController.getStaffSessionConfig': 'konfiguracja sesji panelu obsługi',
+    'OpiekaZgloszenAdminController.oceny': 'STAFF widzi tylko własne oceny (filtr w serwisie)',
+    'UsersAdminController.stop': 'koniec własnej impersonacji',
+    'WnioskiAdminController.zloz': 'wniosek składa każdy (uprawnienie do złożenia sprawdza serwis)',
+    'WnioskiAdminController.moje': 'własne wnioski',
+    'WnioskiAdminController.anuluj': 'własny wniosek',
+    'KbAdminController.categories': 'baza wiedzy do odczytu dla każdego pracownika (fala 1A)',
+    'KbAdminController.articles': 'baza wiedzy do odczytu dla każdego pracownika (fala 1A)',
+    'KbAdminController.article': 'baza wiedzy do odczytu dla każdego pracownika (fala 1A)',
+    'KbAdminController.getCta': 'baza wiedzy do odczytu dla każdego pracownika (fala 1A)',
+    'AiController.staffChat': 'asystent pracowników (wiedza STAFF z białej listy)',
+    'AiController.supportSuggestion': 'szkic odpowiedzi; serwis sprawdza dostęp do zgłoszenia',
+  };
+
+  it('STAFF bez uprawnień wchodzi tylko na trasy z listy wyjątków (własne konto)', async () => {
+    const wpuszczone: string[] = [];
+    for (const t of TRASY) if (await wpuszcza(t, OPERATOR, [])) wpuszczone.push(`${t.kontroler}.${t.metoda}`);
+    expect(wpuszczone.sort()).toEqual(Object.keys(BEZ_UPRAWNIENIA).sort());
+  });
+
+  /** D1 — akcje nieodwracalne i konfiguracja: STAFF nie wchodzi nawet z kompletem uprawnień. */
+  const TYLKO_ADMIN: Record<string, string[] | '*'> = {
+    // zakończenie i usunięcie usługi, odtworzenie na innym węźle
+    SubscriptionsAdminController: ['zakonczIUsun', 'odtworzenieNaWezle', 'odtworzenieNaWezleLista', 'odtworzenieNaWezleStart'],
+    // SSO do DA węzła
+    ServersAdminController: ['createNodeSsoUrl'],
+    // konfiguracja platformy (w tym wymuszenie 2FA zespołu, D10)
+    PlatformSettingsAdminController: '*',
+    MailSettingsAdminController: '*',
+    AiUstawieniaAdminController: '*',
+    // plany i ceny
+    PlansAdminController: ['create', 'update', 'deactivate', 'usunTrwale', 'syncStripe', 'validateStripePrice'],
+    AutoscalingAdminController: '*',
+    VpsAdminController: '*',
+    SslAdminController: ['ceny'],
+    PartnersAdminController: ['updateConfig'],
+    // zespół
+    StaffRolesAdminController: ['create', 'update', 'remove', 'clone', 'createOperator', 'assign', 'setRoles', 'setActive'],
+    // VPN
+    VpnAdminController: '*',
+    // publikacja dokumentów prawnych i wymuszona anonimizacja
+    ComplianceAdminController: ['publish', 'forceAnonymize'],
+  };
+
+  it('akcje nieodwracalne i konfiguracja zostają tylko dla ADMIN-a (STAFF z kompletem uprawnień — 403)', async () => {
+    const otwarte: string[] = [];
+    const brakujace: string[] = [];
+    for (const [kontroler, metody] of Object.entries(TYLKO_ADMIN)) {
+      const trasy = TRASY.filter((t) => t.kontroler === kontroler && (metody === '*' || metody.includes(t.metoda)));
+      if (metody === '*' ? trasy.length === 0 : trasy.length !== metody.length) brakujace.push(kontroler);
+      for (const t of trasy) {
+        if (await wpuszcza(t, OPERATOR, WSZYSTKIE)) otwarte.push(nazwa(t));
+        expect(await wpuszcza(t, ADMIN)).toBe(true);
+      }
+    }
+    expect(brakujace).toEqual([]);
+    expect(otwarte).toEqual([]);
+  });
+
+  it('pulpit, menu i metryki — DASHBOARD_VIEW; błędy aplikacji — NODES_VIEW; blokady poczty — CUSTOMERS_VIEW', async () => {
+    const t = (kontroler: string, metoda: string) => TRASY.find((x) => x.kontroler === kontroler && x.metoda === metoda)!;
+    for (const [k, m, perm] of [
+      ['AdminDashboardController', 'overview', 'DASHBOARD_VIEW'],
+      ['AdminDashboardController', 'menu', 'DASHBOARD_VIEW'],
+      ['BusinessMetricsAdminController', 'business', 'DASHBOARD_VIEW'],
+      ['RuntimeErrorsController', 'list', 'NODES_VIEW'],
+      ['OutboundCordonAdminController', 'list', 'CUSTOMERS_VIEW'],
+    ] as const) {
+      expect({ k, m, ok: await wpuszcza(t(k, m), OPERATOR, [perm]) }).toEqual({ k, m, ok: true });
+      expect({ k, m, ok: await wpuszcza(t(k, m), OPERATOR, WSZYSTKIE.filter((p) => p !== perm)) }).toEqual({ k, m, ok: false });
     }
   });
 });

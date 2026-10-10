@@ -3,12 +3,15 @@ import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
 import { BusinessMetricsService } from './business-metrics.service.js';
 
-/** BIZ-1 — metryki biznesowe (MRR/churn/flota) dla panelu admina. */
+/** BIZ-1 — metryki biznesowe (MRR/churn/flota) dla panelu admina; D1 — także operator z DASHBOARD_VIEW. */
 @Controller('admin/metrics')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
+@UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
+@Roles(Role.ADMIN, Role.STAFF)
+@StaffPerm('DASHBOARD_VIEW')
 export class BusinessMetricsAdminController {
   constructor(private readonly metrics: BusinessMetricsService) {}
 

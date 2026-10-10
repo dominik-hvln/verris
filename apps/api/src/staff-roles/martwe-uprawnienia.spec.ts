@@ -62,11 +62,13 @@ describe('pozycja 13 — martwe uprawnienia podpięte do strażników', () => {
     }
   });
 
-  it('PLANS_MANAGE: wszystkie operacje na planach dla STAFF z uprawnieniem, bez niego — 403', async () => {
+  it('PLANS_MANAGE: podgląd planów dla STAFF z uprawnieniem; zmiany planów i cen tylko ADMIN (D1, 10.10)', async () => {
+    const odczyt = ['list', 'getById'];
     const t = trasy(PlansAdminController);
     expect(t.length).toBeGreaterThanOrEqual(8);
     for (const m of t) {
-      expect({ m, ok: await wpuszcza(PlansAdminController, m, STAFF, ['PLANS_MANAGE']) }).toEqual({ m, ok: true });
+      const wolno = odczyt.includes(m);
+      expect({ m, ok: await wpuszcza(PlansAdminController, m, STAFF, ['PLANS_MANAGE']) }).toEqual({ m, ok: wolno });
       expect({ m, ok: await wpuszcza(PlansAdminController, m, STAFF, INNE) }).toEqual({ m, ok: false });
       expect(await wpuszcza(PlansAdminController, m, ADMIN, [])).toBe(true);
     }

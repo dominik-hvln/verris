@@ -36,10 +36,8 @@ export class PartnersAdminController {
     return this.partners.getConfig();
   }
 
+  /** D1 — konfiguracja programu (stawki prowizji) to ceny i konfiguracja platformy: tylko ADMIN. */
   @Put('config')
-  @UseGuards(StaffPermissionsGuard)
-  @Roles(Role.ADMIN, Role.STAFF)
-  @StaffPerm('SETTINGS_MANAGE')
   updateConfig(@Body() dto: UpdatePartnerProgramDto, @CurrentUser() actor: { userId: string }) {
     return this.partners.updateConfig(dto, actor.userId);
   }

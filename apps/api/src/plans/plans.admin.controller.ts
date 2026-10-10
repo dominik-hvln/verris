@@ -26,9 +26,9 @@ import {
 import { StripeService } from '../billing/stripe/stripe.service.js';
 
 /**
- * Plany produktowe. Pozycja 13: STAFF z PLANS_MANAGE („Plany produktowe i VPS”, L4 — decyzja właściciela
- * 08.10, opis roli: „zarządzanie węzłami i planami”) ma te same operacje co ADMIN; zmiany i tak idą do
- * dziennika z aktorem (PlansService). Trasy VPS (vps.admin.controller.ts) bez zmian.
+ * Plany produktowe. Pozycja 13: STAFF z PLANS_MANAGE widzi plany. Decyzja D1 (10.10): plany i ceny zmienia
+ * tylko ADMIN — każda trasa zapisu ma @Roles(ADMIN) (test macierzy w rbac-zachowanie.spec.ts).
+ * Trasy VPS (vps.admin.controller.ts) — tylko ADMIN.
  */
 @Controller('admin/plans')
 @UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
@@ -51,12 +51,14 @@ export class PlansAdminController {
   }
 
   @Post()
+  @Roles(Role.ADMIN)
   @HttpCode(201)
   create(@Body() dto: CreatePlanDto, @CurrentUser() actor: { userId: string }) {
     return this.plans.create(dto, actor.userId);
   }
 
   @Patch(':id')
+  @Roles(Role.ADMIN)
   update(
     @Param('id') id: string,
     @Body() dto: UpdatePlanDto,
@@ -66,6 +68,7 @@ export class PlansAdminController {
   }
 
   @Post(':id/sync-stripe')
+  @Roles(Role.ADMIN)
   @HttpCode(200)
   syncStripe(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
     return this.plans.syncStripeCatalog(id, actor.userId);
@@ -73,12 +76,14 @@ export class PlansAdminController {
 
   /** Trwałe usunięcie — tylko plan, którego nigdy nie kupiono (żadnej subskrypcji, także historycznej). */
   @Delete(':id/trwale')
+  @Roles(Role.ADMIN)
   @HttpCode(200)
   usunTrwale(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
     return this.plans.usunTrwale(id, actor.userId);
   }
 
   @Delete(':id')
+  @Roles(Role.ADMIN)
   @HttpCode(200)
   deactivate(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
     return this.plans.deactivate(id, actor.userId);
@@ -90,6 +95,7 @@ export class PlansAdminController {
    * spróbuje zapisać plan i zobaczyć błąd dopiero z `PATCH /admin/plans/:id`.
    */
   @Post('validate-stripe-price')
+  @Roles(Role.ADMIN)
   @HttpCode(200)
   async validateStripePrice(@Body() dto: ValidateStripePriceDto) {
     const stripe = await this.stripe.retrievePriceOrThrow(dto.priceId);

@@ -61,7 +61,7 @@ export const SZCZEBLE: readonly RolaSystemowa[] = [
   {
     name: 'L4 Kierownik zmiany',
     description:
-      'Wszystko z L3 oraz faktury, korekty, portfel i kredyty, zarządzanie węzłami i planami, dziennik bezpieczeństwa, RODO, baza wiedzy, oznaczanie kont wewnętrznych i akceptacja wniosków zespołu. Bez ustawień platformy i zarządzania pracownikami.',
+      'Wszystko z L3 oraz faktury, korekty, portfel i kredyty, zarządzanie węzłami, podgląd planów, dziennik bezpieczeństwa, RODO, baza wiedzy, oznaczanie kont wewnętrznych i akceptacja wniosków zespołu. Bez ustawień platformy i zarządzania pracownikami.',
     permissions: L4,
   },
 ];

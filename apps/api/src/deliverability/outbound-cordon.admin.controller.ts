@@ -4,6 +4,8 @@ import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { OutboundAbuseGuard } from './outbound-abuse.guard.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -26,8 +28,11 @@ export class OutboundCordonAdminController {
     private readonly prisma: PrismaService,
   ) {}
 
+  // D1 — lista zawiera e-maile klientów: tylko operator z podglądem klientów (wcześniej każdy STAFF).
   @Get()
   @Roles(Role.ADMIN, Role.STAFF)
+  @UseGuards(StaffPermissionsGuard)
+  @StaffPerm('CUSTOMERS_VIEW')
   async list() {
     const cordons = await this.outbound.listCordoned();
     // N-14 — operator widzi, kogo dotyczy blokada, nie sam identyfikator.
