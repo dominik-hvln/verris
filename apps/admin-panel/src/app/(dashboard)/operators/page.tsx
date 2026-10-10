@@ -12,8 +12,13 @@ import { plForm } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
-/** Operator loguje się drugim składnikiem: TOTP albo co najmniej jeden passkey. */
-const drugiSkladnik = (op: { isTwoFactorEnabled: boolean; passkeys?: number | null }) => op.isTwoFactorEnabled || (op.passkeys ?? 0) > 0;
+/**
+ * Drugi składnik przy logowaniu hasłem = TOTP. Sam passkey nie zamyka logowania hasłem (dopiero
+ * REQUIRE_PASSKEY_FOR_STAFF po pierwszym logowaniu kluczem), a REQUIRE_2FA_FOR_STAFF sprawdza tylko TOTP
+ * (auth.service.ts) — konto z samym passkey to nadal „BRAK TOTP” (przegląd 1B-2).
+ */
+const drugiSkladnik = (op: { isTwoFactorEnabled: boolean }) => op.isTwoFactorEnabled;
+const passkey = (op: { passkeys?: number | null }) => (op.passkeys ? `passkey ×${op.passkeys}` : null);
 
 interface PageProps {
   searchParams: Promise<{ search?: string; role?: string; page?: string }>;
@@ -61,7 +66,7 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
             </div>
             {/* Fala 1B — stan 2FA zespołu tylko do odczytu; wymuszenie zostaje w REQUIRE_2FA_FOR_STAFF (decyzja D10). */}
             <div data-stan-2fa="">
-              Drugi składnik (TOTP lub passkey): {data.rows.filter(drugiSkladnik).length} z {data.rows.length}
+              2FA (TOTP): {data.rows.filter(drugiSkladnik).length} z {data.rows.length} · passkey: {data.rows.filter((op) => (op.passkeys ?? 0) > 0).length}
             </div>
           </div>
         ) : null}
@@ -170,12 +175,12 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
                         {drugiSkladnik(op) ? (
                           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
                             <ShieldCheck className="h-3 w-3" />
-                            {[op.isTwoFactorEnabled ? "TOTP" : null, op.passkeys ? `passkey ×${op.passkeys}` : null].filter(Boolean).join(" · ")}
+                            {["TOTP", passkey(op)].filter(Boolean).join(" · ")}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-300 border border-rose-500/30">
                             <ShieldAlert className="h-3 w-3" />
-                            BRAK
+                            {["BRAK TOTP", passkey(op)].filter(Boolean).join(" · ")}
                           </span>
                         )}
                       </td>
