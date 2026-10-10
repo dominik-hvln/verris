@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { staffApi, StaffApiError } from "@/lib/staff-api";
 import { BRAK_UPRAWNIENIA, KATEGORIA, STATUS_LABEL, STATUS_STYLE } from "../shared";
-import { DecisionForm } from "./decision-form";
+import { DecisionForm, type UslugaZgloszenia } from "./decision-form";
+import { maUprawnienie, pobierzDostepOperatora } from "@/lib/staff-access";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ type Raport = {
   reporterName: string | null; reporterEmail: string; goodFaith: boolean; ip: string | null;
   subscriptionId: string | null; userId: string | null; decision: string | null; decidedAt: string | null;
   customerNotifiedAt: string | null; createdAt: string; klient: { id: string; email: string } | null;
+  usluga?: UslugaZgloszenia | null;
 };
 
 export default async function AbuseDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -22,6 +24,8 @@ export default async function AbuseDetail({ params }: { params: Promise<{ id: st
     error = e instanceof StaffApiError && e.status === 403 ? BRAK_UPRAWNIENIA : "Nie udało się pobrać zgłoszenia.";
   }
   if (!r) return <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{error}</p>;
+  // F2.3 — „Zawieś usługę” tylko dla operatora z SUBSCRIPTIONS_SUSPEND (API sprawdza to samo; nieodczytane = brak).
+  const mozeZawiesic = r.usluga ? maUprawnienie(await pobierzDostepOperatora(), "SUBSCRIPTIONS_SUSPEND") : false;
 
   const wiersz = (k: string, v: React.ReactNode) => (
     <div className="grid gap-1 sm:grid-cols-[180px_1fr]"><dt className="text-xs text-muted-foreground">{k}</dt><dd className="break-all text-sm text-white">{v}</dd></div>
@@ -43,7 +47,7 @@ export default async function AbuseDetail({ params }: { params: Promise<{ id: st
         {r.decidedAt ? wiersz("Decyzja z", new Date(r.decidedAt).toLocaleString("pl-PL")) : null}
         {r.customerNotifiedAt ? wiersz("Klient powiadomiony", new Date(r.customerNotifiedAt).toLocaleString("pl-PL")) : null}
       </dl>
-      {r.status === "ACTION_TAKEN" || r.status === "REJECTED" ? null : <DecisionForm id={r.id} maKlienta={Boolean(r.userId)} />}
+      {r.status === "ACTION_TAKEN" || r.status === "REJECTED" ? null : <DecisionForm id={r.id} maKlienta={Boolean(r.userId)} usluga={r.usluga ?? null} mozeZawiesic={mozeZawiesic} />}
     </div>
   );
 }

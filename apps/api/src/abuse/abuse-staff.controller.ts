@@ -29,7 +29,7 @@ export class AbuseStaffController {
   }
 
   @Post(':id/decision')
-  decyzja(@Param('id') id: string, @Body() dto: DecyzjaNaduzyciaDto, @CurrentUser() user: { userId: string }) {
-    return this.abuse.decyzja(id, dto, user.userId);
+  decyzja(@Param('id') id: string, @Body() dto: DecyzjaNaduzyciaDto, @CurrentUser() user: { userId: string; role: string }) {
+    return this.abuse.decyzja(id, dto, user.userId, user.role);
   }
 }

@@ -1,7 +1,9 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
+import { ZawieszenieOperatoraService } from '../subscriptions/zawieszenie-operatora.service.js';
+import { uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
 import type { DecyzjaNaduzyciaDto, ZgloszenieNaduzyciaDto } from './abuse.dto.js';
 import {
   decyzjaDlaZglaszajacego,
@@ -30,8 +32,9 @@ export function kandydaciDomeny(host: string): string[] {
 /**
  * N-13 — kolejka zgłoszeń nadużyć. DSA art. 16 (zgłoszenie z URL, uzasadnieniem, danymi
  * zgłaszającego i oświadczeniem o dobrej wierze, potwierdzenie przyjęcia) i art. 17
- * (uzasadnienie dla klienta przy ograniczeniu). Samo ograniczenie usługi robi obsługa
- * istniejącymi narzędziami (zawieszenie, kordon wysyłki) — tu jest proces i ślad.
+ * (uzasadnienie dla klienta przy ograniczeniu). F2.3 (10.10): decyzja „Podjęto działania” może od razu
+ * zawiesić dopasowaną usługę (te same uprawnienia co z karty usługi) albo tylko powiadomić; kordon wysyłki
+ * i usunięcie pliku zostają w innych narzędziach.
  */
 @Injectable()
 export class AbuseService {
@@ -41,6 +44,7 @@ export class AbuseService {
     private readonly prisma: PrismaService,
     private readonly mailer: MailerService,
     private readonly audit: AuditService,
+    private readonly zawieszenie: ZawieszenieOperatoraService,
   ) {}
 
   private adresObslugi(): string {
@@ -122,16 +126,41 @@ export class AbuseService {
     const r = await this.prisma.abuseReport.findUnique({ where: { id } });
     if (!r) throw new NotFoundException('Nie ma takiego zgłoszenia.');
     const klient = r.userId ? await this.prisma.user.findUnique({ where: { id: r.userId }, select: { id: true, email: true } }) : null;
-    return { ...r, klient };
+    // F2.3 — dopasowana usługa i jej stan: formularz decyzji pokazuje „Zawieś usługę …” tylko dla działającej.
+    const s = r.subscriptionId
+      ? await this.prisma.subscription.findUnique({ where: { id: r.subscriptionId }, select: { id: true, status: true, account: { select: { domain: true } } } })
+      : null;
+    const usluga = s ? { id: s.id, status: s.status, domena: s.account?.domain ?? null } : null;
+    return { ...r, klient, usluga };
   }
 
-  async decyzja(id: string, dto: DecyzjaNaduzyciaDto, staffId: string) {
+  /**
+   * @param rola rola decydującego (z JWT). Zawieszenie usługi: ADMIN zawsze, STAFF tylko z SUBSCRIPTIONS_SUSPEND —
+   * bez roli albo bez uprawnienia 403 (fail-closed), zanim cokolwiek się zmieni.
+   */
+  async decyzja(id: string, dto: DecyzjaNaduzyciaDto, staffId: string, rola?: string) {
     const r = await this.prisma.abuseReport.findUnique({ where: { id } });
     if (!r) throw new NotFoundException('Nie ma takiego zgłoszenia.');
     const koncowa = dto.status === 'ACTION_TAKEN' || dto.status === 'REJECTED';
     const uzasadnienie = dto.decision?.trim() ?? '';
     if (koncowa && uzasadnienie.length < 20) {
       throw new BadRequestException('Decyzja wymaga uzasadnienia (min. 20 znaków) — dostanie je zgłaszający.');
+    }
+    let zawieszono = false;
+    if (dto.suspendService) {
+      if (dto.status !== 'ACTION_TAKEN') throw new BadRequestException('Usługę zawiesza się razem z decyzją „Podjęto działania”.');
+      if (!r.subscriptionId) throw new BadRequestException('Zgłoszenie nie jest dopasowane do usługi — zawieś ją z karty usługi.');
+      if (rola !== 'ADMIN' && !(await uprawnieniaOperatora(this.prisma, staffId)).includes('SUBSCRIPTIONS_SUSPEND')) {
+        throw new ForbiddenException('Zawieszenie usługi wymaga uprawnienia SUBSCRIPTIONS_SUSPEND. Zapisz decyzję bez zawieszenia albo wyślij wniosek z karty usługi.');
+      }
+      // Najpierw zawieszenie — gdy się nie uda, decyzja nie zapisuje się, a maile nie wychodzą.
+      await this.zawieszenie.zawies({
+        subscriptionId: r.subscriptionId,
+        aktorUserId: staffId,
+        reason: 'ABUSE',
+        powod: `Nadużycie #${r.id.slice(0, 8)}: ${uzasadnienie}`.slice(0, 500),
+      });
+      zawieszono = true;
     }
     const teraz = new Date();
     let klientPowiadomiony = false;
@@ -160,7 +189,7 @@ export class AbuseService {
       action: `ABUSE_REPORT_${dto.status}`,
       userId: r.userId,
       actorUserId: staffId,
-      details: { reportId: id, customerNotified: klientPowiadomiony },
+      details: { reportId: id, customerNotified: klientPowiadomiony, ...(zawieszono ? { subscriptionId: r.subscriptionId, serviceSuspended: true } : {}) },
     }).catch(() => undefined);
     return po;
   }

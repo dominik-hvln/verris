@@ -8,11 +8,18 @@ export async function decyzjaAction(input: {
   status: 'IN_REVIEW' | 'ACTION_TAKEN' | 'REJECTED';
   decision?: string;
   notifyCustomer?: boolean;
+  /** F2.3 — zawieś dopasowaną usługę razem z decyzją „Podjęto działania”. */
+  suspendService?: boolean;
 }): Promise<{ ok: true } | { error: string }> {
   try {
     await staffApi(`/staff/abuse/${input.id}/decision`, {
       method: 'POST',
-      body: { status: input.status, decision: input.decision || undefined, notifyCustomer: input.notifyCustomer ?? false },
+      body: {
+        status: input.status,
+        decision: input.decision || undefined,
+        notifyCustomer: input.notifyCustomer ?? false,
+        ...(input.suspendService ? { suspendService: true } : {}),
+      },
     });
     revalidatePath('/abuse');
     revalidatePath(`/abuse/${input.id}`);

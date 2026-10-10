@@ -43,4 +43,11 @@ export class DecyzjaNaduzyciaDto {
 
   @IsOptional() @IsBoolean()
   notifyCustomer?: boolean;
+
+  /**
+   * F2.3 (D2, 10.10) — przy „Podjęto działania” zawieś dopasowaną usługę (powód ABUSE). Te same uprawnienia co
+   * zawieszenie z karty usługi (SUBSCRIPTIONS_SUSPEND); bez tego pola decyzja tylko powiadamia.
+   */
+  @IsOptional() @IsBoolean()
+  suspendService?: boolean;
 }
