@@ -24,56 +24,8 @@ import {
 import { potwierdz, zapytaj } from "@/components/potwierdz";
 import { Checkbox } from '@/components/checkbox';
 import { NieWczytano } from '@/components/nie-wczytano';
+import { MarkdownKb } from '@verris/ui/markdown-kb';
 
-/** Lekki renderer Markdown → HTML na potrzeby podglądu (treść od autora). */
-function mdToHtml(md: string): string {
-  const esc = (s: string) =>
-    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const inline = (s: string) =>
-    esc(s)
-      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_m, a: string, u: string) =>
-        /^https?:\/\//.test(u) ? `<img src="${u}" alt="${a}" style="max-width:100%;border-radius:8px"/>` : '')
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, l: string, u: string) => `<a href="${u}" style="color:#34e5a0">${l}</a>`)
-      .replace(/`([^`]+)`/g, '<code style="background:#12241b;padding:1px 5px;border-radius:4px">$1</code>')
-      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-      .replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>');
-  const lines = md.replace(/\r\n/g, '\n').split('\n');
-  const out: string[] = [];
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    if (!line.trim()) { i++; continue; }
-    if (line.trim().startsWith('```')) {
-      const buf: string[] = []; i++;
-      while (i < lines.length && !lines[i].trim().startsWith('```')) { buf.push(lines[i]); i++; }
-      i++;
-      out.push(`<pre style="background:#0b1712;padding:12px;border-radius:8px;overflow:auto"><code>${esc(buf.join('\n'))}</code></pre>`);
-      continue;
-    }
-    const h = /^(#{1,4})\s+(.*)$/.exec(line);
-    if (h) { const l = Math.min(h[1].length + 1, 4); out.push(`<h${l}>${inline(h[2])}</h${l}>`); i++; continue; }
-    if (line.startsWith('> ')) {
-      const buf: string[] = [];
-      while (i < lines.length && lines[i].startsWith('> ')) { buf.push(lines[i].slice(2)); i++; }
-      out.push(`<blockquote style="border-left:3px solid #34e5a0;padding-left:12px;color:#9aa39c">${inline(buf.join(' '))}</blockquote>`);
-      continue;
-    }
-    if (/^\d+\.\s+/.test(line)) {
-      const it: string[] = [];
-      while (i < lines.length && /^\d+\.\s+/.test(lines[i])) { it.push(`<li>${inline(lines[i].replace(/^\d+\.\s+/, ''))}</li>`); i++; }
-      out.push(`<ol style="padding-left:22px">${it.join('')}</ol>`); continue;
-    }
-    if (/^[-*]\s+/.test(line)) {
-      const it: string[] = [];
-      while (i < lines.length && /^[-*]\s+/.test(lines[i])) { it.push(`<li>${inline(lines[i].replace(/^[-*]\s+/, ''))}</li>`); i++; }
-      out.push(`<ul style="padding-left:22px">${it.join('')}</ul>`); continue;
-    }
-    const buf: string[] = [line]; i++;
-    while (i < lines.length && lines[i].trim() && !/^(#{1,4}\s|[-*]\s|\d+\.\s|>\s|```)/.test(lines[i])) { buf.push(lines[i]); i++; }
-    out.push(`<p>${inline(buf.join(' '))}</p>`);
-  }
-  return out.join('\n');
-}
 
 const EMPTY: ArticleInput = { title: '', categoryId: '', excerpt: '', bodyMarkdown: '', status: 'DRAFT', seoTitle: '', seoDescription: '', faq: [], relatedSlugs: [] };
 
@@ -353,7 +305,6 @@ function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete, onClo
   onSave: () => void; onDelete: () => void; onClose: () => void; blokada: string | null;
 }) {
   const kbFieldId = useId();
-  const preview = useMemo(() => mdToHtml(form.bodyMarkdown || ''), [form.bodyMarkdown]);
   const inputCls = 'w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-white focus:border-emerald-500/40 focus:outline-none';
   return (
     <div className="space-y-4">
@@ -391,8 +342,9 @@ function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete, onClo
             placeholder={'# Nagłówek\n\nAkapit tekstu z **pogrubieniem** i [linkiem](https://verris.pl).\n\n- punkt\n- punkt\n\n1. krok\n2. krok'} /></label>
         <div className="space-y-1">
           <span className="flex items-center gap-1.5 text-xs font-medium text-white/70"><Eye className="h-3.5 w-3.5" /> Podgląd</span>
-          <div className="min-h-[420px] overflow-auto rounded-xl border border-white/10 bg-white p-5 text-[15px] leading-relaxed text-neutral-800 [&_a]:text-emerald-600 [&_blockquote]:text-neutral-500 [&_code]:text-neutral-900 [&_h2]:mt-4 [&_h2]:text-xl [&_h2]:font-bold [&_h3]:mt-3 [&_h3]:text-lg [&_h3]:font-semibold [&_li]:my-1 [&_p]:my-2 [&_pre]:text-white"
-            dangerouslySetInnerHTML={{ __html: preview }} />
+          {/* Ten sam renderer co panel klienta i obsługa (@verris/ui/markdown-kb) — bez wstawiania HTML z treści. */}
+          <MarkdownKb tekst={form.bodyMarkdown || ''}
+            className="min-h-[420px] overflow-auto rounded-xl border border-white/10 bg-white p-5 text-[15px] leading-relaxed text-neutral-800 [&_a]:text-emerald-600 [&_a]:underline [&_blockquote]:border-l-[3px] [&_blockquote]:border-emerald-400 [&_blockquote]:pl-3 [&_blockquote]:text-neutral-500 [&_code]:rounded [&_code]:bg-neutral-100 [&_code]:px-1 [&_code]:text-neutral-900 [&_h2]:mt-4 [&_h2]:text-xl [&_h2]:font-bold [&_h3]:mt-3 [&_h3]:text-lg [&_h3]:font-semibold [&_h4]:mt-3 [&_h4]:font-semibold [&_hr]:my-4 [&_img]:max-w-full [&_img]:rounded-lg [&_li]:my-1 [&_ol]:list-decimal [&_ol]:pl-[22px] [&_p]:my-2 [&_pre]:my-2 [&_pre]:overflow-auto [&_pre]:rounded-lg [&_pre]:bg-[#0b1712] [&_pre]:p-3 [&_pre]:text-white [&_pre_code]:bg-transparent [&_pre_code]:p-0 [&_pre_code]:text-white [&_ul]:list-disc [&_ul]:pl-[22px]" />
         </div>
       </div>
 

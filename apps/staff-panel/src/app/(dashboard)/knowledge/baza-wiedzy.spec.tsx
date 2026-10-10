@@ -35,6 +35,25 @@ describe("baza wiedzy w panelu obsługi", () => {
     expect(html).toContain("Serwer IMAP: port 993");
   });
 
+  it("treść artykułu to Markdown: nagłówki i bloki kodu zamiast surowych „##” i ```, HTML z treści jako tekst", async () => {
+    const md = "## Konfiguracja\n\nUstaw **port 993** i `SSL`.\n\n```\nimap.example.pl\n```\n\n- [pomoc](https://pomoc.verris.pl) i [zły](javascript:zlo(1))\n\n<script>zlo(1)</script>";
+    api.mockImplementation(async (sciezka: string) => {
+      if (sciezka === "/admin/kb/categories") return [{ id: "k1", name: "Poczta", order: 1 }];
+      return [{ id: "a1", title: "IMAP", excerpt: null, bodyMarkdown: md, categoryId: "k1", updatedAt: "2026-10-01" }];
+    });
+    const html = renderToStaticMarkup(await BazaWiedzyPage({ searchParams: Promise.resolve({}) }));
+    expect(html).toContain("<h3>Konfiguracja</h3>"); // jak pomoc.verris.pl: „#” → h2, „##” → h3
+    expect(html).not.toContain("## Konfiguracja");
+    expect(html).toContain("<strong>port 993</strong>");
+    expect(html).toContain("<code>SSL</code>");
+    expect(html).toContain("<pre><code>imap.example.pl</code></pre>");
+    expect(html).not.toContain("```");
+    expect(html).toContain('<a href="https://pomoc.verris.pl" target="_blank" rel="noopener noreferrer">pomoc</a>');
+    expect(html).not.toContain("javascript:");
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("&lt;script&gt;zlo(1)&lt;/script&gt;");
+  });
+
   it("wyszukiwanie przekazuje frazę do API", async () => {
     api.mockResolvedValue([]);
     const html = renderToStaticMarkup(await BazaWiedzyPage({ searchParams: Promise.resolve({ q: "dns ssl" }) }));

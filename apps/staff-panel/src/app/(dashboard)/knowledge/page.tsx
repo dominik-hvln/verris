@@ -1,8 +1,25 @@
 import Link from "next/link";
 import { staffApi } from "@/lib/staff-api";
 import { BladStrony } from "@/components/blad-strony";
+import { MarkdownKb } from "@verris/ui/markdown-kb";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Treść artykułu: Markdown tym samym rendererem co baza wiedzy klienta (@verris/ui/markdown-kb, reguły pomoc.verris.pl),
+ * bez dangerouslySetInnerHTML. Wcześniej obsługa widziała surowe „##” i ``` zamiast nagłówków i bloków kodu.
+ */
+const TRESC = [
+  "mt-2 text-[13.5px] leading-[1.55] text-[color:var(--verris-body)]",
+  "[&_h2]:mt-4 [&_h2]:mb-1.5 [&_h2]:font-display [&_h2]:text-[15px] [&_h2]:font-bold [&_h2]:text-foreground",
+  "[&_h3]:mt-3 [&_h3]:mb-1 [&_h3]:font-semibold [&_h3]:text-foreground [&_h4]:mt-3 [&_h4]:font-semibold",
+  "[&_p]:my-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5",
+  "[&_a]:underline [&_img]:max-w-full [&_img]:rounded-lg [&_hr]:my-3 [&_hr]:border-line",
+  "[&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-line-strong [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground",
+  "[&_code]:rounded [&_code]:bg-[rgba(127,127,127,0.14)] [&_code]:px-1 [&_code]:font-mono [&_code]:text-[12.5px]",
+  "[&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-line [&_pre]:bg-[rgba(127,127,127,0.1)] [&_pre]:p-3",
+  "[&_pre_code]:bg-transparent [&_pre_code]:p-0",
+].join(" ");
 
 interface KbKategoria {
   id: string;
@@ -79,7 +96,7 @@ export default async function BazaWiedzyPage({ searchParams }: { searchParams: P
               <details key={a.id} className="border-t border-line px-4 py-3">
                 <summary className="cursor-pointer text-sm font-semibold">{a.title}</summary>
                 {a.excerpt ? <p className="mt-2 text-[13px] text-muted-foreground">{a.excerpt}</p> : null}
-                <p className="mt-2 whitespace-pre-wrap text-[13.5px] leading-[1.55] text-[color:var(--verris-body)]">{a.bodyMarkdown}</p>
+                <MarkdownKb tekst={a.bodyMarkdown} className={TRESC} />
               </details>
             ))}
           </section>
