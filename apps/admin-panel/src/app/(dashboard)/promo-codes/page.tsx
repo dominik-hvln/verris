@@ -2,6 +2,7 @@ import { Tag, Calendar, Users2, AlertCircle } from "lucide-react";
 import { listPromoCodes, type PromoCodeRow } from "./data";
 import { CreatePromoForm } from "./create-promo-form";
 import { CreateServicePromoForm } from "./create-service-promo-form";
+import { AkcjeKodu } from "./akcje-kodu";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,7 @@ export default async function PromoCodesPage() {
                   <th className="px-6 py-3 font-medium">Realizacje</th>
                   <th className="px-6 py-3 font-medium">Ważność</th>
                   <th className="px-6 py-3 font-medium">Status</th>
+                  <th className="px-6 py-3 font-medium">Działania</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -108,6 +110,9 @@ export default async function PromoCodesPage() {
                     </td>
                     <td className="px-6 py-4">
                       <StatusBadge row={row} />
+                    </td>
+                    <td className="px-6 py-4 align-top">
+                      <AkcjeKodu row={row} />
                     </td>
                   </tr>
                 ))}

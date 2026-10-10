@@ -1,8 +1,9 @@
-import { PromoKind, WalletTxType } from '@verris/database';
+import { PromoKind, SubscriptionStatus, WalletTxType } from '@verris/database';
 import { AuditService } from '../../src/common/audit/audit.service.js';
 import { WalletLedgerService } from '../../src/billing/wallet-ledger.service.js';
 import { PromoService } from '../../src/billing/promo.service.js';
 import { SubscriptionsService } from '../../src/subscriptions/subscriptions.service.js';
+import { RenewalScheduler } from '../../src/subscriptions/renewal.scheduler.js';
 import { prisma, rozlacz, utworzPlan, wyczyscBaze } from './setup.js';
 
 /**
@@ -163,6 +164,100 @@ describe('X-04 kody promocyjne', () => {
       kolejkaPada = false;
       await uslugi().create(k.id, zamow(plan.id, 'drugie-podejscie.pl', 'WRACA'));
       expect(await saldo(k.id)).toBe(75);
+    });
+  });
+  // B1 — kod da się wyłączyć albo skrócić w trakcie akcji. Sedno: zmiana z panelu działa od razu
+  // i na zakupie nowej usługi, i na odnowieniu z portfela (appliesToRenewals), a w dzienniku jest
+  // stan przed i po.
+  describe('B1 — wyłączenie i skrócenie kodu (PATCH)', () => {
+    const admin = () =>
+      prisma().user.create({ data: { email: `promo-admin-${Date.now()}-${Math.random()}@test.verris.pl`, passwordHash: 'x', role: 'ADMIN' } as never });
+    const uslugi = () => {
+      const p = prisma() as never;
+      const ledger = new WalletLedgerService(p);
+      const audit = new AuditService(p);
+      const mailer = { send: async () => ({}) };
+      const pr = new PromoService(p, ledger, audit, mailer as never, { get: () => undefined } as never);
+      const queue = { isAsync: () => true, enqueueWalletProvision: async () => undefined };
+      const oferta = { cardEnabled: false, monthlyDiscountPct: 0, annualDiscountPct: 0, introDiscountPeriods: 0 };
+      return new SubscriptionsService(
+        p, audit, ledger, null as never, { sprawdzMiejsce: async () => undefined } as never, queue as never, null as never,
+        mailer as never, { get: () => undefined } as never, pr, null as never,
+        { getTrialOffer: async () => oferta } as never, null as never,
+      );
+    };
+    const odnowienia = () => {
+      const p = prisma() as never;
+      const ledger = new WalletLedgerService(p);
+      const subs = { finalizeScheduledCancellation: async () => null, suspend: async () => undefined, unsuspend: async () => undefined };
+      const eco = { safeAward: () => undefined, awardSubscriptionRenewal: async () => undefined };
+      return new RenewalScheduler(p, ledger, subs as never, new AuditService(p), promo(), eco as never);
+    };
+    const zamow = (planId: string, domena: string, promoCode: string) =>
+      ({ planId, interval: 'MONTH', paymentSource: 'WALLET', domain: domena, promoCode, immediatePerformanceConsent: true }) as never;
+    const uslugaZKodem = async (userId: string, promoCodeId: string) => {
+      const plan = await utworzPlan({ priceMonthly: 100 });
+      return prisma().subscription.create({
+        data: {
+          userId, planId: plan.id, status: SubscriptionStatus.ACTIVE, interval: 'MONTH', priceAmount: 50, listPriceAmount: 100,
+          appliedPromoCodeId: promoCodeId, currency: 'PLN', paymentSource: 'WALLET',
+          currentPeriodStart: new Date(Date.now() - 29 * 86400000), currentPeriodEnd: new Date(Date.now() + 12 * 3600000),
+        } as never,
+      });
+    };
+
+    it('wyłączony z panelu: zakup usługi z kodem odrzucony, portfel bez zmian; dziennik ma stan przed i po', async () => {
+      const a = await admin();
+      const k = await klient();
+      await prisma().user.update({ where: { id: k.id }, data: { walletBalance: 200 } });
+      const plan = await utworzPlan({ priceMonthly: 50 });
+      const c = await kod('LATO50', { kind: PromoKind.SERVICE_PERCENT_OFF, value: 50, appliesToRenewals: true });
+      await promo().updatePromoCode({ id: c.id, active: false, actorUserId: a.id });
+      await expect(uslugi().create(k.id, zamow(plan.id, 'lato.pl', 'LATO50'))).rejects.toThrow('nieaktywny');
+      expect(await saldo(k.id)).toBe(200);
+      const wpis = await prisma().auditLog.findFirstOrThrow({ where: { action: 'PROMO_CODE_UPDATED' } });
+      expect(wpis.actorUserId).toBe(a.id);
+      expect(wpis.details).toMatchObject({ promoCodeId: c.id, before: { active: true }, after: { active: false } });
+    });
+
+    it('skrócony termin (validTo w przeszłości): zakup usługi z kodem odrzucony', async () => {
+      const a = await admin();
+      const k = await klient();
+      await prisma().user.update({ where: { id: k.id }, data: { walletBalance: 200 } });
+      const plan = await utworzPlan({ priceMonthly: 50 });
+      const c = await kod('KONIEC', { kind: PromoKind.SERVICE_PERCENT_OFF, value: 50 });
+      await promo().updatePromoCode({ id: c.id, validTo: new Date(Date.now() - 60000), actorUserId: a.id });
+      await expect(uslugi().create(k.id, zamow(plan.id, 'koniec.pl', 'KONIEC'))).rejects.toThrow('wygasł');
+      expect(await saldo(k.id)).toBe(200);
+    });
+
+    it('odnowienie: kod aktywny daje rabat, wyłączony lub przeterminowany — cena listowa', async () => {
+      const a = await admin();
+      const aktywny = await kod('ODN-AKT', { kind: PromoKind.SERVICE_PERCENT_OFF, value: 50, appliesToRenewals: true });
+      const wylaczony = await kod('ODN-OFF', { kind: PromoKind.SERVICE_PERCENT_OFF, value: 50, appliesToRenewals: true });
+      const stary = await kod('ODN-OLD', { kind: PromoKind.SERVICE_PERCENT_OFF, value: 50, appliesToRenewals: true });
+      await promo().updatePromoCode({ id: wylaczony.id, active: false, actorUserId: a.id });
+      await promo().updatePromoCode({ id: stary.id, validTo: new Date(Date.now() - 60000), actorUserId: a.id });
+      const [k1, k2, k3] = await Promise.all([klient(), klient(), klient()]);
+      await Promise.all([k1, k2, k3].map((k) => prisma().user.update({ where: { id: k.id }, data: { walletBalance: 300 } })));
+      await uslugaZKodem(k1.id, aktywny.id);
+      await uslugaZKodem(k2.id, wylaczony.id);
+      await uslugaZKodem(k3.id, stary.id);
+      await odnowienia().handleHourlyTick();
+      expect(await saldo(k1.id)).toBe(250);
+      expect(await saldo(k2.id)).toBe(200);
+      expect(await saldo(k3.id)).toBe(200);
+    });
+
+    it('limit i opis: null zdejmuje limit, pusty opis = brak; zła data i ujemny limit — 400', async () => {
+      const a = await admin();
+      const c = await kod('LIMIT', { maxRedemptions: 5, description: 'stary' });
+      const po = await promo().updatePromoCode({ id: c.id, maxRedemptions: null, description: '  ', actorUserId: a.id });
+      expect(po.maxRedemptions).toBeNull();
+      expect(po.description).toBeNull();
+      await expect(promo().updatePromoCode({ id: c.id, validTo: new Date('x'), actorUserId: a.id })).rejects.toMatchObject({ status: 400 });
+      await expect(promo().updatePromoCode({ id: c.id, maxRedemptions: -1, actorUserId: a.id })).rejects.toMatchObject({ status: 400 });
+      await expect(promo().updatePromoCode({ id: c.id, actorUserId: a.id })).rejects.toMatchObject({ status: 400 });
     });
   });
 });

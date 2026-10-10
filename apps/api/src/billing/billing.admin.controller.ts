@@ -5,6 +5,9 @@ import {
   Get,
   Header,
   HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   Res,
@@ -21,7 +24,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { BillingService } from './billing.service.js';
 import { AdminCreditWalletDto } from './dto/admin-credit.dto.js';
 import { PromoService } from './promo.service.js';
-import { AdminCreatePromoDto } from './dto/promo.dto.js';
+import { AdminCreatePromoDto, AdminUpdatePromoDto } from './dto/promo.dto.js';
 import { ZwrotPaynowDto } from './dto/checkout.dto.js';
 import { WniosekMozliwy } from '../wnioski/wniosek-mozliwy.decorator.js';
 
@@ -78,6 +81,27 @@ export class BillingAdminController {
       validFrom: dto.validFrom ? new Date(dto.validFrom) : null,
       validTo: dto.validTo ? new Date(dto.validTo) : null,
       appliesToRenewals: dto.appliesToRenewals,
+      actorUserId: actor.userId,
+    });
+  }
+
+  /** B1 — wyłączenie / ograniczenie kodu (active, validTo, maxRedemptions, opis); wpis w dzienniku. */
+  @Patch('promo-codes/:id')
+  @HttpCode(200)
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('PROMO_MANAGE')
+  updatePromo(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AdminUpdatePromoDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.promo.updatePromoCode({
+      id,
+      active: dto.active,
+      validTo: dto.validTo === undefined ? undefined : dto.validTo === null ? null : new Date(dto.validTo),
+      maxRedemptions: dto.maxRedemptions,
+      description: dto.description,
       actorUserId: actor.userId,
     });
   }

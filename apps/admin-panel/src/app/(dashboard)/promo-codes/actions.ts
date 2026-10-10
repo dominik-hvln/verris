@@ -70,3 +70,25 @@ export async function createPromoAction(
   revalidatePath("/promo-codes");
   return { ok: true, code };
 }
+
+export interface UpdatePromoInput {
+  active?: boolean;
+  validTo?: string | null;
+  maxRedemptions?: number | null;
+  description?: string | null;
+}
+
+/** B1 — wyłączenie/włączenie i edycja kodu (PATCH z wpisem w dzienniku po stronie API). */
+export async function updatePromoAction(
+  id: string,
+  input: UpdatePromoInput,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await adminApi(`/admin/billing/promo-codes/${encodeURIComponent(id)}`, { method: "PATCH", body: input });
+  } catch (err) {
+    if (err instanceof AdminApiError) return { ok: false, error: err.message };
+    return { ok: false, error: "Nie udało się zapisać zmian kodu." };
+  }
+  revalidatePath("/promo-codes");
+  return { ok: true };
+}

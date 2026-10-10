@@ -1,4 +1,4 @@
-import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Length, Matches } from 'class-validator';
+import { IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, Length, Matches, MaxLength, Min, ValidateIf } from 'class-validator';
 import { PromoKind } from '@verris/database';
 
 export class RedeemPromoDto {
@@ -54,4 +54,28 @@ export class AdminCreatePromoDto {
   @IsOptional()
   @IsBoolean()
   appliesToRenewals?: boolean;
+}
+
+/** B1 — PATCH kodu: pole pominięte = bez zmian, `null` = zdjęcie terminu/limitu/opisu. */
+export class AdminUpdatePromoDto {
+  @IsOptional()
+  @IsBoolean()
+  active?: boolean;
+
+  @ValidateIf((_, v) => v !== null)
+  @IsOptional()
+  @IsDateString()
+  validTo?: string | null;
+
+  @ValidateIf((_, v) => v !== null)
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  maxRedemptions?: number | null;
+
+  @ValidateIf((_, v) => v !== null)
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  description?: string | null;
 }

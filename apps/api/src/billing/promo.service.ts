@@ -205,6 +205,50 @@ export class PromoService {
     return this.prisma.promoCode.findMany({ orderBy: { createdAt: 'desc' } });
   }
 
+  /**
+   * B1 — wyłączenie/ograniczenie kodu w trakcie akcji. Zmienia tylko pola, które przyszły
+   * (`undefined` = bez zmian, `null` = zdjęcie limitu/terminu). Kod, rodzaj i wartość są
+   * nienaruszalne — przeszłe realizacje zostają, jak przy fladze `active` w schemacie.
+   * Wpis w dzienniku ma stan przed i po.
+   */
+  async updatePromoCode(input: {
+    id: string;
+    active?: boolean;
+    validTo?: Date | null;
+    maxRedemptions?: number | null;
+    description?: string | null;
+    actorUserId: string;
+  }) {
+    const before = await this.prisma.promoCode.findUnique({ where: { id: input.id } });
+    if (!before) throw new NotFoundException('Nie ma takiego kodu.');
+    if (input.validTo && Number.isNaN(input.validTo.getTime())) {
+      throw new BadRequestException('Niepoprawna data validTo.');
+    }
+    if (input.maxRedemptions != null && (!Number.isInteger(input.maxRedemptions) || input.maxRedemptions < 0)) {
+      throw new BadRequestException('Limit użyć: liczba całkowita ≥ 0.');
+    }
+    const data: Prisma.PromoCodeUpdateInput = {};
+    if (input.active !== undefined) data.active = input.active;
+    if (input.validTo !== undefined) data.validTo = input.validTo;
+    if (input.maxRedemptions !== undefined) data.maxRedemptions = input.maxRedemptions;
+    if (input.description !== undefined) data.description = input.description?.trim() || null;
+    if (Object.keys(data).length === 0) throw new BadRequestException('Brak zmian.');
+
+    const after = await this.prisma.promoCode.update({ where: { id: input.id }, data });
+    const stan = (p: typeof before) => ({
+      active: p.active,
+      validTo: p.validTo?.toISOString() ?? null,
+      maxRedemptions: p.maxRedemptions,
+      description: p.description,
+    });
+    await this.audit.record({
+      action: 'PROMO_CODE_UPDATED',
+      actorUserId: input.actorUserId,
+      details: { promoCodeId: after.id, code: after.code, before: stan(before), after: stan(after) },
+    });
+    return after;
+  }
+
   // ---------------------------------------------------------------------------
   // Service purchase — percent off first period (and optional renewals)
   // ---------------------------------------------------------------------------
