@@ -46,10 +46,6 @@ export async function staffGetTicketContext(id: string): Promise<TicketContext |
   }
 }
 
-export async function staffGetCannedResponses() {
-  return staffApi<CannedResponse[]>("/tickets/admin/canned-responses");
-}
-
 export interface StaffTicketRow {
   id: string;
   subject: string;
@@ -162,12 +158,6 @@ export async function staffListSupportAgents(): Promise<AgentOption[]> {
     map.set(r.id, r);
   }
   return [...map.values()];
-}
-
-export interface CannedResponse {
-  id: string;
-  title: string;
-  body: string;
 }
 
 /** PB-37 — oceny opiekuna (API: obsługa widzi swoje, admin wszystkich). */
