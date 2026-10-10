@@ -123,6 +123,13 @@ describe("PB-46 karta klienta w panelu obsługi", () => {
     expect(karty(html)).toEqual(KARTY_SEKCJI.przeglad.filter((k) => !KARTY_TYLKO_ADMIN.includes(k)));
   });
 
+  it("D1 — karta przestarzała: link „Otwórz w panelu operatora” do karty klienta", async () => {
+    odpowiedzi(PODGLAD);
+    const html = await render();
+    expect(html).toContain("data-karta-przestarzala");
+    expect(html).toContain(`href="https://admin.verris.pl/customers/${UID}"`);
+  });
+
   it("otwarcie karty przekazuje zakładkę do API (dziennik otwarć karty, decyzja 08.10)", async () => {
     odpowiedzi(PELNE);
     await render("rozliczenia");

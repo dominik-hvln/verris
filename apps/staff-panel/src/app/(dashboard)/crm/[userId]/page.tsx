@@ -15,6 +15,8 @@ import { maUprawnienie, mozeWejscNaKonto, pobierzDostepOperatora } from "@/lib/s
 import { sekcjaKarty, zakladkiKartyKlienta } from "@/lib/sekcje-karty-klienta";
 import { NotatkaWewnetrzna } from "./notatka-wewnetrzna";
 import { BlokadaLogowania } from "./blokada-logowania";
+import { KartaWPaneluOperatora } from "@/components/karta-w-panelu-operatora";
+import { kartaKlientaOperatora } from "@/lib/panel-operatora";
 import {
   BILLING_INTERVAL_PL,
   DOMAIN_STATUS_PL,
@@ -54,6 +56,9 @@ function formatAuditSnippet(details: unknown): string {
 }
 
 /**
+ * @deprecated D1 (10.10) — karta klienta jest w panelu operatora (panel admina dla STAFF z RBAC); tu tylko link
+ * „Otwórz w panelu operatora”. Kod zostaje do czasu przeniesienia skrzynki, bez nowych funkcji.
+ *
  * Karta klienta w panelu obsługi. PB-46 (decyzja 08.10): te same zakładki i karty w tej samej kolejności co
  * w panelu admina (`@/lib/sekcje-karty-klienta`, atrybut `data-karta`), różnią się tylko uprawnieniami —
  * zapis notatki i blokada logowania z CUSTOMERS_MANAGE; reset hasła, zmiana e-maila i RODO tylko w panelu admina.
@@ -112,6 +117,7 @@ export default async function StaffCustomerProfilePage({
 
   return (
     <div className="space-y-6">
+      <KartaWPaneluOperatora href={kartaKlientaOperatora(user.id)} co="klienta" />
       <div className="flex flex-wrap items-center gap-4">
         <Link
           href="/crm"

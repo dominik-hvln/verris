@@ -11,12 +11,17 @@ import { StaffPlanChangeForm } from "./staff-plan-change-form";
 import { StaffDiagnosticsPanel } from "./diagnostics-panel";
 import { KontoKlientaPanel } from "./konto-klienta-panel";
 import { ObslugaUslugi } from "./obsluga-uslugi";
+import { KartaWPaneluOperatora } from "@/components/karta-w-panelu-operatora";
+import { kartaUslugiOperatora } from "@/lib/panel-operatora";
 
 import { SUBSCRIPTION_STATUS_PL as SUB_STATUS_PL } from "@verris/contracts";
 
 export const dynamic = "force-dynamic";
 
 /**
+ * @deprecated D1 (10.10) — karta usługi jest w panelu operatora (panel admina dla STAFF z RBAC); tu tylko link
+ * „Otwórz w panelu operatora”. Kod zostaje do czasu przeniesienia skrzynki, bez nowych funkcji.
+ *
  * L1-KARTA (decyzja 08.10) — karta usługi otwiera się każdemu operatorowi z podglądem klientów (L1) albo
  * z zarządzaniem usługami (API: @StaffPermAny na odczytach karty). Sekcje i akcje wg uprawnień — te same klucze
  * co strażnicy API (subscriptions.admin.controller.ts, migrations.staff.controller.ts, konto-klienta.admin.controller.ts).
@@ -70,6 +75,7 @@ export default async function StaffSubscriptionReadonlyPage({
 
   return (
     <div className="space-y-8">
+      <KartaWPaneluOperatora href={kartaUslugiOperatora(sub.id)} co="usługi" />
       <div className="flex flex-wrap items-center gap-4">
         <Link
           href={`/crm/${userId}`}

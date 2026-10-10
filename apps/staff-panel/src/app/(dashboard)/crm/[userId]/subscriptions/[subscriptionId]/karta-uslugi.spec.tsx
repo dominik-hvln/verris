@@ -97,6 +97,13 @@ describe("karta usługi — L1 Konsultant (podgląd)", () => {
     expect(wolane()).not.toContain(`/admin/subscriptions/${SUB}/plan/eligible-plans`);
   });
 
+  it("D1 — karta przestarzała: link „Otwórz w panelu operatora” do karty usługi", async () => {
+    odpowiedzi(L1);
+    const html = await render();
+    expect(html).toContain("data-karta-przestarzala");
+    expect(html).toContain(`href="https://admin.verris.pl/subscriptions/${SUB}"`);
+  });
+
   it("awaria /staff/me/access → podgląd bez akcji i bez diagnostyki, karta nadal się otwiera", async () => {
     odpowiedzi(new Blad("Bad Gateway", 502));
     const html = await render();
