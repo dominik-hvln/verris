@@ -77,6 +77,7 @@ describe('rejestr przebiegów — z prawdziwym ScheduleModule', () => {
     user: { findMany: vi.fn(async () => [{ email: 'admin@test.verris.pl', firstName: null }]) },
   };
   const mailer = { send: vi.fn(async () => ({ delivered: true })) };
+  const audytSvc = { record: vi.fn(async (p: Record<string, unknown>) => void audyt.push(p)) };
 
   // Globalne zależności usługi (w aplikacji: PrismaModule, MailModule, AuditModule, ConfigModule — @Global).
   @Global()
@@ -84,7 +85,7 @@ describe('rejestr przebiegów — z prawdziwym ScheduleModule', () => {
     providers: [
       { provide: PrismaService, useValue: prisma },
       { provide: MailerService, useValue: mailer },
-      { provide: AuditService, useValue: { record: vi.fn(async (p: Record<string, unknown>) => void audyt.push(p)) } },
+      { provide: AuditService, useValue: audytSvc },
       { provide: ConfigService, useValue: { get: () => undefined } },
     ],
     exports: [PrismaService, MailerService, AuditService, ConfigService],
@@ -134,6 +135,25 @@ describe('rejestr przebiegów — z prawdziwym ScheduleModule', () => {
     await vi.waitFor(() =>
       expect(zapisane.find((x) => x.job === 'ZadaniaWTleService.sprawdzZalegle')).toMatchObject({ ok: true, manualBy: 'admin-1' }),
     );
+  });
+
+  it('przegląd: dwa równoczesne ręczne uruchomienia — biegnie jedno, drugie 409; po przebiegu można znowu', async () => {
+    const s = app.get(ZadaniaWTleService);
+    const K = 'ZadaniaWTleService.sprawdzZalegle';
+    const ileWpisow = () => audyt.filter((a) => a.action === 'ZADANIE_W_TLE_RECZNE').length;
+    const ilePrzebiegow = () => zapisane.filter((x) => x.job === K && x.manualBy === 'admin-2').length;
+    const przed = ileWpisow();
+    const wyniki = await Promise.allSettled([s.uruchomRecznie(K, 'admin-2'), s.uruchomRecznie(K, 'admin-2')]);
+    expect(wyniki.map((w) => w.status).sort()).toEqual(['fulfilled', 'rejected']);
+    expect(String((wyniki.find((w) => w.status === 'rejected') as PromiseRejectedResult).reason)).toContain('właśnie biegnie');
+    expect(ileWpisow()).toBe(przed + 1);
+    await vi.waitFor(() => expect(ilePrzebiegow()).toBe(1));
+    // Rezerwacja zwolniona po przebiegu i po błędzie zapisu do dziennika — zadanie da się uruchomić ponownie.
+    audytSvc.record.mockRejectedValueOnce(new Error('dziennik leży'));
+    await expect(s.uruchomRecznie(K, 'admin-2')).rejects.toThrow('dziennik leży');
+    expect(await s.uruchomRecznie(K, 'admin-2')).toEqual({ uruchomiono: true });
+    await vi.waitFor(() => expect(ilePrzebiegow()).toBe(2));
+    expect((await s.stan(true)).find((z) => z.klucz === K)?.trwaOd).toBeNull();
   });
 
   it('widok: ręczne uruchomienie widzi tylko administrator i tylko przy zadaniach z białej listy', async () => {

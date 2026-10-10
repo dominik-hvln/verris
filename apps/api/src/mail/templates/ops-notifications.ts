@@ -618,7 +618,7 @@ export function zadaniaZalegleTemplate(ctx: ZadaniaZalegleContext): MailMessage 
       ``,
       ...ctx.zadania.map(
         (z) =>
-          `- **${escapeMarkdown(z.nazwa)}** (\`${escapeMarkdown(z.harmonogram)}\`) — ostatnio: ${z.ostatnio ? fmt(z.ostatnio) : 'brak przebiegu od startu API'}`,
+          `- **${escapeMarkdown(z.nazwa)}** (\`${escapeMarkdown(z.harmonogram)}\`) — ostatnio: ${z.ostatnio ? fmt(z.ostatnio) : 'brak przebiegu w ostatnich 30 dniach'}`,
       ),
       ``,
       `## Co sprawdzić`,

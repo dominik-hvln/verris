@@ -129,8 +129,7 @@ export class ZadaniaWTleService implements OnModuleDestroy {
       blad = opisBledu(e);
       throw e;
     } finally {
-      const teraz = this.trwa.get(klucz);
-      if (teraz && --teraz.ile <= 0) this.trwa.delete(klucz);
+      this.zwolnij(klucz);
       const koniec = new Date();
       await this.prisma.scheduledJobRun
         .create({
@@ -146,6 +145,11 @@ export class ZadaniaWTleService implements OnModuleDestroy {
         })
         .catch((e: unknown) => this.logger.warn(`Nie zapisano przebiegu ${klucz}: ${opisBledu(e)}`));
     }
+  }
+
+  private zwolnij(klucz: string): void {
+    const t = this.trwa.get(klucz);
+    if (t && --t.ile <= 0) this.trwa.delete(klucz);
   }
 
   private nastepnyPo(z: Zadanie, d: Date): Date | null {
@@ -237,10 +241,19 @@ export class ZadaniaWTleService implements OnModuleDestroy {
     if (this.trwa.has(klucz)) throw new ConflictException('Zadanie właśnie biegnie — poczekaj na koniec przebiegu.');
     const instancja = z.dostawca.instance;
     if (!instancja) throw new ConflictException('Zadanie nie jest jeszcze gotowe.');
-    await this.audit.record({ action: AKCJA_RECZNEGO, actorUserId: adminId, details: { zadanie: klucz } });
-    void this.wykonaj(klucz, () => z.oryginal.call(instancja), adminId).catch((e: unknown) =>
-      this.logger.error(`Ręczne uruchomienie ${klucz}: ${opisBledu(e)}`),
-    );
+    // Rezerwacja przed pierwszym await: bez niej dwa równoczesne POST-y (dwa kliknięcia, dwóch administratorów)
+    // przechodziły sprawdzenie „trwa” w czasie zapisu do dziennika i zadanie biegło dwa razy naraz.
+    this.trwa.set(klucz, { od: new Date(), ile: 1 });
+    try {
+      await this.audit.record({ action: AKCJA_RECZNEGO, actorUserId: adminId, details: { zadanie: klucz } });
+    } catch (e) {
+      this.zwolnij(klucz);
+      throw e;
+    }
+    // wykonaj() zajmuje miejsce synchronicznie, zanim cokolwiek odda pętli — dopiero potem zwalniamy rezerwację.
+    const przebieg = this.wykonaj(klucz, () => z.oryginal.call(instancja), adminId);
+    this.zwolnij(klucz);
+    void przebieg.catch((e: unknown) => this.logger.error(`Ręczne uruchomienie ${klucz}: ${opisBledu(e)}`));
     return { uruchomiono: true };
   }
 
