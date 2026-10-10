@@ -21,6 +21,8 @@ function stanowisko(opts: { juzZanonimizowany?: boolean; subkonta?: string[] } =
     clientWebhookEndpoint: { deleteMany: vi.fn(async () => ({})) },
     apiToken: { updateMany: vi.fn(async () => ({})) },
     customerNote: { deleteMany: vi.fn(async () => ({})) },
+    migracjaKontakt: { deleteMany: vi.fn(async () => ({})) },
+    migrationRequest: { updateMany: vi.fn(async () => ({ count: 1 })) },
     accountDeletionRequest: { update: vi.fn(async () => ({})), updateMany: vi.fn(async () => ({ count: 1 })) },
     invoice: { deleteMany: vi.fn() },
   };
@@ -67,6 +69,9 @@ describe('AccountDeletionService.executeAnonymization (P-02)', () => {
     // F2.4 — notatki obsługi o osobie (lista i stare pole) znikają razem z danymi.
     expect(s.tx.customerNote.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
     expect(dane.adminInternalNote).toBeNull();
+    // Przegląd D11 — log kontaktów i checklista obsługi migracji (notatki o osobie) też znikają.
+    expect(s.tx.migracjaKontakt.deleteMany).toHaveBeenCalledWith({ where: { migrationRequest: { userId: 'u1' } } });
+    expect(s.tx.migrationRequest.updateMany).toHaveBeenCalledWith({ where: { userId: 'u1' }, data: { checklista: {} } });
   });
 
   it('subkonta: wyłączone, zanonimizowane i wylogowane razem z właścicielem', async () => {

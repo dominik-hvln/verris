@@ -570,7 +570,7 @@ export class DataExportService implements OnApplicationBootstrap {
       'ticket-attachments': ticketAttachments.map((a) => (a.uploadedById === userId ? a : { ...a, uploadedById: null, dodala: 'Obsługa Verris' })),
       'data-export-requests': exports,
       'account-deletion-requests': deletions,
-      'audit-log': auditLogs,
+      'audit-log': await this.dziennikBezPracownikow(userId, auditLogs),
       'customer-notes': customerNotes.map((n) => ({ ...n, autor: 'Obsługa Verris' })),
       migrations: migracje.map(({ checklista, kontakty, ...m }) => ({
         ...m,
@@ -580,6 +580,63 @@ export class DataExportService implements OnApplicationBootstrap {
         kontakty: kontakty.map((k) => ({ ...k, autor: 'Obsługa Verris' })),
       })),
     };
+  }
+
+  /**
+   * Przegląd D11 — dziennik konta w eksporcie bez id pracowników (art. 15 ust. 4 RODO, D3: „Obsługa Verris”, bez
+   * nazwiska). Wpisy z działań obsługi (akcje na koncie, tablica migracji, impersonacja, wnioski) niosą id operatora
+   * w aktorze, w impersonacji i w szczegółach (np. przypisanie migracji, wnioskujący) oraz jego IP i przeglądarkę.
+   * Każde id konta obsługi (STAFF/ADMIN) zamieniamy na „Obsługa Verris”, a IP i przeglądarkę operatora pomijamy.
+   */
+  private async dziennikBezPracownikow<T extends { actorUserId: string | null; impersonatedBy: string | null; details: unknown }>(
+    userId: string,
+    wpisy: T[],
+  ): Promise<T[]> {
+    const OBSLUGA = 'Obsługa Verris';
+    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const kandydaci = new Set<string>();
+    const zbierz = (v: unknown): void => {
+      if (typeof v === 'string') {
+        if (UUID.test(v)) kandydaci.add(v);
+      } else if (Array.isArray(v)) v.forEach(zbierz);
+      else if (v && typeof v === 'object') Object.values(v).forEach(zbierz);
+    };
+    for (const w of wpisy) {
+      if (w.actorUserId) kandydaci.add(w.actorUserId);
+      if (w.impersonatedBy) kandydaci.add(w.impersonatedBy);
+      zbierz(w.details);
+    }
+    kandydaci.delete(userId);
+    if (!kandydaci.size) return wpisy;
+    const pracownicy = new Set(
+      (
+        await this.prisma.user.findMany({
+          where: { id: { in: [...kandydaci] }, role: { in: ['STAFF', 'ADMIN'] } },
+          select: { id: true },
+        })
+      ).map((u) => u.id),
+    );
+    if (!pracownicy.size) return wpisy;
+    const zamien = (v: unknown): unknown =>
+      typeof v === 'string'
+        ? pracownicy.has(v) ? OBSLUGA : v
+        : Array.isArray(v)
+          ? v.map(zamien)
+          : v && typeof v === 'object'
+            ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, zamien(x)]))
+            : v;
+    return wpisy.map((w) => {
+      const aktorObslugi = !!w.actorUserId && pracownicy.has(w.actorUserId);
+      const impersonacja = !!w.impersonatedBy && pracownicy.has(w.impersonatedBy);
+      return {
+        ...w,
+        actorUserId: aktorObslugi ? null : w.actorUserId,
+        ...(aktorObslugi ? { aktor: OBSLUGA } : {}),
+        impersonatedBy: impersonacja ? OBSLUGA : w.impersonatedBy,
+        details: zamien(w.details),
+        ...(aktorObslugi || impersonacja ? { ipAddress: null, userAgent: null } : {}),
+      };
+    });
   }
 
   /**
@@ -725,7 +782,7 @@ function buildReadme(userId: string): string {
     '  tickets.json                     — zgłoszenia do supportu (treść początkowa); obsługa bez id pracowników.',
     '  ticket-replies.json              — odpowiedzi w wątkach i notatki obsługi (internal: true), autor obsługi jako „Obsługa Verris”.',
     '  ticket-attachments.json          — metadane załączników (lista plików).',
-    '  audit-log.json                   — log audytowy operacji na koncie.',
+    '  audit-log.json                   — log audytowy operacji na koncie; działania obsługi jako „Obsługa Verris”, bez id pracowników.',
     '  customer-notes.json              — notatki obsługi o koncie (treść i daty, autor jako „Obsługa Verris”).',
     '  migrations.json                  — migracje: etap obsługi, terminy, checklista i log kontaktów (autor jako „Obsługa Verris”), bez haseł.',
     '  data-export-requests.json        — historia żądań eksportu danych.',

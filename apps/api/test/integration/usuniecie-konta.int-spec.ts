@@ -54,6 +54,20 @@ describe('X-04 usunięcie konta (RODO)', () => {
     expect((await prisma().accountDeletionRequest.findUniqueOrThrow({ where: { userId: k.user.id } })).anonymizedAt).not.toBeNull();
   });
 
+  it('przegląd D11 — log kontaktów i checklista obsługi migracji znikają z anonimizacją; zlecenie zostaje', async () => {
+    const k = await zWnioskiem();
+    const mig = await prisma().migrationRequest.create({
+      data: {
+        subscriptionId: k.subscription.id, userId: k.user.id, sourceBundleEnc: 'x', status: 'COMPLETED',
+        checklista: { podsumowanie: { tekst: 'Klient prosił o telefon po 16.', at: new Date().toISOString(), przez: 'op' } },
+        kontakty: { create: { kanal: 'TELEFON', tresc: 'Rozmowa z klientem o DNS.', kiedy: new Date() } },
+      },
+    });
+    await serwis().executeAnonymization(k.user.id, null);
+    expect(await prisma().migracjaKontakt.count({ where: { migrationRequestId: mig.id } })).toBe(0);
+    expect((await prisma().migrationRequest.findUniqueOrThrow({ where: { id: mig.id } })).checklista).toEqual({});
+  });
+
   it('klient cofnął wniosek po wybraniu listy do anonimizacji: dane zostają nietknięte', async () => {
     const k = await zWnioskiem();
     const s = serwis();

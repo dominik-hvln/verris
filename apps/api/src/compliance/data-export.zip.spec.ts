@@ -33,10 +33,16 @@ function rozpakuj(buf: Buffer): Map<string, string> {
   return out;
 }
 
+const OPERATOR = '7b0c2f4e-1a2b-4c3d-8e9f-0a1b2c3d4e5f';
+const OPERATOR_B = '9d8c7b6a-5f4e-4d3c-8b2a-1f0e9d8c7b6a';
+
 function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
   const lista = <T>(v: T) => vi.fn(async () => v);
   const prisma = {
     user: {
+      // Konta obsługi (STAFF/ADMIN) wśród podanych id — eksport ma pytać tylko o role pracowników.
+      findMany: vi.fn(async (args: { where: { id: { in: string[] }; role: { in: string[] } } }) =>
+        args.where.role.in.includes('STAFF') ? args.where.id.in.filter((id) => [OPERATOR, OPERATOR_B].includes(id)).map((id) => ({ id })) : []),
       findUniqueOrThrow: lista({
         id: 'u1', email: 'jan@firma.pl', passwordHash: '$2b$10$tajne', twoFactorSecret: 'SEKRET-TOTP', staffBreakGlassCodesEnc: 'enc:kody-awaryjne',
         twoFactorRecoveryCodesEnc: 'kody', createdAt: new Date('2026-01-01T00:00:00Z'), walletBalance: BigInt(4500),
@@ -72,7 +78,20 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
     marketingPreferences: { findUnique: lista({ userId: 'u1', marketingEmail: false }) },
     dataExportRequest: { findMany: lista([]) },
     accountDeletionRequest: { findMany: lista([]) },
-    auditLog: { findMany: lista([]) },
+    auditLog: {
+      findMany: lista([
+        // Klient sam zmienił hasło — jego wpis zostaje bez zmian.
+        { id: 'l1', action: 'PASSWORD_CHANGED', userId: 'u1', actorUserId: 'u1', impersonatedBy: null, details: null, ipAddress: '198.51.100.4', userAgent: 'Firefox' },
+        // Tablica migracji: operator przypisał migrację koledze (id obu w szczegółach), z IP i przeglądarką operatora.
+        {
+          id: 'l2', action: 'MIGRATION_HANDLING_UPDATED', userId: 'u1', actorUserId: OPERATOR, impersonatedBy: null,
+          details: { migrationRequestId: 'm1', zmiany: { przypisanyDoId: { przed: null, po: OPERATOR_B } }, lista: [OPERATOR_B] },
+          ipAddress: '203.0.113.9', userAgent: 'Chrome-operatora',
+        },
+        // Impersonacja przez obsługę.
+        { id: 'l3', action: 'HOSTING_PHP_CHANGED', userId: 'u1', actorUserId: 'u1', impersonatedBy: OPERATOR_B, details: { domain: 'x.pl' }, ipAddress: '203.0.113.10', userAgent: 'Safari' },
+      ]),
+    },
     customerNote: {
       findMany: vi.fn(async (args: { select?: Record<string, boolean> }) => {
         // Prawdziwy wiersz ma authorId — eksport ma go nie wybierać (select), więc mock oddaje tylko wybrane pola.
@@ -190,6 +209,25 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
     const zal = JSON.parse(pliki.get('ticket-attachments.json')!) as Array<Record<string, unknown>>;
     expect(zal.find((a) => a.id === 'z0')).toMatchObject({ uploadedById: null, dodala: 'Obsługa Verris' });
     expect(zal.find((a) => a.id === 'z1')).toMatchObject({ uploadedById: 'u1' });
+  });
+
+  it('przegląd D11 — dziennik konta bez id pracowników (aktor, impersonacja, szczegóły) i bez IP operatora', async () => {
+    const pliki = await zbudujZip(zbuduj().svc);
+    const plik = pliki.get('audit-log.json')!;
+    expect(plik).not.toContain(OPERATOR);
+    expect(plik).not.toContain(OPERATOR_B);
+    expect(plik).not.toContain('203.0.113.9');
+    expect(plik).not.toContain('Chrome-operatora');
+    const wpisy = JSON.parse(plik) as Array<Record<string, unknown>>;
+    expect(wpisy.find((w) => w.id === 'l1')).toMatchObject({ actorUserId: 'u1', ipAddress: '198.51.100.4', userAgent: 'Firefox' });
+    expect(wpisy.find((w) => w.id === 'l2')).toMatchObject({
+      actorUserId: null,
+      aktor: 'Obsługa Verris',
+      ipAddress: null,
+      details: { migrationRequestId: 'm1', zmiany: { przypisanyDoId: { przed: null, po: 'Obsługa Verris' } }, lista: ['Obsługa Verris'] },
+    });
+    expect(wpisy.find((w) => w.id === 'l3')).toMatchObject({ actorUserId: 'u1', impersonatedBy: 'Obsługa Verris', ipAddress: null, details: { domain: 'x.pl' } });
+    expect(pliki.get('README.txt')).toContain('bez id pracowników');
   });
 
   it('nazwa załącznika nie wychodzi poza katalog attachments/ (zip slip)', async () => {

@@ -389,6 +389,10 @@ export class AccountDeletionService {
 
       // 3c) F2.4 — notatki obsługi o osobie to też jej dane.
       await tx.customerNote.deleteMany({ where: { userId } });
+      // 3d) Przegląd D11 — log kontaktów z obsługą migracji (rozmowy, maile) i checklista obsługi (wyniki testów,
+      //     podsumowanie) to dane o osobie jak notatki obsługi; same zlecenia migracji zostają (rozliczenia, dziennik).
+      await tx.migracjaKontakt.deleteMany({ where: { migrationRequest: { userId } } });
+      await tx.migrationRequest.updateMany({ where: { userId }, data: { checklista: {} } });
 
       // 4) Wipe payment methods (raw card brand/last4 alone is PII when tied
       //    to identity).
