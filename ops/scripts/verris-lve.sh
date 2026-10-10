@@ -484,10 +484,20 @@ def faults_due(now):
     except Exception:
         return True
 
-def report_faults(desired):
+def report_faults(desired, desired_ok):
+    # Bez listy kont z API nie wiemy, które konta są Verris — pusty raport udawałby „zero faultów”.
+    if not desired_ok:
+        return
     now = time.time()
     if not faults_due(now):
         return
+    # Stan zapisany przed odczytem: przy błędzie API (np. starsze API bez `faults`) kolejna próba za ~10 min,
+    # a nie co minutę z dwoma przebiegami cloudlinux-statistics.
+    try:
+        with open(FAULTS_STATE, "w") as f:
+            json.dump({"ts": now}, f)
+    except Exception as e:
+        log("faults state save failed: %s" % e)
     managed = set(d["username"] for d in desired.get("accounts", []) if d.get("username"))
     report = faults_report(managed)
     try:
@@ -496,11 +506,6 @@ def report_faults(desired):
     except Exception as e:
         log("faults POST failed: %s" % e)
         return
-    try:
-        with open(FAULTS_STATE, "w") as f:
-            json.dump({"ts": now}, f)
-    except Exception as e:
-        log("faults state save failed: %s" % e)
     if "error" in report:
         log("faults: %s" % report["error"])
     else:
@@ -508,8 +513,10 @@ def report_faults(desired):
 
 # --------------------------------------------------------------------------
 def main():
+    desired_ok = False
     try:
         desired = api_get("/agent/tasks/lve/desired")
+        desired_ok = True
     except urllib.error.HTTPError as e:
         log("desired fetch HTTP %s" % e.code)
         desired = {"packages": [], "accounts": []}
@@ -529,7 +536,7 @@ def main():
     except Exception as e:
         log("node status error: %s" % e)
     try:
-        report_faults(desired)
+        report_faults(desired, desired_ok)
     except Exception as e:
         log("faults error: %s" % e)
 

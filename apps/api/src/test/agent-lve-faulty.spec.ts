@@ -108,6 +108,23 @@ describe('agent verris-lve — faulty limitów (F2.6)', () => {
     const ustaw = `faults_due.__globals__.update(FAULTS_STATE=${JSON.stringify(stan)})`;
     expect(uruchom(atrapa({}), `${ustaw} or [faults_due(1300.0), faults_due(1600.0), FAULTS_EVERY_S]`)).toEqual([false, true, 600]);
     expect(uruchom(atrapa({}), 'faults_due.__globals__.update(FAULTS_STATE="/nie/ma/stanu") or faults_due(5.0)')).toBe(true);
-    expect(SKRYPT).toMatch(/report_faults\(desired\)/);
+    expect(SKRYPT).toMatch(/report_faults\(desired, desired_ok\)/);
+  });
+
+  it('bez listy kont z API (błąd /lve/desired) — żadnego raportu, nawet pustego; stan zapisany przed POST', () => {
+    const kat = mkdtempSync(join(tmpdir(), 'verris-lve-desired-'));
+    const stan = join(kat, 'faults.json');
+    const bin = join(kat, 'cloudlinux-statistics');
+    writeFileSync(bin, atrapa({ result: 'success', users: [] }));
+    chmodSync(bin, 0o755);
+    // api_post na nieosiągalny adres rzuca — raport się nie wysyła, ale stan i tak blokuje ponowienie przez 10 min.
+    const kod = (ok: string) =>
+      `${PYTHON}\nFAULTS_STAT_BIN = ${JSON.stringify(bin)}\nFAULTS_STATE = ${JSON.stringify(stan)}\nreport_faults({"accounts": [{"username": "u1"}]}, ${ok})\nimport os\nprint("STAN=" + str(os.path.exists(FAULTS_STATE)))\n`;
+    const env = { PATH: process.env.PATH ?? '', VERRIS_API_URL: 'http://127.0.0.1:9', VERRIS_SERVER_ID: 's', VERRIS_IDENTITY_TOKEN: 't', LOG: join(kat, 'log') };
+    expect(execFileSync('python3', ['-I', '-c', kod('False')], { env, encoding: 'utf8' })).toContain('STAN=False');
+    expect(() => readFileSync(`${bin}.args`, 'utf8')).toThrow();
+    expect(execFileSync('python3', ['-I', '-c', kod('True')], { env, encoding: 'utf8' })).toContain('STAN=True');
+    expect(readFileSync(`${bin}.args`, 'utf8').trim().split('\n')).toHaveLength(2);
+    expect(readFileSync(join(kat, 'log'), 'utf8')).toContain('faults POST failed');
   });
 });
