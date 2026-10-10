@@ -311,10 +311,13 @@ export class UsersAdminController {
     @Body() dto: AdminResetCustomerPasswordDto,
     @Req() req: Request,
   ) {
-    return this.admin.resetCustomerPassword(id, user.userId, dto, {
-      ipAddress: extractIp(req),
-      userAgent: req.headers['user-agent']?.toString() ?? null,
-    });
+    return this.admin.resetCustomerPassword(
+      id,
+      user.userId,
+      dto,
+      { ipAddress: extractIp(req), userAgent: req.headers['user-agent']?.toString() ?? null },
+      { role: user.role },
+    );
   }
 
   /**

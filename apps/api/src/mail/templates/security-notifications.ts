@@ -483,10 +483,37 @@ export interface EmailChangeAlertContext {
   newEmail: string;
   at: Date;
   panelUrl: string;
+  /**
+   * Audyt Fal 2 — zmianę wykonała obsługa (panel operatora, bez potwierdzenia z nowej skrzynki): adres już jest
+   * zmieniony. D3 — bez nazwiska pracownika, „Obsługa Verris”.
+   */
+  przezObsluge?: boolean;
 }
 
 export function emailChangeAlertTemplate(ctx: EmailChangeAlertContext): MailMessage {
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
+  if (ctx.przezObsluge) {
+    const { html, text } = renderEmailShell({
+      title: 'Zmieniono adres e-mail konta',
+      preheader: 'Obsługa Verris zmieniła adres e-mail Twojego konta.',
+      bodyMarkdown: [
+        greeting,
+        ``,
+        `**Obsługa Verris zmieniła adres e-mail** Twojego konta na: \`${escapeMarkdown(ctx.newEmail)}\`. Logowanie, reset hasła i powiadomienia idą teraz na nowy adres, a otwarte sesje zostały wylogowane.`,
+        ``,
+        `**Czas:** ${escapeMarkdown(formatDateTime(ctx.at))}.`,
+        ``,
+        `## Nie prosiłeś o tę zmianę?`,
+        ``,
+        `Odpisz na tę wiadomość albo napisz **natychmiast** z tego adresu: ${escapeMarkdown('support@verris.pl')}. Przywrócimy dostęp do konta.`,
+      ].join('\n'),
+      footnote: 'Alert wysyłany na dotychczasowy adres przy każdej zmianie e-mail konta.',
+      recipientEmail: ctx.to,
+      panelUrl: ctx.panelUrl,
+      category: 'TRANSACTIONAL',
+    });
+    return { to: ctx.to, tag: 'security.email-change-alert', subject: '[Verris] Zmieniono adres e-mail konta', text, html };
+  }
   const { html, text } = renderEmailShell({
     title: 'Zlecono zmianę adresu e-mail konta',
     preheader: 'Ktoś poprosił o zmianę adresu e-mail Twojego konta.',

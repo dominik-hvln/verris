@@ -20,6 +20,7 @@ import { StatusService } from '../status/status.service.js';
 import { StripeService } from '../billing/stripe/stripe.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { accountCreatedByOperatorTemplate, passwordResetByOperatorTemplate } from '../mail/templates/auth-notifications.js';
+import { emailChangeAlertTemplate } from '../mail/templates/security-notifications.js';
 import { generateAuthToken, hashAuthToken } from '../auth/auth-token.util.js';
 import { rowsToCsv } from '../billing/csv.util.js';
 
@@ -27,6 +28,8 @@ import { rowsToCsv } from '../billing/csv.util.js';
 export const OPERATOR_ACCOUNT_LINK_TTL_HOURS = 72;
 /** D9 — ważność linku z resetu hasła zleconego przez operatora. */
 export const OPERATOR_RESET_LINK_TTL_HOURS = 24;
+/** Audyt Fal 2 — po zmianie e-maila klienta przez obsługę reset hasła przez pracownika tylko wnioskiem przez tyle godzin. */
+export const BLOKADA_RESETU_PO_ZMIANIE_EMAILA_H = 24;
 
 export interface AdminUserListOptions {
   search?: string;
@@ -839,10 +842,22 @@ export class UsersAdminService {
       throw new ConflictException('Ten adres e-mail jest już przypisany do innego konta.');
     }
 
+    // Audyt Fal 2 — e-mail to klucz do konta (reset hasła, logowanie): otwarte sesje kończą się od razu
+    // (tokenVersion jak przy resecie hasła), a dotychczasowy adres dostaje alert — klient dowiaduje się od razu,
+    // a nie dopiero, gdy nie może się zalogować.
     await this.prisma.user.update({
       where: { id: userId },
-      data: { email: normalized },
+      data: { email: normalized, tokenVersion: { increment: 1 } },
     });
+    const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
+    void this.mailer
+      .send({
+        ...emailChangeAlertTemplate({ to: prev.email, firstName: prev.firstName, newEmail: normalized, at: new Date(), panelUrl, przezObsluge: true }),
+        userId,
+        category: 'TRANSACTIONAL',
+        fromRole: 'SECURITY',
+      })
+      .catch((err: unknown) => this.logger.warn(`operator email change alert failed: ${(err as Error).message}`));
 
     if (this.stripe.isConfigured() && prev.stripeCustomerId) {
       try {
@@ -870,6 +885,16 @@ export class UsersAdminService {
     return { ok: true, email: normalized };
   }
 
+  /** Audyt Fal 2 — czy obsługa zmieniła e-mail klienta w ostatnich 24 h (dziennik CUSTOMER_EMAIL_CHANGED). */
+  async resetWymagaWniosku(userId: string): Promise<boolean> {
+    const od = new Date(Date.now() - BLOKADA_RESETU_PO_ZMIANIE_EMAILA_H * 3600 * 1000);
+    const zmiana = await this.prisma.auditLog.findFirst({
+      where: { userId, action: AdminCustomerActions.CUSTOMER_EMAIL_CHANGED, createdAt: { gte: od } },
+      select: { id: true },
+    });
+    return zmiana !== null;
+  }
+
   /**
    * D9/D3 (10.10) — reset hasła klienta przez operatora: dotychczasowe hasło przestaje działać, 2FA jest
    * czyszczone (jak dotąd), a klient dostaje link do ustawienia nowego hasła. Operator hasła nie widzi
@@ -880,8 +905,18 @@ export class UsersAdminService {
     actorUserId: string,
     dto: { reason: string },
     ctx: { ipAddress?: string | null; userAgent?: string | null },
+    aktor: { role: string; zWniosku?: boolean },
   ) {
     const prev = await this.requireEndUserForAdminOps(userId);
+    // Audyt Fal 2 — „zmień e-mail na swój, potem zresetuj hasło” to ciche przejęcie konta przez jedną osobę. Po zmianie
+    // e-maila przez obsługę reset przez pracownika idzie tylko wnioskiem (druga osoba: kierownik zmiany albo admin).
+    if (aktor.role !== Role.ADMIN && !aktor.zWniosku && (await this.resetWymagaWniosku(userId))) {
+      throw new ForbiddenException({
+        code: 'WYMAGA_WNIOSKU',
+        operacja: 'CUSTOMER_PASSWORD_RESET',
+        message: `Obsługa zmieniła adres e-mail tego klienta w ciągu ostatnich ${BLOKADA_RESETU_PO_ZMIANIE_EMAILA_H} h — reset hasła tylko przez wniosek (akceptuje kierownik zmiany albo administrator).`,
+      });
+    }
     // Hasło nieużywalne: losowe, nikt go nie zna — logowanie dopiero po ustawieniu nowego z linku. Otwarte sesje
     // (np. przejęte konto) kończą się od razu — tokenVersion jak przy resecie z linku (auth.service C3).
     const passwordHash = await bcrypt.hash(randomBytes(32).toString('base64url'), 10);

@@ -215,7 +215,10 @@ export interface ZaleznosciWnioskow {
       actorUserId: string,
       dto: { reason: string },
       ctx: { ipAddress?: string | null; userAgent?: string | null },
+      aktor: { role: string; zWniosku?: boolean },
     ): Promise<{ linkWyslany: boolean; email: string }>;
+    /** Audyt Fal 2 — obsługa zmieniła e-mail klienta w ostatnich 24 h: reset przez pracownika tylko wnioskiem. */
+    resetWymagaWniosku(userId: string): Promise<boolean>;
   };
   portfel: {
     adminCreditWallet(opts: {
@@ -254,6 +257,11 @@ export interface DefinicjaWniosku<P extends object = object> {
   wymagaKlienta: boolean;
   /** Krótki opis dla list wniosków i powiadomień („Zasilenie portfela: 50,00 K”). */
   opis(p: P): string;
+  /**
+   * Audyt Fal 2 — wniosek wymagany mimo uprawnienia do ścieżki bezpośredniej (np. reset hasła po zmianie e-maila
+   * przez obsługę): wtedy pracownik z uprawnieniem też składa wniosek, a akceptuje druga osoba.
+   */
+  wymagaWnioskuMimoUprawnien?(p: P, klientId: string | null, z: ZaleznosciWnioskow): Promise<boolean>;
   /** Przy złożeniu: zasób istnieje, należy do klienta, zmiana ma sens. Rzuca 400/404. */
   sprawdzPrzyZlozeniu?(p: P, klientId: string | null, z: ZaleznosciWnioskow): Promise<void>;
   /** Przy akceptacji: gdy operacja nic by już nie zmieniła — komunikat (wniosek kończy się bez wykonania). */
@@ -393,12 +401,15 @@ export const REJESTR_WNIOSKOW = {
     dto: ResetHaslaPayload,
     wymagaKlienta: true,
     opis: () => 'Reset hasła — klient dostanie link do ustawienia nowego',
+    wymagaWnioskuMimoUprawnien: (_p, klientId, z) => z.uzytkownicy.resetWymagaWniosku(klientId!),
     async wykonaj(_p, k, z) {
       const r = await z.uzytkownicy.resetCustomerPassword(
         k.klientId!,
         k.decydujacy.userId,
         { reason: k.uzasadnienie ?? `wniosek ${k.wniosekId}` },
         { ipAddress: null, userAgent: null },
+        // Akceptacja wniosku to druga para oczu — blokada po zmianie e-maila jej nie dotyczy.
+        { role: k.decydujacy.role, zWniosku: true },
       );
       return {
         komunikat: r.linkWyslany

@@ -99,7 +99,7 @@ describe('PB-48 — rejestr wniosków', () => {
 
   const zal = (
     o: { isInternal?: boolean; status?: string; email?: string; zajety?: boolean; mail?: boolean; usluga?: { userId: string; status: string } | null; zgloszenie?: boolean;
-      zgloszenia?: Record<string, { userId: string; scalonoDoId: string | null; status?: string } | null> } = {},
+      zgloszenia?: Record<string, { userId: string; scalonoDoId: string | null; status?: string } | null>; emailZmienionyPrzezObsluge?: boolean } = {},
   ) => {
     const wywolania: unknown[][] = [];
     const z: ZaleznosciWnioskow = {
@@ -135,6 +135,7 @@ describe('PB-48 — rejestr wniosków', () => {
         patchCustomerOperational: async (...a: unknown[]) => void wywolania.push(['patch', ...a]),
         changeCustomerEmail: async (...a: unknown[]) => (wywolania.push(['email', ...a]), { email: String(a[2]).toLowerCase() }),
         resetCustomerPassword: async (...a: unknown[]) => (wywolania.push(['haslo', ...a]), { linkWyslany: o.mail ?? true, email: 'anna@test.pl' }),
+        resetWymagaWniosku: async () => o.emailZmienionyPrzezObsluge ?? false,
       },
       portfel: { adminCreditWallet: async (a) => (wywolania.push(['portfel', a]), { id: 'tx1', amount: { toString: () => '50.00' } }) },
       anulowanie: { anuluj: async (a) => (wywolania.push(['anuluj', a]), { id: 'f1', number: 'VDR/1', status: 'VOID' }) },
@@ -197,7 +198,10 @@ describe('PB-48 — rejestr wniosków', () => {
     expect(d.uprawnienie).toBe('CUSTOMERS_MANAGE');
     const { z, wywolania } = zal();
     const w = await d.wykonaj({}, { ...k, uzasadnienie: 'zgłoszenie #9: klient nie pamięta hasła' }, z);
-    expect(wywolania).toEqual([['haslo', 'k1', 'kier', { reason: 'zgłoszenie #9: klient nie pamięta hasła' }, { ipAddress: null, userAgent: null }]]);
+    // Audyt Fal 2 — akceptacja wniosku to druga osoba: blokada resetu po zmianie e-maila jej nie dotyczy.
+    expect(wywolania).toEqual([['haslo', 'k1', 'kier', { reason: 'zgłoszenie #9: klient nie pamięta hasła' }, { ipAddress: null, userAgent: null }, { role: 'STAFF', zWniosku: true }]]);
+    await expect(d.wymagaWnioskuMimoUprawnien!({}, 'k1', zal({ emailZmienionyPrzezObsluge: true }).z)).resolves.toBe(true);
+    await expect(d.wymagaWnioskuMimoUprawnien!({}, 'k1', zal().z)).resolves.toBe(false);
     expect(w).toEqual({ komunikat: 'Hasło zresetowane — link wysłany na anna@test.pl.' });
     expect((await d.wykonaj({}, k, zal({ mail: false }).z)).komunikat).toMatch(/nie wyszedł/);
   });

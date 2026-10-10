@@ -20,6 +20,9 @@ import { AnulowanieService } from '../../src/billing/anulowanie.service.js';
 import { NotificationsService } from '../../src/notifications/notifications.service.js';
 import { AllExceptionsFilter } from '../../src/common/filters/all-exceptions.filter.js';
 import { WnioskiAdminController } from '../../src/wnioski/wnioski.admin.controller.js';
+import { UsersAdminController } from '../../src/users/users.admin.controller.js';
+import { NotatkiKlientaService } from '../../src/users/notatki-klienta.service.js';
+import { CustomerIamService } from '../../src/users/customer-iam.service.js';
 import { WnioskiService } from '../../src/wnioski/wnioski.service.js';
 import { SubscriptionsService } from '../../src/subscriptions/subscriptions.service.js';
 import { ZawieszenieOperatoraService } from '../../src/subscriptions/zawieszenie-operatora.service.js';
@@ -48,7 +51,7 @@ async function wczytajDziennik() {
 
 @Module({
   imports: [PassportModule],
-  controllers: [WnioskiAdminController, UslugiWezlaAdminController],
+  controllers: [WnioskiAdminController, UslugiWezlaAdminController, UsersAdminController],
   providers: [
     JwtStrategy,
     WnioskiService,
@@ -70,9 +73,11 @@ async function wczytajDziennik() {
     { provide: JwtService, useValue: jwt },
     { provide: ConfigService, useValue: { get: () => SEKRET } },
     AuditService,
-    { provide: MailerService, useValue: { send: async () => ({ delivered: true }) } },
+    { provide: MailerService, useValue: { send: async (m: { to: string; subject: string }) => (maile.push(m), { delivered: true }) } },
     { provide: StatusService, useValue: {} },
-    { provide: StripeService, useValue: {} },
+    { provide: StripeService, useValue: { isConfigured: () => false } },
+    { provide: NotatkiKlientaService, useValue: {} },
+    { provide: CustomerIamService, useValue: {} },
     { provide: UsersService, useValue: {} },
     { provide: HostingDiagnosticsService, useValue: {} },
     {
@@ -113,6 +118,7 @@ async function wczytajDziennik() {
 class Aplikacja {}
 
 let app: INestApplication;
+const maile: { to: string; subject: string }[] = [];
 const zawieszoneNaWezle: string[] = [];
 /** Przegląd F2.3 — węzeł odmawia zawieszenia. */
 let wezelPada = false;
@@ -157,6 +163,7 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     startTestu = new Date();
     dziennik = [];
     zawieszoneNaWezle.length = 0;
+    maile.length = 0;
     wezelPada = false;
   });
 
@@ -527,6 +534,47 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     expect(drugi.status).toBe(201);
     expect((await zadanie('POST', `/admin/wnioski/${drugi.body.id as string}/akceptuj`, l4, {})).body).toMatchObject({ status: 'APPROVED' });
     expect((await prisma().subscription.findUniqueOrThrow({ where: { id: k.subscription.id } })).status).toBe('ACTIVE');
+  });
+
+  it('audyt Fal 2: L3 zmienia e-mail klienta → alert na stary adres i wylogowanie; reset hasła przez L3 w 24 h tylko wnioskiem (akceptuje L4), ADMIN bezpośrednio', async () => {
+    const l3 = await operator(['CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE']);
+    const l4 = await operator(['CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE', 'REQUESTS_APPROVE']);
+    const admin = await operator([], 'ADMIN');
+    const k = await klient();
+    const nowy = `przejety-${t()}@test.verris.pl`;
+
+    const zm = await zadanie('POST', `/admin/users/${k.id}/email`, l3, { newEmail: nowy, reason: 'Zgłoszenie #77 — klient zmienił skrzynkę.' });
+    expect(zm.status).toBe(200);
+    const po = await prisma().user.findUniqueOrThrow({ where: { id: k.id } });
+    expect(po.email).toBe(nowy);
+    expect(po.tokenVersion).toBe(k.tokenVersion + 1);
+    await new Promise((r) => setImmediate(r));
+    expect(maile.map((m) => [m.to, m.subject])).toEqual([[k.email, '[Verris] Zmieniono adres e-mail konta']]);
+
+    // Ten sam L3 nie wyśle linku do ustawienia hasła na nowy adres.
+    const reset = await zadanie('POST', `/admin/users/${k.id}/reset-password`, l3, { reason: 'Klient nie pamięta hasła.' });
+    expect(reset.status).toBe(403);
+    expect(reset.body).toMatchObject({ code: 'WYMAGA_WNIOSKU', operacja: 'CUSTOMER_PASSWORD_RESET' });
+    expect(await prisma().userAuthToken.count({ where: { userId: k.id, purpose: 'PASSWORD_RESET' } })).toBe(0);
+
+    // Nadmiarowe parametry — dalej 400.
+    expect((await zadanie('POST', '/admin/wnioski', l3, { typ: 'CUSTOMER_PASSWORD_RESET', userId: k.id, payload: { haslo: 'x' }, uzasadnienie: 'Klient nie pamięta hasła.' })).status).toBe(400);
+    // Wniosek (mimo uprawnienia), własnego nie zaakceptuje, akceptuje L4.
+    const w = await zadanie('POST', '/admin/wnioski', l3, { typ: 'CUSTOMER_PASSWORD_RESET', userId: k.id, payload: {}, uzasadnienie: 'Klient nie pamięta hasła po zmianie skrzynki.' });
+    expect(w.body).toMatchObject({ status: 'PENDING' });
+    expect((await zadanie('POST', `/admin/wnioski/${w.body.id as string}/akceptuj`, l3, {})).status).toBe(403);
+    expect((await zadanie('POST', `/admin/wnioski/${w.body.id as string}/akceptuj`, l4, {})).body).toMatchObject({ status: 'APPROVED' });
+    expect(await prisma().userAuthToken.count({ where: { userId: k.id, purpose: 'PASSWORD_RESET', usedAt: null } })).toBe(1);
+
+    // ADMIN — bezpośrednio.
+    expect((await zadanie('POST', `/admin/users/${k.id}/reset-password`, admin, { reason: 'Klient potwierdził tożsamość.' })).status).toBe(200);
+
+    // Klient bez zmiany e-maila: L3 resetuje bezpośrednio, wniosek nie jest potrzebny.
+    const inny = await klient();
+    expect((await zadanie('POST', `/admin/users/${inny.id}/reset-password`, l3, { reason: 'Klient nie pamięta hasła.' })).status).toBe(200);
+    expect(
+      (await zadanie('POST', '/admin/wnioski', l3, { typ: 'CUSTOMER_PASSWORD_RESET', userId: inny.id, payload: {}, uzasadnienie: 'Klient nie pamięta hasła.' })).body,
+    ).toMatchObject({ code: 'WYKONAJ_BEZPOSREDNIO' });
   });
 
   it('konto klienta (USER) nie wchodzi na wnioski', async () => {

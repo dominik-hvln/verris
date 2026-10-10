@@ -149,7 +149,10 @@ export class WnioskiService {
   private payload(def: DefinicjaWniosku<object>, surowy: unknown): Record<string, unknown> {
     if (!surowy || typeof surowy !== 'object' || Array.isArray(surowy)) throw new BadRequestException('Brak parametrów operacji.');
     const obiekt = plainToInstance(def.dto, surowy, { enableImplicitConversion: true });
-    const bledy = validateSync(obiekt, { whitelist: true, forbidNonWhitelisted: true });
+    // forbidUnknownValues: false — typ bez parametrów (ResetHaslaPayload) nie ma metadanych walidacji, a class-validator
+    // 0.14 odrzucał wtedy także pusty obiekt („Nieprawidłowe parametry operacji ()”): wniosek o reset hasła nie dał się
+    // złożyć. Nadmiarowe pola dalej odrzuca forbidNonWhitelisted.
+    const bledy = validateSync(obiekt, { whitelist: true, forbidNonWhitelisted: true, forbidUnknownValues: false });
     if (bledy.length) {
       const pola = bledy.map((b) => b.property).join(', ');
       throw new BadRequestException(`Nieprawidłowe parametry operacji (${pola}).`);
@@ -179,13 +182,16 @@ export class WnioskiService {
       throw new BadRequestException({ code: 'WYKONAJ_BEZPOSREDNIO', message: 'Administrator wykonuje tę operację bezpośrednio — wniosek nie jest potrzebny.' });
     }
     const perms = await this.uprawnienia(op);
-    if (mozeWykonac(def, perms)) {
-      throw new BadRequestException({ code: 'WYKONAJ_BEZPOSREDNIO', message: 'Masz uprawnienie do tej operacji — wykonaj ją bezpośrednio, bez wniosku.' });
-    }
-    if (!perms.includes(def.doZlozenia)) throw new ForbiddenException('Twoja rola nie pozwala składać wniosków o tę operację.');
+    const wykonajBezposrednio = () =>
+      new BadRequestException({ code: 'WYKONAJ_BEZPOSREDNIO', message: 'Masz uprawnienie do tej operacji — wykonaj ją bezpośrednio, bez wniosku.' });
+    const maUprawnienie = mozeWykonac(def, perms);
+    if (maUprawnienie && !def.wymagaWnioskuMimoUprawnien) throw wykonajBezposrednio();
+    if (!maUprawnienie && !perms.includes(def.doZlozenia)) throw new ForbiddenException('Twoja rola nie pozwala składać wniosków o tę operację.');
 
     const payload = this.payload(def, dto.payload);
     const klientId = await this.klient(def, dto.userId);
+    // Audyt Fal 2 — np. reset hasła po zmianie e-maila przez obsługę: wniosek także od osoby z uprawnieniem.
+    if (maUprawnienie && !(await def.wymagaWnioskuMimoUprawnien!(payload, klientId, this.zaleznosci))) throw wykonajBezposrednio();
     await def.sprawdzPrzyZlozeniu?.(payload, klientId, this.zaleznosci);
     // Usługa (kontekst na liście wniosków) musi należeć do klienta wniosku — w tabeli nie ma klucza obcego.
     if (dto.subscriptionId) {
