@@ -11,15 +11,9 @@ import { StaffNotificationBell } from "./staff-notification-bell";
 import { ThemeToggle } from "./theme-toggle";
 import type { StaffProfile } from "@/lib/staff-session";
 import { staffLogout } from "@/lib/staff-auth-actions";
+import { grupyMenu, type DostepMenu, type LicznikiMenu } from "@/lib/menu-obslugi";
 
-export interface LicznikiMenu {
-  skrzynka: number;
-  moje: number;
-  czeka: number;
-  poTerminie: number;
-}
-
-type Pozycja = { name: string; href: string; licznik?: number; ostrzezenie?: boolean };
+export type { LicznikiMenu } from "@/lib/menu-obslugi";
 
 /** Bieżąca pozycja menu: ścieżka + widok skrzynki (?widok=moje|czeka). */
 function aktywna(href: string, pathname: string, widok: string | null): boolean {
@@ -58,45 +52,19 @@ function okruszki(pathname: string, widok: string | null): string[] {
 export function StaffShell({
   session,
   liczniki,
+  dostep,
   children,
 }: {
   session: StaffProfile;
   liczniki: LicznikiMenu | null;
+  dostep: DostepMenu;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const widok = useSearchParams().get("widok");
   const nazwa = [session.firstName, session.lastName].filter(Boolean).join(" ") || session.email;
 
-  const grupy: { naglowek: string; pozycje: Pozycja[] }[] = [
-    {
-      naglowek: "Zgłoszenia",
-      pozycje: [
-        { name: "Skrzynka", href: "/", licznik: liczniki?.skrzynka, ostrzezenie: (liczniki?.poTerminie ?? 0) > 0 },
-        { name: "Moje", href: "/?widok=moje", licznik: liczniki?.moje },
-        { name: "Czeka na klienta", href: "/?widok=czeka", licznik: liczniki?.czeka },
-        { name: "Zamknięte", href: "/tickets/closed" },
-      ],
-    },
-    {
-      naglowek: "Klienci",
-      pozycje: [
-        { name: "Klienci", href: "/crm" },
-        { name: "Migracje", href: "/migrations" },
-        { name: "Nadużycia", href: "/abuse" },
-        { name: "Program partnerski", href: "/referral-enrollments" },
-        { name: "Wnioski", href: "/wnioski" },
-      ],
-    },
-    {
-      naglowek: "Wiedza",
-      pozycje: [
-        { name: "Baza odpowiedzi", href: "/knowledge/odpowiedzi" },
-        { name: "Baza wiedzy", href: "/knowledge" },
-        { name: "Ustawienia", href: "/settings" },
-      ],
-    },
-  ];
+  const grupy = grupyMenu(liczniki, dostep);
 
   const sciezka = okruszki(pathname, widok);
   // Aktywna jest najdłuższa pasująca pozycja (np. /knowledge/odpowiedzi, nie też /knowledge).
@@ -145,6 +113,9 @@ export function StaffShell({
             })}
           </div>
         ))}
+        {dostep.nieOdczytano ? (
+          <p className="px-3 pt-2 text-[11.5px] text-[#f2b84b]">Nie udało się wczytać uprawnień — menu ograniczone. Odśwież stronę.</p>
+        ) : null}
         {grafanaSsoHref() && canShowGrafanaLink(session) ? (
           <div className="flex flex-col gap-0.5">
             <div className="px-3 pb-1.5 pt-2.5 font-mono text-[10.5px] uppercase tracking-[0.12em] text-[#7f8a83]">Monitoring</div>

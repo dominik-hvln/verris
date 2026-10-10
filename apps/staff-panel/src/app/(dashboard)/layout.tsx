@@ -3,6 +3,7 @@ import { requireStaffSession } from "@/lib/staff-session";
 import { StaffShell, type LicznikiMenu } from "@/components/staff-shell";
 import { PlatformConfigLoader } from "@/components/platform-config-loader";
 import { staffGetTickets } from "@/lib/tickets-data";
+import { pobierzDostepOperatora } from "@/lib/staff-access";
 
 /** Liczniki w menu (Skrzynka / Moje / Czeka na klienta); bez API menu działa, tylko bez liczb. */
 async function liczniki(meId: string): Promise<LicznikiMenu | null> {
@@ -22,12 +23,12 @@ async function liczniki(meId: string): Promise<LicznikiMenu | null> {
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await requireStaffSession();
-  const l = await liczniki(session.id);
+  const [l, dostep] = await Promise.all([liczniki(session.id), pobierzDostepOperatora()]);
   return (
     <>
       <PlatformConfigLoader />
       <Suspense>
-        <StaffShell session={session} liczniki={l}>
+        <StaffShell session={session} liczniki={l} dostep={dostep}>
           {children}
         </StaffShell>
       </Suspense>
