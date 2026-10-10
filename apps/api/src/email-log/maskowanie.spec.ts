@@ -17,6 +17,7 @@ describe('maskowanie linków jednorazowych w dzienniku poczty', () => {
     [`https://api.verris.pl/me/data-export/download/${TOKEN}`, 'https://api.verris.pl/me/data-export/download/•••'],
     [`https://panel.verris.pl/magic#${TOKEN}`, 'https://panel.verris.pl/magic#•••'],
     [`https://panel.verris.pl/login?code=123456&next=/dashboard`, 'https://panel.verris.pl/login?code=•••&next=/dashboard'],
+    [`(https://api.verris.pl/me/data-export/download/${TOKEN}).`, '(https://api.verris.pl/me/data-export/download/•••).'],
   ])('%s', (wej, wyj) => {
     expect(maskujTekst(wej)).toBe(wyj);
   });

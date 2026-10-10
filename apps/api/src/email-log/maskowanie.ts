@@ -28,7 +28,8 @@ function maskujUrl(url: string): string {
   const host = m?.[1] ?? sciezka;
   const reszta = (m?.[2] ?? '')
     .split('/')
-    .map((seg) => (/^[A-Za-z0-9_.~%-]+$/.test(seg) && wygladaNaSekret(seg, 16) ? MASKA : seg))
+    // Ciąg w segmencie, nie cały segment: link w nawiasie albo z kropką na końcu też jest maskowany.
+    .map((seg) => seg.replace(/[A-Za-z0-9_~%-]{16,}/g, (t) => (wygladaNaSekret(t, 16) ? MASKA : t)))
     .join('/');
   const params =
     zapytanie === null
