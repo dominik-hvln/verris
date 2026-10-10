@@ -56,7 +56,7 @@ describe('SubscriptionsAdminController — zawieszenie przez obsługę (F2.3)', 
   it('STAFF z powodem i zgłoszeniem → serwis dostaje powód, numer zgłoszenia i aktora', async () => {
     const { c, zawieszenie } = kontroler();
     await c.suspend('s1', { reason: 'ABUSE', note: POWOD, zgloszenie: '#ab12cd34' }, STAFF);
-    expect(zawieszenie.zawies).toHaveBeenCalledWith({ subscriptionId: 's1', aktorUserId: 'op', reason: 'ABUSE', powod: POWOD, zgloszenie: '#ab12cd34' });
+    expect(zawieszenie.zawies).toHaveBeenCalledWith({ subscriptionId: 's1', aktorUserId: 'op', aktorRola: Role.STAFF, reason: 'ABUSE', powod: POWOD, zgloszenie: '#ab12cd34' });
   });
 
   it('ADMIN jak dotąd: bez powodu, nieznany powód → MANUAL_ADMIN, brak płatności dozwolony', async () => {
@@ -72,7 +72,7 @@ describe('SubscriptionsAdminController — zawieszenie przez obsługę (F2.3)', 
     await expect(bez.c.unsuspend('s1', { note: POWOD, chargeRenewal: true }, STAFF)).rejects.toThrow(/BILLING_MANAGE/);
     expect(bez.zawieszenie.odwies).not.toHaveBeenCalled();
     await bez.c.unsuspend('s1', { note: POWOD, zgloszenie: 'ab12cd34' }, STAFF);
-    expect(bez.zawieszenie.odwies).toHaveBeenCalledWith({ subscriptionId: 's1', aktorUserId: 'op', powod: POWOD, zgloszenie: 'ab12cd34', chargeRenewal: undefined });
+    expect(bez.zawieszenie.odwies).toHaveBeenCalledWith({ subscriptionId: 's1', aktorUserId: 'op', aktorRola: Role.STAFF, powod: POWOD, zgloszenie: 'ab12cd34', chargeRenewal: undefined });
     const l4 = kontroler(['SUBSCRIPTIONS_SUSPEND', 'BILLING_MANAGE']);
     await l4.c.unsuspend('s1', { note: POWOD, chargeRenewal: true }, STAFF);
     expect(l4.zawieszenie.odwies).toHaveBeenCalledWith(expect.objectContaining({ chargeRenewal: true }));

@@ -165,8 +165,8 @@ export interface ZaleznosciWnioskow {
   /** F2.3 — ZawieszenieOperatoraService (subscriptions/zawieszenie-operatora.service.ts). */
   zawieszenie: {
     zgloszenieKlienta(klientId: string, wpis: string | null | undefined): Promise<string | null>;
-    zawies(i: { subscriptionId: string; aktorUserId: string; reason: PowodZawieszeniaOperatora; powod?: string | null; zgloszenie?: string | null }): Promise<{ status: string }>;
-    odwies(i: { subscriptionId: string; aktorUserId: string; powod?: string | null; zgloszenie?: string | null }): Promise<{ status: string }>;
+    zawies(i: { subscriptionId: string; aktorUserId: string; aktorRola: string | undefined; reason: PowodZawieszeniaOperatora; powod?: string | null; zgloszenie?: string | null }): Promise<{ status: string }>;
+    odwies(i: { subscriptionId: string; aktorUserId: string; aktorRola: string | undefined; powod?: string | null; zgloszenie?: string | null }): Promise<{ status: string }>;
   };
   /** F3.5 — CyklZyciaUslugiService (subscriptions/cykl-zycia-uslugi.service.ts). */
   cyklZycia: {
@@ -430,6 +430,7 @@ export const REJESTR_WNIOSKOW = {
       await z.zawieszenie.zawies({
         subscriptionId: p.subscriptionId,
         aktorUserId: k.decydujacy.userId,
+        aktorRola: k.decydujacy.role,
         reason: p.reason ?? 'MANUAL_ADMIN',
         powod: k.uzasadnienie ?? `wniosek ${k.wniosekId}`,
         zgloszenie: p.zgloszenie,
@@ -458,6 +459,7 @@ export const REJESTR_WNIOSKOW = {
       await z.zawieszenie.odwies({
         subscriptionId: p.subscriptionId,
         aktorUserId: k.decydujacy.userId,
+        aktorRola: k.decydujacy.role,
         powod: k.uzasadnienie ?? `wniosek ${k.wniosekId}`,
         zgloszenie: p.zgloszenie,
       });

@@ -54,7 +54,16 @@ const atrapa = (nazwa: string, wynik: unknown) => async () => {
     { provide: DirectAdminService, useValue: { listHostingBackups: atrapa('kopie', { rows: [], fetchError: null }) } },
     { provide: OdtworzenieNaWezleService, useValue: {} },
     { provide: RetencjaKontService, useValue: {} },
-    { provide: ZawieszenieOperatoraService, useValue: {} },
+    {
+      // Audyt Fal 2 — prawdziwa reguła właściciela usługi (Postgres); stan na węźle i w bazie — atrapa.
+      provide: ZawieszenieOperatoraService,
+      inject: [PrismaService],
+      useFactory: (p: PrismaService) =>
+        new ZawieszenieOperatoraService(p, {
+          suspend: atrapa('zawieszenie', { status: 'SUSPENDED' }),
+          unsuspend: atrapa('odwieszenie', { status: 'ACTIVE' }),
+        } as never),
+    },
   ],
 })
 class Aplikacja {}
@@ -132,6 +141,29 @@ describe('L1-KARTA — karta usługi przez HTTP dla ról systemowych', () => {
     expect((await zadanie('GET', `${s}/usage`, noc.id, 'STAFF')).status).toBe(200);
     expect((await zadanie('GET', `${s}/plan/eligible-plans`, noc.id, 'STAFF')).status).toBe(200);
     expect((await zadanie('GET', `${s}/hosting-backups`, noc.id, 'STAFF')).status).toBe(200);
+  });
+
+  it('audyt Fal 2: L3 zawiesza i odwiesza usługę klienta, ale nie usługę konta zespołu (ADMIN/STAFF) — 403 przed węzłem', async () => {
+    const wezel = (await utworzWezel()).id;
+    const plan = (await utworzPlan()).id;
+    const l3 = await operatorZRola('L3 Starszy specjalista');
+    const cialo = { reason: 'ABUSE', note: 'Phishing potwierdzony na podstronie /login.' };
+    for (const rolaWlasciciela of ['ADMIN', 'STAFF'] as const) {
+      const k = await utworzKonto({ serverId: wezel, planId: plan });
+      await prisma().user.update({ where: { id: k.user.id }, data: { role: rolaWlasciciela } });
+      const s = `/admin/subscriptions/${k.subscription.id}`;
+      const z = await zadanie('POST', `${s}/suspend`, l3.id, 'STAFF', cialo);
+      expect(z.status).toBe(403);
+      expect(z.body).toMatchObject({ message: expect.stringContaining('usługę konta zespołu') });
+      expect((await zadanie('POST', `${s}/unsuspend`, l3.id, 'STAFF', { note: 'Wyjaśnione z klientem.' })).status).toBe(403);
+    }
+    expect(wywolania).toEqual([]);
+
+    const k = await utworzKonto({ serverId: wezel, planId: plan });
+    const s = `/admin/subscriptions/${k.subscription.id}`;
+    expect((await zadanie('POST', `${s}/suspend`, l3.id, 'STAFF', cialo)).status).toBe(200);
+    expect((await zadanie('POST', `${s}/unsuspend`, l3.id, 'STAFF', { note: 'Wyjaśnione z klientem.' })).status).toBe(200);
+    expect(wywolania).toEqual(['zawieszenie', 'odwieszenie']);
   });
 
   it('klient (USER) nie otwiera karty', async () => {

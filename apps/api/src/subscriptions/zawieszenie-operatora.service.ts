@@ -49,20 +49,33 @@ export class ZawieszenieOperatoraService {
     );
   }
 
-  private async usluga(subscriptionId: string) {
-    const s = await this.prisma.subscription.findUnique({ where: { id: subscriptionId }, select: { id: true, userId: true, status: true } });
+  /**
+   * Audyt Fal 2 — ta sama twarda reguła co pasek akcji konta (akcje-konta-operatora.service.ts wykonaj) i wejście na
+   * konto: STAFF działa tylko na usługach klientów (USER). Usługę konta zespołu (ADMIN/STAFF) zawiesza i odwiesza
+   * administrator — inaczej pracownik wyłączyłby stronę i pocztę Verris albo cofnął zawieszenie własnej usługi.
+   * Rola aktora z JWT (karta usługi, decyzja abuse) albo decydującego (wniosek); brak roli = jak STAFF.
+   */
+  private async usluga(subscriptionId: string, aktorRola: string | undefined) {
+    const s = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      select: { id: true, userId: true, status: true, user: { select: { role: true } } },
+    });
     if (!s) throw new NotFoundException('Nie znaleziono usługi.');
+    if (aktorRola !== 'ADMIN' && s.user.role !== 'USER') {
+      throw new ForbiddenException('Personel może zmieniać wyłącznie usługi klientów — usługę konta zespołu zmienia administrator.');
+    }
     return s;
   }
 
   async zawies(input: {
     subscriptionId: string;
     aktorUserId: string;
+    aktorRola: string | undefined;
     reason: SuspendReason;
     powod?: string | null;
     zgloszenie?: string | null;
   }): Promise<Subscription> {
-    const s = await this.usluga(input.subscriptionId);
+    const s = await this.usluga(input.subscriptionId, input.aktorRola);
     const zgloszenieId = await this.zgloszenieKlienta(s.userId, input.zgloszenie);
     return this.subs.suspend({
       subscriptionId: s.id,
@@ -78,11 +91,12 @@ export class ZawieszenieOperatoraService {
   async odwies(input: {
     subscriptionId: string;
     aktorUserId: string;
+    aktorRola: string | undefined;
     powod?: string | null;
     zgloszenie?: string | null;
     chargeRenewal?: boolean;
   }): Promise<Subscription> {
-    const s = await this.usluga(input.subscriptionId);
+    const s = await this.usluga(input.subscriptionId, input.aktorRola);
     await this.wymagajRozliczenPrzyZaleglosci(s.id, input.aktorUserId);
     const zgloszenieId = await this.zgloszenieKlienta(s.userId, input.zgloszenie);
     return this.subs.unsuspend({

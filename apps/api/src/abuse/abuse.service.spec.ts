@@ -110,7 +110,8 @@ describe('N-13 — zgłoszenia nadużyć', () => {
     it('STAFF z SUBSCRIPTIONS_SUSPEND: zawiesza dopasowaną usługę (ABUSE, powód z numerem zgłoszenia nadużycia), potem decyzja i dziennik', async () => {
       const { s, zawieszenie, prisma, audit } = zZawieszeniem({ uprawnienia: ['ABUSE_MANAGE', 'SUBSCRIPTIONS_SUSPEND'] });
       await s.decyzja('r1', { status: 'ACTION_TAKEN', decision: UZ, notifyCustomer: true, suspendService: true }, 'staff1', 'STAFF');
-      expect(zawieszenie.zawies).toHaveBeenCalledWith({ subscriptionId: 's1', aktorUserId: 'staff1', reason: 'ABUSE', powod: `Nadużycie #r1abcdef: ${UZ}` });
+      // Audyt Fal 2 — rola decydującego idzie do zawieszenia (reguła „STAFF tylko na usługach kont USER”).
+      expect(zawieszenie.zawies).toHaveBeenCalledWith({ subscriptionId: 's1', aktorUserId: 'staff1', aktorRola: 'STAFF', reason: 'ABUSE', powod: `Nadużycie #r1abcdef: ${UZ}` });
       expect(zawieszenie.zawies.mock.invocationCallOrder[0]).toBeLessThan(prisma.abuseReport.update.mock.invocationCallOrder[0]!);
       expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'ABUSE_REPORT_ACTION_TAKEN', details: expect.objectContaining({ serviceSuspended: true, subscriptionId: 's1' }) }));
     });

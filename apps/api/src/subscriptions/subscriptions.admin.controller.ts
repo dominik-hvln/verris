@@ -365,7 +365,7 @@ export class SubscriptionsAdminController {
     } else {
       reason = ALLOWED_REASONS.includes(dto.reason as SuspendReason) ? (dto.reason as SuspendReason) : 'MANUAL_ADMIN';
     }
-    return this.zawieszenie.zawies({ subscriptionId: id, aktorUserId: actor.userId, reason, powod: dto.note, zgloszenie: dto.zgloszenie });
+    return this.zawieszenie.zawies({ subscriptionId: id, aktorUserId: actor.userId, aktorRola: actor.role, reason, powod: dto.note, zgloszenie: dto.zgloszenie });
   }
 
   /**
@@ -391,6 +391,7 @@ export class SubscriptionsAdminController {
     return this.zawieszenie.odwies({
       subscriptionId: id,
       aktorUserId: actor.userId,
+      aktorRola: actor.role,
       powod: dto.note,
       zgloszenie: dto.zgloszenie,
       chargeRenewal: dto.chargeRenewal,

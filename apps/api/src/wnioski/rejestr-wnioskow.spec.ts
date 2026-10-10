@@ -218,7 +218,7 @@ describe('PB-48 — rejestr wniosków', () => {
     expect(d.opis(p)).toBe('Zawieszenie usługi — strona, poczta i FTP klienta przestaną działać (zgłoszenie #ab12cd34)');
     const { z, wywolania } = zal();
     const w = await d.wykonaj(p, { ...k, uzasadnienie: 'phishing potwierdzony' }, z);
-    expect(wywolania).toEqual([['zawies', { subscriptionId: 's1', aktorUserId: 'kier', reason: 'ABUSE', powod: 'phishing potwierdzony', zgloszenie: '#ab12cd34' }]]);
+    expect(wywolania).toEqual([['zawies', { subscriptionId: 's1', aktorUserId: 'kier', aktorRola: 'STAFF', reason: 'ABUSE', powod: 'phishing potwierdzony', zgloszenie: '#ab12cd34' }]]);
     expect(w).toEqual({ komunikat: 'Usługa zawieszona.' });
     // Bez powodu w payloadzie — decyzja obsługi (nie „brak płatności”, który zostaje dla administratora).
     const bez = zal();
@@ -234,7 +234,7 @@ describe('PB-48 — rejestr wniosków', () => {
     expect(await d.bezZmian!({ subscriptionId: 's1' }, 'k1', zal().z)).toMatch(/Bez zmian/);
     const { z, wywolania } = zal({ usluga: { userId: 'k1', status: 'SUSPENDED' } });
     await d.wykonaj({ subscriptionId: 's1', zgloszenie: 'ab12cd34' }, { ...k, uzasadnienie: 'klient usunął pliki' }, z);
-    expect(wywolania).toEqual([['odwies', { subscriptionId: 's1', aktorUserId: 'kier', powod: 'klient usunął pliki', zgloszenie: 'ab12cd34' }]]);
+    expect(wywolania).toEqual([['odwies', { subscriptionId: 's1', aktorUserId: 'kier', aktorRola: 'STAFF', powod: 'klient usunął pliki', zgloszenie: 'ab12cd34' }]]);
     expect(wywolania[0]![1]).not.toHaveProperty('chargeRenewal');
   });
 

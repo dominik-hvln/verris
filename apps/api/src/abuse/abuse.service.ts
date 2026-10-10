@@ -182,6 +182,7 @@ export class AbuseService {
       await this.zawieszenie.zawies({
         subscriptionId: r.subscriptionId,
         aktorUserId: staffId,
+        aktorRola: rola,
         reason: 'ABUSE',
         powod: `Nadużycie #${r.id.slice(0, 8)}: ${uzasadnienie}`.slice(0, 500),
       });
