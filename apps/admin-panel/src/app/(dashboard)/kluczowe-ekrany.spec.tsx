@@ -113,37 +113,51 @@ describe("X-05 zgłoszenia", () => {
     user: { email: `${id}@test.pl` },
     ...o,
   });
+  const zapytania: string[] = [];
 
+  // F2.5 — filtr widoku, kolejność i liczniki liczy API; strona przekazuje widok, frazę i numer strony.
   beforeEach(() => {
+    zapytania.length = 0;
     api.mockReset();
-    api.mockResolvedValue([
-      zgl("a", { slaResponseDueAt: new Date(Date.now() + godzina).toISOString() }),
-      zgl("b", { slaResponseDueAt: new Date(Date.now() - godzina).toISOString() }),
-      zgl("c", { status: "CLOSED" }),
-      zgl("d", { slaResponseDueAt: new Date(Date.now() - godzina).toISOString(), firstResponseAt: new Date().toISOString() }),
-    ]);
+    api.mockImplementation(async (sciezka: string) => {
+      zapytania.push(sciezka);
+      return {
+        rows: [zgl("b", { slaResponseDueAt: new Date(Date.now() - godzina).toISOString() }), zgl("a", { slaResponseDueAt: new Date(Date.now() + godzina).toISOString() })],
+        total: 120,
+        page: 1,
+        limit: 50,
+        totalPages: 3,
+        liczby: { otwarte: 3, poTerminie: 1, zamkniete: 1, moje: 0, czeka: 0 },
+      };
+    });
   });
 
-  const render = async (widok?: string) => tekst(renderToStaticMarkup(await ZgloszeniaStrona({ searchParams: Promise.resolve({ widok }) })));
+  const render = async (widok?: string, q?: string) => tekst(renderToStaticMarkup(await ZgloszeniaStrona({ searchParams: Promise.resolve({ widok, q }) })));
+  const parametry = () => Object.fromEntries(new URLSearchParams(zapytania[0]!.split("?")[1]));
 
-  it("otwarte: bez zamkniętych, po terminie na górze, liczniki widoków", async () => {
+  it("otwarte: filtr i sortowanie z API, liczniki widoków z API, stronicowanie", async () => {
     const t = await render();
-    expect(t).not.toContain("Temat c");
+    expect(parametry()).toEqual({ stan: "otwarte", sort: "termin", limit: "50" });
     expect(t.indexOf("Temat b")).toBeLessThan(t.indexOf("Temat a"));
+    expect(t).toContain("po terminie SLA");
     expect(t).toContain("Otwarte · 3");
     expect(t).toContain("Po terminie SLA · 1");
     expect(t).toContain("Zamknięte · 1");
+    expect(t).toContain("Wszystkie · 4");
+    expect(t).toContain("Strona 1 z 3 · 120 zgłoszeń");
   });
 
-  it("po terminie: tylko bez pierwszej odpowiedzi i po terminie (odpowiedziane się nie liczą)", async () => {
-    const t = await render("po-terminie");
-    expect(t).toContain("Temat b");
-    expect(t).not.toContain("Temat a");
-    expect(t).not.toContain("Temat d");
+  it("widoki → filtry API; wyszukiwanie idzie do API", async () => {
+    await render("po-terminie");
+    expect(parametry()).toMatchObject({ sla: "po-terminie" });
+    zapytania.length = 0;
+    await render("zamkniete", "faktura");
+    expect(parametry()).toEqual({ stan: "zamkniete", sort: "zamkniete", limit: "50", q: "faktura" });
   });
 
   it("nieznany widok wraca do otwartych", async () => {
-    expect(await render("cokolwiek")).toContain("Temat a");
+    await render("cokolwiek");
+    expect(parametry()).toMatchObject({ stan: "otwarte" });
   });
 });
 

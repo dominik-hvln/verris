@@ -1,37 +1,30 @@
 import Link from "next/link";
 import { Clock, MessageSquare } from "lucide-react";
-import { staffGetTickets, type StaffTicketRow } from "@/lib/tickets-data";
+import { staffListaZgloszen, type ListaZgloszen } from "@/lib/tickets-data";
+import { staffListTags } from "@/lib/ticket-actions";
 import { StaffApiError } from "@/lib/staff-api";
+import { FILTRY, linkStrony, type ParametrySkrzynki } from "@/lib/skrzynka";
+import { FiltrySkrzynki, Stronicowanie } from "@/components/filtry-skrzynki";
 
 export const dynamic = "force-dynamic";
 
-export default async function ClosedTicketsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ userId?: string }>;
-}) {
-  const { userId: filterUserId } = await searchParams;
+/** Zamknięte zgłoszenia. F2.5 — wyszukiwanie, filtry i stronicowanie w API (wcześniej cała tabela). */
+export default async function ClosedTicketsPage({ searchParams }: { searchParams: Promise<ParametrySkrzynki> }) {
+  const p = await searchParams;
+  const filterUserId = p.userId;
+  const zapytanie: Record<string, string> = { stan: "zamkniete", sort: "zamkniete", limit: "50" };
+  for (const k of FILTRY) if (k !== "sla" && p[k]?.trim()) zapytanie[k] = p[k]!.trim();
+  if (p.page && Number(p.page) > 1) zapytanie.page = p.page;
 
-  let rows: StaffTicketRow[] = [];
+  let lista: ListaZgloszen | null = null;
   let error: string | null = null;
   try {
-    rows = await staffGetTickets(filterUserId);
+    lista = await staffListaZgloszen(zapytanie);
   } catch (e) {
-    error =
-      e instanceof StaffApiError
-        ? e.message
-        : e instanceof Error
-          ? e.message
-          : "Nie udało się pobrać zgłoszeń.";
+    error = e instanceof StaffApiError ? e.message : e instanceof Error ? e.message : "Nie udało się pobrać zgłoszeń.";
   }
-
-  rows = [...rows]
-    .filter((t) => t.status === "CLOSED")
-    .sort((a, b) => {
-      const aTs = new Date(a.resolvedAt ?? a.updatedAt ?? a.createdAt).getTime();
-      const bTs = new Date(b.resolvedAt ?? b.updatedAt ?? b.createdAt).getTime();
-      return bTs - aTs;
-    });
+  const tagi = (await staffListTags()).map((t) => t.tag);
+  const rows = lista?.rows ?? [];
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
@@ -59,6 +52,7 @@ export default async function ClosedTicketsPage({
           ) : null}
         </p>
       </div>
+      <FiltrySkrzynki p={p} tagi={tagi} sciezka="/tickets/closed" bezTerminu />
       <div className="rounded-2xl border border-white/10 bg-black/30">
         <ul className="divide-y divide-white/5">
           {rows.map((t) => (
@@ -99,6 +93,7 @@ export default async function ClosedTicketsPage({
           <div className="py-14 text-center text-muted-foreground text-sm">{error ? 'Nie udało się wczytać zgłoszeń — zobacz komunikat powyżej.' : 'Brak zamkniętych zgłoszeń.'}</div>
         ) : null}
       </div>
+      {lista ? <Stronicowanie strona={lista.page} stron={lista.totalPages} razem={lista.total} link={(s) => linkStrony(p, s, "/tickets/closed")} /> : null}
     </div>
   );
 }

@@ -19,38 +19,59 @@ type AdminTicket = {
   user: { email: string; companyName?: string | null; firstName?: string | null; lastName?: string | null };
 };
 
+type ListaZgloszen = {
+  rows: AdminTicket[];
+  total: number;
+  page: number;
+  totalPages: number;
+  liczby: { otwarte: number; poTerminie: number; zamkniete: number };
+};
+
 const WIDOKI = { otwarte: "Otwarte", "po-terminie": "Po terminie SLA", zamkniete: "Zamknięte", wszystkie: "Wszystkie" } as const;
 type Widok = keyof typeof WIDOKI;
 const teraz = () => Date.now();
+/** F2.5 — widok → filtry API skrzynki (filtry, wyszukiwanie i stronicowanie liczy API, nie ta strona). */
+const FILTR_WIDOKU: Record<Widok, Record<string, string>> = {
+  otwarte: { stan: "otwarte", sort: "termin" },
+  "po-terminie": { sla: "po-terminie", sort: "termin" },
+  zamkniete: { stan: "zamkniete", sort: "zamkniete" },
+  wszystkie: { sort: "najnowsze" },
+};
 
-export default async function AdminTicketsPage({ searchParams }: { searchParams: Promise<{ widok?: string }> }) {
+export default async function AdminTicketsPage({ searchParams }: { searchParams: Promise<{ widok?: string; q?: string; page?: string }> }) {
   const bramka = await bramkaStrony("/tickets");
   if (bramka) return bramka;
   const q = await searchParams;
   const widok: Widok = (q.widok ?? "") in WIDOKI ? (q.widok as Widok) : "otwarte";
-  let rows: AdminTicket[] = [];
+  const fraza = q.q?.trim() ?? "";
+  const strona = Math.max(1, Number.parseInt(q.page ?? "", 10) || 1);
+  let lista: ListaZgloszen | null = null;
   let error: string | null = null;
   const staffPanelUrl = panelUrl("NEXT_PUBLIC_STAFF_PANEL_URL", 3002);
   // N-20 — szczegół zgłoszenia żyje w panelu BOK. Dawny fallback `/tickets/:id` prowadził
   // do nieistniejącej trasy admina (404); bez zmiennej środowiskowej idziemy na adres produkcyjny.
   const ticketHref = (ticketId: string) =>
     new URL(`/tickets/${ticketId}`, staffPanelUrl ?? "https://staff.verris.pl").toString();
+  const parametry = new URLSearchParams({ ...FILTR_WIDOKU[widok], limit: "50", ...(fraza ? { q: fraza } : {}), ...(strona > 1 ? { page: String(strona) } : {}) });
   try {
-    rows = await adminApi<AdminTicket[]>("/tickets/admin/all");
+    lista = await adminApi<ListaZgloszen>(`/tickets/admin/all?${parametry.toString()}`);
   } catch (e) {
     error = e instanceof Error ? e.message : "Nie udało się pobrać zgłoszeń.";
   }
 
   const chwila = teraz();
   const poTerminie = (t: AdminTicket) => t.status !== "CLOSED" && !t.firstResponseAt && !!t.slaResponseDueAt && new Date(t.slaResponseDueAt).getTime() < chwila;
-  const filtry: Record<Widok, (t: AdminTicket) => boolean> = {
-    otwarte: (t) => t.status !== "CLOSED",
-    "po-terminie": poTerminie,
-    zamkniete: (t) => t.status === "CLOSED",
-    wszystkie: () => true,
+  // Kolejność (po terminie na górze) i filtr widoku — z API.
+  const widoczne = lista?.rows ?? [];
+  const l = lista?.liczby;
+  const liczbaWidoku: Record<Widok, number | null> = l
+    ? { otwarte: l.otwarte, "po-terminie": l.poTerminie, zamkniete: l.zamkniete, wszystkie: l.otwarte + l.zamkniete }
+    : { otwarte: null, "po-terminie": null, zamkniete: null, wszystkie: null };
+  const link = (o: { widok?: Widok; page?: number }) => {
+    const w = o.widok ?? widok;
+    const p = new URLSearchParams({ ...(w !== "otwarte" ? { widok: w } : {}), ...(fraza ? { q: fraza } : {}), ...(o.page && o.page > 1 ? { page: String(o.page) } : {}) }).toString();
+    return p ? `/tickets?${p}` : "/tickets";
   };
-  // Po terminie na górze — to je trzeba ruszyć najpierw.
-  const widoczne = rows.filter(filtry[widok]).sort((a, b) => Number(poTerminie(b)) - Number(poTerminie(a)));
 
   return (
     <div className="flex flex-col gap-[22px]">
@@ -70,19 +91,33 @@ export default async function AdminTicketsPage({ searchParams }: { searchParams:
         {(Object.keys(WIDOKI) as Widok[]).map((k) => (
           <Link
             key={k}
-            href={k === "otwarte" ? "/tickets" : `/tickets?widok=${k}`}
+            href={link({ widok: k })}
             aria-current={widok === k ? "page" : undefined}
             className={`rounded-full border px-3 py-1 text-[13px] ${widok === k ? "border-primary bg-data-soft font-semibold text-data-hi" : "border-line-strong text-muted-foreground hover:text-foreground"}`}
           >
-            {WIDOKI[k]} · {rows.filter(filtry[k]).length}
+            {WIDOKI[k]}
+            {liczbaWidoku[k] == null ? "" : ` · ${liczbaWidoku[k]}`}
           </Link>
         ))}
       </div>
+      <form method="get" action="/tickets" className="flex flex-wrap items-center gap-2" aria-label="Szukaj zgłoszeń">
+        {widok !== "otwarte" ? <input type="hidden" name="widok" value={widok} /> : null}
+        <input
+          name="q"
+          defaultValue={fraza}
+          aria-label="Szukaj"
+          placeholder="Szukaj: temat, treść, klient, #numer…"
+          className="h-[34px] min-w-[260px] flex-1 rounded-lg border border-line-strong bg-card px-2.5 text-[13px] text-foreground outline-none focus:border-primary"
+        />
+        <button type="submit" className={`${PRZYCISK} !h-[34px] !text-[13px]`}>
+          Szukaj
+        </button>
+      </form>
       {error ? (
         <p className="text-sm text-crit">{error}</p>
       ) : (
         <section className={KARTA} aria-label="Zgłoszenia">
-          {widoczne.length === 0 ? <div className={`${WIERSZ} !border-t-0 text-sm text-muted-foreground`}>Brak zgłoszeń w tym widoku.</div> : null}
+          {widoczne.length === 0 ? <div className={`${WIERSZ} !border-t-0 text-sm text-muted-foreground`}>{fraza ? "Nic nie pasuje do wyszukiwania." : "Brak zgłoszeń w tym widoku."}</div> : null}
           {widoczne.map((t, i) => {
             const klient = t.user.companyName?.trim() || [t.user.firstName, t.user.lastName].filter(Boolean).join(" ") || t.user.email;
             const opiekun = t.assignedTo ? [t.assignedTo.firstName, t.assignedTo.lastName].filter(Boolean).join(" ") || "przypisane" : "nieprzypisane";
@@ -112,6 +147,25 @@ export default async function AdminTicketsPage({ searchParams }: { searchParams:
           })}
         </section>
       )}
+      {lista && lista.totalPages > 1 ? (
+        <nav aria-label="Strony" className="flex items-center justify-between gap-3 text-[13px] text-muted-foreground">
+          <span>
+            Strona {lista.page} z {lista.totalPages} · {lista.total} zgłoszeń
+          </span>
+          <span className="flex gap-2">
+            {lista.page > 1 ? (
+              <Link href={link({ page: lista.page - 1 })} className={`${PRZYCISK} !h-8 !text-[13px]`}>
+                ← Poprzednia
+              </Link>
+            ) : null}
+            {lista.page < lista.totalPages ? (
+              <Link href={link({ page: lista.page + 1 })} className={`${PRZYCISK} !h-8 !text-[13px]`}>
+                Następna →
+              </Link>
+            ) : null}
+          </span>
+        </nav>
+      ) : null}
     </div>
   );
 }

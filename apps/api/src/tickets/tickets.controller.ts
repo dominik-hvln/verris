@@ -40,6 +40,7 @@ import { CannedResponseService } from './canned-response.service.js';
 import { TicketContextService } from './ticket-context.service.js';
 import { OpiekaZgloszenService } from './opieka-zgloszen.service.js';
 import { renderTemplate } from './ticket-context.js';
+import { ListaZgloszenQuery } from './lista-zgloszen.js';
 import { Delete, HttpCode } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -141,8 +142,9 @@ export class TicketsController {
   @UseGuards(RolesGuard, StaffPermissionsGuard)
   @Roles('STAFF', 'ADMIN')
   @StaffPerm('TICKETS_VIEW')
-  async adminFindAll(@Query('userId') userId?: string) {
-    return this.ticketsService.adminFindAll(userId);
+  // F2.5 — skrzynka: filtry, wyszukiwanie, stronicowanie (wcześniej cała tabela).
+  adminFindAll(@Query() q: ListaZgloszenQuery, @CurrentUser() user: { userId: string }) {
+    return this.ticketsService.adminList(q, user.userId);
   }
 
   @Get('admin/canned-responses')

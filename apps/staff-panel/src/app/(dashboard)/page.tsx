@@ -1,20 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { staffGetTickets, type StaffTicketRow } from "@/lib/tickets-data";
+import { staffListaZgloszen, type ListaZgloszen, type StaffTicketRow } from "@/lib/tickets-data";
+import { staffListTags } from "@/lib/ticket-actions";
+import { WIDOKI, czyFiltry, linkStrony, widokZ, zapytanieSkrzynki, type ParametrySkrzynki } from "@/lib/skrzynka";
+import { FiltrySkrzynki, Stronicowanie } from "@/components/filtry-skrzynki";
 import { StaffApiError } from "@/lib/staff-api";
 import { requireStaffSession } from "@/lib/staff-session";
 import { TICKET_DEPARTMENT_PL, TICKET_STATUS_PL, etykieta } from "@verris/contracts";
 
 export const dynamic = "force-dynamic";
 
-const priorityOrder: Record<string, number> = { URGENT: 0, HIGH: 1, NORMAL: 2, LOW: 3 };
 const PRIORYTET: Record<string, string> = { URGENT: "Pilny", HIGH: "Wysoki", NORMAL: "Normalny", LOW: "Niski" };
-
-const WIDOKI = {
-  wszystkie: { tytul: "Skrzynka zgłoszeń", opis: "Wszystkie otwarte: najpierw po terminie, potem według priorytetu." },
-  moje: { tytul: "Moje zgłoszenia", opis: "Przypisane do Ciebie i jeszcze otwarte." },
-  czeka: { tytul: "Czeka na klienta", opis: "Odpisaliśmy — przypomnienie po 2 dniach, zamknięcie po 5." },
-} as const;
 
 function doTerminu(t: StaffTicketRow, teraz: number): { tekst: string; ton: "crit" | "warn" | "neu" | "ok" } {
   if (t.status === "WAITING_CUSTOMER") return { tekst: "czeka na klienta", ton: "neu" };
@@ -40,38 +36,30 @@ const TON: Record<string, string> = {
   ok: "bg-data-soft text-data-hi",
 };
 
-export default async function StaffInboxPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ userId?: string; widok?: string }>;
-}) {
-  const { userId: filterUserId, widok: w } = await searchParams;
-  const widok: keyof typeof WIDOKI = w === "moje" || w === "czeka" ? w : "wszystkie";
-  const session = await requireStaffSession();
+/**
+ * Skrzynka obsługi. F2.5 — filtry, wyszukiwanie i stronicowanie liczy API (wcześniej cała tabela zgłoszeń
+ * do panelu i sortowanie tutaj); kolejność „po terminie najpierw” też z API.
+ */
+export default async function StaffInboxPage({ searchParams }: { searchParams: Promise<ParametrySkrzynki> }) {
+  const p = await searchParams;
+  const filterUserId = p.userId;
+  const widok = widokZ(p.widok);
+  await requireStaffSession();
 
-  let rows: StaffTicketRow[] = [];
+  let lista: ListaZgloszen | null = null;
   let error: string | null = null;
   try {
-    rows = await staffGetTickets(filterUserId);
+    lista = await staffListaZgloszen(zapytanieSkrzynki(p));
   } catch (e) {
     if (e instanceof StaffApiError && e.status === 401) redirect("/login");
     error = e instanceof Error ? e.message : "Nie udało się pobrać zgłoszeń.";
   }
+  const tagi = (await staffListTags()).map((t) => t.tag);
+  const rows: StaffTicketRow[] = lista?.rows ?? [];
 
   // eslint-disable-next-line react-hooks/purity -- komponent serwerowy (force-dynamic) renderuje się raz na żądanie; czas żądania jest tu zamierzony
   const teraz = Date.now();
-  rows = rows
-    .filter((t) => t.status !== "CLOSED")
-    .filter((t) => (widok === "moje" ? (t.assignedToId ?? t.assignedTo?.id) === session.id : widok === "czeka" ? t.status === "WAITING_CUSTOMER" : true))
-    .sort((a, b) => {
-      const pa = doTerminu(a, teraz).ton === "crit" ? -1 : 0;
-      const pb = doTerminu(b, teraz).ton === "crit" ? -1 : 0;
-      if (pa !== pb) return pa - pb;
-      const pr = priorityOrder[a.priority] - priorityOrder[b.priority];
-      if (pr !== 0) return pr;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-  const poTerminie = rows.filter((t) => doTerminu(t, teraz).ton === "crit").length;
+  const poTerminie = lista?.liczby.poTerminie ?? 0;
 
   return (
     <div className="flex flex-col gap-4">
@@ -103,10 +91,14 @@ export default async function StaffInboxPage({
           >
             Nowe zgłoszenie
           </Link>
-          <Licznik etykieta="Otwarte" wartosc={rows.length} />
-          <Licznik etykieta="Po terminie" wartosc={poTerminie} alarm={poTerminie > 0} />
+          <Licznik etykieta={widok === "wszystkie" && !czyFiltry(p) ? "Otwarte" : "Na liście"} wartosc={lista?.total ?? 0} />
+          <Link href={linkStrony({ widok: p.widok, userId: p.userId, sla: "po-terminie" }, 1)} className="no-underline" title="Pokaż tylko po terminie">
+            <Licznik etykieta="Po terminie" wartosc={poTerminie} alarm={poTerminie > 0} />
+          </Link>
         </div>
       </header>
+
+      <FiltrySkrzynki p={p} tagi={tagi} />
 
       <section className="overflow-hidden rounded-[10px] border border-line bg-card" aria-label="Lista zgłoszeń">
         {rows.map((t) => {
@@ -119,6 +111,11 @@ export default async function StaffInboxPage({
                   <span className="font-mono text-xs text-muted-foreground">#{t.id.slice(0, 8)}</span>
                   <span className="text-[15px] font-semibold">{t.subject}</span>
                   {t.topic === "BETA" ? <span className="rounded-full bg-warn-soft px-2 py-0.5 text-[11px] font-semibold text-warn">Beta</span> : null}
+                  {(t.tags ?? []).map((tag) => (
+                    <span key={tag} className="rounded-full bg-raised px-2 py-0.5 text-[11px] font-semibold text-[color:var(--verris-body)]">
+                      {tag}
+                    </span>
+                  ))}
                 </span>
                 <span className="text-[13px] text-muted-foreground">
                   {t.user.companyName ? `${t.user.companyName} · ` : ""}
@@ -147,10 +144,11 @@ export default async function StaffInboxPage({
         })}
         {rows.length === 0 ? (
           <p className="px-6 py-16 text-center text-sm text-muted-foreground">
-            {error ? "Nie udało się wczytać zgłoszeń — zobacz komunikat powyżej." : "Nic tu nie czeka — wszystko obsłużone."}
+            {error ? "Nie udało się wczytać zgłoszeń — zobacz komunikat powyżej." : czyFiltry(p) ? "Nic nie pasuje do filtrów." : "Nic tu nie czeka — wszystko obsłużone."}
           </p>
         ) : null}
       </section>
+      {lista ? <Stronicowanie strona={lista.page} stron={lista.totalPages} razem={lista.total} link={(s) => linkStrony(p, s)} /> : null}
     </div>
   );
 }

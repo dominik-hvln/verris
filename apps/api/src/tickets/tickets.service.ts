@@ -36,11 +36,29 @@ import type { Readable } from 'stream';
 import { OpiekaZgloszenService, opiekunSlownie, terminSlownie } from './opieka-zgloszen.service.js';
 import { ZAKRES_ODMOWA } from '../common/guards/zakres-uslug.js';
 import { RUNBOOK_KLUCZE, runbook as runbookZKatalogu } from '@verris/contracts';
+import { stronaListy } from '../subscriptions/lista-uslug.js';
+import {
+  KOLEJNOSC,
+  ListaZgloszenQuery,
+  ZGLOSZENIA_MAX_NA_STRONE,
+  ZGLOSZENIA_NA_STRONE,
+  podzialStrony,
+  poTerminie,
+  sortListyZgloszen,
+  warunkiListyZgloszen,
+} from './lista-zgloszen.js';
 
 /** PB-43 — co o powiązanej usłudze widzi klient i obsługa (bez danych węzła — te są w diagnostyce). */
 const USLUGA_ZGLOSZENIA = {
   select: { id: true, serviceTag: true, status: true, plan: { select: { name: true } }, account: { select: { domain: true } } },
 } as const;
+
+/** F2.5 — wiersz skrzynki (lista obsługi i panelu operatora). Licznik wiadomości z notatkami — to widok zespołu. */
+const WIERSZ_SKRZYNKI = {
+  user: { select: { id: true, firstName: true, lastName: true, email: true, companyName: true } },
+  assignedTo: { select: { id: true, firstName: true, lastName: true } },
+  _count: { select: { replies: true } },
+} satisfies Prisma.TicketInclude;
 
 /** F2.5 — załączniki, które klient może zobaczyć: pierwszej wiadomości albo odpowiedzi, która nie jest notatką. */
 const WIDOCZNE_DLA_KLIENTA_ZALACZNIKI = {
@@ -508,26 +526,57 @@ export class TicketsService {
 
   // --- ADMIN & STAFF METHODS ---
 
-  async adminFindAll(userId?: string) {
-    return this.prisma.ticket.findMany({
-      where: userId ? { userId } : undefined,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            companyName: true,
-          },
-        },
-        assignedTo: {
-          select: { id: true, firstName: true, lastName: true },
-        },
-        _count: { select: { replies: true } },
-      },
-    });
+  /**
+   * F2.5 — skrzynka: filtry, wyszukiwanie i stronicowanie w API (lista-zgloszen.ts). Sortowanie „termin”:
+   * najpierw zgłoszenia z pierwszą odpowiedzią po terminie (najdawniej spóźnione), potem reszta wg terminu
+   * rozwiązania — obie części stronicowane razem bez pobierania całości. `liczby` — liczniki menu i zakładek
+   * (bez filtrów listy; z filtrem klienta, gdy podany).
+   */
+  async adminList(q: ListaZgloszenQuery, actorUserId: string) {
+    const teraz = new Date();
+    const where = warunkiListyZgloszen(q, actorUserId, teraz);
+    const sort = sortListyZgloszen(q.sort);
+    const { limit, page, skip } = stronaListy(q, ZGLOSZENIA_NA_STRONE, ZGLOSZENIA_MAX_NA_STRONE);
+    const spoznione = poTerminie(teraz);
+    // Dopełnienie „po terminie” wprost (nie NOT {…}): przy slaResponseDueAt = NULL negacja w SQL daje NULL i wiersz by znikał.
+    const reszta: Prisma.TicketWhereInput = {
+      OR: [{ status: 'CLOSED' }, { firstResponseAt: { not: null } }, { slaResponseDueAt: null }, { slaResponseDueAt: { gte: teraz } }],
+    };
+    const total = await this.prisma.ticket.count({ where });
+    let rows;
+    if (sort === 'termin') {
+      const whereA: Prisma.TicketWhereInput = { AND: [where, spoznione] };
+      const ileA = await this.prisma.ticket.count({ where: whereA });
+      const podzial = podzialStrony(skip, limit, ileA);
+      const [a, b] = await Promise.all([
+        podzial.a.take
+          ? this.prisma.ticket.findMany({ where: whereA, orderBy: [{ slaResponseDueAt: 'asc' }, { id: 'asc' }], include: WIERSZ_SKRZYNKI, ...podzial.a })
+          : [],
+        podzial.b.take
+          ? this.prisma.ticket.findMany({ where: { AND: [where, reszta] }, orderBy: KOLEJNOSC.termin, include: WIERSZ_SKRZYNKI, ...podzial.b })
+          : [],
+      ]);
+      rows = [...a, ...b];
+    } else {
+      rows = await this.prisma.ticket.findMany({ where, orderBy: KOLEJNOSC[sort], include: WIERSZ_SKRZYNKI, skip, take: limit });
+    }
+    const klient: Prisma.TicketWhereInput = q.userId?.trim() ? { userId: q.userId.trim() } : {};
+    const otwarte: Prisma.TicketWhereInput = { ...klient, status: { not: 'CLOSED' } };
+    const [lOtwarte, lMoje, lCzeka, lPoTerminie, lZamkniete] = await Promise.all([
+      this.prisma.ticket.count({ where: otwarte }),
+      this.prisma.ticket.count({ where: { ...otwarte, assignedToId: actorUserId } }),
+      this.prisma.ticket.count({ where: { ...klient, status: 'WAITING_CUSTOMER' } }),
+      this.prisma.ticket.count({ where: { AND: [klient, spoznione] } }),
+      this.prisma.ticket.count({ where: { ...klient, status: 'CLOSED' } }),
+    ]);
+    return {
+      rows,
+      total,
+      page,
+      limit,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+      liczby: { otwarte: lOtwarte, moje: lMoje, czeka: lCzeka, poTerminie: lPoTerminie, zamkniete: lZamkniete },
+    };
   }
 
   async adminFindOne(ticketId: string, actorUserId?: string) {

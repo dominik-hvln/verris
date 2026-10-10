@@ -1,14 +1,23 @@
 import { staffApi } from "./staff-api";
 
-export async function staffGetTickets(userId?: string) {
-  const q = userId?.trim()
-    ? `?userId=${encodeURIComponent(userId.trim())}`
-    : "";
-  const rows = await staffApi<StaffTicketRow[]>(`/tickets/admin/all${q}`);
-  if (!Array.isArray(rows)) {
+/** F2.5 — odpowiedź skrzynki z API (filtry i stronicowanie po stronie API). */
+export interface ListaZgloszen {
+  rows: StaffTicketRow[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  liczby: { otwarte: number; moje: number; czeka: number; poTerminie: number; zamkniete: number };
+}
+
+/** F2.5 — skrzynka: `parametry` to filtry API (lista-zgloszen.ts): stan, priorytet, przypisany, temat, tag, sla, userId, q, sort, page, limit. */
+export async function staffListaZgloszen(parametry: Record<string, string | undefined> = {}): Promise<ListaZgloszen> {
+  const qs = new URLSearchParams(Object.entries(parametry).filter((e): e is [string, string] => !!e[1]?.trim())).toString();
+  const r = await staffApi<ListaZgloszen>(`/tickets/admin/all${qs ? `?${qs}` : ""}`);
+  if (!r || !Array.isArray(r.rows)) {
     throw new Error("API zwróciło nieoczekiwany format listy zgłoszeń.");
   }
-  return rows;
+  return r;
 }
 
 export async function staffGetTicket(id: string) {
