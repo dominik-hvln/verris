@@ -532,9 +532,18 @@ export class DataExportService implements OnApplicationBootstrap {
       // F2.5 (decyzja 10.10) — notatki obsługi w wątku zgłoszenia są danymi klienta jak notatki o koncie: są
       // w eksporcie, oznaczone `internal: true`. Wszystkie wpisy obsługi (odpowiedzi i notatki) bez id pracownika,
       // autor jako „Obsługa Verris” (art. 15 ust. 4 RODO, D3). Kto z obsługi założył zgłoszenie — tylko „tak/nie”.
-      tickets: tickets.map(({ openedByStaffId, ...t }) => ({ ...t, zalozylaObsluga: !!openedByStaffId })),
+      // Przegląd F2.5 — w zgłoszeniu id pracowników są też w opiekunie, eskalującym i ocenianym agencie (zgłoszenie
+      // założone przez obsługę jest przypisane do zakładającego — samo usunięcie openedByStaffId nic by nie ukryło),
+      // a przy załącznikach w „kto dodał”. Klient dostaje tylko „obsługa” bez id.
+      tickets: tickets.map(({ openedByStaffId, assignedToId, escalatedById, csatAgentId, ...t }) => ({
+        ...t,
+        zalozylaObsluga: !!openedByStaffId,
+        maOpiekuna: !!assignedToId,
+        eskalowalaObsluga: !!escalatedById,
+        ocenianyAgent: csatAgentId ? 'Obsługa Verris' : null,
+      })),
       'ticket-replies': ticketReplies.map((r) => (r.isStaff ? { ...r, authorId: null, autor: 'Obsługa Verris' } : r)),
-      'ticket-attachments': ticketAttachments,
+      'ticket-attachments': ticketAttachments.map((a) => (a.uploadedById === userId ? a : { ...a, uploadedById: null, dodala: 'Obsługa Verris' })),
       'data-export-requests': exports,
       'account-deletion-requests': deletions,
       'audit-log': auditLogs,
@@ -682,7 +691,7 @@ function buildReadme(userId: string): string {
     '  subscriptions.json               — subskrypcje (plan, status, okresy).',
     '  invoices.json                    — faktury VAT (zachowane 5 lat — wymóg PL).',
     '  wallet-transactions.json         — historia portfela (kredyty, doładowania).',
-    '  tickets.json                     — zgłoszenia do supportu (treść początkowa).',
+    '  tickets.json                     — zgłoszenia do supportu (treść początkowa); obsługa bez id pracowników.',
     '  ticket-replies.json              — odpowiedzi w wątkach i notatki obsługi (internal: true), autor obsługi jako „Obsługa Verris”.',
     '  ticket-attachments.json          — metadane załączników (lista plików).',
     '  audit-log.json                   — log audytowy operacji na koncie.',

@@ -46,10 +46,17 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
     subscription: { findMany: lista([{ id: 's1' }]) },
     walletTransaction: { findMany: lista([]) },
     invoice: { findMany: lista([{ id: 'i1', number: 'FV/1/2026' }]) },
-    ticket: { findMany: lista([{ id: 't1', subject: 'Pomoc', openedByStaffId: null }, { id: 't2', subject: 'Awaria', openedByStaffId: 'operator-7' }]) },
+    ticket: {
+      findMany: lista([
+        { id: 't1', subject: 'Pomoc', openedByStaffId: null, assignedToId: 'operator-8', escalatedById: 'operator-9', csatAgentId: 'operator-8' },
+        // Zgłoszenie założone przez obsługę jest przypisane do zakładającego (adminCreateOnBehalf).
+        { id: 't2', subject: 'Awaria', openedByStaffId: 'operator-7', assignedToId: 'operator-7', escalatedById: null, csatAgentId: null },
+      ]),
+    },
     ticketAttachment: {
       findMany: lista([
-        { id: 'z1', originalName: 'faktura.pdf', storageKey: 'k1' },
+        { id: 'z0', originalName: 'zrzut.png', storageKey: 'k0', uploadedById: 'operator-7' },
+        { id: 'z1', originalName: 'faktura.pdf', storageKey: 'k1', uploadedById: 'u1' },
         { id: 'z2', originalName: 'faktura.pdf', storageKey: 'k2' },
         { id: 'z3', originalName: '../../etc/passwd', storageKey: 'k3' },
       ]),
@@ -142,6 +149,17 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
     expect(pliki.get('ticket-replies.json')).not.toContain('operator-7');
     expect(pliki.get('tickets.json')).not.toContain('operator-7');
     expect(pliki.get('README.txt')).toContain('notatki obsługi (internal: true)');
+  });
+
+  it('przegląd F2.5 — zgłoszenia i załączniki w eksporcie bez id pracowników (opiekun, eskalujący, agent, kto dodał plik)', async () => {
+    const pliki = await zbudujZip(zbuduj().svc);
+    for (const plik of ['tickets.json', 'ticket-attachments.json']) expect(pliki.get(plik)).not.toMatch(/operator-\d/);
+    const zgl = JSON.parse(pliki.get('tickets.json')!) as Array<Record<string, unknown>>;
+    expect(zgl[0]).toMatchObject({ maOpiekuna: true, eskalowalaObsluga: true, ocenianyAgent: 'Obsługa Verris' });
+    expect(zgl[1]).toMatchObject({ zalozylaObsluga: true, maOpiekuna: true, eskalowalaObsluga: false, ocenianyAgent: null });
+    const zal = JSON.parse(pliki.get('ticket-attachments.json')!) as Array<Record<string, unknown>>;
+    expect(zal.find((a) => a.id === 'z0')).toMatchObject({ uploadedById: null, dodala: 'Obsługa Verris' });
+    expect(zal.find((a) => a.id === 'z1')).toMatchObject({ uploadedById: 'u1' });
   });
 
   it('nazwa załącznika nie wychodzi poza katalog attachments/ (zip slip)', async () => {
