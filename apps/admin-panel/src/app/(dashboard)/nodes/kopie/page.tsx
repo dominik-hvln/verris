@@ -9,6 +9,8 @@ export const dynamic = "force-dynamic";
 const kiedy = (iso: string) => new Date(iso).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw", dateStyle: "short", timeStyle: "short" });
 const czas = (s: number) => (s >= 60 ? `${Math.floor(s / 60)} min ${s % 60} s` : `${s} s`);
 const DOBA = 24 * 60 * 60 * 1000;
+/** Komponent serwerowy renderuje się raz na żądanie — „teraz” to chwila żądania (jak na karcie klienta). */
+const chwila = () => Date.now();
 
 /**
  * Fala 1B (zaczątek F3.3) — próby odtworzenia kopii (GET /admin/live-readiness/proby-odtworzenia, tylko ADMIN).
@@ -21,7 +23,7 @@ export default async function ProbyOdtworzeniaPage() {
   } catch (e) {
     return <BladStrony blad={e} tytul="Próby odtworzenia kopii" powrot={{ href: "/nodes", label: "Węzły" }} />;
   }
-  const teraz = Date.now();
+  const teraz = chwila();
   const zrodla = ostatniePerZrodlo(proby);
 
   return (
