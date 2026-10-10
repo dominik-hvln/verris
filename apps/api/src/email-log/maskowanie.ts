@@ -25,12 +25,11 @@ function maskujUrl(url: string): string {
   const sciezka = q === -1 ? przedHash! : przedHash!.slice(0, q);
   const zapytanie = q === -1 ? null : przedHash!.slice(q + 1);
   const m = /^(https?:\/\/[^/?#]+)(.*)$/i.exec(sciezka);
-  const host = m?.[1] ?? sciezka;
-  const reszta = (m?.[2] ?? '')
-    .split('/')
-    // Ciąg w segmencie, nie cały segment: link w nawiasie albo z kropką na końcu też jest maskowany.
-    .map((seg) => seg.replace(/[A-Za-z0-9_~%-]{16,}/g, (t) => (wygladaNaSekret(t, 16) ? MASKA : t)))
-    .join('/');
+  // Dane logowania w adresie (https://login:hasło@host) — zawsze zamaskowane.
+  const host = (m?.[1] ?? sciezka).replace(/^(https?:\/\/)[^@/]*@/i, `$1${MASKA}@`);
+  // Ciąg w segmencie, nie cały segment: link w nawiasie albo z kropką na końcu też jest maskowany.
+  const ciagi = (s: string) => s.replace(/[A-Za-z0-9_~%-]{16,}/g, (t) => (wygladaNaSekret(t, 16) ? MASKA : t));
+  const reszta = (m?.[2] ?? '').split('/').map(ciagi).join('/');
   const params =
     zapytanie === null
       ? ''
@@ -39,7 +38,8 @@ function maskujUrl(url: string): string {
           .split('&')
           .map((para) => {
             const i = para.indexOf('=');
-            if (i === -1) return para;
+            // Token jako samo zapytanie (…/magic?<token>) — bez nazwy parametru.
+            if (i === -1) return ciagi(para);
             const nazwa = para.slice(0, i);
             const wartosc = para.slice(i + 1);
             return wartosc && (NAZWA_SEKRETU.test(nazwa) || wartosc.length >= 16) ? `${nazwa}=${MASKA}` : para;

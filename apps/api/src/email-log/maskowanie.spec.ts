@@ -18,6 +18,10 @@ describe('maskowanie linków jednorazowych w dzienniku poczty', () => {
     [`https://panel.verris.pl/magic#${TOKEN}`, 'https://panel.verris.pl/magic#•••'],
     [`https://panel.verris.pl/login?code=123456&next=/dashboard`, 'https://panel.verris.pl/login?code=•••&next=/dashboard'],
     [`(https://api.verris.pl/me/data-export/download/${TOKEN}).`, '(https://api.verris.pl/me/data-export/download/•••).'],
+    // Przegląd 1B: token jako samo zapytanie i dane logowania w adresie przechodziły bez maski.
+    [`https://panel.verris.pl/magic?${TOKEN}`, 'https://panel.verris.pl/magic?•••'],
+    [`https://login:${TOKEN}@mail.verris.pl/`, 'https://•••@mail.verris.pl/'],
+    ['https://panel.verris.pl/pomoc?kategoria', 'https://panel.verris.pl/pomoc?kategoria'],
   ])('%s', (wej, wyj) => {
     expect(maskujTekst(wej)).toBe(wyj);
   });
