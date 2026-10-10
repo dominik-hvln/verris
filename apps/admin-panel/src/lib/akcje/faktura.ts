@@ -53,6 +53,32 @@ export const AKCJE_FAKTURY: AkcjaObiektu<FakturaDlaAkcji>[] = [
     wniosek: ["BILLING_VIEW", "CUSTOMERS_VIEW"],
   },
   {
+    id: "dokoncz",
+    grupa: "Dokument",
+    nazwa: "Dokończ wystawienie",
+    opis: "Opłacona faktura bez PDF-u — nadaje numer i tworzy plik.",
+    // POST admin/invoices/:invoiceId/dokoncz — BILLING_MANAGE; automat (faktury.scheduler) bierze PAID bez storageKey.
+    perm: "BILLING_MANAGE",
+    // Tylko gdy wiadomo, że PDF-u brak (strona faktury) — w Cmd+K stan pliku jest nieznany, a takich faktur jest garść.
+    kiedy: (f) => (nieWiadomo(f.status) || f.status === "PAID") && f.maPdf === false,
+    href: (f) => strona(f, "dokoncz"),
+    slowa: "dokończ wystaw pdf numer finalizuj",
+    pomocId: "dokoncz-fakture",
+  },
+  {
+    id: "upo",
+    grupa: "KSeF",
+    nazwa: "Pobierz UPO",
+    opis: "Poświadczenie przyjęcia faktury przez KSeF (XML).",
+    // GET admin/ksef/invoices/:id/upo — tylko ADMIN; UPO istnieje tylko dla faktury przyjętej.
+    perm: "ADMIN",
+    kiedy: (f) => nieWiadomo(f.ksefStatus) || f.ksefStatus === "ACCEPTED",
+    href: (f) => strona(f, "upo"),
+    slowa: "upo ksef poświadczenie odbioru xml",
+    pomocId: "upo",
+    bezpieczna: true,
+  },
+  {
     id: "ksef",
     grupa: "KSeF",
     nazwa: "Ponów wysyłkę do KSeF",

@@ -102,6 +102,23 @@ describe("strona faktury", () => {
     }
   });
 
+  it("fala 1B: przyjęta przez KSeF — „Pobierz UPO” (admin); odrzucona — bez UPO", async () => {
+    const przyjeta = await render(faktura({ ksef: { status: "ACCEPTED", numer: "KSEF-1", blad: null, wyslano: null, przyjeto: "2026-10-01T10:06:00Z", terminDo: null } }));
+    expect(przyjeta).toContain('href="/api/invoices-upo/f1"');
+    expect(await render(faktura())).not.toContain("/api/invoices-upo/");
+    const bezAdmina = await render(faktura({ ksef: { status: "ACCEPTED", numer: "KSEF-1", blad: null, wyslano: null, przyjeto: null, terminDo: null } }), { role: "STAFF", isAdmin: false, permissions: ["BILLING_VIEW"] });
+    expect(bezAdmina).not.toContain('href="/api/invoices-upo/f1"');
+    expect(bezAdmina).toMatch(/title="Wymaga roli administratora"[^>]*>Pobierz UPO/);
+  });
+
+  it("fala 1B: „Dokończ wystawienie” tylko dla opłaconej faktury bez PDF-u", async () => {
+    expect(await render(faktura({ hasVerrisPdf: false }))).toContain("Dokończ wystawienie</button>");
+    expect(await render(faktura())).not.toContain('id="dokoncz"');
+    expect(await render(faktura({ status: "OPEN", paidAt: null, hasVerrisPdf: false }))).not.toContain('id="dokoncz"');
+    const bezPrawa = await render(faktura({ hasVerrisPdf: false }), { role: "STAFF", isAdmin: false, permissions: ["BILLING_VIEW"] });
+    expect(bezPrawa).toMatch(/title="Wymaga BILLING_MANAGE"[^>]*>Dokończ wystawienie/);
+  });
+
   // Przegląd 10.10: strona wymaga BILLING_VIEW; księgowa bez CUSTOMERS_VIEW dostawała linki do kart, które kończą się odmową.
   it("operator z samym BILLING_VIEW: klient i usługa jako tekst, bez linków do kart spoza roli", async () => {
     const html = await render(faktura(), { role: "STAFF", isAdmin: false, permissions: ["BILLING_VIEW"] });

@@ -28,3 +28,17 @@ export async function ponowKsef(invoiceId: string): Promise<{ ok: true } | { ok:
     return { ok: false, error: err instanceof AdminApiError ? err.message : "Nie udało się ponowić wysyłki do KSeF." };
   }
 }
+
+/**
+ * Fala 1B — „Dokończ wystawienie”: opłacona faktura bez PDF-u (finalizacja nie doszła do końca). API nadaje numer
+ * i tworzy plik (to samo, co robi automat faktury.scheduler); BILLING_MANAGE.
+ */
+export async function dokonczFakture(invoiceId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const r = await adminApi<{ storageKey: string | null }>(`/admin/invoices/${encodeURIComponent(invoiceId)}/dokoncz`, { method: "POST" });
+    revalidatePath(`/invoices/${invoiceId}`);
+    return r?.storageKey ? { ok: true } : { ok: false, error: "API nie utworzyło PDF-u — sprawdź dziennik błędów." };
+  } catch (err) {
+    return { ok: false, error: err instanceof AdminApiError ? err.message : "Nie udało się dokończyć wystawienia." };
+  }
+}

@@ -12,7 +12,8 @@ import { LinkJesli } from "@/components/link-jesli";
 import { Eyebrow, KARTA, LinkKarty, NaglowekKarty, Pigulka, PRZYCISK, WIERSZ } from "@/components/v2";
 import type { AdminInvoiceRow } from "../data";
 import type { KorektaRow } from "./korekta/data";
-import { AnulujDokument, PonowKsef } from "./dzialania-faktury";
+import { AnulujDokument, DokonczFakture, PonowKsef } from "./dzialania-faktury";
+import { Pomoc } from "@/components/pomoc";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,8 @@ export default async function FakturaPage({ params }: { params: Promise<{ invoic
   const korekta = akcja("korekta");
   const anuluj = akcja("anuluj");
   const ksef = akcja("ksef");
+  const upo = akcja("upo");
+  const dokoncz = akcja("dokoncz");
   // Wniosek o anulowanie składa się z CUSTOMERS_VIEW (rejestr wniosków API: doZlozenia).
   const wniosekAnulowania = !!anuluj?.zablokowane && !brakUprawnienia("CUSTOMERS_VIEW", dostep);
   const nabywca = f.user.companyName ?? f.user.name ?? f.user.email;
@@ -154,6 +157,14 @@ export default async function FakturaPage({ params }: { params: Promise<{ invoic
             )
           ) : null}
         </div>
+        {dokoncz ? (
+          <div id="dokoncz" className="flex scroll-mt-24 flex-col gap-2 border-t border-line pt-4">
+            <h3 className="flex items-center gap-1.5 text-sm font-semibold">
+              Faktura bez PDF-u <Pomoc id="dokoncz-fakture" />
+            </h3>
+            {dokoncz.zablokowane ? <Zablokowane powod={dokoncz.zablokowane}>Dokończ wystawienie</Zablokowane> : <DokonczFakture invoiceId={f.id} number={f.number} />}
+          </div>
+        ) : null}
         {anuluj ? (
           <div id="anuluj" className="flex scroll-mt-24 flex-col gap-2 border-t border-line pt-4">
             <h3 className="text-sm font-semibold">Anulowanie dokumentu</h3>
@@ -194,6 +205,18 @@ export default async function FakturaPage({ params }: { params: Promise<{ invoic
           </Para>
         ) : null}
         {f.ksef.blad ? <p className="text-sm text-crit [overflow-wrap:anywhere]">{f.ksef.blad}</p> : null}
+        {upo ? (
+          <span id="upo" className="flex scroll-mt-24 items-center gap-1.5">
+            {upo.zablokowane ? (
+              <Zablokowane powod={upo.zablokowane}>Pobierz UPO</Zablokowane>
+            ) : (
+              <a href={`/api/invoices-upo/${f.id}`} className={`${PRZYCISK} self-start`}>
+                Pobierz UPO
+              </a>
+            )}
+            <Pomoc id="upo" />
+          </span>
+        ) : null}
         {ksef ? ksef.zablokowane ? <Zablokowane powod={ksef.zablokowane}>Ponów wysyłkę do KSeF</Zablokowane> : <PonowKsef invoiceId={f.id} number={f.number} /> : null}
       </section>
 

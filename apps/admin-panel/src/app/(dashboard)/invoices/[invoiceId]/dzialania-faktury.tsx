@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { potwierdz } from "@/components/potwierdz";
 import { PRZYCISK } from "@/components/v2";
 import { WyslijWniosek } from "@/components/wniosek-operacji";
-import { anulujDokument, ponowKsef } from "../actions";
+import { anulujDokument, dokonczFakture, ponowKsef } from "../actions";
 
 /**
  * Anulowanie nieopłaconego dokumentu (M-08) na stronie faktury. Bez BILLING_MANAGE — „Wyślij wniosek”
@@ -77,6 +77,34 @@ export function PonowKsef({ invoiceId, number }: { invoiceId: string; number: st
         }}
       >
         {pending ? "Wysyłam…" : "Ponów wysyłkę do KSeF"}
+      </button>
+      {blad ? <p className="text-xs text-crit">{blad}</p> : null}
+    </div>
+  );
+}
+
+/** Fala 1B — dokończenie opłaconej faktury bez PDF-u (numer i plik), z potwierdzeniem. */
+export function DokonczFakture({ invoiceId, number }: { invoiceId: string; number: string }) {
+  const router = useRouter();
+  const [blad, setBlad] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  return (
+    <div className="flex flex-col gap-1.5">
+      <button
+        type="button"
+        disabled={pending}
+        className={`${PRZYCISK} self-start`}
+        onClick={async () => {
+          if (!(await potwierdz(`Dokończyć wystawienie ${number}? Faktura dostanie numer i PDF, jak przy automacie.`, { akcja: "Dokończ" }))) return;
+          setBlad(null);
+          start(async () => {
+            const r = await dokonczFakture(invoiceId);
+            if (r.ok) router.refresh();
+            else setBlad(r.error);
+          });
+        }}
+      >
+        {pending ? "Dokańczam…" : "Dokończ wystawienie"}
       </button>
       {blad ? <p className="text-xs text-crit">{blad}</p> : null}
     </div>

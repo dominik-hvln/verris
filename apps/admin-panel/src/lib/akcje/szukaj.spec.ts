@@ -63,7 +63,7 @@ describe("Cmd+K — tryb obiekt → działanie dla klienta, usługi i faktury (p
   });
 
   it("faktura: korekta opłaconej, anulowanie nieopłaconej, KSeF tylko odrzuconej i tylko dla admina", () => {
-    expect(ids({ type: "invoice", id: "f1", status: "PAID", ksefStatus: "ACCEPTED", userId: "u1" })).toEqual(["pdf", "korekta", "klient", "platnosci"]);
+    expect(ids({ type: "invoice", id: "f1", status: "PAID", ksefStatus: "ACCEPTED", userId: "u1" })).toEqual(["pdf", "korekta", "upo", "klient", "platnosci"]);
     expect(ids({ type: "invoice", id: "f1", status: "OPEN", ksefStatus: "REJECTED", userId: "u1" })).toEqual(["pdf", "anuluj", "ksef", "klient", "platnosci"]);
     const ksef = akcjeObiektuDlaZapytania({ type: "invoice", id: "f1", status: "PAID", ksefStatus: "REJECTED" }, "ksef", { isAdmin: false, permissions: ["BILLING_VIEW"] });
     expect(ksef[0]).toMatchObject({ id: "ksef", href: "/invoices/f1#ksef", zablokowane: "Wymaga roli administratora" });
