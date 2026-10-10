@@ -771,19 +771,27 @@ export class UsersService {
       }
       return null;
     };
+    // F2.3 (D3, 10.10) — działanie obsługi ze zgłoszenia: klient widzi „obsługa Verris (zgłoszenie #…)”, bez nazwiska.
+    const zgloszenie = (d: unknown): string => {
+      const id = d && typeof d === 'object' ? (d as Record<string, unknown>).zgloszenieId : null;
+      return typeof id === 'string' && id ? ` (zgłoszenie #${id.slice(0, 8)})` : '';
+    };
     return {
-      events: rows.map((r) => ({
-        id: r.id,
-        action: r.action,
-        at: r.createdAt.toISOString(),
-        context: ctxOf(r.details),
+      events: rows.map((r) => {
         // Impersonacja: operator działał w imieniu klienta — klient ma to widzieć w swoim dzienniku.
-        actor: r.impersonatedBy
+        const actor = r.impersonatedBy
           ? 'obsługa Verris'
           : r.actorUserId && r.actorUserId !== userId
             ? (kto.get(r.actorUserId) ?? 'inne konto')
-            : null,
-      })),
+            : null;
+        return {
+          id: r.id,
+          action: r.action,
+          at: r.createdAt.toISOString(),
+          context: ctxOf(r.details),
+          actor: actor === 'obsługa Verris' ? `${actor}${zgloszenie(r.details)}` : actor,
+        };
+      }),
     };
   }
 

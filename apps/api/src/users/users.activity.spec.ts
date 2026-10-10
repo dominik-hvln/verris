@@ -22,6 +22,29 @@ describe('UsersService.listMyActivity', () => {
     expect(r.events.map((e) => e.actor)).toEqual(['anna@firma.pl', 'obsługa Verris', null, 'obsługa Verris']);
     expect(r.events[2].context).toBe('k_db');
   });
+  it('D3 (10.10): działanie obsługi ze zgłoszenia — „obsługa Verris (zgłoszenie #…)”, bez nazwiska, e-maila i notatki operatora', async () => {
+    const rows = [
+      {
+        id: '1',
+        action: 'SUBSCRIPTION_SUSPENDED',
+        details: { domain: 'sklep.pl', reason: 'ABUSE', note: 'Jan Kowalski: phishing', zgloszenieId: 'ab12cd34-1111-4222-8333-444455556666' },
+        createdAt: new Date(),
+        actorUserId: 'staff',
+      },
+      { id: '2', action: 'SUBSCRIPTION_UNSUSPENDED', details: { domain: 'sklep.pl' }, createdAt: new Date(), actorUserId: 'staff' },
+    ];
+    const prisma = {
+      auditLog: { findMany: vi.fn(async () => rows) },
+      user: { findMany: vi.fn(async () => [{ id: 'staff', email: 'jan.kowalski@verris.pl', role: 'STAFF' }]) },
+    };
+    const r = await new UsersService(prisma as never, {} as never, {} as never, {} as never, {} as never, {} as never).listMyActivity('u1');
+    expect(r.events).toEqual([
+      expect.objectContaining({ action: 'SUBSCRIPTION_SUSPENDED', context: 'sklep.pl', actor: 'obsługa Verris (zgłoszenie #ab12cd34)' }),
+      expect.objectContaining({ action: 'SUBSCRIPTION_UNSUSPENDED', context: 'sklep.pl', actor: 'obsługa Verris' }),
+    ]);
+    expect(JSON.stringify(r)).not.toMatch(/Kowalski|jan\.kowalski|phishing/);
+  });
+
   it('07.10: dziennik obejmuje zmiany bezpieczeństwa konta, domen i stanu usług', async () => {
     const prisma = { auditLog: { findMany: vi.fn(async () => []) }, user: { findMany: vi.fn(async () => []) } };
     await new UsersService(prisma as never, {} as never, {} as never, {} as never, {} as never, {} as never).listMyActivity('u1');

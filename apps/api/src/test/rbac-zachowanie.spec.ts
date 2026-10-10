@@ -229,6 +229,16 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     });
   });
 
+  it('F2.3 (D2): zawieszenie i odwieszenie — L3 i zespół abuse sami; L1, L2 i NOC nie (L2 składa wniosek)', async () => {
+    const metody = ['suspend', 'unsuspend'];
+    for (const rola of ['L3 Starszy specjalista', 'L4 Kierownik zmiany', 'Nadużycia i bezpieczeństwo']) {
+      expect({ rola, w: await wynik(uprawnieniaRoli(rola), metody) }).toEqual({ rola, w: { suspend: true, unsuspend: true } });
+    }
+    for (const rola of ['L1 Konsultant', 'L2 Specjalista techniczny', 'Inżynier infrastruktury (NOC/DevOps)', 'Audytor (tylko podgląd)']) {
+      expect({ rola, w: await wynik(uprawnieniaRoli(rola), metody) }).toEqual({ rola, w: { suspend: false, unsuspend: false } });
+    }
+  });
+
   it('NOC (bez CUSTOMERS_VIEW) nadal ma kartę i jej akcje', async () => {
     expect(NOC).not.toContain('CUSTOMERS_VIEW');
     const metody = ['detail', 'usage', 'migrationTimeline', 'hostingRestoreStatus', 'hostingBackups', 'runDiagnostics', 'listEligiblePlans', 'runHostingRestore'];

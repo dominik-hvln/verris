@@ -20,9 +20,62 @@ describe('SubscriptionsAdminController (RBAC metadata)', () => {
     expect(roles?.sort()).toEqual([Role.ADMIN, Role.STAFF].sort());
   });
 
-  it('suspend() has no method override — only class-level ADMIN', () => {
-    const roles = Reflect.getMetadata(ROLES_KEY, SubscriptionsAdminController.prototype.suspend);
-    expect(roles).toBeUndefined();
+  it('F2.3: suspend() i unsuspend() — ADMIN i STAFF z SUBSCRIPTIONS_SUSPEND (nie SUBSCRIPTIONS_MANAGE z klasy)', () => {
+    for (const m of [SubscriptionsAdminController.prototype.suspend, SubscriptionsAdminController.prototype.unsuspend]) {
+      expect((Reflect.getMetadata(ROLES_KEY, m) as string[]).sort()).toEqual([Role.ADMIN, Role.STAFF].sort());
+      expect(Reflect.getMetadata(STAFF_PERMISSIONS_KEY, m)).toEqual(['SUBSCRIPTIONS_SUSPEND']);
+    }
+  });
+});
+
+/** F2.3 (D2, 10.10) — zawieszenie przez pracownika: powód obowiązkowy, bez „braku płatności”, obciążenie tylko z BILLING_MANAGE. */
+describe('SubscriptionsAdminController — zawieszenie przez obsługę (F2.3)', () => {
+  function kontroler(uprawnienia: string[] = []) {
+    const zawieszenie = { zawies: vi.fn().mockResolvedValue({ status: 'SUSPENDED' }), odwies: vi.fn().mockResolvedValue({ status: 'ACTIVE' }) };
+    const prisma = { user: { findUnique: vi.fn().mockResolvedValue({ staffRole: { id: 'r', name: 'r', permissions: uprawnienia } }) } };
+    const c = new (SubscriptionsAdminController as unknown as new (...a: unknown[]) => SubscriptionsAdminController)(
+      null, prisma, null, null, null, null, null, null, null, null, zawieszenie,
+    );
+    return { c, zawieszenie };
+  }
+  const STAFF = { userId: 'op', role: Role.STAFF };
+  const POWOD = 'Phishing potwierdzony w zgłoszeniu';
+
+  it('STAFF bez powodu (min. 10 znaków) → 400, nic nie zawieszone', () => {
+    const { c, zawieszenie } = kontroler();
+    expect(() => c.suspend('s1', { reason: 'ABUSE', note: 'spam' }, STAFF)).toThrow(BadRequestException);
+    expect(zawieszenie.zawies).not.toHaveBeenCalled();
+  });
+
+  it.each(['PAYMENT_FAILED', 'GRACE_EXPIRED', 'COS_INNEGO'])('STAFF z powodem %s → 400 (brak płatności zostaje dla administratora)', (reason) => {
+    const { c, zawieszenie } = kontroler();
+    expect(() => c.suspend('s1', { reason, note: POWOD }, STAFF)).toThrow(/administrator/);
+    expect(zawieszenie.zawies).not.toHaveBeenCalled();
+  });
+
+  it('STAFF z powodem i zgłoszeniem → serwis dostaje powód, numer zgłoszenia i aktora', async () => {
+    const { c, zawieszenie } = kontroler();
+    await c.suspend('s1', { reason: 'ABUSE', note: POWOD, zgloszenie: '#ab12cd34' }, STAFF);
+    expect(zawieszenie.zawies).toHaveBeenCalledWith({ subscriptionId: 's1', aktorUserId: 'op', reason: 'ABUSE', powod: POWOD, zgloszenie: '#ab12cd34' });
+  });
+
+  it('ADMIN jak dotąd: bez powodu, nieznany powód → MANUAL_ADMIN, brak płatności dozwolony', async () => {
+    const { c, zawieszenie } = kontroler();
+    await c.suspend('s1', { reason: 'COS_INNEGO' }, { userId: 'adm', role: Role.ADMIN });
+    await c.suspend('s1', { reason: 'PAYMENT_FAILED' }, { userId: 'adm', role: Role.ADMIN });
+    expect(zawieszenie.zawies.mock.calls.map((x) => (x[0] as { reason: string }).reason)).toEqual(['MANUAL_ADMIN', 'PAYMENT_FAILED']);
+  });
+
+  it('odwieszenie przez STAFF: powód obowiązkowy; obciążenie za odnowienie tylko z BILLING_MANAGE', async () => {
+    const bez = kontroler(['SUBSCRIPTIONS_SUSPEND']);
+    await expect(bez.c.unsuspend('s1', { note: 'krótko' }, STAFF)).rejects.toThrow(BadRequestException);
+    await expect(bez.c.unsuspend('s1', { note: POWOD, chargeRenewal: true }, STAFF)).rejects.toThrow(/BILLING_MANAGE/);
+    expect(bez.zawieszenie.odwies).not.toHaveBeenCalled();
+    await bez.c.unsuspend('s1', { note: POWOD, zgloszenie: 'ab12cd34' }, STAFF);
+    expect(bez.zawieszenie.odwies).toHaveBeenCalledWith({ subscriptionId: 's1', aktorUserId: 'op', powod: POWOD, zgloszenie: 'ab12cd34', chargeRenewal: undefined });
+    const l4 = kontroler(['SUBSCRIPTIONS_SUSPEND', 'BILLING_MANAGE']);
+    await l4.c.unsuspend('s1', { note: POWOD, chargeRenewal: true }, STAFF);
+    expect(l4.zawieszenie.odwies).toHaveBeenCalledWith(expect.objectContaining({ chargeRenewal: true }));
   });
 });
 

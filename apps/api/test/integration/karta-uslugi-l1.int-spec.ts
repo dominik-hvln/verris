@@ -9,6 +9,7 @@ import { AuditService } from '../../src/common/audit/audit.service.js';
 import { JwtStrategy } from '../../src/auth/strategies/jwt.strategy.js';
 import { PrismaService } from '../../src/prisma/prisma.service.js';
 import { SubscriptionsAdminController } from '../../src/subscriptions/subscriptions.admin.controller.js';
+import { ZawieszenieOperatoraService } from '../../src/subscriptions/zawieszenie-operatora.service.js';
 import { SubscriptionsService } from '../../src/subscriptions/subscriptions.service.js';
 import { MigrationOrchestratorService } from '../../src/subscriptions/migration-orchestrator.service.js';
 import { PlanChangeService } from '../../src/subscriptions/plan-change.service.js';
@@ -53,6 +54,7 @@ const atrapa = (nazwa: string, wynik: unknown) => async () => {
     { provide: DirectAdminService, useValue: { listHostingBackups: atrapa('kopie', { rows: [], fetchError: null }) } },
     { provide: OdtworzenieNaWezleService, useValue: {} },
     { provide: RetencjaKontService, useValue: {} },
+    { provide: ZawieszenieOperatoraService, useValue: {} },
   ],
 })
 class Aplikacja {}

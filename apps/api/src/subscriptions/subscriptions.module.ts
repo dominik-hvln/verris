@@ -79,6 +79,7 @@ import { QuotaAlertScheduler } from './quota-alert.scheduler.js';
 import { RetencjaKontService } from './retencja-kont.service.js';
 import { WiadomosciWezlaScheduler } from './wiadomosci-wezla.scheduler.js';
 import { EcoModule } from '../eco/eco.module.js';
+import { ZawieszenieOperatoraService } from './zawieszenie-operatora.service.js';
 import { ComplianceModule } from '../compliance/compliance.module.js';
 
 @Module({
@@ -142,6 +143,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
     RetencjaKontService,
     WiadomosciWezlaScheduler,
     MigracjaZaKlientaService,
+    ZawieszenieOperatoraService,
   ],
   controllers: [
     SubscriptionsController,
@@ -164,6 +166,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
     ProvisioningService,
     ProvisioningQueueService,
     MigrationOrchestratorService,
+    ZawieszenieOperatoraService,
   ],
 })
 export class SubscriptionsModule {}

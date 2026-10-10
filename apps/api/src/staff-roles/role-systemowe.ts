@@ -24,7 +24,15 @@ const L2: readonly StaffPermission[] = [
   'CUSTOMERS_IMPERSONATE',
   'NODES_VIEW',
 ];
-const L3: readonly StaffPermission[] = [...L2, 'CUSTOMERS_MANAGE', 'ABUSE_MANAGE', 'CUSTOM_TERMS_MANAGE', 'PROVISIONING_MANAGE'];
+const L3: readonly StaffPermission[] = [
+  ...L2,
+  'CUSTOMERS_MANAGE',
+  'ABUSE_MANAGE',
+  'CUSTOM_TERMS_MANAGE',
+  'PROVISIONING_MANAGE',
+  // F2.3 (D2, 10.10) — zawieszenie i odwieszenie bezpośrednio od L3; L2 składa wniosek.
+  'SUBSCRIPTIONS_SUSPEND',
+];
 const L4: readonly StaffPermission[] = [
   ...L3,
   // Kredyty, korekty i portfel dopiero od L4 (decyzja 08.10).
@@ -55,7 +63,7 @@ export const SZCZEBLE: readonly RolaSystemowa[] = [
   {
     name: 'L3 Starszy specjalista',
     description:
-      'Wszystko z L2 oraz zarządzanie klientami (edycja, blokady), nadużycia, indywidualne warunki i kolejka provisioningu. Kredyty, korekty i portfel zostają dla L4.',
+      'Wszystko z L2 oraz zarządzanie klientami (edycja, blokady), zawieszanie usług, nadużycia, indywidualne warunki i kolejka provisioningu. Kredyty, korekty i portfel zostają dla L4.',
     permissions: L3,
   },
   {
@@ -88,10 +96,11 @@ export const ROLE_FUNKCYJNE: readonly RolaSystemowa[] = [
   {
     name: 'Nadużycia i bezpieczeństwo',
     description:
-      'Zespół abuse: zgłoszenia nadużyć, blokady kont, podgląd konta klienta, węzłów i dziennika bezpieczeństwa. Nie rusza rozliczeń.',
+      'Zespół abuse: zgłoszenia nadużyć, blokady kont, zawieszanie usług, podgląd konta klienta, węzłów i dziennika bezpieczeństwa. Nie rusza rozliczeń.',
     permissions: [
       'CUSTOMERS_VIEW',
       'CUSTOMERS_MANAGE',
+      'SUBSCRIPTIONS_SUSPEND',
       'ACCOUNT_DIAGNOSTICS_VIEW',
       'ABUSE_MANAGE',
       'AUDIT_VIEW',

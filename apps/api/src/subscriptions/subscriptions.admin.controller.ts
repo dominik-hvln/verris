@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   NotFoundException,
   Body,
   Controller,
@@ -37,6 +38,9 @@ import {
   ZakonczIUsunDto,
 } from './dto/subscription.dto.js';
 import { RetencjaKontService } from './retencja-kont.service.js';
+import { POWODY_ZAWIESZENIA_OPERATORA, ZawieszenieOperatoraService } from './zawieszenie-operatora.service.js';
+import { WniosekMozliwy } from '../wnioski/wniosek-mozliwy.decorator.js';
+import { uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
 import { RequestInternalMigrationDto } from './dto/migration.dto.js';
 import {
   AdminChangePlanDto,
@@ -85,6 +89,7 @@ export class SubscriptionsAdminController {
     private readonly naWezle: OdtworzenieNaWezleService,
     private readonly retencja: RetencjaKontService,
     private readonly audit: AuditService,
+    private readonly zawieszenie: ZawieszenieOperatoraService,
   ) {}
 
   // H-16 — odtworzenie konta z kopii off-site na innym węźle (utrata węzła). Tylko ADMIN: przepina konto.
@@ -271,36 +276,61 @@ export class SubscriptionsAdminController {
     };
   }
 
+  /**
+   * F2.3 (D2, 10.10) — zawieszenie odcina stronę, pocztę i FTP klienta, ale jest odwracalne: pracownik z
+   * SUBSCRIPTIONS_SUSPEND (L3, zespół abuse) wykonuje je sam z powodem (min. 10 znaków) i — gdy jest — numerem
+   * zgłoszenia; niżej 403 WYMAGA_WNIOSKU i wniosek SUBSCRIPTION_SUSPEND. Zawieszenie „za brak płatności”
+   * (mail o zaległości, wygaśnięcie po 14 dniach) zostaje dla administratora.
+   */
   @Post(':id/suspend')
   @HttpCode(200)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('SUBSCRIPTIONS_SUSPEND')
+  @WniosekMozliwy('SUBSCRIPTION_SUSPEND')
   suspend(
     @Param('id') id: string,
     @Body() dto: SuspendSubscriptionDto,
-    @CurrentUser() actor: { userId: string },
+    @CurrentUser() actor: { userId: string; role?: string },
   ) {
-    const reason = ALLOWED_REASONS.includes(dto.reason as SuspendReason)
-      ? (dto.reason as SuspendReason)
-      : 'MANUAL_ADMIN';
-    return this.subs.suspend({
-      subscriptionId: id,
-      reason,
-      note: dto.note,
-      actorUserId: actor.userId,
-    });
+    let reason: SuspendReason;
+    if (actor.role === Role.STAFF) {
+      if (!(POWODY_ZAWIESZENIA_OPERATORA as readonly string[]).includes(dto.reason)) {
+        throw new BadRequestException('Zawieszenie za brak płatności ustawia administrator — wybierz nadużycie, decyzję obsługi albo prośbę klienta.');
+      }
+      wymagajPowoduOdStaff(actor, dto.note);
+      reason = dto.reason as SuspendReason;
+    } else {
+      reason = ALLOWED_REASONS.includes(dto.reason as SuspendReason) ? (dto.reason as SuspendReason) : 'MANUAL_ADMIN';
+    }
+    return this.zawieszenie.zawies({ subscriptionId: id, aktorUserId: actor.userId, reason, powod: dto.note, zgloszenie: dto.zgloszenie });
   }
 
+  /**
+   * F2.3 — odwieszenie: jak zawieszenie (SUBSCRIPTIONS_SUSPEND albo wniosek SUBSCRIPTION_UNSUSPEND). Obciążenie
+   * portfela klienta za odnowienie to operacja finansowa — pracownik potrzebuje do niej także BILLING_MANAGE (L4).
+   */
   @Post(':id/unsuspend')
   @HttpCode(200)
-  unsuspend(
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('SUBSCRIPTIONS_SUSPEND')
+  @WniosekMozliwy('SUBSCRIPTION_UNSUSPEND')
+  async unsuspend(
     @Param('id') id: string,
     @Body() dto: UnsuspendSubscriptionDto,
-    @CurrentUser() actor: { userId: string },
+    @CurrentUser() actor: { userId: string; role?: string; principalUserId?: string },
   ) {
-    return this.subs.unsuspend({
+    if (actor.role === Role.STAFF) {
+      wymagajPowoduOdStaff(actor, dto.note);
+      if (dto.chargeRenewal && !(await uprawnieniaOperatora(this.prisma, actor.principalUserId ?? actor.userId)).includes('BILLING_MANAGE')) {
+        throw new ForbiddenException('Obciążenie klienta za odnowienie wymaga uprawnienia do rozliczeń (BILLING_MANAGE). Odwieś bez obciążenia.');
+      }
+    }
+    return this.zawieszenie.odwies({
       subscriptionId: id,
-      note: dto.note,
+      aktorUserId: actor.userId,
+      powod: dto.note,
+      zgloszenie: dto.zgloszenie,
       chargeRenewal: dto.chargeRenewal,
-      actorUserId: actor.userId,
     });
   }
 

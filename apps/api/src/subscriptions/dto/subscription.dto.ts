@@ -123,10 +123,17 @@ export class SuspendSubscriptionDto {
   @Length(2, 60)
   reason!: string;
 
+  /** Notatka do dziennika; dla pracownika obsługi — obowiązkowy powód (D2, min. 10 znaków). */
   @IsOptional()
   @IsString()
   @Length(1, 500)
   note?: string;
+
+  /** F2.3 (D2) — numer zgłoszenia klienta (#ab12cd34 albo pełne id). */
+  @IsOptional()
+  @IsString()
+  @Length(1, 64)
+  zgloszenie?: string;
 }
 
 export class UnsuspendSubscriptionDto {
@@ -138,6 +145,12 @@ export class UnsuspendSubscriptionDto {
   @IsOptional()
   @IsBoolean()
   chargeRenewal?: boolean;
+
+  /** F2.3 (D2) — numer zgłoszenia klienta (#ab12cd34 albo pełne id). */
+  @IsOptional()
+  @IsString()
+  @Length(1, 64)
+  zgloszenie?: string;
 }
 
 /** Operator: zakończ usługę i usuń konto od razu. Powód do audytu, potwierdzenie = domena konta. */

@@ -10,6 +10,8 @@ export const STAFF_PERMISSIONS = [
   { key: 'CUSTOMERS_IMPERSONATE', area: 'Klienci', label: 'Wejście na konto klienta („Zaloguj jako klient”, z powodem, 30 min)' },
   { key: 'CUSTOMERS_INTERNAL_FLAG', area: 'Klienci', label: 'Oznaczanie konta jako wewnętrzne (poza MRR i churnem)' },
   { key: 'SUBSCRIPTIONS_MANAGE', area: 'Usługi', label: 'Subskrypcje i usługi' },
+  // F2.3 (D2, 10.10) — zawieszenie odcina stronę i pocztę klienta: L3 bezpośrednio, niżej przez wniosek.
+  { key: 'SUBSCRIPTIONS_SUSPEND', area: 'Usługi', label: 'Zawieszanie i odwieszanie usług (odcina stronę i pocztę klienta)' },
   { key: 'TICKETS_VIEW', area: 'Wsparcie', label: 'Podgląd zgłoszeń' },
   { key: 'TICKETS_MANAGE', area: 'Wsparcie', label: 'Obsługa zgłoszeń (odpowiedzi, status)' },
   { key: 'REQUESTS_APPROVE', area: 'Obsługa', label: 'Akceptacja wniosków o operację' },

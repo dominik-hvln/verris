@@ -1,7 +1,8 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsEmail, IsNumber, IsOptional, IsPositive, IsString, Max, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsIn, IsNumber, IsOptional, IsPositive, IsString, Max, MaxLength, MinLength } from 'class-validator';
 import type { StaffPermission } from '../staff-roles/staff-permissions.catalog.js';
+import { POWODY_ZAWIESZENIA_OPERATORA, type PowodZawieszeniaOperatora } from '../subscriptions/powody-zawieszenia.js';
 
 /**
  * PB-48 (decyzja właściciela 08.10) — rejestr operacji, o które pracownik bez uprawnienia może złożyć wniosek.
@@ -20,6 +21,9 @@ import type { StaffPermission } from '../staff-roles/staff-permissions.catalog.j
  * D9 (10.10) — dane logowania klienta (CUSTOMERS_MANAGE = L3 bezpośrednio, L1/L2 przez wniosek):
  *  - CUSTOMER_EMAIL_CHANGE — POST admin/users/:id/email (UsersAdminService.changeCustomerEmail),
  *  - CUSTOMER_PASSWORD_RESET — POST admin/users/:id/reset-password (link do klienta, operator nie zna hasła).
+ * F2.3 (D2, 10.10) — zawieszenie usługi (SUBSCRIPTIONS_SUSPEND = L3 i zespół abuse bezpośrednio, L2 przez wniosek):
+ *  - SUBSCRIPTION_SUSPEND — POST admin/subscriptions/:id/suspend (ZawieszenieOperatoraService.zawies),
+ *  - SUBSCRIPTION_UNSUSPEND — POST admin/subscriptions/:id/unsuspend (bez obciążenia za odnowienie).
  * Pominięte: kredyt SLA (sla.admin.controller ma tylko podgląd — nie ma operacji do zlecenia), korekta faktury
  * (payload to pełna lista pozycji po korekcie — formularz zostaje w panelu admina; typ łatwo dopisać później),
  * zwrot Paynow (pieniądze wychodzą do bramki — świadomie poza wnioskami do decyzji właściciela).
@@ -65,12 +69,37 @@ export class ZmianaEmailaPayload {
 /** Reset hasła nie ma parametrów — powodem jest uzasadnienie wniosku. */
 export class ResetHaslaPayload {}
 
+/** Odwieszenie: która usługa i (opcjonalnie) zgłoszenie klienta — powodem jest uzasadnienie wniosku. */
+export class OdwieszenieUslugiPayload {
+  @IsString()
+  @MaxLength(64)
+  subscriptionId!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  zgloszenie?: string;
+}
+
+export class ZawieszenieUslugiPayload extends OdwieszenieUslugiPayload {
+  @IsOptional()
+  @IsIn(POWODY_ZAWIESZENIA_OPERATORA)
+  reason?: PowodZawieszeniaOperatora;
+}
+
 // ── zależności wykonawców (wstrzykiwane przez WnioskiService) ───────────────
 
 export interface ZaleznosciWnioskow {
   prisma: {
     user: { findUnique(args: unknown): Promise<{ isInternal?: boolean; id?: string; email?: string } | null> };
     invoice: { findUnique(args: unknown): Promise<{ id: string; userId: string; number: string; status: string } | null> };
+    subscription: { findUnique(args: unknown): Promise<{ userId: string; status: string } | null> };
+  };
+  /** F2.3 — ZawieszenieOperatoraService (subscriptions/zawieszenie-operatora.service.ts). */
+  zawieszenie: {
+    zgloszenieKlienta(klientId: string, wpis: string | null | undefined): Promise<string | null>;
+    zawies(i: { subscriptionId: string; aktorUserId: string; reason: PowodZawieszeniaOperatora; powod?: string | null; zgloszenie?: string | null }): Promise<{ status: string }>;
+    odwies(i: { subscriptionId: string; aktorUserId: string; powod?: string | null; zgloszenie?: string | null }): Promise<{ status: string }>;
   };
   uzytkownicy: {
     patchCustomerOperational(
@@ -145,6 +174,16 @@ function definicja<P extends object>(d: DefinicjaWniosku<P>): DefinicjaWniosku<o
 const kwotaPl = (n: number) => `${n.toFixed(2).replace('.', ',')} K`;
 
 const DO_ANULOWANIA = ['DRAFT', 'OPEN'];
+
+const ZAKONCZONE = ['CANCELED', 'EXPIRED'];
+const zgl = (z?: string) => (z?.trim() ? ` (zgłoszenie #${z.trim().replace(/^#/, '').slice(0, 8)})` : '');
+
+/** Usługa wniosku należy do klienta wniosku — inaczej 404 (w tabeli wniosków nie ma klucza obcego). */
+async function uslugaKlienta(subscriptionId: string, klientId: string | null, z: ZaleznosciWnioskow) {
+  const s = await z.prisma.subscription.findUnique({ where: { id: subscriptionId }, select: { userId: true, status: true } });
+  if (!s || s.userId !== klientId) throw new NotFoundException('Usługa nie istnieje na koncie tego klienta.');
+  return s;
+}
 
 export const REJESTR_WNIOSKOW = {
   CUSTOMER_INTERNAL_FLAG: definicja<KontoWewnetrznePayload>({
@@ -268,6 +307,63 @@ export const REJESTR_WNIOSKOW = {
           ? `Hasło zresetowane — link wysłany na ${r.email}.`
           : `Hasło zresetowane, ale mail z linkiem nie wyszedł — klient może użyć „Nie pamiętasz hasła?”.`,
       };
+    },
+  }),
+
+  SUBSCRIPTION_SUSPEND: definicja<ZawieszenieUslugiPayload>({
+    etykieta: 'Zawieszenie usługi',
+    uprawnienie: 'SUBSCRIPTIONS_SUSPEND',
+    // L2 (SUBSCRIPTIONS_MANAGE) składa wniosek z karty usługi; L1 zawieszenia nie zleca.
+    doZlozenia: 'SUBSCRIPTIONS_MANAGE',
+    dto: ZawieszenieUslugiPayload,
+    wymagaKlienta: true,
+    opis: (p) => `Zawieszenie usługi — strona, poczta i FTP klienta przestaną działać${zgl(p.zgloszenie)}`,
+    async sprawdzPrzyZlozeniu(p, klientId, z) {
+      const s = await uslugaKlienta(p.subscriptionId, klientId, z);
+      if (s.status === 'SUSPENDED') throw new BadRequestException('Usługa jest już zawieszona.');
+      if (ZAKONCZONE.includes(s.status)) throw new BadRequestException('Usługa jest zakończona — nie ma czego zawieszać.');
+      await z.zawieszenie.zgloszenieKlienta(klientId!, p.zgloszenie);
+    },
+    async bezZmian(p, _klientId, z) {
+      const s = await z.prisma.subscription.findUnique({ where: { id: p.subscriptionId }, select: { userId: true, status: true } });
+      return s?.status === 'SUSPENDED' ? 'Bez zmian — usługa była już zawieszona.' : null;
+    },
+    async wykonaj(p, k, z) {
+      await z.zawieszenie.zawies({
+        subscriptionId: p.subscriptionId,
+        aktorUserId: k.decydujacy.userId,
+        reason: p.reason ?? 'MANUAL_ADMIN',
+        powod: k.uzasadnienie ?? `wniosek ${k.wniosekId}`,
+        zgloszenie: p.zgloszenie,
+      });
+      return { komunikat: 'Usługa zawieszona.' };
+    },
+  }),
+
+  SUBSCRIPTION_UNSUSPEND: definicja<OdwieszenieUslugiPayload>({
+    etykieta: 'Odwieszenie usługi',
+    uprawnienie: 'SUBSCRIPTIONS_SUSPEND',
+    doZlozenia: 'SUBSCRIPTIONS_MANAGE',
+    dto: OdwieszenieUslugiPayload,
+    wymagaKlienta: true,
+    opis: (p) => `Odwieszenie usługi bez obciążenia za odnowienie${zgl(p.zgloszenie)}`,
+    async sprawdzPrzyZlozeniu(p, klientId, z) {
+      const s = await uslugaKlienta(p.subscriptionId, klientId, z);
+      if (s.status !== 'SUSPENDED') throw new BadRequestException('Usługa nie jest zawieszona.');
+      await z.zawieszenie.zgloszenieKlienta(klientId!, p.zgloszenie);
+    },
+    async bezZmian(p, _klientId, z) {
+      const s = await z.prisma.subscription.findUnique({ where: { id: p.subscriptionId }, select: { userId: true, status: true } });
+      return s && s.status !== 'SUSPENDED' ? 'Bez zmian — usługa nie była już zawieszona.' : null;
+    },
+    async wykonaj(p, k, z) {
+      await z.zawieszenie.odwies({
+        subscriptionId: p.subscriptionId,
+        aktorUserId: k.decydujacy.userId,
+        powod: k.uzasadnienie ?? `wniosek ${k.wniosekId}`,
+        zgloszenie: p.zgloszenie,
+      });
+      return { komunikat: 'Usługa odwieszona.' };
     },
   }),
 } as const satisfies Record<string, DefinicjaWniosku<object>>;

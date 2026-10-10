@@ -831,6 +831,11 @@ export class SubscriptionsService {
     /** Free-form note saved in audit / SubscriptionEvent. */
     note?: string;
     /**
+     * F2.3 (D2/D3, 10.10) — zgłoszenie klienta, w którym operator uzasadnił zawieszenie. Trafia do dziennika;
+     * klient widzi w aktywności „obsługa Verris (zgłoszenie #…)” bez nazwiska (users.service.ts listMyActivity).
+     */
+    zgloszenieId?: string | null;
+    /**
      * Zawieś tylko, gdy usługa nadal jest w tym stanie (harmonogram karencji: PAST_DUE) — klient
      * mógł ją opłacić po wybraniu listy, a wtedy zawieszenie opłaconej usługi to błąd.
      */
@@ -903,8 +908,11 @@ export class SubscriptionsService {
       actorUserId: opts.actorUserId ?? null,
       details: {
         subscriptionId: subscription.id,
+        // F2.3 — domena jako kontekst wpisu w aktywności klienta (która usługa), zgłoszenie — D3.
+        domain: subscription.account?.domain ?? null,
         reason: opts.reason,
         note: opts.note ?? null,
+        ...(opts.zgloszenieId ? { zgloszenieId: opts.zgloszenieId } : {}),
         daSuspended,
         daError,
       },
@@ -971,6 +979,8 @@ export class SubscriptionsService {
     note?: string;
     /** If true, debit one billing period from the wallet to extend `currentPeriodEnd`. */
     chargeRenewal?: boolean;
+    /** F2.3 — zgłoszenie klienta z uzasadnieniem (jak przy suspend). */
+    zgloszenieId?: string | null;
   }): Promise<Subscription> {
     const subscription = await this.prisma.subscription.findUnique({
       where: { id: opts.subscriptionId },
@@ -1072,9 +1082,11 @@ export class SubscriptionsService {
       actorUserId: opts.actorUserId ?? null,
       details: {
         subscriptionId: subscription.id,
+        domain: subscription.account?.domain ?? null,
         renewalTxId,
         daUnsuspended,
         note: opts.note ?? null,
+        ...(opts.zgloszenieId ? { zgloszenieId: opts.zgloszenieId } : {}),
       },
     });
 

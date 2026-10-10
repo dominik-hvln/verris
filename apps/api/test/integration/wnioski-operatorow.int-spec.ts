@@ -21,7 +21,9 @@ import { NotificationsService } from '../../src/notifications/notifications.serv
 import { AllExceptionsFilter } from '../../src/common/filters/all-exceptions.filter.js';
 import { WnioskiAdminController } from '../../src/wnioski/wnioski.admin.controller.js';
 import { WnioskiService } from '../../src/wnioski/wnioski.service.js';
-import { prisma, rozlacz, wyczyscBaze } from './setup.js';
+import { SubscriptionsService } from '../../src/subscriptions/subscriptions.service.js';
+import { ZawieszenieOperatoraService } from '../../src/subscriptions/zawieszenie-operatora.service.js';
+import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } from './setup.js';
 
 /**
  * PB-48 — wnioski o operację na prawdziwym PostgreSQL, przez HTTP (JWT, strażnicy ról i uprawnień, ValidationPipe):
@@ -58,6 +60,21 @@ async function wczytajDziennik() {
     { provide: UsersService, useValue: {} },
     { provide: HostingDiagnosticsService, useValue: {} },
     {
+      // F2.3 — prawdziwe zawieszenie (stan w Postgresie, dziennik); węzeł (DirectAdmin) podstawiony.
+      provide: ZawieszenieOperatoraService,
+      inject: [PrismaService, AuditService, MailerService],
+      useFactory: (p: PrismaService, a: AuditService, m: MailerService) => {
+        const subs = new SubscriptionsService(
+          p, a, new WalletLedgerService(p), null as never, null as never, null as never, null as never,
+          m, { get: () => undefined } as never, null as never, null as never, null as never, null as never,
+        );
+        const naWezle = subs as unknown as Record<'suspendOnDa' | 'unsuspendOnDa', (s: string, u: string) => Promise<void>>;
+        naWezle.suspendOnDa = async (_s, u) => void zawieszoneNaWezle.push(u);
+        naWezle.unsuspendOnDa = async (_s, u) => void zawieszoneNaWezle.push(`-${u}`);
+        return new ZawieszenieOperatoraService(p, subs);
+      },
+    },
+    {
       // Prawdziwe zasilenie portfela (księga + saldo w Postgresie); reszta zależności nieużywana przez adminCreditWallet.
       provide: BillingService,
       inject: [PrismaService, AuditService, MailerService, ConfigService],
@@ -69,6 +86,7 @@ async function wczytajDziennik() {
 class Aplikacja {}
 
 let app: INestApplication;
+const zawieszoneNaWezle: string[] = [];
 let url: string;
 
 async function zadanie(metoda: 'GET' | 'POST', sciezka: string, kto: { id: string; role: string }, body?: unknown) {
@@ -109,6 +127,7 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     await wyczyscBaze();
     startTestu = new Date();
     dziennik = [];
+    zawieszoneNaWezle.length = 0;
   });
 
   it('złożenie → dwie równoległe akceptacje: portfel zasilony RAZ, druga dostaje 409; dziennik z oba nazwiskami', async () => {
@@ -279,6 +298,56 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     // Kto ma komplet, wykonuje bezpośrednio.
     const sam = await zadanie('POST', '/admin/wnioski', komplet, { typ: 'CUSTOMER_INTERNAL_FLAG', userId: k.id, payload: { isInternal: false }, uzasadnienie: 'Koniec testów.' });
     expect(sam.body).toMatchObject({ code: 'WYKONAJ_BEZPOSREDNIO' });
+  });
+
+  it('F2.3 zawieszenie: L2 składa wniosek ze zgłoszeniem klienta, L4 akceptuje → usługa i konto zawieszone; klient widzi „obsługa Verris (zgłoszenie #…)”', async () => {
+    const l1 = await operator(['CUSTOMERS_VIEW', 'TICKETS_MANAGE']);
+    const l2 = await operator(['CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE']);
+    const l4 = await operator(['REQUESTS_APPROVE', 'SUBSCRIPTIONS_SUSPEND']);
+    const l3 = await operator(['SUBSCRIPTIONS_MANAGE', 'SUBSCRIPTIONS_SUSPEND']);
+    const wezel = await utworzWezel();
+    const plan = await utworzPlan({ productKind: 'HOSTING' });
+    const k = await utworzKonto({ serverId: wezel.id, planId: plan.id });
+    await prisma().subscription.update({ where: { id: k.subscription.id }, data: { status: 'ACTIVE' } });
+    const zgl = await prisma().ticket.create({ data: { userId: k.user.id, subject: 'Phishing na stronie', message: 'Zgłoszenie' } });
+    const inny = await klient();
+    const obce = await prisma().ticket.create({ data: { userId: inny.id, subject: 'Inne', message: 'x' } });
+    const wniosek = (kto: { id: string; role: string }, zgloszenie: string) =>
+      zadanie('POST', '/admin/wnioski', kto, {
+        typ: 'SUBSCRIPTION_SUSPEND',
+        userId: k.user.id,
+        subscriptionId: k.subscription.id,
+        payload: { subscriptionId: k.subscription.id, reason: 'ABUSE', zgloszenie },
+        uzasadnienie: 'Phishing potwierdzony, klient nie odpowiada.',
+      });
+
+    // L1 nie zleca zawieszenia; L3 wykonuje bezpośrednio; numer zgłoszenia innego klienta — 400.
+    expect((await wniosek(l1, `#${zgl.id.slice(0, 8)}`)).status).toBe(403);
+    expect((await wniosek(l3, `#${zgl.id.slice(0, 8)}`)).body).toMatchObject({ code: 'WYKONAJ_BEZPOSREDNIO' });
+    expect((await wniosek(l2, `#${obce.id.slice(0, 8)}`)).status).toBe(400);
+
+    const zl = await wniosek(l2, `#${zgl.id.slice(0, 8)}`);
+    expect(zl.status).toBe(201);
+    expect((await zadanie('POST', `/admin/wnioski/${zl.body.id as string}/akceptuj`, l4, {})).body).toMatchObject({
+      status: 'APPROVED',
+      wynik: { komunikat: 'Usługa zawieszona.' },
+    });
+    expect((await prisma().subscription.findUniqueOrThrow({ where: { id: k.subscription.id } })).status).toBe('SUSPENDED');
+    expect((await prisma().account.findUniqueOrThrow({ where: { id: k.account.id } })).status).toBe('SUSPENDED');
+    expect(zawieszoneNaWezle).toEqual([k.account.daUsername]);
+
+    await wczytajDziennik();
+    const wpis = dziennik.find((d) => d.action === 'SUBSCRIPTION_SUSPENDED')!;
+    expect(wpis).toMatchObject({ userId: k.user.id, actorUserId: l4.id });
+    expect(wpis.details).toMatchObject({ reason: 'ABUSE', zgloszenieId: zgl.id, domain: k.account.domain, wniosekId: zl.body.id, wnioskujacyUserId: l2.id });
+
+    // D3 — aktywność klienta: bez nazwiska i e-maila operatora, z numerem zgłoszenia.
+    const aktywnosc = await new UsersService(prisma() as never, {} as never, {} as never, {} as never, {} as never, {} as never).listMyActivity(k.user.id);
+    const e = aktywnosc.events.find((x) => x.action === 'SUBSCRIPTION_SUSPENDED')!;
+    expect(e).toMatchObject({ actor: `obsługa Verris (zgłoszenie #${zgl.id.slice(0, 8)})`, context: k.account.domain });
+
+    // Drugi wniosek o to samo — usługa już zawieszona.
+    expect((await wniosek(l2, '')).status).toBe(400);
   });
 
   it('konto klienta (USER) nie wchodzi na wnioski', async () => {

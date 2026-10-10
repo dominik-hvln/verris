@@ -17,6 +17,7 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 import { UsersAdminService } from '../users/users.admin.service.js';
 import { BillingService } from '../billing/billing.service.js';
 import { AnulowanieService } from '../billing/anulowanie.service.js';
+import { ZawieszenieOperatoraService } from '../subscriptions/zawieszenie-operatora.service.js';
 import { roleZWiersza, sumaUprawnien, uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
 import {
   definicjaWniosku,
@@ -109,6 +110,7 @@ export class WnioskiService {
     private readonly users: UsersAdminService,
     private readonly billing: BillingService,
     private readonly anulowanieSvc: AnulowanieService,
+    private readonly zawieszenieSvc: ZawieszenieOperatoraService,
   ) {}
 
   private get zaleznosci(): ZaleznosciWnioskow {
@@ -117,6 +119,7 @@ export class WnioskiService {
       uzytkownicy: this.users,
       portfel: this.billing as unknown as ZaleznosciWnioskow['portfel'],
       anulowanie: this.anulowanieSvc,
+      zawieszenie: this.zawieszenieSvc,
     };
   }
 

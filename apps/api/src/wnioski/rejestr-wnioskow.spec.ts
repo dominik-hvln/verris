@@ -6,6 +6,7 @@ import { BillingAdminController } from '../billing/billing.admin.controller.js';
 import { UsersAdminController } from '../users/users.admin.controller.js';
 import { STAFF_PERMISSIONS_KEY } from '../common/decorators/staff-permissions.decorator.js';
 import { InvoicesAdminController } from '../billing/invoices.admin.controller.js';
+import { SubscriptionsAdminController } from '../subscriptions/subscriptions.admin.controller.js';
 import { zWnioskiem } from '../common/audit/audit.service.js';
 import {
   REJESTR_WNIOSKOW,
@@ -22,7 +23,15 @@ import { WNIOSEK_MOZLIWY_KEY } from './wniosek-mozliwy.decorator.js';
 /** PB-48 — rejestr typów wniosków, kod odmowy WYMAGA_WNIOSKU i dopisek wniosku w dzienniku. */
 describe('PB-48 — rejestr wniosków', () => {
   it('każdy typ wymaga uprawnienia z katalogu: konto wewnętrzne, dwie operacje finansowe, e-mail i hasło klienta (D9)', () => {
-    expect(TYPY_WNIOSKOW).toEqual(['CUSTOMER_INTERNAL_FLAG', 'WALLET_CREDIT', 'INVOICE_VOID', 'CUSTOMER_EMAIL_CHANGE', 'CUSTOMER_PASSWORD_RESET']);
+    expect(TYPY_WNIOSKOW).toEqual([
+      'CUSTOMER_INTERNAL_FLAG',
+      'WALLET_CREDIT',
+      'INVOICE_VOID',
+      'CUSTOMER_EMAIL_CHANGE',
+      'CUSTOMER_PASSWORD_RESET',
+      'SUBSCRIPTION_SUSPEND',
+      'SUBSCRIPTION_UNSUSPEND',
+    ]);
     for (const t of TYPY_WNIOSKOW) {
       expect(STAFF_PERMISSION_KEYS).toContain(REJESTR_WNIOSKOW[t].uprawnienie);
       expect(STAFF_PERMISSION_KEYS).toContain(REJESTR_WNIOSKOW[t].doZlozenia);
@@ -40,6 +49,8 @@ describe('PB-48 — rejestr wniosków', () => {
       INVOICE_VOID: InvoicesAdminController.prototype.anuluj,
       CUSTOMER_EMAIL_CHANGE: UsersAdminController.prototype.changeEmail,
       CUSTOMER_PASSWORD_RESET: UsersAdminController.prototype.resetPassword,
+      SUBSCRIPTION_SUSPEND: SubscriptionsAdminController.prototype.suspend,
+      SUBSCRIPTION_UNSUSPEND: SubscriptionsAdminController.prototype.unsuspend,
     };
     for (const t of TYPY_WNIOSKOW) {
       const straznik = (Reflect.getMetadata(STAFF_PERMISSIONS_KEY, bezposrednio[t]) as string[] | undefined) ?? [];
@@ -53,6 +64,8 @@ describe('PB-48 — rejestr wniosków', () => {
     expect(typyDoDecyzji('STAFF', ['BILLING_MANAGE'])).toEqual([]);
     expect(typyDoDecyzji('STAFF', ['REQUESTS_APPROVE'])).toEqual([]);
     expect(typyDoDecyzji('STAFF', ['REQUESTS_APPROVE', 'BILLING_MANAGE'])).toEqual(['WALLET_CREDIT', 'INVOICE_VOID']);
+    // F2.3 — zawieszenie i odwieszenie akceptuje L4 (REQUESTS_APPROVE + SUBSCRIPTIONS_SUSPEND).
+    expect(typyDoDecyzji('STAFF', ['REQUESTS_APPROVE', 'SUBSCRIPTIONS_SUSPEND'])).toEqual(['SUBSCRIPTION_SUSPEND', 'SUBSCRIPTION_UNSUSPEND']);
     // Konto wewnętrzne: komplet jak przy PATCH operational (CUSTOMERS_MANAGE w strażniku + flaga w serwisie).
     expect(typyDoDecyzji('STAFF', ['REQUESTS_APPROVE', 'CUSTOMERS_INTERNAL_FLAG'])).toEqual([]);
     expect(typyDoDecyzji('STAFF', ['REQUESTS_APPROVE', 'CUSTOMERS_MANAGE', 'CUSTOMERS_INTERNAL_FLAG'])).toEqual([
@@ -65,7 +78,9 @@ describe('PB-48 — rejestr wniosków', () => {
     expect(typyDoDecyzji('USER', ['REQUESTS_APPROVE', 'BILLING_MANAGE'])).toEqual([]);
   });
 
-  const zal = (o: { isInternal?: boolean; status?: string; email?: string; zajety?: boolean; mail?: boolean } = {}) => {
+  const zal = (
+    o: { isInternal?: boolean; status?: string; email?: string; zajety?: boolean; mail?: boolean; usluga?: { userId: string; status: string } | null; zgloszenie?: boolean } = {},
+  ) => {
     const wywolania: unknown[][] = [];
     const z: ZaleznosciWnioskow = {
       prisma: {
@@ -78,6 +93,16 @@ describe('PB-48 — rejestr wniosków', () => {
               : { isInternal: o.isInternal ?? false, email: o.email ?? 'anna@test.pl' },
         },
         invoice: { findUnique: async () => ({ id: 'f1', userId: 'k1', number: 'VDR/1', status: o.status ?? 'OPEN' }) },
+        subscription: { findUnique: async () => (o.usluga === undefined ? { userId: 'k1', status: 'ACTIVE' } : o.usluga) },
+      },
+      zawieszenie: {
+        zgloszenieKlienta: async (klientId, wpis) => {
+          if (!wpis) return null;
+          if (o.zgloszenie === false) throw new Error('Nie ma takiego zgłoszenia u tego klienta.');
+          return `${klientId}-t1`;
+        },
+        zawies: async (a) => (wywolania.push(['zawies', a]), { status: 'SUSPENDED' }),
+        odwies: async (a) => (wywolania.push(['odwies', a]), { status: 'ACTIVE' }),
       },
       uzytkownicy: {
         patchCustomerOperational: async (...a: unknown[]) => void wywolania.push(['patch', ...a]),
@@ -144,6 +169,42 @@ describe('PB-48 — rejestr wniosków', () => {
     expect((await d.wykonaj({}, k, zal({ mail: false }).z)).komunikat).toMatch(/nie wyszedł/);
   });
 
+  it('F2.3 zawieszenie: wykonuje L3 (SUBSCRIPTIONS_SUSPEND), składa L2 (SUBSCRIPTIONS_MANAGE); usługa klienta, nie zawieszona, zgłoszenie klienta', async () => {
+    const d = REJESTR_WNIOSKOW.SUBSCRIPTION_SUSPEND;
+    expect(d.uprawnienie).toBe('SUBSCRIPTIONS_SUSPEND');
+    expect(d.doZlozenia).toBe('SUBSCRIPTIONS_MANAGE');
+    const p = { subscriptionId: 's1', reason: 'ABUSE' as const, zgloszenie: '#ab12cd34' };
+    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ usluga: { userId: 'inny', status: 'ACTIVE' } }).z)).rejects.toThrow(/nie istnieje na koncie/);
+    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ usluga: null }).z)).rejects.toThrow(/nie istnieje na koncie/);
+    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ usluga: { userId: 'k1', status: 'SUSPENDED' } }).z)).rejects.toThrow(/już zawieszona/);
+    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ usluga: { userId: 'k1', status: 'CANCELED' } }).z)).rejects.toThrow(/zakończona/);
+    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ zgloszenie: false }).z)).rejects.toThrow(/Nie ma takiego zgłoszenia/);
+    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal().z)).resolves.toBeUndefined();
+    expect(await d.bezZmian!(p, 'k1', zal({ usluga: { userId: 'k1', status: 'SUSPENDED' } }).z)).toMatch(/Bez zmian/);
+    expect(await d.bezZmian!(p, 'k1', zal().z)).toBeNull();
+    expect(d.opis(p)).toBe('Zawieszenie usługi — strona, poczta i FTP klienta przestaną działać (zgłoszenie #ab12cd34)');
+    const { z, wywolania } = zal();
+    const w = await d.wykonaj(p, { ...k, uzasadnienie: 'phishing potwierdzony' }, z);
+    expect(wywolania).toEqual([['zawies', { subscriptionId: 's1', aktorUserId: 'kier', reason: 'ABUSE', powod: 'phishing potwierdzony', zgloszenie: '#ab12cd34' }]]);
+    expect(w).toEqual({ komunikat: 'Usługa zawieszona.' });
+    // Bez powodu w payloadzie — decyzja obsługi (nie „brak płatności”, który zostaje dla administratora).
+    const bez = zal();
+    await d.wykonaj({ subscriptionId: 's1' }, k, bez.z);
+    expect(bez.wywolania[0]![1]).toMatchObject({ reason: 'MANUAL_ADMIN', powod: 'wniosek w1' });
+  });
+
+  it('F2.3 odwieszenie: tylko zawieszona usługa klienta; bez obciążenia za odnowienie', async () => {
+    const d = REJESTR_WNIOSKOW.SUBSCRIPTION_UNSUSPEND;
+    expect(d.uprawnienie).toBe('SUBSCRIPTIONS_SUSPEND');
+    await expect(d.sprawdzPrzyZlozeniu!({ subscriptionId: 's1' }, 'k1', zal().z)).rejects.toThrow(/nie jest zawieszona/);
+    await expect(d.sprawdzPrzyZlozeniu!({ subscriptionId: 's1' }, 'k1', zal({ usluga: { userId: 'k1', status: 'SUSPENDED' } }).z)).resolves.toBeUndefined();
+    expect(await d.bezZmian!({ subscriptionId: 's1' }, 'k1', zal().z)).toMatch(/Bez zmian/);
+    const { z, wywolania } = zal({ usluga: { userId: 'k1', status: 'SUSPENDED' } });
+    await d.wykonaj({ subscriptionId: 's1', zgloszenie: 'ab12cd34' }, { ...k, uzasadnienie: 'klient usunął pliki' }, z);
+    expect(wywolania).toEqual([['odwies', { subscriptionId: 's1', aktorUserId: 'kier', powod: 'klient usunął pliki', zgloszenie: 'ab12cd34' }]]);
+    expect(wywolania[0]![1]).not.toHaveProperty('chargeRenewal');
+  });
+
   it('komunikat błędu wykonawcy: wyjątek HTTP po polsku wprost, inny — z przedrostkiem, bez stosu', () => {
     expect(komunikatBledu(new ForbiddenException('Brak.'))).toBe('Brak.');
     expect(komunikatBledu(new Error('timeout'))).toBe('Operacja nie powiodła się: timeout');
@@ -166,6 +227,9 @@ describe('PB-48 — 403 z kodem WYMAGA_WNIOSKU przy operacjach z rejestru', () =
     // D9 — L1/L2 (CUSTOMERS_VIEW) dostają „Wyślij wniosek”, L3 (CUSTOMERS_MANAGE) wykonuje sam.
     [UsersAdminController, 'changeEmail', 'CUSTOMER_EMAIL_CHANGE', ['CUSTOMERS_VIEW'], ['CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE']],
     [UsersAdminController, 'resetPassword', 'CUSTOMER_PASSWORD_RESET', ['CUSTOMERS_VIEW'], ['CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE']],
+    // F2.3 — L2 (SUBSCRIPTIONS_MANAGE) dostaje „Wyślij wniosek”, L3 (SUBSCRIPTIONS_SUSPEND) zawiesza sam.
+    [SubscriptionsAdminController, 'suspend', 'SUBSCRIPTION_SUSPEND', ['SUBSCRIPTIONS_MANAGE'], ['SUBSCRIPTIONS_SUSPEND']],
+    [SubscriptionsAdminController, 'unsuspend', 'SUBSCRIPTION_UNSUSPEND', ['SUBSCRIPTIONS_MANAGE'], ['SUBSCRIPTIONS_SUSPEND']],
   ])('%o.%s → operacja %s', async (klasa, metoda, typ, bez, z) => {
     const handler = (klasa.prototype as unknown as Record<string, object>)[metoda];
     expect(Reflect.getMetadata(WNIOSEK_MOZLIWY_KEY, handler)).toBe(typ);
