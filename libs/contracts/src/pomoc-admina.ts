@@ -273,6 +273,17 @@ export const POMOC = {
     opis: "Rozmowy i maile z klientem w sprawie migracji z datą i numerem zgłoszenia, obok zdarzeń automatu i zmian etapu.",
     kiedy: "Po każdym telefonie albo mailu — pisz tak, jakby klient to czytał, bo trafia do eksportu jego danych.",
   },
+  "zasoby-508": {
+    tytul: "Zasoby i diagnoza 508",
+    opis: "Ile razy konto odbiło się od limitu (CPU, procesy wejściowe EP, procesy NPROC, pamięć, I/O) w dobie i w 7 dni, obok inodów, błędów 5xx strony i wolnych zapytań SQL.",
+    kiedy: "Gdy klient zgłasza błąd 508, wolną stronę albo przerwy — najpierw sprawdź, który limit się kończy.",
+    rozniSieOd: "Zużycie konta pokazuje średnie obciążenie; faulty — momenty, w których limit faktycznie odciął stronę.",
+  },
+  "przekroczenia-limitow": {
+    tytul: "Przekroczenia limitów",
+    opis: "Konta, które w dobie albo w 7 dni odbijały się od limitów zasobów, we flocie albo na jednym węźle — od najgorszego.",
+    kiedy: "Przy przeglądzie węzła, przed rozmową o autoskalowaniu i gdy klienci zgłaszają błędy 508.",
+  },
 } satisfies Record<string, WpisPomocy>;
 
 export type PomocId = keyof typeof POMOC;

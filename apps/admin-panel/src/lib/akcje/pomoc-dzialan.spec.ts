@@ -15,6 +15,7 @@ const OCZEKIWANE: [string, string, string, readonly { id: string; pomocId?: stri
   ["usługa", "edycja-dns", "edycja-dns", AKCJE_USLUGI],
   ["usługa", "blokada-wysylki", "blokada-wysylki", AKCJE_USLUGI],
   ["usługa", "kolejka-poczty", "kolejka-poczty", AKCJE_USLUGI],
+  ["usługa", "zasoby-508", "zasoby-508", AKCJE_USLUGI],
   ["faktura", "korekta", "korekta", AKCJE_FAKTURY],
   ["faktura", "anuluj", "anuluj-fakture", AKCJE_FAKTURY],
   ["faktura", "ksef", "ksef-ponow", AKCJE_FAKTURY],

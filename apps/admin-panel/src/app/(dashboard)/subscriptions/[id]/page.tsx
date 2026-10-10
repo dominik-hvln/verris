@@ -26,6 +26,7 @@ import { DiagnosticsPanel } from "./diagnostics-panel";
 import { KontoKlientaPanel } from "./konto-klienta-panel";
 import { PasekAkcjiKonta } from "./pasek-akcji-konta";
 import { PocztaKontaPanel } from "./poczta-konta-panel";
+import { ZasobyKontaPanel } from "./zasoby-konta-panel";
 import { SuspendForm, ZakonczIUsunForm } from "./suspend-form";
 import { RestorePanel } from "./restore-panel";
 import { OdtworzenieNaWezlePanel } from "./odtworzenie-na-wezle-panel";
@@ -228,6 +229,12 @@ export default async function AdminSubscriptionDetailPage({
           {kontoZostalo ? (
             <section id="akcje-konta" className="scroll-mt-24">
               <PasekAkcjiKonta subscriptionId={d.id} dostep={access} />
+            </section>
+          ) : null}
+          {/* F2.6 — faulty limitów (24 h / 7 dni), inody, 5xx i wolne SQL obok siebie (ACCOUNT_DIAGNOSTICS_VIEW). */}
+          {kontoZostalo ? (
+            <section id="zasoby-konta" className="scroll-mt-24">
+              <ZasobyKontaPanel subscriptionId={d.id} dostep={access} />
             </section>
           ) : null}
           {/* F3.1 (D4) — blokada wysyłki konta i kolejka poczty konta (nagłówki, bez treści). */}

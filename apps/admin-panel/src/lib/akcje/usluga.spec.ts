@@ -69,6 +69,14 @@ describe("Działania usługi", () => {
     expect(ids({ ...aktywna, kontoUsuniete: true })).not.toContain("blokada-wysylki");
   });
 
+  it("F2.6: „Zasoby i diagnoza 508” (ACCOUNT_DIAGNOSTICS_VIEW) prowadzi do #zasoby-konta; L1 — wyszarzone; bez konta — brak", () => {
+    const l2 = dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("ACCOUNT_DIAGNOSTICS_VIEW"));
+    expect(l2.find((x) => x.id === "zasoby-508")).toMatchObject({ zablokowane: null, href: "/subscriptions/s1?sekcja=konto#zasoby-konta" });
+    const l1 = dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("TICKETS_MANAGE", "CUSTOMERS_VIEW"));
+    expect(l1.find((x) => x.id === "zasoby-508")?.zablokowane).toBe("Wymaga ACCOUNT_DIAGNOSTICS_VIEW");
+    expect(ids({ ...aktywna, kontoUsuniete: true })).not.toContain("zasoby-508");
+  });
+
   it("Cmd+K bez pełnego stanu (sam status z wyszukiwarki): pokazuje to, czego nie da się wykluczyć", () => {
     const zPalety = ids({ id: "s1", status: "PROVISIONING", klientId: "u1" });
     expect(zPalety).toContain("zakladanie");

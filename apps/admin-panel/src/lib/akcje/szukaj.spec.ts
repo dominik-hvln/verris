@@ -30,6 +30,14 @@ describe("Cmd+K — rejestr działań", () => {
     });
   });
 
+  it("F2.6: „508” / „faulty” → przekroczenia limitów węzła (zakładka Konta), z samym NODES_VIEW dostępne", () => {
+    expect(akcjeWezlaDlaZapytania(aktywny, "faulty", ADMIN).map((a) => a.id)).toEqual(["przekroczenia"]);
+    expect(akcjeWezlaDlaZapytania(aktywny, "508", FLOTA_PODGLAD)[0]).toMatchObject({
+      href: "/nodes/n1?sekcja=konta#przekroczenia",
+      zablokowane: null,
+    });
+  });
+
   it("bez uprawnień — wyszarzone z powodem, nie ukryte", () => {
     const [onboard] = akcjeWezlaDlaZapytania(aktywny, "onboard", FLOTA_PODGLAD);
     expect(onboard).toMatchObject({ id: "onboard-live", href: "/nodes/n1?sekcja=aktualizacje#onboard-live", zablokowane: "Wymaga NODES_MANAGE" });

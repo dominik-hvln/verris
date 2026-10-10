@@ -28,6 +28,8 @@ import { AktualizujWezelButton } from "./aktualizuj-wezel-button";
 import { WezelPrzeglad } from "./wezel-przeglad";
 import { DzialaniaWezla } from "./dzialania-wezla";
 import { KolejkaWezlaPanel } from "./kolejka-wezla-panel";
+import { PrzekroczeniaLimitow, type Przekroczenia } from "@/components/przekroczenia-limitow";
+import { adminApi } from "@/lib/api";
 import { OnboardLivePanel } from "../wizard/onboard-panele";
 import { fetchPrognozaWezla, fetchPrzegladWezla } from "./przeglad-data";
 import { PrognozaWezlaKarta } from "./prognoza-wezla";
@@ -113,6 +115,8 @@ export default async function ServerDetailPage({
   const wezelAkcji = { id: server.id, status: server.status };
   const wymaga = (id: string) => blokadaAkcjiWezla(id, wezelAkcji, dostep);
   const zadania = sekcja === "zadania" ? await wynik(listNodeTasks(undefined, server.id)) : null;
+  // F2.6 — konta tego węzła odbijające się od limitów (raport agenta verris-lve), na zakładce „Konta”.
+  const przekroczenia = sekcja === "konta" ? await wynik(adminApi<Przekroczenia>(`/admin/servers/przekroczenia?wezel=${encodeURIComponent(server.id)}`)) : null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -241,7 +245,17 @@ export default async function ServerDetailPage({
         </>
       ) : null}
 
-      {sekcja === "konta" ? <NodeInsightsPanel serverId={server.id} /> : null}
+      {sekcja === "konta" ? (
+        <>
+          <section id="przekroczenia" className="flex scroll-mt-4 flex-col gap-2" aria-labelledby="przekroczenia-naglowek">
+            <h2 id="przekroczenia-naglowek" className="flex items-center gap-2 font-display text-lg font-bold">
+              Przekroczenia limitów <Pomoc id="przekroczenia-limitow" />
+            </h2>
+            {przekroczenia?.ok ? <PrzekroczeniaLimitow dane={przekroczenia.dane} teraz={teraz} zWezlem={false} /> : <NieWczytano co="przekroczeń limitów" />}
+          </section>
+          <NodeInsightsPanel serverId={server.id} />
+        </>
+      ) : null}
 
       {sekcja === "audyt" ? (
         dziala ? (

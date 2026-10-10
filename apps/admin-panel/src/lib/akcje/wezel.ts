@@ -193,6 +193,18 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
     pomocId: "wycofanie",
   },
   {
+    id: "przekroczenia",
+    slowa: "508 limity faulty lve ep nproc pamięć cpu io przekroczenia konta przekraczające",
+    grupa: "Audyt i naprawa",
+    nazwa: "Przekroczenia limitów",
+    opis: "Konta węzła, które w dobie albo w 7 dni odbijały się od limitów zasobów.",
+    // F2.6 — admin/servers/przekroczenia?wezel= — NODES_VIEW (NOC); raport agenta verris-lve co ~10 min.
+    perm: "NODES_VIEW",
+    kiedy: dziala,
+    href: (w) => karta(w, "?sekcja=konta#przekroczenia"),
+    pomocId: "przekroczenia-limitow",
+  },
+  {
     id: "kolejka-poczty",
     slowa: "kolejka poczty mail queue exim mta wypchnij qff zamrożone spam",
     grupa: "Poczta",

@@ -132,6 +132,7 @@ export function grupy(l: LicznikiMenu | null): Grupa[] {
             { name: "Lista węzłów", href: "/nodes", perm: "NODES_VIEW", szukaj: "serwery onboard live drain cordon waf tryb serwisowy offline wycofanie directadmin sso ssh" },
             { name: "Wykresy i prognozy", href: "/nodes/wykresy", perm: "NODES_VIEW", szukaj: "cpu ram pamięć dysk obciążenie prognoza ai przeciążenie" },
             { name: "Pojemność", href: "/nodes/capacity", perm: "NODES_VIEW", szukaj: "zużycie sprzedane overcommit miejsce na konta" },
+            { name: "Przekroczenia limitów", href: "/nodes/przekroczenia", perm: "NODES_VIEW", szukaj: "508 faulty lve limity ep nproc pamięć cpu io konta przekraczające" },
           ],
         },
         // POST /admin/servers — tylko ADMIN; kreator służy wyłącznie do zakładania nowego węzła (decyzja 10.10).

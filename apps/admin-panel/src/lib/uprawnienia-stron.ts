@@ -47,6 +47,7 @@ export const STRONY = {
   // Przekierowanie na kreator.
   "/nodes/init": { perm: "ADMIN", tytul: "Dodaj węzeł" },
   "/nodes/kopie": { perm: "ADMIN", tytul: "Próby odtworzenia" },
+  "/nodes/przekroczenia": { perm: "NODES_VIEW", tytul: "Przekroczenia limitów" },
   "/nodes/stack": { perm: "NODES_MANAGE", tytul: "Operacje floty" },
   "/nodes/wizard": { perm: "ADMIN", tytul: "Dodaj węzeł" },
   "/nodes/wykresy": { perm: "NODES_VIEW", tytul: "Wykresy i prognozy" },

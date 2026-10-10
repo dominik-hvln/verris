@@ -148,6 +148,18 @@ export const AKCJE_USLUGI: AkcjaObiektu<UslugaDlaAkcji>[] = [
     pomocId: "kolejka-poczty",
   },
   {
+    id: "zasoby-508",
+    grupa: "Konto",
+    nazwa: "Zasoby i diagnoza 508",
+    opis: "Odbicia od limitów (EP, NPROC, pamięć, CPU, I/O) w dobie i 7 dni, inody, 5xx i wolne SQL.",
+    // F2.6 — admin/subscriptions/:id/konto/zasoby — ACCOUNT_DIAGNOSTICS_VIEW (L2).
+    perm: "ACCOUNT_DIAGNOSTICS_VIEW",
+    kiedy: (u) => konto(u) && !u.kontoUsuniete,
+    href: (u) => karta(u, "konto", "zasoby-konta"),
+    slowa: "508 limit zasoby faulty lve ep nproc pamięć cpu io inody 5xx wolne sql wolna strona",
+    pomocId: "zasoby-508",
+  },
+  {
     id: "diagnostyka",
     grupa: "Konto",
     nazwa: "Diagnostyka",
