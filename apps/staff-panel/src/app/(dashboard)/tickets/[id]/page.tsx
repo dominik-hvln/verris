@@ -5,6 +5,7 @@ import { requireStaffSession } from "@/lib/staff-session";
 import { staffGetTicket, staffGetTicketContext, staffListSupportAgents, staffMojeOceny } from "@/lib/tickets-data";
 import type { StaffTicketDetail } from "@/lib/tickets-data";
 import { TicketDetailPanel } from "@/components/ticket-detail-panel";
+import { mozeWejscNaKonto, pobierzDostepOperatora } from "@/lib/staff-access";
 
 export default async function StaffTicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -13,10 +14,16 @@ export default async function StaffTicketDetailPage({ params }: { params: Promis
   let agents: Awaited<ReturnType<typeof staffListSupportAgents>>;
   let context: Awaited<ReturnType<typeof staffGetTicketContext>>;
   let oceny: Awaited<ReturnType<typeof staffMojeOceny>>;
+  let dostep: Awaited<ReturnType<typeof pobierzDostepOperatora>>;
   try {
     // Otwarcie przez przypisanego opiekuna = „przeczytane” u klienta (PB-37), dlatego najpierw samo zgłoszenie.
     ticket = await staffGetTicket(id);
-    [agents, context, oceny] = await Promise.all([staffListSupportAgents(), staffGetTicketContext(id), staffMojeOceny(session.id)]);
+    [agents, context, oceny, dostep] = await Promise.all([
+      staffListSupportAgents(),
+      staffGetTicketContext(id),
+      staffMojeOceny(session.id),
+      pobierzDostepOperatora(),
+    ]);
   } catch (err) {
     if (err instanceof StaffApiError && err.status === 404) notFound();
     return <BladStrony blad={err} tytul="Zgłoszenie" powrot={{ href: "/", label: "Powrót do skrzynki" }} />;
@@ -24,5 +31,7 @@ export default async function StaffTicketDetailPage({ params }: { params: Promis
 
   // eslint-disable-next-line react-hooks/purity -- komponent serwerowy renderuje się raz na żądanie; czas żądania jest tu zamierzony
   const teraz = Date.now();
-  return <TicketDetailPanel ticket={ticket} agents={agents} context={context} mojeOceny={oceny} teraz={teraz} />;
+  return (
+    <TicketDetailPanel ticket={ticket} agents={agents} context={context} mojeOceny={oceny} teraz={teraz} mozeWejscNaKonto={mozeWejscNaKonto(dostep)} />
+  );
 }

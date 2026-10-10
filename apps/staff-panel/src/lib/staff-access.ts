@@ -25,3 +25,12 @@ export async function pobierzDostepOperatora(): Promise<StaffAccess> {
 export function maUprawnienie(dostep: StaffAccess, klucz: string): boolean {
   return dostep.isAdmin || dostep.permissions.includes(klucz);
 }
+
+/**
+ * Pozycja 21 — „Zaloguj jako klient” tylko dla operatora, którego API wpuści
+ * (POST /admin/users/:id/impersonate: CUSTOMERS_VIEW + CUSTOMERS_IMPERSONATE). Przy nieodczytanym
+ * dostępie lista uprawnień jest pusta, więc przycisk znika (fail-closed).
+ */
+export function mozeWejscNaKonto(dostep: StaffAccess): boolean {
+  return maUprawnienie(dostep, "CUSTOMERS_VIEW") && maUprawnienie(dostep, "CUSTOMERS_IMPERSONATE");
+}

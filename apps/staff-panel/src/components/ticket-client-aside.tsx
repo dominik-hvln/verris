@@ -39,7 +39,18 @@ const Wiersz = ({ children }: { children: React.ReactNode }) => (
 );
 
 /** PB-18 / PB-34 — boczny podgląd klienta (makieta „Obsługa · Zgłoszenie”): wszystko do odpowiedzi bez przełączania ekranów. */
-export function TicketClientAside({ context, userId, email }: { context: TicketContext | null; userId: string; email: string }) {
+export function TicketClientAside({
+  context,
+  userId,
+  email,
+  mozeWejscNaKonto = false,
+}: {
+  context: TicketContext | null;
+  userId: string;
+  email: string;
+  /** Pozycja 21 — przycisk „Zaloguj jako klient” tylko z uprawnieniem (domyślnie ukryty). */
+  mozeWejscNaKonto?: boolean;
+}) {
   if (!context) {
     return (
       <Karta>
@@ -76,7 +87,7 @@ export function TicketClientAside({ context, userId, email }: { context: TicketC
             <Link href={`/crm/${userId}`} className="inline-flex h-8 items-center rounded-[9px] border border-line-strong bg-card px-3 text-[13px] font-semibold text-foreground no-underline hover:border-primary">
               Karta klienta
             </Link>
-            <StaffImpersonateButton userId={userId} email={email} />
+            {mozeWejscNaKonto ? <StaffImpersonateButton userId={userId} email={email} /> : null}
           </div>
         </div>
       </Karta>

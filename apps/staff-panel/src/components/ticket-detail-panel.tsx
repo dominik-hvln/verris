@@ -32,6 +32,8 @@ interface Props {
   mojeOceny: OcenaAgenta | null;
   /** Czas renderu na serwerze — ten sam start zegara po obu stronach (hydracja). */
   teraz: number;
+  /** Pozycja 21 — operator ma CUSTOMERS_VIEW + CUSTOMERS_IMPERSONATE (z /staff/me/access). */
+  mozeWejscNaKonto?: boolean;
 }
 
 const STATUS_OPTS = ["OPEN", "IN_PROGRESS", "WAITING_CUSTOMER", "CLOSED"] as const;
@@ -152,7 +154,7 @@ function Wybor({ etykieta: e, id, children }: { etykieta: string; id: string; ch
 
 const POLE_WYBORU = "flex h-[32px] items-center gap-1.5 border-0 bg-transparent px-1.5 text-[13px] font-semibold text-foreground";
 
-export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: start }: Props) {
+export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: start, mozeWejscNaKonto = false }: Props) {
   const router = useRouter();
   const teraz = useTeraz(start);
   const kd = (d: string | Date) => kiedy(d, teraz);
@@ -627,7 +629,7 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
       {/* ---------- kolumna boczna */}
       <aside className="flex flex-col gap-4 xl:sticky xl:top-[86px] xl:self-start">
         <TicketUsluga ticketId={ticket.id} userId={ticket.user.id} usluga={ticket.subscription ?? null} uslugiKlienta={context?.services ?? null} />
-        <TicketClientAside context={context} userId={ticket.user.id} email={ticket.user.email} />
+        <TicketClientAside context={context} userId={ticket.user.id} email={ticket.user.email} mozeWejscNaKonto={mozeWejscNaKonto} />
 
         <Karta>
           <div className="flex flex-col gap-[9px] px-4 py-3.5">

@@ -11,7 +11,7 @@ import { StaffDnsTlsPanel } from "../dns-tls-panel";
 import { OperacjeZWnioskiem } from "./operacje-z-wnioskiem";
 import { formatPlnAndCredits } from "@/lib/credits";
 import { plForm, services } from "@/lib/pl";
-import { maUprawnienie, pobierzDostepOperatora } from "@/lib/staff-access";
+import { maUprawnienie, mozeWejscNaKonto, pobierzDostepOperatora } from "@/lib/staff-access";
 import { sekcjaKarty, zakladkiKartyKlienta } from "@/lib/sekcje-karty-klienta";
 import { NotatkaWewnetrzna } from "./notatka-wewnetrzna";
 import { BlokadaLogowania } from "./blokada-logowania";
@@ -181,7 +181,7 @@ export default async function StaffCustomerProfilePage({
             <p className="mt-1 text-xs font-mono text-neutral-500">ID {user.id}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <StaffImpersonateButton userId={user.id} email={user.email} />
+            {mozeWejscNaKonto(dostep) ? <StaffImpersonateButton userId={user.id} email={user.email} /> : null}
           </div>
         </div>
 

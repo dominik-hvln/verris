@@ -1,5 +1,6 @@
 import { staffApi } from "@/lib/staff-api";
 import { StaffImpersonateButton } from "./impersonate-button";
+import { mozeWejscNaKonto, pobierzDostepOperatora } from "@/lib/staff-access";
 import { CrmSearchForm } from "./search-form";
 import Link from "next/link";
 
@@ -33,14 +34,20 @@ export default async function StaffCrmPage({
   } catch (e) {
     error = e instanceof Error ? e.message : "Nie udało się pobrać klientów.";
   }
+  const mozeWejsc = mozeWejscNaKonto(await pobierzDostepOperatora());
 
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-3xl font-bold tracking-tight text-white">Klienci</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Lista kont klientów. Użyj przycisku <strong className="text-amber-200">Zaloguj jako klient</strong>, aby zobaczyć
-          usługi, domeny i ustawienia tak jak użytkownik (sesja 30 min, audyt).
+          Lista kont klientów.
+          {mozeWejsc ? (
+            <>
+              {" "}Użyj przycisku <strong className="text-amber-200">Zaloguj jako klient</strong>, aby zobaczyć
+              usługi, domeny i ustawienia tak jak użytkownik (sesja 30 min, audyt).
+            </>
+          ) : null}
         </p>
       </header>
 
@@ -83,7 +90,7 @@ export default async function StaffCrmPage({
                     </Link>
                   </td>
                   <td className="px-4 py-3">
-                    <StaffImpersonateButton userId={u.id} email={u.email} />
+                    {mozeWejsc ? <StaffImpersonateButton userId={u.id} email={u.email} /> : null}
                   </td>
                 </tr>
               ))}
