@@ -18,7 +18,7 @@ jest.mock('./actions', () => ({
   discoverMigrationSourceAction: jest.fn(),
 }));
 
-import { MigrationWizard } from './migration-wizard';
+import { MigrationWizard, wygasaIso } from './migration-wizard';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 Element.prototype.scrollIntoView = () => {};
@@ -107,4 +107,19 @@ it('akcja nieznana po deployu przy starcie: przycisk wraca, komunikat o odświe�
   await klik(przycisk('Uruchom migrację'));
   expect(el.textContent).toContain('odśwież stronę');
   expect(przycisk('Uruchom migrację').disabled).toBe(false);
+});
+
+it('D11: data końca obecnego hostingu idzie do API jako termin (koniec dnia), puste pole — bez terminu', async () => {
+  mockPreflight.mockResolvedValue({
+    result: { ok: true, checks: [{ kind: 'ftp', target: 'ftp://x:21', status: 'ok', message: 'OK', latencyMs: 1 }], checkedAt: 'x' },
+  });
+  mockCreate.mockResolvedValue({ error: 'stop' });
+  await klik(przycisk('Dalej: test dostępów'));
+  await klik(przycisk('Dalej: podsumowanie'));
+  await act(async () => wpisz('Do kiedy masz opłacony obecny hosting?', '2026-11-30'));
+  await klik([...el.querySelectorAll('input')].find((i) => i.type === 'checkbox')!);
+  await klik(przycisk('Uruchom migrację'));
+  expect(mockCreate).toHaveBeenLastCalledWith(expect.objectContaining({ wygasaUStaregoAt: new Date('2026-11-30T23:59:00').toISOString() }));
+  expect(wygasaIso('')).toBeUndefined();
+  expect(wygasaIso('30.11.2026')).toBeUndefined();
 });

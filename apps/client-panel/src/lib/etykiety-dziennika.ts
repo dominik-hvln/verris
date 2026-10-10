@@ -145,6 +145,7 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   MIGRATION_CONSENT_ACCEPTED: 'Zatwierdzono migrację przygotowaną przez obsługę',
   MIGRATION_CONSENT_REJECTED: 'Odrzucono migrację przygotowaną przez obsługę',
   MIGRATION_CONSENT_EXPIRED: 'Prośba o zgodę na migrację wygasła — dane dostępowe usunięte',
+  MIGRATION_REPORT_SENT: 'Wysłano raport z przeniesienia strony',
   // F2.5 — zgłoszenie założone przez obsługę w imieniu klienta
   TICKET_OPENED_BY_STAFF: 'Obsługa założyła zgłoszenie w sprawie Twojego konta',
 };

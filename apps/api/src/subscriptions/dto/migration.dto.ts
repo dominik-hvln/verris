@@ -4,6 +4,7 @@ import {
   IsEnum,
   IsIn,
   IsInt,
+  IsISO8601,
   IsOptional,
   IsString,
   Matches,
@@ -230,6 +231,13 @@ export class CreateMigrationBundleDto {
 
   @IsOptional() @IsString() @MaxLength(5000)
   notes?: string;
+
+  /**
+   * D11 — do kiedy klient ma opłacony obecny hosting (twardy termin migracji na tablicy obsługi). Data ISO;
+   * zapisywana w kolumnie MigrationRequest.wygasaUStaregoAt, automat migratora jej nie używa.
+   */
+  @IsOptional() @IsISO8601({ strict: true }, { message: 'Data wygaśnięcia obecnego hostingu: podaj datę.' })
+  wygasaUStaregoAt?: string;
 
   /**
    * Tryb „Wszystko naraz” (08.10): skrzynki docelowe, których jeszcze nie ma na koncie, zakładamy przed startem z tym

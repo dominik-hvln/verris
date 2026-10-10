@@ -536,6 +536,8 @@ export class MigrationOrchestratorService {
               sourceBundleEnc: this.zaszyfrujPakiet(dto),
               targetDomain: dto.targetDomain ?? null,
               sourcePanelType: dto.sourcePanelType ?? 'manual',
+              // D11 — twardy termin na tablicy obsługi (do kiedy klient ma opłacony obecny hosting).
+              wygasaUStaregoAt: dto.wygasaUStaregoAt ? new Date(dto.wygasaUStaregoAt) : null,
               status: MigrationStatus.QUEUED,
               currentStep: 'queued',
               workerJobs,

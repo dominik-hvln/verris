@@ -305,6 +305,13 @@ export const MigrationActions = {
   MIGRATION_CONSENT_ACCEPTED: 'MIGRATION_CONSENT_ACCEPTED',
   MIGRATION_CONSENT_REJECTED: 'MIGRATION_CONSENT_REJECTED',
   MIGRATION_CONSENT_EXPIRED: 'MIGRATION_CONSENT_EXPIRED',
+  // D11 — tablica migracji obsługi: etap, terminy/priorytet/przypisanie, checklista, kontakt, raport do klienta.
+  MIGRATION_STAGE_CHANGED: 'MIGRATION_STAGE_CHANGED',
+  MIGRATION_HANDLING_UPDATED: 'MIGRATION_HANDLING_UPDATED',
+  MIGRATION_CHECKLIST_UPDATED: 'MIGRATION_CHECKLIST_UPDATED',
+  MIGRATION_CONTACT_LOGGED: 'MIGRATION_CONTACT_LOGGED',
+  /** Klient widzi w aktywności: „Raport z przeniesienia — obsługa Verris (zgłoszenie #…)”. */
+  MIGRATION_REPORT_SENT: 'MIGRATION_REPORT_SENT',
 } as const;
 
 export const TicketOpsActions = {

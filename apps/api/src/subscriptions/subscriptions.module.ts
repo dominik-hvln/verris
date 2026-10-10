@@ -32,6 +32,8 @@ import { MigrationWorkerScheduler } from './migration-worker.scheduler.js';
 import { MigrationWorkerController } from './migration-worker.controller.js';
 import { MigracjaZaKlientaService } from './migracja-za-klienta.service.js';
 import { MigracjaZgodaController } from './migracja-zgoda.controller.js';
+import { TablicaMigracjiService } from './tablica-migracji.service.js';
+import { TablicaMigracjiController } from './tablica-migracji.controller.js';
 import { ServiceHealthService } from './service-health.service.js';
 import { HostingDnsPointingService } from './hosting-dns-pointing.service.js';
 import { AssistantService } from './assistant.service.js';
@@ -149,6 +151,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
     RetencjaKontService,
     WiadomosciWezlaScheduler,
     MigracjaZaKlientaService,
+    TablicaMigracjiService,
     ZawieszenieOperatoraService,
     AkcjeKontaOperatoraService,
   ],
@@ -169,6 +172,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
     KontoKlientaAkcjeAdminController,
     PocztaKontaAdminController,
     MigracjaZgodaController,
+    TablicaMigracjiController,
   ],
   exports: [
     SubscriptionsService,

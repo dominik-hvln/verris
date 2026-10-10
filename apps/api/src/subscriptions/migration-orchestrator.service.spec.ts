@@ -132,6 +132,16 @@ describe('MigrationOrchestratorService', () => {
     expect(createJobs.map((job: { kind: MigrationWorkerJobKind }) => job.kind)).toEqual([MigrationWorkerJobKind.IMAP_SYNC]);
   });
 
+  it('D11: data wygaśnięcia u starego dostawcy z kreatora trafia do kolumny zlecenia (twardy termin tablicy)', async () => {
+    prisma.subscription.findFirst.mockResolvedValue({ id: 'sub_1', userId: 'user_1', account: { domain: 'target.example' } });
+    await service().createBundle('sub_1', 'user_1', {
+      consentAccepted: true,
+      wygasaUStaregoAt: '2026-11-30T00:00:00.000Z',
+      imap: [{ host: 'imap.stary.pl', port: 993, username: 'stary@stara.pl', email: 'biuro@target.example', password: 'p' }],
+    });
+    expect(prisma.migrationRequest.create.mock.calls[0][0].data.wygasaUStaregoAt).toEqual(new Date('2026-11-30T00:00:00.000Z'));
+  });
+
   it('skips WP fixup when the bundle has no database sources', async () => {
     prisma.subscription.findFirst.mockResolvedValue({
       id: 'sub_1',

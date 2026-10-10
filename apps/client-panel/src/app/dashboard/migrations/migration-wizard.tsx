@@ -99,6 +99,8 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
   const [targetDomain, setTargetDomain] = useState('');
   const [sourceDomain, setSourceDomain] = useState('');
   const [notes, setNotes] = useState('');
+  // D11 — data końca obecnego hostingu (pole daty, RRRR-MM-DD); obsługa planuje przełączenie DNS przed nią.
+  const [wygasa, setWygasa] = useState('');
   const [consent, setConsent] = useState(false);
 
   const includeFiles = zakres !== 'baza';
@@ -291,6 +293,7 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
         notes: notes.trim() || undefined,
         consentAccepted: true,
         utworzBrakujaceSkrzynki: includeMail && zalozSkrzynki ? true : undefined,
+        wygasaUStaregoAt: wygasaIso(wygasa),
       }),
     );
     setBusy(false);
@@ -389,6 +392,8 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
           targetDomain={targetDomain}
           notes={notes}
           setNotes={setNotes}
+          wygasa={wygasa}
+          setWygasa={setWygasa}
           consent={consent}
           setConsent={setConsent}
         />
@@ -891,6 +896,8 @@ function StepStart(props: {
   targetDomain: string;
   notes: string;
   setNotes: (v: string) => void;
+  wygasa: string;
+  setWygasa: (v: string) => void;
   consent: boolean;
   setConsent: (v: boolean) => void;
 }) {
@@ -925,6 +932,11 @@ function StepStart(props: {
         </li>
       </ul>
       <label className="space-y-1.5 block">
+        <span className={labelText}>Do kiedy masz opłacony obecny hosting? (opcjonalnie)</span>
+        <input type="date" value={props.wygasa} onChange={(e) => props.setWygasa(e.target.value)} className={input} />
+        <span className="block text-xs text-neutral-500">Zaplanujemy przełączenie przed tą datą.</span>
+      </label>
+      <label className="space-y-1.5 block">
         <span className={labelText}>Notatki dla nas (opcjonalnie)</span>
         <textarea value={props.notes} onChange={(e) => props.setNotes(e.target.value)} className={`${input} min-h-[64px]`} />
       </label>
@@ -957,4 +969,11 @@ function preflightDot(status: string): string {
   if (status === 'reachable') return 'text-cyan-400';
   if (status === 'auth_failed' || status === 'blocked') return 'text-rose-400';
   return 'text-amber-400';
+}
+
+/** Pole daty (RRRR-MM-DD) → koniec tego dnia w strefie przeglądarki, jako ISO dla API; puste lub błędne — brak. */
+export function wygasaIso(dzien: string): string | undefined {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dzien)) return undefined;
+  const d = new Date(`${dzien}T23:59:00`);
+  return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
 }

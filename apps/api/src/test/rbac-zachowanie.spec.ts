@@ -554,3 +554,31 @@ describe('F2.5 — trasy helpdesku', () => {
     }
   });
 });
+
+/**
+ * D11 (10.10) — tablica migracji: odczyt i wszystkie działania (etap, terminy, przypisanie, checklista, kontakty,
+ * raport do klienta, sprawdzenie DNS) — MIGRATIONS_MANAGE: L2 (support migracji) i wyżej oraz NOC; L1 (helpdesk),
+ * audytor i Marketing nie. Klient (USER) nie wchodzi (test ogólny wyżej).
+ */
+describe('D11 — tablica migracji', () => {
+  const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
+  const METODY = ['lista', 'obsluga', 'etap', 'ustawienia', 'checklista', 'kontakt', 'podgladRaportu', 'wyslijRaport', 'sprawdzDns'];
+  const trasy = () => {
+    const t = TRASY.filter((x) => x.kontroler === 'TablicaMigracjiController');
+    expect(t.map((x) => x.metoda).sort()).toEqual([...METODY].sort());
+    return t;
+  };
+
+  it('L2, L3, L4 i NOC — tak; L1, audytor i Marketing — nie; sam MIGRATIONS_MANAGE wystarcza', async () => {
+    for (const t of trasy()) {
+      for (const r of ['L2 Specjalista techniczny', 'L3 Starszy specjalista', 'L4 Kierownik zmiany', 'Inżynier infrastruktury (NOC/DevOps)']) {
+        expect({ m: t.metoda, r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ m: t.metoda, r, ok: true });
+      }
+      for (const r of ['L1 Konsultant', 'Audytor (tylko podgląd)', 'Marketing']) {
+        expect({ m: t.metoda, r, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ m: t.metoda, r, ok: false });
+      }
+      expect(await wpuszcza(t, OPERATOR, ['MIGRATIONS_MANAGE'])).toBe(true);
+      expect(await wpuszcza(t, ADMIN)).toBe(true);
+    }
+  });
+});

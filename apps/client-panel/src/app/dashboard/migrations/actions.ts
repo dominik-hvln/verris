@@ -39,6 +39,8 @@ export interface MigrationBundleInput {
   consentAccepted?: boolean;
   /** Tryb „Wszystko naraz”: brakujące skrzynki docelowe zakładamy z hasłem ze starego hostingu. */
   utworzBrakujaceSkrzynki?: boolean;
+  /** D11 — do kiedy klient ma opłacony obecny hosting (ISO); termin, przed którym przełączamy DNS. */
+  wygasaUStaregoAt?: string;
 }
 
 type ActionOk<T> = ({ ok: true } & T) | { error: string };
@@ -63,6 +65,7 @@ function bundleBody(input: MigrationBundleInput) {
     notes: input.notes?.trim() || undefined,
     consentAccepted: input.consentAccepted === true ? true : undefined,
     utworzBrakujaceSkrzynki: input.utworzBrakujaceSkrzynki === true ? true : undefined,
+    wygasaUStaregoAt: input.wygasaUStaregoAt || undefined,
   };
 }
 

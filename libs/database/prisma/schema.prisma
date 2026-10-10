@@ -1192,9 +1192,63 @@ model MigrationRequest {
 
   workerJobs      MigrationWorkerJob[]
 
+  /// D11 (11.10) — tablica migracji obsługi. Etap obsługi jest osobny od `status` automatu (automat go nie zna);
+  /// przejścia i checklisty: apps/api/src/subscriptions/tablica-migracji.ts.
+  etapObslugi      MigracjaEtap @default(NOWA)
+  etapOd           DateTime?
+  /// Termin migracji ustawiony przez obsługę; null = utworzenie + 3 dni (SLA).
+  termin           DateTime?
+  /// Twarde terminy: wygaśnięcie hostingu u starego dostawcy (formularz klienta / obsługa) i domeny.
+  wygasaUStaregoAt DateTime?
+  domenaWygasaAt   DateTime?
+  /// Priorytet „Przerywacz” — pilne, przerywa kolejkę (na górze tablicy).
+  przerywacz       Boolean   @default(false)
+  /// Operator prowadzący migrację (User STAFF/ADMIN, bez klucza obcego — zniknięcie konta nie blokuje zlecenia).
+  przypisanyDoId   String?
+  /// Koniec okna poprawek po przełączeniu DNS (domyślnie +7 dni).
+  poprawkiDo       DateTime?
+  /// Checklisty etapów: { ttl300, testTymczasowy, testPrzed, testPo, optymalizacja, podsumowanie } → { tekst?, at, przez }.
+  checklista       Json      @default("{}")
+  raportWyslanyAt  DateTime?
+  /// Ostatni wysłany alert terminu (klucz rodzaj:data:stan) — ten sam alert nie idzie dwa razy.
+  terminAlert      String?
+  kontakty         MigracjaKontakt[]
+
   @@index([subscriptionId])
   @@index([userId])
   @@index([status, createdAt])
+  @@index([etapObslugi])
+}
+
+/// D11 — etap obsługi migracji na tablicy (Jira: Testy w naszej infrastrukturze → Do zmiany DNS → Wykonano i oczekujemy na poprawki).
+enum MigracjaEtap {
+  NOWA
+  TESTY
+  DO_ZMIANY_DNS
+  PO_PRZELACZENIU
+  ZAMKNIETA
+}
+
+enum MigracjaKanalKontaktu {
+  TELEFON
+  MAIL
+}
+
+/// D11 — log kontaktów z klientem w sprawie migracji (telefon, mail) na osi czasu; opcjonalnie powiązany ze zgłoszeniem.
+/// Treść jest danymi klienta (eksport RODO, autor jako „Obsługa Verris”) — piszemy tak, jakby klient czytał.
+model MigracjaKontakt {
+  id                 String                @id @default(uuid())
+  migrationRequestId String
+  migrationRequest   MigrationRequest      @relation(fields: [migrationRequestId], references: [id], onDelete: Cascade)
+  kanal              MigracjaKanalKontaktu
+  tresc              String                @db.Text
+  ticketId           String?
+  autorId            String?
+  /// Kiedy był kontakt (operator może wpisać rozmowę po fakcie).
+  kiedy              DateTime
+  createdAt          DateTime              @default(now())
+
+  @@index([migrationRequestId, kiedy])
 }
 
 enum MigrationWorkerJobKind {

@@ -82,6 +82,19 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
         return [sel ? Object.fromEntries(Object.entries(wiersz).filter(([k]) => sel[k])) : wiersz];
       }),
     },
+    migrationRequest: {
+      findMany: vi.fn(async (args: { select?: Record<string, unknown> }) => {
+        // Prawdziwy wiersz ma dane dostępowe i id pracownika — eksport ma ich nie wybierać.
+        const wiersz = {
+          id: 'm1', targetDomain: 'sklep.pl', status: 'COMPLETED', sourceBundleEnc: 'enc:hasla-starego-hostingu', przypisanyDoId: 'operator-7',
+          etapObslugi: 'ZAMKNIETA', createdAt: new Date('2026-10-01T10:00:00Z'),
+          checklista: { ttl300: { at: '2026-10-02T10:00:00.000Z', przez: 'operator-7' }, testPrzed: { tekst: 'LCP 4,1 s', at: '2026-10-02T10:00:00.000Z', przez: 'operator-7' } },
+          kontakty: [{ kanal: 'TELEFON', tresc: 'Klient potwierdził zmianę DNS na jutro rano.', ticketId: null, kiedy: new Date('2026-10-02T09:00:00Z') }],
+        };
+        const sel = args?.select;
+        return [sel ? Object.fromEntries(Object.entries(wiersz).filter(([k]) => sel[k])) : wiersz];
+      }),
+    },
     $transaction: vi.fn(async (ops: Array<Promise<unknown>>) => Promise.all(ops)),
   };
   const storage = {
@@ -136,6 +149,23 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
       { body: 'Klient prosił o kontakt telefoniczny.', pinned: true, createdAt: '2026-10-01T10:00:00.000Z', updatedAt: '2026-10-01T10:00:00.000Z', autor: 'Obsługa Verris' },
     ]);
     expect(pliki.get('customer-notes.json')).not.toContain('operator-7');
+  });
+
+  it('D11 — obsługa migracji (checklista, log kontaktów) w eksporcie, bez haseł starego hostingu i id pracowników', async () => {
+    const pliki = await zbudujZip(zbuduj().svc);
+    expect(pliki.get('README.txt')).toContain('migrations.json');
+    const [m] = JSON.parse(pliki.get('migrations.json')!) as Array<Record<string, unknown>>;
+    expect(m).toMatchObject({
+      id: 'm1',
+      etapObslugi: 'ZAMKNIETA',
+      checklista: {
+        ttl300: { at: '2026-10-02T10:00:00.000Z', autor: 'Obsługa Verris' },
+        testPrzed: { tekst: 'LCP 4,1 s', at: '2026-10-02T10:00:00.000Z', autor: 'Obsługa Verris' },
+      },
+      kontakty: [{ kanal: 'TELEFON', tresc: 'Klient potwierdził zmianę DNS na jutro rano.', autor: 'Obsługa Verris' }],
+    });
+    expect(pliki.get('migrations.json')).not.toContain('operator-7');
+    expect(pliki.get('migrations.json')).not.toContain('enc:hasla-starego-hostingu');
   });
 
   it('F2.5 — notatki obsługi w wątku zgłoszenia są w eksporcie (internal: true), wpisy obsługi bez id pracownika', async () => {

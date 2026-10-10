@@ -81,7 +81,13 @@ describe('PB-45 — migracja za klienta startuje dopiero po jego zgodzie', () =>
     const { k, operator, serverId } = await przygotuj();
     const { orkiestrator, zaKlienta, maile } = uslugi();
 
-    const wynik = await zaKlienta.utworz({ subscriptionId: k.subscription.id, actorUserId: operator.id, powod: 'Zgłoszenie #1234 — przeniesienie sklepu', zlecenie: { ...zlecenie(), consentAccepted: true } });
+    const wynik = await zaKlienta.utworz({
+      subscriptionId: k.subscription.id,
+      actorUserId: operator.id,
+      powod: 'Zgłoszenie #1234 — przeniesienie sklepu',
+      // D11 — data wygaśnięcia u starego dostawcy trafia do kolumny (twardy termin tablicy), nie do pakietu.
+      zlecenie: { ...zlecenie(), consentAccepted: true, wygasaUStaregoAt: '2026-11-30T00:00:00.000Z' },
+    });
 
     expect(wynik.mailWyslany).toBe(true);
     expect(wynik.migracja.status).toBe(MigrationStatus.DRAFT);
@@ -89,6 +95,8 @@ describe('PB-45 — migracja za klienta startuje dopiero po jego zgodzie', () =>
     const req = await prisma().migrationRequest.findUniqueOrThrow({ where: { id: wynik.migracja.id }, include: { workerJobs: true } });
     expect(req.status).toBe(MigrationStatus.DRAFT);
     expect(req.workerJobs).toHaveLength(0);
+    expect(req.wygasaUStaregoAt?.toISOString()).toBe('2026-11-30T00:00:00.000Z');
+    expect(req.etapObslugi).toBe('NOWA');
     expect(req.userId).toBe(k.user.id);
     expect(req.sourceBundleEnc).not.toContain(HASLO_FTP);
     const token = tokenZMaila(maile);

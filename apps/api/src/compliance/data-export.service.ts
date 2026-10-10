@@ -21,6 +21,7 @@ import { dataExportReadyTemplate } from '../mail/templates/data-export-notificat
 import { ObjectStorageService } from '../storage/object-storage.service.js';
 import { ObjectBuckets } from '../storage/object-storage.types.js';
 import type { Readable } from 'stream';
+import { checklistaZBazy } from '../subscriptions/tablica-migracji.js';
 
 export interface DataExportSummary {
   id: string;
@@ -461,7 +462,7 @@ export class DataExportService implements OnApplicationBootstrap {
 
   private async collectSections(userId: string): Promise<Record<string, unknown>> {
     const [user, accounts, subscriptions, walletTxs, invoices, tickets, ticketAttachments,
-      ticketReplies, consents, prefs, exports, deletions, auditLogs, customerNotes] =
+      ticketReplies, consents, prefs, exports, deletions, auditLogs, customerNotes, migracje] =
       await this.prisma.$transaction([
         this.prisma.user.findUniqueOrThrow({ where: { id: userId } }),
         this.prisma.account.findMany({ where: { userId } }),
@@ -499,6 +500,29 @@ export class DataExportService implements OnApplicationBootstrap {
           where: { userId },
           orderBy: { createdAt: 'asc' },
           select: { body: true, pinned: true, createdAt: true, updatedAt: true },
+        }),
+        // D11 (decyzja 10.10) — obsługa migracji: etap, terminy, checklista (wyniki testów, podsumowanie) i log
+        // kontaktów to dane klienta jak notatki obsługi. Bez danych dostępowych do starego hostingu (sourceBundleEnc)
+        // i bez id pracowników (przypisanie, autor wpisu, kto odhaczył) — „Obsługa Verris” (art. 15 ust. 4, D3).
+        this.prisma.migrationRequest.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'asc' },
+          select: {
+            id: true,
+            targetDomain: true,
+            status: true,
+            createdAt: true,
+            completedAt: true,
+            cutoverAt: true,
+            etapObslugi: true,
+            termin: true,
+            wygasaUStaregoAt: true,
+            domenaWygasaAt: true,
+            poprawkiDo: true,
+            checklista: true,
+            raportWyslanyAt: true,
+            kontakty: { orderBy: { kiedy: 'asc' }, select: { kanal: true, tresc: true, ticketId: true, kiedy: true } },
+          },
         }),
       ]);
 
@@ -548,6 +572,13 @@ export class DataExportService implements OnApplicationBootstrap {
       'account-deletion-requests': deletions,
       'audit-log': auditLogs,
       'customer-notes': customerNotes.map((n) => ({ ...n, autor: 'Obsługa Verris' })),
+      migrations: migracje.map(({ checklista, kontakty, ...m }) => ({
+        ...m,
+        checklista: Object.fromEntries(
+          Object.entries(checklistaZBazy(checklista)).map(([k, w]) => [k, { ...(w?.tekst ? { tekst: w.tekst } : {}), at: w?.at, autor: 'Obsługa Verris' }]),
+        ),
+        kontakty: kontakty.map((k) => ({ ...k, autor: 'Obsługa Verris' })),
+      })),
     };
   }
 
@@ -696,6 +727,7 @@ function buildReadme(userId: string): string {
     '  ticket-attachments.json          — metadane załączników (lista plików).',
     '  audit-log.json                   — log audytowy operacji na koncie.',
     '  customer-notes.json              — notatki obsługi o koncie (treść i daty, autor jako „Obsługa Verris”).',
+    '  migrations.json                  — migracje: etap obsługi, terminy, checklista i log kontaktów (autor jako „Obsługa Verris”), bez haseł.',
     '  data-export-requests.json        — historia żądań eksportu danych.',
     '  account-deletion-requests.json   — historia żądań usunięcia konta.',
     '  attachments/<plik>               — fizyczne kopie załączników z ticketów.',

@@ -749,7 +749,9 @@ export class UsersService {
       'TICKET_OPENED_BY_STAFF',
       // F2.7 — domena u rejestratora: blokada, odnowienie (też przez obsługę, z portfela albo na koszt Verris),
       // rejestracja i transfer (także ponowione przez obsługę).
-      'DOMAIN_TRANSFER_LOCKED', 'DOMAIN_REGISTRAR_RENEWED', 'DOMAIN_REGISTRAR_REGISTERED', 'DOMAIN_REGISTRAR_TRANSFER_SUBMITTED'];
+      'DOMAIN_TRANSFER_LOCKED', 'DOMAIN_REGISTRAR_RENEWED', 'DOMAIN_REGISTRAR_REGISTERED', 'DOMAIN_REGISTRAR_TRANSFER_SUBMITTED',
+      // D11 — raport pomigracyjny wysłany przez obsługę (D3: „obsługa Verris (zgłoszenie #…)”).
+      'MIGRATION_REPORT_SENT'];
     const take = Math.min(Math.max(limit, 1), 100);
     const rows = await this.prisma.auditLog.findMany({
       where: {

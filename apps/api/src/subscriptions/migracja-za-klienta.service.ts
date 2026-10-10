@@ -152,6 +152,7 @@ export class MigracjaZaKlientaService {
         sourceBundleEnc: this.orchestrator.zaszyfrujPakiet(dto),
         targetDomain: dto.targetDomain ?? null,
         sourcePanelType: dto.sourcePanelType ?? 'manual',
+        wygasaUStaregoAt: dto.wygasaUStaregoAt ? new Date(dto.wygasaUStaregoAt) : null,
         status: MigrationStatus.DRAFT,
         currentStep: 'consent',
         ticketId: opts.ticketId ?? null,
