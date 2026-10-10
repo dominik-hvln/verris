@@ -1,6 +1,6 @@
 # Plan sprintów do startu — Verris
 
-**Wygenerowany:** 2026-10-08 z `audyt/dane/` · **nie edytuj ręcznie**  
+**Wygenerowany:** 2026-10-11 z `audyt/dane/` · **nie edytuj ręcznie**  
 **Podstawa:** audyt parytetu funkcji z 2026-08-20  
 **Pojemność:** 1 osoba, pełny etat, **65 h netto na sprint** · sprint = 1 tydzień  
 **Sprint 1:** 2026-08-31 · **Sprint 23:** 2027-01-11–2027-01-15
@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **1744 h** — przy 65 h tygodniowo około **6 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2221 h** — przy 65 h tygodniowo około **8 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1300 h) oraz roadmapę po starcie (444 h, 18 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1777 h) oraz roadmapę po starcie (444 h, 18 pozycji) rozpisaną na epiki kwartalne.
 
 - **2026-11-13** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-08** — koniec sprintu 20, decyzja GO.
@@ -32,7 +32,7 @@ Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1300 h) 
 
 # Faza 0 — Zatrzymać krwawienie
 
-*Sprinty 1–3 · 256 h · 2026-08-31 – 2026-09-18*
+*Sprinty 1–3 · 240 h · 2026-08-31 – 2026-09-18*
 
 Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziurą, przez którą wyciekają pieniądze, albo drogą do przejęcia węzła przez klienta. Nic innego nie ma sensu przed nimi.
 
@@ -73,7 +73,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 ## Sprint 2 — Zamknąć luki bezpieczeństwa z passu adwersaryjnego
 
-`2026-09-07 – 2026-09-11` · **144 h** z 65 h pojemności
+`2026-09-07 – 2026-09-11` · **128 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -90,7 +90,6 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 | `H-24` | Nazwa obiektu kopii i drill odtworzeniowy mają po jednym miejscu | 6 | — | ops/lib/backup-crypto.sh — backup_crypto_latest_object(), jedno źródło nazwy obiektu; ops/scripts/restore-drill-isolated.sh — nazwa z biblioteki + wer |
 | `X-28` | Reguła alertowa ma odbiorcę, a nie tylko próg | 6 | — | ops/observability/grafana/provisioning/alerting/rules.yaml — 13 reguł, 2 grupy, provisionowane z repo; ops/observability/prometheus.yml — bez rule_fil |
 | `X-29` | Wdrożenie dowozi konfigurację obserwowalności na serwer | 6 | — | ops/scripts/prod-deploy-ghcr.sh — krok 4.5: OBS_SERVICES, promtool check config przed restartem, compose up -d + compose restart, sprawdzenie /api/hea |
-| `H-20` | Test odtworzeniowy z datą ostatniego wykonania | 16 | — | DOWÓD D4 — wiersz w bazie PRODUKCYJNEJ, odczytany 2026-08-23: finishedAt=2026-08-22 23:19:45, result=OK, owner=Dominik Kowalski, durationSec=9, object |
 | `X-30` | Reguły alertowe nie tylko są wczytane, ale się liczą | 6 | — | ops/observability/grafana/provisioning/datasources/datasources.yml — deleteDatasources przed deklaracją, uid: Prometheus; ops/scripts/prod-deploy-ghcr |
 | `X-31` | Kanał alertów daje znak życia (dead man's switch) | 6 | — | ops/observability/grafana/provisioning/alerting/rules.yaml — grupa verris_kanal_alertow, reguła VerrisKanalAlertowZyje (vector(1), for: 0s, oba stany  |
 | `X-32` | Martwy job da się odrzucić z panelu, ze śladem w audycie | 6 | — | apps/api/src/common/audit/audit.actions.ts — PROVISIONING_JOB_DISCARDED_BY_ADMIN; provisioning-queue.service.ts — odrzucJob (getState() === failed, śl |
@@ -112,7 +111,6 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 - `H-24` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-28` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-29` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `H-20` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-30` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-31` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-32` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
@@ -120,7 +118,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 - `X-34` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
-**Ryzyko sprintu.** Z-03 dotyka skryptów na węźle — zmiana wymaga przetestowania całej ścieżki migracji, nie tylko walidacji DTO. Sprint urósł o dziesięć pozycji odkrytych w trakcie: podatności, strażniki, bramki wdrożeniowe i awaria kopii bazy (H-23/H-24). Przeciążenie jest prawdziwe i celowo widoczne — praca została wykonana, plan jej nie przewidywał. X-28 doszło jako odpowiedź na pytanie, które zostawiło H-23: dlaczego alarm o braku kopii nie dotarł do nikogo. Odpowiedź — nie miał dokąd; w repo nie było Alertmanagera, a Grafana miała odbiorcę i zero reguł. X-29 wyszło godzinę po X-28 i z tego samego pytania: skoro reguły są w repo, to czy wdrożenie w ogóle je dowozi? Nie dowoziło — wdrożenie restartowało tylko aplikacje, a Prometheus i Grafana czytają konfigurację wyłącznie przy starcie. H-20 wykonane tu, a nie w sprincie 9: awaria kopii z H-23 wymusiła odtworzenie bazy tu i teraz, więc dowód D4 powstał jedenaście sprintów przed terminem. X-30 wyszło przy sprawdzaniu, czy X-29 faktycznie coś zmieniło: reguły były wczytane i żadna się nie liczyła. Trzeci raz tego dnia to samo pytanie — czy to, co wygląda na zrobione, jest zrobione — i trzeci raz odpowiedź brzmiała nie. X-31 domyka dzień: po naprawie X-30 alerty ucichną, a cisza wygląda tak samo jak awaria kanału — więc dokładamy regułę, która pali się zawsze i której brak jest sygnałem. Decyzja właściciela produktu: jeden mail na dobę. Z-18 zamyka dzień tym, od czego wszystko się zaczęło: pierwszy alarm zapalony z prawdziwego powodu pokazał wadę, która przy zerwaniu sieci oddaje klientowi pieniądze za usługę, którą za chwilę wykona. Poprawka jest tutaj, dowód D3 dopiero przy węźle #1. X-32 to ostatnie ogniwo dnia i najkrótsza historia: alarm kazał posprzątać kolejkę, a w produkcie nie było czym jej posprzątać. Zostawało grzebanie w Redisie bez śladu w audycie — czyli dokładnie to, przeciwko czemu powstał cały ten dzień. X-33 dopisało się samo, bo wdrożenie #70 padło na bramce z X-30 przy czternastu działających regułach. Metryka reguł pojawia się dopiero na pierwszym takcie schedulera alertów, a bramka czytała ją sekundę po tym, jak /api/health odpowiedziało — mierzyła szybkość startu i meldowała o poprawności prowizjonowania. Bramka, która potrafi zapalić się na zdrowym systemie, uczy klikać „re-run" i przestaje chronić cokolwiek, więc ten sprint domyka się dopiero tutaj. X-34 dopisało się, bo bramka z X-33 miała własną usterkę: printf | grep -q przy pipefail zwraca błąd DOKŁADNIE WTEDY, GDY METRYKA JEST, o ile odpowiedź przekracza bufor potoku. Bramka nie kłamała o Grafanie — kłamała o własnym odczycie, a strażnik tego nie złapał, bo jego atrapa ważyła 200 bajtów zamiast setek kilobajtów i pracował pod innymi flagami powłoki niż produkcja. | 2026-09-22: Z-18 zdjete z listy tego sprintu (kod zrobiony tutaj, D2) — pozycja otwarta czeka na dowod D3 w sprincie 18, a generator przypisuje pozycje do pierwszego sprintu, w ktorym wystepuje.
+**Ryzyko sprintu.** Z-03 dotyka skryptów na węźle — zmiana wymaga przetestowania całej ścieżki migracji, nie tylko walidacji DTO. Sprint urósł o dziesięć pozycji odkrytych w trakcie: podatności, strażniki, bramki wdrożeniowe i awaria kopii bazy (H-23/H-24). Przeciążenie jest prawdziwe i celowo widoczne — praca została wykonana, plan jej nie przewidywał. X-28 doszło jako odpowiedź na pytanie, które zostawiło H-23: dlaczego alarm o braku kopii nie dotarł do nikogo. Odpowiedź — nie miał dokąd; w repo nie było Alertmanagera, a Grafana miała odbiorcę i zero reguł. X-29 wyszło godzinę po X-28 i z tego samego pytania: skoro reguły są w repo, to czy wdrożenie w ogóle je dowozi? Nie dowoziło — wdrożenie restartowało tylko aplikacje, a Prometheus i Grafana czytają konfigurację wyłącznie przy starcie. H-20 wykonane tu, a nie w sprincie 9: awaria kopii z H-23 wymusiła odtworzenie bazy tu i teraz, więc dowód D4 powstał jedenaście sprintów przed terminem. X-30 wyszło przy sprawdzaniu, czy X-29 faktycznie coś zmieniło: reguły były wczytane i żadna się nie liczyła. Trzeci raz tego dnia to samo pytanie — czy to, co wygląda na zrobione, jest zrobione — i trzeci raz odpowiedź brzmiała nie. X-31 domyka dzień: po naprawie X-30 alerty ucichną, a cisza wygląda tak samo jak awaria kanału — więc dokładamy regułę, która pali się zawsze i której brak jest sygnałem. Decyzja właściciela produktu: jeden mail na dobę. Z-18 zamyka dzień tym, od czego wszystko się zaczęło: pierwszy alarm zapalony z prawdziwego powodu pokazał wadę, która przy zerwaniu sieci oddaje klientowi pieniądze za usługę, którą za chwilę wykona. Poprawka jest tutaj, dowód D3 dopiero przy węźle #1. X-32 to ostatnie ogniwo dnia i najkrótsza historia: alarm kazał posprzątać kolejkę, a w produkcie nie było czym jej posprzątać. Zostawało grzebanie w Redisie bez śladu w audycie — czyli dokładnie to, przeciwko czemu powstał cały ten dzień. X-33 dopisało się samo, bo wdrożenie #70 padło na bramce z X-30 przy czternastu działających regułach. Metryka reguł pojawia się dopiero na pierwszym takcie schedulera alertów, a bramka czytała ją sekundę po tym, jak /api/health odpowiedziało — mierzyła szybkość startu i meldowała o poprawności prowizjonowania. Bramka, która potrafi zapalić się na zdrowym systemie, uczy klikać „re-run" i przestaje chronić cokolwiek, więc ten sprint domyka się dopiero tutaj. X-34 dopisało się, bo bramka z X-33 miała własną usterkę: printf | grep -q przy pipefail zwraca błąd DOKŁADNIE WTEDY, GDY METRYKA JEST, o ile odpowiedź przekracza bufor potoku. Bramka nie kłamała o Grafanie — kłamała o własnym odczycie, a strażnik tego nie złapał, bo jego atrapa ważyła 200 bajtów zamiast setek kilobajtów i pracował pod innymi flagami powłoki niż produkcja. | 2026-09-22: Z-18 zdjete z listy tego sprintu (kod zrobiony tutaj, D2) — pozycja otwarta czeka na dowod D3 w sprincie 18, a generator przypisuje pozycje do pierwszego sprintu, w ktorym wystepuje. | 2026-10-10: H-20 przeniesione do sprintu 16 — dowód D4 z 2026-08-23 wygasł po 30 dniach (21.09), pozycja wróciła do CZĘŚCIOWE i do blokerów startu. Praca wykonana w tym sprincie zostaje opisana w macierzy; odnowienie dowodu to PB-54.
 
 ## Sprint 3 — Pojemność węzła i plan produkcyjny
 
@@ -270,7 +268,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 # Faza 2 — Odzyskanie funkcji-widm i luki pierwszego tygodnia
 
-*Sprinty 9–14 · 270 h · 2026-10-26 – 2026-10-23*
+*Sprinty 9–14 · 398 h · 2026-10-26 – 2026-10-23*
 
 Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. Najlepszy stosunek wartości do pracy w całym backlogu.
 
@@ -306,14 +304,13 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 ## Sprint 11 — Warstwa operatorska: zatrzymywanie szkody
 
-`2026-11-09 – 2026-11-13` · **30 h** z 65 h pojemności
+`2026-11-09 – 2026-11-13` · **24 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `A-25` | Ręczne zawieszenie usługi przez operatora | 6 | — | 2026-09-23 D1: admin-panel subscriptions/[id]/suspend-form.tsx + suspend-actions.ts → POST /admin/subscriptions/:id/suspend (powód, notatka, potwierdz |
 | `A-26` | Ręczne odwieszenie usługi przez operatora | 6 | — | 2026-09-23 D1: ten sam formularz — odwieszenie z opcją obciążenia za odnowienie (chargeRenewal); D3 t1 (d3.hvln.pl) 29.09: odwieszenie bez obciążenia  |
 | `N-07` | Ręczne tworzenie incydentu na status page | 6 | WYSOKA | 2026-09-23 D2: admin-panel status/incidents/incident-compose.tsx → POST /admin/product-ops/incidents; przycisk „Rozwiąż” (PATCH incidents/:id status=R |
-| `N-14` | Cordon wysyłki poczty (auto-blokada spamu) | 6 | WYSOKA | 2026-09-23: admin-panel /deliverability (Blokady wysyłki poczty, link w menu) → GET/POST /admin/deliverability/cordons; lista z e-mailem i nazwą klien |
 | `H-22` | Panel odtwarzania w widocznym miejscu | 6 | WYSOKA | 2026-09-23: client-panel BackupsTab.tsx — sekcja „Kopie poza serwerem” (HostingOffsitePanel) w zakładce Kopie zapasowe; zdublowany panel przywracania  |
 
 **Definicja ukończenia**
@@ -321,11 +318,10 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 - `A-25` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `A-26` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `N-07` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `N-14` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `H-22` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
-**Ryzyko sprintu.** Bez tego pierwszy incydent obslugujesz curlem o drugiej w nocy. Pierwsze cztery pozycje to endpointy, ktore juz dzialaja. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze.
+**Ryzyko sprintu.** Bez tego pierwszy incydent obslugujesz curlem o drugiej w nocy. Pierwsze cztery pozycje to endpointy, ktore juz dzialaja. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. | 2026-10-10: N-14 przeniesione do sprintu 17 — audyt paneli operatora (OC-10) wykazał, że kordon działa tylko w module marketingu; decyzja D4: blokada wysyłki konta i kolejka MTA to bloker przed otwartą betą 7.12 (PB-52).
 
 ## Sprint 12 — Backup i staging
 
@@ -373,7 +369,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 ## Sprint 14 — Beta wewnętrzna na t1, rozliczenia klienta i pomiar
 
-`2026-10-19 – 2026-10-23` · **132 h** z 65 h pojemności
+`2026-10-19 – 2026-10-23` · **266 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -389,6 +385,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 | `PB-46` | Obsługa: spójna karta klienta w staff i admin | 8 | ŚREDNI | Decyzja właściciela 2026-10-08: notatka wewnętrzna w staff, diagnostyka DNS/TLS i ryzyko klienta w admin, operacje wrażliwe w staff według uprawnień,  |
 | `PB-47` | Role pracowników: szczeble L1–L4 i role funkcyjne z uprawnieniami | 14 | WYSOKI | Decyzja właściciela 2026-10-08: komplet ról pracowników z uprawnieniami, przygotowany zawczasu (szczeble L1–L4 zatwierdzone + role funkcyjne będące st |
 | `PB-48` | Wnioski o operację wymagającą wyższego uprawnienia | 16 | ŚREDNI | Decyzja właściciela 2026-10-08: gdy pracownik nie ma uprawnienia do operacji (np. oznaczenie konta jako wewnętrzne), zamiast ukrytego przycisku widzi  |
+| `PB-51` | Fala 2 audytu paneli operatora (w becie wewnętrznej) | 134 | WYSOKI | Plan rozbudowy paneli operatora, Fala 2 (19.10–6.11), w tej kolejności: F2.1 jeden panel operatora dla STAFF (decyzja D1, 14 h); F2.2 pasek akcji kont |
 
 **Definicja ukończenia**
 
@@ -404,40 +401,45 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 - `PB-46` — Obie karty klienta mają te same sekcje (różnią się tylko uprawnieniami); testy panelu.
 - `PB-47` — Role zdefiniowane w kodzie (idempotentny seed/migracja danych) i widoczne w panelu admina przy przypisywaniu operatora; nowe uprawnienia w katalogu i na endpointach; każde uprawnienie z katalogu przypisane do co najmniej jednej roli albo jawnie „tylko administrator”; test spójności katalogu i ról.
 - `PB-48` — Wniosek z panelu staff, powiadomienie dla uprawnionych, akceptacja wykonuje operację, odrzucenie z powodem; wszystko w dzienniku; testy na PostgreSQL.
+- `PB-51` — F2.1–F2.8 wdrożone z testami; test e2e L1–L4 × pozycje menu; test, że notatka wewnętrzna nie wycieka do klienta żadną ścieżką (API klienta, mail, auto-wiadomości, kontekst AI); przejście ról L1–L4 na żywo przez przełączenie roli konta staff (D3); poprawki z D3 10.10 zamknięte.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
-**Ryzyko sprintu.** Ostatni sprint kodowy przed blokiem dokumentow. PB-08 (Consent Mode v2 + dedup event_id) jest tu, a nie przy landingu, bo to kod w panelu, nie tresc — landing tylko z niego korzysta. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. NODE-03 (pojemnosc wezla z telemetrii) dolozone tutaj z sprintu 13 dla pojemnosci — kod bez wezla, dowod przy wezle. | 2026-10-04 HARMONOGRAM STARTU (wariant A, decyzja właściciela): beta wewnętrzna na t1 19.10–6.11 (PB-40); w tym oknie wypadają testy PB-27 (22.10) i PB-28 (odnowienie d3 28.10).
+**Ryzyko sprintu.** Ostatni sprint kodowy przed blokiem dokumentow. PB-08 (Consent Mode v2 + dedup event_id) jest tu, a nie przy landingu, bo to kod w panelu, nie tresc — landing tylko z niego korzysta. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. NODE-03 (pojemnosc wezla z telemetrii) dolozone tutaj z sprintu 13 dla pojemnosci — kod bez wezla, dowod przy wezle. | 2026-10-04 HARMONOGRAM STARTU (wariant A, decyzja właściciela): beta wewnętrzna na t1 19.10–6.11 (PB-40); w tym oknie wypadają testy PB-27 (22.10) i PB-28 (odnowienie d3 28.10). | 2026-10-10 PRZECIĄŻENIE ŚWIADOME: PB-51 (Fala 2 paneli operatora, 134 h) idzie w trakcie bety wewnętrznej 19.10–6.11. Sprint 14 jest jedynym sprintem w tym oknie (następny, 21, ma datę 9.11), więc realnie to ok. 3 tygodnie, a nie 65 h; przy 60–70 h tygodniowo dzielonych z betą (PB-40) i jej poprawkami ok. 184 h otwartej pracy to granica. Kolejność: Fala 2A (panel operatora D1, D9/D10, zawieszenie i CRM, D12 + CSP www, harmonogramy), potem 2B. Ryzyko: błędy z bety wypchną Falę 2B na pierwszy tydzień sprintu 21 i zderzą ją z AX102.
 
 ---
 
 # Faza 3 — Wejście na rynek
 
-*Sprinty 15–19 · 358 h · 2026-10-05 – 2026-12-04*
+*Sprinty 15–19 · 529 h · 2026-10-05 – 2026-12-04*
 
 Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, baza wiedzy, przejście ścieżki pierwszego klienta na produkcji i zapisana decyzja GO.
 
 ## Sprint 15 — Egress: pelne pokrycie ruchu (control-plane)
 
-`2026-10-05 – 2026-10-09` · **52 h** z 65 h pojemności
+`2026-10-05 – 2026-10-09` · **179 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `X-41` | Hardening egressu wisi w łańcuchu OUTPUT, a ruch kontenerów idzie przez FORWARD | 16 | WYSOKA | obserwacja wpięta w DOCKER-USER, 1674 pakiety zliczone, 0 DROP/REJECT |
 | `SEC-03` | Ruch poza TCP/80 i TCP/443 — DNS (UDP/53), SMTP — nie jest objęty ani obserwacją z X-41, ani trybem strict | 16 | WYSOKA | ops/scripts/security-control-plane-egress.sh — zbuduj_zbior_z_pliku (verris_egress_dns / verris_egress_smtp z ops/etc/verris/security/egress-allow-{dn |
 | `PB-22` | Badge na stronę v2 — interaktywne i użyteczne dla klienta | 20 | ŚREDNI | Zgłoszenie właściciela 2026-09-23: stare badge wyglądały źle i nic nie robiły (uptime pokazywał stan węzła, embed EKO blokowany przez X-Frame-Options/ |
+| `PB-49` | Porządki panelu admina (12 patchy) | 88 | WYSOKI | Plan z audytu nawigacji admina (10.10, claude/admin-nawigacja-propozycja.md) zaakceptowany przez właściciela 10.10 razem z decyzjami: Cmd+K prowadzi d |
+| `PB-50` | Fala 1 audytu paneli operatora (1A + 1B) | 39 | WYSOKI | Audyt paneli operatora z 10.10 (VERRIS_AUDYT_PANELI_OPERATORA_2026-10-10, claude/audyt-paneli-operatora.md): wobec WHMCS, Blesta, HostBill, Upmind, WH |
 
 **Definicja ukończenia**
 
 - `X-41` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `SEC-03` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `PB-22` — Badge widoczne na prod na domenie klienta; pieczęć znika przy niespełnionych warunkach; kliknięcia polecenia liczone; testy D2 zielone.
+- `PB-49` — 12 patchy wdrożonych na produkcji; bramki (lint, typecheck, testy admina, obsługi, klienta i API) i integracja API zielone; przejście na produkcji przez VPN: karta węzła t1 z Działaniami, karta klienta, Cmd+K.
+- `PB-50` — Blokery operatora B1 i B2 zamknięte testem; pozycje 3a–3d planu rozbudowy wdrożone (poz. 16 skorygowana); bramki i integracja zielone; przejście na produkcji przez VPN.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
-**Ryzyko sprintu.** X-41 zamyka to, co dzis jest tylko obserwacja: hardening wisi w lancuchu OUTPUT, a ruch kontenerow idzie przez FORWARD/DOCKER-USER, czyli egress CALEGO PRODUKTU byl poza zasiegiem zabezpieczenia, ktore wygladalo, jakby go obejmowalo. Obserwacja stoi (1674 pakiety, 0 DROP), zostaje egzekwowanie. SEC-03 dokłada ruch spoza TCP/80 i TCP/443 — DNS po UDP/53 i SMTP nie sa objete ani obserwacja, ani trybem strict, wiec bez tego "strict" opisuje dwa porty, nie host. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. Pomiar z SEC-05 dziala od 2026-09-22, wiec egzekwowanie w FORWARD i UDP/53/SMTP ma juz na czym sie oprzec. Po panelu (sprinty 6-11), bezposrednio przed wlaczeniem strict — oba to ta sama robota na zaporze control-plane, a pomiar dostaje przez ten czas kilka tygodni danych.
+**Ryzyko sprintu.** X-41 zamyka to, co dzis jest tylko obserwacja: hardening wisi w lancuchu OUTPUT, a ruch kontenerow idzie przez FORWARD/DOCKER-USER, czyli egress CALEGO PRODUKTU byl poza zasiegiem zabezpieczenia, ktore wygladalo, jakby go obejmowalo. Obserwacja stoi (1674 pakiety, 0 DROP), zostaje egzekwowanie. SEC-03 dokłada ruch spoza TCP/80 i TCP/443 — DNS po UDP/53 i SMTP nie sa objete ani obserwacja, ani trybem strict, wiec bez tego "strict" opisuje dwa porty, nie host. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. Pomiar z SEC-05 dziala od 2026-09-22, wiec egzekwowanie w FORWARD i UDP/53/SMTP ma juz na czym sie oprzec. Po panelu (sprinty 6-11), bezposrednio przed wlaczeniem strict — oba to ta sama robota na zaporze control-plane, a pomiar dostaje przez ten czas kilka tygodni danych. | 2026-10-10: dołożone i zamknięte poza planem (noc 9/10.10 i rano 10.10): PB-49 — porządki panelu admina (12 patchy) i PB-50 — Fala 1 audytu paneli operatora (39 h). Wdrożone 10.10 ok. 12:30, sprawdzone na żywo przez VPN ok. 13:00.
 
 ## Sprint 16 — Strict egress na control-plane
 
-`2026-10-12 – 2026-10-16` · **167 h** z 65 h pojemności
+`2026-10-12 – 2026-10-16` · **181 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -447,6 +449,8 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `SEC-06` | Allowlista pokrywa to, o czym ktoś pomyślał, nie to, co host robi | 16 | WYSOKA | verris-egress-odswiez.timer (co 15 s) → security-control-plane-egress.sh --odswiez; Panel 06.10: timer active, „Odświeżenie: 12 nowych adresów” |
 | `SEC-02` | Stripe jest w allowliście wyłącznie po nazwie, a ipset powstaje z rozwiązania nazw | 6 | ŚREDNIA | pomiar --pomiar 2026-10-06 (host 14 d): zero połączeń hosta do Stripe; Stripe tylko z kontenera API (FORWARD) |
 | `NODE-02` | `main()` nie sprawdza kodów powrotu | 6 | WYSOKA | ops/scripts/lib/przerwij-po-etapie.sh — przerwij_po_etapie zamienia zebrane [FAIL] w exit 1; node-onboard-live.sh main() — bramka po preflight_stack,  |
+| `H-20` | Test odtworzeniowy z datą ostatniego wykonania (część) | 2 | BLOKER STARTU | DOWÓD D4 — wiersz w bazie PRODUKCYJNEJ, odczytany 2026-08-23: finishedAt=2026-08-22 23:19:45, result=OK, owner=Dominik Kowalski, durationSec=9, object |
+| `SEC-11` | CSP z nonce w panelach i na www — bez 'unsafe-inline' w script-src | 6 | WYSOKA | 2026-10-09 (4d7a8b08): libs/ui/src/csp.ts:41-84 (nowyNonce, cspPanelu: script-src 'nonce-…' 'strict-dynamic', naglowkiCsp); admin-panel/src/proxy.ts:1 |
 | `PB-23` | Każdy widok osiągalny z menu (klient, admin, staff) | 10 | ŚREDNI | Zasada właściciela 2026-09-23: żaden ekran nie może wymagać szukania po panelu. Przegląd wszystkich tras (page.tsx) w trzech panelach i ich wejść w me |
 | `PB-30` | Jeden plik wersji dla floty + test zgodności | 12 | WYSOKI | Decyzja właściciela 2026-09-26: manifest z przypiętymi wersjami (kanał i commit DirectAdmin, LiteSpeed, PHP, MariaDB, reguły CRS), szablon options.con |
 | `PB-31` | Pełna automatyzacja kreatora węzła | 20 | WYSOKI | Decyzja właściciela 2026-09-26: po jednej linijce reszta sama — onboard, profil, kopie off-site bez ręcznego rclone config, klucz logowania DA, IP w D |
@@ -456,6 +460,8 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `PB-41` | Obsługa: „Zaloguj jako klient” dla pracownika z uprawnieniem | 4 | WYSOKI | Decyzja właściciela 2026-10-08: staff wchodzi na konto klienta z osobnym uprawnieniem, obowiązkowym powodem (np. numer zgłoszenia), sesją 30 min i wpi |
 | `PB-42` | Obsługa: podgląd konta klienta (DNS, domeny, poczta, bazy, PHP, SSL, cron, logi, zasoby, kopie) | 30 | WYSOKI | Decyzja właściciela 2026-10-08: rdzeń przed betą — testerzy zgłaszają problemy, obsługa musi je widzieć bez wchodzenia na serwer. Karta usługi w staff |
 | `PB-43` | Obsługa: zgłoszenie powiązane z usługą + diagnostyka z poziomu zgłoszenia | 12 | WYSOKI | Decyzja właściciela 2026-10-08: rdzeń przed betą. Zgłoszenie ma usługę (wybór klienta przy tworzeniu, zmiana przez obsługę), obok rozmowy diagnostyka  |
+| `PB-54` | Odtworzenie z kopii na żywo przed betą (bazy platformy + konto na t1) | 4 | KRYTYCZNY | Dowód D4 odtwarzania wygasł: ostatnia udana próba (bazy platformy) jest z 2026-08-22/23 — odczyt na produkcji 10.10 ok. 13:00 (Flota → Kopie); ważność |
+| `PB-55` | Pula sprzedażowa t1 przed wznowieniem nowych kont (18.10) | 2 | WYSOKI | D3 10.10 ok. 13:00 (karta węzła TEST-NRB-01): pula sprzedażowa wyczerpana przez dysk — przydzielone kontom 100 GB na 75 GB, zapas 0 kont. Po wznowieni |
 
 **Definicja ukończenia**
 
@@ -465,6 +471,8 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - `SEC-06` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `SEC-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `NODE-02` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `H-20` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `SEC-11` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `PB-23` — Lista tras vs menu dla trzech paneli bez luk; test-strażnik czerwony po dodaniu trasy bez wejścia w nawigacji.
 - `PB-30` — Dwa węzły z tego samego manifestu dają identyczny raport wersji; różnica widoczna w panelu.
 - `PB-31` — Węzeł testowy od czystego AlmaLinux do zielonego raportu bez SSH ręcznie.
@@ -474,28 +482,34 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - `PB-41` — Pracownik z uprawnieniem wchodzi na konto klienta z panelu staff, bez uprawnienia — odmowa z komunikatem; powód i czas w dzienniku obu stron; testy guardu i kontrolera.
 - `PB-42` — W panelu staff i admin karta usługi pokazuje wymienione sekcje z żywego węzła; odczyt wymaga uprawnienia i trafia do dziennika; testy kontrolera (uprawnienia, cudza usługa) i panelu; sprawdzone na t1 na koncie d3.
 - `PB-43` — Zgłoszenie zapisuje usługę (migracja bazy), panel klienta pozwala ją wybrać, staff widzi diagnostykę i kartę usługi przy rozmowie; testy na PostgreSQL.
+- `PB-54` — Wiersz RestoreDrill z wynikiem OK, datą i właścicielem nie starszy niż 30 dni w dniu startu bety (19.10); zapis odtworzenia konta na t1 z datą, czasem i wynikiem; H-20 → DZIAŁA (D4), flaga BLOKER zdjęta; termin kolejnej próby w kalendarzu.
+- `PB-55` — Decyzja zapisana; karta węzła t1 pokazuje zapas kont co najmniej równy liczbie testerów bety; próbny zakup hostingu z konta testowego przechodzi przez selektor przed 18.10.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
-**Ryzyko sprintu.** Kod SEC-05/04/01 gotowy 2026-09-22 (pomiar na produkcji od 09:23 UTC). Tutaj: allowlista z kilku tygodni pelnego pomiaru (SEC-06), odswiezanie adresow Stripe (SEC-02), wlaczenie --strict (warunek wstepny w skrypcie sam odmowi, jesli pomiar widzi cele spoza listy). | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. | 2026-10-04 DECYZJA WŁAŚCICIELA: drugi węzeł testowy t2 (Hetzner Cloud, czysty AlmaLinux 10) teraz — kreator od zera (PB-31, NODE-02), flota na t1 + t2 (PB-30/32/33/35), H-16 między t1 a t2. AX102 w sprincie 21 już tylko PB-02.
+**Ryzyko sprintu.** Kod SEC-05/04/01 gotowy 2026-09-22 (pomiar na produkcji od 09:23 UTC). Tutaj: allowlista z kilku tygodni pelnego pomiaru (SEC-06), odswiezanie adresow Stripe (SEC-02), wlaczenie --strict (warunek wstepny w skrypcie sam odmowi, jesli pomiar widzi cele spoza listy). | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. | 2026-10-04 DECYZJA WŁAŚCICIELA: drugi węzeł testowy t2 (Hetzner Cloud, czysty AlmaLinux 10) teraz — kreator od zera (PB-31, NODE-02), flota na t1 + t2 (PB-30/32/33/35), H-16 między t1 a t2. AX102 w sprincie 21 już tylko PB-02. | 2026-10-10 PRZECIĄŻENIE: przed betą 19.10 dochodzą H-20:2 + PB-54 (odnowienie dowodu D4 odtwarzania — bez tego bloker), PB-55 (decyzja o puli sprzedażowej t1 przed 18.10) i SEC-11 (CSP z nonce na www — decyzja D12 „teraz”). Sprint ma 72 h otwartej pracy przy 65 h. Nadwyżkę pokrywają pozycje, które i tak czekają na węzeł, nie na kod (PB-31, PB-32, PB-33, NODE-02 — wezel.csv: czeka; dwa węzły dopiero z AX102) — przy braku czasu schodzą one, nie PB-54 i PB-55.
 
 ## Sprint 17 — Dokumenty prawne, DPA i naduzycia
 
-`2026-11-23 – 2026-11-27` · **30 h** z 65 h pojemności
+`2026-11-23 – 2026-11-27` · **60 h** z 65 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `P-15` | Podpisane DPA z subprocesorami (część) | 6 | BLOKER STARTU | docs/legal/dpa-subprocessors-tracking.md — tabela statusow po korekcie 2026-09-19. Stripe i AWS: DPA obowiazuje z mocy umowy glownej. Hetzner i Openpr |
+| `N-14` | Cordon wysyłki poczty (auto-blokada spamu) | 6 | BLOKER STARTU | 2026-09-23: admin-panel /deliverability (Blokady wysyłki poczty, link w menu) → GET/POST /admin/deliverability/cordons; lista z e-mailem i nazwą klien |
 | `PB-03` | Finalizacja dokumentów prawnych 1.0.0 | 16 | BLOKER BIZNESOWY | Regulamin, polityka prywatności, SLA, DPA, polityka cookies — wyjście z DRAFT-u, wersjonowanie i publikacja w panelu. | 2026-09-23: decyzje właściciel |
 | `PB-04` | Procedura obsługi nadużyć (abuse) — dokument | 8 | WYSOKI | Adres abuse@ obsługiwany, ścieżka od zgłoszenia do reakcji, czasy reakcji, kto decyduje o zawieszeniu, wzory odpowiedzi do CERT i rejestratorów. | 202 |
+| `PB-52` | Blokada wysyłki konta i kolejka MTA (bloker B3, decyzja D4) | 24 | KRYTYCZNY | Bloker operatora B3 z audytu paneli operatora (OC-10 + OG-01): kordon wysyłki działa tylko w module e-mail marketingu (email-marketing.service.ts:551, |
 
 **Definicja ukończenia**
 
 - `P-15` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `N-14` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `PB-03` — Wszystkie dokumenty w statusie opublikowanym z numerem wersji i datą. Panel /legal nie pokazuje ani jednego „Dokument w przygotowaniu”.
 - `PB-04` — Dokument w ops/docs z właścicielem i czasami reakcji. Test: zgłoszenie wysłane na abuse@ trafia do kogoś i ma odpowiedź w deklarowanym czasie.
+- `PB-52` — Test na t1: mail() z PHP zablokowanego konta jest odrzucany, po „Usuń wiadomości konta” kolejka węzła jest czysta, „Zwolnij” przywraca wysyłkę; wpisy w dzienniku; N-14 → DZIAŁA z D3, flaga BLOKER zdjęta.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
-**Ryzyko sprintu.** BLOK DOKUMENTOW — przesuniety na koniec decyzja wlasciciela 2026-09-22: najpierw kod i infrastruktura, dokumenty na sam koniec, przed pierwszym klientem. Kolejnosc wewnatrz bloku wymuszona zaleznosciami: regulamin (PB-03) przed kredytami SLA (N-16), cennik (PB-07) przed landingiem (PB-06), landing przed kampania (PB-10), wszystko przed sciezka pierwszego klienta (PB-05). P-15 zamyka ostatni bloker poza FAK-01 i Z-18: zostal tylko Hetzner (Zalacznik 1 przygotowany w trackerze). PB-04: adres abuse@ jest punktem kontaktowym DSA i musi istniec przed publikacja regulaminu. Polityka prywatnosci opisuje lokalizacje przetwarzania DE/FI (ADR-2026-09-22-wezel-1-hetzner). | 2026-10-04 HARMONOGRAM STARTU (wariant A, decyzja właściciela): 23.11 — dokumenty przed otwartą betą (testerzy są zwykłymi klientami); równolegle migracja kilku stron właściciela na AX102.
+**Ryzyko sprintu.** BLOK DOKUMENTOW — przesuniety na koniec decyzja wlasciciela 2026-09-22: najpierw kod i infrastruktura, dokumenty na sam koniec, przed pierwszym klientem. Kolejnosc wewnatrz bloku wymuszona zaleznosciami: regulamin (PB-03) przed kredytami SLA (N-16), cennik (PB-07) przed landingiem (PB-06), landing przed kampania (PB-10), wszystko przed sciezka pierwszego klienta (PB-05). P-15 zamyka ostatni bloker poza FAK-01 i Z-18: zostal tylko Hetzner (Zalacznik 1 przygotowany w trackerze). PB-04: adres abuse@ jest punktem kontaktowym DSA i musi istniec przed publikacja regulaminu. Polityka prywatnosci opisuje lokalizacje przetwarzania DE/FI (ADR-2026-09-22-wezel-1-hetzner). | 2026-10-04 HARMONOGRAM STARTU (wariant A, decyzja właściciela): 23.11 — dokumenty przed otwartą betą (testerzy są zwykłymi klientami); równolegle migracja kilku stron właściciela na AX102. | 2026-10-10: N-14 + PB-52 — blokada wysyłki konta i kolejka MTA (bloker B3, decyzja D4) przed otwartą betą 7.12; dowód: test na t1 (mail() z PHP zablokowanego konta odrzucony, kolejka czysta). 30 h mieści się, bo dokumenty z tego bloku są już zamknięte (PB-03, PB-04); zostaje P-15.
 
 ## Sprint 18 — Cennik, SLA i zastepstwo
 
@@ -606,7 +620,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `I-06` | Smart Updates (test przed aktualizacją) | wyróżnik Pleska, rynek PL tego nie ma |
 | `K-07` | Statystyki odwiedzin (AWStats/Webalizer) | zastąpione własną analityką (K-12) |
 | `M-14` | KSeF — numer i UPO widoczne dla klienta | dhosting pokazuje numer KSeF i QR na fakturze | 2026-09-22: poza planem startowym — ADR-2026-09-22, wlasny modul KSeF zamrozony (nie skasowany), KSeF realizuje program ksiegowy. Wraca w epiku integracji po API. | 2026-09-23 PO STARCIE: decyzja właściciela (PB-13 2026-09-22, potwierdzona 2026-09-23) — faktury VAT wystawia program księgowy Firmino (Streamsoft), który sam obsługuje KSeF; własny moduł KSeF zamrożony, bezpośrednia integracja z KSeF po starcie. Pozycja wraca przy tej integracji. |
-| `M-15` | KSeF — pobranie UPO przez operatora | Skorygowane: UPO jest dostępne w portalu MF, więc warunek dokumentu księgowego nie jest naruszony. Brakuje wygody. | 2026-09-22: poza planem startowym — ADR-2026-09-22, wlasny modul KSeF zamrozony (nie skasowany), KSeF realizuje program ksiegowy. Wraca w epiku integracji po API. | 2026-09-23 PO STARCIE: decyzja właściciela (PB-13 2026-09-22, potwierdzona 2026-09-23) — faktury VAT wystawia program księgowy Firmino (Streamsoft), który sam obsługuje KSeF; własny moduł KSeF zamrożony, bezpośrednia integracja z KSeF po starcie. Pozycja wraca przy tej integracji. |
+| `M-15` | KSeF — pobranie UPO przez operatora | Skorygowane: UPO jest dostępne w portalu MF, więc warunek dokumentu księgowego nie jest naruszony. Brakuje wygody. | 2026-09-22: poza planem startowym — ADR-2026-09-22, wlasny modul KSeF zamrozony (nie skasowany), KSeF realizuje program ksiegowy. Wraca w epiku integracji po API. | 2026-09-23 PO STARCIE: decyzja właściciela (PB-13 2026-09-22, potwierdzona 2026-09-23) — faktury VAT wystawia program księgowy Firmino (Streamsoft), który sam obsługuje KSeF; własny moduł KSeF zamrożony, bezpośrednia integracja z KSeF po starcie. Pozycja wraca przy tej integracji. | 2026-10-10: Fala 1B — przycisk „Pobierz UPO” na stronie faktury, stan ENDPOINT BEZ UI → DZIAŁA (kod, D2). Werdykt bez zmian: własny moduł KSeF zamrożony (PB-13), UPO pojawi się dopiero przy integracji po starcie. |
 | `M-16` | KSeF — tryb offline/awaryjny | awaria KSeF zostawia fakturę w PENDING, bez kodu QR offline | 2026-09-22 FLAGA BLOKERA ZDJETA WARUNKOWO — ADR-2026-09-22 (faktury w programie ksiegowym). Wlasny modul KSeF zamrozony, obowiazek KSeF realizuje program ksiegowy. Warunek: FAK-01 na produkcji — do tego czasu panel potrafi wystawic fakture VAT poza KSeF. Pozycja schodzi z planu startowego do epiku integracji z programem ksiegowym. | 2026-09-23 PO STARCIE: decyzja właściciela (PB-13 2026-09-22, potwierdzona 2026-09-23) — faktury VAT wystawia program księgowy Firmino (Streamsoft), który sam obsługuje KSeF; własny moduł KSeF zamrożony, bezpośrednia integracja z KSeF po starcie. Pozycja wraca przy tej integracji. |
 | `M-17` | KSeF — walidacja XSD przed wysyłką | smoke na api-test MF nie został wykonany | 2026-09-22 FLAGA BLOKERA ZDJETA WARUNKOWO — ADR-2026-09-22 (faktury w programie ksiegowym). Wlasny modul KSeF zamrozony, obowiazek KSeF realizuje program ksiegowy. Warunek: FAK-01 na produkcji — do tego czasu panel potrafi wystawic fakture VAT poza KSeF. Pozycja schodzi z planu startowego do epiku integracji z programem ksiegowym. | 2026-09-23 PO STARCIE: decyzja właściciela (PB-13 2026-09-22, potwierdzona 2026-09-23) — faktury VAT wystawia program księgowy Firmino (Streamsoft), który sam obsługuje KSeF; własny moduł KSeF zamrożony, bezpośrednia integracja z KSeF po starcie. Pozycja wraca przy tej integracji. |
 | `Q-10` | Natywna aplikacja mobilna | tylko home.pl (iOS) |
