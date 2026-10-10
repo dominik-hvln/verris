@@ -58,7 +58,8 @@ export class AdminCreatePromoDto {
 
 /** B1 — PATCH kodu: pole pominięte = bez zmian, `null` = zdjęcie terminu/limitu/opisu. */
 export class AdminUpdatePromoDto {
-  @IsOptional()
+  // Bez @IsOptional: ten przepuszcza też null, a `active` nie ma stanu „brak” (Prisma odrzuca null → 500).
+  @ValidateIf((_, v) => v !== undefined)
   @IsBoolean()
   active?: boolean;
 
