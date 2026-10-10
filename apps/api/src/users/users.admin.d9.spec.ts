@@ -21,7 +21,9 @@ const KLIENT = {
 
 function serwis(cel: Record<string, unknown> = KLIENT, mailer = { send: vi.fn(async () => undefined) }, o: { zmianaEmaila?: boolean } = {}) {
   const audit = { record: vi.fn(async () => undefined) };
-  const pusto = { findMany: vi.fn(async () => []), count: vi.fn(async () => 0), findFirst: vi.fn(async () => (o.zmianaEmaila ? { id: 'a1' } : null)) };
+  const pusto = { findMany: vi.fn(async () => []), count: vi.fn(async () => 0) };
+  // Audyt Fal 2 — zmiany e-maila przez obsługę w ostatnich 24 h (dziennik ADMIN_CUSTOMER_EMAIL_CHANGED), z aktorem.
+  const auditLog = { ...pusto, findMany: vi.fn(async (a: { where?: { action?: string } }) => (a.where?.action === 'ADMIN_CUSTOMER_EMAIL_CHANGED' && o.zmianaEmaila ? [{ actorUserId: 'zmienil' }] : [])) };
   const tx = {
     update: vi.fn((a: unknown) => ({ op: 'user.update', a })),
     updateMany: vi.fn((a: unknown) => ({ op: 'token.updateMany', a })),
@@ -32,7 +34,7 @@ function serwis(cel: Record<string, unknown> = KLIENT, mailer = { send: vi.fn(as
     userAuthToken: { updateMany: tx.updateMany, create: tx.create },
     loginEvent: pusto,
     loginAttempt: pusto,
-    auditLog: pusto,
+    auditLog,
     $transaction: vi.fn(async (ops: unknown[]) => ops),
   };
   const config = { get: () => 'https://panel.test' };
@@ -105,7 +107,7 @@ describe('D9/D3 — reset hasła klienta przez operatora', () => {
     const blad = await svc.resetCustomerPassword('u1', 'op1', { reason: 'zgłoszenie #12' }, {}, { role: Role.STAFF }).catch((e: unknown) => e);
     expect(blad).toBeInstanceOf(ForbiddenException);
     expect((blad as ForbiddenException).getResponse()).toMatchObject({ code: 'WYMAGA_WNIOSKU', operacja: 'CUSTOMER_PASSWORD_RESET' });
-    expect(prisma.auditLog.findFirst).toHaveBeenCalledWith(
+    expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ userId: 'u1', action: 'ADMIN_CUSTOMER_EMAIL_CHANGED' }) }),
     );
     expect(prisma.$transaction).not.toHaveBeenCalled();
@@ -114,6 +116,17 @@ describe('D9/D3 — reset hasła klienta przez operatora', () => {
     await svc.resetCustomerPassword('u1', 'adm', { reason: 'zgłoszenie #12' }, {}, { role: Role.ADMIN });
     await svc.resetCustomerPassword('u1', 'kier', { reason: 'zgłoszenie #12' }, {}, { role: Role.STAFF, zWniosku: true });
     expect(prisma.$transaction).toHaveBeenCalledTimes(2);
+  });
+
+  it('przegląd poprawek: wniosek o reset nie zatwierdza ten, kto w ostatnich 24 h zmienił e-mail klienta (STAFF); ADMIN tak', async () => {
+    const { svc, prisma, mailer } = serwis(KLIENT, undefined, { zmianaEmaila: true });
+    await expect(svc.resetCustomerPassword('u1', 'zmienil', { reason: 'zgłoszenie #12' }, {}, { role: Role.STAFF, zWniosku: true })).rejects.toThrow(
+      /zatwierdza inna osoba/,
+    );
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(mailer.send).not.toHaveBeenCalled();
+    await svc.resetCustomerPassword('u1', 'zmienil', { reason: 'zgłoszenie #12' }, {}, { role: Role.ADMIN });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
   it('konto operatora — 403 (tylko konta klientów)', async () => {

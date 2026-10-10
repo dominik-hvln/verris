@@ -76,6 +76,37 @@ export function passwordResetRequestTemplate(ctx: PasswordResetRequestContext): 
   };
 }
 
+export interface PasswordResetHeldContext {
+  to: string;
+  firstName: string | null;
+  hours: number;
+  panelUrl: string;
+}
+
+/**
+ * Przegląd poprawek audytu Fal 2 — formularz „Nie pamiętam hasła” w ciągu doby od zmiany adresu e-mail przez obsługę:
+ * linku nie wysyłamy (inaczej pracownik zmieniłby adres na swój i sam ustawił hasło), tylko mówimy, co dalej.
+ */
+export function passwordResetHeldTemplate(ctx: PasswordResetHeldContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Reset hasła wstrzymany',
+    preheader: 'Adres e-mail konta zmieniła niedawno obsługa Verris.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Otrzymaliśmy prośbę o **reset hasła** do konta Verris. Adres e-mail tego konta zmieniła niedawno obsługa Verris, dlatego przez ${ctx.hours} h od tej zmiany link do ustawienia hasła wysyła tylko obsługa.`,
+      ``,
+      `Jeśli to Ty — napisz do nas: ${escapeMarkdown('support@verris.pl')}. Jeśli **nie** prosiłeś o reset — zignoruj ten mail, hasło pozostanie bez zmian.`,
+    ].join('\n'),
+    footnote: 'Ze względów bezpieczeństwa nigdy nie podawaj hasła mailem ani przez support.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'auth.password-reset-held', subject: 'Reset hasła — Verris', text, html };
+}
+
 export interface AccountCreatedByOperatorContext {
   to: string;
   firstName: string | null;

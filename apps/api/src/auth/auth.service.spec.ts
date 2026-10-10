@@ -9,7 +9,7 @@ import { hashAuthToken } from './auth-token.util.js';
  * weryfikacja e-maila i blokada logowania, jednorazowy i wygasający link resetu,
  * unieważnienie sesji po zmianie hasła.
  */
-function zbuduj(opts: { user?: Record<string, unknown> | null; zablokowanyEmail?: boolean; token?: Record<string, unknown> | null } = {}) {
+function zbuduj(opts: { user?: Record<string, unknown> | null; zablokowanyEmail?: boolean; token?: Record<string, unknown> | null; zmianyEmaila?: { actorUserId: string | null }[] } = {}) {
   const prisma = {
     user: {
       findUnique: vi.fn(async () => (opts.user === undefined ? null : opts.user)),
@@ -22,6 +22,7 @@ function zbuduj(opts: { user?: Record<string, unknown> | null; zablokowanyEmail?
       updateMany: vi.fn(() => 'burn-others'),
       create: vi.fn(() => 'create-token'),
     },
+    auditLog: { findMany: vi.fn(async () => opts.zmianyEmaila ?? []) },
     $transaction: vi.fn(async (ops: unknown) => ops),
   };
   const suspicious = { isEmailLockedOut: vi.fn(async () => !!opts.zablokowanyEmail), recordFailure: vi.fn(async () => undefined) };
@@ -90,6 +91,21 @@ describe('AuthService — reset hasła (X-06)', () => {
     const raw = decodeURIComponent(/token=([^\s)"&]+)/.exec(url)![1]);
     expect(data.tokenHash).toBe(hashAuthToken(raw));
     expect(data.tokenHash).not.toBe(raw);
+  });
+
+  it('przegląd audytu Fal 2: w dobie od zmiany e-maila przez obsługę formularz nie wysyła linku (tylko informację), bez tokenu', async () => {
+    const { svc, prisma, mailer } = zbuduj({ user: klient(), zmianyEmaila: [{ actorUserId: 'op1' }] });
+    await expect(svc.requestPasswordReset({ email: 'jan@firma.pl' } as never)).resolves.toEqual({ ok: true });
+    expect(prisma.auditLog.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ userId: 'u1', action: 'ADMIN_CUSTOMER_EMAIL_CHANGED' }) }),
+    );
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.userAuthToken.create).not.toHaveBeenCalled();
+    const m = (mailer.send.mock.calls[0] as unknown as [{ to: string; text: string }])[0];
+    expect(m.to).toBe('jan@firma.pl');
+    expect(m.text).toContain('Reset hasła wstrzymany');
+    expect(m.text).not.toMatch(/token=/);
+    expect(m.text).not.toContain('op1');
   });
 
   it.each([

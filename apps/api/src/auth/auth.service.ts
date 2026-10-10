@@ -23,6 +23,7 @@ import { MailerService } from '../mail/mailer.service.js';
 import {
   welcomeTemplate,
   passwordResetRequestTemplate,
+  passwordResetHeldTemplate,
   emailVerifyTemplate,
   emailVerifiedOkTemplate,
 } from '../mail/templates/auth-notifications.js';
@@ -36,6 +37,7 @@ import { EcoPointsService } from '../eco/eco-points.service.js';
 import { stanWymogu2fa } from './wymog-2fa-zespolu.js';
 import { PasskeyPolicyService } from './passkey-policy.service.js';
 import { PwnedPasswordService } from './pwned-password.service.js';
+import { BLOKADA_RESETU_PO_ZMIANIE_EMAILA_H, zmianyEmailaPrzezObsluge } from '../users/zmiana-emaila-przez-obsluge.js';
 
 const PASSWORD_RESET_TTL_MINUTES = 15;
 const EMAIL_VERIFICATION_TTL_HOURS = 24;
@@ -397,6 +399,21 @@ export class AuthService {
       return { ok: true };
     }
     if (user.loginBlocked || (user.customerOwnerId && user.subaccountDisabledAt)) {
+      return { ok: true };
+    }
+    // Przegląd poprawek audytu Fal 2 — w dobie od zmiany e-maila przez obsługę link idzie tylko przez obsługę
+    // (wniosek / administrator, users.admin.service.ts resetCustomerPassword). Inaczej pracownik zmieniłby adres
+    // na swój i sam wysłał sobie link z tego formularza — blokada resetu przez operatora nic by nie dawała.
+    if ((await zmianyEmailaPrzezObsluge(this.prisma, user.id)).length > 0) {
+      const panelUrl = this.clientPanelUrl();
+      void this.mailer
+        .send({
+          ...passwordResetHeldTemplate({ to: user.email, firstName: user.firstName, hours: BLOKADA_RESETU_PO_ZMIANIE_EMAILA_H, panelUrl }),
+          userId: user.id,
+          category: 'TRANSACTIONAL',
+          fromRole: 'NOREPLY',
+        })
+        .catch(() => undefined);
       return { ok: true };
     }
 

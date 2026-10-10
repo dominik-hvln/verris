@@ -24,6 +24,7 @@ import { UsersAdminController } from '../../src/users/users.admin.controller.js'
 import { NotatkiKlientaService } from '../../src/users/notatki-klienta.service.js';
 import { CustomerIamService } from '../../src/users/customer-iam.service.js';
 import { WnioskiService } from '../../src/wnioski/wnioski.service.js';
+import { AuthService } from '../../src/auth/auth.service.js';
 import { SubscriptionsService } from '../../src/subscriptions/subscriptions.service.js';
 import { ZawieszenieOperatoraService } from '../../src/subscriptions/zawieszenie-operatora.service.js';
 import { CyklZyciaUslugiService } from '../../src/subscriptions/cykl-zycia-uslugi.service.js';
@@ -575,6 +576,40 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     expect(
       (await zadanie('POST', '/admin/wnioski', l3, { typ: 'CUSTOMER_PASSWORD_RESET', userId: inny.id, payload: {}, uzasadnienie: 'Klient nie pamięta hasła.' })).body,
     ).toMatchObject({ code: 'WYKONAJ_BEZPOSREDNIO' });
+  });
+
+  it('przegląd poprawek: po zmianie e-maila przez obsługę formularz „Nie pamiętam hasła” nie wysyła linku, a reset z wniosku nie zatwierdza ten, kto zmienił adres', async () => {
+    const l3 = await operator(['CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE']);
+    const l4 = await operator(['CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE', 'REQUESTS_APPROVE']);
+    const k = await klient();
+    const nowy = `przejety-${t()}@test.verris.pl`;
+    expect((await zadanie('POST', `/admin/users/${k.id}/email`, l4, { newEmail: nowy, reason: 'Zgłoszenie #78 — nowa skrzynka.' })).status).toBe(200);
+    maile.length = 0;
+
+    // Formularz publiczny na nowy adres — bez linku (tylko informacja), bez tokenu.
+    const n = {} as never;
+    const auth = new AuthService(
+      prisma() as never, n, n, n, n, n, n, n,
+      { send: async (m: { to: string; subject: string }) => (maile.push(m), { delivered: true }) } as never,
+      { get: () => undefined } as never, n, n, n,
+    );
+    await expect(auth.requestPasswordReset({ email: nowy } as never)).resolves.toEqual({ ok: true });
+    await new Promise((r) => setImmediate(r));
+    expect(await prisma().userAuthToken.count({ where: { userId: k.id, purpose: 'PASSWORD_RESET' } })).toBe(0);
+    expect(maile.map((m) => m.to)).toEqual([nowy]);
+
+    // L3 składa wniosek, a akceptuje go L4, który sam zmienił adres — odmowa, bez linku.
+    const w = await zadanie('POST', '/admin/wnioski', l3, { typ: 'CUSTOMER_PASSWORD_RESET', userId: k.id, payload: {}, uzasadnienie: 'Klient nie pamięta hasła po zmianie skrzynki.' });
+    expect(w.body).toMatchObject({ status: 'PENDING' });
+    const a = await zadanie('POST', `/admin/wnioski/${w.body.id as string}/akceptuj`, l4, {});
+    expect(a.body).toMatchObject({ status: 'FAILED' });
+    expect(JSON.stringify(a.body)).toContain('zatwierdza inna osoba');
+    expect(await prisma().userAuthToken.count({ where: { userId: k.id, purpose: 'PASSWORD_RESET' } })).toBe(0);
+
+    // Klient bez zmiany e-maila — formularz działa jak dotąd.
+    const inny = await klient();
+    await auth.requestPasswordReset({ email: inny.email } as never);
+    expect(await prisma().userAuthToken.count({ where: { userId: inny.id, purpose: 'PASSWORD_RESET', usedAt: null } })).toBe(1);
   });
 
   it('konto klienta (USER) nie wchodzi na wnioski', async () => {
