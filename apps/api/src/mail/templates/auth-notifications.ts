@@ -114,6 +114,49 @@ export function accountCreatedByOperatorTemplate(ctx: AccountCreatedByOperatorCo
   };
 }
 
+export interface PasswordResetByOperatorContext {
+  to: string;
+  firstName: string | null;
+  resetUrl: string;
+  expiresHours: number;
+  /** Klient miał 2FA — reset je wyłączył; mail mówi, żeby włączyć ponownie. */
+  twoFactorCleared: boolean;
+  panelUrl: string;
+}
+
+/** D9/D3 (10.10) — reset hasła przez Obsługę Verris: klient sam ustawia nowe hasło z linku, operator go nie zna. */
+export function passwordResetByOperatorTemplate(ctx: PasswordResetByOperatorContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Ustaw nowe hasło',
+    preheader: 'Obsługa Verris zresetowała hasło do Twojego konta.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Obsługa Verris zresetowała hasło do Twojego konta. Dotychczasowe hasło już nie działa — ustaw nowe przyciskiem poniżej.`,
+      ``,
+      `Link jest ważny **${ctx.expiresHours} godziny**. Później poproś o nowy w formularzu „Nie pamiętasz hasła?”.`,
+      ...(ctx.twoFactorCleared
+        ? [``, `Weryfikacja dwuetapowa została wyłączona. Po zalogowaniu włącz ją ponownie w ustawieniach konta.`]
+        : []),
+      ``,
+      `Jeśli nie kontaktowałeś się z nami w tej sprawie — od razu skontaktuj się z Obsługą Verris.`,
+    ].join('\n'),
+    cta: { label: 'Ustaw nowe hasło', url: ctx.resetUrl },
+    footnote: 'Nigdy nie prosimy o hasło mailem ani telefonicznie.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'auth.password-reset-by-operator',
+    subject: 'Ustaw nowe hasło — Verris',
+    text,
+    html,
+  };
+}
+
 export interface EmailVerifyContext {
   to: string;
   firstName: string | null;

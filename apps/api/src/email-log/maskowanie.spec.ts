@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { EmailLogService } from './email-log.service.js';
 import { MASKA, maskujTekst, maskujWartosc } from './maskowanie.js';
 
@@ -55,7 +55,7 @@ describe('EmailLogService.detail', () => {
     errorMessage: null,
     metadata: { listUnsubscribeUrl: `https://api.verris.pl/unsubscribe?token=${TOKEN}` },
   };
-  const svc = (row: unknown) => new EmailLogService({ emailLog: { findUnique: vi.fn().mockResolvedValue(row) } } as never);
+  const svc = (row: unknown) => new EmailLogService({ emailLog: { findUnique: vi.fn().mockResolvedValue(row) } } as never, {} as never);
 
   it('oddaje wpis bez tokenów (temat i metadata)', async () => {
     const d = await svc(wpis).detail('e1');
@@ -64,12 +64,56 @@ describe('EmailLogService.detail', () => {
   });
 
   it('lista maili klienta też bez tokenów w temacie i błędzie', async () => {
-    const s = new EmailLogService({ emailLog: { findMany: vi.fn().mockResolvedValue([{ id: 'e1', subject: wpis.subject, errorMessage: `550 ${TOKEN}` }]) } } as never);
+    const s = new EmailLogService({ emailLog: { findMany: vi.fn().mockResolvedValue([{ id: 'e1', subject: wpis.subject, errorMessage: `550 ${TOKEN}` }]) } } as never, {} as never);
     const [w] = await s.listForUser('u1');
     expect(JSON.stringify(w)).not.toContain(TOKEN);
   });
 
   it('brak wpisu → 404', async () => {
     await expect(svc(null).detail('x')).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
+
+/** D9 (10.10) — maile klienta dla STAFF z CUSTOMERS_VIEW: tylko konta klientów, każdy odczyt w dzienniku. */
+describe('D9 — odczyt korespondencji klienta przez operatora', () => {
+  const zrob = (rolaKonta: string | null, wpisUserId: string | null = 'u1') => {
+    const audit = { record: vi.fn(async () => undefined) };
+    const prisma = {
+      user: { findUnique: vi.fn(async () => (rolaKonta ? { role: rolaKonta } : null)) },
+      emailLog: {
+        findMany: vi.fn(async () => []),
+        findUnique: vi.fn(async () => ({ id: 'e1', userId: wpisUserId, subject: 'Faktura', errorMessage: null, metadata: null })),
+      },
+    };
+    return { svc: new EmailLogService(prisma as never, audit as never), audit };
+  };
+  const STAFF = { userId: 'op1', role: 'STAFF' as never };
+  const ADMIN = { userId: 'adm', role: 'ADMIN' as never };
+
+  it('STAFF: lista maili klienta → wpis w dzienniku (zakładka komunikacja)', async () => {
+    const { svc, audit } = zrob('USER');
+    await svc.listForUser('u1', 50, STAFF);
+    expect(audit.record).toHaveBeenCalledWith({ action: 'OPERATOR_CUSTOMER_CARD_VIEWED', userId: 'u1', actorUserId: 'op1', details: { sekcja: 'komunikacja' } });
+  });
+
+  it('STAFF: maile operatora albo nieistniejącego konta — 403 i bez wpisu', async () => {
+    for (const rola of ['STAFF', 'ADMIN', null]) {
+      const { svc, audit } = zrob(rola);
+      await expect(svc.listForUser('x', 50, STAFF)).rejects.toBeInstanceOf(ForbiddenException);
+      expect(audit.record).not.toHaveBeenCalled();
+    }
+  });
+
+  it('STAFF: podgląd wpisu klienta → dziennik z id maila; wpis bez konta (np. do zespołu) — 403', async () => {
+    const { svc, audit } = zrob('USER');
+    await svc.detail('e1', STAFF);
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ userId: 'u1', actorUserId: 'op1', details: { sekcja: 'mail', emailLogId: 'e1' } }));
+    await expect(zrob('USER', null).svc.detail('e1', STAFF)).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('ADMIN: każde konto, odczyt też w dzienniku', async () => {
+    const { svc, audit } = zrob('STAFF');
+    await svc.listForUser('op2', 50, ADMIN);
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ userId: 'op2', actorUserId: 'adm' }));
   });
 });

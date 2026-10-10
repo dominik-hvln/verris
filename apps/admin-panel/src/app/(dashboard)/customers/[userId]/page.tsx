@@ -608,7 +608,7 @@ export default async function AdminCustomerCardPage({
             <Para k="Klient Stripe" v={u.stripeCustomerId ?? "—"} mono />
             <Para k="ID konta" v={u.id} mono />
           </section>
-          <CustomerOperationalForms detail={detail} />
+          <CustomerOperationalForms detail={detail} dostep={dostep ?? { isAdmin: false, permissions: [] }} />
           <BlokadaPoczty blokada={blokadaPoczty} email={u.email} isAdmin={!!dostep?.isAdmin} />
           <LogowaniaKlienta historia={logowania} />
         </>

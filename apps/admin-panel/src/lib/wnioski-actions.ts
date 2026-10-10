@@ -9,7 +9,7 @@ import { AdminApiError, adminApi } from "./api";
  * Ten sam kontrakt co w panelu obsługi (apps/staff-panel/src/lib/wnioski-actions.ts).
  */
 
-export type TypWniosku = "CUSTOMER_INTERNAL_FLAG" | "WALLET_CREDIT" | "INVOICE_VOID";
+export type TypWniosku = "CUSTOMER_INTERNAL_FLAG" | "WALLET_CREDIT" | "INVOICE_VOID" | "CUSTOMER_EMAIL_CHANGE" | "CUSTOMER_PASSWORD_RESET";
 
 export interface Wniosek {
   id: string;

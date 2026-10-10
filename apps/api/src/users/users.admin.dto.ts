@@ -1,4 +1,4 @@
-import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 
 /** Body for `POST /admin/users/:id/diagnostics/dns-tls` (Sprint 3 / R-02). */
 export class DnsTlsDiagnosticDto {
@@ -41,10 +41,11 @@ export class AdminChangeCustomerEmailDto {
   @MaxLength(320)
   newEmail!: string;
 
-  @IsOptional()
+  /** D2 — powód obowiązkowy (np. numer zgłoszenia); trafia do dziennika. */
   @IsString()
+  @MinLength(5)
   @MaxLength(500)
-  reason?: string;
+  reason!: string;
 }
 
 /** Sprint 4 / A-10 — `POST /admin/users/:id/grafana-access` */
@@ -60,14 +61,11 @@ export class AdminSetGrafanaAccessDto {
 
 /** Sprint 4 / R-04 — `POST /admin/users/:id/reset-password` */
 export class AdminResetCustomerPasswordDto {
-  @IsOptional()
-  @IsBoolean()
-  notifyUser?: boolean;
-
-  @IsOptional()
+  /** D2 — powód obowiązkowy (np. numer zgłoszenia); trafia do dziennika. Link zawsze idzie do klienta (D3). */
   @IsString()
+  @MinLength(5)
   @MaxLength(500)
-  reason?: string;
+  reason!: string;
 }
 
 /** A-24 — `POST /admin/users`: operator zakłada konto klienta (np. z telefonu). */

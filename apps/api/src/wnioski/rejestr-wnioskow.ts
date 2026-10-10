@@ -1,6 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsNumber, IsOptional, IsPositive, IsString, Max, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsNumber, IsOptional, IsPositive, IsString, Max, MaxLength, MinLength } from 'class-validator';
 import type { StaffPermission } from '../staff-roles/staff-permissions.catalog.js';
 
 /**
@@ -17,6 +17,9 @@ import type { StaffPermission } from '../staff-roles/staff-permissions.catalog.j
  * Wybór na start (finanse, BILLING_MANAGE, z istniejącym endpointem operatorskim):
  *  - WALLET_CREDIT — POST admin/billing/wallet/credit (BillingService.adminCreditWallet),
  *  - INVOICE_VOID — POST admin/invoices/:id/anuluj (AnulowanieService.anuluj).
+ * D9 (10.10) — dane logowania klienta (CUSTOMERS_MANAGE = L3 bezpośrednio, L1/L2 przez wniosek):
+ *  - CUSTOMER_EMAIL_CHANGE — POST admin/users/:id/email (UsersAdminService.changeCustomerEmail),
+ *  - CUSTOMER_PASSWORD_RESET — POST admin/users/:id/reset-password (link do klienta, operator nie zna hasła).
  * Pominięte: kredyt SLA (sla.admin.controller ma tylko podgląd — nie ma operacji do zlecenia), korekta faktury
  * (payload to pełna lista pozycji po korekcie — formularz zostaje w panelu admina; typ łatwo dopisać później),
  * zwrot Paynow (pieniądze wychodzą do bramki — świadomie poza wnioskami do decyzji właściciela).
@@ -53,11 +56,20 @@ export class AnulowanieDokumentuPayload {
   powod!: string;
 }
 
+export class ZmianaEmailaPayload {
+  @IsEmail()
+  @MaxLength(320)
+  newEmail!: string;
+}
+
+/** Reset hasła nie ma parametrów — powodem jest uzasadnienie wniosku. */
+export class ResetHaslaPayload {}
+
 // ── zależności wykonawców (wstrzykiwane przez WnioskiService) ───────────────
 
 export interface ZaleznosciWnioskow {
   prisma: {
-    user: { findUnique(args: unknown): Promise<{ isInternal?: boolean } | null> };
+    user: { findUnique(args: unknown): Promise<{ isInternal?: boolean; id?: string; email?: string } | null> };
     invoice: { findUnique(args: unknown): Promise<{ id: string; userId: string; number: string; status: string } | null> };
   };
   uzytkownicy: {
@@ -68,6 +80,19 @@ export interface ZaleznosciWnioskow {
       ctx: { ipAddress?: string | null; userAgent?: string | null },
       aktor: { role: string; userId: string },
     ): Promise<unknown>;
+    changeCustomerEmail(
+      userId: string,
+      actorUserId: string,
+      newEmail: string,
+      reason: string | undefined,
+      ctx: { ipAddress?: string | null; userAgent?: string | null },
+    ): Promise<{ email: string }>;
+    resetCustomerPassword(
+      userId: string,
+      actorUserId: string,
+      dto: { reason: string },
+      ctx: { ipAddress?: string | null; userAgent?: string | null },
+    ): Promise<{ linkWyslany: boolean; email: string }>;
   };
   portfel: {
     adminCreditWallet(opts: {
@@ -87,6 +112,8 @@ export interface KontekstWykonania {
   wniosekId: string;
   klientId: string | null;
   decydujacy: { userId: string; role: string };
+  /** Uzasadnienie wnioskującego — powód operacji w dzienniku (D2). */
+  uzasadnienie?: string;
 }
 
 export interface DefinicjaWniosku<P extends object = object> {
@@ -195,6 +222,52 @@ export const REJESTR_WNIOSKOW = {
     async wykonaj(p, k, z) {
       const r = await z.anulowanie.anuluj({ invoiceId: p.invoiceId, powod: p.powod, aktorUserId: k.decydujacy.userId });
       return { komunikat: `Dokument ${r.number} anulowany.`, invoiceId: r.id, number: r.number };
+    },
+  }),
+
+  CUSTOMER_EMAIL_CHANGE: definicja<ZmianaEmailaPayload>({
+    etykieta: 'Zmiana adresu e-mail klienta',
+    uprawnienie: 'CUSTOMERS_MANAGE',
+    doZlozenia: 'CUSTOMERS_VIEW',
+    dto: ZmianaEmailaPayload,
+    wymagaKlienta: true,
+    opis: (p) => `Zmiana adresu e-mail na ${p.newEmail.trim().toLowerCase()}`,
+    async sprawdzPrzyZlozeniu(p, klientId, z) {
+      const nowy = p.newEmail.trim().toLowerCase();
+      const obecny = await z.prisma.user.findUnique({ where: { id: klientId }, select: { email: true } });
+      if (obecny?.email?.toLowerCase() === nowy) throw new BadRequestException('Nowy adres jest taki sam jak obecny.');
+      const zajety = await z.prisma.user.findUnique({ where: { email: nowy }, select: { id: true } });
+      if (zajety) throw new BadRequestException('Ten adres e-mail jest już przypisany do innego konta.');
+    },
+    async bezZmian(p, klientId, z) {
+      const obecny = await z.prisma.user.findUnique({ where: { id: klientId }, select: { email: true } });
+      return obecny?.email?.toLowerCase() === p.newEmail.trim().toLowerCase() ? 'Bez zmian — klient ma już ten adres e-mail.' : null;
+    },
+    async wykonaj(p, k, z) {
+      const r = await z.uzytkownicy.changeCustomerEmail(k.klientId!, k.decydujacy.userId, p.newEmail, k.uzasadnienie, { ipAddress: null, userAgent: null });
+      return { komunikat: `Adres e-mail zmieniony na ${r.email}.` };
+    },
+  }),
+
+  CUSTOMER_PASSWORD_RESET: definicja<ResetHaslaPayload>({
+    etykieta: 'Reset hasła klienta',
+    uprawnienie: 'CUSTOMERS_MANAGE',
+    doZlozenia: 'CUSTOMERS_VIEW',
+    dto: ResetHaslaPayload,
+    wymagaKlienta: true,
+    opis: () => 'Reset hasła — klient dostanie link do ustawienia nowego',
+    async wykonaj(_p, k, z) {
+      const r = await z.uzytkownicy.resetCustomerPassword(
+        k.klientId!,
+        k.decydujacy.userId,
+        { reason: k.uzasadnienie ?? `wniosek ${k.wniosekId}` },
+        { ipAddress: null, userAgent: null },
+      );
+      return {
+        komunikat: r.linkWyslany
+          ? `Hasło zresetowane — link wysłany na ${r.email}.`
+          : `Hasło zresetowane, ale mail z linkiem nie wyszedł — klient może użyć „Nie pamiętasz hasła?”.`,
+      };
     },
   }),
 } as const satisfies Record<string, DefinicjaWniosku<object>>;

@@ -11,13 +11,23 @@ import {
   resetCustomerPasswordAction,
 } from "../actions";
 import { Checkbox } from '@/components/checkbox';
+import { WyslijWniosek } from "@/components/wniosek-operacji";
+import { brakUprawnienia, type DostepDoAkcji } from "@/lib/akcje/wezel";
 import { PrzelacznikKontaWewnetrznego } from "./konto-wewnetrzne";
 
 interface Props {
   detail: AdminCustomerOperationalDetail;
+  /** D1 — uprawnienia operatora (domyślnie administrator). */
+  dostep?: DostepDoAkcji;
 }
 
-export function CustomerOperationalForms({ detail }: Props) {
+const ADMIN: DostepDoAkcji = { isAdmin: true, permissions: [] };
+
+export function CustomerOperationalForms({ detail, dostep = ADMIN }: Props) {
+  // D9 (10.10) — e-mail i hasło: CUSTOMERS_MANAGE (L3) bezpośrednio, niżej „Wyślij wniosek”; blokada —
+  // CUSTOMERS_MANAGE; usunięcie konta (wymuszona anonimizacja) — tylko administrator (D1).
+  const bezZarzadzania = brakUprawnienia("CUSTOMERS_MANAGE", dostep);
+  const bezAdmina = brakUprawnienia("ADMIN", dostep);
   const router = useRouter();
   const [pending, start] = useTransition();
 
@@ -33,10 +43,9 @@ export function CustomerOperationalForms({ detail }: Props) {
   const [emailErr, setEmailErr] = useState<string | null>(null);
   const [emailOk, setEmailOk] = useState(false);
 
-  const [resetNotify, setResetNotify] = useState(true);
   const [resetReason, setResetReason] = useState("");
   const [resetErr, setResetErr] = useState<string | null>(null);
-  const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [resetOk, setResetOk] = useState<string | null>(null);
 
   const [deleteReason, setDeleteReason] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
@@ -98,8 +107,12 @@ export function CustomerOperationalForms({ detail }: Props) {
       setEmailErr("Podaj nowy adres e-mail.");
       return;
     }
+    if (emailReason.trim().length < 5) {
+      setEmailErr("Podaj powód, np. numer zgłoszenia (min. 5 znaków).");
+      return;
+    }
     start(async () => {
-      const res = await changeCustomerEmailAction(detail.id, em, emailReason.trim() || undefined);
+      const res = await changeCustomerEmailAction(detail.id, em, emailReason.trim());
       if (!res.ok) {
         setEmailErr(res.error);
         return;
@@ -113,18 +126,23 @@ export function CustomerOperationalForms({ detail }: Props) {
 
   const submitReset = () => {
     setResetErr(null);
-    setTempPassword(null);
+    setResetOk(null);
+    if (resetReason.trim().length < 5) {
+      setResetErr("Podaj powód, np. numer zgłoszenia (min. 5 znaków).");
+      return;
+    }
     start(async () => {
-      const res = await resetCustomerPasswordAction(
-        detail.id,
-        resetNotify,
-        resetReason.trim() || undefined,
-      );
+      const res = await resetCustomerPasswordAction(detail.id, resetReason.trim());
       if (!res.ok) {
         setResetErr(res.error);
         return;
       }
-      setTempPassword(res.temporaryPassword);
+      setResetOk(
+        res.linkWyslany
+          ? `Link do ustawienia hasła wysłany na ${res.email}.`
+          : "Hasło zresetowane, ale mail nie wyszedł. Klient może użyć „Nie pamiętasz hasła?”.",
+      );
+      setResetReason("");
       router.refresh();
     });
   };
@@ -136,10 +154,11 @@ export function CustomerOperationalForms({ detail }: Props) {
         <p className="text-xs text-muted-foreground leading-relaxed">
           Zablokowany klient nie zaloguje się, a wejście na jego konto z panelu też nie zadziała, dopóki blokada trwa.
         </p>
+        {bezZarzadzania ? <p className="text-xs text-amber-200">{bezZarzadzania} — blokadę i notatkę zmienia starszy specjalista (L3).</p> : null}
         <label className="flex items-center gap-3 cursor-pointer">
           <Checkbox
             checked={loginBlocked}
-            disabled={pending}
+            disabled={pending || !!bezZarzadzania}
             onChange={(e) => setLoginBlocked(e.target.checked)}
             className="rounded border-white/20"
           />
@@ -153,7 +172,7 @@ export function CustomerOperationalForms({ detail }: Props) {
           <textarea
             value={blockReason}
             onChange={(e) => setBlockReason(e.target.value)}
-            disabled={pending}
+            disabled={pending || !!bezZarzadzania}
             rows={2}
             className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-sm text-white"
           />
@@ -165,7 +184,7 @@ export function CustomerOperationalForms({ detail }: Props) {
           <textarea
             value={internalNote}
             onChange={(e) => setInternalNote(e.target.value)}
-            disabled={pending}
+            disabled={pending || !!bezZarzadzania}
             rows={5}
             className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-xs text-white font-mono"
           />
@@ -175,7 +194,7 @@ export function CustomerOperationalForms({ detail }: Props) {
         <button
           type="button"
           onClick={saveOperational}
-          disabled={pending}
+          disabled={pending || !!bezZarzadzania}
           className="inline-flex items-center gap-2 rounded-lg border border-indigo-500/35 bg-indigo-500/15 px-4 py-2 text-sm font-semibold text-indigo-100 hover:bg-indigo-500/25 disabled:opacity-50"
         >
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -204,28 +223,40 @@ export function CustomerOperationalForms({ detail }: Props) {
             className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-sm text-white"
           />
         </label>
-        <label className="block">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
-            Powód (audyt)
-          </span>
-          <input
-            value={emailReason}
-            onChange={(e) => setEmailReason(e.target.value)}
-            disabled={pending}
-            className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-sm text-white"
+        {bezZarzadzania ? (
+          <WyslijWniosek
+            typ="CUSTOMER_EMAIL_CHANGE"
+            userId={detail.id}
+            payload={{ newEmail: newEmail.trim() }}
+            gotowe={newEmail.trim().includes("@")}
+            podpowiedz={`${bezZarzadzania}. Wpisz nowy adres i wyślij wniosek — zdecyduje kierownik zmiany.`}
           />
-        </label>
-        {emailErr ? <p className="text-sm text-rose-300">{emailErr}</p> : null}
-        {emailOk ? <p className="text-sm text-emerald-300">E-mail został zmieniony.</p> : null}
-        <button
-          type="button"
-          onClick={submitEmail}
-          disabled={pending}
-          className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/35 bg-cyan-500/15 px-4 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-500/25 disabled:opacity-50"
-        >
-          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          Zmień e-mail
-        </button>
+        ) : (
+          <>
+            <label className="block">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+                Powód (np. numer zgłoszenia)
+              </span>
+              <input
+                value={emailReason}
+                onChange={(e) => setEmailReason(e.target.value)}
+                disabled={pending}
+                className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-sm text-white"
+              />
+            </label>
+            {emailErr ? <p className="text-sm text-rose-300">{emailErr}</p> : null}
+            {emailOk ? <p className="text-sm text-emerald-300">E-mail został zmieniony.</p> : null}
+            <button
+              type="button"
+              onClick={submitEmail}
+              disabled={pending}
+              className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/35 bg-cyan-500/15 px-4 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-500/25 disabled:opacity-50"
+            >
+              {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Zmień e-mail
+            </button>
+          </>
+        )}
       </section>
 
       <section id="reset" data-karta="reset" className="scroll-mt-24 rounded-2xl border border-amber-500/25 bg-amber-500/5 p-6 space-y-4">
@@ -235,48 +266,45 @@ export function CustomerOperationalForms({ detail }: Props) {
         </h2>
         <p className="text-xs text-amber-100/80 leading-relaxed flex gap-2">
           <AlertTriangle className="h-4 w-4 shrink-0" />
-          Ustawiamy losowe hasło, <strong>wyłączamy 2FA</strong> (klient musi skonfigurować ponownie). Hasło pokazujemy tylko raz —
-          skopiuj je lub wyślij powiadomienie e-mail (bez hasła w treści).
+          Obecne hasło przestaje działać, <strong>2FA zostaje wyłączone</strong>. Klient dostaje mailem link do ustawienia
+          nowego hasła (ważny 24 h). Hasła nikt w Verris nie widzi.
         </p>
-        <label className="flex items-center gap-3 cursor-pointer">
-          <Checkbox
-            checked={resetNotify}
-            disabled={pending}
-            onChange={(e) => setResetNotify(e.target.checked)}
-            className="rounded border-white/20"
+        {bezZarzadzania ? (
+          <WyslijWniosek
+            typ="CUSTOMER_PASSWORD_RESET"
+            userId={detail.id}
+            payload={{}}
+            podpowiedz={`${bezZarzadzania}. Wyślij wniosek — zdecyduje kierownik zmiany.`}
           />
-          <span className="text-sm text-white">Wyślij klientowi e-mail o zmianie hasła</span>
-        </label>
-        <label className="block">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
-            Powód (audyt)
-          </span>
-          <input
-            value={resetReason}
-            onChange={(e) => setResetReason(e.target.value)}
-            disabled={pending}
-            className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-sm text-white"
-          />
-        </label>
-        {resetErr ? <p className="text-sm text-rose-300">{resetErr}</p> : null}
-        {tempPassword ? (
-          <div className="rounded-lg border border-white/15 bg-black/50 p-3 space-y-2">
-            <p className="text-xs text-amber-200 font-bold uppercase tracking-wide">Hasło jednorazowe</p>
-            <code className="block break-all text-sm text-white font-mono">{tempPassword}</code>
-            <p className="text-[10px] text-muted-foreground">Ten tekst zniknie po odświeżeniu — skopiuj teraz.</p>
-          </div>
-        ) : null}
-        <button
-          type="button"
-          onClick={submitReset}
-          disabled={pending}
-          className="inline-flex items-center gap-2 rounded-lg border border-amber-400/40 bg-amber-400/15 px-4 py-2 text-sm font-semibold text-amber-50 hover:bg-amber-400/25 disabled:opacity-50"
-        >
-          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
-          Wygeneruj nowe hasło
-        </button>
+        ) : (
+          <>
+            <label className="block">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+                Powód (np. numer zgłoszenia)
+              </span>
+              <input
+                value={resetReason}
+                onChange={(e) => setResetReason(e.target.value)}
+                disabled={pending}
+                className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-sm text-white"
+              />
+            </label>
+            {resetErr ? <p className="text-sm text-rose-300">{resetErr}</p> : null}
+            {resetOk ? <p className="text-sm text-emerald-300">{resetOk}</p> : null}
+            <button
+              type="button"
+              onClick={submitReset}
+              disabled={pending}
+              className="inline-flex items-center gap-2 rounded-lg border border-amber-400/40 bg-amber-400/15 px-4 py-2 text-sm font-semibold text-amber-50 hover:bg-amber-400/25 disabled:opacity-50"
+            >
+              {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+              Wyślij link do ustawienia hasła
+            </button>
+          </>
+        )}
       </section>
 
+      {bezAdmina ? null : (
       <section id="usuniecie" data-karta="usuniecie" className="scroll-mt-24 rounded-2xl border border-rose-500/30 bg-rose-950/20 p-6 space-y-4">
         <h2 className="text-sm font-bold uppercase tracking-wide text-rose-100 flex items-center gap-2">
           <ShieldOff className="h-4 w-4" />
@@ -337,6 +365,7 @@ export function CustomerOperationalForms({ detail }: Props) {
           Usuń konto (anonimizuj)
         </button>
       </section>
+      )}
     </div>
   );
 }

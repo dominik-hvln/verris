@@ -82,6 +82,8 @@ beforeEach(() => {
     if (sciezka === `/admin/users/${UID}/operational-detail`)
       return { ...profil.user, loginBlockedReason: null, adminInternalNote: "notatka", isInternal: false, subscriptionsCount: 1 };
     if (sciezka.startsWith("/admin/custom-terms/user/")) return { uslugi: [] };
+    // Pełne uprawnienia (administrator) — D1: bez nich karta chowa działania tylko dla administratora.
+    if (sciezka === "/staff/me/access") return { role: "ADMIN", isAdmin: true, permissions: [] };
     throw new Error(`nieoczekiwane ${sciezka}`);
   });
   global.fetch = jest.fn().mockRejectedValue(new Error("ECONNREFUSED")) as never;

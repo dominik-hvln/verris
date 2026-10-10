@@ -19,12 +19,13 @@ import { uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
 import { StatusService } from '../status/status.service.js';
 import { StripeService } from '../billing/stripe/stripe.service.js';
 import { MailerService } from '../mail/mailer.service.js';
-import { passwordChangedTemplate } from '../mail/templates/security-notifications.js';
-import { accountCreatedByOperatorTemplate } from '../mail/templates/auth-notifications.js';
+import { accountCreatedByOperatorTemplate, passwordResetByOperatorTemplate } from '../mail/templates/auth-notifications.js';
 import { generateAuthToken, hashAuthToken } from '../auth/auth-token.util.js';
 
 /** A-24 — link „ustaw hasło” z konta od operatora (dłuższy niż reset, klient może odebrać mail później). */
 export const OPERATOR_ACCOUNT_LINK_TTL_HOURS = 72;
+/** D9 — ważność linku z resetu hasła zleconego przez operatora. */
+export const OPERATOR_RESET_LINK_TTL_HOURS = 24;
 
 export interface AdminUserListOptions {
   search?: string;
@@ -735,26 +736,43 @@ export class UsersAdminService {
     return { ok: true, email: normalized };
   }
 
+  /**
+   * D9/D3 (10.10) — reset hasła klienta przez operatora: dotychczasowe hasło przestaje działać, 2FA jest
+   * czyszczone (jak dotąd), a klient dostaje link do ustawienia nowego hasła. Operator hasła nie widzi
+   * (wcześniej API oddawało hasło tymczasowe).
+   */
   async resetCustomerPassword(
     userId: string,
     actorUserId: string,
-    dto: { notifyUser?: boolean; reason?: string | undefined },
+    dto: { reason: string },
     ctx: { ipAddress?: string | null; userAgent?: string | null },
   ) {
     const prev = await this.requireEndUserForAdminOps(userId);
-    const temporaryPassword = `${randomBytes(10).toString('base64url')}Aa1!`;
-    const passwordHash = await bcrypt.hash(temporaryPassword, 10);
+    // Hasło nieużywalne: losowe, nikt go nie zna — logowanie dopiero po ustawieniu nowego z linku.
+    const passwordHash = await bcrypt.hash(randomBytes(32).toString('base64url'), 10);
+    const rawToken = generateAuthToken();
+    const expiresAt = new Date(Date.now() + OPERATOR_RESET_LINK_TTL_HOURS * 3600 * 1000);
 
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        passwordHash,
-        twoFactorSecret: null,
-        isTwoFactorEnabled: false,
-        twoFactorEnrolledAt: null,
-        twoFactorRecoveryCodesEnc: null,
-      },
-    });
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          passwordHash,
+          twoFactorSecret: null,
+          isTwoFactorEnabled: false,
+          twoFactorEnrolledAt: null,
+          twoFactorRecoveryCodesEnc: null,
+        },
+      }),
+      // W obiegu jest zawsze jeden link — wcześniejsze przestają działać.
+      this.prisma.userAuthToken.updateMany({
+        where: { userId, purpose: 'PASSWORD_RESET', usedAt: null },
+        data: { usedAt: new Date() },
+      }),
+      this.prisma.userAuthToken.create({
+        data: { userId, purpose: 'PASSWORD_RESET', tokenHash: hashAuthToken(rawToken), expiresAt },
+      }),
+    ]);
 
     await this.audit.record({
       action: AdminCustomerActions.CUSTOMER_PASSWORD_RESET_BY_ADMIN,
@@ -762,30 +780,26 @@ export class UsersAdminService {
       actorUserId,
       ipAddress: ctx.ipAddress ?? undefined,
       userAgent: ctx.userAgent ?? undefined,
-      details: {
-        notifyUser: dto.notifyUser === true,
-        reason: dto.reason ?? null,
-      },
+      details: { reason: dto.reason, linkDoKlienta: true },
     });
 
-    if (dto.notifyUser === true) {
-      const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
-      const message = passwordChangedTemplate({
-        to: prev.email,
-        firstName: prev.firstName,
-        changedAt: new Date(),
-        deviceLabel: 'Panel administratora Verris',
-        ipAddress: ctx.ipAddress ?? null,
-        panelUrl,
-      });
-      void this.mailer
-        .send({ ...message, category: 'TRANSACTIONAL', fromRole: 'SECURITY' })
-        .catch((err) => {
-        this.logger.warn(`password reset notify mail failed: ${(err as Error).message}`);
-      });
+    const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
+    const message = passwordResetByOperatorTemplate({
+      to: prev.email,
+      firstName: prev.firstName,
+      resetUrl: `${panelUrl}/reset-password?token=${encodeURIComponent(rawToken)}`,
+      expiresHours: OPERATOR_RESET_LINK_TTL_HOURS,
+      twoFactorCleared: prev.isTwoFactorEnabled,
+      panelUrl,
+    });
+    let linkWyslany = true;
+    try {
+      await this.mailer.send({ ...message, userId, category: 'TRANSACTIONAL', fromRole: 'SECURITY' });
+    } catch (err) {
+      linkWyslany = false;
+      this.logger.warn(`operator password reset mail failed: ${(err as Error).message}`);
     }
-
-    return { temporaryPassword };
+    return { ok: true as const, linkWyslany, email: prev.email };
   }
 
   /**
@@ -1009,7 +1023,7 @@ export class UsersAdminService {
    * Łączy `LoginEvent` (sukces) + `LoginAttempt` (sukces/niepowodzenie) w
    * jeden chronologiczny widok. Wyrzuca informację o aktualnym lockout (10/15min).
    */
-  async getLoginHistory(userId: string) {
+  async getLoginHistory(userId: string, aktor?: { actorUserId: string; actorRole: Role }) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -1021,6 +1035,19 @@ export class UsersAdminService {
       },
     });
     if (!user) throw new NotFoundException('Nie znaleziono konta.');
+    if (aktor) {
+      // D9 (10.10) — STAFF widzi logowania tylko klientów (historia operatorów zostaje dla ADMIN-a);
+      // każdy odczyt w dzienniku jak otwarcie zakładki karty klienta (odmowa nie jest odczytem).
+      if (aktor.actorRole === Role.STAFF && user.role !== Role.USER) {
+        throw new ForbiddenException('Personel widzi wyłącznie logowania klientów.');
+      }
+      await this.audit.record({
+        action: SupportActions.OPERATOR_CUSTOMER_CARD_VIEWED,
+        userId: user.id,
+        actorUserId: aktor.actorUserId,
+        details: { sekcja: 'logowania' },
+      });
+    }
 
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const lockoutSince = new Date(Date.now() - 15 * 60 * 1000);

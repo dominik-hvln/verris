@@ -21,8 +21,8 @@ import { WNIOSEK_MOZLIWY_KEY } from './wniosek-mozliwy.decorator.js';
 
 /** PB-48 — rejestr typów wniosków, kod odmowy WYMAGA_WNIOSKU i dopisek wniosku w dzienniku. */
 describe('PB-48 — rejestr wniosków', () => {
-  it('każdy typ wymaga uprawnienia z katalogu; na start: konto wewnętrzne + dwie operacje finansowe', () => {
-    expect(TYPY_WNIOSKOW).toEqual(['CUSTOMER_INTERNAL_FLAG', 'WALLET_CREDIT', 'INVOICE_VOID']);
+  it('każdy typ wymaga uprawnienia z katalogu: konto wewnętrzne, dwie operacje finansowe, e-mail i hasło klienta (D9)', () => {
+    expect(TYPY_WNIOSKOW).toEqual(['CUSTOMER_INTERNAL_FLAG', 'WALLET_CREDIT', 'INVOICE_VOID', 'CUSTOMER_EMAIL_CHANGE', 'CUSTOMER_PASSWORD_RESET']);
     for (const t of TYPY_WNIOSKOW) {
       expect(STAFF_PERMISSION_KEYS).toContain(REJESTR_WNIOSKOW[t].uprawnienie);
       expect(STAFF_PERMISSION_KEYS).toContain(REJESTR_WNIOSKOW[t].doZlozenia);
@@ -38,6 +38,8 @@ describe('PB-48 — rejestr wniosków', () => {
       CUSTOMER_INTERNAL_FLAG: UsersAdminController.prototype.patchOperational,
       WALLET_CREDIT: BillingAdminController.prototype.creditWallet,
       INVOICE_VOID: InvoicesAdminController.prototype.anuluj,
+      CUSTOMER_EMAIL_CHANGE: UsersAdminController.prototype.changeEmail,
+      CUSTOMER_PASSWORD_RESET: UsersAdminController.prototype.resetPassword,
     };
     for (const t of TYPY_WNIOSKOW) {
       const straznik = (Reflect.getMetadata(STAFF_PERMISSIONS_KEY, bezposrednio[t]) as string[] | undefined) ?? [];
@@ -53,18 +55,35 @@ describe('PB-48 — rejestr wniosków', () => {
     expect(typyDoDecyzji('STAFF', ['REQUESTS_APPROVE', 'BILLING_MANAGE'])).toEqual(['WALLET_CREDIT', 'INVOICE_VOID']);
     // Konto wewnętrzne: komplet jak przy PATCH operational (CUSTOMERS_MANAGE w strażniku + flaga w serwisie).
     expect(typyDoDecyzji('STAFF', ['REQUESTS_APPROVE', 'CUSTOMERS_INTERNAL_FLAG'])).toEqual([]);
-    expect(typyDoDecyzji('STAFF', ['REQUESTS_APPROVE', 'CUSTOMERS_MANAGE', 'CUSTOMERS_INTERNAL_FLAG'])).toEqual(['CUSTOMER_INTERNAL_FLAG']);
+    expect(typyDoDecyzji('STAFF', ['REQUESTS_APPROVE', 'CUSTOMERS_MANAGE', 'CUSTOMERS_INTERNAL_FLAG'])).toEqual([
+      'CUSTOMER_INTERNAL_FLAG',
+      'CUSTOMER_EMAIL_CHANGE',
+      'CUSTOMER_PASSWORD_RESET',
+    ]);
+    // D9 — e-mail i hasło klienta: akceptuje L4 (REQUESTS_APPROVE + CUSTOMERS_MANAGE) albo ADMIN.
+    expect(typyDoDecyzji('STAFF', ['REQUESTS_APPROVE', 'CUSTOMERS_MANAGE'])).toEqual(['CUSTOMER_EMAIL_CHANGE', 'CUSTOMER_PASSWORD_RESET']);
     expect(typyDoDecyzji('USER', ['REQUESTS_APPROVE', 'BILLING_MANAGE'])).toEqual([]);
   });
 
-  const zal = (o: { isInternal?: boolean; status?: string } = {}) => {
+  const zal = (o: { isInternal?: boolean; status?: string; email?: string; zajety?: boolean; mail?: boolean } = {}) => {
     const wywolania: unknown[][] = [];
     const z: ZaleznosciWnioskow = {
       prisma: {
-        user: { findUnique: async () => ({ isInternal: o.isInternal ?? false }) },
+        user: {
+          findUnique: async (a: unknown) =>
+            (a as { where: { email?: string } }).where.email
+              ? o.zajety
+                ? { id: 'inny' }
+                : null
+              : { isInternal: o.isInternal ?? false, email: o.email ?? 'anna@test.pl' },
+        },
         invoice: { findUnique: async () => ({ id: 'f1', userId: 'k1', number: 'VDR/1', status: o.status ?? 'OPEN' }) },
       },
-      uzytkownicy: { patchCustomerOperational: async (...a: unknown[]) => void wywolania.push(['patch', ...a]) },
+      uzytkownicy: {
+        patchCustomerOperational: async (...a: unknown[]) => void wywolania.push(['patch', ...a]),
+        changeCustomerEmail: async (...a: unknown[]) => (wywolania.push(['email', ...a]), { email: String(a[2]).toLowerCase() }),
+        resetCustomerPassword: async (...a: unknown[]) => (wywolania.push(['haslo', ...a]), { linkWyslany: o.mail ?? true, email: 'anna@test.pl' }),
+      },
       portfel: { adminCreditWallet: async (a) => (wywolania.push(['portfel', a]), { id: 'tx1', amount: { toString: () => '50.00' } }) },
       anulowanie: { anuluj: async (a) => (wywolania.push(['anuluj', a]), { id: 'f1', number: 'VDR/1', status: 'VOID' }) },
     };
@@ -101,6 +120,30 @@ describe('PB-48 — rejestr wniosków', () => {
     expect(wywolania).toEqual([['anuluj', { invoiceId: 'f1', powod: 'błędny dokument', aktorUserId: 'kier' }]]);
   });
 
+  it('D9 zmiana e-maila: ten sam albo zajęty adres — 400 przy złożeniu; wykonuje serwis z uzasadnieniem jako powodem', async () => {
+    const d = REJESTR_WNIOSKOW.CUSTOMER_EMAIL_CHANGE;
+    expect(d.uprawnienie).toBe('CUSTOMERS_MANAGE');
+    expect(d.doZlozenia).toBe('CUSTOMERS_VIEW');
+    await expect(d.sprawdzPrzyZlozeniu!({ newEmail: 'ANNA@test.pl' }, 'k1', zal().z)).rejects.toThrow(/taki sam/);
+    await expect(d.sprawdzPrzyZlozeniu!({ newEmail: 'nowy@test.pl' }, 'k1', zal({ zajety: true }).z)).rejects.toThrow(/innego konta/);
+    await expect(d.sprawdzPrzyZlozeniu!({ newEmail: 'nowy@test.pl' }, 'k1', zal().z)).resolves.toBeUndefined();
+    expect(await d.bezZmian!({ newEmail: 'nowy@test.pl' }, 'k1', zal({ email: 'nowy@test.pl' }).z)).toMatch(/Bez zmian/);
+    const { z, wywolania } = zal();
+    const w = await d.wykonaj({ newEmail: 'Nowy@test.pl' }, { ...k, uzasadnienie: 'zgłoszenie #123: klient zmienił firmę' }, z);
+    expect(wywolania).toEqual([['email', 'k1', 'kier', 'Nowy@test.pl', 'zgłoszenie #123: klient zmienił firmę', { ipAddress: null, userAgent: null }]]);
+    expect(w.komunikat).toBe('Adres e-mail zmieniony na nowy@test.pl.');
+  });
+
+  it('D9 reset hasła: bez parametrów, link do klienta — wynik nie zawiera hasła; brak maila — komunikat', async () => {
+    const d = REJESTR_WNIOSKOW.CUSTOMER_PASSWORD_RESET;
+    expect(d.uprawnienie).toBe('CUSTOMERS_MANAGE');
+    const { z, wywolania } = zal();
+    const w = await d.wykonaj({}, { ...k, uzasadnienie: 'zgłoszenie #9: klient nie pamięta hasła' }, z);
+    expect(wywolania).toEqual([['haslo', 'k1', 'kier', { reason: 'zgłoszenie #9: klient nie pamięta hasła' }, { ipAddress: null, userAgent: null }]]);
+    expect(w).toEqual({ komunikat: 'Hasło zresetowane — link wysłany na anna@test.pl.' });
+    expect((await d.wykonaj({}, k, zal({ mail: false }).z)).komunikat).toMatch(/nie wyszedł/);
+  });
+
   it('komunikat błędu wykonawcy: wyjątek HTTP po polsku wprost, inny — z przedrostkiem, bez stosu', () => {
     expect(komunikatBledu(new ForbiddenException('Brak.'))).toBe('Brak.');
     expect(komunikatBledu(new Error('timeout'))).toBe('Operacja nie powiodła się: timeout');
@@ -118,15 +161,18 @@ describe('PB-48 — 403 z kodem WYMAGA_WNIOSKU przy operacjach z rejestru', () =
     new StaffPermissionsGuard(new Reflector(), { user: { findUnique: async () => ({ staffRole: { id: 'r', name: 'r', permissions: perms } }) } } as never);
 
   it.each([
-    [BillingAdminController, 'creditWallet', 'WALLET_CREDIT'],
-    [InvoicesAdminController, 'anuluj', 'INVOICE_VOID'],
-  ])('%o.%s → operacja %s', async (klasa, metoda, typ) => {
+    [BillingAdminController, 'creditWallet', 'WALLET_CREDIT', ['BILLING_VIEW'], ['BILLING_MANAGE']],
+    [InvoicesAdminController, 'anuluj', 'INVOICE_VOID', ['BILLING_VIEW'], ['BILLING_MANAGE']],
+    // D9 — L1/L2 (CUSTOMERS_VIEW) dostają „Wyślij wniosek”, L3 (CUSTOMERS_MANAGE) wykonuje sam.
+    [UsersAdminController, 'changeEmail', 'CUSTOMER_EMAIL_CHANGE', ['CUSTOMERS_VIEW'], ['CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE']],
+    [UsersAdminController, 'resetPassword', 'CUSTOMER_PASSWORD_RESET', ['CUSTOMERS_VIEW'], ['CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE']],
+  ])('%o.%s → operacja %s', async (klasa, metoda, typ, bez, z) => {
     const handler = (klasa.prototype as unknown as Record<string, object>)[metoda];
     expect(Reflect.getMetadata(WNIOSEK_MOZLIWY_KEY, handler)).toBe(typ);
-    const blad = await straznik(['BILLING_VIEW']).canActivate(kontekst(klasa, handler)).catch((e: unknown) => e);
+    const blad = await straznik(bez).canActivate(kontekst(klasa, handler)).catch((e: unknown) => e);
     expect(blad).toBeInstanceOf(ForbiddenException);
     expect((blad as ForbiddenException).getResponse()).toMatchObject({ code: 'WYMAGA_WNIOSKU', operacja: typ });
-    expect(await straznik(['BILLING_MANAGE']).canActivate(kontekst(klasa, handler))).toBe(true);
+    expect(await straznik(z).canActivate(kontekst(klasa, handler))).toBe(true);
   });
 
   it('trasa bez rejestru wniosków — zwykła odmowa, bez kodu', async () => {

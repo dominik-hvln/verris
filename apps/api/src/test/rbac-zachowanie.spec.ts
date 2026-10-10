@@ -165,10 +165,10 @@ describe('X-10 — RBAC paneli operatorskich sprawdzany zachowaniem', () => {
   });
 
   it('trasy tylko dla administratora odrzucają operatora nawet z kompletem uprawnień', async () => {
-    const reset = TRASY.find((t) => t.kontroler === 'UsersAdminController' && t.metoda === 'resetPassword');
-    expect(reset).toBeDefined();
-    expect(await wpuszcza(reset!, OPERATOR, ['CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE'])).toBe(false);
-    expect(await wpuszcza(reset!, ADMIN)).toBe(true);
+    const grafana = TRASY.find((t) => t.kontroler === 'UsersAdminController' && t.metoda === 'setGrafanaAccess');
+    expect(grafana).toBeDefined();
+    expect(await wpuszcza(grafana!, OPERATOR, ['CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE', 'STAFF_MANAGE'])).toBe(false);
+    expect(await wpuszcza(grafana!, ADMIN)).toBe(true);
   });
 
   it('operator z właściwym uprawnieniem przechodzi, z sąsiednim — nie', async () => {

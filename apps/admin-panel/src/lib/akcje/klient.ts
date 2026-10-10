@@ -72,20 +72,24 @@ export const AKCJE_KLIENTA: AkcjaObiektu<KlientDlaAkcji>[] = [
     grupa: "Konto",
     nazwa: "Zmień e-mail",
     opis: "Nowy adres logowania klienta.",
-    perm: "ADMIN",
+    // POST admin/users/:id/email — CUSTOMERS_MANAGE (D9: L3); niżej wniosek CUSTOMER_EMAIL_CHANGE.
+    perm: "CUSTOMERS_MANAGE",
     kiedy: () => true,
     href: (k) => karta(k, "dostepy", "email"),
     slowa: "email adres",
+    wniosek: ["CUSTOMERS_VIEW"],
   },
   {
     id: "reset",
     grupa: "Konto",
     nazwa: "Reset hasła",
     opis: "Link do ustawienia nowego hasła.",
-    perm: "ADMIN",
+    // POST admin/users/:id/reset-password — CUSTOMERS_MANAGE (D9: L3); niżej wniosek CUSTOMER_PASSWORD_RESET.
+    perm: "CUSTOMERS_MANAGE",
     kiedy: () => true,
     href: (k) => karta(k, "dostepy", "reset"),
     slowa: "hasło reset",
+    wniosek: ["CUSTOMERS_VIEW"],
   },
   {
     id: "usuniecie",

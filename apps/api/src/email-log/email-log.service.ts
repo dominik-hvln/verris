@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { EmailCategory, EmailStatus, Prisma } from '@verris/database';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { EmailCategory, EmailStatus, Prisma, Role } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { SupportActions } from '../common/audit/audit.actions.js';
 import { maskujTekst, maskujWartosc } from './maskowanie.js';
 
 export interface EmailLogFilters {
@@ -48,6 +50,12 @@ export interface EmailLogPage {
   };
 }
 
+/** Operator czytający dziennik poczty (z JWT). */
+export interface OperatorOdczytu {
+  userId: string;
+  role: Role;
+}
+
 /**
  * Sprint 2.7 — read-only API dla admin viewer'a EmailLog.
  *
@@ -59,7 +67,23 @@ export class EmailLogService {
   private static readonly DEFAULT_LIMIT = 50;
   private static readonly MAX_LIMIT = 200;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
+
+  /**
+   * D9 (10.10) — odczyt korespondencji klienta przez operatora: STAFF tylko na kontach klientów (USER),
+   * każdy odczyt (także ADMIN-a) w dzienniku jak otwarcie zakładki karty klienta. Klient wpisu nie widzi.
+   */
+  private async odczytOperatora(aktor: OperatorOdczytu, userId: string | null, details: Record<string, string>) {
+    if (aktor.role === Role.STAFF) {
+      const u = userId ? await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true } }) : null;
+      if (u?.role !== Role.USER) throw new ForbiddenException('Personel widzi wyłącznie korespondencję klientów.');
+    }
+    if (!userId) return;
+    await this.audit.record({ action: SupportActions.OPERATOR_CUSTOMER_CARD_VIEWED, userId, actorUserId: aktor.userId, details });
+  }
 
   async list(filters: EmailLogFilters): Promise<EmailLogPage> {
     const where = this.buildWhere(filters);
@@ -112,9 +136,10 @@ export class EmailLogService {
    * Podgląd wpisu (karta klienta → Komunikacja). Linki jednorazowe i tokeny maskowane w API
    * (`maskowanie.ts`) — operator nie dostaje ich w całości. Brak wpisu = 404, nie pusta odpowiedź.
    */
-  async detail(id: string) {
+  async detail(id: string, aktor?: OperatorOdczytu) {
     const wpis = await this.prisma.emailLog.findUnique({ where: { id } });
     if (!wpis) throw new NotFoundException('Nie ma takiego wpisu dziennika poczty.');
+    if (aktor) await this.odczytOperatora(aktor, wpis.userId, { sekcja: 'mail', emailLogId: wpis.id });
     return {
       ...wpis,
       subject: maskujTekst(wpis.subject),
@@ -123,7 +148,8 @@ export class EmailLogService {
     };
   }
 
-  async listForUser(userId: string, limit = 50) {
+  async listForUser(userId: string, limit = 50, aktor?: OperatorOdczytu) {
+    if (aktor) await this.odczytOperatora(aktor, userId, { sekcja: 'komunikacja' });
     const wpisy = await this.prisma.emailLog.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },

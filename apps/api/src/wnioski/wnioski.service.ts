@@ -290,7 +290,11 @@ export class WnioskiService {
       } else {
         const magazyn = { ...(kontekstZadania.getStore() ?? {}), wniosek: { wniosekId: w.id, wnioskujacyUserId: w.requestedById } };
         wynik = await kontekstZadania.run(magazyn, () =>
-          def.wykonaj(payload, { wniosekId: w.id, klientId: w.customerId, decydujacy: { userId: op.userId, role: op.role } }, this.zaleznosci),
+          def.wykonaj(
+            payload,
+            { wniosekId: w.id, klientId: w.customerId, decydujacy: { userId: op.userId, role: op.role }, uzasadnienie: w.justification },
+            this.zaleznosci,
+          ),
         );
       }
     } catch (err) {

@@ -68,9 +68,13 @@ describe('UsersAdminController (metadane RBAC)', () => {
     });
   });
 
-  describe('operacje na tożsamości konta pozostają wyłącznie dla ADMIN', () => {
-    it.each(['changeEmail', 'resetPassword'] as const)('%s — tylko ADMIN', (klucz) => {
-      expect(rolePod(klucz)).toEqual([Role.ADMIN]);
+  describe('D9 (10.10): e-mail i hasło klienta — ADMIN i STAFF z CUSTOMERS_MANAGE (L3), niżej przez wniosek', () => {
+    it.each(['changeEmail', 'resetPassword'] as const)('%s — ADMIN + STAFF z CUSTOMERS_MANAGE', (klucz) => {
+      expect((rolePod(klucz) as Role[]).slice().sort()).toEqual([Role.ADMIN, Role.STAFF].sort());
+      expect(uprawnieniaPod(klucz)).toEqual(['CUSTOMERS_MANAGE']);
+    });
+    it('dostęp do Grafany operatora zostaje tylko dla ADMIN', () => {
+      expect(rolePod('setGrafanaAccess')).toEqual([Role.ADMIN]);
     });
   });
   it('A-24 zakładanie konta klienta: ADMIN + STAFF z CUSTOMERS_MANAGE', () => {

@@ -20,6 +20,7 @@ import { Roles } from '../common/decorators/roles.decorator.js';
 import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
 import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { WniosekMozliwy } from '../wnioski/wniosek-mozliwy.decorator.js';
 import { UsersAdminService } from './users.admin.service.js';
 import { UsersService } from './users.service.js';
 import { HostingDiagnosticsService } from '../diagnostics/hosting-diagnostics.service.js';
@@ -164,10 +165,14 @@ export class UsersAdminController {
 
   /**
    * Sprint 4 / R-04 — zmiana e-maila z walidacją + best-effort Stripe Customer.
+   * D9 (10.10): bezpośrednio ADMIN i STAFF z CUSTOMERS_MANAGE (L3); niżej — 403 WYMAGA_WNIOSKU i wniosek
+   * CUSTOMER_EMAIL_CHANGE (rejestr-wnioskow.ts). Powód obowiązkowy (D2).
    */
   @Post(':id/email')
   @HttpCode(200)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('CUSTOMERS_MANAGE')
+  @WniosekMozliwy('CUSTOMER_EMAIL_CHANGE')
   async changeEmail(
     @CurrentUser() user: AuthedUser,
     @Param('id') id: string,
@@ -186,9 +191,6 @@ export class UsersAdminController {
     );
   }
 
-  /**
-   * Sprint 4 / R-04 — reset hasła (hasło jednorazowo w odpowiedzi); czyści 2FA.
-   */
   /** A-24 — operator zakłada konto klienta; klient ustawia hasło z linku w mailu. */
   @Post()
   @Roles(Role.ADMIN, Role.STAFF)
@@ -204,9 +206,16 @@ export class UsersAdminController {
     });
   }
 
+  /**
+   * Reset hasła klienta — D9/D3 (10.10): operator nie widzi hasła; klient dostaje link do ustawienia nowego
+   * (czyści 2FA jak dotąd). Bezpośrednio ADMIN i STAFF z CUSTOMERS_MANAGE (L3); niżej — wniosek
+   * CUSTOMER_PASSWORD_RESET. Powód obowiązkowy (D2).
+   */
   @Post(':id/reset-password')
   @HttpCode(200)
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('CUSTOMERS_MANAGE')
+  @WniosekMozliwy('CUSTOMER_PASSWORD_RESET')
   async resetPassword(
     @CurrentUser() user: AuthedUser,
     @Param('id') id: string,
@@ -239,14 +248,14 @@ export class UsersAdminController {
   }
 
   /**
-   * Sprint 6 — Historia logowań operatorów (STAFF/ADMIN). ADMIN-only,
-   * pokazuje sukces (LoginEvent) + nieudane próby (LoginAttempt) w jednym
-   * widoku, plus aktualny status lockoutu (rolling 15 min, 10 prób).
+   * Sprint 6 — historia logowań: sukces (LoginEvent) + nieudane próby (LoginAttempt) w jednym widoku, plus
+   * aktualny status lockoutu (rolling 15 min, 10 prób). ADMIN — każde konto (także karta operatora);
+   * D9 (10.10): STAFF z CUSTOMERS_VIEW — tylko konta klientów, każdy odczyt w dzienniku.
    */
   @Get(':id/login-history')
-  @Roles(Role.ADMIN)
-  async loginHistory(@Param('id') id: string) {
-    return this.admin.getLoginHistory(id);
+  @Roles(Role.ADMIN, Role.STAFF)
+  async loginHistory(@CurrentUser() user: AuthedUser, @Param('id') id: string) {
+    return this.admin.getLoginHistory(id, { actorUserId: user.userId, actorRole: user.role });
   }
 
   /**

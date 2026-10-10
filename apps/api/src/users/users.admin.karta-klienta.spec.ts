@@ -117,7 +117,7 @@ describe('decyzja 08.10 — otwarcie karty klienta przez operatora w dzienniku',
   });
 });
 
-type Metoda = 'customerProfile' | 'operationalDetail' | 'patchOperational' | 'runDnsTls' | 'changeEmail' | 'resetPassword';
+type Metoda = 'customerProfile' | 'operationalDetail' | 'patchOperational' | 'runDnsTls' | 'changeEmail' | 'resetPassword' | 'loginHistory';
 
 async function wpuszcza(metoda: Metoda, role: Role, uprawnienia: string[]): Promise<boolean> {
   const reflector = new Reflector();
@@ -159,9 +159,15 @@ describe('PB-46 strażnicy karty klienta (zachowanie, nie metadane)', () => {
     expect(await wpuszcza('customerProfile', Role.STAFF, [])).toBe(false);
   });
 
-  it.each(['changeEmail', 'resetPassword'] as const)('%s: STAFF nawet z CUSTOMERS_MANAGE — 403; ADMIN — tak', async (m) => {
-    expect(await wpuszcza(m, Role.STAFF, ZARZADZANIE)).toBe(false);
+  it.each(['changeEmail', 'resetPassword'] as const)('D9 %s: STAFF z CUSTOMERS_MANAGE (L3) — tak; sam podgląd (L1/L2) — 403 (wniosek); ADMIN — tak', async (m) => {
+    expect(await wpuszcza(m, Role.STAFF, ZARZADZANIE)).toBe(true);
+    expect(await wpuszcza(m, Role.STAFF, PODGLAD)).toBe(false);
     expect(await wpuszcza(m, Role.ADMIN, [])).toBe(true);
+  });
+
+  it('D9 historia logowań: STAFF z CUSTOMERS_VIEW — tak, bez — 403', async () => {
+    expect(await wpuszcza('loginHistory', Role.STAFF, PODGLAD)).toBe(true);
+    expect(await wpuszcza('loginHistory', Role.STAFF, [])).toBe(false);
   });
 });
 

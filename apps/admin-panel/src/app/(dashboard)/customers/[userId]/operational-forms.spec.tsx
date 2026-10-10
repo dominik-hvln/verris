@@ -11,6 +11,7 @@ jest.mock("next/cache", () => ({ revalidatePath: jest.fn() }));
 // PB-47: przełącznik „konto wewnętrzne” pyta o uprawnienie — tu administrator (dozwolone).
 jest.mock("./konto-wewnetrzne-actions", () => ({ mozeOznaczacKontoWewnetrzne: jest.fn(async () => true) }));
 jest.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => undefined, push: () => undefined }) }));
+jest.mock("@/lib/wnioski-actions", () => ({ zlozWniosekAction: jest.fn(async () => ({ ok: true })) }));
 jest.mock("../actions", () => ({
   patchCustomerOperationalAction: jest.fn(async () => ({ ok: true })),
   changeCustomerEmailAction: jest.fn(),
@@ -20,7 +21,7 @@ jest.mock("../actions", () => ({
 
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { patchCustomerOperationalAction } from "../actions";
+import { patchCustomerOperationalAction, resetCustomerPasswordAction } from "../actions";
 import type { AdminCustomerOperationalDetail } from "../data";
 import { CustomerOperationalForms } from "./operational-forms";
 
@@ -103,5 +104,51 @@ describe("PB-46 formularz admina — zapis tylko zmienionych pól", () => {
   it("opis blokady mówi prawdę: wejście na konto zablokowanego klienta też nie zadziała", () => {
     expect(sekcja().textContent).not.toContain("nadal działa");
     expect(sekcja().textContent).toContain("wejście na jego konto z panelu też nie zadziała");
+  });
+});
+
+/** D9 (10.10) — e-mail i hasło: L3 (CUSTOMERS_MANAGE) bezpośrednio, L1/L2 „Wyślij wniosek”; hasła nikt nie widzi. */
+describe("D9 — zmiana e-maila i reset hasła na karcie klienta", () => {
+  const L1 = { isAdmin: false, permissions: ["CUSTOMERS_VIEW"] };
+  const L3 = { isAdmin: false, permissions: ["CUSTOMERS_VIEW", "CUSTOMERS_MANAGE"] };
+  const render = async (dostep: { isAdmin: boolean; permissions: string[] }) => {
+    act(() => root.unmount());
+    root = createRoot(k);
+    await act(async () => root.render(<CustomerOperationalForms detail={DETAIL} dostep={dostep} />));
+  };
+  const s = (id: string) => k.querySelector(`[data-karta="${id}"]`)!;
+  const przyciski = (id: string) => [...s(id).querySelectorAll("button")].map((b) => b.textContent?.trim());
+
+  it("L1: zamiast zmiany e-maila i resetu — „Wyślij wniosek”; blokada wyszarzona; bez usunięcia konta", async () => {
+    await render(L1);
+    expect(s("email").querySelector('[data-wniosek="CUSTOMER_EMAIL_CHANGE"]')).not.toBeNull();
+    expect(przyciski("email")).not.toContain("Zmień e-mail");
+    expect(s("reset").querySelector('[data-wniosek="CUSTOMER_PASSWORD_RESET"]')).not.toBeNull();
+    expect(przyciski("reset").some((t) => t?.includes("Wyślij link"))).toBe(false);
+    expect(s("blokada").querySelector("button")!.hasAttribute("disabled")).toBe(true);
+    expect(k.querySelector('[data-karta="usuniecie"]')).toBeNull();
+  });
+
+  it("L3: wykonuje sam — link do klienta, bez hasła na ekranie; usunięcie konta nadal tylko administrator", async () => {
+    await render(L3);
+    expect(s("reset").querySelector("[data-wniosek]")).toBeNull();
+    const reset = resetCustomerPasswordAction as jest.Mock;
+    reset.mockResolvedValue({ ok: true, linkWyslany: true, email: "anna@test.pl" });
+    const pole = s("reset").querySelector("input")!;
+    act(() => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(pole, "zgłoszenie #12");
+      pole.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    const przycisk = [...s("reset").querySelectorAll("button")].find((b) => b.textContent?.includes("Wyślij link"))!;
+    await act(async () => przycisk.click());
+    expect(reset).toHaveBeenCalledWith(UID, "zgłoszenie #12");
+    expect(s("reset").textContent).toContain("Link do ustawienia hasła wysłany na anna@test.pl.");
+    expect(s("reset").textContent).not.toMatch(/Hasło jednorazowe/);
+    expect(k.querySelector('[data-karta="usuniecie"]')).toBeNull();
+  });
+
+  it("administrator widzi usunięcie konta", async () => {
+    await render({ isAdmin: true, permissions: [] });
+    expect(k.querySelector('[data-karta="usuniecie"]')).not.toBeNull();
   });
 });

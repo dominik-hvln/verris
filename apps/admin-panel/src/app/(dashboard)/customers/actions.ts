@@ -172,12 +172,12 @@ export async function patchCustomerOperationalAction(
 export async function changeCustomerEmailAction(
   userId: string,
   newEmail: string,
-  reason?: string,
+  reason: string,
 ): Promise<ActionResultOk | ActionResultErr> {
   try {
     await adminApi(`/admin/users/${userId}/email`, {
       method: "POST",
-      body: { newEmail: newEmail.trim(), reason: reason?.trim() || undefined },
+      body: { newEmail: newEmail.trim(), reason: reason.trim() },
     });
   } catch (err) {
     if (err instanceof AdminApiError) {
@@ -190,22 +190,19 @@ export async function changeCustomerEmailAction(
   return { ok: true };
 }
 
+/** D9/D3 — reset hasła: klient dostaje link, operator hasła nie widzi. */
 export async function resetCustomerPasswordAction(
   userId: string,
-  notifyUser: boolean,
-  reason?: string,
-): Promise<
-  | { ok: true; temporaryPassword: string }
-  | ActionResultErr
-> {
+  reason: string,
+): Promise<{ ok: true; linkWyslany: boolean; email: string } | ActionResultErr> {
   try {
-    const res = await adminApi<{ temporaryPassword: string }>(`/admin/users/${userId}/reset-password`, {
+    const res = await adminApi<{ linkWyslany: boolean; email: string }>(`/admin/users/${userId}/reset-password`, {
       method: "POST",
-      body: { notifyUser, reason: reason?.trim() || undefined },
+      body: { reason: reason.trim() },
     });
     revalidatePath("/customers");
     revalidatePath(`/customers/${userId}`);
-    return { ok: true, temporaryPassword: res.temporaryPassword };
+    return { ok: true, linkWyslany: res.linkWyslany, email: res.email };
   } catch (err) {
     if (err instanceof AdminApiError) {
       return { ok: false, error: err.message };
