@@ -20,11 +20,12 @@ export class MigrationsAdminController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  async list(@Query('status') status?: string) {
-    const where =
-      status && (Object.values(MigrationStatus) as string[]).includes(status)
-        ? { status: status as MigrationStatus }
-        : {};
+  async list(@Query('status') status?: string, @Query('subscriptionId') subscriptionId?: string) {
+    const where = {
+      ...(status && (Object.values(MigrationStatus) as string[]).includes(status) ? { status: status as MigrationStatus } : {}),
+      // Karta usługi (plan E, patch 9): zlecenia tej usługi z ponowieniem kroku i „rozwiąż uwagę”.
+      ...(subscriptionId?.trim() ? { subscriptionId: subscriptionId.trim() } : {}),
+    };
     const rows = await this.prisma.migrationRequest.findMany({
       where,
       // Eskalacje („Pilne”) zawsze na górze kolejki staffa.

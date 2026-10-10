@@ -86,3 +86,31 @@ describe('ProvisioningQueueService.retryJob — ponowienie przez admina (Z-18, t
     expect(job.retry).toHaveBeenCalledWith('failed', { resetAttemptsMade: true, resetAttemptsStarted: true });
   });
 });
+
+describe('ProvisioningQueueService.listJobs — joby jednej usługi (karta usługi, plan E patch 9)', () => {
+  function kolejka(joby: Record<string, { state: string; data: Record<string, unknown>; failedReason?: string }>) {
+    const prisma = { subscription: { findUnique: vi.fn(async () => null) } };
+    const svc = new ProvisioningQueueService(prisma as never, {} as never, {} as never, {} as never, {} as never);
+    const getJobs = vi.fn(async () => []);
+    const getJob = vi.fn(async (id: string) => {
+      const j = joby[id];
+      return j ? { id, name: 'provision', timestamp: 1, attemptsMade: 3, failedReason: j.failedReason, data: j.data, getState: async () => j.state } : undefined;
+    });
+    (svc as unknown as { queue: unknown }).queue = { getJob, getJobs, getJobCounts: vi.fn(async () => ({})) };
+    return { svc, getJob, getJobs };
+  }
+
+  it('szuka po id `<typ>-<subscriptionId>`, bez przeglądania 50 ostatnich w każdym stanie', async () => {
+    const k = kolejka({ 'stripe-s1': { state: 'failed', data: { type: 'stripe', subscriptionId: 's1', userId: 'u1' }, failedReason: 'węzeł nie odpowiada' } });
+    const r = await k.svc.listJobs({ subscriptionId: 's1' });
+    expect(k.getJob.mock.calls.map((c) => c[0])).toEqual(['wallet-s1', 'manual-s1', 'stripe-s1']);
+    expect(k.getJobs).not.toHaveBeenCalled();
+    expect(r.rows).toEqual([expect.objectContaining({ id: 'stripe-s1', state: 'failed', failedReason: 'węzeł nie odpowiada' })]);
+  });
+
+  it('z filtrem stanu — tylko joby w tym stanie', async () => {
+    const k = kolejka({ 'wallet-s1': { state: 'completed', data: { type: 'wallet', subscriptionId: 's1', userId: 'u1' } } });
+    expect((await k.svc.listJobs({ subscriptionId: 's1', state: 'failed' })).rows).toEqual([]);
+    expect((await k.svc.listJobs({ subscriptionId: 's1' })).rows).toHaveLength(1);
+  });
+});

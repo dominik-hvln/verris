@@ -31,7 +31,7 @@ export class ProvisioningQueueAdminController {
 
   @Get()
   @HttpCode(200)
-  async list(@Query('state') state?: string) {
+  async list(@Query('state') state?: string, @Query('subscriptionId') subscriptionId?: string) {
     let parsed: AllowedState | undefined;
     if (state) {
       const lower = state.toLowerCase();
@@ -52,7 +52,8 @@ export class ProvisioningQueueAdminController {
     }
     return {
       async: true,
-      ...(await this.queue.listJobs({ state: parsed })),
+      // Karta usługi: joby tej jednej usługi (Ponów / Odrzuć bez szukania w kolejce).
+      ...(await this.queue.listJobs({ state: parsed, subscriptionId: subscriptionId?.trim() || undefined })),
     };
   }
 

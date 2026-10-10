@@ -26,6 +26,8 @@ interface Props {
   ticketId: string | null;
   needsAttention: boolean;
   jobs: JobLite[];
+  /** Na karcie usługi link „Otwórz usługę” prowadziłby w to samo miejsce. */
+  naKarcieUslugi?: boolean;
 }
 
 interface DetailJob extends JobLite {
@@ -33,7 +35,7 @@ interface DetailJob extends JobLite {
   workerId: string | null;
 }
 
-export function MigrationRowActions({ migrationId, subscriptionId, ticketId, needsAttention, jobs }: Props) {
+export function MigrationRowActions({ migrationId, subscriptionId, ticketId, needsAttention, jobs, naKarcieUslugi }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
@@ -105,9 +107,11 @@ export function MigrationRowActions({ migrationId, subscriptionId, ticketId, nee
             Ticket
           </a>
         ) : null}
-        <Link href={`/subscriptions/${subscriptionId}`} className="text-xs text-indigo-400 hover:underline">
-          Otwórz usługę
-        </Link>
+        {naKarcieUslugi ? null : (
+          <Link href={`/subscriptions/${subscriptionId}`} className="text-xs text-indigo-400 hover:underline">
+            Otwórz usługę
+          </Link>
+        )}
       </div>
 
       {msg ? <p className="text-right text-xs text-rose-300">{msg}</p> : null}

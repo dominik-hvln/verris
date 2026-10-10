@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { listProvisioningQueue, listNodeTasks } from "./data";
 import { RetryButton } from "./retry-button";
 import { OdrzucButton } from "./odrzuc-button";
@@ -99,7 +100,7 @@ export default async function ProvisioningQueuePage({
               <thead className="border-b border-white/10 text-left text-xs uppercase tracking-widest text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3">ID zadania</th>
-                  <th className="px-4 py-3">Subskrypcja</th>
+                  <th className="px-4 py-3">Usługa</th>
                   <th className="px-4 py-3">Typ</th>
                   <th className="px-4 py-3">Stan</th>
                   <th className="px-4 py-3">Próby</th>
@@ -127,16 +128,19 @@ export default async function ProvisioningQueuePage({
                       <td className="px-4 py-3 font-mono text-xs">{row.id}</td>
                       <td className="px-4 py-3">
                         <div>
-                          <p className="font-mono text-xs">{row.data.subscriptionId}</p>
-                          <p className="text-[11px] text-muted-foreground">
+                          <Link href={`/subscriptions/${row.data.subscriptionId}`} className="font-semibold hover:underline">
                             {row.data.domain || "(bez domeny)"}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
+                          </Link>
+                          <p className="font-mono text-[11px] text-muted-foreground">{row.data.subscriptionId}</p>
+                          <Link href={`/customers/${row.data.userId}`} className="block text-[11px] text-muted-foreground hover:underline">
                             {row.subscription?.user.email ?? row.data.userId}
-                          </p>
+                          </Link>
                           {row.subscription?.account && (
                             <p className="text-[11px] text-muted-foreground">
-                              DA: {row.subscription.account.daUsername} / node {row.subscription.account.serverId}
+                              DA: {row.subscription.account.daUsername} ·{" "}
+                              <Link href={`/nodes/${row.subscription.account.serverId}`} className="hover:underline">
+                                węzeł
+                              </Link>
                             </p>
                           )}
                         </div>

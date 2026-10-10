@@ -43,6 +43,8 @@ export type ProvisionJobData =
     };
 
 const QUEUE_NAME = 'provisioning';
+/** Prefiks id joba = `type` z ProvisionJobData (enqueueWallet/Manual/Stripe: `<typ>-<subscriptionId>`). */
+const TYPY_JOBA: readonly ProvisionJobData['type'][] = ['wallet', 'manual', 'stripe'];
 const MAX_ATTEMPTS = 3;
 // Z-18 (t1 03.10): przy 5 s jedno odrzucone połączenie z DA spalało wszystkie 3 próby w 15 s — bezpiecznik
 // węzła (libs/directadmin-sdk node-circuit, NODE_DOWN_MS = 2 min) odrzucał próby 2 i 3 bez łączenia się
@@ -224,19 +226,38 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
   // Sprint 5 — admin operations
   // ---------------------------------------------------------------------------
 
-  async listJobs(opts: { state?: 'failed' | 'completed' | 'active' | 'waiting' | 'delayed' } = {}) {
+  async listJobs(
+    opts: { state?: 'failed' | 'completed' | 'active' | 'waiting' | 'delayed'; subscriptionId?: string } = {},
+  ) {
     if (!this.queue) return { rows: [], counts: {} };
     const states = opts.state
       ? [opts.state]
       : (['active', 'waiting', 'delayed', 'failed', 'completed'] as const);
-    const counts = await this.queue.getJobCounts(...states);
     const jobs: Job<ProvisionJobData>[] = [];
+    if (opts.subscriptionId) {
+      // Karta usługi (plan E, patch 9): id joba to `<typ>-<subscriptionId>` (enqueue*), więc wprost, bez
+      // przeglądania 50 ostatnich w każdym stanie — stary job nie wypada z widoku karty.
+      const id = opts.subscriptionId;
+      const znalezione = await Promise.all(TYPY_JOBA.map((t) => this.queue!.getJob(`${t}-${id}`)));
+      for (const job of znalezione) {
+        if (job && (!opts.state || (await job.getState()) === opts.state)) jobs.push(job);
+      }
+      return { counts: {}, rows: await this.wierszeJobow(jobs) };
+    }
+    const counts = await this.queue.getJobCounts(...states);
     for (const state of states) {
       const list = await this.queue.getJobs([state], 0, 50, false);
       jobs.push(...list);
     }
+    return {
+      counts,
+      rows: await this.wierszeJobow(jobs),
+    };
+  }
+
+  private async wierszeJobow(jobs: Job<ProvisionJobData>[]) {
     jobs.sort((a, b) => Number(b.timestamp ?? 0) - Number(a.timestamp ?? 0));
-    const rows = await Promise.all(
+    return Promise.all(
       jobs.slice(0, 100).map(async (job) => {
         const state = await job.getState();
         const sub = await this.prisma.subscription.findUnique({
@@ -274,10 +295,6 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
         };
       }),
     );
-    return {
-      counts,
-      rows,
-    };
   }
 
   async retryJob(

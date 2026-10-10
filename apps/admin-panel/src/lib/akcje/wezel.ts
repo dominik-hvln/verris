@@ -255,16 +255,20 @@ export interface DostepDoAkcji {
   permissions: string[];
 }
 
-/** Tekst dymka przy wyszarzonym działaniu; null — operator może je wykonać. */
-export function brakUprawnienia(perm: string, dostep: DostepDoAkcji): string | null {
+/**
+ * Tekst dymka przy wyszarzonym działaniu; null — operator może je wykonać. Lista — wystarcza którekolwiek
+ * (jak @StaffPermAny w API).
+ */
+export function brakUprawnienia(perm: string | readonly string[], dostep: DostepDoAkcji): string | null {
   if (dostep.isAdmin) return null;
-  if (perm === "ADMIN") return "Wymaga roli administratora";
-  return dostep.permissions.includes(perm) ? null : `Wymaga ${perm}`;
+  const lista = typeof perm === "string" ? [perm] : perm;
+  if (lista.includes("ADMIN")) return "Wymaga roli administratora";
+  return lista.some((p) => dostep.permissions.includes(p)) ? null : `Wymaga ${lista.join(" lub ")}`;
 }
 
 export interface DzialanieNaKarcie {
   id: string;
-  grupa: GrupaAkcji;
+  grupa: string;
   nazwa: string;
   opis: string;
   href: string;
@@ -272,6 +276,10 @@ export interface DzialanieNaKarcie {
   slowa: string;
   /** Działanie wyszarzone — powód (dymek); null, gdy dostępne. */
   zablokowane: string | null;
+  /** Bez uprawnień można wysłać wniosek (WYMAGA_WNIOSKU) — pozycja prowadzi do formularza z „Wyślij wniosek”. */
+  wniosek?: boolean;
+  /** Prowadzi poza panel admina (panel obsługi) — otwiera się w nowej karcie. */
+  zewnetrzny?: boolean;
 }
 
 /** Działania dostępne dla węzła w danym stanie; bez uprawnień — wyszarzone, nie ukryte (decyzja 10.10). */

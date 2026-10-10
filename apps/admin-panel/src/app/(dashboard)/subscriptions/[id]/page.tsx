@@ -1,7 +1,19 @@
 import Link from "next/link";
 import { adminApi } from "@/lib/api";
-import { canAccess, fetchStaffAccess, type StaffAccess } from "@/lib/staff-access";
+import { fetchStaffAccess, type StaffAccess } from "@/lib/staff-access";
+import { stanUslugi } from "@/lib/stan-uslugi";
+import { plForm } from "@/lib/pl";
+import { Okruszek } from "@/components/admin-shell";
+import { DzialaniaKarty } from "@/components/dzialania-karty";
+import { Eyebrow, KARTA, NaglowekKarty, Pigulka, WIERSZ, Zakladki } from "@/components/v2";
+import { dzialaniaObiektu } from "@/lib/akcje/rejestr";
+import { AKCJE_USLUGI, SEKCJE_USLUGI, type SekcjaUslugi, type UslugaDlaAkcji } from "@/lib/akcje/usluga";
 import { listAdminPlans } from "../../plans/data";
+import type { ProvisioningJobRow } from "../../provisioning-queue/data";
+import { RetryButton } from "../../provisioning-queue/retry-button";
+import { OdrzucButton } from "../../provisioning-queue/odrzuc-button";
+import { MigrationRowActions } from "../../migrations/migration-row-actions";
+import { statusPl } from "../../migrations/status-pl";
 import { InternalMigrationForm } from "./internal-migration-form";
 import { PlanChangeForm } from "./plan-change-form";
 import { ServiceUsagePanel } from "./usage-panel";
@@ -36,203 +48,331 @@ type SubscriptionDetail = {
 };
 
 type AdminServerRow = { id: string; name: string | null; region: string | null; status: string };
-type MigrationRow = { id: string; type: string; createdAt: string; details: Record<string, unknown> | null };
+type MigrationEvent = { id: string; type: string; createdAt: string; details: Record<string, unknown> | null };
+type ZlecenieMigracji = {
+  id: string;
+  subscriptionId: string;
+  status: string;
+  targetDomain: string | null;
+  needsAttention: boolean;
+  attentionReason: string | null;
+  ticketId: string | null;
+  lastError: string | null;
+  createdAt: string;
+  jobs: Array<{ id: string; kind: string; status: string; attempts: number; maxAttempts: number; sequence: number; lastError: string | null }>;
+};
 
-export default async function AdminSubscriptionDetailPage({ params }: { params: Promise<{ id: string }> }) {
+const data = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("pl-PL") : "—");
+const kiedy = (iso: string) => new Date(iso).toLocaleString("pl-PL");
+
+/**
+ * Karta usługi (plan E, patch 9) — zakładki v2 jak karta węzła i klienta, sekcja „Działania” z rejestru
+ * lib/akcje/usluga.ts. Ponów / Odrzuć zakładanie (wcześniej tylko w Kolejce zadań) i zlecenia migracji z
+ * ponowieniem kroku (wcześniej tylko w Migracjach) są na karcie; klient, węzeł i migracje — linkami.
+ */
+export default async function AdminSubscriptionDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ sekcja?: string }>;
+}) {
   const { id } = await params;
+  const q = (await searchParams) ?? {};
+  const sekcja: SekcjaUslugi = SEKCJE_USLUGI.some((s) => s.klucz === q.sekcja) ? (q.sekcja as SekcjaUslugi) : "przeglad";
+
   let detail: SubscriptionDetail | null = null;
-  let servers: AdminServerRow[] = [];
-  let migrations: MigrationRow[] = [];
-  let plans: Awaited<ReturnType<typeof listAdminPlans>> = [];
   let access: StaffAccess | null = null;
-  let error: string | null = null;
   try {
-    [detail, servers, migrations, plans, access] = await Promise.all([
-      adminApi<SubscriptionDetail>(`/admin/subscriptions/${id}`),
-      adminApi<AdminServerRow[]>("/admin/servers"),
-      adminApi<MigrationRow[]>(`/admin/subscriptions/${id}/migrations`),
-      listAdminPlans(),
-      fetchStaffAccess(),
-    ]);
+    [detail, access] = await Promise.all([adminApi<SubscriptionDetail>(`/admin/subscriptions/${id}`), fetchStaffAccess()]);
   } catch {
-    error = "Nie udało się wczytać subskrypcji (sprawdź ID i sesję).";
+    detail = null;
+  }
+  if (!detail || !access) {
+    return (
+      <div className="flex flex-col gap-4">
+        <Link href="/subscriptions" className="text-xs text-muted-foreground hover:text-foreground">
+          ← Usługi
+        </Link>
+        <p className="text-sm text-crit">Nie udało się wczytać usługi (sprawdź ID i sesję).</p>
+      </div>
+    );
   }
 
+  const d = detail;
+  const zakladanieNieudane = d.status === "PROVISIONING" && d.provisioningStage === "failed";
+  const wezel = d.account?.server ?? null;
+  const usluga: UslugaDlaAkcji = { id: d.id, status: d.status, zakladanieNieudane, maKonto: !!d.account, klientId: d.user.id, wezelId: wezel?.id ?? null };
+  const baza = `/subscriptions/${d.id}`;
+  const nazwa = d.account?.domain ?? d.serviceTag ?? d.plan.name;
+  const stan = stanUslugi(d.status, d.provisioningStage);
+  const zakonczona = d.status === "CANCELED" || d.status === "EXPIRED";
+  const kontoZostalo = !!d.account && d.account.status !== "DELETED";
+
+  // Dane tylko dla otwartej zakładki; brak uprawnienia (403) = null — sekcja mówi, czego brakuje.
+  const [joby, zlecenia, przebieg, servers, plans] = await Promise.all([
+    sekcja === "przeglad" && zakladanieNieudane
+      ? adminApi<{ rows?: ProvisioningJobRow[] }>(`/admin/provisioning-queue?subscriptionId=${encodeURIComponent(d.id)}`).then((r) => r?.rows ?? [], () => null)
+      : [],
+    sekcja === "migracje"
+      ? adminApi<{ rows?: ZlecenieMigracji[] }>(`/admin/migrations?subscriptionId=${encodeURIComponent(d.id)}`).then((r) => r?.rows ?? [], () => null)
+      : [],
+    sekcja === "migracje" ? adminApi<MigrationEvent[]>(`/admin/subscriptions/${d.id}/migrations`).then((r) => (Array.isArray(r) ? r : []), () => []) : [],
+    sekcja === "migracje" || sekcja === "kopie" ? adminApi<AdminServerRow[]>("/admin/servers").then((r) => (Array.isArray(r) ? r : []), () => []) : [],
+    sekcja === "operacje" ? listAdminPlans().catch(() => []) : [],
+  ]);
+  const aktywne = servers.filter((s) => s.status === "ACTIVE");
+
   return (
-    <div className="space-y-4">
-      <Link href="/subscriptions" className="text-xs text-muted-foreground hover:text-white">
-        ← Lista subskrypcji
-      </Link>
-      <h1 className="text-[28px] lg:text-[34px]">Subskrypcja</h1>
-      {error ? (
-        <p className="text-rose-300 text-sm">{error}</p>
-      ) : !detail ? (
-        <p className="text-muted-foreground text-sm">Brak danych.</p>
-      ) : (
-        <div className="space-y-4">
-          <div className="rounded-xl border border-white/10 bg-black/35 p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-muted-foreground">Klient</p>
-              <p className="text-white">{detail.user.email}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Status</p>
-              <p className="text-white">
-                {detail.status}
-                {detail.status === "PROVISIONING" && detail.provisioningStage === "failed" ? (
-                  <span className="ml-2 text-rose-300">— zakładanie nieudane (szczegóły w Kolejce zakładania)</span>
-                ) : null}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Plan</p>
-              <p className="text-white">{detail.plan.name} ({detail.plan.slug})</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Usługa (ID)</p>
-              <p className="font-mono text-white">{detail.serviceTag ?? detail.account?.daUsername ?? "—"}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Cena</p>
-              <p className="text-white">{detail.priceAmount} {detail.currency} / {detail.interval}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Okres</p>
-              <p className="text-white">
-                {detail.currentPeriodStart ? new Date(detail.currentPeriodStart).toLocaleDateString("pl-PL") : "—"} -{" "}
-                {detail.currentPeriodEnd ? new Date(detail.currentPeriodEnd).toLocaleDateString("pl-PL") : "—"}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Konto hostingowe</p>
-              <p className="text-white">
-                {detail.account ? `${detail.account.domain} (${detail.account.daUsername})` : "Brak konta"}
-              </p>
-              {/* Operator bez MIGRATIONS_MANAGE nie dostanie przycisku, który prowadzi tylko do odmowy (API i tak egzekwuje). */}
-              {detail.account && access && canAccess(access, "MIGRATIONS_MANAGE") ? (
-                <Link
-                  href={`/migrations/za-klienta?subscriptionId=${detail.id}`}
-                  className="mt-2 inline-block rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-3 py-1.5 text-xs font-semibold text-indigo-100 hover:bg-indigo-500/20"
-                >
-                  Migracja za klienta
+    <div className="flex flex-col gap-5">
+      <Okruszek tekst={nazwa} />
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <Eyebrow>
+            Usługa · {d.plan.name}
+            {d.serviceTag ? ` · ${d.serviceTag}` : ""}
+          </Eyebrow>
+          <h1 className="break-all text-[28px] lg:text-[34px]">{nazwa}</h1>
+          <div className="flex flex-wrap items-center gap-2 text-sm text-verris-body">
+            <Pigulka ton={stan.ton} className="!text-xs">
+              {stan.t}
+            </Pigulka>
+            <Link href={`/customers/${d.user.id}`} className="font-mono hover:underline">
+              {d.user.email}
+            </Link>
+            {wezel ? (
+              <Link href={`/nodes/${wezel.id}`} className="text-muted-foreground hover:underline">
+                · węzeł {wezel.name ?? wezel.id.slice(0, 8)}
+              </Link>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <Zakladki
+        etykieta="Sekcje usługi"
+        pozycje={SEKCJE_USLUGI.map((s) => ({ nazwa: s.nazwa, href: s.klucz === "przeglad" ? baza : `${baza}?sekcja=${s.klucz}`, on: s.klucz === sekcja }))}
+      />
+
+      {sekcja === "przeglad" ? (
+        <>
+          <section className={`${KARTA} grid grid-cols-1 gap-4 p-5 text-sm md:grid-cols-2`} aria-label="Dane usługi">
+            <Para k="Klient">
+              <Link href={`/customers/${d.user.id}`} className="font-mono hover:underline">
+                {d.user.email}
+              </Link>
+            </Para>
+            <Para k="Stan">{stan.t}</Para>
+            <Para k="Plan">
+              {d.plan.name} ({d.plan.slug})
+            </Para>
+            <Para k="Usługa (ID)">
+              <span className="font-mono">{d.serviceTag ?? d.account?.daUsername ?? "—"}</span>
+            </Para>
+            <Para k="Cena">
+              {d.priceAmount} {d.currency} / {d.interval}
+            </Para>
+            <Para k="Okres">
+              {data(d.currentPeriodStart)} – {data(d.currentPeriodEnd)}
+            </Para>
+            <Para k="Konto hostingowe">{d.account ? `${d.account.domain} (${d.account.daUsername})` : "Brak konta"}</Para>
+            <Para k="Węzeł">
+              {wezel ? (
+                <Link href={`/nodes/${wezel.id}`} className="hover:underline">
+                  {wezel.name ?? wezel.id.slice(0, 8)}
+                  {wezel.region ? ` · ${wezel.region}` : ""}
                 </Link>
-              ) : null}
-            </div>
-          </div>
+              ) : (
+                "—"
+              )}
+            </Para>
+          </section>
 
-          <DiagnosticsPanel subscriptionId={detail.id} />
+          {zakladanieNieudane ? <ZakladaniePanel joby={joby} /> : null}
 
-          {detail.account ? <KontoKlientaPanel subscriptionId={detail.id} /> : null}
+          <DzialaniaKarty id="dzialania-uslugi" dzialania={dzialaniaObiektu(AKCJE_USLUGI, usluga, access)} />
+        </>
+      ) : null}
 
-          <div className={`rounded-xl border p-4 ${detail.status === "SUSPENDED" ? "border-amber-500/30 bg-amber-500/5" : "border-rose-500/20 bg-rose-500/5"}`}>
-            <h2 className="text-sm font-semibold text-white mb-3">
-              {detail.status === "SUSPENDED" ? "Usługa zawieszona — odwieszenie (A‑26)" : "Zawieszenie usługi (A‑25)"}
-            </h2>
-            <SuspendForm subscriptionId={detail.id} status={detail.status} domain={detail.account?.domain ?? null} />
-          </div>
+      {sekcja === "konto" ? (
+        <>
+          <section id="diagnostyka" className="scroll-mt-24">
+            <DiagnosticsPanel subscriptionId={d.id} />
+          </section>
+          {d.account ? (
+            <section id="konto-klienta" className="scroll-mt-24">
+              <KontoKlientaPanel subscriptionId={d.id} />
+            </section>
+          ) : (
+            <p className="text-sm text-muted-foreground">Usługa nie ma konta hostingowego.</p>
+          )}
+          {d.account ? <ServiceUsagePanel subscriptionId={d.id} /> : null}
+        </>
+      ) : null}
 
-          {(() => {
-            const zakonczona = detail.status === "CANCELED" || detail.status === "EXPIRED";
-            const kontoZostalo = !!detail.account && detail.account.status !== "DELETED";
-            if (zakonczona && !kontoZostalo) return null;
-            return (
-              <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-4">
-                <h2 className="text-sm font-semibold text-white mb-1">
-                  {kontoZostalo ? "Zakończenie usługi i usunięcie konta" : "Zakończenie usługi"}
-                </h2>
-                <p className="text-xs text-muted-foreground mb-3">
-                  {zakonczona
-                    ? "Usługa jest już zakończona — konto zostanie usunięte automatycznie 14 dni po zakończeniu. Tutaj usuniesz je od razu."
-                    : "Bez czekania na koniec okresu i bez 14 dni retencji. Płatność cykliczna kartą jest anulowana."}
-                </p>
-                <ZakonczIUsunForm
-                  subscriptionId={detail.id}
-                  confirmText={detail.account?.domain ?? detail.serviceTag ?? detail.id}
-                  hasAccount={kontoZostalo}
-                />
-              </div>
-            );
-          })()}
-
-          {detail.account ? <ServiceUsagePanel subscriptionId={detail.id} /> : null}
-
-          {detail.account ? (
-            <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-4">
-              <h2 className="text-sm font-semibold text-white mb-3">Odtworzenie konta z kopii (H‑18)</h2>
-              <RestorePanel subscriptionId={detail.id} domain={detail.account.domain} />
-            </div>
-          ) : null}
-
-          {detail.status === "ACTIVE" && detail.account ? (
-            <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-4">
-              <h2 className="text-sm font-semibold text-white mb-3">Zmiana planu (PC‑3)</h2>
+      {sekcja === "operacje" ? (
+        <>
+          <Sekcja id="zawieszenie" tytul={d.status === "SUSPENDED" ? "Odwieszenie usługi" : "Zawieszenie usługi"}>
+            <SuspendForm subscriptionId={d.id} status={d.status} domain={d.account?.domain ?? null} />
+          </Sekcja>
+          {zakonczona && !kontoZostalo ? null : (
+            <Sekcja id="zakonczenie" tytul={kontoZostalo ? "Zakończenie usługi i usunięcie konta" : "Zakończenie usługi"}>
+              <p className="text-xs text-muted-foreground">
+                {zakonczona
+                  ? "Usługa jest zakończona — konto zniknie samo po 14 dniach. Tu usuniesz je od razu."
+                  : "Bez czekania na koniec okresu i bez 14 dni retencji. Płatność cykliczna kartą jest anulowana."}
+              </p>
+              <ZakonczIUsunForm subscriptionId={d.id} confirmText={d.account?.domain ?? d.serviceTag ?? d.id} hasAccount={kontoZostalo} />
+            </Sekcja>
+          )}
+          {d.status === "ACTIVE" && d.account ? (
+            <Sekcja id="zmiana-planu" tytul="Zmiana planu">
               <PlanChangeForm
-                subscriptionId={detail.id}
-                currentPlanId={detail.plan.id}
-                currentPlanName={detail.plan.name}
+                subscriptionId={d.id}
+                currentPlanId={d.plan.id}
+                currentPlanName={d.plan.name}
                 plans={plans.filter((p) => p.isActive).map((p) => ({ id: p.id, name: p.name, slug: p.slug }))}
                 isAdmin
               />
-            </div>
+            </Sekcja>
           ) : null}
+        </>
+      ) : null}
 
-          <div id="migracja-wewnetrzna" className="rounded-xl border border-white/10 bg-black/35 p-4">
-            <h2 className="text-sm font-semibold text-white mb-3">Migracja wewnętrzna (G‑7)</h2>
-            <InternalMigrationForm
-              subscriptionId={detail.id}
-              currentServerId={detail.account?.server?.id ?? null}
-              servers={servers.filter((s) => s.status === "ACTIVE")}
-            />
-          </div>
+      {sekcja === "migracje" ? (
+        <>
+          <section id="zlecenia-migracji" className={`${KARTA} scroll-mt-24`} aria-labelledby="zlecenia-migracji-naglowek">
+            <NaglowekKarty id="zlecenia-migracji-naglowek" tytul="Zlecenia migracji">
+              {d.account && canMigrate(access) ? (
+                <Link href={`/migrations/za-klienta?subscriptionId=${d.id}`} className="ml-auto text-[13px] font-semibold text-data-hi hover:underline">
+                  Migracja za klienta
+                </Link>
+              ) : null}
+            </NaglowekKarty>
+            {zlecenia === null ? (
+              <div className={`${WIERSZ} text-sm text-muted-foreground`}>Wymaga MIGRATIONS_MANAGE.</div>
+            ) : zlecenia.length === 0 ? (
+              <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak zleceń migracji.</div>
+            ) : (
+              zlecenia.map((m) => (
+                <div key={m.id} className={`${WIERSZ} flex-wrap items-start`} data-migracja={m.id}>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <Link href={`/migrations/${m.id}`} className="font-semibold hover:underline">
+                      {m.targetDomain ?? m.id.slice(0, 8)}
+                    </Link>
+                    <span className="text-[12.5px] text-muted-foreground">
+                      {statusPl(m.status)} · {kiedy(m.createdAt)}
+                      {m.needsAttention && m.attentionReason ? ` · ${m.attentionReason}` : ""}
+                    </span>
+                    {m.lastError ? <span className="text-[12.5px] text-crit">{m.lastError}</span> : null}
+                  </div>
+                  <MigrationRowActions migrationId={m.id} subscriptionId={m.subscriptionId} ticketId={m.ticketId} needsAttention={m.needsAttention} jobs={m.jobs} naKarcieUslugi />
+                </div>
+              ))
+            )}
+          </section>
 
-          {detail.account ? (
-            <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-4">
-              <h2 className="text-sm font-semibold text-white mb-3">Odtworzenie na innym węźle — awaria węzła (H‑16)</h2>
-              <OdtworzenieNaWezlePanel
-                subscriptionId={detail.id}
-                domain={detail.account.domain}
-                currentServerId={detail.account.server?.id ?? null}
-                servers={servers.filter((s) => s.status === "ACTIVE")}
-              />
+          <Sekcja id="migracja-wewnetrzna" tytul="Migracja na inny węzeł">
+            <InternalMigrationForm subscriptionId={d.id} currentServerId={wezel?.id ?? null} servers={aktywne} />
+          </Sekcja>
+
+          <section className={KARTA} aria-labelledby="przebieg-migracji">
+            <NaglowekKarty id="przebieg-migracji" tytul="Przebieg migracji" />
+            {przebieg.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak zdarzeń migracji.</div> : null}
+            {przebieg.map((row) => (
+              <div key={row.id} className={WIERSZ}>
+                <span className="w-[150px] shrink-0 font-mono text-xs text-muted-foreground">{kiedy(row.createdAt)}</span>
+                <span className="flex-1 font-mono text-[13px]">{row.type}</span>
+                {row.details?.ticketId ? <span className="text-xs text-muted-foreground">zgłoszenie {String(row.details.ticketId).slice(0, 8)}</span> : null}
+              </div>
+            ))}
+          </section>
+        </>
+      ) : null}
+
+      {sekcja === "kopie" ? (
+        d.account ? (
+          <>
+            <Sekcja id="odtworzenie" tytul="Odtworzenie konta z kopii">
+              <RestorePanel subscriptionId={d.id} domain={d.account.domain} />
+            </Sekcja>
+            <Sekcja id="odtworzenie-na-wezle" tytul="Odtworzenie na innym węźle (awaria węzła)">
+              <OdtworzenieNaWezlePanel subscriptionId={d.id} domain={d.account.domain} currentServerId={wezel?.id ?? null} servers={aktywne} />
+            </Sekcja>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">Usługa nie ma konta hostingowego — nie ma czego odtwarzać.</p>
+        )
+      ) : null}
+
+      {sekcja === "zdarzenia" ? (
+        <section className={KARTA} aria-label="Ostatnie zdarzenia">
+          {d.events.length === 0 ? <div className={`${WIERSZ} !border-t-0 text-sm text-muted-foreground`}>Brak zdarzeń.</div> : null}
+          {d.events.map((e, i) => (
+            <div key={e.id} className={`${WIERSZ} ${i === 0 ? "!border-t-0" : ""}`}>
+              <span className="w-[150px] shrink-0 font-mono text-xs text-muted-foreground">{kiedy(e.createdAt)}</span>
+              <span className="flex-1 font-mono text-[13px]">{e.type}</span>
             </div>
-          ) : null}
+          ))}
+        </section>
+      ) : null}
+    </div>
+  );
+}
 
-          <div className="rounded-xl border border-white/10 bg-black/35 p-4">
-            <h2 className="text-sm font-semibold text-white mb-3">Przebieg migracji</h2>
-            {migrations.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Brak zdarzeń migracji.</p>
-            ) : (
-              <div className="space-y-2">
-                {migrations.map((row) => (
-                  <div key={row.id} className="text-xs text-neutral-300 border-b border-white/5 pb-2">
-                    <p className="font-medium text-white">{row.type}</p>
-                    <p className="text-muted-foreground">{new Date(row.createdAt).toLocaleString("pl-PL")}</p>
-                    {row.details?.ticketId ? (
-                      <p className="text-neutral-400">Zgłoszenie: {String(row.details.ticketId)}</p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+const canMigrate = (a: StaffAccess) => a.isAdmin || a.permissions.includes("MIGRATIONS_MANAGE");
 
-          <div className="rounded-xl border border-white/10 bg-black/35 p-4">
-            <h2 className="text-sm font-semibold text-white mb-3">Ostatnie zdarzenia</h2>
-            {detail.events.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Brak zdarzeń.</p>
-            ) : (
-              <div className="space-y-2">
-                {detail.events.map((event) => (
-                  <div key={event.id} className="text-xs text-neutral-300 border-b border-white/5 pb-2">
-                    <p className="font-medium text-white">{event.type}</p>
-                    <p className="text-muted-foreground">{new Date(event.createdAt).toLocaleString("pl-PL")}</p>
-                  </div>
-                ))}
-              </div>
-            )}
+/** Ponów / Odrzuć zakładanie na karcie (wcześniej tylko w Kolejce zadań). null — brak PROVISIONING_MANAGE. */
+function ZakladaniePanel({ joby }: { joby: ProvisioningJobRow[] | null }) {
+  const nieudane = joby?.filter((j) => j.failedReason) ?? [];
+  return (
+    <section id="zakladanie" className={`${KARTA} scroll-mt-24 border-[color-mix(in_srgb,var(--crit)_40%,transparent)]`} aria-labelledby="zakladanie-naglowek">
+      <NaglowekKarty id="zakladanie-naglowek" tytul="Zakładanie konta nie powiodło się">
+        <Link href="/provisioning-queue?state=failed" className="ml-auto text-[13px] font-semibold text-data-hi hover:underline">
+          Kolejka zadań
+        </Link>
+      </NaglowekKarty>
+      {joby === null ? (
+        <div className={`${WIERSZ} text-sm text-muted-foreground`}>Ponowienie wymaga PROVISIONING_MANAGE.</div>
+      ) : nieudane.length === 0 ? (
+        <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak nieudanego zadania w kolejce — mogło zostać już odrzucone.</div>
+      ) : (
+        nieudane.map((j) => (
+          <div key={j.id} className={`${WIERSZ} flex-wrap items-start`} data-job={j.id}>
+            <div className="flex min-w-0 flex-1 flex-col">
+              <span className="text-sm text-crit [overflow-wrap:anywhere]">{j.failedReason}</span>
+              <span className="text-[12.5px] text-muted-foreground">
+                {j.attemptsMade} {plForm(j.attemptsMade, "próba", "próby", "prób")}
+                {j.failedCategory === "transient" ? " · błąd chwilowy" : j.failedCategory === "permanent" ? " · błąd trwały" : ""}
+              </span>
+            </div>
+            <div className="flex flex-col items-end gap-3">
+              <RetryButton jobId={j.id} />
+              <OdrzucButton jobId={j.id} />
+            </div>
           </div>
-        </div>
+        ))
       )}
+    </section>
+  );
+}
+
+function Sekcja({ id, tytul, children }: { id: string; tytul: string; children: React.ReactNode }) {
+  return (
+    <section id={id} className={`${KARTA} flex scroll-mt-24 flex-col gap-3 p-5`} aria-labelledby={`${id}-naglowek`}>
+      <h2 id={`${id}-naglowek`} className="font-display text-[17px] font-bold">
+        {tytul}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+function Para({ k, children }: { k: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-muted-foreground">{k}</span>
+      <span>{children}</span>
     </div>
   );
 }
