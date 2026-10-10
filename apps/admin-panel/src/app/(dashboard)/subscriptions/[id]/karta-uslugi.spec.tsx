@@ -8,7 +8,14 @@ import { join } from "node:path";
  */
 jest.mock("next/link", () => ({ __esModule: true, default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a> }));
 jest.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => undefined, push: () => undefined }), usePathname: () => "/" }));
-jest.mock("@/lib/api", () => ({ adminApi: jest.fn() }));
+jest.mock("@/lib/api", () => {
+  class AdminApiError extends Error {
+    constructor(message: string, public status: number) {
+      super(message);
+    }
+  }
+  return { AdminApiError, adminApi: jest.fn() };
+});
 jest.mock("../../plans/data", () => ({ listAdminPlans: jest.fn(async () => []) }));
 jest.mock("./internal-migration-form", () => ({ InternalMigrationForm: () => null }));
 jest.mock("./plan-change-form", () => ({ PlanChangeForm: () => null }));
@@ -19,7 +26,7 @@ jest.mock("./suspend-form", () => ({ SuspendForm: () => null, ZakonczIUsunForm: 
 jest.mock("./restore-panel", () => ({ RestorePanel: () => null }));
 jest.mock("./odtworzenie-na-wezle-panel", () => ({ OdtworzenieNaWezlePanel: () => null }));
 
-import { adminApi } from "@/lib/api";
+import { AdminApiError, adminApi } from "@/lib/api";
 import { AKCJE_USLUGI } from "@/lib/akcje/usluga";
 import KartaUslugi from "./page";
 
@@ -90,12 +97,28 @@ describe("karta usługi", () => {
       undefined,
       {
         [`/admin/subscriptions/${SUB}`]: usluga({ status: "PROVISIONING", provisioningStage: "failed" }),
-        [`/admin/provisioning-queue?subscriptionId=${SUB}`]: new Error("403"),
+        [`/admin/provisioning-queue?subscriptionId=${SUB}`]: new AdminApiError("Forbidden", 403),
       },
       { role: "STAFF", isAdmin: false, permissions: ["SUBSCRIPTIONS_MANAGE"] },
     );
     expect(html).toContain("Ponowienie wymaga PROVISIONING_MANAGE.");
     expect(html).toContain('title="Wymaga PROVISIONING_MANAGE"');
+  });
+
+  // Przegląd 1B-2 — awaria API (nie 403) to „Nie udało się wczytać”, nie „Wymaga …” u administratora.
+  it("awaria kolejki zakładania i listy zleceń migracji: komunikat z ponowieniem, nie „Wymaga …”", async () => {
+    const przeglad = await render(undefined, {
+      [`/admin/subscriptions/${SUB}`]: usluga({ status: "PROVISIONING", provisioningStage: "failed" }),
+      [`/admin/provisioning-queue?subscriptionId=${SUB}`]: new Error("ECONNREFUSED"),
+    });
+    expect(przeglad).toContain("Nie udało się wczytać zadania zakładania.");
+    expect(przeglad).not.toContain("Ponowienie wymaga PROVISIONING_MANAGE.");
+    const migracje = await render("migracje", {
+      [`/admin/subscriptions/${SUB}`]: usluga(),
+      [`/admin/migrations?subscriptionId=${SUB}`]: new Error("ECONNREFUSED"),
+    });
+    expect(migracje).toContain("Nie udało się wczytać zleceń migracji.");
+    expect(migracje).not.toContain("Wymaga MIGRATIONS_MANAGE.");
   });
 
   it("migracje: zlecenie z linkiem do /migrations/[id] i działaniami (wznów, ponów krok)", async () => {
@@ -133,7 +156,7 @@ describe("karta usługi", () => {
       undefined,
       {
         [`/admin/subscriptions/${SUB}`]: usluga({ status: "PROVISIONING", provisioningStage: "failed" }),
-        [`/admin/provisioning-queue?subscriptionId=${SUB}`]: new Error("403"),
+        [`/admin/provisioning-queue?subscriptionId=${SUB}`]: new AdminApiError("Forbidden", 403),
       },
       { role: "STAFF", isAdmin: false, permissions: ["SUBSCRIPTIONS_MANAGE"] },
     );

@@ -124,12 +124,15 @@ export default async function AdminSubscriptionDetailPage({
   // Dane tylko dla otwartej zakładki; brak uprawnienia (403) = null — sekcja mówi, czego brakuje.
   // Fala 1B — przebieg migracji, węzły i plany: 403 = pusta lista jak dotąd, inny błąd = null → „Nie udało się wczytać”.
   const odmowa = <T,>(pusta: T) => (e: unknown) => (e instanceof AdminApiError && e.status === 403 ? pusta : null);
+  // Przegląd 1B-2 — zakładanie i zlecenia migracji: 403 = null („Wymaga …”), inny błąd = "blad" („Nie udało się
+  // wczytać”); wcześniej awaria API mówiła administratorowi „Wymaga PROVISIONING_MANAGE / MIGRATIONS_MANAGE”.
+  const odmowaAlboBlad = (e: unknown) => (e instanceof AdminApiError && e.status === 403 ? null : ("blad" as const));
   const [joby, zlecenia, przebieg, servers, plans] = await Promise.all([
     sekcja === "przeglad" && zakladanieNieudane
-      ? adminApi<{ rows?: ProvisioningJobRow[] }>(`/admin/provisioning-queue?subscriptionId=${encodeURIComponent(d.id)}`).then((r) => r?.rows ?? [], () => null)
+      ? adminApi<{ rows?: ProvisioningJobRow[] }>(`/admin/provisioning-queue?subscriptionId=${encodeURIComponent(d.id)}`).then((r) => r?.rows ?? [], odmowaAlboBlad)
       : [],
     sekcja === "migracje"
-      ? adminApi<{ rows?: ZlecenieMigracji[] }>(`/admin/migrations?subscriptionId=${encodeURIComponent(d.id)}`).then((r) => r?.rows ?? [], () => null)
+      ? adminApi<{ rows?: ZlecenieMigracji[] }>(`/admin/migrations?subscriptionId=${encodeURIComponent(d.id)}`).then((r) => r?.rows ?? [], odmowaAlboBlad)
       : [],
     sekcja === "migracje" ? adminApi<MigrationEvent[]>(`/admin/subscriptions/${d.id}/migrations`).then((r) => (Array.isArray(r) ? r : []), odmowa<MigrationEvent[]>([])) : [],
     sekcja === "migracje" || sekcja === "kopie" ? adminApi<AdminServerRow[]>("/admin/servers").then((r) => (Array.isArray(r) ? r : []), odmowa<AdminServerRow[]>([])) : [],
@@ -271,7 +274,9 @@ export default async function AdminSubscriptionDetailPage({
                 </Link>
               ) : null}
             </NaglowekKarty>
-            {zlecenia === null ? (
+            {zlecenia === "blad" ? (
+              <NieWczytano co="zleceń migracji" />
+            ) : zlecenia === null ? (
               <div className={`${WIERSZ} text-sm text-muted-foreground`}>Wymaga MIGRATIONS_MANAGE.</div>
             ) : zlecenia.length === 0 ? (
               <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak zleceń migracji.</div>
@@ -350,8 +355,8 @@ export default async function AdminSubscriptionDetailPage({
 const canMigrate = (a: StaffAccess) => a.isAdmin || a.permissions.includes("MIGRATIONS_MANAGE");
 
 /** Ponów / Odrzuć zakładanie na karcie (wcześniej tylko w Kolejce zadań). null — brak PROVISIONING_MANAGE. */
-function ZakladaniePanel({ joby }: { joby: ProvisioningJobRow[] | null }) {
-  const nieudane = joby?.filter((j) => j.failedReason) ?? [];
+function ZakladaniePanel({ joby }: { joby: ProvisioningJobRow[] | null | "blad" }) {
+  const nieudane = Array.isArray(joby) ? joby.filter((j) => j.failedReason) : [];
   return (
     <section id="zakladanie" className={`${KARTA} scroll-mt-24 border-[color-mix(in_srgb,var(--crit)_40%,transparent)]`} aria-labelledby="zakladanie-naglowek">
       <NaglowekKarty id="zakladanie-naglowek" tytul="Zakładanie konta nie powiodło się">
@@ -362,7 +367,9 @@ function ZakladaniePanel({ joby }: { joby: ProvisioningJobRow[] | null }) {
           </Link>
         )}
       </NaglowekKarty>
-      {joby === null ? (
+      {joby === "blad" ? (
+        <NieWczytano co="zadania zakładania" />
+      ) : joby === null ? (
         <div className={`${WIERSZ} text-sm text-muted-foreground`}>Ponowienie wymaga PROVISIONING_MANAGE.</div>
       ) : nieudane.length === 0 ? (
         <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak nieudanego zadania w kolejce — mogło zostać już odrzucone.</div>
