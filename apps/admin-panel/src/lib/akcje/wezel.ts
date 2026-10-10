@@ -229,6 +229,18 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
     pomocId: "kolejka-wezla",
   },
   {
+    id: "nadawcy-poczty",
+    slowa: "nadawcy poczty statystyki wysyłki odrzucenia bounce rbl blacklista spam kto wysyła",
+    grupa: "Poczta",
+    nazwa: "Nadawcy, odrzucenia i RBL",
+    opis: "Kto wysyła najwięcej poczty z węzła, kody odrzuceń i sprawdzenie IP węzła na listach RBL.",
+    // F3.1 — admin/servers/:id/poczta — MAIL_QUEUE_NODE (NOC).
+    perm: "MAIL_QUEUE_NODE",
+    kiedy: dziala,
+    href: (w) => karta(w, "?sekcja=poczta#nadawcy-poczty"),
+    pomocId: "nadawcy-wezla",
+  },
+  {
     id: "blokady-ip",
     slowa: "blokady ip fail2ban ban unban odblokuj biała lista ignoreip whitelist zgadywanie haseł",
     grupa: "Bezpieczeństwo",

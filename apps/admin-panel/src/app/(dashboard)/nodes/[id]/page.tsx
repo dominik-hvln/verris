@@ -28,6 +28,7 @@ import { AktualizujWezelButton } from "./aktualizuj-wezel-button";
 import { WezelPrzeglad } from "./wezel-przeglad";
 import { DzialaniaWezla } from "./dzialania-wezla";
 import { KolejkaWezlaPanel } from "./kolejka-wezla-panel";
+import { PocztaWezlaPanel } from "./poczta-wezla-panel";
 import { BlokadyIpWezlaPanel } from "./blokady-ip-wezla-panel";
 import { MalwareFlotyTabela, type MalwareFloty } from "@/components/malware-floty";
 import { PrzekroczeniaLimitow, type Przekroczenia } from "@/components/przekroczenia-limitow";
@@ -294,9 +295,15 @@ export default async function ServerDetailPage({
               {wymaga("kolejka-poczty")} — kolejka poczty węzła jest dla zespołu NOC.
             </p>
           ) : (
-            <div id="kolejka-poczty" className="scroll-mt-4">
-              <KolejkaWezlaPanel serverId={server.id} />
-            </div>
+            <>
+              <div id="kolejka-poczty" className="scroll-mt-4">
+                <KolejkaWezlaPanel serverId={server.id} />
+              </div>
+              {/* F3.1 reszta — najwięksi nadawcy, odrzucenia i RBL IP węzła (to samo uprawnienie MAIL_QUEUE_NODE). */}
+              <div id="nadawcy-poczty" className="scroll-mt-4">
+                <PocztaWezlaPanel serverId={server.id} />
+              </div>
+            </>
           )
         ) : (
           <p className="text-sm text-muted-foreground">Kolejka poczty jest dostępna, gdy węzeł jest aktywny albo w serwisie.</p>

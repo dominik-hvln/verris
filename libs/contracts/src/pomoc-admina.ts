@@ -162,6 +162,17 @@ export const POMOC = {
     kiedy: "Gdy klient pyta, czemu mail nie doszedł, albo trzeba usunąć spam konta, zanim wyjdzie.",
     rozniSieOd: "Dziennik poczty pokazuje to, co już wyszło albo zostało odrzucone; kolejka — to, co jeszcze czeka.",
   },
+  "limit-wysylki": {
+    tytul: "Limit wysyłki konta",
+    opis: "Ile wiadomości na dobę może wysłać całe konto (skrzynki i skrypty PHP). Klient widzi ten sam limit w panelu.",
+    kiedy: "Przy kampanii klienta (wyższy) albo podejrzanym skoku wysyłki (niższy) — zamiast pełnej blokady.",
+    rozniSieOd: "Blokada zatrzymuje całą wysyłkę; limit tylko ogranicza liczbę wiadomości na dobę.",
+  },
+  "nadawcy-wezla": {
+    tytul: "Nadawcy i odrzucenia",
+    opis: "Kto z węzła wysyła najwięcej poczty na zewnątrz i jakie serwery ją odrzucają (kody SMTP), bez adresów i treści. Obok sprawdzenie IP węzła na listach RBL.",
+    kiedy: "Po alercie RBL, przy rosnącej kolejce albo skargach na niedostarczoną pocztę — żeby znaleźć konto, z którego idzie spam.",
+  },
   "kolejka-wezla": {
     tytul: "Kolejka poczty węzła",
     opis: "Nagłówki wszystkich wiadomości czekających na wysyłkę z węzła, z wyszukiwaniem i wypchnięciem kolejki.",

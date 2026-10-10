@@ -9,12 +9,15 @@ import { adminApi, AdminApiError } from "@/lib/api";
  */
 export type Wynik<T = unknown> = { ok: true; wynik: T } | { ok: false; error: string };
 
-const ODCZYT = { wysylka: "wysylka", kolejka: "kolejka-poczty" } as const;
+const ODCZYT = { wysylka: "wysylka", kolejka: "kolejka-poczty", limit: "wysylka/limit" } as const;
 const ZAPIS = {
   zablokuj: { sciezka: "wysylka/zablokuj", perm: "Blokada wysyłki konta (MAIL_SEND_BLOCK)" },
   zwolnij: { sciezka: "wysylka/zwolnij", perm: "Blokada wysyłki konta (MAIL_SEND_BLOCK)" },
   wczytaj: { sciezka: "kolejka-poczty/wczytaj", perm: "Kolejka poczty konta (MAIL_QUEUE_VIEW)" },
   usun: { sciezka: "kolejka-poczty/usun", perm: "Usunięcie wiadomości konta z kolejki (MAIL_SEND_BLOCK)" },
+  // F3.1 reszta — limit wysyłki konta: odczyt z serwera od L2, zmiana od L3.
+  "wczytaj-limit": { sciezka: "wysylka/limit/wczytaj", perm: "Kolejka poczty konta (MAIL_QUEUE_VIEW)" },
+  limit: { sciezka: "wysylka/limit", perm: "Blokada wysyłki konta (MAIL_SEND_BLOCK)" },
 } as const;
 
 export type OdczytPoczty = keyof typeof ODCZYT;
@@ -35,17 +38,18 @@ export async function odczytPocztyAction(subscriptionId: string, co: OdczytPoczt
 export async function zapisPocztyAction(
   subscriptionId: string,
   co: ZapisPoczty,
-  dane: { powod?: string; zgloszenie?: string; szukaj?: string; ids?: string[] },
+  dane: { powod?: string; zgloszenie?: string; szukaj?: string; ids?: string[]; limit?: number | null },
 ): Promise<Wynik> {
   const z = Object.hasOwn(ZAPIS, co) ? ZAPIS[co] : undefined;
   if (!z) return { ok: false, error: "Nieznana akcja." };
   const body: Record<string, unknown> = {};
   if (co === "wczytaj") {
     if (dane.szukaj?.trim()) body.szukaj = dane.szukaj.trim();
-  } else {
+  } else if (co !== "wczytaj-limit") {
     body.powod = (dane.powod ?? "").trim();
     if (dane.zgloszenie?.trim()) body.zgloszenie = dane.zgloszenie.trim();
     if (co === "usun") body.ids = dane.ids ?? [];
+    if (co === "limit") body.limit = dane.limit ?? null;
   }
   try {
     return { ok: true, wynik: await adminApi(`${baza(subscriptionId)}/${z.sciezka}`, { method: "POST", body }) };

@@ -26,6 +26,7 @@ import { DiagnosticsPanel } from "./diagnostics-panel";
 import { KontoKlientaPanel } from "./konto-klienta-panel";
 import { PasekAkcjiKonta } from "./pasek-akcji-konta";
 import { PocztaKontaPanel } from "./poczta-konta-panel";
+import { LimitWysylkiPanel } from "./limit-wysylki-panel";
 import { ZasobyKontaPanel } from "./zasoby-konta-panel";
 import { BezpieczenstwoKontaPanel } from "./bezpieczenstwo-konta-panel";
 import { SuspendForm, ZakonczIUsunForm } from "./suspend-form";
@@ -242,6 +243,9 @@ export default async function AdminSubscriptionDetailPage({
           {kontoZostalo ? (
             <section id="poczta-konta" className="scroll-mt-24">
               <PocztaKontaPanel subscriptionId={d.id} dostep={access} />
+              <div id="limit-wysylki" className="mt-3 scroll-mt-24 rounded-2xl border border-white/10 bg-black/35 p-5">
+                <LimitWysylkiPanel subscriptionId={d.id} dostep={access} />
+              </div>
             </section>
           ) : null}
           {/* F3.2 (D5, G-12) — „Zablokowało mi IP”, złośliwe pliki i kwarantanna, trafienia WAF. */}

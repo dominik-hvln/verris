@@ -136,6 +136,18 @@ export const AKCJE_USLUGI: AkcjaObiektu<UslugaDlaAkcji>[] = [
     pomocId: "blokada-wysylki",
   },
   {
+    id: "limit-wysylki",
+    grupa: "Konto",
+    nazwa: "Limit wysyłki konta",
+    opis: "Dobowy limit wiadomości konta: sprawdzenie na serwerze, zmiana z powodem, powrót do domyślnego.",
+    // F3.1 — admin/subscriptions/:id/konto/wysylka/limit — odczyt MAIL_QUEUE_VIEW (L2), zmiana MAIL_SEND_BLOCK (L3).
+    perm: "MAIL_QUEUE_VIEW",
+    kiedy: (u) => konto(u) && !u.kontoUsuniete,
+    href: (u) => karta(u, "konto", "limit-wysylki"),
+    slowa: "limit wysyłki poczta mail dobowy kampania newsletter ile maili",
+    pomocId: "limit-wysylki",
+  },
+  {
     id: "kolejka-poczty",
     grupa: "Konto",
     nazwa: "Kolejka poczty konta",
