@@ -20,10 +20,11 @@ import {
   ZmienRekordDnsOperatoraDto,
 } from './dto/akcje-konta.dto.js';
 
-type Aktor = { userId: string };
+type Aktor = { userId: string; role: string };
 const zlecenie = (id: string, actor: Aktor, b: PowodOperatoraDto): ZlecenieOperatora => ({
   subscriptionId: id,
   operatorUserId: actor.userId,
+  operatorRole: actor.role,
   powod: b.powod,
   zgloszenie: b.zgloszenie,
 });

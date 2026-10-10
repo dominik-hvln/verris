@@ -67,7 +67,7 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   HOSTING_DNS_RECORD_DELETED: 'Usunięto rekord DNS',
   HOSTING_SSL_REQUESTED: 'Zlecono certyfikat SSL',
   HOSTING_BACKUP_CREATED: 'Zlecono kopię zapasową konta',
-  HOSTING_PHP_VERSION_CHANGED: 'Zmieniono wersję PHP konta',
+  HOSTING_PHP_VERSION_CHANGED: 'Zlecono zmianę wersji PHP konta',
   HOSTING_DNSSEC_ENABLED: 'Włączono DNSSEC dla domeny',
   HOSTING_DNSSEC_DISABLED: 'Wyłączono DNSSEC dla domeny',
   HOSTING_QUOTA_ALERT: 'Konto zbliża się do limitu',

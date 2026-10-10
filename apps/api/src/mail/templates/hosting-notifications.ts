@@ -483,7 +483,7 @@ const HASLO_RODZAJ: Record<HasloResetowaneRodzaj, { czego: string; skutek: strin
   baza: {
     czego: 'użytkownika bazy danych',
     skutek: 'Strona korzystająca z tego użytkownika nie połączy się z bazą, dopóki nie wpiszesz nowego hasła w jej konfiguracji (np. wp-config.php).',
-    gdzie: 'Przycisk poniżej otwiera zakładkę „Baza” — przy użytkowniku wybierz „Zmień hasło”.',
+    gdzie: 'Przycisk poniżej otwiera zakładkę „Bazy danych” — przy użytkowniku bazy wybierz „Zmień hasło”.',
   },
 };
 

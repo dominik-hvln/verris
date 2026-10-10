@@ -28,6 +28,7 @@ it("akcje trafiają na trasy paska; DNS „zmień/usuń” na osobne ścieżki",
 
 it("nieznana akcja albo sekcja — bez wołania API; 403 — nazwa brakującego uprawnienia", async () => {
   expect(await akcjaKontaAction("s1", "zly" as never, { powod: "x".repeat(12) })).toEqual({ ok: false, error: "Nieznana akcja." });
+  expect(await akcjaKontaAction("s1", "constructor" as never, { powod: "x".repeat(12) })).toEqual({ ok: false, error: "Nieznana akcja." });
   expect(await odczytDlaPaskaAction("s1", "../users" as never)).toEqual({ ok: false, error: "Nieznana sekcja konta." });
   expect(api).not.toHaveBeenCalled();
   api.mockRejectedValue(new AdminApiError("Forbidden", 403));
@@ -35,6 +36,17 @@ it("nieznana akcja albo sekcja — bez wołania API; 403 — nazwa brakującego 
     ok: false,
     error: "Twoja rola nie ma uprawnienia „Edycja DNS na koncie klienta (DNS_MANAGE)”.",
   });
+  expect(await akcjaKontaAction("s1", "kopia", { powod: "x".repeat(12) })).toEqual({
+    ok: false,
+    error: "Twoja rola nie ma uprawnienia „Akcje na koncie klienta (ACCOUNT_ACTIONS)”.",
+  });
+});
+
+it("przegląd: odmowa API inna niż brak uprawnienia roli (usługa konta zespołu) — treść z API, nie „brak uprawnienia”", async () => {
+  const tresc = "Personel może zmieniać wyłącznie usługi klientów — usługę konta zespołu zmienia administrator.";
+  api.mockRejectedValue(new AdminApiError(tresc, 403));
+  expect(await akcjaKontaAction("s1", "dns-dodaj", { powod: "x".repeat(12) })).toEqual({ ok: false, error: tresc });
+  api.mockRejectedValue(new AdminApiError("Twoja rola nie ma uprawnień do tej operacji.", 403));
   expect(await akcjaKontaAction("s1", "kopia", { powod: "x".repeat(12) })).toEqual({
     ok: false,
     error: "Twoja rola nie ma uprawnienia „Akcje na koncie klienta (ACCOUNT_ACTIONS)”.",

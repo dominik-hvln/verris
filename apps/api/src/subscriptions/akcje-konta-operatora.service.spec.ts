@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { AuditService } from '../common/audit/audit.service.js';
 import { AkcjeKontaOperatoraService } from './akcje-konta-operatora.service.js';
 import { ZawieszenieOperatoraService } from './zawieszenie-operatora.service.js';
@@ -18,7 +18,7 @@ function zbuduj(opcje: { sub?: unknown; bladWezla?: Error; uzytkownicyBazy?: str
   const wiersze: Wiersz[] = [];
   const sub =
     opcje.sub === undefined
-      ? { userId: WLASCICIEL, user: { email: 'anna@klient.pl', firstName: 'Anna' }, account: { id: 'acc1', domain: 'klient.pl' } }
+      ? { userId: WLASCICIEL, user: { email: 'anna@klient.pl', firstName: 'Anna', role: 'USER' }, account: { id: 'acc1', domain: 'klient.pl' } }
       : opcje.sub;
   const prisma = {
     subscription: { findUnique: vi.fn(async () => sub) },
@@ -82,7 +82,7 @@ function zbuduj(opcje: { sub?: unknown; bladWezla?: Error; uzytkownicyBazy?: str
   return { svc, prisma, directAdmin, php, malware, mailer, wiersze, hasla };
 }
 
-const z = (powod = 'Klient zgłosił wyciek hasła skrzynki', zgloszenie?: string) => ({ subscriptionId: 's1', operatorUserId: OPERATOR, powod, zgloszenie });
+const z = (powod = 'Klient zgłosił wyciek hasła skrzynki', zgloszenie?: string, operatorRole = 'STAFF') => ({ subscriptionId: 's1', operatorUserId: OPERATOR, operatorRole, powod, zgloszenie });
 const dziennikZespolu = (w: Wiersz[]) => w.filter((r) => r.action === 'OPERATOR_ACCOUNT_CHANGED');
 
 describe('F2.2 AkcjeKontaOperatoraService — reset hasła skrzynki', () => {
@@ -99,7 +99,9 @@ describe('F2.2 AkcjeKontaOperatoraService — reset hasła skrzynki', () => {
     expect(mail.to).toBe('anna@klient.pl');
     expect(mail.text).toContain('jan@klient.pl');
     expect(mail.text).toContain('#ab12cd34');
-    expect(mail.text).toContain('https://panel.test/dashboard/services/s1/sites/klient.pl?tab=mail');
+    // Zakładka „Poczta” usługi (MailTab ma „Zmień hasło”); strona domeny pokazuje samą listę adresów.
+    expect(mail.text).toContain('https://panel.test/dashboard/services/s1?tab=mail');
+    expect(mail.text).not.toContain('/sites/');
     expect(`${mail.text}${mail.html}${JSON.stringify(wynik)}${JSON.stringify(wiersze)}`).not.toContain(hasla[0]);
   });
 
@@ -147,10 +149,27 @@ describe('F2.2 AkcjeKontaOperatoraService — reset hasła skrzynki', () => {
   });
 
   it('brak usługi albo konta → 404 bez wpisu', async () => {
-    for (const sub of [null, { userId: WLASCICIEL, user: { email: 'a@b.pl', firstName: null }, account: null }]) {
+    for (const sub of [null, { userId: WLASCICIEL, user: { email: 'a@b.pl', firstName: null, role: 'USER' }, account: null }]) {
       const { svc, wiersze } = zbuduj({ sub });
       await expect(svc.kopia(z())).rejects.toBeInstanceOf(NotFoundException);
       expect(wiersze).toEqual([]);
+    }
+  });
+
+  it('przegląd: STAFF nie zmienia usługi konta zespołu (ADMIN/STAFF) — 403 bez węzła i wpisów; ADMIN może', async () => {
+    for (const rola of ['ADMIN', 'STAFF']) {
+      const sub = { userId: WLASCICIEL, user: { email: 'szef@verris.pl', firstName: null, role: rola }, account: { id: 'acc1', domain: 'verris.pl' } };
+      const { svc, directAdmin, mailer, wiersze } = zbuduj({ sub });
+      await expect(svc.dnsDodaj(z(), { domain: 'verris.pl', name: '@', type: 'MX', value: '10 mx.obcy.pl.' })).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(svc.resetHaslaSkrzynki(z(), 'szef@verris.pl')).rejects.toBeInstanceOf(ForbiddenException);
+      expect(directAdmin.createHostingDnsRecord).not.toHaveBeenCalled();
+      expect(directAdmin.changeHostingEmailPassword).not.toHaveBeenCalled();
+      expect(mailer.send).not.toHaveBeenCalled();
+      expect(wiersze).toEqual([]);
+
+      const admin = zbuduj({ sub });
+      await admin.svc.kopia(z(undefined, undefined, 'ADMIN'));
+      expect(admin.directAdmin.createHostingSiteBackupNow).toHaveBeenCalledWith('s1', WLASCICIEL);
     }
   });
 
@@ -181,6 +200,7 @@ describe('F2.2 AkcjeKontaOperatoraService — pozostałe akcje', () => {
     expect(ok.directAdmin.listHostingDbUsers).toHaveBeenCalledWith('s1', WLASCICIEL, 'u1_wp');
     expect(ok.directAdmin.changeHostingDbUserPassword).toHaveBeenCalledWith('s1', WLASCICIEL, { db: 'u1_wp', user: 'u1_wp', password: expect.any(String) });
     expect(wynik.mailDoKlienta).toBe(true);
+    expect((ok.mailer.send.mock.calls as unknown as [{ text: string }][])[0][0].text).toContain('https://panel.test/dashboard/services/s1?tab=databases');
   });
 
   it('SSL, kopia, PHP, DNS: wpis klienta z autorem = operator (serwis sam go nie robi), bez wildcard', async () => {

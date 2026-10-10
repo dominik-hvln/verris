@@ -42,7 +42,8 @@ export async function akcjaKontaAction(
   akcja: AkcjaPaska,
   dane: { powod: string; zgloszenie?: string } & Record<string, unknown>,
 ): Promise<Wynik> {
-  const sciezka = SCIEZKA[akcja];
+  // Własne klucze mapy — „constructor”/„toString” z przeglądarki nie są akcją.
+  const sciezka = Object.hasOwn(SCIEZKA, akcja) ? SCIEZKA[akcja] : undefined;
   if (!sciezka) return { ok: false, error: "Nieznana akcja." };
   const { zgloszenie, ...reszta } = dane;
   try {
@@ -66,8 +67,14 @@ export async function odczytDlaPaskaAction(subscriptionId: string, co: OdczytPas
   }
 }
 
+/**
+ * 403 strażnika uprawnień („…nie ma uprawnień do tej operacji”) → nazwa brakującego uprawnienia. Inna odmowa API
+ * (np. „Personel może zmieniać wyłącznie usługi klientów”) zostaje swoją treścią — to nie brak uprawnienia roli.
+ */
 function komunikat(err: unknown, uprawnienie: string): string {
-  if (err instanceof AdminApiError && err.status === 403) return `Twoja rola nie ma uprawnienia „${uprawnienie}”.`;
+  if (err instanceof AdminApiError && err.status === 403 && /uprawnie|^forbidden$/i.test(err.message)) {
+    return `Twoja rola nie ma uprawnienia „${uprawnienie}”.`;
+  }
   if (err instanceof AdminApiError || err instanceof Error) return err.message;
   return "Nie udało się. Spróbuj ponownie.";
 }

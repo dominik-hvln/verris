@@ -45,7 +45,7 @@ describe('F2.2 — akcje operatora na koncie klienta', () => {
       { get: () => 'https://panel.test' } as never,
       new ZawieszenieOperatoraService(p, null as never),
     );
-    const zlecenie = { subscriptionId: k.subscription.id, operatorUserId: operator.id, powod: 'Klient dzwonił, nie pamięta hasła', zgloszenie: `#${zgl.id.slice(0, 8)}` };
+    const zlecenie = { subscriptionId: k.subscription.id, operatorUserId: operator.id, operatorRole: 'STAFF', powod: 'Klient dzwonił, nie pamięta hasła', zgloszenie: `#${zgl.id.slice(0, 8)}` };
 
     const skrzynka = `biuro@${k.account.domain}`;
     expect(await svc.resetHaslaSkrzynki(zlecenie, skrzynka)).toEqual({ ok: true, mailDoKlienta: true, klient: k.user.email });
@@ -72,5 +72,23 @@ describe('F2.2 — akcje operatora na koncie klienta', () => {
     const wszystko = JSON.stringify(await prisma().auditLog.findMany()) + JSON.stringify(maile);
     expect(wszystko).not.toContain(hasla[0]);
     expect(maile[0].to).toBe(k.user.email);
+  });
+
+  it('przegląd: STAFF nie zmienia usługi należącej do konta zespołu (403, bez wpisów); rola czytana z bazy', async () => {
+    const p = prisma() as never;
+    const k = await utworzKonto({ serverId: (await utworzWezel()).id, planId: (await utworzPlan()).id });
+    await prisma().user.update({ where: { id: k.user.id }, data: { role: 'ADMIN' } });
+    const operator = await prisma().user.create({ data: { email: `l3-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'STAFF' } });
+    const audit = new AuditService(p);
+    const da = { createHostingDnsRecord: vi.fn(async () => ({ ok: true as const })) };
+    const svc = new AkcjeKontaOperatoraService(p, da as never, null as never, null as never, audit, null as never, { get: () => 'https://panel.test' } as never, new ZawieszenieOperatoraService(p, null as never));
+    await expect(
+      svc.dnsDodaj(
+        { subscriptionId: k.subscription.id, operatorUserId: operator.id, operatorRole: 'STAFF', powod: 'Klient prosi o rekord MX dla domeny' },
+        { domain: k.account.domain, name: '@', type: 'MX', value: '10 mx.obcy.pl.' },
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+    expect(da.createHostingDnsRecord).not.toHaveBeenCalled();
+    expect(await prisma().auditLog.count({ where: { userId: k.user.id } })).toBe(0);
   });
 });

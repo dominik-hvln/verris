@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -29,6 +29,8 @@ export type AkcjaKonta =
 export interface ZlecenieOperatora {
   subscriptionId: string;
   operatorUserId: string;
+  /** Rola operatora z tokenu (ADMIN | STAFF) — STAFF działa tylko na kontach klientów (jak wejście na konto). */
+  operatorRole: string;
   powod: string;
   zgloszenie?: string | null;
 }
@@ -93,10 +95,16 @@ export class AkcjeKontaOperatoraService {
   ): Promise<T> {
     const sub = await this.prisma.subscription.findUnique({
       where: { id: z.subscriptionId },
-      select: { userId: true, user: { select: { email: true, firstName: true } }, account: { select: { id: true, domain: true } } },
+      select: { userId: true, user: { select: { email: true, firstName: true, role: true } }, account: { select: { id: true, domain: true } } },
     });
     if (!sub) throw new NotFoundException('Usługa nie istnieje.');
     if (!sub.account) throw new NotFoundException('Usługa nie ma konta hostingowego.');
+    // Przegląd F2.2 — ta sama twarda reguła co wejście na konto (users.admin.service.ts impersonate): STAFF działa
+    // tylko na usługach klientów (USER). Inaczej L3 zmieniłby MX/A domeny administratora i przejął jego pocztę
+    // (np. reset hasła do panelu admina), a L2 zresetowałby hasła skrzynek zespołu. Usługi zespołu — tylko ADMIN.
+    if (z.operatorRole !== 'ADMIN' && sub.user.role !== 'USER') {
+      throw new ForbiddenException('Personel może zmieniać wyłącznie usługi klientów — usługę konta zespołu zmienia administrator.');
+    }
     const powod = (z.powod ?? '').trim();
     if (powod.length < MIN_POWOD) throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD} znaków) — zapisze się w dzienniku.`);
     const zgloszenieId = await this.zgloszenia.zgloszenieKlienta(sub.userId, z.zgloszenie);
@@ -158,8 +166,13 @@ export class AkcjeKontaOperatoraService {
     }
   }
 
-  private strona(subscriptionId: string, domena: string, tab: string): string {
-    return `${this.panelUrl()}/dashboard/services/${encodeURIComponent(subscriptionId)}/sites/${encodeURIComponent(domena)}?tab=${tab}`;
+  /**
+   * Zakładka usługi w panelu klienta, w której przy skrzynce / koncie FTP / użytkowniku bazy jest „Zmień hasło”
+   * (MailTab, FtpTab, DatabasesTab → DbUsers). Przegląd F2.2: zakładka „Poczta” strony domeny (sites/…?tab=mail)
+   * to sama lista adresów bez zmiany hasła, a usługa pocztowa nie ma stron — link prowadził tam, gdzie się nie da.
+   */
+  private zakladka(subscriptionId: string, tab: 'mail' | 'ftp' | 'databases'): string {
+    return `${this.panelUrl()}/dashboard/services/${encodeURIComponent(subscriptionId)}?tab=${tab}`;
   }
 
   async resetHaslaSkrzynki(z: ZlecenieOperatora, email: string) {
@@ -167,8 +180,7 @@ export class AkcjeKontaOperatoraService {
     return this.wykonaj(z, 'haslo-skrzynki', { email: adres }, async (w) => {
       // services.controller.ts POST :id/hosting-email/password — ta sama metoda (CMD_API_POP modify, bieżący rozmiar).
       await this.directAdmin.changeHostingEmailPassword(z.subscriptionId, w.userId, { email: adres, password: losoweHaslo() });
-      const domena = adres.split('@')[1] ?? w.domena;
-      const mailDoKlienta = await this.mailOResecie(w, 'skrzynka', adres, this.strona(z.subscriptionId, domena, 'mail'));
+      const mailDoKlienta = await this.mailOResecie(w, 'skrzynka', adres, this.zakladka(z.subscriptionId, 'mail'));
       return { ok: true as const, mailDoKlienta, klient: w.email };
     });
   }
@@ -178,8 +190,7 @@ export class AkcjeKontaOperatoraService {
     return this.wykonaj(z, 'haslo-ftp', { username: login }, async (w) => {
       // services.controller.ts POST :id/hosting-ftp/:username/password — konto musi być na liście FTP usługi.
       await this.directAdmin.changeHostingFtpPassword(z.subscriptionId, w.userId, login, losoweHaslo());
-      const url = `${this.panelUrl()}/dashboard/services/${encodeURIComponent(z.subscriptionId)}?tab=ftp`;
-      const mailDoKlienta = await this.mailOResecie(w, 'ftp', login, url);
+      const mailDoKlienta = await this.mailOResecie(w, 'ftp', login, this.zakladka(z.subscriptionId, 'ftp'));
       return { ok: true as const, mailDoKlienta, klient: w.email };
     });
   }
@@ -194,7 +205,7 @@ export class AkcjeKontaOperatoraService {
       if (!lista.users.includes(uzytkownik)) throw new NotFoundException('Ten użytkownik nie ma dostępu do tej bazy.');
       // services.controller.ts POST :id/hosting-db-users/password — ta sama metoda.
       await this.directAdmin.changeHostingDbUserPassword(z.subscriptionId, w.userId, { db: baza, user: uzytkownik, password: losoweHaslo() });
-      const mailDoKlienta = await this.mailOResecie(w, 'baza', uzytkownik, this.strona(z.subscriptionId, w.domena, 'db'));
+      const mailDoKlienta = await this.mailOResecie(w, 'baza', uzytkownik, this.zakladka(z.subscriptionId, 'databases'));
       return { ok: true as const, mailDoKlienta, klient: w.email };
     });
   }
