@@ -93,13 +93,17 @@ export class BlokadyIpKontaService {
   async stan(subscriptionId: string, operatorUserId: string) {
     const { userId, account } = await this.konto(subscriptionId);
     const adresy = await this.adresyKlienta(userId);
-    await this.audit.record({
-      action: SupportActions.OPERATOR_ACCOUNT_VIEWED,
-      userId,
-      actorUserId: operatorUserId,
-      details: { subscriptionId, sekcja: 'blokady-ip', adresy: adresy.length },
-    });
-    return { adresy, ...this.stanKarty(await this.zadaniaKonta(account.id)) };
+    const karta = this.stanKarty(await this.zadaniaKonta(account.id));
+    // Wpis przy wydaniu adresów i wyniku — nie przy każdym odpytaniu panelu w trakcie sprawdzania (co 5 s).
+    if (!karta.wToku) {
+      await this.audit.record({
+        action: SupportActions.OPERATOR_ACCOUNT_VIEWED,
+        userId,
+        actorUserId: operatorUserId,
+        details: { subscriptionId, sekcja: 'blokady-ip', adresy: adresy.length },
+      });
+    }
+    return { adresy, ...karta };
   }
 
   private zadaniaKonta(accountId: string) {

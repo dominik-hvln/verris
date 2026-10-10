@@ -236,8 +236,10 @@ export class KontoKlientaAdminController {
    */
   @Get('waf')
   async trafieniaWaf(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
-    await this.wlasciciel(id, actor.userId, 'waf');
-    return this.waf.widok(id);
+    const widok = await this.waf.widok(id);
+    // Wpis przy wydaniu trafień — nie przy każdym odpytaniu panelu w trakcie wczytywania (co 5 s).
+    if (!widok.wToku) await this.wlasciciel(id, actor.userId, 'waf');
+    return widok;
   }
 
   /** F3.2 — świeży odczyt dziennika WAF z węzła (zadanie WAF_HITS, tylko czyta dziennik audytu). */

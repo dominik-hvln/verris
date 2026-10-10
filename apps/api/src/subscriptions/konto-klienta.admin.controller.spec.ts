@@ -130,6 +130,15 @@ describe('F3.2 — trafienia WAF na karcie usługi', () => {
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ actorUserId: 's-operator', userId: WLASCICIEL, details: { subscriptionId: 's1', sekcja: 'waf' } }));
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ details: { subscriptionId: 's1', sekcja: 'waf', zlecenie: 'wczytanie z serwera' } }));
   });
+
+  it('odpytywanie w trakcie wczytywania (co 5 s) nie dopisuje wpisów; wynik — jeden wpis', async () => {
+    const { ctrl, waf, audit } = zbuduj();
+    waf.widok.mockResolvedValueOnce({ tryb: 'ON', wToku: true, trafienia: [] } as never);
+    await ctrl.trafieniaWaf('s1', OPERATOR);
+    expect(audit.record).not.toHaveBeenCalled();
+    await ctrl.trafieniaWaf('s1', OPERATOR);
+    expect(audit.record).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('F2.6 — zasoby i diagnoza 508 na karcie usługi', () => {

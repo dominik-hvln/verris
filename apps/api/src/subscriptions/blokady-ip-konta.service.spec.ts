@@ -58,7 +58,7 @@ function zbuduj(o: { uprawnienia?: string[]; wlascicielRola?: string } = {}) {
     { get: () => 'https://panel.test' } as never, new ZawieszenieOperatoraService(prisma as never, null as never),
   );
   const svc = new BlokadyIpKontaService(prisma as never, audit, akcje, new BlokadyIpWezlaService(prisma as never, audit));
-  return { svc, wiersze, zadania };
+  return { svc, wiersze, zadania, prisma };
 }
 
 const POWOD = 'Klient zgłasza brak dostępu do poczty po zmianie hasła';
@@ -79,6 +79,15 @@ describe('F3.2 BlokadyIpKontaService — „Zablokowało mi IP”', () => {
     );
     expect(s.adresy.find((a) => a.ip === '83.12.44.201')?.zgloszenia).toEqual([TICKET]);
     expect(wiersze.find((w) => w.action === 'OPERATOR_ACCOUNT_VIEWED')?.details).toMatchObject({ sekcja: 'blokady-ip' });
+  });
+
+  it('odpytywanie w trakcie sprawdzania nie dopisuje wpisów odczytu (tylko wydanie wyniku)', async () => {
+    const { svc, wiersze, prisma } = zbuduj();
+    prisma.nodeTask.findMany.mockResolvedValueOnce([{ status: 'RUNNING', payload: { mode: 'list', ip: '83.12.44.201' }, outputLog: null, errorMessage: null, createdAt: new Date(), completedAt: null }] as never);
+    expect((await svc.stan('s1', 'op')).wToku).toBe(true);
+    expect(wiersze.filter((w) => w.action === 'OPERATOR_ACCOUNT_VIEWED')).toEqual([]);
+    await svc.stan('s1', 'op');
+    expect(wiersze.filter((w) => w.action === 'OPERATOR_ACCOUNT_VIEWED')).toHaveLength(1);
   });
 
   it('L2: adres ze zgłoszenia + numer tego zgłoszenia → zadanie unban na węźle konta, wpis klienta i dziennik zespołu', async () => {
