@@ -18,7 +18,9 @@ jest.mock("@/lib/api", () => ({ AdminApiError: class extends Error {}, adminApi:
 // Warunki indywidualne mają własne testy — tu liczy się tylko miejsce karty.
 jest.mock("./warunki-indywidualne", () => ({ WarunkiIndywidualne: () => null }));
 
+import { readFileSync } from "node:fs";
 import { adminApi } from "@/lib/api";
+import { AKCJE_KLIENTA } from "@/lib/akcje/klient";
 import { KARTY_SEKCJI, SEKCJE_KARTY_KLIENTA, type SekcjaKartyKlienta } from "@/lib/sekcje-karty-klienta";
 import KlientStrona from "./page";
 import type { ProfilKlienta } from "./profil-data";
@@ -121,4 +123,84 @@ describe("PB-46 karta klienta admina", () => {
   it("otwarte incydenty na węzłach klienta widać nad zakładkami", async () => {
     expect(await render("dziennik")).toContain("fsn-01 nie odpowiada");
   });
+});
+
+/** Plan E, patch 11 — działania na kliencie z /deliverability, /resellers i /referral-enrollments na karcie. */
+describe("karta klienta — działania (patch 11)", () => {
+  const otwarte = { id: "t-1", subject: "Nie działa poczta", status: "OPEN", priority: "NORMAL", createdAt: "2026-10-09T10:00:00Z", firstResponseAt: null, slaResponseDueAt: null, replyCount: 0 };
+  function dane(o: { cordons?: unknown; resellers?: unknown; zgloszenia?: unknown; dostep?: unknown } = {}) {
+    api.mockImplementation(async (sciezka: string) => {
+      if (sciezka.split("?")[0] === `/admin/users/${UID}/customer-profile`) return { ...profil, recentTickets: [otwarte] };
+      if (sciezka === `/admin/users/${UID}/operational-detail`)
+        return { ...profil.user, loginBlockedReason: null, adminInternalNote: "", isInternal: false, subscriptionsCount: 1 };
+      if (sciezka.startsWith("/admin/custom-terms/user/")) return { uslugi: [] };
+      if (sciezka === "/staff/me/access") return o.dostep ?? { role: "ADMIN", isAdmin: true, permissions: [] };
+      if (sciezka === "/admin/deliverability/cordons") return { cordons: o.cordons ?? [] };
+      if (sciezka === "/admin/reseller") {
+        if (o.resellers instanceof Error) throw o.resellers;
+        return o.resellers ?? [];
+      }
+      if (sciezka === "/admin/users/referral-enrollments") return o.zgloszenia ?? [];
+      throw new Error(`nieoczekiwane ${sciezka}`);
+    });
+  }
+  const blokada = { userId: UID, reason: "500 maili w 5 minut", at: "2026-10-09T08:00:00Z", email: "anna@test.pl", name: "Anna" };
+  const zgloszenie = {
+    id: "r1",
+    userId: UID,
+    status: "PENDING",
+    appliedAt: "2026-10-08T00:00:00Z",
+    reviewedAt: null,
+    reviewedByUserId: null,
+    reviewNote: null,
+    termsVersion: null,
+    user: { id: UID, email: "anna@test.pl", firstName: "Anna", lastName: null, referralCode: "ANNA1", ecoPoints: 0 },
+  };
+
+  it("przegląd: „Działania” z blokadą poczty, programem partnerskim i odpowiedzią w panelu obsługi", async () => {
+    dane({ cordons: [blokada], zgloszenia: [zgloszenie] });
+    const html = await render("przeglad");
+    expect(html).toContain('data-dzialania="dzialania-klienta"');
+    expect(html).toContain(`href="/customers/${UID}?sekcja=dostepy#blokada-poczty"`);
+    expect(html).toContain(`href="/customers/${UID}?sekcja=rozliczenia#program-partnerski"`);
+    expect(html).toContain(`href="/customers/${UID}?sekcja=rozliczenia#reseller"`);
+    expect(html).toMatch(/href="https:\/\/staff\.verris\.pl\/tickets\/t-1" target="_blank"/);
+    expect(html).toContain('id="akcje-klienta"');
+  });
+
+  it("przegląd bez blokady poczty: bez działania „Zdejmij blokadę”", async () => {
+    dane();
+    expect(await render("przeglad")).not.toContain("#blokada-poczty");
+  });
+
+  it("dostępy: blokada poczty z powodem i przyciskiem dla admina", async () => {
+    dane({ cordons: [blokada] });
+    const html = await render("dostepy");
+    expect(html).toContain('id="blokada-poczty"');
+    expect(html).toContain("500 maili w 5 minut");
+    expect(html).toContain("Zdejmij blokadę");
+  });
+
+  it("rozliczenia: włączenie resellera bez wpisywania ID i akceptacja w programie partnerskim", async () => {
+    dane({ zgloszenia: [zgloszenie] });
+    const html = await render("rozliczenia");
+    expect(html).toContain('id="reseller"');
+    expect(html).toContain("Włącz resellera");
+    expect(html).not.toContain("E-mail lub ID klienta");
+    expect(html).toContain('id="program-partnerski"');
+    expect(html).toContain("Akceptuj");
+  });
+
+  it("rozliczenia bez CUSTOMERS_MANAGE (403 z /admin/reseller): sekcja mówi, czego brakuje", async () => {
+    dane({ resellers: new Error("403") });
+    expect(await render("rozliczenia")).toContain("Wymaga CUSTOMERS_MANAGE.");
+  });
+});
+
+it("każda kotwica z rejestru działań klienta istnieje na karcie", () => {
+  const zrodla = ["page.tsx", "operational-forms.tsx", "dzialania-klienta.tsx", "diagnostyka-dns-tls.tsx"].map((f) => readFileSync(`${__dirname}/${f}`, "utf8")).join("\n");
+  for (const a of AKCJE_KLIENTA) {
+    const kotwica = a.href({ id: UID }).split("#")[1];
+    if (kotwica) expect(zrodla).toMatch(new RegExp(`id="${kotwica}"`));
+  }
 });

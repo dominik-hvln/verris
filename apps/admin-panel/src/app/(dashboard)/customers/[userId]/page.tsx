@@ -31,6 +31,14 @@ import { sekcjaKarty, zakladkiKartyKlienta } from "@/lib/sekcje-karty-klienta";
 import { DiagnostykaDnsTls } from "./diagnostyka-dns-tls";
 import { StatusVatNabywcyAkcje } from "./status-vat-nabywcy";
 import { opisStatusuVat, type StatusVatNabywcy } from "./status-vat-opis";
+import { fetchStaffAccess } from "@/lib/staff-access";
+import { dzialaniaObiektu } from "@/lib/akcje/rejestr";
+import { AKCJE_KLIENTA } from "@/lib/akcje/klient";
+import { DzialaniaKarty } from "@/components/dzialania-karty";
+import type { CordonRow } from "../../deliverability/actions";
+import type { ResellerRow } from "../../resellers/data";
+import type { ReferralEnrollmentRow } from "../../referral-enrollments/data";
+import { BlokadaPoczty, ProgramPartnerski, Reseller } from "./dzialania-klienta";
 
 export const dynamic = "force-dynamic";
 
@@ -109,6 +117,17 @@ export default async function AdminCustomerCardPage({
   const warunki = await adminApi<PodgladWarunkow>(`/admin/custom-terms/user/${encodeURIComponent(userId)}`).catch(() => null);
   // Decyzja 09.10 — status VAT nabywcy (BILLING_VIEW; 403 = bez wiersza).
   const statusVat = await adminApi<StatusVatNabywcy>(`/admin/billing/nabywcy/${encodeURIComponent(userId)}/vat`).catch(() => null);
+  // Plan E, patch 11 — blokada poczty, reseller i program partnerski na karcie (wcześniej osobne strony).
+  // undefined = nie udało się odczytać (zwykle brak uprawnienia) — sekcja mówi wtedy, czego brakuje.
+  const zDzialaniami = sekcja === "przeglad" || sekcja === "dostepy" || sekcja === "rozliczenia";
+  const [dostep, blokadaPoczty, reseller, partner] = zDzialaniami
+    ? await Promise.all([
+        fetchStaffAccess(),
+        adminApi<{ cordons?: CordonRow[] }>("/admin/deliverability/cordons").then((r) => r.cordons?.find((c) => c.userId === userId) ?? null, () => undefined),
+        adminApi<ResellerRow[]>("/admin/reseller").then((r) => (Array.isArray(r) ? (r.find((x) => x.userId === userId) ?? null) : undefined), () => undefined),
+        adminApi<ReferralEnrollmentRow[]>("/admin/users/referral-enrollments").then((r) => (Array.isArray(r) ? (r.find((x) => x.userId === userId) ?? null) : undefined), () => undefined),
+      ])
+    : [null, undefined, undefined, undefined];
 
   const u = p.user;
   const osoba = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
@@ -211,7 +230,7 @@ export default async function AdminCustomerCardPage({
             ) : null}
           </div>
         </div>
-        <div className="ml-auto flex flex-wrap gap-2.5">
+        <div id="akcje-klienta" className="ml-auto flex scroll-mt-24 flex-wrap gap-2.5">
           <CreditWalletButton userId={u.id} email={u.email} currentBalance={u.walletBalance} className={PRZYCISK} etykieta="Dodaj kredyty" />
           <a href={`mailto:${u.email}`} className={PRZYCISK}>
             Napisz do klienta
@@ -275,6 +294,25 @@ export default async function AdminCustomerCardPage({
         etykieta="Sekcje klienta"
         pozycje={zakladkiKartyKlienta(baza, sekcja, { uslugi: zywe.length, zgloszenia: otwarteZgl.length, warunki: !!warunki })}
       />
+
+      {sekcja === "przeglad" && dostep ? (
+        <DzialaniaKarty
+          id="dzialania-klienta"
+          dzialania={dzialaniaObiektu(
+            AKCJE_KLIENTA,
+            {
+              id: u.id,
+              blokadaPoczty: blokadaPoczty === undefined ? undefined : blokadaPoczty !== null,
+              reseller: reseller === undefined ? undefined : (reseller?.status ?? null),
+              partner: partner === undefined ? undefined : (partner?.status ?? null),
+              logowanieZablokowane: u.loginBlocked,
+              otwarteZgloszenie: (poTerminie[0] ?? otwarteZgl[0])?.id ?? null,
+              panelObslugi: obsluga,
+            },
+            dostep,
+          )}
+        />
+      ) : null}
 
       {sekcja === "przeglad" ? (
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
@@ -482,6 +520,8 @@ export default async function AdminCustomerCardPage({
                 </div>
               ))}
             </section>
+            <Reseller userId={u.id} reseller={reseller} />
+            <ProgramPartnerski zgloszenie={partner} />
           </div>
         </div>
       ) : null}
@@ -530,6 +570,7 @@ export default async function AdminCustomerCardPage({
             <Para k="ID konta" v={u.id} mono />
           </section>
           <CustomerOperationalForms detail={detail} />
+          <BlokadaPoczty blokada={blokadaPoczty} email={u.email} isAdmin={!!dostep?.isAdmin} />
         </>
       ) : null}
 
