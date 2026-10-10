@@ -44,3 +44,20 @@ export async function setGrafanaAccessAction(input: {
     return { ok: false, error: (e as Error).message };
   }
 }
+
+/** D10 — stan wymogu 2FA zespołu (GET/PATCH admin/platform-settings/wymog-2fa, tylko ADMIN). */
+export interface StanWymogu2fa {
+  wlaczony: boolean;
+  wymuszonyEnv: boolean;
+  obowiazuje: boolean;
+}
+
+export async function ustawWymog2faAction(wlaczony: boolean): Promise<{ ok: true; stan: StanWymogu2fa } | ActionErr> {
+  try {
+    const stan = await adminApi<StanWymogu2fa>("/admin/platform-settings/wymog-2fa", { method: "PATCH", body: { wlaczony } });
+    revalidatePath("/operators");
+    return { ok: true, stan };
+  } catch (e) {
+    return { ok: false, error: e instanceof AdminApiError ? e.message : "Nie udało się zapisać ustawienia." };
+  }
+}

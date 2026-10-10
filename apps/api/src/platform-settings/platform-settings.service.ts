@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { KLUCZ_WYMOGU_2FA, stanWymogu2fa, type StanWymogu2fa } from '../auth/wymog-2fa-zespolu.js';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { CryptoService } from '../common/crypto/crypto.service.js';
@@ -577,6 +578,44 @@ export class PlatformSettingsService {
       return this.readInt(map, PLATFORM_SETTING_KEYS.STAFF_IDLE_MINUTES, 30, 5, 24 * 60);
     }
     return this.readInt(map, PLATFORM_SETTING_KEYS.CLIENT_IDLE_MINUTES, 60, 5, 24 * 60);
+  }
+
+  // ---------------------------------------------------------------------------
+  // D10 — wymuszenie 2FA dla zespołu (przełącznik tylko ADMIN, env to twarde włączenie)
+  // ---------------------------------------------------------------------------
+
+  async getWymog2fa(): Promise<StanWymogu2fa> {
+    return stanWymogu2fa(this.prisma);
+  }
+
+  async ustawWymog2fa(wlaczony: boolean, actorUserId: string): Promise<StanWymogu2fa> {
+    const przed = await stanWymogu2fa(this.prisma);
+    if (!wlaczony && przed.wymuszonyEnv) {
+      throw new ConflictException('Wymóg 2FA jest włączony w konfiguracji serwera (REQUIRE_2FA_FOR_STAFF) — panel go nie wyłączy.');
+    }
+    if (wlaczony) {
+      // Bez drugiego składnika administrator zamknąłby sobie logowanie hasłem.
+      const ja = await this.prisma.user.findUnique({
+        where: { id: actorUserId },
+        select: { isTwoFactorEnabled: true, _count: { select: { webauthnCredentials: true } } },
+      });
+      if (!ja?.isTwoFactorEnabled && !ja?._count.webauthnCredentials) {
+        throw new BadRequestException('Najpierw włącz 2FA albo dodaj passkey na swoim koncie — inaczej nie zalogujesz się po włączeniu wymogu.');
+      }
+    }
+    await this.prisma.platformSetting.upsert({
+      where: { key: KLUCZ_WYMOGU_2FA },
+      create: { key: KLUCZ_WYMOGU_2FA, value: wlaczony ? '1' : '0', updatedByUserId: actorUserId },
+      update: { value: wlaczony ? '1' : '0', updatedByUserId: actorUserId },
+    });
+    this.invalidateCache();
+    await this.audit.record({
+      action: 'PLATFORM_STAFF_2FA_REQUIREMENT_UPDATED',
+      userId: actorUserId,
+      actorUserId,
+      details: { wlaczony, poprzednio: przed.wlaczony, wymuszonyEnv: przed.wymuszonyEnv },
+    });
+    return stanWymogu2fa(this.prisma);
   }
 
   private invalidateCache(): void {

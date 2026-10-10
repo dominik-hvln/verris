@@ -33,6 +33,7 @@ import {
 } from '../mail/templates/security-notifications.js';
 import { generateAuthToken, hashAuthToken } from './auth-token.util.js';
 import { EcoPointsService } from '../eco/eco-points.service.js';
+import { stanWymogu2fa } from './wymog-2fa-zespolu.js';
 import { PasskeyPolicyService } from './passkey-policy.service.js';
 import { PwnedPasswordService } from './pwned-password.service.js';
 
@@ -699,12 +700,12 @@ export class AuthService {
     this.assertEmailVerified(user);
 
     // Pre-LIVE hardening: privileged accounts (ADMIN/STAFF) can be required
-    // to have 2FA. Enable with REQUIRE_2FA_FOR_STAFF=1 *after* both seed
-    // accounts enrolled TOTP — otherwise you lock yourself out of enrollment.
+    // to have 2FA. D10 (10.10): REQUIRE_2FA_FOR_STAFF=1/true (twarde włączenie) ALBO przełącznik
+    // administratora w panelu (wymog-2fa-zespolu.ts). Passkey przechodzi wymóg (osobna ścieżka logowania).
     if (
       user.role !== Role.USER &&
       !user.isTwoFactorEnabled &&
-      process.env.REQUIRE_2FA_FOR_STAFF === '1'
+      (await stanWymogu2fa(this.prisma)).obowiazuje
     ) {
       await this.audit.record({
         action: 'LOGIN_BLOCKED_2FA_REQUIRED',

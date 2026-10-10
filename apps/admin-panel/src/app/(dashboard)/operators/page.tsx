@@ -3,6 +3,9 @@ import Link from "next/link";
 import { Search, ShieldCheck, ShieldAlert } from "lucide-react";
 import { listOperators, type OperatorRole } from "./data";
 import { DodajOperatora } from "./dodaj-operatora";
+import { Wymog2fa } from "./wymog-2fa";
+import type { StanWymogu2fa } from "./actions";
+import { adminApi } from "@/lib/api";
 import { getOperatorActivity, getRoles } from "../roles/actions";
 import { wynik } from "@/components/blad-strony";
 import { NieWczytano } from "@/components/nie-wczytano";
@@ -47,6 +50,8 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
   }
   // POST /admin/staff-roles/operators — tylko ADMIN.
   const tylkoAdmin = brakUprawnienia("ADMIN", dostep);
+  // D10 — przełącznik wymuszenia 2FA (GET/PATCH admin/platform-settings/wymog-2fa) tylko dla administratora.
+  const wymog2fa = tylkoAdmin ? null : await wynik(adminApi<StanWymogu2fa>("/admin/platform-settings/wymog-2fa"));
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -64,13 +69,19 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
             <div>
               {data.rows.length} z {data.total.toLocaleString("pl-PL")} {plForm(data.total, "operatora", "operatorów", "operatorów")}
             </div>
-            {/* Fala 1B — stan 2FA zespołu tylko do odczytu; wymuszenie zostaje w REQUIRE_2FA_FOR_STAFF (decyzja D10). */}
+            {/* Fala 1B — stan 2FA zespołu; D10 — przełącznik wymuszenia poniżej (tylko administrator). */}
             <div data-stan-2fa="">
               2FA (TOTP): {data.rows.filter(drugiSkladnik).length} z {data.rows.length} · passkey: {data.rows.filter((op) => (op.passkeys ?? 0) > 0).length}
             </div>
           </div>
         ) : null}
       </header>
+
+      {wymog2fa?.ok ? (
+        <Wymog2fa start={wymog2fa.dane} bez2fa={data ? data.rows.filter((op) => !drugiSkladnik(op)).length : 0} />
+      ) : wymog2fa ? (
+        <NieWczytano co="ustawienia wymogu 2FA" />
+      ) : null}
 
       <div className="relative rounded-2xl p-[1px] overflow-hidden">
         <div className="absolute inset-0 bg-linear-to-b from-indigo-500/20 to-transparent"></div>

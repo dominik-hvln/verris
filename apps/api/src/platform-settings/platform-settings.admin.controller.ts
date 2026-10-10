@@ -10,6 +10,7 @@ import { UpdateSellerCompanyDto, UpdateKsefSettingsDto } from './dto/company-set
 import { UpdateTrialOfferDto } from './dto/trial-offer.dto.js';
 import { UpdateMonitoringSettingsDto, UpdateWhoisPrivacyPriceDto } from './dto/monitoring-settings.dto.js';
 import { UpdateSlaCreditPolicyDto } from './dto/sla-credit-policy.dto.js';
+import { UstawWymog2faDto } from './dto/wymog-2fa.dto.js';
 
 @Controller('admin/platform-settings')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -30,6 +31,22 @@ export class PlatformSettingsAdminController {
     @CurrentUser() actor: { userId: string },
   ) {
     return this.settings.updateAdminSettings(dto, actor.userId);
+  }
+
+  /**
+   * D10 (10.10) — wymuszenie 2FA dla zespołu: przełącznik tylko dla ADMIN-a (klasa), zmiana w dzienniku.
+   * REQUIRE_2FA_FOR_STAFF w env to twarde włączenie — wtedy wyłączenie zwraca 409.
+   */
+  @Get('wymog-2fa')
+  @HttpCode(200)
+  getWymog2fa() {
+    return this.settings.getWymog2fa();
+  }
+
+  @Patch('wymog-2fa')
+  @HttpCode(200)
+  ustawWymog2fa(@Body() dto: UstawWymog2faDto, @CurrentUser() actor: { userId: string }) {
+    return this.settings.ustawWymog2fa(dto.wlaczony, actor.userId);
   }
 
   // Dane sprzedawcy (faktury)
