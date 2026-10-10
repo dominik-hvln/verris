@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { plForm } from "@/lib/pl";
 import { Select } from "@/components/select";
 import { useEffect, useState, useTransition, useId } from "react";
@@ -283,7 +284,11 @@ function CampaignCard({ row }: { row: CampaignRow }) {
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-white truncate">{row.name}</h3>
+            <h3 className="font-semibold text-white truncate">
+              <Link href={`/marketing/${row.id}`} className="hover:underline">
+                {row.name}
+              </Link>
+            </h3>
             <StatusBadge status={row.status} />
           </div>
           <p className="mt-0.5 text-sm text-muted-foreground truncate">{row.subject}</p>
