@@ -42,4 +42,13 @@ describe('ServiceNav', () => {
     mockKind.mockResolvedValueOnce({ productKind: 'HOSTING', serviceTag: 'abc' });
     expect((await render()).textContent).toContain('Przegląd');
   });
+
+  // D12 (10.10): jeden pakiet + autoskalowanie — w menu usługi nie ma „Zmiana planu”, zostaje autoskalowanie.
+  it('menu hostingu bez „Zmiana planu”, z „Autoskalowanie i EKO”', async () => {
+    mockKind.mockResolvedValueOnce({ productKind: 'HOSTING', serviceTag: 'abc' });
+    const tekst = (await render()).textContent ?? '';
+    expect(tekst).toContain('Autoskalowanie i EKO');
+    expect(tekst).not.toContain('Zmiana planu');
+  });
 });
+

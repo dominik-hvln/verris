@@ -9,7 +9,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { ArrowRightLeft, Gauge, Plus, Server } from 'lucide-react';
+import { Gauge, Plus, Server } from 'lucide-react';
 import { fetchServiceKindAction } from '@/app/dashboard/services/[id]/hosting-service-actions';
 import {
   fetchHostingDomainsAction as fetchHostingDomainsActionAkcja,
@@ -121,19 +121,12 @@ export function ServiceNav({ serviceId, name, domainsCount }: { serviceId: strin
                   ) : null}
                 </div>
               ))}
-              {g.label === 'Rozliczenie' ? (
-                <>
-                  {!email ? (
-                    <Link href={`/dashboard/services/${serviceId}/autoscaling`} className={`${ROW} ${ROW_OFF}`}>
-                      <Gauge className="h-4 w-4 shrink-0 opacity-70" />
-                      Autoskalowanie i EKO
-                    </Link>
-                  ) : null}
-                  <Link href={`/dashboard/services/${serviceId}/plan`} className={`${ROW} ${ROW_OFF}`}>
-                    <ArrowRightLeft className="h-4 w-4 shrink-0 opacity-70" />
-                    Zmiana planu
-                  </Link>
-                </>
+              {/* D12 (10.10): bez „Zmiana planu” — jeden pakiet + autoskalowanie. Strona /plan zostaje (linki z przeglądu i abonamentu). */}
+              {g.label === 'Rozliczenie' && !email ? (
+                <Link href={`/dashboard/services/${serviceId}/autoscaling`} className={`${ROW} ${ROW_OFF}`}>
+                  <Gauge className="h-4 w-4 shrink-0 opacity-70" />
+                  Autoskalowanie i EKO
+                </Link>
               ) : null}
             </div>
           );
