@@ -188,6 +188,10 @@ elif [ "$TASK_KIND" = "MAIL_LOG" ]; then
   RUN_BIN="/usr/local/bin/verris-mail-log.sh"
   fetch_task_script "/agent/tasks/mail-log/script" "$RUN_BIN"
   payload_env "ML" "{'domains':'DOMAINS','address':'ADDRESS'}"
+elif [ "$TASK_KIND" = "MAIL_QUEUE" ]; then
+  RUN_BIN="/usr/local/bin/verris-mail-queue.sh"
+  fetch_task_script "/agent/tasks/mail-queue/script" "$RUN_BIN"
+  payload_env "MQ" "{'mode':'MODE','daUser':'USER','domains':'DOMAINS','ids':'IDS','szukaj':'SZUKAJ'}"
 elif [ "$TASK_KIND" = "GIT_DEPLOY" ]; then
   RUN_BIN="/usr/local/bin/verris-git-deploy.sh"
   fetch_task_script "/agent/tasks/git-deploy/script" "$RUN_BIN"

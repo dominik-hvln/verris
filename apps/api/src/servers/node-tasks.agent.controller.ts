@@ -36,6 +36,7 @@ import { loadDiskUsageScript } from './disk-usage.script.js';
 import { loadMalwareScanScript } from './malware-scan.script.js';
 import { loadRedisScript } from './redis.script.js';
 import { loadMailLogScript } from './mail-log.script.js';
+import { loadMailQueueScript } from './mail-queue.script.js';
 import { loadGitDeployScript } from './git-deploy.script.js';
 import { loadSiteCloneScript } from './site-clone.script.js';
 import { loadHtaccessScript } from './htaccess.script.js';
@@ -230,6 +231,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   mailLogScript() {
     return loadMailLogScript();
+  }
+
+  /** F3.1 — kolejka poczty exima: nagłówki, usunięcie wiadomości konta, wypchnięcie (run with MQ_* env). */
+  @Get('mail-queue/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  mailQueueScript() {
+    return loadMailQueueScript();
   }
 
   /** C-25/C-26 — repozytorium Git strony (run with GD_* env). */

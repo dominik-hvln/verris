@@ -71,7 +71,7 @@ function zbuduj(o: { rola?: string; bladWezla?: Error; konta?: Konto[] } = {}) {
     { get: () => 'https://panel.test' } as never,
     new ZawieszenieOperatoraService(prisma as never, null as never),
   );
-  const svc = new PocztaKontaOperatoraService(prisma as never, directAdmin as never, akcje, kordon);
+  const svc = new PocztaKontaOperatoraService(prisma as never, directAdmin as never, akcje, kordon, audit);
   return { svc, prisma, directAdmin, kordon, mailer, wiersze, konta, naWezle };
 }
 

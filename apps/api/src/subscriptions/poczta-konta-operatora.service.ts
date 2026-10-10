@@ -1,9 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { HostingResourceActions } from '../common/audit/audit.actions.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { HostingResourceActions, SupportActions } from '../common/audit/audit.actions.js';
+import { FRAZA_KOLEJKI, ID_WIADOMOSCI_EXIMA, stanKolejki } from '../servers/kolejka-poczty.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
 import { OutboundAbuseGuard } from '../deliverability/outbound-abuse.guard.js';
 import { AkcjeKontaOperatoraService, type ZlecenieOperatora } from './akcje-konta-operatora.service.js';
+
+/** Usuwać można tylko wiadomości z podglądu nie starszego niż godzina (operator widział, co usuwa). */
+export const WAZNOSC_PODGLADU_MS = 60 * 60 * 1000;
+const MAX_DO_USUNIECIA = 500;
 
 /** Początek powodu kordonu nałożonego razem z blokadą obsługi — zwolnienie zdejmuje tylko taki kordon. */
 export const KORDON_Z_BLOKADY = 'Blokada wysyłki konta przez obsługę';
@@ -20,6 +27,12 @@ export const KORDON_Z_BLOKADY = 'Blokada wysyłki konta przez obsługę';
  * Reguły D2/D3 z paska akcji konta (AkcjeKontaOperatoraService.wykonaj): powód obowiązkowy, zgłoszenie klienta
  * opcjonalne, STAFF tylko na kontach klientów, dziennik zespołu z wynikiem (także błąd węzła), a klient widzi wpis
  * „obsługa Verris (zgłoszenie #…)”. Stan blokady (kto, kiedy, powód) w Account.mailBlocked*.
+ *
+ * Kolejka konta: zadanie węzła MAIL_QUEUE (ops/scripts/node-mail-queue.sh, podpisany skrypt agenta) — tylko nagłówki
+ * (id, nadawca, odbiorcy, temat, rozmiar, wiek, zamrożona), nigdy treść. Wiadomość należy do konta, gdy wysłał ją
+ * użytkownik DA (mail() z PHP), skrzynka konta (SMTP) albo adres w domenach konta — sprawdza to węzeł. Usunięcie
+ * (nieodwracalne): tylko identyfikatory z ostatniego podglądu, węzeł ponownie sprawdza przynależność do konta,
+ * a liczbę usuniętych zapisuje NodeTasksService po zakończeniu zadania (MAIL_QUEUE_MESSAGES_REMOVED).
  */
 @Injectable()
 export class PocztaKontaOperatoraService {
@@ -28,6 +41,7 @@ export class PocztaKontaOperatoraService {
     private readonly directAdmin: DirectAdminService,
     private readonly akcje: AkcjeKontaOperatoraService,
     private readonly kordon: OutboundAbuseGuard,
+    private readonly audit: AuditService,
   ) {}
 
   /**
@@ -108,6 +122,113 @@ export class PocztaKontaOperatoraService {
         return { ok: true as const, zablokowana: false, zmienionoNaWezle: zmieniono, kordonZdjety };
       },
       { action: HostingResourceActions.HOSTING_MAIL_SENDING_UNBLOCKED, details: {} },
+    );
+  }
+
+  private async konto(subscriptionId: string) {
+    const sub = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      select: { userId: true, account: { select: { id: true, serverId: true, daUsername: true, domain: true, status: true } } },
+    });
+    if (!sub) throw new NotFoundException('Usługa nie istnieje.');
+    if (!sub.account) throw new NotFoundException('Usługa nie ma konta hostingowego.');
+    return { userId: sub.userId, account: sub.account };
+  }
+
+  private zadania(accountId: string) {
+    return this.prisma.nodeTask.findMany({
+      where: { accountId, kind: NodeTaskKind.MAIL_QUEUE },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+  }
+
+  /**
+   * Ostatni podgląd kolejki konta (i stan usuwania). Wpis w dzienniku, gdy operator dostaje nagłówki — nie przy
+   * każdym odpytaniu w trakcie wczytywania.
+   */
+  async kolejka(subscriptionId: string, operatorUserId: string) {
+    const { userId, account } = await this.konto(subscriptionId);
+    const stan = stanKolejki(await this.zadania(account.id));
+    if (!stan.wToku && stan.wiadomosci.length) {
+      await this.audit.record({
+        action: SupportActions.OPERATOR_ACCOUNT_VIEWED,
+        userId,
+        actorUserId: operatorUserId,
+        details: { subscriptionId, sekcja: 'kolejka-poczty', wiadomosci: stan.wiadomosci.length },
+      });
+    }
+    return stan;
+  }
+
+  /** Zleca węzłowi świeży odczyt kolejki konta (nagłówki); domeny konta podaje API, nie operator. */
+  async wczytajKolejke(subscriptionId: string, operatorUserId: string, szukaj?: string) {
+    const { userId, account } = await this.konto(subscriptionId);
+    if (account.status === 'DELETED' || account.status === 'PROVISIONING') throw new BadRequestException('Konto hostingowe nie działa na serwerze.');
+    const fraza = (szukaj ?? '').trim();
+    if (fraza && !FRAZA_KOLEJKI.test(fraza)) throw new BadRequestException('Fraza: do 100 znaków, bez znaków sterujących.');
+    const zadania = await this.zadania(account.id);
+    if (stanKolejki(zadania).wToku) throw new ConflictException('Kolejka już się wczytuje — chwila.');
+    const domeny = await this.domenyKonta(subscriptionId, userId, account.domain);
+    await this.prisma.nodeTask.create({
+      data: {
+        serverId: account.serverId,
+        accountId: account.id,
+        kind: NodeTaskKind.MAIL_QUEUE,
+        status: NodeTaskStatus.QUEUED,
+        requestedById: operatorUserId,
+        payload: { mode: 'list', daUser: account.daUsername, domains: domeny.join(','), ...(fraza ? { szukaj: fraza } : {}) },
+      },
+    });
+    await this.audit.record({
+      action: SupportActions.OPERATOR_ACCOUNT_VIEWED,
+      userId,
+      actorUserId: operatorUserId,
+      details: { subscriptionId, sekcja: 'kolejka-poczty', ...(fraza ? { szukaj: fraza } : {}) },
+    });
+    return stanKolejki(await this.zadania(account.id));
+  }
+
+  private async domenyKonta(subscriptionId: string, userId: string, glowna: string): Promise<string[]> {
+    const { domains } = await this.directAdmin.listHostingDomainsForSubscription(subscriptionId, userId);
+    return [...new Set([glowna, ...domains.map((d) => d.name)].map((d) => d.toLowerCase()))].slice(0, 200);
+  }
+
+  /**
+   * „Usuń wiadomości konta z kolejki” — nieodwracalne, więc tylko identyfikatory z ostatniego podglądu (≤ 1 h),
+   * z powodem (D2) i wpisem dla klienta (D3). Węzeł usuwa wyłącznie wiadomości tego konta.
+   */
+  async usunZKolejki(z: ZlecenieOperatora, ids: string[]) {
+    const lista = [...new Set(ids.map((i) => i.trim()))];
+    if (!lista.length || lista.length > MAX_DO_USUNIECIA) throw new BadRequestException(`Wybierz od 1 do ${MAX_DO_USUNIECIA} wiadomości.`);
+    if (lista.some((i) => !ID_WIADOMOSCI_EXIMA.test(i))) throw new BadRequestException('Nieprawidłowy identyfikator wiadomości.');
+    return this.akcje.wykonaj(
+      z,
+      'kolejka-usun',
+      { wiadomosci: lista.length },
+      async (w) => {
+        const zadania = await this.zadania(w.konto.id);
+        const stan = stanKolejki(zadania);
+        if (stan.usuwanie?.wToku) throw new ConflictException('Poprzednie usuwanie jeszcze trwa — chwila.');
+        const podglad = zadania.find((t) => (t.payload as { mode?: string } | null)?.mode === 'list' && t.status === NodeTaskStatus.COMPLETED);
+        const widziane = new Set(stan.wiadomosci.map((m) => m.id));
+        if (!podglad || Date.now() - (podglad.completedAt ?? podglad.createdAt).getTime() > WAZNOSC_PODGLADU_MS || lista.some((i) => !widziane.has(i))) {
+          throw new BadRequestException('Odśwież podgląd kolejki — usunąć można tylko wiadomości z podglądu sprzed najwyżej godziny.');
+        }
+        const domeny = (podglad.payload as { domains?: string } | null)?.domains ?? '';
+        const t = await this.prisma.nodeTask.create({
+          data: {
+            serverId: w.konto.serverId,
+            accountId: w.konto.id,
+            kind: NodeTaskKind.MAIL_QUEUE,
+            status: NodeTaskStatus.QUEUED,
+            requestedById: z.operatorUserId,
+            payload: { mode: 'remove', daUser: w.konto.daUsername, domains: domeny, ids: lista.join(','), subscriptionId: z.subscriptionId },
+          },
+        });
+        return { ok: true as const, zlecono: lista.length, zadanieId: t.id };
+      },
+      { action: HostingResourceActions.HOSTING_MAIL_QUEUE_PURGE_QUEUED, details: { wiadomosci: lista.length } },
     );
   }
 }

@@ -7,6 +7,8 @@ import { ClientWebhooksService } from '../client-webhooks/client-webhooks.servic
 import { AccountStatus, NodeTaskKind, NodeTaskStatus, Prisma, ServerStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
+import { SupportActions } from '../common/audit/audit.actions.js';
+import { wynikUsuwania } from './kolejka-poczty.js';
 import { DirectAdminService } from './directadmin.service.js';
 import { PLANY_Z_PAKIETEM_DA } from './da-package-spec.js';
 
@@ -623,6 +625,18 @@ export class NodeTasksService {
     }
 
     if (task.kind === NodeTaskKind.FLEET_UPDATE) await this.dalejFala(task, true, log);
+
+    // F3.1 — usunięcie wiadomości konta z kolejki: liczba usuniętych dopiero od węzła (dziennik zespołu, autor = zlecający).
+    if (task.kind === NodeTaskKind.MAIL_QUEUE && p.mode === 'remove' && task.accountId) {
+      const konto = await this.prisma.account.findUnique({ where: { id: task.accountId }, select: { userId: true, subscriptionId: true } });
+      const { usunieto, pominieto } = wynikUsuwania(log);
+      await this.audit.record({
+        action: SupportActions.MAIL_QUEUE_MESSAGES_REMOVED,
+        userId: konto?.userId,
+        actorUserId: task.requestedById ?? undefined,
+        details: { taskId: task.id, serverId: opts.serverId, subscriptionId: konto?.subscriptionId ?? null, usunieto, pominieto },
+      });
+    }
 
     if (task.kind === NodeTaskKind.HOSTING_PROFILE) {
       await this.directAdmin.syncPlanPackagesForServer(opts.serverId).catch((err) => {

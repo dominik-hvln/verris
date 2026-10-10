@@ -35,6 +35,7 @@ export const ZADANIA: Record<string, string> = {
   PGSQL: 'PostgreSQL',
   IMAGE_OPTIMIZE: 'Optymalizacja obrazów',
   ONBOARD_LIVE: 'Onboard LIVE',
+  MAIL_QUEUE: 'Kolejka poczty',
 };
 
 type Stan = 'ok' | 'warn' | 'crit' | 'brak';

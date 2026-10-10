@@ -324,11 +324,29 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     for (const rola of ['L1 Konsultant', 'Audytor (tylko podgląd)']) {
       expect({ rola, w: await wolno(rola, [...blokada, 'stanWysylki']) }).toEqual({ rola, w: { zablokuj: false, zwolnij: false, stanWysylki: false } });
     }
+    // Kolejka konta: podgląd od L2, usunięcie wiadomości (nieodwracalne) od L3 — to samo uprawnienie co blokada.
+    expect(await wolno('L1 Konsultant', ['kolejka', 'wczytajKolejke', 'usunZKolejki'])).toEqual({ kolejka: false, wczytajKolejke: false, usunZKolejki: false });
+    expect(await wolno('L2 Specjalista techniczny', ['kolejka', 'wczytajKolejke', 'usunZKolejki'])).toEqual({ kolejka: true, wczytajKolejke: true, usunZKolejki: false });
+    expect(await wolno('L3 Starszy specjalista', ['kolejka', 'wczytajKolejke', 'usunZKolejki'])).toEqual({ kolejka: true, wczytajKolejke: true, usunZKolejki: true });
+    expect(poczta.map((p) => p.metoda).sort()).toEqual(['kolejka', 'stanWysylki', 'usunZKolejki', 'wczytajKolejke', 'zablokuj', 'zwolnij']);
     // Sam podgląd kolejki nie daje blokady; samo NODES_MANAGE / ABUSE_MANAGE też nie.
     for (const m of blokada) {
       expect(await wpuszcza(t(m), OPERATOR, ['MAIL_QUEUE_VIEW', 'NODES_MANAGE', 'ABUSE_MANAGE', 'ACCOUNT_ACTIONS'])).toBe(false);
       expect(await wpuszcza(t(m), ADMIN)).toBe(true);
       expect(await wpuszcza(t(m), KLIENT, ['*', 'MAIL_SEND_BLOCK'])).toBe(false);
+    }
+  });
+
+  it('F3.1 (D4): kolejka poczty CAŁEGO węzła (nagłówki wszystkich klientów) — tylko NOC i ADMIN', async () => {
+    const trasy = TRASY.filter((t) => t.kontroler === 'KolejkaPocztyWezlaAdminController');
+    expect(trasy.map((t) => t.metoda).sort()).toEqual(['stan', 'wczytaj', 'wypchnij']);
+    for (const t of trasy) {
+      expect(await wpuszcza(t, OPERATOR, uprawnieniaRoli('Inżynier infrastruktury (NOC/DevOps)'))).toBe(true);
+      for (const rola of ['L1 Konsultant', 'L2 Specjalista techniczny', 'L3 Starszy specjalista', 'L4 Kierownik zmiany', 'Nadużycia i bezpieczeństwo', 'Audytor (tylko podgląd)']) {
+        expect({ t: nazwa(t), rola, w: await wpuszcza(t, OPERATOR, uprawnieniaRoli(rola)) }).toEqual({ t: nazwa(t), rola, w: false });
+      }
+      expect(await wpuszcza(t, OPERATOR, ['NODES_VIEW', 'NODES_MANAGE', 'MAIL_QUEUE_VIEW', 'MAIL_SEND_BLOCK'])).toBe(false);
+      expect(await wpuszcza(t, ADMIN)).toBe(true);
     }
   });
 

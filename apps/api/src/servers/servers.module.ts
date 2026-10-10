@@ -29,10 +29,13 @@ import { NodeBootstrapAgentController } from './node-bootstrap.agent.controller.
 import { NodeBootstrapAdminController } from './node-bootstrap.admin.controller.js';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module.js';
 
+import { KolejkaPocztyWezlaAdminController, KolejkaPocztyWezlaService } from './kolejka-poczty-wezla.admin.controller.js';
+
 @Module({
   imports: [PlatformSettingsModule, NotificationsModule, AiModule],
   controllers: [
     ServersController,
+    KolejkaPocztyWezlaAdminController,
     StosWezlaAdminController,
     OnboardAdminController,
     ServersAdminController,
@@ -44,6 +47,7 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
   ],
   providers: [
     ServersService,
+    KolejkaPocztyWezlaService,
     StosWezlaService,
     PrzegladWezlaService,
     WykresyFlotyService,
