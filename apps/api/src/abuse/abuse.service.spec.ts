@@ -92,6 +92,19 @@ describe('N-13 — zgłoszenia nadużyć', () => {
     expect(mailer.send).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['GRACE_EXPIRED', true],
+    ['RESELLER', true],
+    ['ABUSE', false],
+  ])('audyt Fal 2: szczegóły — usługa zawieszona z powodu %s → zawieszonaBezDecyzjiObslugi=%s', async (powod, oczekiwane) => {
+    const b = zbuduj({ raport: { id: 'r1', userId: null, subscriptionId: 's1' } });
+    (b.prisma as Record<string, unknown>).subscription = {
+      findUnique: vi.fn().mockResolvedValue({ id: 's1', status: 'SUSPENDED', account: { domain: 'sklep.pl' }, events: [{ details: { reason: powod } }] }),
+    };
+    const r = await b.s.szczegoly('r1');
+    expect(r.usluga).toEqual({ id: 's1', status: 'SUSPENDED', domena: 'sklep.pl', zawieszonaBezDecyzjiObslugi: oczekiwane });
+  });
+
   /** F2.3 (D2, 10.10) — decyzja abuse może zawiesić usługę (te same uprawnienia co z karty) albo tylko powiadomić. */
   describe('F2.3 — zawieszenie z decyzji', () => {
     const UZ = 'Podstrona phishingowa potwierdzona, usługa zawieszona do wyjaśnienia.';

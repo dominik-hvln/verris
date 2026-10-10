@@ -44,6 +44,7 @@ import { accountSuspendedPaymentTemplate } from '../mail/templates/hosting-notif
 import { orderReceivedTemplate } from '../mail/templates/order-notifications.js';
 import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service.js';
 import { KOD_U_PARTNERA, klientAktywnegoResellera, narzutResellera, zNarzutem } from '../reseller/narzut-resellera.js';
+import { POWODY_ZDEJMOWANE_BEZ_OBSLUGI, zawieszenieObejmujeZaleglosc } from './powody-zawieszenia.js';
 
 export type SuspendReason =
   | 'PAYMENT_FAILED'
@@ -857,8 +858,7 @@ export class SubscriptionsService {
     // domknięcie = warunkowe przejście w bazie przed zawieszeniem na serwerze (jak expireTrial).
     if (opts.tylkoGdyStatus && subscription.status !== opts.tylkoGdyStatus) return subscription;
     if (subscription.status === SubscriptionStatus.SUSPENDED) {
-      this.logger.debug(`Subscription ${opts.subscriptionId} already SUSPENDED — skipping`);
-      return subscription;
+      return this.dopiszPowodZawieszenia(subscription, opts);
     }
     if (
       subscription.status === SubscriptionStatus.CANCELED ||
@@ -904,6 +904,9 @@ export class SubscriptionsService {
             note: opts.note ?? null,
             daSuspended,
             daError,
+            // Audyt Fal 2 — stan sprzed zawieszenia: odwieszenie usługi zaległej (PAST_DUE) to decyzja rozliczeniowa
+            // (zawieszenie-operatora.service.ts, reseller-klienci.service.ts wznow).
+            statusPrzed: subscription.status,
           },
         },
       });
@@ -947,6 +950,56 @@ export class SubscriptionsService {
     }
 
     return updated;
+  }
+
+  /**
+   * Audyt Fal 2 — zawieszenie usługi już zawieszonej. Zwykle no-op (bez węzła i bez wpisu), ale decyzja obsługi
+   * (nadużycie, decyzja, prośba klienta) na usłudze zawieszonej za brak płatności albo przez resellera musi zostać
+   * zapisana jako nowy powód: inaczej wpłata (runPaymentSuspensionRestore, Stripe) albo reseller zdejmą zawieszenie
+   * za nadużycie, a dziennik i decyzja abuse twierdzą „zawieszono”, choć nic nie zapisano. Konto na węźle jest już
+   * zawieszone — tylko zdarzenie i dziennik. Zaległość przechodzi na nowe zdarzenie (`zaleglosc`), więc odwieszenie
+   * dalej wymaga BILLING_MANAGE.
+   */
+  private async dopiszPowodZawieszenia(
+    subscription: Subscription & { account: { domain: string } | null },
+    opts: { reason: SuspendReason; note?: string; actorUserId?: string | null; zgloszenieId?: string | null },
+  ): Promise<Subscription> {
+    const zdejmowane = POWODY_ZDEJMOWANE_BEZ_OBSLUGI as readonly string[];
+    if (zdejmowane.includes(opts.reason)) return subscription;
+    const ostatnie = await this.prisma.subscriptionEvent.findFirst({
+      where: { subscriptionId: subscription.id, type: 'SUSPENDED' },
+      orderBy: { createdAt: 'desc' },
+      select: { details: true },
+    });
+    const d = ostatnie?.details;
+    const poprzedni = d && typeof d === 'object' && !Array.isArray(d) ? (d as Record<string, unknown>).reason : null;
+    if (typeof poprzedni === 'string' && !zdejmowane.includes(poprzedni)) {
+      this.logger.debug(`Subscription ${subscription.id} already SUSPENDED (${poprzedni}) — skipping`);
+      return subscription;
+    }
+    const zaleglosc = zawieszenieObejmujeZaleglosc(d);
+    await this.prisma.subscriptionEvent.create({
+      data: {
+        subscriptionId: subscription.id,
+        type: 'SUSPENDED',
+        details: { reason: opts.reason, note: opts.note ?? null, daSuspended: false, daError: null, statusPrzed: subscription.status, poprzedniPowod: poprzedni ?? null, zaleglosc },
+      },
+    });
+    await this.audit.record({
+      action: 'SUBSCRIPTION_SUSPENDED',
+      userId: subscription.userId,
+      actorUserId: opts.actorUserId ?? null,
+      details: {
+        subscriptionId: subscription.id,
+        domain: subscription.account?.domain ?? null,
+        reason: opts.reason,
+        note: opts.note ?? null,
+        ...(opts.zgloszenieId ? { zgloszenieId: opts.zgloszenieId } : {}),
+        juzZawieszona: true,
+        poprzedniPowod: poprzedni ?? null,
+      },
+    });
+    return subscription;
   }
 
   private async notifyAccountSuspendedPayment(opts: {

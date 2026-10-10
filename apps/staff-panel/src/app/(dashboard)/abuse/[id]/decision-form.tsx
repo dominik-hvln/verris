@@ -12,6 +12,8 @@ import { Checkbox } from '@/components/checkbox';
 export interface UslugaZgloszenia {
   domena: string | null;
   status: string;
+  /** Audyt Fal 2 — zawieszona za brak płatności albo przez partnera: zawieszenie za nadużycie można dopisać. */
+  zawieszonaBezDecyzjiObslugi?: boolean;
 }
 
 export function DecisionForm({
@@ -36,9 +38,12 @@ export function DecisionForm({
   const [msg, setMsg] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const dzialajaca = !!usluga && !["SUSPENDED", "CANCELED", "EXPIRED"].includes(usluga.status);
+  // Zawieszona za brak płatności (albo przez partnera) wróciłaby sama po wpłacie — nadużycie trzeba dopisać.
+  const doDopisania = !!usluga && usluga.status === "SUSPENDED" && usluga.zawieszonaBezDecyzjiObslugi === true;
+  const doZawieszenia = dzialajaca || doDopisania;
   const nazwa = usluga?.domena ?? "usługę";
   const run = (status: "IN_REVIEW" | "ACTION_TAKEN" | "REJECTED") => {
-    const zawiesTeraz = status === "ACTION_TAKEN" && zawies && dzialajaca && mozeZawiesic;
+    const zawiesTeraz = status === "ACTION_TAKEN" && zawies && doZawieszenia && mozeZawiesic;
     const blokujTeraz = status === "ACTION_TAKEN" && blokuj && dzialajaca && mozeBlokowac;
     // Zawieszenie odcina stronę i pocztę klienta — drugi krok z opisem skutków przed wysłaniem.
     if (zawiesTeraz && !potwierdzenie) {
@@ -70,7 +75,8 @@ export function DecisionForm({
       ) : null}
       {usluga && !dzialajaca ? (
         <p className="text-xs text-muted-foreground" data-usluga="niedzialajaca">
-          Usługa {nazwa} jest już {usluga.status === "SUSPENDED" ? "zawieszona" : "zakończona"}.
+          Usługa {nazwa} jest już {usluga.status === "SUSPENDED" ? "zawieszona" : "zakończona"}
+          {doDopisania ? " — za brak płatności albo przez partnera, więc po wpłacie wróciłaby sama. Zawieszenie za nadużycie zostaje do decyzji obsługi." : "."}
         </p>
       ) : null}
       {dzialajaca && mozeBlokowac ? (
@@ -84,13 +90,13 @@ export function DecisionForm({
           Blokada wysyłki poczty {nazwa} wymaga uprawnienia MAIL_SEND_BLOCK.
         </p>
       ) : null}
-      {dzialajaca && mozeZawiesic ? (
+      {doZawieszenia && mozeZawiesic ? (
         <label className="flex items-center gap-2 text-xs text-neutral-300" data-zawies="opcja">
           <Checkbox checked={zawies} onChange={(e) => { setZawies(e.target.checked); setPotwierdzenie(false); }} />
-          Przy „Podjęto działania” zawieś usługę {nazwa}
+          {doDopisania ? `Przy „Podjęto działania” zawieś usługę ${nazwa} także za nadużycie` : `Przy „Podjęto działania” zawieś usługę ${nazwa}`}
         </label>
       ) : null}
-      {dzialajaca && !mozeZawiesic ? (
+      {doZawieszenia && !mozeZawiesic ? (
         <p className="text-xs text-muted-foreground" data-zawies="brak-uprawnien">
           Zawieszenie usługi {nazwa} wymaga uprawnienia SUBSCRIPTIONS_SUSPEND — wyślij wniosek z karty usługi w panelu operatora.
         </p>
@@ -98,7 +104,9 @@ export function DecisionForm({
       {potwierdzenie ? (
         <div className="space-y-2 rounded-lg border border-rose-500/40 bg-rose-500/10 p-3" data-zawies="potwierdzenie">
           <p className="text-xs text-rose-100">
-            Zawiesić {nazwa}? Strona, poczta (odbiór i wysyłka) i FTP klienta przestaną działać do odwieszenia. Wpis trafi do dziennika klienta jako działanie obsługi Verris.
+            {doDopisania
+              ? `Zawiesić ${nazwa} za nadużycie? Usługa zostanie zawieszona także po opłaceniu zaległości — odwiesza ją dopiero obsługa. Wpis trafi do dziennika klienta jako działanie obsługi Verris.`
+              : `Zawiesić ${nazwa}? Strona, poczta (odbiór i wysyłka) i FTP klienta przestaną działać do odwieszenia. Wpis trafi do dziennika klienta jako działanie obsługi Verris.`}
           </p>
           <div className="flex flex-wrap gap-2">
             <button disabled={pending} onClick={() => run("ACTION_TAKEN")} className="rounded-lg bg-rose-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-rose-500 disabled:opacity-50">Zawieś i zapisz decyzję</button>

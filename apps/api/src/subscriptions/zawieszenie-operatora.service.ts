@@ -5,6 +5,8 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { SubscriptionsService, type SuspendReason } from './subscriptions.service.js';
 import { zgloszenieKlienta } from '../tickets/zgloszenie-klienta.js';
 
+import { zawieszenieObejmujeZaleglosc } from './powody-zawieszenia.js';
+
 export { POWODY_ZAWIESZENIA_OPERATORA } from './powody-zawieszenia.js';
 
 /**
@@ -38,14 +40,14 @@ export class ZawieszenieOperatoraService {
       orderBy: { createdAt: 'desc' },
       select: { details: true },
     });
-    const d = ostatnie?.details;
-    const powod = d && typeof d === 'object' && !Array.isArray(d) ? (d as Record<string, unknown>).reason : null;
-    if (powod !== 'PAYMENT_FAILED' && powod !== 'GRACE_EXPIRED') return;
+    // Audyt Fal 2 — także usługa zaległa (PAST_DUE) zawieszona z innego powodu i nadużycie dopisane na zawieszenie
+    // za brak płatności: inaczej „zawieś (decyzja obsługi) i odwieś” przywracał ACTIVE bez zapłaty.
+    if (!zawieszenieObejmujeZaleglosc(ostatnie?.details)) return;
     const aktor = await this.prisma.user.findUnique({ where: { id: aktorUserId }, select: { role: true } });
     if (aktor?.role === 'ADMIN') return;
     if (aktor?.role === 'STAFF' && (await uprawnieniaOperatora(this.prisma, aktorUserId)).includes('BILLING_MANAGE')) return;
     throw new ForbiddenException(
-      'Usługa jest zawieszona za brak płatności — odwiesza administrator albo osoba z uprawnieniem do rozliczeń (BILLING_MANAGE). Klient może opłacić zaległość.',
+      'Usługa jest zawieszona za brak płatności albo miała zaległą płatność przed zawieszeniem — odwiesza administrator albo osoba z uprawnieniem do rozliczeń (BILLING_MANAGE). Klient może opłacić zaległość.',
     );
   }
 

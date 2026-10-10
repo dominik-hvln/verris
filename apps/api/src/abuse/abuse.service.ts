@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { ZawieszenieOperatoraService } from '../subscriptions/zawieszenie-operatora.service.js';
+import { POWODY_ZDEJMOWANE_BEZ_OBSLUGI } from '../subscriptions/powody-zawieszenia.js';
 import { PocztaKontaOperatoraService } from '../subscriptions/poczta-konta-operatora.service.js';
 import { uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
 import type { DecyzjaNaduzyciaDto, ZgloszenieNaduzyciaDto } from './abuse.dto.js';
@@ -130,9 +131,22 @@ export class AbuseService {
     const klient = r.userId ? await this.prisma.user.findUnique({ where: { id: r.userId }, select: { id: true, email: true } }) : null;
     // F2.3 — dopasowana usługa i jej stan: formularz decyzji pokazuje „Zawieś usługę …” tylko dla działającej.
     const s = r.subscriptionId
-      ? await this.prisma.subscription.findUnique({ where: { id: r.subscriptionId }, select: { id: true, status: true, account: { select: { domain: true } } } })
+      ? await this.prisma.subscription.findUnique({
+          where: { id: r.subscriptionId },
+          select: {
+            id: true,
+            status: true,
+            account: { select: { domain: true } },
+            events: { where: { type: 'SUSPENDED' }, orderBy: { createdAt: 'desc' }, take: 1, select: { details: true } },
+          },
+        })
       : null;
-    const usluga = s ? { id: s.id, status: s.status, domena: s.account?.domain ?? null } : null;
+    // Audyt Fal 2 — usługa zawieszona za brak płatności albo przez resellera: zawieszenie za nadużycie dopisuje się jako
+    // nowy powód (SubscriptionsService.suspend), żeby wpłata ani reseller go nie zdjęły — formularz je proponuje.
+    const powod = (s?.events[0]?.details as { reason?: unknown } | null | undefined)?.reason;
+    const zawieszonaBezDecyzjiObslugi =
+      s?.status === 'SUSPENDED' && (POWODY_ZDEJMOWANE_BEZ_OBSLUGI as readonly unknown[]).includes(powod);
+    const usluga = s ? { id: s.id, status: s.status, domena: s.account?.domain ?? null, zawieszonaBezDecyzjiObslugi } : null;
     return { ...r, klient, usluga };
   }
 

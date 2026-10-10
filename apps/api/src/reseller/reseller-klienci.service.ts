@@ -8,6 +8,7 @@ import { generateAuthToken, hashAuthToken } from '../auth/auth-token.util.js';
 import { escapeMarkdown as md, renderEmailShell } from '../mail/templates/_layouts/email-shell.js';
 import { bezNarzutu, cenyDlaResellera, narzutWlaczony } from './narzut-resellera.js';
 import { ConfigService } from '@nestjs/config';
+import { zawieszenieObejmujeZaleglosc } from '../subscriptions/powody-zawieszenia.js';
 
 const WAZNOSC_LINKU_H = 72;
 /** Ponowny link „ustaw hasło” — najwyżej raz na 10 minut na klienta (mail ląduje u klienta, nie u resellera). */
@@ -237,6 +238,10 @@ export class ResellerKlienciService {
     // Reseller zdejmuje wyłącznie własną blokadę — nie zaległą płatność, nie nadużycie, nie decyzję obsługi.
     if (ostatniPowodWstrzymania(s.events) !== 'RESELLER') {
       throw new ForbiddenException('Tę usługę wstrzymaliśmy my (płatność albo decyzja obsługi) — wznowić ją może tylko klient albo nasza obsługa.');
+    }
+    // Audyt Fal 2 — usługa miała zaległą płatność, gdy reseller ją wstrzymał: wznowienie przywróciłoby ją jako opłaconą.
+    if (zawieszenieObejmujeZaleglosc(s.events[0]?.details)) {
+      throw new ForbiddenException('Gdy wstrzymałeś usługę, klient miał zaległą płatność — wznowi ją nasza obsługa po jej uregulowaniu. Napisz do nas: kontakt@verris.pl.');
     }
     await this.subs.unsuspend({ subscriptionId: s.id, actorUserId: resellerId, note: `Wznowione przez resellera ${p.brandName ?? p.code}` });
     const marka = p.brandName || 'Twój partner';

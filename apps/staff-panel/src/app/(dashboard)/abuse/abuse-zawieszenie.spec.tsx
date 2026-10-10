@@ -48,6 +48,19 @@ describe("F2.3 — zawieszenie z decyzji abuse", () => {
     expect(brak).not.toContain("data-zawies");
   });
 
+  it("audyt Fal 2: usługa zawieszona za brak płatności (albo przez partnera) — opcja dopisania nadużycia, bez blokady wysyłki", () => {
+    const html = renderToStaticMarkup(
+      <DecisionForm id="r1" maKlienta usluga={{ domena: "sklep.pl", status: "SUSPENDED", zawieszonaBezDecyzjiObslugi: true }} mozeZawiesic mozeBlokowac />,
+    );
+    expect(html).toContain('data-zawies="opcja"');
+    expect(html).toContain("zawieś usługę sklep.pl także za nadużycie");
+    expect(html).toContain("po wpłacie wróciłaby sama");
+    expect(html).not.toContain('data-blokada="opcja"');
+    // Zawieszona decyzją obsługi (nadużycie, decyzja) — nic do dopisania.
+    const obsluga = renderToStaticMarkup(<DecisionForm id="r1" maKlienta usluga={{ domena: "sklep.pl", status: "SUSPENDED", zawieszonaBezDecyzjiObslugi: false }} mozeZawiesic />);
+    expect(obsluga).not.toContain('data-zawies="opcja"');
+  });
+
   it("akcja: suspendService idzie do API tylko, gdy zaznaczone", async () => {
     api.mockResolvedValue({});
     await decyzjaAction({ id: "r1", status: "ACTION_TAKEN", decision: "x".repeat(25), suspendService: true });

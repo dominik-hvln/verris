@@ -94,6 +94,15 @@ describe('O-05 — reseller na kontach swoich klientów', () => {
     await expect(serwis().wznow(reseller.id, klient.id, usluga.id)).rejects.toMatchObject({ status: 403 });
   });
 
+  it('audyt Fal 2: usługa wstrzymana przez resellera, gdy miała zaległość (PAST_DUE) — reseller jej nie wznawia jako opłaconej', async () => {
+    const { reseller, klient, usluga } = await uklad();
+    await prisma().subscription.update({ where: { id: usluga.id }, data: { status: SubscriptionStatus.SUSPENDED } });
+    // Zdarzenie jak z SubscriptionsService.suspend: powód i stan sprzed zawieszenia.
+    await prisma().subscriptionEvent.create({ data: { subscriptionId: usluga.id, type: 'SUSPENDED', details: { reason: 'RESELLER', statusPrzed: 'PAST_DUE' } } });
+    await expect(serwis().wznow(reseller.id, klient.id, usluga.id)).rejects.toMatchObject({ status: 403 });
+    expect((await prisma().subscription.findUniqueOrThrow({ where: { id: usluga.id } })).status).toBe('SUSPENDED');
+  });
+
   it('link „ustaw hasło”: stary token przestaje działać, drugi w ciągu 10 min odmowa', async () => {
     const { reseller, klient } = await uklad();
     await serwis().linkHasla(reseller.id, klient.id);
