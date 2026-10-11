@@ -123,6 +123,58 @@ describe("F2.2 — pasek akcji konta", () => {
   });
 });
 
+/** Weryfikacja 11.10 (prod): reset FTP bez kont FTP — „Resetuj hasło” wyglądał na aktywny, klik nic nie robił; powód przechodził między akcjami. */
+describe("weryfikacja 11.10 — pasek akcji konta", () => {
+  it("reset FTP bez dodatkowych kont FTP: „Resetuj hasło” wyszarzony z podpowiedzią, także po wpisaniu powodu", async () => {
+    odczyt.mockResolvedValue({ ok: true, wynik: { konta: [], fetchError: null } });
+    await render(op("ACCOUNT_ACTIONS"));
+    await klik(przycisk('[data-akcja="ftp"]'));
+    expect(odczyt).toHaveBeenCalledWith("s1", "ftp", undefined);
+    expect(k.textContent).toContain("Konto nie ma dodatkowych kont FTP.");
+    await wpisz(pola()[0], "klient prosi o nowe hasło FTP");
+    const b = przycisk('[data-wykonaj="haslo-ftp"]');
+    expect(b.disabled).toBe(true);
+    expect(b.title).toBe("Konto nie ma dodatkowych kont FTP — nie ma hasła do zresetowania.");
+    expect(k.querySelector('[data-podpowiedz="haslo-ftp"]')?.textContent).toBe(b.title);
+    expect(b.getAttribute("aria-describedby")).toBe(k.querySelector('[data-podpowiedz="haslo-ftp"]')?.id);
+    await klik(b);
+    expect(potwierdz).not.toHaveBeenCalled();
+    expect(akcja).not.toHaveBeenCalled();
+  });
+
+  it("z kontem FTP: podpowiedź mówi, czego brakuje (wybór, potem powód), a po uzupełnieniu znika", async () => {
+    odczyt.mockResolvedValue({ ok: true, wynik: { konta: [{ username: "jan@sklep.pl" }], fetchError: null } });
+    await render(op("ACCOUNT_ACTIONS"));
+    await klik(przycisk('[data-akcja="ftp"]'));
+    expect(przycisk('[data-wykonaj="haslo-ftp"]').title).toBe("Najpierw wybierz z listy.");
+    await render(op("ACCOUNT_ACTIONS"));
+    await klik(przycisk('[data-akcja="kopia"]'));
+    expect(przycisk('[data-wykonaj="kopia"]').title).toBe("Najpierw wpisz powód (min. 10 znaków).");
+    await wpisz(pola()[0], "kopia przed aktualizacją WordPressa");
+    expect(przycisk('[data-wykonaj="kopia"]').disabled).toBe(false);
+    expect(przycisk('[data-wykonaj="kopia"]').title).toBe("");
+    expect(k.querySelector("[data-podpowiedz]")).toBeNull();
+  });
+
+  it("przełączenie akcji bez wykonania czyści powód, numer zgłoszenia zostaje", async () => {
+    odczyt.mockResolvedValue({ ok: true, wynik: { wToku: false, sprawdzono: null, ostatniSkan: null, razem: 0, znaleziska: [], blad: null, fetchError: null } });
+    await render(op("ACCOUNT_ACTIONS"));
+    await klik(przycisk('[data-akcja="kopia"]'));
+    const [powod, zgloszenie] = pola();
+    await wpisz(powod, "kopia przed aktualizacją WordPressa");
+    await wpisz(zgloszenie, "#ab12cd34");
+    await klik(przycisk('[data-akcja="skan"]'));
+    const [powodPo, zgloszeniePo] = pola();
+    expect(powodPo.value).toBe("");
+    expect(zgloszeniePo.value).toBe("#ab12cd34");
+    expect(przycisk('[data-wykonaj="skan"]').disabled).toBe(true);
+    // Ponowny klik tej samej akcji nie kasuje tego, co operator już wpisał.
+    await wpisz(powodPo, "podejrzenie infekcji po zgłoszeniu");
+    await klik(przycisk('[data-akcja="skan"]'));
+    expect(pola()[0].value).toBe("podejrzenie infekcji po zgłoszeniu");
+  });
+});
+
 describe("F2.2 — komunikat po akcji", () => {
   it("reset hasła: mówi, czy klient dostał mail — nigdy nie pokazuje hasła", () => {
     expect(komunikatPoAkcji("skrzynka", { ok: true, mailDoKlienta: true, klient: "anna@klient.pl" })).toBe(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { Select } from "@/components/select";
 import { Checkbox } from "@/components/checkbox";
 import { potwierdz } from "@/components/potwierdz";
@@ -51,6 +51,15 @@ type Dane = {
 };
 
 const POLE = "w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white";
+
+/** Akcje na jednym z elementów konta: komunikat, gdy konto ich nie ma, i podpowiedź przy wyszarzonym „Wykonaj”. */
+const BRAK_CELU: Partial<Record<Rodzaj, { lista: string; przycisk: string }>> = {
+  skrzynka: { lista: "Konto nie ma skrzynek.", przycisk: "Konto nie ma skrzynek — nie ma hasła do zresetowania." },
+  ftp: { lista: "Konto nie ma dodatkowych kont FTP.", przycisk: "Konto nie ma dodatkowych kont FTP — nie ma hasła do zresetowania." },
+  baza: { lista: "Konto nie ma baz danych.", przycisk: "Konto nie ma baz danych — nie ma hasła do zresetowania." },
+  ssl: { lista: "Konto nie ma domen.", przycisk: "Konto nie ma domen — nie ma dla czego wystawić certyfikatu." },
+  php: { lista: "Brak innych wersji do wyboru.", przycisk: "Brak innych wersji PHP do wyboru." },
+};
 const kiedy = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL") : "—");
 
 /** Komunikat po udanej akcji — hasła nie ma; mówimy, czy klient dostał mail. */
@@ -119,6 +128,9 @@ export function PasekAkcjiKonta({ subscriptionId, dostep }: { subscriptionId: st
     });
 
   const otworz = (r: Rodzaj) => {
+    // Weryfikacja 11.10 — powód dotyczy jednej akcji: po przełączeniu nie przechodzi do następnej (do dziennika trafiłby
+    // opis resetu skrzynki przy zmianie PHP). Numer zgłoszenia zostaje — to zwykle ta sama sprawa klienta.
+    if (r !== aktywna) setPowod("");
     setAktywna(r);
     setMsg(null);
     setBladDanych(null);
@@ -185,6 +197,9 @@ export function PasekAkcjiKonta({ subscriptionId, dostep }: { subscriptionId: st
       <Select value={cel} onChange={setCel} options={wartosci.map((v) => ({ value: v, label: v }))} disabled={pending} placeholder="Wybierz…" wrapperClassName="w-full max-w-md" />
     );
   const domenaDns = dane.dns?.domain ?? "";
+  const phpDoWyboru = dane.php?.dostepne.filter((v) => v !== dane.php?.wersja);
+  // Lista celów aktywnej akcji (undefined — jeszcze nie wczytana albo akcja bez listy).
+  const cele: Partial<Record<Rodzaj, string[] | undefined>> = { skrzynka: dane.skrzynki, ftp: dane.ftp, baza: dane.bazy, ssl: dane.domeny, php: phpDoWyboru };
 
   return (
     <div className="rounded-2xl border border-white/10 bg-black/35 p-5" role="region" aria-labelledby="akcje-konta-naglowek">
@@ -227,11 +242,11 @@ export function PasekAkcjiKonta({ subscriptionId, dostep }: { subscriptionId: st
             </p>
           ) : null}
 
-          {aktywna === "skrzynka" ? wybor(dane.skrzynki, "Konto nie ma skrzynek.") : null}
-          {aktywna === "ftp" ? wybor(dane.ftp, "Konto nie ma dodatkowych kont FTP.") : null}
+          {aktywna === "skrzynka" ? wybor(dane.skrzynki, BRAK_CELU.skrzynka!.lista) : null}
+          {aktywna === "ftp" ? wybor(dane.ftp, BRAK_CELU.ftp!.lista) : null}
           {aktywna === "baza" ? (
             <>
-              {wybor(dane.bazy, "Konto nie ma baz danych.")}
+              {wybor(dane.bazy, BRAK_CELU.baza!.lista)}
               <input
                 value={uzytkownik}
                 onChange={(e) => setUzytkownik(e.target.value)}
@@ -248,7 +263,7 @@ export function PasekAkcjiKonta({ subscriptionId, dostep }: { subscriptionId: st
           ) : null}
           {aktywna === "ssl" ? (
             <>
-              {wybor(dane.domeny, "Konto nie ma domen.")}
+              {wybor(dane.domeny, BRAK_CELU.ssl!.lista)}
               <label className="flex items-center gap-2 text-xs text-neutral-200">
                 <Checkbox checked={www} onChange={(e) => setWww(e.target.checked)} disabled={pending} />
                 Także www.
@@ -258,7 +273,7 @@ export function PasekAkcjiKonta({ subscriptionId, dostep }: { subscriptionId: st
           {aktywna === "php" ? (
             <>
               {dane.php ? <p className="text-xs text-muted-foreground">Teraz: {dane.php.wersja ?? "domyślna serwera"}</p> : null}
-              {wybor(dane.php?.dostepne.filter((v) => v !== dane.php?.wersja), "Brak innych wersji do wyboru.")}
+              {wybor(phpDoWyboru, BRAK_CELU.php!.lista)}
             </>
           ) : null}
           {aktywna === "kopia" ? <p className="text-xs text-muted-foreground">Pełna kopia konta: pliki, bazy i poczta.</p> : null}
@@ -401,6 +416,9 @@ export function PasekAkcjiKonta({ subscriptionId, dostep }: { subscriptionId: st
             edytowany={edytowany}
             domenaDns={domenaDns}
             blokada={blokada}
+            pending={pending}
+            powodOk={powodOk}
+            bezCelu={cele[aktywna]?.length === 0}
             wykonaj={wykonaj}
           />
           {msg ? (
@@ -423,8 +441,13 @@ function PrzyciskWykonaj(p: {
   edytowany: Rekord | null;
   domenaDns: string;
   blokada: boolean;
+  pending: boolean;
+  powodOk: boolean;
+  /** Konto nie ma elementów, na których działa akcja (np. dodatkowych kont FTP). */
+  bezCelu: boolean;
   wykonaj: (akcja: AkcjaPaska, pola: Record<string, unknown>, pytanie: string, niebezpieczne?: boolean) => Promise<void>;
 }) {
+  const podpowiedzId = useId();
   const ttl = p.rekord.ttl ? Number(p.rekord.ttl) : undefined;
   const [napis, akcja, pola, pytanie, brakuje]: [string, AkcjaPaska, Record<string, unknown>, string, boolean] = (() => {
     switch (p.rodzaj) {
@@ -458,16 +481,40 @@ function PrzyciskWykonaj(p: {
       }
     }
   })();
+  // Weryfikacja 11.10 — wyszarzony przycisk wyglądał na aktywny (cyjan z przezroczystością), a klik „nic nie robił”:
+  // teraz szary z podpowiedzią, czego brakuje. Kolejność: brak celu na koncie, brak wyboru, brak powodu.
+  const podpowiedz = p.pending
+    ? null
+    : p.bezCelu
+      ? (BRAK_CELU[p.rodzaj]?.przycisk ?? null)
+      : brakuje
+        ? p.rodzaj === "dns"
+          ? "Uzupełnij nazwę i wartość rekordu."
+          : p.rodzaj === "baza"
+            ? "Wybierz bazę i wpisz użytkownika."
+            : "Najpierw wybierz z listy."
+        : !p.powodOk
+          ? `Najpierw wpisz powód (min. ${MIN_POWOD} znaków).`
+          : null;
   return (
-    <button
-      type="button"
-      data-wykonaj={akcja}
-      disabled={p.blokada || brakuje}
-      onClick={() => void p.wykonaj(akcja, pola, pytanie, akcja.startsWith("haslo") || akcja.startsWith("dns"))}
-      className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500 disabled:opacity-50"
-    >
-      {napis}
-    </button>
+    <div className="space-y-1">
+      <button
+        type="button"
+        data-wykonaj={akcja}
+        disabled={p.blokada || brakuje || p.bezCelu}
+        title={podpowiedz ?? undefined}
+        aria-describedby={podpowiedz ? podpowiedzId : undefined}
+        onClick={() => void p.wykonaj(akcja, pola, pytanie, akcja.startsWith("haslo") || akcja.startsWith("dns"))}
+        className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500 disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-400"
+      >
+        {napis}
+      </button>
+      {podpowiedz ? (
+        <p id={podpowiedzId} data-podpowiedz={akcja} className="text-xs text-muted-foreground">
+          {podpowiedz}
+        </p>
+      ) : null}
+    </div>
   );
 }
 
