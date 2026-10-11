@@ -32,4 +32,6 @@ module.exports = {
   // kodu ze `src` — czyli sprawdzać poprzedni build zamiast bieżącego kodu.
   modulePathIgnorePatterns: ['<rootDir>/.next/'],
   testEnvironment: 'node',
+  // Strefa procesu testów = strefa serwera Next (UTC), nie strefa maszyny dewelopera.
+  globalSetup: '<rootDir>/jest.global-setup.cjs',
 };

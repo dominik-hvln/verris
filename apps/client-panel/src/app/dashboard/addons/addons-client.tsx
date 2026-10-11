@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Check, Loader2, Plus, Sparkles } from 'lucide-react';
 import { formatCredits } from '@/lib/credits';
 import { purchaseAddonAction, type AddonsOverview } from './addons-actions';
+import { dataPl } from '@/lib/data-pl';
 
 const STATUS_LABEL: Record<string, string> = {
   APPLIED: 'Aktywny',
@@ -60,7 +61,7 @@ export function AddonsClient({ overview }: { overview: AddonsOverview }) {
       {overview.prioritySupport.active ? (
         <div className="rounded-xl border border-emerald-400/25 bg-emerald-400/[0.06] px-4 py-2.5 text-sm text-emerald-200 inline-flex items-center gap-2">
           <Sparkles className="h-4 w-4" /> Masz aktywne priorytetowe wsparcie
-          {overview.prioritySupport.until ? ` do ${new Date(overview.prioritySupport.until).toLocaleDateString('pl-PL')}` : ''}.
+          {overview.prioritySupport.until ? ` do ${dataPl(overview.prioritySupport.until)}` : ''}.
         </div>
       ) : null}
 

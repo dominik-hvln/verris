@@ -10,6 +10,7 @@ import { deletePaymentMethodAction, redeemPromoAction, startAddCardAction, upser
 import { Select } from '@/components/panel';
 import { potwierdz } from '@/components/panel/potwierdz';
 import { Checkbox } from '@/components/panel/checkbox';
+import { dataGodzinaPl } from '@/lib/data-pl';
 
 interface Props {
   initialAuto: WalletAutoTopupSettingsDto;
@@ -299,7 +300,7 @@ function WalletAutotopupBlock({
           <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-500">
             <RefreshCw className="h-3.5 w-3.5" />
             Ostatnia próba:{' '}
-            {new Date(local.lastAttemptAt).toLocaleString('pl-PL')}{' '}
+            {dataGodzinaPl(local.lastAttemptAt)}{' '}
             {local.lastAttemptOk === true
               ? '— OK'
               : local.lastAttemptOk === false
@@ -310,7 +311,7 @@ function WalletAutotopupBlock({
             ) : null}
             {local.cooldownUntil ? (
               <span className="text-neutral-400 block w-full">
-                Cooldown do: {new Date(local.cooldownUntil).toLocaleString('pl-PL')}
+                Cooldown do: {dataGodzinaPl(local.cooldownUntil)}
               </span>
             ) : null}
           </div>

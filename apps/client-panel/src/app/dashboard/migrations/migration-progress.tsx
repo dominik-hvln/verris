@@ -22,6 +22,7 @@ import {
 import { potwierdz } from '@/components/panel/potwierdz';
 import { liczba } from '@/lib/liczba';
 import { plForm } from '@/lib/pl';
+import { dataGodzinaPl } from '@/lib/data-pl';
 
 interface Props {
   serviceId: string;
@@ -143,7 +144,7 @@ export function MigrationProgress({ serviceId, initial }: Props) {
             {summary.targetDomain ?? 'Migracja'} <span className="text-neutral-500">#{summary.id.slice(0, 8)}</span>
           </p>
           <p className="text-xs text-neutral-500">
-            Rozpoczęto {new Date(summary.createdAt).toLocaleString('pl-PL')}
+            Rozpoczęto {dataGodzinaPl(summary.createdAt)}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -346,7 +347,7 @@ function CutoverPanel({
 
       {plan.status === 'done' ? (
         <p className="rounded-lg border border-emerald-500/25 bg-emerald-500/[0.06] px-3 py-2 text-xs text-emerald-100/90">
-          ✓ DNS wskazuje na nasz serwer{plan.cutoverAt ? ` (od ${new Date(plan.cutoverAt).toLocaleString('pl-PL')})` : ''}. Migracja zakończona w 100%.
+          ✓ DNS wskazuje na nasz serwer{plan.cutoverAt ? ` (od ${dataGodzinaPl(plan.cutoverAt)})` : ''}. Migracja zakończona w 100%.
         </p>
       ) : (
         <Button type="button" disabled={busy === 'verify'} onClick={onVerify} className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs">

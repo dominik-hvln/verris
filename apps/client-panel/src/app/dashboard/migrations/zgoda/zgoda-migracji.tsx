@@ -9,9 +9,10 @@ import { databases, mailboxes } from '@/lib/pl';
 import { odrzucZgodeMigracjiAction, przyjmijZgodeMigracjiAction } from '../actions';
 import type { ProsbaOZgode } from '../types';
 import { TrescUpowaznienia } from '../upowaznienie';
+import { dataGodzinaPl } from '@/lib/data-pl';
 
 const data = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+  iso ? dataGodzinaPl(iso, { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
 const STAN: Record<Exclude<ProsbaOZgode['stan'], 'oczekuje'>, string> = {
   zaakceptowana: 'Zatwierdzono tę migrację — jest w kolejce albo już trwa. Postęp widzisz w zakładce Migracje.',

@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Select } from '@/components/panel/select';
 import { renewDomainAction, renewQuoteAction } from '../actions';
 import { liczba } from '@/lib/liczba';
+import { dataPl } from '@/lib/data-pl';
 
 /** A-10 — odnowienie domeny z panelu: wybór okresu, cena, potwierdzenie (obciąża portfel). */
 export function DomainRenewBox({ domainId, expiresAt }: { domainId: string; expiresAt: string }) {
@@ -37,7 +38,7 @@ export function DomainRenewBox({ domainId, expiresAt }: { domainId: string; expi
     <div className="rounded-2xl border border-white/10 bg-black/30 p-6 text-sm">
       <h2 className="text-lg font-semibold text-white">Odnowienie domeny</h2>
       <p className="mt-1 text-neutral-400">
-        Ważna do <span className="text-white">{new Date(expiresAt).toLocaleDateString('pl-PL')}</span>. Odnowienie
+        Ważna do <span className="text-white">{dataPl(expiresAt)}</span>. Odnowienie
         przedłuża ją o wybrany okres, a opłata schodzi z portfela.
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-2">

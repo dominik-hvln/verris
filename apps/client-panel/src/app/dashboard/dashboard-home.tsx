@@ -33,6 +33,7 @@ import { SERVICE_STATUS_LABEL, buildEcoLedgerSeries, mapWalletMonthlyFlow } from
 import type { DashboardSnapshot } from './dashboard-data';
 import { plForm, plural } from '@/lib/pl';
 import { terminUslugi } from '@/lib/service-events';
+import { dataPl, dzienPl, ostatnieDniPl } from '@/lib/data-pl';
 
 const BTN =
   'inline-flex items-center gap-2 whitespace-nowrap rounded-md border border-line-strong bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-primary';
@@ -52,8 +53,9 @@ function serviceHref(s: ServiceSummaryDto) {
   return `/dashboard/services/${s.id}?kind=${s.productKind ?? 'HOSTING'}`;
 }
 
+// Czas polski także w renderze serwera (UTC) — inaczej hydratacja się nie zgadza (React #418, 12.10).
 function date(iso: string | null | undefined) {
-  return iso ? new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' }) : '—';
+  return iso ? dataPl(iso, { day: 'numeric', month: 'short' }) : '—';
 }
 
 /** Stan usługi do kropki: działa / wymaga uwagi / nieaktywna. */
@@ -153,12 +155,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
   const ecoUnknown = Boolean(snapshot.errors.profile && snapshot.errors.ecoProgram);
   const ecoPoints = snapshot.profile?.ecoPoints ?? snapshot.ecoProgram?.ecoPoints ?? 0;
   const days7 = lastDaysLabels(7);
-  const ticketsPerDay = days7.map((_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    const key = d.toDateString();
-    return snapshot.tickets.filter((t) => new Date(t.createdAt).toDateString() === key).length;
-  });
+  const ticketsPerDay = ostatnieDniPl(7).map((dzien) => snapshot.tickets.filter((t) => dzienPl(t.createdAt) === dzien).length);
 
   // Asystent: to samo źródło co dymek na stronie usługi (PB-17, /assistant-hints) — od 04.10 jeden asystent;
   // wcześniej pulpit czytał rekomendacje i mówił „wszystko pod kontrolą”, gdy usługa miała brak DMARC.
@@ -184,8 +181,9 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
         <div className="min-w-0">
           <Label>
             Pulpit ·{' '}
+            {/* Strefa stała, ale „teraz” serwera i przeglądarki to dwie chwile — tuż po północy mogą wypaść w różne dni. */}
             <span suppressHydrationWarning>
-              {new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              {dataPl(new Date(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </span>
           </Label>
           <h1 className="mb-2 mt-1.5 font-display text-[clamp(28px,4vw,40px)] font-extrabold leading-none tracking-[-0.03em]">

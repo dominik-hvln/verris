@@ -8,6 +8,7 @@ import { MigrationWizard, type Zakres } from './migration-wizard';
 import { MigracjaPoczty } from './migracja-poczty';
 import { MigrationProgress } from './migration-progress';
 import type { MigrationBundleSummary } from './types';
+import { dataPl } from '@/lib/data-pl';
 
 interface Props {
   serviceId: string;
@@ -95,7 +96,7 @@ export function MigrationsClient({ serviceId, bundles, tylkoPoczta = false }: Pr
 /** PB-45 — „Obsługa przygotowała migrację — sprawdź i zatwierdź” (link do strony zgody, bez tokenu z maila). */
 export function BanerZgody({ serviceId, bundle }: { serviceId: string; bundle: MigrationBundleSummary }) {
   const termin = bundle.consentExpiresAt
-    ? new Date(bundle.consentExpiresAt).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' })
+    ? dataPl(bundle.consentExpiresAt, { day: 'numeric', month: 'long' })
     : null;
   const href = `/dashboard/migrations/zgoda?serviceId=${encodeURIComponent(serviceId)}&id=${encodeURIComponent(bundle.id)}`;
   return (

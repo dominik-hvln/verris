@@ -68,3 +68,18 @@ describe('X-05 buildEcoLedgerSeries', () => {
     ]);
   });
 });
+
+describe('12.10 buildEcoLedgerSeries — dni w czasie polskim (hydratacja, React #418)', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('o 01:03 czasu polskiego (23:03 UTC) dziś to już następny dzień, wpis po północy trafia do niego', () => {
+    jest.useFakeTimers({ now: new Date('2026-10-11T23:03:00Z') });
+    const series = buildEcoLedgerSeries([{ id: 'a', delta: 4, reason: 'X', subscriptionId: null, createdAt: '2026-10-11T22:30:00.000Z' }], 2);
+    expect(series).toEqual([
+      { date: '2026-10-11', label: '11 paź', gained: 0, spent: 0 },
+      { date: '2026-10-12', label: '12 paź', gained: 4, spent: 0 },
+    ]);
+  });
+});

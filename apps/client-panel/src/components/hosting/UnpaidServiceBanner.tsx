@@ -13,6 +13,7 @@ import {
   payPastDueFromWalletAction,
   retrySubscriptionPaymentAction,
 } from '@/app/dashboard/services/subscription-payment-actions';
+import { dataPl } from '@/lib/data-pl';
 
 export function UnpaidServiceBanner({
   serviceId,
@@ -42,7 +43,7 @@ export function UnpaidServiceBanner({
     : undefined;
   // ZAWIESZENIE_DO_WYGASNIECIA_DNI w API (subscriptions.service.ts): 14 dni od zawieszenia do wygaśnięcia umowy.
   const wygasa = zawieszenie
-    ? new Date(new Date(zawieszenie.createdAt).getTime() + 14 * 86400000).toLocaleDateString('pl-PL', {
+    ? dataPl(new Date(zawieszenie.createdAt).getTime() + 14 * 86400000, {
         day: 'numeric',
         month: 'long',
         year: 'numeric',

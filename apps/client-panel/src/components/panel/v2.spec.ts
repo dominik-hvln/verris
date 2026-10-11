@@ -11,7 +11,7 @@ describe('PB-15 klocki v2', () => {
     expect(tip('sam')).toBe('sam');
   });
   it('lastDaysLabels zwraca n dni kończąc na dziś', () => {
-    const l = lastDaysLabels(7, new Date(2026, 8, 22));
+    const l = lastDaysLabels(7, new Date('2026-09-22T10:00:00Z'));
     expect(l).toHaveLength(7);
     expect(l[6]).toContain('22');
     expect(l[0]).toContain('16');

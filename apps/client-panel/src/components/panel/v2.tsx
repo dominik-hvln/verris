@@ -10,6 +10,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { cx } from './cx';
+import { dataPl, ostatnieDniPl } from '@/lib/data-pl';
 
 export type Tone = 'data' | 'warn' | 'muted';
 
@@ -514,13 +515,9 @@ export function SectionHead({ title, desc, action }: { title: ReactNode; desc?: 
   );
 }
 
-/** Etykiety 7 ostatnich dni (od najstarszego), np. „pon., 15 wrz”. */
+/** Etykiety `n` ostatnich dni w Polsce (od najstarszego), np. „pon., 15 wrz” — ten sam tekst w SSR (UTC) i w przeglądarce. */
 export function lastDaysLabels(n: number, today = new Date()): string[] {
-  return Array.from({ length: n }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() - (n - 1 - i));
-    return d.toLocaleDateString('pl-PL', { weekday: 'short', day: 'numeric', month: 'short' });
-  });
+  return ostatnieDniPl(n, today).map((dzien) => dataPl(`${dzien}T12:00:00Z`, { weekday: 'short', day: 'numeric', month: 'short' }));
 }
 
 /** MB → „512 MB" / „12,4 GB". */

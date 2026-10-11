@@ -1,5 +1,6 @@
 import type { SubscriptionStatus } from '@verris/contracts';
 import type { EcoLedgerRowDto } from './eco/eco-data';
+import { dataPl, dzienPl, ostatnieDniPl } from '@/lib/data-pl';
 
 export const SERVICE_STATUS_LABEL: Record<SubscriptionStatus, string> = {
   ACTIVE: 'Aktywne',
@@ -30,20 +31,14 @@ export function mapWalletMonthlyFlow(
   }));
 }
 
+/** Dni w czasie polskim — wykres renderuje się na serwerze (UTC) i w przeglądarce; między 22 a 24 UTC dni się rozjeżdżały. */
 export function buildEcoLedgerSeries(ledger: EcoLedgerRowDto[], days = 14) {
-  const keys: string[] = [];
-  const now = new Date();
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now);
-    d.setHours(12, 0, 0, 0);
-    d.setDate(d.getDate() - i);
-    keys.push(d.toISOString().slice(0, 10));
-  }
+  const keys = ostatnieDniPl(days);
 
   const buckets = new Map(keys.map((k) => [k, { gained: 0, spent: 0, label: formatDayLabel(k) }]));
 
   for (const row of ledger) {
-    const key = row.createdAt.slice(0, 10);
+    const key = dzienPl(row.createdAt);
     const bucket = buckets.get(key);
     if (!bucket) continue;
     if (row.delta >= 0) bucket.gained += row.delta;
@@ -57,8 +52,7 @@ export function buildEcoLedgerSeries(ledger: EcoLedgerRowDto[], days = 14) {
 }
 
 function formatDayLabel(isoDate: string): string {
-  const d = new Date(`${isoDate}T12:00:00`);
-  return d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+  return dataPl(`${isoDate}T12:00:00Z`, { day: 'numeric', month: 'short' });
 }
 
 function round2(n: number): number {

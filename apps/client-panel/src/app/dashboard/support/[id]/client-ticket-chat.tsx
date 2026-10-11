@@ -4,8 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Send, User, ShieldCheck, Paperclip } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { format } from "date-fns";
-import { pl } from "date-fns/locale";
+import { dataGodzinaPl } from "@/lib/data-pl";
 import { addTicketReply, addTicketReplyWithFiles, type TicketAttachment, type TicketDetail } from "../actions";
 import { clientTicketAttachmentDownloadHref } from "../attachment-links";
 import { toast } from "sonner";
@@ -51,6 +50,11 @@ function AttachmentChips({
       ))}
     </div>
   );
+}
+
+/** „12 paź, 14:05” w czasie polskim — rozmowa renderuje się też na serwerze (UTC); bez strefy godzina różniła się o 1–2 h (React #418). */
+function kiedy(iso: string): string {
+  return dataGodzinaPl(iso, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
 /** Załączniki przy pierwszej wiadomości mają replyId=null i mogą pochodzić z zbiorczego pola ticket.attachments. */
@@ -131,7 +135,7 @@ export default function ClientTicketChat({ ticket }: { ticket: TicketDetail }) {
           <div className="flex flex-col gap-1.5 items-start max-w-[90%] md:max-w-[75%]" data-pierwsza="obsluga">
             <span className="text-xs text-muted-foreground ml-2 font-medium flex items-center gap-1.5">
               <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-              Obsługa Verris - {format(new Date(ticket.createdAt), "d MMM, HH:mm", { locale: pl })}
+              Obsługa Verris - {kiedy(ticket.createdAt)}
             </span>
             <div className="rounded-2xl rounded-tl-sm px-5 py-3.5 text-sm bg-background border border-border text-foreground shadow-sm leading-relaxed whitespace-pre-wrap">
               {ticket.message}
@@ -141,7 +145,7 @@ export default function ClientTicketChat({ ticket }: { ticket: TicketDetail }) {
         ) : (
           <div className="flex flex-col gap-1.5 items-end max-w-[90%] md:max-w-[75%] ml-auto">
             <span className="text-xs text-muted-foreground mr-2 font-medium">
-              Ty - {format(new Date(ticket.createdAt), "d MMM, HH:mm", { locale: pl })}
+              Ty - {kiedy(ticket.createdAt)}
             </span>
             <div className="rounded-2xl rounded-tr-sm px-5 py-3.5 text-sm bg-primary text-primary-foreground shadow-sm shadow-primary/20 leading-relaxed whitespace-pre-wrap">
               {ticket.message}
@@ -160,7 +164,7 @@ export default function ClientTicketChat({ ticket }: { ticket: TicketDetail }) {
                   {reply.automatic === "PODZIEKOWANIE" ? "♥" : reply.automatic === "WCIAZ_PRACUJEMY" ? "↻" : "✓"}
                 </span>
                 <span className="min-w-0 flex-1 whitespace-pre-wrap">{reply.message}</span>
-                <span className="shrink-0 font-mono text-[11.5px] text-muted-foreground">{format(new Date(reply.createdAt), "d MMM, HH:mm", { locale: pl })}</span>
+                <span className="shrink-0 font-mono text-[11.5px] text-muted-foreground">{kiedy(reply.createdAt)}</span>
               </div>
             );
           }
@@ -179,13 +183,13 @@ export default function ClientTicketChat({ ticket }: { ticket: TicketDetail }) {
               >
                 {isMe ? (
                   <>
-                    Ty - {format(new Date(reply.createdAt), "d MMM, HH:mm", { locale: pl })}
+                    Ty - {kiedy(reply.createdAt)}
                     <User className="h-3 w-3" />
                   </>
                 ) : (
                   <>
                     <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-                    {reply.autor ? `${reply.autor} · Verris` : "Wsparcie Verris"} - {format(new Date(reply.createdAt), "d MMM, HH:mm", { locale: pl })}
+                    {reply.autor ? `${reply.autor} · Verris` : "Wsparcie Verris"} - {kiedy(reply.createdAt)}
                   </>
                 )}
               </span>
