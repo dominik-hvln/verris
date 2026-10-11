@@ -12,6 +12,8 @@ import { VoidButton } from "./void-button";
 import { fetchStaffAccess } from "@/lib/staff-access";
 import { brakUprawnienia } from "@/lib/akcje/wezel";
 import { PoleDaty } from "@/components/pole-daty";
+import { Pigulka } from "@/components/v2";
+import { KSEF, stanKsef } from "./ksef-etykiety";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +33,7 @@ interface PageProps {
     from?: string;
     to?: string;
     page?: string;
+    ksef?: string;
   }>;
 }
 
@@ -54,11 +57,13 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
   const from = params.from || undefined;
   const to = params.to || undefined;
   const page = Number.parseInt(params.page ?? "1", 10) || 1;
+  // F3.6 — filtr po stanie KSeF (tylko znane stany; inne wartości z adresu pomijamy).
+  const ksef = params.ksef && params.ksef in KSEF ? params.ksef : undefined;
 
   let data: Awaited<ReturnType<typeof listAdminInvoices>> | null = null;
   let error: string | null = null;
   try {
-    data = await listAdminInvoices({ search, userId, statuses, from, to, page, limit: 50 });
+    data = await listAdminInvoices({ search, userId, statuses, from, to, page, limit: 50, ksef });
   } catch (err) {
     error = err instanceof Error ? err.message : "Nieznany błąd";
   }
@@ -117,7 +122,7 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
         <div className="relative bg-black/40 backdrop-blur-2xl border border-white/10 rounded-2xl flex flex-col shadow-2xl">
           <form
             action="/invoices"
-            className="p-6 border-b border-white/10 grid grid-cols-1 md:grid-cols-6 gap-3 items-end"
+            className="p-6 border-b border-white/10 grid grid-cols-1 md:grid-cols-7 gap-3 items-end"
           >
             <div className="md:col-span-2">
               <label htmlFor="invoices-search" className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
@@ -147,6 +152,16 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
                   { value: "", label: "— wszystkie —" },
                   ...STATUS_OPTIONS.map((s) => ({ value: s.value, label: s.label })),
                 ]}
+              />
+            </div>
+            <div>
+              <label htmlFor="invoices-ksef" className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">KSeF</label>
+              <Select
+                id="invoices-ksef"
+                name="ksef"
+                defaultValue={ksef ?? ""}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
+                options={[{ value: "", label: "— wszystkie —" }, ...Object.entries(KSEF).map(([value, k]) => ({ value, label: k.t }))]}
               />
             </div>
             <div>
@@ -182,7 +197,7 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
               </Link>
             </div>
             {userId ? (
-              <div className="md:col-span-6 text-[11px] text-amber-300">
+              <div className="md:col-span-7 text-[11px] text-amber-300">
                 Filtr klienta: <code className="font-mono">{userId}</code>{" "}
                 <Link href="/invoices" className="underline">
                   (usuń)
@@ -207,6 +222,7 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
                     <th className="px-6 py-4 font-medium">Plan / domena</th>
                     <th className="px-6 py-4 font-medium">Kwota</th>
                     <th className="px-6 py-4 font-medium">Status</th>
+                    <th className="px-6 py-4 font-medium">KSeF</th>
                     <th className="px-6 py-4 font-medium">Wystawiona</th>
                     <th className="px-6 py-4 text-right font-medium">PDF / hosted</th>
                   </tr>
@@ -227,6 +243,7 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
               statuses={statuses}
               from={from}
               to={to}
+              ksef={ksef}
               page={page}
               totalPages={totalPages}
             />
@@ -292,6 +309,18 @@ function InvoiceRow({ inv }: { inv: AdminInvoiceRow }) {
           {statusLabel(inv.status)}
         </span>
       </td>
+      <td className="px-6 py-4" data-ksef={inv.ksefStatus ?? ""}>
+        {inv.ksefStatus ? (
+          <>
+            <Pigulka ton={stanKsef(inv.ksefStatus).ton} className="!text-[10px] whitespace-nowrap">
+              {stanKsef(inv.ksefStatus).t}
+            </Pigulka>
+            {inv.ksefNumber ? <div className="mt-0.5 font-mono text-[10px] text-muted-foreground">{inv.ksefNumber}</div> : null}
+          </>
+        ) : (
+          <span className="text-xs text-muted-foreground">—</span>
+        )}
+      </td>
       <td className="px-6 py-4 text-xs text-muted-foreground">
         {inv.issuedAt ? new Date(inv.issuedAt).toLocaleString("pl-PL") : "—"}
       </td>
@@ -340,6 +369,7 @@ function PageNav({
   statuses,
   from,
   to,
+  ksef,
   page,
   totalPages,
 }: {
@@ -348,6 +378,7 @@ function PageNav({
   statuses?: AdminInvoiceStatus[];
   from?: string;
   to?: string;
+  ksef?: string;
   page: number;
   totalPages: number;
 }) {
@@ -358,6 +389,7 @@ function PageNav({
     if (statuses && statuses.length > 0) params.set("status", statuses.join(","));
     if (from) params.set("from", from);
     if (to) params.set("to", to);
+    if (ksef) params.set("ksef", ksef);
     if (target > 1) params.set("page", String(target));
     const qs = params.toString();
     return qs ? `/invoices?${qs}` : "/invoices";

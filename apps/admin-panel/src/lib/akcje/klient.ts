@@ -135,6 +135,42 @@ export const AKCJE_KLIENTA: AkcjaObiektu<KlientDlaAkcji>[] = [
     pomocId: "reseller",
   },
   {
+    id: "wplata-przelewem",
+    grupa: "Rozliczenia",
+    nazwa: "Zaksięguj przelew",
+    opis: "Wpłata z wyciągu na portfel klienta: kredyty, dokument za wpłatę i mail.",
+    // POST admin/rozliczenia/klienci/:id/wplaty — BILLING_MANAGE (F3.6: L4, Finanse).
+    perm: "BILLING_MANAGE",
+    kiedy: () => true,
+    href: (k) => karta(k, "rozliczenia", "wplata"),
+    slowa: "przelew wpłata wyciąg zaksięguj bank",
+    pomocId: "wplata-przelewem",
+  },
+  {
+    id: "korekta-salda",
+    grupa: "Rozliczenia",
+    nazwa: "Korekta salda",
+    opis: "Dopisanie albo odjęcie kredytów z powodem w dzienniku.",
+    // POST admin/rozliczenia/klienci/:id/portfel/korekta — BILLING_MANAGE (F3.6).
+    perm: "BILLING_MANAGE",
+    kiedy: () => true,
+    href: (k) => karta(k, "rozliczenia", "korekta"),
+    slowa: "korekta saldo portfel odejmij dopisz",
+    pomocId: "korekta-salda",
+  },
+  {
+    id: "nieudane-platnosci",
+    grupa: "Rozliczenia",
+    nazwa: "Nieudane płatności klienta",
+    opis: "Odrzucone płatności klienta z ponowieniem auto-doładowania.",
+    // GET admin/rozliczenia/nieudane-platnosci?userId= — BILLING_VIEW (F3.6).
+    perm: "BILLING_VIEW",
+    kiedy: () => true,
+    href: (k) => `/billing/nieudane?klient=${encodeURIComponent(k.id)}&dni=90`,
+    slowa: "nieudana płatność odrzucona karta paynow ponów",
+    pomocId: "nieudane-platnosci",
+  },
+  {
     id: "dane-nabywcy",
     grupa: "Rozliczenia",
     nazwa: "Dane nabywcy",

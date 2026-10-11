@@ -33,6 +33,9 @@ export interface AdminInvoiceRow {
     domain: string | null;
   } | null;
   hasVerrisPdf: boolean;
+  /** F3.6 — stan w KSeF i numer KSeF (kolumna listy). */
+  ksefStatus?: string;
+  ksefNumber?: string | null;
 }
 
 export interface AdminInvoicesListDto {
@@ -53,6 +56,8 @@ export interface InvoiceFilters {
   search?: string;
   userId?: string;
   statuses?: AdminInvoiceStatus[];
+  /** F3.6 — filtr po stanie KSeF (np. REJECTED). */
+  ksef?: string;
   from?: string;
   to?: string;
   page?: number;
@@ -68,6 +73,7 @@ export async function listAdminInvoices(filters: InvoiceFilters): Promise<AdminI
   }
   if (filters.from) params.set("from", filters.from);
   if (filters.to) params.set("to", filters.to);
+  if (filters.ksef) params.set("ksef", filters.ksef);
   const limit = filters.limit ?? 50;
   const page = Math.max(1, filters.page ?? 1);
   params.set("limit", String(limit));

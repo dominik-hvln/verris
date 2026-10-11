@@ -18,6 +18,9 @@ export const STRONY = {
   // Dane z pulpitu (admin/dashboard/overview — DASHBOARD_VIEW, mają je wszystkie role z BILLING_VIEW) i eksport CSV.
   "/billing": { perm: "BILLING_VIEW", tytul: "Portfel i płatności" },
   "/billing/webhooki": { perm: "BILLING_MANAGE", tytul: "Webhooki płatności" },
+  // F3.6 — admin/rozliczenia/nieudane-platnosci i /windykacja — BILLING_VIEW (L1–L4, Finanse, Audytor); „Ponów” BILLING_MANAGE.
+  "/billing/nieudane": { perm: "BILLING_VIEW", tytul: "Nieudane płatności" },
+  "/billing/windykacja": { perm: "BILLING_VIEW", tytul: "Przypomnienia i zawieszenia" },
   "/compliance": { perm: "COMPLIANCE_MANAGE", tytul: "RODO" },
   "/customers": { perm: "CUSTOMERS_VIEW", tytul: "Klienci" },
   "/customers/[userId]": { perm: "CUSTOMERS_VIEW", tytul: "Klient" },

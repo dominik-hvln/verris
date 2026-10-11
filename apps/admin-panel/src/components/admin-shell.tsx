@@ -243,6 +243,9 @@ export function grupy(l: LicznikiMenu | null): Grupa[] {
           ikona: "portfel",
           pod: [
             { name: "Portfel i płatności", href: "/billing", perm: "BILLING_VIEW", szukaj: "rozliczenia eksport csv płatności portfel" },
+            // F3.6 — windykacja: nieudane płatności (ponowienie auto-doładowania) i przypomnienia z datą zawieszenia.
+            { name: "Nieudane płatności", href: "/billing/nieudane", perm: "BILLING_VIEW", szukaj: "odrzucona płatność paynow karta auto-doładowanie ponów windykacja" },
+            { name: "Przypomnienia i zawieszenia", href: "/billing/windykacja", perm: "BILLING_VIEW", szukaj: "windykacja zaległa przypomnienie zawieszenie brak środków wygaśnięcie" },
             // Z-05 — zdarzenia płatności, których handler nie obsłużył.
             { name: "Webhooki płatności", href: "/billing/webhooki", perm: "BILLING_MANAGE", szukaj: "stripe paynow zdarzenia" },
           ],

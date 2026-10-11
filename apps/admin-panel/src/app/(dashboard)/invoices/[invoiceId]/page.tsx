@@ -1,4 +1,5 @@
 import { bramkaStrony } from "@/lib/bramka-strony";
+import { KSEF } from "../ksef-etykiety";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { INVOICE_STATUS_PL, WALLET_TX_STATUS_PL, etykieta, etykietaWpisuPortfela } from "@verris/contracts";
@@ -27,14 +28,6 @@ export interface FakturaSzczegoly extends AdminInvoiceRow {
   platnosci: Array<{ id: string; type: string; status: string; amount: string; paymentProvider: string | null; description: string | null; createdAt: string }>;
 }
 
-const KSEF: Record<string, { t: string; ton: "ok" | "warn" | "crit" | "muted" }> = {
-  NOT_APPLICABLE: { t: "nie dotyczy", ton: "muted" },
-  PENDING: { t: "czeka na wysyłkę", ton: "warn" },
-  SUBMITTED: { t: "wysłana, czeka na numer", ton: "warn" },
-  ACCEPTED: { t: "przyjęta", ton: "ok" },
-  REJECTED: { t: "odrzucona", ton: "crit" },
-  OFFLINE: { t: "offline — do dosłania", ton: "warn" },
-};
 const TON_STATUSU: Record<string, "ok" | "warn" | "crit" | "muted"> = { PAID: "ok", OPEN: "warn", DRAFT: "muted", VOID: "muted", UNCOLLECTIBLE: "crit" };
 const kiedy = (iso: string | null) => (iso ? new Date(iso).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw" }) : "—");
 

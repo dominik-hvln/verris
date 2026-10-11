@@ -228,7 +228,7 @@ describe("karta klienta — działania (patch 11)", () => {
 });
 
 it("każda kotwica z rejestru działań klienta istnieje na karcie", () => {
-  const zrodla = ["page.tsx", "operational-forms.tsx", "dzialania-klienta.tsx", "diagnostyka-dns-tls.tsx", "nowe-zgloszenie.tsx"].map((f) => readFileSync(`${__dirname}/${f}`, "utf8")).join("\n");
+  const zrodla = ["page.tsx", "operational-forms.tsx", "dzialania-klienta.tsx", "diagnostyka-dns-tls.tsx", "nowe-zgloszenie.tsx", "portfel-operacje.tsx", "rozliczenia-klienta.tsx"].map((f) => readFileSync(`${__dirname}/${f}`, "utf8")).join("\n");
   for (const a of AKCJE_KLIENTA) {
     const kotwica = a.href({ id: UID }).split("#")[1];
     if (kotwica) expect(zrodla).toMatch(new RegExp(`id="${kotwica}"`));
@@ -413,5 +413,85 @@ describe("F2.4 — notatki na karcie klienta", () => {
     expect(k).toContain("własne konto Verris");
     expect(k).toContain("nowy@firma.pl");
     expect(k).not.toContain("<button");
+  });
+});
+
+/** F3.6 — Rozliczenia: rejestr ruchów portfela (BILLING_VIEW), wpłata i korekta (BILLING_MANAGE), przypomnienia i zawieszenia. */
+describe("F3.6 — rozliczenia na karcie klienta", () => {
+  const ruchy = {
+    saldo: "133.45",
+    waluta: "PLN",
+    subkonto: false,
+    total: 30,
+    wiersze: [
+      { id: "w1", type: "TOPUP", status: "COMPLETED", amount: "123.45", currency: "PLN", balanceAfter: "133.45", description: "Wpłata przelewem — Faktura 7", paymentProvider: "PRZELEW", paymentRef: "AB-1234", faktura: { id: "f7", number: "VDR/2026/10/0007" }, paynowDoZwrotu: null, createdAt: "2026-10-10T10:00:00Z" },
+      { id: "w2", type: "ADJUSTMENT", status: "COMPLETED", amount: "-5.00", currency: "PLN", balanceAfter: "10.00", description: "Korekta salda — obsługa Verris", paymentProvider: "MANUAL", paymentRef: null, faktura: null, paynowDoZwrotu: null, createdAt: "2026-10-09T10:00:00Z" },
+    ],
+  };
+  const windykacja = {
+    progi: { przypomnieniaDniPrzed: [7, 3, 1], karencjaDni: 0, zawieszenieDoWygasnieciaDni: 14, retencjaKontaDni: 14 },
+    saldo: "5.00",
+    uslugi: [
+      { id: "s1", userId: UID, usluga: "Hosting · sklep.pl", status: "ACTIVE", zrodlo: "WALLET", koniecOkresu: "2030-01-03T08:00:00Z", obietnicaDo: null, ostatniaNieudana: null, kwotaOdnowienia: "45.00", brakuje: "40.00", etap: "odnowienie", probaOdnowienia: "2030-01-02T08:00:00Z", zawieszenie: "2030-01-03T08:00:00Z", wygasniecie: null, uwaga: "Odnowienie z portfela." },
+    ],
+    przypomnienia: [{ id: "a1", kiedy: "2026-10-08T09:15:00Z", akcja: "SUBSCRIPTION_REMINDER_T3", etykieta: "Przypomnienie o odnowieniu (3 dni przed)", subscriptionId: "s1", kwota: "45.00", brakuje: "40.00" }],
+  };
+  const sciezki: string[] = [];
+  function dane(dostep: unknown, o: { ruchy?: unknown; windykacja?: unknown } = {}) {
+    sciezki.length = 0;
+    api.mockImplementation(async (sciezka: string) => {
+      sciezki.push(sciezka);
+      if (sciezka.split("?")[0] === `/admin/users/${UID}/customer-profile`) return profil;
+      if (sciezka === `/admin/users/${UID}/operational-detail`) return { ...profil.user, loginBlockedReason: null, adminInternalNote: "", isInternal: false, subscriptionsCount: 1 };
+      if (sciezka.startsWith("/admin/custom-terms/user/")) return { uslugi: [] };
+      if (sciezka === "/staff/me/access") return dostep;
+      if (sciezka.startsWith(`/admin/rozliczenia/klienci/${UID}/portfel`)) {
+        if (o.ruchy instanceof Error) throw o.ruchy;
+        return o.ruchy ?? ruchy;
+      }
+      if (sciezka === `/admin/rozliczenia/klienci/${UID}/windykacja`) {
+        if (o.windykacja instanceof Error) throw o.windykacja;
+        return o.windykacja ?? windykacja;
+      }
+      if (sciezka === "/admin/deliverability/cordons") return { cordons: [] };
+      if (sciezka === "/admin/reseller" || sciezka === "/admin/users/referral-enrollments") return [];
+      throw new Error(`nieoczekiwane ${sciezka}`);
+    });
+  }
+  const renderStrona = async (portfel?: string) =>
+    renderToStaticMarkup(await KlientStrona({ params: Promise.resolve({ userId: UID }), searchParams: Promise.resolve({ sekcja: "rozliczenia", portfel }) }));
+
+  it("Finanse: rejestr z kanałem, referencją, fakturą i saldem po; formularze wpłaty i korekty; przypomnienia z datą", async () => {
+    dane({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "BILLING_VIEW", "BILLING_MANAGE"] });
+    const html = await renderStrona("2");
+    expect(sciezki).toContain(`/admin/rozliczenia/klienci/${UID}/portfel?limit=25&offset=25`);
+    expect(html).toContain('data-rejestr-portfela=""');
+    expect(html).toContain("przelew · AB-1234");
+    expect(html).toContain('href="/invoices/f7"');
+    expect(html).toContain("2 / 2 · 30 operacji");
+    expect(html).toContain('id="wplata"');
+    expect(html).toContain('id="korekta"');
+    expect(html).toContain('data-sekcja="windykacja"');
+    expect(html).toContain("Przypomnienie o odnowieniu (3 dni przed)");
+    expect(html).toContain("brakuje 40.00 K");
+  });
+
+  it("L1 (BILLING_VIEW bez BILLING_MANAGE): rejestr i przypomnienia tak, wpłata i korekta — nie", async () => {
+    dane({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "BILLING_VIEW"] });
+    const html = await renderStrona();
+    expect(html).toContain('data-rejestr-portfela=""');
+    expect(html).not.toContain('id="wplata"');
+    expect(html).not.toContain('id="korekta"');
+    expect(html).toContain('data-sekcja="windykacja"');
+  });
+
+  it("bez BILLING_VIEW: skrót ruchów z profilu, bez zapytań o rozliczenia; awaria API — „Nie udało się wczytać”", async () => {
+    dane({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW"] });
+    const html = await renderStrona();
+    expect(sciezki.some((s) => s.startsWith("/admin/rozliczenia/"))).toBe(false);
+    expect(html).not.toContain('data-rejestr-portfela=""');
+    expect(html).not.toContain('data-sekcja="windykacja"');
+    dane({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "BILLING_VIEW"] }, { windykacja: new Error("ECONNREFUSED") });
+    expect((await renderStrona()).split('data-sekcja="windykacja"')[1]).toContain("Nie udało się wczytać przypomnień i zawieszeń.");
   });
 });

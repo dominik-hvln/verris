@@ -111,6 +111,29 @@ export const POMOC = {
     opis: "Nadaje numer i tworzy PDF opłaconej faktury, której automat nie dokończył.",
     kiedy: "Gdy opłacona faktura wisi bez PDF-u mimo ponowień automatu.",
   },
+  "nieudane-platnosci": {
+    tytul: "Nieudane płatności",
+    opis: "Odrzucone i niedokończone płatności: Paynow, auto-doładowanie z karty i odnowienia kartą. Ponowić z panelu można tylko auto-doładowanie — obciąża zapisaną kartę klienta kwotą z jego reguły.",
+    kiedy: "Przy porannym przeglądzie Finansów i gdy klient pisze, że płatność nie przeszła.",
+    rozniSieOd: "Płatność Paynow ponawia klient w swoim panelu; odnowienie kartą ponawia operator kart.",
+  },
+  windykacja: {
+    tytul: "Przypomnienia i zawieszenia",
+    opis: "Kiedy klient dostał przypomnienia o odnowieniu i kiedy harmonogram zawiesi albo zakończy usługę, jeśli nie zapłaci. Progi są w kodzie — tu tylko podgląd.",
+    kiedy: "Zanim odpowiesz klientowi „kiedy wyłączycie mi stronę” albo przed obietnicą zapłaty.",
+  },
+  "wplata-przelewem": {
+    tytul: "Zaksięguj przelew",
+    opis: "Wpłata na rachunek trafia na portfel klienta tą samą ścieżką co płatność online: kredyty, dokument za wpłatę i mail do klienta. Referencja z wyciągu chroni przed podwójnym zaksięgowaniem.",
+    kiedy: "Gdy przelew klienta jest na wyciągu, a portfel go jeszcze nie ma.",
+    rozniSieOd: "Korekta salda nie jest wpłatą — nie tworzy dokumentu i nie wysyła maila.",
+  },
+  "korekta-salda": {
+    tytul: "Korekta salda",
+    opis: "Dopisanie albo odjęcie kredytów z portfela z powodem w dzienniku. Klient widzi „Korekta salda — obsługa Verris”, bez powodu i nazwiska. Saldo nie zejdzie poniżej zera.",
+    kiedy: "Pomyłka w księdze, rekompensata albo cofnięcie błędnego uznania.",
+    rozniSieOd: "Wpłatę z wyciągu księguje się przez „Zaksięguj przelew”.",
+  },
   "kopie-floty": {
     tytul: "Kopie floty",
     opis: "Kopia każdego konta poza serwerem: ostatni przebieg każdego węzła, konta z nieudaną albo starą kopią, harmonogram, retencja i kopia bazy panelu.",

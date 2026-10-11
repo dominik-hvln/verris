@@ -49,6 +49,9 @@ import { DaneNabywcy } from "./dane-nabywcy";
 import { Pomoc } from "@/components/pomoc";
 import { KomunikacjaKlienta, KtoOgladal, LogowaniaKlienta, type DziennikOperatorow, type MailKlienta, type PodgladMaila } from "./historia-klienta";
 import type { LoginHistoryResponse } from "../../operators/[id]/data";
+import type { RuchyPortfela, WindykacjaKlienta } from "../../billing/rozliczenia-dane";
+import { RejestrPortfela, RUCHY_NA_STRONE, WindykacjaKlientaKarta } from "./rozliczenia-klienta";
+import { PortfelOperacje } from "./portfel-operacje";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +108,8 @@ const AKCJE: Record<string, string> = {
   ADMIN_CUSTOMER_NOTE_PINNED: "Zmieniono przypięcie notatki",
 };
 
+const jestSubkontem = (p: ProfilKlienta) => !!p.user.subkontoKonta;
+
 function wpisOsi(e: ProfilKlienta["customerTimeline"][number]) {
   if (e.kind === "wallet") return { tekst: `${etykieta(WALLET_TX_TYPE_PL, e.code)} ${e.meta}`, kod: false };
   if (e.kind === "invoice") return { tekst: `${e.title} · ${etykieta(INVOICE_STATUS_PL, e.code)} · ${e.meta}`, kod: false };
@@ -117,7 +122,7 @@ export default async function AdminCustomerCardPage({
   searchParams,
 }: {
   params: Promise<{ userId: string }>;
-  searchParams: Promise<{ sekcja?: string; mail?: string }>;
+  searchParams: Promise<{ sekcja?: string; mail?: string; portfel?: string }>;
 }) {
   const bramka = await bramkaStrony("/customers/[userId]");
   if (bramka) return bramka;
@@ -170,6 +175,17 @@ export default async function AdminCustomerCardPage({
   ]);
 
   const doFaktury = !!dostep && !brakUprawnienia("BILLING_VIEW", dostep);
+  // F3.6 — rejestr ruchów portfela, przypomnienia i zawieszenia (BILLING_VIEW) oraz wpłata i korekta (BILLING_MANAGE).
+  // Bez BILLING_VIEW zostaje skrót ruchów z profilu (CUSTOMERS_VIEW); undefined = API nie odpowiedziało.
+  const stronaPortfela = Math.max(1, Number.parseInt(q.portfel ?? "1", 10) || 1);
+  const [ruchy, windykacja] =
+    sekcja === "rozliczenia" && doFaktury
+      ? await Promise.all([
+          adminApi<RuchyPortfela>(`/admin/rozliczenia/klienci/${id}/portfel?limit=${RUCHY_NA_STRONE}&offset=${(stronaPortfela - 1) * RUCHY_NA_STRONE}`).catch(() => undefined),
+          adminApi<WindykacjaKlienta>(`/admin/rozliczenia/klienci/${id}/windykacja`).catch(() => undefined),
+        ])
+      : [undefined, null];
+  const operacjePortfela = sekcja === "rozliczenia" && !!dostep && !brakUprawnienia("BILLING_MANAGE", dostep) && !jestSubkontem(p);
   const u = p.user;
   const osoba = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
   const nazwa = u.companyName?.trim() || osoba || u.email;
@@ -527,22 +543,30 @@ export default async function AdminCustomerCardPage({
             <NaglowekKarty id="portfel" tytul="Portfel">
               <span className="ml-auto font-mono text-[13px]">{formatPlnAndCredits(u.walletBalance, u.walletCurrency)}</span>
             </NaglowekKarty>
-            {p.walletLedger.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak operacji.</div> : null}
-            {p.walletLedger.map((w) => (
-              <div key={w.id} className={WIERSZ}>
-                <span className="w-[92px] shrink-0 font-mono text-xs text-muted-foreground">{kiedy(w.createdAt)}</span>
-                <span className="flex min-w-0 flex-1 flex-col text-sm">
-                  <span>{etykietaWpisuPortfela(w.type, w.amount)}</span>
-                  <span className="text-[12.5px] text-muted-foreground">
-                    {[w.description, etykieta(WALLET_TX_STATUS_PL, w.status)].filter(Boolean).join(" · ")}
-                  </span>
-                </span>
-                <span className={`font-mono text-[13px] ${Number(w.amount) < 0 ? "" : "text-data-hi"}`}>{kwota(w.amount)}</span>
-                {w.type === "TOPUP" && w.paymentProvider === "PAYNOW" && Number(w.paynowDoZwrotu ?? 0) > 0 ? <ZwrotPaynowButton userId={u.id} walletTxId={w.id} /> : null}
-              </div>
-            ))}
+            {ruchy ? (
+              <RejestrPortfela userId={u.id} ruchy={ruchy} strona={stronaPortfela} wolnoFaktura={doFaktury} />
+            ) : (
+              <>
+                {p.walletLedger.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak operacji.</div> : null}
+                {p.walletLedger.map((w) => (
+                  <div key={w.id} className={WIERSZ}>
+                    <span className="w-[92px] shrink-0 font-mono text-xs text-muted-foreground">{kiedy(w.createdAt)}</span>
+                    <span className="flex min-w-0 flex-1 flex-col text-sm">
+                      <span>{etykietaWpisuPortfela(w.type, w.amount)}</span>
+                      <span className="text-[12.5px] text-muted-foreground">
+                        {[w.description, etykieta(WALLET_TX_STATUS_PL, w.status)].filter(Boolean).join(" · ")}
+                      </span>
+                    </span>
+                    <span className={`font-mono text-[13px] ${Number(w.amount) < 0 ? "" : "text-data-hi"}`}>{kwota(w.amount)}</span>
+                    {w.type === "TOPUP" && w.paymentProvider === "PAYNOW" && Number(w.paynowDoZwrotu ?? 0) > 0 ? <ZwrotPaynowButton userId={u.id} walletTxId={w.id} /> : null}
+                  </div>
+                ))}
+              </>
+            )}
+            {operacjePortfela ? <PortfelOperacje userId={u.id} saldo={Number(u.walletBalance).toFixed(2)} /> : null}
           </section>
           <div className="flex flex-col gap-5">
+            {doFaktury ? <WindykacjaKlientaKarta dane={windykacja} teraz={teraz} /> : null}
             <section className={KARTA} aria-labelledby="faktury" data-karta="faktury">
               <NaglowekKarty id="faktury" tytul="Faktury" />
               {p.recentInvoices.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak faktur.</div> : null}
