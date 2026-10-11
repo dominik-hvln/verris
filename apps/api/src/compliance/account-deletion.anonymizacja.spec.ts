@@ -108,10 +108,13 @@ describe('AccountDeletionService.executeAnonymization (P-02)', () => {
     const sql = (s.tx.$executeRaw.mock.calls as unknown as [TemplateStringsArray, ...unknown[]][]).map(([t, ...v]) => ({ t: t.join('?'), v }));
     const dziennik = sql.filter((q) => q.t.includes('UPDATE "AuditLog" SET "details" = jsonb_set') && q.t.includes('= ANY('));
     expect(dziennik.map((q) => [q.v[0], q.v[3]])).toEqual([
-      ['powod', ['OPERATOR_ACCOUNT_CHANGED', 'OPERATOR_DOMAIN_CHANGED']],
-      ['reason', ['TICKET_MERGED', 'OUTBOUND_CORDON_APPLIED']],
+      ['powod', expect.arrayContaining(['OPERATOR_ACCOUNT_CHANGED', 'OPERATOR_DOMAIN_CHANGED', 'SUBSCRIPTION_CANCELED', 'SUBSCRIPTION_CUSTOM_TERMS'])],
+      ['reason', expect.arrayContaining(['TICKET_MERGED', 'OUTBOUND_CORDON_APPLIED', 'TICKET_ESCALATED', 'TICKET_ESCALATION_UNDONE', 'CUSTOMER_RISK_FLAG_UPDATED'])],
       ['note', ['SUBSCRIPTION_SUSPENDED', 'SUBSCRIPTION_UNSUSPENDED']],
     ]);
+    // Przegląd poprawek Fali 3 — oryginały powodów eskalacji i flagi ryzyka w zgłoszeniach klienta.
+    expect(s.tx.ticket.updateMany).toHaveBeenCalledWith({ where: { userId: 'u1', escalationReason: { not: null } }, data: { escalationReason: '[zanonimizowano]' } });
+    expect(s.tx.ticket.updateMany).toHaveBeenCalledWith({ where: { userId: 'u1', riskReason: { not: null } }, data: { riskReason: '[zanonimizowano]' } });
     expect(dziennik.every((q) => q.v[1] === '[zanonimizowano]' && q.v[2] === 'u1')).toBe(true);
     expect(sql.some((q) => q.t.includes('UPDATE "TicketEvent"') && q.v.includes('u1'))).toBe(true);
     expect(sql.some((q) => q.t.includes('UPDATE "SubscriptionEvent"') && q.v.includes('u1'))).toBe(true);

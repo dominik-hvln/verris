@@ -430,6 +430,10 @@ export class AccountDeletionService {
       //       Wnioski zostają (kto, co i kiedy — rozliczalność), bez tych treści.
       await tx.ticketReply.deleteMany({ where: { internal: true, ticket: { userId } } });
       await tx.ticket.updateMany({ where: { userId }, data: { tags: [] } });
+      // Przegląd poprawek Fali 3 — oryginały powodów eskalacji i flagi ryzyka (kopie w TicketEvent i dzienniku czyści 3g).
+      //     Pole zostaje niepuste (stan zgłoszenia bez zmian), bez treści.
+      await tx.ticket.updateMany({ where: { userId, escalationReason: { not: null } }, data: { escalationReason: ZANONIMIZOWANO } });
+      await tx.ticket.updateMany({ where: { userId, riskReason: { not: null } }, data: { riskReason: ZANONIMIZOWANO } });
       await tx.account.updateMany({ where: { userId, mailBlockedReason: { not: null } }, data: { mailBlockedReason: null } });
       const wnioski = await tx.operatorRequest.findMany({
         where: { customerId: userId },
@@ -777,8 +781,31 @@ const ZANONIMIZOWANO = '[zanonimizowano]';
  * Nowa akcja z powodem/notatką na koncie klienta → dopisz ją tutaj (anonimizacja, art. 17).
  */
 export const WOLNY_TEKST_DZIENNIKA: Readonly<Record<string, readonly string[]>> = {
-  powod: ['OPERATOR_ACCOUNT_CHANGED', 'OPERATOR_DOMAIN_CHANGED'],
-  reason: ['TICKET_MERGED', 'OUTBOUND_CORDON_APPLIED'],
+  // Przegląd poprawek Fali 3 — także powód zakończenia usługi przez operatora (F3.5, SUBSCRIPTION_CANCELED z kopią
+  // powodu z cyklu życia), warunków indywidualnych, rozliczeń poza systemem i etapów/zgód migracji.
+  powod: [
+    'OPERATOR_ACCOUNT_CHANGED',
+    'OPERATOR_DOMAIN_CHANGED',
+    'SUBSCRIPTION_CANCELED',
+    'SUBSCRIPTION_CUSTOM_TERMS',
+    'BILLING_OUTSIDE_ENABLED',
+    'BILLING_OUTSIDE_DISABLED',
+    'MIGRATION_CONSENT_REQUESTED',
+    'MIGRATION_STAGE_CHANGED',
+  ],
+  // Przegląd poprawek Fali 3 — eskalacja i flaga ryzyka: ten sam powód co w TicketEvent.meta.reason (czyszczonym
+  // niżej) i w kolumnach Ticket.escalationReason/riskReason; powód działań obsługi na koncie klienta.
+  reason: [
+    'TICKET_MERGED',
+    'OUTBOUND_CORDON_APPLIED',
+    'TICKET_ESCALATED',
+    'TICKET_ESCALATION_UNDONE',
+    'CUSTOMER_RISK_FLAG_UPDATED',
+    'CUSTOMER_PASSWORD_RESET_BY_ADMIN',
+    'CUSTOMER_CREATED_BY_OPERATOR',
+    'CUSTOMER_EMAIL_CHANGED',
+    'CUSTOMER_GRAFANA_ACCESS_TOGGLED',
+  ],
   note: ['SUBSCRIPTION_SUSPENDED', 'SUBSCRIPTION_UNSUSPENDED'],
 };
 

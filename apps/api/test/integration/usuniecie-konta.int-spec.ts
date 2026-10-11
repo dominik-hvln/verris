@@ -169,7 +169,7 @@ describe('X-04 usunięcie konta (RODO)', () => {
     const p = prisma();
     const op = await p.user.create({ data: { email: `op4-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'STAFF' } });
     const powod = 'Klient stracił pracę, zapłaci 15-go — prosił o przesunięcie (Jan Kowalski)';
-    const zgl = await p.ticket.create({ data: { userId: k.user.id, subject: 'Faktura', message: 'x' } });
+    const zgl = await p.ticket.create({ data: { userId: k.user.id, subject: 'Faktura', message: 'x', escalationReason: powod, riskFlag: 'ABUSE', riskReason: powod } });
     await p.ticketEvent.createMany({
       data: [
         { ticketId: zgl.id, type: 'MERGED_FROM', actorId: op.id, meta: { zrodlo: 'z1', reason: powod } },
@@ -185,6 +185,10 @@ describe('X-04 usunięcie konta (RODO)', () => {
         { action: 'OUTBOUND_CORDON_APPLIED', userId: k.user.id, details: { reason: `Blokada wysyłki konta przez obsługę: ${powod}`, source: 'operator' } },
         { action: 'SUBSCRIPTION_SUSPENDED', userId: k.user.id, actorUserId: op.id, details: { reason: 'ABUSE', note: powod } },
         { action: 'SUBSCRIPTION_SUSPENDED', userId: k.user.id, details: { reason: 'NON_PAYMENT', note: null } },
+        // Przegląd poprawek Fali 3 — ten sam rodzaj wolnego tekstu w innych wpisach zespołu na koncie klienta.
+        { action: 'TICKET_ESCALATED', userId: k.user.id, actorUserId: op.id, details: { ticketId: zgl.id, reason: powod, priority: 'URGENT' } },
+        { action: 'CUSTOMER_RISK_FLAG_UPDATED', userId: k.user.id, actorUserId: op.id, details: { ticketId: zgl.id, riskFlag: 'ABUSE', reason: powod } },
+        { action: 'SUBSCRIPTION_CANCELED', userId: k.user.id, actorUserId: op.id, details: { subscriptionId: k.subscription.id, immediate: true, source: 'ADMIN', powod } },
       ],
     });
     // Zadania węzła kont klienta z danymi osobowymi; zadanie innego rodzaju zostaje.
@@ -212,8 +216,14 @@ describe('X-04 usunięcie konta (RODO)', () => {
       await p.auditLog.findMany({ where: { userId: k.user.id } }),
       await p.ticketEvent.findMany({ where: { ticketId: zgl.id } }),
       await p.subscriptionEvent.findMany({ where: { subscriptionId: k.subscription.id } }),
+      await p.ticket.findMany({ where: { id: zgl.id } }),
     ]);
     expect(tekst).not.toMatch(/Kowalski|stracił pracę/);
+    expect(await p.ticket.findUniqueOrThrow({ where: { id: zgl.id }, select: { escalationReason: true, riskFlag: true, riskReason: true } })).toEqual({
+      escalationReason: '[zanonimizowano]',
+      riskFlag: 'ABUSE',
+      riskReason: '[zanonimizowano]',
+    });
     const wpisy = await p.auditLog.findMany({ where: { userId: k.user.id, action: { in: ['OPERATOR_ACCOUNT_CHANGED', 'TICKET_MERGED', 'SUBSCRIPTION_SUSPENDED'] } } });
     expect(wpisy.map((w) => w.details)).toHaveLength(4);
     expect(wpisy.map((w) => w.details)).toEqual(
