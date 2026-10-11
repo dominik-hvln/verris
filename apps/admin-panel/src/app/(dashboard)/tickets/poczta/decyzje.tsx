@@ -57,7 +57,7 @@ export function PlikiPoczty({ id, pliki }: { id: string; pliki: PlikPoczty[] }) 
 }
 
 /** Decyzja obsługi: klient (adres konta), zgłoszenie (#xxxxxxxx) albo odrzucenie z opcjonalną blokadą nadawcy. */
-export function DecyzjePoczty({ id, nadawca, sugerowane }: { id: string; nadawca: string; sugerowane: string | null }) {
+export function DecyzjePoczty({ id, nadawca, sugerowane, abuse = false }: { id: string; nadawca: string; sugerowane: string | null; abuse?: boolean }) {
   const [pending, start] = useTransition();
   const [info, setInfo] = useState<string | null>(null);
   const wykonaj = (fn: () => Promise<Wynik>, sukces: (t?: string) => string) =>
@@ -87,9 +87,12 @@ export function DecyzjePoczty({ id, nadawca, sugerowane }: { id: string; nadawca
   };
   return (
     <span className="flex flex-wrap items-center gap-1.5">
-      <button type="button" data-akcja="do-klienta" className={MALY} disabled={pending} onClick={() => void doKlienta()}>
-        Załóż zgłoszenie
-      </button>
+      {/* abuse@ — treść zgłaszającego nie trafia do klienta; tylko notatka w zgłoszeniu (API też odmawia). */}
+      {abuse ? null : (
+        <button type="button" data-akcja="do-klienta" className={MALY} disabled={pending} onClick={() => void doKlienta()}>
+          Załóż zgłoszenie
+        </button>
+      )}
       <button type="button" data-akcja="do-zgloszenia" className={MALY} disabled={pending} onClick={() => void doZgloszenia()}>
         Dopisz do zgłoszenia
       </button>

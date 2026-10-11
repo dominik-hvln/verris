@@ -9,7 +9,7 @@ const potwierdz = jest.fn(async (..._a: unknown[]) => true);
 jest.mock("@/components/potwierdz", () => ({ potwierdz: (...a: unknown[]) => potwierdz(...a), zapytaj: jest.fn() }));
 jest.mock("./actions", () => ({ przypiszPocztaAction: jest.fn(), odrzucPocztaAction: jest.fn(), blokadaNadawcyAction: jest.fn() }));
 
-import { PlikiPoczty } from "./decyzje";
+import { DecyzjePoczty, PlikiPoczty } from "./decyzje";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -51,4 +51,12 @@ it("anulowane ostrzeżenie — dalej ukryte; potwierdzone — link z potwierdzam
   expect(a).toHaveLength(1);
   expect(a[0].getAttribute("href")).toBe(`/api/poczta-plik/${ID}/0?potwierdzam=1`);
   expect(k.textContent).toContain("dowody.zip — pominięty: niedozwolony typ pliku");
+});
+
+it("abuse@: bez „Załóż zgłoszenie” (treść zgłaszającego nie trafia do klienta) — tylko dopisanie i odrzucenie", async () => {
+  await act(async () => root.render(<DecyzjePoczty id={ID} nadawca="anna@firma.pl" sugerowane={null} abuse />));
+  expect(k.querySelector('[data-akcja="do-klienta"]')).toBeNull();
+  expect(k.querySelector('[data-akcja="do-zgloszenia"]')).not.toBeNull();
+  await act(async () => root.render(<DecyzjePoczty id={ID} nadawca="jan@x.pl" sugerowane={null} />));
+  expect(k.querySelector('[data-akcja="do-klienta"]')).not.toBeNull();
 });

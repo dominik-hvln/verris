@@ -375,8 +375,8 @@ export const POMOC = {
   },
   "poczta-bez-klienta": {
     tytul: "Poczta bez klienta",
-    opis: "Maile do support@ i abuse@ od nadawców spoza kont klientów (albo spoza zgłoszenia z wątku) i spam. Maile klientów od razu trafiają do zgłoszeń.",
-    kiedy: "Załóż zgłoszenie klientowi po jego adresie, dopisz mail do zgłoszenia jako notatkę albo odrzuć. Pliki pokazujemy dopiero po „Pokaż” — nie są skanowane antywirusem.",
+    opis: "Maile do support@ i abuse@ od nadawców spoza kont klientów (albo spoza zgłoszenia z wątku), od subkont bez prawa do zgłoszeń, ponad 5 nowych zgłoszeń z jednego konta w godzinę (pętla autoodpowiedzi) i spam. Pozostałe maile klientów od razu trafiają do zgłoszeń.",
+    kiedy: "Załóż zgłoszenie klientowi po jego adresie, dopisz mail do zgłoszenia jako notatkę albo odrzuć. Maile z abuse@ tylko jako notatka — klient nie widzi treści zgłaszającego. Pliki pokazujemy dopiero po „Pokaż” — nie są skanowane antywirusem.",
   },
   "sla-zgloszen": {
     tytul: "Terminy SLA zgłoszeń",

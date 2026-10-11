@@ -64,21 +64,39 @@ export async function parsujNaglowki(naglowki: Buffer): Promise<Omit<MailPrzycho
   return podstawy(email);
 }
 
+/**
+ * Bez znaku NUL — PostgreSQL nie przyjmuje go w kolumnach tekstowych ani w JSONB, a mail z „=00” (QP) w temacie,
+ * nazwie nadawcy, nagłówku albo treści kończył się błędem zapisu przy każdym przebiegu (mail bez słowa kluczowego,
+ * 50 takich maili zatrzymywało import). Przegląd F3.7.
+ */
+export const bezNul = (s: string): string => s.replace(/\u0000/g, '');
+
 function podstawy(email: Email): Omit<MailPrzychodzacy, 'tekst' | 'zalaczniki' | 'pominiete'> {
   const od = adres(email.from);
   const data = email.date ? new Date(email.date) : null;
   return {
     messageId: identyfikator(email),
-    nadawca: (od?.address ?? '').trim().toLowerCase(),
-    nadawcaNazwa: od?.name?.trim() || null,
-    temat: (email.subject ?? '').replace(/\s+/g, ' ').trim(),
-    doAdresy: [...new Set([...plaskie(email.to), ...plaskie(email.cc)])],
+    nadawca: bezNul(od?.address ?? '').trim().toLowerCase(),
+    nadawcaNazwa: bezNul(od?.name ?? '').trim() || null,
+    temat: bezNul(email.subject ?? '').replace(/\s+/g, ' ').trim(),
+    doAdresy: [...new Set([...plaskie(email.to), ...plaskie(email.cc)].map(bezNul))],
     watek: [...idyZNaglowka(email.inReplyTo), ...idyZNaglowka(email.references)],
     data: data && !Number.isNaN(data.getTime()) ? data : null,
-    naglowki: email.headers.map((h) => ({ key: h.key, value: h.value })),
+    naglowki: email.headers.map((h) => ({ key: h.key, value: bezNul(h.value) })),
     // Surowy nagłówek: „<>” (zwrotka) parser adresów gubi.
     returnPath: email.headers.find((h) => h.key === 'return-path')?.value ?? null,
   };
+}
+
+/**
+ * Data otrzymania do zapisu: z nagłówka Date tylko, gdy jest wiarygodna (ostatni rok, nie z przyszłości). Inaczej
+ * teraz — nagłówek ustawia nadawca: rok -10000 przekraczał zakres TIMESTAMP w PostgreSQL (błąd zapisu przy każdym
+ * przebiegu), a data z przyszłości trzymała mail na górze kolejki. Przegląd F3.7.
+ */
+export function dataOtrzymania(data: Date | null, teraz: Date): Date {
+  if (!data) return teraz;
+  const t = data.getTime();
+  return t >= teraz.getTime() - 366 * 86_400_000 && t <= teraz.getTime() + 86_400_000 ? data : teraz;
 }
 
 /** Cała wiadomość: podstawy + treść bez cytatu + bezpieczne załączniki (reszta na liście pominiętych). */
@@ -97,7 +115,7 @@ export async function parsujMail(raw: Buffer): Promise<MailPrzychodzacy> {
     else zalaczniki.push({ nazwa, typ: ocena.typ, tresc });
   }
   const surowy = email.text?.trim() ? email.text : htmlNaTekst(email.html ?? '');
-  let tekst = odetnijCytat(surowy.replace(/\r\n/g, '\n')).trim();
+  let tekst = odetnijCytat(bezNul(surowy).replace(/\r\n/g, '\n')).trim();
   if (tekst.length > TRESC_MAX_ZNAKOW) tekst = `${tekst.slice(0, TRESC_MAX_ZNAKOW)}\n\n[… treść ucięta — pełna wiadomość w skrzynce zespołu]`;
   return { ...podstawy(email), tekst, zalaczniki, pominiete };
 }
@@ -154,12 +172,12 @@ export function powodAutomatu(
  * t1, jaki nagłówek dostaje mail ponad progiem add_header (ops/rspamd/local.d/actions.conf).
  */
 export function powodSpamu(naglowki: { key: string; value: string }[]): string | null {
-  for (const k of ['x-spam', 'x-spam-flag']) {
-    const v = wartosc(naglowki, k);
-    if (v && /^(yes|true)\b/i.test(v)) return `${k}: ${v.slice(0, 20)}`;
+  // Każde wystąpienie, nie pierwsze: nadawca może sam dopisać „X-Spam: No” nad nagłówkiem filtra (przegląd F3.7).
+  for (const h of naglowki) {
+    const v = h.value.trim();
+    if ((h.key === 'x-spam' || h.key === 'x-spam-flag') && /^(yes|true)\b/i.test(v)) return `${h.key}: ${v.slice(0, 20)}`;
+    if (h.key === 'x-spam-status' && /^yes\b/i.test(v)) return 'x-spam-status: Yes';
   }
-  const st = wartosc(naglowki, 'x-spam-status');
-  if (st && /^yes\b/i.test(st)) return 'x-spam-status: Yes';
   return null;
 }
 

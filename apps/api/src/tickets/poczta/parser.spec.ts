@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
+  dataOtrzymania,
   normalizujWzorzec,
   ocenZalacznik,
   odetnijCytat,
@@ -106,5 +107,34 @@ describe('parser maili przychodzących', () => {
     expect(normalizujWzorzec(' @Spam.PL ')).toBe('@spam.pl');
     expect(normalizujWzorzec('spam.pl')).toBeNull();
     expect(normalizujWzorzec('*@spam.pl')).toBeNull();
+  });
+
+  // Przegląd F3.7 — dane od nadawcy, które wywracały zapis w PostgreSQL albo omijały filtr spamu.
+  it('NUL (=00 w QP / encoded-word) usunięty z tematu, nazwy nadawcy, nagłówków i treści', async () => {
+    const m = await parsujMail(eml('nul-i-zla-data.eml'));
+    expect(m.temat).toBe('Awaria poczty');
+    expect(m.nadawcaNazwa).toBe('Jan Kowalski');
+    expect(m.tekst).toBe('Poczta nie działa od rana.');
+    expect(JSON.stringify(m).includes('\\u0000')).toBe(false);
+    const n = await parsujNaglowki(eml('nul-i-zla-data.eml').subarray(0, eml('nul-i-zla-data.eml').indexOf('\r\n\r\n')));
+    expect([n.temat, n.nadawcaNazwa, ...n.naglowki.map((h) => h.value)].some((v) => v?.includes('\u0000'))).toBe(false);
+  });
+
+  it('data otrzymania: rok -10000 i data z przyszłości → teraz; ostatni rok — z nagłówka', async () => {
+    const teraz = new Date('2026-10-11T12:00:00Z');
+    const m = await parsujMail(eml('nul-i-zla-data.eml'));
+    expect(m.data!.getUTCFullYear()).toBe(-10000);
+    expect(dataOtrzymania(m.data, teraz)).toBe(teraz);
+    expect(dataOtrzymania(new Date('2099-01-01T00:00:00Z'), teraz)).toBe(teraz);
+    expect(dataOtrzymania(null, teraz)).toBe(teraz);
+    const wczoraj = new Date('2026-10-10T08:00:00Z');
+    expect(dataOtrzymania(wczoraj, teraz)).toBe(wczoraj);
+  });
+
+  it('spam: „X-Spam: No” dopisane przez nadawcę nad nagłówkiem filtra nie ukrywa „X-Spam: Yes”', () => {
+    expect(powodSpamu([{ key: 'x-spam', value: 'No' }, { key: 'x-spam', value: 'Yes' }])).toBe('x-spam: Yes');
+    expect(powodSpamu([{ key: 'x-spam-flag', value: 'NO' }, { key: 'x-spam-flag', value: 'YES' }])).toBe('x-spam-flag: YES');
+    expect(powodSpamu([{ key: 'x-spam-status', value: 'No, score=1' }, { key: 'x-spam-status', value: 'Yes, score=9' }])).toBe('x-spam-status: Yes');
+    expect(powodSpamu([{ key: 'x-spam', value: 'No' }])).toBeNull();
   });
 });

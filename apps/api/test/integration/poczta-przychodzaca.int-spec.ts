@@ -5,7 +5,7 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 import { AuditService } from '../../src/common/audit/audit.service.js';
 import { TicketsService } from '../../src/tickets/tickets.service.js';
 import { OpiekaZgloszenService } from '../../src/tickets/opieka-zgloszen.service.js';
-import { PocztaPrzychodzacaService } from '../../src/tickets/poczta/poczta-przychodzaca.service.js';
+import { LIMIT_NOWYCH_NA_GODZINE, PocztaPrzychodzacaService } from '../../src/tickets/poczta/poczta-przychodzaca.service.js';
 import { MailerService } from '../../src/mail/mailer.service.js';
 import { atrapaImap } from '../../src/test/atrapa-imap.js';
 import { prisma, rozlacz, wyczyscBaze } from './setup.js';
@@ -183,13 +183,37 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     expect(plik).toMatchObject({ nazwa: 'zrzut.jpg', typ: 'image/jpeg' });
     expect(await prisma().auditLog.count({ where: { action: 'POCZTA_ZGLOSZEN_PLIK_POKAZANY', actorUserId: op.id } })).toBe(1);
 
-    const { ticketId } = await poczta.przypisz(w.id, op.id, { userId: jan.id });
+    // Przegląd F3.7 — mail z abuse@ nie staje się wiadomością klienta (treść i dane zgłaszającego); wpis zostaje w kolejce.
+    await expect(poczta.przypisz(w.id, op.id, { userId: jan.id })).rejects.toThrow(/abuse@ dopisz do zgłoszenia/);
+    expect(await wpis(w.messageId)).toMatchObject({ wynik: 'BEZ_KLIENTA', obsluzylId: null });
+    expect(await prisma().ticket.count()).toBe(0);
+
+    // Dopisanie do zgłoszenia klienta — notatka wewnętrzna; pliki zostają w kolejce (za „Pokaż”), klient ich nie widzi.
+    await prisma().ticket.create({ data: { id: ID, userId: jan.id, subject: 'Phishing', message: 'x' } });
+    const { ticketId } = await poczta.przypisz(w.id, op.id, { zgloszenieId: ID });
     const t = await prisma().ticket.findUniqueOrThrow({ where: { id: ticketId }, include: { replies: true, attachments: true } });
-    expect(t).toMatchObject({ userId: jan.id, subject: 'Phishing na stronie hostowanej u Was' });
-    // Pliki zostają w kolejce (za „Pokaż”), klient ich nie widzi; w zgłoszeniu notatka wewnętrzna.
     expect(t.attachments).toEqual([]);
-    expect(t.replies.filter((r) => r.internal).map((r) => r.message.includes('zrzut.jpg'))).toEqual([true]);
+    expect(t.replies.map((r) => [r.internal, r.message.includes('zrzut.jpg')])).toEqual([[true, true]]);
     expect(await wpis(w.messageId)).toMatchObject({ wynik: 'PRZYPISANY', ticketId, userId: jan.id, obsluzylId: op.id, tresc: null });
+    await expect(poczta.przypisz(w.id, op.id, { zgloszenieId: ID })).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('obcy nadawca na support@ → założenie zgłoszenia klientowi po jego koncie, tylko raz', async () => {
+    const jan = await konto('jan@klient.pl');
+    const op = await konto('op@verris.pl', 'STAFF');
+    const a = await atrapaImap({
+      wiadomosci: new Map([[1, Buffer.from('Message-ID: <drugi-adres@prywatny.pl>\r\nFrom: jan.prywatnie@prywatny.pl\r\nTo: support@verris.pl\r\nSubject: Faktura\r\nContent-Type: text/plain\r\n\r\nProsze o fakture.\r\n')]]),
+    });
+    try {
+      await uslugi().poczta.pobierz(K, a.polacz);
+    } finally {
+      await a.zamknij();
+    }
+    const w = await wpis('<drugi-adres@prywatny.pl>');
+    expect(w).toMatchObject({ wynik: 'BEZ_KLIENTA', rodzaj: 'SUPPORT' });
+    const { poczta } = uslugi();
+    const { ticketId } = await poczta.przypisz(w.id, op.id, { userId: jan.id });
+    expect(await prisma().ticket.findUniqueOrThrow({ where: { id: ticketId } })).toMatchObject({ userId: jan.id, subject: 'Faktura', message: 'Prosze o fakture.' });
     await expect(poczta.przypisz(w.id, op.id, { userId: jan.id })).rejects.toBeInstanceOf(ConflictException);
     expect(await prisma().ticket.count()).toBe(1);
   });
@@ -236,5 +260,87 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     expect(await poczta.retencja(new Date(Date.now() + 91 * 86_400_000))).toBe(1);
     expect(magazyn.size).toBe(0);
     expect(await prisma().pocztaPrzychodzaca.count()).toBe(0);
+  });
+
+  // ---------------------------------------------------------------- przegląd F3.7
+
+  /** Prosty mail tekstowy (CRLF) do scenariuszy przeglądu. */
+  const prosty = (o: { id: string; od: string; do?: string; temat?: string }) =>
+    Buffer.from(
+      [
+        `Message-ID: <${o.id}@mail.test>`,
+        'Date: Sun, 11 Oct 2026 09:15:00 +0200',
+        `From: ${o.od}`,
+        `To: ${o.do ?? 'support@verris.pl'}`,
+        `Subject: ${o.temat ?? 'Pytanie'}`,
+        'Content-Type: text/plain; charset=utf-8',
+        '',
+        'Dzień dobry, mam pytanie.',
+        '',
+      ].join('\r\n'),
+    );
+  const importuj = async (wiadomosci: Buffer[]) => {
+    const a = await atrapaImap({ wiadomosci: new Map(wiadomosci.map((b, i) => [i + 1, b])) });
+    try {
+      return await uslugi().poczta.pobierz(K, a.polacz);
+    } finally {
+      await a.zamknij();
+    }
+  };
+
+  it('NUL w temacie, nazwie i treści oraz data z roku -10000 — zgłoszenie zapisane (wcześniej błąd zapisu w każdym przebiegu)', async () => {
+    const jan = await konto('jan@klient.pl');
+    expect(await import_({ 1: 'nul-i-zla-data.eml' })).toEqual({ nowe: 1, bledy: [], oznaczone: [1] });
+    const p = await wpis('<nul-001@mail.klient.pl>');
+    expect(p).toMatchObject({ wynik: 'ZGLOSZENIE', userId: jan.id, nadawcaNazwa: 'Jan Kowalski', temat: 'Awaria poczty' });
+    expect(Math.abs(p.otrzymano.getTime() - Date.now())).toBeLessThan(60_000);
+    const t = await prisma().ticket.findUniqueOrThrow({ where: { id: p.ticketId! } });
+    expect([t.subject, t.message]).toEqual(['Awaria poczty', 'Poczta nie działa od rana.']);
+  });
+
+  it('subkonto: bez TICKETS_MANAGE albo wyłączone → kolejka z podpowiedzią konta; z TICKETS_MANAGE → zgłoszenie właściciela', async () => {
+    const wl = await konto('wlasciciel@klient.pl');
+    const sub = (email: string, d: Record<string, unknown>) =>
+      prisma().user.create({ data: { email, passwordHash: 'x', role: 'USER', customerOwnerId: wl.id, ...d } });
+    await sub('tylko-odczyt@klient.pl', { customerPermissions: ['TICKETS_READ'] });
+    await sub('wylaczone@klient.pl', { customerPermissions: ['TICKETS_MANAGE'], subaccountDisabledAt: new Date() });
+    await sub('pracownik@klient.pl', { customerPermissions: ['TICKETS_READ', 'TICKETS_MANAGE'] });
+    // Wątek właściciela: subkonto bez uprawnień nie dopisze się też do istniejącego zgłoszenia.
+    await prisma().ticket.create({ data: { id: ID, userId: wl.id, subject: 'DNS', message: 'x' } });
+    expect(
+      await importuj([
+        prosty({ id: 'sub-1', od: 'tylko-odczyt@klient.pl' }),
+        prosty({ id: 'sub-2', od: 'wylaczone@klient.pl' }),
+        prosty({ id: 'sub-3', od: 'tylko-odczyt@klient.pl', temat: 'Re: [#1a2b3c4d] DNS' }),
+        prosty({ id: 'sub-4', od: 'pracownik@klient.pl' }),
+      ]),
+    ).toEqual({ nowe: 4, bledy: [] });
+    expect(await wpis('<sub-1@mail.test>')).toMatchObject({ wynik: 'BEZ_KLIENTA', userId: wl.id, powod: 'subkonto bez uprawnienia do zgłoszeń' });
+    expect(await wpis('<sub-2@mail.test>')).toMatchObject({ wynik: 'BEZ_KLIENTA', userId: wl.id, powod: 'subkonto wyłączone albo konto właściciela zablokowane' });
+    expect(await wpis('<sub-3@mail.test>')).toMatchObject({ wynik: 'BEZ_KLIENTA', userId: wl.id, sugerowaneZgloszenieId: ID });
+    expect(await prisma().ticketReply.count({ where: { ticketId: ID } })).toBe(0);
+    expect(await wpis('<sub-4@mail.test>')).toMatchObject({ wynik: 'ZGLOSZENIE', userId: wl.id });
+    expect(await prisma().ticket.count()).toBe(2);
+    // Potwierdzenie tylko do właściciela, tylko za zgłoszenie od uprawnionego subkonta.
+    expect(maile.filter((m) => m.tag === 'ticket.created' || /Otrzymaliśmy/.test(m.subject)).map((m) => m.to)).toEqual(['wlasciciel@klient.pl']);
+  });
+
+  it(`hamulec pętli: najwyżej ${LIMIT_NOWYCH_NA_GODZINE} nowych zgłoszeń z maili konta na godzinę — dalsze do kolejki, bez potwierdzenia`, async () => {
+    await konto('jan@klient.pl');
+    const n = LIMIT_NOWYCH_NA_GODZINE + 2;
+    const w = await importuj(Array.from({ length: n }, (_, i) => prosty({ id: `petla-${i}`, od: 'jan@klient.pl', temat: `Automatyczna odpowiedź ${i}` })));
+    expect(w).toEqual({ nowe: n, bledy: [] });
+    expect(await prisma().ticket.count()).toBe(LIMIT_NOWYCH_NA_GODZINE);
+    const kolejka = await prisma().pocztaPrzychodzaca.findMany({ where: { wynik: 'BEZ_KLIENTA' } });
+    expect(kolejka).toHaveLength(2);
+    expect(kolejka[0].powod).toMatch(/pętla/);
+    expect(maile.filter((m) => m.to === 'jan@klient.pl')).toHaveLength(LIMIT_NOWYCH_NA_GODZINE);
+  });
+
+  it('abuse@ tylko po dokładnym adresie — „notabuse@verris.pl” to zwykłe zgłoszenie', async () => {
+    await konto('jan@klient.pl');
+    await importuj([prosty({ id: 'nie-abuse', od: 'jan@klient.pl', do: 'notabuse@verris.pl' }), prosty({ id: 'abuse', od: 'jan@klient.pl', do: 'Abuse@Verris.pl' })]);
+    expect((await wpis('<nie-abuse@mail.test>')).rodzaj).toBe('SUPPORT');
+    expect((await wpis('<abuse@mail.test>')).rodzaj).toBe('ABUSE');
   });
 });

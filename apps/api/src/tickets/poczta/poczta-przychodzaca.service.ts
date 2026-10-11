@@ -15,6 +15,7 @@ import { stronaListy } from '../../subscriptions/lista-uslug.js';
 import { TicketsService } from '../tickets.service.js';
 import { BladImap, PolaczenieImap, polaczTls } from './imap.js';
 import {
+  dataOtrzymania,
   normalizujWzorzec,
   parsujMail,
   parsujNaglowki,
@@ -48,6 +49,12 @@ export const MAX_NA_PRZEBIEG = 50;
 /** Mail większy (RFC822.SIZE) nie jest pobierany — tylko nagłówki do kolejki. */
 export const MAX_ROZMIAR_MAILA = 15 * 1024 * 1024;
 export const RETENCJA_DNI = 90;
+/**
+ * Najwyżej tyle nowych zgłoszeń z maili jednego konta na godzinę — dalsze idą do kolejki bez potwierdzenia do klienta.
+ * Hamulec pętli (autoresponder bez nagłówków RFC 3834 i bez wątku: potwierdzenie → autoodpowiedź → nowe zgłoszenie →
+ * potwierdzenie…) i zalewu skrzynki klienta potwierdzeniami po podszyciu pod jego adres. Przegląd F3.7.
+ */
+export const LIMIT_NOWYCH_NA_GODZINE = 5;
 /** Wyniki, które czekają na decyzję obsługi. */
 export const W_KOLEJCE = ['BEZ_KLIENTA', 'SPAM'] as const;
 
@@ -156,7 +163,7 @@ export class PocztaPrzychodzacaService {
       temat: n.temat.slice(0, 500),
       doAdresy: n.doAdresy.slice(0, 20),
       rodzaj: this.rodzaj(n, zespol),
-      otrzymano: n.data ?? new Date(),
+      otrzymano: dataOtrzymania(n.data, new Date()),
       rozmiar,
     };
     const zapisz = (dane: Partial<Prisma.PocztaPrzychodzacaUncheckedCreateInput> & { wynik: Wynik }) => this.zapiszWpis({ ...baza, ...dane });
@@ -186,37 +193,62 @@ export class PocztaPrzychodzacaService {
     const dmarcFail = m.naglowki.some((h) => h.key === 'authentication-results' && /\bdmarc=fail\b/i.test(h.value));
     const klient = dmarcFail ? null : await this.klient(m.nadawca);
     const zWatku = await this.zgloszenieZWatku(m, msgId, klient?.id ?? null);
+    const odmowa =
+      klient?.odmowa ??
+      (klient && !zWatku && (await this.nowychWOstatniejGodzinie(klient.id)) >= LIMIT_NOWYCH_NA_GODZINE
+        ? `ponad ${LIMIT_NOWYCH_NA_GODZINE} nowych zgłoszeń z maili w godzinę (pętla autoodpowiedzi?)`
+        : null);
 
-    if (klient && zWatku && zWatku.userId === klient.id) {
+    if (klient && !odmowa && zWatku && zWatku.userId === klient.id) {
       return this.zapiszOdpowiedz(m, baza, klient.id, zWatku.id);
     }
-    if (klient && !zWatku) {
+    if (klient && !odmowa && !zWatku) {
       return this.zapiszZgloszenie(m, baza, klient.id);
     }
     return this.zapiszDoKolejki(m, baza, {
-      powod: dmarcFail ? 'DMARC: adres nadawcy niepotwierdzony' : klient ? 'nadawca nie jest właścicielem zgłoszenia z wątku' : 'nadawca spoza kont klientów',
+      powod:
+        odmowa ??
+        (dmarcFail ? 'DMARC: adres nadawcy niepotwierdzony' : klient ? 'nadawca nie jest właścicielem zgłoszenia z wątku' : 'nadawca spoza kont klientów'),
       userId: klient?.id ?? null,
       sugerowaneZgloszenieId: zWatku?.id ?? null,
     });
   }
 
   private rodzaj(n: Pick<MailPrzychodzacy, 'doAdresy' | 'naglowki'>, zespol: string): 'SUPPORT' | 'ABUSE' {
-    const abuse = `abuse@${zespol}`;
-    const adresaci = [...n.doAdresy, ...n.naglowki.filter((h) => ['delivered-to', 'x-original-to'].includes(h.key)).map((h) => h.value.toLowerCase())];
-    return adresaci.some((a) => a.includes(abuse)) ? 'ABUSE' : 'SUPPORT';
+    const abuse = `abuse@${zespol}`.toLowerCase();
+    // Dokładny adres, nie fragment („notabuse@…” to nie abuse@). Przegląd F3.7.
+    const adresaci = [
+      ...n.doAdresy,
+      ...n.naglowki.filter((h) => ['delivered-to', 'x-original-to'].includes(h.key)).map((h) => h.value.trim().replace(/^<|>$/g, '').toLowerCase()),
+    ];
+    return adresaci.includes(abuse) ? 'ABUSE' : 'SUPPORT';
   }
 
-  /** Konto klienta po adresie nadawcy (subkonto → właściciel konta, jak w panelu). Nieaktywne/usunięte — brak. */
-  private async klient(nadawca: string): Promise<{ id: string } | null> {
+  /**
+   * Konto klienta po adresie nadawcy (subkonto → właściciel konta, jak w panelu). Nieaktywne/usunięte — brak.
+   * Subkonto pisze w imieniu właściciela tylko wtedy, gdy mogłoby to zrobić w panelu: aktywne, właściciel dostępny
+   * (jwt.strategy.ts) i z uprawnieniem TICKETS_MANAGE (customer-permissions.guard.ts, reguła „tickets”). Inaczej
+   * `odmowa` — mail idzie do kolejki z podpowiedzią konta (przegląd F3.7: wyłączone subkonto albo bez uprawnień do
+   * zgłoszeń zakładało zgłoszenia i dopisywało się do wątków właściciela).
+   */
+  private async klient(nadawca: string): Promise<{ id: string; odmowa?: string } | null> {
     if (!nadawca) return null;
     const u = await this.prisma.user.findFirst({
       where: { email: { equals: nadawca, mode: 'insensitive' }, role: 'USER', anonymizedAt: null },
-      select: { id: true, customerOwnerId: true },
+      select: { id: true, customerOwnerId: true, customerPermissions: true, subaccountDisabledAt: true },
     });
     if (!u) return null;
     if (!u.customerOwnerId) return { id: u.id };
-    const wl = await this.prisma.user.findFirst({ where: { id: u.customerOwnerId, anonymizedAt: null }, select: { id: true } });
-    return wl ? { id: wl.id } : null;
+    const wl = await this.prisma.user.findFirst({ where: { id: u.customerOwnerId, anonymizedAt: null }, select: { id: true, loginBlocked: true } });
+    if (!wl) return null;
+    if (u.subaccountDisabledAt || wl.loginBlocked) return { id: wl.id, odmowa: 'subkonto wyłączone albo konto właściciela zablokowane' };
+    if (!u.customerPermissions.includes('TICKETS_MANAGE')) return { id: wl.id, odmowa: 'subkonto bez uprawnienia do zgłoszeń' };
+    return { id: wl.id };
+  }
+
+  /** Nowe zgłoszenia z maili tego konta w ostatniej godzinie (hamulec pętli, LIMIT_NOWYCH_NA_GODZINE). */
+  private nowychWOstatniejGodzinie(userId: string): Promise<number> {
+    return this.prisma.pocztaPrzychodzaca.count({ where: { userId, wynik: 'ZGLOSZENIE', createdAt: { gte: new Date(Date.now() - 3600_000) } } });
   }
 
   /** Zgłoszenie z nagłówków wątku (pełne id, nasza domena) albo z „[#xxxxxxxx]” w temacie — tylko wśród zgłoszeń klienta. */
@@ -387,6 +419,12 @@ export class PocztaPrzychodzacaService {
         select: { id: true },
       });
       if (!k) throw new NotFoundException('Nie znaleziono konta klienta.');
+      // Zgłoszenie nadużycia od obcego nadawcy nie staje się wiadomością widoczną dla klienta (zwykle zgłaszanego):
+      // treść i podpis zgłaszającego to jego dane. Do sprawy klienta — notatka wewnętrzna („Dopisz do zgłoszenia”).
+      // Przegląd F3.7.
+      if (w.rodzaj === 'ABUSE') {
+        throw new BadRequestException('Mail z abuse@ dopisz do zgłoszenia jako notatkę — klient nie może zobaczyć treści ani danych zgłaszającego.');
+      }
       // Zajęcie wpisu przed utworzeniem zgłoszenia — dwa kliknięcia nie założą dwóch zgłoszeń.
       await this.zajmij(id, w.wynik, actorUserId);
       try {

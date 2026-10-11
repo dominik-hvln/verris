@@ -132,7 +132,7 @@ export default async function PocztaBezKlientaPage({ searchParams }: { searchPar
                 </details>
               ) : null}
               <PlikiPoczty id={w.id} pliki={w.zalaczniki} />
-              {decyzja && !brakZmian ? <DecyzjePoczty id={w.id} nadawca={w.nadawca} sugerowane={w.sugerowaneZgloszenieId} /> : null}
+              {decyzja && !brakZmian ? <DecyzjePoczty id={w.id} nadawca={w.nadawca} sugerowane={w.sugerowaneZgloszenieId} abuse={w.rodzaj === "ABUSE"} /> : null}
             </div>
           );
         })}
