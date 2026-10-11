@@ -1992,6 +1992,7 @@ export class SubscriptionsService {
     current_period_start: number;
     current_period_end: number;
     cancel_at_period_end: boolean;
+    cancel_at?: number | null;
     metadata: Record<string, string> | null;
   }): Promise<Subscription | null> {
     const sub = await this.findByStripeSubscriptionId(
@@ -2005,8 +2006,15 @@ export class SubscriptionsService {
       currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
       currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
     };
-    if (stripeSub.cancel_at_period_end) {
-      data.cancelAt = new Date(stripeSub.current_period_end * 1000);
+    // Audyt Fali 3 — w obie strony: cofnięcie rezygnacji (cancel_at_period_end=false, bez cancel_at) czyści cancelAt.
+    // Wcześniej sync tylko ustawiał, więc ponowione stare zdarzenie zostawiało „anulowana” na stałe. Zakończonej usługi
+    // nie ruszamy (cancelAt = chwila zakończenia).
+    if (sub.status !== SubscriptionStatus.CANCELED && sub.status !== SubscriptionStatus.EXPIRED) {
+      data.cancelAt = stripeSub.cancel_at_period_end
+        ? new Date(stripeSub.current_period_end * 1000)
+        : stripeSub.cancel_at
+          ? new Date(stripeSub.cancel_at * 1000)
+          : null;
     }
 
     return this.prisma.subscription.update({ where: { id: sub.id }, data });

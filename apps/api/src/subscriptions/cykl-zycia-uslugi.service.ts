@@ -122,7 +122,17 @@ export class CyklZyciaUslugiService {
   async anulujNaKoniecOkresu(z: ZlecenieCyklu) {
     const { s, zgloszenieId, powod } = await this.przygotuj(z);
     if (s.cancelAt && s.status === SubscriptionStatus.ACTIVE) {
-      return { bezZmian: true, cancelAt: s.cancelAt.toISOString(), komunikat: 'Usługa jest już anulowana na koniec okresu.' };
+      // Audyt Fali 3 — kartą „już anulowana” tylko po potwierdzeniu w systemie płatności: lokalny stan mógł się rozjechać
+      // (stare zdarzenie sprzed poprawki synchronizacji), a wtedy klient dalej byłby obciążany.
+      if (!kartowa(s) || (await this.anulowanaWStripe(s.stripeSubscriptionId!))) {
+        return { bezZmian: true, cancelAt: s.cancelAt.toISOString(), komunikat: 'Usługa jest już anulowana na koniec okresu.' };
+      }
+      try {
+        await this.stripe.cancelSubscription(s.stripeSubscriptionId!, { atPeriodEnd: true });
+      } catch (err) {
+        throw new ConflictException(`System płatności nie przyjął rezygnacji — nic nie zmieniono: ${bladStripe(err)}`);
+      }
+      return this.poAnulacji(z, s, { powod, zgloszenieId, koniec: s.cancelAt });
     }
     const koniec = s.currentPeriodEnd;
     if (s.status !== SubscriptionStatus.ACTIVE || !koniec || koniec.getTime() <= Date.now()) {
@@ -142,18 +152,60 @@ export class CyklZyciaUslugiService {
       where: { id: s.id, status: SubscriptionStatus.ACTIVE, cancelAt: null, currentPeriodEnd: koniec },
       data: { cancelAt: koniec },
     });
-    if (count === 0) throw new ConflictException('Stan usługi zmienił się w międzyczasie — odśwież kartę.');
+    if (count === 0) {
+      // Audyt Fali 3 — kartą webhook Stripe mógł zapisać cancelAt przed nami: anulacja zaszła, więc zapisujemy ją w dzienniku
+      // (kto i dlaczego, D2) zamiast 409 bez śladu. Inny stan po zmianie w systemie płatności — wpis i prawda w komunikacie.
+      const po = kartowa(s) ? await this.prisma.subscription.findUnique({ where: { id: s.id }, select: { status: true, cancelAt: true } }) : null;
+      if (po?.status === SubscriptionStatus.ACTIVE && po.cancelAt) return this.poAnulacji(z, s, { powod, zgloszenieId, koniec: po.cancelAt });
+      if (kartowa(s)) await this.rozjazd(z, s, { akcja: 'anulacja-na-koniec-okresu', powod, zgloszenieId });
+      throw new ConflictException(
+        kartowa(s)
+          ? 'System płatności przyjął rezygnację, ale stan usługi zmienił się w międzyczasie — sprawdź kartę usługi (wpis w dzienniku zapisany).'
+          : 'Stan usługi zmienił się w międzyczasie — odśwież kartę.',
+      );
+    }
+    return this.poAnulacji(z, s, { powod, zgloszenieId, koniec });
+  }
+
+  private async poAnulacji(z: ZlecenieCyklu, s: Usluga, o: { powod: string; zgloszenieId: string | null; koniec: Date }) {
     await this.prisma.subscriptionEvent.create({
-      data: { subscriptionId: s.id, type: 'CANCEL_SCHEDULED', details: { source: 'OPERATOR', effectiveAt: koniec.toISOString() } },
+      data: { subscriptionId: s.id, type: 'CANCEL_SCHEDULED', details: { source: 'OPERATOR', effectiveAt: o.koniec.toISOString() } },
     });
     await this.zapisz(z, s, {
       akcja: 'anulacja-na-koniec-okresu',
       wpisKlienta: CyklZyciaUslugiActions.SUBSCRIPTION_CANCEL_SCHEDULED,
-      powod,
-      zgloszenieId,
-      szczegoly: { effectiveAt: koniec.toISOString() },
+      powod: o.powod,
+      zgloszenieId: o.zgloszenieId,
+      szczegoly: { effectiveAt: o.koniec.toISOString() },
     });
-    return { bezZmian: false, cancelAt: koniec.toISOString(), komunikat: `Usługa działa do ${koniec.toISOString().slice(0, 10)} i nie odnowi się.` };
+    return { bezZmian: false, cancelAt: o.koniec.toISOString(), komunikat: `Usługa działa do ${o.koniec.toISOString().slice(0, 10)} i nie odnowi się.` };
+  }
+
+  /** Stripe ma zaplanowany koniec subskrypcji (cancel_at_period_end albo cancel_at). Błąd odczytu = 409, bez zmian. */
+  private async anulowanaWStripe(stripeSubscriptionId: string): Promise<boolean> {
+    try {
+      const ss = await this.stripe.retrieveSubscription(stripeSubscriptionId);
+      return ss.cancel_at_period_end || !!ss.cancel_at || ss.status === 'canceled';
+    } catch (err) {
+      throw new ConflictException(`Nie udało się sprawdzić stanu w systemie płatności — nic nie zmieniono: ${bladStripe(err)}`);
+    }
+  }
+
+  /** Zmiana w systemie płatności przyjęta, ale lokalnego zapisu nie było na czym zrobić — ślad w dzienniku zespołu (D2). */
+  private async rozjazd(z: ZlecenieCyklu, s: Usluga, o: { akcja: string; powod: string; zgloszenieId: string | null }) {
+    await this.audit.record({
+      action: SupportActions.OPERATOR_ACCOUNT_CHANGED,
+      userId: s.userId,
+      actorUserId: z.operator.userId,
+      details: bezPustych({
+        subscriptionId: s.id,
+        domain: s.account?.domain ?? null,
+        zgloszenieId: o.zgloszenieId,
+        akcja: o.akcja,
+        powod: o.powod,
+        wynik: 'system-platnosci-zmieniony-stan-uslugi-inny',
+      }) as Prisma.InputJsonValue,
+    });
   }
 
   async cofnijAnulacje(z: ZlecenieCyklu) {
@@ -188,7 +240,18 @@ export class CyklZyciaUslugiService {
       where: { id: s.id, status: SubscriptionStatus.ACTIVE, cancelAt: s.cancelAt },
       data: { cancelAt: null },
     });
-    if (count === 0) throw new ConflictException('Stan usługi zmienił się w międzyczasie — odśwież kartę.');
+    if (count === 0) {
+      // Audyt Fali 3 — kartą webhook mógł już wyczyścić cancelAt (cofnięcie zaszło): zapis w dzienniku zamiast 409 bez śladu.
+      const po = kartowa(s) ? await this.prisma.subscription.findUnique({ where: { id: s.id }, select: { status: true, cancelAt: true } }) : null;
+      if (!(po?.status === SubscriptionStatus.ACTIVE && po.cancelAt === null)) {
+        if (kartowa(s)) await this.rozjazd(z, s, { akcja: 'cofniecie-anulacji', powod, zgloszenieId });
+        throw new ConflictException(
+          kartowa(s)
+            ? 'System płatności przyjął cofnięcie rezygnacji, ale stan usługi zmienił się w międzyczasie — sprawdź kartę usługi (wpis w dzienniku zapisany).'
+            : 'Stan usługi zmienił się w międzyczasie — odśwież kartę.',
+        );
+      }
+    }
     await this.prisma.subscriptionEvent.create({ data: { subscriptionId: s.id, type: 'CANCEL_REVOKED', details: { source: 'OPERATOR' } } });
     await this.zapisz(z, s, {
       akcja: 'cofniecie-anulacji',

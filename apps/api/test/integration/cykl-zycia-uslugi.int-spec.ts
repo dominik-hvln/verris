@@ -449,3 +449,103 @@ describe('audyt Fali 3 — wyścig anulacji na koniec okresu z przebiegiem odnow
     expect(po.cancelAt?.toISOString()).toBe(oplacony.toISOString());
   });
 });
+
+describe('audyt Fali 3 — karta (Stripe): anulacja w obie strony z bieżącego stanu i zapis operatora, gdy webhook był pierwszy', () => {
+  beforeEach(async () => {
+    await wyczyscBaze();
+  });
+  afterAll(rozlacz);
+
+  const stripeSub = (id: string, koniec: Date, anulowana: boolean) => ({
+    id,
+    status: 'active',
+    customer: 'cus_x',
+    cancel_at_period_end: anulowana,
+    cancel_at: anulowana ? Math.floor(koniec.getTime() / 1000) : null,
+    canceled_at: null,
+    metadata: null,
+    latest_invoice: null,
+    items: { data: [{ id: 'si_x', price: { id: 'price_x' }, current_period_start: Math.floor((koniec.getTime() - 30 * 86400000) / 1000), current_period_end: Math.floor(koniec.getTime() / 1000) }] },
+  });
+
+  async function billing(stripeMock: Record<string, unknown>) {
+    const p = prisma() as never;
+    const ledger = new WalletLedgerService(p);
+    const { SubscriptionsService } = await import('../../src/subscriptions/subscriptions.service.js');
+    const { BillingService } = await import('../../src/billing/billing.service.js');
+    const subsSvc = new SubscriptionsService(
+      p, new AuditService(p), ledger, null as never, null as never, null as never, null as never,
+      { send: async () => ({}) } as never, { get: () => undefined } as never, null as never, null as never, null as never, null as never,
+    );
+    const pusty = new Proxy({}, { get: () => async () => undefined }) as never;
+    return new BillingService(p, ledger, stripeMock as never, new AuditService(p), { get: () => undefined } as never, pusty, subsSvc, pusty, pusty, pusty, pusty);
+  }
+
+  it('spóźnione „cancel_at_period_end=true” po cofnięciu: stan z bieżącej subskrypcji — cancelAt zostaje puste; „false” czyści cancelAt', async () => {
+    const k = await klient(0);
+    const koniec = new Date(Math.floor((Date.now() + 10 * 86400000) / 1000) * 1000);
+    const sid = `sub_f3s_${Date.now()}`;
+    const u = await usluga(k.id, { paymentSource: 'STRIPE_CARD', stripeSubscriptionId: sid, currentPeriodEnd: koniec });
+    let wStripe = false;
+    const b = await billing({ retrieveSubscription: async (id: string) => stripeSub(id, koniec, wStripe) });
+    const upsert = (obiekt: unknown) => (b as unknown as { handleSubscriptionUpsert(e: unknown): Promise<void> }).handleSubscriptionUpsert({ type: 'customer.subscription.updated', data: { object: obiekt } });
+
+    await upsert(stripeSub(sid, koniec, true));
+    expect((await sub(u.id)).cancelAt).toBeNull();
+
+    wStripe = true;
+    await upsert(stripeSub(sid, koniec, true));
+    expect((await sub(u.id)).cancelAt?.toISOString()).toBe(koniec.toISOString());
+
+    wStripe = false;
+    await upsert(stripeSub(sid, koniec, false));
+    expect((await sub(u.id)).cancelAt).toBeNull();
+
+    // Błąd odczytu ze Stripe = błąd zdarzenia (ponowienie), bez zapisu.
+    await prisma().subscription.update({ where: { id: u.id }, data: { cancelAt: koniec } });
+    const pada = await billing({ retrieveSubscription: async () => { throw new Error('stripe 500'); } });
+    await expect((pada as unknown as { handleSubscriptionUpsert(e: unknown): Promise<void> }).handleSubscriptionUpsert({ type: 'customer.subscription.updated', data: { object: stripeSub(sid, koniec, false) } })).rejects.toThrow();
+    expect((await sub(u.id)).cancelAt?.toISOString()).toBe(koniec.toISOString());
+  });
+
+  it('webhook zapisał anulację przed operatorem: sukces z wpisem w dzienniku (kto i dlaczego), nie 409 bez śladu; to samo przy cofnięciu', async () => {
+    const op = await operator();
+    const k = await klient(0);
+    const koniec = new Date(Date.now() + 10 * 86400000);
+    const sid = `sub_f3w_${Date.now()}`;
+    const u = await usluga(k.id, { paymentSource: 'STRIPE_CARD', stripeSubscriptionId: sid, currentPeriodEnd: koniec });
+    const stripeMock = {
+      cancelSubscription: async () => void (await prisma().subscription.update({ where: { id: u.id }, data: { cancelAt: koniec } })),
+      cofnijAnulacjeSubskrypcji: async () => void (await prisma().subscription.update({ where: { id: u.id }, data: { cancelAt: null } })),
+    };
+    const svc = new CyklZyciaUslugiService(prisma() as never, new AuditService(prisma() as never), stripeMock as never);
+    expect(await svc.anulujNaKoniecOkresu({ subscriptionId: u.id, operator: op, powod: POWOD })).toMatchObject({ bezZmian: false });
+    expect(await prisma().subscriptionEvent.count({ where: { subscriptionId: u.id, type: 'CANCEL_SCHEDULED' } })).toBe(1);
+    expect(await prisma().auditLog.findFirst({ where: { action: 'OPERATOR_ACCOUNT_CHANGED', userId: k.id, actorUserId: op.userId } })).toMatchObject({
+      details: expect.objectContaining({ akcja: 'anulacja-na-koniec-okresu', powod: POWOD }),
+    });
+    expect(await svc.cofnijAnulacje({ subscriptionId: u.id, operator: op, powod: POWOD })).toMatchObject({ bezZmian: false });
+    expect(await prisma().subscriptionEvent.count({ where: { subscriptionId: u.id, type: 'CANCEL_REVOKED' } })).toBe(1);
+    expect(await prisma().auditLog.count({ where: { action: 'OPERATOR_ACCOUNT_CHANGED', userId: k.id } })).toBe(2);
+  });
+
+  it('lokalnie „anulowana”, w Stripe nie (rozjazd): operator anuluje ponownie w systemie płatności zamiast „bez zmian”', async () => {
+    const op = await operator();
+    const k = await klient(0);
+    const koniec = new Date(Date.now() + 10 * 86400000);
+    const sid = `sub_f3r_${Date.now()}`;
+    const u = await usluga(k.id, { paymentSource: 'STRIPE_CARD', stripeSubscriptionId: sid, currentPeriodEnd: koniec, cancelAt: koniec });
+    const wolania: string[] = [];
+    const stripeMock = {
+      retrieveSubscription: async (id: string) => stripeSub(id, koniec, false),
+      cancelSubscription: async (id: string) => void wolania.push(`cancel:${id}`),
+    };
+    const svc = new CyklZyciaUslugiService(prisma() as never, new AuditService(prisma() as never), stripeMock as never);
+    expect(await svc.anulujNaKoniecOkresu({ subscriptionId: u.id, operator: op, powod: POWOD })).toMatchObject({ bezZmian: false });
+    expect(wolania).toEqual([`cancel:${sid}`]);
+    // W Stripe anulowana — „bez zmian”, bez drugiego wywołania.
+    stripeMock.retrieveSubscription = async (id: string) => stripeSub(id, koniec, true);
+    expect(await svc.anulujNaKoniecOkresu({ subscriptionId: u.id, operator: op, powod: POWOD })).toMatchObject({ bezZmian: true });
+    expect(wolania).toHaveLength(1);
+  });
+});

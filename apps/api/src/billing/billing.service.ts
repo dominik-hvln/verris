@@ -1432,11 +1432,17 @@ export class BillingService {
     type: string;
     data: { object: Record<string, unknown> };
   }) {
-    const stripeSub = event.data.object as unknown as StripeSubscription;
-    if (!stripeSub.id) {
+    const zdarzenie = event.data.object as unknown as StripeSubscription;
+    if (!zdarzenie.id) {
       this.logger.warn(`Ignoring malformed ${event.type} payload (missing id)`);
       return;
     }
+    // Audyt Fali 3 — Stripe nie gwarantuje kolejności zdarzeń i ponawia je po błędzie („Event ordering”:
+    // https://docs.stripe.com/webhooks#event-ordering — „You can also use the API to retrieve any missing objects”).
+    // Spóźnione „cancel_at_period_end=true” po cofnięciu rezygnacji przywracało lokalnie anulację, choć Stripe dalej
+    // obciążał kartę. Stan bierzemy z bieżącego obiektu subskrypcji, nie z treści zdarzenia; błąd odczytu = błąd
+    // zdarzenia (ponowienie), bez zapisu.
+    const stripeSub = await this.stripe.retrieveSubscription(zdarzenie.id);
 
     // Basil+ moved billing periods to `items.data[i]`. The helper falls back
     // to root `current_period_*` for cross-version compatibility — the only
@@ -1458,7 +1464,8 @@ export class BillingService {
       current_period_start: period.start,
       current_period_end: period.end,
       cancel_at_period_end: stripeSub.cancel_at_period_end,
-      metadata: stripeSub.metadata ?? null,
+      cancel_at: stripeSub.cancel_at ?? null,
+      metadata: stripeSub.metadata ?? zdarzenie.metadata ?? null,
     });
     if (!updated) {
       this.logger.debug(

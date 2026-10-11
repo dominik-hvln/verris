@@ -184,6 +184,8 @@ export interface StripeSubscription {
   status: string;
   customer: string;
   cancel_at_period_end: boolean;
+  /** Zaplanowany koniec subskrypcji (https://docs.stripe.com/api/subscriptions/object — `cancel_at`). */
+  cancel_at?: number | null;
   canceled_at: number | null;
   metadata: Record<string, string> | null;
   latest_invoice: string | StripeInvoice | null;
