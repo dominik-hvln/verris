@@ -70,4 +70,47 @@ describe('PB-34 — przegląd węzła', () => {
     expect(p.zadania[0]).toMatchObject({ status: 'FAILED', tekst: 'Zmiana PHP · pb34w-0.pl', blad: 'strona zwróciła 500' });
     expect(p).toMatchObject({ nazwa: 'node-pl-01', stan: 'ok', poza: null, sygnal: 'na żywo' });
   });
+
+  /**
+   * Weryfikacja 11.10 — po udanym „Aktualizuj ten węzeł” karta pokazywała wyjście poprzedniego, NIEUDANEGO przebiegu
+   * (lock CustomBuild). Teraz: wynik ostatniego przebiegu z datą i końcówką wyjścia; starszy błąd tylko w historii.
+   */
+  it('aktualizacja węzła: ostatni przebieg (także udany) z wynikiem i wyjściem; starszy nieudany bez błędu na przeglądzie', async () => {
+    const w = await utworzWezel({ name: 'node-pl-09' });
+    const godz = 3600_000;
+    await prisma().nodeTask.create({
+      data: {
+        serverId: w.id,
+        kind: 'FLEET_UPDATE',
+        status: 'FAILED',
+        createdAt: new Date(Date.now() - 2 * godz),
+        completedAt: new Date(Date.now() - 2 * godz + 600_000),
+        errorMessage: 'Another instance of custombuild (PID 4034467) is holding the lock',
+        outputLog: 'yum: ok\nAnother instance of custombuild (PID 4034467) is holding the lock\nVERRIS_UPDATE_RESULT=failed errors=1\n',
+      },
+    });
+    const udana = await prisma().nodeTask.create({
+      data: {
+        serverId: w.id,
+        kind: 'FLEET_UPDATE',
+        status: 'COMPLETED',
+        createdAt: new Date(Date.now() - godz),
+        completedAt: new Date(Date.now() - godz + 1200_000),
+        outputLog: `${Array.from({ length: 60 }, (_, i) => `krok ${i}`).join('\n')}\nAll parts have been installed\nVERRIS_UPDATE_RESULT=needs-reboot\n`,
+      },
+    });
+
+    const p = await serwis().przeglad(w.id);
+    expect(p.aktualizacja).toMatchObject({ id: udana.id, status: 'COMPLETED', wynik: 'needs-reboot', blad: null });
+    expect(p.aktualizacja!.zlecono).toBe(udana.createdAt.toISOString());
+    expect(p.aktualizacja!.zakonczono).toBe(udana.completedAt!.toISOString());
+    expect(p.aktualizacja!.wyjscie).toContain('VERRIS_UPDATE_RESULT=needs-reboot');
+    expect(p.aktualizacja!.wyjscie).not.toContain('holding the lock');
+    expect(p.aktualizacja!.wyjscie!.split('\n')).toHaveLength(40);
+    // Starszy nieudany przebieg na przeglądzie bez błędu (jest w historii zadań), nowszy udany — na górze.
+    expect(p.zadania.map((z) => [z.status, z.blad])).toEqual([
+      ['COMPLETED', null],
+      ['FAILED', null],
+    ]);
+  });
 });

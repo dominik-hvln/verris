@@ -25,6 +25,7 @@ import { RegionForm } from "./region-form";
 import { DaSsoButton } from "./da-sso-button";
 import { NoweKontaButton } from "./nowe-konta-button";
 import { AktualizujWezelButton } from "./aktualizuj-wezel-button";
+import { OstatniaAktualizacja } from "./ostatnia-aktualizacja";
 import { WezelPrzeglad } from "./wezel-przeglad";
 import { DzialaniaWezla } from "./dzialania-wezla";
 import { KolejkaWezlaPanel } from "./kolejka-wezla-panel";
@@ -387,6 +388,7 @@ export default async function ServerDetailPage({
               <WymagaUprawnienia powod={wymaga("stos")}>
                 <AktualizujWezelButton serverId={server.id} />
               </WymagaUprawnienia>
+              {p ? <OstatniaAktualizacja a={p.aktualizacja ?? null} zadaniaHref={`/nodes/${server.id}?sekcja=zadania`} /> : null}
             </section>
           ) : null}
           {dziala ? (

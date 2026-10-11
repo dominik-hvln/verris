@@ -31,6 +31,16 @@ export interface PrzegladWezla {
   doNaprawy: number;
   obciazone: { id: string; domena: string; plan: string | null; klient: string; klientId: string; autoskalowanieCpu: number; proc: number | null }[];
   zadania: { id: string; status: string; tekst: string; blad: string | null; at: string }[];
+  /** Weryfikacja 11.10 — ostatni przebieg aktualizacji węzła (FLEET_UPDATE), także udany; null — nie było. */
+  aktualizacja?: {
+    id: string;
+    status: string;
+    zlecono: string;
+    zakonczono: string | null;
+    wynik: "ok" | "needs-reboot" | "failed" | null;
+    blad: string | null;
+    wyjscie: string | null;
+  } | null;
 }
 
 /** null — błąd API; karta pokazuje wtedy „Nie udało się wczytać zasobów węzła” (fala 1B), reszta karty działa. */

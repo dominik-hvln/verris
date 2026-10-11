@@ -44,6 +44,25 @@ export const ZADANIA: Record<string, string> = {
 type Stan = 'ok' | 'warn' | 'crit' | 'brak';
 const DZIEN = 86_400_000;
 
+/** Ile końcowych linii wyjścia ostatniej aktualizacji pokazuje karta węzła (pełny log — na węźle i w historii zadań). */
+const LINIE_WYJSCIA_AKTUALIZACJI = 40;
+
+/**
+ * Wynik skryptu aktualizacji węzła (node-update.script.ts: `VERRIS_UPDATE_RESULT=ok|needs-reboot|failed …`) —
+ * ostatnia taka linia w wyjściu; null, gdy jej nie ma (przerwane zadanie, stary agent).
+ */
+export function wynikAktualizacji(log: string | null | undefined): 'ok' | 'needs-reboot' | 'failed' | null {
+  const wyniki = [...(log ?? '').matchAll(/VERRIS_UPDATE_RESULT=(ok|needs-reboot|failed)\b/g)];
+  return (wyniki.at(-1)?.[1] as 'ok' | 'needs-reboot' | 'failed' | undefined) ?? null;
+}
+
+/** Ostatnie `ile` linii tekstu (bez pustych na końcu). */
+export function ogonWyjscia(tekst: string | null | undefined, ile = LINIE_WYJSCIA_AKTUALIZACJI): string | null {
+  const linie = (tekst ?? '').replace(/\s+$/, '').split('\n');
+  const ogon = linie.slice(-ile).join('\n');
+  return ogon.trim() ? ogon : null;
+}
+
 /**
  * PB-34 — strona węzła 1:1 z makiety AdminWezel.dc.html: zasoby (realne z próbek, nie przydział),
  * zgodność z manifestem floty, gotowość, najbardziej obciążone konta i ostatnie zadania.
@@ -60,7 +79,7 @@ export class PrzegladWezlaService {
     const s = await this.prisma.server.findUnique({ where: { id } });
     if (!s) throw new NotFoundException('Nie znaleziono węzła.');
 
-    const [manifest, konta, probki, zadania] = await Promise.all([
+    const [manifest, konta, probki, zadania, aktualizacja] = await Promise.all([
       this.stos.pobierz(),
       this.prisma.account.findMany({
         where: { serverId: id },
@@ -87,6 +106,13 @@ export class PrzegladWezlaService {
         orderBy: { createdAt: 'desc' },
         take: 5,
         select: { id: true, kind: true, status: true, errorMessage: true, createdAt: true, payload: true, accountId: true },
+      }),
+      // Weryfikacja 11.10 — wynik OSTATNIEGO przebiegu „Aktualizuj ten węzeł” / fali (także udanego). Wcześniej karta
+      // pokazywała tylko błędy zadań, więc po udanym przebiegu dalej było widać wyjście starszego, nieudanego.
+      this.prisma.nodeTask.findFirst({
+        where: { serverId: id, kind: 'FLEET_UPDATE' },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, status: true, createdAt: true, completedAt: true, errorMessage: true, outputLog: true },
       }),
     ]);
 
@@ -184,18 +210,31 @@ export class PrzegladWezlaService {
       gotowosc,
       doNaprawy: rozjazdy + gotowosc.filter((g) => g.stan !== 'ok').length,
       obciazone,
-      zadania: zadania.map((z) => {
+      zadania: zadania.map((z, i) => {
         const fala = (z.payload as { fala?: { nr?: number; razem?: number } } | null)?.fala;
+        // Nieudane zadanie, po którym to samo (rodzaj i konto) przeszło później — błąd tylko w historii zadań, nie na przeglądzie.
+        const ponowioneZPowodzeniem = zadania.slice(0, i).some((n) => n.kind === z.kind && n.accountId === z.accountId && n.status === 'COMPLETED');
         return {
           id: z.id,
           status: z.status,
           tekst: [ZADANIA[z.kind] ?? z.kind, fala?.nr ? `fala ${fala.nr}/${fala.razem}` : null, z.accountId ? domenaWg.get(z.accountId) ?? null : null]
             .filter(Boolean)
             .join(' · '),
-          blad: z.errorMessage?.slice(0, 200) ?? null,
+          blad: ponowioneZPowodzeniem ? null : z.errorMessage?.slice(0, 200) ?? null,
           at: z.createdAt.toISOString(),
         };
       }),
+      aktualizacja: aktualizacja
+        ? {
+            id: aktualizacja.id,
+            status: aktualizacja.status,
+            zlecono: aktualizacja.createdAt.toISOString(),
+            zakonczono: aktualizacja.completedAt?.toISOString() ?? null,
+            wynik: wynikAktualizacji(aktualizacja.outputLog),
+            blad: aktualizacja.errorMessage?.slice(0, 500) ?? null,
+            wyjscie: ogonWyjscia(aktualizacja.outputLog),
+          }
+        : null,
     };
   }
 }
