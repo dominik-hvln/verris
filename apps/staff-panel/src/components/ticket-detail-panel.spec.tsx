@@ -190,5 +190,9 @@ describe("F3.7 — makra, scalanie, obecność", () => {
     expect(out).not.toContain('data-karta="scalanie"');
     expect(tekst(out)).toContain("Zgłoszenie scalone — makra stosuj w docelowym.");
     expect(tekst(out)).toContain("Scalone z innym zgłoszeniem #t3000000 — duplikat z maila");
+    // przegląd F3.7 — stanu scalonego nie zmienia się (API odmawia), priorytet tak
+    expect(out).toMatch(/id="[^"]*-status"[^>]*disabled=""/);
+    expect(out).not.toMatch(/id="[^"]*-prio"[^>]*disabled=""/);
+    expect(html(zgl())).not.toMatch(/id="[^"]*-status"[^>]*disabled=""/);
   });
 });

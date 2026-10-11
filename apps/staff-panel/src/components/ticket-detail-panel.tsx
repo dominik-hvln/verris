@@ -326,7 +326,8 @@ export function TicketDetailPanel({
                 id={`${fieldsId}-status`}
                 className={POLE_WYBORU}
                 value={ticket.status}
-                disabled={pending}
+                // Przegląd F3.7 — scalone zostaje zamknięte (API odmawia zmiany stanu); stan zmienia się w docelowym.
+                disabled={pending || !!ticket.scalonoDoId}
                 onChange={(v) => patchField({ status: v })}
                 options={STATUS_OPTS.map((s) => ({ value: s, label: TICKET_STATUS_PL[s] ?? s }))}
               />
