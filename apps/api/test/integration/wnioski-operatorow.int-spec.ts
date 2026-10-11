@@ -25,6 +25,8 @@ import { SubscriptionsService } from '../../src/subscriptions/subscriptions.serv
 import { ZawieszenieOperatoraService } from '../../src/subscriptions/zawieszenie-operatora.service.js';
 import { CyklZyciaUslugiService } from '../../src/subscriptions/cykl-zycia-uslugi.service.js';
 import { AddonService } from '../../src/addons/addon.service.js';
+import { TicketsService } from '../../src/tickets/tickets.service.js';
+import { OpiekaZgloszenService } from '../../src/tickets/opieka-zgloszen.service.js';
 import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } from './setup.js';
 
 /**
@@ -87,6 +89,14 @@ async function wczytajDziennik() {
         naWezle.unsuspendOnDa = async (_s, u) => void zawieszoneNaWezle.push(`-${u}`);
         return new ZawieszenieOperatoraService(p, subs);
       },
+    },
+    {
+      // F3.7 — prawdziwe scalanie zgłoszeń (wniosek TICKET_MERGE); maile i asystent podstawione. Przegląd F3.7: bez
+      // tego dostawcy moduł testu nie startował (WnioskiService zależy od TicketsService) i cały plik padał.
+      provide: TicketsService,
+      inject: [PrismaService, AuditService, MailerService, ConfigService, NotificationsService],
+      useFactory: (p: PrismaService, a: AuditService, m: MailerService, c: ConfigService, n: NotificationsService) =>
+        new TicketsService(p, m, c, {} as never, a, n, new OpiekaZgloszenService(p, m, c, a, n, { supportSuggestion: async () => null } as never)),
     },
     {
       // Prawdziwe zasilenie portfela (księga + saldo w Postgresie); reszta zależności nieużywana przez adminCreditWallet.
@@ -481,5 +491,38 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     const k = await klient();
     expect((await zadanie('GET', '/admin/wnioski/moje', { id: k.id, role: 'USER' })).status).toBe(403);
     expect((await zadanie('POST', '/admin/wnioski', { id: k.id, role: 'USER' }, { typ: 'WALLET_CREDIT', userId: k.id, payload: { amount: 5 }, uzasadnienie: 'Proszę o środki.' })).status).toBe(403);
+  });
+
+  it('F3.7 — scalenie zgłoszeń przez wniosek: L1 składa, kierownik z TICKETS_MERGE akceptuje, wątek przechodzi raz; bez TICKETS_MERGE 403', async () => {
+    const l1 = await operator(['TICKETS_VIEW', 'TICKETS_MANAGE']);
+    const l3 = await operator(['TICKETS_VIEW', 'TICKETS_MANAGE', 'TICKETS_MERGE']);
+    const kier = await operator(['REQUESTS_APPROVE', 'TICKETS_MANAGE', 'TICKETS_MERGE']);
+    const kierBez = await operator(['REQUESTS_APPROVE', 'TICKETS_MANAGE']);
+    const k = await klient();
+    const a = await prisma().ticket.create({ data: { userId: k.id, subject: 'A', message: 'Poczta nie działa' } });
+    await prisma().ticketReply.create({ data: { ticketId: a.id, authorId: l1.id, isStaff: true, internal: true, message: 'NOTATKA-WEWN' } });
+    const b = await prisma().ticket.create({ data: { userId: k.id, subject: 'B', message: 'Drugi raz to samo' } });
+
+    // Bezpośrednio: L1 → 403 z kodem wniosku; L3 z TICKETS_MERGE nie składa wniosku (wykonuje sam).
+    const wn = { typ: 'TICKET_MERGE', userId: k.id, payload: { zrodloId: a.id, celId: b.id }, uzasadnienie: 'Ta sama sprawa z maila i z panelu.' };
+    expect((await zadanie('POST', '/admin/wnioski', l3, wn)).body).toMatchObject({ code: 'WYKONAJ_BEZPOSREDNIO' });
+    const zl = await zadanie('POST', '/admin/wnioski', l1, wn);
+    expect(zl.status).toBe(201);
+    const id = zl.body.id as string;
+    expect((await zadanie('POST', `/admin/wnioski/${id}/akceptuj`, kierBez, {})).status).toBe(403);
+    expect((await zadanie('POST', `/admin/wnioski/${id}/akceptuj`, l1, {})).status).toBe(403);
+    expect((await prisma().ticket.findUniqueOrThrow({ where: { id: a.id } })).scalonoDoId).toBeNull();
+
+    const ok = await zadanie('POST', `/admin/wnioski/${id}/akceptuj`, kier, {});
+    expect(ok.body).toMatchObject({ status: 'APPROVED' });
+    expect(await prisma().ticket.findUniqueOrThrow({ where: { id: a.id } })).toMatchObject({ scalonoDoId: b.id, status: 'CLOSED' });
+    const notatka = await prisma().ticketReply.findFirstOrThrow({ where: { message: 'NOTATKA-WEWN' } });
+    expect(notatka).toMatchObject({ ticketId: b.id, internal: true });
+    await wczytajDziennik();
+    expect(dziennik.filter((d) => d.action === 'TICKET_MERGED')).toEqual([
+      expect.objectContaining({ actorUserId: kier.id, userId: k.id, details: expect.objectContaining({ zrodlo: a.id, cel: b.id, wniosekId: id }) }),
+    ]);
+    // Ponowny wniosek na scalone → 400 przy złożeniu.
+    expect((await zadanie('POST', '/admin/wnioski', l1, wn)).status).toBe(400);
   });
 });
