@@ -108,6 +108,20 @@ export class SubscriptionsAdminController {
     private readonly zawieszenie: ZawieszenieOperatoraService,
   ) {}
 
+  /**
+   * Przegląd poprawek Fali 3 (D3) — ta sama twarda reguła co karta konta (konto-klienta.admin.controller.ts), akcje
+   * konta i zawieszenie: STAFF czyta konto z węzła i zmienia je tylko na usługach klientów (USER); usługi kont zespołu —
+   * tylko ADMIN. 403 przed wpisem w dzienniku i przed węzłem.
+   */
+  private async uslugaKlienta(id: string, actor: { role?: string }): Promise<{ userId: string }> {
+    const sub = await this.prisma.subscription.findUnique({ where: { id }, select: { userId: true, user: { select: { role: true } } } });
+    if (!sub) throw new NotFoundException('Usługa nie istnieje.');
+    if (actor.role !== Role.ADMIN && sub.user?.role !== Role.USER) {
+      throw new ForbiddenException('Personel obsługuje wyłącznie usługi klientów — usługę konta zespołu obsługuje administrator.');
+    }
+    return { userId: sub.userId };
+  }
+
   // H-16 — odtworzenie konta z kopii off-site na innym węźle (utrata węzła). Tylko ADMIN: przepina konto.
   @Get(':id/odtworzenie-na-wezle')
   odtworzenieNaWezle(@Param('id') id: string) {
@@ -131,9 +145,8 @@ export class SubscriptionsAdminController {
   @Get(':id/hosting-backups')
   @Roles(Role.ADMIN, Role.STAFF)
   @StaffPermAny('SUBSCRIPTIONS_MANAGE', 'ACCOUNT_DIAGNOSTICS_VIEW')
-  async hostingBackups(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
-    const sub = await this.prisma.subscription.findUnique({ where: { id }, select: { userId: true } });
-    if (!sub) throw new NotFoundException('Usługa nie istnieje.');
+  async hostingBackups(@Param('id') id: string, @CurrentUser() actor: { userId: string; role?: string }) {
+    const sub = await this.uslugaKlienta(id, actor);
     await this.audit.record({
       action: SupportActions.OPERATOR_ACCOUNT_VIEWED,
       userId: sub.userId,
@@ -151,9 +164,8 @@ export class SubscriptionsAdminController {
   @Get(':id/diagnostics')
   @Roles(Role.ADMIN, Role.STAFF)
   @StaffPermAny('SUBSCRIPTIONS_MANAGE', 'ACCOUNT_DIAGNOSTICS_VIEW', 'TICKETS_MANAGE')
-  async runDiagnostics(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
-    const sub = await this.prisma.subscription.findUnique({ where: { id }, select: { userId: true } });
-    if (!sub) throw new NotFoundException('Usługa nie istnieje.');
+  async runDiagnostics(@Param('id') id: string, @CurrentUser() actor: { userId: string; role?: string }) {
+    const sub = await this.uslugaKlienta(id, actor);
     await this.audit.record({
       action: SupportActions.OPERATOR_ACCOUNT_VIEWED,
       userId: sub.userId,
@@ -166,12 +178,13 @@ export class SubscriptionsAdminController {
   /** Admin-initiated restore (no domain confirmation required; full audit trail). */
   @Post(':id/hosting-restore')
   @Roles(Role.ADMIN, Role.STAFF)
-  runHostingRestore(
+  async runHostingRestore(
     @Param('id') id: string,
     @Body() dto: HostingRestoreDto,
     @CurrentUser() actor: { userId: string; role?: string },
   ) {
     wymagajPowoduOdStaff(actor, dto.reason);
+    await this.uslugaKlienta(id, actor);
     return this.hostingRestore.enqueue(id, actor.userId, {
       backupId: dto.backupId,
       scopeFiles: dto.scopeFiles,
@@ -416,12 +429,13 @@ export class SubscriptionsAdminController {
   @Post(':id/internal-migration')
   @HttpCode(200)
   @Roles(Role.ADMIN, Role.STAFF)
-  requestInternalMigration(
+  async requestInternalMigration(
     @Param('id') id: string,
     @Body() dto: RequestInternalMigrationDto,
     @CurrentUser() actor: { userId: string; role?: string },
   ) {
     wymagajPowoduOdStaff(actor, dto.notes);
+    await this.uslugaKlienta(id, actor);
     return this.migrations.requestInternalMigrationByAdmin(id, actor.userId, dto);
   }
 
@@ -458,6 +472,7 @@ export class SubscriptionsAdminController {
       select: { role: true },
     });
     if (!user) throw new BadRequestException('Nie znaleziono operatora.');
+    await this.uslugaKlienta(id, user);
     return this.planChange.changeForAdmin(
       actor.userId,
       user.role,

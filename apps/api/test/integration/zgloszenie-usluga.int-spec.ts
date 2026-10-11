@@ -189,5 +189,12 @@ describe('PB-43 — zgłoszenie powiązane z usługą', () => {
     expect(wolane).toEqual([a.subscription.id]);
     const wpis = await prisma().auditLog.findFirstOrThrow({ where: { action: 'TICKET_DIAGNOSTICS_RUN' } });
     expect(wpis).toMatchObject({ userId: a.user.id, actorUserId: operator.id });
+
+    // Przegląd poprawek Fali 3 (D3) — usługa konta zespołu: STAFF 403 bez odpytania węzła, ADMIN może.
+    await prisma().user.update({ where: { id: a.user.id }, data: { role: 'STAFF' } });
+    await expect(c.diagnostyka(z.id, { userId: operator.id, role: 'STAFF' })).rejects.toMatchObject({ status: 403 });
+    expect(wolane).toEqual([a.subscription.id]);
+    await c.diagnostyka(z.id, { userId: operator.id, role: 'ADMIN' });
+    expect(wolane).toHaveLength(2);
   });
 });

@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, NotFoundException, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
+import { BadRequestException, Controller, ForbiddenException, Get, NotFoundException, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
@@ -34,10 +34,14 @@ export class ZgloszenieDiagnostykaController {
   ) {}
 
   @Get(':id/diagnostyka')
-  async diagnostyka(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: { userId: string }) {
-    const ticket = await this.prisma.ticket.findUnique({ where: { id }, select: { userId: true, subscriptionId: true } });
+  async diagnostyka(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: { userId: string; role?: string }) {
+    const ticket = await this.prisma.ticket.findUnique({ where: { id }, select: { userId: true, subscriptionId: true, user: { select: { role: true } } } });
     if (!ticket) throw new NotFoundException('Nie znaleziono zgłoszenia.');
     if (!ticket.subscriptionId) throw new BadRequestException('Zgłoszenie nie jest powiązane z usługą — najpierw wskaż usługę.');
+    // Przegląd poprawek Fali 3 (D3) — jak diagnostyka z karty usługi: STAFF odpytuje węzeł tylko dla usług klientów.
+    if (actor.role !== 'ADMIN' && ticket.user?.role !== 'USER') {
+      throw new ForbiddenException('Personel uruchamia diagnostykę wyłącznie usług klientów — usługę konta zespołu sprawdza administrator.');
+    }
     const wynik = await this.diagnostics.forSubscription(ticket.subscriptionId);
     await this.audit.record({
       action: TicketOpsActions.TICKET_DIAGNOSTICS_RUN,

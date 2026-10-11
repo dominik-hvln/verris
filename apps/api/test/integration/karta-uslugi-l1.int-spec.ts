@@ -44,8 +44,11 @@ const atrapa = (nazwa: string, wynik: unknown) => async () => {
     { provide: ConfigService, useValue: { get: () => SEKRET } },
     { provide: AuditService, useFactory: (p: PrismaService) => new AuditService(p), inject: [PrismaService] },
     { provide: SubscriptionsService, useValue: {} },
-    { provide: MigrationOrchestratorService, useValue: { listMigrationTimelineForAdmin: atrapa('migracje', []) } },
-    { provide: PlanChangeService, useValue: { listEligiblePlansForAdmin: atrapa('plany', []) } },
+    {
+      provide: MigrationOrchestratorService,
+      useValue: { listMigrationTimelineForAdmin: atrapa('migracje', []), requestInternalMigrationByAdmin: atrapa('migracja-wewnetrzna', { id: 'm1' }) },
+    },
+    { provide: PlanChangeService, useValue: { listEligiblePlansForAdmin: atrapa('plany', []), changeForAdmin: atrapa('zmiana-planu', { ok: true }) } },
     {
       provide: HostingRestoreService,
       useValue: { latestForSubscription: atrapa('stan-odtwarzania', { id: null }), enqueue: atrapa('odtworzenie', { id: 'j1' }) },
@@ -141,6 +144,33 @@ describe('L1-KARTA — karta usługi przez HTTP dla ról systemowych', () => {
     expect((await zadanie('GET', `${s}/usage`, noc.id, 'STAFF')).status).toBe(200);
     expect((await zadanie('GET', `${s}/plan/eligible-plans`, noc.id, 'STAFF')).status).toBe(200);
     expect((await zadanie('GET', `${s}/hosting-backups`, noc.id, 'STAFF')).status).toBe(200);
+  });
+
+  it('przegląd poprawek Fali 3 (D3): kopie z węzła, diagnostyka, odtworzenie, migracja wewnętrzna i zmiana planu usługi konta zespołu — 403 dla STAFF, ADMIN może', async () => {
+    const wezel = (await utworzWezel()).id;
+    const plan = (await utworzPlan()).id;
+    const noc = await operatorZRola('Inżynier infrastruktury (NOC/DevOps)');
+    const admin = await prisma().user.create({ data: { email: 'admin-d3@test.verris.pl', passwordHash: 'x', role: 'ADMIN' } });
+    for (const rolaWlasciciela of ['ADMIN', 'STAFF'] as const) {
+      const k = await utworzKonto({ serverId: wezel, planId: plan });
+      await prisma().user.update({ where: { id: k.user.id }, data: { role: rolaWlasciciela } });
+      const s = `/admin/subscriptions/${k.subscription.id}`;
+      expect((await zadanie('GET', `${s}/hosting-backups`, noc.id, 'STAFF')).status).toBe(403);
+      expect((await zadanie('GET', `${s}/diagnostics`, noc.id, 'STAFF')).status).toBe(403);
+      expect((await zadanie('POST', `${s}/hosting-restore`, noc.id, 'STAFF', { backupId: 'b1', reason: 'Zgłoszenie #1 — prośba o kopię' })).status).toBe(403);
+      expect((await zadanie('POST', `${s}/internal-migration`, noc.id, 'STAFF', { targetServerId: wezel, notes: 'Rozładowanie węzła — plan NOC.' })).status).toBe(403);
+      expect((await zadanie('POST', `${s}/plan`, noc.id, 'STAFF', { targetPlanId: plan, reason: 'Zmiana planu na prośbę.' })).status).toBe(403);
+      expect(wywolania).toEqual([]);
+      expect(await prisma().auditLog.count({ where: { action: 'OPERATOR_ACCOUNT_VIEWED', userId: k.user.id } })).toBe(0);
+      expect((await zadanie('GET', `${s}/hosting-backups`, admin.id, 'ADMIN')).status).toBe(200);
+      expect(wywolania).toEqual(['kopie']);
+      wywolania.length = 0;
+    }
+    // Usługa klienta (USER) — NOC jak dotąd.
+    const k = await utworzKonto({ serverId: wezel, planId: plan });
+    const s = `/admin/subscriptions/${k.subscription.id}`;
+    expect((await zadanie('GET', `${s}/hosting-backups`, noc.id, 'STAFF')).status).toBe(200);
+    expect((await zadanie('POST', `${s}/internal-migration`, noc.id, 'STAFF', { targetServerId: wezel, notes: 'Rozładowanie węzła — plan NOC.' })).status).toBe(200);
   });
 
   it('audyt Fal 2: L3 zawiesza i odwiesza usługę klienta, ale nie usługę konta zespołu (ADMIN/STAFF) — 403 przed węzłem', async () => {

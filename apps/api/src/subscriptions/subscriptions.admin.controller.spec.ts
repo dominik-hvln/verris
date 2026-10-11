@@ -108,15 +108,16 @@ describe('SubscriptionsAdminController — obsługa (PB-44)', () => {
   function kontroler() {
     const hostingRestore = { enqueue: vi.fn().mockResolvedValue({ id: 'j1' }) };
     const migrations = { requestInternalMigrationByAdmin: vi.fn().mockResolvedValue({ ok: true }) };
+    const prisma = { subscription: { findUnique: vi.fn().mockResolvedValue({ userId: 'klient', user: { role: 'USER' } }) } };
     const c = new (SubscriptionsAdminController as unknown as new (...a: unknown[]) => SubscriptionsAdminController)(
-      null, null, migrations, null, hostingRestore, null, null, null, null,
+      null, prisma, migrations, null, hostingRestore, null, null, null, null,
     );
-    return { c, hostingRestore, migrations };
+    return { c, hostingRestore, migrations, prisma };
   }
 
-  it('odtworzenie przez STAFF bez powodu → 400, nic nie zlecone', () => {
+  it('odtworzenie przez STAFF bez powodu → 400, nic nie zlecone', async () => {
     const { c, hostingRestore } = kontroler();
-    expect(() => c.runHostingRestore('s1', { backupId: 'b1', reason: ' krótki ' }, { userId: 'op', role: Role.STAFF })).toThrow(BadRequestException);
+    await expect(c.runHostingRestore('s1', { backupId: 'b1', reason: ' krótki ' }, { userId: 'op', role: Role.STAFF })).rejects.toThrow(BadRequestException);
     expect(hostingRestore.enqueue).not.toHaveBeenCalled();
   });
 
@@ -138,7 +139,7 @@ describe('SubscriptionsAdminController — obsługa (PB-44)', () => {
    */
   it('lista kopii konta → wpis OPERATOR_ACCOUNT_VIEWED (operator = aktor, klient = właściciel), potem odczyt z węzła', async () => {
     const audit = { record: vi.fn().mockResolvedValue(undefined) };
-    const prisma = { subscription: { findUnique: vi.fn().mockResolvedValue({ userId: 'klient' }) } };
+    const prisma = { subscription: { findUnique: vi.fn().mockResolvedValue({ userId: 'klient', user: { role: 'USER' } }) } };
     const directAdmin = { listHostingBackups: vi.fn().mockResolvedValue({ rows: [], fetchError: null }) };
     const c = new (SubscriptionsAdminController as unknown as new (...a: unknown[]) => SubscriptionsAdminController)(
       null, prisma, null, null, null, null, directAdmin, null, null, audit,
@@ -157,7 +158,7 @@ describe('SubscriptionsAdminController — obsługa (PB-44)', () => {
   /** L1-KARTA — diagnostyka z karty usługi odpytuje węzeł: w dzienniku jak diagnostyka z rozmowy (PB-43) i lista kopii. */
   it('diagnostyka z karty → wpis OPERATOR_ACCOUNT_VIEWED (sekcja diagnostyka), potem diagnostyka', async () => {
     const audit = { record: vi.fn().mockResolvedValue(undefined) };
-    const prisma = { subscription: { findUnique: vi.fn().mockResolvedValue({ userId: 'klient' }) } };
+    const prisma = { subscription: { findUnique: vi.fn().mockResolvedValue({ userId: 'klient', user: { role: 'USER' } }) } };
     const diagnostics = { forSubscription: vi.fn().mockResolvedValue({ overall: 'ok' }) };
     const c = new (SubscriptionsAdminController as unknown as new (...a: unknown[]) => SubscriptionsAdminController)(
       null, prisma, null, null, null, diagnostics, null, null, null, audit,
@@ -184,9 +185,22 @@ describe('SubscriptionsAdminController — obsługa (PB-44)', () => {
     expect(diagnostics.forSubscription).not.toHaveBeenCalled();
   });
 
-  it('migracja wewnętrzna przez STAFF bez powodu → 400', () => {
+  it('migracja wewnętrzna przez STAFF bez powodu → 400', async () => {
     const { c, migrations } = kontroler();
-    expect(() => c.requestInternalMigration('s1', { targetServerId: 'n2' }, { userId: 'op', role: Role.STAFF })).toThrow(BadRequestException);
+    await expect(c.requestInternalMigration('s1', { targetServerId: 'n2' }, { userId: 'op', role: Role.STAFF })).rejects.toThrow(BadRequestException);
     expect(migrations.requestInternalMigrationByAdmin).not.toHaveBeenCalled();
+  });
+
+  /** Przegląd poprawek Fali 3 (D3) — usługa konta zespołu: STAFF 403 przed węzłem i dziennikiem; ADMIN może. */
+  it('usługa konta zespołu: STAFF nie odtworzy ani nie przeniesie (403), ADMIN tak', async () => {
+    const { c, hostingRestore, migrations, prisma } = kontroler();
+    prisma.subscription.findUnique.mockResolvedValue({ userId: 'zespol', user: { role: 'STAFF' } });
+    const STAFF = { userId: 'op', role: Role.STAFF };
+    await expect(c.runHostingRestore('s1', { backupId: 'b1', reason: 'Zgłoszenie #77 — prośba o kopię' }, STAFF)).rejects.toMatchObject({ status: 403 });
+    await expect(c.requestInternalMigration('s1', { targetServerId: 'n2', notes: 'Rozładowanie węzła n1.' }, STAFF)).rejects.toMatchObject({ status: 403 });
+    expect(hostingRestore.enqueue).not.toHaveBeenCalled();
+    expect(migrations.requestInternalMigrationByAdmin).not.toHaveBeenCalled();
+    await c.runHostingRestore('s1', { backupId: 'b1' }, { userId: 'adm', role: Role.ADMIN });
+    expect(hostingRestore.enqueue).toHaveBeenCalled();
   });
 });
