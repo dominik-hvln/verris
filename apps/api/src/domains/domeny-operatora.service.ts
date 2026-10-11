@@ -149,7 +149,8 @@ export class DomenyOperatoraService {
     ]);
     return {
       // Uchwyt abonenta to dane rejestratora — operatorowi wystarczy wiedzieć, czy ponowienie jest możliwe.
-      nieudane: nieudane.map(({ ownerHandle, ...z }) => ({ ...z, moznaPonowic: !!ownerHandle })),
+      // Audyt Fal 2 — ponowienie obciąża kwotą z zamówienia, więc bez zapisanej ceny też się nie da.
+      nieudane: nieudane.map(({ ownerHandle, ...z }) => ({ ...z, moznaPonowic: !!ownerHandle && z.priceAmount !== null })),
       wToku,
     };
   }

@@ -196,6 +196,19 @@ describe('F2.7 — operacje obsługi na domenach (pieniądze)', () => {
     expect(wywolania).toEqual([]);
   });
 
+  it('audyt Fal 2 — zamówienie bez zapisanej ceny: ponowienie odmówione bez obciążenia (nie ma kwoty, którą klient przyjął)', async () => {
+    const { domeny } = uslugi();
+    const k = await uzytkownik(500);
+    const op = await uzytkownik(0, 'STAFF');
+    const stare = await prisma().domainRegistrarOrder.create({
+      data: { domainName: 'bez-ceny.pl', type: 'REGISTER', status: 'FAILED', userId: k.id, years: 1, ownerHandle: 'H-ABONENT' },
+    });
+    expect((await domeny.zamowienia()).nieudane).toEqual([expect.objectContaining({ id: stare.id, moznaPonowic: false })]);
+    await expect(domeny.ponow(stare.id, { operatorUserId: op.id, operatorRole: 'STAFF', powod: 'Rejestr miał przerwę, ponawiam' })).rejects.toThrow('bez zapisanej ceny');
+    expect(await saldo(k.id)).toBe(500);
+    expect(wywolania).toEqual([]);
+  });
+
   it('przegląd: opłacone pierwsze zamówienie bez zaksięgowanego zwrotu — ponowienie odmówione, bez drugiego obciążenia', async () => {
     const { domeny } = uslugi();
     const k = await uzytkownik(500);

@@ -45,7 +45,7 @@ export function PonowZamowienie(p: { orderId: string; domena: string; typ: strin
   }
   const wykonaj = async () => {
     const rodzaj = p.typ === "TRANSFER" ? "transfer" : "rejestrację";
-    if (!(await potwierdz(`Ponowić ${rodzaj} ${p.domena}? Opłata${p.kwota ? ` (ok. ${p.kwota} zł)` : ""} zejdzie z portfela klienta, a klient zobaczy wpis „obsługa Verris”.`, { akcja: "Ponów" }))) return;
+    if (!(await potwierdz(`Ponowić ${rodzaj} ${p.domena}? Opłata${p.kwota ? ` ${p.kwota} zł (kwota z zamówienia klienta)` : ""} zejdzie z portfela klienta, a klient zobaczy wpis „obsługa Verris”.`, { akcja: "Ponów" }))) return;
     start(async () => {
       let r: Awaited<ReturnType<typeof ponowZamowienieAction>>;
       try {

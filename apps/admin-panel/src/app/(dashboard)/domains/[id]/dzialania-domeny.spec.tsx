@@ -146,6 +146,8 @@ it("ponowienie zamówienia: bez uprawnienia wyszarzone; transfer z nowym kodem E
   await wpisz(kod!, "NOWY-EPP");
   await klik([...k.querySelectorAll("button")].find((b) => b.textContent === "Ponów zamówienie")!);
   expect(potwierdz.mock.calls[0]![0]).toContain("z portfela klienta");
+  // Audyt Fal 2 — API obciąża dokładnie kwotą z zamówienia klienta, więc potwierdzenie nie mówi „ok.”.
+  expect(potwierdz.mock.calls[0]![0]).toContain("Opłata 40.00 zł (kwota z zamówienia klienta)");
   expect(ponow).toHaveBeenCalledWith("o2", { powod: "zły kod przy transferze", zgloszenie: "", authCode: "NOWY-EPP" });
   expect(k.textContent).toContain("Transfer zlecony ponownie");
 });

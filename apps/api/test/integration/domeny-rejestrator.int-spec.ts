@@ -17,13 +17,14 @@ const abonent = {
 };
 
 let rejestracjaPada = false;
+let cenaRejestracji = '40.00';
 let whoisPada = false;
 let stanTransferu: 'active' | 'pending' | 'failed' = 'pending';
 const wywolania: string[] = [];
 const rejestrator = {
   id: 'atrapa',
-  availability: async (domain: string) => ({ domain, available: true, priceAmount: '40.00', currency: 'PLN' }),
-  price: async (i: { operation: string }) => ({ amount: i.operation === 'transfer' ? '30.00' : '40.00', currency: 'PLN' }),
+  availability: async (domain: string) => ({ domain, available: true, priceAmount: cenaRejestracji, currency: 'PLN' }),
+  price: async (i: { operation: string }) => ({ amount: i.operation === 'transfer' ? '30.00' : cenaRejestracji, currency: 'PLN' }),
   createRegistrant: async () => 'H-ABONENT',
   register: async (i: { domain: string }) => {
     wywolania.push(`register:${i.domain}`);
@@ -70,6 +71,7 @@ describe('X-04 domeny u rejestratora', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     rejestracjaPada = false;
+    cenaRejestracji = '40.00';
     stanTransferu = 'pending';
     wywolania.length = 0;
   });
@@ -101,6 +103,27 @@ describe('X-04 domeny u rejestratora', () => {
     const z = await prisma().domainRegistrarOrder.findFirstOrThrow({ where: { userId: u.id } });
     expect(z.status).toBe(DomainRegistrarOrderStatus.FAILED);
     expect(await prisma().domain.findUnique({ where: { name: 'odrzucona.pl' } })).toBeNull();
+  });
+
+  it('audyt Fal 2 — ponowienie przez obsługę obciąża kwotą z zamówienia klienta, nie bieżącą ceną rejestratora', async () => {
+    const { rejestr } = uslugi();
+    const u = await klient(500);
+    rejestracjaPada = true;
+    await expect(rejestr.register(u.id, u.id, { name: 'ponowiona.pl', registrant: abonent })).rejects.toThrow('rejestr odrzucił');
+    const stare = await prisma().domainRegistrarOrder.findFirstOrThrow({ where: { userId: u.id } });
+    expect(stare.status).toBe(DomainRegistrarOrderStatus.FAILED);
+    expect(await saldo(u.id)).toBe(500);
+
+    // Po kilku dniach rejestrator podniósł cenę (albo zmienił się kurs) — klient zaakceptował starą kwotę.
+    rejestracjaPada = false;
+    cenaRejestracji = '55.00';
+    const operator = await prisma().user.create({ data: { email: `op-dom-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'STAFF' } });
+    await rejestr.ponowZamowienie(stare.id, operator.id);
+
+    const nowe = await prisma().domainRegistrarOrder.findFirstOrThrow({ where: { userId: u.id, id: { not: stare.id } } });
+    expect(nowe.status).toBe(DomainRegistrarOrderStatus.COMPLETED);
+    expect(Number(nowe.priceAmount)).toBe(Number(stare.priceAmount));
+    expect(await saldo(u.id)).toBeCloseTo(500 - Number(stare.priceAmount), 2);
   });
 
   it('brak środków: odmowa bez wywołania rejestratora, portfel nietknięty', async () => {

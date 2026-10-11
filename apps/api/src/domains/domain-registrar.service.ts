@@ -815,17 +815,17 @@ export class DomainRegistrarService {
     const authCode = stare.type === DomainRegistrarOrderType.TRANSFER ? (nowyKod ?? (stare.authCodeEnc ? this.crypto.decrypt(stare.authCodeEnc) : null)) : null;
     if (stare.type === DomainRegistrarOrderType.TRANSFER && !authCode) throw new BadRequestException('Podaj kod transferu (EPP).');
 
+    // Audyt Fal 2 — kwota z zamówienia klienta: tę zaakceptował przy zamówieniu i tę widzi operator w potwierdzeniu.
+    // Cena liczona od nowa (bieżący cennik rejestratora, kurs NBP) obciążała portfel inną kwotą bez zgody klienta.
+    // Różnicę kursu/cennika przy ponowieniu bierze Verris; nowa cena = nowe zamówienie klienta.
+    if (stare.priceAmount === null) {
+      throw new BadRequestException('Zamówienie bez zapisanej ceny — klient musi zamówić domenę ponownie.');
+    }
+    const price = { amount: new Prisma.Decimal(stare.priceAmount).toFixed(2), currency: stare.currency };
     const provider = this.providerFactory.get();
-    const cena = async () => {
-      if (stare.type === DomainRegistrarOrderType.TRANSFER) return this.resolvePrice(provider, stare.domainName, stare.years, 'transfer');
-      const availability = await provider.availability(stare.domainName);
-      if (!availability.available) throw new BadRequestException('Domena nie jest już dostępna do rejestracji.');
-      return this.resolvePrice(provider, stare.domainName, stare.years, 'register', {
-        amount: availability.priceAmount,
-        currency: availability.currency,
-      });
-    };
-    const price = await cena();
+    if (stare.type === DomainRegistrarOrderType.REGISTER && !(await provider.availability(stare.domainName)).available) {
+      throw new BadRequestException('Domena nie jest już dostępna do rejestracji.');
+    }
 
     const nowe = await this.prisma.$transaction(async (db) => {
       // Przegląd F2.7 — blokada WSZYSTKICH zamówień tego klienta na tę domenę (tego typu), nie tylko ponawianego:
