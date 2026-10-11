@@ -631,10 +631,17 @@ export class SubscriptionsService {
 
     // 2a) Deferred cancel: keep hosting active until period end.
     if (deferToPeriodEnd) {
-      const updated = await this.prisma.subscription.update({
-        where: { id: subscription.id },
+      // Audyt Fali 3 — portfel: warunkowo na przeczytany koniec okresu. Przebieg odnowień mógł go właśnie przesunąć
+      // (obciążenie za nowy okres) — wtedy cancelAt na stary koniec kończyłby opłacony okres przed czasem. Kartą okres
+      // prowadzi Stripe (rezygnacja już przyjęta wyżej), więc tam zapis jak dotąd.
+      const { count } = await this.prisma.subscription.updateMany({
+        where: isStripeRecurring ? { id: subscription.id } : { id: subscription.id, currentPeriodEnd: periodEnd! },
         data: { cancelAt: periodEnd! },
       });
+      if (count === 0) {
+        throw new ConflictException('Usługa właśnie się odnowiła — odśwież stronę i złóż rezygnację ponownie.');
+      }
+      const updated = await this.prisma.subscription.findUniqueOrThrow({ where: { id: subscription.id } });
       await this.prisma.subscriptionEvent.create({
         data: {
           subscriptionId: subscription.id,
@@ -724,6 +731,17 @@ export class SubscriptionsService {
     if (subscription.status === SubscriptionStatus.CANCELED) return subscription;
     // Klient mógł wznowić usługę po tym, jak harmonogram ją wybrał — wtedy nic nie kasujemy.
     if (!subscription.cancelAt || subscription.cancelAt.getTime() > Date.now()) return subscription;
+    // Audyt Fali 3 — okres opłacony dalej niż data anulacji (stan po wyścigu anulacji z odnowieniem sprzed poprawki):
+    // nie kończymy przed końcem opłaconego okresu — anulacja przechodzi na jego koniec.
+    const oplaconyDo = subscription.currentPeriodEnd;
+    if (oplaconyDo && oplaconyDo.getTime() > Date.now() && oplaconyDo.getTime() > subscription.cancelAt.getTime()) {
+      await this.prisma.subscription.updateMany({
+        where: { id: subscription.id, cancelAt: subscription.cancelAt },
+        data: { cancelAt: oplaconyDo },
+      });
+      this.logger.warn(`sub=${subscription.id}: anulacja przed końcem opłaconego okresu — przesunięta na ${oplaconyDo.toISOString()}`);
+      return this.prisma.subscription.findUnique({ where: { id: subscription.id } });
+    }
     return this.tearDownCanceledSubscription(subscription, {
       account: subscription.account,
       source: 'SCHEDULED',

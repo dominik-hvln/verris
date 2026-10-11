@@ -235,7 +235,9 @@ export class RenewalScheduler {
         `Renewal idempotent hit for sub=${sub.id} key=${idempotencyKey}`,
       );
       // Treat as already-paid; just extend period if not extended yet.
-      await this.extendPeriod(sub.id, periodEnd, sub.interval, false, aktywuj);
+      if (!(await this.extendPeriod(sub.id, periodEnd, sub.interval, false, aktywuj))) {
+        await this.zwrotGdyAnulowana(sub, periodEnd, idempotencyKey);
+      }
       void this.ecoPoints.safeAward(`wallet_renewal:${idempotencyKey}`, async () => {
         await this.ecoPoints.awardSubscriptionRenewal(this.prisma, {
           userId: sub.userId,
@@ -287,7 +289,9 @@ export class RenewalScheduler {
     // Zużycie okresu rabatu startowego razem z przedłużeniem i tylko przez tego, kto przedłużył:
     // „Opłać teraz” w tej samej chwili co cron (to samo obciążenie przez klucz idempotencji)
     // zdejmował wcześniej dwa okresy rabatu.
-    await this.extendPeriod(sub.id, periodEnd, sub.interval, useIntro, aktywuj);
+    if (!(await this.extendPeriod(sub.id, periodEnd, sub.interval, useIntro, aktywuj))) {
+      await this.zwrotGdyAnulowana(sub, periodEnd, idempotencyKey);
+    }
 
     void this.ecoPoints.safeAward(`wallet_renewal:${idempotencyKey}`, async () => {
       await this.ecoPoints.awardSubscriptionRenewal(this.prisma, {
@@ -299,18 +303,48 @@ export class RenewalScheduler {
     return true;
   }
 
+  /**
+   * Audyt Fali 3 — lista `due` jest czytana raz na początku przebiegu. Anulacja na koniec okresu zapisana po tym odczycie
+   * (operator albo klient) nie zatrzymywała obciążenia: portfel szedł w dół, okres przesuwał się o miesiąc, a usługa i tak
+   * kończyła się z cancelAt. Teraz przesunięcie okresu jest warunkowe także na `cancelAt: null` (wiersz w bazie, nie
+   * migawka), a gdy zablokowała je anulacja tego samego okresu — oddajemy obciążenie tym samym kluczem (`:zwrot`),
+   * idempotentnie. Przesunięcie przez kogoś innego (równoległy przebieg) to opłata zużyta — bez zwrotu.
+   */
+  private async zwrotGdyAnulowana(
+    sub: { id: string; userId: string; plan: { slug: string } },
+    periodEnd: Date,
+    idempotencyKey: string,
+  ): Promise<void> {
+    const teraz = await this.prisma.subscription.findUnique({ where: { id: sub.id }, select: { currentPeriodEnd: true, cancelAt: true } });
+    if (!teraz || teraz.cancelAt == null || teraz.currentPeriodEnd?.getTime() !== periodEnd.getTime()) return;
+    const oplata = await this.walletLedger.findByIdempotencyKey(idempotencyKey);
+    if (oplata) {
+      await this.walletLedger.credit({
+        userId: sub.userId,
+        type: WalletTxType.REFUND,
+        amount: new Prisma.Decimal(oplata.amount).abs(),
+        description: `Zwrot: odnowienie ${sub.plan.slug} — usługa anulowana na koniec okresu`,
+        idempotencyKey: `${idempotencyKey}:zwrot`,
+        subscriptionId: sub.id,
+      });
+    }
+    this.logger.warn(`Odnowienie sub=${sub.id} zatrzymane przez anulację na koniec okresu${oplata ? ' — obciążenie zwrócone' : ''}`);
+    throw new ConflictException('Usługa została anulowana na koniec okresu w trakcie odnowienia — nie odnawiamy jej, opłatę zwróciliśmy do portfela.');
+  }
+
+  /** @returns true, gdy ten wywołujący przesunął okres. */
   private async extendPeriod(
     subscriptionId: string,
     periodEnd: Date,
     interval: 'MONTH' | 'YEAR',
     zuzyjRabat = false,
     aktywuj = true,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const newEnd = addInterval(periodEnd, interval);
     // Warunkowo na opłacany okres: drugi, równoległy przebieg dla tego samego okresu nic nie zmienia
-    // (ani drugiego RENEWED, ani drugiego zużycia rabatu).
+    // (ani drugiego RENEWED, ani drugiego zużycia rabatu). Audyt Fali 3 — i na brak anulacji (zwrotGdyAnulowana).
     const { count } = await this.prisma.subscription.updateMany({
-      where: { id: subscriptionId, currentPeriodEnd: periodEnd },
+      where: { id: subscriptionId, currentPeriodEnd: periodEnd, cancelAt: null },
       data: {
         ...(aktywuj ? { status: SubscriptionStatus.ACTIVE } : {}),
         currentPeriodStart: periodEnd,
@@ -318,7 +352,7 @@ export class RenewalScheduler {
         ...(zuzyjRabat ? { introDiscountPeriodsLeft: { decrement: 1 } } : {}),
       },
     });
-    if (count === 0) return;
+    if (count === 0) return false;
     const odnowiona = await this.prisma.subscription.findUnique({ where: { id: subscriptionId }, select: { userId: true } });
     await this.prisma.subscriptionEvent.create({
       data: {
@@ -329,6 +363,7 @@ export class RenewalScheduler {
     });
     this.logger.log(`Renewed subscription=${subscriptionId} until ${newEnd.toISOString()}`);
     if (odnowiona?.userId) await this.webhooks?.emit(odnowiona.userId, 'subscription.renewed', { usluga: subscriptionId, do: newEnd.toISOString() });
+    return true;
   }
 
   private async markPastDue(

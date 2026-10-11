@@ -137,7 +137,9 @@ export class CyklZyciaUslugiService {
       }
     }
     const { count } = await this.prisma.subscription.updateMany({
-      where: { id: s.id, status: SubscriptionStatus.ACTIVE, cancelAt: null },
+      // Audyt Fali 3 — także na koniec okresu, który przeczytaliśmy: odnowienie między odczytem a zapisem ustawiłoby
+      // cancelAt na stary koniec przy opłaconym nowym okresie (usługa kończyła się przed końcem opłaconego okresu).
+      where: { id: s.id, status: SubscriptionStatus.ACTIVE, cancelAt: null, currentPeriodEnd: koniec },
       data: { cancelAt: koniec },
     });
     if (count === 0) throw new ConflictException('Stan usługi zmienił się w międzyczasie — odśwież kartę.');

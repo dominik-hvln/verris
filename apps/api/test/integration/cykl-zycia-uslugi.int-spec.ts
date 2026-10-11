@@ -355,3 +355,97 @@ describe('audyt Fali 3 — data odnowienia z okresem bazowym (odnowienie w międ
     expect(await prisma().subscriptionEvent.count({ where: { subscriptionId: u.id, type: 'RENEWAL_DATE_CHANGED' } })).toBe(0);
   });
 });
+
+describe('audyt Fali 3 — wyścig anulacji na koniec okresu z przebiegiem odnowień (portfel)', () => {
+  beforeEach(async () => {
+    await wyczyscBaze();
+    zakonczone.length = 0;
+    stripeWywolania.length = 0;
+    stripePada = false;
+  });
+  afterEach(() => vi.restoreAllMocks());
+  afterAll(rozlacz);
+
+  const nowySerwisSubskrypcji = async () => {
+    const p = prisma() as never;
+    const { SubscriptionsService } = await import('../../src/subscriptions/subscriptions.service.js');
+    return new SubscriptionsService(
+      p, new AuditService(p), new WalletLedgerService(p), null as never, null as never, null as never, null as never,
+      { send: async () => ({}) } as never, { get: () => undefined } as never, null as never, null as never, null as never, null as never,
+    );
+  };
+
+  it('anulacja zapisana po odczycie listy, przed obciążeniem: okres nie przesunięty, opłata zwrócona (idempotentnie), usługa kończy się w terminie', async () => {
+    const op = await operator();
+    const k = await klient(100);
+    const koniec = new Date(Date.now() + 12 * 3600000);
+    const u = await usluga(k.id, { currentPeriodEnd: koniec });
+    const p = prisma() as never;
+    const ledger = new WalletLedgerService(p);
+    const debit = ledger.debit.bind(ledger);
+    let raz = false;
+    ledger.debit = async (a) => {
+      if (!raz) {
+        raz = true;
+        await cykl().anulujNaKoniecOkresu({ subscriptionId: u.id, operator: op, powod: POWOD });
+      }
+      return debit(a);
+    };
+    const audit = new AuditService(p);
+    const promo = new PromoService(p, ledger, audit, { send: async () => ({}) } as never, { get: () => undefined } as never);
+    const s = new RenewalScheduler(p, ledger, subs as never, audit, promo, eco as never);
+    await s.handleHourlyTick();
+    const po = await sub(u.id);
+    expect(po.currentPeriodEnd?.toISOString()).toBe(koniec.toISOString());
+    expect(po.cancelAt?.toISOString()).toBe(koniec.toISOString());
+    expect(await saldo(k.id)).toBe(100);
+    expect(await prisma().walletTransaction.count({ where: { userId: k.id, type: WalletTxType.REFUND } })).toBe(1);
+    expect(await prisma().subscriptionEvent.count({ where: { subscriptionId: u.id, type: 'RENEWED' } })).toBe(0);
+    // Kolejny przebieg: anulowanej nie odnawia i drugi raz nie zwraca.
+    await s.handleHourlyTick();
+    expect(await saldo(k.id)).toBe(100);
+    expect(await prisma().walletTransaction.count({ where: { userId: k.id, type: WalletTxType.REFUND } })).toBe(1);
+  });
+
+  it('odnowienie między odczytem a zapisem anulacji operatora: 409, cancelAt nie ustawione na stary koniec', async () => {
+    const op = await operator();
+    const k = await klient(100);
+    const koniec = new Date(Date.now() + 12 * 3600000);
+    const u = await usluga(k.id, { currentPeriodEnd: koniec });
+    const pr = prisma();
+    const oryginal = pr.subscription.findUnique.bind(pr.subscription);
+    vi.spyOn(pr.subscription, 'findUnique').mockImplementationOnce(async (a: never) => {
+      const stary = await oryginal(a);
+      await pr.subscription.update({ where: { id: u.id }, data: { currentPeriodStart: koniec, currentPeriodEnd: new Date(koniec.getTime() + 30 * 86400000) } });
+      return stary;
+    });
+    await expect(cykl().anulujNaKoniecOkresu({ subscriptionId: u.id, operator: op, powod: POWOD })).rejects.toMatchObject({ status: 409 });
+    expect((await sub(u.id)).cancelAt).toBeNull();
+  });
+
+  it('rezygnacja klienta (portfel) po odnowieniu w międzyczasie: 409 zamiast cancelAt na stary koniec', async () => {
+    const k = await klient(100);
+    const koniec = new Date(Date.now() + 12 * 3600000);
+    const u = await usluga(k.id, { currentPeriodEnd: koniec });
+    const pr = prisma();
+    const oryginal = pr.subscription.findFirst.bind(pr.subscription);
+    vi.spyOn(pr.subscription, 'findFirst').mockImplementationOnce(async (a: never) => {
+      const stary = await oryginal(a);
+      await pr.subscription.update({ where: { id: u.id }, data: { currentPeriodStart: koniec, currentPeriodEnd: new Date(koniec.getTime() + 30 * 86400000) } });
+      return stary;
+    });
+    await expect((await nowySerwisSubskrypcji()).cancel(k.id, u.id, { atPeriodEnd: true })).rejects.toMatchObject({ status: 409 });
+    expect((await sub(u.id)).cancelAt).toBeNull();
+  });
+
+  it('stan po wyścigu sprzed poprawki (cancelAt minęło, okres opłacony dalej): finalizacja nie kończy usługi, anulacja na koniec opłaconego okresu', async () => {
+    const k = await klient(0);
+    const minal = new Date(Date.now() - 3600000);
+    const oplacony = new Date(Date.now() + 20 * 3600000);
+    const u = await usluga(k.id, { currentPeriodEnd: oplacony, cancelAt: minal });
+    await (await nowySerwisSubskrypcji()).finalizeScheduledCancellation(u.id);
+    const po = await sub(u.id);
+    expect(po.status).toBe('ACTIVE');
+    expect(po.cancelAt?.toISOString()).toBe(oplacony.toISOString());
+  });
+});
