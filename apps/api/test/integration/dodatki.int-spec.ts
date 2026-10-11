@@ -181,4 +181,18 @@ describe('F3.5 — dodatki dodawane przez obsługę', () => {
     await expect(sklep().dodajPrzezOperatora({ subscriptionId: uk.id, slug: 'manual_setup', platnosc: 'GRATIS', operator: o, powod: 'krótko' })).rejects.toMatchObject({ status: 400 });
     expect(zgloszenia).toBe(0);
   });
+
+  it('przegląd F3.5: usługa zakończona — bez dodatku i bez obciążenia także bezpośrednio (nie tylko przez wniosek)', async () => {
+    const k = await klient(100);
+    const u = await usluga(k.id);
+    await prisma().subscription.update({ where: { id: u.id }, data: { status: 'CANCELED', canceledAt: new Date() } });
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'IP', message: 'x' } });
+    const admin = await op('ADMIN');
+    await expect(
+      sklep().dodajPrzezOperatora({ subscriptionId: u.id, slug: 'dedicated_ip', platnosc: 'PORTFEL', operator: admin, powod: POWOD, zgloszenie: zgl.id }),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(await saldo(k.id)).toBe(100);
+    expect(await zakupy(k.id)).toHaveLength(0);
+    expect(zgloszenia).toBe(0);
+  });
 });

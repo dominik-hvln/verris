@@ -223,9 +223,14 @@ export class AddonService {
     if (!PLATNOSCI_DODATKU.includes(i.platnosc)) throw new BadRequestException('Wybierz: z portfela klienta albo gratis.');
     const sub = await this.prisma.subscription.findUnique({
       where: { id: i.subscriptionId },
-      select: { id: true, userId: true, user: { select: { role: true } }, account: { select: { domain: true } } },
+      select: { id: true, userId: true, status: true, user: { select: { role: true } }, account: { select: { domain: true } } },
     });
     if (!sub) throw new NotFoundException('Usługa nie istnieje.');
+    // Przegląd F3.5 — ta sama reguła co przy złożeniu wniosku ADDON_ADD, ale w API (trasa bezpośrednia L4/ADMIN):
+    // zakończona usługa nie dostaje dodatku ani obciążenia portfela.
+    if (sub.status === 'CANCELED' || sub.status === 'EXPIRED') {
+      throw new BadRequestException('Usługa jest zakończona — dodatku nie dodasz.');
+    }
     if (i.operator.role !== 'ADMIN' && sub.user.role !== 'USER') {
       throw new ForbiddenException('Personel może zmieniać wyłącznie usługi klientów — usługę konta zespołu zmienia administrator.');
     }

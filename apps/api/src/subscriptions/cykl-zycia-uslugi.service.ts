@@ -43,6 +43,7 @@ type Usluga = {
   currentPeriodEnd: Date | null;
   cancelAt: Date | null;
   paymentPromiseUntil: Date | null;
+  isTrial: boolean;
   user: { role: string };
   account: { domain: string } | null;
 };
@@ -56,6 +57,7 @@ const POLA = {
   currentPeriodEnd: true,
   cancelAt: true,
   paymentPromiseUntil: true,
+  isTrial: true,
   user: { select: { role: true } },
   account: { select: { domain: true } },
 } as const;
@@ -203,6 +205,11 @@ export class CyklZyciaUslugiService {
       throw new BadRequestException('Datę odnowienia zmienisz tylko w aktywnej usłudze. Przy zaległości użyj obietnicy zapłaty.');
     }
     if (s.cancelAt) throw new BadRequestException('Usługa jest anulowana na koniec okresu — najpierw cofnij anulację.');
+    // Przegląd F3.5 — okres próbny kończy harmonogram prób z `trialEndsAt` (trial-expiry.scheduler.ts), nie z końca
+    // okresu: przesunięcie currentPeriodEnd byłoby pozorne (klient widzi nową datę, a próba i tak wygasa).
+    if (s.isTrial) {
+      throw new BadRequestException('To okres próbny — kończy się z końcem próby. Zmiana daty dotyczy płatnej usługi.');
+    }
     if (kartowa(s)) {
       throw new BadRequestException(
         'Usługa jest opłacana kartą cyklicznie — datę odnowienia ustala system płatności. Zmiana daty tej usługi czeka na decyzję właściciela.',

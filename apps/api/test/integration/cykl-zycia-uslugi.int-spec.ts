@@ -211,6 +211,18 @@ describe('F3.5 — cykl życia usługi zmieniany przez operatora', () => {
     await expect(cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: nowa })).rejects.toMatchObject({ status: 400 });
   });
 
+  it('przegląd F3.5: okres próbny — data odnowienia odmowa (próba kończy się z trialEndsAt, „przedłużenie” byłoby pozorne)', async () => {
+    const op = await operator('ADMIN');
+    const k = await klient(0);
+    const koniec = new Date(Date.now() + 10 * 86400000);
+    const u = await usluga(k.id, { isTrial: true, trialEndsAt: koniec, currentPeriodEnd: koniec, priceAmount: 0 });
+    await expect(
+      cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: new Date(koniec.getTime() + 14 * 86400000) }),
+    ).rejects.toMatchObject({ status: 400 });
+    expect((await sub(u.id)).currentPeriodEnd?.toISOString()).toBe(koniec.toISOString());
+    expect(await prisma().subscriptionEvent.count({ where: { subscriptionId: u.id, type: 'RENEWAL_DATE_CHANGED' } })).toBe(0);
+  });
+
   it('obietnica zapłaty: wstrzymuje zawieszenie zaległej usługi do daty, po dacie normalny cykl; maks. 7 dni; jedna na zaległość dla STAFF', async () => {
     const op = await operator();
     const k = await klient(0);
