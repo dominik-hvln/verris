@@ -24,9 +24,13 @@ function zbuduj(o: { rola?: string; bladWezla?: Error; konta?: Konto[] } = {}) {
       findUnique: vi.fn(async () => ({
         userId: WLASCICIEL,
         user: { email: 'anna@klient.pl', firstName: 'Anna', role: o.rola ?? 'USER' },
-        account: { id: 'acc1', domain: 'klient.pl', daUsername: 'klient1', serverId: 'w1' },
+        account: {
+          id: 'acc1', domain: 'klient.pl', daUsername: 'klient1', serverId: 'w1', status: 'ACTIVE',
+          mailBlockedAt: k1.mailBlockedAt, mailBlockedById: k1.mailBlockedById, mailBlockedReason: k1.mailBlockedReason,
+        },
       })),
     },
+    nodeTask: { findMany: vi.fn(async () => []), create: vi.fn(async () => ({})) },
     ticket: { findMany: vi.fn(async () => []) },
     auditLog: { create: vi.fn(async ({ data }: { data: Wiersz }) => (wiersze.push(data), data)) },
     account: {
@@ -178,11 +182,26 @@ describe('F3.1 PocztaKontaOperatoraService — blokada wysyłki', () => {
   it('stan: baza (kto, kiedy, powód) i węzeł; błąd odczytu z węzła nie ukrywa stanu z bazy', async () => {
     const ok = zbuduj();
     await ok.svc.zablokuj(z());
-    expect(await ok.svc.stan('s1')).toMatchObject({ zablokowana: true, przez: 'l3@verris.pl', powod: 'Spam z formularza kontaktowego, zgłoszenie z RBL', naWezle: true, obslugiwana: true, bladWezla: null });
+    expect(await ok.svc.stan('s1', 'STAFF')).toMatchObject({ zablokowana: true, przez: 'l3@verris.pl', powod: 'Spam z formularza kontaktowego, zgłoszenie z RBL', naWezle: true, obslugiwana: true, bladWezla: null });
     const blad = zbuduj({
       bladWezla: new Error('timeout'),
       konta: [{ id: 'acc1', userId: WLASCICIEL, mailBlockedAt: new Date('2026-10-10T10:00:00Z'), mailBlockedById: OPERATOR, mailBlockedReason: 'spam z konta' }],
     });
-    expect(await blad.svc.stan('s1')).toMatchObject({ zablokowana: true, od: '2026-10-10T10:00:00.000Z', naWezle: null, bladWezla: 'timeout' });
+    expect(await blad.svc.stan('s1', 'STAFF')).toMatchObject({ zablokowana: true, od: '2026-10-10T10:00:00.000Z', naWezle: null, bladWezla: 'timeout' });
+  });
+
+  it('audyt Fal 2: STAFF nie czyta kolejki ani stanu blokady usługi konta zespołu (403, bez zadania i węzła); ADMIN tak', async () => {
+    const t = zbuduj({ rola: 'ADMIN' });
+    await expect(t.svc.stan('s1', 'STAFF')).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(t.svc.kolejka('s1', OPERATOR, 'STAFF')).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(t.svc.wczytajKolejke('s1', OPERATOR, 'STAFF', 'kontrahent@firma.pl')).rejects.toBeInstanceOf(ForbiddenException);
+    expect(t.directAdmin.blokadaWysylkiNaWezle).not.toHaveBeenCalled();
+    expect(t.prisma.nodeTask.findMany).not.toHaveBeenCalled();
+    expect(t.prisma.nodeTask.create).not.toHaveBeenCalled();
+    expect(t.wiersze).toEqual([]);
+    expect(await t.svc.stan('s1', 'ADMIN')).toMatchObject({ zablokowana: false, naWezle: false });
+    expect(await t.svc.kolejka('s1', OPERATOR, 'ADMIN')).toMatchObject({ wiadomosci: [] });
+    // Usługa klienta (USER) — STAFF czyta jak dotąd.
+    expect(await zbuduj().svc.stan('s1', 'STAFF')).toMatchObject({ zablokowana: false });
   });
 });

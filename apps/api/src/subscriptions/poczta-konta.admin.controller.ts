@@ -49,8 +49,8 @@ export class PocztaKontaAdminController {
 
   @Get('wysylka')
   @StaffPermAny('MAIL_QUEUE_VIEW', 'MAIL_SEND_BLOCK')
-  stanWysylki(@Param('id') id: string) {
-    return this.poczta.stan(id);
+  stanWysylki(@Param('id') id: string, @CurrentUser() actor: Aktor) {
+    return this.poczta.stan(id, actor.role);
   }
 
   @Post('wysylka/zablokuj')
@@ -94,7 +94,7 @@ export class PocztaKontaAdminController {
   @Get('kolejka-poczty')
   @StaffPerm('MAIL_QUEUE_VIEW')
   kolejka(@Param('id') id: string, @CurrentUser() actor: Aktor) {
-    return this.poczta.kolejka(id, actor.userId);
+    return this.poczta.kolejka(id, actor.userId, actor.role);
   }
 
   @Post('kolejka-poczty/wczytaj')
@@ -102,7 +102,7 @@ export class PocztaKontaAdminController {
   @StaffPerm('MAIL_QUEUE_VIEW')
   @RateLimit({ limit: 60, windowMs: 60 * 60 * 1000, scope: 'admin:konto-kolejka' })
   wczytajKolejke(@Param('id') id: string, @Body() b: WczytajKolejkeDto, @CurrentUser() actor: Aktor) {
-    return this.poczta.wczytajKolejke(id, actor.userId, b.szukaj);
+    return this.poczta.wczytajKolejke(id, actor.userId, actor.role, b.szukaj);
   }
 
   @Post('kolejka-poczty/usun')

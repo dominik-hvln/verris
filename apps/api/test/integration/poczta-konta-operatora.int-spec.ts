@@ -47,7 +47,7 @@ describe('F3.1 — blokada wysyłki konta przez obsługę', () => {
     expect(po).toMatchObject({ mailBlockedById: operator.id, mailBlockedReason: 'Spam z formularza, IP na liście RBL' });
     expect(po.mailBlockedAt).toBeInstanceOf(Date);
     expect(naWezle.has(k.account.daUsername)).toBe(true);
-    expect(await svc.stan(k.subscription.id)).toMatchObject({ zablokowana: true, przez: operator.email, naWezle: true });
+    expect(await svc.stan(k.subscription.id, 'STAFF')).toMatchObject({ zablokowana: true, przez: operator.email, naWezle: true });
 
     await svc.zwolnij({ ...z, powod: 'Klient usunął formularz, skan czysty' });
     expect(await prisma().account.findUniqueOrThrow({ where: { id: k.account.id } })).toMatchObject({ mailBlockedAt: null, mailBlockedById: null, mailBlockedReason: null });
@@ -126,10 +126,10 @@ describe('F3.1 — kolejka poczty konta (zadanie MAIL_QUEUE)', () => {
       await zadania.completeTaskFromNode({ serverId: wezel.id, taskId: t!.id, outputLog: atrapa.uruchom(t!.payload as Record<string, unknown>) });
     };
 
-    expect((await svc.wczytajKolejke(k.subscription.id, operator.id)).wToku).toBe(true);
-    await expect(svc.wczytajKolejke(k.subscription.id, operator.id)).rejects.toMatchObject({ status: 409 });
+    expect((await svc.wczytajKolejke(k.subscription.id, operator.id, 'STAFF')).wToku).toBe(true);
+    await expect(svc.wczytajKolejke(k.subscription.id, operator.id, 'STAFF')).rejects.toMatchObject({ status: 409 });
     await agent();
-    const stan = await svc.kolejka(k.subscription.id, operator.id);
+    const stan = await svc.kolejka(k.subscription.id, operator.id, 'STAFF');
     expect(stan.wiadomosci).toEqual([
       { id: '1tAbCd-000000001bo-D342', wiek: '3m', rozmiar: '1.2K', zamrozona: false, nadawca: `${k.account.daUsername}@t1.verris.test`, odbiorcy: 'ofiara@gmail.com', temat: 'Viagra tanio' },
     ]);
@@ -144,7 +144,7 @@ describe('F3.1 — kolejka poczty konta (zadanie MAIL_QUEUE)', () => {
     const usuniete = await prisma().auditLog.findFirstOrThrow({ where: { action: 'MAIL_QUEUE_MESSAGES_REMOVED' } });
     expect(usuniete).toMatchObject({ userId: k.user.id, actorUserId: operator.id });
     expect(usuniete.details).toMatchObject({ usunieto: 1, pominieto: 0, subscriptionId: k.subscription.id });
-    expect((await svc.kolejka(k.subscription.id, operator.id)).usuwanie).toMatchObject({ wToku: false, usunieto: 1 });
+    expect((await svc.kolejka(k.subscription.id, operator.id, 'STAFF')).usuwanie).toMatchObject({ wToku: false, usunieto: 1 });
     // Odmowa też jest w dzienniku zespołu (wynik „blad”) — operator próbował usunąć cudzą wiadomość.
     const zespol = await prisma().auditLog.findMany({ where: { action: 'OPERATOR_ACCOUNT_CHANGED', userId: k.user.id }, orderBy: { createdAt: 'asc' } });
     expect(zespol.map((w) => [(w.details as Record<string, unknown>).akcja, (w.details as Record<string, unknown>).wynik])).toEqual([

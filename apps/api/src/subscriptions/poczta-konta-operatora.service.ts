@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
@@ -30,7 +30,7 @@ export const KORDON_Z_BLOKADY = 'Blokada wysyłki konta przez obsługę';
  * zatrzymuje wysyłkę z modułu marketingu tego klienta.
  *
  * Reguły D2/D3 z paska akcji konta (AkcjeKontaOperatoraService.wykonaj): powód obowiązkowy, zgłoszenie klienta
- * opcjonalne, STAFF tylko na kontach klientów, dziennik zespołu z wynikiem (także błąd węzła), a klient widzi wpis
+ * opcjonalne, STAFF tylko na kontach klientów (także odczyt kolejki i stanu blokady — konto()), dziennik zespołu z wynikiem (także błąd węzła), a klient widzi wpis
  * „obsługa Verris (zgłoszenie #…)”. Stan blokady (kto, kiedy, powód) w Account.mailBlocked*.
  *
  * Kolejka konta: zadanie węzła MAIL_QUEUE (ops/scripts/node-mail-queue.sh, podpisany skrypt agenta) — tylko nagłówki
@@ -58,12 +58,8 @@ export class PocztaKontaOperatoraService {
    * Stan blokady: z bazy (kto, kiedy, powód) i z węzła. Rozjazd (np. węzeł odtworzony z kopii) widać od razu —
    * ponowne „Zablokuj” go naprawia. Błąd odczytu z węzła nie ukrywa stanu z bazy.
    */
-  async stan(subscriptionId: string) {
-    const a = await this.prisma.account.findUnique({
-      where: { subscriptionId },
-      select: { daUsername: true, serverId: true, mailBlockedAt: true, mailBlockedById: true, mailBlockedReason: true },
-    });
-    if (!a) throw new NotFoundException('Usługa nie ma konta hostingowego.');
+  async stan(subscriptionId: string, operatorRole: string) {
+    const { account: a } = await this.konto(subscriptionId, operatorRole);
     let naWezle: boolean | null = null;
     let obslugiwana: boolean | null = null;
     let bladWezla: string | null = null;
@@ -139,12 +135,29 @@ export class PocztaKontaOperatoraService {
     );
   }
 
-  private async konto(subscriptionId: string) {
+  /**
+   * Usługa z kontem hostingowym. Audyt Fal 2 — ta sama twarda reguła co AkcjeKontaOperatoraService.wykonaj i D9
+   * (email-log.service.ts odczytOperatora) także dla odczytów: nagłówki kolejki i stan blokady to korespondencja,
+   * więc STAFF widzi je tylko na usługach klientów (USER); usługi konta zespołu — tylko ADMIN.
+   */
+  private async konto(subscriptionId: string, operatorRole: string) {
     const sub = await this.prisma.subscription.findUnique({
       where: { id: subscriptionId },
-      select: { userId: true, account: { select: { id: true, serverId: true, daUsername: true, domain: true, status: true } } },
+      select: {
+        userId: true,
+        user: { select: { role: true } },
+        account: {
+          select: {
+            id: true, serverId: true, daUsername: true, domain: true, status: true,
+            mailBlockedAt: true, mailBlockedById: true, mailBlockedReason: true,
+          },
+        },
+      },
     });
     if (!sub) throw new NotFoundException('Usługa nie istnieje.');
+    if (operatorRole !== 'ADMIN' && sub.user.role !== 'USER') {
+      throw new ForbiddenException('Personel widzi pocztę wyłącznie usług klientów — usługę konta zespołu obsługuje administrator.');
+    }
     if (!sub.account) throw new NotFoundException('Usługa nie ma konta hostingowego.');
     return { userId: sub.userId, account: sub.account };
   }
@@ -235,8 +248,8 @@ export class PocztaKontaOperatoraService {
    * Ostatni podgląd kolejki konta (i stan usuwania). Wpis w dzienniku, gdy operator dostaje nagłówki — nie przy
    * każdym odpytaniu w trakcie wczytywania.
    */
-  async kolejka(subscriptionId: string, operatorUserId: string) {
-    const { userId, account } = await this.konto(subscriptionId);
+  async kolejka(subscriptionId: string, operatorUserId: string, operatorRole: string) {
+    const { userId, account } = await this.konto(subscriptionId, operatorRole);
     const stan = stanKolejki(await this.zadania(account.id));
     if (!stan.wToku && stan.wiadomosci.length) {
       await this.audit.record({
@@ -250,8 +263,8 @@ export class PocztaKontaOperatoraService {
   }
 
   /** Zleca węzłowi świeży odczyt kolejki konta (nagłówki); domeny konta podaje API, nie operator. */
-  async wczytajKolejke(subscriptionId: string, operatorUserId: string, szukaj?: string) {
-    const { userId, account } = await this.konto(subscriptionId);
+  async wczytajKolejke(subscriptionId: string, operatorUserId: string, operatorRole: string, szukaj?: string) {
+    const { userId, account } = await this.konto(subscriptionId, operatorRole);
     if (account.status === 'DELETED' || account.status === 'PROVISIONING') throw new BadRequestException('Konto hostingowe nie działa na serwerze.');
     const fraza = (szukaj ?? '').trim();
     if (fraza && !FRAZA_KOLEJKI.test(fraza)) throw new BadRequestException('Fraza: do 100 znaków, bez znaków sterujących.');
