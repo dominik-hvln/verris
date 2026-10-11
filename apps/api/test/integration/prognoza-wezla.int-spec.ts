@@ -1,7 +1,7 @@
 import { AiService } from '../../src/ai/ai.service.js';
 import { AuditService } from '../../src/common/audit/audit.service.js';
 import { StosWezlaService } from '../../src/servers/stos-wezla.service.js';
-import { PrognozaWezlaService } from '../../src/servers/prognoza-wezla.js';
+import { PrognozaWezlaService, kluczKomentarza } from '../../src/servers/prognoza-wezla.js';
 import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } from './setup.js';
 
 /**
@@ -59,9 +59,10 @@ describe('Prognoza węzła — dane z UsageMetric', () => {
     expect(r.komentarzAi).toBe(false);
 
     // Komentarz innego węzła nie może trafić tutaj; własny z < 24 h — bez wywołania dostawcy.
-    const log = (serverId: string, podsumowanie: string) =>
+    const klucz = kluczKomentarza([[r.nazwa, r.zapas]], r.kandydaci.map((k) => k.accountId));
+    const log = (serverId: string, podsumowanie: string, k = klucz) =>
       prisma().aiInteractionLog.create({
-        data: { feature: 'node_forecast', provider: 'anthropic', status: 'COMPLETED', promptHash: 'x', inputSummary: { serverId, konta: [b.account.id] }, output: { podsumowanie, zalecenia: ['Przenieś konto 1 na fsn-02.'] } },
+        data: { feature: 'node_forecast', provider: 'anthropic', status: 'COMPLETED', promptHash: 'x', inputSummary: { serverId, konta: [b.account.id], klucz: k }, output: { podsumowanie, zalecenia: ['Przenieś konto 1 na fsn-02.'] } },
       });
     await log(inny.id, 'Obcy węzeł.');
     await log(w.id, 'Węzeł w normie.');
@@ -74,5 +75,36 @@ describe('Prognoza węzła — dane z UsageMetric', () => {
     const fsn = f.wezly.find((x) => x.id === w.id)!;
     expect(fsn).toMatchObject({ dostepna: true, linia: { tekst: 'w normie przez 30 dni', ton: null } });
     expect(f.wezly.find((x) => x.id === inny.id)).toMatchObject({ dostepna: false });
+  });
+
+  it('weryfikacja 11.10 — usunięte konto nie jest kandydatem; komentarz AI sprzed zmiany zapasu nie wraca', async () => {
+    const w = await utworzWezel({ name: 'nbg-01', totalCpuCores: 4, totalMemoryMb: 8192, totalDiskMb: 200_000 });
+    const plan = await utworzPlan();
+    const a = await utworzKonto({ serverId: w.id, planId: plan.id });
+    const usuniete = await utworzKonto({ serverId: w.id, planId: plan.id });
+    const teraz = Date.now();
+    const dane = [];
+    for (let m = 3 * 24 * 60; m > 0; m -= 5) {
+      const t = new Date(teraz - m * 60_000);
+      for (const [k, cpu] of [[a, 30], [usuniete, 60]] as const) {
+        dane.push({ subscriptionId: k.subscription.id, accountId: k.account.id, serverId: w.id, bucketStart: t, bucketDurationS: 300, cpuUsageAvg: cpu, memUsageAvgMb: 512, diskUsageMb: 5_000, ioUsageKbps: 0 });
+      }
+    }
+    await prisma().usageMetric.createMany({ data: dane });
+    await prisma().account.update({ where: { id: usuniete.account.id }, data: { status: 'DELETED' } });
+
+    const p = prisma() as never;
+    const complete = vi.fn(async () => ({ wynik: { podsumowanie: 'Świeży komentarz.', zalecenia: [] }, dostawca: 'anthropic', model: 'm', wej: 1, wyj: 1, kosztUsd: 0 }));
+    const provider = { dostepny: vi.fn(async () => true), complete, opis: vi.fn(async () => ({ dostawca: 'anthropic', model: 'm' })) };
+    const serwis = new PrognozaWezlaService(p, new StosWezlaService(p, new AuditService(p)), new AiService(p, provider as never, { record: async () => undefined } as never), provider as never);
+
+    // Komentarz z ostatniej doby, ale z innym zapasem puli (sprzed zmiany nadsubskrypcji) — nie może wrócić.
+    await prisma().aiInteractionLog.create({
+      data: { feature: 'node_forecast', provider: 'anthropic', status: 'COMPLETED', promptHash: 'x', inputSummary: { serverId: w.id, konta: [usuniete.account.id], klucz: kluczKomentarza([['nbg-01', null]], [usuniete.account.id]) }, output: { podsumowanie: 'Zapas 0 kont.', zalecenia: ['Przenieś konto 1.'] } },
+    });
+    const r = await serwis.wezel(w.id, 'op');
+    expect(r.kandydaci.map((k) => k.accountId)).toEqual([a.account.id]);
+    expect(r.podsumowanie).not.toContain('Zapas 0 kont.');
+    expect(complete).toHaveBeenCalled();
   });
 });

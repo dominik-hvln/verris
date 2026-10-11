@@ -197,6 +197,11 @@ const POLA = {
   _count: { select: { accounts: { where: { status: { not: 'DELETED' as const } } } } },
 } as const;
 
+/** Weryfikacja 11.10 — klucz ważności komentarza AI: zapas puli węzłów i konta-kandydaci (bez procentów, które zmieniają się co godzinę). */
+export function kluczKomentarza(zapasy: ReadonlyArray<readonly [string, Zapas | null]>, konta: string[]): string {
+  return JSON.stringify({ z: zapasy.map(([n, z]) => [n, z ? z.kont : null, z ? z.wymiar : null]), k: konta });
+}
+
 @Injectable()
 export class PrognozaWezlaService {
   constructor(
@@ -249,7 +254,7 @@ export class PrognozaWezlaService {
   }
 
   /** Komentarz AI raz na 24 h (aiInteractionLog), null = pokazujemy same liczby z tekstem panelu. */
-  private async komentarz(a: { feature: string; serverId: string | null; system: string; wejscie: object; konta: string[]; actorUserId: string; teraz: number }) {
+  private async komentarz(a: { feature: string; serverId: string | null; system: string; wejscie: object; konta: string[]; klucz: string; actorUserId: string; teraz: number }) {
     try {
       if (!(await this.provider.dostepny('analiza'))) return null;
       const swiezy = await this.prisma.aiInteractionLog.findFirst({
@@ -257,7 +262,12 @@ export class PrognozaWezlaService {
           feature: a.feature,
           status: AiInteractionStatus.COMPLETED,
           createdAt: { gte: new Date(a.teraz - AI_CACHE_MS) },
-          ...(a.serverId ? { inputSummary: { path: ['serverId'], equals: a.serverId } } : {}),
+          // Weryfikacja 11.10 — komentarz z ostatniej doby tylko, gdy wejście jest to samo co do faktów, które AI cytuje
+          // (zapas puli, kandydaci): po zmianie nadsubskrypcji t1 komentarz dalej mówił „zapas 0 kont” obok liczby 3.
+          AND: [
+            ...(a.serverId ? [{ inputSummary: { path: ['serverId'], equals: a.serverId } }] : []),
+            { inputSummary: { path: ['klucz'], equals: a.klucz } },
+          ],
         },
         orderBy: { createdAt: 'desc' },
         select: { output: true, inputSummary: true },
@@ -267,7 +277,7 @@ export class PrognozaWezlaService {
         : await this.ai.runLogged({
             feature: a.feature,
             actorUserId: a.actorUserId,
-            inputSummary: { serverId: a.serverId, konta: a.konta },
+            inputSummary: { serverId: a.serverId, konta: a.konta, klucz: a.klucz },
             system: a.system,
             user: JSON.stringify(a.wejscie),
           });
@@ -288,9 +298,12 @@ export class PrognozaWezlaService {
     const od = new Date(teraz - 7 * DZIEN);
     const [wiersze, naKonto] = await Promise.all([
       sumyWezlow(this.prisma, od, '1 hour', id),
+      // Weryfikacja 11.10 — konto usunięte (o05 na t1) nie jest kandydatem „do przeniesienia”: próbki zostają
+      // w historii, ale konta na węźle już nie ma (jak KONTA_NA_WEZLE w servers.service).
       this.prisma.$queryRaw<{ accountId: string; cpu: number }[]>`
-        SELECT "accountId", AVG("cpuUsageAvg")::float8 AS cpu FROM "UsageMetric"
-        WHERE "serverId" = ${id} AND "accountId" IS NOT NULL AND "bucketDurationS" <= 300 AND "bucketStart" >= ${od}
+        SELECT m."accountId", AVG(m."cpuUsageAvg")::float8 AS cpu FROM "UsageMetric" m
+        JOIN "Account" a ON a."id" = m."accountId" AND a."status" <> 'DELETED' AND a."serverId" = ${id}
+        WHERE m."serverId" = ${id} AND m."accountId" IS NOT NULL AND m."bucketDurationS" <= 300 AND m."bucketStart" >= ${od}
         GROUP BY 1`,
     ]);
     const l = this.liczby(w, wiersze, teraz);
@@ -304,6 +317,7 @@ export class PrognozaWezlaService {
           actorUserId,
           teraz,
           konta: top.map((k) => k.accountId),
+          klucz: kluczKomentarza([[w.nazwa, w.zapas]], top.map((k) => k.accountId)),
           wejscie: {
             wezel: { rdzenie: w.s.totalCpuCores, ramGb: Math.round(l.limity.ramLimitMb / 1024), dyskGb: Math.round(l.limity.diskLimitMb / 1024), konta: w.konta },
             horyzontDni: l.horizonDays,
@@ -371,6 +385,7 @@ export class PrognozaWezlaService {
           actorUserId,
           teraz,
           konta: [],
+          klucz: kluczKomentarza(wezly.map((w) => [w.nazwa, w.zapas] as const), []),
           wejscie: {
             horyzontDni: HORYZONT_DNI,
             wezly: wezly.map((w) => ({

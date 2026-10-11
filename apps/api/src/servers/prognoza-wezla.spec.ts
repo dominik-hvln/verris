@@ -11,6 +11,7 @@ import {
   sygnalyWezla,
   zKomentarza,
   zapasPuli,
+  kluczKomentarza,
 } from './prognoza-wezla.js';
 
 const H = 3_600_000;
@@ -210,7 +211,10 @@ describe('PrognozaWezlaService — AI tylko komentuje liczby panelu', () => {
     expect(r.komentarzAi).toBe(true);
     expect(r.zalecenia).toEqual(['Przenieś konto piekarnia-zdroj.pl na fsn-02.', 'Aktualizacja o 04:00.']);
     expect(prisma.aiInteractionLog.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ feature: 'node_forecast', inputSummary: { serverId: 'w1', konta: ['a1', 'a2'] } }),
+      data: expect.objectContaining({
+        feature: 'node_forecast',
+        inputSummary: { serverId: 'w1', konta: ['a1', 'a2'], klucz: kluczKomentarza([['fsn-01', r.zapas]], ['a1', 'a2']) },
+      }),
     });
   });
 
@@ -224,7 +228,12 @@ describe('PrognozaWezlaService — AI tylko komentuje liczby panelu', () => {
     expect(complete).not.toHaveBeenCalled();
     expect(prisma.aiInteractionLog.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ feature: 'node_forecast', inputSummary: { path: ['serverId'], equals: 'w1' }, createdAt: { gte: new Date(TERAZ - DZIEN) } }),
+        where: expect.objectContaining({
+          feature: 'node_forecast',
+          createdAt: { gte: new Date(TERAZ - DZIEN) },
+          // weryfikacja 11.10 — ten sam węzeł i ten sam zapas puli / kandydaci (klucz), nie tylko węzeł
+          AND: [{ inputSummary: { path: ['serverId'], equals: 'w1' } }, { inputSummary: { path: ['klucz'], equals: kluczKomentarza([['fsn-01', r.zapas]], ['a1', 'a2']) } }],
+        }),
       }),
     );
     expect(r.podsumowanie).toBe('Z pamięci.');
