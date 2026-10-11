@@ -1392,47 +1392,81 @@ export class DirectAdminService {
     return { ok: true as const };
   }
 
+  /**
+   * Skrzynki ze WSZYSTKICH domen konta (główna + dodatkowe z CMD_API_SHOW_DOMAINS), każda domena osobnym
+   * CMD_API_POP?action=list&domain=… (https://docs.directadmin.com/developer/api/legacy-api.html#list-e-mail-accounts —
+   * lista działa per domena; formularz zakłada skrzynkę na każdej domenie konta).
+   * Noc 12.10 — 21c3c660 cofnięte (d720f56f), bo błąd odczytu JEDNEJ domeny (test2 na d3) zerował całą listę
+   * i znikały skrzynki domeny głównej. Teraz: skrzynki z domen odczytanych + `domenyZBledem` (nieodczytane);
+   * błąd wszystkich domen = `fetchError` jak dotąd (nie pusta lista udająca sukces).
+   */
   async listHostingEmailAccounts(subscriptionId: string, userId: string) {
     const sub = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
       include: { account: true },
     });
     if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
+    const bezDomenZBledem: string[] = [];
     if (!sub.account) {
-      return { rows: [], fetchError: null as string | null };
+      return { rows: [], fetchError: null as string | null, domenyZBledem: bezDomenZBledem };
     }
     if (!sub.account.daPasswordEnc) {
       return {
         rows: [],
         fetchError:
           'Konto hostingowe nie jest jeszcze gotowe.',
+        domenyZBledem: bezDomenZBledem,
       };
     }
     const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
     if (!domain) {
-      return { rows: [], fetchError: 'Brak domeny dla konta hostingowego.' };
+      return { rows: [], fetchError: 'Brak domeny dla konta hostingowego.', domenyZBledem: bezDomenZBledem };
     }
+    let client: DirectAdminClient;
     try {
-      const client = await this.getClientForHostingAccount(sub.account.id, userId);
-      const accounts = await client.listEmailAccounts(domain, {
-        accountUsername: sub.account.daUsername,
-      });
-      const rows = accounts.map((box) => {
-        const email = box.localPart.includes('@')
-          ? box.localPart
-          : `${box.localPart}@${domain}`;
-        return {
-          id: email,
-          email,
-          quotaMb: box.quotaMb,
-        };
-      });
-      return { rows, fetchError: null as string | null };
+      client = await this.getClientForHostingAccount(sub.account.id, userId);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`listHostingEmailAccounts sub=${subscriptionId}: ${msg}`);
-      return { rows: [], fetchError: hostingFetchErrorMessage(msg) };
+      return { rows: [], fetchError: hostingFetchErrorMessage(msg), domenyZBledem: bezDomenZBledem };
     }
+    // Lista domen nieodczytana → skrzynki domeny głównej (jak przed nocą 11.10) i komunikat, że lista jest niepełna.
+    let dodatkowe: string[] = [];
+    let bladListyDomen: string | null = null;
+    try {
+      dodatkowe = (await client.getDomains()).filter((d) => d.toLowerCase() !== domain.toLowerCase());
+    } catch (err) {
+      this.logger.warn(`listHostingEmailAccounts sub=${subscriptionId} lista domen: ${err instanceof Error ? err.message : String(err)}`);
+      bladListyDomen = 'Nie udało się wczytać listy domen konta — widać tylko skrzynki domeny głównej. Spróbuj ponownie za chwilę.';
+    }
+    const rows: { id: string; email: string; quotaMb: number | null }[] = [];
+    const byly = new Set<string>();
+    const domenyZBledem: string[] = [];
+    let pierwszyBlad: string | null = null;
+    for (const d of [domain, ...dodatkowe]) {
+      let skrzynki: Array<{ localPart: string; quotaMb: number | null }>;
+      try {
+        // Skrzynka właściciela (zastępczy odczyt z liczników konta) tylko dla domeny głównej — na dodatkowej
+        // dawałaby fikcyjny adres.
+        skrzynki = await client.listEmailAccounts(d, d === domain ? { accountUsername: sub.account.daUsername } : {});
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(`listHostingEmailAccounts sub=${subscriptionId} domena=${d}: ${msg}`);
+        domenyZBledem.push(d);
+        pierwszyBlad ??= msg;
+        continue;
+      }
+      for (const box of skrzynki) {
+        const email = box.localPart.includes('@') ? box.localPart : `${box.localPart}@${d}`;
+        if (byly.has(email.toLowerCase())) continue;
+        byly.add(email.toLowerCase());
+        rows.push({ id: email, email, quotaMb: box.quotaMb });
+      }
+    }
+    if (domenyZBledem.length === 1 + dodatkowe.length) {
+      return { rows: [], fetchError: hostingFetchErrorMessage(pierwszyBlad), domenyZBledem };
+    }
+    return { rows, fetchError: bladListyDomen, domenyZBledem };
   }
 
   /** Adresy skrzynek na domenie usługi (małe litery) — tryb migracji „Wszystko naraz” zakłada tylko brakujące. */
@@ -1441,7 +1475,10 @@ export class DirectAdminService {
     const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
     if (!sub?.account) throw new BadRequestException('Konto hostingowe nie jest jeszcze gotowe.');
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
-    const rows = await client.listEmailAccounts(domain, { accountUsername: sub.account.daUsername });
+    // Skrzynka właściciela (zastępczy odczyt) tylko na domenie głównej — na dodatkowej migracja pominęłaby
+    // zakładanie skrzynki, której nie ma.
+    const glowna = sub.account.domain?.toLowerCase() === domain.toLowerCase();
+    const rows = await client.listEmailAccounts(domain, glowna ? { accountUsername: sub.account.daUsername } : {});
     return rows.map((r) => (r.localPart.includes('@') ? r.localPart : `${r.localPart}@${domain}`).toLowerCase());
   }
 

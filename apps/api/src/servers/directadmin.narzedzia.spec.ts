@@ -143,9 +143,111 @@ describe('lista skrzynek', () => {
         { id: 'jan@firma.pl', email: 'jan@firma.pl', quotaMb: 0 },
       ],
       fetchError: null,
+      domenyZBledem: [],
     });
     vi.spyOn(s.klient, 'listEmailAccounts').mockRejectedValueOnce(new Error('DA 500'));
-    await expect(s.svc.listHostingEmailAccounts('s1', 'u1')).resolves.toEqual({ rows: [], fetchError: expect.stringContaining('Chwilowo nie możemy pobrać danych') });
+    await expect(s.svc.listHostingEmailAccounts('s1', 'u1')).resolves.toMatchObject({ rows: [], fetchError: expect.stringContaining('Chwilowo nie możemy pobrać danych') });
+  });
+});
+
+/**
+ * Noc 12.10 — lista skrzynek ze wszystkich domen konta bez regresji z prod 11.10 (21c3c660 cofnięte w d720f56f):
+ * błąd odczytu skrzynek domeny dodatkowej (test2 na d3) wyzerował całą listę i zniknęły skrzynki domeny głównej.
+ * Mock na granicy HTTP (axios w prawdziwym DirectAdminClient), odpowiedź zależna od domeny i parametrów.
+ */
+describe('lista skrzynek — wszystkie domeny konta (noc 12.10)', () => {
+  type Parametry = Record<string, string>;
+  function konto(pop: (domena: string, p: Parametry) => unknown, inne: Record<string, unknown> = {}) {
+    const s = stanowisko();
+    const trasy: Record<string, unknown> = {
+      '/CMD_API_SHOW_DOMAINS': 'list0=firma.pl&list1=sklep-firmy.pl',
+      '/CMD_API_SHOW_USER_CONFIG': 'domain=firma.pl',
+      '/CMD_API_SHOW_USER_USAGE': 'nemails=3',
+      ...inne,
+    };
+    s.get.mockImplementation((path: string, cfg?: Record<string, unknown>) => {
+      const p = ((cfg?.params ?? {}) as Parametry);
+      return odp(path === '/CMD_API_POP' ? pop(p.domain, p) : (trasy[path] ?? ''));
+    });
+    return s;
+  }
+  const lista = (...nazwy: string[]) => nazwy.map((n) => `list%5B%5D=${n}`).join('&');
+
+  it('domena główna OK + dodatkowa z błędem → skrzynki głównej i domenyZBledem, bez fetchError', async () => {
+    const s = konto((d, p) =>
+      d === 'firma.pl' ? (p.type === 'quota' ? '' : lista('biuro', 'jan')) : p.type === 'quota' ? '' : 'error=1&text=Brak%20dost%C4%99pu&details=x',
+    );
+    await expect(s.svc.listHostingEmailAccounts('s1', 'u1')).resolves.toEqual({
+      rows: [
+        { id: 'biuro@firma.pl', email: 'biuro@firma.pl', quotaMb: null },
+        { id: 'jan@firma.pl', email: 'jan@firma.pl', quotaMb: null },
+      ],
+      fetchError: null,
+      domenyZBledem: ['sklep-firmy.pl'],
+    });
+  });
+
+  it('skrzynki z obu domen (adres z domeną, z której przyszły); duplikat adresu raz', async () => {
+    const s = konto((d, p) => (p.type === 'quota' ? '' : d === 'firma.pl' ? lista('biuro') : lista('zamowienia', 'zamowienia')));
+    const r = await s.svc.listHostingEmailAccounts('s1', 'u1');
+    expect(r.rows.map((x) => x.email)).toEqual(['biuro@firma.pl', 'zamowienia@sklep-firmy.pl']);
+    expect(r).toMatchObject({ fetchError: null, domenyZBledem: [] });
+  });
+
+  it('domena bez skrzynek → 0 bez błędu, nawet gdy wariant z rozmiarem odpowiada błędem', async () => {
+    // Hipoteza prod 11.10 („Przekroczono limit…” = tekst z „quota”): wariant type=quota dla pustej domeny błędem,
+    // udokumentowane action=list — pustą odpowiedzią. Stary klient rzucał błędem z wariantu, choć skrzynek po prostu nie ma.
+    const s = konto((d, p) => {
+      if (d === 'firma.pl') return p.type === 'quota' ? '' : lista('biuro');
+      if (p.type === 'quota') return { error: '1', text: 'Unable to read quota' };
+      return '';
+    });
+    await expect(s.svc.listHostingEmailAccounts('s1', 'u1')).resolves.toEqual({
+      rows: [{ id: 'biuro@firma.pl', email: 'biuro@firma.pl', quotaMb: null }],
+      fetchError: null,
+      domenyZBledem: [],
+    });
+  });
+
+  it('błąd wszystkich domen → fetchError (nie pusta lista udająca sukces)', async () => {
+    const s = konto((_d, p) => (p.type === 'quota' ? '' : 'error=1&text=Server%20error'));
+    const r = await s.svc.listHostingEmailAccounts('s1', 'u1');
+    expect(r.rows).toEqual([]);
+    expect(r.fetchError).toEqual(expect.any(String));
+    expect(r.domenyZBledem).toEqual(['firma.pl', 'sklep-firmy.pl']);
+  });
+
+  it('błąd domeny głównej nie daje skrzynki właściciela z liczników (zastępczy odczyt tylko przy pustej liście)', async () => {
+    const s = konto((d, p) => (p.type === 'quota' ? '' : d === 'firma.pl' ? 'error=1&text=x' : lista('sklep')));
+    const r = await s.svc.listHostingEmailAccounts('s1', 'u1');
+    expect(r.rows.map((x) => x.email)).toEqual(['sklep@sklep-firmy.pl']);
+    expect(r.domenyZBledem).toEqual(['firma.pl']);
+  });
+
+  it('lista domen nieodczytana → skrzynki domeny głównej i komunikat o niepełnej liście', async () => {
+    const s = konto((_d, p) => (p.type === 'quota' ? '' : lista('biuro')), { '/CMD_API_SHOW_DOMAINS': new Error('ECONNRESET') });
+    const r = await s.svc.listHostingEmailAccounts('s1', 'u1');
+    expect(r.rows.map((x) => x.email)).toEqual(['biuro@firma.pl']);
+    expect(r.fetchError).toContain('tylko skrzynki domeny głównej');
+  });
+});
+
+describe('operacje na skrzynce domeny dodatkowej trafiają do jej domeny (noc 12.10)', () => {
+  it('zakładanie, rozmiar, usuwanie i hasło — domain z adresu skrzynki, nie domena główna', async () => {
+    const s = stanowisko({ get: { '/CMD_API_SHOW_DOMAINS': 'list0=firma.pl&list1=sklep-firmy.pl' } });
+    await s.svc.createHostingEmailAccount('s1', 'u1', { email: 'jan@sklep-firmy.pl', password: 'tajne1234' });
+    await s.svc.changeHostingEmailQuota('s1', 'u1', { email: 'jan@sklep-firmy.pl', quotaMb: 2048 });
+    await s.svc.deleteHostingEmailAccount('s1', 'u1', 'jan@sklep-firmy.pl');
+    const quota = vi.spyOn(s.klient, 'getEmailAccountQuotaMb').mockResolvedValue(1024);
+    await s.svc.changeHostingEmailPassword('s1', 'u1', { email: 'jan@sklep-firmy.pl', password: 'nowe-haslo-1' });
+    expect(quota).toHaveBeenCalledWith('sklep-firmy.pl', 'jan');
+    const wyslane = s.post.mock.calls.filter((c) => c[0] === '/CMD_API_POP').map((c) => Object.fromEntries(new URLSearchParams(String(c[1]))));
+    expect(wyslane.map((w) => [w.action, w.domain, w.user])).toEqual([
+      ['create', 'sklep-firmy.pl', 'jan'],
+      ['modify', 'sklep-firmy.pl', 'jan'],
+      ['delete', 'sklep-firmy.pl', 'jan'],
+      ['modify', 'sklep-firmy.pl', 'jan'],
+    ]);
   });
 });
 

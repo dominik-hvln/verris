@@ -181,6 +181,8 @@ export class KontoKlientaAdminController {
       skrzynki: skrzynki.rows.map(({ email, quotaMb }) => ({ email, quotaMb })),
       przekierowania: przekierowania.rows.map(({ email, destinations }) => ({ email, destinations })),
       fetchError: skrzynki.fetchError ?? przekierowania.fetchError,
+      // Noc 12.10 — domeny, których skrzynek węzeł nie oddał: licznik obejmuje tylko odczytane, karta ostrzega.
+      domenyZBledem: skrzynki.domenyZBledem,
     };
   }
 

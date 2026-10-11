@@ -25,6 +25,36 @@ describe('listy DA 1.710', () => {
     const k = klient((_p, params) => (params.type === 'quota' ? '' : 'list%5B%5D=jan'));
     await expect(k.listEmailAccounts('firma.pl')).resolves.toEqual([{ localPart: 'jan', quotaMb: null }]);
   });
+
+  // Noc 12.10 — „0 skrzynek” ≠ błąd (https://docs.directadmin.com/developer/api/legacy-api.html#list-e-mail-accounts).
+  it('skrzynki: domena bez skrzynek (pusta odpowiedź action=list) → [] bez błędu, choć wariant z rozmiarem padł', async () => {
+    const k = klient((_p, params) => (params.type === 'quota' ? { error: '1', text: 'Unable to read quota' } : ''));
+    Object.assign(k, { client: { ...(k as unknown as { client: object }).client, post: vi.fn(async () => Promise.reject(new Error('quota exceeded'))) } });
+    await expect(k.listEmailAccounts('pusta.pl')).resolves.toEqual([]);
+  });
+
+  it('skrzynki: `list[]=` bez nazw → []', async () => {
+    await expect(klient((_p, params) => (params.type === 'quota' ? '' : 'list%5B%5D=')).listEmailAccounts('pusta.pl')).resolves.toEqual([]);
+  });
+
+  it('skrzynki: error=1 w treści action=list (HTTP 200, bez json) → wyjątek z tekstem serwera, nie pusta lista', async () => {
+    const k = klient((_p, params) => (params.type === 'quota' ? '' : 'error=1&text=Domena%20nie%20istnieje&details=x'));
+    await expect(k.listEmailAccounts('obca.pl')).rejects.toThrow('Domena nie istnieje');
+  });
+
+  it('skrzynki: HTML zamiast listy → wyjątek', async () => {
+    await expect(klient((_p, params) => (params.type === 'quota' ? '' : '<html>login</html>')).listEmailAccounts('firma.pl')).rejects.toThrow();
+  });
+
+  it('skrzynki: przy błędzie listy nie ma zastępczej skrzynki właściciela z liczników konta', async () => {
+    const k = klient((p, params) => (p === '/CMD_API_SHOW_USER_USAGE' ? 'nemails=2' : params.type === 'quota' ? '' : 'error=1&text=Brak'));
+    await expect(k.listEmailAccounts('firma.pl', { accountUsername: 'klient1' })).rejects.toThrow('Brak');
+  });
+
+  it('skrzynki: poprawna pusta lista domeny głównej + liczniki konta → skrzynka właściciela (jak dotąd)', async () => {
+    const k = klient((p, params) => (p === '/CMD_API_SHOW_USER_USAGE' ? 'nemails=1' : params.type === 'quota' ? '' : ''));
+    await expect(k.listEmailAccounts('firma.pl', { accountUsername: 'klient1' })).resolves.toEqual([{ localPart: 'klient1', quotaMb: null }]);
+  });
 });
 
 describe('menedżer plików DA 1.710', () => {

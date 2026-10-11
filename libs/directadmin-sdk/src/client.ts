@@ -1338,8 +1338,19 @@ export class DirectAdminClient {
   }
 
   /**
-   * Lists POP mailboxes for a domain (CMD_API_POP).
-   * DA builds differ: `list0` vs `user0`, GET vs POST, with/without `action=list`.
+   * Skrzynki JEDNEJ domeny (CMD_API_POP, GET, action=list&domain=…). Dokumentacja:
+   * https://docs.directadmin.com/developer/api/legacy-api.html#list-e-mail-accounts — sukces: „url encoded array
+   * of users in []” (DA 1.710: `list[]=jan&list[]=biuro`), porażka: `error=1` z `text` i `details`.
+   *
+   * Noc 12.10 (po cofnięciu 21c3c660): „0 skrzynek” i „błąd” to dwa różne wyniki.
+   *  - Najpierw lista z rozmiarami (`type=quota`, DA 1.710: `jan=limit=…&quota=<bajty>&usage_bytes=…`, ten sam
+   *    kształt co udokumentowane `action=full_list`). To tylko wzbogacenie o rozmiar: jej pusty wynik albo błąd
+   *    niczego nie rozstrzyga.
+   *  - Rozstrzyga udokumentowane `action=list`: `error=1` (także HTTP 200), odpowiedź HTML albo błąd HTTP → wyjątek
+   *    z tekstem serwera; poprawna odpowiedź bez skrzynek (pusta treść, `list[]=`, `{}`, `[]`) → [].
+   *  Dotąd po pustej liście szło kilka kolejnych wariantów (GET/POST z json/api) i błąd DOWOLNEGO z nich zmieniał
+   *  „0 skrzynek” w błąd całej listy, a `error=1` w treści bez json dawał po cichu pustą listę.
+   * Skrzynka właściciela (`accountUsername`, tylko dla domeny głównej) — wyłącznie przy poprawnej, pustej liście.
    */
   async listEmailAccounts(
     domain: string,
@@ -1350,58 +1361,32 @@ export class DirectAdminClient {
 
     // Najpierw type=quota: sama lista nazw (DA 1.710: `list[]=test`) nie niesie limitu i panel
     // pokazywał „bez limitu” przy skrzynce z 1 GB (test D3 na t1, 29.09).
-    const getAttempts: Array<Record<string, string>> = [
+    for (const params of [
       { domain: domainParam, action: 'list', type: 'quota', json: 'yes' },
       { domain: domainParam, action: 'list', type: 'quota' },
-      { domain: domainParam, action: 'list' },
-      { domain: domainParam, action: 'list', json: 'yes' },
-      { domain: domainParam, action: 'list', api: 'yes' },
-      { domain: domainParam, action: 'list', api: 'yes', json: 'yes' },
-    ];
-
-    let lastError: unknown;
-    for (const params of getAttempts) {
+    ]) {
       try {
         const response = await this.client.get('/CMD_API_POP', { params });
-        const rows = params.type === 'quota'
-          ? this.parsePopQuotaList(response.data, domainParam)
-          : this.parsePopAccountList(response.data, domainParam);
+        const rows = this.parsePopQuotaList(response.data, domainParam);
         if (rows.length > 0) return rows;
-      } catch (err) {
-        lastError = this.normalizeDaClientError(err, lastError);
+      } catch {
+        /* wzbogacenie o rozmiar — rozstrzyga action=list niżej */
       }
     }
 
-    const postBodies: Array<Record<string, string>> = [
-      { domain: domainParam, action: 'list', api: 'yes', json: 'yes' },
-      { domain: domainParam, action: 'list', api: 'yes' },
-      { domain: domainParam, action: 'list', type: 'quota', api: 'yes' },
-    ];
-    for (const form of postBodies) {
-      try {
-        const body = new URLSearchParams(form).toString();
-        const response = await this.client.post('/CMD_API_POP', body, {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        });
-        const rows = form.type === 'quota'
-          ? this.parsePopQuotaList(response.data, domainParam)
-          : this.parsePopAccountList(response.data, domainParam);
-        if (rows.length > 0) return rows;
-      } catch (err) {
-        lastError = this.normalizeDaClientError(err, lastError);
-      }
+    let data: unknown;
+    try {
+      data = (await this.client.get('/CMD_API_POP', { params: { domain: domainParam, action: 'list' } })).data;
+    } catch (err) {
+      throw this.normalizeDaClientError(err, 'Unable to list email accounts');
     }
-
-    const fallback = await this.listEmailAccountsUsageFallback(
-      domainParam,
-      options?.accountUsername,
-    );
-    if (fallback.length > 0) return fallback;
-
-    if (lastError) {
-      throw this.normalizeDaClientError(lastError, 'Unable to list email accounts');
+    this.rzucJesliBladDa(data, `Nie udało się odczytać skrzynek domeny ${domainParam}`);
+    if (typeof data === 'string' && data.trim().startsWith('<')) {
+      throw bladDa(`Nieoczekiwana odpowiedź przy liście skrzynek domeny ${domainParam}`);
     }
-    return [];
+    const rows = this.parsePopAccountList(data, domainParam);
+    if (rows.length > 0) return rows;
+    return this.listEmailAccountsUsageFallback(domainParam, options?.accountUsername);
   }
 
   /**

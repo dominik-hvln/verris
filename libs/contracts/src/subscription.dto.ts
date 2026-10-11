@@ -407,6 +407,11 @@ export interface HostingEmailAccountDto {
 export interface HostingEmailAccountsResponseDto {
   rows: HostingEmailAccountDto[];
   fetchError: string | null;
+  /**
+   * Domeny konta, których skrzynek nie udało się odczytać (lista `rows` jest bez nich). Błąd wszystkich domen
+   * to `fetchError` — nie pusta lista. Opcjonalne tylko na czas wdrożenia (panel przed API).
+   */
+  domenyZBledem?: string[];
 }
 
 export interface HostingCronJobDto {
