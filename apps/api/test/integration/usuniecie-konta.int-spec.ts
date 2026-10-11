@@ -68,6 +68,56 @@ describe('X-04 usunięcie konta (RODO)', () => {
     expect((await prisma().migrationRequest.findUniqueOrThrow({ where: { id: mig.id } })).checklista).toEqual({});
   });
 
+  it('audyt Fal 2 — notatki w wątku, tagi, powód blokady wysyłki i jawne adresy z wniosków znikają; wnioski zostają', async () => {
+    const k = await zWnioskiem();
+    const p = prisma();
+    const stary = k.user.email;
+    const nowy = `Nowy-${Date.now()}@Firma-klienta.pl`;
+    const op = await p.user.create({ data: { email: `op-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'STAFF' } });
+    const obcy = `x${stary}`; // inny adres, który zawiera adres klienta — zostaje
+    await p.account.update({ where: { id: k.account.id }, data: { mailBlockedAt: new Date(), mailBlockedById: op.id, mailBlockedReason: 'Nadużycie #ab12: zgłoszenie od abuse@zglaszajacy.example' } });
+    const zgl = await p.ticket.create({ data: { userId: k.user.id, subject: 'Poczta', message: 'Nie wysyła', tags: ['vip', 'trudny-klient'] } });
+    await p.ticketReply.createMany({
+      data: [
+        { ticketId: zgl.id, authorId: k.user.id, message: 'Dalej nie działa.' },
+        { ticketId: zgl.id, authorId: op.id, isStaff: true, internal: true, message: 'Klient dzwonił zdenerwowany, ma drugi numer.' },
+      ],
+    });
+    const w = await p.operatorRequest.create({
+      data: {
+        type: 'CUSTOMER_EMAIL_CHANGE', customerId: k.user.id, requestedById: op.id, payload: { newEmail: nowy },
+        justification: `Klient Jan Kowalski prosił telefonicznie, stary adres ${stary}`, status: 'APPROVED', decidedById: op.id,
+        decisionReason: 'Potwierdzone hasłem z umowy', result: { komunikat: `Adres e-mail zmieniony na ${nowy.toLowerCase()}.` },
+      },
+    });
+    await p.auditLog.createMany({
+      data: [
+        { action: 'OPERATOR_REQUEST_SUBMITTED', userId: k.user.id, actorUserId: op.id, details: { wniosekId: w.id, payload: { newEmail: nowy }, uzasadnienie: `Jan Kowalski, ${stary}` } },
+        { action: 'OPERATOR_REQUEST_APPROVED', userId: k.user.id, actorUserId: op.id, details: { wniosekId: w.id, wynik: { komunikat: `Adres e-mail zmieniony na ${nowy}.` } } },
+      ],
+    });
+    await p.notification.createMany({
+      data: [
+        { userId: op.id, category: 'SYSTEM', title: 'Wniosek do decyzji: zmiana e-maila', body: `Ktoś prosi o: Zmiana adresu e-mail na ${nowy.toLowerCase()} · klient ${stary}. Uzasadnienie: …` },
+        { userId: op.id, category: 'SYSTEM', title: 'Inny klient', body: `klient ${obcy}` },
+      ],
+    });
+
+    await serwis().executeAnonymization(k.user.id, null);
+
+    expect(await p.ticketReply.count({ where: { ticketId: zgl.id } })).toBe(1);
+    expect((await p.ticket.findUniqueOrThrow({ where: { id: zgl.id } })).tags).toEqual([]);
+    expect(await p.account.findUniqueOrThrow({ where: { id: k.account.id } })).toMatchObject({ mailBlockedReason: null, mailBlockedById: op.id });
+    const po = await p.operatorRequest.findUniqueOrThrow({ where: { id: w.id } });
+    expect(po).toMatchObject({ type: 'CUSTOMER_EMAIL_CHANGE', status: 'APPROVED', justification: '[zanonimizowano]', decisionReason: '[zanonimizowano]' });
+    expect(po.payload).toEqual({ newEmail: '[zanonimizowano]' });
+    expect(po.result).toEqual({ komunikat: 'Adres e-mail zmieniony na [zanonimizowano].' });
+    const dziennik = JSON.stringify(await p.auditLog.findMany({ where: { userId: k.user.id, action: { startsWith: 'OPERATOR_REQUEST_' } } }));
+    expect(dziennik).not.toMatch(new RegExp(`${nowy}|${stary}|Kowalski`.replace(/\./g, '\\.'), 'i'));
+    const dzwonki = await p.notification.findMany({ where: { userId: op.id }, orderBy: { title: 'asc' } });
+    expect(dzwonki.map((n) => n.body)).toEqual([`klient ${obcy}`, 'Ktoś prosi o: Zmiana adresu e-mail na [zanonimizowano] · klient [zanonimizowano]. Uzasadnienie: …']);
+  });
+
   it('klient cofnął wniosek po wybraniu listy do anonimizacji: dane zostają nietknięte', async () => {
     const k = await zWnioskiem();
     const s = serwis();

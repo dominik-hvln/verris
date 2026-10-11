@@ -406,6 +406,29 @@ export class AccountDeletionService {
         });
       }
 
+      // 3f) Audyt Fal 2 — dane o osobie z nowych modułów zespołu:
+      //     - notatki wewnętrzne w wątkach zgłoszeń i tagi zgłoszeń — jak notatki obsługi (3c); same zgłoszenia
+      //       i odpowiedzi zostają;
+      //     - powód blokady wysyłki (wolny tekst operatora, przy abuse z treścią zgłoszenia);
+      //     - wnioski o operację na koncie (D9/F2.3): uzasadnienie i powód decyzji opisują klienta, a parametry, wynik,
+      //       wpisy dziennika wniosków i dzwonki zespołu niosą jego jawny adres (np. zmiana e-maila, link resetu hasła).
+      //       Wnioski zostają (kto, co i kiedy — rozliczalność), bez tych treści.
+      await tx.ticketReply.deleteMany({ where: { internal: true, ticket: { userId } } });
+      await tx.ticket.updateMany({ where: { userId }, data: { tags: [] } });
+      await tx.account.updateMany({ where: { userId, mailBlockedReason: { not: null } }, data: { mailBlockedReason: null } });
+      const wnioski = await tx.operatorRequest.findMany({ where: { customerId: userId }, select: { payload: true, result: true } });
+      if (wnioski.length) {
+        await tx.operatorRequest.updateMany({ where: { customerId: userId }, data: { justification: ZANONIMIZOWANO } });
+        await tx.operatorRequest.updateMany({ where: { customerId: userId, decisionReason: { not: null } }, data: { decisionReason: ZANONIMIZOWANO } });
+        await tx.$executeRaw`UPDATE "AuditLog" SET "details" = jsonb_set("details", '{uzasadnienie}', to_jsonb(${ZANONIMIZOWANO}::text)) WHERE "userId" = ${userId} AND starts_with("action", 'OPERATOR_REQUEST_') AND ("details" -> 'uzasadnienie') IS NOT NULL`;
+      }
+      const adresy = adresyEmail([originalEmail, ...wnioski.flatMap((w) => [JSON.stringify(w.payload), JSON.stringify(w.result ?? null)])]);
+      for (const wzorzec of adresy.map(wzorzecAdresu)) {
+        await tx.$executeRaw`UPDATE "OperatorRequest" SET "payload" = regexp_replace("payload"::text, ${wzorzec}, ${ZANONIMIZOWANO}, 'gi')::jsonb, "result" = CASE WHEN "result" IS NULL THEN NULL ELSE regexp_replace("result"::text, ${wzorzec}, ${ZANONIMIZOWANO}, 'gi')::jsonb END WHERE "customerId" = ${userId}`;
+        await tx.$executeRaw`UPDATE "AuditLog" SET "details" = regexp_replace("details"::text, ${wzorzec}, ${ZANONIMIZOWANO}, 'gi')::jsonb WHERE "userId" = ${userId} AND starts_with("action", 'OPERATOR_REQUEST_') AND "details"::text ~* ${wzorzec}`;
+        await tx.$executeRaw`UPDATE "Notification" SET "title" = regexp_replace("title", ${wzorzec}, ${ZANONIMIZOWANO}, 'gi'), "body" = regexp_replace("body", ${wzorzec}, ${ZANONIMIZOWANO}, 'gi') WHERE "title" ~* ${wzorzec} OR "body" ~* ${wzorzec}`;
+      }
+
       // 4) Wipe payment methods (raw card brand/last4 alone is PII when tied
       //    to identity).
       await tx.paymentMethod.deleteMany({ where: { userId } });
@@ -669,3 +692,21 @@ export class AccountDeletionService {
     return baseline;
   }
 }
+
+/** Audyt Fal 2 — znacznik w miejscu treści usuniętych przy anonimizacji (art. 17). */
+const ZANONIMIZOWANO = '[zanonimizowano]';
+
+/** Adresy e-mail klienta: bieżący i te z wniosków o operację (np. nowy adres z wniosku o zmianę e-maila). */
+export function adresyEmail(teksty: string[]): string[] {
+  const znalezione = teksty.flatMap((t) => t.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi) ?? []);
+  return [...new Set(znalezione.map((a) => a.toLowerCase()))];
+}
+
+/**
+ * Adres jako wzorzec Postgresa (regexp_replace/~*, bez rozróżniania wielkości liter): znaki specjalne dosłownie,
+ * cały adres — „jan@firma.pl” nie trafia w „xjan@firma.pl”.
+ */
+export function wzorzecAdresu(adres: string): string {
+  return `(?<![a-z0-9._%+-])${adres.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![a-z0-9_-])`;
+}
+

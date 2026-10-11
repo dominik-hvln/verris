@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { AccountDeletionService } from './account-deletion.service.js';
+import { AccountDeletionService, wzorzecAdresu } from './account-deletion.service.js';
 import { JwtStrategy } from '../auth/strategies/jwt.strategy.js';
 
 /**
@@ -27,6 +27,13 @@ function stanowisko(opts: { juzZanonimizowany?: boolean; subkonta?: string[] } =
     migrationRequest: { updateMany: vi.fn(async () => ({ count: 1 })) },
     accountDeletionRequest: { update: vi.fn(async () => ({})), updateMany: vi.fn(async () => ({ count: 1 })) },
     invoice: { deleteMany: vi.fn() },
+    ticketReply: { deleteMany: vi.fn(async () => ({ count: 1 })) },
+    ticket: { updateMany: vi.fn(async () => ({ count: 1 })) },
+    operatorRequest: {
+      findMany: vi.fn(async () => [{ payload: { newEmail: 'Nowy@Firma.pl' }, result: { komunikat: 'Adres e-mail zmieniony na nowy@firma.pl.' } }]),
+      updateMany: vi.fn(async () => ({ count: 1 })),
+    },
+    $executeRaw: vi.fn(async () => 1),
   };
   const prisma = {
     user: {
@@ -82,6 +89,18 @@ describe('AccountDeletionService.executeAnonymization (P-02)', () => {
       where: { kind: 'MAIL_QUEUE', accountId: { in: ['a1', 'a2'] }, outputLog: { not: null } },
       data: { outputLog: null },
     });
+  });
+
+  it('audyt Fal 2 — notatki w wątkach, tagi zgłoszeń, powód blokady wysyłki i treści wniosków o operację znikają', async () => {
+    const s = stanowisko();
+    await s.svc.executeAnonymization('u1');
+    expect(s.tx.ticketReply.deleteMany).toHaveBeenCalledWith({ where: { internal: true, ticket: { userId: 'u1' } } });
+    expect(s.tx.ticket.updateMany).toHaveBeenCalledWith({ where: { userId: 'u1' }, data: { tags: [] } });
+    expect(s.tx.account.updateMany).toHaveBeenCalledWith({ where: { userId: 'u1', mailBlockedReason: { not: null } }, data: { mailBlockedReason: null } });
+    expect(s.tx.operatorRequest.updateMany).toHaveBeenCalledWith({ where: { customerId: 'u1' }, data: { justification: '[zanonimizowano]' } });
+    // Bieżący adres i adres z wniosku o zmianę e-maila — w parametrach, wynikach, dzienniku wniosków i dzwonkach zespołu.
+    const wzorce = (s.tx.$executeRaw.mock.calls as unknown as unknown[][]).flatMap((c) => c.slice(1)).filter((v) => typeof v === 'string' && v.includes('@'));
+    expect(new Set(wzorce)).toEqual(new Set([wzorzecAdresu('jan@firma.pl'), wzorzecAdresu('nowy@firma.pl')]));
   });
 
   it('subkonta: wyłączone, zanonimizowane i wylogowane razem z właścicielem', async () => {
