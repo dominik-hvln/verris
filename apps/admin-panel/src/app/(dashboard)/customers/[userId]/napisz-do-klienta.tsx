@@ -59,7 +59,7 @@ export function NapiszDoKlienta({ userId, imie, domeny }: { userId: string; imie
   };
 
   return (
-    <section className={`${KARTA} flex flex-col gap-2.5 p-[18px]`} aria-labelledby={`${id}-n`} data-karta="napisz">
+    <section id="napisz-do-klienta" className={`${KARTA} flex scroll-mt-24 flex-col gap-2.5 p-[18px]`} aria-labelledby={`${id}-n`} data-karta="napisz">
       <h2 id={`${id}-n`} className="flex items-center gap-1.5 font-display text-[17px] font-bold">
         Napisz do klienta <Pomoc id="mail-do-klienta" />
       </h2>

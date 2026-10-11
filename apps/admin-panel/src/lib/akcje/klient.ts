@@ -30,6 +30,7 @@ export const AKCJE_KLIENTA: AkcjaObiektu<KlientDlaAkcji>[] = [
     nazwa: "Dodaj kredyty",
     opis: "Zasilenie portfela z powodem w dzienniku.",
     perm: "BILLING_MANAGE",
+    api: "POST admin/billing/wallet/credit",
     kiedy: () => true,
     href: (k) => karta(k, null, "akcje-klienta"),
     slowa: "kredyty portfel zasil doładuj",
@@ -39,7 +40,9 @@ export const AKCJE_KLIENTA: AkcjaObiektu<KlientDlaAkcji>[] = [
     grupa: "Konto",
     nazwa: "Zaloguj jako klient",
     opis: "Panel klienta jego oczami; wejście trafia do dziennika.",
-    perm: "CUSTOMERS_IMPERSONATE",
+    // POST admin/users/:id/impersonate — @StaffPerm('CUSTOMERS_VIEW', 'CUSTOMERS_IMPERSONATE') (L2+).
+    perm: { wszystkie: ["CUSTOMERS_VIEW", "CUSTOMERS_IMPERSONATE"] },
+    api: "POST admin/users/:id/impersonate",
     kiedy: () => true,
     href: (k) => karta(k, null, "akcje-klienta"),
     slowa: "impersonacja zaloguj jako",
@@ -49,7 +52,9 @@ export const AKCJE_KLIENTA: AkcjaObiektu<KlientDlaAkcji>[] = [
     grupa: "Konto",
     nazwa: (k) => (k.logowanieZablokowane ? "Odblokuj logowanie" : "Blokada logowania"),
     opis: "Klient nie zaloguje się do panelu; powód trafia do dziennika.",
+    // PATCH admin/users/:id/operational — CUSTOMERS_MANAGE (L3).
     perm: "CUSTOMERS_MANAGE",
+    api: "PATCH admin/users/:id/operational",
     kiedy: () => true,
     href: (k) => karta(k, "dostepy", "blokada"),
     slowa: "zablokuj odblokuj logowanie",
@@ -74,6 +79,7 @@ export const AKCJE_KLIENTA: AkcjaObiektu<KlientDlaAkcji>[] = [
     opis: "Nowy adres logowania klienta.",
     // POST admin/users/:id/email — CUSTOMERS_MANAGE (D9: L3); niżej wniosek CUSTOMER_EMAIL_CHANGE.
     perm: "CUSTOMERS_MANAGE",
+    api: "POST admin/users/:id/email",
     kiedy: () => true,
     href: (k) => karta(k, "dostepy", "email"),
     slowa: "email adres",
@@ -86,6 +92,7 @@ export const AKCJE_KLIENTA: AkcjaObiektu<KlientDlaAkcji>[] = [
     opis: "Link do ustawienia nowego hasła.",
     // POST admin/users/:id/reset-password — CUSTOMERS_MANAGE (D9: L3); niżej wniosek CUSTOMER_PASSWORD_RESET.
     perm: "CUSTOMERS_MANAGE",
+    api: "POST admin/users/:id/reset-password",
     kiedy: () => true,
     href: (k) => karta(k, "dostepy", "reset"),
     slowa: "hasło reset",
@@ -96,7 +103,9 @@ export const AKCJE_KLIENTA: AkcjaObiektu<KlientDlaAkcji>[] = [
     grupa: "Konto",
     nazwa: "Usuń konto (RODO)",
     opis: "Anonimizacja danych klienta — nieodwracalna.",
+    // POST admin/compliance/deletion-requests/:userId/force-anonymize — @Roles(ADMIN) klasy, bez wyjątku dla STAFF.
     perm: "ADMIN",
+    api: "POST admin/compliance/deletion-requests/:userId/force-anonymize",
     kiedy: () => true,
     href: (k) => karta(k, "dostepy", "usuniecie"),
     slowa: "rodo usuń anonimizacja",
@@ -214,6 +223,19 @@ export const AKCJE_KLIENTA: AkcjaObiektu<KlientDlaAkcji>[] = [
     href: (k) => karta(k, "zgloszenia", "nowe-zgloszenie"),
     slowa: "nowe zgłoszenie w imieniu napisz do klienta ticket wychodzący",
     pomocId: "zgloszenie-w-imieniu",
+  },
+  {
+    id: "napisz",
+    grupa: "Obsługa",
+    nazwa: "Napisz do klienta",
+    opis: "Mail serwisowy z szablonu od „Obsługa Verris”; trafia do historii komunikacji.",
+    // POST admin/users/:id/mail-obslugi — CUSTOMERS_VIEW + TICKETS_MANAGE (F3.8: L1 i wyżej).
+    perm: { wszystkie: ["CUSTOMERS_VIEW", "TICKETS_MANAGE"] },
+    api: "POST admin/users/:id/mail-obslugi",
+    kiedy: () => true,
+    href: (k) => karta(k, "komunikacja", "napisz-do-klienta"),
+    slowa: "napisz mail wiadomość do klienta komunikacja",
+    pomocId: "mail-do-klienta",
   },
   {
     id: "odpowiedz",

@@ -19,7 +19,11 @@ const REASON_PRESETS = [
   "Doładowanie testowe",
 ];
 
-export function CreditWalletButton({ userId, email, currentBalance, className, etykieta }: Props & { className?: string; etykieta?: React.ReactNode }) {
+/**
+ * `zablokowane` — powód z rejestru działań klienta („Wymaga BILLING_MANAGE”): przycisk wyszarzony z dymkiem, bez
+ * okna (weryfikacja 11.10 — L1 widział aktywny przycisk, a lista „Działania” mówiła „Wymaga …”).
+ */
+export function CreditWalletButton({ userId, email, currentBalance, className, etykieta, zablokowane }: Props & { className?: string; etykieta?: React.ReactNode; zablokowane?: string | null }) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("50");
   const [reason, setReason] = useState("");
@@ -58,6 +62,15 @@ export function CreditWalletButton({ userId, email, currentBalance, className, e
     setOpen(false);
     setTimeout(reset, 200);
   };
+
+  if (zablokowane) {
+    return (
+      <button type="button" disabled title={zablokowane} className={`${className ?? "inline-flex items-center gap-1.5 rounded-md border border-white/10 px-3 py-1.5 text-xs font-medium"} cursor-not-allowed opacity-50`}>
+        {etykieta ?? "Dodaj K"}
+        <span className="sr-only"> — {zablokowane}</span>
+      </button>
+    );
+  }
 
   return (
     <>

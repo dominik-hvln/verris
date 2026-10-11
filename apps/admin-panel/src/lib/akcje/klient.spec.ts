@@ -1,4 +1,4 @@
-import { dzialaniaObiektu } from "./rejestr";
+import { dzialanieObiektu, dzialaniaObiektu } from "./rejestr";
 import { AKCJE_KLIENTA, type KlientDlaAkcji } from "./klient";
 import { brakUprawnienia } from "./wezel";
 
@@ -48,6 +48,23 @@ describe("Działania klienta", () => {
     expect(po({ id: "u1" }, "konto-wewnetrzne", operator("CUSTOMERS_VIEW", "CUSTOMERS_MANAGE"))?.zablokowane).toBe("Wymaga CUSTOMERS_INTERNAL_FLAG");
     expect(po({ id: "u1" }, "konto-wewnetrzne", operator("CUSTOMERS_MANAGE", "CUSTOMERS_INTERNAL_FLAG"))?.zablokowane).toBeNull();
     expect(po({ id: "u1" }, "konto-wewnetrzne")?.zablokowane).toBeNull();
+  });
+});
+
+describe("dzialanieObiektu — jeden przycisk z rejestru (nagłówek karty, „Operacje wrażliwe”)", () => {
+  const L1 = operator("DASHBOARD_VIEW", "CUSTOMERS_VIEW", "TICKETS_VIEW", "TICKETS_MANAGE", "BILLING_VIEW");
+  it("ten sam powód i wniosek co pozycja listy „Działania”", () => {
+    for (const id of ["kredyty", "zaloguj", "napisz", "reset", "email", "blokada-logowania", "usuniecie"]) {
+      expect(dzialanieObiektu(AKCJE_KLIENTA, id, { id: "u1" }, L1)).toEqual(po({ id: "u1" }, id, L1));
+    }
+    expect(dzialanieObiektu(AKCJE_KLIENTA, "kredyty", { id: "u1" }, L1).zablokowane).toBe("Wymaga BILLING_MANAGE");
+    expect(dzialanieObiektu(AKCJE_KLIENTA, "zaloguj", { id: "u1" }, L1).zablokowane).toBe("Wymaga CUSTOMERS_IMPERSONATE");
+    expect(dzialanieObiektu(AKCJE_KLIENTA, "napisz", { id: "u1" }, L1)).toMatchObject({ zablokowane: null, href: "/customers/u1?sekcja=komunikacja#napisz-do-klienta" });
+  });
+
+  it("nieznane ID (literówka w stronie) — tylko administrator, nie po cichu aktywne", () => {
+    expect(dzialanieObiektu(AKCJE_KLIENTA, "nie-ma", { id: "u1" }, operator("BILLING_MANAGE")).zablokowane).toBe("Wymaga roli administratora");
+    expect(dzialanieObiektu(AKCJE_KLIENTA, "nie-ma", { id: "u1" }, ADMIN).zablokowane).toBeNull();
   });
 });
 

@@ -228,7 +228,7 @@ describe("karta klienta — działania (patch 11)", () => {
 });
 
 it("każda kotwica z rejestru działań klienta istnieje na karcie", () => {
-  const zrodla = ["page.tsx", "operational-forms.tsx", "dzialania-klienta.tsx", "diagnostyka-dns-tls.tsx", "nowe-zgloszenie.tsx", "portfel-operacje.tsx", "rozliczenia-klienta.tsx"].map((f) => readFileSync(`${__dirname}/${f}`, "utf8")).join("\n");
+  const zrodla = ["page.tsx", "operational-forms.tsx", "dzialania-klienta.tsx", "diagnostyka-dns-tls.tsx", "nowe-zgloszenie.tsx", "portfel-operacje.tsx", "rozliczenia-klienta.tsx", "napisz-do-klienta.tsx"].map((f) => readFileSync(`${__dirname}/${f}`, "utf8")).join("\n");
   for (const a of AKCJE_KLIENTA) {
     const kotwica = a.href({ id: UID }).split("#")[1];
     if (kotwica) expect(zrodla).toMatch(new RegExp(`id="${kotwica}"`));
@@ -505,5 +505,83 @@ describe("F3.6 — rozliczenia na karcie klienta", () => {
     expect(html).not.toContain('data-sekcja="windykacja"');
     dane({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "BILLING_VIEW"] }, { windykacja: new Error("ECONNREFUSED") });
     expect((await renderStrona()).split('data-sekcja="windykacja"')[1]).toContain("Nie udało się wczytać przypomnień i zawieszeń.");
+  });
+});
+
+/**
+ * Weryfikacja 11.10 (prod, rola „L1 Konsultant”) — lista „Działania” mówiła „Wymaga BILLING_MANAGE”, a przyciski
+ * w nagłówku („Dodaj kredyty”, „Zaloguj jako klient”) i w „Operacjach wrażliwych” były aktywne. Teraz wszystkie
+ * biorą powód blokady z tego samego rejestru (lib/akcje/klient.ts). Zgodność rejestru ze strażnikami API dla każdej
+ * roli systemowej pilnuje apps/api/src/test/macierz-menu-stron.spec.ts.
+ */
+describe("karta klienta — przyciski poza listą „Działania” wg rejestru (weryfikacja 11.10)", () => {
+  // Uprawnienia roli systemowej „L1 Konsultant” (apps/api/src/staff-roles/role-systemowe.ts).
+  const L1 = { role: "STAFF", isAdmin: false, permissions: ["DASHBOARD_VIEW", "CUSTOMERS_VIEW", "TICKETS_VIEW", "TICKETS_MANAGE", "BILLING_VIEW"] };
+  function dane(dostep: unknown) {
+    api.mockImplementation(async (sciezka: string) => {
+      if (sciezka.split("?")[0] === `/admin/users/${UID}/customer-profile`) return profil;
+      if (sciezka === `/admin/users/${UID}/operational-detail`) return { ...profil.user, loginBlockedReason: null, adminInternalNote: "", isInternal: false, subscriptionsCount: 1 };
+      if (sciezka.startsWith("/admin/custom-terms/user/")) return { uslugi: [] };
+      if (sciezka === "/staff/me/access") return dostep;
+      if (sciezka === "/admin/deliverability/cordons") return { cordons: [] };
+      if (sciezka === "/admin/reseller" || sciezka === "/admin/users/referral-enrollments") throw new Error("403");
+      if (sciezka === `/admin/users/${UID}/notes`) return { notatki: [] };
+      throw new Error(`nieoczekiwane ${sciezka}`);
+    });
+  }
+  const naglowek = (html: string) => html.slice(html.indexOf('id="akcje-klienta"'), html.indexOf("</div>", html.indexOf('id="akcje-klienta"')));
+  const operacja = (html: string, id: string) => html.slice(html.indexOf(`data-operacja="${id}"`)).split("</div>")[0]!;
+
+  it("L1: „Dodaj kredyty” i „Zaloguj jako klient” wyszarzone z dymkiem; „Napisz do klienta” prowadzi do formularza F3.8", async () => {
+    dane(L1);
+    const html = naglowek(await render("przeglad"));
+    expect(html).toMatch(/<button type="button" disabled="" title="Wymaga BILLING_MANAGE"[^>]*>Dodaj kredyty/);
+    expect(html).toMatch(/<button type="button" disabled="" title="Wymaga CUSTOMERS_IMPERSONATE"[^>]*>Zaloguj jako klient/);
+    // L1 ma CUSTOMERS_VIEW + TICKETS_MANAGE — API (admin/users/:id/mail-obslugi) go wpuszcza; bez mailto: z prywatnej skrzynki.
+    expect(html).toContain(`href="/customers/${UID}?sekcja=komunikacja#napisz-do-klienta"`);
+    expect(html).not.toContain("mailto:");
+  });
+
+  it("L1: „Operacje wrażliwe” wyszarzone; reset i e-mail z „Wyślij wniosek”, blokada i usunięcie bez", async () => {
+    dane(L1);
+    const html = await render("przeglad");
+    for (const [id, powod] of [
+      ["reset", "Wymaga CUSTOMERS_MANAGE"],
+      ["email", "Wymaga CUSTOMERS_MANAGE"],
+      ["blokada-logowania", "Wymaga CUSTOMERS_MANAGE"],
+      ["usuniecie", "Wymaga roli administratora"],
+    ] as const) {
+      const w = operacja(html, id);
+      expect(w).toContain(`disabled="" title="${powod}"`);
+      expect(w).not.toMatch(/<a [^>]*class="inline-flex h-\[38px\]/);
+    }
+    expect(operacja(html, "reset")).toContain(`href="/customers/${UID}?sekcja=dostepy#reset">Wyślij wniosek`);
+    expect(operacja(html, "email")).toContain(`href="/customers/${UID}?sekcja=dostepy#email">Wyślij wniosek`);
+    expect(operacja(html, "blokada-logowania")).not.toContain("Wyślij wniosek");
+    expect(operacja(html, "usuniecie")).not.toContain("Wyślij wniosek");
+  });
+
+  it("nagłówek w każdej zakładce wg uprawnień (nie tylko na Przeglądzie)", async () => {
+    dane(L1);
+    expect(naglowek(await render("dziennik"))).toContain('title="Wymaga BILLING_MANAGE"');
+  });
+
+  it("administrator: wszystko aktywne, odnośniki do miejsc na karcie", async () => {
+    dane({ role: "ADMIN", isAdmin: true, permissions: [] });
+    const html = await render("przeglad");
+    expect(naglowek(html)).not.toContain(`disabled=""`);
+    expect(operacja(html, "reset")).toContain(`href="/customers/${UID}?sekcja=dostepy#reset"`);
+    expect(operacja(html, "blokada-logowania")).toContain(`href="/customers/${UID}?sekcja=dostepy#blokada"`);
+    expect(operacja(html, "usuniecie")).toContain(`href="/customers/${UID}?sekcja=dostepy#usuniecie"`);
+    expect(html).not.toContain('disabled="" title="Wymaga');
+  });
+
+  it("L4 (BILLING_MANAGE, CUSTOMERS_MANAGE, bez roli administratora): kredyty, reset i blokada aktywne, usunięcie — nie", async () => {
+    dane({ role: "STAFF", isAdmin: false, permissions: [...L1.permissions, "CUSTOMERS_IMPERSONATE", "CUSTOMERS_MANAGE", "BILLING_MANAGE"] });
+    const html = await render("przeglad");
+    expect(naglowek(html)).not.toContain(`disabled=""`);
+    expect(operacja(html, "reset")).not.toContain(`disabled=""`);
+    expect(operacja(html, "blokada-logowania")).not.toContain(`disabled=""`);
+    expect(operacja(html, "usuniecie")).toContain('title="Wymaga roli administratora"');
   });
 });

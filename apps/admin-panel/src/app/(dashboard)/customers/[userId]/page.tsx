@@ -36,11 +36,11 @@ import { StatusVatNabywcyAkcje } from "./status-vat-nabywcy";
 import { opisStatusuVat, type StatusVatNabywcy } from "./status-vat-opis";
 import { fetchStaffAccess } from "@/lib/staff-access";
 import { NoweZgloszenieKlienta } from "./nowe-zgloszenie";
-import { dzialaniaObiektu } from "@/lib/akcje/rejestr";
-import { AKCJE_KLIENTA } from "@/lib/akcje/klient";
+import { dzialanieObiektu, dzialaniaObiektu } from "@/lib/akcje/rejestr";
+import { AKCJE_KLIENTA, type KlientDlaAkcji } from "@/lib/akcje/klient";
 import { DzialaniaKarty } from "@/components/dzialania-karty";
 import { LinkJesli } from "@/components/link-jesli";
-import { brakUprawnienia } from "@/lib/akcje/wezel";
+import { brakUprawnienia, type DzialanieNaKarcie } from "@/lib/akcje/wezel";
 import type { CordonRow } from "../../deliverability/actions";
 import type { ResellerRow } from "../../resellers/data";
 import type { ReferralEnrollmentRow } from "../../referral-enrollments/data";
@@ -152,14 +152,17 @@ export default async function AdminCustomerCardPage({
   // F2.5 — Zgłoszenia: „Nowe zgłoszenie w imieniu klienta” tylko z TICKETS_MANAGE (jak API).
   // F3.8 — Komunikacja: „Napisz do klienta” tylko z CUSTOMERS_VIEW + TICKETS_MANAGE (jak API).
   const zDzialaniami = sekcja === "przeglad" || sekcja === "dostepy" || sekcja === "rozliczenia" || sekcja === "zgloszenia" || sekcja === "komunikacja";
-  const [dostep, blokadaPoczty, reseller, partner] = zDzialaniami
-    ? await Promise.all([
-        fetchStaffAccess(),
-        adminApi<{ cordons?: CordonRow[] }>("/admin/deliverability/cordons").then((r) => r.cordons?.find((c) => c.userId === userId) ?? null, () => undefined),
-        adminApi<ResellerRow[]>("/admin/reseller").then((r) => (Array.isArray(r) ? (r.find((x) => x.userId === userId) ?? null) : undefined), () => undefined),
-        adminApi<ReferralEnrollmentRow[]>("/admin/users/referral-enrollments").then((r) => (Array.isArray(r) ? (r.find((x) => x.userId === userId) ?? null) : undefined), () => undefined),
-      ])
-    : [null, undefined, undefined, undefined];
+  // Weryfikacja 11.10 — uprawnienia w każdej zakładce: przyciski w nagłówku karty (kredyty, napisz, zaloguj) są wszędzie.
+  const [dostep, [blokadaPoczty, reseller, partner]] = await Promise.all([
+    fetchStaffAccess(),
+    zDzialaniami
+      ? Promise.all([
+          adminApi<{ cordons?: CordonRow[] }>("/admin/deliverability/cordons").then((r) => r.cordons?.find((c) => c.userId === userId) ?? null, () => undefined),
+          adminApi<ResellerRow[]>("/admin/reseller").then((r) => (Array.isArray(r) ? (r.find((x) => x.userId === userId) ?? null) : undefined), () => undefined),
+          adminApi<ReferralEnrollmentRow[]>("/admin/users/referral-enrollments").then((r) => (Array.isArray(r) ? (r.find((x) => x.userId === userId) ?? null) : undefined), () => undefined),
+        ])
+      : ([undefined, undefined, undefined] as const),
+  ]);
   // Fala 1B — gotowe endpointy API na karcie: maile do klienta (tokeny maskuje API), logowania, „Kto oglądał”.
   // undefined = nie udało się odczytać (karta mówi to wprost).
   const id = encodeURIComponent(userId);
@@ -208,6 +211,18 @@ export default async function AdminCustomerCardPage({
   const zgloszenieHref = (id: string) => new URL(`/tickets/${id}`, obsluga).toString();
   const mozeZalozyc = sekcja === "zgloszenia" && !!dostep && !brakUprawnienia("TICKETS_MANAGE", dostep);
   const mozeNapisac = sekcja === "komunikacja" && !!dostep && !brakUprawnienia({ wszystkie: ["CUSTOMERS_VIEW", "TICKETS_MANAGE"] }, dostep);
+  // Weryfikacja 11.10 — przyciski w nagłówku i w „Operacjach wrażliwych” z tego samego rejestru co lista „Działania”:
+  // L1 widział tam „Wymaga BILLING_MANAGE”, a przyciski obok były aktywne (API i tak odmawiało).
+  const klientDlaAkcji: KlientDlaAkcji = {
+    id: u.id,
+    blokadaPoczty: blokadaPoczty === undefined ? undefined : blokadaPoczty !== null,
+    reseller: reseller === undefined ? undefined : (reseller?.status ?? null),
+    partner: partner === undefined ? undefined : (partner?.status ?? null),
+    logowanieZablokowane: u.loginBlocked,
+    otwarteZgloszenie: (poTerminie[0] ?? otwarteZgl[0])?.id ?? null,
+    panelObslugi: obsluga,
+  };
+  const akcja = (id: string) => dzialanieObiektu(AKCJE_KLIENTA, id, klientDlaAkcji, dostep);
 
   const wierszUslugi = (s: ProfilKlienta["subscriptions"][number]) => {
     const st = s.account?.server && serweryZAwaria.has(s.account.server.id) && s.status === "ACTIVE" ? { t: "awaria", ton: "crit" as const } : stanUslugi(s.status, s.provisioningStage);
@@ -294,11 +309,12 @@ export default async function AdminCustomerCardPage({
           </div>
         </div>
         <div id="akcje-klienta" className="ml-auto flex scroll-mt-24 flex-wrap gap-2.5">
-          <CreditWalletButton userId={u.id} email={u.email} currentBalance={u.walletBalance} className={PRZYCISK} etykieta="Dodaj kredyty" />
-          <a href={`mailto:${u.email}`} className={PRZYCISK}>
+          <CreditWalletButton userId={u.id} email={u.email} currentBalance={u.walletBalance} className={PRZYCISK} etykieta="Dodaj kredyty" zablokowane={akcja("kredyty").zablokowane} />
+          {/* Mail serwisowy z karty (F3.8, w historii komunikacji) zamiast mailto: z prywatnej skrzynki operatora. */}
+          <PrzyciskAkcji d={akcja("napisz")} className={PRZYCISK}>
             Napisz do klienta
-          </a>
-          <ImpersonateButton userId={u.id} email={u.email} accountRole="USER" className={PRZYCISK_GLOWNY} etykieta="Zaloguj jako klient" />
+          </PrzyciskAkcji>
+          <ImpersonateButton userId={u.id} email={u.email} accountRole="USER" className={PRZYCISK_GLOWNY} etykieta="Zaloguj jako klient" zablokowane={akcja("zaloguj").zablokowane} />
         </div>
       </div>
 
@@ -361,19 +377,7 @@ export default async function AdminCustomerCardPage({
       {sekcja === "przeglad" && dostep ? (
         <DzialaniaKarty
           id="dzialania-klienta"
-          dzialania={dzialaniaObiektu(
-            AKCJE_KLIENTA,
-            {
-              id: u.id,
-              blokadaPoczty: blokadaPoczty === undefined ? undefined : blokadaPoczty !== null,
-              reseller: reseller === undefined ? undefined : (reseller?.status ?? null),
-              partner: partner === undefined ? undefined : (partner?.status ?? null),
-              logowanieZablokowane: u.loginBlocked,
-              otwarteZgloszenie: (poTerminie[0] ?? otwarteZgl[0])?.id ?? null,
-              panelObslugi: obsluga,
-            },
-            dostep,
-          )}
+          dzialania={dzialaniaObiektu(AKCJE_KLIENTA, klientDlaAkcji, dostep)}
         />
       ) : null}
 
@@ -493,22 +497,22 @@ export default async function AdminCustomerCardPage({
                 <span className="text-[13px] text-muted-foreground">każda wymaga powodu i trafia do dziennika</span>
               </div>
               {[
-                { t: "Reset hasła", a: "Resetuj…", h: "reset" },
-                { t: "Zmiana adresu e-mail", a: "Zmień…", h: "email" },
-                { t: u.loginBlocked ? "Odblokowanie logowania" : "Blokada logowania", a: u.loginBlocked ? "Odblokuj…" : "Zablokuj…", h: "blokada" },
+                { t: "Reset hasła", a: "Resetuj…", id: "reset" },
+                { t: "Zmiana adresu e-mail", a: "Zmień…", id: "email" },
+                { t: u.loginBlocked ? "Odblokowanie logowania" : "Blokada logowania", a: u.loginBlocked ? "Odblokuj…" : "Zablokuj…", id: "blokada-logowania" },
               ].map((o) => (
-                <div key={o.h} className={WIERSZ}>
+                <div key={o.id} className={WIERSZ} data-operacja={o.id}>
                   <span className="flex-1">{o.t}</span>
-                  <Link href={`${baza}?sekcja=dostepy#${o.h}`} className={`${PRZYCISK} !h-8 !text-[13px]`}>
+                  <PrzyciskAkcji d={akcja(o.id)} className={`${PRZYCISK} !h-8 !text-[13px]`}>
                     {o.a}
-                  </Link>
+                  </PrzyciskAkcji>
                 </div>
               ))}
-              <div className={WIERSZ}>
+              <div className={WIERSZ} data-operacja="usuniecie">
                 <span className="flex-1 text-crit">Usunięcie konta (RODO)</span>
-                <Link href={`${baza}?sekcja=dostepy#usuniecie`} className={`${PRZYCISK} !h-8 !border-[color-mix(in_srgb,var(--crit)_40%,transparent)] !text-[13px] !text-crit`}>
+                <PrzyciskAkcji d={akcja("usuniecie")} className={`${PRZYCISK} !h-8 !border-[color-mix(in_srgb,var(--crit)_40%,transparent)] !text-[13px] !text-crit`}>
                   Usuń…
-                </Link>
+                </PrzyciskAkcji>
               </div>
             </section>
           </div>
@@ -707,6 +711,33 @@ export default async function AdminCustomerCardPage({
 }
 
 const ton = (poziom: "low" | "medium" | "high") => (poziom === "high" ? "text-crit" : poziom === "medium" ? "text-warn" : "text-data-hi");
+
+/**
+ * Przycisk-odnośnik do miejsca działania na karcie. Bez uprawnienia — wyszarzony z dymkiem „Wymaga …” (jak pozycja
+ * listy „Działania”), a gdy API przyjmuje wniosek — obok „Wyślij wniosek →” do formularza.
+ */
+function PrzyciskAkcji({ d, className, children }: { d: DzialanieNaKarcie; className: string; children: React.ReactNode }) {
+  if (!d.zablokowane) {
+    return (
+      <Link href={d.href} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-2">
+      <button type="button" disabled title={d.zablokowane} className={`${className} cursor-not-allowed`}>
+        {children}
+        <span className="sr-only"> — {d.zablokowane}</span>
+      </button>
+      {d.wniosek ? (
+        <Link href={d.href} className="text-xs font-semibold text-warn underline-offset-2 hover:underline">
+          Wyślij wniosek →
+        </Link>
+      ) : null}
+    </span>
+  );
+}
 
 function Para({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
   return (

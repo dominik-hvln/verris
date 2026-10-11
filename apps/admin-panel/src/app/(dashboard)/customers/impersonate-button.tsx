@@ -11,7 +11,8 @@ interface Props {
   accountRole: "USER" | "STAFF" | "ADMIN";
 }
 
-export function ImpersonateButton({ userId, email, accountRole, className, etykieta }: Props & { className?: string; etykieta?: React.ReactNode }) {
+/** `zablokowane` — powód z rejestru działań klienta („Wymaga CUSTOMERS_IMPERSONATE”): przycisk wyszarzony z dymkiem, bez okna. */
+export function ImpersonateButton({ userId, email, accountRole, className, etykieta, zablokowane }: Props & { className?: string; etykieta?: React.ReactNode; zablokowane?: string | null }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +33,15 @@ export function ImpersonateButton({ userId, email, accountRole, className, etyki
       // success path triggers a server-side redirect, so this code path won't run.
     });
   };
+
+  if (zablokowane) {
+    return (
+      <button type="button" disabled title={zablokowane} className={`${className ?? "inline-flex items-center gap-1.5 rounded-md border border-white/10 px-3 py-1.5 text-xs font-medium"} cursor-not-allowed opacity-50`}>
+        {etykieta ?? "Wejdź na konto"}
+        <span className="sr-only"> — {zablokowane}</span>
+      </button>
+    );
+  }
 
   return (
     <>

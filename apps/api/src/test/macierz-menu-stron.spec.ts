@@ -1,4 +1,4 @@
-import { ExecutionContext, ForbiddenException, type Type } from '@nestjs/common';
+import { ExecutionContext, ForbiddenException, RequestMethod, type Type } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GUARDS_METADATA, METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -20,9 +20,16 @@ import { ROLE_SYSTEMOWE } from '../staff-roles/role-systemowe.js';
 const KORZEN = resolve(import.meta.dirname, '..', '..', '..', '..');
 const PLIK_STRON = join(KORZEN, 'apps/admin-panel/src/lib/uprawnienia-stron.ts');
 const PLIK_MENU = join(KORZEN, 'apps/admin-panel/src/components/admin-shell.tsx');
+const PLIK_AKCJI_KLIENTA = join(KORZEN, 'apps/admin-panel/src/lib/akcje/klient.ts');
 
-type Warunek = null | string | string[];
-const warunek = (tekst: string): Warunek => (tekst === 'null' ? null : (JSON.parse(tekst) as string | string[]));
+type Warunek = null | string | string[] | { wszystkie: string[] };
+/** `null`, `"X"`, `["A", "B"]` albo `{ wszystkie: ["A", "B"] }` — zapis jak w panelu (lib/akcje/wezel.ts). */
+const warunek = (tekst: string): Warunek => {
+  if (tekst === 'null') return null;
+  const wszystkie = /^\{ wszystkie: (\[[^\]]*\]) \}$/.exec(tekst);
+  if (wszystkie) return { wszystkie: JSON.parse(wszystkie[1]!) as string[] };
+  return JSON.parse(tekst) as string | string[];
+};
 
 interface Strona {
   perm: Warunek;
@@ -50,15 +57,32 @@ function pozycjeMenu(): { href: string; perm: Warunek }[] {
   return [...tekst.matchAll(re)].map((m) => ({ href: m[1]!, perm: m[2] ? warunek(m[2]) : null }));
 }
 
-/** Warunek strony/menu jak brakUprawnienia w panelu (dla STAFF): „ADMIN” — nigdy, lista — którekolwiek. */
+/**
+ * Działania na karcie klienta z trasą API (lib/akcje/klient.ts, pole `api`) — przyciski w nagłówku karty,
+ * „Operacje wrażliwe” i lista „Działania” biorą z nich powód blokady.
+ */
+function akcjeKlienta(): { id: string; perm: Warunek; metoda: string; sciezka: string }[] {
+  const tekst = readFileSync(PLIK_AKCJI_KLIENTA, 'utf-8');
+  const bloki = tekst.split(/\n {2}\{\n/).slice(1);
+  return bloki.flatMap((b) => {
+    const id = /^\s*id: "([^"]+)",/.exec(b)?.[1];
+    const perm = /\n\s*perm: (.+),\n/.exec(b)?.[1];
+    const api = /\n\s*api: "([A-Z]+) ([^"]+)",\n/.exec(b);
+    if (!id || !perm || !api) return [];
+    return [{ id, perm: warunek(perm), metoda: api[1]!, sciezka: api[2]! }];
+  });
+}
+
+/** Warunek strony/menu jak brakUprawnienia w panelu (dla STAFF): „ADMIN” — nigdy, lista — którekolwiek, `wszystkie` — każde. */
 function spelnia(w: Warunek, uprawnienia: readonly string[]): boolean {
   if (w === null) return true;
+  if (!Array.isArray(w) && typeof w === 'object') return !w.wszystkie.includes('ADMIN') && w.wszystkie.every((p) => uprawnienia.includes(p));
   const lista = typeof w === 'string' ? [w] : w;
   if (lista.includes('ADMIN')) return false;
   return lista.some((p) => uprawnienia.includes(p));
 }
 
-type Trasa = { nazwa: string; klasa: Type<unknown>; handler: object; sciezka: string };
+type Trasa = { nazwa: string; klasa: Type<unknown>; handler: object; sciezka: string; metoda: string };
 
 function plikiKontrolerow(dir: string): string[] {
   return readdirSync(dir).flatMap((n) => {
@@ -68,7 +92,7 @@ function plikiKontrolerow(dir: string): string[] {
   });
 }
 
-async function trasyGet(): Promise<Trasa[]> {
+async function wszystkieTrasy(): Promise<Trasa[]> {
   const out: Trasa[] = [];
   for (const plik of plikiKontrolerow(resolve(import.meta.dirname, '..'))) {
     const mod = (await import(plik)) as Record<string, unknown>;
@@ -79,9 +103,10 @@ async function trasyGet(): Promise<Trasa[]> {
       for (const metoda of Object.getOwnPropertyNames(klasa.prototype)) {
         const handler = (klasa.prototype as Record<string, unknown>)[metoda];
         if (metoda === 'constructor' || typeof handler !== 'function') continue;
-        if (Reflect.getMetadata(METHOD_METADATA, handler) !== 0) continue; // tylko GET (RequestMethod.GET = 0)
+        const rodzaj = Reflect.getMetadata(METHOD_METADATA, handler) as RequestMethod | undefined;
+        if (rodzaj === undefined) continue;
         const sciezka = [baza, String(Reflect.getMetadata(PATH_METADATA, handler) ?? '')].join('/').split('/').filter(Boolean).join('/');
-        out.push({ nazwa: `${nazwa}.${metoda}`, klasa: klasa as Type<unknown>, handler: handler as object, sciezka });
+        out.push({ nazwa: `${nazwa}.${metoda}`, klasa: klasa as Type<unknown>, handler: handler as object, sciezka, metoda: RequestMethod[rodzaj] });
       }
     }
   }
@@ -117,8 +142,8 @@ async function wpuszcza(t: Trasa, uprawnienia: readonly string[]): Promise<boole
 
 const STRONY = stronyPanelu();
 const MENU = pozycjeMenu();
-const TRASY = await trasyGet();
-const trasa = (sciezka: string) => TRASY.filter((t) => ksztalt(t.sciezka) === ksztalt(sciezka));
+const WSZYSTKIE_TRASY = await wszystkieTrasy();
+const trasa = (sciezka: string, metoda = 'GET') => WSZYSTKIE_TRASY.filter((t) => t.metoda === metoda && ksztalt(t.sciezka) === ksztalt(sciezka));
 
 /** Strona otwiera się roli: bramka strony i strażnicy każdej trasy czytanej przy wejściu. */
 async function otwieraSie(href: string, uprawnienia: readonly string[]): Promise<string | null> {
@@ -172,5 +197,42 @@ describe('weryfikacja 11.10 — macierz: menu ⊆ strony, które się otworzą (
     expect(await otwieraSie('/subscriptions', l1)).toBeNull();
     expect(await otwieraSie('/metrics', l1)).toMatch(/METRICS_VIEW/);
     expect(await otwieraSie('/resellers', l1)).toMatch(/CUSTOMERS_MANAGE/);
+  });
+});
+
+/**
+ * Weryfikacja 11.10 (prod, „L1 Konsultant”) — na karcie klienta lista „Działania” mówiła „Wymaga BILLING_MANAGE”, a przyciski
+ * w nagłówku („Dodaj kredyty”, „Napisz do klienta”, „Zaloguj jako klient”) i „Operacje wrażliwe” (reset hasła, zmiana
+ * e-maila, blokada, usunięcie RODO) były aktywne. Przyciski biorą teraz powód z rejestru lib/akcje/klient.ts; tu — że rejestr
+ * zgadza się z prawdziwymi strażnikami tras, które te przyciski wołają: aktywne w panelu ⇔ API przepuści (dla każdej roli).
+ */
+describe('weryfikacja 11.10 — przyciski karty klienta ⇔ strażnicy API (każda rola systemowa)', () => {
+  const AKCJE = akcjeKlienta();
+  const PRZYCISKI = ['kredyty', 'napisz', 'zaloguj', 'reset', 'email', 'blokada-logowania', 'usuniecie'];
+
+  it('nagłówek i „Operacje wrażliwe”: każde działanie ma w rejestrze trasę API, a trasa istnieje', () => {
+    expect(AKCJE.map((a) => a.id)).toEqual(expect.arrayContaining(PRZYCISKI));
+    const nieznane = AKCJE.filter((a) => trasa(a.sciezka, a.metoda).length !== 1).map((a) => `${a.id}: ${a.metoda} ${a.sciezka}`);
+    expect(nieznane).toEqual([]);
+  });
+
+  it.each(ROLE_SYSTEMOWE.map((r) => [r.name, r.permissions] as const))('%s: przycisk aktywny w panelu ⇔ API przepuszcza', async (_rola, uprawnienia) => {
+    const rozjazdy: string[] = [];
+    for (const a of AKCJE) {
+      const panel = spelnia(a.perm, uprawnienia);
+      const api = await wpuszcza(trasa(a.sciezka, a.metoda)[0]!, uprawnienia);
+      if (panel !== api) rozjazdy.push(`${a.id}: panel ${panel ? 'aktywny' : 'wyszarzony'}, ${a.metoda} ${a.sciezka} ${api ? 'przepuszcza' : '403'}`);
+    }
+    expect(rozjazdy).toEqual([]);
+  });
+
+  it('L1 Konsultant: API odmawia kredytów, wejścia na konto, resetu hasła, zmiany e-maila, blokady i usunięcia; mail serwisowy — tak', async () => {
+    const l1 = ROLE_SYSTEMOWE.find((r) => r.name === 'L1 Konsultant')!.permissions;
+    const wynik: Record<string, boolean> = {};
+    for (const id of PRZYCISKI) {
+      const a = AKCJE.find((x) => x.id === id)!;
+      wynik[id] = await wpuszcza(trasa(a.sciezka, a.metoda)[0]!, l1);
+    }
+    expect(wynik).toEqual({ kredyty: false, napisz: true, zaloguj: false, reset: false, email: false, 'blokada-logowania': false, usuniecie: false });
   });
 });
