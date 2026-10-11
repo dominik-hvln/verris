@@ -29,6 +29,8 @@ import { SlaAdminController } from './sla.admin.controller.js';
 import { FakturyScheduler } from './faktury.scheduler.js';
 import { KorektyService } from './korekty.service.js';
 import { FakturyZewnetrzneService } from './faktury-zewnetrzne.service.js';
+import { RozliczeniaOperatoraService } from './rozliczenia-operatora.service.js';
+import { RozliczeniaAdminController } from './rozliczenia.admin.controller.js';
 import { MailModule } from '../mail/mail.module.js';
 import { KsefModule } from '../ksef/ksef.module.js';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module.js';
@@ -47,6 +49,7 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
     InvoicesController,
     InvoicesAdminController,
     VatWeryfikacjaAdminController,
+    RozliczeniaAdminController,
   ],
   providers: [
     BillingService,
@@ -69,6 +72,7 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
     FakturyScheduler,
     KorektyService,
     FakturyZewnetrzneService,
+    RozliczeniaOperatoraService,
   ],
   exports: [BillingService, VatNabywcyService, WalletLedgerService, StripeService, InvoicesService, PromoService, WalletAutoTopupService, KorektyService, AnulowanieService],
 })

@@ -20,7 +20,8 @@ interface ReminderWindowSpec {
   auditAction: string;
 }
 
-const REMINDER_WINDOWS: ReminderWindowSpec[] = [
+/** Eksport — F3.6 pokazuje progi przypomnień w panelu operatora (billing/windykacja.ts). */
+export const REMINDER_WINDOWS: readonly ReminderWindowSpec[] = [
   { window: 'T_MINUS_7', daysBefore: 7, halfWidthHours: 1, auditAction: 'SUBSCRIPTION_REMINDER_T7' },
   { window: 'T_MINUS_3', daysBefore: 3, halfWidthHours: 1, auditAction: 'SUBSCRIPTION_REMINDER_T3' },
   { window: 'T_MINUS_1', daysBefore: 1, halfWidthHours: 1, auditAction: 'SUBSCRIPTION_REMINDER_T1' },

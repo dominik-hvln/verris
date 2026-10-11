@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { ClientWebhooksService } from '../client-webhooks/client-webhooks.service.js';
 import { ConfigService } from '@nestjs/config';
-import { Invoice, InvoiceStatus, Prisma } from '@verris/database';
+import { Invoice, InvoiceStatus, KsefStatus, Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { MailerService } from '../mail/mailer.service.js';
@@ -672,6 +672,8 @@ export class InvoicesService {
         select: { paymentProvider: true },
       });
       if (wpis?.paymentProvider === 'PAYNOW') return 'Płatność online (Paynow)';
+      // F3.6 — wpłata na rachunek zaksięgowana przez Finanse: tylko etykieta formy zapłaty na wydruku.
+      if (wpis?.paymentProvider === 'PRZELEW') return 'Przelew bankowy';
     }
     if (invoice.provider === 'STRIPE' || invoice.provider === DOSTAWCA_DOLADOWANIE) return 'Karta płatnicza';
     return 'Portfel Verris';
@@ -901,6 +903,10 @@ export class InvoicesService {
     if (filters.statuses && filters.statuses.length > 0) {
       where.status = { in: filters.statuses };
     }
+    // F3.6 — filtr po stanie w KSeF (np. odrzucone do poprawy) — odczyt istniejącego pola.
+    if (filters.ksefStatuses && filters.ksefStatuses.length > 0) {
+      where.ksefStatus = { in: filters.ksefStatuses };
+    }
     if (filters.from || filters.to) {
       where.createdAt = {};
       if (filters.from) where.createdAt.gte = filters.from;
@@ -950,6 +956,7 @@ export interface AdminInvoiceFilters {
   search?: string;
   userId?: string;
   statuses?: InvoiceStatus[];
+  ksefStatuses?: KsefStatus[];
   from?: Date;
   to?: Date;
   limit?: number;
@@ -970,6 +977,9 @@ export interface AdminInvoiceDto extends InvoiceDto {
     domain: string | null;
   } | null;
   hasVerrisPdf: boolean;
+  /** F3.6 — kolumna „KSeF” na liście: stan i numer nadany przez KSeF (odczyt, bez zmian w wysyłce). */
+  ksefStatus: KsefStatus;
+  ksefNumber: string | null;
 }
 
 export interface AdminInvoiceDetailDto extends AdminInvoiceDto {
@@ -1050,6 +1060,8 @@ function toAdminDto(row: AdminInvoiceWithRelations): AdminInvoiceDto {
         }
       : null,
     hasVerrisPdf: !!row.storageKey,
+    ksefStatus: row.ksefStatus,
+    ksefNumber: row.ksefNumber,
   };
 }
 

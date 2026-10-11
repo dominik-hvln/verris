@@ -437,3 +437,18 @@ export const CyklZyciaUslugiActions = {
   /** Dodatek kupiony przez klienta albo dodany przez obsługę (z portfela klienta albo gratis). */
   ADDON_PURCHASED: 'ADDON_PURCHASED',
 } as const;
+
+// ---------------------------------------------------------------------------
+// F3.6 — rozliczenia prowadzone przez Finanse/L4 (portfel klienta)
+// ---------------------------------------------------------------------------
+
+/**
+ * Wpisy na koncie klienta (userId = klient, actor = operator): klient widzi je w „Aktywności konta” jako
+ * „obsługa Verris (zgłoszenie #…)” (D3). Dziennik zespołu z powodem to osobny OPERATOR_ACCOUNT_CHANGED.
+ */
+export const RozliczeniaOperatoraActions = {
+  /** Korekta salda portfela (+/−) przez obsługę; details: walletTxId, kwota (ze znakiem), zgloszenieId. */
+  WALLET_OPERATOR_ADJUSTED: 'WALLET_OPERATOR_ADJUSTED',
+  /** Wpłata przelewem zaksięgowana na portfel; details: walletTxId, kwota, referencja, zgloszenieId. */
+  WALLET_MANUAL_PAYMENT_POSTED: 'WALLET_MANUAL_PAYMENT_POSTED',
+} as const;

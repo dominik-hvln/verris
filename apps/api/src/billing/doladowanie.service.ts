@@ -61,8 +61,11 @@ export class DoladowanieService {
     meta?: Record<string, string | undefined> | null;
     idempotencyKey: string;
     paymentRef: string;
-    /** Bramka wpłaty — domyślnie STRIPE (Checkout, auto-doładowanie); PAYNOW dla doładowań przez Paynow. */
-    paymentProvider?: 'STRIPE' | 'PAYNOW';
+    /**
+     * Bramka wpłaty — domyślnie STRIPE (Checkout, auto-doładowanie); PAYNOW dla doładowań przez Paynow;
+     * PRZELEW — wpłata na rachunek zaksięgowana ręcznie przez Finanse (F3.6, rozliczenia-operatora.service.ts).
+     */
+    paymentProvider?: 'STRIPE' | 'PAYNOW' | 'PRZELEW';
     opis: string;
     zaplaconoAt: Date;
     metadata?: Record<string, unknown>;

@@ -782,3 +782,36 @@ describe('F3.3 — kopie floty', () => {
     expect(await wpuszcza(t, KLIENT, ['NODES_VIEW'])).toBe(false);
   });
 });
+
+/**
+ * F3.6 — rozliczenia: odczyt (nieudane płatności, ruchy portfela, przypomnienia i zawieszenia) od BILLING_VIEW — L1,
+ * Finanse, Audytor; pieniądze (wpłata przelewem, korekta salda, ponowienie auto-doładowania) — BILLING_MANAGE (L4,
+ * Finanse). NOC, Marketing i zespół abuse rozliczeń nie widzą.
+ */
+describe('F3.6 — rozliczenia operatora', () => {
+  const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
+  const trasy = TRASY.filter((t) => t.kontroler === 'RozliczeniaAdminController');
+  const ODCZYT = ['nieudanePlatnosci', 'windykacja', 'windykacjaKlienta', 'ruchyPortfela'];
+  const ZMIANY = ['ponowAutoDoladowanie', 'korektaSalda', 'zaksiegujPrzelew'];
+  const wynik = async (uprawnienia: string[]) => Object.fromEntries(await Promise.all(trasy.map(async (t) => [t.metoda, await wpuszcza(t, OPERATOR, uprawnienia)] as const)));
+  const oczekiwane = (odczyt: boolean, zmiany: boolean) => Object.fromEntries([...ODCZYT.map((m) => [m, odczyt]), ...ZMIANY.map((m) => [m, zmiany])]);
+
+  it('trasy pod admin/rozliczenia', () => {
+    expect(trasy.map((t) => t.metoda).sort()).toEqual([...ODCZYT, ...ZMIANY].sort());
+    expect(trasy.every((t) => t.sciezka.startsWith('admin/rozliczenia/'))).toBe(true);
+  });
+
+  it('L1, L2, L3 i Audytor: odczyt tak, pieniądze nie; L4 i Finanse: wszystko; NOC, Marketing, abuse: nic', async () => {
+    for (const r of ['L1 Konsultant', 'L2 Specjalista techniczny', 'L3 Starszy specjalista', 'Audytor (tylko podgląd)']) {
+      expect({ r, w: await wynik(rola(r)) }).toEqual({ r, w: oczekiwane(true, false) });
+    }
+    for (const r of ['L4 Kierownik zmiany', 'Finanse i księgowość']) expect({ r, w: await wynik(rola(r)) }).toEqual({ r, w: oczekiwane(true, true) });
+    for (const r of ['Inżynier infrastruktury (NOC/DevOps)', 'Marketing', 'Nadużycia i bezpieczeństwo']) {
+      expect({ r, w: await wynik(rola(r)) }).toEqual({ r, w: oczekiwane(false, false) });
+    }
+    for (const t of trasy) {
+      expect(await wpuszcza(t, ADMIN)).toBe(true);
+      expect(await wpuszcza(t, KLIENT, ['*', 'BILLING_VIEW', 'BILLING_MANAGE'])).toBe(false);
+    }
+  });
+});

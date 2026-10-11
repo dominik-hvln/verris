@@ -14,7 +14,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Response } from 'express';
-import { InvoiceStatus, Role } from '@verris/database';
+import { InvoiceStatus, KsefStatus, Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
@@ -55,6 +55,16 @@ function parseStatusList(raw: string | undefined): InvoiceStatus[] | undefined {
   return parts.length > 0 ? parts : undefined;
 }
 
+/** F3.6 — filtr kolumny „KSeF” (np. `REJECTED,OFFLINE`). */
+function parseKsefList(raw: string | undefined): KsefStatus[] | undefined {
+  if (!raw) return undefined;
+  const parts = raw.split(',').map((s) => s.trim().toUpperCase()).filter(Boolean);
+  for (const p of parts) {
+    if (!(p in KsefStatus)) throw new BadRequestException(`Niepoprawny stan KSeF: ${p}`);
+  }
+  return parts.length > 0 ? (parts as KsefStatus[]) : undefined;
+}
+
 function parseDate(raw: string | undefined, label: string): Date | undefined {
   if (!raw) return undefined;
   const d = new Date(raw);
@@ -90,11 +100,13 @@ export class InvoicesAdminController {
     @Query('to') to: string | undefined,
     @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
     @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
+    @Query('ksef') ksef?: string,
   ) {
     return this.invoices.listForAdmin({
       search: search?.trim() || undefined,
       userId: userId?.trim() || undefined,
       statuses: parseStatusList(status),
+      ksefStatuses: parseKsefList(ksef),
       from: parseDate(from, 'from'),
       to: parseDate(to, 'to'),
       limit,

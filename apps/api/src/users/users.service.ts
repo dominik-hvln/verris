@@ -755,7 +755,9 @@ export class UsersService {
       // F3.5 — cykl życia usługi (rezygnacja i jej cofnięcie, data odnowienia, obietnica zapłaty) i dodatki — także
       // zmienione przez obsługę (D3: „obsługa Verris (zgłoszenie #…)”).
       'SUBSCRIPTION_CANCEL_SCHEDULED', 'SUBSCRIPTION_CANCEL_REVOKED', 'SUBSCRIPTION_RENEWAL_DATE_CHANGED',
-      'SUBSCRIPTION_PAYMENT_PROMISE_SET', 'SUBSCRIPTION_PAYMENT_PROMISE_REVOKED', 'ADDON_PURCHASED'];
+      'SUBSCRIPTION_PAYMENT_PROMISE_SET', 'SUBSCRIPTION_PAYMENT_PROMISE_REVOKED', 'ADDON_PURCHASED',
+      // F3.6 — portfel prowadzony przez obsługę: korekta salda i zaksięgowana wpłata przelewem.
+      'WALLET_OPERATOR_ADJUSTED', 'WALLET_MANUAL_PAYMENT_POSTED'];
     const take = Math.min(Math.max(limit, 1), 100);
     const rows = await this.prisma.auditLog.findMany({
       where: {

@@ -60,4 +60,21 @@ describe('Strona faktury (admin) — getForAdmin', () => {
     const rk = await serwis().getForAdmin(k.id);
     expect(rk).toMatchObject({ kind: 'KOREKTA', korygowana: { id: f.id, number: 'VFV/2026/10/0001' }, platnosci: [] });
   });
+
+  it('F3.6 — lista faktur: kolumna KSeF (stan i numer) i filtr po stanie KSeF', async () => {
+    const u = await prisma().user.create({ data: { email: `f36-ksef-${Date.now()}@test.verris.pl`, passwordHash: 'x' } });
+    const baza = { userId: u.id, status: 'PAID' as const, amount: new Prisma.Decimal('10.00'), currency: 'PLN' };
+    await prisma().invoice.create({ data: { ...baza, number: 'VFV/2026/10/0101', ksefStatus: 'ACCEPTED', ksefNumber: '1234567890-20261011-ABCDEF-01' } });
+    await prisma().invoice.create({ data: { ...baza, number: 'VFV/2026/10/0102', ksefStatus: 'REJECTED' } });
+    await prisma().invoice.create({ data: { ...baza, number: 'VFV/2026/10/0103' } });
+
+    const wszystkie = await serwis().listForAdmin({ userId: u.id });
+    expect(Object.fromEntries(wszystkie.rows.map((r) => [r.number, [r.ksefStatus, r.ksefNumber]]))).toEqual({
+      'VFV/2026/10/0101': ['ACCEPTED', '1234567890-20261011-ABCDEF-01'],
+      'VFV/2026/10/0102': ['REJECTED', null],
+      'VFV/2026/10/0103': ['NOT_APPLICABLE', null],
+    });
+    const odrzucone = await serwis().listForAdmin({ userId: u.id, ksefStatuses: ['REJECTED', 'OFFLINE'] });
+    expect(odrzucone.rows.map((r) => r.number)).toEqual(['VFV/2026/10/0102']);
+  });
 });

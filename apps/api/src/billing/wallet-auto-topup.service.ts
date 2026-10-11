@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -8,6 +8,25 @@ import { MailerService } from '../mail/mailer.service.js';
 import { walletAutoTopupFailedTemplate } from '../mail/templates/billing-lifecycle-notifications.js';
 
 const COOLDOWN_MS = 60 * 60 * 1000;
+
+export type WynikProby =
+  | { wynik: 'zlecono'; status: string; paymentIntentId: string }
+  | { wynik: 'pominieto'; powod: string }
+  | { wynik: 'blad'; powod: string };
+
+/**
+ * F3.6 — czy operator może ponowić auto-doładowanie (null = może). Płatność „w przetwarzaniu” (`status=processing`)
+ * jeszcze może wejść — ponowienie obciążyłoby kartę drugi raz.
+ */
+export function powodBlokadyPonowienia(r: { enabled: boolean; lastAttemptOk: boolean | null; lastAttemptError: string | null }): string | null {
+  if (!r.enabled) return 'Auto-doładowanie jest wyłączone przez klienta.';
+  if (r.lastAttemptOk === null) return 'Próba auto-doładowania właśnie trwa albo jeszcze się nie odbyła.';
+  if (r.lastAttemptOk) return 'Ostatnie auto-doładowanie się udało — nie ma czego ponawiać.';
+  if (/^status=(processing|requires_capture)/.test(r.lastAttemptError ?? '')) {
+    return 'Płatność jest w przetwarzaniu u operatora kart — poczekaj na jej wynik.';
+  }
+  return null;
+}
 
 const POWODY_AUTODOLADOWANIA: [RegExp, string][] = [
   [/insufficient.?funds|brak\w* środków/i, 'Na karcie brakuje środków.'],
@@ -131,13 +150,31 @@ export class WalletAutoTopupService {
 
     for (const rule of rules) {
       try {
-        await this.maybeTrigger(rule);
+        await this.maybeTrigger(rule, null);
       } catch (err) {
         this.logger.warn(
           `auto-topup scheduling failed user=${rule.userId}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }
+  }
+
+  /**
+   * F3.6 — „Ponów” na liście nieudanych płatności (Finanse/L4): ta sama ścieżka co harmonogram (próg, karta,
+   * zajęcie reguły przed obciążeniem), tylko bez czekania na koniec karencji po błędzie. Wolno wyłącznie, gdy reguła
+   * jest włączona, a ostatnia próba skończyła się błędem — nie w trakcie próby i nie przy płatności „w przetwarzaniu”
+   * (mogłaby jeszcze wejść, a ponowienie obciążyłoby kartę drugi raz). Błąd karty = błąd dla operatora.
+   */
+  async ponowPoBledzie(userId: string): Promise<WynikProby> {
+    if (!this.stripe.isConfigured()) throw new BadRequestException('Płatności kartą nie są skonfigurowane.');
+    const rule = await this.prisma.walletAutoTopup.findUnique({
+      where: { userId },
+      include: { user: { select: { id: true, email: true, firstName: true, walletBalance: true, walletCurrency: true, stripeCustomerId: true, defaultPaymentMethodId: true } } },
+    });
+    if (!rule) throw new NotFoundException('Klient nie ma auto-doładowania.');
+    const powod = powodBlokadyPonowienia(rule);
+    if (powod) throw new ConflictException(powod);
+    return this.maybeTrigger(rule, { poprzedniaProba: rule.lastAttemptAt });
   }
 
   private async maybeTrigger(
@@ -156,15 +193,16 @@ export class WalletAutoTopupService {
         defaultPaymentMethodId: string | null;
       };
     },
-  ): Promise<void> {
+    ponowienie: { poprzedniaProba: Date | null } | null,
+  ): Promise<WynikProby> {
     if (rule.user.walletCurrency !== rule.currency) {
-      return;
+      return { wynik: 'pominieto', powod: 'Waluta portfela inna niż waluta reguły.' };
     }
     if (rule.user.walletBalance.gte(rule.threshold)) {
-      return;
+      return { wynik: 'pominieto', powod: 'Saldo jest już powyżej progu auto-doładowania.' };
     }
     if (!rule.user.stripeCustomerId) {
-      return;
+      return { wynik: 'pominieto', powod: 'Klient nie ma konta płatności kartą.' };
     }
 
     let stripePm = rule.user.defaultPaymentMethodId ?? null;
@@ -186,23 +224,30 @@ export class WalletAutoTopupService {
         null,
         rule,
       );
-      return;
+      return { wynik: 'blad', powod: 'Brak zapisanej karty — ustaw domyślną metodę płatności.' };
     }
 
     const minor = Math.round(rule.topupAmount.toNumber() * 100);
-    if (minor < 100) return;
+    if (minor < 100) return { wynik: 'pominieto', powod: 'Kwota auto-doładowania poniżej 1 zł.' };
 
     // Zajęcie przed obciążeniem karty: dwa nakładające się przebiegi (albo dwie instancje API)
     // obciążały kartę dwa razy — klucz idempotencji Stripe scalał je tylko w tej samej godzinie,
     // a karencja zapisywała się dopiero po odpowiedzi Stripe. Wygrywa jeden przebieg.
+    // F3.6 — `lastAttemptOk: null` = próba w toku (ponowienie z panelu jej nie dubluje). Ponowienie zajmuje regułę
+    // warunkiem „ta sama nieudana próba, którą operator widział” — dwa kliknięcia albo dwóch operatorów: wygrywa jedno.
     const teraz = new Date();
     const zajete = await this.prisma.walletAutoTopup.updateMany({
-      where: { userId: rule.userId, enabled: true, OR: [{ cooldownUntil: null }, { cooldownUntil: { lte: teraz } }] },
-      data: { cooldownUntil: new Date(teraz.getTime() + COOLDOWN_MS), lastAttemptAt: teraz },
+      where: ponowienie
+        ? { userId: rule.userId, enabled: true, lastAttemptOk: false, lastAttemptAt: ponowienie.poprzedniaProba }
+        : { userId: rule.userId, enabled: true, OR: [{ cooldownUntil: null }, { cooldownUntil: { lte: teraz } }] },
+      data: { cooldownUntil: new Date(teraz.getTime() + COOLDOWN_MS), lastAttemptAt: teraz, lastAttemptOk: null },
     });
-    if (zajete.count === 0) return;
+    if (zajete.count === 0) return { wynik: 'pominieto', powod: 'Inna próba właśnie trwa — odśwież listę.' };
 
-    const piIdempotencyKey = `auto-topup:intent:${rule.userId}:${Math.floor(teraz.getTime() / COOLDOWN_MS)}`;
+    // Ponowienie ma własny klucz Stripe: klucz godzinowy zwróciłby zapamiętaną odmowę z poprzedniej próby.
+    const piIdempotencyKey = ponowienie
+      ? `auto-topup:intent:${rule.userId}:ponowienie:${teraz.getTime()}`
+      : `auto-topup:intent:${rule.userId}:${Math.floor(teraz.getTime() / COOLDOWN_MS)}`;
 
     try {
       const pi = await this.stripe.createOffSessionPaymentIntent({
@@ -228,16 +273,15 @@ export class WalletAutoTopupService {
       });
 
       if (pi.status === 'requires_action') {
-        await this.touchFailure(
-          rule.userId,
-          'Karta wymaga dodatkowej autoryzacji (3DS) — zmień metodę płatności lub doładuj przez Checkout.',
-          pi.id,
-          rule,
-        );
+        const powod = 'Karta wymaga dodatkowej autoryzacji (3DS) — zmień metodę płatności lub doładuj przez Checkout.';
+        await this.touchFailure(rule.userId, powod, pi.id, rule);
+        return { wynik: 'blad', powod };
       }
+      return { wynik: 'zlecono', status: pi.status, paymentIntentId: pi.id };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       await this.touchFailure(rule.userId, msg, null, rule);
+      return { wynik: 'blad', powod: msg };
     }
   }
 

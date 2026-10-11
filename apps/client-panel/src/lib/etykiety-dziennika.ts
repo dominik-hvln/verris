@@ -157,6 +157,9 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   SUBSCRIPTION_PAYMENT_PROMISE_SET: 'Przesunięto termin wstrzymania usługi za zaległą płatność',
   SUBSCRIPTION_PAYMENT_PROMISE_REVOKED: 'Odwołano przesunięcie terminu płatności',
   ADDON_PURCHASED: 'Dodano dodatek',
+  // F3.6 — portfel prowadzony przez obsługę
+  WALLET_OPERATOR_ADJUSTED: 'Korekta salda portfela',
+  WALLET_MANUAL_PAYMENT_POSTED: 'Zaksięgowano wpłatę przelewem',
 };
 
 export function etykietaDziennika(akcja: string): string {

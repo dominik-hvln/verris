@@ -1346,7 +1346,11 @@ export class BillingService {
    * Wspólny ciąg po zaksięgowaniu doładowania (Stripe Checkout i Paynow): audyt, bonus z kodu procentowego,
    * e-mail i punkty EKO. Dokument za wpłatę powstaje wcześniej, atomowo z wpisem (DoladowanieService.zaksieguj).
    */
-  private async poZaksiegowaniuDoladowania(i: {
+  /**
+   * Skutki uboczne nowej wpłaty (audyt, bonus z kodu, mail, EKO) — publiczne dla F3.6 (wpłata przelewem zaksięgowana
+   * przez Finanse, rozliczenia-operatora.service.ts), żeby przelew przechodził tę samą ścieżkę co Stripe i Paynow.
+   */
+  async poZaksiegowaniuDoladowania(i: {
     userId: string;
     wpis: WalletTransaction;
     kredytK: Prisma.Decimal;
