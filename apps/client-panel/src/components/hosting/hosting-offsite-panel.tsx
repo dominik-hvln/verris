@@ -2,6 +2,7 @@
 
 import { KOPIE_OFFSITE_DNI } from '@verris/contracts';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import Link from 'next/link';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -25,6 +26,7 @@ import { potwierdz } from '@/components/panel/potwierdz';
 import { liczba } from '@/lib/liczba';
 import { days } from '@/lib/pl';
 import { opcjeRetencji, zDni } from '@/lib/retencja-kopii';
+import { pobranaKopia } from '@/lib/kopia-offsite';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
@@ -38,16 +40,19 @@ const setOffsiteRetentionAction = zOdpakowaniem(setOffsiteRetentionActionAkcja);
  * S-1 — kopie OFF-SITE w panelu klienta.
  *
  * Dwa kroki, bez żargonu: „Pokaż kopie poza serwerem" → „Pobierz na serwer".
- * Po pobraniu archiwum ląduje na zwykłej liście kopii powyżej i klient odtwarza
- * je istniejącym, potwierdzanym domeną przyciskiem „Przywróć z tej kopii" —
- * dlatego ten panel nigdy sam nie nadpisuje danych.
+ * Pobrane archiwum trafia do katalogu kopii konta. Jeśli jest na liście kopii powyżej, klient odtwarza je
+ * istniejącym, potwierdzanym domeną przyciskiem „Przywróć z tej kopii"; jeśli nie (kopie administratora konta —
+ * lib/kopia-offsite.ts), przywrócenie robi obsługa. Ten panel nigdy sam nie nadpisuje danych.
  */
 export function HostingOffsitePanel({
   serviceId,
   onFetched,
+  kopieNaLiscie,
 }: {
   serviceId: string;
   onFetched?: () => void;
+  /** Nazwy plików z listy kopii powyżej — po nich poznajemy, czy pobraną kopię klient przywróci sam. */
+  kopieNaLiscie?: readonly string[];
 }) {
   const [state, setState] = useState<OffsiteRestoreStatusDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -330,11 +335,23 @@ export function HostingOffsitePanel({
       {state.fetchedArchive && !state.busy ? (
         <p className="flex items-start gap-2 rounded-[7px] border border-data/28 bg-data-soft px-3 py-2 text-xs text-data-hi">
           <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <span>
-            Archiwum <span className="font-mono">{state.fetchedArchive}</span> jest już na serwerze.
-            Wybierz je z listy kopii powyżej i kliknij „Przywróć z tej kopii” — poprosimy jeszcze o
-            potwierdzenie domeny.
-          </span>
+          {pobranaKopia(state.fetchedArchive, kopieNaLiscie ?? []) === 'na-liscie' ? (
+            <span>
+              Archiwum <span className="font-mono">{state.fetchedArchive}</span> jest już na serwerze.
+              Wybierz je z listy kopii powyżej i kliknij „Przywróć z tej kopii” — poprosimy jeszcze o
+              potwierdzenie domeny.
+            </span>
+          ) : (
+            <span>
+              Archiwum <span className="font-mono">{state.fetchedArchive}</span> jest już na serwerze, w katalogu{' '}
+              <span className="font-mono">backups</span> konta — możesz je pobrać w Menedżerze plików. To pełna kopia
+              konta: przywraca ją nasz zespół.{' '}
+              <Link href="/dashboard/support/new" className="font-semibold underline underline-offset-2">
+                Napisz zgłoszenie
+              </Link>{' '}
+              i podaj nazwę archiwum — przed przywróceniem potwierdzimy z Tobą, co nadpisać.
+            </span>
+          )}
         </p>
       ) : null}
     </div>

@@ -21,10 +21,20 @@ import { HostingResourceActions } from '../common/audit/audit.actions.js';
  *   mode=list   → wypisuje archiwa dostępne dla konta (bieżące lub wersja z dnia)
  *   mode=fetch  → ściąga wybrane archiwum do /home/<user>/backups
  *
- * Po `fetch` archiwum pojawia się na zwykłej liście kopii DirectAdmin, więc samo
- * odtworzenie idzie istniejącą, przetestowaną ścieżką `HostingRestoreService`
- * (kopia bezpieczeństwa + potwierdzenie domeny). Dzięki temu nie duplikujemy
- * logiki restore ani nie omijamy potwierdzenia przy operacji niszczącej.
+ * Odtworzenie idzie wyłącznie istniejącą, przetestowaną ścieżką `HostingRestoreService`
+ * (kopia bezpieczeństwa + potwierdzenie domeny, tylko kopie z listy kopii użytkownika
+ * CMD_API_SITE_BACKUP) — ten moduł nie duplikuje logiki restore ani nie omija potwierdzenia.
+ *
+ * Weryfikacja 11.10 — założenie „po `fetch` archiwum jest na liście kopii klienta” przestało być
+ * prawdą: node-offsite-backup.sh wysyła poza serwer kopie administratora konta (`admin-backup`,
+ * `user.<właściciel>.<login>.tar.*`), a lista kopii użytkownika ich nie pokazuje (produkcja 11.10,
+ * konto d3). Nie obchodzimy tego zmianą nazwy pliku ani własnym przywracaniem — dokumentacja DA
+ * (https://docs.directadmin.com/directadmin/backup-restore-migration/) opisuje odtwarzanie takich
+ * archiwów przez administratora (Admin Backup/Transfer, `local_path=/home/<admin>/admin_backups`,
+ * `owner=<admin>`; ten sam zapis task.queue co ops/scripts/node-account-restore.sh cmd_restore),
+ * a nie z poziomu użytkownika. Panel klienta mówi więc prawdę:
+ * archiwum z listy — „Przywróć z tej kopii”; spoza listy — plik w katalogu `backups` konta do
+ * pobrania, a przywrócenie przez zgłoszenie do obsługi (client-panel lib/kopia-offsite.ts).
  */
 
 /** Nazwa archiwum: bez ścieżek, bez `..`, tylko rozszerzenia backupów DA. */

@@ -229,11 +229,12 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
         <section className="space-y-2">
           <SectionHead
             title="Kopie poza serwerem"
-            desc="Gdy serwer ulegnie awarii, dane odtworzymy z kopii w drugim miejscu. Pobrana kopia trafia na listę powyżej."
+            desc="Gdy serwer ulegnie awarii, dane odtworzymy z kopii w drugim miejscu. Pobrana kopia trafia do katalogu kopii konta."
           />
           <HostingOffsitePanel
             serviceId={serviceId}
             onFetched={() => void loadRows()}
+            kopieNaLiscie={rows.map((r) => r.fileName)}
           />
         </section>
       </UkladZBokiem>
