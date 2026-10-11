@@ -401,7 +401,14 @@ export function AdminShell({
   const menuGrupy = grupy(liczniki)
     .map((g) => ({
       ...g,
-      pozycje: g.pozycje.map((p) => ({ ...p, pod: p.pod.filter((x) => wolno(x.perm)) })).filter((p) => p.pod.length > 0),
+      pozycje: g.pozycje
+        .map((p) => {
+          const pod = p.pod.filter((x) => wolno(x.perm));
+          // Weryfikacja 11.10 — z sekcji zostaje jedna strona (np. L1: z „Partnerzy” tylko „Program partnerski”):
+          // link nosi nazwę tej strony, nie sekcji — inaczej „Partnerzy” sugerowało Resellerów, do których rola nie ma dostępu.
+          return { ...p, name: p.pod.length > 1 && pod.length === 1 ? pod[0]!.name : p.name, pod };
+        })
+        .filter((p) => p.pod.length > 0),
     }))
     .filter((g) => g.pozycje.length > 0);
 

@@ -139,6 +139,17 @@ describe("Menu admina — żadna strona nie jest ukryta", () => {
     expect(menu().querySelector('a[href="/subscriptions"]')).toBeNull();
   });
 
+  it("weryfikacja 11.10: z sekcji zostaje jedna strona — link ma nazwę strony (L1: „Program partnerski”, nie „Partnerzy”)", async () => {
+    sciezka = "/";
+    await render(["DASHBOARD_VIEW", "CUSTOMERS_VIEW", "TICKETS_VIEW", "TICKETS_MANAGE", "BILLING_VIEW"], false);
+    expect(menu().querySelector('a[href="/partners"]')?.textContent).toBe("Program partnerski");
+    expect(menu().querySelector('a[href="/resellers"]')).toBeNull();
+    expect(menu().textContent).not.toContain("Partnerzy");
+    expect(menu().querySelector('a[href="/wnioski"]')?.textContent).toBe("Wnioski o operacje");
+    await render([], true);
+    expect(sekcja("Partnerzy")).not.toBeNull();
+  });
+
   it("VPS i autoskalowanie tylko dla administratora (API: @Roles(ADMIN)), nie z PLANS_MANAGE", async () => {
     sciezka = "/";
     await render(["PLANS_MANAGE"], false);
