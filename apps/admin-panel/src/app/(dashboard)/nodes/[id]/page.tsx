@@ -163,7 +163,8 @@ export default async function ServerDetailPage({
           {isPending && <ApproveServerButton serverId={server.id} />}
           <DaSsoButton
             serverId={server.id}
-            sshHost={server.hostname ?? server.ipAddress ?? null}
+            // Weryfikacja 11.10 — IP: verris-node.sh na control-plane i tunel przez CP celują w węzeł po adresie.
+            sshHost={server.ipAddress ?? server.hostname ?? null}
             daGotowe={Boolean(server.daHost)}
             srodek={
               dziala ? (

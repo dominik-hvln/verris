@@ -59,4 +59,16 @@ describe("DaSsoButton — jednorazowy link w jednej karcie", () => {
     expect(okno.close).toHaveBeenCalled();
     expect(el.textContent).toContain("Węzeł nie ma skonfigurowanego DirectAdmina.");
   });
+
+  it("weryfikacja 11.10: podpowiedź SSH prowadzi do działającej drogi — klucz deploy na control-plane i tunel przez CP", async () => {
+    await act(async () => root.render(<DaSsoButton serverId="n1" sshHost="203.0.113.10" />));
+    const tekst = el.querySelector("[data-podpowiedz-ssh]")?.textContent ?? "";
+    expect(tekst).toContain("/opt/verris/ops/scripts/verris-node.sh ssh 203.0.113.10");
+    expect(tekst).toContain("ssh -L 2222:203.0.113.10:2222 root@<control-plane>");
+    // Stara podpowiedź: tunel wprost na węzeł kluczem osobistym — „Permission denied (publickey)”.
+    expect(el.innerHTML).not.toContain("root@203.0.113.10");
+    expect(el.innerHTML).not.toContain("2222:127.0.0.1:2222");
+    const kopiuj = [...el.querySelectorAll("button")].find((b) => b.textContent?.includes("SSH"))!;
+    expect(kopiuj.title).toContain("na control-plane");
+  });
 });

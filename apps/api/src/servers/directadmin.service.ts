@@ -8,7 +8,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { daErrorMessage, hostingFetchErrorMessage, HOSTING_MAIL_DAILY_SEND_LIMIT } from '@verris/contracts';
+import { daErrorMessage, hostingFetchErrorMessage, HOSTING_MAIL_DAILY_SEND_LIMIT, komendySshWezla } from '@verris/contracts';
 import { DirectAdminApiError, DirectAdminClient, mergeAdminSettingsPayload } from '@verris/directadmin-sdk';
 import type {
   DeployFrequency,
@@ -2763,7 +2763,10 @@ export class DirectAdminService {
       actorUserId,
       details: { serverId, serverName: server.name ?? null },
     });
-    return { url, sshHost, sshCommand: sshHost ? `ssh root@${sshHost}` : null };
+    // Weryfikacja 11.10 — `ssh root@<węzeł>` kluczem osobistym kończy się „Permission denied (publickey)”; działa tylko
+    // klucz deploy z control-plane'u (verris-node.sh), więc podpowiedź prowadzi tam (libs/contracts dostep-wezla.ts).
+    const adres = server.ipAddress ?? sshHost;
+    return { url, sshHost, sshCommand: adres ? komendySshWezla(adres).powloka : null };
   }
 
   /* ===================== PANEL-5: aliasy domeny (domain pointers) ===================== */

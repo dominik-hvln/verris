@@ -198,7 +198,7 @@ Weryfikacja techniczna (prod, Node-PL-01):
 - [ ] Pakiety `starter`, `pro`, `business` w DA
 - [ ] Publiczne IP w `/usr/local/directadmin/data/admin/ips/`
 - [ ] Smoke provisioning → klient widzi dane w Magic Login
-- [ ] Port 2222 tylko z control-plane (decyzja 2026-09-29): profil z panelu → `[OK] CSF: panel DA :2222 tylko z: …` (wymaga `VERRIS_CONTROL_PLANE_IPS` w env API); operator — tunel `ssh -L 2222:127.0.0.1:2222 root@<węzeł>`
+- [ ] Port 2222 tylko z control-plane (decyzja 2026-09-29): profil z panelu → `[OK] CSF: panel DA :2222 tylko z: …` (wymaga `VERRIS_CONTROL_PLANE_IPS` w env API); operator — tunel przez control-plane `ssh -L 2222:<IP węzła>:2222 root@<control-plane>` (weryfikacja 11.10: na węzeł wchodzi tylko klucz deploy z CP, klucz osobisty dostaje „Permission denied (publickey)”; powłoka na węźle — na CP `/opt/verris/ops/scripts/verris-node.sh ssh <IP|nazwa>` albo `ssh -i /root/.ssh/verris_node_deploy root@<IP>`)
 - [ ] Strona zawieszonego konta Verris (`templates/custom/suspended` + `admin/domains/suspended`) — `[OK] Strona zawieszenia Verris`
 - [ ] Strony błędów Verris (`Alias /verris-bledy/` w `/etc/httpd/conf/extra/httpd-includes.conf`, `ErrorDocument` w `data/templates/custom/cust_httpd.CUSTOM.4.pre` + `rewrite_confs`) — `[OK] Strony błędów Verris` (profil sam pyta serwer o nieistniejącą ścieżkę na domenie hostowanej); ręcznie: `curl -s https://<domena klienta>/nieistniejacy-plik` → kod 404, bez nazwy serwera WWW
 - [ ] Szablon strony domyślnej Verris w DA (`templates/custom/default` + `admin/domains/default`)

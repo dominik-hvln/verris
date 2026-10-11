@@ -10,7 +10,7 @@ function stanowisko(o: { status?: string; katalogi?: { name: string; type: strin
   const account = { id: 'a1', status: o.status ?? 'ACTIVE', daUsername: 'klient1', daPasswordEnc: 'enc', serverId: 'srv1' };
   const prisma = {
     subscription: { findFirst: vi.fn(async () => ({ id: 's1', userId: 'u1', account })) },
-    server: { findUnique: vi.fn(async (a: { where: { id: string } }) => (a.where.id === 'srv1' ? { id: 'srv1', name: 'Node-PL-01', hostname: 'n1.verris.pl', ipAddress: null } : null)) },
+    server: { findUnique: vi.fn(async (a: { where: { id: string } }) => (a.where.id === 'srv1' ? { id: 'srv1', name: 'Node-PL-01', hostname: 'n1.verris.pl', ipAddress: '203.0.113.10' } : null)) },
   };
   const audit = { record: vi.fn(async () => undefined) };
   const svc = new DirectAdminService(prisma as never, {} as never, {} as never, audit as never);
@@ -86,7 +86,8 @@ describe('SSO administratora do węzła', () => {
     const s = stanowisko();
     const r = await s.svc.createNodeAdminSsoUrl('srv1', 'admin1');
     expect(s.createOneTimeLoginUrl).toHaveBeenCalledWith({ redirectUrl: '/', expiry: '2m' });
-    expect(r).toEqual({ url: expect.stringContaining('key='), sshHost: 'n1.verris.pl', sshCommand: 'ssh root@n1.verris.pl' });
+    // Weryfikacja 11.10 — `ssh root@<węzeł>` kluczem osobistym = „Permission denied (publickey)”; działa klucz deploy z CP.
+    expect(r).toEqual({ url: expect.stringContaining('key='), sshHost: 'n1.verris.pl', sshCommand: '/opt/verris/ops/scripts/verris-node.sh ssh 203.0.113.10' });
     expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'NODE_ADMIN_SSO_URL_CREATED', details: { serverId: 'srv1', serverName: 'Node-PL-01' } }));
     expect(JSON.stringify(s.audit.record.mock.calls)).not.toContain('jednorazowy');
   });
