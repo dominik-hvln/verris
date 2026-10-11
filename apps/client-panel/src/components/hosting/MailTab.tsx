@@ -40,6 +40,7 @@ import { createWebmailLoginAction } from '@/app/dashboard/services/[id]/hosting-
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { potwierdz } from '@/components/panel/potwierdz';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
+import { WYSYLKA_WSTRZYMANA_OPIS } from '@/lib/zdrowie-uslugi';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
 const fetchHostingEmailAction = zOdpakowaniem(fetchHostingEmailActionAkcja);
@@ -75,6 +76,8 @@ export default function MailTab({ serviceId }: Props) {
   const [emailQuota, setEmailQuota] = useState<{ used: string; limit: string } | null>(null);
   // F3.1 — limit, który naprawdę działa na serwerze (obsługa może go zmienić); do odpowiedzi — domyślny.
   const [limitWysylki, setLimitWysylki] = useState<number>(HOSTING_MAIL_DAILY_SEND_LIMIT);
+  // Weryfikacja 11.10 — zakładka mówi o blokadzie wysyłki przez obsługę (wcześniej pokazywała tylko limit).
+  const [wysylkaWstrzymana, setWysylkaWstrzymana] = useState(false);
   const [domains, setDomains] = useState<string[]>([]);
 
   // create form
@@ -158,6 +161,7 @@ export default function MailTab({ serviceId }: Props) {
       setDomain((cur) => cur || domNames[0] || '');
       setMailHost(conn?.mailHost ?? null);
       if (typeof conn?.limitWysylki === 'number') setLimitWysylki(conn.limitWysylki);
+      setWysylkaWstrzymana(!!conn?.wysylkaWstrzymana);
       if (conn?.emails) {
         const used =
           conn.emails.used == null ? '—' : String(Math.round(conn.emails.used));
@@ -306,6 +310,16 @@ export default function MailTab({ serviceId }: Props) {
         <div className="mb-3 flex items-start gap-2 rounded-[7px] border border-warn/30 bg-warn-soft px-3 py-2 text-xs text-warn">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {hostingFetchErrorMessage(fetchError)}
+        </div>
+      ) : null}
+
+      {wysylkaWstrzymana ? (
+        <div role="status" className="mb-3 flex items-start gap-2 rounded-[7px] border border-warn/30 bg-warn-soft px-3 py-2 text-xs text-warn">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>
+            <b>Wysyłka poczty wstrzymana przez obsługę.</b> {WYSYLKA_WSTRZYMANA_OPIS}{' '}
+            <Link className="underline" href="/dashboard/support/new">Napisz zgłoszenie</Link>
+          </span>
         </div>
       ) : null}
 

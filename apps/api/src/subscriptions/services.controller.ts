@@ -28,7 +28,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { dlaKlienta } from '../common/biala-etykieta.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
 import { MigrationOrchestratorService } from './migration-orchestrator.service.js';
-import { ServiceHealthService } from './service-health.service.js';
+import { ServiceHealthService, zWstrzymanaWysylka } from './service-health.service.js';
 import { HostingDnsPointingService } from './hosting-dns-pointing.service.js';
 import { AssistantService } from './assistant.service.js';
 import { CofniecieNaprawyDto, NaprawaAsystentaDto } from './dto/assistant.dto.js';
@@ -439,7 +439,8 @@ export class UserServicesController {
               : null,
           }
         : null,
-      health: buildHealthSummary(s),
+      // Weryfikacja 11.10 — blokada wysyłki przez obsługę z bazy, jak na karcie usługi (service-health.service.ts).
+      health: zWstrzymanaWysylka(buildHealthSummary(s), s.account?.mailBlockedAt),
       recommendations: buildServiceRecommendations(s),
       account: s.account
         ? {

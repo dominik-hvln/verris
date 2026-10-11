@@ -12,6 +12,7 @@ import { opisLokalizacji } from '@verris/contracts';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { EVENT_WARN, opisTerminu, powodBlokady, serviceEventLabel, widoczneDlaKlienta } from '@/lib/service-events';
+import { statusZdrowia, WYSYLKA_WSTRZYMANA_OPIS } from '@/lib/zdrowie-uslugi';
 import { ChevronRight, Loader2, Plus, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import type {
@@ -70,7 +71,6 @@ import {
   lastDaysLabels,
   procentGb,
   tip,
-  type Tone,
 } from '@/components/panel/v2';
 import { Wykres } from '@/components/panel/wykres';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
@@ -100,13 +100,6 @@ function date(iso: string | null | undefined, withYear = true): string {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', ...(withYear ? { year: 'numeric' } : {}) });
 }
-
-const HEALTH: Record<ServiceHealthSummaryDto['label'], { tone: Tone; text: string }> = {
-  healthy: { tone: 'data', text: 'Wszystko działa' },
-  attention: { tone: 'warn', text: 'Wymaga uwagi' },
-  critical: { tone: 'warn', text: 'Problem z usługą' },
-  pending: { tone: 'muted', text: 'Sprawdzamy usługę' },
-};
 
 const PAYMENT_SOURCE: Record<string, string> = {
   WALLET: 'z portfela',
@@ -199,7 +192,7 @@ export default function ServiceOverviewV2({
   const perMonth = service.interval === 'MONTH' ? '/ mies.' : '/ rok';
   // Weryfikacja 11.10 — po rezygnacji na koniec okresu: „działa do … · nie odnowi się”, nie „odnawia się …”.
   const termin = opisTerminu(service, (iso) => date(iso));
-  const h = HEALTH[health?.label ?? 'pending'];
+  const h = statusZdrowia(health);
   const diskUsed = usage?.rows.at(-1)?.diskUsageMb ?? conn?.diskMb.used ?? null;
   const diskLimit = account?.diskLimitMb ?? conn?.diskMb.limit ?? null;
   const bw = conn?.bandwidthMb;
@@ -257,6 +250,15 @@ export default function ServiceOverviewV2({
           <span className="text-muted-foreground">
             Strona i poczta nie działają do czasu wznowienia. Wznowić ją może partner albo nasza obsługa (kontakt@verris.pl).
             Kto jest Twoim partnerem i jak się od niego odpiąć — w <Link className="underline" href="/dashboard/settings">Ustawieniach</Link>.
+          </span>
+        </div>
+      ) : null}
+      {health?.wysylkaWstrzymana && !blokada ? (
+        <div className="rounded-[10px] border border-warn/30 bg-warn-soft px-4 py-3 text-sm text-foreground">
+          <b>Wysyłka poczty wstrzymana przez obsługę.</b>{' '}
+          <span className="text-muted-foreground">
+            {WYSYLKA_WSTRZYMANA_OPIS}{' '}
+            <Link className="underline" href="/dashboard/support/new">Napisz zgłoszenie</Link>
           </span>
         </div>
       ) : null}

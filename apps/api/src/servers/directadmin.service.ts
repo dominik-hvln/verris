@@ -921,6 +921,8 @@ export class DirectAdminService {
       databases: emptyMetric(),
       inodes: emptyMetric(),
       limitWysylki: account?.mailSendLimit ?? HOSTING_MAIL_DAILY_SEND_LIMIT,
+      // Weryfikacja 11.10 — zakładka Poczta mówi o blokadzie wysyłki przez obsługę (stan z bazy, bez powodu).
+      wysylkaWstrzymana: !!account?.mailBlockedAt,
       fetchError: null,
     };
 

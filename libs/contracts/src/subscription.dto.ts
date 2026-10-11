@@ -144,6 +144,8 @@ export interface ServiceHealthSummaryDto {
   };
   /** Szczegóły per check — co jest nie tak i co zrobić (LIVE UX). */
   checkDetails?: Partial<Record<ServiceHealthCheckKey, ServiceHealthCheckDetailDto>>;
+  /** Weryfikacja 11.10 — obsługa wstrzymała wysyłkę poczty z konta (bez powodu — D3). */
+  wysylkaWstrzymana?: boolean;
 }
 
 export interface ServiceRecommendationDto {
@@ -261,6 +263,8 @@ export interface ServiceConnectionInfoDto {
   inodes: ConnectionMetricDto;
   /** F3.1 — dobowy limit wysyłki poczty konta, który naprawdę działa na serwerze (domyślny albo ustawiony przez obsługę). */
   limitWysylki: number;
+  /** Weryfikacja 11.10 — obsługa wstrzymała wysyłkę poczty z konta (bez powodu — D3). */
+  wysylkaWstrzymana?: boolean;
   fetchError: string | null;
 }
 

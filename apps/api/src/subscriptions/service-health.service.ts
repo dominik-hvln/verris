@@ -31,6 +31,29 @@ export interface ComputedHealthSummary {
   };
   summary: string;
   checkDetails?: Partial<Record<ServiceHealthCheckKey, ServiceHealthCheckDetailDto>>;
+  /** Weryfikacja 11.10 — obsługa wstrzymała wysyłkę poczty z konta (Account.mailBlockedAt). */
+  wysylkaWstrzymana?: boolean;
+}
+
+export const WYSYLKA_WSTRZYMANA = 'Wysyłka poczty wstrzymana przez obsługę — napisz do nas.';
+
+/**
+ * Weryfikacja 11.10 — nagłówek karty usługi mówił „Wszystko działa”, choć obsługa zablokowała wysyłkę poczty konta
+ * (F3.1). Sondy zdrowia tego nie widzą (serwer poczty odpowiada, blokada jest per konto), a wynik jest z migawki
+ * sprzed nawet 30 min — stan blokady nakładamy więc przy KAŻDYM odczycie, z bazy, a nie zapisujemy w migawce.
+ * Bez powodu i bez operatora (D3). Stan krytyczny zostaje krytyczny; zdrowy i oczekujący — „wymaga uwagi”.
+ */
+export function zWstrzymanaWysylka<T extends { label: ComputedHealthSummary['label']; summary?: string }>(
+  h: T,
+  mailBlockedAt: Date | null | undefined,
+): T & { wysylkaWstrzymana?: true } {
+  if (!mailBlockedAt) return h;
+  return {
+    ...h,
+    label: h.label === 'critical' ? 'critical' : 'attention',
+    summary: h.label === 'healthy' || h.label === 'pending' || !h.summary ? WYSYLKA_WSTRZYMANA : `${WYSYLKA_WSTRZYMANA} ${h.summary}`,
+    wysylkaWstrzymana: true,
+  };
 }
 
 @Injectable()
@@ -47,6 +70,15 @@ export class ServiceHealthService {
     userId: string,
     opts?: { force?: boolean },
   ): Promise<ComputedHealthSummary> {
+    const { wynik, mailBlockedAt } = await this.zdrowieZMigawki(subscriptionId, userId, opts);
+    return zWstrzymanaWysylka(wynik, mailBlockedAt);
+  }
+
+  private async zdrowieZMigawki(
+    subscriptionId: string,
+    userId: string,
+    opts?: { force?: boolean },
+  ): Promise<{ wynik: ComputedHealthSummary; mailBlockedAt: Date | null | undefined }> {
     const sub = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
       include: {
@@ -64,13 +96,14 @@ export class ServiceHealthService {
     // (2026-09-23): liczenie sond (DNS, TLS strony i panelu, poczta — po 8 s)
     // trzymało stronę usługi kilkanaście sekund przy każdym wejściu po 30 min.
     // Czekamy tylko, gdy nie ma żadnego wyniku albo gdy klient kliknął „Odśwież”.
+    const mailBlockedAt = sub.account?.mailBlockedAt;
     if (stale && latest && !opts?.force) {
       this.refreshInBackground(subscriptionId);
-      return this.fromSnapshot(latest);
+      return { wynik: this.fromSnapshot(latest), mailBlockedAt };
     }
     if (opts?.force || stale) {
       try {
-        return await this.computeAndPersist(subscriptionId);
+        return { wynik: await this.computeAndPersist(subscriptionId), mailBlockedAt };
       } catch (err) {
         this.logger.warn(
           `Health compute failed sub=${subscriptionId}: ${(err as Error).message}`,
@@ -78,8 +111,8 @@ export class ServiceHealthService {
       }
     }
 
-    if (latest) return this.fromSnapshot(latest);
-    return this.pendingSummary('Diagnostyka jeszcze nie została uruchomiona.');
+    if (latest) return { wynik: this.fromSnapshot(latest), mailBlockedAt };
+    return { wynik: this.pendingSummary('Diagnostyka jeszcze nie została uruchomiona.'), mailBlockedAt };
   }
 
   private readonly refreshing = new Set<string>();
