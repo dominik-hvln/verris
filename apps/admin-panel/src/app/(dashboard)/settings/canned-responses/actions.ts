@@ -11,6 +11,10 @@ export interface CannedResponseRow {
   /** PB-37 — sytuacja w rozmowie (blok „Podpowiedzi” w obsłudze) */
   category?: string | null;
   isActive: boolean;
+  /** F3.7 — makro: stan po odpowiedzi, tagi, przypisanie (JA / NIKT). */
+  makroStan?: string | null;
+  makroTagi?: string[];
+  makroPrzypisz?: string | null;
 }
 
 export interface CannedInput {
@@ -21,6 +25,9 @@ export interface CannedInput {
   shortcut?: string | null;
   category?: string | null;
   isActive?: boolean;
+  makroStan?: string | null;
+  makroTagi?: string[];
+  makroPrzypisz?: string | null;
 }
 
 type Result = { ok: true } | { ok: false; error: string };

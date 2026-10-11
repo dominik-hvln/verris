@@ -159,6 +159,20 @@ describe("X-05 zgłoszenia", () => {
     await render("cokolwiek");
     expect(parametry()).toMatchObject({ stan: "otwarte" });
   });
+
+  it("F3.7: dział → filtr `dzial` do API (zostaje przy wyszukiwaniu), zakładki działów z licznikami otwartych", async () => {
+    api.mockImplementation(async (sciezka: string) => {
+      zapytania.push(sciezka);
+      return { rows: [], total: 0, page: 1, limit: 50, totalPages: 1, liczby: { otwarte: 3, poTerminie: 0, zamkniete: 1 }, dzialy: { TECHNICAL: 1, BILLING: 2, SALES: 0 } };
+    });
+    const html = renderToStaticMarkup(await ZgloszeniaStrona({ searchParams: Promise.resolve({ dzial: "BILLING" }) }));
+    expect(parametry()).toMatchObject({ dzial: "BILLING" });
+    expect(tekst(html)).toContain("Płatności · 2 otw.");
+    expect(html).toContain('name="dzial" value="BILLING"');
+    zapytania.length = 0;
+    await ZgloszeniaStrona({ searchParams: Promise.resolve({ dzial: "ABUSE" }) });
+    expect(parametry().dzial).toBeUndefined();
+  });
 });
 
 describe("X-05 strona węzła", () => {

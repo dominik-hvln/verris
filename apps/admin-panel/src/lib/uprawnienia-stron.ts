@@ -96,6 +96,8 @@ export const STRONY = {
   "/tickets": { perm: "TICKETS_VIEW", tytul: "Zgłoszenia" },
   // F3.7 — admin/poczta-zgloszen — TICKETS_VIEW (odczyt, „Pokaż” plik); decyzje TICKETS_MANAGE wyszarzone na stronie.
   "/tickets/poczta": { perm: "TICKETS_VIEW", tytul: "Poczta bez klienta" },
+  // F3.7 — admin/support/raporty — TICKETS_REPORTS (kierownik zmiany L4) i ADMIN.
+  "/tickets/raporty": { perm: "TICKETS_REPORTS", tytul: "Raporty obsługi" },
   "/vpn": { perm: "ADMIN", tytul: "VPN" },
   "/vps": { perm: "ADMIN", tytul: "VPS" },
   // Każdy składa wnioski i widzi swoje („Moje”); decyzje — REQUESTS_APPROVE (strona pokazuje zakładki wg roli).

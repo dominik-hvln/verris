@@ -25,6 +25,27 @@ const KATEGORIE: [string, string][] = [
   ["ZAMKNIECIE", "Zamknięcie"],
 ];
 const NAZWA_KAT = Object.fromEntries(KATEGORIE);
+/** F3.7 — akcje makra (szablon z którąkolwiek akcją = makro w zgłoszeniu). */
+const STANY_MAKRA: [string, string][] = [
+  ["", "stan: jak „Wyślij i czekaj na klienta”"],
+  ["IN_PROGRESS", "stan: w realizacji"],
+  ["OPEN", "stan: otwarte"],
+  ["CLOSED", "stan: zamknięte (podziękowanie i ocena)"],
+];
+const PRZYPISANIA: [string, string][] = [
+  ["", "przypisanie: bez zmiany"],
+  ["JA", "przypisz do stosującego"],
+  ["NIKT", "zdejmij opiekuna"],
+];
+
+/** Krótki opis akcji makra na liście szablonów (null — zwykły szablon). */
+export function opisAkcjiMakra(r: Pick<CannedResponseRow, "makroStan" | "makroTagi" | "makroPrzypisz">): string | null {
+  const czesci: string[] = [];
+  if (r.makroStan) czesci.push((STANY_MAKRA.find(([k]) => k === r.makroStan)?.[1] ?? r.makroStan).replace("stan: ", ""));
+  if (r.makroTagi?.length) czesci.push(`tagi: ${r.makroTagi.join(", ")}`);
+  if (r.makroPrzypisz) czesci.push(PRZYPISANIA.find(([k]) => k === r.makroPrzypisz)?.[1] ?? r.makroPrzypisz);
+  return czesci.length ? czesci.join(" · ") : null;
+}
 
 export function CannedClient({ rows }: { rows: CannedResponseRow[] }) {
   const router = useRouter();
@@ -90,6 +111,11 @@ export function CannedClient({ rows }: { rows: CannedResponseRow[] }) {
                     {!r.isActive ? <span className="ml-2 text-[10px] text-amber-300">nieaktywny</span> : null}
                   </p>
                   <p className="mt-1 line-clamp-2 text-xs text-neutral-400">{r.content}</p>
+                  {opisAkcjiMakra(r) ? (
+                    <p className="mt-1 text-[11px] text-emerald-200" data-makro>
+                      Makro: {opisAkcjiMakra(r)}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
                   <button onClick={() => setEditId(r.id)} className="rounded-lg border border-white/10 px-2 py-1 text-xs hover:bg-white/5">
@@ -126,6 +152,9 @@ function Form({
   const [category, setCategory] = useState(initial?.category ?? "");
   const [shortcut, setShortcut] = useState(initial?.shortcut ?? "");
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
+  const [makroStan, setMakroStan] = useState(initial?.makroStan ?? "");
+  const [makroTagi, setMakroTagi] = useState((initial?.makroTagi ?? []).join(", "));
+  const [makroPrzypisz, setMakroPrzypisz] = useState(initial?.makroPrzypisz ?? "");
 
   return (
     <div className="rounded-xl border border-emerald-400/25 bg-emerald-400/[0.04] p-4 space-y-3">
@@ -154,13 +183,31 @@ function Form({
         />
       </div>
       <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={4} placeholder="Treść odpowiedzi…" className="ip w-full" />
+      <fieldset className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Akcje makra">
+        <legend className="mb-1 text-xs text-neutral-400">Makro (opcjonalnie) — po wysłaniu odpowiedzi w zgłoszeniu:</legend>
+        <Select aria-label="Stan po odpowiedzi" value={makroStan} onChange={setMakroStan} className="ip w-full" options={STANY_MAKRA.map(([v, l]) => ({ value: v, label: l }))} />
+        <input value={makroTagi} onChange={(e) => setMakroTagi(e.target.value)} aria-label="Tagi makra (po przecinku)" placeholder="tagi, po przecinku" className="ip" />
+        <Select aria-label="Przypisanie" value={makroPrzypisz} onChange={setMakroPrzypisz} className="ip w-full" options={PRZYPISANIA.map(([v, l]) => ({ value: v, label: l }))} />
+      </fieldset>
       <label className="flex items-center gap-2 text-xs text-neutral-300">
         <Checkbox checked={isActive} onChange={(e) => setIsActive(e.target.checked)} /> Aktywny
       </label>
       <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={() => onSubmit({ title, content, topic: topic || undefined, category: category || null, shortcut: shortcut || null, isActive })}
+          onClick={() =>
+            onSubmit({
+              title,
+              content,
+              topic: topic || undefined,
+              category: category || null,
+              shortcut: shortcut || null,
+              isActive,
+              makroStan: makroStan || null,
+              makroTagi: makroTagi.split(",").map((t) => t.trim()).filter(Boolean),
+              makroPrzypisz: makroPrzypisz || null,
+            })
+          }
           disabled={pending || !title.trim() || content.trim().length < 2}
           className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-black hover:bg-emerald-600 disabled:opacity-50"
         >

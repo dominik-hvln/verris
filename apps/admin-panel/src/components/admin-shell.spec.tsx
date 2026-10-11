@@ -119,6 +119,8 @@ describe("Menu admina — żadna strona nie jest ukryta", () => {
     ["AUDIT_VIEW", "/audit"],
     ["COMPLIANCE_MANAGE", "/compliance"],
     ["PLANS_MANAGE", "/plans"],
+    // F3.7 — raporty obsługi dla kierownika zmiany.
+    ["TICKETS_REPORTS", "/tickets/raporty"],
   ])("%s otwiera %s w menu; bez niego pozycji nie ma", async (perm, href) => {
     sciezka = "/";
     await render([perm], false);

@@ -378,6 +378,16 @@ export const POMOC = {
     opis: "Maile do support@ i abuse@ od nadawców spoza kont klientów (albo spoza zgłoszenia z wątku), od subkont bez prawa do zgłoszeń, ponad 5 nowych zgłoszeń z jednego konta w godzinę (pętla autoodpowiedzi) i spam. Pozostałe maile klientów od razu trafiają do zgłoszeń.",
     kiedy: "Załóż zgłoszenie klientowi po jego adresie, dopisz mail do zgłoszenia jako notatkę albo odrzuć. Maile z abuse@ tylko jako notatka — klient nie widzi treści zgłaszającego. Pliki pokazujemy dopiero po „Pokaż” — nie są skanowane antywirusem.",
   },
+  "raporty-obslugi": {
+    tytul: "Raporty obsługi",
+    opis: "Terminy SLA zgłoszeń z wybranego okresu (dotrzymane i po terminie, według priorytetu), oceny klientów oraz praca zespołu: odpowiedzi, mediana czasu odpowiedzi od pierwszej nieodpowiedzianej wiadomości klienta, zamknięte.",
+    kiedy: "Przegląd zmiany lub tygodnia — notatki wewnętrzne i automatyczne wiadomości się nie liczą.",
+  },
+  makra: {
+    tytul: "Makra",
+    opis: "Szablon odpowiedzi z akcjami: po wysłaniu odpowiedzi ustawia stan, dopisuje tagi i przypisuje zgłoszenie — jednym kliknięciem w zgłoszeniu.",
+    kiedy: "Powtarzalne sytuacje (rozwiązane, czekamy na dane, przekazanie dalej). Bez akcji szablon zostaje zwykłą podpowiedzią.",
+  },
   "sla-zgloszen": {
     tytul: "Terminy SLA zgłoszeń",
     opis: "Godziny na pierwszą odpowiedź i na rozwiązanie dla każdego priorytetu, liczone zegarowo przez całą dobę od utworzenia zgłoszenia.",

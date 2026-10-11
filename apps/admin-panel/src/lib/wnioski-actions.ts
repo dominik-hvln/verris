@@ -19,7 +19,9 @@ export type TypWniosku =
   | "SUBSCRIPTION_UNSUSPEND"
   // F3.5 — koszt dla Verris: data odnowienia (przedłużenie gratis) i dodatek od obsługi.
   | "SUBSCRIPTION_RENEWAL_DATE"
-  | "ADDON_ADD";
+  | "ADDON_ADD"
+  // F3.7 — scalenie zgłoszeń (wniosek składa się w panelu obsługi, w zgłoszeniu).
+  | "TICKET_MERGE";
 
 export interface Wniosek {
   id: string;

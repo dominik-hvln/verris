@@ -4,6 +4,7 @@ import { fetchCanned } from "./actions";
 import { CannedClient } from "./canned-client";
 import { wynik } from "@/components/blad-strony";
 import { NieWczytano } from "@/components/nie-wczytano";
+import { Pomoc } from "@/components/pomoc";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export default async function CannedResponsesPage() {
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Gotowe odpowiedzi dla wsparcia. Przypisz temat, aby agent widział je przy zgłoszeniach
-          danego rodzaju (szablony bez tematu są globalne).
+          danego rodzaju (szablony bez tematu są globalne). Szablon z akcjami (stan, tagi, przypisanie) to makro <Pomoc id="makra" />.
         </p>
       </header>
       {rows.ok ? <CannedClient rows={rows.dane} /> : <NieWczytano co="szablonów odpowiedzi" />}

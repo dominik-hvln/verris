@@ -25,7 +25,12 @@ type ListaZgloszen = {
   page: number;
   totalPages: number;
   liczby: { otwarte: number; poTerminie: number; zamkniete: number };
+  dzialy?: Partial<Record<Dzial, number>>;
 };
+
+/** F3.7 — widoki działów (pole `department`, filtr `dzial` w API skrzynki). */
+const DZIALY = { TECHNICAL: "Techniczny", BILLING: "Płatności", SALES: "Sprzedaż" } as const;
+type Dzial = keyof typeof DZIALY;
 
 const WIDOKI = { otwarte: "Otwarte", "po-terminie": "Po terminie SLA", zamkniete: "Zamknięte", wszystkie: "Wszystkie" } as const;
 type Widok = keyof typeof WIDOKI;
@@ -38,12 +43,13 @@ const FILTR_WIDOKU: Record<Widok, Record<string, string>> = {
   wszystkie: { sort: "najnowsze" },
 };
 
-export default async function AdminTicketsPage({ searchParams }: { searchParams: Promise<{ widok?: string; q?: string; page?: string }> }) {
+export default async function AdminTicketsPage({ searchParams }: { searchParams: Promise<{ widok?: string; q?: string; page?: string; dzial?: string }> }) {
   const bramka = await bramkaStrony("/tickets");
   if (bramka) return bramka;
   const q = await searchParams;
   const widok: Widok = (q.widok ?? "") in WIDOKI ? (q.widok as Widok) : "otwarte";
   const fraza = q.q?.trim() ?? "";
+  const dzial: Dzial | null = (q.dzial ?? "") in DZIALY ? (q.dzial as Dzial) : null;
   const strona = Math.max(1, Number.parseInt(q.page ?? "", 10) || 1);
   let lista: ListaZgloszen | null = null;
   let error: string | null = null;
@@ -52,7 +58,7 @@ export default async function AdminTicketsPage({ searchParams }: { searchParams:
   // do nieistniejącej trasy admina (404); bez zmiennej środowiskowej idziemy na adres produkcyjny.
   const ticketHref = (ticketId: string) =>
     new URL(`/tickets/${ticketId}`, staffPanelUrl ?? "https://staff.verris.pl").toString();
-  const parametry = new URLSearchParams({ ...FILTR_WIDOKU[widok], limit: "50", ...(fraza ? { q: fraza } : {}), ...(strona > 1 ? { page: String(strona) } : {}) });
+  const parametry = new URLSearchParams({ ...FILTR_WIDOKU[widok], limit: "50", ...(fraza ? { q: fraza } : {}), ...(dzial ? { dzial } : {}), ...(strona > 1 ? { page: String(strona) } : {}) });
   try {
     lista = await adminApi<ListaZgloszen>(`/tickets/admin/all?${parametry.toString()}`);
   } catch (e) {
@@ -67,9 +73,10 @@ export default async function AdminTicketsPage({ searchParams }: { searchParams:
   const liczbaWidoku: Record<Widok, number | null> = l
     ? { otwarte: l.otwarte, "po-terminie": l.poTerminie, zamkniete: l.zamkniete, wszystkie: l.otwarte + l.zamkniete }
     : { otwarte: null, "po-terminie": null, zamkniete: null, wszystkie: null };
-  const link = (o: { widok?: Widok; page?: number }) => {
+  const link = (o: { widok?: Widok; page?: number; dzial?: Dzial | null }) => {
     const w = o.widok ?? widok;
-    const p = new URLSearchParams({ ...(w !== "otwarte" ? { widok: w } : {}), ...(fraza ? { q: fraza } : {}), ...(o.page && o.page > 1 ? { page: String(o.page) } : {}) }).toString();
+    const d = o.dzial === undefined ? dzial : o.dzial;
+    const p = new URLSearchParams({ ...(w !== "otwarte" ? { widok: w } : {}), ...(fraza ? { q: fraza } : {}), ...(d ? { dzial: d } : {}), ...(o.page && o.page > 1 ? { page: String(o.page) } : {}) }).toString();
     return p ? `/tickets?${p}` : "/tickets";
   };
 
@@ -100,8 +107,22 @@ export default async function AdminTicketsPage({ searchParams }: { searchParams:
           </Link>
         ))}
       </div>
+      <div className="flex flex-wrap gap-2" aria-label="Dział">
+        {([null, ...(Object.keys(DZIALY) as Dzial[])] as (Dzial | null)[]).map((d) => (
+          <Link
+            key={d ?? "wszystkie"}
+            href={link({ dzial: d })}
+            aria-current={dzial === d ? "page" : undefined}
+            className={`rounded-full border px-3 py-1 text-[13px] ${dzial === d ? "border-primary bg-data-soft font-semibold text-data-hi" : "border-line-strong text-muted-foreground hover:text-foreground"}`}
+          >
+            {d ? DZIALY[d] : "Wszystkie działy"}
+            {d && lista?.dzialy?.[d] != null ? ` · ${lista.dzialy[d]} otw.` : ""}
+          </Link>
+        ))}
+      </div>
       <form method="get" action="/tickets" className="flex flex-wrap items-center gap-2" aria-label="Szukaj zgłoszeń">
         {widok !== "otwarte" ? <input type="hidden" name="widok" value={widok} /> : null}
+        {dzial ? <input type="hidden" name="dzial" value={dzial} /> : null}
         <input
           name="q"
           defaultValue={fraza}
