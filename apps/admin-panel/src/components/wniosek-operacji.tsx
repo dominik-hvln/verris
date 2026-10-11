@@ -18,7 +18,8 @@ export function WyslijWniosek({
   podpowiedz,
 }: {
   typ: TypWniosku;
-  userId: string;
+  /** Klient wniosku; brak — operacja bez klienta (F3.4: restart usługi węzła). */
+  userId?: string;
   /** Usługa, której dotyczy wniosek (lista wniosków, odświeżenie karty usługi). */
   subscriptionId?: string;
   payload: Record<string, unknown>;

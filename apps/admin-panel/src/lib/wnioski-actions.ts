@@ -21,7 +21,9 @@ export type TypWniosku =
   | "SUBSCRIPTION_RENEWAL_DATE"
   | "ADDON_ADD"
   // F3.7 — scalenie zgłoszeń (wniosek składa się w panelu obsługi, w zgłoszeniu).
-  | "TICKET_MERGE";
+  | "TICKET_MERGE"
+  // F3.4 — restart działającej usługi wspólnej węzła (bez klienta; decyduje administrator).
+  | "NODE_SERVICE_RESTART";
 
 export interface Wniosek {
   id: string;
@@ -41,7 +43,8 @@ export interface Wniosek {
 
 export async function zlozWniosekAction(input: {
   typ: TypWniosku;
-  userId: string;
+  /** Klient wniosku; brak — operacja bez klienta (F3.4: restart usługi węzła). */
+  userId?: string;
   /** F2.3 — usługa, której dotyczy wniosek (zawieszenie). */
   subscriptionId?: string;
   payload: Record<string, unknown>;
@@ -53,7 +56,7 @@ export async function zlozWniosekAction(input: {
       method: "POST",
       body: {
         typ: input.typ,
-        userId: input.userId,
+        ...(input.userId ? { userId: input.userId } : {}),
         ...(input.subscriptionId ? { subscriptionId: input.subscriptionId } : {}),
         payload: input.payload,
         uzasadnienie: input.uzasadnienie.trim(),
@@ -63,7 +66,7 @@ export async function zlozWniosekAction(input: {
     return { ok: false, error: err instanceof AdminApiError ? err.message : "Nie udało się wysłać wniosku." };
   }
   revalidatePath("/wnioski");
-  revalidatePath(`/customers/${input.userId}`);
+  if (input.userId) revalidatePath(`/customers/${input.userId}`);
   if (input.subscriptionId) revalidatePath(`/subscriptions/${input.subscriptionId}`);
   return { ok: true };
 }

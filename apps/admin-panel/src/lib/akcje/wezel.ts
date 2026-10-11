@@ -9,9 +9,9 @@ import type { PomocId } from "@/lib/pomoc";
  * `perm` odpowiada egzekucji w API (apps/api/src/servers/*.admin.controller.ts): metody bez własnego
  * @Roles w `admin/servers` i `admin/waf` są tylko dla ADMIN-a, reszta — @StaffPerm.
  */
-export type UprawnienieAkcji = "NODES_VIEW" | "NODES_MANAGE" | "MAIL_QUEUE_NODE" | "IP_BLOCKS_NODE" | "ACCOUNT_DIAGNOSTICS_VIEW" | "ADMIN";
+export type UprawnienieAkcji = "NODES_VIEW" | "NODES_MANAGE" | "MAIL_QUEUE_NODE" | "IP_BLOCKS_NODE" | "ACCOUNT_DIAGNOSTICS_VIEW" | "NODE_SERVICES" | "ADMIN";
 
-export type GrupaAkcji = "Instalacja" | "Aktualizacje" | "Audyt i naprawa" | "Dostępność" | "Poczta" | "Bezpieczeństwo" | "Konfiguracja" | "Dostęp i historia";
+export type GrupaAkcji = "Instalacja" | "Aktualizacje" | "Audyt i naprawa" | "Usługi i logi" | "Dostępność" | "Poczta" | "Bezpieczeństwo" | "Konfiguracja" | "Dostęp i historia";
 
 export interface WezelDlaAkcji {
   id: string;
@@ -215,6 +215,29 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
     kiedy: dziala,
     href: (w) => `/nodes/kopie?wezel=${encodeURIComponent(w.id)}`,
     pomocId: "kopie-floty",
+  },
+  {
+    id: "uslugi-wezla",
+    slowa: "usługi restart uruchom status watchdog dovecot mariadb mysql litespeed www named dns ftp usługa padła service",
+    grupa: "Usługi i logi",
+    nazwa: "Usługi węzła",
+    opis: "Stan usług z watchdogiem, restart z powodem; działającą usługę wspólną restartuje administrator.",
+    // F3.4 — admin/servers/:id/uslugi — NODE_SERVICES (NOC); restart-wspolnej — tylko ADMIN (wniosek NODE_SERVICE_RESTART).
+    perm: "NODE_SERVICES",
+    kiedy: dziala,
+    href: (w) => karta(w, "?sekcja=uslugi#uslugi-wezla"),
+    pomocId: "uslugi-wezla",
+  },
+  {
+    id: "logi-wezla",
+    slowa: "logi log dziennik mainlog maillog error.log messages journal ogon tail grep",
+    grupa: "Usługi i logi",
+    nazwa: "Logi węzła",
+    opis: "Ostatnie linie logu z listy (system, poczta, WWW, panel, bazy) z filtrem.",
+    perm: "NODE_SERVICES",
+    kiedy: dziala,
+    href: (w) => karta(w, "?sekcja=uslugi#uslugi-wezla"),
+    pomocId: "logi-wezla",
   },
   {
     id: "kolejka-poczty",

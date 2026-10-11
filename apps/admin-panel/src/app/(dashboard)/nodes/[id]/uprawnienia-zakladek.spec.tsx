@@ -121,3 +121,16 @@ it("F3.2: zakładka „Bezpieczeństwo” — bez IP_BLOCKS_NODE panel blokad si
   expect(api.mock.calls.map((c) => c[0])).toContain("/admin/servers/malware?wezel=w1");
   expect(noc).toContain("Bezpieczeństwo");
 });
+
+it("F3.4: zakładka „Usługi i logi” — bez NODE_SERVICES panel się nie renderuje (logi wszystkich klientów węzła); NOC i admin — tak", async () => {
+  zDostepem({ role: "STAFF", isAdmin: false, permissions: ["NODES_VIEW", "NODES_MANAGE", "IP_BLOCKS_NODE"] });
+  const bez = await render("uslugi");
+  expect(bez).toContain('data-zablokowane="Wymaga NODE_SERVICES"');
+  expect(bez).not.toContain('id="uslugi-wezla-naglowek"');
+  zDostepem({ role: "STAFF", isAdmin: false, permissions: ["NODES_VIEW", "NODE_SERVICES"] });
+  const noc = await render("uslugi");
+  expect(noc).toContain('id="uslugi-wezla-naglowek"');
+  expect(noc).toContain("Usługi i logi");
+  zDostepem({ role: "ADMIN", isAdmin: true, permissions: [] });
+  expect(await render("uslugi")).toContain('id="logi-wezla-naglowek"');
+});

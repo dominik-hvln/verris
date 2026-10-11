@@ -47,6 +47,15 @@ describe("Cmd+K — rejestr działań", () => {
     expect(akcjeWezlaDlaZapytania(aktywny, "malware", ADMIN)[0]).toMatchObject({ id: "malware-wezla", href: "/nodes/n1?sekcja=bezpieczenstwo#malware-wezla" });
   });
 
+  it("F3.4: „restart” / „logi” → zakładka Usługi i logi węzła; bez NODE_SERVICES wyszarzone", () => {
+    expect(akcjeWezlaDlaZapytania(aktywny, "watchdog", ADMIN).map((a) => a.id)).toEqual(["uslugi-wezla"]);
+    expect(akcjeWezlaDlaZapytania(aktywny, "mariadb restart", FLOTA_PODGLAD)[0]).toMatchObject({
+      href: "/nodes/n1?sekcja=uslugi#uslugi-wezla",
+      zablokowane: "Wymaga NODE_SERVICES",
+    });
+    expect(akcjeWezlaDlaZapytania(aktywny, "mainlog", ADMIN)[0]).toMatchObject({ id: "logi-wezla", zablokowane: null });
+  });
+
   it("bez uprawnień — wyszarzone z powodem, nie ukryte", () => {
     const [onboard] = akcjeWezlaDlaZapytania(aktywny, "onboard", FLOTA_PODGLAD);
     expect(onboard).toMatchObject({ id: "onboard-live", href: "/nodes/n1?sekcja=aktualizacje#onboard-live", zablokowane: "Wymaga NODES_MANAGE" });

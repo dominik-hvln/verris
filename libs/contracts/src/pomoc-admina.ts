@@ -335,6 +335,18 @@ export const POMOC = {
     opis: "Wszystkie zablokowane adresy węzła z powodem i czasem, odblokowanie dowolnego adresu i biała lista adresów, których serwer nigdy nie blokuje.",
     kiedy: "Przy awarii po stronie dużego klienta (np. biuro za jednym IP) albo gdy trzeba zwolnić adres partnera — z powodem w dzienniku.",
   },
+  "uslugi-wezla": {
+    tytul: "Usługi węzła",
+    opis: "Stan usług serwera z listy (WWW, poczta, bazy, DNS, FTP, panel, fail2ban) z watchdogiem agenta i restart z powodem w dzienniku.",
+    kiedy: "Gdy watchdog albo klienci zgłaszają, że coś nie działa — usługę, która stoi, uruchamia NOC.",
+    rozniSieOd: "Restart działającej usługi wspólnej przerywa pracę wszystkich kont, więc robi go administrator albo zespół składa wniosek.",
+  },
+  "logi-wezla": {
+    tytul: "Logi węzła",
+    opis: "Ostatnie linie wybranego logu serwera z filtrem tekstowym, bez dowolnych ścieżek.",
+    kiedy: "Przy diagnozie awarii usługi albo poczty, zamiast logowania na serwer.",
+    rozniSieOd: "W logach poczty zespół widzi adresy e-mail zamaskowane; pełne adresy — tylko administrator.",
+  },
   kwarantanna: {
     tytul: "Kwarantanna plików",
     opis: "Przenosi pliki wykryte przez skaner poza stronę; kopia z sumą kontrolną zostaje na koncie, więc da się je przywrócić.",

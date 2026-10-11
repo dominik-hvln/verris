@@ -30,6 +30,7 @@ import { DzialaniaWezla } from "./dzialania-wezla";
 import { KolejkaWezlaPanel } from "./kolejka-wezla-panel";
 import { PocztaWezlaPanel } from "./poczta-wezla-panel";
 import { BlokadyIpWezlaPanel } from "./blokady-ip-wezla-panel";
+import { UslugiWezlaPanel } from "./uslugi-wezla-panel";
 import { MalwareFlotyTabela, type MalwareFloty } from "@/components/malware-floty";
 import { PrzekroczeniaLimitow, type Przekroczenia } from "@/components/przekroczenia-limitow";
 import { adminApi } from "@/lib/api";
@@ -49,7 +50,7 @@ import { Eyebrow, KARTA, Kpi, Pasek, Pigulka, RzadKpi, Zakladki } from "@/compon
 
 export const dynamic = "force-dynamic";
 
-const SEKCJE = ["przeglad", "konta", "audyt", "zadania", "poczta", "bezpieczenstwo", "aktualizacje", "konfiguracja", "wycofanie"] as const;
+const SEKCJE = ["przeglad", "konta", "audyt", "zadania", "uslugi", "poczta", "bezpieczenstwo", "aktualizacje", "konfiguracja", "wycofanie"] as const;
 type Sekcja = (typeof SEKCJE)[number];
 
 const STATUS: Record<string, string> = {
@@ -222,6 +223,7 @@ export default async function ServerDetailPage({
           { nazwa: `Konta (${server._count?.accounts ?? 0})`, href: `${baza}?sekcja=konta`, on: sekcja === "konta" },
           { nazwa: "Audyt i naprawa", href: `${baza}?sekcja=audyt`, on: sekcja === "audyt", licznik: p?.doNaprawy },
           { nazwa: "Zadania", href: `${baza}?sekcja=zadania`, on: sekcja === "zadania" },
+          { nazwa: "Usługi i logi", href: `${baza}?sekcja=uslugi`, on: sekcja === "uslugi" },
           { nazwa: "Poczta", href: `${baza}?sekcja=poczta`, on: sekcja === "poczta" },
           { nazwa: "Bezpieczeństwo", href: `${baza}?sekcja=bezpieczenstwo`, on: sekcja === "bezpieczenstwo" },
           { nazwa: "Aktualizacje", href: `${baza}?sekcja=aktualizacje`, on: sekcja === "aktualizacje" },
@@ -285,6 +287,23 @@ export default async function ServerDetailPage({
       ) : null}
 
       {zadania ? zadania.ok ? <NodeTasksSection rows={zadania.dane} /> : <NieWczytano co="historii zadań" /> : null}
+
+      {/* F3.4 — usługi i logi węzła: tylko NODE_SERVICES (NOC) i ADMIN; logi mają dane wszystkich klientów węzła. */}
+      {sekcja === "uslugi" ? (
+        dziala ? (
+          <div id="uslugi-wezla" className="scroll-mt-4">
+            {wymaga("uslugi-wezla") ? (
+              <p className="text-sm text-muted-foreground" data-zablokowane={wymaga("uslugi-wezla") ?? ""}>
+                {wymaga("uslugi-wezla")} — usługi i logi węzła są dla zespołu NOC.
+              </p>
+            ) : (
+              <UslugiWezlaPanel serverId={server.id} nazwaWezla={server.name ?? server.hostname ?? server.ipAddress ?? server.id} isAdmin={dostep.isAdmin} />
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Usługi i logi są dostępne, gdy węzeł jest aktywny albo w serwisie.</p>
+        )
+      ) : null}
 
       {/* F3.1 (D4) — kolejka MTA węzła: tylko MAIL_QUEUE_NODE (NOC) i ADMIN; nagłówki wszystkich klientów węzła. */}
       {sekcja === "poczta" ? (

@@ -1,0 +1,315 @@
+"use client";
+
+import { useCallback, useEffect, useState, useTransition } from "react";
+import { LOGI_WEZLA, LOG_WEZLA_LINIE_MAX, LOG_WEZLA_LINIE_MIN, uslugaWezla } from "@verris/contracts";
+import { potwierdz, zapytaj } from "@/components/potwierdz";
+import { Pomoc } from "@/components/pomoc";
+import { Select } from "@/components/select";
+import { WyslijWniosek } from "@/components/wniosek-operacji";
+import { KARTA, Pigulka } from "@/components/v2";
+import { POLE, kiedy } from "@/components/kolejka-poczty";
+import { plForm } from "@/lib/pl";
+import { uslugiWezlaAction, type AkcjaUslug, type Wynik } from "./uslugi-wezla-actions";
+
+/**
+ * F3.4 — zakładka „Usługi i logi” karty węzła (NODE_SERVICES: NOC i ADMIN). Stan usług z białej listy (zlecany na
+ * węźle) i watchdog z telemetrii agenta (co minutę), restart z powodem, ogon logu z białej listy plików.
+ * Usługa wspólna (WWW, poczta, bazy, DNS, FTP): NOC ją uruchamia, gdy stoi; działającą restartuje administrator
+ * (z nazwą węzła jako potwierdzeniem), zespół — wnioskiem. Adresy w logach poczty dla zespołu są zamaskowane.
+ */
+type StanUslugi = "dziala" | "stoi" | "blad" | "brak" | "zmienia";
+type Usluga = {
+  klucz: string;
+  etykieta: string;
+  przerwa: boolean;
+  restart: boolean;
+  jednostka: string | null;
+  stan: StanUslugi;
+  activeState: string | null;
+  od: string | null;
+  restarty: number | null;
+};
+export type StanUslugWezla = {
+  wToku: { status: boolean; restart: boolean; log: boolean };
+  uslugi: { kiedy: string; lista: Usluga[] } | null;
+  bladStanu: string | null;
+  restart: { usluga: string; etykieta: string; tylkoGdyStoi: boolean; wToku: boolean; kiedy: string; stanPo: StanUslugi | null; blad: string | null } | null;
+  log: {
+    klucz: string;
+    etykieta: string;
+    filtr: string | null;
+    wToku: boolean;
+    kiedy: string;
+    zrodlo: string | null;
+    dopasowanych: number | null;
+    pokazano: number | null;
+    maska: boolean;
+    linie: string[];
+    blad: string | null;
+  } | null;
+  watchdog: { kiedy: string | null; swiezy: boolean; nieDzialaja: string[]; uslugi: { k: string; s: string; e?: string }[] };
+};
+
+const MIN_POWOD = 10;
+const BLAD_POLACZENIA = "Nie udało się połączyć z panelem. Spróbuj ponownie za chwilę.";
+const przycisk = "rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-neutral-200 hover:text-white disabled:opacity-50";
+const STAN: Record<StanUslugi, { tekst: string; ton: "ok" | "warn" | "crit" | "muted" }> = {
+  dziala: { tekst: "działa", ton: "ok" },
+  stoi: { tekst: "zatrzymana", ton: "warn" },
+  blad: { tekst: "padła", ton: "crit" },
+  zmienia: { tekst: "zmienia stan", ton: "warn" },
+  brak: { tekst: "brak na serwerze", ton: "muted" },
+};
+
+export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: string; nazwaWezla: string; isAdmin: boolean }) {
+  const [stan, setStan] = useState<StanUslugWezla | null>(null);
+  const [powod, setPowod] = useState("");
+  const [wniosekDla, setWniosekDla] = useState<string | null>(null);
+  const [log, setLog] = useState(LOGI_WEZLA[0].klucz);
+  const [linie, setLinie] = useState("200");
+  const [filtr, setFiltr] = useState("");
+  const [msg, setMsg] = useState<{ ok: boolean; tekst: string } | null>(null);
+  const [pending, start] = useTransition();
+
+  const wywolaj = useCallback(
+    async (co: AkcjaUslug, dane: Parameters<typeof uslugiWezlaAction>[2] = {}) => {
+      let r: Wynik;
+      try {
+        r = await uslugiWezlaAction(serverId, co, dane);
+      } catch {
+        r = { ok: false, error: BLAD_POLACZENIA };
+      }
+      if (!r.ok) {
+        setMsg({ ok: false, tekst: r.error });
+        if (r.wniosek && dane.usluga) setWniosekDla(dane.usluga);
+        return false;
+      }
+      setStan(r.wynik as StanUslugWezla);
+      return true;
+    },
+    [serverId],
+  );
+
+  useEffect(() => {
+    void uslugiWezlaAction(serverId, "stan")
+      .catch(() => ({ ok: false as const, error: BLAD_POLACZENIA }))
+      .then((r) => (r.ok ? setStan(r.wynik as StanUslugWezla) : setMsg({ ok: false, tekst: r.error })));
+  }, [serverId]);
+
+  const trwa = !!stan && (stan.wToku.status || stan.wToku.restart || stan.wToku.log);
+  useEffect(() => {
+    if (!trwa) return;
+    const t = setInterval(() => void wywolaj("stan"), 5000);
+    return () => clearInterval(t);
+  }, [trwa, wywolaj]);
+
+  const powodOk = powod.trim().length >= MIN_POWOD;
+
+  const restartuj = async (u: Usluga) => {
+    const def = uslugaWezla(u.klucz);
+    if (!def) return;
+    const dziala = u.stan === "dziala" || u.stan === "zmienia";
+    if (def.przerwa && dziala) {
+      if (!isAdmin) {
+        setWniosekDla(u.klucz);
+        return;
+      }
+      const nazwa = await zapytaj(
+        `Restart „${u.etykieta}” przerwie na chwilę pracę WSZYSTKICH kont tego węzła (strony, poczta albo bazy). Przepisz nazwę węzła, żeby potwierdzić.`,
+        { akcja: "Restartuj", tytul: "Restart usługi wspólnej", placeholder: nazwaWezla },
+      );
+      if (nazwa === null) return;
+      start(async () => {
+        setMsg(null);
+        if (await wywolaj("restart-wspolnej", { usluga: u.klucz, powod, potwierdzenie: nazwa })) {
+          setPowod("");
+          setMsg({ ok: true, tekst: "Zlecone — serwer wykona restart w ciągu minuty." });
+        }
+      });
+      return;
+    }
+    const tresc = def.przerwa
+      ? `Uruchomić „${u.etykieta}”? Usługa stoi, więc start niczego nie przerwie. Jeśli w międzyczasie wstanie, serwer odmówi.`
+      : `Zrestartować „${u.etykieta}”? Klienci tego nie odczują.`;
+    if (!(await potwierdz(tresc, { akcja: def.przerwa ? "Uruchom" : "Restartuj" }))) return;
+    start(async () => {
+      setMsg(null);
+      if (await wywolaj("restart", { usluga: u.klucz, powod })) {
+        setPowod("");
+        setMsg({ ok: true, tekst: "Zlecone — serwer wykona to w ciągu minuty." });
+      }
+    });
+  };
+
+  const pokazLog = () =>
+    start(async () => {
+      setMsg(null);
+      const n = Math.min(LOG_WEZLA_LINIE_MAX, Math.max(LOG_WEZLA_LINIE_MIN, Number(linie) || 200));
+      await wywolaj("log", { log, linie: n, filtr });
+    });
+
+  const lista = stan?.uslugi?.lista ?? [];
+  const wd = stan?.watchdog;
+  const r = stan?.restart;
+  const l = stan?.log;
+  const etykieta = (k: string) => uslugaWezla(k)?.etykieta ?? k;
+
+  return (
+    <div className="space-y-4">
+      <div className={`${KARTA} space-y-4 p-5`} role="region" aria-labelledby="uslugi-wezla-naglowek">
+        <div className="flex items-center gap-2">
+          <h2 id="uslugi-wezla-naglowek" className="text-sm font-semibold">
+            Usługi
+          </h2>
+          <Pomoc id="uslugi-wezla" />
+        </div>
+
+        <p className="text-xs" data-watchdog={wd?.nieDzialaja.length ? "alarm" : wd?.swiezy ? "ok" : "brak"}>
+          {!wd?.kiedy ? (
+            <span className="text-muted-foreground">Watchdog: brak raportu agenta — zaktualizuj węzeł, żeby włączyć stały nadzór.</span>
+          ) : !wd.swiezy ? (
+            <span className="text-amber-200">Watchdog: ostatni raport {kiedy(wd.kiedy)} — agent milczy.</span>
+          ) : wd.nieDzialaja.length ? (
+            <span className="text-rose-200">
+              Watchdog ({kiedy(wd.kiedy)}): nie {plForm(wd.nieDzialaja.length, "działa", "działają", "działa")} {wd.nieDzialaja.map(etykieta).join(", ")}.
+            </span>
+          ) : (
+            <span className="text-emerald-300">Watchdog ({kiedy(wd.kiedy)}): wszystkie usługi działają.</span>
+          )}
+        </p>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" data-akcja="sprawdz" className={przycisk} disabled={pending || !!stan?.wToku.status} onClick={() => start(async () => void (await wywolaj("sprawdz")))}>
+            {stan?.wToku.status ? "Sprawdzam…" : "Sprawdź na serwerze"}
+          </button>
+          <span className="text-xs text-muted-foreground">{stan?.uslugi ? `stan z ${kiedy(stan.uslugi.kiedy)}` : "jeszcze nie sprawdzano"}</span>
+        </div>
+        {stan?.bladStanu ? <p className="text-xs text-rose-200">Sprawdzenie nie powiodło się: {stan.bladStanu}</p> : null}
+
+        <input
+          value={powod}
+          onChange={(e) => setPowod(e.target.value)}
+          maxLength={500}
+          disabled={pending}
+          placeholder={`Powód restartu do dziennika (min. ${MIN_POWOD} znaków)`}
+          aria-label="Powód restartu"
+          className={POLE}
+        />
+
+        {lista.length ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="px-2 py-1">Usługa</th>
+                  <th className="px-2 py-1">Stan</th>
+                  <th className="px-2 py-1">Działa od</th>
+                  <th className="px-2 py-1">Restarty</th>
+                  <th className="px-2 py-1" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {lista.map((u) => {
+                  const dziala = u.stan === "dziala" || u.stan === "zmienia";
+                  const tekst = !u.restart || u.stan === "brak" ? null : u.przerwa && !dziala ? "Uruchom" : u.przerwa ? (isAdmin ? "Restart (przerwa)" : "Wniosek o restart") : "Restart";
+                  return (
+                    <tr key={u.klucz} data-usluga={u.klucz}>
+                      <td className="px-2 py-1">
+                        {u.etykieta} {u.jednostka ? <span className="font-mono text-muted-foreground">({u.jednostka})</span> : null}
+                      </td>
+                      <td className="px-2 py-1">
+                        <Pigulka ton={STAN[u.stan].ton}>{STAN[u.stan].tekst}</Pigulka>
+                      </td>
+                      <td className="px-2 py-1">{kiedy(u.od)}</td>
+                      <td className="px-2 py-1">{u.restarty ?? "—"}</td>
+                      <td className="px-2 py-1 text-right">
+                        {tekst ? (
+                          <button
+                            type="button"
+                            data-akcja={`restart-${u.klucz}`}
+                            className={przycisk}
+                            disabled={pending || !!stan?.wToku.restart || (!powodOk && !(u.przerwa && dziala && !isAdmin))}
+                            title={powodOk ? undefined : "Najpierw wpisz powód"}
+                            onClick={() => void restartuj(u)}
+                          >
+                            {tekst}
+                          </button>
+                        ) : null}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+
+        {wniosekDla && !isAdmin ? (
+          <div className="rounded-lg border border-amber-400/30 p-3" data-wniosek-restart={wniosekDla}>
+            <WyslijWniosek
+              typ="NODE_SERVICE_RESTART"
+              payload={{ serverId, usluga: wniosekDla }}
+              podpowiedz={`„${etykieta(wniosekDla)}” działa — restart przerwie pracę wszystkich kont węzła, więc robi go administrator.`}
+            />
+          </div>
+        ) : null}
+
+        {r ? (
+          <p className="text-xs text-muted-foreground" data-restart="wynik">
+            Ostatni {r.tylkoGdyStoi ? "start" : "restart"} „{r.etykieta}” ({kiedy(r.kiedy)}):{" "}
+            {r.wToku ? "w toku…" : r.blad ? `nie powiódł się — ${r.blad}` : r.stanPo === "dziala" ? "usługa działa." : "gotowe."}
+          </p>
+        ) : null}
+      </div>
+
+      <div className={`${KARTA} space-y-3 p-5`} role="region" aria-labelledby="logi-wezla-naglowek">
+        <div className="flex items-center gap-2">
+          <h2 id="logi-wezla-naglowek" className="text-sm font-semibold">
+            Logi
+          </h2>
+          <Pomoc id="logi-wezla" />
+        </div>
+        <div className="grid gap-2 md:grid-cols-[2fr_1fr_2fr_auto]">
+          <Select value={log} onChange={setLog} aria-label="Log" options={LOGI_WEZLA.map((x) => ({ value: x.klucz, label: x.etykieta }))} />
+          <input
+            value={linie}
+            onChange={(e) => setLinie(e.target.value.replace(/\D/g, "").slice(0, 3))}
+            inputMode="numeric"
+            aria-label="Ile ostatnich linii"
+            title={`${LOG_WEZLA_LINIE_MIN}–${LOG_WEZLA_LINIE_MAX} linii`}
+            className={POLE}
+          />
+          <input value={filtr} onChange={(e) => setFiltr(e.target.value)} maxLength={100} placeholder="Filtr: fragment tekstu" aria-label="Filtr logu" className={POLE} />
+          <button type="button" data-akcja="log" className={przycisk} disabled={pending || !!stan?.wToku.log} onClick={pokazLog}>
+            {stan?.wToku.log ? "Czytam…" : "Pokaż"}
+          </button>
+        </div>
+        {l ? (
+          <div className="space-y-1.5" data-log={l.klucz}>
+            <p className="text-xs text-muted-foreground">
+              {l.etykieta}
+              {l.filtr ? ` · filtr „${l.filtr}”` : ""} · {kiedy(l.kiedy)}
+              {l.dopasowanych !== null && l.pokazano !== null ? ` · ${l.pokazano} z ${l.dopasowanych} ${plForm(l.dopasowanych, "linii", "linii", "linii")}` : ""}
+              {l.maska ? " · adresy e-mail zamaskowane" : ""}
+            </p>
+            {l.wToku ? (
+              <p className="text-xs text-muted-foreground">Czytam log na serwerze…</p>
+            ) : l.blad ? (
+              <p className="text-xs text-rose-200">Nie udało się: {l.blad}</p>
+            ) : l.linie.length ? (
+              <pre className="max-h-[480px] overflow-auto rounded-lg bg-black/40 p-3 font-mono text-[11px] leading-relaxed text-neutral-200">{l.linie.join("\n")}</pre>
+            ) : (
+              <p className="text-xs text-muted-foreground">Brak linii{l.filtr ? " pasujących do filtra" : ""}.</p>
+            )}
+          </div>
+        ) : null}
+      </div>
+
+      {msg ? (
+        <p role="status" className={`text-sm ${msg.ok ? "text-emerald-300" : "text-rose-300"}`}>
+          {msg.tekst}
+        </p>
+      ) : null}
+    </div>
+  );
+}
