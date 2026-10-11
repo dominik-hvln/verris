@@ -376,30 +376,44 @@ export class StaffRolesService implements OnModuleInit {
   /** Dziennik aktywności operatorów — ostatnie akcje wykonane przez STAFF/ADMIN. */
   async operatorActivity(opts: { operatorId?: string; limit?: number }) {
     const take = Math.min(300, Math.max(1, Math.trunc(Number(opts.limit ?? 150))));
-    const where: Record<string, unknown> = opts.operatorId
-      ? { actorUserId: opts.operatorId }
-      : { actorUserId: { not: null } };
+    // Weryfikacja 11.10 — „aktor jest ustawiony” to nie „działał operator”: klient w swoim panelu też jest aktorem
+    // (np. HOSTING_FILE_WRITTEN), więc dziennik operatorów pokazywał akcje klientów. Teraz tylko wpisy, w których
+    // działał ADMIN/STAFF — sam albo w sesji „Zaloguj jako klient” (impersonatedBy).
+    const operatorzy = (
+      await this.prisma.user.findMany({
+        where: { role: { in: ['STAFF', 'ADMIN'] }, ...(opts.operatorId ? { id: opts.operatorId } : {}) },
+        select: { id: true },
+      })
+    ).map((u) => u.id);
+    if (!operatorzy.length) return [];
     const rows = await this.prisma.auditLog.findMany({
-      where,
+      where: { OR: [{ actorUserId: { in: operatorzy } }, { impersonatedBy: { in: operatorzy } }] },
       orderBy: { createdAt: 'desc' },
       take,
-      select: { id: true, action: true, createdAt: true, actorUserId: true, userId: true, ipAddress: true },
+      select: { id: true, action: true, createdAt: true, actorUserId: true, impersonatedBy: true, userId: true, ipAddress: true },
     });
+    const jestOperatorem = new Set(operatorzy);
+    // Aktor = operator: przy akcji w sesji „Zaloguj jako klient” aktorem wpisu bywa klient, a operatorem — impersonatedBy.
+    const operatorWpisu = (r: { actorUserId: string | null; impersonatedBy: string | null }) =>
+      r.actorUserId && jestOperatorem.has(r.actorUserId) ? r.actorUserId : r.impersonatedBy;
     const ids = Array.from(
-      new Set(rows.flatMap((r) => [r.actorUserId, r.userId]).filter((x): x is string => Boolean(x))),
+      new Set(rows.flatMap((r) => [operatorWpisu(r), r.userId]).filter((x): x is string => Boolean(x))),
     );
     const users = ids.length
       ? await this.prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, email: true } })
       : [];
     const byId = new Map(users.map((u) => [u.id, u.email]));
-    return rows.map((r) => ({
-      id: r.id,
-      action: r.action,
-      createdAt: r.createdAt,
-      actor: r.actorUserId ? byId.get(r.actorUserId) ?? r.actorUserId : null,
-      target: r.userId ? byId.get(r.userId) ?? r.userId : null,
-      ip: r.ipAddress ?? null,
-    }));
+    return rows.map((r) => {
+      const aktor = operatorWpisu(r);
+      return {
+        id: r.id,
+        action: r.action,
+        createdAt: r.createdAt,
+        actor: aktor ? byId.get(aktor) ?? aktor : null,
+        target: r.userId ? byId.get(r.userId) ?? r.userId : null,
+        ip: r.ipAddress ?? null,
+      };
+    });
   }
 
   /** Uprawnienia zalogowanego operatora — dla bramkowania UI. ADMIN = wszystko. */

@@ -107,11 +107,42 @@ function zeZgloszeniem(details: Prisma.InputJsonValue | undefined, zgloszenieId:
   return { wartosc: details, zgloszenieId };
 }
 
+/**
+ * Weryfikacja 11.10 — wgląd w konto klienta (OPERATOR_ACCOUNT_VIEWED) zapisuje się raz na otwarcie, nie przy każdym
+ * odczycie. Panele karty usługi odpytują API co 5 s, póki trwa zadanie węzła (zasoby i diagnoza 508, limit wysyłki,
+ * kolejka, WAF, blokady IP), a każdy GET zapisywał wpis — dziennik operatorów miał serię wpisów co 5 s. Część tras
+ * omijała to ręcznie („nie w trakcie wczytywania”), zasoby i limit wysyłki nie. Teraz w jednym miejscu: ten sam
+ * operator, to samo konto i te same szczegóły (usługa, sekcja, domena, adres…) w oknie — bez nowego wpisu. Inna sekcja,
+ * inna domena albo upływ okna to nowy wgląd i nowy wpis.
+ */
+export const OKNO_JEDNEGO_WGLADU_MS: Readonly<Record<string, number>> = { OPERATOR_ACCOUNT_VIEWED: 10 * 60_000 };
+
 @Injectable()
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  /** Taki sam wpis (akcja, klient, operator, szczegóły) w oknie — wtedy record() nie dopisuje drugiego. */
+  private async juzZapisany(
+    action: string,
+    userId: string | null,
+    actorUserId: string | null,
+    details: Prisma.InputJsonValue | typeof Prisma.JsonNull,
+    oknoMs: number,
+  ): Promise<boolean> {
+    try {
+      const wpis = await this.prisma.auditLog.findFirst({
+        where: { action, userId, actorUserId, createdAt: { gte: new Date(Date.now() - oknoMs) }, details: { equals: details } },
+        select: { id: true },
+      });
+      return wpis !== null;
+    } catch (err) {
+      // Błąd sprawdzenia nie może zgubić wpisu — wtedy zapisujemy (lepiej podwójnie niż wcale).
+      this.logger.warn(`Nie udało się sprawdzić powtórzenia wpisu ${action}: ${(err as Error).message}`);
+      return false;
+    }
+  }
 
   async record(payload: AuditPayload): Promise<void> {
     const magazyn = kontekstZadania.getStore();
@@ -127,6 +158,9 @@ export class AuditService {
           ? op.operatorUserId
           : payload.actorUserId ?? null;
     const details = op && payload.userId === op.wlasciciel ? zeZgloszeniem(payload.details, op.zgloszenieId) : payload.details;
+    const szczegoly = zWnioskiem(details, magazyn?.wniosek) ?? Prisma.JsonNull;
+    const okno = OKNO_JEDNEGO_WGLADU_MS[payload.action];
+    if (okno && (await this.juzZapisany(payload.action, payload.userId ?? null, actorUserId, szczegoly, okno))) return;
     try {
       await this.prisma.auditLog.create({
         data: {
@@ -134,7 +168,7 @@ export class AuditService {
           userId: payload.userId ?? null,
           actorUserId,
           impersonatedBy: payload.impersonatedBy ?? magazyn?.impersonatedBy ?? null,
-          details: zWnioskiem(details, magazyn?.wniosek) ?? Prisma.JsonNull,
+          details: szczegoly,
           ipAddress: payload.ipAddress ?? null,
           userAgent: payload.userAgent ?? null,
         },
