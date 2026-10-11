@@ -1,4 +1,5 @@
 import { NodeTaskStatus } from '@verris/database';
+import { wynikWyczyszczony } from './dane-zadan-wezla.js';
 import {
   LOGI_WEZLA,
   USLUGI_WEZLA,
@@ -142,7 +143,9 @@ export function stanUslug(zadania: ZadanieUslug[], admin: boolean) {
   const statusy = zTrybu('status');
   const ostatniStatus = statusy.find((z) => z.status === NodeTaskStatus.COMPLETED) ?? null;
   const restart = zTrybu('restart')[0] ?? null;
-  const log = zTrybu('log')[0] ?? null;
+  // Audyt Fali 3 — log wyczyszczony retencją (30 dni) to „nie wczytano”, nie pusty log.
+  const ostatniLog = zTrybu('log')[0] ?? null;
+  const log = ostatniLog && !wynikWyczyszczony(ostatniLog) ? ostatniLog : null;
   const p = restart ? parametryUslug(restart) : null;
   const pl = log ? parametryUslug(log) : null;
   const defLogu = pl ? logWezla(pl.name) : null;

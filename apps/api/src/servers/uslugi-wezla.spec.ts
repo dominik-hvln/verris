@@ -25,6 +25,12 @@ const zad = (o: Partial<ZadanieUslug> & { payload: unknown }): ZadanieUslug => (
   ...o,
 });
 
+describe('audyt Fali 3 — log usługi wyczyszczony retencją', () => {
+  it('ukończony log bez wyniku (30 dni) to „nie wczytano”, nie pusty log', () => {
+    expect(stanUslug([zad({ payload: { mode: 'log', name: 'exim-main', lines: '200' }, outputLog: null })], true).log).toBeNull();
+  });
+});
+
 describe('F3.4 — wynik zadania NODE_SERVICES', () => {
   it('stan usług w kolejności białej listy; jednostka spoza listy usługi i usługa spoza listy — odrzucone', () => {
     const u = uslugiZLogu(wynikStatusu);

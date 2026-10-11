@@ -4,7 +4,8 @@ import { join } from 'path';
 import { Readable } from 'stream';
 import { inflateRawSync } from 'zlib';
 import { Prisma } from '@verris/database';
-import { DataExportService } from './data-export.service.js';
+import { DataExportService, NOTATKA_ZESPOLU } from './data-export.service.js';
+import { KORDON_Z_BLOKADY } from '../subscriptions/poczta-konta-operatora.service.js';
 
 /**
  * X-22 — eksport danych osobowych (RODO art. 20) sprawdzany end-to-end: prawdziwy
@@ -118,6 +119,21 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
         },
         // Błąd bez śladów infrastruktury zostaje (np. odmowa karty klienta).
         { id: 'l7', action: 'WALLET_AUTO_TOPUP_FAILED', userId: 'u1', actorUserId: null, impersonatedBy: null, ipAddress: null, userAgent: null, details: { error: 'Karta została odrzucona.' } },
+        // Audyt Fali 3 — kopie powodu blokady wysyłki (decyzja abuse z treścią zgłoszenia osoby trzeciej).
+        {
+          id: 'l8', action: 'OPERATOR_ACCOUNT_CHANGED', userId: 'u1', actorUserId: OPERATOR, impersonatedBy: null, ipAddress: null, userAgent: null,
+          details: { subscriptionId: 's1', akcja: 'blokada-wysylki', powod: 'Nadużycie #ab12cd34: zgłoszenie od abuse@zglaszajacy.example', wynik: 'ok' },
+        },
+        {
+          id: 'l9', action: 'OUTBOUND_CORDON_APPLIED', userId: 'u1', actorUserId: null, impersonatedBy: null, ipAddress: null, userAgent: null,
+          details: { reason: 'Blokada wysyłki konta przez obsługę: Nadużycie #ab12cd34: zgłoszenie od abuse@zglaszajacy.example', subscriptionId: 's1', source: 'operator' },
+        },
+        // Kordon automatyczny i powód innej akcji obsługi — bez zmian.
+        { id: 'l10', action: 'OUTBOUND_CORDON_APPLIED', userId: 'u1', actorUserId: null, impersonatedBy: null, ipAddress: null, userAgent: null, details: { reason: 'hour limit 500 exceeded' } },
+        {
+          id: 'l11', action: 'OPERATOR_ACCOUNT_CHANGED', userId: 'u1', actorUserId: OPERATOR, impersonatedBy: null, ipAddress: null, userAgent: null,
+          details: { subscriptionId: 's1', akcja: 'ssl', powod: 'Klient prosił o odnowienie certyfikatu', wynik: 'ok' },
+        },
       ]),
     },
     customerNote: {
@@ -282,6 +298,16 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
     expect(wpisy.find((w) => w.id === 'l5')!.details).toMatchObject({ wynik: 'blad', blad: ogolny });
     expect(wpisy.find((w) => w.id === 'l6')!.details).toMatchObject({ wniosekId: 'w1', blad: ogolny });
     expect(wpisy.find((w) => w.id === 'l7')!.details).toEqual({ error: 'Karta została odrzucona.' });
+  });
+
+  it('audyt Fali 3 — powód blokady wysyłki nie wychodzi w żadnym pliku (kopie w dzienniku: akcja zespołu i kordon obsługi)', async () => {
+    const pliki = await zbudujZip(zbuduj().svc);
+    for (const [nazwa, tresc] of pliki) expect(tresc, nazwa).not.toMatch(/Nadużycie #ab12|zglaszajacy/);
+    const wpisy = JSON.parse(pliki.get('audit-log.json')!) as Array<{ id: string; details: Record<string, unknown> }>;
+    expect(wpisy.find((w) => w.id === 'l8')!.details).toMatchObject({ akcja: 'blokada-wysylki', powod: NOTATKA_ZESPOLU, wynik: 'ok' });
+    expect(wpisy.find((w) => w.id === 'l9')!.details).toEqual({ reason: KORDON_Z_BLOKADY, subscriptionId: 's1', source: 'operator' });
+    expect(wpisy.find((w) => w.id === 'l10')!.details).toEqual({ reason: 'hour limit 500 exceeded' });
+    expect(wpisy.find((w) => w.id === 'l11')!.details).toMatchObject({ akcja: 'ssl', powod: 'Klient prosił o odnowienie certyfikatu' });
   });
 
   it('nazwa załącznika nie wychodzi poza katalog attachments/ (zip slip)', async () => {

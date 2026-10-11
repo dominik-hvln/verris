@@ -60,7 +60,8 @@ export function bladWaf(log: string | null, errorMessage: string | null): string
 
 /** Stan z ostatnich zadań WAF_HITS konta (najnowsze pierwsze). */
 export function stanTrafien(zadania: Zadanie[]) {
-  const wynik = zadania.find((z) => z.status === NodeTaskStatus.COMPLETED) ?? null;
+  // Audyt Fali 3 — wynik wyczyszczony retencją (30 dni) to „nie wczytano”, nie „brak trafień”.
+  const wynik = zadania.find((z) => z.status === NodeTaskStatus.COMPLETED && z.outputLog !== null) ?? null;
   const ostatnie = zadania[0] ?? null;
   const trafienia = trafieniaZLogu(wynik?.outputLog ?? null);
   const razem = /^VERRIS_WAF_RAZEM (\d+) (\d+)/m.exec(wynik?.outputLog ?? '');

@@ -6,9 +6,13 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { AccountStatus, NodeTaskKind, SubscriptionStatus } from '@verris/database';
+import { AccountStatus, SubscriptionStatus } from '@verris/database';
+import { ObjectStorageService } from '../storage/object-storage.service.js';
+import { ObjectBuckets } from '../storage/object-storage.types.js';
+import { KLUCZE_OSOBOWE_PARAMETROW, ZADANIA_KONTA_Z_DANYMI_OSOBOWYMI } from '../servers/dane-zadan-wezla.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { RodoActions } from '../common/audit/audit.actions.js';
@@ -91,6 +95,9 @@ export class AccountDeletionService {
     private readonly da: DirectAdminService,
     private readonly mailer: MailerService,
     private readonly config: ConfigService,
+    // Audyt Fali 3 — pliki wpisów poczty przychodzącej konta (magazyn zgłoszeń). Moduł magazynu jest globalny;
+    // bez niego (testy jednostkowe) pliki zostają, a log mówi, ile.
+    @Optional() private readonly storage?: ObjectStorageService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -290,6 +297,7 @@ export class AccountDeletionService {
     });
 
     const now = new Date();
+    let plikiPoczty: string[] = [];
 
     await this.prisma.$transaction(async (tx) => {
       // 0) Zajęcie wniosku jako pierwsze w transakcji: lista do anonimizacji powstaje o 03:30,
@@ -390,6 +398,9 @@ export class AccountDeletionService {
       // 3c) F2.4 — notatki obsługi o osobie to też jej dane.
       await tx.customerNote.deleteMany({ where: { userId } });
       // F3.7 — wpisy poczty przychodzącej dopasowane do konta (adres, temat). Treść maili jest w zgłoszeniach.
+      // Audyt Fali 3 — ich pliki w magazynie (poczta/<id>/…) usuwamy po zapisie; bez tego zostawały sierotami, do
+      // których nie prowadzi żaden wiersz (retencja szuka plików przez wiersze).
+      plikiPoczty = (await tx.pocztaPrzychodzaca.findMany({ where: { userId }, select: { zalaczniki: true } })).flatMap((w) => kluczePlikow(w.zalaczniki));
       await tx.pocztaPrzychodzaca.deleteMany({ where: { userId } });
       // 3d) Przegląd D11 — log kontaktów z obsługą migracji (rozmowy, maile) i checklista obsługi (wyniki testów,
       //     podsumowanie) to dane o osobie jak notatki obsługi; same zlecenia migracji zostają (rozliczenia, dziennik).
@@ -397,13 +408,17 @@ export class AccountDeletionService {
       await tx.migrationRequest.updateMany({ where: { userId }, data: { checklista: {} } });
 
       // 3e) Audyt Fal 2 — nagłówki kolejki poczty kont klienta (nadawcy, odbiorcy, tematy) z zadań węzła MAIL_QUEUE.
-      //     Podglądy całego węzła (accountId = null) czyści retencja po dobie (RetentionScheduler).
+      //     Audyt Fali 3 — także dziennik poczty (MAIL_LOG), blokady IP (IP_BLOCKS: lista węzła i adres klienta
+      //     w parametrach) i trafienia WAF (IP odwiedzających, ścieżki) zleconych dla kont klienta. Podglądy całego
+      //     węzła (accountId = null) czyści retencja (RetentionScheduler, servers/dane-zadan-wezla.ts).
       const kontaKlienta = await tx.account.findMany({ where: { userId }, select: { id: true } });
       if (kontaKlienta.length) {
+        const ids = kontaKlienta.map((a) => a.id);
         await tx.nodeTask.updateMany({
-          where: { kind: NodeTaskKind.MAIL_QUEUE, accountId: { in: kontaKlienta.map((a) => a.id) }, outputLog: { not: null } },
+          where: { kind: { in: [...ZADANIA_KONTA_Z_DANYMI_OSOBOWYMI] }, accountId: { in: ids }, outputLog: { not: null } },
           data: { outputLog: null },
         });
+        await tx.$executeRaw`UPDATE "NodeTask" SET "payload" = "payload" - ${[...KLUCZE_OSOBOWE_PARAMETROW]}::text[] WHERE "accountId" = ANY(${ids}::text[]) AND "kind"::text = ANY(${[...ZADANIA_KONTA_Z_DANYMI_OSOBOWYMI]}::text[]) AND jsonb_typeof("payload") = 'object' AND jsonb_exists_any("payload", ${[...KLUCZE_OSOBOWE_PARAMETROW]}::text[])`;
       }
 
       // 3f) Audyt Fal 2 — dane o osobie z nowych modułów zespołu:
@@ -441,6 +456,16 @@ export class AccountDeletionService {
           }
         }
       }
+      // 3g) Audyt Fali 3 — kopie wolnego tekstu operatora w dzienniku konta i zdarzeniach (powód akcji na koncie
+      //     i domenie — także uzasadnienie wniosku przekazane wykonawcy, powód blokady wysyłki w kordonie, powód
+      //     scalenia zgłoszeń, notatka zawieszenia). Oryginały (wnioski, Account.mailBlockedReason) czyszczą 3f;
+      //     kopie zostawały jawne. Wpisy zostają (kto, co, kiedy), bez treści.
+      for (const [pole, akcje] of Object.entries(WOLNY_TEKST_DZIENNIKA)) {
+        await tx.$executeRaw`UPDATE "AuditLog" SET "details" = jsonb_set("details", ARRAY[${pole}::text], to_jsonb(${ZANONIMIZOWANO}::text)) WHERE "userId" = ${userId} AND "action" = ANY(${[...akcje]}::text[]) AND jsonb_typeof("details" -> ${pole}::text) = 'string'`;
+      }
+      await tx.$executeRaw`UPDATE "TicketEvent" SET "meta" = jsonb_set("meta", '{reason}', to_jsonb(${ZANONIMIZOWANO}::text)) WHERE "ticketId" IN (SELECT "id" FROM "Ticket" WHERE "userId" = ${userId}) AND jsonb_typeof("meta" -> 'reason') = 'string'`;
+      await tx.$executeRaw`UPDATE "SubscriptionEvent" SET "details" = jsonb_set("details", '{note}', to_jsonb(${ZANONIMIZOWANO}::text)) WHERE "subscriptionId" IN (SELECT "id" FROM "Subscription" WHERE "userId" = ${userId}) AND jsonb_typeof("details" -> 'note') = 'string'`;
+
       // Przegląd poprawek — adresy sprzed zmiany e-maila (przez obsługę: CUSTOMER_EMAIL_CHANGED.fromEmail; przez klienta:
       // EMAIL_CHANGE_CONFIRMED) — dzwonek wniosku złożonego przed zmianą niesie poprzedni adres klienta.
       const zmianyAdresu = await tx.auditLog.findMany({
@@ -471,6 +496,9 @@ export class AccountDeletionService {
 
       // 6) Wniosek oznaczony jako zrealizowany już w kroku 0.
     });
+
+    // 6b) Audyt Fali 3 — pliki poczty przychodzącej konta (po zapisie: wycofana transakcja ich nie rusza).
+    await this.usunPlikiPoczty(userId, plikiPoczty);
 
     // 7) Provider-side DA suspend (after commit). One failure must not block
     //    others — log and continue. The `purgeDueDaAccounts` sweeper will
@@ -505,6 +533,25 @@ export class AccountDeletionService {
         `notifyAccountAnonymized failed for userId=${userId}: ${(err as Error).message}`,
       );
     });
+  }
+
+  /** Best-effort po zapisie: brak obiektu = nic do usunięcia; inny błąd — log z liczbą (do ręcznego sprzątnięcia). */
+  private async usunPlikiPoczty(userId: string, klucze: string[]) {
+    if (!klucze.length) return;
+    if (!this.storage) {
+      this.logger.error(`Anonimizacja ${userId}: brak magazynu — ${klucze.length} plików poczty (poczta/…) zostało.`);
+      return;
+    }
+    let bledy = 0;
+    for (const k of klucze) {
+      try {
+        await this.storage.removeObject(ObjectBuckets.TICKET_ATTACHMENTS, k);
+      } catch (e) {
+        bledy += 1;
+        this.logger.error(`Anonimizacja ${userId}: pliku poczty nie usunięto (${k}): ${(e as Error).message}`);
+      }
+    }
+    if (bledy) this.logger.error(`Anonimizacja ${userId}: ${bledy} z ${klucze.length} plików poczty do usunięcia ręcznie.`);
   }
 
   // ---------------------------------------------------------------------------
@@ -724,6 +771,21 @@ export class AccountDeletionService {
 
 /** Audyt Fal 2 — znacznik w miejscu treści usuniętych przy anonimizacji (art. 17). */
 const ZANONIMIZOWANO = '[zanonimizowano]';
+
+/**
+ * Audyt Fali 3 — pola wolnego tekstu operatora w szczegółach wpisów dziennika z userId klienta (pole → akcje).
+ * Nowa akcja z powodem/notatką na koncie klienta → dopisz ją tutaj (anonimizacja, art. 17).
+ */
+export const WOLNY_TEKST_DZIENNIKA: Readonly<Record<string, readonly string[]>> = {
+  powod: ['OPERATOR_ACCOUNT_CHANGED', 'OPERATOR_DOMAIN_CHANGED'],
+  reason: ['TICKET_MERGED', 'OUTBOUND_CORDON_APPLIED'],
+  note: ['SUBSCRIPTION_SUSPENDED', 'SUBSCRIPTION_UNSUSPENDED'],
+};
+
+/** Klucze plików w magazynie z pola `zalaczniki` wpisu poczty przychodzącej (pominięte pliki nie mają klucza). */
+export function kluczePlikow(json: unknown): string[] {
+  return Array.isArray(json) ? json.flatMap((z) => (z && typeof z === 'object' && typeof (z as { klucz?: unknown }).klucz === 'string' ? [(z as { klucz: string }).klucz] : [])) : [];
+}
 
 /** Adresy e-mail klienta: bieżący i te z wniosków o operację (np. nowy adres z wniosku o zmianę e-maila). */
 export function adresyEmail(teksty: string[]): string[] {

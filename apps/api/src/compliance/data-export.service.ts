@@ -577,7 +577,7 @@ export class DataExportService implements OnApplicationBootstrap {
       'ticket-attachments': ticketAttachments.map((a) => (a.uploadedById === userId ? a : { ...a, uploadedById: null, dodala: 'Obsługa Verris' })),
       'data-export-requests': exports,
       'account-deletion-requests': deletions,
-      'audit-log': dziennikBialaEtykieta(this.dziennikBezPracownikow(pracownicy, auditLogs), await wezlyBialejEtykiety(this.prisma)),
+      'audit-log': dziennikBezNotatekZespolu(dziennikBialaEtykieta(this.dziennikBezPracownikow(pracownicy, auditLogs), await wezlyBialejEtykiety(this.prisma))),
       'customer-notes': customerNotes.map((n) => ({ ...n, autor: 'Obsługa Verris' })),
       migrations: migracje.map(({ checklista, kontakty, ...m }) => ({
         ...m,
@@ -770,6 +770,31 @@ export function dziennikBialaEtykieta<T extends { action: string; details: unkno
 const OBSLUGA = 'Obsługa Verris';
 
 /**
+ * Audyt Fali 3 — powód blokady wysyłki to notatka zespołu (kolumna Account.mailBlockedReason wypada z accounts.json,
+ * API klienta jej nie oddaje), a przy nadużyciu niesie uzasadnienie z treścią zgłoszenia osoby trzeciej (art. 15
+ * ust. 4 RODO). Ten sam tekst ma kopie w dzienniku konta: wpis zespołu OPERATOR_ACCOUNT_CHANGED (akcja
+ * „blokada-wysylki”, także nieudana) i OUTBOUND_CORDON_APPLIED z blokady obsługi („Blokada wysyłki konta przez
+ * obsługę: <powód>”). Klient widzi, że i kiedy obsługa zablokowała wysyłkę, bez treści powodu.
+ */
+export const NOTATKA_ZESPOLU = 'Notatka zespołu';
+const KORDON_OBSLUGI = 'Blokada wysyłki konta przez obsługę';
+
+export function dziennikBezNotatekZespolu<T extends { action: string; details: unknown }>(wpisy: T[]): T[] {
+  return wpisy.map((w) => {
+    const d = w.details;
+    if (!d || typeof d !== 'object' || Array.isArray(d)) return w;
+    const x = d as Record<string, unknown>;
+    if (w.action === SupportActions.OPERATOR_ACCOUNT_CHANGED && x.akcja === 'blokada-wysylki' && typeof x.powod === 'string') {
+      return { ...w, details: { ...x, powod: NOTATKA_ZESPOLU } };
+    }
+    if (w.action === 'OUTBOUND_CORDON_APPLIED' && x.source === 'operator' && typeof x.reason === 'string') {
+      return { ...w, details: { ...x, reason: KORDON_OBSLUGI } };
+    }
+    return w;
+  });
+}
+
+/**
  * Audyt Fal 2 — każde id konta obsługi w archiwum (dowolna sekcja, dowolne zagnieżdżenie, także JSON szczegółów)
  * zamienione na „Obsługa Verris”. Schodzi tylko w zwykłe obiekty i tablice — daty, kwoty (Decimal) i bigint zostają.
  */
@@ -814,7 +839,8 @@ function buildReadme(userId: string): string {
     '  tickets.json                     — zgłoszenia do supportu (treść początkowa); obsługa bez id pracowników.',
     '  ticket-replies.json              — odpowiedzi w wątkach i notatki obsługi (internal: true), autor obsługi jako „Obsługa Verris”.',
     '  ticket-attachments.json          — metadane załączników (lista plików).',
-    '  audit-log.json                   — log audytowy operacji na koncie; działania obsługi jako „Obsługa Verris”, bez id pracowników.',
+    '  audit-log.json                   — log audytowy operacji na koncie; działania obsługi jako „Obsługa Verris”, bez id pracowników',
+    '                                     i bez treści notatek zespołu o blokadzie wysyłki.',
     '  customer-notes.json              — notatki obsługi o koncie (treść i daty, autor jako „Obsługa Verris”).',
     '  migrations.json                  — migracje: etap obsługi, terminy, checklista i log kontaktów (autor jako „Obsługa Verris”), bez haseł.',
     '  data-export-requests.json        — historia żądań eksportu danych.',

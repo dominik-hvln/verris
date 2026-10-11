@@ -8,6 +8,7 @@ import { JwtStrategy } from '../auth/strategies/jwt.strategy.js';
  */
 function stanowisko(opts: { juzZanonimizowany?: boolean; subkonta?: string[] } = {}) {
   const kolejnosc: string[] = [];
+  const magazyn = { removeObject: vi.fn(async (_b: string, k: string) => void kolejnosc.push(`magazyn:${k}`)) };
   const tx = {
     subscription: { update: vi.fn(async () => kolejnosc.push('sub')) },
     subscriptionEvent: { create: vi.fn(async () => ({})) },
@@ -23,7 +24,10 @@ function stanowisko(opts: { juzZanonimizowany?: boolean; subkonta?: string[] } =
     apiToken: { updateMany: vi.fn(async () => ({})) },
     customerNote: { deleteMany: vi.fn(async () => ({})) },
     migracjaKontakt: { deleteMany: vi.fn(async () => ({})) },
-    pocztaPrzychodzaca: { deleteMany: vi.fn(async () => ({})) },
+    pocztaPrzychodzaca: {
+      findMany: vi.fn(async () => [{ zalaczniki: [{ nazwa: 'zrzut.jpg', klucz: 'poczta/p1/zrzut.jpg' }, { nazwa: 'x.exe', pominiety: 'typ' }] }]),
+      deleteMany: vi.fn(async () => ({})),
+    },
     migrationRequest: { updateMany: vi.fn(async () => ({ count: 1 })) },
     accountDeletionRequest: { update: vi.fn(async () => ({})), updateMany: vi.fn(async () => ({ count: 1 })) },
     invoice: { deleteMany: vi.fn() },
@@ -57,8 +61,8 @@ function stanowisko(opts: { juzZanonimizowany?: boolean; subkonta?: string[] } =
   const da = { getClientForServer: vi.fn(async () => ({ suspendAccount: suspend, suspendUser: suspend })) };
   const audit = { record: vi.fn(async () => undefined) };
   const mailer = { send: vi.fn(async () => undefined) };
-  const svc = new AccountDeletionService(prisma as never, audit as never, da as never, mailer as never, { get: () => undefined } as never);
-  return { svc, tx, prisma, audit, kolejnosc };
+  const svc = new AccountDeletionService(prisma as never, audit as never, da as never, mailer as never, { get: () => undefined } as never, magazyn as never);
+  return { svc, tx, prisma, audit, kolejnosc, magazyn };
 }
 
 describe('AccountDeletionService.executeAnonymization (P-02)', () => {
@@ -87,10 +91,39 @@ describe('AccountDeletionService.executeAnonymization (P-02)', () => {
     expect(s.tx.migrationRequest.updateMany).toHaveBeenCalledWith({ where: { userId: 'u1' }, data: { checklista: {} } });
     // Audyt Fal 2 — nagłówki kolejki poczty kont klienta (zadania MAIL_QUEUE) znikają razem z danymi.
     expect(s.tx.account.findMany).toHaveBeenCalledWith({ where: { userId: 'u1' }, select: { id: true } });
+    // Audyt Fali 3 — także dziennik poczty, blokady IP i trafienia WAF kont klienta; IP i adresy z parametrów.
     expect(s.tx.nodeTask.updateMany).toHaveBeenCalledWith({
-      where: { kind: 'MAIL_QUEUE', accountId: { in: ['a1', 'a2'] }, outputLog: { not: null } },
+      where: { kind: { in: ['MAIL_QUEUE', 'MAIL_LOG', 'IP_BLOCKS', 'WAF_HITS'] }, accountId: { in: ['a1', 'a2'] }, outputLog: { not: null } },
       data: { outputLog: null },
     });
+    const sql = (s.tx.$executeRaw.mock.calls as unknown as [TemplateStringsArray, ...unknown[]][]).map(([t, ...v]) => ({ t: t.join('?'), v }));
+    expect(sql.find((q) => q.t.includes('UPDATE "NodeTask"'))?.v).toEqual([
+      ['ip', 'address', 'szukaj', 'filter'], ['a1', 'a2'], ['MAIL_QUEUE', 'MAIL_LOG', 'IP_BLOCKS', 'WAF_HITS'], ['ip', 'address', 'szukaj', 'filter'],
+    ]);
+  });
+
+  it('audyt Fali 3 — kopie powodów w dzienniku (akcje konta i domeny, scalenie, kordon, zawieszenie) i zdarzeniach znikają', async () => {
+    const s = stanowisko();
+    await s.svc.executeAnonymization('u1');
+    const sql = (s.tx.$executeRaw.mock.calls as unknown as [TemplateStringsArray, ...unknown[]][]).map(([t, ...v]) => ({ t: t.join('?'), v }));
+    const dziennik = sql.filter((q) => q.t.includes('UPDATE "AuditLog" SET "details" = jsonb_set') && q.t.includes('= ANY('));
+    expect(dziennik.map((q) => [q.v[0], q.v[3]])).toEqual([
+      ['powod', ['OPERATOR_ACCOUNT_CHANGED', 'OPERATOR_DOMAIN_CHANGED']],
+      ['reason', ['TICKET_MERGED', 'OUTBOUND_CORDON_APPLIED']],
+      ['note', ['SUBSCRIPTION_SUSPENDED', 'SUBSCRIPTION_UNSUSPENDED']],
+    ]);
+    expect(dziennik.every((q) => q.v[1] === '[zanonimizowano]' && q.v[2] === 'u1')).toBe(true);
+    expect(sql.some((q) => q.t.includes('UPDATE "TicketEvent"') && q.v.includes('u1'))).toBe(true);
+    expect(sql.some((q) => q.t.includes('UPDATE "SubscriptionEvent"') && q.v.includes('u1'))).toBe(true);
+  });
+
+  it('audyt Fali 3 — pliki poczty przychodzącej konta usunięte z magazynu po zapisie (bez sierot)', async () => {
+    const s = stanowisko();
+    await s.svc.executeAnonymization('u1');
+    expect(s.tx.pocztaPrzychodzaca.findMany).toHaveBeenCalledWith({ where: { userId: 'u1' }, select: { zalaczniki: true } });
+    expect(s.magazyn.removeObject).toHaveBeenCalledTimes(1);
+    expect(s.magazyn.removeObject).toHaveBeenCalledWith('TICKET_ATTACHMENTS', 'poczta/p1/zrzut.jpg');
+    expect(s.kolejnosc.indexOf('commit')).toBeLessThan(s.kolejnosc.indexOf('magazyn:poczta/p1/zrzut.jpg'));
   });
 
   it('audyt Fal 2 — notatki w wątkach, tagi zgłoszeń, powód blokady wysyłki i treści wniosków o operację znikają', async () => {

@@ -291,6 +291,26 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     expect(await prisma().pocztaPrzychodzaca.count()).toBe(0);
   });
 
+  it('audyt Fali 3 — retencja: wpis przypisany do zgłoszenia zostaje (wątek), ale po 90 dniach bez plików w magazynie i bez treści', async () => {
+    const jan = await konto('jan@klient.pl');
+    const op = await operator('op@verris.pl', ZESPOL_NADUZYC);
+    await prisma().ticket.create({ data: { id: ID, userId: jan.id, subject: 'Phishing', message: 'x' } });
+    await import_({ 5: 'obcy-z-plikami.eml' });
+    const w = await wpis('<obcy-001@firma-zewnetrzna.pl>');
+    const { poczta } = uslugi();
+    await poczta.przypisz(w.id, op, { zgloszenieId: ID });
+    expect(magazyn.size).toBe(1);
+    expect(await poczta.retencja(new Date(Date.now() + 89 * 86_400_000))).toBe(0);
+    expect(await poczta.retencja(new Date(Date.now() + 91 * 86_400_000))).toBe(1);
+    expect(magazyn.size).toBe(0);
+    const po = await wpis(w.messageId);
+    expect(po).toMatchObject({ wynik: 'PRZYPISANY', ticketId: ID, tresc: null });
+    expect(po.zalaczniki).toEqual(expect.arrayContaining([{ nazwa: 'zrzut.jpg', typ: 'image/jpeg', rozmiar: expect.any(Number), pominiety: 'usunięty po 90 dniach (retencja)' }]));
+    // Drugi przebieg nie wraca do wpisu bez plików i treści.
+    expect(await poczta.retencja(new Date(Date.now() + 92 * 86_400_000))).toBe(0);
+    await expect(poczta.plik(w.id, 0, true, op)).rejects.toThrow(/Nie ma takiego pliku/);
+  });
+
   it('audyt Fali 3 — abuse@ tylko dla zespołu nadużyć: L1/Sprzedaż/NOC nie widzą, nie pobierają, nie przypisują, nie odrzucają; domenę blokuje zespół nadużyć', async () => {
     await konto('jan@klient.pl');
     await import_({ 5: 'obcy-z-plikami.eml', 6: 'spam.eml' });

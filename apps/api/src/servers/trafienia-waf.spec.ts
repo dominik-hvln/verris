@@ -25,6 +25,12 @@ describe('F3.2 — trafienia WAF: odczyt', () => {
     expect(s).toMatchObject({ wToku: false, razem: 3, blad: 'nieznany format dziennika WAF' });
     expect(s.trafienia).toHaveLength(3);
   });
+
+  it('audyt Fali 3: wynik wyczyszczony retencją (30 dni) to „nie wczytano”, nie „brak trafień”', () => {
+    const t = (status: NodeTaskStatus, outputLog: string | null) => ({ status, outputLog, errorMessage: null, createdAt: new Date(), completedAt: new Date() });
+    expect(stanTrafien([t(NodeTaskStatus.COMPLETED, null)])).toMatchObject({ wczytano: null, trafienia: [], razem: null });
+    expect(stanTrafien([t(NodeTaskStatus.COMPLETED, null), t(NodeTaskStatus.COMPLETED, LOG)]).trafienia).toHaveLength(3);
+  });
 });
 
 describe('F3.2 — TrafieniaWafKontaService', () => {

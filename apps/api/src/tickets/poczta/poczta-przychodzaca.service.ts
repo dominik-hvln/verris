@@ -573,17 +573,37 @@ export class PocztaPrzychodzacaService {
 
   // ------------------------------------------------------------------ retencja
 
-  /** Wpisy bez zgłoszenia starsze niż 90 dni (z plikami w magazynie) — dane obcych nadawców nie leżą bez końca. */
+  /**
+   * Wpisy bez zgłoszenia starsze niż 90 dni (z plikami w magazynie) — dane obcych nadawców nie leżą bez końca.
+   * Audyt Fali 3 — wpisy przypisane do zgłoszenia zostają (Message-ID wątku maili, mailer.service.ts), ale po 90 dniach
+   * tracą pliki w magazynie i treść (mail z abuse@ zostawia ją we wpisie dla zespołu nadużyć). Wcześniej retencja
+   * ich nie widziała (`ticketId: null`), więc pliki obcych nadawców po „Przypisz” leżały bez terminu.
+   */
   @Cron('20 4 * * *', { name: 'tickets:poczta-retencja' })
   async retencja(teraz = new Date()): Promise<number> {
+    const granica = new Date(teraz.getTime() - RETENCJA_DNI * 86_400_000);
     const stare = await this.prisma.pocztaPrzychodzaca.findMany({
-      where: { ticketId: null, createdAt: { lt: new Date(teraz.getTime() - RETENCJA_DNI * 86_400_000) } },
+      where: { ticketId: null, createdAt: { lt: granica } },
       select: { id: true, zalaczniki: true },
       take: 1000,
     });
     for (const w of stare) for (const z of listaZalacznikow(w.zalaczniki)) if (z.klucz) await this.usunPlik(z.klucz);
     if (stare.length) await this.prisma.pocztaPrzychodzaca.deleteMany({ where: { id: { in: stare.map((w) => w.id) } } });
-    return stare.length;
+
+    const przypisane = await this.prisma.$queryRaw<Array<{ id: string; zalaczniki: Prisma.JsonValue }>>`
+      SELECT "id", "zalaczniki" FROM "PocztaPrzychodzaca"
+      WHERE "ticketId" IS NOT NULL AND "createdAt" < ${granica}
+        AND ("tresc" IS NOT NULL OR jsonb_path_exists("zalaczniki", '$[*].klucz'))
+      LIMIT 1000`;
+    for (const w of przypisane) {
+      const pliki = listaZalacznikow(w.zalaczniki);
+      for (const z of pliki) if (z.klucz) await this.usunPlik(z.klucz);
+      await this.prisma.pocztaPrzychodzaca.update({
+        where: { id: w.id },
+        data: { tresc: null, zalaczniki: pliki.map(({ klucz, ...z }) => (klucz ? { ...z, pominiety: 'usunięty po 90 dniach (retencja)' } : z)) as never },
+      });
+    }
+    return stare.length + przypisane.length;
   }
 }
 

@@ -20,9 +20,11 @@ const da = {
   domenyKontaPrzedUsunieciem: async (a: { domain: string }) => [a.domain],
   usunDelegacjeUsunietegoKonta: async () => undefined,
 };
+const magazyn = new Map<string, Buffer>();
 const serwis = () => {
   const p = prisma() as never;
-  return new AccountDeletionService(p, new AuditService(p), da as never, { send: async () => ({}) } as never, { get: () => undefined } as never);
+  const storage = { removeObject: async (_b: string, k: string) => void magazyn.delete(k) };
+  return new AccountDeletionService(p, new AuditService(p), da as never, { send: async () => ({}) } as never, { get: () => undefined } as never, storage as never);
 };
 
 async function zWnioskiem(minionyTermin = true) {
@@ -160,6 +162,83 @@ describe('X-04 usunięcie konta (RODO)', () => {
     expect(dzwonki).toContain('Decydujący: [zanonimizowano]');
     const dziennik = JSON.stringify(await p.auditLog.findMany({ where: { userId: k.user.id, action: { startsWith: 'OPERATOR_REQUEST_' } } }));
     expect(dziennik).not.toMatch(/Nowak|600 100 200/);
+  });
+
+  it('audyt Fali 3 — kopie powodów (dziennik, zdarzenia), wyniki zadań węzła kont i pliki poczty przychodzącej znikają', async () => {
+    const k = await zWnioskiem();
+    const p = prisma();
+    const op = await p.user.create({ data: { email: `op4-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'STAFF' } });
+    const powod = 'Klient stracił pracę, zapłaci 15-go — prosił o przesunięcie (Jan Kowalski)';
+    const zgl = await p.ticket.create({ data: { userId: k.user.id, subject: 'Faktura', message: 'x' } });
+    await p.ticketEvent.createMany({
+      data: [
+        { ticketId: zgl.id, type: 'MERGED_FROM', actorId: op.id, meta: { zrodlo: 'z1', reason: powod } },
+        { ticketId: zgl.id, type: 'STATUS_CHANGED', actorId: op.id, meta: { from: 'OPEN', to: 'CLOSED' } },
+      ],
+    });
+    await p.subscriptionEvent.create({ data: { subscriptionId: k.subscription.id, type: 'SUSPENDED', details: { reason: 'ABUSE', note: powod } } });
+    await p.auditLog.createMany({
+      data: [
+        { action: 'OPERATOR_ACCOUNT_CHANGED', userId: k.user.id, actorUserId: op.id, details: { akcja: 'zmiana-daty-odnowienia', powod, wynik: 'ok' } },
+        { action: 'OPERATOR_DOMAIN_CHANGED', userId: k.user.id, actorUserId: op.id, details: { akcja: 'ns', powod } },
+        { action: 'TICKET_MERGED', userId: k.user.id, actorUserId: op.id, details: { zrodlo: 'z1', cel: zgl.id, reason: powod } },
+        { action: 'OUTBOUND_CORDON_APPLIED', userId: k.user.id, details: { reason: `Blokada wysyłki konta przez obsługę: ${powod}`, source: 'operator' } },
+        { action: 'SUBSCRIPTION_SUSPENDED', userId: k.user.id, actorUserId: op.id, details: { reason: 'ABUSE', note: powod } },
+        { action: 'SUBSCRIPTION_SUSPENDED', userId: k.user.id, details: { reason: 'NON_PAYMENT', note: null } },
+      ],
+    });
+    // Zadania węzła kont klienta z danymi osobowymi; zadanie innego rodzaju zostaje.
+    await p.nodeTask.createMany({
+      data: [
+        { serverId: k.wezel.id, accountId: k.account.id, kind: 'IP_BLOCKS', status: 'COMPLETED', payload: { mode: 'unban', ip: '198.51.100.23' }, outputLog: 'VERRIS_IPB 203.0.113.50 sshd' },
+        { serverId: k.wezel.id, accountId: k.account.id, kind: 'WAF_HITS', status: 'COMPLETED', payload: { domains: 'x.pl' }, outputLog: 'VERRIS_WAF 203.0.113.60 /reset/abc' },
+        { serverId: k.wezel.id, accountId: k.account.id, kind: 'MAIL_LOG', status: 'COMPLETED', payload: { domains: 'x.pl', address: 'ania@obca.pl' }, outputLog: 'ania@obca.pl' },
+        { serverId: k.wezel.id, accountId: k.account.id, kind: 'DISK_USAGE', status: 'COMPLETED', payload: { path: '/' }, outputLog: 'public_html 10M' },
+      ],
+    });
+    const pocztaId = '5c0d0000-0000-4000-8000-0000000000aa';
+    magazyn.set(`poczta/${pocztaId}/zrzut.jpg`, Buffer.from('x'));
+    magazyn.set('poczta/inny/plik.pdf', Buffer.from('y'));
+    await p.pocztaPrzychodzaca.create({
+      data: {
+        id: pocztaId, messageId: `<a3-${Date.now()}@x>`, skrzynka: 'z', nadawca: 'jan.prywatnie@poczta.pl', temat: 'x', otrzymano: new Date(), rozmiar: 1,
+        wynik: 'BEZ_KLIENTA', userId: k.user.id, zalaczniki: [{ nazwa: 'zrzut.jpg', klucz: `poczta/${pocztaId}/zrzut.jpg` }, { nazwa: 'a.exe', pominiety: 'typ' }],
+      },
+    });
+
+    await serwis().executeAnonymization(k.user.id, null);
+
+    const tekst = JSON.stringify([
+      await p.auditLog.findMany({ where: { userId: k.user.id } }),
+      await p.ticketEvent.findMany({ where: { ticketId: zgl.id } }),
+      await p.subscriptionEvent.findMany({ where: { subscriptionId: k.subscription.id } }),
+    ]);
+    expect(tekst).not.toMatch(/Kowalski|stracił pracę/);
+    const wpisy = await p.auditLog.findMany({ where: { userId: k.user.id, action: { in: ['OPERATOR_ACCOUNT_CHANGED', 'TICKET_MERGED', 'SUBSCRIPTION_SUSPENDED'] } } });
+    expect(wpisy.map((w) => w.details)).toHaveLength(4);
+    expect(wpisy.map((w) => w.details)).toEqual(
+      expect.arrayContaining([
+        { akcja: 'zmiana-daty-odnowienia', powod: '[zanonimizowano]', wynik: 'ok' },
+        { reason: 'ABUSE', note: '[zanonimizowano]' },
+        { reason: 'NON_PAYMENT', note: null },
+        { zrodlo: 'z1', cel: zgl.id, reason: '[zanonimizowano]' },
+      ]),
+    );
+    expect((await p.ticketEvent.findMany({ where: { ticketId: zgl.id }, orderBy: { type: 'asc' } })).map((e) => e.meta)).toEqual([
+      { zrodlo: 'z1', reason: '[zanonimizowano]' },
+      { from: 'OPEN', to: 'CLOSED' },
+    ]);
+
+    const zadania = await p.nodeTask.findMany({ where: { accountId: k.account.id } });
+    expect(Object.fromEntries(zadania.map((z) => [z.kind, [z.outputLog, z.payload]]))).toEqual({
+      IP_BLOCKS: [null, { mode: 'unban' }],
+      WAF_HITS: [null, { domains: 'x.pl' }],
+      MAIL_LOG: [null, { domains: 'x.pl' }],
+      DISK_USAGE: ['public_html 10M', { path: '/' }],
+    });
+
+    expect(await p.pocztaPrzychodzaca.count({ where: { id: pocztaId } })).toBe(0);
+    expect([...magazyn.keys()]).toEqual(['poczta/inny/plik.pdf']);
   });
 
   it('klient cofnął wniosek po wybraniu listy do anonimizacji: dane zostają nietknięte', async () => {

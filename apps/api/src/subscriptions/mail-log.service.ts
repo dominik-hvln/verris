@@ -55,7 +55,8 @@ export class MailLogService {
       orderBy: { createdAt: 'desc' },
       take: 3,
     });
-    const wynik = zadania.find((z) => z.status === NodeTaskStatus.COMPLETED) ?? null;
+    // Audyt Fali 3 — wynik wyczyszczony retencją (30 dni) to „nie wczytano”, nie „brak wpisów”.
+    const wynik = zadania.find((z) => z.status === NodeTaskStatus.COMPLETED && z.outputLog !== null) ?? null;
     const ostatnie = zadania[0] ?? null;
     return {
       wToku: zadania.some((z) => z.status === NodeTaskStatus.QUEUED || z.status === NodeTaskStatus.RUNNING),

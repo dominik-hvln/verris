@@ -1,5 +1,6 @@
 import { isIP } from 'net';
 import { NodeTaskStatus } from '@verris/database';
+import { wynikWyczyszczony } from './dane-zadan-wezla.js';
 
 /**
  * F3.2 (D5) — wspólne dla blokad IP węzła i karty usługi (zadanie IP_BLOCKS, ops/scripts/node-ip-blocks.sh, fail2ban).
@@ -118,8 +119,9 @@ export function stanBlokad(zadania: ZadanieBlokad[], tylkoIp?: string | null) {
     tylkoIp
       ? { ...w, blokady: w.blokady.filter((b) => b.ip === tylkoIp), razem: null, pokazano: null, bialaLista: w.bialaLista.filter((a) => a === tylkoIp) }
       : w;
-  const pelna = zadania.find((z) => z.status === NodeTaskStatus.COMPLETED && !(parametry(z).mode === 'list' && parametry(z).ip)) ?? null;
-  const sprawdzenie = zadania.find((z) => parametry(z).mode === 'list' && parametry(z).ip) ?? null;
+  // Audyt Fali 3 — wynik wyczyszczony retencją (30 dni) to „nie wczytano”, nie „brak blokad”.
+  const pelna = zadania.find((z) => z.status === NodeTaskStatus.COMPLETED && z.outputLog !== null && !(parametry(z).mode === 'list' && parametry(z).ip)) ?? null;
+  const sprawdzenie = zadania.find((z) => parametry(z).mode === 'list' && parametry(z).ip && !wynikWyczyszczony(z)) ?? null;
   const operacja = zadania.find((z) => parametry(z).mode !== 'list') ?? null;
   const ostatnia = zadania[0] ?? null;
   return {
