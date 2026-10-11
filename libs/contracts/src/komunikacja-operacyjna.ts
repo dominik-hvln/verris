@@ -92,10 +92,12 @@ export function trescPromocyjna(tekst: string | null | undefined): string | null
 
 /** White label: nazwy infrastruktury, których klient nie może zobaczyć (CLAUDE.md, D3). */
 // Bez końcowego \b: polska odmiana („Exima”, „Hetznera”) też się liczy.
-const INFRASTRUKTURA = /\b(direct\s*admin|cloud\s*linux|exim|dovecot|fail2ban|imunify|hetzner|cagefs|litespeed|lite\s+speed|custombuild)|\blve\b|:2222\b/i;
+const INFRASTRUKTURA = /\b(direct\s*admin|cloud\s*linux|exim|dovecot|fail2ban|imunify|hetzner|cagefs|litespeed|lite\s+speed|custom\s*build|lsws)|\blve\b|(?::|\bpor[tc]\w*\s*)2222\b/i;
+// Przegląd F3.8 — skrót „DA” (CLAUDE.md: klient nie widzi słów DirectAdmin/DA) tylko wielkimi literami: „da się” to nie panel.
+const SKROT_PANELU = /\bDA\b/;
 
 export function nazwaInfrastruktury(tekst: string | null | undefined): string | null {
-  const m = INFRASTRUKTURA.exec(tekst ?? '');
+  const m = INFRASTRUKTURA.exec(tekst ?? '') ?? SKROT_PANELU.exec(tekst ?? '');
   return m ? m[0] : null;
 }
 

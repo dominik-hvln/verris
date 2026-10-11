@@ -1,3 +1,4 @@
+import { ConflictException } from '@nestjs/common';
 import { AuditService } from '../../src/common/audit/audit.service.js';
 import { KomunikatySerwisoweService, WYSYLANIE_PRZETERMINOWANE_MS } from '../../src/komunikacja/komunikaty-serwisowe.service.js';
 import { StatusObslugiService } from '../../src/komunikacja/status-obslugi.service.js';
@@ -96,6 +97,30 @@ describe('F3.8 — komunikaty serwisowe i baner (Postgres)', () => {
     expect(po).toMatchObject({ status: 'ZATRZYMANY', wyslano: 1, bledow: 1, pominieto: 1 });
     await svc.wyslijPaczke(10);
     expect(wyslane).toHaveLength(1);
+  });
+
+  it('przegląd: dwa równoległe zlecenia tego samego komunikatu — jeden komunikat, drugie 409; zatrzymany można zlecić ponownie', async () => {
+    const plan = await utworzPlan();
+    const w = await utworzWezel();
+    const a = await utworzKonto({ serverId: w.id, planId: plan.id });
+    await utworzKonto({ serverId: w.id, planId: plan.id });
+    const { svc, wyslane } = usluga();
+    const z = { zakres: 'WEZEL' as const, celId: w.id, temat: 'Awaria serwera — pracujemy', tresc: TRESC, powod: 'awaria sieci w DC, incydent #2' };
+    const wyniki = await Promise.allSettled([svc.zlec(z, a.user.id), svc.zlec(z, a.user.id)]);
+    expect(wyniki.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    const odmowa = wyniki.find((r) => r.status === 'rejected') as PromiseRejectedResult;
+    expect(odmowa.reason).toBeInstanceOf(ConflictException);
+    expect(await prisma().komunikatSerwisowy.count()).toBe(1);
+    expect(await prisma().komunikatSerwisowyOdbiorca.count()).toBe(2);
+    // Inna treść do tego samego węzła — wolno (np. „naprawione” po „awaria”).
+    await svc.zlec({ ...z, temat: 'Usługa działa ponownie — dziękujemy za cierpliwość' }, a.user.id);
+    // Zatrzymany komunikat można zlecić ponownie od razu (poprawiony zakres, ta sama treść).
+    const pierwszy = (wyniki.find((r) => r.status === 'fulfilled') as PromiseFulfilledResult<{ id: string }>).value;
+    await svc.zatrzymaj(pierwszy.id, a.user.id);
+    await expect(svc.zlec(z, a.user.id)).resolves.toMatchObject({ status: 'WYSYLANY', odbiorcow: 2 });
+    await svc.wyslijPaczke(100);
+    // Każdy klient: jeden mail „awaria” (z ponownego zlecenia) i jeden „naprawione” — żadnego podwójnego.
+    expect(wyslane).toHaveLength(4);
   });
 
   it('błąd serwera poczty: odbiorca z błędem, komunikat kończy się (bez pętli ponowień)', async () => {

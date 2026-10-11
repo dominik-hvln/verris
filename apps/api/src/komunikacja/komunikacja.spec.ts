@@ -37,8 +37,23 @@ describe('F3.8 — treść poczty serwisowej', () => {
     expect(() => sprawdzTrescSerwisowa('Awaria', `${OK}\nRestartujemy Exima na serwerze.`)).toThrow(/infrastruktury/);
     expect(() => sprawdzTrescSerwisowa('Awaria', `${OK}\nPanel na porcie :2222`)).toThrow(/infrastruktury/);
     expect(() => sprawdzTrescSerwisowa('Usługa {domena}', OK)).toThrow(/Uzupełnij/);
+    // Przegląd F3.8 — „port 2222” i skrót panelu „DA” (wielkimi literami; „da się” przechodzi), LSWS, CustomBuild.
+    expect(() => sprawdzTrescSerwisowa('Awaria', `${OK}\nPanel serwera na porcie 2222 nie odpowiada.`)).toThrow(/infrastruktury/);
+    expect(() => sprawdzTrescSerwisowa('Awaria', `${OK}\nRestartujemy DA na węźle.`)).toThrow(/infrastruktury/);
+    expect(() => sprawdzTrescSerwisowa('Awaria', `${OK}\nAktualizacja Custom Build i LSWS.`)).toThrow(/infrastruktury/);
+    expect(sprawdzTrescSerwisowa('Awaria usługi', `${OK}\nDa się już logować do panelu.`).temat).toBe('Awaria usługi');
     expect(() => sprawdzTrescSerwisowa('Hej', OK)).toThrow(/Temat/);
     expect(() => sprawdzTrescSerwisowa('Usługa firma.pl', 'krótko')).toThrow(/Treść/);
+  });
+
+  it('przegląd: adres węzła (hostname albo IP) w temacie lub treści — odrzucony; podobny adres klienta przechodzi', () => {
+    const wezly = ['fra-01.wezly.example', '203.0.113.7'];
+    expect(() => sprawdzTrescSerwisowa('Awaria fra-01.wezly.example', OK, wezly)).toThrow(/adresów serwerów/);
+    expect(() => sprawdzTrescSerwisowa('Awaria', `${OK}\nSerwer 203.0.113.7 jest niedostępny.`, wezly)).toThrow(/adresów serwerów/);
+    expect(() => trescKomunikatu('Awaria', `Dzień dobry{imie},\n\n${OK}\nWęzeł FRA-01.wezly.example.`, wezly)).toThrow(/adresów serwerów/);
+    // Inny adres zawierający IP węzła jako fragment albo poddomena klienta — przechodzą.
+    expect(sprawdzTrescSerwisowa('Awaria', `${OK}\nTwój adres 203.0.113.70 odblokowaliśmy.`, wezly).temat).toBe('Awaria');
+    expect(sprawdzTrescSerwisowa('Awaria', `${OK}\nStrona sklep.fra-01.wezly.example.pl działa.`, wezly).temat).toBe('Awaria');
   });
 
   it('komunikat: jedyne pole to {imie} (wstawiane przy wysyłce); {domena} trzeba uzupełnić', () => {
@@ -61,6 +76,7 @@ function srodowisko(o: { rola?: string; anon?: boolean; dostarczony?: boolean; w
   const prisma = {
     user: { findUnique: async () => ({ id: 'k1', role: o.rola ?? 'USER', email: 'anna@firma.pl', anonymizedAt: o.anon ? new Date() : null }) },
     ticket: { findMany: async () => (o.zgloszenia ?? []).map((id) => ({ id })) },
+    server: { findMany: async () => [{ hostname: 'fra-01.wezly.example', ipAddress: '203.0.113.7' }, { hostname: null, ipAddress: '198.51.100.20' }] },
   };
   const mailer = {
     send: async (m: unknown) => {
@@ -89,6 +105,7 @@ describe('F3.8 — mail do klienta z szablonu', () => {
     await expect(s.svc.wyslij('k1', 'op1', { ...dto, tresc: `${OK}\n\nRabat 10% dla stałych klientów.` })).rejects.toThrow(/promocyjnych/);
     await expect(s.svc.wyslij('k1', 'op1', { ...dto, zgloszenie: '#abcdef12' })).rejects.toThrow(/Nie ma takiego zgłoszenia/);
     await expect(s.svc.wyslij('k1', 'op1', { ...dto, szablon: 'reklama' })).rejects.toThrow(/szablon/);
+    await expect(s.svc.wyslij('k1', 'op1', { ...dto, tresc: `${OK}\n\nSerwer 198.51.100.20 wrócił.` })).rejects.toThrow(/adresów serwerów/);
     expect(s.wyslane).toEqual([]);
   });
 

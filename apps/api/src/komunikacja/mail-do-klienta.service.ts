@@ -7,7 +7,7 @@ import { SupportActions } from '../common/audit/audit.actions.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { mailObslugiTemplate } from '../mail/templates/obsluga-notifications.js';
 import { zgloszenieKlienta } from '../tickets/zgloszenie-klienta.js';
-import { sprawdzTrescSerwisowa } from './tresc-serwisowa.js';
+import { adresyWezlow, sprawdzTrescSerwisowa } from './tresc-serwisowa.js';
 
 /**
  * F3.8 (ON-03) — mail do klienta z szablonu z karty klienta (L1+: CUSTOMERS_VIEW + TICKETS_MANAGE). Poczta serwisowa:
@@ -38,7 +38,7 @@ export class MailDoKlientaService {
     if (!klient) throw new NotFoundException('Klient nie istnieje.');
     if (klient.role !== 'USER') throw new ForbiddenException('Mail z szablonu wysyłamy tylko do klientów.');
     if (klient.anonymizedAt) throw new BadRequestException('Konto klienta jest zanonimizowane — nie ma adresu.');
-    const { temat, tresc } = sprawdzTrescSerwisowa(dto.temat, dto.tresc);
+    const { temat, tresc } = sprawdzTrescSerwisowa(dto.temat, dto.tresc, await adresyWezlow(this.prisma));
     const zgloszenieId = await zgloszenieKlienta(this.prisma, klient.id, dto.zgloszenie);
 
     const r = await this.mailer.send(
