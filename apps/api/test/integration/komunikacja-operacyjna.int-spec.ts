@@ -104,7 +104,7 @@ describe('F3.8 — komunikaty serwisowe i baner (Postgres)', () => {
     await utworzKonto({ serverId: w.id, planId: plan.id });
     const { svc } = usluga({ pada: true });
     const k = await svc.zlec({ zakres: 'WEZEL', celId: w.id, temat: 'Awaria serwera — pracujemy', tresc: TRESC, powod: 'awaria sieci w DC' });
-    await svc.wyslijPaczke();
+    await svc.wysylka();
     expect(await svc.widok(k.id)).toMatchObject({ status: 'WYSLANY', wyslano: 0, bledow: 1 });
   });
 

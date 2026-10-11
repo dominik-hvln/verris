@@ -173,7 +173,12 @@ export class KomunikatySerwisoweService {
 
   /** Kolejka: co minutę najwyżej KOMUNIKAT_LIMIT_NA_MINUTE maili ze wszystkich wysyłanych komunikatów (najstarszy pierwszy). */
   @Cron('* * * * *', { name: 'komunikaty-serwisowe:wysylka' })
-  async wyslijPaczke(limit = KOMUNIKAT_LIMIT_NA_MINUTE): Promise<{ wyslano: number }> {
+  async wysylka(): Promise<void> {
+    // Bez argumentów: biblioteka cron woła zadanie z własnym parametrem (onComplete), który nie może trafić do limitu.
+    await this.wyslijPaczke(KOMUNIKAT_LIMIT_NA_MINUTE);
+  }
+
+  async wyslijPaczke(limit: number): Promise<{ wyslano: number }> {
     // Proces padł w trakcie wysyłki do odbiorcy — nie wiemy, czy mail wyszedł: BLAD (bez drugiej wysyłki).
     const przeterminowane = await this.prisma.komunikatSerwisowyOdbiorca.findMany({
       where: { status: 'WYSYLANIE', zmieniono: { lt: new Date(Date.now() - WYSYLANIE_PRZETERMINOWANE_MS) } },
