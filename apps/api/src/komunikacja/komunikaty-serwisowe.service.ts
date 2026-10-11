@@ -8,7 +8,7 @@ import { AuditService } from '../common/audit/audit.service.js';
 import { SupportActions } from '../common/audit/audit.actions.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { mailObslugiTemplate } from '../mail/templates/obsluga-notifications.js';
-import { adresyWezlow, sprawdzTrescSerwisowa } from './tresc-serwisowa.js';
+import { sprawdzTrescSerwisowa, wezlyDoSprawdzenia } from './tresc-serwisowa.js';
 
 /** Odbiorca w trakcie wysyłki dłużej niż tyle — proces padł w środku; NIE wysyłamy drugi raz (BLAD). */
 export const WYSYLANIE_PRZETERMINOWANE_MS = 15 * 60 * 1000;
@@ -17,7 +17,7 @@ const POWOD_MIN = 10;
 export const DUPLIKAT_OKNO_MS = 30 * 60 * 1000;
 
 /** Treść komunikatu: reguły poczty serwisowej; jedyne pole to {imie} (wstawiane przy wysyłce każdemu odbiorcy). */
-export function trescKomunikatu(temat: string, tresc: string, adresy: readonly string[] = []): { temat: string; tresc: string } {
+export function trescKomunikatu(temat: string, tresc: string, adresy: readonly (string | null)[] = []): { temat: string; tresc: string } {
   const r = sprawdzTrescSerwisowa(temat, (tresc ?? '').replace(/\{imie\}/g, '§IMIE§'), adresy);
   return { temat: r.temat, tresc: r.tresc.replace(/§IMIE§/g, '{imie}') };
 }
@@ -72,7 +72,7 @@ export class KomunikatySerwisoweService {
 
   async podglad(z: Omit<ZlecenieKomunikatu, 'powod'>) {
     const cel = await this.cel(z.zakres, z.celId);
-    const { temat, tresc } = trescKomunikatu(z.temat, z.tresc, await adresyWezlow(this.prisma));
+    const { temat, tresc } = trescKomunikatu(z.temat, z.tresc, await wezlyDoSprawdzenia(this.prisma));
     const where = this.warunekOdbiorcow(z.zakres, z.celId);
     const [odbiorcow, przyklad] = await Promise.all([
       this.prisma.user.count({ where }),
@@ -95,7 +95,7 @@ export class KomunikatySerwisoweService {
     const powod = (z.powod ?? '').trim();
     if (powod.length < POWOD_MIN) throw new BadRequestException(`Podaj powód (min. ${POWOD_MIN} znaków) — zapisze się w dzienniku.`);
     const cel = await this.cel(z.zakres, z.celId);
-    const { temat, tresc } = trescKomunikatu(z.temat, z.tresc, await adresyWezlow(this.prisma));
+    const { temat, tresc } = trescKomunikatu(z.temat, z.tresc, await wezlyDoSprawdzenia(this.prisma));
     const odbiorcy = await this.prisma.user.findMany({ where: this.warunekOdbiorcow(z.zakres, z.celId), select: { id: true }, take: KOMUNIKAT_ODBIORCY_MAX + 1 });
     if (!odbiorcy.length) throw new BadRequestException('Brak odbiorców — nikt nie ma aktywnej usługi w tym zakresie.');
     if (odbiorcy.length > KOMUNIKAT_ODBIORCY_MAX) throw new BadRequestException(`Za dużo odbiorców (ponad ${KOMUNIKAT_ODBIORCY_MAX}) — podziel zakres.`);

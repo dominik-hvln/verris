@@ -39,7 +39,8 @@ export function NapiszDoKlienta({ userId, imie, domeny }: { userId: string; imie
     setTresc(w.tresc);
   };
   const promo = trescPromocyjna(`${temat}\n${tresc}`);
-  const infra = nazwaInfrastruktury(`${temat}\n${tresc}`);
+  // Mail do jednego klienta — jego adres IP może paść w treści (API sprawdza też adresy węzłów).
+  const infra = nazwaInfrastruktury(`${temat}\n${tresc}`, { adresyIp: false });
   const ostrzezenie = promo
     ? `Usuń treść promocyjną („${promo}”) — mail serwisowy wychodzi bez zgody marketingowej.`
     : infra

@@ -1,3 +1,4 @@
+import { fragmentInfrastruktury } from './komunikaty-hostingu.ts';
 /**
  * F3.8 — komunikacja operacyjna: mail do klienta z szablonu (karta klienta) i komunikat serwisowy do klientów węzła albo
  * planu (incydent, prace). Oba to poczta SERWISOWA (dotyczy działania usługi): wychodzi bez zgody marketingowej, więc nie
@@ -90,15 +91,14 @@ export function trescPromocyjna(tekst: string | null | undefined): string | null
   return null;
 }
 
-/** White label: nazwy infrastruktury, których klient nie może zobaczyć (CLAUDE.md, D3). */
-// Bez końcowego \b: polska odmiana („Exima”, „Hetznera”) też się liczy.
-const INFRASTRUKTURA = /\b(direct\s*admin|cloud\s*linux|exim|dovecot|fail2ban|imunify|hetzner|cagefs|litespeed|lite\s+speed|custom\s*build|lsws)|\blve\b|(?::|\bpor[tc]\w*\s*)2222\b/i;
-// Przegląd F3.8 — skrót „DA” (CLAUDE.md: klient nie widzi słów DirectAdmin/DA) tylko wielkimi literami: „da się” to nie panel.
-const SKROT_PANELU = /\bDA\b/;
-
-export function nazwaInfrastruktury(tekst: string | null | undefined): string | null {
-  const m = INFRASTRUKTURA.exec(tekst ?? '') ?? SKROT_PANELU.exec(tekst ?? '');
-  return m ? m[0] : null;
+/**
+ * White label: nazwy infrastruktury i adresy, których klient nie może zobaczyć (CLAUDE.md, D3). Audyt Fali 3 — ten sam
+ * filtr co raport pomigracyjny i eksport RODO (`fragmentInfrastruktury`, komunikaty-hostingu.ts); wcześniej osobna
+ * lista rozjechała się z nim (lvectl, CMD_API, ścieżki, adresy IP, ModSecurity przechodziły). Panel nie zna węzłów —
+ * adresy węzłów z bazy sprawdza API (sprawdzTrescSerwisowa). `adresyIp: false` — mail do jednego klienta (jego IP).
+ */
+export function nazwaInfrastruktury(tekst: string | null | undefined, opcje: { adresyIp?: boolean } = {}): string | null {
+  return fragmentInfrastruktury(tekst, [], opcje);
 }
 
 /** Komunikat serwisowy do klientów węzła albo planu (incydent, prace) — wysyłka kolejką z limitem. */

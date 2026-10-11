@@ -51,9 +51,38 @@ describe('F3.8 — treść poczty serwisowej', () => {
     expect(() => sprawdzTrescSerwisowa('Awaria fra-01.wezly.example', OK, wezly)).toThrow(/adresów serwerów/);
     expect(() => sprawdzTrescSerwisowa('Awaria', `${OK}\nSerwer 203.0.113.7 jest niedostępny.`, wezly)).toThrow(/adresów serwerów/);
     expect(() => trescKomunikatu('Awaria', `Dzień dobry{imie},\n\n${OK}\nWęzeł FRA-01.wezly.example.`, wezly)).toThrow(/adresów serwerów/);
-    // Inny adres zawierający IP węzła jako fragment albo poddomena klienta — przechodzą.
-    expect(sprawdzTrescSerwisowa('Awaria', `${OK}\nTwój adres 203.0.113.70 odblokowaliśmy.`, wezly).temat).toBe('Awaria');
+    // Mail do jednego klienta: inny adres zawierający IP węzła jako fragment — przechodzi; poddomena klienta — przechodzi.
+    expect(sprawdzTrescSerwisowa('Awaria', `${OK}\nTwój adres 203.0.113.70 odblokowaliśmy.`, wezly, { adresyIp: false }).temat).toBe('Awaria');
     expect(sprawdzTrescSerwisowa('Awaria', `${OK}\nStrona sklep.fra-01.wezly.example.pl działa.`, wezly).temat).toBe('Awaria');
+    // Audyt Fali 3 — komunikat do wielu klientów: żaden adres IP.
+    expect(() => sprawdzTrescSerwisowa('Awaria', `${OK}\nTwój adres 203.0.113.70 odblokowaliśmy.`, wezly)).toThrow(/adresów serwerów/);
+  });
+
+  it('audyt Fali 3 — jeden filtr white label: ModSecurity, OpenLiteSpeed, IPv6 i host panelu węzła, lvectl, CMD_API, ścieżki — odrzucone', () => {
+    const wezly = ['n1', 'fra-01.wezly.example', 'panel-n1.infra.example', '203.0.113.7', '2a01:4f8:c17:1::2', null];
+    for (const zdanie of [
+      'Reguły ModSecurity blokowały formularze.',
+      'Wyłączyliśmy regułę mod_security 942100.',
+      'Restart OpenLiteSpeed zakończony.',
+      'Uruchomiliśmy lvectl i selectorctl.',
+      'Błąd CMD_API_SHOW_USERS po aktualizacji.',
+      'Pliki w /usr/local/lsws zostały odtworzone.',
+      'Filtr Rspamd odrzucał pocztę.',
+    ]) {
+      expect(() => sprawdzTrescSerwisowa('Awaria', `${OK}\n${zdanie}`, wezly), zdanie).toThrow(/infrastruktury/);
+    }
+    for (const zdanie of ['Restartujemy serwer 2a01:4f8:c17:1::2.', 'Panel panel-n1.infra.example jest niedostępny.', 'Awaria na 2001:db8::5 i 198.51.100.1.']) {
+      expect(() => sprawdzTrescSerwisowa('Awaria', `${OK}\n${zdanie}`, wezly), zdanie).toThrow(/adresów serwerów/);
+    }
+    // Mail do jednego klienta: IPv6 i host panelu węzła — nadal odrzucone (dokładne dopasowanie z bazy).
+    expect(() => sprawdzTrescSerwisowa('Awaria', `${OK}\nSerwer 2a01:4f8:c17:1::2 wrócił.`, wezly, { adresyIp: false })).toThrow(/adresów serwerów/);
+    expect(() => sprawdzTrescSerwisowa('Awaria', `${OK}\nPanel panel-n1.infra.example działa.`, wezly, { adresyIp: false })).toThrow(/adresów serwerów/);
+    // Wtyczka WordPressa i zwykłe słowa — przechodzą.
+    expect(sprawdzTrescSerwisowa('Awaria usługi', `${OK}\nWtyczka LiteSpeed Cache działa, nie da się jej wyłączyć o 12:30:00.`, wezly).temat).toBe('Awaria usługi');
+    // Panel (formularze) — ten sam filtr bez węzłów.
+    expect(nazwaInfrastruktury('Reguły ModSecurity')).toBe('ModSecurity');
+    expect(nazwaInfrastruktury('Twój adres 203.0.113.70', { adresyIp: false })).toBeNull();
+    expect(nazwaInfrastruktury('Twój adres 203.0.113.70')).toBe('203.0.113.70');
   });
 
   it('komunikat: jedyne pole to {imie} (wstawiane przy wysyłce); {domena} trzeba uzupełnić', () => {

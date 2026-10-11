@@ -1,4 +1,4 @@
-import { zdradzaInfrastrukture } from '@verris/contracts';
+import { fragmentInfrastruktury, zdradzaInfrastrukture } from '@verris/contracts';
 import { dlaKlienta, KOMUNIKAT_OGOLNY, zdradzaPanelSerwera } from './biala-etykieta.js';
 
 describe('biała etykieta — tekst dla klienta', () => {
@@ -66,5 +66,14 @@ describe('audyt Fal 2 — zdradzaInfrastrukture (raport pomigracyjny, eksport RO
     ]) {
       expect(zdradzaInfrastrukture(t, wezly)).toBe(false);
     }
+  });
+
+  it('audyt Fali 3 — ModSecurity, OpenLiteSpeed, Dovecot, Rspamd; węzeł jako całe słowo (poddomena klienta to nie węzeł)', () => {
+    for (const t of ['ModSecurity zablokował żądanie', 'mod_security', 'OpenLiteSpeed', 'Dovecot nie odpowiada', 'rspamd']) {
+      expect(zdradzaInfrastrukture(t), t).toBe(true);
+    }
+    const wezly = ['t1.verris.pl', 'da-t1.wezly.example', '2a01:4f8:c17:1::2'];
+    expect(fragmentInfrastruktury('Panel da-t1.wezly.example', wezly)).toBe('da-t1.wezly.example');
+    expect(fragmentInfrastruktury('Strona t1.verris.pl.sklep.pl i sklep.t1.verris.pl działają', wezly)).toBeNull();
   });
 });
