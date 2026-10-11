@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { AccountStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StosWezlaService } from './stos-wezla.service.js';
 import { zgodnoscZManifestem } from './stos-wezla.js';
@@ -81,8 +82,10 @@ export class PrzegladWezlaService {
 
     const [manifest, konta, probki, zadania, aktualizacja] = await Promise.all([
       this.stos.pobierz(),
+      // Weryfikacja 11.10 — usunięte konto zostaje w bazie, ale nie jest już na węźle: karta liczyła 4 konta, a
+      // „Pojemność floty” (_count bez usuniętych) — 1. Tu tylko konta na węźle, jak w liście i szczegółach węzła.
       this.prisma.account.findMany({
-        where: { serverId: id },
+        where: { serverId: id, status: { not: AccountStatus.DELETED } },
         select: {
           id: true,
           domain: true,
@@ -124,6 +127,11 @@ export class PrzegladWezlaService {
     const dyskMb = probki.length ? Math.round(probki.reduce((a, p) => a + p.dysk, 0)) : null;
 
     const domenaWg = new Map(konta.map((k) => [k.id, k.domain]));
+    // Ostatnie zadania to historia: zadanie na koncie już usuniętym dalej pokazuje jego domenę.
+    const spozaWezla = [...new Set(zadania.map((z) => z.accountId).filter((a): a is string => !!a && !domenaWg.has(a)))];
+    if (spozaWezla.length) {
+      for (const k of await this.prisma.account.findMany({ where: { id: { in: spozaWezla } }, select: { id: true, domain: true } })) domenaWg.set(k.id, k.domain);
+    }
     const obciazone = konta
       .map((k) => {
         const p = probkaWg.get(k.id);

@@ -454,8 +454,9 @@ export class ServersService {
     });
     if (!server) throw new NotFoundException('Nie znaleziono węzła.');
 
+    // Weryfikacja 11.10 — usunięte konta nie są na węźle (jak _count w liście i szczegółach: KONTA_NA_WEZLE).
     const accounts = await this.prisma.account.findMany({
-      where: { serverId: id },
+      where: { serverId: id, ...KONTA_NA_WEZLE.where },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -532,8 +533,9 @@ export class ServersService {
     const server = await this.prisma.server.findUnique({ where: { id } });
     if (!server) throw new NotFoundException('Nie znaleziono węzła.');
 
+    // Weryfikacja 11.10 — bez usuniętych kont: liczba kont i obciążenie to to, co węzeł niesie teraz.
     const accounts = await this.prisma.account.findMany({
-      where: { serverId: id },
+      where: { serverId: id, ...KONTA_NA_WEZLE.where },
       select: {
         subscriptionId: true,
         status: true,
@@ -851,8 +853,9 @@ export class ServersService {
     const source = await this.prisma.server.findUnique({ where: { id: serverId } });
     if (!source) throw new NotFoundException('Nie znaleziono węzła.');
 
+    // Weryfikacja 11.10 — usuniętego konta nie ma czego przenosić (plan pokazywał je jako konto do migracji).
     const accounts = await this.prisma.account.findMany({
-      where: { serverId },
+      where: { serverId, ...KONTA_NA_WEZLE.where },
       select: {
         id: true,
         daUsername: true,
