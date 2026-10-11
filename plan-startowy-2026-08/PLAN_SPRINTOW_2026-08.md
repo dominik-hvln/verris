@@ -486,7 +486,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - `SEC-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `NODE-02` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `H-20` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `SEC-11` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `SEC-11` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `PB-23` — Lista tras vs menu dla trzech paneli bez luk; test-strażnik czerwony po dodaniu trasy bez wejścia w nawigacji.
 - `PB-30` — Dwa węzły z tego samego manifestu dają identyczny raport wersji; różnica widoczna w panelu.
 - `PB-31` — Węzeł testowy od czystego AlmaLinux do zielonego raportu bez SSH ręcznie.
