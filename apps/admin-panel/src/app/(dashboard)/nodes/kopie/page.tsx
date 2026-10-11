@@ -2,7 +2,7 @@ import Link from "next/link";
 import { bramkaStrony } from "@/lib/bramka-strony";
 import { adminApi } from "@/lib/api";
 import { fetchStaffAccess } from "@/lib/staff-access";
-import { accounts, plural } from "@/lib/pl";
+import { accounts, days, plForm } from "@/lib/pl";
 import { BladStrony } from "@/components/blad-strony";
 import { Pomoc } from "@/components/pomoc";
 import { Eyebrow, KARTA, Kpi, NaglowekKarty, Pigulka, RzadKpi, WIERSZ } from "@/components/v2";
@@ -51,8 +51,8 @@ export default async function KopieFlotyPage({ searchParams }: { searchParams?: 
           Kopie floty{zawezony ? ` · ${zawezony.nazwa}` : ""} <Pomoc id="kopie-floty" />
         </h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          Kopia każdego konta poza serwerem, {dane.harmonogram.opis}. Konto bez udanej kopii dłużej niż {dane.progDni}{" "}
-          {plural(dane.progDni, "dzień", "dni", "dni")} uruchamia alert.
+          Kopia każdego konta poza serwerem, {dane.harmonogram.opis}. Konto bez udanej kopii dłużej niż {days(dane.progDni)} uruchamia
+          alert.
           {wezel ? (
             <>
               {" "}
@@ -65,9 +65,9 @@ export default async function KopieFlotyPage({ searchParams }: { searchParams?: 
       </header>
 
       <RzadKpi etykieta="Stan kopii kont">
-        <Kpi etykieta="Świeża kopia" wartosc={p.ok} jednostka={`z ${p.kont}`} opis={p.nowe ? `${p.nowe} ${accounts(p.nowe)} czeka na pierwszą` : "konta z kopią z ostatnich dni"} />
+        <Kpi etykieta="Świeża kopia" wartosc={p.ok} jednostka={`z ${p.kont}`} opis={p.nowe ? `${accounts(p.nowe)} ${plForm(p.nowe, "czeka", "czekają", "czeka")} na pierwszą` : "konta z kopią z ostatnich dni"} />
         <Kpi etykieta="Nieudane" wartosc={<span className={p.nieudane ? "text-crit" : ""}>{p.nieudane}</span>} opis="ostatni przebieg nie skopiował konta" />
-        <Kpi etykieta="Bez świeżej kopii" wartosc={<span className={bezSwiezej ? "text-warn" : ""}>{bezSwiezej}</span>} opis={`${p.bezKopii} bez żadnej · ${p.przeterminowane} starych`} />
+        <Kpi etykieta="Bez świeżej kopii" wartosc={<span className={bezSwiezej ? "text-warn" : ""}>{bezSwiezej}</span>} opis={`${p.bezKopii} bez żadnej · ${p.przeterminowane} ${plForm(p.przeterminowane, "stara", "stare", "starych")}`} />
         <Kpi etykieta="Kopie klienta na serwerze" wartosc={<span className={p.lokalneNieudane ? "text-warn" : ""}>{p.lokalneNieudane}</span>} opis="nieudane zaplanowane przez klienta" />
       </RzadKpi>
 
@@ -85,13 +85,13 @@ export default async function KopieFlotyPage({ searchParams }: { searchParams?: 
                 </Link>
                 <span className="text-[12.5px] text-muted-foreground">
                   {b
-                    ? `${kiedy(b.kiedy)}${b.konta !== null ? ` · ${b.konta} ${accounts(b.konta)}` : ""}${b.bajty !== null ? ` · ${rozmiar(b.bajty)}` : ""}${b.czasS !== null ? ` · ${czas(b.czasS)}` : ""}`
+                    ? `${kiedy(b.kiedy)}${b.konta !== null ? ` · ${accounts(b.konta)}` : ""}${b.bajty !== null ? ` · ${rozmiar(b.bajty)}` : ""}${b.czasS !== null ? ` · ${czas(b.czasS)}` : ""}`
                     : "Węzeł nie zgłosił jeszcze przebiegu kopii."}
                 </span>
                 {b && !b.ok && b.opis ? <span className="text-[12.5px] text-crit [overflow-wrap:anywhere]">{b.opis.slice(0, 300)}</span> : null}
                 <span className="text-[12.5px] text-muted-foreground">
-                  Konta: {w.konta.ok} świeżych z {w.konta.kont}
-                  {w.konta.nieudane ? ` · ${w.konta.nieudane} nieudanych` : ""}
+                  Konta: {w.konta.ok} {plForm(w.konta.ok, "świeże", "świeże", "świeżych")} z {w.konta.kont}
+                  {w.konta.nieudane ? ` · ${w.konta.nieudane} ${plForm(w.konta.nieudane, "nieudane", "nieudane", "nieudanych")}` : ""}
                   {w.konta.bezSwiezej ? ` · ${w.konta.bezSwiezej} bez świeżej` : ""}
                   {w.konta.wlasnaRetencja ? ` · ${w.konta.wlasnaRetencja} z własną retencją` : ""}
                 </span>
@@ -138,7 +138,7 @@ export default async function KopieFlotyPage({ searchParams }: { searchParams?: 
         })}
         {dane.kontUcietych ? (
           <div className={`${WIERSZ} text-sm text-muted-foreground`}>
-            I {dane.kontUcietych} {accounts(dane.kontUcietych)} więcej — zawęź do węzła.
+            I {accounts(dane.kontUcietych)} więcej — zawęź do węzła.
           </div>
         ) : null}
       </section>

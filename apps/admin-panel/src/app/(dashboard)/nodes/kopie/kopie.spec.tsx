@@ -126,6 +126,24 @@ describe("kopie floty", () => {
     expect(html).toContain("Nie było jeszcze żadnej próby odtworzenia.");
   });
 
+  it("weryfikacja 11.10: liczba z odmianą raz — bez „2 2 dni” i „2 2 konta”", async () => {
+    const d = dane();
+    api.mockResolvedValue({
+      ...d,
+      podsumowanie: { ...d.podsumowanie, nowe: 2, przeterminowane: 3 },
+      wezly: [{ ...d.wezly[0]!, przebieg: { ...d.wezly[0]!.przebieg!, konta: 2 } }],
+      kontUcietych: 2,
+    });
+    const html = await render();
+    expect(html).toContain("dłużej niż 2 dni uruchamia alert");
+    expect(html).toContain("2 konta czekają na pierwszą");
+    expect(html).toContain(" · 2 konta · ");
+    expect(html).toContain("I 2 konta więcej");
+    expect(html).toContain("3 stare");
+    expect(html).toContain("Konta: 39 świeżych z 41 · 1 nieudane");
+    expect(html).not.toMatch(/\b(\d+) \1 (dni|konta|kont)\b/);
+  });
+
   it("błąd API: strona błędu, nie pusta lista", async () => {
     api.mockRejectedValue(new Error("403"));
     expect(await render()).not.toContain("Każde konto ma świeżą kopię");
