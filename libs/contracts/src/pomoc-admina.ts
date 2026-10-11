@@ -405,7 +405,7 @@ export const POMOC = {
   "poczta-bez-klienta": {
     tytul: "Poczta bez klienta",
     opis: "Maile do support@ i abuse@ od nadawców spoza kont klientów (albo spoza zgłoszenia z wątku), od subkont bez prawa do zgłoszeń, ponad 5 nowych zgłoszeń z jednego konta w godzinę (pętla autoodpowiedzi) i spam. Pozostałe maile klientów od razu trafiają do zgłoszeń.",
-    kiedy: "Załóż zgłoszenie klientowi po jego adresie, dopisz mail do zgłoszenia jako notatkę albo odrzuć. Maile z abuse@ tylko jako notatka — klient nie widzi treści zgłaszającego. Pliki pokazujemy dopiero po „Pokaż” — nie są skanowane antywirusem.",
+    kiedy: "Załóż zgłoszenie klientowi po jego adresie, dopisz mail do zgłoszenia jako notatkę albo odrzuć. Maile z abuse@ widzi i obsługuje tylko zespół nadużyć; do zgłoszenia klienta trafia notatka z odsyłaczem do wpisu, bez treści i danych zgłaszającego. Blokadę całej domeny zakłada zespół nadużyć albo administrator. Pliki pokazujemy dopiero po „Pokaż” — nie są skanowane antywirusem.",
   },
   "raporty-obslugi": {
     tytul: "Raporty obsługi",

@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { randomUUID } from 'node:crypto';
@@ -12,6 +12,7 @@ import { resolveSmtpIdentity } from '../../mail/mail-smtp.factory.js';
 import { CONTROL_PLANE_MAIL_DOMAIN } from '../../control-plane-mail/control-plane-mail.constants.js';
 import { krotkieIdZTematu, zgloszenieZNaglowkow } from '../../mail/watek-zgloszenia.js';
 import { stronaListy } from '../../subscriptions/lista-uslug.js';
+import { uprawnieniaOperatora } from '../../staff-roles/uprawnienia-operatora.js';
 import { TicketsService } from '../tickets.service.js';
 import { BladImap, PolaczenieImap, polaczTls } from './imap.js';
 import {
@@ -57,6 +58,17 @@ export const RETENCJA_DNI = 90;
 export const LIMIT_NOWYCH_NA_GODZINE = 5;
 /** Wyniki, które czekają na decyzję obsługi. */
 export const W_KOLEJCE = ['BEZ_KLIENTA', 'SPAM'] as const;
+
+/**
+ * Audyt Fali 3 — operator z tokenu (JwtAuthGuard). Zgłoszenia nadużyć z abuse@ (treść, dane zgłaszającego, dowody)
+ * widzi i obsługuje tylko zespół nadużyć — uprawnienie ABUSE_MANAGE (jak kolejka staff/abuse) albo ADMIN.
+ */
+export interface AktorPoczty {
+  userId: string;
+  role?: string;
+  principalUserId?: string;
+}
+export const TYLKO_ZESPOL_NADUZYC = 'Zgłoszenia z abuse@ obsługuje zespół nadużyć (uprawnienie „Nadużycia / abuse”).';
 
 type Wynik = 'ZGLOSZENIE' | 'ODPOWIEDZ' | 'BEZ_KLIENTA' | 'SPAM' | 'BLOKADA' | 'AUTO' | 'ZA_DUZY';
 
@@ -366,16 +378,31 @@ export class PocztaPrzychodzacaService {
 
   // ------------------------------------------------------------------ kolejka (panel operatora)
 
-  async lista(q: { widok?: string; page?: string; limit?: string }) {
+  /** Audyt Fali 3 — ADMIN albo STAFF z ABUSE_MANAGE (suma ról, jak StaffPermissionsGuard). */
+  private async zespolNaduzyc(aktor: AktorPoczty): Promise<boolean> {
+    if (aktor.role === 'ADMIN') return true;
+    return (await uprawnieniaOperatora(this.prisma, aktor.principalUserId ?? aktor.userId).catch(() => [] as string[])).includes('ABUSE_MANAGE');
+  }
+
+  private async pilnujNaduzyc(w: { rodzaj: string }, aktor: AktorPoczty) {
+    if (w.rodzaj === 'ABUSE' && !(await this.zespolNaduzyc(aktor))) throw new ForbiddenException(TYLKO_ZESPOL_NADUZYC);
+  }
+
+  /**
+   * Audyt Fali 3 — maile do abuse@ (zgłoszenia nadużyć osób trzecich) tylko dla zespołu nadużyć: pozostali z
+   * TICKETS_VIEW (L1, Finanse, Sprzedaż, NOC, Audytor) nie widzą ich na liście ani w licznikach.
+   */
+  async lista(q: { widok?: string; page?: string; limit?: string }, aktor: AktorPoczty) {
     const widok = q.widok === 'spam' ? 'spam' : q.widok === 'wszystkie' ? 'wszystkie' : 'kolejka';
+    const zakres: Prisma.PocztaPrzychodzacaWhereInput = (await this.zespolNaduzyc(aktor)) ? {} : { rodzaj: { not: 'ABUSE' } };
     const where: Prisma.PocztaPrzychodzacaWhereInput =
-      widok === 'kolejka' ? { wynik: 'BEZ_KLIENTA' } : widok === 'spam' ? { wynik: 'SPAM' } : {};
+      widok === 'kolejka' ? { ...zakres, wynik: 'BEZ_KLIENTA' } : widok === 'spam' ? { ...zakres, wynik: 'SPAM' } : zakres;
     const { limit, page, skip } = stronaListy(q, 25, 100);
     const [rows, total, kolejka, spam] = await Promise.all([
       this.prisma.pocztaPrzychodzaca.findMany({ where, orderBy: [{ otrzymano: 'desc' }, { id: 'desc' }], skip, take: limit }),
       this.prisma.pocztaPrzychodzaca.count({ where }),
-      this.prisma.pocztaPrzychodzaca.count({ where: { wynik: 'BEZ_KLIENTA' } }),
-      this.prisma.pocztaPrzychodzaca.count({ where: { wynik: 'SPAM' } }),
+      this.prisma.pocztaPrzychodzaca.count({ where: { ...zakres, wynik: 'BEZ_KLIENTA' } }),
+      this.prisma.pocztaPrzychodzaca.count({ where: { ...zakres, wynik: 'SPAM' } }),
     ]);
     return {
       rows: rows.map((r) => ({
@@ -393,14 +420,15 @@ export class PocztaPrzychodzacaService {
   }
 
   /** Plik od nieznanego nadawcy — tylko po świadomym „Pokaż” (potwierdzenie), zawsze jako pobranie, nie podgląd. */
-  async plik(id: string, nr: number, potwierdzam: boolean, actorUserId: string): Promise<{ stream: Readable; nazwa: string; typ: string }> {
+  async plik(id: string, nr: number, potwierdzam: boolean, aktor: AktorPoczty): Promise<{ stream: Readable; nazwa: string; typ: string }> {
     if (!potwierdzam) {
       throw new BadRequestException('Plik od nieznanego nadawcy, bez skanu antywirusowego — potwierdź „Pokaż”, żeby go pobrać.');
     }
-    const w = await this.prisma.pocztaPrzychodzaca.findUnique({ where: { id }, select: { zalaczniki: true, nadawca: true } });
+    const w = await this.prisma.pocztaPrzychodzaca.findUnique({ where: { id }, select: { zalaczniki: true, nadawca: true, rodzaj: true } });
     const z = w ? listaZalacznikow(w.zalaczniki)[nr] : undefined;
     if (!w || !z?.klucz) throw new NotFoundException('Nie ma takiego pliku.');
-    await this.audit.record({ action: 'POCZTA_ZGLOSZEN_PLIK_POKAZANY', actorUserId, details: { pocztaId: id, plik: z.nazwa, nadawca: w.nadawca } });
+    await this.pilnujNaduzyc(w, aktor);
+    await this.audit.record({ action: 'POCZTA_ZGLOSZEN_PLIK_POKAZANY', actorUserId: aktor.userId, details: { pocztaId: id, plik: z.nazwa, nadawca: w.nadawca } });
     return { stream: await this.storage.getObjectStream(ObjectBuckets.TICKET_ATTACHMENTS, z.klucz), nazwa: z.nazwa, typ: z.typ ?? 'application/octet-stream' };
   }
 
@@ -414,12 +442,22 @@ export class PocztaPrzychodzacaService {
   /**
    * Nowe zgłoszenie dla wskazanego klienta z treści maila (nadawca spoza konta, np. drugi adres klienta). Pliki zostają
    * w kolejce (za „Pokaż”) — do zgłoszenia trafia notatka wewnętrzna z informacją o nich, klient ich nie widzi.
+   *
+   * Audyt Fali 3 — mail z abuse@ (zgłoszenie nadużycia osoby trzeciej) dopisany do zgłoszenia klienta: notatka bez
+   * treści i bez danych zgłaszającego (notatki wewnętrzne są w eksporcie RODO klienta — F2.5 — a zgłaszający jest
+   * chroniony art. 15 ust. 4 RODO; do tego notatkę widzi każdy z TICKETS_VIEW). Treść i pliki zostają we wpisie
+   * kolejki (widok „Wszystkie”, tylko zespół nadużyć), wpis nie dostaje userId klienta (to nie są jego dane — ani
+   * eksport, ani anonimizacja klienta ich nie dotyczą), a wpis dziennika jest dziennikiem zespołu (bez userId klienta).
    */
-  async przypisz(id: string, actorUserId: string, dto: { userId?: string; email?: string; zgloszenieId?: string }) {
+  async przypisz(id: string, aktor: AktorPoczty, dto: { userId?: string; email?: string; zgloszenieId?: string }) {
+    const actorUserId = aktor.userId;
     const w = await this.wKolejce(id);
+    await this.pilnujNaduzyc(w, aktor);
     if ([dto.userId, dto.email, dto.zgloszenieId].filter(Boolean).length !== 1) throw new BadRequestException('Wskaż klienta albo zgłoszenie.');
+    const abuse = w.rodzaj === 'ABUSE';
     const pliki = listaZalacznikow(w.zalaczniki).filter((z) => z.klucz);
-    const opis = `Mail od ${w.nadawcaNazwa ? `${w.nadawcaNazwa} ` : ''}<${w.nadawca}> (${w.otrzymano.toISOString().slice(0, 16).replace('T', ' ')} UTC)`;
+    const kiedy = `${w.otrzymano.toISOString().slice(0, 16).replace('T', ' ')} UTC`;
+    const opis = `Mail od ${w.nadawcaNazwa ? `${w.nadawcaNazwa} ` : ''}<${w.nadawca}> (${kiedy})`;
     const notatkaPlikow = pliki.length ? ` Załączniki (${pliki.length}): ${pliki.map((p) => p.nazwa).join(', ')} — w „Poczta bez klienta”, za „Pokaż”.` : '';
     let ticketId: string;
     if (dto.userId || dto.email) {
@@ -436,7 +474,7 @@ export class PocztaPrzychodzacaService {
       // Zgłoszenie nadużycia od obcego nadawcy nie staje się wiadomością widoczną dla klienta (zwykle zgłaszanego):
       // treść i podpis zgłaszającego to jego dane. Do sprawy klienta — notatka wewnętrzna („Dopisz do zgłoszenia”).
       // Przegląd F3.7.
-      if (w.rodzaj === 'ABUSE') {
+      if (abuse) {
         throw new BadRequestException('Mail z abuse@ dopisz do zgłoszenia jako notatkę — klient nie może zobaczyć treści ani danych zgłaszającego.');
       }
       // Zajęcie wpisu przed utworzeniem zgłoszenia — dwa kliknięcia nie założą dwóch zgłoszeń.
@@ -457,11 +495,19 @@ export class PocztaPrzychodzacaService {
       const t = pasujace[0];
       await this.zajmij(id, w.wynik, actorUserId);
       ticketId = t.id;
-      await this.tickets.adminAddNote(ticketId, actorUserId, `${opis}:\n\n${(w.tresc ?? '').slice(0, 20_000)}${notatkaPlikow}`, { zrodlo: 'poczta' });
+      const notatka = abuse
+        ? `Zgłoszenie nadużycia z abuse@ (wpis ${id.slice(0, 8)}, ${kiedy}) dopisane do tego zgłoszenia. Treść, nadawcę i załączniki widzi zespół nadużyć w „Poczta bez klienta” (widok „Wszystkie”).`
+        : `${opis}:\n\n${(w.tresc ?? '').slice(0, 20_000)}${notatkaPlikow}`;
+      await this.tickets.adminAddNote(ticketId, actorUserId, notatka, { zrodlo: 'poczta' });
     }
     const userId = (await this.prisma.ticket.findUniqueOrThrow({ where: { id: ticketId }, select: { userId: true } })).userId;
-    await this.prisma.pocztaPrzychodzaca.update({ where: { id }, data: { ticketId, userId, tresc: null } });
-    await this.audit.record({ action: 'POCZTA_ZGLOSZEN_PRZYPISANA', userId, actorUserId, details: { pocztaId: id, ticketId, nadawca: w.nadawca } });
+    await this.prisma.pocztaPrzychodzaca.update({ where: { id }, data: abuse ? { ticketId } : { ticketId, userId, tresc: null } });
+    await this.audit.record({
+      action: 'POCZTA_ZGLOSZEN_PRZYPISANA',
+      userId: abuse ? null : userId,
+      actorUserId,
+      details: { pocztaId: id, ticketId, nadawca: w.nadawca, ...(abuse ? { rodzaj: 'ABUSE' } : {}) },
+    });
     return { ticketId };
   }
 
@@ -474,17 +520,20 @@ export class PocztaPrzychodzacaService {
   }
 
   /** Odrzucenie (spam albo nie do nas): treść i pliki kasowane od razu; opcjonalnie blokada nadawcy. */
-  async odrzuc(id: string, actorUserId: string, dto: { powod: string; zablokuj?: boolean }) {
+  async odrzuc(id: string, aktor: AktorPoczty, dto: { powod: string; zablokuj?: boolean }) {
+    const actorUserId = aktor.userId;
     const powod = dto.powod?.trim() ?? '';
     if (powod.length < 3) throw new BadRequestException('Podaj powód odrzucenia.');
     const w = await this.wKolejce(id);
+    // Audyt Fali 3 — odrzucenie kasuje treść i pliki zgłoszenia nadużycia: tylko zespół nadużyć.
+    await this.pilnujNaduzyc(w, aktor);
     const { count } = await this.prisma.pocztaPrzychodzaca.updateMany({
       where: { id, wynik: w.wynik },
       data: { wynik: 'ODRZUCONY', powod: powod.slice(0, 300), tresc: null, obsluzylId: actorUserId, obsluzono: new Date(), zalaczniki: [] },
     });
     if (count !== 1) throw new ConflictException('Tę wiadomość ktoś już obsłużył — odśwież listę.');
     for (const z of listaZalacznikow(w.zalaczniki)) if (z.klucz) await this.usunPlik(z.klucz);
-    if (dto.zablokuj && w.nadawca) await this.zablokuj(w.nadawca, `odrzucony mail: ${powod}`, actorUserId);
+    if (dto.zablokuj && w.nadawca) await this.zablokuj(w.nadawca, `odrzucony mail: ${powod}`, aktor);
     await this.audit.record({ action: 'POCZTA_ZGLOSZEN_ODRZUCONA', actorUserId, details: { pocztaId: id, nadawca: w.nadawca, powod, zablokowano: !!dto.zablokuj } });
     return { ok: true as const };
   }
@@ -495,10 +544,16 @@ export class PocztaPrzychodzacaService {
     return this.prisma.pocztaBlokadaNadawcy.findMany({ orderBy: { createdAt: 'desc' } });
   }
 
-  async zablokuj(wzorzec: string, powod: string | undefined, actorUserId: string) {
+  async zablokuj(wzorzec: string, powod: string | undefined, aktor: AktorPoczty) {
+    const actorUserId = aktor.userId;
     const w = normalizujWzorzec(wzorzec);
     if (!w) throw new BadRequestException('Podaj adres (jan@firma.pl) albo domenę (@firma.pl).');
     if (w.endsWith(`@${CONTROL_PLANE_MAIL_DOMAIN}`) || w === `@${CONTROL_PLANE_MAIL_DOMAIN}`) throw new BadRequestException('Nie blokujemy własnej domeny.');
+    // Audyt Fali 3 — blokada całej domeny wycisza też zgłoszenia nadużyć z tej domeny (CERT, inny hosting): tylko zespół
+    // nadużyć albo ADMIN. Pojedynczy adres (spamer) — jak dotąd TICKETS_MANAGE.
+    if (w.startsWith('@') && !(await this.zespolNaduzyc(aktor))) {
+      throw new ForbiddenException('Blokadę całej domeny zakłada zespół nadużyć albo administrator — zablokuj konkretny adres.');
+    }
     const row = await this.prisma.pocztaBlokadaNadawcy.upsert({
       where: { wzorzec: w },
       create: { wzorzec: w, powod: powod?.trim().slice(0, 300) || null, createdById: actorUserId },

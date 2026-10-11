@@ -90,7 +90,7 @@ export default async function PocztaBezKlientaPage({ searchParams }: { searchPar
           Poczta bez klienta <Pomoc id="poczta-bez-klienta" />
         </h1>
         <p className="max-w-3xl text-sm text-muted-foreground">
-          Maile do support@ i abuse@, których nie przypisaliśmy do konta klienta, oraz spam. Maile klientów trafiają od razu do zgłoszeń.
+          Maile do support@ i abuse@, których nie przypisaliśmy do konta klienta, oraz spam. Maile klientów trafiają od razu do zgłoszeń. Maile do abuse@ widzi tylko zespół nadużyć.
         </p>
         {!lista.konfiguracja ? (
           <p className="text-sm text-amber-300">Import poczty jest wyłączony — brak skrzynki w konfiguracji API (CONTROL_PLANE_MAIL_TICKETS_USER).</p>

@@ -7,7 +7,7 @@ import { StaffPermissionsGuard } from '../../common/guards/staff-permissions.gua
 import { Roles } from '../../common/decorators/roles.decorator.js';
 import { StaffPerm } from '../../common/decorators/staff-permissions.decorator.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
-import { PocztaPrzychodzacaService } from './poczta-przychodzaca.service.js';
+import { PocztaPrzychodzacaService, type AktorPoczty } from './poczta-przychodzaca.service.js';
 
 class ListaPocztyQuery {
   @IsOptional() @IsString() widok?: string;
@@ -37,6 +37,8 @@ class BlokadaNadawcyDto {
  * F3.7 (OE-19, OE-20) — „Poczta bez klienta”: maile do zgłoszeń, których nie dało się przypisać (obcy nadawca, nie
  * właściciel zgłoszenia z wątku, DMARC) i spam. Odczyt — TICKETS_VIEW; decyzje (przypisanie, odrzucenie, blokady
  * nadawców — odwracalne, D2) — TICKETS_MANAGE (L1+). Ścieżka poza `tickets/admin/:id`, żeby nie wpadła w tamtą trasę.
+ * Audyt Fali 3 — maile do abuse@ (lista, „Pokaż”, przypisanie, odrzucenie) i blokada całej domeny: dodatkowo
+ * ABUSE_MANAGE albo ADMIN, sprawdzane w serwisie per wpis (granica jak kolejka staff/abuse).
  */
 @Controller('admin/poczta-zgloszen')
 @UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
@@ -46,8 +48,8 @@ export class PocztaPrzychodzacaAdminController {
 
   @Get()
   @StaffPerm('TICKETS_VIEW')
-  lista(@Query() q: ListaPocztyQuery) {
-    return this.poczta.lista(q);
+  lista(@Query() q: ListaPocztyQuery, @CurrentUser() user: AktorPoczty) {
+    return this.poczta.lista(q, user);
   }
 
   @Get('blokady')
@@ -59,8 +61,8 @@ export class PocztaPrzychodzacaAdminController {
   @Post('blokady')
   @HttpCode(200)
   @StaffPerm('TICKETS_MANAGE')
-  zablokuj(@Body() dto: BlokadaNadawcyDto, @CurrentUser() user: { userId: string }) {
-    return this.poczta.zablokuj(dto.wzorzec, dto.powod, user.userId);
+  zablokuj(@Body() dto: BlokadaNadawcyDto, @CurrentUser() user: AktorPoczty) {
+    return this.poczta.zablokuj(dto.wzorzec, dto.powod, user);
   }
 
   @Post('blokady/usun')
@@ -77,9 +79,9 @@ export class PocztaPrzychodzacaAdminController {
     @Param('id', ParseUUIDPipe) id: string,
     @Param('nr', ParseIntPipe) nr: number,
     @Query('potwierdzam') potwierdzam: string | undefined,
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: AktorPoczty,
   ) {
-    const p = await this.poczta.plik(id, nr, potwierdzam === '1', user.userId);
+    const p = await this.poczta.plik(id, nr, potwierdzam === '1', user);
     return new StreamableFile(p.stream, {
       type: p.typ,
       disposition: `attachment; filename="${encodeURIComponent(p.nazwa)}"`,
@@ -89,14 +91,14 @@ export class PocztaPrzychodzacaAdminController {
   @Post(':id/przypisz')
   @HttpCode(200)
   @StaffPerm('TICKETS_MANAGE')
-  przypisz(@Param('id', ParseUUIDPipe) id: string, @Body() dto: PrzypiszPocztaDto, @CurrentUser() user: { userId: string }) {
-    return this.poczta.przypisz(id, user.userId, dto);
+  przypisz(@Param('id', ParseUUIDPipe) id: string, @Body() dto: PrzypiszPocztaDto, @CurrentUser() user: AktorPoczty) {
+    return this.poczta.przypisz(id, user, dto);
   }
 
   @Post(':id/odrzuc')
   @HttpCode(200)
   @StaffPerm('TICKETS_MANAGE')
-  odrzuc(@Param('id', ParseUUIDPipe) id: string, @Body() dto: OdrzucPocztaDto, @CurrentUser() user: { userId: string }) {
-    return this.poczta.odrzuc(id, user.userId, dto);
+  odrzuc(@Param('id', ParseUUIDPipe) id: string, @Body() dto: OdrzucPocztaDto, @CurrentUser() user: AktorPoczty) {
+    return this.poczta.odrzuc(id, user, dto);
   }
 }

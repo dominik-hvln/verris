@@ -922,7 +922,11 @@ describe('F3.7 — progi SLA zgłoszeń', () => {
   });
 });
 
-/** F3.7 (OE-19, OE-20) — „Poczta bez klienta”: odczyt i „Pokaż” plik — TICKETS_VIEW; decyzje i blokady — TICKETS_MANAGE. */
+/**
+ * F3.7 (OE-19, OE-20) — „Poczta bez klienta”: odczyt i „Pokaż” plik — TICKETS_VIEW; decyzje i blokady — TICKETS_MANAGE.
+ * Audyt Fali 3 — maile z abuse@ i blokada całej domeny dodatkowo ABUSE_MANAGE albo ADMIN: sprawdza serwis per wpis
+ * (test/integration/poczta-przychodzaca.int-spec.ts), bo granica zależy od rodzaju wpisu, nie od trasy.
+ */
 describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
   const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
   const trasy = TRASY.filter((t) => t.kontroler === 'PocztaPrzychodzacaAdminController');

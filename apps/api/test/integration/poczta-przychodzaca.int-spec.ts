@@ -1,11 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Readable } from 'node:stream';
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { AuditService } from '../../src/common/audit/audit.service.js';
 import { TicketsService } from '../../src/tickets/tickets.service.js';
 import { OpiekaZgloszenService } from '../../src/tickets/opieka-zgloszen.service.js';
-import { LIMIT_NOWYCH_NA_GODZINE, PocztaPrzychodzacaService } from '../../src/tickets/poczta/poczta-przychodzaca.service.js';
+import { LIMIT_NOWYCH_NA_GODZINE, PocztaPrzychodzacaService, type AktorPoczty } from '../../src/tickets/poczta/poczta-przychodzaca.service.js';
+import { DataExportService } from '../../src/compliance/data-export.service.js';
 import { MailerService } from '../../src/mail/mailer.service.js';
 import { atrapaImap } from '../../src/test/atrapa-imap.js';
 import { prisma, rozlacz, wyczyscBaze } from './setup.js';
@@ -40,9 +41,18 @@ function uslugi() {
 
 const K = { host: 'atrapa', port: 993, login: 'zgloszenia@verris.pl', haslo: 'x' };
 
-async function konto(email: string, role: 'USER' | 'STAFF' = 'USER') {
+async function konto(email: string, role: 'USER' | 'STAFF' | 'ADMIN' = 'USER') {
   return prisma().user.create({ data: { email, passwordHash: 'x', role } });
 }
+
+/** Operator z rolą o podanych uprawnieniach (suma ról — jak StaffPermissionsGuard). */
+async function operator(email: string, uprawnienia: string[]): Promise<AktorPoczty> {
+  const u = await konto(email, 'STAFF');
+  const r = await prisma().staffRole.create({ data: { name: `rola-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, permissions: uprawnienia } });
+  await prisma().staffRoleAssignment.create({ data: { userId: u.id, roleId: r.id } });
+  return { userId: u.id, role: 'STAFF' };
+}
+const ZESPOL_NADUZYC = ['TICKETS_VIEW', 'TICKETS_MANAGE', 'ABUSE_MANAGE'];
 
 async function import_(wiadomosci: Record<number, string>) {
   const a = await atrapaImap({ wiadomosci: new Map(Object.entries(wiadomosci).map(([u, n]) => [Number(u), eml(n)])) });
@@ -163,14 +173,14 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
 
   it('obcy nadawca → kolejka (abuse@): plik tylko po „Pokaż”, przypisanie do klienta zakłada zgłoszenie raz', async () => {
     const jan = await konto('jan@klient.pl');
-    const op = await konto('op@verris.pl', 'STAFF');
+    const op = await operator('op@verris.pl', ZESPOL_NADUZYC);
     await import_({ 5: 'obcy-z-plikami.eml' });
     const w = await wpis('<obcy-001@firma-zewnetrzna.pl>');
     expect(w).toMatchObject({ wynik: 'BEZ_KLIENTA', rodzaj: 'ABUSE', userId: null, powod: 'nadawca spoza kont klientów' });
     expect(w.tresc).toContain('podszywa sie pod bank');
 
     const { poczta } = uslugi();
-    const lista = await poczta.lista({});
+    const lista = await poczta.lista({}, op);
     expect(lista.liczby).toEqual({ kolejka: 1, spam: 0 });
     // Lista bez kluczy magazynu; pliki pominięte opisane.
     expect(lista.rows[0].zalaczniki).toEqual([
@@ -178,24 +188,38 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
       { nazwa: 'dowody.zip', pominiety: 'niedozwolony typ pliku', nr: 1, dostepny: false },
       { nazwa: 'raport.pdf', pominiety: 'treść nie pasuje do rozszerzenia', nr: 2, dostepny: false },
     ]);
-    await expect(poczta.plik(w.id, 0, false, op.id)).rejects.toBeInstanceOf(BadRequestException);
-    const plik = await poczta.plik(w.id, 0, true, op.id);
+    await expect(poczta.plik(w.id, 0, false, op)).rejects.toBeInstanceOf(BadRequestException);
+    const plik = await poczta.plik(w.id, 0, true, op);
     expect(plik).toMatchObject({ nazwa: 'zrzut.jpg', typ: 'image/jpeg' });
-    expect(await prisma().auditLog.count({ where: { action: 'POCZTA_ZGLOSZEN_PLIK_POKAZANY', actorUserId: op.id } })).toBe(1);
+    expect(await prisma().auditLog.count({ where: { action: 'POCZTA_ZGLOSZEN_PLIK_POKAZANY', actorUserId: op.userId } })).toBe(1);
 
     // Przegląd F3.7 — mail z abuse@ nie staje się wiadomością klienta (treść i dane zgłaszającego); wpis zostaje w kolejce.
-    await expect(poczta.przypisz(w.id, op.id, { userId: jan.id })).rejects.toThrow(/abuse@ dopisz do zgłoszenia/);
+    await expect(poczta.przypisz(w.id, op, { userId: jan.id })).rejects.toThrow(/abuse@ dopisz do zgłoszenia/);
     expect(await wpis(w.messageId)).toMatchObject({ wynik: 'BEZ_KLIENTA', obsluzylId: null });
     expect(await prisma().ticket.count()).toBe(0);
 
-    // Dopisanie do zgłoszenia klienta — notatka wewnętrzna; pliki zostają w kolejce (za „Pokaż”), klient ich nie widzi.
+    // Dopisanie do zgłoszenia klienta — notatka wewnętrzna bez treści i danych zgłaszającego (audyt Fali 3); treść
+    // i pliki zostają we wpisie kolejki (zespół nadużyć), wpis bez userId klienta.
     await prisma().ticket.create({ data: { id: ID, userId: jan.id, subject: 'Phishing', message: 'x' } });
-    const { ticketId } = await poczta.przypisz(w.id, op.id, { zgloszenieId: ID });
+    const { ticketId } = await poczta.przypisz(w.id, op, { zgloszenieId: ID });
     const t = await prisma().ticket.findUniqueOrThrow({ where: { id: ticketId }, include: { replies: true, attachments: true } });
     expect(t.attachments).toEqual([]);
-    expect(t.replies.map((r) => [r.internal, r.message.includes('zrzut.jpg')])).toEqual([[true, true]]);
-    expect(await wpis(w.messageId)).toMatchObject({ wynik: 'PRZYPISANY', ticketId, userId: jan.id, obsluzylId: op.id, tresc: null });
-    await expect(poczta.przypisz(w.id, op.id, { zgloszenieId: ID })).rejects.toBeInstanceOf(ConflictException);
+    expect(t.replies.map((r) => r.internal)).toEqual([true]);
+    expect(t.replies[0].message).toMatch(/^Zgłoszenie nadużycia z abuse@ \(wpis [0-9a-f]{8}, /);
+    expect(t.replies[0].message).not.toMatch(/anna|firma-zewnetrzna|Obca|podszywa|zrzut\.jpg/i);
+    const po = await wpis(w.messageId);
+    expect(po).toMatchObject({ wynik: 'PRZYPISANY', ticketId, userId: null, obsluzylId: op.userId });
+    expect(po.tresc).toContain('podszywa sie pod bank');
+    expect(await prisma().auditLog.findFirstOrThrow({ where: { action: 'POCZTA_ZGLOSZEN_PRZYPISANA' } })).toMatchObject({ userId: null, details: { rodzaj: 'ABUSE' } });
+    // Plik dalej za „Pokaż” (zespół nadużyć).
+    expect(await poczta.plik(w.id, 0, true, op)).toMatchObject({ nazwa: 'zrzut.jpg' });
+    await expect(poczta.przypisz(w.id, op, { zgloszenieId: ID })).rejects.toBeInstanceOf(ConflictException);
+
+    // Eksport RODO zgłoszonego klienta: ani treści, ani nazwiska, ani adresu zgłaszającego (art. 15 ust. 4 RODO).
+    const eksport = new DataExportService(prisma() as never, new AuditService(prisma() as never), { get: () => undefined } as never, {} as never, {} as never);
+    const sekcje = JSON.stringify(await (eksport as unknown as { collectSections(id: string): Promise<unknown> }).collectSections(jan.id));
+    expect(sekcje).toContain('Zgłoszenie nadużycia z abuse@');
+    expect(sekcje).not.toMatch(/anna@firma-zewnetrzna|Anna Obca|podszywa/i);
   });
 
   it('obcy nadawca na support@ → założenie zgłoszenia klientowi po jego koncie, tylko raz', async () => {
@@ -212,44 +236,49 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     const w = await wpis('<drugi-adres@prywatny.pl>');
     expect(w).toMatchObject({ wynik: 'BEZ_KLIENTA', rodzaj: 'SUPPORT' });
     const { poczta } = uslugi();
-    const { ticketId } = await poczta.przypisz(w.id, op.id, { userId: jan.id });
+    // support@ — zwykłe TICKETS_MANAGE wystarcza (bez ABUSE_MANAGE).
+    const l1 = { userId: op.id, role: 'STAFF' };
+    const { ticketId } = await poczta.przypisz(w.id, l1, { userId: jan.id });
     expect(await prisma().ticket.findUniqueOrThrow({ where: { id: ticketId } })).toMatchObject({ userId: jan.id, subject: 'Faktura', message: 'Prosze o fakture.' });
-    await expect(poczta.przypisz(w.id, op.id, { userId: jan.id })).rejects.toBeInstanceOf(ConflictException);
+    expect(await wpis(w.messageId)).toMatchObject({ wynik: 'PRZYPISANY', userId: jan.id, tresc: null });
+    await expect(poczta.przypisz(w.id, l1, { userId: jan.id })).rejects.toBeInstanceOf(ConflictException);
     expect(await prisma().ticket.count()).toBe(1);
   });
 
   it('przypisanie po adresie klienta i dopisanie do zgłoszenia po numerze #xxxxxxxx (notatka wewnętrzna)', async () => {
     const jan = await konto('jan@klient.pl');
-    const op = await konto('op@verris.pl', 'STAFF');
+    const op = await operator('op@verris.pl', ZESPOL_NADUZYC);
     await prisma().ticket.create({ data: { id: ID, userId: jan.id, subject: 'DNS', message: 'x' } });
     await import_({ 5: 'obcy-z-plikami.eml', 6: 'spam.eml' });
     const { poczta } = uslugi();
     const obcy = await wpis('<obcy-001@firma-zewnetrzna.pl>');
-    await expect(poczta.przypisz(obcy.id, op.id, { email: 'nie-ma@x.pl' })).rejects.toThrow(/Nie znaleziono konta/);
+    await expect(poczta.przypisz(obcy.id, op, { email: 'nie-ma@x.pl' })).rejects.toThrow(/Nie znaleziono konta/);
     expect((await wpis(obcy.messageId)).wynik).toBe('BEZ_KLIENTA');
-    const { ticketId } = await poczta.przypisz(obcy.id, op.id, { zgloszenieId: '1A2B3C4D' });
+    const { ticketId } = await poczta.przypisz(obcy.id, op, { zgloszenieId: '1A2B3C4D' });
     expect(ticketId).toBe(ID);
+    // abuse@ — w notatce tylko odsyłacz do wpisu kolejki (audyt Fali 3), bez nadawcy i treści.
     const notatka = await prisma().ticketReply.findFirstOrThrow({ where: { ticketId: ID, internal: true } });
-    expect(notatka.message).toContain('Mail od Anna Obca <anna@firma-zewnetrzna.pl>');
-    expect(notatka.message).toContain('podszywa sie pod bank');
+    expect(notatka.message).toContain(`wpis ${obcy.id.slice(0, 8)}`);
+    expect(notatka.message).not.toContain('anna@firma-zewnetrzna.pl');
+    expect(notatka.message).not.toContain('podszywa sie pod bank');
     // Spam też da się przypisać („to nie spam”) — po adresie klienta.
     const spam = await wpis('<spam-001@tani-towar.example>');
-    const r = await poczta.przypisz(spam.id, op.id, { email: 'JAN@klient.pl' });
+    const r = await poczta.przypisz(spam.id, op, { email: 'JAN@klient.pl' });
     expect((await prisma().ticket.findUniqueOrThrow({ where: { id: r.ticketId } })).userId).toBe(jan.id);
   });
 
   it('odrzucenie z blokadą: treść i pliki skasowane, następny mail nadawcy od razu jako BLOKADA', async () => {
-    const op = await konto('op@verris.pl', 'STAFF');
+    const op = await operator('op@verris.pl', ZESPOL_NADUZYC);
     await import_({ 5: 'obcy-z-plikami.eml' });
     const w = await wpis('<obcy-001@firma-zewnetrzna.pl>');
     expect(magazyn.size).toBe(1);
     const { poczta } = uslugi();
-    await poczta.odrzuc(w.id, op.id, { powod: 'reklama', zablokuj: true });
+    await poczta.odrzuc(w.id, op, { powod: 'reklama', zablokuj: true });
     expect(await wpis(w.messageId)).toMatchObject({ wynik: 'ODRZUCONY', tresc: null, zalaczniki: [] });
     expect(magazyn.size).toBe(0);
-    expect(await prisma().pocztaBlokadaNadawcy.findMany()).toMatchObject([{ wzorzec: 'anna@firma-zewnetrzna.pl', createdById: op.id }]);
-    await expect(poczta.zablokuj('@verris.pl', undefined, op.id)).rejects.toBeInstanceOf(BadRequestException);
-    await poczta.odblokuj('anna@firma-zewnetrzna.pl', op.id);
+    expect(await prisma().pocztaBlokadaNadawcy.findMany()).toMatchObject([{ wzorzec: 'anna@firma-zewnetrzna.pl', createdById: op.userId }]);
+    await expect(poczta.zablokuj('@verris.pl', undefined, op)).rejects.toBeInstanceOf(BadRequestException);
+    await poczta.odblokuj('anna@firma-zewnetrzna.pl', op.userId);
     expect(await prisma().pocztaBlokadaNadawcy.count()).toBe(0);
   });
 
@@ -260,6 +289,40 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     expect(await poczta.retencja(new Date(Date.now() + 91 * 86_400_000))).toBe(1);
     expect(magazyn.size).toBe(0);
     expect(await prisma().pocztaPrzychodzaca.count()).toBe(0);
+  });
+
+  it('audyt Fali 3 — abuse@ tylko dla zespołu nadużyć: L1/Sprzedaż/NOC nie widzą, nie pobierają, nie przypisują, nie odrzucają; domenę blokuje zespół nadużyć', async () => {
+    await konto('jan@klient.pl');
+    await import_({ 5: 'obcy-z-plikami.eml', 6: 'spam.eml' });
+    const w = await wpis('<obcy-001@firma-zewnetrzna.pl>');
+    const { poczta } = uslugi();
+    const l1 = await operator('l1@verris.pl', ['TICKETS_VIEW', 'TICKETS_MANAGE']);
+    const noc = await operator('noc@verris.pl', ['TICKETS_VIEW']);
+    const abuse = await operator('abuse@verris.pl', ZESPOL_NADUZYC);
+    const admin = { userId: (await konto('admin@verris.pl', 'ADMIN')).id, role: 'ADMIN' };
+
+    for (const o of [l1, noc]) {
+      const l = await poczta.lista({ widok: 'wszystkie' }, o);
+      expect(l.rows.map((r) => r.rodzaj)).toEqual(['SUPPORT']);
+      expect(l.liczby).toEqual({ kolejka: 0, spam: 1 });
+      await expect(poczta.plik(w.id, 0, true, o)).rejects.toBeInstanceOf(ForbiddenException);
+    }
+    await expect(poczta.przypisz(w.id, l1, { zgloszenieId: ID })).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(poczta.odrzuc(w.id, l1, { powod: 'spam', zablokuj: true })).rejects.toBeInstanceOf(ForbiddenException);
+    expect(await wpis(w.messageId)).toMatchObject({ wynik: 'BEZ_KLIENTA', tresc: expect.stringContaining('podszywa') });
+    expect(magazyn.size).toBe(1);
+    expect(await prisma().auditLog.count({ where: { action: 'POCZTA_ZGLOSZEN_PLIK_POKAZANY' } })).toBe(0);
+
+    // Blokada całej domeny wycisza zgłoszenia nadużyć z tej domeny — tylko zespół nadużyć albo ADMIN; adres — L1.
+    await expect(poczta.zablokuj('@cert.pl', 'spam', l1)).rejects.toBeInstanceOf(ForbiddenException);
+    await poczta.zablokuj('spamer@tani-towar.example', 'spam', l1);
+    await poczta.zablokuj('@tani-towar.example', 'spam', abuse);
+    await poczta.zablokuj('@reklama.example', 'spam', admin);
+    expect((await prisma().pocztaBlokadaNadawcy.findMany()).map((b) => b.wzorzec).sort()).toEqual(['@reklama.example', '@tani-towar.example', 'spamer@tani-towar.example']);
+
+    for (const o of [abuse, admin]) {
+      expect((await poczta.lista({}, o)).rows.map((r) => r.id)).toEqual([w.id]);
+    }
   });
 
   // ---------------------------------------------------------------- przegląd F3.7
