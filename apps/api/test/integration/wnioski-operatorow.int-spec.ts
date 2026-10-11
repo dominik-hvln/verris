@@ -493,8 +493,18 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     const plan = await utworzPlan();
     const k = await klient();
     await prisma().user.update({ where: { id: k.id }, data: { walletBalance: 100 } });
-    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'IP', message: 'x' } });
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, zrodlo: 'PANEL', subject: 'IP', message: 'x' } });
     const u = await prisma().subscription.create({ data: { userId: k.id, planId: plan.id, status: 'ACTIVE', interval: 'MONTH', priceAmount: 45 } });
+    // Audyt Fali 3 — zgłoszenie założone przez obsługę „w imieniu” klienta to nie jego zamówienie: wniosek odrzucony już przy złożeniu.
+    const wImieniu = await prisma().ticket.create({ data: { userId: k.id, zrodlo: 'OBSLUGA', openedByStaffId: l2.id, subject: 'IP', message: 'x' } });
+    const odmowa = await zadanie('POST', '/admin/wnioski', l2, {
+      typ: 'ADDON_ADD',
+      userId: k.id,
+      subscriptionId: u.id,
+      payload: { subscriptionId: u.id, slug: 'dedicated_ip', platnosc: 'PORTFEL', zgloszenie: wImieniu.id },
+      uzasadnienie: 'Klient zamówił IP przez telefon.',
+    });
+    expect(odmowa.status).toBe(403);
     const zl = await zadanie('POST', '/admin/wnioski', l2, {
       typ: 'ADDON_ADD',
       userId: k.id,
