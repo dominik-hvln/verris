@@ -811,9 +811,10 @@ export class NodeTasksService {
     await this.webhooks?.poZadaniu(task, false);
     if (task.kind === NodeTaskKind.FLEET_UPDATE) await this.dalejFala(task, false);
     // Audyt Fal 2 — błąd w trakcie usuwania (np. ostatnia paczka -Mrm): wcześniejsze usunięcia są nieodwracalne,
-    // więc liczba z logu węzła trafia do dziennika także przy błędzie zadania.
+    // więc liczba z logu węzła trafia do dziennika także przy błędzie zadania. Surowy błąd węzła (exim…) zostaje
+    // w zadaniu (panel operatora), nie we wpisie: wpis ma userId klienta, więc trafia do jego eksportu RODO (white label).
     if (task.kind === NodeTaskKind.MAIL_QUEUE && (task.payload as { mode?: string } | null)?.mode === 'remove' && wynikUsuwania(updated.outputLog).usunieto !== null) {
-      await this.dziennikUsunieciaZKolejki(task, opts.serverId, updated.outputLog, opts.error.slice(0, 300));
+      await this.dziennikUsunieciaZKolejki(task, opts.serverId, updated.outputLog, true);
     }
 
     // P-6 — panel zapisuje wersję PHP przy zleceniu; odrzucona przez węzeł nie może zostać
@@ -829,7 +830,7 @@ export class NodeTasksService {
   }
 
   /** F3.1 — usunięcie wiadomości konta z kolejki: liczba usuniętych dopiero od węzła (dziennik zespołu, autor = zlecający). */
-  private async dziennikUsunieciaZKolejki(task: { id: string; accountId: string | null; requestedById: string | null }, serverId: string, log: string | null, blad?: string) {
+  private async dziennikUsunieciaZKolejki(task: { id: string; accountId: string | null; requestedById: string | null }, serverId: string, log: string | null, przerwane = false) {
     if (!task.accountId) return;
     const konto = await this.prisma.account.findUnique({ where: { id: task.accountId }, select: { userId: true, subscriptionId: true } });
     const { usunieto, pominieto } = wynikUsuwania(log);
@@ -837,7 +838,7 @@ export class NodeTasksService {
       action: SupportActions.MAIL_QUEUE_MESSAGES_REMOVED,
       userId: konto?.userId,
       actorUserId: task.requestedById ?? undefined,
-      details: { taskId: task.id, serverId, subscriptionId: konto?.subscriptionId ?? null, usunieto, pominieto, ...(blad ? { blad } : {}) },
+      details: { taskId: task.id, serverId, subscriptionId: konto?.subscriptionId ?? null, usunieto, pominieto, ...(przerwane ? { przerwane: true } : {}) },
     });
   }
 

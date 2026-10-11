@@ -174,7 +174,9 @@ describe('F3.1 — kolejka poczty konta (zadanie MAIL_QUEUE)', () => {
     });
     const wpis = await prisma().auditLog.findFirstOrThrow({ where: { action: 'MAIL_QUEUE_MESSAGES_REMOVED' } });
     expect(wpis).toMatchObject({ userId: k.user.id, actorUserId: operator.id });
-    expect(wpis.details).toMatchObject({ usunieto: 50, pominieto: 0, subscriptionId: k.subscription.id, blad: expect.stringContaining('nie usunięto 1') });
+    expect(wpis.details).toMatchObject({ usunieto: 50, pominieto: 0, subscriptionId: k.subscription.id, przerwane: true });
+    // Przegląd poprawek — wpis ma userId klienta (trafia do jego eksportu RODO): bez surowego błędu węzła (white label).
+    expect(JSON.stringify(wpis.details)).not.toMatch(/exim|mail-queue|BŁĄD/i);
     const da = { listHostingDomainsForSubscription: async () => ({ domains: [], fetchError: null }) };
     const svc = new PocztaKontaOperatoraService(p, da as never, null as never, null as never, audit);
     expect((await svc.kolejka(k.subscription.id, operator.id, 'STAFF')).usuwanie).toMatchObject({ usunieto: 50, blad: expect.stringContaining('nie usunięto 1') });
