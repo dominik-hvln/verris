@@ -19,7 +19,11 @@ const data = (iso: string) => new Date(iso).toLocaleString("pl-PL", { timeZone: 
  */
 export function OstatniaAktualizacja({ a, zadaniaHref }: { a: Aktualizacja | null; zadaniaHref: string }) {
   if (!a) return <p className="text-xs text-muted-foreground">Ten węzeł nie był jeszcze aktualizowany z panelu.</p>;
-  const wynik = a.wynik ? WYNIK[a.wynik] : null;
+  const ostrz = a.ostrzezenia ?? 0;
+  // Weryfikacja 11.10 — build przeszedł, ale wypisał „Error:” (t1: CageFS /run/mysql): nie „wszystko zaktualizowane”.
+  const wynik = a.wynik === "ok" && ostrz > 0
+    ? { tekst: `zaktualizowane z ostrzeżeniami (${ostrz}) — linie „OSTRZEŻENIE” na końcu wyjścia`, ton: "text-warn" }
+    : a.wynik ? WYNIK[a.wynik] : null;
   const trwa = a.status === "QUEUED" || a.status === "RUNNING";
   return (
     <div className="space-y-2 rounded-lg border border-line p-3" data-ostatnia-aktualizacja={a.id}>

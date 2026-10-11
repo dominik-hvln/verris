@@ -20,6 +20,9 @@ REBOOT_NEEDED=0
 BLEDY=0
 OLD_KERNEL="$(uname -r)"
 blad() { log "BŁĄD: $*"; BLEDY=$((BLEDY + 1)); }
+OSTRZEZENIA=0
+OSTRZ_LINIE=()
+ostrzezenie() { OSTRZEZENIA=$((OSTRZEZENIA + 1)); OSTRZ_LINIE+=("$*"); }
 
 # 0) Agent zadań z control-plane (podpisany, verris-fetch). Bez tego nowe pola zadań (np. lista plików
 #    kwarantanny) wymagały ręcznej instalacji agenta przez SSH na każdym węźle.
@@ -42,7 +45,13 @@ if [ -d "$CB" ]; then
     ./build set php1_release "$VERRIS_PHP1_RELEASE" >/dev/null 2>&1 || blad "build set php1_release"
   fi
   log "CustomBuild: aktualizuję cały stack (DA/LiteSpeed/PHP)…"
-  ./build all d || blad "build all d"
+  # Weryfikacja 11.10 — CustomBuild kończy się kodem 0 także wtedy, gdy krok w środku wypisze „Error: …”
+  # (t1: cagefsctl --force-update → „/etc/cagefs/cagefs.mp file contains incorrect path - /run/mysql …”).
+  # Takie linie liczymy jako ostrzeżenia: przebieg nie jest „wszystko zaktualizowane”, ale fala nie staje.
+  BUILD_LOG="$(mktemp /tmp/verris-update-build.XXXXXX)"
+  ./build all d 2>&1 | tee "$BUILD_LOG" || blad "build all d"
+  while IFS= read -r linia; do ostrzezenie "CustomBuild: $linia"; done < <(grep -E '^Error:' "$BUILD_LOG" | sort -u)
+  rm -f "$BUILD_LOG"
   ./build rewrite_confs >/dev/null 2>&1 || true
 else
   log "Brak CustomBuild — pomijam aktualizację DA/LiteSpeed."
@@ -69,18 +78,23 @@ if [ -n "$NEW_KERNEL_INSTALLED" ]; then
   fi
 fi
 
+# Ostrzeżenia na końcu wyjścia — karta węzła pokazuje jego ostatnie linie.
+for linia in "\${OSTRZ_LINIE[@]}"; do log "OSTRZEŻENIE: $linia"; done
+OSTRZ_POLE=""
+[ "$OSTRZEZENIA" -gt 0 ] && OSTRZ_POLE=" warnings=$OSTRZEZENIA"
+
 # PB-32 — błąd kroku kończy zadanie jako FAILED: fala aktualizacji zatrzymuje się na tym węźle.
 if [ "$BLEDY" -gt 0 ]; then
-  echo "VERRIS_UPDATE_RESULT=failed errors=$BLEDY"
+  echo "VERRIS_UPDATE_RESULT=failed errors=$BLEDY$OSTRZ_POLE"
   exit 1
 fi
 
 if [ "$REBOOT_NEEDED" = "1" ]; then
   log "needs-reboot: zainstalowano nowszy kernel ($LATEST). Zaplanuj reboot po drainie."
-  echo "VERRIS_UPDATE_RESULT=needs-reboot"
+  echo "VERRIS_UPDATE_RESULT=needs-reboot$OSTRZ_POLE"
 else
   log "OK: stack zaktualizowany, reboot niepotrzebny."
-  echo "VERRIS_UPDATE_RESULT=ok"
+  echo "VERRIS_UPDATE_RESULT=ok$OSTRZ_POLE"
 fi
 `;
 }

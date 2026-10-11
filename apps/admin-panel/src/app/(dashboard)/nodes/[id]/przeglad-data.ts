@@ -38,6 +38,8 @@ export interface PrzegladWezla {
     zlecono: string;
     zakonczono: string | null;
     wynik: "ok" | "needs-reboot" | "failed" | null;
+    /** Weryfikacja 11.10 — linie „Error:” z CustomBuilda przy udanym buildzie (np. CageFS); 0 — brak. */
+    ostrzezenia?: number;
     blad: string | null;
     wyjscie: string | null;
   } | null;

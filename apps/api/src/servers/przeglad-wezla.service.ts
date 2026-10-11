@@ -57,6 +57,16 @@ export function wynikAktualizacji(log: string | null | undefined): 'ok' | 'needs
   return (wyniki.at(-1)?.[1] as 'ok' | 'needs-reboot' | 'failed' | undefined) ?? null;
 }
 
+/**
+ * Weryfikacja 11.10 — liczba ostrzeżeń z ostatniej linii wyniku (`VERRIS_UPDATE_RESULT=ok warnings=2`): linie „Error:”
+ * z CustomBuilda, po których build i tak skończył się sukcesem (t1: CageFS /run/mysql). 0 — brak pola.
+ */
+export function ostrzezeniaAktualizacji(log: string | null | undefined): number {
+  const linie = [...(log ?? '').matchAll(/VERRIS_UPDATE_RESULT=\S+([^\n]*)/g)];
+  const m = linie.at(-1)?.[1]?.match(/\bwarnings=(\d+)/);
+  return m ? Number(m[1]) : 0;
+}
+
 /** Ostatnie `ile` linii tekstu (bez pustych na końcu). */
 export function ogonWyjscia(tekst: string | null | undefined, ile = LINIE_WYJSCIA_AKTUALIZACJI): string | null {
   const linie = (tekst ?? '').replace(/\s+$/, '').split('\n');
@@ -239,6 +249,7 @@ export class PrzegladWezlaService {
             zlecono: aktualizacja.createdAt.toISOString(),
             zakonczono: aktualizacja.completedAt?.toISOString() ?? null,
             wynik: wynikAktualizacji(aktualizacja.outputLog),
+            ostrzezenia: ostrzezeniaAktualizacji(aktualizacja.outputLog),
             blad: aktualizacja.errorMessage?.slice(0, 500) ?? null,
             wyjscie: ogonWyjscia(aktualizacja.outputLog),
           }

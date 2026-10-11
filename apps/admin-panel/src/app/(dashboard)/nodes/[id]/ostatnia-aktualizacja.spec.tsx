@@ -42,4 +42,15 @@ describe("OstatniaAktualizacja", () => {
   it("bez przebiegów — informacja zamiast pustej ramki", () => {
     expect(tekst(renderToStaticMarkup(<OstatniaAktualizacja zadaniaHref="/z" a={null} />))).toContain("nie był jeszcze aktualizowany");
   });
+
+  it("udany build z ostrzeżeniami (CageFS /run/mysql): nie „wszystko zaktualizowane”, tylko „z ostrzeżeniami”", () => {
+    const h = renderToStaticMarkup(
+      <OstatniaAktualizacja
+        zadaniaHref="/z"
+        a={{ id: "t4", status: "COMPLETED", zlecono: "2026-10-11T13:56:00Z", zakonczono: "2026-10-11T14:14:00Z", wynik: "ok", ostrzezenia: 1, blad: null, wyjscie: "[verris-update] OSTRZEŻENIE: CustomBuild: Error: /etc/cagefs/cagefs.mp …\nVERRIS_UPDATE_RESULT=ok warnings=1" }}
+      />,
+    );
+    expect(tekst(h)).toContain("Wynik: zaktualizowane z ostrzeżeniami (1)");
+    expect(tekst(h)).not.toContain("wszystko zaktualizowane");
+  });
 });
