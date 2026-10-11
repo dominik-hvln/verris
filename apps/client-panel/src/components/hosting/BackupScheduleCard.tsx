@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useId, useState } from 'react';
+import { opcjeGodzinyHarmonogramu } from '@/lib/godzina-harmonogramu';
 import { CalendarClock, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@verris/ui';
@@ -86,13 +87,13 @@ export default function BackupScheduleCard({ serviceId }: { serviceId: string })
         )}
         {frequency !== 'OFF' && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <label htmlFor={`${uid}-hour`}>Godzina (UTC)</label>
+            <label htmlFor={`${uid}-hour`}>Godzina</label>
             <Select
               id={`${uid}-hour`}
               value={String(hour)}
               onChange={(v) => setHour(Number(v))}
               className="w-28"
-              options={Array.from({ length: 24 }, (_, h) => ({ value: String(h), label: `${String(h).padStart(2, '0')}:00` }))}
+              options={opcjeGodzinyHarmonogramu()}
             />
           </div>
         )}
@@ -114,7 +115,7 @@ export default function BackupScheduleCard({ serviceId }: { serviceId: string })
       </div>
       {lastRunAt && (
         <p className="mt-2 text-[11px] text-muted-foreground">
-          Ostatni automatyczny backup: {new Date(lastRunAt).toLocaleString('pl-PL')}
+          Ostatni automatyczny backup: {new Date(lastRunAt).toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' })}
           {lastStatus && lastStatus !== 'ok' ? <span className="text-warn"> — {lastStatus}</span> : <span className="text-data-hi"> — OK</span>}
         </p>
       )}
