@@ -28,6 +28,12 @@ export interface PlanProrationInput {
   /** When set and different from currentInterval, uses cross-interval proration (PC-4). */
   targetInterval?: BillingInterval;
   currentInterval?: BillingInterval;
+  /**
+   * Audyt Fali 3 — koniec OPŁACONEJ części okresu, gdy obsługa przedłużyła okres gratis (zmiana daty odnowienia
+   * przesuwa tylko currentPeriodEnd). Bez tego dni gratis rozciągały mianownik proraty: upgrade zaraz po
+   * przedłużeniu o rok kosztował różnicę za jeden miesiąc, a downgrade/zmiana okresu zamieniały dni gratis w kredyt.
+   */
+  paidPeriodEnd?: Date | null;
 }
 
 export interface PlanProrationResult {
@@ -63,19 +69,30 @@ export function computePlanChangeProration(input: PlanProrationInput): PlanProra
   }
 
   const remainingMs = Math.max(0, Math.min(periodMs, endMs - nowMs));
-  const fractionCurrent = new Prisma.Decimal(remainingMs).div(periodMs);
+  // Opłacona część okresu [start, paidEnd]; reszta do końca to dni gratis od obsługi (bez paidPeriodEnd — cały okres).
+  const paidEndRaw = input.paidPeriodEnd?.getTime();
+  const paidEndMs = paidEndRaw != null && paidEndRaw > startMs && paidEndRaw < endMs ? paidEndRaw : endMs;
+  const paidMs = paidEndMs - startMs;
+  const paidRemainingMs = Math.max(0, Math.min(paidMs, paidEndMs - nowMs));
+  const gratisRemainingMs = remainingMs - paidRemainingMs;
+  const fractionCurrent = new Prisma.Decimal(paidRemainingMs).div(paidMs);
+  const fractionGratis = new Prisma.Decimal(gratisRemainingMs).div(paidMs);
 
   const intervalChanges =
     input.targetInterval != null &&
     input.currentInterval != null &&
     input.targetInterval !== input.currentInterval;
 
+  // Kredyt tylko za niewykorzystaną OPŁACONĄ część — dni gratis nie zamieniają się w pieniądze.
   const oldCredit = oldPrice.mul(fractionCurrent);
   // Zmiana okresu (miesiąc ↔ rok) zaczyna NOWY pełny okres od dziś (commitPlanChange), więc kosztuje
   // pełną cenę nowego okresu minus niewykorzystana część starego. Do 2026-09-27 liczyliśmy tylko
   // „resztę starego okresu" w cenie rocznej: przejście z 45 zł/mies. na rok w połowie miesiąca dawało
   // zwrot ~6 zł i cały rok hostingu gratis.
-  const newCost = intervalChanges ? newPrice : newPrice.mul(fractionCurrent);
+  // Ten sam okres: dni gratis zostają darem w starym planie — za droższy plan w tych dniach klient dopłaca różnicę
+  // (tańszy plan w dniach gratis nie daje kredytu).
+  const doplataZaGratis = newPrice.greaterThan(oldPrice) ? newPrice.minus(oldPrice).mul(fractionGratis) : new Prisma.Decimal(0);
+  const newCost = intervalChanges ? newPrice : newPrice.mul(fractionCurrent).plus(doplataZaGratis);
   const net = newCost.minus(oldCredit);
   const fraction = fractionCurrent;
 

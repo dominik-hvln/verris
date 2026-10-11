@@ -5,6 +5,44 @@ import {
   referencePeriodMs,
 } from './plan-proration.util.js';
 
+describe('audyt Fali 3 — prorata po przedłużeniu okresu gratis (paidPeriodEnd)', () => {
+  // Opłacony miesiąc 1.01–31.01 (30 dni), obsługa przedłużyła gratis do 31.12 (+334 dni); zmiana 1.01.
+  const start = new Date('2026-01-01T00:00:00Z');
+  const oplacony = new Date('2026-01-31T00:00:00Z');
+  const koniec = new Date('2026-12-31T00:00:00Z');
+  const now = start;
+
+  it('upgrade: dopłata różnicy za cały pozostały czas względem opłaconego okresu, nie za jeden miesiąc', () => {
+    const r = computePlanChangeProration({ oldPeriodPrice: 45, newPeriodPrice: 90, periodStart: start, periodEnd: koniec, now, paidPeriodEnd: oplacony });
+    // 45 zł × 364/30 = 546 zł; bez paidPeriodEnd było 45 zł.
+    expect(r.amountDue.toFixed(2)).toBe('546.00');
+    expect(computePlanChangeProration({ oldPeriodPrice: 45, newPeriodPrice: 90, periodStart: start, periodEnd: koniec, now }).amountDue.toFixed(2)).toBe('45.00');
+  });
+
+  it('downgrade: kredyt tylko za niewykorzystaną opłaconą część — dni gratis nie dają pieniędzy', () => {
+    const wPolowie = new Date('2026-01-16T00:00:00Z');
+    const r = computePlanChangeProration({ oldPeriodPrice: 45, newPeriodPrice: 20, periodStart: start, periodEnd: koniec, now: wPolowie, paidPeriodEnd: oplacony });
+    expect(r.amountCredit.toFixed(2)).toBe('12.50');
+    // Po końcu opłaconej części (w dniach gratis) — nic do zwrotu.
+    const poOplaconym = computePlanChangeProration({ oldPeriodPrice: 45, newPeriodPrice: 20, periodStart: start, periodEnd: koniec, now: new Date('2026-03-01T00:00:00Z'), paidPeriodEnd: oplacony });
+    expect(poOplaconym.amountCredit.toFixed(2)).toBe('0.00');
+  });
+
+  it('miesiąc → rok: od ceny roku odejmujemy tylko niewykorzystaną opłaconą część', () => {
+    const r = computePlanChangeProration({
+      oldPeriodPrice: 45, newPeriodPrice: 450, periodStart: start, periodEnd: koniec, now: new Date('2026-03-01T00:00:00Z'), paidPeriodEnd: oplacony,
+      currentInterval: BillingInterval.MONTH, targetInterval: BillingInterval.YEAR,
+    });
+    expect(r.amountDue.toFixed(2)).toBe('450.00');
+  });
+
+  it('paidPeriodEnd poza okresem (skrócenie albo brak przedłużenia) — jak dotąd', () => {
+    const zwykly = computePlanChangeProration({ oldPeriodPrice: 100, newPeriodPrice: 200, periodStart: start, periodEnd: oplacony, now: new Date('2026-01-16T00:00:00Z') });
+    const zPoza = computePlanChangeProration({ oldPeriodPrice: 100, newPeriodPrice: 200, periodStart: start, periodEnd: oplacony, now: new Date('2026-01-16T00:00:00Z'), paidPeriodEnd: koniec });
+    expect(zPoza.amountDue.toFixed(2)).toBe(zwykly.amountDue.toFixed(2));
+  });
+});
+
 describe('computePlanChangeProration', () => {
   const periodStart = new Date('2026-01-01T00:00:00Z');
   const periodEnd = new Date('2026-01-31T00:00:00Z');

@@ -93,6 +93,8 @@ describe('PlanChangeService (admin)', () => {
       usageMetric: {
         findMany: overrides.usageMetric?.findMany ?? vi.fn().mockResolvedValue([]),
       },
+      // Audyt Fali 3 — brak zmian daty odnowienia w okresie: cały okres opłacony.
+      subscriptionEvent: { findFirst: vi.fn().mockResolvedValue(null) },
       subscription: {
         findFirst: vi.fn(),
         findUnique: vi.fn().mockResolvedValue(baseSub),

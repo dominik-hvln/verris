@@ -171,7 +171,7 @@ export class PlanChangeService {
     this.assertCanChangePlan(sub, target, effectiveInterval);
     await this.assertDiskAllowsDowngrade(sub, target);
     const narzut = await this.narzut(sub);
-    const proration = this.prorationFor(sub, target, effectiveInterval, narzut);
+    const proration = await this.prorationFor(sub, target, effectiveInterval, narzut);
     const targets = await this.listEligibleTargets(sub, opts.allowNonPublicPlan, narzut);
     const intervalChange = effectiveInterval !== sub.interval;
     const newPeriodStart = intervalChange ? new Date() : sub.currentPeriodStart;
@@ -226,7 +226,7 @@ export class PlanChangeService {
     }
 
     const narzut = await this.narzut(sub);
-    const proration = this.prorationFor(sub, target, effectiveInterval, narzut);
+    const proration = await this.prorationFor(sub, target, effectiveInterval, narzut);
     const intervalChange = effectiveInterval !== sub.interval;
     const newPrice = zNarzutem(planPriceForInterval(target, effectiveInterval), narzut);
     // Z-11 — klucz ma identyfikować TĘ zmianę, nie parę (usługa, plan docelowy).
@@ -502,7 +502,7 @@ export class PlanChangeService {
     return narzutResellera(this.prisma, this.config, sub.userId);
   }
 
-  private prorationFor(sub: LoadedSub, target: Plan, targetInterval: BillingInterval, narzut: number) {
+  private async prorationFor(sub: LoadedSub, target: Plan, targetInterval: BillingInterval, narzut: number) {
     return computePlanChangeProration({
       oldPeriodPrice: sub.priceAmount,
       newPeriodPrice: zNarzutem(planPriceForInterval(target, targetInterval), narzut),
@@ -510,7 +510,25 @@ export class PlanChangeService {
       periodEnd: sub.currentPeriodEnd!,
       currentInterval: sub.interval,
       targetInterval,
+      paidPeriodEnd: await this.koniecOplaconegoOkresu(sub),
     });
+  }
+
+  /**
+   * Audyt Fali 3 — koniec opłaconej części bieżącego okresu: `przed` z pierwszej zmiany daty odnowienia w tym okresie
+   * (CyklZyciaUslugiService.zmienDateOdnowienia, zdarzenie RENEWAL_DATE_CHANGED). Odnowienie zaczyna nowy okres od
+   * przesuniętego końca, więc liczą się tylko zmiany od currentPeriodStart. Brak zmian = cały okres opłacony.
+   */
+  private async koniecOplaconegoOkresu(sub: LoadedSub): Promise<Date | null> {
+    if (!sub.currentPeriodStart) return null;
+    const pierwsza = await this.prisma.subscriptionEvent.findFirst({
+      where: { subscriptionId: sub.id, type: 'RENEWAL_DATE_CHANGED', createdAt: { gte: sub.currentPeriodStart } },
+      orderBy: { createdAt: 'asc' },
+      select: { details: true },
+    });
+    const przed = (pierwsza?.details as { przed?: unknown } | null | undefined)?.przed;
+    const d = typeof przed === 'string' ? new Date(przed) : null;
+    return d && !Number.isNaN(d.getTime()) ? d : null;
   }
 
   private async assertDiskAllowsDowngrade(sub: LoadedSub, target: Plan) {

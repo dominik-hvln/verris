@@ -2,6 +2,7 @@ import { SubscriptionStatus, WalletTxType } from '@verris/database';
 import { AuditService } from '../../src/common/audit/audit.service.js';
 import { WalletLedgerService } from '../../src/billing/wallet-ledger.service.js';
 import { PlanChangeService } from '../../src/subscriptions/plan-change.service.js';
+import { CyklZyciaUslugiService } from '../../src/subscriptions/cykl-zycia-uslugi.service.js';
 import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } from './setup.js';
 
 /**
@@ -163,5 +164,35 @@ describe('X-04 zmiana planu z portfela', () => {
     const s = await prisma().subscription.findUniqueOrThrow({ where: { id: u.subscription.id } });
     expect(s.interval).toBe('MONTH');
     expect(s.currentPeriodEnd!.getTime() - Date.now()).toBeLessThan(32 * DZIEN);
+  });
+});
+
+describe('audyt Fali 3 — zmiana planu po przedłużeniu okresu gratis', () => {
+  beforeEach(async () => {
+    await wyczyscBaze();
+    limityDA.length = 0;
+    daPada = false;
+  });
+  afterAll(rozlacz);
+
+  it('upgrade zaraz po przedłużeniu o 60 dni: dopłata różnicy za cały pozostały czas, nie za jeden okres', async () => {
+    const u = await usluga45(1000, 0, 30);
+    const admin = await prisma().user.create({ data: { email: `f3p-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'ADMIN' } });
+    const s0 = await prisma().subscription.findUniqueOrThrow({ where: { id: u.subscription.id } });
+    const cykl = new CyklZyciaUslugiService(prisma() as never, new AuditService(prisma() as never), {} as never);
+    await cykl.zmienDateOdnowienia({
+      subscriptionId: u.subscription.id,
+      operator: { userId: admin.id, role: 'ADMIN' },
+      powod: 'Rekompensata za awarię węzła.',
+      przed: s0.currentPeriodEnd!,
+      nowaData: new Date(s0.currentPeriodEnd!.getTime() + 60 * DZIEN),
+    });
+
+    const r = await usluga().changeForUser(u.user.id, u.subscription.id, u.duzy.id);
+
+    // (90 − 45) × 90 dni / 30 dni opłaconego okresu ≈ 135 zł; przed poprawką ≈ 45 zł (jeden okres).
+    expect(r.direction).toBe('upgrade');
+    expect(Number(r.amountDue)).toBeCloseTo(135, 0);
+    expect(await saldo(u.user.id)).toBeCloseTo(1000 - Number(r.amountDue), 2);
   });
 });

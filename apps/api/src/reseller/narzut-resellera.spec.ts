@@ -154,6 +154,7 @@ describe('O-07 — zmiana planu i przejście z okresu próbnego', () => {
       ...prismaKlienta({ status: 'ACTIVE', markupPct: 20 }),
       plan: { findUnique: vi.fn(async () => ({ id: 'plan-b', slug: 'b', name: 'B', isActive: true, isPublic: true, diskLimitMb: 10240, cpuLimit: 200, ramLimitMb: 2048, ioLimitKbps: 1, iopsLimit: 1, entryProcesses: 1, nprocLimit: 1, priceMonthly: D(200), priceYearly: D(2000) })) },
       usageMetric: { findMany: vi.fn(async () => []) },
+      subscriptionEvent: { findFirst: vi.fn(async () => null) },
       subscription: { findFirst: vi.fn(async () => sub), updateMany: vi.fn(async () => ({ count: 1 })) },
       $transaction: vi.fn(async (fn: (tx: unknown) => unknown) =>
         fn({ account: { update: vi.fn() }, server: { update: vi.fn() }, subscription: { update: txUpdate }, subscriptionEvent: { create: vi.fn() } }),
