@@ -74,6 +74,7 @@ import {
 } from '@/components/panel/v2';
 import { Wykres } from '@/components/panel/wykres';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
+import { plForm } from '@/lib/pl';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
 const fetchServiceDetailsAction = zOdpakowaniem(fetchServiceDetailsActionAkcja);
@@ -100,6 +101,8 @@ function date(iso: string | null | undefined, withYear = true): string {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', ...(withYear ? { year: 'numeric' } : {}) });
 }
+
+const DANE_PO_WZNOWIENIU = 'Dane będą dostępne po wznowieniu usługi — kopie są bezpieczne.';
 
 const PAYMENT_SOURCE: Record<string, string> = {
   WALLET: 'z portfela',
@@ -206,6 +209,12 @@ export default function ServiceOverviewV2({
   const primary = domains?.primaryDomain ?? account?.domain ?? null;
   const as = extras?.autoscaling ?? null;
   const asEnabled = as?.enabled ?? service.autoscalingEnabled;
+  // Weryfikacja 11.10 — serwer nie oddaje danych zawieszonego konta (domeny, kopie, liczniki). Karta pokazywała to
+  // jak awarię („Nie udało się pobrać listy domen”) albo utratę danych („0 kopii”). Przy zawieszeniu: stan „wstrzymana”;
+  // dane, które jednak przyszły, pokazujemy normalnie. PAST_DUE nie zawiesza konta na serwerze — nie dotyczy.
+  const wstrzymana = service.status === 'SUSPENDED';
+  // Błąd odczytu kopii ≠ brak kopii: bez listy kafel pokazuje „—”, nie „0 kopii”.
+  const kopie = backups && !backups.fetchError ? backups.rows : null;
 
   const toggleAs = async (next: boolean) => {
     setAsBusy(true);
@@ -360,8 +369,8 @@ export default function ServiceOverviewV2({
         </Kpi>
         <Kpi
           label="Kopie zapasowe"
-          value={backups ? String(backups.rows.length) : '—'}
-          unit={backups ? (backups.rows.length === 1 ? 'kopia' : 'kopii') : undefined}
+          value={kopie ? String(kopie.length) : '—'}
+          unit={kopie ? plForm(kopie.length, 'kopia', 'kopie', 'kopii') : undefined}
           foot={
             <>
               <span>
@@ -381,12 +390,16 @@ export default function ServiceOverviewV2({
             </>
           }
         >
-          <Squares
-            items={backupDays(backups?.rows.map((r) => r.fileName) ?? []).map((ok, i, arr) => ({
-              tone: ok ? ('data' as const) : ('muted' as const),
-              tip: tip(ok ? 'Kopia zapasowa' : 'Brak kopii', lastDaysLabels(arr.length)[i] ?? ''),
-            }))}
-          />
+          {kopie ? (
+            <Squares
+              items={backupDays(kopie.map((r) => r.fileName)).map((ok, i, arr) => ({
+                tone: ok ? ('data' as const) : ('muted' as const),
+                tip: tip(ok ? 'Kopia zapasowa' : 'Brak kopii', lastDaysLabels(arr.length)[i] ?? ''),
+              }))}
+            />
+          ) : wstrzymana && backups ? (
+            <p className="m-0 text-[12.5px] text-muted-foreground">{DANE_PO_WZNOWIENIU}</p>
+          ) : null}
         </Kpi>
       </KpiStrip>
       </div>
@@ -405,7 +418,9 @@ export default function ServiceOverviewV2({
                 <p className="px-4 py-5 text-sm text-muted-foreground">
                   {domains === null
                     ? 'Wczytywanie domen…'
-                    : domains.fetchError
+                    : domains.fetchError && wstrzymana
+                      ? `Lista domen będzie dostępna po wznowieniu usługi — domeny i pliki stron są nietknięte.${primary ? ` Domena główna: ${primary}.` : ''}`
+                      : domains.fetchError
                       ? 'Nie udało się pobrać listy domen — spróbuj odświeżyć.'
                       : 'Brak domen. Dodaj pierwszą, żeby uruchomić stronę.'}
                 </p>
@@ -447,6 +462,7 @@ export default function ServiceOverviewV2({
           <section>
             <SectionHead
               title="Zasoby konta"
+              desc={wstrzymana && conn?.fetchError ? 'Liczniki konta będą dostępne po wznowieniu usługi — dane na koncie są nietknięte.' : undefined}
               action={<button type="button" className={BTN_SM} onClick={() => onNavigate('usage')}>Zużycie i prognoza</button>}
             />
             <ul className="m-0 list-none rounded-[10px] border border-line bg-card p-0">
@@ -531,7 +547,11 @@ export default function ServiceOverviewV2({
             title="Dane dostępowe"
           >
             <p className="mx-4 mb-1.5 mt-1 text-[12.5px] text-muted-foreground">
-              {conn?.fetchError ? 'Część danych chwilowo niedostępna.' : 'Kliknij adres, żeby go skopiować.'}
+              {conn?.fetchError
+                ? wstrzymana
+                  ? 'Usługa wstrzymana — pozostałe dane pokażemy po wznowieniu.'
+                  : 'Część danych chwilowo niedostępna.'
+                : 'Kliknij adres, żeby go skopiować.'}
             </p>
             <AccessList
               items={[
