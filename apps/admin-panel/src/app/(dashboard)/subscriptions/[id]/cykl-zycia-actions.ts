@@ -28,6 +28,8 @@ export async function cyklZyciaAction(subscriptionId: string, co: OperacjaCyklu,
 
 export interface DodatkiUslugi {
   catalog: { slug: string; name: string; description: string; price: string; currency: string }[];
+  /** Dodatek czasowy klienta (priorytetowe wsparcie) — aktywny: drugie dodanie to przedłużenie. */
+  prioritySupport?: { active: boolean; until: string | null };
   purchased: { id: string; slug: string; name: string; amount: string; status: string; createdAt: string }[];
 }
 
@@ -41,15 +43,22 @@ export async function dodatkiUslugiAction(subscriptionId: string): Promise<{ ok:
 
 export async function dodajDodatekAction(
   subscriptionId: string,
-  body: { slug: string; platnosc: "PORTFEL" | "GRATIS"; powod: string; zgloszenie?: string; klucz: string },
+  body: { slug: string; platnosc: "PORTFEL" | "GRATIS"; powod: string; zgloszenie?: string; klucz: string; przedluz?: boolean },
 ): Promise<WynikCyklu> {
   try {
-    const r = await adminApi<{ name: string; duplikat?: boolean }>(`/admin/subscriptions/${encodeURIComponent(subscriptionId)}/dodatki`, {
+    const r = await adminApi<{ name: string; duplikat?: boolean; przedluzenie?: boolean; note?: string }>(`/admin/subscriptions/${encodeURIComponent(subscriptionId)}/dodatki`, {
       method: "POST",
-      body: { ...body, zgloszenie: body.zgloszenie?.trim() || undefined },
+      body: { ...body, zgloszenie: body.zgloszenie?.trim() || undefined, przedluz: body.przedluz || undefined },
     });
     revalidatePath(`/subscriptions/${subscriptionId}`);
-    return { ok: true, komunikat: r.duplikat ? `Dodatek „${r.name}” był już dodany.` : `Dodano dodatek „${r.name}”.` };
+    return {
+      ok: true,
+      komunikat: r.duplikat
+        ? `Dodatek „${r.name}” był już dodany.`
+        : r.przedluzenie
+          ? `Przedłużono dodatek „${r.name}”. ${r.note ?? ""}`.trim()
+          : `Dodano dodatek „${r.name}”.`,
+    };
   } catch (e) {
     return { ok: false, error: blad(e) };
   }

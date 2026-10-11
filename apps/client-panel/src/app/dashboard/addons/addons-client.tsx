@@ -11,7 +11,11 @@ const STATUS_LABEL: Record<string, string> = {
   APPLIED: 'Aktywny',
   QUEUED: 'W realizacji',
   DONE: 'Zrealizowany',
+  EXPIRED: 'Zakończony',
 };
+
+/** Weryfikacja 11.10 — dodatek czasowy, który jest aktywny: zamiast drugiego zakupu — przedłużenie. */
+const CZASOWE = new Set(['priority_support_30d']);
 
 export function AddonsClient({ overview }: { overview: AddonsOverview }) {
   const router = useRouter();
@@ -33,18 +37,18 @@ export function AddonsClient({ overview }: { overview: AddonsOverview }) {
    */
   const klucze = useRef<Record<string, string>>({});
 
-  const buy = (slug: string) => {
+  const buy = (slug: string, przedluz = false) => {
     setBusy(slug);
     klucze.current[slug] ??= `${slug}-${crypto.randomUUID()}`;
     startTransition(async () => {
-      const res = await purchaseAddonAction(slug, klucze.current[slug]);
+      const res = await purchaseAddonAction(slug, klucze.current[slug], przedluz);
       setBusy(null);
       if (!res.ok) {
         toast.error('Nie udało się kupić dodatku', { description: res.error });
         return;
       }
       delete klucze.current[slug];
-      toast.success('Dodatek kupiony', { description: res.note });
+      toast.success(przedluz ? 'Dodatek przedłużony' : 'Dodatek kupiony', { description: res.note });
       // Odśwież licznik salda w topbarze (layout nasłuchuje tego zdarzenia).
       window.dispatchEvent(new Event('wallet:refresh'));
       router.refresh();
@@ -61,22 +65,25 @@ export function AddonsClient({ overview }: { overview: AddonsOverview }) {
       ) : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {overview.catalog.map((a) => (
+        {overview.catalog.map((a) => {
+          const przedluz = CZASOWE.has(a.slug) && overview.prioritySupport.active;
+          return (
           <div key={a.slug} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 flex flex-col">
             <h3 className="text-lg font-bold text-white">{a.name}</h3>
             <p className="mt-1 flex-1 text-sm text-neutral-400">{a.description}</p>
             <p className="mt-4 text-2xl font-bold text-white">{formatCredits(a.price)}</p>
             <button
               type="button"
-              onClick={() => buy(a.slug)}
+              onClick={() => buy(a.slug, przedluz)}
               disabled={pending}
               className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-bold text-black hover:bg-neutral-200 disabled:opacity-50"
             >
               {busy === a.slug ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              Kup z portfela
+              {przedluz ? 'Przedłuż o 30 dni z portfela' : 'Kup z portfela'}
             </button>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {overview.purchased.length > 0 ? (
@@ -87,8 +94,8 @@ export function AddonsClient({ overview }: { overview: AddonsOverview }) {
               <span className="text-white">{p.name}</span>
               <span className="flex items-center gap-3">
                 <span className="text-neutral-400">{formatCredits(p.amount)}</span>
-                <span className={`text-xs ${p.status === 'QUEUED' ? 'text-amber-300' : 'text-emerald-300'} inline-flex items-center gap-1`}>
-                  {p.status !== 'QUEUED' ? <Check className="h-3 w-3" /> : null}
+                <span className={`text-xs ${p.status === 'QUEUED' ? 'text-amber-300' : p.status === 'EXPIRED' ? 'text-neutral-400' : 'text-emerald-300'} inline-flex items-center gap-1`}>
+                  {p.status !== 'QUEUED' && p.status !== 'EXPIRED' ? <Check className="h-3 w-3" /> : null}
                   {STATUS_LABEL[p.status] ?? p.status}
                 </span>
               </span>

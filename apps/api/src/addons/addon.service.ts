@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
@@ -42,6 +42,38 @@ const CATALOG: Record<string, AddonDef> = {
 };
 
 const PRIORITY_DAYS = 30;
+const DZIEN_MS = 24 * 60 * 60 * 1000;
+const dzienPl = (d: Date) => d.toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' });
+
+export function nazwaDodatku(slug: string): string {
+  return CATALOG[slug]?.name ?? slug;
+}
+
+/** Koniec trwającego okresu dodatku czasowego klienta albo `null` (dodatek nieczasowy albo nieaktywny). */
+export async function aktywnyDodatekCzasowy(
+  prisma: { user: { findUnique(args: { where: { id: string }; select: { prioritySupport: true; prioritySupportUntil: true } }): Promise<unknown> } },
+  userId: string,
+  slug: string,
+): Promise<Date | null> {
+  if (CATALOG[slug]?.mode !== 'flag' || slug !== 'priority_support_30d') return null;
+  const u = (await prisma.user.findUnique({ where: { id: userId }, select: { prioritySupport: true, prioritySupportUntil: true } })) as
+    | { prioritySupport: boolean; prioritySupportUntil: Date | null }
+    | null;
+  return u?.prioritySupport && u.prioritySupportUntil && u.prioritySupportUntil.getTime() > Date.now() ? u.prioritySupportUntil : null;
+}
+
+/**
+ * Weryfikacja 11.10 — dodatek czasowy (priorytetowe wsparcie) dodany drugi raz, gdy ten sam jest aktywny. Dokupienie
+ * zawsze przedłużało okres (od końca obecnego, nie od dziś), ale ani klient, ani obsługa nie wiedzieli, że to
+ * przedłużenie: d3 miało dwa „Priorytetowe wsparcie (30 dni)” obok siebie, a drugie kliknięcie operatora (także
+ * z portfela klienta) przedłużało bez pytania. Teraz: aktywny dodatek bez jawnego `przedluz` → 409 z datą końca
+ * i datą po przedłużeniu; z `przedluz` — przedłużenie tym samym mechanizmem, zapisane jako przedłużenie.
+ * Dodatki-zlecenia (konfiguracja, dedykowane IP) nie mają okresu — drugi zakup jest świadomą decyzją (Z-06).
+ */
+export function odmowaAktywnegoDodatku(nazwa: string, aktywnyDo: Date): string {
+  const po = new Date(aktywnyDo.getTime() + PRIORITY_DAYS * DZIEN_MS);
+  return `„${nazwa}” jest już aktywne do ${dzienPl(aktywnyDo)} — drugi raz go nie dodasz. Możesz je przedłużyć o ${PRIORITY_DAYS} dni (do ${dzienPl(po)}): wybierz „Przedłuż”.`;
+}
 
 /** F3.5 — dodatki z katalogu (walidacja wniosku i formularza operatora). */
 export const SLUGI_DODATKOW = Object.keys(CATALOG);
@@ -122,7 +154,8 @@ export class AddonService {
         slug: p.slug,
         name: p.name,
         amount: p.amount.toString(),
-        status: p.status,
+        // Weryfikacja 11.10 — dodatek czasowy po końcu okresu nie jest „Aktywny” (rekord zostaje APPLIED na zawsze).
+        status: p.status === 'APPLIED' && CATALOG[p.slug]?.mode === 'flag' && !priorityActive ? 'EXPIRED' : p.status,
         createdAt: p.createdAt.toISOString(),
       })),
     };
@@ -181,6 +214,7 @@ export class AddonService {
     slug: string,
     subscriptionId?: string,
     klientKey?: string,
+    przedluz = false,
   ) {
     const def = CATALOG[slug];
     if (!def) throw new BadRequestException('Nieznany dodatek.');
@@ -198,7 +232,7 @@ export class AddonService {
     }
 
     const klucz = this.kluczIdempotencji(userId, slug, subscriptionId, klientKey, Date.now());
-    return this.zrealizuj({ userId, def, subscriptionId, domenaUslugi, klucz });
+    return this.zrealizuj({ userId, def, subscriptionId, domenaUslugi, klucz, przedluz });
   }
 
   /**
@@ -217,6 +251,8 @@ export class AddonService {
     zgloszenie?: string | null;
     /** Klucz jednej decyzji: id wniosku albo klucz z formularza; bez niego — okno 5 min jak u klienta. */
     klucz?: string | null;
+    /** Weryfikacja 11.10 — jawna zgoda na przedłużenie aktywnego dodatku czasowego. */
+    przedluz?: boolean;
   }) {
     const def = CATALOG[i.slug];
     if (!def) throw new BadRequestException('Nieznany dodatek.');
@@ -258,11 +294,23 @@ export class AddonService {
       domenaUslugi: sub.account?.domain ?? null,
       klucz,
       operator: { userId: i.operator.userId, gratis, zgloszenieId },
+      przedluz: !!i.przedluz,
     });
     if (!('duplikat' in wynik)) {
       // Weryfikacja 11.10 (D3) — wpis na osi „Co się działo” karty usługi klienta, bez powodu i bez operatora.
       await this.prisma.subscriptionEvent.create({
-        data: { subscriptionId: sub.id, type: 'ADDON_ADDED', details: { source: 'OPERATOR', slug: def.slug, name: def.name, gratis } },
+        data: {
+          subscriptionId: sub.id,
+          type: 'ADDON_ADDED',
+          details: {
+            source: 'OPERATOR',
+            slug: def.slug,
+            name: def.name,
+            gratis,
+            ...(wynik.aktywnyDo ? { aktywnyDo: wynik.aktywnyDo } : {}),
+            ...(wynik.przedluzenie ? { przedluzenie: true } : {}),
+          },
+        },
       });
       await this.audit.record({
         action: SupportActions.OPERATOR_ACCOUNT_CHANGED,
@@ -270,7 +318,7 @@ export class AddonService {
         actorUserId: i.operator.userId,
         details: {
           subscriptionId: sub.id,
-          akcja: 'dodatek',
+          akcja: wynik.przedluzenie ? 'dodatek-przedluzenie' : 'dodatek',
           slug: def.slug,
           platnosc: i.platnosc,
           powod,
@@ -289,6 +337,7 @@ export class AddonService {
     domenaUslugi: string | null;
     klucz: string;
     operator?: ZakupOperatora;
+    przedluz?: boolean;
   }) {
     const { userId, def, subscriptionId, domenaUslugi, klucz } = z;
     const slug = def.slug;
@@ -310,6 +359,15 @@ export class AddonService {
       return this.odpowiedzZRekordu(istniejacy);
     }
 
+    // Weryfikacja 11.10 — aktywny dodatek czasowy: tylko jawne przedłużenie. Po zajęciu klucza (powtórzone żądanie
+    // tej samej decyzji wyżej dostaje „duplikat”, nie 409), przed pieniędzmi; odmowa zwalnia klucz.
+    const trwaDo = await aktywnyDodatekCzasowy(this.prisma, userId, slug);
+    if (trwaDo && !z.przedluz) {
+      await this.prisma.purchasedAddon.delete({ where: { id: rekord.id } });
+      throw new ConflictException(odmowaAktywnegoDodatku(def.name, trwaDo));
+    }
+    const przedluzenie = !!trwaDo;
+
     // Klucz w księdze = klucz zakupu + ta próba. Nieudana próba zwalnia klucz zakupu (rekord znika),
     // więc ponowienie tym samym kluczem z panelu płaci od nowa, zamiast trafić w zwrócone obciążenie.
     const kluczKsiegi = `${klucz}:${rekord.id}`;
@@ -330,16 +388,17 @@ export class AddonService {
 
     let status = 'APPLIED';
     let ticketId: string | null = null;
+    let aktywnyDo: Date | null = null;
     try {
       if (def.mode === 'flag' && slug === 'priority_support_30d') {
         // Dokupienie w trakcie aktywnego okresu przedłuża go — wcześniej liczyło 30 dni od dziś,
         // a klient tracił opłacone, niewykorzystane dni.
         const obecny = await this.prisma.user.findUnique({ where: { id: userId }, select: { prioritySupportUntil: true } });
         const od = Math.max(Date.now(), obecny?.prioritySupportUntil?.getTime() ?? 0);
-        const until = new Date(od + PRIORITY_DAYS * 24 * 60 * 60 * 1000);
+        aktywnyDo = new Date(od + PRIORITY_DAYS * DZIEN_MS);
         await this.prisma.user.update({
           where: { id: userId },
-          data: { prioritySupport: true, prioritySupportUntil: until },
+          data: { prioritySupport: true, prioritySupportUntil: aktywnyDo },
         });
       } else if (def.mode === 'workorder') {
         const ticket = await this.tickets.create(userId, {
@@ -371,7 +430,11 @@ export class AddonService {
       throw e;
     }
 
-    const record = await this.prisma.purchasedAddon.update({ where: { id: rekord.id }, data: { status, ticketId } });
+    // Historia dodatków klienta i obsługi: przedłużenie widać jako przedłużenie, nie drugi taki sam dodatek.
+    const record = await this.prisma.purchasedAddon.update({
+      where: { id: rekord.id },
+      data: { status, ticketId, ...(przedluzenie ? { name: `${def.name} — przedłużenie` } : {}) },
+    });
 
     // Klient widzi wpis w „Aktywności konta” (nazwa dodatku); dodany przez obsługę — „obsługa Verris (zgłoszenie #…)”.
     await this.audit.record({
@@ -384,6 +447,7 @@ export class AddonService {
         amount: gratis ? 0 : def.price,
         status,
         ticketId,
+        ...(przedluzenie ? { przedluzenie: true } : {}),
         ...(subscriptionId ? { subscriptionId } : {}),
         ...(z.operator ? { gratis, ...(z.operator.zgloszenieId ? { zgloszenieId: z.operator.zgloszenieId } : {}) } : {}),
       },
@@ -395,10 +459,14 @@ export class AddonService {
       name: def.name,
       status,
       ticketId,
+      przedluzenie,
+      aktywnyDo: aktywnyDo?.toISOString() ?? null,
       note:
         def.mode === 'workorder'
           ? 'Utworzyliśmy zlecenie dla naszego zespołu — odezwiemy się przez zgłoszenie.'
-          : 'Dodatek aktywny od teraz.',
+          : przedluzenie && aktywnyDo
+            ? `Przedłużone do ${dzienPl(aktywnyDo)}.`
+            : 'Dodatek aktywny od teraz.',
     };
   }
 }

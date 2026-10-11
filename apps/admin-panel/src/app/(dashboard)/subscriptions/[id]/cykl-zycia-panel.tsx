@@ -241,16 +241,22 @@ function DodatkiUslugiSekcja({ u, dostep, powod, zgloszenie }: { u: UslugaCyklu;
 
   if (brakOdczytu) return null;
   const wybrany = dane?.catalog.find((c) => c.slug === slug) ?? null;
+  // Weryfikacja 11.10 — aktywny dodatek czasowy: API odmawia drugiego dodania; przedłużenie tylko świadomie.
+  const przedluz = slug === "priority_support_30d" && !!dane?.prioritySupport?.active;
+  const aktywnyDo = przedluz && dane?.prioritySupport?.until ? new Date(dane.prioritySupport.until).toLocaleDateString("pl-PL") : null;
   const powodOk = powod.trim().length >= MIN_POWOD;
   const zgloszenieOk = platnosc === "GRATIS" || zgloszenie.trim().length > 0;
 
   const dodaj = async () => {
     if (!wybrany) return;
     const kwota = platnosc === "GRATIS" ? "gratis (koszt Verris)" : `za ${wybrany.price} zł z portfela klienta`;
-    if (!(await potwierdz(`Dodać „${wybrany.name}” ${kwota}? Klient zobaczy wpis „obsługa Verris” w aktywności konta.`, { akcja: "Dodaj" }))) return;
+    const pytanie = przedluz
+      ? `Klient ma aktywne „${wybrany.name}”${aktywnyDo ? ` do ${aktywnyDo}` : ""}. Przedłużyć o 30 dni ${kwota}? Klient zobaczy wpis „obsługa Verris” na karcie usługi.`
+      : `Dodać „${wybrany.name}” ${kwota}? Klient zobaczy wpis „obsługa Verris” w aktywności konta.`;
+    if (!(await potwierdz(pytanie, { akcja: przedluz ? "Przedłuż" : "Dodaj" }))) return;
     start(async () => {
       setMsg(null);
-      const r = await dodajDodatekAction(u.id, { slug, platnosc, powod, zgloszenie, klucz }).catch(() => ({ ok: false as const, error: "Nie udało się połączyć z panelem." }));
+      const r = await dodajDodatekAction(u.id, { slug, platnosc, powod, zgloszenie, klucz, przedluz }).catch(() => ({ ok: false as const, error: "Nie udało się połączyć z panelem." }));
       if (!r.ok) return setMsg({ ok: false, tekst: r.error });
       setMsg({ ok: true, tekst: r.komunikat });
       setKlucz(`d-${Math.random().toString(36).slice(2, 12)}`);
@@ -298,7 +304,7 @@ function DodatkiUslugiSekcja({ u, dostep, powod, zgloszenie }: { u: UslugaCyklu;
               userId={u.userId}
               subscriptionId={u.id}
               gotowe={!!wybrany && zgloszenieOk}
-              payload={{ subscriptionId: u.id, slug, platnosc, ...(zgloszenie.trim() ? { zgloszenie: zgloszenie.trim() } : {}) }}
+              payload={{ subscriptionId: u.id, slug, platnosc, ...(zgloszenie.trim() ? { zgloszenie: zgloszenie.trim() } : {}), ...(przedluz ? { przedluz: true } : {}) }}
               podpowiedz={`${brakDodania}. Dodatek ma koszt — wniosek akceptuje kierownik zmiany.`}
             />
           ) : (
@@ -310,11 +316,14 @@ function DodatkiUslugiSekcja({ u, dostep, powod, zgloszenie }: { u: UslugaCyklu;
               title={!wybrany ? "Wybierz dodatek" : !powodOk ? "Najpierw wpisz powód" : !zgloszenieOk ? "Z portfela klienta tylko z numerem jego zgłoszenia" : undefined}
               onClick={() => void dodaj()}
             >
-              Dodaj dodatek
+              {przedluz ? "Przedłuż o 30 dni" : "Dodaj dodatek"}
             </button>
           )}
         </div>
       )}
+      {przedluz ? (
+        <p className="text-xs text-amber-200">Klient ma ten dodatek aktywny{aktywnyDo ? ` do ${aktywnyDo}` : ""} — drugi raz go nie dodasz, możesz go przedłużyć o 30 dni.</p>
+      ) : null}
       {platnosc === "PORTFEL" && !zgloszenieOk ? <p className="text-xs text-amber-200">Z portfela klienta tylko na jego zamówienie — wpisz numer zgłoszenia.</p> : null}
       {msg ? (
         <p role="status" className={`text-sm ${msg.ok ? "text-emerald-300" : "text-rose-300"}`}>

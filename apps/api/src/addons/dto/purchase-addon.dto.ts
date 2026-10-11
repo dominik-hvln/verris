@@ -1,4 +1,4 @@
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 /**
  * Z-06 — zakup dodatku.
@@ -45,4 +45,12 @@ export class PurchaseAddonDto {
     message: 'Nieprawidłowy klucz idempotencji.',
   })
   idempotencyKey?: string;
+
+  /**
+   * Weryfikacja 11.10 — jawna zgoda na przedłużenie aktywnego dodatku czasowego (priorytetowe wsparcie).
+   * Bez niej drugi zakup aktywnego dodatku kończy się 409 z datą końca obecnego okresu.
+   */
+  @IsOptional()
+  @IsBoolean()
+  przedluz?: boolean;
 }

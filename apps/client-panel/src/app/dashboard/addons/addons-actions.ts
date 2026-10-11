@@ -48,11 +48,13 @@ export async function fetchAddons(): Promise<AddonsOverview | null> {
 export async function purchaseAddonAction(
   slug: string,
   idempotencyKey?: string,
+  /** Weryfikacja 11.10 — świadome przedłużenie aktywnego dodatku czasowego (bez niego API odmawia, 409). */
+  przedluz = false,
 ): Promise<{ ok: true; note: string } | { ok: false; error: string }> {
   try {
     const r = await apiFetch<{ note: string }>('/addons/purchase', {
       method: 'POST',
-      body: JSON.stringify(idempotencyKey ? { slug, idempotencyKey } : { slug }),
+      body: JSON.stringify({ slug, ...(idempotencyKey ? { idempotencyKey } : {}), ...(przedluz ? { przedluz: true } : {}) }),
     });
     revalidatePath('/dashboard/addons');
     revalidatePath('/dashboard/billing');

@@ -3,7 +3,7 @@ import { Type } from 'class-transformer';
 import { IsBoolean, IsEmail, IsIn, IsISO8601, IsNumber, IsOptional, IsPositive, IsString, IsUUID, Max, MaxLength, MinLength } from 'class-validator';
 import type { StaffPermission } from '../staff-roles/staff-permissions.catalog.js';
 import { POWODY_ZAWIESZENIA_OPERATORA, type PowodZawieszeniaOperatora } from '../subscriptions/powody-zawieszenia.js';
-import { PLATNOSCI_DODATKU, SLUGI_DODATKOW, type PlatnoscDodatku } from '../addons/addon.service.js';
+import { PLATNOSCI_DODATKU, SLUGI_DODATKOW, aktywnyDodatekCzasowy, nazwaDodatku, odmowaAktywnegoDodatku, type PlatnoscDodatku } from '../addons/addon.service.js';
 import { USLUGI_WEZLA, uslugaWezla } from '@verris/contracts';
 import { wymagajProsbyKlienta } from '../tickets/zgloszenie-klienta.js';
 
@@ -139,6 +139,11 @@ export class DodatekPayload {
   @IsString()
   @MaxLength(64)
   zgloszenie?: string;
+
+  /** Weryfikacja 11.10 — przedłużenie aktywnego dodatku czasowego (bez zgody — odmowa, addon.service.ts). */
+  @IsOptional()
+  @IsBoolean()
+  przedluz?: boolean;
 }
 
 /** F3.7 — scalenie: zgłoszenie `zrodloId` wchodzi do `celId` (oba tego samego klienta). */
@@ -199,6 +204,7 @@ export interface ZaleznosciWnioskow {
       powod: string;
       zgloszenie?: string | null;
       klucz?: string | null;
+      przedluz?: boolean;
     }): Promise<{ name: string; status: string; duplikat?: true }>;
   };
   /** F3.4 — UslugiWezlaService (servers/uslugi-wezla.admin.controller.ts). */
@@ -546,7 +552,7 @@ export const REJESTR_WNIOSKOW = {
     doZlozenia: 'SUBSCRIPTIONS_MANAGE',
     dto: DodatekPayload,
     wymagaKlienta: true,
-    opis: (p) => `Dodatek ${p.slug} — ${p.platnosc === 'GRATIS' ? 'gratis (koszt Verris)' : 'z portfela klienta'}${zgl(p.zgloszenie)}`,
+    opis: (p) => `Dodatek ${p.slug}${p.przedluz ? ' (przedłużenie)' : ''} — ${p.platnosc === 'GRATIS' ? 'gratis (koszt Verris)' : 'z portfela klienta'}${zgl(p.zgloszenie)}`,
     async sprawdzPrzyZlozeniu(p, klientId, z) {
       const s = await uslugaKlienta(p.subscriptionId, klientId, z);
       if (ZAKONCZONE.includes(s.status)) throw new BadRequestException('Usługa jest zakończona — dodatku nie dodasz.');
@@ -556,6 +562,9 @@ export const REJESTR_WNIOSKOW = {
       }
       // Audyt Fali 3 — ta sama reguła co przy wykonaniu (addon.service.ts): wiadomość klienta z panelu.
       if (p.platnosc === 'PORTFEL') await wymagajProsbyKlienta(z.prisma, zgloszenieId!, 'Obciążenie portfela klienta');
+      // Weryfikacja 11.10 — aktywny dodatek czasowy bez zgody na przedłużenie nie przejdzie przy wykonaniu; mówimy to od razu.
+      const aktywnyDo = p.przedluz ? null : await aktywnyDodatekCzasowy(z.prisma, klientId!, p.slug);
+      if (aktywnyDo) throw new ConflictException(odmowaAktywnegoDodatku(nazwaDodatku(p.slug), aktywnyDo));
     },
     async wykonaj(p, k, z) {
       // Klucz z id wniosku — ten sam wniosek drugi raz nie doda dodatku (obok blokady statusu).
@@ -567,6 +576,7 @@ export const REJESTR_WNIOSKOW = {
         powod: powodZWniosku(k),
         zgloszenie: p.zgloszenie,
         klucz: `wniosek:${k.wniosekId}`,
+        ...(p.przedluz ? { przedluz: true } : {}),
       });
       return { komunikat: r.duplikat ? `Dodatek „${r.name}” był już dodany.` : `Dodano dodatek „${r.name}”.`, ...(r.duplikat ? { bezZmian: true } : {}) };
     },

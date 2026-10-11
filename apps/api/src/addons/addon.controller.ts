@@ -24,6 +24,7 @@ export class AddonController {
       body.slug,
       body.subscriptionId,
       body.idempotencyKey,
+      body.przedluz === true,
     );
   }
 }

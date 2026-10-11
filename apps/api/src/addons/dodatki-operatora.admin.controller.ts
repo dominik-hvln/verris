@@ -1,5 +1,5 @@
 import { Body, Controller, ForbiddenException, Get, HttpCode, NotFoundException, Param, Post, UseGuards } from '@nestjs/common';
-import { IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -18,6 +18,8 @@ export class DodatekOperatoraDto extends PowodOperatoraDto {
   @IsIn(PLATNOSCI_DODATKU) platnosc!: PlatnoscDodatku;
   /** Klucz jednej decyzji z formularza (podwójny klik nie doda dwóch dodatków). */
   @IsOptional() @IsString() @MinLength(8) @MaxLength(128) @Matches(/^[A-Za-z0-9._:-]+$/) klucz?: string;
+  /** Weryfikacja 11.10 — jawna zgoda na przedłużenie aktywnego dodatku czasowego (bez niej — 409). */
+  @IsOptional() @IsBoolean() przedluz?: boolean;
 }
 
 /**
@@ -61,6 +63,7 @@ export class DodatkiOperatoraAdminController {
       powod: b.powod,
       zgloszenie: b.zgloszenie,
       klucz: b.klucz ? `panel:${b.klucz}` : null,
+      przedluz: b.przedluz === true,
     });
   }
 }

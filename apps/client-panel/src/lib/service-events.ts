@@ -31,6 +31,13 @@ export function serviceEventLabel(type: string, details?: unknown): string {
     }
   }
   if (type === 'ADDON_ADDED' && typeof d.name === 'string' && d.name) {
+    if (d.przedluzenie === true) {
+      const doKiedy = typeof d.aktywnyDo === 'string' ? new Date(d.aktywnyDo) : null;
+      const data = doKiedy && !Number.isNaN(doKiedy.getTime())
+        ? ` do ${doKiedy.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Warsaw' })}`
+        : '';
+      return `Obsługa Verris przedłużyła dodatek „${d.name}”${data}${d.gratis === true ? ' (bez opłaty)' : ''}`;
+    }
     return `Obsługa Verris dodała dodatek „${d.name}”${d.gratis === true ? ' (bez opłaty)' : ''}`;
   }
   return EVENT_LABEL[type] ?? 'Zmiana w usłudze';

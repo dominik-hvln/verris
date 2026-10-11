@@ -100,7 +100,7 @@ describe('PB-48 — rejestr wniosków', () => {
   const zal = (
     o: { isInternal?: boolean; status?: string; email?: string; zajety?: boolean; mail?: boolean; usluga?: { userId: string; status: string; currentPeriodEnd?: Date | null } | null; zgloszenie?: boolean;
       zgloszenia?: Record<string, { userId: string; scalonoDoId: string | null; status?: string } | null>; emailZmienionyPrzezObsluge?: boolean;
-      zgloszenieObslugi?: boolean } = {},
+      zgloszenieObslugi?: boolean; priorytetDo?: Date } = {},
   ) => {
     const wywolania: unknown[][] = [];
     const z: ZaleznosciWnioskow = {
@@ -111,7 +111,11 @@ describe('PB-48 — rejestr wniosków', () => {
               ? o.zajety
                 ? { id: 'inny' }
                 : null
-              : { isInternal: o.isInternal ?? false, email: o.email ?? 'anna@test.pl' },
+              : {
+                  isInternal: o.isInternal ?? false,
+                  email: o.email ?? 'anna@test.pl',
+                  ...(o.priorytetDo ? { prioritySupport: true, prioritySupportUntil: o.priorytetDo } : {}),
+                },
         },
         invoice: { findUnique: async () => ({ id: 'f1', userId: 'k1', number: 'VDR/1', status: o.status ?? 'OPEN' }) },
         subscription: { findUnique: async () => (o.usluga === undefined ? { userId: 'k1', status: 'ACTIVE' } : o.usluga) },
@@ -302,6 +306,19 @@ describe('PB-48 — rejestr wniosków', () => {
     const krotkie = zal();
     await d.wykonaj({ ...portfel, platnosc: 'GRATIS' }, { ...k, uzasadnienie: 'gratis' }, krotkie.z);
     expect((krotkie.wywolania[0]![1] as { powod: string }).powod).toBe('gratis (wniosek w1)');
+  });
+
+  it('weryfikacja 11.10: wniosek o drugi aktywny priorytet — odmowa przy złożeniu; przedłużenie świadome aż do wykonania', async () => {
+    const d = REJESTR_WNIOSKOW.ADDON_ADD;
+    const prio = { subscriptionId: 's1', slug: 'priority_support_30d', platnosc: 'GRATIS' as const };
+    const aktywny = zal({ priorytetDo: new Date(Date.now() + 10 * 86_400_000) }).z;
+    await expect(d.sprawdzPrzyZlozeniu!(prio, 'k1', aktywny)).rejects.toThrow(/jest już aktywne do .*przedłużyć o 30 dni/);
+    await expect(d.sprawdzPrzyZlozeniu!({ ...prio, przedluz: true }, 'k1', aktywny)).resolves.toBeUndefined();
+    await expect(d.sprawdzPrzyZlozeniu!(prio, 'k1', zal({ priorytetDo: new Date(Date.now() - 1000) }).z)).resolves.toBeUndefined();
+    expect(d.opis({ ...prio, przedluz: true })).toBe('Dodatek priority_support_30d (przedłużenie) — gratis (koszt Verris)');
+    const { z, wywolania } = zal();
+    await d.wykonaj({ ...prio, przedluz: true }, { ...k, uzasadnienie: 'rekompensata za awarię' }, z);
+    expect(wywolania[0]![1]).toMatchObject({ slug: 'priority_support_30d', przedluz: true });
   });
 
   it('F3.7 scalenie zgłoszeń: wykonuje L3 (TICKETS_MERGE + TICKETS_MANAGE), składa L1; oba zgłoszenia klienta, niescalone', async () => {

@@ -52,15 +52,37 @@ describe('X-04 dodatki z portfela', () => {
     expect((await zakupy(u.id)).map((z) => z.status)).toEqual(['APPLIED']);
   });
 
-  it('dokupienie priorytetu w trakcie przedłuża okres, zamiast liczyć od dziś', async () => {
+  it('dokupienie priorytetu w trakcie: bez zgody 409 (nic nie pobrane), z „Przedłuż” — od końca okresu, nie od dziś', async () => {
     const u = await klient(200);
     const koniec = new Date(Date.now() + 20 * DZIEN);
     await prisma().user.update({ where: { id: u.id }, data: { prioritySupport: true, prioritySupportUntil: koniec } });
 
-    await sklep().purchase(u.id, 'priority_support_30d', undefined, 'k2');
+    // Weryfikacja 11.10 — wcześniej drugi zakup aktywnego dodatku przechodził po cichu (d3: dwa takie same wpisy).
+    await expect(sklep().purchase(u.id, 'priority_support_30d', undefined, 'k2')).rejects.toMatchObject({
+      status: 409,
+      message: expect.stringMatching(/jest już aktywne do .* przedłużyć o 30 dni/),
+    });
+    expect(await saldo(u.id)).toBe(200);
+    expect(await zakupy(u.id)).toEqual([]);
 
+    // Ten sam klucz po odmowie jest wolny — świadome przedłużenie płaci raz i liczy od końca okresu.
+    const r = await sklep().purchase(u.id, 'priority_support_30d', undefined, 'k2', true);
+    expect(r).toMatchObject({ przedluzenie: true, note: expect.stringMatching(/^Przedłużone do /) });
     const x = await prisma().user.findUniqueOrThrow({ where: { id: u.id } });
     expect(x.prioritySupportUntil!.getTime()).toBe(koniec.getTime() + 30 * DZIEN);
+    expect(await saldo(u.id)).toBe(151);
+    expect((await zakupy(u.id)).map((z) => z.name)).toEqual(['Priorytetowe wsparcie (30 dni) — przedłużenie']);
+    // Powtórzenie tej samej decyzji (podwójny klik) — duplikat, nie odmowa i nie drugie obciążenie.
+    expect(await sklep().purchase(u.id, 'priority_support_30d', undefined, 'k2', true)).toMatchObject({ duplikat: true });
+    expect(await saldo(u.id)).toBe(151);
+  });
+
+  it('weryfikacja 11.10: historia — priorytet po końcu okresu „zakończony”, nie „aktywny”', async () => {
+    const u = await klient(100);
+    await sklep().purchase(u.id, 'priority_support_30d', undefined, 'h1');
+    expect((await sklep().overview(u.id)).purchased.map((p) => p.status)).toEqual(['APPLIED']);
+    await prisma().user.update({ where: { id: u.id }, data: { prioritySupportUntil: new Date(Date.now() - DZIEN) } });
+    expect((await sklep().overview(u.id)).purchased.map((p) => p.status)).toEqual(['EXPIRED']);
   });
 
   it('podwójne kliknięcie zlecenia: jedno obciążenie, jedno zgłoszenie, jeden zakup', async () => {
@@ -154,6 +176,31 @@ describe('F3.5 — dodatki dodawane przez obsługę', () => {
     expect(zdarzenia.map((e) => [e.type, e.details])).toEqual([
       ['ADDON_ADDED', { source: 'OPERATOR', slug: 'manual_setup', name: 'Konfiguracja przez specjalistę', gratis: true }],
     ]);
+  });
+
+  it('weryfikacja 11.10 (d3): obsługa nie doda drugi raz aktywnego priorytetu; przedłużenie świadome, widoczne dla klienta', async () => {
+    const k = await klient(0);
+    const u = await usluga(k.id);
+    const o = await op('ADMIN');
+    await sklep().dodajPrzezOperatora({ subscriptionId: u.id, slug: 'priority_support_30d', platnosc: 'GRATIS', operator: o, powod: POWOD, klucz: 'panel:p1aaaaaa' });
+    const do1 = (await prisma().user.findUniqueOrThrow({ where: { id: k.id } })).prioritySupportUntil!;
+
+    await expect(
+      sklep().dodajPrzezOperatora({ subscriptionId: u.id, slug: 'priority_support_30d', platnosc: 'GRATIS', operator: o, powod: POWOD, klucz: 'panel:p2bbbbbb' }),
+    ).rejects.toMatchObject({ status: 409 });
+    expect((await zakupy(k.id)).length).toBe(1);
+    expect((await prisma().user.findUniqueOrThrow({ where: { id: k.id } })).prioritySupportUntil!.getTime()).toBe(do1.getTime());
+
+    const r = await sklep().dodajPrzezOperatora({ subscriptionId: u.id, slug: 'priority_support_30d', platnosc: 'GRATIS', operator: o, powod: POWOD, klucz: 'panel:p2bbbbbb', przedluz: true });
+    expect(r).toMatchObject({ przedluzenie: true });
+    const do2 = (await prisma().user.findUniqueOrThrow({ where: { id: k.id } })).prioritySupportUntil!;
+    expect(do2.getTime()).toBe(do1.getTime() + 30 * DZIEN);
+    expect((await zakupy(k.id)).map((z) => z.name).sort()).toEqual(['Priorytetowe wsparcie (30 dni)', 'Priorytetowe wsparcie (30 dni) — przedłużenie']);
+    const zdarzenia = await prisma().subscriptionEvent.findMany({ where: { subscriptionId: u.id }, orderBy: { createdAt: 'asc' } });
+    expect(zdarzenia.map((e) => (e.details as Record<string, unknown>).przedluzenie ?? false)).toEqual([false, true]);
+    expect((zdarzenia[1]!.details as Record<string, unknown>).aktywnyDo).toBe(do2.toISOString());
+    const zespol = await prisma().auditLog.findMany({ where: { action: 'OPERATOR_ACCOUNT_CHANGED', userId: k.id }, orderBy: { createdAt: 'asc' } });
+    expect(zespol.map((w) => (w.details as Record<string, unknown>).akcja)).toEqual(['dodatek', 'dodatek-przedluzenie']);
   });
 
   it('z portfela klienta: tylko z numerem jego zgłoszenia; obciążenie jak przy zakupie klienta; brak środków — nic', async () => {

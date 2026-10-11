@@ -155,6 +155,25 @@ it("L4: dodatek z portfela klienta tylko ze zgłoszeniem; gratis — od razu", a
   expect(k.textContent).toContain("Dodano.");
 });
 
+it("weryfikacja 11.10: aktywny priorytet — „Przedłuż o 30 dni” z jawnym przedłużeniem, nie drugi taki sam dodatek", async () => {
+  dodatki.mockResolvedValue({
+    ok: true,
+    wynik: {
+      catalog: [{ slug: "priority_support_30d", name: "Priorytetowe wsparcie (30 dni)", description: "", price: "49.00", currency: "PLN" }],
+      prioritySupport: { active: true, until: "2026-11-10T10:00:00.000Z" },
+      purchased: [],
+    },
+  });
+  await render(AKTYWNA, L4);
+  await wpisz(k.querySelector('[data-pole="powod"]')!, POWOD);
+  await wpisz(k.querySelector('input[aria-label="Dodatek"]')!, "priority_support_30d");
+  expect(przycisk("dodaj-dodatek").textContent).toBe("Przedłuż o 30 dni");
+  expect(k.textContent).toContain("drugi raz go nie dodasz");
+  await klik(przycisk("dodaj-dodatek"));
+  expect(String(potwierdz.mock.calls[0]![0])).toMatch(/Przedłużyć o 30 dni/);
+  expect(dodaj).toHaveBeenCalledWith("s1", expect.objectContaining({ slug: "priority_support_30d", przedluz: true }));
+});
+
 it("L1 (bez uprawnień do usług): tylko informacja, bez przycisków", async () => {
   await render(AKTYWNA, { isAdmin: false, permissions: ["CUSTOMERS_VIEW"] });
   expect(k.querySelector("[data-akcja]")).toBeNull();
