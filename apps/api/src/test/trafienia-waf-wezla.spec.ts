@@ -136,6 +136,38 @@ describe('F3.2 — node-waf-hits.sh (dziennik audytu ModSecurity)', () => {
     expect(trafieniaZLogu(poAgencie)[0].czas).toBe('2026-10-10T12:59:00Z');
   });
 
+  it('JSON ModSecurity v3 (LiteSpeed na t1, 11.10): wpisy w „transaction”, host z nagłówka małymi literami, czas lokalny serwera', () => {
+    // Kształt jak w /var/log/httpd/modsec_audit.log na t1 (adresy zamienione na dokumentacyjne, nagłówki skrócone).
+    const v3 = (o: { czas: string; ip: string; uri: string; host: string; kod: number; reguly: [number, string][] }) =>
+      JSON.stringify({
+        transaction: {
+          unique_id: 'xzrHip5ZyguDusxotZdbY7hc', time_stamp: o.czas, client_ip: o.ip, client_port: 38452,
+          host_ip: '192.0.2.1:443', host_port: 443,
+          request: { method: 'GET', http_version: 'HTTP/1.1', uri: o.uri, headers: { host: o.host, cookie: 'wordpress_logged_in_x=SEKRET', 'user-agent': 'Mozilla/5.0' } },
+          response: { http_code: o.kod },
+          messages: o.reguly.map(([id, msg]) => ({ message: msg, details: { match: 'x', ruleId: id, file: '/etc/modsecurity.d/REQUEST-930.conf', msg, severity: 'CRITICAL' } })),
+        },
+      }) + '\n';
+    const log =
+      v3({ czas: 'Sun Oct 11 14:20:00 2026', ip: '203.0.113.44', uri: '/Dockerfile', host: 'o05.klient.pl', kod: 406, reguly: [[930130, 'Restricted File Access Attempt']] }) +
+      v3({ czas: 'Sun Oct 11 14:37:16 2026', ip: '2001:db8::18', uri: '/', host: '[2001:db8::1]', kod: 406, reguly: [[920350, 'Host header is a numeric IP address']] }) +
+      v3({ czas: 'Sun Oct 11 14:43:58 2026', ip: '198.51.100.154', uri: '/?page=../../../../etc/passwd&test=verris-waf-1011', host: 'klient.pl', kod: 406, reguly: [[949110, 'Inbound Anomaly Score Exceeded'], [930100, 'Path Traversal Attack (/../) or (/.../)']] }) +
+      v3({ czas: 'Sun Oct 11 14:50:00 2026', ip: '198.51.100.7', uri: '/sklep', host: 'Klient.PL', kod: 200, reguly: [[942100, 'SQL Injection Attack Detected via libinjection']] });
+    const dir = mkdtempSync(join(tmpdir(), 'waf-'));
+    const plik = join(dir, 'modsec_audit.log');
+    writeFileSync(plik, log);
+    // Czas lokalny serwera — strefa jak na węzłach (Europa/Warszawa, CEST = UTC+2).
+    const r = spawnSync('bash', [SKRYPT], { env: { PATH: process.env.PATH, TZ: 'Europe/Warsaw', WH_DOMAINS: 'klient.pl', MODSEC_AUDIT_LOG: plik }, encoding: 'utf8' });
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stdout.split('\n').filter((l) => l.startsWith('VERRIS_WAF '))).toEqual([
+      'VERRIS_WAF 2026-10-11T12:20:00Z|klient.pl|203.0.113.44|GET|/Dockerfile|930130|Restricted File Access Attempt|1|406',
+      'VERRIS_WAF 2026-10-11T12:43:58Z|klient.pl|198.51.100.154|GET|/|930100|Path Traversal Attack (/../) or (/.../)|1|406',
+      'VERRIS_WAF 2026-10-11T12:50:00Z|klient.pl|198.51.100.7|GET|/sklep|942100|SQL Injection Attack Detected via libinjection|0|200',
+    ]);
+    expect(r.stdout).not.toContain('SEKRET');
+    expect(r.stdout).not.toContain('verris-waf-1011');
+  });
+
   it('pusty dziennik → zero trafień (nie błąd); nieznany format → błąd zadania', () => {
     expect(uruchom('').out).toContain('VERRIS_WAF_RAZEM 0 0 0');
     const r = uruchom('[Sat Oct 10 12:00:00 2026] [error] cos zupelnie innego\n');

@@ -12,8 +12,8 @@
 #   Serial: sekcje „--<granica>-A--” (czas, id transakcji, adres klienta…), „-B--” (wiersz żądania, nagłówki),
 #   „-F--” (status odpowiedzi), „-H--” („Message: … [id "…"] [msg "…"]”, „Action: Intercepted (phase N)”);
 #   JSON (SecAuditLogFormat JSON): transaction / request / response / audit_data.messages / audit_data.action.
-# NIEZWERYFIKOWANE z dokumentacją LiteSpeed: czy wbudowany silnik ModSecurity LiteSpeed Enterprise pisze ten sam
-# format do tego pliku — sprawdzić na t1. Nieznany format = błąd zadania (nie „brak trafień”).
+# Sprawdzone na t1 (11.10): LiteSpeed Enterprise pisze do tego pliku JSON ModSecurity v3 (libmodsecurity) — obsługujemy
+# oba warianty JSON i Serial z v2. Nieznany format = błąd zadania (nie „brak trafień”).
 # Do API trafia tylko: czas, domena, adres klienta, metoda, ścieżka BEZ query string, id i opis reguły, czy
 # zablokowano, status. Bez nagłówków, ciasteczek i treści żądań.
 # MODSEC_AUDIT_LOG daje się podmienić wyłącznie w testach.
@@ -134,7 +134,38 @@ def serial(tekst):
             out.append(t)
     return out
 
+def czas_v3(s):
+    """ModSecurity v3 (libmodsecurity): time_stamp jak ctime(), np. „Sun Oct 11 14:20:00 2026”, w czasie lokalnym serwera."""
+    try:
+        return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.mktime(time.strptime((s or "").strip(), "%a %b %d %H:%M:%S %Y"))))
+    except (ValueError, OverflowError):
+        return None
+
+def regula_v3(wiadomosci):
+    """v3: messages[] = {message, details: {ruleId, msg, …}} — ta sama zasada co regula() (bez zbiorczych z CRS)."""
+    znalezione = []
+    for w in wiadomosci:
+        if not isinstance(w, dict):
+            continue
+        d = w.get("details") or {}
+        rid = str(d.get("ruleId") or "")
+        if not re.fullmatch(r"\d{1,9}", rid):
+            continue
+        znalezione.append((rid, str(d.get("msg") or w.get("message") or "")))
+    if not znalezione:
+        return None
+    konkretne = [z for z in znalezione if z[0] not in ("949110", "980130", "959100", "980140")]
+    return (konkretne or znalezione)[0]
+
 def jsonowy(tekst):
+    """
+    JSON w dwóch odmianach:
+    - ModSecurity v2 (SecAuditLogFormat JSON): transaction / request / response / audit_data na najwyższym poziomie;
+    - ModSecurity v3 (libmodsecurity — tak pisze LiteSpeed na t1, sprawdzone 11.10): wszystko w „transaction”
+      (time_stamp, client_ip, request{method, uri, headers}, response{http_code}, messages[{details{ruleId,msg}}]).
+      https://github.com/owasp-modsecurity/ModSecurity/blob/v3/master/src/transaction.cc (toJSON)
+      v3 nie zapisuje „Intercepted” — zablokowane = odpowiedź 403/406 (status odmowy reguł CRS/LiteSpeed).
+    """
     out = []
     for l in tekst.splitlines():
         if not l.startswith("{"):
@@ -143,7 +174,23 @@ def jsonowy(tekst):
             j = json.loads(l)
         except ValueError:
             continue
-        tr, rq, rs, ad = (j.get(k) or {} for k in ("transaction", "request", "response", "audit_data"))
+        tr = j.get("transaction") or {}
+        if isinstance(tr.get("request"), dict):
+            rq, rs = tr.get("request") or {}, tr.get("response") or {}
+            naglowki = rq.get("headers") or {}
+            host = next((v for k, v in naglowki.items() if k.lower() == "host"), "") if isinstance(naglowki, dict) else ""
+            d = domena_konta(str(host))
+            r = regula_v3(tr.get("messages") or [])
+            if not d or not r:
+                continue
+            kod = rs.get("http_code")
+            metoda = str(rq.get("method") or "")
+            out.append([czas_v3(tr.get("time_stamp")) or "-", d, ip_ok(str(tr.get("client_ip") or "")),
+                        metoda if re.fullmatch(r"[A-Z]{3,10}", metoda) else "-",
+                        czysc(str(rq.get("uri") or "").split("?", 1)[0], 200) or "/", r[0], czysc(r[1], 150),
+                        "1" if kod in (403, 406) else "0", str(kod or "-")])
+            continue
+        rq, rs, ad = (j.get(k) or {} for k in ("request", "response", "audit_data"))
         naglowki = rq.get("headers") or {}
         host = next((v for k, v in naglowki.items() if k.lower() == "host"), "") if isinstance(naglowki, dict) else ""
         wiad = [x for x in (ad.get("messages") or []) if isinstance(x, str)]
