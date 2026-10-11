@@ -2,7 +2,7 @@ import { spawnSync } from 'child_process';
 import { mkdtempSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { trafieniaZLogu } from '../servers/trafienia-waf.js';
+import { regulyZTrafien, trafieniaZLogu } from '../servers/trafienia-waf.js';
 
 /**
  * F3.2 — prawdziwy ops/scripts/node-waf-hits.sh (zadanie WAF_HITS) na próbce dziennika audytu ModSecurity v2 (format
@@ -166,6 +166,56 @@ describe('F3.2 — node-waf-hits.sh (dziennik audytu ModSecurity)', () => {
     ]);
     expect(r.stdout).not.toContain('SEKRET');
     expect(r.stdout).not.toContain('verris-waf-1011');
+  });
+
+  /**
+   * Weryfikacja 11.10 — na t1 949110 („Inbound Anomaly Score Exceeded”) była osobną pozycją 74× obok konkretnych reguł:
+   * to samo żądanie w dzienniku v3 dwoma wpisami (wykrycie i ocena progu z odmową). Zdarzenie liczy się raz — z regułą
+   * konkretną i odmową z wpisu zbiorczego; sama zbiorcza (bez konkretnej) zostaje, w panelu jako „Przekroczony próg anomalii (CRS)”.
+   */
+  it('v3: osobne wpisy tego samego żądania (konkretna + 949110) → jedno trafienie z regułą konkretną i odmową; sama 949110 zostaje', () => {
+    const v3 = (o: { id: string; czas: string; ip: string; uri: string; kod: number; reguly: [number, string][] }) =>
+      JSON.stringify({
+        transaction: {
+          unique_id: o.id, time_stamp: o.czas, client_ip: o.ip, client_port: 1, host_ip: '192.0.2.1:443', host_port: 443,
+          request: { method: 'GET', http_version: 'HTTP/1.1', uri: o.uri, headers: { host: 'klient.pl' } },
+          response: { http_code: o.kod },
+          messages: o.reguly.map(([id, msg]) => ({ message: msg, details: { ruleId: id, msg } })),
+        },
+      }) + '\n';
+    const log =
+      v3({ id: 'a1', czas: 'Sun Oct 11 16:17:40 2026', ip: '198.51.100.154', uri: '/?q=<script>', kod: 200, reguly: [[941100, 'XSS Attack Detected via libinjection']] }) +
+      v3({ id: 'a2', czas: 'Sun Oct 11 16:17:40 2026', ip: '198.51.100.154', uri: '/?q=<script>', kod: 406, reguly: [[949110, 'Inbound Anomaly Score Exceeded (Total Score: 5)']] }) +
+      v3({ id: 'b1', czas: 'Sun Oct 11 16:20:00 2026', ip: '203.0.113.5', uri: '/wp-login.php', kod: 406, reguly: [[949110, 'Inbound Anomaly Score Exceeded (Total Score: 10)']] });
+    const dir = mkdtempSync(join(tmpdir(), 'waf-'));
+    const plik = join(dir, 'modsec_audit.log');
+    writeFileSync(plik, log);
+    const r = spawnSync('bash', [SKRYPT], { env: { PATH: process.env.PATH, TZ: 'Europe/Warsaw', WH_DOMAINS: 'klient.pl', MODSEC_AUDIT_LOG: plik }, encoding: 'utf8' });
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stdout.split('\n').filter((l) => l.startsWith('VERRIS_WAF '))).toEqual([
+      'VERRIS_WAF 2026-10-11T14:17:40Z|klient.pl|198.51.100.154|GET|/|941100|XSS Attack Detected via libinjection|1|406',
+      'VERRIS_WAF 2026-10-11T14:20:00Z|klient.pl|203.0.113.5|GET|/wp-login.php|949110|Inbound Anomaly Score Exceeded (Total Score: 10)|1|406',
+    ]);
+    const t = trafieniaZLogu(r.stdout);
+    expect(t.map((x) => [x.regula, x.opis])).toEqual([
+      ['949110', 'Przekroczony próg anomalii (CRS)'],
+      ['941100', 'XSS Attack Detected via libinjection'],
+    ]);
+    expect(regulyZTrafien(t).map((x) => [x.regula, x.razy])).toEqual([['949110', 1], ['941100', 1]]);
+  });
+
+  it('API: wynik starszego skryptu (osobne wiersze 949110 i konkretnej z tego samego zdarzenia) liczony raz', () => {
+    const stary = [
+      'VERRIS_WAF 2026-10-11T14:17:40Z|klient.pl|198.51.100.154|GET|/|941100|XSS Attack Detected via libinjection|0|200',
+      'VERRIS_WAF 2026-10-11T14:17:40Z|klient.pl|198.51.100.154|GET|/|949110|Inbound Anomaly Score Exceeded (Total Score: 5)|1|406',
+      'VERRIS_WAF 2026-10-11T14:18:00Z|klient.pl|198.51.100.154|GET|/x|949110|Inbound Anomaly Score Exceeded (Total Score: 5)|1|406',
+    ].join('\n');
+    const t = trafieniaZLogu(stary);
+    expect(t.map((x) => [x.czas, x.regula, x.opis, x.zablokowano, x.status])).toEqual([
+      ['2026-10-11T14:18:00Z', '949110', 'Przekroczony próg anomalii (CRS)', true, '406'],
+      ['2026-10-11T14:17:40Z', '941100', 'XSS Attack Detected via libinjection', true, '406'],
+    ]);
+    expect(regulyZTrafien(t).find((r) => r.regula === '941100')).toMatchObject({ razy: 1, zablokowano: 1 });
   });
 
   it('pusty dziennik → zero trafień (nie błąd); nieznany format → błąd zadania', () => {

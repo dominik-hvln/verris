@@ -16,6 +16,43 @@ export interface TrafienieWaf {
   status: string;
 }
 
+/**
+ * Weryfikacja 11.10 — reguły zbiorcze OWASP CRS: nie konkretny atak, tylko przekroczony próg sumy punktów anomalii
+ * (949110/980130 — żądanie, 959100/980140 — odpowiedź). Ta sama lista co ZBIORCZE w ops/scripts/node-waf-hits.sh.
+ */
+export const REGULY_ZBIORCZE_CRS: Readonly<Record<string, string>> = {
+  '949110': 'Przekroczony próg anomalii (CRS)',
+  '980130': 'Przekroczony próg anomalii (CRS)',
+  '959100': 'Przekroczony próg anomalii w odpowiedzi (CRS)',
+  '980140': 'Przekroczony próg anomalii w odpowiedzi (CRS)',
+};
+
+/**
+ * Weryfikacja 11.10 — trafienie z samą regułą zbiorczą nie liczy się osobno, gdy w tym samym zdarzeniu (czas, domena,
+ * adres, metoda, ścieżka) jest reguła konkretna; jego odmowa przechodzi na konkretną. Skrypt węzła robi to samo — tu dla
+ * wyników zapisanych starszą wersją skryptu. Sama zbiorcza dostaje polski opis.
+ */
+function bezZbiorczychObokKonkretnych(t: TrafienieWaf[]): TrafienieWaf[] {
+  const klucz = (x: TrafienieWaf) => [x.czas, x.domena, x.ip, x.metoda, x.sciezka].join('|');
+  const konkretne = new Map<string, TrafienieWaf>();
+  for (const x of t) if (!(x.regula in REGULY_ZBIORCZE_CRS) && !konkretne.has(klucz(x))) konkretne.set(klucz(x), x);
+  const out: TrafienieWaf[] = [];
+  for (const x of t) {
+    const opisZbiorczej = REGULY_ZBIORCZE_CRS[x.regula];
+    if (!opisZbiorczej) {
+      out.push(x);
+      continue;
+    }
+    const k = konkretne.get(klucz(x));
+    if (!k) {
+      out.push({ ...x, opis: opisZbiorczej });
+      continue;
+    }
+    if (x.zablokowano && !k.zablokowano) Object.assign(k, { zablokowano: true, status: x.status });
+  }
+  return out;
+}
+
 export function trafieniaZLogu(log: string | null): TrafienieWaf[] {
   const out: TrafienieWaf[] = [];
   for (const l of (log ?? '').split('\n')) {
@@ -36,7 +73,10 @@ export function trafieniaZLogu(log: string | null): TrafienieWaf[] {
   // Audyt Fali 3 — skrypt wypisuje od najstarszego (obcięcie przez agenta zabiera najstarsze); panel pokazuje najnowsze
   // pierwsze. Sortowanie stabilne, bez czasu na końcu — działa też dla wyniku starszego skryptu (najnowsze pierwsze).
   const t = (x: TrafienieWaf) => (x.czas ? Date.parse(x.czas) : -Infinity);
-  return out.map((x, i) => ({ x, i })).sort((a, b) => t(b.x) - t(a.x) || a.i - b.i).map(({ x }) => x);
+  return bezZbiorczychObokKonkretnych(out)
+    .map((x, i) => ({ x, i }))
+    .sort((a, b) => t(b.x) - t(a.x) || a.i - b.i)
+    .map(({ x }) => x);
 }
 
 /** Najczęstsze reguły (do szybkiej diagnozy „co blokuje”): id, opis, ile razy, ile zablokowano, ostatnio. */

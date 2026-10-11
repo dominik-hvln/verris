@@ -72,6 +72,9 @@ def ip_ok(s):
     except ValueError:
         return "-"
 
+# Reguły zbiorcze OWASP CRS (ocena progu anomalii, nie konkretny atak): 949110/980130 — żądanie, 959100/980140 — odpowiedź.
+ZBIORCZE = ("949110", "980130", "959100", "980140")
+
 def regula(wiadomosci):
     """Pierwsza reguła z [id "…"] (pomijamy zbiorcze 949110/980130 z CRS, jeśli jest konkretna)."""
     znalezione = []
@@ -83,7 +86,7 @@ def regula(wiadomosci):
         znalezione.append((i.group(1), m.group(1) if m else ""))
     if not znalezione:
         return None
-    konkretne = [z for z in znalezione if z[0] not in ("949110", "980130", "959100", "980140")]
+    konkretne = [z for z in znalezione if z[0] not in ZBIORCZE]
     return (konkretne or znalezione)[0]
 
 def trafienie(czas, host, ip, linia, wiadomosci, zablokowano, status):
@@ -154,7 +157,7 @@ def regula_v3(wiadomosci):
         znalezione.append((rid, str(d.get("msg") or w.get("message") or "")))
     if not znalezione:
         return None
-    konkretne = [z for z in znalezione if z[0] not in ("949110", "980130", "959100", "980140")]
+    konkretne = [z for z in znalezione if z[0] not in ZBIORCZE]
     return (konkretne or znalezione)[0]
 
 def jsonowy(tekst):
@@ -222,6 +225,33 @@ elif tekst.strip():
     fail("nieznany format dziennika WAF (oczekiwany Serial albo JSON z ModSecurity v2) — sprawdzić konfigurację SecAuditLog")
 else:
     trafienia = []
+
+def bez_zbiorczych_obok_konkretnych(lista):
+    """
+    Weryfikacja 11.10 — na t1 (LiteSpeed, JSON ModSecurity v3) 949110 „Inbound Anomaly Score Exceeded” była osobną pozycją
+    (74×) obok konkretnych reguł (941100 XSS 73×), choć wybór reguły w obrębie jednego wpisu (regula/regula_v3) już pomijał
+    zbiorczą przy konkretnej. Wniosek: to samo żądanie bywa w dzienniku osobnymi wpisami — z regułą wykrycia i z samą
+    oceną progu (z odmową 403/406). NIEZWERYFIKOWANE na surowym dzienniku t1 (do potwierdzenia: dwa wpisy JSON z tym samym
+    time_stamp/client_ip/uri). Zdarzenie = czas (sekunda), domena, adres, metoda, ścieżka: wpis z samą regułą zbiorczą znika, gdy w tym
+    zdarzeniu jest reguła konkretna, a jego odmowa (zablokowano, status) przechodzi na nią. Sama zbiorcza zostaje.
+    """
+    klucz = lambda t: (t[0], t[1], t[2], t[3], t[4])
+    konkretne = {}
+    for i, t in enumerate(lista):
+        if t[5] not in ZBIORCZE:
+            konkretne.setdefault(klucz(t), i)
+    out = [list(t) for t in lista]
+    zostaw = []
+    for i, t in enumerate(out):
+        j = konkretne.get(klucz(t)) if t[5] in ZBIORCZE else None
+        if j is None:
+            zostaw.append(i)
+            continue
+        if t[7] == "1" and out[j][7] != "1":
+            out[j][7], out[j][8] = "1", t[8]
+    return [out[i] for i in zostaw]
+
+trafienia = bez_zbiorczych_obok_konkretnych(trafienia)
 
 # Audyt Fali 3 — wybór od najnowszych z budżetem w bajtach (ścieżka z bajtów spoza UTF-8 to U+FFFD = 3 bajty na znak),
 # wypisane od najstarszego do najnowszego: obcięcie przez agenta (tail -c, od początku) zabiera najstarsze trafienia.
