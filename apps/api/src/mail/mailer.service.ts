@@ -183,9 +183,19 @@ export class MailerService {
     return { ...message, ...naglowkiWatku(message.zgloszenieId, domena, await this.idyMailiKlienta(message.zgloszenieId)) };
   }
 
-  /** Message-ID maili klienta w zgłoszeniu (od najstarszego) — uzupełnia poczta przychodząca. */
-  protected async idyMailiKlienta(_zgloszenieId: string): Promise<string[]> {
-    return [];
+  /** Message-ID maili klienta w zgłoszeniu (od najstarszego) z poczty przychodzącej; błąd odczytu = bez nich. */
+  private async idyMailiKlienta(zgloszenieId: string): Promise<string[]> {
+    try {
+      const rows = await this.prisma.pocztaPrzychodzaca.findMany({
+        where: { ticketId: zgloszenieId, wynik: { in: ['ZGLOSZENIE', 'ODPOWIEDZ'] }, NOT: { messageId: { startsWith: '<brak-id.' } } },
+        orderBy: { otrzymano: 'desc' },
+        select: { messageId: true },
+        take: 9,
+      });
+      return rows.map((r) => r.messageId).reverse();
+    } catch {
+      return [];
+    }
   }
 
   /**

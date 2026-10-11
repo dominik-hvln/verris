@@ -389,6 +389,8 @@ export class AccountDeletionService {
 
       // 3c) F2.4 — notatki obsługi o osobie to też jej dane.
       await tx.customerNote.deleteMany({ where: { userId } });
+      // F3.7 — wpisy poczty przychodzącej dopasowane do konta (adres, temat). Treść maili jest w zgłoszeniach.
+      await tx.pocztaPrzychodzaca.deleteMany({ where: { userId } });
       // 3d) Przegląd D11 — log kontaktów z obsługą migracji (rozmowy, maile) i checklista obsługi (wyniki testów,
       //     podsumowanie) to dane o osobie jak notatki obsługi; same zlecenia migracji zostają (rozliczenia, dziennik).
       await tx.migracjaKontakt.deleteMany({ where: { migrationRequest: { userId } } });

@@ -1,0 +1,33 @@
+Return-Path: <jan@klient.pl>
+Delivered-To: zgloszenia@verris.pl
+Message-ID: <CAF1234nowe@mail.klient.pl>
+Date: Sun, 11 Oct 2026 09:15:00 +0200
+From: =?ISO-8859-2?Q?Jan_Kowalski?= <Jan@Klient.pl>
+To: support@verris.pl
+Subject: =?ISO-8859-2?Q?B=B3=B1d_500_na_stronie_sklepu?=
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="GRANICA"
+
+--GRANICA
+Content-Type: text/plain; charset=iso-8859-2
+Content-Transfer-Encoding: quoted-printable
+
+Dzie=F1 dobry,
+
+od rana strona sklepu zwraca b=B3=B1d 500. Za=B3=B1czam zrzut i faktur=EA.
+
+Pozdrawiam
+Jan Kowalski
+--GRANICA
+Content-Type: application/pdf; name="faktura.pdf"
+Content-Disposition: attachment; filename="faktura.pdf"
+Content-Transfer-Encoding: base64
+
+JVBERi0xLjQKMSAwIG9iajw8Pj5lbmRvYmoKdHJhaWxlcjw8Pj4KJSVFT0YK
+--GRANICA
+Content-Type: application/pdf; name="faktura.pdf.exe"
+Content-Disposition: attachment; filename="faktura.pdf.exe"
+Content-Transfer-Encoding: base64
+
+TVqQAAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+--GRANICA--

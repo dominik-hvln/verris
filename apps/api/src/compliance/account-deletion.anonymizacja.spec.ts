@@ -22,6 +22,7 @@ function stanowisko(opts: { juzZanonimizowany?: boolean; subkonta?: string[] } =
     apiToken: { updateMany: vi.fn(async () => ({})) },
     customerNote: { deleteMany: vi.fn(async () => ({})) },
     migracjaKontakt: { deleteMany: vi.fn(async () => ({})) },
+    pocztaPrzychodzaca: { deleteMany: vi.fn(async () => ({})) },
     migrationRequest: { updateMany: vi.fn(async () => ({ count: 1 })) },
     accountDeletionRequest: { update: vi.fn(async () => ({})), updateMany: vi.fn(async () => ({ count: 1 })) },
     invoice: { deleteMany: vi.fn() },
@@ -68,6 +69,8 @@ describe('AccountDeletionService.executeAnonymization (P-02)', () => {
     expect(s.tx.apiToken.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: 'u1', revokedAt: null } }));
     // F2.4 — notatki obsługi o osobie (lista i stare pole) znikają razem z danymi.
     expect(s.tx.customerNote.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
+    // F3.7 — wpisy poczty przychodzącej konta (adres nadawcy, temat).
+    expect(s.tx.pocztaPrzychodzaca.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
     expect(dane.adminInternalNote).toBeNull();
     // Przegląd D11 — log kontaktów i checklista obsługi migracji (notatki o osobie) też znikają.
     expect(s.tx.migracjaKontakt.deleteMany).toHaveBeenCalledWith({ where: { migrationRequest: { userId: 'u1' } } });

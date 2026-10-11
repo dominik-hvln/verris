@@ -1,0 +1,2 @@
+# Pliki .eml z CRLF (jak z serwera IMAP) — bez normalizacji końców linii.
+*.eml -text

@@ -33,6 +33,7 @@ import { AuditService } from '../common/audit/audit.service.js';
 import { TicketOpsActions } from '../common/audit/audit.actions.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import type { Readable } from 'stream';
+import { randomUUID } from 'node:crypto';
 import { OpiekaZgloszenService, opiekunSlownie, terminSlownie } from './opieka-zgloszen.service.js';
 import { ZAKRES_ODMOWA } from '../common/guards/zakres-uslug.js';
 import { RUNBOOK_KLUCZE, runbook as runbookZKatalogu } from '@verris/contracts';
@@ -62,6 +63,13 @@ const WIERSZ_SKRZYNKI = {
 } satisfies Prisma.TicketInclude;
 
 /** F2.5 — załączniki, które klient może zobaczyć: pierwszej wiadomości albo odpowiedzi, która nie jest notatką. */
+/** F3.7 — bezpieczny załącznik z maila klienta (typ ustalony z rozszerzenia i sygnatury, tickets/poczta/parser.ts). */
+export interface PlikZPoczty {
+  nazwa: string;
+  typ: string;
+  tresc: Buffer;
+}
+
 const WIDOCZNE_DLA_KLIENTA_ZALACZNIKI = {
   OR: [{ replyId: null }, { reply: { is: { internal: false } } }],
 } satisfies Prisma.TicketAttachmentWhereInput;
@@ -169,6 +177,23 @@ export class TicketsService {
     opcje: { bezPotwierdzenia?: boolean; zakresUslug?: readonly string[] | null } = {},
   ) {
     if (dto.subscriptionId) await this.sprawdzUsluge(userId, dto.subscriptionId, opcje.zakresUslug);
+    const row = await this.prisma.ticket.create({
+      data: await this.daneNowegoZgloszenia(userId, dto),
+      include: { user: { select: { email: true } }, assignedTo: { select: { email: true } } },
+    });
+    await this.poUtworzeniu(row, opcje);
+    return {
+      id: row.id,
+      subject: row.subject,
+      status: row.status,
+      createdAt: row.createdAt,
+      assignedToId: row.assignedToId,
+      subscriptionId: row.subscriptionId,
+    };
+  }
+
+  /** Dane nowego zgłoszenia klienta: opiekun, priorytet (dodatek priority support), terminy SLA z ustawień. */
+  private async daneNowegoZgloszenia(userId: string, dto: CreateTicketDto): Promise<Prisma.TicketUncheckedCreateInput> {
     const assignedToId = await this.getLeastBusyAgentId();
 
     // P-8 — active priority-support add-on bumps the ticket to at least HIGH.
@@ -189,28 +214,37 @@ export class TicketsService {
     // F3.7 — progi SLA z ustawień (ADMIN); terminy liczone od chwili utworzenia, jak przy zmianie priorytetu.
     const progi = await wczytajProgiSla(this.prisma);
     const teraz = new Date();
-    const row = await this.prisma.ticket.create({
-      data: {
-        subject: dto.subject,
-        message: dto.message,
-        priority,
-        department: dto.department || 'TECHNICAL',
-        topic: dto.topic || null,
-        subscriptionId: dto.subscriptionId || null,
-        userId,
-        assignedToId,
-        createdAt: teraz,
-        lastReplyAt: teraz,
-        lastReplyIsStaff: false,
-        slaResponseDueAt: terminOdpowiedzi(priority, teraz, progi),
-        slaResolveDueAt: terminRozwiazania(priority, teraz, progi),
-      },
-      include: {
-        user: { select: { email: true } },
-        assignedTo: { select: { email: true } },
-      },
-    });
+    return {
+      subject: dto.subject,
+      message: dto.message,
+      priority,
+      department: dto.department || 'TECHNICAL',
+      topic: dto.topic || null,
+      subscriptionId: dto.subscriptionId || null,
+      userId,
+      assignedToId,
+      createdAt: teraz,
+      lastReplyAt: teraz,
+      lastReplyIsStaff: false,
+      slaResponseDueAt: terminOdpowiedzi(priority, teraz, progi),
+      slaResolveDueAt: terminRozwiazania(priority, teraz, progi),
+    };
+  }
 
+  /** Po utworzeniu zgłoszenia klienta: mail i dzwonek opiekuna, oś, potwierdzenie do klienta, szkic asystenta. */
+  private async poUtworzeniu(
+    row: {
+      id: string;
+      subject: string;
+      userId: string;
+      subscriptionId: string | null;
+      assignedToId: string | null;
+      slaResponseDueAt: Date | null;
+      user: { email: string };
+      assignedTo: { email: string } | null;
+    },
+    opcje: { bezPotwierdzenia?: boolean; zMaila?: boolean },
+  ): Promise<void> {
     const clientUrl = this.config.get<string>('clientPanelUrl') ?? 'http://localhost:3001';
     if (row.assignedTo?.email) {
       void this.mailer
@@ -227,7 +261,10 @@ export class TicketsService {
         .catch(() => undefined);
     }
 
-    await this.logEvent(row.id, 'TICKET_CREATED', userId, row.subscriptionId ? { subscriptionId: row.subscriptionId } : undefined);
+    const meta: Record<string, string | boolean> = {};
+    if (row.subscriptionId) meta.subscriptionId = row.subscriptionId;
+    if (opcje.zMaila) meta.zMaila = true;
+    await this.logEvent(row.id, 'TICKET_CREATED', row.userId, Object.keys(meta).length ? meta : undefined);
     // PB-37 — potwierdzenie z imieniem opiekuna i terminem; wyłączone w panelu → dotychczasowy e-mail.
     if (!opcje.bezPotwierdzenia && !(await this.opieka.wyslij(row.id, 'POTWIERDZENIE'))) {
       void this.mailer
@@ -247,20 +284,124 @@ export class TicketsService {
     void this.opieka.przygotujSzkic(row.id);
     if (row.assignedToId) {
       await this.notifyStaff(row.assignedToId, {
-        title: 'Nowe zgłoszenie',
+        title: opcje.zMaila ? 'Nowe zgłoszenie (e-mail)' : 'Nowe zgłoszenie',
         body: `#${row.id.slice(0, 8)} — ${row.subject}`,
         link: `/tickets/${row.id}`,
       });
     }
+  }
 
+  // ---------------------------------------------------------------------------
+  // F3.7 (OE-19) — poczta przychodząca: zgłoszenie albo odpowiedź klienta z maila. Zgłoszenie / odpowiedź,
+  // załączniki i wpis poczty (unikalny Message-ID) w jednej transakcji — drugi proces z tym samym mailem
+  // dostaje błąd unikalności i nic nie zapisuje. Pliki trafiają do magazynu przed transakcją (jak upload w panelu).
+  // ---------------------------------------------------------------------------
+
+  async utworzZPoczty(
+    userId: string,
+    dto: CreateTicketDto & { tags?: string[] },
+    pliki: readonly PlikZPoczty[],
+    zapisPoczty: (ticketId: string) => Prisma.PrismaPromise<unknown>,
+  ): Promise<{ id: string }> {
+    const id = randomUUID();
+    const dane = { ...(await this.daneNowegoZgloszenia(userId, dto)), id, tags: dto.tags ?? [] };
+    const zalaczniki = await this.wgrajPlikiZPoczty(id, null, userId, pliki, 0);
+    try {
+      await this.prisma.$transaction([
+        this.prisma.ticket.create({ data: dane }),
+        ...zalaczniki.map((z) => this.prisma.ticketAttachment.create({ data: z })),
+        zapisPoczty(id),
+      ]);
+    } catch (e) {
+      for (const z of zalaczniki) await this.removeAttachmentObject(z.storageKey);
+      throw e;
+    }
+    const row = await this.prisma.ticket.findUniqueOrThrow({
+      where: { id },
+      include: { user: { select: { email: true } }, assignedTo: { select: { email: true } } },
+    });
+    await this.poUtworzeniu(row, { zMaila: true });
+    return { id };
+  }
+
+  async odpowiedzZPoczty(
+    ticketId: string,
+    userId: string,
+    message: string,
+    pliki: readonly PlikZPoczty[],
+    zapisPoczty: (replyId: string) => Prisma.PrismaPromise<unknown>,
+  ): Promise<{ replyId: string; pominietePliki: number }> {
+    const replyId = randomUUID();
+    const juz = await this.prisma.ticketAttachment.count({ where: { ticketId } });
+    const zalaczniki = await this.wgrajPlikiZPoczty(ticketId, replyId, userId, pliki, juz);
+    try {
+      await this.prisma.$transaction([
+        this.prisma.ticketReply.create({ data: { id: replyId, message, ticketId, authorId: userId, isStaff: false } }),
+        this.prisma.ticket.update({ where: { id: ticketId }, data: this.danePoOdpowiedziKlienta() }),
+        ...zalaczniki.map((z) => this.prisma.ticketAttachment.create({ data: z })),
+        zapisPoczty(replyId),
+      ]);
+    } catch (e) {
+      for (const z of zalaczniki) await this.removeAttachmentObject(z.storageKey);
+      throw e;
+    }
+    await this.poOdpowiedziKlienta(ticketId, message);
+    return { replyId, pominietePliki: pliki.length - zalaczniki.length };
+  }
+
+  private async wgrajPlikiZPoczty(
+    ticketId: string,
+    replyId: string | null,
+    uploadedById: string,
+    pliki: readonly PlikZPoczty[],
+    juz: number,
+  ): Promise<Prisma.TicketAttachmentUncheckedCreateInput[]> {
+    const out: Prisma.TicketAttachmentUncheckedCreateInput[] = [];
+    for (const p of pliki.slice(0, Math.max(0, TICKET_MAX_ATTACHMENTS_PER_TICKET - juz))) {
+      const storageKey = makeStorageKey(ticketId, p.nazwa);
+      await this.storage.putObject(ObjectBuckets.TICKET_ATTACHMENTS, storageKey, p.tresc, {
+        contentType: p.typ,
+        originalFilename: p.nazwa,
+        custom: { ticketid: ticketId, uploaderid: uploadedById, zrodlo: 'poczta' },
+      });
+      out.push({ ticketId, replyId, uploadedById, mimeType: p.typ, sizeBytes: p.tresc.length, originalName: p.nazwa, storageKey });
+    }
+    return out;
+  }
+
+  /** Zmiany zgłoszenia po wiadomości klienta (panel albo mail): wraca do „otwarte”, cykl braku odpowiedzi od nowa. */
+  private danePoOdpowiedziKlienta(): Prisma.TicketUncheckedUpdateInput {
     return {
-      id: row.id,
-      subject: row.subject,
-      status: row.status,
-      createdAt: row.createdAt,
-      assignedToId: row.assignedToId,
-      subscriptionId: row.subscriptionId,
+      status: 'OPEN',
+      resolvedAt: null,
+      waitingSince: null,
+      customerReminderSentAt: null,
+      autoClosedAt: null,
+      lastReplyAt: new Date(),
+      lastReplyIsStaff: false,
     };
+  }
+
+  /** Po wiadomości klienta: oś, szkic asystenta, dzwonek i mail opiekuna. */
+  private async poOdpowiedziKlienta(ticketId: string, message: string): Promise<void> {
+    const full = await this.prisma.ticket.findUnique({
+      where: { id: ticketId },
+      include: { user: { select: { email: true } }, assignedTo: { select: { email: true } } },
+    });
+    if (full) {
+      await this.logEvent(ticketId, 'CUSTOMER_REPLY', full.userId);
+      void this.opieka.przygotujSzkic(ticketId);
+      if (full.assignedToId) {
+        await this.notifyStaff(full.assignedToId, {
+          title: 'Nowa wiadomość od klienta',
+          body: `#${ticketId.slice(0, 8)} — ${full.subject}`,
+          link: `/tickets/${ticketId}`,
+        });
+      }
+    }
+    if (full?.assignedTo?.email) {
+      this.notifyClientReplyToStaff(ticketId, full.subject, message, full.assignedTo.email);
+    }
   }
 
   /**

@@ -829,3 +829,33 @@ describe('F3.7 — progi SLA zgłoszeń', () => {
     }
   });
 });
+
+/** F3.7 (OE-19, OE-20) — „Poczta bez klienta”: odczyt i „Pokaż” plik — TICKETS_VIEW; decyzje i blokady — TICKETS_MANAGE. */
+describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
+  const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
+  const trasy = TRASY.filter((t) => t.kontroler === 'PocztaPrzychodzacaAdminController');
+  const ODCZYT = ['lista', 'blokady', 'plik'];
+  const ZMIANY = ['przypisz', 'odrzuc', 'zablokuj', 'odblokuj'];
+  const wynik = async (uprawnienia: string[]) => Object.fromEntries(await Promise.all(trasy.map(async (t) => [t.metoda, await wpuszcza(t, OPERATOR, uprawnienia)] as const)));
+  const oczekiwane = (odczyt: boolean, zmiany: boolean) => Object.fromEntries([...ODCZYT.map((m) => [m, odczyt]), ...ZMIANY.map((m) => [m, zmiany])]);
+
+  it('trasy pod admin/poczta-zgloszen (poza tickets/admin/:id)', () => {
+    expect(trasy.map((t) => t.metoda).sort()).toEqual([...ODCZYT, ...ZMIANY].sort());
+    expect(trasy.every((t) => t.sciezka.startsWith('admin/poczta-zgloszen'))).toBe(true);
+  });
+
+  it('L1–L4: wszystko; Audytor i NOC: tylko odczyt; Marketing: nic; sam TICKETS_VIEW — bez decyzji', async () => {
+    for (const r of ['L1 Konsultant', 'L2 Specjalista techniczny', 'L3 Starszy specjalista', 'L4 Kierownik zmiany']) {
+      expect({ r, w: await wynik(rola(r)) }).toEqual({ r, w: oczekiwane(true, true) });
+    }
+    for (const r of ['Audytor (tylko podgląd)', 'Inżynier infrastruktury (NOC/DevOps)']) {
+      expect({ r, w: await wynik(rola(r)) }).toEqual({ r, w: oczekiwane(true, false) });
+    }
+    expect(await wynik(['TICKETS_VIEW'])).toEqual(oczekiwane(true, false));
+    expect(await wynik(rola('Marketing'))).toEqual(oczekiwane(false, false));
+    for (const t of trasy) {
+      expect(await wpuszcza(t, ADMIN)).toBe(true);
+      expect(await wpuszcza(t, KLIENT, ['*', 'TICKETS_VIEW', 'TICKETS_MANAGE'])).toBe(false);
+    }
+  });
+});

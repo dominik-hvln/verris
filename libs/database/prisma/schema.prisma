@@ -2221,6 +2221,8 @@ model Ticket {
   replies         TicketReply[]
   attachments     TicketAttachment[]
   events          TicketEvent[]
+  /// F3.7 — maile przychodzące powiązane ze zgłoszeniem (nowe zgłoszenie, odpowiedź, przypięte z kolejki).
+  maile           PocztaPrzychodzaca[]
 
   firstResponseAt DateTime?
   resolvedAt      DateTime?
@@ -4303,4 +4305,52 @@ model ScheduledJobRun {
   /// Ostatni błąd zadania bez przeglądania udanych przebiegów (widok „Zadania w tle”).
   @@index([job, ok, startedAt])
   @@index([startedAt])
+}
+
+/// F3.7 (OE-19, D6, 11.10) — mail przychodzący do zgłoszeń z IMAP skrzynek zespołu (support@, abuse@). Jeden wiersz
+/// na wiadomość — idempotencja po Message-ID. Wynik: ZGLOSZENIE (nowe zgłoszenie klienta), ODPOWIEDZ (dopisany do
+/// wątku), BEZ_KLIENTA (kolejka „Poczta bez klienta” — obcy nadawca albo nie właściciel zgłoszenia z wątku), SPAM,
+/// BLOKADA (lista blokad), AUTO (automat — bez odpowiedzi, żeby nie było pętli), ZA_DUZY, PRZYPISANY i ODRZUCONY
+/// (decyzja obsługi z kolejki). Treść i załączniki trzymamy tylko dla kolejki; retencja 90 dni (bez zgłoszenia).
+model PocztaPrzychodzaca {
+  id                     String    @id @default(uuid())
+  messageId              String    @unique
+  skrzynka               String
+  uid                    Int?
+  nadawca                String
+  nadawcaNazwa           String?
+  temat                  String
+  doAdresy               String[]  @default([])
+  /// SUPPORT albo ABUSE (adresat).
+  rodzaj                 String    @default("SUPPORT")
+  otrzymano              DateTime
+  rozmiar                Int
+  wynik                  String
+  powod                  String?
+  /// Treść do decyzji obsługi (kolejka); null po przypisaniu albo odrzuceniu.
+  tresc                  String?   @db.Text
+  /// [{ nazwa, typ, rozmiar, klucz?, pominiety? }] — pliki od nieznanego nadawcy, pokazywane dopiero po „Pokaż”.
+  zalaczniki             Json      @default("[]")
+  ticketId               String?
+  ticket                 Ticket?   @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  replyId                String?
+  /// Klient dopasowany po adresie nadawcy.
+  userId                 String?
+  /// Wątek wskazał zgłoszenie, ale nadawca nie jest jego właścicielem.
+  sugerowaneZgloszenieId String?
+  obsluzylId             String?
+  obsluzono              DateTime?
+  createdAt              DateTime  @default(now())
+
+  @@index([wynik, createdAt])
+  @@index([ticketId])
+  @@index([userId])
+}
+
+/// F3.7 (OE-20) — blokada nadawcy poczty do zgłoszeń: dokładny adres albo „@domena”.
+model PocztaBlokadaNadawcy {
+  wzorzec     String   @id
+  powod       String?
+  createdById String?
+  createdAt   DateTime @default(now())
 }

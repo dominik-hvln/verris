@@ -363,6 +363,9 @@ importers:
       pdf-lib:
         specifier: ^1.17.1
         version: 1.17.1
+      postal-mime:
+        specifier: 3.0.1
+        version: 3.0.1
       reflect-metadata:
         specifier: ^0.2.0
         version: 0.2.2
@@ -8011,6 +8014,9 @@ packages:
   possible-typed-array-names@1.1.0:
     resolution: {integrity: sha512-/+5VFTchJDoVj3bhoqi6UeymcD00DAwb1nJwamzPvHEszJ4FpF6SNNbUbOS8yI56qHzdV8eK0qEfOSiodkTdxg==}
     engines: {node: '>= 0.4'}
+
+  postal-mime@3.0.1:
+    resolution: {integrity: sha512-N86EnYOxZjW1uHQIgSXnnRdnJz+wxmtDsnk3C4R/9rQ1utj8A2znauXZ3Q3+stCHxG5ckY4/NrO09WiPU6rcdQ==}
 
   postcss@8.5.26:
     resolution: {integrity: sha512-u82N74LFzG8ca+dD8puPnplTXoGH4fTPpVGuIbt36G3qvNlkvfD0lEAZSxaly3KX8TS/L1A1gsCEmvKmBcVbkQ==}
@@ -17804,6 +17810,8 @@ snapshots:
   pluralize@8.0.0: {}
 
   possible-typed-array-names@1.1.0: {}
+
+  postal-mime@3.0.1: {}
 
   postcss@8.5.26:
     dependencies:

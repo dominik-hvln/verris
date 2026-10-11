@@ -1,0 +1,31 @@
+Message-ID: <obcy-001@firma-zewnetrzna.pl>
+Date: Sun, 11 Oct 2026 13:00:00 +0200
+From: Anna Obca <anna@firma-zewnetrzna.pl>
+To: abuse@verris.pl
+Subject: Phishing na stronie hostowanej u Was
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="X"
+
+--X
+Content-Type: text/plain; charset=utf-8
+
+Strona https://przyklad.pl/login podszywa sie pod bank.
+--X
+Content-Type: image/jpeg; name="zrzut.jpg"
+Content-Disposition: attachment; filename="zrzut.jpg"
+Content-Transfer-Encoding: base64
+
+/9j/4AAQSkZJRgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/2Q==
+--X
+Content-Type: application/zip; name="dowody.zip"
+Content-Disposition: attachment; filename="dowody.zip"
+Content-Transfer-Encoding: base64
+
+UEsDBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+--X
+Content-Type: application/pdf; name="raport.pdf"
+Content-Disposition: attachment; filename="raport.pdf"
+Content-Transfer-Encoding: base64
+
+TVqQAAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+--X--

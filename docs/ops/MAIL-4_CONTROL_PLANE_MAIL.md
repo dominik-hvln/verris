@@ -302,3 +302,26 @@ Każdy sprint merge = działający produkcja w swoim zakresie (bez „później 
 ## 14. Powiązanie z backlogiem
 
 Wpis w [`HOSTING_LAUNCH_TASKS.md`](../HOSTING_LAUNCH_TASKS.md): **MAIL-4** → ten dokument jako spec źródłowy.
+
+---
+
+## F3.7 — poczta przychodząca do zgłoszeń (IMAP, decyzja D6, 11.10.2026)
+
+API co 2 minuty (`tickets:poczta-przychodzaca`, rejestr „Zadania w tle”) czyta INBOX jednej skrzynki zespołu przez
+IMAPS i zakłada z maili zgłoszenia albo dopisuje odpowiedzi do wątku (`apps/api/src/tickets/poczta/`).
+Mail zostaje w skrzynce (BODY.PEEK — bez `\Seen`), po imporcie dostaje słowo kluczowe IMAP `VerrisZgloszenia`.
+
+**Skrzynka:** `abuse@` jest zarezerwowany (tylko alias), a skrzynki SYSTEM nie mają hasła IMAP — dlatego import czyta
+skrzynkę **STAFF** z IMAP (np. `zgloszenia@verris.pl`), na którą wskazują aliasy `support@` i `abuse@`. Rodzaj
+(SUPPORT / ABUSE) API rozpoznaje po adresacie (To/Cc/Delivered-To/X-Original-To).
+
+| Zmienna (env API) | Znaczenie |
+|---|---|
+| `CONTROL_PLANE_MAIL_HOST` | istniejący host skrzynek zespołu (domyślnie `mail.verris.pl`) |
+| `CONTROL_PLANE_MAIL_IMAP_PORT` | port IMAPS, domyślnie `993` |
+| `CONTROL_PLANE_MAIL_TICKETS_USER` | login skrzynki importu (np. `zgloszenia@verris.pl`) |
+| `CONTROL_PLANE_MAIL_TICKETS_PASSWORD` | hasło IMAP z „Reset hasła” w Poczcie zespołu (tylko w `.env.prod`) |
+| `CONTROL_PLANE_MAIL_TICKETS_CERT_SHA256` | opcjonalnie: odcisk SHA-256 certyfikatu Dovecota, gdy jest samopodpisany (snakeoil) — zamiast wyłączania weryfikacji TLS |
+
+Bez loginu i hasła zadanie nic nie robi. Odcisk: `openssl x509 -in /etc/ssl/certs/ssl-cert-snakeoil.pem -noout -fingerprint -sha256`.
+Kolejka maili bez klienta, spam i blokady nadawców: panel operatora → Zgłoszenia → „Poczta bez klienta” (`/tickets/poczta`).
