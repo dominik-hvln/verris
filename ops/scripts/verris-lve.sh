@@ -386,10 +386,39 @@ def stack_versions():
     php = first(["/usr/local/bin/php", "-r", "echo PHP_VERSION;"], r"^([0-9]+\.[0-9]+\.[0-9]+)")
     if php:
         out["phpVersion"] = php
-    cl = first(["rpm", "-q", "--qf", "%{VERSION}-%{RELEASE}", "kmod-lve"], r"^([0-9][^\s]*)")
+    cl = cl_version()
     if cl:
         out["clVersion"] = cl
     return out
+
+def cl_version(kernel=None):
+    # Wersja CloudLinux (LVE) = wersja pakietu kmod-lve. Weryfikacja 11.10 (t1): po aktualizacji z nowym jądrem, przed
+    # rebootem, są zainstalowane DWIE wersje kmod-lve (moduł per jądro), a `rpm -q --qf` bez „\n” sklejał je w
+    # „2.1-76.el102.1-78.el10”. Raportujemy JEDNĄ, zachowawczo tę, która faktycznie działa: pakiet z modułem dla
+    # działającego jądra (pliki pod /lib/modules/$(uname -r)/). Gdy żadna nie pasuje (np. moduł przez weak-updates) —
+    # najpóźniej zainstalowaną (%{INSTALLTIME}); to stan po reboocie, gdy stary pakiet zostaje obok nowego.
+    # rpm --queryformat (tablice „[...]”, %{INSTALLTIME}): https://rpm-software-management.github.io/rpm/manual/queryformat.html
+    def rpm(*args):
+        try:
+            r = subprocess.run(["rpm", "-q", *args], capture_output=True, text=True, timeout=8)
+            return r.stdout or ""
+        except Exception:
+            return ""
+    wersje = []
+    for line in rpm("--qf", "%{INSTALLTIME} %{VERSION}-%{RELEASE}\n", "kmod-lve").splitlines():
+        m = re.match(r"^([0-9]+) ([0-9][^\s]{0,39})$", line.strip())
+        if m:
+            wersje.append((int(m.group(1)), m.group(2)))
+    if not wersje:
+        return None
+    if len(wersje) == 1:
+        return wersje[0][1]
+    kernel = kernel or os.uname().release
+    for _, v in wersje:
+        pliki = rpm("--qf", "[%{FILENAMES}\n]", "kmod-lve-" + v).splitlines()
+        if any(p.startswith("/lib/modules/%s/" % kernel) for p in pliki):
+            return v
+    return max(wersje)[1]
 
 # F3.4 — watchdog usług węzła: stan usług z białej listy panelu (libs/contracts/src/uslugi-wezla.ts, bez agentów Verris —
 # agent nie raportuje sam o sobie). Pierwsza załadowana jednostka z listy; ActiveState i UnitFileState z
