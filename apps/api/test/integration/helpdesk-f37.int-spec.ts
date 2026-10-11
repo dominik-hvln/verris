@@ -322,3 +322,92 @@ describe('F3.7 — raporty obsługi', () => {
     expect((await raporty.raport(1000, teraz)).okres.dni).toBe(30);
   });
 });
+
+describe('F3.7 — przegląd: scalone zgłoszenie zostaje zamknięte i bez nazwiska obsługi', () => {
+  beforeEach(async () => {
+    await wyczyscBaze();
+    maile.length = 0;
+  });
+  afterAll(rozlacz);
+
+  it('ręczna zmiana stanu scalonego zgłoszenia → 400 (nie wraca do kolejki jako otwarte, do którego nie da się odpisać)', async () => {
+    const { tickets } = uslugi();
+    const { op, jan } = await ludzie();
+    const a = await prisma().ticket.create({ data: { userId: jan.id, subject: 'A', message: 'a' } });
+    const b = await prisma().ticket.create({ data: { userId: jan.id, subject: 'B', message: 'b' } });
+    await tickets.adminMerge(a.id, b.id, op.id, POWOD);
+    for (const status of ['OPEN', 'IN_PROGRESS', 'WAITING_CUSTOMER']) {
+      await expect(tickets.adminUpdateTicket(a.id, { status }, op.id)).rejects.toThrow(new RegExp(`#${b.id.slice(0, 8)}`));
+    }
+    expect((await prisma().ticket.findUniqueOrThrow({ where: { id: a.id } })).status).toBe('CLOSED');
+    expect(await prisma().ticketEvent.count({ where: { ticketId: a.id, type: 'STATUS_CHANGED' } })).toBe(0);
+    expect(maile).toEqual([]);
+    // przypisanie i priorytet dalej można zmienić
+    await tickets.adminUpdateTicket(a.id, { priority: 'HIGH' }, op.id);
+  });
+
+  it('ocena scalonego zgłoszenia → 400; raport CSAT pomija scalone źródła', async () => {
+    const { tickets, raporty } = uslugi();
+    const { op, jan } = await ludzie();
+    const a = await prisma().ticket.create({ data: { userId: jan.id, subject: 'A', message: 'a' } });
+    const b = await prisma().ticket.create({ data: { userId: jan.id, subject: 'B', message: 'b' } });
+    await tickets.adminMerge(a.id, b.id, op.id, POWOD);
+    await expect(tickets.submitCsat(a.id, jan.id, 1, 'nie rozwiązane', { resolved: false })).rejects.toThrow(new RegExp(`#${b.id.slice(0, 8)}`));
+    expect((await prisma().ticket.findUniqueOrThrow({ where: { id: a.id } })).csatRating).toBeNull();
+    // ocena wystawiona zanim zgłoszenie scalono (stare zamknięte źródło) nie liczy się do CSAT
+    await prisma().ticket.update({ where: { id: a.id }, data: { csatRating: 1, csatAt: new Date(), csatResolved: false } });
+    expect((await raporty.raport(7)).csat).toEqual({ ocen: 0, obsluga: null, opiekun: null, rozwiazanePct: null });
+  });
+
+  it('wyścig: scalenie między odczytem a zapisem odpowiedzi — odpowiedź odrzucona, źródło zostaje zamknięte i puste', async () => {
+    const { op, jan } = await ludzie();
+    const a = await prisma().ticket.create({ data: { userId: jan.id, subject: 'A', message: 'a' } });
+    const b = await prisma().ticket.create({ data: { userId: jan.id, subject: 'B', message: 'b' } });
+    const przed = await prisma().ticket.findUniqueOrThrow({ where: { id: a.id } });
+    await uslugi().tickets.adminMerge(a.id, b.id, op.id, POWOD);
+    // TicketsService, który pierwszy odczyt zgłoszenia dostaje sprzed scalenia (scalonoDoId: null)
+    const p = prisma();
+    let pierwszy = true;
+    const ticket = new Proxy(p.ticket, {
+      get: (t, k) => {
+        if (k === 'findUnique') return async (args: unknown) => (pierwszy ? ((pierwszy = false), przed) : (t.findUnique as (a: unknown) => unknown)(args));
+        const v = Reflect.get(t, k);
+        return typeof v === 'function' ? v.bind(t) : v;
+      },
+    });
+    const pp = new Proxy(p, {
+      get: (t, k) => {
+        if (k === 'ticket') return ticket;
+        const v = Reflect.get(t, k);
+        return typeof v === 'function' ? v.bind(t) : v;
+      },
+    });
+    const { opieka } = uslugi();
+    const audit = new AuditService(p as never);
+    const mailer = { send: async (m: (typeof maile)[number]) => void maile.push(m) };
+    const t = new TicketsService(pp as never, mailer as never, { get: () => undefined } as never, {} as never, audit, { create: async () => undefined } as never, opieka);
+    const nr = new RegExp(`#${b.id.slice(0, 8)}`);
+    await expect(t.addReply(a.id, jan.id, { message: 'Halo?' })).rejects.toThrow(nr);
+    pierwszy = true;
+    await expect(t.adminAddReply(a.id, op.id, { message: 'Odpowiedź' })).rejects.toThrow(nr);
+    const zr = await prisma().ticket.findUniqueOrThrow({ where: { id: a.id }, include: { replies: true } });
+    expect(zr.status).toBe('CLOSED');
+    expect(zr.replies.map((r) => r.automatic)).toEqual(['SCALONE']);
+    expect(maile).toEqual([]);
+  });
+
+  it('zgłoszenie założone przez obsługę: po scaleniu klient widzi jego pierwszą wiadomość od „obsługi Verris”, bez imienia', async () => {
+    const { tickets } = uslugi();
+    const { op, jan } = await ludzie();
+    const a = await prisma().ticket.create({ data: { userId: jan.id, subject: 'Od nas', message: 'Widzimy problem z pocztą.', openedByStaffId: op.id, assignedToId: op.id } });
+    const b = await prisma().ticket.create({ data: { userId: jan.id, subject: 'B', message: 'b' } });
+    await prisma().ticketReply.create({ data: { ticketId: b.id, authorId: op.id, isStaff: true, message: 'Zwykła odpowiedź' } });
+    await tickets.adminMerge(a.id, b.id, op.id, POWOD);
+    const widok = await tickets.findOne(b.id, jan.id);
+    const przeniesiona = widok.replies.find((r) => r.message.startsWith('Ze zgłoszenia'))!;
+    expect(przeniesiona).toMatchObject({ isStaff: true, autor: null, authorId: null });
+    // zwykła odpowiedź obsługi dalej z imieniem (PB-37)
+    expect(widok.replies.find((r) => r.message === 'Zwykła odpowiedź')!.autor).toBe('Anna N.');
+    expect(JSON.stringify(widok)).not.toContain(op.id);
+  });
+});

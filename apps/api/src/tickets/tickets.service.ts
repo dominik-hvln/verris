@@ -338,7 +338,7 @@ export class TicketsService {
     try {
       await this.prisma.$transaction([
         this.prisma.ticketReply.create({ data: { id: replyId, message, ticketId, authorId: userId, isStaff: false } }),
-        this.prisma.ticket.update({ where: { id: ticketId }, data: this.danePoOdpowiedziKlienta() }),
+        this.prisma.ticket.update({ where: { id: ticketId, scalonoDoId: null }, data: this.danePoOdpowiedziKlienta() }),
         ...zalaczniki.map((z) => this.prisma.ticketAttachment.create({ data: z })),
         zapisPoczty(replyId),
       ]);
@@ -556,10 +556,17 @@ export class TicketsService {
     const obsluga = idObslugi.length
       ? await this.prisma.user.findMany({ where: { id: { in: idObslugi } }, select: { id: true, firstName: true, lastName: true } })
       : [];
+    // Przegląd F3.7 — pierwsza wiadomość zgłoszenia założonego przez obsługę, przeniesiona scaleniem, zostaje od
+    // „Wsparcie Verris” bez imienia — jak w zgłoszeniu, z którego przyszła (zalozylaObsluga, F2.5, D3).
+    const bezImienia = new Set(
+      (await this.prisma.ticketEvent.findMany({ where: { ticketId, type: 'MERGED_FROM' }, select: { meta: true } }))
+        .map((e) => (e.meta as { pierwszaOdObslugi?: unknown } | null)?.pierwszaOdObslugi)
+        .filter((x): x is string => typeof x === 'string'),
+    );
     const replies = widoczne.replies.map(({ authorId, internal: _wew, ...r }) => ({
       ...r,
       authorId: r.isStaff ? null : authorId,
-      autor: r.isStaff && !r.automatic ? opiekunSlownie(obsluga.find((u) => u.id === authorId)) : null,
+      autor: r.isStaff && !r.automatic && !bezImienia.has(r.id) ? opiekunSlownie(obsluga.find((u) => u.id === authorId)) : null,
     }));
     const poza = !!zakresUslug?.length && !!widoczne.subscriptionId && !zakresUslug.includes(widoczne.subscriptionId);
     const usluga = poza ? { subscriptionId: null, subscription: null } : {};
@@ -594,6 +601,10 @@ export class TicketsService {
     const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Zgłoszenie nie zostało znalezione');
     if (ticket.userId !== userId) throw new ForbiddenException('Brak dostępu');
+    // Przegląd F3.7 — scalone nie jest „rozwiązane”: ocenia się zgłoszenie docelowe (inaczej duplikat psuje CSAT).
+    if (ticket.scalonoDoId) {
+      throw new BadRequestException(`To zgłoszenie połączyliśmy z #${ticket.scalonoDoId.slice(0, 8)} — ocenisz tamto po zamknięciu.`);
+    }
     if (ticket.status !== 'CLOSED') {
       throw new BadRequestException('Ocenić można tylko zamknięte zgłoszenie.');
     }
@@ -627,7 +638,7 @@ export class TicketsService {
     if (ticket.userId !== userId) throw new ForbiddenException('Brak dostępu');
     odmowaScalonego(ticket);
 
-    const [reply] = await this.prisma.$transaction([
+    const [reply] = await this.zapisNiescalonego(ticketId, () => this.prisma.$transaction([
       this.prisma.ticketReply.create({
         data: {
           message: dto.message,
@@ -637,7 +648,7 @@ export class TicketsService {
         },
       }),
       this.prisma.ticket.update({
-        where: { id: ticketId },
+        where: { id: ticketId, scalonoDoId: null },
         data: {
           status: 'OPEN',
           resolvedAt: null,
@@ -648,7 +659,7 @@ export class TicketsService {
           lastReplyIsStaff: false,
         }, // Reopen if they reply
       }),
-    ]);
+    ]));
 
     const full = await this.prisma.ticket.findUnique({
       where: { id: ticketId },
@@ -797,6 +808,10 @@ export class TicketsService {
     // F3.7 — opiekunem może być tylko osoba z zespołu (wcześniej przechodził dowolny id — także klienta, który
     // dostawał wtedy dzwonek i mail „Przypisano Ci zgłoszenie” z cudzą sprawą). Dotyczy też makr i akcji masowych.
     if (dto.assignedToId && dto.assignedToId !== existing.assignedToId) await this.sprawdzOpiekuna(dto.assignedToId);
+    // Przegląd F3.7 — scalone zostaje zamknięte: otwarte trafiłoby do kolejki (SLA, przypomnienia), a odpisać się nie da.
+    if (existing.scalonoDoId && dto.status && dto.status !== existing.status) {
+      throw new BadRequestException(`Zgłoszenie połączone z #${existing.scalonoDoId.slice(0, 8)} — stan zmienia się w zgłoszeniu docelowym.`);
+    }
 
     const dataToUpdate: Prisma.TicketUncheckedUpdateInput = { ...dto };
     if (dto.status === 'CLOSED') {
@@ -906,6 +921,23 @@ export class TicketsService {
     }
 
     return updated;
+  }
+
+  /**
+   * Przegląd F3.7 — wyścig ze scaleniem: zgłoszenie scalono między sprawdzeniem (odmowaScalonego) a zapisem
+   * odpowiedzi. Zapis stanu idzie z warunkiem `scalonoDoId: null` (scalenie trzyma blokadę wiersza, więc warunek
+   * sprawdza się po nim) — brak wiersza (P2025) = cała transakcja wycofana i ta sama odmowa z numerem celu.
+   */
+  private async zapisNiescalonego<T>(ticketId: string, zapis: () => Promise<T>): Promise<T> {
+    try {
+      return await zapis();
+    } catch (e) {
+      if ((e as { code?: unknown })?.code === 'P2025') {
+        const t = await this.prisma.ticket.findUnique({ where: { id: ticketId }, select: { scalonoDoId: true } });
+        if (t) odmowaScalonego(t);
+      }
+      throw e;
+    }
   }
 
   /** F3.7 — opiekun zgłoszenia: istniejące, aktywne konto zespołu (STAFF albo ADMIN). */
@@ -1055,7 +1087,11 @@ export class TicketsService {
       await tx.ticketEvent.createMany({
         data: [
           { ticketId: zr.id, type: 'MERGED_INTO', actorId: actorUserId, meta: { cel: cel.id, reason: uzasadnienie } },
-          { ticketId: cel.id, type: 'MERGED_FROM', actorId: actorUserId, meta: { zrodlo: zr.id, reason: uzasadnienie, odpowiedzi } },
+          {
+            ticketId: cel.id, type: 'MERGED_FROM', actorId: actorUserId,
+            // Przegląd F3.7 — pierwsza wiadomość zgłoszenia założonego przez obsługę: klient widzi ją bez imienia (F2.5, D3).
+            meta: { zrodlo: zr.id, reason: uzasadnienie, odpowiedzi, ...(zr.openedByStaffId ? { pierwszaOdObslugi: pierwsza.id } : {}) },
+          },
         ],
       });
       return { klientId: zr.userId, odpowiedzi };
@@ -1297,7 +1333,7 @@ export class TicketsService {
       dataToUpdate.firstResponseAt = new Date(); // Złapanie SLA (TTFR)
     }
 
-    const [reply] = await this.prisma.$transaction([
+    const [reply] = await this.zapisNiescalonego(ticketId, () => this.prisma.$transaction([
       this.prisma.ticketReply.create({
         data: {
           message: dto.message,
@@ -1307,10 +1343,10 @@ export class TicketsService {
         },
       }),
       this.prisma.ticket.update({
-        where: { id: ticketId },
+        where: { id: ticketId, scalonoDoId: null },
         data: dataToUpdate,
       }),
-    ]);
+    ]));
 
     const full = await this.prisma.ticket.findUnique({
       where: { id: ticketId },
@@ -1497,7 +1533,7 @@ export class TicketsService {
     if (ticket.userId !== userId) throw new ForbiddenException('Brak dostępu');
     odmowaScalonego(ticket);
 
-    const [reply] = await this.prisma.$transaction([
+    const [reply] = await this.zapisNiescalonego(ticketId, () => this.prisma.$transaction([
       this.prisma.ticketReply.create({
         data: {
           message: dto.message,
@@ -1507,7 +1543,7 @@ export class TicketsService {
         },
       }),
       this.prisma.ticket.update({
-        where: { id: ticketId },
+        where: { id: ticketId, scalonoDoId: null },
         data: {
           status: 'OPEN',
           resolvedAt: null,
@@ -1518,7 +1554,7 @@ export class TicketsService {
           lastReplyIsStaff: false,
         },
       }),
-    ]);
+    ]));
 
     await this.saveAttachmentFiles({
       ticketId,
@@ -1580,7 +1616,7 @@ export class TicketsService {
       dataToUpdate['firstResponseAt'] = new Date();
     }
 
-    const [reply] = await this.prisma.$transaction([
+    const [reply] = await this.zapisNiescalonego(ticketId, () => this.prisma.$transaction([
       this.prisma.ticketReply.create({
         data: {
           message: dto.message,
@@ -1590,10 +1626,10 @@ export class TicketsService {
         },
       }),
       this.prisma.ticket.update({
-        where: { id: ticketId },
+        where: { id: ticketId, scalonoDoId: null },
         data: dataToUpdate,
       }),
-    ]);
+    ]));
 
     await this.saveAttachmentFiles({
       ticketId,

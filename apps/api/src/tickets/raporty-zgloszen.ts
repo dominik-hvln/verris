@@ -85,7 +85,8 @@ export class RaportyZgloszenService {
 
     // ── CSAT: oceny wystawione w okresie (istniejące pola zgłoszenia, jak „Opieka nad zgłoszeniami”)
     const oceny = await this.prisma.ticket.findMany({
-      where: { csatAt: { gte: od, lte: teraz } },
+      // Przegląd F3.7 — scalone źródło nie jest „rozwiązane” (ocena idzie na zgłoszenie docelowe).
+      where: { csatAt: { gte: od, lte: teraz }, scalonoDoId: null },
       select: { csatRating: true, agentRating: true, csatResolved: true, csatAgentId: true },
     });
     const rozstrz = oceny.filter((x) => x.csatResolved != null);

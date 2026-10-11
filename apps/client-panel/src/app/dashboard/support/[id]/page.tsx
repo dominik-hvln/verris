@@ -91,7 +91,8 @@ export default async function ClientTicketPage(props: { params: Promise<{ id: st
             <ClientTicketChat ticket={ticket} />
           </div>
 
-          {zamkniete ? (
+          {/* Przegląd F3.7 — połączone z innym nie jest „rozwiązane”: ocenia się zgłoszenie docelowe. */}
+          {zamkniete && !ticket.scalonoDoId ? (
             <TicketCsat
               ticketId={ticket.id}
               opiekun={ticket.opiekun ?? null}
