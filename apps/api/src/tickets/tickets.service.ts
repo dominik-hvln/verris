@@ -6,6 +6,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { ZrodloWiadomosci } from './zgloszenie-klienta.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
@@ -175,11 +176,12 @@ export class TicketsService {
   async create(
     userId: string,
     dto: CreateTicketDto,
-    opcje: { bezPotwierdzenia?: boolean; zakresUslug?: readonly string[] | null } = {},
+    opcje: { bezPotwierdzenia?: boolean; zakresUslug?: readonly string[] | null; zrodlo?: ZrodloWiadomosci } = {},
   ) {
     if (dto.subscriptionId) await this.sprawdzUsluge(userId, dto.subscriptionId, opcje.zakresUslug);
     const row = await this.prisma.ticket.create({
-      data: await this.daneNowegoZgloszenia(userId, dto),
+      // Audyt Fali 3 — bez wskazania źródła to automat (dodatek, migracja), nie klient w panelu.
+      data: { ...(await this.daneNowegoZgloszenia(userId, dto)), zrodlo: opcje.zrodlo ?? 'SYSTEM' },
       include: { user: { select: { email: true } }, assignedTo: { select: { email: true } } },
     });
     await this.poUtworzeniu(row, opcje);
@@ -305,7 +307,7 @@ export class TicketsService {
     zapisPoczty: (ticketId: string) => Prisma.PrismaPromise<unknown>,
   ): Promise<{ id: string }> {
     const id = randomUUID();
-    const dane = { ...(await this.daneNowegoZgloszenia(userId, dto)), id, tags: dto.tags ?? [] };
+    const dane = { ...(await this.daneNowegoZgloszenia(userId, dto)), id, tags: dto.tags ?? [], zrodlo: 'EMAIL' };
     const zalaczniki = await this.wgrajPlikiZPoczty(id, null, userId, pliki, 0);
     try {
       await this.prisma.$transaction([
@@ -334,11 +336,14 @@ export class TicketsService {
   ): Promise<{ replyId: string; pominietePliki: number }> {
     const replyId = randomUUID();
     const juz = await this.prisma.ticketAttachment.count({ where: { ticketId } });
+    // Audyt Fali 3 — wątek z treścią z niezweryfikowanego maila: tag dla obsługi (dowód klienta liczy źródło wiadomości).
+    const tagi = (await this.prisma.ticket.findUnique({ where: { id: ticketId }, select: { tags: true } }))?.tags ?? [];
+    const zTagiem = !tagi.includes(TAG_EMAIL_NIEZWERYFIKOWANY) && tagi.length < TAGI_MAX ? { tags: [...tagi, TAG_EMAIL_NIEZWERYFIKOWANY] } : {};
     const zalaczniki = await this.wgrajPlikiZPoczty(ticketId, replyId, userId, pliki, juz);
     try {
       await this.prisma.$transaction([
-        this.prisma.ticketReply.create({ data: { id: replyId, message, ticketId, authorId: userId, isStaff: false } }),
-        this.prisma.ticket.update({ where: { id: ticketId, scalonoDoId: null }, data: this.danePoOdpowiedziKlienta() }),
+        this.prisma.ticketReply.create({ data: { id: replyId, message, ticketId, authorId: userId, isStaff: false, zrodlo: 'EMAIL' } }),
+        this.prisma.ticket.update({ where: { id: ticketId, scalonoDoId: null }, data: { ...this.danePoOdpowiedziKlienta(), ...zTagiem } }),
         ...zalaczniki.map((z) => this.prisma.ticketAttachment.create({ data: z })),
         zapisPoczty(replyId),
       ]);
@@ -439,6 +444,7 @@ export class TicketsService {
         userId: klient.id,
         assignedToId: actorUserId,
         openedByStaffId: actorUserId,
+        zrodlo: 'OBSLUGA',
         status: 'WAITING_CUSTOMER',
         waitingSince: teraz,
         firstResponseAt: teraz,
@@ -632,7 +638,8 @@ export class TicketsService {
   /**
    * Klient dodaje odpowiedź do zgłoszenia.
    */
-  async addReply(ticketId: string, userId: string, dto: AddTicketReplyDto) {
+  /** @param zrodlo — PANEL (klient) albo IMPERSONACJA (operator „jako klient”); audyt Fali 3, dowód klienta. */
+  async addReply(ticketId: string, userId: string, dto: AddTicketReplyDto, zrodlo: ZrodloWiadomosci = 'PANEL') {
     const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Zgłoszenie nie zostało znalezione');
     if (ticket.userId !== userId) throw new ForbiddenException('Brak dostępu');
@@ -645,6 +652,7 @@ export class TicketsService {
           ticketId,
           authorId: userId,
           isStaff: false,
+          zrodlo,
         },
       }),
       this.prisma.ticket.update({
@@ -1027,12 +1035,12 @@ export class TicketsService {
     if (uzasadnienie.length < 10) throw new BadRequestException('Podaj powód scalenia (min. 10 znaków).');
     if (zrodloId === celId) throw new BadRequestException('Wybierz inne zgłoszenie niż to, które scalasz.');
     type Wiersz = {
-      id: string; userId: string; subject: string; message: string; createdAt: Date; openedByStaffId: string | null;
+      id: string; userId: string; subject: string; message: string; createdAt: Date; openedByStaffId: string | null; zrodlo: string | null;
       scalonoDoId: string | null; tags: string[]; lastReplyAt: Date | null; lastReplyIsStaff: boolean | null; status: string;
     };
     const wynik = await this.prisma.$transaction(async (tx) => {
       const wiersze = await tx.$queryRaw<Wiersz[]>`
-        SELECT "id", "userId", "subject", "message", "createdAt", "openedByStaffId", "scalonoDoId", "tags", "lastReplyAt", "lastReplyIsStaff", "status"
+        SELECT "id", "userId", "subject", "message", "createdAt", "openedByStaffId", "zrodlo", "scalonoDoId", "tags", "lastReplyAt", "lastReplyIsStaff", "status"
         FROM "Ticket" WHERE "id" IN (${zrodloId}, ${celId}) ORDER BY "id" FOR UPDATE`;
       const zr = wiersze.find((w) => w.id === zrodloId);
       const cel = wiersze.find((w) => w.id === celId);
@@ -1049,6 +1057,8 @@ export class TicketsService {
           ticketId: cel.id,
           authorId: zr.openedByStaffId ?? zr.userId,
           isStaff: !!zr.openedByStaffId,
+          // Audyt Fali 3 — źródło przechodzi z treścią (mail, automat, podgląd konta nie stają się „klientem z panelu”).
+          zrodlo: zr.zrodlo,
           message: `Ze zgłoszenia #${zr.id.slice(0, 8)} „${zr.subject}”:\n\n${zr.message}`,
           createdAt: zr.createdAt,
         },
@@ -1399,6 +1409,7 @@ export class TicketsService {
     fields: { subject: string; message: string; priority?: string; department?: string; topic?: string; subscriptionId?: string },
     files?: Express.Multer.File[] | null,
     zakresUslug?: readonly string[] | null,
+    zrodlo: ZrodloWiadomosci = 'PANEL',
   ) {
     const dto: CreateTicketDto = {
       subject: fields.subject,
@@ -1409,7 +1420,7 @@ export class TicketsService {
       subscriptionId: fields.subscriptionId || undefined,
     };
 
-    const row = await this.create(userId, dto, { zakresUslug });
+    const row = await this.create(userId, dto, { zakresUslug, zrodlo });
     const list = files?.filter(Boolean) ?? [];
     if (list.length > 0) {
       if (list.length > TICKET_UPLOAD_MAX_FILES_PER_BATCH) {
@@ -1519,10 +1530,11 @@ export class TicketsService {
     userId: string,
     message: string,
     files: Express.Multer.File[] | undefined,
+    zrodlo: ZrodloWiadomosci = 'PANEL',
   ) {
     const dto: AddTicketReplyDto = { message };
     if (!files?.length) {
-      return this.addReply(ticketId, userId, dto);
+      return this.addReply(ticketId, userId, dto, zrodlo);
     }
     if (files.length > TICKET_UPLOAD_MAX_FILES_PER_BATCH) {
       throw new BadRequestException(`Maksymalnie ${TICKET_UPLOAD_MAX_FILES_PER_BATCH} plików naraz.`);
@@ -1540,6 +1552,7 @@ export class TicketsService {
           ticketId,
           authorId: userId,
           isStaff: false,
+          zrodlo,
         },
       }),
       this.prisma.ticket.update({
@@ -1765,6 +1778,8 @@ export class TicketsService {
 
 /** F2.5 — tag: małe litery, cyfry i myślnik (spacje → myślnik), 1–32 znaki; najwyżej 10 na zgłoszeniu. */
 export const TAGI_MAX = 10;
+/** Audyt Fali 3 — tag zgłoszenia z treścią z maila: adres nadawcy nie jest uwierzytelniony (nie jest dowodem klienta). */
+export const TAG_EMAIL_NIEZWERYFIKOWANY = 'e-mail-niezweryfikowany';
 /**
  * F3.7 — do scalonego zgłoszenia nie da się już pisać (wątek przeszedł do zgłoszenia docelowego). Klient i obsługa
  * dostają numer celu; mail od klienta trafia do celu sam (poczta-przychodzaca.service.ts).

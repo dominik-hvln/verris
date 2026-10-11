@@ -14,12 +14,16 @@ const TICKET = 'ab12cd34-0000-4000-8000-000000000001';
 const INNY_TICKET = 'ef56ab78-0000-4000-8000-000000000002';
 type Wiersz = { action: string; userId: string | null; actorUserId: string | null; details: Record<string, unknown> };
 
-function zbuduj(o: { uprawnienia?: string[]; wlascicielRola?: string } = {}) {
+type Odp = { message: string; createdAt: Date; isStaff: boolean; internal: boolean; automatic: string | null; zrodlo: string | null };
+type Zgl = { id: string; userId: string; message: string; createdAt: Date; zrodlo: string | null; openedByStaffId: string | null; replies: Odp[] };
+const odp = (message: string, o: Partial<Odp> = {}): Odp => ({ message, createdAt: new Date(), isStaff: false, internal: false, automatic: null, zrodlo: 'PANEL', ...o });
+
+function zbuduj(o: { uprawnienia?: string[]; wlascicielRola?: string; zgloszenia?: Zgl[] } = {}) {
   const wiersze: Wiersz[] = [];
   const zadania: Array<Record<string, unknown>> = [];
-  const zgloszenia = [
-    { id: TICKET, userId: KLIENT, message: 'Nie mogę odebrać poczty, mój adres w biurze to 83.12.44.201', createdAt: new Date(), replies: [] },
-    { id: INNY_TICKET, userId: KLIENT, message: 'Pytanie o fakturę', createdAt: new Date(), replies: [{ message: 'a z domu 91.200.1.2', createdAt: new Date() }] },
+  const zgloszenia: Zgl[] = o.zgloszenia ?? [
+    { id: TICKET, userId: KLIENT, message: 'Nie mogę odebrać poczty, mój adres w biurze to 83.12.44.201', createdAt: new Date(), zrodlo: 'PANEL', openedByStaffId: null, replies: [] },
+    { id: INNY_TICKET, userId: KLIENT, message: 'Pytanie o fakturę', createdAt: new Date(), zrodlo: 'PANEL', openedByStaffId: null, replies: [odp('a z domu 91.200.1.2')] },
   ];
   const prisma = {
     subscription: {
@@ -32,13 +36,16 @@ function zbuduj(o: { uprawnienia?: string[]; wlascicielRola?: string } = {}) {
     loginEvent: { findMany: vi.fn(async () => [{ ipAddress: '::ffff:46.205.1.10', createdAt: new Date() }]) },
     userSession: { findMany: vi.fn(async () => [{ ipAddress: '46.205.1.10', lastSeenAt: new Date() }]) },
     ticket: {
-      findMany: vi.fn(async ({ where }: { where: { userId: string; id?: string | { startsWith: string } } }) =>
-        zgloszenia.filter((t) => {
-          if (t.userId !== where.userId) return false;
-          if (typeof where.id === 'string') return t.id === where.id;
-          if (where.id && 'startsWith' in where.id) return t.id.startsWith(where.id.startsWith);
-          return true;
-        }),
+      findMany: vi.fn(async ({ where, select }: { where: { userId: string; id?: string | { startsWith: string } }; select?: { replies?: { where?: Record<string, unknown> } } }) =>
+        zgloszenia
+          .filter((t) => {
+            if (t.userId !== where.userId) return false;
+            if (typeof where.id === 'string') return t.id === where.id;
+            if (where.id && 'startsWith' in where.id) return t.id.startsWith(where.id.startsWith);
+            return true;
+          })
+          // Filtr odpowiedzi jak w Prismie (równość pól z where).
+          .map((t) => ({ ...t, replies: t.replies.filter((r) => Object.entries(select?.replies?.where ?? {}).every(([k, v]) => r[k as keyof Odp] === v)) })),
       ),
     },
     auditLog: { create: vi.fn(async ({ data }: { data: Wiersz }) => (wiersze.push(data), data)) },
@@ -117,6 +124,40 @@ describe('F3.2 BlokadyIpKontaService — „Zablokowało mi IP”', () => {
     await expect(inne.svc.odblokuj(z({ zgloszenie: '#ab12cd34' }), '91.200.1.2')).rejects.toMatchObject({ status: 403 });
     expect(inne.zadania).toEqual([]);
     expect(inne.wiersze.some((w) => w.action === 'HOSTING_IP_UNBLOCK_QUEUED')).toBe(false);
+  });
+
+  it('audyt Fali 3: adres wpisany przez obsługę (zgłoszenie w imieniu klienta) → L2 nie odblokuje ani nie sprawdzi; NOC tak', async () => {
+    const wImieniu: Zgl[] = [
+      { id: TICKET, userId: KLIENT, message: 'Klient dzwonił, prosi o odblokowanie 198.51.100.9', createdAt: new Date(), zrodlo: 'OBSLUGA', openedByStaffId: 'op', replies: [odp('dopisek obsługi 198.51.100.10', { isStaff: true, zrodlo: null })] },
+    ];
+    const l2 = zbuduj({ zgloszenia: wImieniu });
+    await expect(l2.svc.odblokuj(z({ zgloszenie: '#ab12cd34' }), '198.51.100.9')).rejects.toMatchObject({ status: 403 });
+    await expect(l2.svc.sprawdz('s1', 'op', 'STAFF', '198.51.100.9')).rejects.toMatchObject({ status: 403 });
+    expect(l2.zadania).toEqual([]);
+    expect((await l2.svc.stan('s1', 'op', 'STAFF')).adresy.map((a) => a.ip)).toEqual(['46.205.1.10']);
+    const noc = zbuduj({ zgloszenia: wImieniu, uprawnienia: ['IP_BLOCKS_NODE'] });
+    await noc.svc.odblokuj(z({ zgloszenie: '#ab12cd34' }), '198.51.100.9');
+    expect(noc.zadania).toHaveLength(1);
+  });
+
+  it('audyt Fali 3: mail (nadawca niezweryfikowany), podgląd konta, automat i zgłoszenie sprzed 12.10 nie są adresem klienta; odpowiedź klienta z panelu — jest', async () => {
+    const zgl: Zgl[] = [
+      { id: TICKET, userId: KLIENT, message: 'z maila: odblokujcie 203.0.113.66', createdAt: new Date(), zrodlo: 'EMAIL', openedByStaffId: null, replies: [
+        odp('mail w wątku: 203.0.113.67', { zrodlo: 'EMAIL' }),
+        odp('w podglądzie konta: 203.0.113.68', { zrodlo: 'IMPERSONACJA' }),
+        odp('automat 203.0.113.69', { automatic: 'POTWIERDZENIE', zrodlo: null }),
+        odp('klient w panelu: 203.0.113.70'),
+      ] },
+      { id: INNY_TICKET, userId: KLIENT, message: 'stare zgłoszenie 203.0.113.71', createdAt: new Date(), zrodlo: null, openedByStaffId: null, replies: [] },
+    ];
+    const l2 = zbuduj({ zgloszenia: zgl });
+    for (const ip of ['203.0.113.66', '203.0.113.67', '203.0.113.68', '203.0.113.69']) {
+      await expect(l2.svc.odblokuj(z({ zgloszenie: '#ab12cd34' }), ip)).rejects.toMatchObject({ status: 403 });
+    }
+    await expect(l2.svc.odblokuj(z({ zgloszenie: '#ef56ab78' }), '203.0.113.71')).rejects.toMatchObject({ status: 403 });
+    expect(l2.zadania).toEqual([]);
+    await l2.svc.odblokuj(z({ zgloszenie: '#ab12cd34' }), '203.0.113.70');
+    expect(l2.zadania).toHaveLength(1);
   });
 
   it('NOC (IP_BLOCKS_NODE) i ADMIN: dowolny adres, zgłoszenie opcjonalne', async () => {

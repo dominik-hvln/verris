@@ -13,7 +13,7 @@ import { CONTROL_PLANE_MAIL_DOMAIN } from '../../control-plane-mail/control-plan
 import { krotkieIdZTematu, zgloszenieZNaglowkow } from '../../mail/watek-zgloszenia.js';
 import { stronaListy } from '../../subscriptions/lista-uslug.js';
 import { uprawnieniaOperatora } from '../../staff-roles/uprawnienia-operatora.js';
-import { TicketsService } from '../tickets.service.js';
+import { TAG_EMAIL_NIEZWERYFIKOWANY, TicketsService } from '../tickets.service.js';
 import { BladImap, PolaczenieImap, polaczTls } from './imap.js';
 import {
   dataOtrzymania,
@@ -200,8 +200,11 @@ export class PocztaPrzychodzacaService {
       });
     }
 
-    // DMARC fail dopisany przez nasz serwer poczty — adresowi nadawcy nie ufamy (podszycie pod klienta).
-    // NIEZWERYFIKOWANE z dokumentacją Rspamd (nagłówek Authentication-Results) — sprawdzić na t1.
+    // DMARC fail — adresowi nadawcy nie ufamy (podszycie pod klienta). Audyt Fali 3: ops/rspamd/local.d/milter_headers.conf
+    // nie włącza rutyny `authentication-results` (https://rspamd.com/doc/modules/milter_headers.html), więc nagłówek
+    // mógł dopisać sam nadawca — działa tylko w stronę ostrożności (do kolejki). Wyniku „pass” nie używamy nigdzie:
+    // zgłoszenia i odpowiedzi z maila mają źródło EMAIL i tag „e-mail-niezweryfikowany” i nie są dowodem klienta dla
+    // operacji wrażliwych (zgloszenie-klienta.ts). NIEZWERYFIKOWANE z dokumentacją — sprawdzić na t1.
     const dmarcFail = m.naglowki.some((h) => h.key === 'authentication-results' && /\bdmarc=fail\b/i.test(h.value));
     const klient = dmarcFail ? null : await this.klient(m.nadawca);
     const zWatku = await this.zgloszenieZWatku(m, msgId, klient?.id ?? null);
@@ -309,7 +312,8 @@ export class PocztaPrzychodzacaService {
           subject: tematZgloszenia(m.temat),
           message: trescZgloszenia(m),
           department: 'TECHNICAL',
-          tags: baza.rodzaj === 'ABUSE' ? ['e-mail', 'abuse'] : ['e-mail'],
+          // Audyt Fali 3 — adres nadawcy nieuwierzytelniony: tag dla obsługi; treść nie jest dowodem klienta (zrodlo EMAIL).
+          tags: baza.rodzaj === 'ABUSE' ? ['e-mail', TAG_EMAIL_NIEZWERYFIKOWANY, 'abuse'] : ['e-mail', TAG_EMAIL_NIEZWERYFIKOWANY],
         },
         m.zalaczniki,
         (ticketId) => this.prisma.pocztaPrzychodzaca.create({ data: { ...baza, wynik: 'ZGLOSZENIE', ticketId, userId, zalaczniki: pominiete(m.pominiete) as never } }),
@@ -481,7 +485,12 @@ export class PocztaPrzychodzacaService {
       await this.zajmij(id, w.wynik, actorUserId);
       try {
         ticketId = (
-          await this.tickets.create(k.id, { subject: tematZgloszenia(w.temat), message: w.tresc?.trim() || '(pusta wiadomość)', department: 'TECHNICAL' })
+          // Audyt Fali 3 — treść obcego maila przypisana przez obsługę to nie wiadomość klienta (dowód klienta: tylko PANEL).
+          await this.tickets.create(
+            k.id,
+            { subject: tematZgloszenia(w.temat), message: w.tresc?.trim() || '(pusta wiadomość)', department: 'TECHNICAL' },
+            { zrodlo: 'OBSLUGA' },
+          )
         ).id;
       } catch (e) {
         await this.prisma.pocztaPrzychodzaca.update({ where: { id }, data: { wynik: w.wynik, obsluzylId: null, obsluzono: null } });

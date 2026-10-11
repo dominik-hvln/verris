@@ -51,6 +51,7 @@ import { ListaZgloszenQuery } from './lista-zgloszen.js';
 import { Delete, HttpCode } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+import { zrodloZPanelu } from './zgloszenie-klienta.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
@@ -122,20 +123,20 @@ export class TicketsController {
   }
 
   @Post()
-  async create(@CurrentUser() user: { userId: string; serviceScope?: string[] }, @Body() dto: CreateTicketDto) {
-    return await this.ticketsService.create(user.userId, dto, { zakresUslug: user.serviceScope });
+  async create(@CurrentUser() user: { userId: string; serviceScope?: string[]; impersonatedBy?: string }, @Body() dto: CreateTicketDto) {
+    return await this.ticketsService.create(user.userId, dto, { zakresUslug: user.serviceScope, zrodlo: zrodloZPanelu(user) });
   }
 
   /** multipart: subject, message, priority?, department?, files[] */
   @Post('with-attachments')
   @UseInterceptors(FILES_MEMORY)
   async createWithAttachments(
-    @CurrentUser() user: { userId: string; serviceScope?: string[] },
+    @CurrentUser() user: { userId: string; serviceScope?: string[]; impersonatedBy?: string },
     // Pola multipart przechodzą przez ten sam DTO co JSON — wcześniej `@Body('pole')` omijało walidację.
     @Body() dto: CreateTicketDto,
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
-    return this.ticketsService.createWithOptionalFiles(user.userId, dto, files, user.serviceScope);
+    return this.ticketsService.createWithOptionalFiles(user.userId, dto, files, user.serviceScope, zrodloZPanelu(user));
   }
 
   // F2.5 — zgłoszenie założone przez obsługę w imieniu klienta (karta klienta, skrzynka).
@@ -424,11 +425,11 @@ export class TicketsController {
   @UseInterceptors(FILES_MEMORY)
   async clientReplyWithFiles(
     @Param('ticketId') ticketId: string,
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: { userId: string; impersonatedBy?: string },
     @Body() { message }: AddTicketReplyDto,
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
-    return this.ticketsService.clientReplyWithFiles(ticketId, user.userId, message, files);
+    return this.ticketsService.clientReplyWithFiles(ticketId, user.userId, message, files, zrodloZPanelu(user));
   }
 
   @Get(':ticketId/attachments/:attachmentId/file')
@@ -458,10 +459,10 @@ export class TicketsController {
   @Post(':id/replies')
   async addReply(
     @Param('id') id: string,
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: { userId: string; impersonatedBy?: string },
     @Body() dto: AddTicketReplyDto,
   ) {
-    return this.ticketsService.addReply(id, user.userId, dto);
+    return this.ticketsService.addReply(id, user.userId, dto, zrodloZPanelu(user));
   }
 
   // SUP-4 — ocena wsparcia po zamknięciu zgłoszenia.

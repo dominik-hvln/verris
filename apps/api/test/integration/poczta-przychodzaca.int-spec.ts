@@ -85,7 +85,7 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     const p = await wpis('<CAF1234nowe@mail.klient.pl>');
     expect(p).toMatchObject({ wynik: 'ZGLOSZENIE', userId: jan.id, rodzaj: 'SUPPORT', uid: 7, tresc: null });
     const t = await prisma().ticket.findUniqueOrThrow({ where: { id: p.ticketId! }, include: { attachments: true } });
-    expect(t).toMatchObject({ userId: jan.id, subject: 'Błąd 500 na stronie sklepu', status: 'OPEN', tags: ['e-mail'] });
+    expect(t).toMatchObject({ userId: jan.id, subject: 'Błąd 500 na stronie sklepu', status: 'OPEN', tags: ['e-mail', 'e-mail-niezweryfikowany'], zrodlo: 'EMAIL' });
     expect(t.message).toContain('strona sklepu zwraca błąd 500');
     expect(t.message).toContain('Nie dołączono pliku „faktura.pdf.exe”');
     expect(t.slaResponseDueAt).not.toBeNull();

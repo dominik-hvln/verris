@@ -5,7 +5,7 @@ import { AuditService } from '../common/audit/audit.service.js';
 import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
 import { TicketsService } from '../tickets/tickets.service.js';
 import { CyklZyciaUslugiActions, SupportActions } from '../common/audit/audit.actions.js';
-import { zgloszenieKlienta } from '../tickets/zgloszenie-klienta.js';
+import { wymagajProsbyKlienta, zgloszenieKlienta } from '../tickets/zgloszenie-klienta.js';
 
 type AddonMode = 'flag' | 'workorder';
 
@@ -240,6 +240,8 @@ export class AddonService {
     if (i.platnosc === 'PORTFEL' && !zgloszenieId) {
       throw new BadRequestException('Obciążenie portfela klienta tylko na jego zamówienie — podaj numer jego zgłoszenia albo dodaj gratis.');
     }
+    // Audyt Fali 3 — zamówienie to wiadomość klienta z panelu, nie zgłoszenie założone przez obsługę ani mail.
+    if (i.platnosc === 'PORTFEL') await wymagajProsbyKlienta(this.prisma, zgloszenieId!, 'Obciążenie portfela klienta');
     // Audyt Fali 3 — zawieszona usługa nie działa: obciążenie portfela za dodatek do niej (także z wniosku złożonego,
     // gdy była aktywna) to płatność za nic. Wariant zachowawczy — gratis można, z portfela po odwieszeniu.
     if (i.platnosc === 'PORTFEL' && sub.status === 'SUSPENDED') {

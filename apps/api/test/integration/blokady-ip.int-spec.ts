@@ -70,7 +70,7 @@ else:
     const k = await utworzKonto({ serverId: wezel.id, planId: (await utworzPlan()).id });
     const rola = await prisma().staffRole.create({ data: { name: `L2 test ${Date.now()}`, permissions: ['IP_UNBLOCK'] } });
     const l2 = await prisma().user.create({ data: { email: `l2-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'STAFF', staffRoleId: rola.id } });
-    const zgl = await prisma().ticket.create({ data: { userId: k.user.id, subject: 'Nie odbieram poczty', message: 'Od rana nie mogę odebrać poczty. Mój adres IP: 83.12.44.201' } });
+    const zgl = await prisma().ticket.create({ data: { userId: k.user.id, zrodlo: 'PANEL', subject: 'Nie odbieram poczty', message: 'Od rana nie mogę odebrać poczty. Mój adres IP: 83.12.44.201' } });
     const audit = new AuditService(p);
     const akcje = new AkcjeKontaOperatoraService(p, null as never, null as never, null as never, audit, null as never, { get: () => 'x' } as never, new ZawieszenieOperatoraService(p, null as never));
     const svc = new BlokadyIpKontaService(p, audit, akcje, new BlokadyIpWezlaService(p, audit));

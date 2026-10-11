@@ -155,14 +155,20 @@ describe('F3.5 — dodatki dodawane przez obsługę', () => {
     const u = await usluga(k.id);
     const o = await op();
     await expect(sklep().dodajPrzezOperatora({ subscriptionId: u.id, slug: 'dedicated_ip', platnosc: 'PORTFEL', operator: o, powod: POWOD })).rejects.toMatchObject({ status: 400 });
-    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'Proszę o IP', message: 'x' } });
+    // Audyt Fali 3 — zgłoszenie założone przez obsługę „w imieniu” albo z maila to nie zamówienie klienta: 403, bez obciążenia.
+    for (const [zrodlo, openedByStaffId] of [['OBSLUGA', o.userId], ['EMAIL', null]] as const) {
+      const nieKlienta = await prisma().ticket.create({ data: { userId: k.id, zrodlo, openedByStaffId, subject: 'IP', message: 'proszę o IP' } });
+      await expect(sklep().dodajPrzezOperatora({ subscriptionId: u.id, slug: 'dedicated_ip', platnosc: 'PORTFEL', operator: o, powod: POWOD, zgloszenie: nieKlienta.id })).rejects.toMatchObject({ status: 403 });
+    }
+    expect(await saldo(k.id)).toBe(100);
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, zrodlo: 'PANEL', subject: 'Proszę o IP', message: 'x' } });
     await sklep().dodajPrzezOperatora({ subscriptionId: u.id, slug: 'dedicated_ip', platnosc: 'PORTFEL', operator: o, powod: POWOD, zgloszenie: zgl.id, klucz: 'panel:abc12345' });
     expect(await saldo(k.id)).toBe(75);
     const tx = await prisma().walletTransaction.findFirstOrThrow({ where: { userId: k.id } });
     expect(tx).toMatchObject({ type: 'CHARGE_USAGE', description: 'Dodatek: Dedykowane IP' });
     const ubogi = await klient(10);
     const u2 = await usluga(ubogi.id);
-    const zgl2 = await prisma().ticket.create({ data: { userId: ubogi.id, subject: 'IP', message: 'x' } });
+    const zgl2 = await prisma().ticket.create({ data: { userId: ubogi.id, zrodlo: 'PANEL', subject: 'IP', message: 'x' } });
     await expect(sklep().dodajPrzezOperatora({ subscriptionId: u2.id, slug: 'dedicated_ip', platnosc: 'PORTFEL', operator: o, powod: POWOD, zgloszenie: zgl2.id })).rejects.toThrow();
     expect(await zakupy(ubogi.id)).toHaveLength(0);
     expect(zgloszenia).toBe(1);
@@ -176,7 +182,7 @@ describe('F3.5 — dodatki dodawane przez obsługę', () => {
     const k = await klient(0);
     const uk = await usluga(k.id);
     const obcy = await klient(0);
-    const obce = await prisma().ticket.create({ data: { userId: obcy.id, subject: 'x', message: 'x' } });
+    const obce = await prisma().ticket.create({ data: { userId: obcy.id, zrodlo: 'PANEL', subject: 'x', message: 'x' } });
     await expect(sklep().dodajPrzezOperatora({ subscriptionId: uk.id, slug: 'manual_setup', platnosc: 'GRATIS', operator: o, powod: POWOD, zgloszenie: obce.id })).rejects.toMatchObject({ status: 400 });
     await expect(sklep().dodajPrzezOperatora({ subscriptionId: uk.id, slug: 'manual_setup', platnosc: 'GRATIS', operator: o, powod: 'krótko' })).rejects.toMatchObject({ status: 400 });
     expect(zgloszenia).toBe(0);
@@ -186,7 +192,7 @@ describe('F3.5 — dodatki dodawane przez obsługę', () => {
     const k = await klient(100);
     const u = await usluga(k.id);
     await prisma().subscription.update({ where: { id: u.id }, data: { status: 'CANCELED', canceledAt: new Date() } });
-    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'IP', message: 'x' } });
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, zrodlo: 'PANEL', subject: 'IP', message: 'x' } });
     const admin = await op('ADMIN');
     await expect(
       sklep().dodajPrzezOperatora({ subscriptionId: u.id, slug: 'dedicated_ip', platnosc: 'PORTFEL', operator: admin, powod: POWOD, zgloszenie: zgl.id }),
@@ -210,7 +216,7 @@ describe('audyt Fali 3 — dodatek z portfela do zawieszonej usługi', () => {
     const plan = await prisma().plan.create({ data: { slug: `p-${Date.now()}-${Math.random()}`, name: 'P', cpuLimit: 100, ramLimitMb: 1024, diskLimitMb: 1024, priceMonthly: 45, priceYearly: 399 } });
     const u = await prisma().subscription.create({ data: { userId: k.id, planId: plan.id, interval: 'MONTH', priceAmount: 45, status: 'SUSPENDED' } });
     const admin = await prisma().user.create({ data: { email: `dodatki-f3-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'ADMIN' } });
-    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'IP', message: 'x' } });
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, zrodlo: 'PANEL', subject: 'IP', message: 'x' } });
     const POWOD = 'Klient zamówił w zgłoszeniu dedykowane IP.';
     await expect(
       sklep().dodajPrzezOperatora({ subscriptionId: u.id, slug: 'dedicated_ip', platnosc: 'PORTFEL', operator: { userId: admin.id, role: 'ADMIN' }, powod: POWOD, zgloszenie: zgl.id }),

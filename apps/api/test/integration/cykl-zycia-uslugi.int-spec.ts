@@ -126,7 +126,7 @@ describe('F3.5 — cykl życia usługi zmieniany przez operatora', () => {
     const k = await klient(100);
     const koniec = new Date(Date.now() + 10 * 86400000);
     const u = await usluga(k.id, { currentPeriodEnd: koniec });
-    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'Rezygnacja', message: 'Proszę o rezygnację' } });
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, zrodlo: 'PANEL', subject: 'Rezygnacja', message: 'Proszę o rezygnację' } });
 
     // Powód obowiązkowy; zgłoszenie musi być klienta.
     await expect(cykl().anulujNaKoniecOkresu({ subscriptionId: u.id, operator: op, powod: 'krótki' })).rejects.toMatchObject({ status: 400 });
@@ -195,7 +195,11 @@ describe('F3.5 — cykl życia usługi zmieniany przez operatora', () => {
     // Skrócenie bez zgłoszenia — 400; ze zgłoszeniem klienta — tak.
     const krocej = new Date(Date.now() + 5 * 86400000);
     await expect(cykl().zmienDateOdnowienia({ przed: await obecny(u.id), subscriptionId: u.id, operator: op, powod: POWOD, nowaData: krocej })).rejects.toMatchObject({ status: 400 });
-    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'Wyrównanie dat', message: 'x' } });
+    // Audyt Fali 3 — zgłoszenie założone przez obsługę „w imieniu” klienta to nie jego prośba: 403, okres bez zmian.
+    const wImieniu = await prisma().ticket.create({ data: { userId: k.id, zrodlo: 'OBSLUGA', openedByStaffId: op.userId, subject: 'Wyrównanie dat', message: 'x' } });
+    await expect(cykl().zmienDateOdnowienia({ przed: await obecny(u.id), subscriptionId: u.id, operator: op, powod: POWOD, nowaData: krocej, zgloszenie: wImieniu.id })).rejects.toMatchObject({ status: 403 });
+    expect((await sub(u.id)).currentPeriodEnd?.toISOString()).toBe(nowa.toISOString());
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, zrodlo: 'PANEL', subject: 'Wyrównanie dat', message: 'x' } });
     await cykl().zmienDateOdnowienia({ przed: await obecny(u.id), subscriptionId: u.id, operator: op, powod: POWOD, nowaData: krocej, zgloszenie: zgl.id });
     expect((await sub(u.id)).currentPeriodEnd?.toISOString()).toBe(krocej.toISOString());
 
@@ -290,11 +294,11 @@ describe('audyt Fali 3 — cofnięcie rezygnacji złożonej przez klienta', () =
 
     // Zgłoszenie innego klienta nie wystarcza.
     const obcy = await klient(0);
-    const obce = await prisma().ticket.create({ data: { userId: obcy.id, subject: 'x', message: 'x' } });
+    const obce = await prisma().ticket.create({ data: { userId: obcy.id, zrodlo: 'PANEL', subject: 'x', message: 'x' } });
     await expect(cykl().cofnijAnulacje({ subscriptionId: u.id, operator: op, powod: POWOD, zgloszenie: obce.id })).rejects.toBeDefined();
     expect((await sub(u.id)).cancelAt).not.toBeNull();
 
-    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'Zostaję', message: 'Jednak zostaję' } });
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, zrodlo: 'PANEL', subject: 'Zostaję', message: 'Jednak zostaję' } });
     expect(await cykl().cofnijAnulacje({ subscriptionId: u.id, operator: op, powod: POWOD, zgloszenie: zgl.id })).toMatchObject({ bezZmian: false });
     expect((await sub(u.id)).cancelAt).toBeNull();
 
@@ -327,7 +331,7 @@ describe('audyt Fali 3 — cofnięcie rezygnacji złożonej przez klienta', () =
   it('w oknie odnowienia (mniej niż doba) rezygnacji klienta nie cofa nikt, także ADMIN ze zgłoszeniem; rezygnację obsługi — tak', async () => {
     const admin = await operator('ADMIN');
     const k = await klient(100);
-    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'Zostaję', message: 'x' } });
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, zrodlo: 'PANEL', subject: 'Zostaję', message: 'x' } });
     const blisko = new Date(Date.now() + 12 * 3600000);
     const u = await rezygnacjaKlienta(k.id, blisko);
     await expect(cykl().cofnijAnulacje({ subscriptionId: u.id, operator: admin, powod: POWOD, zgloszenie: zgl.id })).rejects.toMatchObject({ status: 400 });
@@ -350,7 +354,7 @@ describe('audyt Fali 3 — data odnowienia z okresem bazowym (odnowienie w międ
   it('formularz otwarty przed odnowieniem: po przesunięciu okresu zmiana daty = 409, okres i portfel bez zmian (bez drugiego obciążenia)', async () => {
     const op = await operator('ADMIN');
     const k = await klient(100);
-    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'Awaria', message: 'x' } });
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, zrodlo: 'PANEL', subject: 'Awaria', message: 'x' } });
     const koniec = new Date(Date.now() + 12 * 3600000);
     const u = await usluga(k.id, { currentPeriodEnd: koniec });
     const przed = koniec;

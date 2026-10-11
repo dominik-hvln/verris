@@ -6,6 +6,7 @@ import { HostingResourceActions, SupportActions } from '../common/audit/audit.ac
 import { BlokadyIpWezlaService } from '../servers/blokady-ip-wezla.admin.controller.js';
 import { adresyWTekscie, kanonicznyIp, stanBlokad } from '../servers/blokady-ip.js';
 import { uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
+import { ODPOWIEDZ_KLIENTA_Z_PANELU, trescOdKlienta } from '../tickets/zgloszenie-klienta.js';
 import { AkcjeKontaOperatoraService, type ZlecenieOperatora } from './akcje-konta-operatora.service.js';
 
 /** Ile wstecz szukamy adresów klienta: logowania (LoginEvent i sesje) i zgłoszenia. */
@@ -24,7 +25,8 @@ export interface AdresKlienta {
  *
  * Kto może co (D5):
  * - IP_UNBLOCK (L2+) — tylko adres powiązany z klientem: z historii jego logowań do panelu (90 dni) albo wpisany
- *   w zgłoszeniu; odblokowanie wymaga numeru zgłoszenia TEGO klienta i adresu z logowań albo z tego zgłoszenia;
+ *   przez niego w zgłoszeniu z panelu (nie przez obsługę, nie mailem); odblokowanie wymaga numeru zgłoszenia TEGO
+ *   klienta i adresu z logowań albo z tego zgłoszenia;
  * - IP_BLOCKS_NODE (NOC) i ADMIN — dowolny adres, zgłoszenie opcjonalne.
  * Odblokowanie idzie przez wspólny przebieg akcji operatora (powód, dziennik OPERATOR_ACCOUNT_CHANGED, wpis klienta
  * HOSTING_IP_UNBLOCK_QUEUED — klient widzi „obsługa Verris (zgłoszenie #…)”). L2 nie widzi blokad innych adresów węzła.
@@ -62,7 +64,7 @@ export class BlokadyIpKontaService {
     return (await uprawnieniaOperatora(this.prisma, operatorUserId)).includes('IP_BLOCKS_NODE');
   }
 
-  /** Adresy powiązane z klientem: logowania i sesje panelu (90 dni) oraz adresy wpisane w jego zgłoszeniach. */
+  /** Adresy powiązane z klientem: logowania i sesje panelu (90 dni) oraz adresy wpisane przez niego w zgłoszeniach (panel). */
   async adresyKlienta(klientId: string, tylkoZgloszenie?: string | null): Promise<AdresKlienta[]> {
     const od = new Date(Date.now() - OKNO_MS);
     const mapa = new Map<string, AdresKlienta>();
@@ -83,15 +85,24 @@ export class BlokadyIpKontaService {
       for (const l of logowania) dodaj(l.ipAddress, 'logowanie', l.createdAt);
       for (const s of sesje) dodaj(s.ipAddress, 'logowanie', s.lastSeenAt);
     }
-    // Zgłoszenia klienta: treść zgłoszenia i odpowiedzi klienta (nie obsługi, nie notatki wewnętrzne).
+    // Zgłoszenia klienta: treść zgłoszenia i odpowiedzi napisane przez KLIENTA W PANELU. Audyt Fali 3 — nie treść
+    // obsługi (zgłoszenie w imieniu, przypisane z „Poczty bez klienta”), nie mail (nadawca nieuwierzytelniony), nie
+    // podgląd konta przez obsługę, nie automat: inaczej L2 sam wpisałby adres i odblokował go jako „adres klienta” (D5).
     const zgloszenia = await this.prisma.ticket.findMany({
       where: { userId: klientId, ...(tylkoZgloszenie ? { id: tylkoZgloszenie } : { updatedAt: { gte: od } }) },
-      select: { id: true, message: true, createdAt: true, replies: { where: { isStaff: false, internal: false }, select: { message: true, createdAt: true }, take: 50, orderBy: { createdAt: 'desc' } } },
+      select: {
+        id: true,
+        message: true,
+        zrodlo: true,
+        openedByStaffId: true,
+        createdAt: true,
+        replies: { where: ODPOWIEDZ_KLIENTA_Z_PANELU, select: { message: true, createdAt: true }, take: 50, orderBy: { createdAt: 'desc' } },
+      },
       orderBy: { updatedAt: 'desc' },
       take: 30,
     });
     for (const t of zgloszenia) {
-      for (const ip of adresyWTekscie(t.message)) dodaj(ip, 'zgloszenie', t.createdAt, t.id);
+      if (trescOdKlienta(t)) for (const ip of adresyWTekscie(t.message)) dodaj(ip, 'zgloszenie', t.createdAt, t.id);
       for (const r of t.replies) for (const ip of adresyWTekscie(r.message)) dodaj(ip, 'zgloszenie', r.createdAt, t.id);
     }
     return [...mapa.values()].sort((a, b) => b.ostatnio.localeCompare(a.ostatnio)).slice(0, 50);

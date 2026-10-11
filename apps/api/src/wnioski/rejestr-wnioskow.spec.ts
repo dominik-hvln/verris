@@ -99,7 +99,8 @@ describe('PB-48 — rejestr wniosków', () => {
 
   const zal = (
     o: { isInternal?: boolean; status?: string; email?: string; zajety?: boolean; mail?: boolean; usluga?: { userId: string; status: string; currentPeriodEnd?: Date | null } | null; zgloszenie?: boolean;
-      zgloszenia?: Record<string, { userId: string; scalonoDoId: string | null; status?: string } | null>; emailZmienionyPrzezObsluge?: boolean } = {},
+      zgloszenia?: Record<string, { userId: string; scalonoDoId: string | null; status?: string } | null>; emailZmienionyPrzezObsluge?: boolean;
+      zgloszenieObslugi?: boolean } = {},
   ) => {
     const wywolania: unknown[][] = [];
     const z: ZaleznosciWnioskow = {
@@ -117,7 +118,9 @@ describe('PB-48 — rejestr wniosków', () => {
         ticket: {
           findUnique: async (a: unknown) => {
             const id = (a as { where: { id: string } }).where.id;
-            return o.zgloszenia?.[id] === undefined ? { userId: 'k1', scalonoDoId: null } : o.zgloszenia[id];
+            // Audyt Fali 3 — domyślnie zgłoszenie klienta z panelu; zgloszenieObslugi — założone przez obsługę „w imieniu”.
+            const zrodlo = o.zgloszenieObslugi ? { zrodlo: 'OBSLUGA', openedByStaffId: 'op', replies: [] } : { zrodlo: 'PANEL', openedByStaffId: null, replies: [] };
+            return o.zgloszenia?.[id] === undefined ? { userId: 'k1', scalonoDoId: null, ...zrodlo } : o.zgloszenia[id];
           },
         },
       },
@@ -283,6 +286,8 @@ describe('PB-48 — rejestr wniosków', () => {
     const portfel = { subscriptionId: 's1', slug: 'dedicated_ip', platnosc: 'PORTFEL' as const };
     await expect(d.sprawdzPrzyZlozeniu!(portfel, 'k1', zal().z)).rejects.toThrow(/numer jego zgłoszenia/);
     await expect(d.sprawdzPrzyZlozeniu!({ ...portfel, zgloszenie: '#ab12cd34' }, 'k1', zal().z)).resolves.toBeUndefined();
+    // Audyt Fali 3 — zgłoszenie założone przez obsługę „w imieniu” klienta to nie jego zamówienie.
+    await expect(d.sprawdzPrzyZlozeniu!({ ...portfel, zgloszenie: '#ab12cd34' }, 'k1', zal({ zgloszenieObslugi: true }).z)).rejects.toThrow(/tylko na prośbę klienta z panelu/);
     await expect(d.sprawdzPrzyZlozeniu!({ ...portfel, platnosc: 'GRATIS' }, 'k1', zal().z)).resolves.toBeUndefined();
     await expect(d.sprawdzPrzyZlozeniu!({ ...portfel, platnosc: 'GRATIS' }, 'k1', zal({ usluga: { userId: 'k1', status: 'CANCELED' } }).z)).rejects.toThrow(/zakończona/);
     await expect(d.sprawdzPrzyZlozeniu!({ ...portfel, platnosc: 'GRATIS' }, 'k1', zal({ usluga: { userId: 'inny', status: 'ACTIVE' } }).z)).rejects.toThrow(/nie istnieje na koncie/);

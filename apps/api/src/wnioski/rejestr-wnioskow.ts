@@ -5,6 +5,7 @@ import type { StaffPermission } from '../staff-roles/staff-permissions.catalog.j
 import { POWODY_ZAWIESZENIA_OPERATORA, type PowodZawieszeniaOperatora } from '../subscriptions/powody-zawieszenia.js';
 import { PLATNOSCI_DODATKU, SLUGI_DODATKOW, type PlatnoscDodatku } from '../addons/addon.service.js';
 import { USLUGI_WEZLA, uslugaWezla } from '@verris/contracts';
+import { wymagajProsbyKlienta } from '../tickets/zgloszenie-klienta.js';
 
 /**
  * PB-48 (decyzja właściciela 08.10) — rejestr operacji, o które pracownik bez uprawnienia może złożyć wniosek.
@@ -553,6 +554,8 @@ export const REJESTR_WNIOSKOW = {
       if (p.platnosc === 'PORTFEL' && !zgloszenieId) {
         throw new BadRequestException('Obciążenie portfela klienta tylko na jego zamówienie — podaj numer jego zgłoszenia albo wybierz gratis.');
       }
+      // Audyt Fali 3 — ta sama reguła co przy wykonaniu (addon.service.ts): wiadomość klienta z panelu.
+      if (p.platnosc === 'PORTFEL') await wymagajProsbyKlienta(z.prisma, zgloszenieId!, 'Obciążenie portfela klienta');
     },
     async wykonaj(p, k, z) {
       // Klucz z id wniosku — ten sam wniosek drugi raz nie doda dodatku (obok blokady statusu).

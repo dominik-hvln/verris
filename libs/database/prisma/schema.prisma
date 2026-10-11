@@ -2272,6 +2272,9 @@ model Ticket {
   // klienta (id operatora; null = założył klient lub system). Klient widzi tylko „założyła Obsługa Verris”.
   tags             String[]      @default([])
   openedByStaffId  String?
+  /// Audyt Fali 3 — źródło treści zgłoszenia (message): PANEL | EMAIL | OBSLUGA | IMPERSONACJA | SYSTEM; null = sprzed
+  /// 12.10 (nieznane). Dowód klienta (tickets/zgloszenie-klienta.ts) — tylko PANEL.
+  zrodlo           String?
 
   /// F3.7 — zgłoszenie scalone z innym (nieodwracalne): wątek, pliki i maile przeszły do zgłoszenia docelowego,
   /// to zostaje zamknięte. Odpowiedź klienta z panelu → odmowa ze wskazaniem celu; mail → trafia do celu.
@@ -2304,6 +2307,8 @@ model TicketReply {
   /// F2.5 — notatka wewnętrzna obsługi: nie wychodzi do klienta (panel, maile, auto-wiadomości, szkic asystenta).
   /// W eksporcie RODO jest — autor jako „Obsługa Verris” (decyzja 10.10).
   internal  Boolean  @default(false)
+  /// Audyt Fali 3 — źródło odpowiedzi (jak Ticket.zrodlo); null = sprzed 12.10 albo wiadomość obsługi/automatu.
+  zrodlo    String?
 
   attachments TicketAttachment[]
 
