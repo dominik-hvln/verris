@@ -15,7 +15,7 @@ const OPERATOR = 's-operator';
 type Wiersz = { action: string; userId: string | null; actorUserId: string | null; details: Record<string, unknown> };
 type Konto = { id: string; userId: string; mailBlockedAt: Date | null; mailBlockedById: string | null; mailBlockedReason: string | null };
 
-function zbuduj(o: { rola?: string; bladWezla?: Error; konta?: Konto[] } = {}) {
+function zbuduj(o: { rola?: string; bladWezla?: Error; konta?: Konto[]; bladDomen?: string } = {}) {
   const wiersze: Wiersz[] = [];
   const konta: Konto[] = o.konta ?? [{ id: 'acc1', userId: WLASCICIEL, mailBlockedAt: null, mailBlockedById: null, mailBlockedReason: null }];
   const k1 = konta[0]!;
@@ -62,6 +62,9 @@ function zbuduj(o: { rola?: string; bladWezla?: Error; konta?: Konto[] } = {}) {
       if (o.bladWezla) throw o.bladWezla;
       return { obslugiwana: true, zablokowana: naWezle.has(u) };
     }),
+    listHostingDomainsForSubscription: vi.fn(async () =>
+      o.bladDomen ? { domains: [], fetchError: o.bladDomen } : { domains: [{ name: 'klient.pl' }, { name: 'sklep-klienta.pl' }], fetchError: null },
+    ),
   };
   const mailer = { send: vi.fn(async () => ({ delivered: true })) };
   const kordon = new OutboundAbuseGuard({} as never, { record: vi.fn(async () => undefined) } as never, mailer as never);
@@ -203,5 +206,16 @@ describe('F3.1 PocztaKontaOperatoraService — blokada wysyłki', () => {
     expect(await t.svc.kolejka('s1', OPERATOR, 'ADMIN')).toMatchObject({ wiadomosci: [] });
     // Usługa klienta (USER) — STAFF czyta jak dotąd.
     expect(await zbuduj().svc.stan('s1', 'STAFF')).toMatchObject({ zablokowana: false });
+  });
+
+  it('audyt Fal 2: błąd odczytu domen konta z węzła = błąd wczytania kolejki (bez zadania z samą domeną główną)', async () => {
+    const zle = zbuduj({ bladDomen: 'Serwer nie odpowiedział w wymaganym czasie.' });
+    await expect(zle.svc.wczytajKolejke('s1', OPERATOR, 'STAFF')).rejects.toMatchObject({ status: 503, message: expect.stringContaining('nie odpowiedział') });
+    expect(zle.prisma.nodeTask.create).not.toHaveBeenCalled();
+    const ok = zbuduj();
+    await ok.svc.wczytajKolejke('s1', OPERATOR, 'STAFF');
+    expect(ok.prisma.nodeTask.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ payload: { mode: 'list', daUser: 'klient1', domains: 'klient.pl,sklep-klienta.pl' } }) }),
+    );
   });
 });

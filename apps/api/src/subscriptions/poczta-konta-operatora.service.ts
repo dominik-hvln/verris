@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
@@ -290,8 +290,13 @@ export class PocztaKontaOperatoraService {
     return stanKolejki(await this.zadania(account.id));
   }
 
+  /**
+   * Audyt Fal 2 — błąd odczytu domen z węzła = błąd: z samą domeną główną węzeł nie przypisałby kontu wiadomości
+   * ze skrzynek domen dodatkowych i podgląd pokazałby fałszywie pustą kolejkę jako sukces (usuwanie dziedziczy listę).
+   */
   private async domenyKonta(subscriptionId: string, userId: string, glowna: string): Promise<string[]> {
-    const { domains } = await this.directAdmin.listHostingDomainsForSubscription(subscriptionId, userId);
+    const { domains, fetchError } = await this.directAdmin.listHostingDomainsForSubscription(subscriptionId, userId);
+    if (fetchError) throw new ServiceUnavailableException(`Nie udało się odczytać domen konta z serwera — kolejka nie została wczytana. ${fetchError}`.slice(0, 300));
     return [...new Set([glowna, ...domains.map((d) => d.name)].map((d) => d.toLowerCase()))].slice(0, 200);
   }
 
