@@ -169,13 +169,6 @@ export class BillingService {
     };
   }
 
-  private static readonly WALLET_INFLOW_TYPES = new Set<WalletTxType>([
-    WalletTxType.TOPUP,
-    WalletTxType.REFUND,
-    WalletTxType.PROMO_CREDIT,
-    WalletTxType.ADJUSTMENT,
-  ]);
-
   private buildWalletMonthlyFlowLast12(
     transactions: { amount: Prisma.Decimal; type: WalletTxType; createdAt: Date }[],
     now: Date,
@@ -200,8 +193,9 @@ export class BillingService {
       const bucket = buckets.get(month);
       if (!bucket) continue;
       const numeric = tx.amount;
-      const isInflow =
-        numeric.greaterThan(0) || BillingService.WALLET_INFLOW_TYPES.has(tx.type);
+      // Przegląd F3.6 — kierunek po znaku kwoty, nie po typie: korekta salda w dół (ADJUSTMENT < 0, operator albo
+      // cofnięcie doładowania) to wypływ — po typie wykres klienta pokazywał ją jako wpływ.
+      const isInflow = numeric.greaterThan(0);
       if (isInflow) {
         bucket.inflow = bucket.inflow.plus(numeric.abs());
       } else {

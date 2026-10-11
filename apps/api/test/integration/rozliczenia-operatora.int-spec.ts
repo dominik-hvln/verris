@@ -191,12 +191,45 @@ describe('F3.6 — nieudane płatności i ponowienie auto-doładowania', () => {
     });
     await prisma().subscriptionEvent.create({ data: { subscriptionId: sub.id, type: 'PAYMENT_FAILED', details: { source: 'STRIPE', reason: 'stripe:invoice:in_123:payment_failed' } } });
 
-    const l = await serwis().nieudanePlatnosci({});
+    const l = await serwis().nieudanePlatnosci({}, FIN);
     expect(l.wiersze.map((w) => w.zrodlo).sort()).toEqual(['AUTO_DOLADOWANIE', 'PAYNOW', 'STRIPE']);
     const auto = l.wiersze.find((w) => w.zrodlo === 'AUTO_DOLADOWANIE')!;
     expect(auto).toMatchObject({ kwota: '100.00', powod: 'Bank odrzucił płatność kartą.', ponowienie: { mozliwe: true } });
     expect(l.wiersze.find((w) => w.zrodlo === 'PAYNOW')!.ponowienie.mozliwe).toBe(false);
-    expect((await serwis().nieudanePlatnosci({ zrodlo: 'PAYNOW' })).wiersze).toHaveLength(1);
+    expect((await serwis().nieudanePlatnosci({ zrodlo: 'PAYNOW' }, FIN)).wiersze).toHaveLength(1);
+  });
+
+  it('przegląd: personel nie widzi nieudanych płatności kont zespołu (administrator — tak)', async () => {
+    const zespol = await klient(0, { role: 'STAFF' });
+    const k = await klient(0);
+    for (const u of [zespol, k]) {
+      await prisma().paynowPlatnosc.create({ data: { userId: u.id, kwotaMinor: 2500, paymentId: `PN-${u.id.slice(0, 6)}`, status: 'REJECTED', meta: {} } });
+      await prisma().auditLog.create({ data: { userId: u.id, action: 'WALLET_AUTO_TOPUP_FAILED', details: { message: 'Your card was declined.' } } });
+    }
+    const plan = await utworzPlan();
+    const sub = await prisma().subscription.create({
+      data: { userId: zespol.id, planId: plan.id, status: 'PAST_DUE', interval: 'MONTH', priceAmount: 45, currency: 'PLN', paymentSource: 'STRIPE_CARD', stripeSubscriptionId: 'sub_z' } as never,
+    });
+    await prisma().subscriptionEvent.create({ data: { subscriptionId: sub.id, type: 'PAYMENT_FAILED', details: { source: 'STRIPE', reason: 'stripe:invoice:in_9:payment_failed' } } });
+
+    const personel = await serwis().nieudanePlatnosci({}, FIN);
+    expect(personel.wiersze.map((w) => w.klient.id)).not.toContain(zespol.id);
+    expect(personel.wiersze.filter((w) => w.klient.id === k.id)).toHaveLength(2);
+    expect((await serwis().nieudanePlatnosci({ userId: zespol.id }, FIN)).wiersze).toHaveLength(0);
+    const admin = await serwis().nieudanePlatnosci({}, { userId: FIN.userId, role: 'ADMIN' });
+    expect(admin.wiersze.filter((w) => w.klient.id === zespol.id).map((w) => w.zrodlo).sort()).toEqual(['AUTO_DOLADOWANIE', 'PAYNOW', 'STRIPE']);
+  });
+
+  it('przegląd: „Ponów” bez zapisanej karty — odmowa dla operatora, bez maila do klienta i bez obciążenia', async () => {
+    const k = await zOdmowa();
+    await prisma().user.update({ where: { id: k.id }, data: { defaultPaymentMethodId: null } });
+    maile.length = 0;
+    const s = serwis();
+    const z = { userId: k.id, operator: FIN, powod: 'Klient prosi o ponowienie płatności' };
+    const wyniki = await Promise.allSettled([s.ponowAutoDoladowanie(z), s.ponowAutoDoladowanie(z)]);
+    expect(wyniki.every((w) => w.status === 'rejected' && /nie ma zapisanej karty/.test(String(w.reason)))).toBe(true);
+    expect(maile).toHaveLength(0);
+    expect(obciazenia).toHaveLength(0);
   });
 
   it('dwa równoległe „Ponów”: karta obciążona raz; drugie dostaje 409; po sukcesie kolejne ponowienie — 409', async () => {

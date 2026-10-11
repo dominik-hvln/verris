@@ -129,6 +129,7 @@ export class RozliczeniaOperatoraService {
 
   async nieudanePlatnosci(
     f: { zrodlo?: ZrodloPlatnosci; dni?: number; userId?: string; limit?: number; offset?: number },
+    operator: Operator,
     teraz = new Date(),
   ): Promise<{ wiersze: NieudanaPlatnosc[]; total: number; od: string; ucieto: boolean }> {
     const dni = Math.min(Math.max(Math.trunc(f.dni ?? 30), 1), 365);
@@ -136,7 +137,9 @@ export class RozliczeniaOperatoraService {
     const limit = Math.min(Math.max(Math.trunc(f.limit ?? 50), 1), 200);
     const offset = Math.max(Math.trunc(f.offset ?? 0), 0);
     const chce = (z: ZrodloPlatnosci) => !f.zrodlo || f.zrodlo === z;
-    const klientWhere = f.userId ? { userId: f.userId } : {};
+    // Przegląd F3.6 — personel widzi płatności wyłącznie kont klientów (USER); konta zespołu tylko administrator.
+    const tylkoKlienci = operator.role !== 'ADMIN' ? { user: { role: 'USER' as const } } : {};
+    const klientWhere = { ...(f.userId ? { userId: f.userId } : {}), ...tylkoKlienci };
 
     const [paynow, auto, stripe] = await Promise.all([
       chce('PAYNOW')
@@ -161,7 +164,7 @@ export class RozliczeniaOperatoraService {
               type: 'PAYMENT_FAILED',
               createdAt: { gte: od },
               details: { path: ['source'], equals: 'STRIPE' },
-              ...(f.userId ? { subscription: { userId: f.userId } } : {}),
+              subscription: { ...(f.userId ? { userId: f.userId } : {}), ...tylkoKlienci },
             },
             orderBy: { createdAt: 'desc' },
             take: MAKS_ZE_ZRODLA,

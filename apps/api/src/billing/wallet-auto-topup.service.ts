@@ -218,6 +218,9 @@ export class WalletAutoTopupService {
     }
 
     if (!stripePm?.startsWith('pm_')) {
+      // Przegląd F3.6 — „Ponów” z panelu bez karty nie jest nową próbą: bez maila do klienta przy każdym kliknięciu
+      // (i bez dwóch maili przy dwóch kliknięciach naraz — tu nie ma jeszcze zajęcia reguły). Operator dostaje odmowę.
+      if (ponowienie) return { wynik: 'pominieto', powod: 'Klient nie ma zapisanej karty — ponowienie niemożliwe, klient musi dodać kartę w panelu.' };
       await this.touchFailure(
         rule.userId,
         'Brak zapisanej karty — ustaw domyślną metodę płatności.',

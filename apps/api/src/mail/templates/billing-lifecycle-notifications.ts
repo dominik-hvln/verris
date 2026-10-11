@@ -102,7 +102,7 @@ function formatDate(d: Date): string {
 }
 
 // ---------------------------------------------------------------------------
-// wallet-topup-ok (Stripe checkout)
+// wallet-topup-ok (Stripe Checkout, Paynow, wpłata przelewem zaksięgowana przez obsługę — F3.6)
 // ---------------------------------------------------------------------------
 
 export interface WalletTopupOkContext {
@@ -121,7 +121,8 @@ export function walletTopupOkTemplate(ctx: WalletTopupOkContext): MailMessage {
     bodyMarkdown: [
       greeting,
       ``,
-      `Potwierdzamy **doładowanie portfela** kartą.`,
+      // Przegląd F3.6 — ten sam mail idzie po karcie, Paynow i przelewie: bez nazwy formy zapłaty.
+      `Potwierdzamy **doładowanie portfela**.`,
       ``,
       `- **Kwota:** ${escapeMarkdown(formatPLN(ctx.amountPln))}`,
       `- **Nowe saldo:** ${escapeMarkdown(formatPLN(ctx.newBalancePln))}`,

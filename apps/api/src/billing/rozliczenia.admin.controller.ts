@@ -52,10 +52,11 @@ export class RozliczeniaAdminController {
     @Query('userId') userId: string | undefined,
     @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
     @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
+    @CurrentUser() a: Aktor,
   ) {
     if (zrodlo && !ZRODLA_PLATNOSCI.includes(zrodlo as ZrodloPlatnosci)) throw new BadRequestException('Nieznane źródło płatności.');
     if (userId && !/^[0-9a-f-]{36}$/i.test(userId)) throw new BadRequestException('Niepoprawny identyfikator klienta.');
-    return this.rozliczenia.nieudanePlatnosci({ zrodlo: (zrodlo as ZrodloPlatnosci) || undefined, dni, userId: userId || undefined, limit, offset });
+    return this.rozliczenia.nieudanePlatnosci({ zrodlo: (zrodlo as ZrodloPlatnosci) || undefined, dni, userId: userId || undefined, limit, offset }, operator(a));
   }
 
   @Post('nieudane-platnosci/auto-doladowanie/:userId/ponow')
