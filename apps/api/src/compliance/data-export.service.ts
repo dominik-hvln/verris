@@ -533,12 +533,16 @@ export class DataExportService implements OnApplicationBootstrap {
       twoFactorRecoveryCodesEnc: user.twoFactorRecoveryCodesEnc ? '[REDACTED]' : null,
       staffBreakGlassCodesEnc: user.staffBreakGlassCodesEnc ? '[REDACTED]' : null,
     };
-    const sanitizedAccounts = accounts.map((a) => ({
+    // Audyt Fal 2 — powód blokady wysyłki to notatka zespołu (API klienta też go nie oddaje — subscriptions.service.ts):
+    // przy abuse niesie uzasadnienie z treścią zgłoszenia osoby trzeciej (art. 15 ust. 4 RODO). Klient widzi, że
+    // i kiedy obsługa zablokowała wysyłkę; kto (id pracownika) — zamienia bezIdPracownikow na „Obsługa Verris”.
+    const sanitizedAccounts = accounts.map(({ mailBlockedReason: _powod, ...a }) => ({
       ...a,
       daPasswordEnc: a.daPasswordEnc ? '[REDACTED]' : null,
     }));
 
-    return {
+    const pracownicy = await this.idPracownikow(userId);
+    return bezIdPracownikow(pracownicy, {
       _meta: {
         section: '_meta',
         generatedAt: new Date().toISOString(),
@@ -570,7 +574,7 @@ export class DataExportService implements OnApplicationBootstrap {
       'ticket-attachments': ticketAttachments.map((a) => (a.uploadedById === userId ? a : { ...a, uploadedById: null, dodala: 'Obsługa Verris' })),
       'data-export-requests': exports,
       'account-deletion-requests': deletions,
-      'audit-log': await this.dziennikBezPracownikow(userId, auditLogs),
+      'audit-log': this.dziennikBezPracownikow(pracownicy, auditLogs),
       'customer-notes': customerNotes.map((n) => ({ ...n, autor: 'Obsługa Verris' })),
       migrations: migracje.map(({ checklista, kontakty, ...m }) => ({
         ...m,
@@ -579,52 +583,32 @@ export class DataExportService implements OnApplicationBootstrap {
         ),
         kontakty: kontakty.map((k) => ({ ...k, autor: 'Obsługa Verris' })),
       })),
-    };
+    });
+  }
+
+  /**
+   * Audyt Fal 2 — id kont obsługi (STAFF/ADMIN). Eksport zamienia je na „Obsługa Verris” w KAŻDEJ sekcji, nie tylko
+   * w wybranych polach: nowe kolumny z id pracownika (np. Account.mailBlockedById z F3.1) wychodziły do klienta, bo
+   * pilnowały ich ręczne mapowania per sekcja. Wszystkie konta zespołu, nie kandydaci z sekcji — w sekcjach są
+   * tysiące id wierszy (transakcje, wpisy dziennika), a zespół to kilkadziesiąt kont.
+   */
+  private async idPracownikow(userId: string): Promise<Set<string>> {
+    const rows = await this.prisma.user.findMany({ where: { role: { in: ['STAFF', 'ADMIN'] } }, select: { id: true } });
+    return new Set(rows.map((u) => u.id).filter((id) => id !== userId));
   }
 
   /**
    * Przegląd D11 — dziennik konta w eksporcie bez id pracowników (art. 15 ust. 4 RODO, D3: „Obsługa Verris”, bez
    * nazwiska). Wpisy z działań obsługi (akcje na koncie, tablica migracji, impersonacja, wnioski) niosą id operatora
    * w aktorze, w impersonacji i w szczegółach (np. przypisanie migracji, wnioskujący) oraz jego IP i przeglądarkę.
-   * Każde id konta obsługi (STAFF/ADMIN) zamieniamy na „Obsługa Verris”, a IP i przeglądarkę operatora pomijamy.
+   * Aktora i impersonację oznaczamy „Obsługa Verris”, IP i przeglądarkę operatora pomijamy; id w szczegółach zamienia
+   * bezIdPracownikow (całe archiwum).
    */
-  private async dziennikBezPracownikow<T extends { actorUserId: string | null; impersonatedBy: string | null; details: unknown }>(
-    userId: string,
+  private dziennikBezPracownikow<T extends { actorUserId: string | null; impersonatedBy: string | null; details: unknown }>(
+    pracownicy: Set<string>,
     wpisy: T[],
-  ): Promise<T[]> {
-    const OBSLUGA = 'Obsługa Verris';
-    const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const kandydaci = new Set<string>();
-    const zbierz = (v: unknown): void => {
-      if (typeof v === 'string') {
-        if (UUID.test(v)) kandydaci.add(v);
-      } else if (Array.isArray(v)) v.forEach(zbierz);
-      else if (v && typeof v === 'object') Object.values(v).forEach(zbierz);
-    };
-    for (const w of wpisy) {
-      if (w.actorUserId) kandydaci.add(w.actorUserId);
-      if (w.impersonatedBy) kandydaci.add(w.impersonatedBy);
-      zbierz(w.details);
-    }
-    kandydaci.delete(userId);
-    if (!kandydaci.size) return wpisy;
-    const pracownicy = new Set(
-      (
-        await this.prisma.user.findMany({
-          where: { id: { in: [...kandydaci] }, role: { in: ['STAFF', 'ADMIN'] } },
-          select: { id: true },
-        })
-      ).map((u) => u.id),
-    );
+  ): T[] {
     if (!pracownicy.size) return wpisy;
-    const zamien = (v: unknown): unknown =>
-      typeof v === 'string'
-        ? pracownicy.has(v) ? OBSLUGA : v
-        : Array.isArray(v)
-          ? v.map(zamien)
-          : v && typeof v === 'object'
-            ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, zamien(x)]))
-            : v;
     return wpisy.map((w) => {
       const aktorObslugi = !!w.actorUserId && pracownicy.has(w.actorUserId);
       const impersonacja = !!w.impersonatedBy && pracownicy.has(w.impersonatedBy);
@@ -633,7 +617,6 @@ export class DataExportService implements OnApplicationBootstrap {
         actorUserId: aktorObslugi ? null : w.actorUserId,
         ...(aktorObslugi ? { aktor: OBSLUGA } : {}),
         impersonatedBy: impersonacja ? OBSLUGA : w.impersonatedBy,
-        details: zamien(w.details),
         ...(aktorObslugi || impersonacja ? { ipAddress: null, userAgent: null } : {}),
       };
     });
@@ -754,6 +737,27 @@ export class DataExportService implements OnApplicationBootstrap {
 function sanitizeFilename(input: string): string {
   const cleaned = input.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').slice(0, 200);
   return cleaned.length > 0 ? cleaned : 'attachment';
+}
+
+const OBSLUGA = 'Obsługa Verris';
+
+/**
+ * Audyt Fal 2 — każde id konta obsługi w archiwum (dowolna sekcja, dowolne zagnieżdżenie, także JSON szczegółów)
+ * zamienione na „Obsługa Verris”. Schodzi tylko w zwykłe obiekty i tablice — daty, kwoty (Decimal) i bigint zostają.
+ */
+export function bezIdPracownikow<T>(pracownicy: Set<string>, v: T): T {
+  if (!pracownicy.size) return v;
+  const zamien = (x: unknown): unknown => {
+    if (typeof x === 'string') return pracownicy.has(x) ? OBSLUGA : x;
+    if (Array.isArray(x)) return x.map(zamien);
+    if (x && typeof x === 'object') {
+      const proto = Object.getPrototypeOf(x);
+      if (proto !== Object.prototype && proto !== null) return x;
+      return Object.fromEntries(Object.entries(x).map(([k, y]) => [k, zamien(y)]));
+    }
+    return x;
+  };
+  return zamien(v) as T;
 }
 
 function jsonReplacer(_key: string, value: unknown): unknown {

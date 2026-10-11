@@ -3,6 +3,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { Readable } from 'stream';
 import { inflateRawSync } from 'zlib';
+import { Prisma } from '@verris/database';
 import { DataExportService } from './data-export.service.js';
 
 /**
@@ -40,16 +41,27 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
   const lista = <T>(v: T) => vi.fn(async () => v);
   const prisma = {
     user: {
-      // Konta obsługi (STAFF/ADMIN) wśród podanych id — eksport ma pytać tylko o role pracowników.
-      findMany: vi.fn(async (args: { where: { id: { in: string[] }; role: { in: string[] } } }) =>
-        args.where.role.in.includes('STAFF') ? args.where.id.in.filter((id) => [OPERATOR, OPERATOR_B].includes(id)).map((id) => ({ id })) : []),
+      // Konta obsługi (STAFF/ADMIN) — eksport ma pytać tylko o role pracowników.
+      findMany: vi.fn(async (args: { where: { id?: { in: string[] }; role: { in: string[] } } }) =>
+        args.where.role.in.includes('STAFF')
+          ? [OPERATOR, OPERATOR_B].filter((id) => !args.where.id || args.where.id.in.includes(id)).map((id) => ({ id }))
+          : []),
       findUniqueOrThrow: lista({
         id: 'u1', email: 'jan@firma.pl', passwordHash: '$2b$10$tajne', twoFactorSecret: 'SEKRET-TOTP', staffBreakGlassCodesEnc: 'enc:kody-awaryjne',
         twoFactorRecoveryCodesEnc: 'kody', createdAt: new Date('2026-01-01T00:00:00Z'), walletBalance: BigInt(4500),
       }),
     },
-    account: { findMany: lista([{ id: 'a1', domain: 'x.pl', daPasswordEnc: 'enc:haslo-da' }]) },
-    subscription: { findMany: lista([{ id: 's1' }]) },
+    account: {
+      findMany: lista([
+        { id: 'a1', domain: 'x.pl', daPasswordEnc: 'enc:haslo-da', mailBlockedAt: null, mailBlockedById: null, mailBlockedReason: null },
+        // F3.1 — wysyłka zablokowana przez obsługę (decyzja abuse): id pracownika i notatka zespołu w wierszu konta.
+        {
+          id: 'a2', domain: 'y.pl', daPasswordEnc: null, mailBlockedAt: new Date('2026-10-05T08:00:00Z'), mailBlockedById: OPERATOR,
+          mailBlockedReason: 'Nadużycie #ab12cd34: zgłoszenie od abuse@zglaszajacy.example, 4000 maili w godzinę',
+        },
+      ]),
+    },
+    subscription: { findMany: lista([{ id: 's1', individualTermsById: OPERATOR_B, price: new Prisma.Decimal('19.99') }]) },
     walletTransaction: { findMany: lista([]) },
     invoice: { findMany: lista([{ id: 'i1', number: 'FV/1/2026' }]) },
     ticket: {
@@ -228,6 +240,19 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
     });
     expect(wpisy.find((w) => w.id === 'l3')).toMatchObject({ actorUserId: 'u1', impersonatedBy: 'Obsługa Verris', ipAddress: null, details: { domain: 'x.pl' } });
     expect(pliki.get('README.txt')).toContain('bez id pracowników');
+  });
+
+  it('audyt Fal 2 — żadna sekcja nie zawiera id pracownika (blokada wysyłki, warunki indywidualne) ani powodu blokady', async () => {
+    const pliki = await zbudujZip(zbuduj().svc);
+    for (const [nazwa, tresc] of pliki) {
+      expect(tresc, nazwa).not.toContain(OPERATOR);
+      expect(tresc, nazwa).not.toContain(OPERATOR_B);
+    }
+    const konta = JSON.parse(pliki.get('accounts.json')!) as Array<Record<string, unknown>>;
+    expect(konta.find((a) => a.id === 'a2')).toMatchObject({ mailBlockedAt: '2026-10-05T08:00:00.000Z', mailBlockedById: 'Obsługa Verris' });
+    expect(konta.find((a) => a.id === 'a1')).toMatchObject({ mailBlockedById: null });
+    expect(pliki.get('accounts.json')).not.toMatch(/Nadużycie|zglaszajacy/);
+    expect(JSON.parse(pliki.get('subscriptions.json')!)).toEqual([{ id: 's1', individualTermsById: 'Obsługa Verris', price: '19.99' }]);
   });
 
   it('nazwa załącznika nie wychodzi poza katalog attachments/ (zip slip)', async () => {
