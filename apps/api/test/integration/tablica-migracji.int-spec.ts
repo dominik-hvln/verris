@@ -195,7 +195,7 @@ describe('D11 — tablica migracji obsługi', () => {
     const nieudana = await p.migrationRequest.create({
       data: { subscriptionId: k.subscription.id, userId: k.user.id, sourceBundleEnc: 'x', targetDomain: k.account.domain, status: MigrationStatus.FAILED, createdAt: dawno },
     });
-    const sql = readFileSync(resolve(import.meta.dirname, '../../../../libs/database/prisma/migrations/20261011200000_migracja_tablica_termin_historii/migration.sql'), 'utf8');
+    const sql = readFileSync(resolve(import.meta.dirname, '../../../../libs/database/prisma/migrations/20261011235000_migracja_tablica_termin_historii/migration.sql'), 'utf8');
     await p.$executeRawUnsafe(sql);
     await p.$executeRawUnsafe(sql); // idempotentna — drugi przebieg nie przesuwa terminu
     const po = await p.migrationRequest.findUniqueOrThrow({ where: { id: mig.id } });
