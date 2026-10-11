@@ -802,6 +802,46 @@ describe('F3.4 — usługi i logi węzła', () => {
   });
 });
 
+/**
+ * F3.8 — komunikacja operacyjna: mail z szablonu — kto rozmawia z klientami (CUSTOMERS_VIEW + TICKETS_MANAGE: L1+,
+ * Finanse, Sprzedaż, IOD, abuse), NOC i Marketing nie; komunikat do klientów węzła/planu — L4 (SERVICE_NOTICES_SEND)
+ * i ADMIN; baner incydentów — każda rola systemowa.
+ */
+describe('F3.8 — komunikacja operacyjna', () => {
+  const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
+  const t = (k: string) => TRASY.filter((x) => x.kontroler === k);
+
+  it('mail z szablonu (admin/users/:id/mail-obslugi): L1–L4, Finanse, Sprzedaż, IOD, abuse — tak; NOC, Marketing, Audytor — nie', async () => {
+    const [m] = t('MailDoKlientaAdminController');
+    expect(m.sciezka).toBe('admin/users/:id/mail-obslugi');
+    for (const r of ['L1 Konsultant', 'L4 Kierownik zmiany', 'Finanse i księgowość', 'Sprzedaż i partnerzy', 'Inspektor ochrony danych (IOD)', 'Nadużycia i bezpieczeństwo']) {
+      expect({ r, ok: await wpuszcza(m, OPERATOR, rola(r)) }).toEqual({ r, ok: true });
+    }
+    for (const r of ['Inżynier infrastruktury (NOC/DevOps)', 'Marketing', 'Audytor (tylko podgląd)']) expect({ r, ok: await wpuszcza(m, OPERATOR, rola(r)) }).toEqual({ r, ok: false });
+    expect(await wpuszcza(m, ADMIN)).toBe(true);
+    expect(await wpuszcza(m, KLIENT, [...STAFF_PERMISSION_KEYS])).toBe(false);
+  });
+
+  it('komunikaty serwisowe: tylko L4 i ADMIN (wszystkie trasy)', async () => {
+    const trasy = t('KomunikatySerwisoweAdminController');
+    expect(trasy.map((x) => x.metoda).sort()).toEqual(['lista', 'podglad', 'widok', 'zatrzymaj', 'zlec']);
+    for (const x of trasy) {
+      expect({ m: x.metoda, ok: await wpuszcza(x, OPERATOR, rola('L4 Kierownik zmiany')) }).toEqual({ m: x.metoda, ok: true });
+      for (const r of ['L1 Konsultant', 'L3 Starszy specjalista', 'Inżynier infrastruktury (NOC/DevOps)', 'Marketing', 'Finanse i księgowość']) {
+        expect({ m: x.metoda, r, ok: await wpuszcza(x, OPERATOR, rola(r)) }).toEqual({ m: x.metoda, r, ok: false });
+      }
+      expect(await wpuszcza(x, ADMIN)).toBe(true);
+    }
+  });
+
+  it('baner incydentów: każda rola systemowa tak; operator bez uprawnień i klient — nie', async () => {
+    const [b] = t('StatusObslugiAdminController');
+    for (const r of ROLE_SYSTEMOWE) expect({ r: r.name, ok: await wpuszcza(b, OPERATOR, [...r.permissions]) }).toEqual({ r: r.name, ok: true });
+    expect(await wpuszcza(b, OPERATOR, [])).toBe(false);
+    expect(await wpuszcza(b, KLIENT, [...STAFF_PERMISSION_KEYS])).toBe(false);
+  });
+});
+
 /** F3.3 — kopie floty: admin i NOC (NODES_VIEW, jak lista węzłów); L1 i Marketing — nie. */
 describe('F3.3 — kopie floty', () => {
   const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];

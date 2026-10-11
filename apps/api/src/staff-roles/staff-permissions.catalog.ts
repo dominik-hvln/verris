@@ -53,6 +53,8 @@ export const STAFF_PERMISSIONS = [
   { key: 'NODE_SERVICES', area: 'Infrastruktura', label: 'Usługi i logi węzła: stan usług, restart usług pomocniczych, uruchomienie usługi, która stoi, ogon logów (adresy w logach poczty zamaskowane)' },
   // Restart DZIAŁAJĄCEJ usługi wspólnej (WWW, poczta, bazy, DNS, FTP) przerywa pracę wszystkich kont węzła — tylko administrator
   // (ADMIN_ONLY; zespół składa wniosek NODE_SERVICE_RESTART).
+  // F3.8 — komunikat serwisowy do wszystkich klientów węzła albo planu (incydent, prace) — kierownik zmiany.
+  { key: 'SERVICE_NOTICES_SEND', area: 'Obsługa', label: 'Komunikat serwisowy do klientów węzła albo planu (incydent, prace; bez treści promocyjnych, w dzienniku)' },
   { key: 'NODE_SERVICES_RESTART_SHARED', area: 'Infrastruktura', label: 'Restart działającej usługi wspólnej węzła (WWW, poczta, bazy, DNS, FTP) — przerwa dla wszystkich kont' },
 ] as const;
 

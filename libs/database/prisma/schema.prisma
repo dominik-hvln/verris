@@ -4367,3 +4367,42 @@ model PocztaBlokadaNadawcy {
   createdById String?
   createdAt   DateTime @default(now())
 }
+
+/// F3.8 (ON-01, ON-05) — komunikat serwisowy do klientów węzła albo planu (incydent, prace). Poczta serwisowa: bez zgody
+/// marketingowej i bez treści promocyjnych (PKE). Odbiorcy zamrożeni przy utworzeniu; wysyłka kolejką z limitem na minutę.
+/// zakres: WEZEL | PLAN; status: WYSYLANY | WYSLANY | ZATRZYMANY.
+model KomunikatSerwisowy {
+  id          String                       @id @default(uuid())
+  zakres      String
+  serverId    String?
+  planId      String?
+  temat       String                       @db.VarChar(200)
+  tresc       String                       @db.Text
+  powod       String                       @db.VarChar(500)
+  status      String                       @default("WYSYLANY")
+  odbiorcow   Int                          @default(0)
+  wyslano     Int                          @default(0)
+  bledow      Int                          @default(0)
+  pominieto   Int                          @default(0)
+  utworzylId  String?
+  zakonczono  DateTime?
+  createdAt   DateTime                     @default(now())
+  odbiorcy    KomunikatSerwisowyOdbiorca[]
+
+  @@index([status, createdAt])
+}
+
+/// Odbiorca komunikatu serwisowego (właściciel usługi). status: CZEKA | WYSYLANIE | WYSLANY | BLAD | POMINIETY.
+/// Bez adresu e-mail (snapshot jest w EmailLog); jedna wysyłka na parę komunikat–klient.
+model KomunikatSerwisowyOdbiorca {
+  id          String             @id @default(uuid())
+  komunikatId String
+  komunikat   KomunikatSerwisowy @relation(fields: [komunikatId], references: [id], onDelete: Cascade)
+  userId      String
+  status      String             @default("CZEKA")
+  emailLogId  String?
+  zmieniono   DateTime           @default(now())
+
+  @@unique([komunikatId, userId])
+  @@index([komunikatId, status])
+}

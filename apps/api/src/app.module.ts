@@ -33,6 +33,7 @@ import { SecurityModule } from './security/security.module.js';
 import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module.js';
 import { ComplianceModule } from './compliance/compliance.module.js';
 import { MarketingModule } from './marketing/marketing.module.js';
+import { KomunikacjaModule } from './komunikacja/komunikacja.module.js';
 import { EmailLogAdminModule } from './email-log/email-log-admin.module.js';
 import { ProductOpsModule } from './product-ops/product-ops.module.js';
 import { RateLimitGuard } from './common/guards/rate-limit.guard.js';
@@ -98,6 +99,7 @@ import { ZadaniaWTleModule } from './zadania-w-tle/zadania-w-tle.module.js';
     AdminDashboardModule,
     ComplianceModule,
     MarketingModule,
+    KomunikacjaModule,
     EmailLogAdminModule,
     ProductOpsModule,
     AiModule,

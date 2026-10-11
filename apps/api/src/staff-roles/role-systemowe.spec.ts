@@ -114,6 +114,10 @@ describe('PB-47 — katalog uprawnień i role systemowe', () => {
     expect(z('NODE_SERVICES_RESTART_SHARED')).toEqual([]);
   });
 
+  it('F3.8: komunikat serwisowy do klientów węzła/planu (SERVICE_NOTICES_SEND) tylko L4', () => {
+    expect(ROLE_SYSTEMOWE.filter((r) => r.permissions.includes('SERVICE_NOTICES_SEND' as never)).map((r) => r.name)).toEqual(['L4 Kierownik zmiany']);
+  });
+
   it('F3.7 (D2): scalanie zgłoszeń (TICKETS_MERGE) od L3, raporty obsługi (TICKETS_REPORTS) tylko L4', () => {
     const z = (k: string) => ROLE_SYSTEMOWE.filter((r) => r.permissions.includes(k as never)).map((r) => r.name);
     expect(z('TICKETS_MERGE')).toEqual(['L3 Starszy specjalista', 'L4 Kierownik zmiany']);

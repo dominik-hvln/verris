@@ -100,6 +100,11 @@ export const SupportActions = {
   NODE_SERVICES_CHECKED: 'NODE_SERVICES_CHECKED',
   NODE_SERVICE_RESTART_QUEUED: 'NODE_SERVICE_RESTART_QUEUED',
   NODE_LOG_VIEWED: 'NODE_LOG_VIEWED',
+  /** F3.8 — mail do klienta z szablonu (karta klienta); details: szablon, temat, zgloszenieId, emailLogId, wynik. */
+  OPERATOR_CUSTOMER_MAILED: 'OPERATOR_CUSTOMER_MAILED',
+  /** F3.8 — komunikat serwisowy do klientów węzła albo planu: zlecenie (zakres, cel, odbiorców, powód) i zatrzymanie. */
+  SERVICE_NOTICE_QUEUED: 'SERVICE_NOTICE_QUEUED',
+  SERVICE_NOTICE_STOPPED: 'SERVICE_NOTICE_STOPPED',
 } as const;
 
 // ---------------------------------------------------------------------------

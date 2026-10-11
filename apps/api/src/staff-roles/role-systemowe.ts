@@ -63,6 +63,8 @@ const L4: readonly StaffPermission[] = [
   'EXPORT_DATA',
   // F3.7 — raporty obsługi (SLA, CSAT, wyniki osób) od kierownika zmiany.
   'TICKETS_REPORTS',
+  // F3.8 — komunikat serwisowy do klientów węzła albo planu (incydent, prace) od kierownika zmiany.
+  'SERVICE_NOTICES_SEND',
 ];
 
 /** Szczeble obsługi w kolejności rosnącej. */
@@ -88,7 +90,7 @@ export const SZCZEBLE: readonly RolaSystemowa[] = [
   {
     name: 'L4 Kierownik zmiany',
     description:
-      'Wszystko z L3 oraz faktury, korekty, portfel i kredyty, zarządzanie węzłami, podgląd planów, dziennik bezpieczeństwa, RODO, baza wiedzy, oznaczanie kont wewnętrznych, eksport list do CSV, raporty obsługi i akceptacja wniosków zespołu. Bez ustawień platformy i zarządzania pracownikami.',
+      'Wszystko z L3 oraz faktury, korekty, portfel i kredyty, zarządzanie węzłami, podgląd planów, dziennik bezpieczeństwa, RODO, baza wiedzy, oznaczanie kont wewnętrznych, eksport list do CSV, raporty obsługi, komunikaty serwisowe do klientów węzła albo planu i akceptacja wniosków zespołu. Bez ustawień platformy i zarządzania pracownikami.',
     permissions: L4,
   },
 ];
