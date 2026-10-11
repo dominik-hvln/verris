@@ -148,6 +148,12 @@ describe('F3.5 — dodatki dodawane przez obsługę', () => {
     const akt = await new UsersService(prisma() as never, {} as never, {} as never, {} as never, {} as never, {} as never).listMyActivity(k.id);
     expect(akt.events.find((e) => e.action === 'ADDON_PURCHASED')).toMatchObject({ actor: 'obsługa Verris', context: 'Konfiguracja przez specjalistę' });
     expect(await prisma().auditLog.count({ where: { action: 'OPERATOR_ACCOUNT_CHANGED', userId: k.id } })).toBe(1);
+
+    // Weryfikacja 11.10 (D3) — wpis na osi „Co się działo” karty usługi (raz, duplikat nie dubluje), bez powodu i operatora.
+    const zdarzenia = await prisma().subscriptionEvent.findMany({ where: { subscriptionId: u.id } });
+    expect(zdarzenia.map((e) => [e.type, e.details])).toEqual([
+      ['ADDON_ADDED', { source: 'OPERATOR', slug: 'manual_setup', name: 'Konfiguracja przez specjalistę', gratis: true }],
+    ]);
   });
 
   it('z portfela klienta: tylko z numerem jego zgłoszenia; obciążenie jak przy zakupie klienta; brak środków — nic', async () => {

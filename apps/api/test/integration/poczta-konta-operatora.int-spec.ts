@@ -63,6 +63,19 @@ describe('F3.1 — blokada wysyłki konta przez obsługę', () => {
     expect(JSON.stringify(aktywnosc.events)).not.toContain('RBL');
     const zespol = await prisma().auditLog.findMany({ where: { action: 'OPERATOR_ACCOUNT_CHANGED', userId: k.user.id }, orderBy: { createdAt: 'asc' } });
     expect(zespol.map((w) => (w.details as Record<string, unknown>).akcja)).toEqual(['blokada-wysylki', 'zwolnienie-wysylki']);
+
+    // Drugie „Zwolnij” i ponowne „Zablokuj” na zablokowanym koncie nie dublują wpisów na osi klienta.
+    await svc.zwolnij({ ...z, powod: 'Klient usunął formularz, skan czysty' });
+    await svc.zablokuj(z);
+    await svc.zablokuj(z);
+    // Weryfikacja 11.10 (D3) — oś „Co się działo” karty usługi (SubscriptionEvent, GET /services/:id → events):
+    // klient widział anulację przez obsługę, ale nie blokadę wysyłki. Wpis bez powodu i bez id operatora.
+    const zdarzenia = await prisma().subscriptionEvent.findMany({ where: { subscriptionId: k.subscription.id }, orderBy: { createdAt: 'asc' } });
+    expect(zdarzenia.map((e) => [e.type, e.details])).toEqual([
+      ['MAIL_SENDING_BLOCKED', { source: 'OPERATOR' }],
+      ['MAIL_SENDING_UNBLOCKED', { source: 'OPERATOR' }],
+      ['MAIL_SENDING_BLOCKED', { source: 'OPERATOR' }],
+    ]);
   });
 });
 

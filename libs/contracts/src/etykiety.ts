@@ -108,6 +108,12 @@ export const SERVICE_EVENT_PL: Record<string, string> = {
   RENEWAL_DATE_CHANGED: 'Zmieniono datę odnowienia',
   PAYMENT_PROMISE: 'Wstrzymano zawieszenie do terminu płatności',
   PAYMENT_PROMISE_REVOKED: 'Odwołano wstrzymanie zawieszenia',
+  // Weryfikacja 11.10 (D3, 10.10) — działania obsługi na usłudze widoczne dla klienta bez nazwiska operatora i bez
+  // powodu. Etykiety z liczbą/nazwą (limit, dodatek) składa panel klienta ze szczegółów (lib/service-events.ts).
+  MAIL_SENDING_BLOCKED: 'Obsługa Verris zablokowała wysyłkę poczty z konta',
+  MAIL_SENDING_UNBLOCKED: 'Obsługa Verris przywróciła wysyłkę poczty z konta',
+  MAIL_SEND_LIMIT_CHANGED: 'Obsługa Verris zmieniła dobowy limit wysyłki poczty',
+  ADDON_ADDED: 'Obsługa Verris dodała dodatek',
   CANCELED: 'Usługa anulowana',
   EXPIRED: 'Usługa wygasła',
   RESELLER_MARKUP_REMOVED: 'Cena bez narzutu partnera',

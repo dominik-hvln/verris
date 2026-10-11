@@ -97,6 +97,10 @@ export class PocztaKontaOperatoraService {
           where: { id: w.konto.id, mailBlockedAt: null },
           data: { mailBlockedAt: new Date(), mailBlockedById: z.operatorUserId, mailBlockedReason: z.powod.trim().slice(0, 500) },
         });
+        // Weryfikacja 11.10 (D3) — wpis na osi „Co się działo” karty usługi klienta: bez powodu i bez operatora.
+        if (juz.count > 0) {
+          await this.prisma.subscriptionEvent.create({ data: { subscriptionId: z.subscriptionId, type: 'MAIL_SENDING_BLOCKED', details: { source: 'OPERATOR' } } });
+        }
         // Przegląd F3.1 — kordon już nałożony (np. automatyczny po skoku wysyłki) zostaje ze swoim powodem: cordon()
         // nadpisuje powód, a „Zwolnij” zdjęłoby wtedy kordon, którego obsługa nie nakładała.
         if (!(await this.kordon.isCordoned(w.userId))) {
@@ -122,10 +126,14 @@ export class PocztaKontaOperatoraService {
       {},
       async (w) => {
         const { zmieniono } = await this.directAdmin.ustawBlokadeWysylki(w.konto.serverId, w.konto.daUsername, false);
-        await this.prisma.account.update({
-          where: { id: w.konto.id },
+        const byla = await this.prisma.account.updateMany({
+          where: { id: w.konto.id, mailBlockedAt: { not: null } },
           data: { mailBlockedAt: null, mailBlockedById: null, mailBlockedReason: null },
         });
+        // Wpis klienta tylko, gdy blokada naprawdę była (drugie „Zwolnij” nie dubluje wpisu).
+        if (byla.count > 0) {
+          await this.prisma.subscriptionEvent.create({ data: { subscriptionId: z.subscriptionId, type: 'MAIL_SENDING_UNBLOCKED', details: { source: 'OPERATOR' } } });
+        }
         const inne = await this.prisma.account.count({ where: { userId: w.userId, id: { not: w.konto.id }, mailBlockedAt: { not: null } } });
         const powod = await this.kordon.powodKordonu(w.userId);
         const kordonZdjety = inne === 0 && !!powod?.startsWith(KORDON_Z_BLOKADY);

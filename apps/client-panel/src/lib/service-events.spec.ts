@@ -32,6 +32,28 @@ describe('X-05 serviceEventLabel', () => {
     }
   });
 
+  it('weryfikacja 11.10 (D3): działania obsługi na usłudze — „Obsługa Verris …”, bez nazwy panelu serwera i pliku limitu', () => {
+    const opisy = [
+      serviceEventLabel('MAIL_SENDING_BLOCKED', { source: 'OPERATOR' }),
+      serviceEventLabel('MAIL_SENDING_UNBLOCKED', { source: 'OPERATOR' }),
+      serviceEventLabel('MAIL_SEND_LIMIT_CHANGED', { source: 'OPERATOR', limit: 300, domyslny: 1000 }),
+      serviceEventLabel('MAIL_SEND_LIMIT_CHANGED', { source: 'OPERATOR', limit: null, domyslny: 1000 }),
+      serviceEventLabel('ADDON_ADDED', { source: 'OPERATOR', slug: 'priority_support_30d', name: 'Priorytetowe wsparcie (30 dni)', gratis: true }),
+    ];
+    expect(opisy).toEqual([
+      'Obsługa Verris zablokowała wysyłkę poczty z konta',
+      'Obsługa Verris przywróciła wysyłkę poczty z konta',
+      'Obsługa Verris ustawiła dobowy limit wysyłki na 300 wiadomości',
+      'Obsługa Verris przywróciła domyślny dobowy limit wysyłki (1000 wiadomości)',
+      'Obsługa Verris dodała dodatek „Priorytetowe wsparcie (30 dni)” (bez opłaty)',
+    ]);
+    for (const o of opisy) expect(o).not.toMatch(/DirectAdmin|\bDA\b|exim|limit_/i);
+    expect(serviceEventLabel('MAIL_SEND_LIMIT_CHANGED', { limit: 1 })).toBe('Obsługa Verris ustawiła dobowy limit wysyłki na 1 wiadomość');
+    // Szczegóły bez liczby/nazwy (starszy wpis) — ogólna etykieta, nie „undefined”.
+    expect(serviceEventLabel('ADDON_ADDED', {})).toBe('Obsługa Verris dodała dodatek');
+    expect(EVENT_WARN.has('MAIL_SENDING_BLOCKED')).toBe(true);
+  });
+
   it('każde zdarzenie ostrzegawcze ma polską etykietę', () => {
     for (const type of EVENT_WARN) expect(EVENT_LABEL[type]).toBeTruthy();
   });

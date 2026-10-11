@@ -84,6 +84,19 @@ describe('F3.1 — limit wysyłki konta i statystyki poczty węzła', () => {
     expect(aktywnosc.events.map((e) => e.action)).not.toContain('MAIL_SEND_LIMIT_CONFIRMED');
     const zespol = await prisma().auditLog.findMany({ where: { action: 'MAIL_SEND_LIMIT_CONFIRMED' }, orderBy: { createdAt: 'asc' } });
     expect(zespol.map((w) => [(w.details as Record<string, unknown>).przed, (w.details as Record<string, unknown>).po])).toEqual([[null, 300], [300, null]]);
+
+    // Weryfikacja 11.10 (D3) — oś „Co się działo” karty usługi: wartość potwierdzona przez węzeł, bez powodu i operatora.
+    // Sam odczyt limitu z węzła (wczytajLimit, payload bez `limit`) nie jest działaniem na usłudze — bez wpisu.
+    // Rozjazd baza/węzeł (np. ręczna zmiana) — odczyt wyrównuje bazę, ale to nie jest zmiana zlecona przez obsługę.
+    await prisma().account.update({ where: { id: k.account.id }, data: { mailSendLimit: 500 } });
+    await svc.wczytajLimit(k.subscription.id, operator.id, 'ADMIN');
+    await agent();
+    expect((await prisma().account.findUniqueOrThrow({ where: { id: k.account.id } })).mailSendLimit).toBeNull();
+    const zdarzenia = await prisma().subscriptionEvent.findMany({ where: { subscriptionId: k.subscription.id }, orderBy: { createdAt: 'asc' } });
+    expect(zdarzenia.map((e) => [e.type, e.details])).toEqual([
+      ['MAIL_SEND_LIMIT_CHANGED', { source: 'OPERATOR', limit: 300, domyslny: 1000 }],
+      ['MAIL_SEND_LIMIT_CHANGED', { source: 'OPERATOR', limit: null, domyslny: 1000 }],
+    ]);
   });
 
   it('przegląd: agent sprzed aktualizacji (bez MQ_LIMIT) — skrypt tylko czyta, zadanie FAILED, baza bez zmian', async () => {

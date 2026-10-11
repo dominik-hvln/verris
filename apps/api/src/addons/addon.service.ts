@@ -260,6 +260,10 @@ export class AddonService {
       operator: { userId: i.operator.userId, gratis, zgloszenieId },
     });
     if (!('duplikat' in wynik)) {
+      // Weryfikacja 11.10 (D3) — wpis na osi „Co się działo” karty usługi klienta, bez powodu i bez operatora.
+      await this.prisma.subscriptionEvent.create({
+        data: { subscriptionId: sub.id, type: 'ADDON_ADDED', details: { source: 'OPERATOR', slug: def.slug, name: def.name, gratis } },
+      });
       await this.audit.record({
         action: SupportActions.OPERATOR_ACCOUNT_CHANGED,
         userId: sub.userId,

@@ -625,7 +625,7 @@ function EventsFeed({ events }: { events: ServiceDetailsDto['events'] }) {
     <div className="rounded-[10px] border border-line bg-card py-1">
       {rows.map(({ e, day, head }) => {
         const warn = EVENT_WARN.has(e.type);
-        const label = serviceEventLabel(e.type);
+        const label = serviceEventLabel(e.type, e.details);
         return (
           <div key={e.id}>
             {head ? <Label className="px-4 pb-1 pt-2.5">{day}</Label> : null}

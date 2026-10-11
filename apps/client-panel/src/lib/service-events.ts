@@ -1,8 +1,9 @@
 import { SERVICE_EVENT_PL } from '@verris/contracts';
+import { plForm } from './pl';
 
 /** Zdarzenia usługi po polsku — źródło w `@verris/contracts` (wspólne z panelem obsługi). */
 export const EVENT_LABEL = SERVICE_EVENT_PL;
-export const EVENT_WARN = new Set(['PAYMENT_FAILED', 'SUSPENDED', 'PROVISIONING_FAILED', 'TRIAL_EXPIRED', 'CANCEL_SCHEDULED']);
+export const EVENT_WARN = new Set(['PAYMENT_FAILED', 'SUSPENDED', 'PROVISIONING_FAILED', 'TRIAL_EXPIRED', 'CANCEL_SCHEDULED', 'MAIL_SENDING_BLOCKED']);
 
 
 /** Kroki wewnętrzne (worker, powiadomienia) — mają sens dla obsługi, nie dla klienta. */
@@ -17,7 +18,21 @@ export function widoczneDlaKlienta(type: string): boolean {
  * Nieznany kod nie znika z osi, ale klient nie widzi angielskiego kodu („Migration bundle completed”,
  * próba bety 06.10) — dostaje ogólną etykietę, a słownik uzupełniamy w `@verris/contracts`.
  */
-export function serviceEventLabel(type: string): string {
+export function serviceEventLabel(type: string, details?: unknown): string {
+  const d = details && typeof details === 'object' && !Array.isArray(details) ? (details as Record<string, unknown>) : {};
+  const wiadomosci = (n: number) => `${n} ${plForm(n, 'wiadomość', 'wiadomości', 'wiadomości')}`;
+  // Weryfikacja 11.10 (D3) — działania obsługi z liczbą/nazwą ze szczegółów zdarzenia (bez powodu i bez operatora).
+  if (type === 'MAIL_SEND_LIMIT_CHANGED') {
+    if (typeof d.limit === 'number') return `Obsługa Verris ustawiła dobowy limit wysyłki na ${wiadomosci(d.limit)}`;
+    if (d.limit === null) {
+      return typeof d.domyslny === 'number'
+        ? `Obsługa Verris przywróciła domyślny dobowy limit wysyłki (${wiadomosci(d.domyslny)})`
+        : 'Obsługa Verris przywróciła domyślny dobowy limit wysyłki';
+    }
+  }
+  if (type === 'ADDON_ADDED' && typeof d.name === 'string' && d.name) {
+    return `Obsługa Verris dodała dodatek „${d.name}”${d.gratis === true ? ' (bez opłaty)' : ''}`;
+  }
   return EVENT_LABEL[type] ?? 'Zmiana w usłudze';
 }
 

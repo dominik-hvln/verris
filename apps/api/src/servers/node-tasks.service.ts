@@ -675,9 +675,16 @@ export class NodeTasksService {
     // konta — także po samym odczycie (ręczna zmiana na serwerze). Nieczytelny plik na węźle niczego nie nadpisuje.
     if (task.kind === NodeTaskKind.MAIL_QUEUE && p.mode === 'limit' && task.accountId) {
       const l = limitZLogu(log);
-      const konto = await this.prisma.account.findUnique({ where: { id: task.accountId }, select: { daUsername: true, mailSendLimit: true, userId: true } });
+      const konto = await this.prisma.account.findUnique({ where: { id: task.accountId }, select: { daUsername: true, mailSendLimit: true, userId: true, subscriptionId: true } });
       if (l && konto && l.login === konto.daUsername && !l.nieczytelny && l.limit !== konto.mailSendLimit) {
         await this.prisma.account.update({ where: { id: task.accountId }, data: { mailSendLimit: l.limit } });
+        // Weryfikacja 11.10 (D3) — zmiana zlecona przez obsługę (payload z `limit`; sam odczyt go nie ma) trafia na oś
+        // „Co się działo” klienta dopiero z wartością potwierdzoną przez węzeł. Bez powodu i bez operatora.
+        if ((task.payload as { limit?: unknown } | null)?.limit !== undefined) {
+          await this.prisma.subscriptionEvent.create({
+            data: { subscriptionId: konto.subscriptionId, type: 'MAIL_SEND_LIMIT_CHANGED', details: { source: 'OPERATOR', limit: l.limit, domyslny: l.domyslny } },
+          });
+        }
         await this.audit.record({
           action: SupportActions.MAIL_SEND_LIMIT_CONFIRMED,
           userId: konto.userId,

@@ -207,7 +207,7 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
             {billingEvents.map((ev) => (
               <li key={ev.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 border-t border-line px-4 py-[11px] first:border-t-0">
                 <span className={`h-[7px] w-[7px] rounded-full ${EVENT_WARN.has(ev.type) ? 'bg-warn' : 'bg-data'}`} />
-                <span className="text-sm text-foreground">{serviceEventLabel(ev.type)}</span>
+                <span className="text-sm text-foreground">{serviceEventLabel(ev.type, ev.details)}</span>
                 <time className="whitespace-nowrap font-mono text-xs text-muted-foreground">{new Date(ev.createdAt).toLocaleString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</time>
               </li>
             ))}

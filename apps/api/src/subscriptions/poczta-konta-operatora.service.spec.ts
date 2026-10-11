@@ -17,6 +17,7 @@ type Konto = { id: string; userId: string; mailBlockedAt: Date | null; mailBlock
 
 function zbuduj(o: { rola?: string; bladWezla?: Error; konta?: Konto[]; bladDomen?: string } = {}) {
   const wiersze: Wiersz[] = [];
+  const zdarzenia: { type: string }[] = [];
   const konta: Konto[] = o.konta ?? [{ id: 'acc1', userId: WLASCICIEL, mailBlockedAt: null, mailBlockedById: null, mailBlockedReason: null }];
   const k1 = konta[0]!;
   const prisma = {
@@ -35,8 +36,9 @@ function zbuduj(o: { rola?: string; bladWezla?: Error; konta?: Konto[]; bladDome
     auditLog: { create: vi.fn(async ({ data }: { data: Wiersz }) => (wiersze.push(data), data)) },
     account: {
       findUnique: vi.fn(async () => ({ daUsername: 'klient1', serverId: 'w1', ...k1 })),
-      updateMany: vi.fn(async ({ where, data }: { where: { id: string; mailBlockedAt: null }; data: Partial<Konto> }) => {
-        const k = konta.find((x) => x.id === where.id && x.mailBlockedAt === null);
+      updateMany: vi.fn(async ({ where, data }: { where: { id: string; mailBlockedAt: null | { not: null } }; data: Partial<Konto> }) => {
+        const zablokowane = where.mailBlockedAt !== null;
+        const k = konta.find((x) => x.id === where.id && (x.mailBlockedAt !== null) === zablokowane);
         if (!k) return { count: 0 };
         Object.assign(k, data);
         return { count: 1 };
@@ -47,6 +49,7 @@ function zbuduj(o: { rola?: string; bladWezla?: Error; konta?: Konto[]; bladDome
       ),
     },
     user: { findUnique: vi.fn(async () => ({ email: 'l3@verris.pl' })) },
+    subscriptionEvent: { create: vi.fn(async ({ data }: { data: { type: string } }) => (zdarzenia.push(data), data)) },
   };
   const audit = new AuditService(prisma as never);
   const naWezle = new Set<string>();
@@ -79,7 +82,7 @@ function zbuduj(o: { rola?: string; bladWezla?: Error; konta?: Konto[]; bladDome
     new ZawieszenieOperatoraService(prisma as never, null as never),
   );
   const svc = new PocztaKontaOperatoraService(prisma as never, directAdmin as never, akcje, kordon, audit);
-  return { svc, prisma, directAdmin, kordon, mailer, wiersze, konta, naWezle };
+  return { svc, prisma, directAdmin, kordon, mailer, wiersze, konta, naWezle, zdarzenia };
 }
 
 const z = (powod = 'Spam z formularza kontaktowego, zgłoszenie z RBL', operatorRole = 'STAFF') => ({
