@@ -88,6 +88,12 @@ const AKCJE: Record<string, string> = {
   SUBSCRIPTION_UNSUSPENDED: "Usługa wznowiona",
   SUBSCRIPTION_CANCELED: "Usługa anulowana",
   SUBSCRIPTION_CANCEL_SCHEDULED: "Zaplanowano anulowanie usługi",
+  // F3.5 — cykl życia usługi i dodatki.
+  SUBSCRIPTION_CANCEL_REVOKED: "Cofnięto anulowanie usługi",
+  SUBSCRIPTION_RENEWAL_DATE_CHANGED: "Zmieniono datę odnowienia",
+  SUBSCRIPTION_PAYMENT_PROMISE_SET: "Obietnica zapłaty",
+  SUBSCRIPTION_PAYMENT_PROMISE_REVOKED: "Odwołano obietnicę zapłaty",
+  ADDON_PURCHASED: "Dodatek",
   PLAN_CHANGED: "Zmiana pakietu",
   EMAIL_CHANGE_CONFIRMED: "Zmiana adresu e-mail",
   RESELLER_CLIENT_CREATED: "Konto założone przez resellera",
@@ -191,6 +197,8 @@ export default async function AdminCustomerCardPage({
     const dopisek = [
       s.individualPrice != null && s.listPriceAmount ? `cennik ${kwota(s.listPriceAmount).replace(/ K$/, "")}` : null,
       s.autoscalingDiscountPct ? `autoskal. −${s.autoscalingDiscountPct}%` : null,
+      // F3.5 — obietnica zapłaty (wstrzymane zawieszenie zaległej usługi).
+      s.status === "PAST_DUE" && s.paymentPromiseUntil && new Date(s.paymentPromiseUntil).getTime() > teraz ? `obietnica zapłaty do ${data(s.paymentPromiseUntil)}` : null,
     ].filter(Boolean);
     return (
       <div key={s.id} className={WIERSZ}>

@@ -150,6 +150,13 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   MIGRATION_REPORT_SENT: 'Wysłano raport z przeniesienia strony',
   // F2.5 — zgłoszenie założone przez obsługę w imieniu klienta
   TICKET_OPENED_BY_STAFF: 'Obsługa założyła zgłoszenie w sprawie Twojego konta',
+  // F3.5 — cykl życia usługi i dodatki (także zmienione przez obsługę)
+  SUBSCRIPTION_CANCEL_SCHEDULED: 'Zaplanowano rezygnację z usługi na koniec okresu',
+  SUBSCRIPTION_CANCEL_REVOKED: 'Cofnięto rezygnację — usługa odnowi się',
+  SUBSCRIPTION_RENEWAL_DATE_CHANGED: 'Zmieniono datę odnowienia usługi',
+  SUBSCRIPTION_PAYMENT_PROMISE_SET: 'Przesunięto termin wstrzymania usługi za zaległą płatność',
+  SUBSCRIPTION_PAYMENT_PROMISE_REVOKED: 'Odwołano przesunięcie terminu płatności',
+  ADDON_PURCHASED: 'Dodano dodatek',
 };
 
 export function etykietaDziennika(akcja: string): string {

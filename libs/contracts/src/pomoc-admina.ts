@@ -328,6 +328,28 @@ export const POMOC = {
     opis: "Ostatnie żądania do stron konta zablokowane albo wykryte przez zaporę aplikacji, z regułą, ścieżką i adresem — bez treści żądań.",
     kiedy: "Gdy formularz albo panel strony zwraca 403 — sprawdź, która reguła blokuje, zanim poprosisz administratora o zmianę trybu.",
   },
+  // F3.5 — cykl życia usługi (karta usługi, sekcja „Operacje”).
+  "anulacja-uslugi": {
+    tytul: "Anulacja na koniec okresu",
+    opis: "Usługa działa do końca opłaconego okresu i się nie odnawia; do tego dnia anulację można cofnąć.",
+    kiedy: "Gdy klient prosi w zgłoszeniu o rezygnację, a nie chce tracić opłaconego okresu.",
+    rozniSieOd: "„Zakończ i usuń konto” kończy usługę od razu i jest nieodwracalne (tylko administrator).",
+  },
+  "data-odnowienia": {
+    tytul: "Data odnowienia i przedłużenie gratis",
+    opis: "Przesuwa koniec bieżącego okresu: później to przedłużenie bez opłaty (koszt Verris), wcześniej — tylko na prośbę klienta.",
+    kiedy: "Rekompensata po awarii albo wyrównanie dat odnowień klienta — poniżej kierownika zmiany przez wniosek.",
+  },
+  "obietnica-zaplaty": {
+    tytul: "Obietnica zapłaty",
+    opis: "Wstrzymuje automatyczne zawieszenie zaległej usługi na 1–7 dni; potem normalny cykl.",
+    kiedy: "Klient potwierdził w zgłoszeniu, że przelew jest w drodze; jedna na zaległość, kolejną daje administrator.",
+  },
+  "dodatki-uslugi": {
+    tytul: "Dodatki od obsługi",
+    opis: "Dodaje dodatek z katalogu do usługi klienta: z portfela klienta (na jego zgłoszenie) albo gratis.",
+    kiedy: "Klient zamówił dodatek w zgłoszeniu albo dostaje go jako rekompensatę — poniżej kierownika zmiany przez wniosek.",
+  },
 } satisfies Record<string, WpisPomocy>;
 
 export type PomocId = keyof typeof POMOC;

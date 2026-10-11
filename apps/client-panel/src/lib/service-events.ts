@@ -40,3 +40,12 @@ export function powodBlokady(
   if (reason === 'ABUSE' || reason === 'MANUAL_ADMIN' || reason === 'CUSTOMER_REQUEST') return 'obsluga';
   return 'platnosc';
 }
+
+/**
+ * F3.5 — czy usługa ma zaplanowaną rezygnację na koniec okresu. Źródłem jest stan (`cancelAt`): zdarzenie
+ * CANCEL_SCHEDULED zostaje w historii także po cofnięciu rezygnacji przez obsługę. Bez pola (starsze API) — po zdarzeniu.
+ */
+export function rezygnacjaZaplanowana(s: { status: string; cancelAt?: string | null; events: { type: string }[] }): boolean {
+  if (s.status !== 'ACTIVE') return false;
+  return s.cancelAt !== undefined ? !!s.cancelAt : s.events.some((e) => e.type === 'CANCEL_SCHEDULED');
+}

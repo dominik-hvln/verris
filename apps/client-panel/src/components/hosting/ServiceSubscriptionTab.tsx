@@ -10,7 +10,7 @@ import {
   fetchServiceDetailsAction as fetchServiceDetailsActionAkcja,
 } from '@/app/dashboard/services/[id]/hosting-service-actions';
 import { Kpi, KpiStrip, Meter, SectionHead, StatusPill } from '@/components/panel/v2';
-import { EVENT_WARN, serviceEventLabel } from '@/lib/service-events';
+import { EVENT_WARN, rezygnacjaZaplanowana, serviceEventLabel } from '@/lib/service-events';
 
 const BTN =
   'inline-flex items-center gap-2 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[13px] py-2 text-sm font-medium text-foreground hover:border-primary';
@@ -43,6 +43,10 @@ const BILLING_EVENT_TYPES = new Set([
   'PAYMENT_FAILED',
   'RENEWED',
   'CANCEL_SCHEDULED',
+  // F3.5 — zmiany obsługi w rozliczeniu usługi.
+  'CANCEL_REVOKED',
+  'RENEWAL_DATE_CHANGED',
+  'PAYMENT_PROMISE',
   'CANCELED',
 ]);
 
@@ -119,8 +123,8 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
     service.status === 'SUSPENDED' ||
     service.status === 'PENDING_PAYMENT';
   const billingEvents = service.events.filter((e) => BILLING_EVENT_TYPES.has(e.type)).slice(0, 8);
-  // Brak flagi w DTO — rezygnację na koniec okresu widać po zdarzeniu CANCEL_SCHEDULED.
-  const cancelScheduled = service.status === 'ACTIVE' && service.events.some((e) => e.type === 'CANCEL_SCHEDULED');
+  // F3.5 — ze stanu (cancelAt), nie z historii: rezygnację może cofnąć obsługa.
+  const cancelScheduled = rezygnacjaZaplanowana(service);
   const periodPct =
     service.currentPeriodStart && service.currentPeriodEnd
       ? Math.max(

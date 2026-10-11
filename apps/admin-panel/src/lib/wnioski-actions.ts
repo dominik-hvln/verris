@@ -16,7 +16,10 @@ export type TypWniosku =
   | "CUSTOMER_EMAIL_CHANGE"
   | "CUSTOMER_PASSWORD_RESET"
   | "SUBSCRIPTION_SUSPEND"
-  | "SUBSCRIPTION_UNSUSPEND";
+  | "SUBSCRIPTION_UNSUSPEND"
+  // F3.5 — koszt dla Verris: data odnowienia (przedłużenie gratis) i dodatek od obsługi.
+  | "SUBSCRIPTION_RENEWAL_DATE"
+  | "ADDON_ADD";
 
 export interface Wniosek {
   id: string;

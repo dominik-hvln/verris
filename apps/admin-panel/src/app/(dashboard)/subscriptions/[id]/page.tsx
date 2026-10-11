@@ -30,6 +30,7 @@ import { LimitWysylkiPanel } from "./limit-wysylki-panel";
 import { ZasobyKontaPanel } from "./zasoby-konta-panel";
 import { BezpieczenstwoKontaPanel } from "./bezpieczenstwo-konta-panel";
 import { SuspendForm, ZakonczIUsunForm } from "./suspend-form";
+import { CyklZyciaPanel } from "./cykl-zycia-panel";
 import { RestorePanel } from "./restore-panel";
 import { OdtworzenieNaWezlePanel } from "./odtworzenie-na-wezle-panel";
 
@@ -45,6 +46,11 @@ type SubscriptionDetail = {
   currency: string;
   currentPeriodStart: string | null;
   currentPeriodEnd: string | null;
+  // F3.5 — cykl życia usługi.
+  cancelAt?: string | null;
+  paymentPromiseUntil?: string | null;
+  paymentSource?: string;
+  stripeSubscriptionId?: string | null;
   user: { id: string; email: string; firstName: string | null; lastName: string | null };
   plan: { id: string; name: string; slug: string; cpuLimit: number; ramLimitMb: number; diskLimitMb: number };
   account: null | {
@@ -202,6 +208,13 @@ export default async function AdminSubscriptionDetailPage({
             </Para>
             <Para k="Okres">
               {data(d.currentPeriodStart)} – {data(d.currentPeriodEnd)}
+              {/* F3.5 — anulacja na koniec okresu i obietnica zapłaty widoczne od razu w przeglądzie. */}
+              {d.cancelAt && d.status === "ACTIVE" ? <span className="block text-xs text-amber-200">anulowana — nie odnowi się</span> : null}
+              {d.status === "PAST_DUE" && d.paymentPromiseUntil ? (
+                <span className="block text-xs text-amber-200" data-obietnica={d.paymentPromiseUntil}>
+                  obietnica zapłaty do {kiedy(d.paymentPromiseUntil)}
+                </span>
+              ) : null}
             </Para>
             <Para k="Konto hostingowe">{d.account ? `${d.account.domain} (${d.account.daUsername})` : "Brak konta"}</Para>
             <Para k="Węzeł">
@@ -269,6 +282,21 @@ export default async function AdminSubscriptionDetailPage({
         <>
           <Sekcja id="zawieszenie" tytul={d.status === "SUSPENDED" ? "Odwieszenie usługi" : "Zawieszenie usługi"}>
             <SuspendForm subscriptionId={d.id} userId={d.user.id} status={d.status} domain={d.account?.domain ?? null} dostep={access} />
+          </Sekcja>
+          {/* F3.5 — anulacja na koniec okresu, data odnowienia, obietnica zapłaty, dodatki (powód, zgłoszenie, wnioski). */}
+          <Sekcja id="cykl-zycia" tytul="Cykl życia usługi">
+            <CyklZyciaPanel
+              u={{
+                id: d.id,
+                userId: d.user.id,
+                status: d.status,
+                currentPeriodEnd: d.currentPeriodEnd,
+                cancelAt: d.cancelAt ?? null,
+                paymentPromiseUntil: d.paymentPromiseUntil ?? null,
+                kartaCykliczna: d.paymentSource === "STRIPE_CARD" && !!d.stripeSubscriptionId,
+              }}
+              dostep={access}
+            />
           </Sekcja>
           {/* D1 — zakończenie i usunięcie konta jest nieodwracalne: tylko administrator (API odrzuca STAFF). */}
           {(zakonczona && !kontoZostalo) || !access.isAdmin ? null : (

@@ -102,4 +102,19 @@ describe("Działania usługi", () => {
     expect(ids({ ...aktywna, status: "CANCELED", kontoUsuniete: true })).not.toContain("zakonczenie");
     expect(ids({ ...aktywna, status: "CANCELED", kontoUsuniete: false })).toContain("zakonczenie");
   });
+
+  it("F3.5: cykl życia → sekcja #cykl-zycia; anulacja od L2, data i dodatki od L4 (niżej wniosek), obietnica od L3 i tylko przy zaległości", () => {
+    const l2 = dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("SUBSCRIPTIONS_MANAGE"));
+    const po = (id: string) => l2.find((x) => x.id === id)!;
+    expect(po("anulacja")).toMatchObject({ zablokowane: null, href: "/subscriptions/s1?sekcja=operacje#cykl-zycia" });
+    expect(po("data-odnowienia")).toMatchObject({ zablokowane: "Wymaga BILLING_MANAGE", wniosek: true });
+    expect(po("dodatki")).toMatchObject({ zablokowane: "Wymaga BILLING_MANAGE", wniosek: true });
+    expect(ids(aktywna)).not.toContain("obietnica-zaplaty");
+    const zalegla = dzialaniaObiektu(AKCJE_USLUGI, { ...aktywna, status: "PAST_DUE" }, operator("SUBSCRIPTIONS_SUSPEND"));
+    expect(zalegla.find((x) => x.id === "obietnica-zaplaty")?.zablokowane).toBeNull();
+    expect(zalegla.map((x) => x.id)).not.toContain("anulacja");
+    const l4 = dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("SUBSCRIPTIONS_MANAGE", "BILLING_MANAGE"));
+    expect(l4.find((x) => x.id === "data-odnowienia")?.zablokowane).toBeNull();
+    expect(ids({ ...aktywna, status: "CANCELED" })).not.toContain("dodatki");
+  });
 });

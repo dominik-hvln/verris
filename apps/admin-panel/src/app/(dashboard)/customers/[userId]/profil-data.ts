@@ -38,6 +38,8 @@ export interface ProfilKlienta {
     currentPeriodStart: string | null;
     currentPeriodEnd: string | null;
     cancelAt: string | null;
+    /** F3.5 — obietnica zapłaty: bez zawieszenia za brak płatności do tej chwili. */
+    paymentPromiseUntil?: string | null;
     autoscalingEnabled: boolean;
     listPriceAmount?: string | null;
     individualPrice?: string | null;

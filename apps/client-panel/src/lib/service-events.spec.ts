@@ -1,4 +1,4 @@
-import { EVENT_LABEL, EVENT_WARN, powodBlokady, serviceEventLabel, widoczneDlaKlienta } from './service-events';
+import { EVENT_LABEL, EVENT_WARN, powodBlokady, rezygnacjaZaplanowana, serviceEventLabel, widoczneDlaKlienta } from './service-events';
 
 /**
  * X-05 — etykiety zdarzeń usługi na osi czasu.
@@ -46,5 +46,18 @@ describe('powodBlokady', () => {
     expect(powodBlokady('SUSPENDED', [ev('ABUSE')])).toBe('obsluga');
     expect(powodBlokady('SUSPENDED', [ev('GRACE_EXPIRED', '2026-09-01T00:00:00Z'), ev('RESELLER')])).toBe('partner');
     expect(powodBlokady('SUSPENDED', undefined)).toBe('platnosc');
+  });
+});
+
+/** F3.5 — rezygnacja na koniec okresu ze stanu usługi: po cofnięciu przez obsługę zdarzenie zostaje w historii. */
+describe('rezygnacjaZaplanowana', () => {
+  const zdarzenie = [{ type: 'CANCEL_SCHEDULED' }];
+  it('stan wygrywa z historią: cofnięta rezygnacja (cancelAt null) mimo zdarzenia CANCEL_SCHEDULED', () => {
+    expect(rezygnacjaZaplanowana({ status: 'ACTIVE', cancelAt: null, events: zdarzenie })).toBe(false);
+    expect(rezygnacjaZaplanowana({ status: 'ACTIVE', cancelAt: '2026-11-20T00:00:00Z', events: [] })).toBe(true);
+  });
+  it('starsze API bez pola — po zdarzeniu; nieaktywna usługa — nigdy', () => {
+    expect(rezygnacjaZaplanowana({ status: 'ACTIVE', events: zdarzenie })).toBe(true);
+    expect(rezygnacjaZaplanowana({ status: 'PAST_DUE', cancelAt: '2026-11-20T00:00:00Z', events: zdarzenie })).toBe(false);
   });
 });
