@@ -49,7 +49,7 @@ def fail(msg):
 
 LIMIT_CZYTANYCH = 3000   # ile wiadomości najwyżej sprawdzamy nagłówkami (-Mvh) w jednym przebiegu
 LIMIT_WIERSZY = 300      # ile wierszy oddajemy do panelu
-LIMIT_ZNAKOW = 80000     # budżet wyjścia: agent wysyła do API ostatnie 100 000 znaków logu
+LIMIT_BAJTOW = 80000     # budżet wyjścia w BAJTACH UTF-8: agent wysyła do API ostatnie 100 000 bajtów logu (tail -c)
 ID_RE = re.compile(r"^(?:[0-9A-Za-z]{6}-[0-9A-Za-z]{11}-[0-9A-Za-z]{4}|[0-9A-Za-z]{6}-[0-9A-Za-z]{6}-[0-9A-Za-z]{2})$")
 DOM_RE = re.compile(r"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$")
 USER_RE = re.compile(r"^[a-z][a-z0-9]{0,15}$")
@@ -289,7 +289,7 @@ if tryb == "remove":
 # list
 razem = liczba()
 wpisy = lista()
-przeczytano, pasuje, wiersze, znaki = 0, 0, [], 0
+przeczytano, pasuje, wiersze, bajty = 0, 0, [], 0
 for w in wpisy:
     if przeczytano >= LIMIT_CZYTANYCH:
         break
@@ -307,9 +307,12 @@ for w in wpisy:
     odbiorcy = ",".join(w["odbiorcy"][:3]) + (f",+{len(w['odbiorcy']) - 3}" if len(w["odbiorcy"]) > 3 else "")
     linia = "VERRIS_MQ " + "|".join([w["id"], w["wiek"], w["rozmiar"], "1" if w["zamrozona"] else "0",
                                        czysc(w["nadawca"], 120), czysc(odbiorcy, 200), czysc(h["temat"], 120)])
-    if znaki + len(linia) > LIMIT_ZNAKOW:
+    # Przegląd poprawek (audyt Fal 2) — liczone w bajtach, nie w znakach: temat ze 120 emoji to 480 bajtów, a agent
+    # obcina log od początku do 100 000 bajtów — pierwsze wiersze (i połowa znaku) by znikały, a RAZEM by je liczyło.
+    rozmiar = len(linia.encode("utf-8")) + 1
+    if bajty + rozmiar > LIMIT_BAJTOW:
         continue
-    znaki += len(linia) + 1
+    bajty += rozmiar
     wiersze.append(linia)
 for l in wiersze:
     print(l)

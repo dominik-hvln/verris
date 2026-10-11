@@ -222,4 +222,20 @@ describe('F3.1 — node-mail-queue.sh (kolejka exima)', () => {
     expect([...temat]).toHaveLength(120);
     expect(r.out.split('\n').filter((l) => l.includes('linia'))).toHaveLength(1);
   });
+  it('przegląd poprawek: budżet wyjścia w bajtach — 300 tematów ze 120 emoji mieści się w 100 000 bajtów, które agent wysyła (tail -c)', () => {
+    const s = srodowisko();
+    const k = join(s.dir, 'kolejka');
+    const temat = `=?UTF-8?B?${Buffer.from('😀'.repeat(120)).toString('base64')}?=`;
+    for (let i = 0; i < 300; i++) {
+      const id = `1tEeEe-${String(i).padStart(11, '0')}-0001`;
+      wiadomosc(k, id, ` 1m  1.0K ${id} <spam@obcy.pl>\n          a@gmail.com\n\n`, `${id}-H\nmail 8 12\n<spam@obcy.pl>\n1760090000 0\nXX\n1\na@gmail.com\n\n030  Subject: ${temat}\n`);
+    }
+    const r = s.uruchom({ MQ_MODE: 'list' });
+    expect(r.rc).toBe(0);
+    // Agent obcina log OD POCZĄTKU do 100 000 bajtów (z nagłówkiem zadania) — wiersze ponad to by znikały bez śladu.
+    expect(Buffer.byteLength(r.out, 'utf8')).toBeLessThanOrEqual(90_000);
+    const razem = /VERRIS_MQ_RAZEM (\d+) (\d+) (\d+) (\d+)/.exec(r.out)!;
+    expect(Number(razem[4])).toBe(r.wiersze.length);
+    expect(r.wiersze.filter((w) => w.split('|')[6] === '😀'.repeat(120)).length).toBeGreaterThan(100);
+  }, 60_000);
 });
