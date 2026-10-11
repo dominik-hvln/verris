@@ -123,6 +123,11 @@ describe('D11 — twarde terminy i alert', () => {
     expect(terminMigracji(m({ status: 'CANCELED' }), T0)).toBeNull();
   });
 
+  it('audyt Fal 2 — nieudana (FAILED, stan końcowy automatu) nie ma terminu ani alertu', () => {
+    expect(terminMigracji(m({ status: 'FAILED' }), godz(24 * 30))).toBeNull();
+    expect(terminMigracji(m({ status: 'FAILED', wygasaUStaregoAt: godz(1) }), godz(2))).toBeNull();
+  });
+
   it('klucz alertu rozróżnia „blisko” i „po terminie” oraz nowy termin', () => {
     const a = terminMigracji(m(), godz(48))!;
     const b = terminMigracji(m(), godz(80))!;

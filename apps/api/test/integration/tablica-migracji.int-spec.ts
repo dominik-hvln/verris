@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { MigrationStatus } from '@verris/database';
 import { AuditService } from '../../src/common/audit/audit.service.js';
 import { NotificationsService } from '../../src/notifications/notifications.service.js';
@@ -185,6 +187,29 @@ describe('D11 — tablica migracji obsługi', () => {
     expect(await svc.alertTerminow()).toBe(1);
     expect((await tytuly(l2.id)).filter(([t]) => String(t).includes('po terminie'))).toEqual([[expect.any(String), 'critical']]);
     expect((await tytuly(l2b.id)).filter(([t]) => String(t).includes('po terminie'))).toEqual([]);
+  });
+
+  it('audyt Fal 2 — historia sprzed tablicy: po migracji danych bez alertów „po terminie”; nieudana bez terminu i znika z tablicy', async () => {
+    const dawno = new Date(Date.now() - 40 * 86400_000);
+    const { p, k, l2, mig, svc } = await przygotuj({ status: MigrationStatus.ATTENTION, createdAt: dawno });
+    const nieudana = await p.migrationRequest.create({
+      data: { subscriptionId: k.subscription.id, userId: k.user.id, sourceBundleEnc: 'x', targetDomain: k.account.domain, status: MigrationStatus.FAILED, createdAt: dawno },
+    });
+    const sql = readFileSync(resolve(import.meta.dirname, '../../../../libs/database/prisma/migrations/20261011200000_migracja_tablica_termin_historii/migration.sql'), 'utf8');
+    await p.$executeRawUnsafe(sql);
+    await p.$executeRawUnsafe(sql); // idempotentna — drugi przebieg nie przesuwa terminu
+    const po = await p.migrationRequest.findUniqueOrThrow({ where: { id: mig.id } });
+    expect(po.termin!.getTime()).toBeGreaterThan(Date.now() + 2.9 * 86400_000);
+    expect((await p.migrationRequest.findUniqueOrThrow({ where: { id: nieudana.id } })).termin).toBeNull();
+    // Pierwszy przebieg alertu po wdrożeniu: nic (termin za 3 dni, nieudana bez terminu).
+    expect(await svc.alertTerminow()).toBe(0);
+    expect(await p.notification.count({ where: { userId: l2.id } })).toBe(0);
+    // Nieudana sprzed ponad 14 dni nie wisi w kolumnie „Nowa”; aktywna — tak, z terminem „ok”.
+    await p.migrationRequest.update({ where: { id: nieudana.id }, data: { updatedAt: dawno } });
+    const t = await svc.tablica({ aktor: { userId: l2.id, role: 'STAFF' } });
+    expect(t.kolumny.NOWA.map((x) => x.id)).toEqual([mig.id]);
+    expect(t.kolumny.NOWA[0].termin).toMatchObject({ stan: 'ok' });
+    expect(t.alerty).toEqual({ poTerminie: 0, blisko: 0 });
   });
 
   it('przegląd D11 — ponowne otwarcie zamkniętej migracji daje nowe okno poprawek; zmiana etapu nie powtarza alertu', async () => {

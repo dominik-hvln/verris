@@ -182,7 +182,9 @@ export interface Termin {
  * i domeny (wygrywa najwcześniejszy alert). Po przełączeniu: koniec okna poprawek. Zamknięta — brak terminu.
  */
 export function terminMigracji(m: StanMigracji, teraz: Date): Termin | null {
-  if (m.etap === 'ZAMKNIETA' || m.status === 'CANCELED') return null;
+  // Audyt Fal 2 — FAILED to stan końcowy automatu (ponowienie zakłada nowe zlecenie, nie ma przejścia z powrotem ani
+  // anulowania), więc karta nie dojdzie do „Zamknięta”: bez terminu, inaczej wisiałaby z alertem „po terminie” na zawsze.
+  if (m.etap === 'ZAMKNIETA' || m.status === 'CANCELED' || m.status === 'FAILED') return null;
   const kandydaci: Array<{ rodzaj: RodzajTerminu; data: Date }> = [];
   if (m.etap === 'PO_PRZELACZENIU') {
     if (m.poprawkiDo) kandydaci.push({ rodzaj: 'okno-poprawek', data: m.poprawkiDo });

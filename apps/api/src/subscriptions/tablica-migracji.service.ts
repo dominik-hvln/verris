@@ -134,6 +134,8 @@ export class TablicaMigracjiService {
       where: {
         status: { not: MigrationStatus.CANCELED },
         OR: [{ etapObslugi: { not: MigracjaEtap.ZAMKNIETA } }, { etapOd: { gte: new Date(teraz.getTime() - 14 * DZIEN_MS) } }],
+        // Audyt Fal 2 — nieudana (stan końcowy automatu, ponowienie to nowe zlecenie) widoczna jak zamknięta: 14 dni.
+        NOT: { status: MigrationStatus.FAILED, updatedAt: { lt: new Date(teraz.getTime() - 14 * DZIEN_MS) } },
         ...(opts.tylkoMoje ? { przypisanyDoId: opts.aktor.userId } : {}),
       },
       orderBy: { createdAt: 'asc' },
@@ -502,7 +504,7 @@ export class TablicaMigracjiService {
   async alertTerminow(): Promise<number> {
     const teraz = new Date();
     const rows = await this.prisma.migrationRequest.findMany({
-      where: { status: { not: MigrationStatus.CANCELED }, etapObslugi: { not: MigracjaEtap.ZAMKNIETA } },
+      where: { status: { notIn: [MigrationStatus.CANCELED, MigrationStatus.FAILED] }, etapObslugi: { not: MigracjaEtap.ZAMKNIETA } },
       select: WYBOR,
       take: 1000,
     });
