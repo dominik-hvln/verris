@@ -11,6 +11,7 @@ import { getAuthToken } from '@/lib/auth';
 import { fetchSessionProfile } from '@/lib/session-profile';
 import { canAccessDashboardRoute } from '@/lib/client-nav-access';
 import { plForm, plural } from '@/lib/pl';
+import { terminUslugi } from '@/lib/service-events';
 
 /** PB-15 — wszystkie usługi w nowym wyglądzie (wzorzec: docs/design/wzorzec-panelu.html). */
 
@@ -46,6 +47,10 @@ function tone(s: ServiceSummaryDto): 'data' | 'warn' | 'muted' {
   if (s.status === 'CANCELED' || s.status === 'EXPIRED' || s.status === 'PROVISIONING') return 'muted';
   if (s.status !== 'ACTIVE') return 'warn';
   return s.health?.label === 'attention' || s.health?.label === 'critical' ? 'warn' : 'data';
+}
+
+function dataKrotka(iso: string) {
+  return new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 function href(s: ServiceSummaryDto) {
@@ -153,6 +158,8 @@ function ServicesTable({ services }: { services: ServiceSummaryDto[] }) {
             const t = tone(s);
             const a = s.account;
             const rec = s.recommendations?.find((r) => r.severity !== 'info');
+            // Weryfikacja 11.10 — po rezygnacji na koniec okresu: „Działa do … · nie odnowi się”, nie data odnowienia.
+            const termin = terminUslugi(s);
             return (
               <tr key={s.id} className="group hover:bg-raised/50">
                 <td className={TD} data-label="Usługa">
@@ -178,7 +185,13 @@ function ServicesTable({ services }: { services: ServiceSummaryDto[] }) {
                     data-tip={rec ? `${rec.title}\n${rec.body}` : undefined}
                   >
                     <span className={`h-[7px] w-[7px] rounded-full bg-current ${t === 'data' ? 'v2-breathe' : t === 'warn' ? 'v2-breathe v2-breathe-warn' : ''}`} style={{ ['--v2-i' as string]: i }} />
-                    {s.provisioning && s.status !== 'ACTIVE' ? PROVISIONING[s.provisioning.stage] : rec && s.status === 'ACTIVE' ? rec.title : STATUS[s.status]}
+                    {s.provisioning && s.status !== 'ACTIVE'
+                      ? PROVISIONING[s.provisioning.stage]
+                      : rec && s.status === 'ACTIVE'
+                        ? rec.title
+                        : termin.rezygnacja && s.status === 'ACTIVE'
+                          ? 'działa do końca okresu'
+                          : STATUS[s.status]}
                   </span>
                 </td>
                 <td className={TD} data-label="Zdrowie">
@@ -198,7 +211,18 @@ function ServicesTable({ services }: { services: ServiceSummaryDto[] }) {
                   {a ? `${a.cpuLimit}% CPU · ${(a.ramLimitMb / 1024).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} GB RAM · ${Math.round(a.diskLimitMb / 1024)} GB` : '—'}
                 </td>
                 <td className={`${TD} whitespace-nowrap tabular-nums`} data-label="Odnowienie">
-                  {s.currentPeriodEnd ? new Date(s.currentPeriodEnd).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                  {termin.data ? (
+                    termin.rezygnacja ? (
+                      <>
+                        Działa do {dataKrotka(termin.data)}
+                        <small className="text-[12.5px] text-muted-foreground"> · nie odnowi się</small>
+                      </>
+                    ) : (
+                      dataKrotka(termin.data)
+                    )
+                  ) : (
+                    '—'
+                  )}
                 </td>
                 <td className={`${TD} whitespace-nowrap tabular-nums`} data-label="Cena">
                   {Number(s.renewalAmount ?? s.priceAmount).toLocaleString('pl-PL', { minimumFractionDigits: 2 })} {s.currency === 'PLN' ? 'zł' : s.currency}

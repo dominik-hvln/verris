@@ -32,6 +32,7 @@ import { deriveReasons } from './services-health-overview';
 import { SERVICE_STATUS_LABEL, buildEcoLedgerSeries, mapWalletMonthlyFlow } from './dashboard-chart-utils';
 import type { DashboardSnapshot } from './dashboard-data';
 import { plForm, plural } from '@/lib/pl';
+import { terminUslugi } from '@/lib/service-events';
 
 const BTN =
   'inline-flex items-center gap-2 whitespace-nowrap rounded-md border border-line-strong bg-card px-3 py-2 text-sm font-medium text-foreground hover:border-primary';
@@ -139,8 +140,11 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
   const tones = services.map(serviceTone);
   const ok = tones.filter((t) => t.tone === 'data').length;
   const attention = tones.length - ok;
-  const nextRenewal = services
-    .map((s) => s.currentPeriodEnd)
+  // Weryfikacja 11.10 — usługa z rezygnacją na koniec okresu nie ma „najbliższego odnowienia”.
+  const terminy = services.map(terminUslugi);
+  const nextRenewal = terminy
+    .filter((t) => !t.rezygnacja)
+    .map((t) => t.data)
     .filter((d): d is string => !!d)
     .sort()[0];
 
@@ -330,7 +334,10 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
                               {t.text}
                             </span>
                           </td>
-                          <td className={`${TD} tabular-nums`} data-label="Odnowienie">{date(s.currentPeriodEnd)}</td>
+                          <td className={`${TD} tabular-nums`} data-label="Odnowienie">
+                            {/* Weryfikacja 11.10 — po rezygnacji na koniec okresu to nie jest data odnowienia. */}
+                            {terminy[i]!.rezygnacja && terminy[i]!.data ? `działa do ${date(terminy[i]!.data)} · nie odnowi się` : date(terminy[i]!.data)}
+                          </td>
                           <td className={`${TD} whitespace-nowrap tabular-nums`} data-label="Cena">
                             {Number(s.renewalAmount ?? s.priceAmount).toLocaleString('pl-PL', { minimumFractionDigits: 2 })} {s.currency === 'PLN' ? 'zł' : s.currency}
                             {s.interval === 'MONTH' ? ' / mies.' : ' / rok'}

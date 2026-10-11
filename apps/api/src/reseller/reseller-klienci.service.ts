@@ -30,6 +30,8 @@ export interface UslugaKlientaResellera {
   status: string;
   zdrowie: 'healthy' | 'attention' | 'critical' | 'pending';
   odnowienie: string | null;
+  /** Weryfikacja 11.10 — rezygnacja na koniec okresu: `odnowienie` to wtedy koniec działania, nie odnowienie. */
+  nieOdnowiSie: boolean;
   cenaDetaliczna: number;
   waluta: string;
   /** Wstrzymana przez tego resellera — tylko takie reseller może wznowić. */
@@ -124,6 +126,7 @@ export class ResellerKlienciService {
         resellerMarkupPct: true,
         currency: true,
         currentPeriodEnd: true,
+        cancelAt: true,
         plan: { select: { name: true } },
         account: { select: { domain: true } },
         healthSnapshots: { orderBy: { computedAt: 'desc' }, take: 1, select: { score: true } },
@@ -141,7 +144,8 @@ export class ResellerKlienciService {
         domena: s.account?.domain ?? null,
         status: s.status,
         zdrowie: zdrowie(s.healthSnapshots[0]?.score),
-        odnowienie: s.currentPeriodEnd?.toISOString() ?? null,
+        odnowienie: (s.cancelAt ?? s.currentPeriodEnd)?.toISOString() ?? null,
+        nieOdnowiSie: s.cancelAt != null,
         cenaDetaliczna: cenyDlaResellera(s.priceAmount, s.resellerMarkupPct).detal,
         waluta: s.currency,
         wstrzymanaPrzezCiebie: s.status === SubscriptionStatus.SUSPENDED && ostatniPowodWstrzymania(s.events) === 'RESELLER',

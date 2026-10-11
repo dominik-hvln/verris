@@ -1,4 +1,4 @@
-import { AiChatService, bezMarkdown } from './ai-chat.service.js';
+import { AiChatService, bezMarkdown, terminDlaAsystenta } from './ai-chat.service.js';
 
 /**
  * t1 05.10 — czat na pulpicie: asystent nie znał daty odnowienia ani SSL („nie mam dostępu”),
@@ -39,5 +39,14 @@ describe('AiChatService — kontekst pulpitu i zwykły tekst', () => {
 
   it('bezMarkdown zostawia zwykły tekst bez zmian', () => {
     expect(bezMarkdown('Kroki:\n1. Wejdź w SSL\n2. Kliknij „Włącz”')).toBe('Kroki:\n1. Wejdź w SSL\n2. Kliknij „Włącz”');
+  });
+});
+
+/** Weryfikacja 11.10 — usługa z rezygnacją na koniec okresu nie ma daty odnowienia w kontekście asystenta. */
+describe('terminDlaAsystenta', () => {
+  it('cancelAt: „dzialaDoBezOdnowienia”, odnowienie null; bez rezygnacji — data odnowienia', () => {
+    const koniec = new Date('2026-11-08T10:00:00Z');
+    expect(terminDlaAsystenta({ currentPeriodEnd: koniec, cancelAt: koniec })).toEqual({ odnowienie: null, dzialaDoBezOdnowienia: '2026-11-08' });
+    expect(terminDlaAsystenta({ currentPeriodEnd: koniec, cancelAt: null })).toEqual({ odnowienie: '2026-11-08' });
   });
 });

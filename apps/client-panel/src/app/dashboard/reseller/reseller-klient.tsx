@@ -135,7 +135,11 @@ export function KlientResellera({ klient, aktywny, onOdpiety }: { klient: Resell
                       <p className="font-medium text-foreground">{u.domena ?? u.plan ?? 'Usługa'}</p>
                       <p className="text-xs text-muted-foreground">
                         {u.plan ?? '—'} · stan: {ZDROWIE[u.zdrowie]}
-                        {u.odnowienie ? ` · odnowienie ${new Date(u.odnowienie).toLocaleDateString('pl-PL')}` : ''}
+                        {u.odnowienie
+                          ? u.nieOdnowiSie
+                            ? ` · działa do ${new Date(u.odnowienie).toLocaleDateString('pl-PL')} · nie odnowi się`
+                            : ` · odnowienie ${new Date(u.odnowienie).toLocaleDateString('pl-PL')}`
+                          : ''}
                         {/* Cena z narzutem tylko gdy narzut trafia do rozliczeń (flaga resellerMarkup). */}
                         {narzutWlaczony ? ` · ${liczba(u.cenaDetaliczna, 2)} ${u.waluta === 'PLN' ? 'K' : u.waluta} detal` : ''}
                       </p>

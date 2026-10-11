@@ -10,7 +10,7 @@ import {
   fetchServiceDetailsAction as fetchServiceDetailsActionAkcja,
 } from '@/app/dashboard/services/[id]/hosting-service-actions';
 import { Kpi, KpiStrip, Meter, SectionHead, StatusPill } from '@/components/panel/v2';
-import { EVENT_WARN, rezygnacjaZaplanowana, serviceEventLabel } from '@/lib/service-events';
+import { EVENT_WARN, rezygnacjaZaplanowana, serviceEventLabel, terminUslugi } from '@/lib/service-events';
 
 const BTN =
   'inline-flex items-center gap-2 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[13px] py-2 text-sm font-medium text-foreground hover:border-primary';
@@ -125,6 +125,8 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
   const billingEvents = service.events.filter((e) => BILLING_EVENT_TYPES.has(e.type)).slice(0, 8);
   // F3.5 — ze stanu (cancelAt), nie z historii: rezygnację może cofnąć obsługa.
   const cancelScheduled = rezygnacjaZaplanowana(service);
+  // Weryfikacja 11.10 — po rezygnacji „Działa do” = cancelAt (może być później niż koniec okresu przy opłaconym kolejnym).
+  const termin = terminUslugi(service);
   const periodPct =
     service.currentPeriodStart && service.currentPeriodEnd
       ? Math.max(
@@ -191,7 +193,7 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
         />
         <Kpi
           label={cancelScheduled ? 'Działa do' : 'Następne odnowienie'}
-          value={<span className="text-[24px]">{formatDate(service.currentPeriodEnd)}</span>}
+          value={<span className="text-[24px]">{formatDate(cancelScheduled ? termin.data : service.currentPeriodEnd)}</span>}
           foot={<span>okres od {formatDate(service.currentPeriodStart)}</span>}
         >
           {periodPct != null ? <Meter pct={periodPct} tone={periodPct > 90 ? 'warn' : 'data'} tipText={`${Math.round(periodPct)}% okresu minęło`} /> : null}
@@ -213,7 +215,21 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
         </section>
       ) : null}
 
-      {canCancel && service.status !== 'PENDING_PAYMENT' && service.status !== 'PAST_DUE' ? (
+      {/* Weryfikacja 11.10 — po zaplanowanej rezygnacji nie proponujemy jej drugi raz. Klient nie ma w API cofnięcia
+          własnej rezygnacji (cofa obsługa: POST /admin/subscriptions/:id/anulacja/cofnij) — stąd tylko informacja. */}
+      {cancelScheduled ? (
+        <section className="rounded-[10px] border border-warn/30 bg-warn-soft px-4 py-3.5">
+          <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Rezygnacja zaplanowana</h3>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Usługa działa do {formatDate(termin.data)} i nie odnowi się — nie pobierzemy kolejnej opłaty. Chcesz ją jednak
+            zachować? Napisz do nas przed tą datą w{' '}
+            <Link href="/dashboard/support" className="font-semibold text-primary underline underline-offset-[3px]">
+              Centrum pomocy
+            </Link>
+            .
+          </p>
+        </section>
+      ) : canCancel && service.status !== 'PENDING_PAYMENT' && service.status !== 'PAST_DUE' ? (
         <section className="rounded-[10px] border border-line bg-card px-4 py-3.5">
           <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Zakończenie usługi</h3>
           <p className="mt-1 text-[13px] text-muted-foreground">

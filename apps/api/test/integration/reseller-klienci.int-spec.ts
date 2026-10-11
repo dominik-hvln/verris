@@ -62,7 +62,7 @@ describe('O-05 — reseller na kontach swoich klientów', () => {
     const k = await serwis().szczegoly(reseller.id, klient.id);
     expect(Object.keys(k).sort()).toEqual(['email', 'id', 'imieNazwisko', 'od', 'uslugi']);
     expect(Object.keys(k.uslugi[0]).sort()).toEqual(
-      ['cenaDetaliczna', 'domena', 'id', 'odnowienie', 'plan', 'status', 'waluta', 'wstrzymanaPrzezCiebie', 'zdrowie'],
+      ['cenaDetaliczna', 'domena', 'id', 'nieOdnowiSie', 'odnowienie', 'plan', 'status', 'waluta', 'wstrzymanaPrzezCiebie', 'zdrowie'],
     );
     const json = JSON.stringify(k);
     expect(json).not.toContain('123.45');
@@ -70,6 +70,16 @@ describe('O-05 — reseller na kontach swoich klientów', () => {
     expect(json).not.toContain('Firma Klienta');
     // Usługa bez snapshotu narzutu odnawia się swoją ceną — detal = faktyczna cena (decyzja 07.10), nie 45 + 20%.
     expect(k.uslugi[0].cenaDetaliczna).toBe(45);
+  });
+
+  it('weryfikacja 11.10: rezygnacja na koniec okresu — „nie odnowi się” z datą końca działania', async () => {
+    const { reseller, klient, usluga } = await uklad();
+    const koniec = new Date('2026-11-08T10:00:00Z');
+    let k = await serwis().szczegoly(reseller.id, klient.id);
+    expect(k.uslugi[0].nieOdnowiSie).toBe(false);
+    await prisma().subscription.update({ where: { id: usluga.id }, data: { currentPeriodEnd: koniec, cancelAt: koniec } });
+    k = await serwis().szczegoly(reseller.id, klient.id);
+    expect(k.uslugi[0]).toMatchObject({ nieOdnowiSie: true, odnowienie: '2026-11-08T10:00:00.000Z' });
   });
 
   it('cudzy klient wygląda jak nieistniejący (404), także przy działaniach', async () => {

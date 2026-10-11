@@ -11,7 +11,7 @@ import { opisLokalizacji } from '@verris/contracts';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { EVENT_WARN, powodBlokady, serviceEventLabel, widoczneDlaKlienta } from '@/lib/service-events';
+import { EVENT_WARN, opisTerminu, powodBlokady, serviceEventLabel, widoczneDlaKlienta } from '@/lib/service-events';
 import { ChevronRight, Loader2, Plus, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import type {
@@ -197,6 +197,8 @@ export default function ServiceOverviewV2({
   const blokada = powodBlokady(service.status, service.events);
   const needsBilling = blokada === 'platnosc';
   const perMonth = service.interval === 'MONTH' ? '/ mies.' : '/ rok';
+  // Weryfikacja 11.10 — po rezygnacji na koniec okresu: „działa do … · nie odnowi się”, nie „odnawia się …”.
+  const termin = opisTerminu(service, (iso) => date(iso));
   const h = HEALTH[health?.label ?? 'pending'];
   const diskUsed = usage?.rows.at(-1)?.diskUsageMb ?? conn?.diskMb.used ?? null;
   const diskLimit = account?.diskLimitMb ?? conn?.diskMb.limit ?? null;
@@ -269,7 +271,7 @@ export default function ServiceOverviewV2({
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <Label>
-            Usługa{service.currentPeriodEnd ? ` · odnawia się ${date(service.currentPeriodEnd)}` : ''} · {money(service.renewalAmount ?? service.priceAmount, service.currency)} {perMonth}
+            Usługa{termin ? ` · ${termin}` : ''} · {money(service.renewalAmount ?? service.priceAmount, service.currency)} {perMonth}
           </Label>
           <h1 className="mb-2 mt-1.5 font-display text-[clamp(28px,4vw,40px)] font-extrabold leading-none tracking-[-0.03em] text-foreground">
             {service.plan.name}

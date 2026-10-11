@@ -230,6 +230,7 @@ export class AiChatService {
         select: {
           status: true,
           currentPeriodEnd: true,
+          cancelAt: true,
           plan: { select: { name: true } },
           account: { select: { domain: true } },
           siteMonitor: { select: { tlsExpiresAt: true } },
@@ -242,7 +243,7 @@ export class AiChatService {
           plan: s.plan?.name ?? null,
           status: s.status,
           domena: s.account?.domain ?? null,
-          odnowienie: s.currentPeriodEnd?.toISOString().slice(0, 10) ?? null,
+          ...terminDlaAsystenta(s),
           sslWazneDo: s.siteMonitor?.tlsExpiresAt?.toISOString().slice(0, 10) ?? null,
         })),
       });
@@ -286,7 +287,7 @@ export class AiChatService {
     return JSON.stringify({
       plan: sub.plan?.name ?? null,
       status: sub.status,
-      odnowienie: sub.currentPeriodEnd?.toISOString().slice(0, 10) ?? null,
+      ...terminDlaAsystenta(sub),
       domain: acc?.domain ?? null,
       accountStatus: acc?.status ?? null,
       healthScore: sub.healthSnapshots[0]?.score ?? null,
@@ -321,4 +322,16 @@ export function bezMarkdown(tekst: string): string {
 
 function hash(value: string): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+/**
+ * Weryfikacja 11.10 — po rezygnacji na koniec okresu (cancelAt) usługa się nie odnowi: asystent dostaje
+ * „dzialaDo” zamiast daty odnowienia, inaczej odpowiadałby „odnawia się 8.11” jak dawny nagłówek panelu.
+ */
+export function terminDlaAsystenta(s: { currentPeriodEnd: Date | null; cancelAt?: Date | null }): {
+  odnowienie: string | null;
+  dzialaDoBezOdnowienia?: string;
+} {
+  if (s.cancelAt) return { odnowienie: null, dzialaDoBezOdnowienia: s.cancelAt.toISOString().slice(0, 10) };
+  return { odnowienie: s.currentPeriodEnd?.toISOString().slice(0, 10) ?? null };
 }

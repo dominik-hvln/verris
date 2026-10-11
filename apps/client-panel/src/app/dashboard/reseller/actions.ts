@@ -79,6 +79,8 @@ export type UslugaKlienta = {
   status: string;
   zdrowie: 'healthy' | 'attention' | 'critical' | 'pending';
   odnowienie: string | null;
+  /** Rezygnacja na koniec okresu — `odnowienie` to wtedy koniec działania (starsze API: brak pola). */
+  nieOdnowiSie?: boolean;
   cenaDetaliczna: number;
   waluta: string;
   wstrzymanaPrzezCiebie: boolean;

@@ -28,3 +28,20 @@ describe('Cena na liście usług = kwota odnowienia', () => {
     expect(s.renewalAmount).toBe('12.49');
   });
 });
+
+/**
+ * Weryfikacja 11.10 — po rezygnacji na koniec okresu lista usług w panelu klienta pokazywała „Odnowienie 8 lis 2026”
+ * i stan „działa”: lista nie dostawała `cancelAt`, więc panel nie mógł odróżnić usługi, która się nie odnowi.
+ */
+describe('Lista usług niesie stan rezygnacji (cancelAt)', () => {
+  it('cancelAt z bazy trafia do listy; bez rezygnacji — null', async () => {
+    const anulowana = { ...sub, id: 's2', currentPeriodEnd: new Date('2026-11-08T10:00:00Z'), cancelAt: new Date('2026-11-08T10:00:00Z') };
+    const prisma = { subscription: { findMany: vi.fn(async () => [anulowana, { ...sub, cancelAt: null }]) } };
+    const promo = new PromoService(null as never, null as never, null as never, null as never, null as never);
+    const Ctrl = UserServicesController as unknown as new (...a: unknown[]) => UserServicesController;
+    const ctrl = new Ctrl(prisma, ...Array(37).fill(null), promo);
+    const [a, b] = (await ctrl.list({ userId: 'u1' })) as Array<{ cancelAt?: string | null }>;
+    expect(a.cancelAt).toBe('2026-11-08T10:00:00.000Z');
+    expect(b.cancelAt).toBeNull();
+  });
+});

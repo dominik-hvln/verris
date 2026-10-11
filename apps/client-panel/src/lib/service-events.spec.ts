@@ -1,4 +1,4 @@
-import { EVENT_LABEL, EVENT_WARN, powodBlokady, rezygnacjaZaplanowana, serviceEventLabel, widoczneDlaKlienta } from './service-events';
+import { EVENT_LABEL, EVENT_WARN, powodBlokady, rezygnacjaZaplanowana, terminUslugi, opisTerminu, serviceEventLabel, widoczneDlaKlienta } from './service-events';
 
 /**
  * X-05 — etykiety zdarzeń usługi na osi czasu.
@@ -59,5 +59,25 @@ describe('rezygnacjaZaplanowana', () => {
   it('starsze API bez pola — po zdarzeniu; nieaktywna usługa — nigdy', () => {
     expect(rezygnacjaZaplanowana({ status: 'ACTIVE', events: zdarzenie })).toBe(true);
     expect(rezygnacjaZaplanowana({ status: 'PAST_DUE', cancelAt: '2026-11-20T00:00:00Z', events: zdarzenie })).toBe(false);
+  });
+});
+
+/** Weryfikacja 11.10 — po rezygnacji nagłówek karty, lista usług i pulpit mówiły „odnawia się 8 lis 2026”. */
+describe('terminUslugi / opisTerminu', () => {
+  const fmt = (iso: string) => iso.slice(0, 10);
+  const baza = { status: 'ACTIVE', currentPeriodEnd: '2026-11-08T10:00:00Z' };
+  it('rezygnacja na koniec okresu: „działa do … · nie odnowi się” z datą z cancelAt', () => {
+    const s = { ...baza, cancelAt: '2026-11-08T10:00:00Z' };
+    expect(terminUslugi(s)).toEqual({ rezygnacja: true, data: '2026-11-08T10:00:00Z' });
+    expect(opisTerminu(s, fmt)).toBe('działa do 2026-11-08 · nie odnowi się');
+  });
+  it('bez rezygnacji: „odnawia się …”; lista bez pola i bez zdarzeń — też', () => {
+    expect(opisTerminu({ ...baza, cancelAt: null }, fmt)).toBe('odnawia się 2026-11-08');
+    expect(opisTerminu(baza, fmt)).toBe('odnawia się 2026-11-08');
+    expect(opisTerminu({ ...baza, currentPeriodEnd: null, cancelAt: null }, fmt)).toBeNull();
+  });
+  it('zakończona usługa nie ma terminu odnowienia (anulacja od razu ustawia cancelAt = teraz)', () => {
+    expect(opisTerminu({ status: 'CANCELED', currentPeriodEnd: '2026-11-08T10:00:00Z', cancelAt: '2026-10-11T10:00:00Z' }, fmt)).toBeNull();
+    expect(opisTerminu({ status: 'EXPIRED', currentPeriodEnd: '2026-11-08T10:00:00Z', cancelAt: null }, fmt)).toBeNull();
   });
 });

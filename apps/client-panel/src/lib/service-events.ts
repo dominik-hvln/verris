@@ -45,7 +45,33 @@ export function powodBlokady(
  * F3.5 — czy usługa ma zaplanowaną rezygnację na koniec okresu. Źródłem jest stan (`cancelAt`): zdarzenie
  * CANCEL_SCHEDULED zostaje w historii także po cofnięciu rezygnacji przez obsługę. Bez pola (starsze API) — po zdarzeniu.
  */
-export function rezygnacjaZaplanowana(s: { status: string; cancelAt?: string | null; events: { type: string }[] }): boolean {
+export function rezygnacjaZaplanowana(s: { status: string; cancelAt?: string | null; events?: { type: string }[] }): boolean {
   if (s.status !== 'ACTIVE') return false;
-  return s.cancelAt !== undefined ? !!s.cancelAt : s.events.some((e) => e.type === 'CANCEL_SCHEDULED');
+  return s.cancelAt !== undefined ? !!s.cancelAt : (s.events ?? []).some((e) => e.type === 'CANCEL_SCHEDULED');
+}
+
+/**
+ * Weryfikacja 11.10 — termin usługi do nagłówka karty, list usług i pulpitu. Po rezygnacji na koniec okresu
+ * usługa działa do `cancelAt` i się nie odnawia; nagłówek mówił „odnawia się 8 lis 2026”, lista — „Odnowienie 8 lis”.
+ * `data` = do kiedy działa (rezygnacja) albo kiedy się odnowi; `null` — brak terminu.
+ */
+export function terminUslugi(s: {
+  status: string;
+  currentPeriodEnd: string | null;
+  cancelAt?: string | null;
+  events?: { type: string }[];
+}): { rezygnacja: boolean; data: string | null } {
+  // Zakończona usługa nie ma terminu odnowienia (anulacja od razu też ustawia cancelAt = chwila zakończenia).
+  if (s.status === 'CANCELED' || s.status === 'EXPIRED') return { rezygnacja: false, data: null };
+  // cancelAt w stanie (także przy zaległej płatności) — usługa się nie odnowi; bez pola (starsze API) — po zdarzeniu.
+  if (s.cancelAt) return { rezygnacja: true, data: s.cancelAt };
+  const rezygnacja = rezygnacjaZaplanowana(s);
+  return { rezygnacja, data: s.currentPeriodEnd };
+}
+
+/** Ten sam termin jako tekst: „odnawia się 8 lis 2026” albo „działa do 8 lis 2026 · nie odnowi się”. */
+export function opisTerminu(s: Parameters<typeof terminUslugi>[0], data: (iso: string) => string): string | null {
+  const t = terminUslugi(s);
+  if (!t.data) return null;
+  return t.rezygnacja ? `działa do ${data(t.data)} · nie odnowi się` : `odnawia się ${data(t.data)}`;
 }

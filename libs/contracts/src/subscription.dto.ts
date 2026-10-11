@@ -89,6 +89,11 @@ export interface ServiceSummaryDto {
   renewalAmount?: string;
   currency: string;
   currentPeriodEnd: string | null;
+  /**
+   * F3.5 — usługa anulowana na koniec okresu: do tej chwili działa i nie odnowi się (null = odnawia się).
+   * Weryfikacja 11.10: także na liście usług — bez pola lista i nagłówek mówiły „odnawia się” po rezygnacji.
+   */
+  cancelAt?: string | null;
   ecoModeEnabled: boolean;
   autoscalingEnabled: boolean;
   /** O-1 — true while in a free trial; `trialEndsAt` is the window end. */
@@ -271,8 +276,6 @@ export interface ServiceDetailsDto extends Omit<ServiceSummaryDto, 'planSlug' | 
     diskLimitMb: number;
   };
   currentPeriodStart: string | null;
-  /** F3.5 — usługa anulowana na koniec okresu: do tej chwili działa i nie odnowi się (null = odnawia się). */
-  cancelAt?: string | null;
   autoscalingMaxCost: string;
   events: SubscriptionEventDto[];
 }

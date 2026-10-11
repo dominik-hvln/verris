@@ -414,6 +414,8 @@ export class UserServicesController {
       renewalAmount: odnowienia[i].toFixed(2),
       currency: s.currency,
       currentPeriodEnd: s.currentPeriodEnd?.toISOString() ?? null,
+      // Weryfikacja 11.10 — lista pokazywała „odnowienie 8 lis” po rezygnacji na koniec okresu (stan jest w cancelAt).
+      cancelAt: s.cancelAt?.toISOString() ?? null,
       ecoModeEnabled: s.ecoModeEnabled,
       autoscalingEnabled: s.autoscalingEnabled,
       isTrial: s.isTrial,
