@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, NotFoundException, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, HttpCode, NotFoundException, Param, Post, UseGuards } from '@nestjs/common';
 import { IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -35,11 +35,15 @@ export class DodatkiOperatoraAdminController {
     private readonly prisma: PrismaService,
   ) {}
 
+  /** Audyt Fali 3 (D3) — zakupy usług kont zespołu widzi tylko ADMIN (jak dodanie dodatku w addon.service.ts). */
   @Get(':id/dodatki')
   @StaffPermAny('CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE')
-  async dodatki(@Param('id') id: string) {
-    const s = await this.prisma.subscription.findUnique({ where: { id }, select: { userId: true } });
+  async dodatki(@Param('id') id: string, @CurrentUser() actor: { userId: string; role: string }) {
+    const s = await this.prisma.subscription.findUnique({ where: { id }, select: { userId: true, user: { select: { role: true } } } });
     if (!s) throw new NotFoundException('Usługa nie istnieje.');
+    if (actor.role !== 'ADMIN' && s.user?.role !== 'USER') {
+      throw new ForbiddenException('Personel widzi dodatki wyłącznie usług klientów — usługę konta zespołu sprawdza administrator.');
+    }
     return this.addons.overview(s.userId);
   }
 

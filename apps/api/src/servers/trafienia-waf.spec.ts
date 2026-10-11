@@ -34,19 +34,23 @@ describe('F3.2 — trafienia WAF: odczyt', () => {
 });
 
 describe('F3.2 — TrafieniaWafKontaService', () => {
-  function zbuduj(o: { zadania?: unknown[]; status?: string } = {}) {
+  function zbuduj(o: { zadania?: unknown[]; status?: string; rolaWlasciciela?: string; bladDomen?: string } = {}) {
     const utworzone: Array<Record<string, unknown>> = [];
     const prisma = {
-      subscription: { findUnique: vi.fn(async () => ({ userId: 'u1', account: { id: 'acc1', serverId: 'w1', domain: 'Klient.pl', status: o.status ?? 'ACTIVE', wafMode: 'ON', wafAppliedAt: null } })) },
+      subscription: { findUnique: vi.fn(async () => ({ userId: 'u1', user: { role: o.rolaWlasciciela ?? 'USER' }, account: { id: 'acc1', serverId: 'w1', domain: 'Klient.pl', status: o.status ?? 'ACTIVE', wafMode: 'ON', wafAppliedAt: null } })) },
       nodeTask: { findMany: vi.fn(async () => o.zadania ?? []), create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => (utworzone.push(data), data)) },
     };
-    const da = { listHostingDomainsForSubscription: vi.fn(async () => ({ domains: [{ name: 'klient.pl' }, { name: 'sklep.pl' }] })) };
+    const da = {
+      listHostingDomainsForSubscription: vi.fn(async () =>
+        o.bladDomen ? { domains: [], fetchError: o.bladDomen } : { domains: [{ name: 'klient.pl' }, { name: 'sklep.pl' }] },
+      ),
+    };
     return { svc: new TrafieniaWafKontaService(prisma as never, da as never), utworzone, da };
   }
 
   it('wczytaj: zadanie WAF_HITS konta z domenami konta (od właściciela), zlecający = operator; tryb WAF tylko do odczytu', async () => {
     const { svc, utworzone, da } = zbuduj();
-    const r = await svc.wczytaj('s1', 'u1', 'op');
+    const r = await svc.wczytaj('s1', 'u1', 'op', 'STAFF');
     expect(da.listHostingDomainsForSubscription).toHaveBeenCalledWith('s1', 'u1');
     expect(utworzone).toEqual([expect.objectContaining({ serverId: 'w1', accountId: 'acc1', kind: 'WAF_HITS', requestedById: 'op', payload: { domains: 'klient.pl,sklep.pl' } })]);
     expect(r).toMatchObject({ tryb: 'ON' });
@@ -54,9 +58,25 @@ describe('F3.2 — TrafieniaWafKontaService', () => {
 
   it('trwa odczyt → 409; konto usunięte → 400; bez zadania', async () => {
     const trwa = zbuduj({ zadania: [{ status: NodeTaskStatus.RUNNING, outputLog: null, errorMessage: null, createdAt: new Date(), completedAt: null }] });
-    await expect(trwa.svc.wczytaj('s1', 'u1', 'op')).rejects.toMatchObject({ status: 409 });
+    await expect(trwa.svc.wczytaj('s1', 'u1', 'op', 'STAFF')).rejects.toMatchObject({ status: 409 });
     const usuniete = zbuduj({ status: 'DELETED' });
-    await expect(usuniete.svc.wczytaj('s1', 'u1', 'op')).rejects.toMatchObject({ status: 400 });
+    await expect(usuniete.svc.wczytaj('s1', 'u1', 'op', 'STAFF')).rejects.toMatchObject({ status: 400 });
     expect([...trwa.utworzone, ...usuniete.utworzone]).toEqual([]);
+  });
+
+  it('audyt Fali 3: błąd odczytu domen konta z serwera → 503 i bez zadania (nie „brak trafień” dla samej domeny głównej)', async () => {
+    const { svc, utworzone } = zbuduj({ bladDomen: 'Serwer hostingowy jest chwilowo niedostępny.' });
+    await expect(svc.wczytaj('s1', 'u1', 'op', 'STAFF')).rejects.toMatchObject({ status: 503 });
+    expect(utworzone).toEqual([]);
+  });
+
+  it('audyt Fali 3 (D3): usługa konta zespołu — STAFF 403 (odczyt i wczytanie, bez zadania); ADMIN może', async () => {
+    for (const rola of ['STAFF', 'ADMIN']) {
+      const z = zbuduj({ rolaWlasciciela: rola });
+      await expect(z.svc.widok('s1', 'STAFF')).rejects.toMatchObject({ status: 403 });
+      await expect(z.svc.wczytaj('s1', 'u1', 'op', 'STAFF')).rejects.toMatchObject({ status: 403 });
+      expect(z.utworzone).toEqual([]);
+      await expect(z.svc.wczytaj('s1', 'u1', 'adm', 'ADMIN')).resolves.toMatchObject({ tryb: 'ON' });
+    }
   });
 });

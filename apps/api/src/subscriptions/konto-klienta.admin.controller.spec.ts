@@ -11,9 +11,9 @@ import { KontoKlientaAdminController, maskujSekretyCrona } from './konto-klienta
  * z identyfikatorem WŁAŚCICIELA (nie operatora), wpis w dzienniku przy każdym odczycie, bez sekretów.
  */
 const WLASCICIEL = 'u-wlasciciel';
-const OPERATOR = { userId: 's-operator' };
+const OPERATOR = { userId: 's-operator', role: 'STAFF' };
 
-function zbuduj(sub: unknown = { userId: WLASCICIEL, account: { id: 'acc1' } }) {
+function zbuduj(sub: unknown = { userId: WLASCICIEL, user: { role: 'USER' }, account: { id: 'acc1' } }) {
   const prisma = { subscription: { findUnique: vi.fn(async () => sub) } };
   const directAdmin = {
     listHostingDomainsForSubscription: vi.fn(async () => ({
@@ -124,9 +124,9 @@ describe('F3.2 — trafienia WAF na karcie usługi', () => {
   it('odczyt i „wczytaj z serwera”: dla właściciela usługi (domeny konta), zlecający = operator, wpis w dzienniku z sekcją „waf”', async () => {
     const { ctrl, waf, audit } = zbuduj();
     await ctrl.trafieniaWaf('s1', OPERATOR);
-    expect(waf.widok).toHaveBeenCalledWith('s1');
+    expect(waf.widok).toHaveBeenCalledWith('s1', 'STAFF');
     await ctrl.wczytajTrafieniaWaf('s1', OPERATOR);
-    expect(waf.wczytaj).toHaveBeenCalledWith('s1', WLASCICIEL, 's-operator');
+    expect(waf.wczytaj).toHaveBeenCalledWith('s1', WLASCICIEL, 's-operator', 'STAFF');
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ actorUserId: 's-operator', userId: WLASCICIEL, details: { subscriptionId: 's1', sekcja: 'waf' } }));
     expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ details: { subscriptionId: 's1', sekcja: 'waf', zlecenie: 'wczytanie z serwera' } }));
   });
@@ -138,6 +138,48 @@ describe('F3.2 — trafienia WAF na karcie usługi', () => {
     expect(audit.record).not.toHaveBeenCalled();
     await ctrl.trafieniaWaf('s1', OPERATOR);
     expect(audit.record).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('audyt Fali 3 (D3) — usługa konta zespołu: STAFF nie czyta ani nie zleca odczytów, ADMIN tak', () => {
+  const ZESPOL = { userId: 'u-pracownik', user: { role: 'STAFF' }, account: { id: 'acc1' } };
+
+  it('każda sekcja karty (także WAF w trakcie wczytywania): 403 bez wpisu, bez węzła i bez zadania', async () => {
+    const { ctrl, directAdmin, mailLog, audit, malware, zasobyKonta, waf } = zbuduj(ZESPOL);
+    waf.widok.mockResolvedValue({ tryb: 'ON', wToku: true, trafienia: [] } as never);
+    const wywolania: Array<() => Promise<unknown>> = [
+      () => ctrl.domeny('s1', OPERATOR),
+      () => ctrl.dns('s1', undefined, OPERATOR),
+      () => ctrl.poczta('s1', OPERATOR),
+      () => ctrl.bazy('s1', OPERATOR),
+      () => ctrl.phpKonta('s1', undefined, OPERATOR),
+      () => ctrl.ssl('s1', OPERATOR),
+      () => ctrl.cron('s1', OPERATOR),
+      () => ctrl.ftp('s1', OPERATOR),
+      () => ctrl.malwareKonta('s1', OPERATOR),
+      () => ctrl.zasoby('s1', OPERATOR),
+      () => ctrl.odczytajZasoby('s1', OPERATOR),
+      () => ctrl.trafieniaWaf('s1', OPERATOR),
+      () => ctrl.wczytajTrafieniaWaf('s1', OPERATOR),
+      () => ctrl.logi('s1', { type: 'error' } as never, OPERATOR),
+      () => ctrl.logiPoczty('s1', OPERATOR),
+      () => ctrl.zlecLogiPoczty('s1', {} as never, OPERATOR),
+    ];
+    for (const w of wywolania) await expect(w()).rejects.toBeInstanceOf(ForbiddenException);
+    expect(audit.record).not.toHaveBeenCalled();
+    expect(directAdmin.listHostingDomainsForSubscription).not.toHaveBeenCalled();
+    expect(waf.widok).not.toHaveBeenCalled();
+    expect(waf.wczytaj).not.toHaveBeenCalled();
+    expect(mailLog.zlec).not.toHaveBeenCalled();
+    expect(malware.status).not.toHaveBeenCalled();
+    expect(zasobyKonta.odczytaj).not.toHaveBeenCalled();
+  });
+
+  it('ADMIN czyta usługę konta zespołu (z wpisem)', async () => {
+    const { ctrl, audit } = zbuduj(ZESPOL);
+    await ctrl.trafieniaWaf('s1', { userId: 'a-admin', role: 'ADMIN' });
+    await ctrl.domeny('s1', { userId: 'a-admin', role: 'ADMIN' });
+    expect(audit.record).toHaveBeenCalledTimes(2);
   });
 });
 

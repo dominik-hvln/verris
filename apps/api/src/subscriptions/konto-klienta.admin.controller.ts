@@ -1,4 +1,4 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, NotFoundException, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { Role } from '@verris/database';
 import { hostingFetchErrorMessage } from '@verris/contracts';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -19,6 +19,8 @@ import { DziennikPocztyDto } from './dto/hosting-body.dto.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { ZasobyKontaOperatoraService } from './zasoby-konta-operatora.service.js';
 import { TrafieniaWafKontaService } from './trafienia-waf-konta.service.js';
+
+type Operator = { userId: string; role: string };
 
 export type SekcjaKonta = 'domeny' | 'dns' | 'poczta' | 'bazy' | 'php' | 'ssl' | 'cron' | 'logi' | 'logi-poczty' | 'ftp' | 'malware' | 'zasoby' | 'waf';
 
@@ -83,28 +85,45 @@ export class KontoKlientaAdminController {
     private readonly waf: TrafieniaWafKontaService,
   ) {}
 
-  /** Właściciel usługi z kontem hostingowym + wpis w dzienniku; brak usługi albo konta → 404 bez wpisu. */
-  private async wlasciciel(
-    subscriptionId: string,
-    actorUserId: string,
-    sekcja: SekcjaKonta,
-    szczegoly: Record<string, string | number | undefined> = {},
-  ): Promise<string> {
+  /**
+   * Właściciel usługi z kontem hostingowym; brak usługi albo konta → 404. Audyt Fali 3 (D3) — ta sama twarda reguła co
+   * akcje konta, blokady IP i poczta konta: STAFF czyta i zleca odczyty tylko na usługach klientów (USER); usługi kont
+   * zespołu — tylko ADMIN (403 bez wpisu i bez zadania na węźle).
+   */
+  private async uslugaKonta(subscriptionId: string, actor: Operator): Promise<string> {
     const sub = await this.prisma.subscription.findUnique({
       where: { id: subscriptionId },
-      select: { userId: true, account: { select: { id: true } } },
+      select: { userId: true, user: { select: { role: true } }, account: { select: { id: true } } },
     });
     if (!sub) throw new NotFoundException('Usługa nie istnieje.');
     if (!sub.account) throw new NotFoundException('Usługa nie ma konta hostingowego.');
+    if (actor.role !== 'ADMIN' && sub.user?.role !== 'USER') {
+      throw new ForbiddenException('Personel widzi konto hostingowe wyłącznie usług klientów — usługę konta zespołu sprawdza administrator.');
+    }
+    return sub.userId;
+  }
+
+  /** Właściciel (uslugaKonta) + wpis w dzienniku OPERATOR_ACCOUNT_VIEWED z sekcją. */
+  private async wlasciciel(
+    subscriptionId: string,
+    actor: Operator,
+    sekcja: SekcjaKonta,
+    szczegoly: Record<string, string | number | undefined> = {},
+  ): Promise<string> {
+    const userId = await this.uslugaKonta(subscriptionId, actor);
+    await this.wpis(subscriptionId, userId, actor, sekcja, szczegoly);
+    return userId;
+  }
+
+  private async wpis(subscriptionId: string, userId: string, actor: Operator, sekcja: SekcjaKonta, szczegoly: Record<string, string | number | undefined> = {}) {
     const details: Record<string, string | number> = { subscriptionId, sekcja };
     for (const [k, v] of Object.entries(szczegoly)) if (v !== undefined && v !== '') details[k] = v;
     await this.audit.record({
       action: SupportActions.OPERATOR_ACCOUNT_VIEWED,
-      userId: sub.userId,
-      actorUserId,
+      userId,
+      actorUserId: actor.userId,
       details,
     });
-    return sub.userId;
   }
 
   /**
@@ -116,8 +135,8 @@ export class KontoKlientaAdminController {
   }
 
   @Get('domeny')
-  async domeny(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
-    const userId = await this.wlasciciel(id, actor.userId, 'domeny');
+  async domeny(@Param('id') id: string, @CurrentUser() actor: Operator) {
+    const userId = await this.wlasciciel(id, actor, 'domeny');
     const domeny = await this.domenyKonta(id, userId);
     const poddomeny = await this.directAdmin.listHostingSubdomains(id, userId, domeny);
     return {
@@ -129,16 +148,16 @@ export class KontoKlientaAdminController {
   }
 
   @Get('dns')
-  async dns(@Param('id') id: string, @Query('domain') domain: string | undefined, @CurrentUser() actor: { userId: string }) {
-    const userId = await this.wlasciciel(id, actor.userId, 'dns', { domain });
+  async dns(@Param('id') id: string, @Query('domain') domain: string | undefined, @CurrentUser() actor: Operator) {
+    const userId = await this.wlasciciel(id, actor, 'dns', { domain });
     const domeny = await this.domenyKonta(id, userId);
     const strefa = await this.directAdmin.listHostingDnsRecords(id, userId, domain || undefined, domeny);
     return { domeny: domeny.domains.map((d) => d.name), ...strefa };
   }
 
   @Get('poczta')
-  async poczta(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
-    const userId = await this.wlasciciel(id, actor.userId, 'poczta');
+  async poczta(@Param('id') id: string, @CurrentUser() actor: Operator) {
+    const userId = await this.wlasciciel(id, actor, 'poczta');
     const skrzynki = await this.directAdmin.listHostingEmailAccounts(id, userId);
     const przekierowania = await this.directAdmin.listHostingEmailForwarders(id, userId);
     return {
@@ -149,15 +168,15 @@ export class KontoKlientaAdminController {
   }
 
   @Get('bazy')
-  async bazy(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
-    const userId = await this.wlasciciel(id, actor.userId, 'bazy');
+  async bazy(@Param('id') id: string, @CurrentUser() actor: Operator) {
+    const userId = await this.wlasciciel(id, actor, 'bazy');
     const b = await this.directAdmin.listHostingMysqlForSubscription(id, userId);
     return { bazy: b.databases.map((d) => d.name), silnik: b.engine, fetchError: b.fetchError };
   }
 
   @Get('php')
-  async phpKonta(@Param('id') id: string, @Query('domain') domain: string | undefined, @CurrentUser() actor: { userId: string }) {
-    const userId = await this.wlasciciel(id, actor.userId, 'php', { domain });
+  async phpKonta(@Param('id') id: string, @Query('domain') domain: string | undefined, @CurrentUser() actor: Operator) {
+    const userId = await this.wlasciciel(id, actor, 'php', { domain });
     const [stan, domeny] = await Promise.all([this.php.statusForSubscription(id, userId), this.domenyKonta(id, userId)]);
     const cel = domain || stan.domain;
     // Odczyt .user.ini domeny z węzła — awaria to komunikat w sekcji, nie błąd całej karty.
@@ -182,14 +201,14 @@ export class KontoKlientaAdminController {
   }
 
   @Get('ssl')
-  async ssl(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
-    const userId = await this.wlasciciel(id, actor.userId, 'ssl');
+  async ssl(@Param('id') id: string, @CurrentUser() actor: Operator) {
+    const userId = await this.wlasciciel(id, actor, 'ssl');
     return this.directAdmin.listHostingSslCertificates(id, userId);
   }
 
   @Get('cron')
-  async cron(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
-    const userId = await this.wlasciciel(id, actor.userId, 'cron');
+  async cron(@Param('id') id: string, @CurrentUser() actor: Operator) {
+    const userId = await this.wlasciciel(id, actor, 'cron');
     const c = await this.directAdmin.listHostingCronJobs(id, userId);
     return {
       rows: c.rows.map((r) => ({ id: r.id, schedule: r.schedule, command: maskujSekretyCrona(r.command) })),
@@ -199,16 +218,16 @@ export class KontoKlientaAdminController {
 
   /** F2.2 — konta FTP (login i katalog; bez haseł) — do resetu hasła z paska akcji. */
   @Get('ftp')
-  async ftp(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
-    const userId = await this.wlasciciel(id, actor.userId, 'ftp');
+  async ftp(@Param('id') id: string, @CurrentUser() actor: Operator) {
+    const userId = await this.wlasciciel(id, actor, 'ftp');
     const f = await this.directAdmin.listHostingFtpAccounts(id, userId);
     return { konta: f.rows.map(({ username, path }) => ({ username, path })), fetchError: f.fetchError };
   }
 
   /** F2.2 — wynik skanera malware (ostatnie zadanie MALWARE_SCAN, jak „Skaner” w panelu klienta). */
   @Get('malware')
-  async malwareKonta(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
-    const userId = await this.wlasciciel(id, actor.userId, 'malware');
+  async malwareKonta(@Param('id') id: string, @CurrentUser() actor: Operator) {
+    const userId = await this.wlasciciel(id, actor, 'malware');
     return this.malware.status(id, userId);
   }
 
@@ -217,16 +236,16 @@ export class KontoKlientaAdminController {
    * i błędy 5xx strony obok siebie (ostatnie odczyty — bez zlecania nowych zadań).
    */
   @Get('zasoby')
-  async zasoby(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
-    const userId = await this.wlasciciel(id, actor.userId, 'zasoby');
+  async zasoby(@Param('id') id: string, @CurrentUser() actor: Operator) {
+    const userId = await this.wlasciciel(id, actor, 'zasoby');
     return this.zasobyKonta.widok(id, userId);
   }
 
   /** F2.6 — świeży odczyt wolnych SQL i statystyk strony z węzła (SLOW_SQL + SITE_STATS, tylko czytają logi). */
   @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'admin:konto-zasoby' })
   @Post('zasoby')
-  async odczytajZasoby(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
-    const userId = await this.wlasciciel(id, actor.userId, 'zasoby', { zlecenie: 'wczytanie z serwera' });
+  async odczytajZasoby(@Param('id') id: string, @CurrentUser() actor: Operator) {
+    const userId = await this.wlasciciel(id, actor, 'zasoby', { zlecenie: 'wczytanie z serwera' });
     return this.zasobyKonta.odczytaj(id, userId, actor.userId);
   }
 
@@ -235,25 +254,27 @@ export class KontoKlientaAdminController {
    * ADMIN, WafAdminController). Bez treści żądań: czas, domena, adres, ścieżka bez query, reguła.
    */
   @Get('waf')
-  async trafieniaWaf(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
-    const widok = await this.waf.widok(id);
+  async trafieniaWaf(@Param('id') id: string, @CurrentUser() actor: Operator) {
+    // Reguła właściciela PRZED odczytem (audyt Fali 3 — wcześniej widok wychodził bez sprawdzenia, gdy trwało wczytywanie).
+    const userId = await this.uslugaKonta(id, actor);
+    const widok = await this.waf.widok(id, actor.role);
     // Wpis przy wydaniu trafień — nie przy każdym odpytaniu panelu w trakcie wczytywania (co 5 s).
-    if (!widok.wToku) await this.wlasciciel(id, actor.userId, 'waf');
+    if (!widok.wToku) await this.wpis(id, userId, actor, 'waf');
     return widok;
   }
 
   /** F3.2 — świeży odczyt dziennika WAF z węzła (zadanie WAF_HITS, tylko czyta dziennik audytu). */
   @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'admin:konto-waf' })
   @Post('waf')
-  async wczytajTrafieniaWaf(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
-    const userId = await this.wlasciciel(id, actor.userId, 'waf', { zlecenie: 'wczytanie z serwera' });
-    return this.waf.wczytaj(id, userId, actor.userId);
+  async wczytajTrafieniaWaf(@Param('id') id: string, @CurrentUser() actor: Operator) {
+    const userId = await this.wlasciciel(id, actor, 'waf', { zlecenie: 'wczytanie z serwera' });
+    return this.waf.wczytaj(id, userId, actor.userId, actor.role);
   }
 
   /** Ostatnie N linii logu dostępu/błędów domeny — jak u klienta (domyślnie 200, 20–1000). */
   @Get('logi')
-  async logi(@Param('id') id: string, @Query() q: LogiHostinguQueryDto, @CurrentUser() actor: { userId: string }) {
-    const userId = await this.wlasciciel(id, actor.userId, 'logi', { type: q.type, domain: q.domain, lines: q.lines });
+  async logi(@Param('id') id: string, @Query() q: LogiHostinguQueryDto, @CurrentUser() actor: Operator) {
+    const userId = await this.wlasciciel(id, actor, 'logi', { type: q.type, domain: q.domain, lines: q.lines });
     const domeny = await this.domenyKonta(id, userId);
     const log = await this.directAdmin.readHostingLog(id, userId, q, domeny);
     return { domeny: domeny.domains.map((d) => d.name), ...log };
@@ -261,8 +282,8 @@ export class KontoKlientaAdminController {
 
   /** Ostatni wczytany dziennik dostarczania poczty (bez zlecania nowego zadania na węźle — tylko odczyt). */
   @Get('logi-poczty')
-  async logiPoczty(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
-    const userId = await this.wlasciciel(id, actor.userId, 'logi-poczty');
+  async logiPoczty(@Param('id') id: string, @CurrentUser() actor: Operator) {
+    const userId = await this.wlasciciel(id, actor, 'logi-poczty');
     return this.mailLog.status(id, userId);
   }
 
@@ -273,8 +294,8 @@ export class KontoKlientaAdminController {
    */
   @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'admin:konto-mail-log' })
   @Post('logi-poczty')
-  async zlecLogiPoczty(@Param('id') id: string, @Body() body: DziennikPocztyDto, @CurrentUser() actor: { userId: string }) {
-    const userId = await this.wlasciciel(id, actor.userId, 'logi-poczty', { zlecenie: 'wczytanie z serwera', address: body.address });
+  async zlecLogiPoczty(@Param('id') id: string, @Body() body: DziennikPocztyDto, @CurrentUser() actor: Operator) {
+    const userId = await this.wlasciciel(id, actor, 'logi-poczty', { zlecenie: 'wczytanie z serwera', address: body.address });
     return this.mailLog.zlec(id, userId, body.address, actor.userId);
   }
 }

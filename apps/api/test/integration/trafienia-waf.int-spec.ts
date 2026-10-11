@@ -37,7 +37,7 @@ describe('F3.2 — trafienia WAF (zadanie WAF_HITS)', () => {
     const dir = mkdtempSync(join(tmpdir(), 'waf-int-'));
     writeFileSync(join(dir, 'modsec_audit.log'), wpis('aaaa1111', `www.${d}`, '941100') + wpis('bbbb2222', 'obcy-klient.pl', '942100'));
 
-    expect((await svc.wczytaj(k.subscription.id, k.user.id, operator.id)).wToku).toBe(true);
+    expect((await svc.wczytaj(k.subscription.id, k.user.id, operator.id, 'STAFF')).wToku).toBe(true);
     const t = await zadania.leaseTaskForNode(wezel.id);
     expect(t?.kind).toBe('WAF_HITS');
     const env: Record<string, string> = {};
@@ -49,7 +49,7 @@ describe('F3.2 — trafienia WAF (zadanie WAF_HITS)', () => {
     expect(r.status, r.stderr).toBe(0);
     await zadania.completeTaskFromNode({ serverId: wezel.id, taskId: t!.id, outputLog: r.stdout });
 
-    const w = await svc.widok(k.subscription.id);
+    const w = await svc.widok(k.subscription.id, 'STAFF');
     expect(w).toMatchObject({ wToku: false, razem: 1, blad: null, tryb: k.account.wafMode });
     expect(w.trafienia).toEqual([
       { czas: '2026-10-10T10:00:00Z', domena: d, ip: '198.51.100.23', metoda: 'GET', sciezka: '/wp-login.php', regula: '941100', opis: 'Reguła 941100', zablokowano: true, status: '403' },

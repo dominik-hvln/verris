@@ -19,6 +19,8 @@ import { przekroczeniaZBazy } from './przekroczenia-limitow.js';
 import { malwareFloty } from './malware-floty.js';
 import { KopieFlotyService } from './kopie-floty.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AuditService } from '../common/audit/audit.service.js';
+import { SupportActions } from '../common/audit/audit.actions.js';
 import { PolitykaPojemnosciDto, WygaszenieWezlaDto } from './dto/capacity-policy.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -94,6 +96,7 @@ export class ServersAdminController {
     private readonly prognozaWezla: PrognozaWezlaService,
     private readonly prisma: PrismaService,
     private readonly kopieFloty: KopieFlotyService,
+    private readonly dziennik: AuditService,
   ) {}
 
   /**
@@ -137,14 +140,22 @@ export class ServersAdminController {
   /**
    * F3.2 (G-11/G-12) — konta z wykrytym złośliwym kodem albo plikami w kwarantannie, we flocie albo na węźle
    * (`?wezel=`), z ostatnich wyników MALWARE_SCAN. Ścieżki plików klientów — ACCOUNT_DIAGNOSTICS_VIEW (L2+, abuse, NOC).
+   * Audyt Fali 3 — STAFF widzi tylko konta klientów (USER; konta zespołu — ADMIN, D3), a każde wydanie listy ścieżek
+   * zostawia wpis FLEET_MALWARE_VIEWED (jak OPERATOR_ACCOUNT_VIEWED przy odczycie z karty usługi).
    * Trasa przed :id.
    */
   @Get('malware')
   @UseGuards(StaffPermissionsGuard)
   @Roles(Role.ADMIN, Role.STAFF)
   @StaffPerm('ACCOUNT_DIAGNOSTICS_VIEW')
-  malware(@Query('wezel') wezel?: string) {
-    return malwareFloty(this.prisma, wezel || undefined);
+  async malware(@CurrentUser() actor: { userId: string; role: string }, @Query('wezel') wezel?: string) {
+    const wynik = await malwareFloty(this.prisma, wezel || undefined, { tylkoKlienci: actor.role !== 'ADMIN' });
+    await this.dziennik.record({
+      action: SupportActions.FLEET_MALWARE_VIEWED,
+      actorUserId: actor.userId,
+      details: { serverId: wezel || null, kont: wynik.konta.length },
+    });
+    return wynik;
   }
 
   /**

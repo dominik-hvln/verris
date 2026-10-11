@@ -66,6 +66,11 @@ export const SupportActions = {
   STAFF_DNS_TLS_DIAGNOSTIC: 'STAFF_DNS_TLS_DIAGNOSTIC',
   /** PB-42 — operator podejrzał sekcję konta klienta (domeny, DNS, poczta, bazy, PHP, SSL, cron, logi, kopie); details.sekcja. */
   OPERATOR_ACCOUNT_VIEWED: 'OPERATOR_ACCOUNT_VIEWED',
+  /**
+   * Audyt Fali 3 — operator otworzył „Złośliwe pliki floty” (ścieżki plików wielu kont naraz); dziennik zespołu,
+   * details: serverId (null = cała flota), kont (ile kont z wykryciem wydano). Odczyt jednego konta — OPERATOR_ACCOUNT_VIEWED.
+   */
+  FLEET_MALWARE_VIEWED: 'FLEET_MALWARE_VIEWED',
   /** Decyzja 08.10 — operator (staff/admin) otworzył kartę klienta (profil 360° z notatką); details.sekcja = zakładka. */
   OPERATOR_CUSTOMER_CARD_VIEWED: 'OPERATOR_CUSTOMER_CARD_VIEWED',
   /** F2.4 — operator wyeksportował listę (klienci / usługi) do CSV; details: lista, filtry, wierszy. Dane osobowe. */
