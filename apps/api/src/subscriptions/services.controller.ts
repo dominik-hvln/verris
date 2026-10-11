@@ -1130,7 +1130,9 @@ export class UserServicesController {
 
   @Get(':id/hosting-backups')
   async hostingBackups(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
-    return this.directAdmin.listHostingBackups(id, user.userId);
+    // Weryfikacja 11.10 — klient też widzi datę i rozmiar kopii (jak operator od a2b32c06); nazwy bywają bez daty
+    // (user.admin.<login>.tar.zst).
+    return this.directAdmin.listHostingBackups(id, user.userId, { metadane: true });
   }
 
   /** Enqueues an async restore of a DA backup onto the account (overwrites live data). */

@@ -515,6 +515,9 @@ export interface SslProduktAdminDto {
 export interface HostingBackupRowDto {
   id: string;
   fileName: string;
+  /** Weryfikacja 11.10 — data zapisu archiwum (ISO) i rozmiar; null/brak — węzeł ich nie podał. */
+  utworzono?: string | null;
+  rozmiarBajty?: number | null;
 }
 
 /** S-1 — status ochrony kopią off-site (utrata węzła ≠ utrata danych). */

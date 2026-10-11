@@ -15,7 +15,7 @@ import {
   FolderOpen,
 } from "lucide-react";
 import type { HostingBackupRowDto } from "@verris/contracts";
-import { jestKopiaAdministratora } from "@verris/contracts";
+import { jestKopiaAdministratora, opisKopii } from "@verris/contracts";
 import {
   fetchHostingBackupsAction as fetchHostingBackupsActionAkcja,
   enqueueHostingRestoreAction as enqueueHostingRestoreActionAkcja,
@@ -171,6 +171,12 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
                   <Database className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <span className="min-w-0 flex-1 break-words font-mono text-[13px]">
                     {row.fileName}
+                    {/* Weryfikacja 11.10 — data i rozmiar (jak u operatora); bez nich sama nazwa. */}
+                    {row.utworzono || row.rozmiarBajty != null ? (
+                      <span data-opis-kopii className="block font-sans text-xs text-muted-foreground">
+                        {opisKopii({ ...row, fileName: "" }).replace(/^ · /, "")}
+                      </span>
+                    ) : null}
                   </span>
                   {jestKopiaAdministratora(row.fileName) ? (
                     // Weryfikacja 11.10 (decyzja Dominika) — pełną kopię konta spoza serwera przywraca obsługa.
