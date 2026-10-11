@@ -55,6 +55,7 @@ import { fetchDomainPhp, setDomainPhp, type DomainPhpStatus } from '@/app/dashbo
 import { SIMPLE_MODE_KEY } from '../../tabs';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
 import { plForm } from '@/lib/pl';
+import { komunikatSkrzynekZBledem, skrzynkiDomenyNieznane } from '@/lib/skrzynki';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
 const fetchHostingDnsAction = zOdpakowaniem(fetchHostingDnsActionAkcja);
@@ -153,6 +154,8 @@ export default function SitePage() {
     () => (ok(mail)?.rows ?? []).filter((m) => m.email.toLowerCase().endsWith(`@${domain.toLowerCase()}`)),
     [mail, domain],
   );
+  // Noc 12.10 — skrzynek tej domeny nie udało się odczytać: „0 skrzynek” byłoby nieprawdą.
+  const skrzynkiNieznane = mail !== undefined && skrzynkiDomenyNieznane(ok(mail), domain);
   const monitor = ok(mon)?.domain === domain ? ok(mon) : null;
   const records: HostingDnsRecordDto[] = ok(dns)?.records ?? [];
   const aRecord = records.find((r) => r.type === 'A' && (r.name === '@' || r.name === `${domain}.` || r.name === domain));
@@ -321,9 +324,9 @@ export default function SitePage() {
               />
               <Kpi
                 label="Poczta w domenie"
-                value={mail === undefined ? '…' : ok(mail) ? boxes.length : '—'}
-                unit={ok(mail) ? (boxes.length === 1 ? 'skrzynka' : 'skrzynek') : undefined}
-                foot={<span>{boxes.length ? boxes.slice(0, 2).map((b) => b.email.split('@')[0]).join(', ') : 'brak skrzynek'}</span>}
+                value={mail === undefined ? '…' : !skrzynkiNieznane ? boxes.length : '—'}
+                unit={!skrzynkiNieznane && mail !== undefined ? (boxes.length === 1 ? 'skrzynka' : 'skrzynek') : undefined}
+                foot={<span>{skrzynkiNieznane ? 'nie udało się wczytać' : boxes.length ? boxes.slice(0, 2).map((b) => b.email.split('@')[0]).join(', ') : 'brak skrzynek'}</span>}
               />
             </KpiStrip>
             <SiteStatsPanel serviceId={serviceId} domain={domain} />
@@ -338,7 +341,7 @@ export default function SitePage() {
                         ['dns', 'Domena i DNS', aRecord ? `A → ${aRecord.value}` : ok(dns)?.fetchError ? 'nie udało się odczytać strefy' : `${records.length} ${plForm(records.length, 'rekord', 'rekordy', 'rekordów')} w strefie`, records.length ? `${records.length} ${plForm(records.length, 'rekord', 'rekordy', 'rekordów')}` : '—'],
                         ['ssl', 'Certyfikat SSL', sslRow?.coveredNames.length ? sslRow.coveredNames.slice(0, 3).join(', ') : 'brak certyfikatu', sslRow?.daysLeft != null ? `${sslRow.daysLeft} ${plForm(sslRow.daysLeft, 'dzień', 'dni', 'dni')}` : '—'],
                         ['db', 'Bazy danych', 'bazy są wspólne dla konta', ''],
-                        ['mail', 'Poczta', boxes.length ? `${boxes.length} ${plForm(boxes.length, 'skrzynka', 'skrzynki', 'skrzynek')} w tej domenie` : 'brak skrzynek', ''],
+                        ['mail', 'Poczta', skrzynkiNieznane ? 'nie udało się wczytać skrzynek' : boxes.length ? `${boxes.length} ${plForm(boxes.length, 'skrzynka', 'skrzynki', 'skrzynek')} w tej domenie` : 'brak skrzynek', ''],
                         ['php', 'PHP', ok(php)?.currentVersion ? `wersja ${ok(php)?.currentVersion}` : 'brak danych', ''],
                       ] as [SiteTab, string, string, string][]
                     ).map(([id, t, m, r]) => (
@@ -458,6 +461,10 @@ export default function SitePage() {
             />
             {mail === undefined ? (
               <Loading />
+            ) : skrzynkiNieznane ? (
+              <p role="status" className="m-0 rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-muted-foreground">
+                {komunikatSkrzynekZBledem([domain])}
+              </p>
             ) : boxes.length === 0 ? (
               <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-muted-foreground">W tej domenie nie ma skrzynek.</p>
             ) : (

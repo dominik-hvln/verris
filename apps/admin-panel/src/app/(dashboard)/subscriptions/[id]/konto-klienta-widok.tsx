@@ -44,6 +44,8 @@ export interface DanePoczty {
   skrzynki: Array<{ email: string; quotaMb: number | null }>;
   przekierowania: Array<{ email: string; destinations: string[] }>;
   fetchError: string | null;
+  /** Noc 12.10 — domeny konta, których skrzynek węzeł nie oddał (lista i licznik są bez nich). */
+  domenyZBledem?: string[];
 }
 export interface DaneBaz {
   bazy: string[];
@@ -121,6 +123,19 @@ function BladWezla({ komunikat }: { komunikat: string | null }) {
   return (
     <p role="status" className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
       Odczyt z serwera nie powiódł się: {komunikat}
+    </p>
+  );
+}
+
+/**
+ * Noc 12.10 — skrzynki części domen nieodczytane: licznik obejmuje tylko odczytane domeny (prod 11.10: błąd domeny
+ * dodatkowej dał „0 skrzynek” i schował skrzynki domeny głównej).
+ */
+function SkrzynkiZBledem({ domeny }: { domeny: string[] }) {
+  if (!domeny.length) return null;
+  return (
+    <p role="status" className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+      Nie udało się odczytać skrzynek {plForm(domeny.length, "domeny", "domen", "domen")} {domeny.join(", ")} — licznik i lista obejmują tylko odczytane domeny.
     </p>
   );
 }
@@ -234,6 +249,7 @@ export function WidokSekcjiKonta({ wynik }: { wynik: DaneSekcji }) {
       return (
         <div className="space-y-3">
           <BladWezla komunikat={d.fetchError} />
+          <SkrzynkiZBledem domeny={d.fetchError && !d.skrzynki.length ? [] : (d.domenyZBledem ?? [])} />
           <p className="text-xs text-muted-foreground">
             {ile(d.skrzynki.length, "skrzynka", "skrzynki", "skrzynek")}, {ile(d.przekierowania.length, "przekierowanie", "przekierowania", "przekierowań")}
           </p>
@@ -249,7 +265,7 @@ export function WidokSekcjiKonta({ wynik }: { wynik: DaneSekcji }) {
               wiersze={d.przekierowania.map((p) => [p.email, p.destinations.join(", ")])}
             />
           ) : null}
-          {!d.skrzynki.length && !d.przekierowania.length && !d.fetchError ? <Pusto>Brak skrzynek i przekierowań.</Pusto> : null}
+          {!d.skrzynki.length && !d.przekierowania.length && !d.fetchError && !d.domenyZBledem?.length ? <Pusto>Brak skrzynek i przekierowań.</Pusto> : null}
         </div>
       );
     }

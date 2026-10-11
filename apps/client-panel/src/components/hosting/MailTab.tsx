@@ -41,6 +41,7 @@ import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-m
 import { potwierdz } from '@/components/panel/potwierdz';
 import { zOdpakowaniem } from '@/lib/wynik-akcji';
 import { WYSYLKA_WSTRZYMANA_OPIS } from '@/lib/zdrowie-uslugi';
+import { komunikatSkrzynekZBledem } from '@/lib/skrzynki';
 
 // Akcja zwraca Wynik (komunikat błędu przeżywa produkcję) — tu z powrotem dane albo Error z treścią.
 const fetchHostingEmailAction = zOdpakowaniem(fetchHostingEmailActionAkcja);
@@ -58,6 +59,8 @@ export default function MailTab({ serviceId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [rows, setRows] = useState<{ id: string; email: string; quotaMb: number | null }[]>([]);
+  // Noc 12.10 — domeny, których skrzynek nie udało się odczytać (lista pokazuje resztę).
+  const [domenyZBledem, setDomenyZBledem] = useState<string[]>([]);
   // E-06 — zajętość skrzynek z pomiaru zajętości konta (C-15), przeliczana na żądanie.
   const [zajetosc, setZajetosc] = useState<DiskUsageStatus | null>(null);
   useEffect(() => {
@@ -156,6 +159,7 @@ export default function MailTab({ serviceId }: Props) {
       ]);
       setRows(emailRes.rows);
       setFetchError(emailRes.fetchError);
+      setDomenyZBledem(emailRes.domenyZBledem ?? []);
       const domNames = (domRes?.domains ?? []).map((d) => d.name);
       setDomains(domNames);
       setDomain((cur) => cur || domNames[0] || '');
@@ -313,6 +317,13 @@ export default function MailTab({ serviceId }: Props) {
         </div>
       ) : null}
 
+      {komunikatSkrzynekZBledem(domenyZBledem) && !(fetchError && rows.length === 0) ? (
+        <div role="status" className="mb-3 flex items-start gap-2 rounded-[7px] border border-warn/30 bg-warn-soft px-3 py-2 text-xs text-warn">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {komunikatSkrzynekZBledem(domenyZBledem)}
+        </div>
+      ) : null}
+
       {wysylkaWstrzymana ? (
         <div role="status" className="mb-3 flex items-start gap-2 rounded-[7px] border border-warn/30 bg-warn-soft px-3 py-2 text-xs text-warn">
           <AlertCircle className="h-4 w-4 shrink-0" />
@@ -398,7 +409,7 @@ export default function MailTab({ serviceId }: Props) {
         </div>
       </form>
 
-      {rows.length === 0 && !fetchError ? (
+      {rows.length === 0 && !fetchError && domenyZBledem.length === 0 ? (
         <p className="rounded-[10px] border border-line bg-card px-3 py-8 text-center text-xs text-muted-foreground">
           Brak skrzynek — utwórz pierwszą powyżej.
         </p>

@@ -90,6 +90,36 @@ describe("PB-42 karta usługi — konto klienta (admin)", () => {
     expect(logi).toContain("PHP Fatal error: x");
   });
 
+  it("poczta: skrzynki domeny głównej zostają, licznik z odczytanych i ostrzeżenie o domenie z błędem (noc 12.10)", () => {
+    // Prod 11.10 (d3): błąd odczytu skrzynek domeny dodatkowej dał „0 skrzynek” zamiast dwóch skrzynek domeny głównej.
+    const html = widok({
+      sekcja: "poczta",
+      dane: {
+        skrzynki: [
+          { email: "import@d3.hvln.pl", quotaMb: 1024 },
+          { email: "test@d3.hvln.pl", quotaMb: null },
+        ],
+        przekierowania: [],
+        fetchError: null,
+        domenyZBledem: ["test2.d3.hvln.pl"],
+      },
+    });
+    expect(html).toContain("2 skrzynki, 0 przekierowań");
+    expect(html).toContain("import@d3.hvln.pl");
+    expect(html).toContain("Nie udało się odczytać skrzynek domeny test2.d3.hvln.pl — licznik i lista obejmują tylko odczytane domeny.");
+    expect(html).not.toContain("Brak skrzynek i przekierowań.");
+  });
+
+  it("poczta: wszystkie domeny z błędem → sam błąd odczytu, bez podwójnego ostrzeżenia i bez „Brak skrzynek”", () => {
+    const html = widok({
+      sekcja: "poczta",
+      dane: { skrzynki: [], przekierowania: [], fetchError: "Chwilowo nie możemy pobrać danych.", domenyZBledem: ["d3.hvln.pl", "test2.d3.hvln.pl"] },
+    });
+    expect(html).toContain("Odczyt z serwera nie powiódł się: Chwilowo nie możemy pobrać danych.");
+    expect(html).not.toContain("licznik i lista obejmują");
+    expect(html).not.toContain("Brak skrzynek i przekierowań.");
+  });
+
   it("logi poczty bez wczytanego dziennika — wyjaśnienie zamiast pustej tabeli; wczytanie robi obsługa, nie klient", () => {
     const html = widok({ sekcja: "logi-poczty", dane: { wToku: false, wczytano: null, adres: null, wpisy: [], blad: null } });
     expect(html).toContain("Dziennik poczty nie był jeszcze wczytany");
