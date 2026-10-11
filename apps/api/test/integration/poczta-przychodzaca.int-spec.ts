@@ -220,6 +220,14 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     const sekcje = JSON.stringify(await (eksport as unknown as { collectSections(id: string): Promise<unknown> }).collectSections(jan.id));
     expect(sekcje).toContain('Zgłoszenie nadużycia z abuse@');
     expect(sekcje).not.toMatch(/anna@firma-zewnetrzna|Anna Obca|podszywa/i);
+    // Wpis sprzed poprawki (abuse@ przypisany z userId klienta) też nie wychodzi; własny mail klienta z kolejki — tak.
+    await prisma().pocztaPrzychodzaca.update({ where: { id: w.id }, data: { userId: jan.id } });
+    await prisma().pocztaPrzychodzaca.create({
+      data: { messageId: '<wlasny@klient.pl>', skrzynka: 'z', nadawca: 'jan@klient.pl', temat: 'Mój mail', otrzymano: new Date(), rozmiar: 1, wynik: 'BEZ_KLIENTA', userId: jan.id, tresc: 'Treść klienta' },
+    });
+    const sekcje2 = (await (eksport as unknown as { collectSections(id: string): Promise<Record<string, unknown>> }).collectSections(jan.id)) as Record<string, Array<Record<string, unknown>>>;
+    expect(sekcje2['incoming-mail'].map((m) => m.temat)).toEqual(['Mój mail']);
+    expect(JSON.stringify(sekcje2)).not.toMatch(/anna@firma-zewnetrzna|podszywa/i);
   });
 
   it('obcy nadawca na support@ → założenie zgłoszenia klientowi po jego koncie, tylko raz', async () => {

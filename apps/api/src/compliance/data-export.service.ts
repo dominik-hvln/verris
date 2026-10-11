@@ -465,7 +465,7 @@ export class DataExportService implements OnApplicationBootstrap {
 
   private async collectSections(userId: string): Promise<Record<string, unknown>> {
     const [user, accounts, subscriptions, walletTxs, invoices, tickets, ticketAttachments,
-      ticketReplies, consents, prefs, exports, deletions, auditLogs, customerNotes, migracje] =
+      ticketReplies, consents, prefs, exports, deletions, auditLogs, customerNotes, migracje, poczta] =
       await this.prisma.$transaction([
         this.prisma.user.findUniqueOrThrow({ where: { id: userId } }),
         this.prisma.account.findMany({ where: { userId } }),
@@ -527,6 +527,14 @@ export class DataExportService implements OnApplicationBootstrap {
             kontakty: { orderBy: { kiedy: 'asc' }, select: { kanal: true, tresc: true, ticketId: true, kiedy: true } },
           },
         }),
+        // Audyt Fali 3 — maile klienta z poczty przychodzącej, które nie trafiły od razu do zgłoszenia (kolejka, spam,
+        // odmowa subkonta, hamulec pętli): nadawca, temat, treść, wynik, nazwy plików. Bez zgłoszeń nadużyć osób
+        // trzecich dopisanych do sprawy klienta (wpisy sprzed poprawki miały userId klienta) — art. 15 ust. 4 RODO.
+        this.prisma.pocztaPrzychodzaca.findMany({
+          where: { userId, NOT: { rodzaj: 'ABUSE', wynik: 'PRZYPISANY' } },
+          orderBy: { otrzymano: 'asc' },
+          select: { otrzymano: true, nadawca: true, nadawcaNazwa: true, temat: true, rodzaj: true, wynik: true, tresc: true, zalaczniki: true, ticketId: true },
+        }),
       ]);
 
     const sanitizedUser = {
@@ -579,6 +587,11 @@ export class DataExportService implements OnApplicationBootstrap {
       'account-deletion-requests': deletions,
       'audit-log': dziennikBezNotatekZespolu(dziennikBialaEtykieta(this.dziennikBezPracownikow(pracownicy, auditLogs), await wezlyBialejEtykiety(this.prisma))),
       'customer-notes': customerNotes.map((n) => ({ ...n, autor: 'Obsługa Verris' })),
+      // Bez kluczy magazynu — same nazwy plików (plików od nieznanych nadawców nie pakujemy: bez skanu antywirusowego).
+      'incoming-mail': poczta.map(({ zalaczniki, ...m }) => ({
+        ...m,
+        zalaczniki: Array.isArray(zalaczniki) ? zalaczniki.flatMap((z) => (z && typeof z === 'object' && 'nazwa' in z ? [String((z as { nazwa: unknown }).nazwa)] : [])) : [],
+      })),
       migrations: migracje.map(({ checklista, kontakty, ...m }) => ({
         ...m,
         checklista: Object.fromEntries(
@@ -842,6 +855,7 @@ function buildReadme(userId: string): string {
     '  audit-log.json                   — log audytowy operacji na koncie; działania obsługi jako „Obsługa Verris”, bez id pracowników',
     '                                     i bez treści notatek zespołu o blokadzie wysyłki.',
     '  customer-notes.json              — notatki obsługi o koncie (treść i daty, autor jako „Obsługa Verris”).',
+    '  incoming-mail.json               — maile do obsługi, które nie trafiły od razu do zgłoszenia (nadawca, temat, treść, nazwy plików).',
     '  migrations.json                  — migracje: etap obsługi, terminy, checklista i log kontaktów (autor jako „Obsługa Verris”), bez haseł.',
     '  data-export-requests.json        — historia żądań eksportu danych.',
     '  account-deletion-requests.json   — historia żądań usunięcia konta.',

@@ -88,6 +88,14 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
       ]),
     },
     userConsent: { findMany: lista([{ id: 'c1', documentType: 'TERMS' }]) },
+    pocztaPrzychodzaca: {
+      findMany: lista([
+        {
+          otrzymano: new Date('2026-10-09T08:00:00Z'), nadawca: 'jan@firma.pl', nadawcaNazwa: 'Jan', temat: 'Faktura', rodzaj: 'SUPPORT', wynik: 'BEZ_KLIENTA',
+          tresc: 'Proszę o fakturę.', ticketId: null, zalaczniki: [{ nazwa: 'skan.pdf', klucz: 'poczta/p1/skan.pdf' }, { nazwa: 'x.exe', pominiety: 'typ' }],
+        },
+      ]),
+    },
     marketingPreferences: { findUnique: lista({ userId: 'u1', marketingEmail: false }) },
     dataExportRequest: { findMany: lista([]) },
     accountDeletionRequest: { findMany: lista([]) },
@@ -169,7 +177,7 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
   };
   const config = { get: vi.fn(() => undefined) };
   const svc = new DataExportService(prisma as never, {} as never, config as never, {} as never, storage as never);
-  return { svc };
+  return { svc, prisma };
 }
 
 describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
@@ -308,6 +316,17 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
     expect(wpisy.find((w) => w.id === 'l9')!.details).toEqual({ reason: KORDON_Z_BLOKADY, subscriptionId: 's1', source: 'operator' });
     expect(wpisy.find((w) => w.id === 'l10')!.details).toEqual({ reason: 'hour limit 500 exceeded' });
     expect(wpisy.find((w) => w.id === 'l11')!.details).toMatchObject({ akcja: 'ssl', powod: 'Klient prosił o odnowienie certyfikatu' });
+  });
+
+  it('audyt Fali 3 — maile klienta z poczty przychodzącej (kolejka): nazwy plików bez kluczy magazynu; bez zgłoszeń nadużyć osób trzecich', async () => {
+    const z = zbuduj();
+    const pliki = await zbudujZip(z.svc);
+    expect(JSON.parse(pliki.get('incoming-mail.json')!)).toEqual([
+      { otrzymano: '2026-10-09T08:00:00.000Z', nadawca: 'jan@firma.pl', nadawcaNazwa: 'Jan', temat: 'Faktura', rodzaj: 'SUPPORT', wynik: 'BEZ_KLIENTA', tresc: 'Proszę o fakturę.', ticketId: null, zalaczniki: ['skan.pdf', 'x.exe'] },
+    ]);
+    expect(pliki.get('incoming-mail.json')).not.toContain('poczta/p1');
+    expect(z.prisma.pocztaPrzychodzaca.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: 'u1', NOT: { rodzaj: 'ABUSE', wynik: 'PRZYPISANY' } } }));
+    expect(pliki.get('README.txt')).toContain('incoming-mail.json');
   });
 
   it('nazwa załącznika nie wychodzi poza katalog attachments/ (zip slip)', async () => {
