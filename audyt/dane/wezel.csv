@@ -114,20 +114,20 @@ N-14,sprawdzone,2026-10-11,"11.10 t1 d3.hvln.pl: mail() z PHP zablokowanego kont
 PB-52,sprawdzone,2026-10-11,"11.10 t1: blokada/zwolnienie wysyłki konta, limit 5/dobę potwierdzony przez serwer i widoczny dla klienta, kolejka konta i węzła, nadawcy i odrzucenia, RBL (spamhaus „nieznany”, nie „czysto”)"
 E-18,sprawdzone,2026-10-11,"11.10 t1 węzeł → Poczta → RBL: spamcop i barracuda „czysto”, spamhaus „brak odpowiedzi” pokazany jako nieznany (nie „czysto”)"
 PB-51.1,czeka,,"11.10 prod: L1, L2 (staff), L4 (staff i admin) na żywo — menu i odmowy zgodne z rolą; poprawki macierzy L1 (metryki, KB, lista usług) w paczce poprawki6 — sprawdzić po deployu; L3 nie przechodzony."
-PB-51.2,czeka,,kod wdrożony; akcje na d3 do przejścia na żywo
-PB-51.3,czeka,,A-25/A-26 sprawdzone 29.09 (admin); ścieżka abuse→akcja do przejścia
-PB-51.4,czeka,,"11.10: lista usług z filtrami i CSV widoczna (admin, L4); notatki i IAM do przejścia"
-PB-51.5,czeka,,11.10: próba zgłoszenia w imieniu w trakcie deployu nie założyła zgłoszenia — do powtórzenia
+PB-51.2,czeka,,"11.10 prod d3 (admin): diagnostyka, kopia teraz (367 MB na liście), skan malware, PHP 8.3→8.2→8.3, TXT dodany/usunięty (publiczny DNS), SSL ponownie (do 9.01.2027), reset hasła skrzynki i bazy (mail z linkiem); klient widzi każdą akcję jako „obsługa Verris (zgłoszenie #…)” bez powodu. Zostaje: reset hasła FTP (d3 nie ma dodatkowego konta FTP; przycisk aktywny bez kont)"
+PB-51.3,czeka,,"11.10 prod d3: zawieszenie „Decyzja obsługi” i odwieszenie z karty — strona zawieszenia, baner u klienta, wpisy w „Co się działo”. Zostaje: ścieżka decyzja abuse → zawieszenie/powiadomienie"
+PB-51.4,czeka,,"11.10 prod: filtry stanu/węzła/planu, CSV usług respektuje filtr (15 wierszy + nagłówek), zakładki klientów, notatka wewnętrzna dodana (bez usuwania). Zostaje: stronicowanie (za mało rekordów) i IAM klienta"
+PB-51.5,sprawdzone,2026-10-11,"11.10 prod: zgłoszenie w imieniu klienta #3d13bfd3 założone z adminu, notatka wewnętrzna niewidoczna w panelu klienta, odpowiedź klienta z panelu widoczna w obsłudze"
 PB-51.6,sprawdzone,2026-10-11,"11.10 t1 d3: odbicia LVE 24 h i 7 dni (CPU 26), inody 44 943, 5xx 0 z 19 635 żądań, wolne SQL — na karcie usługi w adminie"
-PB-51.7,czeka,,kod wdrożony; do przejścia na żywo
+PB-51.7,sprawdzone,2026-10-11,"11.10 prod verris-test-d3-2026.com: synchronizacja z rejestratorem (bez zmian), blokada transferu zdjęta 19:20:20 i włączona 19:20:47 u rejestratora, historia z operatorem i powodem. Świadomie bez: odnowienia (opłata), kodu EPP (sekret), zmiany NS"
 PB-51.8,sprawdzone,2026-10-11,"11.10 prod: System → Zadania w tle — 67 zadań, żadne z błędem, nowe zadania Fali 3 widoczne; ręczne uruchomienie nie testowane"
 PB-53.2,sprawdzone,2026-10-11,"11.10 t1: fail2ban 0 blokad, biała lista 192.0.2.10 dodana/usunięta, „Zablokowało mi IP” sprawdzenie, Złośliwe pliki floty, Trafienia WAF 177 (po poprawce v3)"
 PB-53.3,sprawdzone,2026-10-11,11.10 t1: przebieg 16:19 accounts=2 → „2 świeże z 2”; próby odtworzenia (drill 11.10 OK) widoczne
 PB-53.4,czeka,,"11.10 t1: NODE_SERVICES (nazwy jednostek potwierdzone), watchdog co minutę, logi z filtrem; restart usługi nie testowany (świadomie)"
-PB-53.5,czeka,,"11.10 prod: anulacja i cofnięcie (2×), dodatek gratis; data odnowienia, obietnica zapłaty, zmiana właściciela, limity do przejścia"
-PB-53.6,czeka,,11.10 prod: strony Nieudane płatności i Windykacja otwierają się; operacje do przejścia
+PB-53.5,czeka,,"11.10 prod d3: anulacja i cofnięcie, dodatek gratis i przedłużenie (409 przy duplikacie), data odnowienia +7 i skrócenie tylko po wiadomości klienta w zgłoszeniu. Obietnica zapłaty — tylko przy PAST_DUE (nietestowalna na d3); zmiana właściciela i limity custom — brak w kodzie"
+PB-53.6,czeka,,"11.10 prod (konto d3): korekta ±1 K, zaksięgowanie przelewu 1 zł → VDR/2026/10/0003 widoczny u klienta, cofnięte korektą; Nieudane płatności i Windykacja otwierają się. Zostaje: proforma z linkiem, zwrot"
 PB-53.7,czeka,,"11.10 prod: SLA w ustawieniach 1/8–24/120, raporty; import poczty wyłączony (brak skrzynki w konfiguracji API)"
-PB-53.8,czeka,,11.10 prod: filtr white label odrzuca treść z „porcie 2222”; wysyłka nie testowana
+PB-53.8,sprawdzone,2026-10-11,"11.10 prod: komunikat do klientów węzła TEST-NRB-01 — podgląd 2 odbiorców (bez kont zespołu), wysyłka 2/2 z listą wysłanych; filtr white label odrzuca „porcie 2222”"
 PB-53.9,sprawdzone,2026-10-11,11.10 prod: ADMIN — Stan platformy/Moje zgłoszenia/Flota i alerty/Finanse; L4 — Moje zgłoszenia/Flota/Finanse/Stan platformy; L1 — Moje zgłoszenia/Stan platformy
 H-20,sprawdzone,2026-10-11,"11.10: drill bazy platformy OK 11 s (Dominik, CP) + odtworzenie d3 z off-site 17:11→17:14 (pliki, bazy, poczta)"
 PB-54,sprawdzone,2026-10-11,11.10: jak H-20
