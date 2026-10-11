@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { StatusPill } from '@/components/panel/v2';
 import { checkAllWp, fetchWpOverview, type WpPrzeglad } from '@/app/dashboard/services/[id]/hosting-wp-update-actions';
+import { stanAktualnosciWp } from '@/lib/stan-wordpressa';
 
 const BTN = 'inline-flex items-center gap-2 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[13px] py-2 text-sm font-medium text-foreground hover:bg-raised disabled:opacity-50';
 const data = (iso: string) => new Date(iso).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -84,7 +85,10 @@ export function WpOverviewPanel({ serviceId }: { serviceId: string }) {
                   {s.rdzen ? <StatusPill tone="warn">rdzeń → {s.rdzen}</StatusPill> : null}
                   {s.wtyczki ? <StatusPill tone="warn">wtyczki: {s.wtyczki}</StatusPill> : null}
                   {s.motywy ? <StatusPill tone="warn">motywy: {s.motywy}</StatusPill> : null}
-                  {!s.rdzen && !s.wtyczki && !s.motywy ? <StatusPill tone="data">aktualny</StatusPill> : null}
+                  {(() => {
+                    const st = stanAktualnosciWp(s);
+                    return st ? <StatusPill tone={st.ton}>{st.tekst}</StatusPill> : null;
+                  })()}
                   {s.doPoprawy ? <StatusPill tone="warn">zabezpieczenia: {s.doPoprawy} do poprawy</StatusPill> : null}
                   {s.konserwacja ? <StatusPill tone="warn">tryb konserwacji</StatusPill> : null}
                   <StatusPill tone={s.automat ? 'data' : 'muted'}>{s.automat ? 'automat włączony' : 'automat wyłączony'}</StatusPill>
