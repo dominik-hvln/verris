@@ -383,7 +383,7 @@ export const POMOC = {
   // F3.5 — cykl życia usługi (karta usługi, sekcja „Operacje”).
   "anulacja-uslugi": {
     tytul: "Anulacja na koniec okresu",
-    opis: "Usługa działa do końca opłaconego okresu i się nie odnawia; do tego dnia anulację można cofnąć.",
+    opis: "Usługa działa do końca opłaconego okresu i się nie odnawia; do tego dnia anulację można cofnąć. Rezygnację złożoną przez klienta cofasz tylko z numerem jego zgłoszenia (bez niego — administrator) i nie w ostatniej dobie okresu.",
     kiedy: "Gdy klient prosi w zgłoszeniu o rezygnację, a nie chce tracić opłaconego okresu.",
     rozniSieOd: "„Zakończ i usuń konto” kończy usługę od razu i jest nieodwracalne (tylko administrator).",
   },

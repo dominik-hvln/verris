@@ -163,6 +163,18 @@ export class CyklZyciaUslugiService {
     if (s.status !== SubscriptionStatus.ACTIVE || s.cancelAt.getTime() <= Date.now()) {
       throw new BadRequestException('Okres już minął — usługa jest właśnie kończona. Cofnięcia nie da się wykonać.');
     }
+    // Audyt Fali 3 — cofnięcie rezygnacji, którą złożył klient, wznawia obciążanie jego portfela albo karty. Jak przy
+    // skróceniu okresu i dodatku z portfela: tylko na jego prośbę (numer jego zgłoszenia) albo decyzją administratora.
+    // Rezygnacja bez wpisu źródła (np. ustawiona z systemu płatności) liczy się jak rezygnacja klienta.
+    if (!(await this.anulowanaPrzezObsluge(s.id))) {
+      if (z.operator.role !== 'ADMIN' && !zgloszenieId) {
+        throw new BadRequestException('Rezygnację złożył klient — cofniesz ją tylko na jego prośbę: podaj numer jego zgłoszenia.');
+      }
+      // W oknie odnowienia cofnięcie oznacza obciążenie w najbliższym przebiegu, a klient nie zdąży zrezygnować ponownie.
+      if (s.paymentSource !== 'MANUAL' && s.cancelAt.getTime() - Date.now() < OKNO_ODNOWIENIA_MS) {
+        throw new BadRequestException('Do końca okresu została mniej niż doba — rezygnacji klienta już nie cofniesz. Po zakończeniu klient zamówi usługę ponownie.');
+      }
+    }
     if (kartowa(s)) {
       try {
         await this.stripe.cofnijAnulacjeSubskrypcji(s.stripeSubscriptionId!);
@@ -184,6 +196,17 @@ export class CyklZyciaUslugiService {
       szczegoly: {},
     });
     return { bezZmian: false, komunikat: 'Anulacja cofnięta — usługa odnowi się normalnie.' };
+  }
+
+  /** Ostatnią rezygnację zaplanowała obsługa (CANCEL_SCHEDULED z source OPERATOR), a nie klient. */
+  private async anulowanaPrzezObsluge(subscriptionId: string): Promise<boolean> {
+    const e = await this.prisma.subscriptionEvent.findFirst({
+      where: { subscriptionId, type: 'CANCEL_SCHEDULED' },
+      orderBy: { createdAt: 'desc' },
+      select: { details: true },
+    });
+    const d = e?.details as { source?: unknown } | null | undefined;
+    return d?.source === 'OPERATOR';
   }
 
   // ── data odnowienia (przedłużenie gratis) ───────────────────────────────────

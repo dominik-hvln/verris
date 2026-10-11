@@ -261,3 +261,67 @@ describe('F3.5 — cykl życia usługi zmieniany przez operatora', () => {
     expect(zawieszone).toEqual([u.id]);
   });
 });
+
+describe('audyt Fali 3 — cofnięcie rezygnacji złożonej przez klienta', () => {
+  beforeEach(async () => {
+    await wyczyscBaze();
+    stripeWywolania.length = 0;
+    stripePada = false;
+  });
+  afterAll(rozlacz);
+
+  async function rezygnacjaKlienta(userId: string, koniec: Date, extra: Record<string, unknown> = {}) {
+    const u = await usluga(userId, { currentPeriodEnd: koniec, cancelAt: koniec, ...extra });
+    await prisma().subscriptionEvent.create({
+      data: { subscriptionId: u.id, type: 'CANCEL_SCHEDULED', details: { actor: userId, source: 'CUSTOMER', effectiveAt: koniec.toISOString() } },
+    });
+    return u;
+  }
+
+  it('STAFF (L2/NOC) bez zgłoszenia klienta — 400 i nic nie zmienione; ze zgłoszeniem klienta albo jako ADMIN — tak', async () => {
+    const op = await operator();
+    const k = await klient(100);
+    const koniec = new Date(Date.now() + 10 * 86400000);
+    const u = await rezygnacjaKlienta(k.id, koniec);
+    await expect(cykl().cofnijAnulacje({ subscriptionId: u.id, operator: op, powod: POWOD })).rejects.toMatchObject({ status: 400 });
+    expect((await sub(u.id)).cancelAt?.toISOString()).toBe(koniec.toISOString());
+    expect(await prisma().subscriptionEvent.count({ where: { subscriptionId: u.id, type: 'CANCEL_REVOKED' } })).toBe(0);
+
+    // Zgłoszenie innego klienta nie wystarcza.
+    const obcy = await klient(0);
+    const obce = await prisma().ticket.create({ data: { userId: obcy.id, subject: 'x', message: 'x' } });
+    await expect(cykl().cofnijAnulacje({ subscriptionId: u.id, operator: op, powod: POWOD, zgloszenie: obce.id })).rejects.toBeDefined();
+    expect((await sub(u.id)).cancelAt).not.toBeNull();
+
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'Zostaję', message: 'Jednak zostaję' } });
+    expect(await cykl().cofnijAnulacje({ subscriptionId: u.id, operator: op, powod: POWOD, zgloszenie: zgl.id })).toMatchObject({ bezZmian: false });
+    expect((await sub(u.id)).cancelAt).toBeNull();
+
+    const u2 = await rezygnacjaKlienta(k.id, koniec);
+    expect(await cykl().cofnijAnulacje({ subscriptionId: u2.id, operator: await operator('ADMIN'), powod: POWOD })).toMatchObject({ bezZmian: false });
+  });
+
+  it('rezygnacja bez wpisu źródła (np. z systemu płatności) — jak rezygnacja klienta; kartowa: Stripe nie jest wołany', async () => {
+    const op = await operator();
+    const k = await klient(0);
+    const koniec = new Date(Date.now() + 10 * 86400000);
+    const u = await usluga(k.id, { currentPeriodEnd: koniec, cancelAt: koniec, paymentSource: 'STRIPE_CARD', stripeSubscriptionId: `sub_f3a_${Date.now()}` });
+    await expect(cykl().cofnijAnulacje({ subscriptionId: u.id, operator: op, powod: POWOD })).rejects.toMatchObject({ status: 400 });
+    expect(stripeWywolania).toEqual([]);
+  });
+
+  it('w oknie odnowienia (mniej niż doba) rezygnacji klienta nie cofa nikt, także ADMIN ze zgłoszeniem; rezygnację obsługi — tak', async () => {
+    const admin = await operator('ADMIN');
+    const k = await klient(100);
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'Zostaję', message: 'x' } });
+    const blisko = new Date(Date.now() + 12 * 3600000);
+    const u = await rezygnacjaKlienta(k.id, blisko);
+    await expect(cykl().cofnijAnulacje({ subscriptionId: u.id, operator: admin, powod: POWOD, zgloszenie: zgl.id })).rejects.toMatchObject({ status: 400 });
+    expect((await sub(u.id)).cancelAt).not.toBeNull();
+
+    const op = await operator();
+    const u2 = await usluga(k.id, { currentPeriodEnd: blisko, cancelAt: blisko });
+    await prisma().subscriptionEvent.create({ data: { subscriptionId: u2.id, type: 'CANCEL_SCHEDULED', details: { source: 'OPERATOR', effectiveAt: blisko.toISOString() } } });
+    expect(await cykl().cofnijAnulacje({ subscriptionId: u2.id, operator: op, powod: POWOD })).toMatchObject({ bezZmian: false });
+  });
+});

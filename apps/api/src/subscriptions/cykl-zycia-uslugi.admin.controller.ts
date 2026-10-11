@@ -32,7 +32,9 @@ const zlecenie = (id: string, actor: Aktor, b: PowodOperatoraDto): ZlecenieCyklu
 
 /**
  * F3.5 — cykl życia usługi z karty usługi (sekcja „Operacje”). Logika, dziennik i reguły: cykl-zycia-uslugi.service.ts.
- *  - anulacja na koniec okresu i jej cofnięcie — odwracalne (D2): SUBSCRIPTIONS_MANAGE (L2, NOC) z powodem;
+ *  - anulacja na koniec okresu i jej cofnięcie — odwracalne (D2): SUBSCRIPTIONS_MANAGE (L2, NOC) z powodem; cofnięcie
+ *    rezygnacji złożonej przez klienta wznawia obciążanie, więc tylko z numerem jego zgłoszenia (bez — ADMIN) i nie
+ *    w ostatniej dobie okresu (audyt Fali 3, reguła w serwisie);
  *  - data odnowienia (przedłużenie gratis) — koszt (D2): BILLING_MANAGE + SUBSCRIPTIONS_MANAGE (L4); niżej wniosek
  *    SUBSCRIPTION_RENEWAL_DATE, który akceptuje L4 albo administrator;
  *  - obietnica zapłaty (wstrzymanie zawieszenia za brak płatności, maks. 7 dni) — SUBSCRIPTIONS_MANAGE +
