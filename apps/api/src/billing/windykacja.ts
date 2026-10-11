@@ -42,7 +42,7 @@ export interface UslugaDoPrognozy {
   /** Ostatnie zdarzenie PAYMENT_FAILED usługi. */
   ostatniaNieudana: Date | null;
   /** Ostatnie zdarzenie SUSPENDED usługi (z powodem z details.reason). */
-  ostatnieZawieszenie: { kiedy: Date; powod: string | null } | null;
+  ostatnieZawieszenie: { kiedy: Date; powod: string | null; zaleglosc?: boolean } | null;
 }
 
 export type EtapWindykacji = 'bez-windykacji' | 'odnowienie' | 'zalegla' | 'zawieszona';
@@ -74,6 +74,17 @@ export function prognozaWindykacji(s: UslugaDoPrognozy, teraz: Date): Prognoza {
 
   if (s.status === 'SUSPENDED') {
     const z = s.ostatnieZawieszenie;
+    if (z && z.zaleglosc && !POWODY_ZAWIESZENIA_ZA_PLATNOSC.some((p) => p === z.powod)) {
+      // Audyt Fali 3 — decyzja obsługi (np. nadużycie) dopisana do zawieszenia za brak płatności: zaległość dalej jest,
+      // a harmonogram wygaszenia (§7 ust. 3) liczy tylko powody płatnicze, więc usługa sama nie wygaśnie.
+      return {
+        etap: 'zawieszona',
+        probaOdnowienia: null,
+        zawieszenie: z.kiedy,
+        wygasniecie: null,
+        uwaga: 'Zawieszona przez obsługę, z zaległą płatnością — nie wygaśnie sama i nie wróci po wpłacie; o zaległości i końcu usługi decyduje obsługa.',
+      };
+    }
     if (!z || !POWODY_ZAWIESZENIA_ZA_PLATNOSC.some((p) => p === z.powod)) {
       return {
         etap: 'zawieszona',

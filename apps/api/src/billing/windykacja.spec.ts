@@ -53,6 +53,15 @@ describe('F3.6 — prognoza windykacji (lustro renewal.scheduler.ts)', () => {
     expect(zaPlatnosc.wygasniecie?.toISOString()).toBe('2026-10-19T09:00:00.000Z');
     const reczne = prognozaWindykacji(usluga({ status: 'SUSPENDED', ostatnieZawieszenie: { kiedy: d('2026-10-05T09:00:00Z'), powod: 'MANUAL_ADMIN' } }), teraz);
     expect(reczne.wygasniecie).toBeNull();
+    expect(reczne.uwaga).toMatch(/nie za brak płatności/);
+  });
+
+  it('audyt Fali 3 — nadużycie dopisane do zawieszenia za brak płatności: prognoza mówi o zaległości, nie „nie za brak płatności”', () => {
+    const p = prognozaWindykacji(usluga({ status: 'SUSPENDED', ostatnieZawieszenie: { kiedy: d('2026-10-05T09:00:00Z'), powod: 'ABUSE', zaleglosc: true } }), teraz);
+    expect(p.etap).toBe('zawieszona');
+    expect(p.wygasniecie).toBeNull();
+    expect(p.uwaga).toMatch(/z zaległą płatnością/);
+    expect(p.uwaga).not.toMatch(/nie za brak płatności/);
   });
 
   it('bez windykacji: rozliczenie poza Verris, anulowana na koniec okresu, okres próbny, karta cykliczna aktywna', () => {

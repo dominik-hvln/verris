@@ -278,4 +278,17 @@ describe('F3.6 — przypomnienia i zawieszenie (odczyt)', () => {
     const lista = await serwis().windykacjaLista();
     expect(lista.wiersze.map((x) => x.id)).toEqual([s.id]);
   });
+
+  it('audyt Fali 3 — nadużycie dopisane do zawieszenia za brak płatności (zaleglosc): prognoza mówi o zaległości', async () => {
+    const k = await klient(0);
+    const plan = await utworzPlan();
+    const s = await prisma().subscription.create({
+      data: { userId: k.id, planId: plan.id, status: 'SUSPENDED', interval: 'MONTH', priceAmount: 45, currency: 'PLN', paymentSource: 'WALLET', currentPeriodEnd: new Date(Date.now() - 5 * 86400000) } as never,
+    });
+    await prisma().subscriptionEvent.create({ data: { subscriptionId: s.id, type: 'SUSPENDED', details: { reason: 'GRACE_EXPIRED' }, createdAt: new Date(Date.now() - 3 * 86400000) } });
+    await prisma().subscriptionEvent.create({ data: { subscriptionId: s.id, type: 'SUSPENDED', details: { reason: 'ABUSE', zaleglosc: true } } });
+    const w = await serwis().windykacjaKlienta(k.id, FIN);
+    expect(w.uslugi[0]).toMatchObject({ etap: 'zawieszona', wygasniecie: null });
+    expect(JSON.stringify(w.uslugi[0])).toMatch(/z zaległą płatnością/);
+  });
 });

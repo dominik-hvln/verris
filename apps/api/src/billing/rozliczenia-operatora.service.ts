@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { RozliczeniaOperatoraActions, SupportActions } from '../common/audit/audit.actions.js';
 import { zgloszenieKlienta } from '../tickets/zgloszenie-klienta.js';
+import { zawieszenieObejmujeZaleglosc } from '../subscriptions/powody-zawieszenia.js';
 import { WalletLedgerService } from './wallet-ledger.service.js';
 import { DoladowanieService } from './doladowanie.service.js';
 import { BillingService } from './billing.service.js';
@@ -526,10 +527,10 @@ export class RozliczeniaOperatoraService {
         })
       : [];
     const nieudana = new Map<string, Date>();
-    const zawieszenie = new Map<string, { kiedy: Date; powod: string | null }>();
+    const zawieszenie = new Map<string, { kiedy: Date; powod: string | null; zaleglosc: boolean }>();
     for (const e of zdarzenia) {
       if (e.type === 'PAYMENT_FAILED' && !nieudana.has(e.subscriptionId)) nieudana.set(e.subscriptionId, e.createdAt);
-      if (e.type === 'SUSPENDED' && !zawieszenie.has(e.subscriptionId)) zawieszenie.set(e.subscriptionId, { kiedy: e.createdAt, powod: szczegol(e.details, 'reason') });
+      if (e.type === 'SUSPENDED' && !zawieszenie.has(e.subscriptionId)) zawieszenie.set(e.subscriptionId, { kiedy: e.createdAt, powod: szczegol(e.details, 'reason'), zaleglosc: zawieszenieObejmujeZaleglosc(e.details) });
     }
     return { nieudana, zawieszenie };
   }
