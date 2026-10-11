@@ -53,6 +53,7 @@ async function usluga(userId: string, extra: Record<string, unknown> = {}) {
 }
 const saldo = async (id: string) => Number((await prisma().user.findUniqueOrThrow({ where: { id } })).walletBalance);
 const sub = (id: string) => prisma().subscription.findUniqueOrThrow({ where: { id } });
+const obecny = async (id: string) => (await sub(id)).currentPeriodEnd ?? new Date(0);
 
 describe('F3.5 — anulacja na koniec okresu w harmonogramie odnowień', () => {
   beforeEach(async () => {
@@ -170,7 +171,7 @@ describe('F3.5 — cykl życia usługi zmieniany przez operatora', () => {
     expect(stripeWywolania).toEqual([`cancel:${stripeId}:true`, `cofnij:${stripeId}`]);
     // Data odnowienia usługi kartą cykliczną — odmowa (do decyzji właściciela).
     await expect(
-      cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: new Date(Date.now() + 20 * 86400000) }),
+      cykl().zmienDateOdnowienia({ przed: await obecny(u.id), subscriptionId: u.id, operator: op, powod: POWOD, nowaData: new Date(Date.now() + 20 * 86400000) }),
     ).rejects.toMatchObject({ status: 400 });
 
     const zespol = await prisma().user.create({ data: { email: `f35-zespol-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'STAFF' } });
@@ -185,30 +186,30 @@ describe('F3.5 — cykl życia usługi zmieniany przez operatora', () => {
     const koniec = new Date(Date.now() + 10 * 86400000);
     const u = await usluga(k.id, { currentPeriodEnd: koniec });
     const nowa = new Date(koniec.getTime() + 14 * 86400000);
-    expect(await cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: nowa })).toMatchObject({ bezZmian: false, dni: 14 });
+    expect(await cykl().zmienDateOdnowienia({ przed: await obecny(u.id), subscriptionId: u.id, operator: op, powod: POWOD, nowaData: nowa })).toMatchObject({ bezZmian: false, dni: 14 });
     expect((await sub(u.id)).currentPeriodEnd?.toISOString()).toBe(nowa.toISOString());
-    expect(await cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: nowa })).toMatchObject({ bezZmian: true });
+    expect(await cykl().zmienDateOdnowienia({ przed: await obecny(u.id), subscriptionId: u.id, operator: op, powod: POWOD, nowaData: nowa })).toMatchObject({ bezZmian: true });
     expect(await saldo(k.id)).toBe(100);
     expect((await aktywnosc(k.id)).events.some((x) => x.action === 'SUBSCRIPTION_RENEWAL_DATE_CHANGED')).toBe(true);
 
     // Skrócenie bez zgłoszenia — 400; ze zgłoszeniem klienta — tak.
     const krocej = new Date(Date.now() + 5 * 86400000);
-    await expect(cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: krocej })).rejects.toMatchObject({ status: 400 });
+    await expect(cykl().zmienDateOdnowienia({ przed: await obecny(u.id), subscriptionId: u.id, operator: op, powod: POWOD, nowaData: krocej })).rejects.toMatchObject({ status: 400 });
     const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'Wyrównanie dat', message: 'x' } });
-    await cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: krocej, zgloszenie: zgl.id });
+    await cykl().zmienDateOdnowienia({ przed: await obecny(u.id), subscriptionId: u.id, operator: op, powod: POWOD, nowaData: krocej, zgloszenie: zgl.id });
     expect((await sub(u.id)).currentPeriodEnd?.toISOString()).toBe(krocej.toISOString());
 
     // Ponad rok naraz — 400; mniej niż doba od teraz — 400.
-    await expect(cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: new Date(krocej.getTime() + 400 * 86400000) })).rejects.toMatchObject({ status: 400 });
-    await expect(cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: new Date(Date.now() + 3600000), zgloszenie: zgl.id })).rejects.toMatchObject({ status: 400 });
+    await expect(cykl().zmienDateOdnowienia({ przed: await obecny(u.id), subscriptionId: u.id, operator: op, powod: POWOD, nowaData: new Date(krocej.getTime() + 400 * 86400000) })).rejects.toMatchObject({ status: 400 });
+    await expect(cykl().zmienDateOdnowienia({ przed: await obecny(u.id), subscriptionId: u.id, operator: op, powod: POWOD, nowaData: new Date(Date.now() + 3600000), zgloszenie: zgl.id })).rejects.toMatchObject({ status: 400 });
 
     // W oknie odnowienia (12 h do końca) — odmowa, żeby nie wejść między obciążenie a przesunięcie okresu.
     const wOknie = await usluga(k.id);
-    await expect(cykl().zmienDateOdnowienia({ subscriptionId: wOknie.id, operator: op, powod: POWOD, nowaData: new Date(Date.now() + 30 * 86400000) })).rejects.toMatchObject({ status: 400 });
+    await expect(cykl().zmienDateOdnowienia({ przed: await obecny(wOknie.id), subscriptionId: wOknie.id, operator: op, powod: POWOD, nowaData: new Date(Date.now() + 30 * 86400000) })).rejects.toMatchObject({ status: 400 });
 
     // Anulowana na koniec okresu — najpierw cofnięcie.
     await cykl().anulujNaKoniecOkresu({ subscriptionId: u.id, operator: op, powod: POWOD });
-    await expect(cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: nowa })).rejects.toMatchObject({ status: 400 });
+    await expect(cykl().zmienDateOdnowienia({ przed: await obecny(u.id), subscriptionId: u.id, operator: op, powod: POWOD, nowaData: nowa })).rejects.toMatchObject({ status: 400 });
   });
 
   it('przegląd F3.5: okres próbny — data odnowienia odmowa (próba kończy się z trialEndsAt, „przedłużenie” byłoby pozorne)', async () => {
@@ -217,7 +218,7 @@ describe('F3.5 — cykl życia usługi zmieniany przez operatora', () => {
     const koniec = new Date(Date.now() + 10 * 86400000);
     const u = await usluga(k.id, { isTrial: true, trialEndsAt: koniec, currentPeriodEnd: koniec, priceAmount: 0 });
     await expect(
-      cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: new Date(koniec.getTime() + 14 * 86400000) }),
+      cykl().zmienDateOdnowienia({ przed: await obecny(u.id), subscriptionId: u.id, operator: op, powod: POWOD, nowaData: new Date(koniec.getTime() + 14 * 86400000) }),
     ).rejects.toMatchObject({ status: 400 });
     expect((await sub(u.id)).currentPeriodEnd?.toISOString()).toBe(koniec.toISOString());
     expect(await prisma().subscriptionEvent.count({ where: { subscriptionId: u.id, type: 'RENEWAL_DATE_CHANGED' } })).toBe(0);
@@ -323,5 +324,34 @@ describe('audyt Fali 3 — cofnięcie rezygnacji złożonej przez klienta', () =
     const u2 = await usluga(k.id, { currentPeriodEnd: blisko, cancelAt: blisko });
     await prisma().subscriptionEvent.create({ data: { subscriptionId: u2.id, type: 'CANCEL_SCHEDULED', details: { source: 'OPERATOR', effectiveAt: blisko.toISOString() } } });
     expect(await cykl().cofnijAnulacje({ subscriptionId: u2.id, operator: op, powod: POWOD })).toMatchObject({ bezZmian: false });
+  });
+});
+
+describe('audyt Fali 3 — data odnowienia z okresem bazowym (odnowienie w międzyczasie)', () => {
+  beforeEach(async () => {
+    await wyczyscBaze();
+    zakonczone.length = 0;
+  });
+  afterAll(rozlacz);
+
+  it('formularz otwarty przed odnowieniem: po przesunięciu okresu zmiana daty = 409, okres i portfel bez zmian (bez drugiego obciążenia)', async () => {
+    const op = await operator('ADMIN');
+    const k = await klient(100);
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'Awaria', message: 'x' } });
+    const koniec = new Date(Date.now() + 12 * 3600000);
+    const u = await usluga(k.id, { currentPeriodEnd: koniec });
+    const przed = koniec;
+    // Odnowienie w międzyczasie: portfel obciążony, okres przesunięty o miesiąc.
+    await scheduler().handleHourlyTick();
+    const poOdnowieniu = (await sub(u.id)).currentPeriodEnd!;
+    expect(poOdnowieniu.getTime()).toBeGreaterThan(koniec.getTime() + 20 * 86400000);
+    expect(await saldo(k.id)).toBe(55);
+    // „Przedłużenie gratis” o 7 dni od starego końca — dziś byłoby skróceniem opłaconego okresu.
+    const nowa = new Date(koniec.getTime() + 7 * 86400000);
+    await expect(
+      cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: nowa, przed, zgloszenie: zgl.id }),
+    ).rejects.toMatchObject({ status: 409 });
+    expect((await sub(u.id)).currentPeriodEnd?.toISOString()).toBe(poOdnowieniu.toISOString());
+    expect(await prisma().subscriptionEvent.count({ where: { subscriptionId: u.id, type: 'RENEWAL_DATE_CHANGED' } })).toBe(0);
   });
 });

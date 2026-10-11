@@ -215,8 +215,12 @@ export class CyklZyciaUslugiService {
    * Nowy koniec bieżącego okresu: później = przedłużenie gratis (koszt Verris — wniosek, akceptacja L4/ADMIN),
    * wcześniej = skrócenie opłaconego okresu, więc tylko na prośbę klienta (numer jego zgłoszenia obowiązkowy).
    * Usługi kartą cykliczną (Stripe) — odmowa: tam okres ustala system płatności (do decyzji właściciela).
+   *
+   * Audyt Fali 3 — `przed` to koniec okresu, który operator widział (formularz) albo wnioskujący (wniosek). Data
+   * bezwzględna bez stanu wyjściowego po odnowieniu w międzyczasie (1.11 → 1.12) zamieniała przedłużenie do 8.11
+   * w skrócenie opłaconego okresu i drugie obciążenie. Inny okres niż `przed` = 409, nic nie zmieniamy.
    */
-  async zmienDateOdnowienia(z: ZlecenieCyklu & { nowaData: Date }) {
+  async zmienDateOdnowienia(z: ZlecenieCyklu & { nowaData: Date; przed: Date }) {
     const { s, zgloszenieId, powod } = await this.przygotuj(z);
     const nowa = z.nowaData;
     if (!(nowa instanceof Date) || Number.isNaN(nowa.getTime())) throw new BadRequestException('Nieprawidłowa data odnowienia.');
@@ -226,6 +230,14 @@ export class CyklZyciaUslugiService {
     }
     if (s.status !== SubscriptionStatus.ACTIVE || !stary) {
       throw new BadRequestException('Datę odnowienia zmienisz tylko w aktywnej usłudze. Przy zaległości użyj obietnicy zapłaty.');
+    }
+    if (!(z.przed instanceof Date) || Number.isNaN(z.przed.getTime())) {
+      throw new BadRequestException('Brak obecnej daty odnowienia — odśwież kartę usługi.');
+    }
+    if (z.przed.getTime() !== stary.getTime()) {
+      throw new ConflictException(
+        `Data odnowienia zmieniła się od otwarcia formularza lub złożenia wniosku (teraz ${stary.toISOString().slice(0, 10)}, np. po odnowieniu) — nic nie zmieniono. Odśwież kartę i zdecyduj ponownie.`,
+      );
     }
     if (s.cancelAt) throw new BadRequestException('Usługa jest anulowana na koniec okresu — najpierw cofnij anulację.');
     // Przegląd F3.5 — okres próbny kończy harmonogram prób z `trialEndsAt` (trial-expiry.scheduler.ts), nie z końca

@@ -442,7 +442,7 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
       typ: 'SUBSCRIPTION_RENEWAL_DATE',
       userId: k.id,
       subscriptionId: u.id,
-      payload: { subscriptionId: u.id, nowaData: nowa },
+      payload: { subscriptionId: u.id, nowaData: nowa, przed: koniec.toISOString() },
       uzasadnienie: 'Rekompensata za awarię węzła 10.10.',
     });
     expect(zl.status).toBe(201);
@@ -459,6 +459,31 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     });
     const aktywnosc = await new UsersService(prisma() as never, {} as never, {} as never, {} as never, {} as never, {} as never).listMyActivity(k.id);
     expect(aktywnosc.events.find((x) => x.action === 'SUBSCRIPTION_RENEWAL_DATE_CHANGED')).toMatchObject({ actor: 'obsługa Verris' });
+  });
+
+  it('audyt Fali 3 — data odnowienia: okres zmienił się po złożeniu (odnowienie) → akceptacja FAILED, opłacony okres nie skrócony; wniosek bez „przed” — 400', async () => {
+    const l2 = await operator(['CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE']);
+    const l4 = await operator(['REQUESTS_APPROVE', 'SUBSCRIPTIONS_MANAGE', 'BILLING_MANAGE']);
+    const plan = await utworzPlan();
+    const k = await klient();
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'Awaria', message: 'x' } });
+    const koniec = new Date(Date.now() + 3 * 86400000);
+    const u = await prisma().subscription.create({
+      data: { userId: k.id, planId: plan.id, status: 'ACTIVE', interval: 'MONTH', priceAmount: 45, paymentSource: 'WALLET', currentPeriodEnd: koniec },
+    });
+    const nowa = new Date(koniec.getTime() + 7 * 86400000).toISOString();
+    const tresc = (payload: Record<string, unknown>) => ({ typ: 'SUBSCRIPTION_RENEWAL_DATE', userId: k.id, subscriptionId: u.id, payload, uzasadnienie: 'Rekompensata za awarię węzła 10.10.' });
+    expect((await zadanie('POST', '/admin/wnioski', l2, tresc({ subscriptionId: u.id, nowaData: nowa, zgloszenie: zgl.id }))).status).toBe(400);
+    // Nieaktualna data na karcie — odmowa już przy złożeniu.
+    expect((await zadanie('POST', '/admin/wnioski', l2, tresc({ subscriptionId: u.id, nowaData: nowa, przed: new Date(koniec.getTime() - 86400000).toISOString(), zgloszenie: zgl.id }))).status).toBe(409);
+    const zl = await zadanie('POST', '/admin/wnioski', l2, tresc({ subscriptionId: u.id, nowaData: nowa, przed: koniec.toISOString(), zgloszenie: zgl.id }));
+    expect(zl.status).toBe(201);
+    // Odnowienie w międzyczasie: okres przesunięty o miesiąc.
+    const odnowiony = new Date(koniec.getTime() + 30 * 86400000);
+    await prisma().subscription.update({ where: { id: u.id }, data: { currentPeriodStart: koniec, currentPeriodEnd: odnowiony } });
+    expect((await zadanie('POST', `/admin/wnioski/${zl.body.id as string}/akceptuj`, l4, {})).body).toMatchObject({ status: 'FAILED' });
+    expect((await prisma().subscription.findUniqueOrThrow({ where: { id: u.id } })).currentPeriodEnd?.toISOString()).toBe(odnowiony.toISOString());
+    expect(await prisma().subscriptionEvent.count({ where: { subscriptionId: u.id, type: 'RENEWAL_DATE_CHANGED' } })).toBe(0);
   });
 
   it('F3.5 dodatek gratis: L2 składa wniosek, L4 akceptuje → dodatek 0 zł bez obciążenia portfela, raz', async () => {

@@ -1,4 +1,4 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Type } from 'class-transformer';
 import { IsBoolean, IsEmail, IsIn, IsISO8601, IsNumber, IsOptional, IsPositive, IsString, IsUUID, Max, MaxLength, MinLength } from 'class-validator';
 import type { StaffPermission } from '../staff-roles/staff-permissions.catalog.js';
@@ -107,6 +107,15 @@ export class DataOdnowieniaPayload {
   @IsISO8601({ strict: true })
   nowaData!: string;
 
+  /**
+   * Audyt Fali 3 — koniec okresu, który wnioskujący widział na karcie. Akceptacja po odnowieniu (okres przesunięty o
+   * miesiąc) zamieniała „przedłużenie gratis” w skrócenie opłaconego okresu; teraz wykonanie wymaga, żeby okres był
+   * ten sam. Opcjonalne tylko dla wniosków złożonych przed zmianą — te kończą się odmową z prośbą o nowy wniosek.
+   */
+  @IsOptional()
+  @IsISO8601({ strict: true })
+  przed?: string;
+
   @IsOptional()
   @IsString()
   @MaxLength(64)
@@ -155,7 +164,7 @@ export interface ZaleznosciWnioskow {
   prisma: {
     user: { findUnique(args: unknown): Promise<{ isInternal?: boolean; id?: string; email?: string } | null> };
     invoice: { findUnique(args: unknown): Promise<{ id: string; userId: string; number: string; status: string } | null> };
-    subscription: { findUnique(args: unknown): Promise<{ userId: string; status: string } | null> };
+    subscription: { findUnique(args: unknown): Promise<{ userId: string; status: string; currentPeriodEnd?: Date | null } | null> };
     ticket: { findUnique(args: unknown): Promise<{ userId: string; scalonoDoId: string | null; status?: string } | null> };
   };
   /** F3.7 — TicketsService (tickets/tickets.service.ts). */
@@ -176,6 +185,7 @@ export interface ZaleznosciWnioskow {
       powod: string;
       zgloszenie?: string | null;
       nowaData: Date;
+      przed: Date;
     }): Promise<{ bezZmian: boolean; komunikat: string }>;
   };
   /** F3.5 — AddonService (addons/addon.service.ts). */
@@ -279,6 +289,14 @@ const DO_ANULOWANIA = ['DRAFT', 'OPEN'];
 const dzienPl = (iso: string) => {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' });
+};
+
+/** „+7 dni, gratis” / „−3 dni, skrócenie” — kierunek zmiany daty odnowienia widoczny dla akceptującego. */
+const zmianaDni = (przed: string, po: string) => {
+  const n = Math.round((new Date(po).getTime() - new Date(przed).getTime()) / 86_400_000);
+  if (!Number.isFinite(n) || n === 0) return 'bez zmiany dnia';
+  const dni = Math.abs(n) === 1 ? 'dzień' : 'dni';
+  return n > 0 ? `+${n} ${dni}, gratis` : `−${-n} ${dni}, skrócenie opłaconego okresu`;
 };
 
 const ZAKONCZONE = ['CANCELED', 'EXPIRED'];
@@ -486,19 +504,27 @@ export const REJESTR_WNIOSKOW = {
     doZlozenia: 'SUBSCRIPTIONS_MANAGE',
     dto: DataOdnowieniaPayload,
     wymagaKlienta: true,
-    opis: (p) => `Nowa data odnowienia: ${dzienPl(p.nowaData)}${zgl(p.zgloszenie)}`,
+    opis: (p) =>
+      `${p.przed ? `Data odnowienia: z ${dzienPl(p.przed)} na ${dzienPl(p.nowaData)} (${zmianaDni(p.przed, p.nowaData)})` : `Nowa data odnowienia: ${dzienPl(p.nowaData)}`}${zgl(p.zgloszenie)}`,
     async sprawdzPrzyZlozeniu(p, klientId, z) {
       const s = await uslugaKlienta(p.subscriptionId, klientId, z);
       if (s.status !== 'ACTIVE') throw new BadRequestException('Datę odnowienia zmienisz tylko w aktywnej usłudze.');
+      if (!p.przed) throw new BadRequestException('Brak obecnej daty odnowienia we wniosku — odśwież kartę usługi.');
+      const okres = await z.prisma.subscription.findUnique({ where: { id: p.subscriptionId }, select: { userId: true, status: true, currentPeriodEnd: true } });
+      if (okres?.currentPeriodEnd?.getTime() !== new Date(p.przed).getTime()) {
+        throw new ConflictException('Data odnowienia usługi zmieniła się (np. po odnowieniu) — odśwież kartę i złóż wniosek ponownie.');
+      }
       await z.zawieszenie.zgloszenieKlienta(klientId!, p.zgloszenie);
     },
     async wykonaj(p, k, z) {
+      if (!p.przed) throw new BadRequestException('Wniosek złożono bez obecnej daty odnowienia — złóż go ponownie z karty usługi.');
       const r = await z.cyklZycia.zmienDateOdnowienia({
         subscriptionId: p.subscriptionId,
         operator: k.decydujacy,
         powod: k.uzasadnienie ?? `wniosek ${k.wniosekId}`,
         zgloszenie: p.zgloszenie,
         nowaData: new Date(p.nowaData),
+        przed: new Date(p.przed),
       });
       return { komunikat: r.komunikat, ...(r.bezZmian ? { bezZmian: true } : {}) };
     },

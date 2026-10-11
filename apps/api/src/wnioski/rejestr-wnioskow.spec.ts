@@ -98,7 +98,7 @@ describe('PB-48 — rejestr wniosków', () => {
   });
 
   const zal = (
-    o: { isInternal?: boolean; status?: string; email?: string; zajety?: boolean; mail?: boolean; usluga?: { userId: string; status: string } | null; zgloszenie?: boolean;
+    o: { isInternal?: boolean; status?: string; email?: string; zajety?: boolean; mail?: boolean; usluga?: { userId: string; status: string; currentPeriodEnd?: Date | null } | null; zgloszenie?: boolean;
       zgloszenia?: Record<string, { userId: string; scalonoDoId: string | null; status?: string } | null>; emailZmienionyPrzezObsluge?: boolean } = {},
   ) => {
     const wywolania: unknown[][] = [];
@@ -246,18 +246,32 @@ describe('PB-48 — rejestr wniosków', () => {
     const d = REJESTR_WNIOSKOW.SUBSCRIPTION_RENEWAL_DATE;
     expect(wymaganeUprawnienia(d)).toEqual(['BILLING_MANAGE', 'SUBSCRIPTIONS_MANAGE']);
     expect(d.doZlozenia).toBe('SUBSCRIPTIONS_MANAGE');
-    const p = { subscriptionId: 's1', nowaData: '2026-12-24T10:00:00.000Z', zgloszenie: '#ab12cd34' };
+    const przed = '2026-12-17T10:00:00.000Z';
+    const p = { subscriptionId: 's1', nowaData: '2026-12-24T10:00:00.000Z', przed, zgloszenie: '#ab12cd34' };
+    const aktywna = { userId: 'k1', status: 'ACTIVE', currentPeriodEnd: new Date(przed) };
     await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ usluga: { userId: 'inny', status: 'ACTIVE' } }).z)).rejects.toThrow(/nie istnieje na koncie/);
     await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ usluga: { userId: 'k1', status: 'PAST_DUE' } }).z)).rejects.toThrow(/aktywnej usłudze/);
-    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ zgloszenie: false }).z)).rejects.toThrow(/Nie ma takiego zgłoszenia/);
-    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal().z)).resolves.toBeUndefined();
-    expect(d.opis(p)).toBe('Nowa data odnowienia: 24.12.2026 (zgłoszenie #ab12cd34)');
+    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ zgloszenie: false, usluga: aktywna }).z)).rejects.toThrow(/Nie ma takiego zgłoszenia/);
+    // Audyt Fali 3 — okres bazowy: bez niego albo inny niż w bazie — odmowa.
+    await expect(d.sprawdzPrzyZlozeniu!({ ...p, przed: undefined }, 'k1', zal({ usluga: aktywna }).z)).rejects.toThrow(/Brak obecnej daty/);
+    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ usluga: { ...aktywna, currentPeriodEnd: new Date('2027-01-17T10:00:00.000Z') } }).z)).rejects.toThrow(/zmieniła się/);
+    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ usluga: aktywna }).z)).resolves.toBeUndefined();
+    expect(d.opis(p)).toBe('Data odnowienia: z 17.12.2026 na 24.12.2026 (+7 dni, gratis) (zgłoszenie #ab12cd34)');
+    expect(d.opis({ ...p, nowaData: '2026-12-16T10:00:00.000Z' })).toBe('Data odnowienia: z 17.12.2026 na 16.12.2026 (−1 dzień, skrócenie opłaconego okresu) (zgłoszenie #ab12cd34)');
     const { z, wywolania } = zal();
+    await expect(d.wykonaj({ ...p, przed: undefined }, { ...k, uzasadnienie: 'rekompensata za awarię' }, z)).rejects.toThrow(/złóż go ponownie/);
     const w = await d.wykonaj(p, { ...k, uzasadnienie: 'rekompensata za awarię' }, z);
     expect(wywolania).toEqual([
       [
         'data',
-        { subscriptionId: 's1', operator: { userId: 'kier', role: 'STAFF' }, powod: 'rekompensata za awarię', zgloszenie: '#ab12cd34', nowaData: new Date(p.nowaData) },
+        {
+          subscriptionId: 's1',
+          operator: { userId: 'kier', role: 'STAFF' },
+          powod: 'rekompensata za awarię',
+          zgloszenie: '#ab12cd34',
+          nowaData: new Date(p.nowaData),
+          przed: new Date(przed),
+        },
       ],
     ]);
     expect(w).toEqual({ komunikat: 'ok' });

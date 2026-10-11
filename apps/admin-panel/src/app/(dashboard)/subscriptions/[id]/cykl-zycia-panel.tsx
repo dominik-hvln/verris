@@ -157,7 +157,7 @@ export function CyklZyciaPanel({ u, dostep }: { u: UslugaCyklu; dostep: DostepDo
                   userId={u.userId}
                   subscriptionId={u.id}
                   gotowe={!!nowa && roznica !== 0}
-                  payload={{ subscriptionId: u.id, nowaData: nowa?.toISOString() ?? "", ...(zgloszenie.trim() ? { zgloszenie: zgloszenie.trim() } : {}) }}
+                  payload={{ subscriptionId: u.id, nowaData: nowa?.toISOString() ?? "", przed: u.currentPeriodEnd ?? "", ...(zgloszenie.trim() ? { zgloszenie: zgloszenie.trim() } : {}) }}
                   podpowiedz={`${brakDaty}. Zmiana daty ma koszt — wniosek akceptuje kierownik zmiany.`}
                 />
               ) : (
@@ -167,7 +167,7 @@ export function CyklZyciaPanel({ u, dostep }: { u: UslugaCyklu; dostep: DostepDo
                   className={przycisk}
                   disabled={pending || !powodOk || !nowa || roznica === 0}
                   title={!nowa ? "Wybierz datę" : powodOk ? undefined : "Najpierw wpisz powód"}
-                  onClick={() => void wykonaj("data-odnowienia", `Zmienić datę odnowienia na ${nowa ? nowa.toLocaleDateString("pl-PL") : "—"}?`, "Zmień datę", { nowaData: nowa?.toISOString() })}
+                  onClick={() => void wykonaj("data-odnowienia", `Zmienić datę odnowienia na ${nowa ? nowa.toLocaleDateString("pl-PL") : "—"}?`, "Zmień datę", { nowaData: nowa?.toISOString(), przed: u.currentPeriodEnd })}
                 >
                   Zmień datę odnowienia
                 </button>

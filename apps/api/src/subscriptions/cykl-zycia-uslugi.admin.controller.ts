@@ -16,6 +16,8 @@ import { CyklZyciaUslugiService, OBIETNICA_MAKS_DNI, type ZlecenieCyklu } from '
 export class DataOdnowieniaDto extends PowodOperatoraDto {
   /** Nowy koniec bieżącego okresu (ISO 8601). */
   @IsISO8601({ strict: true }) nowaData!: string;
+  /** Obecny koniec okresu widziany na karcie — inny w bazie (np. po odnowieniu) = 409 (audyt Fali 3). */
+  @IsISO8601({ strict: true }) przed!: string;
 }
 
 export class ObietnicaZaplatyDto extends PowodOperatoraDto {
@@ -66,7 +68,7 @@ export class CyklZyciaUslugiAdminController {
   @StaffPerm('BILLING_MANAGE', 'SUBSCRIPTIONS_MANAGE')
   @WniosekMozliwy('SUBSCRIPTION_RENEWAL_DATE')
   zmienDateOdnowienia(@Param('id') id: string, @Body() b: DataOdnowieniaDto, @CurrentUser() actor: Aktor) {
-    return this.cykl.zmienDateOdnowienia({ ...zlecenie(id, actor, b), nowaData: new Date(b.nowaData) });
+    return this.cykl.zmienDateOdnowienia({ ...zlecenie(id, actor, b), nowaData: new Date(b.nowaData), przed: new Date(b.przed) });
   }
 
   @Post(':id/obietnica-zaplaty')

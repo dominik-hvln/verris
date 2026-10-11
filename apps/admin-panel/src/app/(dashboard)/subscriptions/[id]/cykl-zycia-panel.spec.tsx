@@ -96,7 +96,7 @@ it("L2: +7 dni → wniosek o datę z nowym końcem okresu i zgłoszeniem", async
   await klik(przycisk("plus-7"));
   const w = k.querySelector('[data-wniosek="SUBSCRIPTION_RENEWAL_DATE"]')!;
   expect(w.getAttribute("data-gotowe")).toBe("true");
-  expect(JSON.parse(w.getAttribute("data-payload")!)).toEqual({ subscriptionId: "s1", nowaData: "2026-11-27T09:30:00.000Z", zgloszenie: "#ab12cd34" });
+  expect(JSON.parse(w.getAttribute("data-payload")!)).toEqual({ subscriptionId: "s1", nowaData: "2026-11-27T09:30:00.000Z", przed: KONIEC, zgloszenie: "#ab12cd34" });
   expect(k.querySelector("[data-roznica]")?.textContent).toContain("Przedłużenie gratis o 7 dni");
 });
 
@@ -106,7 +106,7 @@ it("L4: zmienia datę bezpośrednio (po powodzie i potwierdzeniu)", async () => 
   expect(przycisk("zmien-date").disabled).toBe(true);
   await wpisz(k.querySelector('[data-pole="powod"]')!, POWOD);
   await klik(przycisk("zmien-date"));
-  expect(cykl).toHaveBeenCalledWith("s1", "data-odnowienia", { powod: POWOD, zgloszenie: undefined, nowaData: "2026-12-04T09:30:00.000Z" });
+  expect(cykl).toHaveBeenCalledWith("s1", "data-odnowienia", { powod: POWOD, zgloszenie: undefined, nowaData: "2026-12-04T09:30:00.000Z", przed: KONIEC });
 });
 
 it("anulowana: stan „działa do” i cofnięcie; bez zmiany daty", async () => {
