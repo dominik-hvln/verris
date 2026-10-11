@@ -16,6 +16,9 @@ function wiersze(plik: string): string[] {
     .split(/\r?\n/)
     .slice(1)
     .map((l) => l.split(',')[0].replace(/^"|"$/g, ''))
+    // Zadanie rozbite na moduły (11.10: PB-51 → PB-51.1…PB-51.8) rejestruje też rodzica — historia i tablice
+    // dalej mówią „PB-51”, a wiersz rodzica zniknął z zadania_pb.csv.
+    .map((id) => /^[A-Z]{1,5}-\d{2,3}\.\d+$/.test(id) ? id.replace(/\.\d+$/, '') : id)
     .filter((id) => /^[A-Z]{1,5}-\d{2,3}$/.test(id));
 }
 
