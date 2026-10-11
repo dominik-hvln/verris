@@ -80,7 +80,31 @@ TASK_ID=""
 TASK_LOG=""
 HB_PID=""
 
-log() { echo "[verris-task-run] $*" | tee -a "$AGENT_LOG"; }
+# Weryfikacja 11.10 — jedna linia na zdarzenie. Pod systemd (StandardOutput=append:/var/log/verris-tasks.log), z crona
+# i po exec z verris-tasks.sh stdout to już ten plik, a „tee -a” dopisywało każdą linię drugi raz. Do pliku dopisujemy
+# sami tylko wtedy, gdy stdout jest gdzie indziej (np. ręczne uruchomienie z terminala).
+STDOUT_ID=$(stat -L -c '%d:%i' "/proc/$$/fd/1" 2>/dev/null || true)
+LOG_DO_PLIKU=1
+if [ -n "$STDOUT_ID" ] && [ "$STDOUT_ID" = "$(stat -L -c '%d:%i' "$AGENT_LOG" 2>/dev/null || true)" ]; then
+  LOG_DO_PLIKU=0
+fi
+log() {
+  echo "[verris-task-run] $*"
+  if [ "$LOG_DO_PLIKU" = "1" ]; then echo "[verris-task-run] $*" >> "$AGENT_LOG" 2>/dev/null || true; fi
+}
+
+# Weryfikacja 11.10 (t1, FLEET_UPDATE) — jedna kopia runnera na instancję. Druga kopia tej samej instancji (np. fallback
+# „exec verris-task-run.sh” z verris-tasks.sh, gdy „systemctl start” zwróci błąd w trakcie zadania) zgłaszała porażkę
+# do API i kasowała pid/plik zlecenia oryginału, który dalej pracował. Blokada wyłączna (flock) na pliku w STATE_DIR
+# PRZED jakimkolwiek raportem; kto jej nie dostał — kończy się kodem 0, bez raportu i bez sprzątania. Raportuje
+# (on_exit) tylko proces, który ją trzyma. Deskryptor 8 nie przechodzi do procesów zadania (8>&-), żeby demon
+# zrestartowany przez zadanie nie trzymał blokady po jego końcu. flock(1): https://man7.org/linux/man-pages/man1/flock.1.html
+mkdir -p "$STATE_DIR"
+exec 8>"$STATE_DIR/\${INSTANCE}.lock"
+if ! flock -n 8; then
+  log "Instancja $INSTANCE już działa (blokada $STATE_DIR/\${INSTANCE}.lock) — kończę bez raportu."
+  exit 0
+fi
 
 [ -r "$CONFIG_FILE" ] || { log "Missing $CONFIG_FILE"; exit 1; }
 # shellcheck disable=SC1090
@@ -105,6 +129,8 @@ TASK_LOG="$LOG_DIR/\${TASK_ID}.log"
 # logrotate(8): https://man7.org/linux/man-pages/man8/logrotate.8.html (weekly, rotate, maxage, copytruncate).
 # NIEZWERYFIKOWANE na węźle (czy logrotate biegnie z timera/crona systemu) — sprawdzić na t1.
 find "$LOG_DIR" -maxdepth 1 -type f -name '*.log' -mtime +30 -delete 2>/dev/null || true
+# Blokady instancji (puste pliki w /var/run) — po dobie żadne zadanie już ich nie trzyma (TimeoutStartSec=7200).
+find "$STATE_DIR" -maxdepth 1 -type f -name '*.lock' -mmin +1440 -delete 2>/dev/null || true
 if [ -d /etc/logrotate.d ]; then
   cat > /etc/logrotate.d/verris-tasks.new <<'__VERRIS_LOGROTATE__'
 /var/log/verris-tasks.log {
@@ -361,16 +387,16 @@ send_progress "$(cat "$TASK_LOG" 2>/dev/null || true)"
     sleep 60
     send_progress "$(tail -c 100000 "$TASK_LOG" 2>/dev/null || true)"
   done
-) &
+) 8>&- &
 HB_PID=$!
 
 set +e
 # Audyt Fali 3 — bez tee: stdout runnera idzie do /var/log/verris-tasks.log (systemd StandardOutput=append), więc
 # tee kopiowało tam całe wyjście każdego zadania (log poczty bez maski, listy IP) bez terminu.
 if [ "\${#RUN_ENV[@]}" -gt 0 ]; then
-  env "\${RUN_ENV[@]}" bash "$RUN_BIN" >> "$TASK_LOG" 2>&1
+  env "\${RUN_ENV[@]}" bash "$RUN_BIN" >> "$TASK_LOG" 2>&1 8>&-
 else
-  bash "$RUN_BIN" \${flags:-} >> "$TASK_LOG" 2>&1
+  bash "$RUN_BIN" \${flags:-} >> "$TASK_LOG" 2>&1 8>&-
 fi
 rc=$?
 set -e
@@ -515,6 +541,8 @@ dispatch_generic() {
       echo "[verris-tasks] Started verris-task@\${INSTANCE}.service ($KIND, log: /var/log/verris-tasks/\${TASK_ID}.log)" >> "$LOG"
       exit 0
     fi
+    # Weryfikacja 11.10 — fallback bywał cichy; runner sam nie ruszy, jeśli ta instancja już działa (blokada).
+    echo "[verris-tasks] systemctl start verris-task@\${INSTANCE} failed — fallback sync" >> "$LOG"
   fi
   if [ -x /usr/local/bin/verris-task-run.sh ]; then
     exec /usr/local/bin/verris-task-run.sh "$INSTANCE"

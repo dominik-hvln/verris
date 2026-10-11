@@ -145,6 +145,8 @@ dispatch_generic() {
       echo "[verris-tasks] Started verris-task@${INSTANCE}.service ($KIND, log: /var/log/verris-tasks/${TASK_ID}.log)" >> "$LOG"
       exit 0
     fi
+    # Weryfikacja 11.10 — fallback bywał cichy; runner sam nie ruszy, jeśli ta instancja już działa (blokada).
+    echo "[verris-tasks] systemctl start verris-task@${INSTANCE} failed — fallback sync" >> "$LOG"
   fi
   if [ -x /usr/local/bin/verris-task-run.sh ]; then
     exec /usr/local/bin/verris-task-run.sh "$INSTANCE"
