@@ -9,6 +9,7 @@ import { InvoicesAdminController } from '../billing/invoices.admin.controller.js
 import { SubscriptionsAdminController } from '../subscriptions/subscriptions.admin.controller.js';
 import { CyklZyciaUslugiAdminController } from '../subscriptions/cykl-zycia-uslugi.admin.controller.js';
 import { DodatkiOperatoraAdminController } from '../addons/dodatki-operatora.admin.controller.js';
+import { TicketsController } from '../tickets/tickets.controller.js';
 import { zWnioskiem } from '../common/audit/audit.service.js';
 import {
   REJESTR_WNIOSKOW,
@@ -35,6 +36,7 @@ describe('PB-48 — rejestr wniosków', () => {
       'SUBSCRIPTION_UNSUSPEND',
       'SUBSCRIPTION_RENEWAL_DATE',
       'ADDON_ADD',
+      'TICKET_MERGE',
     ]);
     for (const t of TYPY_WNIOSKOW) {
       expect(STAFF_PERMISSION_KEYS).toContain(REJESTR_WNIOSKOW[t].uprawnienie);
@@ -57,6 +59,7 @@ describe('PB-48 — rejestr wniosków', () => {
       SUBSCRIPTION_UNSUSPEND: SubscriptionsAdminController.prototype.unsuspend,
       SUBSCRIPTION_RENEWAL_DATE: CyklZyciaUslugiAdminController.prototype.zmienDateOdnowienia,
       ADDON_ADD: DodatkiOperatoraAdminController.prototype.dodaj,
+      TICKET_MERGE: TicketsController.prototype.adminMerge,
     };
     for (const t of TYPY_WNIOSKOW) {
       const straznik = (Reflect.getMetadata(STAFF_PERMISSIONS_KEY, bezposrednio[t]) as string[] | undefined) ?? [];
@@ -92,7 +95,8 @@ describe('PB-48 — rejestr wniosków', () => {
   });
 
   const zal = (
-    o: { isInternal?: boolean; status?: string; email?: string; zajety?: boolean; mail?: boolean; usluga?: { userId: string; status: string } | null; zgloszenie?: boolean } = {},
+    o: { isInternal?: boolean; status?: string; email?: string; zajety?: boolean; mail?: boolean; usluga?: { userId: string; status: string } | null; zgloszenie?: boolean;
+      zgloszenia?: Record<string, { userId: string; scalonoDoId: string | null } | null> } = {},
   ) => {
     const wywolania: unknown[][] = [];
     const z: ZaleznosciWnioskow = {
@@ -107,7 +111,14 @@ describe('PB-48 — rejestr wniosków', () => {
         },
         invoice: { findUnique: async () => ({ id: 'f1', userId: 'k1', number: 'VDR/1', status: o.status ?? 'OPEN' }) },
         subscription: { findUnique: async () => (o.usluga === undefined ? { userId: 'k1', status: 'ACTIVE' } : o.usluga) },
+        ticket: {
+          findUnique: async (a: unknown) => {
+            const id = (a as { where: { id: string } }).where.id;
+            return o.zgloszenia?.[id] === undefined ? { userId: 'k1', scalonoDoId: null } : o.zgloszenia[id];
+          },
+        },
       },
+      zgloszenia: { adminMerge: async (...a: unknown[]) => (wywolania.push(['scal', ...a]), { celId: String(a[1]), odpowiedzi: 2 }) },
       zawieszenie: {
         zgloszenieKlienta: async (klientId, wpis) => {
           if (!wpis) return null;
@@ -259,6 +270,26 @@ describe('PB-48 — rejestr wniosków', () => {
     ]);
   });
 
+  it('F3.7 scalenie zgłoszeń: wykonuje L3 (TICKETS_MERGE + TICKETS_MANAGE), składa L1; oba zgłoszenia klienta, niescalone', async () => {
+    const d = REJESTR_WNIOSKOW.TICKET_MERGE;
+    expect(wymaganeUprawnienia(d)).toEqual(['TICKETS_MERGE', 'TICKETS_MANAGE']);
+    expect(d.doZlozenia).toBe('TICKETS_MANAGE');
+    const A = '11111111-1111-4111-8111-111111111111';
+    const B = '22222222-2222-4222-8222-222222222222';
+    const p = { zrodloId: A, celId: B };
+    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal().z)).resolves.toBeUndefined();
+    await expect(d.sprawdzPrzyZlozeniu!({ zrodloId: A, celId: A }, 'k1', zal().z)).rejects.toThrow(/dwa różne/);
+    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ zgloszenia: { [B]: { userId: 'inny', scalonoDoId: null } } }).z)).rejects.toThrow(/nie istnieje na koncie/);
+    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ zgloszenia: { [A]: null } }).z)).rejects.toThrow(/nie istnieje na koncie/);
+    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ zgloszenia: { [A]: { userId: 'k1', scalonoDoId: B } } }).z)).rejects.toThrow(/już scalone/);
+    expect(await d.bezZmian!(p, 'k1', zal({ zgloszenia: { [A]: { userId: 'k1', scalonoDoId: B } } }).z)).toMatch(/Bez zmian/);
+    expect(d.opis(p)).toBe('Scal zgłoszenie #11111111 z #22222222');
+    const { z, wywolania } = zal();
+    expect(await d.wykonaj(p, { ...k, uzasadnienie: 'duplikat' }, z)).toEqual({ komunikat: 'Scalono — wątek w zgłoszeniu #22222222.', celId: B });
+    // Krótkie uzasadnienie wniosku dalej spełnia minimum powodu scalenia (10 znaków) — dopisek z numerem wniosku.
+    expect(wywolania[0]).toEqual(['scal', A, B, 'kier', 'duplikat (wniosek w1)']);
+  });
+
   it('komunikat błędu wykonawcy: wyjątek HTTP po polsku wprost, inny — z przedrostkiem, bez stosu', () => {
     expect(komunikatBledu(new ForbiddenException('Brak.'))).toBe('Brak.');
     expect(komunikatBledu(new Error('timeout'))).toBe('Operacja nie powiodła się: timeout');
@@ -287,6 +318,8 @@ describe('PB-48 — 403 z kodem WYMAGA_WNIOSKU przy operacjach z rejestru', () =
     // F3.5 — L2/L3 (SUBSCRIPTIONS_MANAGE) dostają „Wyślij wniosek”, L4 zmienia datę sam.
     [CyklZyciaUslugiAdminController, 'zmienDateOdnowienia', 'SUBSCRIPTION_RENEWAL_DATE', ['SUBSCRIPTIONS_MANAGE'], ['SUBSCRIPTIONS_MANAGE', 'BILLING_MANAGE']],
     [DodatkiOperatoraAdminController, 'dodaj', 'ADDON_ADD', ['SUBSCRIPTIONS_MANAGE'], ['SUBSCRIPTIONS_MANAGE', 'BILLING_MANAGE']],
+    // F3.7 — L1/L2 (TICKETS_MANAGE) dostają „Wyślij wniosek”, L3 (TICKETS_MERGE) scala sam.
+    [TicketsController, 'adminMerge', 'TICKET_MERGE', ['TICKETS_MANAGE'], ['TICKETS_MANAGE', 'TICKETS_MERGE']],
   ])('%o.%s → operacja %s', async (klasa, metoda, typ, bez, z) => {
     const handler = (klasa.prototype as unknown as Record<string, object>)[metoda];
     expect(Reflect.getMetadata(WNIOSEK_MOZLIWY_KEY, handler)).toBe(typ);

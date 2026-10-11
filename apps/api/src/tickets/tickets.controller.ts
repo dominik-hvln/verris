@@ -35,7 +35,14 @@ import {
   TagiZgloszeniaDto,
   CofniecieEskalacjiDto,
   KrokiRunbookaDto,
+  AkcjaMasowaDto,
+  ScalenieZgloszeniaDto,
+  MakroZgloszeniaDto,
+  ObecnoscZgloszeniaDto,
 } from './tickets.dto.js';
+import { MakraZgloszenService } from './makra-zgloszen.js';
+import { ObecnoscZgloszenService } from './obecnosc-zgloszen.js';
+import { WniosekMozliwy } from '../wnioski/wniosek-mozliwy.decorator.js';
 import { CannedResponseService } from './canned-response.service.js';
 import { TicketContextService } from './ticket-context.service.js';
 import { OpiekaZgloszenService } from './opieka-zgloszen.service.js';
@@ -64,6 +71,8 @@ export class TicketsController {
     private readonly canned: CannedResponseService,
     private readonly context: TicketContextService,
     private readonly opieka: OpiekaZgloszenService,
+    private readonly makra: MakraZgloszenService,
+    private readonly obecnosc: ObecnoscZgloszenService,
   ) {}
 
   // SUP-2 — szablony odpowiedzi (staff: lista; admin: CRUD).
@@ -162,6 +171,74 @@ export class TicketsController {
   @StaffPerm('TICKETS_VIEW')
   adminListTags() {
     return this.ticketsService.adminListTags();
+  }
+
+  // F3.7 — akcje masowe w skrzynce (przypisz, tag, stan), najwyżej MASOWO_MAX zgłoszeń, jeden wpis w dzienniku.
+  @Post('admin/masowo')
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
+  @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_MANAGE')
+  @HttpCode(200)
+  adminBulk(@CurrentUser() user: { userId: string }, @Body() dto: AkcjaMasowaDto) {
+    return this.ticketsService.adminBulk(user.userId, dto);
+  }
+
+  // F3.7 — makra do wyboru (z podglądem treści dla zgłoszenia). Przed `admin/:id`, inaczej „makra” byłoby id.
+  @Get('admin/makra')
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
+  @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_VIEW')
+  adminMacros(@Query('ticketId') ticketId?: string) {
+    return this.makra.lista(ticketId && /^[0-9a-f-]{36}$/i.test(ticketId) ? ticketId : undefined);
+  }
+
+  // F3.7 — makro: odpowiedź z szablonu + stan + tagi + przypisanie jednym kliknięciem.
+  @Post('admin/:id/makro')
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
+  @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_MANAGE')
+  @HttpCode(200)
+  adminApplyMacro(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: { userId: string }, @Body() dto: MakroZgloszeniaDto) {
+    return this.makra.zastosuj(id, dto.makroId, user.userId);
+  }
+
+  // F3.7 — kandydaci do scalenia (inne zgłoszenia tego klienta).
+  @Get('admin/:id/scalanie')
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
+  @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_VIEW')
+  adminMergeCandidates(@Param('id', ParseUUIDPipe) id: string) {
+    return this.ticketsService.adminMergeCandidates(id);
+  }
+
+  // F3.7 — scalenie (nieodwracalne): od L3 (TICKETS_MERGE, D2), niżej przez wniosek TICKET_MERGE.
+  @Post('admin/:id/scal')
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
+  @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_MANAGE', 'TICKETS_MERGE')
+  @WniosekMozliwy('TICKET_MERGE')
+  @HttpCode(200)
+  adminMerge(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: { userId: string }, @Body() dto: ScalenieZgloszeniaDto) {
+    return this.ticketsService.adminMerge(id, dto.celId, user.userId, dto.powod);
+  }
+
+  // F3.7 — „kto teraz to ogląda / pisze” (odpytywanie co kilka sekund, bez websocketów).
+  @Post('admin/:id/obecnosc')
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
+  @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_VIEW')
+  @HttpCode(200)
+  adminPresence(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: { userId: string }, @Body() dto: ObecnoscZgloszeniaDto) {
+    return this.obecnosc.zglos(id, user.userId, dto.pisze);
+  }
+
+  @Delete('admin/:id/obecnosc')
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
+  @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_VIEW')
+  @HttpCode(200)
+  adminLeave(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: { userId: string }) {
+    return this.obecnosc.odejdz(id, user.userId);
   }
 
   // PB-18 — podgląd klienta, klasyfikacja i szkic odpowiedzi (tylko odczyt).

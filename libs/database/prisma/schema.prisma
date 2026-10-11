@@ -2269,6 +2269,10 @@ model Ticket {
   tags             String[]      @default([])
   openedByStaffId  String?
 
+  /// F3.7 — zgłoszenie scalone z innym (nieodwracalne): wątek, pliki i maile przeszły do zgłoszenia docelowego,
+  /// to zostaje zamknięte. Odpowiedź klienta z panelu → odmowa ze wskazaniem celu; mail → trafia do celu.
+  scalonoDoId      String?
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -2360,6 +2364,11 @@ model CannedResponse {
   shortcut    String?
   category    String?  // PB-37 — POWITANIE, DIAGNOZA, OPOZNIENIE, ZALECENIA, ZAMKNIECIE
   isActive    Boolean  @default(true)
+  /// F3.7 — makro: po wysłaniu odpowiedzi ustaw stan (null = jak „Wyślij i czekaj na klienta”), dopisz tagi,
+  /// przypisz (JA — stosujący, NIKT — bez opiekuna, null — bez zmiany). Szablon z którąkolwiek akcją = makro.
+  makroStan     String?
+  makroTagi     String[] @default([])
+  makroPrzypisz String?
   createdById String?
 
   createdAt   DateTime @default(now())

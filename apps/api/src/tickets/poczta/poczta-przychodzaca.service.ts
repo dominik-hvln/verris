@@ -255,15 +255,29 @@ export class PocztaPrzychodzacaService {
   private async zgloszenieZWatku(m: MailPrzychodzacy, domena: string, klientId: string | null): Promise<{ id: string; userId: string } | null> {
     const id = zgloszenieZNaglowkow(m.watek, domena);
     if (id) {
-      const t = await this.prisma.ticket.findUnique({ where: { id }, select: { id: true, userId: true } });
-      if (t) return t;
+      const t = await this.prisma.ticket.findUnique({ where: { id }, select: { id: true, userId: true, scalonoDoId: true } });
+      if (t) return this.poScaleniu(t);
     }
     const krotkie = krotkieIdZTematu(m.temat);
     if (krotkie && klientId) {
-      const t = await this.prisma.ticket.findMany({ where: { userId: klientId, id: { startsWith: krotkie } }, select: { id: true, userId: true }, take: 2 });
-      if (t.length === 1) return t[0];
+      const t = await this.prisma.ticket.findMany({ where: { userId: klientId, id: { startsWith: krotkie } }, select: { id: true, userId: true, scalonoDoId: true }, take: 2 });
+      if (t.length === 1) return this.poScaleniu(t[0]);
     }
     return null;
+  }
+
+  /**
+   * F3.7 — odpowiedź na mail scalonego zgłoszenia trafia do zgłoszenia docelowego (klient odpisuje na stary wątek).
+   * Łańcuch scaleń najwyżej kilka kroków; cel zawsze tego samego klienta (scalanie tylko w obrębie klienta).
+   */
+  private async poScaleniu(t: { id: string; userId: string; scalonoDoId: string | null }): Promise<{ id: string; userId: string }> {
+    let biezace = t;
+    for (let i = 0; i < 5 && biezace.scalonoDoId; i++) {
+      const nast = await this.prisma.ticket.findUnique({ where: { id: biezace.scalonoDoId }, select: { id: true, userId: true, scalonoDoId: true } });
+      if (!nast || nast.userId !== t.userId) break;
+      biezace = nast;
+    }
+    return { id: biezace.id, userId: biezace.userId };
   }
 
   private async zapiszOdpowiedz(m: MailPrzychodzacy, baza: Omit<Prisma.PocztaPrzychodzacaUncheckedCreateInput, 'wynik'>, userId: string, ticketId: string) {

@@ -859,3 +859,44 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     }
   });
 });
+
+/**
+ * F3.7 cz. 2 — praca na zgłoszeniu: makra i akcje masowe — TICKETS_MANAGE (L1+); lista makr, kandydaci do scalenia
+ * i „kto teraz pisze” — TICKETS_VIEW; scalenie (nieodwracalne, D2) — TICKETS_MERGE (L3+), L1/L2 przez wniosek;
+ * raporty obsługi — TICKETS_REPORTS (L4) i ADMIN.
+ */
+describe('F3.7 — makra, scalanie, obecność, akcje masowe, raporty', () => {
+  const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
+  const METODY = ['adminBulk', 'adminMacros', 'adminApplyMacro', 'adminMergeCandidates', 'adminMerge', 'adminPresence', 'adminLeave'];
+  const trasy = [
+    ...TRASY.filter((t) => t.kontroler === 'TicketsController' && METODY.includes(t.metoda)),
+    ...TRASY.filter((t) => t.kontroler === 'OpiekaZgloszenAdminController' && t.metoda === 'raport'),
+  ];
+  const wynik = async (uprawnienia: string[]) => Object.fromEntries(await Promise.all(trasy.map(async (t) => [t.metoda, await wpuszcza(t, OPERATOR, uprawnienia)] as const)));
+  const w = (o: { odczyt: boolean; zmiany: boolean; scal: boolean; raport: boolean }) => ({
+    adminMacros: o.odczyt, adminMergeCandidates: o.odczyt, adminPresence: o.odczyt, adminLeave: o.odczyt,
+    adminBulk: o.zmiany, adminApplyMacro: o.zmiany, adminMerge: o.scal, raport: o.raport,
+  });
+
+  it('trasy pod tickets/admin/* i admin/support/raporty', () => {
+    expect(trasy.map((t) => t.sciezka).sort()).toEqual(
+      ['admin/support/raporty', 'tickets/admin/:id/makro', 'tickets/admin/:id/obecnosc', 'tickets/admin/:id/obecnosc', 'tickets/admin/:id/scal', 'tickets/admin/:id/scalanie', 'tickets/admin/makra', 'tickets/admin/masowo'].sort(),
+    );
+  });
+
+  it('L1/L2: makra i masowe tak, scalenie nie (wniosek); L3: scalenie; L4: raporty; Audytor i NOC: odczyt; Marketing: nic', async () => {
+    for (const r of ['L1 Konsultant', 'L2 Specjalista techniczny']) expect({ r, w: await wynik(rola(r)) }).toEqual({ r, w: w({ odczyt: true, zmiany: true, scal: false, raport: false }) });
+    expect(await wynik(rola('L3 Starszy specjalista'))).toEqual(w({ odczyt: true, zmiany: true, scal: true, raport: false }));
+    expect(await wynik(rola('L4 Kierownik zmiany'))).toEqual(w({ odczyt: true, zmiany: true, scal: true, raport: true }));
+    for (const r of ['Audytor (tylko podgląd)', 'Inżynier infrastruktury (NOC/DevOps)']) {
+      expect({ r, w: await wynik(rola(r)) }).toEqual({ r, w: w({ odczyt: true, zmiany: false, scal: false, raport: false }) });
+    }
+    expect(await wynik(rola('Marketing'))).toEqual(w({ odczyt: false, zmiany: false, scal: false, raport: false }));
+    // Samo TICKETS_MERGE bez obsługi zgłoszeń nie scala (komplet jak we wniosku TICKET_MERGE).
+    expect((await wynik(['TICKETS_MERGE'])).adminMerge).toBe(false);
+    for (const t of trasy) {
+      expect(await wpuszcza(t, ADMIN)).toBe(true);
+      expect(await wpuszcza(t, KLIENT, ['*', 'TICKETS_VIEW', 'TICKETS_MANAGE', 'TICKETS_MERGE', 'TICKETS_REPORTS'])).toBe(false);
+    }
+  });
+});

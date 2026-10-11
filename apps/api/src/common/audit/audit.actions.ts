@@ -338,6 +338,9 @@ export const TicketOpsActions = {
   // F2.5 — zgłoszenie założone przez obsługę w imieniu klienta; cofnięcie eskalacji.
   TICKET_OPENED_BY_STAFF: 'TICKET_OPENED_BY_STAFF',
   TICKET_ESCALATION_UNDONE: 'TICKET_ESCALATION_UNDONE',
+  // F3.7 — akcje masowe w skrzynce, scalenie zgłoszeń, makro.
+  TICKETS_BULK_CHANGED: 'TICKETS_BULK_CHANGED',
+  TICKET_MERGED: 'TICKET_MERGED',
 } as const;
 
 export const ControlPlaneMailActions = {

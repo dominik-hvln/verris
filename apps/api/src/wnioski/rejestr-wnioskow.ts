@@ -1,6 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsEmail, IsIn, IsISO8601, IsNumber, IsOptional, IsPositive, IsString, Max, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsIn, IsISO8601, IsNumber, IsOptional, IsPositive, IsString, IsUUID, Max, MaxLength, MinLength } from 'class-validator';
 import type { StaffPermission } from '../staff-roles/staff-permissions.catalog.js';
 import { POWODY_ZAWIESZENIA_OPERATORA, type PowodZawieszeniaOperatora } from '../subscriptions/powody-zawieszenia.js';
 import { PLATNOSCI_DODATKU, SLUGI_DODATKOW, type PlatnoscDodatku } from '../addons/addon.service.js';
@@ -29,6 +29,8 @@ import { PLATNOSCI_DODATKU, SLUGI_DODATKOW, type PlatnoscDodatku } from '../addo
  * L2/L3 przez wniosek):
  *  - SUBSCRIPTION_RENEWAL_DATE — POST admin/subscriptions/:id/data-odnowienia (CyklZyciaUslugiService.zmienDateOdnowienia),
  *  - ADDON_ADD — POST admin/subscriptions/:id/dodatki (AddonService.dodajPrzezOperatora; z portfela klienta albo gratis).
+ * F3.7 (D2, 11.10) — scalenie zgłoszeń (nieodwracalne; TICKETS_MERGE = L3 bezpośrednio, L1/L2 przez wniosek):
+ *  - TICKET_MERGE — POST tickets/admin/:id/scal (TicketsService.adminMerge).
  * Pominięte: kredyt SLA (sla.admin.controller ma tylko podgląd — nie ma operacji do zlecenia), korekta faktury
  * (payload to pełna lista pozycji po korekcie — formularz zostaje w panelu admina; typ łatwo dopisać później),
  * zwrot Paynow (pieniądze wychodzą do bramki — świadomie poza wnioskami do decyzji właściciela).
@@ -125,6 +127,15 @@ export class DodatekPayload {
   zgloszenie?: string;
 }
 
+/** F3.7 — scalenie: zgłoszenie `zrodloId` wchodzi do `celId` (oba tego samego klienta). */
+export class ScalenieZgloszenPayload {
+  @IsUUID('all')
+  zrodloId!: string;
+
+  @IsUUID('all')
+  celId!: string;
+}
+
 // ── zależności wykonawców (wstrzykiwane przez WnioskiService) ───────────────
 
 export interface ZaleznosciWnioskow {
@@ -132,6 +143,11 @@ export interface ZaleznosciWnioskow {
     user: { findUnique(args: unknown): Promise<{ isInternal?: boolean; id?: string; email?: string } | null> };
     invoice: { findUnique(args: unknown): Promise<{ id: string; userId: string; number: string; status: string } | null> };
     subscription: { findUnique(args: unknown): Promise<{ userId: string; status: string } | null> };
+    ticket: { findUnique(args: unknown): Promise<{ userId: string; scalonoDoId: string | null } | null> };
+  };
+  /** F3.7 — TicketsService (tickets/tickets.service.ts). */
+  zgloszenia: {
+    adminMerge(zrodloId: string, celId: string, actorUserId: string, powod: string): Promise<{ celId: string; odpowiedzi: number }>;
   };
   /** F2.3 — ZawieszenieOperatoraService (subscriptions/zawieszenie-operatora.service.ts). */
   zawieszenie: {
@@ -486,6 +502,33 @@ export const REJESTR_WNIOSKOW = {
         klucz: `wniosek:${k.wniosekId}`,
       });
       return { komunikat: r.duplikat ? `Dodatek „${r.name}” był już dodany.` : `Dodano dodatek „${r.name}”.`, ...(r.duplikat ? { bezZmian: true } : {}) };
+    },
+  }),
+  TICKET_MERGE: definicja<ScalenieZgloszenPayload>({
+    etykieta: 'Scalenie zgłoszeń',
+    uprawnienie: 'TICKETS_MERGE',
+    // Bezpośrednio: POST tickets/admin/:id/scal — strażnik TICKETS_MANAGE + TICKETS_MERGE.
+    uprawnieniaDodatkowe: ['TICKETS_MANAGE'],
+    doZlozenia: 'TICKETS_MANAGE',
+    dto: ScalenieZgloszenPayload,
+    wymagaKlienta: true,
+    opis: (p) => `Scal zgłoszenie #${p.zrodloId.slice(0, 8)} z #${p.celId.slice(0, 8)}`,
+    async sprawdzPrzyZlozeniu(p, klientId, z) {
+      if (p.zrodloId === p.celId) throw new BadRequestException('Wybierz dwa różne zgłoszenia.');
+      for (const id of [p.zrodloId, p.celId]) {
+        const t = await z.prisma.ticket.findUnique({ where: { id }, select: { userId: true, scalonoDoId: true } });
+        if (!t || t.userId !== klientId) throw new NotFoundException('Zgłoszenie nie istnieje na koncie tego klienta.');
+        if (t.scalonoDoId) throw new BadRequestException(`Zgłoszenie #${id.slice(0, 8)} jest już scalone.`);
+      }
+    },
+    async bezZmian(p, _klientId, z) {
+      const t = await z.prisma.ticket.findUnique({ where: { id: p.zrodloId }, select: { userId: true, scalonoDoId: true } });
+      return t?.scalonoDoId === p.celId ? `Bez zmian — zgłoszenie było już scalone z #${p.celId.slice(0, 8)}.` : null;
+    },
+    async wykonaj(p, k, z) {
+      const powod = `${k.uzasadnienie?.trim() || 'Scalenie zgłoszeń'} (wniosek ${k.wniosekId.slice(0, 8)})`;
+      const r = await z.zgloszenia.adminMerge(p.zrodloId, p.celId, k.decydujacy.userId, powod);
+      return { komunikat: `Scalono — wątek w zgłoszeniu #${r.celId.slice(0, 8)}.`, celId: r.celId };
     },
   }),
 } as const satisfies Record<string, DefinicjaWniosku<object>>;

@@ -1,4 +1,4 @@
-import { ArrayMaxSize, IsArray, IsBoolean, IsString, MinLength, MaxLength, IsOptional, IsIn, IsInt, IsUUID, Min, Max } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsBoolean, IsString, MinLength, MaxLength, IsOptional, IsIn, IsInt, IsUUID, Min, Max } from 'class-validator';
 import { Czesciowy } from '../common/validation/czesciowy.js';
 
 export class CreateTicketDto {
@@ -74,6 +74,24 @@ export class CannedResponseDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  /** F3.7 — makro: stan po wysłaniu odpowiedzi (puste = jak „Wyślij i czekaj na klienta”). */
+  @IsOptional()
+  @IsIn(['OPEN', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'CLOSED'])
+  makroStan?: string | null;
+
+  /** F3.7 — makro: tagi dopisywane do zgłoszenia (normalizacja jak przy tagach zgłoszenia). */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsString({ each: true })
+  @MaxLength(32, { each: true })
+  makroTagi?: string[];
+
+  /** F3.7 — makro: przypisanie (JA — stosujący, NIKT — zdejmij opiekuna; puste = bez zmiany). */
+  @IsOptional()
+  @IsIn(['JA', 'NIKT'])
+  makroPrzypisz?: string | null;
 }
 
 export class ZmianaSzablonuDto extends Czesciowy(CannedResponseDto) {}
@@ -224,4 +242,62 @@ export class KrokiRunbookaDto {
   @IsInt({ each: true })
   @Min(0, { each: true })
   kroki!: number[];
+}
+
+/** F3.7 — akcje masowe w skrzynce: najwyżej tyle zgłoszeń naraz (limit, jak w Zendesk/Freshdesk — strona skrzynki). */
+export const MASOWO_MAX = 50;
+
+/**
+ * F3.7 — akcja masowa na zaznaczonych zgłoszeniach: przypisz (`assignedToId`, pusty = nikt), tag (`tag` + `tryb`
+ * dodaj/usuń) albo stan (`status`). Każde zgłoszenie przechodzi przez tę samą logikę co zmiana pojedyncza.
+ */
+export class AkcjaMasowaDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(MASOWO_MAX, { message: `Najwyżej ${MASOWO_MAX} zgłoszeń naraz.` })
+  @IsUUID('all', { each: true, message: 'Nieprawidłowe zgłoszenie' })
+  ids!: string[];
+
+  @IsIn(['przypisz', 'tag', 'stan'])
+  akcja!: 'przypisz' | 'tag' | 'stan';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  assignedToId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  tag?: string;
+
+  @IsOptional()
+  @IsIn(['dodaj', 'usun'])
+  tryb?: 'dodaj' | 'usun';
+
+  @IsOptional()
+  @IsIn(['OPEN', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'CLOSED'])
+  status?: string;
+}
+
+/** F3.7 — scalenie: zgłoszenie z adresu (źródło) wchodzi do `celId`; powód obowiązkowy (min. 10 znaków sprawdza serwis). */
+export class ScalenieZgloszeniaDto {
+  @IsUUID('all', { message: 'Nieprawidłowe zgłoszenie docelowe' })
+  celId!: string;
+
+  @IsString()
+  @MaxLength(2000)
+  powod!: string;
+}
+
+/** F3.7 — makro: szablon odpowiedzi z akcjami (stan, tagi, przypisanie) zastosowany jednym kliknięciem. */
+export class MakroZgloszeniaDto {
+  @IsUUID('all', { message: 'Nieprawidłowe makro' })
+  makroId!: string;
+}
+
+/** F3.7 — znacznik obecności w zgłoszeniu: otwarte / pisze odpowiedź (odpytywanie z panelu obsługi). */
+export class ObecnoscZgloszeniaDto {
+  @IsBoolean()
+  pisze!: boolean;
 }

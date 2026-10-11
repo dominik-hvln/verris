@@ -61,7 +61,7 @@ describe('PB-43 — uprawnienia', () => {
 describe('PB-43 — zakres usług subkonta w widoku zgłoszenia', () => {
   it('kontroler przekazuje zakres do widoku zgłoszenia i do widoku po dołączeniu plików', async () => {
     const svc = { findOne: vi.fn(async () => ({})), addOpeningAttachments: vi.fn(async () => ({})) };
-    const c = new TicketsController(svc as never, {} as never, {} as never, {} as never);
+    const c = new TicketsController(svc as never, {} as never, {} as never, {} as never, {} as never, {} as never);
     const subkonto = { userId: 'k1', serviceScope: ['s1'] };
     await c.findOne('t1', subkonto);
     expect(svc.findOne).toHaveBeenCalledWith('t1', 'k1', ['s1']);

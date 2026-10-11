@@ -108,6 +108,12 @@ describe('PB-47 — katalog uprawnień i role systemowe', () => {
     expect(ROLE_SYSTEMOWE.filter((r) => r.permissions.includes('IP_BLOCKS_NODE' as never)).map((r) => r.name)).toEqual(['Inżynier infrastruktury (NOC/DevOps)']);
   });
 
+  it('F3.7 (D2): scalanie zgłoszeń (TICKETS_MERGE) od L3, raporty obsługi (TICKETS_REPORTS) tylko L4', () => {
+    const z = (k: string) => ROLE_SYSTEMOWE.filter((r) => r.permissions.includes(k as never)).map((r) => r.name);
+    expect(z('TICKETS_MERGE')).toEqual(['L3 Starszy specjalista', 'L4 Kierownik zmiany']);
+    expect(z('TICKETS_REPORTS')).toEqual(['L4 Kierownik zmiany']);
+  });
+
   it('B2: baza wiedzy (KB_MANAGE) tylko dla L4 i Marketingu — L1–L3 jej nie zmieniają', () => {
     const [l1, l2, l3, l4] = SZCZEBLE;
     for (const r of [l1, l2, l3]) expect(r.permissions).not.toContain('KB_MANAGE');

@@ -45,6 +45,8 @@ const L3: readonly StaffPermission[] = [
   // F2.7 — domeny u rejestratora (blokada, EPP, NS, odnowienie z portfela klienta, ponowienie) od L3.
   // Odnowienie na koszt Verris (D8) wymaga jeszcze BILLING_MANAGE — czyli L4.
   'DOMAINS_MANAGE',
+  // F3.7 (D2) — scalenie zgłoszeń (nieodwracalne) od L3; L1/L2 składają wniosek.
+  'TICKETS_MERGE',
 ];
 const L4: readonly StaffPermission[] = [
   ...L3,
@@ -59,6 +61,8 @@ const L4: readonly StaffPermission[] = [
   'KB_MANAGE',
   // F2.4 — eksport list do CSV (dane osobowe) od kierownika zmiany.
   'EXPORT_DATA',
+  // F3.7 — raporty obsługi (SLA, CSAT, wyniki osób) od kierownika zmiany.
+  'TICKETS_REPORTS',
 ];
 
 /** Szczeble obsługi w kolejności rosnącej. */
@@ -78,13 +82,13 @@ export const SZCZEBLE: readonly RolaSystemowa[] = [
   {
     name: 'L3 Starszy specjalista',
     description:
-      'Wszystko z L2 oraz zarządzanie klientami (edycja, blokady), zawieszanie usług, edycja DNS klienta, blokada wysyłki poczty, domeny u rejestratora (blokada, kod EPP, NS, odnowienie z portfela klienta, ponowienie rejestracji), nadużycia, indywidualne warunki i kolejka provisioningu. Kredyty, korekty, portfel i odnowienie domeny na koszt Verris zostają dla L4.',
+      'Wszystko z L2 oraz zarządzanie klientami (edycja, blokady), zawieszanie usług, edycja DNS klienta, blokada wysyłki poczty, domeny u rejestratora (blokada, kod EPP, NS, odnowienie z portfela klienta, ponowienie rejestracji), scalanie zgłoszeń, nadużycia, indywidualne warunki i kolejka provisioningu. Kredyty, korekty, portfel i odnowienie domeny na koszt Verris zostają dla L4.',
     permissions: L3,
   },
   {
     name: 'L4 Kierownik zmiany',
     description:
-      'Wszystko z L3 oraz faktury, korekty, portfel i kredyty, zarządzanie węzłami, podgląd planów, dziennik bezpieczeństwa, RODO, baza wiedzy, oznaczanie kont wewnętrznych, eksport list do CSV i akceptacja wniosków zespołu. Bez ustawień platformy i zarządzania pracownikami.',
+      'Wszystko z L3 oraz faktury, korekty, portfel i kredyty, zarządzanie węzłami, podgląd planów, dziennik bezpieczeństwa, RODO, baza wiedzy, oznaczanie kont wewnętrznych, eksport list do CSV, raporty obsługi i akceptacja wniosków zespołu. Bez ustawień platformy i zarządzania pracownikami.',
     permissions: L4,
   },
 ];

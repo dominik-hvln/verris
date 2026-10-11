@@ -8,6 +8,9 @@ import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { OpiekaZgloszenService, type RodzajAuto } from './opieka-zgloszen.service.js';
 import { SLA_MAX_GODZIN } from './sla-zgloszen.js';
+import { RaportyZgloszenService } from './raporty-zgloszen.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
 
 class UstawienieAutoDto {
   @IsBoolean()
@@ -50,7 +53,19 @@ class ProgiSlaDto {
 @Controller('admin/support')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class OpiekaZgloszenAdminController {
-  constructor(private readonly opieka: OpiekaZgloszenService) {}
+  constructor(
+    private readonly opieka: OpiekaZgloszenService,
+    private readonly raporty: RaportyZgloszenService,
+  ) {}
+
+  /** F3.7 (OE-32) — raporty obsługi: SLA, CSAT, wyniki osób z zespołu — kierownik zmiany (TICKETS_REPORTS) i ADMIN. */
+  @Get('raporty')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.STAFF, Role.ADMIN)
+  @StaffPerm('TICKETS_REPORTS')
+  raport(@Query('dni') dni?: string) {
+    return this.raporty.raport(Number(dni) || 30);
+  }
 
   @Get('auto-messages')
   @Roles(Role.ADMIN)

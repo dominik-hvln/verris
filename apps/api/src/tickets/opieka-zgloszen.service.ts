@@ -355,6 +355,8 @@ export class OpiekaZgloszenService {
   async otworzPonownie(ticketId: string, userId: string) {
     const t = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!t || t.userId !== userId) throw new BadRequestException('Zgłoszenie nie istnieje.');
+    // F3.7 — scalone zgłoszenie zostaje zamknięte; rozmowa toczy się w docelowym.
+    if (t.scalonoDoId) throw new BadRequestException(`To zgłoszenie połączyliśmy z #${t.scalonoDoId.slice(0, 8)} — napisz tam.`);
     if (t.status !== 'CLOSED') throw new BadRequestException('Zgłoszenie jest otwarte.');
     const zamkniete = t.resolvedAt ?? t.autoClosedAt ?? t.updatedAt;
     if (Date.now() - zamkniete.getTime() > REOPEN_DNI * DOBA_MS) {

@@ -26,6 +26,10 @@ export class ListaZgloszenQuery {
   @IsOptional() @IsString() @MaxLength(64)
   tag?: string;
 
+  /** F3.7 — dział (BILLING, TECHNICAL, SALES): widok skrzynki działu. */
+  @IsOptional() @IsString() @MaxLength(16)
+  dzial?: string;
+
   /** `po-terminie` — pierwsza odpowiedź po terminie; `rozwiazanie-po-terminie` — termin rozwiązania minął. */
   @IsOptional() @IsString() @MaxLength(32)
   sla?: string;
@@ -54,6 +58,8 @@ export const ZGLOSZENIA_MAX_NA_STRONE = 100;
 const STANY = ['OPEN', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'CLOSED'];
 const PRIORYTETY = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
 const TEMATY = ['HOSTING', 'DOMAIN', 'EMAIL', 'DNS', 'BILLING', 'SSL', 'OTHER', 'BETA'];
+/** F3.7 — działy zgłoszeń (pole `department`; ten sam słownik co DTO zgłoszenia). */
+export const DZIALY = ['TECHNICAL', 'BILLING', 'SALES'] as const;
 const SORTY = ['termin', 'najnowsze', 'najstarsze', 'zamkniete'];
 
 /** Pierwsza odpowiedź po terminie (to, co skrzynka pokazuje na czerwono). */
@@ -82,6 +88,11 @@ export function warunkiListyZgloszen(q: ListaZgloszenQuery, actorUserId: string,
   if (temat) {
     if (!TEMATY.includes(temat)) throw new BadRequestException(`Nieznany temat: ${temat}`);
     and.push({ topic: temat });
+  }
+  const dzial = q.dzial?.trim();
+  if (dzial) {
+    if (!(DZIALY as readonly string[]).includes(dzial)) throw new BadRequestException(`Nieznany dział: ${dzial}`);
+    and.push({ department: dzial });
   }
   const tag = q.tag?.trim().toLowerCase();
   if (tag) and.push({ tags: { has: tag } });

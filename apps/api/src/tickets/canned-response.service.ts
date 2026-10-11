@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { normalizujTagi } from './tickets.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 
@@ -9,6 +10,10 @@ export interface CannedResponseInput {
   shortcut?: string | null;
   category?: string | null;
   isActive?: boolean;
+  /** F3.7 — akcje makra (makra-zgloszen.ts). */
+  makroStan?: string | null;
+  makroTagi?: string[];
+  makroPrzypisz?: string | null;
 }
 
 /**
@@ -45,7 +50,10 @@ export class CannedResponseService {
               .includes(q),
       )
       .sort((a, b) => rank(a) - rank(b))
-      .map((r) => ({ id: r.id, title: r.title, content: r.content, topic: r.topic, shortcut: r.shortcut, category: r.category }));
+      .map((r) => ({
+        id: r.id, title: r.title, content: r.content, topic: r.topic, shortcut: r.shortcut, category: r.category,
+        makroStan: r.makroStan, makroTagi: r.makroTagi, makroPrzypisz: r.makroPrzypisz,
+      }));
   }
 
   /** Admin view: all templates. */
@@ -63,6 +71,9 @@ export class CannedResponseService {
         category: input.category || null,
         isActive: input.isActive ?? true,
         createdById: actorUserId,
+        makroStan: input.makroStan || null,
+        makroTagi: normalizujTagi(input.makroTagi ?? []),
+        makroPrzypisz: input.makroPrzypisz || null,
       },
     });
     await this.audit.record({ action: 'CANNED_RESPONSE_CREATED', actorUserId, details: { id: row.id } });
@@ -81,6 +92,9 @@ export class CannedResponseService {
         shortcut: input.shortcut === undefined ? undefined : input.shortcut?.trim() || null,
         category: input.category === undefined ? undefined : input.category || null,
         isActive: input.isActive ?? undefined,
+        makroStan: input.makroStan === undefined ? undefined : input.makroStan || null,
+        makroTagi: input.makroTagi === undefined ? undefined : normalizujTagi(input.makroTagi),
+        makroPrzypisz: input.makroPrzypisz === undefined ? undefined : input.makroPrzypisz || null,
       },
     });
     await this.audit.record({ action: 'CANNED_RESPONSE_UPDATED', actorUserId, details: { id } });

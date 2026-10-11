@@ -55,7 +55,7 @@ function zbuduj() {
   const audit = { record: vi.fn(async () => undefined) };
   const notifications = { create: vi.fn(async () => undefined) };
   const users = { patchCustomerOperational: vi.fn(async () => ({ ok: true })) };
-  const svc = new WnioskiService(prisma as never, audit as never, notifications as never, users as never, {} as never, {} as never, {} as never, {} as never, {} as never);
+  const svc = new WnioskiService(prisma as never, audit as never, notifications as never, users as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never);
   return { svc, prisma, users, wnioski };
 }
 

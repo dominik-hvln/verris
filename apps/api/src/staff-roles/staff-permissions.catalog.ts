@@ -14,6 +14,10 @@ export const STAFF_PERMISSIONS = [
   { key: 'SUBSCRIPTIONS_SUSPEND', area: 'Usługi', label: 'Zawieszanie i odwieszanie usług (odcina stronę i pocztę klienta)' },
   { key: 'TICKETS_VIEW', area: 'Wsparcie', label: 'Podgląd zgłoszeń' },
   { key: 'TICKETS_MANAGE', area: 'Wsparcie', label: 'Obsługa zgłoszeń (odpowiedzi, status)' },
+  // F3.7 (D2, 11.10) — scalenie zgłoszeń jest nieodwracalne: bezpośrednio od L3, niżej przez wniosek.
+  { key: 'TICKETS_MERGE', area: 'Wsparcie', label: 'Scalanie zgłoszeń tego samego klienta (nieodwracalne, z powodem, w dzienniku)' },
+  // F3.7 — raporty obsługi: terminy SLA, oceny klientów i wyniki osób z zespołu (kierownik zmiany).
+  { key: 'TICKETS_REPORTS', area: 'Wsparcie', label: 'Raporty obsługi: terminy SLA, oceny klientów, odpowiedzi i czas odpowiedzi osób z zespołu' },
   { key: 'REQUESTS_APPROVE', area: 'Obsługa', label: 'Akceptacja wniosków o operację' },
   { key: 'BILLING_VIEW', area: 'Finanse', label: 'Podgląd faktur i rozliczeń' },
   { key: 'BILLING_MANAGE', area: 'Finanse', label: 'Faktury, korekty, portfel, kredyty' },

@@ -25,7 +25,7 @@ import {
   TICKET_UPLOAD_MAX_BYTES,
   TICKET_UPLOAD_MAX_FILES_PER_BATCH,
 } from './ticket-attachment.utils.js';
-import { CreateTicketDto, AddTicketReplyDto, AdminUpdateTicketDto, ZgloszenieWImieniuDto } from './tickets.dto.js';
+import { CreateTicketDto, AddTicketReplyDto, AdminUpdateTicketDto, AkcjaMasowaDto, MASOWO_MAX, ZgloszenieWImieniuDto } from './tickets.dto.js';
 import type { Prisma } from '@verris/database';
 import { ObjectStorageService } from '../storage/object-storage.service.js';
 import { ObjectBuckets } from '../storage/object-storage.types.js';
@@ -39,6 +39,7 @@ import { ZAKRES_ODMOWA } from '../common/guards/zakres-uslug.js';
 import { RUNBOOK_KLUCZE, runbook as runbookZKatalogu } from '@verris/contracts';
 import { stronaListy } from '../subscriptions/lista-uslug.js';
 import {
+  DZIALY,
   KOLEJNOSC,
   ListaZgloszenQuery,
   ZGLOSZENIA_MAX_NA_STRONE,
@@ -624,6 +625,7 @@ export class TicketsService {
     const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Zgłoszenie nie zostało znalezione');
     if (ticket.userId !== userId) throw new ForbiddenException('Brak dostępu');
+    odmowaScalonego(ticket);
 
     const [reply] = await this.prisma.$transaction([
       this.prisma.ticketReply.create({
@@ -711,13 +713,16 @@ export class TicketsService {
     }
     const klient: Prisma.TicketWhereInput = q.userId?.trim() ? { userId: q.userId.trim() } : {};
     const otwarte: Prisma.TicketWhereInput = { ...klient, status: { not: 'CLOSED' } };
-    const [lOtwarte, lMoje, lCzeka, lPoTerminie, lZamkniete] = await Promise.all([
+    const [lOtwarte, lMoje, lCzeka, lPoTerminie, lZamkniete, wgDzialu] = await Promise.all([
       this.prisma.ticket.count({ where: otwarte }),
       this.prisma.ticket.count({ where: { ...otwarte, assignedToId: actorUserId } }),
       this.prisma.ticket.count({ where: { ...klient, status: 'WAITING_CUSTOMER' } }),
       this.prisma.ticket.count({ where: { AND: [klient, spoznione] } }),
       this.prisma.ticket.count({ where: { ...klient, status: 'CLOSED' } }),
+      // F3.7 — widoki działów: otwarte w każdym dziale (zakładki skrzynki), bez filtrów listy.
+      this.prisma.ticket.groupBy({ by: ['department'], where: otwarte, _count: { _all: true } }),
     ]);
+    const dzialy = Object.fromEntries(DZIALY.map((d) => [d, wgDzialu.find((g) => g.department === d)?._count._all ?? 0])) as Record<(typeof DZIALY)[number], number>;
     return {
       rows,
       total,
@@ -725,6 +730,7 @@ export class TicketsService {
       limit,
       totalPages: Math.max(1, Math.ceil(total / limit)),
       liczby: { otwarte: lOtwarte, moje: lMoje, czeka: lCzeka, poTerminie: lPoTerminie, zamkniete: lZamkniete },
+      dzialy,
     };
   }
 
@@ -788,6 +794,9 @@ export class TicketsService {
       include: { user: { select: { email: true } } },
     });
     if (!existing) throw new NotFoundException('Nie znaleziono zgłoszenia.');
+    // F3.7 — opiekunem może być tylko osoba z zespołu (wcześniej przechodził dowolny id — także klienta, który
+    // dostawał wtedy dzwonek i mail „Przypisano Ci zgłoszenie” z cudzą sprawą). Dotyczy też makr i akcji masowych.
+    if (dto.assignedToId && dto.assignedToId !== existing.assignedToId) await this.sprawdzOpiekuna(dto.assignedToId);
 
     const dataToUpdate: Prisma.TicketUncheckedUpdateInput = { ...dto };
     if (dto.status === 'CLOSED') {
@@ -897,6 +906,173 @@ export class TicketsService {
     }
 
     return updated;
+  }
+
+  /** F3.7 — opiekun zgłoszenia: istniejące, aktywne konto zespołu (STAFF albo ADMIN). */
+  private async sprawdzOpiekuna(userId: string): Promise<void> {
+    const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true, loginBlocked: true, anonymizedAt: true } });
+    if (!u || !['STAFF', 'ADMIN'].includes(u.role) || u.loginBlocked || u.anonymizedAt) {
+      throw new BadRequestException('Opiekunem zgłoszenia może być tylko aktywna osoba z zespołu.');
+    }
+  }
+
+  /**
+   * F3.7 (OE-31) — akcje masowe w skrzynce: przypisz, tag (dodaj/usuń) albo stan, najwyżej MASOWO_MAX zgłoszeń.
+   * Każde zgłoszenie przechodzi przez tę samą ścieżkę co zmiana pojedyncza (oś zgłoszenia, powiadomienia, maile do
+   * klienta przy zmianie stanu, przeliczenia), a całość ląduje jednym wpisem w dzienniku z listą zgłoszeń i błędów.
+   * Błąd jednego zgłoszenia nie przerywa reszty — wraca w `bledy`.
+   */
+  async adminBulk(actorUserId: string, dto: AkcjaMasowaDto) {
+    const ids = [...new Set(dto.ids)];
+    if (ids.length > MASOWO_MAX) throw new BadRequestException(`Najwyżej ${MASOWO_MAX} zgłoszeń naraz.`);
+    let zmiana: (id: string) => Promise<boolean>;
+    let wartosc: string;
+    if (dto.akcja === 'przypisz') {
+      const kto = dto.assignedToId?.trim() || null;
+      if (kto) await this.sprawdzOpiekuna(kto);
+      wartosc = kto ?? 'nikt';
+      zmiana = async (id) => {
+        const t = await this.prisma.ticket.findUnique({ where: { id }, select: { assignedToId: true } });
+        if (!t) throw new NotFoundException('Nie znaleziono zgłoszenia.');
+        if (t.assignedToId === kto) return false;
+        await this.adminUpdateTicket(id, { assignedToId: kto } as AdminUpdateTicketDto, actorUserId);
+        return true;
+      };
+    } else if (dto.akcja === 'tag') {
+      const [tag] = normalizujTagi([dto.tag ?? '']);
+      if (!tag) throw new BadRequestException('Podaj tag.');
+      const usun = dto.tryb === 'usun';
+      wartosc = `${usun ? '−' : '+'}${tag}`;
+      zmiana = async (id) => {
+        const t = await this.prisma.ticket.findUnique({ where: { id }, select: { tags: true } });
+        if (!t) throw new NotFoundException('Nie znaleziono zgłoszenia.');
+        if (usun ? !t.tags.includes(tag) : t.tags.includes(tag)) return false;
+        await this.adminSetTags(id, actorUserId, usun ? t.tags.filter((x) => x !== tag) : [...t.tags, tag]);
+        return true;
+      };
+    } else {
+      const status = dto.status;
+      if (!status) throw new BadRequestException('Wybierz stan.');
+      wartosc = status;
+      zmiana = async (id) => {
+        const t = await this.prisma.ticket.findUnique({ where: { id }, select: { status: true, scalonoDoId: true } });
+        if (!t) throw new NotFoundException('Nie znaleziono zgłoszenia.');
+        if (t.status === status) return false;
+        if (t.scalonoDoId) throw new BadRequestException('Zgłoszenie scalone — stan zmienia się w zgłoszeniu docelowym.');
+        await this.adminUpdateTicket(id, { status }, actorUserId);
+        return true;
+      };
+    }
+    const zmienione: string[] = [];
+    const bezZmian: string[] = [];
+    const bledy: { id: string; blad: string }[] = [];
+    for (const id of ids) {
+      try {
+        if (await zmiana(id)) zmienione.push(id);
+        else bezZmian.push(id);
+      } catch (e) {
+        bledy.push({ id, blad: e instanceof Error ? e.message : 'Błąd' });
+      }
+    }
+    await this.audit.record({
+      action: TicketOpsActions.TICKETS_BULK_CHANGED,
+      actorUserId,
+      details: { akcja: dto.akcja, wartosc, zmienione, bezZmian, bledy: bledy.map((b) => `${b.id}: ${b.blad}`) },
+    });
+    return { zmienione: zmienione.length, bezZmian: bezZmian.length, bledy };
+  }
+
+  /**
+   * F3.7 (OE-10) — scalenie dwóch zgłoszeń tego samego klienta (duplikat, ta sama sprawa z maila i z panelu).
+   * Nieodwracalne: cały wątek źródła (odpowiedzi, notatki wewnętrzne — dalej wewnętrzne, załączniki, maile z poczty
+   * przychodzącej) przechodzi do celu, pierwsza wiadomość źródła staje się wiadomością w wątku celu (z numerem
+   * i tematem źródła, w swoim czasie), źródło zostaje zamknięte ze znacznikiem `scalonoDoId` i krótką informacją dla
+   * klienta. Nic nie idzie mailem. Obie zmiany pod blokadą wierszy (FOR UPDATE w stałej kolejności), więc równoległe
+   * scalenie tej samej pary albo łańcucha nie rozdzieli wątku. Powód obowiązkowy: oś obu zgłoszeń i dziennik.
+   */
+  async adminMerge(zrodloId: string, celId: string, actorUserId: string, powod: string) {
+    const uzasadnienie = powod.trim();
+    if (uzasadnienie.length < 10) throw new BadRequestException('Podaj powód scalenia (min. 10 znaków).');
+    if (zrodloId === celId) throw new BadRequestException('Wybierz inne zgłoszenie niż to, które scalasz.');
+    type Wiersz = {
+      id: string; userId: string; subject: string; message: string; createdAt: Date; openedByStaffId: string | null;
+      scalonoDoId: string | null; tags: string[]; lastReplyAt: Date | null; lastReplyIsStaff: boolean | null;
+    };
+    const wynik = await this.prisma.$transaction(async (tx) => {
+      const wiersze = await tx.$queryRaw<Wiersz[]>`
+        SELECT "id", "userId", "subject", "message", "createdAt", "openedByStaffId", "scalonoDoId", "tags", "lastReplyAt", "lastReplyIsStaff"
+        FROM "Ticket" WHERE "id" IN (${zrodloId}, ${celId}) ORDER BY "id" FOR UPDATE`;
+      const zr = wiersze.find((w) => w.id === zrodloId);
+      const cel = wiersze.find((w) => w.id === celId);
+      if (!zr || !cel) throw new NotFoundException('Nie znaleziono zgłoszenia.');
+      if (zr.userId !== cel.userId) throw new BadRequestException('Scalić można tylko zgłoszenia tego samego klienta.');
+      if (zr.scalonoDoId) throw new ConflictException(`To zgłoszenie jest już scalone z #${zr.scalonoDoId.slice(0, 8)}.`);
+      if (cel.scalonoDoId) throw new BadRequestException(`Zgłoszenie docelowe jest scalone z #${cel.scalonoDoId.slice(0, 8)} — wybierz tamto.`);
+      const teraz = new Date();
+      // Pierwsza wiadomość źródła — od klienta albo (założone w imieniu klienta) od obsługi; nigdy notatka.
+      const pierwsza = await tx.ticketReply.create({
+        data: {
+          ticketId: cel.id,
+          authorId: zr.openedByStaffId ?? zr.userId,
+          isStaff: !!zr.openedByStaffId,
+          message: `Ze zgłoszenia #${zr.id.slice(0, 8)} „${zr.subject}”:\n\n${zr.message}`,
+          createdAt: zr.createdAt,
+        },
+      });
+      await tx.ticketAttachment.updateMany({ where: { ticketId: zr.id, replyId: null }, data: { ticketId: cel.id, replyId: pierwsza.id } });
+      await tx.ticketAttachment.updateMany({ where: { ticketId: zr.id }, data: { ticketId: cel.id } });
+      // Odpowiedzi przechodzą z flagami bez zmian — notatka wewnętrzna zostaje wewnętrzna (internal: true).
+      const { count: odpowiedzi } = await tx.ticketReply.updateMany({ where: { ticketId: zr.id, id: { not: pierwsza.id } }, data: { ticketId: cel.id } });
+      await tx.pocztaPrzychodzaca.updateMany({ where: { ticketId: zr.id }, data: { ticketId: cel.id } });
+      const pozniejsza = zr.lastReplyAt && (!cel.lastReplyAt || zr.lastReplyAt > cel.lastReplyAt);
+      await tx.ticket.update({
+        where: { id: cel.id },
+        data: {
+          tags: [...new Set([...cel.tags, ...zr.tags])].slice(0, TAGI_MAX),
+          ...(pozniejsza ? { lastReplyAt: zr.lastReplyAt, lastReplyIsStaff: zr.lastReplyIsStaff } : {}),
+        },
+      });
+      await tx.ticket.update({
+        where: { id: zr.id },
+        data: { scalonoDoId: cel.id, status: 'CLOSED', resolvedAt: teraz, waitingSince: null, customerReminderSentAt: null, autoClosedAt: null },
+      });
+      // Dla klienta w zamkniętym źródle: dokąd poszła rozmowa (wpis w osi, bez maila i bez nazwiska).
+      await tx.ticketReply.create({
+        data: {
+          ticketId: zr.id,
+          authorId: actorUserId,
+          isStaff: true,
+          automatic: 'SCALONE',
+          message: `Połączyliśmy to zgłoszenie z #${cel.id.slice(0, 8)} — dalsza rozmowa toczy się tam.`,
+        },
+      });
+      await tx.ticketEvent.createMany({
+        data: [
+          { ticketId: zr.id, type: 'MERGED_INTO', actorId: actorUserId, meta: { cel: cel.id, reason: uzasadnienie } },
+          { ticketId: cel.id, type: 'MERGED_FROM', actorId: actorUserId, meta: { zrodlo: zr.id, reason: uzasadnienie, odpowiedzi } },
+        ],
+      });
+      return { klientId: zr.userId, odpowiedzi };
+    });
+    await this.audit.record({
+      action: TicketOpsActions.TICKET_MERGED,
+      userId: wynik.klientId,
+      actorUserId,
+      details: { zrodlo: zrodloId, cel: celId, reason: uzasadnienie, odpowiedzi: wynik.odpowiedzi },
+    });
+    return { celId, odpowiedzi: wynik.odpowiedzi };
+  }
+
+  /** F3.7 — kandydaci do scalenia: inne niescalone zgłoszenia tego klienta (najnowsze pierwsze). */
+  async adminMergeCandidates(ticketId: string) {
+    const t = await this.prisma.ticket.findUnique({ where: { id: ticketId }, select: { userId: true } });
+    if (!t) throw new NotFoundException('Nie znaleziono zgłoszenia.');
+    return this.prisma.ticket.findMany({
+      where: { userId: t.userId, id: { not: ticketId }, scalonoDoId: null },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+      select: { id: true, subject: true, status: true, createdAt: true },
+    });
   }
 
   async adminEscalateTicket(ticketId: string, actorUserId: string, reason: string) {
@@ -1100,6 +1276,7 @@ export class TicketsService {
   async adminAddReply(ticketId: string, staffId: string, dto: AddTicketReplyDto) {
     const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Nie znaleziono zgłoszenia.');
+    odmowaScalonego(ticket);
 
     const czekaj = dto.czekaj !== 'nie';
     const dataToUpdate: Prisma.TicketUncheckedUpdateInput = {
@@ -1216,6 +1393,7 @@ export class TicketsService {
     const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Zgłoszenie nie zostało znalezione');
     if (ticket.userId !== userId) throw new ForbiddenException('Brak dostępu');
+    odmowaScalonego(ticket);
 
     if (files.length === 0) {
       throw new BadRequestException('Brak plików.');
@@ -1311,6 +1489,7 @@ export class TicketsService {
     const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Zgłoszenie nie zostało znalezione');
     if (ticket.userId !== userId) throw new ForbiddenException('Brak dostępu');
+    odmowaScalonego(ticket);
 
     const [reply] = await this.prisma.$transaction([
       this.prisma.ticketReply.create({
@@ -1381,6 +1560,7 @@ export class TicketsService {
 
     const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Nie znaleziono zgłoszenia.');
+    odmowaScalonego(ticket);
 
     const dataToUpdate: Record<string, unknown> = {
       status: czekaj === 'nie' ? 'IN_PROGRESS' : 'WAITING_CUSTOMER',
@@ -1543,6 +1723,16 @@ export class TicketsService {
 
 /** F2.5 — tag: małe litery, cyfry i myślnik (spacje → myślnik), 1–32 znaki; najwyżej 10 na zgłoszeniu. */
 export const TAGI_MAX = 10;
+/**
+ * F3.7 — do scalonego zgłoszenia nie da się już pisać (wątek przeszedł do zgłoszenia docelowego). Klient i obsługa
+ * dostają numer celu; mail od klienta trafia do celu sam (poczta-przychodzaca.service.ts).
+ */
+export function odmowaScalonego(t: { scalonoDoId: string | null }): void {
+  if (t.scalonoDoId) {
+    throw new BadRequestException(`To zgłoszenie połączyliśmy z #${t.scalonoDoId.slice(0, 8)} — napisz tam.`);
+  }
+}
+
 export function normalizujTagi(tagi: readonly string[]): string[] {
   const out: string[] = [];
   for (const surowy of tagi) {
