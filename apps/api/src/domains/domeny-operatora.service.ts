@@ -197,8 +197,10 @@ export class DomenyOperatoraService {
       usluga: konto ? { id: konto.subscriptionId, stanKonta: konto.status } : null,
       zamowienia: zamowienia.map(({ ownerHandle, ...z }) => ({
         ...z,
+        // Przegląd poprawek — ten sam warunek ceny co lista nieudanych (ponowienie obciąża kwotą z zamówienia).
         moznaPonowic:
           !!ownerHandle &&
+          z.priceAmount !== null &&
           (z.type === 'REGISTER' || z.type === 'TRANSFER') &&
           (z.status === 'FAILED' || z.status === 'PENDING_PAYMENT'),
       })),

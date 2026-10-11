@@ -204,6 +204,9 @@ describe('F2.7 — operacje obsługi na domenach (pieniądze)', () => {
       data: { domainName: 'bez-ceny.pl', type: 'REGISTER', status: 'FAILED', userId: k.id, years: 1, ownerHandle: 'H-ABONENT' },
     });
     expect((await domeny.zamowienia()).nieudane).toEqual([expect.objectContaining({ id: stare.id, moznaPonowic: false })]);
+    // Przegląd poprawek — karta domeny liczyła moznaPonowic bez warunku ceny: przycisk „Ponów”, który API zawsze odrzuca.
+    const d = await prisma().domain.create({ data: { name: 'bez-ceny.pl', userId: k.id } });
+    expect((await domeny.karta(d.id)).zamowienia).toEqual([expect.objectContaining({ id: stare.id, moznaPonowic: false })]);
     await expect(domeny.ponow(stare.id, { operatorUserId: op.id, operatorRole: 'STAFF', powod: 'Rejestr miał przerwę, ponawiam' })).rejects.toThrow('bez zapisanej ceny');
     expect(await saldo(k.id)).toBe(500);
     expect(wywolania).toEqual([]);

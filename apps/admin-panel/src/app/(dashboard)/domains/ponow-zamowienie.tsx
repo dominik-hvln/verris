@@ -24,7 +24,8 @@ export function PonowZamowienie(p: { orderId: string; domena: string; typ: strin
   const [pending, start] = useTransition();
 
   if (!p.moznaPonowic) {
-    return <span className="text-xs text-muted-foreground">Bez danych abonenta — klient musi zamówić ponownie</span>;
+    // Przegląd poprawek — API odmawia ponowienia także bez zapisanej ceny (obciąża kwotą z zamówienia klienta).
+    return <span className="text-xs text-muted-foreground">{p.kwota ? "Bez danych abonenta" : "Bez zapisanej ceny"} — klient musi zamówić ponownie</span>;
   }
   if (!otwarte) {
     return (

@@ -137,7 +137,9 @@ it("ponowienie zamówienia: bez uprawnienia wyszarzone; transfer z nowym kodem E
   await render(<PonowZamowienie orderId="o1" domena="a.pl" typ="TRANSFER" kwota="40.00" zablokowane="Wymaga DOMAINS_MANAGE" moznaPonowic />);
   expect(przycisk("[data-ponow]").disabled).toBe(true);
   await render(<PonowZamowienie orderId="o1" domena="a.pl" typ="REGISTER" kwota="40.00" zablokowane={null} moznaPonowic={false} />);
-  expect(k.textContent).toContain("klient musi zamówić ponownie");
+  expect(k.textContent).toContain("Bez danych abonenta — klient musi zamówić ponownie");
+  await render(<PonowZamowienie orderId="o1" domena="a.pl" typ="REGISTER" kwota={null} zablokowane={null} moznaPonowic={false} />);
+  expect(k.textContent).toContain("Bez zapisanej ceny — klient musi zamówić ponownie");
   ponow.mockResolvedValue({ ok: true, wynik: { id: "z2", status: "SUBMITTED" } });
   await render(<PonowZamowienie orderId="o2" domena="b.pl" typ="TRANSFER" kwota="40.00" zablokowane={null} moznaPonowic />);
   await klik(przycisk("[data-ponow]"));
