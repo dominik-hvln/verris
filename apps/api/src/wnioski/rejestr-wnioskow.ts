@@ -4,6 +4,7 @@ import { IsBoolean, IsEmail, IsIn, IsISO8601, IsNumber, IsOptional, IsPositive, 
 import type { StaffPermission } from '../staff-roles/staff-permissions.catalog.js';
 import { POWODY_ZAWIESZENIA_OPERATORA, type PowodZawieszeniaOperatora } from '../subscriptions/powody-zawieszenia.js';
 import { PLATNOSCI_DODATKU, SLUGI_DODATKOW, type PlatnoscDodatku } from '../addons/addon.service.js';
+import { USLUGI_WEZLA, uslugaWezla } from '@verris/contracts';
 
 /**
  * PB-48 (decyzja właściciela 08.10) — rejestr operacji, o które pracownik bez uprawnienia może złożyć wniosek.
@@ -31,6 +32,9 @@ import { PLATNOSCI_DODATKU, SLUGI_DODATKOW, type PlatnoscDodatku } from '../addo
  *  - ADDON_ADD — POST admin/subscriptions/:id/dodatki (AddonService.dodajPrzezOperatora; z portfela klienta albo gratis).
  * F3.7 (D2, 11.10) — scalenie zgłoszeń (nieodwracalne; TICKETS_MERGE = L3 bezpośrednio, L1/L2 przez wniosek):
  *  - TICKET_MERGE — POST tickets/admin/:id/scal (TicketsService.adminMerge).
+ * F3.4 (D2, 11.10) — restart DZIAŁAJĄCEJ usługi wspólnej węzła (WWW, poczta, bazy, DNS, FTP; przerwa dla wszystkich kont):
+ * NODE_SERVICES_RESTART_SHARED ma tylko administrator (ADMIN_ONLY), NOC składa wniosek z karty węzła:
+ *  - NODE_SERVICE_RESTART — POST admin/servers/:id/uslugi/restart-wspolnej (UslugiWezlaService.restartWspolnej).
  * Pominięte: kredyt SLA (sla.admin.controller ma tylko podgląd — nie ma operacji do zlecenia), korekta faktury
  * (payload to pełna lista pozycji po korekcie — formularz zostaje w panelu admina; typ łatwo dopisać później),
  * zwrot Paynow (pieniądze wychodzą do bramki — świadomie poza wnioskami do decyzji właściciela).
@@ -136,6 +140,15 @@ export class ScalenieZgloszenPayload {
   celId!: string;
 }
 
+/** F3.4 — restart działającej usługi wspólnej węzła; uzasadnienie wniosku jest powodem w dzienniku. */
+export class RestartUslugiWezlaPayload {
+  @IsUUID('all')
+  serverId!: string;
+
+  @IsIn(USLUGI_WEZLA.filter((u) => u.przerwa && u.restart).map((u) => u.klucz))
+  usluga!: string;
+}
+
 // ── zależności wykonawców (wstrzykiwane przez WnioskiService) ───────────────
 
 export interface ZaleznosciWnioskow {
@@ -176,6 +189,11 @@ export interface ZaleznosciWnioskow {
       zgloszenie?: string | null;
       klucz?: string | null;
     }): Promise<{ name: string; status: string; duplikat?: true }>;
+  };
+  /** F3.4 — UslugiWezlaService (servers/uslugi-wezla.admin.controller.ts). */
+  uslugiWezla: {
+    wezel(serverId: string): Promise<{ id: string; name: string; status: string }>;
+    restartWspolnej(serverId: string, op: { userId: string; role: string }, usluga: string, powod: string, wniosekId?: string): Promise<{ komunikat: string; taskId: string }>;
   };
   uzytkownicy: {
     patchCustomerOperational(
@@ -530,6 +548,25 @@ export const REJESTR_WNIOSKOW = {
       const powod = `${k.uzasadnienie?.trim() || 'Scalenie zgłoszeń'} (wniosek ${k.wniosekId.slice(0, 8)})`;
       const r = await z.zgloszenia.adminMerge(p.zrodloId, p.celId, k.decydujacy.userId, powod);
       return { komunikat: `Scalono — wątek w zgłoszeniu #${r.celId.slice(0, 8)}.`, celId: r.celId };
+    },
+  }),
+  NODE_SERVICE_RESTART: definicja<RestartUslugiWezlaPayload>({
+    etykieta: 'Restart usługi węzła',
+    uprawnienie: 'NODE_SERVICES_RESTART_SHARED',
+    // Bezpośrednio: POST admin/servers/:id/uslugi/restart-wspolnej — strażnik NODE_SERVICES + NODE_SERVICES_RESTART_SHARED.
+    uprawnieniaDodatkowe: ['NODE_SERVICES'],
+    doZlozenia: 'NODE_SERVICES',
+    dto: RestartUslugiWezlaPayload,
+    wymagaKlienta: false,
+    opis: (p) => `Restart: ${uslugaWezla(p.usluga)?.etykieta ?? p.usluga} na węźle ${p.serverId.slice(0, 8)} — przerwa dla wszystkich kont węzła`,
+    async sprawdzPrzyZlozeniu(p, _klientId, z) {
+      const w = await z.uslugiWezla.wezel(p.serverId);
+      if (w.status !== 'ACTIVE' && w.status !== 'MAINTENANCE') throw new BadRequestException('Węzeł nie jest aktywny.');
+    },
+    async wykonaj(p, k, z) {
+      const powod = `${k.uzasadnienie?.trim() || 'Restart usługi węzła'} (wniosek ${k.wniosekId.slice(0, 8)})`;
+      const r = await z.uslugiWezla.restartWspolnej(p.serverId, k.decydujacy, p.usluga, powod, k.wniosekId);
+      return { komunikat: r.komunikat, taskId: r.taskId };
     },
   }),
 } as const satisfies Record<string, DefinicjaWniosku<object>>;

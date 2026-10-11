@@ -10,6 +10,7 @@ import { SubscriptionsAdminController } from '../subscriptions/subscriptions.adm
 import { CyklZyciaUslugiAdminController } from '../subscriptions/cykl-zycia-uslugi.admin.controller.js';
 import { DodatkiOperatoraAdminController } from '../addons/dodatki-operatora.admin.controller.js';
 import { TicketsController } from '../tickets/tickets.controller.js';
+import { UslugiWezlaAdminController } from '../servers/uslugi-wezla.admin.controller.js';
 import { zWnioskiem } from '../common/audit/audit.service.js';
 import {
   REJESTR_WNIOSKOW,
@@ -37,6 +38,7 @@ describe('PB-48 — rejestr wniosków', () => {
       'SUBSCRIPTION_RENEWAL_DATE',
       'ADDON_ADD',
       'TICKET_MERGE',
+      'NODE_SERVICE_RESTART',
     ]);
     for (const t of TYPY_WNIOSKOW) {
       expect(STAFF_PERMISSION_KEYS).toContain(REJESTR_WNIOSKOW[t].uprawnienie);
@@ -60,6 +62,7 @@ describe('PB-48 — rejestr wniosków', () => {
       SUBSCRIPTION_RENEWAL_DATE: CyklZyciaUslugiAdminController.prototype.zmienDateOdnowienia,
       ADDON_ADD: DodatkiOperatoraAdminController.prototype.dodaj,
       TICKET_MERGE: TicketsController.prototype.adminMerge,
+      NODE_SERVICE_RESTART: UslugiWezlaAdminController.prototype.restartWspolnej,
     };
     for (const t of TYPY_WNIOSKOW) {
       const straznik = (Reflect.getMetadata(STAFF_PERMISSIONS_KEY, bezposrednio[t]) as string[] | undefined) ?? [];
@@ -137,6 +140,10 @@ describe('PB-48 — rejestr wniosków', () => {
       anulowanie: { anuluj: async (a) => (wywolania.push(['anuluj', a]), { id: 'f1', number: 'VDR/1', status: 'VOID' }) },
       cyklZycia: { zmienDateOdnowienia: async (a) => (wywolania.push(['data', a]), { bezZmian: false, komunikat: 'ok' }) },
       dodatki: { dodajPrzezOperatora: async (a) => (wywolania.push(['dodatek', a]), { name: 'Dedykowane IP', status: 'QUEUED' }) },
+      uslugiWezla: {
+        wezel: async (id) => ({ id, name: 'w1', status: o.status ?? 'ACTIVE' }),
+        restartWspolnej: async (...a: unknown[]) => (wywolania.push(['restart', ...a]), { komunikat: 'Zlecono restart: Poczta SMTP (Exim).', taskId: 't1' }),
+      },
     };
     return { z, wywolania };
   };
@@ -291,6 +298,34 @@ describe('PB-48 — rejestr wniosków', () => {
     expect(wywolania[0]).toEqual(['scal', A, B, 'kier', 'duplikat (wniosek w1)']);
   });
 
+  it('F3.4 restart usługi wspólnej węzła: decyduje tylko administrator (uprawnienie ADMIN_ONLY), składa NOC; bez klienta', async () => {
+    const d = REJESTR_WNIOSKOW.NODE_SERVICE_RESTART;
+    expect(wymaganeUprawnienia(d)).toEqual(['NODE_SERVICES_RESTART_SHARED', 'NODE_SERVICES']);
+    expect(d.doZlozenia).toBe('NODE_SERVICES');
+    expect(d.wymagaKlienta).toBe(false);
+    // L4 + NOC (komplet ról systemowych) nie zaakceptuje — uprawnienia operacji nie ma żadna rola systemowa.
+    expect(typyDoDecyzji('STAFF', ['REQUESTS_APPROVE', 'NODE_SERVICES', 'NODES_MANAGE', 'BILLING_MANAGE'])).not.toContain('NODE_SERVICE_RESTART');
+    expect(typyDoDecyzji('ADMIN', [])).toContain('NODE_SERVICE_RESTART');
+    // Payload: tylko usługi wspólne (pomocnicze NOC restartuje sam, podglądowe nie restartują się wcale).
+    const { plainToInstance } = await import('class-transformer');
+    const { validateSync } = await import('class-validator');
+    const S = '33333333-3333-4333-8333-333333333333';
+    const bledy = (p: object) => validateSync(plainToInstance(d.dto, p) as object).map((b) => b.property);
+    expect(bledy({ serverId: S, usluga: 'exim' })).toEqual([]);
+    for (const u of ['fail2ban', 'sshd', 'agent', 'exim; reboot']) expect(bledy({ serverId: S, usluga: u })).toEqual(['usluga']);
+    expect(bledy({ serverId: 'w1', usluga: 'exim' })).toEqual(['serverId']);
+    await expect(d.sprawdzPrzyZlozeniu!({ serverId: S, usluga: 'exim' }, null, zal().z)).resolves.toBeUndefined();
+    await expect(d.sprawdzPrzyZlozeniu!({ serverId: S, usluga: 'exim' }, null, zal({ status: 'OFFLINE' }).z)).rejects.toThrow(/nie jest aktywny/);
+    expect(d.opis({ serverId: S, usluga: 'mariadb' })).toBe('Restart: Bazy danych (MariaDB) na węźle 33333333 — przerwa dla wszystkich kont węzła');
+    const { z, wywolania } = zal();
+    const adm = { ...k, klientId: null, decydujacy: { userId: 'adm', role: 'ADMIN' } };
+    expect(await d.wykonaj({ serverId: S, usluga: 'exim' }, { ...adm, uzasadnienie: 'kolejka stoi od godziny' }, z)).toEqual({
+      komunikat: 'Zlecono restart: Poczta SMTP (Exim).',
+      taskId: 't1',
+    });
+    expect(wywolania[0]).toEqual(['restart', S, { userId: 'adm', role: 'ADMIN' }, 'exim', 'kolejka stoi od godziny (wniosek w1)', 'w1']);
+  });
+
   it('komunikat błędu wykonawcy: wyjątek HTTP po polsku wprost, inny — z przedrostkiem, bez stosu', () => {
     expect(komunikatBledu(new ForbiddenException('Brak.'))).toBe('Brak.');
     expect(komunikatBledu(new Error('timeout'))).toBe('Operacja nie powiodła się: timeout');
@@ -321,6 +356,8 @@ describe('PB-48 — 403 z kodem WYMAGA_WNIOSKU przy operacjach z rejestru', () =
     [DodatkiOperatoraAdminController, 'dodaj', 'ADDON_ADD', ['SUBSCRIPTIONS_MANAGE'], ['SUBSCRIPTIONS_MANAGE', 'BILLING_MANAGE']],
     // F3.7 — L1/L2 (TICKETS_MANAGE) dostają „Wyślij wniosek”, L3 (TICKETS_MERGE) scala sam.
     [TicketsController, 'adminMerge', 'TICKET_MERGE', ['TICKETS_MANAGE'], ['TICKETS_MANAGE', 'TICKETS_MERGE']],
+    // F3.4 — NOC (NODE_SERVICES) dostaje „Wyślij wniosek”, restart działającej usługi wspólnej robi administrator.
+    [UslugiWezlaAdminController, 'restartWspolnej', 'NODE_SERVICE_RESTART', ['NODE_SERVICES'], ['NODE_SERVICES', 'NODE_SERVICES_RESTART_SHARED']],
   ])('%o.%s → operacja %s', async (klasa, metoda, typ, bez, z) => {
     const handler = (klasa.prototype as unknown as Record<string, object>)[metoda];
     expect(Reflect.getMetadata(WNIOSEK_MOZLIWY_KEY, handler)).toBe(typ);

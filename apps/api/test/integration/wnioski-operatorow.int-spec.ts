@@ -27,6 +27,7 @@ import { CyklZyciaUslugiService } from '../../src/subscriptions/cykl-zycia-uslug
 import { AddonService } from '../../src/addons/addon.service.js';
 import { TicketsService } from '../../src/tickets/tickets.service.js';
 import { OpiekaZgloszenService } from '../../src/tickets/opieka-zgloszen.service.js';
+import { UslugiWezlaAdminController, UslugiWezlaService } from '../../src/servers/uslugi-wezla.admin.controller.js';
 import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } from './setup.js';
 
 /**
@@ -47,10 +48,12 @@ async function wczytajDziennik() {
 
 @Module({
   imports: [PassportModule],
-  controllers: [WnioskiAdminController],
+  controllers: [WnioskiAdminController, UslugiWezlaAdminController],
   providers: [
     JwtStrategy,
     WnioskiService,
+    // F3.4 — prawdziwe zlecenie restartu usługi węzła (zadanie NODE_SERVICES w Postgresie, dziennik).
+    UslugiWezlaService,
     UsersAdminService,
     AnulowanieService,
     NotificationsService,
@@ -210,6 +213,45 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     expect(await prisma().notification.count({ where: { userId: l1.id, title: { startsWith: 'Wniosek zaakceptowany' } } })).toBe(1);
     // „Moje” wnioskującego pokazują wynik.
     expect((await zadanie('GET', '/admin/wnioski/moje', l1)).body[0]).toMatchObject({ id, status: 'APPROVED', wynik: { walletTxId: expect.any(String) } });
+  });
+
+  it('F3.4: NOC przy działającej usłudze wspólnej dostaje WYMAGA_WNIOSKU → wniosek bez klienta → L4 nie zdecyduje, ADMIN tak → zadanie restartu bez „tylko gdy stoi”', async () => {
+    const noc = await operator(['NODES_VIEW', 'NODE_SERVICES']);
+    const kier = await operator(['REQUESTS_APPROVE', 'NODE_SERVICES', 'NODES_MANAGE', 'BILLING_MANAGE']);
+    const admin = await operator([], 'ADMIN');
+    const wezel = await utworzWezel();
+
+    const bezposrednio = await zadanie('POST', `/admin/servers/${wezel.id}/uslugi/restart-wspolnej`, noc, { usluga: 'exim', powod: 'kolejka stoi od godziny', potwierdzenie: wezel.name });
+    expect(bezposrednio.status).toBe(403);
+    expect(bezposrednio.body).toMatchObject({ code: 'WYMAGA_WNIOSKU', operacja: 'NODE_SERVICE_RESTART' });
+    // Usługa pomocnicza nie idzie wnioskiem (DTO przyjmuje tylko usługi wspólne).
+    expect((await zadanie('POST', '/admin/wnioski', noc, { typ: 'NODE_SERVICE_RESTART', payload: { serverId: wezel.id, usluga: 'fail2ban' }, uzasadnienie: 'fail2ban wisi' })).status).toBe(400);
+
+    const zl = await zadanie('POST', '/admin/wnioski', noc, { typ: 'NODE_SERVICE_RESTART', payload: { serverId: wezel.id, usluga: 'exim' }, uzasadnienie: 'Kolejka poczty stoi od godziny.' });
+    expect(zl.status).toBe(201);
+    expect(zl.body).toMatchObject({ status: 'PENDING', klient: null, opis: `Restart: Poczta SMTP (Exim) na węźle ${wezel.id.slice(0, 8)} — przerwa dla wszystkich kont węzła` });
+    const id = zl.body.id as string;
+    // Powiadomienie tylko do administratora (żadna rola systemowa nie ma NODE_SERVICES_RESTART_SHARED).
+    expect((await prisma().notification.findMany({ where: { link: '/wnioski' } })).map((n) => n.userId)).toEqual([admin.id]);
+    expect((await zadanie('POST', `/admin/wnioski/${id}/akceptuj`, kier, {})).status).toBe(403);
+    expect(await prisma().nodeTask.count({ where: { serverId: wezel.id } })).toBe(0);
+
+    const ok = await zadanie('POST', `/admin/wnioski/${id}/akceptuj`, admin, {});
+    expect(ok.status).toBe(200);
+    expect(ok.body).toMatchObject({ status: 'APPROVED', wynik: { komunikat: 'Zlecono restart: Poczta SMTP (Exim). Wynik na karcie węzła (Usługi i logi).' } });
+    const zadania = await prisma().nodeTask.findMany({ where: { serverId: wezel.id } });
+    expect(zadania.map((z) => [z.kind, z.payload, z.requestedById])).toEqual([['NODE_SERVICES', { mode: 'restart', name: 'exim' }, admin.id]]);
+    await wczytajDziennik();
+    expect(dziennik.find((d) => d.action === 'NODE_SERVICE_RESTART_QUEUED')).toMatchObject({
+      actorUserId: admin.id,
+      details: { serverId: wezel.id, usluga: 'exim', tylkoGdyStoi: false, powod: `Kolejka poczty stoi od godziny. (wniosek ${id.slice(0, 8)})`, wniosekId: id, wnioskujacyUserId: noc.id },
+    });
+
+    // NOC uruchamia sam usługę wspólną, która stoi — zadanie z „tylko gdy stoi” (skrypt odmówi, jeśli działa).
+    expect((await zadanie('POST', `/admin/servers/${wezel.id}/uslugi/restart`, noc, { usluga: 'dovecot', powod: 'dovecot padł po aktualizacji' })).status).toBe(409);
+    await prisma().nodeTask.updateMany({ where: { serverId: wezel.id }, data: { status: 'COMPLETED', completedAt: new Date() } });
+    expect((await zadanie('POST', `/admin/servers/${wezel.id}/uslugi/restart`, noc, { usluga: 'dovecot', powod: 'dovecot padł po aktualizacji' })).status).toBe(200);
+    expect((await prisma().nodeTask.findFirstOrThrow({ where: { serverId: wezel.id, status: 'QUEUED' } })).payload).toEqual({ mode: 'restart', name: 'dovecot', onlyDown: '1' });
   });
 
   it('odrzucenie bez powodu → 400; z powodem → REJECTED, dziennik i powiadomienie; operacja nie wykonana', async () => {

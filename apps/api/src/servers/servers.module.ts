@@ -33,6 +33,7 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
 
 import { KolejkaPocztyWezlaAdminController, KolejkaPocztyWezlaService } from './kolejka-poczty-wezla.admin.controller.js';
 import { BlokadyIpWezlaAdminController, BlokadyIpWezlaService } from './blokady-ip-wezla.admin.controller.js';
+import { UslugiWezlaAdminController, UslugiWezlaService } from './uslugi-wezla.admin.controller.js';
 
 @Module({
   imports: [PlatformSettingsModule, NotificationsModule, AiModule],
@@ -41,6 +42,7 @@ import { BlokadyIpWezlaAdminController, BlokadyIpWezlaService } from './blokady-
     KolejkaPocztyWezlaAdminController,
     PocztaWezlaAdminController,
     BlokadyIpWezlaAdminController,
+    UslugiWezlaAdminController,
     StosWezlaAdminController,
     OnboardAdminController,
     ServersAdminController,
@@ -55,6 +57,7 @@ import { BlokadyIpWezlaAdminController, BlokadyIpWezlaService } from './blokady-
     KolejkaPocztyWezlaService,
     PocztaWezlaService,
     BlokadyIpWezlaService,
+    UslugiWezlaService,
     StosWezlaService,
     PrzegladWezlaService,
     WykresyFlotyService,
@@ -76,6 +79,7 @@ import { BlokadyIpWezlaAdminController, BlokadyIpWezlaService } from './blokady-
   exports: [
     ServersService,
     BlokadyIpWezlaService,
+    UslugiWezlaService,
     DirectAdminService,
     ServerIdentityGuard,
     NodeTasksService,

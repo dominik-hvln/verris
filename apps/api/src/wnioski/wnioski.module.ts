@@ -5,13 +5,14 @@ import { BillingModule } from '../billing/billing.module.js';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module.js';
 import { AddonModule } from '../addons/addon.module.js';
 import { TicketsModule } from '../tickets/tickets.module.js';
+import { ServersModule } from '../servers/servers.module.js';
 import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
 import { WnioskiService } from './wnioski.service.js';
 import { WnioskiAdminController } from './wnioski.admin.controller.js';
 
 /** PB-48 — wnioski pracowników o operację wymagającą wyższego uprawnienia. */
 @Module({
-  imports: [NotificationsModule, UsersModule, BillingModule, SubscriptionsModule, AddonModule, TicketsModule],
+  imports: [NotificationsModule, UsersModule, BillingModule, SubscriptionsModule, AddonModule, TicketsModule, ServersModule],
   controllers: [WnioskiAdminController],
   providers: [WnioskiService, StaffPermissionsGuard],
 })

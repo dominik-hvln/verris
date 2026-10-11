@@ -200,6 +200,10 @@ elif [ "$TASK_KIND" = "WAF_HITS" ]; then
   RUN_BIN="/usr/local/bin/verris-waf-hits.sh"
   fetch_task_script "/agent/tasks/waf-hits/script" "$RUN_BIN"
   payload_env "WH" "{'domains':'DOMAINS'}"
+elif [ "$TASK_KIND" = "NODE_SERVICES" ]; then
+  RUN_BIN="/usr/local/bin/verris-services.sh"
+  fetch_task_script "/agent/tasks/uslugi-wezla/script" "$RUN_BIN"
+  payload_env "SVC" "{'mode':'MODE','name':'NAME','onlyDown':'ONLY_DOWN','lines':'LINES','filter':'FILTER','mask':'MASK'}"
 elif [ "$TASK_KIND" = "GIT_DEPLOY" ]; then
   RUN_BIN="/usr/local/bin/verris-git-deploy.sh"
   fetch_task_script "/agent/tasks/git-deploy/script" "$RUN_BIN"

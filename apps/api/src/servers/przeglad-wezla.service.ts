@@ -38,6 +38,7 @@ export const ZADANIA: Record<string, string> = {
   MAIL_QUEUE: 'Kolejka poczty',
   IP_BLOCKS: 'Blokady IP',
   WAF_HITS: 'Trafienia WAF',
+  NODE_SERVICES: 'Usługi i logi',
 };
 
 type Stan = 'ok' | 'warn' | 'crit' | 'brak';

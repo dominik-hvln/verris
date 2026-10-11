@@ -136,7 +136,7 @@ export const ROLE_FUNKCYJNE: readonly RolaSystemowa[] = [
   {
     name: 'Inżynier infrastruktury (NOC/DevOps)',
     description:
-      'Utrzymanie floty: węzły, kolejka poczty i blokada wysyłki kont, blokady IP i biała lista, provisioning, migracje i usługi, podgląd konta klienta przy awariach. Nie widzi rozliczeń i nie odpowiada klientom w zgłoszeniach.',
+      'Utrzymanie floty: węzły, kolejka poczty i blokada wysyłki kont, blokady IP i biała lista, usługi i logi węzła (restart działającej usługi wspólnej przez wniosek), provisioning, migracje i usługi, podgląd konta klienta przy awariach. Nie widzi rozliczeń i nie odpowiada klientom w zgłoszeniach.',
     permissions: [
       'DASHBOARD_VIEW',
       'NODES_VIEW',
@@ -152,6 +152,8 @@ export const ROLE_FUNKCYJNE: readonly RolaSystemowa[] = [
       // F3.2 (D5) — blokady IP węzła: dowolne IP i biała lista (ignoreip) tylko NOC.
       'IP_BLOCKS_NODE',
       'IP_UNBLOCK',
+      // F3.4 — usługi i logi węzła (restart działającej usługi wspólnej: wniosek do administratora).
+      'NODE_SERVICES',
       'TICKETS_VIEW',
     ],
   },

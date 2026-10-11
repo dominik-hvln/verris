@@ -15,8 +15,8 @@ describe('PB-47 — katalog uprawnień i role systemowe', () => {
     for (const p of STAFF_PERMISSIONS) expect(p.label.length).toBeGreaterThan(5);
   });
 
-  it('ADMIN_ONLY to SETTINGS_MANAGE i STAFF_MANAGE — oba w katalogu', () => {
-    expect([...ADMIN_ONLY].sort()).toEqual(['SETTINGS_MANAGE', 'STAFF_MANAGE']);
+  it('ADMIN_ONLY to SETTINGS_MANAGE, STAFF_MANAGE i restart działającej usługi wspólnej węzła (F3.4) — wszystkie w katalogu', () => {
+    expect([...ADMIN_ONLY].sort()).toEqual(['NODE_SERVICES_RESTART_SHARED', 'SETTINGS_MANAGE', 'STAFF_MANAGE']);
     for (const k of ADMIN_ONLY) expect(isValidStaffPermission(k)).toBe(true);
   });
 
@@ -106,6 +106,12 @@ describe('PB-47 — katalog uprawnień i role systemowe', () => {
       expect({ n, p: rola(n).includes('IP_UNBLOCK') }).toEqual({ n, p: true });
     }
     expect(ROLE_SYSTEMOWE.filter((r) => r.permissions.includes('IP_BLOCKS_NODE' as never)).map((r) => r.name)).toEqual(['Inżynier infrastruktury (NOC/DevOps)']);
+  });
+
+  it('F3.4: usługi i logi węzła (NODE_SERVICES) tylko NOC; restart działającej usługi wspólnej — żadna rola systemowa', () => {
+    const z = (k: string) => ROLE_SYSTEMOWE.filter((r) => r.permissions.includes(k as never)).map((r) => r.name);
+    expect(z('NODE_SERVICES')).toEqual(['Inżynier infrastruktury (NOC/DevOps)']);
+    expect(z('NODE_SERVICES_RESTART_SHARED')).toEqual([]);
   });
 
   it('F3.7 (D2): scalanie zgłoszeń (TICKETS_MERGE) od L3, raporty obsługi (TICKETS_REPORTS) tylko L4', () => {

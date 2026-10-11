@@ -528,6 +528,11 @@ export class NodeTasksService {
     if (task.status !== NodeTaskStatus.FAILED) {
       throw new BadRequestException('Ponowić można tylko zadanie ze statusem FAILED.');
     }
+    // F3.4 — restart usługi węzła ma powód, potwierdzenie i (dla usług wspólnych) decyzję administratora albo wniosek;
+    // ponowienie z listy zadań ominęłoby to wszystko. Odczyt logu z ponowienia nie miałby wpisu w dzienniku.
+    if (task.kind === NodeTaskKind.NODE_SERVICES) {
+      throw new BadRequestException('Usług i logów węzła nie ponawia się z listy zadań — zleć to jeszcze raz z zakładki „Usługi i logi” węzła.');
+    }
     await this.prisma.nodeTask.update({
       where: { id: taskId },
       data: {

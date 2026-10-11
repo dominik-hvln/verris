@@ -96,6 +96,10 @@ export const SupportActions = {
   NODE_RBL_CHECKED: 'NODE_RBL_CHECKED',
   /** F3.1 — węzeł potwierdził limit wysyłki konta (po zmianie albo odczycie); details.przed, po (null = domyślny). */
   MAIL_SEND_LIMIT_CONFIRMED: 'MAIL_SEND_LIMIT_CONFIRMED',
+  /** F3.4 — usługi i logi węzła: sprawdzenie stanu, zlecenie restartu (z powodem), odczyt logu z białej listy. */
+  NODE_SERVICES_CHECKED: 'NODE_SERVICES_CHECKED',
+  NODE_SERVICE_RESTART_QUEUED: 'NODE_SERVICE_RESTART_QUEUED',
+  NODE_LOG_VIEWED: 'NODE_LOG_VIEWED',
 } as const;
 
 // ---------------------------------------------------------------------------

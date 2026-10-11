@@ -732,6 +732,7 @@ enum NodeTaskKind {
   MAIL_QUEUE        // F3.1 — kolejka exima: nagłówki (konta albo węzła), usunięcie wiadomości konta, wypchnięcie
   IP_BLOCKS         // F3.2 — blokady IP fail2ban węzła: lista, odblokowanie, biała lista (node-ip-blocks.sh)
   WAF_HITS          // F3.2 — ostatnie trafienia reguł WAF dla domen konta, tylko odczyt (node-waf-hits.sh)
+  NODE_SERVICES     // F3.4 — usługi węzła z białej listy: stan, restart, ogon logu (node-services.sh)
 }
 
 enum WafMode {

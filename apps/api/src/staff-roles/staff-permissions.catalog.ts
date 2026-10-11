@@ -49,6 +49,11 @@ export const STAFF_PERMISSIONS = [
   // F3.2 (D5, 10.10) — blokady IP fail2ban: L2 odblokowuje tylko IP klienta ze zgłoszenia, NOC — dowolne IP i biała lista.
   { key: 'IP_UNBLOCK', area: 'Wsparcie', label: 'Odblokowanie adresu IP klienta zablokowanego na serwerze (IP z logowań albo zgłoszenia klienta, z powodem, w dzienniku)' },
   { key: 'IP_BLOCKS_NODE', area: 'Infrastruktura', label: 'Blokady IP całego węzła: lista, odblokowanie dowolnego adresu i biała lista (z powodem, w dzienniku)' },
+  // F3.4 — usługi i logi węzła: stan, restart usług pomocniczych i uruchomienie stojącej usługi wspólnej, ogon logów.
+  { key: 'NODE_SERVICES', area: 'Infrastruktura', label: 'Usługi i logi węzła: stan usług, restart usług pomocniczych, uruchomienie usługi, która stoi, ogon logów (adresy w logach poczty zamaskowane)' },
+  // Restart DZIAŁAJĄCEJ usługi wspólnej (WWW, poczta, bazy, DNS, FTP) przerywa pracę wszystkich kont węzła — tylko administrator
+  // (ADMIN_ONLY; zespół składa wniosek NODE_SERVICE_RESTART).
+  { key: 'NODE_SERVICES_RESTART_SHARED', area: 'Infrastruktura', label: 'Restart działającej usługi wspólnej węzła (WWW, poczta, bazy, DNS, FTP) — przerwa dla wszystkich kont' },
 ] as const;
 
 export type StaffPermission = (typeof STAFF_PERMISSIONS)[number]['key'];
@@ -63,4 +68,4 @@ export function isValidStaffPermission(key: string): key is StaffPermission {
  * PB-47 — uprawnienia tylko dla administratora: nie trafiają do żadnej roli systemowej (test spójności
  * w role-systemowe.spec.ts). Administrator może je świadomie nadać roli własnej.
  */
-export const ADMIN_ONLY: readonly StaffPermission[] = ['SETTINGS_MANAGE', 'STAFF_MANAGE'];
+export const ADMIN_ONLY: readonly StaffPermission[] = ['SETTINGS_MANAGE', 'STAFF_MANAGE', 'NODE_SERVICES_RESTART_SHARED'];

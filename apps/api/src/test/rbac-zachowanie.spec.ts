@@ -767,6 +767,41 @@ describe('F3.2 — bezpieczeństwo węzła', () => {
   });
 });
 
+/**
+ * F3.4 — usługi i logi węzła: NOC (NODE_SERVICES) — stan, logi, restart usług pomocniczych i uruchomienie stojącej
+ * usługi wspólnej; restart działającej usługi wspólnej — tylko ADMIN (NODE_SERVICES_RESTART_SHARED jest ADMIN_ONLY),
+ * NOC dostaje WYMAGA_WNIOSKU. L1–L4, abuse, audytor — nic.
+ */
+describe('F3.4 — usługi i logi węzła', () => {
+  const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
+  const trasy = TRASY.filter((t) => t.kontroler === 'UslugiWezlaAdminController');
+  const NOC = rola('Inżynier infrastruktury (NOC/DevOps)');
+
+  it('trasy pod admin/servers/:id/uslugi', () => {
+    expect(trasy.map((t) => t.metoda).sort()).toEqual(['log', 'restart', 'restartWspolnej', 'sprawdz', 'stan']);
+    for (const t of trasy) expect(t.sciezka.startsWith('admin/servers/:id/uslugi')).toBe(true);
+  });
+
+  it('NOC: stan, sprawdzenie, logi, restart — tak; restart działającej usługi wspólnej — nie (wniosek); ADMIN — wszystko', async () => {
+    for (const t of trasy) {
+      expect({ m: t.metoda, ok: await wpuszcza(t, OPERATOR, NOC) }).toEqual({ m: t.metoda, ok: t.metoda !== 'restartWspolnej' });
+      expect(await wpuszcza(t, ADMIN)).toBe(true);
+      expect(await wpuszcza(t, KLIENT, [...STAFF_PERMISSION_KEYS])).toBe(false);
+    }
+  });
+
+  it('żadna rola systemowa (ani wszystkie naraz) nie restartuje działającej usługi wspólnej', async () => {
+    const t = trasy.find((x) => x.metoda === 'restartWspolnej')!;
+    expect(await wpuszcza(t, OPERATOR, [...new Set(ROLE_SYSTEMOWE.flatMap((r) => r.permissions))])).toBe(false);
+  });
+
+  it('L1–L4, abuse, audytor, Finanse — żadnej trasy', async () => {
+    for (const r of ['L1 Konsultant', 'L2 Specjalista techniczny', 'L3 Starszy specjalista', 'L4 Kierownik zmiany', 'Nadużycia i bezpieczeństwo', 'Audytor (tylko podgląd)', 'Finanse i księgowość']) {
+      for (const t of trasy) expect({ r, m: t.metoda, ok: await wpuszcza(t, OPERATOR, rola(r)) }).toEqual({ r, m: t.metoda, ok: false });
+    }
+  });
+});
+
 /** F3.3 — kopie floty: admin i NOC (NODES_VIEW, jak lista węzłów); L1 i Marketing — nie. */
 describe('F3.3 — kopie floty', () => {
   const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];

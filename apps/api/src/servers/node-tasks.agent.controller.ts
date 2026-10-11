@@ -39,6 +39,7 @@ import { loadMailLogScript } from './mail-log.script.js';
 import { loadMailQueueScript } from './mail-queue.script.js';
 import { loadIpBlocksScript } from './ip-blocks.script.js';
 import { loadWafHitsScript } from './waf-hits.script.js';
+import { loadServicesScript } from './services.script.js';
 import { loadGitDeployScript } from './git-deploy.script.js';
 import { loadSiteCloneScript } from './site-clone.script.js';
 import { loadHtaccessScript } from './htaccess.script.js';
@@ -254,6 +255,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   wafHitsScript() {
     return loadWafHitsScript();
+  }
+
+  /** F3.4 — usługi i logi węzła z białej listy: stan, restart, ogon logu (run with SVC_* env). */
+  @Get('uslugi-wezla/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  servicesScript() {
+    return loadServicesScript();
   }
 
   /** C-25/C-26 — repozytorium Git strony (run with GD_* env). */

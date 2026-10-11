@@ -21,6 +21,7 @@ import { ZawieszenieOperatoraService } from '../subscriptions/zawieszenie-operat
 import { CyklZyciaUslugiService } from '../subscriptions/cykl-zycia-uslugi.service.js';
 import { TicketsService } from '../tickets/tickets.service.js';
 import { AddonService } from '../addons/addon.service.js';
+import { UslugiWezlaService } from '../servers/uslugi-wezla.admin.controller.js';
 import { roleZWiersza, sumaUprawnien, uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
 import {
   definicjaWniosku,
@@ -117,6 +118,7 @@ export class WnioskiService {
     private readonly cyklZyciaSvc: CyklZyciaUslugiService,
     private readonly dodatkiSvc: AddonService,
     private readonly zgloszeniaSvc: TicketsService,
+    private readonly uslugiWezlaSvc: UslugiWezlaService,
   ) {}
 
   private get zaleznosci(): ZaleznosciWnioskow {
@@ -129,6 +131,7 @@ export class WnioskiService {
       cyklZycia: this.cyklZyciaSvc,
       dodatki: this.dodatkiSvc,
       zgloszenia: this.zgloszeniaSvc,
+      uslugiWezla: this.uslugiWezlaSvc,
     };
   }
 

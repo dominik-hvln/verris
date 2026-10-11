@@ -22,3 +22,4 @@ export * from './kopie.ts';
 export * from './komunikaty-hostingu.ts';
 export * from './runbooki.ts';
 export * from './pomoc-admina.ts';
+export * from './uslugi-wezla.ts';
