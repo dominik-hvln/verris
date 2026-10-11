@@ -369,15 +369,23 @@ export class PocztaPrzychodzacaService {
    * Nowe zgłoszenie dla wskazanego klienta z treści maila (nadawca spoza konta, np. drugi adres klienta). Pliki zostają
    * w kolejce (za „Pokaż”) — do zgłoszenia trafia notatka wewnętrzna z informacją o nich, klient ich nie widzi.
    */
-  async przypisz(id: string, actorUserId: string, dto: { userId?: string; zgloszenieId?: string }) {
+  async przypisz(id: string, actorUserId: string, dto: { userId?: string; email?: string; zgloszenieId?: string }) {
     const w = await this.wKolejce(id);
-    if (!dto.userId === !dto.zgloszenieId) throw new BadRequestException('Wskaż klienta albo zgłoszenie.');
+    if ([dto.userId, dto.email, dto.zgloszenieId].filter(Boolean).length !== 1) throw new BadRequestException('Wskaż klienta albo zgłoszenie.');
     const pliki = listaZalacznikow(w.zalaczniki).filter((z) => z.klucz);
     const opis = `Mail od ${w.nadawcaNazwa ? `${w.nadawcaNazwa} ` : ''}<${w.nadawca}> (${w.otrzymano.toISOString().slice(0, 16).replace('T', ' ')} UTC)`;
     const notatkaPlikow = pliki.length ? ` Załączniki (${pliki.length}): ${pliki.map((p) => p.nazwa).join(', ')} — w „Poczta bez klienta”, za „Pokaż”.` : '';
     let ticketId: string;
-    if (dto.userId) {
-      const k = await this.prisma.user.findFirst({ where: { id: dto.userId, role: 'USER', anonymizedAt: null }, select: { id: true } });
+    if (dto.userId || dto.email) {
+      const k = await this.prisma.user.findFirst({
+        where: {
+          ...(dto.userId ? { id: dto.userId } : { email: { equals: dto.email!.trim(), mode: 'insensitive' as const } }),
+          role: 'USER',
+          anonymizedAt: null,
+          customerOwnerId: null,
+        },
+        select: { id: true },
+      });
       if (!k) throw new NotFoundException('Nie znaleziono konta klienta.');
       // Zajęcie wpisu przed utworzeniem zgłoszenia — dwa kliknięcia nie założą dwóch zgłoszeń.
       await this.zajmij(id, w.wynik, actorUserId);
@@ -391,8 +399,10 @@ export class PocztaPrzychodzacaService {
       }
       await this.tickets.adminAddNote(ticketId, actorUserId, `${opis} — zgłoszenie założone z poczty bez klienta.${notatkaPlikow}`, { zrodlo: 'poczta' });
     } else {
-      const t = await this.prisma.ticket.findUnique({ where: { id: dto.zgloszenieId! }, select: { id: true } });
-      if (!t) throw new NotFoundException('Nie znaleziono zgłoszenia.');
+      const nr = dto.zgloszenieId!.toLowerCase();
+      const pasujace = await this.prisma.ticket.findMany({ where: nr.length === 8 ? { id: { startsWith: nr } } : { id: nr }, select: { id: true }, take: 2 });
+      if (pasujace.length !== 1) throw new NotFoundException(pasujace.length ? 'Kilka zgłoszeń pasuje do numeru — podaj pełny identyfikator.' : 'Nie znaleziono zgłoszenia.');
+      const t = pasujace[0];
       await this.zajmij(id, w.wynik, actorUserId);
       ticketId = t.id;
       await this.tickets.adminAddNote(ticketId, actorUserId, `${opis}:\n\n${(w.tresc ?? '').slice(0, 20_000)}${notatkaPlikow}`, { zrodlo: 'poczta' });

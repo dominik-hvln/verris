@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Param, ParseIntPipe, ParseUUIDPipe, Post, Query, StreamableFile, UseGuards } from '@nestjs/common';
 import { Role } from '@verris/database';
-import { IsBoolean, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength } from 'class-validator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../../common/guards/roles.guard.js';
 import { StaffPermissionsGuard } from '../../common/guards/staff-permissions.guard.js';
@@ -17,7 +17,10 @@ class ListaPocztyQuery {
 
 class PrzypiszPocztaDto {
   @IsOptional() @IsUUID() userId?: string;
-  @IsOptional() @IsUUID() zgloszenieId?: string;
+  /** Adres konta klienta — zamiast userId (panel nie musi szukać klienta osobno). */
+  @IsOptional() @IsEmail() @MaxLength(320) email?: string;
+  /** Pełne id zgłoszenia albo pierwsze 8 znaków (#xxxxxxxx). */
+  @IsOptional() @Matches(/^[0-9a-f]{8}(-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?$/i) zgloszenieId?: string;
 }
 
 class OdrzucPocztaDto {

@@ -103,10 +103,14 @@ describe("Menu admina — żadna strona nie jest ukryta", () => {
 
   it("operator widzi tylko strony ze swoimi uprawnieniami; sekcja z jedną stroną to zwykły link", async () => {
     sciezka = "/tickets";
-    await render(["TICKETS_VIEW", "NODES_VIEW"], false);
+    await render(["TICKETS_VIEW", "NODES_VIEW", "CUSTOMERS_VIEW"], false);
     expect(menu().querySelector('a[href="/tickets"]')).not.toBeNull();
     expect(menu().querySelector('a[href="/settings/canned-responses"]')).toBeNull();
-    expect(sekcja("Zgłoszenia")).toBeNull();
+    // F3.7 — z TICKETS_VIEW dwie strony zgłoszeń (Zgłoszenia, Poczta bez klienta) → sekcja; Klienci — jedna → link.
+    expect(menu().querySelector('a[href="/tickets/poczta"]')).not.toBeNull();
+    expect(sekcja("Zgłoszenia")).not.toBeNull();
+    expect(menu().querySelector('a[href="/customers"]')).not.toBeNull();
+    expect(sekcja("Klienci")).toBeNull();
     expect(menu().querySelector('a[href="/plans"]')).toBeNull();
   });
 

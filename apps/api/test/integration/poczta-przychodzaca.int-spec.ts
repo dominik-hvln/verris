@@ -194,6 +194,26 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     expect(await prisma().ticket.count()).toBe(1);
   });
 
+  it('przypisanie po adresie klienta i dopisanie do zgłoszenia po numerze #xxxxxxxx (notatka wewnętrzna)', async () => {
+    const jan = await konto('jan@klient.pl');
+    const op = await konto('op@verris.pl', 'STAFF');
+    await prisma().ticket.create({ data: { id: ID, userId: jan.id, subject: 'DNS', message: 'x' } });
+    await import_({ 5: 'obcy-z-plikami.eml', 6: 'spam.eml' });
+    const { poczta } = uslugi();
+    const obcy = await wpis('<obcy-001@firma-zewnetrzna.pl>');
+    await expect(poczta.przypisz(obcy.id, op.id, { email: 'nie-ma@x.pl' })).rejects.toThrow(/Nie znaleziono konta/);
+    expect((await wpis(obcy.messageId)).wynik).toBe('BEZ_KLIENTA');
+    const { ticketId } = await poczta.przypisz(obcy.id, op.id, { zgloszenieId: '1A2B3C4D' });
+    expect(ticketId).toBe(ID);
+    const notatka = await prisma().ticketReply.findFirstOrThrow({ where: { ticketId: ID, internal: true } });
+    expect(notatka.message).toContain('Mail od Anna Obca <anna@firma-zewnetrzna.pl>');
+    expect(notatka.message).toContain('podszywa sie pod bank');
+    // Spam też da się przypisać („to nie spam”) — po adresie klienta.
+    const spam = await wpis('<spam-001@tani-towar.example>');
+    const r = await poczta.przypisz(spam.id, op.id, { email: 'JAN@klient.pl' });
+    expect((await prisma().ticket.findUniqueOrThrow({ where: { id: r.ticketId } })).userId).toBe(jan.id);
+  });
+
   it('odrzucenie z blokadą: treść i pliki skasowane, następny mail nadawcy od razu jako BLOKADA', async () => {
     const op = await konto('op@verris.pl', 'STAFF');
     await import_({ 5: 'obcy-z-plikami.eml' });

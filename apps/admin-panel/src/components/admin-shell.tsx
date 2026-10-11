@@ -209,6 +209,8 @@ export function grupy(l: LicznikiMenu | null): Grupa[] {
           ostrzezenie: (l?.zgloszeniaPoTerminie ?? 0) > 0,
           pod: [
             { name: "Zgłoszenia", href: "/tickets", perm: "TICKETS_VIEW", szukaj: "tickety pomoc support" },
+            // F3.7 — maile do support@/abuse@ bez konta klienta i spam (admin/poczta-zgloszen — TICKETS_VIEW).
+            { name: "Poczta bez klienta", href: "/tickets/poczta", perm: "TICKETS_VIEW", szukaj: "mail e-mail imap support abuse spam blokada nadawcy kolejka poczta przychodząca" },
             // D1 — konfiguracja (tickets/canned/all, admin/support/auto-messages) tylko ADMIN.
             { name: "Szablony odpowiedzi", href: "/settings/canned-responses", perm: "ADMIN", szukaj: "gotowe odpowiedzi makra" },
             { name: "Opieka nad zgłoszeniami", href: "/settings/support", perm: "ADMIN", szukaj: "sla terminy dyżur" },

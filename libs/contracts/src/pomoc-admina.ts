@@ -373,6 +373,11 @@ export const POMOC = {
     opis: "Dodaje dodatek z katalogu do usługi klienta: z portfela klienta (na jego zgłoszenie) albo gratis.",
     kiedy: "Klient zamówił dodatek w zgłoszeniu albo dostaje go jako rekompensatę — poniżej kierownika zmiany przez wniosek.",
   },
+  "poczta-bez-klienta": {
+    tytul: "Poczta bez klienta",
+    opis: "Maile do support@ i abuse@ od nadawców spoza kont klientów (albo spoza zgłoszenia z wątku) i spam. Maile klientów od razu trafiają do zgłoszeń.",
+    kiedy: "Załóż zgłoszenie klientowi po jego adresie, dopisz mail do zgłoszenia jako notatkę albo odrzuć. Pliki pokazujemy dopiero po „Pokaż” — nie są skanowane antywirusem.",
+  },
   "sla-zgloszen": {
     tytul: "Terminy SLA zgłoszeń",
     opis: "Godziny na pierwszą odpowiedź i na rozwiązanie dla każdego priorytetu, liczone zegarowo przez całą dobę od utworzenia zgłoszenia.",
