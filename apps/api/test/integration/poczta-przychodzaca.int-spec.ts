@@ -309,6 +309,34 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     expect(await prisma().ticket.count()).toBe(0);
   });
 
+  it('przegląd poprawek Fali 3 — blokada nadawcy (osobna trasa „zablokuj”) nie wycisza poprzedniego adresu klienta w dobie po zmianie e-maila przez obsługę', async () => {
+    const op = await operator('op-zmiana@verris.pl', ['TICKETS_VIEW', 'TICKETS_MANAGE']);
+    const klient = await konto('nowy@pracownika.pl');
+    await prisma().auditLog.create({
+      data: { action: 'ADMIN_CUSTOMER_EMAIL_CHANGED', userId: klient.id, actorUserId: op.userId, details: { fromEmail: 'jan@klient.pl', toEmail: 'nowy@pracownika.pl' } },
+    });
+    // Zmieniający adres blokuje stary adres klienta zanim ten napisze (bez maila w kolejce, którego nie mógłby odrzucić).
+    await uslugi().poczta.zablokuj('jan@klient.pl', 'spam', op);
+    expect(await import_({ 7: 'nowe-zgloszenie.eml' })).toMatchObject({ nowe: 1, bledy: [] });
+    const w = await wpis('<CAF1234nowe@mail.klient.pl>');
+    expect(w).toMatchObject({ wynik: 'BEZ_KLIENTA', userId: klient.id });
+    expect(w.powod).toMatch(/POPRZEDNI adres klienta/);
+  });
+
+  it('blokada działa dalej dla adresu sprzed zmiany e-maila starszej niż doba', async () => {
+    const op = await operator('op-zmiana@verris.pl', ['TICKETS_VIEW', 'TICKETS_MANAGE']);
+    const klient = await konto('nowy@pracownika.pl');
+    await prisma().auditLog.create({
+      data: {
+        action: 'ADMIN_CUSTOMER_EMAIL_CHANGED', userId: klient.id, actorUserId: op.userId, createdAt: new Date(Date.now() - 25 * 3600_000),
+        details: { fromEmail: 'jan@klient.pl', toEmail: 'nowy@pracownika.pl' },
+      },
+    });
+    await uslugi().poczta.zablokuj('jan@klient.pl', 'spam', op);
+    await import_({ 7: 'nowe-zgloszenie.eml' });
+    expect(await wpis('<CAF1234nowe@mail.klient.pl>')).toMatchObject({ wynik: 'BLOKADA' });
+  });
+
   it('odrzucenie z blokadą: treść i pliki skasowane, następny mail nadawcy od razu jako BLOKADA', async () => {
     const op = await operator('op@verris.pl', ZESPOL_NADUZYC);
     await import_({ 5: 'obcy-z-plikami.eml' });

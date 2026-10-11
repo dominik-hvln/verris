@@ -73,6 +73,11 @@ describe('F2.5 — zgłoszenie w imieniu klienta', () => {
     const widok = await tickets.findOne(id, k.user.id);
     expect(widok.zalozylaObsluga).toBe(true);
     expect(JSON.stringify(widok)).not.toContain(op.id);
+    // Przegląd poprawek Fali 3 — źródło wiadomości (OBSLUGA, IMPERSONACJA…) nie wychodzi do klienta.
+    await tickets.addReply(id, k.user.id, { message: 'odpowiedź w podglądzie konta' }, 'IMPERSONACJA');
+    const poOdpowiedzi = await tickets.findOne(id, k.user.id);
+    expect(poOdpowiedzi.replies.length).toBeGreaterThan(0);
+    expect(JSON.stringify(poOdpowiedzi)).not.toMatch(/zrodlo|OBSLUGA|IMPERSONACJA/);
 
     const aktywnosc = await new UsersService(prisma() as never, {} as never, {} as never, {} as never, {} as never, {} as never).listMyActivity(k.user.id);
     expect(aktywnosc.events.find((e) => e.action === 'TICKET_OPENED_BY_STAFF')?.actor).toBe(`obsługa Verris (zgłoszenie #${id.slice(0, 8)})`);

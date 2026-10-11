@@ -555,7 +555,9 @@ export class TicketsService {
     // PB-37 — klient widzi opiekuna (imię + inicjał) i „przeczytane”; notatki wewnętrzne obsługi zostają u nas.
     const {
       assignedTo, aiDraft: _a, aiDraftAt: _b, riskFlag: _c, riskReason: _d, escalationReason: _e,
-      escalatedById: _f, runbookKey: _g, csatAgentId: _h, tags: _i, openedByStaffId, assignedToId: _j, ...widoczne
+      escalatedById: _f, runbookKey: _g, csatAgentId: _h, tags: _i, openedByStaffId, assignedToId: _j,
+      // Przegląd poprawek Fali 3 — źródło wiadomości (podgląd konta, mail niezweryfikowany) to metadana obsługi.
+      zrodlo: _k, ...widoczne
     } = ticket;
     // Kto z obsługi odpisał (imię + inicjał) — klient wie, z kim rozmawia; id pracowników nie wychodzą.
     const idObslugi = [...new Set(widoczne.replies.filter((r) => r.isStaff && !r.automatic).map((r) => r.authorId))];
@@ -569,7 +571,7 @@ export class TicketsService {
         .map((e) => (e.meta as { pierwszaOdObslugi?: unknown } | null)?.pierwszaOdObslugi)
         .filter((x): x is string => typeof x === 'string'),
     );
-    const replies = widoczne.replies.map(({ authorId, internal: _wew, ...r }) => ({
+    const replies = widoczne.replies.map(({ authorId, internal: _wew, zrodlo: _zr, ...r }) => ({
       ...r,
       authorId: r.isStaff ? null : authorId,
       autor: r.isStaff && !r.automatic && !bezImienia.has(r.id) ? opiekunSlownie(obsluga.find((u) => u.id === authorId)) : null,

@@ -184,7 +184,9 @@ export class PocztaPrzychodzacaService {
 
     const wzorce = (await this.prisma.pocztaBlokadaNadawcy.findMany({ select: { wzorzec: true } })).map((b) => b.wzorzec);
     const blok = zablokowany(n.nadawca, wzorce);
-    if (blok) return zapisz({ wynik: 'BLOKADA', powod: `lista blokad: ${blok}` });
+    // Przegląd poprawek Fali 3 — blokada (także założona osobną trasą „zablokuj” przez osobę, która zmieniła e-mail
+    // klienta) nie wycisza POPRZEDNIEGO adresu klienta w dobie po zmianie przez obsługę: to kanał zgłoszenia przejęcia.
+    if (blok && !(await this.poprzedniAdres(n.nadawca))) return zapisz({ wynik: 'BLOKADA', powod: `lista blokad: ${blok}` });
     const auto = powodAutomatu(n, [zespol, msgId]);
     if (auto) return zapisz({ wynik: 'AUTO', powod: auto });
     if (rozmiar > MAX_ROZMIAR_MAILA) return zapisz({ wynik: 'ZA_DUZY', powod: `${Math.round(rozmiar / 1024 / 1024)} MB` });
@@ -270,6 +272,7 @@ export class PocztaPrzychodzacaService {
    */
   private async poprzedniAdres(nadawca: string): Promise<{ id: string; odmowa: string } | null> {
     const adres = nadawca.trim().toLowerCase();
+    if (!adres) return null;
     const wpisy = await this.prisma.auditLog.findMany({
       where: { action: AdminCustomerActions.CUSTOMER_EMAIL_CHANGED, createdAt: { gte: new Date(Date.now() - BLOKADA_RESETU_PO_ZMIANIE_EMAILA_H * 3600_000) } },
       select: { userId: true, details: true },
