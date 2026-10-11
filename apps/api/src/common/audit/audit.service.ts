@@ -25,16 +25,19 @@ export const AUDIT_CATEGORIES = {
 export type AuditCategory =
   (typeof AUDIT_CATEGORIES)[keyof typeof AUDIT_CATEGORIES];
 
+// K6 — prefiksy muszą odpowiadać temu, co faktycznie zapisują serwisy: tokeny API to API_TOKEN_CREATED/_REVOKED
+// (api-tokens), logowanie jako klient to USER_IMPERSONATION_STARTED/_STOPPED (users.admin.service.ts). Wcześniej
+// TOKEN_ i IMPERSONATION_ nie trafiały w żaden wpis — filtr „Impersonacja” był zawsze pusty (kategorie-dziennika.spec.ts).
 const SECURITY_PREFIXES = [
   'AUTH_',
   'PASSWORD_',
   'TWO_FACTOR_',
   'LOGIN_',
   'SECURITY_',
-  'TOKEN_',
+  'API_TOKEN_',
 ];
 
-const IMPERSONATION_PREFIXES = ['IMPERSONATION_'];
+const IMPERSONATION_PREFIXES = ['USER_IMPERSONATION_'];
 const PROVISIONING_PREFIXES = ['PROVISIONING_'];
 const MIGRATION_PREFIXES = ['MIGRATION_'];
 const SUPPORT_PREFIXES = ['TICKET_', 'CUSTOMER_RISK_', 'STAFF_DNS_TLS_', 'OPERATOR_ACCOUNT_', 'OPERATOR_CUSTOMER_'];
