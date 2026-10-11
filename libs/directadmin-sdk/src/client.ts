@@ -1401,6 +1401,15 @@ export class DirectAdminClient {
   async getEmailSendBlacklist(): Promise<DaEmailBlacklist> {
     const res = await this.client.get('/CMD_ADMIN_SETTINGS', { params: { json: 'yes' }, timeout: 20_000 });
     this.parseDaResponseBody(res.data);
+    // Audyt Fal 2 — odpowiedź nie-JSON (strona HTML logowania/błędu z kodem 200, tekst) to błąd węzła, nie „węzeł
+    // nie obsługuje listy” ani „nie zablokowane”: parseEmailBlacklist dałby wtedy {dostepne: false}.
+    if (typeof res.data !== 'object' || res.data === null || Array.isArray(res.data)) {
+      throw bladDa(
+        typeof res.data === 'string' && res.data.trim().startsWith('<')
+          ? 'CMD_ADMIN_SETTINGS odpowiedział stroną HTML zamiast ustawień'
+          : 'CMD_ADMIN_SETTINGS odpowiedział bez JSON — nie da się odczytać listy blokad wysyłki',
+      );
+    }
     return parseEmailBlacklist(res.data);
   }
 

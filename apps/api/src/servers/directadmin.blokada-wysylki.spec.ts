@@ -13,12 +13,12 @@ const ustawienia = (lista: Record<string, string> | string[], dostepne = 'yes') 
   ns1: 'ns1.verris.test',
 });
 
-function wezel(o: { dostepne?: string; ignorujZapis?: boolean; odpowiedzZapisu?: unknown } = {}) {
+function wezel(o: { dostepne?: string; ignorujZapis?: boolean; odpowiedzZapisu?: unknown; odpowiedzOdczytu?: unknown } = {}) {
   const lista: Record<string, string> = {};
   const get = vi.fn(async (path: string, cfg?: { params?: Record<string, string> }): Promise<Odp> => {
     expect(path).toBe('/CMD_ADMIN_SETTINGS');
     expect(cfg?.params).toEqual({ json: 'yes' });
-    return { data: ustawienia({ ...lista }, o.dostepne ?? 'yes') };
+    return { data: o.odpowiedzOdczytu ?? ustawienia({ ...lista }, o.dostepne ?? 'yes') };
   });
   const post = vi.fn(async (path: string, body: string): Promise<Odp> => {
     expect(path).toBe('/CMD_ADMIN_SETTINGS');
@@ -94,5 +94,15 @@ describe('F3.1 — blokada wysyłki konta na węźle (DirectAdmin blacklist_user
     const { svc, post } = wezel();
     await expect(svc.ustawBlokadeWysylki('w1', 'klient1&select1=admin', true)).rejects.toThrow(/Niepoprawna nazwa/);
     expect(post).not.toHaveBeenCalled();
+  });
+
+  it('audyt Fal 2: odczyt listy dostaje HTML albo tekst zamiast JSON → błąd węzła, nie „nie obsługuje” / „nie zablokowane”', async () => {
+    const html = wezel({ odpowiedzOdczytu: '<!DOCTYPE html><html><body>Login</body></html>' });
+    await expect(html.svc.blokadaWysylkiNaWezle('w1', 'klient1')).rejects.toThrow(/stroną HTML/);
+    await expect(html.svc.ustawBlokadeWysylki('w1', 'klient1', true)).rejects.toThrow(/stroną HTML/);
+    expect(html.post).not.toHaveBeenCalled();
+    await expect(wezel({ odpowiedzOdczytu: 'Unauthorized' }).svc.blokadaWysylkiNaWezle('w1', 'klient1')).rejects.toThrow(/bez JSON/);
+    // Tekstowy błąd DA (error=1) — z treścią DA.
+    await expect(wezel({ odpowiedzOdczytu: 'error=1&text=Brak%20uprawnie%C5%84' }).svc.blokadaWysylkiNaWezle('w1', 'klient1')).rejects.toThrow(/Brak uprawnień/);
   });
 });
