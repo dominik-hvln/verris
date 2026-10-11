@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { MigracjaEtap, MigracjaKanalKontaktu, MigrationStatus, Prisma } from '@verris/database';
-import { zdradzaPanelSerwera } from '@verris/contracts';
+import { zdradzaInfrastrukture } from '@verris/contracts';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { MigrationActions } from '../common/audit/audit.actions.js';
@@ -37,18 +37,20 @@ import {
 
 const DZIEN_MS = 24 * 60 * 60 * 1000;
 const UPRAWNIENIE = 'MIGRATIONS_MANAGE';
-/** Poza wzorcem panelu serwera: MTA i dostawca serwerów, adresy IP (węzły). */
-const ZDRADZA_INFRASTRUKTURE = /\bExim\b|Hetzner|\b\d{1,3}(\.\d{1,3}){3}\b/i;
 
 export interface Aktor {
   userId: string;
   role: string;
 }
 
-/** Tekst, który trafi do klienta (raport): bez nazw oprogramowania serwera, dostawcy i adresów węzłów. */
-export function bialaEtykietaRaportu(tekst: string): string | null {
-  if (zdradzaPanelSerwera(tekst) || ZDRADZA_INFRASTRUKTURE.test(tekst)) {
-    return 'Ten tekst trafi do klienta — usuń nazwy oprogramowania serwera, dostawcy i adresy IP węzłów.';
+/**
+ * Tekst, który trafi do klienta (raport): bez nazw oprogramowania serwera, dostawcy i adresów węzłów.
+ * Audyt Fal 2 — wspólny wzorzec z libs/contracts (fail2ban, exim w każdej odmianie, narzędzia LVE małymi literami,
+ * IPv6) i dokładne nazwy, hosty i adresy węzłów z bazy (`wezly`), zamiast osobnej, węższej listy słów.
+ */
+export function bialaEtykietaRaportu(tekst: string, wezly: readonly (string | null)[] = []): string | null {
+  if (zdradzaInfrastrukture(tekst, wezly)) {
+    return 'Ten tekst trafi do klienta — usuń nazwy oprogramowania serwera, dostawcy, nazwy i adresy węzłów.';
   }
   return null;
 }
@@ -382,7 +384,7 @@ export class TablicaMigracjiService {
       // Pola raportu idą mailem, a cała checklista (także wynik testu na tymczasowym adresie) — w eksporcie RODO
       // klienta (decyzja 10.10). White label sprawdzamy więc przy zapisie każdego pola tekstowego.
       if (tekst) {
-        const blad = bialaEtykietaRaportu(tekst);
+        const blad = bialaEtykietaRaportu(tekst, await this.wezly());
         if (blad) throw new BadRequestException(blad);
       }
       wpis = tekst ? { tekst, at: new Date().toISOString(), przez: aktor.userId } : null;
@@ -439,8 +441,9 @@ export class TablicaMigracjiService {
     const s = stan(m);
     const braki = brakiRaportu(s);
     if (braki.length) throw new BadRequestException(braki.join(' · '));
+    const wezly = await this.wezly();
     for (const p of POLA_RAPORTU) {
-      const blad = bialaEtykietaRaportu(s.checklista[p]?.tekst ?? '');
+      const blad = bialaEtykietaRaportu(s.checklista[p]?.tekst ?? '', wezly);
       if (blad) throw new BadRequestException(`${POLE_PL[p]}: ${blad}`);
     }
     if (!m.user?.email) throw new BadRequestException('Klient nie ma adresu e-mail.');
@@ -535,6 +538,12 @@ export class TablicaMigracjiService {
     const m = await this.prisma.migrationRequest.findUnique({ where: { id }, select: WYBOR });
     if (!m) throw new NotFoundException('Nie znaleziono migracji.');
     return m;
+  }
+
+  /** Nazwy, hosty i adresy węzłów — tekst dla klienta nie może ich zawierać (white label). */
+  private async wezly(): Promise<Array<string | null>> {
+    const s = await this.prisma.server.findMany({ select: { name: true, hostname: true, ipAddress: true, ipv6Address: true } });
+    return s.flatMap((w) => [w.name, w.hostname, w.ipAddress, w.ipv6Address]);
   }
 
   private async emaileOperatorow(ids: Array<string | null | undefined>): Promise<Map<string, string>> {

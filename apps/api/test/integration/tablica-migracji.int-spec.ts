@@ -215,6 +215,32 @@ describe('D11 — tablica migracji obsługi', () => {
     await svc.checklista(mig.id, { pole: 'testTymczasowy', wartosc: 'Podgląd na adresie tymczasowym działa, PageSpeed 92' }, op);
   });
 
+  it('audyt Fal 2 — filtr raportu: fail2ban, lvectl, IPv6 i nazwa hosta węzła z bazy nie przechodzą', async () => {
+    const { p, l2, mig, svc } = await przygotuj();
+    const op = { userId: l2.id, role: 'STAFF' };
+    await p.server.updateMany({ data: { hostname: 'n7.verris-wezly.example' } });
+    for (const wartosc of [
+      'Odblokowaliśmy Twoje IP w fail2ban po migracji',
+      'Limity ustawione przez lvectl zgodnie z planem',
+      'Podgląd na 2a01:4f8:c17:1::5 działał bez błędów',
+      'Strona działa na n7.verris-wezly.example od wczoraj',
+    ]) {
+      await expect(svc.checklista(mig.id, { pole: 'podsumowanie', wartosc }, op)).rejects.toThrow(/trafi do klienta/);
+    }
+    // Wpis sprzed poprawki (zapisany starym filtrem) nie wychodzi w raporcie — wysyłka sprawdza pola ponownie.
+    await p.migrationRequest.update({
+      where: { id: mig.id },
+      data: {
+        etapObslugi: 'PO_PRZELACZENIU',
+        cutoverAt: new Date(),
+        checklista: Object.fromEntries(
+          ['podsumowanie', 'optymalizacja', 'testPrzed', 'testPo'].map((k) => [k, { tekst: k === 'podsumowanie' ? 'IP odblokowane w fail2ban' : `tekst ${k}`, at: new Date().toISOString(), przez: l2.id }]),
+        ),
+      },
+    });
+    await expect(svc.wyslijRaport(mig.id, op)).rejects.toThrow(/trafi do klienta/);
+  });
+
   it('nieudana wysyłka raportu — raport nie jest oznaczony jako wysłany, zamknięcie dalej zablokowane', async () => {
     const { p, l2, mig, svc, wylaczMail } = await przygotuj();
     await p.migrationRequest.update({

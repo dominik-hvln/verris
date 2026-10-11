@@ -20,6 +20,29 @@ export function zdradzaPanelSerwera(tekst: string): boolean {
   return PANEL_SERWERA.test(tekst) || /\bDA\b|\bLVE\b/.test(tekst);
 }
 
+/**
+ * Infrastruktura poza panelem (D3, white label): MTA (exim i jego odmiany — „exima”), fail2ban, Imunify, narzędzia
+ * LVE (lvectl, lvetop, lve-stats — także małymi literami), dostawca serwerów i adresy węzłów (IPv4, IPv6). IPv6 tylko
+ * z „::” na granicy słowa albo w pełnej postaci (8 grup) — godzina „12:30:00” i „self::” nie pasują.
+ */
+const INFRASTRUKTURA =
+  /\bexim\w*|fail2ban|imunify|\blve[\w-]*|hetzner|\b\d{1,3}(?:\.\d{1,3}){3}\b|\b(?:[0-9a-f]{1,4}:){7}[0-9a-f]{1,4}\b|\b(?:[0-9a-f]{1,4}:){1,7}:/i;
+
+/**
+ * Tekst, który trafia do klienta (raport, eksport RODO), zdradza panel serwera albo infrastrukturę. `wezly` — nazwy,
+ * hosty i adresy węzłów z bazy (dokładne dopasowanie zamiast zgadywania wzorca nazw), sprawdzane jako całe słowa.
+ */
+export function zdradzaInfrastrukture(tekst: string, wezly: readonly (string | null | undefined)[] = []): boolean {
+  if (zdradzaPanelSerwera(tekst) || INFRASTRUKTURA.test(tekst)) return true;
+  const maly = tekst.toLowerCase();
+  return wezly.some((w) => {
+    const x = w?.trim().toLowerCase();
+    if (!x || x.length < 2) return false;
+    const esc = x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`(?<![\\w.:-])${esc}(?![\\w:-])`).test(maly);
+  });
+}
+
 /** Ślady techniczne poza panelem: biblioteka HTTP, stos wywołań, adres IP węzła, adres URL. */
 function techniczny(text: string): boolean {
   return zdradzaPanelSerwera(text) || /axios|stack|at \w+\.|https?:\/\//i.test(text) || /\b\d{1,3}(\.\d{1,3}){3}\b/.test(text);
