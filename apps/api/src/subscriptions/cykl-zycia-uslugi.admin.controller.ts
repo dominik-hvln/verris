@@ -35,7 +35,9 @@ const zlecenie = (id: string, actor: Aktor, b: PowodOperatoraDto): ZlecenieCyklu
  *  - anulacja na koniec okresu i jej cofnięcie — odwracalne (D2): SUBSCRIPTIONS_MANAGE (L2, NOC) z powodem;
  *  - data odnowienia (przedłużenie gratis) — koszt (D2): BILLING_MANAGE + SUBSCRIPTIONS_MANAGE (L4); niżej wniosek
  *    SUBSCRIPTION_RENEWAL_DATE, który akceptuje L4 albo administrator;
- *  - obietnica zapłaty (wstrzymanie zawieszenia za brak płatności, maks. 7 dni) — SUBSCRIPTIONS_SUSPEND (L3).
+ *  - obietnica zapłaty (wstrzymanie zawieszenia za brak płatności, maks. 7 dni) — SUBSCRIPTIONS_MANAGE +
+ *    SUBSCRIPTIONS_SUSPEND (L3). Samo SUSPEND ma też zespół abuse, który „nie rusza rozliczeń” — obietnica to decyzja
+ *    o należności, nie o nadużyciu (przegląd F3.5).
  */
 @Controller('admin/subscriptions')
 @UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
@@ -67,14 +69,14 @@ export class CyklZyciaUslugiAdminController {
 
   @Post(':id/obietnica-zaplaty')
   @HttpCode(200)
-  @StaffPerm('SUBSCRIPTIONS_SUSPEND')
+  @StaffPerm('SUBSCRIPTIONS_MANAGE', 'SUBSCRIPTIONS_SUSPEND')
   ustawObietnice(@Param('id') id: string, @Body() b: ObietnicaZaplatyDto, @CurrentUser() actor: Aktor) {
     return this.cykl.ustawObietniceZaplaty({ ...zlecenie(id, actor, b), dni: b.dni });
   }
 
   @Post(':id/obietnica-zaplaty/odwolaj')
   @HttpCode(200)
-  @StaffPerm('SUBSCRIPTIONS_SUSPEND')
+  @StaffPerm('SUBSCRIPTIONS_MANAGE', 'SUBSCRIPTIONS_SUSPEND')
   odwolajObietnice(@Param('id') id: string, @Body() b: PowodOperatoraDto, @CurrentUser() actor: Aktor) {
     return this.cykl.odwolajObietniceZaplaty(zlecenie(id, actor, b));
   }

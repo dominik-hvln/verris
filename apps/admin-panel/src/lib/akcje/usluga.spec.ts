@@ -110,8 +110,11 @@ describe("Działania usługi", () => {
     expect(po("data-odnowienia")).toMatchObject({ zablokowane: "Wymaga BILLING_MANAGE", wniosek: true });
     expect(po("dodatki")).toMatchObject({ zablokowane: "Wymaga BILLING_MANAGE", wniosek: true });
     expect(ids(aktywna)).not.toContain("obietnica-zaplaty");
-    const zalegla = dzialaniaObiektu(AKCJE_USLUGI, { ...aktywna, status: "PAST_DUE" }, operator("SUBSCRIPTIONS_SUSPEND"));
+    const zalegla = dzialaniaObiektu(AKCJE_USLUGI, { ...aktywna, status: "PAST_DUE" }, operator("SUBSCRIPTIONS_MANAGE", "SUBSCRIPTIONS_SUSPEND"));
     expect(zalegla.find((x) => x.id === "obietnica-zaplaty")?.zablokowane).toBeNull();
+    // Przegląd F3.5 — zespół abuse (samo SUBSCRIPTIONS_SUSPEND) nie daje obietnicy zapłaty.
+    const abuse = dzialaniaObiektu(AKCJE_USLUGI, { ...aktywna, status: "PAST_DUE" }, operator("SUBSCRIPTIONS_SUSPEND"));
+    expect(abuse.find((x) => x.id === "obietnica-zaplaty")?.zablokowane).toBe("Wymaga SUBSCRIPTIONS_MANAGE");
     expect(zalegla.map((x) => x.id)).not.toContain("anulacja");
     const l4 = dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("SUBSCRIPTIONS_MANAGE", "BILLING_MANAGE"));
     expect(l4.find((x) => x.id === "data-odnowienia")?.zablokowane).toBeNull();

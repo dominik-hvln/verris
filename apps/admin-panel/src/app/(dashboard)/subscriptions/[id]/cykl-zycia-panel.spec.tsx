@@ -137,6 +137,11 @@ it("zaległa: obietnica zapłaty od L3 (dni z listy); L2 widzi brak uprawnienia"
   expect(cykl).toHaveBeenCalledWith("s1", "obietnica-zaplaty", { powod: POWOD, zgloszenie: undefined, dni: 5 });
 });
 
+it("przegląd F3.5: zespół abuse (samo SUBSCRIPTIONS_SUSPEND) nie daje obietnicy zapłaty — jak w API", async () => {
+  await render({ ...AKTYWNA, status: "PAST_DUE" }, { isAdmin: false, permissions: ["CUSTOMERS_VIEW", "SUBSCRIPTIONS_SUSPEND"] });
+  expect(k.querySelector('[data-akcja="obietnica"]')).toBeNull();
+});
+
 it("L4: dodatek z portfela klienta tylko ze zgłoszeniem; gratis — od razu", async () => {
   await render(AKTYWNA, L4);
   await wpisz(k.querySelector('[data-pole="powod"]')!, POWOD);

@@ -261,6 +261,9 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     expect(await wolno('Inżynier infrastruktury (NOC/DevOps)')).toEqual(w(true, false, false));
     // Finanse mają BILLING_MANAGE, ale nie zmieniają usług — data odnowienia wymaga obu uprawnień.
     expect(await wolno('Finanse i księgowość')).toEqual(w(false, false, false));
+    // Przegląd F3.5 — zespół abuse ma SUBSCRIPTIONS_SUSPEND (zawiesza za nadużycie), ale „nie rusza rozliczeń”:
+    // obietnica zapłaty to decyzja o należności, więc wymaga też SUBSCRIPTIONS_MANAGE (L3 ma oba).
+    expect(await wolno('Nadużycia i bezpieczeństwo')).toEqual(w(false, false, false));
     expect(await wolno('Audytor (tylko podgląd)')).toEqual(w(false, false, false));
     for (const t of cykl) {
       expect(await wpuszcza(t, ADMIN)).toBe(true);

@@ -109,8 +109,8 @@ export const AKCJE_USLUGI: AkcjaObiektu<UslugaDlaAkcji>[] = [
     grupa: "Usługa",
     nazwa: "Obietnica zapłaty",
     opis: "Wstrzymanie automatycznego zawieszenia zaległej usługi na 1–7 dni.",
-    // F3.5 — POST admin/subscriptions/:id/obietnica-zaplaty: SUBSCRIPTIONS_SUSPEND (L3).
-    perm: "SUBSCRIPTIONS_SUSPEND",
+    // F3.5 — POST admin/subscriptions/:id/obietnica-zaplaty: SUBSCRIPTIONS_MANAGE + SUBSCRIPTIONS_SUSPEND (L3; abuse — nie).
+    perm: { wszystkie: ["SUBSCRIPTIONS_MANAGE", "SUBSCRIPTIONS_SUSPEND"] },
     kiedy: (u) => u.status === undefined || u.status === "PAST_DUE",
     href: (u) => karta(u, "operacje", "cykl-zycia"),
     slowa: "obietnica zapłaty zaległość wstrzymaj zawieszenie przelew w drodze termin",

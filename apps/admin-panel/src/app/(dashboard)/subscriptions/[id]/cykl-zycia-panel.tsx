@@ -57,7 +57,8 @@ export function CyklZyciaPanel({ u, dostep }: { u: UslugaCyklu; dostep: DostepDo
   const brakAnulacji = brakUprawnienia("SUBSCRIPTIONS_MANAGE", dostep);
   const brakDaty = brakUprawnienia(KOSZT, dostep);
   const wniosekDaty = !!brakDaty && !brakAnulacji;
-  const brakObietnicy = brakUprawnienia("SUBSCRIPTIONS_SUSPEND", dostep);
+  // Jak w API: SUBSCRIPTIONS_MANAGE + SUBSCRIPTIONS_SUSPEND (L3) — samo SUSPEND ma zespół abuse, który nie rusza rozliczeń.
+  const brakObietnicy = brakUprawnienia({ wszystkie: ["SUBSCRIPTIONS_MANAGE", "SUBSCRIPTIONS_SUSPEND"] }, dostep);
   const powodOk = powod.trim().length >= MIN_POWOD;
   const aktywna = u.status === "ACTIVE";
   const anulowana = aktywna && !!u.cancelAt;
