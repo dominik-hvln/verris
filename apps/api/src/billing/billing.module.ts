@@ -74,6 +74,6 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
     FakturyZewnetrzneService,
     RozliczeniaOperatoraService,
   ],
-  exports: [BillingService, VatNabywcyService, WalletLedgerService, StripeService, InvoicesService, PromoService, WalletAutoTopupService, KorektyService, AnulowanieService],
+  exports: [BillingService, VatNabywcyService, WalletLedgerService, StripeService, InvoicesService, PromoService, WalletAutoTopupService, KorektyService, AnulowanieService, RozliczeniaOperatoraService],
 })
 export class BillingModule {}

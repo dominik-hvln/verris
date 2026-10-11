@@ -335,6 +335,11 @@ export const POMOC = {
     opis: "Wszystkie zablokowane adresy węzła z powodem i czasem, odblokowanie dowolnego adresu i biała lista adresów, których serwer nigdy nie blokuje.",
     kiedy: "Przy awarii po stronie dużego klienta (np. biuro za jednym IP) albo gdy trzeba zwolnić adres partnera — z powodem w dzienniku.",
   },
+  pulpity: {
+    tytul: "Pulpit roli",
+    opis: "Pulpit dopasowany do pracy: konsultant widzi swoje zgłoszenia i terminy, NOC flotę i alerty, finanse płatności i KSeF.",
+    kiedy: "Na start zmiany — co trzeba zrobić najpierw; zakładki u góry przełączają między pulpitami Twojej roli.",
+  },
   "komunikaty-serwisowe": {
     tytul: "Komunikaty serwisowe",
     opis: "Mail do wszystkich klientów węzła albo planu z podglądem odbiorców, wysyłany kolejką po 60 na minutę.",

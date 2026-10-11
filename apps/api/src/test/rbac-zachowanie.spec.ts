@@ -842,6 +842,23 @@ describe('F3.8 — komunikacja operacyjna', () => {
   });
 });
 
+/** F3.9 — pulpity per rola: obsługa (TICKETS_VIEW), NOC (NODES_VIEW), finanse (BILLING_VIEW); klient — nic. */
+describe('F3.9 — pulpity per rola', () => {
+  const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
+  const t = (m: string) => TRASY.find((x) => x.kontroler === 'PulpityRolAdminController' && x.metoda === m)!;
+  it.each([
+    ['obsluga', ['L1 Konsultant', 'Inżynier infrastruktury (NOC/DevOps)', 'Finanse i księgowość'], ['Marketing']],
+    ['noc', ['Inżynier infrastruktury (NOC/DevOps)', 'L2 Specjalista techniczny', 'Audytor (tylko podgląd)'], ['L1 Konsultant', 'Finanse i księgowość', 'Marketing']],
+    ['finanse', ['Finanse i księgowość', 'L1 Konsultant', 'Audytor (tylko podgląd)'], ['Inżynier infrastruktury (NOC/DevOps)', 'Marketing']],
+  ])('%s: tak dla %j, nie dla %j', async (m, tak, nie) => {
+    expect(t(m).sciezka).toBe(`admin/pulpit/${m}`);
+    for (const r of tak) expect({ r, ok: await wpuszcza(t(m), OPERATOR, rola(r)) }).toEqual({ r, ok: true });
+    for (const r of nie) expect({ r, ok: await wpuszcza(t(m), OPERATOR, rola(r)) }).toEqual({ r, ok: false });
+    expect(await wpuszcza(t(m), ADMIN)).toBe(true);
+    expect(await wpuszcza(t(m), KLIENT, [...STAFF_PERMISSION_KEYS])).toBe(false);
+  });
+});
+
 /** F3.3 — kopie floty: admin i NOC (NODES_VIEW, jak lista węzłów); L1 i Marketing — nie. */
 describe('F3.3 — kopie floty', () => {
   const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
