@@ -33,6 +33,15 @@ describe('DiskUsageService', () => {
     ]);
   });
 
+  it('wpisy systemowe katalogu domowego nie są pozycjami; suma zostaje jak w liczniku dysku', () => {
+    const r = zajetoscZLogu(
+      'VERRIS_DU_RAZEM 900|50\nVERRIS_DU 500|20|.cagefs\nVERRIS_DU 480|18|.cagefs/tmp\nVERRIS_DU 300|9|domains\n' +
+        'VERRIS_DU 4|1|domains/x.pl/.cagefs\nVERRIS_DU 4|1|.myimunify_id\n',
+    );
+    expect(r.razem).toEqual({ kb: 900, pliki: 50 });
+    expect(r.wpisy.map((w) => w.sciezka)).toEqual(['domains', 'domains/x.pl/.cagefs']);
+  });
+
   it('status: ostatni udany pomiar + błąd najnowszej próby', async () => {
     const d = new Date('2026-09-24T10:00:00Z');
     const s = stanowisko({

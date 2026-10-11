@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { jestWpisemSystemowym } from '../files/pliki-systemowe-konta.js';
 
 /**
  * C-15 / K-03 — co zajmuje miejsce na koncie i ile jest plików (i-węzłów), dwa poziomy katalogów.
@@ -76,6 +77,9 @@ export function zajetoscZLogu(log: string | null): {
     const r = /^VERRIS_DU_RAZEM (\d+)\|(-?\d+)\s*$/.exec(l);
     if (r) razem = { kb: Number(r[1]), pliki: liczba(r[2]) };
     const m = /^VERRIS_DU (\d+)\|(-?\d+)\|(.+)$/.exec(l);
+    // Wpisy systemowe katalogu domowego (pliki-systemowe-konta.ts) nie są pozycjami dla klienta; ich
+    // rozmiar zostaje w `razem`, bo ta suma ma się zgadzać z licznikiem dysku konta.
+    if (m && jestWpisemSystemowym(m[3])) continue;
     if (m && wpisy.length < 80) wpisy.push({ kb: Number(m[1]), pliki: liczba(m[2]), sciezka: m[3] });
     // E-06 — zajętość skrzynek (~/imap/<domena>/<login>)
     const s = /^VERRIS_DU_SKRZYNKA (\d+)\|([a-z0-9.-]{3,253})\|([^|@\s]{1,64})\s*$/i.exec(l);

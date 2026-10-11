@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { HostingResourceActions } from '../common/audit/audit.actions.js';
+import { jestWpisemSystemowym } from './pliki-systemowe-konta.js';
 
 /** Max bytes we will read into the in-panel text editor. */
 const MAX_EDIT_BYTES = 1_000_000; // 1 MB
@@ -17,6 +18,9 @@ const MAX_EDIT_BYTES = 1_000_000; // 1 MB
 const MAX_WRITE_BYTES = 25_000_000; // 25 MB
 /** Max in-panel download size — larger files must go via FTP (memory guard). */
 const MAX_DOWNLOAD_BYTES = 100_000_000; // 100 MB
+
+/** Ścieżka elementu `n` w katalogu `dir` (oba już po `safePath`/`safeName`). */
+const wKatalogu = (dir: string, n: string) => `${dir === '/' ? '' : dir}/${n}`;
 
 @Injectable()
 export class FilesService {
@@ -85,6 +89,16 @@ export class FilesService {
     return n;
   }
 
+  /**
+   * Wpisy systemowe katalogu domowego (`pliki-systemowe-konta.ts`): klient ich nie widzi i nic na nich
+   * nie zrobi bezpośrednim wywołaniem API — ani na nich samych, ani na niczym w ich wnętrzu.
+   */
+  private odmowDlaSystemowych(...sciezki: string[]): void {
+    if (sciezki.some(jestWpisemSystemowym)) {
+      throw new ForbiddenException('Ten element jest zarządzany przez serwer — nie można go otwierać ani zmieniać.');
+    }
+  }
+
   // --- operations -------------------------------------------------------------
 
   async list(
@@ -94,9 +108,10 @@ export class FilesService {
   ): Promise<{ path: string; entries: DaFileEntry[] }> {
     const account = await this.requireAccount(subscriptionId, userId);
     const safe = this.safePath(path);
+    this.odmowDlaSystemowych(safe);
     const client = await this.clientFor(account);
     const entries = await client.listDir(safe);
-    return { path: safe, entries };
+    return { path: safe, entries: safe === '/' ? entries.filter((e) => !jestWpisemSystemowym(e.name)) : entries };
   }
 
   /**
@@ -132,6 +147,7 @@ export class FilesService {
     const account = await this.requireAccount(subscriptionId, userId);
     const safe = this.safePath(path);
     if (safe === '/') throw new BadRequestException('Wskaż plik do pobrania.');
+    this.odmowDlaSystemowych(safe);
     const client = await this.clientFor(account);
     const size = await this.fileSizeBytes(client, safe);
     if (size == null) throw new NotFoundException('Nie ma takiego pliku.');
@@ -153,6 +169,7 @@ export class FilesService {
     const account = await this.requireAccount(subscriptionId, userId);
     const safe = this.safePath(path);
     if (safe === '/') throw new BadRequestException('Wskaż plik do odczytu.');
+    this.odmowDlaSystemowych(safe);
     const client = await this.clientFor(account);
     const size = await this.fileSizeBytes(client, safe);
     if (size != null && size > MAX_EDIT_BYTES) {
@@ -173,6 +190,7 @@ export class FilesService {
     const account = await this.requireAccount(subscriptionId, userId);
     const safe = this.safePath(path);
     if (safe === '/') throw new BadRequestException('Wskaż plik do pobrania.');
+    this.odmowDlaSystemowych(safe);
     const client = await this.clientFor(account);
     // Guard memory: reject oversized files before loading them into RAM.
     const size = await this.fileSizeBytes(client, safe);
@@ -203,6 +221,7 @@ export class FilesService {
     const account = await this.requireAccount(subscriptionId, userId);
     const safeDir = this.safePath(dir);
     const name = this.safeName(filename);
+    this.odmowDlaSystemowych(wKatalogu(safeDir, name));
     const client = await this.clientFor(account);
     await client.writeFile(safeDir, name, content ?? '');
     await this.audit.record({
@@ -223,6 +242,7 @@ export class FilesService {
     const account = await this.requireAccount(subscriptionId, userId);
     const safeDir = this.safePath(dir);
     const safeName = this.safeName(name);
+    this.odmowDlaSystemowych(wKatalogu(safeDir, safeName));
     const client = await this.clientFor(account);
     await client.makeDir(safeDir, safeName);
     return { ok: true };
@@ -239,6 +259,7 @@ export class FilesService {
     const safeDir = this.safePath(dir);
     const oldN = this.safeName(oldName);
     const newN = this.safeName(newName);
+    this.odmowDlaSystemowych(wKatalogu(safeDir, oldN), wKatalogu(safeDir, newN));
     const client = await this.clientFor(account);
     await client.renameEntry(safeDir, oldN, newN);
     await this.audit.record({
@@ -262,6 +283,7 @@ export class FilesService {
     const account = await this.requireAccount(subscriptionId, userId);
     const safeDir = this.safePath(dir);
     const safeNames = names.map((n) => this.safeName(n));
+    this.odmowDlaSystemowych(...safeNames.map((n) => wKatalogu(safeDir, n)));
     const client = await this.clientFor(account);
     await client.deleteEntries(safeDir, safeNames);
     await this.audit.record({
@@ -287,6 +309,7 @@ export class FilesService {
     const account = await this.requireAccount(subscriptionId, userId);
     const safeDir = this.safePath(dir);
     const name = this.safeName(filename);
+    this.odmowDlaSystemowych(wKatalogu(safeDir, name));
     const client = await this.clientFor(account);
     await client.uploadFile(safeDir, name, data);
     await this.audit.record({
@@ -320,6 +343,10 @@ export class FilesService {
       throw new BadRequestException('Katalog docelowy jest taki sam jak źródłowy.');
     }
     const safeNames = names.map((n) => this.safeName(n));
+    this.odmowDlaSystemowych(
+      ...safeNames.map((n) => wKatalogu(safeDir, n)),
+      ...safeNames.map((n) => wKatalogu(safeDest, n)),
+    );
     if (mode === 'move') {
       // Przenoszenie katalogu do jego wnętrza kończy się pętlą — blokujemy.
       for (const n of safeNames) {
@@ -361,6 +388,7 @@ export class FilesService {
     const account = await this.requireAccount(subscriptionId, userId);
     const safeDir = this.safePath(dir);
     const safeNames = names.map((n) => this.safeName(n));
+    this.odmowDlaSystemowych(...safeNames.map((n) => wKatalogu(safeDir, n)));
     const client = await this.clientFor(account);
     await client.compressEntries(safeDir, safeNames, base);
     const archive = `${safeDir === '/' ? '' : safeDir}/${base}.tar.gz`;
@@ -387,6 +415,7 @@ export class FilesService {
       throw new BadRequestException('Obsługiwane archiwa: .zip, .tar.gz, .tgz, .tar.bz2, .tar.');
     }
     const safeDest = this.safePath(destDir ?? safe.slice(0, safe.lastIndexOf('/')) ?? '/');
+    this.odmowDlaSystemowych(safe, safeDest);
     const client = await this.clientFor(account);
     await client.extractArchive(safe, safeDest);
     await this.audit.record({
@@ -416,6 +445,7 @@ export class FilesService {
     const account = await this.requireAccount(subscriptionId, userId);
     const safeDir = this.safePath(dir);
     const safeNames = names.map((n) => this.safeName(n));
+    this.odmowDlaSystemowych(...safeNames.map((n) => wKatalogu(safeDir, n)));
     const client = await this.clientFor(account);
     await client.chmodEntries(safeDir, safeNames, chmod);
     await this.audit.record({
