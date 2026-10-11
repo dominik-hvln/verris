@@ -5,9 +5,13 @@ import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
 import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { AdminDashboardService } from './admin-dashboard.service.js';
 
-/** D1 (10.10) — pulpit i liczniki menu dla operatora z DASHBOARD_VIEW („Pulpit i metryki biznesowe”). */
+/**
+ * D1 (10.10) — pulpit i liczniki menu dla operatora z DASHBOARD_VIEW. Weryfikacja 11.10 — przychody, portfel i liczba
+ * klientów w „Stanie platformy” tylko z METRICS_VIEW (L4, Finanse, ADMIN); reszta pulpitu bez zmian.
+ */
 @Controller('admin/dashboard')
 @UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
 @Roles(Role.ADMIN, Role.STAFF)
@@ -16,8 +20,8 @@ export class AdminDashboardController {
   constructor(private readonly dashboard: AdminDashboardService) {}
 
   @Get('overview')
-  overview() {
-    return this.dashboard.overview();
+  async overview(@CurrentUser() op: { userId: string; principalUserId?: string; role: string }) {
+    return this.dashboard.overview({ metryki: await this.dashboard.widziMetryki(op) });
   }
 
   /** PB-34 — liczniki w menu panelu admina (lekkie, na każdą nawigację). */

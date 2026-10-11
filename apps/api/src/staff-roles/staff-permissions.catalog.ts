@@ -4,7 +4,10 @@
  * migracji. Role (StaffRole.permissions) przechowują te klucze jako stringi.
  */
 export const STAFF_PERMISSIONS = [
-  { key: 'DASHBOARD_VIEW', area: 'Ogólne', label: 'Pulpit i metryki biznesowe' },
+  { key: 'DASHBOARD_VIEW', area: 'Ogólne', label: 'Pulpit: stan platformy, flota, zgłoszenia i zdarzenia (bez przychodów i liczby klientów)' },
+  // Weryfikacja 11.10 (decyzja właściciela) — przychody, wpływy, MRR, churn i liczba klientów osobno od pulpitu:
+  // L4, Finanse i ADMIN. L1 i pozostałe role z samym DASHBOARD_VIEW ich nie widzą.
+  { key: 'METRICS_VIEW', area: 'Ogólne', label: 'Metryki biznesowe: przychody i wpływy, MRR, churn, liczba klientów' },
   { key: 'CUSTOMERS_VIEW', area: 'Klienci', label: 'Podgląd klientów' },
   { key: 'CUSTOMERS_MANAGE', area: 'Klienci', label: 'Zarządzanie klientami (edycja, blokady)' },
   { key: 'CUSTOMERS_IMPERSONATE', area: 'Klienci', label: 'Wejście na konto klienta („Zaloguj jako klient”, z powodem, 30 min)' },

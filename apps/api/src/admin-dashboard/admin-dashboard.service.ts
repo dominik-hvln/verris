@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, Role, WalletTxStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
 import { RODZAJ_DOKUMENT_ROZLICZENIOWY } from '../billing/tryb-fakturowania.js';
 import { STOS_WEZLA } from '../servers/stos-wezla.js';
 import {
@@ -31,7 +32,18 @@ const kto = (u: { firstName: string | null; lastName: string | null; email: stri
 export class AdminDashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async overview() {
+  /** Weryfikacja 11.10 — metryki biznesowe (przychody, portfel, liczba klientów) widzi ADMIN i STAFF z METRICS_VIEW. */
+  async widziMetryki(op: { userId: string; principalUserId?: string; role: string }): Promise<boolean> {
+    if (op.role === 'ADMIN') return true;
+    if (op.role !== 'STAFF') return false;
+    return (await uprawnieniaOperatora(this.prisma, op.principalUserId ?? op.userId)).includes('METRICS_VIEW');
+  }
+
+  /**
+   * `metryki: false` — bez przychodów, sum portfela i liczby klientów (pola null): pulpit operatora z samym
+   * DASHBOARD_VIEW (np. L1) pokazuje stan platformy, ale nie metryki biznesowe (decyzja 11.10).
+   */
+  async overview({ metryki = true }: { metryki?: boolean } = {}) {
     const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     const [
@@ -138,12 +150,17 @@ export class AdminDashboardService {
 
     return {
       ...stan,
+      klienci: metryki ? stan.klienci : null,
+      wplywy: metryki ? stan.wplywy : null,
+      metryki,
       generatedAt: new Date().toISOString(),
-      users: {
-        total: userGroups.reduce((a, g) => a + g._count.id, 0),
-        clients: clientUsers,
-        staffAndAdmin,
-      },
+      users: metryki
+        ? {
+            total: userGroups.reduce((a, g) => a + g._count.id, 0),
+            clients: clientUsers,
+            staffAndAdmin,
+          }
+        : null,
       subscriptions: {
         byStatus: subscriptionsByStatus,
         active: activeSubscriptions,
@@ -155,11 +172,13 @@ export class AdminDashboardService {
       },
       accounts: { total: accountsTotal },
       tickets: { openNonClosed: ticketsOpen },
-      billing: {
-        periodDays: 30,
-        walletNetPln: walletNet30d.toFixed(2),
-        walletByTypePln: walletByTypeOut,
-      },
+      billing: metryki
+        ? {
+            periodDays: 30,
+            walletNetPln: walletNet30d.toFixed(2),
+            walletByTypePln: walletByTypeOut,
+          }
+        : null,
       serverRows,
       recentSubscriptions,
     };

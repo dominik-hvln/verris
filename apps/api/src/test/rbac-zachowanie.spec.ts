@@ -561,12 +561,12 @@ describe('D1 — panel operatora dla STAFF: macierz tras', () => {
     expect(otwarte).toEqual([]);
   });
 
-  it('pulpit, menu i metryki — DASHBOARD_VIEW; błędy aplikacji — NODES_VIEW; blokady poczty — CUSTOMERS_VIEW', async () => {
+  it('pulpit i menu — DASHBOARD_VIEW; metryki biznesowe — METRICS_VIEW (11.10); błędy aplikacji — NODES_VIEW; blokady poczty — CUSTOMERS_VIEW', async () => {
     const t = (kontroler: string, metoda: string) => TRASY.find((x) => x.kontroler === kontroler && x.metoda === metoda)!;
     for (const [k, m, perm] of [
       ['AdminDashboardController', 'overview', 'DASHBOARD_VIEW'],
       ['AdminDashboardController', 'menu', 'DASHBOARD_VIEW'],
-      ['BusinessMetricsAdminController', 'business', 'DASHBOARD_VIEW'],
+      ['BusinessMetricsAdminController', 'business', 'METRICS_VIEW'],
       ['RuntimeErrorsController', 'list', 'NODES_VIEW'],
       ['OutboundCordonAdminController', 'list', 'CUSTOMERS_VIEW'],
     ] as const) {

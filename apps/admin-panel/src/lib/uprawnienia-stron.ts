@@ -15,7 +15,7 @@ export const STRONY = {
   "/autoscaling": { perm: "ADMIN", tytul: "Reguły cenowe autoskalowania" },
   "/autoscaling/revenue": { perm: "ADMIN", tytul: "Przychody z autoskalowania" },
   "/beta": { perm: "PROMO_MANAGE", tytul: "Beta" },
-  // Dane z pulpitu (admin/dashboard/overview — DASHBOARD_VIEW, mają je wszystkie role z BILLING_VIEW) i eksport CSV.
+  // Dane z pulpitu (admin/dashboard/overview — DASHBOARD_VIEW; sumy portfela tylko z METRICS_VIEW) i eksport CSV.
   "/billing": { perm: "BILLING_VIEW", tytul: "Portfel i płatności" },
   "/billing/webhooki": { perm: "BILLING_MANAGE", tytul: "Webhooki płatności" },
   // F3.6 — admin/rozliczenia/nieudane-platnosci i /windykacja — BILLING_VIEW (L1–L4, Finanse, Audytor); „Ponów” BILLING_MANAGE.
@@ -38,7 +38,8 @@ export const STRONY = {
   "/knowledge-base": { perm: null, tytul: "Baza wiedzy" },
   "/marketing": { perm: "PROMO_MANAGE", tytul: "Marketing" },
   "/marketing/[id]": { perm: "PROMO_MANAGE", tytul: "Kampania" },
-  "/metrics": { perm: "DASHBOARD_VIEW", tytul: "Metryki" },
+  // Weryfikacja 11.10 — admin/metrics/business — METRICS_VIEW (L4, Finanse, ADMIN); L1 ma pulpit, nie metryki biznesowe.
+  "/metrics": { perm: "METRICS_VIEW", tytul: "Metryki" },
   "/migrations": { perm: "MIGRATIONS_MANAGE", tytul: "Migracje" },
   "/migrations/[id]": { perm: "MIGRATIONS_MANAGE", tytul: "Migracja" },
   // D11 — tablica migracji (admin/migrations/tablica — MIGRATIONS_MANAGE: L2 support migracji i wyżej, NOC).

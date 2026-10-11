@@ -92,6 +92,18 @@ describe("X-05 pulpit „Stan platformy”", () => {
     expect(bez).not.toContain('href="/nodes/stack"');
   });
 
+  it("weryfikacja 11.10: bez METRICS_VIEW (klienci i wpływy null z API) — bez kafli Klienci i Wpływy, reszta pulpitu zostaje", () => {
+    const t = tekst(renderToStaticMarkup(<AdminDashboardReal o={pulpit({ klienci: null, wplywy: null, metryki: false })} />));
+    expect(t).not.toContain("Wpływy");
+    expect(t).not.toContain("1234");
+    expect(t).not.toMatch(/\d\s+klien/);
+    expect(t).toContain("Aktywne usługi");
+    expect(t).toContain("Zgłoszenia");
+    const z = tekst(renderToStaticMarkup(<AdminDashboardReal o={pulpit()} />));
+    expect(z).toContain("Wpływy");
+    expect(z).toMatch(/2\s+klien/);
+  });
+
   it("flota: węzeł bez sygnału pokazuje powód zamiast paska CPU", () => {
     const t = tekst(renderToStaticMarkup(<AdminDashboardReal o={pulpit()} />));
     expect(t).toContain("fsn-01");

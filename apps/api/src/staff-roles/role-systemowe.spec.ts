@@ -131,6 +131,12 @@ describe('PB-47 — katalog uprawnień i role systemowe', () => {
     expect(ROLE_SYSTEMOWE.filter((r) => r.permissions.includes('KB_MANAGE')).map((r) => r.name)).toEqual(['L4 Kierownik zmiany', 'Marketing']);
   });
 
+  it('weryfikacja 11.10: metryki biznesowe (METRICS_VIEW) tylko L4 i Finanse — L1 i pozostałe role z pulpitem ich nie mają', () => {
+    const z = ROLE_SYSTEMOWE.filter((r) => r.permissions.includes('METRICS_VIEW')).map((r) => r.name);
+    expect(z.sort()).toEqual(['Finanse i księgowość', 'L4 Kierownik zmiany']);
+    expect(SZCZEBLE[0].permissions).toContain('DASHBOARD_VIEW');
+  });
+
   it('nazwy unikalne, każda rola ma opis po polsku (1–2 zdania)', () => {
     const nazwy = ROLE_SYSTEMOWE.map((r) => r.name);
     expect(new Set(nazwy).size).toBe(nazwy.length);

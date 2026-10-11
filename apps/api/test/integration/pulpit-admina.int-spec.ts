@@ -79,7 +79,37 @@ describe('PB-34 — pulpit admina', () => {
     expect(o.flota.wezly.find((x) => x.nazwa === 'node-de-02')).toMatchObject({ poza: 'poza pulą — serwis', stan: 'warn', cpuProc: null });
     expect(o.naUwadze.map((u) => u.opis)).toContain('wymiana dysku · węzeł nie dostaje nowych kont');
     expect(o.uslugi).toMatchObject({ aktywne: 2, hosting: 2, poczta: 0 });
-    expect(o.klienci.razem).toBe(1);
-    expect(o.klienci.dzienne7.at(-1)).toBe(1);
+    expect(o.klienci!.razem).toBe(1);
+    expect(o.klienci!.dzienne7.at(-1)).toBe(1);
+  });
+
+  /**
+   * Weryfikacja 11.10 (decyzja właściciela) — L1 Konsultant ma pulpit (DASHBOARD_VIEW), ale nie metryki biznesowe:
+   * „Stan platformy” bez przychodów, sum portfela i liczby klientów; flota, zgłoszenia i usługi zostają.
+   */
+  it('bez METRICS_VIEW: bez przychodów, portfela i liczby klientów; ADMIN i L4 widzą metryki', async () => {
+    const k = await prisma().user.create({ data: { email: `m11-${Date.now()}@test.verris.pl`, passwordHash: 'x' } });
+    await prisma().invoice.create({
+      data: { userId: k.id, number: 'FV/2026/10/9101', status: 'PAID', amount: new Prisma.Decimal('49.00'), issuedAt: new Date(), paidAt: new Date() } as never,
+    });
+    const bez = await serwis().overview({ metryki: false });
+    expect(bez).toMatchObject({ metryki: false, klienci: null, wplywy: null, billing: null, users: null });
+    expect(JSON.stringify(bez)).not.toContain('49.00');
+    expect(bez.zgloszenia).toEqual({ otwarte: 0, poTerminie: 0, dzis: 0 });
+    const z = await serwis().overview();
+    expect(z.metryki).toBe(true);
+    expect(z.klienci!.razem).toBe(1);
+    expect(z.billing).not.toBeNull();
+
+    const rola = async (nazwa: string, permissions: string[]) => {
+      const r = await prisma().staffRole.create({ data: { name: `${nazwa}-${Date.now()}`, permissions, isSystem: false } });
+      return prisma().user.create({ data: { email: `${nazwa}-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'STAFF', staffRoleId: r.id } });
+    };
+    const l1 = await rola('l1', ['DASHBOARD_VIEW', 'CUSTOMERS_VIEW', 'TICKETS_VIEW', 'TICKETS_MANAGE', 'BILLING_VIEW']);
+    const l4 = await rola('l4', ['DASHBOARD_VIEW', 'METRICS_VIEW']);
+    expect(await serwis().widziMetryki({ userId: l1.id, role: 'STAFF' })).toBe(false);
+    expect(await serwis().widziMetryki({ userId: l4.id, role: 'STAFF' })).toBe(true);
+    expect(await serwis().widziMetryki({ userId: 'x', role: 'ADMIN' })).toBe(true);
+    expect(await serwis().widziMetryki({ userId: k.id, role: 'USER' })).toBe(false);
   });
 });

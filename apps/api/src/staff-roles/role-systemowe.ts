@@ -65,6 +65,8 @@ const L4: readonly StaffPermission[] = [
   'TICKETS_REPORTS',
   // F3.8 — komunikat serwisowy do klientów węzła albo planu (incydent, prace) od kierownika zmiany.
   'SERVICE_NOTICES_SEND',
+  // Weryfikacja 11.10 — metryki biznesowe (przychody, klienci) od kierownika zmiany; L1–L3 ich nie widzą.
+  'METRICS_VIEW',
 ];
 
 /** Szczeble obsługi w kolejności rosnącej. */
@@ -90,7 +92,7 @@ export const SZCZEBLE: readonly RolaSystemowa[] = [
   {
     name: 'L4 Kierownik zmiany',
     description:
-      'Wszystko z L3 oraz faktury, korekty, portfel i kredyty, zarządzanie węzłami, podgląd planów, dziennik bezpieczeństwa, RODO, baza wiedzy, oznaczanie kont wewnętrznych, eksport list do CSV, raporty obsługi, komunikaty serwisowe do klientów węzła albo planu i akceptacja wniosków zespołu. Bez ustawień platformy i zarządzania pracownikami.',
+      'Wszystko z L3 oraz faktury, korekty, portfel i kredyty, metryki biznesowe, zarządzanie węzłami, podgląd planów, dziennik bezpieczeństwa, RODO, baza wiedzy, oznaczanie kont wewnętrznych, eksport list do CSV, raporty obsługi, komunikaty serwisowe do klientów węzła albo planu i akceptacja wniosków zespołu. Bez ustawień platformy i zarządzania pracownikami.',
     permissions: L4,
   },
 ];
@@ -100,8 +102,8 @@ export const ROLE_FUNKCYJNE: readonly RolaSystemowa[] = [
   {
     name: 'Finanse i księgowość',
     description:
-      'Księgowość i rozliczenia: faktury, korekty, portfel i kredyty klientów oraz zgłoszenia w sprawach płatności. Nie zmienia usług ani infrastruktury.',
-    permissions: ['DASHBOARD_VIEW', 'CUSTOMERS_VIEW', 'BILLING_VIEW', 'BILLING_MANAGE', 'TICKETS_VIEW', 'TICKETS_MANAGE'],
+      'Księgowość i rozliczenia: faktury, korekty, portfel i kredyty klientów, metryki biznesowe oraz zgłoszenia w sprawach płatności. Nie zmienia usług ani infrastruktury.',
+    permissions: ['DASHBOARD_VIEW', 'METRICS_VIEW', 'CUSTOMERS_VIEW', 'BILLING_VIEW', 'BILLING_MANAGE', 'TICKETS_VIEW', 'TICKETS_MANAGE'],
   },
   {
     name: 'Sprzedaż i partnerzy',
@@ -111,7 +113,7 @@ export const ROLE_FUNKCYJNE: readonly RolaSystemowa[] = [
   },
   {
     name: 'Marketing',
-    description: 'Kampanie i treści: pulpit z metrykami, kody promocyjne, program partnerski i baza wiedzy. Nie widzi danych klientów ani zgłoszeń.',
+    description: 'Kampanie i treści: pulpit, kody promocyjne, program partnerski i baza wiedzy. Nie widzi danych klientów, zgłoszeń ani metryk biznesowych.',
     permissions: ['DASHBOARD_VIEW', 'PROMO_MANAGE', 'KB_MANAGE'],
   },
   {

@@ -256,7 +256,7 @@ export function grupy(l: LicznikiMenu | null): Grupa[] {
             { name: "Webhooki płatności", href: "/billing/webhooki", perm: "BILLING_MANAGE", szukaj: "stripe paynow zdarzenia" },
           ],
         },
-        { name: "Metryki", ikona: "pojemnosc", pod: [{ name: "Metryki", href: "/metrics", perm: "DASHBOARD_VIEW", szukaj: "metryki biznesowe mrr przychody churn kpi" }] },
+        { name: "Metryki", ikona: "pojemnosc", pod: [{ name: "Metryki", href: "/metrics", perm: "METRICS_VIEW", szukaj: "metryki biznesowe mrr przychody churn kpi" }] },
       ],
     },
     {

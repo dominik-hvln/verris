@@ -39,6 +39,14 @@ export default async function BillingPage() {
         </div>
       ) : null}
 
+      {overview && !b ? (
+        // Weryfikacja 11.10 — sumy portfela to metryki biznesowe (przychody): API zwraca je tylko z METRICS_VIEW.
+        <p className="rounded-xl border border-line bg-card px-4 py-3 text-sm text-muted-foreground" data-bez-metryk="">
+          Sumy portfela (wpływy i obciążenia) wymagają uprawnienia Metryki biznesowe (METRICS_VIEW). Nieudane płatności i
+          przypomnienia są w zakładkach obok.
+        </p>
+      ) : null}
+
       {overview && b ? (
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="rounded-2xl border border-white/10 bg-black/35 p-6">

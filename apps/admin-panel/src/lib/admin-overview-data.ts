@@ -1,9 +1,13 @@
 import { adminApi } from "./api";
 
-/** Odpowiedź `GET /admin/dashboard/overview`. */
+/**
+ * Odpowiedź `GET /admin/dashboard/overview`. Weryfikacja 11.10 — bez METRICS_VIEW (`metryki: false`) API nie zwraca
+ * przychodów, sum portfela ani liczby klientów (null).
+ */
 export type AdminDashboardOverview = StanPlatformy & {
   generatedAt: string;
-  users: { total: number; clients: number; staffAndAdmin: number };
+  metryki?: boolean;
+  users: { total: number; clients: number; staffAndAdmin: number } | null;
   subscriptions: { byStatus: Record<string, number>; active: number };
   servers: { total: number; active: number; byStatus: Record<string, number> };
   accounts: { total: number };
@@ -12,7 +16,7 @@ export type AdminDashboardOverview = StanPlatformy & {
     periodDays: number;
     walletNetPln: string;
     walletByTypePln: Record<string, string>;
-  };
+  } | null;
   serverRows: Array<{
     id: string;
     name: string;
@@ -55,9 +59,11 @@ export type StanPlatformy = {
       naZywo: boolean;
     }>;
   };
-  klienci: { razem: number; nowi7d: number; dzienne7: number[] };
+  /** null — operator bez METRICS_VIEW (metryki biznesowe). */
+  klienci: { razem: number; nowi7d: number; dzienne7: number[] } | null;
   uslugi: { aktywne: number; hosting: number; poczta: number; inne: number; zakladane: number; zawieszone: number; wszystkie: number };
-  wplywy: { okresDni: number; bruttoPln: string; dzienne7: number[] };
+  /** null — operator bez METRICS_VIEW (metryki biznesowe). */
+  wplywy: { okresDni: number; bruttoPln: string; dzienne7: number[] } | null;
   zgloszenia: { otwarte: number; poTerminie: number; dzis: number };
   zdarzenia: Array<{ id: string; at: string; tekst: string; kto: string | null; czego: string | null; href: string | null }>;
   noweUslugi: Array<{

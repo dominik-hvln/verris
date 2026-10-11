@@ -121,6 +121,8 @@ describe("Menu admina — żadna strona nie jest ukryta", () => {
     ["PLANS_MANAGE", "/plans"],
     // F3.7 — raporty obsługi dla kierownika zmiany.
     ["TICKETS_REPORTS", "/tickets/raporty"],
+    // Weryfikacja 11.10 — metryki biznesowe (L4, Finanse); sam pulpit (DASHBOARD_VIEW, L1) ich nie otwiera.
+    ["METRICS_VIEW", "/metrics"],
   ])("%s otwiera %s w menu; bez niego pozycji nie ma", async (perm, href) => {
     sciezka = "/";
     await render([perm], false);

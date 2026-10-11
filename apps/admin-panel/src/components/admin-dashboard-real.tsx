@@ -59,6 +59,7 @@ export function AdminDashboardReal({ o, dostep }: { o: AdminDashboardOverview; d
   const u = o.uslugi;
   const z = o.zgloszenia;
   const wezlyRazem = o.flota.wezly.length;
+  const { klienci, wplywy } = o;
 
   return (
     <div className="flex flex-col gap-[22px]">
@@ -77,7 +78,7 @@ export function AdminDashboardReal({ o, dostep }: { o: AdminDashboardOverview; d
               <Pigulka ton="ok">Nic nie wymaga uwagi</Pigulka>
             )}
             <span className="text-muted-foreground">
-              {plural(wezlyRazem, "węzeł", "węzły", "węzłów")} · {clients(o.klienci.razem)} ·{" "}
+              {plural(wezlyRazem, "węzeł", "węzły", "węzłów")} · {o.klienci ? `${clients(o.klienci.razem)} · ` : ""}
               {plural(u.wszystkie, "usługa", "usługi", "usług")}
             </span>
           </div>
@@ -104,16 +105,19 @@ export function AdminDashboardReal({ o, dostep }: { o: AdminDashboardOverview; d
         </div>
       </div>
 
-      <section className="grid grid-cols-1 rounded-[10px] border border-line bg-card sm:grid-cols-2 xl:grid-cols-4" aria-label="Wskaźniki">
-        <div className="flex flex-col gap-2.5 px-5 py-[18px]">
-          <Eyebrow>Klienci</Eyebrow>
-          <span className="font-display text-[30px] font-bold tracking-[-0.02em]">{o.klienci.razem.toLocaleString("pl-PL")}</span>
-          <Slupki wartosci={o.klienci.dzienne7} />
-          <span className={`text-[13px] ${o.klienci.nowi7d > 0 ? "text-data-hi" : "text-muted-foreground"}`}>
-            {o.klienci.nowi7d > 0 ? `+${o.klienci.nowi7d} w ostatnich 7 dniach` : "brak nowych w 7 dniach"}
-          </span>
-        </div>
-        <div className="flex flex-col gap-2.5 border-line px-5 py-[18px] max-sm:border-t sm:border-l">
+      <section className={`grid grid-cols-1 rounded-[10px] border border-line bg-card sm:grid-cols-2 ${klienci && wplywy ? "xl:grid-cols-4" : "xl:grid-cols-2"}`} aria-label="Wskaźniki">
+        {/* Weryfikacja 11.10 — liczba klientów i wpływy to metryki biznesowe (METRICS_VIEW); bez niego kafli nie ma. */}
+        {klienci ? (
+          <div className="flex flex-col gap-2.5 px-5 py-[18px]">
+            <Eyebrow>Klienci</Eyebrow>
+            <span className="font-display text-[30px] font-bold tracking-[-0.02em]">{klienci.razem.toLocaleString("pl-PL")}</span>
+            <Slupki wartosci={klienci.dzienne7} />
+            <span className={`text-[13px] ${klienci.nowi7d > 0 ? "text-data-hi" : "text-muted-foreground"}`}>
+              {klienci.nowi7d > 0 ? `+${klienci.nowi7d} w ostatnich 7 dniach` : "brak nowych w 7 dniach"}
+            </span>
+          </div>
+        ) : null}
+        <div className={`flex flex-col gap-2.5 border-line px-5 py-[18px] ${klienci ? "max-sm:border-t sm:border-l" : ""}`}>
           <Eyebrow>Aktywne usługi</Eyebrow>
           <div>
             <span className="font-display text-[30px] font-bold tracking-[-0.02em]">{u.aktywne.toLocaleString("pl-PL")}</span>
@@ -129,15 +133,17 @@ export function AdminDashboardReal({ o, dostep }: { o: AdminDashboardOverview; d
             {u.zakladane} {plForm(u.zakladane, "zakładana", "zakładane", "zakładanych")} · {plural(u.zawieszone, "zawieszona", "zawieszone", "zawieszonych")}
           </span>
         </div>
-        <div className="flex flex-col gap-2.5 border-line px-5 py-[18px] max-xl:border-t xl:border-l">
-          <Eyebrow>Wpływy · {days(o.wplywy.okresDni)}</Eyebrow>
-          <div>
-            <span className="font-display text-[30px] font-bold tracking-[-0.02em]">{zl(o.wplywy.bruttoPln)}</span>
-            <span className="ml-1.5 font-mono text-xs text-muted-foreground">zł</span>
+        {wplywy ? (
+          <div className="flex flex-col gap-2.5 border-line px-5 py-[18px] max-xl:border-t xl:border-l">
+            <Eyebrow>Wpływy · {days(wplywy.okresDni)}</Eyebrow>
+            <div>
+              <span className="font-display text-[30px] font-bold tracking-[-0.02em]">{zl(wplywy.bruttoPln)}</span>
+              <span className="ml-1.5 font-mono text-xs text-muted-foreground">zł</span>
+            </div>
+            <Slupki wartosci={wplywy.dzienne7} />
+            <span className="text-[13px] text-muted-foreground">opłacone faktury brutto, bez korekt</span>
           </div>
-          <Slupki wartosci={o.wplywy.dzienne7} />
-          <span className="text-[13px] text-muted-foreground">opłacone faktury brutto, bez korekt</span>
-        </div>
+        ) : null}
         <div className="flex flex-col gap-2.5 border-line px-5 py-[18px] max-sm:border-t sm:border-l">
           <Eyebrow>Zgłoszenia</Eyebrow>
           <div>
