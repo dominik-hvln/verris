@@ -72,6 +72,11 @@ LOGI = {
     "agent-lve": ("/var/log/verris-lve.log", None, False),
 }
 
+# Przegląd F3.4 — log agenta (/var/log/verris-tasks.log) zbiera też stdout KAŻDEGO zadania (verris-task@.service:
+# StandardOutput=append:/var/log/verris-tasks.log): dziennik poczty kont (MAIL_LOG), ogon logu poczty zamówiony przez
+# administratora bez maski, wyniki dostępów. Z tego logu pokazujemy wyłącznie wiersze samego agenta.
+TYLKO_WIERSZE_AGENTA = {"agent": ("[verris-tasks]", "[verris-task-run]")}
+
 SEKRET = re.compile(r"\b(pass(?:word|wd)?|token|secret|auth)=\S+", re.I)
 ADRES = re.compile(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@([A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+)")
 STEROWANIE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|[\x00-\x08\x0b-\x1f\x7f]")
@@ -239,6 +244,8 @@ else:
     linie = r.stdout.split("\n")
     zrodlo = "journal:" + j
 
+if nazwa in TYLKO_WIERSZE_AGENTA:
+    linie = [l for l in linie if l.lstrip().startswith(TYLKO_WIERSZE_AGENTA[nazwa])]
 linie = [oczysc(l) for l in linie if l.strip()]
 if filtr:
     f_male = filtr.lower()

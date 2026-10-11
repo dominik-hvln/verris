@@ -50,6 +50,28 @@ describe('F3.4 — wynik zadania NODE_SERVICES', () => {
     expect(stanUslug(zadania, true).log!.linie[0]).toBe('<= jan@firma.pl password=•••');
   });
 
+  it('przegląd: log agenta (wynik starszego skryptu) — API pokazuje tylko wiersze agenta, także ADMIN-owi', () => {
+    const log = [
+      'VERRIS_LOG_ZRODLO agent|/var/log/verris-tasks.log|3|3|0',
+      'VERRIS_LOG [verris-tasks] Dispatching MAIL_LOG task t1',
+      'VERRIS_LOG VERRIS_ML 2026-10-11 07:59|1abc|<=|jan@firma.pl|H=mx',
+      'VERRIS_LOG   [verris-task-run] Starting task t2',
+    ].join('\n');
+    const zadania = [zad({ payload: { mode: 'log', name: 'agent', lines: '200' }, outputLog: log })];
+    for (const admin of [false, true]) {
+      expect(stanUslug(zadania, admin).log!.linie).toEqual(['[verris-tasks] Dispatching MAIL_LOG task t1', '  [verris-task-run] Starting task t2']);
+    }
+  });
+
+  it('przegląd: filtr ADMIN-a z adresem w logu poczty — STAFF widzi go zamaskowanego, ADMIN w całości; log niepocztowy bez zmian', () => {
+    const log = 'VERRIS_LOG_ZRODLO exim-main|/var/log/exim/mainlog|1|1|0\nVERRIS_LOG <= jan@firma.pl';
+    const zadania = [zad({ payload: { mode: 'log', name: 'exim-main', mask: '0', lines: '200', filter: 'jan@firma.pl' }, outputLog: log })];
+    expect(stanUslug(zadania, false).log!.filtr).toBe('•••@firma.pl');
+    expect(stanUslug(zadania, true).log!.filtr).toBe('jan@firma.pl');
+    const www = [zad({ payload: { mode: 'log', name: 'www', filter: 'wp@domena.pl' }, outputLog: 'VERRIS_LOG_ZRODLO www|/x|0|0|0' })];
+    expect(stanUslug(www, false).log!.filtr).toBe('wp@domena.pl');
+  });
+
   it('log niepocztowy bez maski adresów także dla STAFF (np. log WWW)', () => {
     const log = 'VERRIS_LOG_ZRODLO www|/usr/local/lsws/logs/error.log|1|1|0\nVERRIS_LOG [ERROR] wp@domena.pl';
     const s = stanUslug([zad({ payload: { mode: 'log', name: 'www' }, outputLog: log })], false);

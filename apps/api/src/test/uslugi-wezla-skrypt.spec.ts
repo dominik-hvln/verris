@@ -227,6 +227,28 @@ describe('F3.4 — node-services.sh: logi', () => {
     expect(s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'exim-main', SVC_MASK: '0' }).log[0]).toContain('jan@firma.pl');
   });
 
+  it('przegląd: log agenta — tylko wiersze agenta, bez stdout zadań (dziennik poczty kont, log poczty ADMIN-a bez maski)', () => {
+    const s = srodowisko();
+    s.plik(
+      '/var/log/verris-tasks.log',
+      [
+        '[verris-tasks] Dispatching MAIL_LOG task t1 (instance=t1) at 2026-10-11T08:00:00Z',
+        'VERRIS_ML 2026-10-11 07:59|1abc|<=|jan@firma.pl|H=mx.example',
+        'VERRIS_LOG 2026-10-11 07:58 1abc => ola@example.com',
+        '[verris-task-run] Starting task t2 (kind=NODE_SERVICES instance=t2)',
+        'curl: (28) Operation timed out',
+      ].join('\n') + '\n',
+    );
+    const r = s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'agent' });
+    expect(r.rc).toBe(0);
+    expect(r.log).toEqual([
+      '[verris-tasks] Dispatching MAIL_LOG task t1 (instance=t1) at 2026-10-11T08:00:00Z',
+      '[verris-task-run] Starting task t2 (kind=NODE_SERVICES instance=t2)',
+    ]);
+    expect(r.out).not.toContain('jan@firma.pl');
+    expect(r.out).not.toContain('ola@example.com');
+  });
+
   it('dziennik usługi: journalctl -u <jednostka usługi> z listą argumentów', () => {
     const s = srodowisko();
     const r = s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'mariadb' });

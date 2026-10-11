@@ -83,8 +83,14 @@ export interface WynikLogu {
   linie: string[];
 }
 
+/**
+ * Przegląd F3.4 — log agenta zbiera stdout wszystkich zadań węzła (dziennik poczty kont, log poczty ADMIN-a bez maski):
+ * pokazujemy tylko wiersze samego agenta. Skrypt filtruje na węźle; API powtarza filtr (wynik starszego skryptu).
+ */
+export const PREFIKSY_AGENTA = ['[verris-tasks]', '[verris-task-run]'] as const;
+
 /** Wiersze VERRIS_LOG_ZRODLO / VERRIS_LOG. `maskuj` — wymuś maskę adresów (odczyt przez STAFF logu poczty). */
-export function logZWyniku(log: string | null, maskuj: boolean): WynikLogu {
+export function logZWyniku(log: string | null, maskuj: boolean, tylkoAgent = false): WynikLogu {
   const w: WynikLogu = { zrodlo: null, dopasowanych: null, pokazano: null, maska: false, linie: [] };
   for (const l of (log ?? '').split('\n')) {
     const z = /^VERRIS_LOG_ZRODLO [a-z0-9-]{1,40}\|([^|]{1,200})\|(\d+)\|(\d+)\|([01])$/.exec(l);
@@ -96,7 +102,9 @@ export function logZWyniku(log: string | null, maskuj: boolean): WynikLogu {
       continue;
     }
     if (l.startsWith('VERRIS_LOG ') && w.linie.length < 500) {
-      const linia = maskujSekrety(l.slice('VERRIS_LOG '.length));
+      const surowa = l.slice('VERRIS_LOG '.length);
+      if (tylkoAgent && !PREFIKSY_AGENTA.some((p) => surowa.trimStart().startsWith(p))) continue;
+      const linia = maskujSekrety(surowa);
       w.linie.push(maskuj ? maskujAdresy(linia) : linia);
     }
   }
@@ -160,12 +168,13 @@ export function stanUslug(zadania: ZadanieUslug[], admin: boolean) {
         ? {
             klucz: pl.name ?? '',
             etykieta: defLogu?.etykieta ?? pl.name ?? '',
-            filtr: pl.filter ?? null,
+            // Przegląd F3.4 — filtr ADMIN-a bywa pełnym adresem („jan@firma.pl”); STAFF widzi go z tą samą maską co log.
+            filtr: pl.filter ? (defLogu?.poczta && !admin ? maskujAdresy(pl.filter) : pl.filter) : null,
             linieZamowione: Number(pl.lines) || null,
             wToku: trwa(log),
             kiedy: kiedy(log),
             ...(log.status === NodeTaskStatus.COMPLETED
-              ? logZWyniku(log.outputLog, Boolean(defLogu?.poczta) && !admin)
+              ? logZWyniku(log.outputLog, Boolean(defLogu?.poczta) && !admin, defLogu?.klucz === 'agent')
               : { zrodlo: null, dopasowanych: null, pokazano: null, maska: Boolean(defLogu?.poczta) && (!admin || pl.mask !== '0'), linie: [] }),
             blad: log.status === NodeTaskStatus.FAILED ? bladUslug(log.outputLog, log.errorMessage) : null,
           }
