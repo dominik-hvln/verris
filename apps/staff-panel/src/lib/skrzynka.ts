@@ -10,7 +10,7 @@ export const WIDOKI = {
 export type Widok = keyof typeof WIDOKI;
 
 /** Pola formularza filtrów (nazwy = parametry API). */
-export const FILTRY = ["q", "priorytet", "przypisany", "temat", "tag", "sla", "userId"] as const;
+export const FILTRY = ["q", "priorytet", "przypisany", "temat", "tag", "sla", "dzial", "userId"] as const;
 export type ParametrySkrzynki = Partial<Record<(typeof FILTRY)[number] | "widok" | "page", string>>;
 
 export function widokZ(w: string | undefined): Widok {
@@ -38,6 +38,13 @@ export function linkStrony(p: ParametrySkrzynki, strona: number, sciezka = "/"):
   ).toString();
   return qs ? `${sciezka}?${qs}` : sciezka;
 }
+
+/** F3.7 — działy (widoki skrzynki działu; pole `department` zgłoszenia). */
+export const DZIALY: { kod: string; nazwa: string }[] = [
+  { kod: "TECHNICAL", nazwa: "Techniczny" },
+  { kod: "BILLING", nazwa: "Płatności" },
+  { kod: "SALES", nazwa: "Sprzedaż" },
+];
 
 export function czyFiltry(p: ParametrySkrzynki): boolean {
   return FILTRY.some((k) => k !== "userId" && !!p[k]?.trim());

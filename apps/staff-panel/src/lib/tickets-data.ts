@@ -8,6 +8,8 @@ export interface ListaZgloszen {
   limit: number;
   totalPages: number;
   liczby: { otwarte: number; moje: number; czeka: number; poTerminie: number; zamkniete: number };
+  /** F3.7 — otwarte w każdym dziale (zakładki działów). */
+  dzialy?: Record<string, number>;
 }
 
 /** F2.5 — skrzynka: `parametry` to filtry API (lista-zgloszen.ts): stan, priorytet, przypisany, temat, tag, sla, userId, q, sort, page, limit. */
@@ -133,6 +135,8 @@ export interface StaffTicketDetail extends StaffTicketRow {
   runbookKey?: string | null;
   /** F2.5 — operator, który założył zgłoszenie w imieniu klienta (null = klient). */
   openedByStaffId?: string | null;
+  /** F3.7 — zgłoszenie scalone z innym (wątek jest tam; do tego nie da się już pisać). */
+  scalonoDoId?: string | null;
   /** PB-43 — usługa, której dotyczy zgłoszenie */
   subscriptionId?: string | null;
   subscription?: {
@@ -154,6 +158,31 @@ export interface StaffTicketDetail extends StaffTicketRow {
     authorId?: string | null;
     attachments?: TicketAttachmentRow[];
   }>;
+}
+
+/** F3.7 — makra do wyboru w zgłoszeniu; null = nie wczytano (panel mówi to wprost). */
+export async function staffMakra(ticketId: string): Promise<import("./ticket-actions").MakroRow[] | null> {
+  try {
+    return await staffApi(`/tickets/admin/makra?ticketId=${encodeURIComponent(ticketId)}`);
+  } catch {
+    return null;
+  }
+}
+
+/** F3.7 — inne zgłoszenia tego klienta, z którymi można scalić; null = nie wczytano. */
+export interface KandydatScalenia {
+  id: string;
+  subject: string;
+  status: string;
+  createdAt: string;
+}
+
+export async function staffKandydaciScalenia(ticketId: string): Promise<KandydatScalenia[] | null> {
+  try {
+    return await staffApi<KandydatScalenia[]>(`/tickets/admin/${ticketId}/scalanie`);
+  } catch {
+    return null;
+  }
 }
 
 export interface AgentOption {

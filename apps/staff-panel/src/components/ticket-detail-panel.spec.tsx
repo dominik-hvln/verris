@@ -20,7 +20,12 @@ jest.mock("@/lib/ticket-actions", () => ({
   staffSetTags: jest.fn(),
   staffListTags: jest.fn(async () => []),
   staffRunbookSteps: jest.fn(),
+  staffApplyMacro: jest.fn(),
+  staffMergeTicket: jest.fn(),
+  staffPresence: jest.fn(async () => []),
+  staffLeave: jest.fn(),
 }));
+jest.mock("@/lib/wnioski-actions", () => ({ zlozWniosekAction: jest.fn() }));
 
 import { TicketDetailPanel } from "./ticket-detail-panel";
 import type { StaffTicketDetail } from "@/lib/tickets-data";
@@ -145,5 +150,45 @@ describe("X-05 szczegół zgłoszenia (obsługa)", () => {
     expect(t).toContain("Opiekun: 5/5");
     expect(t).toContain("obsługa: 4/5");
     expect(t).toContain("Problem rozwiązany: tak");
+  });
+});
+
+describe("F3.7 — makra, scalanie, obecność", () => {
+  const makro = { id: "m1", title: "Rozwiązane — DNS", content: "Dzień dobry Anno, poprawione.", makroStan: "CLOSED", makroTagi: ["dns"], makroPrzypisz: "JA" };
+  const kandydat = { id: "t2000000-0000-4000-8000-000000000002", subject: "Drugie zgłoszenie", status: "OPEN", createdAt: h(-5) };
+  const html = (t: StaffTicketDetail, o: { makra?: typeof makro[] | null; mozeScalic?: boolean } = {}) =>
+    renderToStaticMarkup(
+      <TicketDetailPanel ticket={t} agents={[]} context={null} mojeOceny={null} teraz={TERAZ} makra={o.makra === undefined ? [makro] : o.makra} kandydaciScalenia={[kandydat]} mozeScalic={o.mozeScalic ?? false} />,
+    );
+
+  it("makra: nazwa i co zrobią (odpowiedź, stan, tagi, przypisanie); błąd wczytania mówi to wprost", () => {
+    const t = tekst(html(zgl()));
+    expect(t).toContain("Rozwiązane — DNS");
+    expect(t).toContain("odpowiedź · stan: zamknięte · tagi: dns · przypisz do mnie");
+    expect(tekst(html(zgl(), { makra: null }))).toContain("Nie udało się wczytać makr");
+  });
+
+  it("scalanie: L1/L2 — „Wyślij wniosek” TICKET_MERGE; L3 — powód, „rozumiem” i „Scal zgłoszenia”", () => {
+    const bez = html(zgl());
+    expect(bez).toContain('data-karta="scalanie"');
+    expect(bez).toContain('data-wniosek="TICKET_MERGE"');
+    expect(tekst(bez)).not.toContain("Scal zgłoszenia");
+    const l3 = tekst(html(zgl(), { mozeScalic: true }));
+    expect(l3).toContain("Rozumiem — scalenia nie da się cofnąć");
+    expect(l3).toContain("Scal zgłoszenia");
+    expect(l3).toContain("#t2000000 · Drugie zgłoszenie");
+  });
+
+  it("zgłoszenie scalone: baner z numerem celu, bez scalania, makra zablokowane; historia scalenia z powodem", () => {
+    const t = zgl({
+      scalonoDoId: "t3000000-0000-4000-8000-000000000003",
+      events: [{ id: "e1", type: "MERGED_INTO", actorId: "s1", meta: { cel: "t3000000-0000-4000-8000-000000000003", reason: "duplikat z maila" }, createdAt: h(-1) }],
+    });
+    const out = html(t);
+    expect(out).toContain("data-scalone");
+    expect(tekst(out)).toContain("Scalone z #t3000000 — rozmowa toczy się tam.");
+    expect(out).not.toContain('data-karta="scalanie"');
+    expect(tekst(out)).toContain("Zgłoszenie scalone — makra stosuj w docelowym.");
+    expect(tekst(out)).toContain("Scalone z innym zgłoszeniem #t3000000 — duplikat z maila");
   });
 });

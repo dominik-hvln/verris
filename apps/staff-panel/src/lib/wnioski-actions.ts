@@ -9,7 +9,8 @@ import { StaffApiError, staffApi } from "./staff-api";
  * 400 z code 'WYKONAJ_BEZPOSREDNIO'); `/staff/me/access` służy tylko do wyglądu przycisków.
  */
 
-export type TypWniosku = "CUSTOMER_INTERNAL_FLAG" | "WALLET_CREDIT" | "INVOICE_VOID";
+/** F3.7 — TICKET_MERGE: scalenie zgłoszeń (L1/L2 przez wniosek, od L3 bezpośrednio — ticket-scalanie.tsx). */
+export type TypWniosku = "CUSTOMER_INTERNAL_FLAG" | "WALLET_CREDIT" | "INVOICE_VOID" | "TICKET_MERGE";
 
 export interface Wniosek {
   id: string;
@@ -53,8 +54,11 @@ export async function wykonajOperacjeAction(typ: TypWniosku, userId: string, pay
         method: "POST",
         body: { userId, amount: Number(payload.amount), description: payload.description || undefined, idempotencyKey: `staff-credit:${userId}:${Date.now()}` },
       });
-    } else {
+    } else if (typ === "INVOICE_VOID") {
       await staffApi(`/admin/invoices/${encodeURIComponent(String(payload.invoiceId))}/anuluj`, { method: "POST", body: { powod: payload.powod } });
+    } else {
+      // F3.7 — scalenie ma własny formularz w zgłoszeniu (staffMergeTicket), tu nie trafia.
+      return { ok: false, wymagaWniosku: false, error: "Tę operację wykonasz w zgłoszeniu." };
     }
   } catch (err) {
     return wynikBledu(err, "Nie udało się wykonać operacji.");

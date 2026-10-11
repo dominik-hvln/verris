@@ -27,6 +27,7 @@ export function FiltrySkrzynki({ p, tagi, sciezka = "/", bezTerminu = false }: {
     <form method="get" action={sciezka} className="flex flex-wrap items-center gap-2" aria-label="Filtry skrzynki" data-filtry="skrzynka">
       {p.widok ? <input type="hidden" name="widok" value={p.widok} /> : null}
       {p.userId ? <input type="hidden" name="userId" value={p.userId} /> : null}
+      {p.dzial ? <input type="hidden" name="dzial" value={p.dzial} /> : null}
       <input
         name="q"
         defaultValue={p.q ?? ""}

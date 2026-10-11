@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { staffListaZgloszen, type ListaZgloszen, type StaffTicketRow } from "@/lib/tickets-data";
+import { staffListSupportAgents, staffListaZgloszen, type AgentOption, type ListaZgloszen, type StaffTicketRow } from "@/lib/tickets-data";
 import { staffListTags } from "@/lib/ticket-actions";
-import { WIDOKI, czyFiltry, linkStrony, widokZ, zapytanieSkrzynki, type ParametrySkrzynki } from "@/lib/skrzynka";
+import { DZIALY, WIDOKI, czyFiltry, linkStrony, widokZ, zapytanieSkrzynki, type ParametrySkrzynki } from "@/lib/skrzynka";
+import { AkcjeMasowe, ZaznaczZgloszenie } from "@/components/akcje-masowe";
+import { maUprawnienie, pobierzDostepOperatora } from "@/lib/staff-access";
 import { FiltrySkrzynki } from "@/components/filtry-skrzynki";
 import { Stronicowanie } from "@/components/stronicowanie";
 import { StaffApiError } from "@/lib/staff-api";
@@ -56,6 +58,10 @@ export default async function StaffInboxPage({ searchParams }: { searchParams: P
     error = e instanceof Error ? e.message : "Nie udało się pobrać zgłoszeń.";
   }
   const tagi = (await staffListTags()).map((t) => t.tag);
+  // F3.7 — opiekunowie do akcji masowej „przypisz”; bez listy pasek pokazuje tylko „bez opiekuna”.
+  // Pasek i pola wyboru tylko z TICKETS_MANAGE (Audytor i NOC widzą skrzynkę bez zmian); egzekucja w API.
+  const masowo = maUprawnienie(await pobierzDostepOperatora(), "TICKETS_MANAGE");
+  const agenci: AgentOption[] = masowo ? await staffListSupportAgents().catch(() => []) : [];
   const rows: StaffTicketRow[] = lista?.rows ?? [];
 
   // eslint-disable-next-line react-hooks/purity -- komponent serwerowy (force-dynamic) renderuje się raz na żądanie; czas żądania jest tu zamierzony
@@ -99,7 +105,27 @@ export default async function StaffInboxPage({ searchParams }: { searchParams: P
         </div>
       </header>
 
+      <nav className="flex flex-wrap gap-2" aria-label="Działy">
+        {[{ kod: "", nazwa: "Wszystkie działy" }, ...DZIALY].map((d) => {
+          const liczba = d.kod ? lista?.dzialy?.[d.kod] : null;
+          const aktywny = (p.dzial ?? "") === d.kod;
+          return (
+            <Link
+              key={d.kod || "wszystkie"}
+              href={linkStrony({ ...p, dzial: d.kod || undefined }, 1)}
+              aria-current={aktywny ? "page" : undefined}
+              className={`rounded-full border px-3 py-1 text-[13px] no-underline ${aktywny ? "border-primary bg-data-soft font-semibold text-data-hi" : "border-line-strong text-muted-foreground hover:text-foreground"}`}
+            >
+              {d.nazwa}
+              {liczba == null ? "" : ` · ${liczba}`}
+            </Link>
+          );
+        })}
+      </nav>
+
       <FiltrySkrzynki p={p} tagi={tagi} />
+
+      {rows.length && masowo ? <AkcjeMasowe agenci={agenci} /> : null}
 
       <section className="overflow-hidden rounded-[10px] border border-line bg-card" aria-label="Lista zgłoszeń">
         {rows.map((t) => {
@@ -107,6 +133,7 @@ export default async function StaffInboxPage({ searchParams }: { searchParams: P
           const klient = [t.user.firstName, t.user.lastName].filter(Boolean).join(" ") || t.user.email;
           return (
             <div key={t.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-4 py-3 first:border-t-0 hover:bg-raised">
+              {masowo ? <ZaznaczZgloszenie id={t.id} temat={t.subject} /> : null}
               <Link href={`/tickets/${t.id}`} className="flex min-w-0 flex-1 basis-[320px] flex-col gap-0.5 text-foreground no-underline">
                 <span className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-xs text-muted-foreground">#{t.id.slice(0, 8)}</span>

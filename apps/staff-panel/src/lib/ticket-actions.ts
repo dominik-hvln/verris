@@ -288,3 +288,87 @@ export async function staffRunbookSteps(ticketId: string, runbookKey: string, kr
     return { error: e instanceof StaffApiError ? e.message : "Nie udało się zapisać kroków." };
   }
 }
+
+/** F3.7 — makro do wyboru w zgłoszeniu (szablon odpowiedzi z akcjami; treść z podstawionymi zmiennymi). */
+export interface MakroRow {
+  id: string;
+  title: string;
+  content: string;
+  makroStan: string | null;
+  makroTagi: string[];
+  makroPrzypisz: string | null;
+}
+
+/** F3.7 — makro: odpowiedź + stan + tagi + przypisanie jednym kliknięciem (API: tickets/admin/:id/makro). */
+export async function staffApplyMacro(ticketId: string, makroId: string): Promise<{ ok: true } | { error: string }> {
+  try {
+    await staffApi(`/tickets/admin/${ticketId}/makro`, { method: "POST", body: { makroId } });
+    revalidatePath(`/tickets/${ticketId}`);
+    revalidatePath("/");
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof StaffApiError ? e.message : "Nie udało się zastosować makra." };
+  }
+}
+
+/**
+ * F3.7 — scalenie: ten wątek przechodzi do `celId` (nieodwracalne, powód obowiązkowy). Brak uprawnienia → API
+ * odpowiada 403 WYMAGA_WNIOSKU, a panel pokazuje „Wyślij wniosek”.
+ */
+export async function staffMergeTicket(
+  ticketId: string,
+  celId: string,
+  powod: string,
+): Promise<{ ok: true; celId: string } | { error: string; wymagaWniosku?: boolean }> {
+  if (powod.trim().length < 10) return { error: "Podaj powód scalenia (min. 10 znaków)." };
+  try {
+    await staffApi(`/tickets/admin/${ticketId}/scal`, { method: "POST", body: { celId, powod: powod.trim() } });
+    revalidatePath(`/tickets/${ticketId}`);
+    revalidatePath(`/tickets/${celId}`);
+    revalidatePath("/");
+    return { ok: true, celId };
+  } catch (e) {
+    if (e instanceof StaffApiError) {
+      const kod = e.body && typeof e.body === "object" ? (e.body as { code?: unknown }).code : null;
+      return { error: e.message, wymagaWniosku: e.status === 403 && kod === "WYMAGA_WNIOSKU" };
+    }
+    return { error: "Nie udało się scalić zgłoszeń." };
+  }
+}
+
+/** F3.7 — „kto teraz to ogląda / pisze” (odpytywanie co kilka sekund). Błąd — pusta lista (to tylko podpowiedź). */
+export async function staffPresence(ticketId: string, pisze: boolean): Promise<{ nazwa: string; pisze: boolean }[]> {
+  try {
+    const r = await staffApi<{ inni: { nazwa: string; pisze: boolean }[] }>(`/tickets/admin/${ticketId}/obecnosc`, { method: "POST", body: { pisze } });
+    return r.inni ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function staffLeave(ticketId: string): Promise<void> {
+  try {
+    await staffApi(`/tickets/admin/${ticketId}/obecnosc`, { method: "DELETE" });
+  } catch {
+    // znacznik i tak wygaśnie po 30 s
+  }
+}
+
+/** F3.7 — akcje masowe w skrzynce (przypisz, tag ±, stan); najwyżej 50 zgłoszeń. */
+export async function staffBulk(input: {
+  ids: string[];
+  akcja: "przypisz" | "tag" | "stan";
+  assignedToId?: string | null;
+  tag?: string;
+  tryb?: "dodaj" | "usun";
+  status?: string;
+}): Promise<{ ok: true; zmienione: number; bezZmian: number; bledy: { id: string; blad: string }[] } | { error: string }> {
+  if (!input.ids.length) return { error: "Zaznacz zgłoszenia." };
+  try {
+    const r = await staffApi<{ zmienione: number; bezZmian: number; bledy: { id: string; blad: string }[] }>("/tickets/admin/masowo", { method: "POST", body: input });
+    revalidatePath("/");
+    return { ok: true, ...r };
+  } catch (e) {
+    return { error: e instanceof StaffApiError ? e.message : "Nie udało się wykonać akcji." };
+  }
+}

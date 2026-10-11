@@ -23,6 +23,11 @@ import { TICKET_DEPARTMENT_PL, TICKET_PRIORITY_PL, TICKET_STATUS_PL, etykieta } 
 import { PoleZalacznikow } from "./pole-zalacznikow";
 import { TicketUsluga, nazwaUslugiZgloszenia } from "./ticket-usluga";
 import { TicketRunbook } from "./ticket-runbook";
+import { TicketMakra } from "./ticket-makra";
+import { TicketScalanie } from "./ticket-scalanie";
+import { TicketObecnosc } from "./ticket-obecnosc";
+import type { MakroRow } from "@/lib/ticket-actions";
+import type { KandydatScalenia } from "@/lib/tickets-data";
 import { plForm } from "@/lib/pl";
 
 interface Props {
@@ -34,6 +39,10 @@ interface Props {
   teraz: number;
   /** Pozycja 21 — operator ma CUSTOMERS_VIEW + CUSTOMERS_IMPERSONATE (z /staff/me/access). */
   mozeWejscNaKonto?: boolean;
+  /** F3.7 — makra (null = nie wczytano), kandydaci do scalenia i czy operator scala sam (TICKETS_MERGE). */
+  makra?: MakroRow[] | null;
+  kandydaciScalenia?: KandydatScalenia[] | null;
+  mozeScalic?: boolean;
 }
 
 const STATUS_OPTS = ["OPEN", "IN_PROGRESS", "WAITING_CUSTOMER", "CLOSED"] as const;
@@ -57,12 +66,17 @@ const EVENT_LABELS: Record<string, string> = {
   ESCALATION_UNDONE: "Cofnięto eskalację",
   RISK_FLAG_SET: "Flaga ryzyka",
   RISK_FLAG_CLEARED: "Zdjęto flagę ryzyka",
+  PRIORITY_CHANGED: "Zmiana priorytetu",
+  MACRO_APPLIED: "Makro",
+  MERGED_INTO: "Scalone z innym zgłoszeniem",
+  MERGED_FROM: "Dołączono wątek innego zgłoszenia",
 };
 const AUTO: Record<string, string> = {
   POTWIERDZENIE: "potwierdzenie",
   ZAJMUJE_SIE: "opiekun się tym zajmuje",
   WCIAZ_PRACUJEMY: "wciąż nad tym pracujemy",
   PODZIEKOWANIE: "podziękowanie i prośba o ocenę",
+  SCALONE: "informacja o scaleniu",
 };
 const KATEGORIE = [
   { k: "POWITANIE", nazwa: "Powitanie" },
@@ -159,7 +173,17 @@ function Wybor({ etykieta: e, id, children }: { etykieta: string; id: string; ch
 
 const POLE_WYBORU = "flex h-[32px] items-center gap-1.5 border-0 bg-transparent px-1.5 text-[13px] font-semibold text-foreground";
 
-export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: start, mozeWejscNaKonto = false }: Props) {
+export function TicketDetailPanel({
+  ticket,
+  agents,
+  context,
+  mojeOceny,
+  teraz: start,
+  mozeWejscNaKonto = false,
+  makra = [],
+  kandydaciScalenia = [],
+  mozeScalic = false,
+}: Props) {
   const router = useRouter();
   const teraz = useTeraz(start);
   const kd = (d: string | Date) => kiedy(d, teraz);
@@ -341,6 +365,13 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
               />
             </Wybor>
           </div>
+          {ticket.scalonoDoId ? (
+            <p role="status" data-scalone className="rounded-lg bg-warn-soft px-3 py-2 text-[13px] font-semibold text-warn">
+              Scalone z <Link href={`/tickets/${ticket.scalonoDoId}`}>#{ticket.scalonoDoId.slice(0, 8)}</Link> — rozmowa toczy się tam.
+            </p>
+          ) : (
+            <TicketObecnosc ticketId={ticket.id} pisze={replyText.trim().length > 0} />
+          )}
           <p className="text-[13.5px] text-muted-foreground">
             {nazwaKlienta} · <a href={`mailto:${ticket.user.email}`}>{ticket.user.email}</a> ·{" "}
             <Link href={`/?userId=${encodeURIComponent(ticket.user.id)}`}>wszystkie zgłoszenia tego klienta</Link>
@@ -718,6 +749,8 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
           </div>
         </Karta>
 
+        <TicketMakra ticketId={ticket.id} makra={makra} zablokowane={ticket.scalonoDoId ? "Zgłoszenie scalone — makra stosuj w docelowym." : null} />
+
         <TicketRunbook ticketId={ticket.id} runbookKey={ticket.runbookKey} kategoria={context?.category} dzial={ticket.department} />
 
         <TicketTagi ticketId={ticket.id} tagi={ticket.tags ?? []} />
@@ -730,6 +763,8 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
           ryzyko={ticket.riskFlag ?? null}
           opisRyzyka={ticket.riskReason ?? null}
         />
+
+        {ticket.scalonoDoId ? null : <TicketScalanie ticketId={ticket.id} userId={ticket.user.id} kandydaci={kandydaciScalenia} mozeScalic={mozeScalic} />}
 
         {ticket.events?.length ? (
           <Karta>
@@ -749,7 +784,11 @@ export function TicketDetailPanel({ ticket, agents, context, mojeOceny, teraz: s
                         ? `: ${AUTO[String(meta.rodzaj)] ?? String(meta.rodzaj ?? "")}`
                         : e.type === "SERVICE_LINK_CHANGED"
                           ? ` (${nazwaUslugi(meta.from)} → ${nazwaUslugi(meta.to)})`
-                          : "";
+                          : e.type === "MACRO_APPLIED"
+                            ? `: ${String((e.meta as { makro?: unknown } | null)?.makro ?? "")}`
+                            : e.type === "MERGED_INTO" || e.type === "MERGED_FROM"
+                              ? ` #${String((e.meta as { cel?: unknown; zrodlo?: unknown } | null)?.cel ?? (e.meta as { zrodlo?: unknown } | null)?.zrodlo ?? "").slice(0, 8)}${meta.reason ? ` — ${String(meta.reason)}` : ""}`
+                              : "";
                   return (
                     <li key={e.id} className="flex justify-between gap-3 text-[12.5px]">
                       <span>
