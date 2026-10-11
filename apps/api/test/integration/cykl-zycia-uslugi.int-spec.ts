@@ -132,6 +132,9 @@ describe('F3.5 — cykl życia usługi zmieniany przez operatora', () => {
     await expect(cykl().anulujNaKoniecOkresu({ subscriptionId: u.id, operator: op, powod: 'krótki' })).rejects.toMatchObject({ status: 400 });
     const r = await cykl().anulujNaKoniecOkresu({ subscriptionId: u.id, operator: op, powod: POWOD, zgloszenie: `#${zgl.id.slice(0, 8)}` });
     expect(r).toMatchObject({ bezZmian: false, cancelAt: koniec.toISOString() });
+    // Weryfikacja 11.10 — data jak w panelu (pl-PL, czas PL), nie ISO.
+    expect(r.komunikat).toBe(`Usługa działa do ${koniec.toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' })} i nie odnowi się.`);
+    expect(r.komunikat).not.toMatch(/\d{4}-\d{2}-\d{2}/);
     expect((await sub(u.id)).cancelAt?.toISOString()).toBe(koniec.toISOString());
     expect(await cykl().anulujNaKoniecOkresu({ subscriptionId: u.id, operator: op, powod: POWOD })).toMatchObject({ bezZmian: true });
     expect(await prisma().subscriptionEvent.count({ where: { subscriptionId: u.id, type: 'CANCEL_SCHEDULED' } })).toBe(1);
@@ -186,7 +189,11 @@ describe('F3.5 — cykl życia usługi zmieniany przez operatora', () => {
     const koniec = new Date(Date.now() + 10 * 86400000);
     const u = await usluga(k.id, { currentPeriodEnd: koniec });
     const nowa = new Date(koniec.getTime() + 14 * 86400000);
-    expect(await cykl().zmienDateOdnowienia({ przed: await obecny(u.id), subscriptionId: u.id, operator: op, powod: POWOD, nowaData: nowa })).toMatchObject({ bezZmian: false, dni: 14 });
+    expect(await cykl().zmienDateOdnowienia({ przed: await obecny(u.id), subscriptionId: u.id, operator: op, powod: POWOD, nowaData: nowa })).toMatchObject({
+      bezZmian: false,
+      dni: 14,
+      komunikat: `Nowa data odnowienia: ${nowa.toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' })}.`,
+    });
     expect((await sub(u.id)).currentPeriodEnd?.toISOString()).toBe(nowa.toISOString());
     expect(await cykl().zmienDateOdnowienia({ przed: await obecny(u.id), subscriptionId: u.id, operator: op, powod: POWOD, nowaData: nowa })).toMatchObject({ bezZmian: true });
     expect(await saldo(k.id)).toBe(100);

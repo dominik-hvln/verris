@@ -21,6 +21,12 @@ export const ZMIANA_DATY_MAKS_DNI = 366;
 const OKNO_ODNOWIENIA_MS = 25 * GODZINA;
 export const MIN_POWOD_CYKLU = 10;
 
+/**
+ * Weryfikacja 11.10 — data w komunikatach dla operatora jak reszta panelu („8.11.2026”, czas PL), nie ISO
+ * („Usługa działa do 2026-11-08 i nie odnowi się.” obok „Anulowana — działa do 8.11.2026”).
+ */
+export const dzienPl = (d: Date) => d.toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' });
+
 export interface Operator {
   userId: string;
   role: string;
@@ -178,7 +184,7 @@ export class CyklZyciaUslugiService {
       zgloszenieId: o.zgloszenieId,
       szczegoly: { effectiveAt: o.koniec.toISOString() },
     });
-    return { bezZmian: false, cancelAt: o.koniec.toISOString(), komunikat: `Usługa działa do ${o.koniec.toISOString().slice(0, 10)} i nie odnowi się.` };
+    return { bezZmian: false, cancelAt: o.koniec.toISOString(), komunikat: `Usługa działa do ${dzienPl(o.koniec)} i nie odnowi się.` };
   }
 
   /** Stripe ma zaplanowany koniec subskrypcji (cancel_at_period_end albo cancel_at). Błąd odczytu = 409, bez zmian. */
@@ -307,7 +313,7 @@ export class CyklZyciaUslugiService {
     }
     if (z.przed.getTime() !== stary.getTime()) {
       throw new ConflictException(
-        `Data odnowienia zmieniła się od otwarcia formularza lub złożenia wniosku (teraz ${stary.toISOString().slice(0, 10)}, np. po odnowieniu) — nic nie zmieniono. Odśwież kartę i zdecyduj ponownie.`,
+        `Data odnowienia zmieniła się od otwarcia formularza lub złożenia wniosku (teraz ${dzienPl(stary)}, np. po odnowieniu) — nic nie zmieniono. Odśwież kartę i zdecyduj ponownie.`,
       );
     }
     if (s.cancelAt) throw new BadRequestException('Usługa jest anulowana na koniec okresu — najpierw cofnij anulację.');
@@ -352,7 +358,7 @@ export class CyklZyciaUslugiService {
       zgloszenieId,
       szczegoly,
     });
-    return { bezZmian: false, currentPeriodEnd: nowa.toISOString(), dni, komunikat: `Nowa data odnowienia: ${nowa.toISOString().slice(0, 10)}.` };
+    return { bezZmian: false, currentPeriodEnd: nowa.toISOString(), dni, komunikat: `Nowa data odnowienia: ${dzienPl(nowa)}.` };
   }
 
   // ── obietnica zapłaty ───────────────────────────────────────────────────────
