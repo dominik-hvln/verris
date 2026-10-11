@@ -35,7 +35,8 @@ export const KORDON_Z_BLOKADY = 'Blokada wysyłki konta przez obsługę';
  *
  * Kolejka konta: zadanie węzła MAIL_QUEUE (ops/scripts/node-mail-queue.sh, podpisany skrypt agenta) — tylko nagłówki
  * (id, nadawca, odbiorcy, temat, rozmiar, wiek, zamrożona), nigdy treść. Wiadomość należy do konta, gdy wysłał ją
- * użytkownik DA (mail() z PHP), skrzynka konta (SMTP) albo adres w domenach konta — sprawdza to węzeł. Usunięcie
+ * użytkownik DA (mail() z PHP) albo skrzynka konta (SMTP AUTH); sam nadawca koperty w domenach konta liczy się tylko
+ * dla wiadomości wytworzonych lokalnie przez exima (autoresponder) — sprawdza to węzeł (konta() w skrypcie). Usunięcie
  * (nieodwracalne): tylko identyfikatory z ostatniego podglądu, węzeł ponownie sprawdza przynależność do konta,
  * a liczbę usuniętych zapisuje NodeTasksService po zakończeniu zadania (MAIL_QUEUE_MESSAGES_REMOVED).
  *

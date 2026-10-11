@@ -164,4 +164,27 @@ describe('F3.1 — node-mail-queue.sh (kolejka exima)', () => {
     expect(r.wiersze).toEqual([]);
     expect(existsSync(join(s.dir, 'PWNED'))).toBe(false);
   });
+
+  it('audyt Fal 2: przynależność po tożsamości (login, -auth_id), nie po nadawcy koperty — cudze wiadomości z nadawcą @domena-konta pominięte w podglądzie i przy usuwaniu', () => {
+    const s = srodowisko();
+    const k = join(s.dir, 'kolejka');
+    const msg = (id: string, login: string, nadawca: string, extra: string, temat: string) =>
+      wiadomosc(k, id, ` 1m  1.0K ${id} <${nadawca}>\n          odbiorca@gmail.com\n\n`, `${id}-H\n${login} 1002 1002\n<${nadawca}>\n1760090200 0\n${extra}XX\n1\nodbiorca@gmail.com\n\n030  Subject: ${temat}\n`);
+    const B_F = '1tBbBb-0000000000a-0001'; // inny użytkownik DA: mail() z -f kontakt@klient.pl
+    const B_AUTH = '1tBbBb-0000000000b-0002'; // SMTP AUTH skrzynki innego klienta z MAIL FROM @klient.pl
+    const ZEWN = '1tBbBb-0000000000c-0003'; // z zewnątrz, bez uwierzytelnienia, sfałszowany nadawca @klient.pl
+    const AUTO = '1tBbBb-0000000000d-0004'; // autoresponder skrzynki konta wytworzony lokalnie przez exima
+    msg(B_F, 'innyklient', 'kontakt@klient.pl', '-received_protocol local\n', 'Oferta B');
+    msg(B_AUTH, 'mail', 'biuro@klient.pl', '-auth_id b@obcy.pl\n-received_protocol esmtpsa\n', 'Faktura B');
+    msg(ZEWN, 'mail', 'biuro@klient.pl', '-received_protocol esmtp\n-host_address 203.0.113.9.4321\n', 'Spam do B');
+    msg(AUTO, 'mail', 'biuro@klient.pl', '-received_protocol local\n', 'Autoodpowiedz');
+    const lista = s.uruchom({ MQ_MODE: 'list', ...KONTO });
+    expect(lista.rc).toBe(0);
+    expect(lista.wiersze.map((w) => w.slice('VERRIS_MQ '.length).split('|')[0]).sort()).toEqual([AUTO, M_PHP, M_SMTP].sort());
+    const r = s.uruchom({ MQ_MODE: 'remove', ...KONTO, MQ_IDS: [B_F, B_AUTH, ZEWN, AUTO].join(',') });
+    expect(r.rc).toBe(0);
+    expect(r.out).toContain('VERRIS_MQ_USUNIETO 1');
+    expect(r.out).toContain('VERRIS_MQ_POMINIETO 3');
+    expect(s.wywolania().filter((w) => w.startsWith('-Mrm'))).toEqual([`-Mrm ${AUTO}`]);
+  });
 });

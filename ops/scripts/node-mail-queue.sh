@@ -196,6 +196,7 @@ def naglowki(mid):
     login = linie[0].split()[0] if linie and linie[0].split() else ""
     nadawca = linie[1].strip().strip("<>").lower() if len(linie) > 1 else ""
     auth = next((l.split(" ", 1)[1].strip().lower() for l in linie if l.startswith("-auth_id ")), "")
+    protokol = next((l.split(" ", 1)[1].strip().lower() for l in linie if l.startswith("-received_protocol ")), "")
     temat, w_temacie = [], False
     for l in linie:
         m = re.match(r"^\d{3,}([A-Za-z* ]) ([^:\s]+):\s?(.*)$", l)
@@ -212,14 +213,29 @@ def naglowki(mid):
         temat_txt = str(make_header(decode_header(surowy)))
     except Exception:
         temat_txt = surowy
-    return {"login": login, "auth": auth, "nadawca": nadawca, "temat": temat_txt}
+    return {"login": login, "auth": auth, "protokol": protokol, "nadawca": nadawca, "temat": temat_txt}
 
 def w_domenach(adres):
     return any(adres.endswith("@" + d) for d in domeny)
 
+# Użytkownik, jako który działa sam exim (DirectAdmin: exim_user = mail; inne dystrybucje: mailnull, exim).
+SYSTEMOWI = {"mail", "mailnull", "exim", "Debian-exim"}
+
 def konta(h):
-    """Wiadomość konta: wysłana przez użytkownika DA (mail() z PHP), z logowaniem skrzynki konta albo z adresu konta."""
-    return h["login"] == uzytkownik or h["auth"] == uzytkownik or w_domenach(h["auth"]) or w_domenach(h["nadawca"])
+    """Wiadomość konta — o przynależności decyduje TOŻSAMOŚĆ, nie nadawca koperty (ten może podać każdy: mail() z -f,
+    MAIL FROM po SMTP AUTH innej skrzynki, poczta z zewnątrz):
+      - z uwierzytelnieniem (-auth_id): skrzynka w domenach konta albo login użytkownika DA;
+      - bez uwierzytelnienia: wywołujący to użytkownik DA konta (mail() z PHP, sendmail);
+      - nadawca w domenach konta liczy się tylko dla wiadomości, które exim wytworzył lokalnie sam (login exima,
+        -received_protocol local*: autoresponder, przekierowanie, zwrotka) — nie dla poczty przyjętej po SMTP
+        bez uwierzytelnienia ani wysłanej lokalnie przez innego użytkownika.
+    Plik -H: pierwsza linia „login uid gid”, -auth_id, -received_protocol
+    (https://www.exim.org/exim-html-current/doc/html/spec_html/ch-format_of_spool_files.html)."""
+    if h["auth"]:
+        return h["auth"] == uzytkownik or w_domenach(h["auth"])
+    if h["login"] == uzytkownik:
+        return True
+    return h["login"] in SYSTEMOWI and h["protokol"].startswith("local") and w_domenach(h["nadawca"])
 
 def czysc(s, n):
     return re.sub(r"[\x00-\x1f|]", " ", s).strip()[:n]
