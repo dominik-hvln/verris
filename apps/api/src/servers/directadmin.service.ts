@@ -68,6 +68,19 @@ export interface WebToolsState {
  * Resolves a Server record into a configured DirectAdminClient instance.
  * The DA password is decrypted on demand using the application KMS key.
  */
+/**
+ * Weryfikacja 11.10 — pozycje listy kopii z datą zapisu i rozmiarem (null, gdy menedżer plików ich nie podał), najnowsze
+ * na górze; bez daty — na końcu w kolejności z DA. Archiwum dopasowane po nazwie albo po ostatnim członie ścieżki.
+ */
+function zMetadanymi(
+  rows: Array<{ id: string; fileName: string }>,
+  meta: Map<string, { rozmiarBajty: number | null; utworzono: string | null }>,
+): Array<{ id: string; fileName: string; rozmiarBajty: number | null; utworzono: string | null }> {
+  const z = rows.map((r, i) => ({ r: { ...r, ...(meta.get(r.fileName) ?? meta.get(r.fileName.split('/').pop() ?? '') ?? { rozmiarBajty: null, utworzono: null }) }, i }));
+  z.sort((a, b) => (b.r.utworzono ?? '').localeCompare(a.r.utworzono ?? '') || a.i - b.i);
+  return z.map((x) => x.r);
+}
+
 @Injectable()
 export class DirectAdminService {
   private readonly logger = new Logger(DirectAdminService.name);
@@ -795,6 +808,31 @@ export class DirectAdminService {
       }
     }
     return names;
+  }
+
+  /**
+   * Weryfikacja 11.10 — data i rozmiar archiwów kopii z menedżera plików DA (`CMD_API_FILE_MANAGER`, path=/backups):
+   * klucz = ścieżka `/backups/<archiwum>`, wartość = metadane `type=file&size=<bajty>&date=…&mtime=…` (epoch, sekundy),
+   * jak w listDir w libs/directadmin-sdk/src/client.ts (sprawdzone na t1, DA 1.710; legacy API:
+   * https://docs.directadmin.com/developer/api/legacy-api.html). `mtime` — kiedy archiwum zapisano (ta sama nazwa
+   * bywa nadpisywana kolejną kopią), `date` — gdy `mtime` brak. Klucz mapy: nazwa archiwum.
+   */
+  private metadaneKopii(raw: URLSearchParams): Map<string, { rozmiarBajty: number | null; utworzono: string | null }> {
+    const out = new Map<string, { rozmiarBajty: number | null; utworzono: string | null }>();
+    for (const [key, value] of raw.entries()) {
+      const m = /^\/backups\/([^/]+)$/.exec(key);
+      if (!m) continue;
+      const info = new URLSearchParams(value);
+      const rozmiar = Number.parseInt(info.get('size') ?? '', 10);
+      const czas = info.get('mtime') || info.get('date');
+      const liczba = Number(czas);
+      const ms = czas && Number.isFinite(liczba) && liczba > 0 ? (liczba < 1e12 ? liczba * 1000 : liczba) : czas ? Date.parse(czas) : NaN;
+      out.set(m[1]!, {
+        rozmiarBajty: Number.isFinite(rozmiar) && rozmiar >= 0 ? rozmiar : null,
+        utworzono: Number.isFinite(ms) ? new Date(ms).toISOString() : null,
+      });
+    }
+    return out;
   }
 
   private parseDaBackupFileRows(raw: URLSearchParams): Array<{ id: string; fileName: string }> {
@@ -3305,7 +3343,13 @@ export class DirectAdminService {
     }
   }
 
-  async listHostingBackups(subscriptionId: string, userId: string) {
+  /**
+   * `metadane: true` (karta usługi w panelu operatora, weryfikacja 11.10) — przy każdej kopii data zapisu i rozmiar
+   * z menedżera plików (/backups), najnowsze na górze: nazwy archiwów potrafią się powtarzać (user.admin.<login>…),
+   * więc operator po samej nazwie nie wiedział, którą wersję odtwarza. Brak metadanych (błąd odczytu) nie psuje listy —
+   * pozycje mają wtedy `utworzono`/`rozmiarBajty` = null, a lista z SITE_BACKUP zostaje taka, jaka przyszła.
+   */
+  async listHostingBackups(subscriptionId: string, userId: string, opcje: { metadane?: boolean } = {}) {
     const sub = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
       include: { account: { include: { server: true } } },
@@ -3344,7 +3388,14 @@ export class DirectAdminService {
       }
       const rows = this.parseDaBackupFileRows(raw);
       if (rows.length > 0) {
-        return { rows, fetchError: null as string | null, offsite };
+        if (!opcje.metadane) return { rows, fetchError: null as string | null, offsite };
+        const meta = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_FILE_MANAGER', { path: '/backups' })
+          .then((fm) => this.metadaneKopii(fm))
+          .catch((err: unknown) => {
+            this.logger.warn(`listHostingBackups sub=${subscriptionId}: metadane kopii: ${err instanceof Error ? err.message : String(err)}`);
+            return new Map<string, { rozmiarBajty: number | null; utworzono: string | null }>();
+          });
+        return { rows: zMetadanymi(rows, meta), fetchError: null as string | null, offsite };
       }
       // Świeże konto nie ma katalogu /backups — DA odpowiada 404 i panel pokazywał „Request failed
       // with status code 404” zamiast pustej listy (test D3 na t1). Lista kopii już przyszła wyżej.
@@ -3355,7 +3406,8 @@ export class DirectAdminService {
         if ((err as { response?: { status?: number } })?.response?.status === 404) return new URLSearchParams();
         throw err;
       });
-      return { rows: this.parseDaBackupFileRows(fm), fetchError: null as string | null, offsite };
+      const zMenedzera = this.parseDaBackupFileRows(fm);
+      return { rows: opcje.metadane ? zMetadanymi(zMenedzera, this.metadaneKopii(fm)) : zMenedzera, fetchError: null as string | null, offsite };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`listHostingBackups sub=${subscriptionId}: ${msg}`);

@@ -157,6 +157,45 @@ describe('Lista kopii', () => {
     expect((await s.svc.listHostingBackups('s1', 'u1')).rows).toEqual([{ id: '/backups/backup-Sep-29-2026-1.tar.zst', fileName: 'backup-Sep-29-2026-1.tar.zst' }]);
   });
 
+  /**
+   * Weryfikacja 11.10 — „Kopia do odtworzenia” bez dat, a nazwy się powtarzają (user.admin.<login>.tar.zst): operator nie
+   * wiedział, którą wersję odtwarza. Z `metadane` każda pozycja ma datę zapisu (mtime) i rozmiar z menedżera plików.
+   */
+  it('metadane: data zapisu i rozmiar z /backups przy kopiach z SITE_BACKUP, najnowsza na górze', async () => {
+    const s = stanowisko({ get: {
+      '/CMD_API_SITE_BACKUP': 'list[]=user.admin.d3.tar.zst&list[]=backup-Oct-10-2026-1.tar.zst',
+      '/CMD_API_FILE_MANAGER': {
+        '/backups/user.admin.d3.tar.zst': 'type=file&size=385001672&date=1760100000&mtime=1760192340',
+        '/backups/backup-Oct-10-2026-1.tar.zst': 'type=file&size=1024&mtime=1760090000',
+      },
+    } });
+    const { rows, fetchError } = await s.svc.listHostingBackups('s1', 'u1', { metadane: true });
+    expect(fetchError).toBeNull();
+    expect(rows).toEqual([
+      { id: 'list0', fileName: 'user.admin.d3.tar.zst', rozmiarBajty: 385001672, utworzono: new Date(1760192340 * 1000).toISOString() },
+      { id: 'list1', fileName: 'backup-Oct-10-2026-1.tar.zst', rozmiarBajty: 1024, utworzono: new Date(1760090000 * 1000).toISOString() },
+    ]);
+  });
+
+  it('metadane z samego menedżera plików; błąd odczytu metadanych nie psuje listy (null zamiast daty)', async () => {
+    const fm = { '/backups/b.tar.zst': 'type=file&size=10&mtime=1760000000', '/backups/c.tar.zst': 'type=file&size=20&mtime=1760100000' };
+    const tylkoMenedzer = stanowisko({ get: { '/CMD_API_SITE_BACKUP': [], '/CMD_API_FILE_MANAGER': fm } });
+    expect((await tylkoMenedzer.svc.listHostingBackups('s1', 'u1', { metadane: true })).rows.map((r) => [r.fileName, (r as { rozmiarBajty?: number }).rozmiarBajty])).toEqual([
+      ['c.tar.zst', 20],
+      ['b.tar.zst', 10],
+    ]);
+    const e500 = Object.assign(new Error('Request failed with status code 500'), { response: { status: 500, data: '' } });
+    const bezMeta = stanowisko({ get: { '/CMD_API_SITE_BACKUP': 'list[]=a.tar.zst', '/CMD_API_FILE_MANAGER': e500 } });
+    expect(await bezMeta.svc.listHostingBackups('s1', 'u1', { metadane: true })).toMatchObject({
+      rows: [{ id: 'list0', fileName: 'a.tar.zst', rozmiarBajty: null, utworzono: null }],
+      fetchError: null,
+    });
+    // Bez `metadane` (walidacja odtworzenia, panel klienta) — bez dodatkowego zapytania do węzła.
+    const zwykla = stanowisko({ get: { '/CMD_API_SITE_BACKUP': 'list[]=a.tar.zst' } });
+    expect((await zwykla.svc.listHostingBackups('s1', 'u1')).rows).toEqual([{ id: 'list0', fileName: 'a.tar.zst' }]);
+    expect(zwykla.get).not.toHaveBeenCalledWith('/CMD_API_FILE_MANAGER', expect.anything());
+  });
+
   it('surowy błąd z węzła nie trafia do klienta w fetchError (white label)', async () => {
     const blad = new Error('connect ECONNREFUSED 10.1.2.3:2222 (DirectAdmin)');
     const s = stanowisko({ get: { '/CMD_API_SITE_BACKUP': blad }, post: { '/CMD_API_SITE_BACKUP': blad } });

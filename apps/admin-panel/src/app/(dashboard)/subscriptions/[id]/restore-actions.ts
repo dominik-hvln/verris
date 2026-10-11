@@ -3,7 +3,10 @@
 import { revalidatePath } from 'next/cache';
 import { adminApi, AdminApiError } from '@/lib/api';
 
-export type KopiaKonta = { id: string; fileName: string };
+import type { KopiaZMetadanymi } from '@verris/contracts';
+
+/** Weryfikacja 11.10 — z datą zapisu i rozmiarem (GET hosting-backups z metadanymi); null, gdy węzeł ich nie podał. */
+export type KopiaKonta = KopiaZMetadanymi;
 export type StanOdtwarzania = {
   id: string;
   status: string;

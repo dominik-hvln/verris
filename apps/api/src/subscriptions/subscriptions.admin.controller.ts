@@ -153,7 +153,8 @@ export class SubscriptionsAdminController {
       actorUserId: actor.userId,
       details: { subscriptionId: id, sekcja: 'kopie' },
     });
-    return this.directAdmin.listHostingBackups(id, sub.userId);
+    // Weryfikacja 11.10 — data i rozmiar przy każdej kopii („Kopia do odtworzenia” — która wersja).
+    return this.directAdmin.listHostingBackups(id, sub.userId, { metadane: true });
   }
 
   /**

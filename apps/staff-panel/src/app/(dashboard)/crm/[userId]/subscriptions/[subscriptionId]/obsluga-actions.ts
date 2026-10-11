@@ -1,5 +1,6 @@
 "use server";
 
+import type { KopiaZMetadanymi } from "@verris/contracts";
 import { revalidatePath } from "next/cache";
 import { staffApi, StaffApiError } from "@/lib/staff-api";
 import { brakUprawnien, PODGLAD_KLIENTOW, PODGLAD_KONTA, SUBSKRYPCJE } from "./brak-uprawnien";
@@ -39,7 +40,8 @@ export interface ZuzycieUslugi {
   rows: Array<{ bucketStart: string; cpuUsageAvg: number }>;
 }
 
-export type KopiaKonta = { id: string; fileName: string };
+/** Weryfikacja 11.10 — z datą zapisu i rozmiarem (GET hosting-backups z metadanymi); null, gdy węzeł ich nie podał. */
+export type KopiaKonta = KopiaZMetadanymi;
 export type StanOdtwarzania = {
   id: string;
   status: string;

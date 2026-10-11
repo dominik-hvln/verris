@@ -4,6 +4,7 @@ import { Select } from '@/components/select';
 import { useEffect, useState } from 'react';
 import { fetchRestoreDataAction, startRestoreAction, type KopiaKonta, type StanOdtwarzania } from './restore-actions';
 import { Checkbox } from '@/components/checkbox';
+import { opisKopii } from '@verris/contracts';
 
 const STATUS: Record<string, string> = {
   QUEUED: 'w kolejce',
@@ -85,7 +86,7 @@ export function RestorePanel({ subscriptionId, domain }: { subscriptionId: strin
             onChange={setBackupId}
             disabled={busy}
             className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 font-mono text-sm text-white"
-            options={backups.map((b) => ({ value: b.id, label: b.fileName }))}
+            options={backups.map((b) => ({ value: b.id, label: opisKopii(b) }))}
           />
           <div className="flex flex-wrap gap-4">
             {box('scopeFiles', 'Pliki')}

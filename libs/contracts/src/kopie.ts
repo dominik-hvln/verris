@@ -35,3 +35,28 @@ export function retencjaOffsiteDni(wybranaDni: number | null | undefined, planMa
  * opuszczony przebieg zapasu.
  */
 export const KOPIA_KONTA_ALERT_DNI = 2;
+
+/**
+ * Weryfikacja 11.10 — pozycja listy „Kopia do odtworzenia”: nazwa archiwum, data zapisu i rozmiar. Nazwy potrafią się
+ * powtarzać (user.admin.<login>.tar.zst nadpisywany kolejną kopią), więc sama nazwa nie mówi, którą wersję się odtwarza.
+ * Daty i rozmiaru brak (null) — gdy węzeł ich nie podał; wtedy sama nazwa.
+ */
+export type KopiaZMetadanymi = { id: string; fileName: string; utworzono?: string | null; rozmiarBajty?: number | null };
+
+export function rozmiarKopii(bajty: number): string {
+  const jednostki = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let n = bajty;
+  let i = 0;
+  while (n >= 1024 && i < jednostki.length - 1) {
+    n /= 1024;
+    i++;
+  }
+  return `${n.toLocaleString('pl-PL', { maximumFractionDigits: i === 0 ? 0 : 1 })} ${jednostki[i]}`;
+}
+
+export function opisKopii(k: KopiaZMetadanymi): string {
+  const data = k.utworzono
+    ? new Date(k.utworzono).toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : null;
+  return [k.fileName, data, k.rozmiarBajty != null ? rozmiarKopii(k.rozmiarBajty) : null].filter(Boolean).join(' · ');
+}

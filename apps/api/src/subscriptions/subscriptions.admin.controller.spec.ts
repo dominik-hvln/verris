@@ -151,7 +151,8 @@ describe('SubscriptionsAdminController — obsługa (PB-44)', () => {
       actorUserId: 'op',
       details: { subscriptionId: 's1', sekcja: 'kopie' },
     });
-    expect(directAdmin.listHostingBackups).toHaveBeenCalledWith('s1', 'klient');
+    // Weryfikacja 11.10 — panel operatora dostaje datę i rozmiar przy każdej kopii.
+    expect(directAdmin.listHostingBackups).toHaveBeenCalledWith('s1', 'klient', { metadane: true });
     expect(audit.record.mock.invocationCallOrder[0]).toBeLessThan(directAdmin.listHostingBackups.mock.invocationCallOrder[0]!);
   });
 

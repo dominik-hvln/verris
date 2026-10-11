@@ -1,5 +1,6 @@
 "use client";
 
+import { opisKopii } from "@verris/contracts";
 import { useState } from "react";
 import { Select } from "@/components/select";
 import { Checkbox } from "@/components/checkbox";
@@ -103,7 +104,7 @@ export function KopiePanel({
           {!mozeOdtwarzac ? (
             <ul className="space-y-1 font-mono text-xs text-neutral-300">
               {dane.backups.map((b) => (
-                <li key={b.id}>{b.fileName}</li>
+                <li key={b.id}>{opisKopii(b)}</li>
               ))}
             </ul>
           ) : (
@@ -114,7 +115,7 @@ export function KopiePanel({
                 onChange={setBackupId}
                 disabled={busy}
                 className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 font-mono text-sm text-white"
-                options={dane.backups.map((b) => ({ value: b.id, label: b.fileName }))}
+                options={dane.backups.map((b) => ({ value: b.id, label: opisKopii(b) }))}
               />
               <div className="flex flex-wrap gap-4">
                 {pole("scopeFiles", "Pliki")}
