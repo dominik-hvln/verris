@@ -1,5 +1,6 @@
 import { NodeTaskStatus } from '@verris/database';
 import { bladKolejki } from './kolejka-poczty.js';
+import { wynikWyczyszczony } from './dane-zadan-wezla.js';
 
 /**
  * F3.1 (reszta) — odczyt wyników zadań węzła dla poczty:
@@ -83,9 +84,13 @@ export function bladZadaniaPoczty(log: string | null, errorMessage: string | nul
   return bladKolejki(log, errorMessage);
 }
 
-/** Stan z ostatnich zadań (najnowsze pierwsze): wynik ostatniego ukończonego, czy trwa, błąd ostatniego. */
+/**
+ * Stan z ostatnich zadań (najnowsze pierwsze): wynik ostatniego ukończonego, czy trwa, błąd ostatniego.
+ * Przegląd poprawek Fali 3 — wynik wyczyszczony retencją (30 dni, RetentionScheduler) albo anonimizacją to
+ * „nie wczytano”, nie pusta lista nadawców z datą sprzed miesiąca.
+ */
 export function stanZadan<T>(zadania: Zadanie[], wynik: (log: string | null) => T) {
-  const ukonczone = zadania.find((z) => z.status === NodeTaskStatus.COMPLETED) ?? null;
+  const ukonczone = zadania.find((z) => z.status === NodeTaskStatus.COMPLETED && !wynikWyczyszczony(z)) ?? null;
   const ostatnie = zadania[0] ?? null;
   return {
     wToku: zadania.some(trwa),

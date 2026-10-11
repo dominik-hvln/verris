@@ -1,4 +1,5 @@
-import { limitZLogu, statystykiPocztyZLogu } from './poczta-wezla.js';
+import { NodeTaskStatus } from '@verris/database';
+import { limitZLogu, stanZadan, statystykiPocztyZLogu } from './poczta-wezla.js';
 
 describe('F3.1 — odczyt wyników poczty węzła', () => {
   it('limit konta: wartość, domyślny, nieczytelny plik; obcy format — null', () => {
@@ -26,5 +27,13 @@ describe('F3.1 — odczyt wyników poczty węzła', () => {
     ]);
     expect(s.odrzucenia).toEqual([{ kod: '550', serwer: 'wp.pl', liczba: 3 }, { kod: null, serwer: null, liczba: 1 }]);
     expect(s.okno).toEqual({ od: '2026-10-10T00:00:01', do: '2026-10-11T01:00:00', wiadomosci: 24 });
+  });
+});
+
+describe('przegląd poprawek Fali 3 — wynik wyczyszczony retencją', () => {
+  it('statystyki węzła z wyczyszczonym wynikiem to „nie wczytano”, nie pusta lista z datą sprzed miesiąca', () => {
+    const stare = new Date('2026-08-01T10:00:00Z');
+    const z = { id: 't', status: NodeTaskStatus.COMPLETED, payload: { mode: 'stats' }, outputLog: null, errorMessage: null, createdAt: stare, completedAt: stare };
+    expect(stanZadan([z] as never, statystykiPocztyZLogu)).toMatchObject({ wToku: false, kiedy: null, wynik: null, blad: null });
   });
 });
