@@ -113,3 +113,21 @@ A-02,sprawdzone,2026-10-08,t1: domena dodatkowa z10.d3.hvln.pl dodana i usunięt
 N-14,sprawdzone,2026-10-11,"11.10 t1 d3.hvln.pl: mail() z PHP zablokowanego konta false, kolejka konta i węzła 0, po zwolnieniu true; wpisy w dzienniku (PB-52)"
 PB-52,sprawdzone,2026-10-11,"11.10 t1: blokada/zwolnienie wysyłki konta, limit 5/dobę potwierdzony przez serwer i widoczny dla klienta, kolejka konta i węzła, nadawcy i odrzucenia, RBL (spamhaus „nieznany”, nie „czysto”)"
 E-18,sprawdzone,2026-10-11,"11.10 t1 węzeł → Poczta → RBL: spamcop i barracuda „czysto”, spamhaus „brak odpowiedzi” pokazany jako nieznany (nie „czysto”)"
+PB-51.1,czeka,,"11.10 prod: L1, L2 (staff), L4 (staff i admin) na żywo — menu i odmowy zgodne z rolą; poprawki macierzy L1 (metryki, KB, lista usług) w paczce poprawki6 — sprawdzić po deployu; L3 nie przechodzony."
+PB-51.2,czeka,,kod wdrożony; akcje na d3 do przejścia na żywo
+PB-51.3,czeka,,A-25/A-26 sprawdzone 29.09 (admin); ścieżka abuse→akcja do przejścia
+PB-51.4,czeka,,"11.10: lista usług z filtrami i CSV widoczna (admin, L4); notatki i IAM do przejścia"
+PB-51.5,czeka,,11.10: próba zgłoszenia w imieniu w trakcie deployu nie założyła zgłoszenia — do powtórzenia
+PB-51.6,sprawdzone,2026-10-11,"11.10 t1 d3: odbicia LVE 24 h i 7 dni (CPU 26), inody 44 943, 5xx 0 z 19 635 żądań, wolne SQL — na karcie usługi w adminie"
+PB-51.7,czeka,,kod wdrożony; do przejścia na żywo
+PB-51.8,sprawdzone,2026-10-11,"11.10 prod: System → Zadania w tle — 67 zadań, żadne z błędem, nowe zadania Fali 3 widoczne; ręczne uruchomienie nie testowane"
+PB-53.2,sprawdzone,2026-10-11,"11.10 t1: fail2ban 0 blokad, biała lista 192.0.2.10 dodana/usunięta, „Zablokowało mi IP” sprawdzenie, Złośliwe pliki floty, Trafienia WAF 177 (po poprawce v3)"
+PB-53.3,sprawdzone,2026-10-11,11.10 t1: przebieg 16:19 accounts=2 → „2 świeże z 2”; próby odtworzenia (drill 11.10 OK) widoczne
+PB-53.4,czeka,,"11.10 t1: NODE_SERVICES (nazwy jednostek potwierdzone), watchdog co minutę, logi z filtrem; restart usługi nie testowany (świadomie)"
+PB-53.5,czeka,,"11.10 prod: anulacja i cofnięcie (2×), dodatek gratis; data odnowienia, obietnica zapłaty, zmiana właściciela, limity do przejścia"
+PB-53.6,czeka,,11.10 prod: strony Nieudane płatności i Windykacja otwierają się; operacje do przejścia
+PB-53.7,czeka,,"11.10 prod: SLA w ustawieniach 1/8–24/120, raporty; import poczty wyłączony (brak skrzynki w konfiguracji API)"
+PB-53.8,czeka,,11.10 prod: filtr white label odrzuca treść z „porcie 2222”; wysyłka nie testowana
+PB-53.9,sprawdzone,2026-10-11,11.10 prod: ADMIN — Stan platformy/Moje zgłoszenia/Flota i alerty/Finanse; L4 — Moje zgłoszenia/Flota/Finanse/Stan platformy; L1 — Moje zgłoszenia/Stan platformy
+H-20,sprawdzone,2026-10-11,"11.10: drill bazy platformy OK 11 s (Dominik, CP) + odtworzenie d3 z off-site 17:11→17:14 (pliki, bazy, poczta)"
+PB-54,sprawdzone,2026-10-11,11.10: jak H-20

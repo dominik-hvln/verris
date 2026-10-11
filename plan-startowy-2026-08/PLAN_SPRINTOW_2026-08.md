@@ -385,7 +385,14 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 | `PB-46` | Obsługa: spójna karta klienta w staff i admin | 8 | ŚREDNI | Decyzja właściciela 2026-10-08: notatka wewnętrzna w staff, diagnostyka DNS/TLS i ryzyko klienta w admin, operacje wrażliwe w staff według uprawnień,  |
 | `PB-47` | Role pracowników: szczeble L1–L4 i role funkcyjne z uprawnieniami | 14 | WYSOKI | Decyzja właściciela 2026-10-08: komplet ról pracowników z uprawnieniami, przygotowany zawczasu (szczeble L1–L4 zatwierdzone + role funkcyjne będące st |
 | `PB-48` | Wnioski o operację wymagającą wyższego uprawnienia | 16 | ŚREDNI | Decyzja właściciela 2026-10-08: gdy pracownik nie ma uprawnienia do operacji (np. oznaczenie konta jako wewnętrzne), zamiast ukrytego przycisku widzi  |
-| `PB-51` | Fala 2 audytu paneli operatora (w becie wewnętrznej) | 134 | WYSOKI | Plan rozbudowy paneli operatora, Fala 2 (19.10–6.11), w tej kolejności: F2.1 jeden panel operatora dla STAFF (decyzja D1, 14 h); F2.2 pasek akcji kont |
+| `PB-51.1` | F2.1 Panel operatora dla STAFF | 14 | WYSOKI | Fala 2 (PB-51): admin otwarty dla STAFF z RBAC; menu, karty i działania filtrowane rejestrem akcji; egzekucja w API. || HISTORIA PB-51 (Fala 2, 134 h, |
+| `PB-51.2` | F2.2 Pasek akcji konta (operatorskie lustro tras klienta) | 24 | WYSOKI | Reset haseł, SSL ponownie, PHP, kopia teraz, skan malware, DNS — bez impersonacji, z powodem. |
+| `PB-51.3` | F2.3 Zawieszenie przez obsługę i abuse → akcja | 6 | WYSOKI | Decyzja abuse zawiesza albo powiadamia. |
+| `PB-51.4` | F2.4 Listy i CRM | 14 | WYSOKI | Usługi i klienci z filtrami i stronicowaniem, CSV, notatki, IAM klienta. |
+| `PB-51.5` | F2.5 Helpdesk: rdzeń | 30 | WYSOKI | Notatki wewnętrzne, zgłoszenie w imieniu klienta, skrzynka z filtrami, tagi, eskalacja. |
+| `PB-51.6` | F2.6 Zasoby i diagnoza „508” | 14 | WYSOKI | Faulty LVE, EP, NPROC, inody, wolne SQL i 5xx obok siebie. |
+| `PB-51.7` | F2.7 Domeny: lista i karta z operacjami | 20 | WYSOKI | Lista domen platformy, karta z lock/NS/EPP/odnowieniem. |
+| `PB-51.8` | F2.8 Stan harmonogramów | 12 | WYSOKI | Zadania w tle: ostatnie uruchomienie, błąd, następne, alert. |
 
 **Definicja ukończenia**
 
@@ -401,7 +408,14 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 - `PB-46` — Obie karty klienta mają te same sekcje (różnią się tylko uprawnieniami); testy panelu.
 - `PB-47` — Role zdefiniowane w kodzie (idempotentny seed/migracja danych) i widoczne w panelu admina przy przypisywaniu operatora; nowe uprawnienia w katalogu i na endpointach; każde uprawnienie z katalogu przypisane do co najmniej jednej roli albo jawnie „tylko administrator”; test spójności katalogu i ról.
 - `PB-48` — Wniosek z panelu staff, powiadomienie dla uprawnionych, akceptacja wykonuje operację, odrzucenie z powodem; wszystko w dzienniku; testy na PostgreSQL.
-- `PB-51` — F2.1–F2.8 wdrożone z testami; test e2e L1–L4 × pozycje menu; test, że notatka wewnętrzna nie wycieka do klienta żadną ścieżką (API klienta, mail, auto-wiadomości, kontekst AI); przejście ról L1–L4 na żywo przez przełączenie roli konta staff (D3); poprawki z D3 10.10 zamknięte.
+- `PB-51.1` — Role L1–L4 przechodzą menu i strony na żywo; test macierzy menu ↔ strona ↔ API dla każdej roli systemowej (8ba6689f).
+- `PB-51.2` — Każda akcja na koncie testowym na t1 z wpisem w dzienniku i bez wycieku błędów DA do klienta.
+- `PB-51.3` — Zawieszenie/odwieszenie z karty i z decyzji abuse na koncie testowym.
+- `PB-51.4` — Filtry, stronicowanie, CSV i notatki na produkcji.
+- `PB-51.5` — Notatka wewnętrzna nie wycieka żadną ścieżką; zgłoszenie w imieniu na żywo.
+- `PB-51.6` — Na koncie testowym widać faulty LVE, inody, 5xx, SQL.
+- `PB-51.7` — Operacje na domenie testowej w sandboxie/produkcji.
+- `PB-51.8` — Widok zadań w tle na produkcji bez fałszywych błędów.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
 **Ryzyko sprintu.** Ostatni sprint kodowy przed blokiem dokumentow. PB-08 (Consent Mode v2 + dedup event_id) jest tu, a nie przy landingu, bo to kod w panelu, nie tresc — landing tylko z niego korzysta. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. NODE-03 (pojemnosc wezla z telemetrii) dolozone tutaj z sprintu 13 dla pojemnosci — kod bez wezla, dowod przy wezle. | 2026-10-04 HARMONOGRAM STARTU (wariant A, decyzja właściciela): beta wewnętrzna na t1 19.10–6.11 (PB-40); w tym oknie wypadają testy PB-27 (22.10) i PB-28 (odnowienie d3 28.10). | 2026-10-10 PRZECIĄŻENIE ŚWIADOME: PB-51 (Fala 2 paneli operatora, 134 h) idzie w trakcie bety wewnętrznej 19.10–6.11. Sprint 14 jest jedynym sprintem w tym oknie (następny, 21, ma datę 9.11), więc realnie to ok. 3 tygodnie, a nie 65 h; przy 60–70 h tygodniowo dzielonych z betą (PB-40) i jej poprawkami ok. 184 h otwartej pracy to granica. Kolejność: Fala 2A (panel operatora D1, D9/D10, zawieszenie i CRM, D12 + CSP www, harmonogramy), potem 2B. Ryzyko: błędy z bety wypchną Falę 2B na pierwszy tydzień sprintu 21 i zderzą ją z AX102.
@@ -449,7 +463,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `SEC-06` | Allowlista pokrywa to, o czym ktoś pomyślał, nie to, co host robi | 16 | WYSOKA | verris-egress-odswiez.timer (co 15 s) → security-control-plane-egress.sh --odswiez; Panel 06.10: timer active, „Odświeżenie: 12 nowych adresów” |
 | `SEC-02` | Stripe jest w allowliście wyłącznie po nazwie, a ipset powstaje z rozwiązania nazw | 6 | ŚREDNIA | pomiar --pomiar 2026-10-06 (host 14 d): zero połączeń hosta do Stripe; Stripe tylko z kontenera API (FORWARD) |
 | `NODE-02` | `main()` nie sprawdza kodów powrotu | 6 | WYSOKA | ops/scripts/lib/przerwij-po-etapie.sh — przerwij_po_etapie zamienia zebrane [FAIL] w exit 1; node-onboard-live.sh main() — bramka po preflight_stack,  |
-| `H-20` | Test odtworzeniowy z datą ostatniego wykonania (część) | 2 | BLOKER STARTU | DOWÓD D4 — wiersz w bazie PRODUKCYJNEJ, odczytany 2026-08-23: finishedAt=2026-08-22 23:19:45, result=OK, owner=Dominik Kowalski, durationSec=9, object |
+| `H-20` | Test odtworzeniowy z datą ostatniego wykonania (część) | 2 | WYSOKA | DOWÓD D4 — wiersz w bazie PRODUKCYJNEJ, odczytany 2026-08-23: finishedAt=2026-08-22 23:19:45, result=OK, owner=Dominik Kowalski, durationSec=9, object |
 | `SEC-11` | CSP z nonce w panelach i na www — bez 'unsafe-inline' w script-src | 6 | WYSOKA | 2026-10-09 (4d7a8b08): libs/ui/src/csp.ts:41-84 (nowyNonce, cspPanelu: script-src 'nonce-…' 'strict-dynamic', naglowkiCsp); admin-panel/src/proxy.ts:1 |
 | `PB-23` | Każdy widok osiągalny z menu (klient, admin, staff) | 10 | ŚREDNI | Zasada właściciela 2026-09-23: żaden ekran nie może wymagać szukania po panelu. Przegląd wszystkich tras (page.tsx) w trzech panelach i ich wejść w me |
 | `PB-30` | Jeden plik wersji dla floty + test zgodności | 12 | WYSOKI | Decyzja właściciela 2026-09-26: manifest z przypiętymi wersjami (kanał i commit DirectAdmin, LiteSpeed, PHP, MariaDB, reguły CRS), szablon options.con |
@@ -471,7 +485,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - `SEC-06` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `SEC-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `NODE-02` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- `H-20` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `H-20` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `SEC-11` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `PB-23` — Lista tras vs menu dla trzech paneli bez luk; test-strażnik czerwony po dodaniu trasy bez wejścia w nawigacji.
 - `PB-30` — Dwa węzły z tego samego manifestu dają identyczny raport wersji; różnica widoczna w panelu.
