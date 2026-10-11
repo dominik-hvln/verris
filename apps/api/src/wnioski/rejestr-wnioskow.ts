@@ -299,6 +299,13 @@ const zmianaDni = (przed: string, po: string) => {
   return n > 0 ? `+${n} ${dni}, gratis` : `−${-n} ${dni}, skrócenie opłaconego okresu`;
 };
 
+/**
+ * Audyt Fali 3 — powód do dziennika z wniosku: uzasadnienie + numer wniosku. Złożenie wymaga 5 znaków uzasadnienia,
+ * a serwisy cyklu życia i dodatków 10 znaków powodu — wniosek z krótkim uzasadnieniem przechodził przy złożeniu
+ * i padał przy każdej akceptacji. Dopisek z numerem wyrównuje minimum i łączy wpis w dzienniku z wnioskiem.
+ */
+const powodZWniosku = (k: KontekstWykonania) => `${k.uzasadnienie?.trim() || 'bez uzasadnienia'} (wniosek ${k.wniosekId.slice(0, 8)})`;
+
 const ZAKONCZONE = ['CANCELED', 'EXPIRED'];
 const zgl = (z?: string) => (z?.trim() ? ` (zgłoszenie #${z.trim().replace(/^#/, '').slice(0, 8)})` : '');
 
@@ -521,7 +528,7 @@ export const REJESTR_WNIOSKOW = {
       const r = await z.cyklZycia.zmienDateOdnowienia({
         subscriptionId: p.subscriptionId,
         operator: k.decydujacy,
-        powod: k.uzasadnienie ?? `wniosek ${k.wniosekId}`,
+        powod: powodZWniosku(k),
         zgloszenie: p.zgloszenie,
         nowaData: new Date(p.nowaData),
         przed: new Date(p.przed),
@@ -554,7 +561,7 @@ export const REJESTR_WNIOSKOW = {
         slug: p.slug,
         platnosc: p.platnosc,
         operator: k.decydujacy,
-        powod: k.uzasadnienie ?? `wniosek ${k.wniosekId}`,
+        powod: powodZWniosku(k),
         zgloszenie: p.zgloszenie,
         klucz: `wniosek:${k.wniosekId}`,
       });

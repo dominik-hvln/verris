@@ -240,6 +240,11 @@ export class AddonService {
     if (i.platnosc === 'PORTFEL' && !zgloszenieId) {
       throw new BadRequestException('Obciążenie portfela klienta tylko na jego zamówienie — podaj numer jego zgłoszenia albo dodaj gratis.');
     }
+    // Audyt Fali 3 — zawieszona usługa nie działa: obciążenie portfela za dodatek do niej (także z wniosku złożonego,
+    // gdy była aktywna) to płatność za nic. Wariant zachowawczy — gratis można, z portfela po odwieszeniu.
+    if (i.platnosc === 'PORTFEL' && sub.status === 'SUSPENDED') {
+      throw new BadRequestException('Usługa jest zawieszona — dodatek z portfela klienta dodasz po odwieszeniu (gratis można teraz).');
+    }
     const gratis = i.platnosc === 'GRATIS';
     const klucz = i.klucz
       ? `addon:v1:${sub.userId}:op:${i.klucz}`

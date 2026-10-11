@@ -196,3 +196,30 @@ describe('F3.5 — dodatki dodawane przez obsługę', () => {
     expect(zgloszenia).toBe(0);
   });
 });
+
+describe('audyt Fali 3 — dodatek z portfela do zawieszonej usługi', () => {
+  beforeEach(async () => {
+    await wyczyscBaze();
+    zgloszenia = 0;
+    zgloszeniaPadaja = false;
+  });
+  afterAll(rozlacz);
+
+  it('z portfela klienta do zawieszonej — 400 bez obciążenia i bez zlecenia; gratis — tak', async () => {
+    const k = await klient(100);
+    const plan = await prisma().plan.create({ data: { slug: `p-${Date.now()}-${Math.random()}`, name: 'P', cpuLimit: 100, ramLimitMb: 1024, diskLimitMb: 1024, priceMonthly: 45, priceYearly: 399 } });
+    const u = await prisma().subscription.create({ data: { userId: k.id, planId: plan.id, interval: 'MONTH', priceAmount: 45, status: 'SUSPENDED' } });
+    const admin = await prisma().user.create({ data: { email: `dodatki-f3-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'ADMIN' } });
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'IP', message: 'x' } });
+    const POWOD = 'Klient zamówił w zgłoszeniu dedykowane IP.';
+    await expect(
+      sklep().dodajPrzezOperatora({ subscriptionId: u.id, slug: 'dedicated_ip', platnosc: 'PORTFEL', operator: { userId: admin.id, role: 'ADMIN' }, powod: POWOD, zgloszenie: zgl.id }),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(await saldo(k.id)).toBe(100);
+    expect(await zakupy(k.id)).toHaveLength(0);
+    expect(zgloszenia).toBe(0);
+    await sklep().dodajPrzezOperatora({ subscriptionId: u.id, slug: 'manual_setup', platnosc: 'GRATIS', operator: { userId: admin.id, role: 'ADMIN' }, powod: POWOD });
+    expect(await saldo(k.id)).toBe(100);
+    expect(await zakupy(k.id)).toHaveLength(1);
+  });
+});

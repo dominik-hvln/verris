@@ -461,6 +461,54 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     expect(aktywnosc.events.find((x) => x.action === 'SUBSCRIPTION_RENEWAL_DATE_CHANGED')).toMatchObject({ actor: 'obsługa Verris' });
   });
 
+  it('audyt Fali 3 — uzasadnienie 5–9 znaków: wniosek o datę odnowienia przechodzi przy złożeniu i przy akceptacji (powód z numerem wniosku)', async () => {
+    const l2 = await operator(['CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE']);
+    const l4 = await operator(['REQUESTS_APPROVE', 'SUBSCRIPTIONS_MANAGE', 'BILLING_MANAGE']);
+    const plan = await utworzPlan();
+    const k = await klient();
+    const koniec = new Date(Date.now() + 10 * 86400000);
+    const u = await prisma().subscription.create({
+      data: { userId: k.id, planId: plan.id, status: 'ACTIVE', interval: 'MONTH', priceAmount: 45, paymentSource: 'WALLET', currentPeriodEnd: koniec },
+    });
+    const nowa = new Date(koniec.getTime() + 7 * 86400000).toISOString();
+    const zl = await zadanie('POST', '/admin/wnioski', l2, {
+      typ: 'SUBSCRIPTION_RENEWAL_DATE',
+      userId: k.id,
+      subscriptionId: u.id,
+      payload: { subscriptionId: u.id, nowaData: nowa, przed: koniec.toISOString() },
+      uzasadnienie: 'gratis',
+    });
+    expect(zl.status).toBe(201);
+    expect((await zadanie('POST', `/admin/wnioski/${zl.body.id as string}/akceptuj`, l4, {})).body).toMatchObject({ status: 'APPROVED' });
+    expect((await prisma().subscription.findUniqueOrThrow({ where: { id: u.id } })).currentPeriodEnd?.toISOString()).toBe(nowa);
+    await wczytajDziennik();
+    expect(dziennik.find((d) => d.action === 'OPERATOR_ACCOUNT_CHANGED')).toMatchObject({
+      details: expect.objectContaining({ powod: `gratis (wniosek ${(zl.body.id as string).slice(0, 8)})` }),
+    });
+  });
+
+  it('audyt Fali 3 — dodatek z portfela: usługa zakończona między złożeniem a akceptacją → FAILED, bez obciążenia', async () => {
+    const l2 = await operator(['CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE']);
+    const l4 = await operator(['REQUESTS_APPROVE', 'SUBSCRIPTIONS_MANAGE', 'BILLING_MANAGE']);
+    const plan = await utworzPlan();
+    const k = await klient();
+    await prisma().user.update({ where: { id: k.id }, data: { walletBalance: 100 } });
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'IP', message: 'x' } });
+    const u = await prisma().subscription.create({ data: { userId: k.id, planId: plan.id, status: 'ACTIVE', interval: 'MONTH', priceAmount: 45 } });
+    const zl = await zadanie('POST', '/admin/wnioski', l2, {
+      typ: 'ADDON_ADD',
+      userId: k.id,
+      subscriptionId: u.id,
+      payload: { subscriptionId: u.id, slug: 'dedicated_ip', platnosc: 'PORTFEL', zgloszenie: zgl.id },
+      uzasadnienie: 'Klient zamówił IP w zgłoszeniu.',
+    });
+    expect(zl.status).toBe(201);
+    await prisma().subscription.update({ where: { id: u.id }, data: { status: 'CANCELED', canceledAt: new Date() } });
+    expect((await zadanie('POST', `/admin/wnioski/${zl.body.id as string}/akceptuj`, l4, {})).body).toMatchObject({ status: 'FAILED' });
+    expect(Number((await prisma().user.findUniqueOrThrow({ where: { id: k.id } })).walletBalance)).toBe(100);
+    expect(await prisma().purchasedAddon.count({ where: { userId: k.id } })).toBe(0);
+  });
+
   it('audyt Fali 3 — data odnowienia: okres zmienił się po złożeniu (odnowienie) → akceptacja FAILED, opłacony okres nie skrócony; wniosek bez „przed” — 400', async () => {
     const l2 = await operator(['CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE']);
     const l4 = await operator(['REQUESTS_APPROVE', 'SUBSCRIPTIONS_MANAGE', 'BILLING_MANAGE']);

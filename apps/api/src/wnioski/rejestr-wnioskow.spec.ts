@@ -267,7 +267,7 @@ describe('PB-48 — rejestr wniosków', () => {
         {
           subscriptionId: 's1',
           operator: { userId: 'kier', role: 'STAFF' },
-          powod: 'rekompensata za awarię',
+          powod: 'rekompensata za awarię (wniosek w1)',
           zgloszenie: '#ab12cd34',
           nowaData: new Date(p.nowaData),
           przed: new Date(przed),
@@ -291,8 +291,12 @@ describe('PB-48 — rejestr wniosków', () => {
     expect(await d.wykonaj({ ...portfel, platnosc: 'GRATIS' }, { ...k, uzasadnienie: 'rekompensata za awarię' }, z)).toEqual({ komunikat: 'Dodano dodatek „Dedykowane IP”.' });
     expect(wywolania[0]).toEqual([
       'dodatek',
-      { subscriptionId: 's1', slug: 'dedicated_ip', platnosc: 'GRATIS', operator: { userId: 'kier', role: 'STAFF' }, powod: 'rekompensata za awarię', zgloszenie: undefined, klucz: 'wniosek:w1' },
+      { subscriptionId: 's1', slug: 'dedicated_ip', platnosc: 'GRATIS', operator: { userId: 'kier', role: 'STAFF' }, powod: 'rekompensata za awarię (wniosek w1)', zgloszenie: undefined, klucz: 'wniosek:w1' },
     ]);
+    // Audyt Fali 3 — uzasadnienie 5–9 znaków (minimum złożenia) daje powód ≥ 10 znaków (minimum serwisu).
+    const krotkie = zal();
+    await d.wykonaj({ ...portfel, platnosc: 'GRATIS' }, { ...k, uzasadnienie: 'gratis' }, krotkie.z);
+    expect((krotkie.wywolania[0]![1] as { powod: string }).powod).toBe('gratis (wniosek w1)');
   });
 
   it('F3.7 scalenie zgłoszeń: wykonuje L3 (TICKETS_MERGE + TICKETS_MANAGE), składa L1; oba zgłoszenia klienta, niescalone', async () => {
