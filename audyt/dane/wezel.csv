@@ -131,3 +131,4 @@ PB-53.8,sprawdzone,2026-10-11,"11.10 prod: komunikat do klientów węzła TEST-N
 PB-53.9,sprawdzone,2026-10-11,11.10 prod: ADMIN — Stan platformy/Moje zgłoszenia/Flota i alerty/Finanse; L4 — Moje zgłoszenia/Flota/Finanse/Stan platformy; L1 — Moje zgłoszenia/Stan platformy
 H-20,sprawdzone,2026-10-11,"11.10: drill bazy platformy OK 11 s (Dominik, CP) + odtworzenie d3 z off-site 17:11→17:14 (pliki, bazy, poczta)"
 PB-54,sprawdzone,2026-10-11,11.10: jak H-20
+PB-55,czeka,,"11.10 19:42 Dominik usunął konto próbne o05.d3.hvln.pl (hflpewil) — odczyt DA 401, usługa anulowana. Decyzje Dominika (formularze 11.10): 2–3 testerów bety; nadsubskrypcja t1 dysk ×3, CPU ×2, RAM ×5 (realne zużycie: dysk 4,3/75 GB, CPU 0–1%, RAM kont 38 MB). Pojemność floty po zmianie: „zmieści jeszcze ~3” (dysk 50/224,9 GB, CPU 200/800%, RAM 8/36,6 GB). Nowe konta wstrzymane do 18.10 (decyzja). Zostaje: wznowienie 18.10 i próbny zakup przez selektor"
