@@ -311,6 +311,19 @@ describe('audyt Fali 3 — cofnięcie rezygnacji złożonej przez klienta', () =
     expect(stripeWywolania).toEqual([]);
   });
 
+  it('przegląd poprawek: anulacja obsługi cofnięta, a potem rezygnacja bez wpisu (system płatności) — liczy się jak klienta, nie wg starego wpisu obsługi', async () => {
+    const op = await operator();
+    const k = await klient(100);
+    const koniec = new Date(Date.now() + 10 * 86400000);
+    const u = await usluga(k.id, { currentPeriodEnd: koniec });
+    await cykl().anulujNaKoniecOkresu({ subscriptionId: u.id, operator: op, powod: POWOD });
+    await cykl().cofnijAnulacje({ subscriptionId: u.id, operator: op, powod: POWOD });
+    // Rezygnacja zapisana bez zdarzenia (np. synchronizacja z systemu płatności).
+    await prisma().subscription.update({ where: { id: u.id }, data: { cancelAt: koniec } });
+    await expect(cykl().cofnijAnulacje({ subscriptionId: u.id, operator: op, powod: POWOD })).rejects.toMatchObject({ status: 400 });
+    expect((await sub(u.id)).cancelAt?.toISOString()).toBe(koniec.toISOString());
+  });
+
   it('w oknie odnowienia (mniej niż doba) rezygnacji klienta nie cofa nikt, także ADMIN ze zgłoszeniem; rezygnację obsługi — tak', async () => {
     const admin = await operator('ADMIN');
     const k = await klient(100);

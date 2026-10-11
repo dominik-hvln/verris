@@ -263,15 +263,19 @@ export class CyklZyciaUslugiService {
     return { bezZmian: false, komunikat: 'Anulacja cofnięta — usługa odnowi się normalnie.' };
   }
 
-  /** Ostatnią rezygnację zaplanowała obsługa (CANCEL_SCHEDULED z source OPERATOR), a nie klient. */
+  /**
+   * Obecną rezygnację zaplanowała obsługa (CANCEL_SCHEDULED z source OPERATOR), a nie klient. Przegląd poprawek Fali 3 —
+   * liczy się ostatnie zdarzenie anulacji LUB cofnięcia: po cofnięciu anulacji obsługi rezygnacja zapisana bez wpisu
+   * (np. z systemu płatności) nie może dziedziczyć starego „OPERATOR”.
+   */
   private async anulowanaPrzezObsluge(subscriptionId: string): Promise<boolean> {
     const e = await this.prisma.subscriptionEvent.findFirst({
-      where: { subscriptionId, type: 'CANCEL_SCHEDULED' },
+      where: { subscriptionId, type: { in: ['CANCEL_SCHEDULED', 'CANCEL_REVOKED'] } },
       orderBy: { createdAt: 'desc' },
-      select: { details: true },
+      select: { type: true, details: true },
     });
     const d = e?.details as { source?: unknown } | null | undefined;
-    return d?.source === 'OPERATOR';
+    return e?.type === 'CANCEL_SCHEDULED' && d?.source === 'OPERATOR';
   }
 
   // ── data odnowienia (przedłużenie gratis) ───────────────────────────────────
