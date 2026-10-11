@@ -93,7 +93,39 @@ export function regulyZTrafien(t: TrafienieWaf[]) {
   return [...mapa.values()].sort((a, b) => b.razy - a.razy).slice(0, 20);
 }
 
-type Zadanie = { status: NodeTaskStatus; outputLog: string | null; errorMessage: string | null; createdAt: Date; completedAt: Date | null };
+export type ZadanieWaf = {
+  id?: string;
+  status: NodeTaskStatus;
+  outputLog: string | null;
+  errorMessage: string | null;
+  createdAt: Date;
+  /** Ostatni sygnał z węzła (heartbeat runnera co 60 s aktualizuje outputLog → updatedAt). */
+  updatedAt?: Date;
+  completedAt: Date | null;
+};
+
+/**
+ * Noc 11→12.10 (d3: „Wczytaj z serwera” 21:47, o 23:0x dalej „stan z 16:58”) — zadanie, którego węzeł nie podjął
+ * (QUEUED), albo podjął i przestał dawać znak życia (RUNNING bez heartbeatu), wisiało jako „w toku” bez końca:
+ * QUEUED nie wygasa nigdzie, a RUNNING zamyka dopiero lease agenta (reclaimStaleRunningTasks — gdy agent nie pyta
+ * o zadania, nigdy). Panel pokazywał wtedy tylko „Wczytywanie…”, a nowe zlecenie dostawało 409. Odczyt WAF trwa
+ * sekundy, agent pyta co minutę, runner wysyła heartbeat co 60 s — 15 min (jak HEARTBEAT_STALE_MS w node-tasks.service)
+ * bez podjęcia albo bez sygnału to zadanie wiszące: nie „w toku”, tylko błąd z możliwością ponowienia.
+ */
+export const ODCZYT_WISI_MS = 15 * 60 * 1000;
+
+export const BLAD_NIE_PODJETO =
+  'Serwer nie podjął odczytu w ciągu 15 min (agent zadań węzła nie odpowiada albo kolejka węzła stoi) — spróbuj ponownie; jeśli się powtarza, sprawdź kolejkę zadań węzła.';
+export const BLAD_BEZ_SYGNALU =
+  'Odczyt na serwerze nie dał znaku życia przez 15 min i nie zakończył się — spróbuj ponownie; jeśli się powtarza, sprawdź log zadania na węźle.';
+
+export function zadanieWisi(z: ZadanieWaf, teraz: number = Date.now()): boolean {
+  if (z.status === NodeTaskStatus.QUEUED) return teraz - z.createdAt.getTime() > ODCZYT_WISI_MS;
+  if (z.status === NodeTaskStatus.RUNNING) return teraz - (z.updatedAt ?? z.createdAt).getTime() > ODCZYT_WISI_MS;
+  return false;
+}
+
+const wToku = (z: ZadanieWaf) => z.status === NodeTaskStatus.QUEUED || z.status === NodeTaskStatus.RUNNING;
 
 export function bladWaf(log: string | null, errorMessage: string | null): string {
   const l = (log ?? '').split('\n').reverse().find((x) => x.includes('[waf-hits] BŁĄD: '));
@@ -102,18 +134,26 @@ export function bladWaf(log: string | null, errorMessage: string | null): string
 }
 
 /** Stan z ostatnich zadań WAF_HITS konta (najnowsze pierwsze). */
-export function stanTrafien(zadania: Zadanie[]) {
+export function stanTrafien(zadania: ZadanieWaf[], teraz: number = Date.now()) {
   // Audyt Fali 3 — wynik wyczyszczony retencją (30 dni) to „nie wczytano”, nie „brak trafień”.
   const wynik = zadania.find((z) => z.status === NodeTaskStatus.COMPLETED && z.outputLog !== null) ?? null;
   const ostatnie = zadania[0] ?? null;
+  // Noc 11→12.10 — zadanie wiszące nie jest „w toku” (nie blokuje ponowienia), tylko błędem ostatniego odczytu.
+  const trwa = zadania.find((z) => wToku(z) && !zadanieWisi(z, teraz)) ?? null;
   const trafienia = trafieniaZLogu(wynik?.outputLog ?? null);
   const razem = /^VERRIS_WAF_RAZEM (\d+) (\d+)/m.exec(wynik?.outputLog ?? '');
+  let blad: string | null = null;
+  if (ostatnie?.status === NodeTaskStatus.FAILED) blad = bladWaf(ostatnie.outputLog, ostatnie.errorMessage);
+  else if (ostatnie && zadanieWisi(ostatnie, teraz)) blad = ostatnie.status === NodeTaskStatus.QUEUED ? BLAD_NIE_PODJETO : BLAD_BEZ_SYGNALU;
   return {
-    wToku: zadania.some((z) => z.status === NodeTaskStatus.QUEUED || z.status === NodeTaskStatus.RUNNING),
+    wToku: trwa !== null,
+    /** Kiedy zlecono trwający odczyt i czy serwer już go podjął — panel mówi, na co czeka (nie samo „Wczytywanie…”). */
+    zlecono: trwa ? trwa.createdAt.toISOString() : null,
+    czekaNaSerwer: trwa?.status === NodeTaskStatus.QUEUED,
     wczytano: wynik ? (wynik.completedAt ?? wynik.createdAt).toISOString() : null,
     razem: razem ? Number(razem[1]) : null,
     trafienia,
     reguly: regulyZTrafien(trafienia),
-    blad: ostatnie?.status === NodeTaskStatus.FAILED ? bladWaf(ostatnie.outputLog, ostatnie.errorMessage) : null,
+    blad,
   };
 }

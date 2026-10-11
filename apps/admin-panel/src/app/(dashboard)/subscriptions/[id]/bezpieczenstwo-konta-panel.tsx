@@ -40,6 +40,9 @@ export type StanWaf = {
   tryb: "ON" | "DETECTION" | "OFF";
   zastosowano: string | null;
   wToku: boolean;
+  /** Noc 11→12.10 — kiedy zlecono trwający odczyt i czy serwer już go podjął (API: stanTrafien). */
+  zlecono?: string | null;
+  czekaNaSerwer?: boolean;
   wczytano: string | null;
   razem: number | null;
   trafienia: Trafienie[];
@@ -337,6 +340,13 @@ export function BezpieczenstwoKontaPanel({ subscriptionId, dostep }: { subscript
                 {waf.wczytano ? `stan z ${kiedy(waf.wczytano)}${waf.razem !== null ? ` · ${waf.razem} ${plForm(waf.razem, "trafienie", "trafienia", "trafień")}` : ""}` : "jeszcze nie wczytano"}
               </span>
             </div>
+            {/* Noc 11→12.10 — sam napis „Wczytywanie…” na przycisku nie mówił, od kiedy i na co panel czeka. */}
+            {trwaWaf ? (
+              <p className="text-muted-foreground" data-waf="stan-zadania">
+                {waf.czekaNaSerwer ? "Czeka, aż serwer podejmie odczyt" : "Serwer czyta dziennik"}
+                {waf.zlecono ? ` (zlecono ${kiedy(waf.zlecono)})` : ""}…{waf.wczytano ? " Do końca widać poprzedni odczyt." : ""}
+              </p>
+            ) : null}
             {waf.blad ? <p className="text-rose-200">Ostatni odczyt nie powiódł się: {waf.blad}</p> : null}
             {waf.reguly.length ? (
               <table className="w-full text-left" data-waf="reguly">

@@ -149,4 +149,28 @@ describe("F3.2 — bezpieczeństwo konta na karcie usługi", () => {
     expect(zapis).toHaveBeenCalledWith("s1", "wczytaj-waf", expect.anything());
     expect(q('[data-akcja="wczytaj-waf"]')!.textContent).toBe("Wczytywanie…");
   });
+
+  it("noc 11→12.10: w trakcie odczytu panel mówi, od kiedy i na co czeka; wiszący odczyt — błąd i przycisk znów aktywny", async () => {
+    const zlecono = "2026-10-11T19:47:00Z";
+    odczyt.mockImplementation(async (_s: string, co: string) => ({
+      ok: true,
+      wynik: co === "blokady-ip" ? IP : co === "malware" ? MALWARE : { ...WAF, wToku: true, zlecono, czekaNaSerwer: true },
+    }));
+    await render(L2);
+    const stan = q<HTMLElement>('[data-waf="stan-zadania"]')!;
+    expect(stan.textContent).toContain("Czeka, aż serwer podejmie odczyt");
+    expect(stan.textContent).toContain(new Date(zlecono).toLocaleString("pl-PL"));
+    expect(stan.textContent).toContain("poprzedni odczyt");
+
+    odczyt.mockImplementation(async (_s: string, co: string) => ({
+      ok: true,
+      wynik: co === "blokady-ip" ? IP : co === "malware" ? MALWARE : { ...WAF, wToku: false, blad: "Serwer nie podjął odczytu w ciągu 15 min — spróbuj ponownie." },
+    }));
+    await act(async () => root.unmount());
+    root = createRoot(k);
+    await render(L2);
+    expect(q('[data-waf="stan-zadania"]')).toBeNull();
+    expect(k.textContent).toContain("Ostatni odczyt nie powiódł się: Serwer nie podjął odczytu");
+    expect(q('[data-akcja="wczytaj-waf"]')!.disabled).toBe(false);
+  });
 });

@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
-import { stanTrafien } from '../servers/trafienia-waf.js';
+import { BLAD_BEZ_SYGNALU, BLAD_NIE_PODJETO, stanTrafien, zadanieWisi, type ZadanieWaf } from '../servers/trafienia-waf.js';
 
 /**
  * F3.2 — trafienia reguł WAF (ModSecurity) dla domen konta na karcie usługi: odczyt (ACCOUNT_DIAGNOSTICS_VIEW, L2+).
@@ -50,12 +50,14 @@ export class TrafieniaWafKontaService {
   async wczytaj(subscriptionId: string, wlascicielId: string, operatorUserId: string, operatorRole: string) {
     const { account } = await this.konto(subscriptionId, operatorRole);
     if (account.status === 'DELETED' || account.status === 'PROVISIONING') throw new BadRequestException('Konto hostingowe nie działa na serwerze.');
-    if (stanTrafien(await this.zadania(account.id)).wToku) throw new ConflictException('Trafienia WAF już się wczytują — chwila.');
+    const zadania = await this.zadania(account.id);
+    if (stanTrafien(zadania).wToku) throw new ConflictException('Trafienia WAF już się wczytują — chwila.');
     const { domains, fetchError } = await this.directAdmin.listHostingDomainsForSubscription(subscriptionId, wlascicielId);
     // Audyt Fali 3 — błąd odczytu domen to błąd, nie odczyt samej domeny głównej: inaczej zadanie kończy się
     // „brak trafień” dla domen dodatkowych (fałszywie negatywna diagnoza). Jak domenyKonta kolejki poczty.
     if (fetchError) throw new ServiceUnavailableException('Nie udało się odczytać domen konta z serwera — trafienia WAF nie zostały wczytane. Spróbuj za chwilę.');
     const domeny = [...new Set([account.domain, ...domains.map((d) => d.name)].map((d) => d.toLowerCase()))].slice(0, 200);
+    await this.zamknijWiszace(zadania);
     await this.prisma.nodeTask.create({
       data: {
         serverId: account.serverId,
@@ -67,5 +69,26 @@ export class TrafieniaWafKontaService {
       },
     });
     return this.widok(subscriptionId, operatorRole);
+  }
+
+  /**
+   * Noc 11→12.10 — wiszące odczyty (zadanieWisi) zamykamy jako FAILED przed nowym zleceniem: inaczej węzeł, który
+   * kiedyś wróci, podjąłby stare zadanie obok nowego. Warunek na status (i dla RUNNING — na ostatni sygnał) jak przy
+   * lease (updateMany where QUEUED): jeśli węzeł zdążył je podjąć albo dał znak życia, zostaje nietknięte.
+   */
+  private async zamknijWiszace(zadania: Array<ZadanieWaf & { id: string; updatedAt: Date }>) {
+    const teraz = Date.now();
+    for (const z of zadania) {
+      if (!zadanieWisi(z, teraz)) continue;
+      const nieRuszane = z.status === NodeTaskStatus.RUNNING ? { status: z.status, updatedAt: z.updatedAt } : { status: z.status };
+      await this.prisma.nodeTask.updateMany({
+        where: { id: z.id, ...nieRuszane },
+        data: {
+          status: NodeTaskStatus.FAILED,
+          errorMessage: z.status === NodeTaskStatus.QUEUED ? BLAD_NIE_PODJETO : BLAD_BEZ_SYGNALU,
+          completedAt: new Date(teraz),
+        },
+      });
+    }
   }
 }
