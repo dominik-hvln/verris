@@ -110,3 +110,6 @@ NODE-01,czeka,,"pierwszy węzeł produkcyjny (AX102, 9–20.11): kreator z boots
 Z-09,sprawdzone,2026-10-08,"t1: odmowa 127.0.0.1 / 10.0.0.1 / rekord mieszany w API (test dostępów + start) i w guardzie `pin` na węźle (także własne adresy t1); pozytywny FTP z Pleska → z09.d3.hvln.pl 3864 pliki / 109 MB | 2026-10-10: guard z jedną listą zastrzeżonych zakresów (0061) wgrany przez Onboard LIVE 10.10 00:02 — `64:ff9b::7f00:1` → odmowa, `8.8.8.8` → OK"
 I-19,sprawdzone,2026-10-08,"t1: migracja „Pliki” FTP z Pleska (hvln.pl) → z09.d3.hvln.pl, 3864 pliki / 109 MB (#da592220); WordPress bez bazy → 500, oczekiwane"
 A-02,sprawdzone,2026-10-08,"t1: domena dodatkowa z10.d3.hvln.pl dodana i usunięta — delegacja NS/DS w strefie d3.hvln.pl znika razem z domeną (60ff05ba)"
+N-14,sprawdzone,2026-10-11,"11.10 t1 d3.hvln.pl: mail() z PHP zablokowanego konta false, kolejka konta i węzła 0, po zwolnieniu true; wpisy w dzienniku (PB-52)"
+PB-52,sprawdzone,2026-10-11,"11.10 t1: blokada/zwolnienie wysyłki konta, limit 5/dobę potwierdzony przez serwer i widoczny dla klienta, kolejka konta i węzła, nadawcy i odrzucenia, RBL (spamhaus „nieznany”, nie „czysto”)"
+E-18,sprawdzone,2026-10-11,"11.10 t1 węzeł → Poczta → RBL: spamcop i barracuda „czysto”, spamhaus „brak odpowiedzi” pokazany jako nieznany (nie „czysto”)"

@@ -495,7 +495,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `P-15` | Podpisane DPA z subprocesorami (część) | 6 | BLOKER STARTU | docs/legal/dpa-subprocessors-tracking.md — tabela statusow po korekcie 2026-09-19. Stripe i AWS: DPA obowiazuje z mocy umowy glownej. Hetzner i Openpr |
-| `N-14` | Cordon wysyłki poczty (auto-blokada spamu) | 6 | BLOKER STARTU | 2026-09-23: admin-panel /deliverability (Blokady wysyłki poczty, link w menu) → GET/POST /admin/deliverability/cordons; lista z e-mailem i nazwą klien |
+| `N-14` | Cordon wysyłki poczty (auto-blokada spamu) | 6 | WYSOKA | 2026-09-23: admin-panel /deliverability (Blokady wysyłki poczty, link w menu) → GET/POST /admin/deliverability/cordons; lista z e-mailem i nazwą klien |
 | `PB-03` | Finalizacja dokumentów prawnych 1.0.0 | 16 | BLOKER BIZNESOWY | Regulamin, polityka prywatności, SLA, DPA, polityka cookies — wyjście z DRAFT-u, wersjonowanie i publikacja w panelu. | 2026-09-23: decyzje właściciel |
 | `PB-04` | Procedura obsługi nadużyć (abuse) — dokument | 8 | WYSOKI | Adres abuse@ obsługiwany, ścieżka od zgłoszenia do reakcji, czasy reakcji, kto decyduje o zawieszeniu, wzory odpowiedzi do CERT i rejestratorów. | 202 |
 | `PB-52` | Blokada wysyłki konta i kolejka MTA (bloker B3, decyzja D4) | 24 | KRYTYCZNY | Bloker operatora B3 z audytu paneli operatora (OC-10 + OG-01): kordon wysyłki działa tylko w module e-mail marketingu (email-marketing.service.ts:551, |
@@ -503,7 +503,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 **Definicja ukończenia**
 
 - `P-15` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `N-14` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `N-14` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `PB-03` — Wszystkie dokumenty w statusie opublikowanym z numerem wersji i datą. Panel /legal nie pokazuje ani jednego „Dokument w przygotowaniu”.
 - `PB-04` — Dokument w ops/docs z właścicielem i czasami reakcji. Test: zgłoszenie wysłane na abuse@ trafia do kogoś i ma odpowiedź w deklarowanym czasie.
 - `PB-52` — Test na t1: mail() z PHP zablokowanego konta jest odrzucany, po „Usuń wiadomości konta” kolejka węzła jest czysta, „Zwolnij” przywraca wysyłkę; wpisy w dzienniku; N-14 → DZIAŁA z D3, flaga BLOKER zdjęta.
