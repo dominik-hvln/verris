@@ -41,6 +41,15 @@ export interface MailMessage {
   fromName?: string;
   /** From z tabeli adresów systemowych (MAIL-4); wygrywa z `fromAddress` gdy oba podane. */
   fromRole?: SystemFromRole;
+  /**
+   * F3.7 — mail w sprawie zgłoszenia: MailerService ustawia Message-ID, In-Reply-To i References wątku
+   * (mail/watek-zgloszenia.ts), żeby klient pocztowy skleił rozmowę, a odpowiedź mailem wróciła do zgłoszenia.
+   */
+  zgloszenieId?: string;
+  /** Nagłówki wątku (RFC 5322 §3.6.4) — `<id@domena>`; provider pomija niepoprawne. */
+  messageId?: string;
+  inReplyTo?: string;
+  references?: string[];
   /** Tag/category for analytics (Resend's `tags`, Postmark's `Tag`). */
   tag?: string;
   /**

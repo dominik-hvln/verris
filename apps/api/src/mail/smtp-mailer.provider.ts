@@ -3,6 +3,7 @@ import * as net from 'net';
 import * as tls from 'tls';
 import * as crypto from 'crypto';
 import { MailMessage, MailerProvider } from './mailer.interface.js';
+import { poprawnyMessageId } from './watek-zgloszenia.js';
 
 interface SmtpConfig {
   host: string;
@@ -46,7 +47,8 @@ export class SmtpMailerProvider implements MailerProvider {
   constructor(private readonly config: SmtpConfig) {}
 
   async send(message: MailMessage): Promise<{ providerId: string; messageId: string }> {
-    const messageId = `<${crypto.randomUUID()}@${this.config.messageIdDomain}>`;
+    // F3.7 — Message-ID z wątku zgłoszenia (MailerService), inaczej losowy jak dotąd.
+    const messageId = poprawnyMessageId(message.messageId) ? message.messageId : `<${crypto.randomUUID()}@${this.config.messageIdDomain}>`;
     const conversation = await this.deliver(message, messageId);
     if (!conversation.ok) {
       throw new Error(`SMTP delivery failed: ${conversation.error ?? 'unknown'}`);
@@ -129,6 +131,8 @@ export class SmtpMailerProvider implements MailerProvider {
       html: message.html,
       replyTo: message.replyTo,
       messageId,
+      inReplyTo: message.inReplyTo,
+      references: message.references,
       listUnsubscribeUrl: message.listUnsubscribeUrl,
     });
     await writeLine(socket, body + '\r\n.\r\n');
@@ -206,7 +210,7 @@ function waitSecure(socket: tls.TLSSocket): Promise<void> {
   });
 }
 
-interface RenderInput {
+export interface RenderInput {
   from: { address: string; name: string };
   to: string;
   subject: string;
@@ -214,6 +218,9 @@ interface RenderInput {
   html?: string;
   replyTo?: string;
   messageId: string;
+  /** F3.7 — wątek zgłoszenia; niepoprawne id są pomijane (bez CR/LF w nagłówkach). */
+  inReplyTo?: string;
+  references?: string[];
   /**
    * Gdy podane — dodajemy headery `List-Unsubscribe` oraz `List-Unsubscribe-Post`
    * (RFC 8058 one-click). Wymóg deliverability dla Gmail/Outlook dla maili
@@ -222,7 +229,7 @@ interface RenderInput {
   listUnsubscribeUrl?: string;
 }
 
-function renderEmail(input: RenderInput): string {
+export function renderEmail(input: RenderInput): string {
   const boundary = `----=verris-${crypto.randomBytes(8).toString('hex')}`;
   const headers = [
     `From: "${input.from.name}" <${input.from.address}>`,
@@ -231,6 +238,8 @@ function renderEmail(input: RenderInput): string {
     `Subject: ${encodeHeaderUtf8(input.subject)}`,
     `Date: ${new Date().toUTCString()}`,
     `Message-ID: ${input.messageId}`,
+    poprawnyMessageId(input.inReplyTo) ? `In-Reply-To: ${input.inReplyTo}` : '',
+    naglowekReferences(input.references),
     input.listUnsubscribeUrl ? `List-Unsubscribe: <${input.listUnsubscribeUrl}>` : '',
     input.listUnsubscribeUrl ? `List-Unsubscribe-Post: List-Unsubscribe=One-Click` : '',
     `MIME-Version: 1.0`,
@@ -260,6 +269,12 @@ function renderEmail(input: RenderInput): string {
   ].join('\r\n');
 
   return `${headers}\r\n\r\n${body}`;
+}
+
+/** References złożony po jednym id na linię (RFC 5322 §2.2.3 — linie ≤ 78 znaków), tylko poprawne id. */
+export function naglowekReferences(ids: readonly string[] | undefined): string {
+  const ok = (ids ?? []).filter(poprawnyMessageId);
+  return ok.length ? `References: ${ok.join('\r\n ')}` : '';
 }
 
 function encodeHeaderUtf8(value: string): string {

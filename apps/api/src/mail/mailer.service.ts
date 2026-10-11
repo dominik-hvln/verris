@@ -16,6 +16,7 @@ import {
 import type { MailSmtpSecure } from './mail-settings.keys.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { wstawMarke, ZNACZNIK_PARTNERA_OD } from '../reseller/reseller-marka.js';
+import { naglowkiWatku } from './watek-zgloszenia.js';
 
 export const MAILER_PROVIDER = Symbol('MAILER_PROVIDER');
 
@@ -124,7 +125,7 @@ export class MailerService {
       };
     }
 
-    const withFrom = await this.applyPartnerBrand(await this.applyFromOverrides(message));
+    const withFrom = await this.applyThread(await this.applyPartnerBrand(await this.applyFromOverrides(message)));
 
     // ---- 2. List-Unsubscribe injection (MARKETING only) --------------------
     const enriched = await this.enrichForCategory(withFrom, category);
@@ -170,6 +171,21 @@ export class MailerService {
     // Niepełny adres (zdalny host bez loginu/hasła) daje w fabryce LogMailerProvider — dla kampanii
     // byłoby to ciche „wysłano” do logu. Tylko prawdziwy SMTP liczy się jako transport.
     return p.id === 'smtp' ? p : null;
+  }
+
+  /**
+   * F3.7 — mail w sprawie zgłoszenia dostaje nagłówki wątku (Message-ID z id zgłoszenia, In-Reply-To, References),
+   * chyba że nadawca podał własne. Domena Message-ID jak w SMTP (`SMTP_MESSAGE_ID_DOMAIN`).
+   */
+  private async applyThread(message: MailMessage): Promise<MailMessage> {
+    if (!message.zgloszenieId || message.messageId) return message;
+    const domena = resolveSmtpIdentity().messageIdDomain;
+    return { ...message, ...naglowkiWatku(message.zgloszenieId, domena, await this.idyMailiKlienta(message.zgloszenieId)) };
+  }
+
+  /** Message-ID maili klienta w zgłoszeniu (od najstarszego) — uzupełnia poczta przychodząca. */
+  protected async idyMailiKlienta(_zgloszenieId: string): Promise<string[]> {
+    return [];
   }
 
   /**

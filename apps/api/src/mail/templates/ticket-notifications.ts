@@ -53,11 +53,15 @@ export function newTicketCreatedTemplate(ctx: TicketContext & { termin?: string 
   return {
     to: ctx.customerEmail,
     tag: 'ticket.created',
+    zgloszenieId: ctx.ticketId,
     subject: `[#${shortId}] Otrzymaliśmy Twoje zgłoszenie`,
     text,
     html,
   };
 }
+
+/** F3.7 — limit treści odpowiedzi opiekuna w mailu (dłuższa — reszta w panelu). */
+export const ODPOWIEDZ_MAX_ZNAKOW = 20_000;
 
 export interface TicketReplyContext {
   to: string;
@@ -77,6 +81,8 @@ export function ticketReplyNotificationTemplate(ctx: TicketReplyContext): MailMe
     : `${ctx.staffPanelUrl ?? ctx.panelUrl}/tickets/${ctx.ticketId}`;
   const safeSubject = escapeMarkdown(ctx.subject);
   const excerpt = escapeMarkdown(ctx.excerpt.slice(0, 500));
+  // F3.7 — klient dostaje całą odpowiedź (może odpisać mailem); obsługa — fragment z linkiem jak dotąd.
+  const pelna = escapeMarkdown(ctx.excerpt.slice(0, ODPOWIEDZ_MAX_ZNAKOW));
   const title = ctx.isFromStaff ? 'Nowa odpowiedź od opiekuna' : 'Nowa wiadomość od klienta';
   const preheader = ctx.isFromStaff
     ? `Opiekun odpowiedział w sprawie #${shortId}.`
@@ -92,9 +98,12 @@ export function ticketReplyNotificationTemplate(ctx: TicketReplyContext): MailMe
         ? `Opiekun odpowiedział w zgłoszeniu **"${safeSubject}"** (#${shortId}).`
         : `Klient dopisał w zgłoszeniu **"${safeSubject}"** (#${shortId}).`,
       ``,
-      `> ${excerpt}${ctx.excerpt.length > 500 ? '…' : ''}`,
+      ctx.isFromStaff
+        ? `${pelna}${ctx.excerpt.length > ODPOWIEDZ_MAX_ZNAKOW ? '…' : ''}`
+        : `> ${excerpt}${ctx.excerpt.length > 500 ? '…' : ''}`,
     ].join('\n'),
     cta: { label: 'Otwórz zgłoszenie', url: ticketUrl },
+    ...(ctx.isFromStaff ? { footnote: 'Możesz odpowiedzieć na tę wiadomość albo w panelu — odpowiedź dołączymy do zgłoszenia.' } : {}),
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
@@ -103,6 +112,8 @@ export function ticketReplyNotificationTemplate(ctx: TicketReplyContext): MailMe
   return {
     to: ctx.to,
     tag: ctx.isFromStaff ? 'ticket.reply.staff' : 'ticket.reply.client',
+    // F3.7 — odpowiedź do klienta w wątku zgłoszenia (klient odpisuje mailem → wraca do zgłoszenia).
+    ...(ctx.isFromStaff ? { zgloszenieId: ctx.ticketId } : {}),
     subject: `[#${shortId}] ${ctx.isFromStaff ? 'Odpowiedź opiekuna' : 'Nowa wiadomość'}: ${ctx.subject}`,
     text,
     html,
@@ -138,6 +149,7 @@ export function ticketOpenedByStaffTemplate(ctx: TicketContext & { excerpt: stri
   return {
     to: ctx.customerEmail,
     tag: 'ticket.opened-by-staff',
+    zgloszenieId: ctx.ticketId,
     subject: `[#${shortId}] ${ctx.subject}`,
     text,
     html,
@@ -174,6 +186,7 @@ export function ticketStatusChangedTemplate(
   return {
     to: ctx.customerEmail,
     tag: 'ticket.status-changed',
+    zgloszenieId: ctx.ticketId,
     subject: `[#${shortId}] Status zgłoszenia: ${ctx.newStatus}`,
     text,
     html,
@@ -284,6 +297,7 @@ export function ticketCustomerReminderTemplate(
   return {
     to: ctx.customerEmail,
     tag: 'ticket.reminder.client',
+    zgloszenieId: ctx.ticketId,
     subject: `[#${shortId}] Czekamy na Twoją odpowiedź: ${ctx.subject}`,
     text,
     html,
@@ -315,6 +329,7 @@ export function ticketAutoClosedTemplate(ctx: TicketContext): MailMessage {
   return {
     to: ctx.customerEmail,
     tag: 'ticket.autoclosed.client',
+    zgloszenieId: ctx.ticketId,
     subject: `[#${shortId}] Zgłoszenie zamknięte: ${ctx.subject}`,
     text,
     html,
@@ -340,6 +355,7 @@ export function ticketAutoMessageTemplate(
   return {
     to: ctx.customerEmail,
     tag: 'ticket.auto',
+    zgloszenieId: ctx.ticketId,
     subject: `[#${shortId}] ${ctx.tytul}: ${ctx.subject}`,
     text,
     html,

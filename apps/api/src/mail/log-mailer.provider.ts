@@ -14,7 +14,7 @@ export class LogMailerProvider implements MailerProvider {
   private readonly logger = new Logger('Mailer:log');
 
   async send(message: MailMessage): Promise<{ providerId: string; messageId: string }> {
-    const messageId = `log-${crypto.randomUUID()}`;
+    const messageId = message.messageId ?? `log-${crypto.randomUUID()}`;
     this.logger.log(
       JSON.stringify({
         messageId,
