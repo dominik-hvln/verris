@@ -53,6 +53,9 @@ it("filtr KSeF idzie do API; nieznana wartość z adresu jest pomijana", async (
   renderToStaticMarkup(await Faktury({ searchParams: Promise.resolve({ ksef: "REJECTED" }) }));
   expect(api.mock.calls.map((c) => c[0]).find((s: string) => s.startsWith("/admin/invoices?"))).toContain("ksef=REJECTED");
   api.mockClear();
-  renderToStaticMarkup(await Faktury({ searchParams: Promise.resolve({ ksef: "'; DROP" }) }));
-  expect(api.mock.calls.map((c) => c[0]).find((s: string) => s.startsWith("/admin/invoices?"))).not.toContain("ksef=");
+  for (const ksef of ["'; DROP", "toString"]) {
+    api.mockClear();
+    renderToStaticMarkup(await Faktury({ searchParams: Promise.resolve({ ksef }) }));
+    expect(api.mock.calls.map((c) => c[0]).find((s: string) => s.startsWith("/admin/invoices?"))).not.toContain("ksef=");
+  }
 });

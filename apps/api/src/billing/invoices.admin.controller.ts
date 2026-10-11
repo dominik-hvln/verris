@@ -60,7 +60,7 @@ function parseKsefList(raw: string | undefined): KsefStatus[] | undefined {
   if (!raw) return undefined;
   const parts = raw.split(',').map((s) => s.trim().toUpperCase()).filter(Boolean);
   for (const p of parts) {
-    if (!(p in KsefStatus)) throw new BadRequestException(`Niepoprawny stan KSeF: ${p}`);
+    if (!Object.values<string>(KsefStatus).includes(p)) throw new BadRequestException(`Niepoprawny stan KSeF: ${p}`);
   }
   return parts.length > 0 ? (parts as KsefStatus[]) : undefined;
 }

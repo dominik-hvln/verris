@@ -26,7 +26,7 @@ export default async function NieudanePlatnosciPage({ searchParams }: { searchPa
   const bramka = await bramkaStrony("/billing/nieudane");
   if (bramka) return bramka;
   const q = (await searchParams) ?? {};
-  const zrodlo = q.zrodlo && q.zrodlo in ZRODLO_PLATNOSCI ? (q.zrodlo as ZrodloPlatnosci) : undefined;
+  const zrodlo = q.zrodlo && Object.hasOwn(ZRODLO_PLATNOSCI, q.zrodlo) ? (q.zrodlo as ZrodloPlatnosci) : undefined;
   const dni = OKRESY.find((d) => String(d) === q.dni) ?? 30;
   const klient = q.klient && UUID.test(q.klient) ? q.klient : undefined;
   const strona = Math.max(1, Number.parseInt(q.strona ?? "1", 10) || 1);

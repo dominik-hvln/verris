@@ -84,7 +84,7 @@ export class RozliczeniaAdminController {
     @Query('limit', new DefaultValuePipe(25), ParseIntPipe) limit: number,
     @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
   ) {
-    if (typ && !(typ in WalletTxType)) throw new BadRequestException('Nieznany typ operacji portfela.');
+    if (typ && !Object.values<string>(WalletTxType).includes(typ)) throw new BadRequestException('Nieznany typ operacji portfela.');
     return this.rozliczenia.ruchyPortfela(userId, operator(a), { typ: (typ as WalletTxType) || undefined, limit, offset });
   }
 

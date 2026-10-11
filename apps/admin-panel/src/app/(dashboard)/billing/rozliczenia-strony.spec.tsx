@@ -73,7 +73,7 @@ it("filtry idą do API: źródło, okres, klient; śmieci z adresu są pomijane"
   expect(zapytanie).toContain(`userId=${UID}`);
   expect(zapytanie).toContain("offset=50");
   api.mockClear();
-  await Nieudane({ searchParams: Promise.resolve({ zrodlo: "X", dni: "5", klient: "'; drop" }) });
+  await Nieudane({ searchParams: Promise.resolve({ zrodlo: "toString", dni: "5", klient: "'; drop" }) });
   const czyste = api.mock.calls.map((c) => c[0] as string).find((s) => s.startsWith("/admin/rozliczenia/nieudane-platnosci"))!;
   expect(czyste).not.toMatch(/zrodlo=|userId=/);
   expect(czyste).toContain("dni=30");

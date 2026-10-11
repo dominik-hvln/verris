@@ -58,7 +58,7 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
   const to = params.to || undefined;
   const page = Number.parseInt(params.page ?? "1", 10) || 1;
   // F3.6 — filtr po stanie KSeF (tylko znane stany; inne wartości z adresu pomijamy).
-  const ksef = params.ksef && params.ksef in KSEF ? params.ksef : undefined;
+  const ksef = params.ksef && Object.hasOwn(KSEF, params.ksef) ? params.ksef : undefined;
 
   let data: Awaited<ReturnType<typeof listAdminInvoices>> | null = null;
   let error: string | null = null;
