@@ -33,6 +33,8 @@ function stanowisko(opts: { juzZanonimizowany?: boolean; subkonta?: string[] } =
       findMany: vi.fn(async () => [{ payload: { newEmail: 'Nowy@Firma.pl' }, result: { komunikat: 'Adres e-mail zmieniony na nowy@firma.pl.' } }]),
       updateMany: vi.fn(async () => ({ count: 1 })),
     },
+    // Przegląd poprawek — adres sprzed zmiany przez obsługę (CUSTOMER_EMAIL_CHANGED.fromEmail).
+    auditLog: { findMany: vi.fn(async () => [{ details: { fromEmail: 'Stary@Firma.pl', toEmail: 'jan@firma.pl', reason: null } }]) },
     $executeRaw: vi.fn(async () => 1),
   };
   const prisma = {
@@ -98,9 +100,14 @@ describe('AccountDeletionService.executeAnonymization (P-02)', () => {
     expect(s.tx.ticket.updateMany).toHaveBeenCalledWith({ where: { userId: 'u1' }, data: { tags: [] } });
     expect(s.tx.account.updateMany).toHaveBeenCalledWith({ where: { userId: 'u1', mailBlockedReason: { not: null } }, data: { mailBlockedReason: null } });
     expect(s.tx.operatorRequest.updateMany).toHaveBeenCalledWith({ where: { customerId: 'u1' }, data: { justification: '[zanonimizowano]' } });
-    // Bieżący adres i adres z wniosku o zmianę e-maila — w parametrach, wynikach, dzienniku wniosków i dzwonkach zespołu.
+    // Bieżący adres, adres z wniosku o zmianę e-maila i adres sprzed zmiany przez obsługę — w parametrach, wynikach,
+    // dzienniku wniosków i dzwonkach zespołu.
     const wzorce = (s.tx.$executeRaw.mock.calls as unknown as unknown[][]).flatMap((c) => c.slice(1)).filter((v) => typeof v === 'string' && v.includes('@'));
-    expect(new Set(wzorce)).toEqual(new Set([wzorzecAdresu('jan@firma.pl'), wzorzecAdresu('nowy@firma.pl')]));
+    expect(new Set(wzorce)).toEqual(new Set([wzorzecAdresu('jan@firma.pl'), wzorzecAdresu('nowy@firma.pl'), wzorzecAdresu('stary@firma.pl')]));
+    expect(s.tx.auditLog.findMany).toHaveBeenCalledWith({
+      where: { userId: 'u1', action: { in: ['CUSTOMER_EMAIL_CHANGED', 'EMAIL_CHANGE_CONFIRMED'] } },
+      select: { details: true },
+    });
   });
 
   it('subkonta: wyłączone, zanonimizowane i wylogowane razem z właścicielem', async () => {

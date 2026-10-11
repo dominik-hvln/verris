@@ -416,13 +416,42 @@ export class AccountDeletionService {
       await tx.ticketReply.deleteMany({ where: { internal: true, ticket: { userId } } });
       await tx.ticket.updateMany({ where: { userId }, data: { tags: [] } });
       await tx.account.updateMany({ where: { userId, mailBlockedReason: { not: null } }, data: { mailBlockedReason: null } });
-      const wnioski = await tx.operatorRequest.findMany({ where: { customerId: userId }, select: { payload: true, result: true } });
+      const wnioski = await tx.operatorRequest.findMany({
+        where: { customerId: userId },
+        select: { payload: true, result: true, justification: true, decisionReason: true },
+      });
       if (wnioski.length) {
         await tx.operatorRequest.updateMany({ where: { customerId: userId }, data: { justification: ZANONIMIZOWANO } });
         await tx.operatorRequest.updateMany({ where: { customerId: userId, decisionReason: { not: null } }, data: { decisionReason: ZANONIMIZOWANO } });
-        await tx.$executeRaw`UPDATE "AuditLog" SET "details" = jsonb_set("details", '{uzasadnienie}', to_jsonb(${ZANONIMIZOWANO}::text)) WHERE "userId" = ${userId} AND starts_with("action", 'OPERATOR_REQUEST_') AND ("details" -> 'uzasadnienie') IS NOT NULL`;
+        // Przegląd poprawek — powód odrzucenia jest też w details.powod wpisu OPERATOR_REQUEST_REJECTED.
+        for (const pole of ['uzasadnienie', 'powod']) {
+          await tx.$executeRaw`UPDATE "AuditLog" SET "details" = jsonb_set("details", ARRAY[${pole}::text], to_jsonb(${ZANONIMIZOWANO}::text)) WHERE "userId" = ${userId} AND starts_with("action", 'OPERATOR_REQUEST_') AND ("details" -> ${pole}::text) IS NOT NULL`;
+        }
+        // Przegląd poprawek — kopie w dzwonkach zespołu (wnioski.service.ts): „… Uzasadnienie: <uzasadnienie>” u decydujących
+        // i „<decydujący>: <powód>” u wnioskującego po odrzuceniu. Treść jest na końcu, więc podmieniamy dokładny sufiks.
+        for (const w of wnioski) {
+          const kopie = [
+            { tytul: 'Wniosek do decyzji:%', link: '/wnioski', przed: 'Uzasadnienie: ', tresc: w.justification },
+            { tytul: 'Wniosek odrzucony:%', link: '/wnioski?zakladka=moje', przed: ': ', tresc: w.decisionReason },
+          ];
+          for (const { tytul, link, przed, tresc } of kopie) {
+            if (!tresc) continue;
+            const sufiks = `${przed}${tresc}`;
+            await tx.$executeRaw`UPDATE "Notification" SET "body" = left("body", length("body") - length(${sufiks}::text)) || ${`${przed}${ZANONIMIZOWANO}`}::text WHERE "link" = ${link} AND "title" LIKE ${tytul} AND right("body", length(${sufiks}::text)) = ${sufiks}::text`;
+          }
+        }
       }
-      const adresy = adresyEmail([originalEmail, ...wnioski.flatMap((w) => [JSON.stringify(w.payload), JSON.stringify(w.result ?? null)])]);
+      // Przegląd poprawek — adresy sprzed zmiany e-maila (przez obsługę: CUSTOMER_EMAIL_CHANGED.fromEmail; przez klienta:
+      // EMAIL_CHANGE_CONFIRMED) — dzwonek wniosku złożonego przed zmianą niesie poprzedni adres klienta.
+      const zmianyAdresu = await tx.auditLog.findMany({
+        where: { userId, action: { in: ['CUSTOMER_EMAIL_CHANGED', 'EMAIL_CHANGE_CONFIRMED'] } },
+        select: { details: true },
+      });
+      const adresy = adresyEmail([
+        originalEmail,
+        ...wnioski.flatMap((w) => [JSON.stringify(w.payload), JSON.stringify(w.result ?? null)]),
+        ...zmianyAdresu.map((z) => JSON.stringify(z.details ?? null)),
+      ]);
       for (const wzorzec of adresy.map(wzorzecAdresu)) {
         await tx.$executeRaw`UPDATE "OperatorRequest" SET "payload" = regexp_replace("payload"::text, ${wzorzec}, ${ZANONIMIZOWANO}, 'gi')::jsonb, "result" = CASE WHEN "result" IS NULL THEN NULL ELSE regexp_replace("result"::text, ${wzorzec}, ${ZANONIMIZOWANO}, 'gi')::jsonb END WHERE "customerId" = ${userId}`;
         await tx.$executeRaw`UPDATE "AuditLog" SET "details" = regexp_replace("details"::text, ${wzorzec}, ${ZANONIMIZOWANO}, 'gi')::jsonb WHERE "userId" = ${userId} AND starts_with("action", 'OPERATOR_REQUEST_') AND "details"::text ~* ${wzorzec}`;

@@ -118,6 +118,50 @@ describe('X-04 usunięcie konta (RODO)', () => {
     expect(dzwonki.map((n) => n.body)).toEqual([`klient ${obcy}`, 'Ktoś prosi o: Zmiana adresu e-mail na [zanonimizowano] · klient [zanonimizowano]. Uzasadnienie: …']);
   });
 
+  it('przegląd poprawek — kopie uzasadnienia i powodu odrzucenia w dzwonkach i dzienniku oraz adres sprzed zmiany przez obsługę znikają', async () => {
+    const k = await zWnioskiem();
+    const p = prisma();
+    const ts = Date.now();
+    const sprzedZmiany = `stary-${ts}@poczta-klienta.pl`;
+    const op = await p.user.create({ data: { email: `op2-${ts}@test.verris.pl`, passwordHash: 'x', role: 'STAFF' } });
+    const decydujacy = await p.user.create({ data: { email: `op3-${ts}@test.verris.pl`, passwordHash: 'x', role: 'ADMIN' } });
+    const uzasadnienie = 'Klientka Anna Nowak dzwoniła z numeru 600 100 200, prosi o reset.';
+    const powodOdrzucenia = 'Anna Nowak nie podała hasła z umowy, oddzwonić na 600 100 200';
+    const w = await p.operatorRequest.create({
+      data: {
+        type: 'CUSTOMER_PASSWORD_RESET', customerId: k.user.id, requestedById: op.id, payload: {}, justification: uzasadnienie,
+        status: 'REJECTED', decidedById: decydujacy.id, decisionReason: powodOdrzucenia,
+      },
+    });
+    await p.auditLog.createMany({
+      data: [
+        // Adres sprzed zmiany przez obsługę (users.admin.service.ts changeCustomerEmail) — bieżący adres jest już inny.
+        { action: 'CUSTOMER_EMAIL_CHANGED', userId: k.user.id, actorUserId: op.id, details: { fromEmail: sprzedZmiany, toEmail: k.user.email, reason: null } },
+        { action: 'OPERATOR_REQUEST_REJECTED', userId: k.user.id, actorUserId: decydujacy.id, details: { wniosekId: w.id, wnioskujacyUserId: op.id, powod: powodOdrzucenia } },
+      ],
+    });
+    await p.notification.createMany({
+      data: [
+        // wnioski.service.ts powiadomDecydujacych (przy złożeniu — klient miał jeszcze stary adres) i powiadomWnioskujacego.
+        { userId: decydujacy.id, category: 'SYSTEM', link: '/wnioski', title: 'Wniosek do decyzji: reset hasła', body: `Ktoś prosi o: Reset hasła · klient ${sprzedZmiany}. Uzasadnienie: ${uzasadnienie}` },
+        { userId: op.id, category: 'SYSTEM', link: '/wnioski?zakladka=moje', title: 'Wniosek odrzucony: reset hasła', body: `Decydujący: ${powodOdrzucenia}` },
+        // Cudzy wniosek z innym uzasadnieniem — zostaje.
+        { userId: decydujacy.id, category: 'SYSTEM', link: '/wnioski', title: 'Wniosek do decyzji: reset hasła', body: 'Ktoś prosi o: Reset hasła · klient inny@firma.pl. Uzasadnienie: Inny klient prosi o reset.' },
+      ],
+    });
+
+    await serwis().executeAnonymization(k.user.id, null);
+
+    const dzwonki = JSON.stringify(await p.notification.findMany({ where: { userId: { in: [op.id, decydujacy.id] } } }));
+    expect(dzwonki).not.toMatch(/Nowak|600 100 200/);
+    expect(dzwonki).not.toContain(sprzedZmiany);
+    expect(dzwonki).toContain('Uzasadnienie: Inny klient prosi o reset.');
+    expect(dzwonki).toContain('Uzasadnienie: [zanonimizowano]');
+    expect(dzwonki).toContain('Decydujący: [zanonimizowano]');
+    const dziennik = JSON.stringify(await p.auditLog.findMany({ where: { userId: k.user.id, action: { startsWith: 'OPERATOR_REQUEST_' } } }));
+    expect(dziennik).not.toMatch(/Nowak|600 100 200/);
+  });
+
   it('klient cofnął wniosek po wybraniu listy do anonimizacji: dane zostają nietknięte', async () => {
     const k = await zWnioskiem();
     const s = serwis();
