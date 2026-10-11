@@ -191,7 +191,7 @@ export default async function KopieFlotyPage({ searchParams }: { searchParams?: 
               <span className="flex min-w-0 flex-1 flex-col text-sm">
                 <span className="break-all font-mono text-[13px]">{pr.source}</span>
                 <span className="text-[12.5px] text-muted-foreground">
-                  {kiedy(pr.finishedAt)} · {czas(pr.durationSec)} · {pr.owner}
+                  {kiedy(pr.finishedAt)} · {czas(pr.durationSec)}
                   {stara ? " · starsza niż 30 dni" : ""}
                 </span>
               </span>

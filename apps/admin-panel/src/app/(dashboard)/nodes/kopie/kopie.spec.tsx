@@ -48,7 +48,7 @@ const dane = (o: Partial<KopieFloty> = {}): KopieFloty => ({
     },
   ],
   kontUcietych: 0,
-  proby: [{ id: "p1", finishedAt: iso(24 * 40), durationSec: 125, result: "OK", objectName: "verris.sql.gz", source: "s3://kopie/db", owner: "Dominik" }],
+  proby: [{ id: "p1", finishedAt: iso(24 * 40), durationSec: 125, result: "OK", source: "s3://kopie/db" }],
   ...o,
 });
 

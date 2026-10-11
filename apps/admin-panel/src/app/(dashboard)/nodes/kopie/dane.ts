@@ -41,7 +41,8 @@ export interface KopieFloty {
     lokalnaNieudana: { kiedy: string | null; blad: string } | null;
   }>;
   kontUcietych: number;
-  proby: Array<{ id: string; finishedAt: string; durationSec: number; result: "OK" | "FAILED"; objectName: string; source: string; owner: string }>;
+  /** Ostatnia próba per źródło. `source` — pełne (zasobnik/ścieżka) tylko dla ADMIN, dla zespołu ostatni człon. */
+  proby: Array<{ id: string; finishedAt: string; durationSec: number; result: "OK" | "FAILED"; source: string }>;
 }
 
 export const ETYKIETA_STANU: Record<StanKopiiKonta, { tekst: string; ton: "ok" | "warn" | "crit" | "muted" }> = {

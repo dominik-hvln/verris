@@ -82,6 +82,19 @@ describe('F3.3 — kopie floty: raport węzła per konto → widok, metryka, sta
     expect(wezel1.konta).toMatchObject({ kont: 3, ok: 1, nieudane: 1, bezSwiezej: 1 });
     expect(flota.wezly.find((w) => w.id === w2.id)!.przebieg).toBeNull();
 
+    // Przegląd F3.3 — próby odtworzenia były tylko dla ADMIN: NOC/L2/audytor widzą wynik i rodzaj źródła, bez
+    // zasobnika, obiektu i „właściciela” (login@host panelu sterującego).
+    await prisma().restoreDrill.create({
+      data: {
+        startedAt: new Date(Date.now() - 120_000), finishedAt: new Date(), durationSec: 120, result: 'OK',
+        objectName: 'verris-2026-10-10-0300.sql.gz', source: 'verris-backups-prod/postgres', rowCounts: {}, owner: 'deploy@cp-waw1',
+      },
+    });
+    const dlaZespolu = await kopie.stan(undefined);
+    expect(dlaZespolu.proby).toEqual([expect.objectContaining({ result: 'OK', durationSec: 120, source: 'postgres' })]);
+    expect(JSON.stringify(dlaZespolu.proby)).not.toMatch(/verris-backups-prod|cp-waw1|sql\.gz/);
+    expect((await kopie.stan(undefined, { admin: true })).proby[0].source).toBe('verris-backups-prod/postgres');
+
     const tylkoW2 = await kopie.stan(w2.id);
     expect(tylkoW2.konta.map((k) => k.login)).toEqual([obce.account.daUsername]);
     expect(tylkoW2.wezly).toHaveLength(1);

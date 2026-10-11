@@ -156,8 +156,8 @@ export class ServersAdminController {
   @UseGuards(StaffPermissionsGuard)
   @Roles(Role.ADMIN, Role.STAFF)
   @StaffPerm('NODES_VIEW')
-  kopie(@Query('wezel') wezel?: string) {
-    return this.kopieFloty.stan(wezel || undefined);
+  kopie(@CurrentUser() actor: { role: string }, @Query('wezel') wezel?: string) {
+    return this.kopieFloty.stan(wezel || undefined, { admin: actor.role === 'ADMIN' });
   }
 
   /** Prognoza floty: liczby z panelu + komentarz AI raz na 24 h (AI niczego nie wykonuje). Trasa przed :id. */

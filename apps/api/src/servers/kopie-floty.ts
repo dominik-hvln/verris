@@ -22,7 +22,12 @@ export class KopieFlotyService {
     @Optional() private readonly storage?: ObjectStorageService,
   ) {}
 
-  async stan(serverId: string | undefined, teraz = Date.now()) {
+  /**
+   * `admin` — pełna nazwa źródła próby odtworzenia (zasobnik/ścieżka). Przegląd F3.3: próby odtworzenia były dotąd
+   * tylko dla ADMIN; NOC/L2/audytor (NODES_VIEW) widzą wynik, czas i rodzaj źródła — bez nazwy zasobnika, obiektu
+   * i „właściciela” (login@host panelu sterującego). Pełna historia — GET admin/live-readiness/proby-odtworzenia (ADMIN).
+   */
+  async stan(serverId: string | undefined, opcje: { admin: boolean } = { admin: false }, teraz = Date.now()) {
     const [konfiguracja, baza, wezly, konta, proby] = await Promise.all([
       this.offsite.podglad(),
       this.storage ? this.storage.getPostgresBackupLatestStat().catch(() => null) : Promise.resolve(null),
@@ -49,7 +54,7 @@ export class KopieFlotyService {
       this.prisma.restoreDrill.findMany({
         orderBy: { finishedAt: 'desc' },
         take: 50,
-        select: { id: true, finishedAt: true, durationSec: true, result: true, objectName: true, source: true, owner: true },
+        select: { id: true, finishedAt: true, durationSec: true, result: true, source: true },
       }),
     ]);
 
@@ -137,7 +142,13 @@ export class KopieFlotyService {
       podsumowanie,
       konta: wiersze.slice(0, MAX_WIERSZY),
       kontUcietych: Math.max(0, wiersze.length - MAX_WIERSZY),
-      proby: [...ostatniePerZrodlo.values()].map((p) => ({ ...p, finishedAt: p.finishedAt.toISOString() })),
+      proby: [...ostatniePerZrodlo.values()].map((p) => ({
+        id: p.id,
+        finishedAt: p.finishedAt.toISOString(),
+        durationSec: p.durationSec,
+        result: p.result,
+        source: opcje.admin ? p.source : (p.source.split('/').filter(Boolean).pop() ?? 'kopia'),
+      })),
     };
   }
 }
