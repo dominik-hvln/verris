@@ -335,6 +335,18 @@ export const POMOC = {
     opis: "Wszystkie zablokowane adresy węzła z powodem i czasem, odblokowanie dowolnego adresu i biała lista adresów, których serwer nigdy nie blokuje.",
     kiedy: "Przy awarii po stronie dużego klienta (np. biuro za jednym IP) albo gdy trzeba zwolnić adres partnera — z powodem w dzienniku.",
   },
+  "komunikaty-serwisowe": {
+    tytul: "Komunikaty serwisowe",
+    opis: "Mail do wszystkich klientów węzła albo planu z podglądem odbiorców, wysyłany kolejką po 60 na minutę.",
+    kiedy: "Przy awarii albo przed pracami serwisowymi — zamiast odpowiadać każdemu osobno.",
+    rozniSieOd: "To wiadomość serwisowa bez zgody marketingowej, więc bez rabatów i reklam; kampanie marketingowe są osobno.",
+  },
+  "mail-do-klienta": {
+    tytul: "Napisz do klienta",
+    opis: "Mail z gotowego szablonu od obsługi Verris, bez Twojego nazwiska; odpowiedź klienta wraca do zgłoszeń.",
+    kiedy: "Gdy trzeba poinformować klienta albo poprosić o działanie, a nie ma jeszcze zgłoszenia.",
+    rozniSieOd: "Zgłoszenie w imieniu klienta otwiera wątek w obsłudze; ten mail tylko informuje (z numerem zgłoszenia trafia do jego wątku).",
+  },
   "uslugi-wezla": {
     tytul: "Usługi węzła",
     opis: "Stan usług serwera z listy (WWW, poczta, bazy, DNS, FTP, panel, fail2ban) z watchdogiem agenta i restart z powodem w dzienniku.",

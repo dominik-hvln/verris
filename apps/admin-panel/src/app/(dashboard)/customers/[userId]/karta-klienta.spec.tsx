@@ -259,6 +259,18 @@ describe("karta klienta — komunikacja, logowania, kto oglądał (fala 1B)", ()
     expect(html).toContain("Wybierz mail z listy.");
   });
 
+  it("F3.8: „Napisz do klienta” nad historią z CUSTOMERS_VIEW + TICKETS_MANAGE; bez TICKETS_MANAGE — tylko historia", async () => {
+    const z = (permissions: string[]) => ({ "/staff/me/access": { role: "STAFF", isAdmin: false, permissions }, [`/admin/email-log/user/${UID}?limit=50`]: [mail] });
+    dane(z(["CUSTOMERS_VIEW", "TICKETS_MANAGE"]));
+    const html = await renderZ("komunikacja");
+    expect(html).toContain('data-karta="napisz"');
+    expect(html.indexOf('data-karta="napisz"')).toBeLessThan(html.indexOf('data-karta="komunikacja"'));
+    dane(z(["CUSTOMERS_VIEW", "TICKETS_VIEW"]));
+    const bez = await renderZ("komunikacja");
+    expect(bez).not.toContain('data-karta="napisz"');
+    expect(bez).toContain("Ustaw nowe hasło");
+  });
+
   it("podgląd pokazuje to, co oddało API (tokeny zamaskowane w API), a mail innego klienta — nie", async () => {
     const podglad = { ...mail, toEmail: "anna@test.pl", userId: UID, providerId: "smtp", messageId: null, campaignId: null, metadata: { listUnsubscribeUrl: "https://api.verris.pl/unsubscribe?token=•••" } };
     dane({ [`/admin/email-log/user/${UID}?limit=50`]: [mail], "/admin/email-log/m1": podglad });

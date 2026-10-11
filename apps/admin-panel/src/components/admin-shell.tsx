@@ -213,6 +213,8 @@ export function grupy(l: LicznikiMenu | null): Grupa[] {
             { name: "Poczta bez klienta", href: "/tickets/poczta", perm: "TICKETS_VIEW", szukaj: "mail e-mail imap support abuse spam blokada nadawcy kolejka poczta przychodząca" },
             // F3.7 — raporty obsługi (admin/support/raporty — TICKETS_REPORTS, L4).
             { name: "Raporty obsługi", href: "/tickets/raporty", perm: "TICKETS_REPORTS", szukaj: "sla csat oceny statystyki agenci zespół czas odpowiedzi wydajność" },
+            // F3.8 — komunikat serwisowy do klientów węzła albo planu (admin/komunikaty-serwisowe — SERVICE_NOTICES_SEND, L4).
+            { name: "Komunikaty serwisowe", href: "/komunikaty", perm: "SERVICE_NOTICES_SEND", szukaj: "mail do klientów węzła planu awaria incydent prace serwisowe okno serwisowe powiadom klientów masowy" },
             // D1 — konfiguracja (tickets/canned/all, admin/support/auto-messages) tylko ADMIN.
             { name: "Szablony odpowiedzi", href: "/settings/canned-responses", perm: "ADMIN", szukaj: "gotowe odpowiedzi makra akcje" },
             { name: "Opieka nad zgłoszeniami", href: "/settings/support", perm: "ADMIN", szukaj: "sla terminy dyżur" },

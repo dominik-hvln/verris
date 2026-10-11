@@ -93,6 +93,8 @@ export const STRONY = {
   "/subscriptions": { perm: "SUBSCRIPTIONS_MANAGE", tytul: "Usługi" },
   // Karta usługi — @StaffPermAny(CUSTOMERS_VIEW, SUBSCRIPTIONS_MANAGE) (L1-KARTA).
   "/subscriptions/[id]": { perm: ["CUSTOMERS_VIEW", "SUBSCRIPTIONS_MANAGE"], tytul: "Usługa" },
+  // F3.8 — admin/komunikaty-serwisowe — SERVICE_NOTICES_SEND (kierownik zmiany L4) i ADMIN.
+  "/komunikaty": { perm: "SERVICE_NOTICES_SEND", tytul: "Komunikaty serwisowe" },
   "/tickets": { perm: "TICKETS_VIEW", tytul: "Zgłoszenia" },
   // F3.7 — admin/poczta-zgloszen — TICKETS_VIEW (odczyt, „Pokaż” plik); decyzje TICKETS_MANAGE wyszarzone na stronie.
   "/tickets/poczta": { perm: "TICKETS_VIEW", tytul: "Poczta bez klienta" },

@@ -9,7 +9,7 @@ import type { PomocId } from "@/lib/pomoc";
  * `perm` odpowiada egzekucji w API (apps/api/src/servers/*.admin.controller.ts): metody bez własnego
  * @Roles w `admin/servers` i `admin/waf` są tylko dla ADMIN-a, reszta — @StaffPerm.
  */
-export type UprawnienieAkcji = "NODES_VIEW" | "NODES_MANAGE" | "MAIL_QUEUE_NODE" | "IP_BLOCKS_NODE" | "ACCOUNT_DIAGNOSTICS_VIEW" | "NODE_SERVICES" | "ADMIN";
+export type UprawnienieAkcji = "NODES_VIEW" | "NODES_MANAGE" | "MAIL_QUEUE_NODE" | "IP_BLOCKS_NODE" | "ACCOUNT_DIAGNOSTICS_VIEW" | "NODE_SERVICES" | "SERVICE_NOTICES_SEND" | "ADMIN";
 
 export type GrupaAkcji = "Instalacja" | "Aktualizacje" | "Audyt i naprawa" | "Usługi i logi" | "Dostępność" | "Poczta" | "Bezpieczeństwo" | "Konfiguracja" | "Dostęp i historia";
 
@@ -180,6 +180,18 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
     kiedy: (w) => dziala(w) || w.status === "OFFLINE",
     href: (w) => karta(w, "?sekcja=konfiguracja#status"),
     pomocId: "offline",
+  },
+  {
+    id: "komunikat-wezla",
+    slowa: "napisz do klientów powiadom klientów mail awaria incydent prace serwisowe komunikat",
+    grupa: "Dostępność",
+    nazwa: "Napisz do klientów węzła",
+    opis: "Komunikat serwisowy do właścicieli kont na tym węźle, z podglądem odbiorców.",
+    // F3.8 — admin/komunikaty-serwisowe — SERVICE_NOTICES_SEND (L4) i ADMIN.
+    perm: "SERVICE_NOTICES_SEND",
+    kiedy: dziala,
+    href: (w) => `/komunikaty?wezel=${encodeURIComponent(w.id)}`,
+    pomocId: "komunikaty-serwisowe",
   },
   {
     id: "wycofanie",

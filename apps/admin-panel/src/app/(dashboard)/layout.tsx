@@ -4,6 +4,16 @@ import { adminApi } from "@/lib/api";
 import { AdminShell, type LicznikiMenu } from "@/components/admin-shell";
 import { PlatformConfigLoader } from "@/components/platform-config-loader";
 import { asystentDostepny } from "@/components/asystent-actions";
+import { BanerIncydentow, type StanObslugi } from "@/components/baner-incydentow";
+
+/** F3.8 — trwające incydenty i prace (baner „czy to awaria u was?”); bez API albo bez uprawnień — bez baneru. */
+async function stanObslugi(): Promise<StanObslugi | null> {
+  try {
+    return await adminApi<StanObslugi>("/admin/status-obslugi");
+  } catch {
+    return null;
+  }
+}
 
 /** Liczniki w menu i stan floty w nagłówku; bez API menu działa, tylko bez liczb. */
 async function liczniki(): Promise<LicznikiMenu | null> {
@@ -16,7 +26,7 @@ async function liczniki(): Promise<LicznikiMenu | null> {
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await requireAdminSession();
-  const [access, l, asystent] = await Promise.all([fetchStaffAccess(), liczniki(), asystentDostepny()]);
+  const [access, l, asystent, baner] = await Promise.all([fetchStaffAccess(), liczniki(), asystentDostepny(), stanObslugi()]);
 
   return (
     <>
@@ -31,6 +41,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         liczniki={l}
         asystent={asystent}
       >
+        <BanerIncydentow stan={baner} />
         {children}
       </AdminShell>
     </>

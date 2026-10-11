@@ -47,6 +47,7 @@ import type { ReferralEnrollmentRow } from "../../referral-enrollments/data";
 import { BlokadaPoczty, ProgramPartnerski, Reseller } from "./dzialania-klienta";
 import { DaneNabywcy } from "./dane-nabywcy";
 import { Pomoc } from "@/components/pomoc";
+import { NapiszDoKlienta } from "./napisz-do-klienta";
 import { KomunikacjaKlienta, KtoOgladal, LogowaniaKlienta, type DziennikOperatorow, type MailKlienta, type PodgladMaila } from "./historia-klienta";
 import type { LoginHistoryResponse } from "../../operators/[id]/data";
 import type { RuchyPortfela, WindykacjaKlienta } from "../../billing/rozliczenia-dane";
@@ -149,7 +150,8 @@ export default async function AdminCustomerCardPage({
   // Plan E, patch 11 — blokada poczty, reseller i program partnerski na karcie (wcześniej osobne strony).
   // undefined = nie udało się odczytać (zwykle brak uprawnienia) — sekcja mówi wtedy, czego brakuje.
   // F2.5 — Zgłoszenia: „Nowe zgłoszenie w imieniu klienta” tylko z TICKETS_MANAGE (jak API).
-  const zDzialaniami = sekcja === "przeglad" || sekcja === "dostepy" || sekcja === "rozliczenia" || sekcja === "zgloszenia";
+  // F3.8 — Komunikacja: „Napisz do klienta” tylko z CUSTOMERS_VIEW + TICKETS_MANAGE (jak API).
+  const zDzialaniami = sekcja === "przeglad" || sekcja === "dostepy" || sekcja === "rozliczenia" || sekcja === "zgloszenia" || sekcja === "komunikacja";
   const [dostep, blokadaPoczty, reseller, partner] = zDzialaniami
     ? await Promise.all([
         fetchStaffAccess(),
@@ -205,6 +207,7 @@ export default async function AdminCustomerCardPage({
   const obsluga = process.env.NEXT_PUBLIC_STAFF_PANEL_URL?.trim() || "https://staff.verris.pl";
   const zgloszenieHref = (id: string) => new URL(`/tickets/${id}`, obsluga).toString();
   const mozeZalozyc = sekcja === "zgloszenia" && !!dostep && !brakUprawnienia("TICKETS_MANAGE", dostep);
+  const mozeNapisac = sekcja === "komunikacja" && !!dostep && !brakUprawnienia({ wszystkie: ["CUSTOMERS_VIEW", "TICKETS_MANAGE"] }, dostep);
 
   const wierszUslugi = (s: ProfilKlienta["subscriptions"][number]) => {
     const st = s.account?.server && serweryZAwaria.has(s.account.server.id) && s.status === "ACTIVE" ? { t: "awaria", ton: "crit" as const } : stanUslugi(s.status, s.provisioningStage);
@@ -652,6 +655,9 @@ export default async function AdminCustomerCardPage({
         </section>
       ) : null}
 
+      {sekcja === "komunikacja" && mozeNapisac && u.role === "USER" ? (
+        <NapiszDoKlienta userId={u.id} imie={u.firstName ?? null} domeny={[...new Set(zywe.map((s) => s.account?.domain).filter((d): d is string => !!d))]} />
+      ) : null}
       {sekcja === "komunikacja" ? <KomunikacjaKlienta baza={baza} maile={maile} podglad={podglad} /> : null}
 
       {sekcja === "dostepy" ? (
