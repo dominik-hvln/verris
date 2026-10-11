@@ -15,6 +15,7 @@ import { HttpMetricsService } from './http-metrics.service.js';
 import { RuntimeErrorTracker } from './runtime-error-tracker.service.js';
 import { KOPIA_KONTA_ALERT_DNI } from '@verris/contracts';
 import { warunekKontaBezSwiezejKopii } from '../servers/kopie-kont.js';
+import { uslugiNieDzialajaceFloty } from '../servers/uslugi-wezla.js';
 
 /**
  * F-13: produces a Prometheus text-format metrics snapshot. We emit a small,
@@ -104,6 +105,22 @@ export class MetricsService {
       'gauge',
     );
     lines.push(`verris_servers_stale_heartbeat ${staleHeartbeats}`);
+
+    // --- F3.4 — watchdog usług węzłów (agent verris-lve, blok node.services) ---------
+    // Całkowita liczba emitowana zawsze (zdrowie = jawne 0); seria per węzeł i usługa — do opisu alertu.
+    const nieDzialaja = uslugiNieDzialajaceFloty(
+      await this.prisma.server.findMany({
+        where: { status: ServerStatus.ACTIVE, uslugiStanAt: { not: null } },
+        select: { id: true, name: true, status: true, uslugiStan: true, uslugiStanAt: true },
+      }),
+      now,
+    );
+    write(lines, 'verris_node_services_down', 'Whitelisted node services failed or stopped while enabled (fresh agent report, ACTIVE nodes)', 'gauge');
+    lines.push(`verris_node_services_down ${nieDzialaja.length}`);
+    write(lines, 'verris_node_service_down', 'Node service failed or stopped while enabled (1 per node and service)', 'gauge');
+    for (const n of nieDzialaja) {
+      lines.push(`verris_node_service_down{server="${n.wezel.replace(/["\\\n]/g, '_')}",usluga="${n.usluga}"} 1`);
+    }
 
     // --- Users (non-anonymized) ----------------------------------------
     const usersByRole = await this.prisma.user.groupBy({

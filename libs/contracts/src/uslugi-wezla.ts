@@ -100,3 +100,20 @@ export function maskujAdresy(linia: string): string {
     '•••@$1',
   );
 }
+
+/**
+ * F3.4 — watchdog: usługi, których stan agent verris-lve raportuje co minutę (bez agentów Verris — nie raportują same
+ * o sobie). Zgodność z WATCHDOG_USLUGI w ops/scripts/verris-lve.sh pilnuje test uslugi-wezla-watchdog.spec.ts.
+ */
+export const USLUGI_WATCHDOGA = USLUGI_WEZLA.filter((u) => !u.klucz.startsWith('agent'));
+
+/** Raport po tylu minutach bez odświeżenia uznajemy za nieaktualny (agent co minutę). */
+export const WATCHDOG_RAPORT_SWIEZY_MIN = 10;
+
+/**
+ * Usługa „nie działa” wg watchdoga: failed albo inactive przy włączonym autostarcie (UnitFileState enabled). Wyłączona
+ * celowo (disabled, np. DNS poza węzłem) nie alarmuje.
+ */
+export function uslugaNieDziala(w: { s?: string | null; e?: string | null }): boolean {
+  return w.s === 'failed' || (w.s === 'inactive' && w.e === 'enabled');
+}

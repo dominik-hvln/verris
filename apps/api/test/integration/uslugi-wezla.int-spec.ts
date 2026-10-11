@@ -6,6 +6,8 @@ import { AuditService } from '../../src/common/audit/audit.service.js';
 import { NodeTasksService } from '../../src/servers/node-tasks.service.js';
 import { renderVerrisTaskRunScript } from '../../src/servers/node-tasks-agent.install.js';
 import { UslugiWezlaService } from '../../src/servers/uslugi-wezla.admin.controller.js';
+import { TelemetryService } from '../../src/telemetry/telemetry.service.js';
+import { MetricsService } from '../../src/observability/metrics.service.js';
 import { prisma, rozlacz, utworzWezel, wyczyscBaze } from './setup.js';
 
 /**
@@ -117,5 +119,25 @@ else:
 
     const wpisy = await prisma().auditLog.findMany({ where: { action: { in: ['NODE_SERVICES_CHECKED', 'NODE_SERVICE_RESTART_QUEUED', 'NODE_LOG_VIEWED'] } }, orderBy: { createdAt: 'asc' } });
     expect(wpisy.map((w) => w.action)).toEqual(['NODE_SERVICES_CHECKED', 'NODE_SERVICE_RESTART_QUEUED', 'NODE_SERVICE_RESTART_QUEUED', 'NODE_LOG_VIEWED', 'NODE_LOG_VIEWED']);
+  });
+
+  it('watchdog (migracja 20261011220000): raport agenta → kolumny węzła → metryka i panel; serwis nie alarmuje; stary agent bez bloku nie kasuje raportu', async () => {
+    const p = prisma() as never;
+    const a = await utworzWezel();
+    const b = await utworzWezel({ status: 'MAINTENANCE' });
+    const tel = new TelemetryService(p);
+    const raport = { accounts: [], node: { services: [{ k: 'exim', s: 'failed', e: 'enabled' }, { k: 'www', s: 'active', e: 'enabled' }, { k: 'named', s: 'inactive', e: 'disabled' }] } };
+    await tel.processLveMetrics({ serverId: a.id, ...raport } as never);
+    await tel.processLveMetrics({ serverId: b.id, ...raport } as never);
+    const metryki = await new MetricsService(p).getPrometheusMetrics();
+    expect(metryki).toContain('verris_node_services_down 1\n');
+    expect(metryki).toContain(`verris_node_service_down{server="${a.name}",usluga="exim"} 1`);
+    expect(metryki).not.toContain(`server="${b.name}"`);
+
+    const stan = await new UslugiWezlaService(p, new AuditService(p)).stan(a.id, { userId: 'x', role: 'STAFF' });
+    expect(stan.watchdog).toMatchObject({ swiezy: true, nieDzialaja: ['exim'] });
+    // Stary agent (bez bloku services) — ostatni raport zostaje.
+    await tel.processLveMetrics({ serverId: a.id, accounts: [], node: { cagefsEnabled: true } } as never);
+    expect((await prisma().server.findUniqueOrThrow({ where: { id: a.id } })).uslugiStan).toEqual(raport.node.services);
   });
 });

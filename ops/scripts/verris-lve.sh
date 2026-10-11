@@ -17,6 +17,8 @@
 #      (`cloudlinux-statistics --json`, format: https://docs.cloudlinux.com/cloudlinuxos/command-line_tools/#cloudlinux-statistics
 #      — to samo źródło co lveinfo: https://docs.cloudlinux.com/cloudlinuxos/command-line_tools/#lveinfo).
 #      Osobny POST /telemetry/lve z blokiem `faults`; błąd narzędzia idzie jako `faults.error`, nie jako zera.
+#   4. WATCHDOG USŁUG (F3.4) — w bloku `node` stan usług z białej listy panelu (systemctl show); API liczy z niego
+#      metrykę verris_node_services_down i alert VerrisUslugaWezlaNieDziala.
 #
 # WHY lvectl and not DirectAdmin: verified on DA 1.697 + CloudLinux 10 that
 # CMD_API_MODIFY_USER / CMD_API_MANAGE_USER_PACKAGES return error=0 but do NOT
@@ -80,7 +82,7 @@ SID   = os.environ["VERRIS_SERVER_ID"]
 TOK   = os.environ["VERRIS_IDENTITY_TOKEN"]
 STATE = os.environ.get("STATE", "/var/run/verris-lve.state.json")
 LOG   = os.environ.get("LOG", "/var/log/verris-lve.log")
-AGENT_VERSION = "lve-agent/1.2"
+AGENT_VERSION = "lve-agent/1.3"
 FAULTS_STATE = "/var/run/verris-lve.faults.json"
 FAULTS_EVERY_S = 600
 FAULTS_LIMIT = 200
@@ -389,6 +391,47 @@ def stack_versions():
         out["clVersion"] = cl
     return out
 
+# F3.4 — watchdog usług węzła: stan usług z białej listy panelu (libs/contracts/src/uslugi-wezla.ts, bez agentów Verris —
+# agent nie raportuje sam o sobie). Pierwsza załadowana jednostka z listy; ActiveState i UnitFileState z
+# `systemctl show --property=…` (https://www.freedesktop.org/software/systemd/man/latest/systemctl.html). Błąd odczytu
+# jednostki = brak wpisu (panel pokazuje „brak danych”, nie „działa”); bez systemctl — bez bloku `services`.
+WATCHDOG_USLUGI = {
+    "www": ["lsws.service", "litespeed.service", "httpd.service"],
+    "exim": ["exim.service"],
+    "dovecot": ["dovecot.service"],
+    "mariadb": ["mariadb.service", "mysqld.service", "mysql.service"],
+    "named": ["named.service"],
+    "ftp": ["pure-ftpd.service", "pureftpd.service", "proftpd.service"],
+    "directadmin": ["directadmin.service"],
+    "fail2ban": ["fail2ban.service"],
+    "sshd": ["sshd.service"],
+}
+SYSTEMCTL_BIN = "systemctl"
+
+def services_block():
+    import shutil, subprocess
+    if not shutil.which(SYSTEMCTL_BIN):
+        return None
+    out = []
+    for klucz, jednostki in WATCHDOG_USLUGI.items():
+        for j in jednostki:
+            try:
+                r = subprocess.run([SYSTEMCTL_BIN, "show", j, "--property=LoadState,ActiveState,UnitFileState"],
+                                   capture_output=True, text=True, timeout=10)
+            except Exception:
+                break
+            if r.returncode != 0:
+                break
+            w = dict(l.split("=", 1) for l in r.stdout.splitlines() if "=" in l)
+            if w.get("LoadState") != "loaded":
+                continue
+            stan = re.sub(r"[^a-z-]", "", w.get("ActiveState", ""))[:20]
+            plik = re.sub(r"[^a-z-]", "", w.get("UnitFileState", ""))[:20]
+            if stan:
+                out.append({"k": klucz, "s": stan, **({"e": plik} if plik else {})})
+            break
+    return out
+
 def node_block():
     engine, version = db_engine_version()
     block = {
@@ -402,6 +445,12 @@ def node_block():
     if version:
         block["dbVersion"] = version
     block.update(stack_versions())
+    try:
+        uslugi = services_block()
+        if uslugi is not None:
+            block["services"] = uslugi
+    except Exception as e:
+        log("services watchdog: %s" % e)
     return block
 
 def report_node_status():

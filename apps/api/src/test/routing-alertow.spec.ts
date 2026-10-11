@@ -93,6 +93,8 @@ const DOPISANE_POZNIEJ = [
   // F3.3 — konta klientów bez świeżej kopii poza serwerem (verris_backup_accounts_stale, liczone z bazy —
   // bez własnego strażnika ciszy: emisja znika tylko z całym eksporterem, a to łapie VerrisEksporterApiNiemy).
   'VerrisKopieKontNieaktualne',
+  // F3.4 — watchdog usług węzła (verris_node_services_down z raportu agenta verris-lve; liczone z bazy jak kopie kont).
+  'VerrisUslugaWezlaNieDziala',
 ] as const;
 
 /** Te pięć musi mieć `severity: critical` — inaczej wyciszy je grupowanie. */

@@ -502,6 +502,57 @@ groups:
       summary: Konta klientów bez świeżej kopii poza serwerem (>2 dni)
       description: Panel operatora → Węzły → Kopie floty pokazuje konta i węzły. Sprawdź timer verris-offsite-backup na węźle i ostatni raport przebiegu.
     isPaused: false
+  # F3.4 — watchdog usług węzła: agent verris-lve raportuje co minutę stan usług z białej listy panelu (WWW, Exim,
+  # Dovecot, MariaDB, named, FTP, panel serwera, fail2ban, SSH). Metryka liczy z bazy usługi AKTYWNYCH węzłów ze
+  # świeżym raportem (≤ 10 min), które padły (failed) albo stoją mimo włączonego autostartu — emituje się zawsze,
+  # gdy żyje eksporter (zdrowie = jawne 0), więc wyrażenie całkowite jak X-35. Który węzeł i która usługa:
+  # verris_node_service_down{server,usluga} i panel operatora → Węzły → karta węzła → „Usługi i logi”.
+  - uid: verris-usluga-wezla-nie-dziala
+    title: VerrisUslugaWezlaNieDziala
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: max(verris_node_services_down) or vector(0)
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 3m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: critical
+    annotations:
+      summary: Usługa na węźle nie działa (WWW, poczta, bazy, DNS, FTP, panel albo SSH)
+      description: Panel operatora → Węzły → karta węzła → „Usługi i logi” pokazuje usługę i jej log. Usługę, która stoi, NOC uruchamia sam; restart działającej usługi wspólnej — administrator albo wniosek.
+    isPaused: false
   - uid: verris-migration-jobs-failed
     title: VerrisMigrationJobsFailed
     condition: C

@@ -1,5 +1,14 @@
 import { NodeTaskStatus } from '@verris/database';
-import { LOGI_WEZLA, USLUGI_WEZLA, logWezla, maskujAdresy, maskujSekrety, uslugaWezla } from '@verris/contracts';
+import {
+  LOGI_WEZLA,
+  USLUGI_WEZLA,
+  WATCHDOG_RAPORT_SWIEZY_MIN,
+  logWezla,
+  maskujAdresy,
+  maskujSekrety,
+  uslugaNieDziala,
+  uslugaWezla,
+} from '@verris/contracts';
 
 /**
  * F3.4 — odczyt wyniku zadania NODE_SERVICES (ops/scripts/node-services.sh) i stan z ostatnich zadań węzła:
@@ -165,3 +174,34 @@ export function stanUslug(zadania: ZadanieUslug[], admin: boolean) {
 }
 
 export const KLUCZE_LOGOW = LOGI_WEZLA.map((l) => l.klucz);
+
+/** F3.4 — watchdog: wpis agenta verris-lve (blok node.services) zapisany w Server.uslugiStan. */
+export type WpisWatchdoga = { k: string; s: string; e?: string };
+
+export function wpisyWatchdoga(json: unknown): WpisWatchdoga[] {
+  if (!Array.isArray(json)) return [];
+  return json.filter(
+    (w): w is WpisWatchdoga => !!w && typeof w === 'object' && typeof (w as WpisWatchdoga).k === 'string' && typeof (w as WpisWatchdoga).s === 'string',
+  );
+}
+
+/**
+ * Stan watchdoga węzła dla panelu: kiedy ostatni raport, czy świeży, które usługi nie działają (failed albo inactive przy
+ * włączonym autostarcie). Raport starszy niż WATCHDOG_RAPORT_SWIEZY_MIN — „nieaktualny”, bez wniosków o usługach.
+ */
+export function stanWatchdoga(s: { uslugiStan: unknown; uslugiStanAt: Date | null }, teraz: number) {
+  if (!s.uslugiStanAt) return { kiedy: null, swiezy: false, nieDzialaja: [] as string[], uslugi: [] as WpisWatchdoga[] };
+  const swiezy = teraz - s.uslugiStanAt.getTime() <= WATCHDOG_RAPORT_SWIEZY_MIN * 60_000;
+  const uslugi = wpisyWatchdoga(s.uslugiStan).filter((w) => uslugaWezla(w.k));
+  return { kiedy: s.uslugiStanAt.toISOString(), swiezy, nieDzialaja: swiezy ? uslugi.filter(uslugaNieDziala).map((w) => w.k) : [], uslugi };
+}
+
+/** Metryka i pulpit NOC: niedziałające usługi AKTYWNYCH węzłów ze świeżym raportem (serwis/MAINTENANCE nie alarmuje). */
+export function uslugiNieDzialajaceFloty(
+  serwery: Array<{ id: string; name: string | null; status: string; uslugiStan: unknown; uslugiStanAt: Date | null }>,
+  teraz: number,
+) {
+  return serwery
+    .filter((s) => s.status === 'ACTIVE')
+    .flatMap((s) => stanWatchdoga(s, teraz).nieDzialaja.map((usluga) => ({ serverId: s.id, wezel: s.name ?? s.id, usluga })));
+}

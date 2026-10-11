@@ -35,7 +35,7 @@ import { AuditService } from '../common/audit/audit.service.js';
 import { SupportActions } from '../common/audit/audit.actions.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { WniosekMozliwy } from '../wnioski/wniosek-mozliwy.decorator.js';
-import { parametryUslug, stanUslug, trwa, type TrybUslug } from './uslugi-wezla.js';
+import { parametryUslug, stanUslug, stanWatchdoga, trwa, type TrybUslug } from './uslugi-wezla.js';
 
 export const MIN_POWOD_USLUGI = 10;
 
@@ -94,9 +94,17 @@ export class UslugiWezlaService {
     });
   }
 
+  /** Stan z zadań + watchdog z telemetrii agenta (co minutę, bez zlecania czegokolwiek na węźle). */
   async stan(serverId: string, op: Operator) {
     await this.wezel(serverId);
-    return stanUslug(await this.zadania(serverId), op.role === 'ADMIN');
+    const [zadania, raport] = await Promise.all([
+      this.zadania(serverId),
+      this.prisma.server.findUnique({ where: { id: serverId }, select: { uslugiStan: true, uslugiStanAt: true } }),
+    ]);
+    return {
+      ...stanUslug(zadania, op.role === 'ADMIN'),
+      watchdog: stanWatchdoga({ uslugiStan: raport?.uslugiStan ?? null, uslugiStanAt: raport?.uslugiStanAt ?? null }, Date.now()),
+    };
   }
 
   /** Kolejkuje zadanie; 409, gdy na węźle trwa już zadanie tego samego trybu (restart: każdy restart). */

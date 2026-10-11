@@ -73,7 +73,7 @@ function srodowisko(o: { status?: string; zadania?: Array<{ status: NodeTaskStat
   const utworzone: Array<{ payload: Record<string, string> }> = [];
   const audyt: Array<{ action: string; details: Record<string, unknown> }> = [];
   const prisma = {
-    server: { findUnique: async () => ({ id: 'w1', name: 'fra-01', hostname: null, ipAddress: '203.0.113.1', status: o.status ?? 'ACTIVE' }) },
+    server: { findUnique: async () => ({ id: 'w1', name: 'fra-01', hostname: null, ipAddress: '203.0.113.1', status: o.status ?? 'ACTIVE', uslugiStan: null, uslugiStanAt: null }) },
     nodeTask: {
       findMany: async () => (o.zadania ?? []).map((z) => zad(z)),
       create: async ({ data }: { data: { payload: Record<string, string> } }) => {

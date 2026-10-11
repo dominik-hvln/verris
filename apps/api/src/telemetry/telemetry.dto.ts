@@ -10,12 +10,14 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { USLUGI_WATCHDOGA } from '@verris/contracts';
 
 /**
  * One bucketed sample for one DirectAdmin user, as collected by the node
@@ -111,6 +113,24 @@ export class NodeStatusDto {
 
   @IsOptional() @IsInt() @Min(1) @Max(1024 * 1024 * 1024)
   totalDiskMb?: number;
+
+  /** F3.4 — watchdog usług (agent lve-agent/1.3+): stan usług z białej listy; brak bloku = stary agent albo brak systemctl. */
+  @IsOptional() @IsArray() @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => NodeServiceStateDto)
+  services?: NodeServiceStateDto[];
+}
+
+/** F3.4 — stan jednej usługi z białej listy (watchdog agenta): klucz, ActiveState, UnitFileState. */
+export class NodeServiceStateDto {
+  @IsIn(USLUGI_WATCHDOGA.map((u) => u.klucz))
+  k!: string;
+
+  @IsString() @Matches(/^[a-z-]{1,20}$/)
+  s!: string;
+
+  @IsOptional() @IsString() @Matches(/^[a-z-]{1,20}$/)
+  e?: string;
 }
 
 /**

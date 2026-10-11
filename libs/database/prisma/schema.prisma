@@ -602,6 +602,9 @@ model Server {
   // co ~10 min: { okna: [{ godzin: 24|168, konta: [...], obcieto }], blad }. Tylko konta z faultami; brak = brak danych.
   lveFaults          Json?
   lveFaultsAt        DateTime?
+  // F3.4 — watchdog usług: stan usług z białej listy z agenta verris-lve ([{k, s, e}]) i czas raportu
+  uslugiStan         Json?
+  uslugiStanAt       DateTime?
 
   // VER-UPG — docelowa wersja silnika DB wybrana przez admina w edycji węzła
   // (np. "11.4"). Ustawiana przy zleceniu DB_UPGRADE; faktyczna wersja po

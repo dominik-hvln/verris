@@ -60,6 +60,13 @@ export class TelemetryService {
               cagefsEnabled: data.node.cagefsEnabled ?? null,
               cagefsEnabledCount: data.node.cagefsEnabledCount ?? null,
               cagefsCheckedAt: new Date(),
+              // F3.4 — watchdog usług: ostatni raport nadpisuje poprzedni; bez bloku zostaje ostatni (i jego czas).
+              ...(data.node.services
+                ? {
+                    uslugiStan: data.node.services.map((u) => ({ k: u.k, s: u.s, ...(u.e ? { e: u.e } : {}) })) as unknown as Prisma.InputJsonValue,
+                    uslugiStanAt: new Date(),
+                  }
+                : {}),
               ...(data.node.hardened !== undefined
                 ? { hardenedEnabled: data.node.hardened, hardenedCheckedAt: new Date() }
                 : {}),
