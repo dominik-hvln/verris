@@ -70,6 +70,8 @@ export interface TicketDetail {
   subscription?: (UslugaZApi & { status?: string }) | null;
   /** F2.5 — zgłoszenie założyła obsługa: pierwsza wiadomość jest od „Obsługa Verris”, nie od klienta. */
   zalozylaObsluga?: boolean;
+  /** F3.7 — zgłoszenie połączone z innym (rozmowa toczy się tam; tu nie da się już pisać). */
+  scalonoDoId?: string | null;
 }
 
 /**

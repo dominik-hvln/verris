@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => undefined }) }));
+jest.mock('next/link', () => ({ __esModule: true, default: ({ href, children, ...p }: { href: string; children: unknown }) => <a href={href} {...p}>{children as never}</a> }));
 jest.mock('../actions', () => ({ addTicketReply: jest.fn(), addTicketReplyWithFiles: jest.fn() }));
 jest.mock('sonner', () => ({ toast: { error: jest.fn(), success: jest.fn() } }));
 
@@ -37,5 +38,21 @@ describe('ClientTicketChat — zgłoszenie założone przez obsługę', () => {
     const html = renderToStaticMarkup(<ClientTicketChat ticket={baza as never} />);
     expect(html).toMatch(/Ty - /);
     expect(html).not.toContain('data-pierwsza="obsluga"');
+  });
+});
+
+/** F3.7 — zgłoszenie połączone z innym: zamiast pola odpowiedzi link do zgłoszenia, w którym toczy się rozmowa. */
+describe('ClientTicketChat — zgłoszenie scalone', () => {
+  const baza = { id: 't3', subject: 'Poczta', message: 'x', status: 'CLOSED', priority: 'NORMAL', createdAt: '2026-10-10T10:00:00Z', attachments: [],
+    replies: [{ id: 'r1', message: 'Połączyliśmy to zgłoszenie z #abcd1234 — dalsza rozmowa toczy się tam.', isStaff: true, automatic: 'SCALONE', createdAt: '2026-10-10T11:00:00Z', attachments: [] }] };
+  it('scalonoDoId → bez pola odpowiedzi, link do celu; informacja o połączeniu jako wpis w osi', () => {
+    const html = renderToStaticMarkup(<ClientTicketChat ticket={{ ...baza, scalonoDoId: 'abcd1234-0000-4000-8000-000000000000' } as never} />);
+    expect(html).toContain('data-scalone');
+    expect(html).toContain('href="/dashboard/support/abcd1234-0000-4000-8000-000000000000"');
+    expect(html).not.toContain('<textarea');
+    expect(html).toContain('Połączyliśmy to zgłoszenie z #abcd1234');
+  });
+  it('bez scalenia — pole odpowiedzi jest', () => {
+    expect(renderToStaticMarkup(<ClientTicketChat ticket={baza as never} />)).toContain('<textarea');
   });
 });

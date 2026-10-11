@@ -28,7 +28,8 @@ export default async function ClientTicketPage(props: { params: Promise<{ id: st
   const odpowiedz = ludzkie.filter((r) => r.isStaff).map((r) => r.createdAt).sort().at(-1) ?? null;
   const przeczytane = ticket.staffReadAt && ticket.staffReadAt >= ostatniaMoja ? ticket.staffReadAt : null;
   const kiedyZamkniete = ticket.resolvedAt ?? ticket.autoClosedAt ?? null;
-  const moznaOtworzyc = zamkniete && !!kiedyZamkniete && teraz - new Date(kiedyZamkniete).getTime() < 7 * 86_400_000;
+  // F3.7 — połączone z innym zgłoszeniem nie otwiera się ponownie (rozmowa toczy się w docelowym).
+  const moznaOtworzyc = zamkniete && !ticket.scalonoDoId && !!kiedyZamkniete && teraz - new Date(kiedyZamkniete).getTime() < 7 * 86_400_000;
   const kroki: { nazwa: string; kiedy: string | null; gotowe: boolean }[] = [
     { nazwa: "Przyjęte", kiedy: ticket.createdAt, gotowe: true },
     { nazwa: ticket.opiekun ? `Opiekun: ${ticket.opiekun}` : "Przydzielamy opiekuna", kiedy: ticket.opiekun ? ticket.createdAt : null, gotowe: !!ticket.opiekun },
@@ -63,6 +64,16 @@ export default async function ClientTicketPage(props: { params: Promise<{ id: st
               <PriorityBadge priority={ticket.priority} />
             </div>
           </header>
+
+          {ticket.scalonoDoId ? (
+            <p role="status" className="rounded-[10px] border border-line bg-raised px-4 py-3 text-[14px]">
+              To zgłoszenie połączyliśmy z{" "}
+              <Link href={`/dashboard/support/${ticket.scalonoDoId}`} className="font-semibold">
+                #{ticket.scalonoDoId.slice(0, 8)}
+              </Link>{" "}
+              — dotyczyło tej samej sprawy. Cała rozmowa jest teraz tam.
+            </p>
+          ) : null}
 
           {/* PB-37 — postęp: klient zawsze widzi, na jakim etapie jest sprawa */}
           <section className="grid grid-cols-2 gap-3 rounded-[10px] border border-line bg-card px-[18px] py-4 sm:grid-cols-5" aria-label="Postęp zgłoszenia">

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, User, ShieldCheck, Paperclip } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { addTicketReply, addTicketReplyWithFiles, type TicketAttachment, type TicketDetail } from "../actions";
@@ -212,6 +213,16 @@ export default function ClientTicketChat({ ticket }: { ticket: TicketDetail }) {
       </div>
 
       {/* Akcje dolne */}
+      {ticket.scalonoDoId ? (
+        // F3.7 — połączone z innym zgłoszeniem: odpowiedź tutaj API i tak odrzuci, więc od razu wskazujemy właściwe.
+        <div className="p-4 border-t border-border/50 bg-background rounded-b-xl text-sm" data-scalone>
+          Rozmowa toczy się w zgłoszeniu{" "}
+          <Link href={`/dashboard/support/${ticket.scalonoDoId}`} className="font-semibold">
+            #{ticket.scalonoDoId.slice(0, 8)}
+          </Link>
+          {" "}— napisz tam.
+        </div>
+      ) : (
       <div className="p-4 border-t border-border/50 bg-background rounded-b-xl">
         <form onSubmit={handleReply} className="relative">
           <textarea
@@ -260,6 +271,7 @@ export default function ClientTicketChat({ ticket }: { ticket: TicketDetail }) {
           </button>
         </form>
       </div>
+      )}
     </>
   );
 }
