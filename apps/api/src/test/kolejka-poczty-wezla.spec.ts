@@ -23,10 +23,16 @@ case "$1" in
   -Mvh) [ -f "$K/$2-H" ] || { echo "Spool file for $2 not found" >&2; exit 1; }; cat "$K/$2-H" ;;
   -Mrm) shift
     [ "\${FAKE_MRM:-}" = blad ] && { echo "exim: Permission denied" >&2; exit 1; }
+    # Druga paczka -Mrm odrzucona (np. wiadomość zablokowana w trakcie doręczania) — pierwsza już usunięta.
+    if [ "\${FAKE_MRM:-}" = blad-druga ] && [ -f "$FAKE_DIR/mrm1" ]; then for id in "$@"; do echo "Message $id is locked"; done; exit 1; fi
+    touch "$FAKE_DIR/mrm1"
+    # Prawdziwy exim: wiadomość, której spool już nie ma → „… or did not exist” i kod wyjścia ≠ 0 (queue.c, MSG_REMOVE).
+    rc=0
     for id in "$@"; do
       rm -f "$K/$id-H" "$K/$id.bp"
-      if [ "\${FAKE_MRM:-}" = zniklo ]; then echo "Message $id has been removed or did not exist"; else echo "Message $id has been removed"; fi
-    done ;;
+      if [ "\${FAKE_MRM:-}" = zniklo ]; then echo "Message $id has been removed or did not exist"; rc=1; else echo "Message $id has been removed"; fi
+    done
+    exit $rc ;;
   -qff) rm -f "$K"/* ;;
   *) echo "nieoczekiwana opcja $1" >&2; exit 2 ;;
 esac
@@ -118,8 +124,22 @@ describe('F3.1 — node-mail-queue.sh (kolejka exima)', () => {
     const s = srodowisko();
     const r = s.uruchom({ MQ_MODE: 'remove', ...KONTO, MQ_IDS: M_PHP, FAKE_MRM: 'blad' });
     expect(r.rc).not.toBe(0);
-    expect(r.err).toContain('[mail-queue] BŁĄD: exim -Mrm: exim: Permission denied');
-    expect(r.out).not.toContain('VERRIS_MQ_USUNIETO');
+    expect(r.err).toContain('[mail-queue] BŁĄD: exim -Mrm: nie usunięto 1 — exim: Permission denied');
+    expect(r.out).toContain('VERRIS_MQ_USUNIETO 0');
+  });
+
+  it('audyt Fal 2: błąd kolejnej paczki -Mrm — liczba już usuniętych (nieodwracalne) jest w logu przed błędem', () => {
+    const s = srodowisko();
+    const k = join(s.dir, 'kolejka');
+    const ids = Array.from({ length: 51 }, (_, i) => `1tCcCc-${String(i).padStart(11, '0')}-0001`);
+    for (const id of ids) {
+      wiadomosc(k, id, ` 1m  1.0K ${id} <klient1@t1.verris.test>\n          a@gmail.com\n\n`, `${id}-H\nklient1 1001 1001\n<klient1@t1.verris.test>\n1760090000 0\nXX\n1\na@gmail.com\n\n030  Subject: spam\n`);
+    }
+    const r = s.uruchom({ MQ_MODE: 'remove', ...KONTO, MQ_IDS: ids.join(','), FAKE_MRM: 'blad-druga' });
+    expect(r.rc).not.toBe(0);
+    expect(r.out).toContain('VERRIS_MQ_USUNIETO 50');
+    expect(r.err).toContain('[mail-queue] BŁĄD: exim -Mrm: nie usunięto 1 — kod 1');
+    expect(s.zostalo()).toContain(ids[50]);
   });
 
   it('usunięcie bez konta albo bez identyfikatorów — odmowa; wypchnięcie tylko dla całego węzła', () => {

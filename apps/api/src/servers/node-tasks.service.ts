@@ -649,17 +649,7 @@ export class NodeTasksService {
 
     if (task.kind === NodeTaskKind.FLEET_UPDATE) await this.dalejFala(task, true, log);
 
-    // F3.1 — usunięcie wiadomości konta z kolejki: liczba usuniętych dopiero od węzła (dziennik zespołu, autor = zlecający).
-    if (task.kind === NodeTaskKind.MAIL_QUEUE && p.mode === 'remove' && task.accountId) {
-      const konto = await this.prisma.account.findUnique({ where: { id: task.accountId }, select: { userId: true, subscriptionId: true } });
-      const { usunieto, pominieto } = wynikUsuwania(log);
-      await this.audit.record({
-        action: SupportActions.MAIL_QUEUE_MESSAGES_REMOVED,
-        userId: konto?.userId,
-        actorUserId: task.requestedById ?? undefined,
-        details: { taskId: task.id, serverId: opts.serverId, subscriptionId: konto?.subscriptionId ?? null, usunieto, pominieto },
-      });
-    }
+    if (task.kind === NodeTaskKind.MAIL_QUEUE && p.mode === 'remove') await this.dziennikUsunieciaZKolejki(task, opts.serverId, log);
 
     // F3.1 — limit wysyłki konta: w bazie (i w panelu klienta) dopiero wartość potwierdzona przez węzeł dla TEGO
     // konta — także po samym odczycie (ręczna zmiana na serwerze). Nieczytelny plik na węźle niczego nie nadpisuje.
@@ -820,6 +810,11 @@ export class NodeTasksService {
     });
     await this.webhooks?.poZadaniu(task, false);
     if (task.kind === NodeTaskKind.FLEET_UPDATE) await this.dalejFala(task, false);
+    // Audyt Fal 2 — błąd w trakcie usuwania (np. ostatnia paczka -Mrm): wcześniejsze usunięcia są nieodwracalne,
+    // więc liczba z logu węzła trafia do dziennika także przy błędzie zadania.
+    if (task.kind === NodeTaskKind.MAIL_QUEUE && (task.payload as { mode?: string } | null)?.mode === 'remove' && wynikUsuwania(updated.outputLog).usunieto !== null) {
+      await this.dziennikUsunieciaZKolejki(task, opts.serverId, updated.outputLog, opts.error.slice(0, 300));
+    }
 
     // P-6 — panel zapisuje wersję PHP przy zleceniu; odrzucona przez węzeł nie może zostać
     // pokazana klientowi jako „aktualna”. Wracamy do wersji sprzed zlecenia.
@@ -831,6 +826,19 @@ export class NodeTasksService {
     }
 
     return this.toPublicTask(updated);
+  }
+
+  /** F3.1 — usunięcie wiadomości konta z kolejki: liczba usuniętych dopiero od węzła (dziennik zespołu, autor = zlecający). */
+  private async dziennikUsunieciaZKolejki(task: { id: string; accountId: string | null; requestedById: string | null }, serverId: string, log: string | null, blad?: string) {
+    if (!task.accountId) return;
+    const konto = await this.prisma.account.findUnique({ where: { id: task.accountId }, select: { userId: true, subscriptionId: true } });
+    const { usunieto, pominieto } = wynikUsuwania(log);
+    await this.audit.record({
+      action: SupportActions.MAIL_QUEUE_MESSAGES_REMOVED,
+      userId: konto?.userId,
+      actorUserId: task.requestedById ?? undefined,
+      details: { taskId: task.id, serverId, subscriptionId: konto?.subscriptionId ?? null, usunieto, pominieto, ...(blad ? { blad } : {}) },
+    });
   }
 
   private async assertRunningTask(serverId: string, taskId: string) {

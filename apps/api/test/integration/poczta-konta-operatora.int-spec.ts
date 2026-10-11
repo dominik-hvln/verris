@@ -153,4 +153,35 @@ describe('F3.1 — kolejka poczty konta (zadanie MAIL_QUEUE)', () => {
     ]);
     expect(await prisma().auditLog.count({ where: { action: 'HOSTING_MAIL_QUEUE_PURGE_QUEUED', userId: k.user.id, actorUserId: operator.id } })).toBe(1);
   });
+
+  it('audyt Fal 2: błąd węzła w trakcie usuwania — liczba już usuniętych w dzienniku zespołu i w stanie kolejki', async () => {
+    const p = prisma() as never;
+    const wezel = await utworzWezel();
+    const k = await utworzKonto({ serverId: wezel.id, planId: (await utworzPlan()).id });
+    const operator = await prisma().user.create({ data: { email: `l3f-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'STAFF' } });
+    const audit = new AuditService(p);
+    const zadania = new NodeTasksService(p, audit, {} as never);
+    await prisma().nodeTask.create({
+      data: { serverId: wezel.id, accountId: k.account.id, kind: 'MAIL_QUEUE', status: 'QUEUED', requestedById: operator.id, payload: { mode: 'remove', daUser: k.account.daUsername, ids: 'x' } },
+    });
+    const t = await zadania.leaseTaskForNode(wezel.id);
+    await zadania.failTaskFromNode({
+      serverId: wezel.id,
+      taskId: t!.id,
+      error: '[mail-queue] BŁĄD: exim -Mrm: nie usunięto 1 — kod 1',
+      outputLog: 'VERRIS_MQ_USUNIETO 50\nVERRIS_MQ_POMINIETO 0\n[mail-queue] BŁĄD: exim -Mrm: nie usunięto 1 — kod 1',
+    });
+    const wpis = await prisma().auditLog.findFirstOrThrow({ where: { action: 'MAIL_QUEUE_MESSAGES_REMOVED' } });
+    expect(wpis).toMatchObject({ userId: k.user.id, actorUserId: operator.id });
+    expect(wpis.details).toMatchObject({ usunieto: 50, pominieto: 0, subscriptionId: k.subscription.id, blad: expect.stringContaining('nie usunięto 1') });
+    const da = { listHostingDomainsForSubscription: async () => ({ domains: [], fetchError: null }) };
+    const svc = new PocztaKontaOperatoraService(p, da as never, null as never, null as never, audit);
+    expect((await svc.kolejka(k.subscription.id, operator.id, 'STAFF')).usuwanie).toMatchObject({ usunieto: 50, blad: expect.stringContaining('nie usunięto 1') });
+
+    // Błąd bez liczby w logu (np. skrypt nie ruszył) — bez wpisu o usunięciu.
+    await prisma().nodeTask.create({ data: { serverId: wezel.id, accountId: k.account.id, kind: 'MAIL_QUEUE', status: 'QUEUED', payload: { mode: 'remove' } } });
+    const t2 = await zadania.leaseTaskForNode(wezel.id);
+    await zadania.failTaskFromNode({ serverId: wezel.id, taskId: t2!.id, error: 'brak python3', outputLog: '[mail-queue] BŁĄD: brak python3 na serwerze' });
+    expect(await prisma().auditLog.count({ where: { action: 'MAIL_QUEUE_MESSAGES_REMOVED' } })).toBe(1);
+  });
 });

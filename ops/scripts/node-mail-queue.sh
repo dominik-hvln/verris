@@ -259,15 +259,25 @@ if tryb == "remove":
             pominiete += 1
             continue
         do_usuniecia.append(mid)
-    usunieto = 0
-    # Exim: „Message <id> has been removed” albo „… has been removed or did not exist” (spool już pusty — liczone
-    # jako pominięte). Kod ≠ 0 bez żadnego usunięcia w paczce = błąd zadania, nie „usunięto 0”.
+    usunieto, zniknely = 0, 0
+    # Exim (-Mrm, każda wiadomość osobno): „Message <id> has been removed” albo „… has been removed or did not exist”
+    # (spool już pusty: wiadomość wyszła albo wygasła między -Mvh a -Mrm — liczona jako pominięta; exim kończy wtedy
+    # kodem ≠ 0). Kod ≠ 0 z wiadomością bez żadnego z tych wierszy (zablokowana, brak uprawnień) = błąd zadania,
+    # ale liczby już usuniętych (nieodwracalne) idą do logu PRZED błędem — API zapisze je w dzienniku.
     for i in range(0, len(do_usuniecia), 50):
-        r = exim("-Mrm", *do_usuniecia[i:i + 50])
-        w_paczce = len(re.findall(r"^Message \S+ has been removed$", r.stdout + "\n" + r.stderr, re.M))
-        if r.returncode != 0 and w_paczce == 0:
-            fail("exim -Mrm: " + (r.stderr.strip()[:200] or f"kod {r.returncode}"))
-        usunieto += w_paczce
+        paczka = do_usuniecia[i:i + 50]
+        r = exim("-Mrm", *paczka)
+        wyjscie = r.stdout + "\n" + r.stderr
+        usuniete = set(re.findall(r"^Message (\S+) has been removed$", wyjscie, re.M)) & set(paczka)
+        brak = set(re.findall(r"^Message (\S+) has been removed or did not exist$", wyjscie, re.M)) & set(paczka)
+        usunieto += len(usuniete)
+        zniknely += len(brak - usuniete)
+        nieznane = [m for m in paczka if m not in usuniete and m not in brak]
+        if r.returncode != 0 and nieznane:
+            print(f"VERRIS_MQ_USUNIETO {usunieto}")
+            print(f"VERRIS_MQ_POMINIETO {pominiete + zniknely}")
+            sys.stdout.flush()
+            fail(f"exim -Mrm: nie usunięto {len(nieznane)} — " + (r.stderr.strip()[:200] or f"kod {r.returncode}"))
     print(f"VERRIS_MQ_USUNIETO {usunieto}")
     print(f"VERRIS_MQ_POMINIETO {pominiete + len(do_usuniecia) - usunieto}")
     print("[mail-queue] Gotowe.")

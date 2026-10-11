@@ -126,4 +126,11 @@ describe("F3.1 — poczta konta na karcie usługi", () => {
     await klik(q('[data-akcja="zwolnij"]')!);
     expect(zapis).not.toHaveBeenCalled();
   });
+
+  it("audyt Fal 2: usuwanie przerwane błędem pokazuje, ile już usunięto (nieodwracalne)", async () => {
+    const usuwanie = { wToku: false, kiedy: "2026-10-10T12:05:00.000Z", blad: "exim -Mrm: nie usunięto 1 — Message is locked", usunieto: 50, pominieto: 0 };
+    odczyt.mockImplementation(async (_s: string, co: string) => ({ ok: true, wynik: co === "wysylka" ? WYSYLKA : { ...KOLEJKA, usuwanie } }));
+    await render(op("MAIL_QUEUE_VIEW"));
+    expect(q('[data-usuwanie="wynik"]')!.textContent).toContain("nie powiodło się — exim -Mrm: nie usunięto 1 — Message is locked (wcześniej usunięto już 50)");
+  });
 });

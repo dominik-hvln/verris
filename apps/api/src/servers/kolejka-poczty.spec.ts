@@ -59,4 +59,11 @@ describe('F3.1 — kolejka poczty: wynik zadania węzła', () => {
     const bl = stanKolejki([zad({ status: NodeTaskStatus.FAILED, outputLog: '[mail-queue] BŁĄD: brak exima na serwerze', minuty: 5 })]);
     expect(bl).toMatchObject({ wToku: false, blad: 'brak exima na serwerze', wiadomosci: [] });
   });
+
+  it('audyt Fal 2: usuwanie przerwane błędem — liczba już usuniętych z logu obok błędu', () => {
+    const s = stanKolejki([
+      zad({ status: NodeTaskStatus.FAILED, payload: { mode: 'remove' }, outputLog: 'VERRIS_MQ_USUNIETO 50\nVERRIS_MQ_POMINIETO 0\n[mail-queue] BŁĄD: exim -Mrm: nie usunięto 1 — kod 1', minuty: 5 }),
+    ]);
+    expect(s.usuwanie).toMatchObject({ wToku: false, usunieto: 50, pominieto: 0, blad: 'exim -Mrm: nie usunięto 1 — kod 1' });
+  });
 });

@@ -211,7 +211,7 @@ export function PocztaKontaPanel({ subscriptionId, dostep }: { subscriptionId: s
                     {kolejka.usuwanie.wToku
                       ? "w toku…"
                       : kolejka.usuwanie.blad
-                        ? `nie powiodło się — ${kolejka.usuwanie.blad}`
+                        ? `nie powiodło się — ${kolejka.usuwanie.blad}${kolejka.usuwanie.usunieto ? ` (wcześniej usunięto już ${kolejka.usuwanie.usunieto})` : ""}`
                         : `usunięto ${kolejka.usuwanie.usunieto ?? 0}, pominięto ${kolejka.usuwanie.pominieto ?? 0} (już wysłane albo nie z tego konta).`}
                   </p>
                 ) : null}

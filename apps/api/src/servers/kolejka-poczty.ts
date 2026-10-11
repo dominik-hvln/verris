@@ -82,7 +82,8 @@ export function stanKolejki(zadania: Zadanie[]) {
       ? {
           wToku: trwa(z),
           kiedy: (z.completedAt ?? z.createdAt).toISOString(),
-          ...(z.status === NodeTaskStatus.COMPLETED ? wynik(z.outputLog) : {}),
+          // Liczby także przy błędzie: usunięcie przerwane w połowie podaje, ile już usunięto (nieodwracalne).
+          ...(trwa(z) ? {} : wynik(z.outputLog)),
           blad: z.status === NodeTaskStatus.FAILED ? bladKolejki(z.outputLog, z.errorMessage) : null,
         }
       : null;
