@@ -78,4 +78,12 @@ describe('F3.1 — kolejka poczty: wynik zadania węzła', () => {
     expect(w.map((m) => m.id)).toEqual(['1tAbCd-000000001bo-D342', '1aBcDe-0003hL-9u', '1tZzZz-0000000aaaa-0001']);
     expect(w[0]!.temat).toBe(emoji);
   });
+
+  it('audyt Fal 2: podgląd z nagłówkami wyczyszczonymi przez retencję to brak podglądu, nie pusta kolejka', () => {
+    const s = stanKolejki([
+      zad({ outputLog: null, minuty: 20 }),
+      zad({ outputLog: 'VERRIS_MQ_RAZEM 0 0 0 0', minuty: 10, status: NodeTaskStatus.FAILED }),
+    ]);
+    expect(s).toMatchObject({ wczytano: null, podsumowanie: null, wiadomosci: [] });
+  });
 });

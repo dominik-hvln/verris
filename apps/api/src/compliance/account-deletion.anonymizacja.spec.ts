@@ -11,7 +11,8 @@ function stanowisko(opts: { juzZanonimizowany?: boolean; subkonta?: string[] } =
   const tx = {
     subscription: { update: vi.fn(async () => kolejnosc.push('sub')) },
     subscriptionEvent: { create: vi.fn(async () => ({})) },
-    account: { updateMany: vi.fn(async () => kolejnosc.push('accounts-db')) },
+    account: { updateMany: vi.fn(async () => kolejnosc.push('accounts-db')), findMany: vi.fn(async () => [{ id: 'a1' }, { id: 'a2' }]) },
+    nodeTask: { updateMany: vi.fn(async () => ({ count: 1 })) },
     user: {
       update: vi.fn(async () => ({})),
       findMany: vi.fn(async () => (opts.subkonta ?? []).map((id) => ({ id }))),
@@ -75,6 +76,12 @@ describe('AccountDeletionService.executeAnonymization (P-02)', () => {
     // Przegląd D11 — log kontaktów i checklista obsługi migracji (notatki o osobie) też znikają.
     expect(s.tx.migracjaKontakt.deleteMany).toHaveBeenCalledWith({ where: { migrationRequest: { userId: 'u1' } } });
     expect(s.tx.migrationRequest.updateMany).toHaveBeenCalledWith({ where: { userId: 'u1' }, data: { checklista: {} } });
+    // Audyt Fal 2 — nagłówki kolejki poczty kont klienta (zadania MAIL_QUEUE) znikają razem z danymi.
+    expect(s.tx.account.findMany).toHaveBeenCalledWith({ where: { userId: 'u1' }, select: { id: true } });
+    expect(s.tx.nodeTask.updateMany).toHaveBeenCalledWith({
+      where: { kind: 'MAIL_QUEUE', accountId: { in: ['a1', 'a2'] }, outputLog: { not: null } },
+      data: { outputLog: null },
+    });
   });
 
   it('subkonta: wyłączone, zanonimizowane i wylogowane razem z właścicielem', async () => {

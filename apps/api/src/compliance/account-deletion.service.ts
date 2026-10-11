@@ -8,7 +8,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { AccountStatus, SubscriptionStatus } from '@verris/database';
+import { AccountStatus, NodeTaskKind, SubscriptionStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { RodoActions } from '../common/audit/audit.actions.js';
@@ -395,6 +395,16 @@ export class AccountDeletionService {
       //     podsumowanie) to dane o osobie jak notatki obsługi; same zlecenia migracji zostają (rozliczenia, dziennik).
       await tx.migracjaKontakt.deleteMany({ where: { migrationRequest: { userId } } });
       await tx.migrationRequest.updateMany({ where: { userId }, data: { checklista: {} } });
+
+      // 3e) Audyt Fal 2 — nagłówki kolejki poczty kont klienta (nadawcy, odbiorcy, tematy) z zadań węzła MAIL_QUEUE.
+      //     Podglądy całego węzła (accountId = null) czyści retencja po dobie (RetentionScheduler).
+      const kontaKlienta = await tx.account.findMany({ where: { userId }, select: { id: true } });
+      if (kontaKlienta.length) {
+        await tx.nodeTask.updateMany({
+          where: { kind: NodeTaskKind.MAIL_QUEUE, accountId: { in: kontaKlienta.map((a) => a.id) }, outputLog: { not: null } },
+          data: { outputLog: null },
+        });
+      }
 
       // 4) Wipe payment methods (raw card brand/last4 alone is PII when tied
       //    to identity).

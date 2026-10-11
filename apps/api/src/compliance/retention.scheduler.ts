@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { DataExportService } from './data-export.service.js';
 import { RodoActions } from '../common/audit/audit.actions.js';
+import { NodeTaskKind } from '@verris/database';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -20,6 +21,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  *  - `DataExportRequest.READY` past `expiresAt` → flip to EXPIRED, delete file.
  *  - `StripeWebhookEvent` (deduplikacja webhooków) starsze niż 90 dni → DELETE.
  *  - `AiInteractionLog` (pytania/odpowiedzi asystenta AI, koszty) starsze niż 12 miesięcy → DELETE (RCPD A13).
+ *  - Audyt Fal 2 — `NodeTask.outputLog` podglądu kolejki poczty (MAIL_QUEUE, mode=list: nadawcy, odbiorcy — także
+ *    osoby trzecie — i tematy) starszy niż doba → NULL. Panel potrzebuje tylko ostatniego podglądu (usuwać można
+ *    z podglądu ≤ 1 h); samo zadanie (kto, kiedy, fraza) zostaje.
  * Konto DA usuwa ścieżka art. 17 (account-deletion.scheduler), nie ten sweeper.
  */
 @Injectable()
@@ -29,6 +33,7 @@ export class RetentionScheduler {
   private readonly loginAttemptRetentionDays = 180;
   private readonly auditLogIpRetentionDays = 24 * 30; // ~24 months
   private readonly aiLogRetentionDays = 365;
+  private readonly mailQueueHeadersRetentionMs = DAY_MS;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -40,16 +45,17 @@ export class RetentionScheduler {
   async run(): Promise<void> {
     const now = new Date();
 
-    const [loginPurged, auditAnonymized, exportsExpired, webhookEventsPurged, aiLogsPurged] =
+    const [loginPurged, auditAnonymized, exportsExpired, webhookEventsPurged, aiLogsPurged, mailQueueHeadersPurged] =
       await Promise.all([
         this.purgeLoginAttempts(now),
         this.anonymizeOldAuditLogIps(now),
         this.dataExport.expireDueExports(),
         this.purgeStripeWebhookEvents(now),
         this.purgeAiLogs(now),
+        this.purgeMailQueueHeaders(now),
       ]);
 
-    if (loginPurged + auditAnonymized + exportsExpired + webhookEventsPurged + aiLogsPurged > 0) {
+    if (loginPurged + auditAnonymized + exportsExpired + webhookEventsPurged + aiLogsPurged + mailQueueHeadersPurged > 0) {
       await this.audit.record({
         action: RodoActions.RETENTION_PURGE,
         details: {
@@ -59,10 +65,11 @@ export class RetentionScheduler {
           exportsExpired,
           stripeWebhookEventsPurged: webhookEventsPurged,
           aiLogsPurged,
+          mailQueueHeadersPurged,
         },
       });
       this.logger.log(
-        `Retention sweep: login=${loginPurged} auditIp=${auditAnonymized} exports=${exportsExpired} stripeEvents=${webhookEventsPurged} ai=${aiLogsPurged}`,
+        `Retention sweep: login=${loginPurged} auditIp=${auditAnonymized} exports=${exportsExpired} stripeEvents=${webhookEventsPurged} ai=${aiLogsPurged} mailQueue=${mailQueueHeadersPurged}`,
       );
     } else {
       this.logger.debug('Retention sweep: nothing to do');
@@ -85,6 +92,16 @@ export class RetentionScheduler {
   private async purgeAiLogs(now: Date): Promise<number> {
     const cutoff = new Date(now.getTime() - this.aiLogRetentionDays * DAY_MS);
     const result = await this.prisma.aiInteractionLog.deleteMany({ where: { createdAt: { lt: cutoff } } });
+    return result.count;
+  }
+
+  /** Nagłówki z podglądu kolejki poczty (konta i węzła) — dane osobowe bez celu po dobie. */
+  private async purgeMailQueueHeaders(now: Date): Promise<number> {
+    const cutoff = new Date(now.getTime() - this.mailQueueHeadersRetentionMs);
+    const result = await this.prisma.nodeTask.updateMany({
+      where: { kind: NodeTaskKind.MAIL_QUEUE, createdAt: { lt: cutoff }, outputLog: { not: null }, payload: { path: ['mode'], equals: 'list' } },
+      data: { outputLog: null },
+    });
     return result.count;
   }
 

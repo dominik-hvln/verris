@@ -10,6 +10,7 @@ import { AkcjeKontaOperatoraService } from '../../src/subscriptions/akcje-konta-
 import { PocztaKontaOperatoraService } from '../../src/subscriptions/poczta-konta-operatora.service.js';
 import { ZawieszenieOperatoraService } from '../../src/subscriptions/zawieszenie-operatora.service.js';
 import { UsersService } from '../../src/users/users.service.js';
+import { RetentionScheduler } from '../../src/compliance/retention.scheduler.js';
 import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } from './setup.js';
 
 /**
@@ -183,5 +184,29 @@ describe('F3.1 — kolejka poczty konta (zadanie MAIL_QUEUE)', () => {
     const t2 = await zadania.leaseTaskForNode(wezel.id);
     await zadania.failTaskFromNode({ serverId: wezel.id, taskId: t2!.id, error: 'brak python3', outputLog: '[mail-queue] BŁĄD: brak python3 na serwerze' });
     expect(await prisma().auditLog.count({ where: { action: 'MAIL_QUEUE_MESSAGES_REMOVED' } })).toBe(1);
+  });
+
+  it('audyt Fal 2: retencja — nagłówki podglądu kolejki starsze niż doba znikają (filtr payload.mode na Postgresie), reszta zostaje', async () => {
+    const p = prisma() as never;
+    const wezel = await utworzWezel();
+    const k = await utworzKonto({ serverId: wezel.id, planId: (await utworzPlan()).id });
+    const dwaDni = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+    const LOG = 'VERRIS_MQ 1tAbCd-000000001bo-D342|4m|2.9K|0|a@b.pl|ofiara@gmail.com|Temat\nVERRIS_MQ_RAZEM 1 1 1 1';
+    const nowe = (mode: string, createdAt?: Date, accountId: string | null = k.account.id) =>
+      prisma().nodeTask.create({ data: { serverId: wezel.id, accountId, kind: 'MAIL_QUEUE', status: 'COMPLETED', payload: { mode }, outputLog: mode === 'remove' ? 'VERRIS_MQ_USUNIETO 1' : LOG, ...(createdAt ? { createdAt } : {}) } });
+    const stary = await nowe('list', dwaDni);
+    const staryWezla = await nowe('list', dwaDni, null);
+    const swiezy = await nowe('list');
+    const usuniecie = await nowe('remove', dwaDni);
+    const inne = await prisma().nodeTask.create({ data: { serverId: wezel.id, accountId: k.account.id, kind: 'MAIL_LOG', status: 'COMPLETED', payload: { mode: 'list' }, outputLog: 'x', createdAt: dwaDni } });
+    await new RetentionScheduler(p, new AuditService(p), { expireDueExports: async () => 0 } as never).run();
+    const log = async (id: string) => (await prisma().nodeTask.findUniqueOrThrow({ where: { id } })).outputLog;
+    expect(await log(stary.id)).toBeNull();
+    expect(await log(staryWezla.id)).toBeNull();
+    expect(await log(swiezy.id)).toBe(LOG);
+    expect(await log(usuniecie.id)).toBe('VERRIS_MQ_USUNIETO 1');
+    expect(await log(inne.id)).toBe('x');
+    const wpis = await prisma().auditLog.findFirstOrThrow({ where: { action: 'RETENTION_PURGE' } });
+    expect(wpis.details).toMatchObject({ mailQueueHeadersPurged: 2 });
   });
 });

@@ -75,7 +75,9 @@ const trwa = (z: Zadanie) => z.status === NodeTaskStatus.QUEUED || z.status === 
 /** Stan kolejki z ostatnich zadań MAIL_QUEUE (najnowsze pierwsze): ostatni podgląd, usunięcie i wypchnięcie. */
 export function stanKolejki(zadania: Zadanie[]) {
   const listy = zadania.filter((z) => tryb(z) === 'list');
-  const podglad = listy.find((z) => z.status === NodeTaskStatus.COMPLETED) ?? null;
+  // Audyt Fal 2 — podgląd z wyczyszczonymi nagłówkami (retencja: RetentionScheduler, anonimizacja) to „brak podglądu”,
+  // nie „kolejka pusta”.
+  const podglad = listy.find((z) => z.status === NodeTaskStatus.COMPLETED && z.outputLog !== null) ?? null;
   const ostatniPodglad = listy[0] ?? null;
   const usun = zadania.find((z) => tryb(z) === 'remove') ?? null;
   const wypchnij = zadania.find((z) => tryb(z) === 'flush') ?? null;

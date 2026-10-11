@@ -6,12 +6,13 @@ import { RetentionScheduler } from './retention.scheduler.js';
  */
 const DAY = 24 * 60 * 60 * 1000;
 
-function zbuduj(liczby: { login?: number; audit?: number; eksporty?: number; stripe?: number; ai?: number } = {}) {
+function zbuduj(liczby: { login?: number; audit?: number; eksporty?: number; stripe?: number; ai?: number; kolejka?: number } = {}) {
   const prisma = {
     loginAttempt: { deleteMany: vi.fn(async () => ({ count: liczby.login ?? 0 })) },
     auditLog: { updateMany: vi.fn(async () => ({ count: liczby.audit ?? 0 })) },
     stripeWebhookEvent: { deleteMany: vi.fn(async () => ({ count: liczby.stripe ?? 0 })) },
     aiInteractionLog: { deleteMany: vi.fn(async () => ({ count: liczby.ai ?? 0 })) },
+    nodeTask: { updateMany: vi.fn(async () => ({ count: liczby.kolejka ?? 0 })) },
   };
   const audit = { record: vi.fn(async () => undefined) };
   const dataExport = { expireDueExports: vi.fn(async () => liczby.eksporty ?? 0) };
@@ -55,5 +56,16 @@ describe('RetentionScheduler (P-08)', () => {
     const pusto = zbuduj();
     await pusto.s.run();
     expect(pusto.audit.record).not.toHaveBeenCalled();
+  });
+
+  it('audyt Fal 2: nagłówki podglądu kolejki poczty (MAIL_QUEUE list) czyszczone po dobie; zadanie zostaje', async () => {
+    const t = zbuduj({ kolejka: 4 });
+    await t.s.run();
+    expect(odcieciePrzed(t.prisma.nodeTask.updateMany)).toBe(1);
+    const arg = (t.prisma.nodeTask.updateMany.mock.calls as unknown[][])[0][0] as { where: Record<string, unknown>; data: object };
+    expect(arg.where).toMatchObject({ kind: 'MAIL_QUEUE', outputLog: { not: null }, payload: { path: ['mode'], equals: 'list' } });
+    expect(arg.data).toEqual({ outputLog: null });
+    expect(t.prisma.nodeTask).not.toHaveProperty('deleteMany');
+    expect((t.audit.record.mock.calls as unknown[][])[0]).toEqual([expect.objectContaining({ details: expect.objectContaining({ mailQueueHeadersPurged: 4 }) })]);
   });
 });
