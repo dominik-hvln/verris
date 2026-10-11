@@ -275,6 +275,40 @@ describe('F3.7 — poczta przychodząca do zgłoszeń', () => {
     expect((await prisma().ticket.findUniqueOrThrow({ where: { id: r.ticketId } })).userId).toBe(jan.id);
   });
 
+  it('audyt Fali 3 — e-mail konta zmieniony przez obsługę < 24 h: mail ze starego adresu → kolejka z kontem i ostrzeżeniem (zmieniający nie odrzuci); z nowego — nie automatycznie', async () => {
+    const op = await operator('op-zmiana@verris.pl', ['TICKETS_VIEW', 'TICKETS_MANAGE']);
+    const drugi = await operator('op-drugi@verris.pl', ['TICKETS_VIEW', 'TICKETS_MANAGE']);
+    const klient = await konto('nowy@pracownika.pl');
+    await prisma().auditLog.create({
+      data: { action: 'ADMIN_CUSTOMER_EMAIL_CHANGED', userId: klient.id, actorUserId: op.userId, details: { fromEmail: 'jan@klient.pl', toEmail: 'nowy@pracownika.pl' } },
+    });
+
+    // Klient pisze ze starego adresu (jak każe alert) — nie „obcy nadawca”, tylko kolejka z kontem i ostrzeżeniem.
+    expect(await import_({ 7: 'nowe-zgloszenie.eml' })).toMatchObject({ nowe: 1, bledy: [] });
+    const stary = await wpis('<CAF1234nowe@mail.klient.pl>');
+    expect(stary).toMatchObject({ wynik: 'BEZ_KLIENTA', userId: klient.id });
+    expect(stary.powod).toMatch(/POPRZEDNI adres klienta/);
+    expect(await prisma().ticket.count()).toBe(0);
+    // Osoba, która zmieniła adres, nie odrzuci ani nie zablokuje tego maila; inna osoba — tak.
+    const { poczta } = uslugi();
+    await expect(poczta.odrzuc(stary.id, op, { powod: 'spam', zablokuj: true })).rejects.toMatchObject({ status: 403 });
+    expect(await prisma().pocztaBlokadaNadawcy.count()).toBe(0);
+    await poczta.odrzuc(stary.id, drugi, { powod: 'sprawdzone z klientem' });
+
+    // Mail z NOWEGO adresu w tej dobie — nie jako klient automatycznie.
+    const nowy = Buffer.from(eml('nowe-zgloszenie.eml').toString('latin1').replace(/Jan@Klient\.pl|jan@klient\.pl/g, 'nowy@pracownika.pl').replace('<CAF1234nowe@mail.klient.pl>', '<nowy-adres@pracownika.pl>'), 'latin1');
+    const a = await atrapaImap({ wiadomosci: new Map([[8, nowy]]) });
+    try {
+      await uslugi().poczta.pobierz(K, a.polacz);
+    } finally {
+      await a.zamknij();
+    }
+    const zNowego = await wpis('<nowy-adres@pracownika.pl>');
+    expect(zNowego).toMatchObject({ wynik: 'BEZ_KLIENTA', userId: klient.id });
+    expect(zNowego.powod).toMatch(/zmieniła obsługa/);
+    expect(await prisma().ticket.count()).toBe(0);
+  });
+
   it('odrzucenie z blokadą: treść i pliki skasowane, następny mail nadawcy od razu jako BLOKADA', async () => {
     const op = await operator('op@verris.pl', ZESPOL_NADUZYC);
     await import_({ 5: 'obcy-z-plikami.eml' });

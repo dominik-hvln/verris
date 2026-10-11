@@ -505,7 +505,9 @@ export function emailChangeAlertTemplate(ctx: EmailChangeAlertContext): MailMess
         ``,
         `## Nie prosiłeś o tę zmianę?`,
         ``,
-        `Odpisz na tę wiadomość albo napisz **natychmiast** z tego adresu: ${escapeMarkdown('support@verris.pl')}. Przywrócimy dostęp do konta.`,
+        // Audyt Fali 3 — tylko „odpisz”: odpowiedź trafia do zespołu bezpieczeństwa (nadawca SECURITY). Mail z tego adresu
+        // na support@ nie jest już mailem z adresu konta — poczta zgłoszeń kieruje go do kolejki z ostrzeżeniem.
+        `**Odpisz natychmiast na tę wiadomość** — trafi do zespołu bezpieczeństwa Verris, który przywróci dostęp do konta.`,
       ].join('\n'),
       footnote: 'Alert wysyłany na dotychczasowy adres przy każdej zmianie e-mail konta.',
       recipientEmail: ctx.to,

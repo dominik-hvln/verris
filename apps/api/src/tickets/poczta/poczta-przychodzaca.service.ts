@@ -13,6 +13,8 @@ import { CONTROL_PLANE_MAIL_DOMAIN } from '../../control-plane-mail/control-plan
 import { krotkieIdZTematu, zgloszenieZNaglowkow } from '../../mail/watek-zgloszenia.js';
 import { stronaListy } from '../../subscriptions/lista-uslug.js';
 import { uprawnieniaOperatora } from '../../staff-roles/uprawnienia-operatora.js';
+import { AdminCustomerActions } from '../../common/audit/audit.actions.js';
+import { BLOKADA_RESETU_PO_ZMIANIE_EMAILA_H, zmianyEmailaPrzezObsluge } from '../../users/zmiana-emaila-przez-obsluge.js';
 import { TAG_EMAIL_NIEZWERYFIKOWANY, TicketsService } from '../tickets.service.js';
 import { BladImap, PolaczenieImap, polaczTls } from './imap.js';
 import {
@@ -252,7 +254,36 @@ export class PocztaPrzychodzacaService {
       where: { email: { equals: nadawca, mode: 'insensitive' }, role: 'USER', anonymizedAt: null },
       select: { id: true, customerOwnerId: true, customerPermissions: true, subaccountDisabledAt: true },
     });
-    if (!u) return null;
+    if (!u) return this.poprzedniAdres(nadawca);
+    const k = await this.klientKonta(u);
+    // Audyt Fali 3 — adres konta zmieniony przez obsługę w ostatnich 24 h: maila z NOWEGO adresu nie przyjmujemy
+    // automatycznie jako klienta (pracownik mógł wpisać swój adres) — kolejka z podpowiedzią konta.
+    if (k && !k.odmowa && (await zmianyEmailaPrzezObsluge(this.prisma, u.id)).length) {
+      return { id: k.id, odmowa: `adres e-mail konta zmieniła obsługa w ciągu ${BLOKADA_RESETU_PO_ZMIANIE_EMAILA_H} h — potwierdź tożsamość klienta` };
+    }
+    return k;
+  }
+
+  /**
+   * Audyt Fali 3 — mail z POPRZEDNIEGO adresu klienta w 24 h po zmianie przez obsługę (alert o zmianie trafia na stary
+   * adres): to może być klient, którego konto przejęto. Kolejka z podpowiedzią konta i ostrzeżeniem, nie „obcy nadawca”.
+   */
+  private async poprzedniAdres(nadawca: string): Promise<{ id: string; odmowa: string } | null> {
+    const adres = nadawca.trim().toLowerCase();
+    const wpisy = await this.prisma.auditLog.findMany({
+      where: { action: AdminCustomerActions.CUSTOMER_EMAIL_CHANGED, createdAt: { gte: new Date(Date.now() - BLOKADA_RESETU_PO_ZMIANIE_EMAILA_H * 3600_000) } },
+      select: { userId: true, details: true },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    });
+    const w = wpisy.find((x) => x.userId && String((x.details as { fromEmail?: unknown } | null)?.fromEmail ?? '').toLowerCase() === adres);
+    return w?.userId
+      ? { id: w.userId, odmowa: `POPRZEDNI adres klienta — e-mail konta zmieniła obsługa w ciągu ${BLOKADA_RESETU_PO_ZMIANIE_EMAILA_H} h; możliwe przejęcie konta, przekaż pilnie administratorowi` }
+      : null;
+  }
+
+  /** Subkonto → właściciel (reguły jak w panelu); null — właściciel niedostępny. */
+  private async klientKonta(u: { id: string; customerOwnerId: string | null; customerPermissions: string[]; subaccountDisabledAt: Date | null }): Promise<{ id: string; odmowa?: string } | null> {
     if (!u.customerOwnerId) return { id: u.id };
     const wl = await this.prisma.user.findFirst({ where: { id: u.customerOwnerId, anonymizedAt: null }, select: { id: true, loginBlocked: true } });
     if (!wl) return null;
@@ -536,6 +567,11 @@ export class PocztaPrzychodzacaService {
     const w = await this.wKolejce(id);
     // Audyt Fali 3 — odrzucenie kasuje treść i pliki zgłoszenia nadużycia: tylko zespół nadużyć.
     await this.pilnujNaduzyc(w, aktor);
+    // Audyt Fali 3 — mail dotyczący konta, którego e-mail ta sama osoba zmieniła w ostatnich 24 h (np. sprzeciw klienta
+    // ze starego adresu), odrzuca ktoś inny: sprawca nie wygasi kanału, którym klient zgłasza przejęcie konta.
+    if (w.userId && (await zmianyEmailaPrzezObsluge(this.prisma, w.userId)).includes(aktor.principalUserId ?? aktor.userId)) {
+      throw new ForbiddenException('Ten mail dotyczy konta, którego adres e-mail zmieniłeś w ciągu doby — odrzuci go inna osoba albo administrator.');
+    }
     const { count } = await this.prisma.pocztaPrzychodzaca.updateMany({
       where: { id, wynik: w.wynik },
       data: { wynik: 'ODRZUCONY', powod: powod.slice(0, 300), tresc: null, obsluzylId: actorUserId, obsluzono: new Date(), zalaczniki: [] },
