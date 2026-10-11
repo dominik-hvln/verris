@@ -91,7 +91,7 @@ export function PocztaKontaPanel({ subscriptionId, dostep }: { subscriptionId: s
     const tresc = zablokuj
       ? "Zablokować wysyłkę poczty konta? Skrzynki i skrypty PHP przestaną wysyłać, odbiór poczty i strona działają dalej."
       : "Zwolnić wysyłkę poczty konta? Skrzynki i skrypty PHP znów będą wysyłać.";
-    if (!(await potwierdz(`${tresc} Klient zobaczy w aktywności konta wpis „obsługa Verris”.`, { akcja: zablokuj ? "Zablokuj" : "Zwolnij", niebezpieczne: zablokuj }))) return;
+    if (!(await potwierdz(`${tresc} Klient zobaczy wpis „obsługa Verris” na karcie usługi („Co się działo”) i w aktywności konta.`, { akcja: zablokuj ? "Zablokuj" : "Zwolnij", niebezpieczne: zablokuj }))) return;
     zapisz(zablokuj ? "zablokuj" : "zwolnij");
   };
 

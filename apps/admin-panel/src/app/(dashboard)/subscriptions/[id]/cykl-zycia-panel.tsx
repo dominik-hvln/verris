@@ -252,7 +252,7 @@ function DodatkiUslugiSekcja({ u, dostep, powod, zgloszenie }: { u: UslugaCyklu;
     const kwota = platnosc === "GRATIS" ? "gratis (koszt Verris)" : `za ${wybrany.price} zł z portfela klienta`;
     const pytanie = przedluz
       ? `Klient ma aktywne „${wybrany.name}”${aktywnyDo ? ` do ${aktywnyDo}` : ""}. Przedłużyć o 30 dni ${kwota}? Klient zobaczy wpis „obsługa Verris” na karcie usługi.`
-      : `Dodać „${wybrany.name}” ${kwota}? Klient zobaczy wpis „obsługa Verris” w aktywności konta.`;
+      : `Dodać „${wybrany.name}” ${kwota}? Klient zobaczy wpis „obsługa Verris” na karcie usługi („Co się działo”) i w aktywności konta.`;
     if (!(await potwierdz(pytanie, { akcja: przedluz ? "Przedłuż" : "Dodaj" }))) return;
     start(async () => {
       setMsg(null);
