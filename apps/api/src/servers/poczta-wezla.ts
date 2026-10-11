@@ -7,7 +7,8 @@ import { wynikWyczyszczony } from './dane-zadan-wezla.js';
  * - limit wysyłki konta: zadanie MAIL_QUEUE tryb `limit` (ops/scripts/node-mail-queue.sh), wiersz
  *   `VERRIS_MQ_LIMIT <login> <limit|domyslny|?> <domyślny|->`;
  * - najwięksi nadawcy i odrzucenia węzła: zadanie MAIL_LOG bez konta, tryb `stats` (ops/scripts/node-mail-log.sh),
- *   wiersze VERRIS_MS / VERRIS_MB / VERRIS_MS_OKNO — agregat bez adresów i treści.
+ *   wiersze VERRIS_MS / VERRIS_MB / VERRIS_MS_OKNO — agregat bez adresów i treści (okno: UTC z „Z” od 11.10;
+ *   wynik starszego skryptu — czas lokalny węzła bez strefy, panel pokazuje go wprost).
  */
 
 /** Najwyższy limit dobowy, jaki ustawi obsługa (ten sam sufit sprawdza skrypt węzła). */

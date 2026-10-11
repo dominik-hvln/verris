@@ -28,7 +28,20 @@ export interface WynikRbl {
 }
 
 const przycisk = "rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-neutral-200 hover:text-white disabled:opacity-50";
-const okno = (iso: string | null) => (iso ? new Date(`${iso}Z`).toLocaleString("pl-PL", { timeZone: "Europe/Warsaw", dateStyle: "short", timeStyle: "short" }) : "—");
+/**
+ * Okno dziennika poczty. Weryfikacja 11.10: panel doklejał „Z” do czasu z logu exima, który jest czasem LOKALNYM węzła
+ * (t1: Europe/Warsaw) — koniec okna wypadał 2 h w przyszłości. Agent po poprawce podaje UTC z „Z” (przeliczamy na czas
+ * PL); wynik starszego agenta (bez strefy) to czas serwera — pokazujemy go wprost, bez przeliczania.
+ */
+export const okno = (iso: string | null) => {
+  if (!iso) return "—";
+  if (/(Z|[+-]\d\d:?\d\d)$/.test(iso)) {
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? iso : d.toLocaleString("pl-PL", { timeZone: "Europe/Warsaw", dateStyle: "short", timeStyle: "short" });
+  }
+  const m = /^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d)/.exec(iso);
+  return m ? `${Number(m[3])}.${m[2]}.${m[1]}, ${m[4]}:${m[5]}` : iso;
+};
 
 /**
  * F3.1 reszta — zakładka „Poczta” węzła (NOC i ADMIN): najwięksi nadawcy i odrzucenia z logu poczty (agregat bez

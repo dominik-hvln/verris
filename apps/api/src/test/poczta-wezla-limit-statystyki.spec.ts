@@ -102,14 +102,22 @@ describe('F3.1 — najwięksi nadawcy i odrzucenia węzła (node-mail-log.sh, tr
   };
 
   it('agregat wysyłki na zewnątrz: domena nadawcy + użytkownik DA, odrzucone i opóźnione; przychodząca pominięta; bez adresów', () => {
-    const r = uruchom({ ML_MODE: 'stats' });
+    const r = uruchom({ ML_MODE: 'stats', TZ: 'UTC' });
     expect(r.rc).toBe(0);
     const ms = r.out.split('\n').filter((l) => l.startsWith('VERRIS_MS '));
     expect(ms).toEqual(['VERRIS_MS klient.pl|klient1|2|1|0', 'VERRIS_MS firma.pl|-|1|0|1']);
     expect(r.out).toContain('VERRIS_MB 550|wp.pl|1');
-    expect(r.out).toContain('VERRIS_MS_OKNO 2026-10-10T10:00:00 2026-10-10T10:03:00 3');
+    // Weryfikacja 11.10 — czas z logu exima jest lokalny (bez strefy); okno idzie w UTC ze strefy węzła.
+    expect(r.out).toContain('VERRIS_MS_OKNO 2026-10-10T10:00:00Z 2026-10-10T10:03:00Z 3');
     // żadnego adresu e-mail w wyniku
     expect(r.out).not.toMatch(/[a-z0-9._-]+@[a-z0-9.-]+/i);
+  });
+
+  it('weryfikacja 11.10: węzeł w strefie Europe/Warsaw — okno w UTC (14:42 czasu PL = 12:42Z), nie czas lokalny udający UTC', () => {
+    const r = uruchom({ ML_MODE: 'stats', TZ: 'Europe/Warsaw' });
+    expect(r.rc).toBe(0);
+    // 10.10 to czas letni (CEST, +02:00): 10:00 lokalnie = 08:00Z.
+    expect(r.out).toContain('VERRIS_MS_OKNO 2026-10-10T08:00:00Z 2026-10-10T08:03:00Z 3');
   });
 
   it('audyt Fali 3: U= z tematu, z identu zdalnego hosta ani z adresu w cudzysłowie nie przypisuje wysyłki kontu', () => {

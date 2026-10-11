@@ -9,7 +9,7 @@ const akcja = jest.fn();
 jest.mock("./poczta-wezla-actions", () => ({ pocztaWezlaAction: (...a: unknown[]) => akcja(...a) }));
 jest.mock("@/components/pomoc", () => ({ Pomoc: () => null }));
 
-import { PocztaWezlaPanel } from "./poczta-wezla-panel";
+import { PocztaWezlaPanel, okno } from "./poczta-wezla-panel";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -61,4 +61,15 @@ it("RBL: lista, brak odpowiedzi i czysto osobno", async () => {
 it("wczytanie z serwera zleca zadanie", async () => {
   await act(async () => k.querySelector<HTMLButtonElement>('[data-akcja="wczytaj-statystyki"]')!.click());
   expect(akcja).toHaveBeenCalledWith("w1", "wczytaj");
+});
+
+/**
+ * Weryfikacja 11.10 — o 14:52 czasu PL panel pokazał koniec okna 16:42: czas z logu exima (lokalny węzła) brany za UTC.
+ * Nowy agent podaje UTC z „Z”; wynik starszego agenta (bez strefy) — czas serwera wprost, bez przeliczania.
+ */
+it("okno dziennika: UTC z agenta → czas PL; czas bez strefy (starszy agent) — bez przesunięcia", () => {
+  expect(okno("2026-10-11T12:42:40Z")).toBe("11.10.2026, 14:42");
+  expect(okno("2026-10-11T14:42:40")).toBe("11.10.2026, 14:42");
+  expect(okno("2026-10-11T01:40:00Z")).toBe("11.10.2026, 03:40");
+  expect(okno(null)).toBe("—");
 });

@@ -18,7 +18,12 @@
 #   R=dnslookup — NIEZWERYFIKOWANE na logu t1 (nazwy routerów/transportów z exim.conf DirectAdmina), sprawdzić na t1.
 # Wynik: VERRIS_MS <domena nadawcy>|<użytkownik DA|->|<wiadomości>|<odrzucone>|<opóźnione>   (do 30 największych)
 #        VERRIS_MB <kod SMTP|->|<domena serwera odbiorcy|->|<liczba>                       (do 20 najczęstszych)
-#        VERRIS_MS_OKNO <pierwszy wpis> <ostatni wpis> <wiadomości razem>
+#        VERRIS_MS_OKNO <pierwszy wpis> <ostatni wpis> <wiadomości razem>   (czasy w UTC, ISO z „Z”)
+# Exim pisze czas w logu w strefie lokalnej serwera, bez strefy (domyślnie log_timezone = false):
+#   https://www.exim.org/exim-html-current/doc/html/spec_html/ch-main_configuration.html (opcja log_timezone).
+# Weryfikacja 11.10 (t1, strefa Europe/Warsaw): panel brał ten czas za UTC — koniec okna 16:42 o 14:52. Okno idzie
+# więc w UTC przeliczonym ze strefy węzła (z uwzględnieniem czasu letniego). Tryb „konto” zostawia czas z logu
+# (czas serwera) — panel pokazuje go wprost, bez przeliczania.
 # =============================================================================
 set -Eeuo pipefail
 
@@ -40,6 +45,7 @@ if [ "$ML_MODE" = "stats" ]; then
   python3 -I - "${PLIKI[@]}" <<'PY'
 import re, sys
 from collections import Counter, defaultdict
+from datetime import datetime, timezone
 wiersz = re.compile(r"^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d)\S* (?:\[\d+\] )?(\S{16,23}) (<=|=>|->|\*\*|==) (\S+)(.*)$")
 USER = re.compile(r"^[a-z][a-z0-9]{0,15}$")
 SYSTEMOWI = {"mail", "mailnull", "exim", "root", "nobody", "apache", "diradmin", "dovecot"}
@@ -115,8 +121,11 @@ for (dom, usr), (n, o, z) in sorted(agregat.items(), key=lambda x: (-x[1][0], x[
     print(f"VERRIS_MS {dom}|{usr}|{n}|{o}|{z}")
 for (kod, host), n in powody.most_common(20):
     print(f"VERRIS_MB {kod}|{host}|{n}")
+def utc(czas):
+    # Czas lokalny serwera z logu → UTC; astimezone() na czasie bez strefy przyjmuje strefę systemu (TZ / localtime).
+    return datetime.strptime(czas, "%Y-%m-%d %H:%M:%S").astimezone().astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 if od:
-    print(f"VERRIS_MS_OKNO {od.replace(' ', 'T')} {do.replace(' ', 'T')} {len(na_zewnatrz)}")
+    print(f"VERRIS_MS_OKNO {utc(od)} {utc(do)} {len(na_zewnatrz)}")
 else:
     print("VERRIS_MS_OKNO - - 0")
 PY
