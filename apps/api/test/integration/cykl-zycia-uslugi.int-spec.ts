@@ -407,6 +407,38 @@ describe('audyt Fali 3 — wyścig anulacji na koniec okresu z przebiegiem odnow
     expect(await prisma().walletTransaction.count({ where: { userId: k.id, type: WalletTxType.REFUND } })).toBe(1);
   });
 
+  it('przegląd poprawek: po zwrocie i cofnięciu anulacji obsługi następny przebieg obciąża od nowa (nie „opłacone” zwróconym obciążeniem)', async () => {
+    const op = await operator();
+    const k = await klient(100);
+    const koniec = new Date(Date.now() + 12 * 3600000);
+    const u = await usluga(k.id, { currentPeriodEnd: koniec });
+    const p = prisma() as never;
+    const ledger = new WalletLedgerService(p);
+    const debit = ledger.debit.bind(ledger);
+    let raz = false;
+    ledger.debit = async (a) => {
+      if (!raz) {
+        raz = true;
+        await cykl().anulujNaKoniecOkresu({ subscriptionId: u.id, operator: op, powod: POWOD });
+      }
+      return debit(a);
+    };
+    const audit = new AuditService(p);
+    const promo = new PromoService(p, ledger, audit, { send: async () => ({}) } as never, { get: () => undefined } as never);
+    const s = new RenewalScheduler(p, ledger, subs as never, audit, promo, eco as never);
+    await s.handleHourlyTick();
+    expect(await saldo(k.id)).toBe(100);
+    // Anulację zaplanowała obsługa — cofnięcie w ostatniej dobie jest dozwolone; usługa ma się odnowić za opłatą.
+    await cykl().cofnijAnulacje({ subscriptionId: u.id, operator: op, powod: POWOD });
+    await s.handleHourlyTick();
+    const po = await sub(u.id);
+    expect(po.currentPeriodEnd!.getTime()).toBeGreaterThan(koniec.getTime());
+    expect(await saldo(k.id)).toBe(55);
+    // Kolejny przebieg nie obciąża drugi raz.
+    await s.handleHourlyTick();
+    expect(await saldo(k.id)).toBe(55);
+  });
+
   it('odnowienie między odczytem a zapisem anulacji operatora: 409, cancelAt nie ustawione na stary koniec', async () => {
     const op = await operator();
     const k = await klient(100);

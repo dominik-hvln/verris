@@ -225,7 +225,7 @@ export class RenewalScheduler {
     sub: Awaited<ReturnType<typeof this.findRenewable>>[number],
   ): Promise<boolean> {
     const periodEnd = sub.currentPeriodEnd ?? new Date();
-    const idempotencyKey = `sub-${sub.id}-renew-${periodEnd.toISOString().slice(0, 10)}`;
+    const idempotencyKey = await this.kluczOdnowienia(sub.id, periodEnd);
     // Zawieszona zostaje SUSPENDED po obciążeniu — ACTIVE ustawia dopiero odwieszenie konta na serwerze.
     const aktywuj = sub.status !== SubscriptionStatus.SUSPENDED;
 
@@ -330,6 +330,19 @@ export class RenewalScheduler {
     }
     this.logger.warn(`Odnowienie sub=${sub.id} zatrzymane przez anulację na koniec okresu${oplata ? ' — obciążenie zwrócone' : ''}`);
     throw new ConflictException('Usługa została anulowana na koniec okresu w trakcie odnowienia — nie odnawiamy jej, opłatę zwróciliśmy do portfela.');
+  }
+
+  /**
+   * Przegląd poprawek Fali 3 — klucz obciążenia za okres. Po zwrocie (zwrotGdyAnulowana) obsługa może cofnąć swoją
+   * anulację jeszcze przed końcem okresu; ten sam klucz znalazłby wtedy zwrócone obciążenie i przesunął okres jak
+   * opłacony (miesiąc gratis). Zwrócony klucz nie liczy się jako zapłata — następna próba dostaje nowy, deterministyczny
+   * klucz (cron i „Opłać teraz” nadal trafiają w ten sam).
+   */
+  private async kluczOdnowienia(subscriptionId: string, periodEnd: Date): Promise<string> {
+    const baza = `sub-${subscriptionId}-renew-${periodEnd.toISOString().slice(0, 10)}`;
+    let klucz = baza;
+    for (let n = 1; await this.walletLedger.findByIdempotencyKey(`${klucz}:zwrot`); n += 1) klucz = `${baza}:po-zwrocie-${n}`;
+    return klucz;
   }
 
   /** @returns true, gdy ten wywołujący przesunął okres. */
