@@ -43,7 +43,8 @@ export interface FiltryDomen {
  * Każda operacja woła TĘ SAMĄ metodę rejestratora co panel klienta (domain-registrar.service.ts) z id WŁAŚCICIELA
  * domeny i z operatorem jako `actorUserId` — reguły (domena kupiona u nas, NS, dwuklik odnowienia, portfel przed
  * rejestratorem i zwrot przy jego błędzie) są te same. Dziennik (D2/D3):
- * - OPERATOR_DOMAIN_CHANGED — dziennik zespołu: akcja, powód, zgłoszenie, wynik (także błąd rejestratora);
+ * - OPERATOR_DOMAIN_CHANGED — dziennik zespołu: akcja, powód, zgłoszenie, wynik (także błąd rejestratora — w eksporcie
+ *   RODO klienta zamieniony na komunikat ogólny, data-export.service.ts dziennikBialaEtykieta);
  * - wpis DOMAIN_* na koncie klienta z operatorem jako autorem i numerem zgłoszenia (kontekst `operator`), więc klient
  *   widzi „obsługa Verris (zgłoszenie #…)”, bez nazwiska i bez powodu.
  */

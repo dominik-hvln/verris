@@ -66,7 +66,8 @@ export const MIN_POWOD = 10;
  * jedna zmiana PHP naraz) są te same. Nie ma tu nowych wywołań węzła ani nowych kanałów.
  *
  * Dziennik (D2/D3):
- * - OPERATOR_ACCOUNT_CHANGED — dziennik zespołu: akcja, powód, zgłoszenie, cel i wynik (także błąd węzła);
+ * - OPERATOR_ACCOUNT_CHANGED — dziennik zespołu: akcja, powód, zgłoszenie, cel i wynik (także błąd węzła — w eksporcie
+ *   RODO klienta zamieniony na komunikat ogólny, data-export.service.ts dziennikBialaEtykieta);
  * - wpis HOSTING_* na koncie klienta — z autorem = operator (kontekst `operator` w AuditService), więc klient
  *   widzi „obsługa Verris (zgłoszenie #…)”, bez nazwiska; gdy serwis sam takiego wpisu nie robi (SSL, kopia, PHP,
  *   DNS), dopisuje go ta klasa.

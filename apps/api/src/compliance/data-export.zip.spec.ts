@@ -102,6 +102,22 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
         },
         // Impersonacja przez obsługę.
         { id: 'l3', action: 'HOSTING_PHP_CHANGED', userId: 'u1', actorUserId: 'u1', impersonatedBy: OPERATOR_B, details: { domain: 'x.pl' }, ipAddress: '203.0.113.10', userAgent: 'Safari' },
+        // Akcje obsługi z paska konta/domeny zakończone błędem węzła — wpis zespołu ma userId klienta.
+        {
+          id: 'l4', action: 'OPERATOR_ACCOUNT_CHANGED', userId: 'u1', actorUserId: OPERATOR, impersonatedBy: null, ipAddress: null, userAgent: null,
+          details: { akcja: 'blokada-wysylki', wynik: 'blad', blad: 'Węzeł nie obsługuje blokady wysyłki (brak HAVE_BLACKLIST_USERNAMES w ustawieniach exima — zaktualizuj exim.conf przez CustomBuild).' },
+        },
+        {
+          id: 'l5', action: 'OPERATOR_DOMAIN_CHANGED', userId: 'u1', actorUserId: OPERATOR, impersonatedBy: null, ipAddress: null, userAgent: null,
+          details: { akcja: 'ns', wynik: 'blad', blad: 'Rejestr nie odpowiedział w czasie' },
+        },
+        // Błąd połączenia z hostem panelu węzła w innym wpisie (np. wniosek, który się nie wykonał).
+        {
+          id: 'l6', action: 'OPERATOR_REQUEST_FAILED', userId: 'u1', actorUserId: OPERATOR, impersonatedBy: null, ipAddress: null, userAgent: null,
+          details: { wniosekId: 'w1', blad: 'connect ETIMEDOUT da-t1.wezly.example — węzeł nie odpowiadał przed chwilą' },
+        },
+        // Błąd bez śladów infrastruktury zostaje (np. odmowa karty klienta).
+        { id: 'l7', action: 'WALLET_AUTO_TOPUP_FAILED', userId: 'u1', actorUserId: null, impersonatedBy: null, ipAddress: null, userAgent: null, details: { error: 'Karta została odrzucona.' } },
       ]),
     },
     customerNote: {
@@ -126,6 +142,7 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
         return [sel ? Object.fromEntries(Object.entries(wiersz).filter(([k]) => sel[k])) : wiersz];
       }),
     },
+    server: { findMany: lista([{ name: 't1', hostname: 't1.verris.pl', daHost: 'da-t1.wezly.example', ipAddress: '203.0.113.50', ipv6Address: null }]) },
     $transaction: vi.fn(async (ops: Array<Promise<unknown>>) => Promise.all(ops)),
   };
   const storage = {
@@ -253,6 +270,18 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
     expect(konta.find((a) => a.id === 'a1')).toMatchObject({ mailBlockedById: null });
     expect(pliki.get('accounts.json')).not.toMatch(/Nadużycie|zglaszajacy/);
     expect(JSON.parse(pliki.get('subscriptions.json')!)).toEqual([{ id: 's1', individualTermsById: 'Obsługa Verris', price: '19.99' }]);
+  });
+
+  it('audyt Fal 2 — dziennik w eksporcie bez surowych błędów węzła (exim, CustomBuild, host węzła); zwykły błąd zostaje', async () => {
+    const pliki = await zbudujZip(zbuduj().svc);
+    const plik = pliki.get('audit-log.json')!;
+    expect(plik).not.toMatch(/exim|CustomBuild|HAVE_BLACKLIST|da-t1\.wezly|ETIMEDOUT|Rejestr nie odpowiedział/i);
+    const wpisy = JSON.parse(plik) as Array<{ id: string; details: Record<string, unknown> }>;
+    const ogolny = 'Operacja nie powiodła się. Napisz do nas — sprawdzimy to.';
+    expect(wpisy.find((w) => w.id === 'l4')!.details).toMatchObject({ akcja: 'blokada-wysylki', wynik: 'blad', blad: ogolny });
+    expect(wpisy.find((w) => w.id === 'l5')!.details).toMatchObject({ wynik: 'blad', blad: ogolny });
+    expect(wpisy.find((w) => w.id === 'l6')!.details).toMatchObject({ wniosekId: 'w1', blad: ogolny });
+    expect(wpisy.find((w) => w.id === 'l7')!.details).toEqual({ error: 'Karta została odrzucona.' });
   });
 
   it('nazwa załącznika nie wychodzi poza katalog attachments/ (zip slip)', async () => {

@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { MigracjaEtap, MigracjaKanalKontaktu, MigrationStatus, Prisma } from '@verris/database';
 import { zdradzaInfrastrukture } from '@verris/contracts';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { wezlyBialejEtykiety } from '../common/biala-etykieta.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { MigrationActions } from '../common/audit/audit.actions.js';
 import { kontekstZadania } from '../common/audit/kontekst-magazyn.js';
@@ -541,9 +542,8 @@ export class TablicaMigracjiService {
   }
 
   /** Nazwy, hosty i adresy węzłów — tekst dla klienta nie może ich zawierać (white label). */
-  private async wezly(): Promise<Array<string | null>> {
-    const s = await this.prisma.server.findMany({ select: { name: true, hostname: true, ipAddress: true, ipv6Address: true } });
-    return s.flatMap((w) => [w.name, w.hostname, w.ipAddress, w.ipv6Address]);
+  private wezly(): Promise<Array<string | null>> {
+    return wezlyBialejEtykiety(this.prisma);
   }
 
   private async emaileOperatorow(ids: Array<string | null | undefined>): Promise<Map<string, string>> {

@@ -22,6 +22,9 @@ import { ObjectStorageService } from '../storage/object-storage.service.js';
 import { ObjectBuckets } from '../storage/object-storage.types.js';
 import type { Readable } from 'stream';
 import { checklistaZBazy } from '../subscriptions/tablica-migracji.js';
+import { zdradzaInfrastrukture } from '@verris/contracts';
+import { KOMUNIKAT_OGOLNY, wezlyBialejEtykiety } from '../common/biala-etykieta.js';
+import { SupportActions } from '../common/audit/audit.actions.js';
 
 export interface DataExportSummary {
   id: string;
@@ -574,7 +577,7 @@ export class DataExportService implements OnApplicationBootstrap {
       'ticket-attachments': ticketAttachments.map((a) => (a.uploadedById === userId ? a : { ...a, uploadedById: null, dodala: 'Obsługa Verris' })),
       'data-export-requests': exports,
       'account-deletion-requests': deletions,
-      'audit-log': this.dziennikBezPracownikow(pracownicy, auditLogs),
+      'audit-log': dziennikBialaEtykieta(this.dziennikBezPracownikow(pracownicy, auditLogs), await wezlyBialejEtykiety(this.prisma)),
       'customer-notes': customerNotes.map((n) => ({ ...n, autor: 'Obsługa Verris' })),
       migrations: migracje.map(({ checklista, kontakty, ...m }) => ({
         ...m,
@@ -737,6 +740,31 @@ export class DataExportService implements OnApplicationBootstrap {
 function sanitizeFilename(input: string): string {
   const cleaned = input.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').slice(0, 200);
   return cleaned.length > 0 ? cleaned : 'attachment';
+}
+
+/**
+ * Audyt Fal 2 — dziennik konta w eksporcie bez surowych błędów węzła i rejestratora (white label, D3). Wpis zespołu
+ * o akcji obsługi na koncie klienta (OPERATOR_ACCOUNT_CHANGED, OPERATOR_DOMAIN_CHANGED) ma userId klienta i zapisuje
+ * pełny błąd dla operatora („DirectAdmin API Error: …”, exim/CustomBuild, host węzła z błędu połączenia) — klient
+ * dostaje komunikat ogólny. W pozostałych wpisach błąd zostaje, chyba że zdradza panel, infrastrukturę albo węzeł.
+ */
+const POLA_BLEDU = new Set(['blad', 'error', 'bladWezla', 'lastError', 'daError']);
+const DZIENNIK_ZESPOLU: ReadonlySet<string> = new Set([SupportActions.OPERATOR_ACCOUNT_CHANGED, SupportActions.OPERATOR_DOMAIN_CHANGED]);
+
+export function dziennikBialaEtykieta<T extends { action: string; details: unknown }>(wpisy: T[], wezly: readonly (string | null)[]): T[] {
+  return wpisy.map((w) => {
+    const zawsze = DZIENNIK_ZESPOLU.has(w.action);
+    const czysc = (x: unknown): unknown => {
+      if (Array.isArray(x)) return x.map(czysc);
+      if (!x || typeof x !== 'object' || (Object.getPrototypeOf(x) !== Object.prototype && Object.getPrototypeOf(x) !== null)) return x;
+      return Object.fromEntries(
+        Object.entries(x).map(([k, v]) =>
+          POLA_BLEDU.has(k) && typeof v === 'string' && (zawsze || zdradzaInfrastrukture(v, wezly)) ? [k, KOMUNIKAT_OGOLNY] : [k, czysc(v)],
+        ),
+      );
+    };
+    return { ...w, details: czysc(w.details) };
+  });
 }
 
 const OBSLUGA = 'Obsługa Verris';
