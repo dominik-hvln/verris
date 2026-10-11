@@ -23,6 +23,9 @@ const DOMYSLNE_POLE = 'rounded-lg border border-line-strong bg-card px-3 py-2 te
  * - `name` → ukryty input, więc działa w zwykłym <form>/FormData/server action;
  * - `defaultValue` bez `value` → tryb niekontrolowany (np. formularz w komponencie serwerowym);
  * - wartość spoza listy pokazuje (i wysyła) pierwszą aktywną opcję — tak robi przeglądarka/React;
+ *   WYJĄTEK: jawnie podany `placeholder` — wtedy wartość spoza listy (zwykle '') znaczy „nic nie wybrano”:
+ *   pole pokazuje placeholder, ukryty input wysyła tę wartość, a wybór pierwszej opcji woła `onChange`
+ *   (weryfikacja 11.10: „Dodatki” pokazywały pierwszą pozycję, a „Dodaj dodatek” zostawał nieaktywny);
  * - ponowny wybór bieżącej opcji nie woła `onChange` (natywny select też nie).
  * `className` stylizuje przycisk (pole), `wrapperClassName` — kontener (układ).
  */
@@ -34,7 +37,7 @@ export function Select({
   className,
   wrapperClassName,
   disabled,
-  placeholder = 'Wybierz…',
+  placeholder,
   'aria-label': ariaLabel,
   id,
   name,
@@ -46,6 +49,7 @@ export function Select({
   className?: string;
   wrapperClassName?: string;
   disabled?: boolean;
+  /** Podany jawnie: wartość spoza listy = brak wyboru (pokazuje placeholder, nie pierwszą opcję). */
   placeholder?: string;
   'aria-label'?: string;
   /** Id przycisku (combobox) — do powiązania z `<label htmlFor>`. */
@@ -63,7 +67,8 @@ export function Select({
   const baseId = useId();
 
   const matchIndex = options.findIndex((o) => o.value === value);
-  const selectedIndex = matchIndex >= 0 ? matchIndex : options.findIndex((o) => !o.disabled);
+  // Bez placeholdera jak natywny select (pierwsza aktywna opcja); z placeholderem — brak wyboru.
+  const selectedIndex = matchIndex >= 0 ? matchIndex : placeholder !== undefined ? -1 : options.findIndex((o) => !o.disabled);
   const selected = selectedIndex >= 0 ? options[selectedIndex] : null;
   const effective = selected ? selected.value : value;
 
@@ -71,9 +76,9 @@ export function Select({
 
   const openMenu = useCallback(() => {
     if (disabled) return;
-    setActive(selectedIndex >= 0 ? selectedIndex : 0);
+    setActive(selectedIndex >= 0 ? selectedIndex : Math.max(0, options.findIndex((o) => !o.disabled)));
     setOpen(true);
-  }, [disabled, selectedIndex]);
+  }, [disabled, selectedIndex, options]);
 
   const choose = useCallback(
     (idx: number) => {
@@ -207,7 +212,7 @@ export function Select({
             </span>
           ))}
           <span className={cx('col-start-1 row-start-1 truncate', !selected && 'text-muted-foreground')}>
-            {selected ? selected.label : placeholder}
+            {selected ? selected.label : (placeholder ?? 'Wybierz…')}
           </span>
         </span>
         <ChevronDown
