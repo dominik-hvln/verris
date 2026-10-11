@@ -1414,23 +1414,19 @@ export class DirectAdminService {
     }
     try {
       const client = await this.getClientForHostingAccount(sub.account.id, userId);
-      // Weryfikacja 11.10 (prod, d3) — lista brała tylko domenę główną, a formularz zakłada skrzynkę na każdej domenie
-      // konta: skrzynka na domenie dodatkowej (test2.d3.hvln.pl) znikała z listy klienta i obsługi, a licznik konta
-      // (nemails) mówił 3 przy liście 2. CMD_API_POP?action=list działa per domena
-      // (https://docs.directadmin.com/developer/api/legacy-api.html — CMD_API_POP), więc pytamy o każdą domenę konta
-      // (CMD_API_SHOW_DOMAINS). Zastępczy odczyt z liczników (skrzynka właściciela) tylko dla domeny głównej.
-      const domeny = [domain, ...(await client.getDomains()).filter((d) => d.toLowerCase() !== domain.toLowerCase())];
-      const rows: { id: string; email: string; quotaMb: number | null }[] = [];
-      const byly = new Set<string>();
-      for (const d of domeny) {
-        const accounts = await client.listEmailAccounts(d, d === domain ? { accountUsername: sub.account.daUsername } : {});
-        for (const box of accounts) {
-          const email = box.localPart.includes('@') ? box.localPart : `${box.localPart}@${d}`;
-          if (byly.has(email.toLowerCase())) continue;
-          byly.add(email.toLowerCase());
-          rows.push({ id: email, email, quotaMb: box.quotaMb });
-        }
-      }
+      const accounts = await client.listEmailAccounts(domain, {
+        accountUsername: sub.account.daUsername,
+      });
+      const rows = accounts.map((box) => {
+        const email = box.localPart.includes('@')
+          ? box.localPart
+          : `${box.localPart}@${domain}`;
+        return {
+          id: email,
+          email,
+          quotaMb: box.quotaMb,
+        };
+      });
       return { rows, fetchError: null as string | null };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

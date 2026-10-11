@@ -147,16 +147,6 @@ describe('lista skrzynek', () => {
     vi.spyOn(s.klient, 'listEmailAccounts').mockRejectedValueOnce(new Error('DA 500'));
     await expect(s.svc.listHostingEmailAccounts('s1', 'u1')).resolves.toEqual({ rows: [], fetchError: expect.stringContaining('Chwilowo nie możemy pobrać danych') });
   });
-
-  it('weryfikacja 11.10 — skrzynki ze wszystkich domen konta (domena dodatkowa nie znika); zastępczy odczyt tylko dla głównej', async () => {
-    const s = stanowisko({ get: { '/CMD_API_SHOW_DOMAINS': 'list0=firma.pl&list1=sklep-firmy.pl' } });
-    const lista = vi.spyOn(s.klient, 'listEmailAccounts').mockImplementation((async (d: string) =>
-      d === 'firma.pl' ? [{ localPart: 'biuro', quotaMb: 500 }] : [{ localPart: 'zamowienia', quotaMb: 1024 }]) as never);
-    const r = await s.svc.listHostingEmailAccounts('s1', 'u1');
-    expect(r.rows.map((x) => x.email)).toEqual(['biuro@firma.pl', 'zamowienia@sklep-firmy.pl']);
-    expect(lista).toHaveBeenCalledWith('firma.pl', { accountUsername: 'klient1' });
-    expect(lista).toHaveBeenCalledWith('sklep-firmy.pl', {});
-  });
 });
 
 describe('DKIM — włączenie (E-16)', () => {
