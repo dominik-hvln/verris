@@ -65,11 +65,11 @@ describe('F3.1 — limit wysyłki konta i statystyki poczty węzła', () => {
     await expect(svc.ustawLimit(z, 0)).rejects.toMatchObject({ status: 400 });
     await svc.ustawLimit(z, 300);
     // Do potwierdzenia węzła baza (i panel klienta) pokazuje stary limit.
-    expect(await svc.limit(k.subscription.id)).toMatchObject({ limitKonta: null, obowiazuje: 1000, wToku: true });
+    expect(await svc.limit(k.subscription.id, 'ADMIN')).toMatchObject({ limitKonta: null, obowiazuje: 1000, wToku: true });
     await expect(svc.ustawLimit(z, 400)).rejects.toMatchObject({ status: 409 });
     await agent();
     expect(readFileSync(join(dir, 'virtual', `limit_${k.account.daUsername}`), 'utf8')).toBe('300');
-    expect(await svc.limit(k.subscription.id)).toMatchObject({ limitKonta: 300, obowiazuje: 300, wToku: false, wynik: { limit: 300, domyslny: 1000 } });
+    expect(await svc.limit(k.subscription.id, 'ADMIN')).toMatchObject({ limitKonta: 300, obowiazuje: 300, wToku: false, wynik: { limit: 300, domyslny: 1000 } });
     expect((await prisma().account.findUniqueOrThrow({ where: { id: k.account.id } })).mailSendLimit).toBe(300);
 
     // Kolejka konta nie widzi zadań limitu.
@@ -115,10 +115,27 @@ describe('F3.1 — limit wysyłki konta i statystyki poczty węzła', () => {
 
     expect((await prisma().nodeTask.findUniqueOrThrow({ where: { id: t!.id } })).status).toBe('FAILED');
     expect((await prisma().account.findUniqueOrThrow({ where: { id: k.account.id } })).mailSendLimit).toBeNull();
-    const stan = await svc.limit(k.subscription.id);
+    const stan = await svc.limit(k.subscription.id, 'ADMIN');
     expect(stan).toMatchObject({ limitKonta: null, obowiazuje: 1000, wToku: false });
     expect(stan.blad).toMatch(/nie potwierdził nowego limitu/);
     expect(await prisma().auditLog.count({ where: { action: 'MAIL_SEND_LIMIT_CONFIRMED' } })).toBe(0);
+  });
+
+  it('limit na usłudze konta zespołu: STAFF dostaje 403 (odczyt, wczytanie, zmiana), ADMIN czyta — styk poprawek Fal 2 z F3.1', async () => {
+    const p = prisma() as never;
+    const audit = { record: async () => undefined } as never;
+    const wezel = await utworzWezel();
+    const k = await utworzKonto({ serverId: wezel.id, planId: (await utworzPlan()).id });
+    await prisma().user.update({ where: { id: k.subscription.userId }, data: { role: 'STAFF' } });
+    const operator = await prisma().user.create({ data: { email: `l3z-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'STAFF' } });
+    const akcje = new AkcjeKontaOperatoraService(p, {} as never, null as never, null as never, audit, null as never, { get: () => 'x' } as never, new ZawieszenieOperatoraService(p, null as never));
+    const svc = new PocztaKontaOperatoraService(p, {} as never, akcje, new OutboundAbuseGuard({} as never, audit, { send: async () => ({}) } as never), audit);
+
+    await expect(svc.limit(k.subscription.id, 'STAFF')).rejects.toMatchObject({ status: 403 });
+    await expect(svc.wczytajLimit(k.subscription.id, operator.id, 'STAFF')).rejects.toMatchObject({ status: 403 });
+    await expect(svc.ustawLimit({ subscriptionId: k.subscription.id, operatorUserId: operator.id, operatorRole: 'STAFF', powod: 'Próba zmiany limitu konta zespołu' }, 300)).rejects.toMatchObject({ status: 403 });
+    expect(await prisma().nodeTask.count({ where: { accountId: k.account.id } })).toBe(0);
+    expect(await svc.limit(k.subscription.id, 'ADMIN')).toMatchObject({ limitKonta: null });
   });
 
   it('statystyki węzła: zadanie MAIL_LOG bez konta → agregat dopasowany do kont węzła; konto innego węzła bez linku', async () => {

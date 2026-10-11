@@ -71,8 +71,8 @@ export class PocztaKontaAdminController {
 
   @Get('wysylka/limit')
   @StaffPermAny('MAIL_QUEUE_VIEW', 'MAIL_SEND_BLOCK')
-  limit(@Param('id') id: string) {
-    return this.poczta.limit(id);
+  limit(@Param('id') id: string, @CurrentUser() actor: Aktor) {
+    return this.poczta.limit(id, actor.role);
   }
 
   @Post('wysylka/limit/wczytaj')
@@ -80,7 +80,7 @@ export class PocztaKontaAdminController {
   @StaffPermAny('MAIL_QUEUE_VIEW', 'MAIL_SEND_BLOCK')
   @RateLimit({ limit: 60, windowMs: 60 * 60 * 1000, scope: 'admin:konto-limit' })
   wczytajLimit(@Param('id') id: string, @CurrentUser() actor: Aktor) {
-    return this.poczta.wczytajLimit(id, actor.userId);
+    return this.poczta.wczytajLimit(id, actor.userId, actor.role);
   }
 
   @Post('wysylka/limit')

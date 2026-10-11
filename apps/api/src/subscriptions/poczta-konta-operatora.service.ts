@@ -181,8 +181,8 @@ export class PocztaKontaOperatoraService {
   }
 
   /** Limit z bazy (potwierdzony przez węzeł) i ostatni odczyt z węzła; `obowiazuje` — to, co widzi klient. */
-  async limit(subscriptionId: string) {
-    const { account } = await this.konto(subscriptionId);
+  async limit(subscriptionId: string, operatorRole: string) {
+    const { account } = await this.konto(subscriptionId, operatorRole);
     const a = await this.prisma.account.findUnique({ where: { id: account.id }, select: { mailSendLimit: true } });
     const stan = stanZadan(await this.zadaniaLimitu(account.id), limitZLogu);
     return {
@@ -217,11 +217,11 @@ export class PocztaKontaOperatoraService {
   }
 
   /** Odczyt limitu z węzła (np. po ręcznej zmianie na serwerze); wynik nadpisuje stan w bazie. */
-  async wczytajLimit(subscriptionId: string, operatorUserId: string) {
-    const { userId, account } = await this.konto(subscriptionId);
+  async wczytajLimit(subscriptionId: string, operatorUserId: string, operatorRole: string) {
+    const { userId, account } = await this.konto(subscriptionId, operatorRole);
     await this.zlecLimit(account, operatorUserId);
     await this.audit.record({ action: SupportActions.OPERATOR_ACCOUNT_VIEWED, userId, actorUserId: operatorUserId, details: { subscriptionId, sekcja: 'limit-wysylki' } });
-    return this.limit(subscriptionId);
+    return this.limit(subscriptionId, operatorRole);
   }
 
   /**
@@ -232,7 +232,7 @@ export class PocztaKontaOperatoraService {
     if (wartosc !== null && (!Number.isInteger(wartosc) || wartosc < 1 || wartosc > LIMIT_WYSYLKI_MAX)) {
       throw new BadRequestException(`Limit: liczba od 1 do ${LIMIT_WYSYLKI_MAX} albo domyślny serwera.`);
     }
-    const { account } = await this.konto(z.subscriptionId);
+    const { account } = await this.konto(z.subscriptionId, z.operatorRole);
     return this.akcje.wykonaj(
       z,
       'limit-wysylki',
