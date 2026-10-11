@@ -2,7 +2,8 @@ import { bramkaStrony } from "@/lib/bramka-strony";
 import { adminApi } from "@/lib/api";
 import { BladStrony } from "@/components/blad-strony";
 import { AutoWiadomosciEdytor } from "./auto-wiadomosci";
-import type { OcenaAgenta, WidokAuto } from "./actions";
+import { ProgiSlaEdytor } from "./progi-sla";
+import type { OcenaAgenta, WidokAuto, WidokSla } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +15,12 @@ export default async function OpiekaZgloszenPage({ searchParams }: { searchParam
   const dni = d === "90" ? 90 : d === "365" ? 365 : 30;
   let widok: WidokAuto;
   let oceny: OcenaAgenta[];
+  let sla: WidokSla;
   try {
-    [widok, oceny] = await Promise.all([
+    [widok, oceny, sla] = await Promise.all([
       adminApi<WidokAuto>("/admin/support/auto-messages"),
       adminApi<OcenaAgenta[]>(`/admin/support/ratings?days=${dni}`),
+      adminApi<WidokSla>("/admin/support/sla"),
     ]);
   } catch (e) {
     return <BladStrony blad={e} tytul="Opieka nad zgłoszeniami" />;
@@ -31,6 +34,8 @@ export default async function OpiekaZgloszenPage({ searchParams }: { searchParam
           Nie liczą się jako odpowiedź — terminy odpowiedzi biegną dalej, dopóki nie odpisze człowiek.
         </p>
       </header>
+
+      <ProgiSlaEdytor widok={sla} />
 
       <AutoWiadomosciEdytor widok={widok} />
 

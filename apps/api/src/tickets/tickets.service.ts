@@ -47,6 +47,7 @@ import {
   sortListyZgloszen,
   warunkiListyZgloszen,
 } from './lista-zgloszen.js';
+import { terminOdpowiedzi, terminRozwiazania, terminyPoZmianiePriorytetu, wczytajProgiSla } from './sla-zgloszen.js';
 
 /** PB-43 — co o powiązanej usłudze widzi klient i obsługa (bez danych węzła — te są w diagnostyce). */
 const USLUGA_ZGLOSZENIA = {
@@ -185,6 +186,9 @@ export class TicketsService {
       priority = 'HIGH';
     }
 
+    // F3.7 — progi SLA z ustawień (ADMIN); terminy liczone od chwili utworzenia, jak przy zmianie priorytetu.
+    const progi = await wczytajProgiSla(this.prisma);
+    const teraz = new Date();
     const row = await this.prisma.ticket.create({
       data: {
         subject: dto.subject,
@@ -195,10 +199,11 @@ export class TicketsService {
         subscriptionId: dto.subscriptionId || null,
         userId,
         assignedToId,
-        lastReplyAt: new Date(),
+        createdAt: teraz,
+        lastReplyAt: teraz,
         lastReplyIsStaff: false,
-        slaResponseDueAt: computeSlaResponseDueAt(priority),
-        slaResolveDueAt: computeSlaResolveDueAt(priority),
+        slaResponseDueAt: terminOdpowiedzi(priority, teraz, progi),
+        slaResolveDueAt: terminRozwiazania(priority, teraz, progi),
       },
       include: {
         user: { select: { email: true } },
@@ -280,6 +285,7 @@ export class TicketsService {
     if (dto.subscriptionId) await this.sprawdzUsluge(klient.id, dto.subscriptionId);
     const priority = dto.priority || 'NORMAL';
     const teraz = new Date();
+    const progi = await wczytajProgiSla(this.prisma);
     const row = await this.prisma.ticket.create({
       data: {
         subject: dto.subject.trim(),
@@ -296,7 +302,8 @@ export class TicketsService {
         firstResponseAt: teraz,
         lastReplyAt: teraz,
         lastReplyIsStaff: true,
-        slaResolveDueAt: computeSlaResolveDueAt(priority),
+        createdAt: teraz,
+        slaResolveDueAt: terminRozwiazania(priority, teraz, progi),
       },
       select: { id: true, subject: true, userId: true },
     });
@@ -658,11 +665,22 @@ export class TicketsService {
         dataToUpdate.autoClosedAt = null;
       }
     }
+    // F3.7 (OE-25) — zmiana priorytetu przelicza terminy SLA (wcześniej liczone tylko przy utworzeniu).
+    const zmianaPriorytetu = !!dto.priority && dto.priority !== existing.priority;
+    if (zmianaPriorytetu) {
+      Object.assign(
+        dataToUpdate,
+        terminyPoZmianiePriorytetu({ ...existing, status: dto.status ?? existing.status }, dto.priority!, await wczytajProgiSla(this.prisma)),
+      );
+    }
     const updated = await this.prisma.ticket.update({
       where: { id: ticketId },
       data: dataToUpdate,
     });
 
+    if (zmianaPriorytetu) {
+      await this.logEvent(ticketId, 'PRIORITY_CHANGED', actorUserId, { from: existing.priority, to: dto.priority! });
+    }
     // SUP-V2 — historia zmiany statusu.
     if (dto.status && dto.status !== existing.status) {
       await this.logEvent(ticketId, 'STATUS_CHANGED', actorUserId, {
@@ -744,8 +762,12 @@ export class TicketsService {
     if (reason.trim().length < 10) {
       throw new BadRequestException('Powód eskalacji jest wymagany (min. 10 znaków).');
     }
-    const przed = await this.prisma.ticket.findUnique({ where: { id: ticketId }, select: { priority: true, status: true } });
+    const przed = await this.prisma.ticket.findUnique({
+      where: { id: ticketId },
+      select: { priority: true, status: true, createdAt: true, firstResponseAt: true, slaResponseDueAt: true, slaResolveDueAt: true },
+    });
     if (!przed) throw new NotFoundException('Nie znaleziono zgłoszenia.');
+    const terminy = terminyPoZmianiePriorytetu({ ...przed, status: 'IN_PROGRESS' }, 'URGENT', await wczytajProgiSla(this.prisma));
     // F2.5 — warunkowo: druga eskalacja nadpisałaby „poprzedni priorytet” (URGENT) i cofnięcie nie miałoby do czego wrócić.
     const { count } = await this.prisma.ticket.updateMany({
       where: { id: ticketId, escalatedAt: null },
@@ -755,6 +777,7 @@ export class TicketsService {
         escalationReason: reason.trim(),
         priority: 'URGENT',
         status: 'IN_PROGRESS',
+        ...terminy,
       },
     });
     if (count !== 1) throw new ConflictException('Zgłoszenie jest już eskalowane.');
@@ -777,7 +800,13 @@ export class TicketsService {
   async adminUndoEscalation(ticketId: string, actorUserId: string, reason: string) {
     const powod = reason.trim();
     if (powod.length < 10) throw new BadRequestException('Powód cofnięcia eskalacji jest wymagany (min. 10 znaków).');
-    const t = await this.prisma.ticket.findUnique({ where: { id: ticketId }, select: { userId: true, escalatedAt: true, priority: true } });
+    const t = await this.prisma.ticket.findUnique({
+      where: { id: ticketId },
+      select: {
+        userId: true, escalatedAt: true, priority: true, status: true, createdAt: true,
+        firstResponseAt: true, slaResponseDueAt: true, slaResolveDueAt: true,
+      },
+    });
     if (!t) throw new NotFoundException('Nie znaleziono zgłoszenia.');
     if (!t.escalatedAt) throw new BadRequestException('Zgłoszenie nie jest eskalowane.');
     const ostatnia = await this.prisma.ticketEvent.findFirst({
@@ -789,7 +818,10 @@ export class TicketsService {
     const priorytet = typeof zapisany === 'string' && ['LOW', 'NORMAL', 'HIGH', 'URGENT'].includes(zapisany) ? zapisany : t.priority;
     const { count } = await this.prisma.ticket.updateMany({
       where: { id: ticketId, escalatedAt: t.escalatedAt },
-      data: { escalatedAt: null, escalatedById: null, escalationReason: null, priority: priorytet },
+      data: {
+        escalatedAt: null, escalatedById: null, escalationReason: null, priority: priorytet,
+        ...(priorytet !== t.priority ? terminyPoZmianiePriorytetu(t, priorytet, await wczytajProgiSla(this.prisma)) : {}),
+      },
     });
     if (count !== 1) throw new ConflictException('Eskalację tego zgłoszenia ktoś właśnie zmienił — odśwież i spróbuj ponownie.');
     await this.audit.record({
@@ -1383,14 +1415,3 @@ export function normalizujTagi(tagi: readonly string[]): string[] {
   if (out.length > TAGI_MAX) throw new BadRequestException(`Najwyżej ${TAGI_MAX} tagów na zgłoszeniu.`);
   return out;
 }
-
-function computeSlaResponseDueAt(priority: string): Date {
-  const hours = priority === 'URGENT' ? 1 : priority === 'HIGH' ? 4 : priority === 'NORMAL' ? 12 : 24;
-  return new Date(Date.now() + hours * 60 * 60 * 1000);
-}
-
-function computeSlaResolveDueAt(priority: string): Date {
-  const hours = priority === 'URGENT' ? 8 : priority === 'HIGH' ? 24 : priority === 'NORMAL' ? 72 : 120;
-  return new Date(Date.now() + hours * 60 * 60 * 1000);
-}
-

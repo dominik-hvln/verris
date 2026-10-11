@@ -40,3 +40,24 @@ export async function zapiszAutoWiadomosc(
     return { ok: false, error: e instanceof AdminApiError ? e.message : "Nie udało się zapisać." };
   }
 }
+
+export type PriorytetSla = "URGENT" | "HIGH" | "NORMAL" | "LOW";
+export interface ProgiSla {
+  odpowiedz: Record<PriorytetSla, number>;
+  rozwiazanie: Record<PriorytetSla, number>;
+}
+export interface WidokSla {
+  progi: ProgiSla;
+  domyslne: ProgiSla;
+}
+
+/** F3.7 — progi SLA (PUT /admin/support/sla, tylko ADMIN). */
+export async function zapiszProgiSla(progi: ProgiSla): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await adminApi("/admin/support/sla", { method: "PUT", body: progi });
+    revalidatePath("/settings/support");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof AdminApiError ? e.message : "Nie udało się zapisać." };
+  }
+}

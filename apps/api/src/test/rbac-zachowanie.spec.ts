@@ -815,3 +815,17 @@ describe('F3.6 — rozliczenia operatora', () => {
     }
   });
 });
+
+/** F3.7 (OE-25, D1) — progi SLA zgłoszeń to konfiguracja platformy: odczyt i zapis tylko ADMIN, także dla L4. */
+describe('F3.7 — progi SLA zgłoszeń', () => {
+  it('GET/PUT admin/support/sla: ADMIN tak; operator nawet z kompletem uprawnień zgłoszeń — nie; klient — nie', async () => {
+    const trasy = TRASY.filter((t) => t.kontroler === 'OpiekaZgloszenAdminController' && ['progiSla', 'zapiszProgiSla'].includes(t.metoda));
+    expect(trasy.map((t) => t.sciezka).sort()).toEqual(['admin/support/sla', 'admin/support/sla']);
+    const l4 = [...ROLE_SYSTEMOWE.find((r) => r.name === 'L4 Kierownik zmiany')!.permissions];
+    for (const t of trasy) {
+      expect(await wpuszcza(t, ADMIN)).toBe(true);
+      expect(await wpuszcza(t, OPERATOR, [...l4, 'TICKETS_VIEW', 'TICKETS_MANAGE'])).toBe(false);
+      expect(await wpuszcza(t, KLIENT, ['*'])).toBe(false);
+    }
+  });
+});

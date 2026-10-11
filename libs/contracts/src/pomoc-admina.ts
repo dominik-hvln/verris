@@ -373,6 +373,11 @@ export const POMOC = {
     opis: "Dodaje dodatek z katalogu do usługi klienta: z portfela klienta (na jego zgłoszenie) albo gratis.",
     kiedy: "Klient zamówił dodatek w zgłoszeniu albo dostaje go jako rekompensatę — poniżej kierownika zmiany przez wniosek.",
   },
+  "sla-zgloszen": {
+    tytul: "Terminy SLA zgłoszeń",
+    opis: "Godziny na pierwszą odpowiedź i na rozwiązanie dla każdego priorytetu, liczone zegarowo przez całą dobę od utworzenia zgłoszenia.",
+    kiedy: "Zmiana działa dla nowych zgłoszeń i przy zmianie priorytetu; terminów już liczonych nie przesuwa.",
+  },
 } satisfies Record<string, WpisPomocy>;
 
 export type PomocId = keyof typeof POMOC;

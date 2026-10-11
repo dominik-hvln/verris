@@ -6,6 +6,14 @@ import { AuditService } from '../common/audit/audit.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { AiService } from '../ai/ai.service.js';
 import { ticketAutoMessageTemplate } from '../mail/templates/ticket-notifications.js';
+import {
+  DOMYSLNE_PROGI_SLA,
+  KLUCZ_SLA,
+  bladProgowSla,
+  terminOdpowiedzi,
+  wczytajProgiSla,
+  type ProgiSla,
+} from './sla-zgloszen.js';
 
 /**
  * PB-37 — opieka nad zgłoszeniem (decyzja właściciela 2026-09-26).
@@ -73,9 +81,9 @@ const KLUCZ = 'support.autoWiadomosci';
 const DOBA_MS = 24 * 60 * 60 * 1000;
 const REOPEN_DNI = 7;
 
-/** Godziny na pierwszą odpowiedź wg priorytetu (to samo co SLA przy tworzeniu zgłoszenia). */
-export function godzinySla(priority: string): number {
-  return priority === 'URGENT' ? 1 : priority === 'HIGH' ? 4 : priority === 'NORMAL' ? 12 : 24;
+/** Godziny na pierwszą odpowiedź wg priorytetu (te same progi co SLA przy tworzeniu zgłoszenia — F3.7 z ustawień). */
+export function godzinySla(priority: string, progi: ProgiSla = DOMYSLNE_PROGI_SLA): number {
+  return (terminOdpowiedzi(priority, new Date(0), progi).getTime()) / 3600_000;
 }
 
 /**
@@ -84,8 +92,8 @@ export function godzinySla(priority: string): number {
  * migracji dostawał „wciąż pracujemy”, zanim minął termin z poprzedniego maila.
  */
 export const WCIAZ_PRACUJEMY_MIN_GODZ = 2;
-export function godzinyDoWciazPracujemy(priority: string): number {
-  return Math.max(godzinySla(priority) / 2, WCIAZ_PRACUJEMY_MIN_GODZ);
+export function godzinyDoWciazPracujemy(priority: string, progi: ProgiSla = DOMYSLNE_PROGI_SLA): number {
+  return Math.max(godzinySla(priority, progi) / 2, WCIAZ_PRACUJEMY_MIN_GODZ);
 }
 
 const fmt = new Intl.DateTimeFormat('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit' });
@@ -172,6 +180,28 @@ export class OpiekaZgloszenService {
     });
     await this.audit.record({ action: 'SUPPORT_AUTO_MESSAGES_UPDATED', actorUserId, details: { rodzaje: Object.keys(zmiany) } });
     return this.widokUstawien();
+  }
+
+  // ---------------------------------------------------------------- progi SLA (F3.7, tylko ADMIN)
+
+  async progiSla() {
+    return { progi: await wczytajProgiSla(this.prisma), domyslne: DOMYSLNE_PROGI_SLA };
+  }
+
+  /** Nowe progi obowiązują dla nowych zgłoszeń i przy zmianie priorytetu; terminów już liczonych nie przesuwa. */
+  async zapiszProgiSla(progi: ProgiSla, actorUserId: string) {
+    const blad = bladProgowSla(progi);
+    if (blad) throw new BadRequestException(blad);
+    const przed = await wczytajProgiSla(this.prisma);
+    const czyste: ProgiSla = { odpowiedz: { ...progi.odpowiedz }, rozwiazanie: { ...progi.rozwiazanie } };
+    const value = JSON.stringify({ odpowiedz: pick(czyste.odpowiedz), rozwiazanie: pick(czyste.rozwiazanie) });
+    await this.prisma.platformSetting.upsert({
+      where: { key: KLUCZ_SLA },
+      create: { key: KLUCZ_SLA, value, updatedByUserId: actorUserId },
+      update: { value, updatedByUserId: actorUserId },
+    });
+    await this.audit.record({ action: 'SUPPORT_SLA_UPDATED', actorUserId, details: { przed: JSON.parse(JSON.stringify(przed)), po: JSON.parse(value) } });
+    return this.progiSla();
   }
 
   // ---------------------------------------------------------------- wysyłka
@@ -272,9 +302,10 @@ export class OpiekaZgloszenService {
       take: 200,
     });
     let wyslane = 0;
+    const progi = kandydaci.length ? await wczytajProgiSla(this.prisma) : DOMYSLNE_PROGI_SLA;
     for (const t of kandydaci) {
       const od = t.lastReplyAt ?? t.createdAt;
-      if (teraz.getTime() - od.getTime() < godzinyDoWciazPracujemy(t.priority) * 3600_000) continue;
+      if (teraz.getTime() - od.getTime() < godzinyDoWciazPracujemy(t.priority, progi) * 3600_000) continue;
       // Atomowe zajęcie zgłoszenia: przy dwóch procesach API naraz (np. w trakcie wdrożenia) wysyła tylko ten,
       // którego warunkowy UPDATE trafił — drugi czeka na blokadę wiersza i widzi już świeży znacznik.
       const zajete = await this.prisma.ticket.updateMany({
@@ -381,4 +412,9 @@ export class OpiekaZgloszenService {
       })
       .sort((a, b) => (b.opiekun ?? 0) - (a.opiekun ?? 0));
   }
+}
+
+/** Tylko znane priorytety (DTO może nieść nadmiarowe pola). */
+function pick(r: Record<string, number>): Record<string, number> {
+  return { URGENT: r.URGENT, HIGH: r.HIGH, NORMAL: r.NORMAL, LOW: r.LOW };
 }

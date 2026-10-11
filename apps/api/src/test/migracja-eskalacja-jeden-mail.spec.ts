@@ -20,6 +20,8 @@ function ticketsSvc() {
       groupBy: vi.fn().mockResolvedValue([]),
     },
     ticketEvent: { create: vi.fn().mockResolvedValue({}) },
+    // F3.7 — progi SLA z ustawień (brak zapisu = domyślne).
+    platformSetting: { findUnique: vi.fn().mockResolvedValue(null) },
   };
   const svc = new TicketsService(
     prisma as never,
