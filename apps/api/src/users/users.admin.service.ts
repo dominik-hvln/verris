@@ -1096,7 +1096,7 @@ export class UsersAdminService {
     const reason = opts.reason?.trim();
     if (!reason || reason.length < 10) {
       throw new BadRequestException(
-        'Powód impersonacji jest wymagany (min. 10 znaków). Pojawi się w audicie i powiadomieniu klienta.',
+        'Powód impersonacji jest wymagany (min. 10 znaków). Zapisuje się w dzienniku bezpieczeństwa przy rozpoczęciu i zakończeniu sesji.',
       );
     }
 
@@ -1171,10 +1171,12 @@ export class UsersAdminService {
    * Records the explicit "stop impersonation" event. The panel just discards
    * the impersonation token and re-uses the actor's original session, so we
    * don't need to mint a new token here — only audit the action.
+   * K7 — powód z tokenu tej sesji (impersonationReason), żeby wpis STOP dało się czytać bez szukania STARTU.
    */
   async stopImpersonation(opts: {
     actorUserId: string;
     impersonatedUserId: string;
+    reason?: string | null;
     ipAddress?: string | null;
     userAgent?: string | null;
   }) {
@@ -1185,6 +1187,7 @@ export class UsersAdminService {
       impersonatedBy: opts.actorUserId,
       ipAddress: opts.ipAddress,
       userAgent: opts.userAgent,
+      ...(opts.reason ? { details: { reason: opts.reason } } : {}),
     });
     return { ok: true };
   }

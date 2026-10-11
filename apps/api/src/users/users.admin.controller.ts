@@ -98,6 +98,8 @@ interface AuthedUser {
   role: Role;
   actorUserId?: string;
   impersonatedBy?: string;
+  /** K7 — powód z tokenu impersonacji (JwtStrategy). */
+  impersonationReason?: string;
   principalUserId?: string;
 }
 
@@ -429,6 +431,7 @@ export class UsersAdminController {
     return this.admin.stopImpersonation({
       actorUserId: user.impersonatedBy,
       impersonatedUserId: user.userId,
+      reason: user.impersonationReason ?? null,
       ipAddress: extractIp(req),
       userAgent: req.headers['user-agent']?.toString() ?? null,
     });

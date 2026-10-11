@@ -26,6 +26,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     sid?: string;
     actorUserId?: string;
     impersonatedBy?: string;
+    /** K7 — powód sesji „Zaloguj jako klient” (users.admin.service.ts impersonate) — trafia też do wpisu STOP. */
+    impersonationReason?: string;
     /** PB-20 — konto, na którym działa deweloper z własnym loginem (przełącznik kont). */
     actingFor?: string;
   }) {
@@ -133,6 +135,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       // E-5 impersonation hooks (will be set by /admin/users/:id/impersonate).
       actorUserId: payload.actorUserId,
       impersonatedBy: payload.impersonatedBy,
+      impersonationReason: payload.impersonatedBy ? payload.impersonationReason : undefined,
     };
   }
 }
