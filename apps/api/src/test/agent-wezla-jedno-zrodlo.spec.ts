@@ -1,5 +1,7 @@
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import { execFileSync } from 'child_process';
+import { existsSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join, resolve } from 'path';
 import { renderVerrisTaskRunScript, renderVerrisTasksScript } from '../servers/node-tasks-agent.install.js';
 import { renderVerrisFetchScript } from '../servers/podpis-skryptow.js';
 
@@ -34,5 +36,30 @@ describe('Agent węzła — jedno źródło skryptów', () => {
     const rodzaje = [...run.matchAll(/\$TASK_KIND" = "([A-Z_]+)"/g)].map((m) => m[1]).filter((k) => k !== 'HOSTING_PROFILE');
     const linia = /\n\s+([A-Z_|]+)\) dispatch_generic ;;/.exec(poll)?.[1].split('|') ?? [];
     expect(rodzaje.sort()).toEqual(linia.sort());
+  });
+
+  it('audyt Fali 3: wyjście zadania tylko do jego pliku (bez kopii w logu agenta), pliki zadań starsze niż 30 dni usuwane, log agenta rotowany', () => {
+    const run = renderVerrisTaskRunScript();
+    expect(run).not.toMatch(/tee -a "\$TASK_LOG"/);
+    expect(run).toContain('bash "$RUN_BIN" >> "$TASK_LOG" 2>&1');
+    expect(run).toMatch(/\nrc=\$\?\n/);
+    expect(run).toMatch(/\/var\/log\/verris-tasks\.log \{[^}]*maxage 30[^}]*copytruncate[^}]*\}/);
+
+    // Linia sprzątania uruchomiona naprawdę na katalogu tymczasowym.
+    const linia = run.split('\n').find((l) => l.startsWith('find "$LOG_DIR"'))!;
+    const dir = mkdtempSync(join(tmpdir(), 'verris-tasks-'));
+    try {
+      const stary = join(dir, 'stary.log');
+      const swiezy = join(dir, 'swiezy.log');
+      const inny = join(dir, 'stary.json');
+      for (const f of [stary, swiezy, inny]) writeFileSync(f, 'x');
+      const dawno = new Date(Date.now() - 40 * 86_400_000);
+      utimesSync(stary, dawno, dawno);
+      utimesSync(inny, dawno, dawno);
+      execFileSync('bash', ['-c', `LOG_DIR=${JSON.stringify(dir)}\n${linia}`]);
+      expect([existsSync(stary), existsSync(swiezy), existsSync(inny)]).toEqual([false, true, true]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

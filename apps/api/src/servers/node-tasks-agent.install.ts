@@ -98,6 +98,27 @@ DRY_RUN=$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print("1"
 
 mkdir -p "$LOG_DIR" "$STATE_DIR"
 TASK_LOG="$LOG_DIR/\${TASK_ID}.log"
+
+# Audyt Fali 3 — retencja na węźle: wyjście zadań (log poczty bez maski, lista blokad IP węzła, trafienia WAF,
+# nagłówki kolejki) leży najwyżej 30 dni — tyle co wynik w API (RETENCJA_WYNIKOW_ZADAN_DNI). Wyjście zadania trafia
+# tylko do jego pliku i do API, nie do logu agenta; log agenta (same linie statusu) rotuje logrotate.
+# logrotate(8): https://man7.org/linux/man-pages/man8/logrotate.8.html (weekly, rotate, maxage, copytruncate).
+# NIEZWERYFIKOWANE na węźle (czy logrotate biegnie z timera/crona systemu) — sprawdzić na t1.
+find "$LOG_DIR" -maxdepth 1 -type f -name '*.log' -mtime +30 -delete 2>/dev/null || true
+if [ -d /etc/logrotate.d ]; then
+  cat > /etc/logrotate.d/verris-tasks.new <<'__VERRIS_LOGROTATE__'
+/var/log/verris-tasks.log {
+    weekly
+    rotate 4
+    maxage 30
+    compress
+    missingok
+    notifempty
+    copytruncate
+}
+__VERRIS_LOGROTATE__
+  mv -f /etc/logrotate.d/verris-tasks.new /etc/logrotate.d/verris-tasks 2>/dev/null || true
+fi
 echo $$ > "$STATE_DIR/\${INSTANCE}.pid"
 
 auth_headers=(-H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN")
@@ -344,12 +365,14 @@ send_progress "$(cat "$TASK_LOG" 2>/dev/null || true)"
 HB_PID=$!
 
 set +e
+# Audyt Fali 3 — bez tee: stdout runnera idzie do /var/log/verris-tasks.log (systemd StandardOutput=append), więc
+# tee kopiowało tam całe wyjście każdego zadania (log poczty bez maski, listy IP) bez terminu.
 if [ "\${#RUN_ENV[@]}" -gt 0 ]; then
-  env "\${RUN_ENV[@]}" bash "$RUN_BIN" 2>&1 | tee -a "$TASK_LOG"
+  env "\${RUN_ENV[@]}" bash "$RUN_BIN" >> "$TASK_LOG" 2>&1
 else
-  bash "$RUN_BIN" \${flags:-} 2>&1 | tee -a "$TASK_LOG"
+  bash "$RUN_BIN" \${flags:-} >> "$TASK_LOG" 2>&1
 fi
-rc=\${PIPESTATUS[0]}
+rc=$?
 set -e
 
 kill "$HB_PID" 2>/dev/null || true
