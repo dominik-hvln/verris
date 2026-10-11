@@ -149,12 +149,12 @@ export function KbManager({ blokada = null }: { blokada?: string | null } = {}) 
         <ul className="space-y-1">
           {tops.map((c) => (
             <li key={c.id}>
-              <CatRow c={c} sel={selCat === c.id} tylkoOdczyt={!!blokada} onSelect={() => setSelCat(c.id)} onAddSub={() => void addCategory(c.id)} onRename={() => void renameCategory(c)} onDelete={() => void removeCategory(c)} />
+              <CatRow c={c} sel={selCat === c.id} blokada={blokada} onSelect={() => setSelCat(c.id)} onAddSub={() => void addCategory(c.id)} onRename={() => void renameCategory(c)} onDelete={() => void removeCategory(c)} />
               {childrenOf(c.id).length > 0 ? (
                 <ul className="ml-4 mt-1 space-y-1 border-l border-white/10 pl-2">
                   {childrenOf(c.id).map((ch) => (
                     <li key={ch.id}>
-                      <CatRow c={ch} sel={selCat === ch.id} tylkoOdczyt={!!blokada} onSelect={() => setSelCat(ch.id)} onRename={() => void renameCategory(ch)} onDelete={() => void removeCategory(ch)} />
+                      <CatRow c={ch} sel={selCat === ch.id} blokada={blokada} onSelect={() => setSelCat(ch.id)} onRename={() => void renameCategory(ch)} onDelete={() => void removeCategory(ch)} />
                     </li>
                   ))}
                 </ul>
@@ -282,22 +282,24 @@ function CtaPanel({ blokada }: { blokada: string | null }) {
   );
 }
 
-function CatRow({ c, sel, tylkoOdczyt, onSelect, onAddSub, onRename, onDelete }: {
-  c: KbCategory; sel: boolean; tylkoOdczyt?: boolean; onSelect: () => void; onAddSub?: () => void; onRename: () => void; onDelete: () => void;
+/** Weryfikacja 11.10 — bez KB_MANAGE akcje kategorii są widoczne, ale wyszarzone z powodem (wcześniej znikały). */
+export function CatRow({ c, sel, blokada = null, onSelect, onAddSub, onRename, onDelete }: {
+  c: KbCategory; sel: boolean; blokada?: string | null; onSelect: () => void; onAddSub?: () => void; onRename: () => void; onDelete: () => void;
 }) {
+  const akcja = 'text-white/55 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-white/55';
   return (
     <div className={`group flex items-center justify-between rounded-lg px-2 py-1.5 ${sel ? 'bg-emerald-500/15 text-emerald-100' : 'text-white/80 hover:bg-white/5'}`}>
       <button onClick={onSelect} className="flex-1 truncate text-left text-sm">{c.name}</button>
-      <span className={`ml-1 hidden items-center gap-1 ${tylkoOdczyt ? "" : "group-hover:flex"}`}>
-        {onAddSub ? <button title="Podkategoria" onClick={onAddSub} className="text-white/55 hover:text-white"><FolderPlus className="h-3.5 w-3.5" /></button> : null}
-        <button title="Zmień nazwę" onClick={onRename} className="text-white/55 hover:text-white"><Pencil className="h-3.5 w-3.5" /></button>
-        <button title="Usuń" onClick={onDelete} className="text-white/55 hover:text-rose-400"><Trash2 className="h-3.5 w-3.5" /></button>
+      <span className="ml-1 hidden items-center gap-1 group-focus-within:flex group-hover:flex">
+        {onAddSub ? <button title={blokada ?? 'Podkategoria'} aria-label="Podkategoria" disabled={!!blokada} onClick={onAddSub} className={akcja}><FolderPlus className="h-3.5 w-3.5" /></button> : null}
+        <button title={blokada ?? 'Zmień nazwę'} aria-label="Zmień nazwę" disabled={!!blokada} onClick={onRename} className={akcja}><Pencil className="h-3.5 w-3.5" /></button>
+        <button title={blokada ?? 'Usuń'} aria-label="Usuń" disabled={!!blokada} onClick={onDelete} className={`${akcja} hover:text-rose-400`}><Trash2 className="h-3.5 w-3.5" /></button>
       </span>
     </div>
   );
 }
 
-function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete, onClose, blokada }: {
+export function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete, onClose, blokada }: {
   form: ArticleInput;
   set: (k: keyof ArticleInput) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   setForm: React.Dispatch<React.SetStateAction<ArticleInput>>;
@@ -309,7 +311,7 @@ function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete, onClo
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-bold text-white">{isNew ? 'Nowy artykuł' : 'Edycja artykułu'}</h2>
+        <h2 className="text-lg font-bold text-white">{isNew ? 'Nowy artykuł' : blokada ? 'Podgląd artykułu' : 'Edycja artykułu'}</h2>
         <div className="flex gap-2">
           <button onClick={onClose} className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10">Wróć</button>
           {!isNew ? <button onClick={onDelete} disabled={!!blokada} title={blokada ?? undefined} className="disabled:cursor-not-allowed disabled:opacity-50 inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-sm text-rose-300 hover:bg-rose-500/20"><Trash2 className="h-4 w-4" /> Usuń</button> : null}
@@ -318,7 +320,10 @@ function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete, onClo
           </button>
         </div>
       </div>
+      {blokada ? <p className="text-xs text-muted-foreground">{blokada}.</p> : null}
 
+      {/* Weryfikacja 11.10 — bez KB_MANAGE pola i przyciski formularza wyszarzone (natywnie przez fieldset disabled). */}
+      <fieldset disabled={!!blokada} data-tylko-odczyt={blokada ? '' : undefined} className="m-0 min-w-0 space-y-4 border-0 p-0 disabled:opacity-70">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="space-y-1"><span className="text-xs font-medium text-white/70">Tytuł</span>
           <input className={inputCls} value={form.title} onChange={set('title')} placeholder="Jak podpiąć domenę do hostingu" /></label>
@@ -404,6 +409,7 @@ function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete, onClo
             <input className={inputCls} value={form.seoDescription ?? ''} onChange={set('seoDescription')} /></label>
         </div>
       </details>
+      </fieldset>
     </div>
   );
 }

@@ -17,16 +17,16 @@ const html = async () => renderToStaticMarkup(await Strona());
 it("bez KB_MANAGE: podgląd z powodem, „Kategoria” i „Nowy artykuł” wyszarzone", async () => {
   (fetchStaffAccess as jest.Mock).mockResolvedValue({ role: "STAFF", isAdmin: false, permissions: ["TICKETS_VIEW"] });
   const h = await html();
-  expect(h).toContain("Tylko podgląd. Wymaga KB_MANAGE.");
-  expect(h).toMatch(/<button[^>]*disabled=""[^>]*title="Wymaga KB_MANAGE"[^>]*>.*?Kategoria/);
-  expect(h).toMatch(/<button[^>]*disabled=""[^>]*title="Wymaga KB_MANAGE"[^>]*>.*?Nowy artykuł/);
+  expect(h).toContain("Tylko podgląd. Wymaga uprawnienia Baza wiedzy (KB_MANAGE).");
+  expect(h).toMatch(/<button[^>]*disabled=""[^>]*title="Wymaga uprawnienia Baza wiedzy \(KB_MANAGE\)"[^>]*>.*?Kategoria/);
+  expect(h).toMatch(/<button[^>]*disabled=""[^>]*title="Wymaga uprawnienia Baza wiedzy \(KB_MANAGE\)"[^>]*>.*?Nowy artykuł/);
 });
 
 it("z KB_MANAGE (i admin): bez podglądu, „Kategoria” aktywna", async () => {
   (fetchStaffAccess as jest.Mock).mockResolvedValue({ role: "STAFF", isAdmin: false, permissions: ["KB_MANAGE"] });
   const h = await html();
   expect(h).not.toContain("Tylko podgląd");
-  expect(h).not.toContain('title="Wymaga KB_MANAGE"');
+  expect(h).not.toContain("KB_MANAGE");
   (fetchStaffAccess as jest.Mock).mockResolvedValue({ role: "ADMIN", isAdmin: true, permissions: [] });
   expect(await html()).not.toContain("Tylko podgląd");
 });

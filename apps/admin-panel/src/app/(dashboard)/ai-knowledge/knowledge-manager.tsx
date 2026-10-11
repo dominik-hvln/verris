@@ -114,12 +114,19 @@ export function KnowledgeManager({
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
       {/* Create */}
-      {bezZapisu ? (
-        <div data-bez-zapisu="" className="h-fit rounded-2xl border border-white/10 bg-black/40 p-5 text-sm text-muted-foreground">
-          <strong className="text-white">Tylko podgląd.</strong> {bezZapisu}. Dodawanie i zmiana dokumentów wymaga uprawnienia do bazy wiedzy.
-        </div>
-      ) : (
-      <div className="space-y-4 rounded-2xl border border-white/10 bg-black/40 p-5">
+      {/* Weryfikacja 11.10 — bez KB_MANAGE formularz widać, ale jest wyszarzony z powodem (fieldset disabled), nie ukryty. */}
+      <fieldset
+        disabled={!!bezZapisu}
+        title={bezZapisu ?? undefined}
+        data-bez-zapisu={bezZapisu ? "" : undefined}
+        className="m-0 h-fit min-w-0 space-y-4 rounded-2xl border border-white/10 bg-black/40 p-5 disabled:cursor-not-allowed"
+      >
+        {bezZapisu ? (
+          <p className="text-sm text-muted-foreground">
+            <strong className="text-white">Tylko podgląd.</strong> {bezZapisu}.
+          </p>
+        ) : null}
+        <div className={`space-y-4 ${bezZapisu ? "opacity-60" : ""}`}>
         <div className="flex items-center gap-2 text-sm font-semibold text-white">
           <Plus className="h-4 w-4 text-violet-300" /> Dodaj do pamięci AI
         </div>
@@ -205,8 +212,8 @@ export function KnowledgeManager({
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           Dodaj dokument
         </button>
-      </div>
-      )}
+        </div>
+      </fieldset>
 
       {/* List */}
       <div className="space-y-3">
@@ -247,14 +254,14 @@ export function KnowledgeManager({
                     {new Date(doc.createdAt).toLocaleDateString("pl-PL")}
                   </p>
                 </div>
-                {bezZapisu ? null : (
                 <div className="flex shrink-0 items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => toggleArchive(doc)}
-                    disabled={pending}
-                    title={doc.status === "ACTIVE" ? "Archiwizuj" : "Przywróć"}
-                    className="rounded-lg border border-white/10 p-1.5 text-neutral-400 hover:bg-white/5 hover:text-white disabled:opacity-50"
+                    disabled={pending || !!bezZapisu}
+                    title={bezZapisu ?? (doc.status === "ACTIVE" ? "Archiwizuj" : "Przywróć")}
+                    aria-label={doc.status === "ACTIVE" ? "Archiwizuj" : "Przywróć"}
+                    className="rounded-lg border border-white/10 p-1.5 text-neutral-400 hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {doc.status === "ACTIVE" ? (
                       <Archive className="h-3.5 w-3.5" />
@@ -265,14 +272,14 @@ export function KnowledgeManager({
                   <button
                     type="button"
                     onClick={() => remove(doc)}
-                    disabled={pending}
-                    title="Usuń"
-                    className="rounded-lg border border-rose-500/20 p-1.5 text-rose-300 hover:bg-rose-500/10 disabled:opacity-50"
+                    disabled={pending || !!bezZapisu}
+                    title={bezZapisu ?? "Usuń"}
+                    aria-label="Usuń"
+                    className="rounded-lg border border-rose-500/20 p-1.5 text-rose-300 hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
-                )}
               </div>
             </div>
           ))

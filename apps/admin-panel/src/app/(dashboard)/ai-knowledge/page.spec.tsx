@@ -28,14 +28,19 @@ describe("Wiedza AI — zapis tylko z KB_MANAGE", () => {
     return renderToStaticMarkup(await AiKnowledgePage());
   };
 
-  it("operator z samym pulpitem: lista bez przycisków, zamiast formularza „Tylko podgląd”", async () => {
+  /**
+   * Weryfikacja 11.10 (decyzja właściciela) — bez uprawnienia przyciski są wyszarzone z podpowiedzią, nie ukryte:
+   * formularz w <fieldset disabled>, archiwizacja i usunięcie `disabled` z powodem w dymku.
+   */
+  it("operator z samym pulpitem (L1): formularz i działania widoczne, wyszarzone z „Wymaga uprawnienia Baza wiedzy (KB_MANAGE)”", async () => {
     const html = await strona({ role: "STAFF", isAdmin: false, permissions: ["DASHBOARD_VIEW"] });
     expect(html).toContain("Rekordy DNS");
-    expect(html).toContain("data-bez-zapisu");
-    expect(html).toContain("Wymaga KB_MANAGE");
-    expect(html).not.toContain("Dodaj dokument");
-    expect(html).not.toContain('title="Usuń"');
-    expect(html).not.toContain('title="Archiwizuj"');
+    expect(html).toContain("Tylko podgląd.");
+    expect(html).toMatch(/<fieldset disabled=""[^>]*title="Wymaga uprawnienia Baza wiedzy \(KB_MANAGE\)"[^>]*data-bez-zapisu=""/);
+    expect(html).toContain("Dodaj dokument");
+    for (const akcja of ["Archiwizuj", "Usuń"]) {
+      expect(html).toMatch(new RegExp(`<button type="button" disabled="" title="Wymaga uprawnienia Baza wiedzy \\(KB_MANAGE\\)" aria-label="${akcja}"`));
+    }
   });
 
   it("operator z KB_MANAGE i administrator: formularz i działania na dokumentach", async () => {
@@ -45,8 +50,10 @@ describe("Wiedza AI — zapis tylko z KB_MANAGE", () => {
     ]) {
       const html = await strona(d);
       expect(html).not.toContain("data-bez-zapisu");
+      expect(html).not.toContain("<fieldset disabled");
       expect(html).toContain("Dodaj dokument");
       expect(html).toContain('title="Usuń"');
+      expect(html).not.toContain("KB_MANAGE");
     }
   });
 });

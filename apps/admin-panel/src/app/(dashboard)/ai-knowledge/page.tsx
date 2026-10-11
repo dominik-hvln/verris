@@ -4,7 +4,7 @@ import type { AiKnowledgeDocSummaryDto, AiStatusDto } from "@verris/contracts";
 import { fetchAiStatus, listKnowledgeDocs } from "./data";
 import { KnowledgeManager } from "./knowledge-manager";
 import { StaffAssistant } from "@/components/staff-assistant";
-import { brakUprawnienia } from "@/lib/akcje/wezel";
+import { blokadaBazyWiedzy } from "@/lib/baza-wiedzy";
 import { fetchStaffAccess } from "@/lib/staff-access";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export default async function AiKnowledgePage() {
   const bramka = await bramkaStrony("/ai-knowledge");
   if (bramka) return bramka;
   // Zapis (POST/PATCH/DELETE admin/ai/knowledge) — KB_MANAGE; sam odczyt — DASHBOARD_VIEW (bramka strony).
-  const bezZapisu = brakUprawnienia("KB_MANAGE", await fetchStaffAccess());
+  const bezZapisu = blokadaBazyWiedzy(await fetchStaffAccess());
   let docs: AiKnowledgeDocSummaryDto[] = [];
   let error: string | null = null;
   let status: AiStatusDto | null = null;

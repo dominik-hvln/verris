@@ -1,13 +1,13 @@
 import { BookOpen } from 'lucide-react';
 import { KbManager } from './kb-manager';
 import { fetchStaffAccess } from '@/lib/staff-access';
-import { brakUprawnienia } from '@/lib/akcje/wezel';
+import { blokadaBazyWiedzy } from '@/lib/baza-wiedzy';
 
 export const metadata = { title: 'Baza wiedzy (CMS) — admin Verris' };
 
 export default async function KnowledgeBasePage() {
   // Fala 1B — odczyt bazy wiedzy ma każdy pracownik; zapis tylko z KB_MANAGE (kb.admin.controller.ts).
-  const blokada = brakUprawnienia('KB_MANAGE', await fetchStaffAccess());
+  const blokada = blokadaBazyWiedzy(await fetchStaffAccess());
   return (
     <div className="space-y-6 p-8">
       <div className="flex items-center gap-3">
