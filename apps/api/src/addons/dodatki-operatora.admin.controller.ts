@@ -1,0 +1,62 @@
+import { Body, Controller, Get, HttpCode, NotFoundException, Param, Post, UseGuards } from '@nestjs/common';
+import { IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { Role } from '@verris/database';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { StaffPerm, StaffPermAny } from '../common/decorators/staff-permissions.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
+import { WniosekMozliwy } from '../wnioski/wniosek-mozliwy.decorator.js';
+import { PowodOperatoraDto } from '../subscriptions/dto/akcje-konta.dto.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { AddonService, PLATNOSCI_DODATKU, SLUGI_DODATKOW, type PlatnoscDodatku } from './addon.service.js';
+
+export class DodatekOperatoraDto extends PowodOperatoraDto {
+  @IsIn(SLUGI_DODATKOW) slug!: string;
+  @IsIn(PLATNOSCI_DODATKU) platnosc!: PlatnoscDodatku;
+  /** Klucz jednej decyzji z formularza (podwójny klik nie doda dwóch dodatków). */
+  @IsOptional() @IsString() @MinLength(8) @MaxLength(128) @Matches(/^[A-Za-z0-9._:-]+$/) klucz?: string;
+}
+
+/**
+ * F3.5 — dodatki dodawane przez obsługę na karcie usługi (sekcja „Operacje”), przez istniejący sklep dodatków
+ * (AddonService, P-8). Podgląd katalogu i dodatków klienta — jak odczyt karty usługi. Dodanie ma koszt (portfel
+ * klienta albo gratis = koszt Verris), więc D2: BILLING_MANAGE + SUBSCRIPTIONS_MANAGE (L4); niżej wniosek ADDON_ADD.
+ */
+@Controller('admin/subscriptions')
+@UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
+@Roles(Role.ADMIN, Role.STAFF)
+@StaffPerm('SUBSCRIPTIONS_MANAGE')
+export class DodatkiOperatoraAdminController {
+  constructor(
+    private readonly addons: AddonService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  @Get(':id/dodatki')
+  @StaffPermAny('CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE')
+  async dodatki(@Param('id') id: string) {
+    const s = await this.prisma.subscription.findUnique({ where: { id }, select: { userId: true } });
+    if (!s) throw new NotFoundException('Usługa nie istnieje.');
+    return this.addons.overview(s.userId);
+  }
+
+  @Post(':id/dodatki')
+  @HttpCode(200)
+  @StaffPerm('BILLING_MANAGE', 'SUBSCRIPTIONS_MANAGE')
+  @WniosekMozliwy('ADDON_ADD')
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'admin:dodatki-operatora' })
+  dodaj(@Param('id') id: string, @Body() b: DodatekOperatoraDto, @CurrentUser() actor: { userId: string; role: string }) {
+    return this.addons.dodajPrzezOperatora({
+      subscriptionId: id,
+      slug: b.slug,
+      platnosc: b.platnosc,
+      operator: { userId: actor.userId, role: actor.role },
+      powod: b.powod,
+      zgloszenie: b.zgloszenie,
+      klucz: b.klucz ? `panel:${b.klucz}` : null,
+    });
+  }
+}

@@ -24,6 +24,7 @@ import { WnioskiService } from '../../src/wnioski/wnioski.service.js';
 import { SubscriptionsService } from '../../src/subscriptions/subscriptions.service.js';
 import { ZawieszenieOperatoraService } from '../../src/subscriptions/zawieszenie-operatora.service.js';
 import { CyklZyciaUslugiService } from '../../src/subscriptions/cykl-zycia-uslugi.service.js';
+import { AddonService } from '../../src/addons/addon.service.js';
 import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } from './setup.js';
 
 /**
@@ -53,6 +54,13 @@ async function wczytajDziennik() {
     NotificationsService,
     // F3.5 — prawdziwa zmiana daty odnowienia (Postgres, dziennik); Stripe nieużywany przy usłudze z portfela.
     CyklZyciaUslugiService,
+    {
+      // F3.5 — prawdziwy sklep dodatków (rekord zakupu, księga); zgłoszenie dla zespołu podstawione.
+      provide: AddonService,
+      inject: [PrismaService, AuditService],
+      useFactory: (p: PrismaService, a: AuditService) =>
+        new AddonService(p, a, new WalletLedgerService(p), { create: async () => ({ id: `t-${Date.now()}` }) } as never),
+    },
     { provide: PrismaService, useFactory: () => prisma() },
     { provide: JwtService, useValue: jwt },
     { provide: ConfigService, useValue: { get: () => SEKRET } },
@@ -391,6 +399,34 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
     });
     const aktywnosc = await new UsersService(prisma() as never, {} as never, {} as never, {} as never, {} as never, {} as never).listMyActivity(k.id);
     expect(aktywnosc.events.find((x) => x.action === 'SUBSCRIPTION_RENEWAL_DATE_CHANGED')).toMatchObject({ actor: 'obsługa Verris' });
+  });
+
+  it('F3.5 dodatek gratis: L2 składa wniosek, L4 akceptuje → dodatek 0 zł bez obciążenia portfela, raz', async () => {
+    const l2 = await operator(['CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE']);
+    const l4 = await operator(['REQUESTS_APPROVE', 'SUBSCRIPTIONS_MANAGE', 'BILLING_MANAGE']);
+    const plan = await utworzPlan();
+    const k = await klient();
+    const u = await prisma().subscription.create({ data: { userId: k.id, planId: plan.id, status: 'ACTIVE', interval: 'MONTH', priceAmount: 45 } });
+    const zl = await zadanie('POST', '/admin/wnioski', l2, {
+      typ: 'ADDON_ADD',
+      userId: k.id,
+      subscriptionId: u.id,
+      payload: { subscriptionId: u.id, slug: 'priority_support_30d', platnosc: 'GRATIS' },
+      uzasadnienie: 'Rekompensata za awarię węzła 10.10.',
+    });
+    expect(zl.status).toBe(201);
+    expect((await zadanie('POST', `/admin/wnioski/${zl.body.id as string}/akceptuj`, l4, {})).body).toMatchObject({ status: 'APPROVED' });
+    expect((await prisma().purchasedAddon.findMany({ where: { userId: k.id } })).map((z) => [z.slug, Number(z.amount), z.status])).toEqual([['priority_support_30d', 0, 'APPLIED']]);
+    expect(await prisma().walletTransaction.count({ where: { userId: k.id } })).toBe(0);
+    expect((await prisma().user.findUniqueOrThrow({ where: { id: k.id } })).prioritySupport).toBe(true);
+    // Z portfela klienta bez jego zgłoszenia — wniosek odrzucony już przy złożeniu.
+    const bez = await zadanie('POST', '/admin/wnioski', l2, {
+      typ: 'ADDON_ADD',
+      userId: k.id,
+      payload: { subscriptionId: u.id, slug: 'dedicated_ip', platnosc: 'PORTFEL' },
+      uzasadnienie: 'Klient prosił telefonicznie.',
+    });
+    expect(bez.status).toBe(400);
   });
 
   it('przegląd F2.3: węzeł odmawia zawieszenia → wniosek FAILED, usługa i konto dalej aktywne (nie „zawieszona” przy działającej stronie)', async () => {

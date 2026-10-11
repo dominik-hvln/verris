@@ -19,6 +19,7 @@ import { BillingService } from '../billing/billing.service.js';
 import { AnulowanieService } from '../billing/anulowanie.service.js';
 import { ZawieszenieOperatoraService } from '../subscriptions/zawieszenie-operatora.service.js';
 import { CyklZyciaUslugiService } from '../subscriptions/cykl-zycia-uslugi.service.js';
+import { AddonService } from '../addons/addon.service.js';
 import { roleZWiersza, sumaUprawnien, uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
 import {
   definicjaWniosku,
@@ -113,6 +114,7 @@ export class WnioskiService {
     private readonly anulowanieSvc: AnulowanieService,
     private readonly zawieszenieSvc: ZawieszenieOperatoraService,
     private readonly cyklZyciaSvc: CyklZyciaUslugiService,
+    private readonly dodatkiSvc: AddonService,
   ) {}
 
   private get zaleznosci(): ZaleznosciWnioskow {
@@ -123,6 +125,7 @@ export class WnioskiService {
       anulowanie: this.anulowanieSvc,
       zawieszenie: this.zawieszenieSvc,
       cyklZycia: this.cyklZyciaSvc,
+      dodatki: this.dodatkiSvc,
     };
   }
 

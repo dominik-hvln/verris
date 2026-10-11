@@ -1,6 +1,7 @@
 import { AuditService } from '../../src/common/audit/audit.service.js';
 import { WalletLedgerService } from '../../src/billing/wallet-ledger.service.js';
 import { AddonService } from '../../src/addons/addon.service.js';
+import { UsersService } from '../../src/users/users.service.js';
 import { prisma, rozlacz, wyczyscBaze } from './setup.js';
 
 /**
@@ -108,5 +109,76 @@ describe('X-04 dodatki z portfela', () => {
     const cudza = await prisma().subscription.create({ data: { userId: obcy.id, planId: plan.id, interval: 'MONTH', priceAmount: 45 } });
     await expect(sklep().purchase(u.id, 'dedicated_ip', cudza.id, 'k5')).rejects.toThrow('nie istnieje');
     expect(await saldo(u.id)).toBe(200);
+  });
+});
+
+describe('F3.5 — dodatki dodawane przez obsługę', () => {
+  beforeEach(async () => {
+    await wyczyscBaze();
+    zgloszenia = 0;
+    zgloszeniaPadaja = false;
+  });
+  afterAll(rozlacz);
+
+  async function usluga(userId: string) {
+    const plan = await prisma().plan.create({ data: { slug: `p-${Date.now()}-${Math.random()}`, name: 'P', cpuLimit: 100, ramLimitMb: 1024, diskLimitMb: 1024, priceMonthly: 45, priceYearly: 399 } });
+    return prisma().subscription.create({ data: { userId, planId: plan.id, interval: 'MONTH', priceAmount: 45, status: 'ACTIVE' } });
+  }
+  const op = async (role: 'STAFF' | 'ADMIN' = 'STAFF') => {
+    n += 1;
+    const u = await prisma().user.create({ data: { email: `dodatki-op-${n}-${Date.now()}@test.verris.pl`, passwordHash: 'x', role } });
+    return { userId: u.id, role };
+  };
+  const POWOD = 'Klient zamówił w zgłoszeniu konfigurację.';
+
+  it('gratis: bez obciążenia, rekord 0 zł, zlecenie dla zespołu; ten sam klucz drugi raz — bez drugiego dodatku', async () => {
+    const k = await klient(0);
+    const u = await usluga(k.id);
+    const o = await op();
+    const r = await sklep().dodajPrzezOperatora({ subscriptionId: u.id, slug: 'manual_setup', platnosc: 'GRATIS', operator: o, powod: POWOD, klucz: 'wniosek:w1' });
+    expect(r).toMatchObject({ status: 'QUEUED' });
+    expect(await saldo(k.id)).toBe(0);
+    expect(await prisma().walletTransaction.count({ where: { userId: k.id } })).toBe(0);
+    expect((await zakupy(k.id)).map((z) => Number(z.amount))).toEqual([0]);
+    expect(zgloszenia).toBe(1);
+    const drugi = await sklep().dodajPrzezOperatora({ subscriptionId: u.id, slug: 'manual_setup', platnosc: 'GRATIS', operator: o, powod: POWOD, klucz: 'wniosek:w1' });
+    expect('duplikat' in drugi).toBe(true);
+    expect(zgloszenia).toBe(1);
+    // D3 — klient widzi dodatek z „obsługa Verris”; dziennik zespołu z powodem (raz).
+    const akt = await new UsersService(prisma() as never, {} as never, {} as never, {} as never, {} as never, {} as never).listMyActivity(k.id);
+    expect(akt.events.find((e) => e.action === 'ADDON_PURCHASED')).toMatchObject({ actor: 'obsługa Verris', context: 'Konfiguracja przez specjalistę' });
+    expect(await prisma().auditLog.count({ where: { action: 'OPERATOR_ACCOUNT_CHANGED', userId: k.id } })).toBe(1);
+  });
+
+  it('z portfela klienta: tylko z numerem jego zgłoszenia; obciążenie jak przy zakupie klienta; brak środków — nic', async () => {
+    const k = await klient(100);
+    const u = await usluga(k.id);
+    const o = await op();
+    await expect(sklep().dodajPrzezOperatora({ subscriptionId: u.id, slug: 'dedicated_ip', platnosc: 'PORTFEL', operator: o, powod: POWOD })).rejects.toMatchObject({ status: 400 });
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'Proszę o IP', message: 'x' } });
+    await sklep().dodajPrzezOperatora({ subscriptionId: u.id, slug: 'dedicated_ip', platnosc: 'PORTFEL', operator: o, powod: POWOD, zgloszenie: zgl.id, klucz: 'panel:abc12345' });
+    expect(await saldo(k.id)).toBe(75);
+    const tx = await prisma().walletTransaction.findFirstOrThrow({ where: { userId: k.id } });
+    expect(tx).toMatchObject({ type: 'CHARGE_USAGE', description: 'Dodatek: Dedykowane IP' });
+    const ubogi = await klient(10);
+    const u2 = await usluga(ubogi.id);
+    const zgl2 = await prisma().ticket.create({ data: { userId: ubogi.id, subject: 'IP', message: 'x' } });
+    await expect(sklep().dodajPrzezOperatora({ subscriptionId: u2.id, slug: 'dedicated_ip', platnosc: 'PORTFEL', operator: o, powod: POWOD, zgloszenie: zgl2.id })).rejects.toThrow();
+    expect(await zakupy(ubogi.id)).toHaveLength(0);
+    expect(zgloszenia).toBe(1);
+  });
+
+  it('STAFF nie dodaje do usługi konta zespołu; zgłoszenie innego klienta — 400; powód obowiązkowy', async () => {
+    const zespol = await prisma().user.create({ data: { email: `dodatki-zespol-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'STAFF' } });
+    const u = await usluga(zespol.id);
+    const o = await op();
+    await expect(sklep().dodajPrzezOperatora({ subscriptionId: u.id, slug: 'manual_setup', platnosc: 'GRATIS', operator: o, powod: POWOD })).rejects.toMatchObject({ status: 403 });
+    const k = await klient(0);
+    const uk = await usluga(k.id);
+    const obcy = await klient(0);
+    const obce = await prisma().ticket.create({ data: { userId: obcy.id, subject: 'x', message: 'x' } });
+    await expect(sklep().dodajPrzezOperatora({ subscriptionId: uk.id, slug: 'manual_setup', platnosc: 'GRATIS', operator: o, powod: POWOD, zgloszenie: obce.id })).rejects.toMatchObject({ status: 400 });
+    await expect(sklep().dodajPrzezOperatora({ subscriptionId: uk.id, slug: 'manual_setup', platnosc: 'GRATIS', operator: o, powod: 'krótko' })).rejects.toMatchObject({ status: 400 });
+    expect(zgloszenia).toBe(0);
   });
 });

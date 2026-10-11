@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import { IsBoolean, IsEmail, IsIn, IsISO8601, IsNumber, IsOptional, IsPositive, IsString, Max, MaxLength, MinLength } from 'class-validator';
 import type { StaffPermission } from '../staff-roles/staff-permissions.catalog.js';
 import { POWODY_ZAWIESZENIA_OPERATORA, type PowodZawieszeniaOperatora } from '../subscriptions/powody-zawieszenia.js';
+import { PLATNOSCI_DODATKU, SLUGI_DODATKOW, type PlatnoscDodatku } from '../addons/addon.service.js';
 
 /**
  * PB-48 (decyzja właściciela 08.10) — rejestr operacji, o które pracownik bez uprawnienia może złożyć wniosek.
@@ -26,7 +27,8 @@ import { POWODY_ZAWIESZENIA_OPERATORA, type PowodZawieszeniaOperatora } from '..
  *  - SUBSCRIPTION_UNSUSPEND — POST admin/subscriptions/:id/unsuspend (bez obciążenia za odnowienie).
  * F3.5 (D2, 11.10) — cykl życia usługi z kosztem dla Verris (BILLING_MANAGE + SUBSCRIPTIONS_MANAGE = L4 bezpośrednio,
  * L2/L3 przez wniosek):
- *  - SUBSCRIPTION_RENEWAL_DATE — POST admin/subscriptions/:id/data-odnowienia (CyklZyciaUslugiService.zmienDateOdnowienia).
+ *  - SUBSCRIPTION_RENEWAL_DATE — POST admin/subscriptions/:id/data-odnowienia (CyklZyciaUslugiService.zmienDateOdnowienia),
+ *  - ADDON_ADD — POST admin/subscriptions/:id/dodatki (AddonService.dodajPrzezOperatora; z portfela klienta albo gratis).
  * Pominięte: kredyt SLA (sla.admin.controller ma tylko podgląd — nie ma operacji do zlecenia), korekta faktury
  * (payload to pełna lista pozycji po korekcie — formularz zostaje w panelu admina; typ łatwo dopisać później),
  * zwrot Paynow (pieniądze wychodzą do bramki — świadomie poza wnioskami do decyzji właściciela).
@@ -105,6 +107,24 @@ export class DataOdnowieniaPayload {
   zgloszenie?: string;
 }
 
+/** F3.5 — dodatek z katalogu dodany przez obsługę: z portfela klienta (na jego zgłoszenie) albo gratis. */
+export class DodatekPayload {
+  @IsString()
+  @MaxLength(64)
+  subscriptionId!: string;
+
+  @IsIn(SLUGI_DODATKOW)
+  slug!: string;
+
+  @IsIn(PLATNOSCI_DODATKU)
+  platnosc!: PlatnoscDodatku;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  zgloszenie?: string;
+}
+
 // ── zależności wykonawców (wstrzykiwane przez WnioskiService) ───────────────
 
 export interface ZaleznosciWnioskow {
@@ -128,6 +148,18 @@ export interface ZaleznosciWnioskow {
       zgloszenie?: string | null;
       nowaData: Date;
     }): Promise<{ bezZmian: boolean; komunikat: string }>;
+  };
+  /** F3.5 — AddonService (addons/addon.service.ts). */
+  dodatki: {
+    dodajPrzezOperatora(i: {
+      subscriptionId: string;
+      slug: string;
+      platnosc: PlatnoscDodatku;
+      operator: { userId: string; role: string };
+      powod: string;
+      zgloszenie?: string | null;
+      klucz?: string | null;
+    }): Promise<{ name: string; status: string; duplikat?: true }>;
   };
   uzytkownicy: {
     patchCustomerOperational(
@@ -422,6 +454,38 @@ export const REJESTR_WNIOSKOW = {
         nowaData: new Date(p.nowaData),
       });
       return { komunikat: r.komunikat, ...(r.bezZmian ? { bezZmian: true } : {}) };
+    },
+  }),
+
+  ADDON_ADD: definicja<DodatekPayload>({
+    etykieta: 'Dodanie dodatku do usługi',
+    uprawnienie: 'BILLING_MANAGE',
+    // Bezpośrednio: POST admin/subscriptions/:id/dodatki — strażnik BILLING_MANAGE + SUBSCRIPTIONS_MANAGE.
+    uprawnieniaDodatkowe: ['SUBSCRIPTIONS_MANAGE'],
+    doZlozenia: 'SUBSCRIPTIONS_MANAGE',
+    dto: DodatekPayload,
+    wymagaKlienta: true,
+    opis: (p) => `Dodatek ${p.slug} — ${p.platnosc === 'GRATIS' ? 'gratis (koszt Verris)' : 'z portfela klienta'}${zgl(p.zgloszenie)}`,
+    async sprawdzPrzyZlozeniu(p, klientId, z) {
+      const s = await uslugaKlienta(p.subscriptionId, klientId, z);
+      if (ZAKONCZONE.includes(s.status)) throw new BadRequestException('Usługa jest zakończona — dodatku nie dodasz.');
+      const zgloszenieId = await z.zawieszenie.zgloszenieKlienta(klientId!, p.zgloszenie);
+      if (p.platnosc === 'PORTFEL' && !zgloszenieId) {
+        throw new BadRequestException('Obciążenie portfela klienta tylko na jego zamówienie — podaj numer jego zgłoszenia albo wybierz gratis.');
+      }
+    },
+    async wykonaj(p, k, z) {
+      // Klucz z id wniosku — ten sam wniosek drugi raz nie doda dodatku (obok blokady statusu).
+      const r = await z.dodatki.dodajPrzezOperatora({
+        subscriptionId: p.subscriptionId,
+        slug: p.slug,
+        platnosc: p.platnosc,
+        operator: k.decydujacy,
+        powod: k.uzasadnienie ?? `wniosek ${k.wniosekId}`,
+        zgloszenie: p.zgloszenie,
+        klucz: `wniosek:${k.wniosekId}`,
+      });
+      return { komunikat: r.duplikat ? `Dodatek „${r.name}” był już dodany.` : `Dodano dodatek „${r.name}”.`, ...(r.duplikat ? { bezZmian: true } : {}) };
     },
   }),
 } as const satisfies Record<string, DefinicjaWniosku<object>>;

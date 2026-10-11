@@ -1,9 +1,11 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
 import { TicketsService } from '../tickets/tickets.service.js';
+import { CyklZyciaUslugiActions, SupportActions } from '../common/audit/audit.actions.js';
+import { zgloszenieKlienta } from '../tickets/zgloszenie-klienta.js';
 
 type AddonMode = 'flag' | 'workorder';
 
@@ -40,6 +42,21 @@ const CATALOG: Record<string, AddonDef> = {
 };
 
 const PRIORITY_DAYS = 30;
+
+/** F3.5 — dodatki z katalogu (walidacja wniosku i formularza operatora). */
+export const SLUGI_DODATKOW = Object.keys(CATALOG);
+
+/** F3.5 — dodatek dodany przez obsługę: z portfela klienta (na jego prośbę) albo gratis (koszt Verris). */
+export type PlatnoscDodatku = 'PORTFEL' | 'GRATIS';
+export const PLATNOSCI_DODATKU: readonly PlatnoscDodatku[] = ['PORTFEL', 'GRATIS'];
+const MIN_POWOD = 10;
+
+/** Kto dodał dodatek (operator) — zakup klienta tego nie ma. */
+interface ZakupOperatora {
+  userId: string;
+  gratis: boolean;
+  zgloszenieId: string | null;
+}
 
 /**
  * Z-06 — okno, w którym powtórzony zakup tego samego dodatku dla tej samej
@@ -181,8 +198,86 @@ export class AddonService {
     }
 
     const klucz = this.kluczIdempotencji(userId, slug, subscriptionId, klientKey, Date.now());
-    const amount = new Prisma.Decimal(def.price);
+    return this.zrealizuj({ userId, def, subscriptionId, domenaUslugi, klucz });
+  }
 
+  /**
+   * F3.5 — dodatek dodany przez obsługę na karcie usługi (albo z wniosku ADDON_ADD). Ta sama realizacja co zakup
+   * klienta (rekord zakupu, obciążenie z tym samym opisem, zlecenie dla zespołu, zwrot przy błędzie) — rozliczenie
+   * i dokumenty bez zmian (D7). „Z portfela klienta” tylko z numerem jego zgłoszenia (dowód zamówienia); „gratis”
+   * bez obciążenia (koszt Verris). Powód obowiązkowy, STAFF tylko na usługach kont USER, wpis klienta
+   * „obsługa Verris (zgłoszenie #…)” i OPERATOR_ACCOUNT_CHANGED z powodem.
+   */
+  async dodajPrzezOperatora(i: {
+    subscriptionId: string;
+    slug: string;
+    platnosc: PlatnoscDodatku;
+    operator: { userId: string; role: string };
+    powod: string;
+    zgloszenie?: string | null;
+    /** Klucz jednej decyzji: id wniosku albo klucz z formularza; bez niego — okno 5 min jak u klienta. */
+    klucz?: string | null;
+  }) {
+    const def = CATALOG[i.slug];
+    if (!def) throw new BadRequestException('Nieznany dodatek.');
+    if (!PLATNOSCI_DODATKU.includes(i.platnosc)) throw new BadRequestException('Wybierz: z portfela klienta albo gratis.');
+    const sub = await this.prisma.subscription.findUnique({
+      where: { id: i.subscriptionId },
+      select: { id: true, userId: true, user: { select: { role: true } }, account: { select: { domain: true } } },
+    });
+    if (!sub) throw new NotFoundException('Usługa nie istnieje.');
+    if (i.operator.role !== 'ADMIN' && sub.user.role !== 'USER') {
+      throw new ForbiddenException('Personel może zmieniać wyłącznie usługi klientów — usługę konta zespołu zmienia administrator.');
+    }
+    const powod = (i.powod ?? '').trim();
+    if (powod.length < MIN_POWOD) throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD} znaków) — zapisze się w dzienniku.`);
+    const zgloszenieId = await zgloszenieKlienta(this.prisma, sub.userId, i.zgloszenie);
+    if (i.platnosc === 'PORTFEL' && !zgloszenieId) {
+      throw new BadRequestException('Obciążenie portfela klienta tylko na jego zamówienie — podaj numer jego zgłoszenia albo dodaj gratis.');
+    }
+    const gratis = i.platnosc === 'GRATIS';
+    const klucz = i.klucz
+      ? `addon:v1:${sub.userId}:op:${i.klucz}`
+      : `addon:v1:${sub.userId}:op:${def.slug}:${sub.id}:${Math.floor(Date.now() / OKNO_IDEMPOTENCJI_MS)}`;
+    const wynik = await this.zrealizuj({
+      userId: sub.userId,
+      def,
+      subscriptionId: sub.id,
+      domenaUslugi: sub.account?.domain ?? null,
+      klucz,
+      operator: { userId: i.operator.userId, gratis, zgloszenieId },
+    });
+    if (!('duplikat' in wynik)) {
+      await this.audit.record({
+        action: SupportActions.OPERATOR_ACCOUNT_CHANGED,
+        userId: sub.userId,
+        actorUserId: i.operator.userId,
+        details: {
+          subscriptionId: sub.id,
+          akcja: 'dodatek',
+          slug: def.slug,
+          platnosc: i.platnosc,
+          powod,
+          ...(zgloszenieId ? { zgloszenieId } : {}),
+          wynik: 'ok',
+        },
+      });
+    }
+    return wynik;
+  }
+
+  private async zrealizuj(z: {
+    userId: string;
+    def: AddonDef;
+    subscriptionId?: string;
+    domenaUslugi: string | null;
+    klucz: string;
+    operator?: ZakupOperatora;
+  }) {
+    const { userId, def, subscriptionId, domenaUslugi, klucz } = z;
+    const slug = def.slug;
+    const gratis = !!z.operator?.gratis;
+    const amount = new Prisma.Decimal(gratis ? 0 : def.price);
     // Najpierw zajęcie zakupu unikalnym kluczem, dopiero potem pieniądze i skutki. Wcześniej rekord
     // powstawał na końcu: dwa równoległe kliknięcia obciążały portfel raz, ale zakładały DWA zgłoszenia
     // dla zespołu; a gdy założenie zgłoszenia padło, opłata zostawała bez zakupu i bez zwrotu.
@@ -202,7 +297,8 @@ export class AddonService {
     // Klucz w księdze = klucz zakupu + ta próba. Nieudana próba zwalnia klucz zakupu (rekord znika),
     // więc ponowienie tym samym kluczem z panelu płaci od nowa, zamiast trafić w zwrócone obciążenie.
     const kluczKsiegi = `${klucz}:${rekord.id}`;
-    try {
+    // F3.5 — gratis od obsługi: bez obciążenia (księga odrzuca kwotę 0), więc i bez zwrotu przy błędzie.
+    if (!gratis) try {
       await this.wallet.debit({
         userId,
         type: WalletTxType.CHARGE_USAGE,
@@ -233,9 +329,9 @@ export class AddonService {
         const ticket = await this.tickets.create(userId, {
           subject: `Dodatek: ${def.name}`,
           // Klient widzi to zgłoszenie jako swoje — wiadomość automatyczna, bez identyfikatorów wewnętrznych.
-          message: `Przyjęliśmy zamówienie dodatku „${def.name}". ${def.description}${
+          message: `${z.operator ? `Obsługa Verris dodała do Twojej usługi dodatek „${def.name}"${gratis ? ' (bez opłaty)' : ''}.` : `Przyjęliśmy zamówienie dodatku „${def.name}".`} ${def.description}${
             domenaUslugi ? `\n\nUsługa: ${domenaUslugi}.` : ''
-          }\n\nVerris założył to zgłoszenie automatycznie po zakupie. Nic nie musisz robić — zespół zajmie się realizacją i napisze tu, gdy skończy.`,
+          }\n\nVerris założył to zgłoszenie automatycznie${z.operator ? '' : ' po zakupie'}. Nic nie musisz robić — zespół zajmie się realizacją i napisze tu, gdy skończy.`,
           department: 'TECHNICAL',
           topic: 'OTHER',
           priority: 'HIGH',
@@ -247,7 +343,7 @@ export class AddonService {
       }
     } catch (e) {
       this.logger.error(`Dodatek ${def.slug} opłacony, realizacja padła — zwrot: ${(e as Error).message}`);
-      await this.wallet.credit({
+      if (!gratis) await this.wallet.credit({
         userId,
         type: WalletTxType.REFUND,
         amount,
@@ -261,11 +357,20 @@ export class AddonService {
 
     const record = await this.prisma.purchasedAddon.update({ where: { id: rekord.id }, data: { status, ticketId } });
 
+    // Klient widzi wpis w „Aktywności konta” (nazwa dodatku); dodany przez obsługę — „obsługa Verris (zgłoszenie #…)”.
     await this.audit.record({
-      action: 'ADDON_PURCHASED',
+      action: CyklZyciaUslugiActions.ADDON_PURCHASED,
       userId,
-      actorUserId: userId,
-      details: { slug: def.slug, amount: def.price, status, ticketId },
+      actorUserId: z.operator?.userId ?? userId,
+      details: {
+        slug: def.slug,
+        name: def.name,
+        amount: gratis ? 0 : def.price,
+        status,
+        ticketId,
+        ...(subscriptionId ? { subscriptionId } : {}),
+        ...(z.operator ? { gratis, ...(z.operator.zgloszenieId ? { zgloszenieId: z.operator.zgloszenieId } : {}) } : {}),
+      },
     });
 
     return {

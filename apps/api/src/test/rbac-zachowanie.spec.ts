@@ -268,6 +268,21 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     }
   });
 
+  it('F3.5 (D2): dodatki obsługi — podgląd jak karta usługi (L1+, NOC); dodanie (koszt) tylko L4, niżej wniosek', async () => {
+    const t = (m: string) => {
+      const x = TRASY.find((r) => r.kontroler === 'DodatkiOperatoraAdminController' && r.metoda === m);
+      expect(x, m).toBeDefined();
+      return x!;
+    };
+    const w = async (rola: string) => ({ dodatki: await wpuszcza(t('dodatki'), OPERATOR, uprawnieniaRoli(rola)), dodaj: await wpuszcza(t('dodaj'), OPERATOR, uprawnieniaRoli(rola)) });
+    expect(await w('L1 Konsultant')).toEqual({ dodatki: true, dodaj: false });
+    expect(await w('L3 Starszy specjalista')).toEqual({ dodatki: true, dodaj: false });
+    expect(await w('L4 Kierownik zmiany')).toEqual({ dodatki: true, dodaj: true });
+    expect(await w('Inżynier infrastruktury (NOC/DevOps)')).toEqual({ dodatki: true, dodaj: false });
+    expect(await w('Marketing')).toEqual({ dodatki: false, dodaj: false });
+    expect(await wpuszcza(t('dodaj'), KLIENT, ['*', 'BILLING_MANAGE', 'SUBSCRIPTIONS_MANAGE'])).toBe(false);
+  });
+
   it('F2.4: eksport list do CSV (dane osobowe) — tylko z EXPORT_DATA (L4), obok uprawnienia do samej listy', async () => {
     const eksporty = TRASY.filter((t) => t.metoda === 'exportCsv' && ['SubscriptionsAdminController', 'UsersAdminController'].includes(t.kontroler));
     expect(eksporty).toHaveLength(2);

@@ -8,6 +8,7 @@ import { STAFF_PERMISSIONS_KEY } from '../common/decorators/staff-permissions.de
 import { InvoicesAdminController } from '../billing/invoices.admin.controller.js';
 import { SubscriptionsAdminController } from '../subscriptions/subscriptions.admin.controller.js';
 import { CyklZyciaUslugiAdminController } from '../subscriptions/cykl-zycia-uslugi.admin.controller.js';
+import { DodatkiOperatoraAdminController } from '../addons/dodatki-operatora.admin.controller.js';
 import { zWnioskiem } from '../common/audit/audit.service.js';
 import {
   REJESTR_WNIOSKOW,
@@ -33,6 +34,7 @@ describe('PB-48 — rejestr wniosków', () => {
       'SUBSCRIPTION_SUSPEND',
       'SUBSCRIPTION_UNSUSPEND',
       'SUBSCRIPTION_RENEWAL_DATE',
+      'ADDON_ADD',
     ]);
     for (const t of TYPY_WNIOSKOW) {
       expect(STAFF_PERMISSION_KEYS).toContain(REJESTR_WNIOSKOW[t].uprawnienie);
@@ -54,6 +56,7 @@ describe('PB-48 — rejestr wniosków', () => {
       SUBSCRIPTION_SUSPEND: SubscriptionsAdminController.prototype.suspend,
       SUBSCRIPTION_UNSUSPEND: SubscriptionsAdminController.prototype.unsuspend,
       SUBSCRIPTION_RENEWAL_DATE: CyklZyciaUslugiAdminController.prototype.zmienDateOdnowienia,
+      ADDON_ADD: DodatkiOperatoraAdminController.prototype.dodaj,
     };
     for (const t of TYPY_WNIOSKOW) {
       const straznik = (Reflect.getMetadata(STAFF_PERMISSIONS_KEY, bezposrednio[t]) as string[] | undefined) ?? [];
@@ -74,6 +77,7 @@ describe('PB-48 — rejestr wniosków', () => {
       'WALLET_CREDIT',
       'INVOICE_VOID',
       'SUBSCRIPTION_RENEWAL_DATE',
+      'ADDON_ADD',
     ]);
     // Konto wewnętrzne: komplet jak przy PATCH operational (CUSTOMERS_MANAGE w strażniku + flaga w serwisie).
     expect(typyDoDecyzji('STAFF', ['REQUESTS_APPROVE', 'CUSTOMERS_INTERNAL_FLAG'])).toEqual([]);
@@ -121,6 +125,7 @@ describe('PB-48 — rejestr wniosków', () => {
       portfel: { adminCreditWallet: async (a) => (wywolania.push(['portfel', a]), { id: 'tx1', amount: { toString: () => '50.00' } }) },
       anulowanie: { anuluj: async (a) => (wywolania.push(['anuluj', a]), { id: 'f1', number: 'VDR/1', status: 'VOID' }) },
       cyklZycia: { zmienDateOdnowienia: async (a) => (wywolania.push(['data', a]), { bezZmian: false, komunikat: 'ok' }) },
+      dodatki: { dodajPrzezOperatora: async (a) => (wywolania.push(['dodatek', a]), { name: 'Dedykowane IP', status: 'QUEUED' }) },
     };
     return { z, wywolania };
   };
@@ -236,6 +241,24 @@ describe('PB-48 — rejestr wniosków', () => {
     expect(w).toEqual({ komunikat: 'ok' });
   });
 
+  it('F3.5 dodatek: wykonuje L4, składa L2; z portfela klienta tylko ze zgłoszeniem klienta; klucz z id wniosku', async () => {
+    const d = REJESTR_WNIOSKOW.ADDON_ADD;
+    expect(wymaganeUprawnienia(d)).toEqual(['BILLING_MANAGE', 'SUBSCRIPTIONS_MANAGE']);
+    const portfel = { subscriptionId: 's1', slug: 'dedicated_ip', platnosc: 'PORTFEL' as const };
+    await expect(d.sprawdzPrzyZlozeniu!(portfel, 'k1', zal().z)).rejects.toThrow(/numer jego zgłoszenia/);
+    await expect(d.sprawdzPrzyZlozeniu!({ ...portfel, zgloszenie: '#ab12cd34' }, 'k1', zal().z)).resolves.toBeUndefined();
+    await expect(d.sprawdzPrzyZlozeniu!({ ...portfel, platnosc: 'GRATIS' }, 'k1', zal().z)).resolves.toBeUndefined();
+    await expect(d.sprawdzPrzyZlozeniu!({ ...portfel, platnosc: 'GRATIS' }, 'k1', zal({ usluga: { userId: 'k1', status: 'CANCELED' } }).z)).rejects.toThrow(/zakończona/);
+    await expect(d.sprawdzPrzyZlozeniu!({ ...portfel, platnosc: 'GRATIS' }, 'k1', zal({ usluga: { userId: 'inny', status: 'ACTIVE' } }).z)).rejects.toThrow(/nie istnieje na koncie/);
+    expect(d.opis({ ...portfel, platnosc: 'GRATIS' })).toBe('Dodatek dedicated_ip — gratis (koszt Verris)');
+    const { z, wywolania } = zal();
+    expect(await d.wykonaj({ ...portfel, platnosc: 'GRATIS' }, { ...k, uzasadnienie: 'rekompensata za awarię' }, z)).toEqual({ komunikat: 'Dodano dodatek „Dedykowane IP”.' });
+    expect(wywolania[0]).toEqual([
+      'dodatek',
+      { subscriptionId: 's1', slug: 'dedicated_ip', platnosc: 'GRATIS', operator: { userId: 'kier', role: 'STAFF' }, powod: 'rekompensata za awarię', zgloszenie: undefined, klucz: 'wniosek:w1' },
+    ]);
+  });
+
   it('komunikat błędu wykonawcy: wyjątek HTTP po polsku wprost, inny — z przedrostkiem, bez stosu', () => {
     expect(komunikatBledu(new ForbiddenException('Brak.'))).toBe('Brak.');
     expect(komunikatBledu(new Error('timeout'))).toBe('Operacja nie powiodła się: timeout');
@@ -263,6 +286,7 @@ describe('PB-48 — 403 z kodem WYMAGA_WNIOSKU przy operacjach z rejestru', () =
     [SubscriptionsAdminController, 'unsuspend', 'SUBSCRIPTION_UNSUSPEND', ['SUBSCRIPTIONS_MANAGE'], ['SUBSCRIPTIONS_SUSPEND']],
     // F3.5 — L2/L3 (SUBSCRIPTIONS_MANAGE) dostają „Wyślij wniosek”, L4 zmienia datę sam.
     [CyklZyciaUslugiAdminController, 'zmienDateOdnowienia', 'SUBSCRIPTION_RENEWAL_DATE', ['SUBSCRIPTIONS_MANAGE'], ['SUBSCRIPTIONS_MANAGE', 'BILLING_MANAGE']],
+    [DodatkiOperatoraAdminController, 'dodaj', 'ADDON_ADD', ['SUBSCRIPTIONS_MANAGE'], ['SUBSCRIPTIONS_MANAGE', 'BILLING_MANAGE']],
   ])('%o.%s → operacja %s', async (klasa, metoda, typ, bez, z) => {
     const handler = (klasa.prototype as unknown as Record<string, object>)[metoda];
     expect(Reflect.getMetadata(WNIOSEK_MOZLIWY_KEY, handler)).toBe(typ);
