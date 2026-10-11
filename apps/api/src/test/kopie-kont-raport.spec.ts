@@ -102,6 +102,38 @@ describe('F3.3 — raport kopii poza serwerem z wynikiem każdego konta', () => 
     expect((p.konta ?? []).every((k) => !k.ok)).toBe(true);
   });
 
+  it('audyt Fali 3: duży węzeł (lista kont ponad 128 KiB) — raport dochodzi z każdym kontem (jq czyta listę z pliku)', () => {
+    // Funkcja report() wprost ze skryptu (pełny przebieg na 3000 kontach trwa minutę): ta sama treść, atrapa curl.
+    const t = przygotuj({});
+    sprzatnij.push(t.DIR);
+    const report = /^report\(\) \{[\s\S]*?^\}$/m.exec(readFileSync(SKRYPT, 'utf8'))![0];
+    const lista = join(t.DIR, 'konta.txt');
+    writeFileSync(lista, Array.from({ length: 3000 }, (_, i) => `k${String(i).padStart(15, '0')} 1 1234567890`).join('\n') + '\n');
+    const r = spawnSync('bash', ['-c', `set -euo pipefail\nlog() { echo "$*"; }\nVERRIS_SERVER_ID=s1 VERRIS_IDENTITY_TOKEN=t VERRIS_API_URL=http://127.0.0.1:9\nKONTA_WYNIK="$1"\n${report}\nreport 1 3000 5 7 "rclone sync ok"\necho KONIEC`, 'x', lista], {
+      env: { ...process.env, PATH: `${join(t.DIR, 'bin')}:${process.env.PATH}` },
+      encoding: 'utf8',
+    });
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stdout).toContain('KONIEC');
+    const p = t.raport();
+    expect(JSON.stringify(p.konta).length).toBeGreaterThan(131072);
+    expect(p).toMatchObject({ ok: true, accounts: 3000 });
+    expect(p.konta).toHaveLength(3000);
+    expect(p.konta?.at(-1)).toEqual({ u: 'k000000000002999', ok: true, b: 1234567890 });
+  });
+
+  it('raport bez listy kont (np. brak rclone) — bez pola konta', () => {
+    const t = przygotuj({});
+    sprzatnij.push(t.DIR);
+    const report = /^report\(\) \{[\s\S]*?^\}$/m.exec(readFileSync(SKRYPT, 'utf8'))![0];
+    const r = spawnSync('bash', ['-c', `set -euo pipefail\nlog() { echo "$*"; }\nVERRIS_SERVER_ID=s1 VERRIS_IDENTITY_TOKEN=t VERRIS_API_URL=http://127.0.0.1:9\nKONTA_WYNIK=""\n${report}\nreport 0 0 0 0 "rclone not installed"`], {
+      env: { ...process.env, PATH: `${join(t.DIR, 'bin')}:${process.env.PATH}` },
+      encoding: 'utf8',
+    });
+    expect(r.status, r.stderr).toBe(0);
+    expect(t.raport()).toEqual({ ok: false, accounts: 0, bytes: 0, durationSec: 0, info: 'rclone not installed' });
+  });
+
   it('harmonogram w panelu zgadza się z timerem skryptu', () => {
     const s = readFileSync(SKRYPT, 'utf8');
     expect(s).toContain(`OnCalendar=*-*-* ${HARMONOGRAM_OFFSITE.godzina}:00`);

@@ -70,15 +70,19 @@ KONTA_WYNIK=""
 report() {
   # report OK ACCOUNTS BYTES DURATION INFO — z listą kont, gdy KONTA_WYNIK wskazuje plik
   local ok="$1" accounts="$2" bytes="$3" dur="$4" info="$5"
-  local body konta='null'
-  body="$(mktemp)"
+  local body konta
+  body="$(mktemp)"; konta="$(mktemp)"
+  # Audyt Fali 3 — lista kont idzie do jq PLIKIEM (--slurpfile), nie argumentem: pojedynczy argument execve ma limit
+  # 128 KiB (MAX_ARG_STRLEN), a ~3000 kont to więcej — jq nie startował (E2BIG) i przy set -e raport w ogóle nie
+  # wychodził. Brak listy (KONTA_WYNIK pusty) = pusty plik → raport bez pola konta.
   if [ -n "$KONTA_WYNIK" ] && [ -r "$KONTA_WYNIK" ]; then
-    konta="$(jq -Rsc '[split("\n")[] | select(test("^[a-z][a-z0-9]{0,15} [01] [0-9]+$")) | split(" ")
-      | {u: .[0], ok: (.[1] == "1"), b: (.[2] | tonumber)}]' < "$KONTA_WYNIK")"
+    jq -Rsc '[split("\n")[] | select(test("^[a-z][a-z0-9]{0,15} [01] [0-9]+$")) | split(" ")
+      | {u: .[0], ok: (.[1] == "1"), b: (.[2] | tonumber)}]' < "$KONTA_WYNIK" > "$konta"
   fi
   jq -nc --argjson ok "$ok" --argjson accounts "${accounts:-0}" \
-    --argjson bytes "${bytes:-0}" --argjson dur "${dur:-0}" --arg info "$info" --argjson konta "$konta" \
-    '{ok:($ok==1),accounts:$accounts,bytes:$bytes,durationSec:$dur,info:$info} + (if $konta == null then {} else {konta:$konta} end)' > "$body"
+    --argjson bytes "${bytes:-0}" --argjson dur "${dur:-0}" --arg info "$info" --slurpfile konta "$konta" \
+    '{ok:($ok==1),accounts:$accounts,bytes:$bytes,durationSec:$dur,info:$info} + (if ($konta | length) == 0 then {} else {konta:$konta[0]} end)' > "$body"
+  rm -f "$konta"
   # --data-binary @plik: lista kont floty nie mieści się w jednym argumencie (limit 128 kB).
   curl -fsS --max-time 30 -X POST \
     -H "X-Server-Id: $VERRIS_SERVER_ID" \
