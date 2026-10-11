@@ -157,8 +157,10 @@ export class RenewalScheduler {
     // legacy STRIPE_CARD rows that have no Stripe Subscription attached yet
     // (those existed before C-7 landed).
     const eligible = due.filter((sub) => {
-      // Never renew a sub the customer scheduled to cancel.
-      if (sub.cancelAt != null && sub.cancelAt <= now2) return false;
+      // Never renew a sub the customer scheduled to cancel. F3.5 — także przed końcem okresu: okno odnowienia
+      // zaczyna się 24 h wcześniej, a warunek `cancelAt <= teraz` obciążał portfel i przesuwał okres usłudze,
+      // która miała się skończyć (klient płacił za miesiąc, z którego zrezygnował, a anulacja „przepadała”).
+      if (sub.cancelAt != null) return false;
       if (sub.paymentSource === 'STRIPE_CARD' && sub.stripeSubscriptionId) {
         this.logger.debug(
           `Skipping Stripe-managed sub=${sub.id} (stripeSubscriptionId=${sub.stripeSubscriptionId})`,
