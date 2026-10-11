@@ -64,6 +64,17 @@ export interface FalaAktualizacji {
   wyrownaj?: boolean;
 }
 
+/**
+ * Audyt Fali 3 — rodzaje zadań zlecane przebiegiem operatora (karta usługi / węzła), których „Ponów” z listy zadań
+ * nie wykonuje (MALWARE_SCAN — tylko tryby zmieniające pliki: kwarantanna, przywrócenie, usunięcie).
+ */
+export const OPERACJE_BEZ_PONOWIENIA: Partial<Record<NodeTaskKind, string>> = {
+  [NodeTaskKind.IP_BLOCKS]: 'Operacji na blokadach IP',
+  [NodeTaskKind.MAIL_QUEUE]: 'Operacji na kolejce i limicie poczty',
+  [NodeTaskKind.WAF_HITS]: 'Odczytu trafień WAF',
+  [NodeTaskKind.MALWARE_SCAN]: 'Kwarantanny, przywrócenia ani usunięcia pliku',
+};
+
 @Injectable()
 export class NodeTasksService {
   private readonly logger = new Logger(NodeTasksService.name);
@@ -532,6 +543,15 @@ export class NodeTasksService {
     // ponowienie z listy zadań ominęłoby to wszystko. Odczyt logu z ponowienia nie miałby wpisu w dzienniku.
     if (task.kind === NodeTaskKind.NODE_SERVICES) {
       throw new BadRequestException('Usług i logów węzła nie ponawia się z listy zadań — zleć to jeszcze raz z zakładki „Usługi i logi” węzła.');
+    }
+    // Audyt Fali 3 — operacje operatora z Fali 3 mają własne uprawnienia (IP_BLOCKS_NODE, MAIL_SEND_BLOCK,
+    // ACCOUNT_ACTIONS, ACCOUNT_DIAGNOSTICS_VIEW), powód, regułę „STAFF tylko na usługach klientów” i wpis klienta
+    // „obsługa Verris”. „Ponów” (NODES_MANAGE) wykonałby je ponownie z pominięciem tego wszystkiego, a skutek przypisał
+    // pierwotnemu zlecającemu — np. L4 bez IP_BLOCKS_NODE ponowiłby białą listę albo odblokowanie dowolnego adresu.
+    // Takie zadania zleca się od nowa z karty usługi albo węzła; skan i lista skanera (bez zmian w plikach) — można.
+    const operacjaOperatora = OPERACJE_BEZ_PONOWIENIA[task.kind as keyof typeof OPERACJE_BEZ_PONOWIENIA];
+    if (operacjaOperatora && !(task.kind === NodeTaskKind.MALWARE_SCAN && ['scan', 'list'].includes(String((task.payload as { mode?: unknown } | null)?.mode)))) {
+      throw new BadRequestException(`${operacjaOperatora} nie ponawia się z listy zadań — zleć ją jeszcze raz z karty usługi albo węzła (uprawnienia, powód i dziennik).`);
     }
     await this.prisma.nodeTask.update({
       where: { id: taskId },

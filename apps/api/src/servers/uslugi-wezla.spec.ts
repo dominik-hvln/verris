@@ -183,6 +183,6 @@ describe('F3.4 — ponowienie z listy zadań węzła', () => {
       );
     await expect(svc(NodeTaskKind.NODE_SERVICES).retryFailedTask('t1', 'noc')).rejects.toThrow(/nie ponawia się z listy/);
     expect(zmiany).toEqual([]);
-    await expect(svc(NodeTaskKind.IP_BLOCKS).retryFailedTask('t1', 'noc')).resolves.toEqual({ ok: true });
+    await expect(svc(NodeTaskKind.MAIL_LOG).retryFailedTask('t1', 'noc')).resolves.toEqual({ ok: true });
   });
 });
