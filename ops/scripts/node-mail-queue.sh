@@ -238,7 +238,10 @@ def konta(h):
     return h["login"] in SYSTEMOWI and h["protokol"].startswith("local") and w_domenach(h["nadawca"])
 
 def czysc(s, n):
-    return re.sub(r"[\x00-\x1f|]", " ", s).strip()[:n]
+    """Pole wiersza VERRIS_MQ: bez znaków sterujących (C0, DEL, C1 z NEL), separatorów wiersza U+2028/U+2029
+    i „|”; długość w punktach kodowych — tak liczy parser API (wiadomosciZLogu, regex z flagą u)."""
+    s = s.encode("utf-8", "replace").decode("utf-8")
+    return re.sub("[\x00-\x1f\x7f-\x9f\u2028\u2029|]", " ", s).strip()[:n]
 
 if tryb == "flush":
     przed = liczba()

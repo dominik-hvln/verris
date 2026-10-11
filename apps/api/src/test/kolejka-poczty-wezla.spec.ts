@@ -207,4 +207,19 @@ describe('F3.1 — node-mail-queue.sh (kolejka exima)', () => {
     expect(r.out).toContain('VERRIS_MQ_POMINIETO 3');
     expect(s.wywolania().filter((w) => w.startsWith('-Mrm'))).toEqual([`-Mrm ${AUTO}`]);
   });
+
+  it('audyt Fal 2: temat z U+2028/U+2029, DEL i NEL — w wierszu spacje (jeden wiersz na wiadomość), długość w znakach', () => {
+    const s = srodowisko();
+    const k = join(s.dir, 'kolejka');
+    const id = '1tDdDd-0000000000a-0001';
+    const surowy = `Promo\u2028linia\u2029x\u007fy\u0085z ${'😀'.repeat(130)}`;
+    const zakodowany = `=?UTF-8?B?${Buffer.from(surowy, 'utf8').toString('base64')}?=`;
+    wiadomosc(k, id, ` 1m  1.0K ${id} <klient1@t1.verris.test>\n          a@gmail.com\n\n`, `${id}-H\nklient1 1001 1001\n<klient1@t1.verris.test>\n1760090000 0\nXX\n1\na@gmail.com\n\n030  Subject: ${zakodowany}\n`);
+    const r = s.uruchom({ MQ_MODE: 'list', ...KONTO });
+    const wiersz = r.wiersze.find((w) => w.includes(id))!;
+    const temat = wiersz.split('|')[6]!;
+    expect(temat.startsWith('Promo linia x y z ')).toBe(true);
+    expect([...temat]).toHaveLength(120);
+    expect(r.out.split('\n').filter((l) => l.includes('linia'))).toHaveLength(1);
+  });
 });

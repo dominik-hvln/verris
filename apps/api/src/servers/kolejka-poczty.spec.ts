@@ -66,4 +66,16 @@ describe('F3.1 — kolejka poczty: wynik zadania węzła', () => {
     ]);
     expect(s.usuwanie).toMatchObject({ wToku: false, usunieto: 50, pominieto: 0, blad: 'exim -Mrm: nie usunięto 1 — kod 1' });
   });
+
+  it('audyt Fal 2: temat ze 120 znakami spoza BMP (240 jednostek UTF-16) i z U+2028/U+2029 nie znika z podglądu', () => {
+    const emoji = '😀'.repeat(120);
+    const log = [
+      `VERRIS_MQ 1tAbCd-000000001bo-D342|4m|2.9K|0|klient1@t1.verris.test|a@gmail.com|${emoji}`,
+      'VERRIS_MQ 1aBcDe-0003hL-9u|2h|12K|1|biuro@klient.pl|ktos@gmail.com|a\u2028b\u2029c',
+      `VERRIS_MQ 1tZzZz-0000000aaaa-0001|1m|1K|0|${'ż'.repeat(120)}@x.pl|${'😀'.repeat(200)}|t`,
+    ].join('\n');
+    const w = wiadomosciZLogu(log);
+    expect(w.map((m) => m.id)).toEqual(['1tAbCd-000000001bo-D342', '1aBcDe-0003hL-9u', '1tZzZz-0000000aaaa-0001']);
+    expect(w[0]!.temat).toBe(emoji);
+  });
 });

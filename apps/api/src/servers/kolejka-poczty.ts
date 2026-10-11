@@ -25,7 +25,9 @@ export interface WiadomoscWKolejce {
 export function wiadomosciZLogu(log: string | null): WiadomoscWKolejce[] {
   const out: WiadomoscWKolejce[] = [];
   for (const l of (log ?? '').split('\n')) {
-    const m = /^VERRIS_MQ ([0-9A-Za-z-]{16,23})\|(\d+[smhdw])\|([0-9.]+[KMG]?)\|([01])\|([^|]{0,254})\|([^|]{0,254})\|(.{0,200})$/.exec(l);
+    // Audyt Fal 2 — flaga u: długości w punktach kodowych, jak tnie skrypt (czysc); temat jako [^|], bo `.` nie łapie
+    // U+2028/U+2029 — wiersz z takim tematem odpadał bez śladu i wiadomości nie dało się zaznaczyć do usunięcia.
+    const m = /^VERRIS_MQ ([0-9A-Za-z-]{16,23})\|(\d+[smhdw])\|([0-9.]+[KMG]?)\|([01])\|([^|]{0,254})\|([^|]{0,254})\|([^|]{0,200})$/u.exec(l);
     if (m && ID_WIADOMOSCI_EXIMA.test(m[1]) && out.length < 300) {
       out.push({ id: m[1], wiek: m[2], rozmiar: m[3], zamrozona: m[4] === '1', nadawca: m[5], odbiorcy: m[6], temat: m[7] });
     }
