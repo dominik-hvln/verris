@@ -290,7 +290,7 @@ export const HostingResourceActions = {
   // F3.2 (D3/D5) — obsługa zdjęła blokadę adresu IP klienta na serwerze („zablokowało mi IP”).
   HOSTING_IP_UNBLOCK_QUEUED: 'HOSTING_IP_UNBLOCK_QUEUED',
   // F3.1 — obsługa zmieniła dobowy limit wysyłki poczty konta (albo przywróciła domyślny).
-  HOSTING_MAIL_SEND_LIMIT_CHANGED: 'HOSTING_MAIL_SEND_LIMIT_CHANGED',
+  HOSTING_MAIL_SEND_LIMIT_CHANGE_QUEUED: 'HOSTING_MAIL_SEND_LIMIT_CHANGE_QUEUED',
 } as const;
 
 export const MigrationActions = {

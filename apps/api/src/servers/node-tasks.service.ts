@@ -591,6 +591,23 @@ export class NodeTasksService {
     const task = await this.assertRunningTask(opts.serverId, opts.taskId);
     const log = this.trimLog(opts.outputLog);
 
+    // Przegląd F3.1 — zmiana limitu wysyłki: sukces tylko, gdy węzeł potwierdził DOKŁADNIE zleconą wartość dla tego
+    // konta. Agent sprzed aktualizacji nie przekazuje MQ_LIMIT, a skrypt bez niego tylko czyta limit i kończy się zerem —
+    // bez tej kontroli zmiana „udawała się”, a na serwerze nic się nie zmieniało.
+    const zlecony = (task.payload ?? {}) as { mode?: string; limit?: string; daUser?: string };
+    if (task.kind === NodeTaskKind.MAIL_QUEUE && zlecony.mode === 'limit' && typeof zlecony.limit === 'string') {
+      const l = limitZLogu(log);
+      const oczekiwany = zlecony.limit === 'domyslny' ? null : Number(zlecony.limit);
+      if (!l || l.login !== zlecony.daUser || l.nieczytelny || l.limit !== oczekiwany) {
+        return this.failTaskFromNode({
+          serverId: opts.serverId,
+          taskId: opts.taskId,
+          outputLog: opts.outputLog,
+          error: 'Serwer nie potwierdził nowego limitu — zaktualizuj węzeł („Aktualizuj węzeł”) i spróbuj ponownie',
+        });
+      }
+    }
+
     const updated = await this.prisma.nodeTask.update({
       where: { id: task.id },
       data: {

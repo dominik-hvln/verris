@@ -80,10 +80,45 @@ describe('F3.1 — limit wysyłki konta i statystyki poczty węzła', () => {
     expect((await prisma().account.findUniqueOrThrow({ where: { id: k.account.id } })).mailSendLimit).toBeNull();
 
     const aktywnosc = await new UsersService(p, null as never, null as never, null as never, null as never, null as never).listMyActivity(k.user.id);
-    expect(aktywnosc.events.filter((e) => e.action === 'HOSTING_MAIL_SEND_LIMIT_CHANGED').map((e) => e.actor)).toEqual(['obsługa Verris', 'obsługa Verris']);
+    expect(aktywnosc.events.filter((e) => e.action === 'HOSTING_MAIL_SEND_LIMIT_CHANGE_QUEUED').map((e) => e.actor)).toEqual(['obsługa Verris', 'obsługa Verris']);
     expect(aktywnosc.events.map((e) => e.action)).not.toContain('MAIL_SEND_LIMIT_CONFIRMED');
     const zespol = await prisma().auditLog.findMany({ where: { action: 'MAIL_SEND_LIMIT_CONFIRMED' }, orderBy: { createdAt: 'asc' } });
     expect(zespol.map((w) => [(w.details as Record<string, unknown>).przed, (w.details as Record<string, unknown>).po])).toEqual([[null, 300], [300, null]]);
+  });
+
+  it('przegląd: agent sprzed aktualizacji (bez MQ_LIMIT) — skrypt tylko czyta, zadanie FAILED, baza bez zmian', async () => {
+    const p = prisma() as never;
+    const wezel = await utworzWezel();
+    const k = await utworzKonto({ serverId: wezel.id, planId: (await utworzPlan()).id });
+    const operator = await prisma().user.create({ data: { email: `l3s-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'STAFF' } });
+    const audit = new AuditService(p);
+    const akcje = new AkcjeKontaOperatoraService(p, {} as never, null as never, null as never, audit, null as never, { get: () => 'x' } as never, new ZawieszenieOperatoraService(p, null as never));
+    const svc = new PocztaKontaOperatoraService(p, {} as never, akcje, new OutboundAbuseGuard({} as never, audit, { send: async () => ({}) } as never), audit);
+    const zadania = new NodeTasksService(p, audit, {} as never);
+    const dir = mkdtempSync(join(tmpdir(), 'limit-stary-'));
+    mkdirSync(join(dir, 'virtual'));
+    writeFileSync(join(dir, 'virtual', 'limit'), '1000\n');
+    mkdirSync(join(dir, 'users', k.account.daUsername), { recursive: true });
+    writeFileSync(join(dir, 'users', k.account.daUsername, 'user.conf'), 'usertype=user\n');
+
+    await svc.ustawLimit({ subscriptionId: k.subscription.id, operatorUserId: operator.id, operatorRole: 'STAFF', powod: 'Kampania klienta po rozmowie, limit tymczasowy' }, 300);
+    const t = await zadania.leaseTaskForNode(wezel.id);
+    // Stary agent: mapowanie bez 'limit' → skrypt dostaje tylko tryb i użytkownika (odczyt) i kończy się zerem.
+    const { limit: _pominiety, ...bezLimitu } = t!.payload as Record<string, unknown>;
+    const r = spawnSync('bash', [join(SKRYPTY, 'node-mail-queue.sh')], {
+      env: { PATH: process.env.PATH, MQ_VIRTUAL_DIR: join(dir, 'virtual'), MQ_DA_USERS: join(dir, 'users'), ...env(bezLimitu, 'MAIL_QUEUE', 'MQ') },
+      encoding: 'utf8',
+    });
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stdout).toContain(`VERRIS_MQ_LIMIT ${k.account.daUsername} domyslny 1000`);
+    await zadania.completeTaskFromNode({ serverId: wezel.id, taskId: t!.id, outputLog: r.stdout });
+
+    expect((await prisma().nodeTask.findUniqueOrThrow({ where: { id: t!.id } })).status).toBe('FAILED');
+    expect((await prisma().account.findUniqueOrThrow({ where: { id: k.account.id } })).mailSendLimit).toBeNull();
+    const stan = await svc.limit(k.subscription.id);
+    expect(stan).toMatchObject({ limitKonta: null, obowiazuje: 1000, wToku: false });
+    expect(stan.blad).toMatch(/nie potwierdził nowego limitu/);
+    expect(await prisma().auditLog.count({ where: { action: 'MAIL_SEND_LIMIT_CONFIRMED' } })).toBe(0);
   });
 
   it('statystyki węzła: zadanie MAIL_LOG bez konta → agregat dopasowany do kont węzła; konto innego węzła bez linku', async () => {

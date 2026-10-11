@@ -227,7 +227,7 @@ export class PocztaKontaOperatoraService {
         const t = await this.zlecLimit({ ...account, id: w.konto.id, serverId: w.konto.serverId, daUsername: w.konto.daUsername }, z.operatorUserId, wartosc);
         return { ok: true as const, zadanieId: t.id, limit: wartosc };
       },
-      { action: HostingResourceActions.HOSTING_MAIL_SEND_LIMIT_CHANGED, details: { limit: wartosc ?? HOSTING_MAIL_DAILY_SEND_LIMIT, domyslny: wartosc === null } },
+      { action: HostingResourceActions.HOSTING_MAIL_SEND_LIMIT_CHANGE_QUEUED, details: { limit: wartosc ?? HOSTING_MAIL_DAILY_SEND_LIMIT, domyslny: wartosc === null } },
     );
   }
 
