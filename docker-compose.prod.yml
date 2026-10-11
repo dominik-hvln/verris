@@ -246,6 +246,12 @@ services:
       CONTROL_PLANE_MAIL_MAPS_DIR: ${CONTROL_PLANE_MAIL_MAPS_DIR:-/etc/postfix/verris}
       CONTROL_PLANE_MAIL_DATA_ROOT: ${CONTROL_PLANE_MAIL_DATA_ROOT:-/var/mail/vhosts}
       CONTROL_PLANE_MAIL_HOST: ${CONTROL_PLANE_MAIL_HOST:-mail.verris.pl}
+      # F3.7 — import poczty do zgłoszeń (IMAP skrzynki zespołu). Puste login/hasło = import wyłączony.
+      # Odcisk SHA-256 tylko przy certyfikacie samopodpisanym Dovecota; nigdy wyłączanie weryfikacji TLS.
+      CONTROL_PLANE_MAIL_TICKETS_USER: ${CONTROL_PLANE_MAIL_TICKETS_USER:-}
+      CONTROL_PLANE_MAIL_TICKETS_PASSWORD: ${CONTROL_PLANE_MAIL_TICKETS_PASSWORD:-}
+      CONTROL_PLANE_MAIL_TICKETS_CERT_SHA256: ${CONTROL_PLANE_MAIL_TICKETS_CERT_SHA256:-}
+      CONTROL_PLANE_MAIL_IMAP_PORT: ${CONTROL_PLANE_MAIL_IMAP_PORT:-993}
       SOGO_WEB_URL: ${SOGO_WEB_URL:-https://mail.verris.pl/SOGo}
       SOGO_MYSQL_HOST: ${SOGO_MYSQL_HOST:-ops-sogo-db-1}
       SOGO_MYSQL_USER: ${SOGO_MYSQL_USER:-sogo}
