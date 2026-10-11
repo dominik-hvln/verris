@@ -131,6 +131,14 @@ describe("Menu admina — żadna strona nie jest ukryta", () => {
     expect(menu().querySelector(`a[href="${href}"]`)).toBeNull();
   });
 
+  it("weryfikacja 11.10: L1 (CUSTOMERS_VIEW bez SUBSCRIPTIONS_MANAGE) ma „Usługi” w menu; bez obu — nie", async () => {
+    sciezka = "/";
+    await render(["DASHBOARD_VIEW", "CUSTOMERS_VIEW", "TICKETS_VIEW", "TICKETS_MANAGE", "BILLING_VIEW"], false);
+    expect(menu().querySelector('a[href="/subscriptions"]')?.textContent).toBe("Usługi");
+    await render(["TICKETS_VIEW"], false);
+    expect(menu().querySelector('a[href="/subscriptions"]')).toBeNull();
+  });
+
   it("VPS i autoskalowanie tylko dla administratora (API: @Roles(ADMIN)), nie z PLANS_MANAGE", async () => {
     sciezka = "/";
     await render(["PLANS_MANAGE"], false);

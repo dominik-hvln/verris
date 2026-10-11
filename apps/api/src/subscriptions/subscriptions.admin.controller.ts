@@ -206,9 +206,12 @@ export class SubscriptionsAdminController {
   /**
    * F2.4 — lista usług: filtry (stan, w tym PAST_DUE, węzeł, plan, klient, wyszukiwanie) i stronicowanie w API;
    * wcześniej cichy limit 200 najnowszych. `liczby` — ile usług w każdym stanie przy pozostałych filtrach (zakładki).
+   * Weryfikacja 11.10 — lista w trybie odczytu z tym samym uprawnieniem co karta (ODCZYT_KARTY: L1 ma CUSTOMERS_VIEW);
+   * wcześniej SUBSCRIPTIONS_MANAGE z klasy, więc L1 otwierał kartę usługi, a listy nie. Eksport CSV bez zmian.
    */
   @Get()
   @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPermAny(...ODCZYT_KARTY)
   async list(@Query() q: ListaUslugQuery) {
     const where = warunkiListyUslug(q);
     const { limit, page, skip } = stronaListy(q);

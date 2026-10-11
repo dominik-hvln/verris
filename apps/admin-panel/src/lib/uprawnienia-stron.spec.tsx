@@ -29,6 +29,8 @@ const sciezka = (plik: string) => {
   return r ? `/${r}` : "/";
 };
 const PLIKI = strony(KATALOG).map((p) => [sciezka(p), p] as const);
+/** Uprawnienie strony z mapy (lista porównywana treścią, nie referencją); „brak wpisu” — strony nie ma w mapie. */
+const permStrony = (href: string) => (href in STRONY ? STRONY[href as SciezkaStrony].perm : "brak wpisu");
 
 describe("D1 — mapa uprawnień stron", () => {
   it("każda strona panelu ma wpis w mapie i każdy wpis ma stronę", () => {
@@ -43,8 +45,8 @@ describe("D1 — mapa uprawnień stron", () => {
   it("menu i Cmd+K: uprawnienie pozycji = uprawnienie strony (pozycja bez uprawnień — strona dla każdego)", () => {
     const pozycje = [...grupy(null).flatMap((g) => g.pozycje.flatMap((p) => p.pod)), ...UKRYTE];
     const rozjazdy = pozycje
-      .filter((p) => (p.perm ?? null) !== STRONY[p.href as SciezkaStrony]?.perm)
-      .map((p) => `${p.href}: menu ${p.perm ?? "—"}, strona ${String(STRONY[p.href as SciezkaStrony]?.perm ?? "brak wpisu")}`);
+      .filter((p) => JSON.stringify(p.perm ?? null) !== JSON.stringify(permStrony(p.href)))
+      .map((p) => `${p.href}: menu ${JSON.stringify(p.perm ?? null)}, strona ${JSON.stringify(permStrony(p.href))}`);
     expect(rozjazdy).toEqual([]);
   });
 
@@ -89,6 +91,15 @@ describe("D1 — bramka strony", () => {
     expect(await html("/subscriptions/[id]")).toBeNull();
     dostep({ role: "STAFF", isAdmin: false, permissions: ["TICKETS_VIEW"] });
     expect(await html("/subscriptions/[id]")).toContain("Brak uprawnień");
+  });
+
+  it("weryfikacja 11.10: lista usług jak karta — L1 (CUSTOMERS_VIEW) ją otwiera, bez CUSTOMERS_VIEW i SUBSCRIPTIONS_MANAGE nie", async () => {
+    dostep({ role: "STAFF", isAdmin: false, permissions: ["DASHBOARD_VIEW", "CUSTOMERS_VIEW", "TICKETS_VIEW", "TICKETS_MANAGE", "BILLING_VIEW"] });
+    expect(await html("/subscriptions")).toBeNull();
+    dostep({ role: "STAFF", isAdmin: false, permissions: ["SUBSCRIPTIONS_MANAGE"] });
+    expect(await html("/subscriptions")).toBeNull();
+    dostep({ role: "STAFF", isAdmin: false, permissions: ["TICKETS_VIEW"] });
+    expect(await html("/subscriptions")).toContain("Wymaga CUSTOMERS_VIEW lub SUBSCRIPTIONS_MANAGE");
   });
 
   it("API uprawnień nie odpowiada — odmowa (fail-closed) z prośbą o odświeżenie", async () => {

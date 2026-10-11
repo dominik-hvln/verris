@@ -200,6 +200,8 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     expect(L1).not.toContain('SUBSCRIPTIONS_MANAGE');
     expect(
       await wynik(L1, [
+        'list',
+        'exportCsv',
         'detail',
         'usage',
         'migrationTimeline',
@@ -214,6 +216,9 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
         'suspend',
       ]),
     ).toEqual({
+      // Weryfikacja 11.10 — lista usług w trybie odczytu jak karta; eksport CSV (dane osobowe) nadal nie.
+      list: true,
+      exportCsv: false,
       detail: true,
       usage: true,
       migrationTimeline: true,

@@ -13,6 +13,7 @@ import { ThemeToggle } from "./theme-toggle";
 import { LogoutButton } from "./logout-button";
 import { grafanaSsoHref } from "./grafana-ops-link";
 import { Pigulka } from "./v2";
+import { brakUprawnienia, type WarunekUprawnien } from "@/lib/akcje/wezel";
 
 /** Odpowiedź `GET /admin/dashboard/menu` (null = API niedostępne — menu działa, bez liczb). */
 export interface LicznikiMenu {
@@ -24,7 +25,8 @@ export interface LicznikiMenu {
   flota: { razem: number; dziala: number };
 }
 
-type Pod = { name: string; href: string; perm?: string; /** dodatkowe słowa dla wyszukiwarki stron („/”) */ szukaj?: string };
+/** `perm` jak w STRONY (lib/uprawnienia-stron.ts): nazwa, lista (którekolwiek), `{ wszystkie }` albo „ADMIN”. */
+type Pod = { name: string; href: string; perm?: WarunekUprawnien; /** dodatkowe słowa dla wyszukiwarki stron („/”) */ szukaj?: string };
 type Pozycja = { name: string; ikona: keyof typeof IKONY; pod: Pod[]; licznik?: string; ostrzezenie?: boolean };
 type Grupa = { naglowek?: string; pozycje: Pozycja[] };
 
@@ -196,7 +198,7 @@ export function grupy(l: LicznikiMenu | null): Grupa[] {
       naglowek: "Klienci i usługi",
       pozycje: [
         { name: "Klienci", ikona: "klienci", pod: [{ name: "Klienci", href: "/customers", perm: "CUSTOMERS_VIEW", szukaj: "konta użytkownicy portfel" }] },
-        { name: "Usługi", ikona: "uslugi", pod: [{ name: "Usługi", href: "/subscriptions", perm: "SUBSCRIPTIONS_MANAGE", szukaj: "subskrypcje hosting abonamenty" }] },
+        { name: "Usługi", ikona: "uslugi", pod: [{ name: "Usługi", href: "/subscriptions", perm: ["CUSTOMERS_VIEW", "SUBSCRIPTIONS_MANAGE"], szukaj: "subskrypcje hosting abonamenty" }] },
         {
           name: "Domeny",
           ikona: "domeny",
@@ -394,7 +396,8 @@ export function AdminShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const wolno = (perm?: string) => isAdmin || !perm || permissions.includes(perm);
+  // To samo sprawdzenie co bramka strony (bramkaStrony → brakUprawnienia): pozycja menu = strona, która się otworzy.
+  const wolno = (perm?: WarunekUprawnien) => !perm || !brakUprawnienia(perm, { isAdmin, permissions });
   const menuGrupy = grupy(liczniki)
     .map((g) => ({
       ...g,

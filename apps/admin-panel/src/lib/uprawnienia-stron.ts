@@ -91,7 +91,9 @@ export const STRONY = {
   "/status/probes": { perm: "ADMIN", tytul: "Sondy" },
   // F2.8 — odczyt jak „Błędy aplikacji”; „Uruchom teraz” tylko ADMIN (API: mozeUruchomic + @Roles(ADMIN)).
   "/system/zadania": { perm: "NODES_VIEW", tytul: "Zadania w tle" },
-  "/subscriptions": { perm: "SUBSCRIPTIONS_MANAGE", tytul: "Usługi" },
+  // Weryfikacja 11.10 — lista usług w trybie odczytu jak karta (GET admin/subscriptions — @StaffPermAny jak karta);
+  // eksport CSV dalej SUBSCRIPTIONS_MANAGE + EXPORT_DATA (przycisk na stronie).
+  "/subscriptions": { perm: ["CUSTOMERS_VIEW", "SUBSCRIPTIONS_MANAGE"], tytul: "Usługi" },
   // Karta usługi — @StaffPermAny(CUSTOMERS_VIEW, SUBSCRIPTIONS_MANAGE) (L1-KARTA).
   "/subscriptions/[id]": { perm: ["CUSTOMERS_VIEW", "SUBSCRIPTIONS_MANAGE"], tytul: "Usługa" },
   // F3.8 — admin/komunikaty-serwisowe — SERVICE_NOTICES_SEND (kierownik zmiany L4) i ADMIN.
