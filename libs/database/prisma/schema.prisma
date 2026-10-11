@@ -1027,6 +1027,9 @@ model Subscription {
   currentPeriodEnd     DateTime?
   cancelAt             DateTime?
   canceledAt           DateTime?
+  // F3.5 — obietnica zapłaty (operator L3, maks. 7 dni): do tej chwili harmonogram nie zawiesza zaległej
+  // usługi (PAST_DUE) za brak płatności; po niej normalny cykl. Szczegóły (kto, powód) w SubscriptionEvent PAYMENT_PROMISE.
+  paymentPromiseUntil  DateTime?
   trialEndsAt          DateTime?
   // O-1 — free trial bookkeeping.
   isTrial              Boolean                   @default(false)

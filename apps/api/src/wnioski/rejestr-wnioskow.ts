@@ -1,6 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsEmail, IsIn, IsNumber, IsOptional, IsPositive, IsString, Max, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsIn, IsISO8601, IsNumber, IsOptional, IsPositive, IsString, Max, MaxLength, MinLength } from 'class-validator';
 import type { StaffPermission } from '../staff-roles/staff-permissions.catalog.js';
 import { POWODY_ZAWIESZENIA_OPERATORA, type PowodZawieszeniaOperatora } from '../subscriptions/powody-zawieszenia.js';
 
@@ -24,6 +24,9 @@ import { POWODY_ZAWIESZENIA_OPERATORA, type PowodZawieszeniaOperatora } from '..
  * F2.3 (D2, 10.10) — zawieszenie usługi (SUBSCRIPTIONS_SUSPEND = L3 i zespół abuse bezpośrednio, L2 przez wniosek):
  *  - SUBSCRIPTION_SUSPEND — POST admin/subscriptions/:id/suspend (ZawieszenieOperatoraService.zawies),
  *  - SUBSCRIPTION_UNSUSPEND — POST admin/subscriptions/:id/unsuspend (bez obciążenia za odnowienie).
+ * F3.5 (D2, 11.10) — cykl życia usługi z kosztem dla Verris (BILLING_MANAGE + SUBSCRIPTIONS_MANAGE = L4 bezpośrednio,
+ * L2/L3 przez wniosek):
+ *  - SUBSCRIPTION_RENEWAL_DATE — POST admin/subscriptions/:id/data-odnowienia (CyklZyciaUslugiService.zmienDateOdnowienia).
  * Pominięte: kredyt SLA (sla.admin.controller ma tylko podgląd — nie ma operacji do zlecenia), korekta faktury
  * (payload to pełna lista pozycji po korekcie — formularz zostaje w panelu admina; typ łatwo dopisać później),
  * zwrot Paynow (pieniądze wychodzą do bramki — świadomie poza wnioskami do decyzji właściciela).
@@ -87,6 +90,21 @@ export class ZawieszenieUslugiPayload extends OdwieszenieUslugiPayload {
   reason?: PowodZawieszeniaOperatora;
 }
 
+/** F3.5 — nowy koniec bieżącego okresu usługi (przedłużenie gratis albo skrócenie na prośbę klienta). */
+export class DataOdnowieniaPayload {
+  @IsString()
+  @MaxLength(64)
+  subscriptionId!: string;
+
+  @IsISO8601({ strict: true })
+  nowaData!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  zgloszenie?: string;
+}
+
 // ── zależności wykonawców (wstrzykiwane przez WnioskiService) ───────────────
 
 export interface ZaleznosciWnioskow {
@@ -100,6 +118,16 @@ export interface ZaleznosciWnioskow {
     zgloszenieKlienta(klientId: string, wpis: string | null | undefined): Promise<string | null>;
     zawies(i: { subscriptionId: string; aktorUserId: string; reason: PowodZawieszeniaOperatora; powod?: string | null; zgloszenie?: string | null }): Promise<{ status: string }>;
     odwies(i: { subscriptionId: string; aktorUserId: string; powod?: string | null; zgloszenie?: string | null }): Promise<{ status: string }>;
+  };
+  /** F3.5 — CyklZyciaUslugiService (subscriptions/cykl-zycia-uslugi.service.ts). */
+  cyklZycia: {
+    zmienDateOdnowienia(i: {
+      subscriptionId: string;
+      operator: { userId: string; role: string };
+      powod: string;
+      zgloszenie?: string | null;
+      nowaData: Date;
+    }): Promise<{ bezZmian: boolean; komunikat: string }>;
   };
   uzytkownicy: {
     patchCustomerOperational(
@@ -174,6 +202,10 @@ function definicja<P extends object>(d: DefinicjaWniosku<P>): DefinicjaWniosku<o
 const kwotaPl = (n: number) => `${n.toFixed(2).replace('.', ',')} K`;
 
 const DO_ANULOWANIA = ['DRAFT', 'OPEN'];
+const dzienPl = (iso: string) => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' });
+};
 
 const ZAKONCZONE = ['CANCELED', 'EXPIRED'];
 const zgl = (z?: string) => (z?.trim() ? ` (zgłoszenie #${z.trim().replace(/^#/, '').slice(0, 8)})` : '');
@@ -364,6 +396,32 @@ export const REJESTR_WNIOSKOW = {
         zgloszenie: p.zgloszenie,
       });
       return { komunikat: 'Usługa odwieszona.' };
+    },
+  }),
+
+  SUBSCRIPTION_RENEWAL_DATE: definicja<DataOdnowieniaPayload>({
+    etykieta: 'Zmiana daty odnowienia usługi',
+    uprawnienie: 'BILLING_MANAGE',
+    // Bezpośrednio: POST admin/subscriptions/:id/data-odnowienia — strażnik BILLING_MANAGE + SUBSCRIPTIONS_MANAGE.
+    uprawnieniaDodatkowe: ['SUBSCRIPTIONS_MANAGE'],
+    doZlozenia: 'SUBSCRIPTIONS_MANAGE',
+    dto: DataOdnowieniaPayload,
+    wymagaKlienta: true,
+    opis: (p) => `Nowa data odnowienia: ${dzienPl(p.nowaData)}${zgl(p.zgloszenie)}`,
+    async sprawdzPrzyZlozeniu(p, klientId, z) {
+      const s = await uslugaKlienta(p.subscriptionId, klientId, z);
+      if (s.status !== 'ACTIVE') throw new BadRequestException('Datę odnowienia zmienisz tylko w aktywnej usłudze.');
+      await z.zawieszenie.zgloszenieKlienta(klientId!, p.zgloszenie);
+    },
+    async wykonaj(p, k, z) {
+      const r = await z.cyklZycia.zmienDateOdnowienia({
+        subscriptionId: p.subscriptionId,
+        operator: k.decydujacy,
+        powod: k.uzasadnienie ?? `wniosek ${k.wniosekId}`,
+        zgloszenie: p.zgloszenie,
+        nowaData: new Date(p.nowaData),
+      });
+      return { komunikat: r.komunikat, ...(r.bezZmian ? { bezZmian: true } : {}) };
     },
   }),
 } as const satisfies Record<string, DefinicjaWniosku<object>>;

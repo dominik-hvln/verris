@@ -1840,6 +1840,8 @@ export class UserServicesController {
       currency: sub.currency,
       currentPeriodStart: sub.currentPeriodStart?.toISOString() ?? null,
       currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
+      // F3.5 — rezygnacja na koniec okresu wprost ze stanu (zdarzenie CANCEL_SCHEDULED zostaje po cofnięciu).
+      cancelAt: sub.cancelAt?.toISOString() ?? null,
       ecoModeEnabled: sub.ecoModeEnabled,
       autoscalingEnabled: sub.autoscalingEnabled,
       isTrial: sub.isTrial,

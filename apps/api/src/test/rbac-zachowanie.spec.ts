@@ -239,6 +239,35 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     }
   });
 
+  it('F3.5 (D2): cykl życia usługi — anulacja i cofnięcie od L2 i NOC; data odnowienia L4 (niżej wniosek); obietnica zapłaty L3', async () => {
+    const cykl = TRASY.filter((t) => t.kontroler === 'CyklZyciaUslugiAdminController');
+    expect(cykl.map((t) => t.metoda).sort()).toEqual(['anuluj', 'cofnijAnulacje', 'odwolajObietnice', 'ustawObietnice', 'zmienDateOdnowienia']);
+    const wolno = async (rola: string) => {
+      const out: Record<string, boolean> = {};
+      for (const t of cykl) out[t.metoda] = await wpuszcza(t, OPERATOR, uprawnieniaRoli(rola));
+      return out;
+    };
+    const w = (anulacja: boolean, data: boolean, obietnica: boolean) => ({
+      anuluj: anulacja,
+      cofnijAnulacje: anulacja,
+      zmienDateOdnowienia: data,
+      ustawObietnice: obietnica,
+      odwolajObietnice: obietnica,
+    });
+    expect(await wolno('L1 Konsultant')).toEqual(w(false, false, false));
+    expect(await wolno('L2 Specjalista techniczny')).toEqual(w(true, false, false));
+    expect(await wolno('L3 Starszy specjalista')).toEqual(w(true, false, true));
+    expect(await wolno('L4 Kierownik zmiany')).toEqual(w(true, true, true));
+    expect(await wolno('Inżynier infrastruktury (NOC/DevOps)')).toEqual(w(true, false, false));
+    // Finanse mają BILLING_MANAGE, ale nie zmieniają usług — data odnowienia wymaga obu uprawnień.
+    expect(await wolno('Finanse i księgowość')).toEqual(w(false, false, false));
+    expect(await wolno('Audytor (tylko podgląd)')).toEqual(w(false, false, false));
+    for (const t of cykl) {
+      expect(await wpuszcza(t, ADMIN)).toBe(true);
+      expect(await wpuszcza(t, KLIENT, ['*', 'SUBSCRIPTIONS_MANAGE', 'BILLING_MANAGE', 'SUBSCRIPTIONS_SUSPEND'])).toBe(false);
+    }
+  });
+
   it('F2.4: eksport list do CSV (dane osobowe) — tylko z EXPORT_DATA (L4), obok uprawnienia do samej listy', async () => {
     const eksporty = TRASY.filter((t) => t.metoda === 'exportCsv' && ['SubscriptionsAdminController', 'UsersAdminController'].includes(t.kontroler));
     expect(eksporty).toHaveLength(2);

@@ -382,6 +382,9 @@ export class RenewalScheduler {
     });
 
     for (const sub of candidates) {
+      // F3.5 — obietnica zapłaty (operator, maks. 7 dni): do tej chwili bez zawieszenia; po niej normalny cykl
+      // (karencja liczona jak dotąd od PAYMENT_FAILED, więc zawieszenie w pierwszym przebiegu po dacie).
+      if (sub.paymentPromiseUntil && sub.paymentPromiseUntil > now) continue;
       const graceStart = sub.events[0]?.createdAt ?? sub.currentPeriodEnd ?? new Date();
       if (graceStart > cutoff) continue;
       // Portfel: próba odnowienia jest do 24 h przed końcem okresu, a opłaconego okresu nie odbieramy.

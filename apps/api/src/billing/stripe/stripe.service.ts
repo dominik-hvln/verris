@@ -156,6 +156,11 @@ export class StripeService {
     return this.requireClient().cancelSubscription(subscriptionId, opts);
   }
 
+  /** F3.5 — cofnięcie rezygnacji na koniec okresu (stripe.client.ts cofnijAnulacjeSubskrypcji). */
+  async cofnijAnulacjeSubskrypcji(subscriptionId: string): Promise<StripeSubscription> {
+    return this.requireClient().cofnijAnulacjeSubskrypcji(subscriptionId);
+  }
+
   async retrieveSubscription(subscriptionId: string): Promise<StripeSubscription> {
     return this.requireClient().retrieveSubscription(subscriptionId);
   }

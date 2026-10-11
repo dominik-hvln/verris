@@ -496,6 +496,17 @@ export class StripeClient {
     );
   }
 
+  /**
+   * F3.5 — cofnięcie rezygnacji na koniec okresu: `cancel_at_period_end=false` na subskrypcji, która jeszcze
+   * trwa (Stripe: „Reactivating canceled subscriptions” — https://docs.stripe.com/billing/subscriptions/cancel).
+   * NIEZWERYFIKOWANE z dokumentacją w tej sesji (brak dostępu do docs.stripe.com) — sprawdzić w trybie testowym.
+   */
+  async cofnijAnulacjeSubskrypcji(subscriptionId: string): Promise<StripeSubscription> {
+    const body = new URLSearchParams();
+    body.set('cancel_at_period_end', 'false');
+    return this.request<StripeSubscription>('POST', `/subscriptions/${encodeURIComponent(subscriptionId)}`, body);
+  }
+
   async retrieveSubscription(subscriptionId: string): Promise<StripeSubscription> {
     return this.request<StripeSubscription>(
       'GET',

@@ -271,6 +271,8 @@ export interface ServiceDetailsDto extends Omit<ServiceSummaryDto, 'planSlug' | 
     diskLimitMb: number;
   };
   currentPeriodStart: string | null;
+  /** F3.5 — usługa anulowana na koniec okresu: do tej chwili działa i nie odnowi się (null = odnawia się). */
+  cancelAt?: string | null;
   autoscalingMaxCost: string;
   events: SubscriptionEventDto[];
 }

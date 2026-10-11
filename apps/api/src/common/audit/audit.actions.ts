@@ -415,3 +415,25 @@ export const OperatorRequestActions = {
   /** Akceptacja, ale wykonanie się nie powiodło; details: { wniosekId, typ, wnioskujacyUserId, blad }. */
   OPERATOR_REQUEST_FAILED: 'OPERATOR_REQUEST_FAILED',
 } as const;
+
+// ---------------------------------------------------------------------------
+// F3.5 — cykl życia usługi zmieniany przez operatora (karta usługi, wnioski)
+// ---------------------------------------------------------------------------
+
+/**
+ * Wpisy na koncie klienta (userId = klient, actor = operator albo klient): klient widzi je w „Aktywności konta”
+ * jako „obsługa Verris (zgłoszenie #…)” (D3). Dziennik zespołu z powodem to osobny OPERATOR_ACCOUNT_CHANGED.
+ */
+export const CyklZyciaUslugiActions = {
+  /** Rezygnacja na koniec okresu (klient albo obsługa); details: subscriptionId, effectiveAt, domain, zgloszenieId. */
+  SUBSCRIPTION_CANCEL_SCHEDULED: 'SUBSCRIPTION_CANCEL_SCHEDULED',
+  /** Cofnięcie rezygnacji przed końcem okresu; details: subscriptionId, domain, zgloszenieId. */
+  SUBSCRIPTION_CANCEL_REVOKED: 'SUBSCRIPTION_CANCEL_REVOKED',
+  /** Zmiana daty odnowienia (przedłużenie gratis albo skrócenie na prośbę klienta); details: przed, po, dni. */
+  SUBSCRIPTION_RENEWAL_DATE_CHANGED: 'SUBSCRIPTION_RENEWAL_DATE_CHANGED',
+  /** Obietnica zapłaty — wstrzymanie automatycznego zawieszenia do daty; details: do, dni. */
+  SUBSCRIPTION_PAYMENT_PROMISE_SET: 'SUBSCRIPTION_PAYMENT_PROMISE_SET',
+  SUBSCRIPTION_PAYMENT_PROMISE_REVOKED: 'SUBSCRIPTION_PAYMENT_PROMISE_REVOKED',
+  /** Dodatek kupiony przez klienta albo dodany przez obsługę (z portfela klienta albo gratis). */
+  ADDON_PURCHASED: 'ADDON_PURCHASED',
+} as const;

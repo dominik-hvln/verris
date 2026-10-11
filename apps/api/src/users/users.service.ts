@@ -751,7 +751,11 @@ export class UsersService {
       // rejestracja i transfer (także ponowione przez obsługę).
       'DOMAIN_TRANSFER_LOCKED', 'DOMAIN_REGISTRAR_RENEWED', 'DOMAIN_REGISTRAR_REGISTERED', 'DOMAIN_REGISTRAR_TRANSFER_SUBMITTED',
       // D11 — raport pomigracyjny wysłany przez obsługę (D3: „obsługa Verris (zgłoszenie #…)”).
-      'MIGRATION_REPORT_SENT'];
+      'MIGRATION_REPORT_SENT',
+      // F3.5 — cykl życia usługi (rezygnacja i jej cofnięcie, data odnowienia, obietnica zapłaty) i dodatki — także
+      // zmienione przez obsługę (D3: „obsługa Verris (zgłoszenie #…)”).
+      'SUBSCRIPTION_CANCEL_SCHEDULED', 'SUBSCRIPTION_CANCEL_REVOKED', 'SUBSCRIPTION_RENEWAL_DATE_CHANGED',
+      'SUBSCRIPTION_PAYMENT_PROMISE_SET', 'SUBSCRIPTION_PAYMENT_PROMISE_REVOKED', 'ADDON_PURCHASED'];
     const take = Math.min(Math.max(limit, 1), 100);
     const rows = await this.prisma.auditLog.findMany({
       where: {

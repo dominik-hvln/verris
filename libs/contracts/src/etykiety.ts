@@ -103,6 +103,11 @@ export const SERVICE_EVENT_PL: Record<string, string> = {
   SUSPENDED: 'Usługa zawieszona',
   UNSUSPENDED: 'Usługa odwieszona',
   CANCEL_SCHEDULED: 'Zaplanowano rezygnację',
+  // F3.5 — cykl życia usługi zmieniany przez obsługę.
+  CANCEL_REVOKED: 'Rezygnacja cofnięta',
+  RENEWAL_DATE_CHANGED: 'Zmieniono datę odnowienia',
+  PAYMENT_PROMISE: 'Wstrzymano zawieszenie do terminu płatności',
+  PAYMENT_PROMISE_REVOKED: 'Odwołano wstrzymanie zawieszenia',
   CANCELED: 'Usługa anulowana',
   EXPIRED: 'Usługa wygasła',
   RESELLER_MARKUP_REMOVED: 'Cena bez narzutu partnera',

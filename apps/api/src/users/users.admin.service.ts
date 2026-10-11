@@ -533,6 +533,8 @@ export class UsersAdminService {
         currentPeriodStart: s.currentPeriodStart?.toISOString() ?? null,
         currentPeriodEnd: s.currentPeriodEnd?.toISOString() ?? null,
         cancelAt: s.cancelAt?.toISOString() ?? null,
+        // F3.5 — obietnica zapłaty (bez zawieszenia do tej chwili) widoczna na karcie klienta.
+        paymentPromiseUntil: s.paymentPromiseUntil?.toISOString() ?? null,
         autoscalingEnabled: s.autoscalingEnabled,
         listPriceAmount: s.listPriceAmount?.toString() ?? null,
         individualPrice: s.individualPrice?.toString() ?? null,

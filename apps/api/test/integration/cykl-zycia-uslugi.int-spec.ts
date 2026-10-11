@@ -3,11 +3,14 @@ import { AuditService } from '../../src/common/audit/audit.service.js';
 import { WalletLedgerService } from '../../src/billing/wallet-ledger.service.js';
 import { PromoService } from '../../src/billing/promo.service.js';
 import { RenewalScheduler } from '../../src/subscriptions/renewal.scheduler.js';
+import { CyklZyciaUslugiService } from '../../src/subscriptions/cykl-zycia-uslugi.service.js';
+import { UsersService } from '../../src/users/users.service.js';
 import { prisma, rozlacz, utworzPlan, wyczyscBaze } from './setup.js';
 
 /**
  * F3.5 — cykl życia usługi na prawdziwej bazie: anulowana na koniec okresu nie odnawia się (także w oknie
- * odnowienia przed końcem okresu) i kończy się z jego końcem. Atrapa tylko dla operacji na węźle.
+ * odnowienia przed końcem okresu) i kończy się z jego końcem; anulacja i cofnięcie przez operatora (z kartą — najpierw
+ * system płatności), zmiana daty odnowienia, obietnica zapłaty wstrzymująca zawieszenie. Atrapy: węzeł i Stripe.
  */
 
 const zakonczone: string[] = [];
@@ -80,5 +83,169 @@ describe('F3.5 — anulacja na koniec okresu w harmonogramie odnowień', () => {
     await scheduler().handleHourlyTick();
     expect(zakonczone).toEqual([portfel.id]);
     expect(await saldo(k.id)).toBe(100);
+  });
+});
+
+// ── operator: CyklZyciaUslugiService ─────────────────────────────────────────
+
+const stripeWywolania: string[] = [];
+let stripePada = false;
+const stripe = {
+  cancelSubscription: async (id: string, o: { atPeriodEnd?: boolean }) => {
+    if (stripePada) throw new Error('stripe 500');
+    stripeWywolania.push(`cancel:${id}:${o.atPeriodEnd}`);
+  },
+  cofnijAnulacjeSubskrypcji: async (id: string) => {
+    if (stripePada) throw new Error('stripe 500');
+    stripeWywolania.push(`cofnij:${id}`);
+  },
+};
+const cykl = () => new CyklZyciaUslugiService(prisma() as never, new AuditService(prisma() as never), stripe as never);
+async function operator(role: 'STAFF' | 'ADMIN' = 'STAFF') {
+  n += 1;
+  const u = await prisma().user.create({ data: { email: `f35-op-${n}-${Date.now()}@test.verris.pl`, passwordHash: 'x', role } });
+  return { userId: u.id, role };
+}
+const POWOD = 'Klient prosi w zgłoszeniu o rezygnację.';
+const aktywnosc = (userId: string) =>
+  new UsersService(prisma() as never, {} as never, {} as never, {} as never, {} as never, {} as never).listMyActivity(userId);
+
+describe('F3.5 — cykl życia usługi zmieniany przez operatora', () => {
+  beforeEach(async () => {
+    await wyczyscBaze();
+    zakonczone.length = 0;
+    zawieszone.length = 0;
+    stripeWywolania.length = 0;
+    stripePada = false;
+  });
+  afterAll(rozlacz);
+
+  it('anulacja na koniec okresu (portfel): cancelAt = koniec okresu, idempotentnie; harmonogram nie obciąża; cofnięcie przywraca odnowienie', async () => {
+    const op = await operator();
+    const k = await klient(100);
+    const koniec = new Date(Date.now() + 10 * 86400000);
+    const u = await usluga(k.id, { currentPeriodEnd: koniec });
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'Rezygnacja', message: 'Proszę o rezygnację' } });
+
+    // Powód obowiązkowy; zgłoszenie musi być klienta.
+    await expect(cykl().anulujNaKoniecOkresu({ subscriptionId: u.id, operator: op, powod: 'krótki' })).rejects.toMatchObject({ status: 400 });
+    const r = await cykl().anulujNaKoniecOkresu({ subscriptionId: u.id, operator: op, powod: POWOD, zgloszenie: `#${zgl.id.slice(0, 8)}` });
+    expect(r).toMatchObject({ bezZmian: false, cancelAt: koniec.toISOString() });
+    expect((await sub(u.id)).cancelAt?.toISOString()).toBe(koniec.toISOString());
+    expect(await cykl().anulujNaKoniecOkresu({ subscriptionId: u.id, operator: op, powod: POWOD })).toMatchObject({ bezZmian: true });
+    expect(await prisma().subscriptionEvent.count({ where: { subscriptionId: u.id, type: 'CANCEL_SCHEDULED' } })).toBe(1);
+    expect(stripeWywolania).toEqual([]);
+
+    // D3 — klient widzi „obsługa Verris (zgłoszenie #…)”; zdarzenie usługi bez powodu i bez id pracownika.
+    const e = (await aktywnosc(k.id)).events.find((x) => x.action === 'SUBSCRIPTION_CANCEL_SCHEDULED');
+    expect(e).toMatchObject({ actor: `obsługa Verris (zgłoszenie #${zgl.id.slice(0, 8)})` });
+    const zd = await prisma().subscriptionEvent.findFirstOrThrow({ where: { subscriptionId: u.id, type: 'CANCEL_SCHEDULED' } });
+    expect(JSON.stringify(zd.details)).not.toContain(op.userId);
+    expect(JSON.stringify(zd.details)).not.toContain('zgłoszeniu');
+    const dziennik = await prisma().auditLog.findFirstOrThrow({ where: { action: 'OPERATOR_ACCOUNT_CHANGED', userId: k.id } });
+    expect(dziennik).toMatchObject({ actorUserId: op.userId, details: expect.objectContaining({ akcja: 'anulacja-na-koniec-okresu', powod: POWOD, zgloszenieId: zgl.id }) });
+
+    // Cofnięcie: cancelAt znika, drugi raz — bez zmian.
+    expect(await cykl().cofnijAnulacje({ subscriptionId: u.id, operator: op, powod: POWOD })).toMatchObject({ bezZmian: false });
+    expect((await sub(u.id)).cancelAt).toBeNull();
+    expect(await cykl().cofnijAnulacje({ subscriptionId: u.id, operator: op, powod: POWOD })).toMatchObject({ bezZmian: true });
+    expect((await aktywnosc(k.id)).events.some((x) => x.action === 'SUBSCRIPTION_CANCEL_REVOKED')).toBe(true);
+  });
+
+  it('kartą (Stripe): najpierw system płatności; jego błąd = nic nie zmienione; STAFF nie rusza usług konta zespołu', async () => {
+    const op = await operator();
+    const k = await klient(0);
+    const stripeId = `sub_f35_${Date.now()}`;
+    const u = await usluga(k.id, { paymentSource: 'STRIPE_CARD', stripeSubscriptionId: stripeId, currentPeriodEnd: new Date(Date.now() + 5 * 86400000) });
+    stripePada = true;
+    await expect(cykl().anulujNaKoniecOkresu({ subscriptionId: u.id, operator: op, powod: POWOD })).rejects.toMatchObject({ status: 409 });
+    expect((await sub(u.id)).cancelAt).toBeNull();
+    stripePada = false;
+    await cykl().anulujNaKoniecOkresu({ subscriptionId: u.id, operator: op, powod: POWOD });
+    stripePada = true;
+    await expect(cykl().cofnijAnulacje({ subscriptionId: u.id, operator: op, powod: POWOD })).rejects.toMatchObject({ status: 409 });
+    expect((await sub(u.id)).cancelAt).not.toBeNull();
+    stripePada = false;
+    await cykl().cofnijAnulacje({ subscriptionId: u.id, operator: op, powod: POWOD });
+    expect(stripeWywolania).toEqual([`cancel:${stripeId}:true`, `cofnij:${stripeId}`]);
+    // Data odnowienia usługi kartą cykliczną — odmowa (do decyzji właściciela).
+    await expect(
+      cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: new Date(Date.now() + 20 * 86400000) }),
+    ).rejects.toMatchObject({ status: 400 });
+
+    const zespol = await prisma().user.create({ data: { email: `f35-zespol-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'STAFF' } });
+    const uz = await usluga(zespol.id, { currentPeriodEnd: new Date(Date.now() + 5 * 86400000) });
+    await expect(cykl().anulujNaKoniecOkresu({ subscriptionId: uz.id, operator: op, powod: POWOD })).rejects.toMatchObject({ status: 403 });
+    await expect(cykl().anulujNaKoniecOkresu({ subscriptionId: uz.id, operator: await operator('ADMIN'), powod: POWOD })).resolves.toMatchObject({ bezZmian: false });
+  });
+
+  it('data odnowienia: przedłużenie gratis bez obciążenia; skrócenie tylko ze zgłoszeniem klienta; nie w oknie odnowienia; anulowana — najpierw cofnij', async () => {
+    const op = await operator('ADMIN');
+    const k = await klient(100);
+    const koniec = new Date(Date.now() + 10 * 86400000);
+    const u = await usluga(k.id, { currentPeriodEnd: koniec });
+    const nowa = new Date(koniec.getTime() + 14 * 86400000);
+    expect(await cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: nowa })).toMatchObject({ bezZmian: false, dni: 14 });
+    expect((await sub(u.id)).currentPeriodEnd?.toISOString()).toBe(nowa.toISOString());
+    expect(await cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: nowa })).toMatchObject({ bezZmian: true });
+    expect(await saldo(k.id)).toBe(100);
+    expect((await aktywnosc(k.id)).events.some((x) => x.action === 'SUBSCRIPTION_RENEWAL_DATE_CHANGED')).toBe(true);
+
+    // Skrócenie bez zgłoszenia — 400; ze zgłoszeniem klienta — tak.
+    const krocej = new Date(Date.now() + 5 * 86400000);
+    await expect(cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: krocej })).rejects.toMatchObject({ status: 400 });
+    const zgl = await prisma().ticket.create({ data: { userId: k.id, subject: 'Wyrównanie dat', message: 'x' } });
+    await cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: krocej, zgloszenie: zgl.id });
+    expect((await sub(u.id)).currentPeriodEnd?.toISOString()).toBe(krocej.toISOString());
+
+    // Ponad rok naraz — 400; mniej niż doba od teraz — 400.
+    await expect(cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: new Date(krocej.getTime() + 400 * 86400000) })).rejects.toMatchObject({ status: 400 });
+    await expect(cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: new Date(Date.now() + 3600000), zgloszenie: zgl.id })).rejects.toMatchObject({ status: 400 });
+
+    // W oknie odnowienia (12 h do końca) — odmowa, żeby nie wejść między obciążenie a przesunięcie okresu.
+    const wOknie = await usluga(k.id);
+    await expect(cykl().zmienDateOdnowienia({ subscriptionId: wOknie.id, operator: op, powod: POWOD, nowaData: new Date(Date.now() + 30 * 86400000) })).rejects.toMatchObject({ status: 400 });
+
+    // Anulowana na koniec okresu — najpierw cofnięcie.
+    await cykl().anulujNaKoniecOkresu({ subscriptionId: u.id, operator: op, powod: POWOD });
+    await expect(cykl().zmienDateOdnowienia({ subscriptionId: u.id, operator: op, powod: POWOD, nowaData: nowa })).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('obietnica zapłaty: wstrzymuje zawieszenie zaległej usługi do daty, po dacie normalny cykl; maks. 7 dni; jedna na zaległość dla STAFF', async () => {
+    const op = await operator();
+    const k = await klient(0);
+    const u = await usluga(k.id, { status: SubscriptionStatus.PAST_DUE, currentPeriodEnd: new Date(Date.now() - 3600000) });
+    await prisma().subscriptionEvent.create({ data: { subscriptionId: u.id, type: 'PAYMENT_FAILED', createdAt: new Date(Date.now() - 2 * 3600000) } });
+
+    await expect(cykl().ustawObietniceZaplaty({ subscriptionId: u.id, operator: op, powod: POWOD, dni: 8 })).rejects.toMatchObject({ status: 400 });
+    const r = await cykl().ustawObietniceZaplaty({ subscriptionId: u.id, operator: op, powod: POWOD, dni: 3 });
+    const doKiedy = new Date(r.paymentPromiseUntil);
+    expect(doKiedy.getTime()).toBeGreaterThan(Date.now() + 3 * 86400000 - 60000);
+    await scheduler().handleHourlyTick();
+    expect(zawieszone).toEqual([]);
+    expect((await sub(u.id)).status).toBe('PAST_DUE');
+
+    // Druga obietnica w tej samej zaległości — STAFF nie, administrator tak.
+    await expect(cykl().ustawObietniceZaplaty({ subscriptionId: u.id, operator: op, powod: POWOD, dni: 7 })).rejects.toMatchObject({ status: 403 });
+    await cykl().ustawObietniceZaplaty({ subscriptionId: u.id, operator: await operator('ADMIN'), powod: POWOD, dni: 1 });
+
+    // Po dacie — zawieszenie w najbliższym przebiegu.
+    await prisma().subscription.update({ where: { id: u.id }, data: { paymentPromiseUntil: new Date(Date.now() - 60000) } });
+    await scheduler().handleHourlyTick();
+    expect(zawieszone).toEqual([u.id]);
+    // Aktywnej usługi obietnica nie dotyczy.
+    const aktywna = await usluga(k.id, { currentPeriodEnd: new Date(Date.now() + 5 * 86400000) });
+    await expect(cykl().ustawObietniceZaplaty({ subscriptionId: aktywna.id, operator: op, powod: POWOD, dni: 2 })).rejects.toMatchObject({ status: 400 });
+  });
+
+  it('odwołanie obietnicy: zawieszenie wraca do normalnego cyklu', async () => {
+    const op = await operator();
+    const k = await klient(0);
+    const u = await usluga(k.id, { status: SubscriptionStatus.PAST_DUE, currentPeriodEnd: new Date(Date.now() - 3600000) });
+    await cykl().ustawObietniceZaplaty({ subscriptionId: u.id, operator: op, powod: POWOD, dni: 2 });
+    expect(await cykl().odwolajObietniceZaplaty({ subscriptionId: u.id, operator: op, powod: POWOD })).toMatchObject({ bezZmian: false });
+    expect((await sub(u.id)).paymentPromiseUntil).toBeNull();
+    await scheduler().handleHourlyTick();
+    expect(zawieszone).toEqual([u.id]);
   });
 });

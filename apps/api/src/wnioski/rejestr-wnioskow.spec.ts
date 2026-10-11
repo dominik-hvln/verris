@@ -7,6 +7,7 @@ import { UsersAdminController } from '../users/users.admin.controller.js';
 import { STAFF_PERMISSIONS_KEY } from '../common/decorators/staff-permissions.decorator.js';
 import { InvoicesAdminController } from '../billing/invoices.admin.controller.js';
 import { SubscriptionsAdminController } from '../subscriptions/subscriptions.admin.controller.js';
+import { CyklZyciaUslugiAdminController } from '../subscriptions/cykl-zycia-uslugi.admin.controller.js';
 import { zWnioskiem } from '../common/audit/audit.service.js';
 import {
   REJESTR_WNIOSKOW,
@@ -31,6 +32,7 @@ describe('PB-48 — rejestr wniosków', () => {
       'CUSTOMER_PASSWORD_RESET',
       'SUBSCRIPTION_SUSPEND',
       'SUBSCRIPTION_UNSUSPEND',
+      'SUBSCRIPTION_RENEWAL_DATE',
     ]);
     for (const t of TYPY_WNIOSKOW) {
       expect(STAFF_PERMISSION_KEYS).toContain(REJESTR_WNIOSKOW[t].uprawnienie);
@@ -51,6 +53,7 @@ describe('PB-48 — rejestr wniosków', () => {
       CUSTOMER_PASSWORD_RESET: UsersAdminController.prototype.resetPassword,
       SUBSCRIPTION_SUSPEND: SubscriptionsAdminController.prototype.suspend,
       SUBSCRIPTION_UNSUSPEND: SubscriptionsAdminController.prototype.unsuspend,
+      SUBSCRIPTION_RENEWAL_DATE: CyklZyciaUslugiAdminController.prototype.zmienDateOdnowienia,
     };
     for (const t of TYPY_WNIOSKOW) {
       const straznik = (Reflect.getMetadata(STAFF_PERMISSIONS_KEY, bezposrednio[t]) as string[] | undefined) ?? [];
@@ -66,6 +69,12 @@ describe('PB-48 — rejestr wniosków', () => {
     expect(typyDoDecyzji('STAFF', ['REQUESTS_APPROVE', 'BILLING_MANAGE'])).toEqual(['WALLET_CREDIT', 'INVOICE_VOID']);
     // F2.3 — zawieszenie i odwieszenie akceptuje L4 (REQUESTS_APPROVE + SUBSCRIPTIONS_SUSPEND).
     expect(typyDoDecyzji('STAFF', ['REQUESTS_APPROVE', 'SUBSCRIPTIONS_SUSPEND'])).toEqual(['SUBSCRIPTION_SUSPEND', 'SUBSCRIPTION_UNSUSPEND']);
+    // F3.5 — data odnowienia (koszt Verris) akceptuje L4: REQUESTS_APPROVE + BILLING_MANAGE + SUBSCRIPTIONS_MANAGE.
+    expect(typyDoDecyzji('STAFF', ['REQUESTS_APPROVE', 'BILLING_MANAGE', 'SUBSCRIPTIONS_MANAGE'])).toEqual([
+      'WALLET_CREDIT',
+      'INVOICE_VOID',
+      'SUBSCRIPTION_RENEWAL_DATE',
+    ]);
     // Konto wewnętrzne: komplet jak przy PATCH operational (CUSTOMERS_MANAGE w strażniku + flaga w serwisie).
     expect(typyDoDecyzji('STAFF', ['REQUESTS_APPROVE', 'CUSTOMERS_INTERNAL_FLAG'])).toEqual([]);
     expect(typyDoDecyzji('STAFF', ['REQUESTS_APPROVE', 'CUSTOMERS_MANAGE', 'CUSTOMERS_INTERNAL_FLAG'])).toEqual([
@@ -111,6 +120,7 @@ describe('PB-48 — rejestr wniosków', () => {
       },
       portfel: { adminCreditWallet: async (a) => (wywolania.push(['portfel', a]), { id: 'tx1', amount: { toString: () => '50.00' } }) },
       anulowanie: { anuluj: async (a) => (wywolania.push(['anuluj', a]), { id: 'f1', number: 'VDR/1', status: 'VOID' }) },
+      cyklZycia: { zmienDateOdnowienia: async (a) => (wywolania.push(['data', a]), { bezZmian: false, komunikat: 'ok' }) },
     };
     return { z, wywolania };
   };
@@ -205,6 +215,27 @@ describe('PB-48 — rejestr wniosków', () => {
     expect(wywolania[0]![1]).not.toHaveProperty('chargeRenewal');
   });
 
+  it('F3.5 data odnowienia: wykonuje L4 (BILLING_MANAGE + SUBSCRIPTIONS_MANAGE), składa L2; aktywna usługa klienta; serwis cyklu z powodem z uzasadnienia', async () => {
+    const d = REJESTR_WNIOSKOW.SUBSCRIPTION_RENEWAL_DATE;
+    expect(wymaganeUprawnienia(d)).toEqual(['BILLING_MANAGE', 'SUBSCRIPTIONS_MANAGE']);
+    expect(d.doZlozenia).toBe('SUBSCRIPTIONS_MANAGE');
+    const p = { subscriptionId: 's1', nowaData: '2026-12-24T10:00:00.000Z', zgloszenie: '#ab12cd34' };
+    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ usluga: { userId: 'inny', status: 'ACTIVE' } }).z)).rejects.toThrow(/nie istnieje na koncie/);
+    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ usluga: { userId: 'k1', status: 'PAST_DUE' } }).z)).rejects.toThrow(/aktywnej usłudze/);
+    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ zgloszenie: false }).z)).rejects.toThrow(/Nie ma takiego zgłoszenia/);
+    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal().z)).resolves.toBeUndefined();
+    expect(d.opis(p)).toBe('Nowa data odnowienia: 24.12.2026 (zgłoszenie #ab12cd34)');
+    const { z, wywolania } = zal();
+    const w = await d.wykonaj(p, { ...k, uzasadnienie: 'rekompensata za awarię' }, z);
+    expect(wywolania).toEqual([
+      [
+        'data',
+        { subscriptionId: 's1', operator: { userId: 'kier', role: 'STAFF' }, powod: 'rekompensata za awarię', zgloszenie: '#ab12cd34', nowaData: new Date(p.nowaData) },
+      ],
+    ]);
+    expect(w).toEqual({ komunikat: 'ok' });
+  });
+
   it('komunikat błędu wykonawcy: wyjątek HTTP po polsku wprost, inny — z przedrostkiem, bez stosu', () => {
     expect(komunikatBledu(new ForbiddenException('Brak.'))).toBe('Brak.');
     expect(komunikatBledu(new Error('timeout'))).toBe('Operacja nie powiodła się: timeout');
@@ -230,6 +261,8 @@ describe('PB-48 — 403 z kodem WYMAGA_WNIOSKU przy operacjach z rejestru', () =
     // F2.3 — L2 (SUBSCRIPTIONS_MANAGE) dostaje „Wyślij wniosek”, L3 (SUBSCRIPTIONS_SUSPEND) zawiesza sam.
     [SubscriptionsAdminController, 'suspend', 'SUBSCRIPTION_SUSPEND', ['SUBSCRIPTIONS_MANAGE'], ['SUBSCRIPTIONS_SUSPEND']],
     [SubscriptionsAdminController, 'unsuspend', 'SUBSCRIPTION_UNSUSPEND', ['SUBSCRIPTIONS_MANAGE'], ['SUBSCRIPTIONS_SUSPEND']],
+    // F3.5 — L2/L3 (SUBSCRIPTIONS_MANAGE) dostają „Wyślij wniosek”, L4 zmienia datę sam.
+    [CyklZyciaUslugiAdminController, 'zmienDateOdnowienia', 'SUBSCRIPTION_RENEWAL_DATE', ['SUBSCRIPTIONS_MANAGE'], ['SUBSCRIPTIONS_MANAGE', 'BILLING_MANAGE']],
   ])('%o.%s → operacja %s', async (klasa, metoda, typ, bez, z) => {
     const handler = (klasa.prototype as unknown as Record<string, object>)[metoda];
     expect(Reflect.getMetadata(WNIOSEK_MOZLIWY_KEY, handler)).toBe(typ);

@@ -16,6 +16,8 @@ import { SubscriptionsController } from './subscriptions.controller.js';
 import { SubscriptionsAdminController } from './subscriptions.admin.controller.js';
 import { KontoKlientaAdminController } from './konto-klienta.admin.controller.js';
 import { KontoKlientaAkcjeAdminController } from './konto-klienta-akcje.admin.controller.js';
+import { CyklZyciaUslugiAdminController } from './cykl-zycia-uslugi.admin.controller.js';
+import { CyklZyciaUslugiService } from './cykl-zycia-uslugi.service.js';
 import { AkcjeKontaOperatoraService } from './akcje-konta-operatora.service.js';
 import { MigrationsAdminController } from './migrations.admin.controller.js';
 import { UserServicesController } from './services.controller.js';
@@ -97,6 +99,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
   imports: [ServersModule, DeliverabilityModule, PlatformSettingsModule, EcoModule, forwardRef(() => BillingModule), MailModule, NotificationsModule, ApiTokensModule, ComplianceModule, TicketsModule],
   providers: [
     SubscriptionsService,
+    CyklZyciaUslugiService,
     PocztaKontaOperatoraService,
     BlokadyIpKontaService,
     TrafieniaWafKontaService,
@@ -177,6 +180,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
     WafAdminController,
     KontoKlientaAdminController,
     KontoKlientaAkcjeAdminController,
+    CyklZyciaUslugiAdminController,
     PocztaKontaAdminController,
     BlokadyIpKontaAdminController,
     MigracjaZgodaController,
@@ -184,6 +188,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
   ],
   exports: [
     SubscriptionsService,
+    CyklZyciaUslugiService,
     ProvisioningService,
     ProvisioningQueueService,
     MigrationOrchestratorService,

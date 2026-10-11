@@ -23,6 +23,7 @@ import { WnioskiAdminController } from '../../src/wnioski/wnioski.admin.controll
 import { WnioskiService } from '../../src/wnioski/wnioski.service.js';
 import { SubscriptionsService } from '../../src/subscriptions/subscriptions.service.js';
 import { ZawieszenieOperatoraService } from '../../src/subscriptions/zawieszenie-operatora.service.js';
+import { CyklZyciaUslugiService } from '../../src/subscriptions/cykl-zycia-uslugi.service.js';
 import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } from './setup.js';
 
 /**
@@ -50,6 +51,8 @@ async function wczytajDziennik() {
     UsersAdminService,
     AnulowanieService,
     NotificationsService,
+    // F3.5 — prawdziwa zmiana daty odnowienia (Postgres, dziennik); Stripe nieużywany przy usłudze z portfela.
+    CyklZyciaUslugiService,
     { provide: PrismaService, useFactory: () => prisma() },
     { provide: JwtService, useValue: jwt },
     { provide: ConfigService, useValue: { get: () => SEKRET } },
@@ -354,6 +357,40 @@ describe('PB-48 — wnioski o operację (PostgreSQL)', () => {
 
     // Drugi wniosek o to samo — usługa już zawieszona.
     expect((await wniosek(l2, '')).status).toBe(400);
+  });
+
+  it('F3.5 data odnowienia: L2 składa wniosek, L3 bez BILLING_MANAGE nie akceptuje, L4 akceptuje → nowa data, bez obciążenia; klient widzi „obsługa Verris”', async () => {
+    const l2 = await operator(['CUSTOMERS_VIEW', 'SUBSCRIPTIONS_MANAGE']);
+    const l3 = await operator(['REQUESTS_APPROVE', 'SUBSCRIPTIONS_MANAGE', 'SUBSCRIPTIONS_SUSPEND']);
+    const l4 = await operator(['REQUESTS_APPROVE', 'SUBSCRIPTIONS_MANAGE', 'BILLING_MANAGE']);
+    const plan = await utworzPlan();
+    const k = await klient();
+    const koniec = new Date(Date.now() + 10 * 86400000);
+    const u = await prisma().subscription.create({
+      data: { userId: k.id, planId: plan.id, status: 'ACTIVE', interval: 'MONTH', priceAmount: 45, paymentSource: 'WALLET', currentPeriodEnd: koniec },
+    });
+    const nowa = new Date(koniec.getTime() + 7 * 86400000).toISOString();
+    const zl = await zadanie('POST', '/admin/wnioski', l2, {
+      typ: 'SUBSCRIPTION_RENEWAL_DATE',
+      userId: k.id,
+      subscriptionId: u.id,
+      payload: { subscriptionId: u.id, nowaData: nowa },
+      uzasadnienie: 'Rekompensata za awarię węzła 10.10.',
+    });
+    expect(zl.status).toBe(201);
+    expect((await zadanie('POST', `/admin/wnioski/${zl.body.id as string}/akceptuj`, l3, {})).status).toBe(403);
+    expect((await zadanie('POST', `/admin/wnioski/${zl.body.id as string}/akceptuj`, l4, {})).body).toMatchObject({ status: 'APPROVED' });
+    const po = await prisma().subscription.findUniqueOrThrow({ where: { id: u.id } });
+    expect(po.currentPeriodEnd?.toISOString()).toBe(nowa);
+    expect(await prisma().walletTransaction.count({ where: { userId: k.id } })).toBe(0);
+    await wczytajDziennik();
+    expect(dziennik.find((d) => d.action === 'SUBSCRIPTION_RENEWAL_DATE_CHANGED')).toMatchObject({
+      userId: k.id,
+      actorUserId: l4.id,
+      details: expect.objectContaining({ dni: 7, wniosekId: zl.body.id, wnioskujacyUserId: l2.id }),
+    });
+    const aktywnosc = await new UsersService(prisma() as never, {} as never, {} as never, {} as never, {} as never, {} as never).listMyActivity(k.id);
+    expect(aktywnosc.events.find((x) => x.action === 'SUBSCRIPTION_RENEWAL_DATE_CHANGED')).toMatchObject({ actor: 'obsługa Verris' });
   });
 
   it('przegląd F2.3: węzeł odmawia zawieszenia → wniosek FAILED, usługa i konto dalej aktywne (nie „zawieszona” przy działającej stronie)', async () => {
