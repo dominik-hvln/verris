@@ -112,6 +112,27 @@ describe('F3.1 — najwięksi nadawcy i odrzucenia węzła (node-mail-log.sh, tr
     expect(r.out).not.toMatch(/[a-z0-9._-]+@[a-z0-9.-]+/i);
   });
 
+  it('audyt Fali 3: U= z tematu, z identu zdalnego hosta ani z adresu w cudzysłowie nie przypisuje wysyłki kontu', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'stats-'));
+    const podszyte = [
+      // SMTP AUTH (przejęta skrzynka a.pl), temat z „ U=klientb”
+      '2026-10-10 11:00:00 1tBBBB-00000000001-BBBB <= x@a.pl H=(laptop) [10.0.0.9] P=esmtpsa A=dovecot_login:x@a.pl S=500 id=abc@a.pl T="Promocja U=klientb dzis" from <x@a.pl> for y@gmail.com',
+      '2026-10-10 11:00:01 1tBBBB-00000000001-BBBB => y@gmail.com R=lookuphost T=remote_smtp H=gmail-smtp-in.l.google.com [142.250.1.1] C="250 OK"',
+      // ident zdalnego hosta (RFC 1413) — pole U= podaje nadawca
+      '2026-10-10 11:01:00 1tBBBB-00000000002-BBBB <= z@b.pl H=mx.b.pl [203.0.113.5] U=klientb P=esmtp S=500',
+      '2026-10-10 11:01:01 1tBBBB-00000000002-BBBB => y@gmail.com R=lookuphost T=remote_smtp H=gmail-smtp-in.l.google.com [142.250.1.1] C="250 OK"',
+      // lokalna, ale adres nadawcy w cudzysłowie ze spacją i „U=” (sendmail -f)
+      '2026-10-10 11:02:00 1tBBBB-00000000003-BBBB <= "a U=klientb x"@c.pl U=klient1 P=local S=500',
+      '2026-10-10 11:02:01 1tBBBB-00000000003-BBBB => y@gmail.com R=lookuphost T=remote_smtp H=gmail-smtp-in.l.google.com [142.250.1.1] C="250 OK"',
+    ].join('\n');
+    writeFileSync(join(dir, 'mainlog'), `${LOG}\n${podszyte}\n`);
+    const r = spawnSync('bash', [join(SKRYPTY, 'node-mail-log.sh')], { env: { PATH: process.env.PATH, ML_LOG_DIR: dir, ML_MODE: 'stats' }, encoding: 'utf8' });
+    expect(r.status, r.stderr).toBe(0);
+    const ms = r.stdout.split('\n').filter((l) => l.startsWith('VERRIS_MS '));
+    expect(ms.some((l) => l.split('|')[1] === 'klientb')).toBe(false);
+    expect(ms).toEqual(expect.arrayContaining(['VERRIS_MS klient.pl|klient1|2|1|0', 'VERRIS_MS a.pl|-|1|0|0', 'VERRIS_MS b.pl|-|1|0|0']));
+  });
+
   it('tryb konta bez domen nadal wymaga domen (stary przebieg bez zmian)', () => {
     expect(uruchom({}).rc).not.toBe(0);
   });

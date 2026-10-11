@@ -61,6 +61,23 @@ def host_domena(reszta):
         return "-"
     czesci = m.group(1).lower().strip(".").split(".")
     return ".".join(czesci[-2:]) if len(czesci) >= 2 else "-"
+def uzytkownik_lokalny(adr, reszta):
+    """
+    Audyt Fali 3 — użytkownik DA tylko z pola U= poczty LOKALNEJ (PHP mail()/sendmail: bez H=, P=local*), gdzie Exim
+    wpisuje konto systemowe procesu. Pole stoi tuż przed P= (spec Exima, „Log line flags”); wszystko za P= (A=, T="temat",
+    from/for) i adres nadawcy w cudzysłowie (spacje) to dane od nadawcy — temat „Promocja U=klientb” albo ident
+    zdalnego hosta nie mogą przypisać wysyłki cudzemu kontu. Poczta z SMTP (H=) — po domenie nadawcy, bez użytkownika.
+    https://www.exim.org/exim-html-current/doc/html/spec_html/ch-log_files.html (received_protocol „local”:
+    https://www.exim.org/exim-html-current/doc/html/spec_html/ch-expansion_strings.html — $received_protocol).
+    NIEZWERYFIKOWANE na logu t1 (wiersze <= z exim.conf DirectAdmina) — sprawdzić na t1.
+    """
+    if '"' in adr:
+        return "-"
+    przed, jest, po = reszta.partition(" P=")
+    if not jest or not po.startswith("local") or " H=" in przed or '"' in przed:
+        return "-"
+    u = re.fullmatch(r"(?: R=\S+)? U=([a-z][a-z0-9]{0,15})", przed)
+    return u.group(1) if u and u.group(1) not in SYSTEMOWI else "-"
 def zewnetrzna(reszta):
     return bool(re.search(r" H=\S| T=remote_smtp\b| R=(lookuphost|dnslookup)\b", reszta))
 for plik in sys.argv[1:]:
@@ -77,9 +94,7 @@ for plik in sys.argv[1:]:
             od = od or czas
             do = czas
             if znak == "<=":
-                u = re.search(r" U=(\S+)", reszta)
-                uzytkownik = u.group(1) if u and USER.match(u.group(1)) and u.group(1) not in SYSTEMOWI else "-"
-                nadawca[mid] = (domena(adr), uzytkownik)
+                nadawca[mid] = (domena(adr), uzytkownik_lokalny(adr, reszta))
                 continue
             if mid not in nadawca or not zewnetrzna(reszta):
                 continue
