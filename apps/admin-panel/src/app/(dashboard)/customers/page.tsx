@@ -12,11 +12,12 @@ import { getAdminSession } from "@/lib/session";
 import { plForm } from "@/lib/pl";
 import { fetchStaffAccess } from "@/lib/staff-access";
 import { brakUprawnienia } from "@/lib/akcje/wezel";
+import { naStronie, naStronieWAdresie } from "@/lib/na-stronie";
 
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<FiltryKlientow & { page?: string }>;
+  searchParams: Promise<FiltryKlientow & { page?: string; na_stronie?: string }>;
 }
 
 /** F2.4 — stany konta (API: warunkiListyKont); „Wszystkie” bez filtra. */
@@ -31,13 +32,15 @@ const STANY: { klucz: string; nazwa: string }[] = [
 ];
 const KLUCZE = ["search", "status", "saldoOd", "saldoDo", "od", "do"] as const;
 
-function adresListy(f: FiltryKlientow, page = 1, baza = "/customers"): string {
+/** `na_stronie` (K1) tylko w adresach listy — eksport CSV nie stronicuje, dostaje same filtry. */
+function adresListy(f: FiltryKlientow, page = 1, baza = "/customers", rozmiar?: string): string {
   const p = new URLSearchParams();
   for (const k of KLUCZE) {
     const v = f[k]?.trim();
     if (v) p.set(k, v);
   }
   if (page > 1) p.set("page", String(page));
+  if (rozmiar) p.set("na_stronie", rozmiar);
   const qs = p.toString();
   return qs ? `${baza}?${qs}` : baza;
 }
@@ -48,6 +51,9 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const search = params.search?.trim() || undefined;
   const page = Number.parseInt(params.page ?? "1", 10) || 1;
+  // K1 — rozmiar strony z adresu (5–200, domyślnie 50).
+  const limit = naStronie(params.na_stronie);
+  const rozmiar = naStronieWAdresie(limit);
   const filtry: FiltryKlientow = {
     search,
     status: STANY.some((s) => s.klucz === params.status) ? params.status : undefined,
@@ -61,7 +67,7 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
   let data: Awaited<ReturnType<typeof listAdminUsers>> | null = null;
   let error: string | null = null;
   try {
-    data = await listAdminUsers({ ...filtry, page, limit: 50 });
+    data = await listAdminUsers({ ...filtry, page, limit });
   } catch (err) {
     error = err instanceof Error ? err.message : "Nieznany błąd";
   }
@@ -101,7 +107,7 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
           return (
             <Link
               key={s.klucz || "wszystkie"}
-              href={adresListy({ ...filtry, status: s.klucz || undefined })}
+              href={adresListy({ ...filtry, status: s.klucz || undefined }, 1, "/customers", rozmiar)}
               aria-current={on ? "page" : undefined}
               className={`rounded-full border px-3 py-1 text-[13px] ${on ? "border-primary bg-data-soft font-semibold text-data-hi" : "border-line-strong text-muted-foreground hover:text-foreground"}`}
             >
@@ -114,6 +120,7 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
       <section className={KARTA} aria-label="Lista klientów">
         <form action="/customers" className="flex flex-wrap items-end gap-2.5 px-[18px] py-4">
           {filtry.status ? <input type="hidden" name="status" value={filtry.status} /> : null}
+          {rozmiar ? <input type="hidden" name="na_stronie" value={rozmiar} /> : null}
           <label className="flex h-[38px] w-full max-w-[420px] items-center gap-2.5 rounded-[9px] border border-line-strong bg-background px-3 text-sm focus-within:border-primary">
             <Search className="h-[15px] w-[15px] shrink-0 text-muted-foreground" />
             <input
@@ -147,7 +154,7 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
             Szukaj
           </button>
           {filtrowane ? (
-            <Link href="/customers" className="text-[13px] font-semibold text-data-hi hover:underline">
+            <Link href={adresListy({}, 1, "/customers", rozmiar)} className="text-[13px] font-semibold text-data-hi hover:underline">
               Wyczyść
             </Link>
           ) : null}
@@ -238,7 +245,7 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
         )}
         {data && data.totalPages > 1 ? (
           <div className="flex items-center justify-end gap-2 border-t border-line p-4">
-            <PageNav filtry={filtry} page={page} totalPages={data.totalPages} />
+            <PageNav filtry={filtry} page={page} totalPages={data.totalPages} rozmiar={rozmiar} />
           </div>
         ) : null}
       </section>
@@ -255,12 +262,14 @@ function PageNav({
   filtry,
   page,
   totalPages,
+  rozmiar,
 }: {
   filtry: FiltryKlientow;
   page: number;
   totalPages: number;
+  rozmiar?: string;
 }) {
-  const buildHref = (target: number) => adresListy(filtry, target);
+  const buildHref = (target: number) => adresListy(filtry, target, "/customers", rozmiar);
 
   return (
     <>

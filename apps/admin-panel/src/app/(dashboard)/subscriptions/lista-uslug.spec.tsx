@@ -46,3 +46,40 @@ it("eksport CSV tylko z EXPORT_DATA — link z tymi samymi filtrami", async () =
   const html = await render({ stan: "PAST_DUE", q: "sklep" });
   expect(html).toContain('href="/api/uslugi-csv?status=PAST_DUE&amp;search=sklep"');
 });
+
+/** K1 — rozmiar strony z adresu (?na_stronie=): przy 15 usługach i 5 na stronie nawigacja „1 / 3”. */
+function piecnascie() {
+  api.mockReset().mockImplementation(async (s: string) => {
+    if (s === "/staff/me/access") return { role: "STAFF", isAdmin: false, permissions: ["SUBSCRIPTIONS_MANAGE", "EXPORT_DATA"] };
+    if (s.startsWith("/admin/subscriptions")) {
+      const q = new URLSearchParams(s.split("?")[1] ?? "");
+      const limit = Number(q.get("limit") ?? 50);
+      const page = Number(q.get("page") ?? 1);
+      return { rows: [wiersz("a")], total: 15, page, limit, totalPages: Math.max(1, Math.ceil(15 / limit)), liczby: { ACTIVE: 15 } };
+    }
+    return [];
+  });
+}
+
+it("?na_stronie=5 idzie do API jako limit=5; strona 1 z 3; rozmiar zostaje w stronach, zakładkach i formularzu, nie w CSV", async () => {
+  piecnascie();
+  const html = await render({ na_stronie: "5", q: "sklep" });
+  expect(api).toHaveBeenCalledWith("/admin/subscriptions?search=sklep&limit=5");
+  expect(html).toMatch(/>1(<!-- -->)? \/ (<!-- -->)?3</);
+  expect(html).toContain('href="/subscriptions?q=sklep&amp;strona=2&amp;na_stronie=5"');
+  expect(html).toContain('href="/subscriptions?stan=ACTIVE&amp;q=sklep&amp;na_stronie=5"');
+  expect(html).toContain('<input type="hidden" name="na_stronie" value="5"/>');
+  expect(html).toContain('href="/api/uslugi-csv?search=sklep"');
+});
+
+it("na_stronie przycięte do 5–200; nieczytelne = domyślne 50, które nie trafia do adresu", async () => {
+  piecnascie();
+  await render({ na_stronie: "1" });
+  expect(api).toHaveBeenCalledWith("/admin/subscriptions?limit=5");
+  await render({ na_stronie: "5000" });
+  expect(api).toHaveBeenCalledWith("/admin/subscriptions?limit=200");
+  api.mockClear();
+  const html = await render({ na_stronie: "abc" });
+  expect(api).toHaveBeenCalledWith("/admin/subscriptions");
+  expect(html).not.toContain("na_stronie");
+});

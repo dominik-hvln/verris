@@ -11,18 +11,19 @@ import { brakUprawnienia } from "@/lib/akcje/wezel";
 import { listAdminPlans } from "../plans/data";
 import { listAdminSubscriptions, parametryUslug, type FiltryUslug } from "./data";
 import { STAN_USLUGI, stanUslugi } from "@/lib/stan-uslugi";
+import { naStronie, naStronieWAdresie } from "@/lib/na-stronie";
 
 export const dynamic = "force-dynamic";
 
 const STAN = STAN_USLUGI;
 const KOLEJNOSC = ["ACTIVE", "PROVISIONING", "PENDING_PAYMENT", "PAST_DUE", "SUSPENDED", "CANCELED", "EXPIRED"];
 
-type Parametry = { stan?: string; wezel?: string; plan?: string; q?: string; strona?: string };
+type Parametry = { stan?: string; wezel?: string; plan?: string; q?: string; strona?: string; na_stronie?: string };
 
-/** Adres listy z filtrami w języku panelu (?stan=&wezel=&plan=&q=&strona=). */
+/** Adres listy z filtrami w języku panelu (?stan=&wezel=&plan=&q=&strona=&na_stronie=). */
 function adres(f: Parametry): string {
   const p = new URLSearchParams();
-  for (const k of ["stan", "wezel", "plan", "q", "strona"] as const) {
+  for (const k of ["stan", "wezel", "plan", "q", "strona", "na_stronie"] as const) {
     const v = f[k]?.trim();
     if (v && !(k === "strona" && v === "1")) p.set(k, v);
   }
@@ -40,12 +41,14 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
   const sp = await searchParams;
   const stan = sp.stan && STAN[sp.stan] ? sp.stan : undefined;
   const strona = Math.max(Number.parseInt(sp.strona ?? "1", 10) || 1, 1);
+  // K1 — rozmiar strony z adresu (5–200, domyślnie 50); zostaje w stronach, zakładkach i formularzu, nie w CSV.
+  const limit = naStronie(sp.na_stronie);
   const filtry: FiltryUslug = { status: stan, serverId: sp.wezel, planId: sp.plan, search: sp.q };
-  const biezace: Parametry = { stan, wezel: sp.wezel, plan: sp.plan, q: sp.q };
+  const biezace: Parametry = { stan, wezel: sp.wezel, plan: sp.plan, q: sp.q, na_stronie: naStronieWAdresie(limit) };
 
   // Węzły (NODES_VIEW) i plany (PLANS_MANAGE) tylko do list wyboru — bez uprawnienia filtr znika, lista działa.
   const [wynik, wezly, plany, dostep] = await Promise.all([
-    listAdminSubscriptions(filtry, strona).then(
+    listAdminSubscriptions(filtry, strona, limit).then(
       (d) => ({ d, error: null as string | null }),
       (e: unknown) => ({ d: null, error: e instanceof Error ? e.message : "Nie udało się pobrać listy." }),
     ),
@@ -93,6 +96,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
 
       <form action="/subscriptions" className="flex flex-wrap items-end gap-2.5" aria-label="Filtry usług">
         {stan ? <input type="hidden" name="stan" value={stan} /> : null}
+        {biezace.na_stronie ? <input type="hidden" name="na_stronie" value={biezace.na_stronie} /> : null}
         <label className="flex h-[38px] w-full max-w-[360px] items-center gap-2.5 rounded-[9px] border border-line-strong bg-background px-3 text-sm focus-within:border-primary">
           <Search className="h-[15px] w-[15px] shrink-0 text-muted-foreground" />
           <input
@@ -126,7 +130,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
           Filtruj
         </button>
         {sp.q || sp.wezel || sp.plan || stan ? (
-          <Link href="/subscriptions" className="text-[13px] font-semibold text-data-hi hover:underline">
+          <Link href={adres({ na_stronie: biezace.na_stronie })} className="text-[13px] font-semibold text-data-hi hover:underline">
             Wyczyść
           </Link>
         ) : null}

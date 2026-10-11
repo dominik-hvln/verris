@@ -1,4 +1,5 @@
 import { adminApi } from "@/lib/api";
+import { NA_STRONIE_DOMYSLNIE } from "@/lib/na-stronie";
 
 export interface AdminSubscriptionRow {
   id: string;
@@ -41,17 +42,19 @@ export interface ListaUslug {
   liczby: Record<string, number>;
 }
 
-export function parametryUslug(f: FiltryUslug, page = 1): URLSearchParams {
+/** `limit` (K1, rozmiar strony) tylko gdy inny niż domyślny API (50); eksport CSV woła bez strony i limitu. */
+export function parametryUslug(f: FiltryUslug, page = 1, limit = NA_STRONIE_DOMYSLNIE): URLSearchParams {
   const p = new URLSearchParams();
   for (const k of ["status", "serverId", "planId", "search"] as const) {
     const v = f[k]?.trim();
     if (v) p.set(k, v);
   }
   if (page > 1) p.set("page", String(page));
+  if (limit !== NA_STRONIE_DOMYSLNIE) p.set("limit", String(limit));
   return p;
 }
 
-export async function listAdminSubscriptions(f: FiltryUslug = {}, page = 1): Promise<ListaUslug> {
-  const qs = parametryUslug(f, page).toString();
+export async function listAdminSubscriptions(f: FiltryUslug = {}, page = 1, limit = NA_STRONIE_DOMYSLNIE): Promise<ListaUslug> {
+  const qs = parametryUslug(f, page, limit).toString();
   return adminApi<ListaUslug>(`/admin/subscriptions${qs ? `?${qs}` : ""}`);
 }
