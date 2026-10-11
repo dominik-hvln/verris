@@ -33,7 +33,10 @@ export function trafieniaZLogu(log: string | null): TrafienieWaf[] {
       status: m[9]!,
     });
   }
-  return out;
+  // Audyt Fali 3 — skrypt wypisuje od najstarszego (obcięcie przez agenta zabiera najstarsze); panel pokazuje najnowsze
+  // pierwsze. Sortowanie stabilne, bez czasu na końcu — działa też dla wyniku starszego skryptu (najnowsze pierwsze).
+  const t = (x: TrafienieWaf) => (x.czas ? Date.parse(x.czas) : -Infinity);
+  return out.map((x, i) => ({ x, i })).sort((a, b) => t(b.x) - t(a.x) || a.i - b.i).map(({ x }) => x);
 }
 
 /** Najczęstsze reguły (do szybkiej diagnozy „co blokuje”): id, opis, ile razy, ile zablokowano, ostatnio. */

@@ -2,6 +2,7 @@ import { spawnSync } from 'child_process';
 import { mkdtempSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { trafieniaZLogu } from '../servers/trafienia-waf.js';
 
 /**
  * F3.2 — prawdziwy ops/scripts/node-waf-hits.sh (zadanie WAF_HITS) na próbce dziennika audytu ModSecurity v2 (format
@@ -51,13 +52,15 @@ function uruchom(log: string, domeny = 'klient.pl,inna-klienta.pl') {
 }
 
 describe('F3.2 — node-waf-hits.sh (dziennik audytu ModSecurity)', () => {
-  it('Serial: tylko domeny konta (z www i subdomenami), najnowsze najpierw, czas w UTC, ścieżka bez query', () => {
+  it('Serial: tylko domeny konta (z www i subdomenami), od najstarszego (obcięcie zabiera najstarsze), czas w UTC, ścieżka bez query', () => {
     const r = uruchom(LOG);
     expect(r.rc, r.err).toBe(0);
     expect(r.wiersze).toEqual([
-      'VERRIS_WAF 2026-10-10T10:10:00Z|klient.pl|2001:db8::7|GET|/sklep/xmlrpc.php|930120|OS File Access Attempt|0|200',
       'VERRIS_WAF 2026-10-10T10:00:00Z|klient.pl|198.51.100.23|GET|/|942100|SQL Injection Attack Detected via libinjection|1|403',
+      'VERRIS_WAF 2026-10-10T10:10:00Z|klient.pl|2001:db8::7|GET|/sklep/xmlrpc.php|930120|OS File Access Attempt|0|200',
     ]);
+    // Panel: najnowsze pierwsze.
+    expect(trafieniaZLogu(r.out).map((t) => t.czas)).toEqual(['2026-10-10T10:10:00Z', '2026-10-10T10:00:00Z']);
     expect(r.out).toMatch(/^VERRIS_WAF_RAZEM 2 2 \d+$/m);
     // Bez query string, ciasteczek i nagłówków.
     expect(r.out).not.toMatch(/TAJNE|SEKRET|sqlmap|OR\+1=1/);
@@ -74,6 +77,63 @@ describe('F3.2 — node-waf-hits.sh (dziennik audytu ModSecurity)', () => {
     expect(r.rc, r.err).toBe(0);
     expect(r.wiersze).toEqual(['VERRIS_WAF 2026-10-10T10:00:00Z|klient.pl|198.51.100.23|GET|/wp-admin/|942100|SQL Injection Attack Detected via libinjection|1|403']);
     expect(r.out).not.toMatch(/TAJNE|SEKRET/);
+  });
+
+  it('audyt Fali 3: fałszywe sekcje wstrzyknięte w treść żądania (sekcja I) nie tworzą trafienia; wpis bez „-Z--” odrzucony', () => {
+    const wstrzykniety = [
+      '--aa11bb22-A--',
+      '[10/Oct/2026:12:00:00.000001 +0200] Yreal 203.0.113.66 40000 10.0.0.5 443',
+      '--aa11bb22-B--',
+      'POST /formularz HTTP/1.1',
+      'Host: obcy.pl',
+      '',
+      '--aa11bb22-I--',
+      '--deadbeef-A--',
+      '[11/Oct/2026:10:00:00 +0200] X 198.51.100.9 1 2 3',
+      '--deadbeef-B--',
+      'POST /wp-login.php HTTP/1.1',
+      'Host: klient.pl',
+      '--deadbeef-H--',
+      'Message: Warning. [id "941100"] [msg "Falszywa regula"]',
+      'Action: Intercepted (phase 2)',
+      '--deadbeef-Z--',
+      '',
+      '--aa11bb22-F--',
+      'HTTP/1.1 403 Forbidden',
+      '',
+      '--aa11bb22-H--',
+      `Message: ${ZBIORCZA}`,
+      'Action: Intercepted (phase 2)',
+      '',
+      '--aa11bb22-Z--',
+      '',
+    ].join('\n');
+    const urwany = wpis('c9d0e1f2', { czas: '10/Oct/2026:12:30:00.000001 +0200', ip: '192.0.2.1', linia: 'GET /x HTTP/1.1', host: 'klient.pl', status: '403 Forbidden', wiad: [SQLI], blok: true }).replace(/--c9d0e1f2-Z--\n$/, '');
+    const r = uruchom(wstrzykniety + urwany);
+    expect(r.rc, r.err).toBe(0);
+    expect(r.wiersze).toEqual([]);
+    expect(r.out).not.toContain('198.51.100.9');
+    // Prawdziwe wpisy obok — dalej rozpoznane.
+    expect(uruchom(wstrzykniety + LOG).wiersze).toHaveLength(2);
+  });
+
+  it('audyt Fali 3: budżet wyjścia w BAJTACH (agent: tail -c 100000); najnowsze trafienie na końcu, przetrwa obcięcie', () => {
+    const wpisy = Array.from({ length: 300 }, (_, i) => {
+      const min = String(i % 60).padStart(2, '0');
+      const godz = String(10 + Math.floor(i / 60)).padStart(2, '0');
+      // Ścieżka z bajtami spoza UTF-8 → U+FFFD (3 bajty) po dekodowaniu na węźle.
+      return wpis(`b${String(i).padStart(7, '0')}`, { czas: `10/Oct/2026:${godz}:${min}:00.000001 +0200`, ip: '198.51.100.23', linia: `GET /\xff${'\xfe'.repeat(190)} HTTP/1.1`, host: 'klient.pl', status: '403 Forbidden', wiad: [SQLI], blok: true });
+    });
+    const dir = mkdtempSync(join(tmpdir(), 'waf-'));
+    const plik = join(dir, 'modsec_audit.log');
+    writeFileSync(plik, Buffer.from(wpisy.join(''), 'latin1'));
+    const r = spawnSync('bash', [SKRYPT], { env: { PATH: process.env.PATH, WH_DOMAINS: 'klient.pl', MODSEC_AUDIT_LOG: plik }, encoding: 'utf8' });
+    expect(r.status, r.stderr).toBe(0);
+    const wiersze = r.stdout.split('\n').filter((l) => l.startsWith('VERRIS_WAF '));
+    expect(Buffer.byteLength(wiersze.join('\n') + '\n')).toBeLessThanOrEqual(80000);
+    expect(wiersze.at(-1)).toContain('2026-10-10T12:59:00Z');
+    const poAgencie = Buffer.from(r.stdout, 'utf8').subarray(-100000).toString('utf8');
+    expect(trafieniaZLogu(poAgencie)[0].czas).toBe('2026-10-10T12:59:00Z');
   });
 
   it('pusty dziennik → zero trafień (nie błąd); nieznany format → błąd zadania', () => {

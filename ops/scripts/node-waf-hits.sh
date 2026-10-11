@@ -19,6 +19,7 @@
 # MODSEC_AUDIT_LOG daje się podmienić wyłącznie w testach.
 # Wyjście:
 #   VERRIS_WAF <czas ISO UTC>|<domena>|<ip>|<metoda>|<ścieżka>|<id reguły>|<opis>|<zablokowano 0/1>|<status>
+#              (od najstarszego do najnowszego z pokazanych — API sortuje najnowsze pierwsze)
 #   VERRIS_WAF_RAZEM <pasuje> <pokazano> <przeczytano bajtów>
 # =============================================================================
 set -Eeuo pipefail
@@ -38,7 +39,7 @@ def fail(msg):
 DOM_RE = re.compile(r"^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$")
 BAJTOW = 64 * 1024 * 1024   # czytamy koniec dziennika — „ostatnie trafienia”
 LIMIT = 300
-LIMIT_ZNAKOW = 80000        # agent wysyła do API ostatnie 100 000 znaków logu
+LIMIT_BAJTOW = 80000        # budżet w BAJTACH UTF-8: agent wysyła do API ostatnie 100 000 bajtów logu (tail -c)
 
 domeny = [d for d in os.environ["WH_DOMAINS"].split(",") if d]
 if not domeny or len(domeny) > 200 or any(not DOM_RE.match(d) for d in domeny):
@@ -95,16 +96,28 @@ def trafienie(czas, host, ip, linia, wiadomosci, zablokowano, status):
     sciezka = czesci[1].split("?", 1)[0] if len(czesci) > 1 else "-"
     return [czas or "-", d, ip_ok(ip), metoda, czysc(sciezka, 200) or "/", r[0], czysc(r[1], 150), "1" if zablokowano else "0", str(status or "-")]
 
+GRANICA_RE = re.compile(r"^--([0-9A-Za-z]{8,32})-([A-Z])--$")
+
 def serial(tekst):
-    """Format natywny: wpis od sekcji A do Z, sekcje rozpoznane po granicy."""
-    wpisy, biezacy, sekcja = [], None, None
+    """
+    Format natywny: wpis od sekcji A do Z TEJ SAMEJ granicy (ModSecurity losuje granicę dla każdej transakcji).
+    Audyt Fali 3 — znacznik z inną granicą wewnątrz otwartego wpisu to treść (np. wstrzyknięta w ciało żądania,
+    sekcje C/I), nie nowa sekcja; wpis bez zamykającego „-Z--” tej granicy (urwany) odrzucamy.
+    """
+    wpisy, biezacy, granica, sekcja = [], None, None, None
     for l in tekst.splitlines():
-        m = re.match(r"^--([0-9A-Za-z]{8,32})-([A-Z])--$", l)
-        if m:
+        m = GRANICA_RE.match(l)
+        if m and biezacy is None:
+            if m.group(2) == "A":
+                biezacy, granica, sekcja = {"A": [], "B": [], "F": [], "H": []}, m.group(1), "A"
+            continue
+        if m and m.group(1) == granica:
             sekcja = m.group(2)
-            if sekcja == "A":
-                biezacy = {"A": [], "B": [], "F": [], "H": []}
+            if sekcja == "Z":
                 wpisy.append(biezacy)
+                biezacy, granica, sekcja = None, None, None
+            elif sekcja == "A":
+                biezacy = {"A": [], "B": [], "F": [], "H": []}
             continue
         if biezacy is not None and sekcja in biezacy:
             biezacy[sekcja].append(l)
@@ -163,16 +176,19 @@ elif tekst.strip():
 else:
     trafienia = []
 
-pokazane, znaki = [], 0
+# Audyt Fali 3 — wybór od najnowszych z budżetem w bajtach (ścieżka z bajtów spoza UTF-8 to U+FFFD = 3 bajty na znak),
+# wypisane od najstarszego do najnowszego: obcięcie przez agenta (tail -c, od początku) zabiera najstarsze trafienia.
+pokazane, bajty = [], 0
 for t in reversed(trafienia):  # najnowsze najpierw
     if len(pokazane) >= LIMIT:
         break
     linia = "VERRIS_WAF " + "|".join(t)
-    if znaki + len(linia) > LIMIT_ZNAKOW:
+    rozmiar = len(linia.encode("utf-8")) + 1
+    if bajty + rozmiar > LIMIT_BAJTOW:
         break
-    znaki += len(linia) + 1
+    bajty += rozmiar
     pokazane.append(linia)
-for l in pokazane:
+for l in reversed(pokazane):
     print(l)
 print(f"VERRIS_WAF_RAZEM {len(trafienia)} {len(pokazane)} {len(surowe)}")
 print("[waf-hits] Gotowe.")

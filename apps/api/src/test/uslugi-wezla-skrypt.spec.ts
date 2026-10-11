@@ -3,6 +3,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileS
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { LOGI_WEZLA, USLUGI_WEZLA, maskujAdresy, maskujSekrety } from '@verris/contracts';
+import { logZWyniku } from '../servers/uslugi-wezla.js';
 
 /**
  * F3.4 — prawdziwy ops/scripts/node-services.sh (zadanie NODE_SERVICES) na atrapach systemctl i journalctl: stan usług
@@ -256,6 +257,23 @@ describe('F3.4 — node-services.sh: logi', () => {
     expect(r.log).toHaveLength(2);
     expect(r.out).toContain('VERRIS_LOG_ZRODLO mariadb|journal:mysqld.service|2|2|0');
     expect(s.wywolania()).toContain('journalctl -u mysqld.service -n 2000 --no-pager -o short-iso -q');
+  });
+
+  it('audyt Fali 3: budżet wyjścia w BAJTACH (agent: tail -c 100000), nagłówek źródła po liniach — obcięcie zabiera najstarsze', () => {
+    const s = srodowisko();
+    // 500 linii po ~390 znaków „€” (3 bajty) — ok. 585 kB w UTF-8, 195 000 znaków.
+    s.plik('/usr/local/lsws/logs/error.log', Array.from({ length: 500 }, (_, i) => `${String(i).padStart(4, '0')} ${'€'.repeat(385)}`).join('\n') + '\n');
+    const r = s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'www', SVC_LINES: '500' });
+    expect(r.rc).toBe(0);
+    const wiersze = r.out.split('\n').filter((l) => l.startsWith('VERRIS_'));
+    expect(Buffer.byteLength(wiersze.join('\n') + '\n')).toBeLessThanOrEqual(80000);
+    // Nagłówek po liniach (przetrwa obcięcie od początku), liczba pokazanych zgodna z liniami, najnowsza linia jest.
+    expect(wiersze.at(-1)).toMatch(/^VERRIS_LOG_ZRODLO www\|\/usr\/local\/lsws\/logs\/error.log\|500\|(\d+)\|0$/);
+    expect(Number(/\|500\|(\d+)\|/.exec(wiersze.at(-1)!)![1])).toBe(r.log.length);
+    expect(r.log.at(-1)!.startsWith('0499 ')).toBe(true);
+    // To, co dojdzie do API po obcięciu agenta, nadal ma nagłówek źródła.
+    const poAgencie = Buffer.from(r.out, 'utf8').subarray(-100000).toString('utf8');
+    expect(logZWyniku(poAgencie, false).zrodlo).toBe('/usr/local/lsws/logs/error.log');
   });
 
   it('znaki sterujące i sekwencje ANSI usunięte, długie linie ucięte', () => {

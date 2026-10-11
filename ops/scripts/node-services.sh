@@ -82,7 +82,7 @@ ADRES = re.compile(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@([A-Za-z0-9](?:[A-Za-z0-9-
 STEROWANIE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|[\x00-\x08\x0b-\x1f\x7f]")
 ZLY_FILTR = re.compile(r"[\x00-\x1f\x7f]")
 OKNO_BAJTOW = 4 * 1024 * 1024
-LIMIT_ZNAKOW = 80000  # agent wysyła do API ostatnie 100 000 znaków logu zadania
+LIMIT_BAJTOW = 80000  # budżet w BAJTACH UTF-8: agent wysyła do API ostatnie 100 000 bajtów logu zadania (tail -c)
 DLUGOSC_LINII = 400
 
 SYSTEMCTL = os.environ.get("SYSTEMCTL_BIN") or shutil.which("systemctl") or "/usr/bin/systemctl"
@@ -251,15 +251,18 @@ if filtr:
     f_male = filtr.lower()
     linie = [l for l in linie if f_male in l.lower()]
 wybrane = linie[-ile:]
-wyjscie, znaki = [], 0
+# Audyt Fali 3 — budżet w bajtach (maska „•••@” i U+FFFD z bajtów spoza UTF-8 to 3 bajty na znak), a nagłówek źródła
+# PO liniach: agent obcina log od początku (tail -c), więc ewentualne obcięcie zabiera najstarsze linie, nie nagłówek.
+wyjscie, bajty = [], 0
 for l in reversed(wybrane):
-    if znaki + len(l) + 12 > LIMIT_ZNAKOW:
+    rozmiar = len(("VERRIS_LOG " + l).encode("utf-8")) + 1
+    if bajty + rozmiar > LIMIT_BAJTOW:
         break
     wyjscie.append(l)
-    znaki += len(l) + 12
+    bajty += rozmiar
 wyjscie.reverse()
-print(f"VERRIS_LOG_ZRODLO {nazwa}|{zrodlo}|{len(linie)}|{len(wyjscie)}|{1 if maska else 0}")
 for l in wyjscie:
     print("VERRIS_LOG " + l)
+print(f"VERRIS_LOG_ZRODLO {nazwa}|{zrodlo}|{len(linie)}|{len(wyjscie)}|{1 if maska else 0}")
 print("[services] Gotowe.")
 PY
