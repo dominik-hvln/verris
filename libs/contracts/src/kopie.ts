@@ -60,3 +60,15 @@ export function opisKopii(k: KopiaZMetadanymi): string {
     : null;
   return [k.fileName, data, k.rozmiarBajty != null ? rozmiarKopii(k.rozmiarBajty) : null].filter(Boolean).join(' · ');
 }
+
+/**
+ * Weryfikacja 11.10 (decyzja Dominika) — archiwum kopii administratora konta: `user.<właściciel>.<login>.tar[.gz|.zst]`
+ * (Admin Backup/Transfer panelu serwera; tak nazywa je node-offsite-backup.sh). Po „Pobierz na serwer” trafia do katalogu
+ * `backups` konta i bywa na liście kopii klienta, ale przywraca je administrator (zapis właściciela i pakietu — dokumentacja:
+ * https://docs.directadmin.com/directadmin/backup-restore-migration/backups.html#admin-backup-restore) — klient przywraca
+ * tylko kopie użytkownika (`backup-*`, `verris-wp-*`).
+ */
+export function jestKopiaAdministratora(nazwaArchiwum: string): boolean {
+  const nazwa = nazwaArchiwum.split('/').pop() ?? '';
+  return /^user\.[a-z0-9_-]+\.[a-z0-9_-]+\.tar(\.(gz|zst))?$/i.test(nazwa);
+}

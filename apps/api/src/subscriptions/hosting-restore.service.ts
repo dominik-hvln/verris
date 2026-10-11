@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { HostingRestoreStatus, Prisma } from '@verris/database';
-import { daErrorMessage } from '@verris/contracts';
+import { daErrorMessage, jestKopiaAdministratora } from '@verris/contracts';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
@@ -103,6 +103,13 @@ export class HostingRestoreService {
     );
     if (!backup) {
       throw new BadRequestException('Wybrany backup nie istnieje na koncie.');
+    }
+    // Weryfikacja 11.10 (decyzja Dominika) — kopię administratora konta (`user.<właściciel>.<login>.tar.*`, pobraną
+    // spoza serwera) przywraca obsługa; klient przywraca tylko kopie użytkownika.
+    if (!input.isAdmin && jestKopiaAdministratora(backup.fileName)) {
+      throw new BadRequestException(
+        'Tę kopię przywraca obsługa Verris — napisz zgłoszenie i podaj nazwę archiwum.',
+      );
     }
 
     const job = await this.prisma.hostingRestoreJob.create({

@@ -10,8 +10,12 @@
  * na liście — przywróć z listy; poza listą — plik jest w katalogu `backups` (do pobrania w Menedżerze plików),
  * a przywrócenie konta z niego wykonuje obsługa (odtworzenie kopii administratora, ops/scripts/node-account-restore.sh).
  */
+import { jestKopiaAdministratora } from '@verris/contracts';
+
 export type PobranaKopia = 'na-liscie' | 'przez-obsluge';
 
 export function pobranaKopia(archiwum: string, kopieNaLiscie: readonly string[]): PobranaKopia {
+  // Weryfikacja 11.10 (decyzja Dominika) — kopię administratora konta przywraca obsługa, także gdy jest na liście.
+  if (jestKopiaAdministratora(archiwum)) return 'przez-obsluge';
   return kopieNaLiscie.includes(archiwum) ? 'na-liscie' : 'przez-obsluge';
 }

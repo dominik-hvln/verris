@@ -15,4 +15,8 @@ describe('pobranaKopia', () => {
     expect(pobranaKopia('backup-Oct-11-2026-1.tar.zst', lista)).toBe('na-liscie');
     expect(pobranaKopia('backup-Oct-11-2026-1.tar.zst', [])).toBe('przez-obsluge');
   });
+
+  it('kopia administratora konta na liście kopii — dalej przywraca obsługa (decyzja 11.10)', () => {
+    expect(pobranaKopia('user.admin.ovsekucx.tar.zst', [...lista, 'user.admin.ovsekucx.tar.zst'])).toBe('przez-obsluge');
+  });
 });

@@ -172,3 +172,38 @@ describe('zlecenie odtworzenia — powód operatora w dzienniku', () => {
     );
   });
 });
+
+describe('Weryfikacja 11.10 — kopię administratora konta przywraca obsługa, nie klient', () => {
+  function kolejka(fileName: string) {
+    const prisma = {
+      subscription: { findUnique: vi.fn().mockResolvedValue({ id: 's1', account: { userId: 'u1', domain: 'd3.hvln.pl' } }) },
+      hostingRestoreJob: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockImplementation(({ data }: { data: Record<string, unknown> }) => Promise.resolve({ id: 'j1', status: 'QUEUED', createdAt: new Date(), updatedAt: new Date(), ...data })),
+      },
+    };
+    const da = { listHostingBackups: vi.fn().mockResolvedValue({ rows: [{ id: fileName, fileName }], fetchError: null }) };
+    const svc = new (HostingRestoreService as unknown as new (...a: unknown[]) => HostingRestoreService)(prisma, { record: vi.fn() }, da);
+    return { svc, prisma };
+  }
+
+  it('klient: user.admin.<login>.tar.zst → odmowa, nic nie trafia do kolejki', async () => {
+    const { svc, prisma } = kolejka('user.admin.ovsekucx.tar.zst');
+    await expect(
+      svc.enqueue('s1', 'u1', { backupId: 'user.admin.ovsekucx.tar.zst', confirmDomain: 'd3.hvln.pl' }),
+    ).rejects.toThrow(/przywraca obsługa Verris/);
+    expect(prisma.hostingRestoreJob.create).not.toHaveBeenCalled();
+  });
+
+  it('klient: zwykła kopia konta przechodzi', async () => {
+    const { svc, prisma } = kolejka('backup-Oct-11-2026-3.tar.zst');
+    await svc.enqueue('s1', 'u1', { backupId: 'backup-Oct-11-2026-3.tar.zst', confirmDomain: 'd3.hvln.pl' });
+    expect(prisma.hostingRestoreJob.create).toHaveBeenCalled();
+  });
+
+  it('administrator może przywrócić kopię administratora', async () => {
+    const { svc, prisma } = kolejka('user.admin.ovsekucx.tar.zst');
+    await svc.enqueue('s1', 'op1', { backupId: 'user.admin.ovsekucx.tar.zst', isAdmin: true, reason: 'zgłoszenie klienta #abc' });
+    expect(prisma.hostingRestoreJob.create).toHaveBeenCalled();
+  });
+});

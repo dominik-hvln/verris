@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { UkladZBokiem } from "@/components/hosting/UkladZBokiem";
 import {
   Database,
@@ -14,6 +15,7 @@ import {
   FolderOpen,
 } from "lucide-react";
 import type { HostingBackupRowDto } from "@verris/contracts";
+import { jestKopiaAdministratora } from "@verris/contracts";
 import {
   fetchHostingBackupsAction as fetchHostingBackupsActionAkcja,
   enqueueHostingRestoreAction as enqueueHostingRestoreActionAkcja,
@@ -170,14 +172,25 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
                   <span className="min-w-0 flex-1 break-words font-mono text-[13px]">
                     {row.fileName}
                   </span>
-                  <button
-                    type="button"
-                    disabled={Boolean(job?.active)}
-                    onClick={() => setOpenId(openId === row.id ? null : row.id)}
-                    className="inline-flex items-center gap-1.5 rounded-[7px] border border-data/28 bg-data-soft px-2.5 py-1 text-[13px] font-medium text-data-hi transition hover:bg-data-soft disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" /> Przywróć
-                  </button>
+                  {jestKopiaAdministratora(row.fileName) ? (
+                    // Weryfikacja 11.10 (decyzja Dominika) — pełną kopię konta spoza serwera przywraca obsługa.
+                    <Link
+                      href="/dashboard/support/new"
+                      title="Pełną kopię konta przywraca nasz zespół — napisz zgłoszenie i podaj nazwę archiwum."
+                      className="inline-flex items-center gap-1.5 rounded-[7px] border border-line bg-raised px-2.5 py-1 text-[13px] font-medium text-[color:var(--verris-body)] transition hover:bg-raised"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" /> Przywraca obsługa
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={Boolean(job?.active)}
+                      onClick={() => setOpenId(openId === row.id ? null : row.id)}
+                      className="inline-flex items-center gap-1.5 rounded-[7px] border border-data/28 bg-data-soft px-2.5 py-1 text-[13px] font-medium text-data-hi transition hover:bg-data-soft disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" /> Przywróć
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() =>
