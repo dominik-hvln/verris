@@ -2,11 +2,13 @@
 
 import { MalwarePanel } from '@/components/hosting/MalwarePanel';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Loader2, ShieldCheck, ShieldOff, AlertCircle, Eye } from 'lucide-react';
+import { Loader2, ShieldCheck, ShieldOff, AlertCircle, Eye, RefreshCw } from 'lucide-react';
 import { SectionHead } from '@/components/panel/v2';
 import {
+  BLAD_ODCZYTU_WAF,
   getWafStatus,
   setWafMode,
+  type OdczytWaf,
   type WafMode,
   type WafStatus,
 } from '@/app/dashboard/services/[id]/waf-actions';
@@ -25,7 +27,7 @@ const MODES: Array<{
   {
     id: 'ON',
     label: 'Włączony (blokowanie)',
-    desc: 'Ataki (SQLi, XSS, RCE…) są blokowane na podstawie reguł OWASP CRS. Zalecane dla większości stron.',
+    desc: 'Ataki (SQL injection, XSS, zdalne wykonanie kodu…) są blokowane przez reguły zapory. Zalecane dla większości stron.',
     icon: ShieldCheck,
     accent: 'border-data/28 bg-data-soft',
   },
@@ -50,14 +52,28 @@ export default function WafTab({ serviceId }: Props) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<WafMode | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [brakKonta, setBrakKonta] = useState(false);
+  /** Noc 11→12.10 — błąd odczytu nie udaje „braku konta” i nie kasuje ostatniego stanu (odpytywanie trwa dalej). */
+  const [bladOdczytu, setBladOdczytu] = useState<string | null>(null);
 
   // `.then` zamiast `await` — lint React Compilera nie widzi `await` w useCallback i zgłasza fałszywy setState w efekcie.
   const refresh = useCallback(
     () =>
-      getWafStatus(serviceId).then((s) => {
-        setStatus(s);
-        setLoading(false);
-      }),
+      getWafStatus(serviceId)
+        // Akcja serwera po wdrożeniu (stara karta) albo zerwane połączenie — odrzucenie zamiast wyniku.
+        .catch((): OdczytWaf => ({ ok: false, brakKonta: false, error: BLAD_ODCZYTU_WAF }))
+        .then((r) => {
+          if (r.ok) {
+            setStatus(r.status);
+            setBladOdczytu(null);
+          } else if (r.brakKonta) {
+            setStatus(null);
+            setBrakKonta(true);
+          } else {
+            setBladOdczytu(r.error);
+          }
+          setLoading(false);
+        }),
     [serviceId],
   );
 
@@ -80,7 +96,7 @@ export default function WafTab({ serviceId }: Props) {
     if (mode === status?.mode) return;
     setError(null);
     setSaving(mode);
-    const res = await setWafMode(serviceId, mode);
+    const res = await setWafMode(serviceId, mode).catch(() => ({ error: 'Nie udało się zmienić trybu — spróbuj ponownie.' }));
     setSaving(null);
     if ('error' in res) {
       setError(res.error);
@@ -97,7 +113,28 @@ export default function WafTab({ serviceId }: Props) {
     );
   }
 
+  const ponow = (
+    <button
+      type="button"
+      data-akcja="ponow-odczyt-waf"
+      onClick={() => {
+        setLoading(true);
+        void refresh();
+      }}
+      className="inline-flex items-center gap-1.5 rounded-[7px] border border-line-strong bg-card px-2.5 py-1 text-xs font-medium text-foreground hover:bg-raised"
+    >
+      <RefreshCw className="h-3.5 w-3.5" /> Spróbuj ponownie
+    </button>
+  );
+
   if (!status) {
+    if (!brakKonta) {
+      return (
+        <div role="alert" className="flex flex-wrap items-center gap-3 rounded-[10px] border border-crit/30 bg-crit/12 p-4 text-sm text-crit">
+          <AlertCircle className="h-4 w-4" /> {bladOdczytu ?? BLAD_ODCZYTU_WAF} {ponow}
+        </div>
+      );
+    }
     return (
       <div className="rounded-[10px] border border-line bg-background p-6 text-sm text-muted-foreground">
         WAF będzie dostępny po aktywacji konta hostingowego.
@@ -113,8 +150,13 @@ export default function WafTab({ serviceId }: Props) {
       <div className="space-y-2">
         <SectionHead
           title="Zapora aplikacji (WAF)"
-          desc={`Reguły OWASP Core Rule Set chronią ${status.domain} przed najczęstszymi atakami: SQL injection, XSS, przejęciem sesji i skanerami luk. Zmiana trybu działa w ciągu minuty.`}
+          desc={`Reguły zapory chronią ${status.domain} przed najczęstszymi atakami: SQL injection, XSS, przejęciem sesji i skanerami luk. Zmiana trybu działa w ciągu minuty.`}
         />
+        {bladOdczytu && (
+          <p role="alert" className="flex flex-wrap items-center gap-2 text-xs text-crit">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" /> Nie udało się odświeżyć stanu zapory — pokazany stan może być nieaktualny. {ponow}
+          </p>
+        )}
         {applying && (
           <p className="inline-flex items-center gap-1.5 text-xs text-data-hi">
             <Loader2 className="h-3 w-3 animate-spin" /> Stosowanie zmian na serwerze…

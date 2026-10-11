@@ -18,7 +18,8 @@ const WYJATKI = new Set([
 
 const PANEL_SERWERA = /DirectAdmin|CustomBuild|CMD_API|\b2222\b/i;
 // Przegląd tekstów 30.09: oprogramowanie i węzły serwera, drugi „panel hostingu”, adres sondy.
-const INFRASTRUKTURA = /CloudLinux|CageFS|\bLVE\b|węzł|panel(?:u|em)? hostingu|Hosting Manager|status page|probeTarget/i;
+// Noc 11→12.10: oprogramowanie zapory (ModSecurity, zestaw reguł OWASP CRS) — klient widzi „reguły zapory”.
+const INFRASTRUKTURA = /CloudLinux|CageFS|\bLVE\b|węzł|panel(?:u|em)? hostingu|Hosting Manager|status page|probeTarget|ModSecurity|mod_security|OWASP/i;
 
 export function bezKomentarzy(kod: string): string {
   return kod.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\\'"`])\/\/.*$/gm, '$1');
