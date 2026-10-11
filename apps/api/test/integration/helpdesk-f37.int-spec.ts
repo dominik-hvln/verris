@@ -131,10 +131,25 @@ describe('F3.7 — scalanie zgłoszeń', () => {
     expect(await prisma().ticketReply.count({ where: { ticketId: a.id } })).toBe(3);
     expect(await prisma().ticketReply.count({ where: { ticketId: obca.id } })).toBe(0);
 
+    const zamkniete = await prisma().ticket.create({ data: { userId: jan.id, subject: 'Stare', message: 's', status: 'CLOSED', resolvedAt: new Date() } });
+    await expect(tickets.adminMerge(a.id, zamkniete.id, op.id, POWOD)).rejects.toThrow(/docelowe jest zamknięte/);
+    expect((await tickets.adminMergeCandidates(a.id)).map((k) => k.id)).toEqual([b.id]);
+
     await tickets.adminMerge(a.id, b.id, op.id, POWOD);
     await expect(tickets.adminMerge(a.id, b.id, op.id, POWOD)).rejects.toThrow(ConflictException);
     await expect(tickets.adminMerge(b.id, a.id, op.id, POWOD)).rejects.toThrow(/docelowe jest scalone/);
     expect(await prisma().ticketEvent.count({ where: { type: 'MERGED_INTO' } })).toBe(1);
+  });
+
+  it('cel „czeka na klienta”, a klient napisał ostatni w źródle → cel wraca do „otwarte” (nie zamknie się sam)', async () => {
+    const { tickets } = uslugi();
+    const { op, jan } = await ludzie();
+    const a = await prisma().ticket.create({ data: { userId: jan.id, subject: 'A', message: 'a', lastReplyAt: new Date(), lastReplyIsStaff: false } });
+    const b = await prisma().ticket.create({
+      data: { userId: jan.id, subject: 'B', message: 'b', status: 'WAITING_CUSTOMER', waitingSince: new Date(Date.now() - 3600_000), lastReplyAt: new Date(Date.now() - 3600_000), lastReplyIsStaff: true },
+    });
+    await tickets.adminMerge(a.id, b.id, op.id, POWOD);
+    expect(await prisma().ticket.findUniqueOrThrow({ where: { id: b.id } })).toMatchObject({ status: 'OPEN', waitingSince: null, lastReplyIsStaff: false });
   });
 
   it('równolegle A→B i B→A: przechodzi jedno, wątek nie rozpada się na dwa zgłoszenia', async () => {

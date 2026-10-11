@@ -143,7 +143,7 @@ export interface ZaleznosciWnioskow {
     user: { findUnique(args: unknown): Promise<{ isInternal?: boolean; id?: string; email?: string } | null> };
     invoice: { findUnique(args: unknown): Promise<{ id: string; userId: string; number: string; status: string } | null> };
     subscription: { findUnique(args: unknown): Promise<{ userId: string; status: string } | null> };
-    ticket: { findUnique(args: unknown): Promise<{ userId: string; scalonoDoId: string | null } | null> };
+    ticket: { findUnique(args: unknown): Promise<{ userId: string; scalonoDoId: string | null; status?: string } | null> };
   };
   /** F3.7 — TicketsService (tickets/tickets.service.ts). */
   zgloszenia: {
@@ -516,9 +516,10 @@ export const REJESTR_WNIOSKOW = {
     async sprawdzPrzyZlozeniu(p, klientId, z) {
       if (p.zrodloId === p.celId) throw new BadRequestException('Wybierz dwa różne zgłoszenia.');
       for (const id of [p.zrodloId, p.celId]) {
-        const t = await z.prisma.ticket.findUnique({ where: { id }, select: { userId: true, scalonoDoId: true } });
+        const t = await z.prisma.ticket.findUnique({ where: { id }, select: { userId: true, scalonoDoId: true, status: true } });
         if (!t || t.userId !== klientId) throw new NotFoundException('Zgłoszenie nie istnieje na koncie tego klienta.');
         if (t.scalonoDoId) throw new BadRequestException(`Zgłoszenie #${id.slice(0, 8)} jest już scalone.`);
+        if (id === p.celId && t.status === 'CLOSED') throw new BadRequestException('Zgłoszenie docelowe jest zamknięte.');
       }
     },
     async bezZmian(p, _klientId, z) {

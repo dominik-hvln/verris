@@ -996,11 +996,11 @@ export class TicketsService {
     if (zrodloId === celId) throw new BadRequestException('Wybierz inne zgłoszenie niż to, które scalasz.');
     type Wiersz = {
       id: string; userId: string; subject: string; message: string; createdAt: Date; openedByStaffId: string | null;
-      scalonoDoId: string | null; tags: string[]; lastReplyAt: Date | null; lastReplyIsStaff: boolean | null;
+      scalonoDoId: string | null; tags: string[]; lastReplyAt: Date | null; lastReplyIsStaff: boolean | null; status: string;
     };
     const wynik = await this.prisma.$transaction(async (tx) => {
       const wiersze = await tx.$queryRaw<Wiersz[]>`
-        SELECT "id", "userId", "subject", "message", "createdAt", "openedByStaffId", "scalonoDoId", "tags", "lastReplyAt", "lastReplyIsStaff"
+        SELECT "id", "userId", "subject", "message", "createdAt", "openedByStaffId", "scalonoDoId", "tags", "lastReplyAt", "lastReplyIsStaff", "status"
         FROM "Ticket" WHERE "id" IN (${zrodloId}, ${celId}) ORDER BY "id" FOR UPDATE`;
       const zr = wiersze.find((w) => w.id === zrodloId);
       const cel = wiersze.find((w) => w.id === celId);
@@ -1008,6 +1008,8 @@ export class TicketsService {
       if (zr.userId !== cel.userId) throw new BadRequestException('Scalić można tylko zgłoszenia tego samego klienta.');
       if (zr.scalonoDoId) throw new ConflictException(`To zgłoszenie jest już scalone z #${zr.scalonoDoId.slice(0, 8)}.`);
       if (cel.scalonoDoId) throw new BadRequestException(`Zgłoszenie docelowe jest scalone z #${cel.scalonoDoId.slice(0, 8)} — wybierz tamto.`);
+      // Jak w Zendesku: do zamkniętego nie scalamy — rozmowa trafiłaby do sprawy, której nikt już nie prowadzi.
+      if (cel.status === 'CLOSED') throw new BadRequestException('Zgłoszenie docelowe jest zamknięte — scal w odwrotną stronę albo otwórz je ponownie.');
       const teraz = new Date();
       // Pierwsza wiadomość źródła — od klienta albo (założone w imieniu klienta) od obsługi; nigdy notatka.
       const pierwsza = await tx.ticketReply.create({
@@ -1025,11 +1027,15 @@ export class TicketsService {
       const { count: odpowiedzi } = await tx.ticketReply.updateMany({ where: { ticketId: zr.id, id: { not: pierwsza.id } }, data: { ticketId: cel.id } });
       await tx.pocztaPrzychodzaca.updateMany({ where: { ticketId: zr.id }, data: { ticketId: cel.id } });
       const pozniejsza = zr.lastReplyAt && (!cel.lastReplyAt || zr.lastReplyAt > cel.lastReplyAt);
+      // Ostatnie słowo klienta przyszło w źródle, a cel „czeka na klienta” — teraz czeka na nas (inaczej cykl
+      // przypomnienia i auto-zamknięcia zamknąłby sprawę z nieodpowiedzianą wiadomością klienta).
+      const czekaNaNas = pozniejsza && zr.lastReplyIsStaff === false && cel.status === 'WAITING_CUSTOMER';
       await tx.ticket.update({
         where: { id: cel.id },
         data: {
           tags: [...new Set([...cel.tags, ...zr.tags])].slice(0, TAGI_MAX),
           ...(pozniejsza ? { lastReplyAt: zr.lastReplyAt, lastReplyIsStaff: zr.lastReplyIsStaff } : {}),
+          ...(czekaNaNas ? { status: 'OPEN', waitingSince: null, customerReminderSentAt: null } : {}),
         },
       });
       await tx.ticket.update({
@@ -1063,12 +1069,12 @@ export class TicketsService {
     return { celId, odpowiedzi: wynik.odpowiedzi };
   }
 
-  /** F3.7 — kandydaci do scalenia: inne niescalone zgłoszenia tego klienta (najnowsze pierwsze). */
+  /** F3.7 — kandydaci do scalenia: inne otwarte, niescalone zgłoszenia tego klienta (najnowsze pierwsze). */
   async adminMergeCandidates(ticketId: string) {
     const t = await this.prisma.ticket.findUnique({ where: { id: ticketId }, select: { userId: true } });
     if (!t) throw new NotFoundException('Nie znaleziono zgłoszenia.');
     return this.prisma.ticket.findMany({
-      where: { userId: t.userId, id: { not: ticketId }, scalonoDoId: null },
+      where: { userId: t.userId, id: { not: ticketId }, scalonoDoId: null, status: { not: 'CLOSED' } },
       orderBy: { createdAt: 'desc' },
       take: 30,
       select: { id: true, subject: true, status: true, createdAt: true },

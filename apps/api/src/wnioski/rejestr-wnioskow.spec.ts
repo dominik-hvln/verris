@@ -96,7 +96,7 @@ describe('PB-48 — rejestr wniosków', () => {
 
   const zal = (
     o: { isInternal?: boolean; status?: string; email?: string; zajety?: boolean; mail?: boolean; usluga?: { userId: string; status: string } | null; zgloszenie?: boolean;
-      zgloszenia?: Record<string, { userId: string; scalonoDoId: string | null } | null> } = {},
+      zgloszenia?: Record<string, { userId: string; scalonoDoId: string | null; status?: string } | null> } = {},
   ) => {
     const wywolania: unknown[][] = [];
     const z: ZaleznosciWnioskow = {
@@ -282,6 +282,7 @@ describe('PB-48 — rejestr wniosków', () => {
     await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ zgloszenia: { [B]: { userId: 'inny', scalonoDoId: null } } }).z)).rejects.toThrow(/nie istnieje na koncie/);
     await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ zgloszenia: { [A]: null } }).z)).rejects.toThrow(/nie istnieje na koncie/);
     await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ zgloszenia: { [A]: { userId: 'k1', scalonoDoId: B } } }).z)).rejects.toThrow(/już scalone/);
+    await expect(d.sprawdzPrzyZlozeniu!(p, 'k1', zal({ zgloszenia: { [B]: { userId: 'k1', scalonoDoId: null, status: 'CLOSED' } } }).z)).rejects.toThrow(/docelowe jest zamknięte/);
     expect(await d.bezZmian!(p, 'k1', zal({ zgloszenia: { [A]: { userId: 'k1', scalonoDoId: B } } }).z)).toMatch(/Bez zmian/);
     expect(d.opis(p)).toBe('Scal zgłoszenie #11111111 z #22222222');
     const { z, wywolania } = zal();
