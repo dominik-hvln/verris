@@ -93,10 +93,12 @@ TIMER
   systemctl restart verris-tasks.timer
   echo "[OK] verris-task@.service + verris-tasks.timer"
 else
+  # Analiza 12.10 — bez „flock -n /var/run/verris-tasks.lock” przed skryptem: verris-tasks.sh blokuje się sam (exec 9>LOCK),
+  # a flock(1) z crona zajmował ten sam plik na innym opisie pliku — skrypt nigdy nie dostawał blokady i nic nie pobierał.
   cat > /etc/cron.d/verris-tasks <<'CRON'
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-* * * * * root flock -n /var/run/verris-tasks.lock /usr/bin/bash /usr/local/bin/verris-tasks.sh >> /var/log/verris-tasks.log 2>&1
+* * * * * root /usr/bin/bash /usr/local/bin/verris-tasks.sh >> /var/log/verris-tasks.log 2>&1
 CRON
   echo "[OK] /etc/cron.d/verris-tasks"
 fi

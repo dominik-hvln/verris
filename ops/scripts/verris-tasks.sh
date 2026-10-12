@@ -48,6 +48,11 @@ install_verris_deploy_ssh_key || true
 
 exec 9>"$LOCK"
 flock -n 9 || exit 0
+# Analiza 12.10 — deskryptor 9 (blokada agenta) nie może przejść do procesów zadania: demon uruchomiony przez zadanie
+# trzymałby blokadę po jego końcu, a każde kolejne uruchomienie agenta kończyłoby się linię wyżej — węzeł przestaje
+# pobierać zadania. Ścieżka awaryjna uruchamia więc runner z „9>&-”; jednostkę zadania startuje systemd (PID 1), bez
+# deskryptorów agenta. flock(1): https://man7.org/linux/man-pages/man1/flock.1.html
+# n>&- zamyka deskryptor n: https://www.gnu.org/software/bash/manual/html_node/Redirections.html
 
 auth_headers=(-H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN")
 
@@ -110,6 +115,11 @@ report_task_fail() {
     "$VERRIS_API_URL/agent/tasks/$TASK_ID/fail" >/dev/null 2>&1 || true
 }
 
+# Analiza 12.10 — „systemctl start --no-block”: systemctl tylko weryfikuje i kolejkuje start jednostki, nie czeka na koniec
+# zadania (Type=oneshot — agent czekał do swojego TimeoutStartSec=120, a zadanie zakończone błędem dawało fałszywą
+# ścieżkę awaryjną). Wynik raportuje sam runner (complete/fail, on_exit); jedno uruchomienie zlecenia zapewnia lease
+# w API (QUEUED→RUNNING raz) i blokada instancji w runnerze. Błąd weryfikacji/kolejkowania nadal daje kod ≠ 0.
+# systemctl(1): https://www.freedesktop.org/software/systemd/man/latest/systemctl.html#--no-block
 dispatch_hosting_profile() {
   if ! verris-fetch /agent/tasks/hosting-profile/script "$PROFILE_BIN" 60 2>>"$LOG"; then
     report_task_fail "Nie udało się pobrać skryptu profilu z API albo podpis control-plane jest nieprawidłowy."
@@ -121,7 +131,7 @@ dispatch_hosting_profile() {
   printf '%s' "$LEASE_JSON" > "$STATE_DIR/${INSTANCE}.json"
 
   if command -v systemctl >/dev/null 2>&1 && systemctl cat verris-task@.service >/dev/null 2>&1; then
-    if systemctl start "verris-task@${INSTANCE}.service" 2>>"$LOG"; then
+    if systemctl start --no-block "verris-task@${INSTANCE}.service" 2>>"$LOG"; then
       echo "[verris-tasks] Started verris-task@${INSTANCE}.service (log: /var/log/verris-tasks/${TASK_ID}.log)" >> "$LOG"
       exit 0
     fi
@@ -129,7 +139,7 @@ dispatch_hosting_profile() {
   fi
 
   if [ -x /usr/local/bin/verris-task-run.sh ]; then
-    exec /usr/local/bin/verris-task-run.sh "$INSTANCE"
+    exec /usr/local/bin/verris-task-run.sh "$INSTANCE" 9>&-
   fi
   report_task_fail "Brak verris-task@.service i /usr/local/bin/verris-task-run.sh — uruchom install agenta."
   exit 1
@@ -141,7 +151,7 @@ dispatch_generic() {
   mkdir -p "$STATE_DIR"
   printf '%s' "$LEASE_JSON" > "$STATE_DIR/${INSTANCE}.json"
   if command -v systemctl >/dev/null 2>&1 && systemctl cat verris-task@.service >/dev/null 2>&1; then
-    if systemctl start "verris-task@${INSTANCE}.service" 2>>"$LOG"; then
+    if systemctl start --no-block "verris-task@${INSTANCE}.service" 2>>"$LOG"; then
       echo "[verris-tasks] Started verris-task@${INSTANCE}.service ($KIND, log: /var/log/verris-tasks/${TASK_ID}.log)" >> "$LOG"
       exit 0
     fi
@@ -149,7 +159,7 @@ dispatch_generic() {
     echo "[verris-tasks] systemctl start verris-task@${INSTANCE} failed — fallback sync" >> "$LOG"
   fi
   if [ -x /usr/local/bin/verris-task-run.sh ]; then
-    exec /usr/local/bin/verris-task-run.sh "$INSTANCE"
+    exec /usr/local/bin/verris-task-run.sh "$INSTANCE" 9>&-
   fi
   report_task_fail "Brak verris-task@.service i /usr/local/bin/verris-task-run.sh — uruchom install agenta."
   exit 1
