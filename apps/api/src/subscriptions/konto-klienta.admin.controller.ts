@@ -1,6 +1,6 @@
 import { Body, Controller, ForbiddenException, Get, NotFoundException, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { Role } from '@verris/database';
-import { hostingFetchErrorMessage } from '@verris/contracts';
+import { hostingFetchErrorMessage, maskujAdresy } from '@verris/contracts';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
@@ -59,6 +59,23 @@ export function maskujSekretyCrona(polecenie: string): string {
           ? `${flaga}"${wPodwojnym}:***"`
           : `${flaga}${bez}:***`,
     );
+}
+
+type DziennikPoczty = Awaited<ReturnType<MailLogService['status']>>;
+
+/**
+ * Weryfikacja na prod 12.10 — dziennik poczty KONTA dla STAFF z adresami zamaskowanymi jak logi poczty węzła (F3.4,
+ * `maskujAdresy`): adres wpisu, szczegóły (surowa linia exima), filtr i błąd. ADMIN widzi pełne adresy. Węzeł zwraca
+ * pełne adresy (ten sam wynik czyta klient), więc maska jest tu, przy odczycie.
+ */
+export function dziennikPocztyDlaOperatora(d: DziennikPoczty, rola: string): DziennikPoczty {
+  if (rola === 'ADMIN') return d;
+  return {
+    ...d,
+    adres: d.adres ? maskujAdresy(d.adres) : d.adres,
+    wpisy: d.wpisy.map((w) => ({ ...w, adres: maskujAdresy(w.adres), szczegoly: maskujAdresy(w.szczegoly) })),
+    blad: d.blad ? maskujAdresy(d.blad) : d.blad,
+  };
 }
 
 /**
@@ -284,7 +301,7 @@ export class KontoKlientaAdminController {
   @Get('logi-poczty')
   async logiPoczty(@Param('id') id: string, @CurrentUser() actor: Operator) {
     const userId = await this.wlasciciel(id, actor, 'logi-poczty');
-    return this.mailLog.status(id, userId);
+    return dziennikPocztyDlaOperatora(await this.mailLog.status(id, userId), actor.role);
   }
 
   /**
@@ -296,6 +313,6 @@ export class KontoKlientaAdminController {
   @Post('logi-poczty')
   async zlecLogiPoczty(@Param('id') id: string, @Body() body: DziennikPocztyDto, @CurrentUser() actor: Operator) {
     const userId = await this.wlasciciel(id, actor, 'logi-poczty', { zlecenie: 'wczytanie z serwera', address: body.address });
-    return this.mailLog.zlec(id, userId, body.address, actor.userId);
+    return dziennikPocztyDlaOperatora(await this.mailLog.zlec(id, userId, body.address, actor.userId), actor.role);
   }
 }

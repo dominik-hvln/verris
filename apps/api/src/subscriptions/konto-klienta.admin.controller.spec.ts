@@ -296,6 +296,53 @@ describe('PB-42 KontoKlientaAdminController — odczyty', () => {
     expect(audit.record).not.toHaveBeenCalled();
   });
 
+  describe('weryfikacja 12.10 — adresy w dzienniku poczty konta: STAFF zamaskowane, ADMIN pełne', () => {
+    const DZIENNIK = {
+      wToku: false,
+      wczytano: '2026-10-12T08:00:00.000Z',
+      adres: 'test@d3.hvln.pl',
+      wpisy: [
+        {
+          czas: '2026-10-12 09:59:01',
+          id: '1tAbCd-000Xyz-12',
+          znak: '=>' as const,
+          adres: 'test@d3.hvln.pl',
+          szczegoly: 'test@d3.hvln.pl <test@d3.hvln.pl> F=<jan.kowalski@firma.pl> R=virtual_user T=dovecot_lmtp_udp',
+        },
+      ],
+      blad: 'odbiorca anna@firma.pl odrzucony',
+    };
+    const ADMIN = { userId: 'a-admin', role: 'ADMIN' };
+
+    it.each([
+      ['GET', (c: KontoKlientaAdminController, o: typeof OPERATOR) => c.logiPoczty('s1', o)],
+      ['POST', (c: KontoKlientaAdminController, o: typeof OPERATOR) => c.zlecLogiPoczty('s1', { address: 'test@d3.hvln.pl' }, o)],
+    ])('%s: STAFF — adres, szczegóły, filtr i błąd bez części lokalnej adresu', async (_m, wolaj) => {
+      const { ctrl, mailLog } = zbuduj();
+      mailLog.status.mockResolvedValueOnce(DZIENNIK as never);
+      mailLog.zlec.mockResolvedValueOnce(DZIENNIK as never);
+      const wynik = await wolaj(ctrl, OPERATOR);
+      expect(JSON.stringify(wynik)).not.toMatch(/test@|jan\.kowalski@|anna@/);
+      expect(wynik.adres).toBe('•••@d3.hvln.pl');
+      expect(wynik.wpisy[0]).toEqual({
+        ...DZIENNIK.wpisy[0],
+        adres: '•••@d3.hvln.pl',
+        szczegoly: '•••@d3.hvln.pl <•••@d3.hvln.pl> F=<•••@firma.pl> R=virtual_user T=dovecot_lmtp_udp',
+      });
+      expect(wynik.blad).toBe('odbiorca •••@firma.pl odrzucony');
+    });
+
+    it.each([
+      ['GET', (c: KontoKlientaAdminController, o: typeof ADMIN) => c.logiPoczty('s1', o)],
+      ['POST', (c: KontoKlientaAdminController, o: typeof ADMIN) => c.zlecLogiPoczty('s1', { address: 'test@d3.hvln.pl' }, o)],
+    ])('%s: ADMIN — pełne adresy', async (_m, wolaj) => {
+      const { ctrl, mailLog } = zbuduj();
+      mailLog.status.mockResolvedValueOnce(DZIENNIK as never);
+      mailLog.zlec.mockResolvedValueOnce(DZIENNIK as never);
+      expect(await wolaj(ctrl, ADMIN)).toEqual(DZIENNIK);
+    });
+  });
+
   it('poczta: tylko adres, rozmiar i cele przekierowań — nic poza tym z odpowiedzi węzła', async () => {
     const { ctrl } = zbuduj();
     const wynik = await ctrl.poczta('s1', OPERATOR);
