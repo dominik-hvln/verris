@@ -81,11 +81,13 @@ node_ip()     { cut -f3 <<<"$1"; }
 node_name()   { cut -f1 <<<"$1"; }
 node_status() { cut -f4 <<<"$1"; }
 
+# Komenda (reszta argumentów) idzie do ssh po adresie. Do 12.10 funkcja ją pomijała:
+# `verris-node exec t1 -- <cmd>` otwierało zwykłą sesję zamiast wykonać polecenie.
 ssh_base() {
-  local ip="$1"
+  local ip="$1"; shift
   ssh -i "$NODE_SSH_KEY" -p "$NODE_SSH_PORT" \
       -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 \
-      "${NODE_SSH_USER}@${ip}"
+      "${NODE_SSH_USER}@${ip}" "$@"
 }
 
 require_key() { [ -f "$NODE_SSH_KEY" ] || die "brak klucza $NODE_SSH_KEY (ustaw NODE_SSH_KEY)"; }
