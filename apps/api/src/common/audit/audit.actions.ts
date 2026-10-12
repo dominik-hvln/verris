@@ -453,6 +453,10 @@ export const CyklZyciaUslugiActions = {
   SUBSCRIPTION_PAYMENT_PROMISE_REVOKED: 'SUBSCRIPTION_PAYMENT_PROMISE_REVOKED',
   /** Dodatek kupiony przez klienta albo dodany przez obsługę (z portfela klienta albo gratis). */
   ADDON_PURCHASED: 'ADDON_PURCHASED',
+  /** M-33 — zlecenie dodatku zrealizowane przez zespół; details: name, slug, zakupId, zgloszenieId (bez notatki). */
+  ADDON_FULFILLED: 'ADDON_FULFILLED',
+  /** M-33 — odmowa realizacji dodatku ze zwrotem opłaty na portfel; details: name, slug, zakupId, kwota, zgloszenieId. */
+  ADDON_REFUNDED: 'ADDON_REFUNDED',
   /** K3 — limity indywidualne usługi ustawione przez administratora; details: subscriptionId, przed, po (bez powodu). */
   SUBSCRIPTION_LIMITS_CUSTOMIZED: 'SUBSCRIPTION_LIMITS_CUSTOMIZED',
   /** K3 — przywrócone limity planu; details: subscriptionId, przed. */

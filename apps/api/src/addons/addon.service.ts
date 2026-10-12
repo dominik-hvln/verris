@@ -105,6 +105,29 @@ interface ZakupOperatora {
 const OKNO_IDEMPOTENCJI_MS = 5 * 60 * 1000;
 
 /**
+ * Klucz obciążenia zakupu w księdze portfela = klucz zakupu + id rekordu (jedna próba). Zwrot ma klucz
+ * `${ten}:zwrot` — wspólny dla zwrotu przy błędzie realizacji i odmowy zespołu (M-33), więc jeden zakup nie dostanie
+ * dwóch zwrotów, nawet gdyby obie ścieżki się spotkały. Zakupy sprzed Z-06 (bez klucza) — klucz z samego id.
+ */
+function kluczObciazeniaZakupu(r: { id: string; idempotencyKey: string | null }): string {
+  return r.idempotencyKey ? `${r.idempotencyKey}:${r.id}` : `addon:bez-klucza:${r.id}`;
+}
+
+/** M-33 — zamknięcie zlecenia dodatku przez zespół. */
+export type ZamkniecieZlecenia = 'ZREALIZOWANO' | 'ODMOWA';
+const MAX_TEKST_ZAMKNIECIA = 1000;
+const STAN_ZAKUPU_PL: Record<string, string> = {
+  PENDING: 'w trakcie zakupu',
+  QUEUED: 'w realizacji',
+  APPLIED: 'aktywny (bez zlecenia dla zespołu)',
+  DONE: 'zrealizowany',
+  REFUNDED: 'odrzucony ze zwrotem',
+};
+const juzZamkniete = (status: string | undefined) =>
+  `Tego zlecenia nie da się już zamknąć — jest ${STAN_ZAKUPU_PL[status ?? ''] ?? status ?? 'usunięte'}. Odśwież stronę.`;
+const kwotaPl = (d: Prisma.Decimal) => `${d.toFixed(2).replace('.', ',')} zł`;
+
+/**
  * P-8 — one-time add-on store, paid from the wallet. Two fulfilment modes:
  *  - 'flag'     → instant account flag (e.g. priority support window),
  *  - 'workorder'→ auto-creates a staff ticket for manual fulfilment.
@@ -157,6 +180,9 @@ export class AddonService {
         // Weryfikacja 11.10 — dodatek czasowy po końcu okresu nie jest „Aktywny” (rekord zostaje APPLIED na zawsze).
         status: p.status === 'APPLIED' && CATALOG[p.slug]?.mode === 'flag' && !priorityActive ? 'EXPIRED' : p.status,
         createdAt: p.createdAt.toISOString(),
+        // M-33 — notatka zespołu po realizacji („Przydzielono IP …”) albo powód odmowy; bez operatora.
+        notatka: p.resolvedNote ?? null,
+        zamknietoAt: p.resolvedAt?.toISOString() ?? null,
       })),
     };
   }
@@ -330,6 +356,149 @@ export class AddonService {
     return wynik;
   }
 
+  /**
+   * M-33 — zlecenia dodatków założone razem ze zgłoszeniem (temat „Dodatek: …”). Strona zgłoszenia w panelu obsługi
+   * pokazuje je z przyciskami „Zrealizowano” / „Odmowa ze zwrotem”. STAFF — tylko zlecenia klientów (jak dodanie).
+   */
+  async zleceniaZgloszenia(ticketId: string, aktor: { role: string }) {
+    const rekordy = await this.prisma.purchasedAddon.findMany({
+      where: { ticketId },
+      orderBy: { createdAt: 'desc' },
+      include: { user: { select: { role: true } } },
+    });
+    return rekordy
+      .filter((r) => aktor.role === 'ADMIN' || r.user.role === 'USER')
+      .map((r) => ({
+        id: r.id,
+        slug: r.slug,
+        name: r.name,
+        amount: r.amount.toString(),
+        status: r.status,
+        createdAt: r.createdAt.toISOString(),
+        notatka: r.resolvedNote ?? null,
+        zamknietoAt: r.resolvedAt?.toISOString() ?? null,
+      }));
+  }
+
+  /**
+   * M-33 — zespół zamyka zlecenie dodatku (QUEUED): „Zrealizowano” (DONE, opcjonalna notatka dla klienta) albo
+   * „Odmowa ze zwrotem” (REFUNDED, powód obowiązkowy, pełna kwota z powrotem na portfel). Wcześniej zlecenie wisiało
+   * „W realizacji” bez końca, a zwrot był możliwy tylko ręczną korektą salda.
+   *
+   * Przejście stanu jest warunkowe (updateMany … where status = QUEUED): z dwóch równoległych decyzji (dwa kliknięcia,
+   * dwie osoby, „Zrealizowano” kontra „Odmowa”) przechodzi jedna, druga dostaje 409. Zwrot idzie przez księgę portfela
+   * kluczem `${obciążenie}:zwrot` — tym samym co zwrot przy błędzie realizacji — więc i powtórzenie po stronie księgi
+   * nie zwróci dwa razy. Gdy zwrot się nie uda, zlecenie wraca do kolejki (ponowienie jest bezpieczne).
+   *
+   * Klient dostaje odpowiedź zespołu w zgłoszeniu zlecenia (mail jak przy każdej odpowiedzi) i wpis w „Aktywności
+   * konta”; zespół — OPERATOR_ACCOUNT_CHANGED z powodem/notatką. Notatkę i powód pisze operator i widzi je klient:
+   * adres IP przydzielony klientowi tak, nazwa i adres węzła — nie (white label; tego nie wymuszamy, mówi o tym panel).
+   */
+  async zamknijZlecenie(i: { zakupId: string; wynik: ZamkniecieZlecenia; operator: { userId: string; role: string }; tekst?: string | null }) {
+    const odmowa = i.wynik === 'ODMOWA';
+    const tekst = (i.tekst ?? '').trim();
+    if (tekst.length > MAX_TEKST_ZAMKNIECIA) throw new BadRequestException(`Tekst dla klienta może mieć najwyżej ${MAX_TEKST_ZAMKNIECIA} znaków.`);
+    if (odmowa && tekst.length < MIN_POWOD) {
+      throw new BadRequestException(`Podaj powód odmowy (min. ${MIN_POWOD} znaków) — klient zobaczy go w zgłoszeniu i w historii dodatków.`);
+    }
+    const rekord = await this.prisma.purchasedAddon.findUnique({ where: { id: i.zakupId }, include: { user: { select: { role: true } } } });
+    if (!rekord) throw new NotFoundException('Nie ma takiego zakupu dodatku.');
+    if (i.operator.role !== 'ADMIN' && rekord.user.role !== 'USER') {
+      throw new ForbiddenException('Personel zamyka wyłącznie zlecenia klientów — zlecenie konta zespołu zamyka administrator.');
+    }
+    if (rekord.status !== 'QUEUED') throw new ConflictException(juzZamkniete(rekord.status));
+
+    const status = odmowa ? 'REFUNDED' : 'DONE';
+    const zajete = await this.prisma.purchasedAddon.updateMany({
+      where: { id: rekord.id, status: 'QUEUED' },
+      data: { status, resolvedNote: tekst || null, resolvedAt: new Date(), resolvedById: i.operator.userId },
+    });
+    if (zajete.count !== 1) {
+      const teraz = await this.prisma.purchasedAddon.findUnique({ where: { id: rekord.id }, select: { status: true } });
+      throw new ConflictException(juzZamkniete(teraz?.status));
+    }
+
+    const zwrot = odmowa && rekord.amount.gt(0);
+    if (zwrot) {
+      try {
+        await this.wallet.credit({
+          userId: rekord.userId,
+          type: WalletTxType.REFUND,
+          amount: rekord.amount,
+          description: `Zwrot: dodatek ${rekord.name} (odmowa realizacji)`,
+          idempotencyKey: `${kluczObciazeniaZakupu(rekord)}:zwrot`,
+          subscriptionId: rekord.subscriptionId ?? undefined,
+        });
+      } catch (e) {
+        this.logger.error(`Zwrot za dodatek ${rekord.id} nie wszedł — zlecenie wraca do kolejki: ${(e as Error).message}`);
+        await this.prisma.purchasedAddon.updateMany({
+          where: { id: rekord.id, status: 'REFUNDED' },
+          data: { status: 'QUEUED', resolvedNote: null, resolvedAt: null, resolvedById: null },
+        });
+        throw e;
+      }
+    }
+
+    // Odpowiedź zespołu w zgłoszeniu zlecenia (istniejąca ścieżka odpowiedzi obsługi: mail do klienta, stan „czekamy na
+    // klienta” → auto-zamknięcie). Zlecenie jest już zamknięte, więc błąd zgłoszenia (np. scalone) nie cofa decyzji —
+    // panel mówi, że trzeba dopisać ręcznie.
+    const wiadomosc = odmowa
+      ? `Nie możemy zrealizować dodatku „${rekord.name}”.\n\nPowód: ${tekst}\n\n${
+          zwrot ? `Zwróciliśmy ${kwotaPl(rekord.amount)} na Twój portfel — środki są już dostępne.` : 'Dodatek był bez opłaty, więc nic nie pobraliśmy.'
+        }`
+      : `Zrealizowaliśmy dodatek „${rekord.name}”.${tekst ? `\n\n${tekst}` : ''}\n\nJeśli coś nie działa tak, jak powinno, odpisz w tym zgłoszeniu.`;
+    let wZgloszeniu = false;
+    if (rekord.ticketId) {
+      try {
+        await this.tickets.adminAddReply(rekord.ticketId, i.operator.userId, { message: wiadomosc, czekaj: 'tak' });
+        wZgloszeniu = true;
+      } catch (e) {
+        this.logger.warn(`Zlecenie dodatku ${rekord.id} zamknięte, odpowiedź w zgłoszeniu ${rekord.ticketId} nie weszła: ${(e as Error).message}`);
+      }
+    }
+
+    await this.audit.record({
+      action: odmowa ? CyklZyciaUslugiActions.ADDON_REFUNDED : CyklZyciaUslugiActions.ADDON_FULFILLED,
+      userId: rekord.userId,
+      actorUserId: i.operator.userId,
+      details: {
+        name: rekord.name,
+        slug: rekord.slug,
+        zakupId: rekord.id,
+        ...(odmowa ? { kwota: zwrot ? rekord.amount.toString() : '0' } : {}),
+        ...(rekord.subscriptionId ? { subscriptionId: rekord.subscriptionId } : {}),
+        ...(rekord.ticketId ? { zgloszenieId: rekord.ticketId } : {}),
+      },
+    });
+    await this.audit.record({
+      action: SupportActions.OPERATOR_ACCOUNT_CHANGED,
+      userId: rekord.userId,
+      actorUserId: i.operator.userId,
+      details: {
+        akcja: odmowa ? 'dodatek-odmowa-zwrot' : 'dodatek-zrealizowany',
+        slug: rekord.slug,
+        zakupId: rekord.id,
+        ...(odmowa ? { powod: tekst, kwota: zwrot ? rekord.amount.toString() : '0' } : tekst ? { notatka: tekst } : {}),
+        ...(rekord.subscriptionId ? { subscriptionId: rekord.subscriptionId } : {}),
+        ...(rekord.ticketId ? { zgloszenieId: rekord.ticketId } : {}),
+        wynik: 'ok',
+      },
+    });
+
+    return {
+      ok: true as const,
+      id: rekord.id,
+      status,
+      zwrot: zwrot ? rekord.amount.toString() : null,
+      wZgloszeniu,
+      note: odmowa
+        ? `${zwrot ? `Zwrócono ${kwotaPl(rekord.amount)} na portfel klienta.` : 'Dodatek był bez opłaty — bez zwrotu.'}${
+            wZgloszeniu ? ' Klient dostał powód w zgłoszeniu.' : rekord.ticketId ? ' Odpowiedź w zgłoszeniu nie weszła — napisz do klienta ręcznie.' : ''
+          }`
+        : `Zlecenie zamknięte.${wZgloszeniu ? ' Klient dostał informację w zgłoszeniu.' : rekord.ticketId ? ' Odpowiedź w zgłoszeniu nie weszła — napisz do klienta ręcznie.' : ''}`,
+    };
+  }
+
   private async zrealizuj(z: {
     userId: string;
     def: AddonDef;
@@ -370,7 +539,7 @@ export class AddonService {
 
     // Klucz w księdze = klucz zakupu + ta próba. Nieudana próba zwalnia klucz zakupu (rekord znika),
     // więc ponowienie tym samym kluczem z panelu płaci od nowa, zamiast trafić w zwrócone obciążenie.
-    const kluczKsiegi = `${klucz}:${rekord.id}`;
+    const kluczKsiegi = kluczObciazeniaZakupu({ id: rekord.id, idempotencyKey: klucz });
     // F3.5 — gratis od obsługi: bez obciążenia (księga odrzuca kwotę 0), więc i bez zwrotu przy błędzie.
     if (!gratis) try {
       await this.wallet.debit({

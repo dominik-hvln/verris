@@ -158,6 +158,8 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   SUBSCRIPTION_PAYMENT_PROMISE_REVOKED: 'Odwołano przesunięcie terminu płatności',
   SUBSCRIPTION_OWNER_CHANGED: 'Zmiana właściciela usługi',
   ADDON_PURCHASED: 'Dodano dodatek',
+  ADDON_FULFILLED: 'Zrealizowano dodatek',
+  ADDON_REFUNDED: 'Odmowa realizacji dodatku — zwrot na portfel',
   // K3 — limity usługi ustalone indywidualnie przez obsługę
   SUBSCRIPTION_LIMITS_CUSTOMIZED: 'Ustalono indywidualne limity usługi',
   SUBSCRIPTION_LIMITS_RESET: 'Przywrócono limity planu usługi',

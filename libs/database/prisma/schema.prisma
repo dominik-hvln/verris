@@ -1618,10 +1618,16 @@ model PurchasedAddon {
   amount         Decimal  @db.Decimal(10, 2)
   currency       String   @default("PLN")
   subscriptionId String?
-  /// QUEUED (work-order created) | APPLIED (instant flag) | DONE
+  /// QUEUED (zlecenie dla zespołu) | APPLIED (flaga od razu) | DONE (zlecenie zrealizowane przez zespół)
+  /// | REFUNDED (odmowa realizacji, opłata zwrócona na portfel). PENDING — tylko w trakcie zakupu.
   status         String   @default("APPLIED")
   ticketId       String?
   createdAt      DateTime @default(now())
+  /// M-33 — zamknięcie zlecenia przez zespół: notatka dla klienta („Przydzielono IP …”) albo powód odmowy
+  /// (klient widzi go w historii dodatków), kiedy i kto (operator; tylko dla zespołu).
+  resolvedNote   String?
+  resolvedAt     DateTime?
+  resolvedById   String?
 
   /// Z-06 — klucz idempotencji zakupu. Unikalność wymusza baza, więc dwa
   /// równoległe żądania z tym samym kluczem nie mogą utworzyć dwóch zakupów
@@ -1630,6 +1636,7 @@ model PurchasedAddon {
   idempotencyKey String?  @unique
 
   @@index([userId, createdAt])
+  @@index([ticketId])
 }
 
 enum WalletTxType {

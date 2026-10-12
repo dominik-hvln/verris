@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, HttpCode, NotFoundException, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, HttpCode, NotFoundException, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { IsBoolean, IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -65,5 +65,50 @@ export class DodatkiOperatoraAdminController {
       klucz: b.klucz ? `panel:${b.klucz}` : null,
       przedluz: b.przedluz === true,
     });
+  }
+}
+
+/** M-33 — „Zrealizowano”: notatka dla klienta opcjonalna (np. „Przydzielono IP …”). */
+export class RealizacjaZleceniaDto {
+  @IsOptional() @IsString() @MaxLength(1000) notatka?: string;
+}
+
+/** M-33 — „Odmowa ze zwrotem”: powód obowiązkowy (klient go zobaczy). */
+export class OdmowaZleceniaDto {
+  @IsString() @MinLength(10) @MaxLength(1000) powod!: string;
+}
+
+/**
+ * M-33 — zlecenia dodatków (dedykowane IP, konfiguracja przez specjalistę) zamykane przez zespół ze strony zgłoszenia
+ * „Dodatek: …”. Podgląd — kto widzi zgłoszenia albo zarządza usługami. „Zrealizowano” (bez pieniędzy) — SUBSCRIPTIONS_MANAGE
+ * (L2+, NOC), jak zmiany usług. „Odmowa ze zwrotem” rusza portfel klienta — te same uprawnienia co dodanie dodatku przez
+ * obsługę (BILLING_MANAGE + SUBSCRIPTIONS_MANAGE, L4; decyzja 08.10: portfel od L4).
+ */
+@Controller('admin/dodatki')
+@UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
+@Roles(Role.ADMIN, Role.STAFF)
+@StaffPerm('SUBSCRIPTIONS_MANAGE')
+export class ZleceniaDodatkowAdminController {
+  constructor(private readonly addons: AddonService) {}
+
+  @Get('zgloszenie/:ticketId')
+  @StaffPermAny('TICKETS_VIEW', 'SUBSCRIPTIONS_MANAGE')
+  zgloszenia(@Param('ticketId', ParseUUIDPipe) ticketId: string, @CurrentUser() actor: { userId: string; role: string }) {
+    return this.addons.zleceniaZgloszenia(ticketId, actor);
+  }
+
+  @Post(':id/zrealizowano')
+  @HttpCode(200)
+  @RateLimit({ limit: 60, windowMs: 60 * 60 * 1000, scope: 'admin:zlecenia-dodatkow' })
+  zrealizowano(@Param('id', ParseUUIDPipe) id: string, @Body() b: RealizacjaZleceniaDto, @CurrentUser() actor: { userId: string; role: string }) {
+    return this.addons.zamknijZlecenie({ zakupId: id, wynik: 'ZREALIZOWANO', operator: { userId: actor.userId, role: actor.role }, tekst: b.notatka });
+  }
+
+  @Post(':id/odmowa')
+  @HttpCode(200)
+  @StaffPerm('BILLING_MANAGE', 'SUBSCRIPTIONS_MANAGE')
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'admin:zlecenia-dodatkow-odmowa' })
+  odmowa(@Param('id', ParseUUIDPipe) id: string, @Body() b: OdmowaZleceniaDto, @CurrentUser() actor: { userId: string; role: string }) {
+    return this.addons.zamknijZlecenie({ zakupId: id, wynik: 'ODMOWA', operator: { userId: actor.userId, role: actor.role }, tekst: b.powod });
   }
 }

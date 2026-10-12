@@ -756,6 +756,8 @@ export class UsersService {
       // zmienione przez obsługę (D3: „obsługa Verris (zgłoszenie #…)”).
       'SUBSCRIPTION_CANCEL_SCHEDULED', 'SUBSCRIPTION_CANCEL_REVOKED', 'SUBSCRIPTION_RENEWAL_DATE_CHANGED',
       'SUBSCRIPTION_PAYMENT_PROMISE_SET', 'SUBSCRIPTION_PAYMENT_PROMISE_REVOKED', 'ADDON_PURCHASED',
+      // M-33 — zlecenie dodatku zamknięte przez zespół: zrealizowane albo odmowa ze zwrotem na portfel.
+      'ADDON_FULFILLED', 'ADDON_REFUNDED',
       // K3 — limity indywidualne usługi ustawione albo przywrócone przez obsługę.
       'SUBSCRIPTION_LIMITS_CUSTOMIZED', 'SUBSCRIPTION_LIMITS_RESET',
       // K2 (PB-53.5) — administrator przeniósł usługę na inne konto (wpis u obu klientów, bez adresu drugiej strony).

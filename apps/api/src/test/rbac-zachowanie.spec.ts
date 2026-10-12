@@ -291,6 +291,30 @@ describe('L1-KARTA — karta usługi dla ról systemowych', () => {
     expect(await wpuszcza(t('dodaj'), KLIENT, ['*', 'BILLING_MANAGE', 'SUBSCRIPTIONS_MANAGE'])).toBe(false);
   });
 
+  it('M-33: zlecenia dodatków — podgląd L1+ i NOC; „Zrealizowano” L2+ i NOC; „Odmowa ze zwrotem” (portfel) tylko L4', async () => {
+    const t = (m: string) => {
+      const x = TRASY.find((r) => r.kontroler === 'ZleceniaDodatkowAdminController' && r.metoda === m);
+      expect(x, m).toBeDefined();
+      return x!;
+    };
+    const w = async (rola: string) => ({
+      podglad: await wpuszcza(t('zgloszenia'), OPERATOR, uprawnieniaRoli(rola)),
+      realizacja: await wpuszcza(t('zrealizowano'), OPERATOR, uprawnieniaRoli(rola)),
+      odmowa: await wpuszcza(t('odmowa'), OPERATOR, uprawnieniaRoli(rola)),
+    });
+    expect(await w('L1 Konsultant')).toEqual({ podglad: true, realizacja: false, odmowa: false });
+    expect(await w('L2 Specjalista techniczny')).toEqual({ podglad: true, realizacja: true, odmowa: false });
+    expect(await w('L3 Starszy specjalista')).toEqual({ podglad: true, realizacja: true, odmowa: false });
+    expect(await w('L4 Kierownik zmiany')).toEqual({ podglad: true, realizacja: true, odmowa: true });
+    expect(await w('Inżynier infrastruktury (NOC/DevOps)')).toEqual({ podglad: true, realizacja: true, odmowa: false });
+    expect(await w('Finanse i księgowość')).toEqual({ podglad: true, realizacja: false, odmowa: false });
+    expect(await w('Marketing')).toEqual({ podglad: false, realizacja: false, odmowa: false });
+    for (const m of ['zgloszenia', 'zrealizowano', 'odmowa']) {
+      expect(await wpuszcza(t(m), ADMIN)).toBe(true);
+      expect(await wpuszcza(t(m), KLIENT, ['*', 'BILLING_MANAGE', 'SUBSCRIPTIONS_MANAGE', 'TICKETS_VIEW'])).toBe(false);
+    }
+  });
+
   it('F2.4: eksport list do CSV (dane osobowe) — tylko z EXPORT_DATA (L4), obok uprawnienia do samej listy', async () => {
     const eksporty = TRASY.filter((t) => t.metoda === 'exportCsv' && ['SubscriptionsAdminController', 'UsersAdminController'].includes(t.kontroler));
     expect(eksporty).toHaveLength(2);

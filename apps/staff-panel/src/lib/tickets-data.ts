@@ -222,3 +222,25 @@ export async function staffMojeOceny(meId: string, dni = 30): Promise<OcenaAgent
     return null;
   }
 }
+
+/** M-33 — zlecenie dodatku założone razem ze zgłoszeniem („Dodatek: …”), z API admin/dodatki. */
+export interface ZlecenieDodatku {
+  id: string;
+  slug: string;
+  name: string;
+  amount: string;
+  /** QUEUED — czeka na zespół; DONE — zrealizowane; REFUNDED — odmowa ze zwrotem. */
+  status: string;
+  createdAt: string;
+  notatka: string | null;
+  zamknietoAt: string | null;
+}
+
+/** M-33 — zlecenia dodatków tego zgłoszenia; [] gdy brak albo operator ich nie widzi (bez uprawnień nie ma karty). */
+export async function staffZleceniaDodatkow(ticketId: string): Promise<ZlecenieDodatku[]> {
+  try {
+    return await staffApi<ZlecenieDodatku[]>(`/admin/dodatki/zgloszenie/${encodeURIComponent(ticketId)}`);
+  } catch {
+    return [];
+  }
+}

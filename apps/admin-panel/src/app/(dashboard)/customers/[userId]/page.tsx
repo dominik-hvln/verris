@@ -102,6 +102,8 @@ const AKCJE: Record<string, string> = {
   SUBSCRIPTION_PAYMENT_PROMISE_REVOKED: "Odwołano obietnicę zapłaty",
   SUBSCRIPTION_OWNER_CHANGED: "Zmiana właściciela usługi",
   ADDON_PURCHASED: "Dodatek",
+  ADDON_FULFILLED: "Dodatek zrealizowany",
+  ADDON_REFUNDED: "Dodatek — odmowa ze zwrotem",
   SUBSCRIPTION_LIMITS_CUSTOMIZED: "Limity indywidualne usługi",
   SUBSCRIPTION_LIMITS_RESET: "Przywrócono limity planu",
   PLAN_CHANGED: "Zmiana pakietu",

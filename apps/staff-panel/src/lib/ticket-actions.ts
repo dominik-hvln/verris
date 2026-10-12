@@ -372,3 +372,29 @@ export async function staffBulk(input: {
     return { error: e instanceof StaffApiError ? e.message : "Nie udało się wykonać akcji." };
   }
 }
+
+/**
+ * M-33 — zlecenie dodatku ze zgłoszenia: „Zrealizowano” (notatka dla klienta opcjonalna) albo „Odmowa ze zwrotem”
+ * (powód obowiązkowy, pełna kwota na portfel klienta). API przepuszcza jedną decyzję — druga dostaje 409 z opisem.
+ */
+export async function staffZamknijZlecenieDodatku(
+  ticketId: string,
+  zakupId: string,
+  wynik: "ZREALIZOWANO" | "ODMOWA",
+  tekst: string,
+): Promise<{ ok: true; note: string } | { error: string }> {
+  const t = tekst.trim();
+  if (wynik === "ODMOWA" && t.length < 10) return { error: "Podaj powód odmowy (min. 10 znaków) — klient go zobaczy." };
+  try {
+    const id = encodeURIComponent(zakupId);
+    const r =
+      wynik === "ODMOWA"
+        ? await staffApi<{ note?: string }>(`/admin/dodatki/${id}/odmowa`, { method: "POST", body: { powod: t } })
+        : await staffApi<{ note?: string }>(`/admin/dodatki/${id}/zrealizowano`, { method: "POST", body: t ? { notatka: t } : {} });
+    revalidatePath(`/tickets/${ticketId}`);
+    revalidatePath("/");
+    return { ok: true, note: r?.note ?? "Zlecenie zamknięte." };
+  } catch (e) {
+    return { error: e instanceof StaffApiError ? e.message : "Nie udało się zamknąć zlecenia." };
+  }
+}

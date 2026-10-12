@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Check, Loader2, Plus, Sparkles } from 'lucide-react';
 import { formatCredits } from '@/lib/credits';
-import { purchaseAddonAction, type AddonsOverview } from './addons-actions';
+import { purchaseAddonAction, type AddonsOverview, type PurchasedAddonRow } from './addons-actions';
 import { dataPl } from '@/lib/data-pl';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -13,7 +13,17 @@ const STATUS_LABEL: Record<string, string> = {
   QUEUED: 'W realizacji',
   DONE: 'Zrealizowany',
   EXPIRED: 'Zakończony',
+  REFUNDED: 'Zwrócony',
 };
+
+/**
+ * M-33 — stan dodatku w historii: zlecenie zamknięte przez zespół pokazuje notatkę („Zrealizowany — Przydzielono IP …”)
+ * albo powód odmowy („Zwrócony — …”; dodatek bez opłaty — „Anulowany — …”).
+ */
+export function stanDodatku(p: Pick<PurchasedAddonRow, 'status' | 'amount' | 'notatka'>): string {
+  const etykieta = p.status === 'REFUNDED' && !(Number(p.amount) > 0) ? 'Anulowany' : STATUS_LABEL[p.status] ?? p.status;
+  return p.notatka && (p.status === 'DONE' || p.status === 'REFUNDED') ? `${etykieta} — ${p.notatka}` : etykieta;
+}
 
 /** Weryfikacja 11.10 — dodatek czasowy, który jest aktywny: zamiast drugiego zakupu — przedłużenie. */
 const CZASOWE = new Set(['priority_support_30d']);
@@ -91,13 +101,16 @@ export function AddonsClient({ overview }: { overview: AddonsOverview }) {
         <div className="space-y-2">
           <p className="text-sm font-semibold text-white">Historia dodatków</p>
           {overview.purchased.map((p) => (
-            <div key={p.id} className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm">
+            <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm">
               <span className="text-white">{p.name}</span>
               <span className="flex items-center gap-3">
                 <span className="text-neutral-400">{formatCredits(p.amount)}</span>
-                <span className={`text-xs ${p.status === 'QUEUED' ? 'text-amber-300' : p.status === 'EXPIRED' ? 'text-neutral-400' : 'text-emerald-300'} inline-flex items-center gap-1`}>
-                  {p.status !== 'QUEUED' && p.status !== 'EXPIRED' ? <Check className="h-3 w-3" /> : null}
-                  {STATUS_LABEL[p.status] ?? p.status}
+                <span
+                  data-stan={p.status}
+                  className={`text-xs ${p.status === 'QUEUED' ? 'text-amber-300' : p.status === 'EXPIRED' || p.status === 'REFUNDED' ? 'text-neutral-400' : 'text-emerald-300'} inline-flex items-center gap-1`}
+                >
+                  {p.status !== 'QUEUED' && p.status !== 'EXPIRED' && p.status !== 'REFUNDED' ? <Check className="h-3 w-3" /> : null}
+                  {stanDodatku(p)}
                 </span>
               </span>
             </div>

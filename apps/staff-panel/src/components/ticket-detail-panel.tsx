@@ -26,8 +26,9 @@ import { TicketRunbook } from "./ticket-runbook";
 import { TicketMakra } from "./ticket-makra";
 import { TicketScalanie } from "./ticket-scalanie";
 import { TicketObecnosc } from "./ticket-obecnosc";
+import { TicketDodatek } from "./ticket-dodatek";
 import type { MakroRow } from "@/lib/ticket-actions";
-import type { KandydatScalenia } from "@/lib/tickets-data";
+import type { KandydatScalenia, ZlecenieDodatku } from "@/lib/tickets-data";
 import { plForm } from "@/lib/pl";
 
 interface Props {
@@ -43,6 +44,10 @@ interface Props {
   makra?: MakroRow[] | null;
   kandydaciScalenia?: KandydatScalenia[] | null;
   mozeScalic?: boolean;
+  /** M-33 — zlecenia dodatków tego zgłoszenia i czy operator je zamyka (realizacja / odmowa ze zwrotem). */
+  zleceniaDodatkow?: ZlecenieDodatku[];
+  mozeRealizowacDodatek?: boolean;
+  mozeZwrocicDodatek?: boolean;
 }
 
 const STATUS_OPTS = ["OPEN", "IN_PROGRESS", "WAITING_CUSTOMER", "CLOSED"] as const;
@@ -183,6 +188,9 @@ export function TicketDetailPanel({
   makra = [],
   kandydaciScalenia = [],
   mozeScalic = false,
+  zleceniaDodatkow = [],
+  mozeRealizowacDodatek = false,
+  mozeZwrocicDodatek = false,
 }: Props) {
   const router = useRouter();
   const teraz = useTeraz(start);
@@ -693,6 +701,7 @@ export function TicketDetailPanel({
 
       {/* ---------- kolumna boczna */}
       <aside className="flex flex-col gap-4 xl:sticky xl:top-[86px] xl:self-start">
+        <TicketDodatek ticketId={ticket.id} zlecenia={zleceniaDodatkow} mozeRealizowac={mozeRealizowacDodatek} mozeZwrocic={mozeZwrocicDodatek} />
         <TicketUsluga ticketId={ticket.id} userId={ticket.user.id} usluga={ticket.subscription ?? null} uslugiKlienta={context?.services ?? null} />
         <TicketClientAside context={context} userId={ticket.user.id} email={ticket.user.email} mozeWejscNaKonto={mozeWejscNaKonto} />
 

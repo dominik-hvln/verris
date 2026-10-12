@@ -18,6 +18,9 @@ export interface PurchasedAddonRow {
   amount: string;
   status: string;
   createdAt: string;
+  /** M-33 — notatka zespołu po realizacji („Przydzielono IP …”) albo powód odmowy (status REFUNDED). */
+  notatka?: string | null;
+  zamknietoAt?: string | null;
 }
 
 export interface AddonsOverview {
