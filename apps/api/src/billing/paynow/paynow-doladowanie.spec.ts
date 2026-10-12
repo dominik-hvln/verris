@@ -1,4 +1,4 @@
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { Prisma } from '@verris/database';
 import { BillingService } from '../billing.service.js';
 import { podpisPowiadomienia, podpisZadania } from './paynow.client.js';
@@ -284,6 +284,20 @@ describe('Paynow — zwrot z panelu admina', () => {
     expect(wpis).toMatchObject({ idempotencyKey: 'paynow:zwrot:RE6-9YD-ULU-MRL', metadata: expect.objectContaining({ zwrotZa: 'wtx-1' }) });
     expect(s.rekordy.get(rek.id)).toMatchObject({ zwroconoMinor: 2000, zwrotyIds: ['RE6-9YD-ULU-MRL'] });
     expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'WALLET_TOPUP_REFUNDED' }));
+  });
+
+  it('12.10 (prod) — Paynow 2xx bez refundId: 409 z instrukcją (sprawdź w panelu Paynow), bez cofania K i bez 500', async () => {
+    const s = zbuduj();
+    const rek = await zaksiegowana(s);
+    s.prisma.walletTransaction.findUniqueOrThrow.mockResolvedValue({
+      id: 'wtx-1', userId: 'u1', amount: new Prisma.Decimal('2.46'), metadata: { wplata: { kwota: '2.46' } },
+    });
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 201, json: async () => { throw new SyntaxError('Unexpected end of JSON input'); } });
+    const blad = await s.svc.zwrocPlatnoscPaynow({ walletTxId: 'wtx-1', actorUserId: 'admin1' }).catch((e) => e);
+    expect(blad).toBeInstanceOf(ConflictException);
+    expect(String(blad.message)).toContain('Zwrot zrobiony w Paynow');
+    expect(s.ledger.zapiszWpis).not.toHaveBeenCalled();
+    expect(s.rekordy.get(rek.id)).toMatchObject({ zwroconoMinor: 0, zwrotyIds: [] });
   });
 
   it('ten sam refundId drugi raz (ponowienie) nie cofa K ponownie; kwota ponad wpłatę → błąd bez wywołania Paynow', async () => {

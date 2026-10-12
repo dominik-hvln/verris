@@ -2,6 +2,7 @@ import { createHmac } from 'crypto';
 import {
   jsonAscii,
   PaynowBlad,
+  PaynowBezTresci,
   PaynowClient,
   podpisPowiadomienia,
   podpisZadania,
@@ -107,5 +108,13 @@ describe('PaynowClient — żądania HTTP', () => {
     expect(blad).toBeInstanceOf(PaynowBlad);
     expect(blad.typyBledow).toEqual(['INSUFFICIENT_BALANCE_FUNDS']);
     expect(fetchMock.mock.calls[0][0]).toBe('https://api.sandbox.paynow.pl/v3/payments/NOLV-8F9-08K-WGD/refunds');
+  });
+
+  it('12.10 — zwrot: 2xx bez JSON-a albo bez refundId → PaynowBezTresci, nie „sukces” z undefined', async () => {
+    const c = new PaynowClient(API_KEY, SIG_KEY, 'https://api.paynow.pl');
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 201, json: async () => { throw new SyntaxError('Unexpected end of JSON input'); } });
+    await expect(c.zwrot('NOLV-8F9-08K-WGD', { amount: 246, reason: 'OTHER' }, 'k1')).rejects.toBeInstanceOf(PaynowBezTresci);
+    fetchMock.mockResolvedValueOnce(odp(201, { status: 'PENDING' }));
+    await expect(c.zwrot('NOLV-8F9-08K-WGD', { amount: 246, reason: 'OTHER' }, 'k2')).rejects.toBeInstanceOf(PaynowBezTresci);
   });
 });

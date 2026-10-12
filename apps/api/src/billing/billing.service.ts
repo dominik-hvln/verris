@@ -50,6 +50,7 @@ import {
   czyStatusPaynow,
   PAYNOW_SANDBOX_URL,
   PaynowBlad,
+  PaynowBezTresci,
   PaynowClient,
   poprawnyPodpisPowiadomienia,
   type StatusPlatnosciPaynow,
@@ -865,6 +866,14 @@ export class BillingService {
         ? { refundId: `panel-${idem}`, status: 'WYKONANY_W_PANELU' }
         : await paynow.zwrot(rek.paymentId, { amount: kwotaMinor, reason: 'OTHER' }, idem);
     } catch (err) {
+      if (err instanceof PaynowBezTresci) {
+        // 12.10 — 2xx bez refundId: zwrot mógł zostać przyjęty. Nie zapisujemy cofnięcia na ślepo i nie zlecamy drugiego —
+        // operator sprawdza w panelu Paynow i, jeśli zwrot jest, zapisuje go trybem „zwrot zrobiony w Paynow”.
+        this.logger.error(`Paynow: zwrot ${rek.paymentId} — ${err.message}; stan zwrotu nieznany, do sprawdzenia w panelu Paynow`);
+        throw new ConflictException(
+          'Paynow przyjął zlecenie zwrotu, ale nie podał jego numeru. Sprawdź zwrot w panelu Paynow — jeśli jest, zapisz go przyciskiem „Zwrot zrobiony w Paynow”; nie zlecaj go drugi raz.',
+        );
+      }
       const typy = err instanceof PaynowBlad ? err.typyBledow.join(', ') : '';
       this.logger.error(`Paynow: zwrot ${rek.paymentId} odrzucony: ${err instanceof Error ? err.message : String(err)}`);
       throw new BadRequestException(`Paynow odrzucił zwrot${typy ? ` (${typy})` : ''}.`);

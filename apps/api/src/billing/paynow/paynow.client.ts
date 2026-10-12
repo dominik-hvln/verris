@@ -81,6 +81,20 @@ export class PaynowBlad extends Error {
   }
 }
 
+/**
+ * 12.10 (prod) — Paynow odpowiedział na zlecenie zwrotu kodem 2xx bez czytelnego JSON-a z `refundId`; serwis czytał
+ * `odp.refundId` z `undefined` → 500, a w Verris nic się nie zapisało (portfel bez cofnięcia), choć zlecenie mogło
+ * zostać przyjęte. Odpowiedź 2xx bez oczekiwanej treści to osobny błąd: „przyjęte? — sprawdź w panelu Paynow”.
+ */
+export class PaynowBezTresci extends Error {
+  constructor(
+    readonly httpStatus: number,
+    readonly contentType: string | null,
+  ) {
+    super(`Paynow HTTP ${httpStatus} bez oczekiwanej treści JSON (content-type: ${contentType ?? 'brak'})`);
+  }
+}
+
 export interface ZlecenieWplatyPaynow {
   /** Grosze, 100..100000000 wg API reference. */
   amount: number;
@@ -119,7 +133,12 @@ export class PaynowClient {
 
   zwrot(paymentId: string, z: { amount: number; reason: 'RMA' | 'REFUND_BEFORE_14' | 'REFUND_AFTER_14' | 'OTHER' }, idempotencyKey: string) {
     if (!PAYMENT_ID_RE.test(paymentId)) throw new Error(`Niepoprawny paymentId Paynow: ${paymentId}`);
-    return this.zadanie<{ refundId: string; status: string }>('POST', `/v3/payments/${paymentId}/refunds`, idempotencyKey, z);
+    return this.zadanie<{ refundId: string; status: string }>('POST', `/v3/payments/${paymentId}/refunds`, idempotencyKey, z).then(
+      (r) => {
+        if (!r || typeof r.refundId !== 'string' || r.refundId === '') throw new PaynowBezTresci(200, 'application/json (bez refundId)');
+        return r;
+      },
+    );
   }
 
   private async zadanie<T>(metoda: 'GET' | 'POST', sciezka: string, idempotencyKey: string, tresc?: unknown): Promise<T> {
@@ -143,6 +162,7 @@ export class PaynowClient {
     } catch {
       dane = undefined;
     }
+    if (res.ok && dane === undefined && metoda === 'POST') throw new PaynowBezTresci(res.status, res.headers?.get?.('content-type') ?? null);
     if (!res.ok) {
       // Odpowiedź błędu: { statusCode, errors: [{ errorType, message }] } — do logu idą tylko typy.
       const bledy = (dane as { errors?: Array<{ errorType?: string }> } | undefined)?.errors ?? [];
