@@ -250,9 +250,34 @@ export class ControlPlaneMailService {
     // creating standalone mailboxes under these names (assertValidLocalPart).
     this.assertValidLocalPart(local, { allowReserved: true });
 
-    const row = await this.prisma.controlPlaneMailAlias.create({
-      data: { aliasEmail, targetId: mailboxId },
+    // 12.10 (prod): abuse@ był już aliasem kontakt@ — `aliasEmail` jest unikalny, a create kończył się błędem
+    // Prisma P2002 → 500 „Wewnętrzny błąd serwera” bez wskazówki. Adres zajęty przez inny alias albo skrzynkę = 409
+    // z nazwą skrzynki, z której trzeba go najpierw zdjąć (alias nie może wskazywać dwóch skrzynek).
+    const zajety = await this.prisma.controlPlaneMailAlias.findUnique({
+      where: { aliasEmail },
+      include: { target: { select: { email: true } } },
     });
+    if (zajety) {
+      throw new ConflictException(
+        zajety.targetId === mailboxId
+          ? `Alias ${aliasEmail} już wskazuje na tę skrzynkę.`
+          : `Alias ${aliasEmail} jest już przypisany do ${zajety.target.email} — usuń go tam, potem dodaj tutaj.`,
+      );
+    }
+    if (await this.prisma.controlPlaneMailbox.findUnique({ where: { email: aliasEmail }, select: { id: true } })) {
+      throw new ConflictException(`${aliasEmail} to osobna skrzynka — nie może być jednocześnie aliasem.`);
+    }
+
+    let row;
+    try {
+      row = await this.prisma.controlPlaneMailAlias.create({
+        data: { aliasEmail, targetId: mailboxId },
+      });
+    } catch (e) {
+      // Wyścig dwóch dodań tego samego aliasu — ten sam komunikat zamiast 500.
+      if ((e as { code?: string }).code === 'P2002') throw new ConflictException(`Alias ${aliasEmail} jest już przypisany.`);
+      throw e;
+    }
 
     await this.audit.record({
       action: ControlPlaneMailActions.MAIL_ALIAS_ADDED,
