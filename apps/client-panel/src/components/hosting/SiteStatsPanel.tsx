@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { Kpi, KpiStrip, MiniBars, SectionHead } from '@/components/panel/v2';
+import { plForm } from '@/lib/pl';
 import { fetchStatystykiStrony, odswiezStatystykiStrony, type StatystykiStrony } from '@/app/dashboard/services/[id]/hosting-site-stats-actions';
 
 const BTN = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[13px] py-2 text-sm font-medium text-foreground hover:bg-raised disabled:opacity-50';
@@ -73,13 +74,13 @@ export function SiteStatsPanel({ serviceId, domain }: { serviceId: string; domai
       {blad || stan?.blad ? <p role="alert" className="m-0 mb-2 text-[13px] text-crit">{blad ?? stan?.blad}</p> : null}
       <KpiStrip>
         <Kpi label="Odwiedzający" value={zLogu ? suma('odwiedzajacy').toLocaleString('pl-PL') : '—'} foot={<span>unikalne adresy IP, 7 dni</span>}>
-          {zLogu && ruch.length ? <MiniBars values={ruch.map((d) => d.odwiedzajacy)} labels={ruch.map((d) => dzien(d.dzien))} unit="odwiedzających" /> : null}
+          {zLogu && ruch.length ? <MiniBars values={ruch.map((d) => d.odwiedzajacy)} labels={ruch.map((d) => dzien(d.dzien))} unit={(v) => plForm(v, 'odwiedzający', 'odwiedzających', 'odwiedzających')} /> : null}
         </Kpi>
         <Kpi label="Żądania" value={zLogu ? suma('zadania').toLocaleString('pl-PL') : '—'} foot={<span>wszystkie odpowiedzi serwera</span>}>
-          {zLogu && ruch.length ? <MiniBars values={ruch.map((d) => d.zadania)} labels={ruch.map((d) => dzien(d.dzien))} unit="żądań" /> : null}
+          {zLogu && ruch.length ? <MiniBars values={ruch.map((d) => d.zadania)} labels={ruch.map((d) => dzien(d.dzien))} unit={(v) => plForm(v, 'żądanie', 'żądania', 'żądań')} /> : null}
         </Kpi>
         <Kpi label="Błędy 5xx" value={zLogu ? suma('bledy5xx').toLocaleString('pl-PL') : '—'} foot={<span>{zLogu ? (suma('bledy5xx') ? 'szczegóły niżej i w zakładce Logi' : 'bez błędów serwera') : 'brak logu domeny'}</span>}>
-          {zLogu && ruch.length ? <MiniBars values={ruch.map((d) => d.bledy5xx)} labels={ruch.map((d) => dzien(d.dzien))} unit="błędów" lastTone="warn" /> : null}
+          {zLogu && ruch.length ? <MiniBars values={ruch.map((d) => d.bledy5xx)} labels={ruch.map((d) => dzien(d.dzien))} unit={(v) => plForm(v, 'błąd', 'błędy', 'błędów')} lastTone="warn" /> : null}
         </Kpi>
         <Kpi
           label="TTFB (serwer)"

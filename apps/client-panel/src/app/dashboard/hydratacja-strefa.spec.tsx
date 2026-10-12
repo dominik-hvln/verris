@@ -74,7 +74,7 @@ describe('#418 — render serwera (UTC) pokazuje czas polski, jak przeglądarka'
     const html = renderToString(<DashboardHome snapshot={snapshot} />);
     expect(html).toContain('najbliższe odnowienie 8 lis');
     // Zgłoszenie z 00:30 11.10 (czas polski) liczy się do niedzieli 11 paź, nie do soboty 10 paź (dzień UTC).
-    expect(html).toContain('aria-label="1 nowych zgłoszeń, niedz., 11 paź"');
+    expect(html).toContain('aria-label="1 nowe zgłoszenie, niedz., 11 paź"');
     expect(html).toContain('aria-label="0 nowych zgłoszeń, sob., 10 paź"');
   });
 

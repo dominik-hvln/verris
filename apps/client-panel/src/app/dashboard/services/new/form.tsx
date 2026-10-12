@@ -483,6 +483,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
                 setPromoError(null);
               }}
               placeholder="np. START20"
+              aria-label="Kod rabatowy"
               className="flex-1 rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-white font-mono placeholder:text-neutral-500 focus:border-emerald-500/50 focus:outline-none"
             />
             <button

@@ -277,7 +277,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
             value={snapshot.errors.tickets || bez.tickets ? '—' : String(snapshot.openTickets)}
             foot={bez.tickets ? <span>brak uprawnień</span> : <Link href="/dashboard/support" className="hover:text-foreground">Centrum pomocy →</Link>}
           >
-            {snapshot.errors.tickets || bez.tickets ? null : <MiniBars values={ticketsPerDay} labels={days7} unit="nowych zgłoszeń" />}
+            {snapshot.errors.tickets || bez.tickets ? null : <MiniBars values={ticketsPerDay} labels={days7} unit={(v) => plForm(v, 'nowe zgłoszenie', 'nowe zgłoszenia', 'nowych zgłoszeń')} />}
           </Kpi>
         </KpiStrip>
       </div>

@@ -298,11 +298,13 @@ export function MiniBars({
 }: {
   values: number[];
   labels: string[];
-  unit: string;
+  /** Jednostka po liczbie; funkcja — gdy forma zależy od liczby („1 nowe zgłoszenie”, „5 nowych zgłoszeń”). */
+  unit: string | ((v: number) => string);
   lastTone?: Tone;
   format?: (v: number) => string;
 }) {
   const h = barHeights(values);
+  const jedn = (v: number) => (typeof unit === 'function' ? unit(v) : unit);
   return (
     <div className="v2-bars flex h-[30px] items-end gap-[3px]">
       {values.map((v, i) => {
@@ -313,8 +315,8 @@ export function MiniBars({
             // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- fokus z klawiatury pokazuje dymek z danymi (WCAG 2.1.1, 1.4.13)
             tabIndex={0}
             role="img"
-            aria-label={`${format(v)} ${unit}, ${labels[i] ?? ''}`}
-            data-tip={tip(`${format(v)} ${unit}`, labels[i])}
+            aria-label={`${format(v)} ${jedn(v)}, ${labels[i] ?? ''}`}
+            data-tip={tip(`${format(v)} ${jedn(v)}`, labels[i])}
             style={{ height: `${h[i]}%`, ['--v2-i' as string]: i }}
             className={cx(
               'min-h-[2px] flex-1 cursor-default rounded-[1px] outline-none transition-colors hover:bg-data-hi focus:bg-data-hi',

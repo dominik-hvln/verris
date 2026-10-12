@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useId, isValidElement, cloneElement } from "react";
 import {
   User,
   Shield,
@@ -69,12 +69,16 @@ function FormField({
   children: React.ReactNode;
   description?: string;
 }) {
+  // P-12: etykieta powiązana z polem (htmlFor + id) — czytnik ekranu czyta nazwę pola (WCAG 1.3.1, 4.1.2).
+  const id = useId();
+  const pole = isValidElement<{ id?: string }>(children) && !children.props.id ? cloneElement(children, { id }) : children;
+  const forId = isValidElement<{ id?: string }>(children) ? (children.props.id ?? id) : undefined;
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-neutral-300">
+      <label htmlFor={forId} className="block text-sm font-medium text-neutral-300">
         {label}
       </label>
-      {children}
+      {pole}
       {description && (
         <p className="text-xs text-neutral-500">{description}</p>
       )}

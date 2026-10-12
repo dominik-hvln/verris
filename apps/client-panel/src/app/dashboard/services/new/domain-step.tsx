@@ -89,6 +89,7 @@ export function DomainStep({
           value={value.domain}
           onChange={(e) => onChange({ mode: 'own', domain: e.target.value, register: null })}
           placeholder="mojadomena.pl"
+          aria-label="Domena"
           className="mt-4 w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none"
         />
       ) : (
