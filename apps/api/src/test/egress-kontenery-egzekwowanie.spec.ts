@@ -31,6 +31,10 @@ interface Opcje {
   kat?: string;
   /** Zawartość egress-kontenery-tryb (odtwarzanie po restarcie hosta). */
   trybKontenerow?: string;
+  /** Log jądra, który zwraca atrapa `journalctl` (wpisy VERRIS-FWD-* z pomiaru). */
+  logJadra?: string;
+  /** Czy FORWARD skacze do DOCKER-USER (Docker z backendem iptables). */
+  forward?: boolean;
 }
 
 function uruchom(argumenty: string[], o: Opcje = {}) {
@@ -60,6 +64,9 @@ function uruchom(argumenty: string[], o: Opcje = {}) {
       chmodSync(join(bin, nazwa), 0o755);
     };
     atrapa('id', 'echo 0');
+    writeFileSync(join(kat, 'kern.log'), o.logJadra ?? '');
+    atrapa('journalctl', `echo "journalctl $*" >> "${join(kat, 'journalctl.log')}"\ncat "${join(kat, 'kern.log')}"`);
+    atrapa('docker', 'case "$1" in ps) echo abc ;; inspect) echo "/verris-api-1 172.19.0.5 " ;; esac');
     atrapa('netfilter-persistent', 'exit 0');
     atrapa('ipset', 'exit 0');
     atrapa(
@@ -67,8 +74,10 @@ function uruchom(argumenty: string[], o: Opcje = {}) {
       [
         `echo "iptables $*" >> "${wywolania}"`,
         'case "$1" in',
+        // Skok FORWARD → DOCKER-USER zakłada Docker, nie skrypt — atrapa odpowiada wg opcji.
+        `  -C) [ "$2" = FORWARD ] && exit ${o.forward === false ? 1 : 0}`,
         // -C <łańcuch> <reguła>: „jest", jeśli wcześniej wpięto dokładnie tę regułę.
-        `  -C) c="$2"; shift 2; grep -qxF -e "iptables -I $c 1 $*" -e "iptables -A $c $*" "${wywolania}"; exit $? ;;`,
+        `      c="$2"; shift 2; grep -qxF -e "iptables -I $c 1 $*" -e "iptables -A $c $*" "${wywolania}"; exit $? ;;`,
         `  -L) ${o.docker === false ? 'exit 1' : 'exit 0'} ;;`,
         `  -S) grep -- "^iptables -A $2 " "${wywolania}" | sed 's/^iptables //'; exit 0 ;;`,
         'esac',
@@ -83,7 +92,9 @@ function uruchom(argumenty: string[], o: Opcje = {}) {
     env: { PATH: `${bin}:${process.env.PATH ?? '/usr/bin:/bin'}`, SECURITY_DIR: sec, EGRESS_IPV6: '0' },
   });
   const wszystkie = existsSync(wywolania) ? readFileSync(wywolania, 'utf8').split('\n').filter(Boolean) : [];
-  return { kod: r.status, wyjscie: r.stdout + r.stderr, wywolania: wszystkie.slice(przed), wszystkie, kat, sec };
+  const jlog = join(kat, 'journalctl.log');
+  const journalctl = existsSync(jlog) ? readFileSync(jlog, 'utf8').split('\n').filter(Boolean) : [];
+  return { kod: r.status, wyjscie: r.stdout + r.stderr, wywolania: wszystkie.slice(przed), wszystkie, kat, sec, journalctl };
 }
 
 const BLOKADA = /-j (DROP|REJECT)\b/;
@@ -210,5 +221,127 @@ describe('X-41 etap 2 — restart hosta (verris-egress.service --przy-starcie)',
     const r = uruchom(['--przy-starcie']);
     expect(r.kod).toBe(0);
     expect(r.wywolania.some((w) => w.includes(LANCUCH))).toBe(false);
+  });
+});
+
+// Wpisy z logu jądra w formacie targetu LOG (prefiks + pola pakietu).
+const WPIS_SKAN =
+  'paź 10 14:02:11 Panel kernel: VERRIS-FWD-SKAN IN=br-1a2b OUT=eth0 SRC=172.19.0.5 DST=203.0.113.9 LEN=60 PROTO=TCP SPT=40112 DPT=443 SYN';
+const WPIS_SMTP =
+  'paź 10 14:05:00 Panel kernel: VERRIS-FWD-SMTP IN=br-1a2b OUT=eth0 SRC=172.19.0.5 DST=198.51.100.7 LEN=60 PROTO=TCP SPT=40200 DPT=587 SYN';
+const WPIS_IOC =
+  `paź 10 14:06:00 Panel kernel: VERRIS-FWD-IOC IN=br-1a2b OUT=eth0 SRC=172.19.0.8 DST=${IOC} LEN=60 PROTO=TCP SPT=40300 DPT=443 SYN`;
+/** Reguły zmieniające stan zapory — raport i odmowa nie mogą zawierać żadnej. */
+const ZMIANA = /^iptables -(A|I|D|F|N|X|P|R) /;
+
+describe('X-41 — raport „co odetnie egzekwowanie” (--kontenery-raport, tylko odczyt)', () => {
+  it('z logu pomiaru wypisuje trafienia SKAN/SMTP/IOC z nazwą kontenera i celem, niczego nie zmienia', () => {
+    const r = uruchom(['--kontenery-raport'], {
+      pomiarOdDni: 3,
+      trybKontenerow: 'pomiar\n',
+      logJadra: [WPIS_SKAN, WPIS_SKAN, WPIS_SMTP, WPIS_IOC, 'paź 10 14:07:00 Panel kernel: inny wpis'].join('\n'),
+    });
+    expect(r.kod).toBe(0);
+    expect(r.wywolania.filter((w) => ZMIANA.test(w))).toEqual([]);
+    expect(r.wyjscie).toMatch(/VERRIS-FWD-SKAN\s*:\s*2/);
+    expect(r.wyjscie).toMatch(/VERRIS-FWD-SMTP\s*:\s*1/);
+    expect(r.wyjscie).toMatch(/VERRIS-FWD-IOC\s*:\s*1/);
+    expect(r.wyjscie).toContain('verris-api-1');
+    expect(r.wyjscie).toContain('203.0.113.9:443');
+    expect(r.wyjscie).toContain('198.51.100.7:587');
+    expect(r.wyjscie).toContain('ODCIĘŁOBY');
+    expect(r.wyjscie).toContain('=== KONIEC RAPORTU ===');
+  });
+
+  it('czyta log jądra ze WSZYSTKICH rozruchów od początku pomiaru (bez -k, które oznacza tylko bieżący rozruch)', () => {
+    const r = uruchom(['--kontenery-raport'], { pomiarOdDni: 3 });
+    expect(r.kod).toBe(0);
+    expect(r.journalctl).toHaveLength(1);
+    expect(r.journalctl[0]).toContain('_TRANSPORT=kernel');
+    expect(r.journalctl[0]).toMatch(/--since @\d{10}/);
+    expect(r.journalctl[0]).not.toMatch(/(^| )(-k|--dmesg)( |$)/);
+  });
+
+  it('okno z --od trafia do journalctl', () => {
+    const r = uruchom(['--kontenery-raport', '--od', '48 hours ago'], { pomiarOdDni: 3 });
+    expect(r.kod).toBe(0);
+    expect(r.journalctl[0]).toContain('--since 48 hours ago');
+  });
+
+  it('pusty log = werdykt „nic legalnego nie zostałoby odcięte”', () => {
+    const r = uruchom(['--kontenery-raport'], { pomiarOdDni: 3 });
+    expect(r.kod).toBe(0);
+    expect(r.wyjscie).toContain('nie odcięłyby w tym oknie niczego');
+  });
+
+  it('brak skoku FORWARD → DOCKER-USER jest w raporcie wypisany wprost', () => {
+    const r = uruchom(['--kontenery-raport'], { pomiarOdDni: 3, forward: false });
+    expect(r.kod).toBe(0);
+    expect(r.wyjscie).toMatch(/FORWARD → DOCKER-USER: BRAK/);
+  });
+});
+
+describe('X-41 — egzekwowanie odmawia, gdy pomiar widział trafienia limitów', () => {
+  it('trafienia SKAN/SMTP w logu pomiaru = odmowa (kod 1) z listą, zero DROP', () => {
+    const r = uruchom(['--kontenery-egzekwuj'], {
+      pomiarOdDni: 3,
+      trybKontenerow: 'pomiar\n',
+      logJadra: [WPIS_SKAN, WPIS_SMTP].join('\n'),
+    });
+    expect(r.kod).toBe(1);
+    expect(r.wywolania.filter((w) => BLOKADA.test(w))).toEqual([]);
+    expect(r.wyjscie).toContain('203.0.113.9');
+    expect(r.wyjscie).toContain('--kontenery-wymus-egzekwuj');
+    expect(r.journalctl[0]).toMatch(/--since @\d{10}/);
+  });
+
+  it('same trafienia IOC nie blokują włączenia — te adresy MAJĄ być odcięte', () => {
+    const r = uruchom(['--kontenery-egzekwuj'], { pomiarOdDni: 3, trybKontenerow: 'pomiar\n', logJadra: WPIS_IOC });
+    expect(r.kod).toBe(0);
+    expect(r.wywolania.some((w) => /-j DROP/.test(w) && w.includes('verris-fwd-skan'))).toBe(true);
+    expect(r.wyjscie).toContain('VERRIS-FWD-IOC');
+  });
+
+  it('--kontenery-wymus-egzekwuj włącza mimo trafień (świadomie) i mówi o tym', () => {
+    const r = uruchom(['--kontenery-wymus-egzekwuj'], {
+      pomiarOdDni: 3,
+      trybKontenerow: 'pomiar\n',
+      logJadra: WPIS_SKAN,
+    });
+    expect(r.kod).toBe(0);
+    expect(r.wywolania.some((w) => /-j DROP/.test(w) && w.includes('verris-fwd-skan'))).toBe(true);
+    expect(readFileSync(join(r.sec, 'egress-kontenery-tryb'), 'utf8').trim()).toBe('egzekwuj');
+    expect(r.wyjscie).toContain('WARN');
+  });
+
+  it('ponowne --kontenery-egzekwuj przy włączonym egzekwowaniu nie odmawia z powodu własnych odrzuceń', () => {
+    const r = uruchom(['--kontenery-egzekwuj'], { pomiarOdDni: 3, trybKontenerow: 'egzekwuj\n', logJadra: WPIS_SKAN });
+    expect(r.kod).toBe(0);
+  });
+
+  it('restart hosta przy włączonym egzekwowaniu odtwarza je mimo odrzuceń w logu', () => {
+    const r = uruchom(['--przy-starcie'], { pomiarOdDni: 3, trybKontenerow: 'egzekwuj\n', logJadra: WPIS_SKAN });
+    expect(r.kod).toBe(0);
+    expect(r.wywolania.some((w) => /-j DROP/.test(w) && w.includes('verris-fwd-skan'))).toBe(true);
+  });
+});
+
+describe('X-41 — łańcuch w DOCKER-USER działa tylko, gdy FORWARD do niego skacze', () => {
+  // https://docs.docker.com/engine/network/firewall-iptables/ — „In the FORWARD chain, Docker adds rules that
+  // unconditionally jump to the DOCKER-USER …”; https://docs.docker.com/engine/network/firewall-nftables/ —
+  // z backendem nftables „the daemon will not add the jump. So, unless there is an existing jump, rules in
+  // DOCKER-USER will be ignored.”
+  it('bez skoku FORWARD → DOCKER-USER egzekwowanie odmawia (kod 1), zamiast udawać ochronę', () => {
+    const r = uruchom(['--kontenery-egzekwuj'], { pomiarOdDni: 3, trybKontenerow: 'pomiar\n', forward: false });
+    expect(r.kod).toBe(1);
+    expect(r.wywolania.filter((w) => BLOKADA.test(w))).toEqual([]);
+    expect(r.wyjscie).toContain('FORWARD');
+  });
+
+  it('restart hosta bez skoku: reguły hosta odtworzone, o kontenerach tylko ostrzeżenie', () => {
+    const r = uruchom(['--przy-starcie'], { pomiarOdDni: 3, trybKontenerow: 'egzekwuj\n', forward: false });
+    expect(r.kod).toBe(0);
+    expect(r.wywolania.some((w) => w.includes(LANCUCH))).toBe(false);
+    expect(r.wywolania.some((w) => /^iptables -I OUTPUT 1 -j VERRIS_IOC_DROP$/.test(w))).toBe(true);
   });
 });

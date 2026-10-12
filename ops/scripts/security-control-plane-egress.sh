@@ -9,6 +9,7 @@
 #   sudo bash ops/scripts/security-control-plane-egress.sh --dry-run
 #   sudo bash ops/scripts/security-control-plane-egress.sh --pomiar      # SEC-05: co host naprawdę robi
 #   sudo bash ops/scripts/security-control-plane-egress.sh --odswiez     # SEC-06: dopisz bieżące adresy nazw (timer co 15 s)
+#   sudo bash ops/scripts/security-control-plane-egress.sh --kontenery-raport [--od '48 hours ago']   # X-41: co odetnie egzekwowanie
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -43,8 +44,8 @@ CHAIN_FWD_SKAN="VERRIS_FWD_SKAN"
 # kontenera, przed MASQUERADE). Dobrane z zapasem nad normalną pracą API:
 # monitoring stron sprawdza po 10 równolegle co minutę, preflight migracji to
 # pojedyncze połączenia, poczta aplikacji idzie przez Postfix hosta
-# (host.docker.internal → INPUT, nie FORWARD). Przed egzekwowaniem sprawdź
-# w pomiarze (log VERRIS-FWD-SKAN / VERRIS-FWD-SMTP), czy nikt legalny ich nie przekracza.
+# (host.docker.internal → INPUT, nie FORWARD). --kontenery-egzekwuj sam odmawia, jeśli
+# log pomiaru ma trafienia VERRIS-FWD-SKAN / VERRIS-FWD-SMTP (sprawdz_pomiar_kontenerow).
 FWD_NOWE_LIMIT="${FWD_NOWE_LIMIT:-20/sec}"   # nowe połączenia (każdy port/protokół)
 FWD_NOWE_BURST="${FWD_NOWE_BURST:-1000}"     # zapas na falę monitoringu
 FWD_SMTP_LIMIT="${FWD_SMTP_LIMIT:-60/min}"   # nowe TCP na 25/465/587
@@ -97,6 +98,11 @@ POMIAR_FWD_EGZ_OD_PLIK="${POMIAR_FWD_EGZ_OD_PLIK:-$SECURITY_DIR/egress-kontenery
 # Tryb kontenerów (pomiar/egzekwuj) — odtwarzany przez verris-egress.service (--przy-starcie).
 FWD_TRYB_PLIK="${FWD_TRYB_PLIK:-$SECURITY_DIR/egress-kontenery-tryb}"
 FWD_TRYB=""
+# X-41 — --kontenery-wymus-egzekwuj: egzekwowanie bez warunków pomiaru (czas i trafienia limitów).
+FWD_WYMUS=0
+FWD_RAPORT=0
+# Okno raportu kontenerów (składnia journalctl --since); puste = od początku pomiaru kontenerów.
+FWD_RAPORT_OD=""
 WYMUS_STRICT=0
 WYLACZ_STRICT=0
 # 1 = strict odtworzony z egress-tryb (zatwierdzony wcześniej), nie włączany teraz po raz pierwszy.
@@ -221,7 +227,17 @@ Opcje:
                (VERRIS-FWD-IOC / -SMTP / -SKAN). Tryb wyłączny — nie rusza OUTPUT.
                Ponowne uruchomienie przy włączonym egzekwowaniu = powrót do pomiaru.
   --kontenery-egzekwuj
-               To samo + DROP. Odmawia (kod 1) przed FWD_POMIAR_MIN_DNI dniami pomiaru.
+               To samo + DROP. Odmawia (kod 1) przed FWD_POMIAR_MIN_DNI dniami pomiaru
+               i wtedy, gdy log pomiaru ma trafienia VERRIS-FWD-SKAN / VERRIS-FWD-SMTP
+               (egzekwowanie odcięłoby ruch, o którym nikt nie zdecydował). Trafienia IOC
+               nie blokują — te adresy mają być odcięte.
+  --kontenery-wymus-egzekwuj
+               Egzekwowanie bez warunków pomiaru. Tylko świadomie, po przeczytaniu raportu.
+  --kontenery-raport [--od CZAS]
+               Tylko odczyt („dry-run” egzekwowania): trafienia VERRIS-FWD-IOC/SMTP/SKAN
+               z logu jądra (wg kontenera i celu), liczniki iptables i stan wpięcia.
+               CZAS w składni journalctl --since (np. '48 hours ago', '7 days ago');
+               domyślnie od początku pomiaru kontenerów.
   --kontenery-wylacz
                Rollback: wypina i usuwa łańcuchy kontenerów (IOC, SMTP, skan).
 
@@ -250,6 +266,9 @@ while [ $# -gt 0 ]; do
     --kontenery-pomiar) FWD_TRYB=pomiar; shift ;;
     --kontenery-egzekwuj) FWD_TRYB=egzekwuj; shift ;;
     --kontenery-wylacz) FWD_TRYB=wylacz; shift ;;
+    --kontenery-wymus-egzekwuj) FWD_TRYB=egzekwuj; FWD_WYMUS=1; shift ;;
+    --kontenery-raport) FWD_RAPORT=1; shift ;;
+    --od) [ $# -ge 2 ] || die "--od wymaga wartości (np. '48 hours ago')"; FWD_RAPORT_OD="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) die "Unknown argument: $1" ;;
   esac
@@ -1160,8 +1179,20 @@ usun_strict() {
 # ponytail: SMTP limitowany jednakowo dla wszystkich kontenerów, bez wyjątku
 # dla API — w DOCKER-USER kontener to tylko adres IP, zmienny przy każdym
 # wdrożeniu. Wyjątek per serwis wymaga stałych adresów w docker-compose.
+#
+# Warunek wstępny egzekwowania: czas pomiaru ORAZ zero trafień limitów w logu
+# pomiaru. Do 2026-10-12 drugi warunek istniał tylko w komentarzu przy progach
+# („przed egzekwowaniem sprawdź w pomiarze…") — kontrola opisana słowami,
+# nieegzekwowana kodem (rodzina SEC-01/X-44). Trafienie VERRIS-FWD-SKAN/SMTP
+# w pomiarze to dokładnie pakiet, który egzekwowanie by odrzuciło.
+# Nie sprawdzamy trafień przy odtwarzaniu już włączonego egzekwowania (restart
+# hosta, ponowne uruchomienie) — wtedy w logu są jego własne, zamierzone odrzucenia.
 sprawdz_pomiar_kontenerow() {
-  local od dni
+  local od dni wpisy limity
+  if [ "$FWD_WYMUS" -eq 1 ]; then
+    log "WARN: --kontenery-wymus-egzekwuj — pomijam warunki pomiaru (czas i trafienia limitów)."
+    return 0
+  fi
   od="$(cat "$POMIAR_FWD_EGZ_OD_PLIK" 2>/dev/null || true)"
   [[ "$od" =~ ^[0-9]+$ ]] \
     || die "Brak pomiaru kontenerów ($POMIAR_FWD_EGZ_OD_PLIK). Najpierw --kontenery-pomiar, ${FWD_POMIAR_MIN_DNI} d obserwacji logu, potem --kontenery-egzekwuj."
@@ -1169,12 +1200,127 @@ sprawdz_pomiar_kontenerow() {
   [ "$dni" -ge "$FWD_POMIAR_MIN_DNI" ] \
     || die "Pomiar kontenerów trwa ${dni} d, wymagane ${FWD_POMIAR_MIN_DNI} d. Przy incydencie świadomie: FWD_POMIAR_MIN_DNI=0."
   log "Pomiar kontenerów: ${dni} d (wymagane ${FWD_POMIAR_MIN_DNI} d)."
+  if [ "$(cat "$FWD_TRYB_PLIK" 2>/dev/null || true)" = "egzekwuj" ]; then
+    log "Egzekwowanie kontenerów było już włączone — odtwarzam bez sprawdzania trafień."
+    return 0
+  fi
+  wpisy="$(log_jadra_fwd "@$od")" \
+    || die "Nie mam skąd odczytać logu jądra (journalctl / /var/log/kern.log) — nie sprawdzę, co egzekwowanie by odcięło. Świadomie: --kontenery-wymus-egzekwuj."
+  limity="$(printf '%s\n' "$wpisy" | grep -E 'VERRIS-FWD-(SKAN|SMTP) ' || true)"
+  if [ -n "$limity" ]; then
+    log "Pomiar kontenerów widział ruch ponad limity — egzekwowanie odrzuciłoby go:"
+    printf '%s\n' "$limity" | opisz_wpisy_fwd | sort | uniq -c | sort -rn | head -20 | while read -r w; do log "  $w"; done
+    die "Wyjaśnij te trafienia (--kontenery-raport). Limity za niskie → FWD_NOWE_LIMIT/FWD_SMTP_LIMIT; ruch niechciany → świadomie --kontenery-wymus-egzekwuj."
+  fi
+  if printf '%s\n' "$wpisy" | grep -q 'VERRIS-FWD-IOC '; then
+    log "WARN: pomiar widział połączenia kontenerów do adresów IOC (VERRIS-FWD-IOC) — egzekwowanie je odetnie; który kontener: --kontenery-raport"
+  fi
+  log "Log pomiaru kontenerów: zero trafień limitów SMTP i tempa — egzekwowanie nie odetnie niczego, co pomiar widział."
+}
+
+# Wpisy VERRIS-FWD-* z logu jądra od chwili $1 (składnia journalctl --since).
+# `_TRANSPORT=kernel` zamiast `-k`: `-k` oznacza też `-b` (tylko bieżący rozruch),
+# więc restart hosta w trakcie pomiaru ukrywałby wszystko sprzed niego.
+# Kod 1 = brak źródła logu (to nie to samo co „zero wpisów").
+log_jadra_fwd() {
+  if command -v journalctl >/dev/null 2>&1; then
+    { journalctl _TRANSPORT=kernel --since "$1" --no-pager -q 2>/dev/null || true; } | grep 'VERRIS-FWD-' || true
+  elif [ -r /var/log/kern.log ]; then
+    # Bez filtra czasu — znacznik w kern.log nie ma roku; okno ogranicza rotacja logu.
+    grep 'VERRIS-FWD-' /var/log/kern.log || true
+  else
+    return 1
+  fi
+}
+
+# Wiersz logu → „RODZAJ SRC PROTO DST:DPT".
+opisz_wpisy_fwd() {
+  sed -nE 's/.*(VERRIS-FWD-[A-Z]+) .*SRC=([0-9.]+) DST=([0-9.]+) .*PROTO=([A-Z0-9]+)( SPT=[0-9]+ DPT=([0-9]+))?.*/\1 \2 \4 \3:\6/p'
+}
+
+# DOCKER-USER działa tylko, gdy FORWARD do niego skacze. Z backendem iptables skok
+# zakłada Docker (https://docs.docker.com/engine/network/firewall-iptables/ — „In the
+# FORWARD chain, Docker adds rules that unconditionally jump to the DOCKER-USER…").
+# Z backendem nftables Docker skoku nie zakłada i reguły w DOCKER-USER są ignorowane
+# (https://docs.docker.com/engine/network/firewall-nftables/ — „Migrating DOCKER-USER").
+# Łańcuch poprawny, ale niewpięty — dokładnie to, od czego zaczęło się X-41.
+docker_user_dziala() {
+  iptables -L DOCKER-USER -n >/dev/null 2>&1 && iptables -C FORWARD -j DOCKER-USER >/dev/null 2>&1
+}
+
+# X-41 — „dry-run" egzekwowania: co z ruchu kontenerów odrzuciłby DROP, na podstawie
+# logu pomiaru i liczników. Tylko odczyt.
+raport_kontenerow() {
+  local od okno wpisy tryb ile prefiks ip nazwa proto cel
+  od="$(cat "$POMIAR_FWD_EGZ_OD_PLIK" 2>/dev/null || true)"
+  if [ -n "$FWD_RAPORT_OD" ]; then okno="$FWD_RAPORT_OD"
+  elif [[ "$od" =~ ^[0-9]+$ ]]; then okno="@$od"
+  else okno="2 days ago"; fi
+  tryb="$(cat "$FWD_TRYB_PLIK" 2>/dev/null || true)"
+  echo "=== X-41: CO ODETNIE --kontenery-egzekwuj (okno: $okno) ==="
+  echo "Tryb kontenerów teraz: ${tryb:-brak}"
+  if [[ "$od" =~ ^[0-9]+$ ]]; then
+    echo "Pomiar kontenerów od: $(date -u -d "@$od" '+%F %H:%M UTC' 2>/dev/null || echo "$od") ($(( ($(date +%s) - od) / 86400 )) d; wymagane ${FWD_POMIAR_MIN_DNI} d)"
+  else
+    echo "Pomiar kontenerów od: nieznane ($POMIAR_FWD_EGZ_OD_PLIK) — nie uruchomiono --kontenery-pomiar"
+  fi
+  if iptables -C FORWARD -j DOCKER-USER >/dev/null 2>&1; then echo "Skok FORWARD → DOCKER-USER: jest"
+  else echo "Skok FORWARD → DOCKER-USER: BRAK — reguły w DOCKER-USER nie działają (Docker z backendem nftables?)"; fi
+  if iptables -C DOCKER-USER -j "$CHAIN_FWD_EGZ" >/dev/null 2>&1; then echo "Łańcuch $CHAIN_FWD_EGZ w DOCKER-USER: wpięty"
+  else echo "Łańcuch $CHAIN_FWD_EGZ w DOCKER-USER: NIE (pomiar nie trwa)"; fi
+  echo
+  if ! wpisy="$(log_jadra_fwd "$okno")"; then
+    echo "Brak journalctl i /var/log/kern.log — nie mam skąd czytać logu."
+    echo "=== KONIEC RAPORTU ==="
+    return 0
+  fi
+  echo "--- Log jądra (próbka: najwyżej 30 wpisów/min na rodzaj; pierwsze trafienie zawsze trafia do logu) ---"
+  for prefiks in VERRIS-FWD-SKAN VERRIS-FWD-SMTP VERRIS-FWD-IOC; do
+    ile="$(printf '%s\n' "$wpisy" | grep -c "$prefiks " || true)"
+    printf '  %-16s: %s\n' "$prefiks" "${ile:-0}"
+  done
+  # Mapa IP → nazwa kontenera (jak w security-egress-kandydaci.sh). Adresy zmieniają się
+  # przy wdrożeniu, więc nazwa dotyczy kontenera, który ma ten adres TERAZ.
+  declare -A NAZWA=()
+  if command -v docker >/dev/null 2>&1; then
+    while read -r nazwa ip; do
+      [ -n "${ip:-}" ] && NAZWA["$ip"]="$nazwa"
+    done < <(docker ps -q 2>/dev/null \
+        | xargs -r docker inspect --format '{{.Name}} {{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' 2>/dev/null \
+        | sed 's|^/||' | awk '{for (i = 2; i <= NF; i++) if ($i != "") print $1, $i}' || true)
+  fi
+  echo "--- Wg kontenera i rodzaju ---"
+  while read -r ile prefiks ip; do
+    [ -n "${ip:-}" ] || continue
+    printf '  %6s  %-5s %s (%s)\n' "$ile" "${prefiks#VERRIS-FWD-}" "${NAZWA[$ip]:-?}" "$ip"
+  done < <(printf '%s\n' "$wpisy" | opisz_wpisy_fwd | awk '{print $1, $2}' | sort | uniq -c | sort -rn | head -30)
+  echo "--- Najczęstsze cele ---"
+  while read -r ile prefiks proto cel; do
+    [ -n "${cel:-}" ] || continue
+    printf '  %6s  %-5s %-5s %s\n' "$ile" "${prefiks#VERRIS-FWD-}" "$proto" "$cel"
+  done < <(printf '%s\n' "$wpisy" | opisz_wpisy_fwd | awk '{print $1, $3, $4}' | sort | uniq -c | sort -rn | head -30)
+  echo "--- Liczniki iptables (dokładne, od ostatniego zbudowania łańcucha — restart hosta je zeruje) ---"
+  echo "    pkts przy regułach hashlimit = pakiety ponad limit; przy LOG z -d = połączenia do IOC"
+  iptables -L "$CHAIN_FWD_EGZ" -v -n -x 2>/dev/null | sed 's/^/  /' || echo "  (brak łańcucha $CHAIN_FWD_EGZ)"
+  echo
+  if printf '%s\n' "$wpisy" | grep -qE 'VERRIS-FWD-(SKAN|SMTP) '; then
+    echo "WERDYKT: egzekwowanie ODCIĘŁOBY ruch powyżej (SKAN/SMTP). --kontenery-egzekwuj odmówi, dopóki"
+    echo "         te trafienia są w oknie pomiaru; świadomie: --kontenery-wymus-egzekwuj."
+  else
+    echo "WERDYKT: limit SMTP i limit tempa nie odcięłyby w tym oknie niczego."
+  fi
+  if printf '%s\n' "$wpisy" | grep -q 'VERRIS-FWD-IOC '; then
+    echo "UWAGA: połączenia do adresów IOC (wyżej) — egzekwowanie je odetnie; sprawdź kontener (incydent?)."
+  fi
+  echo "=== KONIEC RAPORTU ==="
 }
 
 apply_fwd_egzekwowanie() {
   local tryb="$1" ip ch
   iptables -L DOCKER-USER -n >/dev/null 2>&1 \
     || die "Brak łańcucha DOCKER-USER (Docker nie działa?) — reguły kontenerów nie miałyby gdzie działać."
+  iptables -C FORWARD -j DOCKER-USER >/dev/null 2>&1 \
+    || die "FORWARD nie skacze do DOCKER-USER (Docker z backendem nftables?) — reguły kontenerów byłyby ignorowane."
   if [ "$tryb" = "egzekwuj" ]; then
     sprawdz_pomiar_kontenerow
   elif [ ! -f "$POMIAR_FWD_EGZ_OD_PLIK" ]; then
@@ -1293,11 +1439,17 @@ if [ "$PRZY_STARCIE" -eq 1 ]; then
   _fwd="$(cat "$FWD_TRYB_PLIK" 2>/dev/null || true)"
   case "$_fwd" in
     pomiar|egzekwuj)
-      if iptables -L DOCKER-USER -n >/dev/null 2>&1; then apply_fwd_egzekwowanie "$_fwd"
-      else log "WARN: brak DOCKER-USER — tryb kontenerów ($_fwd) NIEodtworzony; po starcie Dockera: sudo bash $0 --kontenery-$_fwd"; fi ;;
+      if docker_user_dziala; then apply_fwd_egzekwowanie "$_fwd"
+      else log "WARN: brak DOCKER-USER albo skoku FORWARD → DOCKER-USER — tryb kontenerów ($_fwd) NIEodtworzony; po starcie Dockera: sudo bash $0 --kontenery-$_fwd"; fi ;;
     "") ;;
     *) log "WARN: nieznany tryb kontenerów w $FWD_TRYB_PLIK: $_fwd" ;;
   esac
+fi
+
+# X-41: raport kontenerów — tylko odczyt.
+if [ "$FWD_RAPORT" -eq 1 ]; then
+  raport_kontenerow
+  exit 0
 fi
 
 # SEC-05: raport tylko do odczytu — nic nie zmienia.
