@@ -457,6 +457,11 @@ export const CyklZyciaUslugiActions = {
   SUBSCRIPTION_LIMITS_CUSTOMIZED: 'SUBSCRIPTION_LIMITS_CUSTOMIZED',
   /** K3 — przywrócone limity planu; details: subscriptionId, przed. */
   SUBSCRIPTION_LIMITS_RESET: 'SUBSCRIPTION_LIMITS_RESET',
+  /**
+   * K2 (PB-53.5) — administrator przeniósł usługę na inne konto klienta. Wpis u obu klientów (aktywność konta,
+   * „obsługa Verris”); details: subscriptionId, domain, kierunek (oddana | przyjeta) — bez adresu drugiej strony.
+   */
+  SUBSCRIPTION_OWNER_CHANGED: 'SUBSCRIPTION_OWNER_CHANGED',
 } as const;
 
 // ---------------------------------------------------------------------------

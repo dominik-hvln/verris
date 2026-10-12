@@ -156,6 +156,7 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   SUBSCRIPTION_RENEWAL_DATE_CHANGED: 'Zmieniono datę odnowienia usługi',
   SUBSCRIPTION_PAYMENT_PROMISE_SET: 'Przesunięto termin wstrzymania usługi za zaległą płatność',
   SUBSCRIPTION_PAYMENT_PROMISE_REVOKED: 'Odwołano przesunięcie terminu płatności',
+  SUBSCRIPTION_OWNER_CHANGED: 'Zmiana właściciela usługi',
   ADDON_PURCHASED: 'Dodano dodatek',
   // K3 — limity usługi ustalone indywidualnie przez obsługę
   SUBSCRIPTION_LIMITS_CUSTOMIZED: 'Ustalono indywidualne limity usługi',

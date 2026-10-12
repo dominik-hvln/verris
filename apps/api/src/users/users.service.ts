@@ -758,6 +758,8 @@ export class UsersService {
       'SUBSCRIPTION_PAYMENT_PROMISE_SET', 'SUBSCRIPTION_PAYMENT_PROMISE_REVOKED', 'ADDON_PURCHASED',
       // K3 — limity indywidualne usługi ustawione albo przywrócone przez obsługę.
       'SUBSCRIPTION_LIMITS_CUSTOMIZED', 'SUBSCRIPTION_LIMITS_RESET',
+      // K2 (PB-53.5) — administrator przeniósł usługę na inne konto (wpis u obu klientów, bez adresu drugiej strony).
+      'SUBSCRIPTION_OWNER_CHANGED',
       // F3.6 — portfel prowadzony przez obsługę: korekta salda i zaksięgowana wpłata przelewem.
       'WALLET_OPERATOR_ADJUSTED', 'WALLET_MANUAL_PAYMENT_POSTED',
       // K4 — proforma od obsługi: wystawienie, opłacenie, anulowanie.

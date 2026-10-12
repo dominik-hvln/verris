@@ -1317,7 +1317,8 @@ export class SubscriptionsService {
         take: 100,
       }),
       this.prisma.walletTransaction.findMany({
-        where: { subscriptionId, type: WalletTxType.CHARGE_AUTOSCALING },
+        // K2 — po zmianie właściciela obciążenia poprzedniego zostają jego (portfel, faktury): tylko te z portfela klienta.
+        where: { subscriptionId, userId, type: WalletTxType.CHARGE_AUTOSCALING },
         orderBy: { createdAt: 'desc' },
         take: 100,
       }),

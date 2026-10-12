@@ -33,6 +33,7 @@ import { SuspendForm, ZakonczIUsunForm } from "./suspend-form";
 import { CyklZyciaPanel } from "./cykl-zycia-panel";
 import { LimityIndywidualnePanel } from "./limity-indywidualne-panel";
 import type { PozycjaLimitu } from "@verris/contracts";
+import { ZmianaWlascicielaPanel } from "./zmiana-wlasciciela-panel";
 import { RestorePanel } from "./restore-panel";
 import { OdtworzenieNaWezlePanel } from "./odtworzenie-na-wezle-panel";
 
@@ -308,6 +309,12 @@ export default async function AdminSubscriptionDetailPage({
               <LimityIndywidualnePanel subscriptionId={d.id} limity={d.limity} isAdmin={access.isAdmin} />
             </Sekcja>
           ) : null}
+          {/* K2 (PB-53.5) — zmiana właściciela usługi: tylko administrator (API odrzuca STAFF). */}
+          {zakonczona || !access.isAdmin ? null : (
+            <Sekcja id="zmiana-wlasciciela" tytul="Zmiana właściciela">
+              <ZmianaWlascicielaPanel subscriptionId={d.id} obecnyEmail={d.user.email} />
+            </Sekcja>
+          )}
           {/* D1 — zakończenie i usunięcie konta jest nieodwracalne: tylko administrator (API odrzuca STAFF). */}
           {(zakonczona && !kontoZostalo) || !access.isAdmin ? null : (
             <Sekcja id="zakonczenie" tytul={kontoZostalo ? "Zakończenie usługi i usunięcie konta" : "Zakończenie usługi"}>

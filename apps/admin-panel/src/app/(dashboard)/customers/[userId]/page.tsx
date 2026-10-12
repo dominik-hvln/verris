@@ -99,6 +99,7 @@ const AKCJE: Record<string, string> = {
   SUBSCRIPTION_RENEWAL_DATE_CHANGED: "Zmieniono datę odnowienia",
   SUBSCRIPTION_PAYMENT_PROMISE_SET: "Obietnica zapłaty",
   SUBSCRIPTION_PAYMENT_PROMISE_REVOKED: "Odwołano obietnicę zapłaty",
+  SUBSCRIPTION_OWNER_CHANGED: "Zmiana właściciela usługi",
   ADDON_PURCHASED: "Dodatek",
   SUBSCRIPTION_LIMITS_CUSTOMIZED: "Limity indywidualne usługi",
   SUBSCRIPTION_LIMITS_RESET: "Przywrócono limity planu",

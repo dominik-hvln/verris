@@ -97,6 +97,18 @@ describe("Działania usługi", () => {
     expect(zPalety).not.toContain("wezel");
   });
 
+  // K2 (PB-53.5) — zmiana właściciela tylko dla administratora (API: @Roles(ADMIN)), na zakończonej usłudze — brak.
+  it("zmiana właściciela: ADMIN → #zmiana-wlasciciela; STAFF — wyszarzone bez wniosku; zakończona — brak", () => {
+    expect(dzialaniaObiektu(AKCJE_USLUGI, aktywna, ADMIN).find((x) => x.id === "zmiana-wlasciciela")).toMatchObject({
+      zablokowane: null,
+      href: "/subscriptions/s1?sekcja=operacje#zmiana-wlasciciela",
+    });
+    const staff = dzialaniaObiektu(AKCJE_USLUGI, aktywna, operator("SUBSCRIPTIONS_MANAGE", "CUSTOMERS_MANAGE", "BILLING_MANAGE")).find((x) => x.id === "zmiana-wlasciciela");
+    expect(staff?.zablokowane).toBeTruthy();
+    expect(staff?.wniosek).toBeUndefined();
+    expect(ids({ ...aktywna, status: "CANCELED" })).not.toContain("zmiana-wlasciciela");
+  });
+
   // Przegląd 10.10: na karcie sekcji #zakonczenie nie ma, gdy usługa jest zakończona, a konto już usunięte.
   it("zakończona usługa z usuniętym kontem — bez „Zakończ i usuń konto” (kotwicy nie ma na karcie)", () => {
     expect(ids({ ...aktywna, status: "CANCELED", kontoUsuniete: true })).not.toContain("zakonczenie");

@@ -80,6 +80,18 @@ export const AKCJE_USLUGI: AkcjaObiektu<UslugaDlaAkcji>[] = [
     slowa: "zakończ usuń anuluj cancel",
   },
   {
+    id: "zmiana-wlasciciela",
+    grupa: "Usługa",
+    // Bez „właściciel” w nazwie i słowach: Cmd+K „właściciel” prowadzi do karty klienta (szukaj.spec.ts).
+    nazwa: "Przenieś usługę na inne konto",
+    opis: "Zmiana właściciela usługi; dotychczasowe faktury zostają u obecnego.",
+    // K2 (PB-53.5) — GET/POST admin/subscriptions/:id/zmiana-wlasciciela: tylko ADMIN (jak sekcja #zmiana-wlasciciela).
+    perm: "ADMIN",
+    kiedy: (u) => !zakonczona(u),
+    href: (u) => karta(u, "operacje", "zmiana-wlasciciela"),
+    slowa: "przenieś oddaj przekaż inne konto sprzedaż firmy owner transfer",
+  },
+  {
     id: "anulacja",
     grupa: "Usługa",
     nazwa: "Anulacja na koniec okresu",

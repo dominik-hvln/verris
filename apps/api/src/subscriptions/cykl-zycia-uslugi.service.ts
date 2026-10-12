@@ -18,7 +18,7 @@ export const ZMIANA_DATY_MAKS_DNI = 366;
  * okres warunkowo na jego stary koniec. Zmiana daty w tym oknie mogłaby trafić między obciążenie a przesunięcie —
  * klient zapłaciłby za okres, którego nie dostał. Dlatego datę zmieniamy tylko poza oknem (z godziną zapasu).
  */
-const OKNO_ODNOWIENIA_MS = 25 * GODZINA;
+export const OKNO_ODNOWIENIA_MS = 25 * GODZINA;
 export const MIN_POWOD_CYKLU = 10;
 
 /**
