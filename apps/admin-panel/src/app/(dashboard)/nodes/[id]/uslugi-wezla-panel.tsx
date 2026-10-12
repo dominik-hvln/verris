@@ -61,6 +61,32 @@ const STAN: Record<StanUslugi, { tekst: string; ton: "ok" | "warn" | "crit" | "m
   brak: { tekst: "brak na serwerze", ton: "muted" },
 };
 
+const STREFA = "Europe/Warsaw";
+const godzina = (iso: string) => new Date(iso).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit", timeZone: STREFA });
+const godzinaIDzien = (iso: string) =>
+  `${godzina(iso)} ${new Date(iso).toLocaleDateString("pl-PL", { day: "2-digit", month: "2-digit", timeZone: STREFA })}`;
+/** Migawkę starszą o tyle od świeżego raportu watchdoga oznaczamy jako starszą, nawet gdy stany się zgadzają. */
+const MIGAWKA_STARSZA_MS = 10 * 60_000;
+
+/**
+ * Poprawka 12.10 — linijka watchdoga jest aktualna (agent co minutę), a tabela to migawka z ostatniego „Sprawdź na
+ * serwerze” (bywa sprzed doby): tabela mówiła „FTP działa”, gdy watchdog „nie działa FTP”. Gdy ŚWIEŻY raport watchdoga
+ * jest nowszy od migawki i mówi co innego o działaniu usługi, wiersz pokazuje stan z watchdoga. Zgodne — bez zmian.
+ */
+export function stanWgWatchdoga(
+  u: Pick<Usluga, "klucz" | "stan">,
+  wd: StanUslugWezla["watchdog"] | null | undefined,
+  migawkaKiedy: string | null | undefined,
+): { stan: StanUslugi; kiedy: string } | null {
+  if (!wd?.swiezy || !wd.kiedy) return null;
+  if (migawkaKiedy && new Date(migawkaKiedy).getTime() >= new Date(wd.kiedy).getTime()) return null;
+  const dzialaWgMigawki = u.stan === "dziala" || u.stan === "zmienia";
+  const wpis = wd.uslugi.find((w) => w.k === u.klucz);
+  if (wd.nieDzialaja.includes(u.klucz) && dzialaWgMigawki) return { stan: wpis?.s === "failed" ? "blad" : "stoi", kiedy: wd.kiedy };
+  if (wpis?.s === "active" && (u.stan === "stoi" || u.stan === "blad")) return { stan: "dziala", kiedy: wd.kiedy };
+  return null;
+}
+
 export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: string; nazwaWezla: string; isAdmin: boolean }) {
   const [stan, setStan] = useState<StanUslugWezla | null>(null);
   const [powod, setPowod] = useState("");
@@ -148,8 +174,17 @@ export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: 
       await wywolaj("log", { log, linie: n, filtr });
     });
 
-  const lista = stan?.uslugi?.lista ?? [];
   const wd = stan?.watchdog;
+  const migawkaKiedy = stan?.uslugi?.kiedy ?? null;
+  const lista = (stan?.uslugi?.lista ?? []).map((u) => {
+    const zWatchdoga = stanWgWatchdoga(u, wd, migawkaKiedy);
+    return { u: zWatchdoga ? { ...u, stan: zWatchdoga.stan } : u, migawka: u.stan, zWatchdoga };
+  });
+  const migawkaStarsza =
+    !!migawkaKiedy &&
+    !!wd?.swiezy &&
+    !!wd.kiedy &&
+    (lista.some((x) => x.zWatchdoga) || new Date(wd.kiedy).getTime() - new Date(migawkaKiedy).getTime() > MIGAWKA_STARSZA_MS);
   const r = stan?.restart;
   const l = stan?.log;
   const etykieta = (k: string) => uslugaWezla(k)?.etykieta ?? k;
@@ -196,6 +231,12 @@ export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: 
           className={POLE}
         />
 
+        {lista.length && migawkaStarsza ? (
+          <p className="text-xs text-amber-200" data-migawka="starsza">
+            Szczegóły z {godzinaIDzien(migawkaKiedy!)} (działa od, restarty) — starsze niż watchdog; odśwież „Sprawdź na serwerze”.
+          </p>
+        ) : null}
+
         {lista.length ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -209,7 +250,7 @@ export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: 
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {lista.map((u) => {
+                {lista.map(({ u, migawka, zWatchdoga }) => {
                   const dziala = u.stan === "dziala" || u.stan === "zmienia";
                   const tekst = !u.restart || u.stan === "brak" ? null : u.przerwa && !dziala ? "Uruchom" : u.przerwa ? (isAdmin ? "Restart (przerwa)" : "Wniosek o restart") : "Restart";
                   return (
@@ -217,8 +258,10 @@ export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: 
                       <td className="px-2 py-1">
                         {u.etykieta} {u.jednostka ? <span className="font-mono text-muted-foreground">({u.jednostka})</span> : null}
                       </td>
-                      <td className="px-2 py-1">
-                        <Pigulka ton={STAN[u.stan].ton}>{STAN[u.stan].tekst}</Pigulka>
+                      <td className="px-2 py-1" title={zWatchdoga ? `Migawka z ${godzinaIDzien(migawkaKiedy!)}: ${STAN[migawka].tekst}` : undefined}>
+                        <Pigulka ton={STAN[u.stan].ton}>
+                          {zWatchdoga ? `${zWatchdoga.stan === "dziala" ? "działa" : "nie działa"} — wg watchdoga ${godzina(zWatchdoga.kiedy)}` : STAN[u.stan].tekst}
+                        </Pigulka>
                       </td>
                       <td className="px-2 py-1">{kiedy(u.od)}</td>
                       <td className="px-2 py-1">{u.restarty ?? "—"}</td>

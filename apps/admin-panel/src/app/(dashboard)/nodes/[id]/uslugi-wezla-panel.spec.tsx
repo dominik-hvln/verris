@@ -122,3 +122,54 @@ it("log: wybrany log, liczba linii w granicach 20–500, filtr", async () => {
   await klik(q('[data-akcja="log"]')!);
   expect(akcja).toHaveBeenLastCalledWith("w1", "log", { log: "system", linie: 500, filtr: "1abc" });
 });
+
+describe("poprawka 12.10 — świeży watchdog a migawka z „Sprawdź na serwerze”", () => {
+  const STARA = {
+    ...STAN,
+    uslugi: {
+      kiedy: "2026-10-11T12:00:00Z",
+      lista: [u("ftp", "FTP", "dziala", true), u("dovecot", "Skrzynki IMAP/POP3 (Dovecot)", "blad", true), u("exim", "Poczta SMTP (Exim)", "dziala", true)],
+    },
+    watchdog: {
+      kiedy: "2026-10-12T12:05:00Z",
+      swiezy: true,
+      nieDzialaja: ["ftp"],
+      uslugi: [
+        { k: "ftp", s: "failed", e: "enabled" },
+        { k: "dovecot", s: "active", e: "enabled" },
+        { k: "exim", s: "active", e: "enabled" },
+      ],
+    },
+  };
+
+  it("wiersz pokazuje stan z watchdoga, migawka oznaczona jako starsza, przycisk wg stanu z watchdoga", async () => {
+    akcja.mockResolvedValue({ ok: true, wynik: STARA });
+    await montuj(false);
+    const ftp = q('[data-usluga="ftp"]')!;
+    expect(ftp.textContent).toContain("nie działa — wg watchdoga 14:05");
+    expect(ftp.textContent).not.toContain("działa od");
+    expect(ftp.querySelector("td[title]")!.getAttribute("title")).toBe("Migawka z 14:00 11.10: działa");
+    expect(q('[data-usluga="dovecot"]')!.textContent).toContain("działa — wg watchdoga 14:05");
+    expect(q('[data-usluga="exim"]')!.textContent).toContain("działa");
+    expect(q('[data-usluga="exim"]')!.textContent).not.toContain("wg watchdoga");
+    expect(q('[data-migawka="starsza"]')!.textContent).toBe(
+      "Szczegóły z 14:00 11.10 (działa od, restarty) — starsze niż watchdog; odśwież „Sprawdź na serwerze”.",
+    );
+    // FTP stoi wg watchdoga — NOC może go uruchomić (serwer i tak sprawdza stan w chwili wykonania).
+    expect(q('[data-akcja="restart-ftp"]')!.textContent).toBe("Uruchom");
+  });
+
+  it("migawka nowsza od raportu albo raport nieświeży — tabela bez zmian, bez oznaczenia", async () => {
+    akcja.mockResolvedValue({ ok: true, wynik: { ...STARA, uslugi: { ...STARA.uslugi, kiedy: "2026-10-12T12:06:00Z" } } });
+    await montuj(false);
+    expect(q('[data-usluga="ftp"]')!.textContent).not.toContain("wg watchdoga");
+    expect(q('[data-migawka="starsza"]')).toBeNull();
+    await act(async () => root.unmount());
+    k.remove();
+
+    akcja.mockResolvedValue({ ok: true, wynik: { ...STARA, watchdog: { ...STARA.watchdog, swiezy: false, nieDzialaja: [] } } });
+    await montuj(false);
+    expect(q('[data-usluga="ftp"]')!.textContent).not.toContain("wg watchdoga");
+    expect(q('[data-migawka="starsza"]')).toBeNull();
+  });
+});
