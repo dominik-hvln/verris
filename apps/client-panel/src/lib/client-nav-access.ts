@@ -130,6 +130,12 @@ export function canAccessDashboardRoute(
   return false;
 }
 
+/** Zakładanie zgłoszeń (np. „Zgłoś uwagę”): subkonto potrzebuje „Zgłoszenia: zarządzanie” — jak POST /tickets w API. */
+export function canCreateTicket(ctx: ClientNavContext): boolean {
+  if (!ctx.isSubaccount) return true;
+  return (ctx.customerPermissions ?? []).includes('TICKETS_MANAGE');
+}
+
 export function canShowWalletBalance(ctx: ClientNavContext): boolean {
   if (ctx.billingOutside) return false;
   if (!ctx.isSubaccount) return true;

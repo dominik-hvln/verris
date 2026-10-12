@@ -1,7 +1,16 @@
 import type { NextConfig } from "next";
 
+/**
+ * Wersja panelu w zgłoszeniach „Zgłoś uwagę” (beta): z NEXT_PUBLIC_WERSJA_PANELU, gdy podana przy buildzie,
+ * inaczej chwila builda. Next nie wystawia buildId w App Routerze, a baner nowej wersji (libs/ui) nie ma
+ * własnego identyfikatora — wykrywa tylko błąd nieaktualnej akcji serwera.
+ */
+const wersjaPanelu =
+  process.env.NEXT_PUBLIC_WERSJA_PANELU || `build ${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC`;
+
 const nextConfig: NextConfig = {
   output: "standalone",
+  env: { NEXT_PUBLIC_WERSJA_PANELU: wersjaPanelu },
   poweredByHeader: false,
   transpilePackages: ["@verris/ui", "@verris/contracts"],
   experimental: {

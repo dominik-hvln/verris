@@ -117,9 +117,14 @@ export async function fetchTicketDetail(ticketId: string): Promise<TicketDetail 
 }
 
 /**
- * Tworzy nowe zgłoszenie (JSON — bez załączników).
+ * Tworzy nowe zgłoszenie (JSON — bez załączników). `topic` / `subscriptionId` jak w formularzu
+ * (np. „Zgłoś uwagę” z bety: temat BETA i usługa, na której stronie był klient).
  */
-export async function createTicket(subject: string, message: string) {
+export async function createTicket(
+  subject: string,
+  message: string,
+  extra: { topic?: "BETA"; subscriptionId?: string } = {},
+): Promise<{ error: string; success?: undefined; data?: undefined } | { success: true; data: { id: string }; error?: undefined }> {
   const token = await getAuthToken();
   if (!token) {
     return { error: "Brak autoryzacji" };
@@ -132,7 +137,12 @@ export async function createTicket(subject: string, message: string) {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ subject, message }),
+      body: JSON.stringify({
+        subject,
+        message,
+        ...(extra.topic ? { topic: extra.topic } : {}),
+        ...(extra.subscriptionId ? { subscriptionId: extra.subscriptionId } : {}),
+      }),
     });
 
     if (!res.ok) {

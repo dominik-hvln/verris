@@ -56,8 +56,10 @@ import { clientFeatures } from "@/lib/client-features";
 import { FeatureFlagsProvider, useFlagi, useModul } from "@/lib/feature-flags";
 import { trasaWidoczna } from "@/lib/feature-flags-core";
 import { plForm } from "@/lib/pl";
+import { ZglosUwage } from "@/components/panel/zglos-uwage";
 import {
   canAccessDashboardRoute,
+  canCreateTicket,
   canShowWalletBalance,
   clientNavContextFromSidebar,
 } from "@/lib/client-nav-access";
@@ -429,6 +431,9 @@ function DashboardLayoutInner({
     return null;
   };
   const serviceId = /^\/dashboard\/services\/([0-9a-f-]{36})(?:\/|$)/.exec(pathname)?.[1] ?? null;
+  // Usługa strony do „Zgłoś uwagę” — tylko z listy /services (to samo id, co subskrypcja w zgłoszeniu).
+  const uslugaRail = serviceId ? rail?.services?.find((x) => x.id === serviceId) : undefined;
+  const uslugaStrony = uslugaRail ? { id: uslugaRail.id, nazwa: uslugaRail.domain ? `${uslugaRail.name} · ${uslugaRail.domain}` : uslugaRail.name } : null;
   const paletteItems: PaletteItem[] = [
     ...mainGridItems.map((i) => ({ label: i.name, hint: "strona", href: i.href })),
     ...navSecondaryItems.flatMap((g) => g.items).map((i) => ({ label: i.name, hint: "strona", href: i.href })),
@@ -641,6 +646,12 @@ function DashboardLayoutInner({
       </div>
       </div>
       <HostingAssistant />
+      {/* Beta — „Zgłoś uwagę” (flaga beta.zglos-uwage, domyślnie wyłączona); nad przyciskiem asystenta. */}
+      <ZglosUwage
+        flagi={flagi}
+        mozeZglaszac={navCtx ? canAccess("/dashboard/support") && canCreateTicket(navCtx) : false}
+        usluga={uslugaStrony}
+      />
     </div>
   );
 }

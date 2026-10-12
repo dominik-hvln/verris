@@ -1,5 +1,6 @@
 import {
   canAccessDashboardRoute,
+  canCreateTicket,
   canShowWalletBalance,
 } from './client-nav-access';
 
@@ -98,5 +99,14 @@ describe('PB-28 — rozliczenie poza Verris', () => {
     expect(canAccessDashboardRoute('/dashboard/services', ctx)).toBe(true);
     expect(canAccessDashboardRoute('/dashboard/autoscaling', ctx)).toBe(true);
     expect(canShowWalletBalance(ctx)).toBe(false);
+  });
+});
+
+describe('Beta „Zgłoś uwagę” — kto może założyć zgłoszenie', () => {
+  it('właściciel tak; subkonto tylko z TICKETS_MANAGE (jak POST /tickets w API)', () => {
+    expect(canCreateTicket({ isSubaccount: false, customerPermissions: null })).toBe(true);
+    expect(canCreateTicket({ isSubaccount: true, customerPermissions: ['TICKETS_READ'] })).toBe(false);
+    expect(canCreateTicket({ isSubaccount: true, customerPermissions: ['TICKETS_MANAGE'] })).toBe(true);
+    expect(canCreateTicket({ isSubaccount: true, customerPermissions: null })).toBe(false);
   });
 });

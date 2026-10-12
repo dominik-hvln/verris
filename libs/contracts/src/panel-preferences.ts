@@ -47,3 +47,13 @@ export const FLAGI_MODULOW = {
   'modul.iam': 'Subkonta (IAM)',
 } as const;
 export type FlagaModulu = keyof typeof FLAGI_MODULOW;
+
+/**
+ * Flagi funkcji w becie panelu klienta — odwrotnie niż moduły: brak flagi w bazie = funkcja
+ * WYŁĄCZONA. Operator zakłada flagę (Admin → Komunikaty i flagi → Flagi funkcji) wyłączoną
+ * i włącza ją dla wszystkich albo procentowo.
+ */
+export const FLAGI_BETA = {
+  'beta.zglos-uwage': 'Przycisk „Zgłoś uwagę” (beta)',
+} as const;
+export type FlagaBety = keyof typeof FLAGI_BETA;
