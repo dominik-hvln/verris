@@ -32,6 +32,9 @@ import { deriveReasons } from './services-health-overview';
 import { SERVICE_STATUS_LABEL, buildEcoLedgerSeries, mapWalletMonthlyFlow } from './dashboard-chart-utils';
 import type { DashboardSnapshot } from './dashboard-data';
 import { plForm, plural } from '@/lib/pl';
+
+/** Słupki „nowe zgłoszenia” — odmiana do liczby (czytnik ekranu: „1 nowe zgłoszenie”, nie „1 nowych zgłoszeń”). */
+const jednostkaZgloszen = (v: number) => plForm(v, 'nowe zgłoszenie', 'nowe zgłoszenia', 'nowych zgłoszeń');
 import { terminUslugi } from '@/lib/service-events';
 import { dataPl, dzienPl, ostatnieDniPl } from '@/lib/data-pl';
 
@@ -277,7 +280,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
             value={snapshot.errors.tickets || bez.tickets ? '—' : String(snapshot.openTickets)}
             foot={bez.tickets ? <span>brak uprawnień</span> : <Link href="/dashboard/support" className="hover:text-foreground">Centrum pomocy →</Link>}
           >
-            {snapshot.errors.tickets || bez.tickets ? null : <MiniBars values={ticketsPerDay} labels={days7} unit={(v) => plForm(v, 'nowe zgłoszenie', 'nowe zgłoszenia', 'nowych zgłoszeń')} />}
+            {snapshot.errors.tickets || bez.tickets ? null : <MiniBars values={ticketsPerDay} labels={days7} unit={jednostkaZgloszen} />}
           </Kpi>
         </KpiStrip>
       </div>
