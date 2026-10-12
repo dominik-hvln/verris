@@ -156,7 +156,7 @@ export function TopupCard({ balance, paynowDostepny = false, bezKodu = false }: 
               value={currency}
               onChange={(v) => setCurrency(v as WalutaWplaty)}
               aria-label="Waluta wpłaty"
-              className="w-24 [&>button]:h-full"
+              className="w-24 [&>[role=combobox]]:h-full"
               options={[
                 { value: 'PLN', label: 'PLN' },
                 { value: 'EUR', label: 'EUR' },

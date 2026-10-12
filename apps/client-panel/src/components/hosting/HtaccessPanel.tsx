@@ -92,9 +92,9 @@ export function HtaccessPanel({ serviceId, domain }: { serviceId: string; domain
         {stan?.blad ? <p className="m-0 border-b border-line px-4 py-2 text-[13px] text-crit">{stan.blad}</p> : null}
         <div className="grid gap-4 px-4 py-3 sm:grid-cols-2">
           <div className="min-w-0">
-            <span className="mb-1 block text-[13px] font-medium text-foreground">Lista plików w katalogu bez strony głównej</span>
+            <label htmlFor="htaccess-indeksy" className="mb-1 block text-[13px] font-medium text-foreground">Lista plików w katalogu bez strony głównej</label>
             <Select
-              aria-label="Lista plików w katalogu"
+              id="htaccess-indeksy"
               value={f.indexes}
               onChange={(v) => ustaw({ indexes: v as HtaccessUstawienia['indexes'] })}
               options={[

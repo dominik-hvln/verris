@@ -307,8 +307,8 @@ function RecordForm({
   return (
     <div className="rounded-xl border border-emerald-400/25 bg-emerald-400/[0.04] p-4 space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-[110px_1fr] gap-3">
-        <label htmlFor={typeId} className="space-y-1">
-          <span className="text-[11px] font-medium text-neutral-400">Typ</span>
+        <div className="space-y-1">
+          <label htmlFor={typeId} className="text-[11px] font-medium text-neutral-400">Typ</label>
           <Select
             id={typeId}
             value={type}
@@ -316,7 +316,7 @@ function RecordForm({
             aria-label="Typ rekordu DNS"
             options={TYPES.map((t) => ({ value: t, label: t }))}
           />
-        </label>
+        </div>
         <label className="space-y-1">
           <span className="text-[11px] font-medium text-neutral-400">Host (puste = @ dla domeny głównej)</span>
           <div className="flex items-center rounded-lg bg-black/40 border border-white/10">

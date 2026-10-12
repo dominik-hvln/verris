@@ -172,9 +172,11 @@ export default function WordpressTab({ serviceId }: Props) {
           </p>
           <div className="grid sm:grid-cols-2 gap-3">
             {domeny.length > 1 ? (
-              <Field label="Domena">
-                <Select aria-label="Domena instalacji WordPressa" value={domena} onChange={setDomenaWybrana} options={domeny.map((d) => ({ value: d, label: d }))} className="w-full" />
-              </Field>
+              // Select to nie natywne pole — <label> wokół niego go nie nazywa; etykieta wskazuje go przez htmlFor.
+              <div className="block space-y-1">
+                <label htmlFor="wp-instalacja-domena" className="text-xs font-medium text-muted-foreground">Domena</label>
+                <Select id="wp-instalacja-domena" value={domena} onChange={setDomenaWybrana} options={domeny.map((d) => ({ value: d, label: d }))} className="w-full" />
+              </div>
             ) : null}
             <Field label="Tytuł witryny">
               <input value={siteTitle} onChange={(e) => setSiteTitle(e.target.value)} required placeholder="Moja strona" className="wp-input" />

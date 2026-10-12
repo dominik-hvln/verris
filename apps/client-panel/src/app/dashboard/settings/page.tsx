@@ -122,6 +122,7 @@ function Select({
   onChange,
   disabled,
   className,
+  id,
   "aria-label": ariaLabel,
 }: React.SelectHTMLAttributes<HTMLSelectElement> & {
   options: { value: string; label: string }[];
@@ -135,6 +136,7 @@ function Select({
       options={options}
       disabled={disabled}
       className={className}
+      id={id}
       aria-label={ariaLabel}
     />
   );

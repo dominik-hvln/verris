@@ -149,8 +149,8 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
           Nowe wdrożenie
         </h3>
         <div className="mt-3 grid gap-3">
-          <label htmlFor={`${fieldId}-domain`} className="block text-xs text-muted-foreground">
-            Domena
+          <div className="block text-xs text-muted-foreground">
+            <label htmlFor={`${fieldId}-domain`}>Domena</label>
             <Select
               id={`${fieldId}-domain`}
               value={domain}
@@ -160,9 +160,9 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
               placeholder="Brak domen na koncie"
               options={domains.map((d) => ({ value: d, label: d }))}
             />
-          </label>
-          <label htmlFor={`${fieldId}-frequency`} className="block text-xs text-muted-foreground">
-            Częstotliwość
+          </div>
+          <div className="block text-xs text-muted-foreground">
+            <label htmlFor={`${fieldId}-frequency`}>Częstotliwość</label>
             <Select
               id={`${fieldId}-frequency`}
               value={frequency}
@@ -174,7 +174,7 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
                 label: FREQUENCY_LABEL[f],
               }))}
             />
-          </label>
+          </div>
           <label className="block text-xs text-muted-foreground">
             Podkatalog w public_html (opcjonalnie)
             <input

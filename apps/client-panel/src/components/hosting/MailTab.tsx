@@ -360,10 +360,13 @@ export default function MailTab({ serviceId }: Props) {
       <form onSubmit={onCreate} className="mb-5 rounded-[10px] border border-line bg-raised p-4">
         <p className="mb-3 text-sm font-semibold text-foreground">Nowa skrzynka e-mail</p>
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="space-y-1">
-            <span className="text-xs text-muted-foreground">Adres</span>
+          {/* P-12: etykieta „Adres” wskazuje pole części lokalnej; wcześniej <label> obejmował też listę
+              domen, więc nazwa pola zawierała wybraną domenę, a klik w etykietę trafiał w pierwsze pole. */}
+          <div className="space-y-1">
+            <label htmlFor="mail-nowa-nazwa" className="text-xs text-muted-foreground">Adres</label>
             <div className="flex items-stretch gap-1.5">
               <input
+                id="mail-nowa-nazwa"
                 value={localPart}
                 onChange={(e) => setLocalPart(e.target.value)}
                 placeholder="kontakt"
@@ -380,7 +383,7 @@ export default function MailTab({ serviceId }: Props) {
                 options={domains.map((d) => ({ value: d, label: d }))}
               />
             </div>
-          </label>
+          </div>
           <div className="space-y-1">
             <span className="text-xs text-muted-foreground">Hasło</span>
             <div className="flex gap-1.5">

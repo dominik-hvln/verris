@@ -520,8 +520,8 @@ function StepMethod(props: {
       {method === 'auto' ? (
         <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
           <div className="grid gap-3 md:grid-cols-2">
-            <label htmlFor={`${fieldId}-panel`} className="space-y-1.5 block">
-              <span className={labelText}>Panel starego hostingu</span>
+            <div className="space-y-1.5 block">
+              <label htmlFor={`${fieldId}-panel`} className={labelText}>Panel starego hostingu</label>
               <Select
                 id={`${fieldId}-panel`}
                 value={props.presetId}
@@ -529,7 +529,7 @@ function StepMethod(props: {
                 aria-label="Panel starego hostingu"
                 options={PROVIDER_PRESETS.filter((p) => p.panelType).map((p) => ({ value: p.id, label: p.label }))}
               />
-            </label>
+            </div>
             <label className="space-y-1.5 block">
               <span className={labelText}>Adres panelu / serwera</span>
               <input value={props.panelHost} onChange={(e) => props.setPanelHost(e.target.value)} className={input} placeholder="np. serwer123.hosting.pl" />
@@ -565,8 +565,8 @@ function StepMethod(props: {
 
       {method === 'manual' ? (
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-          <label htmlFor={`${fieldId}-provider`} className="space-y-1.5 block">
-            <span className={labelText}>Dostawca (ustawi domyślny protokół/port)</span>
+          <div className="space-y-1.5 block">
+            <label htmlFor={`${fieldId}-provider`} className={labelText}>Dostawca (ustawi domyślny protokół/port)</label>
             <Select
               id={`${fieldId}-provider`}
               value={props.presetId}
@@ -574,7 +574,7 @@ function StepMethod(props: {
               aria-label="Dostawca"
               options={PROVIDER_PRESETS.map((p) => ({ value: p.id, label: p.label }))}
             />
-          </label>
+          </div>
           <div className="mt-3">
             <Button type="button" onClick={props.onManual} className="bg-cyan-600 hover:bg-cyan-500 text-white">
               Dalej: co przenosimy →
@@ -646,8 +646,8 @@ function StepSources(props: {
 
       {includeFiles && sites.length > 1 ? (
         <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-2">
-          <label htmlFor={stronaId} className="space-y-1.5 block">
-            <span className="text-sm font-semibold text-white">Którą stronę przenosimy?</span>
+          <div className="space-y-1.5 block">
+            <label htmlFor={stronaId} className="text-sm font-semibold text-white">Którą stronę przenosimy?</label>
             <Select
               id={stronaId}
               value={props.wybranaStrona}
@@ -658,7 +658,7 @@ function StepSources(props: {
                 label: `${x.domain} — ${RODZAJ_STRONY[x.kind]}${x.konto && x.konto !== x.domain ? ` (konto ${x.konto})` : ''}`,
               }))}
             />
-          </label>
+          </div>
           <p className="text-xs text-neutral-500">
             Na starym hostingu {plForm(sites.length, 'jest', 'są', 'jest')} {sites.length} {plForm(sites.length, 'strona', 'strony', 'stron')}.
             Przeniesiemy tylko wybraną —{' '}
@@ -685,8 +685,8 @@ function StepSources(props: {
       <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-3">
         <p className="text-sm font-semibold text-white">Pliki strony (FTP/SFTP)</p>
         <div className="grid gap-3 md:grid-cols-2">
-            <label htmlFor={protocolId} className="space-y-1.5 block">
-              <span className={labelText}>Protokół</span>
+            <div className="space-y-1.5 block">
+              <label htmlFor={protocolId} className={labelText}>Protokół</label>
               <Select
                 id={protocolId}
                 value={props.ftpProtocol}
@@ -698,7 +698,7 @@ function StepSources(props: {
                   { value: 'ftp', label: 'FTP' },
                 ]}
               />
-            </label>
+            </div>
             <label className="space-y-1.5 block">
               <span className={labelText}>Host</span>
               <input value={props.ftpHost} onChange={(e) => props.setFtpHost(e.target.value)} className={input} />

@@ -112,9 +112,9 @@ export default function NewTicketPage() {
             {/* hidden input zachowuje pole `topic` w FormData formularza */}
             <input type="hidden" name="topic" value={topic} />
             <Select
+              id="topic"
               value={topic}
               onChange={setTopic}
-              aria-label="Czego dotyczy zgłoszenie?"
               placeholder="— wybierz temat —"
               options={(tester ? [TEMAT_BETA, ...TOPICS] : TOPICS).map((t) => ({ value: t.value, label: t.label }))}
             />
@@ -134,7 +134,6 @@ export default function NewTicketPage() {
                 id="usluga"
                 value={usluga}
                 onChange={setUsluga}
-                aria-label="Której usługi dotyczy?"
                 options={opcjeUslug(uslugi).opcje}
               />
             </div>

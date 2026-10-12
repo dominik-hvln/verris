@@ -23,8 +23,8 @@ export function EcoRedeemForm({ maxPoints }: Props) {
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <label htmlFor={pointsId} className="block flex-1 space-y-1 lg:max-w-md">
-          <span className="text-xs text-neutral-400">Ile punktów wymienić</span>
+        <div className="block flex-1 space-y-1 lg:max-w-md">
+          <label htmlFor={pointsId} className="text-xs text-neutral-400">Ile punktów wymienić</label>
           <Select
             id={pointsId}
             value={String(points)}
@@ -40,7 +40,7 @@ export function EcoRedeemForm({ maxPoints }: Props) {
                   }))
             }
           />
-        </label>
+        </div>
         <Button
           type="button"
           disabled={busy || maxPoints < 100}

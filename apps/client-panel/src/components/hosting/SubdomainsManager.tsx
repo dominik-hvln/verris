@@ -103,8 +103,8 @@ export default function SubdomainsManager({ serviceId }: { serviceId: string }) 
           />
         </label>
         <span className="pb-2 text-sm text-muted-foreground">.</span>
-        <label htmlFor={domainId} className="space-y-1">
-          <span className="text-xs text-muted-foreground">Domena</span>
+        <div className="space-y-1">
+          <label htmlFor={domainId} className="text-xs text-muted-foreground">Domena</label>
           <Select
             id={domainId}
             value={domain}
@@ -115,7 +115,7 @@ export default function SubdomainsManager({ serviceId }: { serviceId: string }) 
             placeholder="—"
             options={domains.map((d) => ({ value: d, label: d }))}
           />
-        </label>
+        </div>
         <Button
           type="submit"
           size="sm"

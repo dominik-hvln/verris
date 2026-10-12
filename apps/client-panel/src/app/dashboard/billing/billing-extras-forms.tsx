@@ -264,17 +264,17 @@ function WalletAutotopupBlock({
           </label>
         </div>
 
-        <label className="block space-y-1.5">
-          <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide flex items-center gap-2">
-            <Landmark className="h-3.5 w-3.5" />
+        <div className="block space-y-1.5">
+          <label htmlFor="auto-doladowanie-karta" className="text-xs font-medium text-neutral-500 uppercase tracking-wide flex items-center gap-2">
+            <Landmark aria-hidden className="h-3.5 w-3.5" />
             Karta
-          </span>
+          </label>
           {/* hidden input utrzymuje pole `localPaymentMethodId` w FormData */}
           <input type="hidden" name="localPaymentMethodId" value={cardId} />
           <Select
+            id="auto-doladowanie-karta"
             value={cardId}
             onChange={setCardId}
-            aria-label="Karta do auto-doładowania"
             options={[
               {
                 value: '',
@@ -288,7 +288,7 @@ function WalletAutotopupBlock({
               })),
             ]}
           />
-        </label>
+        </div>
 
         {savedCards.length === 0 ? (
           <p className="text-xs text-muted-foreground">

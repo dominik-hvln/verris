@@ -90,8 +90,8 @@ export function AppsClient({ serviceId, status }: { serviceId: string; status: A
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-3 max-w-lg">
         {domeny.length > 1 ? (
           <div className="text-xs text-neutral-400">
-            Domena
-            <Select aria-label="Domena instalacji" value={domena} onChange={setDomena} options={domeny.map((d) => ({ value: d, label: d }))} className="mt-1 w-full" />
+            <label htmlFor="apps-domena">Domena</label>
+            <Select id="apps-domena" value={domena} onChange={setDomena} options={domeny.map((d) => ({ value: d, label: d }))} className="mt-1 w-full" />
           </div>
         ) : null}
         <p className="text-sm font-semibold text-white">Dane administratora</p>

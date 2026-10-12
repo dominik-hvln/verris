@@ -190,10 +190,10 @@ function CheckRow({
             <div className="mt-3 space-y-3 rounded-lg border border-line bg-raised/40 p-3">
               {isDmarc ? (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <label htmlFor={policyId} className="space-y-1">
-                    <Label>Co robić z fałszywą pocztą</Label>
+                  <div className="space-y-1">
+                    <label htmlFor={policyId} className="block"><Label>Co robić z fałszywą pocztą</Label></label>
                     <Select id={policyId} value={policy} onChange={(v) => setPolicy(v as DmarcPolicy)} aria-label="Polityka DMARC" options={DMARC_POLICIES} />
-                  </label>
+                  </div>
                   <label className="space-y-1">
                     <Label>Raporty na adres (opcjonalnie)</Label>
                     <input

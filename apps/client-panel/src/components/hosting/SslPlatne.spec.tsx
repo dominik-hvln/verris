@@ -41,7 +41,8 @@ async function renderuj() {
 }
 const przycisk = (el: HTMLElement, tekst: string) => [...el.querySelectorAll('button')].find((b) => b.textContent?.includes(tekst))!;
 async function wybierz(el: HTMLElement, pole: string, opcja: string) {
-  await act(async () => (el.querySelector(`button[aria-label="${pole}"]`) as HTMLButtonElement).click());
+  const etykieta = [...el.querySelectorAll('label')].find((l) => l.textContent === pole)!;
+  await act(async () => (document.getElementById(etykieta.htmlFor) as HTMLElement).click());
   const li = [...el.querySelectorAll('li[role="option"]')].find((o) => o.textContent?.includes(opcja)) as HTMLElement;
   await act(async () => li.click());
 }
@@ -77,7 +78,7 @@ describe('SslPlatne', () => {
     mockPotwierdz.mockResolvedValue(true);
     mockOrder.mockResolvedValue({ ok: true, dane: zamowienie });
     const { el, root } = await renderuj();
-    await wybierz(el, 'Rodzaj certyfikatu', 'Wildcard');
+    await wybierz(el, 'Certyfikat', 'Wildcard');
     await wybierz(el, 'Weryfikacja domeny', 'E-mail');
     await wybierz(el, 'Adres do weryfikacji', 'hostmaster@');
     expect(el.textContent).toContain('499,00 K');

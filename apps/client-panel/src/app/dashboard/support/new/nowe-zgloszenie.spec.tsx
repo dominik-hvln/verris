@@ -19,6 +19,7 @@ jest.mock('sonner', () => ({ toast: { error: jest.fn(), success: jest.fn() } }))
 jest.mock('@/components/panel/pole-zalacznikow', () => ({ PoleZalacznikow: () => null }));
 
 import NewTicketPage from './page';
+import { nazwaDostepna } from '@/a11y/nazwa-dostepna';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 Element.prototype.scrollIntoView = jest.fn();
@@ -54,7 +55,7 @@ describe('nowe zgłoszenie — usługa', () => {
     mockUslugi.mockResolvedValue([{ id: 's1', nazwa: 'a.pl' }, { id: 's2', nazwa: 'b.pl' }]);
     const { el, root } = await renderuj();
     expect(ukryte(el)).toBe('');
-    await act(async () => (el.querySelector('button[aria-label="Której usługi dotyczy?"]') as HTMLButtonElement).click());
+    await act(async () => (el.querySelector('[role="combobox"]#usluga') as HTMLElement).click());
     const li = [...el.querySelectorAll('li[role="option"]')].find((o) => o.textContent?.includes('b.pl')) as HTMLElement;
     await act(async () => li.click());
     expect(ukryte(el)).toBe('s2');
@@ -67,6 +68,30 @@ describe('nowe zgłoszenie — usługa', () => {
     expect(el.textContent).toContain('Nie udało się wczytać listy usług');
     expect(ukryte(el)).toBeUndefined();
     expect(el.querySelector('#subject')).not.toBeNull();
+    act(() => root.unmount());
+  });
+});
+
+/**
+ * P-12 (VoiceOver 12.10): oba pola wyboru były czytane jako placeholder („— wybierz temat —”) zamiast
+ * etykiety. Nazwa dostępna = widoczna etykieta, powiązana programowo (aria-labelledby → <label>).
+ */
+describe('nowe zgłoszenie — nazwy pól wyboru (P-12)', () => {
+  it('„Czego dotyczy zgłoszenie?” i „Której usługi dotyczy?” mają nazwę z widocznej etykiety', async () => {
+    mockUslugi.mockResolvedValue([{ id: 's1', nazwa: 'a.pl' }, { id: 's2', nazwa: 'b.pl' }]);
+    const { el, root } = await renderuj();
+    const pola = [...el.querySelectorAll<HTMLElement>('[role="combobox"]')];
+    expect(pola).toHaveLength(2);
+    for (const [pole, etykieta] of [
+      [pola[0]!, 'Czego dotyczy zgłoszenie?'],
+      [pola[1]!, 'Której usługi dotyczy?'],
+    ] as const) {
+      expect(nazwaDostepna(pole)).toBe(etykieta);
+      const lbl = document.getElementById(pole.getAttribute('aria-labelledby') ?? '');
+      expect(lbl?.tagName).toBe('LABEL');
+      expect(lbl?.textContent?.trim()).toBe(etykieta);
+      expect(pole.getAttribute('aria-expanded')).toBe('false');
+    }
     act(() => root.unmount());
   });
 });

@@ -98,20 +98,20 @@ export function SslPlatne({ serviceId, domains }: { serviceId: string; domains: 
         <div className="space-y-4 rounded-[10px] border border-line bg-card p-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">Domena</span>
+              <label htmlFor="ssl-domena" className="text-xs font-medium text-muted-foreground">Domena</label>
               <Select
                 value={domain}
                 onChange={setDomain}
-                aria-label="Domena certyfikatu"
+                id="ssl-domena"
                 options={domains.map((d) => ({ value: d.name, label: d.name }))}
               />
             </div>
             <div className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">Certyfikat</span>
+              <label htmlFor="ssl-certyfikat" className="text-xs font-medium text-muted-foreground">Certyfikat</label>
               <Select
                 value={productId}
                 onChange={setProductId}
-                aria-label="Rodzaj certyfikatu"
+                id="ssl-certyfikat"
                 options={dane.oferta.map((p) => ({
                   value: String(p.productId),
                   label: `${p.name}${p.wildcard ? ' — wildcard (wszystkie subdomeny)' : ' — jedna domena'} · ${K(p.priceGross)} / rok`,
@@ -119,11 +119,11 @@ export function SslPlatne({ serviceId, domains }: { serviceId: string; domains: 
               />
             </div>
             <div className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">Weryfikacja domeny</span>
+              <label htmlFor="ssl-weryfikacja" className="text-xs font-medium text-muted-foreground">Weryfikacja domeny</label>
               <Select
                 value={walidacja}
                 onChange={(v) => setWalidacja(v === 'EMAIL' ? 'EMAIL' : 'DNS')}
-                aria-label="Weryfikacja domeny"
+                id="ssl-weryfikacja"
                 options={[
                   { value: 'DNS', label: 'Rekord DNS (zalecane)' },
                   { value: 'EMAIL', label: 'E-mail na adres w domenie' },
@@ -132,11 +132,11 @@ export function SslPlatne({ serviceId, domains }: { serviceId: string; domains: 
             </div>
             {walidacja === 'EMAIL' ? (
               <div className="block space-y-1.5">
-                <span className="text-xs font-medium text-muted-foreground">Adres do weryfikacji</span>
+                <label htmlFor="ssl-adres" className="text-xs font-medium text-muted-foreground">Adres do weryfikacji</label>
                 <Select
                   value={adres}
                   onChange={setAdres}
-                  aria-label="Adres do weryfikacji"
+                  id="ssl-adres"
                   options={ADRESY.map((a) => ({ value: a, label: `${a}@${domain || 'domena'}` }))}
                 />
               </div>

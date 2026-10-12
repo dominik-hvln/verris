@@ -88,8 +88,8 @@ export function GitRepoPanel({ serviceId, domains, odswiezNr = 0 }: { serviceId:
       {bladWczytania && !stan ? <p role="alert" className="m-0 my-2 rounded-[8px] border border-line px-3 py-2 text-[13px] text-crit">Nie udało się wczytać: {bladWczytania}</p> : null}
       <div className="grid gap-3 px-4 py-3 sm:grid-cols-2">
         <div className="min-w-0">
-          <span className="mb-1 block text-[13px] font-medium text-foreground">Domena</span>
-          <Select aria-label="Domena" value={d} onChange={setDomena} options={domains.map((x) => ({ value: x, label: x }))} className="w-full" />
+          <label htmlFor="git-domena" className="mb-1 block text-[13px] font-medium text-foreground">Domena</label>
+          <Select id="git-domena" value={d} onChange={setDomena} options={domains.map((x) => ({ value: x, label: x }))} className="w-full" />
         </div>
         <label className="block min-w-0 text-[13px] font-medium text-foreground">
           Podkatalog w public_html (opcjonalnie)

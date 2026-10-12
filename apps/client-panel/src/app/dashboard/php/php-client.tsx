@@ -70,8 +70,8 @@ export function PhpClient({ serviceId, status }: { serviceId: string; status: Ph
       <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-3">
         <p className="text-sm font-semibold text-white">Zmień wersję PHP</p>
         <div className="flex flex-col sm:flex-row gap-3 sm:items-end max-w-md">
-          <label htmlFor={versionId} className="flex-1 space-y-1">
-            <span className="text-xs text-neutral-400">Wersja</span>
+          <div className="flex-1 space-y-1">
+            <label htmlFor={versionId} className="text-xs text-neutral-400">Wersja</label>
             <Select
               id={versionId}
               value={version}
@@ -79,7 +79,7 @@ export function PhpClient({ serviceId, status }: { serviceId: string; status: Ph
               aria-label="Wersja PHP"
               options={status.availableVersions.map((v) => ({ value: v, label: `PHP ${v}` }))}
             />
-          </label>
+          </div>
           <button
             type="button"
             onClick={apply}
@@ -168,6 +168,7 @@ function DomainPhpOverridesNote({
 
 function DomainPhpSection({ serviceId }: { serviceId: string }) {
   const domainId = useId();
+  const wersjaDomenyId = useId();
   const [domains, setDomains] = useState<string[]>([]);
   const [domain, setDomain] = useState('');
   const [status, setStatus] = useState<DomainPhpStatus | null>(null);
@@ -225,8 +226,8 @@ function DomainPhpSection({ serviceId }: { serviceId: string }) {
         powyżej). „Jak konto” usuwa wyjątek. Zmiana wykonuje się na serwerze — zwykle do minuty.
       </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end max-w-xl">
-        <label htmlFor={domainId} className="flex-1 space-y-1">
-          <span className="text-xs text-neutral-400">Domena</span>
+        <div className="flex-1 space-y-1">
+          <label htmlFor={domainId} className="text-xs text-neutral-400">Domena</label>
           <Select
             id={domainId}
             value={domain}
@@ -238,18 +239,19 @@ function DomainPhpSection({ serviceId }: { serviceId: string }) {
             aria-label="Domena"
             options={domains.map((d) => ({ value: d, label: d }))}
           />
-        </label>
-        <label className="flex-1 space-y-1">
-          <span className="text-xs text-neutral-400">
+        </div>
+        <div className="flex-1 space-y-1">
+          <label htmlFor={wersjaDomenyId} className="text-xs text-neutral-400">
             Wersja{status ? ` (obecnie ${status.currentVersion ?? 'jak konto'})` : ''}
-          </span>
+          </label>
           <Select
+            id={wersjaDomenyId}
             value={version}
             onChange={setVersion}
             aria-label="Wersja PHP domeny"
             options={[{ value: '', label: 'Jak konto' }, ...(status?.versions ?? []).map((v) => ({ value: v, label: `PHP ${v}` }))]}
           />
-        </label>
+        </div>
         <button
           type="button"
           onClick={apply}

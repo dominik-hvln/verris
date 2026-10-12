@@ -87,11 +87,11 @@ export function PhpKatalogPanel({ serviceId, domain }: { serviceId: string; doma
         {stan?.odczytano && !stan.wToku ? (
           <div className="mt-3 flex flex-wrap items-end gap-2">
             <div className="min-w-[220px]">
-              <span className="mb-1 block text-[13px] font-medium text-foreground">
+              <label htmlFor="php-katalog-wersja" className="mb-1 block text-[13px] font-medium text-foreground">
                 Wersja PHP katalogu {stan.katalog} (teraz: {stan.php ? stan.php : 'jak domena'})
-              </span>
+              </label>
               <Select
-                aria-label="Wersja PHP katalogu"
+                id="php-katalog-wersja"
                 value={wybor}
                 onChange={setWybor}
                 options={[{ value: '', label: 'Jak domena' }, ...wersje.map((v) => ({ value: v, label: `PHP ${v}` }))]}

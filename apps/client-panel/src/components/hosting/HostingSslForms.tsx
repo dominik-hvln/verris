@@ -70,8 +70,8 @@ export function HostingSslForms({ serviceId }: Props) {
         </p>
       ) : null}
 
-      <label htmlFor={domainId} className="block space-y-1.5 max-w-md">
-        <span className="text-xs font-medium text-muted-foreground">Domena (konto hostingowe)</span>
+      <div className="block space-y-1.5 max-w-md">
+        <label htmlFor={domainId} className="text-xs font-medium text-muted-foreground">Domena (konto hostingowe)</label>
         <Select
           id={domainId}
           value={domain}
@@ -81,7 +81,7 @@ export function HostingSslForms({ serviceId }: Props) {
           placeholder="—"
           options={domains.map((d) => ({ value: d.name, label: d.name }))}
         />
-      </label>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-[10px] border border-line bg-raised p-5 space-y-4">
