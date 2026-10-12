@@ -10,6 +10,7 @@ import {
   isValidNip,
   normalizeNip,
   partyDisplayName,
+  poleSumStawki,
   vatRateLabel,
 } from './fa-xml.types.js';
 
@@ -83,7 +84,7 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
     );
   }
   const rate = Number(inv.vatRate.toString());
-  vatRateLabel(rate);
+  const poleSum = poleSumStawki(rate);
   const net = formatMoney(inv.netAmount);
   const vat = formatMoney(inv.vatAmount);
   const gross = formatMoney(inv.amount);
@@ -93,48 +94,6 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
       `Niespójne kwoty faktury ${inv.number}: ${net} + ${vat} != ${gross}`,
     );
   }
-
-  const lines: InvoiceLineItem[] = items.length
-    ? items
-    : [
-        {
-          name: 'Usługi hostingowe',
-          quantity: 1,
-          unitNet: net,
-          vatRate: rate,
-          totalNet: net,
-          totalVat: vat,
-          totalGross: gross,
-        },
-      ];
-
-  const wiersze = lines
-    .map((li, idx) => {
-      const q = Number(li.quantity) || 1;
-      return [
-        '    <FaWiersz>',
-        `      <NrWierszaFa>${idx + 1}</NrWierszaFa>`,
-        `      <P_7>${escapeXml(String(li.name).slice(0, 256))}</P_7>`,
-        '      <P_8A>szt.</P_8A>',
-        `      <P_8B>${q}</P_8B>`,
-        `      <P_9A>${formatMoney(li.unitNet)}</P_9A>`,
-        `      <P_11>${formatMoney(li.totalNet)}</P_11>`,
-        `      <P_12>${vatRateLabel(Number(li.vatRate))}</P_12>`,
-        '    </FaWiersz>',
-      ].join('\n');
-    })
-    .join('\n');
-
-  const addressLine = (p: PartySnapshot): string =>
-    escapeXml(
-      [p.address, [p.postalCode, p.city].filter(Boolean).join(' ')]
-        .filter(Boolean)
-        .join(', ') || 'brak',
-    );
-
-  const podmiot2Ident = buyerNip
-    ? `        <NIP>${buyerNip}</NIP>`
-    : '        <BrakID>1</BrakID>';
 
   // ── M-06 — rodzaj dokumentu ────────────────────────────────────────────────
   //
@@ -155,6 +114,72 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
       );
     }
   }
+
+  // Wiersze. Korekta: wiersze sprzed korekty (StanPrzed=1) i po korekcie, z odrębną
+  // numeracją — sposób opisany przy elemencie StanPrzed w XSD FA(3). Do 2026-10-12
+  // korekta niosła tylko wiersze „po”, a sumy były różnicą — z dokumentu nie dało się
+  // odczytać, od jakiego stanu liczono różnicę.
+  const przed = jestKorekta && Array.isArray(inv.correctedLineItems)
+    ? (inv.correctedLineItems as InvoiceLineItem[])
+    : [];
+  const lines: Array<InvoiceLineItem & { stanPrzed?: boolean }> = jestKorekta
+    ? [...przed.map((li) => ({ ...li, stanPrzed: true })), ...items]
+    : items.length
+      ? items
+      : [
+          {
+            name: 'Usługi hostingowe',
+            quantity: 1,
+            unitNet: net,
+            vatRate: rate,
+            totalNet: net,
+            totalVat: vat,
+            totalGross: gross,
+          },
+        ];
+  for (const li of lines) {
+    // Sumy P_13_x/P_14_x biorą kwoty dokumentu, więc wszystkie wiersze muszą mieć jego stawkę —
+    // inaczej część sprzedaży trafiłaby do pola innej stawki.
+    if (Number(li.vatRate) !== rate) {
+      throw new FaXmlValidationError(
+        `Faktura ${inv.number} ma pozycje w różnych stawkach VAT — KSeF z panelu obsługuje jedną stawkę na dokument.`,
+      );
+    }
+  }
+
+  const wiersze = lines
+    .map((li, idx) => {
+      const q = Number(li.quantity) || 1;
+      return [
+        '    <FaWiersz>',
+        `      <NrWierszaFa>${idx + 1}</NrWierszaFa>`,
+        `      <P_7>${escapeXml(String(li.name).slice(0, 256))}</P_7>`,
+        '      <P_8A>szt.</P_8A>',
+        `      <P_8B>${q}</P_8B>`,
+        `      <P_9A>${formatMoney(li.unitNet)}</P_9A>`,
+        `      <P_11>${formatMoney(li.totalNet)}</P_11>`,
+        `      <P_12>${vatRateLabel(Number(li.vatRate))}</P_12>`,
+        ...(li.stanPrzed ? ['      <StanPrzed>1</StanPrzed>'] : []),
+        '    </FaWiersz>',
+      ].join('\n');
+    })
+    .join('\n');
+
+  const addressLine = (p: PartySnapshot): string =>
+    escapeXml(
+      [p.address, [p.postalCode, p.city].filter(Boolean).join(' ')]
+        .filter(Boolean)
+        .join(', ') || 'brak',
+    );
+
+  // B2C (decyzja właściciela 2026-10-12: faktury dla osób prywatnych też idą do KSeF):
+  // nabywca bez identyfikatora podatkowego = `BrakID=1` (TPodmiot2 w XSD FA(3)).
+  const podmiot2Ident = buyerNip
+    ? `      <NIP>${buyerNip}</NIP>`
+    : '      <BrakID>1</BrakID>';
+
+  const sellerEmail = seller.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(seller.email) ? seller.email : null;
+
   const rodzajIKorekta = jestKorekta
     ? [
         '    <RodzajFaktury>KOR</RodzajFaktury>',
@@ -165,9 +190,32 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
           inv.correctedIssuedAt ?? inv.issuedAt,
         )}</DataWystFaKorygowanej>`,
         `      <NrFaKorygowanej>${escapeXml(inv.correctedNumber!)}</NrFaKorygowanej>`,
+        ...(inv.correctedKsefNumber
+          ? [
+              '      <NrKSeF>1</NrKSeF>',
+              `      <NrKSeFFaKorygowanej>${escapeXml(inv.correctedKsefNumber)}</NrKSeFFaKorygowanej>`,
+            ]
+          : ['      <NrKSeFN>1</NrKSeFN>']),
         '    </DaneFaKorygowanej>',
       ]
     : ['    <RodzajFaktury>VAT</RodzajFaktury>'];
+
+  const p1 = formatDateOnly(inv.issuedAt);
+  // P_6 — „o ile taka data jest określona i różni się od daty wystawienia faktury” (XSD).
+  const p6 = !jestKorekta && inv.paidAt ? formatDateOnly(inv.paidAt) : null;
+
+  // Platnosc — faktura panelu dokumentuje sprzedaż już opłaconą. Na korekcie sekcji nie ma:
+  // korekta nie dokumentuje zapłaty, tylko zmianę rozliczenia.
+  const platnosc: string[] = [];
+  if (!jestKorekta && inv.paidAt) {
+    platnosc.push('    <Platnosc>', '      <Zaplacono>1</Zaplacono>', `      <DataZaplaty>${formatDateOnly(inv.paidAt)}</DataZaplaty>`);
+    const f = input.platnosc;
+    if (f && 'kod' in f) platnosc.push(`      <FormaPlatnosci>${f.kod}</FormaPlatnosci>`);
+    if (f && 'opis' in f && f.opis.trim()) {
+      platnosc.push('      <PlatnoscInna>1</PlatnoscInna>', `      <OpisPlatnosci>${escapeXml(f.opis.trim())}</OpisPlatnosci>`);
+    }
+    platnosc.push('    </Platnosc>');
+  }
 
   const xml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -175,7 +223,7 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
     '  <Naglowek>',
     `    <KodFormularza kodSystemowy="${FA3_SYSTEM_CODE}" wersjaSchemy="${FA3_SCHEMA_VERSION}">${FA3_FORM_VALUE}</KodFormularza>`,
     `    <WariantFormularza>${FA3_FORM_VARIANT}</WariantFormularza>`,
-    `    <DataWytworzeniaFa>${new Date().toISOString()}</DataWytworzeniaFa>`,
+    `    <DataWytworzeniaFa>${(input.teraz ?? new Date()).toISOString()}</DataWytworzeniaFa>`,
     `    <SystemInfo>${escapeXml(input.systemInfo ?? 'Verris Panel')}</SystemInfo>`,
     '  </Naglowek>',
     '  <Podmiot1>',
@@ -187,6 +235,9 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
     `      <KodKraju>${escapeXml(seller.country || 'PL')}</KodKraju>`,
     `      <AdresL1>${addressLine(seller)}</AdresL1>`,
     '    </Adres>',
+    ...(sellerEmail
+      ? ['    <DaneKontaktowe>', `      <Email>${escapeXml(sellerEmail)}</Email>`, '    </DaneKontaktowe>']
+      : []),
     '  </Podmiot1>',
     '  <Podmiot2>',
     '    <DaneIdentyfikacyjne>',
@@ -197,13 +248,18 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
     `      <KodKraju>${escapeXml(buyer.country || 'PL')}</KodKraju>`,
     `      <AdresL1>${addressLine(buyer)}</AdresL1>`,
     '    </Adres>',
+    // JST i GV są w FA(3) OBOWIĄZKOWE (XSD 1-0E, Podmiot2). Do 2026-10-12 ich nie było —
+    // każdy dokument odpadał na walidacji schematu w KSeF. „2” = nie dotyczy.
+    '    <JST>2</JST>',
+    '    <GV>2</GV>',
     '  </Podmiot2>',
     '  <Fa>',
     '    <KodWaluty>PLN</KodWaluty>',
-    `    <P_1>${formatDateOnly(inv.issuedAt)}</P_1>`,
+    `    <P_1>${p1}</P_1>`,
     `    <P_2>${escapeXml(inv.number)}</P_2>`,
-    `    <P_13_1>${net}</P_13_1>`,
-    `    <P_14_1>${vat}</P_14_1>`,
+    ...(p6 && p6 !== p1 ? [`    <P_6>${p6}</P_6>`] : []),
+    `    <P_13_${poleSum}>${net}</P_13_${poleSum}>`,
+    `    <P_14_${poleSum}>${vat}</P_14_${poleSum}>`,
     `    <P_15>${gross}</P_15>`,
     '    <Adnotacje>',
     '      <P_16>2</P_16>',
@@ -216,7 +272,8 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
     '      <PMarzy><P_PMarzyN>1</P_PMarzyN></PMarzy>',
     '    </Adnotacje>',
     ...rodzajIKorekta,
-    wiersze,
+    ...(wiersze ? [wiersze] : []),
+    ...platnosc,
     '  </Fa>',
     '</Faktura>',
     '',

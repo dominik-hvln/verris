@@ -49,6 +49,8 @@ export interface BuildFaXmlInput {
     | 'issuedAt'
     | 'paidAt'
   > & {
+    /** M-06 — pozycje sprzed korekty (stan, do którego odnosi się korekta). */
+    correctedLineItems?: unknown;
     sellerSnapshot: unknown;
     buyerSnapshot: unknown;
     lineItems: unknown;
@@ -65,10 +67,27 @@ export interface BuildFaXmlInput {
     correctedIssuedAt?: Date | null;
     /** Przyczyna korekty — pole obowiązkowe (art. 106j ust. 2 pkt 4). */
     correctionReason?: string | null;
+    /**
+     * Numer KSeF faktury korygowanej. FA(3) wymaga w `DaneFaKorygowanej` albo
+     * `NrKSeF=1` + `NrKSeFFaKorygowanej`, albo `NrKSeFN=1` (faktura spoza KSeF) —
+     * bez żadnego z nich XML nie przechodzi walidacji schematu.
+     */
+    correctedKsefNumber?: string | null;
   };
+  /**
+   * Sposób zapłaty (sekcja `Platnosc`). Faktury panelu są wystawiane po zapłacie,
+   * więc przy `paidAt` builder wpisuje `Zaplacono=1` i `DataZaplaty`.
+   * `kod` — TFormaPlatnosci z XSD (1 gotówka, 2 karta, 3 bon, 4 czek, 5 kredyt,
+   * 6 przelew, 7 mobilna); `opis` — „PlatnoscInna” z opisem.
+   */
+  platnosc?: FormaPlatnosciFa | null;
+  /** Chwila wytworzenia dokumentu (Naglowek/DataWytworzeniaFa); domyślnie teraz. */
+  teraz?: Date;
   /** System info do nagłówka (nazwa systemu wystawcy). */
   systemInfo?: string;
 }
+
+export type FormaPlatnosciFa = { kod: 1 | 2 | 3 | 4 | 5 | 6 | 7 } | { opis: string };
 
 export interface BuiltFaXml {
   xml: string;
@@ -148,8 +167,20 @@ export function formatMoney(value: string | number | { toString(): string }): st
   return n.toFixed(2);
 }
 
+/**
+ * Data (RRRR-MM-DD) w strefie Europe/Warsaw. Do 2026-10-12 brana z `toISOString()`,
+ * czyli w UTC — faktura wystawiona 13.10 o 00:30 czasu polskiego dostawała P_1 = 12.10,
+ * a z nią błędny link KOD I (data jest częścią linku weryfikacyjnego).
+ */
+const DATA_PL = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: 'Europe/Warsaw',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
 export function formatDateOnly(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return DATA_PL.format(d);
 }
 
 export function partyDisplayName(p: PartySnapshot): string {
@@ -161,8 +192,25 @@ export function partyDisplayName(p: PartySnapshot): string {
   );
 }
 
-/** Stawki VAT dopuszczone w P_12 dla krajowej faktury VAT. */
+/**
+ * Stawki procentowe dopuszczone w P_12 (TStawkaPodatku z XSD FA(3) 1-0E) i pole
+ * sum (P_13_x/P_14_x), do którego należą. Do 2026-10-12 builder przepuszczał też
+ * „0”, którego w FA(3) nie ma (są „0 KR”, „0 WDT”, „0 EX” — inne dokumenty),
+ * i każdą stawkę sumował w P_13_1 (stawka podstawowa) — 8% trafiałoby do 23%.
+ */
+const POLE_SUM_STAWKI: Record<number, 1 | 2 | 3> = { 23: 1, 22: 1, 8: 2, 7: 2, 5: 3 };
+
 export function vatRateLabel(rate: number): string {
-  if ([23, 22, 8, 7, 5, 4, 3, 0].includes(rate)) return String(rate);
+  if (rate in POLE_SUM_STAWKI) return String(rate);
   throw new FaXmlValidationError(`Nieobsługiwana stawka VAT: ${rate}`);
+}
+
+/**
+ * Numer grupy sum P_13_x/P_14_x dla stawki (XSD: 1 — podstawowa 23/22%, 2 — obniżona
+ * pierwsza 8/7%, 3 — obniżona druga 5%). Stawek ryczałtowych taxi (4/3%) panel nie
+ * sprzedaje — odmowa zamiast zgadywania pola.
+ */
+export function poleSumStawki(rate: number): 1 | 2 | 3 {
+  vatRateLabel(rate);
+  return POLE_SUM_STAWKI[rate];
 }
