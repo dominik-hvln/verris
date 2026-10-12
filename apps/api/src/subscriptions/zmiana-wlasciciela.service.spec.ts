@@ -47,7 +47,7 @@ function stan(o: { usluga?: Partial<StanZmianyWlasciciela['usluga']>; nowy?: Par
       ...o.usluga,
     },
     nowy: o.nowy === null ? null : klient(o.nowy),
-    wToku: { migracje: 0, przeniesieniaKonta: 0, odtworzenia: 0, ssl: 0, wnioski: 0, ...o.wToku },
+    wToku: { migracje: 0, przeniesieniaKonta: 0, odtworzenia: 0, ssl: 0, wnioski: 0, proformy: 0, ...o.wToku },
   };
 }
 
@@ -118,6 +118,7 @@ describe('K2 — odmowy zmiany właściciela usługi', () => {
     ['odtworzenia', /odtwarzanie kopii/],
     ['ssl', /certyfikatu SSL/],
     ['wnioski', /wniosek operatora/],
+    ['proformy', /otwartą proformę na odnowienie/],
   ] as const)('w toku: %s → odmowa', (klucz, wzor) => {
     expect(odmowy({ wToku: { [klucz]: 1 } })).toEqual([expect.stringMatching(wzor)]);
   });

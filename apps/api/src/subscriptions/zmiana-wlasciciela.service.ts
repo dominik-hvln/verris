@@ -54,7 +54,7 @@ export interface StanZmianyWlasciciela {
     user: KlientZmiany;
   };
   nowy: KlientZmiany | null;
-  wToku: { migracje: number; przeniesieniaKonta: number; odtworzenia: number; ssl: number; wnioski: number };
+  wToku: { migracje: number; przeniesieniaKonta: number; odtworzenia: number; ssl: number; wnioski: number; proformy: number };
 }
 
 const kartowa = (u: StanZmianyWlasciciela['usluga']) => u.paymentSource === 'STRIPE_CARD' && !!u.stripeSubscriptionId;
@@ -116,6 +116,9 @@ export function odmowyZmianyWlasciciela(s: StanZmianyWlasciciela, teraz = Date.n
   if (s.wToku.odtworzenia > 0) odmowy.push('Trwa odtwarzanie kopii konta — poczekaj na koniec.');
   if (s.wToku.ssl > 0) odmowy.push('Zamówienie certyfikatu SSL jest w toku — poczekaj na jego instalację albo niepowodzenie.');
   if (s.wToku.wnioski > 0) odmowy.push('Na tę usługę czeka wniosek operatora — najpierw go rozstrzygnij.');
+  // Przegląd 12.10 — wpłata do proformy idzie do portfela tego, komu ją wystawiono (poprzedniego właściciela), a odnowienie
+  // obciąża portfel nowego: poprzedni zapłaciłby za nic, nowy dostałby zaległość.
+  if (s.wToku.proformy > 0) odmowy.push('Usługa ma otwartą proformę na odnowienie — anuluj ją albo poczekaj na wpłatę.');
   return odmowy;
 }
 
@@ -202,7 +205,8 @@ export class ZmianaWlascicielaService {
     const odtworzenia = await db.hostingRestoreJob.count({ where: { subscriptionId, status: { in: ODTWORZENIE_W_TOKU } } });
     const ssl = await db.sslOrder.count({ where: { subscriptionId, status: { in: SSL_W_TOKU } } });
     const wnioski = await db.operatorRequest.count({ where: { subscriptionId, status: 'PENDING' } });
-    return { usluga, nowy, wToku: { migracje, przeniesieniaKonta, odtworzenia, ssl, wnioski } };
+    const proformy = await db.proforma.count({ where: { subscriptionId, status: 'WYSTAWIONA' } });
+    return { usluga, nowy, wToku: { migracje, przeniesieniaKonta, odtworzenia, ssl, wnioski, proformy } };
   }
 
   /** Podgląd dla karty usługi: kogo znaleziono, czy wolno, co przejdzie — bez zmian w bazie. */

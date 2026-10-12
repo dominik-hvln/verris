@@ -208,6 +208,13 @@ describe('K2 — zmiana właściciela usługi', () => {
     await expect(zlec()).rejects.toThrow(/przenoszenie strony/);
     await p.migrationRequest.delete({ where: { id: wToku.id } });
 
+    // Przegląd 12.10 — otwarta proforma na odnowienie (wpłata trafiłaby do portfela poprzedniego właściciela).
+    const proforma = await p.proforma.create({
+      data: { userId: x.A.id, subscriptionId: x.sub.id, number: `PRO/K2/${Date.now()}`, amount: 45, netAmount: 36.59, vatAmount: 8.41, lineItems: [], vatMeta: {}, dueAt: new Date(Date.now() + 7 * DNI) },
+    });
+    await expect(zlec()).rejects.toThrow(/otwartą proformę na odnowienie/);
+    await p.proforma.update({ where: { id: proforma.id }, data: { status: 'ANULOWANA', cancelledAt: new Date(), cancelReason: 'Test — anulowana przed przeniesieniem' } });
+
     const zablokowany = await klient({ loginBlocked: true });
     await expect(zlec(zablokowany.email)).rejects.toThrow(/zablokowane/);
     await expect(zlec(x.A.email)).rejects.toThrow(/ten sam klient/);
