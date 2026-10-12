@@ -38,6 +38,7 @@ import {
   limityEfektywne,
 } from './node-capacity.js';
 import { narzutResellera, zNarzutem } from '../reseller/narzut-resellera.js';
+import { maNadpisania } from './limity-indywidualne.js';
 
 type LoadedSub = Subscription & {
   plan: Plan;
@@ -168,7 +169,7 @@ export class PlanChangeService {
   ) {
     const target = await this.resolveTargetPlan(targetPlanId, opts);
     const effectiveInterval = opts.targetInterval ?? sub.interval;
-    this.assertCanChangePlan(sub, target, effectiveInterval);
+    this.assertCanChangePlan(sub, target, effectiveInterval, opts.allowNonPublicPlan);
     await this.assertDiskAllowsDowngrade(sub, target);
     const narzut = await this.narzut(sub);
     const proration = await this.prorationFor(sub, target, effectiveInterval, narzut);
@@ -212,7 +213,7 @@ export class PlanChangeService {
       allowNonPublicPlan: ctx.allowNonPublicPlan,
     });
     const effectiveInterval = ctx.targetInterval ?? sub.interval;
-    this.assertCanChangePlan(sub, target, effectiveInterval);
+    this.assertCanChangePlan(sub, target, effectiveInterval, ctx.allowNonPublicPlan);
     await this.assertDiskAllowsDowngrade(sub, target);
 
     if (
@@ -459,7 +460,8 @@ export class PlanChangeService {
     return plan;
   }
 
-  private assertCanChangePlan(sub: LoadedSub, target: Plan, targetInterval: BillingInterval) {
+  /** `obsluga` — ścieżka admina (allowNonPublicPlan); wpływa tylko na treść komunikatu. */
+  private assertCanChangePlan(sub: LoadedSub, target: Plan, targetInterval: BillingInterval, obsluga = false) {
     if (sub.status !== SubscriptionStatus.ACTIVE) {
       throw new BadRequestException(
         'Zmiana planu jest możliwa tylko dla aktywnej, opłaconej subskrypcji.',
@@ -474,6 +476,15 @@ export class PlanChangeService {
     // albo newslettera dostałby na węźle pakiet z cudzymi limitami (pushDaLimits).
     if (target.productKind !== sub.plan.productKind) {
       throw new BadRequestException('Wybrany plan dotyczy innej usługi — zmiana planu działa w obrębie tej samej usługi.');
+    }
+    // K3 — przy limitach indywidualnych zmiana planu nadpisałaby na serwerze dysk (pushDaLimits) i zostawiła resztę
+    // nadpisań na nowym planie. Wariant minimalny: blokada dla klienta i admina; admin najpierw przywraca limity planu.
+    if (maNadpisania(sub.limitOverrides)) {
+      throw new BadRequestException(
+        obsluga
+          ? 'Usługa ma limity indywidualne — najpierw „Przywróć limity planu” (karta usługi → Operacje), potem zmień plan i w razie potrzeby ustaw limity ponownie.'
+          : 'Ta usługa ma limity ustalone indywidualnie — zmianę planu ustalisz z obsługą Verris: napisz zgłoszenie w Centrum pomocy.',
+      );
     }
     if (sub.planId === target.id && sub.interval === targetInterval) {
       throw new BadRequestException(

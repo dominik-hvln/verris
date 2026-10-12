@@ -114,6 +114,9 @@ export const SERVICE_EVENT_PL: Record<string, string> = {
   MAIL_SENDING_UNBLOCKED: 'Obsługa Verris przywróciła wysyłkę poczty z konta',
   MAIL_SEND_LIMIT_CHANGED: 'Obsługa Verris zmieniła dobowy limit wysyłki poczty',
   ADDON_ADDED: 'Obsługa Verris dodała dodatek',
+  // K3 — limity indywidualne usługi (bez słowa „custom” i nazw infrastruktury).
+  LIMITS_CUSTOMIZED: 'Obsługa Verris ustaliła indywidualne limity usługi',
+  LIMITS_RESET: 'Obsługa Verris przywróciła limity planu',
   CANCELED: 'Usługa anulowana',
   EXPIRED: 'Usługa wygasła',
   RESELLER_MARKUP_REMOVED: 'Cena bez narzutu partnera',

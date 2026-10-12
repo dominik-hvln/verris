@@ -25,6 +25,7 @@ import {
   SWIEZOSC_TELEMETRII_MIN,
   wolneDoZadysponowania,
 } from '../subscriptions/node-capacity.js';
+import { planZNadpisaniami } from '../subscriptions/limity-indywidualne.js';
 import { MailerService } from '../mail/mailer.service.js';
 import {
   AutoscalingEndReason,
@@ -111,7 +112,9 @@ export class AutoscalingEngineService {
 
     for (const sub of subs) {
       try {
-        const decision = await this.evaluate(sub, rules);
+        // K3 — baza dysku to limit usługi (plan albo limit indywidualny): Account.diskLimitMb = baza + nadwyżka,
+        // a zapis quoty niżej (setAccountLimits) nie może zdjąć limitu ustawionego przez administratora.
+        const decision = await this.evaluate({ ...sub, plan: planZNadpisaniami(sub.plan, sub.limitOverrides) }, rules);
         if (decision === 'UP') upCount += 1;
         else if (decision === 'DOWN') downCount += 1;
         else if (decision === 'DISABLED') disabledCount += 1;

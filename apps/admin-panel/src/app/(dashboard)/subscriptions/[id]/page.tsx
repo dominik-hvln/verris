@@ -31,6 +31,8 @@ import { ZasobyKontaPanel } from "./zasoby-konta-panel";
 import { BezpieczenstwoKontaPanel } from "./bezpieczenstwo-konta-panel";
 import { SuspendForm, ZakonczIUsunForm } from "./suspend-form";
 import { CyklZyciaPanel } from "./cykl-zycia-panel";
+import { LimityIndywidualnePanel } from "./limity-indywidualne-panel";
+import type { PozycjaLimitu } from "@verris/contracts";
 import { RestorePanel } from "./restore-panel";
 import { OdtworzenieNaWezlePanel } from "./odtworzenie-na-wezle-panel";
 
@@ -61,6 +63,8 @@ type SubscriptionDetail = {
     server: null | { id: string; name: string | null; region: string | null };
   };
   events: Array<{ id: string; type: string; createdAt: string }>;
+  /** K3 — limity indywidualne: plan, nadpisanie, obowiązujący (GET admin/subscriptions/:id). */
+  limity?: PozycjaLimitu[];
 };
 
 type AdminServerRow = { id: string; name: string | null; region: string | null; status: string };
@@ -298,6 +302,12 @@ export default async function AdminSubscriptionDetailPage({
               dostep={access}
             />
           </Sekcja>
+          {/* K3 — limity indywidualne usługi (dysk, transfer, domeny, skrzynki, bazy): tylko administrator, z powodem. */}
+          {kontoZostalo && d.limity?.length ? (
+            <Sekcja id="limity-indywidualne" tytul="Limity indywidualne">
+              <LimityIndywidualnePanel subscriptionId={d.id} limity={d.limity} isAdmin={access.isAdmin} />
+            </Sekcja>
+          ) : null}
           {/* D1 — zakończenie i usunięcie konta jest nieodwracalne: tylko administrator (API odrzuca STAFF). */}
           {(zakonczona && !kontoZostalo) || !access.isAdmin ? null : (
             <Sekcja id="zakonczenie" tytul={kontoZostalo ? "Zakończenie usługi i usunięcie konta" : "Zakończenie usługi"}>

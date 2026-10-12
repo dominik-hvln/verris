@@ -47,6 +47,8 @@ import { uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
 import { rowsToCsv } from '../billing/csv.util.js';
 import { filtryDoDziennika, ListaUslugQuery, stronaListy, USLUGI_MAX_EKSPORT, warunkiListyUslug } from './lista-uslug.js';
 import { RequestInternalMigrationDto } from './dto/migration.dto.js';
+import { opisLimitow } from './limity-indywidualne.js';
+import { planResourceFields } from '../servers/da-package-spec.js';
 import {
   AdminChangePlanDto,
   AdminPreviewPlanChangeDto,
@@ -282,8 +284,8 @@ export class SubscriptionsAdminController {
   @Get(':id')
   @Roles(Role.ADMIN, Role.STAFF)
   @StaffPermAny(...ODCZYT_KARTY)
-  detail(@Param('id') id: string) {
-    return this.prisma.subscription.findUniqueOrThrow({
+  async detail(@Param('id') id: string) {
+    const s = await this.prisma.subscription.findUniqueOrThrow({
       where: { id },
       include: {
         plan: true,
@@ -292,6 +294,8 @@ export class SubscriptionsAdminController {
         events: { orderBy: { createdAt: 'desc' }, take: 50 },
       },
     });
+    // K3 — sekcja „Limity indywidualne”: plan, nadpisanie i limit obowiązujący dla każdego pola.
+    return { ...s, limity: opisLimitow(planResourceFields(s.plan), s.limitOverrides) };
   }
 
   /** Per-service resource usage drill-down for ops (CPU/RAM/disk/IO buckets + effective LVE limits). */

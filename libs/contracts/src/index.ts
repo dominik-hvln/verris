@@ -25,3 +25,4 @@ export * from './pomoc-admina.ts';
 export * from './uslugi-wezla.ts';
 export * from './komunikacja-operacyjna.ts';
 export * from './dostep-wezla.ts';
+export * from './limity-indywidualne.ts';

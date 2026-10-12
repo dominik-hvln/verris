@@ -1,4 +1,5 @@
 import { apiFetch, ApiError } from '@/lib/api';
+import type { PozycjaLimitu } from '@verris/contracts';
 
 export interface AutoscalingEventDto {
   id: string;
@@ -62,8 +63,11 @@ export interface ServiceDetailDto {
     name: string;
     cpuLimit: number;
     ramLimitMb: number;
+    /** K3 — baza dysku tej usługi (plan albo limit ustalony indywidualnie). */
     diskLimitMb: number;
   };
+  /** K3 — limity ustalone indywidualnie przez obsługę (tylko nadpisane). */
+  limityIndywidualne?: PozycjaLimitu[];
 }
 
 export async function getServiceDetails(id: string) {

@@ -128,6 +128,8 @@ import {
   ZadanieDeployDto,
 } from './dto/hosting-body.dto.js';
 import { PromoService } from '../billing/promo.service.js';
+import { limityIndywidualneDlaKlienta, planZNadpisaniami } from './limity-indywidualne.js';
+import { planResourceFields } from '../servers/da-package-spec.js';
 
 /**
  * Customer-facing "services" view — denormalized projection over Subscription
@@ -1836,8 +1838,11 @@ export class UserServicesController {
         description: sub.plan.description,
         cpuLimit: sub.plan.cpuLimit,
         ramLimitMb: sub.plan.ramLimitMb,
-        diskLimitMb: sub.plan.diskLimitMb,
+        // K3 — baza dysku tej usługi (plan albo limit ustalony indywidualnie); Account.diskLimitMb = baza + autoskalowanie.
+        diskLimitMb: planZNadpisaniami(sub.plan, sub.limitOverrides).diskLimitMb,
       },
+      // K3 — „Limity ustalone indywidualnie” (tylko nadpisane pola; pusta lista = limity planu).
+      limityIndywidualne: limityIndywidualneDlaKlienta(planResourceFields(sub.plan), sub.limitOverrides),
       interval: sub.interval,
       paymentSource: sub.paymentSource,
       priceAmount: sub.priceAmount.toString(),

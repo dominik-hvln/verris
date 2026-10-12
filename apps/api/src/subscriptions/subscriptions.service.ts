@@ -45,6 +45,8 @@ import { orderReceivedTemplate } from '../mail/templates/order-notifications.js'
 import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service.js';
 import { KOD_U_PARTNERA, klientAktywnegoResellera, narzutResellera, zNarzutem } from '../reseller/narzut-resellera.js';
 import { POWODY_ZDEJMOWANE_BEZ_OBSLUGI, zawieszenieObejmujeZaleglosc } from './powody-zawieszenia.js';
+import { limityIndywidualneDlaKlienta, planZNadpisaniami } from './limity-indywidualne.js';
+import { planResourceFields } from '../servers/da-package-spec.js';
 
 export type SuspendReason =
   | 'PAYMENT_FAILED'
@@ -217,12 +219,18 @@ export class SubscriptionsService {
       },
     });
     if (!subscription) throw new NotFoundException('Nie znaleziono usługi.');
+    // K3 — baza dysku tej usługi (plan albo limit indywidualny) i lista limitów ustalonych przez obsługę.
+    const zLimitami = {
+      ...subscription,
+      plan: planZNadpisaniami(subscription.plan, subscription.limitOverrides),
+      limityIndywidualne: limityIndywidualneDlaKlienta(planResourceFields(subscription.plan), subscription.limitOverrides),
+    };
     // Zaszyfrowane hasło konta hostingowego nie wychodzi do panelu (także do subkont z podglądem) —
     // hasło w jawnej postaci daje tylko hosting-da-links, z kontrolą uprawnień.
     // Przegląd F3.1 — powód blokady wysyłki i kto ją nałożył to notatka zespołu (D3); klient widzi tylko mailBlockedAt.
-    if (!subscription.account) return subscription;
+    if (!subscription.account) return zLimitami;
     const { daPasswordEnc, mailBlockedById, mailBlockedReason, ...account } = subscription.account;
-    return { ...subscription, account };
+    return { ...zLimitami, account };
   }
 
   /** EKO / tryb oszczędny — można zmienić po zakupie (Etap G). */

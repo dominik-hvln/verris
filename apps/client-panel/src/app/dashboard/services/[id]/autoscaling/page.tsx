@@ -91,7 +91,7 @@ export default async function AutoscalingPage({
             <Kpi
               label="Dysk teraz"
               value={formatMbAsGb(acc.diskLimitMb)}
-              foot={<span>plan {formatMbAsGb(service.plan.diskLimitMb)}{acc.scaledDiskMb > 0 ? ` · +${formatMbAsGb(acc.scaledDiskMb)}` : ''}</span>}
+              foot={<span>{service.limityIndywidualne?.some((l) => l.pole === 'diskLimitMb') ? 'limit indywidualny' : 'plan'} {formatMbAsGb(service.plan.diskLimitMb)}{acc.scaledDiskMb > 0 ? ` · +${formatMbAsGb(acc.scaledDiskMb)}` : ''}</span>}
             />
           </>
         ) : null}

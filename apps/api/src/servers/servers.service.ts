@@ -30,6 +30,7 @@ import { UpdateDirectAdminConfigDto } from './dto/directadmin-config.dto.js';
 import { UpdateNameserversDto } from './dto/nameservers.dto.js';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
 import { renderBootstrapNodeTasksInstallFragment, renderNodeDeploySshKeyBootstrapCall, renderProbesTasksHook } from './node-tasks-agent.install.js';
+import { planZNadpisaniami } from '../subscriptions/limity-indywidualne.js';
 
 /** Konta, które są na węźle — usunięte zostają w bazie („~usuniete-<id>”), ale nie zajmują węzła. */
 const KONTA_NA_WEZLE = { where: { status: { not: AccountStatus.DELETED } } } as const;
@@ -863,7 +864,8 @@ export class ServersService {
         status: true,
         subscription: {
           select: {
-            plan: { select: { name: true, cpuLimit: true, ramLimitMb: true, diskLimitMb: true } },
+            plan: { select: { name: true, cpuLimit: true, ramLimitMb: true, diskLimitMb: true, includedTransferGb: true } },
+            limitOverrides: true,
           },
         },
       },
@@ -909,7 +911,8 @@ export class ServersService {
       }));
 
     const plan = accounts.map((acc) => {
-      const p = acc.subscription?.plan;
+      // K3 — dysk wg limitu tej usługi (plan albo limit indywidualny).
+      const p = acc.subscription ? planZNadpisaniami(acc.subscription.plan, acc.subscription.limitOverrides) : undefined;
       const need = {
         cpu: p?.cpuLimit ?? 0,
         ram: p?.ramLimitMb ?? 0,

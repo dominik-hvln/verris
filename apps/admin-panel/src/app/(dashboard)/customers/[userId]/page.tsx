@@ -98,6 +98,8 @@ const AKCJE: Record<string, string> = {
   SUBSCRIPTION_PAYMENT_PROMISE_SET: "Obietnica zapłaty",
   SUBSCRIPTION_PAYMENT_PROMISE_REVOKED: "Odwołano obietnicę zapłaty",
   ADDON_PURCHASED: "Dodatek",
+  SUBSCRIPTION_LIMITS_CUSTOMIZED: "Limity indywidualne usługi",
+  SUBSCRIPTION_LIMITS_RESET: "Przywrócono limity planu",
   PLAN_CHANGED: "Zmiana pakietu",
   EMAIL_CHANGE_CONFIRMED: "Zmiana adresu e-mail",
   RESELLER_CLIENT_CREATED: "Konto założone przez resellera",

@@ -756,6 +756,8 @@ export class UsersService {
       // zmienione przez obsługę (D3: „obsługa Verris (zgłoszenie #…)”).
       'SUBSCRIPTION_CANCEL_SCHEDULED', 'SUBSCRIPTION_CANCEL_REVOKED', 'SUBSCRIPTION_RENEWAL_DATE_CHANGED',
       'SUBSCRIPTION_PAYMENT_PROMISE_SET', 'SUBSCRIPTION_PAYMENT_PROMISE_REVOKED', 'ADDON_PURCHASED',
+      // K3 — limity indywidualne usługi ustawione albo przywrócone przez obsługę.
+      'SUBSCRIPTION_LIMITS_CUSTOMIZED', 'SUBSCRIPTION_LIMITS_RESET',
       // F3.6 — portfel prowadzony przez obsługę: korekta salda i zaksięgowana wpłata przelewem.
       'WALLET_OPERATOR_ADJUSTED', 'WALLET_MANUAL_PAYMENT_POSTED'];
     const take = Math.min(Math.max(limit, 1), 100);

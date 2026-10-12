@@ -161,6 +161,33 @@ export interface DaPackageSpec {
   skin?: string;
 }
 
+/** K3 — liczbowe limity jednego konta (`CMD_API_MODIFY_USER` action=customize) — te same pola co w pakiecie. */
+export type DaUserLimits = Pick<
+  DaPackageSpec,
+  | 'diskQuotaMb'
+  | 'bandwidthMb'
+  | 'domains'
+  | 'subdomains'
+  | 'emailAccounts'
+  | 'emailForwarders'
+  | 'mailingLists'
+  | 'autoresponders'
+  | 'databases'
+  | 'domainPointers'
+  | 'ftpAccounts'
+>;
+
+/**
+ * Przełączniki ON/OFF konta odsyłane bez zmian przy `action=customize` (legacy-api.html, „Modify User Settings”).
+ * Ostatnie trzy (redis, git, wordpress) nie są w tej tabeli dokumentacji, ale są przełącznikami konta w DA 1.6x+
+ * (pakiet Verris je ustawia — {@link DaPackageFeatures}); odsyłamy je TYLKO, gdy DA sam zwrócił je w ustawieniach
+ * konta, i z tą samą wartością — żeby zapis limitów ich nie wyłączył.
+ */
+const PRZELACZNIKI_KONTA = [
+  'aftp', 'cgi', 'php', 'spam', 'cron', 'catchall', 'ssl', 'ssh', 'sysinfo', 'login_keys', 'dnscontrol', 'suspend_at_limit',
+  'redis', 'git', 'wordpress',
+] as const;
+
 /** @deprecated use {@link DaPackageSpec}. Kept for callers passing only disk quota. */
 export interface EnsureUserPackageInput {
   name: string;
@@ -930,6 +957,59 @@ export class DirectAdminClient {
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
     );
     return this.parseResponse(response.data);
+  }
+
+  /**
+   * K3 — limity jednego konta (nie pakietu): `CMD_API_MODIFY_USER` z `action=customize`, wg oficjalnej dokumentacji
+   * „Modify User Settings”: https://docs.directadmin.com/developer/api/legacy-api.html (Method POST; pola bandwidth/
+   * ubandwidth, quota/uquota, vdomains/uvdomains, nsubdomains, nemails, nemailf, nemailml, nemailr, mysql, domainptr,
+   * ftp z flagą u<pole>=ON dla „bez limitu” oraz przełączniki ON/OFF aftp, cgi, php, spam, cron, catchall, ssl, ssh,
+   * sysinfo, login_keys, dnscontrol, suspend_at_limit, skin).
+   *
+   * `customize` to zapis CAŁEGO zestawu ustawień konta — przełącznik, którego nie wyślemy, nie może przypadkiem
+   * zostać wyłączony (np. php albo login_keys). Dlatego najpierw czytamy bieżące ustawienia konta
+   * (`CMD_API_SHOW_USER_CONFIG`, ten sam odczyt co {@link getAccountInfo}) i odsyłamy przełączniki bez zmian; zmieniamy
+   * tylko liczby. Bez czytelnych ustawień (błąd, pusta odpowiedź) NIC nie wysyłamy — błąd idzie do wołającego.
+   *
+   * Liczba = sama wartość bez u<pole> (jak w pakiecie: obecność u<pole> oznacza „bez limitu”, wartość jest pomijana —
+   * zob. {@link buildPackageParams}); 'unlimited' = u<pole>=ON.
+   */
+  async customizeUserLimits(username: string, limits: DaUserLimits): Promise<void> {
+    const obecne = await this.getAccountInfo(username);
+    if (obecne.error && obecne.error !== '0') {
+      throw bladDa(String(obecne.text ?? obecne.details ?? obecne.error), 'DirectAdmin API Error: ');
+    }
+    const przelaczniki = PRZELACZNIKI_KONTA.filter((k) => obecne[k] === 'ON' || obecne[k] === 'OFF');
+    if (przelaczniki.length === 0) {
+      throw new Error(`DirectAdmin: nie odczytano ustawień konta ${username} — limitów nie zmieniono.`);
+    }
+    const body = new URLSearchParams({ action: 'customize', user: username });
+    const pole = (nazwa: string, v: DaLimit, minLimit = 0) => {
+      if (v === 'unlimited') body.set(`u${nazwa}`, 'ON');
+      else body.set(nazwa, String(Math.max(minLimit, Math.floor(v))));
+    };
+    pole('bandwidth', limits.bandwidthMb, 1);
+    pole('quota', limits.diskQuotaMb, 1);
+    pole('vdomains', limits.domains);
+    pole('nsubdomains', limits.subdomains);
+    pole('nemails', limits.emailAccounts);
+    pole('nemailf', limits.emailForwarders);
+    pole('nemailml', limits.mailingLists);
+    pole('nemailr', limits.autoresponders);
+    pole('mysql', limits.databases);
+    pole('domainptr', limits.domainPointers);
+    pole('ftp', limits.ftpAccounts);
+    for (const k of przelaczniki) body.set(k, obecne[k]!);
+    if (obecne.skin) body.set('skin', obecne.skin);
+
+    const response = await this.client.post('/CMD_API_MODIFY_USER', body.toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+    // Strona HTML (formularz logowania, błąd sesji) nie niesie error=0 — to nie jest zapis.
+    if (typeof response.data === 'string' && response.data.trim().startsWith('<')) {
+      throw new Error('DirectAdmin: CMD_API_MODIFY_USER odpowiedział stroną HTML zamiast wyniku zapisu');
+    }
+    this.parseDaResponseBody(response.data);
   }
 
   async listAccounts(): Promise<string[]> {

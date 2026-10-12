@@ -18,6 +18,8 @@ import { KontoKlientaAdminController } from './konto-klienta.admin.controller.js
 import { KontoKlientaAkcjeAdminController } from './konto-klienta-akcje.admin.controller.js';
 import { CyklZyciaUslugiAdminController } from './cykl-zycia-uslugi.admin.controller.js';
 import { CyklZyciaUslugiService } from './cykl-zycia-uslugi.service.js';
+import { LimityIndywidualneAdminController } from './limity-indywidualne.admin.controller.js';
+import { LimityIndywidualneService } from './limity-indywidualne.service.js';
 import { AkcjeKontaOperatoraService } from './akcje-konta-operatora.service.js';
 import { MigrationsAdminController } from './migrations.admin.controller.js';
 import { UserServicesController } from './services.controller.js';
@@ -100,6 +102,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
   providers: [
     SubscriptionsService,
     CyklZyciaUslugiService,
+    LimityIndywidualneService,
     PocztaKontaOperatoraService,
     BlokadyIpKontaService,
     TrafieniaWafKontaService,
@@ -181,6 +184,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
     KontoKlientaAdminController,
     KontoKlientaAkcjeAdminController,
     CyklZyciaUslugiAdminController,
+    LimityIndywidualneAdminController,
     PocztaKontaAdminController,
     BlokadyIpKontaAdminController,
     MigracjaZgodaController,

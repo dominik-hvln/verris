@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2, Trash2, Wallet } from 'lucide-react';
 import { Button } from '@verris/ui';
-import type { ServiceDetailsDto, SubscriptionStatus } from '@verris/contracts';
+import { formatLimitu, type ServiceDetailsDto, type SubscriptionStatus } from '@verris/contracts';
 import {
   fetchServiceDetailsAction as fetchServiceDetailsActionAkcja,
 } from '@/app/dashboard/services/[id]/hosting-service-actions';
@@ -199,6 +199,27 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
           {periodPct != null ? <Meter pct={periodPct} tone={periodPct > 90 ? 'warn' : 'data'} tipText={`${Math.round(periodPct)}% okresu minęło`} /> : null}
         </Kpi>
       </KpiStrip>
+
+      {/* K3 — limity ustawione przez obsługę dla tej usługi (bez słowa „custom” i nazw infrastruktury). */}
+      {service.limityIndywidualne?.length ? (
+        <section data-sekcja="limity-indywidualne">
+          <SectionHead title="Limity ustalone indywidualnie" />
+          <ul className="m-0 list-none rounded-[10px] border border-line bg-card p-0">
+            {service.limityIndywidualne.map((l) => (
+              <li key={l.pole} className="flex items-center justify-between gap-3 border-t border-line px-4 py-[11px] first:border-t-0">
+                <span className="text-sm text-foreground">{l.etykieta}</span>
+                <span className="text-sm font-semibold text-foreground">
+                  {formatLimitu(l.pole, l.efektywny)}
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">w planie: {formatLimitu(l.pole, l.plan)}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Te limity ustaliła z Tobą obsługa Verris. Pozostałe są takie jak w planie {service.plan.name}. Zmianę planu przeprowadzi obsługa — napisz zgłoszenie.
+          </p>
+        </section>
+      ) : null}
 
       {billingEvents.length > 0 ? (
         <section>

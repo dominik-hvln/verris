@@ -52,8 +52,11 @@ export default async function PlanChangePage({
         }))
     : [];
 
+  // K3 — przy limitach ustalonych indywidualnie zmianę planu przeprowadza obsługa (API też ją odrzuca).
+  const limityIndywidualne = !!service?.limityIndywidualne?.length;
+
   let initialPreview: PlanChangePreviewDto | null = null;
-  if (service && targetPlans[0]) {
+  if (service && targetPlans[0] && !limityIndywidualne) {
     const res = await previewPlanChangeAction(id, targetPlans[0].id, service.interval);
     if (res.ok) initialPreview = res.data;
   }
@@ -90,6 +93,14 @@ export default async function PlanChangePage({
         <p className="m-0 flex items-center gap-2 rounded-[10px] bg-[color-mix(in_srgb,var(--crit)_12%,transparent)] px-4 py-3 text-sm text-crit">
           <AlertCircle className="h-4 w-4" />
           {loadError ?? 'Usługa niedostępna.'}
+        </p>
+      ) : limityIndywidualne ? (
+        <p data-limity-indywidualne className="m-0 rounded-[10px] border border-line bg-card px-4 py-3 text-sm text-foreground">
+          Ta usługa ma limity ustalone indywidualnie z obsługą Verris. Zmianę planu przeprowadzimy razem —{' '}
+          <Link href="/dashboard/support/new" className="underline">
+            napisz zgłoszenie
+          </Link>
+          .
         </p>
       ) : (
         <PlanChangeForm

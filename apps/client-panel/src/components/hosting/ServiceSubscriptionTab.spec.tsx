@@ -84,3 +84,32 @@ describe('ServiceSubscriptionTab — rezygnacja na koniec okresu', () => {
     expect([...el.querySelectorAll('button')].map((b) => b.textContent)).toContain('Zrezygnuj z usługi');
   });
 });
+
+/**
+ * K3 — limity ustalone przez obsługę dla tej usługi: klient widzi je w zakładce „Subskrypcja i płatności” obok planu,
+ * bez słowa „custom” i nazw infrastruktury; bez nadpisań sekcji nie ma.
+ */
+describe('ServiceSubscriptionTab — limity ustalone indywidualnie', () => {
+  it('lista nadpisanych limitów z wartością z planu i drogą do obsługi przy zmianie planu', async () => {
+    await zamontuj(
+      usluga({
+        limityIndywidualne: [
+          { pole: 'diskLimitMb', etykieta: 'Dysk', plan: 51200, nadpisanie: 102400, efektywny: 102400 },
+          { pole: 'emailAccounts', etykieta: 'Skrzynki e-mail', plan: null, nadpisanie: 100, efektywny: 100 },
+        ],
+      }),
+    );
+    const sekcja = el.querySelector('[data-sekcja="limity-indywidualne"]')!;
+    expect(sekcja.textContent).toContain('Limity ustalone indywidualnie');
+    expect(sekcja.textContent).toContain('Dysk100 GBw planie: 50 GB');
+    expect(sekcja.textContent).toContain('Skrzynki e-mail100w planie: bez limitu');
+    expect(sekcja.textContent).toContain('Zmianę planu przeprowadzi obsługa');
+    expect(sekcja.textContent).not.toMatch(/custom|DirectAdmin|LVE/i);
+  });
+
+  it('bez nadpisań — bez sekcji', async () => {
+    await zamontuj(usluga({ limityIndywidualne: [] }));
+    expect(el.querySelector('[data-sekcja="limity-indywidualne"]')).toBeNull();
+  });
+});
+

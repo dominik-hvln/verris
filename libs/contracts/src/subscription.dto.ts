@@ -1,3 +1,5 @@
+import type { PozycjaLimitu } from './limity-indywidualne.ts';
+
 export type BillingInterval = 'MONTH' | 'YEAR';
 
 export type SubscriptionStatus =
@@ -282,6 +284,8 @@ export interface ServiceDetailsDto extends Omit<ServiceSummaryDto, 'planSlug' | 
   currentPeriodStart: string | null;
   autoscalingMaxCost: string;
   events: SubscriptionEventDto[];
+  /** K3 — limity ustalone indywidualnie przez obsługę (tylko nadpisane); brak/pusta lista = limity planu. */
+  limityIndywidualne?: PozycjaLimitu[];
 }
 
 export interface CreateSubscriptionResponse {

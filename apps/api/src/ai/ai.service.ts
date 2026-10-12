@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { AiProviderService } from './ai-provider.service.js';
 import { opisPrognozy, policzPrognoze, type Pomiar } from './prognoza-zasobow.js';
+import { planZNadpisaniami } from '../subscriptions/limity-indywidualne.js';
 
 @Injectable()
 export class AiService {
@@ -84,7 +85,8 @@ export class AiService {
 
     // Liczby liczy panel (regresja po pomiarach); AI (poziom analiza) tylko komentuje gotowe liczby —
     // mały prompt. Bez AI (brak klucza, limit, błąd) klient dostaje prognozę z opisem bez AI.
-    const liczby = policzPrognoze(subscription.plan, pomiary);
+    // K3 — dysk względem limitu tej usługi (plan albo limit indywidualny), nie samego planu.
+    const liczby = policzPrognoze(planZNadpisaniami(subscription.plan, subscription.limitOverrides), pomiary);
     const prognoza: ServiceForecastDto = {
       generatedAt: new Date().toISOString(),
       available: true,

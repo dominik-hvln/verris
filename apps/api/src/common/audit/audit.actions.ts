@@ -453,6 +453,10 @@ export const CyklZyciaUslugiActions = {
   SUBSCRIPTION_PAYMENT_PROMISE_REVOKED: 'SUBSCRIPTION_PAYMENT_PROMISE_REVOKED',
   /** Dodatek kupiony przez klienta albo dodany przez obsługę (z portfela klienta albo gratis). */
   ADDON_PURCHASED: 'ADDON_PURCHASED',
+  /** K3 — limity indywidualne usługi ustawione przez administratora; details: subscriptionId, przed, po (bez powodu). */
+  SUBSCRIPTION_LIMITS_CUSTOMIZED: 'SUBSCRIPTION_LIMITS_CUSTOMIZED',
+  /** K3 — przywrócone limity planu; details: subscriptionId, przed. */
+  SUBSCRIPTION_LIMITS_RESET: 'SUBSCRIPTION_LIMITS_RESET',
 } as const;
 
 // ---------------------------------------------------------------------------

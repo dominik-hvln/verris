@@ -1022,6 +1022,11 @@ model Subscription {
   // null = cena katalogowa. Z tego snapshotu liczymy prowizję resellera od opłat (RESELLER_MARKUP).
   resellerMarkupPct       Int?
 
+  // K3 (PB-53.5) — limity indywidualne ustawione przez administratora dla tej jednej usługi: obiekt z polami
+  // diskLimitMb, includedTransferGb, domains, emailAccounts, databases (liczby całkowite; brak pola = jak w planie).
+  // NULL = limity planu. Efektywne limity = plan + nadpisania (apps/api/src/subscriptions/limity-indywidualne.ts).
+  limitOverrides          Json?
+
   // Payment configuration
   paymentSource        SubscriptionPaymentSource @default(STRIPE_CARD)
   stripeSubscriptionId String?                   @unique

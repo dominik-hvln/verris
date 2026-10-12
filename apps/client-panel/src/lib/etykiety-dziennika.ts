@@ -157,6 +157,9 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   SUBSCRIPTION_PAYMENT_PROMISE_SET: 'Przesunięto termin wstrzymania usługi za zaległą płatność',
   SUBSCRIPTION_PAYMENT_PROMISE_REVOKED: 'Odwołano przesunięcie terminu płatności',
   ADDON_PURCHASED: 'Dodano dodatek',
+  // K3 — limity usługi ustalone indywidualnie przez obsługę
+  SUBSCRIPTION_LIMITS_CUSTOMIZED: 'Ustalono indywidualne limity usługi',
+  SUBSCRIPTION_LIMITS_RESET: 'Przywrócono limity planu usługi',
   // F3.6 — portfel prowadzony przez obsługę
   WALLET_OPERATOR_ADJUSTED: 'Korekta salda portfela',
   WALLET_MANUAL_PAYMENT_POSTED: 'Zaksięgowano wpłatę przelewem',
