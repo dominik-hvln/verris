@@ -29,6 +29,12 @@ import { renderujFaktureKsef } from './faktura-ksef-pdf.js';
 const BATCH_LIMIT = 25;
 /** Dzierżawa wysyłki faktury — dłuższa niż najdłuższy cykl (25 × 30 s). */
 const DZIERZAWA_WYSYLKI_MS = 15 * 60 * 1000;
+/**
+ * Odpowiedzi 4xx wysyłki (POST /sessions/online/{ref}/invoices: 400, 401, 403, 429 wg open-api.json
+ * https://github.com/CIRFMF/ksef-docs/blob/main/open-api.json), które NIE są odrzuceniem dokumentu:
+ * 401/403 — uwierzytelnienie i uprawnienia kontekstu, 429 — limity API (limity/limity.md).
+ */
+const STATUSY_PRZEJSCIOWE_WYSYLKI: readonly number[] = [401, 403, 429];
 
 /**
  * KSEF-05 — okno automatycznego dokwalifikowania zaległych faktur.
@@ -388,12 +394,17 @@ export class KsefService {
       });
     } catch (err) {
       const httpStatus = (err as { httpStatus?: number }).httpStatus;
-      if (httpStatus && httpStatus < 500) {
+      // Część 4xx nie dotyczy dokumentu: 401/403 (token, uprawnienia), 429 (limity API)
+      // i 21184 (sesja wstrzymana, API 2.8.0). Faktura poprawna — zostaje w kolejce.
+      const przejsciowy =
+        (err as { przejsciowy?: boolean }).przejsciowy === true ||
+        (httpStatus !== undefined && STATUSY_PRZEJSCIOWE_WYSYLKI.includes(httpStatus));
+      if (httpStatus && httpStatus < 500 && !przejsciowy) {
         // 4xx przy wysyłce = problem z dokumentem, nie z dostępnością.
         await this.markRejected(inv, (err as Error).message);
         return;
       }
-      throw err; // 5xx / sieć → zostaje PENDING, retry w kolejnym cyklu.
+      throw err; // 5xx / sieć / przejściowe → zostaje PENDING, retry w kolejnym cyklu.
     }
   }
 

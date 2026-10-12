@@ -16,12 +16,14 @@ vi.mock('../../src/ksef/fa3-xml.builder.js', () => ({
 const wyslane: string[] = [];
 let sesjaPada = false;
 let odmowa4xx = false;
+let bladPrzejsciowy: Record<string, unknown> | null = null;
 let opoznienieMs = 0;
 const klient = {
   openSession: async () => { if (sesjaPada) throw new Error('ECONNREFUSED ksef'); },
   terminateSession: async () => undefined,
   sendInvoice: async () => {
     await new Promise((r) => setTimeout(r, opoznienieMs));
+    if (bladPrzejsciowy) throw Object.assign(new Error('KSeF chwilowo odmawia'), bladPrzejsciowy);
     if (odmowa4xx) throw Object.assign(new Error('Błąd schematu'), { httpStatus: 400 });
     wyslane.push('x');
     return { elementReferenceNumber: `ref-${wyslane.length}` };
@@ -53,6 +55,7 @@ describe('X-04 obieg faktur w KSeF', () => {
     wyslane.length = 0;
     sesjaPada = false;
     odmowa4xx = false;
+    bladPrzejsciowy = null;
     opoznienieMs = 0;
   });
   afterAll(rozlacz);
@@ -87,6 +90,19 @@ describe('X-04 obieg faktur w KSeF', () => {
     await serwis().retryInvoice(f.id, 'admin');
     await serwis().tick();
     expect((await stan(f.id)).ksefStatus).toBe(KsefStatus.SUBMITTED);
+  });
+
+  it.each([
+    ['429 (limit API)', { httpStatus: 429 }],
+    ['401 (token)', { httpStatus: 401 }],
+    ['21184 po nowej sesji (API 2.8.0)', { httpStatus: 400, przejsciowy: true }],
+  ])('%s: faktura NIE jest odrzucana, zostaje do ponowienia', async (_opis, blad) => {
+    const f = await faktura();
+    bladPrzejsciowy = blad;
+    await serwis().tick();
+    const po = await stan(f.id);
+    expect(po.ksefStatus).toBe(KsefStatus.PENDING);
+    expect(po.ksefError).toBeNull();
   });
 
   it('„Ponów” na fakturze przyjętej albo czekającej na numer: odmowa, bez drugiej wysyłki', async () => {

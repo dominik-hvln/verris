@@ -53,7 +53,8 @@ import { FA3_FORM_VALUE, FA3_SCHEMA_VERSION, FA3_SYSTEM_CODE } from './fa3-xml.b
  *    acquisitionDate}.
  *
  * Kontrakt zweryfikowany względem API 2.6.x (changelog do 2.6.1, PRD od
- * 16.06.2026). Istotne od 2.4.0/2.6.0: retencja statusu auth 7 dni (410 Gone),
+ * 16.06.2026), a 12.10.2026 względem changelogu do 2.8.1 (PRD od 23.09.2026) — jedyna zmiana
+ * dotycząca tego klienta to kod 21184 przy wysyłce (obsłużony w sendInvoice). Istotne od 2.4.0/2.6.0: retencja statusu auth 7 dni (410 Gone),
  * opcjonalny nagłówek odpowiedzi `X-System-Warning` (logowany niżej jako
  * warning — zapowiada przyszłe odrzucenia), zaostrzona walidacja XML od
  * 16.07.2026 (sanityzacja w fa-xml.types).
@@ -77,9 +78,28 @@ export class KsefV2ApiError extends Error {
     message: string,
     public readonly httpStatus?: number,
     public readonly body?: unknown,
+    /** Błąd po stronie dostępności KSeF, nie dokumentu — faktura zostaje do ponowienia. */
+    public readonly przejsciowy = false,
   ) {
     super(message);
   }
+}
+
+/**
+ * API 2.8.0 (api-changelog.md, PRD od 23.09.2026): POST /sessions/online/{ref}/invoices może
+ * zwrócić HTTP 400 z kodem 21184 „Sesja tymczasowo niedostępna” (prace serwisowe). Zalecenie MF:
+ * otworzyć nową sesję i kontynuować wysyłkę.
+ * https://github.com/CIRFMF/ksef-docs/blob/main/api-changelog.md#wersja-280
+ */
+export const KOD_SESJA_TYMCZASOWO_NIEDOSTEPNA = 21184;
+
+/** Kody `exception.exceptionDetailList[].exceptionCode` z ExceptionResponse (open-api.json). */
+export function kodyBleduKsef(body: unknown): number[] {
+  const lista = (body as { exception?: { exceptionDetailList?: { exceptionCode?: unknown }[] } } | null)
+    ?.exception?.exceptionDetailList;
+  return Array.isArray(lista)
+    ? lista.map((d) => d?.exceptionCode).filter((k): k is number => typeof k === 'number')
+    : [];
 }
 
 interface PublicKeyCert {
@@ -136,6 +156,36 @@ export class KsefV2Client implements InvoicingProvider {
   }
 
   async sendInvoice(invoiceXml: string): Promise<InvoiceSendResult> {
+    try {
+      return await this.wyslijWSesji(invoiceXml);
+    } catch (err) {
+      if (!(err instanceof KsefV2ApiError) || !kodyBleduKsef(err.body).includes(KOD_SESJA_TYMCZASOWO_NIEDOSTEPNA)) {
+        throw err;
+      }
+      // 21184: bieżąca sesja wstrzymana — porzucamy ją (zamknięcie i tak by się nie udało)
+      // i, zgodnie z changelogiem 2.8.0, otwieramy nową. Jedna próba; potem faktura czeka na cykl.
+      this.logger.warn(`KSeF: sesja ${this.sessionRef} tymczasowo niedostępna (21184) — otwieram nową.`);
+      this.porzucSesjeOnline();
+      try {
+        return await this.wyslijWSesji(invoiceXml);
+      } catch (err2) {
+        if (err2 instanceof KsefV2ApiError && kodyBleduKsef(err2.body).includes(KOD_SESJA_TYMCZASOWO_NIEDOSTEPNA)) {
+          this.porzucSesjeOnline();
+          throw new KsefV2ApiError(err2.message, err2.httpStatus, err2.body, true);
+        }
+        throw err2;
+      }
+    }
+  }
+
+  private porzucSesjeOnline(): void {
+    this.sessionRef = null;
+    this.sessionClosed = false;
+    this.cipherKey = null;
+    this.cipherIv = null;
+  }
+
+  private async wyslijWSesji(invoiceXml: string): Promise<InvoiceSendResult> {
     await this.ensureOnlineSession();
     const plaintext = Buffer.from(invoiceXml, 'utf8');
     const ciphertext = this.aesEncrypt(plaintext);
