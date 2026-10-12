@@ -80,11 +80,11 @@ describe('audyt Fali 3 — dowód klienta: źródło wiadomości zgłoszenia', (
     await expect(blokady.odblokuj(z, '198.51.100.9')).rejects.toMatchObject({ status: 403 });
     await expect(blokady.sprawdz(k.subscription.id, op.id, 'STAFF', '198.51.100.9')).rejects.toMatchObject({ status: 403 });
     expect(await prisma().nodeTask.count()).toBe(0);
-    await expect(wymagajProsbyKlienta(prisma() as never, id, 'Obciążenie portfela klienta')).rejects.toMatchObject({ status: 403 });
+    await expect(wymagajProsbyKlienta(prisma() as never, id, 'Obciążenie portfela klienta', { subscriptionId: k.subscription.id })).rejects.toMatchObject({ status: 403 });
 
     // Klient potwierdza w panelu w tym samym zgłoszeniu — od teraz adres i prośba są jego.
     await tickets.addReply(id, k.user.id, { message: 'Tak, to mój adres: 198.51.100.9' }, 'PANEL');
     expect(await blokady.odblokuj(z, '198.51.100.9')).toMatchObject({ ok: true });
-    await expect(wymagajProsbyKlienta(prisma() as never, id, 'Obciążenie portfela klienta')).resolves.toBeUndefined();
+    await expect(wymagajProsbyKlienta(prisma() as never, id, 'Obciążenie portfela klienta', { subscriptionId: k.subscription.id })).resolves.toBeUndefined();
   });
 });

@@ -231,7 +231,15 @@ export class CyklZyciaUslugiService {
         throw new BadRequestException('Rezygnację złożył klient — cofniesz ją tylko na jego prośbę: podaj numer jego zgłoszenia.');
       }
       // Audyt Fali 3 — prośba to wiadomość klienta z panelu (nie zgłoszenie obsługi „w imieniu” ani mail).
-      if (z.operator.role !== 'ADMIN') await wymagajProsbyKlienta(this.prisma, zgloszenieId!, 'Cofnięcie rezygnacji klienta');
+      // Przegląd 12.10 — zgłoszenie w sprawie tej usługi, otwarte, z wiadomością klienta nowszą niż jego rezygnacja.
+      if (z.operator.role !== 'ADMIN') {
+        const rezygnacja = await this.prisma.subscriptionEvent.findFirst({
+          where: { subscriptionId: s.id, type: 'CANCEL_SCHEDULED' },
+          orderBy: { createdAt: 'desc' },
+          select: { createdAt: true },
+        });
+        await wymagajProsbyKlienta(this.prisma, zgloszenieId!, 'Cofnięcie rezygnacji klienta', { subscriptionId: s.id, nowszaNiz: rezygnacja?.createdAt });
+      }
       // W oknie odnowienia cofnięcie oznacza obciążenie w najbliższym przebiegu, a klient nie zdąży zrezygnować ponownie.
       if (s.paymentSource !== 'MANUAL' && s.cancelAt.getTime() - Date.now() < OKNO_ODNOWIENIA_MS) {
         throw new BadRequestException('Do końca okresu została mniej niż doba — rezygnacji klienta już nie cofniesz. Po zakończeniu klient zamówi usługę ponownie.');
@@ -342,7 +350,7 @@ export class CyklZyciaUslugiService {
       throw new BadRequestException('Skrócenie opłaconego okresu tylko na prośbę klienta — podaj numer jego zgłoszenia.');
     }
     // Audyt Fali 3 — prośba to wiadomość klienta z panelu (nie zgłoszenie obsługi „w imieniu” ani mail).
-    if (skrocenie) await wymagajProsbyKlienta(this.prisma, zgloszenieId!, 'Skrócenie opłaconego okresu');
+    if (skrocenie) await wymagajProsbyKlienta(this.prisma, zgloszenieId!, 'Skrócenie opłaconego okresu', { subscriptionId: s.id });
     const { count } = await this.prisma.subscription.updateMany({
       where: { id: s.id, status: SubscriptionStatus.ACTIVE, cancelAt: null, currentPeriodEnd: stary },
       data: { currentPeriodEnd: nowa },

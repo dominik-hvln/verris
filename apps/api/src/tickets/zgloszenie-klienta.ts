@@ -43,22 +43,55 @@ export const ODPOWIEDZ_KLIENTA_Z_PANELU = { isStaff: false, internal: false, aut
 /** Treść zgłoszenia (Ticket.message) napisał klient w panelu. */
 export const trescOdKlienta = (t: { zrodlo: string | null; openedByStaffId: string | null }) => t.zrodlo === 'PANEL' && !t.openedByStaffId;
 
+/** Prośba klienta liczy się, gdy jego wiadomość z panelu ma najwyżej tyle dni (przegląd 12.10). */
+export const PROSBA_KLIENTA_WAZNA_DNI = 14;
+
 /**
  * Audyt Fali 3 — operacja „na prośbę klienta” (dodatek z portfela, skrócenie okresu, cofnięcie rezygnacji) wymaga
  * zgłoszenia z co najmniej jedną wiadomością klienta z panelu. Zgłoszenie założone przez obsługę, z maila, z podglądu
  * konta albo przez automat nie jest zgodą klienta — inaczej pracownik sam „zamawiałby” w imieniu klienta (D2).
+ *
+ * Przegląd 12.10 — i to zgłoszenie musi dotyczyć TEJ sprawy: nie inna usługa (Ticket.subscriptionId to ta usługa albo
+ * puste), nie zamknięte, a wiadomość klienta z panelu świeża — najwyżej PROSBA_KLIENTA_WAZNA_DNI dni i nowsza niż
+ * `nowszaNiz` (np. rezygnacja, którą operator cofa). Inaczej dowolne stare zgłoszenie („nie działa poczta”) wystarczało.
  */
 export async function wymagajProsbyKlienta(
   prisma: { ticket: { findUnique(args: { where: { id: string }; select: object }): Promise<unknown> } },
   ticketId: string,
   operacja: string,
+  sprawa: { subscriptionId: string; nowszaNiz?: Date | null },
+  teraz = new Date(),
 ): Promise<void> {
+  const nr = `#${ticketId.slice(0, 8)}`;
   const t = (await prisma.ticket.findUnique({
     where: { id: ticketId },
-    select: { zrodlo: true, openedByStaffId: true, replies: { where: ODPOWIEDZ_KLIENTA_Z_PANELU, select: { id: true }, take: 1 } },
-  })) as { zrodlo: string | null; openedByStaffId: string | null; replies: unknown[] } | null;
-  if (t && (trescOdKlienta(t) || t.replies.length > 0)) return;
-  throw new ForbiddenException(
-    `${operacja} tylko na prośbę klienta z panelu — zgłoszenie #${ticketId.slice(0, 8)} nie ma wiadomości klienta zalogowanego w panelu (założyła je obsługa, przyszło e-mailem albo powstało w podglądzie konta). Poproś klienta o odpowiedź w tym zgłoszeniu z panelu.`,
-  );
+    select: {
+      zrodlo: true,
+      openedByStaffId: true,
+      status: true,
+      subscriptionId: true,
+      createdAt: true,
+      replies: { where: ODPOWIEDZ_KLIENTA_Z_PANELU, select: { createdAt: true }, orderBy: { createdAt: 'desc' }, take: 1 },
+    },
+  })) as { zrodlo: string | null; openedByStaffId: string | null; status: string; subscriptionId: string | null; createdAt: Date; replies: { createdAt: Date }[] } | null;
+  const ostatnia = t ? [...(trescOdKlienta(t) ? [t.createdAt] : []), ...t.replies.map((r) => r.createdAt)].sort((a, b) => b.getTime() - a.getTime())[0] : undefined;
+  if (!t || !ostatnia) {
+    throw new ForbiddenException(
+      `${operacja} tylko na prośbę klienta z panelu — zgłoszenie ${nr} nie ma wiadomości klienta zalogowanego w panelu (założyła je obsługa, przyszło e-mailem albo powstało w podglądzie konta). Poproś klienta o odpowiedź w tym zgłoszeniu z panelu.`,
+    );
+  }
+  if (t.subscriptionId && t.subscriptionId !== sprawa.subscriptionId) {
+    throw new ForbiddenException(`${operacja} tylko na prośbę klienta w sprawie tej usługi — zgłoszenie ${nr} dotyczy innej usługi. Poproś klienta o zgłoszenie z panelu w sprawie tej usługi.`);
+  }
+  if (t.status === 'CLOSED') {
+    throw new ForbiddenException(`${operacja} tylko na aktualną prośbę klienta — zgłoszenie ${nr} jest zamknięte. Poproś klienta o nowe zgłoszenie albo odpowiedź z panelu.`);
+  }
+  const od = Math.max(teraz.getTime() - PROSBA_KLIENTA_WAZNA_DNI * 86_400_000, sprawa.nowszaNiz?.getTime() ?? 0);
+  if (ostatnia.getTime() < od) {
+    throw new ForbiddenException(
+      sprawa.nowszaNiz && sprawa.nowszaNiz.getTime() >= teraz.getTime() - PROSBA_KLIENTA_WAZNA_DNI * 86_400_000
+        ? `${operacja} tylko na prośbę klienta złożoną po jego rezygnacji — ostatnia wiadomość klienta z panelu w zgłoszeniu ${nr} jest starsza. Poproś klienta o odpowiedź w zgłoszeniu z panelu.`
+        : `${operacja} tylko na aktualną prośbę klienta — ostatnia wiadomość klienta z panelu w zgłoszeniu ${nr} ma ponad ${PROSBA_KLIENTA_WAZNA_DNI} dni. Poproś klienta o odpowiedź w zgłoszeniu z panelu.`,
+    );
+  }
 }

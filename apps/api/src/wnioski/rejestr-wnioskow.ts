@@ -561,7 +561,7 @@ export const REJESTR_WNIOSKOW = {
         throw new BadRequestException('Obciążenie portfela klienta tylko na jego zamówienie — podaj numer jego zgłoszenia albo wybierz gratis.');
       }
       // Audyt Fali 3 — ta sama reguła co przy wykonaniu (addon.service.ts): wiadomość klienta z panelu.
-      if (p.platnosc === 'PORTFEL') await wymagajProsbyKlienta(z.prisma, zgloszenieId!, 'Obciążenie portfela klienta');
+      if (p.platnosc === 'PORTFEL') await wymagajProsbyKlienta(z.prisma, zgloszenieId!, 'Obciążenie portfela klienta', { subscriptionId: p.subscriptionId });
       // Weryfikacja 11.10 — aktywny dodatek czasowy bez zgody na przedłużenie nie przejdzie przy wykonaniu; mówimy to od razu.
       const aktywnyDo = p.przedluz ? null : await aktywnyDodatekCzasowy(z.prisma, klientId!, p.slug);
       if (aktywnyDo) throw new ConflictException(odmowaAktywnegoDodatku(nazwaDodatku(p.slug), aktywnyDo));

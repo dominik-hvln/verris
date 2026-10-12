@@ -277,7 +277,7 @@ export class AddonService {
       throw new BadRequestException('Obciążenie portfela klienta tylko na jego zamówienie — podaj numer jego zgłoszenia albo dodaj gratis.');
     }
     // Audyt Fali 3 — zamówienie to wiadomość klienta z panelu, nie zgłoszenie założone przez obsługę ani mail.
-    if (i.platnosc === 'PORTFEL') await wymagajProsbyKlienta(this.prisma, zgloszenieId!, 'Obciążenie portfela klienta');
+    if (i.platnosc === 'PORTFEL') await wymagajProsbyKlienta(this.prisma, zgloszenieId!, 'Obciążenie portfela klienta', { subscriptionId: sub.id });
     // Audyt Fali 3 — zawieszona usługa nie działa: obciążenie portfela za dodatek do niej (także z wniosku złożonego,
     // gdy była aktywna) to płatność za nic. Wariant zachowawczy — gratis można, z portfela po odwieszeniu.
     if (i.platnosc === 'PORTFEL' && sub.status === 'SUSPENDED') {

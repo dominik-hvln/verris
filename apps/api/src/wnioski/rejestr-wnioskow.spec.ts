@@ -123,7 +123,9 @@ describe('PB-48 — rejestr wniosków', () => {
           findUnique: async (a: unknown) => {
             const id = (a as { where: { id: string } }).where.id;
             // Audyt Fali 3 — domyślnie zgłoszenie klienta z panelu; zgloszenieObslugi — założone przez obsługę „w imieniu”.
-            const zrodlo = o.zgloszenieObslugi ? { zrodlo: 'OBSLUGA', openedByStaffId: 'op', replies: [] } : { zrodlo: 'PANEL', openedByStaffId: null, replies: [] };
+            // Przegląd 12.10 — otwarte, bez przypisanej usługi, świeże (wymagajProsbyKlienta sprawdza sprawę i datę).
+            const sprawa = { status: 'OPEN', subscriptionId: null, createdAt: new Date() };
+            const zrodlo = o.zgloszenieObslugi ? { zrodlo: 'OBSLUGA', openedByStaffId: 'op', replies: [], ...sprawa } : { zrodlo: 'PANEL', openedByStaffId: null, replies: [], ...sprawa };
             return o.zgloszenia?.[id] === undefined ? { userId: 'k1', scalonoDoId: null, ...zrodlo } : o.zgloszenia[id];
           },
         },
