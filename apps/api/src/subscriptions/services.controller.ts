@@ -21,6 +21,7 @@ import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { MigrationDiscoveryService } from './migration-discovery.service.js';
 import { MigrationPreflightService } from './migration-preflight.service.js';
 import { MigrationCutoverService } from './migration-cutover.service.js';
+import { zdarzeniaUslugiDlaKlienta } from './zdarzenia-klienta.js';
 import { Prisma, SubscriptionStatus } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
@@ -1814,11 +1815,16 @@ export class UserServicesController {
       include: {
         plan: true,
         account: { include: { server: { select: { id: true, name: true, region: true } } } },
-        events: { orderBy: { createdAt: 'desc' }, take: 20 },
         healthSnapshots: { orderBy: { computedAt: 'desc' }, take: 1 },
       },
     });
     if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
+    // K2 — tylko zdarzenia od ostatniej zmiany właściciela (wcześniejsze są poprzedniego właściciela).
+    const zdarzenia = await this.prisma.subscriptionEvent.findMany({
+      where: await zdarzeniaUslugiDlaKlienta(this.prisma, id),
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
 
     // Synchronizacja domeny z DirectAdminem w tle — nie w drodze żądania. Czekanie na nią sprawiało,
     // że przy niedostępnym węźle nagłówek usługi ładował się ok. 20 s (timeouty DA, produkcja 26.09).
@@ -1891,7 +1897,7 @@ export class UserServicesController {
         : null,
       health: await this.serviceHealth.getOrRefreshForSubscription(id, user.userId),
       recommendations: buildServiceRecommendations(sub),
-      events: sub.events.map((e) => ({
+      events: zdarzenia.map((e) => ({
         id: e.id,
         type: e.type,
         // Audyt 09.10 (A02): details zapisują m.in. surowy błąd DA/węzła (error/daError) i wewnętrzną
@@ -1918,7 +1924,7 @@ export class UserServicesController {
  * użytkownika. Dokładny payload jest dostępny tylko w panelu admina.
  */
 /** Pola zdarzeń widoczne tylko dla obsługi — nie trafiają do klienta w GET /services/:id. */
-const POLA_ZDARZENIA_WEWNETRZNE = new Set(['note', 'daError', 'stderr', 'stdout', 'command']);
+const POLA_ZDARZENIA_WEWNETRZNE = new Set(['note', 'daError', 'stderr', 'stdout', 'command', 'sourceSecretEnc']);
 
 /**
  * Audyt bezpieczeństwa 09.10 (A02) — SubscriptionEvent.details bywa zapisywane z surowym tekstem błędu

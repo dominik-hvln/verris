@@ -108,7 +108,7 @@ export class MigrationCutoverService {
     });
     if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     const request = await this.prisma.migrationRequest.findFirst({
-      where: { id: migrationRequestId, subscriptionId },
+      where: { id: migrationRequestId, subscriptionId, userId },
       include: { workerJobs: true },
     });
     if (!request) throw new NotFoundException('Nie znaleziono zlecenia migracji.');

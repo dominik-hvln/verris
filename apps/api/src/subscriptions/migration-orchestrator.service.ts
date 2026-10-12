@@ -22,6 +22,7 @@ import {
 import { MigrationPreflightService } from './migration-preflight.service.js';
 import { MigrationActions } from '../common/audit/audit.actions.js';
 import { resolvePublicHost } from './migration-net.util.js';
+import { zdarzeniaUslugiDlaKlienta } from './zdarzenia-klienta.js';
 
 type MigrationViewRow = {
   id: string;
@@ -609,7 +610,7 @@ export class MigrationOrchestratorService {
   ): Promise<MigrationRequestSummary[]> {
     await this.assertSubscriptionForUser(subscriptionId, userId);
     const rows = await this.prisma.migrationRequest.findMany({
-      where: { subscriptionId },
+      where: { subscriptionId, userId },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
@@ -1300,7 +1301,7 @@ export class MigrationOrchestratorService {
   ): Promise<MigrationBundleDetail> {
     await this.assertSubscriptionForUser(subscriptionId, userId);
     const request = await this.prisma.migrationRequest.findFirst({
-      where: { id: migrationRequestId, subscriptionId },
+      where: { id: migrationRequestId, subscriptionId, userId },
       include: { workerJobs: true },
     });
     if (!request) throw new NotFoundException('Nie znaleziono zlecenia migracji.');
@@ -1393,7 +1394,7 @@ export class MigrationOrchestratorService {
   ): Promise<MigrationBundleDetail> {
     await this.assertSubscriptionForUser(subscriptionId, userId);
     const request = await this.prisma.migrationRequest.findFirst({
-      where: { id: migrationRequestId, subscriptionId },
+      where: { id: migrationRequestId, subscriptionId, userId },
       select: { id: true, status: true },
     });
     if (!request) throw new NotFoundException('Nie znaleziono zlecenia migracji.');
@@ -1459,7 +1460,7 @@ export class MigrationOrchestratorService {
   ): Promise<MigrationBundleDetail> {
     await this.assertSubscriptionForUser(subscriptionId, userId);
     const request = await this.prisma.migrationRequest.findFirst({
-      where: { id: migrationRequestId, subscriptionId },
+      where: { id: migrationRequestId, subscriptionId, userId },
       include: { workerJobs: { orderBy: { sequence: 'asc' } } },
     });
     if (!request) throw new NotFoundException('Nie znaleziono zlecenia migracji.');
@@ -1934,19 +1935,20 @@ export class MigrationOrchestratorService {
 
   async listMigrationTimelineForUser(subscriptionId: string, userId: string): Promise<MigrationViewRow[]> {
     await this.assertSubscriptionForUser(subscriptionId, userId);
-    const rows = await this.listMigrationTimelineRaw(subscriptionId);
+    // K2 — klient widzi tylko zdarzenia od ostatniej zmiany właściciela (wcześniejsze: stary hosting poprzedniego).
+    const rows = await this.listMigrationTimelineRaw(await zdarzeniaUslugiDlaKlienta(this.prisma, subscriptionId));
     return rows.map((row) => (row.type.startsWith('MIGRATION_INTERNAL_') ? { ...row, details: tylkoDlaKlienta(row.details) } : row));
   }
 
   async listMigrationTimelineForAdmin(subscriptionId: string): Promise<MigrationViewRow[]> {
     const sub = await this.prisma.subscription.findUnique({ where: { id: subscriptionId }, select: { id: true } });
     if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
-    return this.listMigrationTimelineRaw(subscriptionId);
+    return this.listMigrationTimelineRaw({ subscriptionId });
   }
 
-  private async listMigrationTimelineRaw(subscriptionId: string): Promise<MigrationViewRow[]> {
+  private async listMigrationTimelineRaw(zakres: Prisma.SubscriptionEventWhereInput): Promise<MigrationViewRow[]> {
     const rows = await this.prisma.subscriptionEvent.findMany({
-      where: { subscriptionId, type: { startsWith: 'MIGRATION_' } },
+      where: { ...zakres, type: { startsWith: 'MIGRATION_' } },
       orderBy: { createdAt: 'desc' },
       take: 100,
       select: { id: true, type: true, createdAt: true, details: true },

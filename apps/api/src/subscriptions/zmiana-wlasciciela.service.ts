@@ -137,7 +137,8 @@ export interface ZlecenieZmianyWlasciciela {
  *  - Subscription.userId i Account.userId (portfel do odnowień, autoskalowania i płatnego monitoringu czyta właściciela
  *    usługi albo konta: renewal.scheduler.ts, autoscaling-billing.service.ts, site-monitor.service.ts);
  *  - SslOrder.userId certyfikatów usługi (panel i instalacja szukają po userId + subscriptionId), AnalyticsSite.userId;
- *  - przez subscriptionId same idą: harmonogram kopii, monitoring, kontrole domen, metryki, zdarzenia usługi.
+ *  - przez subscriptionId same idą: harmonogram kopii, monitoring, kontrole domen, metryki, zdarzenia usługi (klient widzi
+ *    tylko te od OWNER_CHANGED — zdarzenia-klienta.ts; wcześniejsze, np. dane starego hostingu z migracji, widzi obsługa).
  * Zostaje u poprzedniego właściciela: faktury, transakcje portfela, dodatki (zakupy), kredyty SLA, punkty EKO, zgłoszenia,
  * zlecenia migracji (dane jego starego hostingu — sekrety kasujemy, żeby nowy właściciel nie mógł ich użyć do
  * dogrania), domeny u rejestratora (Domain nie ma związku z usługą), dziennik i powiadomienia.
