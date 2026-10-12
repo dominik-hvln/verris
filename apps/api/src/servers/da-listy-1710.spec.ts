@@ -51,6 +51,33 @@ describe('listy DA 1.710', () => {
     await expect(k.listEmailAccounts('firma.pl', { accountUsername: 'klient1' })).rejects.toThrow('Brak');
   });
 
+  // Odczyt na t1 12.10 (konto d3, login-as): domena dodatkowa bez skrzynek nie ma pliku quota, więc type=quota
+  // zwraca JSON z „error” (tekst, nie „1”), a action=list — pustą treść. To jest „0 skrzynek”, nie błąd.
+  it('skrzynki: prawdziwe odpowiedzi t1 12.10 — d3.hvln.pl 2 skrzynki po 1 GB, test2.d3.hvln.pl → []', async () => {
+    const k = klient((_p, params) => {
+      if (params.domain === 'd3.hvln.pl') {
+        if (params.type === 'quota' && params.json === 'yes')
+          return {
+            import: 'limit=200&quota=1073741824&sent=0&usage=3072&usage_bytes=3072',
+            test: 'limit=200&quota=1073741824&sent=0&usage=5120&usage_bytes=5120',
+          };
+        return 'list%5B%5D=import&list%5B%5D=test';
+      }
+      if (params.type === 'quota')
+        return {
+          error: 'Error getting the quota file',
+          extended: 'true',
+          result: 'Cannot open the quota file for reading\n/etc/virtual/test2.d3.hvln.pl/quota : Unable to open /etc/virtual/test2.d3.hvln.pl/quota for reading.\nNo such file or directory\n\n',
+        };
+      return '';
+    });
+    await expect(k.listEmailAccounts('d3.hvln.pl', { accountUsername: 'ovsekucx' })).resolves.toEqual([
+      { localPart: 'import', quotaMb: 1024 },
+      { localPart: 'test', quotaMb: 1024 },
+    ]);
+    await expect(k.listEmailAccounts('test2.d3.hvln.pl')).resolves.toEqual([]);
+  });
+
   it('skrzynki: poprawna pusta lista domeny głównej + liczniki konta → skrzynka właściciela (jak dotąd)', async () => {
     const k = klient((p, params) => (p === '/CMD_API_SHOW_USER_USAGE' ? 'nemails=1' : params.type === 'quota' ? '' : ''));
     await expect(k.listEmailAccounts('firma.pl', { accountUsername: 'klient1' })).resolves.toEqual([{ localPart: 'klient1', quotaMb: null }]);
