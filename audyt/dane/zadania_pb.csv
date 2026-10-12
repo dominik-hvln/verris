@@ -64,7 +64,7 @@ PB-53.2,F3.2 Bezpieczeństwo węzła,28,WYSOKI,"Blokady fail2ban z odblokowaniem
 PB-53.3,F3.3 Kopie floty i polityka,10,WYSOKI,"Ostatnia kopia per konto i węzeł, nieudane, off-site, próby odtworzenia.",Raport per konto na t1 i widok floty.,2026-10-11
 PB-53.4,F3.4 Usługi i logi węzła,18,ŚREDNI,"Stan i restart usług z białej listy, watchdog, logi.","Stan, logi i watchdog na t1; restart z potwierdzeniem.",2026-10-12
 PB-53.5,F3.5 Pełny cykl życia usługi,30,WYSOKI,"Anulacja na koniec okresu, daty, obietnica zapłaty, zmiana właściciela, dodatki, limity custom.",Każda operacja na koncie testowym.,
-PB-53.6,F3.6 Rozliczenia: obieg i windykacja,34,WYSOKI,"Proforma z linkiem, zaksięgowanie przelewu, portfel ±, zwrot, nieudane płatności, przypomnienia.","Operacje na koncie testowym (kwoty < 10 zł, odwrócone).",
+PB-53.6,F3.6 Rozliczenia: obieg i windykacja,34,WYSOKI,"Proforma z linkiem, zaksięgowanie przelewu, portfel ±, zwrot, nieudane płatności, przypomnienia.","Operacje na koncie testowym (kwoty < 10 zł, odwrócone).",2026-10-12
 PB-53.7,F3.7 Helpdesk II,50,WYSOKI,"Poczta przychodząca do zgłoszeń, makra, scalanie, działy, SLA, raporty.",Na produkcji z prawdziwą skrzynką.,2026-10-12
 PB-53.8,F3.8 Komunikacja operacyjna,12,ŚREDNI,"Mail z szablonu, komunikat do klientów węzła/planu, incydenty.",Wysyłka komunikatu do konta testowego.,2026-10-11
 PB-53.9,F3.9 Pulpity per rola,12,ŚREDNI,L1: moje zgłoszenia i SLA; NOC: flota; Finanse; Admin.,"Pulpity ADMIN, L4, L1 na żywo.",2026-10-11
