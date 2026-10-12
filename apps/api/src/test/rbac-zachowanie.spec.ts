@@ -888,8 +888,9 @@ describe('F3.3 — kopie floty', () => {
 describe('F3.6 — rozliczenia operatora', () => {
   const rola = (n: string) => [...ROLE_SYSTEMOWE.find((r) => r.name === n)!.permissions];
   const trasy = TRASY.filter((t) => t.kontroler === 'RozliczeniaAdminController');
-  const ODCZYT = ['nieudanePlatnosci', 'windykacja', 'windykacjaKlienta', 'ruchyPortfela'];
-  const ZMIANY = ['ponowAutoDoladowanie', 'korektaSalda', 'zaksiegujPrzelew'];
+  // K4 — proformy: lista i PDF to odczyt (BILLING_VIEW), wystawienie i anulowanie — pieniądze (BILLING_MANAGE).
+  const ODCZYT = ['nieudanePlatnosci', 'windykacja', 'windykacjaKlienta', 'ruchyPortfela', 'proformyKlienta', 'proformaPdf'];
+  const ZMIANY = ['ponowAutoDoladowanie', 'korektaSalda', 'zaksiegujPrzelew', 'wystawProforme', 'anulujProforme'];
   const wynik = async (uprawnienia: string[]) => Object.fromEntries(await Promise.all(trasy.map(async (t) => [t.metoda, await wpuszcza(t, OPERATOR, uprawnienia)] as const)));
   const oczekiwane = (odczyt: boolean, zmiany: boolean) => Object.fromEntries([...ODCZYT.map((m) => [m, odczyt]), ...ZMIANY.map((m) => [m, zmiany])]);
 
