@@ -1,11 +1,13 @@
 import { PDFDocument, rgb, type PDFFont, type PDFPage, type RGB } from 'pdf-lib';
-import { osadzCzcionki } from '../common/pdf/czcionki.js';
+import { KOLORY_MARKI, osadzCzcionkiMarki, rysujLockup, szerokoscLockupu, type CzcionkiMarki } from '../common/pdf/marka.js';
 import { zawin } from '../billing/invoice-pdf.service.js';
 import { macierzQr, PODPIS_QR_BEZ_NUMERU, type SrodowiskoKsef } from './kod-qr-ksef.js';
 import { FORMY_PLATNOSCI, type PodmiotWiz, type WierszWiz, type WizualizacjaFa3 } from './wizualizacja-fa3.js';
 
 /**
  * PDF faktury z KSeF w designie Verris — wizualizacja zapisanego XML-a FA(3).
+ * Marka wg branding/ (common/pdf/marka.ts): pas Pine z lockupem, Mint jako jedyny akcent,
+ * Hanken Grotesk w tekście, JetBrains Mono w liczbach.
  *
  * Rysuje WYŁĄCZNIE dane z `WizualizacjaFa3` (model powstaje z XML-a wysłanego do KSeF)
  * i metadane KSeF (numer, data przyjęcia, link KOD I). Nie ma tu pól spoza XML-a —
@@ -22,14 +24,8 @@ export interface MetaKsef {
   srodowisko: SrodowiskoKsef;
 }
 
-const GRANAT = rgb(0.07, 0.13, 0.34); // ten sam co nagłówek faktury w invoice-pdf.service.ts
-const SZARY = rgb(0.4, 0.4, 0.4);
-const SZARY_JASNY = rgb(0.45, 0.45, 0.45);
-const RAMKA = rgb(0.7, 0.75, 0.85);
-const TLO_NAGLOWKA = rgb(0.94, 0.96, 1);
-const TLO_PASKA = rgb(0.98, 0.98, 0.98);
+const K = KOLORY_MARKI;
 const CZERWONY = rgb(0.7, 0.1, 0.1);
-const CZARNY = rgb(0, 0, 0);
 
 const PAGE_W = 595.28;
 const PAGE_H = 841.89;
@@ -76,6 +72,10 @@ interface Pioro {
   color?: RGB;
 }
 
+/** Wysokość pasa marki na pierwszej stronie i na kolejnych. */
+const PAS_PIERWSZA = 84;
+const PAS_KOLEJNA = 34;
+
 class Rysownik {
   page: PDFPage;
   y = PAGE_H - MARGIN;
@@ -83,36 +83,44 @@ class Rysownik {
 
   constructor(
     private readonly pdf: PDFDocument,
-    readonly regular: PDFFont,
-    readonly bold: PDFFont,
-    readonly mono: PDFFont,
+    readonly cz: CzcionkiMarki,
+    private readonly pasKolejnejStrony: (r: Rysownik) => void,
   ) {
     this.page = pdf.addPage([PAGE_W, PAGE_H]);
+  }
+
+  /** Krój marki, a gdy tekst ma znak spoza jej podzbioru — DejaVu (patrz CzcionkiMarki.zapasowa). */
+  private font(t: string, p: Pioro): PDFFont {
+    return this.cz.zapasowa(p.font, t);
   }
 
   tekst(t: string, x: number, y: number, p: Pioro): void {
     if (!t) return;
     this.teksty.push(t);
-    this.page.drawText(t, { x, y, size: p.size, font: p.font, color: p.color ?? CZARNY });
+    this.page.drawText(t, { x, y, size: p.size, font: this.font(t, p), color: p.color ?? K.pine });
   }
 
   wPrawo(t: string, prawaKrawedz: number, y: number, p: Pioro): void {
-    this.tekst(t, prawaKrawedz - p.font.widthOfTextAtSize(t, p.size), y, p);
+    this.tekst(t, prawaKrawedz - this.szer(t, p), y, p);
   }
 
   szer(t: string, p: Pioro): number {
-    return p.font.widthOfTextAtSize(t, p.size);
+    return this.font(t, p).widthOfTextAtSize(t, p.size);
   }
 
   /** Nowa strona, gdy do stopki zostało mniej niż `h`. */
   zapewnMiejsce(h: number): void {
     if (this.y - h >= MARGIN + STOPKA) return;
     this.page = this.pdf.addPage([PAGE_W, PAGE_H]);
-    this.y = PAGE_H - MARGIN;
+    this.pasKolejnejStrony(this);
   }
 
-  linia(y: number, grubosc = 0.7, kolor: RGB = SZARY): void {
+  linia(y: number, grubosc = 0.6, kolor: RGB = K.linia): void {
     this.page.drawLine({ start: { x: MARGIN, y }, end: { x: PAGE_W - MARGIN, y }, thickness: grubosc, color: kolor });
+  }
+
+  prostokat(x: number, y: number, w: number, h: number, kolor: RGB): void {
+    this.page.drawRectangle({ x, y, width: w, height: h, color: kolor });
   }
 }
 
@@ -144,90 +152,112 @@ export async function renderujFaktureKsefZTekstem(
   pdf.setCreator('Verris');
   pdf.setProducer('Verris Panel');
 
-  const { regular, bold, mono } = await osadzCzcionki(pdf);
-  const r = new Rysownik(pdf, regular, bold, mono);
-  const P = (size: number, color?: RGB): Pioro => ({ font: regular, size, color });
-  const B = (size: number, color?: RGB): Pioro => ({ font: bold, size, color });
+  const cz = await osadzCzcionkiMarki(pdf, JSON.stringify(wiz) + JSON.stringify(meta));
+  const T = (size: number, color?: RGB): Pioro => ({ font: cz.tekst, size, color });
+  const B = (size: number, color?: RGB): Pioro => ({ font: cz.tekstMocny, size, color });
+  const L = (size: number, color?: RGB): Pioro => ({ font: cz.liczby, size, color });
+  const LB = (size: number, color?: RGB): Pioro => ({ font: cz.liczbyMocne, size, color });
   const prawa = PAGE_W - MARGIN;
   const szerokosc = PAGE_W - 2 * MARGIN;
+  const rodzajTytul = korekta ? 'Faktura korygująca' : 'Faktura VAT';
 
-  // --- Nagłówek: sprzedawca (granat) + tytuł z numerem (P_2) --------------------------
-  const nazwaNaglowka = wiz.sprzedawca.nazwa ?? '';
-  const nazwaLinie = zawin(nazwaNaglowka, bold, 14, szerokosc * 0.45).slice(0, 2);
-  nazwaLinie.forEach((l, i) => r.tekst(l, MARGIN, r.y - 8 - i * 16, B(14, GRANAT)));
-  const tytul = `${korekta ? 'Faktura korygująca' : 'Faktura VAT'}  nr  ${wiz.numer}`;
-  let rozmiar = 16;
-  while (rozmiar > 9 && r.szer(tytul, B(rozmiar)) > szerokosc * 0.52) rozmiar -= 0.5;
-  r.wPrawo(tytul, prawa, r.y - 8, B(rozmiar));
+  // Kolejne strony: wąski pas Pine z lockupem i numerem faktury.
+  const pasKolejnej = (r: Rysownik) => {
+    r.prostokat(0, PAGE_H - PAS_KOLEJNA, PAGE_W, PAS_KOLEJNA, K.pine);
+    r.prostokat(0, PAGE_H - PAS_KOLEJNA - 1.5, PAGE_W, 1.5, K.mint);
+    rysujLockup(r.page, MARGIN, PAGE_H - PAS_KOLEJNA / 2 - 6, 12, { kolor: K.paper, tlo: K.pine });
+    const t = `${rodzajTytul} nr ${wiz.numer} (cd.)`;
+    r.page.drawText(t, { x: prawa - cz.tekstMocny.widthOfTextAtSize(t, 8.5), y: PAGE_H - PAS_KOLEJNA / 2 - 3, size: 8.5, font: cz.zapasowa(cz.tekstMocny, t), color: K.paper });
+    r.y = PAGE_H - PAS_KOLEJNA - 22;
+  };
+  const r = new Rysownik(pdf, cz, pasKolejnej);
+
+  // --- Pas marki: lockup Verris + rodzaj i numer faktury (P_2) + numer KSeF ---------------------
+  r.prostokat(0, PAGE_H - PAS_PIERWSZA, PAGE_W, PAS_PIERWSZA, K.pine);
+  r.prostokat(0, PAGE_H - PAS_PIERWSZA - 2, PAGE_W, 2, K.mint);
+  rysujLockup(r.page, MARGIN, PAGE_H - PAS_PIERWSZA / 2 - 12, 24, { kolor: K.paper, tlo: K.pine });
+  r.wPrawo(`${rodzajTytul} nr`, prawa, PAGE_H - 28, B(9, K.mint));
+  let rozmiar = 17;
+  while (rozmiar > 9 && r.szer(wiz.numer, B(rozmiar)) > szerokosc * 0.55) rozmiar -= 0.5;
+  r.wPrawo(wiz.numer, prawa, PAGE_H - 28 - rozmiar - 3, B(rozmiar, K.paper));
   const ksefNaglowek = meta.numerKsef ? `Numer KSeF: ${meta.numerKsef}` : 'Numer KSeF: jeszcze nienadany';
-  r.wPrawo(ksefNaglowek, prawa, r.y - 24, P(8.5, SZARY));
-  r.y -= Math.max(30, 8 + nazwaLinie.length * 16) + 4;
-  r.linia(r.y);
-  r.y -= 16;
+  r.wPrawo(ksefNaglowek, prawa, PAGE_H - PAS_PIERWSZA + 12, T(8, K.stone));
+  r.y = PAGE_H - PAS_PIERWSZA - 26;
 
-  // --- Daty (P_1, P_6) i waluta --------------------------------------------------------
-  r.tekst(`Data wystawienia: ${wiz.dataWystawienia}`, MARGIN, r.y, P(9));
-  if (wiz.dataSprzedazy) r.tekst(`Data sprzedaży: ${wiz.dataSprzedazy}`, MARGIN + 180, r.y, P(9));
-  r.wPrawo(`Waluta: ${wiz.waluta}`, prawa, r.y, P(9));
-  r.y -= 16;
+  // --- Daty (P_1, P_6) i waluta --------------------------------------------------------------
+  const daneNaglowka: Array<[string, string | null]> = [
+    ['Data wystawienia:', wiz.dataWystawienia],
+    ['Data sprzedaży:', wiz.dataSprzedazy],
+    ['Waluta:', wiz.waluta],
+  ];
+  let xDanych = MARGIN;
+  for (const [etykieta, wartosc] of daneNaglowka) {
+    if (!wartosc) continue;
+    r.tekst(etykieta, xDanych, r.y, T(8.5, K.stoneDruk));
+    const xw = xDanych + r.szer(etykieta, T(8.5)) + 4;
+    r.tekst(wartosc, xw, r.y, LB(9));
+    xDanych = xw + r.szer(wartosc, LB(9)) + 28;
+  }
+  r.y -= 20;
 
-  // --- Korekta: faktura korygowana, przyczyna, typ ----------------------------------------
+  // --- Korekta: faktura korygowana, przyczyna, typ ----------------------------------------------
   if (wiz.korekta) {
     for (const k of wiz.korekta.faktury) {
       const ksef = k.numerKsef ? ` (numer KSeF: ${k.numerKsef})` : k.pozaKsef ? ' (wystawiona poza KSeF)' : '';
-      for (const l of zawin(`Koryguje fakturę nr ${k.numer} z dnia ${k.data}${ksef}`, bold, 9, szerokosc)) {
-        r.tekst(l, MARGIN, r.y, B(9));
+      for (const l of zawin(`Koryguje fakturę nr ${k.numer} z dnia ${k.data}${ksef}`, cz.tekstMocny, 9, szerokosc)) {
+        r.tekst(l, MARGIN, r.y, B(9, K.green));
         r.y -= 12;
       }
     }
     if (wiz.korekta.przyczyna) {
-      for (const l of zawin(`Przyczyna korekty: ${wiz.korekta.przyczyna}`, regular, 9, szerokosc)) {
-        r.tekst(l, MARGIN, r.y, P(9));
+      for (const l of zawin(`Przyczyna korekty: ${wiz.korekta.przyczyna}`, cz.tekst, 9, szerokosc)) {
+        r.tekst(l, MARGIN, r.y, T(9));
         r.y -= 12;
       }
     }
     if (wiz.korekta.typ) {
-      r.tekst(`Typ korekty: ${wiz.korekta.typ}${wiz.korekta.typOpis ? ` — ${wiz.korekta.typOpis}` : ''}`, MARGIN, r.y, P(9));
+      r.tekst(`Typ korekty: ${wiz.korekta.typ}${wiz.korekta.typOpis ? ` — ${wiz.korekta.typOpis}` : ''}`, MARGIN, r.y, T(9));
       r.y -= 12;
     }
-    r.y -= 6;
+    r.y -= 8;
   }
 
-  // --- Sprzedawca (Podmiot1) i Nabywca (Podmiot2) ------------------------------------------
-  const polowa = (szerokosc - 20) / 2;
+  // --- Sprzedawca (Podmiot1) i Nabywca (Podmiot2) ------------------------------------------------
+  const polowa = (szerokosc - 16) / 2;
   const przygotuj = (p: PodmiotWiz, sprzedawca: boolean) =>
     liniePodmiotu(p, sprzedawca).flatMap((l) =>
-      zawin(l.t, l.b ? bold : regular, l.b ? 10 : 9, polowa - 16).map((t) => ({ t, b: l.b })),
+      zawin(l.t, l.b ? cz.tekstMocny : cz.tekst, l.b ? 10 : 9, polowa - 24).map((t) => ({ t, b: l.b })),
     );
   const ls = przygotuj(wiz.sprzedawca, true);
   const ln = przygotuj(wiz.nabywca, false);
-  const wysokoscRamki = 26 + Math.max(ls.length, ln.length) * 12 + 6;
+  const wysokoscRamki = 30 + Math.max(ls.length, ln.length) * 12.5 + 8;
   r.zapewnMiejsce(wysokoscRamki + 10);
   const ramka = (x: number, tytulRamki: string, linie: Array<{ t: string; b?: boolean }>) => {
-    r.page.drawRectangle({ x, y: r.y - wysokoscRamki, width: polowa, height: wysokoscRamki, borderColor: RAMKA, borderWidth: 0.5, color: rgb(1, 1, 1) });
-    r.tekst(tytulRamki, x + 8, r.y - 12, B(9, SZARY));
-    linie.forEach((l, i) => r.tekst(l.t, x + 8, r.y - 26 - i * 12, l.b ? B(10) : P(9)));
+    r.prostokat(x, r.y - wysokoscRamki, polowa, wysokoscRamki, K.paper);
+    r.prostokat(x, r.y - wysokoscRamki, 2.5, wysokoscRamki, K.green);
+    r.tekst(tytulRamki, x + 12, r.y - 15, B(8, K.green));
+    linie.forEach((l, i) => r.tekst(l.t, x + 12, r.y - 31 - i * 12.5, l.b ? B(10) : T(9)));
   };
   ramka(MARGIN, 'Sprzedawca', ls);
-  ramka(MARGIN + polowa + 20, 'Nabywca', ln);
-  r.y -= wysokoscRamki + 18;
+  ramka(MARGIN + polowa + 16, 'Nabywca', ln);
+  r.y -= wysokoscRamki + 20;
 
-  // --- Pozycje (FaWiersz) --------------------------------------------------------------------
+  // --- Pozycje (FaWiersz) ------------------------------------------------------------------------
   const kolumny: Array<{ etykieta: string; w: number; prawo?: boolean }> = [
     { etykieta: 'Lp.', w: 26, prawo: true },
-    { etykieta: 'Nazwa towaru / usługi', w: 187 },
+    { etykieta: 'Nazwa towaru / usługi', w: 181 },
     { etykieta: 'J.m.', w: 36 },
     { etykieta: 'Ilość', w: 44, prawo: true },
-    { etykieta: 'Cena jedn. netto', w: 82, prawo: true },
-    { etykieta: 'Wartość netto', w: 78, prawo: true },
+    { etykieta: 'Cena jedn. netto', w: 84, prawo: true },
+    { etykieta: 'Wartość netto', w: 82, prawo: true },
     { etykieta: 'Stawka VAT', w: 62, prawo: true },
   ];
   const naglowekTabeli = () => {
-    r.page.drawRectangle({ x: MARGIN, y: r.y - 22, width: szerokosc, height: 22, color: TLO_NAGLOWKA });
+    r.prostokat(MARGIN, r.y - 22, szerokosc, 22, K.pine);
     let x = MARGIN;
     for (const k of kolumny) {
-      if (k.prawo) r.wPrawo(k.etykieta, x + k.w - 4, r.y - 14, B(8));
-      else r.tekst(k.etykieta, x + 4, r.y - 14, B(8));
+      if (k.prawo) r.wPrawo(k.etykieta, x + k.w - 6, r.y - 14, B(7.5, K.paper));
+      else r.tekst(k.etykieta, x + 6, r.y - 14, B(7.5, K.paper));
       x += k.w;
     }
     r.y -= 22;
@@ -244,57 +274,71 @@ export async function renderujFaktureKsefZTekstem(
   let pasek = 0;
   for (const g of grupy) {
     if (g.podpis) {
-      r.zapewnMiejsce(18);
-      r.tekst(g.podpis, MARGIN + 4, r.y - 12, B(8.5, GRANAT));
-      r.y -= 18;
+      r.zapewnMiejsce(20);
+      r.tekst(g.podpis, MARGIN + 6, r.y - 13, B(8.5, K.green));
+      r.y -= 20;
     }
     for (const w of g.wiersze) {
-      const nazwa = zawin(w.nazwa ?? '', regular, 9, kolumny[1].w - 8);
-      const h = Math.max(18, nazwa.length * 11 + 7);
+      const nazwa = zawin(w.nazwa ?? '', cz.tekst, 9, kolumny[1].w - 12);
+      const h = Math.max(20, nazwa.length * 11 + 9);
       if (r.y - h < MARGIN + STOPKA) {
         r.zapewnMiejsce(h + 22);
         naglowekTabeli();
       }
       pasek += 1;
-      if (pasek % 2 === 0) r.page.drawRectangle({ x: MARGIN, y: r.y - h, width: szerokosc, height: h, color: TLO_PASKA });
+      if (pasek % 2 === 0) r.prostokat(MARGIN, r.y - h, szerokosc, h, K.pasek);
       const komorki = [w.nr, '', w.jednostka ?? '', w.ilosc ?? '', w.cenaNetto ? kwotaPl(w.cenaNetto) : '', w.wartoscNetto ? kwotaPl(w.wartoscNetto) : '', stawkaPl(w.stawka)];
       let x = MARGIN;
       kolumny.forEach((k, i) => {
-        if (i === 1) nazwa.forEach((l, n) => r.tekst(l, x + 4, r.y - 12 - n * 11, P(9)));
-        else if (k.prawo) r.wPrawo(komorki[i], x + k.w - 4, r.y - 12, P(9));
-        else r.tekst(komorki[i], x + 4, r.y - 12, P(9));
+        if (i === 1) nazwa.forEach((l, n) => r.tekst(l, x + 6, r.y - 13 - n * 11, T(9)));
+        else if (i === 2) r.tekst(komorki[i], x + 6, r.y - 13, T(9));
+        else if (k.prawo) r.wPrawo(komorki[i], x + k.w - 6, r.y - 13, L(8.5));
+        else r.tekst(komorki[i], x + 6, r.y - 13, L(8.5));
         x += k.w;
       });
       r.y -= h;
+      r.linia(r.y, 0.4);
     }
   }
-  r.y -= 6;
-  r.linia(r.y, 0.7, rgb(0.6, 0.6, 0.6));
-  r.y -= 18;
+  r.y -= 22;
 
-  // --- Podsumowanie wg stawek (P_13_x / P_14_x) i P_15 --------------------------------------
-  r.zapewnMiejsce(44 + wiz.sumy.length * 15 + 30);
-  const xSum = prawa - 340;
-  r.tekst('Podsumowanie według stawek VAT', xSum, r.y, B(9, SZARY));
-  r.y -= 14;
-  r.tekst('Stawka', xSum, r.y, B(8, SZARY));
-  r.wPrawo('Wartość netto', prawa - 105, r.y, B(8, SZARY));
-  r.wPrawo('Kwota VAT', prawa, r.y, B(8, SZARY));
-  r.y -= 14;
+  // --- Podsumowanie wg stawek (P_13_x / P_14_x) i P_15 --------------------------------------------
+  r.zapewnMiejsce(44 + wiz.sumy.length * 15 + 50);
+  const xSum = prawa - 330;
+  r.tekst('Podsumowanie według stawek VAT', xSum, r.y, B(8.5, K.green));
+  r.y -= 15;
+  r.tekst('Stawka', xSum, r.y, T(7.5, K.stoneDruk));
+  r.wPrawo('Wartość netto', prawa - 110, r.y, T(7.5, K.stoneDruk));
+  r.wPrawo('Kwota VAT', prawa, r.y, T(7.5, K.stoneDruk));
+  r.y -= 5;
+  r.page.drawLine({ start: { x: xSum, y: r.y }, end: { x: prawa, y: r.y }, thickness: 0.4, color: K.linia });
+  r.y -= 12;
+  // Etykieta stawki zawijana przed najszerszą kwotą netto, żeby na nią nie nachodziła.
+  const najszerszaNetto = Math.max(0, ...wiz.sumy.map((s) => r.szer(`${kwotaPl(s.netto)} ${wiz.waluta}`, L(8.5))));
+  const szerEtykietyStawki = prawa - 110 - najszerszaNetto - 10 - xSum;
   for (const s of wiz.sumy) {
-    r.tekst(s.etykieta, xSum, r.y, P(9));
-    r.wPrawo(`${kwotaPl(s.netto)} ${wiz.waluta}`, prawa - 105, r.y, P(9));
-    if (s.vat != null) r.wPrawo(`${kwotaPl(s.vat)} ${wiz.waluta}`, prawa, r.y, P(9));
+    const linieEtykiety = zawin(s.etykieta, cz.tekst, 9, szerEtykietyStawki);
+    r.zapewnMiejsce(linieEtykiety.length * 11 + 4);
+    r.tekst(linieEtykiety[0] ?? '', xSum, r.y, T(9));
+    r.wPrawo(`${kwotaPl(s.netto)} ${wiz.waluta}`, prawa - 110, r.y, L(8.5));
+    if (s.vat != null) r.wPrawo(`${kwotaPl(s.vat)} ${wiz.waluta}`, prawa, r.y, L(8.5));
+    for (const l of linieEtykiety.slice(1)) {
+      r.y -= 11;
+      r.tekst(l, xSum, r.y, T(9));
+    }
     r.y -= 15;
   }
-  r.y -= 6;
+  r.y -= 4;
   const etykietaRazem = korekta ? 'Korekta kwoty należności ogółem:' : 'Kwota należności ogółem:';
   const razem = `${kwotaPl(wiz.razem)} ${wiz.waluta}`;
-  r.wPrawo(etykietaRazem, prawa - r.szer(razem, B(12)) - 10, r.y, B(10));
-  r.wPrawo(razem, prawa, r.y, B(12, GRANAT));
-  r.y -= 24;
+  const WYS_RAZEM = 34;
+  r.prostokat(xSum - 12, r.y - WYS_RAZEM + 10, prawa - xSum + 12, WYS_RAZEM, K.pine);
+  const yRazem = r.y - WYS_RAZEM / 2 + 5;
+  r.tekst(etykietaRazem, xSum, yRazem, B(9.5, K.paper));
+  r.wPrawo(razem, prawa - 10, yRazem - 1, LB(14, K.mint));
+  r.y -= WYS_RAZEM + 14;
 
-  // --- Adnotacje (tylko te, które drukuje się na fakturze: wartość „1”) ----------------------
+  // --- Adnotacje (tylko te, które drukuje się na fakturze: wartość „1”) ---------------------------
   for (const a of wiz.adnotacje) {
     if (!a.tekst) continue;
     r.zapewnMiejsce(14);
@@ -302,7 +346,7 @@ export async function renderujFaktureKsefZTekstem(
     r.y -= 13;
   }
 
-  // --- Płatność ---------------------------------------------------------------------------
+  // --- Płatność --------------------------------------------------------------------------------
   if (wiz.platnosc) {
     const pl = wiz.platnosc;
     const linie: string[] = [];
@@ -312,66 +356,69 @@ export async function renderujFaktureKsefZTekstem(
     for (const t of pl.terminy) linie.push(`Termin płatności: ${t}`);
     for (const nr of pl.rachunki) linie.push(`Numer rachunku: ${nr}`);
     r.zapewnMiejsce(linie.length * 13 + 6);
-    r.y -= 4;
+    r.y -= 2;
     for (const l of linie) {
-      r.tekst(l, MARGIN, r.y, l.startsWith('Zapłacono') ? B(9, rgb(0.05, 0.45, 0.2)) : P(9));
+      r.tekst(l, MARGIN, r.y, l.startsWith('Zapłacono') ? B(9.5, K.green) : T(9));
       r.y -= 13;
     }
   }
 
-  // --- KSeF: KOD I + numer / OFFLINE -------------------------------------------------------
+  // --- KSeF: KOD I + numer / OFFLINE --------------------------------------------------------------
   const BOK_QR = 96;
-  r.zapewnMiejsce(BOK_QR + 40);
+  const WYS_PANELU = BOK_QR + 34;
+  r.zapewnMiejsce(WYS_PANELU + 16);
   r.y -= 12;
   const gora = r.y;
-  r.page.drawRectangle({ x: MARGIN, y: gora - BOK_QR - 30, width: szerokosc, height: BOK_QR + 30, borderColor: RAMKA, borderWidth: 0.5 });
+  r.prostokat(MARGIN, gora - WYS_PANELU, szerokosc, WYS_PANELU, K.paper);
   const qr = macierzQr(meta.linkWeryfikacji);
   const modul = BOK_QR / (qr.rozmiar + 8); // 4 moduły strefy ciszy z każdej strony (ISO/IEC 18004)
-  const xQr = MARGIN + 10;
-  const yQr = gora - 8 - BOK_QR;
-  r.page.drawRectangle({ x: xQr, y: yQr, width: BOK_QR, height: BOK_QR, color: rgb(1, 1, 1) });
+  const xQr = MARGIN + 12;
+  const yQr = gora - 10 - BOK_QR;
+  r.prostokat(xQr, yQr, BOK_QR, BOK_QR, K.bialy);
   for (let w = 0; w < qr.rozmiar; w++) {
     for (let k = 0; k < qr.rozmiar; k++) {
       if (!qr.ciemny(w, k)) continue;
-      r.page.drawRectangle({
-        x: xQr + (k + 4) * modul,
-        y: yQr + BOK_QR - (w + 5) * modul,
-        width: modul,
-        height: modul,
-        color: CZARNY,
-      });
+      // Moduły czarne na białym — kontrast wymagany przez czytniki (nie kolor marki).
+      r.prostokat(xQr + (k + 4) * modul, yQr + BOK_QR - (w + 5) * modul, modul, modul, rgb(0, 0, 0));
     }
   }
   const podpis = meta.numerKsef ?? PODPIS_QR_BEZ_NUMERU;
-  const pioroPodpisu: Pioro = { font: mono, size: meta.numerKsef ? 5.6 : 9, color: CZARNY };
-  r.tekst(podpis, xQr + BOK_QR / 2 - r.szer(podpis, pioroPodpisu) / 2, yQr - 10, pioroPodpisu);
+  const pioroPodpisu: Pioro = { font: cz.liczby, size: meta.numerKsef ? 5.4 : 9, color: rgb(0, 0, 0) };
+  r.tekst(podpis, xQr + BOK_QR / 2 - r.szer(podpis, pioroPodpisu) / 2, yQr - 11, pioroPodpisu);
 
-  const xOpis = xQr + BOK_QR + 30;
-  const szerOpisu = prawa - 10 - xOpis;
-  let yOpis = gora - 16;
-  r.tekst('Weryfikacja faktury w KSeF', xOpis, yOpis, B(10, GRANAT));
-  yOpis -= 14;
-  r.tekst(meta.numerKsef ? `Numer KSeF: ${meta.numerKsef}` : 'Numer KSeF: jeszcze nienadany (OFFLINE)', xOpis, yOpis, P(9));
-  yOpis -= 12;
-  if (meta.przyjetoWKsef) {
-    r.tekst(`Data przyjęcia w KSeF: ${dataCzasPl(meta.przyjetoWKsef)}`, xOpis, yOpis, P(9));
-    yOpis -= 12;
+  const xOpis = xQr + BOK_QR + 28;
+  const szerOpisu = prawa - 12 - xOpis;
+  let yOpis = gora - 20;
+  r.tekst('Weryfikacja faktury w KSeF', xOpis, yOpis, B(10.5, K.green));
+  yOpis -= 16;
+  if (meta.numerKsef) {
+    r.tekst('Numer KSeF:', xOpis, yOpis, T(9));
+    r.tekst(meta.numerKsef, xOpis + r.szer('Numer KSeF:', T(9)) + 4, yOpis, L(8.5));
+  } else {
+    r.tekst('Numer KSeF: jeszcze nienadany (OFFLINE)', xOpis, yOpis, T(9));
   }
-  for (const l of zawin('Zeskanuj kod QR albo otwórz link, aby sprawdzić fakturę w Krajowym Systemie e-Faktur:', regular, 8, szerOpisu)) {
-    r.tekst(l, xOpis, yOpis, P(8, SZARY));
+  yOpis -= 13;
+  if (meta.przyjetoWKsef) {
+    r.tekst('Data przyjęcia w KSeF:', xOpis, yOpis, T(9));
+    r.tekst(dataCzasPl(meta.przyjetoWKsef), xOpis + r.szer('Data przyjęcia w KSeF:', T(9)) + 4, yOpis, L(8.5));
+    yOpis -= 13;
+  }
+  yOpis -= 2;
+  for (const l of zawin('Zeskanuj kod QR albo otwórz link, aby sprawdzić fakturę w Krajowym Systemie e-Faktur:', cz.tekst, 8, szerOpisu)) {
+    r.tekst(l, xOpis, yOpis, T(8, K.stoneDruk));
     yOpis -= 10;
   }
-  for (const l of zawin(meta.linkWeryfikacji.replace(/\//g, '/ '), mono, 7, szerOpisu)) {
-    r.tekst(l.replace(/\/ /g, '/'), xOpis, yOpis, { font: mono, size: 7, color: GRANAT });
+  for (const l of zawin(meta.linkWeryfikacji.replace(/\//g, '/ '), cz.liczby, 6.8, szerOpisu)) {
+    r.tekst(l.replace(/\/ /g, '/'), xOpis, yOpis, L(6.8, K.green));
     yOpis -= 9;
   }
   if (meta.srodowisko !== 'prod') {
     yOpis -= 2;
     r.tekst(`Środowisko KSeF: ${ETYKIETA_SRODOWISKA[meta.srodowisko]} — dokument bez skutków podatkowych.`, xOpis, yOpis, B(8, CZERWONY));
   }
-  r.y = gora - BOK_QR - 30 - 10;
+  r.y = gora - WYS_PANELU - 10;
 
-  // --- Stopka na każdej stronie ---------------------------------------------------------------
+  // --- Stopka na każdej stronie: opis, dane techniczne XML, lockup, numer strony -----------------
   const strony = pdf.getPages();
   const n = wiz.naglowek;
   const techniczne = [
@@ -383,10 +430,11 @@ export async function renderujFaktureKsefZTekstem(
   ].filter(Boolean).join(' · ');
   strony.forEach((s, i) => {
     r.page = s;
-    r.page.drawLine({ start: { x: MARGIN, y: MARGIN + 22 }, end: { x: prawa, y: MARGIN + 22 }, thickness: 0.5, color: rgb(0.7, 0.7, 0.7) });
-    r.tekst('Wizualizacja e-faktury FA(3) przesłanej do KSeF — treść zgodna z plikiem XML. Verris', MARGIN, MARGIN + 10, P(7.5, SZARY_JASNY));
-    r.tekst(techniczne, MARGIN, MARGIN - 1, P(6.5, SZARY_JASNY));
-    r.wPrawo(`Strona ${i + 1} z ${strony.length}`, prawa, MARGIN + 10, P(7.5, SZARY_JASNY));
+    r.page.drawLine({ start: { x: MARGIN, y: MARGIN + 22 }, end: { x: prawa, y: MARGIN + 22 }, thickness: 0.5, color: K.linia });
+    r.tekst('Wizualizacja e-faktury FA(3) przesłanej do KSeF — treść zgodna z plikiem XML.', MARGIN, MARGIN + 10, T(7.5, K.stoneDruk));
+    r.tekst(techniczne, MARGIN, MARGIN - 1, T(6.5, K.stoneDruk));
+    rysujLockup(r.page, prawa - szerokoscLockupu(9), MARGIN + 8, 9, { kolor: K.pine, tlo: K.bialy, akcent: K.green });
+    r.wPrawo(`Strona ${i + 1} z ${strony.length}`, prawa, MARGIN - 1, T(6.5, K.stoneDruk));
   });
 
   return { pdf: await pdf.save(), teksty: r.teksty };

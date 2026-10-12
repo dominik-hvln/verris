@@ -15,7 +15,7 @@ export function fontkitZModulu(modul: unknown): Fontkit {
   if (typeof m?.default?.create === 'function') return m.default as Fontkit;
   throw new Error('@pdf-lib/fontkit: brak funkcji create — nieznany kształt modułu');
 }
-const fontkit = fontkitZModulu(fontkitModul);
+export const fontkit = fontkitZModulu(fontkitModul);
 import { DEJAVU_SANS, DEJAVU_SANS_BOLD, DEJAVU_SANS_MONO } from './czcionki.generated.js';
 
 /**

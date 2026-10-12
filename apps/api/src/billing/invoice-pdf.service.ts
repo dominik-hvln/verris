@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFDocument, rgb, type PDFPage } from 'pdf-lib';
 import { osadzCzcionki } from '../common/pdf/czcionki.js';
+import { KOLORY_MARKI, osadzCzcionkiMarki, rysujLockup, szerokoscLockupu, type CzcionkiMarki } from '../common/pdf/marka.js';
 import { Prisma } from '@verris/database';
 
 import { RODZAJ_DOKUMENT_ROZLICZENIOWY, RODZAJ_PROFORMA } from './tryb-fakturowania.js';
@@ -175,54 +176,61 @@ export class InvoicePdfService {
     pdf.setProducer('Verris Panel');
     pdf.setCreationDate(ctx.issuedAt);
 
-    const { regular: fontRegular, bold: fontBold } = await osadzCzcionki(pdf);
+    // Marka Verris (common/pdf/marka.ts): kroje Hanken Grotesk / JetBrains Mono, pas Pine z lockupem.
+    const cz = await osadzCzcionkiMarki(pdf, JSON.stringify(ctx));
+    const fontRegular = cz.tekst;
+    const fontBold = cz.tekstMocny;
+    const K = KOLORY_MARKI;
 
     const PAGE_W = 595.28;
     const PAGE_H = 841.89;
     const MARGIN = 40;
+    const PAS = 84;
 
-    let page = pdf.addPage([PAGE_W, PAGE_H]);
-    let cursorY = PAGE_H - MARGIN;
-
-    // --- Header ---------------------------------------------------------------
-    page.drawText(ctx.seller.name, {
-      x: MARGIN,
-      y: cursorY - 8,
-      size: 14,
-      font: fontBold,
-      color: rgb(0.07, 0.13, 0.34), // verris navy-ish
-    });
-    const tytul = proforma
-      ? `Faktura proforma  nr  ${ctx.number}`
+    const rodzajTytul = proforma
+      ? 'Faktura proforma'
       : rozliczeniowy
-      ? ctx.korekta
-        ? `Korekta dokumentu  nr  ${ctx.number}`
-        : `Dokument rozliczeniowy  nr  ${ctx.number}`
-      : ctx.korekta
-        ? `Faktura korygująca  nr  ${ctx.number}`
-        : `Faktura VAT  nr  ${ctx.number}`;
-    // Tytuł wyrównany do prawej i zmniejszany, gdy nie mieści się obok nazwy sprzedawcy
-    // (stałe x ucinało „Dokument rozliczeniowy nr VDR/…” za krawędzią strony).
-    const miejsceNaTytul = PAGE_W - 2 * MARGIN - measureText(ctx.seller.name, fontBold, 14) - 24;
-    let rozmiarTytulu = 16;
-    while (rozmiarTytulu > 9 && measureText(tytul, fontBold, rozmiarTytulu) > miejsceNaTytul) rozmiarTytulu -= 0.5;
-    page.drawText(tytul, {
-      x: PAGE_W - MARGIN - measureText(tytul, fontBold, rozmiarTytulu),
-      y: cursorY - 8,
+        ? ctx.korekta
+          ? 'Korekta dokumentu'
+          : 'Dokument rozliczeniowy'
+        : ctx.korekta
+          ? 'Faktura korygująca'
+          : 'Faktura VAT';
+    const nowaStrona = (pierwsza: boolean): PDFPage => {
+      const p = zKrojemZapasowym(pdf.addPage([PAGE_W, PAGE_H]), cz);
+      const h = pierwsza ? PAS : 34;
+      p.drawRectangle({ x: 0, y: PAGE_H - h, width: PAGE_W, height: h, color: K.pine });
+      p.drawRectangle({ x: 0, y: PAGE_H - h - 2, width: PAGE_W, height: 2, color: K.mint });
+      if (pierwsza) {
+        rysujLockup(p, MARGIN, PAGE_H - h / 2 - 12, 24, { kolor: K.paper, tlo: K.pine });
+      } else {
+        rysujLockup(p, MARGIN, PAGE_H - h / 2 - 6, 12, { kolor: K.paper, tlo: K.pine });
+        const t = `${rodzajTytul} nr ${ctx.number} (cd.)`;
+        p.drawText(t, { x: PAGE_W - MARGIN - measureText(t, fontBold, 8.5), y: PAGE_H - h / 2 - 3, size: 8.5, font: fontBold, color: K.paper });
+      }
+      return p;
+    };
+
+    let page = nowaStrona(true);
+    // --- Nagłówek: rodzaj dokumentu i numer w pasie marki ------------------------------
+    const etykietaTytulu = `${rodzajTytul} nr`;
+    page.drawText(etykietaTytulu, {
+      x: PAGE_W - MARGIN - measureText(etykietaTytulu, fontBold, 9),
+      y: PAGE_H - 30,
+      size: 9,
+      font: fontBold,
+      color: K.mint,
+    });
+    let rozmiarTytulu = 17;
+    while (rozmiarTytulu > 9 && measureText(ctx.number, fontBold, rozmiarTytulu) > (PAGE_W - 2 * MARGIN) * 0.55) rozmiarTytulu -= 0.5;
+    page.drawText(ctx.number, {
+      x: PAGE_W - MARGIN - measureText(ctx.number, fontBold, rozmiarTytulu),
+      y: PAGE_H - 30 - rozmiarTytulu - 4,
       size: rozmiarTytulu,
       font: fontBold,
-      color: rgb(0, 0, 0),
+      color: K.paper,
     });
-    cursorY -= 28;
-
-    // Cienka linia pozioma pod nagłówkiem
-    page.drawLine({
-      start: { x: MARGIN, y: cursorY },
-      end: { x: PAGE_W - MARGIN, y: cursorY },
-      thickness: 0.7,
-      color: rgb(0.4, 0.4, 0.4),
-    });
-    cursorY -= 18;
+    let cursorY = PAGE_H - PAS - 26;
 
     // --- Daty -----------------------------------------------------------------
     const dateLabel = (label: string, value: Date): string =>
@@ -275,9 +283,9 @@ export class InvoicePdfService {
     page.drawText('Sprzedawca', {
       x: MARGIN + 8,
       y: boxTop - 12,
-      size: 9,
+      size: 8,
       font: fontBold,
-      color: rgb(0.4, 0.4, 0.4),
+      color: K.green,
     });
     drawSellerOrBuyer(page, ctx.seller, MARGIN + 8, boxTop - 26, fontRegular, fontBold, halfW - 16);
 
@@ -285,9 +293,9 @@ export class InvoicePdfService {
     page.drawText('Nabywca', {
       x: MARGIN + halfW + 28,
       y: boxTop - 12,
-      size: 9,
+      size: 8,
       font: fontBold,
-      color: rgb(0.4, 0.4, 0.4),
+      color: K.green,
     });
     drawSellerOrBuyer(
       page,
@@ -312,7 +320,7 @@ export class InvoicePdfService {
       y: cursorY - headerH,
       width: tableW,
       height: headerH,
-      color: rgb(0.94, 0.96, 1),
+      color: K.pine,
     });
     const cols: Array<{ label: string; w: number; align?: 'left' | 'right' }> = [
       { label: 'Lp.', w: 28, align: 'right' },
@@ -330,11 +338,11 @@ export class InvoicePdfService {
     for (const col of cols) {
       const labelX = col.align === 'right' ? xRun + col.w - 4 : xRun + 2;
       page.drawText(col.label, {
-        x: col.align === 'right' ? labelX - measureText(col.label, fontBold, 8.5) : labelX,
+        x: col.align === 'right' ? labelX - measureText(col.label, fontBold, 8) : labelX,
         y: cursorY - 14,
-        size: 8.5,
+        size: 8,
         font: fontBold,
-        color: rgb(0.2, 0.2, 0.2),
+        color: K.paper,
       });
       xRun += col.w;
     }
@@ -348,8 +356,8 @@ export class InvoicePdfService {
       const wysokosc = Math.max(rowH, linieNazwy.length * 11 + 7);
       // New page if needed.
       if (cursorY - wysokosc < MARGIN + 200) {
-        page = pdf.addPage([PAGE_W, PAGE_H]);
-        cursorY = PAGE_H - MARGIN;
+        page = nowaStrona(false);
+        cursorY = PAGE_H - 34 - 24;
       }
       // Stripe row background every other line.
       if (lineNo % 2 === 0) {
@@ -358,7 +366,7 @@ export class InvoicePdfService {
           y: cursorY - wysokosc,
           width: tableW,
           height: wysokosc,
-          color: rgb(0.98, 0.98, 0.98),
+          color: K.pasek,
         });
       }
 
@@ -377,22 +385,22 @@ export class InvoicePdfService {
         const col = cols[i];
         if (i === 1) {
           linieNazwy.forEach((linia, n) =>
-            page.drawText(linia, { x: xCol + 2, y: cursorY - 12 - n * 11, size: 9, font: fontRegular, color: rgb(0, 0, 0) }),
+            page.drawText(linia, { x: xCol + 2, y: cursorY - 12 - n * 11, size: 9, font: fontRegular, color: K.pine }),
           );
           xCol += col.w;
           return;
         }
         const align = col.align === 'right' ? 'right' : 'left';
-        const fontUsed = fontRegular;
+        const fontUsed = cz.liczby;
         const text = align === 'right'
-          ? rightAlign(value, xCol + col.w - 4, fontUsed, 9)
+          ? rightAlign(value, xCol + col.w - 4, fontUsed, 8.5)
           : { text: value, x: xCol + 2 };
         page.drawText(text.text, {
           x: text.x,
           y: cursorY - 12,
-          size: 9,
+          size: 8.5,
           font: fontUsed,
-          color: rgb(0, 0, 0),
+          color: K.pine,
         });
         xCol += col.w;
       });
@@ -405,8 +413,8 @@ export class InvoicePdfService {
     page.drawLine({
       start: { x: tableX, y: cursorY },
       end: { x: tableX + tableW, y: cursorY },
-      thickness: 0.7,
-      color: rgb(0.6, 0.6, 0.6),
+      thickness: 0.6,
+      color: K.linia,
     });
     cursorY -= 18;
 
@@ -462,22 +470,25 @@ export class InvoicePdfService {
         y: cursorY,
         size: 12,
         font: fontBold,
-        color: ujemna ? rgb(0.05, 0.45, 0.2) : rgb(0.7, 0.1, 0.1),
+        color: ujemna ? K.green : rgb(0.7, 0.1, 0.1),
       });
       cursorY -= 22;
     } else {
       // Do zapłaty / Zapłacono
-      const dueLabel = ctx.isPaid
-        ? `Zapłacono: ${ctx.totalGross} ${ctx.currency}`
-        : `Do zapłaty: ${ctx.totalGross} ${ctx.currency}`;
-      page.drawText(dueLabel, {
-        x: PAGE_W - MARGIN - measureText(dueLabel, fontBold, 13),
-        y: cursorY,
+      // Pas Pine z kwotą w Mint — jak „Kwota należności ogółem” na fakturze z KSeF.
+      const etykietaKwoty = ctx.isPaid ? 'Zapłacono:' : 'Do zapłaty:';
+      const kwota = `${ctx.totalGross} ${ctx.currency}`;
+      const xPasa = PAGE_W - MARGIN - 240;
+      page.drawRectangle({ x: xPasa, y: cursorY - 12, width: PAGE_W - MARGIN - xPasa, height: 32, color: K.pine });
+      page.drawText(etykietaKwoty, { x: xPasa + 12, y: cursorY, size: 10, font: fontBold, color: K.paper });
+      page.drawText(kwota, {
+        x: PAGE_W - MARGIN - 10 - measureText(kwota, cz.liczbyMocne, 13),
+        y: cursorY - 1,
         size: 13,
-        font: fontBold,
-        color: ctx.isPaid ? rgb(0.05, 0.45, 0.2) : rgb(0.7, 0.1, 0.1),
+        font: cz.liczbyMocne,
+        color: K.mint,
       });
-      cursorY -= 22;
+      cursorY -= 34;
     }
 
     page.drawText(`Forma zapłaty: ${ctx.paymentMethodLabel}`, {
@@ -537,8 +548,9 @@ export class InvoicePdfService {
       start: { x: MARGIN, y: footY + 22 },
       end: { x: PAGE_W - MARGIN, y: footY + 22 },
       thickness: 0.5,
-      color: rgb(0.7, 0.7, 0.7),
+      color: K.linia,
     });
+    rysujLockup(page, PAGE_W - MARGIN - szerokoscLockupu(9), footY + 8, 9, { kolor: K.pine, tlo: rgb(1, 1, 1), akcent: K.green });
     const footnote = [
       `${ctx.seller.name} • NIP ${ctx.seller.nip}`,
       ctx.seller.regon ? `REGON ${ctx.seller.regon}` : null,
@@ -552,14 +564,14 @@ export class InvoicePdfService {
       y: footY + 8,
       size: 7.5,
       font: fontRegular,
-      color: rgb(0.45, 0.45, 0.45),
+      color: K.stoneDruk,
     });
     page.drawText('Dokument wygenerowany elektronicznie. Nie wymaga podpisu.', {
       x: MARGIN,
       y: footY - 3,
       size: 7.5,
       font: fontRegular,
-      color: rgb(0.45, 0.45, 0.45),
+      color: K.stoneDruk,
     });
 
     return await pdf.save();
@@ -577,15 +589,24 @@ function drawBox(
   w: number,
   h: number,
 ): void {
-  page.drawRectangle({
-    x,
-    y: y - h,
-    width: w,
-    height: h,
-    borderColor: rgb(0.7, 0.75, 0.85),
-    borderWidth: 0.5,
-    color: rgb(1, 1, 1),
-  });
+  page.drawRectangle({ x, y: y - h, width: w, height: h, color: KOLORY_MARKI.paper });
+  page.drawRectangle({ x, y: y - h, width: 2.5, height: h, color: KOLORY_MARKI.green });
+}
+
+/**
+ * Strona, której drawText sam przechodzi na krój zapasowy (DejaVu), gdy tekst ma znak spoza
+ * podzbioru marki, i domyślnie pisze kolorem Pine. Renderer woła drawText w kilkudziesięciu
+ * miejscach — tak żadne z nich nie zgubi znaku.
+ */
+function zKrojemZapasowym(page: PDFPage, cz: CzcionkiMarki): PDFPage {
+  const rysuj = page.drawText.bind(page);
+  page.drawText = (tekst, opcje = {}) =>
+    rysuj(tekst, {
+      ...opcje,
+      color: opcje.color ?? KOLORY_MARKI.pine,
+      font: opcje.font ? cz.zapasowa(opcje.font, tekst) : opcje.font,
+    });
+  return page;
 }
 
 function drawSellerOrBuyer(
@@ -669,7 +690,11 @@ export async function nadrukDuplikatu(oryginal: Uint8Array, dnia: Date): Promise
   const w = measureText(tekst, bold, size);
   for (const page of pdf.getPages()) {
     const { width, height } = page.getSize();
-    page.drawText(tekst, { x: width - 40 - w, y: height - 22, size, font: bold, color: rgb(0.75, 0.1, 0.1) });
+    // Biały napis na czerwonej etykiecie, na środku u góry — czytelny i na pasie marki (Pine),
+    // i na starszych dokumentach z białym nagłówkiem; nie zasłania numeru dokumentu po prawej.
+    const x = width / 2 - w / 2;
+    page.drawRectangle({ x: x - 6, y: height - 26, width: w + 12, height: size + 8, color: rgb(0.75, 0.1, 0.1) });
+    page.drawText(tekst, { x, y: height - 22, size, font: bold, color: rgb(1, 1, 1) });
   }
   return pdf.save();
 }
