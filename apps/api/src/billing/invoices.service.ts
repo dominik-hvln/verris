@@ -822,6 +822,10 @@ export class InvoicesService {
     return {
       ...toAdminDto(invoice),
       kind: invoice.kind,
+      netAmount: invoice.netAmount?.toFixed(2) ?? null,
+      vatAmount: invoice.vatAmount?.toFixed(2) ?? null,
+      lineItems: invoice.lineItems ?? null,
+      buyerSnapshot: invoice.buyerSnapshot ?? null,
       korygowana: invoice.corrected ?? null,
       ksef: {
         status: invoice.ksefStatus,
@@ -1024,6 +1028,14 @@ export interface AdminInvoiceDetailDto extends AdminInvoiceDto {
     description: string | null;
     createdAt: string;
   }>;
+  /**
+   * Treść dokumentu dla formularza korekty (admin → Faktury → Koryguj). Bez tych pól formularz
+   * nie miał pozycji ani danych nabywcy: „Wystaw korektę” był nieaktywny dla każdej faktury.
+   */
+  netAmount: string | null;
+  vatAmount: string | null;
+  lineItems: unknown;
+  buyerSnapshot: unknown;
 }
 
 export interface AdminInvoiceListDto {
