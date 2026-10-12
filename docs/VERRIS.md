@@ -12,6 +12,16 @@ nie źródło prawdy). Poza tym zostają tylko dokumenty operacyjne i prawne: `d
 
 ## Decyzje
 
+### 2026-10-12 — faktury VAT wystawia panel i wysyła do KSeF; księgowa pobiera je z KSeF
+Zastępuje decyzję z 2026-09-22 (program księgowy). Rezygnujemy z programu księgowego jako wystawcy:
+`faktury.tryb` = `panel`. Panel wystawia faktury VAT (VFV/VFK, także B2C) i wysyła je do KSeF;
+klient dostaje PDF w marce Verris z kodem QR (KOD I) i plik XML FA(3). Księgowa pobiera faktury
+sprzedaży z KSeF (uprawnienie do przeglądania faktur nadaje Dominik w KSeF). Seria VFV/VFK nie koliduje
+z numeracją HVLN w programie księgowym (inny format). Dokumenty VDR/VDK sprzed decyzji są testowe —
+znikają przy czyszczeniu panelu przed otwartą betą. Kolejność: test na KSeF TEST, czyszczenie panelu,
+dopiero potem KSeF produkcyjny (faktur z KSeF PROD nie da się usunąć). Tryb `zewnetrzny` zostaje
+w kodzie jako awaryjny i jako wartość domyślna przy braku ustawienia.
+
 ### 2026-10-05 — Paynow główną bramką płatności jednorazowych, Stripe dla cyklicznych
 Decyzja właściciela. Platforma jest „najpierw portfel”: każda opłata za usługę schodzi z portfela, a pieniądze wchodzą
 jednorazowym doładowaniem. **Paynow (mBank)** jest domyślną bramką doładowań w PLN (BLIK, szybki przelew, karta;
@@ -121,7 +131,7 @@ więc panele owijają je `fixupConfigRules` z `@eslint/compat`; usunąć, gdy Ne
 kafelek „wersje”. **MinIO zostaje**, na Hetzner Object Storage przechodzimy razem z węzłem testowym.
 Prisma 8 — po GA (dziś RC; brakuje `increment`, zagnieżdżonych zapisów i kodów P2002, których używamy).
 
-### 2026-09-22 — faktury VAT wystawia program księgowy (PB-13, FAK-01)
+### 2026-09-22 — faktury VAT wystawia program księgowy (PB-13, FAK-01) — ZASTĄPIONA 2026-10-12
 Panel wystawia **dokument rozliczeniowy** (seria VDR/VDK), fakturę VAT operator wystawia w programie
 księgowym i dopisuje jej numer w panelu admina (`/invoices/czeka-na-fakture`). Przełącznik
 `faktury.tryb` = `zewnetrzny` (domyślnie) | `panel`. Własny moduł KSeF zamrożony do integracji
