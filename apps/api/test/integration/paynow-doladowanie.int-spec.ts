@@ -81,4 +81,43 @@ describe('Paynow: księgowanie i zwrot na Postgresie', () => {
     expect(cofniecia).toHaveLength(1);
     expect(new Prisma.Decimal(cofniecia[0].amount).toFixed(2)).toBe('-20.00');
   });
+
+  /** Zaksięgowana wpłata Paynow 45,67 zł (bez przechodzenia przez powiadomienie). */
+  async function wplata() {
+    const u = await prisma().user.create({ data: { email: `pn-z-${Date.now()}-${Math.random()}@test.verris.pl`, passwordHash: 'x', walletBalance: 45.67 } });
+    const tx = await prisma().walletTransaction.create({
+      data: { userId: u.id, type: WalletTxType.TOPUP, amount: 45.67, balanceAfter: 45.67, idempotencyKey: `paynow:${PID}:${u.id}`, paymentProvider: 'PAYNOW', paymentRef: PID },
+    });
+    const rek = await prisma().paynowPlatnosc.create({
+      data: { userId: u.id, kwotaMinor: 4567, paymentId: PID, status: 'CONFIRMED', walletTxId: tx.id, meta: { kind: 'wallet_topup', vatKod: 'PL', vatStawka: '23', vatKraj: 'PL' } },
+    });
+    return { u, tx, rek };
+  }
+
+  it('przegląd 12.10 — równoległe zwroty na różne kwoty nie przekraczają razem wpłaty', async () => {
+    const { u, tx, rek } = await wplata();
+    const b = serwis({ send: vi.fn(async () => undefined) });
+    const wyniki = await Promise.allSettled([
+      b.zwrocPlatnoscPaynow({ walletTxId: tx.id, kwota: 30, actorUserId: u.id, wPaneluPaynow: true }),
+      b.zwrocPlatnoscPaynow({ walletTxId: tx.id, kwota: 40, actorUserId: u.id, wPaneluPaynow: true }),
+    ]);
+    expect(wyniki.filter((w) => w.status === 'fulfilled')).toHaveLength(1);
+    const r = await prisma().paynowPlatnosc.findUniqueOrThrow({ where: { id: rek.id } });
+    expect(r.zwroconoMinor).toBeLessThanOrEqual(4567);
+    expect(r.zwrotyIds).toHaveLength(1);
+  });
+
+  it('przegląd 12.10 — brak odpowiedzi Paynow (przekroczony czas) to stan nieznany: 409 „sprawdź w panelu”, bez cofnięcia', async () => {
+    const { u, tx, rek } = await wplata();
+    const b = serwis({ send: vi.fn(async () => undefined) });
+    fetchMock.mockRejectedValue(new DOMException('The operation was aborted due to timeout', 'TimeoutError'));
+    await expect(b.zwrocPlatnoscPaynow({ walletTxId: tx.id, kwota: 20, actorUserId: u.id })).rejects.toMatchObject({ status: 409, message: expect.stringContaining('nie zlecaj go drugi raz') });
+    fetchMock.mockRejectedValue(new TypeError('fetch failed'));
+    await expect(b.zwrocPlatnoscPaynow({ walletTxId: tx.id, kwota: 20, actorUserId: u.id })).rejects.toMatchObject({ status: 409 });
+    // Odmowa Paynow (odpowiedź błędu) dalej jest odmową.
+    fetchMock.mockResolvedValue({ ok: false, status: 400, json: async () => ({ errors: [{ errorType: 'INSUFFICIENT_BALANCE_FUNDS' }] }) });
+    await expect(b.zwrocPlatnoscPaynow({ walletTxId: tx.id, kwota: 20, actorUserId: u.id })).rejects.toMatchObject({ status: 400 });
+    expect((await prisma().paynowPlatnosc.findUniqueOrThrow({ where: { id: rek.id } })).zwroconoMinor).toBe(0);
+    expect((await prisma().user.findUniqueOrThrow({ where: { id: u.id } })).walletBalance.toFixed(2)).toBe('45.67');
+  });
 });

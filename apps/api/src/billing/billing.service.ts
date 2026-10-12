@@ -866,17 +866,20 @@ export class BillingService {
         ? { refundId: `panel-${idem}`, status: 'WYKONANY_W_PANELU' }
         : await paynow.zwrot(rek.paymentId, { amount: kwotaMinor, reason: 'OTHER' }, idem);
     } catch (err) {
-      if (err instanceof PaynowBezTresci) {
-        // 12.10 — 2xx bez refundId: zwrot mógł zostać przyjęty. Nie zapisujemy cofnięcia na ślepo i nie zlecamy drugiego —
-        // operator sprawdza w panelu Paynow i, jeśli zwrot jest, zapisuje go trybem „zwrot zrobiony w Paynow”.
-        this.logger.error(`Paynow: zwrot ${rek.paymentId} — ${err.message}; stan zwrotu nieznany, do sprawdzenia w panelu Paynow`);
-        throw new ConflictException(
-          'Paynow przyjął zlecenie zwrotu, ale nie podał jego numeru. Sprawdź zwrot w panelu Paynow — jeśli jest, zapisz go przyciskiem „Zwrot zrobiony w Paynow”; nie zlecaj go drugi raz.',
-        );
+      if (err instanceof PaynowBlad) {
+        this.logger.error(`Paynow: zwrot ${rek.paymentId} odrzucony: ${err.message}`);
+        throw new BadRequestException(`Paynow odrzucił zwrot${err.typyBledow.length ? ` (${err.typyBledow.join(', ')})` : ''}.`);
       }
-      const typy = err instanceof PaynowBlad ? err.typyBledow.join(', ') : '';
-      this.logger.error(`Paynow: zwrot ${rek.paymentId} odrzucony: ${err instanceof Error ? err.message : String(err)}`);
-      throw new BadRequestException(`Paynow odrzucił zwrot${typy ? ` (${typy})` : ''}.`);
+      // 12.10 — 2xx bez refundId (PaynowBezTresci) albo brak odpowiedzi (przekroczony czas, zerwane połączenie —
+      // przegląd 12.10): zwrot mógł zostać przyjęty. Odmową jest tylko odpowiedź błędu Paynow (PaynowBlad). Nie zapisujemy
+      // cofnięcia na ślepo i nie zlecamy drugiego — operator sprawdza w panelu Paynow i, jeśli zwrot jest, zapisuje go
+      // trybem „zwrot zrobiony w Paynow”.
+      this.logger.error(`Paynow: zwrot ${rek.paymentId} — ${err instanceof Error ? err.message : String(err)}; stan zwrotu nieznany, do sprawdzenia w panelu Paynow`);
+      throw new ConflictException(
+        err instanceof PaynowBezTresci
+          ? 'Paynow przyjął zlecenie zwrotu, ale nie podał jego numeru. Sprawdź zwrot w panelu Paynow — jeśli jest, zapisz go przyciskiem „Zwrot zrobiony w Paynow”; nie zlecaj go drugi raz.'
+          : 'Paynow nie odpowiedział na zlecenie zwrotu (przekroczony czas albo zerwane połączenie) — zwrot mógł zostać przyjęty. Sprawdź go w panelu Paynow — jeśli jest, zapisz go przyciskiem „Zwrot zrobiony w Paynow”; nie zlecaj go drugi raz.',
+      );
     }
     const wplata = await this.prisma.walletTransaction.findUniqueOrThrow({ where: { id: i.walletTxId } });
     const wynik = await this.prisma.$transaction(async (tx) => {
@@ -884,6 +887,14 @@ export class BillingService {
       const [r] = await tx.$queryRaw<Array<{ zwroconoMinor: number; zwrotyIds: string[] }>>`SELECT "zwroconoMinor", "zwrotyIds" FROM "PaynowPlatnosc" WHERE "id" = ${rek.id} FOR UPDATE`;
       if (!r || r.zwrotyIds.includes(odp.refundId)) return null;
       const narastajaco = r.zwroconoMinor + kwotaMinor;
+      // Przegląd 12.10 — kwotę sprawdzaliśmy przed blokadą: dwa równoległe zwroty (np. dwa zapisy „zwrot zrobiony
+      // w Paynow” na różne kwoty) mogły razem przekroczyć wpłatę i cofnąć z portfela więcej, niż klient zapłacił.
+      if (narastajaco > rek.kwotaMinor) {
+        this.logger.error(`Paynow: zwrot ${odp.refundId} (${kwotaMinor} gr) przekroczyłby wpłatę ${rek.id} — nie zapisano`);
+        throw new ConflictException(
+          `Suma zwrotów przekroczyłaby wpłatę (zostało ${((rek.kwotaMinor - r.zwroconoMinor) / 100).toFixed(2)} zł) — równolegle zapisano inny zwrot. Nic nie cofnięto z portfela; sprawdź zwroty w panelu Paynow.`,
+        );
+      }
       await tx.paynowPlatnosc.update({
         where: { id: rek.id },
         data: { zwroconoMinor: narastajaco, zwrotyIds: { push: odp.refundId } },
