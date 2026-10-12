@@ -49,6 +49,16 @@ function InvoiceDownload({ invoice }: { invoice: InvoiceDto }) {
         >
           Duplikat
         </a>
+        {invoice.ksefXml ? (
+          <a
+            href={`/api/billing/invoices/${invoice.id}/xml`}
+            className={PRZYCISK}
+            title="Plik e-faktury (XML FA(3)) przesłany do Krajowego Systemu e-Faktur"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Pobierz XML (KSeF)
+          </a>
+        ) : null}
       </span>
     );
   }
@@ -86,7 +96,20 @@ function InvoiceDownload({ invoice }: { invoice: InvoiceDto }) {
  * przy numerze, a nie dopiero w PDF-ie — inaczej zaksięguje go jako fakturę.
  */
 function RodzajDokumentu({ invoice }: { invoice: InvoiceDto }) {
-  if (invoice.rodzajPrawny !== 'DOKUMENT_ROZLICZENIOWY') return null;
+  if (invoice.rodzajPrawny !== 'DOKUMENT_ROZLICZENIOWY') {
+    // KSeF 12.10 — numer KSeF przy numerze faktury; faktura w drodze do KSeF jest oznaczona wprost.
+    if (invoice.ksefNumber) {
+      return (
+        <span className="mt-1 block text-xs text-neutral-400">
+          KSeF <span className="break-all font-mono text-neutral-200">{invoice.ksefNumber}</span>
+        </span>
+      );
+    }
+    if (invoice.ksefXml) {
+      return <span className="mt-1 block text-xs text-amber-200/80">KSeF: numer w trakcie nadawania</span>;
+    }
+    return null;
+  }
   return (
     <span className="mt-1 block text-xs text-neutral-400">
       Dokument rozliczeniowy ·{' '}

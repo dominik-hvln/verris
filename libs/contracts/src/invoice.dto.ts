@@ -34,6 +34,13 @@ export interface InvoiceDto {
   rodzajPrawny: InvoiceLegalKind;
   externalInvoiceNumber: string | null;
   externalInvoiceAt: string | null;
+  /** KSeF 12.10 — numer nadany przez KSeF (gdy już jest). */
+  ksefNumber: string | null;
+  /**
+   * KSeF 12.10 — faktura ma plik w KSeF: PDF (GET billing/invoices/:id/pdf) jest jego wizualizacją
+   * z kodem QR, a sam XML jest do pobrania przez GET billing/invoices/:id/xml.
+   */
+  ksefXml: boolean;
 }
 
 export interface InvoiceListResponse {
