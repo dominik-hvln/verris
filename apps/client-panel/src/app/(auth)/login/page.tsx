@@ -12,6 +12,7 @@ import { VerrisLockup } from "@/components/logo";
 import { VerrisPatternLayer } from "@/components/brand/brand-pattern";
 import { Captcha } from "@/components/captcha";
 import { PolePowrotu } from "./pole-powrotu";
+import { RegionBledu } from "@/components/region-bledu";
 
 const initialLoginState = {} as Awaited<ReturnType<typeof submitLogin>>;
 const initialTwoFactorState = {} as Awaited<ReturnType<typeof submitTwoFactor>>;
@@ -21,6 +22,11 @@ export default function LoginPage() {
     submitLogin,
     initialLoginState,
   );
+
+  // P-12: na czas wysyłki błąd znika z regionu żywego — ten sam komunikat po kolejnej próbie
+  // zostanie ogłoszony ponownie. Pola wskazują go przez aria-describedby (nie dotyczy „potwierdź e-mail”).
+  const blad = loginPending ? null : (loginState?.error ?? null);
+  const bladPol = Boolean(blad && !loginState?.emailUnverified);
 
   if (loginState?.twoFactorRequired && loginState.challengeToken) {
     return (
@@ -48,13 +54,14 @@ export default function LoginPage() {
           <Suspense fallback={null}>
             <LoginNotices />
           </Suspense>
-          {loginState?.error && (
+          <RegionBledu id="login-blad">
+          {blad && (
             <div className="mb-2 animate-in space-y-2 fade-in zoom-in-95">
               {loginState.emailUnverified ? (
                 <div className="flex items-start gap-3 rounded-xl border border-verris-mid/30 bg-verris-green/10 p-4 text-sm text-foreground">
                   <Mail className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
                   <div className="space-y-2">
-                    <p>{loginState.error}</p>
+                    <p>{blad}</p>
                     {loginState.email ? (
                       <a
                         href={`/resend-verification?email=${encodeURIComponent(loginState.email)}`}
@@ -67,12 +74,13 @@ export default function LoginPage() {
                 </div>
               ) : (
                 <div className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm font-medium text-destructive">
-                  <AlertCircle className="h-5 w-5 shrink-0" />
-                  {loginState.error}
+                  <AlertCircle aria-hidden className="h-5 w-5 shrink-0" />
+                  {blad}
                 </div>
               )}
             </div>
           )}
+          </RegionBledu>
 
           <div className="space-y-2">
             <label htmlFor="email" className="text-sm font-semibold text-verris-body">
@@ -85,6 +93,8 @@ export default function LoginPage() {
               autoComplete="username webauthn"
               placeholder="jan@kowalski.pl"
               required
+              aria-invalid={bladPol || undefined}
+              aria-describedby={bladPol ? "login-blad" : undefined}
               defaultValue={loginState?.email ?? ""}
               className="w-full rounded-xl border border-border bg-verris-pine/40 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground transition-all duration-300 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
             />
@@ -108,6 +118,8 @@ export default function LoginPage() {
               type="password"
               autoComplete="current-password"
               required
+              aria-invalid={bladPol || undefined}
+              aria-describedby={bladPol ? "login-blad" : undefined}
               className="w-full rounded-xl border border-border bg-verris-pine/40 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground transition-all duration-300 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
@@ -142,6 +154,7 @@ function TwoFactorScreen({
     initialTwoFactorState,
   );
   const [code, setCode] = useState("");
+  const blad = pending ? null : (state?.error ?? null);
 
   useEffect(() => {
     document.getElementById("totp-code")?.focus();
@@ -168,12 +181,14 @@ function TwoFactorScreen({
         <input type="hidden" name="challengeToken" value={challengeToken} />
         {next ? <input type="hidden" name="next" value={next} /> : null}
         <div className="space-y-5 p-8">
-          {state?.error && (
-            <div className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm font-medium text-destructive">
-              <AlertCircle className="h-5 w-5 shrink-0" />
-              {state.error}
-            </div>
-          )}
+          <RegionBledu id="totp-blad">
+            {blad && (
+              <div className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm font-medium text-destructive">
+                <AlertCircle aria-hidden className="h-5 w-5 shrink-0" />
+                {blad}
+              </div>
+            )}
+          </RegionBledu>
 
           <div className="space-y-2">
             <label htmlFor="totp-code" className="text-sm font-semibold text-verris-body">
@@ -185,6 +200,8 @@ function TwoFactorScreen({
               autoComplete="one-time-code"
               inputMode="numeric"
               required
+              aria-invalid={blad ? true : undefined}
+              aria-describedby={blad ? "totp-blad" : undefined}
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\s/g, ""))}
               placeholder="123 456"

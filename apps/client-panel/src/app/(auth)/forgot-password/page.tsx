@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { requestPasswordReset } from "./actions";
 import { AlertCircle, Loader2, Mail } from "lucide-react";
+import { RegionBledu } from "@/components/region-bledu";
 import { SpinBorder } from "@/components/spin-border";
 import { VerrisLockup } from "@/components/logo";
 import { Captcha } from "@/components/captcha";
@@ -54,12 +55,14 @@ export default function ForgotPasswordPage() {
             ) : (
               <form action={action}>
                 <div className="p-8 space-y-5">
-                  {state.error && (
-                    <div className="flex items-center gap-3 p-4 text-sm font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl">
-                      <AlertCircle className="h-5 w-5 shrink-0" />
-                      {state.error}
-                    </div>
-                  )}
+                  <RegionBledu id="reset-blad">
+                    {!pending && state?.error ? (
+                      <div className="flex items-center gap-3 p-4 text-sm font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                        <AlertCircle aria-hidden className="h-5 w-5 shrink-0" />
+                        {state.error}
+                      </div>
+                    ) : null}
+                  </RegionBledu>
 
                   <div className="space-y-2">
                     <label htmlFor="email" className="text-sm font-semibold text-verris-body">

@@ -4,6 +4,7 @@ import { Suspense, useActionState, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { submitRegister } from "./actions";
 import { Loader2, AlertCircle, Check, X } from "lucide-react";
+import { RegionBledu } from "@/components/region-bledu";
 import { SpinBorder } from "@/components/spin-border";
 import { VerrisLockup } from "@/components/logo";
 import { Captcha } from "@/components/captcha";
@@ -70,12 +71,14 @@ function RegisterContent() {
             <form action={formAction}>
               {refFromUrl ? <input type="hidden" name="ref" value={refFromUrl} /> : null}
               <div className="p-8 space-y-5">
-                {state?.error && (
-                  <div className="flex items-center gap-3 p-4 text-sm font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl mb-2 animate-in fade-in zoom-in-95">
-                    <AlertCircle className="h-5 w-5 shrink-0" />
-                    {state.error}
-                  </div>
-                )}
+                <RegionBledu id="rejestracja-blad">
+                  {!isPending && state?.error ? (
+                    <div className="flex items-center gap-3 p-4 text-sm font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl mb-2 animate-in fade-in zoom-in-95">
+                      <AlertCircle aria-hidden className="h-5 w-5 shrink-0" />
+                      {state.error}
+                    </div>
+                  ) : null}
+                </RegionBledu>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
