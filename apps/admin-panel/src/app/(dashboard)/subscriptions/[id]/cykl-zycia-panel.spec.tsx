@@ -32,7 +32,7 @@ jest.mock("@/components/wniosek-operacji", () => ({
   ),
 }));
 
-import { CyklZyciaPanel, nowyKoniec, type UslugaCyklu } from "./cykl-zycia-panel";
+import { CyklZyciaPanel, nowyKoniec, plusDni, type UslugaCyklu } from "./cykl-zycia-panel";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -72,6 +72,17 @@ it("nowy koniec okresu: dzień z kalendarza, godzina jak w obecnym końcu", () =
   expect(nowyKoniec("2026-11-27", KONIEC)?.toISOString()).toBe("2026-11-27T09:30:00.000Z");
   expect(nowyKoniec("27.11.2026", KONIEC)).toBeNull();
   expect(nowyKoniec("2026-11-27", null)).toBeNull();
+});
+
+it("przegląd 12.10 — dni liczone w Polsce, nie w UTC: koniec okresu tuż przed północą UTC", () => {
+  // 23:30 UTC = 00:30 następnego dnia w Polsce (CET) — dzień usługi to 27.11, nie 26.11.
+  const poznym = "2026-11-26T23:30:00.000Z";
+  expect(plusDni(poznym, 0)).toBe("2026-11-27");
+  expect(plusDni(poznym, 7)).toBe("2026-12-04");
+  expect(nowyKoniec("2026-12-04", poznym)?.toISOString()).toBe("2026-12-03T23:30:00.000Z");
+  // Przez zmianę czasu (25.10.2026): 00:30 CEST → 00:30 CET tego samego zegara w Polsce.
+  expect(nowyKoniec("2026-10-28", "2026-10-20T22:30:00.000Z")?.toISOString()).toBe("2026-10-27T23:30:00.000Z");
+  expect(plusDni("2026-10-20T22:30:00.000Z", 7)).toBe("2026-10-28");
 });
 
 it("L2: anulacja wymaga powodu, potwierdzenia; wysyła powód i zgłoszenie; data odnowienia i dodatek — tylko wniosek", async () => {

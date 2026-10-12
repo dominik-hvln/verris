@@ -7,6 +7,7 @@ import { Select } from "@/components/select";
 import { PoleDaty } from "@/components/pole-daty";
 import { WyslijWniosek } from "@/components/wniosek-operacji";
 import { POLE } from "@/components/kolejka-poczty";
+import { dzienOGodziniePl, dzienPl, naTekst, przesun, rozbierz, STREFA_PL } from "@/lib/kalendarz";
 import { brakUprawnienia, type DostepDoAkcji } from "@/lib/akcje/wezel";
 import { cyklZyciaAction, dodajDodatekAction, dodatkiUslugiAction, type DodatkiUslugi, type OperacjaCyklu, type WynikCyklu } from "./cykl-zycia-actions";
 
@@ -26,20 +27,22 @@ const MIN_POWOD = 10;
 const OBIETNICA_MAKS_DNI = 7;
 const DZIEN = 86_400_000;
 const KOSZT = { wszystkie: ["BILLING_MANAGE", "SUBSCRIPTIONS_MANAGE"] } as const;
-const dzien = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("pl-PL") : "—");
-const naDzien = (d: Date) => d.toISOString().slice(0, 10);
+// Dni w Polsce, nie w UTC ani w strefie przeglądarki (przegląd 12.10): koniec okresu 23:30 UTC to już następny dzień.
+const dzien = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("pl-PL", { timeZone: STREFA_PL }) : "—");
+/** Dzień (w Polsce) `n` dni kalendarzowych po `iso` — do przycisków „+7/+14”. */
+export const plusDni = (iso: string, n: number) => naTekst(przesun(rozbierz(dzienPl(new Date(iso)))!.dzien, n));
 const przycisk = "rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-neutral-200 hover:text-white disabled:opacity-50";
 
 /**
- * Nowy koniec okresu z dnia z kalendarza: godzina jak w obecnym końcu okresu (odnowienie o tej samej porze), żeby
- * „+7 dni” dawało dokładnie 7 dni, a nie przesunięcie o strefę czasową.
+ * Nowy koniec okresu z dnia z kalendarza (dzień w Polsce): godzina jak w obecnym końcu okresu w Polsce (odnowienie
+ * o tej samej porze), żeby „+7 dni” dawało 7 dni, a nie przesunięcie o strefę czasową.
  */
 export function nowyKoniec(dzienIso: string, staryKoniec: string | null): Date | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dzienIso);
-  if (!m || !staryKoniec) return null;
+  const r = /^\d{4}-\d{2}-\d{2}$/.test(dzienIso) ? rozbierz(dzienIso) : null;
+  if (!r || !staryKoniec) return null;
   const s = new Date(staryKoniec);
-  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), s.getUTCHours(), s.getUTCMinutes(), s.getUTCSeconds(), s.getUTCMilliseconds()));
-  return Number.isNaN(d.getTime()) ? null : d;
+  if (Number.isNaN(s.getTime())) return null;
+  return dzienOGodziniePl(r.dzien, s);
 }
 
 /**
@@ -141,7 +144,7 @@ export function CyklZyciaPanel({ u, dostep }: { u: UslugaCyklu; dostep: DostepDo
               <div className="flex flex-wrap items-center gap-1.5">
                 <PoleDaty value={dataOdn} onChange={setDataOdn} aria-label="Nowa data odnowienia" placeholder="Nowa data" />
                 {[7, 14, 30].map((n) => (
-                  <button key={n} type="button" className={przycisk} disabled={pending || !u.currentPeriodEnd} data-akcja={`plus-${n}`} onClick={() => setDataOdn(naDzien(new Date(new Date(u.currentPeriodEnd!).getTime() + n * DZIEN)))}>
+                  <button key={n} type="button" className={przycisk} disabled={pending || !u.currentPeriodEnd} data-akcja={`plus-${n}`} onClick={() => setDataOdn(plusDni(u.currentPeriodEnd!, n))}>
                     +{n} dni
                   </button>
                 ))}

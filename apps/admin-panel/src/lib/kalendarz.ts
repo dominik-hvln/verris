@@ -70,3 +70,40 @@ export function dzis(): Dzien {
 
 export const taSamaData = (a: Dzien | null | undefined, b: Dzien | null | undefined) =>
   !!a && !!b && a.rok === b.rok && a.miesiac === b.miesiac && a.dzien === b.dzien;
+
+/** Strefa operatorów i klientów — „dzień” usługi (odnowienie, anulacja) to dzień w Polsce, nie w UTC. */
+export const STREFA_PL = 'Europe/Warsaw';
+
+function czesciPl(d: Date) {
+  const p: Record<string, string> = {};
+  for (const x of new Intl.DateTimeFormat('en-GB', {
+    timeZone: STREFA_PL,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(d)) p[x.type] = x.value;
+  return { rok: +p.year!, miesiac: +p.month! - 1, dzien: +p.day!, godzina: +p.hour!, minuta: +p.minute!, sekunda: +p.second! };
+}
+
+/** Dzień chwili `d` w Polsce, w formacie pola daty („2026-11-27”). */
+export function dzienPl(d: Date): string {
+  const c = czesciPl(d);
+  return naTekst({ rok: c.rok, miesiac: c.miesiac, dzien: c.dzien });
+}
+
+/** Ten sam zegar co `wzor` w Polsce, ale w dniu `d` (polskim) — z uwzględnieniem zmiany czasu letni/zimowy. */
+export function dzienOGodziniePl(d: Dzien, wzor: Date): Date {
+  const c = czesciPl(wzor);
+  const lokalnie = Date.UTC(d.rok, d.miesiac, d.dzien, c.godzina, c.minuta, c.sekunda, wzor.getUTCMilliseconds());
+  const przesuniecie = (t: number) => {
+    const x = czesciPl(new Date(t));
+    return Date.UTC(x.rok, x.miesiac, x.dzien, x.godzina, x.minuta, x.sekunda) - Math.floor(t / 1000) * 1000;
+  };
+  // Dwa kroki: przesunięcie strefy w szukanej chwili może być inne niż w chwili „lokalnie” traktowanej jak UTC.
+  const t = lokalnie - przesuniecie(lokalnie);
+  return new Date(lokalnie - przesuniecie(t));
+}
