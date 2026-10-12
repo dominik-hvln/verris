@@ -389,7 +389,8 @@ export class RenewalScheduler {
     // wtedy okres jest już przesunięty i usługa nie może wrócić do „zaległa” z karencją.
     const oznaczone = await this.prisma.subscription.updateMany({
       where: { id: subscriptionId, status: SubscriptionStatus.ACTIVE, currentPeriodEnd: periodEnd },
-      data: { status: SubscriptionStatus.PAST_DUE },
+      // Nowa zaległość: obietnica zapłaty z poprzedniej (paymentPromiseUntil) jej nie obejmuje (przegląd 12.10).
+      data: { status: SubscriptionStatus.PAST_DUE, paymentPromiseUntil: null },
     });
     if (oznaczone.count === 0) return;
     await this.prisma.subscriptionEvent.create({
@@ -431,7 +432,8 @@ export class RenewalScheduler {
 
     for (const sub of candidates) {
       // F3.5 — obietnica zapłaty (operator, maks. 7 dni): do tej chwili bez zawieszenia; po niej normalny cykl
-      // (karencja liczona jak dotąd od PAYMENT_FAILED, więc zawieszenie w pierwszym przebiegu po dacie).
+      // (karencja liczona jak dotąd od PAYMENT_FAILED, więc zawieszenie w pierwszym przebiegu po dacie). Dotyczy
+      // tylko zaległości, w której ją dano — przejście ACTIVE → PAST_DUE (markPastDue, markPastDueFromStripe) ją zeruje.
       if (sub.paymentPromiseUntil && sub.paymentPromiseUntil > now) continue;
       const graceStart = sub.events[0]?.createdAt ?? sub.currentPeriodEnd ?? new Date();
       if (graceStart > cutoff) continue;

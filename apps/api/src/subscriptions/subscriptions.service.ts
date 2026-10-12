@@ -2267,9 +2267,10 @@ export class SubscriptionsService {
       return sub;
     }
 
+    // Nowa zaległość: obietnica zapłaty z poprzedniej (paymentPromiseUntil) jej nie obejmuje (przegląd 12.10).
     const updated = await this.prisma.subscription.update({
       where: { id: sub.id },
-      data: { status: SubscriptionStatus.PAST_DUE },
+      data: { status: SubscriptionStatus.PAST_DUE, paymentPromiseUntil: null },
     });
     await this.prisma.subscriptionEvent.create({
       data: {
