@@ -131,12 +131,25 @@ describe('K3 — limity indywidualne usługi', () => {
   it('błąd zapisu w bazie po zmianie na węźle: węzeł dostaje z powrotem poprzednie limity, wpis w dzienniku', async () => {
     const u = await usluga();
     // Własny Proxy (nie Object.create): klient Prismy sam jest Proxy i przypisanie przez prototyp zepsułoby go innym testom.
+    // Zapis na węźle idzie w tej samej transakcji (blokada usługi) — pada pierwszy zapis w bazie PO węźle.
+    const padaZapis = <T extends object>(tx: T) =>
+      new Proxy(tx, {
+        get: (t, k) =>
+          k === 'subscription'
+            ? new Proxy(Reflect.get(t, k) as object, {
+                get: (d, m) =>
+                  m === 'update'
+                    ? async () => {
+                        throw new Error('deadlock detected');
+                      }
+                    : Reflect.get(d, m),
+              })
+            : Reflect.get(t, k),
+      });
     const p = new Proxy(prisma(), {
       get: (cel, klucz) =>
         klucz === '$transaction'
-          ? async () => {
-              throw new Error('deadlock detected');
-            }
+          ? (fn: (tx: unknown) => Promise<unknown>, o: never) => cel.$transaction((tx) => fn(padaZapis(tx)), o)
           : Reflect.get(cel, klucz),
     });
     await expect(svc(p as never).ustaw(zlecenie(u, { diskLimitMb: 102400 }))).rejects.toThrow('limity na serwerze przywrócone');
