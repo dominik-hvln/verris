@@ -27,6 +27,7 @@ import {
   WALLET_TX_TYPE_PL,
   etykietaWpisuPortfela,
   etykieta,
+  domenaDoWyswietlenia,
 } from "@verris/contracts";
 
 export const dynamic = "force-dynamic";
@@ -250,7 +251,7 @@ export default async function StaffCustomerProfilePage({
                   <li key={s.id}>
                     <Link href={`${baza}/subscriptions/${s.id}`} className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm hover:bg-white/[0.04]">
                       <span className="min-w-0 flex-1">
-                        <span className="font-medium text-white">{s.account?.domain ?? s.serviceTag ?? s.plan.name}</span>
+                        <span className="font-medium text-white">{domenaDoWyswietlenia(s.account?.domain) ?? s.serviceTag ?? s.plan.name}</span>
                         <span className="block text-xs text-muted-foreground">
                           {[s.plan.name, s.account?.server ? s.account.server.name ?? s.account.server.hostname : null].filter(Boolean).join(" · ")}
                         </span>
@@ -397,7 +398,7 @@ export default async function StaffCustomerProfilePage({
                         <td className="px-4 py-3 font-mono text-xs">
                           {s.account ? (
                             <>
-                              <div>{s.account.domain}</div>
+                              <div>{domenaDoWyswietlenia(s.account.domain)}</div>
                               <div className="text-muted-foreground">DA: {s.account.daUsername}</div>
                             </>
                           ) : (

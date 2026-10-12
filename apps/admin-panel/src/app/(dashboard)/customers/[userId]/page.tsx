@@ -12,6 +12,7 @@ import {
   WALLET_TX_TYPE_PL,
   etykietaWpisuPortfela,
   etykieta,
+  domenaDoWyswietlenia,
 } from "@verris/contracts";
 import { formatCredits, formatPlnAndCredits } from "@/lib/credits";
 import { AdminApiError, adminApi } from "@/lib/api";
@@ -244,7 +245,7 @@ export default async function AdminCustomerCardPage({
     return (
       <div key={s.id} className={WIERSZ}>
         <Link href={`/subscriptions/${s.id}`} className="flex min-w-0 flex-1 flex-col hover:underline">
-          <span className="font-semibold">{s.account?.domain ?? s.serviceTag ?? s.plan.name}</span>
+          <span className="font-semibold">{domenaDoWyswietlenia(s.account?.domain) ?? s.serviceTag ?? s.plan.name}</span>
           <span className="text-[12.5px] text-muted-foreground">
             {[s.plan.name, s.account?.server ? s.account.server.name ?? s.account.server.ipAddress : null].filter(Boolean).join(" · ")}
           </span>
@@ -594,7 +595,7 @@ export default async function AdminCustomerCardPage({
                 wolnoZmiana={operacjePortfela}
                 uslugi={p.subscriptions
                   .filter((s) => s.paymentSource === "WALLET" && (s.status === "ACTIVE" || s.status === "PAST_DUE") && !s.cancelAt && s.currentPeriodEnd)
-                  .map((s) => ({ id: s.id, etykieta: `${s.plan.name}${s.account?.domain ? ` · ${s.account.domain}` : ""} · odnowienie ${s.currentPeriodEnd!.slice(0, 10)}` }))}
+                  .map((s) => ({ id: s.id, etykieta: `${s.plan.name}${s.account?.domain ? ` · ${domenaDoWyswietlenia(s.account.domain)}` : ""} · odnowienie ${s.currentPeriodEnd!.slice(0, 10)}` }))}
               />
             ) : null}
             <section className={KARTA} aria-labelledby="faktury" data-karta="faktury">

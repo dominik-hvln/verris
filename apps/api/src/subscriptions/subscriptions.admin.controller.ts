@@ -49,6 +49,7 @@ import { filtryDoDziennika, ListaUslugQuery, stronaListy, USLUGI_MAX_EKSPORT, wa
 import { RequestInternalMigrationDto } from './dto/migration.dto.js';
 import { opisLimitow } from './limity-indywidualne.js';
 import { planResourceFields } from '../servers/da-package-spec.js';
+import { domenaDoWyswietlenia } from '@verris/contracts';
 import {
   AdminChangePlanDto,
   AdminPreviewPlanChangeDto,
@@ -265,7 +266,8 @@ export class SubscriptionsAdminController {
     const csv = rowsToCsv(rows, [
       { header: 'id', value: (r) => r.id },
       { header: 'usluga', value: (r) => r.serviceTag ?? r.account?.daUsername ?? null },
-      { header: 'domena', value: (r) => r.account?.domain ?? null },
+      // Weryfikacja 12.10 — domena usuniętego konta czytelna („x.pl (usunięta)”), id usługi w kolumnie `id` bez zmian.
+      { header: 'domena', value: (r) => domenaDoWyswietlenia(r.account?.domain) ?? null },
       { header: 'plan', value: (r) => r.plan.name },
       { header: 'stan', value: (r) => r.status },
       { header: 'cena', value: (r) => (r.individualPrice ?? r.priceAmount).toString() },

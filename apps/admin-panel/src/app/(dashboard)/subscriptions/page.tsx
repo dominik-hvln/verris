@@ -12,6 +12,7 @@ import { listAdminPlans } from "../plans/data";
 import { listAdminSubscriptions, parametryUslug, type FiltryUslug } from "./data";
 import { STAN_USLUGI, stanUslugi } from "@/lib/stan-uslugi";
 import { naStronie, naStronieWAdresie } from "@/lib/na-stronie";
+import { domenaDoWyswietlenia } from "@verris/contracts";
 
 export const dynamic = "force-dynamic";
 
@@ -153,7 +154,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
             return (
               <Link key={r.id} href={`/subscriptions/${r.id}`} className={`${WIERSZ} hover:bg-raised`}>
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="font-semibold">{r.account?.domain ?? r.serviceTag ?? r.plan.name}</span>
+                  <span className="font-semibold">{domenaDoWyswietlenia(r.account?.domain) ?? r.serviceTag ?? r.plan.name}</span>
                   <span className="text-[12.5px] text-muted-foreground">
                     {[r.plan.name, klient, r.serviceTag ?? r.account?.daUsername].filter(Boolean).join(" · ")}
                   </span>

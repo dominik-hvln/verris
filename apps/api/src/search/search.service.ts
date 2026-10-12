@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { domenaDoWyswietlenia } from '@verris/contracts';
 import type { StaffPermission } from '../staff-roles/staff-permissions.catalog.js';
 import { uprawnieniaOperatora } from '../staff-roles/uprawnienia-operatora.js';
 
@@ -207,7 +208,7 @@ export class SearchService {
       results.push({
         type: 'domain',
         id: a.id,
-        title: a.domain,
+        title: domenaDoWyswietlenia(a.domain),
         subtitle: `Domena · konto ${a.daUsername}`,
         href: a.subscriptionId ? `/subscriptions/${a.subscriptionId}` : '/subscriptions',
         userId: a.userId,

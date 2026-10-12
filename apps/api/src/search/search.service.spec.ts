@@ -70,6 +70,15 @@ describe('SearchService — typy według uprawnień', () => {
     expect(r.results.find((x) => x.type === 'service')).toMatchObject({ id: 's1', status: 'PROVISIONING', userId: 'u1', href: '/subscriptions/s1' });
   });
 
+  it('weryfikacja 12.10 — domena usuniętego konta w wyniku bez technicznego przyrostka', async () => {
+    const s = stanowisko([]);
+    s.prisma.account.findMany.mockResolvedValueOnce([
+      { id: 'a1', domain: 'z18b.d3.hvln.pl~usuniete-97c925b0-a215-40bc-9c78-28752e3cc91b', daUsername: 'z18b', subscriptionId: 's9', userId: 'u1' },
+    ] as never);
+    const r = await s.svc.search('z18b', { role: 'ADMIN', userId: 'a' });
+    expect(r.results.find((x) => x.type === 'domain')).toMatchObject({ title: 'z18b.d3.hvln.pl (usunięta)', href: '/subscriptions/s9' });
+  });
+
   // Przegląd 10.10: paleta pokazywała „Ponów albo odrzuć zakładanie” dla każdej usługi w PROVISIONING, a sekcja
   // #zakladanie jest na karcie tylko po nieudanym zakładaniu.
   it('usługa: zakładanieNieudane tylko po nieudanym zakładaniu (etap failed)', async () => {

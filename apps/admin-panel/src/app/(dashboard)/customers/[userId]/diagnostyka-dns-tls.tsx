@@ -6,6 +6,7 @@ import { Select } from "@/components/select";
 import { KARTA, NaglowekKarty, PRZYCISK } from "@/components/v2";
 import type { ProfilKlienta } from "./profil-data";
 import { diagnostykaDnsTlsAction } from "./diagnostyka-actions";
+import { domenaDoWyswietlenia } from "@verris/contracts";
 
 /**
  * PB-46 — diagnostyka DNS + TLS na karcie klienta admina. Odtworzona z panelu obsługi (StaffDnsTlsPanel)
@@ -55,7 +56,7 @@ export function DiagnostykaDnsTls({ userId, subscriptions }: { userId: string; s
               options={
                 zKontem.length === 0
                   ? [{ value: "", label: "Brak konta z domeną" }]
-                  : zKontem.map((s) => ({ value: s.id, label: `${s.plan.name} — ${s.account?.domain}` }))
+                  : zKontem.map((s) => ({ value: s.id, label: `${s.plan.name} — ${domenaDoWyswietlenia(s.account?.domain)}` }))
               }
             />
           </div>

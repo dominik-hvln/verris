@@ -18,4 +18,9 @@ describe('usługa zgłoszenia', () => {
     expect(nazwaUslugi({ id: '1', plan: { name: 'Poczta' }, account: null })).toBe('Poczta');
     expect(nazwaUslugi({ id: '1' })).toBe('Usługa');
   });
+
+  it('weryfikacja 12.10 — usługa usuniętego konta: domena bez technicznego przyrostka', () => {
+    const domain = 'z18b.d3.hvln.pl~usuniete-97c925b0-a215-40bc-9c78-28752e3cc91b';
+    expect(nazwaUslugi({ id: '1', planName: 'Hosting', account: { domain } })).toBe('z18b.d3.hvln.pl (usunięta)');
+  });
 });

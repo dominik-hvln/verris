@@ -14,6 +14,7 @@ import { brakUprawnienia } from "@/lib/akcje/wezel";
 import { PoleDaty } from "@/components/pole-daty";
 import { Pigulka } from "@/components/v2";
 import { KSEF, stanKsef } from "./ksef-etykiety";
+import { domenaDoWyswietlenia } from "@verris/contracts";
 
 export const dynamic = "force-dynamic";
 
@@ -290,7 +291,7 @@ function InvoiceRow({ inv }: { inv: AdminInvoiceRow }) {
           <>
             <div className="text-white">{inv.subscription.planName ?? "—"}</div>
             <div className="text-muted-foreground font-mono text-[11px]">
-              {inv.subscription.domain ?? "(brak domeny)"}
+              {domenaDoWyswietlenia(inv.subscription.domain) ?? "(brak domeny)"}
             </div>
           </>
         ) : (

@@ -23,6 +23,7 @@ import type {
   ServiceHealthSummaryDto,
   ServiceRecommendationDto,
 } from '@verris/contracts';
+import { domenaDoWyswietlenia } from '@verris/contracts';
 import { Button } from '@verris/ui';
 import {
   fetchServiceDetailsAction as fetchServiceDetailsActionAkcja,
@@ -249,7 +250,7 @@ export default function ServiceOverviewTab({
 
       <HostingTabShell
         title={service.plan.name}
-        description={account?.domain ?? 'Dashboard usługi hostingowej'}
+        description={domenaDoWyswietlenia(account?.domain) ?? 'Dashboard usługi hostingowej'}
         icon={<Activity className="h-4 w-4" />}
         actions={
           <Button

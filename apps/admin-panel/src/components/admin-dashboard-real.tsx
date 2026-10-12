@@ -4,6 +4,7 @@ import type { AdminDashboardOverview } from "@/lib/admin-overview-data";
 import { stanUslugi } from "@/lib/stan-uslugi";
 import { Eyebrow, LinkKarty, NaglowekKarty, Pasek, Pigulka } from "./v2";
 import { clients, days, plForm, plural } from "@/lib/pl";
+import { domenaDoWyswietlenia } from "@verris/contracts";
 
 /**
  * PB-34 — pulpit admina 1:1 z makiety Main.dc.html („Stan platformy”).
@@ -288,7 +289,7 @@ export function AdminDashboardReal({ o, dostep }: { o: AdminDashboardOverview; d
               return (
                 <div key={s.id} className="flex items-center gap-3.5 border-t border-line px-[18px] py-[13px]">
                   <Link href={`/customers/${s.klientId}`} className="flex min-w-0 flex-1 flex-col hover:underline">
-                    <span className="truncate text-sm font-semibold">{s.domena ?? s.klient}</span>
+                    <span className="truncate text-sm font-semibold">{domenaDoWyswietlenia(s.domena) ?? s.klient}</span>
                     <span className="truncate text-[12.5px] text-muted-foreground">{opis.join(" · ")}</span>
                   </Link>
                   <Pigulka ton={st.ton} className="!text-xs">

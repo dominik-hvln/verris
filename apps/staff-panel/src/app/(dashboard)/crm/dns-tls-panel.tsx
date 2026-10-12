@@ -5,6 +5,7 @@ import { AlertCircle, Loader2, Play } from "lucide-react";
 import { Select } from "@/components/select";
 import type { StaffCustomerProfile } from "@/lib/crm-profile-data";
 import { staffRunDnsTlsDiagnosticAction } from "./actions";
+import { domenaDoWyswietlenia } from "@verris/contracts";
 
 interface Props {
   userId: string;
@@ -66,7 +67,7 @@ export function StaffDnsTlsPanel({ userId, subscriptions }: Props) {
               options={
                 withAccount.length === 0
                   ? [{ value: "", label: "Brak konta z domeną" }]
-                  : withAccount.map((s) => ({ value: s.id, label: `${s.plan.name} — ${s.account?.domain}` }))
+                  : withAccount.map((s) => ({ value: s.id, label: `${s.plan.name} — ${domenaDoWyswietlenia(s.account?.domain)}` }))
               }
             />
           </div>

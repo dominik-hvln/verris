@@ -85,6 +85,16 @@ describe("karta usługi", () => {
     expect(html).not.toContain('id="zakladanie"');
   });
 
+  it("weryfikacja 12.10 — usunięte konto: nagłówek i „Konto hostingowe” z „(usunięta)”, bez technicznego przyrostka", async () => {
+    const domain = "z18b.d3.hvln.pl~usuniete-97c925b0-a215-40bc-9c78-28752e3cc91b";
+    const html = await render(undefined, {
+      [`/admin/subscriptions/${SUB}`]: usluga({ status: "CANCELED", account: { id: "a1", domain, daUsername: "z18b", status: "DELETED", server: null } }),
+    });
+    expect(html).not.toContain("~usuniete");
+    expect(html).toContain("z18b.d3.hvln.pl (usunięta)</h1>");
+    expect(html).toContain("z18b.d3.hvln.pl (usunięta) (z18b)");
+  });
+
   it("nieudane zakładanie: Ponów i Odrzuć na karcie, z jobem tej usługi", async () => {
     const html = await render(undefined, {
       [`/admin/subscriptions/${SUB}`]: usluga({ status: "PROVISIONING", provisioningStage: "failed" }),

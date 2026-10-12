@@ -14,7 +14,7 @@ import { ObslugaUslugi } from "./obsluga-uslugi";
 import { KartaWPaneluOperatora } from "@/components/karta-w-panelu-operatora";
 import { kartaUslugiOperatora } from "@/lib/panel-operatora";
 
-import { SUBSCRIPTION_STATUS_PL as SUB_STATUS_PL } from "@verris/contracts";
+import { SUBSCRIPTION_STATUS_PL as SUB_STATUS_PL, domenaDoWyswietlenia } from "@verris/contracts";
 
 export const dynamic = "force-dynamic";
 
@@ -152,7 +152,7 @@ export default async function StaffSubscriptionReadonlyPage({
         </h2>
         {sub.account ? (
           <div className="p-4 text-sm text-white">
-            <p className="font-mono text-cyan-100/90">{sub.account.domain}</p>
+            <p className="font-mono text-cyan-100/90">{domenaDoWyswietlenia(sub.account.domain)}</p>
             <p className="mt-1 text-xs text-muted-foreground">DA: {sub.account.daUsername}</p>
             <p className="mt-1 text-xs text-muted-foreground">Status konta: {sub.account.status}</p>
             {mozeMigrowacZaKlienta ? (

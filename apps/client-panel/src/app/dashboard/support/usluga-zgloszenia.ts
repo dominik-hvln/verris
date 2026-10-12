@@ -3,6 +3,8 @@
  * Czysta logika (bez fetch), żeby dało się ją sprawdzić testem.
  */
 
+import { domenaDoWyswietlenia } from "@verris/contracts";
+
 export interface UslugaDoZgloszenia {
   id: string;
   nazwa: string;
@@ -20,7 +22,7 @@ export interface UslugaZApi {
 /** Domena, a bez niej plan; tag usługi w nawiasie, żeby odróżnić dwa pakiety bez domeny. */
 export function nazwaUslugi(u: UslugaZApi): string {
   const plan = u.planName ?? u.plan?.name ?? null;
-  const glowna = u.account?.domain || plan || "Usługa";
+  const glowna = domenaDoWyswietlenia(u.account?.domain) || plan || "Usługa";
   return u.serviceTag ? `${glowna} (${u.serviceTag})` : glowna;
 }
 

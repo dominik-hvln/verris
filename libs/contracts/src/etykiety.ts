@@ -155,3 +155,22 @@ export function etykieta(mapa: Record<string, string>, kod: string | null | unde
   if (!kod) return '—';
   return mapa[kod] ?? kod;
 }
+
+/**
+ * Przyrostek domeny usuniętego konta („<domena>~usuniete-<id konta>”) — dopisuje go `zwolnionaDomena`
+ * (apps/api/src/compliance/account-deletion.service.ts) i migracja 20260929120000, żeby zwolnić unikalność domeny.
+ */
+const PRZYROSTEK_USUNIETEGO_KONTA = '~usuniete-';
+
+/**
+ * Domena usługi do wyświetlenia: „z18b.pl~usuniete-<uuid>” → „z18b.pl (usunięta)” (weryfikacja na prod 12.10 —
+ * panele obsługi pokazywały techniczny przyrostek). Tylko etykieta — w bazie, w parametrach akcji i w porównaniach
+ * zostaje surowa wartość. Inne domeny (i null) bez zmian.
+ */
+export function domenaDoWyswietlenia(domena: string): string;
+export function domenaDoWyswietlenia(domena: string | null | undefined): string | null | undefined;
+export function domenaDoWyswietlenia(domena: string | null | undefined): string | null | undefined {
+  if (!domena) return domena;
+  const i = domena.indexOf(PRZYROSTEK_USUNIETEGO_KONTA);
+  return i > 0 ? `${domena.slice(0, i)} (usunięta)` : domena;
+}

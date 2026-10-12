@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { decyzjaAction } from "../actions";
 import { Checkbox } from '@/components/checkbox';
+import { domenaDoWyswietlenia } from "@verris/contracts";
 
 /**
  * F2.3 — dopasowana usługa; `mozeZawiesic` — operator ma SUBSCRIPTIONS_SUSPEND, `mozeBlokowac` (F3.1) — MAIL_SEND_BLOCK
@@ -41,7 +42,7 @@ export function DecisionForm({
   // Zawieszona za brak płatności (albo przez partnera) wróciłaby sama po wpłacie — nadużycie trzeba dopisać.
   const doDopisania = !!usluga && usluga.status === "SUSPENDED" && usluga.zawieszonaBezDecyzjiObslugi === true;
   const doZawieszenia = dzialajaca || doDopisania;
-  const nazwa = usluga?.domena ?? "usługę";
+  const nazwa = domenaDoWyswietlenia(usluga?.domena) ?? "usługę";
   const run = (status: "IN_REVIEW" | "ACTION_TAKEN" | "REJECTED") => {
     const zawiesTeraz = status === "ACTION_TAKEN" && zawies && doZawieszenia && mozeZawiesic;
     const blokujTeraz = status === "ACTION_TAKEN" && blokuj && dzialajaca && mozeBlokowac;

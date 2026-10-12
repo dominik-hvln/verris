@@ -6,6 +6,7 @@ jest.mock("@/lib/ticket-actions", () => ({ staffApplyRunbook: jest.fn(), staffLi
 
 import { TicketUsluga, nazwaUslugiZgloszenia } from "./ticket-usluga";
 import { TicketRunbook } from "./ticket-runbook";
+import { domenaDoWyswietlenia } from "@verris/contracts";
 
 const tekst = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 const usluga = { id: "s1", serviceTag: "wnbgswgc", status: "ACTIVE", plan: { name: "Hosting" }, account: { domain: "sklep.pl" } };
@@ -40,6 +41,27 @@ describe("TicketUsluga", () => {
   it("nazwa usługi z obu kształtów (zgłoszenie i podgląd klienta)", () => {
     expect(nazwaUslugiZgloszenia(usluga)).toBe("sklep.pl (wnbgswgc)");
     expect(nazwaUslugiZgloszenia(uslugiKlienta[1])).toBe("Poczta");
+  });
+});
+
+describe("weryfikacja 12.10 — usługa usuniętego konta bez technicznego przyrostka domeny", () => {
+  const SUROWA = "z18b.d3.hvln.pl~usuniete-97c925b0-a215-40bc-9c78-28752e3cc91b";
+
+  it("domenaDoWyswietlenia: „<domena>~usuniete-<uuid>” → „<domena> (usunięta)”, inne wartości bez zmian", () => {
+    expect(domenaDoWyswietlenia(SUROWA)).toBe("z18b.d3.hvln.pl (usunięta)");
+    expect(domenaDoWyswietlenia("sklep.pl")).toBe("sklep.pl");
+    expect(domenaDoWyswietlenia(null)).toBeNull();
+    expect(domenaDoWyswietlenia(undefined)).toBeUndefined();
+  });
+
+  it("karta „Usługa zgłoszenia”, selektor „Zmień:” i nazwa na osi pokazują „(usunięta)”", () => {
+    const usunieta = { ...usluga, serviceTag: null, status: "CANCELED", account: { domain: SUROWA } };
+    const lista = [{ ...uslugiKlienta[0], status: "CANCELED", domain: SUROWA }, uslugiKlienta[1]];
+    const html = renderToStaticMarkup(<TicketUsluga ticketId="t1" userId="u1" usluga={usunieta} uslugiKlienta={lista} />);
+    expect(html).not.toContain("~usuniete");
+    expect(html).toContain('<span class="text-sm font-semibold">z18b.d3.hvln.pl (usunięta)</span>');
+    expect(tekst(html)).toMatch(/Zmień: .*z18b\.d3\.hvln\.pl \(usunięta\)/);
+    expect(nazwaUslugiZgloszenia(lista[0])).toBe("z18b.d3.hvln.pl (usunięta)");
   });
 });
 

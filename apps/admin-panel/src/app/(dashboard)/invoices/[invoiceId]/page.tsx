@@ -2,7 +2,7 @@ import { bramkaStrony } from "@/lib/bramka-strony";
 import { KSEF } from "../ksef-etykiety";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { INVOICE_STATUS_PL, WALLET_TX_STATUS_PL, etykieta, etykietaWpisuPortfela } from "@verris/contracts";
+import { INVOICE_STATUS_PL, WALLET_TX_STATUS_PL, etykieta, etykietaWpisuPortfela, domenaDoWyswietlenia } from "@verris/contracts";
 import { AdminApiError, adminApi } from "@/lib/api";
 import { formatPlnAndCredits } from "@/lib/credits";
 import { fetchStaffAccess } from "@/lib/staff-access";
@@ -110,7 +110,7 @@ export default async function FakturaPage({ params }: { params: Promise<{ invoic
         <Para k="Usługa">
           {f.subscription ? (
             <LinkJesli wolno={doUslugi} href={`/subscriptions/${f.subscription.id}`} className="hover:underline">
-              {f.subscription.domain ?? f.subscription.planName ?? "usługa"}
+              {domenaDoWyswietlenia(f.subscription.domain) ?? f.subscription.planName ?? "usługa"}
             </LinkJesli>
           ) : (
             "—"

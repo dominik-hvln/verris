@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { TicketContext } from "@/lib/tickets-data";
-import { INVOICE_STATUS_PL, SERVICE_EVENT_PL, SUBSCRIPTION_STATUS_PL, TICKET_STATUS_PL, etykieta } from "@verris/contracts";
+import { INVOICE_STATUS_PL, SERVICE_EVENT_PL, SUBSCRIPTION_STATUS_PL, TICKET_STATUS_PL, etykieta, domenaDoWyswietlenia } from "@verris/contracts";
 import { StaffImpersonateButton } from "@/app/(dashboard)/crm/impersonate-button";
 
 // Wewnątrz zdania („Starter · anulowana”) — stąd małe litery.
@@ -98,7 +98,7 @@ export function TicketClientAside({
           <Wiersz key={s.id}>
             <span className="flex min-w-0 flex-1 flex-col">
               <Link href={`/crm/${userId}/subscriptions/${s.id}`} className="text-sm font-semibold text-foreground no-underline hover:text-data-hi">
-                {s.domain ?? s.plan ?? "Usługa"}
+                {domenaDoWyswietlenia(s.domain) ?? s.plan ?? "Usługa"}
               </Link>
               {s.siteStatus === "DOWN" ? (
                 <span className="text-[12.5px] text-crit">strona nie odpowiada</span>
@@ -122,7 +122,7 @@ export function TicketClientAside({
             <span className="w-[76px] shrink-0 font-mono text-[12px] text-muted-foreground">{dzienGodz(e.createdAt)}</span>
             <span className="text-[13.5px]">
               {etykieta(SERVICE_EVENT_PL, e.type)}
-              {e.domain ? <span className="text-muted-foreground"> · {e.domain}</span> : null}
+              {e.domain ? <span className="text-muted-foreground"> · {domenaDoWyswietlenia(e.domain)}</span> : null}
             </span>
           </Wiersz>
         ))}

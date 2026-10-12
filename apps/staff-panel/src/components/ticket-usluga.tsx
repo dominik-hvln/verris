@@ -4,7 +4,7 @@ import { useId, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ServiceDiagnosticsDto } from "@verris/contracts";
-import { SUBSCRIPTION_STATUS_PL, etykieta } from "@verris/contracts";
+import { SUBSCRIPTION_STATUS_PL, etykieta, domenaDoWyswietlenia } from "@verris/contracts";
 import type { StaffTicketDetail, TicketContext } from "@/lib/tickets-data";
 import { staffLinkTicketService, staffTicketDiagnostics } from "@/lib/ticket-actions";
 import { Select } from "@/components/select";
@@ -16,7 +16,7 @@ type Usluga = NonNullable<StaffTicketDetail["subscription"]>;
 /** Domena, bez niej plan; tag usługi w nawiasie. */
 export function nazwaUslugiZgloszenia(u: { serviceTag?: string | null; plan?: { name: string } | string | null; account?: { domain: string } | null; domain?: string | null }): string {
   const plan = typeof u.plan === "string" ? u.plan : (u.plan?.name ?? null);
-  const glowna = u.account?.domain ?? u.domain ?? plan ?? "Usługa";
+  const glowna = domenaDoWyswietlenia(u.account?.domain ?? u.domain) ?? plan ?? "Usługa";
   return u.serviceTag ? `${glowna} (${u.serviceTag})` : glowna;
 }
 

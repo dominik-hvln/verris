@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { Select } from "@/components/select";
 import { plForm } from "@/lib/pl";
+import { domenaDoWyswietlenia } from "@verris/contracts";
 
 /** Odpowiedź GET /admin/custom-terms/user/:id (PB-27 / PB-28). */
 export interface PodgladWarunkow {
@@ -137,7 +138,7 @@ export function WarunkiIndywidualne({ userId, dane, akcje }: { userId: string; d
 
   const wybranyPlan = dane.plany.find((p) => p.id === plan);
   const cennikNowej = interval === "YEAR" ? wybranyPlan?.rocznie : wybranyPlan?.miesiecznie;
-  const domenaUslugi = (id: string) => dane.uslugi.find((u) => u.id === id)?.domena ?? id.slice(0, 8);
+  const domenaUslugi = (id: string) => domenaDoWyswietlenia(dane.uslugi.find((u) => u.id === id)?.domena) ?? id.slice(0, 8);
 
   return (
     <section className="rounded-2xl border border-white/10 bg-black/35 p-6 space-y-6" aria-labelledby="warunki-naglowek">
@@ -193,7 +194,7 @@ export function WarunkiIndywidualne({ userId, dane, akcje }: { userId: string; d
               <li key={u.id} className="p-3 space-y-2">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <div>
-                    <p className="text-sm font-medium text-white">{u.domena ?? u.plan ?? "Usługa"}</p>
+                    <p className="text-sm font-medium text-white">{domenaDoWyswietlenia(u.domena) ?? u.plan ?? "Usługa"}</p>
                     <p className="text-xs text-muted-foreground">
                       {u.plan ?? "—"} · cennik {u.cenaCennik ?? "—"} / {okres(u.interval)} · cena klienta{" "}
                       <strong className="text-white">{u.cenaIndywidualna ?? "z cennika"}</strong> · rabat autoskalowania{" "}

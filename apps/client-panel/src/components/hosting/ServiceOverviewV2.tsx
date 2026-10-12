@@ -1,6 +1,6 @@
 'use client';
 
-import { opisLokalizacji } from '@verris/contracts';
+import { domenaDoWyswietlenia, opisLokalizacji } from '@verris/contracts';
 
 /**
  * PB-15 — ekran-wzorzec: widok usługi hostingowej w nowym wyglądzie
@@ -291,7 +291,7 @@ export default function ServiceOverviewV2({
             <span data-tip={health?.summary ?? undefined}>
               <StatusPill tone={h.tone}>{h.text}</StatusPill>
             </span>
-            {primary ? <span>{primary}{domainList.length > 1 ? ` + ${domainList.length - 1}` : ''}</span> : null}
+            {primary ? <span>{domenaDoWyswietlenia(primary)}{domainList.length > 1 ? ` + ${domainList.length - 1}` : ''}</span> : null}
             {account?.daUsername ? (
               <span className="inline-flex items-center gap-1.5">
                 login <CopyValue value={account.daUsername} />
@@ -419,7 +419,7 @@ export default function ServiceOverviewV2({
                   {domains === null
                     ? 'Wczytywanie domen…'
                     : domains.fetchError && wstrzymana
-                      ? `Lista domen będzie dostępna po wznowieniu usługi — domeny i pliki stron są nietknięte.${primary ? ` Domena główna: ${primary}.` : ''}`
+                      ? `Lista domen będzie dostępna po wznowieniu usługi — domeny i pliki stron są nietknięte.${primary ? ` Domena główna: ${domenaDoWyswietlenia(primary)}.` : ''}`
                       : domains.fetchError
                       ? 'Nie udało się pobrać listy domen — spróbuj odświeżyć.'
                       : 'Brak domen. Dodaj pierwszą, żeby uruchomić stronę.'}

@@ -36,6 +36,7 @@ import type { PozycjaLimitu } from "@verris/contracts";
 import { ZmianaWlascicielaPanel } from "./zmiana-wlasciciela-panel";
 import { RestorePanel } from "./restore-panel";
 import { OdtworzenieNaWezlePanel } from "./odtworzenie-na-wezle-panel";
+import { domenaDoWyswietlenia } from "@verris/contracts";
 
 export const dynamic = "force-dynamic";
 
@@ -135,7 +136,7 @@ export default async function AdminSubscriptionDetailPage({
     wezelId: wezel?.id ?? null,
   };
   const baza = `/subscriptions/${d.id}`;
-  const nazwa = d.account?.domain ?? d.serviceTag ?? d.plan.name;
+  const nazwa = domenaDoWyswietlenia(d.account?.domain) ?? d.serviceTag ?? d.plan.name;
   const stan = stanUslugi(d.status, d.provisioningStage);
   const zakonczona = d.status === "CANCELED" || d.status === "EXPIRED";
   const kontoZostalo = !!d.account && d.account.status !== "DELETED";
@@ -221,7 +222,7 @@ export default async function AdminSubscriptionDetailPage({
                 </span>
               ) : null}
             </Para>
-            <Para k="Konto hostingowe">{d.account ? `${d.account.domain} (${d.account.daUsername})` : "Brak konta"}</Para>
+            <Para k="Konto hostingowe">{d.account ? `${domenaDoWyswietlenia(d.account.domain)} (${d.account.daUsername})` : "Brak konta"}</Para>
             <Para k="Węzeł">
               {wezel ? (
                 <LinkJesli wolno={doWezla} href={`/nodes/${wezel.id}`} className="hover:underline">

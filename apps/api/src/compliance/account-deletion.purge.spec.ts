@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { DirectAdminApiError } from '@verris/directadmin-sdk';
+import { domenaDoWyswietlenia } from '@verris/contracts';
 import { AccountDeletionService, zwolnionaDomena } from './account-deletion.service.js';
 
 /**
@@ -74,5 +75,11 @@ describe('AccountDeletionService.purgeAccountOnDa', () => {
     expect(przed).toBeLessThan(usuniecie);
     expect(usuniecie).toBeLessThan(sprzatanie);
     expect(s.da.usunDelegacjeUsunietegoKonta).toHaveBeenCalledWith('n1', 'a1', ['klient.pl', 'sklep.klient.pl']);
+  });
+});
+
+describe('weryfikacja 12.10 — domena zwolniona przy usunięciu konta w panelach', () => {
+  it('format zwolnionaDomena rozpoznaje domenaDoWyswietlenia (@verris/contracts) — „<domena> (usunięta)”', () => {
+    expect(domenaDoWyswietlenia(zwolnionaDomena('z18b.d3.hvln.pl', '97c925b0-a215-40bc-9c78-28752e3cc91b'))).toBe('z18b.d3.hvln.pl (usunięta)');
   });
 });
