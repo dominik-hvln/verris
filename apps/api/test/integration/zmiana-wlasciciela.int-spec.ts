@@ -3,6 +3,7 @@ import { SubscriptionStatus, WalletTxType, type PrismaClient } from '@verris/dat
 import { JwtStrategy } from '../../src/auth/strategies/jwt.strategy.js';
 import { SubscriptionsService } from '../../src/subscriptions/subscriptions.service.js';
 import { ZmianaWlascicielaService } from '../../src/subscriptions/zmiana-wlasciciela.service.js';
+import { ZgloszenieDiagnostykaController } from '../../src/subscriptions/zgloszenie-diagnostyka.controller.js';
 import { UsersService } from '../../src/users/users.service.js';
 import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } from './setup.js';
 
@@ -146,6 +147,24 @@ describe('K2 — zmiana właściciela usługi', () => {
 
     // Mail do obu stron, każdy na swój adres.
     expect(mailer.send.mock.calls.map((c) => (c[0] as { to: string; tag: string }).to)).toEqual([x.A.email, x.B.email]);
+  });
+
+  it('przegląd 12.10 — zgłoszenia poprzedniego właściciela tracą powiązanie z usługą; diagnostyka z nich odmawia', async () => {
+    const x = await scena();
+    const p = prisma();
+    const zgl = (extra: Record<string, unknown>) => p.ticket.create({ data: { userId: x.A.id, subject: 'Strona', message: 'Nie działa', zrodlo: 'PANEL', ...extra } as never });
+    const oTej = await zgl({ subscriptionId: x.sub.id });
+    const oInnej = await zgl({ subscriptionId: x.inna.id });
+    await serwis().s.przenies({ subscriptionId: x.sub.id, operator: ADMIN, email: x.B.email, powod: POWOD, potwierdzenie: x.B.email });
+    expect((await p.ticket.findUniqueOrThrow({ where: { id: oTej.id } })).subscriptionId).toBeNull();
+    expect((await p.ticket.findUniqueOrThrow({ where: { id: oInnej.id } })).subscriptionId).toBe(x.inna.id);
+
+    // Zgłoszenie A wskazujące usługę, która należy już do B (np. przypięte ręcznie albo sprzed poprawki) — bez diagnostyki.
+    const diagnostyka = { forSubscription: vi.fn() };
+    const kontroler = new ZgloszenieDiagnostykaController(p as never, diagnostyka as never, { record: vi.fn() } as never);
+    await p.ticket.update({ where: { id: oTej.id }, data: { subscriptionId: x.sub.id } });
+    await expect(kontroler.diagnostyka(oTej.id, { userId: ADMIN.userId, role: 'ADMIN' })).rejects.toThrow('należy do innego klienta');
+    expect(diagnostyka.forSubscription).not.toHaveBeenCalled();
   });
 
   it('awaria w środku transakcji (zapis dziennika) → nic się nie zmienia', async () => {

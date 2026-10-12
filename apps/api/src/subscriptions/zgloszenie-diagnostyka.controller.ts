@@ -35,9 +35,16 @@ export class ZgloszenieDiagnostykaController {
 
   @Get(':id/diagnostyka')
   async diagnostyka(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: { userId: string; role?: string }) {
-    const ticket = await this.prisma.ticket.findUnique({ where: { id }, select: { userId: true, subscriptionId: true, user: { select: { role: true } } } });
+    const ticket = await this.prisma.ticket.findUnique({
+      where: { id },
+      select: { userId: true, subscriptionId: true, user: { select: { role: true } }, subscription: { select: { userId: true } } },
+    });
     if (!ticket) throw new NotFoundException('Nie znaleziono zgłoszenia.');
     if (!ticket.subscriptionId) throw new BadRequestException('Zgłoszenie nie jest powiązane z usługą — najpierw wskaż usługę.');
+    // K2 (przegląd 12.10) — usługa przeszła do innego klienta: zgłoszenie poprzedniego właściciela nie daje do niej dostępu.
+    if (ticket.subscription?.userId !== ticket.userId) {
+      throw new BadRequestException('Usługa ze zgłoszenia należy do innego klienta (zmiana właściciela) — diagnostyki z tego zgłoszenia nie uruchomisz.');
+    }
     // Przegląd poprawek Fali 3 (D3) — jak diagnostyka z karty usługi: STAFF odpytuje węzeł tylko dla usług klientów.
     if (actor.role !== 'ADMIN' && ticket.user?.role !== 'USER') {
       throw new ForbiddenException('Personel uruchamia diagnostykę wyłącznie usług klientów — usługę konta zespołu sprawdza administrator.');

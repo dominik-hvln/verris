@@ -139,7 +139,8 @@ export interface ZlecenieZmianyWlasciciela {
  *  - SslOrder.userId certyfikatów usługi (panel i instalacja szukają po userId + subscriptionId), AnalyticsSite.userId;
  *  - przez subscriptionId same idą: harmonogram kopii, monitoring, kontrole domen, metryki, zdarzenia usługi (klient widzi
  *    tylko te od OWNER_CHANGED — zdarzenia-klienta.ts; wcześniejsze, np. dane starego hostingu z migracji, widzi obsługa).
- * Zostaje u poprzedniego właściciela: faktury, transakcje portfela, dodatki (zakupy), kredyty SLA, punkty EKO, zgłoszenia,
+ * Zostaje u poprzedniego właściciela: faktury, transakcje portfela, dodatki (zakupy), kredyty SLA, punkty EKO, zgłoszenia
+ * (odpięte od usługi),
  * zlecenia migracji (dane jego starego hostingu — sekrety kasujemy, żeby nowy właściciel nie mógł ich użyć do
  * dogrania), domeny u rejestratora (Domain nie ma związku z usługą), dziennik i powiadomienia.
  * Dostęp poprzedniego właściciela znika: subkonta, członkostwa i zaproszenia ograniczone do tej usługi tracą ją (gdy
@@ -268,6 +269,9 @@ export class ZmianaWlascicielaService {
         data: { sourceBundleEnc: '', secretsPurgedAt: teraz },
       });
       const iam = await this.odbierzDostep(tx, stary.id, u.id, teraz);
+      // Zgłoszenia zostają u poprzedniego właściciela, ale bez powiązania z usługą, której już nie ma: inaczej jego
+      // panel dalej pokazuje przy nich domenę i plan usługi, a obsługa uruchamia z nich diagnostykę cudzej usługi.
+      const zgloszenia = await tx.ticket.updateMany({ where: { subscriptionId: u.id, userId: stary.id }, data: { subscriptionId: null } });
 
       // „Co się działo” — widzi to tylko obecny właściciel: bez adresów, powodu i operatora (D3).
       await tx.subscriptionEvent.create({ data: { subscriptionId: u.id, type: 'OWNER_CHANGED', details: { source: 'OPERATOR' } } });
@@ -280,7 +284,7 @@ export class ZmianaWlascicielaService {
         poprzedniWlasciciel: { id: stary.id, email: stary.email },
         nowyWlasciciel: { id: nowy.id, email: nowy.email },
         przeniesione: { certyfikatySsl: ssl.count, analityka: analityka.count },
-        usuniete: { webhookiWdrozen: webhooki.count, sekretyMigracji: sekrety.count },
+        usuniete: { webhookiWdrozen: webhooki.count, sekretyMigracji: sekrety.count, powiazaniaZgloszen: zgloszenia.count },
         dostepPoprzedniego: iam,
         wynik: 'ok',
       };
