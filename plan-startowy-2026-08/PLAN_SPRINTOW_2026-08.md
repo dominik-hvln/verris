@@ -442,7 +442,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 **Definicja ukończenia**
 
-- `X-41` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `X-41` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `SEC-03` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `PB-22` — Badge widoczne na prod na domenie klienta; pieczęć znika przy niespełnionych warunkach; kliknięcia polecenia liczone; testy D2 zielone.
 - `PB-49` — 12 patchy wdrożonych na produkcji; bramki (lint, typecheck, testy admina, obsługi, klienta i API) i integracja API zielone; przejście na produkcji przez VPN: karta węzła t1 z Działaniami, karta klienta, Cmd+K.
