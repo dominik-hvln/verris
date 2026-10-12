@@ -140,10 +140,12 @@ export class ProformaService {
       introDiscountPeriodsLeft: sub.introDiscountPeriodsLeft,
       individualPrice: sub.individualPrice,
     });
-    // M-09: stawka nabywcy; klient rozliczany netto płaci K / 1,23 (tyle musi doładować).
+    // M-09: stawka nabywcy; klient rozliczany netto płaci K / 1,23 (tyle musi doładować). Zaokrąglenie W GÓRĘ
+    // (przegląd 12.10, K4): wpłata daje round_half_up(kwota × 1,23) K (vat.ts kredytZaWplate), więc przy ROUND_HALF_UP
+    // np. 40,30 K → 32,76 zł → 40,29 K — o grosz za mało na odnowienie. Z ROUND_UP wpłata zawsze pokrywa K.
     const { traktowanie, vies } = await this.vatNabywcy.ustal(userId);
     const doZaplaty = traktowanie.cenaNetto
-      ? brutto.mul(100).dividedBy(100 + STAWKA_PL).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP)
+      ? brutto.mul(100).dividedBy(100 + STAWKA_PL).toDecimalPlaces(2, Prisma.Decimal.ROUND_UP)
       : brutto;
     const od = sub.currentPeriodEnd;
     const doKonca = koniecOkresu(od, sub.interval);
