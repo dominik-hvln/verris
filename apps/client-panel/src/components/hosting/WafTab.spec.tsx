@@ -11,7 +11,6 @@ import { createRoot, type Root } from 'react-dom/client';
 const mockGet = jest.fn();
 const mockSet = jest.fn();
 jest.mock('@/app/dashboard/services/[id]/waf-actions', () => ({
-  BLAD_ODCZYTU_WAF: 'Nie udało się wczytać stanu zapory — spróbuj ponownie.',
   getWafStatus: (...a: unknown[]) => mockGet(...a),
   setWafMode: (...a: unknown[]) => mockSet(...a),
 }));

@@ -4,8 +4,8 @@ import { MalwarePanel } from '@/components/hosting/MalwarePanel';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Loader2, ShieldCheck, ShieldOff, AlertCircle, Eye, RefreshCw } from 'lucide-react';
 import { SectionHead } from '@/components/panel/v2';
+import { BLAD_ODCZYTU_WAF } from '@/lib/waf';
 import {
-  BLAD_ODCZYTU_WAF,
   getWafStatus,
   setWafMode,
   type OdczytWaf,

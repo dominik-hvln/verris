@@ -1,6 +1,7 @@
 'use server';
 
 import { apiFetch, ApiError } from '@/lib/api';
+import { BLAD_ODCZYTU_WAF } from '@/lib/waf';
 
 export type WafMode = 'OFF' | 'DETECTION' | 'ON';
 
@@ -18,7 +19,6 @@ export interface WafStatus {
   } | null;
 }
 
-export const BLAD_ODCZYTU_WAF = 'Nie udało się wczytać stanu zapory — spróbuj ponownie.';
 
 export type OdczytWaf = { ok: true; status: WafStatus } | { ok: false; brakKonta: boolean; error: string };
 
