@@ -39,6 +39,26 @@ export class SshAccessService {
     return this.opis(sub.account.id);
   }
 
+  /**
+   * K3 — po powrocie konta do pakietu planu (DA nadpisuje ssh=OFF z pakietu) włącza z powrotem SSH, który klient miał
+   * włączony. To samo zadanie węzła co przełącznik klienta; wpis w dzienniku z operatorem jako wykonującym.
+   */
+  async przywrocPoZmianiePakietu(
+    account: { id: string; serverId: string; status: string; daUsername: string | null },
+    actorUserId: string,
+    subscriptionId: string,
+  ) {
+    const task = await this.zlec(account, actorUserId, { mode: 'enable' });
+    const sub = await this.prisma.subscription.findUnique({ where: { id: subscriptionId }, select: { userId: true } });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_SSH_ENABLE_QUEUED,
+      userId: sub?.userId ?? null,
+      actorUserId,
+      details: { subscriptionId, taskId: task.id, powod: 'przywrocenie-po-pakiecie-planu' },
+    });
+    return task;
+  }
+
   async ustawKlucze(subscriptionId: string, userId: string, klucze: string[]) {
     const sub = await this.wymagajKonta(subscriptionId, userId);
     const lista = sprawdzKlucze(klucze);

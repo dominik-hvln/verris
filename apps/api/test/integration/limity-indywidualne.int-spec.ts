@@ -3,6 +3,7 @@ import type { DaUserLimits } from '@verris/directadmin-sdk';
 import { AuditService } from '../../src/common/audit/audit.service.js';
 import { WalletLedgerService } from '../../src/billing/wallet-ledger.service.js';
 import { LimityIndywidualneService } from '../../src/subscriptions/limity-indywidualne.service.js';
+import { SshAccessService } from '../../src/subscriptions/ssh-access.service.js';
 import { PlanChangeService } from '../../src/subscriptions/plan-change.service.js';
 import { UsersService } from '../../src/users/users.service.js';
 import { dodajProbke, ksiegaWezla, prawdaOWezle, prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } from './setup.js';
@@ -17,6 +18,7 @@ const POWOD = 'Umowa z klientem z 12.10 — większa poczta';
 const wywolania: Array<{ user: string; limity: DaUserLimits }> = [];
 const pakiety: Array<{ user: string; pakiet: string }> = [];
 let wezelPada: Error | null = null;
+let sshNaKoncie = 'OFF';
 const da = {
   getClientForServer: async () => ({
     customizeUserLimits: async (user: string, limity: DaUserLimits) => {
@@ -27,9 +29,11 @@ const da = {
       if (wezelPada) throw wezelPada;
       pakiety.push({ user, pakiet });
     },
+    getAccountInfo: async () => ({ ssh: sshNaKoncie, php: 'ON' }),
   }),
 };
-const svc = (p = prisma() as never) => new LimityIndywidualneService(p, new AuditService(prisma() as never), da as never);
+const svc = (p = prisma() as never) =>
+  new LimityIndywidualneService(p, new AuditService(prisma() as never), da as never, new SshAccessService(prisma() as never, new AuditService(prisma() as never)));
 const aktywnosc = (userId: string) => new UsersService(prisma() as never, {} as never, {} as never, {} as never, {} as never, {} as never).listMyActivity(userId);
 
 async function usluga(scaledDiskMb = 1024) {
@@ -53,6 +57,7 @@ describe('K3 — limity indywidualne usługi', () => {
     wywolania.length = 0;
     pakiety.length = 0;
     wezelPada = null;
+    sshNaKoncie = 'OFF';
   });
   afterAll(rozlacz);
 
@@ -113,6 +118,23 @@ describe('K3 — limity indywidualne usługi', () => {
     expect(pakiety).toEqual([{ user: u.account.daUsername, pakiet: u.plan.slug }]);
     const s = await prisma().subscription.findUniqueOrThrow({ where: { id: u.subscription.id } });
     expect(s.limitOverrides).toBeNull();
+  });
+
+  // t1 12.10: action=package zmienił ssh=ON (włączony przez klienta) na ssh=OFF z pakietu planu.
+  it('przywrócenie pakietu przy włączonym SSH: zlecone ponowne włączenie SSH (zadanie węzła), przy wyłączonym — nic', async () => {
+    const u = await usluga(0);
+    sshNaKoncie = 'ON';
+    await svc().ustaw(zlecenie(u, { emailAccounts: 26 }));
+    await svc().ustaw(zlecenie(u, {}));
+    const zadania = await prisma().nodeTask.findMany({ where: { accountId: u.account.id, kind: 'SSH_ACCESS' } });
+    expect(zadania).toHaveLength(1);
+    expect(zadania[0]!.payload).toMatchObject({ mode: 'enable', daUser: u.account.daUsername });
+
+    const v = await usluga(0);
+    sshNaKoncie = 'OFF';
+    await svc().ustaw(zlecenie(v, { emailAccounts: 26 }));
+    await svc().ustaw(zlecenie(v, {}));
+    expect(await prisma().nodeTask.count({ where: { accountId: v.account.id, kind: 'SSH_ACCESS' } })).toBe(0);
   });
 
   it('błąd węzła = błąd operacji: w bazie nic się nie zmienia (nadpisania, quota, księga, zdarzenia, dziennik)', async () => {

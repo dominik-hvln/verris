@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { CyklZyciaUslugiActions, SupportActions } from '../common/audit/audit.actions.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
+import { SshAccessService } from './ssh-access.service.js';
 import { buildDaPackageSpecFromPlan, planResourceFields } from '../servers/da-package-spec.js';
 import { zgloszenieKlienta } from '../tickets/zgloszenie-klienta.js';
 import { deltaJestZerowa, deltaKsiegi, ksiegaUpdateData } from './node-capacity.js';
@@ -51,6 +52,7 @@ export class LimityIndywidualneService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly da: DirectAdminService,
+    private readonly ssh: SshAccessService,
   ) {}
 
   async ustaw(z: ZlecenieLimitow) {
@@ -77,7 +79,14 @@ export class LimityIndywidualneService {
       throw new ConflictException('Zapis w panelu nie powiódł się — limity na serwerze przywrócone do poprzednich. Spróbuj ponownie.');
     }
     if (w1.bezZmian) return { bezZmian: true, komunikat: 'Usługa ma już te limity.', limity: w1.limity };
-    const { s, konto, zgloszenieId, przed, po, plan, pusto } = w1;
+    const { s, konto, zgloszenieId, przed, po, plan, pusto, sshWlaczony } = w1;
+    if (sshWlaczony) {
+      try {
+        await this.ssh.przywrocPoZmianiePakietu(konto, z.operator.userId, s.id);
+      } catch (err) {
+        this.logger.error(`K3: pakiet planu przywrócony, ale nie udało się zlecić ponownego włączenia SSH dla ${konto.daUsername}: ${blad(err)}`);
+      }
+    }
 
     const wspolne = { subscriptionId: s.id, domain: konto.domain, ...(zgloszenieId ? { zgloszenieId } : {}) };
     await this.audit.record({
@@ -142,11 +151,16 @@ export class LimityIndywidualneService {
 
     // 1) Węzeł. Błąd = błąd operacji, baza bez zmian.
     const klient = await this.da.getClientForServer(konto.serverId);
+    let sshWlaczony = false;
     try {
       // Powrót do planu bez nadwyżki autoskalowania = z powrotem pakiet planu. Samo „customize” wartościami planu
       // zostawiało w DA `package=custom` (t1 12.10) i konto nie dostawało już zmian pakietu planu. Przy nadwyżce
       // autoskalowania quota jest większa niż w pakiecie, więc konto i tak musi mieć ustawienia indywidualne.
       if (Object.keys(po).length === 0 && konto.scaledDiskMb <= 0) {
+        // Pakiet planu nadpisuje też przełączniki konta — t1 12.10: SSH włączony przez klienta (ssh=ON w user.conf,
+        // zadanie SSH_ACCESS) wrócił do ssh=OFF z pakietu. Stan SSH czytamy przed zmianą i po niej przywracamy
+        // tym samym mechanizmem, którym włącza go klient (zadanie węzła), bez ponownego „customize”.
+        sshWlaczony = (await klient.getAccountInfo(konto.daUsername)).ssh === 'ON';
         await klient.assignUserPackage(konto.daUsername, buildDaPackageSpecFromPlan(plan).name);
       } else {
         await klient.customizeUserLimits(konto.daUsername, limityKontaNaWezle(plan, po, konto.scaledDiskMb));
@@ -178,7 +192,7 @@ export class LimityIndywidualneService {
         ? { subscriptionId: s.id, type: 'LIMITS_RESET', details: { source: 'OPERATOR' } }
         : { subscriptionId: s.id, type: 'LIMITS_CUSTOMIZED', details: { source: 'OPERATOR', limity: po } as Prisma.InputJsonValue },
     });
-    return { bezZmian: false as const, s, konto, zgloszenieId, przed, po, plan, pusto };
+    return { bezZmian: false as const, s, konto, zgloszenieId, przed, po, plan, pusto, sshWlaczony };
   }
 
   /** Zapis w bazie padł po zmianie na węźle — węzeł wraca do poprzednich limitów; każdy wynik w dzienniku zespołu. */

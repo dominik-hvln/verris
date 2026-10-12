@@ -9,6 +9,7 @@
  */
 import { SubscriptionStatus } from '@verris/database';
 import { AuditService } from '../../src/common/audit/audit.service.js';
+import { SshAccessService } from '../../src/subscriptions/ssh-access.service.js';
 import { LimityIndywidualneService } from '../../src/subscriptions/limity-indywidualne.service.js';
 import { ksiegaWezla, prawdaOWezle, prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } from './setup.js';
 
@@ -17,9 +18,10 @@ const da = {
   getClientForServer: async () => ({
     customizeUserLimits: async () => new Promise((r) => setTimeout(r, 50)),
     assignUserPackage: async () => new Promise((r) => setTimeout(r, 50)),
+    getAccountInfo: async () => ({ ssh: 'OFF' }),
   }),
 };
-const svc = () => new LimityIndywidualneService(prisma() as never, new AuditService(prisma() as never), da as never);
+const svc = () => new LimityIndywidualneService(prisma() as never, new AuditService(prisma() as never), da as never, new SshAccessService(prisma() as never, new AuditService(prisma() as never)));
 
 describe('K3 — równoległe zapisy limitów (przegląd 12.10)', () => {
   beforeEach(wyczyscBaze);
