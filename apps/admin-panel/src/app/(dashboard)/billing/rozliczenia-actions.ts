@@ -29,10 +29,34 @@ export async function ponowAutoDoladowanieAction(userId: string, powod: string, 
 
 export async function wplataPrzelewemAction(
   userId: string,
-  b: { kwota: number; tytul: string; referencja: string; dataWplaty: string; zgloszenie?: string },
+  b: { kwota: number; tytul: string; referencja: string; dataWplaty: string; zgloszenie?: string; proformaId?: string },
 ): Promise<WynikRozliczen> {
   if (!UUID.test(userId)) return { ok: false, error: "Niepoprawny klient." };
-  return wyslij(`/admin/rozliczenia/klienci/${userId}/wplaty`, { ...b, zgloszenie: b.zgloszenie?.trim() || undefined }, [`/customers/${userId}`]);
+  if (b.proformaId && !UUID.test(b.proformaId)) return { ok: false, error: "Niepoprawna proforma." };
+  return wyslij(
+    `/admin/rozliczenia/klienci/${userId}/wplaty`,
+    { ...b, zgloszenie: b.zgloszenie?.trim() || undefined, proformaId: b.proformaId || undefined },
+    [`/customers/${userId}`],
+  );
+}
+
+/** K4 — proforma z linkiem do płatności (BILLING_MANAGE): pozycje dowolne i/lub odnowienie usługi z portfela. */
+export async function wystawProformeAction(
+  userId: string,
+  b: { pozycje: Array<{ nazwa: string; kwotaBrutto: number }>; odnowienieSubscriptionId?: string; terminDni: number },
+): Promise<WynikRozliczen> {
+  if (!UUID.test(userId)) return { ok: false, error: "Niepoprawny klient." };
+  if (b.odnowienieSubscriptionId && !UUID.test(b.odnowienieSubscriptionId)) return { ok: false, error: "Niepoprawna usługa." };
+  return wyslij(
+    `/admin/rozliczenia/klienci/${userId}/proformy`,
+    { pozycje: b.pozycje, odnowienieSubscriptionId: b.odnowienieSubscriptionId || undefined, terminDni: b.terminDni },
+    [`/customers/${userId}`],
+  );
+}
+
+export async function anulujProformeAction(userId: string, proformaId: string, powod: string): Promise<WynikRozliczen> {
+  if (!UUID.test(userId) || !UUID.test(proformaId)) return { ok: false, error: "Niepoprawna proforma." };
+  return wyslij(`/admin/rozliczenia/proformy/${proformaId}/anuluj`, { powod }, [`/customers/${userId}`]);
 }
 
 export async function korektaSaldaAction(

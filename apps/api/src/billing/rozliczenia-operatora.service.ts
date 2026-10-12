@@ -311,6 +311,8 @@ export class RozliczeniaOperatoraService {
     referencja: string;
     dataWplaty: Date;
     zgloszenie?: string | null;
+    /** K4 — przelew opłaca proformę klienta: kwota równa kwocie proformy, stawka VAT z proformy. */
+    proformaId?: string | null;
   }) {
     await this.klient(z.userId, z.operator, true);
     const kwota = this.kwota(z.kwota);
@@ -335,19 +337,37 @@ export class RozliczeniaOperatoraService {
     const istniejacy = await this.ledger.findByIdempotencyKey(klucz);
     if (istniejacy) return juz(istniejacy);
 
+    // K4 — wpłata do proformy: tylko do proformy tego klienta, do zapłaty, na dokładnie jej kwotę (bez częściowych).
+    const proforma = z.proformaId
+      ? await this.prisma.proforma.findFirst({ where: { id: z.proformaId, userId: z.userId }, select: { id: true, number: true, status: true, amount: true, vatMeta: true } })
+      : null;
+    if (z.proformaId && !proforma) throw new NotFoundException('Nie znaleziono proformy tego klienta.');
+    if (proforma && proforma.status !== 'WYSTAWIONA') throw new ConflictException(`Proforma ${proforma.number} nie jest do zapłaty (${proforma.status === 'OPLACONA' ? 'opłacona' : 'anulowana'}) — zaksięguj przelew bez proformy.`);
+    if (proforma && !new Prisma.Decimal(proforma.amount).eq(kwota)) {
+      throw new ConflictException(`Kwota przelewu ${kwota.toFixed(2)} zł różni się od kwoty proformy ${proforma.number} (${new Prisma.Decimal(proforma.amount).toFixed(2)} zł) — zaksięguj bez proformy.`);
+    }
+
     const { wpis, kredytK, nowy } = await this.doladowanie.zaksieguj({
       userId: z.userId,
       kwotaMinor: Number(kwota.mul(100).toFixed(0)),
       waluta: 'PLN',
-      meta: null,
+      // Stawka VAT ustalona przy wystawieniu proformy obowiązuje przy jej zapłacie (jak metadane płatności online).
+      meta: proforma ? (proforma.vatMeta as Record<string, string>) : null,
+      proformaId: proforma?.id ?? null,
       idempotencyKey: klucz,
       paymentRef: referencja,
       paymentProvider: 'PRZELEW',
       opis: `Wpłata przelewem — ${tytul}`,
       zaplaconoAt: z.dataWplaty,
-      metadata: { channel: 'przelew', tytul, dataWplaty: z.dataWplaty.toISOString(), ...(zgloszenieId ? { zgloszenieId } : {}) },
+      metadata: {
+        channel: 'przelew', tytul, dataWplaty: z.dataWplaty.toISOString(),
+        ...(zgloszenieId ? { zgloszenieId } : {}), ...(proforma ? { proformaId: proforma.id } : {}),
+      },
     });
     if (!nowy) return juz(wpis);
+    const proformaOplacona = proforma
+      ? await this.billing.poWplacieDoProformy({ userId: z.userId, proformaId: proforma.id, walletTxId: wpis.id, kanal: 'PRZELEW' })
+      : null;
 
     // Ta sama ścieżka po wpłacie co Stripe i Paynow: audyt WALLET_TOPUP_COMPLETED, mail do klienta, EKO.
     await this.billing.poZaksiegowaniuDoladowania({
@@ -360,7 +380,7 @@ export class RozliczeniaOperatoraService {
       odniesienie: klucz,
       szczegoly: { provider: 'PRZELEW', referencja },
     });
-    const wspolne = { walletTxId: wpis.id, kwota: kwota.toFixed(2), kredytK: kredytK.toFixed(2), referencja, zgloszenieId };
+    const wspolne = { walletTxId: wpis.id, kwota: kwota.toFixed(2), kredytK: kredytK.toFixed(2), referencja, zgloszenieId, proformaId: proforma?.id };
     await this.audit.record({
       action: RozliczeniaOperatoraActions.WALLET_MANUAL_PAYMENT_POSTED,
       userId: z.userId,
@@ -369,14 +389,20 @@ export class RozliczeniaOperatoraService {
     });
     await this.dziennikZespolu(z.userId, z.operator, { ...wspolne, akcja: 'wplata-przelewem', tytul, dataWplaty: z.dataWplaty.toISOString(), wynik: 'ok' });
     const dok = await this.prisma.walletTransaction.findUnique({ where: { id: wpis.id }, select: { invoice: { select: { id: true, number: true } } } });
+    const oProformie = proforma
+      ? proformaOplacona
+        ? ` Proforma ${proforma.number} opłacona.`
+        : ` Proforma ${proforma.number} nie była już do zapłaty — wpłata weszła jako zwykłe doładowanie.`
+      : '';
     return {
       duplikat: false as const,
       walletTxId: wpis.id,
       kredytK: kredytK.toFixed(2),
       dokument: dok?.invoice ?? null,
-      komunikat: dok?.invoice
-        ? `Zaksięgowano ${kredytK.toFixed(2)} K; dokument ${dok.invoice.number}.`
-        : `Zaksięgowano ${kredytK.toFixed(2)} K; dokument powstanie przy obciążeniu portfela (model fakturowania).`,
+      komunikat:
+        (dok?.invoice
+          ? `Zaksięgowano ${kredytK.toFixed(2)} K; dokument ${dok.invoice.number}.`
+          : `Zaksięgowano ${kredytK.toFixed(2)} K; dokument powstanie przy obciążeniu portfela (model fakturowania).`) + oProformie,
     };
   }
 

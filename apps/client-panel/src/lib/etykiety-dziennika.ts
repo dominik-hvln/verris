@@ -163,6 +163,10 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   // F3.6 — portfel prowadzony przez obsługę
   WALLET_OPERATOR_ADJUSTED: 'Korekta salda portfela',
   WALLET_MANUAL_PAYMENT_POSTED: 'Zaksięgowano wpłatę przelewem',
+  // K4 — proforma od obsługi
+  PROFORMA_WYSTAWIONA: 'Obsługa wystawiła proformę do zapłaty',
+  PROFORMA_OPLACONA: 'Opłacono proformę',
+  PROFORMA_ANULOWANA: 'Obsługa anulowała proformę',
 };
 
 export function etykietaDziennika(akcja: string): string {

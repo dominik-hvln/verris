@@ -473,3 +473,19 @@ export const RozliczeniaOperatoraActions = {
   /** Wpłata przelewem zaksięgowana na portfel; details: walletTxId, kwota, referencja, zgloszenieId. */
   WALLET_MANUAL_PAYMENT_POSTED: 'WALLET_MANUAL_PAYMENT_POSTED',
 } as const;
+
+// ---------------------------------------------------------------------------
+// K4 (PB-53.6) — proforma z linkiem do płatności (billing/proforma.service.ts)
+// ---------------------------------------------------------------------------
+
+/** userId = klient, actor = operator (wystawienie, anulowanie) albo brak (wpłata). Klient widzi je w „Aktywności konta”. */
+export const ProformaActions = {
+  /** details: proformaId, numer, kwota, subscriptionId. */
+  PROFORMA_WYSTAWIONA: 'PROFORMA_WYSTAWIONA',
+  /** details: proformaId, numer, walletTxId, invoiceId, kanal (PAYNOW/PRZELEW). */
+  PROFORMA_OPLACONA: 'PROFORMA_OPLACONA',
+  /** details: proformaId, numer, powod. */
+  PROFORMA_ANULOWANA: 'PROFORMA_ANULOWANA',
+  /** Wpłata do proformy, która w chwili księgowania nie była już WYSTAWIONA — K w portfelu, decyzja o zwrocie u Finansów. */
+  PROFORMA_WPLATA_NIEPRZYPISANA: 'PROFORMA_WPLATA_NIEPRZYPISANA',
+} as const;

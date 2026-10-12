@@ -1,6 +1,9 @@
-import { BadRequestException, Body, Controller, DefaultValuePipe, Get, HttpCode, Param, ParseIntPipe, ParseUUIDPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, DefaultValuePipe, Get, Header, HttpCode, Param, ParseIntPipe, ParseUUIDPipe, Post, Query, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { Type } from 'class-transformer';
-import { IsIn, IsISO8601, IsNumber, IsOptional, IsPositive, IsString, Length, Matches, Max, MaxLength } from 'class-validator';
+import {
+  ArrayMaxSize, IsArray, IsIn, IsInt, IsISO8601, IsNumber, IsOptional, IsPositive, IsString, IsUUID, Length, Matches, Max, MaxLength, Min, ValidateNested,
+} from 'class-validator';
 import { Role, WalletTxType } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
@@ -11,6 +14,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { PowodOperatoraDto } from '../subscriptions/dto/akcje-konta.dto.js';
 import { MAKS_KWOTA, RozliczeniaOperatoraService, ZRODLA_PLATNOSCI, type ZrodloPlatnosci } from './rozliczenia-operatora.service.js';
+import { MAKS_POZYCJI_PROFORMY, ProformaService } from './proforma.service.js';
 
 export class KorektaSaldaDto extends PowodOperatoraDto {
   @IsIn(['plus', 'minus']) kierunek!: 'plus' | 'minus';
@@ -26,6 +30,25 @@ export class WplataPrzelewemDto {
   @IsString() @Length(4, 100) referencja!: string;
   @IsISO8601({ strict: true }) dataWplaty!: string;
   @IsOptional() @IsString() @MaxLength(64) zgloszenie?: string;
+  /** K4 — przelew opłaca tę proformę klienta (kwota musi być równa kwocie proformy). */
+  @IsOptional() @IsUUID() proformaId?: string;
+}
+
+export class PozycjaProformyDto {
+  @IsString() @Length(3, 200) nazwa!: string;
+  @Type(() => Number) @IsNumber({ maxDecimalPlaces: 2 }) @IsPositive() @Max(MAKS_KWOTA) kwotaBrutto!: number;
+}
+
+/** K4 — proforma: pozycje dowolne i/lub odnowienie usługi z portfela, termin płatności w dniach. */
+export class WystawProformeDto {
+  @IsOptional() @IsArray() @ArrayMaxSize(MAKS_POZYCJI_PROFORMY) @ValidateNested({ each: true }) @Type(() => PozycjaProformyDto)
+  pozycje?: PozycjaProformyDto[];
+  @IsOptional() @IsUUID() odnowienieSubscriptionId?: string;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(60) terminDni?: number;
+}
+
+export class AnulujProformeDto {
+  @IsString() @Length(10, 500) powod!: string;
 }
 
 type Aktor = { userId: string; role: string };
@@ -43,7 +66,10 @@ const operator = (a: Aktor) => ({ userId: a.userId, role: a.role });
 @Roles(Role.ADMIN, Role.STAFF)
 @StaffPerm('BILLING_VIEW')
 export class RozliczeniaAdminController {
-  constructor(private readonly rozliczenia: RozliczeniaOperatoraService) {}
+  constructor(
+    private readonly rozliczenia: RozliczeniaOperatoraService,
+    private readonly proforma: ProformaService,
+  ) {}
 
   @Get('nieudane-platnosci')
   nieudanePlatnosci(
@@ -110,6 +136,44 @@ export class RozliczeniaAdminController {
       referencja: b.referencja,
       dataWplaty: new Date(b.dataWplaty),
       zgloszenie: b.zgloszenie,
+      proformaId: b.proformaId,
     });
+  }
+
+  // ── K4 (PB-53.6) — proforma z linkiem do płatności ─────────────────────────
+
+  @Get('klienci/:userId/proformy')
+  proformyKlienta(@Param('userId', ParseUUIDPipe) userId: string) {
+    return this.proforma.listaOperatora(userId);
+  }
+
+  @Post('klienci/:userId/proformy')
+  @HttpCode(200)
+  @StaffPerm('BILLING_MANAGE')
+  @RateLimit({ limit: 60, windowMs: 60 * 60 * 1000, scope: 'admin:rozliczenia-proforma' })
+  wystawProforme(@Param('userId', ParseUUIDPipe) userId: string, @Body() b: WystawProformeDto, @CurrentUser() a: Aktor) {
+    return this.proforma.wystaw({
+      userId,
+      operator: operator(a),
+      pozycje: b.pozycje,
+      odnowienieSubscriptionId: b.odnowienieSubscriptionId ?? null,
+      terminDni: b.terminDni ?? null,
+    });
+  }
+
+  @Post('proformy/:id/anuluj')
+  @HttpCode(200)
+  @StaffPerm('BILLING_MANAGE')
+  anulujProforme(@Param('id', ParseUUIDPipe) id: string, @Body() b: AnulujProformeDto, @CurrentUser() a: Aktor) {
+    return this.proforma.anuluj({ id, operator: operator(a), powod: b.powod });
+  }
+
+  @Get('proformy/:id/pdf')
+  @Header('Cache-Control', 'no-store')
+  async proformaPdf(@Param('id', ParseUUIDPipe) id: string, @Res() res: Response): Promise<void> {
+    const { pdf, filename } = await this.proforma.pdfZapisanej(id, null);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.end(Buffer.from(pdf));
   }
 }

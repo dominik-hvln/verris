@@ -53,6 +53,8 @@ import type { LoginHistoryResponse } from "../../operators/[id]/data";
 import type { RuchyPortfela, WindykacjaKlienta } from "../../billing/rozliczenia-dane";
 import { RejestrPortfela, RUCHY_NA_STRONE, WindykacjaKlientaKarta } from "./rozliczenia-klienta";
 import { PortfelOperacje } from "./portfel-operacje";
+import { ProformyKlienta } from "./proformy-klienta";
+import type { ProformaOperatoraDto } from "@verris/contracts";
 
 export const dynamic = "force-dynamic";
 
@@ -185,13 +187,15 @@ export default async function AdminCustomerCardPage({
   // F3.6 — rejestr ruchów portfela, przypomnienia i zawieszenia (BILLING_VIEW) oraz wpłata i korekta (BILLING_MANAGE).
   // Bez BILLING_VIEW zostaje skrót ruchów z profilu (CUSTOMERS_VIEW); undefined = API nie odpowiedziało.
   const stronaPortfela = Math.max(1, Number.parseInt(q.portfel ?? "1", 10) || 1);
-  const [ruchy, windykacja] =
+  const [ruchy, windykacja, proformy] =
     sekcja === "rozliczenia" && doFaktury
       ? await Promise.all([
           adminApi<RuchyPortfela>(`/admin/rozliczenia/klienci/${id}/portfel?limit=${RUCHY_NA_STRONE}&offset=${(stronaPortfela - 1) * RUCHY_NA_STRONE}`).catch(() => undefined),
           adminApi<WindykacjaKlienta>(`/admin/rozliczenia/klienci/${id}/windykacja`).catch(() => undefined),
+          // K4 — proformy z linkiem do płatności (BILLING_VIEW); undefined = nie udało się wczytać.
+          adminApi<{ rows: ProformaOperatoraDto[] }>(`/admin/rozliczenia/klienci/${id}/proformy`).then((r) => r.rows, () => undefined),
         ])
-      : [undefined, null];
+      : [undefined, null, undefined];
   const operacjePortfela = sekcja === "rozliczenia" && !!dostep && !brakUprawnienia("BILLING_MANAGE", dostep) && !jestSubkontem(p);
   const u = p.user;
   const osoba = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
@@ -572,10 +576,26 @@ export default async function AdminCustomerCardPage({
                 ))}
               </>
             )}
-            {operacjePortfela ? <PortfelOperacje userId={u.id} saldo={Number(u.walletBalance).toFixed(2)} /> : null}
+            {operacjePortfela ? (
+              <PortfelOperacje
+                userId={u.id}
+                saldo={Number(u.walletBalance).toFixed(2)}
+                proformyDoZaplaty={(proformy ?? []).filter((x) => x.status === "WYSTAWIONA").map((x) => ({ id: x.id, numer: x.numer, kwota: x.kwota }))}
+              />
+            ) : null}
           </section>
           <div className="flex flex-col gap-5">
             {doFaktury ? <WindykacjaKlientaKarta dane={windykacja} teraz={teraz} /> : null}
+            {doFaktury ? (
+              <ProformyKlienta
+                userId={u.id}
+                proformy={proformy}
+                wolnoZmiana={operacjePortfela}
+                uslugi={p.subscriptions
+                  .filter((s) => s.paymentSource === "WALLET" && (s.status === "ACTIVE" || s.status === "PAST_DUE") && !s.cancelAt && s.currentPeriodEnd)
+                  .map((s) => ({ id: s.id, etykieta: `${s.plan.name}${s.account?.domain ? ` · ${s.account.domain}` : ""} · odnowienie ${s.currentPeriodEnd!.slice(0, 10)}` }))}
+              />
+            ) : null}
             <section className={KARTA} aria-labelledby="faktury" data-karta="faktury">
               <NaglowekKarty id="faktury" tytul="Faktury" />
               {p.recentInvoices.length === 0 ? <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak faktur.</div> : null}

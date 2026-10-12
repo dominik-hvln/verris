@@ -26,7 +26,16 @@ const dzisiaj = () => new Date().toISOString().slice(0, 10);
  * referencja chroni przed podwójnym zaksięgowaniem) i „Korekta salda” (±, z powodem; klucz formularza chroni przed
  * podwójnym kliknięciem). Klient widzi wpisy jako „obsługa Verris (zgłoszenie #…)”.
  */
-export function PortfelOperacje({ userId, saldo }: { userId: string; saldo: string }) {
+export function PortfelOperacje({
+  userId,
+  saldo,
+  proformyDoZaplaty = [],
+}: {
+  userId: string;
+  saldo: string;
+  /** K4 — proformy WYSTAWIONE: przelew może je opłacić (kwota musi być równa kwocie proformy). */
+  proformyDoZaplaty?: Array<{ id: string; numer: string; kwota: string }>;
+}) {
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; tekst: string; gdzie: "wplata" | "korekta" } | null>(null);
 
@@ -35,6 +44,8 @@ export function PortfelOperacje({ userId, saldo }: { userId: string; saldo: stri
   const [referencja, setReferencja] = useState("");
   const [dataW, setDataW] = useState(dzisiaj);
   const [zglW, setZglW] = useState("");
+  const [proformaId, setProformaId] = useState("");
+  const proforma = proformyDoZaplaty.find((p) => p.id === proformaId) ?? null;
 
   const [kierunek, setKierunek] = useState<"plus" | "minus">("plus");
   const [kwotaK, setKwotaK] = useState("");
@@ -52,17 +63,28 @@ export function PortfelOperacje({ userId, saldo }: { userId: string; saldo: stri
 
   const zaksieguj = async () => {
     if (!wplataOk || wplata === null) return;
-    if (!(await potwierdz(`Zaksięgować przelew ${wplata.toFixed(2)} zł (${referencja.trim()}) na portfel klienta? Klient dostanie kredyty i potwierdzenie mailem.`, { akcja: "Zaksięguj" }))) return;
+    const doProformy = proforma ? ` jako zapłatę proformy ${proforma.numer}` : "";
+    if (!(await potwierdz(`Zaksięgować przelew ${wplata.toFixed(2)} zł (${referencja.trim()}) na portfel klienta${doProformy}? Klient dostanie kredyty i potwierdzenie mailem.`, { akcja: "Zaksięguj" }))) return;
     start(async () => {
       setMsg(null);
-      const r = await wplataPrzelewemAction(userId, { kwota: wplata, tytul: tytul.trim(), referencja: referencja.trim(), dataWplaty: dataW, zgloszenie: zglW }).catch(() => brakPolaczenia);
+      const r = await wplataPrzelewemAction(userId, { kwota: wplata, tytul: tytul.trim(), referencja: referencja.trim(), dataWplaty: dataW, zgloszenie: zglW, proformaId: proformaId || undefined }).catch(() => brakPolaczenia);
       pokaz("wplata", r);
       if (r.ok) {
         setKwotaW("");
         setTytul("");
         setReferencja("");
+        setProformaId("");
       }
     });
+  };
+
+  const wybierzProforme = (id: string) => {
+    setProformaId(id);
+    const p = proformyDoZaplaty.find((x) => x.id === id);
+    if (p) {
+      setKwotaW(p.kwota.replace(".", ","));
+      if (!tytul.trim()) setTytul(p.numer);
+    }
   };
 
   const zapiszKorekte = async () => {
@@ -106,6 +128,20 @@ export function PortfelOperacje({ userId, saldo }: { userId: string; saldo: stri
             <PoleDaty id="wplata-data" value={dataW} onChange={setDataW} className={POLE} />
           </div>
         </div>
+        {proformyDoZaplaty.length > 0 ? (
+          <div className="block space-y-1">
+            <label htmlFor="wplata-proforma" className={etykieta}>
+              Zapłata proformy
+            </label>
+            <Select
+              id="wplata-proforma"
+              value={proformaId}
+              onChange={wybierzProforme}
+              disabled={pending}
+              options={[{ value: "", label: "— bez proformy —" }, ...proformyDoZaplaty.map((p) => ({ value: p.id, label: `${p.numer} · ${p.kwota} zł` }))]}
+            />
+          </div>
+        ) : null}
         <label className="block space-y-1">
           <span className={etykieta}>Tytuł przelewu</span>
           <input value={tytul} onChange={(e) => setTytul(e.target.value)} maxLength={140} disabled={pending} className={POLE} data-pole="tytul" />

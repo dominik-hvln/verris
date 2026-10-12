@@ -1,4 +1,5 @@
 import type {
+  ProformaDto,
   SavedPaymentMethodDto,
   StatusPlatnosciPaynowDto,
   WalletAutoTopupSettingsDto,
@@ -16,6 +17,11 @@ export async function getWalletAutoTopup(): Promise<WalletAutoTopupSettingsDto> 
 
 export async function getSavedPaymentMethods(): Promise<SavedPaymentMethodDto[]> {
   return apiFetch<SavedPaymentMethodDto[]>('/billing/payment-methods');
+}
+
+/** K4 — proformy wystawione przez obsługę. */
+export async function getProformy(): Promise<ProformaDto[]> {
+  return (await apiFetch<{ rows: ProformaDto[] }>('/billing/proformy')).rows;
 }
 
 /**

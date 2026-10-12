@@ -24,6 +24,7 @@ import { DoladowanieService } from './doladowanie.service.js';
 import { RedeemPromoDto, UpsertWalletAutoTopupDto } from './dto/promo.dto.js';
 import { PromoService } from './promo.service.js';
 import { WalletAutoTopupService, powodAutoDoladowania } from './wallet-auto-topup.service.js';
+import { ProformaService } from './proforma.service.js';
 
 @Controller('billing')
 @UseGuards(JwtAuthGuard)
@@ -33,7 +34,33 @@ export class BillingController {
     private readonly promo: PromoService,
     private readonly autoTopup: WalletAutoTopupService,
     private readonly doladowanie: DoladowanieService,
+    private readonly proforma: ProformaService,
   ) {}
+
+  /** K4 — proformy wystawione klientowi przez obsługę (Płatności → „Proformy”). */
+  @Get('proformy')
+  @HttpCode(200)
+  listaProform(@CurrentUser() user: { userId: string }) {
+    return this.proforma.listaKlienta(user.userId);
+  }
+
+  /** K4 — PDF proformy (z migawek z dnia wystawienia). */
+  @Get('proformy/:id/pdf')
+  @Header('Cache-Control', 'no-store')
+  async proformaPdf(@CurrentUser() user: { userId: string }, @Param('id', ParseUUIDPipe) id: string, @Res() res: Response): Promise<void> {
+    const { pdf, filename } = await this.proforma.pdfZapisanej(id, user.userId);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.end(Buffer.from(pdf));
+  }
+
+  /** K4 — „Zapłać”: zlecenie Paynow na kwotę proformy; zwraca adres płatności. */
+  @Post('proformy/:id/zaplac')
+  @HttpCode(200)
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'billing:proforma-zaplac' })
+  zaplacProforme(@CurrentUser() user: { userId: string }, @Param('id', ParseUUIDPipe) id: string) {
+    return this.billing.zaplacProforme(user.userId, id);
+  }
 
   @Get('wallet')
   @HttpCode(200)

@@ -252,6 +252,7 @@ model User {
   subscriptions            Subscription[]
   walletTransactions       WalletTransaction[]
   paynowPlatnosci          PaynowPlatnosc[]
+  proformy                 Proforma[]
   paymentMethods           PaymentMethod[]
   invoices                 Invoice[]
   domains                  Domain[]
@@ -1091,6 +1092,7 @@ model Subscription {
   usageMetrics         UsageMetric[]
   walletEntries        WalletTransaction[]       @relation("SubscriptionWalletEntries")
   invoices             Invoice[]
+  proformy             Proforma[]
   migrationRequests    MigrationRequest[]
   healthSnapshots      ServiceHealthSnapshot[]
   domainChecklists     DomainChecklist[]
@@ -1833,6 +1835,8 @@ model Invoice {
   /// Wpisy księgi portfela pokryte tą fakturą. Dla faktury za pojedyncze
   /// obciążenie — jeden; dla zbiorczej miesięcznej — wszystkie z okresu.
   walletEntries  WalletTransaction[] @relation("FakturaZaObciazenia")
+  /// K4 — proforma opłacona wpłatą, za którą powstał ten dokument.
+  proforma       Proforma?
 
   // ── M-06 — korekty ────────────────────────────────────────────────────────
   kind           InvoiceKind   @default(VAT)
@@ -3424,6 +3428,49 @@ model PaynowPlatnosc {
   updatedAt  DateTime @updatedAt
 
   @@index([userId, createdAt])
+}
+
+/// K4 (PB-53.6) — proforma wystawiona przez operatora z linkiem do płatności.
+/// NIE jest dokumentem księgowym: własna seria PRO/RRRR/MM/NNNN (licznik w InvoiceCounter, seria rozłączna z VFV/VDR),
+/// nie trafia do KSeF (KSeF czyta wyłącznie Invoice). Po zapłacie (Paynow albo przelew zaksięgowany przez Finanse)
+/// dokument za wpłatę powstaje istniejącą ścieżką doładowania (DoladowanieService.zaksieguj), atomowo z przejściem
+/// proformy na OPLACONA. Logika: apps/api/src/billing/proforma.service.ts.
+model Proforma {
+  id             String        @id @default(uuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Pozycja „odnowienie usługi” — K trafiają do portfela, odnowienie robi istniejący harmonogram.
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  number         String        @unique
+  /// WYSTAWIONA, OPLACONA, ANULOWANA — TEXT + CHECK w bazie.
+  status         String        @default("WYSTAWIONA")
+  /// Brutto (do zapłaty), netto i VAT — sumy pozycji liczonych jak w fakturach (rozbicieWgStawki).
+  amount         Decimal       @db.Decimal(12, 2)
+  netAmount      Decimal       @db.Decimal(12, 2)
+  vatAmount      Decimal       @db.Decimal(12, 2)
+  currency       String        @default("PLN")
+  /// Format jak Invoice.lineItems.
+  lineItems      Json
+  /// Traktowanie VAT ustalone przy wystawieniu (klucze jak metadane płatności: vatKod, vatStawka, vatKraj, vies).
+  vatMeta        Json
+  sellerSnapshot Json?
+  buyerSnapshot  Json?
+  issuedAt       DateTime      @default(now())
+  dueAt          DateTime
+  paidAt         DateTime?
+  /// Wpis TOPUP w księdze, którym opłacono proformę.
+  walletTxId     String?       @unique
+  /// Dokument za wpłatę (model „przy doładowaniu”); null w modelu „przy obciążeniu”.
+  invoiceId      String?       @unique
+  invoice        Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  cancelledAt    DateTime?
+  cancelReason   String?
+  createdById    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([userId, issuedAt])
 }
 
 /// H-20 — wynik próby odtworzenia z kopii zapasowej.

@@ -625,9 +625,78 @@ export class BillingService {
         amount: i.amount.toFixed(2),
         currency: i.user.walletCurrency,
         ...(i.bonus ? { promoCode: i.bonus.code, bonusAmount: i.bonus.amount } : {}),
+        ...(i.meta.proformaId ? { proformaId: i.meta.proformaId } : {}),
       },
     });
     return { url: odp.redirectUrl, sessionId: rek.id, bonus: i.bonus };
+  }
+
+  /**
+   * K4 — „Zapłać” przy proformie: ta sama ścieżka co doładowanie Paynow (rekord PaynowPlatnosc → externalId,
+   * powiadomienie → {@link zaksiegujPaynow} → DoladowanieService.zaksieguj). Kwota i stawka VAT z proformy (ustalone
+   * przy wystawieniu), w metadanych `kind: 'proforma'` + `proformaId` — księgowanie oznacza proformę jako opłaconą
+   * w tej samej transakcji co wpis księgi i dokument za wpłatę.
+   * https://docs.paynow.pl/docs/v3/payments#make-a-payment
+   */
+  async zaplacProforme(userId: string, proformaId: string): Promise<{ url: string }> {
+    const pf = await this.prisma.proforma.findFirst({ where: { id: proformaId, userId } });
+    if (!pf) throw new NotFoundException('Nie znaleziono proformy.');
+    if (pf.status !== 'WYSTAWIONA') {
+      throw new ConflictException(pf.status === 'OPLACONA' ? 'Ta proforma jest już opłacona.' : 'Ta proforma została anulowana — nie trzeba jej płacić.');
+    }
+    const paynow = this.paynowKlient();
+    if (!paynow || pf.currency !== 'PLN') {
+      throw new BadRequestException('Płatność online jest chwilowo niedostępna — zapłać przelewem, w tytule wpisz numer proformy.');
+    }
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true, walletCurrency: true } });
+    if (!user) throw new NotFoundException('Nie znaleziono konta.');
+    const minor = Number(new Prisma.Decimal(pf.amount).mul(100).toFixed(0));
+    const { url } = await this.utworzDoladowaniePaynow(paynow, {
+      user,
+      minor,
+      description: `Proforma ${pf.number} — Verris`,
+      meta: { kind: 'proforma', proformaId: pf.id, ...((pf.vatMeta ?? {}) as Record<string, string>) },
+      amount: new Prisma.Decimal(pf.amount),
+      bonus: null,
+    });
+    return { url };
+  }
+
+  /**
+   * K4 — po zaksięgowaniu wpłaty do proformy (Paynow, przelew): dziennik, a gdy proforma w chwili księgowania nie była
+   * już do zapłaty (anulowana, opłacona inną wpłatą) — alarm dla Finansów. K zostają w portfelu klienta; o zwrocie
+   * decyduje człowiek (zwrot Paynow z karty klienta albo przelewem).
+   */
+  async poWplacieDoProformy(i: { userId: string; proformaId: string; walletTxId: string; kanal: 'PAYNOW' | 'PRZELEW' }): Promise<boolean> {
+    const pf = await this.prisma.proforma.findFirst({
+      where: { id: i.proformaId, userId: i.userId },
+      select: { id: true, number: true, status: true, walletTxId: true, invoiceId: true },
+    });
+    if (pf && pf.status === 'OPLACONA' && pf.walletTxId === i.walletTxId) {
+      await this.audit.record({
+        action: 'PROFORMA_OPLACONA',
+        userId: i.userId,
+        details: { proformaId: pf.id, numer: pf.number, walletTxId: i.walletTxId, invoiceId: pf.invoiceId, kanal: i.kanal },
+      });
+      return true;
+    }
+    await this.audit.record({
+      action: 'PROFORMA_WPLATA_NIEPRZYPISANA',
+      userId: i.userId,
+      details: { proformaId: i.proformaId, numer: pf?.number ?? null, status: pf?.status ?? null, walletTxId: i.walletTxId, kanal: i.kanal },
+    });
+    const admini = await this.prisma.user.findMany({ where: { role: 'ADMIN', loginBlocked: false }, select: { id: true } });
+    await this.prisma.notification.createMany({
+      data: admini.map((a) => ({
+        userId: a.id,
+        category: 'SYSTEM',
+        severity: 'warning',
+        title: 'Wpłata do proformy, która nie była już do zapłaty',
+        body: `Wpłata do proformy ${pf?.number ?? i.proformaId} (stan: ${pf?.status ?? 'brak'}) weszła do portfela klienta jako zwykłe doładowanie. Sprawdź, czy klient chce zwrotu.`,
+        link: `/customers/${i.userId}`,
+      })),
+    });
+    return false;
   }
 
   /**
@@ -718,6 +787,7 @@ export class BillingService {
       paymentProvider: 'PAYNOW',
       opis: `Doładowanie Paynow (${rek.paymentId})`,
       zaplaconoAt: new Date(),
+      proformaId: meta.kind === 'proforma' ? meta.proformaId : null,
     });
     // Skutki uboczne (bonus, e-mail, EKO) uruchamia tylko ten, kto przestawił rekord na CONFIRMED.
     // Padnięcie po zaksięgowaniu, a przed tym zapisem: ponowienie zaksięguje „na sucho” i dokończy.
@@ -726,6 +796,9 @@ export class BillingService {
       data: { status: 'CONFIRMED', walletTxId: wpis.id },
     });
     if (count === 0) return;
+    if (meta.kind === 'proforma' && meta.proformaId) {
+      await this.poWplacieDoProformy({ userId: rek.userId, proformaId: meta.proformaId, walletTxId: wpis.id, kanal: 'PAYNOW' });
+    }
     await this.poZaksiegowaniuDoladowania({
       userId: rek.userId,
       wpis,

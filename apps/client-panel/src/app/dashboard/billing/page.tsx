@@ -1,6 +1,7 @@
 import { CheckCircle2, ChevronRight, Clock, ShieldAlert, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import type {
+  ProformaDto,
   SavedPaymentMethodDto,
   WalletAutoTopupSettingsDto,
   WalletSummaryDto,
@@ -13,7 +14,8 @@ import { CREDIT_DISCLAIMER, CREDIT_RATE_INFO, CREDIT_SHORT, formatCredits } from
 import { DualBars, Kpi, KpiStrip, SectionHead } from '@/components/panel/v2';
 import { walletTxDescription } from '@/lib/wallet-tx-label';
 import { mapWalletMonthlyFlow } from '../dashboard-chart-utils';
-import { getSavedPaymentMethods, getWalletAutoTopup, getWalletSummary, sprawdzPlatnoscPaynow } from './data';
+import { getProformy, getSavedPaymentMethods, getWalletAutoTopup, getWalletSummary, sprawdzPlatnoscPaynow } from './data';
+import { Proformy } from './proformy';
 import { TopupCard } from './topup-card';
 import { BillingExtrasForms } from './billing-extras-forms';
 import { BillingWalletRefresh } from './billing-wallet-refresh';
@@ -23,7 +25,7 @@ import { pobierzPartnera } from '@/app/dashboard/settings/partner-actions';
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; karta?: string; paynow?: string }>;
+  searchParams: Promise<{ status?: string; karta?: string; paynow?: string; proforma?: string }>;
 }) {
   const params = await searchParams;
   // Powrót z Paynow (continueUrl): sprawdzenie statusu PRZED odczytem salda — zgubione powiadomienie
@@ -34,6 +36,8 @@ export default async function BillingPage({
   const paynowWynik = params.paynow ? wynikPaynow(paynow?.status) : null;
   let summary: WalletSummaryDto | null = null;
   let loadError: string | null = null;
+  // K4 — proformy od obsługi; błąd odczytu nie zasłania portfela (sekcja się nie pokaże).
+  let proformy: ProformaDto[] = [];
   let billingExtras: {
     initialAuto: WalletAutoTopupSettingsDto;
     savedCards: SavedPaymentMethodDto[];
@@ -41,10 +45,12 @@ export default async function BillingPage({
 
   try {
     summary = await getWalletSummary();
-    const [autoR, pmR] = await Promise.allSettled([
+    const [autoR, pmR, pfR] = await Promise.allSettled([
       getWalletAutoTopup(),
       getSavedPaymentMethods(),
+      getProformy(),
     ]);
+    if (pfR.status === 'fulfilled') proformy = pfR.value;
     if (autoR.status === 'fulfilled' && pmR.status === 'fulfilled') {
       billingExtras = { initialAuto: autoR.value, savedCards: pmR.value };
     }
@@ -139,6 +145,7 @@ export default async function BillingPage({
 
           <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
             <div className="flex min-w-0 flex-col gap-6">
+              {proformy.length > 0 ? <Proformy proformy={proformy} wskazana={params.proforma ?? null} /> : null}
               <section>
                 <SectionHead title="Portfel · 12 miesięcy" desc="Doładowania i wydatki miesiąc po miesiącu." />
                 <div className="rounded-[10px] border border-line bg-card px-4 pb-3 pt-4">

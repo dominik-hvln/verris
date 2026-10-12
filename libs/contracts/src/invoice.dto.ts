@@ -42,3 +42,40 @@ export interface InvoiceListResponse {
   limit: number;
   offset: number;
 }
+
+/**
+ * K4 (PB-53.6) — proforma wystawiona przez obsługę, z płatnością w panelu klienta (apps/api/src/billing/proforma.service.ts).
+ * Proforma nie jest dokumentem księgowym; po zapłacie dokument za wpłatę jest w `faktura`.
+ */
+export type ProformaStatus = 'WYSTAWIONA' | 'OPLACONA' | 'ANULOWANA';
+
+export const PROFORMA_STATUS_PL: Record<ProformaStatus, string> = {
+  WYSTAWIONA: 'Do zapłaty',
+  OPLACONA: 'Opłacona',
+  ANULOWANA: 'Anulowana',
+};
+
+export interface ProformaDto {
+  id: string;
+  /** PRO/RRRR/MM/NNNN — seria rozłączna z seriami dokumentów sprzedaży. */
+  numer: string;
+  status: ProformaStatus;
+  /** Brutto do zapłaty; netto i VAT jak w dokumencie za wpłatę. Decimal jako string. */
+  kwota: string;
+  netto: string;
+  vat: string;
+  waluta: string;
+  wystawiono: string;
+  termin: string;
+  oplacono: string | null;
+  anulowano: string | null;
+  pozycje: Array<{ nazwa: string; brutto: string }>;
+  subscriptionId: string | null;
+  /** Dokument za wpłatę (gdy powstał). */
+  faktura: { id: string; number: string } | null;
+}
+
+export interface ProformaOperatoraDto extends ProformaDto {
+  powodAnulowania: string | null;
+  wystawil: string | null;
+}

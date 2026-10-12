@@ -106,3 +106,73 @@ export function invoiceIssuedTemplate(ctx: InvoiceIssuedContext): MailMessage {
     html,
   };
 }
+
+export interface ProformaWystawionaContext {
+  to: string;
+  firstName: string | null;
+  /** Numer proformy, np. "PRO/2026/10/0001". */
+  number: string;
+  amount: string;
+  currency: string;
+  dueAt: Date;
+  /** Link do panelu (Płatności) z przyciskiem „Zapłać” — wymaga zalogowania. */
+  payUrl: string;
+  panelUrl: string;
+}
+
+/**
+ * K4 — proforma wystawiona przez obsługę: link do panelu z „Zapłać” (płatność online), bez załącznika i bez linku
+ * bezpośrednio do operatora płatności — zlecenie płatności powstaje dopiero po kliknięciu zalogowanego klienta.
+ */
+export function proformaWystawionaTemplate(ctx: ProformaWystawionaContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: `Proforma ${ctx.number} do zapłaty`,
+    preheader: `${formatMoney(ctx.amount, ctx.currency)} — zapłać w panelu klienta do ${formatDate(ctx.dueAt)}.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Wystawiliśmy dla Ciebie proformę. Możesz ją opłacić online w panelu klienta (BLIK, przelew online, karta) albo zwykłym przelewem z numerem proformy w tytule.`,
+      ``,
+      `## Szczegóły`,
+      ``,
+      `- **Numer:** ${escapeMarkdown(ctx.number)}`,
+      `- **Do zapłaty:** ${escapeMarkdown(formatMoney(ctx.amount, ctx.currency))}`,
+      `- **Termin płatności:** ${escapeMarkdown(formatDate(ctx.dueAt))}`,
+      ``,
+      `Proforma nie jest fakturą VAT. Po zaksięgowaniu wpłaty środki trafią do Twojego portfela, a dokument za wpłatę znajdziesz w sekcji **Płatności → Faktury**.`,
+    ].join('\n'),
+    cta: { label: 'Zobacz i zapłać', url: ctx.payUrl },
+    footnote: 'Aby zapłacić, musisz być zalogowany — tak chronimy Twoje dane finansowe. W razie pytań: kontakt@verris.pl.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'proforma.issued',
+    subject: `[Verris] Proforma ${ctx.number} — ${formatMoney(ctx.amount, ctx.currency)}`,
+    text,
+    html,
+  };
+}
+
+/** K4 — obsługa anulowała proformę: nie płać jej (link w panelu przestaje działać). */
+export function proformaAnulowanaTemplate(ctx: { to: string; firstName: string | null; number: string; panelUrl: string }): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: `Proforma ${ctx.number} anulowana`,
+    preheader: 'Tej proformy nie trzeba już płacić.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Anulowaliśmy proformę **${escapeMarkdown(ctx.number)}** — nie trzeba jej płacić. Jeśli wpłata była już w drodze, trafi do Twojego portfela i możesz ją wykorzystać na usługi albo poprosić nas o zwrot.`,
+    ].join('\n'),
+    cta: { label: 'Przejdź do płatności', url: `${ctx.panelUrl}/dashboard/billing` },
+    footnote: 'W razie pytań: kontakt@verris.pl.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'proforma.cancelled', subject: `[Verris] Proforma ${ctx.number} anulowana`, text, html };
+}

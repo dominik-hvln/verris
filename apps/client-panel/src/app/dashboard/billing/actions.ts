@@ -219,3 +219,15 @@ export async function startAddCardAction(): Promise<{ ok: true; url: string } | 
     return { ok: false, error: err instanceof ApiError ? err.message : 'Nie udało się otworzyć formularza karty.' };
   }
 }
+
+/** K4 — „Zapłać” przy proformie: API zakłada płatność online na kwotę proformy i zwraca adres płatności. */
+export async function zaplacProformeAction(id: string): Promise<TopupResult> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return { ok: false, error: 'Niepoprawna proforma.' };
+  let url: string;
+  try {
+    ({ url } = await apiFetch<{ url: string }>(`/billing/proformy/${id}/zaplac`, { method: 'POST' }));
+  } catch (err) {
+    return { ok: false, error: err instanceof ApiError ? err.message : 'Nie udało się przygotować płatności.' };
+  }
+  redirect(url);
+}

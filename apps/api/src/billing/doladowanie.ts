@@ -20,6 +20,8 @@ export interface DaneDokumentuDoladowania {
   /** Ile K trafiło na konto — do opisu pozycji. */
   kredytK: Prisma.Decimal;
   teraz: Date;
+  /** K4 — numer opłacanej proformy: dopisek w nazwie pozycji, żeby dokument wskazywał, za co jest wpłata. */
+  proformaNumer?: string | null;
 }
 
 /**
@@ -36,7 +38,9 @@ export async function utworzDokumentDoladowania(
   const { numer, rodzajPrawny } = await nadajNumerDokumentu(db, d.teraz);
   const pozycje: PozycjaFaktury[] = [
     {
-      name: `Doładowanie konta Verris — ${d.kredytK.toFixed(2)} K do wykorzystania na usługi hostingowe`,
+      name:
+        `Doładowanie konta Verris — ${d.kredytK.toFixed(2)} K do wykorzystania na usługi hostingowe` +
+        (d.proformaNumer ? ` (wpłata do proformy ${d.proformaNumer})` : ''),
       quantity: 1,
       unitNet: r.netto.toFixed(2),
       vatRate: t.stawka ?? 0,

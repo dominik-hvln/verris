@@ -448,8 +448,14 @@ describe("F3.6 — rozliczenia na karcie klienta", () => {
     ],
     przypomnienia: [{ id: "a1", kiedy: "2026-10-08T09:15:00Z", akcja: "SUBSCRIPTION_REMINDER_T3", etykieta: "Przypomnienie o odnowieniu (3 dni przed)", subscriptionId: "s1", kwota: "45.00", brakuje: "40.00" }],
   };
+  const proformy = {
+    rows: [
+      { id: "pf-1", numer: "PRO/2026/10/0001", status: "WYSTAWIONA", kwota: "49.20", netto: "40.00", vat: "9.20", waluta: "PLN", wystawiono: "2026-10-12T08:00:00Z", termin: "2026-10-19T08:00:00Z", oplacono: null, anulowano: null, pozycje: [{ nazwa: "Wdrożenie sklepu", brutto: "49.20" }], subscriptionId: null, faktura: null, powodAnulowania: null, wystawil: "op1" },
+      { id: "pf-2", numer: "PRO/2026/10/0002", status: "OPLACONA", kwota: "45.00", netto: "36.59", vat: "8.41", waluta: "PLN", wystawiono: "2026-10-11T08:00:00Z", termin: "2026-10-18T08:00:00Z", oplacono: "2026-10-11T09:00:00Z", anulowano: null, pozycje: [{ nazwa: "Hosting — odnowienie", brutto: "45.00" }], subscriptionId: "s1", faktura: { id: "f9", number: "VDR/2026/10/0009" }, powodAnulowania: null, wystawil: "op1" },
+    ],
+  };
   const sciezki: string[] = [];
-  function dane(dostep: unknown, o: { ruchy?: unknown; windykacja?: unknown } = {}) {
+  function dane(dostep: unknown, o: { ruchy?: unknown; windykacja?: unknown; proformy?: unknown } = {}) {
     sciezki.length = 0;
     api.mockImplementation(async (sciezka: string) => {
       sciezki.push(sciezka);
@@ -464,6 +470,10 @@ describe("F3.6 — rozliczenia na karcie klienta", () => {
       if (sciezka === `/admin/rozliczenia/klienci/${UID}/windykacja`) {
         if (o.windykacja instanceof Error) throw o.windykacja;
         return o.windykacja ?? windykacja;
+      }
+      if (sciezka === `/admin/rozliczenia/klienci/${UID}/proformy`) {
+        if (o.proformy instanceof Error) throw o.proformy;
+        return o.proformy ?? proformy;
       }
       if (sciezka === "/admin/deliverability/cordons") return { cordons: [] };
       if (sciezka === "/admin/reseller" || sciezka === "/admin/users/referral-enrollments") return [];
@@ -495,6 +505,28 @@ describe("F3.6 — rozliczenia na karcie klienta", () => {
     expect(html).not.toContain('id="wplata"');
     expect(html).not.toContain('id="korekta"');
     expect(html).toContain('data-sekcja="windykacja"');
+  });
+
+  it("K4 — proformy: Finanse wystawiają i anulują (tylko WYSTAWIONĄ), przelew może opłacić proformę; L1 tylko widzi", async () => {
+    dane({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "BILLING_VIEW", "BILLING_MANAGE"] });
+    const html = await renderStrona();
+    const sekcja = html.split('data-sekcja="proformy"')[1]!;
+    expect(sekcja).toContain('href="/api/proformy-pdf/pf-1"');
+    expect(sekcja).toContain("dokument VDR/2026/10/0009");
+    expect(sekcja.match(/data-akcja="anuluj-proforme"/g)).toHaveLength(1);
+    expect(sekcja).toContain('data-akcja="wystaw-proforme"');
+    // Usługa z portfela do wyboru „odnowienie”.
+    expect(sekcja).toContain("Hosting · sklep.pl · odnowienie 2026-10-01");
+    expect(html).toContain('id="wplata-proforma"');
+
+    dane({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "BILLING_VIEW"] });
+    const l1 = (await renderStrona()).split('data-sekcja="proformy"')[1]!;
+    expect(l1).toContain("PRO/2026/10/0001");
+    expect(l1).not.toContain('data-akcja="anuluj-proforme"');
+    expect(l1).not.toContain('data-akcja="wystaw-proforme"');
+
+    dane({ role: "STAFF", isAdmin: false, permissions: ["CUSTOMERS_VIEW", "BILLING_VIEW"] }, { proformy: new Error("ECONNREFUSED") });
+    expect((await renderStrona()).split('data-sekcja="proformy"')[1]).toContain("Nie udało się wczytać proform.");
   });
 
   it("bez BILLING_VIEW: skrót ruchów z profilu, bez zapytań o rozliczenia; awaria API — „Nie udało się wczytać”", async () => {

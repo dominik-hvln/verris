@@ -15,7 +15,8 @@ export const ADNOTACJA_DOKUMENTU_ROZLICZENIOWEGO: readonly string[] = [
 /** M-24 — adnotacja na proformie. */
 export const ADNOTACJA_PROFORMY: readonly string[] = [
   'Faktura proforma nie jest fakturą VAT i nie stanowi podstawy do odliczenia podatku.',
-  'Po opłaceniu odnowienia dokument sprzedaży udostępnimy w panelu klienta.',
+  // K4 — ta sama adnotacja na proformie operatora (dowolne pozycje), nie tylko na odnowieniu.
+  'Po opłaceniu dokument sprzedaży udostępnimy w panelu klienta.',
 ];
 
 /** Snapshot zapisywany w `Invoice.sellerSnapshot`. */

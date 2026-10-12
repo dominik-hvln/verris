@@ -69,6 +69,12 @@ export class DoladowanieService {
     opis: string;
     zaplaconoAt: Date;
     metadata?: Record<string, unknown>;
+    /**
+     * K4 — wpłata do proformy (Paynow z „Zapłać” albo przelew zaksięgowany przez Finanse). W tej samej transakcji co
+     * wpis księgi i dokument: proforma WYSTAWIONA → OPLACONA z powiązaniem do wpisu i dokumentu. Proforma już opłacona
+     * albo anulowana nie blokuje wpłaty (pieniądze są u nas — K wchodzą jak zwykłe doładowanie); stan sprawdza wołający.
+     */
+    proformaId?: string | null;
   }): Promise<{ wpis: WalletTransaction; kredytK: Prisma.Decimal; nowy: boolean }> {
     const istniejacy = await this.ledger.findByIdempotencyKey(i.idempotencyKey);
     if (istniejacy) return { wpis: istniejacy, kredytK: new Prisma.Decimal(istniejacy.amount), nowy: false };
@@ -103,9 +109,24 @@ export class DoladowanieService {
           kredytK,
           kredytK,
         );
+        // K4 — blokada wiersza proformy: anulowanie przez operatora czeka na koniec tej transakcji i widzi OPLACONA.
+        const [proforma] = i.proformaId
+          ? await tx.$queryRaw<Array<{ id: string; number: string }>>`
+              SELECT "id", "number" FROM "Proforma"
+              WHERE "id" = ${i.proformaId} AND "userId" = ${i.userId} AND "status" = 'WYSTAWIONA'
+              FOR UPDATE`
+          : [];
+        let dokument: { id: string } | null = null;
         if ((await odczytajModelFakturowania(tx)) === 'przy_doladowaniu') {
-          await utworzDokumentDoladowania(tx, {
+          dokument = await utworzDokumentDoladowania(tx, {
             userId: i.userId, walletTxId: w.id, kwota, waluta, kurs, traktowanie, vies, kredytK, teraz,
+            proformaNumer: proforma?.number ?? null,
+          });
+        }
+        if (proforma) {
+          await tx.proforma.update({
+            where: { id: proforma.id },
+            data: { status: 'OPLACONA', paidAt: i.zaplaconoAt, walletTxId: w.id, invoiceId: dokument?.id ?? null },
           });
         }
         return w;

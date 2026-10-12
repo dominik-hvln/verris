@@ -759,7 +759,9 @@ export class UsersService {
       // K3 — limity indywidualne usługi ustawione albo przywrócone przez obsługę.
       'SUBSCRIPTION_LIMITS_CUSTOMIZED', 'SUBSCRIPTION_LIMITS_RESET',
       // F3.6 — portfel prowadzony przez obsługę: korekta salda i zaksięgowana wpłata przelewem.
-      'WALLET_OPERATOR_ADJUSTED', 'WALLET_MANUAL_PAYMENT_POSTED'];
+      'WALLET_OPERATOR_ADJUSTED', 'WALLET_MANUAL_PAYMENT_POSTED',
+      // K4 — proforma od obsługi: wystawienie, opłacenie, anulowanie.
+      'PROFORMA_WYSTAWIONA', 'PROFORMA_OPLACONA', 'PROFORMA_ANULOWANA'];
     const take = Math.min(Math.max(limit, 1), 100);
     const rows = await this.prisma.auditLog.findMany({
       where: {
