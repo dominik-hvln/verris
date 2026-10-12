@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, CreditCard, Loader2, Trash2, Wallet } from 'lucide-react';
+import { AlertTriangle, CreditCard, Landmark, Loader2, Trash2, Wallet } from 'lucide-react';
 import { Button } from '@verris/ui';
 import type { SubscriptionStatus } from '@verris/contracts';
 import { PanelModal } from '@/components/panel';
@@ -12,6 +12,7 @@ import {
   abandonUnpaidSubscriptionAction,
   payPastDueFromWalletAction,
   retrySubscriptionPaymentAction,
+  zaplacPaynowAction,
 } from '@/app/dashboard/services/subscription-payment-actions';
 import { dataPl } from '@/lib/data-pl';
 
@@ -81,6 +82,18 @@ export function UnpaidServiceBanner({
     });
   };
 
+  const onPayPaynow = () => {
+    setError(null);
+    startTransition(async () => {
+      const res = await zaplacPaynowAction(serviceId);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      if (res.data?.url) window.location.href = res.data.url;
+    });
+  };
+
   const confirmAbandon = () => {
     setError(null);
     startTransition(async () => {
@@ -112,13 +125,13 @@ export function UnpaidServiceBanner({
               ? `Odwiedzający widzą komunikat o zawieszeniu strony. Pliki, bazy i poczta są nietknięte. ${
                   isStripe
                     ? 'Opłać zaległą fakturę w Rozliczeniach'
-                    : 'Doładuj portfel — pobierzemy opłatę w ciągu godziny albo od razu przyciskiem „Opłać z portfela”'
+                    : 'Doładuj portfel — pobierzemy opłatę w ciągu godziny albo od razu przyciskiem „Opłać z portfela” — albo zapłać za odnowienie BLIK-iem lub przelewem'
                 } — usługa wróci automatycznie.${
                   wygasa ? ` Bez zapłaty do ${wygasa} umowa wygaśnie, a po kolejnych 14 dniach dane zostaną usunięte.` : ''
                 }`
               : isStripe
                 ? 'Opłać zaległą fakturę w Rozliczeniach — do czasu zapłaty usługa zostanie zawieszona.'
-                : 'Doładuj portfel — pobierzemy opłatę automatycznie w ciągu godziny albo od razu przyciskiem „Opłać z portfela”. Jeśli opłata nie wpłynie do końca opłaconego okresu, usługa zostanie zawieszona.'}
+                : 'Doładuj portfel — pobierzemy opłatę automatycznie w ciągu godziny albo od razu przyciskiem „Opłać z portfela” — albo zapłać za odnowienie BLIK-iem lub przelewem. Jeśli opłata nie wpłynie do końca opłaconego okresu, usługa zostanie zawieszona.'}
         </p>
         {error ? <p className="mt-2 text-xs text-crit">{error}</p> : null}
         <div className="mt-3 flex flex-wrap gap-2">
@@ -151,6 +164,17 @@ export function UnpaidServiceBanner({
             >
               {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wallet className="h-3.5 w-3.5" />}
               Opłać z portfela
+            </button>
+          ) : null}
+          {zalegla && !isStripe ? (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={onPayPaynow}
+              className="inline-flex items-center gap-1.5 rounded-[7px] border border-line-strong px-3 py-2 text-xs font-semibold text-[color:var(--verris-body)] hover:bg-raised disabled:opacity-50"
+            >
+              {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Landmark className="h-3.5 w-3.5" />}
+              Zapłać BLIK-iem lub przelewem
             </button>
           ) : null}
           {zalegla ? (

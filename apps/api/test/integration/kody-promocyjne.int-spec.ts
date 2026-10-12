@@ -165,6 +165,29 @@ describe('X-04 kody promocyjne', () => {
       await uslugi().create(k.id, zamow(plan.id, 'drugie-podejscie.pl', 'WRACA'));
       expect(await saldo(k.id)).toBe(75);
     });
+
+    // Zakup przez Paynow: kod jest zarezerwowany, zanim klient zapłaci. Porzucona płatność nie może go „zjeść”.
+    it('zakup przez Paynow porzucony: kod wraca po anulowaniu zamówienia przez klienta i przez sprzątanie po 48 h', async () => {
+      const plan = await utworzPlan({ priceMonthly: 50 });
+      const c = await kod('PAYNOW50', { kind: PromoKind.SERVICE_PERCENT_OFF, value: 50, maxRedemptions: 2 });
+      const zPaynow = (domena: string) => ({ ...(zamow(plan.id, domena, 'PAYNOW50') as object), oplata: 'PAYNOW' }) as never;
+      const licznik = async () => (await prisma().promoCode.findUniqueOrThrow({ where: { id: c.id } })).redemptionCount;
+
+      const k1 = await klient();
+      const w1 = await uslugi().create(k1.id, zPaynow('porzucony.pl'));
+      expect(w1.doZaplatyPaynow?.kwotaK.toFixed(2)).toBe('25.00');
+      expect(await licznik()).toBe(1);
+      await uslugi().cancel(k1.id, w1.subscription.id, { atPeriodEnd: false });
+      expect(await licznik()).toBe(0);
+
+      const k2 = await klient();
+      const w2 = await uslugi().create(k2.id, zPaynow('stary.pl'));
+      await prisma().subscription.update({ where: { id: w2.subscription.id }, data: { createdAt: new Date(Date.now() - 50 * 3600_000) } });
+      expect(await licznik()).toBe(1);
+      await uslugi().abandonStalePendingPayments();
+      expect(await licznik()).toBe(0);
+      expect(await prisma().promoRedemption.count()).toBe(0);
+    });
   });
   // B1 — kod da się wyłączyć albo skrócić w trakcie akcji. Sedno: zmiana z panelu działa od razu
   // i na zakupie nowej usługi, i na odnowieniu z portfela (appliesToRenewals), a w dzienniku jest

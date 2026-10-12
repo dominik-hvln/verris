@@ -6,6 +6,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
   ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -14,7 +15,7 @@ import { createHash } from 'crypto';
 import { Prisma, WalletTransaction, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
-import { SupportActions } from '../common/audit/audit.actions.js';
+import { SupportActions, ZamowieniePaynowActions } from '../common/audit/audit.actions.js';
 import { WalletLedgerService } from './wallet-ledger.service.js';
 import { DoladowanieService, type WalutaWplaty } from './doladowanie.service.js';
 import { StripeService } from './stripe/stripe.service.js';
@@ -26,6 +27,9 @@ import {
 } from './stripe/stripe.client.js';
 import { InvoicesService } from './invoices.service.js';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
+import { RenewalScheduler } from '../subscriptions/renewal.scheduler.js';
+import { nazwaPozycjiUslugi } from './pozycja-uslugi.js';
+import { wplataZaK } from './vat.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { adminCreditNotificationTemplate } from '../mail/templates/admin-credit-notification.js';
 import {
@@ -93,6 +97,10 @@ export class BillingService {
     private readonly promo: PromoService,
     private readonly ecoPoints: EcoPointsService,
     private readonly doladowanie: DoladowanieService,
+    /** Odnowienie zaległej usługi po wpłacie Paynow za to odnowienie (`kind: 'zamowienie'`, typ `odnowienie`). */
+    @Optional()
+    @Inject(forwardRef(() => RenewalScheduler))
+    private readonly renewal?: RenewalScheduler,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -581,6 +589,8 @@ export class BillingService {
       meta: Record<string, string>;
       amount: Prisma.Decimal;
       bonus: { amount: string; percent: number; code: string } | null;
+      /** Dopisek do adresu powrotu (np. `&zamowienie=1` — panel mówi wtedy o uruchamianiu usługi). */
+      powrot?: string;
     },
   ) {
     // Rekord przed wywołaniem Paynow: jego id to externalId i Idempotency-Key tego zlecenia.
@@ -598,7 +608,7 @@ export class BillingService {
           currency: 'PLN',
           externalId: rek.id,
           description: i.description.slice(0, 255),
-          continueUrl: `${panel}/dashboard/billing?paynow=${rek.id}`,
+          continueUrl: `${panel}/dashboard/billing?paynow=${rek.id}${i.powrot ?? ''}`,
           buyer: { email: i.user.email },
         },
         rek.id,
@@ -627,6 +637,7 @@ export class BillingService {
         currency: i.user.walletCurrency,
         ...(i.bonus ? { promoCode: i.bonus.code, bonusAmount: i.bonus.amount } : {}),
         ...(i.meta.proformaId ? { proformaId: i.meta.proformaId } : {}),
+        ...(i.meta.kind === 'zamowienie' ? { zamowienie: i.meta.zamowienieTyp, subscriptionId: i.meta.subscriptionId } : {}),
       },
     });
     return { url: odp.redirectUrl, sessionId: rek.id, bonus: i.bonus };
@@ -661,6 +672,203 @@ export class BillingService {
       bonus: null,
     });
     return { url };
+  }
+
+  /**
+   * Zakup usługi przez Paynow: klient płaci za KONKRETNĄ usługę, więc dokument za wpłatę nazywa usługę i okres
+   * (np. „Hosting Verris — 12 mies. (przyklad.pl), okres 13.10.2026–13.10.2027”), a nie „Doładowanie konta”.
+   * Pieniądze idą tą samą ścieżką co doładowanie (rekord PaynowPlatnosc → {@link zaksiegujPaynow} → K w portfelu,
+   * dokument w modelu „przy doładowaniu”), po czym zamówienie realizuje się z portfela (to samo obciążenie co
+   * „Z portfela”, oznaczone m34 jako pokryte dokumentem za wpłatę). Rzuca 400, gdy Paynow jest niedostępny.
+   * https://docs.paynow.pl/docs/v3/payments#make-a-payment
+   */
+  sprawdzPaynowZamowienia(): void {
+    if (!this.paynowKlient()) {
+      throw new BadRequestException('Płatność BLIK-iem lub przelewem jest chwilowo niedostępna — wybierz płatność z portfela albo kartą.');
+    }
+  }
+
+  /** Nowa usługa (PENDING_PAYMENT, płatność z portfela) opłacana od razu przez Paynow — pełna cena usługi. */
+  async zaplacZamowieniePaynow(
+    userId: string,
+    z: { subscriptionId: string; kwotaK: Prisma.Decimal; domena?: string | null; region?: string | null },
+  ): Promise<{ url: string }> {
+    const paynow = this.paynowKlient();
+    if (!paynow) this.sprawdzPaynowZamowienia();
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: z.subscriptionId, userId },
+      select: { id: true, status: true, interval: true, currency: true, plan: { select: { name: true } } },
+    });
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
+    if (sub.status !== 'PENDING_PAYMENT') throw new ConflictException('Ta usługa nie czeka na płatność.');
+    return this.platnoscZamowienia(paynow!, userId, {
+      typ: 'nowa',
+      subscriptionId: sub.id,
+      kwotaK: z.kwotaK,
+      waluta: sub.currency,
+      opis: `${sub.plan.name} — ${sub.interval === 'YEAR' ? '12 mies.' : '1 mies.'}${z.domena ? ` (${z.domena})` : ''} — Verris`,
+      dodatkowe: { ...(z.domena ? { domena: z.domena } : {}), ...(z.region ? { region: z.region } : {}) },
+    });
+  }
+
+  /**
+   * Zaległe odnowienie (PAST_DUE albo zawieszenie po karencji) opłacone przez Paynow kwotą odnowienia —
+   * po wpłacie odnowienie robi {@link RenewalScheduler.retryPastDueNow} (to samo co „Opłać teraz z portfela”).
+   */
+  async zaplacOdnowieniePaynow(userId: string, subscriptionId: string): Promise<{ url: string }> {
+    const paynow = this.paynowKlient();
+    if (!paynow) this.sprawdzPaynowZamowienia();
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+      include: { plan: { select: { name: true } }, account: { select: { domain: true } } },
+    });
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
+    if (sub.status !== 'PAST_DUE' && sub.status !== 'SUSPENDED') {
+      throw new ConflictException('Usługa nie ma zaległej płatności.');
+    }
+    if (sub.paymentSource !== 'WALLET') {
+      throw new ConflictException('Ta usługa nie jest rozliczana z portfela — zaległą płatność opłacisz w Rozliczeniach.');
+    }
+    const kwotaK = new Prisma.Decimal(
+      await this.promo.resolveNextRenewalAmount({
+        priceAmount: sub.priceAmount,
+        listPriceAmount: sub.listPriceAmount,
+        appliedPromoCodeId: sub.appliedPromoCodeId,
+        introDiscountPct: sub.introDiscountPct,
+        introDiscountPeriodsLeft: sub.introDiscountPeriodsLeft,
+        individualPrice: sub.individualPrice,
+      }),
+    );
+    if (!kwotaK.greaterThan(0)) throw new ConflictException('To odnowienie nie wymaga płatności.');
+    return this.platnoscZamowienia(paynow!, userId, {
+      typ: 'odnowienie',
+      subscriptionId: sub.id,
+      kwotaK,
+      waluta: sub.currency,
+      opis: `${sub.plan.name} — odnowienie${sub.account?.domain ? ` (${sub.account.domain})` : ''} — Verris`,
+      dodatkowe: {},
+    });
+  }
+
+  private async platnoscZamowienia(
+    paynow: PaynowClient,
+    userId: string,
+    z: {
+      typ: 'nowa' | 'odnowienie';
+      subscriptionId: string;
+      kwotaK: Prisma.Decimal;
+      waluta: string;
+      opis: string;
+      dodatkowe: Record<string, string>;
+    },
+  ): Promise<{ url: string }> {
+    if ((z.waluta ?? 'PLN').toUpperCase() !== 'PLN') {
+      throw new BadRequestException('Paynow przyjmuje wpłaty tylko w PLN — wybierz płatność kartą.');
+    }
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true, walletCurrency: true } });
+    if (!user) throw new NotFoundException('Nie znaleziono konta.');
+    // M-09 — stawka ustalana TERAZ (VIES, próg OSS) i zapisywana w metadanych płatności, jak przy doładowaniu.
+    // Klient rozliczany netto płaci K / 1,23 (zaokrąglone w górę — wpłata zawsze pokrywa cenę usługi).
+    const { traktowanie, vies } = await this.doladowanie.ustalTraktowanie(userId);
+    const kwota = wplataZaK(z.kwotaK, traktowanie);
+    const minor = Number(kwota.mul(100).toFixed(0));
+    // https://docs.paynow.pl/docs/reference/v3/send-payment-request — amount >= 100 (1,00 zł).
+    if (minor < 100) throw new BadRequestException('Minimalna kwota płatności przez Paynow to 1 zł — opłać usługę z portfela.');
+    const { url } = await this.utworzDoladowaniePaynow(paynow, {
+      user,
+      minor,
+      description: z.opis,
+      meta: {
+        kind: 'zamowienie',
+        zamowienieTyp: z.typ,
+        subscriptionId: z.subscriptionId,
+        ...z.dodatkowe,
+        ...DoladowanieService.doMetadanych(traktowanie, vies),
+      },
+      amount: kwota,
+      bonus: null,
+      powrot: '&zamowienie=1',
+    });
+    return { url };
+  }
+
+  /**
+   * Nazwa pozycji dokumentu za wpłatę `kind: 'zamowienie'` — liczona przy księgowaniu (okres od chwili zapłaty).
+   * Gdy usługa nie czeka już na tę płatność (anulowana po 48 h, opłacona inaczej) — null: dokument zostaje
+   * „Doładowaniem konta”, bo pieniądze zostają w portfelu, a usługa nie zostanie wykonana za tę wpłatę.
+   */
+  private async nazwaPozycjiZamowienia(userId: string, meta: Record<string, string>, teraz: Date): Promise<string | null> {
+    if (meta.kind !== 'zamowienie' || !meta.subscriptionId) return null;
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: meta.subscriptionId, userId },
+      select: {
+        status: true,
+        interval: true,
+        currentPeriodEnd: true,
+        plan: { select: { name: true } },
+        account: { select: { domain: true } },
+      },
+    });
+    if (!sub) return null;
+    if (meta.zamowienieTyp === 'nowa' && sub.status === 'PENDING_PAYMENT') {
+      return nazwaPozycjiUslugi({ plan: sub.plan.name, interval: sub.interval, domena: meta.domena ?? null, od: teraz, rodzaj: 'zakup' });
+    }
+    if (meta.zamowienieTyp === 'odnowienie' && (sub.status === 'PAST_DUE' || sub.status === 'SUSPENDED')) {
+      return nazwaPozycjiUslugi({
+        plan: sub.plan.name,
+        interval: sub.interval,
+        domena: sub.account?.domain ?? null,
+        od: sub.currentPeriodEnd ?? teraz,
+        rodzaj: 'odnowienie',
+      });
+    }
+    return null;
+  }
+
+  /**
+   * Po zaksięgowaniu wpłaty za zamówienie: realizacja z portfela. Błąd (brak środków po równoległym obciążeniu,
+   * usługa anulowana, provisioning) nie cofa wpłaty — K zostają w portfelu, a Finanse dostają alarm.
+   */
+  private async zrealizujZamowienie(userId: string, meta: Record<string, string>, walletTxId: string): Promise<void> {
+    const subscriptionId = meta.subscriptionId;
+    if (!subscriptionId) return;
+    try {
+      if (meta.zamowienieTyp === 'nowa') {
+        await this.subscriptions.oplacZamowienieZPortfela(userId, subscriptionId, {
+          domain: meta.domena ?? null,
+          preferredRegion: meta.region ?? null,
+        });
+      } else if (meta.zamowienieTyp === 'odnowienie') {
+        if (!this.renewal) throw new Error('Brak harmonogramu odnowień');
+        await this.renewal.retryPastDueNow(userId, subscriptionId);
+      } else {
+        throw new Error(`Nieznany typ zamówienia: ${meta.zamowienieTyp}`);
+      }
+      await this.audit.record({
+        action: ZamowieniePaynowActions.ZAMOWIENIE_PAYNOW_ZREALIZOWANE,
+        userId,
+        details: { subscriptionId, typ: meta.zamowienieTyp, walletTxId },
+      });
+    } catch (err) {
+      const powod = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Paynow: zamówienie ${meta.zamowienieTyp} sub=${subscriptionId} niezrealizowane po wpłacie ${walletTxId}: ${powod}`);
+      await this.audit.record({
+        action: ZamowieniePaynowActions.ZAMOWIENIE_PAYNOW_NIEZREALIZOWANE,
+        userId,
+        details: { subscriptionId, typ: meta.zamowienieTyp, walletTxId, powod },
+      });
+      const admini = await this.prisma.user.findMany({ where: { role: 'ADMIN', loginBlocked: false }, select: { id: true } });
+      await this.prisma.notification.createMany({
+        data: admini.map((a) => ({
+          userId: a.id,
+          category: 'SYSTEM',
+          severity: 'warning',
+          title: 'Opłacone zamówienie nie zostało zrealizowane',
+          body: `Klient zapłacił przez Paynow za ${meta.zamowienieTyp === 'odnowienie' ? 'odnowienie usługi' : 'nową usługę'}, ale realizacja się nie udała (${powod.slice(0, 200)}). Środki są w portfelu klienta — sprawdź usługę i skontaktuj się z klientem.`,
+          link: `/customers/${userId}`,
+        })),
+      });
+    }
   }
 
   /**
@@ -776,6 +984,7 @@ export class BillingService {
   private async zaksiegujPaynow(rek: RekordPaynow): Promise<void> {
     if (!rek.paymentId) throw new Error(`Paynow: rekord ${rek.id} bez paymentId`);
     const meta = (rek.meta ?? {}) as Record<string, string>;
+    const teraz = new Date();
     // Idempotentne po kluczu: duplikat powiadomienia, wyścig powiadomienia ze sprawdzeniem po powrocie —
     // K wchodzą raz (unikalny idempotencyKey w księdze).
     const { wpis, kredytK } = await this.doladowanie.zaksieguj({
@@ -787,8 +996,9 @@ export class BillingService {
       paymentRef: rek.paymentId,
       paymentProvider: 'PAYNOW',
       opis: `Doładowanie Paynow (${rek.paymentId})`,
-      zaplaconoAt: new Date(),
+      zaplaconoAt: teraz,
       proformaId: meta.kind === 'proforma' ? meta.proformaId : null,
+      nazwaPozycji: await this.nazwaPozycjiZamowienia(rek.userId, meta, teraz),
     });
     // Skutki uboczne (bonus, e-mail, EKO) uruchamia tylko ten, kto przestawił rekord na CONFIRMED.
     // Padnięcie po zaksięgowaniu, a przed tym zapisem: ponowienie zaksięguje „na sucho” i dokończy.
@@ -810,6 +1020,7 @@ export class BillingService {
       odniesienie: `paynow:${rek.id}`,
       szczegoly: { provider: 'PAYNOW', paynowId: rek.id, paymentId: rek.paymentId },
     });
+    if (meta.kind === 'zamowienie') await this.zrealizujZamowienie(rek.userId, meta, wpis.id);
   }
 
   private async zglosNiezgodnoscPaynow(rek: RekordPaynow, paymentId: string, status: string): Promise<void> {
@@ -1496,7 +1707,8 @@ export class BillingService {
       }
     }
 
-    void this.notifyWalletTopupOk({
+    // Wpłata za zamówienie: klient nie „doładowywał portfela” — o usłudze mówią maile zamówienia i uruchomienia.
+    if (meta.kind !== 'zamowienie') void this.notifyWalletTopupOk({
       userId,
       amountMajor: kredytK.toFixed(2),
     }).catch((err) => {

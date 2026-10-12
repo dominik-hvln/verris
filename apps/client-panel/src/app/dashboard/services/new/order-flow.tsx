@@ -22,10 +22,13 @@ export function OrderFlow({
   offer: ofertaVerris,
   bezKarty,
   uPartnera,
+  paynowDostepny,
 }: {
   plans: PlanDto[];
   offer: TrialOffer;
   bezKarty?: boolean;
+  /** Zakup usługi BLIK-iem / przelewem (Paynow). */
+  paynowDostepny?: boolean;
   /** Klient aktywnego resellera — bez promocji Verris (rabat na start, kody), jak w API (07.10). */
   uPartnera?: boolean;
 }) {
@@ -81,6 +84,7 @@ export function OrderFlow({
                 initialPromo={promo}
                 bezKarty={bezKarty}
                 bezKodu={uPartnera}
+                paynowDostepny={paynowDostepny}
                 // API nalicza rabat na start każdemu pakietowi z portfela — klient widzi go przed zapłatą.
                 startOffer={{
                   cardEnabled: offer.cardEnabled,

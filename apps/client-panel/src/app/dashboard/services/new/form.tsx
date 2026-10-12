@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Check, Loader2, Wallet, CreditCard, Cpu, MemoryStick, HardDrive, Tag } from 'lucide-react';
+import { Check, Loader2, Wallet, CreditCard, Cpu, MemoryStick, HardDrive, Tag, Landmark } from 'lucide-react';
 import type { PreviewSubscriptionPromoResult } from '@verris/contracts';
 import { previewSubscriptionPromoAction } from './promo-actions';
 import type {
@@ -40,9 +40,14 @@ interface Props {
   bezKarty?: boolean;
   /** Klient resellera — kody rabatowe Verris go nie obejmują (API odrzuca kod). */
   bezKodu?: boolean;
+  /** Zakup tej usługi od razu BLIK-iem lub przelewem (Paynow) — faktura nazywa usługę i okres. */
+  paynowDostepny?: boolean;
 }
 
-export function NewSubscriptionForm({ plans, initialInterval, initialPromo, startOffer, bezKarty, bezKodu }: Props) {
+/** Sposób zapłaty w formularzu: źródło płatności usługi + „Paynow” (portfel jako źródło odnowień, zapłata teraz). */
+type SposobPlatnosci = SubscriptionPaymentSource | 'PAYNOW';
+
+export function NewSubscriptionForm({ plans, initialInterval, initialPromo, startOffer, bezKarty, bezKodu, paynowDostepny }: Props) {
   const router = useRouter();
   const hasEmailPlans = useMemo(() => plans.some((p) => p.productKind === 'EMAIL'), [plans]);
   const hasHostingPlans = useMemo(
@@ -74,6 +79,13 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
   const [interval, setInterval] = useState<BillingInterval>(initialInterval ?? 'MONTH');
   const [paymentSource, setPaymentSource] =
     useState<SubscriptionPaymentSource>('WALLET');
+  const [oplata, setOplata] = useState<'PORTFEL' | 'PAYNOW'>('PORTFEL');
+  const zPaynow = paymentSource === 'WALLET' && oplata === 'PAYNOW';
+  const sposob: SposobPlatnosci = zPaynow ? 'PAYNOW' : paymentSource;
+  const wybierzSposob = (v: SposobPlatnosci) => {
+    setPaymentSource(v === 'PAYNOW' ? 'WALLET' : v);
+    setOplata(v === 'PAYNOW' ? 'PAYNOW' : 'PORTFEL');
+  };
   const [domainSel, setDomainSel] = useState<DomainSelection>({
     mode: 'own',
     domain: '',
@@ -255,6 +267,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
         planId: selectedPlan.id,
         interval,
         paymentSource,
+        ...(zPaynow ? { oplata: 'PAYNOW' as const } : {}),
         domain: newsletter ? undefined : domain.trim().toLowerCase(),
         autoscalingEnabled: newsletter ? false : autoscalingEnabled,
         ecoModeEnabled: newsletter ? false : ecoModeEnabled,
@@ -440,17 +453,27 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
         <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl">
           <PaymentCard
             value="WALLET"
-            current={paymentSource}
-            onChange={setPaymentSource}
+            current={sposob}
+            onChange={wybierzSposob}
             icon={<Wallet className="h-5 w-5" />}
             title="Z portfela"
             description="Pobranie środków z portfela natychmiast — usługa uruchomi się od razu."
           />
+          {paynowDostepny ? (
+            <PaymentCard
+              value="PAYNOW"
+              current={sposob}
+              onChange={wybierzSposob}
+              icon={<Landmark className="h-5 w-5" />}
+              title="BLIK lub przelew"
+              description="Zapłacisz za tę usługę od razu przez Paynow — po wpłacie usługa uruchomi się sama, a faktura wskaże usługę i okres. Odnowienia z portfela."
+            />
+          ) : null}
           {bezKarty ? null : (
             <PaymentCard
               value="STRIPE_CARD"
-              current={paymentSource}
-              onChange={setPaymentSource}
+              current={sposob}
+              onChange={wybierzSposob}
               icon={<CreditCard className="h-5 w-5" />}
               title="Karta płatnicza"
               description="Cykliczne pobieranie z karty. Dostaniesz fakturę po każdym miesięcznym/rocznym pobraniu."
@@ -653,9 +676,11 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
             </p>
           ) : null}
           <p className="text-xs text-neutral-500 mt-1">
-            {paymentSource === 'WALLET'
-              ? 'Środki zostaną pobrane z portfela.'
-              : 'Po przekierowaniu na stronę płatności.'}
+            {zPaynow
+              ? 'Po przekierowaniu do Paynow (BLIK lub przelew).'
+              : paymentSource === 'WALLET'
+                ? 'Środki zostaną pobrane z portfela.'
+                : 'Po przekierowaniu na stronę płatności.'}
           </p>
         </div>
         <button
@@ -747,9 +772,9 @@ function PaymentCard({
   description,
   disabled,
 }: {
-  value: SubscriptionPaymentSource;
-  current: SubscriptionPaymentSource;
-  onChange: (next: SubscriptionPaymentSource) => void;
+  value: SposobPlatnosci;
+  current: SposobPlatnosci;
+  onChange: (next: SposobPlatnosci) => void;
   icon: React.ReactNode;
   title: string;
   description: string;

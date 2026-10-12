@@ -7,6 +7,7 @@ import { Suspense } from 'react';
 import { OrderFlow } from './order-flow';
 import { pobierzPartnera } from '@/app/dashboard/settings/partner-actions';
 import { planyZNarzutem } from '@/lib/narzut';
+import { getWalletSummary } from '@/app/dashboard/billing/data';
 
 export default async function NewServicePage() {
   let plans: PlanDto[] = [];
@@ -15,6 +16,10 @@ export default async function NewServicePage() {
   // O-07 — klient resellera widzi ceny z narzutem (tak liczy je API) i płaci z portfela.
   const partner = await pobierzPartnera();
   const narzutPct = partner?.narzutPct ?? 0;
+  // Zakup usługi BLIK-iem / przelewem (Paynow) — tylko gdy API ma skonfigurowany Paynow.
+  const paynowDostepny = await getWalletSummary()
+    .then((w) => w.paynowDostepny === true)
+    .catch(() => false);
   try {
     plans = planyZNarzutem(await listPublicPlans(), narzutPct);
   } catch (err) {
@@ -57,7 +62,7 @@ export default async function NewServicePage() {
         <EmptyPlans />
       ) : (
         <Suspense fallback={null}>
-          <OrderFlow plans={plans} offer={offer} bezKarty={narzutPct > 0} uPartnera={partner != null} />
+          <OrderFlow plans={plans} offer={offer} bezKarty={narzutPct > 0} uPartnera={partner != null} paynowDostepny={paynowDostepny} />
         </Suspense>
       )}
     </div>

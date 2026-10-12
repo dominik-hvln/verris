@@ -112,6 +112,28 @@ describe('X-04 zakup usługi z portfela', () => {
     expect(kolejka).toEqual([]);
   });
 
+  // 2026-10-12 — zakup przez Paynow: zamówienie czeka bez obciążenia; po wpłacie (K w portfelu) realizacja z portfela.
+  it('zakup przez Paynow: bez obciążenia przy zamówieniu, po wpłacie jedno obciążenie i zakładanie; drugie wywołanie — 409', async () => {
+    const k = await klient(0);
+    const plan = await utworzPlan({ priceMonthly: 45 });
+    const s = uslugi();
+    const wynik = await s.create(k.id, { ...(zamowienie(plan.id) as object), oplata: 'PAYNOW' } as never);
+    expect(wynik.doZaplatyPaynow?.kwotaK.toFixed(2)).toBe('45.00');
+    expect(wynik.subscription.status).toBe(SubscriptionStatus.PENDING_PAYMENT);
+    expect(await prisma().walletTransaction.count({ where: { userId: k.id } })).toBe(0);
+    expect(kolejka).toEqual([]);
+
+    // Wpłata Paynow zaksięgowana (BillingService → DoladowanieService) — K w portfelu.
+    await new WalletLedgerService(prisma() as never).credit({ userId: k.id, type: WalletTxType.TOPUP, amount: 45, description: 'Paynow', idempotencyKey: `paynow:${k.id}` });
+    await s.oplacZamowienieZPortfela(k.id, wynik.subscription.id, { domain: 'sklep-testowy.pl', preferredRegion: null });
+    expect(await saldo(k.id)).toBe(0);
+    expect(await prisma().walletTransaction.count({ where: { userId: k.id, type: WalletTxType.CHARGE_SUBSCRIPTION } })).toBe(1);
+    expect((await prisma().subscription.findUniqueOrThrow({ where: { id: wynik.subscription.id } })).status).toBe(SubscriptionStatus.PROVISIONING);
+    expect(kolejka).toEqual([wynik.subscription.id]);
+    await expect(s.oplacZamowienieZPortfela(k.id, wynik.subscription.id, { domain: 'sklep-testowy.pl', preferredRegion: null })).rejects.toThrow('nie czeka na płatność');
+    expect(await prisma().walletTransaction.count({ where: { userId: k.id, type: WalletTxType.CHARGE_SUBSCRIPTION } })).toBe(1);
+  });
+
   it('brak środków: odmowa, portfel nietknięty, nic nie trafia do zakładania', async () => {
     const k = await klient(10);
     const plan = await utworzPlan({ priceMonthly: 45 });

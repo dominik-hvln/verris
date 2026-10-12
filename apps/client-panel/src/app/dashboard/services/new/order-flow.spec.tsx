@@ -156,3 +156,29 @@ it('klient resellera: bez rabatu na start i bez pola kodu rabatowego', async () 
   expect(t).not.toContain('Kod rabatowy');
   expect(t).toMatch(/Do zapłaty teraz12,49\s?K/);
 });
+
+// 2026-10-12 (Dominik): zakup usługi BLIK-iem / przelewem — wpłata za tę usługę, nie doładowanie portfela.
+it('BLIK lub przelew (Paynow): opcja tylko przy włączonym Paynow; zamówienie z oplata=PAYNOW, bez przejścia do usługi (przekierowanie do płatności)', async () => {
+  mockParams.value = new URLSearchParams('type=newsletter');
+  mockFlags.emailMarketing = true;
+  expect(await pokaz('type=newsletter', true)).not.toContain('BLIK lub przelew');
+
+  mockCreate.mockResolvedValue({ ok: true, data: { subscription: { id: 'sub-7' }, checkoutRedirectUrl: 'https://paywall.paynow/x' } });
+  await act(async () =>
+    root.render(
+      <FeatureFlagsProvider>
+        <OrderFlow plans={PLANY} offer={OFERTA} paynowDostepny />
+      </FeatureFlagsProvider>,
+    ),
+  );
+  const paynow = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('BLIK lub przelew'))!;
+  expect(paynow).toBeDefined();
+  await act(async () => void paynow.click());
+  expect(el.textContent).toContain('Po przekierowaniu do Paynow');
+  const zgoda = [...el.querySelectorAll('input')].find((i) => i.type === 'checkbox')!;
+  await act(async () => void zgoda.click());
+  const zamow = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('Zamów i opłać'))!;
+  await act(async () => void zamow.click());
+  expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ planId: 'n1', paymentSource: 'WALLET', oplata: 'PAYNOW' }));
+  expect(mockPush).not.toHaveBeenCalled();
+});

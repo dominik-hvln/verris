@@ -7,6 +7,7 @@ import { VatNabywcyService } from './vat-nabywcy.service.js';
 import { kursSredniPrzed } from './kurs-nbp.js';
 import { odczytajModelFakturowania } from './tryb-fakturowania.js';
 import { utworzDokumentDoladowania } from './doladowanie.js';
+import { MAKS_NAZWA_POZYCJI, nazwyPozycji } from './pozycja-uslugi.js';
 import { kredytZaWplate, traktowanieZKodu, type TraktowanieVat } from './vat.js';
 
 export type WalutaWplaty = 'PLN' | 'EUR' | 'USD';
@@ -75,6 +76,11 @@ export class DoladowanieService {
      * albo anulowana nie blokuje wpłaty (pieniądze są u nas — K wchodzą jak zwykłe doładowanie); stan sprawdza wołający.
      */
     proformaId?: string | null;
+    /**
+     * Wpłata za konkretną usługę (Paynow `kind: 'zamowienie'`): nazwa pozycji dokumentu — usługa, okres, domena.
+     * Przy proformie opłaconej dokładną kwotą nazwy biorą się z jej pozycji (bez tego parametru).
+     */
+    nazwaPozycji?: string | null;
   }): Promise<{ wpis: WalletTransaction; kredytK: Prisma.Decimal; nowy: boolean }> {
     const istniejacy = await this.ledger.findByIdempotencyKey(i.idempotencyKey);
     if (istniejacy) return { wpis: istniejacy, kredytK: new Prisma.Decimal(istniejacy.amount), nowy: false };
@@ -111,8 +117,8 @@ export class DoladowanieService {
         );
         // K4 — blokada wiersza proformy: anulowanie przez operatora czeka na koniec tej transakcji i widzi OPLACONA.
         const [proforma] = i.proformaId
-          ? await tx.$queryRaw<Array<{ id: string; number: string }>>`
-              SELECT "id", "number" FROM "Proforma"
+          ? await tx.$queryRaw<Array<{ id: string; number: string; amount: Prisma.Decimal; currency: string; lineItems: unknown }>>`
+              SELECT "id", "number", "amount", "currency", "lineItems" FROM "Proforma"
               WHERE "id" = ${i.proformaId} AND "userId" = ${i.userId} AND "status" = 'WYSTAWIONA'
               FOR UPDATE`
           : [];
@@ -121,6 +127,7 @@ export class DoladowanieService {
           dokument = await utworzDokumentDoladowania(tx, {
             userId: i.userId, walletTxId: w.id, kwota, waluta, kurs, traktowanie, vies, kredytK, teraz,
             proformaNumer: proforma?.number ?? null,
+            nazwaPozycji: i.nazwaPozycji ?? nazwaZProformy(proforma, kwota, waluta),
           });
         }
         if (proforma) {
@@ -160,4 +167,23 @@ export class DoladowanieService {
       szacunek: waluta !== 'PLN',
     };
   }
+}
+
+/**
+ * Proforma opłacona dokładnie swoją kwotą (Paynow „Zapłać” zawsze; przelew — gdy klient wpłacił tyle, ile trzeba):
+ * dokument nazywa to, za co jest proforma (np. „Hosting Verris — odnowienie roczne (przyklad.pl), okres …”), z numerem
+ * proformy. Inna kwota (nadpłata, część) — zostaje „Doładowanie konta … (wpłata do proformy …)”, bo pozycje proformy
+ * nie opisują tej wpłaty.
+ */
+export function nazwaZProformy(
+  pf: { number: string; amount: Prisma.Decimal | string; currency: string; lineItems: unknown } | undefined,
+  kwota: Prisma.Decimal,
+  waluta: string,
+): string | null {
+  if (!pf || pf.currency.toUpperCase() !== waluta.toUpperCase() || !new Prisma.Decimal(pf.amount).equals(kwota)) return null;
+  const nazwy = nazwyPozycji(pf.lineItems);
+  if (!nazwy) return null;
+  const dopisek = ` (proforma ${pf.number})`;
+  const miejsce = MAKS_NAZWA_POZYCJI - dopisek.length;
+  return `${nazwy.length > miejsce ? `${nazwy.slice(0, miejsce - 1)}…` : nazwy}${dopisek}`;
 }

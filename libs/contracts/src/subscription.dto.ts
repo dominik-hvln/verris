@@ -27,6 +27,11 @@ export interface CreateSubscriptionInput {
   /** Rabat % na usługę (tylko płatność z portfela). */
   promoCode?: string;
   /**
+   * Przy `paymentSource: 'WALLET'`: `PAYNOW` — zapłata za tę usługę od razu BLIK-iem lub przelewem (odpowiedź niesie
+   * `checkoutRedirectUrl`), odnowienia dalej z portfela. Brak / `PORTFEL` — obciążenie salda.
+   */
+  oplata?: 'PORTFEL' | 'PAYNOW';
+  /**
    * Oświadczenie konsumenckie (art. 15 ust. 3 i art. 21 ust. 2 ustawy o prawach
    * konsumenta): żądanie rozpoczęcia świadczenia usługi przed upływem
    * 14-dniowego terminu odstąpienia. Wymagane `true` — API odrzuca zamówienia

@@ -64,6 +64,16 @@ export async function payPastDueFromWalletAction(subscriptionId: string): Promis
   }
 }
 
+/** Zaległe odnowienie opłacone od razu BLIK-iem lub przelewem (Paynow) — zwraca adres płatności. */
+export async function zaplacPaynowAction(subscriptionId: string): Promise<ActionResult<{ url: string }>> {
+  try {
+    const data = await apiFetch<{ url: string }>(`/subscriptions/${subscriptionId}/zaplac-paynow`, { method: 'POST' });
+    return { ok: true, data };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Nie udało się rozpocząć płatności' };
+  }
+}
+
 export async function abandonUnpaidSubscriptionAction(
   subscriptionId: string,
 ): Promise<ActionResult> {

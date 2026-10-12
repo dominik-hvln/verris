@@ -25,7 +25,7 @@ import { pobierzPartnera } from '@/app/dashboard/settings/partner-actions';
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; karta?: string; paynow?: string; proforma?: string }>;
+  searchParams: Promise<{ status?: string; karta?: string; paynow?: string; proforma?: string; zamowienie?: string }>;
 }) {
   const params = await searchParams;
   // Powrót z Paynow (continueUrl): sprawdzenie statusu PRZED odczytem salda — zgubione powiadomienie
@@ -78,14 +78,22 @@ export default async function BillingPage({
           tone="success"
           icon={<CheckCircle2 className="h-5 w-5" />}
           title="Płatność przyjęta"
-          description="Środki są już w portfelu. Dokument za wpłatę znajdziesz w zakładce Faktury."
+          description={
+            params.zamowienie
+              ? 'Usługa jest opłacona i uruchamia się — jej stan zobaczysz w zakładce Usługi. Fakturę znajdziesz w zakładce Faktury.'
+              : 'Środki są już w portfelu. Dokument za wpłatę znajdziesz w zakładce Faktury.'
+          }
         />
       ) : paynowWynik === 'czeka' ? (
         <StatusBanner
           tone="warning"
           icon={<Clock className="h-5 w-5" />}
           title="Czekamy na potwierdzenie płatności"
-          description="Operator płatności jeszcze jej nie potwierdził (przelew bywa księgowany z opóźnieniem). Saldo odświeży się samo, gdy tylko wpłata dotrze."
+          description={
+            params.zamowienie
+              ? 'Operator płatności jeszcze jej nie potwierdził (przelew bywa księgowany z opóźnieniem). Usługa uruchomi się sama, gdy tylko wpłata dotrze.'
+              : 'Operator płatności jeszcze jej nie potwierdził (przelew bywa księgowany z opóźnieniem). Saldo odświeży się samo, gdy tylko wpłata dotrze.'
+          }
         />
       ) : paynowWynik === 'nieudana' ? (
         <StatusBanner

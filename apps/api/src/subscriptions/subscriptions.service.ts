@@ -83,6 +83,11 @@ export interface CreatedSubscription {
   paymentIntentClientSecret?: string;
   /** When set, provisioning was enqueued to Redis/BullMQ — poll GET /subscriptions/:id until ACTIVE. */
   provisioningQueued?: boolean;
+  /**
+   * Zamówienie z `oplata: 'PAYNOW'`: usługa czeka (PENDING_PAYMENT) na wpłatę Paynow tej kwoty (K). Płatność
+   * zakłada kontroler (BillingService.zaplacZamowieniePaynow) i zwraca adres w `checkoutRedirectUrl`.
+   */
+  doZaplatyPaynow?: { kwotaK: Prisma.Decimal };
 }
 
 /** Decyzja właściciela 29.09.2026: konto zakończonej (anulowanej/wygasłej) usługi żyje 14 dni, potem usunięcie. */
@@ -478,6 +483,13 @@ export class SubscriptionsService {
       this.logger.warn(`notifyOrderReceived failed sub=${subscription.id}: ${(err as Error).message}`),
     );
 
+    // Zakup przez Paynow: bez obciążenia teraz — usługa czeka na wpłatę, po której realizuje się z portfela
+    // ({@link oplacZamowienieZPortfela}). Kod rabatowy zostaje zarezerwowany; nieopłacone zamówienie anuluje
+    // się po 48 h jak każde PENDING_PAYMENT.
+    if (dto.paymentSource === SubscriptionPaymentSource.WALLET && dto.oplata === 'PAYNOW' && !op) {
+      return { subscription, doZaplatyPaynow: { kwotaK: pricing.chargeAmount } };
+    }
+
     switch (dto.paymentSource) {
       case SubscriptionPaymentSource.WALLET: {
         try {
@@ -672,6 +684,11 @@ export class SubscriptionsService {
       source: 'CUSTOMER',
       actorUserId: userId,
     });
+    // Nieopłacone zamówienie (np. porzucona płatność Paynow): zarezerwowany kod rabatowy wraca do klienta —
+    // tak samo jak przy braku środków w portfelu w chwili zamówienia.
+    if (subscription.status === SubscriptionStatus.PENDING_PAYMENT && subscription.appliedPromoCodeId) {
+      await this.promo.zwolnijKodUslugi(subscription.userId, subscription.appliedPromoCodeId).catch(() => undefined);
+    }
     await this.audit.record({
       action: 'SUBSCRIPTION_CANCELED',
       userId,
@@ -1554,6 +1571,50 @@ export class SubscriptionsService {
     });
   }
 
+  /**
+   * Zamówienie opłacone przez Paynow (BillingService, po zaksięgowaniu wpłaty): realizacja z portfela tak samo jak
+   * „Z portfela” przy zamówieniu — to samo obciążenie (`sub-<id>-initial`, idempotentne), provisioning, zwrot przy
+   * nieudanym zakładaniu. Domena i region z metadanych płatności (zamówienie nie zapisuje ich w usłudze).
+   */
+  async oplacZamowienieZPortfela(
+    userId: string,
+    subscriptionId: string,
+    z: { domain: string | null; preferredRegion: string | null },
+  ): Promise<CreatedSubscription> {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+      include: { plan: { select: { id: true, productKind: true } } },
+    });
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
+    if (sub.status !== SubscriptionStatus.PENDING_PAYMENT || sub.paymentSource !== SubscriptionPaymentSource.WALLET) {
+      throw new ConflictException(`Usługa nie czeka na płatność z portfela (stan: ${sub.status}).`);
+    }
+    const isAppLevel = (sub.plan.productKind as string) === 'EMAIL_MARKETING';
+    if (!isAppLevel && !z.domain) throw new BadRequestException('Zamówienie bez domeny — nie da się założyć konta.');
+    const dto = {
+      planId: sub.planId,
+      interval: sub.interval,
+      paymentSource: SubscriptionPaymentSource.WALLET,
+      domain: z.domain ?? undefined,
+      preferredRegion: z.preferredRegion ?? undefined,
+      immediatePerformanceConsent: true,
+    } as CreateSubscriptionDto;
+    if (isAppLevel) {
+      return this.activateAppLevelSubscription(sub.id, dto, userId, {
+        charge: sub.priceAmount,
+        appliedPromoCodeId: sub.appliedPromoCodeId,
+      });
+    }
+    return this.payFromWalletAndProvision(
+      sub.id,
+      new Prisma.Decimal(sub.priceAmount),
+      new Prisma.Decimal(sub.listPriceAmount ?? sub.priceAmount),
+      sub.appliedPromoCodeId,
+      dto,
+      userId,
+    );
+  }
+
   private async payFromWalletAndProvision(
     subscriptionId: string,
     amount: Prisma.Decimal,
@@ -1915,6 +1976,10 @@ export class SubscriptionsService {
         await this.prisma.subscriptionEvent.create({
           data: { subscriptionId: sub.id, type: 'CANCELED', details: { actor: null, source: 'SCHEDULED' } },
         });
+        // Porzucona płatność (np. Paynow przy zamówieniu): zarezerwowany kod rabatowy wraca do klienta.
+        if (sub.appliedPromoCodeId) {
+          await this.promo.zwolnijKodUslugi(sub.userId, sub.appliedPromoCodeId).catch(() => undefined);
+        }
         if (sub.paymentSource === SubscriptionPaymentSource.STRIPE_CARD && sub.stripeSubscriptionId) {
           await this.stripe.cancelSubscription(sub.stripeSubscriptionId, { atPeriodEnd: false }).catch((err: Error) =>
             this.logger.warn(`abandonStalePendingPayments: Stripe cancel failed sub=${sub.id}: ${err.message}`),

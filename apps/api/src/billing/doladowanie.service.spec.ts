@@ -15,6 +15,8 @@ function zbuduj(opts: {
   kurs?: number;
   /** Kraj, dla którego obsługa zweryfikowała nabywcę spoza UE (decyzja 09.10). */
   zweryfikowanyKraj?: string;
+  /** Proforma WYSTAWIONA zwracana przez blokadę wiersza (K4). */
+  proforma?: { id: string; number: string; amount: Prisma.Decimal; currency: string; lineItems: unknown };
 } = {}) {
   const ustawienia: Record<string, string> = { 'faktury.model': opts.model ?? 'przy_doladowaniu', 'faktury.tryb': 'zewnetrzny' };
   const wpisy: Array<Record<string, unknown>> = [];
@@ -26,6 +28,7 @@ function zbuduj(opts: {
         const v = ustawienia[String(vals[0])];
         return v ? [{ value: v }] : [];
       }
+      if (sql.includes('"Proforma"')) return opts.proforma ? [opts.proforma] : [];
       if (sql.includes('FOR UPDATE')) return [{ id: 'u1', walletBalance: new Prisma.Decimal(1000), walletCurrency: 'PLN' }];
       if (sql.includes('InvoiceCounter')) return [{ seq: 7 }];
       if (sql.includes('"Invoice"')) return [];
@@ -55,6 +58,7 @@ function zbuduj(opts: {
         return { id: 'inv1', number: String(a.data.number) };
       }),
     },
+    proforma: { update: vi.fn(async () => ({})) },
   };
   const prisma = { ...tx, $transaction: vi.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)) };
   const ledger = new WalletLedgerService(prisma as never);
@@ -171,5 +175,48 @@ describe('DoladowanieService', () => {
     await ledger.debit({ userId: 'u1', amount: 45, type: 'CHARGE_SUBSCRIPTION' as never });
     t.przywroc();
     expect(t.dokumenty).toHaveLength(1);
+  });
+
+  // 2026-10-12 (Dominik): klient, który płaci za usługę, a nie „doładowuje konto”, dostaje dokument z nazwą usługi i okresu.
+  it('wpłata za usługę: pozycja dokumentu nazywa usługę i okres zamiast „Doładowanie konta”', async () => {
+    const t = zbuduj();
+    await t.svc.zaksieguj({
+      userId: 'u1', kwotaMinor: 46800, waluta: 'PLN', idempotencyKey: 'paynow:Z1', paymentRef: 'Z1', opis: 'x',
+      zaplaconoAt: new Date('2026-10-13T10:00:00Z'),
+      nazwaPozycji: 'Hosting Start — 12 mies. (przyklad.pl), okres 13.10.2026–13.10.2027',
+    });
+    t.przywroc();
+    const pozycje = t.dokumenty[0].lineItems as Array<{ name: string; totalGross: string }>;
+    expect(pozycje).toHaveLength(1);
+    expect(pozycje[0].name).toBe('Hosting Start — 12 mies. (przyklad.pl), okres 13.10.2026–13.10.2027');
+    expect(pozycje[0].totalGross).toBe('468.00');
+  });
+
+  it('proforma opłacona dokładną kwotą: pozycja z proformy i jej numer; inna kwota — „Doładowanie konta … (wpłata do proformy …)”', async () => {
+    const proforma = {
+      id: 'pf1',
+      number: 'PRO/2026/10/3',
+      amount: new Prisma.Decimal('123.00'),
+      currency: 'PLN',
+      lineItems: [{ name: 'Hosting Start — odnowienie roczne (przyklad.pl), okres 20.10.2026–20.10.2027' }],
+    };
+    const t = zbuduj({ proforma });
+    await t.svc.zaksieguj({
+      userId: 'u1', kwotaMinor: 12300, waluta: 'PLN', idempotencyKey: 'pf-ok', paymentRef: 'p', opis: 'x',
+      zaplaconoAt: new Date('2026-10-13T10:00:00Z'), proformaId: 'pf1',
+    });
+    const t2 = zbuduj({ proforma });
+    await t2.svc.zaksieguj({
+      userId: 'u1', kwotaMinor: 20000, waluta: 'PLN', idempotencyKey: 'pf-wiecej', paymentRef: 'p', opis: 'x',
+      zaplaconoAt: new Date('2026-10-13T10:00:00Z'), proformaId: 'pf1',
+    });
+    t.przywroc();
+    t2.przywroc();
+    expect((t.dokumenty[0].lineItems as Array<{ name: string }>)[0].name).toBe(
+      'Hosting Start — odnowienie roczne (przyklad.pl), okres 20.10.2026–20.10.2027 (proforma PRO/2026/10/3)',
+    );
+    expect((t2.dokumenty[0].lineItems as Array<{ name: string }>)[0].name).toBe(
+      'Doładowanie konta Verris — 200.00 K do wykorzystania na usługi hostingowe (wpłata do proformy PRO/2026/10/3)',
+    );
   });
 });

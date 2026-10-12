@@ -498,3 +498,15 @@ export const ProformaActions = {
   /** Wpłata do proformy, która w chwili księgowania nie była już WYSTAWIONA — K w portfelu, decyzja o zwrocie u Finansów. */
   PROFORMA_WPLATA_NIEPRZYPISANA: 'PROFORMA_WPLATA_NIEPRZYPISANA',
 } as const;
+
+// ---------------------------------------------------------------------------
+// Zakup usługi przez Paynow (billing.service.ts zaplacZamowieniePaynow / zaplacOdnowieniePaynow)
+// ---------------------------------------------------------------------------
+
+/** userId = klient, bez aktora (wpłata przychodzi powiadomieniem Paynow). */
+export const ZamowieniePaynowActions = {
+  /** details: subscriptionId, typ (nowa/odnowienie), walletTxId. */
+  ZAMOWIENIE_PAYNOW_ZREALIZOWANE: 'ZAMOWIENIE_PAYNOW_ZREALIZOWANE',
+  /** Wpłata zaksięgowana, realizacja z portfela się nie udała — K w portfelu, alarm dla adminów. details: + powod. */
+  ZAMOWIENIE_PAYNOW_NIEZREALIZOWANE: 'ZAMOWIENIE_PAYNOW_NIEZREALIZOWANE',
+} as const;

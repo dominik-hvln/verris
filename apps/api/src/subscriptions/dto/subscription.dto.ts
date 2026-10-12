@@ -104,6 +104,14 @@ export class CreateSubscriptionDto {
   @IsString()
   @Length(3, 40)
   promoCode?: string;
+
+  /**
+   * Przy `paymentSource: WALLET`: `PAYNOW` — klient płaci za tę usługę od razu BLIK-iem lub przelewem (Paynow),
+   * dokument za wpłatę nazywa usługę i okres; odnowienia dalej z portfela. Brak / `PORTFEL` — obciążenie salda.
+   */
+  @IsOptional()
+  @IsIn(['PORTFEL', 'PAYNOW'], { message: 'Niedozwolony sposób opłaty.' })
+  oplata?: 'PORTFEL' | 'PAYNOW';
 }
 
 export class PreviewSubscriptionPromoDto {

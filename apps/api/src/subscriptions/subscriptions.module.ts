@@ -196,6 +196,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
   ],
   exports: [
     SubscriptionsService,
+    RenewalScheduler,
     CyklZyciaUslugiService,
     ProvisioningService,
     ProvisioningQueueService,

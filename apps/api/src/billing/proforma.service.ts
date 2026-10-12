@@ -9,22 +9,14 @@ import { proformaAnulowanaTemplate, proformaWystawionaTemplate } from '../mail/t
 import { PromoService } from './promo.service.js';
 import { InvoicePdfService, type BuyerSnapshot, type InvoiceLineItem, type SellerSnapshot } from './invoice-pdf.service.js';
 import { InvoicesService } from './invoices.service.js';
-import { etykietaStawki, rozbicieWgStawki, STAWKA_PL, type TraktowanieVat } from './vat.js';
+import { etykietaStawki, rozbicieWgStawki, wplataZaK, type TraktowanieVat } from './vat.js';
+import { nazwaPozycjiUslugi } from './pozycja-uslugi.js';
 import { VatNabywcyService } from './vat-nabywcy.service.js';
 import { RODZAJ_PROFORMA } from './tryb-fakturowania.js';
 import { nadajNumerFaktury } from './faktura-za-portfel.js';
 import { DoladowanieService } from './doladowanie.service.js';
 
-/**
- * Koniec kolejnego okresu rozliczeniowego — ta sama arytmetyka co `addInterval` w
- * renewal.scheduler.ts (import stamtąd wciągałby moduł subskrypcji do billingu).
- */
-export function koniecOkresu(od: Date, interval: 'MONTH' | 'YEAR'): Date {
-  const d = new Date(od);
-  if (interval === 'YEAR') d.setUTCFullYear(d.getUTCFullYear() + 1);
-  else d.setUTCMonth(d.getUTCMonth() + 1);
-  return d;
-}
+export { koniecOkresu } from './pozycja-uslugi.js';
 
 /** K4 — seria proform: rozłączna z seriami dokumentów sprzedaży (VFV/VFK/VDR/VDK), własny licznik w InvoiceCounter. */
 export const SERIA_PROFORMY = 'PRO';
@@ -140,20 +132,17 @@ export class ProformaService {
       introDiscountPeriodsLeft: sub.introDiscountPeriodsLeft,
       individualPrice: sub.individualPrice,
     });
-    // M-09: stawka nabywcy; klient rozliczany netto płaci K / 1,23 (tyle musi doładować). Zaokrąglenie W GÓRĘ
-    // (przegląd 12.10, K4): wpłata daje round_half_up(kwota × 1,23) K (vat.ts kredytZaWplate), więc przy ROUND_HALF_UP
-    // np. 40,30 K → 32,76 zł → 40,29 K — o grosz za mało na odnowienie. Z ROUND_UP wpłata zawsze pokrywa K.
+    // M-09: stawka nabywcy; klient rozliczany netto płaci K / 1,23 zaokrąglone w górę (vat.ts wplataZaK).
     const { traktowanie, vies } = await this.vatNabywcy.ustal(userId);
-    const doZaplaty = traktowanie.cenaNetto
-      ? brutto.mul(100).dividedBy(100 + STAWKA_PL).toDecimalPlaces(2, Prisma.Decimal.ROUND_UP)
-      : brutto;
+    const doZaplaty = wplataZaK(brutto, traktowanie);
     const od = sub.currentPeriodEnd;
-    const doKonca = koniecOkresu(od, sub.interval);
-    const pl = (d: Date) => d.toLocaleDateString('pl-PL', { timeZone: 'Europe/Warsaw' });
-    const nazwa =
-      `${sub.plan?.name ?? 'Hosting'} — odnowienie ${sub.interval === 'YEAR' ? 'roczne' : 'miesięczne'}` +
-      (sub.account?.domain ? ` (${sub.account.domain})` : '') +
-      `, okres ${pl(od)}–${pl(doKonca)}`;
+    const nazwa = nazwaPozycjiUslugi({
+      plan: sub.plan?.name ?? 'Hosting',
+      interval: sub.interval,
+      domena: sub.account?.domain ?? null,
+      od,
+      rodzaj: 'odnowienie',
+    });
     return { sub, od, nazwa, doZaplaty, traktowanie, vies };
   }
 

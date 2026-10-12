@@ -1,6 +1,7 @@
 import { Prisma } from '@verris/database';
 import { nadajNumerDokumentu, type KlientPrismy, type PozycjaFaktury } from './faktura-za-portfel.js';
 import type { KursNbp } from './kurs-nbp.js';
+import { MAKS_NAZWA_POZYCJI } from './pozycja-uslugi.js';
 import { etykietaStawki, rozbicieWgStawki, type TraktowanieVat, type VatDokumentu } from './vat.js';
 import type { WynikVies } from './vies.service.js';
 
@@ -22,6 +23,11 @@ export interface DaneDokumentuDoladowania {
   teraz: Date;
   /** K4 — numer opłacanej proformy: dopisek w nazwie pozycji, żeby dokument wskazywał, za co jest wpłata. */
   proformaNumer?: string | null;
+  /**
+   * Wpłata za konkretną usługę (zakup albo odnowienie przez Paynow, proforma): nazwa pozycji mówi, za co klient
+   * zapłacił (usługa, okres, domena) zamiast „Doładowanie konta”. Brak = doładowanie portfela.
+   */
+  nazwaPozycji?: string | null;
 }
 
 /**
@@ -38,9 +44,10 @@ export async function utworzDokumentDoladowania(
   const { numer, rodzajPrawny } = await nadajNumerDokumentu(db, d.teraz);
   const pozycje: PozycjaFaktury[] = [
     {
-      name:
-        `Doładowanie konta Verris — ${d.kredytK.toFixed(2)} K do wykorzystania na usługi hostingowe` +
-        (d.proformaNumer ? ` (wpłata do proformy ${d.proformaNumer})` : ''),
+      name: d.nazwaPozycji?.trim()
+        ? d.nazwaPozycji.trim().slice(0, MAKS_NAZWA_POZYCJI)
+        : `Doładowanie konta Verris — ${d.kredytK.toFixed(2)} K do wykorzystania na usługi hostingowe` +
+          (d.proformaNumer ? ` (wpłata do proformy ${d.proformaNumer})` : ''),
       quantity: 1,
       unitNet: r.netto.toFixed(2),
       vatRate: t.stawka ?? 0,

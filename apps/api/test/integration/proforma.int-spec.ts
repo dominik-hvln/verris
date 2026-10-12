@@ -114,7 +114,8 @@ describe('K4 — proforma z linkiem do płatności', () => {
     expect(dokumenty[0].number).toMatch(/^VDR\/\d{4}\/\d{2}\/0001$/);
     expect(dokumenty[0].amount.toFixed(2)).toBe('7.38');
     expect(dokumenty[0].vatAmount?.toFixed(2)).toBe('1.38');
-    expect(JSON.stringify(dokumenty[0].lineItems)).toContain(`wpłata do proformy ${w.numer}`);
+    // 2026-10-12: proforma opłacona dokładną kwotą — dokument nazywa to, za co była proforma, z jej numerem.
+    expect((dokumenty[0].lineItems as Array<{ name: string }>)[0].name).toBe(`Konfiguracja poczty (proforma ${w.numer})`);
     // Proforma nie jest w tabeli dokumentów sprzedaży — wysyłka do KSeF (Invoice) jej nie widzi.
     expect(await prisma().invoice.count({ where: { number: { startsWith: 'PRO/' } } })).toBe(0);
 

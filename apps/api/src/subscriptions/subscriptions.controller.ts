@@ -2,7 +2,9 @@ import {
   Body,
   Controller,
   Delete,
+  forwardRef,
   Get,
+  Inject,
   HttpCode,
   Param,
   Patch,
@@ -12,6 +14,7 @@ import {
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { RenewalScheduler } from './renewal.scheduler.js';
+import { BillingService } from '../billing/billing.service.js';
 import { SubscriptionsService } from './subscriptions.service.js';
 import { PlanChangeService } from './plan-change.service.js';
 import { TrialService } from './trial.service.js';
@@ -35,6 +38,8 @@ export class SubscriptionsController {
     private readonly planChange: PlanChangeService,
     private readonly trial: TrialService,
     private readonly renewal: RenewalScheduler,
+    @Inject(forwardRef(() => BillingService))
+    private readonly billing: BillingService,
   ) {}
 
   @Get()
@@ -106,8 +111,34 @@ export class SubscriptionsController {
   @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'subscriptions:create' })
   @Post()
   @HttpCode(201)
-  create(@CurrentUser() user: { userId: string }, @Body() dto: CreateSubscriptionDto) {
-    return this.subscriptions.create(user.userId, dto);
+  async create(@CurrentUser() user: { userId: string }, @Body() dto: CreateSubscriptionDto) {
+    const zPaynow = dto.paymentSource === 'WALLET' && dto.oplata === 'PAYNOW';
+    // Paynow niedostępny → odmowa przed utworzeniem usługi i rezerwacją kodu.
+    if (zPaynow) this.billing.sprawdzPaynowZamowienia();
+    const wynik = await this.subscriptions.create(user.userId, dto);
+    if (!wynik.doZaplatyPaynow) return wynik;
+    const { doZaplatyPaynow, ...reszta } = wynik;
+    try {
+      const { url } = await this.billing.zaplacZamowieniePaynow(user.userId, {
+        subscriptionId: wynik.subscription.id,
+        kwotaK: doZaplatyPaynow.kwotaK,
+        domena: dto.domain?.trim().toLowerCase() ?? null,
+        region: dto.preferredRegion ?? null,
+      });
+      return { ...reszta, checkoutRedirectUrl: url };
+    } catch (err) {
+      // Operator płatności nie przyjął zlecenia — nie zostawiamy klientowi „czeka na płatność” na 48 h.
+      await this.subscriptions.cancel(user.userId, wynik.subscription.id, { atPeriodEnd: false }).catch(() => undefined);
+      throw err;
+    }
+  }
+
+  /** Zaległe odnowienie (usługa z portfela) opłacone od razu przez Paynow — dokument nazywa usługę i okres. */
+  @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'subscriptions:zaplac-paynow' })
+  @Post(':id/zaplac-paynow')
+  @HttpCode(200)
+  zaplacPaynow(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.billing.zaplacOdnowieniePaynow(user.userId, id);
   }
 
   @Delete(':id')
