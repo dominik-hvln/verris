@@ -15,6 +15,7 @@ import { dodajProbke, ksiegaWezla, prawdaOWezle, prisma, rozlacz, utworzKonto, u
  */
 const POWOD = 'Umowa z klientem z 12.10 — większa poczta';
 const wywolania: Array<{ user: string; limity: DaUserLimits }> = [];
+const pakiety: Array<{ user: string; pakiet: string }> = [];
 let wezelPada: Error | null = null;
 const da = {
   getClientForServer: async () => ({
@@ -22,15 +23,19 @@ const da = {
       if (wezelPada) throw wezelPada;
       wywolania.push({ user, limity });
     },
+    assignUserPackage: async (user: string, pakiet: string) => {
+      if (wezelPada) throw wezelPada;
+      pakiety.push({ user, pakiet });
+    },
   }),
 };
 const svc = (p = prisma() as never) => new LimityIndywidualneService(p, new AuditService(prisma() as never), da as never);
 const aktywnosc = (userId: string) => new UsersService(prisma() as never, {} as never, {} as never, {} as never, {} as never, {} as never).listMyActivity(userId);
 
-async function usluga() {
+async function usluga(scaledDiskMb = 1024) {
   const wezel = await utworzWezel();
   const plan = await utworzPlan(); // 50 GB, slug spoza polityki → pakiet domyślny (25 skrzynek, 5 baz, 1 domena)
-  const k = await utworzKonto({ serverId: wezel.id, planId: plan.id, scaledDiskMb: 1024 });
+  const k = await utworzKonto({ serverId: wezel.id, planId: plan.id, scaledDiskMb });
   await prisma().subscription.update({ where: { id: k.subscription.id }, data: { status: SubscriptionStatus.ACTIVE } });
   const admin = await prisma().user.create({ data: { email: `admin-k3-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'ADMIN' } });
   return { wezel, plan, admin, ...k };
@@ -46,6 +51,7 @@ describe('K3 — limity indywidualne usługi', () => {
   beforeEach(async () => {
     await wyczyscBaze();
     wywolania.length = 0;
+    pakiety.length = 0;
     wezelPada = null;
   });
   afterAll(rozlacz);
@@ -94,6 +100,19 @@ describe('K3 — limity indywidualne usługi', () => {
     expect(await ksiegaWezla(u.wezel.id)).toEqual(ksiegaPrzed);
     expect(s.events.map((e) => e.type)).toEqual(['LIMITS_CUSTOMIZED', 'LIMITS_RESET']);
     expect((await aktywnosc(u.user.id)).events.some((e) => e.action === 'SUBSCRIPTION_LIMITS_RESET')).toBe(true);
+  });
+
+  // t1 12.10: przywrócenie przez „customize” wartościami planu zostawiało w DA package=custom (original_package=…),
+  // więc konto nie dostawało już zmian pakietu planu. Bez nadwyżki autoskalowania wraca pakiet planu.
+  it('przywrócenie bez nadwyżki autoskalowania: węzeł dostaje z powrotem pakiet planu (nie „customize”)', async () => {
+    const u = await usluga(0);
+    await svc().ustaw(zlecenie(u, { emailAccounts: 25 + 1 }));
+    expect(wywolania).toHaveLength(1);
+    await svc().ustaw(zlecenie(u, {}));
+    expect(wywolania).toHaveLength(1);
+    expect(pakiety).toEqual([{ user: u.account.daUsername, pakiet: u.plan.slug }]);
+    const s = await prisma().subscription.findUniqueOrThrow({ where: { id: u.subscription.id } });
+    expect(s.limitOverrides).toBeNull();
   });
 
   it('błąd węzła = błąd operacji: w bazie nic się nie zmienia (nadpisania, quota, księga, zdarzenia, dziennik)', async () => {

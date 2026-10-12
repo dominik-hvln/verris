@@ -185,6 +185,15 @@ describe('SDK: customizeUserLimits (CMD_API_MODIFY_USER action=customize)', () =
     await expect(atrapa({ zapis: '<html><body>Login</body></html>' }).klient.customizeUserLimits('klient1', limityKontaNaWezle(PLAN, {}, 0))).rejects.toThrow('stroną HTML');
   });
 
+  it('powrót do pakietu planu: action=package z nazwą pakietu; error=1 i strona HTML to błąd', async () => {
+    const a = atrapa();
+    await a.klient.assignUserPackage('klient1', 'verris-hosting');
+    expect(a.post.mock.calls[0]?.[0]).toBe('/CMD_API_MODIFY_USER');
+    expect(a.wyslane()).toEqual({ action: 'package', user: 'klient1', package: 'verris-hosting' });
+    await expect(atrapa({ zapis: 'error=1&text=No+such+package' }).klient.assignUserPackage('klient1', 'x')).rejects.toThrow('No such package');
+    await expect(atrapa({ zapis: '<html>Login</html>' }).klient.assignUserPackage('klient1', 'x')).rejects.toThrow('stroną HTML');
+  });
+
   it('bez czytelnych ustawień konta nic nie wysyła (customize wyłączyłby nieodesłane przełączniki)', async () => {
     const pusta = atrapa({ konfig: '' });
     await expect(pusta.klient.customizeUserLimits('klient1', limityKontaNaWezle(PLAN, {}, 0))).rejects.toThrow('nie odczytano ustawień konta');

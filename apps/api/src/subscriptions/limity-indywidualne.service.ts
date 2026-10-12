@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { CyklZyciaUslugiActions, SupportActions } from '../common/audit/audit.actions.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
-import { planResourceFields } from '../servers/da-package-spec.js';
+import { buildDaPackageSpecFromPlan, planResourceFields } from '../servers/da-package-spec.js';
 import { zgloszenieKlienta } from '../tickets/zgloszenie-klienta.js';
 import { deltaJestZerowa, deltaKsiegi, ksiegaUpdateData } from './node-capacity.js';
 import {
@@ -95,7 +95,14 @@ export class LimityIndywidualneService {
     // 1) Węzeł. Błąd = błąd operacji, baza bez zmian.
     const klient = await this.da.getClientForServer(konto.serverId);
     try {
-      await klient.customizeUserLimits(konto.daUsername, limityKontaNaWezle(plan, po, konto.scaledDiskMb));
+      // Powrót do planu bez nadwyżki autoskalowania = z powrotem pakiet planu. Samo „customize” wartościami planu
+      // zostawiało w DA `package=custom` (t1 12.10) i konto nie dostawało już zmian pakietu planu. Przy nadwyżce
+      // autoskalowania quota jest większa niż w pakiecie, więc konto i tak musi mieć ustawienia indywidualne.
+      if (Object.keys(po).length === 0 && konto.scaledDiskMb <= 0) {
+        await klient.assignUserPackage(konto.daUsername, buildDaPackageSpecFromPlan(plan).name);
+      } else {
+        await klient.customizeUserLimits(konto.daUsername, limityKontaNaWezle(plan, po, konto.scaledDiskMb));
+      }
     } catch (err) {
       throw new ConflictException(`Serwer nie przyjął zmiany limitów — nic nie zmieniono: ${blad(err)}`);
     }

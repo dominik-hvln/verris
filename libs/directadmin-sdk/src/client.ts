@@ -960,6 +960,24 @@ export class DirectAdminClient {
   }
 
   /**
+   * K3 — powrót konta do pakietu planu: `CMD_API_MODIFY_USER` z `action=package&user=…&package=…` (oficjalna
+   * dokumentacja „Modify User Settings” — zmiana pakietu użytkownika: https://docs.directadmin.com/developer/api/legacy-api.html).
+   * Po `action=customize` DirectAdmin zapisuje w user.conf `package=custom` (+ `original_package=…`) — t1 12.10 —
+   * i konto przestaje dostawać zmiany pakietu planu. Kolejne `customize` z wartościami planu tego nie cofa.
+   */
+  async assignUserPackage(username: string, pakiet: string): Promise<void> {
+    const response = await this.client.post(
+      '/CMD_API_MODIFY_USER',
+      new URLSearchParams({ action: 'package', user: username, package: pakiet }).toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+    );
+    if (typeof response.data === 'string' && response.data.trim().startsWith('<')) {
+      throw new Error('DirectAdmin: CMD_API_MODIFY_USER odpowiedział stroną HTML zamiast wyniku zmiany pakietu');
+    }
+    this.parseDaResponseBody(response.data);
+  }
+
+  /**
    * K3 — limity jednego konta (nie pakietu): `CMD_API_MODIFY_USER` z `action=customize`, wg oficjalnej dokumentacji
    * „Modify User Settings”: https://docs.directadmin.com/developer/api/legacy-api.html (Method POST; pola bandwidth/
    * ubandwidth, quota/uquota, vdomains/uvdomains, nsubdomains, nemails, nemailf, nemailml, nemailr, mysql, domainptr,
