@@ -12,6 +12,7 @@ import { ThemeToggle } from "./theme-toggle";
 import type { StaffProfile } from "@/lib/staff-session";
 import { staffLogout } from "@/lib/staff-auth-actions";
 import { grupyMenu, type DostepMenu, type LicznikiMenu } from "@/lib/menu-obslugi";
+import { BanerNowejWersji } from "@verris/ui";
 
 export type { LicznikiMenu } from "@/lib/menu-obslugi";
 
@@ -190,6 +191,8 @@ export function StaffShell({
           {children}
         </main>
       </div>
+      {/* Akcja serwera ze starej karty po wdrożeniu (np. dzwonek co 45 s) → „Jest nowa wersja”, nie cisza. */}
+      <BanerNowejWersji />
     </div>
   );
 }

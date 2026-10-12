@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* libs/ui leży poza katalogiem panelu — Tailwind go nie skanuje; wskazany tylko baner nowej wersji. */
+@source "../../../../libs/ui/src/components/baner-nowej-wersji.tsx";
 
 @plugin "tailwindcss-animate";
 

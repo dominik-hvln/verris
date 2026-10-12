@@ -28,6 +28,7 @@ import {
 } from "@/components/icons";
 import HostingAssistant from "@/components/assistant/HostingAssistant";
 import { TipLayer } from "@/components/panel/v2";
+import { BanerNowejWersji } from "@verris/ui";
 import { ServiceNav } from "@/components/panel/service-nav";
 import { THEME_KEY, ThemeToggle, applyTheme } from "@/components/panel/theme-toggle";
 import { CommandPalette, type PaletteItem } from "@/components/panel/command-palette";
@@ -463,6 +464,8 @@ function DashboardLayoutInner({
       <ImpersonationBanner />
       <IncidentBanner />
       <NoticesBanner />
+      {/* Akcja serwera ze starej karty po wdrożeniu (np. odpytywanie banera awarii) → „Jest nowa wersja”, nie cisza. */}
+      <BanerNowejWersji />
       {/* Zgody składa wyłącznie klient — podczas sesji wsparcia (impersonacji) modal się nie pokazuje. */}
       {userLoading || impersonating ? null : <ReConsentModal />}
       <div className="relative flex min-h-screen w-full max-w-full flex-col lg:flex-row lg:items-start">

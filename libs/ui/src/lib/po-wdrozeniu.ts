@@ -42,3 +42,32 @@ export function useOdswiezPoWdrozeniu(error: unknown): void {
     odswiezPoWdrozeniu(error);
   }, [error]);
 }
+
+/**
+ * Akcje serwera wołane poza granicą błędu i poza formularzem (baner awarii, dzwonek powiadomień — odpytywanie
+ * co 45–60 s) po wdrożeniu odrzucają promise bez obsługi: Next 16 przy rozjeździe wersji przeładowuje sam tylko
+ * nawigację, a akcji rzuca UnrecognizedActionError do wołającego. Dokumentacja zaleca odświeżenie strony:
+ * https://nextjs.org/docs/app/guides/server-actions#deployment-considerations
+ * https://nextjs.org/docs/app/guides/self-hosting#version-skew
+ * Decyzja 12.10: bez automatycznego przeładowania (przepadłby niezapisany formularz) — wołający pokazuje baner,
+ * użytkownik odświeża sam. Przechwytywany (preventDefault) jest tylko błąd nieaktualnej wersji; każdy inny
+ * zostaje nieobsłużony jak był. Zwraca funkcję odłączającą nasłuch.
+ */
+export function nasluchujNowejWersji(okno: Window, przyNowejWersji: () => void): () => void {
+  const przyOdrzuceniu = (e: PromiseRejectionEvent) => {
+    if (!czyNieaktualnaWersja(e.reason)) return;
+    e.preventDefault();
+    przyNowejWersji();
+  };
+  const przyBledzie = (e: ErrorEvent) => {
+    if (!czyNieaktualnaWersja(e.error)) return;
+    e.preventDefault();
+    przyNowejWersji();
+  };
+  okno.addEventListener("unhandledrejection", przyOdrzuceniu);
+  okno.addEventListener("error", przyBledzie);
+  return () => {
+    okno.removeEventListener("unhandledrejection", przyOdrzuceniu);
+    okno.removeEventListener("error", przyBledzie);
+  };
+}

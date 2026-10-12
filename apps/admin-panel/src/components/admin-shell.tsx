@@ -14,6 +14,7 @@ import { LogoutButton } from "./logout-button";
 import { grafanaSsoHref } from "./grafana-ops-link";
 import { Pigulka } from "./v2";
 import { brakUprawnienia, type WarunekUprawnien } from "@/lib/akcje/wezel";
+import { BanerNowejWersji } from "@verris/ui";
 
 /** Odpowiedź `GET /admin/dashboard/menu` (null = API niedostępne — menu działa, bez liczb). */
 export interface LicznikiMenu {
@@ -622,6 +623,8 @@ export function AdminShell({
           </main>
         </div>
       </div>
+      {/* Akcja serwera ze starej karty po wdrożeniu (np. dzwonek co 45 s) → „Jest nowa wersja”, nie cisza. */}
+      <BanerNowejWersji />
     </AsystentPracownika>
   );
 }
