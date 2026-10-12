@@ -90,3 +90,26 @@ export async function fetchKsefOverview() {
     return { error: err(e) };
   }
 }
+
+/** FAK-01 / KSeF 12.10 — kto wystawia faktury VAT: panel (VFV/VFK + KSeF) albo program księgowy (VDR/VDK). */
+export type TrybFakturowania = "panel" | "zewnetrzny";
+
+export async function fetchTrybFakturowania() {
+  try {
+    return { data: await adminApi<{ tryb: TrybFakturowania }>("/admin/platform-settings/faktury-tryb") };
+  } catch (e) {
+    return { error: err(e) };
+  }
+}
+
+export async function saveTrybFakturowania(tryb: TrybFakturowania) {
+  try {
+    const data = await adminApi<{ tryb: TrybFakturowania }>("/admin/platform-settings/faktury-tryb", {
+      method: "PATCH",
+      body: { tryb },
+    });
+    return { data };
+  } catch (e) {
+    return { error: err(e) };
+  }
+}

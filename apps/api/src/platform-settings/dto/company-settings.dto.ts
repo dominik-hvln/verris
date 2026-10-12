@@ -55,3 +55,12 @@ export class UpdateKsefSettingsDto {
   @IsOptional() @IsString() @MaxLength(200)
   token?: string;
 }
+
+/**
+ * FAK-01 / KSeF 12.10 — kto wystawia faktury VAT: `panel` (seria VFV/VFK, KSeF z panelu)
+ * albo `zewnetrzny` (dokument rozliczeniowy VDR/VDK, fakturę wystawia program księgowy).
+ */
+export class UpdateTrybFakturowaniaDto {
+  @IsIn(['panel', 'zewnetrzny'])
+  tryb!: 'panel' | 'zewnetrzny';
+}

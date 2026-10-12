@@ -1,6 +1,7 @@
 import { bramkaStrony } from "@/lib/bramka-strony";
 import { CompanyForm } from "./company-form";
 import { KsefForm } from "./ksef-form";
+import { TrybFakturowaniaForm } from "./tryb-fakturowania-form";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ export default async function CompanySettingsPage() {
         </p>
       </header>
       <CompanyForm />
+      <TrybFakturowaniaForm />
       <KsefForm />
     </div>
   );

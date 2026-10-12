@@ -8,7 +8,7 @@ import {
   PLATFORM_SETTING_KEYS,
   type PlatformSettingKey,
 } from './platform-settings.keys.js';
-import { ksefDozwolony, normalizujTryb } from '../billing/tryb-fakturowania.js';
+import { ksefDozwolony, normalizujTryb, type TrybFakturowania } from '../billing/tryb-fakturowania.js';
 import type { TrialOfferConfig } from './dto/trial-offer.dto.js';
 
 /** G-08 — pozycja cennika SSL: cena brutto za rok (PLN), nazwa produktu, czy wildcard. */
@@ -797,6 +797,34 @@ export class PlatformSettingsService {
       },
     });
     return this.getKsefSettings();
+  }
+
+  // ---------------------------------------------------------------------------
+  // FAK-01 / KSeF 12.10 — tryb fakturowania (panel / program księgowy)
+  // ---------------------------------------------------------------------------
+
+  async getTrybFakturowania(): Promise<{ tryb: TrybFakturowania }> {
+    return { tryb: normalizujTryb((await this.loadMap()).get(PLATFORM_SETTING_KEYS.FAKTURY_TRYB)) };
+  }
+
+  /**
+   * Przełącznik trybu w panelu admina — do 2026-10-12 był tylko wierszem w bazie, bez żadnej
+   * drogi w panelu. Działa od NASTĘPNEGO dokumentu (numer i rodzaj nadaje `nadajNumerDokumentu`
+   * w transakcji, czytając ustawienie z bazy, nie z cache). Powrót do `zewnetrzny` wyłącza też
+   * wysyłkę KSeF — inaczej ponowne przełączenie na `panel` po cichu wznowiłoby wysyłkę.
+   */
+  async ustawTrybFakturowania(tryb: TrybFakturowania, actorUserId: string): Promise<{ tryb: TrybFakturowania }> {
+    const K = PLATFORM_SETTING_KEYS;
+    const poprzedni = (await this.getTrybFakturowania()).tryb;
+    const wpisy: Array<[PlatformSettingKey, string]> = [[K.FAKTURY_TRYB, tryb]];
+    if (tryb === 'zewnetrzny') wpisy.push([K.KSEF_ENABLED, '0']);
+    await this.upsertMany(wpisy, actorUserId);
+    await this.audit.record({
+      action: 'FAKTURY_TRYB_ZMIENIONY',
+      userId: actorUserId,
+      details: { poprzedni, tryb, ksefWylaczony: tryb === 'zewnetrzny' },
+    });
+    return this.getTrybFakturowania();
   }
 
   private async upsertMany(

@@ -6,7 +6,7 @@ import { Roles } from '../common/decorators/roles.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { PlatformSettingsService } from './platform-settings.service.js';
 import { UpdatePlatformSettingsDto } from './dto/platform-settings.dto.js';
-import { UpdateSellerCompanyDto, UpdateKsefSettingsDto } from './dto/company-settings.dto.js';
+import { UpdateSellerCompanyDto, UpdateKsefSettingsDto, UpdateTrybFakturowaniaDto } from './dto/company-settings.dto.js';
 import { UpdateTrialOfferDto } from './dto/trial-offer.dto.js';
 import { UpdateMonitoringSettingsDto, UpdateWhoisPrivacyPriceDto } from './dto/monitoring-settings.dto.js';
 import { UpdateSlaCreditPolicyDto } from './dto/sla-credit-policy.dto.js';
@@ -167,6 +167,22 @@ export class PlatformSettingsAdminController {
       },
       actor.userId,
     );
+  }
+
+  /** FAK-01 / KSeF 12.10 — tryb fakturowania: `panel` (VFV/VFK + KSeF) albo `zewnetrzny` (VDR/VDK). */
+  @Get('faktury-tryb')
+  @HttpCode(200)
+  getTrybFakturowania() {
+    return this.settings.getTrybFakturowania();
+  }
+
+  @Patch('faktury-tryb')
+  @HttpCode(200)
+  updateTrybFakturowania(
+    @Body() dto: UpdateTrybFakturowaniaDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.settings.ustawTrybFakturowania(dto.tryb, actor.userId);
   }
 
   // Konfiguracja KSeF (sekrety szyfrowane KMS)
