@@ -5,7 +5,8 @@ import { Invoice, InvoiceStatus, KsefStatus, Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { MailerService } from '../mail/mailer.service.js';
-import { KsefService } from '../ksef/ksef.service.js';
+import { KsefService, STATUSY_Z_PLIKIEM_KSEF } from '../ksef/ksef.service.js';
+import { Readable } from 'stream';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
 import { ObjectStorageService } from '../storage/object-storage.service.js';
 import { ObjectBuckets } from '../storage/object-storage.types.js';
@@ -21,7 +22,7 @@ import {
 import { StripeInvoice } from './stripe/stripe.client.js';
 import { etykietaStawki, rozbicieWgStawki, type VatDokumentu } from './vat.js';
 import { VatNabywcyService } from './vat-nabywcy.service.js';
-import { DOSTAWCA_DOLADOWANIE } from './doladowanie.js';
+import { formaZaplatyFaktury } from './forma-zaplaty.js';
 import {
   DOSTAWCA_RECZNY,
   nadajNumerDokumentu,
@@ -70,6 +71,10 @@ export interface InvoiceDto {
   /** FAK-01 — numer faktury VAT z programu księgowego, gdy już dopisany. */
   externalInvoiceNumber: string | null;
   externalInvoiceAt: string | null;
+  /** KSeF 12.10 — numer nadany przez KSeF (gdy już jest). */
+  ksefNumber: string | null;
+  /** KSeF 12.10 — faktura ma plik w KSeF (PDF z kodem QR, XML do pobrania). */
+  ksefXml: boolean;
 }
 
 export interface InvoiceListDto {
@@ -665,18 +670,7 @@ export class InvoicesService {
   }
 
   private async paymentMethodLabel(invoice: Invoice): Promise<string> {
-    if (invoice.provider === DOSTAWCA_DOLADOWANIE && invoice.providerRef) {
-      // Dokument za doładowanie: providerRef = wpis księgi, a ten wie, którą bramką przyszła wpłata.
-      const wpis = await this.prisma.walletTransaction.findUnique({
-        where: { id: invoice.providerRef },
-        select: { paymentProvider: true },
-      });
-      if (wpis?.paymentProvider === 'PAYNOW') return 'Płatność online (Paynow)';
-      // F3.6 — wpłata na rachunek zaksięgowana przez Finanse: tylko etykieta formy zapłaty na wydruku.
-      if (wpis?.paymentProvider === 'PRZELEW') return 'Przelew bankowy';
-    }
-    if (invoice.provider === 'STRIPE' || invoice.provider === DOSTAWCA_DOLADOWANIE) return 'Karta płatnicza';
-    return 'Portfel Verris';
+    return (await formaZaplatyFaktury(this.prisma, invoice)).etykieta;
   }
 
   private async sendInvoiceIssuedEmail(invoice: Invoice, userId: string): Promise<void> {
@@ -731,11 +725,15 @@ export class InvoicesService {
     userId: string,
     invoiceId: string,
   ): Promise<{ stream: NodeJS.ReadableStream; filename: string }> {
+    // IDOR: faktura szukana razem z właścicielem — cudza = „nie znaleziona”, zanim cokolwiek się wyrenderuje.
     const invoice = await this.prisma.invoice.findFirst({
       where: { id: invoiceId, userId },
-      select: { storageKey: true, number: true, hostedUrl: true },
+      select: { id: true, storageKey: true, number: true, hostedUrl: true, ksefStatus: true },
     });
     if (!invoice) throw new NotFoundException('Faktura nie znaleziona');
+    const filename = `${invoice.number.replace(/\//g, '-')}.pdf`;
+    const ksef = await this.pdfZKsef(invoice);
+    if (ksef) return { stream: Readable.from([Buffer.from(ksef)]), filename };
     if (!invoice.storageKey) {
       // Pre-2.2 invoices may only have Stripe URL — caller should redirect.
       throw new NotFoundException(
@@ -748,10 +746,31 @@ export class InvoicesService {
       ObjectBuckets.INVOICES,
       invoice.storageKey,
     );
-    return {
-      stream,
-      filename: `${invoice.number.replace(/\//g, '-')}.pdf`,
-    };
+    return { stream, filename };
+  }
+
+  /**
+   * KSeF 12.10 — faktura, która ma (albo za chwilę będzie miała) plik w KSeF, jest pobierana jako
+   * wizualizacja TEGO pliku z kodem QR KOD I (decyzja właściciela: treść PDF = treść faktury
+   * w KSeF). Pozostałe dokumenty — PDF zapisany przy finalizacji, bez zmian.
+   */
+  private async pdfZKsef(invoice: { id: string; ksefStatus: KsefStatus }): Promise<Uint8Array | null> {
+    if (!STATUSY_Z_PLIKIEM_KSEF.includes(invoice.ksefStatus)) return null;
+    return this.ksef.pdfFaktury(invoice.id);
+  }
+
+  /** KSeF 12.10 — plik XML FA(3) wysłany do KSeF; tylko dla właściciela faktury. */
+  async pobierzXmlKsef(userId: string, invoiceId: string): Promise<{ xml: string; filename: string }> {
+    const invoice = await this.prisma.invoice.findFirst({
+      where: { id: invoiceId, userId },
+      select: { id: true, number: true, ksefStatus: true },
+    });
+    if (!invoice) throw new NotFoundException('Faktura nie znaleziona');
+    const plik = STATUSY_Z_PLIKIEM_KSEF.includes(invoice.ksefStatus)
+      ? await this.ksef.plikDoWizualizacji(invoice.id)
+      : null;
+    if (!plik) throw new NotFoundException('Ta faktura nie ma pliku w KSeF.');
+    return { xml: plik.xml, filename: `${invoice.number.replace(/\//g, '-')}-KSeF.xml` };
   }
 
   // ---------------------------------------------------------------------------
@@ -830,10 +849,12 @@ export class InvoicesService {
   ): Promise<{ stream: NodeJS.ReadableStream; filename: string }> {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: invoiceId },
-      select: { id: true, storageKey: true, number: true, hostedUrl: true, userId: true },
+      select: { id: true, storageKey: true, number: true, hostedUrl: true, userId: true, ksefStatus: true },
     });
     if (!invoice) throw new NotFoundException('Faktura nie znaleziona');
-    if (!invoice.storageKey) {
+    // Admin widzi ten sam PDF co klient — dla faktury z plikiem KSeF wizualizację z kodem QR.
+    const ksef = await this.pdfZKsef(invoice);
+    if (!ksef && !invoice.storageKey) {
       throw new NotFoundException(
         invoice.hostedUrl
           ? 'PDF nie został wygenerowany — użyj linku do faktury.'
@@ -848,14 +869,13 @@ export class InvoicesService {
       userAgent: auditCtx.userAgent ?? undefined,
       details: { invoiceId: invoice.id, number: invoice.number },
     });
+    const filename = `${invoice.number.replace(/\//g, '-')}.pdf`;
+    if (ksef) return { stream: Readable.from([Buffer.from(ksef)]), filename };
     const stream = await this.storage.getObjectStream(
       ObjectBuckets.INVOICES,
-      invoice.storageKey,
+      invoice.storageKey!,
     );
-    return {
-      stream,
-      filename: `${invoice.number.replace(/\//g, '-')}.pdf`,
-    };
+    return { stream, filename };
   }
 
   async exportCsvForAdmin(
@@ -1144,6 +1164,8 @@ function toDto(invoice: Invoice): InvoiceDto {
     rodzajPrawny: invoice.rodzajPrawny as RodzajPrawny,
     externalInvoiceNumber: invoice.externalInvoiceNumber,
     externalInvoiceAt: invoice.externalInvoiceAt?.toISOString() ?? null,
+    ksefNumber: invoice.ksefNumber,
+    ksefXml: STATUSY_Z_PLIKIEM_KSEF.includes(invoice.ksefStatus),
   };
 }
 

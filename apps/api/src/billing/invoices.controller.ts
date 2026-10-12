@@ -55,6 +55,24 @@ export class InvoicesController {
   }
 
   /**
+   * KSeF 12.10 — plik XML FA(3) wysłany do KSeF (ten, którego skrót jest w kodzie QR na PDF-ie).
+   * Tylko właściciel faktury: `pobierzXmlKsef` szuka po (id, userId).
+   */
+  @Get(':id/xml')
+  @Header('Cache-Control', 'no-store')
+  async xml(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { xml, filename } = await this.invoices.pobierzXmlKsef(user.userId, id);
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    // Bajty 1:1 z zapisu — bez przeformatowania, inaczej skrót z kodu QR by się nie zgadzał.
+    res.end(Buffer.from(xml, 'utf8'));
+  }
+
+  /**
    * Streams the Verris-issued PDF directly from MinIO. Auth required —
    * we never expose presigned URLs publicly because invoices are sensitive
    * (full names, addresses, NIP). Output is a regular `application/pdf`

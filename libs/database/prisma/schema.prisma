@@ -1815,6 +1815,13 @@ model Invoice {
   ksefSubmittedAt DateTime?
   ksefAcceptedAt  DateTime?
   ksefError      String?
+  /// KSeF 12.10 — dokładna treść XML FA(3) wysłana (albo do wysłania) do KSeF. Zapisywana
+  /// raz; z niej powstaje PDF (wizualizacja) i skrót do kodu QR KOD I.
+  ksefXml        String?       @db.Text
+  /// SHA-256 bajtów `ksefXml` w Base64URL — ostatni człon linku KOD I.
+  ksefXmlSha256  String?
+  /// Środowisko KSeF (test/demo/prod), do którego faktura poszła — od niego zależy adres QR.
+  ksefSrodowisko String?
 
   /// M-16 — tryb wystawienia wobec KSeF. `null` = ONLINE.
   /// Wartości i terminy: `apps/api/src/ksef/ksef-tryby.ts`. Baza pilnuje listy

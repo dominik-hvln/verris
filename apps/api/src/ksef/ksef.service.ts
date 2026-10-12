@@ -13,8 +13,18 @@ import {
   terminPrzeslania,
   type TrybWystawienia,
 } from './ksef-tryby.js';
-import { RODZAJ_FAKTURA_VAT, rodzajKwalifikujeDoKsef } from '../billing/tryb-fakturowania.js';
+import { RODZAJ_FAKTURA_VAT, rodzajKwalifikujeDoKsef, toNumerPanelu } from '../billing/tryb-fakturowania.js';
+import { SERIA_FAKTURY, SERIA_KOREKTY } from '../billing/faktura-za-portfel.js';
+import { formaZaplatyFaktury } from '../billing/forma-zaplaty.js';
 import { InvoicingProvider } from './invoicing-provider.interface.js';
+import {
+  linkWeryfikacjiKsef,
+  normalizujSrodowiskoKsef,
+  skrotFakturyBase64Url,
+  type SrodowiskoKsef,
+} from './kod-qr-ksef.js';
+import { wizualizacjaFa3 } from './wizualizacja-fa3.js';
+import { renderujFaktureKsef } from './faktura-ksef-pdf.js';
 
 const BATCH_LIMIT = 25;
 /** Dzierżawa wysyłki faktury — dłuższa niż najdłuższy cykl (25 × 30 s). */
@@ -36,6 +46,35 @@ const DZIERZAWA_WYSYLKI_MS = 15 * 60 * 1000;
  */
 const OKNO_AUTO_KATCHUPU_DNI = 7;
 
+/** Serie faktur VAT nadawane przez panel — tylko one idą do KSeF (VDR/VDK to dokumenty rozliczeniowe). */
+const SERIE_VAT_PANELU: readonly string[] = [SERIA_FAKTURY, SERIA_KOREKTY];
+
+/**
+ * Statusy, w których faktura ma (albo za chwilę będzie miała) swój plik w KSeF — wtedy PDF dla
+ * klienta jest wizualizacją tego pliku z kodem QR. Numer KSeF pod kodem, gdy jest; „OFFLINE”,
+ * gdy faktura jest w drodze. REJECTED i NOT_APPLICABLE: PDF z magazynu, bez kodu.
+ */
+export const STATUSY_Z_PLIKIEM_KSEF: readonly KsefStatus[] = [
+  KsefStatus.PENDING,
+  KsefStatus.SUBMITTED,
+  KsefStatus.OFFLINE,
+  KsefStatus.ACCEPTED,
+];
+
+/**
+ * Korekta faktury, która jest już w drodze do KSeF, ale nie ma jeszcze numeru. FA(3) każe wskazać
+ * numer KSeF faktury korygowanej (`NrKSeFFaKorygowanej`); wpisanie `NrKSeFN` („poza KSeF”) byłoby
+ * nieprawdą. Korekta czeka na kolejny cykl.
+ */
+export class KorygowanaBezNumeruKsef extends Error {}
+
+export interface PlikFakturyKsef {
+  xml: string;
+  /** SHA-256 bajtów `xml` w Base64URL. */
+  sha256: string;
+  srodowisko: SrodowiskoKsef;
+}
+
 /**
  * B-1 — orkiestracja KSeF.
  *
@@ -55,10 +94,10 @@ const OKNO_AUTO_KATCHUPU_DNI = 7;
  *    a nie tylko logowana; terminy per tryb liczy `ksef-tryby.ts`,
  *  - klasyfikacja zdarzenia (offline24 / niedostępność / awaria) należy do
  *    człowieka, bo wynika z ogłoszenia w BIP MF, którego nie czytamy,
- *  - NADAL BRAK kodów QR na fakturze przekazywanej nabywcy poza KSeF
- *    (KOD I jest w zasięgu, KOD II wymaga certyfikatu KSeF typu 2 z portalu MF).
- *    Dopóki ich nie ma, tryb offline nie jest dla nas w pełni dostępny —
- *    i to musi być widoczne, a nie ciche. Patrz `docs/zadania/M-16-M-17-*`.
+ *  - KOD I (link weryfikacyjny, `kod-qr-ksef.ts`) jest na PDF-ie faktury od 2026-10-12:
+ *    numer KSeF pod kodem albo „OFFLINE”, gdy numeru jeszcze nie ma. NADAL BRAK KODU II
+ *    (wymaga certyfikatu KSeF typu Offline z portalu MF) — więc tryby offline nie są dla
+ *    nas w pełni dostępne i to musi być widoczne, a nie ciche. Patrz `docs/zadania/M-16-M-17-*`.
  *
  * REJECTED wymaga interwencji (alert w logu + audyt + widoczne w adminie).
  */
@@ -120,16 +159,27 @@ export class KsefService {
   // Kwalifikacja nowych faktur (wołane przy finalizacji + przez cron catch-up)
   // ---------------------------------------------------------------------------
 
+  /**
+   * Do 2026-10-12 warunkiem było `provider == null` — a każda faktura panelu ma dostawcę
+   * (WALLET, WALLET_TOPUP, MANUAL, STRIPE, korekta dziedziczy po pierwotnej). Do KSeF nie
+   * kwalifikowała się więc ŻADNA faktura. O tym, kto wystawił fakturę, mówi numer: seria VAT
+   * panelu (VFV/VFK) = wystawił panel, więc faktura idzie do KSeF — także opłacona kartą
+   * (Stripe pobiera pieniądze, nie wystawia faktury VAT) i także dla nabywcy bez NIP (B2C,
+   * decyzja właściciela 2026-10-12; w XML `BrakID=1`). `storageKey` = faktura sfinalizowana
+   * (ma komplet snapshotów) — wcześniej catch-up łapał też niesfinalizowane i odrzucał je
+   * lokalnie za brak NIP sprzedawcy.
+   */
   private qualifies(
-    inv: Pick<Invoice, 'provider' | 'issuedAt' | 'netAmount' | 'rodzajPrawny'>,
+    inv: Pick<Invoice, 'number' | 'issuedAt' | 'netAmount' | 'rodzajPrawny' | 'storageKey'>,
   ): boolean {
     // FAK-01: dokument rozliczeniowy nigdy nie idzie do KSeF-u — wysłany,
     // stałby się fakturą obok faktury z programu księgowego.
     return (
-      inv.provider == null &&
       inv.issuedAt != null &&
       inv.netAmount != null &&
-      rodzajKwalifikujeDoKsef(inv.rodzajPrawny)
+      inv.storageKey != null &&
+      rodzajKwalifikujeDoKsef(inv.rodzajPrawny) &&
+      toNumerPanelu(inv.number, SERIE_VAT_PANELU)
     );
   }
 
@@ -160,11 +210,13 @@ export class KsefService {
     const odKiedyAuto = new Date(Date.now() - OKNO_AUTO_KATCHUPU_DNI * 24 * 60 * 60 * 1000);
     await this.prisma.invoice.updateMany({
       where: {
+        // Te same warunki co `qualifies()`.
         ksefStatus: KsefStatus.NOT_APPLICABLE,
-        provider: null,
         issuedAt: { not: null, gte: odKiedyAuto },
         netAmount: { not: null },
+        storageKey: { not: null },
         rodzajPrawny: RODZAJ_FAKTURA_VAT,
+        OR: SERIE_VAT_PANELU.map((seria) => ({ number: { startsWith: `${seria}/` } })),
       },
       data: { ksefStatus: KsefStatus.PENDING },
     });
@@ -244,40 +296,80 @@ export class KsefService {
     }
   }
 
-  private async submitOne(client: InvoicingProvider, inv: Invoice): Promise<void> {
-    // M-06 — korekta musi nieść numer i datę faktury korygowanej. Te dane
-    // siedzą na dokumencie pierwotnym, nie na korekcie, więc trzeba je
-    // doczytać. Bez nich builder odmówi — i słusznie: korekta bez wskazania,
-    // co koryguje, zostałaby przez KSeF przyjęta jako nowa sprzedaż.
-    let korygowana: { number: string; issuedAt: Date | null } | null = null;
+  /**
+   * Plik faktury dla KSeF — budowany RAZ i zapisywany (`ksefXml`). KOD I zawiera skrót
+   * dokładnych bajtów pliku, a XML nie jest odtwarzalny (DataWytworzeniaFa), więc wysyłka,
+   * ponowienia po niedostępności i PDF dla klienta muszą używać tego samego zapisu —
+   * inaczej kod QR na PDF-ie pobranym przed wysyłką wskazywałby inny plik niż ten w KSeF.
+   */
+  async zapewnijPlik(inv: Invoice): Promise<PlikFakturyKsef> {
+    if (inv.ksefXml && inv.ksefXmlSha256) {
+      return { xml: inv.ksefXml, sha256: inv.ksefXmlSha256, srodowisko: normalizujSrodowiskoKsef(inv.ksefSrodowisko) };
+    }
+
+    // M-06 — korekta musi nieść numer i datę faktury korygowanej (a w FA(3) także jej numer
+    // KSeF albo znacznik „poza KSeF”). Te dane siedzą na dokumencie pierwotnym.
+    let korygowana: { number: string; issuedAt: Date | null; ksefNumber: string | null; ksefStatus: KsefStatus } | null = null;
     if (inv.kind === 'KOREKTA' && inv.correctedId) {
       korygowana = await this.prisma.invoice.findUnique({
         where: { id: inv.correctedId },
-        select: { number: true, issuedAt: true },
+        select: { number: true, issuedAt: true, ksefNumber: true, ksefStatus: true },
       });
+      if (korygowana && !korygowana.ksefNumber && STATUSY_Z_PLIKIEM_KSEF.includes(korygowana.ksefStatus)) {
+        throw new KorygowanaBezNumeruKsef(
+          `Faktura korygowana ${korygowana.number} czeka na numer KSeF — korekta pójdzie po nim.`,
+        );
+      }
     }
 
-    let xml: string;
+    const { xml } = buildFa3Xml({
+      invoice: {
+        ...inv,
+        correctedNumber: korygowana?.number ?? null,
+        correctedIssuedAt: korygowana?.issuedAt ?? null,
+        correctedKsefNumber: korygowana?.ksefNumber ?? null,
+      },
+      systemInfo: 'Verris Panel',
+      platnosc: (await formaZaplatyFaktury(this.prisma, inv)).fa,
+    });
+    const sha256 = skrotFakturyBase64Url(xml);
+    const { env } = await this.settings.getKsefRuntimeConfig();
+    const zapis = await this.prisma.invoice.updateMany({
+      where: { id: inv.id, ksefXml: null },
+      data: { ksefXml: xml, ksefXmlSha256: sha256, ksefSrodowisko: env },
+    });
+    if (zapis.count === 0) {
+      // Równoległe pobranie PDF-u albo cykl wysyłki zapisał plik pierwszy — obowiązuje tamten.
+      const teraz = await this.prisma.invoice.findUniqueOrThrow({
+        where: { id: inv.id },
+        select: { ksefXml: true, ksefXmlSha256: true, ksefSrodowisko: true },
+      });
+      return { xml: teraz.ksefXml!, sha256: teraz.ksefXmlSha256!, srodowisko: normalizujSrodowiskoKsef(teraz.ksefSrodowisko) };
+    }
+    return { xml, sha256, srodowisko: env };
+  }
+
+  private async submitOne(client: InvoicingProvider, inv: Invoice): Promise<void> {
+    let plik: PlikFakturyKsef;
     try {
-      ({ xml } = buildFa3Xml({
-        invoice: {
-          ...inv,
-          correctedNumber: korygowana?.number ?? null,
-          correctedIssuedAt: korygowana?.issuedAt ?? null,
-        },
-        systemInfo: 'Verris Panel',
-      }));
+      plik = await this.zapewnijPlik(inv);
     } catch (err) {
       if (err instanceof FaXmlValidationError) {
         // Dane faktury niekompletne — REJECTED lokalnie, wymaga poprawy danych.
         await this.markRejected(inv, `Walidacja lokalna: ${err.message}`);
         return;
       }
+      if (err instanceof KorygowanaBezNumeruKsef) {
+        this.logger.log(`KSeF: ${inv.number} — ${err.message}`);
+        return;
+      }
       throw err;
     }
 
     try {
-      const { elementReferenceNumber } = await client.sendInvoice(xml);
+      // Wysyłamy DOKŁADNIE zapisany plik — ten, którego skrót jest w kodzie QR.
+      const { elementReferenceNumber } = await client.sendInvoice(plik.xml);
+      const { env } = await this.settings.getKsefRuntimeConfig();
       await this.prisma.invoice.update({
         where: { id: inv.id },
         data: {
@@ -285,12 +377,14 @@ export class KsefService {
           ksefElementRef: elementReferenceNumber,
           ksefSubmittedAt: new Date(),
           ksefError: null,
+          // Środowisko, do którego plik faktycznie poszedł — od niego zależy adres QR.
+          ksefSrodowisko: env,
         },
       });
       await this.audit.record({
         action: 'KSEF_INVOICE_SUBMITTED',
         userId: inv.userId,
-        details: { invoiceId: inv.id, number: inv.number, elementReferenceNumber },
+        details: { invoiceId: inv.id, number: inv.number, elementReferenceNumber, sha256: plik.sha256 },
       });
     } catch (err) {
       const httpStatus = (err as { httpStatus?: number }).httpStatus;
@@ -301,6 +395,39 @@ export class KsefService {
       }
       throw err; // 5xx / sieć → zostaje PENDING, retry w kolejnym cyklu.
     }
+  }
+
+  /**
+   * Plik KSeF faktury do wizualizacji (PDF z kodem QR) i do pobrania przez klienta — albo `null`,
+   * gdy faktura nie idzie do KSeF, została odrzucona albo jej pliku nie da się jeszcze zbudować
+   * (wtedy obowiązuje PDF z magazynu).
+   */
+  async plikDoWizualizacji(invoiceId: string): Promise<(PlikFakturyKsef & { numerKsef: string | null; przyjeto: Date | null; numer: string }) | null> {
+    const inv = await this.prisma.invoice.findUnique({ where: { id: invoiceId } });
+    if (!inv || !STATUSY_Z_PLIKIEM_KSEF.includes(inv.ksefStatus)) return null;
+    try {
+      const plik = await this.zapewnijPlik(inv);
+      return { ...plik, numerKsef: inv.ksefNumber, przyjeto: inv.ksefAcceptedAt, numer: inv.number };
+    } catch (err) {
+      if (err instanceof FaXmlValidationError || err instanceof KorygowanaBezNumeruKsef) {
+        this.logger.warn(`KSeF: brak pliku do wizualizacji ${inv.number} — ${err.message}`);
+        return null;
+      }
+      throw err;
+    }
+  }
+
+  /** PDF faktury = wizualizacja zapisanego XML FA(3) + KOD I. `null` — patrz `plikDoWizualizacji`. */
+  async pdfFaktury(invoiceId: string): Promise<Uint8Array | null> {
+    const plik = await this.plikDoWizualizacji(invoiceId);
+    if (!plik) return null;
+    const wiz = wizualizacjaFa3(plik.xml);
+    return renderujFaktureKsef(wiz, {
+      numerKsef: plik.numerKsef,
+      przyjetoWKsef: plik.przyjeto,
+      linkWeryfikacji: linkWeryfikacjiKsef(plik.srodowisko, wiz.sprzedawca.nip ?? '', wiz.dataWystawienia, plik.sha256),
+      srodowisko: plik.srodowisko,
+    });
   }
 
   private async checkOne(
@@ -496,7 +623,16 @@ export class KsefService {
     // albo czekającej na numer KSeF — i wysyłało ją drugi raz (duplikat w KSeF).
     const r = await this.prisma.invoice.updateMany({
       where: { id: invoiceId, ksefStatus: KsefStatus.REJECTED },
-      data: { ksefStatus: KsefStatus.PENDING, ksefError: null, ksefElementRef: null, ksefSubmittedAt: null },
+      // Plik budujemy od nowa — ponowienie następuje po poprawie danych, a stary plik KSeF odrzucił.
+      data: {
+        ksefStatus: KsefStatus.PENDING,
+        ksefError: null,
+        ksefElementRef: null,
+        ksefSubmittedAt: null,
+        ksefXml: null,
+        ksefXmlSha256: null,
+        ksefSrodowisko: null,
+      },
     });
     if (r.count === 0) {
       throw new ConflictException('Ponowić można tylko fakturę odrzuconą przez KSeF.');
