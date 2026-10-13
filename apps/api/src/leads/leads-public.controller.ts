@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import { LeadsService } from './leads.service.js';
 import { SubmitLeadDto } from './dto/submit-lead.dto.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
+import { CaptchaService } from '../auth/captcha.service.js';
 
 /**
  * Publiczne formularze z verris.pl (LP „Zaplanuj migrację" + „Kontakt").
@@ -11,7 +12,10 @@ import { RateLimit } from '../common/guards/rate-limit.guard.js';
  */
 @Controller('public/leads')
 export class LeadsPublicController {
-  constructor(private readonly leads: LeadsService) {}
+  constructor(
+    private readonly leads: LeadsService,
+    private readonly captcha: CaptchaService,
+  ) {}
 
   // Audyt bezpieczeństwa 13.10: formularz wysyła mail z naszej domeny na adres podany przez anonima —
   // limit per IP i per adres odbiorcy (keyByBodyField), żeby nie dało się nim zasypać cudzej skrzynki.
@@ -22,6 +26,9 @@ export class LeadsPublicController {
     const ip =
       req.ip || (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim();
     const userAgent = req.headers['user-agent'] as string | undefined;
+    // Decyzja 14.10: captcha jak przy rejestracji. Gdy CAPTCHA_SECRET_KEY nie jest ustawiony, CaptchaService
+    // przepuszcza (tak samo działa logowanie i rejestracja) — limity per IP i adres zostają.
+    await this.captcha.verify(dto.captchaToken, ip, 'lead');
     return this.leads.submit(dto, { ip, userAgent });
   }
 

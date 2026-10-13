@@ -46,9 +46,46 @@ export function nowyNonce(): string {
   return btoa(s);
 }
 
+/**
+ * Decyzja 14.10 — captcha w formularzach verris.pl (komponent Captcha, ten sam dostawca co panel klienta). Źródła
+ * dostawcy dopisujemy tylko, gdy ustawiony jest klucz strony (NEXT_PUBLIC_CAPTCHA_SITE_KEY). Wartości 1:1 z
+ * libs/ui/src/csp.ts (ZRODLA_CAPTCHY), według dokumentacji dostawców:
+ *  - reCAPTCHA: https://developers.google.com/recaptcha/docs/faq (pytanie o Content-Security-Policy)
+ *  - hCaptcha: https://docs.hcaptcha.com/#content-security-policy-settings
+ *  - Turnstile: https://developers.cloudflare.com/turnstile/reference/content-security-policy/
+ */
+type DostawcaCaptchy = 'recaptcha' | 'recaptcha-v3' | 'hcaptcha' | 'turnstile';
+const RECAPTCHA = {
+  'script-src': ['https://www.google.com/recaptcha/', 'https://www.gstatic.com/recaptcha/'],
+  'frame-src': ['https://www.google.com/recaptcha/', 'https://recaptcha.google.com/recaptcha/'],
+  'connect-src': ['https://www.google.com/recaptcha/'],
+};
+const HCAPTCHA = ['https://hcaptcha.com', 'https://*.hcaptcha.com'];
+const ZRODLA_CAPTCHY: Record<DostawcaCaptchy, Partial<Record<string, string[]>>> = {
+  recaptcha: RECAPTCHA,
+  'recaptcha-v3': RECAPTCHA,
+  hcaptcha: { 'script-src': HCAPTCHA, 'frame-src': HCAPTCHA, 'style-src': HCAPTCHA, 'connect-src': HCAPTCHA },
+  turnstile: { 'script-src': ['https://challenges.cloudflare.com'], 'frame-src': ['https://challenges.cloudflare.com'] },
+};
+
+/** Źródła captchy dla CSP — null, gdy captcha na www nie jest włączona (brak klucza strony). */
+export function captchaWww(
+  klucz = process.env.NEXT_PUBLIC_CAPTCHA_SITE_KEY,
+  dostawca = process.env.NEXT_PUBLIC_CAPTCHA_PROVIDER,
+): DostawcaCaptchy | null {
+  if (!klucz) return null;
+  return dostawca && dostawca in ZRODLA_CAPTCHY ? (dostawca as DostawcaCaptchy) : 'recaptcha';
+}
+
 /** Polityka stron publicznych dla danego nonce. `dev` dokłada `'unsafe-eval'` (stosy błędów Reacta) — nigdy w produkcji. */
-export function cspWww(nonce: string, dev = false): string {
-  return [...DYREKTYWY_STALE, `script-src 'nonce-${nonce}' 'strict-dynamic' ${SKRYPTY_ZAPAS}${dev ? " 'unsafe-eval'" : ''}`].join('; ');
+export function cspWww(nonce: string, dev = false, captcha: DostawcaCaptchy | null = captchaWww()): string {
+  let dyrektywy = [...DYREKTYWY_STALE, `script-src 'nonce-${nonce}' 'strict-dynamic' ${SKRYPTY_ZAPAS}${dev ? " 'unsafe-eval'" : ''}`];
+  if (captcha) {
+    for (const [nazwa, zrodla] of Object.entries(ZRODLA_CAPTCHY[captcha])) {
+      if (zrodla?.length) dyrektywy = dyrektywy.map((d) => (d.startsWith(`${nazwa} `) ? `${d} ${zrodla.join(' ')}` : d));
+    }
+  }
+  return dyrektywy.join('; ');
 }
 
 /** Trasy Payload (panel CMS i jego API) — zostają przy polityce z Caddy, proxy ich nie dotyka. */

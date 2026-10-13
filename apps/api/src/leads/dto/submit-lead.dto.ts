@@ -41,4 +41,10 @@ export class SubmitLeadDto {
   @IsString()
   @MaxLength(2048)
   page?: string;
+
+  /** Token captchy z formularza verris.pl (decyzja 14.10 — ten sam dostawca co rejestracja w panelu). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(4096)
+  captchaToken?: string;
 }

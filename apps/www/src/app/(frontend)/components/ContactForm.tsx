@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { events } from '@/lib/analytics';
 import { submitLead } from '@/lib/submit-lead';
+import { captchaTokenFromForm } from '@/lib/captcha-token';
+import { Captcha } from './Captcha';
 
 export function ContactForm() {
   const [sent, setSent] = useState(false);
@@ -26,6 +28,7 @@ export function ContactForm() {
       message,
       source: 'contact_form',
       page: typeof window !== 'undefined' ? window.location.href : undefined,
+      captchaToken: captchaTokenFromForm(fd),
     });
     setBusy(false);
     if (!res.ok) {
@@ -61,6 +64,7 @@ export function ContactForm() {
         <label htmlFor="message">Wiadomość</label>
         <textarea id="message" name="message" required />
       </div>
+      <Captcha action="lead" />
       <button className="btn btn-primary" type="submit" disabled={busy} data-event="cta_click" data-cta="contact-submit">
         {busy ? 'Wysyłam…' : 'Wyślij wiadomość'}
       </button>

@@ -52,4 +52,14 @@ describe('Formularz leadów — nadużycia wysyłki', () => {
     await s.svc.submit({ kind: 'MIGRATION', email: 'ofiara@example.com', marketingConsent: true } as never, {});
     expect(s.prisma.siteLead.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ kind: 'MIGRATION' }) }));
   });
+
+  // Decyzja 14.10: captcha w formularzach verris.pl jak przy rejestracji.
+  it('trasa weryfikuje captchę przed zapisem leada (błąd captchy → bez zapisu)', async () => {
+    const leads = { submit: vi.fn() };
+    const captcha = { verify: vi.fn(async () => { throw new Error('captcha'); }) };
+    const ctl = new LeadsPublicController(leads as never, captcha as never);
+    await expect(ctl.submit({ kind: 'CONTACT', email: 'a@b.pl', captchaToken: 'x'.repeat(20) } as never, { ip: '1.2.3.4', headers: {} } as never)).rejects.toThrow('captcha');
+    expect(captcha.verify).toHaveBeenCalledWith('x'.repeat(20), '1.2.3.4', 'lead');
+    expect(leads.submit).not.toHaveBeenCalled();
+  });
 });

@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { events } from '@/lib/analytics';
 import { submitLead } from '@/lib/submit-lead';
+import { captchaTokenFromForm } from '@/lib/captcha-token';
+import { Captcha } from './Captcha';
 
 const CONSENT_TEXT =
   'Chcę otrzymać plan migracji i kilka wiadomości o hostingu Verris. Zgodę mogę wycofać w każdej chwili linkiem rezygnacji w mailu.';
@@ -23,7 +25,8 @@ export function MigrationLeadForm() {
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!consent || busy) return;
-    const email = new FormData(e.currentTarget).get('email')?.toString().trim() ?? '';
+    const fd = new FormData(e.currentTarget);
+    const email = fd.get('email')?.toString().trim() ?? '';
     if (!email) return;
     setBusy(true);
     setError(null);
@@ -34,6 +37,7 @@ export function MigrationLeadForm() {
       marketingConsent: true,
       consentText: CONSENT_TEXT,
       page: typeof window !== 'undefined' ? window.location.href : undefined,
+      captchaToken: captchaTokenFromForm(fd),
     });
     setBusy(false);
     if (!res.ok) {
@@ -105,6 +109,8 @@ export function MigrationLeadForm() {
             <a href="https://panel.verris.pl/legal/privacy">polityce prywatności</a>.
           </span>
         </label>
+
+        <Captcha action="lead" />
 
         <p className="lead-note">
           Potwierdzimy adres jednym klikiem (double opt-in). Nie wysyłamy spamu i nie przekazujemy

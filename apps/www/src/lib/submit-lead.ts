@@ -16,6 +16,7 @@ export async function submitLead(input: {
   marketingConsent?: boolean;
   consentText?: string;
   page?: string;
+  captchaToken?: string;
 }): Promise<{ ok: boolean; status?: 'pending' | 'received'; error?: string }> {
   try {
     const apiUrl = (process.env.API_URL || 'http://api:3000').replace(/\/$/, '');
