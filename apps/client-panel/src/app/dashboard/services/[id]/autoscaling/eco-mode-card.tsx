@@ -16,7 +16,11 @@ interface Props {
 
 export function EcoModeCard({ subscriptionId, ecoModeEnabled: initial, ecoPoints }: Props) {
   const [eco, setEco] = useState(initial);
-  const [points, setPoints] = useState(ecoPoints);
+  // Przegląd 13.10: saldo przychodzi z rodzica asynchronicznie (karta usługi pobiera je po wyrenderowaniu) —
+  // useState(ecoPoints) zapamiętywał pierwsze `null` i karta pokazywała „—” zamiast salda. Lokalnie trzymamy
+  // tylko premię za pierwsze włączenie.
+  const [premia, setPremia] = useState(0);
+  const points = ecoPoints === null ? null : ecoPoints + premia;
   const [error, setError] = useState<string | null>(null);
   const [daInfo, setDaInfo] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -42,7 +46,7 @@ export function EcoModeCard({ subscriptionId, ecoModeEnabled: initial, ecoPoints
         return;
       }
       if (res.ecoPointsAwarded) {
-        setPoints((p) => (p === null ? p : p + ECO_FIRST_ENABLE_POINTS));
+        setPremia((p) => p + ECO_FIRST_ENABLE_POINTS);
       }
       if (res.ecoDaNotice) {
         setDaInfo(res.ecoDaNotice);
