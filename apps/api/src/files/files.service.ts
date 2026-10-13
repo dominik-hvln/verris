@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
   PayloadTooLargeException,
@@ -18,6 +20,7 @@ const MAX_EDIT_BYTES = 1_000_000; // 1 MB
 const MAX_WRITE_BYTES = 25_000_000; // 25 MB
 /** Max in-panel download size — larger files must go via FTP (memory guard). */
 const MAX_DOWNLOAD_BYTES = 100_000_000; // 100 MB
+const MAX_ODCZYTOW_NA_KONTO = 2;
 
 /** Ścieżka elementu `n` w katalogu `dir` (oba już po `safePath`/`safeName`). */
 const wKatalogu = (dir: string, n: string) => `${dir === '/' ? '' : dir}/${n}`;
@@ -161,6 +164,41 @@ export class FilesService {
     return { filename: safe.split('/').pop() || 'plik', stream: res.data as NodeJS.ReadableStream, size };
   }
 
+  /**
+   * Audyt 13.10 (files.service.ts:download:buffered-without-aggregate-limit) — odczyty buforowane w pamięci wspólnego
+   * procesu API: najwyżej MAX_ODCZYTOW_NA_KONTO naraz na konto hostingowe (nadmiar → 429), a odbiór przerywany po
+   * przekroczeniu limitu bajtów (axios maxContentLength), zanim cały plik trafi do pamięci.
+   */
+  private readonly odczytyWToku = new Map<string, number>();
+
+  private async zLimitemOdczytow<T>(kontoId: string, fn: () => Promise<T>): Promise<T> {
+    const n = this.odczytyWToku.get(kontoId) ?? 0;
+    if (n >= MAX_ODCZYTOW_NA_KONTO) {
+      throw new HttpException('Za dużo równoczesnych pobrań plików. Spróbuj za chwilę.', HttpStatus.TOO_MANY_REQUESTS);
+    }
+    this.odczytyWToku.set(kontoId, n + 1);
+    try {
+      return await fn();
+    } finally {
+      const m = (this.odczytyWToku.get(kontoId) ?? 1) - 1;
+      if (m <= 0) this.odczytyWToku.delete(kontoId);
+      else this.odczytyWToku.set(kontoId, m);
+    }
+  }
+
+  private async pobierzZLimitem(client: { downloadFile(p: string, max?: number): Promise<Buffer> }, sciezka: string, max: number, komunikat: string): Promise<Buffer> {
+    let buf: Buffer;
+    try {
+      buf = await client.downloadFile(sciezka, max);
+    } catch (e) {
+      // axios: „maxContentLength size of N exceeded” — plik urósł po sprawdzeniu rozmiaru albo listing kłamał.
+      if (/maxContentLength/i.test((e as Error).message ?? '')) throw new PayloadTooLargeException(komunikat);
+      throw e;
+    }
+    if (buf.length > max) throw new PayloadTooLargeException(komunikat);
+    return buf;
+  }
+
   async read(
     subscriptionId: string,
     userId: string,
@@ -172,10 +210,12 @@ export class FilesService {
     this.odmowDlaSystemowych(safe);
     const client = await this.clientFor(account);
     const size = await this.fileSizeBytes(client, safe);
-    if (size != null && size > MAX_EDIT_BYTES) {
+    // Audyt 13.10 — nieznany rozmiar to odmowa (jak downloadStream), nie „pobierz i zobacz”.
+    if (size == null) throw new NotFoundException('Nie ma takiego pliku.');
+    if (size > MAX_EDIT_BYTES) {
       throw new PayloadTooLargeException('Plik jest zbyt duży do edycji w panelu.');
     }
-    const buf = await client.downloadFile(safe);
+    const buf = await this.zLimitemOdczytow(account.id, () => this.pobierzZLimitem(client, safe, MAX_EDIT_BYTES, 'Plik jest zbyt duży do edycji w panelu.'));
     if (buf.length > MAX_EDIT_BYTES) {
       throw new PayloadTooLargeException('Plik jest zbyt duży do edycji w panelu.');
     }
@@ -194,12 +234,15 @@ export class FilesService {
     const client = await this.clientFor(account);
     // Guard memory: reject oversized files before loading them into RAM.
     const size = await this.fileSizeBytes(client, safe);
-    if (size != null && size > MAX_DOWNLOAD_BYTES) {
+    if (size == null) throw new NotFoundException('Nie ma takiego pliku.');
+    if (size > MAX_DOWNLOAD_BYTES) {
       throw new PayloadTooLargeException(
         'Plik jest zbyt duży do pobrania przez panel (limit 100 MB). Użyj FTP.',
       );
     }
-    const data = await client.downloadFile(safe);
+    const data = await this.zLimitemOdczytow(account.id, () =>
+      this.pobierzZLimitem(client, safe, MAX_DOWNLOAD_BYTES, 'Plik jest zbyt duży do pobrania przez panel (limit 100 MB). Użyj FTP.'),
+    );
     if (data.length > MAX_DOWNLOAD_BYTES) {
       throw new PayloadTooLargeException(
         'Plik jest zbyt duży do pobrania przez panel (limit 100 MB). Użyj FTP.',

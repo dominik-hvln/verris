@@ -410,9 +410,14 @@ export class DirectAdminClient {
   }
 
   /** Downloads a file as raw bytes (for binary download / streaming). */
-  async downloadFile(path: string): Promise<Buffer> {
+  /**
+   * `maxBytes` — axios przerywa odbiór po przekroczeniu (maxContentLength), zanim cały plik trafi do pamięci
+   * (audyt 13.10: limit sprawdzany dopiero po pełnym zbuforowaniu nie chronił procesu API).
+   */
+  async downloadFile(path: string, maxBytes?: number): Promise<Buffer> {
     const response = await this.client.get(`/CMD_FILE_MANAGER${ensureLeadingSlash(path)}`, {
       responseType: 'arraybuffer',
+      ...(maxBytes ? { maxContentLength: maxBytes } : {}),
     });
     return Buffer.from(response.data as ArrayBuffer);
   }
