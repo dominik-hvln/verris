@@ -19,15 +19,25 @@ export function DaSsoButton({ serverId, sshHost, srodek, daGotowe = true }: { se
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // Obserwacja 13.10: port 2222 węzła przyjmuje tylko control-plane, więc otwarta karta wisiała bez komunikatu,
+  // a przycisk wyglądał, jakby nic nie zrobił. Po otwarciu pokazujemy, co dalej, i link gotowy dla tunelu.
+  const [otwarty, setOtwarty] = useState<string | null>(null);
 
   const open = async () => {
     if (busy) return;
     setBusy(true);
     setError(null);
+    setOtwarty(null);
+    let url: string | null = null;
     // Okno przed awaitem (polityka popupów), potem podmiana adresu — wspólne z Cmd+K.
-    const blad = await otworzLinkJednorazowy(() => createNodeSsoUrl(serverId));
+    const blad = await otworzLinkJednorazowy(async () => {
+      const r = await createNodeSsoUrl(serverId);
+      if ("data" in r) url = r.data.url;
+      return r;
+    });
     setBusy(false);
     if (blad) setError(blad);
+    else setOtwarty(url);
   };
 
   const copySsh = async () => {
@@ -65,6 +75,7 @@ export function DaSsoButton({ serverId, sshHost, srodek, daGotowe = true }: { se
         ) : null}
       </div>
       {error ? <p className="text-xs text-crit">{error}</p> : null}
+      {otwarty ? <PoOtwarciu url={otwarty} tunel={komendy?.tunelPanelu ?? null} /> : null}
       {komendy ? (
         // Weryfikacja 11.10 — klucz osobisty na węźle: „Permission denied (publickey)”; węzeł przyjmuje klucz deploy z CP.
         <p className="max-w-md text-right text-xs text-muted-foreground" data-podpowiedz-ssh="">
@@ -80,5 +91,40 @@ export function DaSsoButton({ serverId, sshHost, srodek, daGotowe = true }: { se
         </p>
       ) : null}
     </div>
+  );
+}
+
+/** Link SSO z adresem węzła podmienionym na 127.0.0.1 — do otwarcia przez tunel z control-plane'u. */
+export function linkPrzezTunel(url: string): string | null {
+  try {
+    const u = new URL(url);
+    u.hostname = "127.0.0.1";
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
+function PoOtwarciu({ url, tunel }: { url: string; tunel: string | null }) {
+  const przezTunel = linkPrzezTunel(url);
+  return (
+    <p className="max-w-md text-right text-xs text-muted-foreground" role="status" data-sso-otwarte="">
+      Otworzyliśmy jednorazowy link (ważny 2 minuty) w nowej karcie. Jeśli karta się nie ładuje, panel węzła przyjmuje
+      połączenia tylko z control-plane&apos;u
+      {tunel ? (
+        <>
+          {" "}— uruchom tunel <code>{tunel}</code>
+        </>
+      ) : null}
+      {przezTunel ? (
+        <>
+          {" "}i otwórz{" "}
+          <a href={przezTunel} target="_blank" rel="noopener noreferrer" className="underline">
+            link przez tunel
+          </a>
+        </>
+      ) : null}
+      .
+    </p>
   );
 }

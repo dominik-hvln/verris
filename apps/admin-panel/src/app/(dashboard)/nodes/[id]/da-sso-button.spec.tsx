@@ -51,6 +51,10 @@ describe("DaSsoButton — jednorazowy link w jednej karcie", () => {
     expect(open).toHaveBeenCalledTimes(1);
     expect(okno.opener).toBeNull();
     expect(okno.location.href).toBe("https://t1.example:2222/api/login/url?key=k");
+    // Obserwacja 13.10: po otwarciu jest komunikat, co zrobić, gdy karta się nie ładuje (2222 tylko z CP).
+    const status = el.querySelector("[data-sso-otwarte]");
+    expect(status?.textContent).toContain("tylko z control-plane");
+    expect(status?.querySelector("a")?.getAttribute("href")).toBe("https://127.0.0.1:2222/api/login/url?key=k");
   });
 
   it("błąd API: karta zamknięta, komunikat pod przyciskiem", async () => {
