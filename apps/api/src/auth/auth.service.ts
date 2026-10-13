@@ -484,7 +484,13 @@ export class AuthService {
         where: { id: row.userId },
         // C3: a password reset invalidates every existing session — if the
         // reset was triggered by a compromise, old tokens stop working now.
-        data: { passwordHash, tokenVersion: { increment: 1 } },
+        // Audyt 13.10 — odzyskanie konta anuluje też oczekującą zmianę adresu: link EMAIL_CHANGE zlecony przez
+        // napastnika przed resetem przejąłby konto po resecie (nowy adres → reset hasła na niego).
+        data: { passwordHash, tokenVersion: { increment: 1 }, pendingEmail: null },
+      }),
+      this.prisma.userAuthToken.updateMany({
+        where: { userId: row.userId, purpose: UserAuthTokenPurpose.EMAIL_CHANGE, usedAt: null },
+        data: { usedAt: new Date() },
       }),
       // A-24 — link z maila potwierdza skrzynkę (konto od operatora nie ma weryfikacji).
       this.prisma.user.updateMany({
@@ -657,6 +663,15 @@ export class AuthService {
         },
       }),
       this.prisma.userAuthToken.update({ where: { id: row.id }, data: { usedAt: new Date() } }),
+      // Audyt 13.10 — linki resetu i weryfikacji wysłane na POPRZEDNI adres przestają działać po zmianie tożsamości.
+      this.prisma.userAuthToken.updateMany({
+        where: {
+          userId: row.userId,
+          purpose: { in: [UserAuthTokenPurpose.PASSWORD_RESET, UserAuthTokenPurpose.EMAIL_VERIFICATION, UserAuthTokenPurpose.EMAIL_CHANGE] },
+          usedAt: null,
+        },
+        data: { usedAt: new Date() },
+      }),
     ]);
 
     await this.audit.record({
@@ -1015,10 +1030,17 @@ export class AuthService {
 
   /** C3 — invalidate all active sessions for a user (logout everywhere). */
   async logoutAllDevices(userId: string): Promise<{ ok: true }> {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { tokenVersion: { increment: 1 } },
-    });
+    // Audyt 13.10 — „wyloguj wszędzie” po przejęciu sesji anuluje też zmianę adresu zleconą z przejętej sesji.
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { tokenVersion: { increment: 1 }, pendingEmail: null },
+      }),
+      this.prisma.userAuthToken.updateMany({
+        where: { userId, purpose: UserAuthTokenPurpose.EMAIL_CHANGE, usedAt: null },
+        data: { usedAt: new Date() },
+      }),
+    ]);
     // SEC-10 — oznacz wszystkie aktywne sesje jako wygaszone (porządek w liście).
     await this.prisma.userSession.updateMany({
       where: { userId, revokedAt: null },

@@ -9,6 +9,8 @@ describe('UsersService.changePassword', () => {
     const prisma = {
       user: { findUnique: vi.fn(async () => ({ id: 'u1', email: 'k@x.pl', firstName: 'K', passwordHash })), update: vi.fn(async () => ({})) },
       userSession: { updateMany: vi.fn(async () => ({ count: 2 })) },
+      userAuthToken: { updateMany: vi.fn(async () => ({ count: 0 })) },
+      $transaction: vi.fn(async (ops: unknown[]) => Promise.all(ops)),
     };
     const audit = { record: vi.fn(async () => undefined) };
     const svc = new UsersService(prisma as never, {} as never, {} as never, {} as never, { send: vi.fn(async () => undefined) } as never, {} as never, audit as never);

@@ -13,6 +13,7 @@ import {
   CustomerPermission,
   Prisma,
   SubscriptionStatus,
+  UserAuthTokenPurpose,
   WalletTxType,
 } from '@verris/database';
 import * as bcrypt from 'bcrypt';
@@ -662,10 +663,17 @@ export class UsersService {
     const saltRounds = 10;
     const newHash = await bcrypt.hash(dto.newPassword, saltRounds);
 
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { passwordHash: newHash },
-    });
+    // Audyt 13.10 — zmiana hasła anuluje oczekującą zmianę adresu (link EMAIL_CHANGE z przejętej sesji).
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { passwordHash: newHash, pendingEmail: null },
+      }),
+      this.prisma.userAuthToken.updateMany({
+        where: { userId, purpose: UserAuthTokenPurpose.EMAIL_CHANGE, usedAt: null },
+        data: { usedAt: new Date() },
+      }),
+    ]);
     // Zmiana hasła wylogowuje pozostałe urządzenia (jeśli ktoś przejął sesję, traci ją teraz);
     // bieżąca sesja zostaje, żeby użytkownik nie musiał logować się od nowa.
     await this.prisma.userSession.updateMany({
