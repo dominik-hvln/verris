@@ -306,6 +306,43 @@ export class DirectAdminService {
   }
 
   /**
+   * Zgodność kont węzła z panelem (H-16, 13.10): po przeniesieniu konta na inny węzeł na starym zostawała „sierota”
+   * (konto DA bez usługi w panelu), która dalej serwowała strefę DNS i pocztę. Lista kont DA (CMD_API_SHOW_USERS,
+   * https://docs.directadmin.com/developer/api/legacy-api.html) porównana z kontami panelu na tym węźle.
+   */
+  async zgodnoscKontWezla(serverId: string): Promise<{
+    sieroty: Array<{ daUsername: string; gdzieIndziej: { serverId: string; serverName: string | null } | null }>;
+    brakujace: Array<{ daUsername: string; domain: string | null; accountId: string }>;
+    sprawdzono: string;
+  }> {
+    const server = await this.prisma.server.findUnique({ where: { id: serverId }, select: { daUsername: true } });
+    if (!server) throw new NotFoundException('Nie znaleziono węzła.');
+    const client = await this.getClientForServer(serverId);
+    const naWezle = new Set((await client.listAccounts()).map((u) => u.trim()).filter(Boolean));
+    naWezle.delete(server.daUsername ?? 'admin');
+    const wPanelu = await this.prisma.account.findMany({
+      where: { serverId, status: { not: AccountStatus.DELETED } },
+      select: { id: true, daUsername: true, domain: true },
+    });
+    const znane = new Set(wPanelu.map((a) => a.daUsername));
+    const obce = [...naWezle].filter((u) => !znane.has(u));
+    const gdzie = obce.length
+      ? await this.prisma.account.findMany({
+          where: { daUsername: { in: obce }, status: { not: AccountStatus.DELETED } },
+          select: { daUsername: true, serverId: true, server: { select: { name: true } } },
+        })
+      : [];
+    return {
+      sieroty: obce.sort().map((u) => {
+        const g = gdzie.find((x) => x.daUsername === u);
+        return { daUsername: u, gdzieIndziej: g?.serverId ? { serverId: g.serverId, serverName: g.server?.name ?? null } : null };
+      }),
+      brakujace: wPanelu.filter((a) => !naWezle.has(a.daUsername)).map((a) => ({ daUsername: a.daUsername, domain: a.domain, accountId: a.id })),
+      sprawdzono: new Date().toISOString(),
+    };
+  }
+
+  /**
    * Rekordy NS wierzchołka każdej strefy konta → nowa para nazw węzła. Ruszamy tylko strefy, w których jest NS
    * z naszej bazy (np. *.verris.pl) różny od nowych — własnej delegacji klienta nie zmieniamy. Kolejność jak przy
    * edycji NS w panelu: najpierw dodanie nowych (sprawdzone w strefie), potem usunięcie starych

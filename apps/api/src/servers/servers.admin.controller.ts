@@ -309,6 +309,15 @@ export class ServersAdminController {
     return this.servers.getServer(id);
   }
 
+  /** Konta DA bez usługi w panelu (sieroty po przeniesieniu) i konta panelu, których nie ma na węźle. Tylko odczyt. */
+  @Get(':id/zgodnosc-kont')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_VIEW')
+  zgodnoscKont(@Param('id') id: string) {
+    return this.directAdmin.zgodnoscKontWezla(id);
+  }
+
   /** PB-34 — przegląd węzła (makieta AdminWezel): zasoby realne, zgodność, gotowość, obciążone konta, zadania. */
   @Get(':id/przeglad')
   @UseGuards(StaffPermissionsGuard)

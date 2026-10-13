@@ -35,6 +35,7 @@ import { UslugiWezlaPanel } from "./uslugi-wezla-panel";
 import { StraznikPanel } from "./straznik-panel";
 import { MalwareFlotyTabela, type MalwareFloty } from "@/components/malware-floty";
 import { PrzekroczeniaLimitow, type Przekroczenia } from "@/components/przekroczenia-limitow";
+import { ZgodnoscKontKarta, type ZgodnoscKont } from "./zgodnosc-kont";
 import { adminApi } from "@/lib/api";
 import { OnboardLivePanel } from "../wizard/onboard-panele";
 import { fetchPrognozaWezla, fetchPrzegladWezla } from "./przeglad-data";
@@ -123,6 +124,8 @@ export default async function ServerDetailPage({
   const zadania = sekcja === "zadania" ? await wynik(listNodeTasks(undefined, server.id)) : null;
   // F2.6 — konta tego węzła odbijające się od limitów (raport agenta verris-lve), na zakładce „Konta”.
   const przekroczenia = sekcja === "konta" ? await wynik(adminApi<Przekroczenia>(`/admin/servers/przekroczenia?wezel=${encodeURIComponent(server.id)}`)) : null;
+  // H-16 — konta DA bez usługi (sieroty po przeniesieniu) i konta panelu, których nie ma na węźle.
+  const zgodnosc = sekcja === "konta" ? await wynik(adminApi<ZgodnoscKont>(`/admin/servers/${encodeURIComponent(server.id)}/zgodnosc-kont`)) : null;
   // F3.2 — złośliwe pliki kont tego węzła (ostatnie wyniki skanera); bez ACCOUNT_DIAGNOSTICS_VIEW nie pytamy API.
   const malware =
     sekcja === "bezpieczenstwo" && !wymaga("malware-wezla") ? await wynik(adminApi<MalwareFloty>(`/admin/servers/malware?wezel=${encodeURIComponent(server.id)}`)) : null;
@@ -264,6 +267,12 @@ export default async function ServerDetailPage({
               Przekroczenia limitów <Pomoc id="przekroczenia-limitow" />
             </h2>
             {przekroczenia?.ok ? <PrzekroczeniaLimitow dane={przekroczenia.dane} teraz={teraz} zWezlem={false} /> : <NieWczytano co="przekroczeń limitów" />}
+          </section>
+          <section id="zgodnosc-kont" className="flex scroll-mt-4 flex-col gap-2" aria-labelledby="zgodnosc-kont-naglowek">
+            <h2 id="zgodnosc-kont-naglowek" className="font-display text-lg font-bold">
+              Zgodność kont z DirectAdmin
+            </h2>
+            {zgodnosc?.ok ? <ZgodnoscKontKarta dane={zgodnosc.dane} /> : <NieWczytano co="listy kont z węzła" />}
           </section>
           <NodeInsightsPanel serverId={server.id} />
         </>
