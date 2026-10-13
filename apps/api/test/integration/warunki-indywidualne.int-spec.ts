@@ -126,6 +126,46 @@ describe('PB-27 / PB-28 — indywidualne warunki i rozliczenie poza Verris', () 
     expect(await saldo(k.id)).toBe(0);
   });
 
+  // Migracja klientów z Pleska (12.10): klient zapłacił rok z góry u poprzedniego usługodawcy — pierwszy okres do tej
+  // daty bez opłaty, potem zwykłe odnowienie z portfela ceną usługi (bez „ceny 0 zł na zawsze”).
+  it('przeniesienie z opłaconym okresem: bez obciążenia, okres do wskazanej daty, ślad na osi; potem zwykłe odnowienie', async () => {
+    const k = await klient(0);
+    const op = await operator();
+    const plan = await utworzPlan({ priceYearly: 449 });
+    const doKiedy = new Date(Date.now() + 200 * 86400000);
+    const wynik = await uslugi().warunki.zalozUsluge(op.id, k.id, {
+      planId: plan.id, interval: 'YEAR', domain: 'z-pleska.pl', powod: 'migracja z Pleska — opłacone do', oplaconeDo: doKiedy.toISOString(),
+    });
+    const s = await sub(wynik.subscription.id);
+    expect(s).toMatchObject({ paymentSource: 'WALLET', status: 'PROVISIONING', individualPrice: null });
+    expect(s.currentPeriodEnd!.toISOString()).toBe(doKiedy.toISOString());
+    expect(s.priceAmount.toFixed(2)).toBe('449.00');
+    expect(await prisma().walletTransaction.count({ where: { userId: k.id } })).toBe(0);
+    expect(kolejka).toEqual([s.id]);
+    expect(await prisma().subscriptionEvent.count({ where: { subscriptionId: s.id, type: 'OKRES_OPLACONY_U_POPRZEDNIEGO' } })).toBe(1);
+
+    // Po „opłaconym do” — zwykłe odnowienie z portfela ceną usługi.
+    await prisma().subscription.update({ where: { id: s.id }, data: { status: 'ACTIVE', currentPeriodEnd: new Date(Date.now() + 3600000) } });
+    await prisma().user.update({ where: { id: k.id }, data: { walletBalance: 500 } });
+    await scheduler().handleHourlyTick();
+    expect(await saldo(k.id)).toBe(51);
+  });
+
+  it('przeniesienie z opłaconym okresem: tylko administrator; data za blisko albo ponad rok — odmowa bez usługi', async () => {
+    const k = await klient(0);
+    const plan = await utworzPlan();
+    const staff = await prisma().user.create({ data: { email: `pb27-staff-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'STAFF' } });
+    const zlec = (aktor: string, dni: number) =>
+      uslugi().warunki.zalozUsluge(aktor, k.id, {
+        planId: plan.id, interval: 'MONTH', domain: 'z-pleska2.pl', powod: 'migracja', oplaconeDo: new Date(Date.now() + dni * 86400000).toISOString(),
+      });
+    await expect(zlec(staff.id, 30)).rejects.toMatchObject({ status: 403 });
+    const op = await operator();
+    await expect(zlec(op.id, 0.5)).rejects.toThrow('co najmniej dobę');
+    await expect(zlec(op.id, 400)).rejects.toThrow('najwyżej 366 dni');
+    expect(await prisma().subscription.count({ where: { userId: k.id } })).toBe(0);
+  });
+
   it('operator, klient bez środków: odmowa i bez wiszącej usługi „czeka na płatność”', async () => {
     const k = await klient(0);
     const op = await operator();

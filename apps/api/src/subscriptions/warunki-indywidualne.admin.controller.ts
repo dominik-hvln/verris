@@ -4,6 +4,7 @@ import {
   IsBoolean,
   IsEnum,
   IsInt,
+  IsISO8601,
   IsNumber,
   IsOptional,
   IsString,
@@ -56,6 +57,11 @@ class NowaUslugaDto extends PowodDto {
   @Min(0)
   @Max(100)
   autoscalingDiscountPct?: number;
+
+  /** Przeniesienie klienta (np. z Pleska): pierwszy okres do tej daty bez opłaty — tylko administrator. */
+  @IsOptional()
+  @IsISO8601({ strict: true })
+  oplaconeDo?: string;
 }
 
 class WarunkiDto extends PowodDto {

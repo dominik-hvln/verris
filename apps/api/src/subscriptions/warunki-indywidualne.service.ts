@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -32,6 +33,8 @@ export interface NowaUslugaOperatora {
   individualPrice?: number | null;
   autoscalingDiscountPct?: number;
   powod: string;
+  /** Przeniesienie klienta z opłaconym okresem (ISO) — tylko administrator. */
+  oplaconeDo?: string | null;
 }
 
 /**
@@ -135,6 +138,16 @@ export class WarunkiIndywidualneService {
   async zalozUsluge(actorUserId: string, userId: string, dto: NowaUslugaOperatora) {
     const user = await this.klient(userId);
     const cena = this.cena(dto.individualPrice);
+    let oplaconeDo: Date | null = null;
+    if (dto.oplaconeDo) {
+      // Darmowy okres to koszt — jak przedłużenie gratis (F3.5, L4/ADMIN); przy przenoszeniu klientów decyduje właściciel.
+      const aktor = await this.prisma.user.findUnique({ where: { id: actorUserId }, select: { role: true } });
+      if (aktor?.role !== Role.ADMIN) {
+        throw new ForbiddenException('Usługę z okresem opłaconym u poprzedniego usługodawcy zakłada administrator.');
+      }
+      oplaconeDo = new Date(dto.oplaconeDo);
+      if (Number.isNaN(oplaconeDo.getTime())) throw new BadRequestException('Niepoprawna data „opłacone do”.');
+    }
     const zlecenie = {
       planId: dto.planId,
       interval: dto.interval,
@@ -151,6 +164,7 @@ export class WarunkiIndywidualneService {
         powod: dto.powod,
         individualPrice: cena,
         autoscalingDiscountPct: this.rabat(dto.autoscalingDiscountPct),
+        oplaconeDo,
       },
     });
   }

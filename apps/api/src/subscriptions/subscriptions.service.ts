@@ -64,7 +64,17 @@ export interface OperatorskieZalozenie {
   powod: string;
   individualPrice?: Prisma.Decimal | null;
   autoscalingDiscountPct?: number;
+  /**
+   * Przeniesienie klienta z opłaconym okresem (np. z Pleska): pierwszy okres trwa do tej daty BEZ pobrania opłaty
+   * (klient zapłacił u poprzedniego usługodawcy), od niej zwykłe odnowienia. Tylko administrator
+   * (WarunkiIndywidualneService.zalozUsluge).
+   */
+  oplaconeDo?: Date | null;
 }
+
+/** Granice „opłacone do” przy przeniesieniu klienta: co najmniej doba (okno odnowienia), najwyżej rok i dzień. */
+export const OPLACONE_DO_MIN_MS = 25 * 60 * 60 * 1000;
+export const OPLACONE_DO_MAKS_DNI = 366;
 
 export interface CreatedSubscription {
   subscription: Subscription;
@@ -314,6 +324,15 @@ export class SubscriptionsService {
       );
     }
     const op = opts.operator;
+    if (op?.oplaconeDo) {
+      const doMs = op.oplaconeDo.getTime();
+      if (Number.isNaN(doMs) || doMs - Date.now() < OPLACONE_DO_MIN_MS) {
+        throw new BadRequestException('„Opłacone do” musi być co najmniej dobę od teraz.');
+      }
+      if (doMs - Date.now() > OPLACONE_DO_MAKS_DNI * 24 * 60 * 60 * 1000) {
+        throw new BadRequestException(`„Opłacone do” najwyżej ${OPLACONE_DO_MAKS_DNI} dni od teraz.`);
+      }
+    }
     if (!op) {
       // PB-28 — klient rozliczany przez właściciela zamawia nowe usługi u opiekuna.
       const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { billingOutside: true } });
@@ -368,10 +387,12 @@ export class SubscriptionsService {
 
     const listPrice = zNarzutem(listPriceRaw, narzutPct);
     // PB-27 — cena operatora zastępuje cennik, kody i rabat startowy (także przy odnowieniach).
+    // Przeniesienie z opłaconym okresem (op.oplaconeDo): klient nie jest nowy — bez rabatu startowego, odnowienia
+    // ceną z cennika albo ceną operatora.
     const pricing =
-      op?.individualPrice != null
+      op?.individualPrice != null || op?.oplaconeDo
         ? {
-            chargeAmount: op.individualPrice,
+            chargeAmount: op.individualPrice ?? listPrice,
             listPrice,
             appliedPromoCodeId: null,
             introDiscountPct: 0,
@@ -489,6 +510,23 @@ export class SubscriptionsService {
     // się po 48 h jak każde PENDING_PAYMENT.
     if (dto.paymentSource === SubscriptionPaymentSource.WALLET && dto.oplata === 'PAYNOW' && !op) {
       return { subscription, doZaplatyPaynow: { kwotaK: pricing.chargeAmount } };
+    }
+
+    // Przeniesienie z opłaconym okresem: bez obciążenia, pierwszy okres do wskazanej daty, ślad na osi usługi.
+    if (op?.oplaconeDo) {
+      await this.prisma.subscriptionEvent.create({
+        data: {
+          subscriptionId: subscription.id,
+          type: 'OKRES_OPLACONY_U_POPRZEDNIEGO',
+          details: { do: op.oplaconeDo.toISOString(), powod: op.powod, actor: op.actorUserId },
+        },
+      });
+      if (isAppLevel) {
+        const wynik = await this.activateAppLevelSubscription(subscription.id, dto, userId, { charge: null, appliedPromoCodeId: null });
+        const s2 = await this.prisma.subscription.update({ where: { id: subscription.id }, data: { currentPeriodEnd: op.oplaconeDo } });
+        return { ...wynik, subscription: s2 };
+      }
+      return this.provisionWithoutCharge(subscription.id, dto, userId, op.oplaconeDo);
     }
 
     switch (dto.paymentSource) {
@@ -1717,13 +1755,14 @@ export class SubscriptionsService {
     subscriptionId: string,
     dto: CreateSubscriptionDto,
     userId: string,
+    koniecOkresu?: Date,
   ): Promise<CreatedSubscription> {
     const subscription = await this.prisma.subscription.update({
       where: { id: subscriptionId },
       data: {
         status: SubscriptionStatus.PROVISIONING,
         currentPeriodStart: new Date(),
-        currentPeriodEnd: addInterval(new Date(), dto.interval),
+        currentPeriodEnd: koniecOkresu ?? addInterval(new Date(), dto.interval),
       },
     });
     if (this.provisionQueue.isAsync()) {

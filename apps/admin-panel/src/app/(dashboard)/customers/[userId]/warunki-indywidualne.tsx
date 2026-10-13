@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { Select } from "@/components/select";
+import { PoleDaty } from "@/components/pole-daty";
 import { plForm } from "@/lib/pl";
 import { domenaDoWyswietlenia } from "@verris/contracts";
 
@@ -73,6 +74,8 @@ export function WarunkiIndywidualne({ userId, dane, akcje }: { userId: string; d
   const [nowaCena, setNowaCena] = useState("");
   const [nowyRabat, setNowyRabat] = useState("0");
   const [powodNowej, setPowodNowej] = useState("");
+  // Przeniesienie klienta z opłaconym okresem (np. z Pleska) — pierwszy okres do tej daty bez opłaty (tylko admin).
+  const [oplaconeDo, setOplaconeDo] = useState("");
 
   const wykonaj = (fn: () => Promise<Wynik>, komunikat: string, poSukcesie?: () => void) => {
     setBlad(null);
@@ -123,15 +126,20 @@ export function WarunkiIndywidualne({ userId, dane, akcje }: { userId: string; d
           individualPrice: c,
           autoscalingDiscountPct: r,
           powod: powodNowej.trim(),
+          // Południe dnia w strefie przeglądarki (PL) — odnowienie nie wypada o północy na granicy dni.
+          ...(oplaconeDo ? { oplaconeDo: new Date(`${oplaconeDo}T12:00:00`).toISOString() } : {}),
         }),
-      dane.billingOutside
-        ? "Usługa założona bez obciążenia (rozliczenie poza Verris) — trwa zakładanie konta na serwerze."
-        : "Usługa założona — pierwszy okres pobrany z portfela klienta, trwa zakładanie konta na serwerze.",
+      oplaconeDo
+        ? `Usługa założona bez obciążenia — okres opłacony u poprzedniego usługodawcy do ${oplaconeDo}, potem zwykłe odnowienia. Trwa zakładanie konta na serwerze.`
+        : dane.billingOutside
+          ? "Usługa założona bez obciążenia (rozliczenie poza Verris) — trwa zakładanie konta na serwerze."
+          : "Usługa założona — pierwszy okres pobrany z portfela klienta, trwa zakładanie konta na serwerze.",
       () => {
         setDomena("");
         setNowaCena("");
         setNowyRabat("0");
         setPowodNowej("");
+        setOplaconeDo("");
       },
     );
   };
@@ -290,9 +298,15 @@ export function WarunkiIndywidualne({ userId, dane, akcje }: { userId: string; d
             <span className={etykieta}>Powód (do audytu)</span>
             <input value={powodNowej} onChange={(e) => setPowodNowej(e.target.value)} className={pole} />
           </label>
+          <div>
+            <span className={etykieta}>Opłacone u poprzedniego usługodawcy do (opcjonalnie)</span>
+            <PoleDaty aria-label="Opłacone u poprzedniego usługodawcy do" value={oplaconeDo} onChange={setOplaconeDo} wrapperClassName="mt-1.5" />
+          </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          {dane.billingOutside
+          {oplaconeDo
+            ? "Przeniesienie klienta: bez obciążenia do wskazanej daty (maks. rok), potem odnowienia z portfela. Tylko administrator."
+            : dane.billingOutside
             ? "Klient rozliczany poza Verris — usługa ruszy bez obciążenia."
             : "Pierwszy okres zostanie pobrany z portfela klienta; przy braku środków usługa nie ruszy."}
         </p>
