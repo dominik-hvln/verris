@@ -41,17 +41,26 @@ function uruchom(wyjscieBuild: string, kodBuild = 0, straznik?: string, opcje: {
         .replace('CB=/usr/local/directadmin/custombuild', `CB=${cb}`)
         .replace(/bash \/usr\/local\/bin\/verris-agent-install\.sh/, 'true')
         .replaceAll('/usr/local/bin/verris-straznik.sh', stra)
-        .replaceAll('/etc/verris-stack.env', stos),
+        .replaceAll('/etc/verris-stack.env', stos)
+        .replaceAll('/etc/verris-stack.applied', join(T, 'verris-stack.applied')),
     );
     try {
       const out = execFileSync('bash', [skrypt], { env: { ...process.env, ...opcje.env, PATH: `${bin}:${process.env.PATH}` }, encoding: 'utf8' });
-      return { kod: 0, out, wywolania: czytajWywolania(T) };
+      return { kod: 0, out, wywolania: czytajWywolania(T), zastosowany: czytaj(join(T, 'verris-stack.applied')) };
     } catch (e) {
       const err = e as { status: number; stdout: string };
-      return { kod: err.status, out: err.stdout, wywolania: czytajWywolania(T) };
+      return { kod: err.status, out: err.stdout, wywolania: czytajWywolania(T), zastosowany: czytaj(join(T, 'verris-stack.applied')) };
     }
   } finally {
     rmSync(T, { recursive: true, force: true });
+  }
+}
+
+function czytaj(p: string): string | null {
+  try {
+    return readFileSync(p, 'utf8');
+  } catch {
+    return null;
   }
 }
 
@@ -128,5 +137,28 @@ describe('aktualizacja i wyrównanie — tylko to, co się zmieniło', () => {
     expect(wywolania).toContain('set php1_release 8.3');
     expect(wywolania).toContain('php');
     expect(wywolania.some((w) => w.startsWith('all'))).toBe(false);
+  });
+});
+
+// 13.10 — „Manifest stosu” w panelu ma znaczyć „zastosowany”, nie „pobrany”.
+describe('manifest zastosowany — zapisywany tylko po udanym wyrównaniu', () => {
+  const STOS = "VERRIS_STACK_VERSION='2026-10-13.1'\nVERRIS_PHP1_RELEASE='8.3'\n";
+
+  it('udane wyrównanie → /etc/verris-stack.applied z wersją manifestu', () => {
+    const { kod, zastosowany } = uruchom('ok', 0, undefined, { stos: STOS, options: 'php1_release=8.3\n', env: { UPD_WYROWNAJ: '1' } });
+    expect(kod).toBe(0);
+    expect(zastosowany).toBe("VERRIS_STACK_VERSION='2026-10-13.1'\n");
+  });
+
+  it('wyrównanie z błędem CustomBuilda → bez zapisu', () => {
+    const { kod, zastosowany } = uruchom('Error', 1, undefined, { stos: STOS, options: 'php1_release=8.3\n', env: { UPD_WYROWNAJ: '1' } });
+    expect(kod).toBe(1);
+    expect(zastosowany).toBeNull();
+  });
+
+  it('zwykła aktualizacja floty (bez wyrównania) → bez zapisu', () => {
+    const { kod, zastosowany } = uruchom('ok', 0, undefined, { stos: STOS });
+    expect(kod).toBe(0);
+    expect(zastosowany).toBeNull();
   });
 });

@@ -117,6 +117,13 @@ if [ "$BLEDY" -gt 0 ]; then
   exit 1
 fi
 
+# 13.10 — panel pokazywał manifest jako „zgodny”, gdy węzeł tylko POBRAŁ plik (agent co minutę), zanim cokolwiek
+# zastosował. Wersję zastosowaną zapisuje dopiero udane wyrównanie (i bootstrap) — raportuje ją verris-lve.sh.
+if [ "\${UPD_WYROWNAJ:-}" = "1" ] && grep -q '^VERRIS_STACK_VERSION=' /etc/verris-stack.env 2>/dev/null; then
+  grep '^VERRIS_STACK_VERSION=' /etc/verris-stack.env > /etc/verris-stack.applied && chmod 0644 /etc/verris-stack.applied
+  log "Zastosowany manifest: $(sed -n "s/^VERRIS_STACK_VERSION=//p" /etc/verris-stack.applied)"
+fi
+
 if [ "$REBOOT_NEEDED" = "1" ]; then
   log "needs-reboot: zainstalowano nowszy kernel ($LATEST). Zaplanuj reboot po drainie."
   echo "VERRIS_UPDATE_RESULT=needs-reboot$OSTRZ_POLE"

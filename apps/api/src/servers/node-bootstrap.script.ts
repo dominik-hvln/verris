@@ -271,6 +271,8 @@ phase_stack() {
   ./build litespeed || fail STACK "build litespeed"
   ./build php || fail STACK "build php (lsphp)"
   ./build rewrite_confs >/dev/null 2>&1 || true
+  # Stos zainstalowany z manifestu → wersja zastosowana (raportuje ją verris-lve.sh; zgodność floty w panelu).
+  grep '^VERRIS_STACK_VERSION=' /etc/verris-stack.env > /etc/verris-stack.applied 2>/dev/null && chmod 0644 /etc/verris-stack.applied || true
   report STACK OK "LiteSpeed zainstalowany (licencja: $ls_tryb)"
   set_phase AGENT
 }

@@ -359,8 +359,10 @@ def stack_versions():
     # PB-30 — wersje stosu do raportu zgodności floty z manifestem (best-effort, każde osobno).
     import subprocess, re
     out = {}
+    # 13.10 — wersja ZASTOSOWANA (plik zapisuje bootstrap i udane wyrównanie), nie pobrana co minutę
+    # /etc/verris-stack.env; bez pliku węzeł nie raportuje manifestu („bez raportu”), zamiast udawać zgodność.
     try:
-        with open("/etc/verris-stack.env") as fh:
+        with open("/etc/verris-stack.applied") as fh:
             for line in fh:
                 if line.startswith("VERRIS_STACK_VERSION="):
                     out["stackVersion"] = line.split("=", 1)[1].strip().strip("'\"")[:40]
