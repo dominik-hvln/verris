@@ -20,6 +20,11 @@ export class FontsProxyService {
   private static readonly CSS_TTL_MS = 24 * 60 * 60 * 1000; // 24h
   private static readonly FILE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30d
   private static readonly MAX_FILES = 500;
+  // Audyt bezpieczeństwa 13.10: cssCache był kluczowany querystringiem anonimowego klienta bez żadnego limitu —
+  // każdy unikalny zestaw rodzin to nowy wpis w pamięci API na 24 h. Limit liczby wpisów i bajtów jak przy plikach.
+  static readonly MAX_CSS_ENTRIES = 300;
+  static readonly MAX_CSS_BYTES = 8 * 1024 * 1024;
+  private static readonly MAX_QUERY = 1024;
   private static readonly MAX_FILE_BYTES = 2 * 1024 * 1024; // 2 MB / plik
   // Realistyczny UA — Google zwraca WOFF2 tylko nowoczesnym przeglądarkom.
   private static readonly UA =
@@ -69,7 +74,7 @@ export class FontsProxyService {
       return `${this.base()}/fonts/file?u=${encodeURIComponent(m)}`;
     });
 
-    this.cssCache.set(q, { body: rewritten, at: Date.now() });
+    this.rememberCss(q, rewritten);
     return rewritten;
   }
 
@@ -108,6 +113,28 @@ export class FontsProxyService {
 
   // -------------------------------------------------------------------------
 
+  /** Liczba wpisów i łączny rozmiar CSS w pamięci (do testów i diagnostyki). */
+  cssCacheStats(): { entries: number; bytes: number } {
+    let bytes = 0;
+    for (const v of this.cssCache.values()) bytes += v.body.length;
+    return { entries: this.cssCache.size, bytes };
+  }
+
+  private rememberCss(key: string, body: string): void {
+    const teraz = Date.now();
+    this.cssCache.delete(key);
+    // Najpierw wygasłe, potem najstarsze (Map trzyma kolejność wstawiania) — aż zmieści się nowy wpis.
+    for (const [k, v] of this.cssCache) if (teraz - v.at >= FontsProxyService.CSS_TTL_MS) this.cssCache.delete(k);
+    let bytes = body.length;
+    for (const v of this.cssCache.values()) bytes += v.body.length;
+    for (const [k, v] of this.cssCache) {
+      if (this.cssCache.size < FontsProxyService.MAX_CSS_ENTRIES && bytes <= FontsProxyService.MAX_CSS_BYTES) break;
+      this.cssCache.delete(k);
+      bytes -= v.body.length;
+    }
+    if (body.length <= FontsProxyService.MAX_CSS_BYTES) this.cssCache.set(key, { body, at: teraz });
+  }
+
   private rememberFile(key: string, val: { buf: Buffer; type: string; at: number }): void {
     // Prosty bound: gdy przekroczymy limit, usuwamy najstarszy wpis.
     if (this.fileCache.size >= FontsProxyService.MAX_FILES) {
@@ -138,7 +165,7 @@ export class FontsProxyService {
    */
   private sanitizeQuery(query: string): string {
     const q = (query ?? '').trim().replace(/^\?/, '');
-    if (!q || q.length > 2000) throw new BadRequestException('Nieprawidłowe zapytanie fontów.');
+    if (!q || q.length > FontsProxyService.MAX_QUERY) throw new BadRequestException('Nieprawidłowe zapytanie fontów.');
     if (!/^[A-Za-z0-9:;@,.+_%&=~ -]+$/.test(q)) {
       throw new BadRequestException('Nieprawidłowe znaki w zapytaniu fontów.');
     }
