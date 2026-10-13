@@ -667,16 +667,45 @@ export class NodeTasksService {
     return { ok: true as const };
   }
 
+  /**
+   * Audyt bezpieczeństwa 13.10: kolejka węzła była czystym FIFO — jedno konto, które zleciło dziesiątki zadań
+   * (skan, statystyki, kopie), opóźniało o kilkadziesiąt minut zadania innych klientów i operatora (jeden lease
+   * na minutę). Kolejność teraz:
+   *  1. zadania operatora i całego węzła (bez konta albo zlecone przez ADMIN/STAFF) — najstarsze,
+   *  2. wśród zadań klientów — najstarsze zadanie konta obsłużonego najdawniej (round-robin po koncie).
+   */
+  private async wybierzSprawiedliwie(serverId: string) {
+    const kandydaci = await this.prisma.nodeTask.findMany({
+      where: { serverId, status: NodeTaskStatus.QUEUED },
+      orderBy: { createdAt: 'asc' },
+      take: 200,
+      include: { requestedBy: { select: { role: true } } },
+    });
+    if (!kandydaci.length) return null;
+    const operatora = kandydaci.find((t) => !t.accountId || t.requestedBy?.role === 'ADMIN' || t.requestedBy?.role === 'STAFF');
+    if (operatora) return operatora;
+
+    const konta = [...new Set(kandydaci.map((t) => t.accountId as string))];
+    if (konta.length === 1) return kandydaci[0];
+    const obsluzone = await this.prisma.nodeTask.groupBy({
+      by: ['accountId'],
+      where: { serverId, accountId: { in: konta }, startedAt: { not: null } },
+      _max: { startedAt: true },
+    });
+    const ostatnio = new Map(obsluzone.map((g) => [g.accountId, g._max.startedAt?.getTime() ?? 0]));
+    let wybrane = kandydaci[0];
+    for (const t of kandydaci) {
+      const a = ostatnio.get(t.accountId) ?? 0;
+      const b = ostatnio.get(wybrane.accountId) ?? 0;
+      if (a < b) wybrane = t; // kandydaci są posortowani po createdAt, więc w ramach konta zostaje najstarsze
+    }
+    return wybrane;
+  }
+
   async leaseTaskForNode(serverId: string) {
     await this.reclaimStaleRunningTasks(serverId);
 
-    const task = await this.prisma.nodeTask.findFirst({
-      where: {
-        serverId,
-        status: NodeTaskStatus.QUEUED,
-      },
-      orderBy: { createdAt: 'asc' },
-    });
+    const task = await this.wybierzSprawiedliwie(serverId);
     if (!task) return null;
 
     const claimed = await this.prisma.nodeTask.updateMany({
