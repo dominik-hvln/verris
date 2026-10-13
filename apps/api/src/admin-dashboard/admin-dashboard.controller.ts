@@ -21,7 +21,7 @@ export class AdminDashboardController {
 
   @Get('overview')
   async overview(@CurrentUser() op: { userId: string; principalUserId?: string; role: string }) {
-    return this.dashboard.overview({ metryki: await this.dashboard.widziMetryki(op) });
+    return this.dashboard.overview(await this.dashboard.zakres(op));
   }
 
   /** PB-34 — liczniki w menu panelu admina (lekkie, na każdą nawigację). */

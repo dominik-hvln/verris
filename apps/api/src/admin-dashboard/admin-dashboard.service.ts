@@ -34,16 +34,25 @@ export class AdminDashboardService {
 
   /** Weryfikacja 11.10 — metryki biznesowe (przychody, portfel, liczba klientów) widzi ADMIN i STAFF z METRICS_VIEW. */
   async widziMetryki(op: { userId: string; principalUserId?: string; role: string }): Promise<boolean> {
-    if (op.role === 'ADMIN') return true;
-    if (op.role !== 'STAFF') return false;
-    return (await uprawnieniaOperatora(this.prisma, op.principalUserId ?? op.userId)).includes('METRICS_VIEW');
+    return (await this.zakres(op)).metryki;
+  }
+
+  /**
+   * Audyt 13.10 — pulpit (DASHBOARD_VIEW) zwracał dane osobowe klientów i tematy zgłoszeń każdemu operatorowi,
+   * także bez CUSTOMERS_VIEW / TICKETS_VIEW (np. rola Marketing). Zakres pulpitu = uprawnienia operatora.
+   */
+  async zakres(op: { userId: string; principalUserId?: string; role: string }): Promise<{ metryki: boolean; klienci: boolean; zgloszenia: boolean }> {
+    if (op.role === 'ADMIN') return { metryki: true, klienci: true, zgloszenia: true };
+    if (op.role !== 'STAFF') return { metryki: false, klienci: false, zgloszenia: false };
+    const u = await uprawnieniaOperatora(this.prisma, op.principalUserId ?? op.userId);
+    return { metryki: u.includes('METRICS_VIEW'), klienci: u.includes('CUSTOMERS_VIEW'), zgloszenia: u.includes('TICKETS_VIEW') };
   }
 
   /**
    * `metryki: false` — bez przychodów, sum portfela i liczby klientów (pola null): pulpit operatora z samym
    * DASHBOARD_VIEW (np. L1) pokazuje stan platformy, ale nie metryki biznesowe (decyzja 11.10).
    */
-  async overview({ metryki = true }: { metryki?: boolean } = {}) {
+  async overview({ metryki = true, klienci = true, zgloszenia = true }: { metryki?: boolean; klienci?: boolean; zgloszenia?: boolean } = {}) {
     const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     const [
@@ -146,7 +155,7 @@ export class AdminDashboardService {
       totalCpuCores: s.totalCpuCores,
     }));
 
-    const stan = await this.stanPlatformy();
+    const stan = await this.stanPlatformy({ klienci, zgloszenia });
 
     return {
       ...stan,
@@ -180,7 +189,8 @@ export class AdminDashboardService {
           }
         : null,
       serverRows,
-      recentSubscriptions,
+      // Bez CUSTOMERS_VIEW — bez danych osobowych klienta.
+      recentSubscriptions: klienci ? recentSubscriptions : recentSubscriptions.map((r) => ({ ...r, user: null })),
     };
   }
 
@@ -217,7 +227,7 @@ export class AdminDashboardService {
   }
 
   /** PB-34 — dane pulpitu „Stan platformy” (makieta Main.dc.html). */
-  private async stanPlatformy() {
+  private async stanPlatformy({ klienci: widziKlientow, zgloszenia: widziZgloszenia }: { klienci: boolean; zgloszenia: boolean }) {
     const teraz = Date.now();
     const od7 = polnocPl(6);
     const od30 = new Date(teraz - 30 * DZIEN);
@@ -315,18 +325,21 @@ export class AdminDashboardService {
 
     // --- Wymaga uwagi (najpilniejsze na górze)
     const uwaga: SprawaUwagi[] = [...uwagaWezlow(wezly, teraz)];
-    for (const t of poTerminieLista) {
+    // Bez TICKETS_VIEW — tylko licznik zgłoszeń po terminie (bez tematu, klienta i ID); bez CUSTOMERS_VIEW — bez klienta.
+    for (const t of widziZgloszenia ? poTerminieLista : []) {
       const po = Math.max(1, Math.floor((teraz - (t.slaResponseDueAt?.getTime() ?? teraz)) / 60_000));
-      const klient = t.user.companyName?.trim() || kto(t.user);
+      const klient = widziKlientow ? t.user.companyName?.trim() || kto(t.user) : null;
       uwaga.push({
         waga: 'crit',
         tytul: `Zgłoszenie #${t.id.slice(0, 8)} po terminie pierwszej odpowiedzi`,
-        opis: `„${t.subject}” · ${klient} · ${czasTrwania(po)} po terminie`,
+        opis: [`„${t.subject}”`, klient, `${czasTrwania(po)} po terminie`].filter(Boolean).join(' · '),
         akcja: 'Otwórz',
         href: `/tickets/${t.id}`,
       });
     }
-    if (zgl.poTerminie > poTerminieLista.length) {
+    if (!widziZgloszenia && zgl.poTerminie > 0) {
+      uwaga.push({ waga: 'crit', tytul: `${zgl.poTerminie} zgłoszeń po terminie SLA`, opis: 'obsługuje je zespół zgłoszeń', akcja: '', href: '' });
+    } else if (zgl.poTerminie > poTerminieLista.length) {
       uwaga.push({
         waga: 'crit',
         tytul: `Jeszcze ${zgl.poTerminie - poTerminieLista.length} zgłoszeń po terminie SLA`,
@@ -447,7 +460,7 @@ export class AdminDashboardService {
     const zdarzeniaOut = zdarzenia.map((z) => {
       const d = (z.details ?? {}) as { serverId?: string };
       const aktor = z.actorUserId ? aktorzy.get(z.actorUserId) : null;
-      const klient = z.user ? z.user.companyName?.trim() || kto(z.user) : null;
+      const klient = z.user && widziKlientow ? z.user.companyName?.trim() || kto(z.user) : null;
       const wezel = d.serverId ? wezlyWg.get(d.serverId) ?? null : null;
       return {
         id: z.id,
@@ -455,7 +468,7 @@ export class AdminDashboardService {
         tekst: ZDARZENIA[z.action] ?? z.action,
         kto: aktor && aktor.id !== z.user?.id ? `${aktor.firstName || kto(aktor)} (${aktor.role === 'ADMIN' ? 'admin' : 'obsługa'})` : null,
         czego: wezel ?? klient,
-        href: wezel ? `/nodes/${d.serverId}` : z.user ? `/customers/${z.user.id}` : null,
+        href: wezel ? `/nodes/${d.serverId}` : z.user && widziKlientow ? `/customers/${z.user.id}` : null,
       };
     });
 
@@ -473,11 +486,11 @@ export class AdminDashboardService {
         provisioningStage: s.provisioningStage,
         interval: s.interval,
         plan: s.plan.name,
-        domena: s.account?.domain ?? null,
+        domena: widziKlientow ? s.account?.domain ?? null : null,
         wezel: s.account?.server ? nazwaWezla(s.account.server) : null,
         cenaIndywidualna: s.individualPrice?.toFixed(2) ?? null,
-        klient: s.user.companyName?.trim() || kto(s.user),
-        klientId: s.user.id,
+        klient: widziKlientow ? s.user.companyName?.trim() || kto(s.user) : null,
+        klientId: widziKlientow ? s.user.id : null,
       })),
     };
   }

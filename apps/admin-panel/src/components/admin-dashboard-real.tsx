@@ -191,12 +191,14 @@ export function AdminDashboardReal({ o, dostep }: { o: AdminDashboardOverview; d
                   <span className="font-semibold">{s.tytul}</span>
                   <span className="text-[13px] text-muted-foreground">{s.opis}</span>
                 </div>
-                <Link
-                  href={adres(s.href)}
-                  className="inline-flex h-[34px] shrink-0 items-center rounded-[9px] border border-line-strong px-3.5 text-sm font-semibold hover:border-primary"
-                >
-                  {s.akcja}
-                </Link>
+                {s.href ? (
+                  <Link
+                    href={adres(s.href)}
+                    className="inline-flex h-[34px] shrink-0 items-center rounded-[9px] border border-line-strong px-3.5 text-sm font-semibold hover:border-primary"
+                  >
+                    {s.akcja}
+                  </Link>
+                ) : null}
               </div>
             ))
           )}
@@ -288,10 +290,18 @@ export function AdminDashboardReal({ o, dostep }: { o: AdminDashboardOverview; d
               ].filter(Boolean);
               return (
                 <div key={s.id} className="flex items-center gap-3.5 border-t border-line px-[18px] py-[13px]">
-                  <Link href={`/customers/${s.klientId}`} className="flex min-w-0 flex-1 flex-col hover:underline">
-                    <span className="truncate text-sm font-semibold">{domenaDoWyswietlenia(s.domena) ?? s.klient}</span>
-                    <span className="truncate text-[12.5px] text-muted-foreground">{opis.join(" · ")}</span>
-                  </Link>
+                  {s.klientId ? (
+                    <Link href={`/customers/${s.klientId}`} className="flex min-w-0 flex-1 flex-col hover:underline">
+                      <span className="truncate text-sm font-semibold">{domenaDoWyswietlenia(s.domena) ?? s.klient}</span>
+                      <span className="truncate text-[12.5px] text-muted-foreground">{opis.join(" · ")}</span>
+                    </Link>
+                  ) : (
+                    // Operator bez CUSTOMERS_VIEW — usługa bez klienta i domeny (audyt 13.10).
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate text-sm font-semibold">Nowa usługa</span>
+                      <span className="truncate text-[12.5px] text-muted-foreground">{opis.join(" · ")}</span>
+                    </div>
+                  )}
                   <Pigulka ton={st.ton} className="!text-xs">
                     {st.t}
                   </Pigulka>

@@ -35,11 +35,13 @@ export type AdminDashboardOverview = StanPlatformy & {
     currency: string;
     interval: string;
     plan: { name: string; slug: string };
-    user: { email: string; firstName: string | null; lastName: string | null };
+    /** null — operator bez CUSTOMERS_VIEW (audyt 13.10). */
+    user: { email: string; firstName: string | null; lastName: string | null } | null;
   }>;
 };
 
 /** PB-34 — sprawa na karcie „Wymaga uwagi”. */
+/** `href` pusty — sprawa bez przejścia (np. licznik zgłoszeń dla operatora bez TICKETS_VIEW). */
 export type SprawaUwagi = { waga: "crit" | "warn"; tytul: string; opis: string; akcja: string; href: string };
 
 /** PB-34 — „Stan platformy” (makieta Main.dc.html). */
@@ -75,8 +77,9 @@ export type StanPlatformy = {
     domena: string | null;
     wezel: string | null;
     cenaIndywidualna: string | null;
-    klient: string;
-    klientId: string;
+    /** null — operator bez CUSTOMERS_VIEW (audyt 13.10). */
+    klient: string | null;
+    klientId: string | null;
   }>;
 };
 
