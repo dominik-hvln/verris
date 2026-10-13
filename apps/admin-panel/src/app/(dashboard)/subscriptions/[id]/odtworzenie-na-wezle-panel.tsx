@@ -8,7 +8,9 @@ import { listaNaWezleAction, odtworzNaWezleAction, stanNaWezleAction, type StanN
 const STATUS: Record<string, string> = { QUEUED: 'w kolejce', RUNNING: 'w toku', COMPLETED: 'gotowe', FAILED: 'nieudane', CANCELLED: 'anulowane' };
 const POLE = 'rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white';
 const PRZYCISK = 'rounded-lg border border-white/15 px-3 py-2 text-sm text-white hover:bg-white/5 disabled:opacity-50';
-const rozmiar = (b: number | null) => (b === null ? '' : ` · ${(b / 1024 / 1024).toFixed(0)} MB`);
+// Kopie małych kont mają dziesiątki KB — „0 MB” wyglądało jak pusty plik (13.10, pb55: 46 KB).
+const rozmiar = (b: number | null) =>
+  b === null ? '' : b < 1024 * 1024 ? ` · ${Math.max(1, Math.round(b / 1024))} KB` : ` · ${(b / 1024 / 1024).toFixed(0)} MB`;
 
 /**
  * H-16 — konto z utraconego (lub niedostępnego) węzła odtwarzane z kopii off-site na innym węźle.

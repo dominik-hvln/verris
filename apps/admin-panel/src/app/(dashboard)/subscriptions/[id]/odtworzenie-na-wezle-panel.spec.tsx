@@ -59,6 +59,8 @@ describe("Odtworzenie na innym węźle — wynik listy kopii", () => {
     await render();
     expect(k.textContent).not.toContain("Brak kopii");
     expect(k.textContent).toContain("Odtwórz na węźle");
+    expect(k.textContent).toContain("46 KB");
+    expect(k.textContent).not.toContain("0 MB");
   });
 
   it("lista w toku → jeszcze bez komunikatu", async () => {

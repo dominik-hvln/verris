@@ -34,8 +34,13 @@ fail() { log "[FAIL] $*"; exit 1; }
 BACKUP_PREFIX="${BACKUP_PREFIX:-nodes/$(hostname -s)}"
 command -v rclone >/dev/null 2>&1 || fail "rclone nie zainstalowany"
 
-DA_BIN=/usr/local/directadmin/directadmin
-DA_TASKQ=/usr/local/directadmin/data/task.queue
+# VERRIS_DA_DIR / VERRIS_HOME podmieniane wyłącznie w testach (test/odtworzenie-na-wezle-skrypt.spec.ts).
+DA_DIR="${VERRIS_DA_DIR:-/usr/local/directadmin}"
+HOME_DIR="${VERRIS_HOME:-/home}"
+DA_BIN="$DA_DIR/directadmin"
+DA_TASKQ="$DA_DIR/data/task.queue"
+# set -e kończył skrypt bez słowa (13.10, H-16 na t2: rc=2, pusty log) — każde nieobsłużone polecenie zostawia ślad.
+trap 'log "[FAIL] nieoczekiwany błąd (kod $?) w linii $LINENO: $BASH_COMMAND"' ERR
 
 # Ścieżka off-site do backupów usera (bieżące lub z wersji dnia).
 remote_path() {
@@ -83,10 +88,10 @@ cmd_fetch() {
   [ -n "$user" ] && [ -n "$archive" ] || fail "użycie: fetch <user> <archiwum> [YYYYMMDD]"
   local src dst
   src="$(remote_path "$user" "$snap")${archive}"
-  dst="/home/${user}/backups/"
+  dst="${HOME_DIR}/${user}/backups/"
   # Katalog należy do klienta: dowiązanie symboliczne zamiast niego (albo zamiast pliku) skierowałoby
   # zapis roota w dowolne miejsce systemu — odmawiamy, a chown nie idzie za dowiązaniem (-h).
-  [ -d "$dst" ] && [ ! -L "/home/${user}/backups" ] || fail "brak katalogu ${dst} (konto istnieje na tym węźle?)"
+  [ -d "$dst" ] && [ ! -L "${HOME_DIR}/${user}/backups" ] || fail "brak katalogu ${dst} (konto istnieje na tym węźle?)"
   [ ! -L "${dst}${archive}" ] || fail "${dst}${archive} jest dowiązaniem symbolicznym — odmowa"
   log "pobieram ${src} -> ${dst}"
   rclone copyto "$src" "${dst}${archive}" --retries 3 --low-level-retries 10 || fail "rclone copy nieudany"
@@ -104,8 +109,8 @@ cmd_restore() {
   # (assuming his account doesn't exist yet), then you'd set ip_choice=select&ip=1.2.3.4”.
   local ipchoice="ip_choice=file"
   if [ -n "$ip" ]; then
-    [ ! -e "/usr/local/directadmin/data/users/${user}" ] || fail "konto ${user} już istnieje na tym węźle — odtworzenie na inny węzeł nie nadpisuje istniejących kont"
-    [ -e "/usr/local/directadmin/data/admin/ips/${ip}" ] || grep -qxF "$ip" /usr/local/directadmin/data/admin/ip.list 2>/dev/null \
+    [ ! -e "$DA_DIR/data/users/${user}" ] || fail "konto ${user} już istnieje na tym węźle — odtworzenie na inny węzeł nie nadpisuje istniejących kont"
+    [ -e "$DA_DIR/data/admin/ips/${ip}" ] || grep -qxF "$ip" "$DA_DIR/data/admin/ip.list" 2>/dev/null \
       || fail "IP ${ip} nie jest skonfigurowane w DirectAdmin tego węzła"
     ipchoice="ip_choice=select&ip=${ip}"
   fi
@@ -114,23 +119,27 @@ cmd_restore() {
   #   &select0=user.admin.testuser.tar.gz&type=admin&value=multiple&when=now&where=local
   # owner = administrator, który utworzył konto (creator w user.conf). Archiwum trafia do katalogu
   # administratora, nie do katalogu klienta — tam klient mógłby je podmienić przed przetworzeniem.
-  local owner dst
-  owner="$(sed -n 's/^creator=//p' "/usr/local/directadmin/data/users/${user}/user.conf" 2>/dev/null | head -1)"
+  # 13.10 (H-16 na t2): przy odtworzeniu na inny węzeł konta jeszcze nie ma — sed na brakującym user.conf kończył się
+  # kodem 2, a pipefail + set -e zabijały skrypt po cichu (rc=2, pusty log). user.conf czytamy tylko, gdy istnieje.
+  local owner="" dst
+  if [ -f "$DA_DIR/data/users/${user}/user.conf" ]; then
+    owner="$(sed -n 's/^creator=//p' "$DA_DIR/data/users/${user}/user.conf" | head -1)"
+  fi
   [[ "$owner" =~ ^[a-z][a-z0-9]{0,15}$ ]] || owner=admin
-  dst="/home/${owner}/admin_backups/"
+  dst="${HOME_DIR}/${owner}/admin_backups/"
   [ -d "$dst" ] || fail "brak katalogu ${dst}"
   log "pobieram $(remote_path "$user" "$snap")${archive} -> ${dst}"
   rclone copyto "$(remote_path "$user" "$snap")${archive}" "${dst}${archive}" --retries 3 --low-level-retries 10 || fail "rclone copy nieudany"
   chown -h "${owner}:${owner}" "${dst}${archive}" 2>/dev/null || true
   log "zlecam DirectAdmin restore ${archive} dla ${user} (owner=${owner})"
   printf 'action=restore&%s&local_path=%s&owner=%s&select0=%s&type=admin&value=multiple&when=now&where=local\n' \
-    "$ipchoice" "/home/${owner}/admin_backups" "$owner" "$archive" >> "$DA_TASKQ"
+    "$ipchoice" "${HOME_DIR}/${owner}/admin_backups" "$owner" "$archive" >> "$DA_TASKQ"
   log "✅ Zlecono restore (task.queue). Zweryfikuj w DA → Admin Backup/Transfer."
   [ -n "$ip" ] || return 0
   # Na nowym węźle czekamy, aż DA (dataskq) założy konto — dopiero wtedy panel przepina je na ten węzeł.
   local i
   for i in $(seq 1 "${OFR_WAIT_TRIES:-120}"); do
-    if [ -f "/usr/local/directadmin/data/users/${user}/user.conf" ]; then
+    if [ -f "$DA_DIR/data/users/${user}/user.conf" ]; then
       printf 'VERRIS-OFFSITE-RESTORED %s\n' "$user"
       return 0
     fi
