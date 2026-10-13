@@ -5,7 +5,7 @@ import { EmailMarketingService } from './email-marketing.service.js';
  * Audyt 13.10 (sendConfirmationEmail:outside-send-quota-and-cordon) — maile potwierdzające zapis (double opt-in)
  * szły na adresy podane przez klienta z pominięciem kordonu i liczników CYBER-3: import 5000 adresów = 5000 maili.
  */
-function stanowisko(o: { kordon?: boolean; progPo?: number; limit?: number; kampanie?: number; potwierdzenia?: number } = {}) {
+function stanowisko(o: { kordon?: boolean; progPo?: number; limit?: number; kampanie?: number; potwierdzenia?: number; istniejace?: string[] } = {}) {
   let wyslane = 0;
   const prisma = {
     subscription: {
@@ -16,7 +16,8 @@ function stanowisko(o: { kordon?: boolean; progPo?: number; limit?: number; kamp
     emmList: { findUnique: vi.fn(async () => ({ id: 'l1', subscriptionId: 's1', userId: 'u1', name: 'Klienci', doubleOptIn: true })) },
     emmContact: {
       count: vi.fn(async () => 0),
-      findFirst: vi.fn(async () => null),
+      findFirst: vi.fn(async ({ where }: { where: { email: string } }) => ((o.istniejace ?? []).includes(where.email) ? { id: 'jest' } : null)),
+      findMany: vi.fn(async ({ where }: { where: { email: { in: string[] } } }) => (o.istniejace ?? []).filter((e) => where.email.in.includes(e)).map((email) => ({ email }))),
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({ id: `k-${String(data.email)}`, ...data })),
     },
   };
@@ -82,5 +83,11 @@ describe('E-mail marketing — potwierdzenia zapisu pod kordonem i licznikami CY
     const s = stanowisko({ limit: 7, kampanie: 4, potwierdzenia: 3 });
     await expect(s.svc.addContact('u1', 's1', 'l1', { email: 'x@example.com' } as never)).rejects.toThrow('Miesięczny limit');
     expect(s.prisma.emmContact.create).not.toHaveBeenCalled();
+  });
+
+  it('ponowny import: limit liczy tylko nowe adresy (istniejące nie dostają maila)', async () => {
+    const s = stanowisko({ limit: 10, kampanie: 4, potwierdzenia: 4, istniejace: ['osoba0@example.com', 'osoba1@example.com', 'osoba2@example.com'] });
+    await s.svc.importContacts('u1', 's1', 'l1', { consentConfirmed: true, rows: wiersze(5) } as never);
+    expect(s.mailer.send).toHaveBeenCalledTimes(2);
   });
 });

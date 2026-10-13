@@ -355,6 +355,8 @@ export class DirectAdminService {
     const baza = nowe[0].split('.').slice(1).join('.');
     if (!baza.includes('.')) return 0;
     const domeny = await this.listHostingDomainsForSubscription(subscriptionId, userId);
+    // Lista domen z błędem DA to nie „nic do zmiany” — konto liczy się jako błąd (przegląd paczki 42).
+    if (domeny.fetchError) throw new BadRequestException(`Domeny konta: ${domeny.fetchError}`);
     let zmienione = 0;
     for (const d of domeny.domains) {
       const strefa = await this.listHostingDnsRecords(subscriptionId, userId, d.name, domeny);

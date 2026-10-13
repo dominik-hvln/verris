@@ -60,7 +60,8 @@ export class LeadsService {
     // Audyt bezpieczeństwa 13.10: najwyżej jeden mail do nadawcy na adres na dobę (potwierdzenie albo opt-in).
     // Kolejne zgłoszenia zapisujemy i zgłaszamy obsłudze, ale nie wysyłamy nic na niezweryfikowany adres.
     const ostatni = await this.prisma.siteLead.findFirst({
-      where: { email, createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+      // Ten sam rodzaj formularza — kontakt nie blokuje opt-inu migracji (przegląd paczki 42).
+      where: { email, kind, createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
       select: { id: true },
     });
 

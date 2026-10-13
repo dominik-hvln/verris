@@ -429,7 +429,11 @@ export class EmailMarketingService {
     const doubleOptIn = list.doubleOptIn !== false;
     if (doubleOptIn) await this.wymagajTransportu(userId, subscriptionId, 'import kontaktów (double opt-in)');
     if (doubleOptIn) await this.outbound.assertNotCordoned(userId);
-    if (doubleOptIn) await this.wymagajLimituPotwierdzen(ws, incoming.length);
+    if (doubleOptIn) {
+      // Potwierdzenie dostaną tylko nowe adresy — ponowny import pełnej listy nie może blokować kilku nowych.
+      const juz = await this.contacts.findMany({ where: { listId, email: { in: incoming.map((r) => r.email) } }, select: { email: true } });
+      await this.wymagajLimituPotwierdzen(ws, incoming.length - juz.length);
+    }
     let added = 0;
     let skipped = 0;
     let wstrzymano = false;

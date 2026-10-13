@@ -671,8 +671,9 @@ export class NodeTasksService {
    * Audyt bezpieczeństwa 13.10: kolejka węzła była czystym FIFO — jedno konto, które zleciło dziesiątki zadań
    * (skan, statystyki, kopie), opóźniało o kilkadziesiąt minut zadania innych klientów i operatora (jeden lease
    * na minutę). Kolejność teraz:
-   *  1. zadania operatora i całego węzła (bez konta albo zlecone przez ADMIN/STAFF) — najstarsze,
-   *  2. wśród zadań klientów — najstarsze zadanie konta obsłużonego najdawniej (round-robin po koncie).
+   *  1. zadania całego węzła (bez konta) — najstarsze,
+   *  2. konto, dla którego obsługa zleciła zadanie — jego najstarsze zadanie (kolejność w koncie zachowana),
+   *  3. wśród pozostałych — najstarsze zadanie konta obsłużonego najdawniej (round-robin po koncie).
    */
   private async wybierzSprawiedliwie(serverId: string) {
     const kandydaci = await this.prisma.nodeTask.findMany({
@@ -682,11 +683,16 @@ export class NodeTasksService {
       include: { requestedBy: { select: { role: true } } },
     });
     if (!kandydaci.length) return null;
-    const operatora = kandydaci.find((t) => !t.accountId || t.requestedBy?.role === 'ADMIN' || t.requestedBy?.role === 'STAFF');
-    if (operatora) return operatora;
+    // Zadania całego węzła (bez konta) — najpierw. Zadania kont, także zlecone przez obsługę, zostają w kolejności
+    // swojego konta (przegląd paczki 42: kopia operatora nie może wyprzedzić starszej zmiany klienta tego konta).
+    const wezla = kandydaci.find((t) => !t.accountId);
+    if (wezla) return wezla;
 
     const konta = [...new Set(kandydaci.map((t) => t.accountId as string))];
     if (konta.length === 1) return kandydaci[0];
+    // Konto z zadaniem zleconym przez obsługę ma pierwszeństwo przed innymi kontami (bez łamania kolejności w koncie).
+    const kontoOperatora = kandydaci.find((t) => t.requestedBy?.role === 'ADMIN' || t.requestedBy?.role === 'STAFF')?.accountId;
+    if (kontoOperatora) return kandydaci.find((t) => t.accountId === kontoOperatora)!;
     const obsluzone = await this.prisma.nodeTask.groupBy({
       by: ['accountId'],
       where: { serverId, accountId: { in: konta }, startedAt: { not: null } },

@@ -136,8 +136,12 @@ TO_STAGING)
     # założony przed tą poprawką.
     # Przegląd 13.10: ustawiamy ZAWSZE, nie tylko gdy stała już jest — wp-config stagingu powstaje raz (kopia z LIVE)
     # i nie jest nadpisywany, więc Redis włączony na LIVE później zostawiał staging bez własnej przestrzeni kluczy.
+    # Bez standardowej kotwicy („That's all, stop editing!”) wp-cli nie dopisze nowej stałej — wtedy zaraz po <?php
+    # (https://developer.wordpress.org/cli/commands/config/set/ — --anchor, --placement).
     for c in WP_REDIS_PREFIX WP_CACHE_KEY_SALT; do
-      wp_in "$STG" "config set $c '${STAGING_HOST}:'" >/dev/null || die "Nie udało się ustawić $c stagingu."
+      wp_in "$STG" "config set $c '${STAGING_HOST}:'" >/dev/null 2>&1 \
+        || wp_in "$STG" "config set $c '${STAGING_HOST}:' --anchor='<?php' --placement=after" >/dev/null \
+        || die "Nie udało się ustawić $c stagingu."
     done
     # Adres zapisany w wp-config (WP_HOME / WP_SITEURL) search-replace nie obejmuje — jak w klonie strony.
     for c in WP_HOME WP_SITEURL; do

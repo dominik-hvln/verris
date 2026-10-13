@@ -52,4 +52,9 @@ describe('Kolejka zadań węzła — sprawiedliwe wydawanie', () => {
     const s = stanowisko([t('a2', 'A', 1), t('a1', 'A', 0)]);
     expect(await s.wybrane()).toBe('a1');
   });
+
+  it('zadanie obsługi dla konta nie wyprzedza starszego zadania klienta TEGO SAMEGO konta, ale konto idzie przed innymi', async () => {
+    const s = stanowisko([t('b1', 'B', 0), t('a1', 'A', 1), t('opA', 'A', 5, 'STAFF')]);
+    expect(await s.wybrane()).toBe('a1');
+  });
 });

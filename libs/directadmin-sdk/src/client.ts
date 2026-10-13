@@ -1037,6 +1037,12 @@ export class DirectAdminClient {
 
   async listAccounts(): Promise<string[]> {
     const response = await this.client.get('/CMD_API_SHOW_USERS');
+    // Przegląd 13.10: odpowiedź z błędem (error=1) albo strona HTML (sesja, logowanie) dawała pustą listę —
+    // sonda dostępu uznawała to za „OK”, a karta zgodności kont pokazywała wszystkie konta jako brakujące.
+    if (typeof response.data === 'string' && response.data.trim().startsWith('<')) {
+      throw new Error('DirectAdmin: CMD_API_SHOW_USERS odpowiedział stroną HTML zamiast listy kont');
+    }
+    this.parseDaResponseBody(response.data);
     const params = new URLSearchParams(response.data);
     const list: string[] = [];
     for (const [key, value] of params.entries()) {

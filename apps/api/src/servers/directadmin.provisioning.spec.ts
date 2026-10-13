@@ -181,7 +181,7 @@ describe('Markowe NS — przepisanie NS w istniejących strefach (H-16, t2 13.10
   function strefa(rekordy: Array<Omit<R, 'id' | 'ttl'>>, o: { nieZapisuj?: boolean } = {}) {
     const { svc } = serwis(WEZEL);
     let zona: R[] = rekordy.map((r, i) => ({ ...r, id: String(i), ttl: 3600 }));
-    vi.spyOn(svc, 'listHostingDomainsForSubscription').mockResolvedValue({ domains: [{ name: 'pb55.d3.hvln.pl' }], primaryDomain: 'pb55.d3.hvln.pl' } as never);
+    vi.spyOn(svc, 'listHostingDomainsForSubscription').mockResolvedValue({ domains: [{ name: 'pb55.d3.hvln.pl' }], primaryDomain: 'pb55.d3.hvln.pl', fetchError: null } as never);
     vi.spyOn(svc, 'listHostingDnsRecords').mockImplementation(async (_s, _u, domain) => ({ domain: domain ?? null, records: zona, fetchError: null }));
     const dodaj = vi.spyOn(svc, 'createHostingDnsRecord').mockImplementation(async (_s, _u, r) => {
       if (!o.nieZapisuj) zona = [...zona, { id: 'n', name: r.name, type: r.type, value: r.value, ttl: 3600 }];
@@ -218,6 +218,12 @@ describe('Markowe NS — przepisanie NS w istniejących strefach (H-16, t2 13.10
     await expect(t.svc.przepiszNsWStrefachKonta('s1', 'u1', 'ns3.verris.pl', 'ns4.verris.pl')).rejects.toThrow('stare zostawione');
     expect(t.usun).not.toHaveBeenCalled();
     expect(t.ns()).toEqual(['ns1.t2.verris.pl.']);
+  });
+
+  it('błąd listy domen konta → wyjątek (konto liczone jako błąd), nie „0 zmian”', async () => {
+    const t = strefa([]);
+    vi.spyOn(t.svc, 'listHostingDomainsForSubscription').mockResolvedValue({ domains: [], primaryDomain: null, daUsername: null, fetchError: 'Serwer chwilowo niedostępny' });
+    await expect(t.svc.przepiszNsWStrefachKonta('s1', 'u1', 'ns3.verris.pl', 'ns4.verris.pl')).rejects.toThrow('Domeny konta');
   });
 
   it('applyBrandedNameserversOnNode przepisuje strefy także, gdy NS konta były już ustawione', async () => {

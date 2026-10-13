@@ -1,3 +1,4 @@
+import { DirectAdminClient } from '@verris/directadmin-sdk';
 import { DirectAdminService } from './directadmin.service.js';
 import { ServersAdminController } from './servers.admin.controller.js';
 import { STAFF_PERMISSIONS_KEY } from '../common/decorators/staff-permissions.decorator.js';
@@ -34,5 +35,15 @@ describe('Zgodność kont węzła z panelem', () => {
 
   it('trasa tylko do odczytu z NODES_VIEW', () => {
     expect(Reflect.getMetadata(STAFF_PERMISSIONS_KEY, ServersAdminController.prototype.zgodnoscKont)).toEqual(['NODES_VIEW']);
+  });
+
+  // Przegląd paczki 42: błąd DA (error=1) albo strona HTML dawały pustą listę → fałszywe „brak w DirectAdmin”.
+  it.each([['error=1&text=Access%20denied'], ['<html><body>Login</body></html>']])('odpowiedź DA %s → wyjątek, nie pusta lista', async (body) => {
+    const prisma = { server: { findUnique: vi.fn(async () => ({ daUsername: 'admin' })) }, account: { findMany: vi.fn(async () => []) } };
+    const svc = new DirectAdminService(prisma as never, {} as never, {} as never, { record: vi.fn() } as never);
+    const klient = new DirectAdminClient({ host: 'da.test', port: 2222, username: 'admin', loginKey: 'x', secure: true });
+    Object.assign(klient, { client: { get: vi.fn(async () => ({ data: body })) } });
+    vi.spyOn(svc, 'getClientForServer').mockResolvedValue(klient);
+    await expect(svc.zgodnoscKontWezla('t1')).rejects.toThrow();
   });
 });

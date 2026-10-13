@@ -46,4 +46,10 @@ describe('Formularz leadów — nadużycia wysyłki', () => {
     expect(o).toMatchObject({ keyByBodyField: 'email' });
     expect(o.limit).toBeLessThanOrEqual(5);
   });
+
+  it('kontakt z tego dnia nie blokuje maila opt-in migracji (dedup tylko w ramach rodzaju formularza)', async () => {
+    const s = stanowisko(false);
+    await s.svc.submit({ kind: 'MIGRATION', email: 'ofiara@example.com', marketingConsent: true } as never, {});
+    expect(s.prisma.siteLead.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ kind: 'MIGRATION' }) }));
+  });
 });
