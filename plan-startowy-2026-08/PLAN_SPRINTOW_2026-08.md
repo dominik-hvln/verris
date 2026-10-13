@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2205 h** — przy 65 h tygodniowo około **8 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2165 h** — przy 65 h tygodniowo około **8 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1777 h) oraz roadmapę po starcie (428 h, 17 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (1777 h) oraz roadmapę po starcie (388 h, 16 pozycji) rozpisaną na epiki kwartalne.
 
 - **2026-11-13** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-08** — koniec sprintu 20, decyzja GO.
@@ -575,13 +575,13 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 # Po starcie — roadmapa kwartalna
 
-17 pozycji, 428 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
+16 pozycji, 388 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
 
 | ID | Epik | Priorytet | Kwartał | Pozycji | h | Dlaczego teraz, a nie wcześniej |
 |---|---|---|---|---|---|---|
 | `E-01` | Runtime, pliki i diagnostyka | WYSOKI | Q1 2027 | 1 | 16 | Najczęstsze źródło zgłoszeń w pierwszych miesiącach każdego hostingu. Logi WWW ma pięć z pięciu badanych hostingów PL — bez nich klient nie zdiagnozuje własnej strony i pisze do nas. |
 | `E-02` | Wydajność: cache i skalowanie | WYSOKI | Q1 2027 | 2 | 46 | Trzy z pięciu hostingów PL dają Redis w cenie. Przy pozycjonowaniu na WordPressa to nie dodatek, tylko oczekiwanie. |
-| `E-12` | Backup: granularność i retencja | WYSOKI | Q1 2027 | 1 | 40 | cyber_Folks daje 28 dni, seohost do 60. Nasze 30 dni jest w normie, ale granularność odtwarzania jest poniżej rynku. |
+| `E-12` | Backup: granularność i retencja | WYSOKI | Q1 2027 | 0 | 0 | cyber_Folks daje 28 dni, seohost do 60. Nasze 30 dni jest w normie, ale granularność odtwarzania jest poniżej rynku. |
 | `E-14` | Rozliczenia: dokończenie | WYSOKI | Q1 2027 | 0 | 0 | Z-07 z macierzy: klient płacący portfelem doładowuje saldo w karencji i i tak zostaje zawieszony. Pierwszy taki przypadek to stracony klient. |
 | `E-15` | Wsparcie i ops: kolejka abuse | WYSOKI | Q1 2027 | 2 | 46 | Sprint 13 daje możliwość zatrzymania szkody. Ten epik daje proces, który skaluje się dalej niż jedna osoba. |
 | `E-03` | WordPress Toolkit | WYSOKI | Q2 2027 | 0 | 0 | Cztery z pięciu hostingów PL mają automatyczne aktualizacje WordPressa. Staging już mamy i jest przewagą — reszta toolkitu ją domyka. |
@@ -607,7 +607,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - **E-09 Pokrycie testowe warstw krytycznych** (0 h) — Testy integracyjne API, moduł auth, klient KSeF, ścieżka backup/restore, DirectAdminService, panele frontowe.
 - **E-10 Poczta: filtry, kalendarz, limity** (16 h) — Reguły filtrowania Sieve, podgląd kolejki i logów dostarczania, limity wysyłki pokazane klientowi, kalendarz i kontakty, 2FA dla webmaila.
 - **E-11 DNS: DNSSEC i zarządzanie strefą** (40 h) — DNSSEC, zmiana TTL, Anycast DNS, pełne zarządzanie strefą po podpięciu edytora w sprincie 10.
-- **E-12 Backup: granularność i retencja** (40 h) — Odtworzenie pojedynczego pliku, podgląd zawartości archiwum przed odtworzeniem, pobranie kopii lokalnie, retencja 28+ dni w cenie.
+- **E-12 Backup: granularność i retencja** (0 h) — Odtworzenie pojedynczego pliku, podgląd zawartości archiwum przed odtworzeniem, pobranie kopii lokalnie, retencja 28+ dni w cenie.
 - **E-13 Automatyzacja: API zapisu i webhooki** (0 h) — Rozszerzenie publicznego API o operacje zapisu, webhooki dla klienta, edycja crona, cron z wyborem wersji PHP, podgląd wyniku wykonania.
 - **E-14 Rozliczenia: dokończenie** (0 h) — Ponowienie płatności portfelem w karencji, waluty obce z przeliczeniem VAT, proforma, dodanie karty niezależnie od zakupu, eksport CSV.
 - **E-15 Wsparcie i ops: kolejka abuse** (46 h) — Pełna kolejka obsługi nadużyć z encją zgłoszenia, terminami i śladem audytowym, ogłoszenia i okna serwisowe z panelu, feature flagi.
