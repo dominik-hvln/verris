@@ -18,7 +18,7 @@ jest.mock("@/components/wniosek-operacji", () => ({
   WyslijWniosek: (p: { typ: string; payload: Record<string, unknown> }) => <div data-wyslij-wniosek={p.typ}>{JSON.stringify(p.payload)}</div>,
 }));
 
-import { UslugiWezlaPanel } from "./uslugi-wezla-panel";
+import { UslugiWezlaPanel, isoZPola, opisFiltrow } from "./uslugi-wezla-panel";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -83,7 +83,7 @@ it("watchdog, stan usług i log z informacją o masce; usługa tylko do podgląd
   expect(q('[data-watchdog="alarm"]')!.textContent).toContain("Skrzynki IMAP/POP3 (Dovecot)");
   expect(q('[data-usluga="dovecot"]')!.textContent).toContain("padła");
   expect(q('[data-akcja="restart-sshd"]')).toBeNull();
-  expect(q('[data-log="exim-main"]')!.textContent).toContain("adresy e-mail zamaskowane");
+  expect(q('[data-log="exim-main"]')!.textContent).toContain("adresy e-mail i IP zamaskowane");
   expect(q("pre")!.textContent).toContain("•••@firma.pl");
 });
 
@@ -120,7 +120,36 @@ it("log: wybrany log, liczba linii w granicach 20–500, filtr", async () => {
   await wpisz(k.querySelector<HTMLInputElement>('input[aria-label="Ile ostatnich linii"]')!, "9999");
   await wpisz(k.querySelector<HTMLInputElement>('input[aria-label="Filtr logu"]')!, "1abc");
   await klik(q('[data-akcja="log"]')!);
-  expect(akcja).toHaveBeenLastCalledWith("w1", "log", { log: "system", linie: 500, filtr: "1abc" });
+  expect(akcja).toHaveBeenLastCalledWith("w1", "log", { log: "system", linie: 500, filtr: "1abc", domena: "", uzytkownik: "", od: undefined, do: undefined });
+});
+
+it("14.10 — filtry domeny, użytkownika i czasu idą do akcji (czas jako ISO UTC)", async () => {
+  await montuj(true);
+  await wpisz(k.querySelector<HTMLInputElement>('input[aria-label="Domena"]')!, " Firma.PL ");
+  await wpisz(k.querySelector<HTMLInputElement>('input[aria-label="Użytkownik"]')!, "klient1");
+  await klik(q('[data-akcja="log"]')!);
+  expect(akcja).toHaveBeenLastCalledWith("w1", "log", {
+    log: "system", linie: 200, filtr: "", domena: "firma.pl", uzytkownik: "klient1", od: undefined, do: undefined,
+  });
+  // Zakres czasu: PoleDaty (bez natywnego datetime-local) — wartość w jego formacie, do API jako ISO UTC.
+  expect(k.querySelector('[aria-label="Od (data i godzina)"]')).not.toBeNull();
+  expect(isoZPola("2026-10-14T00:00")).toBe(new Date("2026-10-14T00:00").toISOString());
+  expect(isoZPola("")).toBeUndefined();
+  expect(isoZPola("nie-data")).toBeUndefined();
+});
+
+it("14.10 — wynik z filtrami: opis, zakres przeszukanego okna; agent sprzed 14.10 — ostrzeżenie, że filtry nie zadziałały", async () => {
+  const log = {
+    ...STAN.log, klucz: "ssh", etykieta: "SSH — logowania (secure)", zrodlo: "/var/log/secure", domena: null, uzytkownik: "root",
+    od: "2026-10-14T00:00:00.000Z", do: null, zakres: { od: "2026-10-13T20:00:00.000Z", do: "2026-10-14T00:30:00.000Z" }, zastosowane: ["uzytkownik", "czas"],
+  };
+  akcja.mockResolvedValue({ ok: true, wynik: { ...STAN, log } });
+  await montuj(false);
+  expect(q('[data-log="ssh"]')!.textContent).toContain("użytkownik root");
+  expect(q("[data-zakres-okna]")!.textContent).toContain("Przeszukano wpisy od 22:00 13.10 do 02:30 14.10");
+  expect(q('[data-filtry="stary-agent"]')).toBeNull();
+  expect(opisFiltrow({ ...log, zastosowane: null }).ostrzezenie).toContain("NIE są nimi przefiltrowane");
+  expect(opisFiltrow({ ...log, uzytkownik: null, od: null, zastosowane: null }).ostrzezenie).toBeNull();
 });
 
 describe("poprawka 12.10 — świeży watchdog a migawka z „Sprawdź na serwerze”", () => {

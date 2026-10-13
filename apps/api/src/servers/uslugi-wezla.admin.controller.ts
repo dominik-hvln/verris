@@ -13,15 +13,19 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { IsIn, IsInt, IsISO8601, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { NodeTaskKind, NodeTaskStatus, Role } from '@verris/database';
 import {
   KLUCZE_LOGOW_WEZLA,
   KLUCZE_USLUG_WEZLA,
+  LOG_WEZLA_DOMENA,
   LOG_WEZLA_FILTR_MAX,
   LOG_WEZLA_LINIE_MAX,
   LOG_WEZLA_LINIE_MIN,
+  LOG_WEZLA_UZYTKOWNIK,
   logWezla,
+  logWymagaDomeny,
+  maskujDlaZespolu,
   uslugaWezla,
 } from '@verris/contracts';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -53,6 +57,42 @@ export class LogWezlaDto {
   @IsIn(KLUCZE_LOGOW_WEZLA) log!: string;
   @IsOptional() @Type(() => Number) @IsInt() @Min(LOG_WEZLA_LINIE_MIN) @Max(LOG_WEZLA_LINIE_MAX) linie?: number;
   @IsOptional() @IsString() @MaxLength(LOG_WEZLA_FILTR_MAX) filtr?: string;
+  @IsOptional() @IsString() @MaxLength(253) domena?: string;
+  @IsOptional() @IsString() @MaxLength(64) uzytkownik?: string;
+  @IsOptional() @IsISO8601({ strict: true }) od?: string;
+  @IsOptional() @IsISO8601({ strict: true }) do?: string;
+}
+
+/** Filtry logu poza tekstem (14.10): domena, użytkownik, zakres czasu. */
+export interface FiltryLogu {
+  domena?: string;
+  uzytkownik?: string;
+  od?: string;
+  do?: string;
+}
+
+/** Walidacja i normalizacja filtrów logu → pola zadania (since/until w sekundach epoki). */
+export function parametryFiltrow(l: { plik?: string }, f: FiltryLogu = {}): Record<string, string> {
+  const out: Record<string, string> = {};
+  const domena = (f.domena ?? '').trim().toLowerCase().replace(/\.$/, '');
+  if (domena && !LOG_WEZLA_DOMENA.test(domena)) throw new BadRequestException('Domena: sama nazwa, np. firma.pl (bez http:// i ścieżki).');
+  if (logWymagaDomeny(l) && !domena) throw new BadRequestException('Ten log dotyczy jednej strony — podaj domenę.');
+  if (domena) out.domain = domena;
+  const uz = (f.uzytkownik ?? '').trim();
+  if (uz && !LOG_WEZLA_UZYTKOWNIK.test(uz)) throw new BadRequestException('Użytkownik: litery, cyfry, „_”, „.”, „-” (bez spacji).');
+  if (uz) out.user = uz;
+  const sek = (iso: string | undefined, pole: string) => {
+    if (!iso) return null;
+    const t = Date.parse(iso);
+    if (Number.isNaN(t)) throw new BadRequestException(`Nieprawidłowa data (${pole}).`);
+    return Math.floor(t / 1000);
+  };
+  const od = sek(f.od, 'od');
+  const doo = sek(f.do, 'do');
+  if (od !== null && doo !== null && od > doo) throw new BadRequestException('Zakres czasu: „od” jest po „do”.');
+  if (od !== null) out.since = String(od);
+  if (doo !== null) out.until = String(doo);
+  return out;
 }
 
 interface Operator {
@@ -67,7 +107,8 @@ interface Operator {
  * Restart (D2): usługa pomocnicza (panel serwera, fail2ban) — NOC z powodem. Usługa wspólna (WWW, poczta, bazy, DNS,
  * FTP) — NOC tylko ją URUCHAMIA, gdy stoi (skrypt sprawdza stan na węźle w chwili wykonania); działającą restartuje
  * ADMIN (NODE_SERVICES_RESTART_SHARED, ADMIN_ONLY) z nazwą węzła jako potwierdzeniem, zespół — wnioskiem
- * NODE_SERVICE_RESTART. Logi poczty: adresy maskowane dla STAFF (na węźle i drugi raz przy odczycie).
+ * NODE_SERVICE_RESTART. Logi: adresy e-mail i IP maskowane dla STAFF (na węźle i drugi raz przy odczycie), filtry:
+ * tekst, domena (także log ruchu jednej strony), użytkownik, zakres czasu.
  */
 @Injectable()
 export class UslugiWezlaService {
@@ -181,19 +222,39 @@ export class UslugiWezlaService {
     return this.stan(serverId, op);
   }
 
-  async log(serverId: string, op: Operator, klucz: string, linie: number | undefined, filtr: string | undefined) {
+  async log(
+    serverId: string,
+    op: Operator,
+    klucz: string,
+    linie: number | undefined,
+    filtr: string | undefined,
+    filtry: FiltryLogu = {},
+  ) {
     const l = logWezla(klucz);
     if (!l) throw new BadRequestException('Log spoza listy.');
     const f = (filtr ?? '').trim();
     if (/[\x00-\x1f\x7f]/.test(f)) throw new BadRequestException('Filtr: sam tekst, bez znaków sterujących.');
+    const dodatkowe = parametryFiltrow(l, filtry);
     const n = linie ?? 200;
-    // Maska adresów dla STAFF ustawiana tutaj (nie z formularza): ADMIN dostaje log poczty bez maski.
+    // Maska adresów e-mail i IP dla STAFF (decyzja 14.10: we wszystkich logach) ustawiana tutaj, nie z formularza.
     const maska = op.role === 'ADMIN' ? '0' : '1';
-    const t = await this.zlec(serverId, op, 'log', { name: l.klucz, lines: String(n), ...(f ? { filter: f } : {}), mask: maska });
+    const t = await this.zlec(serverId, op, 'log', { name: l.klucz, lines: String(n), ...(f ? { filter: f } : {}), ...dodatkowe, mask: maska });
     await this.audit.record({
       action: SupportActions.NODE_LOG_VIEWED,
       actorUserId: op.userId,
-      details: { serverId, log: l.klucz, linie: n, filtr: f || null, maska: l.poczta ? maska === '1' : null, taskId: t.id },
+      details: {
+        serverId,
+        log: l.klucz,
+        linie: n,
+        // Dziennik audytu czyta też zespół — filtr ADMIN-a (np. pełny adres albo IP) zapisany z maską.
+        filtr: f ? maskujDlaZespolu(f) : null,
+        domena: dodatkowe.domain ?? null,
+        uzytkownik: dodatkowe.user ?? null,
+        od: dodatkowe.since ? new Date(Number(dodatkowe.since) * 1000).toISOString() : null,
+        do: dodatkowe.until ? new Date(Number(dodatkowe.until) * 1000).toISOString() : null,
+        maska: maska === '1',
+        taskId: t.id,
+      },
     });
     return this.stan(serverId, op);
   }
@@ -238,6 +299,6 @@ export class UslugiWezlaAdminController {
   @HttpCode(200)
   @RateLimit({ limit: 120, windowMs: 60 * 60 * 1000, scope: 'admin:wezel-logi' })
   log(@Param('id') id: string, @Body() b: LogWezlaDto, @CurrentUser() op: Operator) {
-    return this.uslugi.log(id, op, b.log, b.linie, b.filtr);
+    return this.uslugi.log(id, op, b.log, b.linie, b.filtr, { domena: b.domena, uzytkownik: b.uzytkownik, od: b.od, do: b.do });
   }
 }

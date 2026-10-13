@@ -69,19 +69,43 @@ describe('F3.4 — wynik zadania NODE_SERVICES', () => {
     }
   });
 
-  it('przegląd: filtr ADMIN-a z adresem w logu poczty — STAFF widzi go zamaskowanego, ADMIN w całości; log niepocztowy bez zmian', () => {
+  it('przegląd: filtr ADMIN-a z adresem albo IP — STAFF widzi go zamaskowanego (każdy log, decyzja 14.10), ADMIN w całości', () => {
     const log = 'VERRIS_LOG_ZRODLO exim-main|/var/log/exim/mainlog|1|1|0\nVERRIS_LOG <= jan@firma.pl';
     const zadania = [zad({ payload: { mode: 'log', name: 'exim-main', mask: '0', lines: '200', filter: 'jan@firma.pl' }, outputLog: log })];
     expect(stanUslug(zadania, false).log!.filtr).toBe('•••@firma.pl');
     expect(stanUslug(zadania, true).log!.filtr).toBe('jan@firma.pl');
-    const www = [zad({ payload: { mode: 'log', name: 'www', filter: 'wp@domena.pl' }, outputLog: 'VERRIS_LOG_ZRODLO www|/x|0|0|0' })];
-    expect(stanUslug(www, false).log!.filtr).toBe('wp@domena.pl');
+    const www = [zad({ payload: { mode: 'log', name: 'ssh', mask: '0', filter: '203.0.113.7' }, outputLog: 'VERRIS_LOG_ZRODLO ssh|/x|0|0|0' })];
+    expect(stanUslug(www, false).log!.filtr).toBe('203.0.113.•••');
+    expect(stanUslug(www, true).log!.filtr).toBe('203.0.113.7');
   });
 
-  it('log niepocztowy bez maski adresów także dla STAFF (np. log WWW)', () => {
-    const log = 'VERRIS_LOG_ZRODLO www|/usr/local/lsws/logs/error.log|1|1|0\nVERRIS_LOG [ERROR] wp@domena.pl';
-    const s = stanUslug([zad({ payload: { mode: 'log', name: 'www' }, outputLog: log })], false);
-    expect(s.log!.linie).toEqual(['[ERROR] wp@domena.pl']);
+  it('decyzja 14.10: STAFF ma zamaskowane adresy e-mail i IP w KAŻDYM logu, także zamówionym przez ADMIN-a bez maski', () => {
+    const log = 'VERRIS_LOG_ZRODLO ssh|/var/log/secure|1|1|0\nVERRIS_LOG Accepted password for root from 203.0.113.7 port 22 (wp@domena.pl)';
+    const z = [zad({ payload: { mode: 'log', name: 'ssh', mask: '0' }, outputLog: log })];
+    expect(stanUslug(z, false).log!.linie).toEqual(['Accepted password for root from 203.0.113.••• port 22 (•••@domena.pl)']);
+    expect(stanUslug(z, false).log!.maska).toBe(true);
+    expect(stanUslug(z, true).log!.linie).toEqual(['Accepted password for root from 203.0.113.7 port 22 (wp@domena.pl)']);
+  });
+
+  it('filtry domeny, użytkownika i czasu: zakres okna i zastosowane filtry z węzła; brak raportu = agent sprzed 14.10', () => {
+    const log = [
+      'VERRIS_LOG x',
+      'VERRIS_LOG_ZAKRES 1791936000|1791939600',
+      'VERRIS_LOG_FILTRY domena,uzytkownik,czas',
+      'VERRIS_LOG_ZRODLO www-domena|/var/log/httpd/domains/firma.pl.log|1|1|1',
+    ].join('\n');
+    const p = { mode: 'log', name: 'www-domena', domain: 'firma.pl', user: 'klient1', since: '1791936000', until: '1791939600' };
+    const s = stanUslug([zad({ payload: p, outputLog: log })], true).log!;
+    expect(s).toMatchObject({
+      domena: 'firma.pl',
+      uzytkownik: 'klient1',
+      od: '2026-10-14T00:00:00.000Z',
+      do: '2026-10-14T01:00:00.000Z',
+      zakres: { od: '2026-10-14T00:00:00.000Z', do: '2026-10-14T01:00:00.000Z' },
+      zastosowane: ['domena', 'uzytkownik', 'czas'],
+    });
+    const stary = stanUslug([zad({ payload: p, outputLog: 'VERRIS_LOG_ZRODLO www|/x|1|1|1\nVERRIS_LOG x' })], true).log!;
+    expect(stary.zastosowane).toBeNull();
   });
 
   it('stan: ostatni udany odczyt usług, ostatni restart z błędem skryptu, „w toku” per tryb', () => {
@@ -162,6 +186,42 @@ describe('F3.4 — UslugiWezlaService', () => {
     expect(a.utworzone[0].payload).toEqual({ mode: 'log', name: 'exim-main', lines: '50', mask: '0' });
     await expect(srodowisko().svc.log('w1', NOC, 'www', 100, 'a\nb')).rejects.toBeInstanceOf(BadRequestException);
     await expect(srodowisko().svc.log('w1', NOC, '/etc/shadow', 100, undefined)).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('14.10 — filtry domeny, użytkownika i czasu trafiają do zadania (czas w sekundach epoki); dziennik bez pełnych adresów', async () => {
+    const s = srodowisko();
+    await s.svc.log('w1', ADM, 'www-domena', 100, '203.0.113.7', {
+      domena: ' Firma.PL. ',
+      uzytkownik: 'klient1',
+      od: '2026-10-14T00:00:00.000Z',
+      do: '2026-10-14T01:00:00.000Z',
+    });
+    expect(s.utworzone[0].payload).toEqual({
+      mode: 'log',
+      name: 'www-domena',
+      lines: '100',
+      filter: '203.0.113.7',
+      domain: 'firma.pl',
+      user: 'klient1',
+      since: '1791936000',
+      until: '1791939600',
+      mask: '0',
+    });
+    expect(s.audyt[0]).toMatchObject({
+      details: { domena: 'firma.pl', uzytkownik: 'klient1', od: '2026-10-14T00:00:00.000Z', filtr: '203.0.113.•••', maska: false },
+    });
+  });
+
+  it.each([
+    ['www-domena', {}, /podaj domenę/],
+    ['www-domena', { domena: 'https://firma.pl/x' }, /Domena/],
+    ['ssh', { uzytkownik: 'jan kowalski' }, /Użytkownik/],
+    ['ssh', { uzytkownik: 'jan@firma.pl' }, /Użytkownik/],
+    ['ssh', { od: '2026-10-14T02:00:00Z', do: '2026-10-14T01:00:00Z' }, /„od” jest po „do”/],
+  ])('log %s z filtrami %j — odmowa przed zleceniem', async (log, filtry, blad) => {
+    const s = srodowisko();
+    await expect(s.svc.log('w1', NOC, log, 100, undefined, filtry)).rejects.toThrow(blad);
+    expect(s.utworzone).toEqual([]);
   });
 });
 

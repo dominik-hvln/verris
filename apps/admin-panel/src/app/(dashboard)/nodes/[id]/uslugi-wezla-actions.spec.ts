@@ -22,6 +22,7 @@ it("trasy: stan, sprawdź, restart, restart wspólnej z potwierdzeniem, log z fi
   await uslugiWezlaAction("w1", "restart-wspolnej", { usluga: "exim", powod: "kolejka stoi", potwierdzenie: " fra-01 " });
   await uslugiWezlaAction("w1", "log", { log: "exim-main", linie: 100, filtr: " 1abc " });
   await uslugiWezlaAction("w1", "log", { log: "www", linie: 200, filtr: "  " });
+  await uslugiWezlaAction("w1", "log", { log: "www-domena", linie: 50, domena: " firma.pl ", uzytkownik: "", od: "2026-10-14T00:00:00.000Z" });
   expect(api.mock.calls).toEqual([
     ["/admin/servers/w1/uslugi"],
     ["/admin/servers/w1/uslugi/sprawdz", { method: "POST", body: {} }],
@@ -29,6 +30,7 @@ it("trasy: stan, sprawdź, restart, restart wspólnej z potwierdzeniem, log z fi
     ["/admin/servers/w1/uslugi/restart-wspolnej", { method: "POST", body: { usluga: "exim", powod: "kolejka stoi", potwierdzenie: "fra-01" } }],
     ["/admin/servers/w1/uslugi/log", { method: "POST", body: { log: "exim-main", linie: 100, filtr: "1abc" } }],
     ["/admin/servers/w1/uslugi/log", { method: "POST", body: { log: "www", linie: 200 } }],
+    ["/admin/servers/w1/uslugi/log", { method: "POST", body: { log: "www-domena", linie: 50, domena: "firma.pl", od: "2026-10-14T00:00:00.000Z" } }],
   ]);
 });
 

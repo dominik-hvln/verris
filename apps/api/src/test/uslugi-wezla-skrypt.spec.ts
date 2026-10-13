@@ -2,7 +2,7 @@ import { spawnSync } from 'child_process';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
-import { LOGI_WEZLA, USLUGI_WEZLA, maskujAdresy, maskujSekrety } from '@verris/contracts';
+import { LOGI_WEZLA, USLUGI_WEZLA, maskujDlaZespolu, maskujSekrety } from '@verris/contracts';
 import { logZWyniku } from '../servers/uslugi-wezla.js';
 
 /**
@@ -125,8 +125,9 @@ describe('F3.4 — node-services.sh: biała lista zgodna z panelem', () => {
     s.plik('/var/log/exim/mainlog', `${linia}\n`);
     const r = s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'exim-main', SVC_MASK: '1' });
     expect(r.rc).toBe(0);
-    expect(r.log).toEqual([maskujAdresy(maskujSekrety(linia))]);
+    expect(r.log).toEqual([maskujDlaZespolu(maskujSekrety(linia))]);
     expect(r.log[0]).toContain('•••@firma.pl');
+    expect(r.log[0]).toContain('[203.0.113.•••]');
     expect(r.log[0]).not.toContain('tajne123');
   });
 });
@@ -203,7 +204,7 @@ describe('F3.4 — node-services.sh: logi', () => {
   it('ogon N linii pliku z białej listy', () => {
     const s = srodowisko();
     s.plik('/usr/local/lsws/logs/error.log', linie);
-    const r = s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'www', SVC_LINES: '20' });
+    const r = s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'www', SVC_LINES: '20', SVC_MASK: '0' });
     expect(r.rc).toBe(0);
     expect(r.log).toHaveLength(20);
     expect(r.log[19]).toContain('linia 299');
@@ -252,7 +253,7 @@ describe('F3.4 — node-services.sh: logi', () => {
 
   it('dziennik usługi: journalctl -u <jednostka usługi> z listą argumentów', () => {
     const s = srodowisko();
-    const r = s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'mariadb' });
+    const r = s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'mariadb', SVC_MASK: '0' });
     expect(r.rc).toBe(0);
     expect(r.log).toHaveLength(2);
     expect(r.out).toContain('VERRIS_LOG_ZRODLO mariadb|journal:mysqld.service|2|2|0');
@@ -263,7 +264,7 @@ describe('F3.4 — node-services.sh: logi', () => {
     const s = srodowisko();
     // 500 linii po ~390 znaków „€” (3 bajty) — ok. 585 kB w UTF-8, 195 000 znaków.
     s.plik('/usr/local/lsws/logs/error.log', Array.from({ length: 500 }, (_, i) => `${String(i).padStart(4, '0')} ${'€'.repeat(385)}`).join('\n') + '\n');
-    const r = s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'www', SVC_LINES: '500' });
+    const r = s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'www', SVC_LINES: '500', SVC_MASK: '0' });
     expect(r.rc).toBe(0);
     const wiersze = r.out.split('\n').filter((l) => l.startsWith('VERRIS_'));
     expect(Buffer.byteLength(wiersze.join('\n') + '\n')).toBeLessThanOrEqual(80000);
@@ -302,6 +303,101 @@ describe('F3.4 — node-services.sh: logi', () => {
   it('brak pliku logu albo dowiązanie zamiast pliku — błąd, nie pusta lista', () => {
     const s = srodowisko();
     const r = s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'fail2ban' });
+    expect(r.rc).not.toBe(0);
+    expect(r.err).toContain('tego logu nie ma na serwerze');
+  });
+});
+
+describe('14.10 — podgląd logów: SSH, FTP, panel serwera, ruch domeny; filtry domeny, użytkownika i czasu; maska IP', () => {
+  const secure = [
+    'Oct 14 00:10:00 t1 sshd[11]: Failed password for invalid user admin from 198.51.100.23 port 40000 ssh2',
+    'Oct 14 00:20:00 t1 sshd[12]: Accepted publickey for klient1 from 203.0.113.7 port 50000 ssh2',
+    'Oct 14 00:30:00 t1 sshd[13]: Accepted password for root from 2a01:4f8:c0c:12::1 port 22 ssh2',
+    'Oct 14 00:40:00 t1 sudo: klient10 : TTY=pts/0 ; COMMAND=/bin/ls',
+  ].join('\n') + '\n';
+  const sek = (iso: string) => String(Date.parse(iso) / 1000);
+
+  it('STAFF (domyślnie): IP zamaskowane, godziny nietknięte; ADMIN (SVC_MASK=0) widzi pełne adresy', () => {
+    const s = srodowisko();
+    s.plik('/var/log/secure', secure);
+    const r = s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'ssh' });
+    expect(r.rc).toBe(0);
+    expect(r.log[0]).toBe('Oct 14 00:10:00 t1 sshd[11]: Failed password for invalid user admin from 198.51.100.••• port 40000 ssh2');
+    expect(r.log[2]).toContain('from 2a01:4f8:••• port 22');
+    expect(r.out).not.toMatch(/203\.0\.113\.7|c0c:12::1/);
+    expect(r.log).toEqual(secure.trim().split('\n').map((l) => maskujDlaZespolu(l)));
+    expect(s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'ssh', SVC_MASK: '0' }).log[1]).toContain('203.0.113.7');
+  });
+
+  it('użytkownik: całe słowo („klient1” nie łapie „klient10”)', () => {
+    const s = srodowisko();
+    s.plik('/var/log/secure', secure);
+    const r = s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'ssh', SVC_USER: 'klient1' });
+    expect(r.log).toHaveLength(1);
+    expect(r.log[0]).toContain('Accepted publickey for klient1');
+    expect(r.out).toContain('VERRIS_LOG_FILTRY uzytkownik\n');
+  });
+
+  it('zakres czasu (syslog bez roku, czas lokalny węzła) i zakres okna przed filtrami', () => {
+    const s = srodowisko();
+    s.plik('/var/log/secure', secure);
+    const r = s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'ssh', SVC_SINCE: sek('2026-10-14T00:15:00Z'), SVC_UNTIL: sek('2026-10-14T00:35:00Z') });
+    expect(r.rc).toBe(0);
+    expect(r.log.map((l) => l.slice(0, 15))).toEqual(['Oct 14 00:20:00', 'Oct 14 00:30:00']);
+    expect(r.out).toContain(`VERRIS_LOG_ZAKRES ${sek('2026-10-14T00:10:00Z')}|${sek('2026-10-14T00:40:00Z')}`);
+    expect(r.out).toContain('VERRIS_LOG_FILTRY czas\n');
+  });
+
+  it('ruch jednej domeny: plik /var/log/httpd/domains/<domena>.log, czas z [dd/Mon/rrrr:hh:mm:ss strefa], linie wielowierszowe dziedziczą czas', () => {
+    const s = srodowisko();
+    s.plik(
+      '/var/log/httpd/domains/firma.pl.log',
+      [
+        '203.0.113.7 - - [14/Oct/2026:01:59:00 +0200] "GET / HTTP/1.1" 200 512 "-" "curl"',
+        '203.0.113.8 - - [14/Oct/2026:02:05:00 +0200] "POST /wp-login.php HTTP/1.1" 403 0 "-" "bot"',
+      ].join('\n') + '\n',
+    );
+    const r = s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'www-domena', SVC_DOMAIN: 'Firma.PL', SVC_SINCE: sek('2026-10-14T00:00:00Z') });
+    expect(r.rc).toBe(0);
+    expect(r.log).toEqual(['203.0.113.••• - - [14/Oct/2026:02:05:00 +0200] "POST /wp-login.php HTTP/1.1" 403 0 "-" "bot"']);
+    expect(r.out).toContain('VERRIS_LOG_ZRODLO www-domena|/var/log/httpd/domains/firma.pl.log|1|1|1');
+    expect(r.out).toContain('VERRIS_LOG_FILTRY domena,czas\n');
+  });
+
+  it('domena w logu ogólnym = filtr linii (domena i subdomeny, nie „mojafirma.pl”); ISO ze strefą', () => {
+    const s = srodowisko();
+    s.plik(
+      '/var/log/exim/mainlog',
+      [
+        '2026-10-14 00:01:00 1a <= jan@firma.pl',
+        '2026-10-14 00:02:00 1b <= ola@mojafirma.pl',
+        '2026-10-14 00:03:00 1c => x@www.firma.pl',
+        '2026-10-14T00:04:00+02:00 1d <= y@firma.pl',
+      ].join('\n') + '\n',
+    );
+    const r = s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'exim-main', SVC_DOMAIN: 'firma.pl', SVC_UNTIL: sek('2026-10-14T00:03:30Z') });
+    expect(r.log).toEqual(['2026-10-14 00:01:00 1a <= •••@firma.pl', '2026-10-14 00:03:00 1c => •••@www.firma.pl', '2026-10-14T00:04:00+02:00 1d <= •••@firma.pl']);
+  });
+
+  it.each([
+    [{ SVC_NAME: 'www-domena' }, 'podaj domenę'],
+    [{ SVC_NAME: 'www-domena', SVC_DOMAIN: '../../etc/shadow' }, 'nieprawidłowa domena'],
+    [{ SVC_NAME: 'www-domena', SVC_DOMAIN: 'firma.pl/../x' }, 'nieprawidłowa domena'],
+    [{ SVC_NAME: 'ssh', SVC_USER: 'a b' }, 'nieprawidłowy użytkownik'],
+    [{ SVC_NAME: 'ssh', SVC_USER: '$(id)' }, 'nieprawidłowy użytkownik'],
+    [{ SVC_NAME: 'ssh', SVC_SINCE: 'wczoraj' }, 'nieprawidłowy zakres czasu'],
+    [{ SVC_NAME: 'ssh', SVC_SINCE: '200', SVC_UNTIL: '100' }, 'początek zakresu'],
+  ])('wejście %j — odmowa (%s)', (env, blad) => {
+    const s = srodowisko();
+    s.plik('/var/log/secure', secure);
+    const r = s.uruchom({ SVC_MODE: 'log', ...env });
+    expect(r.rc).not.toBe(0);
+    expect(r.err).toContain(blad);
+    expect(r.log).toEqual([]);
+  });
+
+  it('log domeny, której nie ma na węźle — błąd, nie pusta lista', () => {
+    const r = srodowisko().uruchom({ SVC_MODE: 'log', SVC_NAME: 'www-domena-bledy', SVC_DOMAIN: 'nieznana.pl' });
     expect(r.rc).not.toBe(0);
     expect(r.err).toContain('tego logu nie ma na serwerze');
   });

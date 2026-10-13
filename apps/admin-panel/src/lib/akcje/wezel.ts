@@ -242,7 +242,7 @@ export const AKCJE_WEZLA: AkcjaWezla[] = [
   },
   {
     id: "logi-wezla",
-    slowa: "logi log dziennik mainlog maillog error.log messages journal ogon tail grep",
+    slowa: "logi log dziennik mainlog maillog error.log messages journal ogon tail grep ssh secure ftp pureftpd access log ruch domena cron",
     grupa: "Usługi i logi",
     nazwa: "Logi węzła",
     opis: "Ostatnie linie logu z listy (system, poczta, WWW, panel, bazy) z filtrem.",

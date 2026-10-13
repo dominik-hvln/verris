@@ -360,9 +360,9 @@ export const POMOC = {
   },
   "logi-wezla": {
     tytul: "Logi węzła",
-    opis: "Ostatnie linie wybranego logu serwera z filtrem tekstowym, bez dowolnych ścieżek.",
-    kiedy: "Przy diagnozie awarii usługi albo poczty, zamiast logowania na serwer.",
-    rozniSieOd: "W logach poczty zespół widzi adresy e-mail zamaskowane; pełne adresy — tylko administrator.",
+    opis: "Ostatnie linie logu serwera z białej listy (system, SSH, FTP, poczta, WWW i ruch jednej strony, panel serwera, cron) z filtrami: tekst, domena, użytkownik, zakres czasu. Bez dowolnych ścieżek.",
+    kiedy: "Przy diagnozie awarii usługi, poczty, nieudanych logowań SSH/FTP albo ruchu na stronie klienta, zamiast logowania na serwer.",
+    rozniSieOd: "Zespół widzi adresy e-mail i IP zamaskowane we wszystkich logach; pełne — tylko administrator. Przeszukiwane jest ostatnie ~4 MB pliku: starszy zakres czasu może nie zwrócić linii.",
   },
   kwarantanna: {
     tytul: "Kwarantanna plików",

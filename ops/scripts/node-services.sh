@@ -7,7 +7,12 @@
 #                   usługi niczego nie przerywa; działającą restartuje wyłącznie administrator)
 #   SVC_LINES       log: ile ostatnich linii (20–500, domyślnie 200)
 #   SVC_FILTER      log: (opcjonalnie) fragment tekstu, bez rozróżniania wielkości liter, bez wyrażeń regularnych
-#   SVC_MASK        log: „1” = maskuj adresy e-mail w logach poczty (STAFF); sekrety maskowane zawsze
+#   SVC_MASK        log: „1” = maskuj adresy e-mail i IP (STAFF, decyzja 14.10 — we wszystkich logach); sekrety
+#                   maskowane zawsze
+#   SVC_DOMAIN      log: (opcjonalnie) domena — log domeny (ścieżka z {domena}) albo filtr linii z tą domeną
+#   SVC_USER        log: (opcjonalnie) użytkownik — linie z tym słowem (konto panelu, login SSH/FTP, użytkownik systemu)
+#   SVC_SINCE/SVC_UNTIL  log: (opcjonalnie) zakres czasu, sekundy od epoki (UTC); linie bez znacznika czasu dziedziczą
+#                   czas poprzedniej linii (wpisy wielowierszowe), znacznik bez strefy = czas lokalny węzła
 # Biała lista usług i logów = libs/contracts/src/uslugi-wezla.ts (zgodność pilnuje test uslugi-wezla-skrypt.spec.ts).
 # Dane wejściowe nie trafiają do powłoki: Python woła systemctl/journalctl listą argumentów (bez shell=True), klucze
 # tylko ze słownika, ścieżki logów stałe. Błąd systemd = błąd zadania (bez zamiany na sukces).
@@ -21,19 +26,25 @@
 #   VERRIS_SVC <klucz>|<jednostka|->|<LoadState>|<ActiveState>|<SubState>|<od ISO UTC|->|<NRestarts|->
 #   VERRIS_SVC_RESTART <klucz>|<jednostka>|<ActiveState po restarcie>
 #   VERRIS_LOG_ZRODLO <klucz>|<plik albo journal:jednostka>|<dopasowanych>|<pokazano>|<maska 0/1>
+#   VERRIS_LOG_ZAKRES <najstarszy znacznik w oknie, epoka|->|<najnowszy|->   (przeszukane okno, przed filtrami)
+#   VERRIS_LOG_FILTRY <zastosowane: tekst,domena,uzytkownik,czas albo ->
 #   VERRIS_LOG <linia>
+# Ścieżki logów: dokumentacja DirectAdmina „Directories and locations” (Log files):
+#   https://docs.directadmin.com/directadmin/general-usage/directories-and-locations.html
 # SYSTEMCTL_BIN, JOURNALCTL_BIN, SVC_ROOT (przedrostek ścieżek logów), SVC_UPTIME dają się podmienić wyłącznie w testach.
 # =============================================================================
 set -Eeuo pipefail
 
 : "${SVC_MODE:?}"; : "${SVC_NAME:=}"; : "${SVC_ONLY_DOWN:=0}"; : "${SVC_LINES:=200}"; : "${SVC_FILTER:=}"; : "${SVC_MASK:=1}"
+: "${SVC_DOMAIN:=}"; : "${SVC_USER:=}"; : "${SVC_SINCE:=}"; : "${SVC_UNTIL:=}"
 
 fail() { echo "[services] BŁĄD: $*" >&2; exit 1; }
 command -v python3 >/dev/null 2>&1 || fail "brak python3 na serwerze"
 
 SVC_MODE="$SVC_MODE" SVC_NAME="$SVC_NAME" SVC_ONLY_DOWN="$SVC_ONLY_DOWN" SVC_LINES="$SVC_LINES" SVC_FILTER="$SVC_FILTER" \
-SVC_MASK="$SVC_MASK" python3 -I - <<'PY'
-import os, re, shutil, subprocess, sys, time
+SVC_MASK="$SVC_MASK" SVC_DOMAIN="$SVC_DOMAIN" SVC_USER="$SVC_USER" SVC_SINCE="$SVC_SINCE" SVC_UNTIL="$SVC_UNTIL" \
+python3 -I - <<'PY'
+import calendar, os, re, shutil, subprocess, sys, time
 
 def fail(msg):
     print(f"[services] BŁĄD: {msg}", file=sys.stderr)
@@ -57,16 +68,24 @@ USLUGI = {
 # klucz: (plik albo None, klucz usługi dla dziennika systemd albo None, log poczty)
 LOGI = {
     "system": ("/var/log/messages", None, False),
+    "ssh": ("/var/log/secure", None, False),
+    "cron": ("/var/log/cron", None, False),
     "exim-main": ("/var/log/exim/mainlog", None, True),
     "exim-reject": ("/var/log/exim/rejectlog", None, True),
     "exim-panic": ("/var/log/exim/paniclog", None, True),
     "maillog": ("/var/log/maillog", None, True),
     "www": ("/usr/local/lsws/logs/error.log", None, False),
+    "www-domena": ("/var/log/httpd/domains/{domena}.log", None, False),
+    "www-domena-bledy": ("/var/log/httpd/domains/{domena}.error.log", None, False),
     "directadmin": ("/var/log/directadmin/error.log", None, False),
     "directadmin-zadania": ("/var/log/directadmin/errortaskq.log", None, False),
+    "directadmin-system": ("/var/log/directadmin/system.log", None, False),
+    "directadmin-bezpieczenstwo": ("/var/log/directadmin/security.log", None, False),
+    "directadmin-logowania": ("/var/log/directadmin/login.log", None, False),
     "mariadb": (None, "mariadb", False),
     "named": (None, "named", False),
     "ftp": (None, "ftp", False),
+    "ftp-pureftpd": ("/var/log/pureftpd.log", None, False),
     "fail2ban": ("/var/log/fail2ban.log", None, False),
     "agent": ("/var/log/verris-tasks.log", None, False),
     "agent-lve": ("/var/log/verris-lve.log", None, False),
@@ -81,6 +100,12 @@ SEKRET = re.compile(r"\b(pass(?:word|wd)?|token|secret|auth)=\S+", re.I)
 ADRES = re.compile(r"[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@([A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+)")
 STEROWANIE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|[\x00-\x08\x0b-\x1f\x7f]")
 ZLY_FILTR = re.compile(r"[\x00-\x1f\x7f]")
+# Te same reguły co maskujIp, LOG_WEZLA_DOMENA i LOG_WEZLA_UZYTKOWNIK w libs/contracts/src/uslugi-wezla.ts.
+OKTET = r"(?:25[0-5]|2[0-4]\d|1?\d?\d)"
+IPV4 = re.compile(r"(?<![\w.])(" + OKTET + r"\." + OKTET + r"\." + OKTET + r")\." + OKTET + r"(?![\w.])", re.A)
+IPV6 = re.compile(r"(?<![\w:.])[0-9A-Fa-f:]{3,39}(?![\w:])", re.A)
+DOMENA = re.compile(r"(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+", re.A)
+UZYTKOWNIK = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}", re.A)
 OKNO_BAJTOW = 4 * 1024 * 1024
 LIMIT_BAJTOW = 80000  # budżet w BAJTACH UTF-8: agent wysyła do API ostatnie 100 000 bajtów logu zadania (tail -c)
 DLUGOSC_LINII = 400
@@ -204,14 +229,102 @@ if not 20 <= ile <= 500:
 filtr = os.environ.get("SVC_FILTER") or ""
 if len(filtr) > 100 or ZLY_FILTR.search(filtr):
     fail("nieprawidłowy filtr")
-maska = poczta and os.environ.get("SVC_MASK") != "0"
+maska = os.environ.get("SVC_MASK") != "0"
+domena = (os.environ.get("SVC_DOMAIN") or "").strip().lower().rstrip(".")
+if domena and not DOMENA.fullmatch(domena):
+    fail("nieprawidłowa domena")
+uzytkownik = (os.environ.get("SVC_USER") or "").strip()
+if uzytkownik and not UZYTKOWNIK.fullmatch(uzytkownik):
+    fail("nieprawidłowy użytkownik")
+
+def epoka(nazwa):
+    v = (os.environ.get(nazwa) or "").strip()
+    if not v:
+        return None
+    if not re.fullmatch(r"\d{1,11}", v):
+        fail("nieprawidłowy zakres czasu")
+    return int(v)
+
+od, do = epoka("SVC_SINCE"), epoka("SVC_UNTIL")
+if od is not None and do is not None and od > do:
+    fail("początek zakresu czasu jest po końcu")
+if plik and "{domena}" in plik:
+    if not domena:
+        fail("ten log dotyczy jednej domeny — podaj domenę")
+    plik = plik.replace("{domena}", domena)
+
+def maska_ip6(m):
+    t = m.group(0)
+    if t.count(":") < 2 or ("::" not in t and not re.search(r"[A-Fa-f]", t)):
+        return t
+    grupy = t.split(":")
+    if any(len(g) > 4 for g in grupy):
+        return t
+    return ":".join(grupy[:2]) + ":•••"
 
 def oczysc(l):
     l = STEROWANIE.sub("", l.rstrip("\r\n"))
     l = SEKRET.sub(lambda m: m.group(1) + "=•••", l)
     if maska:
         l = ADRES.sub(lambda m: "•••@" + m.group(1), l)
+        l = IPV4.sub(lambda m: m.group(1) + ".•••", l)
+        l = IPV6.sub(maska_ip6, l)
     return l[:DLUGOSC_LINII]
+
+# Znaczniki czasu w logach z listy: ISO (exim, journal short-iso, fail2ban, LiteSpeed), syslog „Oct 14 00:34:12”
+# (messages, secure, cron, maillog, pureftpd), Apache access „[14/Oct/2026:00:34:12 +0200]”, Apache error
+# „[Wed Oct 14 00:34:12.123 2026]”, DirectAdmin „2026:10:14-00:34:12”. Bez strefy = czas lokalny węzła.
+MIESIACE = {m: i for i, m in enumerate(["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], 1)}
+CZ_ACCESS = re.compile(r"\[(\d\d)/([A-Z][a-z]{2})/(\d{4}):(\d\d):(\d\d):(\d\d) ([+-])(\d\d)(\d\d)\]")
+CZ_APACHE_ERR = re.compile(r"\[[A-Z][a-z]{2} ([A-Z][a-z]{2}) +(\d{1,2}) (\d\d):(\d\d):(\d\d)(?:\.\d+)? (\d{4})\]")
+CZ_ISO = re.compile(r"(\d{4})-(\d\d)-(\d\d)[ T](\d\d):(\d\d):(\d\d)(?:[.,]\d+)?(Z|[+-]\d\d:?\d\d)?")
+CZ_DA = re.compile(r"(\d{4}):(\d\d):(\d\d)-(\d\d):(\d\d):(\d\d)")
+CZ_SYSLOG = re.compile(r"^([A-Z][a-z]{2}) +(\d{1,2}) (\d\d):(\d\d):(\d\d)\b")
+TERAZ = time.time()
+
+def lokalny(r, mies, d, h, mi, s):
+    try:
+        return int(time.mktime((r, mies, d, h, mi, s, 0, 0, -1)))
+    except (OverflowError, ValueError):
+        return None
+
+def strefa(znak, hh, mm):
+    return (1 if znak == "+" else -1) * (int(hh) * 3600 + int(mm) * 60)
+
+def znacznik(l):
+    glowa = l[:160]
+    try:
+        m = CZ_ACCESS.search(glowa)
+        if m and m.group(2) in MIESIACE:
+            utc = calendar.timegm((int(m.group(3)), MIESIACE[m.group(2)], int(m.group(1)), int(m.group(4)), int(m.group(5)), int(m.group(6))))
+            return utc - strefa(m.group(7), m.group(8), m.group(9))
+        m = CZ_APACHE_ERR.search(glowa)
+        if m and m.group(1) in MIESIACE:
+            return lokalny(int(m.group(6)), MIESIACE[m.group(1)], int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)))
+        m = CZ_ISO.search(glowa)
+        if m:
+            r, mies, d, h, mi, s = (int(x) for x in m.groups()[:6])
+            tz = m.group(7)
+            if tz is None:
+                return lokalny(r, mies, d, h, mi, s)
+            utc = calendar.timegm((r, mies, d, h, mi, s))
+            if tz == "Z":
+                return utc
+            tz = tz.replace(":", "")
+            return utc - strefa(tz[0], tz[1:3], tz[3:5])
+        m = CZ_DA.search(glowa)
+        if m:
+            return lokalny(*(int(x) for x in m.groups()))
+        m = CZ_SYSLOG.match(l)
+        if m and m.group(1) in MIESIACE:
+            rok = time.localtime(TERAZ).tm_year
+            t = lokalny(rok, MIESIACE[m.group(1)], int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)))
+            if t is not None and t > TERAZ + 86400:  # syslog bez roku: grudniowe wpisy czytane w styczniu
+                t = lokalny(rok - 1, MIESIACE[m.group(1)], int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)))
+            return t
+    except (OverflowError, ValueError):
+        return None
+    return None
 
 if plik:
     sciezka = ROOT + plik
@@ -246,23 +359,52 @@ else:
 
 if nazwa in TYLKO_WIERSZE_AGENTA:
     linie = [l for l in linie if l.lstrip().startswith(TYLKO_WIERSZE_AGENTA[nazwa])]
-linie = [oczysc(l) for l in linie if l.strip()]
+# Znacznik czasu z SUROWEJ linii (przed maską), linia bez znacznika dziedziczy poprzedni (wpisy wielowierszowe).
+z_czasem, ostatni = [], None
+for l in linie:
+    if not l.strip():
+        continue
+    t = znacznik(l)
+    if t is not None:
+        ostatni = t
+    z_czasem.append((ostatni, oczysc(l)))
+znane = [t for t, _ in z_czasem if t is not None]
+zakres = (min(znane), max(znane)) if znane else (None, None)
+zastosowane = []
+log_domeny = "{domena}" in (LOGI[nazwa][0] or "")
+if domena and not log_domeny:
+    # Domena i jej subdomeny („www.firma.pl”), ale nie „mojafirma.pl”.
+    wzor_domeny = re.compile(r"(?<![a-z0-9-])" + re.escape(domena) + r"(?![a-z0-9-])")
+    z_czasem = [(t, l) for t, l in z_czasem if wzor_domeny.search(l.lower())]
+if domena:
+    zastosowane.append("domena")
+if uzytkownik:
+    wzor = re.compile(r"(?<![A-Za-z0-9_.-])" + re.escape(uzytkownik) + r"(?![A-Za-z0-9_-])")
+    z_czasem = [(t, l) for t, l in z_czasem if wzor.search(l)]
+    zastosowane.append("uzytkownik")
 if filtr:
     f_male = filtr.lower()
-    linie = [l for l in linie if f_male in l.lower()]
+    z_czasem = [(t, l) for t, l in z_czasem if f_male in l.lower()]
+    zastosowane.insert(0, "tekst")
+if od is not None or do is not None:
+    z_czasem = [(t, l) for t, l in z_czasem if t is not None and (od is None or t >= od) and (do is None or t <= do)]
+    zastosowane.append("czas")
+linie = [l for _, l in z_czasem]
 wybrane = linie[-ile:]
 # Audyt Fali 3 — budżet w bajtach (maska „•••@” i U+FFFD z bajtów spoza UTF-8 to 3 bajty na znak), a nagłówek źródła
 # PO liniach: agent obcina log od początku (tail -c), więc ewentualne obcięcie zabiera najstarsze linie, nie nagłówek.
 wyjscie, bajty = [], 0
 for l in reversed(wybrane):
     rozmiar = len(("VERRIS_LOG " + l).encode("utf-8")) + 1
-    if bajty + rozmiar > LIMIT_BAJTOW:
+    if bajty + rozmiar > LIMIT_BAJTOW - 300:  # zapas na wiersze ZAKRES, FILTRY i ZRODLO po liniach
         break
     wyjscie.append(l)
     bajty += rozmiar
 wyjscie.reverse()
 for l in wyjscie:
     print("VERRIS_LOG " + l)
+print(f"VERRIS_LOG_ZAKRES {zakres[0] if zakres[0] is not None else '-'}|{zakres[1] if zakres[1] is not None else '-'}")
+print("VERRIS_LOG_FILTRY " + (",".join(zastosowane) or "-"))
 print(f"VERRIS_LOG_ZRODLO {nazwa}|{zrodlo}|{len(linie)}|{len(wyjscie)}|{1 if maska else 0}")
 print("[services] Gotowe.")
 PY

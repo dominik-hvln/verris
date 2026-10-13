@@ -11,7 +11,18 @@ const baza = (id: string) => `/admin/servers/${encodeURIComponent(id)}/uslugi`;
 export async function uslugiWezlaAction(
   serverId: string,
   co: AkcjaUslug,
-  dane: { usluga?: string; powod?: string; potwierdzenie?: string; log?: string; linie?: number; filtr?: string } = {},
+  dane: {
+    usluga?: string;
+    powod?: string;
+    potwierdzenie?: string;
+    log?: string;
+    linie?: number;
+    filtr?: string;
+    domena?: string;
+    uzytkownik?: string;
+    od?: string;
+    do?: string;
+  } = {},
 ): Promise<Wynik> {
   try {
     if (co === "stan") return { ok: true, wynik: await adminApi(baza(serverId)) };
@@ -24,8 +35,10 @@ export async function uslugiWezlaAction(
       return { ok: true, wynik: await adminApi(`${baza(serverId)}/restart-wspolnej`, { method: "POST", body }) };
     }
     if (co === "log") {
-      const filtr = (dane.filtr ?? "").trim();
-      return { ok: true, wynik: await adminApi(`${baza(serverId)}/log`, { method: "POST", body: { log: dane.log, linie: dane.linie, ...(filtr ? { filtr } : {}) } }) };
+      const opc = (v: string | undefined) => (v ?? "").trim();
+      const body: Record<string, unknown> = { log: dane.log, linie: dane.linie };
+      for (const k of ["filtr", "domena", "uzytkownik", "od", "do"] as const) if (opc(dane[k])) body[k] = opc(dane[k]);
+      return { ok: true, wynik: await adminApi(`${baza(serverId)}/log`, { method: "POST", body }) };
     }
     return { ok: false, error: "Nieznana akcja." };
   } catch (err) {

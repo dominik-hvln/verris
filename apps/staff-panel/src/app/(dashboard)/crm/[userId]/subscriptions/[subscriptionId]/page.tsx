@@ -11,6 +11,7 @@ import { StaffPlanChangeForm } from "./staff-plan-change-form";
 import { StaffDiagnosticsPanel } from "./diagnostics-panel";
 import { KontoKlientaPanel } from "./konto-klienta-panel";
 import { ObslugaUslugi } from "./obsluga-uslugi";
+import { LogiStronyPanel } from "./logi-strony-panel";
 import { KartaWPaneluOperatora } from "@/components/karta-w-panelu-operatora";
 import { kartaUslugiOperatora } from "@/lib/panel-operatora";
 
@@ -53,6 +54,8 @@ export default async function StaffSubscriptionReadonlyPage({
   const mozeMigrowacZaKlienta = maUprawnienie(dostep, "MIGRATIONS_MANAGE");
   const widziKontoKlienta = maUprawnienie(dostep, "ACCOUNT_DIAGNOSTICS_VIEW");
   const mozeDiagnozowac = DIAGNOSTYKA.some((k) => maUprawnienie(dostep, k));
+  // 14.10 — logi strony (ruch, błędy, poczta domeny, FTP/SSH konta) z tym samym uprawnieniem co logi węzła.
+  const widziLogi = maUprawnienie(dostep, "NODE_SERVICES");
   // Migrację za klienta rola może mieć osobno (MIGRATIONS_MANAGE) — wtedy nie piszemy, że migracje robi L2.
   const zmianyDlaL2 = `plan, odtwarzanie z kopii, ${mozeMigrowacZaKlienta ? "przeniesienie na inny węzeł" : "migracje"}`;
 
@@ -145,6 +148,10 @@ export default async function StaffSubscriptionReadonlyPage({
       {mozeDiagnozowac ? <StaffDiagnosticsPanel subscriptionId={subscriptionId} /> : null}
 
       {sub.account && widziKontoKlienta ? <KontoKlientaPanel subscriptionId={subscriptionId} /> : null}
+
+      {sub.account?.serverId && widziLogi ? (
+        <LogiStronyPanel serverId={sub.account.serverId} domena={sub.account.domain} daUser={sub.account.daUsername} />
+      ) : null}
 
       <section className="rounded-2xl border border-white/10 bg-black/30">
         <h2 className="border-b border-white/10 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white">

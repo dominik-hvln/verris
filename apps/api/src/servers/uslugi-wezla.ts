@@ -5,7 +5,7 @@ import {
   USLUGI_WEZLA,
   WATCHDOG_RAPORT_SWIEZY_MIN,
   logWezla,
-  maskujAdresy,
+  maskujDlaZespolu,
   maskujSekrety,
   uslugaNieDziala,
   uslugaWezla,
@@ -82,7 +82,14 @@ export interface WynikLogu {
   pokazano: number | null;
   maska: boolean;
   linie: string[];
+  /** Najstarszy i najnowszy znacznik czasu w przeszukanym oknie logu (przed filtrami), ISO. */
+  zakres: { od: string | null; do: string | null } | null;
+  /** Filtry zastosowane na węźle; null = agent sprzed 14.10 (nie raportuje — filtry domeny/użytkownika/czasu pominięte). */
+  zastosowane: string[] | null;
 }
+
+const ZASTOSOWANE = new Set(['tekst', 'domena', 'uzytkownik', 'czas']);
+const zEpoki = (s: string) => (/^\d{1,11}$/.test(s) ? new Date(Number(s) * 1000).toISOString() : null);
 
 /**
  * Przegląd F3.4 — log agenta zbiera stdout wszystkich zadań węzła (dziennik poczty kont, log poczty ADMIN-a bez maski):
@@ -90,10 +97,20 @@ export interface WynikLogu {
  */
 export const PREFIKSY_AGENTA = ['[verris-tasks]', '[verris-task-run]'] as const;
 
-/** Wiersze VERRIS_LOG_ZRODLO / VERRIS_LOG. `maskuj` — wymuś maskę adresów (odczyt przez STAFF logu poczty). */
+/** Wiersze VERRIS_LOG_ZRODLO / VERRIS_LOG. `maskuj` — wymuś maskę adresów e-mail i IP (odczyt przez STAFF). */
 export function logZWyniku(log: string | null, maskuj: boolean, tylkoAgent = false): WynikLogu {
-  const w: WynikLogu = { zrodlo: null, dopasowanych: null, pokazano: null, maska: false, linie: [] };
+  const w: WynikLogu = { zrodlo: null, dopasowanych: null, pokazano: null, maska: false, linie: [], zakres: null, zastosowane: null };
   for (const l of (log ?? '').split('\n')) {
+    const zk = /^VERRIS_LOG_ZAKRES (\d{1,11}|-)\|(\d{1,11}|-)$/.exec(l);
+    if (zk) {
+      w.zakres = { od: zEpoki(zk[1]), do: zEpoki(zk[2]) };
+      continue;
+    }
+    const fl = /^VERRIS_LOG_FILTRY ([a-z,-]{1,60})$/.exec(l);
+    if (fl) {
+      w.zastosowane = fl[1] === '-' ? [] : fl[1].split(',').filter((x) => ZASTOSOWANE.has(x));
+      continue;
+    }
     const z = /^VERRIS_LOG_ZRODLO [a-z0-9-]{1,40}\|([^|]{1,200})\|(\d+)\|(\d+)\|([01])$/.exec(l);
     if (z) {
       w.zrodlo = z[1];
@@ -106,7 +123,7 @@ export function logZWyniku(log: string | null, maskuj: boolean, tylkoAgent = fal
       const surowa = l.slice('VERRIS_LOG '.length);
       if (tylkoAgent && !PREFIKSY_AGENTA.some((p) => surowa.trimStart().startsWith(p))) continue;
       const linia = maskujSekrety(surowa);
-      w.linie.push(maskuj ? maskujAdresy(linia) : linia);
+      w.linie.push(maskuj ? maskujDlaZespolu(linia) : linia);
     }
   }
   if (maskuj) w.maska = true;
@@ -129,14 +146,26 @@ export type ZadanieUslug = {
   completedAt: Date | null;
 };
 
-export type ParametryUslug = { mode?: TrybUslug; name?: string; onlyDown?: string; lines?: string; filter?: string; mask?: string };
+export type ParametryUslug = {
+  mode?: TrybUslug;
+  name?: string;
+  onlyDown?: string;
+  lines?: string;
+  filter?: string;
+  mask?: string;
+  domain?: string;
+  user?: string;
+  since?: string;
+  until?: string;
+};
 export const parametryUslug = (z: Pick<ZadanieUslug, 'payload'>) => (z.payload ?? {}) as ParametryUslug;
 export const trwa = (z: Pick<ZadanieUslug, 'status'>) => z.status === NodeTaskStatus.QUEUED || z.status === NodeTaskStatus.RUNNING;
 const kiedy = (z: ZadanieUslug) => (z.completedAt ?? z.createdAt).toISOString();
 
 /**
  * Stan z ostatnich zadań NODE_SERVICES węzła (najnowsze pierwsze). `admin` — czy czytający to ADMIN (bez maski adresów
- * w logach poczty, jeśli tak je zamówiono); STAFF zawsze widzi maskę, także w wyniku zamówionym przez ADMIN-a.
+ * e-mail i IP, jeśli tak log zamówiono); STAFF zawsze widzi maskę (decyzja 14.10: we wszystkich logach), także w wyniku
+ * i filtrach zamówionych przez ADMIN-a.
  */
 export function stanUslug(zadania: ZadanieUslug[], admin: boolean) {
   const zTrybu = (t: TrybUslug) => zadania.filter((z) => (parametryUslug(z).mode ?? 'status') === t);
@@ -171,14 +200,18 @@ export function stanUslug(zadania: ZadanieUslug[], admin: boolean) {
         ? {
             klucz: pl.name ?? '',
             etykieta: defLogu?.etykieta ?? pl.name ?? '',
-            // Przegląd F3.4 — filtr ADMIN-a bywa pełnym adresem („jan@firma.pl”); STAFF widzi go z tą samą maską co log.
-            filtr: pl.filter ? (defLogu?.poczta && !admin ? maskujAdresy(pl.filter) : pl.filter) : null,
+            // Przegląd F3.4 — filtr ADMIN-a bywa pełnym adresem („jan@firma.pl”) albo IP; STAFF widzi go z tą samą maską co log.
+            filtr: pl.filter ? (!admin ? maskujDlaZespolu(pl.filter) : pl.filter) : null,
+            domena: pl.domain ?? null,
+            uzytkownik: pl.user ?? null,
+            od: pl.since ? zEpoki(pl.since) : null,
+            do: pl.until ? zEpoki(pl.until) : null,
             linieZamowione: Number(pl.lines) || null,
             wToku: trwa(log),
             kiedy: kiedy(log),
             ...(log.status === NodeTaskStatus.COMPLETED
-              ? logZWyniku(log.outputLog, Boolean(defLogu?.poczta) && !admin, defLogu?.klucz === 'agent')
-              : { zrodlo: null, dopasowanych: null, pokazano: null, maska: Boolean(defLogu?.poczta) && (!admin || pl.mask !== '0'), linie: [] }),
+              ? logZWyniku(log.outputLog, !admin, defLogu?.klucz === 'agent')
+              : { zrodlo: null, dopasowanych: null, pokazano: null, maska: !admin || pl.mask !== '0', linie: [], zakres: null, zastosowane: null }),
             blad: log.status === NodeTaskStatus.FAILED ? bladUslug(log.outputLog, log.errorMessage) : null,
           }
         : null,

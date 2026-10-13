@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { LOGI_WEZLA, LOG_WEZLA_LINIE_MAX, LOG_WEZLA_LINIE_MIN, uslugaWezla } from "@verris/contracts";
+import { LOGI_WEZLA, LOG_WEZLA_LINIE_MAX, LOG_WEZLA_LINIE_MIN, logWezla, logWymagaDomeny, uslugaWezla } from "@verris/contracts";
 import { potwierdz, zapytaj } from "@/components/potwierdz";
 import { Pomoc } from "@/components/pomoc";
 import { Select } from "@/components/select";
+import { PoleDaty } from "@/components/pole-daty";
 import { WyslijWniosek } from "@/components/wniosek-operacji";
 import { KARTA, Pigulka } from "@/components/v2";
 import { POLE, kiedy } from "@/components/kolejka-poczty";
@@ -15,7 +16,8 @@ import { uslugiWezlaAction, type AkcjaUslug, type Wynik } from "./uslugi-wezla-a
  * F3.4 — zakładka „Usługi i logi” karty węzła (NODE_SERVICES: NOC i ADMIN). Stan usług z białej listy (zlecany na
  * węźle) i watchdog z telemetrii agenta (co minutę), restart z powodem, ogon logu z białej listy plików.
  * Usługa wspólna (WWW, poczta, bazy, DNS, FTP): NOC ją uruchamia, gdy stoi; działającą restartuje administrator
- * (z nazwą węzła jako potwierdzeniem), zespół — wnioskiem. Adresy w logach poczty dla zespołu są zamaskowane.
+ * (z nazwą węzła jako potwierdzeniem), zespół — wnioskiem. Logi (14.10): filtry tekst, domena (także ruch jednej
+ * strony), użytkownik, zakres czasu; zespół widzi adresy e-mail i IP zamaskowane we wszystkich logach.
  */
 type StanUslugi = "dziala" | "stoi" | "blad" | "brak" | "zmienia";
 type Usluga = {
@@ -38,6 +40,12 @@ export type StanUslugWezla = {
     klucz: string;
     etykieta: string;
     filtr: string | null;
+    domena?: string | null;
+    uzytkownik?: string | null;
+    od?: string | null;
+    do?: string | null;
+    zakres?: { od: string | null; do: string | null } | null;
+    zastosowane?: string[] | null;
     wToku: boolean;
     kiedy: string;
     zrodlo: string | null;
@@ -68,6 +76,31 @@ const godzinaIDzien = (iso: string) =>
 /** Migawkę starszą o tyle od świeżego raportu watchdoga oznaczamy jako starszą, nawet gdy stany się zgadzają. */
 const MIGAWKA_STARSZA_MS = 10 * 60_000;
 
+/** Wartość PoleDaty („2026-10-14T00:00”, czas przeglądarki) → ISO UTC dla API; puste albo błędne → undefined. */
+export function isoZPola(v: string): string | undefined {
+  if (!v) return undefined;
+  const t = new Date(v);
+  return Number.isNaN(t.getTime()) ? undefined : t.toISOString();
+}
+
+/**
+ * Opis filtrów odczytu logu dla nagłówka wyniku. Agent węzła sprzed 14.10 nie raportuje zastosowanych filtrów —
+ * wtedy domena/użytkownik/czas NIE zadziałały (linie są niefiltrowane) i mówimy to wprost.
+ */
+export function opisFiltrow(l: NonNullable<StanUslugWezla["log"]>): { tekst: string; ostrzezenie: string | null } {
+  const czesci: string[] = [];
+  if (l.filtr) czesci.push(`tekst „${l.filtr}”`);
+  if (l.domena) czesci.push(`domena ${l.domena}`);
+  if (l.uzytkownik) czesci.push(`użytkownik ${l.uzytkownik}`);
+  if (l.od || l.do) czesci.push(`czas ${l.od ? godzinaIDzien(l.od) : "…"} – ${l.do ? godzinaIDzien(l.do) : "…"}`);
+  const nowe = !!(l.domena || l.uzytkownik || l.od || l.do);
+  const ostrzezenie =
+    nowe && !l.wToku && !l.blad && l.zrodlo && l.zastosowane === null
+      ? "Agent na tym węźle jest starszy niż filtry domeny, użytkownika i czasu — linie poniżej NIE są nimi przefiltrowane. Zaktualizuj węzeł (Operacje floty)."
+      : null;
+  return { tekst: czesci.join(" · "), ostrzezenie };
+}
+
 /**
  * Poprawka 12.10 — linijka watchdoga jest aktualna (agent co minutę), a tabela to migawka z ostatniego „Sprawdź na
  * serwerze” (bywa sprzed doby): tabela mówiła „FTP działa”, gdy watchdog „nie działa FTP”. Gdy ŚWIEŻY raport watchdoga
@@ -94,6 +127,10 @@ export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: 
   const [log, setLog] = useState(LOGI_WEZLA[0].klucz);
   const [linie, setLinie] = useState("200");
   const [filtr, setFiltr] = useState("");
+  const [domena, setDomena] = useState("");
+  const [uzytkownik, setUzytkownik] = useState("");
+  const [od, setOd] = useState("");
+  const [doCzasu, setDoCzasu] = useState("");
   const [msg, setMsg] = useState<{ ok: boolean; tekst: string } | null>(null);
   const [pending, start] = useTransition();
 
@@ -171,8 +208,9 @@ export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: 
     start(async () => {
       setMsg(null);
       const n = Math.min(LOG_WEZLA_LINIE_MAX, Math.max(LOG_WEZLA_LINIE_MIN, Number(linie) || 200));
-      await wywolaj("log", { log, linie: n, filtr });
+      await wywolaj("log", { log, linie: n, filtr, domena, uzytkownik, od: isoZPola(od), do: isoZPola(doCzasu) });
     });
+  const wymagaDomeny = logWymagaDomeny(logWezla(log));
 
   const wd = stan?.watchdog;
   const migawkaKiedy = stan?.uslugi?.kiedy ?? null;
@@ -323,18 +361,55 @@ export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: 
             className={POLE}
           />
           <input value={filtr} onChange={(e) => setFiltr(e.target.value)} maxLength={100} placeholder="Filtr: fragment tekstu" aria-label="Filtr logu" className={POLE} />
-          <button type="button" data-akcja="log" className={przycisk} disabled={pending || !!stan?.wToku.log} onClick={pokazLog}>
+          <button
+            type="button"
+            data-akcja="log"
+            className={przycisk}
+            disabled={pending || !!stan?.wToku.log || (wymagaDomeny && !domena.trim())}
+            title={wymagaDomeny && !domena.trim() ? "Ten log dotyczy jednej strony — podaj domenę" : undefined}
+            onClick={pokazLog}
+          >
             {stan?.wToku.log ? "Czytam…" : "Pokaż"}
           </button>
+        </div>
+        <div className="grid gap-2 md:grid-cols-4" data-filtry-logu>
+          <input
+            value={domena}
+            onChange={(e) => setDomena(e.target.value.replace(/\s/g, "").toLowerCase())}
+            maxLength={253}
+            placeholder={wymagaDomeny ? "Domena (wymagana), np. firma.pl" : "Domena, np. firma.pl"}
+            aria-label="Domena"
+            className={POLE}
+          />
+          <input
+            value={uzytkownik}
+            onChange={(e) => setUzytkownik(e.target.value.replace(/\s/g, ""))}
+            maxLength={64}
+            placeholder="Użytkownik (konto, login SSH/FTP)"
+            aria-label="Użytkownik"
+            className={POLE}
+          />
+          <PoleDaty zGodzina value={od} onChange={setOd} aria-label="Od (data i godzina)" placeholder="Od — data i godzina" className={POLE} />
+          <PoleDaty zGodzina value={doCzasu} onChange={setDoCzasu} aria-label="Do (data i godzina)" placeholder="Do — data i godzina" className={POLE} />
         </div>
         {l ? (
           <div className="space-y-1.5" data-log={l.klucz}>
             <p className="text-xs text-muted-foreground">
               {l.etykieta}
-              {l.filtr ? ` · filtr „${l.filtr}”` : ""} · {kiedy(l.kiedy)}
+              {opisFiltrow(l).tekst ? ` · ${opisFiltrow(l).tekst}` : ""} · {kiedy(l.kiedy)}
               {l.dopasowanych !== null && l.pokazano !== null ? ` · ${l.pokazano} z ${l.dopasowanych} ${plForm(l.dopasowanych, "linii", "linii", "linii")}` : ""}
-              {l.maska ? " · adresy e-mail zamaskowane" : ""}
+              {l.maska ? " · adresy e-mail i IP zamaskowane" : ""}
             </p>
+            {l.zakres?.od && l.zakres.do ? (
+              <p className="text-[11px] text-muted-foreground" data-zakres-okna>
+                Przeszukano wpisy od {godzinaIDzien(l.zakres.od)} do {godzinaIDzien(l.zakres.do)} (ostatnie ~4 MB pliku).
+              </p>
+            ) : null}
+            {opisFiltrow(l).ostrzezenie ? (
+              <p className="text-xs text-amber-200" data-filtry="stary-agent">
+                {opisFiltrow(l).ostrzezenie}
+              </p>
+            ) : null}
             {l.wToku ? (
               <p className="text-xs text-muted-foreground">Czytam log na serwerze…</p>
             ) : l.blad ? (
@@ -342,7 +417,7 @@ export function UslugiWezlaPanel({ serverId, nazwaWezla, isAdmin }: { serverId: 
             ) : l.linie.length ? (
               <pre className="max-h-[480px] overflow-auto rounded-lg bg-black/40 p-3 font-mono text-[11px] leading-relaxed text-neutral-200">{l.linie.join("\n")}</pre>
             ) : (
-              <p className="text-xs text-muted-foreground">Brak linii{l.filtr ? " pasujących do filtra" : ""}.</p>
+              <p className="text-xs text-muted-foreground">Brak linii{opisFiltrow(l).tekst ? " pasujących do filtrów" : ""}.</p>
             )}
           </div>
         ) : null}
