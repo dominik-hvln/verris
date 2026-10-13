@@ -7,6 +7,7 @@ jest.mock("@/lib/api", () => ({ AdminApiError: class extends Error {}, adminApi:
 jest.mock("../fleet-update-button", () => ({ FleetUpdateButton: () => <button data-op="aktualizuj" /> }));
 jest.mock("./wersje-stosu", () => ({ WersjeStosu: () => <section data-op="manifest" /> }));
 jest.mock("./pakiety-floty", () => ({ PakietyFlotyPanel: () => <div data-op="pakiety" /> }));
+jest.mock("./stan-fali", () => ({ StanFaliPanel: () => <div data-op="stan-fali" /> }));
 
 import { adminApi } from "@/lib/api";
 import { fetchStaffAccess } from "@/lib/staff-access";
@@ -21,7 +22,7 @@ describe("Flota → Operacje floty", () => {
     (adminApi as jest.Mock).mockResolvedValueOnce({ manifest: {}, dozwolone: {}, wezly: [] });
     const html = renderToStaticMarkup(await OperacjeFlotyPage());
     expect(adminApi).toHaveBeenCalledWith("/admin/stack-manifest");
-    for (const op of ["aktualizuj", "manifest", "pakiety"]) expect(html).toContain(`data-op="${op}"`);
+    for (const op of ["aktualizuj", "stan-fali", "manifest", "pakiety"]) expect(html).toContain(`data-op="${op}"`);
     expect(html).toContain('id="aktualizuj-flote"');
     expect(html).toContain('id="pakiety"');
   });

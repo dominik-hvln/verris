@@ -8,6 +8,7 @@ import { FleetUpdateButton } from "../fleet-update-button";
 import type { WidokStosu } from "./actions";
 import { PakietyFlotyPanel } from "./pakiety-floty";
 import { WersjeStosu } from "./wersje-stosu";
+import { StanFaliPanel } from "./stan-fali";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +63,7 @@ export default async function OperacjeFlotyPage() {
 
       <Sekcja id="aktualizuj-flote" tytul="Aktualizuj flotę" opis="Najnowsza stabilna wersja DirectAdmina, CloudLinux i LiteSpeed na każdym węźle.">
         <div className="flex">{bezAktualizacji ? <Wyszarzone nazwa="Aktualizuj flotę" powod={bezAktualizacji} /> : <FleetUpdateButton />}</div>
+        <StanFaliPanel />
       </Sekcja>
 
       {stos ? (

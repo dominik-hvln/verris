@@ -262,6 +262,15 @@ export class ServersAdminController {
     return this.nodeTasks.retryFailedTask(id, actor.userId);
   }
 
+  /** PB-32 — stan ostatniej fali aktualizacji (przebieg po węzłach, wynik z logu). Trasa przed :id. */
+  @Get('fleet-update')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_VIEW')
+  stanFali() {
+    return this.nodeTasks.stanFali();
+  }
+
   /** NODE-6 — aktualizacja CAŁEJ floty (rolling). Trasa przed :id, by nie kolidować. */
   @Post('fleet-update')
   @UseGuards(StaffPermissionsGuard)

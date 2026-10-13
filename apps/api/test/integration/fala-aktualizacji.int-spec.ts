@@ -17,10 +17,10 @@ async function wezel(nazwa: string) {
   return utworzWezel({ name: nazwa, identityToken: `tok-${nazwa}` });
 }
 
-async function wykonaj(serverId: string, ok: boolean) {
+async function wykonaj(serverId: string, ok: boolean, wynik = 'ok') {
   const t = await prisma().nodeTask.findFirstOrThrow({ where: { serverId, kind: 'FLEET_UPDATE', status: 'QUEUED' } });
   await prisma().nodeTask.update({ where: { id: t.id }, data: { status: 'RUNNING', startedAt: new Date() } });
-  if (ok) await serwis().completeTaskFromNode({ serverId, taskId: t.id, outputLog: 'VERRIS_UPDATE_RESULT=ok' });
+  if (ok) await serwis().completeTaskFromNode({ serverId, taskId: t.id, outputLog: `VERRIS_UPDATE_RESULT=${wynik}` });
   else await serwis().failTaskFromNode({ serverId, taskId: t.id, error: 'build all d' });
 }
 
@@ -69,5 +69,26 @@ describe('PB-32 — aktualizacja floty falą', () => {
     expect(await cron.uruchom()).toBe('trwa');
     await wykonaj(w.id, false);
     expect(await prisma().notification.count({ where: { userId: admin.id, title: 'Fala aktualizacji zatrzymana' } })).toBe(1);
+  });
+
+  // PB-32 „status w panelu zgodny z logiem”: przebieg fali po węzłach z wynikiem z logu zadania.
+  it('stan fali dla panelu: trwa → zakończona (z „wymaga restartu”), a po błędzie — zatrzymana z pozostałymi', async () => {
+    expect(await serwis().stanFali()).toBeNull();
+    const plan = await utworzPlan();
+    const a = await wezel('alfa');
+    const b = await wezel('beta');
+    await utworzKonto({ serverId: b.id, planId: plan.id });
+    await serwis().queueFleetUpdate(null);
+    expect(await serwis().stanFali()).toMatchObject({ stan: 'trwa', razem: 2, pozostale: 2, wezly: [{ nr: 1, nazwa: 'alfa', status: 'QUEUED', wynik: null }] });
+    await wykonaj(a.id, true, 'needs-reboot');
+    await wykonaj(b.id, true);
+    const koniec = await serwis().stanFali();
+    expect(koniec).toMatchObject({ stan: 'zakonczona', pozostale: 0, wymagaRestartu: ['alfa'] });
+    expect(koniec!.wezly.map((w) => [w.nr, w.nazwa, w.status, w.wynik])).toEqual([[1, 'alfa', 'COMPLETED', 'needs-reboot'], [2, 'beta', 'COMPLETED', 'ok']]);
+
+    // Nowa fala — panel pokazuje ją, nie poprzednią.
+    await serwis().queueFleetUpdate(null);
+    await wykonaj(a.id, false);
+    expect(await serwis().stanFali()).toMatchObject({ stan: 'zatrzymana', pozostale: 1, wezly: [{ nazwa: 'alfa', status: 'FAILED', blad: 'build all d' }] });
   });
 });

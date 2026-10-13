@@ -54,6 +54,37 @@ export type HostingProfileTaskPayload = {
  */
 export const ALLOWED_DB_VERSIONS: readonly string[] = DOZWOLONE.mariadb.map((m) => m.v);
 
+/** PB-32 — wynik skryptu aktualizacji z logu zadania (ostatnia linia `VERRIS_UPDATE_RESULT=…`, node-update.script.ts). */
+export function wynikAktualizacji(log: string | null | undefined): 'ok' | 'needs-reboot' | 'failed' | null {
+  const m = [...(log ?? '').matchAll(/VERRIS_UPDATE_RESULT=(ok|needs-reboot|failed)\b/g)].pop();
+  return (m?.[1] as 'ok' | 'needs-reboot' | 'failed' | undefined) ?? null;
+}
+
+/** PB-32 — stan ostatniej fali dla panelu (GET /admin/servers/fleet-update). */
+export interface StanFali {
+  id: string;
+  wyrownaj: boolean;
+  razem: number;
+  /** trwa · zakonczona · zatrzymana (błąd węzła) · przerwana (węzeł OK, a następnego nie dało się zlecić). */
+  stan: 'trwa' | 'zakonczona' | 'zatrzymana' | 'przerwana';
+  /** Ile węzłów fali jeszcze nie zakończyło aktualizacji (bez zatrzymanego). */
+  pozostale: number;
+  wymagaRestartu: string[];
+  rozpoczeta: string;
+  wezly: Array<{
+    nr: number;
+    taskId: string;
+    serverId: string;
+    nazwa: string;
+    status: NodeTaskStatus;
+    wynik: 'ok' | 'needs-reboot' | 'failed' | null;
+    blad: string | null;
+    zlecono: string;
+    start: string | null;
+    koniec: string | null;
+  }>;
+}
+
 /** PB-32 — stan fali aktualizacji niesiony w payloadzie zadania FLEET_UPDATE. */
 export interface FalaAktualizacji {
   id: string;
@@ -387,6 +418,64 @@ export class NodeTasksService {
     await this.queueDbUpgrade(serverId, null, krok, true).catch(async (e: Error) => {
       await this.audit.record({ action: 'STACK_ALIGN_DB_SKIPPED', details: { serverId, krok, powod: e.message } });
     });
+  }
+
+  /**
+   * PB-32 — „status w panelu zgodny z logiem”: ostatnia fala aktualizacji z przebiegiem po węzłach (kolejność,
+   * stan zadania, wynik ze skryptu `VERRIS_UPDATE_RESULT=…`) i stanem całości. Źródłem są same zadania fali
+   * (payload.fala.id) — ten sam zapis, który czyta agent i log zadania.
+   */
+  async stanFali(): Promise<StanFali | null> {
+    const ostatnie = await this.prisma.nodeTask.findFirst({
+      where: { kind: 'FLEET_UPDATE' as NodeTaskKind, payload: { path: ['fala', 'id'], not: Prisma.AnyNull } },
+      orderBy: { createdAt: 'desc' },
+      select: { payload: true },
+    });
+    const id = (ostatnie?.payload as { fala?: FalaAktualizacji } | null)?.fala?.id;
+    if (!id) return null;
+    const zadania = await this.prisma.nodeTask.findMany({
+      where: { kind: 'FLEET_UPDATE' as NodeTaskKind, payload: { path: ['fala', 'id'], equals: id } },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true, serverId: true, status: true, payload: true, outputLog: true, errorMessage: true,
+        createdAt: true, startedAt: true, completedAt: true, server: { select: { name: true } },
+      },
+    });
+    const wezly = zadania.map((t) => {
+      const f = (t.payload as unknown as { fala: FalaAktualizacji }).fala;
+      return {
+        nr: f.nr,
+        taskId: t.id,
+        serverId: t.serverId,
+        nazwa: t.server?.name ?? t.serverId,
+        status: t.status,
+        wynik: wynikAktualizacji(t.outputLog),
+        blad: t.status === NodeTaskStatus.FAILED ? (t.errorMessage ?? '').slice(0, 300) || null : null,
+        zlecono: t.createdAt.toISOString(),
+        start: t.startedAt?.toISOString() ?? null,
+        koniec: t.completedAt?.toISOString() ?? null,
+      };
+    });
+    const ostatni = zadania[zadania.length - 1];
+    const fala = (ostatni.payload as unknown as { fala: FalaAktualizacji }).fala;
+    const stan: StanFali['stan'] =
+      ostatni.status === NodeTaskStatus.QUEUED || ostatni.status === NodeTaskStatus.RUNNING
+        ? 'trwa'
+        : ostatni.status === NodeTaskStatus.COMPLETED
+          ? fala.kolejka.length === 0
+            ? 'zakonczona'
+            : 'przerwana'
+          : 'zatrzymana';
+    return {
+      id,
+      wyrownaj: !!fala.wyrownaj,
+      razem: fala.razem,
+      stan,
+      pozostale: stan === 'zakonczona' ? 0 : fala.kolejka.length + (stan === 'trwa' ? 1 : 0),
+      wymagaRestartu: wezly.filter((w) => w.wynik === 'needs-reboot').map((w) => w.nazwa),
+      rozpoczeta: zadania[0].createdAt.toISOString(),
+      wezly,
+    };
   }
 
   /** PB-32 — po udanej aktualizacji węzła z fali zlecamy następny; po błędzie fala staje. */

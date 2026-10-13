@@ -67,3 +67,34 @@ export async function wyslijPakietyNaFlote(): Promise<Wynik<WynikSyncuFloty>> {
     return { ok: false, error: blad(e) };
   }
 }
+
+/** PB-32 — stan ostatniej fali aktualizacji (API: node-tasks.service.ts stanFali). */
+export interface StanFali {
+  id: string;
+  wyrownaj: boolean;
+  razem: number;
+  stan: "trwa" | "zakonczona" | "zatrzymana" | "przerwana";
+  pozostale: number;
+  wymagaRestartu: string[];
+  rozpoczeta: string;
+  wezly: {
+    nr: number;
+    taskId: string;
+    serverId: string;
+    nazwa: string;
+    status: "QUEUED" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED";
+    wynik: "ok" | "needs-reboot" | "failed" | null;
+    blad: string | null;
+    zlecono: string;
+    start: string | null;
+    koniec: string | null;
+  }[];
+}
+
+export async function pobierzStanFali(): Promise<Wynik<StanFali | null>> {
+  try {
+    return { ok: true, data: await adminApi<StanFali | null>("/admin/servers/fleet-update") };
+  } catch (e) {
+    return { ok: false, error: blad(e) };
+  }
+}
