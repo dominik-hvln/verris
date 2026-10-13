@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   forwardRef,
   Inject,
   Injectable,
@@ -44,6 +45,9 @@ import { rowsToCsv } from './csv.util.js';
 import { PromoService } from './promo.service.js';
 import { powodAutoDoladowania } from './wallet-auto-topup.service.js';
 import { EcoPointsService } from '../eco/eco-points.service.js';
+
+/** Jak MIN_POWOD_ROZLICZEN w rozliczenia-operatora.service.ts (ten importuje BillingService — bez cyklu). */
+const MIN_POWOD_UZNANIA = 10;
 import {
   Decyzja,
   decyzja,
@@ -389,7 +393,31 @@ export class BillingService {
     description?: string;
     idempotencyKey?: string;
     actorUserId: string;
+    /** Rola operatora z trasy bezpośredniej; wniosek (decyzja ADMIN-a) jej nie podaje. */
+    actorRole?: string;
   }) {
+    // Audyt bezpieczeństwa 13.10: trasa bezpośrednia omijała reguły korekty salda (RozliczeniaOperatoraService):
+    // personel uznawał konta zespołu i subkonta, bez powodu w dzienniku.
+    if (opts.actorRole && opts.actorRole !== 'ADMIN') {
+      const u = await this.prisma.user.findUnique({
+        where: { id: opts.userId },
+        select: { role: true, customerOwnerId: true, anonymizedAt: true },
+      });
+      if (!u || u.anonymizedAt) throw new NotFoundException('Klient nie istnieje.');
+      if (u.role !== 'USER') {
+        throw new ForbiddenException('Personel zasila wyłącznie portfele klientów — konto zespołu obsługuje administrator.');
+      }
+      if (u.customerOwnerId) throw new BadRequestException('To subkonto — portfel należy do właściciela konta.');
+      if ((opts.description?.trim().length ?? 0) < MIN_POWOD_UZNANIA) {
+        throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_UZNANIA} znaków) — zapisze się w dzienniku i w historii portfela.`);
+      }
+    }
+    if (opts.idempotencyKey) {
+      const juz = await this.ledger.findByIdempotencyKey(opts.idempotencyKey);
+      if (juz && (juz.userId !== opts.userId || !new Prisma.Decimal(juz.amount).eq(new Prisma.Decimal(opts.amount)))) {
+        throw new ConflictException('Ten klucz operacji użyto już do innej operacji — odśwież formularz.');
+      }
+    }
     const description = opts.description?.trim() || 'Uznanie od Zespołu Verris';
 
     const tx = await this.ledger.credit({

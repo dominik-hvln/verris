@@ -45,14 +45,17 @@ export class BillingAdminController {
   @WniosekMozliwy('WALLET_CREDIT')
   creditWallet(
     @Body() dto: AdminCreditWalletDto,
-    @CurrentUser() actor: { userId: string },
+    @CurrentUser() actor: { userId: string; role?: string },
   ) {
     return this.billing.adminCreditWallet({
       userId: dto.userId,
       amount: dto.amount,
       description: dto.description,
-      idempotencyKey: dto.idempotencyKey,
+      // Audyt bezpieczeństwa 13.10: klucz z ciała żądania nigdy surowo do księgi — inaczej operator mógł zająć
+      // klucz przyszłej operacji (np. odnowienia), którą księga uznałaby potem za już zapisaną.
+      idempotencyKey: dto.idempotencyKey ? `uznanie:${dto.idempotencyKey}` : undefined,
       actorUserId: actor.userId,
+      actorRole: actor.role,
     });
   }
 
