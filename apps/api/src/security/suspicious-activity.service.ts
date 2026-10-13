@@ -94,14 +94,35 @@ export class SuspiciousActivityService {
    * Auth controllers MAY consult this before checking the password to avoid
    * timing oracles on legitimate users.
    */
-  async isEmailLockedOut(email: string): Promise<boolean> {
+  /**
+   * Audyt 13.10 (email-lockout-anonymous-account-denial) — blokada liczona po samym e-mailu pozwalała anonimowi
+   * 10 złymi hasłami z dowolnego IP odciąć logowanie (także break-glass ADMIN/STAFF) właścicielowi z poprawnym
+   * hasłem, a każde odrzucone blokadą żądanie przedłużało okno. Twarda odmowa przed sprawdzeniem hasła dotyczy
+   * teraz źródła, które generuje porażki (e-mail + IP); odrzucenia samą blokadą (too_many_attempts) się nie liczą.
+   * Rozproszone zgadywanie hasła z wielu IP hamuje captcha logowania i limity tras per IP.
+   */
+  async isEmailLockedOut(email: string, ip?: string | null): Promise<boolean> {
     const since = new Date(Date.now() - FAIL_WINDOW_MS);
     const failed = await this.prisma.loginAttempt.count({
       where: {
         email: email.toLowerCase(),
+        ...(ip !== undefined ? { ip } : {}),
         succeeded: false,
+        reason: { not: 'too_many_attempts' },
         createdAt: { gte: since },
       },
+    });
+    return failed >= FAIL_THRESHOLD;
+  }
+
+  /**
+   * Audyt 13.10 (login-2fa:no-per-account-attempt-bound) — drugi składnik zgaduje ktoś, kto zna już hasło: limit
+   * prób kodu 2FA jest na KONTO (wszystkie IP), nie na IP, i obejmuje także wyzwania wydane wcześniej.
+   */
+  async isTwoFactorLockedOut(email: string): Promise<boolean> {
+    const since = new Date(Date.now() - FAIL_WINDOW_MS);
+    const failed = await this.prisma.loginAttempt.count({
+      where: { email: email.toLowerCase(), succeeded: false, reason: '2fa_failed', createdAt: { gte: since } },
     });
     return failed >= FAIL_THRESHOLD;
   }

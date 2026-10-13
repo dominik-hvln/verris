@@ -695,7 +695,9 @@ export class AuthService {
     // E-8 — short-circuit if too many recent failures for this email. We
     // throw the same generic error so a hostile observer can't tell whether
     // the email exists or whether the rate limit is active.
-    if (await this.suspicious.isEmailLockedOut(dto.email)) {
+    // Audyt 13.10 — blokada per (e-mail, IP); żądanie odrzucone samą blokadą zostaje w dzienniku jako
+    // too_many_attempts, ale nie liczy się do progu (nie przedłuża okna).
+    if (await this.suspicious.isEmailLockedOut(dto.email, ctx.ip ?? null)) {
       await this.suspicious.recordFailure({
         email: dto.email,
         ip: ctx.ip ?? null,
@@ -842,6 +844,11 @@ export class AuthService {
       throw new BadRequestException('Code is required');
     }
 
+    // Audyt 13.10 — limit prób kodu na konto, sprawdzany przed weryfikacją (także dla wydanych wcześniej wyzwań).
+    if (!payload.email || (await this.suspicious.isTwoFactorLockedOut(payload.email))) {
+      throw new UnauthorizedException('Zbyt wiele błędnych kodów. Zaloguj się ponownie za kilkanaście minut.');
+    }
+
     const ok = await this.twoFactor.verifyCodeForLogin(payload.sub, cleaned);
     if (!ok) {
       if (payload.email) {
@@ -891,7 +898,7 @@ export class AuthService {
     dto: { email: string; password: string; code: string; breakGlassCode: string },
     ctx: RequestContext = {},
   ): Promise<LoginSuccess> {
-    if (await this.suspicious.isEmailLockedOut(dto.email)) {
+    if (await this.suspicious.isEmailLockedOut(dto.email, ctx.ip ?? null)) {
       throw new UnauthorizedException('Invalid credentials');
     }
     const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
