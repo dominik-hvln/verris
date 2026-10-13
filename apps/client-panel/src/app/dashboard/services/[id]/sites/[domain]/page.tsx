@@ -325,7 +325,7 @@ export default function SitePage() {
               <Kpi
                 label="Poczta w domenie"
                 value={mail === undefined ? '…' : !skrzynkiNieznane ? boxes.length : '—'}
-                unit={!skrzynkiNieznane && mail !== undefined ? (boxes.length === 1 ? 'skrzynka' : 'skrzynek') : undefined}
+                unit={!skrzynkiNieznane && mail !== undefined ? plForm(boxes.length, 'skrzynka', 'skrzynki', 'skrzynek') : undefined}
                 foot={<span>{skrzynkiNieznane ? 'nie udało się wczytać' : boxes.length ? boxes.slice(0, 2).map((b) => b.email.split('@')[0]).join(', ') : 'brak skrzynek'}</span>}
               />
             </KpiStrip>
@@ -342,7 +342,7 @@ export default function SitePage() {
                         ['ssl', 'Certyfikat SSL', sslRow?.coveredNames.length ? sslRow.coveredNames.slice(0, 3).join(', ') : 'brak certyfikatu', sslRow?.daysLeft != null ? `${sslRow.daysLeft} ${plForm(sslRow.daysLeft, 'dzień', 'dni', 'dni')}` : '—'],
                         ['db', 'Bazy danych', 'bazy są wspólne dla konta', ''],
                         ['mail', 'Poczta', skrzynkiNieznane ? 'nie udało się wczytać skrzynek' : boxes.length ? `${boxes.length} ${plForm(boxes.length, 'skrzynka', 'skrzynki', 'skrzynek')} w tej domenie` : 'brak skrzynek', ''],
-                        ['php', 'PHP', ok(php)?.currentVersion ? `wersja ${ok(php)?.currentVersion}` : 'brak danych', ''],
+                        ['php', 'PHP', ok(php)?.currentVersion ? `wersja ${ok(php)?.currentVersion}` : ok(php) ? 'wersja konta' : 'brak danych', ''],
                       ] as [SiteTab, string, string, string][]
                     ).map(([id, t, m, r]) => (
                       <li key={id} className="border-line [&+&]:border-t">
