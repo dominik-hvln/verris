@@ -11,6 +11,7 @@ import { TrialCallout } from './trial-callout';
 import type { TrialOffer } from '../data';
 import { clientFeatures } from '@/lib/client-features';
 import { useFlagi } from '@/lib/feature-flags';
+import { plForm } from '@/lib/pl';
 
 /**
  * UX-4 — wybór TYPU usługi w osobnych kaflach (Hosting / Poczta / VPS), zamiast
@@ -337,7 +338,7 @@ function ProductCard({
           {external
             ? 'Przejdź do VPS'
             : count && count > 0
-              ? `${count} ${count === 1 ? 'wariant' : 'warianty/ów'}`
+              ? `${count} ${plForm(count, 'wariant', 'warianty', 'wariantów')}`
               : 'Sprawdź warianty'}
         </span>
         <span className="inline-flex items-center gap-1 text-sm font-medium text-white">

@@ -646,7 +646,7 @@ export function DomainPurchaseWizard({
                 <div className="flex justify-between gap-4">
                   <span className="text-neutral-400">Okres</span>
                   <span className="text-white">
-                    {years} {years === 1 ? 'rok' : 'lat'}
+                    {years} {plForm(years, 'rok', 'lata', 'lat')}
                   </span>
                 </div>
                 <div className="flex justify-between gap-4">
