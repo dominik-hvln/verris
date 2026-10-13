@@ -473,7 +473,8 @@ export class MigrationWorkerScheduler {
       'Zgłoszenie utworzone automatycznie: przeniesienie konta na inny serwer.',
       `Domena: ${domain ?? '—'}`,
       '',
-      'Przed przeniesieniem wykonaliśmy kopię zapasową konta.',
+      // 13.10 (PB-44, D3) — CMD_API_SITE_BACKUP tylko zleca kopię w DirectAdminie; nie piszemy klientowi, że jest gotowa.
+      'Przed przeniesieniem zleciliśmy kopię zapasową konta.',
     ].join('\n');
   }
 
