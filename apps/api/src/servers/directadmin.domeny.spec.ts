@@ -103,6 +103,26 @@ describe('DNS (CMD_API_DNS_CONTROL)', () => {
       .rejects.toThrow('nie zapisał');
   });
 
+  // H-16 (t1, 13.10): action=edit dla NS zapisał w d3.hvln.pl.db „ns1.verris.pl. NS pb55.d3.hvln.pl.” (zamienione
+  // nazwa i wartość) i usunął stary rekord — BIND dalej serwował starą delegację. NS: dodanie + usunięcie, bez action=edit.
+  it('edycja NS (delegacja poddomeny): add nowego, sprawdzenie strefy, usunięcie starego — nigdy action=edit', async () => {
+    const s = stanowisko({ get: { '/CMD_API_DNS_CONTROL': { records: [{ name: 'pb55.firma.pl.', type: 'NS', value: 'ns1.verris.pl.', ttl: '3600' }] } } });
+    await s.svc.editHostingDnsRecord('s1', 'u1', {
+      domain: 'firma.pl', old: { name: 'pb55.firma.pl.', type: 'NS', value: 'ns3.verris.pl.' }, next: { name: 'pb55.firma.pl.', type: 'NS', value: 'ns1.verris.pl.' },
+    });
+    expect(s.wyslane(0)).toMatchObject({ action: 'add', type: 'NS', name: 'pb55.firma.pl.', value: 'ns1.verris.pl.' });
+    expect(s.wyslane(1)).toMatchObject({ action: 'select', delete: 'yes', nsrecs0: 'name=pb55.firma.pl.&value=ns3.verris.pl.' });
+    expect(s.post.mock.calls.map((c) => new URLSearchParams(String(c[1])).get('action'))).not.toContain('edit');
+  });
+
+  it('edycja NS: nowy rekord nie pojawił się w strefie → 400 i stary NIE jest usuwany (delegacja zostaje)', async () => {
+    const s = stanowisko({ get: { '/CMD_API_DNS_CONTROL': { records: [{ name: 'pb55.firma.pl.', type: 'NS', value: 'ns3.verris.pl.', ttl: '3600' }] } } });
+    await expect(s.svc.editHostingDnsRecord('s1', 'u1', {
+      domain: 'firma.pl', old: { name: 'pb55.firma.pl.', type: 'NS', value: 'ns3.verris.pl.' }, next: { name: 'pb55.firma.pl.', type: 'NS', value: 'ns1.verris.pl.' },
+    })).rejects.toThrow('nie zapisał');
+    expect(s.post).toHaveBeenCalledTimes(1);
+  });
+
   it('edycja ze zmianą typu: dodanie nowego, potem usunięcie starego; cudza strefa nie dochodzi do DA', async () => {
     const s = stanowisko({ get: { '/CMD_API_DNS_CONTROL': { records: [] } } });
     await s.svc.editHostingDnsRecord('s1', 'u1', { domain: 'firma.pl', old: { name: 'www', type: 'A', value: '1.1.1.1' }, next: { name: 'www', type: 'CNAME', value: 'firma.pl.' } });

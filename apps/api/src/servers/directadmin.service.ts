@@ -1238,6 +1238,22 @@ export class DirectAdminService {
   ) {
     await this.assertDomainOnSubscription(subscriptionId, userId, input.domain);
     const { old, next } = input;
+    // H-16 (t1, 13.10, d3.hvln.pl.db): action=edit dla NS usuwa stary rekord, a nowy zapisuje z zamienioną nazwą
+    // i wartością („ns1.verris.pl. NS pb55.d3.hvln.pl.” — właściciel spoza strefy, trafił też do .signed), a panel
+    // pokazywał błąd dopiero po fakcie. Dla NS edycja = dodanie nowego + usunięcie starego (oba sprawdzane w strefie).
+    if (old.type === next.type && next.type.toUpperCase() === 'NS') {
+      await this.createHostingDnsRecord(subscriptionId, userId, { domain: input.domain, ...next });
+      const poDodaniu = await this.listHostingDnsRecords(subscriptionId, userId, input.domain);
+      const nazwa = (n: string) => nazwaRekorduDns(n, input.domain);
+      if (
+        !poDodaniu.fetchError &&
+        !poDodaniu.records.some((r) => r.type === next.type && nazwa(r.name) === nazwa(next.name) && wartoscRekorduDns(r.value) === wartoscRekorduDns(next.value))
+      ) {
+        throw new BadRequestException('Serwer DNS nie zapisał zmiany rekordu. Spróbuj ponownie albo napisz do nas.');
+      }
+      await this.deleteHostingDnsRecord(subscriptionId, userId, { domain: input.domain, ...old });
+      return { ok: true as const };
+    }
     if (old.type !== next.type) {
       await this.createHostingDnsRecord(subscriptionId, userId, { domain: input.domain, ...next });
       await this.deleteHostingDnsRecord(subscriptionId, userId, { domain: input.domain, ...old });
