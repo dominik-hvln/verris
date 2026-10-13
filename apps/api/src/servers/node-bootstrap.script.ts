@@ -151,6 +151,19 @@ phase_preflight() {
   # po restarcie CloudLinux nazwa DA wróciłaby do nazwy serwera z konsoli dostawcy.
   if [ -d /etc/cloud/cloud.cfg.d ]; then
     printf 'preserve_hostname: true\\nmanage_etc_hosts: false\\n' > /etc/cloud/cloud.cfg.d/99-verris-hostname.cfg
+    # Contabo (13.10, t2): cloud-config z user-data dostawcy (fqdn vmi….contaboserver.net, manage_etc_hosts: true)
+    # ma pierwszeństwo przed cloud.cfg.d — po restarcie wracały nazwa hosta „t2” i /etc/hosts z 127.0.0.1 vmi…,
+    # a Exim nie znał verris-da-powiadomienia@t2. Moduły nazwy hosta wyłączone: lista cloud_init_modules
+    # z cloud.cfg bez set_hostname, update_hostname, update_etc_hosts
+    # (https://docs.cloud-init.io/en/latest/reference/modules.html).
+    python3 - "\${CLOUD_CFG:-/etc/cloud/cloud.cfg}" "\${CLOUD_CFG_D:-/etc/cloud/cloud.cfg.d}/99-verris-zz-bez-hostname.cfg" <<'PYCC' || true
+import sys, yaml
+c = yaml.safe_load(open(sys.argv[1])) or {}
+pomin = {'set_hostname', 'update_hostname', 'update_etc_hosts'}
+mods = [m for m in (c.get('cloud_init_modules') or []) if (m if isinstance(m, str) else m[0]) not in pomin]
+if mods:
+    open(sys.argv[2], 'w').write(yaml.safe_dump({'cloud_init_modules': mods}))
+PYCC
   fi
   if [ -n "$NODE_HOSTNAME" ]; then
     local ip4

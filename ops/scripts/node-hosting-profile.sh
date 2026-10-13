@@ -1161,6 +1161,26 @@ PY
   fi
 }
 
+# Limity dyskowe kont: DA liczy i egzekwuje dysk przez systemowe quota partycji quota_partition
+# (https://docs.directadmin.com/operation-system-level/os-general/filesystems-and-quotas.html). Bez nich
+# klient przekracza dysk planu bez blokady. t2 (13.10): XFS z noquota na / — bootstrap przeszedł, DA tylko
+# zalogował „quota not enabled”. Na XFS: rootflags=uquota,pquota (grubby) + restart; na ext4: opcje w fstab.
+check_disk_quota() {
+  echo "--- Limity dyskowe (quota) ---"
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then return 0; fi
+  local qp mnt opcje
+  qp="$(da config-get quota_partition 2>/dev/null | tr -d '[:space:]')"
+  [ -n "$qp" ] || qp=/home
+  mnt="$(findmnt -no TARGET --target "$qp" 2>/dev/null | head -1)"
+  [ -n "$mnt" ] || mnt=/
+  opcje="$(findmnt -no OPTIONS --target "$mnt" 2>/dev/null)"
+  if command -v repquota >/dev/null 2>&1 && repquota "$mnt" 2>/dev/null | grep -q 'Report for user quotas'; then
+    log_ok "Quota użytkowników działa na $mnt (quota_partition=$qp; $opcje)"
+  else
+    log_fail "Brak quota na $mnt (quota_partition=$qp; opcje: $opcje) — limity dysku kont nie działają; XFS: grubby --update-kernel=ALL --args=\"rootflags=uquota,pquota\" + reboot (docs.directadmin.com → Filesystem and quotas)"
+  fi
+}
+
 print_lve_info() {
   echo "--- LVE / CageFS ---"
   log_info "Limity EP/NPROC per konto ustawia Verris przy provisioning (plan → DA) + agent verris-lve.sh"
@@ -1461,7 +1481,11 @@ $rc_blok"
   # Adres kont DA → lokalny alias bez doręczenia; poprzedni adres zostaje w user.conf (verris_email_klienta).
   DA_SINK_LOCAL="verris-da-powiadomienia"
   if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && [ -d /usr/local/directadmin/data/users ]; then
-    DA_SINK="${DA_SINK_LOCAL}@$(hostname -f 2>/dev/null || hostname)"
+    # Domena z Exima (primary_hostname = nazwa serwera DA), nie z `hostname -f`: na t2 (13.10) po restarcie
+    # cloud-init Contabo zrobił z nazwy hosta „t2” i kontrola szła na verris-da-powiadomienia@t2 (fałszywy FAIL).
+    da_domena="$(exim -bP primary_hostname 2>/dev/null | sed -n 's/^primary_hostname = //p')"
+    [ -n "$da_domena" ] || da_domena="$(hostname -f 2>/dev/null || hostname)"
+    DA_SINK="${DA_SINK_LOCAL}@${da_domena}"
     grep -q "^${DA_SINK_LOCAL}:" /etc/aliases 2>/dev/null || printf '%s: :blackhole:\n' "$DA_SINK_LOCAL" >> /etc/aliases
     newaliases >/dev/null 2>&1 || true
     zmienione=0
@@ -1493,7 +1517,7 @@ $rc_blok"
     elif command -v exim >/dev/null 2>&1 && exim -bt "$DA_SINK" 2>/dev/null | grep -qi 'discarded'; then
       log_ok "Maile DA do klientów wyłączone: konta DA → ${DA_SINK} (zmieniono ${zmienione})"
     else
-      log_fail "Maile DA do klientów: exim nie odrzuca ${DA_SINK} (sprawdź /etc/aliases i czy $(hostname -f) jest domeną lokalną)"
+      log_fail "Maile DA do klientów: exim nie odrzuca ${DA_SINK} (sprawdź /etc/aliases i czy ${da_domena} jest domeną lokalną)"
     fi
   fi
   # E-20 — dobowy limit wysyłki per konto (exim DirectAdmina czyta /etc/virtual/limit).
@@ -2540,6 +2564,7 @@ configure_firewall_cockpit
 configure_suspended_page
 configure_error_pages
 configure_pma_white_label
+check_disk_quota
 print_lve_info
 print_summary || exit
 exit $?
