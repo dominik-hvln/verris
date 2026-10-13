@@ -357,7 +357,7 @@ export function VpsClient({
                 <IconBtn title="Stop" onClick={() => power(v.id, 'off')} disabled={pending || v.status === 'STOPPED'}>
                   <Power className="h-3.5 w-3.5 text-neutral-300" />
                 </IconBtn>
-                <IconBtn title="Restart" onClick={() => power(v.id, 'reboot')} disabled={pending}>
+                <IconBtn title="Restart" onClick={() => power(v.id, 'reboot')} disabled={pending || v.status === 'STOPPED'}>
                   <RotateCw className="h-3.5 w-3.5 text-neutral-300" />
                 </IconBtn>
                 <IconBtn title="Snapshoty i reinstalacja" onClick={() => przelacz(v.id, 'snapshoty')} disabled={v.status !== 'RUNNING' && v.status !== 'STOPPED'}>

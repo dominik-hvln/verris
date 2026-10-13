@@ -259,12 +259,17 @@ export class VpsService {
     if (action === 'on' && v.currentPeriodEnd && v.currentPeriodEnd.getTime() <= Date.now()) {
       throw new ConflictException(WSTRZYMANY);
     }
+    // Restart wyłączonego VPS-a nie jest „włączeniem” — wstrzymany za brak płatności zostaje wyłączony.
+    if (action === 'reboot' && v.status === VpsStatus.STOPPED) {
+      throw new ConflictException('VPS jest wyłączony — użyj „Włącz” zamiast restartu.');
+    }
     if (action === 'on') await this.hetzner.powerOn(v.hetznerServerId);
     else if (action === 'off') await this.hetzner.powerOff(v.hetznerServerId);
     else await this.hetzner.reboot(v.hetznerServerId);
 
-    const status =
-      action === 'on' ? VpsStatus.RUNNING : action === 'off' ? VpsStatus.STOPPED : VpsStatus.REBOOTING;
+    // Audyt 13.10 — restart zapisywał REBOOTING, którego nic potem nie cofało, a odnowienia biorą tylko RUNNING/STOPPED:
+    // VPS po jednym restarcie wypadał z rozliczeń, wstrzymania i usunięcia po karencji. Restartowany serwer działa.
+    const status = action === 'off' ? VpsStatus.STOPPED : VpsStatus.RUNNING;
     await this.prisma.vpsInstance.update({ where: { id }, data: { status } });
     await this.audit.record({
       action: 'VPS_POWER_ACTION',
