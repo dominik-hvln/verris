@@ -32,6 +32,7 @@ import { KolejkaWezlaPanel } from "./kolejka-wezla-panel";
 import { PocztaWezlaPanel } from "./poczta-wezla-panel";
 import { BlokadyIpWezlaPanel } from "./blokady-ip-wezla-panel";
 import { UslugiWezlaPanel } from "./uslugi-wezla-panel";
+import { StraznikPanel } from "./straznik-panel";
 import { MalwareFlotyTabela, type MalwareFloty } from "@/components/malware-floty";
 import { PrzekroczeniaLimitow, type Przekroczenia } from "@/components/przekroczenia-limitow";
 import { adminApi } from "@/lib/api";
@@ -293,7 +294,9 @@ export default async function ServerDetailPage({
       {/* F3.4 — usługi i logi węzła: tylko NODE_SERVICES (NOC) i ADMIN; logi mają dane wszystkich klientów węzła. */}
       {sekcja === "uslugi" ? (
         dziala ? (
-          <div id="uslugi-wezla" className="scroll-mt-4">
+          <div id="uslugi-wezla" className="scroll-mt-4 flex flex-col gap-4">
+            {/* 13.10 — strażnik węzła (NODES_VIEW): zdarzenia, diagnozy, wyłącznik restartu (ADMIN). */}
+            <StraznikPanel serverId={server.id} isAdmin={dostep.isAdmin} />
             {wymaga("uslugi-wezla") ? (
               <p className="text-sm text-muted-foreground" data-zablokowane={wymaga("uslugi-wezla") ?? ""}>
                 {wymaga("uslugi-wezla")} — usługi i logi węzła są dla zespołu NOC.

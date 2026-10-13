@@ -685,6 +685,7 @@ model Server {
   probes          ServiceProbe[]
   maintenanceWindows MaintenanceWindow[]
   nodeTasks       NodeTask[]
+  zdarzeniaStraznika ZdarzenieStraznika[]
 
   @@index([status])
 }
@@ -4476,4 +4477,32 @@ model KomunikatSerwisowyOdbiorca {
 
   @@unique([komunikatId, userId])
   @@index([komunikatId, status])
+}
+
+/// 13.10 — strażnik węzła (ops/scripts/verris-straznik.sh): wykryta awaria, diagnoza zapisana przed naprawą,
+/// kroki naprawy i wynik. Węzeł raportuje to samo zdarzenie kilka razy (naprawa → naprawiono / nie_naprawiono /
+/// restart), więc klucz to (serverId, wezelId).
+model ZdarzenieStraznika {
+  id           String    @id @default(uuid())
+  serverId     String
+  server       Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  /// Identyfikator nadany przez węzeł (uuid zdarzenia).
+  wezelId      String
+  /// lve, strony, usluga:<jednostka>, dysk
+  rodzaj       String
+  /// naprawa, naprawiono, nie_naprawiono, restart, tylko_alarm — TEXT + CHECK w bazie.
+  stan         String
+  objaw        String    @db.Text
+  kroki        Json
+  diagnoza     String    @db.Text
+  /// Katalog z pełną diagnozą na węźle (30 dni).
+  katalog      String?
+  wykrytoAt    DateTime
+  zakonczonoAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([serverId, wezelId])
+  @@index([serverId, createdAt])
+  @@index([stan, createdAt])
 }

@@ -6,6 +6,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException, Optional } 
 import { ClientWebhooksService } from '../client-webhooks/client-webhooks.service.js';
 import { AccountStatus, NodeTaskKind, NodeTaskStatus, Prisma, ServerStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AlarmyService } from '../alarmy/alarmy.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { SupportActions } from '../common/audit/audit.actions.js';
 import { limitZLogu } from './poczta-wezla.js';
@@ -106,6 +107,9 @@ export const OPERACJE_BEZ_PONOWIENIA: Partial<Record<NodeTaskKind, string>> = {
   [NodeTaskKind.MALWARE_SCAN]: 'Kwarantanny, przywrócenia ani usunięcia pliku',
 };
 
+/** Błąd zadania wskazujący na stan węzła (izolacja kont, PHP kont), a nie na dane klienta. */
+export const BLAD_SYSTEMOWY_WEZLA = /CageFS|enter LVE|_lve_enter|init_lve|lsphp.*(fail|error)|cannot open session|brak PHP CLI/i;
+
 @Injectable()
 export class NodeTasksService {
   private readonly logger = new Logger(NodeTasksService.name);
@@ -117,6 +121,7 @@ export class NodeTasksService {
     @Optional() private readonly webhooks?: ClientWebhooksService,
     @Optional() private readonly notifications?: NotificationsService,
     @Optional() private readonly stos?: StosWezlaService,
+    @Optional() private readonly alarmy?: AlarmyService,
   ) {}
 
   /**
@@ -926,6 +931,7 @@ export class NodeTasksService {
     });
     await this.webhooks?.poZadaniu(task, false);
     if (task.kind === NodeTaskKind.FLEET_UPDATE) await this.dalejFala(task, false);
+    await this.alarmBleduSystemowego(opts.serverId, task.kind, opts.error, opts.outputLog);
     // Audyt Fal 2 — błąd w trakcie usuwania (np. ostatnia paczka -Mrm): wcześniejsze usunięcia są nieodwracalne,
     // więc liczba z logu węzła trafia do dziennika także przy błędzie zadania. Surowy błąd węzła (exim…) zostaje
     // w zadaniu (panel operatora), nie we wpisie: wpis ma userId klienta, więc trafia do jego eksportu RODO (white label).
@@ -943,6 +949,32 @@ export class NodeTasksService {
     }
 
     return this.toPublicTask(updated);
+  }
+
+  /**
+   * 13.10 (t1): WP_UPDATE o 03:20 padł na „brak PHP CLI dla konta (CageFS)” — objaw zepsutego LVE konta ponad godzinę
+   * przed 503 strony, a widać go było tylko na liście zadań. Błąd zadania, który wskazuje na stan węzła (CageFS, LVE,
+   * PHP kont, sesje PAM), to alarm dla adminów — raz na godzinę na węzeł.
+   */
+  private async alarmBleduSystemowego(serverId: string, kind: NodeTaskKind, error: string, outputLog?: string) {
+    if (!this.alarmy) return;
+    const tekst = `${error}\n${(outputLog ?? '').slice(-4000)}`;
+    const m = BLAD_SYSTEMOWY_WEZLA.exec(tekst);
+    if (!m) return;
+    try {
+      const s = await this.prisma.server.findUnique({ where: { id: serverId }, select: { name: true, hostname: true } });
+      const wezel = s?.name ?? s?.hostname ?? serverId;
+      await this.alarmy.wyslij({
+        klucz: `zadanie-systemowe:${serverId}`,
+        tytul: `Węzeł ${wezel}: zadanie ${kind} padło na błędzie systemowym`,
+        tresc: `Zadanie ${kind} zakończyło się błędem, który wskazuje na stan węzła, nie na dane klienta:\n${error.slice(0, 600)}\n\nRozpoznane po: „${m[0]}”. Strażnik węzła sprawdza LVE i strony co minutę; sprawdź kartę węzła.`,
+        link: `/nodes/${serverId}?sekcja=uslugi#straznik`,
+        waga: 'ostrzezenie',
+        cooldownMin: 60,
+      });
+    } catch (err) {
+      this.logger.warn(`alarm błędu systemowego węzła ${serverId}: ${(err as Error).message}`);
+    }
   }
 
   /** F3.1 — usunięcie wiadomości konta z kolejki: liczba usuniętych dopiero od węzła (dziennik zespołu, autor = zlecający). */

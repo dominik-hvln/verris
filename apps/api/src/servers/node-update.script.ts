@@ -78,6 +78,21 @@ if [ -n "$NEW_KERNEL_INSTALLED" ]; then
   fi
 fi
 
+# 5) Kontrola po aktualizacji (13.10, t1: po fali strony PHP padły na LVE, a zadanie mówiło tylko o Roundcube):
+#    strażnik węzła w trybie --sprawdz — LiteSpeed, błędy LVE w jądrze, strony kont (HTTP). Problem = błąd zadania,
+#    fala staje i alarmuje; strażnik w pętli i tak zacznie naprawę w ciągu minuty.
+if [ -x /usr/local/bin/verris-straznik.sh ]; then
+  sleep 30
+  WYNIK_SPR="$(/usr/local/bin/verris-straznik.sh --sprawdz 2>&1 | tail -1)"
+  log "Kontrola po aktualizacji: \${WYNIK_SPR}"
+  case "$WYNIK_SPR" in
+    VERRIS_STRAZNIK_SPRAWDZ=ok*) ;;
+    *) blad "kontrola po aktualizacji: \${WYNIK_SPR#VERRIS_STRAZNIK_SPRAWDZ=}" ;;
+  esac
+else
+  log "Brak strażnika węzła (starszy agent) — kontrola po aktualizacji pominięta."
+fi
+
 # Ostrzeżenia na końcu wyjścia — karta węzła pokazuje jego ostatnie linie.
 for linia in "\${OSTRZ_LINIE[@]}"; do log "OSTRZEŻENIE: $linia"; done
 OSTRZ_POLE=""

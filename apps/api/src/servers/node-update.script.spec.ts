@@ -11,7 +11,7 @@ import { wynikAktualizacji, ostrzezeniaAktualizacji } from './przeglad-wezla.ser
  * VERRIS_UPDATE_RESULT=ok („wszystko zaktualizowane”). Linie „Error:” z CustomBuilda to teraz ostrzeżenia
  * na końcu wyjścia i pole warnings=N w wyniku.
  */
-function uruchom(wyjscieBuild: string, kodBuild = 0) {
+function uruchom(wyjscieBuild: string, kodBuild = 0, straznik?: string) {
   const T = mkdtempSync(join(tmpdir(), 'verris-upd-'));
   try {
     const cb = join(T, 'custombuild');
@@ -21,12 +21,23 @@ function uruchom(wyjscieBuild: string, kodBuild = 0) {
     const build = join(cb, 'build');
     writeFileSync(build, `#!/usr/bin/env bash\nif [ "$1" = all ]; then cat <<'X'\n${wyjscieBuild}\nX\nexit ${kodBuild}; fi\nexit 0\n`);
     chmodSync(build, 0o755);
-    for (const n of ['verris-fetch', 'yum', 'rpm', 'da']) {
+    for (const n of ['verris-fetch', 'yum', 'rpm', 'da', 'sleep']) {
       writeFileSync(join(bin, n), '#!/usr/bin/env bash\nexit 0\n');
       chmodSync(join(bin, n), 0o755);
     }
     const skrypt = join(T, 'upd.sh');
-    writeFileSync(skrypt, loadNodeUpdateScript().replace('CB=/usr/local/directadmin/custombuild', `CB=${cb}`).replace(/bash \/usr\/local\/bin\/verris-agent-install\.sh/, 'true'));
+    const stra = join(T, 'verris-straznik.sh');
+    if (straznik !== undefined) {
+      writeFileSync(stra, `#!/usr/bin/env bash\n[ "$1" = --sprawdz ] || exit 2\n${straznik}\n`);
+      chmodSync(stra, 0o755);
+    }
+    writeFileSync(
+      skrypt,
+      loadNodeUpdateScript()
+        .replace('CB=/usr/local/directadmin/custombuild', `CB=${cb}`)
+        .replace(/bash \/usr\/local\/bin\/verris-agent-install\.sh/, 'true')
+        .replaceAll('/usr/local/bin/verris-straznik.sh', stra),
+    );
     try {
       return { kod: 0, out: execFileSync('bash', [skrypt], { env: { ...process.env, PATH: `${bin}:${process.env.PATH}` }, encoding: 'utf8' }) };
     } catch (e) {
@@ -63,5 +74,17 @@ describe('aktualizacja węzła — ostrzeżenia z CustomBuilda', () => {
     expect(kod).toBe(1);
     expect(out).toContain('VERRIS_UPDATE_RESULT=failed errors=1');
     expect(wynikAktualizacji(out)).toBe('failed');
+  });
+
+  // 13.10 (t1): fala skończyła CustomBuild, a strony PHP padły na LVE — zadanie mówiło tylko o Roundcube.
+  it('kontrola po aktualizacji (strażnik --sprawdz): problem → failed z powodem; zdrowy węzeł → ok', () => {
+    const zle = uruchom('All parts have been installed', 0, 'echo "VERRIS_STRAZNIK_SPRAWDZ=blad LVE: 2 błędów w jądrze; strona d3.hvln.pl: HTTP 503"; exit 1');
+    expect(zle.kod).toBe(1);
+    expect(zle.out).toContain('BŁĄD: kontrola po aktualizacji: blad LVE: 2 błędów w jądrze; strona d3.hvln.pl: HTTP 503');
+    expect(wynikAktualizacji(zle.out)).toBe('failed');
+    const ok = uruchom('All parts have been installed', 0, 'echo VERRIS_STRAZNIK_SPRAWDZ=ok');
+    expect(ok.kod).toBe(0);
+    expect(ok.out).toContain('Kontrola po aktualizacji: VERRIS_STRAZNIK_SPRAWDZ=ok');
+    expect(wynikAktualizacji(ok.out)).toBe('ok');
   });
 });

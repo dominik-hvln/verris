@@ -728,6 +728,69 @@ CRON
 fi`;
 }
 
+/**
+ * 13.10 — strażnik węzła (verris-straznik.sh): wykrywa awarię (LVE kont, seria 503, usługa, dysk), zapisuje diagnozę,
+ * naprawia i raportuje do panelu. Timer co minutę (cron jako zapas, jak agent LVE).
+ */
+function renderInstallStraznikFragment(): string {
+  return `
+# --- Verris strażnik węzła (diagnoza + naprawa + raport) ---
+# shellcheck disable=SC1090
+source /etc/verris.conf
+STRAZNIK_BIN="/usr/local/bin/verris-straznik.sh"
+if curl -fsS --max-time 30 -H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \\
+  "$VERRIS_API_URL/agent/tasks/straznik/script" -o "$STRAZNIK_BIN.tmp" 2>/dev/null && [ -s "$STRAZNIK_BIN.tmp" ]; then
+  mv -f "$STRAZNIK_BIN.tmp" "$STRAZNIK_BIN"; chmod 755 "$STRAZNIK_BIN"
+  echo "[verris] Installed $STRAZNIK_BIN"
+else
+  rm -f "$STRAZNIK_BIN.tmp"
+  echo "[verris] WARN: nie pobrano verris-straznik.sh z API" >&2
+fi
+
+if command -v systemctl >/dev/null 2>&1 && [ -d /etc/systemd/system ]; then
+  cat > /etc/systemd/system/verris-straznik.service <<'UNIT'
+[Unit]
+Description=Verris strażnik węzła (wykrycie, diagnoza, naprawa)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash /usr/local/bin/verris-straznik.sh
+TimeoutStartSec=900
+StandardOutput=append:/var/log/verris-straznik.log
+StandardError=append:/var/log/verris-straznik.log
+UNIT
+
+  cat > /etc/systemd/system/verris-straznik.timer <<'TIMER'
+[Unit]
+Description=Strażnik węzła Verris co minutę
+
+[Timer]
+OnBootSec=90s
+OnUnitActiveSec=1min
+AccuracySec=5s
+Persistent=true
+Unit=verris-straznik.service
+
+[Install]
+WantedBy=timers.target
+TIMER
+
+  systemctl daemon-reload
+  systemctl enable verris-straznik.timer
+  systemctl restart verris-straznik.timer
+  echo "[verris] Installed verris-straznik.timer (1 min)"
+else
+  cat > /etc/cron.d/verris-straznik <<'CRON'
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+* * * * * root /usr/local/bin/verris-straznik.sh >> /var/log/verris-straznik.log 2>&1
+CRON
+  echo "[verris] Installed /etc/cron.d/verris-straznik (brak systemd)"
+fi`;
+}
+
 function renderInstallVerifyFragment(): string {
   return `
 echo ""
@@ -822,7 +885,8 @@ fi`;
 export function renderBootstrapNodeTasksInstallFragment(): string {
   return `${renderInstallTasksScriptFile()}
 ${renderTaskSystemdTemplateInstall()}
-${renderInstallLveAgentFragment()}`;
+${renderInstallLveAgentFragment()}
+${renderInstallStraznikFragment()}`;
 }
 
 /** Pełny skrypt instalacji agenta (panel admin → Pokaż skrypt instalacji). */
@@ -838,6 +902,7 @@ echo "=== Verris node task agent install (agent-3) ==="
 ${renderInstallTasksScriptFile()}
 ${renderTaskSystemdTemplateInstall()}
 ${renderInstallLveAgentFragment()}
+${renderInstallStraznikFragment()}
 
 PROBES="/usr/local/bin/verris-probes.sh"
 if [ -f "$PROBES" ] && ! grep -q 'verris-tasks.sh' "$PROBES"; then

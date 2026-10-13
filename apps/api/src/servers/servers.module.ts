@@ -35,10 +35,12 @@ import { KolejkaPocztyWezlaAdminController, KolejkaPocztyWezlaService } from './
 import { BlokadyIpWezlaAdminController, BlokadyIpWezlaService } from './blokady-ip-wezla.admin.controller.js';
 import { UslugiWezlaAdminController, UslugiWezlaService } from './uslugi-wezla.admin.controller.js';
 
+import { StraznikWezlaAdminController, StraznikWezlaService } from './straznik-wezla.service.js';
 @Module({
   imports: [PlatformSettingsModule, NotificationsModule, AiModule],
   controllers: [
     ServersController,
+    StraznikWezlaAdminController,
     KolejkaPocztyWezlaAdminController,
     PocztaWezlaAdminController,
     BlokadyIpWezlaAdminController,
@@ -54,6 +56,7 @@ import { UslugiWezlaAdminController, UslugiWezlaService } from './uslugi-wezla.a
   ],
   providers: [
     ServersService,
+    StraznikWezlaService,
     KolejkaPocztyWezlaService,
     PocztaWezlaService,
     BlokadyIpWezlaService,

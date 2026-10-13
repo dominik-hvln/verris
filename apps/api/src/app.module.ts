@@ -7,6 +7,7 @@ import { KontekstZadaniaInterceptor } from './common/audit/kontekst-zadania.js';
 
 import { loadConfig } from './config/configuration.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { AlarmyModule } from './alarmy/alarmy.module.js';
 import { CryptoModule } from './common/crypto/crypto.module.js';
 import { AuditModule } from './common/audit/audit.module.js';
 import { ObjectStorageModule } from './storage/object-storage.module.js';
@@ -74,6 +75,7 @@ import { ZadaniaWTleModule } from './zadania-w-tle/zadania-w-tle.module.js';
     }),
     ScheduleModule.forRoot(),
     PrismaModule,
+    AlarmyModule,
     CryptoModule,
     AuditModule,
     ObjectStorageModule,

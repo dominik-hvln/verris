@@ -641,3 +641,30 @@ export function zadaniaZalegleTemplate(ctx: ZadaniaZalegleContext): MailMessage 
     html,
   };
 }
+
+export interface AlarmOpsContext {
+  to: string;
+  firstName: string | null;
+  tytul: string;
+  tresc: string;
+  url: string;
+  waga: 'krytyczny' | 'ostrzezenie' | 'info';
+  panelUrl: string;
+}
+
+/** 13.10 — alarm operacyjny (AlarmyService): strażnik węzła, błąd systemowy w zadaniu węzła itp. */
+export function alarmOpsTemplate(ctx: AlarmOpsContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
+  const znak = ctx.waga === 'krytyczny' ? '🚨' : ctx.waga === 'ostrzezenie' ? '⚠️' : '✅';
+  const { html, text } = renderEmailShell({
+    title: ctx.tytul,
+    preheader: ctx.tresc.split('\n')[0].slice(0, 140),
+    bodyMarkdown: [greeting, '', ...ctx.tresc.split('\n').map((l) => escapeMarkdown(l)), '', `_Czas: ${escapeMarkdown(fmt(new Date()))}_`].join('\n'),
+    cta: { label: 'Otwórz w panelu', url: ctx.url },
+    footnote: 'Alarm operacyjny — otrzymują go wszyscy administratorzy. Ten sam alarm nie powtarza się w oknie deduplikacji.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'ops.alarm', subject: `[Verris] ${znak} ${ctx.tytul}`, text, html };
+}

@@ -5,6 +5,8 @@ import {
   Header,
   HttpCode,
   NotFoundException,
+  Optional,
+  ServiceUnavailableException,
   Param,
   Post,
   Req,
@@ -56,6 +58,7 @@ import { buildOnboardBundle, loadOnboardLiveScript } from './onboard-live.script
 import { BackupOffsiteService } from './backup-offsite.service.js';
 import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { stosJakoEnv } from './stos-wezla.js';
+import { loadStraznikScript, StraznikWezlaService, ZdarzenieStraznikaDto } from './straznik-wezla.service.js';
 import { StosWezlaService } from './stos-wezla.service.js';
 import { linijkaAuthorizedKeys, PodpisOdpowiedziInterceptor } from './podpis-skryptow.js';
 import { renderNodeTasksAgentInstallScript } from './node-tasks-agent.install.js';
@@ -111,7 +114,27 @@ export class NodeTasksAgentController {
     private readonly tasks: NodeTasksService,
     private readonly backup: BackupOffsiteService,
     private readonly stos: StosWezlaService,
+    @Optional() private readonly straznik?: StraznikWezlaService,
   ) {}
+
+  /** 13.10 — strażnik węzła: skrypt (instalacja agenta), wyłącznik restartu, raport zdarzenia. */
+  @Get('straznik/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  straznikScript() {
+    return loadStraznikScript();
+  }
+
+  @Get('straznik/config')
+  async straznikConfig() {
+    return { restartWezla: (await this.straznik?.restartDozwolony()) ?? false };
+  }
+
+  @Post('straznik/zdarzenie')
+  @HttpCode(200)
+  straznikZdarzenie(@Req() req: Request & { serverId?: string }, @Body() dto: ZdarzenieStraznikaDto) {
+    if (!this.straznik) throw new ServiceUnavailableException('Strażnik niedostępny');
+    return this.straznik.przyjmij(req.serverId!, dto);
+  }
 
   @Get('deploy-ssh-pubkey')
   deploySshPubkey() {
