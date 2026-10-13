@@ -28,7 +28,7 @@ describe('EcoModeCard — saldo punktów z rodzica', () => {
     const el = document.createElement('div');
     const root = createRoot(el);
     await act(async () => root.render(<EcoModeCard subscriptionId="s1" ecoModeEnabled={false} ecoPoints={136} />));
-    const przelacznik = el.querySelector('[role="checkbox"], input[type="checkbox"], button[aria-checked]') as HTMLElement;
+    const przelacznik = el.querySelector('[role="checkbox"], button[aria-checked], input') as HTMLElement;
     await act(async () => przelacznik.click());
     expect(el.textContent).toMatch(/Twoje punkty EKO: 141/);
     await act(async () => root.render(<EcoModeCard subscriptionId="s1" ecoModeEnabled={false} ecoPoints={141} />));
