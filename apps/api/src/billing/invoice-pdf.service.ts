@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PDFDocument, rgb, type PDFPage } from 'pdf-lib';
 import { osadzCzcionki } from '../common/pdf/czcionki.js';
-import { KOLORY_MARKI, osadzCzcionkiMarki, rysujLockup, szerokoscLockupu, type CzcionkiMarki } from '../common/pdf/marka.js';
+import { KOLORY_MARKI, krojDlaTekstu, osadzCzcionkiMarki, rysujLockup, szerokoscLockupu, type CzcionkiMarki } from '../common/pdf/marka.js';
 import { Prisma } from '@verris/database';
 
 import { RODZAJ_DOKUMENT_ROZLICZENIOWY, RODZAJ_PROFORMA } from './tryb-fakturowania.js';
@@ -248,30 +248,27 @@ export class InvoicePdfService {
       size: 9,
       font: fontRegular,
     });
-    if (ctx.korekta) {
-      page.drawText(
-        `Koryguje fakturę ${ctx.korekta.numerPierwotnej} z ${ctx.korekta.dataPierwotnej
-          .toISOString()
-          .slice(0, 10)}`,
-        { x: MARGIN, y: cursorY, size: 9, font: fontBold },
-      );
-      cursorY -= 13;
-      // Przyczyna jest polem OBOWIĄZKOWYM (art. 106j ust. 2 pkt 4), więc stoi
-      // na dokumencie, a nie tylko w dzienniku audytu.
-      page.drawText(`Przyczyna korekty: ${ctx.korekta.przyczyna}`, {
-        x: MARGIN,
-        y: cursorY,
-        size: 9,
-        font: fontRegular,
-      });
-      cursorY -= 15;
-    }
     page.drawText(dateLabel('Termin płatności', ctx.dueAt), {
       x: MARGIN + 360,
       y: cursorY,
       size: 9,
       font: fontRegular,
     });
+    if (ctx.korekta) {
+      // Przegląd 13.10: „Koryguje fakturę…” stało w tej samej linii co daty (nakładało się), a długa przyczyna
+      // wychodziła poza stronę — teraz osobne linie i zawijanie.
+      cursorY -= 14;
+      page.drawText(
+        `Koryguje fakturę ${ctx.korekta.numerPierwotnej} z ${formatDatePl(ctx.korekta.dataPierwotnej)}`,
+        { x: MARGIN, y: cursorY, size: 9, font: fontBold },
+      );
+      // Przyczyna jest polem OBOWIĄZKOWYM (art. 106j ust. 2 pkt 4), więc stoi
+      // na dokumencie, a nie tylko w dzienniku audytu.
+      for (const linia of zawin(`Przyczyna korekty: ${ctx.korekta.przyczyna}`, fontRegular, 9, PAGE_W - 2 * MARGIN)) {
+        cursorY -= 12;
+        page.drawText(linia, { x: MARGIN, y: cursorY, size: 9, font: fontRegular });
+      }
+    }
     cursorY -= 22;
 
     // --- Sprzedawca + Nabywca (2 boxy) ----------------------------------------
@@ -649,7 +646,11 @@ function drawSellerOrBuyer(
     page.drawText(data.country, { x, y, size: 9, font: fontRegular });
     y -= 11;
   }
-  page.drawText(data.email, { x, y, size: 9, font: fontRegular });
+  // Długi adres e-mail nie wychodzi poza ramkę (przegląd 13.10).
+  for (const linia of zawin(data.email, fontRegular, 9, maxW).slice(0, 2)) {
+    page.drawText(linia, { x, y, size: 9, font: fontRegular });
+    y -= 11;
+  }
 }
 
 function drawSummaryRow(
@@ -675,7 +676,7 @@ function measureText(
   font: Awaited<ReturnType<PDFDocument['embedFont']>>,
   size: number,
 ): number {
-  return font.widthOfTextAtSize(text, size);
+  return krojDlaTekstu(font, text).widthOfTextAtSize(text, size);
 }
 
 /**

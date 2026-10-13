@@ -167,7 +167,7 @@ export async function renderujFaktureKsefZTekstem(
     r.prostokat(0, PAGE_H - PAS_KOLEJNA - 1.5, PAGE_W, 1.5, K.mint);
     rysujLockup(r.page, MARGIN, PAGE_H - PAS_KOLEJNA / 2 - 6, 12, { kolor: K.paper, tlo: K.pine });
     const t = `${rodzajTytul} nr ${wiz.numer} (cd.)`;
-    r.page.drawText(t, { x: prawa - cz.tekstMocny.widthOfTextAtSize(t, 8.5), y: PAGE_H - PAS_KOLEJNA / 2 - 3, size: 8.5, font: cz.zapasowa(cz.tekstMocny, t), color: K.paper });
+    r.page.drawText(t, { x: prawa - cz.zapasowa(cz.tekstMocny, t).widthOfTextAtSize(t, 8.5), y: PAGE_H - PAS_KOLEJNA / 2 - 3, size: 8.5, font: cz.zapasowa(cz.tekstMocny, t), color: K.paper });
     r.y = PAGE_H - PAS_KOLEJNA - 22;
   };
   const r = new Rysownik(pdf, cz, pasKolejnej);

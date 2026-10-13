@@ -315,12 +315,22 @@ export class KsefService {
 
     // M-06 — korekta musi nieść numer i datę faktury korygowanej (a w FA(3) także jej numer
     // KSeF albo znacznik „poza KSeF”). Te dane siedzą na dokumencie pierwotnym.
-    let korygowana: { number: string; issuedAt: Date | null; ksefNumber: string | null; ksefStatus: KsefStatus } | null = null;
+    let korygowana: { number: string; issuedAt: Date | null; ksefNumber: string | null; ksefStatus: KsefStatus; ksefSrodowisko: string | null } | null = null;
     if (inv.kind === 'KOREKTA' && inv.correctedId) {
       korygowana = await this.prisma.invoice.findUnique({
         where: { id: inv.correctedId },
-        select: { number: true, issuedAt: true, ksefNumber: true, ksefStatus: true },
+        select: { number: true, issuedAt: true, ksefNumber: true, ksefStatus: true, ksefSrodowisko: true },
       });
+      // Przegląd 13.10: numer KSeF faktury przyjętej w innym środowisku (np. TEST) nie istnieje w bieżącym (PROD) —
+      // wpisany do NrKSeFFaKorygowanej dałby korektę faktury, której w tym KSeF nie ma.
+      if (korygowana?.ksefNumber && korygowana.ksefSrodowisko) {
+        const { env } = await this.settings.getKsefRuntimeConfig();
+        if (normalizujSrodowiskoKsef(korygowana.ksefSrodowisko) !== normalizujSrodowiskoKsef(env)) {
+          throw new FaXmlValidationError(
+            `Faktura korygowana ${korygowana.number} jest w KSeF ${korygowana.ksefSrodowisko}, a wysyłka idzie do ${env} — korekty nie da się wysłać do innego środowiska.`,
+          );
+        }
+      }
       if (korygowana && !korygowana.ksefNumber && STATUSY_Z_PLIKIEM_KSEF.includes(korygowana.ksefStatus)) {
         throw new KorygowanaBezNumeruKsef(
           `Faktura korygowana ${korygowana.number} czeka na numer KSeF — korekta pójdzie po nim.`,
@@ -372,10 +382,12 @@ export class KsefService {
       throw err;
     }
 
+    // Środowisko odczytane PRZED wysyłką (przegląd 13.10): błąd odczytu ustawień po przyjęciu pliku przez KSeF
+    // zostawiał fakturę PENDING bez numeru referencyjnego — następny cykl wysyłał ją drugi raz.
+    const { env } = await this.settings.getKsefRuntimeConfig();
     try {
       // Wysyłamy DOKŁADNIE zapisany plik — ten, którego skrót jest w kodzie QR.
       const { elementReferenceNumber } = await client.sendInvoice(plik.xml);
-      const { env } = await this.settings.getKsefRuntimeConfig();
       await this.prisma.invoice.update({
         where: { id: inv.id },
         data: {

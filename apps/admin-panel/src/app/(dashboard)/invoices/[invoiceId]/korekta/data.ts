@@ -29,8 +29,21 @@ export interface KorektaRow {
   storageKey: string | null;
 }
 
+type FakturaZApi = FakturaDoKorekty & {
+  stanPoKorektach?: Pick<FakturaDoKorekty, "amount" | "netAmount" | "vatAmount" | "lineItems" | "buyerSnapshot"> | null;
+};
+
+/**
+ * Faktura do korekty. Gdy ma już korekty — pozycje, kwoty i nabywca po ostatniej z nich: od tego stanu API liczy
+ * kolejną korektę (przegląd 13.10: formularz startował od faktury pierwotnej i K2 przywracała pozycje zdjęte w K1).
+ */
+export function doKorekty(f: FakturaZApi): FakturaDoKorekty {
+  const { stanPoKorektach: stan, ...faktura } = f;
+  return stan ? { ...faktura, ...stan } : faktura;
+}
+
 export async function getFaktura(id: string): Promise<FakturaDoKorekty> {
-  return adminApi<FakturaDoKorekty>(`/admin/invoices/${id}`);
+  return doKorekty(await adminApi<FakturaZApi>(`/admin/invoices/${id}`));
 }
 
 export async function getKorekty(id: string): Promise<KorektaRow[]> {

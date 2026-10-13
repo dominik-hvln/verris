@@ -29,5 +29,7 @@ describe('verris-node exec', () => {
     });
     const argi = readFileSync(log, 'utf8').trim().split('\n');
     expect(argi.slice(-3)).toEqual(['root@203.0.113.7', 'lshttpd', '-V']);
+    // Przegląd 13.10: `--` przed adresem — komenda zaczynająca się od „-” nie jest już opcją ssh.
+    expect(argi.slice(-4, -3)).toEqual(['--']);
   });
 });

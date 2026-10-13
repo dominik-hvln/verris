@@ -236,6 +236,7 @@ export function KorektaForm({ faktura }: { faktura: FakturaDoKorekty }) {
         <textarea
           value={przyczyna}
           onChange={(e) => setPrzyczyna(e.target.value)}
+          maxLength={256}
           rows={2}
           placeholder="np. Rezygnacja klienta w połowie okresu rozliczeniowego"
           className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-neutral-600"

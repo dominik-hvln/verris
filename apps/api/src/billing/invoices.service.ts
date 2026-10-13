@@ -3,6 +3,7 @@ import { ClientWebhooksService } from '../client-webhooks/client-webhooks.servic
 import { ConfigService } from '@nestjs/config';
 import { Invoice, InvoiceStatus, KsefStatus, Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { stanPoKorektach } from './korekty.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { KsefService, STATUSY_Z_PLIKIEM_KSEF } from '../ksef/ksef.service.js';
@@ -819,9 +820,26 @@ export class InvoicesService {
       },
     });
     if (!invoice) throw new NotFoundException('Faktura nie znaleziona');
+    const ostatniaKorekta =
+      invoice.kind === 'KOREKTA'
+        ? null
+        : await this.prisma.invoice.findFirst({
+            where: { correctedId: invoice.id, kind: 'KOREKTA' },
+            orderBy: [{ issuedAt: 'desc' }, { createdAt: 'desc' }],
+          });
+    const stan = ostatniaKorekta ? stanPoKorektach(invoice, ostatniaKorekta) : null;
     return {
       ...toAdminDto(invoice),
       kind: invoice.kind,
+      stanPoKorektach: stan
+        ? {
+            amount: stan.amount.toFixed(2),
+            netAmount: stan.netAmount?.toFixed(2) ?? null,
+            vatAmount: stan.vatAmount?.toFixed(2) ?? null,
+            lineItems: stan.lineItems ?? null,
+            buyerSnapshot: stan.buyerSnapshot ?? null,
+          }
+        : null,
       netAmount: invoice.netAmount?.toFixed(2) ?? null,
       vatAmount: invoice.vatAmount?.toFixed(2) ?? null,
       lineItems: invoice.lineItems ?? null,
@@ -1036,6 +1054,12 @@ export interface AdminInvoiceDetailDto extends AdminInvoiceDto {
   vatAmount: string | null;
   lineItems: unknown;
   buyerSnapshot: unknown;
+  /**
+   * Faktura z korektami: stan po ostatniej korekcie — od niego API liczy kolejną (korekty.service.ts
+   * stanPoKorektach), więc formularz kolejnej korekty musi startować od niego, nie od faktury pierwotnej
+   * (przegląd 13.10: K2 od pierwotnej przywracała po cichu pozycje zdjęte w K1). Null — brak korekt.
+   */
+  stanPoKorektach: { amount: string; netAmount: string | null; vatAmount: string | null; lineItems: unknown; buyerSnapshot: unknown } | null;
 }
 
 export interface AdminInvoiceListDto {

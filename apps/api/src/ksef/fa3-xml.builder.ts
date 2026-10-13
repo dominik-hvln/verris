@@ -39,6 +39,9 @@ export const FA3_SCHEMA_VERSION = '1-0E';
 export const FA3_FORM_VALUE = 'FA';
 export const FA3_FORM_VARIANT = 3;
 
+/** XSD FA(3) 1-0E — PrzyczynaKorekty: TZnakowy, maxLength 256. */
+export const MAKS_PRZYCZYNA_KOREKTY = 256;
+
 export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
   const inv = input.invoice;
   const seller = (inv.sellerSnapshot ?? {}) as PartySnapshot;
@@ -66,6 +69,12 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
   }
   if ((inv.currency ?? 'PLN') !== 'PLN') {
     throw new FaXmlValidationError(`KSeF: obsługujemy faktury PLN (jest: ${inv.currency}).`);
+  }
+  // XSD FA(3) 1-0E: PrzyczynaKorekty to TZnakowy (maks. 256 znaków) — dłuższą KSeF odrzuci za każdym razem.
+  if (inv.correctionReason && inv.correctionReason.trim().length > MAKS_PRZYCZYNA_KOREKTY) {
+    throw new FaXmlValidationError(
+      `Przyczyna korekty ma ${inv.correctionReason.trim().length} znaków — KSeF przyjmuje najwyżej ${MAKS_PRZYCZYNA_KOREKTY}.`,
+    );
   }
 
   const buyerNip = normalizeNip(buyer.nip);

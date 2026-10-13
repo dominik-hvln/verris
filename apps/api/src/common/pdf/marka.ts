@@ -87,6 +87,18 @@ export function rysujLockup(
   return szerokoscLockupu(wysokosc);
 }
 
+/** Krój faktycznie użyty do tekstu (marka albo zapasowy) — rejestrowany przy osadzeniu, per dokument. */
+const ZAPASOWE = new WeakMap<PDFFont, (t: string) => PDFFont>();
+
+/**
+ * Krój, którym tekst zostanie NARYSOWANY: dla czcionki marki — zapasowy, gdy w tekście jest znak spoza podzbioru.
+ * Pomiar szerokości (wyrównanie do prawej, zawijanie) musi używać tego samego kroju co rysowanie (przegląd 13.10:
+ * linie w kroju zapasowym mierzone krojem marki wychodziły poza kolumnę).
+ */
+export function krojDlaTekstu(font: PDFFont, t: string): PDFFont {
+  return ZAPASOWE.get(font)?.(t) ?? font;
+}
+
 export interface CzcionkiMarki {
   /** Hanken Grotesk 400 — tekst. */
   tekst: PDFFont;
@@ -132,11 +144,7 @@ export async function osadzCzcionkiMarki(pdf: PDFDocument, probkaTekstu: string)
     const zapas = await osadzCzcionki(pdf);
     odpowiednik.set(tekst, zapas.regular).set(tekstMocny, zapas.bold).set(liczby, zapas.mono).set(liczbyMocne, zapas.mono);
   }
-  return {
-    tekst,
-    tekstMocny,
-    liczby,
-    liczbyMocne,
-    zapasowa: (font, t) => (brakuje(font, t) ? (odpowiednik.get(font) ?? font) : font),
-  };
+  const zapasowa = (font: PDFFont, t: string) => (brakuje(font, t) ? (odpowiednik.get(font) ?? font) : font);
+  for (const f of [tekst, tekstMocny, liczby, liczbyMocne]) ZAPASOWE.set(f, (t) => zapasowa(f, t));
+  return { tekst, tekstMocny, liczby, liczbyMocne, zapasowa };
 }

@@ -777,9 +777,23 @@ export class PlatformSettingsService {
       throw new BadRequestException('KSeF: NIP (10 cyfr) jest wymagany przy włączeniu.');
     }
     const K = PLATFORM_SETTING_KEYS;
+    // Przegląd 13.10 — przełączenie środowiska (np. TEST → PROD) przy fakturach wysłanych, a jeszcze bez statusu:
+    // sprawdzanie statusu poszłoby do nowego środowiska z numerem sesji ze starego, faktury wisiałyby jako
+    // „wysłane” na zawsze i blokowały kolejkę wysyłki. Najpierw niech stare środowisko je przyjmie lub odrzuci.
+    const obecneEnv = this.normalizeKsefEnv(this.readStr(await this.loadMap(), K.KSEF_ENV, process.env.KSEF_ENV ?? 'test'));
+    const noweEnv = this.normalizeKsefEnv(input.env);
+    if (obecneEnv !== noweEnv) {
+      const wToku = await this.prisma.invoice.count({ where: { ksefStatus: 'SUBMITTED' } });
+      if (wToku > 0) {
+        throw new BadRequestException(
+          `KSeF: ${wToku} ${wToku === 1 ? 'faktura czeka' : 'faktur czeka'} na status w środowisku ${obecneEnv}. ` +
+            'Poczekaj, aż KSeF je przyjmie lub odrzuci (zwykle kilkanaście minut), i zmień środowisko ponownie.',
+        );
+      }
+    }
     const entries: Array<[PlatformSettingKey, string]> = [
       [K.KSEF_ENABLED, input.enabled ? '1' : '0'],
-      [K.KSEF_ENV, this.normalizeKsefEnv(input.env)],
+      [K.KSEF_ENV, noweEnv],
       [K.KSEF_NIP, nip],
     ];
     if (input.token && input.token.trim()) {

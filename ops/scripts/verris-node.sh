@@ -83,11 +83,14 @@ node_status() { cut -f4 <<<"$1"; }
 
 # Komenda (reszta argumentów) idzie do ssh po adresie. Do 12.10 funkcja ją pomijała:
 # `verris-node exec t1 -- <cmd>` otwierało zwykłą sesję zamiast wykonać polecenie.
+# `--` przed adresem (przegląd 13.10): ssh czyta opcje także PO adresie, więc komenda zaczynająca się od „-”
+# (np. `-oProxyCommand=…`) trafiała do ssh jako opcja. Uwaga: ssh skleja argumenty w jeden napis dla powłoki
+# węzła — cudzysłowy z lokalnej linii nie przechodzą; złożoną komendę podaj jako jeden argument w apostrofach.
 ssh_base() {
   local ip="$1"; shift
   ssh -i "$NODE_SSH_KEY" -p "$NODE_SSH_PORT" \
       -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 \
-      "${NODE_SSH_USER}@${ip}" "$@"
+      -- "${NODE_SSH_USER}@${ip}" "$@"
 }
 
 require_key() { [ -f "$NODE_SSH_KEY" ] || die "brak klucza $NODE_SSH_KEY (ustaw NODE_SSH_KEY)"; }

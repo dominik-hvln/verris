@@ -45,7 +45,9 @@ export class WystawKorekteDto {
    */
   @IsString()
   @MinLength(5)
-  @MaxLength(500)
+  // XSD FA(3) 1-0E: PrzyczynaKorekty maks. 256 znaków (ksef/fa3-xml.builder.ts MAKS_PRZYCZYNA_KOREKTY) — dłuższej
+  // KSeF nie przyjmie, a korekty nie da się już poprawić.
+  @MaxLength(256, { message: 'Przyczyna korekty: najwyżej 256 znaków (limit KSeF).' })
   przyczyna!: string;
 
   /** Pozycje po korekcie — wymagane dla korekty wartościowej. */

@@ -34,9 +34,9 @@ const klient = {
   downloadUpo: async () => '',
 };
 
-function ksef() {
+function ksef(env = 'test') {
   const p = prisma() as never;
-  const ustawienia = { getKsefRuntimeConfig: async () => ({ enabled: true, nip: '9292069367', token: 't', env: 'test' }) };
+  const ustawienia = { getKsefRuntimeConfig: async () => ({ enabled: true, nip: '9292069367', token: 't', env }) };
   const s = new KsefService(p, { get: () => undefined } as never, new AuditService(p), ustawienia as never);
   (s as unknown as { buildClient: () => Promise<unknown> }).buildClient = async () => klient;
   return s;
@@ -201,6 +201,25 @@ describe('KSeF 12.10 — plik faktury, kod QR, PDF/XML dla klienta', () => {
     expect(kor.ksefStatus).not.toBe(KsefStatus.PENDING);
     expect(kor.ksefXml).toContain(`<NrKSeFFaKorygowanej>${numerPierwotnej}</NrKSeFFaKorygowanej>`);
     expect(kor.ksefXml).toContain('<StanPrzed>1</StanPrzed>');
+  });
+
+  // Przegląd 13.10: po przełączeniu TEST → PROD korekta faktury przyjętej w TEST niosła numer KSeF z TEST.
+  it('korekta faktury przyjętej w innym środowisku KSeF: odrzucona przed wysyłką, z powodem', async () => {
+    const u = await uzytkownik();
+    const pierwotna = await fakturaPanelu(u.id, {
+      ksefStatus: KsefStatus.ACCEPTED, ksefNumber: '9292069367-20261012-0100A0B1C2D1-E4', ksefSrodowisko: 'test',
+    });
+    const korekta = await fakturaPanelu(u.id, {
+      number: 'VFK/2026/10/0002', kind: 'KOREKTA', correctedId: pierwotna.id, correctionKind: 'WARTOSCIOWA', correctionReason: 'Zwrot',
+      amount: new Prisma.Decimal('-61.50'), netAmount: new Prisma.Decimal('-50.00'), vatAmount: new Prisma.Decimal('-11.50'),
+      correctedLineItems: [pozycja], lineItems: [{ ...pozycja, unitNet: '50.00', totalNet: '50.00', totalVat: '11.50', totalGross: '61.50' }],
+      ksefStatus: KsefStatus.PENDING,
+    });
+    await ksef('prod').tick();
+    expect(wyslane).toHaveLength(0);
+    const kor = await stan(korekta.id);
+    expect(kor.ksefStatus).toBe(KsefStatus.REJECTED);
+    expect(kor.ksefError).toContain('innego środowiska');
   });
 
   it('ponowienie odrzuconej faktury buduje plik od nowa (dane mogły zostać poprawione)', async () => {
