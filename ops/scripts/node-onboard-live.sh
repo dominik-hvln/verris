@@ -104,6 +104,19 @@ backup_offsite_skonfigurowany() {
   rclone listremotes 2>/dev/null | grep -qx "${remote%%:*}:"
 }
 
+# 13.10 (t2): plik i remote były, ale Storage Box odrzucał połączenie (najpierw klucz hosta, potem dostęp spoza
+# sieci dostawcy) — onboard kończył się na zielono, a nocne kopie nie miały szans. Sprawdzamy realne połączenie:
+# rclone lsd na korzeniu remote'u (https://rclone.org/commands/rclone_lsd/), błąd z ostatnich linii do logu.
+BACKUP_BLAD=""
+backup_offsite_osiagalny() {
+  local remote err
+  # shellcheck disable=SC1091
+  remote="$(. /etc/verris-backup.conf 2>/dev/null; printf '%s' "${RCLONE_REMOTE:-}")"
+  err="$(timeout 90 rclone lsd "$remote" 2>&1 >/dev/null)" && return 0
+  BACKUP_BLAD="$(printf '%s' "$err" | tail -n 2 | tr '\n' ' ' | cut -c1-300)"
+  return 1
+}
+
 require_root() {
   [ "$(id -u)" = "0" ] || { log_fail "Uruchom jako root"; exit 1; }
 }
@@ -281,6 +294,10 @@ run_security_hardening() {
   fi
   if ! backup_offsite_skonfigurowany; then
     log_fail "Backup offsite nieskonfigurowany — utwórz /etc/verris-backup.conf (RCLONE_REMOTE, BACKUP_PREFIX) i remote w rclone.conf, potem uruchom onboard ponownie. Najprościej: kreator węzła → krok „Backup offsite” (zapis w panelu), potem uruchom onboard ponownie."
+  elif [ "$DRY_RUN" != "1" ] && ! backup_offsite_osiagalny; then
+    log_fail "Backup offsite skonfigurowany, ale zdalny dysk odrzuca połączenie: ${BACKUP_BLAD:-brak szczegółów} — sprawdź dostęp do Storage Boxa (dostęp spoza sieci dostawcy, klucz hosta) i uruchom onboard ponownie."
+  else
+    log_ok "Backup offsite: zdalny dysk przyjmuje połączenie"
   fi
 }
 

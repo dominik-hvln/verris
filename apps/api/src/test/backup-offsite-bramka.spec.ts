@@ -28,6 +28,13 @@ describe('H-19 — bramka backupu offsite w onboardzie węzła', () => {
     expect(onboard).toMatch(/backup_offsite_skonfigurowany\(\) \{[\s\S]*RCLONE_REMOTE[\s\S]*rclone listremotes/);
   });
 
+  it('skonfigurowany, ale nieosiągalny zdalny dysk to [FAIL] z przyczyną (13.10, t2)', () => {
+    expect(onboard).toMatch(/backup_offsite_osiagalny\(\) \{[\s\S]*rclone lsd "\$remote"/);
+    const blok = onboard.slice(onboard.indexOf('elif [ "$DRY_RUN" != "1" ] && ! backup_offsite_osiagalny'), onboard.indexOf('elif [ "$DRY_RUN" != "1" ] && ! backup_offsite_osiagalny') + 200);
+    expect(blok).toContain('log_fail');
+    expect(blok).toContain('BACKUP_BLAD');
+  });
+
   it('kreator kopiuje cały katalog skryptów i ma krok konfiguracji backupu', () => {
     expect(kreator).toContain('tar czf - ops/scripts ops/hosting-default-page ops/etc/verris/security ops/systemd');
     expect(kreator).toContain('id: "backup-offsite"');
