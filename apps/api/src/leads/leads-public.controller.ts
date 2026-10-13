@@ -2,6 +2,7 @@ import { Body, Controller, Get, Header, HttpCode, Post, Query, Req } from '@nest
 import type { Request } from 'express';
 import { LeadsService } from './leads.service.js';
 import { SubmitLeadDto } from './dto/submit-lead.dto.js';
+import { RateLimit } from '../common/guards/rate-limit.guard.js';
 
 /**
  * Publiczne formularze z verris.pl (LP „Zaplanuj migrację" + „Kontakt").
@@ -12,8 +13,11 @@ import { SubmitLeadDto } from './dto/submit-lead.dto.js';
 export class LeadsPublicController {
   constructor(private readonly leads: LeadsService) {}
 
+  // Audyt bezpieczeństwa 13.10: formularz wysyła mail z naszej domeny na adres podany przez anonima —
+  // limit per IP i per adres odbiorcy (keyByBodyField), żeby nie dało się nim zasypać cudzej skrzynki.
   @Post()
   @HttpCode(202)
+  @RateLimit({ limit: 5, windowMs: 60 * 60 * 1000, scope: 'leads:submit', keyByBodyField: 'email' })
   async submit(@Body() dto: SubmitLeadDto, @Req() req: Request) {
     const ip =
       req.ip || (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim();

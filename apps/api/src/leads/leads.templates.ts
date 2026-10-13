@@ -69,12 +69,14 @@ export function leadOptInTemplate(input: { to: string; confirmUrl: string; panel
 }
 
 /** Podziękowanie za zapytanie kontaktowe (CONTACT). */
-export function leadContactAckTemplate(input: { to: string; name?: string | null; panelUrl: string }): Szablon {
+// Audyt bezpieczeństwa 13.10: bez pola „imię” z formularza — anonim wpisywał tam dowolny tekst, który szedł
+// z naszej domeny na dowolny adres (spam/phishing z podpisem Verris).
+export function leadContactAckTemplate(input: { to: string; panelUrl: string }): Szablon {
   const { html, text } = renderEmailShell({
     title: 'Otrzymaliśmy Twoją wiadomość',
     preheader: 'Odezwiemy się zwykle tego samego dnia roboczego.',
     bodyMarkdown: [
-      input.name ? `Cześć **${md(input.name)}**,` : 'Cześć,',
+      'Cześć,',
       '',
       'Dziękujemy za wiadomość — przyjęliśmy Twoje zapytanie i odezwiemy się na ten adres, zwykle tego samego dnia roboczego.',
       '',

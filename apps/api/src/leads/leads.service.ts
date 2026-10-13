@@ -57,6 +57,12 @@ export class LeadsService {
     }
 
     const confirmToken = kind === SiteLeadKind.MIGRATION ? randomUUID() : null;
+    // Audyt bezpieczeństwa 13.10: najwyżej jeden mail do nadawcy na adres na dobę (potwierdzenie albo opt-in).
+    // Kolejne zgłoszenia zapisujemy i zgłaszamy obsłudze, ale nie wysyłamy nic na niezweryfikowany adres.
+    const ostatni = await this.prisma.siteLead.findFirst({
+      where: { email, createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+      select: { id: true },
+    });
 
     const lead = await this.prisma.siteLead.create({
       data: {
@@ -101,6 +107,8 @@ export class LeadsService {
       })
       .catch((e) => this.logger.warn(`lead notify mail failed: ${e?.message ?? e}`));
 
+    if (ostatni) return { status: kind === SiteLeadKind.MIGRATION ? 'pending' : 'received' };
+
     if (kind === SiteLeadKind.MIGRATION && confirmToken) {
       // Double opt-in — bez potwierdzenia lead nie wchodzi do sekwencji.
       void this.mailer
@@ -117,7 +125,7 @@ export class LeadsService {
     // CONTACT — potwierdzenie dla nadawcy.
     void this.mailer
       .send({
-        ...leadContactAckTemplate({ to: email, name: dto.name, panelUrl: this.panelUrl() }),
+        ...leadContactAckTemplate({ to: email, panelUrl: this.panelUrl() }),
         category: 'TRANSACTIONAL',
         fromRole: 'SUPPORT',
       })
