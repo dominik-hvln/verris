@@ -13,6 +13,7 @@ import { limitZLogu } from './poczta-wezla.js';
 import { wynikUsuwania } from './kolejka-poczty.js';
 import { DirectAdminService } from './directadmin.service.js';
 import { PLANY_Z_PAKIETEM_DA } from './da-package-spec.js';
+import { deltaKsiegi, KONTO_NIEISTNIEJACE, ksiegaUpdateData } from '../subscriptions/node-capacity.js';
 
 /** Desired CloudLinux LVE state for a node (consumed by the on-node verris-lve agent). */
 export interface NodeDesiredLve {
@@ -752,12 +753,28 @@ export class NodeTasksService {
       task.kind === NodeTaskKind.OFFSITE_RESTORE && p.mode === 'restore' && p.przeniesienie === '1' && task.accountId &&
       new RegExp(`^VERRIS-OFFSITE-RESTORED ${p.daUser}\\s*$`, 'm').test(log ?? '')
     ) {
-      const przed = await this.prisma.account.findUnique({ where: { id: task.accountId }, select: { serverId: true, userId: true } });
-      await this.prisma.account.update({ where: { id: task.accountId }, data: { serverId: opts.serverId } });
+      // 13.10 — przepięcie bez księgi pojemności (Z-16) zostawiało limity konta na starym węźle: asercja po migracji
+      // zatrzymała wdrożenie („2 węzłów ma księgę niezgodną”). Limity przechodzą ze starego węzła na nowy w tej samej
+      // transakcji co serverId; warunek na stary serverId chroni przed podwójnym przeniesieniem przy ponowionym raporcie.
+      const accountId = task.accountId;
+      const przed = await this.prisma.$transaction(async (tx) => {
+        const k = await tx.account.findUnique({
+          where: { id: accountId },
+          select: { serverId: true, userId: true, status: true, cpuLimit: true, ramLimitMb: true, diskLimitMb: true },
+        });
+        if (!k || k.serverId === opts.serverId) return k;
+        const o = await tx.account.updateMany({ where: { id: accountId, serverId: k.serverId }, data: { serverId: opts.serverId } });
+        if (o.count > 0 && k.status !== AccountStatus.DELETED) {
+          const limity = { cpu: k.cpuLimit, ramMb: k.ramLimitMb, diskMb: k.diskLimitMb };
+          await tx.server.update({ where: { id: k.serverId }, data: ksiegaUpdateData(deltaKsiegi(limity, KONTO_NIEISTNIEJACE)) });
+          await tx.server.update({ where: { id: opts.serverId }, data: ksiegaUpdateData(deltaKsiegi(KONTO_NIEISTNIEJACE, limity)) });
+        }
+        return k;
+      });
       await this.audit.record({
         action: 'ACCOUNT_MOVED_TO_NODE',
         userId: przed?.userId ?? undefined,
-        details: { accountId: task.accountId, fromServerId: przed?.serverId ?? null, toServerId: opts.serverId, taskId: task.id },
+        details: { accountId, fromServerId: przed?.serverId ?? null, toServerId: opts.serverId, taskId: task.id },
       });
     }
 

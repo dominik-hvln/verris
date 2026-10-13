@@ -50,6 +50,11 @@ const PISARZE_KSIEGI = [
     nazwa: 'usunięcie konta — wszystko wraca',
     plik: 'apps/api/src/compliance/account-deletion.service.ts',
   },
+  {
+    // 13.10 — H-16: przepięcie konta na inny węzeł bez księgi cofnęło wdrożenie na asercji Z-16.
+    nazwa: 'przeniesienie konta na inny węzeł — limity idą za kontem',
+    plik: 'apps/api/src/servers/node-tasks.service.ts',
+  },
 ];
 
 const SELEKTOR = 'apps/api/src/subscriptions/node-selector.service.ts';

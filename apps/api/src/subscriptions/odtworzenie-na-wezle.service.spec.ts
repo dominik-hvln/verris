@@ -61,25 +61,82 @@ describe('H-16 — odtworzenie konta na innym węźle', () => {
     ['VERRIS-OFFSITE-RESTORED klient1', true],
     ['[FAIL] cos poszlo nie tak', false],
   ])('po zakończeniu zadania (%s) konto przepina się tylko po potwierdzeniu węzła', async (log, przepiete) => {
-    const task = {
-      id: 't1', serverId: 's-nowy', status: 'RUNNING', kind: 'OFFSITE_RESTORE', accountId: 'a1',
-      payload: { mode: 'restore', przeniesienie: '1', daUser: 'klient1' },
-      createdAt: new Date(), updatedAt: new Date(), startedAt: null, completedAt: new Date(),
-    };
-    const prisma = {
-      nodeTask: { findUnique: vi.fn(async () => task), update: vi.fn(async () => task) },
-      account: { findUnique: vi.fn(async () => ({ serverId: 's-stary', userId: 'u1' })), update: vi.fn() },
-    };
-    const audit = { record: vi.fn() };
+    const task = zadanieRestore();
+    const { prisma, audit } = zakonczenie(task);
     await new NodeTasksService(prisma as never, audit as never, {} as never).completeTaskFromNode({ serverId: 's-nowy', taskId: 't1', outputLog: log });
     if (przepiete) {
-      expect(prisma.account.update).toHaveBeenCalledWith({ where: { id: 'a1' }, data: { serverId: 's-nowy' } });
+      expect(prisma.account.updateMany).toHaveBeenCalledWith({ where: { id: 'a1', serverId: 's-stary' }, data: { serverId: 's-nowy' } });
       expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'ACCOUNT_MOVED_TO_NODE' }));
     } else {
-      expect(prisma.account.update).not.toHaveBeenCalled();
+      expect(prisma.account.updateMany).not.toHaveBeenCalled();
     }
   });
+
+  // 13.10 — przepięcie rdeetgju t1→t2 bez księgi: asercja Z-16 po migracji cofnęła wdrożenie
+  // („2 węzłów ma księgę niezgodną z sumą limitów kont żywych”).
+  it('przepięcie przenosi limity konta w księdze pojemności (Z-16): stary węzeł −, nowy +', async () => {
+    const { prisma, audit } = zakonczenie(zadanieRestore());
+    await new NodeTasksService(prisma as never, audit as never, {} as never).completeTaskFromNode({
+      serverId: 's-nowy', taskId: 't1', outputLog: 'VERRIS-OFFSITE-RESTORED klient1',
+    });
+    expect(prisma.server.update).toHaveBeenCalledWith({
+      where: { id: 's-stary' },
+      data: { allocatedCpu: { increment: -100 }, allocatedMemory: { increment: -1024 }, allocatedDisk: { increment: -10240 } },
+    });
+    expect(prisma.server.update).toHaveBeenCalledWith({
+      where: { id: 's-nowy' },
+      data: { allocatedCpu: { increment: 100 }, allocatedMemory: { increment: 1024 }, allocatedDisk: { increment: 10240 } },
+    });
+    expect(prisma.$transaction).toHaveBeenCalled();
+  });
+
+  it('ponowiony raport (konto już na nowym węźle) i wyścig nie przenoszą księgi drugi raz', async () => {
+    const juz = zakonczenie(zadanieRestore(), { serverId: 's-nowy' });
+    await new NodeTasksService(juz.prisma as never, juz.audit as never, {} as never).completeTaskFromNode({
+      serverId: 's-nowy', taskId: 't1', outputLog: 'VERRIS-OFFSITE-RESTORED klient1',
+    });
+    expect(juz.prisma.server.update).not.toHaveBeenCalled();
+
+    const wyscig = zakonczenie(zadanieRestore(), {}, 0);
+    await new NodeTasksService(wyscig.prisma as never, wyscig.audit as never, {} as never).completeTaskFromNode({
+      serverId: 's-nowy', taskId: 't1', outputLog: 'VERRIS-OFFSITE-RESTORED klient1',
+    });
+    expect(wyscig.prisma.server.update).not.toHaveBeenCalled();
+  });
+
+  it('konto usunięte (poza księgą) — przepięcie bez ruchu księgi', async () => {
+    const { prisma, audit } = zakonczenie(zadanieRestore(), { status: 'DELETED' });
+    await new NodeTasksService(prisma as never, audit as never, {} as never).completeTaskFromNode({
+      serverId: 's-nowy', taskId: 't1', outputLog: 'VERRIS-OFFSITE-RESTORED klient1',
+    });
+    expect(prisma.account.updateMany).toHaveBeenCalled();
+    expect(prisma.server.update).not.toHaveBeenCalled();
+  });
 });
+
+function zadanieRestore() {
+  return {
+    id: 't1', serverId: 's-nowy', status: 'RUNNING', kind: 'OFFSITE_RESTORE', accountId: 'a1',
+    payload: { mode: 'restore', przeniesienie: '1', daUser: 'klient1' },
+    createdAt: new Date(), updatedAt: new Date(), startedAt: null, completedAt: new Date(),
+  };
+}
+
+function zakonczenie(task: object, konto: Record<string, unknown> = {}, przepieto = 1) {
+  const prisma = {
+    nodeTask: { findUnique: vi.fn(async () => task), update: vi.fn(async () => task) },
+    account: {
+      findUnique: vi.fn(async () => ({
+        serverId: 's-stary', userId: 'u1', status: 'ACTIVE', cpuLimit: 100, ramLimitMb: 1024, diskLimitMb: 10240, ...konto,
+      })),
+      update: vi.fn(),
+      updateMany: vi.fn(async () => ({ count: przepieto })),
+    },
+    server: { update: vi.fn() },
+    $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(prisma)),
+  };
+  return { prisma, audit: { record: vi.fn() } };
+}
 
 describe('przyczynaBledu — co operator widzi przy nieudanym zadaniu (13.10, t2)', () => {
   const NAGLOWEK = '=== Verris task ed91 (kind=OFFSITE_RESTORE) ===\nStart: 2026-10-13T15:07:29Z\nCommand: /usr/local/bin/verris-account-restore.sh \n---\n';
