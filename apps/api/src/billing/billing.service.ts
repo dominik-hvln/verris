@@ -27,7 +27,8 @@ import {
 } from './stripe/stripe.client.js';
 import { InvoicesService } from './invoices.service.js';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service.js';
-import { RenewalScheduler } from '../subscriptions/renewal.scheduler.js';
+import { OSTATNIE_ZAWIESZENIE, RenewalScheduler, zawieszonaPrzezKarencje } from '../subscriptions/renewal.scheduler.js';
+import { gdziePlatnoscZamowienia, kluczPierwszejOplaty } from './paynow/zamowienie-paynow.js';
 import { nazwaPozycjiUslugi } from './pozycja-uslugi.js';
 import { wplataZaK } from './vat.js';
 import { MailerService } from '../mail/mailer.service.js';
@@ -712,22 +713,35 @@ export class BillingService {
   }
 
   /**
-   * Zaległe odnowienie (PAST_DUE albo zawieszenie po karencji) opłacone przez Paynow kwotą odnowienia —
-   * po wpłacie odnowienie robi {@link RenewalScheduler.retryPastDueNow} (to samo co „Opłać teraz z portfela”).
+   * „Zapłać BLIK-iem lub przelewem” przy usłudze (POST /subscriptions/:id/zaplac-paynow):
+   * - zamówienie czekające na płatność (PENDING_PAYMENT, portfel), które klient zaczął płacić przez Paynow, a płatność
+   *   nie doszła (BLIK odrzucony, karta zamknięta) — ponowna płatność za tę samą usługę (domena z pierwszej płatności);
+   * - zaległe odnowienie (PAST_DUE albo zawieszenie po karencji, okres nieopłacony) — kwotą odnowienia; po wpłacie
+   *   odnowienie robi {@link RenewalScheduler.retryPastDueNow} (to samo co „Opłać teraz z portfela”).
+   * Zawieszenia ręczne (obsługa, także „brak płatności” wybrany przez obsługę) wpłata nie zdejmuje — odmowa PRZED
+   * pobraniem pieniędzy (przegląd 13.10: wcześniej klient płacił, a odnowienie odmawiało).
    */
-  async zaplacOdnowieniePaynow(userId: string, subscriptionId: string): Promise<{ url: string }> {
+  async zaplacUslugePaynow(userId: string, subscriptionId: string, teraz = new Date()): Promise<{ url: string }> {
     const paynow = this.paynowKlient();
     if (!paynow) this.sprawdzPaynowZamowienia();
     const sub = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
-      include: { plan: { select: { name: true } }, account: { select: { domain: true } } },
+      include: { plan: { select: { name: true } }, account: { select: { domain: true } }, ...OSTATNIE_ZAWIESZENIE },
     });
     if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
-    if (sub.status !== 'PAST_DUE' && sub.status !== 'SUSPENDED') {
-      throw new ConflictException('Usługa nie ma zaległej płatności.');
-    }
     if (sub.paymentSource !== 'WALLET') {
       throw new ConflictException('Ta usługa nie jest rozliczana z portfela — zaległą płatność opłacisz w Rozliczeniach.');
+    }
+    if (sub.status === 'PENDING_PAYMENT') return this.ponowZamowieniePaynow(paynow!, userId, sub);
+    if (sub.status === 'SUSPENDED') {
+      if (!zawieszonaPrzezKarencje(sub.events)) {
+        throw new ConflictException('Usługę zawiesiła obsługa — napisz do pomocy, aby ją wznowić.');
+      }
+      if (sub.currentPeriodEnd && sub.currentPeriodEnd > teraz) {
+        throw new ConflictException('Ten okres jest już opłacony — usługa wróci automatycznie w ciągu godziny.');
+      }
+    } else if (sub.status !== 'PAST_DUE') {
+      throw new ConflictException('Usługa nie ma zaległej płatności.');
     }
     const kwotaK = new Prisma.Decimal(
       await this.promo.resolveNextRenewalAmount({
@@ -747,6 +761,40 @@ export class BillingService {
       waluta: sub.currency,
       opis: `${sub.plan.name} — odnowienie${sub.account?.domain ? ` (${sub.account.domain})` : ''} — Verris`,
       dodatkowe: {},
+    });
+  }
+
+  /** Ponowna płatność za zamówienie, którego pierwsza płatność Paynow nie doszła do skutku. */
+  private async ponowZamowieniePaynow(
+    paynow: PaynowClient,
+    userId: string,
+    sub: { id: string; interval: 'MONTH' | 'YEAR'; currency: string; priceAmount: Prisma.Decimal; plan: { name: string } },
+  ): Promise<{ url: string }> {
+    // Zamówienie już raz obciążone i zwrócone (nieudane zakładanie) ma zużyty klucz pierwszej opłaty — kolejne
+    // obciążenie byłoby „idempotentnym trafieniem” bez pobrania. Takie zamówienie klient składa od nowa.
+    if (await this.ledger.findByIdempotencyKey(kluczPierwszejOplaty(sub.id))) {
+      throw new ConflictException('Tego zamówienia nie udało się uruchomić, a środki wróciły do portfela — zamów usługę ponownie.');
+    }
+    const poprzednia = await this.prisma.paynowPlatnosc.findFirst({
+      where: { userId, ...gdziePlatnoscZamowienia(sub.id, 'nowa') },
+      orderBy: { createdAt: 'desc' },
+      select: { status: true, meta: true },
+    });
+    if (!poprzednia) {
+      throw new ConflictException('To zamówienie opłacisz z portfela — doładuj portfel albo zamów usługę ponownie z płatnością BLIK lub przelewem.');
+    }
+    if (poprzednia.status === 'CONFIRMED') {
+      throw new ConflictException('Płatność za to zamówienie już do nas dotarła — usługa jest uruchamiana.');
+    }
+    if (poprzednia.status === 'NEW' || poprzednia.status === 'PENDING') {
+      throw new ConflictException('Poprzednia płatność za to zamówienie jeszcze trwa — poczekaj na jej wynik (przelew bywa księgowany z opóźnieniem).');
+    }
+    const m = (poprzednia.meta ?? {}) as Record<string, string>;
+    return this.zaplacZamowieniePaynow(userId, {
+      subscriptionId: sub.id,
+      kwotaK: new Prisma.Decimal(sub.priceAmount),
+      domena: m.domena ?? null,
+      region: m.region ?? null,
     });
   }
 
@@ -844,31 +892,45 @@ export class BillingService {
       } else {
         throw new Error(`Nieznany typ zamówienia: ${meta.zamowienieTyp}`);
       }
+    } catch (err) {
+      const powod = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Paynow: zamówienie ${meta.zamowienieTyp} sub=${subscriptionId} niezrealizowane po wpłacie ${walletTxId}: ${powod}`);
+      try {
+        await this.alarmZamowienia(userId, meta, walletTxId, powod);
+      } catch (e) {
+        this.logger.error(`Paynow: alarm o niezrealizowanym zamówieniu sub=${subscriptionId} nie zapisany: ${(e as Error).message}`);
+      }
+      return;
+    }
+    try {
       await this.audit.record({
         action: ZamowieniePaynowActions.ZAMOWIENIE_PAYNOW_ZREALIZOWANE,
         userId,
         details: { subscriptionId, typ: meta.zamowienieTyp, walletTxId },
       });
-    } catch (err) {
-      const powod = err instanceof Error ? err.message : String(err);
-      this.logger.error(`Paynow: zamówienie ${meta.zamowienieTyp} sub=${subscriptionId} niezrealizowane po wpłacie ${walletTxId}: ${powod}`);
-      await this.audit.record({
-        action: ZamowieniePaynowActions.ZAMOWIENIE_PAYNOW_NIEZREALIZOWANE,
-        userId,
-        details: { subscriptionId, typ: meta.zamowienieTyp, walletTxId, powod },
-      });
-      const admini = await this.prisma.user.findMany({ where: { role: 'ADMIN', loginBlocked: false }, select: { id: true } });
-      await this.prisma.notification.createMany({
-        data: admini.map((a) => ({
-          userId: a.id,
-          category: 'SYSTEM',
-          severity: 'warning',
-          title: 'Opłacone zamówienie nie zostało zrealizowane',
-          body: `Klient zapłacił przez Paynow za ${meta.zamowienieTyp === 'odnowienie' ? 'odnowienie usługi' : 'nową usługę'}, ale realizacja się nie udała (${powod.slice(0, 200)}). Środki są w portfelu klienta — sprawdź usługę i skontaktuj się z klientem.`,
-          link: `/customers/${userId}`,
-        })),
-      });
+    } catch {
+      // Dziennik nie cofa zrealizowanego zamówienia.
     }
+  }
+
+  /** Wpłata Paynow za zamówienie jest w portfelu, a zamówienie nie zostało zrealizowane — dziennik i alarm dla adminów. */
+  async alarmZamowienia(userId: string, meta: Record<string, string | undefined>, walletTxId: string | null, powod: string): Promise<void> {
+    await this.audit.record({
+      action: ZamowieniePaynowActions.ZAMOWIENIE_PAYNOW_NIEZREALIZOWANE,
+      userId,
+      details: { subscriptionId: meta.subscriptionId, typ: meta.zamowienieTyp, walletTxId, powod },
+    });
+    const admini = await this.prisma.user.findMany({ where: { role: 'ADMIN', loginBlocked: false }, select: { id: true } });
+    await this.prisma.notification.createMany({
+      data: admini.map((a) => ({
+        userId: a.id,
+        category: 'SYSTEM',
+        severity: 'warning',
+        title: 'Opłacone zamówienie nie zostało zrealizowane',
+        body: `Klient zapłacił przez Paynow za ${meta.zamowienieTyp === 'odnowienie' ? 'odnowienie usługi' : 'nową usługę'}, ale realizacja się nie udała (${powod.slice(0, 200)}). Środki są w portfelu klienta — sprawdź usługę i skontaktuj się z klientem.`,
+        link: `/customers/${userId}`,
+      })),
+    });
   }
 
   /**
@@ -1010,16 +1072,23 @@ export class BillingService {
     if (meta.kind === 'proforma' && meta.proformaId) {
       await this.poWplacieDoProformy({ userId: rek.userId, proformaId: meta.proformaId, walletTxId: wpis.id, kanal: 'PAYNOW' });
     }
-    await this.poZaksiegowaniuDoladowania({
-      userId: rek.userId,
-      wpis,
-      kredytK,
-      meta,
-      kwota: (rek.kwotaMinor / 100).toFixed(2),
-      waluta: rek.waluta,
-      odniesienie: `paynow:${rek.id}`,
-      szczegoly: { provider: 'PAYNOW', paynowId: rek.id, paymentId: rek.paymentId },
-    });
+    // Zamówienie: realizacja nie może zależeć od skutków ubocznych (audyt, bonus, EKO) — tylko ten przebieg przestawił
+    // rekord na CONFIRMED, więc wyjątek tutaj zostawiłby opłacone zamówienie bez realizacji (ponowienie widzi count = 0).
+    try {
+      await this.poZaksiegowaniuDoladowania({
+        userId: rek.userId,
+        wpis,
+        kredytK,
+        meta,
+        kwota: (rek.kwotaMinor / 100).toFixed(2),
+        waluta: rek.waluta,
+        odniesienie: `paynow:${rek.id}`,
+        szczegoly: { provider: 'PAYNOW', paynowId: rek.id, paymentId: rek.paymentId },
+      });
+    } catch (err) {
+      if (meta.kind !== 'zamowienie') throw err;
+      this.logger.error(`Paynow: skutki uboczne wpłaty ${rek.id} nie powiodły się: ${err instanceof Error ? err.message : String(err)}`);
+    }
     if (meta.kind === 'zamowienie') await this.zrealizujZamowienie(rek.userId, meta, wpis.id);
   }
 

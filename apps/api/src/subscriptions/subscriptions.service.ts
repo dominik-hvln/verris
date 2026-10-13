@@ -47,6 +47,7 @@ import { KOD_U_PARTNERA, klientAktywnegoResellera, narzutResellera, zNarzutem } 
 import { POWODY_ZDEJMOWANE_BEZ_OBSLUGI, zawieszenieObejmujeZaleglosc } from './powody-zawieszenia.js';
 import { limityIndywidualneDlaKlienta, planZNadpisaniami } from './limity-indywidualne.js';
 import { planResourceFields } from '../servers/da-package-spec.js';
+import { gdziePlatnoscZamowienia, kluczPierwszejOplaty } from '../billing/paynow/zamowienie-paynow.js';
 
 export type SuspendReason =
   | 'PAYMENT_FAILED'
@@ -687,7 +688,11 @@ export class SubscriptionsService {
     // Nieopłacone zamówienie (np. porzucona płatność Paynow): zarezerwowany kod rabatowy wraca do klienta —
     // tak samo jak przy braku środków w portfelu w chwili zamówienia.
     if (subscription.status === SubscriptionStatus.PENDING_PAYMENT && subscription.appliedPromoCodeId) {
-      await this.promo.zwolnijKodUslugi(subscription.userId, subscription.appliedPromoCodeId).catch(() => undefined);
+      try {
+        await this.promo.zwolnijKodUslugi(subscription.userId, subscription.appliedPromoCodeId);
+      } catch (err) {
+        this.logger.warn(`Nie oddano kodu rabatowego sub=${subscription.id}: ${(err as Error).message}`);
+      }
     }
     await this.audit.record({
       action: 'SUBSCRIPTION_CANCELED',
@@ -1589,6 +1594,11 @@ export class SubscriptionsService {
     if (sub.status !== SubscriptionStatus.PENDING_PAYMENT || sub.paymentSource !== SubscriptionPaymentSource.WALLET) {
       throw new ConflictException(`Usługa nie czeka na płatność z portfela (stan: ${sub.status}).`);
     }
+    // Zamówienie raz obciążone i zwrócone (nieudane zakładanie): klucz pierwszej opłaty jest zużyty, więc obciążenie
+    // byłoby „idempotentnym trafieniem” bez pobrania — usługa za darmo, a wpłata zostałaby w portfelu.
+    if (await this.walletLedger.findByIdempotencyKey(kluczPierwszejOplaty(sub.id))) {
+      throw new ConflictException('To zamówienie było już obciążane (nieudane zakładanie, środki zwrócone) — wymaga nowego zamówienia.');
+    }
     const isAppLevel = (sub.plan.productKind as string) === 'EMAIL_MARKETING';
     if (!isAppLevel && !z.domain) throw new BadRequestException('Zamówienie bez domeny — nie da się założyć konta.');
     const dto = {
@@ -1631,18 +1641,32 @@ export class SubscriptionsService {
       type: WalletTxType.CHARGE_SUBSCRIPTION,
       amount,
       description: `Subscription ${subscriptionId} (initial payment)`,
-      idempotencyKey: `sub-${subscriptionId}-initial`,
+      idempotencyKey: kluczPierwszejOplaty(subscriptionId),
       subscriptionId,
     });
 
-    const subscription = await this.prisma.subscription.update({
-      where: { id: subscriptionId },
+    // Warunkowo: zamówienie mogło zostać anulowane (klient, sprzątanie po 48 h) między sprawdzeniem a obciążeniem —
+    // wtedy zwrot i odmowa zamiast przestawienia anulowanej usługi na zakładanie (przegląd 13.10, zakup przez Paynow).
+    const { count: przestawiono } = await this.prisma.subscription.updateMany({
+      where: { id: subscriptionId, status: SubscriptionStatus.PENDING_PAYMENT },
       data: {
         status: SubscriptionStatus.PROVISIONING,
         currentPeriodStart: new Date(),
         currentPeriodEnd: addInterval(new Date(), dto.interval),
       },
     });
+    if (przestawiono === 0) {
+      await this.walletLedger.credit({
+        userId,
+        type: WalletTxType.REFUND,
+        amount,
+        description: `Auto-refund: order no longer awaiting payment ${subscriptionId}`,
+        idempotencyKey: `sub-${subscriptionId}-initial-refund`,
+        subscriptionId,
+      });
+      throw new ConflictException('Zamówienie nie czeka już na płatność (anulowane) — środki wróciły do portfela.');
+    }
+    const subscription = await this.prisma.subscription.findUniqueOrThrow({ where: { id: subscriptionId } });
 
     try {
       if (this.provisionQueue.isAsync()) {
@@ -1948,6 +1972,31 @@ export class SubscriptionsService {
     return { url };
   }
 
+  /** Czy za to zamówienie dotarła wpłata Paynow (`kind: 'zamowienie'`, CONFIRMED). */
+  private async oplaconePrzezPaynow(subscriptionId: string): Promise<boolean> {
+    return (await this.prisma.paynowPlatnosc.count({ where: { status: 'CONFIRMED', ...gdziePlatnoscZamowienia(subscriptionId, 'nowa') } })) > 0;
+  }
+
+  /** Jeden alarm na zamówienie (zdarzenie usługi jako znacznik): opłacone przez Paynow, a wciąż nieuruchomione. */
+  private async alarmOplaconegoZamowienia(subscriptionId: string, userId: string): Promise<void> {
+    const juz = await this.prisma.subscriptionEvent.count({ where: { subscriptionId, type: 'OPLACONE_NIEURUCHOMIONE' } });
+    if (juz > 0) return;
+    await this.prisma.subscriptionEvent.create({
+      data: { subscriptionId, type: 'OPLACONE_NIEURUCHOMIONE', details: { source: 'SCHEDULED' } },
+    });
+    const admini = await this.prisma.user.findMany({ where: { role: 'ADMIN', loginBlocked: false }, select: { id: true } });
+    await this.prisma.notification.createMany({
+      data: admini.map((a) => ({
+        userId: a.id,
+        category: 'SYSTEM',
+        severity: 'warning',
+        title: 'Opłacone zamówienie czeka ponad 48 h',
+        body: 'Klient zapłacił za nową usługę przez Paynow, a usługa wciąż nie jest uruchomiona. Zamówienie NIE zostało anulowane automatycznie — środki są w portfelu klienta. Sprawdź usługę i skontaktuj się z klientem.',
+        link: `/customers/${userId}`,
+      })),
+    });
+  }
+
   /**
    * Auto-cleanup: nieopłacone zamówienia bez konta hostingowego starsze niż 48h.
    */
@@ -1965,6 +2014,12 @@ export class SubscriptionsService {
     let canceled = 0;
     for (const sub of stale) {
       try {
+        // Zamówienie opłacone przez Paynow, którego realizacja nie przeszła (np. restart w trakcie): nie anulujemy —
+        // pieniądze są w portfelu klienta, decyzja u obsługi (jeden alarm na zamówienie).
+        if (sub.paymentSource === SubscriptionPaymentSource.WALLET && (await this.oplaconePrzezPaynow(sub.id))) {
+          await this.alarmOplaconegoZamowienia(sub.id, sub.userId);
+          continue;
+        }
         // Warunkowo: klient mógł zapłacić między wyborem listy a tym zamówieniem — wtedy
         // status nie jest już PENDING_PAYMENT i zamówienie zostaje (wcześniej anulowało opłaconą usługę).
         const now = new Date();
@@ -1978,7 +2033,11 @@ export class SubscriptionsService {
         });
         // Porzucona płatność (np. Paynow przy zamówieniu): zarezerwowany kod rabatowy wraca do klienta.
         if (sub.appliedPromoCodeId) {
-          await this.promo.zwolnijKodUslugi(sub.userId, sub.appliedPromoCodeId).catch(() => undefined);
+          try {
+            await this.promo.zwolnijKodUslugi(sub.userId, sub.appliedPromoCodeId);
+          } catch (err) {
+            this.logger.warn(`Nie oddano kodu rabatowego sub=${sub.id}: ${(err as Error).message}`);
+          }
         }
         if (sub.paymentSource === SubscriptionPaymentSource.STRIPE_CARD && sub.stripeSubscriptionId) {
           await this.stripe.cancelSubscription(sub.stripeSubscriptionId, { atPeriodEnd: false }).catch((err: Error) =>

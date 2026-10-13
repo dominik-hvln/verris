@@ -500,7 +500,7 @@ export const ProformaActions = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// Zakup usługi przez Paynow (billing.service.ts zaplacZamowieniePaynow / zaplacOdnowieniePaynow)
+// Zakup usługi przez Paynow (billing.service.ts zaplacZamowieniePaynow / zaplacUslugePaynow)
 // ---------------------------------------------------------------------------
 
 /** userId = klient, bez aktora (wpłata przychodzi powiadomieniem Paynow). */

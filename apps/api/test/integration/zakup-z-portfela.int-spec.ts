@@ -134,6 +134,40 @@ describe('X-04 zakup usługi z portfela', () => {
     expect(await prisma().walletTransaction.count({ where: { userId: k.id, type: WalletTxType.CHARGE_SUBSCRIPTION } })).toBe(1);
   });
 
+  // Przegląd 13.10 — dwa wyścigi przy realizacji po wpłacie Paynow.
+  it('zamówienie anulowane między sprawdzeniem a obciążeniem: zwrot, odmowa, usługa zostaje anulowana', async () => {
+    const k = await klient(45);
+    const plan = await utworzPlan({ priceMonthly: 45 });
+    const s = uslugi();
+    const { subscription } = await s.create(k.id, { ...(zamowienie(plan.id) as object), oplata: 'PAYNOW' } as never);
+    const p = prisma();
+    const oryginal = p.subscription.findFirst.bind(p.subscription);
+    // Sprawdzenie widzi „czeka na płatność”, a zanim przyszło obciążenie — klient anulował zamówienie.
+    const szpieg = vi.spyOn(p.subscription, 'findFirst').mockImplementationOnce(async (a: never) => {
+      const w = await oryginal(a);
+      await p.subscription.update({ where: { id: subscription.id }, data: { status: SubscriptionStatus.CANCELED } });
+      return w;
+    });
+    await expect(s.oplacZamowienieZPortfela(k.id, subscription.id, { domain: 'sklep-testowy.pl', preferredRegion: null })).rejects.toThrow('nie czeka już na płatność');
+    szpieg.mockRestore();
+    expect(await saldo(k.id)).toBe(45);
+    expect((await p.subscription.findUniqueOrThrow({ where: { id: subscription.id } })).status).toBe(SubscriptionStatus.CANCELED);
+    expect(kolejka).toEqual([]);
+  });
+
+  it('zamówienie raz obciążone i zwrócone (nieudane zakładanie): realizacja odmawia — bez usługi „za darmo”', async () => {
+    const k = await klient(100);
+    const plan = await utworzPlan({ priceMonthly: 45 });
+    kolejkaPada = true;
+    await expect(uslugi().create(k.id, zamowienie(plan.id))).rejects.toThrow('kolejka niedostępna');
+    kolejkaPada = false;
+    const [sub] = await prisma().subscription.findMany({ where: { userId: k.id } });
+    expect(sub.status).toBe(SubscriptionStatus.PENDING_PAYMENT);
+    await expect(uslugi().oplacZamowienieZPortfela(k.id, sub.id, { domain: 'sklep-testowy.pl', preferredRegion: null })).rejects.toThrow('było już obciążane');
+    expect(await saldo(k.id)).toBe(100);
+    expect(kolejka).toEqual([]);
+  });
+
   it('brak środków: odmowa, portfel nietknięty, nic nie trafia do zakładania', async () => {
     const k = await klient(10);
     const plan = await utworzPlan({ priceMonthly: 45 });

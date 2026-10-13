@@ -29,6 +29,7 @@ type Sub = {
   individualPrice: Prisma.Decimal | null;
   plan: { name: string };
   account: { domain: string } | null;
+  events: Array<{ details: unknown }>;
 };
 
 function zbuduj(o: { sub?: Partial<Sub>; cenaNetto?: boolean; paynow?: boolean } = {}) {
@@ -53,6 +54,7 @@ function zbuduj(o: { sub?: Partial<Sub>; cenaNetto?: boolean; paynow?: boolean }
     individualPrice: null,
     plan: { name: 'Hosting Start' },
     account: null,
+    events: [],
     ...o.sub,
   };
   const paynowPlatnosc = {
@@ -71,7 +73,14 @@ function zbuduj(o: { sub?: Partial<Sub>; cenaNetto?: boolean; paynow?: boolean }
       const r = [...rekordy.values()].find((x) => pasuje(x, where));
       return r ? { ...r } : null;
     }),
+    // Ponowienie zamówienia: ostatnia płatność „nowa” za tę usługę (filtr JSON w Prismie — tu po metadanych).
+    findFirst: vi.fn(async () => {
+      const r = [...rekordy.values()].filter((x) => x.meta.kind === 'zamowienie' && x.meta.zamowienieTyp === 'nowa').pop();
+      return r ? { ...r } : null;
+    }),
   };
+  const zuzyteKlucze = new Set<string>();
+  const ledger = { findByIdempotencyKey: vi.fn(async (k: string) => (zuzyteKlucze.has(k) ? { id: 'stary' } : null)) };
   const prisma = {
     user: {
       findUnique: vi.fn().mockResolvedValue({ id: 'u1', email: 'klient@test.pl', walletCurrency: 'PLN', walletBalance: new Prisma.Decimal(0), firstName: 'Jan', anonymizedAt: null }),
@@ -106,11 +115,11 @@ function zbuduj(o: { sub?: Partial<Sub>; cenaNetto?: boolean; paynow?: boolean }
     ...(o.paynow === false ? {} : { paynowApiKey: API_KEY, paynowSignatureKey: SIG_KEY, paynowApiUrl: 'https://api.sandbox.paynow.pl' }),
   };
   const svc = new BillingService(
-    prisma as never, {} as never, {} as never, audit as never, { get: (k: string) => cfg[k] } as never,
+    prisma as never, ledger as never, {} as never, audit as never, { get: (k: string) => cfg[k] } as never,
     {} as never, subscriptions as never, mailer as never, promo as never, eco as never, doladowanie as never,
     renewal as never,
   );
-  return { svc, sub, rekordy, prisma, doladowanie, subscriptions, renewal, audit, mailer };
+  return { svc, sub, rekordy, prisma, doladowanie, subscriptions, renewal, audit, mailer, zuzyteKlucze, paynowPlatnosc };
 }
 
 const fetchMock = vi.fn();
@@ -209,7 +218,7 @@ describe('Paynow — zaległe odnowienie', () => {
   it('kwota odnowienia z cennika usługi; po wpłacie dokument „odnowienie” od końca opłaconego okresu i odnowienie z portfela', async () => {
     const s = zbuduj({ sub: zalegla });
     utworzonaPaynow();
-    await s.svc.zaplacOdnowieniePaynow('u1', 'sub-1');
+    await s.svc.zaplacUslugePaynow('u1', 'sub-1');
     const rek = [...s.rekordy.values()][0];
     expect(rek.kwotaMinor).toBe(3900);
     expect(rek.meta).toMatchObject({ kind: 'zamowienie', zamowienieTyp: 'odnowienie', subscriptionId: 'sub-1' });
@@ -221,9 +230,65 @@ describe('Paynow — zaległe odnowienie', () => {
     expect(s.subscriptions.oplacZamowienieZPortfela).not.toHaveBeenCalled();
   });
 
-  it('usługa bez zaległości albo na karcie → 409', async () => {
-    await expect(zbuduj({ sub: { status: 'ACTIVE' } }).svc.zaplacOdnowieniePaynow('u1', 'sub-1')).rejects.toThrow(ConflictException);
-    await expect(zbuduj({ sub: { ...zalegla, paymentSource: 'STRIPE_CARD' } }).svc.zaplacOdnowieniePaynow('u1', 'sub-1')).rejects.toThrow(ConflictException);
+  // Przegląd 13.10: zawieszenie wybrane przez obsługę (także „brak płatności”) nie schodzi po wpłacie — odmowa
+  // PRZED pobraniem pieniędzy; okres już opłacony (odwieszenie nie wyszło) — bez drugiej opłaty.
+  it('zawieszenie przez obsługę albo okres już opłacony → 409 bez płatności; zawieszenie po karencji → płatność', async () => {
+    const reczne = zbuduj({ sub: { ...zalegla, status: 'SUSPENDED', events: [{ details: { reason: 'PAYMENT_FAILED' } }] } });
+    await expect(reczne.svc.zaplacUslugePaynow('u1', 'sub-1')).rejects.toThrow('zawiesiła obsługa');
+    const oplacona = zbuduj({
+      sub: { ...zalegla, status: 'SUSPENDED', events: [{ details: { reason: 'GRACE_EXPIRED' } }], currentPeriodEnd: new Date('2026-11-10T09:00:00Z') },
+    });
+    await expect(oplacona.svc.zaplacUslugePaynow('u1', 'sub-1', new Date('2026-10-13T08:00:00Z'))).rejects.toThrow('już opłacony');
     expect(fetchMock).not.toHaveBeenCalled();
+    const karencja = zbuduj({ sub: { ...zalegla, status: 'SUSPENDED', events: [{ details: { reason: 'GRACE_EXPIRED' } }] } });
+    utworzonaPaynow();
+    await karencja.svc.zaplacUslugePaynow('u1', 'sub-1', new Date('2026-10-13T08:00:00Z'));
+    expect([...karencja.rekordy.values()][0].meta).toMatchObject({ zamowienieTyp: 'odnowienie' });
+  });
+
+  it('usługa bez zaległości albo na karcie → 409', async () => {
+    await expect(zbuduj({ sub: { status: 'ACTIVE' } }).svc.zaplacUslugePaynow('u1', 'sub-1')).rejects.toThrow(ConflictException);
+    await expect(zbuduj({ sub: { ...zalegla, paymentSource: 'STRIPE_CARD' } }).svc.zaplacUslugePaynow('u1', 'sub-1')).rejects.toThrow(ConflictException);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('Paynow — ponowienie płatności za zamówienie (BLIK odrzucony, okno zamknięte)', () => {
+  it('poprzednia płatność nieudana → nowa płatność za tę samą usługę z tą samą domeną', async () => {
+    const s = zbuduj();
+    utworzonaPaynow();
+    await s.svc.zaplacZamowieniePaynow('u1', { subscriptionId: 'sub-1', kwotaK: new Prisma.Decimal('468.00'), domena: 'przyklad.pl', region: 'PL-WAW' });
+    [...s.rekordy.values()][0].status = 'REJECTED';
+    utworzonaPaynow();
+    await s.svc.zaplacUslugePaynow('u1', 'sub-1');
+    const [, druga] = [...s.rekordy.values()];
+    expect(druga).toMatchObject({ kwotaMinor: 46800, meta: expect.objectContaining({ zamowienieTyp: 'nowa', domena: 'przyklad.pl', region: 'PL-WAW' }) });
+  });
+
+  it('poprzednia płatność trwa albo doszła, brak płatności Paynow, zamówienie już obciążane → 409 bez nowej płatności', async () => {
+    const s = zbuduj();
+    await expect(s.svc.zaplacUslugePaynow('u1', 'sub-1')).rejects.toThrow('opłacisz z portfela');
+    utworzonaPaynow();
+    await s.svc.zaplacZamowieniePaynow('u1', { subscriptionId: 'sub-1', kwotaK: new Prisma.Decimal('468.00'), domena: 'a.pl' });
+    await expect(s.svc.zaplacUslugePaynow('u1', 'sub-1')).rejects.toThrow('jeszcze trwa');
+    [...s.rekordy.values()][0].status = 'CONFIRMED';
+    await expect(s.svc.zaplacUslugePaynow('u1', 'sub-1')).rejects.toThrow('już do nas dotarła');
+    [...s.rekordy.values()][0].status = 'REJECTED';
+    s.zuzyteKlucze.add('sub-sub-1-initial');
+    await expect(s.svc.zaplacUslugePaynow('u1', 'sub-1')).rejects.toThrow('zamów usługę ponownie');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Paynow — zamówienie a skutki uboczne wpłaty', () => {
+  it('błąd skutków ubocznych (dziennik) nie zatrzymuje realizacji opłaconego zamówienia', async () => {
+    const s = zbuduj();
+    utworzonaPaynow();
+    await s.svc.zaplacZamowieniePaynow('u1', { subscriptionId: 'sub-1', kwotaK: new Prisma.Decimal('468.00'), domena: 'przyklad.pl' });
+    s.audit.record.mockImplementation(async (a: { action: string }) => {
+      if (a.action === 'WALLET_TOPUP_COMPLETED') throw new Error('baza chwilowo niedostępna');
+    });
+    await potwierdz(s, [...s.rekordy.values()][0].id);
+    expect(s.subscriptions.oplacZamowienieZPortfela).toHaveBeenCalledTimes(1);
   });
 });

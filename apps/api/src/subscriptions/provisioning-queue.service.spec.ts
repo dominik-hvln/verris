@@ -37,11 +37,14 @@ describe('kategoriaBledu — status HTTP przed prozą', () => {
 });
 
 describe('ProvisioningQueueService — twarda porażka kończy job', () => {
-  function stanowisko(blad: Error) {
+  function stanowisko(blad: Error, zPaynow = 0) {
     const prisma = {
       account: { findUnique: vi.fn(async () => null) },
       subscription: { update: vi.fn(async () => ({})) },
       subscriptionEvent: { create: vi.fn(async () => ({})) },
+      paynowPlatnosc: { count: vi.fn(async () => zPaynow) },
+      user: { findMany: vi.fn(async () => [{ id: 'admin1' }]) },
+      notification: { createMany: vi.fn(async () => ({ count: 1 })) },
     };
     const walletLedger = { credit: vi.fn(async () => ({})) };
     const audit = { record: vi.fn(async () => undefined) };
@@ -59,6 +62,19 @@ describe('ProvisioningQueueService — twarda porażka kończy job', () => {
     const s = stanowisko(new BladEtapuProvisioningu('createAccount', 'Unable to Create User — A valid IP was not provided', 'Failed'));
     await expect(s.uruchom(0)).rejects.toBeInstanceOf(UnrecoverableError);
     expect(s.walletLedger.credit).toHaveBeenCalledTimes(1);
+  });
+
+  // Przegląd 13.10: zamówienie opłacone przez Paynow, a konto się nie założyło — sam wpis w dzienniku nie wystarczy.
+  it('twarda porażka zamówienia opłaconego przez Paynow: zwrot do portfela i alarm dla adminów; bez Paynow — bez alarmu', async () => {
+    const z = stanowisko(new BladEtapuProvisioningu('createAccount', 'Unable to Create User', 'Failed'), 1);
+    await expect(z.uruchom(0)).rejects.toBeInstanceOf(UnrecoverableError);
+    expect(z.walletLedger.credit).toHaveBeenCalledTimes(1);
+    expect(z.prisma.notification.createMany).toHaveBeenCalledWith({
+      data: [expect.objectContaining({ userId: 'admin1', title: 'Opłacone zamówienie nie zostało zrealizowane', link: '/customers/u1' })],
+    });
+    const bez = stanowisko(new BladEtapuProvisioningu('createAccount', 'Unable to Create User', 'Failed'), 0);
+    await expect(bez.uruchom(0)).rejects.toBeInstanceOf(UnrecoverableError);
+    expect(bez.prisma.notification.createMany).not.toHaveBeenCalled();
   });
 
   it('błąd przejściowy przy 1. próbie: bez zwrotu, zwykły błąd (BullMQ ponowi)', async () => {

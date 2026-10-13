@@ -10,6 +10,7 @@ import { Job, Queue, QueueEvents, UnrecoverableError, Worker } from 'bullmq';
 import { NODE_DOWN_MS } from '@verris/directadmin-sdk';
 import { Redis } from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { gdziePlatnoscZamowienia } from '../billing/paynow/zamowienie-paynow.js';
 import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { ProvisioningActions } from '../common/audit/audit.actions.js';
@@ -539,6 +540,28 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
           this.logger.warn(`Nie oddano kodu rabatowego sub=${d.subscriptionId}: ${(e as Error).message}`);
         }
         this.logger.error(`Wallet provision failed for sub=${d.subscriptionId}: ${msg}`);
+        // Zamówienie opłacone przez Paynow (klient zapłacił prawdziwe pieniądze, faktura nazywa usługę): alarm dla
+        // adminów — sam wpis w dzienniku nie wystarczy (przegląd 13.10). Najlepsza próba.
+        try {
+          const zPaynow = await this.prisma.paynowPlatnosc.count({
+            where: { status: 'CONFIRMED', ...gdziePlatnoscZamowienia(d.subscriptionId, 'nowa') },
+          });
+          if (zPaynow > 0) {
+            const admini = await this.prisma.user.findMany({ where: { role: 'ADMIN', loginBlocked: false }, select: { id: true } });
+            await this.prisma.notification.createMany({
+              data: admini.map((a) => ({
+                userId: a.id,
+                category: 'SYSTEM',
+                severity: 'warning',
+                title: 'Opłacone zamówienie nie zostało zrealizowane',
+                body: `Klient zapłacił przez Paynow za nową usługę, ale zakładanie konta się nie udało (${msg.slice(0, 200)}). Środki wróciły do portfela klienta — sprawdź usługę i skontaktuj się z klientem.`,
+                link: `/customers/${d.userId}`,
+              })),
+            });
+          }
+        } catch (e) {
+          this.logger.warn(`Alarm o nieudanym zamówieniu Paynow sub=${d.subscriptionId}: ${(e as Error).message}`);
+        }
       } else if (d.type === 'stripe') {
         this.logger.error(`Stripe provision failed for sub=${d.subscriptionId}: ${msg}`);
         await this.audit.record({

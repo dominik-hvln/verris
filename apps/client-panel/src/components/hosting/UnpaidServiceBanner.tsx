@@ -7,7 +7,7 @@ import { AlertTriangle, CreditCard, Landmark, Loader2, Trash2, Wallet } from 'lu
 import { Button } from '@verris/ui';
 import type { SubscriptionStatus } from '@verris/contracts';
 import { PanelModal } from '@/components/panel';
-import { powodBlokady } from '@/lib/service-events';
+import { powodBlokady, zawieszonaPoKarencji } from '@/lib/service-events';
 import {
   abandonUnpaidSubscriptionAction,
   payPastDueFromWalletAction,
@@ -39,6 +39,9 @@ export function UnpaidServiceBanner({
   const isPending = status === 'PENDING_PAYMENT';
   const isStripe = paymentSource === 'STRIPE_CARD';
   const zalegla = status === 'PAST_DUE' || zawieszona;
+  // BLIK / przelew (Paynow): zamówienie czekające na płatność, zaległe odnowienie albo zawieszenie po karencji —
+  // tylko tam wpłata sama przywraca usługę (zawieszenie przez obsługę zdejmuje obsługa).
+  const paynow = !isStripe && (isPending || status === 'PAST_DUE' || (zawieszona && zawieszonaPoKarencji(events)));
   const zawieszenie = zawieszona
     ? [...events].filter((e) => e.type === 'SUSPENDED').sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
     : undefined;
@@ -125,7 +128,7 @@ export function UnpaidServiceBanner({
               ? `Odwiedzający widzą komunikat o zawieszeniu strony. Pliki, bazy i poczta są nietknięte. ${
                   isStripe
                     ? 'Opłać zaległą fakturę w Rozliczeniach'
-                    : 'Doładuj portfel — pobierzemy opłatę w ciągu godziny albo od razu przyciskiem „Opłać z portfela” — albo zapłać za odnowienie BLIK-iem lub przelewem'
+                    : `Doładuj portfel — pobierzemy opłatę w ciągu godziny albo od razu przyciskiem „Opłać z portfela”${paynow ? ' — albo zapłać za odnowienie BLIK-iem lub przelewem' : ''}`
                 } — usługa wróci automatycznie.${
                   wygasa ? ` Bez zapłaty do ${wygasa} umowa wygaśnie, a po kolejnych 14 dniach dane zostaną usunięte.` : ''
                 }`
@@ -166,7 +169,7 @@ export function UnpaidServiceBanner({
               Opłać z portfela
             </button>
           ) : null}
-          {zalegla && !isStripe ? (
+          {paynow ? (
             <button
               type="button"
               disabled={pending}
@@ -174,7 +177,7 @@ export function UnpaidServiceBanner({
               className="inline-flex items-center gap-1.5 rounded-[7px] border border-line-strong px-3 py-2 text-xs font-semibold text-[color:var(--verris-body)] hover:bg-raised disabled:opacity-50"
             >
               {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Landmark className="h-3.5 w-3.5" />}
-              Zapłać BLIK-iem lub przelewem
+              {isPending ? 'Zapłać BLIK-iem lub przelewem' : 'Zapłać za odnowienie BLIK-iem lub przelewem'}
             </button>
           ) : null}
           {zalegla ? (

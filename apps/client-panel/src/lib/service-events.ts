@@ -64,6 +64,16 @@ export function powodBlokady(
 }
 
 /**
+ * Zawieszenie po karencji (GRACE_EXPIRED) — jedyne, które zdejmuje sama wpłata (API: renewal.scheduler.ts
+ * zawieszonaPrzezKarencje). Zawieszenie „brak płatności” wybrane przez obsługę zdejmuje obsługa.
+ */
+export function zawieszonaPoKarencji(events: { type: string; createdAt: string; details?: unknown }[] | undefined): boolean {
+  const ostatnie = [...(events ?? [])].filter((e) => e.type === 'SUSPENDED').sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  const d = ostatnie?.details;
+  return !!d && typeof d === 'object' && !Array.isArray(d) && (d as { reason?: string }).reason === 'GRACE_EXPIRED';
+}
+
+/**
  * F3.5 — czy usługa ma zaplanowaną rezygnację na koniec okresu. Źródłem jest stan (`cancelAt`): zdarzenie
  * CANCEL_SCHEDULED zostaje w historii także po cofnięciu rezygnacji przez obsługę. Bez pola (starsze API) — po zdarzeniu.
  */

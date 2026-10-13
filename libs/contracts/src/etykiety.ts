@@ -107,6 +107,7 @@ export const SERVICE_EVENT_PL: Record<string, string> = {
   CANCEL_REVOKED: 'Rezygnacja cofnięta',
   RENEWAL_DATE_CHANGED: 'Zmieniono datę odnowienia',
   PAYMENT_PROMISE: 'Wstrzymano zawieszenie do terminu płatności',
+  OPLACONE_NIEURUCHOMIONE: 'Płatność przyjęta — uruchomienie usługi sprawdza obsługa',
   PAYMENT_PROMISE_REVOKED: 'Odwołano wstrzymanie zawieszenia',
   // K2 (PB-53.5) — administrator przeniósł usługę na inne konto; oś widzi tylko obecny właściciel.
   OWNER_CHANGED: 'Zmiana właściciela usługi',

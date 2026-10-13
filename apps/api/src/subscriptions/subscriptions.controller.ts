@@ -133,12 +133,12 @@ export class SubscriptionsController {
     }
   }
 
-  /** Zaległe odnowienie (usługa z portfela) opłacone od razu przez Paynow — dokument nazywa usługę i okres. */
+  /** Zapłata BLIK-iem / przelewem (Paynow) za zamówienie czekające na płatność albo zaległe odnowienie — dokument nazywa usługę i okres. */
   @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'subscriptions:zaplac-paynow' })
   @Post(':id/zaplac-paynow')
   @HttpCode(200)
   zaplacPaynow(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
-    return this.billing.zaplacOdnowieniePaynow(user.userId, id);
+    return this.billing.zaplacUslugePaynow(user.userId, id);
   }
 
   @Delete(':id')

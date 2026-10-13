@@ -543,11 +543,11 @@ export class RenewalScheduler {
   }
 }
 
-const OSTATNIE_ZAWIESZENIE = {
+export const OSTATNIE_ZAWIESZENIE = {
   events: { where: { type: 'SUSPENDED' }, orderBy: { createdAt: 'desc' as const }, take: 1 },
 };
 
-function zawieszonaPrzezKarencje(events: { details: unknown }[]): boolean {
+export function zawieszonaPrzezKarencje(events: { details: unknown }[]): boolean {
   return (events[0]?.details as { reason?: string } | null)?.reason === 'GRACE_EXPIRED';
 }
 

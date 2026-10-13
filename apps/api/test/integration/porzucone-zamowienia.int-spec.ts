@@ -55,4 +55,27 @@ describe('X-04 porzucone zamówienia', () => {
     expect(r.canceled).toBe(0);
     expect(await status(s.id)).toBe('PROVISIONING');
   });
+
+  // Przegląd 13.10: zamówienie opłacone przez Paynow, którego realizacja nie przeszła — nie anulujemy (pieniądze są
+  // w portfelu klienta), jeden alarm dla adminów, choć harmonogram widzi je co godzinę.
+  it('opłacone przez Paynow, a nieuruchomione: zostaje, jeden alarm dla adminów', async () => {
+    const s = await prisma().subscription.update({ where: { id: (await zamowienie(50)).id }, data: { paymentSource: 'WALLET' } });
+    await prisma().user.create({ data: { email: `porz-admin-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'ADMIN' } });
+    await prisma().paynowPlatnosc.create({
+      data: { userId: s.userId, kwotaMinor: 4500, status: 'CONFIRMED', paymentId: `P-${s.id}`, meta: { kind: 'zamowienie', zamowienieTyp: 'nowa', subscriptionId: s.id } },
+    });
+    // Płatność za INNE zamówienie nie chroni tego.
+    const inne = await zamowienie(50);
+    await prisma().paynowPlatnosc.create({
+      data: { userId: inne.userId, kwotaMinor: 4500, status: 'REJECTED', paymentId: `P-${inne.id}`, meta: { kind: 'zamowienie', zamowienieTyp: 'nowa', subscriptionId: inne.id } },
+    });
+    const serwis = uslugi();
+    expect((await serwis.abandonStalePendingPayments()).canceled).toBe(1);
+    await serwis.abandonStalePendingPayments();
+    expect(await status(s.id)).toBe('PENDING_PAYMENT');
+    expect(await status(inne.id)).toBe('CANCELED');
+    const admini = await prisma().user.count({ where: { role: 'ADMIN' } });
+    expect(await prisma().notification.count({ where: { title: 'Opłacone zamówienie czeka ponad 48 h' } })).toBe(admini);
+    expect(await prisma().subscriptionEvent.count({ where: { subscriptionId: s.id, type: 'OPLACONE_NIEURUCHOMIONE' } })).toBe(1);
+  });
 });
