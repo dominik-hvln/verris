@@ -23,4 +23,18 @@ describe('ConsentsController — zgody tylko od klienta', () => {
     await c.acceptCurrent({ userId: 'u1' }, req);
     expect(consents.acceptCurrent).toHaveBeenCalledWith('u1', expect.anything());
   });
+
+  // Audyt 13.10: subkonto widziało modal zgód właściciela i dostawało 403 przy akceptacji — panel zablokowany.
+  it('subkonto: status i akceptacja dotyczą osoby z sesji, nigdy właściciela', async () => {
+    const check = vi.fn(async () => ({ required: false }));
+    const s = new ConsentsController({ ...consents, checkReConsent: check } as never, prefs as never);
+    const subkonto = { userId: 'wlasciciel', principalUserId: 'osoba', customerOwnerId: 'wlasciciel' };
+    await s.status(subkonto);
+    expect(check).toHaveBeenCalledWith('osoba');
+    await s.acceptCurrent(subkonto, req);
+    expect(consents.acceptCurrent).toHaveBeenCalledWith('osoba', expect.anything());
+    // Bez osoby w sesji (stary token) — odmowa zamiast zgody za właściciela.
+    await expect(s.acceptCurrent({ userId: 'wlasciciel', customerOwnerId: 'wlasciciel' }, req)).rejects.toThrow();
+    expect(consents.acceptCurrent).toHaveBeenCalledTimes(1);
+  });
 });

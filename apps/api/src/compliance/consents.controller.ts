@@ -87,8 +87,10 @@ export class ConsentsController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me/consent/status')
-  status(@CurrentUser() user: { userId: string }) {
-    return this.consents.checkReConsent(user.userId);
+  // Audyt 13.10: subkonto/członek zespołu widziało modal zgód WŁAŚCICIELA i nie mogło go zaakceptować (403) —
+  // panel stał zablokowany. Regulamin akceptuje osoba z sesji, więc i status, i akceptacja są jej.
+  status(@CurrentUser() user: { userId: string; principalUserId?: string }) {
+    return this.consents.checkReConsent(user.principalUserId ?? user.userId);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -101,10 +103,16 @@ export class ConsentsController {
   @UseGuards(JwtAuthGuard)
   @Post('me/consent/accept-current')
   @HttpCode(HttpStatus.OK)
-  async acceptCurrent(@CurrentUser() user: { userId: string; impersonatedBy?: string; customerOwnerId?: string | null }, @Req() req: Request) {
-    tylkoKlient(user);
+  async acceptCurrent(
+    @CurrentUser() user: { userId: string; principalUserId?: string; impersonatedBy?: string; customerOwnerId?: string | null },
+    @Req() req: Request,
+  ) {
+    if (user.impersonatedBy) tylkoKlient(user);
+    // Subkonto akceptuje dokumenty za siebie (osoba z sesji), nigdy za właściciela konta.
+    const osoba = user.customerOwnerId ? user.principalUserId : user.userId;
+    if (!osoba || (user.customerOwnerId && osoba === user.userId)) tylkoKlient(user);
     const ctx = extractRequestContext(req);
-    await this.consents.acceptCurrent(user.userId, ctx);
+    await this.consents.acceptCurrent(osoba!, ctx);
     return { ok: true };
   }
 
