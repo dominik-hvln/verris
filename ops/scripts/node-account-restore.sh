@@ -22,7 +22,8 @@
 set -Eeuo pipefail
 
 CONF=/etc/verris.conf
-BCONF=/etc/verris-backup.conf
+# VERRIS_BACKUP_CONF podmieniany wyłącznie w testach (test/lista-kopii-offsite-blad.spec.ts).
+BCONF="${VERRIS_BACKUP_CONF:-/etc/verris-backup.conf}"
 log() { echo "[$(date -u +%FT%TZ)] $*" >&2; }
 fail() { log "[FAIL] $*"; exit 1; }
 
@@ -52,14 +53,25 @@ cmd_list() {
   log "off-site archiwa dla ${user}${snap:+ (wersja $snap)}: $p"
   # Wiersze maszynowe (parsowane przez control-plane): nazwa|bajty|data ISO.
   # Prefiks pozwala odfiltrować je z reszty logu zadania.
-  local found=0 line
+  # 13.10 (H-16 na t2): błąd rclone (knownhosts: key mismatch) był połykany przez 2>/dev/null i lista wychodziła
+  # „pusta” z rc=0 — panel pokazywał „gotowe” bez kopii. Pusto jest tylko wtedy, gdy katalog nie istnieje:
+  # kod 3 rclone = „Directory not found” (https://rclone.org/docs/#exit-code). Każdy inny błąd = błąd zadania.
+  # TZ=UTC — rclone wypisuje czas bez strefy w strefie procesu; control-plane czyta go jako UTC.
+  local found=0 line out rc=0 err
+  err="$(mktemp)"
+  out="$(TZ=UTC rclone lsf --files-only --format 'pst' --separator '|' "$p" 2>"$err")" || rc=$?
+  if [ "$rc" != "0" ] && [ "$rc" != "3" ]; then
+    printf 'VERRIS-OFFSITE-ERROR rclone=%s\n' "$rc"
+    log "[FAIL] odczyt kopii off-site nieudany (rclone kod $rc): $(tail -c 300 "$err" | tr '\n' ' ')"
+    rm -f "$err"
+    exit 1
+  fi
+  rm -f "$err"
   while IFS= read -r line; do
     [ -n "$line" ] || continue
     printf 'VERRIS-OFFSITE-FILE %s\n' "$line"
     found=1
-  # TZ=UTC — rclone wypisuje czas bez strefy w strefie procesu; control-plane czyta go jako UTC.
-  done < <(TZ=UTC rclone lsf --files-only --format 'pst' --separator '|' "$p" 2>/dev/null \
-             | grep -iE '^[^|]+\.(tar\.gz|tar\.zst|tar)\|')
+  done < <(printf '%s\n' "$out" | grep -iE '^[^|]+\.(tar\.gz|tar\.zst|tar)\|' || true)
   if [ "$found" = "0" ]; then
     log "(brak archiwow off-site — sprawdz prefix/usera)"
     printf 'VERRIS-OFFSITE-EMPTY\n'

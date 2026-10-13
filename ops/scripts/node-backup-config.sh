@@ -57,7 +57,10 @@ mkdir -p /root/.config/rclone
 # kasować kopie (treść chroni crypt). ponytail: TOFU przy onboardzie; porównanie z odciskami publikowanymi
 # przez Hetznera, gdyby trzeba było bronić też pierwszego połączenia.
 KH=/root/.config/rclone/storagebox_known_hosts
-ssh-keyscan -p "$VB_PORT" -t ed25519,rsa "$VB_HOST" 2>/dev/null > "$KH.nowy" || true
+# 13.10 (t2): przypięte były tylko ed25519 i rsa, a klient SSH rclone wynegocjował ecdsa → „knownhosts: key mismatch”
+# i kopie off-site węzła nie działały. Typy wg dokumentacji rclone (https://rclone.org/sftp/#host-key-validation:
+# „ssh-keyscan -t dsa,rsa,ecdsa,ed25519”) bez dsa — OpenSSH 9.8+ (EL10) usunęło DSA.
+ssh-keyscan -p "$VB_PORT" -t rsa,ecdsa,ed25519 "$VB_HOST" 2>/dev/null > "$KH.nowy" || true
 [ -s "$KH.nowy" ] || { rm -f "$KH.nowy"; log "Nie pobrano klucza hosta Storage Boxa ($VB_HOST:$VB_PORT) — sprawdź egress i host."; exit 1; }
 mv -f "$KH.nowy" "$KH"; chmod 600 "$KH"
 rclone config create verris-remote sftp host "$VB_HOST" port "$VB_PORT" user "$VB_USER" pass "$VB_PASS" known_hosts_file "$KH" --obscure >/dev/null

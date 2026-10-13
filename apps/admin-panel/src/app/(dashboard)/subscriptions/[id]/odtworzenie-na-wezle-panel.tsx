@@ -117,6 +117,13 @@ export function OdtworzenieNaWezlePanel({
         </button>
       </div>
       {zadanie('Lista kopii', stan?.lista ?? null)}
+      {/* 13.10 (t2): pusta lista wyglądała jak „gotowe” bez treści — teraz mówi wprost, czego nie ma i gdzie szukano. */}
+      {stan?.lista?.status === 'COMPLETED' && !stan.archiwa.length ? (
+        <p role="status" className="text-xs text-amber-200">
+          Brak kopii tego konta na zdalnym dysku pod prefiksem <span className="font-mono">{stan.wezelZrodlowy.prefiks ?? '—'}</span>
+          {wersja.trim() ? ` (wersja ${wersja.trim()})` : ''}.
+        </p>
+      ) : null}
       {stan?.archiwa.length ? (
         <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
           <div className="space-y-1">
