@@ -21,6 +21,7 @@ import type { BootstrapScriptResponseDto, InitServerResponseDto } from "@verris/
 import { generateBootstrapScript, initServer, fetchServer } from "../actions";
 import { ApproveServerButton } from "../[id]/approve-button";
 import { HostingProfilePanel } from "../[id]/hosting-profile-panel";
+import { NameserversForm } from "../[id]/nameservers-form";
 import { NodeBootstrapProgress } from "../[id]/node-bootstrap-progress";
 import { NodeLiveStatus, type NodeLiveSignals } from "./node-live-status";
 import {
@@ -623,6 +624,26 @@ export function NodeWizard() {
               Węzeł zaakceptowany i test DA API OK
             </label>
             {serverId && <NodeConfigActions serverId={serverId} />}
+            {/* 13.10 (t2): po akceptacji węzeł nie miał własnej pary NS — konta dostawałyby ns1/ns2 z DA, których
+                nie ma w DNS. Para NS (rekordy A + glue w OVH) zakłada się przy akceptacji; tu widać wynik i jest
+                przycisk ponowienia, gdy automat nie przeszedł. */}
+            {serverId && (
+              <div className="space-y-2" data-krok="serwery-nazw">
+                <p className="text-sm text-zinc-300">
+                  <strong className="text-white">Serwery nazw węzła.</strong> Każde konto na tym węźle dostaje te NS
+                  — bez pary podpiętej w OVH domeny klientów nie rozwiążą się.
+                </p>
+                <NameserversForm serverId={serverId} />
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox
+                    checked={!!checked.nameservers}
+                    onChange={() => toggleCheck("nameservers")}
+                    className="rounded border-white/20"
+                  />
+                  Para NS węzła podpięta w OVH (rekordy A i glue — wynik „ok” powyżej)
+                </label>
+              </div>
+            )}
           </div>
         )}
 

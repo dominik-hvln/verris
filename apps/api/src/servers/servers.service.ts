@@ -31,6 +31,22 @@ import { UpdateNameserversDto } from './dto/nameservers.dto.js';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
 import { renderBootstrapNodeTasksInstallFragment, renderNodeDeploySshKeyBootstrapCall, renderProbesTasksHook } from './node-tasks-agent.install.js';
 import { planZNadpisaniami } from '../subscriptions/limity-indywidualne.js';
+import { resolve4 as dnsResolve4 } from 'node:dns/promises';
+
+/** Nazwy NS bez rekordu A (albo bez odpowiedzi w 5 s) — nowe konta dostałyby martwą delegację. */
+export async function nsBezAdresu(hosty: string[], resolve: (h: string) => Promise<string[]> = dnsResolve4): Promise<string[]> {
+  const wyniki = await Promise.all(
+    hosty.map(async (h) => {
+      try {
+        const adresy = await Promise.race([resolve(h), new Promise<string[]>((_, odrzuc) => setTimeout(() => odrzuc(new Error('timeout')), 5000))]);
+        return adresy.length ? null : h;
+      } catch {
+        return h;
+      }
+    }),
+  );
+  return wyniki.filter((h): h is string => h !== null);
+}
 
 /** Konta, które są na węźle — usunięte zostają w bazie („~usuniete-<id>”), ale nie zajmują węzła. */
 const KONTA_NA_WEZLE = { where: { status: { not: AccountStatus.DELETED } } } as const;
@@ -782,6 +798,18 @@ export class ServersService {
 
     const data: Record<string, unknown> = {};
     if (typeof input.acceptsNewAccounts === 'boolean') {
+      // 13.10 (t2): węzeł miał jako NS ns1/ns2.verris.pl, których nie ma w DNS — każde nowe konto dostałoby
+      // domenę bez działającej delegacji. Nowe konta tylko wtedy, gdy oba NS węzła rozwiązują się do adresu.
+      if (input.acceptsNewAccounts && !server.acceptsNewAccounts) {
+        const ns = await this.resolveNameservers(server);
+        const brak = [ns.ns1, ns.ns2].filter(Boolean).length < 2 ? ['(nie ustawione)'] : await nsBezAdresu([ns.ns1, ns.ns2]);
+        if (brak.length) {
+          throw new BadRequestException(
+            `Węzeł nie może przyjmować nowych kont: serwery nazw ${brak.join(', ')} nie rozwiązują się w DNS. ` +
+              'Karta węzła → Serwery nazw i OVH → „Podepnij NS w OVH”, potem włącz przyjmowanie kont.',
+          );
+        }
+      }
       data.acceptsNewAccounts = input.acceptsNewAccounts;
     }
     if (input.maxAccounts !== undefined) {
