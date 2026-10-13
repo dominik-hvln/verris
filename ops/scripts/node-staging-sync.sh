@@ -134,9 +134,15 @@ TO_STAGING)
     # Staging dzieli z produkcją Redis konta: z prefiksem produkcji czytał jej cache i pisał do niego
     # (klon strony, test D3 30.09). Własny prefiks ustawiamy przy każdym odświeżeniu — naprawia też staging
     # założony przed tą poprawką.
+    # Przegląd 13.10: ustawiamy ZAWSZE, nie tylko gdy stała już jest — wp-config stagingu powstaje raz (kopia z LIVE)
+    # i nie jest nadpisywany, więc Redis włączony na LIVE później zostawiał staging bez własnej przestrzeni kluczy.
     for c in WP_REDIS_PREFIX WP_CACHE_KEY_SALT; do
+      wp_in "$STG" "config set $c '${STAGING_HOST}:'" >/dev/null || die "Nie udało się ustawić $c stagingu."
+    done
+    # Adres zapisany w wp-config (WP_HOME / WP_SITEURL) search-replace nie obejmuje — jak w klonie strony.
+    for c in WP_HOME WP_SITEURL; do
       if wp_in "$STG" "config has $c" >/dev/null 2>&1; then
-        wp_in "$STG" "config set $c '${STAGING_HOST}:'" >/dev/null || die "Nie udało się ustawić $c stagingu."
+        wp_in "$STG" "config set $c 'https://${STAGING_HOST}'" >/dev/null || die "Nie udało się ustawić $c stagingu."
       fi
     done
     # Staging nie powinien być indeksowany ani spamować mailami.
@@ -180,6 +186,17 @@ TO_LIVE)
 
     log "Zamieniam adresy z powrotem na ${STG_DOMAIN}…"
     wp_in "$LIVE" "search-replace '://${STAGING_HOST}' '://${STG_DOMAIN}' --all-tables --precise" >/dev/null
+    # Przegląd 13.10 (d3.hvln.pl na t1: produkcja z adresami staging.<domena>): sprawdzamy, że w bazie LIVE nie
+    # został żaden adres stagingu. Jeśli został — wracamy do kopii bazy sprzed publikacji i przerywamy.
+    # --dry-run --format=count: https://developer.wordpress.org/cli/commands/search-replace/
+    ZOSTALO="$(wp_in "$LIVE" "search-replace '://${STAGING_HOST}' '://${STG_DOMAIN}' --all-tables --precise --dry-run --format=count" 2>/dev/null | tail -1 || echo blad)"
+    if [ "$ZOSTALO" != "0" ]; then
+      wp_in "$LIVE" "db import '${DB_BACKUP}'" || die "Adresy stagingu zostały w bazie LIVE (${ZOSTALO}), a przywrócenie kopii ${DB_BACKUP} nie powiodło się — napisz do nas."
+      wp_in "$LIVE" "cache flush" >/dev/null 2>&1 || true
+      die "Adresy stagingu zostały w bazie LIVE (${ZOSTALO}) — przywróciliśmy bazę sprzed publikacji, produkcja bez zmian."
+    fi
+    # Redis konta trzyma opcje LIVE w cache obiektowym — bez czyszczenia strona czytałaby stare wartości do wygaśnięcia.
+    wp_in "$LIVE" "cache flush" >/dev/null 2>&1 || true
     wp_in "$LIVE" "option update blog_public 1" >/dev/null || true
   fi
 

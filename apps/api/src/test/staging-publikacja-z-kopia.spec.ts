@@ -59,3 +59,31 @@ describe('I-11 — katalog kopii roboczej (DirectAdmin 1.710: subdomena jako dom
     expect(stg('stary')).toBe('/domains/firma.pl/public_html/staging');
   });
 });
+
+/**
+ * Przegląd produkcji 13.10: d3.hvln.pl (LIVE) odpowiadał adresami staging.d3.hvln.pl (home/siteurl, link REST).
+ * Publikacja nie sprawdzała, czy po zamianie adresów w bazie LIVE nie został adres stagingu, a staging bez stałej
+ * WP_REDIS_PREFIX w wp-config (kopia sprzed włączenia Redisa) nie dostawał własnej przestrzeni kluczy.
+ */
+describe('Staging ↔ LIVE — adresy i cache obiektowy', () => {
+  const TO_STAGING = bezKomentarzy(SKRYPT.slice(SKRYPT.indexOf('\nTO_STAGING)'), SKRYPT.indexOf('\nTO_LIVE)')));
+
+  it('staging zawsze dostaje własny WP_REDIS_PREFIX i WP_CACHE_KEY_SALT (bez warunku „config has”)', () => {
+    const petla = TO_STAGING.slice(TO_STAGING.indexOf('for c in WP_REDIS_PREFIX WP_CACHE_KEY_SALT'));
+    const cialo = petla.slice(0, petla.indexOf('done'));
+    expect(cialo).toContain('config set $c');
+    expect(cialo).not.toContain('config has');
+  });
+
+  it('po publikacji: kontrola, że w bazie LIVE nie ma adresu stagingu; inaczej powrót do kopii bazy i die', () => {
+    const zamiana = TO_LIVE.indexOf(`search-replace '://\${STAGING_HOST}' '://\${STG_DOMAIN}' --all-tables --precise"`);
+    const kontrola = TO_LIVE.indexOf('--dry-run --format=count');
+    const powrot = TO_LIVE.indexOf(`db import '\${DB_BACKUP}'`);
+    const rsync = TO_LIVE.indexOf('sync_files "$STG" "$LIVE"');
+    expect(zamiana).toBeGreaterThan(-1);
+    expect(kontrola).toBeGreaterThan(zamiana);
+    expect(powrot).toBeGreaterThan(kontrola);
+    expect(rsync).toBeGreaterThan(powrot);
+    expect(TO_LIVE.slice(kontrola, rsync)).toMatch(/die "Adresy stagingu zostały w bazie LIVE/);
+  });
+});
