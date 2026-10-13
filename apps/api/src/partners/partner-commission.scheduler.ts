@@ -9,7 +9,7 @@ import { czescNarzutu } from '../reseller/narzut-resellera.js';
  * RESELL — naliczanie prowizji partnerskich.
  *
  * Co godzinę:
- *  1) maturacja: PENDING → AVAILABLE gdy minął okres karencji (holdDays),
+ *  1) maturacja: PENDING → AVAILABLE gdy minął okres karencji (holdDays) — także bonusy progów,
  *  2) naliczanie: skan realnych płatności klientów (WalletTransaction
  *     CHARGE_SUBSCRIPTION) i utworzenie prowizji % dla poleconych,
  *  3) bonusy: „darmowy hosting za N poleceń" po osiągnięciu progu,
@@ -47,7 +47,7 @@ export class PartnerCommissionScheduler {
     try {
       const cfg = await this.settings.getPartnerProgram();
 
-      // 1) Maturacja prowizji % (bonusy są AVAILABLE od razu). Najpierw zwroty z karencji.
+      // 1) Maturacja prowizji i bonusów progów (oba z karencją). Najpierw zwroty z karencji.
       await this.uwzglednijZwroty();
       const matured = await this.commissions.updateMany({
         where: { status: 'PENDING', availableAt: { lte: new Date() } },
@@ -90,7 +90,7 @@ export class PartnerCommissionScheduler {
         });
         if (enr?.status !== 'APPROVED') continue;
 
-        const base = await this.podstawaPoZwrotach(tx);
+        const base = await this.podstawaGotowkowa(tx.userId, await this.podstawaPoZwrotach(tx));
         const amount = base.times(cfg.commissionPct).dividedBy(100).toDecimalPlaces(2);
         if (amount.lessThanOrEqualTo(0)) continue;
 
@@ -123,7 +123,7 @@ export class PartnerCommissionScheduler {
       // 3) Bonusy „darmowy hosting za N poleceń".
       if (cfg.freeHostingThreshold > 0 && cfg.freeHostingCredit > 0) {
         for (const partnerId of affectedPartners) {
-          await this.grantMilestones(partnerId, cfg.freeHostingThreshold, cfg.freeHostingCredit);
+          await this.grantMilestones(partnerId, cfg.freeHostingThreshold, cfg.freeHostingCredit, cfg.holdDays);
         }
       }
     } catch (err) {
@@ -204,6 +204,28 @@ export class PartnerCommissionScheduler {
     return netto.greaterThan(0) ? netto : new Prisma.Decimal(0);
   }
 
+  /**
+   * Audyt bezpieczeństwa 13.10: prowizja (wypłacalna przelewem) liczona była od całej opłaty, także pokrytej
+   * kredytem niegotówkowym (promocja, uznanie obsługi, prowizja). Podstawa = część opłaty pokryta wpłatami
+   * gotówkowymi poleconego: suma doładowań (TOPUP) minus podstawy prowizji już naliczonych od tego klienta.
+   */
+  async podstawaGotowkowa(referredUserId: string, podstawa: Prisma.Decimal): Promise<Prisma.Decimal> {
+    if (podstawa.lessThanOrEqualTo(0)) return new Prisma.Decimal(0);
+    const [wplaty, wykorzystane] = await Promise.all([
+      this.prisma.walletTransaction.aggregate({
+        where: { userId: referredUserId, type: WalletTxType.TOPUP, status: 'COMPLETED' },
+        _sum: { amount: true },
+      }),
+      this.prisma.partnerCommission.aggregate({
+        where: { referredUserId, kind: 'RECURRING_PCT', status: { not: 'CANCELED' } },
+        _sum: { baseAmount: true },
+      }),
+    ]);
+    const wolne = new Prisma.Decimal(wplaty._sum.amount ?? 0).minus(new Prisma.Decimal(wykorzystane._sum.baseAmount ?? 0));
+    if (wolne.lessThanOrEqualTo(0)) return new Prisma.Decimal(0);
+    return wolne.lessThan(podstawa) ? wolne : podstawa;
+  }
+
   /** Prowizje w karencji od opłat, które potem zwróciliśmy: całość zwrócona → CANCELED, część → mniejsza kwota. */
   private async uwzglednijZwroty(): Promise<void> {
     const wKarencji = await this.prisma.partnerCommission.findMany({
@@ -225,10 +247,10 @@ export class PartnerCommissionScheduler {
     }
   }
 
-  private async grantMilestones(partnerId: string, threshold: number, credit: number): Promise<void> {
-    // Liczba unikalnych, płacących poleceń (mają ≥1 prowizję %).
+  private async grantMilestones(partnerId: string, threshold: number, credit: number, holdDays: number): Promise<void> {
+    // Liczba unikalnych, płacących poleceń: ≥1 prowizja % z gotówkową podstawą, nieanulowana (audyt 13.10).
     const paying = await this.commissions.findMany({
-      where: { partnerUserId: partnerId, kind: 'RECURRING_PCT', referredUserId: { not: null } },
+      where: { partnerUserId: partnerId, kind: 'RECURRING_PCT', referredUserId: { not: null }, status: { not: 'CANCELED' }, baseAmount: { gt: 0 } },
       distinct: ['referredUserId'],
       select: { referredUserId: true },
     });
@@ -246,8 +268,9 @@ export class PartnerCommissionScheduler {
             dedupeKey,
             amount: new Prisma.Decimal(credit),
             currency: 'PLN',
-            status: 'AVAILABLE',
-            availableAt: new Date(),
+            // Z tą samą karencją co prowizje — wcześniej bonus był od razu do wypłaty.
+            status: 'PENDING',
+            availableAt: new Date(Date.now() + holdDays * 24 * 60 * 60 * 1000),
             description: `Bonus „darmowy hosting" za ${k * threshold} aktywnych poleceń`,
           },
         });
