@@ -21,6 +21,8 @@ const MAX_WRITE_BYTES = 25_000_000; // 25 MB
 /** Max in-panel download size — larger files must go via FTP (memory guard). */
 const MAX_DOWNLOAD_BYTES = 100_000_000; // 100 MB
 const MAX_ODCZYTOW_NA_KONTO = 2;
+/** Łączny budżet bajtów odczytów buforowanych w procesie API (wszystkie konta razem). */
+export const MAX_BAJTOW_ODCZYTOW = 400_000_000;
 
 /** Ścieżka elementu `n` w katalogu `dir` (oba już po `safePath`/`safeName`). */
 const wKatalogu = (dir: string, n: string) => `${dir === '/' ? '' : dir}/${n}`;
@@ -171,15 +173,24 @@ export class FilesService {
    */
   private readonly odczytyWToku = new Map<string, number>();
 
-  private async zLimitemOdczytow<T>(kontoId: string, fn: () => Promise<T>): Promise<T> {
+  // Zaległość z audytu (13.10): limit na konto nie ograniczał sumy — 2 × 100 MB × wiele kont naraz wyczerpywało
+  // pamięć wspólnego procesu API. Rezerwujemy znany rozmiar pliku w globalnym budżecie; nadmiar → 503.
+  private bajtyWToku = 0;
+
+  private async zLimitemOdczytow<T>(kontoId: string, fn: () => Promise<T>, rozmiar = 0): Promise<T> {
     const n = this.odczytyWToku.get(kontoId) ?? 0;
     if (n >= MAX_ODCZYTOW_NA_KONTO) {
       throw new HttpException('Za dużo równoczesnych pobrań plików. Spróbuj za chwilę.', HttpStatus.TOO_MANY_REQUESTS);
     }
+    if (this.bajtyWToku + rozmiar > MAX_BAJTOW_ODCZYTOW) {
+      throw new HttpException('Serwer pobiera teraz dużo plików naraz. Spróbuj za chwilę albo użyj FTP.', HttpStatus.SERVICE_UNAVAILABLE);
+    }
     this.odczytyWToku.set(kontoId, n + 1);
+    this.bajtyWToku += rozmiar;
     try {
       return await fn();
     } finally {
+      this.bajtyWToku -= rozmiar;
       const m = (this.odczytyWToku.get(kontoId) ?? 1) - 1;
       if (m <= 0) this.odczytyWToku.delete(kontoId);
       else this.odczytyWToku.set(kontoId, m);
@@ -215,7 +226,7 @@ export class FilesService {
     if (size > MAX_EDIT_BYTES) {
       throw new PayloadTooLargeException('Plik jest zbyt duży do edycji w panelu.');
     }
-    const buf = await this.zLimitemOdczytow(account.id, () => this.pobierzZLimitem(client, safe, MAX_EDIT_BYTES, 'Plik jest zbyt duży do edycji w panelu.'));
+    const buf = await this.zLimitemOdczytow(account.id, () => this.pobierzZLimitem(client, safe, MAX_EDIT_BYTES, 'Plik jest zbyt duży do edycji w panelu.'), size);
     if (buf.length > MAX_EDIT_BYTES) {
       throw new PayloadTooLargeException('Plik jest zbyt duży do edycji w panelu.');
     }
@@ -240,8 +251,10 @@ export class FilesService {
         'Plik jest zbyt duży do pobrania przez panel (limit 100 MB). Użyj FTP.',
       );
     }
-    const data = await this.zLimitemOdczytow(account.id, () =>
-      this.pobierzZLimitem(client, safe, MAX_DOWNLOAD_BYTES, 'Plik jest zbyt duży do pobrania przez panel (limit 100 MB). Użyj FTP.'),
+    const data = await this.zLimitemOdczytow(
+      account.id,
+      () => this.pobierzZLimitem(client, safe, MAX_DOWNLOAD_BYTES, 'Plik jest zbyt duży do pobrania przez panel (limit 100 MB). Użyj FTP.'),
+      size,
     );
     if (data.length > MAX_DOWNLOAD_BYTES) {
       throw new PayloadTooLargeException(
