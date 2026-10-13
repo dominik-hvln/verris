@@ -488,8 +488,8 @@ recover_governor_after_install() {
   systemctl restart "$svc" 2>/dev/null || true
   sleep 3
 
-  run_governor_py "Ponowne ustawienie wersji Governor" --mysql-version="$gov_ver" || true
-  run_governor_py "Ponowny hook Governor" --install --yes || true
+  GOV_BLAD=warn run_governor_py "Ponowne ustawienie wersji Governor" --mysql-version="$gov_ver" || true
+  GOV_BLAD=warn run_governor_py "Ponowny hook Governor" --install --yes || true
   restart_db_governor_service
 }
 
@@ -538,8 +538,12 @@ run_governor_py() {
   clean="$(printf '%s' "$out" | strip_ansi)"
   printf '%s\n' "$clean"
 
+  # GOV_BLAD=warn — próba, po której idzie odzyskiwanie i własny werdykt (13.10, t2: pierwsza instalacja Governora
+  # nie doczekała startu MariaDB, odzyskiwanie ją postawiło, a [FAIL] z próby i tak zostawał w podsumowaniu).
+  local zglos=log_fail
+  [ "${GOV_BLAD:-fail}" = "warn" ] && zglos=log_warn
   if governor_output_indicates_failure "$clean"; then
-    log_fail "$desc — wyjście Governor wskazuje na błąd (patrz Traceback/Error powyżej)"
+    "$zglos" "$desc — wyjście Governor wskazuje na błąd (patrz Traceback/Error powyżej)"
     return 1
   fi
 
@@ -552,7 +556,7 @@ run_governor_py() {
     return 0
   fi
 
-  log_fail "$desc (rc=$rc)"
+  "$zglos" "$desc (rc=$rc)"
   return "$rc"
 }
 
@@ -612,7 +616,8 @@ configure_cloudlinux_governor() {
     install_args+=(--yes)
   fi
 
-  if run_governor_py "Instalacja MySQL Governor" "${install_args[@]}"; then
+  # Wynik instalacji rozstrzyga dopiero stan po odzyskiwaniu (niżej) — sama nieudana próba to ostrzeżenie.
+  if GOV_BLAD=warn run_governor_py "Instalacja MySQL Governor" "${install_args[@]}"; then
     restart_db_governor_service
     if governor_is_active; then
       log_ok "MySQL Governor aktywny (dbctl list)"
