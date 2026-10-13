@@ -128,59 +128,62 @@ export class AnalyticsSitesService {
     const to = new Date();
     const from = new Date(to.getTime() - clampedDays * 24 * 60 * 60 * 1000);
 
-    const rows: Array<{ path: string; refHost: string | null; country: string | null; deviceType: string | null; visitorHash: string; ts: Date }> =
-      await this.events.findMany({
-        where: { siteId: site.id, ts: { gte: from } },
-        select: { path: true, refHost: true, country: true, deviceType: true, visitorHash: true, ts: true },
-        take: 500_000,
-      });
+    // Audyt 13.10 (stats-materializes-attacker-fed-events) — wcześniej do 500 tys. surowych zdarzeń (zasilanych anonimowym
+    // collect) trafiało do pamięci API i było liczone pętlą w JS, blokując wspólną pętlę zdarzeń. Agreguje baza: liczby
+    // i serię dzienną zwraca jedno zapytanie, a „top 10” — groupBy. W procesie API zostają wyniki o stałym rozmiarze.
+    const gdzie = { siteId: site.id, ts: { gte: from } };
+    const [sumy, dzienne, pages, refs, countries, devices] = await Promise.all([
+      this.prisma.$queryRaw<Array<{ pv: number; visitors: number }>>`
+        SELECT COUNT(*)::int AS pv, COUNT(DISTINCT "visitorHash")::int AS visitors
+          FROM "AnalyticsEvent" WHERE "siteId" = ${site.id} AND "ts" >= ${from}`,
+      this.prisma.$queryRaw<Array<{ day: string; pv: number; visitors: number }>>`
+        SELECT to_char(date_trunc('day', "ts"), 'YYYY-MM-DD') AS day, COUNT(*)::int AS pv,
+               COUNT(DISTINCT "visitorHash")::int AS visitors
+          FROM "AnalyticsEvent" WHERE "siteId" = ${site.id} AND "ts" >= ${from}
+         GROUP BY 1`,
+      this.topZBazy('path', gdzie),
+      this.topZBazy('refHost', gdzie),
+      this.topZBazy('country', gdzie),
+      this.topZBazy('deviceType', gdzie),
+    ]);
 
-    const visitors = new Set<string>();
-    const byDay = new Map<string, { pv: number; visitors: Set<string> }>();
-    const pages = new Map<string, number>();
-    const refs = new Map<string, number>();
-    const countries = new Map<string, number>();
-    const devices = new Map<string, number>();
-
-    // Inicjalizacja serii dziennej (żeby wykres miał ciągłe dni).
+    // Ciągła seria dzienna (dni bez ruchu = 0), klucz dnia jak dotąd w UTC.
+    const byDay = new Map<string, { pv: number; visitors: number }>();
     for (let i = 0; i < clampedDays; i++) {
-      const d = new Date(to.getTime() - i * 24 * 60 * 60 * 1000);
-      byDay.set(this.dayKey(d), { pv: 0, visitors: new Set() });
+      byDay.set(this.dayKey(new Date(to.getTime() - i * 24 * 60 * 60 * 1000)), { pv: 0, visitors: 0 });
     }
-
-    for (const e of rows) {
-      visitors.add(e.visitorHash);
-      const dk = this.dayKey(e.ts);
-      const bucket = byDay.get(dk) ?? { pv: 0, visitors: new Set<string>() };
-      bucket.pv++;
-      bucket.visitors.add(e.visitorHash);
-      byDay.set(dk, bucket);
-      pages.set(e.path, (pages.get(e.path) ?? 0) + 1);
-      if (e.refHost) refs.set(e.refHost, (refs.get(e.refHost) ?? 0) + 1);
-      if (e.country) countries.set(e.country, (countries.get(e.country) ?? 0) + 1);
-      if (e.deviceType) devices.set(e.deviceType, (devices.get(e.deviceType) ?? 0) + 1);
-    }
+    for (const d of dzienne) byDay.set(d.day, { pv: Number(d.pv), visitors: Number(d.visitors) });
 
     const timeseries = [...byDay.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, v]) => ({ date, pageviews: v.pv, visitors: v.visitors.size }));
+      .map(([date, v]) => ({ date, pageviews: v.pv, visitors: v.visitors }));
 
     return {
       range: { from: from.toISOString(), to: to.toISOString(), days: clampedDays },
-      totals: { pageviews: rows.length, visitors: visitors.size },
+      totals: { pageviews: Number(sumy[0]?.pv ?? 0), visitors: Number(sumy[0]?.visitors ?? 0) },
       timeseries,
-      topPages: this.top(pages, 'path'),
-      topReferrers: this.top(refs, 'refHost'),
-      countries: this.top(countries, 'country'),
-      devices: this.top(devices, 'deviceType'),
+      topPages: pages,
+      topReferrers: refs,
+      countries,
+      devices,
     };
   }
 
-  private top<K extends string>(map: Map<string, number>, key: K): Array<Record<K, string> & { count: number }> {
-    return [...map.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([k, count]) => ({ [key]: k, count }) as Record<K, string> & { count: number });
+  /** „Top 10” wartości pola liczone w bazie (groupBy), bez pustych wartości. */
+  private async topZBazy<K extends 'path' | 'refHost' | 'country' | 'deviceType'>(
+    pole: K,
+    gdzie: { siteId: string; ts: { gte: Date } },
+  ): Promise<Array<Record<K, string> & { count: number }>> {
+    const wiersze = (await this.events.groupBy({
+      by: [pole],
+      where: pole === 'path' ? gdzie : { ...gdzie, [pole]: { not: null } },
+      _count: { _all: true },
+      orderBy: { _count: { [pole]: 'desc' } },
+      take: 10,
+    } as never)) as unknown as Array<Record<K, string | null> & { _count: { _all: number } }>;
+    return wiersze
+      .filter((w) => w[pole] != null)
+      .map((w) => ({ [pole]: w[pole] as string, count: w._count._all }) as Record<K, string> & { count: number });
   }
 
   // -------------------------------------------------------------------------
