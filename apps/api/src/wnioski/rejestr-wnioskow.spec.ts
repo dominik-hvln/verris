@@ -172,7 +172,8 @@ describe('PB-48 — rejestr wniosków', () => {
   it('zasilenie portfela: klucz idempotencji z id wniosku, actor = akceptujący', async () => {
     const { z, wywolania } = zal();
     const w = await REJESTR_WNIOSKOW.WALLET_CREDIT.wykonaj({ amount: 50, description: 'rekompensata' }, k, z);
-    expect(wywolania).toEqual([['portfel', { userId: 'k1', amount: 50, description: 'rekompensata', idempotencyKey: 'wniosek:w1', actorUserId: 'kier' }]]);
+    // Przegląd paczki 42: rola decydującego idzie do reguł uznania (STAFF z REQUESTS_APPROVE też akceptuje).
+    expect(wywolania).toEqual([['portfel', { userId: 'k1', amount: 50, description: 'rekompensata', idempotencyKey: 'wniosek:w1', actorUserId: 'kier', actorRole: 'STAFF' }]]);
     expect(w).toMatchObject({ walletTxId: 'tx1' });
     expect(REJESTR_WNIOSKOW.WALLET_CREDIT.opis({ amount: 50 })).toBe('Zasilenie portfela: 50,00 K');
   });

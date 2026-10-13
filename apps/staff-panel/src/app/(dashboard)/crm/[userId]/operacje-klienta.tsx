@@ -120,12 +120,13 @@ export function OperacjeKlienta({
         tytul="Zasilenie portfela"
         mozeBezposrednio={mozeFinanse}
         payload={{ amount: kwotaOk ? Math.round(liczba * 100) / 100 : 0, ...(opis.trim() ? { description: opis.trim() } : {}) }}
-        gotowe={kwotaOk}
+        // API wymaga od obsługi powodu (min. 10 znaków) — trafia do dziennika i historii portfela klienta.
+        gotowe={kwotaOk && opis.trim().length >= 10}
         etykietaWykonaj="Zasil portfel"
       >
         <div className="grid gap-2 sm:grid-cols-[10rem_1fr]">
           <input aria-label="Kwota (K)" inputMode="decimal" placeholder="Kwota, np. 25,00" value={kwota} onChange={(e) => setKwota(e.target.value)} className={POLE} />
-          <input aria-label="Opis dla klienta" placeholder="Opis dla klienta (opcjonalnie)" maxLength={255} value={opis} onChange={(e) => setOpis(e.target.value)} className={POLE} />
+          <input aria-label="Powód zasilenia" placeholder="Powód — widzi go klient (min. 10 znaków)" maxLength={255} value={opis} onChange={(e) => setOpis(e.target.value)} className={POLE} />
         </div>
       </Operacja>
 

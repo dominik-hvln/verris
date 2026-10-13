@@ -393,23 +393,26 @@ export class BillingService {
     description?: string;
     idempotencyKey?: string;
     actorUserId: string;
-    /** Rola operatora z trasy bezpośredniej; wniosek (decyzja ADMIN-a) jej nie podaje. */
+    /** Rola operatora: z trasy bezpośredniej albo decydującego o wniosku (ADMIN lub STAFF z REQUESTS_APPROVE). */
     actorRole?: string;
   }) {
     // Audyt bezpieczeństwa 13.10: trasa bezpośrednia omijała reguły korekty salda (RozliczeniaOperatoraService):
     // personel uznawał konta zespołu i subkonta, bez powodu w dzienniku.
-    if (opts.actorRole && opts.actorRole !== 'ADMIN') {
+    if (opts.actorRole) {
       const u = await this.prisma.user.findUnique({
         where: { id: opts.userId },
         select: { role: true, customerOwnerId: true, anonymizedAt: true },
       });
       if (!u || u.anonymizedAt) throw new NotFoundException('Klient nie istnieje.');
-      if (u.role !== 'USER') {
-        throw new ForbiddenException('Personel zasila wyłącznie portfele klientów — konto zespołu obsługuje administrator.');
-      }
+      // Subkonto nie ma własnego portfela (płaci właściciel) — także dla administratora.
       if (u.customerOwnerId) throw new BadRequestException('To subkonto — portfel należy do właściciela konta.');
-      if ((opts.description?.trim().length ?? 0) < MIN_POWOD_UZNANIA) {
-        throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_UZNANIA} znaków) — zapisze się w dzienniku i w historii portfela.`);
+      if (opts.actorRole !== 'ADMIN') {
+        if (u.role !== 'USER') {
+          throw new ForbiddenException('Personel zasila wyłącznie portfele klientów — konto zespołu obsługuje administrator.');
+        }
+        if ((opts.description?.trim().length ?? 0) < MIN_POWOD_UZNANIA) {
+          throw new BadRequestException(`Podaj powód (min. ${MIN_POWOD_UZNANIA} znaków) — zapisze się w dzienniku i w historii portfela.`);
+        }
       }
     }
     if (opts.idempotencyKey) {

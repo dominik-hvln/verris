@@ -244,6 +244,7 @@ export interface ZaleznosciWnioskow {
       description?: string;
       idempotencyKey?: string;
       actorUserId: string;
+      actorRole?: string;
     }): Promise<{ id: string; amount: { toString(): string } }>;
   };
   anulowanie: {
@@ -370,9 +371,12 @@ export const REJESTR_WNIOSKOW = {
       const tx = await z.portfel.adminCreditWallet({
         userId: k.klientId!,
         amount: p.amount,
-        description: p.description,
+        // Przegląd paczki 42: wniosek akceptuje też STAFF (REQUESTS_APPROVE) — te same reguły co przy trasie
+        // bezpośredniej; powodem jest opis z wniosku albo uzasadnienie wnioskującego.
+        description: p.description?.trim() || k.uzasadnienie,
         idempotencyKey: `wniosek:${k.wniosekId}`,
         actorUserId: k.decydujacy.userId,
+        actorRole: k.decydujacy.role,
       });
       return { komunikat: `Portfel zasilony kwotą ${kwotaPl(Number(tx.amount.toString()))}.`, walletTxId: tx.id };
     },

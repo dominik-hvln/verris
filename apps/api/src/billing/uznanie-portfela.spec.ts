@@ -62,4 +62,11 @@ describe('Uznanie portfela przez obsługę', () => {
     await ctl.creditWallet({ userId: 'u1', amount: 5, idempotencyKey: 'renewal:sub1:2026-10' } as never, { userId: 'op', role: 'STAFF' });
     expect(billing.adminCreditWallet).toHaveBeenCalledWith(expect.objectContaining({ idempotencyKey: 'uznanie:renewal:sub1:2026-10', actorRole: 'STAFF' }));
   });
+
+  // Przegląd paczki 42: subkonto nie dostaje uznania także od administratora; wniosek niesie rolę decydującego.
+  it('ADMIN: subkonto → 400 bez zapisu', async () => {
+    const s = stanowisko({ ...klient, customerOwnerId: 'wl' });
+    await expect(s.svc.adminCreditWallet({ userId: 'u1', amount: 5, actorUserId: 'adm', actorRole: 'ADMIN' })).rejects.toBeInstanceOf(BadRequestException);
+    expect(s.ledger.credit).not.toHaveBeenCalled();
+  });
 });
