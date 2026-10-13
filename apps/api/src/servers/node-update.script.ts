@@ -1,7 +1,8 @@
 /**
  * NODE-6 — skrypt aktualizacji stacku węzła do LATEST-STABLE. Komendy zgodne
  * z oficjalnymi mechanizmami producentów:
- *   - DirectAdmin + LiteSpeed + PHP → CustomBuild (`./build update` + `./build all d`)
+ *   - DirectAdmin + LiteSpeed + PHP → CustomBuild (`./build update` + `./build update_versions`;
+ *     przy zmianie domyślnego PHP z manifestu dodatkowo `./build php`)
  *   - DirectAdmin binary → `da update` (kanał stable)
  *   - CloudLinux/OS → `yum -y update` (pakiety + kernel LVE)
  *
@@ -41,15 +42,27 @@ if [ -d "$CB" ]; then
   # PB-33 — „Wyrównaj flotę”: domyślne PHP z manifestu floty (/etc/verris-stack.env) przed przebudową.
   if [ "\${UPD_WYROWNAJ:-}" = "1" ] && [ -r /etc/verris-stack.env ]; then
     . /etc/verris-stack.env
-    log "Wyrównanie z manifestem \${VERRIS_STACK_VERSION:-?}: PHP \${VERRIS_PHP1_RELEASE:-?}"
-    ./build set php1_release "$VERRIS_PHP1_RELEASE" >/dev/null 2>&1 || blad "build set php1_release"
+    PHP_OBECNE="$(sed -n 's/^php1_release=//p' "$CB/options.conf" 2>/dev/null | head -1)"
+    log "Wyrównanie z manifestem \${VERRIS_STACK_VERSION:-?}: PHP \${VERRIS_PHP1_RELEASE:-?} (na węźle: \${PHP_OBECNE:-?})"
+    if [ "\${PHP_OBECNE}" != "\${VERRIS_PHP1_RELEASE:-}" ]; then
+      ./build set php1_release "$VERRIS_PHP1_RELEASE" >/dev/null 2>&1 && PHP_ZMIANA=1 || blad "build set php1_release"
+    fi
   fi
-  log "CustomBuild: aktualizuję cały stack (DA/LiteSpeed/PHP)…"
+  # 13.10 — było „./build all d”: wyrównanie zgodnych węzłów kompilowało od zera PHP ×5, Dovecota i resztę
+  # (t2 ~35 min, t1 ~20 min) bez żadnej zmiany wersji. Dokumentacja DirectAdmin „Upgrading Services”
+  # (https://docs.directadmin.com/custombuild/upgrading-services.html): aktualizacja = „da build update_versions”
+  # (tylko nieaktualne składniki); „build all” rekompiluje wszystko i „nie jest zalecane do regularnego użycia”.
+  log "CustomBuild: aktualizuję nieaktualne składniki (update_versions)…"
   # Weryfikacja 11.10 — CustomBuild kończy się kodem 0 także wtedy, gdy krok w środku wypisze „Error: …”
   # (t1: cagefsctl --force-update → „/etc/cagefs/cagefs.mp file contains incorrect path - /run/mysql …”).
   # Takie linie liczymy jako ostrzeżenia: przebieg nie jest „wszystko zaktualizowane”, ale fala nie staje.
   BUILD_LOG="$(mktemp /tmp/verris-update-build.XXXXXX)"
-  ./build all d 2>&1 | tee "$BUILD_LOG" || blad "build all d"
+  ./build update_versions 2>&1 | tee "$BUILD_LOG" || blad "build update_versions"
+  # Zmiana domyślnego PHP z manifestu (PB-33) — przebudowa samego PHP według options.conf.
+  if [ "\${PHP_ZMIANA:-0}" = "1" ]; then
+    log "CustomBuild: przebudowa PHP po zmianie php1_release…"
+    ./build php 2>&1 | tee -a "$BUILD_LOG" || blad "build php"
+  fi
   while IFS= read -r linia; do ostrzezenie "CustomBuild: $linia"; done < <(grep -E '^Error:' "$BUILD_LOG" | sort -u)
   rm -f "$BUILD_LOG"
   ./build rewrite_confs >/dev/null 2>&1 || true

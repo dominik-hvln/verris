@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadNodeUpdateScript } from './node-update.script.js';
@@ -11,7 +11,7 @@ import { wynikAktualizacji, ostrzezeniaAktualizacji } from './przeglad-wezla.ser
  * VERRIS_UPDATE_RESULT=ok („wszystko zaktualizowane”). Linie „Error:” z CustomBuilda to teraz ostrzeżenia
  * na końcu wyjścia i pole warnings=N w wyniku.
  */
-function uruchom(wyjscieBuild: string, kodBuild = 0, straznik?: string) {
+function uruchom(wyjscieBuild: string, kodBuild = 0, straznik?: string, opcje: { stos?: string; options?: string; env?: Record<string, string> } = {}) {
   const T = mkdtempSync(join(tmpdir(), 'verris-upd-'));
   try {
     const cb = join(T, 'custombuild');
@@ -19,7 +19,11 @@ function uruchom(wyjscieBuild: string, kodBuild = 0, straznik?: string) {
     mkdirSync(cb);
     mkdirSync(bin);
     const build = join(cb, 'build');
-    writeFileSync(build, `#!/usr/bin/env bash\nif [ "$1" = all ]; then cat <<'X'\n${wyjscieBuild}\nX\nexit ${kodBuild}; fi\nexit 0\n`);
+    // Atrapa CustomBuilda zapisuje każde wywołanie — testy sprawdzają, CO zostało uruchomione.
+    writeFileSync(build, `#!/usr/bin/env bash\necho "$*" >> "${join(T, 'wywolania')}"\nif [ "$1" = update_versions ]; then cat <<'X'\n${wyjscieBuild}\nX\nexit ${kodBuild}; fi\nexit 0\n`);
+    if (opcje.options !== undefined) writeFileSync(join(cb, 'options.conf'), opcje.options);
+    const stos = join(T, 'verris-stack.env');
+    if (opcje.stos !== undefined) writeFileSync(stos, opcje.stos);
     chmodSync(build, 0o755);
     for (const n of ['verris-fetch', 'yum', 'rpm', 'da', 'sleep']) {
       writeFileSync(join(bin, n), '#!/usr/bin/env bash\nexit 0\n');
@@ -36,16 +40,26 @@ function uruchom(wyjscieBuild: string, kodBuild = 0, straznik?: string) {
       loadNodeUpdateScript()
         .replace('CB=/usr/local/directadmin/custombuild', `CB=${cb}`)
         .replace(/bash \/usr\/local\/bin\/verris-agent-install\.sh/, 'true')
-        .replaceAll('/usr/local/bin/verris-straznik.sh', stra),
+        .replaceAll('/usr/local/bin/verris-straznik.sh', stra)
+        .replaceAll('/etc/verris-stack.env', stos),
     );
     try {
-      return { kod: 0, out: execFileSync('bash', [skrypt], { env: { ...process.env, PATH: `${bin}:${process.env.PATH}` }, encoding: 'utf8' }) };
+      const out = execFileSync('bash', [skrypt], { env: { ...process.env, ...opcje.env, PATH: `${bin}:${process.env.PATH}` }, encoding: 'utf8' });
+      return { kod: 0, out, wywolania: czytajWywolania(T) };
     } catch (e) {
       const err = e as { status: number; stdout: string };
-      return { kod: err.status, out: err.stdout };
+      return { kod: err.status, out: err.stdout, wywolania: czytajWywolania(T) };
     }
   } finally {
     rmSync(T, { recursive: true, force: true });
+  }
+}
+
+function czytajWywolania(T: string): string[] {
+  try {
+    return readFileSync(join(T, 'wywolania'), 'utf8').split('\n').filter(Boolean);
+  } catch {
+    return [];
   }
 }
 
@@ -86,5 +100,33 @@ describe('aktualizacja węzła — ostrzeżenia z CustomBuilda', () => {
     expect(ok.kod).toBe(0);
     expect(ok.out).toContain('Kontrola po aktualizacji: VERRIS_STRAZNIK_SPRAWDZ=ok');
     expect(wynikAktualizacji(ok.out)).toBe('ok');
+  });
+});
+
+// 13.10 — wyrównanie zgodnych t1/t2 kompilowało cały stos od zera („./build all d”, ~1 h) bez zmiany wersji.
+// Dokumentacja DA „Upgrading Services”: aktualizacja = update_versions; „build all” nie do regularnego użycia.
+describe('aktualizacja i wyrównanie — tylko to, co się zmieniło', () => {
+  const STOS = "VERRIS_STACK_VERSION='2026-10-13.1'\nVERRIS_PHP1_RELEASE='8.3'\n";
+
+  it('aktualizacja floty → update_versions, nigdy „build all”', () => {
+    const { kod, wywolania } = uruchom('All parts have been installed');
+    expect(kod).toBe(0);
+    expect(wywolania).toContain('update_versions');
+    expect(wywolania.some((w) => w.startsWith('all'))).toBe(false);
+  });
+
+  it('wyrównanie węzła zgodnego z manifestem → bez zmiany php1_release i bez przebudowy PHP', () => {
+    const { kod, wywolania } = uruchom('ok', 0, undefined, { stos: STOS, options: 'php1_release=8.3\n', env: { UPD_WYROWNAJ: '1' } });
+    expect(kod).toBe(0);
+    expect(wywolania.some((w) => w.startsWith('set php1_release'))).toBe(false);
+    expect(wywolania).not.toContain('php');
+  });
+
+  it('wyrównanie przy innym PHP → set php1_release z manifestu i przebudowa samego PHP', () => {
+    const { kod, wywolania } = uruchom('ok', 0, undefined, { stos: STOS, options: 'php1_release=8.2\n', env: { UPD_WYROWNAJ: '1' } });
+    expect(kod).toBe(0);
+    expect(wywolania).toContain('set php1_release 8.3');
+    expect(wywolania).toContain('php');
+    expect(wywolania.some((w) => w.startsWith('all'))).toBe(false);
   });
 });
