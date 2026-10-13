@@ -1,6 +1,7 @@
 import { features } from '@/lib/features';
 import { EMAIL_MARKETING_W_SPRZEDAZY, OFERTA_KROTKO, VPS_W_SPRZEDAZY } from '@/lib/oferta';
 import { getPayloadClient } from '@/lib/payload';
+import { OPUBLIKOWANE } from '@/collections/tylko-opublikowane';
 
 /**
  * /llms.txt — plik kontekstowy dla agentów i wyszukiwarek AI (llmstxt.org).
@@ -16,7 +17,7 @@ type Post = { title: string; slug: string; cluster?: string; type?: string; exce
 async function getPosts(): Promise<Post[]> {
   try {
     const payload = await getPayloadClient();
-    const res = await payload.find({ collection: 'posts', limit: 500, depth: 0, sort: '-publishedAt' });
+    const res = await payload.find({ collection: 'posts', where: OPUBLIKOWANE, limit: 500, depth: 0, sort: '-publishedAt' });
     return res.docs as unknown as Post[];
   } catch {
     return [];

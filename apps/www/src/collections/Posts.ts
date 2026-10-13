@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload';
+import { tylkoOpublikowaneDlaAnonima } from './tylko-opublikowane';
 
 export const Posts: CollectionConfig = {
   slug: 'posts',
@@ -8,7 +9,7 @@ export const Posts: CollectionConfig = {
     group: 'Treści',
     defaultColumns: ['title', 'slug', 'publishedAt'],
   },
-  access: { read: () => true },
+  access: { read: tylkoOpublikowaneDlaAnonima },
   versions: { drafts: true },
   fields: [
     { name: 'title', type: 'text', required: true, label: 'Tytuł' },

@@ -5,6 +5,7 @@ import { Breadcrumbs, CTABand, JsonLd } from '../../components/ui';
 import { RevealInit } from '../../components/RevealInit';
 import { getPayloadClient } from '@/lib/payload';
 import { articleSchema, faqSchema } from '@/lib/schema';
+import { OPUBLIKOWANE } from '@/collections/tylko-opublikowane';
 
 type FaqItem = { q?: string; a?: string; question?: string; answer?: string };
 
@@ -37,7 +38,7 @@ async function getPost(slug: string): Promise<Post | null> {
     const payload = await getPayloadClient();
     const res = await payload.find({
       collection: 'posts',
-      where: { slug: { equals: slug } },
+      where: { and: [{ slug: { equals: slug } }, OPUBLIKOWANE] },
       limit: 1,
       depth: 1,
     });

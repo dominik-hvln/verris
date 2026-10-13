@@ -1,5 +1,6 @@
 import { getPayloadClient } from '@/lib/payload';
 import { lexicalToText } from '@/lib/lexical-text';
+import { OPUBLIKOWANE } from '@/collections/tylko-opublikowane';
 
 /**
  * /llms-full.txt — pełny tekst poradników dla agentów AI (llmstxt.org).
@@ -25,6 +26,7 @@ export async function GET() {
     const payload = await getPayloadClient();
     const res = await payload.find({
       collection: 'posts',
+      where: OPUBLIKOWANE,
       limit: 200,
       depth: 0,
       sort: '-publishedAt',

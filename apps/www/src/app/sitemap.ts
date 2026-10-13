@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { features } from '@/lib/features';
 import { getPayloadClient } from '@/lib/payload';
 import { EMAIL_MARKETING_W_SPRZEDAZY, SPECYFIKACJA_OPUBLIKOWANA, VPS_W_SPRZEDAZY } from '@/lib/oferta';
+import { OPUBLIKOWANE } from '@/collections/tylko-opublikowane';
 
 const BASE = 'https://verris.pl';
 
@@ -32,7 +33,7 @@ const STATIC = [
 async function blogEntries(): Promise<{ path: string; lastmod?: string }[]> {
   try {
     const payload = await getPayloadClient();
-    const res = await payload.find({ collection: 'posts', limit: 500, depth: 0 });
+    const res = await payload.find({ collection: 'posts', where: OPUBLIKOWANE, limit: 500, depth: 0 });
     // Payload typuje `docs` jako (JsonObject & TypeWithID)[]. Adnotacja parametru
     // callbacku węższym kształtem to błąd typu (TS2769/TS2345) — TypeScript nie
     // pozwala zawęzić parametru w miejscu wywołania. Zawężamy więc całą tablicę

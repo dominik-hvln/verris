@@ -3,6 +3,7 @@ import { SubHero, JsonLd } from '../components/ui';
 import { RevealInit } from '../components/RevealInit';
 import { getPayloadClient } from '@/lib/payload';
 import { SITE, ORG_ID } from '@/lib/schema';
+import { OPUBLIKOWANE } from '@/collections/tylko-opublikowane';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,7 @@ async function getPosts(): Promise<Post[]> {
     const payload = await getPayloadClient();
     const res = await payload.find({
       collection: 'posts',
+      where: OPUBLIKOWANE,
       sort: '-publishedAt',
       limit: 24,
       depth: 1,

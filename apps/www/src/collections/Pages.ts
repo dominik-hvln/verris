@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload';
+import { tylkoOpublikowaneDlaAnonima } from './tylko-opublikowane';
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
@@ -9,7 +10,7 @@ export const Pages: CollectionConfig = {
     defaultColumns: ['title', 'slug', 'updatedAt'],
     description: 'Strony statyczne (np. /reseller, /o-nas). Homepage renderowana jest z globalsów.',
   },
-  access: { read: () => true },
+  access: { read: tylkoOpublikowaneDlaAnonima },
   versions: { drafts: true },
   fields: [
     { name: 'title', type: 'text', required: true, label: 'Tytuł' },
