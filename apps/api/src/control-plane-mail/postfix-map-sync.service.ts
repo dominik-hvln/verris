@@ -14,6 +14,9 @@ export interface GeneratedMailMaps {
   aliasCount: number;
 }
 
+/** Adres bezpieczny jako pole mapy: bez białych znaków, „:”, „/”, „\\”, przecinka i znaków sterujących. */
+const ADRES_W_MAPIE = /^[a-z0-9._+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+
 @Injectable()
 export class PostfixMapSyncService {
   private readonly logger = new Logger(PostfixMapSyncService.name);
@@ -52,7 +55,14 @@ export class PostfixMapSyncService {
     const aliasLines: string[] = [];
     const dovecotLines: string[] = [];
 
+    // Audyt bezpieczeństwa 13.10: wiersz mapy z tabulatorem, końcem linii, spacją, „:” albo „/” w adresie
+    // dopisałby własne wpisy do map albo ścieżkę poza katalog skrzynek — taki rekord pomijamy i logujemy.
+    const zly = (v: string) => !ADRES_W_MAPIE.test(v);
     for (const mb of mailboxes) {
+      if (zly(mb.email) || !/^[a-z0-9][a-z0-9._-]{0,63}$/i.test(mb.localPart) || mb.localPart.includes('..')) {
+        this.logger.error(`Pomijam skrzynkę o niedozwolonym adresie w mapach poczty: ${JSON.stringify(mb.email)}`);
+        continue;
+      }
       mailboxLines.push(`${mb.email}\t${domain}/${mb.localPart}/`);
 
       if (mb.imapEnabled && mb.passwordHash && mb.kind === ControlPlaneMailboxKind.STAFF) {
@@ -60,10 +70,12 @@ export class PostfixMapSyncService {
       }
 
       for (const a of mb.aliases) {
+        if (zly(a.aliasEmail)) continue;
         aliasLines.push(`${a.aliasEmail}\t${mb.email}`);
       }
 
       for (const f of mb.forwards) {
+        if (zly(f.forwardTo)) continue;
         const dest = f.keepCopy ? `${mb.email}, ${f.forwardTo}` : f.forwardTo;
         aliasLines.push(`${mb.email}\t${dest}`);
       }

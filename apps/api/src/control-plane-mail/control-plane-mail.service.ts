@@ -90,6 +90,11 @@ export class ControlPlaneMailService {
     actorUserId: string,
   ): Promise<{ mailbox: Awaited<ReturnType<ControlPlaneMailService['getMailbox']>>; imapPassword?: string }> {
     const domain = (dto.domain ?? CONTROL_PLANE_MAIL_DOMAIN).trim().toLowerCase();
+    // Audyt bezpieczeństwa 13.10: domena trafia do map Postfixa/Dovecota i do ścieżki skrzynki tworzonej przez
+    // skrypt roota — jak przy aliasach i imporcie CSV przyjmujemy wyłącznie domenę poczty zespołu.
+    if (domain !== CONTROL_PLANE_MAIL_DOMAIN) {
+      throw new BadRequestException(`Skrzynka musi być w domenie @${CONTROL_PLANE_MAIL_DOMAIN}.`);
+    }
     const localPart = dto.localPart.trim().toLowerCase();
     this.assertValidLocalPart(localPart);
 
