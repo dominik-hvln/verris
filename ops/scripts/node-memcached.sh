@@ -46,8 +46,11 @@ fi
 MC_BIN="$(command -v memcached || true)"
 [ -n "$MC_BIN" ] || fail "Memcached nie jest jeszcze zainstalowany na serwerze — napisz do nas"
 [ ! -L "$DIR" ] || fail "katalog gniazda jest dowiązaniem symbolicznym"
-jako_klient sh -c 'umask 077; mkdir -p "$1"' _ "$DIR"
-chmod 700 "$DIR"
+# Audyt 13.10 — `chmod 700 "$DIR"` jako root szedł za dowiązaniem podstawionym przez klienta w jego katalogu domowym
+# (GNU chmod podąża za dowiązaniem, opcji -h nie ma): zmieniał tryb dowolnego katalogu na węźle. Katalog zakłada
+# i zamyka klient — na cudzym celu dowiązania jego chmod kończy się EPERM; root nie operuje na ścieżce klienta.
+jako_klient sh -c 'umask 077; mkdir -p "$1" && [ -d "$1" ] && [ ! -L "$1" ] && chmod 700 "$1"' _ "$DIR" \
+  || fail "nie udało się przygotować katalogu gniazda"
 
 if [ "${MC_SKIP_SYSTEMD:-0}" = "1" ]; then
   jako_klient "$MC_BIN" -s "$SOCK" -a 0700 -m "$MC_MEMORY_MB" -c 256 -d

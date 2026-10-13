@@ -48,8 +48,12 @@ REDIS_BIN="$(command -v redis-server || true)"
 [ -n "$REDIS_BIN" ] || fail "Redis nie jest jeszcze zainstalowany na serwerze — napisz do nas"
 
 install -d -m 755 "$ETC"
-jako_klient sh -c 'umask 077; mkdir -p "$1"' _ "$DIR"
-chmod 700 "$DIR"
+[ ! -L "$DIR" ] || fail "katalog gniazda jest dowiązaniem symbolicznym"
+# Audyt 13.10 — `chmod 700 "$DIR"` jako root szedł za dowiązaniem podstawionym przez klienta w jego katalogu domowym
+# (GNU chmod podąża za dowiązaniem, opcji -h nie ma): zmieniał tryb dowolnego katalogu na węźle. Katalog zakłada
+# i zamyka klient — na cudzym celu dowiązania jego chmod kończy się EPERM; root nie operuje na ścieżce klienta.
+jako_klient sh -c 'umask 077; mkdir -p "$1" && [ -d "$1" ] && [ ! -L "$1" ] && chmod 700 "$1"' _ "$DIR" \
+  || fail "nie udało się przygotować katalogu gniazda"
 umask 022
 cat > "$CONF.tmp" <<CONF
 # Zarządzane przez Verris — zmiany ręczne zostaną nadpisane.
