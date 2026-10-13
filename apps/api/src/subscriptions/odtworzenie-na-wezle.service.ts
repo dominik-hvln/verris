@@ -40,7 +40,7 @@ export class OdtworzenieNaWezleService {
         status: t.status,
         wezel: t.server?.name ?? t.server?.hostname ?? t.serverId,
         archiwum: (t.payload as { archive?: string }).archive ?? null,
-        blad: t.status === NodeTaskStatus.FAILED ? (t.errorMessage ?? t.outputLog ?? '').split('\n').filter(Boolean).slice(-1)[0]?.slice(0, 300) ?? null : null,
+        blad: t.status === NodeTaskStatus.FAILED ? przyczynaBledu(t.outputLog, t.errorMessage) : null,
         utworzone: t.createdAt.toISOString(),
         zakonczone: t.completedAt?.toISOString() ?? null,
       };
@@ -104,6 +104,28 @@ export class OdtworzenieNaWezleService {
 }
 
 /** Prefiks kopii węzła: `nodes/$(hostname -s)` — pierwsza etykieta nazwy hosta. */
+/**
+ * Przyczyna nieudanego zadania dla operatora. 13.10 (H-16 na t2) panel pokazywał nagłówek logu
+ * („=== Verris task … Command: … ---”), bo komunikat agenta przychodzi spłaszczony do jednej linii.
+ * Kolejność: ostatnie [FAIL] → ostatnia linia treści (bez metadanych runnera) → kod wyjścia z „End: … rc=N”.
+ */
+export function przyczynaBledu(...zrodla: (string | null | undefined)[]): string | null {
+  for (const z of zrodla) {
+    const i = z?.lastIndexOf('[FAIL]') ?? -1;
+    if (z && i >= 0) return z.slice(i).split('\n')[0].trim().slice(0, 300);
+  }
+  const META = /^(-{3}|={3}|Start:|End:|Command:)/;
+  for (const z of zrodla) {
+    const linie = (z ?? '').split('\n').map((l) => l.trim()).filter((l) => l && !META.test(l));
+    if (linie.length) return linie[linie.length - 1].slice(0, 300);
+  }
+  for (const z of zrodla) {
+    const rc = /End: \S+ rc=(\d+)/.exec(z ?? '')?.[1];
+    if (rc) return `Skrypt na węźle zakończył się kodem ${rc} bez komunikatu — log zadania na węźle (/var/log/verris-tasks).`;
+  }
+  return null;
+}
+
 export function prefiks(hostname: string | null | undefined): string | null {
   const krotka = (hostname ?? '').trim().toLowerCase().split('.')[0];
   return /^[a-z0-9][a-z0-9-]{0,62}$/.test(krotka) ? `nodes/${krotka}` : null;

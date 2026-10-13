@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { OdtworzenieNaWezleService, prefiks } from './odtworzenie-na-wezle.service.js';
+import { OdtworzenieNaWezleService, prefiks, przyczynaBledu } from './odtworzenie-na-wezle.service.js';
 import { NodeTasksService } from '../servers/node-tasks.service.js';
 
 const skrypt = readFileSync(join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'scripts', 'node-account-restore.sh'), 'utf8');
@@ -78,5 +78,26 @@ describe('H-16 — odtworzenie konta na innym węźle', () => {
     } else {
       expect(prisma.account.update).not.toHaveBeenCalled();
     }
+  });
+});
+
+describe('przyczynaBledu — co operator widzi przy nieudanym zadaniu (13.10, t2)', () => {
+  const NAGLOWEK = '=== Verris task ed91 (kind=OFFSITE_RESTORE) ===\nStart: 2026-10-13T15:07:29Z\nCommand: /usr/local/bin/verris-account-restore.sh \n---\n';
+
+  it('pusty log z kodem wyjścia → kod, nie nagłówek logu', () => {
+    const log = `${NAGLOWEK}---\nEnd: 2026-10-13T15:07:29Z rc=2\n`;
+    const splaszczony = log.replace(/\n/g, ' ');
+    expect(przyczynaBledu(log, splaszczony)).toContain('kodem 2');
+    expect(przyczynaBledu(log, splaszczony)).not.toContain('Verris task');
+  });
+
+  it('[FAIL] ze skryptu ma pierwszeństwo, także w spłaszczonym komunikacie', () => {
+    const log = `${NAGLOWEK}[2026-10-13T15:07:29Z] pobieram…\n[2026-10-13T15:07:30Z] [FAIL] konto rdeetgju już istnieje na tym węźle\n---\nEnd: x rc=1\n`;
+    expect(przyczynaBledu(log)).toBe('[FAIL] konto rdeetgju już istnieje na tym węźle');
+    expect(przyczynaBledu(null, log.replace(/\n/g, ' '))).toMatch(/^\[FAIL\] konto rdeetgju już istnieje na tym węźle/);
+  });
+
+  it('bez [FAIL] → ostatnia linia treści', () => {
+    expect(przyczynaBledu(`${NAGLOWEK}rclone copy nieudany\n---\nEnd: x rc=1\n`)).toBe('rclone copy nieudany');
   });
 });
