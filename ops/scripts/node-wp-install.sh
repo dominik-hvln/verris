@@ -152,6 +152,20 @@ wp_as_user "core install --path='$DOCROOT' --url='https://$WP_DOMAIN' --title=$(
 
 log "Konfiguruję wtyczki i ustawienia…"
 wp_as_user "rewrite structure '/%postname%/' --path='$DOCROOT'" || true
+# Przegląd 13.10 (d3.hvln.pl na t1: /wp-json/ i każdy wpis → 404): wp-cli zapisuje reguły do .htaccess tylko z --hard
+# i gdy widzi mod_rewrite — z linii poleceń go nie widzi (https://developer.wordpress.org/cli/commands/rewrite/flush/),
+# więc ładne adresy zostawały bez reguł. Dopisujemy standardowy blok WordPressa
+# (https://developer.wordpress.org/advanced-administration/server/web-server/httpd/), jeśli go nie ma — jako klient.
+runuser -u "$WP_DA_USER" -- sh -c '
+  f="$1/.htaccess"
+  [ -L "$f" ] && exit 1
+  grep -qs "^# BEGIN WordPress" "$f" && exit 0
+  umask 022
+  { [ -s "$f" ] && cat "$f" && echo; printf "%s\n" "# BEGIN WordPress" "<IfModule mod_rewrite.c>" "RewriteEngine On" \
+      "RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]" "RewriteBase /" "RewriteRule ^index\\.php$ - [L]" \
+      "RewriteCond %{REQUEST_FILENAME} !-f" "RewriteCond %{REQUEST_FILENAME} !-d" "RewriteRule . /index.php [L]" \
+      "</IfModule>" "# END WordPress"; } > "$f.verris-tmp" && mv -f -- "$f.verris-tmp" "$f"
+' verris "$DOCROOT" || log "WARN: nie udało się dopisać reguł WordPressa do .htaccess — ładne adresy mogą zwracać 404"
 # I-08: edytor plików w kokpicie wyłączony od początku — panel i tak oznacza go jako „do poprawy”
 # (próba bety 06.10: świeża instalacja startowała z jednym punktem zabezpieczeń do poprawy).
 wp_as_user "config set DISALLOW_FILE_EDIT true --raw --type=constant --path='$DOCROOT'" || log "WARN: nie udało się wyłączyć edytora plików"
