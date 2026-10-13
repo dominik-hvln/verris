@@ -26,12 +26,26 @@ if [[ ! -d "${MAP_DIR}" ]]; then
 fi
 
 VHOST_ROOT="${CONTROL_PLANE_MAIL_DATA_ROOT:-/var/mail/vhosts}"
+# Skrypt działa jako root, a ścieżki pochodzą z bazy (domena/lokalna z postfix-map-sync.service.ts).
+# Tworzymy wyłącznie katalogi „domena/lokalna” wewnątrz VHOST_ROOT — bez „..”, ścieżek bezwzględnych
+# i symlinków wyprowadzających poza korzeń; resztę pomijamy z wpisem w logu.
+_SEG='[A-Za-z0-9][A-Za-z0-9._+=-]*'
+_ROOT_REAL="$(realpath -m -- "${VHOST_ROOT}")"
 if [[ -f "${MAP_DIR}/virtual_mailbox_maps" ]]; then
   while IFS=$'\t' read -r _email _path; do
     [[ -z "${_email}" || "${_email}" == \#* ]] && continue
     _path="${_path%/}"
-    mkdir -p "${VHOST_ROOT}/${_path}"
-    chown vmail:vmail "${VHOST_ROOT}/${_path}" 2>/dev/null || true
+    if [[ ! "${_path}" =~ ^${_SEG}/${_SEG}$ || "${_path}" == *..* ]]; then
+      echo "[mail-maps] Pomijam niepoprawną ścieżkę skrzynki dla ${_email}: ${_path}" >&2
+      continue
+    fi
+    _cel="$(realpath -m -- "${VHOST_ROOT}/${_path}")"
+    if [[ "${_cel}" != "${_ROOT_REAL}"/* ]]; then
+      echo "[mail-maps] Pomijam ścieżkę poza ${VHOST_ROOT} dla ${_email}: ${_path}" >&2
+      continue
+    fi
+    mkdir -p -- "${_cel}"
+    chown vmail:vmail "${_cel}" 2>/dev/null || true
   done <"${MAP_DIR}/virtual_mailbox_maps"
 fi
 chmod 644 "${MAP_DIR}/dovecot-passwd" 2>/dev/null || true
