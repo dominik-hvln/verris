@@ -4,6 +4,8 @@ import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard.js';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
 import { AiService } from './ai.service.js';
 import { AiChatService } from './ai-chat.service.js';
 import { AiProviderService } from './ai-provider.service.js';
@@ -36,8 +38,11 @@ export class AiController {
     return this.knowledge.getClientDoc(id);
   }
 
-  @UseGuards(RolesGuard)
+  // Audyt 13.10 — szkic odpowiedzi czyta treść zgłoszenia i klienta: to samo uprawnienie co odczyt zgłoszenia.
+  // Wcześniej każdy STAFF (np. rola Marketing) dostawał treść dowolnego zgłoszenia po samym id.
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
   @Roles(Role.STAFF, Role.ADMIN)
+  @StaffPerm('TICKETS_VIEW')
   @Post('tickets/:id/suggestion')
   supportSuggestion(@Param('id') ticketId: string, @CurrentUser() user: Uzytkownik) {
     return this.ai.supportSuggestion(ticketId, user.principalUserId ?? user.userId);

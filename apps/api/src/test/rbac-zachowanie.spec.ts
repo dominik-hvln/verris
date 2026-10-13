@@ -177,6 +177,14 @@ describe('X-10 — RBAC paneli operatorskich sprawdzany zachowaniem', () => {
     expect(await wpuszcza(zaloz!, OPERATOR, ['CUSTOMERS_VIEW', 'CUSTOMERS_MANAGE'])).toBe(true);
     expect(await wpuszcza(zaloz!, OPERATOR, ['CUSTOMERS_VIEW'])).toBe(false);
   });
+
+  // Audyt 13.10 — szkic odpowiedzi AI czyta treść zgłoszenia: bez TICKETS_VIEW — nie.
+  it('szkic odpowiedzi AI do zgłoszenia tylko z TICKETS_VIEW', async () => {
+    const szkic = TRASY.find((t) => t.kontroler === 'AiController' && t.metoda === 'supportSuggestion');
+    expect(szkic).toBeDefined();
+    expect(await wpuszcza(szkic!, OPERATOR, ['TICKETS_VIEW'])).toBe(true);
+    expect(await wpuszcza(szkic!, OPERATOR, ['DASHBOARD_VIEW', 'CUSTOMERS_VIEW'])).toBe(false);
+  });
 });
 
 /**
@@ -542,7 +550,6 @@ describe('D1 — panel operatora dla STAFF: macierz tras', () => {
     'KbAdminController.article': 'baza wiedzy do odczytu dla każdego pracownika (fala 1A)',
     'KbAdminController.getCta': 'baza wiedzy do odczytu dla każdego pracownika (fala 1A)',
     'AiController.staffChat': 'asystent pracowników (wiedza STAFF z białej listy)',
-    'AiController.supportSuggestion': 'szkic odpowiedzi; serwis sprawdza dostęp do zgłoszenia',
   };
 
   it('STAFF bez uprawnień wchodzi tylko na trasy z listy wyjątków (własne konto)', async () => {
