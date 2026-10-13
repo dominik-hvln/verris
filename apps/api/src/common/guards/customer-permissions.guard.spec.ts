@@ -301,3 +301,12 @@ describe('CustomerPermissionsGuard — dziennik odmów (Z-10)', () => {
     );
   });
 });
+
+// Audyt 13.10 (services-fallback-webmail-sso-and-content) — SSO webmaila wymaga uprawnienia pocztowego,
+// nie dziedziczy SERVICES_MANAGE z ogólnej reguły /services.
+describe('SSO do webmaila — tylko z EMAIL_MANAGE', () => {
+  it('POST /services/:id/hosting-webmail-login → EMAIL_MANAGE', () => {
+    const w = inferCustomerRoutePermissions('POST', '/services/abc/hosting-webmail-login');
+    expect(w).toEqual(['EMAIL_MANAGE']);
+  });
+});

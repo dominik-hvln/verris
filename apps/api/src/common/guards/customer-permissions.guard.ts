@@ -149,9 +149,11 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Rekordy DNS. Odczyt też wymaga uprawnienia — układ strefy bywa wrażliwy.',
   },
   {
-    pasuje: zawiera('hosting-email', 'hosting-autoresponders', 'hosting-catchall', 'hosting-spamfilter', 'hosting-mail-log'),
+    pasuje: zawiera('hosting-email', 'hosting-webmail-login', 'hosting-autoresponders', 'hosting-catchall', 'hosting-spamfilter', 'hosting-mail-log'),
     odczyt: [EMAIL_MANAGE], zapis: [EMAIL_MANAGE],
-    po_co: 'Skrzynki i reguły pocztowe.',
+    // Audyt 13.10 — SSO do webmaila (E-14) spadało do ogólnej reguły services (SERVICES_MANAGE): subkonto bez
+    // uprawnienia pocztowego logowało się do dowolnej skrzynki konta i czytało jej treść.
+    po_co: 'Skrzynki i reguły pocztowe; logowanie do webmaila daje treść poczty.',
   },
   {
     pasuje: zaczyna('/email-marketing'),
