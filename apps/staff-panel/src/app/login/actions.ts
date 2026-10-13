@@ -87,6 +87,10 @@ export async function staffSubmitLogin(
   }
 
   if (!res.ok) {
+    // Decyzja 14.10 — po progu nieudanych prób API żąda captchy (CAPTCHA_WYMAGANA); ten panel nie ma widgetu.
+    if (res.status === 400 && (data as { code?: unknown } | null)?.code === "CAPTCHA_WYMAGANA") {
+      return { error: "Po kilku nieudanych próbach logowanie hasłem wymaga testu antybotowego, którego panel operatora nie pokazuje. Zaloguj się kluczem dostępu (passkey) albo spróbuj ponownie za 15 minut." };
+    }
     return { error: "Nieprawidłowe dane logowania." };
   }
 

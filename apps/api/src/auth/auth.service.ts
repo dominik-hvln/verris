@@ -683,6 +683,11 @@ export class AuthService {
     return { ok: true };
   }
 
+  /** Decyzja 14.10 — czy to logowanie wymaga testu antybotowego (po kilku nieudanych próbach). */
+  wymagaCaptchyLogowania(email: string, ip: string | null): Promise<boolean> {
+    return this.suspicious.wymagaCaptchyLogowania(email, ip);
+  }
+
   /**
    * Step 1 of login: validate email + password. If 2FA is enabled, return a
    * short-lived `challengeToken` instead of a full JWT — the panel must call

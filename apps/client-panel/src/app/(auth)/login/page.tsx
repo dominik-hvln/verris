@@ -126,7 +126,8 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-3 p-8 pt-2">
-          <Captcha action="login" />
+          {/* Decyzja 14.10 — test antybotowy dopiero, gdy API go zażąda (po kilku nieudanych próbach). */}
+          {loginState?.captchaWymagana ? <Captcha action="login" /> : null}
           <SubmitButton pending={loginPending} label="Zaloguj się" pendingLabel="Logowanie..." />
           <div className="flex items-center gap-3">
             <span className="h-px flex-1 bg-border" />

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   ForbiddenException,
@@ -98,8 +99,19 @@ export class AuthController {
   @Post('login')
   async login(@Body() dto: LoginDto, @Req() req: Request) {
     const ctx = requestContext(req);
-    // CYBER-2 — anty-bot przed próbą logowania (utrudnia credential-stuffing).
-    await this.captcha.verify(dto.captchaToken, ctx.ip, 'login');
+    // CYBER-2 — anty-bot przed próbą logowania (utrudnia credential-stuffing). Decyzja 14.10: miękko — dopiero po
+    // kilku nieudanych próbach (e-mail albo IP), żeby właściciel z poprawnym hasłem i panele operatora bez widgetu
+    // logowały się bez testu.
+    if (this.captcha.isEnabled() && (await this.authService.wymagaCaptchyLogowania(dto.email, ctx.ip ?? null))) {
+      if (!dto.captchaToken) {
+        throw new BadRequestException({
+          statusCode: 400,
+          code: 'CAPTCHA_WYMAGANA',
+          message: 'Kilka nieudanych prób logowania — potwierdź, że nie jesteś robotem, i zaloguj się ponownie.',
+        });
+      }
+      await this.captcha.verify(dto.captchaToken, ctx.ip, 'login');
+    }
     return this.authService.login(dto, ctx);
   }
 

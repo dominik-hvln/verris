@@ -8,12 +8,14 @@ jest.mock('@/lib/captcha', () => ({ captchaTokenFromForm: () => undefined }));
 jest.mock('@/lib/api', () => ({
   apiFetch: jest.fn(),
   ApiError: class ApiError extends Error {
-    status = 0;
+    constructor(message: string, public status = 0, public body?: unknown) {
+      super(message);
+    }
   },
 }));
 
 import { redirect } from 'next/navigation';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, ApiError } from '@/lib/api';
 import { submitLogin, submitTwoFactor } from './actions';
 
 /** PB-45 — po zalogowaniu (hasło i 2FA) wracamy na `next` z linku w mailu, ale tylko do ścieżek panelu. */
@@ -54,5 +56,30 @@ describe('logowanie — powrót na next', () => {
 
     (apiFetch as jest.Mock).mockResolvedValueOnce({ access_token: 't' });
     expect(await celPrzekierowania(submitTwoFactor(undefined, formularz({ challengeToken: 'ch', code: '123456', next: stan.next! })))).toBe(link);
+  });
+});
+
+/** Decyzja 14.10 — miękka captcha: widget pojawia się, gdy API zażąda (CAPTCHA_WYMAGANA), i zostaje do skutku. */
+describe('logowanie — captcha dopiero po progu nieudanych prób', () => {
+  const f = (pola: Record<string, string>) => {
+    const d = new FormData();
+    for (const [k, v] of Object.entries(pola)) d.set(k, v);
+    return d;
+  };
+  beforeEach(() => jest.clearAllMocks());
+
+  it('400 CAPTCHA_WYMAGANA → komunikat z API i flaga widgetu (nie „Nieprawidłowe dane logowania”)', async () => {
+    (apiFetch as jest.Mock).mockRejectedValueOnce(
+      new ApiError('Kilka nieudanych prób logowania — potwierdź, że nie jesteś robotem, i zaloguj się ponownie.', 400, { code: 'CAPTCHA_WYMAGANA' }),
+    );
+    const stan = await submitLogin(undefined, f({ email: 'a@b.pl', password: 'x' }));
+    expect(stan).toMatchObject({ captchaWymagana: true, email: 'a@b.pl' });
+    expect(stan.error).toContain('nie jesteś robotem');
+  });
+
+  it('złe hasło po pokazaniu widgetu — widget zostaje; bez wcześniejszego żądania — brak widgetu', async () => {
+    (apiFetch as jest.Mock).mockRejectedValue(new ApiError('Invalid credentials', 401));
+    expect(await submitLogin({ captchaWymagana: true }, f({ email: 'a@b.pl', password: 'x' }))).toMatchObject({ captchaWymagana: true });
+    expect((await submitLogin(undefined, f({ email: 'a@b.pl', password: 'x' }))).captchaWymagana).toBeUndefined();
   });
 });

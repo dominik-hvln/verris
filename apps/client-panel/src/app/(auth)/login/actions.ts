@@ -14,6 +14,15 @@ interface LoginState {
   email?: string;
   /** Dokąd wrócić po kodzie 2FA (z `?next=` strony logowania, już sprawdzone). */
   next?: string;
+  /** Decyzja 14.10 — po kilku nieudanych próbach API wymaga testu antybotowego; widget zostaje do skutku. */
+  captchaWymagana?: boolean;
+}
+
+/** Odpowiedź API „po progu nieudanych prób potrzebna captcha” albo odrzucony token captchy. */
+function toBladCaptchy(e: unknown): boolean {
+  if (!(e instanceof ApiError) || e.status !== 400) return false;
+  const kod = (e.body as { code?: unknown } | null | undefined)?.code;
+  return kod === "CAPTCHA_WYMAGANA" || /antybotow/i.test(e.message);
 }
 
 interface VerifyState {
@@ -55,6 +64,9 @@ export async function submitLogin(
       return { error: "Nieoczekiwana odpowiedź serwera" };
     }
   } catch (e: unknown) {
+    if (toBladCaptchy(e)) {
+      return { error: (e as Error).message, captchaWymagana: true, email, next };
+    }
     if (e instanceof ApiError && e.status === 401) {
       const msg = e.message.toLowerCase();
       if (msg.includes("potwierdź adres e-mail")) {
@@ -66,7 +78,7 @@ export async function submitLogin(
         };
       }
     }
-    return { error: "Nieprawidłowe dane logowania", email };
+    return { error: "Nieprawidłowe dane logowania", email, ...(prevState?.captchaWymagana ? { captchaWymagana: true } : {}) };
   }
 
   if (shouldRedirect) redirect(next);

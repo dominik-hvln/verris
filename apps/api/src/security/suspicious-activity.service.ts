@@ -5,6 +5,8 @@ import { MailerService } from '../mail/mailer.service.js';
 
 const FAIL_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const FAIL_THRESHOLD = 10;
+/** Decyzja 14.10 — po tylu nieudanych logowaniach w oknie FAIL_WINDOW_MS wymagany test antybotowy. */
+export const LOGIN_CAPTCHA_PO_PROBACH = 5;
 const ALERT_COOLDOWN_MS = 30 * 60 * 1000; // re-alert at most once / 30 min per email
 
 interface RecordFailureInput {
@@ -113,6 +115,21 @@ export class SuspiciousActivityService {
       },
     });
     return failed >= FAIL_THRESHOLD;
+  }
+
+  /**
+   * Decyzja 14.10 — miękka captcha logowania: test antybotowy dopiero po LOGIN_CAPTCHA_PO_PROBACH nieudanych próbach
+   * w oknie (na ten e-mail z dowolnego IP albo z tego IP na dowolny e-mail). Odrzucenia samą blokadą się nie liczą.
+   * Rozproszone zgadywanie hasła jednego konta z wielu IP łapie licznik per e-mail; jedno IP na wiele kont — per IP.
+   */
+  async wymagaCaptchyLogowania(email: string, ip: string | null): Promise<boolean> {
+    const since = new Date(Date.now() - FAIL_WINDOW_MS);
+    const nieudane = { succeeded: false, reason: { not: 'too_many_attempts' }, createdAt: { gte: since } };
+    const [poEmailu, poIp] = await Promise.all([
+      this.prisma.loginAttempt.count({ where: { email: email.toLowerCase(), ...nieudane } }),
+      ip ? this.prisma.loginAttempt.count({ where: { ip, ...nieudane } }) : Promise.resolve(0),
+    ]);
+    return poEmailu >= LOGIN_CAPTCHA_PO_PROBACH || poIp >= LOGIN_CAPTCHA_PO_PROBACH;
   }
 
   /**

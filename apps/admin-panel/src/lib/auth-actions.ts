@@ -6,6 +6,8 @@ import { setAdminAuthCookie, removeAdminAuthCookie } from "./auth";
 import { rolaPaneluOperatora } from "./rola-operatora";
 
 const BRAK_DOSTEPU = "To konto nie ma dostępu do panelu operatora Verris.";
+const CAPTCHA_W_PANELU_OPERATORA =
+  "Po kilku nieudanych próbach logowanie hasłem wymaga testu antybotowego, którego panel operatora nie pokazuje. Zaloguj się kluczem dostępu (passkey) albo spróbuj ponownie za 15 minut.";
 
 export async function adminLogin(email: string, password: string) {
   try {
@@ -27,6 +29,10 @@ export async function adminLogin(email: string, password: string) {
       passkeyEnrollmentRequired: res.passkeyEnrollmentRequired === true,
     };
   } catch (err) {
+    // Decyzja 14.10 — po progu nieudanych prób API żąda captchy (CAPTCHA_WYMAGANA); panel operatora nie ma widgetu.
+    if (err instanceof AdminApiError && err.status === 400 && (err.body as { code?: unknown } | undefined)?.code === "CAPTCHA_WYMAGANA") {
+      return { error: CAPTCHA_W_PANELU_OPERATORA };
+    }
     const msg = err instanceof AdminApiError ? err.message : "Błąd logowania";
     return { error: msg };
   }
