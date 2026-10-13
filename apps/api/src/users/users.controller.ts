@@ -41,14 +41,15 @@ export class UsersController {
 
   /** SEC-7 — historia logowań zalogowanego użytkownika (self-service). */
   @Get('me/login-history')
-  loginHistory(@CurrentUser() user: { userId: string }) {
-    return this.usersService.listMyLoginHistory(user.userId);
+  // Audyt 13.10: historia logowań i dziennik aktywności osoby z sesji — subkonto nie widzi IP i urządzeń właściciela.
+  loginHistory(@CurrentUser() user: { userId: string; principalUserId?: string }) {
+    return this.usersService.listMyLoginHistory(user.principalUserId ?? user.userId);
   }
 
   /** SEC-8 — dziennik aktywności konta (self-service, transparentność/RODO). */
   @Get('me/activity')
-  activity(@CurrentUser() user: { userId: string }) {
-    return this.usersService.listMyActivity(user.userId);
+  activity(@CurrentUser() user: { userId: string; principalUserId?: string }) {
+    return this.usersService.listMyActivity(user.principalUserId ?? user.userId);
   }
 
   /**

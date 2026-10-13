@@ -93,8 +93,9 @@ export class ConsentsController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me/consent/history')
-  history(@CurrentUser() user: { userId: string }) {
-    return this.consents.listForUser(user.userId);
+  // Audyt 13.10: historia zgód (IP, przeglądarka) osoby z sesji, nie właściciela konta nadrzędnego.
+  history(@CurrentUser() user: { userId: string; principalUserId?: string }) {
+    return this.consents.listForUser(user.principalUserId ?? user.userId);
   }
 
   @UseGuards(JwtAuthGuard)

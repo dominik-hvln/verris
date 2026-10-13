@@ -76,7 +76,7 @@ export const REGULY_TRAS: Regula[] = [
   {
     pasuje: zaczyna('/notifications'),
     odczyt: BEZ_WYMOGU, zapis: BEZ_WYMOGU,
-    po_co: 'Własne powiadomienia i oznaczanie ich jako przeczytane.',
+    po_co: 'Własne powiadomienia osoby z sesji (kontroler bierze principalUserId — subkonto nie widzi dzwonka właściciela, audyt 13.10).',
   },
   {
     pasuje: zaczyna('/me/consent', '/me/marketing-preferences', '/me/status', '/me/feature-flags', '/me/beta'),
