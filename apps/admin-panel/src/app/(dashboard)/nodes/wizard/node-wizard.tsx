@@ -34,7 +34,7 @@ import {
   INSTALL_DIRECTADMIN,
   INSTALL_LITESPEED_STANDALONE,
   INSTALL_LITESPEED_VIA_DA,
-  INSTALL_OS_PREP,
+  przygotowanieOs,
   ONBOARD_LIVE_DOES,
   ONBOARD_LIVE_RUN,
   ONBOARD_LIVE_SCP,
@@ -376,7 +376,7 @@ export function NodeWizard() {
               <strong>10.2</strong> (test, najdłuższe wsparcie — full DA na AL10).
             </CheckItem>
             </ul>
-            <CopyBlock label="Krok 0 — przygotowanie OS (root)" text={INSTALL_OS_PREP} />
+            <CopyBlock label="Krok 0 — przygotowanie OS (root)" text={przygotowanieOs(hostname)} />
             <ul className="space-y-2">
             <CheckItem>
               Min. <strong>4 GB RAM</strong> (8+ GB zalecane), dysk SSD z zapasem na konta.
