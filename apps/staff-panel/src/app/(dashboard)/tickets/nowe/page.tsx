@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireStaffSession } from "@/lib/staff-session";
+import { sesjaLubAwaria } from "@/lib/staff-session";
 import { maUprawnienie, pobierzDostepOperatora } from "@/lib/staff-access";
 import { NoweZgloszenieForm } from "./nowe-zgloszenie-form";
 
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
  * mail „Obsługa Verris napisała do Ciebie” i odpowiada w panelu; zgłoszenie od razu czeka na jego odpowiedź.
  */
 export default async function NoweZgloszeniePage({ searchParams }: { searchParams: Promise<{ userId?: string; email?: string }> }) {
-  await requireStaffSession();
+  if ((await sesjaLubAwaria()) === "awaria") return <p role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">Panel chwilowo nie łączy się z serwerem — odśwież stronę za chwilę.</p>;
   const { userId, email } = await searchParams;
   const dostep = await pobierzDostepOperatora();
   const moze = maUprawnienie(dostep, "TICKETS_MANAGE");

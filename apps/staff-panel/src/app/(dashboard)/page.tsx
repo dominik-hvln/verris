@@ -8,7 +8,7 @@ import { maUprawnienie, pobierzDostepOperatora } from "@/lib/staff-access";
 import { FiltrySkrzynki } from "@/components/filtry-skrzynki";
 import { Stronicowanie } from "@/components/stronicowanie";
 import { StaffApiError } from "@/lib/staff-api";
-import { requireStaffSession } from "@/lib/staff-session";
+import { sesjaLubAwaria } from "@/lib/staff-session";
 import { TICKET_DEPARTMENT_PL, TICKET_STATUS_PL, etykieta } from "@verris/contracts";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +47,7 @@ export default async function StaffInboxPage({ searchParams }: { searchParams: P
   const p = await searchParams;
   const filterUserId = p.userId;
   const widok = widokZ(p.widok);
-  await requireStaffSession();
+  if ((await sesjaLubAwaria()) === "awaria") return <p role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">Panel chwilowo nie łączy się z serwerem — odśwież stronę za chwilę.</p>;
 
   let lista: ListaZgloszen | null = null;
   let error: string | null = null;

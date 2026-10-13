@@ -1,7 +1,7 @@
 import { BladStrony } from "@/components/blad-strony";
 import { notFound } from "next/navigation";
 import { StaffApiError } from "@/lib/staff-api";
-import { requireStaffSession } from "@/lib/staff-session";
+import { sesjaLubAwaria } from "@/lib/staff-session";
 import { staffGetTicket, staffGetTicketContext, staffKandydaciScalenia, staffListSupportAgents, staffMakra, staffMojeOceny, staffZleceniaDodatkow } from "@/lib/tickets-data";
 import type { StaffTicketDetail } from "@/lib/tickets-data";
 import { TicketDetailPanel } from "@/components/ticket-detail-panel";
@@ -9,7 +9,8 @@ import { maUprawnienie, mozeWejscNaKonto, pobierzDostepOperatora } from "@/lib/s
 
 export default async function StaffTicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const session = await requireStaffSession();
+  const session = await sesjaLubAwaria();
+  if (session === "awaria") return <p role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">Panel chwilowo nie łączy się z serwerem — odśwież stronę za chwilę.</p>;
   let ticket: StaffTicketDetail;
   let agents: Awaited<ReturnType<typeof staffListSupportAgents>>;
   let context: Awaited<ReturnType<typeof staffGetTicketContext>>;

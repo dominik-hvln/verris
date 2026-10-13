@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { adminApi } from "./api";
+import { adminApi, AdminApiError } from "./api";
 import { getAdminAuthToken } from "./auth";
 import { rolaPaneluOperatora } from "./rola-operatora";
 
@@ -24,9 +24,13 @@ export async function getAdminSession(): Promise<AdminSession | null> {
       return null;
     }
     return profile;
-  } catch {
+  } catch (err) {
+    // 14.10 (prod): każdy błąd /users/me — także chwilowy restart API przy deployu (502, brak połączenia) —
+    // przekierowywał na /login, choć sesja była ważna; operator myślał, że go wylogowało. Brak sesji to tylko
+    // 401/403; reszta idzie do granicy błędu („Nie udało się wczytać tej strony”, odśwież za chwilę).
     // Cookie writes are only allowed in Server Actions / Route Handlers (see staff-panel).
-    return null;
+    if (err instanceof AdminApiError && (err.status === 401 || err.status === 403)) return null;
+    throw err;
   }
 }
 
