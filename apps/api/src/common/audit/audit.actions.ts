@@ -223,6 +223,8 @@ export const HostingResourceActions = {
   HOSTING_ADDON_DOMAIN_DELETED: 'HOSTING_ADDON_DOMAIN_DELETED',
   // Po usunięciu konta, którego domena była poddomeną domeny innego konta: NS/DS zdjęte ze strefy rodzica.
   HOSTING_DNS_DELEGATION_REMOVED: 'HOSTING_DNS_DELEGATION_REMOVED',
+  // H-16 — po przeniesieniu konta na inny węzeł: NS delegacji w strefie rodzica przepięte na serwery nazw nowego węzła.
+  HOSTING_DNS_DELEGATION_MOVED: 'HOSTING_DNS_DELEGATION_MOVED',
   HOSTING_DOMAIN_POINTER_CREATED: 'HOSTING_DOMAIN_POINTER_CREATED',
   HOSTING_DOMAIN_POINTER_DELETED: 'HOSTING_DOMAIN_POINTER_DELETED',
   HOSTING_HTACCESS_RULES_SET: 'HOSTING_HTACCESS_RULES_SET',
@@ -239,6 +241,9 @@ export const HostingResourceActions = {
   // H-16 — odtworzenie konta z kopii off-site na innym węźle (operator) i przepięcie konta.
   ACCOUNT_RESTORE_TO_NODE_QUEUED: 'ACCOUNT_RESTORE_TO_NODE_QUEUED',
   ACCOUNT_MOVED_TO_NODE: 'ACCOUNT_MOVED_TO_NODE',
+  // H-16 (14.10) — konto-sierota na starym węźle: zarchiwizowane i zawieszone, usunięte po dobie (albo od razu).
+  ACCOUNT_ORPHAN_SUSPENDED: 'ACCOUNT_ORPHAN_SUSPENDED',
+  ACCOUNT_ORPHAN_REMOVED: 'ACCOUNT_ORPHAN_REMOVED',
   // Menedżer plików — operacje dodane w lipcu 2026 (kopiuj / przenieś / rozpakuj / chmod).
   HOSTING_FILE_COPIED: 'HOSTING_FILE_COPIED',
   HOSTING_FILE_MOVED: 'HOSTING_FILE_MOVED',

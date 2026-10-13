@@ -164,6 +164,29 @@ cmd_restore() {
   fail "DirectAdmin nie założył konta ${user} w 30 minut — sprawdź Admin → Backup/Transfer i /var/log/directadmin/errortaskq.log"
 }
 
+# H-16 — porządek po przeniesieniu konta na inny węzeł: zanim panel zawiesi i usunie konto-sierotę na STARYM węźle,
+# archiwum konta zostaje na tym węźle (dane nowsze niż kopia off-site, z której odtworzono konto, np. poczta).
+# admin-backup jak w node-offsite-backup.sh (oficjalne CLI DirectAdmina: directadmin admin-backup); archiwum w katalogu
+# tylko dla roota, 7 dni. VERRIS_ARCH_DIR podmieniany wyłącznie w testach.
+ARCH_DIR="${VERRIS_ARCH_DIR:-/root/verris-sieroty}"
+cmd_archiwum() {
+  local user="$1" owner adir f cel
+  [ -f "$DA_DIR/data/users/$user/user.conf" ] || fail "konta $user nie ma na tym węźle"
+  owner="$(sed -n 's/^creator=//p' "$DA_DIR/data/users/$user/user.conf" | head -1)"
+  [[ "$owner" =~ ^[a-z][a-z0-9]{0,15}$ ]] || owner=admin
+  adir="$HOME_DIR/${owner}/admin_backups"
+  [ -d "$adir" ] || install -d -m 0700 -o "$owner" -g "$owner" "$adir"
+  rm -f "$adir"/user."$owner"."$user".tar.*
+  "$DA_BIN" admin-backup --destination="$adir" --user="$user" >&2 || fail "admin-backup $user nie powiódł się"
+  f="$(ls -1 "$adir"/user."$owner"."$user".tar.* 2>/dev/null | head -1 || true)"
+  { [ -n "$f" ] && [ -s "$f" ]; } || fail "brak archiwum $user po admin-backup"
+  install -d -m 0700 "$ARCH_DIR"
+  cel="$ARCH_DIR/$(date -u +%Y%m%d-%H%M%S)-$(basename "$f")"
+  mv -f -- "$f" "$cel"
+  find "$ARCH_DIR" -maxdepth 1 -type f -mtime +7 -delete 2>/dev/null || true
+  printf 'VERRIS-ORPHAN-ARCHIVED %s %s\n' "$user" "$cel"
+}
+
 # Walidacja wejscia (obrona w glab — control-plane waliduje to samo).
 check_args() {
   local user="$1" archive="${2:-}" snap="${3:-}" prefix="${4:-}" ip="${5:-}"
@@ -178,7 +201,7 @@ check_args() {
 }
 
 # Tryb agenta: bez argumentow, parametry z ENV (zadanie OFFSITE_RESTORE).
-#   OFR_MODE=list|fetch|restore  OFR_USER=<da user>  OFR_ARCHIVE=<plik>  OFR_SNAPSHOT=<YYYYMMDD>
+#   OFR_MODE=list|fetch|restore|archiwum  OFR_USER=<da user>  OFR_ARCHIVE=<plik>  OFR_SNAPSHOT=<YYYYMMDD>
 #   H-16 (odtworzenie na innym węźle): OFR_SOURCE_PREFIX=nodes/<węzeł źródłowy>  OFR_IP=<IP tego węzła>
 #   — kopie czytane z prefiksu węzła źródłowego (ta sama flota = ten sam remote crypt), restore tylko z OFR_IP.
 if [ $# -eq 0 ] && [ -n "${OFR_MODE:-}" ]; then
@@ -189,7 +212,8 @@ if [ $# -eq 0 ] && [ -n "${OFR_MODE:-}" ]; then
     fetch)   cmd_fetch "$OFR_USER" "${OFR_ARCHIVE:?OFR_ARCHIVE wymagane}" "${OFR_SNAPSHOT:-}" ;;
     restore) [ -n "${OFR_IP:-}" ] || fail "restore z panelu tylko na inny węzeł (OFR_IP)"
              cmd_restore "$OFR_USER" "${OFR_ARCHIVE:?OFR_ARCHIVE wymagane}" "${OFR_SNAPSHOT:-}" "$OFR_IP" ;;
-    *)       fail "nieznany OFR_MODE: $OFR_MODE (list|fetch|restore)" ;;
+    archiwum) cmd_archiwum "$OFR_USER" ;;
+    *)       fail "nieznany OFR_MODE: $OFR_MODE (list|fetch|restore|archiwum)" ;;
   esac
   exit 0
 fi

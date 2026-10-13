@@ -2190,6 +2190,83 @@ export class DirectAdminService {
   }
 
   /**
+   * H-16 — po przeniesieniu konta na inny węzeł (decyzja Dominika 14.10: automatycznie). Domena konta będąca poddomeną
+   * innej domeny (pb55.d3.hvln.pl przy d3.hvln.pl) ma w strefie rodzica delegację NS na serwery nazw STAREGO węzła —
+   * DA dopisał ją przy dodaniu domeny (https://docs.directadmin.com/other-hosting-services/dns/maintaining-records.html).
+   * 13.10 robił to ręcznie Dominik. Tu: w strefie rodzica (domena innego konta w Verris albo inna domena tego konta)
+   * dodajemy NS na serwery nowego węzła, sprawdzamy strefę i dopiero wtedy usuwamy NS starego węzła — jak przy edycji
+   * NS w panelu (paczka 40). DS zostaje: klucze strefy przyjechały z kopią. Delegacji na obce serwery nie ruszamy.
+   * Zwraca, czy któraś strefa rodzica leży na starym węźle — wtedy sierota musi zniknąć od razu (jej strefa na tym
+   * węźle odpowiada autorytatywnie i zasłania delegację, t1 13.10).
+   */
+  async przepnijDelegacjePoPrzeniesieniu(accountId: string, staryServerId: string): Promise<{ przepiete: string[]; rodzicNaStarymWezle: boolean; bledy: string[] }> {
+    const wynik = { przepiete: [] as string[], rodzicNaStarymWezle: false, bledy: [] as string[] };
+    const konto = await this.prisma.account.findUnique({
+      where: { id: accountId },
+      select: { id: true, userId: true, subscriptionId: true, serverId: true, domain: true },
+    });
+    if (!konto || konto.serverId === staryServerId) return wynik;
+    const [stary, nowy] = await Promise.all([
+      this.prisma.server.findUnique({ where: { id: staryServerId }, select: { ns1: true, ns2: true } }),
+      this.prisma.server.findUnique({ where: { id: konto.serverId }, select: { ns1: true, ns2: true } }),
+    ]);
+    const bez = (v: string | null | undefined) => (v ?? '').trim().toLowerCase().replace(/\.$/, '');
+    const stare = [bez(stary?.ns1), bez(stary?.ns2)].filter(Boolean);
+    const nowe = [bez(nowy?.ns1), bez(nowy?.ns2)].filter(Boolean);
+    if (!stare.length || nowe.length < 2 || stare.every((n) => nowe.includes(n))) return wynik;
+
+    const domeny = await this.listHostingDomainsForSubscription(konto.subscriptionId, konto.userId);
+    if (domeny.fetchError) throw new BadRequestException(`Domeny konta: ${domeny.fetchError}`);
+    const wlasne = domeny.domains.map((d) => d.name.toLowerCase());
+    for (const domena of wlasne) {
+      const etykiety = domena.split('.');
+      const przodkowie = etykiety.slice(1, -1).map((_, i) => etykiety.slice(i + 1).join('.'));
+      if (!przodkowie.length) continue;
+      const inne = await this.prisma.account.findMany({
+        where: { id: { not: accountId }, status: { not: AccountStatus.DELETED }, domain: { in: przodkowie } },
+        select: { domain: true, userId: true, subscriptionId: true, serverId: true },
+      });
+      const kandydaci = [
+        ...inne.map((a) => ({ domena: a.domain.toLowerCase(), subscriptionId: a.subscriptionId, userId: a.userId, serverId: a.serverId })),
+        ...wlasne.filter((d) => przodkowie.includes(d)).map((d) => ({ domena: d, subscriptionId: konto.subscriptionId, userId: konto.userId, serverId: konto.serverId })),
+      ].sort((a, b) => b.domena.length - a.domena.length);
+      const rodzic = kandydaci[0];
+      if (!rodzic) continue;
+      try {
+        const strefa = await this.listHostingDnsRecords(rodzic.subscriptionId, rodzic.userId, rodzic.domena);
+        if (strefa.fetchError) throw new Error(strefa.fetchError);
+        const etykieta = nazwaRekorduDns(domena, rodzic.domena);
+        const ns = strefa.records.filter((r) => r.type.toUpperCase() === 'NS' && nazwaRekorduDns(r.name, rodzic.domena) === etykieta);
+        const doUsuniecia = ns.filter((r) => stare.includes(bez(r.value)) && !nowe.includes(bez(r.value)));
+        if (!doUsuniecia.length) continue;
+        if (rodzic.serverId === staryServerId) wynik.rodzicNaStarymWezle = true;
+        for (const n of nowe) {
+          if (ns.some((r) => bez(r.value) === n)) continue;
+          await this.createHostingDnsRecord(rodzic.subscriptionId, rodzic.userId, { domain: rodzic.domena, name: etykieta, type: 'NS', value: `${n}.` });
+        }
+        const po = await this.listHostingDnsRecords(rodzic.subscriptionId, rodzic.userId, rodzic.domena);
+        const jest = (n: string) => po.records.some((r) => r.type.toUpperCase() === 'NS' && nazwaRekorduDns(r.name, rodzic.domena) === etykieta && bez(r.value) === n);
+        if (po.fetchError || !nowe.every(jest)) throw new Error('serwer DNS nie zapisał nowych NS — stare zostawione');
+        for (const r of doUsuniecia) {
+          await this.deleteHostingDnsRecord(rodzic.subscriptionId, rodzic.userId, { domain: rodzic.domena, name: r.name, type: 'NS', value: r.value });
+        }
+        wynik.przepiete.push(domena);
+        await this.audit.record({
+          action: HostingResourceActions.HOSTING_DNS_DELEGATION_MOVED,
+          userId: rodzic.userId,
+          actorUserId: null,
+          details: { domain: domena, delegacjaWStrefie: rodzic.domena, z: stare.join(', '), na: nowe.join(', '), przeniesioneKonto: accountId },
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        wynik.bledy.push(`${domena}: ${msg}`);
+        this.logger.warn(`delegacja ${domena} po przeniesieniu konta ${accountId}: ${msg}`);
+      }
+    }
+    return wynik;
+  }
+
+  /**
    * Domeny konta DA odczytane tuż przed usunięciem użytkownika (CMD_API_SHOW_DOMAINS) — potrzebne do sprzątnięcia
    * delegacji po usunięciu. Gdy odczyt się nie uda (konto bez danych dostępowych, węzeł chwilowo niedostępny),
    * zostaje sama domena główna z bazy; usunięcia konta to nie blokuje.

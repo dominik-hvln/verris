@@ -811,6 +811,17 @@ export class NodeTasksService {
         userId: przed?.userId ?? undefined,
         details: { accountId, fromServerId: przed?.serverId ?? null, toServerId: opts.serverId, taskId: task.id },
       });
+      if (przed && przed.serverId !== opts.serverId && p.daUser) {
+        await this.porzadekPoPrzeniesieniu(accountId, przed.serverId, p.daUser).catch((err) =>
+          this.logger.warn(`porządek po przeniesieniu konta ${accountId}: ${(err as Error).message}`),
+        );
+      }
+    }
+
+    // H-16 — archiwum konta-sieroty gotowe na starym węźle: zawieszenie, a gdy jego strefa zasłania delegację — usunięcie.
+    if (task.kind === NodeTaskKind.OFFSITE_RESTORE && p.mode === 'archiwum' && (task.payload as { sierota?: string } | null)?.sierota === '1') {
+      const m = new RegExp(`^VERRIS-ORPHAN-ARCHIVED ${p.daUser} (\\S+)\\s*$`, 'm').exec(log ?? '');
+      if (m) await this.odlozSierote(task, opts.serverId, m[1]);
     }
 
     if (task.kind === NodeTaskKind.FLEET_UPDATE) await this.dalejFala(task, true, log);
@@ -1001,6 +1012,122 @@ export class NodeTasksService {
     }
 
     return this.toPublicTask(updated);
+  }
+
+  /**
+   * H-16 — porządek po przeniesieniu konta (decyzja Dominika 14.10, automatycznie zamiast ręcznych kroków z 13.10):
+   *  1. delegacja NS w strefie rodzica przepięta na serwery nazw nowego węzła (DirectAdminService),
+   *  2. na STARYM węźle archiwum konta-sieroty (admin-backup do katalogu roota) — dane nowsze niż kopia off-site,
+   *     potem zawieszenie i usunięcie po 24 h (odlozSierote / sprzatnijSieroty).
+   * Martwy stary węzeł (awaria — właściwy powód H-16) nie dostaje zadania: sierotę sprząta się przy jego wycofaniu.
+   */
+  async porzadekPoPrzeniesieniu(accountId: string, staryServerId: string, daUser: string) {
+    let rodzicNaStarym = false;
+    try {
+      const d = await this.directAdmin.przepnijDelegacjePoPrzeniesieniu(accountId, staryServerId);
+      rodzicNaStarym = d.rodzicNaStarymWezle;
+      if (d.bledy.length) await this.alarmPorzadku(staryServerId, `Delegacja NS po przeniesieniu konta ${daUser} — do poprawienia ręcznie:\n${d.bledy.join('\n')}`);
+    } catch (err) {
+      await this.alarmPorzadku(staryServerId, `Delegacja NS po przeniesieniu konta ${daUser} nie została przepięta: ${(err as Error).message}`);
+    }
+    const stary = await this.prisma.server.findUnique({ where: { id: staryServerId }, select: { status: true } });
+    if (!stary || (stary.status !== ServerStatus.ACTIVE && stary.status !== ServerStatus.MAINTENANCE)) return;
+    await this.prisma.nodeTask.create({
+      data: {
+        serverId: staryServerId,
+        accountId,
+        kind: NodeTaskKind.OFFSITE_RESTORE,
+        status: NodeTaskStatus.QUEUED,
+        payload: { mode: 'archiwum', daUser, przeniesienie: '1', sierota: '1', rodzicNaStarym: rodzicNaStarym ? '1' : '0' },
+      },
+    });
+  }
+
+  /** Doba od zawieszenia do usunięcia sieroty (okno na wycofanie przeniesienia). */
+  static readonly SIEROTA_USUN_PO_MS = 24 * 60 * 60 * 1000;
+
+  private async odlozSierote(task: { id: string; accountId: string | null; payload: unknown }, serverId: string, archiwum: string) {
+    const p = (task.payload ?? {}) as Record<string, string>;
+    const konto = task.accountId ? await this.prisma.account.findUnique({ where: { id: task.accountId }, select: { serverId: true, daUsername: true } }) : null;
+    // Konto wróciło na ten węzeł albo login się nie zgadza — to nie jest sierota.
+    if (!konto || konto.serverId === serverId || konto.daUsername !== p.daUser) {
+      await this.zapiszStanSieroty(task.id, p, { stanSieroty: 'pominieta', archiwum });
+      return;
+    }
+    try {
+      const client = await this.directAdmin.getClientForServer(serverId);
+      await client.suspendAccount(p.daUser);
+      if (p.rodzicNaStarym === '1') {
+        // Strefa sieroty na węźle, który obsługuje też strefę rodzica, odpowiada autorytatywnie i zasłania nową
+        // delegację (t1 13.10) — czekanie dobę oznaczałoby dobę złych odpowiedzi DNS. Archiwum już jest.
+        await client.deleteAccount(p.daUser);
+        await this.zapiszStanSieroty(task.id, p, { stanSieroty: 'usunieta', archiwum, usunieto: new Date().toISOString() });
+        await this.audit.record({ action: 'ACCOUNT_ORPHAN_REMOVED', details: { serverId, daUser: p.daUser, accountId: task.accountId, archiwum, powod: 'strefa-rodzica-na-starym-wezle' } });
+      } else {
+        const usunPo = new Date(Date.now() + NodeTasksService.SIEROTA_USUN_PO_MS).toISOString();
+        await this.zapiszStanSieroty(task.id, p, { stanSieroty: 'zawieszona', archiwum, usunPo });
+        await this.audit.record({ action: 'ACCOUNT_ORPHAN_SUSPENDED', details: { serverId, daUser: p.daUser, accountId: task.accountId, archiwum, usunPo } });
+      }
+    } catch (err) {
+      await this.zapiszStanSieroty(task.id, p, { stanSieroty: 'blad', archiwum });
+      await this.alarmPorzadku(serverId, `Konto-sierota ${p.daUser} po przeniesieniu: nie udało się zawiesić/usunąć (${(err as Error).message}). Archiwum: ${archiwum}`);
+    }
+  }
+
+  /** Co godzinę: sieroty zawieszone ponad dobę temu znikają, o ile konto działa na nowym węźle. */
+  async sprzatnijSieroty(teraz = new Date()): Promise<number> {
+    const zadania = await this.prisma.nodeTask.findMany({
+      where: { kind: NodeTaskKind.OFFSITE_RESTORE, status: NodeTaskStatus.COMPLETED, payload: { path: ['stanSieroty'], equals: 'zawieszona' } },
+      select: { id: true, serverId: true, accountId: true, payload: true },
+      take: 50,
+    });
+    let usuniete = 0;
+    for (const t of zadania) {
+      const p = (t.payload ?? {}) as Record<string, string>;
+      if (!p.usunPo || new Date(p.usunPo) > teraz) continue;
+      const konto = t.accountId
+        ? await this.prisma.account.findUnique({ where: { id: t.accountId }, select: { serverId: true, daUsername: true, status: true } })
+        : null;
+      if (!konto || konto.serverId === t.serverId || konto.daUsername !== p.daUser) {
+        await this.zapiszStanSieroty(t.id, p, { stanSieroty: 'pominieta' });
+        continue;
+      }
+      try {
+        // Nowe konto musi istnieć w DirectAdminie nowego węzła — inaczej sierota to jedyna kopia.
+        const nowe = await (await this.directAdmin.getClientForServer(konto.serverId)).listAccounts();
+        if (konto.status !== AccountStatus.ACTIVE && konto.status !== AccountStatus.SUSPENDED) throw new Error(`konto w panelu ma stan ${konto.status}`);
+        if (!nowe.includes(p.daUser)) throw new Error('konta nie ma na nowym węźle');
+        await (await this.directAdmin.getClientForServer(t.serverId)).deleteAccount(p.daUser);
+        await this.zapiszStanSieroty(t.id, p, { stanSieroty: 'usunieta', usunieto: teraz.toISOString() });
+        await this.audit.record({ action: 'ACCOUNT_ORPHAN_REMOVED', details: { serverId: t.serverId, daUser: p.daUser, accountId: t.accountId, archiwum: p.archiwum ?? null, powod: 'doba-po-przeniesieniu' } });
+        usuniete += 1;
+      } catch (err) {
+        await this.zapiszStanSieroty(t.id, p, { stanSieroty: 'blad' });
+        await this.alarmPorzadku(t.serverId, `Konto-sierota ${p.daUser} nie zostało usunięte po dobie: ${(err as Error).message}. Zostaje zawieszone — sprawdź ręcznie.`);
+      }
+    }
+    return usuniete;
+  }
+
+  private async zapiszStanSieroty(taskId: string, p: Record<string, string>, zmiana: Record<string, string>) {
+    await this.prisma.nodeTask.update({ where: { id: taskId }, data: { payload: { ...p, ...zmiana } as Prisma.InputJsonValue } });
+  }
+
+  private async alarmPorzadku(serverId: string, tresc: string) {
+    this.logger.warn(tresc);
+    if (!this.alarmy) return;
+    try {
+      await this.alarmy.wyslij({
+        klucz: `porzadek-przeniesienia:${serverId}:${tresc.slice(0, 40)}`,
+        tytul: 'Przeniesienie konta: porządek wymaga uwagi',
+        tresc,
+        link: `/nodes/${serverId}?sekcja=konta#zgodnosc-kont`,
+        waga: 'ostrzezenie',
+        cooldownMin: 60,
+      });
+    } catch (err) {
+      this.logger.warn(`alarm porządku po przeniesieniu: ${(err as Error).message}`);
+    }
   }
 
   /**

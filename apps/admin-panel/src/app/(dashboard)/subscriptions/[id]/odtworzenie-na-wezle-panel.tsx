@@ -74,7 +74,7 @@ export function OdtworzenieNaWezlePanel({
     const nazwa = cele.find((s) => s.id === cel)?.name ?? 'wybrany węzeł';
     if (
       !(await potwierdz(
-        `Odtworzyć konto ${domain} z kopii ${archiwum} na węźle ${nazwa}? Po udanym odtworzeniu panel przepnie konto na ten węzeł. Przełącz DNS domen klienta, jeśli nie są na zewnętrznym DNS.`,
+        `Odtworzyć konto ${domain} z kopii ${archiwum} na węźle ${nazwa}? Po udanym odtworzeniu panel przepnie konto na ten węzeł, delegację NS poddomen i posprząta stare konto (archiwum, zawieszenie, usunięcie po dobie). Przełącz DNS domen klienta, jeśli nie są na zewnętrznym DNS.`,
         { akcja: 'Odtwórz na węźle', niebezpieczne: true },
       ))
     )
@@ -104,6 +104,8 @@ export function OdtworzenieNaWezlePanel({
         Na wypadek awarii węzła: konto odtwarza się z kopii poza serwerem (prefiks{' '}
         <span className="font-mono">{stan?.wezelZrodlowy.prefiks ?? '—'}</span>) na innym węźle floty. Wymaga tych samych haseł rclone crypt na
         węzłach. DNS: przy zewnętrznym DNS przełącza się z kontem; przy DNS na węźle zmień serwery nazw domen klienta.
+        Po przepięciu panel sam: przepina delegację NS poddomen w strefie domeny-rodzica (gdy jest w Verris), robi
+        archiwum konta na starym węźle, zawiesza je i usuwa po dobie (od razu, gdy strefa rodzica jest na starym węźle).
       </p>
       <div className="grid gap-2 sm:grid-cols-[1fr_140px_auto] sm:items-end">
         <div className="space-y-1">

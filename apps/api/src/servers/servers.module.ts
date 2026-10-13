@@ -6,6 +6,7 @@ import { AiModule } from '../ai/ai.module.js';
 import { StosWezlaAdminController } from './stos-wezla.admin.controller.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { FalaTygodniowaScheduler } from './fala-tygodniowa.scheduler.js';
+import { SierotyScheduler } from './sieroty.scheduler.js';
 import { OnboardAdminController } from './onboard.admin.controller.js';
 import { KopieFlotyService } from './kopie-floty.js';
 import { PocztaWezlaAdminController, PocztaWezlaService } from './poczta-wezla.admin.controller.js';
@@ -66,6 +67,7 @@ import { StraznikWezlaAdminController, StraznikWezlaService } from './straznik-w
     WykresyFlotyService,
     PrognozaWezlaService,
     FalaTygodniowaScheduler,
+    SierotyScheduler,
     BackupOffsiteService,
     KopieFlotyService,
     NodeTasksService,
