@@ -215,6 +215,10 @@ export class AnalyticsSitesService {
       return { ok: true };
     }
 
+    // Audyt 13.10 (zaległość): bez limitu dziennego anonim mógł zapychać tabelę zdarzeń jednej strony bez końca
+    // (rośnie baza i czas statystyk). Po progu zdarzenia z danej doby po cichu pomijamy.
+    if (!(await this.wLimicieDnia(site.id))) return { ok: true };
+
     const visitorHash = createHash('sha256')
       .update(`${this.dailySalt()}|${site.id}|${input.ip}|${input.userAgent}`)
       .digest('hex')
@@ -231,6 +235,24 @@ export class AnalyticsSitesService {
       },
     });
     return { ok: true };
+  }
+
+  static readonly MAX_ZDARZEN_DZIENNIE = 200_000;
+  private licznikDnia = new Map<string, { dzien: string; n: number }>();
+
+  /** Licznik zdarzeń strony w bieżącej dobie UTC — raz na dobę i proces z bazy, potem w pamięci. */
+  private async wLimicieDnia(siteId: string): Promise<boolean> {
+    const dzien = new Date().toISOString().slice(0, 10);
+    let l = this.licznikDnia.get(siteId);
+    if (!l || l.dzien !== dzien) {
+      if (this.licznikDnia.size > 10_000) this.licznikDnia.clear();
+      const n = await this.events.count({ where: { siteId, ts: { gte: new Date(`${dzien}T00:00:00.000Z`) } } });
+      l = { dzien, n };
+      this.licznikDnia.set(siteId, l);
+    }
+    if (l.n >= AnalyticsSitesService.MAX_ZDARZEN_DZIENNIE) return false;
+    l.n += 1;
+    return true;
   }
 
   /** Skrypt trackera serwowany publicznie (bez cookies, respektuje DNT). */
