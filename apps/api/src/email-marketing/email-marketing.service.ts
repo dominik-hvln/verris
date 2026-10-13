@@ -343,6 +343,8 @@ export class EmailMarketingService {
     const doubleOptIn = list.doubleOptIn !== false;
     // Bez transportu kontakt zostałby na zawsze „oczekujący” — nie ma ponownej wysyłki potwierdzenia.
     if (doubleOptIn) await this.wymagajTransportu(userId, subscriptionId, 'dodanie kontaktu (double opt-in)');
+    // Audyt 13.10 — potwierdzenie to wysyłka na adres podany przez klienta: kordon CYBER-3 jak przy kampanii.
+    if (doubleOptIn) await this.outbound.assertNotCordoned(userId);
     const row = await this.contacts.create({
       data: {
         listId,
@@ -357,7 +359,7 @@ export class EmailMarketingService {
       },
     });
     if (doubleOptIn) {
-      await this.sendConfirmationEmail(list, row).catch((e) =>
+      await this.potwierdzZapis(userId, subscriptionId, list, row).catch((e) =>
         this.logger.warn(`Confirmation email failed for ${email}: ${(e as Error).message}`),
       );
     }
@@ -398,9 +400,14 @@ export class EmailMarketingService {
 
     const doubleOptIn = list.doubleOptIn !== false;
     if (doubleOptIn) await this.wymagajTransportu(userId, subscriptionId, 'import kontaktów (double opt-in)');
+    if (doubleOptIn) await this.outbound.assertNotCordoned(userId);
     let added = 0;
     let skipped = 0;
+    let wstrzymano = false;
     for (const r of incoming) {
+      // Kordon nałożony w trakcie importu (próg CYBER-3) — dalszych kontaktów nie zakładamy: bez maila
+      // potwierdzającego zostałyby na zawsze „oczekujące”.
+      if (wstrzymano) break;
       const existing = await this.contacts.findFirst({ where: { listId, email: r.email } });
       if (existing) {
         skipped++;
@@ -421,14 +428,15 @@ export class EmailMarketingService {
       });
       added++;
       if (doubleOptIn) {
-        await this.sendConfirmationEmail(list, contact).catch(() => undefined);
+        const wynik = await this.potwierdzZapis(userId, subscriptionId, list, contact).catch(() => 'blad' as const);
+        if (wynik === 'kordon') wstrzymano = true;
       }
     }
     await this.audit.record({
       action: 'EMM_CONTACTS_IMPORTED',
       userId,
       actorUserId: userId,
-      details: { subscriptionId, listId, added, skipped, consentConfirmed: true },
+      details: { subscriptionId, listId, added, skipped, consentConfirmed: true, ...(wstrzymano ? { wstrzymanoKordonem: true } : {}) },
     });
     return { added, skipped, total: incoming.length };
   }
@@ -813,6 +821,23 @@ export class EmailMarketingService {
 
   private confirmUrl(token: string): string {
     return `${this.apiBaseUrl()}/emm/confirm?token=${encodeURIComponent(token)}`;
+  }
+
+  /**
+   * Audyt 13.10 (sendConfirmationEmail:outside-send-quota-and-cordon) — maile potwierdzające (double opt-in) szły
+   * transportem EMM na niezweryfikowane adresy z pominięciem kordonu i liczników CYBER-3 (tylko kampanie je miały):
+   * import 5000 adresów = 5000 maili bez żadnego hamulca. Teraz: przed wysyłką kordon, po wysyłce licznik CYBER-3
+   * (przekroczenie progu nakłada kordon i zatrzymuje dalsze potwierdzenia).
+   */
+  private async potwierdzZapis(userId: string, subscriptionId: string, list: EmmList, contact: EmmContact): Promise<'wyslano' | 'kordon'> {
+    if (await this.outbound.isCordoned(userId)) return 'kordon';
+    await this.sendConfirmationEmail(list, contact);
+    try {
+      await this.outbound.recordSends(userId, 1, { subscriptionId, source: 'emm-confirm' });
+    } catch {
+      return 'kordon';
+    }
+    return 'wyslano';
   }
 
   private async sendConfirmationEmail(list: EmmList, contact: EmmContact): Promise<void> {
