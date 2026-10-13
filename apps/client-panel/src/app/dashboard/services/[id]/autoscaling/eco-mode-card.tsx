@@ -19,8 +19,9 @@ export function EcoModeCard({ subscriptionId, ecoModeEnabled: initial, ecoPoints
   // Przegląd 13.10: saldo przychodzi z rodzica asynchronicznie (karta usługi pobiera je po wyrenderowaniu) —
   // useState(ecoPoints) zapamiętywał pierwsze `null` i karta pokazywała „—” zamiast salda. Lokalnie trzymamy
   // tylko premię za pierwsze włączenie.
-  const [premia, setPremia] = useState(0);
-  const points = ecoPoints === null ? null : ecoPoints + premia;
+  // Premia liczy się tylko do czasu, aż rodzic poda nowe saldo (revalidatePath po akcji przysyła je już z premią).
+  const [premia, setPremia] = useState<{ baza: number | null; pkt: number }>({ baza: null, pkt: 0 });
+  const points = ecoPoints === null ? null : ecoPoints + (premia.baza === ecoPoints ? premia.pkt : 0);
   const [error, setError] = useState<string | null>(null);
   const [daInfo, setDaInfo] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -46,7 +47,7 @@ export function EcoModeCard({ subscriptionId, ecoModeEnabled: initial, ecoPoints
         return;
       }
       if (res.ecoPointsAwarded) {
-        setPremia((p) => p + ECO_FIRST_ENABLE_POINTS);
+        setPremia((p) => ({ baza: ecoPoints, pkt: (p.baza === ecoPoints ? p.pkt : 0) + ECO_FIRST_ENABLE_POINTS }));
       }
       if (res.ecoDaNotice) {
         setDaInfo(res.ecoDaNotice);
