@@ -230,6 +230,10 @@ export class EcoPointsService {
   }
 
   async awardPasskeyRegistered(db: Db, userId: string, credentialId: string): Promise<boolean> {
+    // Audyt 13.10 — nagroda raz na KONTO. Deduplikacja po credentialId przyznawała ją za każdy nowy klucz:
+    // dodaj → usuń → dodaj dawało kolejne 5 pkt bez końca (punkty wymienialne na środki w portfelu).
+    // credentialId zostaje w księdze tylko informacyjnie.
+    if (await db.ecoPointsLedgerEntry.findFirst({ where: { userId, reason: 'PASSKEY_REGISTERED' } })) return false;
     return this.awardOnce(db, {
       userId,
       delta: ECO_POINT_DELTAS.PASSKEY_REGISTERED,
