@@ -7,6 +7,23 @@ import { PlatformSettingsService } from '../platform-settings/platform-settings.
 import type { RequestContextDto } from '../common/decorators/request-context.js';
 
 export const ECO_BADGE_IMPRESSION_REASON = 'BADGE_IMPRESSION';
+/**
+ * Audyt bezpieczeństwa 13.10: punkty EKO z anonimowego piksela (wymienialne na kredyt w portfelu) zależały tylko
+ * od liczby różnych adresów IP. Teraz: deduplikacja po sieci (IPv4 /24, IPv6 /64) i twardy dzienny limit punktów.
+ */
+export const ECO_BADGE_MAX_PUNKTOW_DZIENNIE = 10;
+
+/** Klucz sieci do deduplikacji: IPv4 → /24, IPv6 → /64 (pełne 8 grup, nie postać z „::”). */
+export function kluczSieci(ip: string): string {
+  const a = ip.trim().toLowerCase().replace(/^\[|\]$/g, '');
+  const v4 = a.match(/^(?:::ffff:)?(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.\d{1,3}$/);
+  if (v4) return `${v4[1]}.${v4[2]}.${v4[3]}.0/24`;
+  const [glowa, ogon = ''] = a.split('%')[0].split('::');
+  const g = glowa ? glowa.split(':') : [];
+  const o = a.includes('::') ? (ogon ? ogon.split(':') : []) : [];
+  const pelne = a.includes('::') ? [...g, ...Array(Math.max(0, 8 - g.length - o.length)).fill('0'), ...o] : g;
+  return `${pelne.slice(0, 4).map((x) => (x || '0').replace(/^0+(?=.)/, '')).join(':')}::/64`;
+}
 
 /** 1×1 transparent GIF */
 export const ECO_BADGE_TRACKING_PIXEL = Buffer.from(
@@ -90,7 +107,7 @@ export class EcoBadgeService {
     if (impressionsPerPoint < 1) return;
 
     const hourBucket = new Date().toISOString().slice(0, 13);
-    const ipHash = createHash('sha256').update(ctx.ipAddress).digest('hex').slice(0, 16);
+    const ipHash = createHash('sha256').update(kluczSieci(ctx.ipAddress)).digest('hex').slice(0, 16);
     const bucketKey = `${user.id}:${ipHash}:${hourBucket}`;
 
     try {
@@ -108,7 +125,16 @@ export class EcoBadgeService {
     const newImpressions = previousImpressions + 1;
     const pointsBefore = Math.floor(previousImpressions / impressionsPerPoint);
     const pointsAfter = Math.floor(newImpressions / impressionsPerPoint);
-    const delta = pointsAfter - pointsBefore;
+    let delta = pointsAfter - pointsBefore;
+    if (delta > 0) {
+      const poczatekDnia = new Date();
+      poczatekDnia.setUTCHours(0, 0, 0, 0);
+      const dzis = await this.prisma.ecoPointsLedgerEntry.aggregate({
+        where: { userId: user.id, reason: ECO_BADGE_IMPRESSION_REASON, createdAt: { gte: poczatekDnia } },
+        _sum: { delta: true },
+      });
+      delta = Math.max(0, Math.min(delta, ECO_BADGE_MAX_PUNKTOW_DZIENNIE - (dzis._sum.delta ?? 0)));
+    }
 
     await this.prisma.$transaction(async (tx) => {
       await tx.user.update({
