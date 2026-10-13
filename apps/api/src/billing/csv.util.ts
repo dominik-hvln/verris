@@ -40,10 +40,19 @@ export function rowsToCsv<T>(rows: readonly T[], columns: ReadonlyArray<CsvColum
 }
 
 const FORMULA = /^[=+\-@\t\r]/;
-const NUMBER = /^-?\d+(\.\d+)?$/;
+// Liczba z kropką albo przecinkiem dziesiętnym (eksporty po polsku: „-45,00”) zostaje liczbą.
+const NUMBER = /^-?\d+([.,]\d+)?$/;
+
+/**
+ * Neutralizacja formuł arkusza (OWASP CSV injection): tekst zaczynający się od = + - @ tab albo CR
+ * dostaje apostrof z przodu. Wspólna dla wszystkich eksportów CSV (też tych z własnym separatorem).
+ */
+export function neutralizujFormule(raw: string): string {
+  return FORMULA.test(raw) && !NUMBER.test(raw) ? `'${raw}` : raw;
+}
 
 function quoteField(raw: string): string {
-  const value = FORMULA.test(raw) && !NUMBER.test(raw) ? `'${raw}` : raw;
+  const value = neutralizujFormule(raw);
   if (!NEEDS_QUOTING.test(value)) return value;
   return `"${value.replace(/"/g, '""')}"`;
 }

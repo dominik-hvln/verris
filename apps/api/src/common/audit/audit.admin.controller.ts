@@ -17,6 +17,7 @@ import { Roles } from '../decorators/roles.decorator.js';
 import { StaffPermissionsGuard } from '../guards/staff-permissions.guard.js';
 import { StaffPerm } from '../decorators/staff-permissions.decorator.js';
 import { AuditService, AuditCategory, AuditLogWithUsers, AUDIT_CATEGORIES } from './audit.service.js';
+import { neutralizujFormule } from '../../billing/csv.util.js';
 
 const VALID_CATEGORIES = new Set<string>(Object.values(AUDIT_CATEGORIES));
 
@@ -119,13 +120,13 @@ function parseCategory(value?: string): AuditCategory | undefined {
   return VALID_CATEGORIES.has(upper) ? (upper as AuditCategory) : undefined;
 }
 
-function csvRow(fields: (string | number | null | undefined)[]): string {
+export function csvRow(fields: (string | number | null | undefined)[]): string {
   return fields.map(escapeCsv).join(',') + '\n';
 }
 
 function escapeCsv(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return '';
-  const str = typeof value === 'string' ? value : String(value);
+  const str = typeof value === 'string' ? neutralizujFormule(value) : String(value);
   if (/[",\r\n]/.test(str)) return `"${str.replace(/"/g, '""')}"`;
   return str;
 }

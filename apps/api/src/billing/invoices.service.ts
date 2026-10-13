@@ -33,6 +33,7 @@ import {
   type PozycjaReczna,
 } from './faktura-za-portfel.js';
 import { randomUUID } from 'crypto';
+import { neutralizujFormule } from './csv.util.js';
 import {
   RODZAJ_DOKUMENT_ROZLICZENIOWY,
   toNumerPanelu,
@@ -1170,9 +1171,11 @@ function buildCsv(rows: AdminInvoiceDto[]): string {
   return lines.join('\n');
 }
 
-function csvEscape(value: string | number | null): string {
+export function csvEscape(value: string | number | null): string {
   if (value === null || value === undefined) return '';
-  const str = String(value);
+  // Audyt bezpieczeństwa 13.10: nazwa/firma klienta z profilu trafiała do CSV operatora bez neutralizacji
+  // formuł (np. „=HYPERLINK(…)” wykonywało się w arkuszu księgowej).
+  const str = typeof value === 'number' ? String(value) : neutralizujFormule(value);
   if (str.includes('"') || str.includes(';') || str.includes('\n') || str.includes('\r')) {
     return `"${str.replace(/"/g, '""')}"`;
   }
