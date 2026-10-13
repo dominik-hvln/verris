@@ -42,6 +42,11 @@ run "install -m 0644 '$REPO_ROOT/ops/etc/verris/security/egress-allow-hostnames.
 if command -v apt-get >/dev/null 2>&1; then
   # Bez iptables-persistent — apt często usuwa ufw; egress CP jest w security-control-plane-egress.sh.
   run "DEBIAN_FRONTEND=noninteractive apt-get install -y ipset auditd dnsutils ufw"
+elif command -v dnf >/dev/null 2>&1; then
+  # 13.10 (t2, minimalny obraz AlmaLinux 10 u Contabo): bez pakietu audit nie ma /etc/audit/rules.d
+  # i zapis reguł niżej kończył Onboard LIVE błędem. Odpowiedniki EL: audit + audit-rules (od EL10 osobny pakiet
+  # z /etc/audit/rules.d i augenrules), ipset, bind-utils.
+  run "dnf -y install audit audit-rules ipset bind-utils"
 fi
 
 ensure_control_plane_ufw_ingress() {
