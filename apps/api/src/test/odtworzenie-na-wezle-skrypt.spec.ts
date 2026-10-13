@@ -30,14 +30,18 @@ function uruchom(opcje: { kontoJuzJest?: boolean; daZakladaKonto: boolean }) {
   }
   writeFileSync(join(DIR, 'verris-backup.conf'), 'RCLONE_REMOTE="verris-crypt:"\nBACKUP_PREFIX="nodes/t2"\n');
   // Atrapa rclone: copyto zapisuje archiwum; „DirectAdmin” zakłada konto chwilę później (jak dataskq).
+  // DA zakłada konto i rozpakowuje pocztę (t2 13.10: `.INBOX.spam` z grupą użytkownika zamiast `mail`).
   const zaloz = opcje.daZakladaKonto
-    ? `(sleep 1; mkdir -p "${da}/data/users/rdeetgju"; echo creator=admin > "${da}/data/users/rdeetgju/user.conf") &`
+    ? `(sleep 1; mkdir -p "${home}/rdeetgju/Maildir/.INBOX.spam/new" "${home}/rdeetgju/imap/pb55.d3.hvln.pl"; mkdir -p "${da}/data/users/rdeetgju"; echo creator=admin > "${da}/data/users/rdeetgju/user.conf") &`
     : '';
   writeFileSync(
     join(bin, 'rclone'),
     `#!/bin/bash\n[ "$1" = copyto ] || exit 9\n[ "$2" = "verris-crypt:nodes/t1/rdeetgju/backups/user.admin.rdeetgju.tar.zst" ] || exit 8\necho archiwum > "$3"\n${zaloz}\nexit 0\n`,
   );
   chmodSync(join(bin, 'rclone'), 0o755);
+  // Atrapa chgrp — zapisuje wywołania (test nie zależy od grup systemu, na którym działa).
+  writeFileSync(join(bin, 'chgrp'), `#!/bin/bash\necho "$@" >> "${DIR}/chgrp.log"\n`);
+  chmodSync(join(bin, 'chgrp'), 0o755);
   const r = spawnSync('bash', [SKRYPT], {
     env: {
       ...process.env,
@@ -52,13 +56,16 @@ function uruchom(opcje: { kontoJuzJest?: boolean; daZakladaKonto: boolean }) {
       OFR_IP: '62.171.162.57',
       OFR_WAIT_TRIES: '5',
       OFR_WAIT_SLEEP: '1',
+      OFR_SETTLE: '0',
+      VERRIS_MAIL_GROUP: 'daemon',
     },
     encoding: 'utf8',
   });
   const kolejka = readFileSync(join(da, 'data', 'task.queue'), 'utf8');
   const archiwum = existsSync(join(home, 'admin', 'admin_backups', 'user.admin.rdeetgju.tar.zst'));
+  const chgrp = existsSync(join(DIR, 'chgrp.log')) ? readFileSync(join(DIR, 'chgrp.log'), 'utf8') : '';
   rmSync(DIR, { recursive: true, force: true });
-  return { kod: r.status, wyjscie: r.stdout, log: r.stderr, kolejka, archiwum };
+  return { kod: r.status, wyjscie: r.stdout, log: r.stderr, kolejka, archiwum, chgrp, home };
 }
 
 describe('H-16 — odtworzenie na węźle, na którym konta jeszcze nie ma', () => {
@@ -70,6 +77,14 @@ describe('H-16 — odtworzenie na węźle, na którym konta jeszcze nie ma', () 
     expect(r.kolejka).toContain('action=restore&ip_choice=select&ip=62.171.162.57&');
     expect(r.kolejka).toContain('&owner=admin&select0=user.admin.rdeetgju.tar.zst&type=admin');
     expect(r.wyjscie).toContain('VERRIS-OFFSITE-RESTORED rdeetgju');
+  });
+
+  it('po założeniu konta katalogi poczty dostają grupę poczty (t2 13.10: Dovecot 451 na .INBOX.spam z grupą użytkownika)', () => {
+    const r = uruchom({ daZakladaKonto: true });
+    expect(r.kod).toBe(0);
+    expect(r.chgrp).toContain('-h daemon');
+    expect(r.chgrp).toContain(`${r.home}/rdeetgju/Maildir/.INBOX.spam`);
+    expect(r.chgrp).toContain(`${r.home}/rdeetgju/imap/pb55.d3.hvln.pl`);
   });
 
   it('DirectAdmin nie zakłada konta → błąd z przyczyną, nie ciche wyjście', () => {

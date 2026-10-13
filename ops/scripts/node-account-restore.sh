@@ -100,6 +100,21 @@ cmd_fetch() {
   printf 'VERRIS-OFFSITE-FETCHED %s\n' "${dst}${archive}"
 }
 
+# H-16 (t2, 13.10): po odtworzeniu z kopii katalog skrzynki `.INBOX.spam` miał grupę użytkownika zamiast `mail`.
+# Dovecot (LMTP, egid=mail) nie mógł założyć w nim cur/ i odrzucał KAŻDĄ wiadomość (451 4.2.0, „fchown … Operation
+# not permitted”, https://doc.dovecot.org/latest/core/admin/errors.html#change-group-operation-not-permitted). Na
+# węźle źródłowym (t1) te katalogi mają grupę `mail`. Wyrównujemy grupę katalogów poczty po założeniu konta.
+# `find` nie wchodzi w dowiązania, a `chgrp -h` zmienia samo dowiązanie, nie jego cel (katalog należy do klienta).
+maildir_grupa() {
+  local user="$1" grupa="${VERRIS_MAIL_GROUP:-mail}" d
+  sleep "${OFR_SETTLE:-60}"   # dataskq zakłada konto, a pocztę rozpakowuje chwilę później
+  for d in "${HOME_DIR}/${user}/Maildir" "${HOME_DIR}/${user}/imap"; do
+    [ -d "$d" ] && [ ! -L "$d" ] || continue
+    find "$d" -type d ! -group "$grupa" -exec chgrp -h "$grupa" {} + 2>/dev/null \
+      || log "UWAGA: nie udało się wyrównać grupy ${grupa} w ${d}"
+  done
+}
+
 cmd_restore() {
   local user="$1" archive="$2" snap="${3:-}" ip="${4:-}"
   [ -n "$user" ] && [ -n "$archive" ] || fail "użycie: restore <user> <archiwum> [YYYYMMDD]"
@@ -140,6 +155,7 @@ cmd_restore() {
   local i
   for i in $(seq 1 "${OFR_WAIT_TRIES:-120}"); do
     if [ -f "$DA_DIR/data/users/${user}/user.conf" ]; then
+      maildir_grupa "$user"
       printf 'VERRIS-OFFSITE-RESTORED %s\n' "$user"
       return 0
     fi
