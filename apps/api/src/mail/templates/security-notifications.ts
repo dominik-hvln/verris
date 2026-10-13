@@ -11,7 +11,7 @@ import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell.js';
  *
  *  1. `new-device-login`  — login z nowego urządzenia/IP, użytkownik
  *     dostaje 30s heads-up by zorientować się że ktoś inny się logował.
- *  2. `2fa-enabled`       — potwierdzenie aktywacji 2FA + recovery codes.
+ *  2. `2fa-enabled`       — potwierdzenie aktywacji 2FA (bez kodów odzyskiwania — te tylko w panelu).
  *  3. `2fa-disabled`      — alert o wyłączeniu 2FA (atakujący próbujący
  *     je zdjąć).
  *  4. `password-changed`  — alert o zmianie hasła (ATO red flag).
@@ -114,16 +114,16 @@ export interface TwoFactorEnabledContext {
   to: string;
   firstName: string | null;
   enrolledAt: Date;
-  /** Recovery codes (10 jednorazowych). NIE wysyłamy ich ponownie później. */
-  recoveryCodes: string[];
+  /**
+   * Ile kodów odzyskiwania wydano. Samych kodów w mailu NIE ma (audyt bezpieczeństwa 13.10):
+   * panel pokazuje je raz, po potwierdzeniu 2FA.
+   */
+  recoveryCodesCount: number;
   panelUrl: string;
 }
 
 export function twoFactorEnabledTemplate(ctx: TwoFactorEnabledContext): MailMessage {
   const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
-  const codesBlock = ctx.recoveryCodes
-    .map((code) => `- \`${escapeMarkdown(code)}\``)
-    .join('\n');
 
   const { html, text } = renderEmailShell({
     title: 'Dwuskładnikowe uwierzytelnianie aktywne',
@@ -135,26 +135,24 @@ export function twoFactorEnabledTemplate(ctx: TwoFactorEnabledContext): MailMess
       ``,
       `**Czas aktywacji:** ${escapeMarkdown(formatDateTime(ctx.enrolledAt))}.`,
       ``,
-      `## Kody odzyskiwania (zapisz je teraz!)`,
+      `## Kody odzyskiwania`,
       ``,
-      `Poniżej znajdziesz **${ctx.recoveryCodes.length} jednorazowych kodów odzyskiwania**. Każdy z nich można użyć **raz**, jeśli stracisz dostęp do aplikacji uwierzytelniającej (zgubiony telefon, kradzież).`,
+      `Panel pokazał Ci **${ctx.recoveryCodesCount} ${plKody(ctx.recoveryCodesCount)}** — tylko raz, zaraz po aktywacji. Ze względów bezpieczeństwa **nie wysyłamy ich e-mailem**.`,
       ``,
-      codesBlock,
-      ``,
-      `**Zapisz je w bezpiecznym miejscu** — np. w menedżerze haseł lub wydrukuj i schowaj. **Nie wysyłamy ich ponownie**. Możesz je w każdej chwili zregenerować w panelu (poprzednie zostaną unieważnione).`,
+      `Jeśli ich nie zapisałeś, wygeneruj nową partię w panelu (Ustawienia → Bezpieczeństwo). Poprzednie kody przestaną wtedy działać.`,
       ``,
       `## Co dalej?`,
       ``,
       `- Przy następnym logowaniu, po wpisaniu hasła, podasz kod z aplikacji.`,
-      `- Jeśli zgubisz dostęp do aplikacji — użyj kodu odzyskiwania powyżej.`,
+      `- Jeśli zgubisz dostęp do aplikacji — użyj jednego z kodów odzyskiwania.`,
       `- W każdej chwili możesz wyłączyć 2FA w panelu (ale **nie zalecamy** — to znacznie obniża bezpieczeństwo).`,
+      ``,
+      `**To nie Ty?** Natychmiast zmień hasło i skontaktuj się z nami.`,
     ].join('\n'),
     cta: {
       label: 'Zarządzaj 2FA w panelu',
       url: `${ctx.panelUrl}/dashboard/settings?tab=security`,
     },
-    footnote:
-      'Kody odzyskiwania działają jak hasła — traktuj je z odpowiednią ostrożnością.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
@@ -163,10 +161,61 @@ export function twoFactorEnabledTemplate(ctx: TwoFactorEnabledContext): MailMess
   return {
     to: ctx.to,
     tag: 'security.2fa-enabled',
-    subject: '[Verris] 2FA aktywne — zapisz kody odzyskiwania',
+    subject: '[Verris] 2FA aktywne',
     text,
     html,
   };
+}
+
+export interface TwoFactorRecoveryCodesRegeneratedContext {
+  to: string;
+  firstName: string | null;
+  regeneratedAt: Date;
+  count: number;
+  panelUrl: string;
+}
+
+/** Wymiana kodów odzyskiwania 2FA — powiadomienie bez samych kodów. */
+export function twoFactorRecoveryCodesRegeneratedTemplate(
+  ctx: TwoFactorRecoveryCodesRegeneratedContext,
+): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
+  const { html, text } = renderEmailShell({
+    title: 'Nowe kody odzyskiwania 2FA',
+    preheader: 'Poprzednie kody odzyskiwania przestały działać.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `**${escapeMarkdown(formatDateTime(ctx.regeneratedAt))}** wygenerowano dla Twojego konta **${ctx.count} ${plKody(ctx.count)}**. Poprzednie kody przestały działać.`,
+      ``,
+      `Nowe kody panel pokazał tylko raz — nie wysyłamy ich e-mailem.`,
+      ``,
+      `**To nie Ty?** Natychmiast zmień hasło i skontaktuj się z nami.`,
+    ].join('\n'),
+    cta: {
+      label: 'Bezpieczeństwo konta',
+      url: `${ctx.panelUrl}/dashboard/settings?tab=security`,
+    },
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'security.2fa-recovery-regenerated',
+    subject: '[Verris] Nowe kody odzyskiwania 2FA',
+    text,
+    html,
+  };
+}
+
+/** „kod odzyskiwania” / „kody odzyskiwania” / „kodów odzyskiwania” (dopełniacz po liczbie). */
+function plKody(n: number): string {
+  const d = n % 10;
+  const s = n % 100;
+  if (n === 1) return 'jednorazowy kod odzyskiwania';
+  if (d >= 2 && d <= 4 && (s < 12 || s > 14)) return 'jednorazowe kody odzyskiwania';
+  return 'jednorazowych kodów odzyskiwania';
 }
 
 // ---------------------------------------------------------------------------

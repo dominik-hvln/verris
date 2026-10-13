@@ -198,6 +198,9 @@ export class RegenerateBreakGlassDto {
   code!: string;
 }
 
+/** Nowa partia kodów odzyskiwania 2FA — ten sam kształt co kody break-glass (hasło + kod z aplikacji). */
+export class RegenerateRecoveryCodesDto extends RegenerateBreakGlassDto {}
+
 /**
  * Passkey (WebAuthn). Odpowiedź przeglądarki sprawdza kryptograficznie @simplewebauthn —
  * tu tylko pilnujemy, że to obiekt (a nie napis/tablica) i że pola obok mają sensowny kształt.

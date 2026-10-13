@@ -17,6 +17,7 @@ import { MailerService } from '../../mail/mailer.service.js';
 import {
   twoFactorEnabledTemplate,
   twoFactorDisabledTemplate,
+  twoFactorRecoveryCodesRegeneratedTemplate,
 } from '../../mail/templates/security-notifications.js';
 
 const ISSUER = 'Verris';
@@ -109,16 +110,69 @@ export class TwoFactorService {
       ipAddress: ip,
     });
 
+    // Audyt bezpieczeństwa 13.10: kody odzyskiwania tylko w odpowiedzi (panel pokazuje je raz) —
+    // NIE w mailu. Skrzynka pocztowa to często ten sam punkt przejęcia, przed którym chroni 2FA
+    // (reset hasła + kod odzyskiwania z tej samej skrzynki = pełne przejęcie konta).
     void this.notifyTwoFactorEnabled({
       to: user.email,
       firstName: user.firstName,
       enrolledAt: new Date(),
-      recoveryCodes,
+      recoveryCodesCount: recoveryCodes.length,
     }).catch((err) => {
       this.logger.warn(
         `notifyTwoFactorEnabled failed for user=${userId}: ${(err as Error).message}`,
       );
     });
+
+    return { recoveryCodes };
+  }
+
+  /**
+   * Nowa partia kodów odzyskiwania (poprzednie przestają działać). Wymaga hasła ORAZ bieżącego kodu
+   * z aplikacji — kod odzyskiwania tu nie wystarcza, żeby skradziony kod nie dał nowej partii.
+   * Kody zwracamy jeden raz, w odpowiedzi; mail informuje tylko, że partię wymieniono.
+   */
+  async regenerateRecoveryCodes(opts: { userId: string; password: string; code: string; ip?: string | null }) {
+    const user = await this.prisma.user.findUnique({ where: { id: opts.userId } });
+    if (!user) throw new NotFoundException('Nie znaleziono konta.');
+    if (!user.isTwoFactorEnabled || !user.twoFactorSecret) {
+      throw new ConflictException('2FA nie jest włączone.');
+    }
+    const passwordOk = await bcrypt.compare(opts.password, user.passwordHash);
+    const totpOk = this.totp.verify(this.crypto.decrypt(user.twoFactorSecret), opts.code);
+    if (!passwordOk || !totpOk) {
+      throw new UnauthorizedException('Niepoprawne hasło lub kod z aplikacji.');
+    }
+
+    const recoveryCodes = this.totp.generateRecoveryCodes();
+    const storage: RecoveryStorage = { remaining: recoveryCodes.map((c) => this.crypto.sha256Hex(c)) };
+    await this.prisma.user.update({
+      where: { id: opts.userId },
+      data: { twoFactorRecoveryCodesEnc: this.crypto.encrypt(JSON.stringify(storage)) },
+    });
+    await this.audit.record({
+      action: 'TWO_FACTOR_RECOVERY_CODES_REGENERATED',
+      userId: opts.userId,
+      actorUserId: opts.userId,
+      ipAddress: opts.ip,
+      details: { count: recoveryCodes.length },
+    });
+    const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
+    void this.mailer
+      .send({
+        ...twoFactorRecoveryCodesRegeneratedTemplate({
+          to: user.email,
+          firstName: user.firstName,
+          regeneratedAt: new Date(),
+          count: recoveryCodes.length,
+          panelUrl,
+        }),
+        category: 'TRANSACTIONAL',
+        fromRole: 'SECURITY',
+      })
+      .catch((err) => {
+        this.logger.warn(`notifyRecoveryCodesRegenerated failed for user=${opts.userId}: ${(err as Error).message}`);
+      });
 
     return { recoveryCodes };
   }
@@ -187,14 +241,14 @@ export class TwoFactorService {
     to: string;
     firstName: string | null;
     enrolledAt: Date;
-    recoveryCodes: string[];
+    recoveryCodesCount: number;
   }): Promise<void> {
     const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
     const message = twoFactorEnabledTemplate({
       to: opts.to,
       firstName: opts.firstName,
       enrolledAt: opts.enrolledAt,
-      recoveryCodes: opts.recoveryCodes,
+      recoveryCodesCount: opts.recoveryCodesCount,
       panelUrl,
     });
     await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'SECURITY' });

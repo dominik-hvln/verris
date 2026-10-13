@@ -25,6 +25,7 @@ import {
   RequestEmailChangeDto,
   ConfirmEmailChangeDto,
   RegenerateBreakGlassDto,
+  RegenerateRecoveryCodesDto,
   RegisterDto,
   VerifyTwoFactorDto,
   WebauthnLogowanieDto,
@@ -243,6 +244,24 @@ export class AuthController {
     const ip =
       req.ip ?? null; // F-10: req.ip (trust proxy) — lewy wpis X-Forwarded-For podaje klient
     return this.twoFactor.confirmEnrollment(wlasne2fa(user), dto.code, ip);
+  }
+
+  /** Nowa partia kodów odzyskiwania 2FA — hasło + bieżący kod z aplikacji; kody tylko w odpowiedzi. */
+  @UseGuards(JwtAuthGuard)
+  @RateLimit({ limit: 5, windowMs: 60 * 60 * 1000, scope: 'auth:2fa-recovery-gen' })
+  @Post('2fa/recovery-codes/regenerate')
+  @HttpCode(HttpStatus.OK)
+  twoFactorRecoveryRegenerate(
+    @CurrentUser() user: Osoba2fa,
+    @Body() dto: RegenerateRecoveryCodesDto,
+    @Req() req: Request,
+  ) {
+    return this.twoFactor.regenerateRecoveryCodes({
+      userId: wlasne2fa(user),
+      password: dto.password,
+      code: dto.code,
+      ip: req.ip ?? null,
+    });
   }
 
   @UseGuards(JwtAuthGuard)

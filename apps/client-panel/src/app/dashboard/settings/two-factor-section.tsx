@@ -7,10 +7,11 @@ import {
   disableTwoFactorAction,
   enrollTwoFactorAction,
   getTwoFactorStatus,
+  regenerateRecoveryCodesAction,
   type TwoFactorStatus,
 } from './two-factor-actions';
 
-type Stage = 'idle' | 'enrolling' | 'confirming' | 'enabled' | 'disabling';
+type Stage = 'idle' | 'enrolling' | 'confirming' | 'enabled' | 'disabling' | 'regenerating';
 
 interface Props {
   showToast: (msg: string, type: 'success' | 'error') => void;
@@ -74,6 +75,32 @@ export function TwoFactorSection({ showToast }: Props) {
       setQrDataUrl(null);
       setCode('');
       showToast('2FA włączone. Zapisz kody zapasowe!', 'success');
+      await reload();
+    });
+  };
+
+  const startRegenerate = () => {
+    setStage('regenerating');
+    setDisablePassword('');
+    setDisableCode('');
+  };
+
+  const confirmRegenerate = () => {
+    if (!disablePassword.trim() || disableCode.replace(/\D/g, '').length !== 6) {
+      showToast('Podaj hasło i 6-cyfrowy kod z aplikacji', 'error');
+      return;
+    }
+    startTransition(async () => {
+      const res = await regenerateRecoveryCodesAction({ password: disablePassword, code: disableCode });
+      if (!res.ok) {
+        showToast(res.error, 'error');
+        return;
+      }
+      setRecoveryCodes(res.recoveryCodes);
+      setStage('enabled');
+      setDisablePassword('');
+      setDisableCode('');
+      showToast('Nowe kody zapasowe gotowe — poprzednie przestały działać.', 'success');
       await reload();
     });
   };
@@ -143,18 +170,89 @@ export function TwoFactorSection({ showToast }: Props) {
               zapasowych.
             </p>
           </div>
-          <button
-            onClick={startDisable}
-            disabled={pending}
-            className="rounded-xl border border-rose-400/40 bg-rose-400/10 px-4 py-2 text-sm font-medium text-rose-200 hover:bg-rose-400/20 disabled:opacity-50"
-          >
-            Wyłącz
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              onClick={startRegenerate}
+              disabled={pending}
+              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white hover:bg-white/10 disabled:opacity-50"
+            >
+              Nowe kody zapasowe
+            </button>
+            <button
+              onClick={startDisable}
+              disabled={pending}
+              className="rounded-xl border border-rose-400/40 bg-rose-400/10 px-4 py-2 text-sm font-medium text-rose-200 hover:bg-rose-400/20 disabled:opacity-50"
+            >
+              Wyłącz
+            </button>
+          </div>
         </div>
 
         {recoveryCodes && (
           <RecoveryCodesPanel codes={recoveryCodes} onDismiss={() => setRecoveryCodes(null)} />
         )}
+      </SectionShell>
+    );
+  }
+
+  if (stage === 'regenerating') {
+    return (
+      <SectionShell>
+        <div className="flex items-start gap-4 mb-6">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-400/30 text-emerald-300 shrink-0">
+            <ShieldCheck className="h-6 w-6" />
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold text-white mb-1">Nowe kody zapasowe</p>
+            <p className="text-sm text-neutral-400 leading-relaxed">
+              Podaj <strong>hasło</strong> i aktualny <strong>6-cyfrowy kod</strong> z aplikacji. Poprzednie kody
+              przestaną działać, a nowe pokażemy tylko raz — nie wysyłamy ich e-mailem.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4 max-w-md">
+          <label className="block">
+            <span className="text-xs font-bold uppercase tracking-widest text-neutral-500">Hasło</span>
+            <input
+              type="password"
+              value={disablePassword}
+              onChange={(e) => setDisablePassword(e.target.value)}
+              placeholder="Hasło konta"
+              className={inputClass}
+              autoComplete="current-password"
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-bold uppercase tracking-widest text-neutral-500">Kod z aplikacji</span>
+            <input
+              value={disableCode}
+              onChange={(e) => setDisableCode(e.target.value)}
+              placeholder="6 cyfr"
+              maxLength={6}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              className={`${inputClass} font-mono`}
+            />
+          </label>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={confirmRegenerate}
+            disabled={pending}
+            className="rounded-xl bg-white text-black hover:bg-neutral-200 px-5 py-2.5 text-sm font-bold disabled:opacity-50"
+          >
+            {pending ? <Loader2 className="h-4 w-4 animate-spin inline" /> : 'Wygeneruj nowe kody'}
+          </button>
+          <button
+            onClick={() => setStage('enabled')}
+            disabled={pending}
+            className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm text-white hover:bg-white/10 disabled:opacity-50"
+          >
+            Anuluj
+          </button>
+        </div>
       </SectionShell>
     );
   }

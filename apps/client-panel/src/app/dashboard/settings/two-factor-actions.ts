@@ -79,6 +79,22 @@ export async function disableTwoFactorAction(opts: {
   }
 }
 
+/** Nowa partia kodów zapasowych — hasło + bieżący kod z aplikacji. Kody wracają tylko tutaj (nie mailem). */
+export async function regenerateRecoveryCodesAction(opts: {
+  password: string;
+  code: string;
+}): Promise<ConfirmResult | ActionError> {
+  try {
+    const res = await apiFetch<{ recoveryCodes: string[] }>('/auth/2fa/recovery-codes/regenerate', {
+      method: 'POST',
+      body: JSON.stringify({ password: opts.password, code: opts.code.replace(/\D/g, '') }),
+    });
+    return { ok: true, recoveryCodes: res.recoveryCodes };
+  } catch (err) {
+    return { ok: false, error: extractMessage(err) };
+  }
+}
+
 function extractMessage(err: unknown): string {
   if (err instanceof ApiError) return err.message;
   if (err instanceof Error) return err.message;
