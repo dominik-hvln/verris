@@ -132,7 +132,7 @@ describe('Synchronizacja pakietów DA z planami', () => {
 
 describe('Markowe NS na węźle', () => {
   function ns(obecne: { ns1: string; ns2: string }, konta: string[]) {
-    const { svc } = serwis(WEZEL, { account: { findMany: vi.fn(async () => konta.map((daUsername) => ({ daUsername }))) } });
+    const { svc } = serwis(WEZEL, { account: { findMany: vi.fn(async () => konta.map((daUsername) => ({ daUsername, subscriptionId: `s-${daUsername}`, userId: 'u1' }))) } });
     const c = klient();
     Object.assign(c, { client: { get: vi.fn(async () => ({ data: obecne })), post: vi.fn() } });
     vi.spyOn(svc, 'getClientForServer').mockResolvedValue(c);
@@ -142,7 +142,8 @@ describe('Markowe NS na węźle', () => {
       if (u === 'juz') throw new Error('Nameservers already set');
       if (u === 'zly') throw new Error('User is suspended');
     });
-    return { svc, admin, reseller, user };
+    const strefy = vi.spyOn(svc, 'przepiszNsWStrefachKonta').mockResolvedValue(0);
+    return { svc, admin, reseller, user, strefy };
   }
 
   it('już ustawione (wielkość liter bez znaczenia) → unchanged, bez zapisu Admin Settings', async () => {
@@ -172,5 +173,63 @@ describe('Markowe NS na węźle', () => {
     expect((await t.svc.applyBrandedNameserversOnNode('n1', 'ns1.verris.pl', ' ')).adminSettings).toBe('skipped');
     expect((await serwis({ ...WEZEL, daHost: null }).svc.applyBrandedNameserversOnNode('n1', 'a.pl', 'b.pl')).adminSettings).toBe('skipped');
     expect(t.user).not.toHaveBeenCalled();
+  });
+});
+
+describe('Markowe NS — przepisanie NS w istniejących strefach (H-16, t2 13.10)', () => {
+  type R = { id: string; name: string; type: string; value: string; ttl: number | null };
+  function strefa(rekordy: Array<Omit<R, 'id' | 'ttl'>>, o: { nieZapisuj?: boolean } = {}) {
+    const { svc } = serwis(WEZEL);
+    let zona: R[] = rekordy.map((r, i) => ({ ...r, id: String(i), ttl: 3600 }));
+    vi.spyOn(svc, 'listHostingDomainsForSubscription').mockResolvedValue({ domains: [{ name: 'pb55.d3.hvln.pl' }], primaryDomain: 'pb55.d3.hvln.pl' } as never);
+    vi.spyOn(svc, 'listHostingDnsRecords').mockImplementation(async (_s, _u, domain) => ({ domain: domain ?? null, records: zona, fetchError: null }));
+    const dodaj = vi.spyOn(svc, 'createHostingDnsRecord').mockImplementation(async (_s, _u, r) => {
+      if (!o.nieZapisuj) zona = [...zona, { id: 'n', name: r.name, type: r.type, value: r.value, ttl: 3600 }];
+      return { ok: true as const };
+    });
+    const usun = vi.spyOn(svc, 'deleteHostingDnsRecord').mockImplementation(async (_s, _u, r) => {
+      zona = zona.filter((z) => !(z.type === r.type && z.value === r.value && z.name === r.name));
+      return { ok: true as const };
+    });
+    return { svc, dodaj, usun, ns: () => zona.filter((z) => z.type === 'NS').map((z) => z.value).sort() };
+  }
+
+  it('stare nazwy z naszej bazy → dodane nowe, usunięte stare', async () => {
+    const t = strefa([
+      { name: 'pb55.d3.hvln.pl.', type: 'NS', value: 'ns1.t2.verris.pl.' },
+      { name: 'pb55.d3.hvln.pl.', type: 'NS', value: 'ns2.t2.verris.pl.' },
+      { name: 'pb55.d3.hvln.pl.', type: 'A', value: '2.28.204.249' },
+    ]);
+    await expect(t.svc.przepiszNsWStrefachKonta('s1', 'u1', 'ns3.verris.pl', 'ns4.verris.pl')).resolves.toBe(1);
+    expect(t.ns()).toEqual(['ns3.verris.pl.', 'ns4.verris.pl.']);
+  });
+
+  it('własna delegacja klienta (NS spoza naszej bazy) albo już poprawne NS → bez zmian', async () => {
+    for (const ns of [['ns1.cloudflare.com.', 'ns2.cloudflare.com.'], ['ns3.verris.pl.', 'ns4.verris.pl.']]) {
+      const t = strefa(ns.map((value) => ({ name: 'pb55.d3.hvln.pl.', type: 'NS', value })));
+      await expect(t.svc.przepiszNsWStrefachKonta('s1', 'u1', 'ns3.verris.pl', 'ns4.verris.pl')).resolves.toBe(0);
+      expect(t.dodaj).not.toHaveBeenCalled();
+      expect(t.usun).not.toHaveBeenCalled();
+    }
+  });
+
+  it('DA nie zapisał nowych NS → błąd, stare zostają (strefa nigdy bez NS)', async () => {
+    const t = strefa([{ name: 'pb55.d3.hvln.pl.', type: 'NS', value: 'ns1.t2.verris.pl.' }], { nieZapisuj: true });
+    await expect(t.svc.przepiszNsWStrefachKonta('s1', 'u1', 'ns3.verris.pl', 'ns4.verris.pl')).rejects.toThrow('stare zostawione');
+    expect(t.usun).not.toHaveBeenCalled();
+    expect(t.ns()).toEqual(['ns1.t2.verris.pl.']);
+  });
+
+  it('applyBrandedNameserversOnNode przepisuje strefy także, gdy NS konta były już ustawione', async () => {
+    const { svc } = serwis(WEZEL, { account: { findMany: vi.fn(async () => [{ daUsername: 'juz', subscriptionId: 's1', userId: 'u1' }]) } });
+    const c = klient();
+    Object.assign(c, { client: { get: vi.fn(async () => ({ data: { ns1: 'ns3.verris.pl', ns2: 'ns4.verris.pl' } })), post: vi.fn() } });
+    vi.spyOn(svc, 'getClientForServer').mockResolvedValue(c);
+    vi.spyOn(c, 'setResellerDefaultNameservers').mockResolvedValue(undefined);
+    vi.spyOn(c, 'setUserNameservers').mockRejectedValue(new Error('Nameservers already set'));
+    const strefy = vi.spyOn(svc, 'przepiszNsWStrefachKonta').mockResolvedValue(1);
+    const wynik = await svc.applyBrandedNameserversOnNode('n1', 'ns3.verris.pl', 'ns4.verris.pl');
+    expect(strefy).toHaveBeenCalledWith('s1', 'u1', 'ns3.verris.pl', 'ns4.verris.pl');
+    expect(wynik.hostingAccounts).toEqual({ updated: 1, skipped: 0, failed: 0 });
   });
 });

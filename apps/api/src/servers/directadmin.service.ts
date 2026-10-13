@@ -270,25 +270,30 @@ export class DirectAdminService {
 
     const accounts = await this.prisma.account.findMany({
       where: { serverId, status: 'ACTIVE' },
-      select: { daUsername: true },
+      select: { daUsername: true, subscriptionId: true, userId: true },
     });
     let updated = 0;
     let failed = 0;
     let skippedAccounts = 0;
     for (const acc of accounts) {
+      let juzUstawione = false;
       try {
-        await client.setUserNameservers(acc.daUsername, n1, n2);
-        updated += 1;
-      } catch (err) {
-        const msg = (err as Error).message ?? '';
-        if (/already|unchanged|identical/i.test(msg)) {
-          skippedAccounts += 1;
-        } else {
-          failed += 1;
-          this.logger.warn(
-            `DA user NS sync server=${serverId} user=${acc.daUsername}: ${msg}`,
-          );
+        try {
+          await client.setUserNameservers(acc.daUsername, n1, n2);
+        } catch (err) {
+          if (!/already|unchanged|identical/i.test((err as Error).message ?? '')) throw err;
+          juzUstawione = true;
         }
+        // H-16 (t2, 13.10): ustawienie NS konta działa tylko dla NOWYCH stref — istniejące strefy zostawały
+        // z poprzednimi nazwami (np. ns1.t2.verris.pl, których nie ma), więc „NS istniejących kont: zaktualizowano”
+        // nie zmieniało niczego, co widzi świat. Przepisujemy rekordy NS w strefach konta (także gdy NS konta
+        // były już ustawione — wtedy strefy mogły zostać ze starymi nazwami).
+        const strefy = await this.przepiszNsWStrefachKonta(acc.subscriptionId, acc.userId, n1, n2);
+        if (juzUstawione && strefy === 0) skippedAccounts += 1;
+        else updated += 1;
+      } catch (err) {
+        failed += 1;
+        this.logger.warn(`DA user NS sync server=${serverId} user=${acc.daUsername}: ${(err as Error).message ?? ''}`);
       }
     }
 
@@ -298,6 +303,43 @@ export class DirectAdminService {
       nameServerDefaults,
       hostingAccounts: { updated, skipped: skippedAccounts, failed },
     };
+  }
+
+  /**
+   * Rekordy NS wierzchołka każdej strefy konta → nowa para nazw węzła. Ruszamy tylko strefy, w których jest NS
+   * z naszej bazy (np. *.verris.pl) różny od nowych — własnej delegacji klienta nie zmieniamy. Kolejność jak przy
+   * edycji NS w panelu: najpierw dodanie nowych (sprawdzone w strefie), potem usunięcie starych
+   * (CMD_API_DNS_CONTROL: https://docs.directadmin.com/other-hosting-services/dns/maintaining-records.html).
+   * Zwraca liczbę zmienionych stref; błąd DA = wyjątek (konto liczy się wtedy jako błąd).
+   */
+  async przepiszNsWStrefachKonta(subscriptionId: string, userId: string, ns1: string, ns2: string): Promise<number> {
+    const bez = (v: string) => v.trim().toLowerCase().replace(/\.$/, '');
+    const nowe = [bez(ns1), bez(ns2)];
+    const baza = nowe[0].split('.').slice(1).join('.');
+    if (!baza.includes('.')) return 0;
+    const domeny = await this.listHostingDomainsForSubscription(subscriptionId, userId);
+    let zmienione = 0;
+    for (const d of domeny.domains) {
+      const strefa = await this.listHostingDnsRecords(subscriptionId, userId, d.name, domeny);
+      if (strefa.fetchError) throw new BadRequestException(`Strefa ${d.name}: ${strefa.fetchError}`);
+      const ns = strefa.records.filter((r) => r.type.toUpperCase() === 'NS' && nazwaRekorduDns(r.name, d.name) === '@');
+      const stare = ns.filter((r) => bez(r.value).endsWith(`.${baza}`) && !nowe.includes(bez(r.value)));
+      if (!stare.length) continue;
+      for (const n of nowe) {
+        if (ns.some((r) => bez(r.value) === n)) continue;
+        await this.createHostingDnsRecord(subscriptionId, userId, { domain: d.name, name: `${d.name}.`, type: 'NS', value: `${n}.` });
+      }
+      const poDodaniu = await this.listHostingDnsRecords(subscriptionId, userId, d.name, domeny);
+      const jest = (n: string) => poDodaniu.records.some((r) => r.type.toUpperCase() === 'NS' && nazwaRekorduDns(r.name, d.name) === '@' && bez(r.value) === n);
+      if (poDodaniu.fetchError || !nowe.every(jest)) {
+        throw new BadRequestException(`Strefa ${d.name}: serwer DNS nie zapisał nowych NS — stare zostawione.`);
+      }
+      for (const r of stare) {
+        await this.deleteHostingDnsRecord(subscriptionId, userId, { domain: d.name, name: r.name, type: 'NS', value: r.value });
+      }
+      zmienione += 1;
+    }
+    return zmienione;
   }
 
   /**
