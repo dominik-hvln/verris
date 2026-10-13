@@ -5,12 +5,14 @@ import { EmailMarketingService } from './email-marketing.service.js';
  * Audyt 13.10 (sendConfirmationEmail:outside-send-quota-and-cordon) — maile potwierdzające zapis (double opt-in)
  * szły na adresy podane przez klienta z pominięciem kordonu i liczników CYBER-3: import 5000 adresów = 5000 maili.
  */
-function stanowisko(o: { kordon?: boolean; progPo?: number } = {}) {
+function stanowisko(o: { kordon?: boolean; progPo?: number; limit?: number; kampanie?: number; potwierdzenia?: number } = {}) {
   let wyslane = 0;
   const prisma = {
     subscription: {
-      findUnique: vi.fn(async () => ({ id: 's1', userId: 'u1', status: 'ACTIVE', plan: { productKind: 'EMAIL_MARKETING', emmMaxContacts: 100000, emmMonthlySends: 100000 } })),
+      findUnique: vi.fn(async () => ({ id: 's1', userId: 'u1', status: 'ACTIVE', plan: { productKind: 'EMAIL_MARKETING', emmMaxContacts: 100000, emmMonthlySends: o.limit ?? 100000 } })),
     },
+    emmSend: { count: vi.fn(async () => o.kampanie ?? 0) },
+    $queryRaw: vi.fn(async () => [{ n: o.potwierdzenia ?? 0 }]),
     emmList: { findUnique: vi.fn(async () => ({ id: 'l1', subscriptionId: 's1', userId: 'u1', name: 'Klienci', doubleOptIn: true })) },
     emmContact: {
       count: vi.fn(async () => 0),
@@ -62,5 +64,23 @@ describe('E-mail marketing — potwierdzenia zapisu pod kordonem i licznikami CY
     expect(s.mailer.send).toHaveBeenCalledTimes(3);
     expect(r.added).toBe(3);
     expect(s.prisma.emmContact.create).toHaveBeenCalledTimes(3);
+  });
+
+  // Audyt 13.10 (zaległość): potwierdzenia nie wliczały się do miesięcznego limitu planu.
+  it('miesięczny limit planu liczy też potwierdzenia: import ponad limit → 403 bez kontaktów i maili', async () => {
+    const s = stanowisko({ limit: 10, kampanie: 4, potwierdzenia: 3 });
+    await expect(s.svc.importContacts('u1', 's1', 'l1', { consentConfirmed: true, rows: wiersze(4) } as never)).rejects.toThrow('Miesięczny limit');
+    expect(s.prisma.emmContact.create).not.toHaveBeenCalled();
+    expect(s.mailer.send).not.toHaveBeenCalled();
+    // W limicie (4 + 3 + 3 = 10) — przechodzi.
+    const ok = stanowisko({ limit: 10, kampanie: 4, potwierdzenia: 3 });
+    await ok.svc.importContacts('u1', 's1', 'l1', { consentConfirmed: true, rows: wiersze(3) } as never);
+    expect(ok.mailer.send).toHaveBeenCalledTimes(3);
+  });
+
+  it('pojedynczy kontakt przy wyczerpanym limicie → 403; wykorzystanie w workspace = kampanie + potwierdzenia', async () => {
+    const s = stanowisko({ limit: 7, kampanie: 4, potwierdzenia: 3 });
+    await expect(s.svc.addContact('u1', 's1', 'l1', { email: 'x@example.com' } as never)).rejects.toThrow('Miesięczny limit');
+    expect(s.prisma.emmContact.create).not.toHaveBeenCalled();
   });
 });

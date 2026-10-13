@@ -199,14 +199,41 @@ export class EmailMarketingService {
     return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   }
 
+  /**
+   * Wysyłki w tym miesiącu: maile kampanii + maile potwierdzające zapis (double opt-in). Audyt 13.10: potwierdzenia
+   * szły poza miesięcznym limitem planu — import tysięcy adresów wysyłał tyle maili bez żadnego limitu planu.
+   * Potwierdzenie = kontakt założony w tym miesiącu z double opt-in (wciąż PENDING albo potwierdzony później niż
+   * założony; bez double opt-in confirmedAt = chwila założenia).
+   */
   private async sentThisMonth(subscriptionId: string): Promise<number> {
-    return this.sends.count({
-      where: {
-        status: 'SENT',
-        createdAt: { gte: this.monthStart() },
-        campaign: { subscriptionId },
-      },
-    });
+    const od = this.monthStart();
+    const [kampanie, potwierdzenia] = await Promise.all([
+      this.sends.count({
+        where: {
+          status: 'SENT',
+          createdAt: { gte: od },
+          campaign: { subscriptionId },
+        },
+      }),
+      this.prisma.$queryRaw<Array<{ n: number }>>`
+        SELECT COUNT(*)::int AS n
+        FROM "EmmContact" c JOIN "EmmList" l ON l."id" = c."listId"
+        WHERE l."subscriptionId" = ${subscriptionId}
+          AND c."createdAt" >= ${od}
+          AND (c."status" = 'PENDING' OR c."confirmedAt" > c."createdAt" + interval '1 second')`,
+    ]);
+    return kampanie + Number(potwierdzenia[0]?.n ?? 0);
+  }
+
+  /** Miesięczny limit planu dla N maili potwierdzających — ten sam licznik co kampanie. */
+  private async wymagajLimituPotwierdzen(ws: { subscriptionId: string; monthlySends: number | null }, n: number): Promise<void> {
+    if (ws.monthlySends === null || n <= 0) return;
+    const used = await this.sentThisMonth(ws.subscriptionId);
+    if (used + n > ws.monthlySends) {
+      throw new ForbiddenException(
+        `Miesięczny limit wysyłek planu (${ws.monthlySends}) zostałby przekroczony — każdy nowy kontakt z potwierdzeniem zapisu to jeden mail. Wysłano w tym miesiącu: ${used}, potwierdzenia: ${n}.`,
+      );
+    }
   }
 
   private async activeContactCount(subscriptionId: string): Promise<number> {
@@ -345,6 +372,7 @@ export class EmailMarketingService {
     if (doubleOptIn) await this.wymagajTransportu(userId, subscriptionId, 'dodanie kontaktu (double opt-in)');
     // Audyt 13.10 — potwierdzenie to wysyłka na adres podany przez klienta: kordon CYBER-3 jak przy kampanii.
     if (doubleOptIn) await this.outbound.assertNotCordoned(userId);
+    if (doubleOptIn) await this.wymagajLimituPotwierdzen(ws, 1);
     const row = await this.contacts.create({
       data: {
         listId,
@@ -401,6 +429,7 @@ export class EmailMarketingService {
     const doubleOptIn = list.doubleOptIn !== false;
     if (doubleOptIn) await this.wymagajTransportu(userId, subscriptionId, 'import kontaktów (double opt-in)');
     if (doubleOptIn) await this.outbound.assertNotCordoned(userId);
+    if (doubleOptIn) await this.wymagajLimituPotwierdzen(ws, incoming.length);
     let added = 0;
     let skipped = 0;
     let wstrzymano = false;
