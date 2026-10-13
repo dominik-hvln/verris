@@ -1,5 +1,8 @@
 import { BadRequestException, Injectable, Logger, ConflictException, NotFoundException } from '@nestjs/common';
-import { lookupUslugiKlienta } from '../common/net/webhook-post.js';
+import { lookupUslugiKlienta, sprawdzAdresy } from '../common/net/webhook-post.js';
+import { isIP } from 'net';
+import { isFQDN } from 'class-validator';
+import { REGISTRAR_TLD_CATALOG } from './registrar-tld-catalog.js';
 import * as dns from 'dns';
 import { createHmac, timingSafeEqual } from 'crypto';
 import * as tls from 'tls';
@@ -23,6 +26,10 @@ export class DomainsService {
   ) {}
 
   async create(userId: string, createDomainDto: CreateDomainDto) {
+    // Audyt bezpieczeństwa 13.10: do tabeli Domain trafiały literały IP (sonda TLS łączyła się z nimi
+    // z pominięciem ochrony SSRF) i publiczne sufiksy („com.pl”), które blokowały innym klientom domeny dodatkowe.
+    const name = normalizujNazweDomeny(createDomainDto.name);
+    createDomainDto = { ...createDomainDto, name };
     // Domena główna hostingu żyje tylko w Account.domain — bez tej kontroli „Dodaj domenę”
     // tworzył obok niej drugi wpis (PENDING), który zasłaniał na liście działający hosting.
     const naHostingu = await this.prisma.account.findFirst({
@@ -235,6 +242,20 @@ function sameString(a: string, b: string): boolean {
   return x.length === y.length && timingSafeEqual(x, y);
 }
 
+const SUFIKSY = new Set(REGISTRAR_TLD_CATALOG.map((t) => t.extension.toLowerCase()));
+
+/** Nazwa domeny do zapisu: małe litery, bez kropki na końcu; nie IP, nie sam sufiks (pl, com.pl). */
+export function normalizujNazweDomeny(raw: string): string {
+  const name = String(raw ?? '').trim().toLowerCase().replace(/\.$/, '');
+  if (isIP(name.replace(/^\[|\]$/g, '')) || !isFQDN(name, { require_tld: true })) {
+    throw new BadRequestException('Podaj nazwę domeny, np. mojafirma.pl.');
+  }
+  if (SUFIKSY.has(name)) {
+    throw new BadRequestException('To jest końcówka domen, nie domena — podaj pełną nazwę, np. mojafirma.' + name + '.');
+  }
+  return name;
+}
+
 async function resolveList<T>(fn: () => Promise<T[]>): Promise<T[]> {
   try {
     return await fn();
@@ -243,7 +264,14 @@ async function resolveList<T>(fn: () => Promise<T[]>): Promise<T[]> {
   }
 }
 
-function probeTls(hostname: string): Promise<{ ok: boolean; error: string | null; validTo: string | null }> {
+export async function probeTls(hostname: string): Promise<{ ok: boolean; error: string | null; validTo: string | null }> {
+  // Node nie woła `lookup`, gdy host jest adresem IP — adres wpisany wprost sprawdzamy tą samą regułą
+  // przed połączeniem (wpisy sprzed walidacji nazwy w create mogą jeszcze być w bazie).
+  const host = hostname.replace(/^\[|\]$/g, '');
+  if (isIP(host)) {
+    const odmowa = await sprawdzAdresy([host], { wezly: 'dozwolone' });
+    if (odmowa) return { ok: false, error: 'Nazwa domeny jest adresem IP spoza dozwolonych.', validTo: null };
+  }
   return new Promise((resolve) => {
     const socket = tls.connect(
       {

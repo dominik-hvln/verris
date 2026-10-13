@@ -26,7 +26,8 @@ import type {
 import { randomBytes, X509Certificate } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import * as net from 'net';
-import { AccountStatus, Prisma } from '@verris/database';
+import { AccountStatus, DomainStatus, Prisma } from '@verris/database';
+import { UNVERIFIED_CLAIM_DAYS } from '../domains/domains.service.js';
 
 /**
  * Surowy klient HTTP z wnętrza `DirectAdminClient` (axios, pole prywatne) — tylko
@@ -2011,7 +2012,21 @@ export class DirectAdminService {
     const kandydaci = czesci.slice(0, -1).map((_, i) => czesci.slice(i).join('.'));
     const [konto, rejestracja] = await Promise.all([
       this.prisma.account.findFirst({ where: { domain: { in: kandydaci }, userId: { not: userId } }, select: { id: true } }),
-      this.prisma.domain.findFirst({ where: { name: { in: kandydaci }, userId: { not: userId } }, select: { id: true } }),
+      // Audyt bezpieczeństwa 13.10: własność dowodzi tylko domena aktywna albo z rejestracji; świeża (≤ UNVERIFIED_CLAIM_DAYS)
+      // niezweryfikowana rezerwacja blokuje wyłącznie dokładnie tę nazwę — inaczej rezerwacja „com.pl” albo cudzej
+      // domeny-rodzica blokowała bez końca domeny dodatkowe i aliasy innych klientów.
+      this.prisma.domain.findFirst({
+        where: {
+          name: { in: kandydaci },
+          userId: { not: userId },
+          OR: [
+            { status: DomainStatus.ACTIVE },
+            { registrarProvider: { not: null } },
+            { name: domena, createdAt: { gte: new Date(Date.now() - UNVERIFIED_CLAIM_DAYS * 86400000) } },
+          ],
+        },
+        select: { id: true },
+      }),
     ]);
     if (konto || rejestracja) {
       throw new BadRequestException('Ta domena jest już używana na innym koncie w Verris. Jeśli jest Twoja, napisz do pomocy — przeniesiemy ją.');
