@@ -24,6 +24,7 @@ import { MigrationCutoverService } from './migration-cutover.service.js';
 import { zdarzeniaUslugiDlaKlienta } from './zdarzenia-klienta.js';
 import { Prisma, SubscriptionStatus } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { BezSesjiWsparcia } from '../common/decorators/bez-sesji-wsparcia.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { dlaKlienta } from '../common/biala-etykieta.js';
@@ -596,6 +597,7 @@ export class UserServicesController {
     return this.directAdmin.listHostingFtpAccounts(id, user.userId);
   }
 
+  @BezSesjiWsparcia()
   @Post(':id/hosting-ftp')
   async createHostingFtp(
     @CurrentUser() user: { userId: string },
@@ -606,6 +608,7 @@ export class UserServicesController {
   }
 
   // C-18 — zmiana hasła konta FTP bez usuwania i zakładania od nowa.
+  @BezSesjiWsparcia()
   @Post(':id/hosting-ftp/:username/password')
   async changeHostingFtpPassword(
     @CurrentUser() user: { userId: string },
@@ -630,6 +633,7 @@ export class UserServicesController {
     return this.directAdmin.listHostingEmailAccounts(id, user.userId);
   }
 
+  @BezSesjiWsparcia()
   @Post(':id/hosting-email')
   async createHostingEmail(
     @CurrentUser() user: { userId: string },
@@ -639,6 +643,7 @@ export class UserServicesController {
     return this.directAdmin.createHostingEmailAccount(id, user.userId, body);
   }
 
+  @BezSesjiWsparcia()
   @Post(':id/hosting-email/password')
   async changeHostingEmailPassword(
     @CurrentUser() user: { userId: string },
@@ -672,6 +677,7 @@ export class UserServicesController {
     return this.directAdmin.listHostingEmailForwarders(id, user.userId);
   }
 
+  @BezSesjiWsparcia()
   @Post(':id/hosting-email-forwarders')
   async createHostingEmailForwarder(
     @CurrentUser() user: { userId: string },
@@ -870,6 +876,7 @@ export class UserServicesController {
   }
 
   @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:db-user-create' })
+  @BezSesjiWsparcia()
   @Post(':id/hosting-db-users')
   async addHostingDbUser(
     @CurrentUser() user: { userId: string },
@@ -889,12 +896,14 @@ export class UserServicesController {
   }
 
   @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:db-user-privileges' })
+  @BezSesjiWsparcia()
   @Post(':id/hosting-db-users/privileges')
   async hostingDbUserPrivileges(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: UprawnieniaBazyDto) {
     return this.dbTransfer.zlecUprawnienia(id, user.userId, body.db, body.user, body.privs);
   }
 
   @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:db-user-password' })
+  @BezSesjiWsparcia()
   @Post(':id/hosting-db-users/password')
   async changeHostingDbUserPassword(
     @CurrentUser() user: { userId: string },
@@ -1223,12 +1232,14 @@ export class UserServicesController {
   }
 
   @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'hosting:ssh' })
+  @BezSesjiWsparcia()
   @Post(':id/hosting-ssh')
   async setHostingSsh(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: DostepSshDto) {
     return this.sshAccess.przelacz(id, user.userId, body.enabled);
   }
 
   @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:ssh' })
+  @BezSesjiWsparcia()
   @Post(':id/hosting-ssh/keys')
   async setHostingSshKeys(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: KluczeSshDto) {
     return this.sshAccess.ustawKlucze(id, user.userId, body.keys);
@@ -1373,6 +1384,7 @@ export class UserServicesController {
   }
 
   @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'hosting:git-webhook' })
+  @BezSesjiWsparcia()
   @Post(':id/hosting-git-webhook')
   async hostingGitWebhook(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: RepozytoriumGitDto) {
     return this.gitDeploy.utworzWebhook(id, user.userId, body);
@@ -1427,6 +1439,7 @@ export class UserServicesController {
   }
 
   @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'hosting:pgsql-write' })
+  @BezSesjiWsparcia()
   @Post(':id/hosting-pgsql')
   async hostingPgsqlCreate(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: BazaPgsqlDto) {
     return this.pgsql.utworz(id, user.userId, body.nazwa);
@@ -1439,6 +1452,7 @@ export class UserServicesController {
   }
 
   @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'hosting:pgsql-write' })
+  @BezSesjiWsparcia()
   @Post(':id/hosting-pgsql/password')
   async hostingPgsqlPassword(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: BazaPgsqlDto) {
     return this.pgsql.zmienHaslo(id, user.userId, body.nazwa);

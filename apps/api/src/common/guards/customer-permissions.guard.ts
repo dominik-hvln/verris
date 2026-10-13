@@ -1,6 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable, Optional } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { CustomerPermission } from '@verris/database';
+import { BEZ_SESJI_WSPARCIA_KEY } from '../decorators/bez-sesji-wsparcia.decorator.js';
 import { CUSTOMER_PERMISSIONS_KEY } from '../decorators/customer-permissions.decorator.js';
 import { wZakresie, ZAKRES_ODMOWA } from './zakres-uslug.js';
 import { AuditService } from '../audit/audit.service.js';
@@ -331,6 +332,12 @@ export class CustomerPermissionsGuard implements CanActivate {
       params?: Record<string, string | undefined>;
     }>();
     const user = req.user;
+
+    // Audyt 13.10 — trwałe poświadczenia i dostęp do konta nadaje wyłącznie klient, nie operator w sesji wsparcia.
+    if ((user as { impersonatedBy?: string } | undefined)?.impersonatedBy &&
+        this.reflector.getAllAndOverride<boolean | undefined>(BEZ_SESJI_WSPARCIA_KEY, [ctx.getHandler(), ctx.getClass()])) {
+      throw new ForbiddenException('Tę zmianę może zrobić wyłącznie klient — nie w sesji wsparcia. Użyj akcji operatora.');
+    }
 
     // Właściciel konta — subkontowa kontrola go nie dotyczy.
     if (!user?.customerOwnerId) return true;

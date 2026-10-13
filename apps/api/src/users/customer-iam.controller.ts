@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+import { BezSesjiWsparcia } from '../common/decorators/bez-sesji-wsparcia.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { CustomerIamService } from './customer-iam.service.js';
 import {
@@ -43,6 +44,7 @@ export class CustomerIamController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @BezSesjiWsparcia()
   @Post('invites')
   invite(@CurrentUser() user: CustomerPrincipal, @Body() dto: InviteSubaccountDto) {
     return this.iam.invite(user.userId, user.principalUserId ?? user.userId, dto);
@@ -68,6 +70,7 @@ export class CustomerIamController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @BezSesjiWsparcia()
   @Patch('memberships/:id')
   updateMembership(@CurrentUser() user: CustomerPrincipal, @Param('id') id: string, @Body() dto: UpdateSubaccountDto) {
     return this.iam.updateMembership(user.userId, user.principalUserId ?? user.userId, id, dto);
@@ -80,6 +83,7 @@ export class CustomerIamController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @BezSesjiWsparcia()
   @Patch('members/:id')
   updateMember(
     @CurrentUser() user: CustomerPrincipal,
