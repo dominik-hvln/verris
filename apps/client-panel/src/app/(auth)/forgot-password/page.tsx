@@ -5,101 +5,82 @@ import Link from "next/link";
 import { requestPasswordReset } from "./actions";
 import { AlertCircle, Loader2, Mail } from "lucide-react";
 import { RegionBledu } from "@/components/region-bledu";
-import { SpinBorder } from "@/components/spin-border";
-import { VerrisLockup } from "@/components/logo";
 import { Captcha } from "@/components/captcha";
+import { AUTH_BLAD, AUTH_ETYKIETA, AUTH_INFO, AUTH_INPUT, AUTH_LINK, AUTH_PRZYCISK, AuthShell } from "@/components/auth-shell";
 
 type ForgotState = { error?: string; ok?: boolean };
 
 const initialState: ForgotState = {};
 
+// 14.10 (Dominik): wygląd jak ekran logowania — wspólna AuthShell i kolory z tokenów panelu.
 export default function ForgotPasswordPage() {
   const [state, action, pending] = useActionState(requestPasswordReset, initialState);
 
   return (
-    <div className="relative flex items-center justify-center min-h-screen bg-background overflow-hidden py-12">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-verris-mint/5 blur-[120px]" />
+    <AuthShell
+      haslo
+      stopka={
+        <>
+          Pamiętasz hasło?{" "}
+          <Link href="/login" className={`${AUTH_LINK} underline underline-offset-4`}>
+            Zaloguj się
+          </Link>
+        </>
+      }
+    >
+      <div className="border-b border-border p-8 pb-6">
+        <h1 className="font-display text-xl font-bold text-foreground">Reset hasła</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Wyślemy link na Twój e-mail (ważny 15 minut).</p>
       </div>
 
-      <div className="relative z-10 w-full max-w-[420px] mx-4">
-        <div className="mb-10 flex justify-center">
-          <VerrisLockup size="lg" layout="vertical" className="items-center" />
+      {state.ok ? (
+        <div className="space-y-4 p-8">
+          <div className={AUTH_INFO}>
+            <Mail aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
+            <p>Jeśli konto z tym adresem istnieje, wysłaliśmy instrukcję resetu. Sprawdź skrzynkę i folder spam.</p>
+          </div>
+          <Link href="/login" className={`block text-center text-sm ${AUTH_LINK}`}>
+            Wróć do logowania
+          </Link>
         </div>
-        <div className="relative rounded-[32px] p-px overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-          <SpinBorder className="opacity-30" />
-          <div className="relative rounded-[calc(32px-1px)] border border-border bg-card/95 backdrop-blur-3xl">
-            <div className="p-8 pb-6 border-b border-border">
-              <h1 className="font-display text-xl font-bold text-foreground">Reset hasła</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Wyślemy link na Twój e-mail (ważny 15 minut).
-              </p>
+      ) : (
+        <form action={action}>
+          <div className="space-y-5 p-8">
+            <RegionBledu id="reset-blad">
+              {!pending && state?.error ? (
+                <div className={AUTH_BLAD}>
+                  <AlertCircle aria-hidden className="h-5 w-5 shrink-0" />
+                  {state.error}
+                </div>
+              ) : null}
+            </RegionBledu>
+
+            <div className="space-y-2">
+              <label htmlFor="email" className={AUTH_ETYKIETA}>
+                Adres e-mail
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="jan@kowalski.pl"
+                aria-invalid={!pending && state?.error ? true : undefined}
+                aria-describedby={!pending && state?.error ? "reset-blad" : undefined}
+                className={AUTH_INPUT}
+              />
             </div>
 
-            {state.ok ? (
-              <div className="p-8 space-y-4">
-                <div className="flex items-start gap-3 p-4 text-sm text-emerald-200 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                  <Mail className="h-5 w-5 shrink-0 mt-0.5" />
-                  <p>
-                    Jeśli konto z tym adresem istnieje, wysłaliśmy instrukcję resetu. Sprawdź skrzynkę i
-                    folder spam.
-                  </p>
-                </div>
-                <Link
-                  href="/login"
-                  className="block text-center text-sm font-semibold text-accent hover:text-verris-tip"
-                >
-                  Wróć do logowania
-                </Link>
-              </div>
-            ) : (
-              <form action={action}>
-                <div className="p-8 space-y-5">
-                  <RegionBledu id="reset-blad">
-                    {!pending && state?.error ? (
-                      <div className="flex items-center gap-3 p-4 text-sm font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl">
-                        <AlertCircle aria-hidden className="h-5 w-5 shrink-0" />
-                        {state.error}
-                      </div>
-                    ) : null}
-                  </RegionBledu>
+            <Captcha action="password-reset" />
 
-                  <div className="space-y-2">
-                    <label htmlFor="email" className="text-sm font-semibold text-verris-body">
-                      Adres e-mail
-                    </label>
-                    <input
-                      id="email"
-                      name="email"
-                      type="email"
-                      required
-                      autoComplete="email"
-                      className="w-full rounded-xl border border-border bg-verris-pine/40 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground transition-all duration-300 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
-                    />
-                  </div>
-
-                  <Captcha action="password-reset" />
-
-                  <button
-                    type="submit"
-                    disabled={pending}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground font-bold py-3.5 hover:opacity-90 disabled:opacity-50"
-                  >
-                    {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                    Wyślij link
-                  </button>
-
-                  <p className="text-center text-sm text-muted-foreground">
-                    <Link href="/login" className="text-accent hover:text-verris-tip font-semibold">
-                      Logowanie
-                    </Link>
-                  </p>
-                </div>
-              </form>
-            )}
+            <button type="submit" disabled={pending} className={AUTH_PRZYCISK}>
+              {pending ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : null}
+              {pending ? "Wysyłanie…" : "Wyślij link"}
+            </button>
           </div>
-        </div>
-      </div>
-    </div>
+        </form>
+      )}
+    </AuthShell>
   );
 }

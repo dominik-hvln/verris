@@ -5,8 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { confirmEmailChange } from "./actions";
 import { AlertCircle, Loader2, Mail } from "lucide-react";
-import { SpinBorder } from "@/components/spin-border";
-import { VerrisLockup } from "@/components/logo";
+import { AUTH_BLAD, AUTH_LINK, AUTH_PRZYCISK, AuthShell } from "@/components/auth-shell";
 
 type State = { error?: string };
 const initialState: State = {};
@@ -27,10 +26,10 @@ function ConfirmForm() {
   if (!token) {
     return (
       <div className="p-8 space-y-4">
-        <p className="text-sm text-rose-300">
+        <p className="text-sm text-destructive">
           Brak tokenu w linku. Otwórz potwierdzenie z wiadomości e-mail wysłanej na nowy adres.
         </p>
-        <Link href="/dashboard/settings" className="text-sm font-semibold text-sky-400 hover:text-sky-300">
+        <Link href="/dashboard/settings" className={`text-sm ${AUTH_LINK}`}>
           Wróć do ustawień
         </Link>
       </div>
@@ -42,18 +41,18 @@ function ConfirmForm() {
       <input type="hidden" name="token" value={token} />
       <div className="p-8 space-y-5">
         {state.error && (
-          <div className="flex items-center gap-3 p-4 text-sm font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+          <div className={AUTH_BLAD}>
             <AlertCircle className="h-5 w-5 shrink-0" />
             {state.error}
           </div>
         )}
-        <p className="text-sm text-neutral-400">
+        <p className="text-sm text-muted-foreground">
           Kliknij poniżej, aby potwierdzić nowy adres e-mail konta. Po zmianie zaloguj się ponownie.
         </p>
         <button
           type="submit"
           disabled={pending}
-          className="w-full flex items-center justify-center gap-2 rounded-xl bg-white text-black font-bold py-3.5 hover:bg-neutral-200 disabled:opacity-50"
+          className={AUTH_PRZYCISK}
         >
           {pending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mail className="h-5 w-5" />}
           {pending ? "Potwierdzanie…" : "Potwierdź nowy adres e-mail"}
@@ -65,23 +64,13 @@ function ConfirmForm() {
 
 export default function ConfirmEmailChangePage() {
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-neutral-950 px-4">
-      <div className="relative z-10 w-full max-w-[440px]">
-        <div className="mb-8 flex justify-center">
-          <VerrisLockup size="lg" layout="vertical" className="items-center" />
-        </div>
-        <div className="relative overflow-hidden rounded-[32px] p-px shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-          <SpinBorder className="opacity-30" />
-          <div className="relative rounded-[calc(32px-1px)] border border-white/5 bg-neutral-950/80 backdrop-blur-3xl">
-            <div className="border-b border-white/5 p-8 pb-6">
-              <h1 className="text-xl font-bold text-white">Zmiana adresu e-mail</h1>
-            </div>
-            <Suspense fallback={<div className="p-8"><Loader2 className="h-6 w-6 animate-spin text-sky-400" /></div>}>
-              <ConfirmForm />
-            </Suspense>
-          </div>
-        </div>
+    <AuthShell haslo>
+      <div className="border-b border-border p-8 pb-6">
+        <h1 className="font-display text-xl font-bold text-foreground">Zmiana adresu e-mail</h1>
       </div>
-    </div>
+      <Suspense fallback={<div className="p-8"><Loader2 aria-hidden className="h-6 w-6 animate-spin text-accent" /></div>}>
+        <ConfirmForm />
+      </Suspense>
+    </AuthShell>
   );
 }

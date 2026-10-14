@@ -6,8 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { confirmPasswordReset } from "./actions";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { RegionBledu } from "@/components/region-bledu";
-import { SpinBorder } from "@/components/spin-border";
-import { VerrisLockup } from "@/components/logo";
+import { AUTH_BLAD, AuthShell } from "@/components/auth-shell";
 
 type ResetState = { error?: string };
 
@@ -21,7 +20,7 @@ function ResetPasswordForm() {
   if (!token) {
     return (
       <div className="p-8 space-y-4">
-        <p className="text-sm text-rose-300">
+        <p className="text-sm text-destructive">
           Brak tokenu w linku. Otwórz reset hasła z wiadomości e-mail lub poproś o nowy link.
         </p>
         <Link href="/forgot-password" className="text-sm font-semibold text-accent hover:text-verris-tip">
@@ -37,7 +36,7 @@ function ResetPasswordForm() {
       <div className="p-8 space-y-5">
         <RegionBledu id="nowe-haslo-blad">
           {!pending && state?.error ? (
-            <div className="flex items-center gap-3 p-4 text-sm font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+            <div className={AUTH_BLAD}>
               <AlertCircle aria-hidden className="h-5 w-5 shrink-0" />
               {state.error}
             </div>
@@ -89,24 +88,14 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="relative flex items-center justify-center min-h-screen bg-background py-12">
-      <div className="relative z-10 w-full max-w-[420px] mx-4">
-        <div className="mb-10 flex justify-center">
-          <VerrisLockup size="lg" layout="vertical" className="items-center" />
-        </div>
-        <div className="relative rounded-[32px] p-px overflow-hidden">
-          <SpinBorder className="opacity-30" />
-          <div className="relative rounded-[calc(32px-1px)] border border-border bg-card/95 backdrop-blur-3xl">
-            <div className="p-8 pb-6 border-b border-border">
-              <h1 className="font-display text-xl font-bold text-foreground">Nowe hasło</h1>
-              <p className="text-sm text-muted-foreground mt-1">Wybierz silne hasło do konta Verris.</p>
-            </div>
-            <Suspense fallback={<div className="p-8 text-muted-foreground text-sm">Ładowanie…</div>}>
-              <ResetPasswordForm />
-            </Suspense>
-          </div>
-        </div>
+    <AuthShell haslo>
+      <div className="border-b border-border p-8 pb-6">
+        <h1 className="font-display text-xl font-bold text-foreground">Nowe hasło</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Wybierz silne hasło do konta Verris.</p>
       </div>
-    </div>
+      <Suspense fallback={<div className="p-8 text-sm text-muted-foreground">Ładowanie…</div>}>
+        <ResetPasswordForm />
+      </Suspense>
+    </AuthShell>
   );
 }
