@@ -88,13 +88,25 @@ export class BootstrapTokenService {
    * this race-safe — two concurrent handshakes can both pass `peek`, but only
    * one wins the consumption.
    */
-  async markUsed(id: string, opts?: { ipAddress?: string }): Promise<void> {
-    await this.prisma.bootstrapToken.updateMany({
+  async markUsed(id: string, opts?: { ipAddress?: string }): Promise<boolean> {
+    const { count } = await this.prisma.bootstrapToken.updateMany({
       where: { id, usedAt: null },
       data: {
         usedAt: new Date(),
         usedFromIp: opts?.ipAddress ?? null,
       },
+    });
+    return count > 0;
+  }
+
+  /**
+   * Audyt 13.10 (do potwierdzenia #7): po udanym handshake pozostałe niezużyte tokeny tego węzła tracą ważność
+   * — inaczej drugi wydany one-liner pozwalał później przepiąć tożsamość węzła na inny adres.
+   */
+  async revokeSiblings(serverId: string, usedId: string): Promise<void> {
+    await this.prisma.bootstrapToken.updateMany({
+      where: { serverId, usedAt: null, revokedAt: null, NOT: { id: usedId } },
+      data: { revokedAt: new Date() },
     });
   }
 

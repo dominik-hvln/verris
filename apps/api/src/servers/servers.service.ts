@@ -6,6 +6,7 @@ import {
   Logger,
   NotFoundException,
   Optional,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -252,6 +253,15 @@ export class ServersService {
       };
     }
 
+    // Audyt 13.10 (do potwierdzenia #7): nowa tożsamość tylko dla węzła, który jeszcze jej nie ma albo czeka
+    // na zatwierdzenie. Skrypt bootstrapu wydajemy wyłącznie dla INIT/PENDING_APPROVAL, więc token dla węzła
+    // OFFLINE/DEPROVISIONING to stary, niezużyty one-liner — przyjęcie go przepinało węzeł na nowy adres.
+    if (server.status !== ServerStatus.INIT && server.status !== ServerStatus.PENDING_APPROVAL) {
+      throw new ConflictException(
+        `Węzeł w stanie ${server.status} nie przyjmuje ponownej rejestracji — wydaj nowy skrypt po przywróceniu stanu.`,
+      );
+    }
+
     // Check that the new ipAddress would not collide with another server.
     const collision = await this.prisma.server.findFirst({
       where: { ipAddress: dto.ipAddress, NOT: { id: serverId } },
@@ -260,6 +270,13 @@ export class ServersService {
       throw new ConflictException(
         `IP address ${dto.ipAddress} is already registered to another server (#${collision.id}).`,
       );
+    }
+
+    // Token zużywamy PRZED wydaniem tożsamości (updateMany z usedAt: null): dwa równoległe handshake tym samym
+    // tokenem przechodziły `peek` i oba dostawały identityToken, ważny był tylko ostatni (audyt 13.10, #7 C).
+    if (ctx?.bootstrapTokenId) {
+      const zuzyty = await this.tokens.markUsed(ctx.bootstrapTokenId, { ipAddress: ctx?.ip });
+      if (!zuzyty) throw new UnauthorizedException('Bootstrap token already used');
     }
 
     const identityToken = this.crypto.generateRandomToken(32);
@@ -282,10 +299,8 @@ export class ServersService {
       },
     });
 
-    // The handshake mutated the server — only now is the single-use token
-    // actually consumed (race-safe updateMany inside markUsed).
     if (ctx?.bootstrapTokenId) {
-      await this.tokens.markUsed(ctx.bootstrapTokenId, { ipAddress: ctx?.ip });
+      await this.tokens.revokeSiblings(serverId, ctx.bootstrapTokenId);
     }
 
     await this.audit.record({
