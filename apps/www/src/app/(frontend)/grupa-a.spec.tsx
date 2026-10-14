@@ -18,6 +18,7 @@ type Strona = {
 /* eslint-disable @typescript-eslint/no-require-imports */
 const STRONY: Strona[] = [
   { sciezka: '/', modul: () => require('./page'), fraza: /^Hosting WWW/, typy: ['Organization', 'WebSite', 'Product', 'FAQPage'] },
+  { sciezka: '/hosting', modul: () => require('./hosting/page'), fraza: /^Hosting z autoskalowaniem/, typy: ['Product', 'FAQPage', 'BreadcrumbList'] },
 ];
 /* eslint-enable @typescript-eslint/no-require-imports */
 
