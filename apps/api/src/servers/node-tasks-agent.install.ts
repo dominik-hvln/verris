@@ -523,8 +523,9 @@ dispatch_hosting_profile() {
   fi
   chmod 755 "$PROFILE_BIN"
 
-  mkdir -p "$STATE_DIR"
-  printf '%s' "$LEASE_JSON" > "$STATE_DIR/\${INSTANCE}.json"
+  # Audyt 13.10 (do potwierdzenia #14): zlecenie niesie hasła klienta (baza, admin WP) — tylko dla roota.
+  mkdir -p -m 700 "$STATE_DIR" && chmod 700 "$STATE_DIR"
+  ( umask 077; printf '%s' "$LEASE_JSON" > "$STATE_DIR/\${INSTANCE}.json" )
 
   if command -v systemctl >/dev/null 2>&1 && systemctl cat verris-task@.service >/dev/null 2>&1; then
     if systemctl start --no-block "verris-task@\${INSTANCE}.service" 2>>"$LOG"; then
@@ -544,8 +545,9 @@ dispatch_hosting_profile() {
 # A4 — WP_INSTALL i inne zadania per-konto: run-script sam pobiera właściwy
 # skrypt (po kind), więc dispatch jest generyczny (zapis job JSON + start unit).
 dispatch_generic() {
-  mkdir -p "$STATE_DIR"
-  printf '%s' "$LEASE_JSON" > "$STATE_DIR/\${INSTANCE}.json"
+  # Audyt 13.10 (do potwierdzenia #14): zlecenie niesie hasła klienta (baza, admin WP) — tylko dla roota.
+  mkdir -p -m 700 "$STATE_DIR" && chmod 700 "$STATE_DIR"
+  ( umask 077; printf '%s' "$LEASE_JSON" > "$STATE_DIR/\${INSTANCE}.json" )
   if command -v systemctl >/dev/null 2>&1 && systemctl cat verris-task@.service >/dev/null 2>&1; then
     if systemctl start --no-block "verris-task@\${INSTANCE}.service" 2>>"$LOG"; then
       echo "[verris-tasks] Started verris-task@\${INSTANCE}.service ($KIND, log: /var/log/verris-tasks/\${TASK_ID}.log)" >> "$LOG"
@@ -605,7 +607,8 @@ echo "[verris] Installed $TASKS_PATH"`;
 function renderTaskSystemdTemplateInstall(): string {
   return `
 mkdir -p /var/log/verris-tasks /var/run/verris-tasks
-chmod 755 /var/log/verris-tasks /var/run/verris-tasks
+chmod 755 /var/log/verris-tasks
+chmod 700 /var/run/verris-tasks
 
 if command -v systemctl >/dev/null 2>&1 && [ -d /etc/systemd/system ]; then
   cat > /etc/systemd/system/verris-task@.service <<'UNIT'

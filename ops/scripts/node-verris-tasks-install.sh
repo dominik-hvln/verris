@@ -40,7 +40,9 @@ else
 fi
 
 mkdir -p /var/log/verris-tasks /var/run/verris-tasks
-chmod 755 /var/log/verris-tasks /var/run/verris-tasks
+chmod 755 /var/log/verris-tasks
+# Audyt 13.10 (#14): zlecenia z hasłami klientów — katalog tylko dla roota.
+chmod 700 /var/run/verris-tasks
 
 if command -v systemctl >/dev/null 2>&1 && [ -d /etc/systemd/system ]; then
   cat > /etc/systemd/system/verris-task@.service <<'UNIT'
