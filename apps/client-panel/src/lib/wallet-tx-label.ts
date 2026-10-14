@@ -28,6 +28,7 @@ export function walletTxDescription(description: string | null | undefined, paym
   if (/^auto-refund: provisioning failed/i.test(d)) return 'Zwrot — usługi nie udało się uruchomić';
   if (/^refund/i.test(d)) return 'Zwrot środków';
 
+  if (/^wpłata\s+paynow\s+za\s+usługę/i.test(d)) return 'Wpłata za usługę — Paynow';
   const topup = d.match(/^doładowanie\s+(\w+)/i);
   if (topup) return /^stripe$/i.test(topup[1]!) ? 'Doładowanie kartą' : `Doładowanie — ${topup[1]}`;
 

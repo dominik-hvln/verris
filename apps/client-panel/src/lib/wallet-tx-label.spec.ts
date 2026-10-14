@@ -26,6 +26,7 @@ describe('walletTxDescription', () => {
   it('brak opisu — nazwa operatora płatności albo nic', () => {
     expect(walletTxDescription(null, 'stripe')).toBe('Płatność kartą');
     expect(walletTxDescription('Doładowanie Paynow (PGK6-S2A-0RO-HLW)')).toBe('Doładowanie — Paynow');
+    expect(walletTxDescription('Wpłata Paynow za usługę (PGAO-WSL-83U-CUO)')).toBe('Wpłata za usługę — Paynow');
     expect(walletTxDescription('')).toBeNull();
   });
 });

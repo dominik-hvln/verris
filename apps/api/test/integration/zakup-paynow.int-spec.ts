@@ -83,9 +83,13 @@ describe('Zakup usługi przez Paynow na Postgresie', () => {
     expect(pozycja.name).toMatch(/^Hosting Start — 12 mies\. \(przyklad\.pl\), okres \d{2}\.\d{2}\.\d{4}–\d{2}\.\d{2}\.\d{4}$/);
     expect(pozycja.name).not.toContain('Doładowanie');
     expect(pozycja.totalGross).toBe('468.00');
+    // E2e 14.10: dokument za zakup wskazuje usługę (admin pokazywał „Usługa: —”).
+    expect(dokumenty[0].subscriptionId).toBe(subscription.id);
 
     const wpisy = await prisma().walletTransaction.findMany({ where: { userId: u.id }, orderBy: { createdAt: 'asc' } });
     expect(wpisy.map((w) => w.type)).toEqual([WalletTxType.TOPUP, WalletTxType.CHARGE_SUBSCRIPTION]);
+    // …a w portfelu to wpłata za usługę, nie „Doładowanie Paynow”.
+    expect(wpisy[0].description).toBe(`Wpłata Paynow za usługę (${PID})`);
     // m34: obciążenie pokryte dokumentem za wpłatę — nie trafi drugi raz na fakturę.
     expect(wpisy[1].metadata).toMatchObject({ m34: expect.anything() });
     expect((await prisma().user.findUniqueOrThrow({ where: { id: u.id } })).walletBalance.toFixed(2)).toBe('0.00');

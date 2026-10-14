@@ -1107,6 +1107,12 @@ export class BillingService {
     if (!rek.paymentId) throw new Error(`Paynow: rekord ${rek.id} bez paymentId`);
     const meta = (rek.meta ?? {}) as Record<string, string>;
     const teraz = new Date();
+    // Wpłata za konkretną usługę klienta (zakup / odnowienie): dokument i wpis w portfelu mówią, za co jest
+    // (e2e 14.10: faktura „Usługa: —”, w portfelu „Doładowanie Paynow”).
+    const uslugaZamowienia =
+      meta.kind === 'zamowienie' && meta.subscriptionId
+        ? ((await this.prisma.subscription.findFirst({ where: { id: meta.subscriptionId, userId: rek.userId }, select: { id: true } }))?.id ?? null)
+        : null;
     // Idempotentne po kluczu: duplikat powiadomienia, wyścig powiadomienia ze sprawdzeniem po powrocie —
     // K wchodzą raz (unikalny idempotencyKey w księdze).
     const { wpis, kredytK } = await this.doladowanie.zaksieguj({
@@ -1117,10 +1123,11 @@ export class BillingService {
       idempotencyKey: `paynow:${rek.paymentId}`,
       paymentRef: rek.paymentId,
       paymentProvider: 'PAYNOW',
-      opis: `Doładowanie Paynow (${rek.paymentId})`,
+      opis: uslugaZamowienia ? `Wpłata Paynow za usługę (${rek.paymentId})` : `Doładowanie Paynow (${rek.paymentId})`,
       zaplaconoAt: teraz,
       proformaId: meta.kind === 'proforma' ? meta.proformaId : null,
       nazwaPozycji: await this.nazwaPozycjiZamowienia(rek.userId, meta, teraz),
+      subscriptionId: uslugaZamowienia,
     });
     // Skutki uboczne (bonus, e-mail, EKO) uruchamia tylko ten, kto przestawił rekord na CONFIRMED.
     // Padnięcie po zaksięgowaniu, a przed tym zapisem: ponowienie zaksięguje „na sucho” i dokończy.

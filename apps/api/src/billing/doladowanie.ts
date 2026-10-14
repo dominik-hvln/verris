@@ -28,6 +28,11 @@ export interface DaneDokumentuDoladowania {
    * zapłacił (usługa, okres, domena) zamiast „Doładowanie konta”. Brak = doładowanie portfela.
    */
   nazwaPozycji?: string | null;
+  /**
+   * Wpłata za konkretną usługę (Paynow `kind: 'zamowienie'`): dokument wskazuje usługę — admin i KSeF widzą,
+   * za co jest (e2e 14.10: faktura za zakup hostingu miała „Usługa: —”).
+   */
+  subscriptionId?: string | null;
 }
 
 /**
@@ -72,6 +77,7 @@ export async function utworzDokumentDoladowania(
   const faktura = await db.invoice.create({
     data: {
       userId: d.userId,
+      subscriptionId: d.subscriptionId ?? null,
       number: numer,
       rodzajPrawny,
       status: 'PAID',

@@ -81,6 +81,8 @@ export class DoladowanieService {
      * Przy proformie opłaconej dokładną kwotą nazwy biorą się z jej pozycji (bez tego parametru).
      */
     nazwaPozycji?: string | null;
+    /** Wpłata za konkretną usługę — dokument wskazuje tę usługę (sprawdzoną przez wołającego jako usługę klienta). */
+    subscriptionId?: string | null;
   }): Promise<{ wpis: WalletTransaction; kredytK: Prisma.Decimal; nowy: boolean }> {
     const istniejacy = await this.ledger.findByIdempotencyKey(i.idempotencyKey);
     if (istniejacy) return { wpis: istniejacy, kredytK: new Prisma.Decimal(istniejacy.amount), nowy: false };
@@ -128,6 +130,7 @@ export class DoladowanieService {
             userId: i.userId, walletTxId: w.id, kwota, waluta, kurs, traktowanie, vies, kredytK, teraz,
             proformaNumer: proforma?.number ?? null,
             nazwaPozycji: i.nazwaPozycji ?? nazwaZProformy(proforma, kwota, waluta),
+            subscriptionId: i.subscriptionId ?? null,
           });
         }
         if (proforma) {
