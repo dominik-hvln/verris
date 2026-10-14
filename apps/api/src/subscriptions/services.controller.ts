@@ -131,6 +131,7 @@ import {
 import { PromoService } from '../billing/promo.service.js';
 import { limityIndywidualneDlaKlienta, planZNadpisaniami } from './limity-indywidualne.js';
 import { planResourceFields } from '../servers/da-package-spec.js';
+import { rozpoznajZrodlo } from './migracja-rozpoznanie.js';
 
 /**
  * Customer-facing "services" view — denormalized projection over Subscription
@@ -1737,6 +1738,22 @@ export class UserServicesController {
     });
     if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     return this.migrationDiscovery.discover(body, user.userId, id);
+  }
+
+  /**
+   * 14.10 — krok „Skąd” migratora: z DNS domeny (A, MX, NS, PTR) podpowiadamy adres starego panelu. Tylko zapytania
+   * DNS, bez łączenia się z cudzym hostem; limit jak discover (enumeracja DNS przez nasz resolver).
+   */
+  @Get(':id/migrations/rozpoznaj')
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'migration:discover' })
+  async rozpoznajZrodloMigracji(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Query('domena') domena: string,
+  ) {
+    const sub = await this.prisma.subscription.findFirst({ where: { id, userId: user.userId }, select: { id: true } });
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
+    return rozpoznajZrodlo(String(domena ?? ''));
   }
 
   /**

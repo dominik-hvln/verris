@@ -70,6 +70,25 @@ function bundleBody(input: MigrationBundleInput) {
 }
 
 /** O-2/#18 — auto-discovery: loguje się do panelu źródłowego i zwraca inwentarz. */
+/** 14.10 — krok „Skąd”: podpowiedź adresu starego panelu z DNS domeny (A, MX, NS, PTR). */
+export interface RozpoznanieZrodla {
+  domena: string;
+  a: string[];
+  mx: string[];
+  ns: string[];
+  podpowiedzHosta: string | null;
+}
+export async function rozpoznajZrodloAction(serviceId: string, domena: string): Promise<ActionOk<{ result: RozpoznanieZrodla }>> {
+  try {
+    const result = await apiFetch<RozpoznanieZrodla>(
+      `/services/${encodeURIComponent(serviceId)}/migrations/rozpoznaj?domena=${encodeURIComponent(domena.trim())}`,
+    );
+    return { ok: true, result };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Nie udało się sprawdzić domeny.' };
+  }
+}
+
 export async function discoverMigrationSourceAction(input: {
   serviceId: string;
   host: string;

@@ -7,7 +7,9 @@ import {
   createMigrationBundleAction,
   discoverMigrationSourceAction,
   preflightMigrationAction,
+  rozpoznajZrodloAction,
   type MigrationMysqlInput,
+  type RozpoznanieZrodla,
 } from './actions';
 import { bezpiecznaAkcja } from '@/lib/akcja';
 import type { DiscoveredSite, DiscoveryResult, PreflightSummary } from './types';
@@ -331,6 +333,7 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
         <StepMethod
           zakres={zakres}
           method={method}
+          serviceId={serviceId}
           setMethod={setMethod}
           presetId={presetId}
           setPresetId={setPresetId}
@@ -502,6 +505,7 @@ function StepMethod(props: {
   setPanelUser: (v: string) => void;
   panelPass: string;
   setPanelPass: (v: string) => void;
+  serviceId: string;
   discovering: boolean;
   onDiscover: () => void;
   onManual: () => void;
@@ -535,6 +539,7 @@ function StepMethod(props: {
 
       {method === 'auto' ? (
         <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+          <RozpoznajZDns serviceId={props.serviceId} onHost={props.setPanelHost} />
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-1.5 block">
               <label htmlFor={`${fieldId}-panel`} className={labelText}>Panel starego hostingu</label>
@@ -1007,3 +1012,52 @@ export function wygasaIso(dzien: string): string | undefined {
   const d = new Date(`${dzien}T23:59:00`);
   return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
 }
+
+/**
+ * 14.10 — krok „Skąd”: klient wpisuje adres starej strony, a my z DNS podpowiadamy adres panelu (nazwa serwera
+ * z rekordu PTR albo serwer poczty) i pokazujemy, gdzie dziś stoi strona i poczta. Tylko zapytania DNS.
+ */
+export function RozpoznajZDns({ serviceId, onHost }: { serviceId: string; onHost: (h: string) => void }) {
+  const [domena, setDomena] = useState('');
+  const [trwa, setTrwa] = useState(false);
+  const [wynik, setWynik] = useState<RozpoznanieZrodla | null>(null);
+  const [blad, setBlad] = useState<string | null>(null);
+  const rozpoznaj = async () => {
+    setTrwa(true);
+    setBlad(null);
+    const r = await rozpoznajZrodloAction(serviceId, domena).catch(() => ({ error: 'Nie udało się sprawdzić domeny.' }));
+    setTrwa(false);
+    if ('error' in r && r.error) {
+      setBlad(r.error);
+      return;
+    }
+    if ('result' in r) {
+      setWynik(r.result);
+      if (r.result.podpowiedzHosta) onHost(r.result.podpowiedzHosta);
+    }
+  };
+  return (
+    <div className="space-y-2" data-rozpoznaj-dns>
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="block flex-1 space-y-1.5" style={{ minWidth: 220 }}>
+          <span className={labelText}>Adres starej strony (podpowiemy adres panelu)</span>
+          <input value={domena} onChange={(e) => setDomena(e.target.value.replace(/\s/g, '').toLowerCase())} className={input} placeholder="np. twojafirma.pl" />
+        </label>
+        <Button type="button" disabled={trwa || !domena.trim()} onClick={() => void rozpoznaj()} className="bg-white/10 text-white hover:bg-white/20 disabled:opacity-40">
+          {trwa ? 'Sprawdzam…' : 'Sprawdź w DNS'}
+        </Button>
+      </div>
+      {blad ? <p className="text-sm text-rose-300">{blad}</p> : null}
+      {wynik ? (
+        <p className="text-xs text-neutral-400" data-wynik-dns>
+          {wynik.a.length ? `Strona: ${wynik.a.join(', ')}. ` : 'Domena nie wskazuje na żaden serwer. '}
+          {wynik.mx.length ? `Poczta: ${wynik.mx.join(', ')}. ` : ''}
+          {wynik.podpowiedzHosta
+            ? `Wpisaliśmy adres panelu: ${wynik.podpowiedzHosta} — popraw, jeśli dostawca podał inny.`
+            : 'Nie znaleźliśmy nazwy serwera — adres panelu znajdziesz w mailu powitalnym od dostawcy.'}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
