@@ -676,12 +676,13 @@ function renderInstallLveAgentFragment(): string {
 # shellcheck disable=SC1090
 source /etc/verris.conf
 LVE_BIN="/usr/local/bin/verris-lve.sh"
-if curl -fsS --max-time 30 -H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \\
-  "$VERRIS_API_URL/agent/tasks/lve/script" -o "$LVE_BIN" 2>/dev/null && [ -s "$LVE_BIN" ]; then
-  chmod 755 "$LVE_BIN"
+# Audyt 13.10 (PB-36, do potwierdzenia #6): usługa roota tylko z podpisem control-plane (verris-fetch), nie gołym curl.
+if verris-fetch /agent/tasks/lve/script "$LVE_BIN.tmp" 30 && [ -s "$LVE_BIN.tmp" ]; then
+  mv -f "$LVE_BIN.tmp" "$LVE_BIN"; chmod 755 "$LVE_BIN"
   echo "[verris] Installed $LVE_BIN"
 else
-  echo "[verris] WARN: nie pobrano verris-lve.sh z API (sprawdź token/URL)" >&2
+  rm -f "$LVE_BIN.tmp"
+  echo "[verris] WARN: nie pobrano verris-lve.sh z API (podpis/token/URL) — zostaje poprzednia wersja" >&2
 fi
 
 if command -v systemctl >/dev/null 2>&1 && [ -d /etc/systemd/system ]; then
@@ -738,13 +739,12 @@ function renderInstallStraznikFragment(): string {
 # shellcheck disable=SC1090
 source /etc/verris.conf
 STRAZNIK_BIN="/usr/local/bin/verris-straznik.sh"
-if curl -fsS --max-time 30 -H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \\
-  "$VERRIS_API_URL/agent/tasks/straznik/script" -o "$STRAZNIK_BIN.tmp" 2>/dev/null && [ -s "$STRAZNIK_BIN.tmp" ]; then
+if verris-fetch /agent/tasks/straznik/script "$STRAZNIK_BIN.tmp" 30 && [ -s "$STRAZNIK_BIN.tmp" ]; then
   mv -f "$STRAZNIK_BIN.tmp" "$STRAZNIK_BIN"; chmod 755 "$STRAZNIK_BIN"
   echo "[verris] Installed $STRAZNIK_BIN"
 else
   rm -f "$STRAZNIK_BIN.tmp"
-  echo "[verris] WARN: nie pobrano verris-straznik.sh z API" >&2
+  echo "[verris] WARN: nie pobrano verris-straznik.sh z API (podpis/token/URL) — zostaje poprzednia wersja" >&2
 fi
 
 if command -v systemctl >/dev/null 2>&1 && [ -d /etc/systemd/system ]; then
