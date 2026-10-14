@@ -21,6 +21,8 @@ const STRONY: Strona[] = [
   { sciezka: '/hosting', modul: () => require('./hosting/page'), fraza: /^Hosting z autoskalowaniem/, typy: ['Product', 'FAQPage', 'BreadcrumbList'] },
   { sciezka: '/cennik', modul: () => require('./cennik/page'), fraza: /^Cennik hostingu/, typy: ['Product', 'FAQPage', 'BreadcrumbList'] },
   { sciezka: '/zamow', modul: () => require('./zamow/page'), fraza: /^Zamów hosting/, typy: ['BreadcrumbList'], noindex: true },
+  { sciezka: '/hosting/wordpress', modul: () => require('./hosting/wordpress/page'), fraza: /^Hosting WordPress/, typy: ['Product', 'FAQPage', 'BreadcrumbList'] },
+  { sciezka: '/hosting/sklep', modul: () => require('./hosting/sklep/page'), fraza: /^Hosting dla sklepu/, typy: ['Product', 'FAQPage', 'BreadcrumbList'] },
 ];
 /* eslint-enable @typescript-eslint/no-require-imports */
 

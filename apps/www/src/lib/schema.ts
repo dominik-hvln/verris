@@ -224,3 +224,16 @@ export function graph(...nodes: object[]) {
     }),
   };
 }
+
+/** Product + Offer (makieta 14.10: strona główna, /hosting, /cennik, podstrony hostingu). */
+export function productSchema(args: { name: string; description: string; path: string; offers?: object[] }) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: args.name,
+    description: args.description,
+    brand: { '@id': ORG_ID },
+    url: `${SITE}${args.path}`,
+    ...(args.offers ? { offers: args.offers } : {}),
+  };
+}
