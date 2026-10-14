@@ -1055,6 +1055,20 @@ export class NodeTasksService {
       return;
     }
     try {
+      // Przegląd 14.10 — dopóki domeny konta publicznie wskazują stary węzeł (rejestrator nie przełączył NS, propagacja),
+      // sierota obsługuje odwiedzających i pocztę: zawieszenie dałoby stronę „konto zawieszone”, usunięcie — martwą
+      // domenę. Czekamy (sprzatnijSieroty sprawdza co godzinę). Wyjątek: strefa rodzica na starym węźle (niżej).
+      if (p.rodzicNaStarym !== '1') {
+        const nadalTam = await this.directAdmin.domenyWskazujaceNaWezel(task.accountId!, serverId);
+        if (nadalTam.length) {
+          await this.zapiszStanSieroty(task.id, p, { stanSieroty: 'czeka-na-dns', archiwum, domenyNaStarym: nadalTam.join(',') });
+          await this.alarmPorzadku(
+            serverId,
+            `Konto ${p.daUser} przeniesione, ale ${nadalTam.join(', ')} nadal wskazuje na stary węzeł (NS albo A). Stare konto zostaje aktywne, dopóki DNS nie przejdzie — zmień serwery nazw u rejestratora.`,
+          );
+          return;
+        }
+      }
       const client = await this.directAdmin.getClientForServer(serverId);
       await client.suspendAccount(p.daUser);
       if (p.rodzicNaStarym === '1') {
@@ -1074,8 +1088,35 @@ export class NodeTasksService {
     }
   }
 
-  /** Co godzinę: sieroty zawieszone ponad dobę temu znikają, o ile konto działa na nowym węźle. */
+  /**
+   * Co godzinę: sieroty czekające na DNS — gdy domeny przestały wskazywać stary węzeł, zawieszenie (doba do usunięcia);
+   * zawieszone ponad dobę temu znikają, o ile konto działa na nowym węźle i DNS nadal nie wskazuje starego.
+   */
   async sprzatnijSieroty(teraz = new Date()): Promise<number> {
+    const czekajace = await this.prisma.nodeTask.findMany({
+      where: { kind: NodeTaskKind.OFFSITE_RESTORE, status: NodeTaskStatus.COMPLETED, payload: { path: ['stanSieroty'], equals: 'czeka-na-dns' } },
+      select: { id: true, serverId: true, accountId: true, payload: true },
+      take: 50,
+    });
+    for (const t of czekajace) {
+      const p = (t.payload ?? {}) as Record<string, string>;
+      const konto = t.accountId ? await this.prisma.account.findUnique({ where: { id: t.accountId }, select: { serverId: true, daUsername: true } }) : null;
+      if (!konto || konto.serverId === t.serverId || konto.daUsername !== p.daUser) {
+        await this.zapiszStanSieroty(t.id, p, { stanSieroty: 'pominieta' });
+        continue;
+      }
+      try {
+        const nadalTam = await this.directAdmin.domenyWskazujaceNaWezel(t.accountId!, t.serverId);
+        if (nadalTam.length) continue;
+        await (await this.directAdmin.getClientForServer(t.serverId)).suspendAccount(p.daUser);
+        const usunPo = new Date(teraz.getTime() + NodeTasksService.SIEROTA_USUN_PO_MS).toISOString();
+        await this.zapiszStanSieroty(t.id, p, { stanSieroty: 'zawieszona', usunPo });
+        await this.audit.record({ action: 'ACCOUNT_ORPHAN_SUSPENDED', details: { serverId: t.serverId, daUser: p.daUser, accountId: t.accountId, archiwum: p.archiwum ?? null, usunPo } });
+      } catch (err) {
+        this.logger.warn(`sierota ${p.daUser} czeka na DNS: ${(err as Error).message}`);
+      }
+    }
+
     const zadania = await this.prisma.nodeTask.findMany({
       where: { kind: NodeTaskKind.OFFSITE_RESTORE, status: NodeTaskStatus.COMPLETED, payload: { path: ['stanSieroty'], equals: 'zawieszona' } },
       select: { id: true, serverId: true, accountId: true, payload: true },
@@ -1097,6 +1138,8 @@ export class NodeTasksService {
         const nowe = await (await this.directAdmin.getClientForServer(konto.serverId)).listAccounts();
         if (konto.status !== AccountStatus.ACTIVE && konto.status !== AccountStatus.SUSPENDED) throw new Error(`konto w panelu ma stan ${konto.status}`);
         if (!nowe.includes(p.daUser)) throw new Error('konta nie ma na nowym węźle');
+        const nadalTam = await this.directAdmin.domenyWskazujaceNaWezel(t.accountId!, t.serverId);
+        if (nadalTam.length) throw new Error(`${nadalTam.join(', ')} nadal wskazuje na stary węzeł`);
         await (await this.directAdmin.getClientForServer(t.serverId)).deleteAccount(p.daUser);
         await this.zapiszStanSieroty(t.id, p, { stanSieroty: 'usunieta', usunieto: teraz.toISOString() });
         await this.audit.record({ action: 'ACCOUNT_ORPHAN_REMOVED', details: { serverId: t.serverId, daUser: p.daUser, accountId: t.accountId, archiwum: p.archiwum ?? null, powod: 'doba-po-przeniesieniu' } });

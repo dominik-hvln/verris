@@ -53,6 +53,14 @@ describe('Przeniesienie konta — delegacja NS w strefie rodzica', () => {
     expect(t.dodaj.mock.invocationCallOrder[1]).toBeLessThan(t.usun.mock.invocationCallOrder[0]);
   });
 
+  it('przegląd 14.10: przepięcie w strefie rodzica się nie udało → rodzicNaStarymWezle=false (bez natychmiastowego usunięcia)', async () => {
+    const t = stanowisko({ rodzicNaWezle: 't1' });
+    t.dodaj.mockRejectedValue(new Error('DA: zapis strefy nie powiódł się'));
+    const w = await t.svc.przepnijDelegacjePoPrzeniesieniu('a-pb55', 't1');
+    expect(w.rodzicNaStarymWezle).toBe(false);
+    expect(w.bledy[0]).toContain('zapis strefy');
+  });
+
   it('rodzic na innym węźle niż stary → rodzicNaStarymWezle=false', async () => {
     const t = stanowisko({ rodzicNaWezle: 't3' });
     expect((await t.svc.przepnijDelegacjePoPrzeniesieniu('a-pb55', 't1')).rodzicNaStarymWezle).toBe(false);
@@ -60,12 +68,14 @@ describe('Przeniesienie konta — delegacja NS w strefie rodzica', () => {
 });
 
 describe('Przeniesienie konta — sierota na starym węźle', () => {
-  function zadania(payload: Record<string, string>, o: { serverId?: string; status?: string } = {}) {
+  function zadania(payload: Record<string, string>, o: { serverId?: string; status?: string; dnsNaStarym?: string[] } = {}) {
     const task = { id: 't-arch', serverId: 't1', status: o.status ?? 'RUNNING', kind: 'OFFSITE_RESTORE', accountId: 'a-pb55', payload, requestedById: null, createdAt: new Date(), updatedAt: new Date(), startedAt: new Date(), completedAt: null as Date | null };
     const prisma = {
       nodeTask: {
         findUnique: vi.fn(async () => task),
-        findMany: vi.fn(async () => [task]),
+        findMany: vi.fn(async (a: { where?: { payload?: { equals?: string } } }) =>
+          a.where?.payload?.equals && (task.payload as Record<string, string>).stanSieroty !== a.where.payload.equals ? [] : [task],
+        ),
         update: vi.fn(async (a: { data: { payload?: unknown } }) => {
           if (a.data.payload) task.payload = a.data.payload as Record<string, string>;
           return task;
@@ -80,11 +90,12 @@ describe('Przeniesienie konta — sierota na starym węźle', () => {
     const da = {
       getClientForServer: vi.fn(async (id: string) => (id === 't1' ? stary : nowy)),
       przepnijDelegacjePoPrzeniesieniu: vi.fn(async () => ({ przepiete: ['pb55.d3.hvln.pl'], rodzicNaStarymWezle: payload.rodzicNaStarym === '1', bledy: [] })),
+      domenyWskazujaceNaWezel: vi.fn(async () => o.dnsNaStarym ?? []),
     };
     const audit = { record: vi.fn() };
     const alarmy = { wyslij: vi.fn(async () => undefined) };
     const svc = new NodeTasksService(prisma as never, audit as never, da as never, undefined, undefined, undefined, alarmy as never);
-    return { svc, prisma, stary, nowy, audit, alarmy, task };
+    return { svc, prisma, stary, nowy, audit, alarmy, task, da };
   }
   const LOG = 'VERRIS-ORPHAN-ARCHIVED rdeetgju /root/verris-sieroty/20261014-100000-user.admin.rdeetgju.tar.zst';
 
@@ -142,5 +153,55 @@ describe('Przeniesienie konta — sierota na starym węźle', () => {
     expect(await t.svc.sprzatnijSieroty()).toBe(0);
     expect(t.stary.deleteAccount).not.toHaveBeenCalled();
     expect(t.alarmy.wyslij).toHaveBeenCalled();
+  });
+
+  it('przegląd 14.10: domena nadal wskazuje stary węzeł (NS u rejestratora) → stare konto NIE zawieszone, alarm; po zmianie DNS — zawieszenie i doba', async () => {
+    const t = zadania({ mode: 'archiwum', daUser: 'rdeetgju', przeniesienie: '1', sierota: '1', rodzicNaStarym: '0' }, { dnsNaStarym: ['pb55.d3.hvln.pl'] });
+    await t.svc.completeTaskFromNode({ serverId: 't1', taskId: 't-arch', outputLog: LOG });
+    expect(t.stary.suspendAccount).not.toHaveBeenCalled();
+    expect(t.task.payload).toMatchObject({ stanSieroty: 'czeka-na-dns', domenyNaStarym: 'pb55.d3.hvln.pl' });
+    expect(t.alarmy.wyslij).toHaveBeenCalledWith(expect.objectContaining({ tresc: expect.stringContaining('nadal wskazuje na stary węzeł') }));
+
+    t.task.status = 'COMPLETED';
+    // Godzinę później DNS dalej stary — nic.
+    expect(await t.svc.sprzatnijSieroty(new Date())).toBe(0);
+    expect(t.stary.suspendAccount).not.toHaveBeenCalled();
+    // DNS przeszedł — zawieszenie, usunięcie dopiero po dobie.
+    t.da.domenyWskazujaceNaWezel.mockResolvedValue([]);
+    await t.svc.sprzatnijSieroty(new Date());
+    expect(t.stary.suspendAccount).toHaveBeenCalledWith('rdeetgju');
+    expect(t.stary.deleteAccount).not.toHaveBeenCalled();
+    expect(t.task.payload).toMatchObject({ stanSieroty: 'zawieszona' });
+  });
+
+  it('przegląd 14.10: po dobie, ale DNS wrócił na stary węzeł → bez usunięcia, alarm', async () => {
+    const t = zadania({ mode: 'archiwum', daUser: 'rdeetgju', sierota: '1', stanSieroty: 'zawieszona', usunPo: new Date(Date.now() - 1000).toISOString() }, { status: 'COMPLETED', dnsNaStarym: ['pb55.d3.hvln.pl'] });
+    expect(await t.svc.sprzatnijSieroty()).toBe(0);
+    expect(t.stary.deleteAccount).not.toHaveBeenCalled();
+    expect(t.alarmy.wyslij).toHaveBeenCalled();
+  });
+});
+
+describe('przegląd 14.10 — domenyWskazujaceNaWezel (publiczny DNS)', () => {
+  function svc() {
+    const prisma = {
+      account: { findUnique: vi.fn(async () => ({ userId: 'u2', subscriptionId: 's2', domain: 'firma.pl' })) },
+      server: { findUnique: vi.fn(async () => ({ ns1: 'ns3.verris.pl', ns2: 'ns4.verris.pl.', ipAddress: '198.51.100.3' })) },
+    };
+    const s = new DirectAdminService(prisma as never, {} as never, {} as never, { record: vi.fn() } as never);
+    vi.spyOn(s, 'listHostingDomainsForSubscription').mockResolvedValue({ domains: [{ name: 'firma.pl' }, { name: 'sklep.pl' }, { name: 'blog.firma.pl' }], primaryDomain: 'firma.pl', daUsername: 'x', fetchError: null });
+    return s;
+  }
+  it('NS starego węzła albo A = IP starego węzła → domena „nadal tam”; inne i błędy DNS → nie', async () => {
+    const r = {
+      resolveNs: vi.fn(async (d: string) => (d === 'firma.pl' ? ['NS3.verris.pl.'] : d === 'sklep.pl' ? ['ns1.verris.pl'] : Promise.reject(new Error('ENODATA')))),
+      resolve4: vi.fn(async (d: string) => (d === 'blog.firma.pl' ? ['198.51.100.3'] : ['203.0.113.9'])),
+    };
+    expect(await svc().domenyWskazujaceNaWezel('a', 't1', r as never)).toEqual(['firma.pl', 'blog.firma.pl']);
+  });
+  it('błąd odczytu domen konta → wyjątek (lepiej czekać niż usunąć)', async () => {
+    const s = svc();
+    vi.spyOn(s, 'listHostingDomainsForSubscription').mockResolvedValue({ domains: [], primaryDomain: null, daUsername: null, fetchError: 'węzeł niedostępny' });
+    await expect(s.domenyWskazujaceNaWezel('a', 't1', { resolveNs: vi.fn(), resolve4: vi.fn() } as never)).rejects.toThrow('węzeł niedostępny');
   });
 });

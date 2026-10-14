@@ -1,4 +1,5 @@
 import { blokHtaccessPhp, odczytajUserIni, sprawdzUstawieniaPhp, type UstawieniaPhp } from './php-ini.js';
+import * as dnsPubliczny from 'node:dns/promises';
 import { statusOffsite } from './offsite-status.js';
 import { ODCZYTY_DA, opiszOdpowiedz, type WynikSondy } from './sonda-da.js';
 import { normalizujKatalogDocroot, odczytajDocroot, trescCustomHttpd, zapiszDocroot } from './docroot.js';
@@ -2190,6 +2191,35 @@ export class DirectAdminService {
   }
 
   /**
+   * Przegląd 14.10 (H-16) — które domeny konta NADAL wskazują publicznie na dany węzeł: serwery nazw domeny są
+   * serwerami nazw węzła albo rekord A to IP węzła. Dopóki tak jest, sieroty na starym węźle nie wolno zawiesić ani
+   * usunąć — odwiedzający i poczta trafiają właśnie tam (rejestrator nie przełączył NS, propagacja .pl trwa do doby).
+   * Lista domen z konta na NOWYM węźle; błąd odczytu = rzucamy (lepiej poczekać niż usunąć działającą stronę).
+   */
+  async domenyWskazujaceNaWezel(
+    accountId: string,
+    serverId: string,
+    r: Pick<typeof dnsPubliczny, 'resolve4' | 'resolveNs'> = dnsPubliczny,
+  ): Promise<string[]> {
+    const [konto, wezel] = await Promise.all([
+      this.prisma.account.findUnique({ where: { id: accountId }, select: { userId: true, subscriptionId: true, domain: true } }),
+      this.prisma.server.findUnique({ where: { id: serverId }, select: { ns1: true, ns2: true, ipAddress: true } }),
+    ]);
+    if (!konto || !wezel) throw new BadRequestException('Brak konta albo węzła do sprawdzenia DNS.');
+    const bez = (v: string | null | undefined) => (v ?? '').trim().toLowerCase().replace(/\.$/, '');
+    const nsWezla = [bez(wezel.ns1), bez(wezel.ns2)].filter(Boolean);
+    const domeny = await this.listHostingDomainsForSubscription(konto.subscriptionId, konto.userId);
+    if (domeny.fetchError) throw new BadRequestException(`Domeny konta: ${domeny.fetchError}`);
+    const lista = [...new Set([konto.domain, ...domeny.domains.map((d) => d.name)].map(bez).filter(Boolean))];
+    const wskazujace: string[] = [];
+    for (const domena of lista) {
+      const [ns, a] = await Promise.all([r.resolveNs(domena).catch(() => [] as string[]), r.resolve4(domena).catch(() => [] as string[])]);
+      if (ns.map(bez).some((n) => nsWezla.includes(n)) || (wezel.ipAddress && a.includes(wezel.ipAddress))) wskazujace.push(domena);
+    }
+    return wskazujace;
+  }
+
+  /**
    * H-16 — po przeniesieniu konta na inny węzeł (decyzja Dominika 14.10: automatycznie). Domena konta będąca poddomeną
    * innej domeny (pb55.d3.hvln.pl przy d3.hvln.pl) ma w strefie rodzica delegację NS na serwery nazw STAREGO węzła —
    * DA dopisał ją przy dodaniu domeny (https://docs.directadmin.com/other-hosting-services/dns/maintaining-records.html).
@@ -2239,7 +2269,6 @@ export class DirectAdminService {
         const ns = strefa.records.filter((r) => r.type.toUpperCase() === 'NS' && nazwaRekorduDns(r.name, rodzic.domena) === etykieta);
         const doUsuniecia = ns.filter((r) => stare.includes(bez(r.value)) && !nowe.includes(bez(r.value)));
         if (!doUsuniecia.length) continue;
-        if (rodzic.serverId === staryServerId) wynik.rodzicNaStarymWezle = true;
         for (const n of nowe) {
           if (ns.some((r) => bez(r.value) === n)) continue;
           await this.createHostingDnsRecord(rodzic.subscriptionId, rodzic.userId, { domain: rodzic.domena, name: etykieta, type: 'NS', value: `${n}.` });
@@ -2251,6 +2280,9 @@ export class DirectAdminService {
           await this.deleteHostingDnsRecord(rodzic.subscriptionId, rodzic.userId, { domain: rodzic.domena, name: r.name, type: 'NS', value: r.value });
         }
         wynik.przepiete.push(domena);
+        // Przegląd 14.10 — tylko UDANE przepięcie w strefie rodzica na starym węźle uzasadnia natychmiastowe usunięcie
+        // sieroty; po błędzie delegacja nadal wskazuje stary węzeł i usunięcie strefy zgasiłoby domenę.
+        if (rodzic.serverId === staryServerId) wynik.rodzicNaStarymWezle = true;
         await this.audit.record({
           action: HostingResourceActions.HOSTING_DNS_DELEGATION_MOVED,
           userId: rodzic.userId,
