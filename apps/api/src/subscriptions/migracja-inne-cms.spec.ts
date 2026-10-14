@@ -91,6 +91,15 @@ describe('migracja stron spoza WordPressa — dane bazy z konfiguracji CMS-a', (
     expect(out).toContain(cms === 'joomla' ? "DB_PASSWORD\tstare'haslo\n" : 'DB_PASSWORD\tstare_haslo\n');
   });
 
+  it('CI 14.10: duży plik konfiguracji (ponad bufor potoku) — CMS nadal rozpoznany i przepisany (bez SIGPIPE przy pipefail)', () => {
+    const s = srodowisko();
+    const plik = s.poloz('joomla');
+    writeFileSync(plik, PLIKI.joomla[1] + '// ' + 'x'.repeat(200_000) + '\n');
+    expect(s.uruchom(`cms_config_db u "${s.strona}"`).out).toContain('CMS\tjoomla\n');
+    const r = s.uruchom(`cms_fixup "$JOB" "${s.kat}/log" u "${s.strona}"`, { JOB, BAZA_OK_HASLO: "n'owe\\haslo" });
+    expect([r.rc, r.out.trim()], s.log()).toEqual([0, '1']);
+  });
+
   it('WordPress ma pierwszeństwo, jak dotąd', () => {
     const s = srodowisko();
     s.poloz('joomla');

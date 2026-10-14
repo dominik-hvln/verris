@@ -614,7 +614,9 @@ cms_wykryj() {
     IFS=: read -r cms rel znak <<<"$para"
     f="$dst/$rel"
     runuser -u "$user" -- test -f "$f" 2>/dev/null || continue
-    runuser -u "$user" -- head -c 262144 "$f" 2>/dev/null | grep -qF -- "$znak" || continue
+    # Bez `head | grep -q`: przy pipefail grep kończący po pierwszym trafieniu daje SIGPIPE w head i fałszywe „nie ma”
+    # (CI 14.10, plik większy niż bufor potoku). grep czyta plik sam, jako klient.
+    runuser -u "$user" -- grep -qsF -- "$znak" "$f" || continue
     printf '%s\t%s\n' "$cms" "$f"
     return 0
   done
