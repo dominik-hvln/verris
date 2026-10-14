@@ -174,6 +174,10 @@ Policy: https://panel.verris.pl/legal/security
         not remote_ip 185.87.187.130 34.34.72.46 34.91.59.39
     }
     respond @op_webhook_obcy 403
+    # Podgląd przed DNS (15.10): tls-check woła tylko Caddy wewnętrznie (api:3000), proxy obsługuje blok
+    # *.{$CADDY_PODGLAD_DOMAIN} — z publicznego adresu API obie ścieżki są niedostępne.
+    @podglad_z_api path /podglad/tls-check /podglad-proxy /podglad-proxy/*
+    respond @podglad_z_api 404
     # API zwraca JSON — niczego nie renderuje, więc najostrzejszy CSP.
     # `?` = tylko gdy API nie ustawiło własnego: badge na stronę klienta
     # (/public/badges/*) wysyłają CSP z nonce i frame-ancestors *.

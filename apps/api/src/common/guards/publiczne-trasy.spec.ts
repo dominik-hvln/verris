@@ -98,6 +98,10 @@ const PUBLICZNE = [
   'OpenproviderWebhookController.odbierz',
   'PaynowPowiadomieniaController.powiadomienie',
   'PlansController.get',
+  // Podgląd przed DNS (15.10): dostęp tylko z tokenem HMAC w nazwie hosta; tls-check woła Caddy wewnętrznie (api:3000),
+  // na publicznym api.verris.pl obie ścieżki Caddy ucina na 404.
+  'PodgladPublicController.proxy',
+  'PodgladPublicController.tlsCheck',
   'PlansController.list',
   'PublicBadgesController.eko',
   'PublicBadgesController.loader',
