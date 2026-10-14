@@ -19,6 +19,7 @@ describe('klucz hosta Storage Boxa — wszystkie typy, które może wynegocjowa�
   });
 
   it('remote SFTP korzysta z tego pliku (bez wyłączonej weryfikacji)', () => {
-    expect(SKRYPT).toMatch(/rclone config create verris-remote sftp .*known_hosts_file "\$KH"/);
+    // Przegląd 15.10: remote zapisywany wprost w pliku konfiguracji (bez haseł w argv), dalej z przypiętym kluczem hosta.
+    expect(SKRYPT).toMatch(/\[verris-remote\]\ntype = sftp\n[\s\S]*?known_hosts_file = \$KH\n/);
   });
 });
