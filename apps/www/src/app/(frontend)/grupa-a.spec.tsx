@@ -20,6 +20,7 @@ const STRONY: Strona[] = [
   { sciezka: '/', modul: () => require('./page'), fraza: /^Hosting WWW/, typy: ['Organization', 'WebSite', 'Product', 'FAQPage'] },
   { sciezka: '/hosting', modul: () => require('./hosting/page'), fraza: /^Hosting z autoskalowaniem/, typy: ['Product', 'FAQPage', 'BreadcrumbList'] },
   { sciezka: '/cennik', modul: () => require('./cennik/page'), fraza: /^Cennik hostingu/, typy: ['Product', 'FAQPage', 'BreadcrumbList'] },
+  { sciezka: '/zamow', modul: () => require('./zamow/page'), fraza: /^Zamów hosting/, typy: ['BreadcrumbList'], noindex: true },
 ];
 /* eslint-enable @typescript-eslint/no-require-imports */
 
@@ -66,8 +67,10 @@ describe.each(STRONY)('grupa A — $sciezka', (s) => {
   });
 
   if (s.noindex) {
-    it('noindex', () => {
+    it('noindex, a przycisk do panelu liczy checkout_intent (bez JS widać wszystkie kroki)', () => {
       expect(metadata.robots).toMatchObject({ index: false });
+      expect(html).toMatch(/href="https:\/\/panel\.verris\.pl"[^>]*data-conv="checkout_intent"/);
+      expect(html.match(/data-conv="checkout_intent"/g)).toHaveLength(1);
     });
   }
 });
