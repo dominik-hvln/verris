@@ -32,6 +32,11 @@ export interface CreateSubscriptionInput {
    */
   oplata?: 'PORTFEL' | 'PAYNOW';
   /**
+   * Identyfikator klienta GA4 (z ciasteczka `_ga`, np. `1234567890.1697000000`) — tylko przy zgodzie na analitykę
+   * i płatności kartą: po potwierdzeniu płatności serwer wysyła `purchase` przez Measurement Protocol (14.10).
+   */
+  gaClientId?: string;
+  /**
    * Oświadczenie konsumenckie (art. 15 ust. 3 i art. 21 ust. 2 ustawy o prawach
    * konsumenta): żądanie rozpoczęcia świadczenia usługi przed upływem
    * 14-dniowego terminu odstąpienia. Wymagane `true` — API odrzuca zamówienia

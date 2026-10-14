@@ -15,9 +15,8 @@
  *    via fbq('consent','revoke') when withdrawn.
  */
 
-export const CONSENT_COOKIE = "cookies_consent";
-export const CONSENT_TTL_DAYS = 365;
-export const CONSENT_VERSION = 1;
+import { CONSENT_COOKIE, CONSENT_TTL_DAYS, CONSENT_VERSION } from "./cookie-consent-stale";
+export { CONSENT_COOKIE, CONSENT_TTL_DAYS, CONSENT_VERSION };
 
 export interface CookieConsent {
   v: number;

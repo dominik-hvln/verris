@@ -45,6 +45,7 @@ import { orderReceivedTemplate } from '../mail/templates/order-notifications.js'
 import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service.js';
 import { KOD_U_PARTNERA, klientAktywnegoResellera, narzutResellera, zNarzutem } from '../reseller/narzut-resellera.js';
 import { przyslugujeRabatStartowy } from './rabat-startowy.js';
+import { wyslijZakupDoGa4 } from './pomiar-zakupu.js';
 import { POWODY_ZDEJMOWANE_BEZ_OBSLUGI, zawieszenieObejmujeZaleglosc } from './powody-zawieszenia.js';
 import { limityIndywidualneDlaKlienta, planZNadpisaniami } from './limity-indywidualne.js';
 import { planResourceFields } from '../servers/da-package-spec.js';
@@ -1924,6 +1925,8 @@ export class SubscriptionsService {
         details: {
           domain: dto.domain ?? null,
           preferredRegion: dto.preferredRegion ?? null,
+          // 14.10 — do pomiaru zakupu po płatności (tylko przy zgodzie na analitykę; patrz pomiar-zakupu.ts).
+          gaClientId: dto.gaClientId ?? null,
         },
       },
     });
@@ -2201,6 +2204,42 @@ export class SubscriptionsService {
   }
 
   /**
+   * 14.10 — pomiar zakupu kartą (PB-08): przy płatności kartą klient zostaje na stronie faktury Stripe i nie wraca
+   * do panelu, więc przeglądarka nie wyśle `purchase`. Serwer wysyła go raz, przy pierwszej aktywacji, z identyfikatorem
+   * klienta GA4 zapisanym przy zamówieniu (tylko gdy klient zgodził się na analitykę). Bez identyfikatora albo bez
+   * konfiguracji (GA4_MEASUREMENT_ID, GA4_API_SECRET) nic nie wysyła. Błąd pomiaru nie wpływa na aktywację.
+   */
+  private async zmierzZakupKarta(sub: Subscription): Promise<void> {
+    if (sub.paymentSource !== SubscriptionPaymentSource.STRIPE_CARD) return;
+    try {
+      const intent = await this.prisma.subscriptionEvent.findFirst({
+        where: { subscriptionId: sub.id, type: 'PROVISIONING_INTENT' },
+        orderBy: { createdAt: 'desc' },
+        select: { details: true },
+      });
+      const clientId = (intent?.details as { gaClientId?: string | null } | null)?.gaClientId;
+      if (!clientId) return;
+      const plan = await this.prisma.plan.findUnique({ where: { id: sub.planId }, select: { name: true, productKind: true } });
+      await wyslijZakupDoGa4(
+        {
+          measurementId: this.config.get<string>('GA4_MEASUREMENT_ID') ?? '',
+          apiSecret: this.config.get<string>('GA4_API_SECRET') ?? '',
+        },
+        {
+          clientId,
+          transactionId: sub.id,
+          value: Number(sub.priceAmount),
+          currency: sub.currency,
+          itemName: plan?.name ?? 'Usługa Verris',
+          itemCategory: (plan?.productKind as string | undefined)?.toLowerCase() ?? 'hosting',
+        },
+      );
+    } catch (err) {
+      this.logger.warn(`Pomiar zakupu kartą sub=${sub.id} pominięty: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  /**
    * Called from `invoice.paid`. Activates a PENDING_PAYMENT subscription by
    * provisioning DA, or extends the period for an already-ACTIVE one.
    * Idempotent — repeated calls for the same period return early.
@@ -2310,6 +2349,8 @@ export class SubscriptionsService {
 
     if (sub.status === SubscriptionStatus.PENDING_PAYMENT) {
       // First-time activation — provision DA.
+      // 14.10 — pierwsza płatność kartą: `purchase` do GA4 z serwera (klient nie wraca do panelu ze strony Stripe).
+      await this.zmierzZakupKarta(sub);
       if (sub.paymentSource === SubscriptionPaymentSource.STRIPE_CARD) {
         void this.ecoPoints.safeAward(`stripe_card:${sub.id}`, async () => {
           await this.ecoPoints.awardStripeCardLinked(this.prisma, sub.userId, sub.id);

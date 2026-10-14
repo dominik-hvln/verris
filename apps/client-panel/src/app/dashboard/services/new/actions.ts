@@ -1,6 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
+import { gaClientIdZeZgoda } from '@/lib/ga-client-id';
 import type { CreateSubscriptionInput, CreateSubscriptionResponse } from '@verris/contracts';
 import { ApiError, apiFetch } from '@/lib/api';
 
@@ -14,9 +16,16 @@ export async function createSubscriptionAction(
   input: CreateSubscriptionInput,
 ): Promise<CreateSubscriptionResult> {
   try {
+    // 14.10 — przy karcie klient nie wraca do panelu: `purchase` wyśle serwer po płatności, z identyfikatorem GA4
+    // klienta (tylko przy jego zgodzie na analitykę).
+    let gaClientId: string | undefined;
+    if (input.paymentSource === 'STRIPE_CARD') {
+      const jar = await cookies();
+      gaClientId = gaClientIdZeZgoda((n) => jar.get(n)?.value);
+    }
     const data = await apiFetch<CreateSubscriptionResponse>('/subscriptions', {
       method: 'POST',
-      body: JSON.stringify(input),
+      body: JSON.stringify(gaClientId ? { ...input, gaClientId } : input),
     });
     revalidatePath('/dashboard/services');
     revalidatePath('/dashboard');

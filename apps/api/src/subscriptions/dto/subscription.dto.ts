@@ -112,6 +112,16 @@ export class CreateSubscriptionDto {
   @IsOptional()
   @IsIn(['PORTFEL', 'PAYNOW'], { message: 'Niedozwolony sposób opłaty.' })
   oplata?: 'PORTFEL' | 'PAYNOW';
+
+  /**
+   * 14.10 — identyfikator klienta GA4 (`<losowa>.<znacznik czasu>` z ciasteczka `_ga`), wysyłany przez panel tylko
+   * przy zgodzie na analitykę. Przy płatności kartą klient nie wraca do panelu, więc `purchase` wysyła serwer
+   * (Measurement Protocol) po potwierdzeniu płatności — z tym identyfikatorem, żeby zakup trafił do jego sesji.
+   */
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{1,20}\.\d{1,20}$/, { message: 'Niepoprawny identyfikator klienta GA4.' })
+  gaClientId?: string;
 }
 
 export class PreviewSubscriptionPromoDto {

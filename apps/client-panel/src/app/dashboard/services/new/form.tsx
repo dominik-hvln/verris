@@ -278,7 +278,8 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
         return;
       }
       // GA4: purchase tylko dla płatności z Portfela bez przekierowania (kwota znana). Zakup Paynow wysyła
-      // purchase strona powrotu (/dashboard/billing?paynow=…, ZakupPoPowrocie). transaction_id deduplikuje w GA4.
+      // purchase strona powrotu (/dashboard/billing?paynow=…, ZakupPoPowrocie), zakup kartą — serwer po płatności
+      // (Measurement Protocol, apps/api subscriptions/pomiar-zakupu.ts). transaction_id deduplikuje w GA4.
       // Bez id subskrypcji z serwera nie wysyłamy purchase — fabrykowany
       // `sub-${Date.now()}` psuł deduplikację w GA4 i w Meta (event_id).
       if (paymentSource === 'WALLET' && !res.data?.checkoutRedirectUrl && res.data?.subscription?.id) {
