@@ -1,5 +1,5 @@
 import { spawnSync } from 'child_process';
-import { appendFileSync, chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'fs';
+import { appendFileSync, chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, utimesSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
@@ -50,6 +50,7 @@ function wezel(o: { naprawa?: Naprawa; restartWezla?: boolean; uptime?: number; 
     '  is-enabled) grep -qx "$2" "$T/jednostki" && echo enabled || echo disabled;;',
     '  is-active) cat "$T/stan-$2" 2>/dev/null || echo active;;',
     '  start) [ -e "$T/start-dziala" ] && echo active > "$T/stan-$2";;',
+    '  restart|try-restart) [ "$2" = rsyslog ] || [ "$2" = rsyslog.service ] && [ -e "$T/rsyslog-naprawialny" ] && touch "$T/rsyslog-pisze";;',
     'esac',
   ].join('\n'));
   stub('dmesg', 'cat "$T/dmesg"');
@@ -58,6 +59,9 @@ function wezel(o: { naprawa?: Naprawa; restartWezla?: boolean; uptime?: number; 
   stub('getent', '[ "$2" = 1003 ] && echo "ovsekucx:x:1003:1003::/home/ovsekucx:/bin/bash"');
   stub('lvectl', 'echo "ID SPEED"');
   stub('sleep', 'true');
+  // logger: wpis trafia do pliku tylko, gdy rsyslog „pisze” (t1 13.10: po journalctl --flush przestał).
+  stub('logger', '[ -e "$T/rsyslog-pisze" ] && echo "Oct 14 08:00:00 t1 $2: ${@: -1}" >> "$T/messages"; true');
+  stub('pidof', 'echo 1359');
   stub('df', 'echo "Filesystem 1024-blocks Used Available Capacity Mounted on"; echo "/dev/vda 100 $(cat $T/dysk 2>/dev/null || echo 40) 60 $(cat $T/dysk 2>/dev/null || echo 40)% /"');
   const env = {
     ...process.env,
@@ -70,6 +74,7 @@ function wezel(o: { naprawa?: Naprawa; restartWezla?: boolean; uptime?: number; 
     VERRIS_DA_USERS: join(T, 'da'),
     VERRIS_PROC_UPTIME: join(T, 'uptime'),
     VERRIS_JOURNAL_DIR: join(T, 'journal'),
+    VERRIS_SYSLOG_PLIK: join(T, 'messages'),
   };
   const uruchom = (...args: string[]) => spawnSync('bash', [SKRYPT, ...args], { env, encoding: 'utf8' });
   const bledyLve = (n: number) => {
@@ -92,6 +97,54 @@ describe('verris-straznik — strażnik węzła', () => {
     expect(w.raporty()).toEqual([]);
     expect(w.wywolania()).not.toContain('lswsctrl restart');
     expect(existsSync(join(w.T, 'journal'))).toBe(true);
+    // t1 13.10 16:25: po przeniesieniu dziennika na dysk rsyslog przestał pisać — odświeżamy go od razu.
+    expect(w.wywolania()).toContain('systemctl try-restart rsyslog.service');
+    w.uruchom();
+    expect(w.wywolania().match(/try-restart rsyslog/g)).toHaveLength(1);
+  });
+
+  it('rsyslog działa, a /var/log/messages milczy i wpis kontrolny nie dociera: restart rsyslog, raport „naprawiono”', () => {
+    const w = wezel();
+    w.uruchom(); // pierwszy przebieg (trwały dziennik) za nami — jak na t1 i t2
+    writeFileSync(join(w.T, 'messages'), 'Oct 13 16:25:08 t1 systemd[1]: Started verris-straznik.timer\n');
+    const godzineTemu = new Date(Date.now() - 3600_000);
+    utimesSync(join(w.T, 'messages'), godzineTemu, godzineTemu);
+    writeFileSync(join(w.T, 'rsyslog-naprawialny'), '');
+    w.uruchom();
+    const r = w.raporty().pop()!;
+    expect(r).toMatchObject({ rodzaj: 'rsyslog', stan: 'naprawiono' });
+    expect(r.objaw).toContain('60 min temu');
+    expect(r.kroki.map((k) => [k.krok, k.wynik])).toEqual([['diagnoza', 'zapisana'], ['restart rsyslog', 'plik znów rośnie']]);
+    expect(w.wywolania()).toContain('systemctl restart rsyslog');
+    // Następny przebieg: plik świeży — bez kolejnej kontroli ani restartu.
+    const ile = w.wywolania().match(/systemctl restart rsyslog/g)!.length;
+    w.uruchom();
+    expect(w.wywolania().match(/systemctl restart rsyslog/g)).toHaveLength(ile);
+  });
+
+  it('rsyslog: świeży plik albo wpis kontrolny dociera — bez restartu; restart nie pomaga — „nie_naprawiono”', () => {
+    const swiezy = wezel();
+    writeFileSync(join(swiezy.T, 'messages'), 'Oct 14 08:00:00 t1 systemd[1]: ok\n');
+    swiezy.uruchom();
+    expect(swiezy.wywolania()).not.toContain('logger');
+    expect(swiezy.wywolania()).not.toContain('systemctl restart rsyslog');
+
+    const cichy = wezel();
+    writeFileSync(join(cichy.T, 'messages'), 'stary wpis\n');
+    const dawno = new Date(Date.now() - 3600_000);
+    utimesSync(join(cichy.T, 'messages'), dawno, dawno);
+    writeFileSync(join(cichy.T, 'rsyslog-pisze'), '');
+    cichy.uruchom();
+    expect(cichy.wywolania()).toContain('logger -t verris-straznik');
+    expect(cichy.wywolania()).not.toContain('systemctl restart rsyslog');
+    expect(cichy.raporty()).toEqual([]);
+
+    const zepsuty = wezel();
+    zepsuty.uruchom();
+    writeFileSync(join(zepsuty.T, 'messages'), 'stary wpis\n');
+    utimesSync(join(zepsuty.T, 'messages'), dawno, dawno);
+    zepsuty.uruchom();
+    expect(zepsuty.raporty().pop()).toMatchObject({ rodzaj: 'rsyslog', stan: 'nie_naprawiono' });
   });
 
   it('LVE konta (t1 13.10): diagnoza przed zmianą, restart LiteSpeed naprawia, sprawdzenie strony konta, raport „naprawiono”', () => {

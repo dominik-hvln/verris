@@ -75,6 +75,7 @@ const NAZWA_RODZAJU: Record<string, string> = {
   lve: 'izolacja kont (LVE) — strony PHP nie działają',
   strony: 'seria błędów 503 stron',
   dysk: 'dysk prawie pełny',
+  rsyslog: 'rsyslog nie zapisuje logów systemowych (/var/log/messages, /var/log/secure)',
 };
 export const nazwaRodzaju = (r: string) =>
   NAZWA_RODZAJU[r] ?? (r.startsWith('usluga:') ? `usługa ${r.slice(7)} nie działa` : r);

@@ -18,6 +18,8 @@
 #   strony    — seria „oops! 503” w error.log LiteSpeed dla strony: 1) restart LiteSpeed  2) odświeżenie CageFS
 #   usluga:X  — usługa z listy włączona, a nie działa: start (tylko gdy nie działa — reguła D2 jak dla NOC)
 #   dysk      — / zapełniony ≥ 95%: tylko alarm (nic nie kasujemy automatycznie)
+#   rsyslog   — rsyslog działa, a /var/log/messages milczy ≥ 15 min i wpis kontrolny (logger) nie dociera:
+#               restart rsyslog (t1 13.10: /var/log/secure puste od 16:25 — logowania SSH poza plikiem)
 #
 # Dokumentacja komend:
 #   LiteSpeed lswsctrl: https://docs.litespeedtech.com/lsws/cp/directadmin/ (restart serwera)
@@ -47,6 +49,8 @@ ODSTEP_RESTARTU_S=86400                          # restart węzła najwyżej raz
 CZEKAJ_S="${VERRIS_STRAZNIK_CZEKAJ:-20}"          # ile czekać po kroku przed sprawdzeniem
 PROC_UPTIME="${VERRIS_PROC_UPTIME:-/proc/uptime}"
 JOURNAL_DIR="${VERRIS_JOURNAL_DIR:-/var/log/journal}"
+SYSLOG_PLIK="${VERRIS_SYSLOG_PLIK:-/var/log/messages}"
+CISZA_RSYSLOG_S="${VERRIS_STRAZNIK_CISZA_RSYSLOG:-900}" # tyle bez wpisu w messages = sprawdź, czy rsyslog pisze
 
 mkdir -p "$STAN" "$LOGDIR/zdarzenia" 2>/dev/null || true
 log() { echo "[$(date -u +%FT%TZ)] $*" >> "$LOG"; }
@@ -69,8 +73,11 @@ if [ "$TRYB" = "petla" ] && [ ! -e "$STAN/.dziennik-trwaly" ] && command -v jour
   if mkdir -p "$JOURNAL_DIR" 2>/dev/null; then
     systemd-tmpfiles --create --prefix "$JOURNAL_DIR" >/dev/null 2>&1 || true
     journalctl --flush >/dev/null 2>&1 || true
+    # t1 13.10 16:25: po przeniesieniu dziennika z /run na dysk rsyslog (imjournal) przestał zapisywać
+    # /var/log/messages i /var/log/secure — do restartu rsyslog. try-restart: tylko gdy rsyslog działa.
+    systemctl try-restart rsyslog.service >/dev/null 2>&1 || true
     touch "$STAN/.dziennik-trwaly"
-    log "dziennik systemowy: trwały (/var/log/journal)"
+    log "dziennik systemowy: trwały (/var/log/journal), rsyslog odświeżony"
   fi
 fi
 
@@ -375,6 +382,45 @@ if [ "${ZAJETE:-0}" -ge 95 ] && ! w_odstepie dysk; then
   { zbierz_diagnoze; echo "== największe katalogi /var/log"; du -sh /var/log/* 2>/dev/null | sort -rh | head -10; } > "$KAT/diagnoza.txt" 2>&1
   krok "$KAT" "alarm" "bez automatycznego czyszczenia"
   raportuj "$(cat "$KAT/id")" "dysk" "tylko_alarm" "$KAT"
+fi
+
+# 5) rsyslog: działa, ale nie zapisuje (wpis kontrolny przez logger nie dociera do pliku) → restart rsyslog.
+rsyslog_zapisuje() {
+  local znak
+  znak="verris-straznik-kontrola-$(teraz)-$$"
+  logger -t verris-straznik "$znak" >/dev/null 2>&1 || return 0  # bez loggera nie oceniamy
+  sleep 3
+  tail -c 65536 "$SYSLOG_PLIK" 2>/dev/null | grep -qF "$znak"
+}
+if [ -r "$SYSLOG_PLIK" ] && [ "$(systemctl is-active rsyslog 2>/dev/null)" = "active" ]; then
+  CISZA=$(( $(teraz) - $(stat -c %Y "$SYSLOG_PLIK" 2>/dev/null || teraz) ))
+  if [ "$CISZA" -ge "$CISZA_RSYSLOG_S" ] && ! w_odstepie rsyslog && ! rsyslog_zapisuje; then
+    oznacz rsyslog
+    KAT=$(nowe_zdarzenie rsyslog)
+    echo "rsyslog działa, ale nie zapisuje do $SYSLOG_PLIK (ostatni wpis $((CISZA / 60)) min temu, wpis kontrolny nie dotarł)." > "$KAT/objaw.txt"
+    {
+      zbierz_diagnoze
+      echo "== rsyslog"; systemctl status rsyslog --no-pager -n 20 2>&1 | head -30
+      echo "== otwarte pliki rsyslogd"; ls -l /proc/"$(pidof rsyslogd 2>/dev/null | cut -d' ' -f1)"/fd 2>/dev/null | grep -E '/var/log|journal'
+    } > "$KAT/diagnoza.txt" 2>&1
+    krok "$KAT" "diagnoza" "zapisana"
+    log "OBJAW rsyslog: $(cat "$KAT/objaw.txt")"
+    PRZED=$(stat -c %s "$SYSLOG_PLIK" 2>/dev/null || echo 0)
+    systemctl restart rsyslog >/dev/null 2>&1
+    # t1 14.10: po restarcie rsyslog najpierw dopisuje zaległe wpisy z dziennika (ze starymi datami), a wpis
+    # kontrolny dociera dopiero po nich — miarą naprawy jest przyrost pliku, nie sam wpis kontrolny.
+    logger -t verris-straznik "verris-straznik-po-restarcie-rsyslog" >/dev/null 2>&1 || true
+    ROSNIE=0
+    for _ in 1 2 3 4 5 6; do
+      sleep 5
+      [ "$(stat -c %s "$SYSLOG_PLIK" 2>/dev/null || echo 0)" -gt "$PRZED" ] && { ROSNIE=1; break; }
+    done
+    if [ "$ROSNIE" = 1 ]; then
+      krok "$KAT" "restart rsyslog" "plik znów rośnie"; raportuj "$(cat "$KAT/id")" "rsyslog" "naprawiono" "$KAT"
+    else
+      krok "$KAT" "restart rsyslog" "plik nadal nie rośnie"; raportuj "$(cat "$KAT/id")" "rsyslog" "nie_naprawiono" "$KAT"
+    fi
+  fi
 fi
 
 # Sprzątanie diagnoz starszych niż 30 dni.
