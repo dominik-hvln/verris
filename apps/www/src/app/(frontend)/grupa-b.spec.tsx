@@ -134,3 +134,13 @@ describe('grupa B — /domeny', () => {
     expect(html).toContain('id="transfer"');
   });
 });
+
+describe('grupa B — /poczta', () => {
+  it('metadane z ceną, jedno h1, Service + FAQPage + BreadcrumbList, bez obietnic spoza kodu (QR, czarne listy)', async () => {
+    const mod = await import('./poczta/page');
+    const html = await render(mod.default());
+    sprawdzStrone({ html, meta: mod.metadata, fraza: /^Poczta w domenie/, typy: ['Service', 'FAQPage', 'BreadcrumbList'], canonical: '/poczta' });
+    expect(String(mod.metadata.description)).toContain('45 zł');
+    expect(html).not.toMatch(/kod(em)? QR|czarn\w+ list/i);
+  });
+});
