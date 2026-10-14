@@ -35,7 +35,7 @@
     "@verris/database": "workspace:*",
     "@verris/directadmin-sdk": "workspace:^",
     "archiver": "^8.0.0",
-    "basic-ftp": "^5.3.1",
+    "basic-ftp": "^6.2.3",
     "bcrypt": "^6.0.0",
     "bullmq": "^6.3.8",
     "class-transformer": "^0.5.1",
