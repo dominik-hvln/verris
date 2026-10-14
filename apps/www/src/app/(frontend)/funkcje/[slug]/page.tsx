@@ -4,8 +4,11 @@ import { SubHero, CTABand } from '../../components/ui';
 import { RevealInit } from '../../components/RevealInit';
 import { features, featureBySlug } from '@/lib/features';
 
+/** Funkcje z własną stroną (statyczna trasa ma pierwszeństwo) — nie generujemy ich tu drugi raz. */
+const OSOBNE_STRONY = new Set(['kopie-zapasowe']);
+
 export function generateStaticParams() {
-  return features.map((f) => ({ slug: f.slug }));
+  return features.filter((f) => !OSOBNE_STRONY.has(f.slug)).map((f) => ({ slug: f.slug }));
 }
 
 export async function generateMetadata({

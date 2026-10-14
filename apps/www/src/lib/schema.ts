@@ -127,5 +127,34 @@ export function webPageSchema(args: {
     isPartOf: { '@type': 'WebSite', url: `${SITE}/`, name: 'Verris' },
     publisher: { '@id': ORG_ID },
     ...(args.extra ?? {}),
+/** HowTo (makieta 14.10: instrukcje krok po kroku, np. przywracanie kopii). */
+export function howToSchema(args: { name: string; description?: string; path: string; steps: { name: string; text: string }[] }) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: args.name,
+    ...(args.description ? { description: args.description } : {}),
+    url: `${SITE}${args.path}`,
+    step: args.steps.map((s, i) => ({ '@type': 'HowToStep', position: i + 1, name: s.name, text: s.text })),
+  };
+}
+
+/** Product z parametrami (additionalProperty) i ofertami brutto — /specyfikacja (makieta 14.10). */
+export function productSpecSchema(args: {
+  name: string;
+  description: string;
+  path: string;
+  properties: [string, string][];
+  offers?: object[];
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: args.name,
+    description: args.description,
+    url: `${SITE}${args.path}`,
+    brand: { '@type': 'Brand', name: 'Verris' },
+    additionalProperty: args.properties.map(([name, value]) => ({ '@type': 'PropertyValue', name, value })),
+    ...(args.offers ? { offers: args.offers } : {}),
   };
 }
