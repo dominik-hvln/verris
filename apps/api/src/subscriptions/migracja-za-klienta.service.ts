@@ -105,9 +105,12 @@ export class MigracjaZaKlientaService {
   }
 
   async testDostepow(opts: { subscriptionId: string; actorUserId: string; zlecenie: CreateMigrationBundleDto }): Promise<PreflightSummary> {
-    const sub = await this.prisma.subscription.findUnique({ where: { id: opts.subscriptionId }, select: { id: true, userId: true } });
+    const sub = await this.prisma.subscription.findUnique({
+      where: { id: opts.subscriptionId },
+      select: { id: true, userId: true, account: { select: { domain: true } } },
+    });
     if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
-    return this.preflight.preflightBundle(normalizujZlecenie(opts.zlecenie), sub.userId, sub.id, opts.actorUserId);
+    return this.preflight.preflightBundle(normalizujZlecenie(opts.zlecenie), sub.userId, sub.id, opts.actorUserId, sub.account?.domain ?? null);
   }
 
   /**

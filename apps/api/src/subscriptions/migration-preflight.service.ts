@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import * as net from 'node:net';
 import * as tls from 'node:tls';
 import * as crypto from 'node:crypto';
+import { promises as dnsPromises } from 'node:dns';
 import { AuditService } from '../common/audit/audit.service.js';
 import { MigrationActions } from '../common/audit/audit.actions.js';
 import { resolvePublicHost } from './migration-net.util.js';
@@ -56,6 +57,8 @@ export class MigrationPreflightService {
     subscriptionId: string,
     /** PB-45 — test dostępów z formularza obsługi: w dzienniku operator, nie klient. */
     actorUserId: string = userId,
+    /** Domena konta Verris — domyślny adres strony, gdy zlecenie nie ma domeny źródłowej ani docelowej. */
+    domenaKonta?: string | null,
   ): Promise<PreflightSummary> {
     const checks: Array<Promise<PreflightCheckResult>> = [];
 
@@ -86,6 +89,7 @@ export class MigrationPreflightService {
     checks.push(...(dto.imap ?? []).map((b) => this.sprawdzSkrzynke(b)));
 
     const results = await Promise.all(checks);
+    await this.ostrzezOAdresieStrony(results, dto, domenaKonta);
     const ok = results.every((r) => r.status === 'ok' || r.status === 'reachable');
 
     await this.audit.record({
@@ -100,6 +104,40 @@ export class MigrationPreflightService {
     });
 
     return { ok, checks: results, checkedAt: new Date().toISOString() };
+  }
+
+  // --- Adres strony do eksportu bazy przez PHP ---------------------------------------------
+  //
+  // E2e 14.10 (migracja 1e4768ef): baza nie była dostępna z zewnątrz, SSH tylko kluczem, a eksport przez PHP
+  // wołał skrypt pod domeną docelową sl.hvln.pl — bez wpisu w DNS (strona działała pod inną domeną). Klient dowiadywał
+  // się o tym z błędu kroku po kwadransie. Tu: gdy bazy nie zalogowaliśmy (brak hasła albo brak połączenia), a są pliki
+  // (FTP — droga eksportu przez PHP), sprawdzamy tylko, czy adres strony ma wpis w DNS. Bez połączeń HTTP. Ostrzeżenie,
+  // nie blokada: baza może jeszcze przejść przez SSH.
+
+  private async ostrzezOAdresieStrony(
+    results: PreflightCheckResult[],
+    dto: CreateMigrationBundleDto,
+    domenaKonta?: string | null,
+  ): Promise<void> {
+    if (!dto.ftp) return;
+    const bazyBezLogowania = results.filter((r) => r.kind === 'mysql' && r.status !== 'ok');
+    if (bazyBezLogowania.length === 0) return;
+    const domena = (dto.sourceDomain?.trim() || dto.targetDomain?.trim() || domenaKonta?.trim() || '').toLowerCase();
+    if (!domena || (await this.adresStronyIstnieje(domena))) return;
+    const uwaga =
+      ` Uwaga: adres strony „${domena}” nie ma wpisu w DNS. Jeśli baza nie jest dostępna z zewnątrz ani przez SSH, ` +
+      'pobieramy ją przez stronę na starym serwerze — podaj w polu „Domena źródłowa” adres, pod którym strona działa dziś.';
+    for (const r of bazyBezLogowania) r.message += uwaga;
+  }
+
+  /** Tylko zapytanie DNS (A/AAAA), bez łączenia się z hostem. */
+  protected async adresStronyIstnieje(domena: string): Promise<boolean> {
+    try {
+      await dnsPromises.lookup(domena);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   // --- SSH/SFTP: pełne logowanie (I-18) --------------------------------------------

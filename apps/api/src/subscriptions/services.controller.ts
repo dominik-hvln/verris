@@ -1779,10 +1779,10 @@ export class UserServicesController {
   ) {
     const sub = await this.prisma.subscription.findFirst({
       where: { id, userId: user.userId },
-      select: { id: true },
+      select: { id: true, account: { select: { domain: true } } },
     });
     if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
-    return this.migrationPreflight.preflightBundle(body, user.userId, id);
+    return this.migrationPreflight.preflightBundle(body, user.userId, id, user.userId, sub.account?.domain ?? null);
   }
 
   /**

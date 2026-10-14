@@ -201,6 +201,9 @@ describe("formularz w przeglądarce", () => {
     expect((k.querySelector('input[aria-label="Nazwa bazy"]') as HTMLInputElement).value).toBe("sklep_wp");
     expect((k.querySelector('input[aria-label="Użytkownik bazy"]') as HTMLInputElement).value).toBe("sklepu");
     expect((k.querySelector('input[aria-label="Hasło bazy"]') as HTMLInputElement).value).toBe("");
+    // E2e 14.10: Dominik wpisał hasło ręcznie, bo nic nie mówiło, że może zostać puste (worker bierze je z wp-config).
+    expect((k.querySelector('input[aria-label="Hasło bazy"]') as HTMLInputElement).placeholder).toBe("Hasło (z pliku strony)");
+    expect(k.textContent).toContain("Hasła nie musisz wpisywać — odczytamy je z pliku konfiguracyjnego strony");
     await act(async () => przycisk("Wybierz ten katalog").click());
     expect(poleZEtykieta("Katalog strony").value).toBe("/public_html");
   });

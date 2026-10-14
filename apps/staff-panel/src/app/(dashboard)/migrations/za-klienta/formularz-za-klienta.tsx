@@ -15,7 +15,8 @@ import {
   type PreflightZaKlienta,
 } from "../actions";
 
-type Baza = { host: string; port: string; database: string; username: string; password: string };
+/** zPliku — dane podstawione z pliku konfiguracyjnego strony: hasło może zostać puste (worker odczyta je z pliku). */
+type Baza = { host: string; port: string; database: string; username: string; password: string; zPliku?: boolean };
 type Skrzynka = { email: string; host: string; password: string };
 
 const pole = "w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white";
@@ -215,7 +216,7 @@ export function FormularzZaKlienta(props: { subscriptionId: string; klient: stri
           onDaneBazy={(b) =>
             // Hasła nie dostajemy (obsługa go nie widzi) — worker odczyta je z pliku konfiguracyjnego na węźle.
             setBazy((stare) => [
-              { host: b.host, port: String(b.port ?? 3306), database: b.nazwa, username: b.uzytkownik, password: "" },
+              { host: b.host, port: String(b.port ?? 3306), database: b.nazwa, username: b.uzytkownik, password: "", zPliku: b.hasloZPliku },
               ...stare.filter((x) => x.database.trim() && x.database.trim() !== b.nazwa),
             ])
           }
@@ -254,17 +255,22 @@ export function FormularzZaKlienta(props: { subscriptionId: string; klient: stri
               <input
                 key={k}
                 aria-label={{ host: "Host bazy", port: "Port bazy", database: "Nazwa bazy", username: "Użytkownik bazy", password: "Hasło bazy" }[k]}
-                placeholder={{ host: "Host", port: "Port", database: "Nazwa bazy", username: "Użytkownik (puste = z wp-config)", password: "Hasło" }[k]}
+                placeholder={{ host: "Host", port: "Port", database: "Nazwa bazy", username: "Użytkownik (puste = z wp-config)", password: b.zPliku ? "Hasło (z pliku strony)" : "Hasło (puste = z wp-config)" }[k]}
                 type={k === "password" ? "password" : "text"}
                 autoComplete="off"
                 value={b[k]}
-                onChange={(e) => setBazy(bazy.map((x, j) => (j === i ? { ...x, [k]: e.target.value } : x)))}
+                onChange={(e) => setBazy(bazy.map((x, j) => (j === i ? { ...x, [k]: e.target.value, ...(k === "database" ? { zPliku: false } : {}) } : x)))}
                 className={pole}
               />
             ))}
             <button type="button" onClick={() => setBazy(bazy.filter((_, j) => j !== i))} className="text-xs text-rose-300 hover:underline">
               Usuń
             </button>
+            {b.zPliku && !b.password ? (
+              <p className="text-xs text-emerald-200/90 sm:col-span-6">
+                Hasła nie musisz wpisywać — odczytamy je z pliku konfiguracyjnego strony po skopiowaniu plików.
+              </p>
+            ) : null}
           </div>
         ))}
       </section>
