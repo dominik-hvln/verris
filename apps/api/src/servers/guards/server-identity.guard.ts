@@ -73,7 +73,11 @@ export class ServerIdentityGuard implements CanActivate {
     if (!matchesHash) {
       // Legacy plaintext row — accept once, then upgrade to the hash so the
       // plaintext disappears from the DB without any node-side rotation.
-      const matchesLegacyPlaintext = this.crypto.safeEqual(token, server.identityToken);
+      // Audyt 13.10 (do potwierdzenia #5): tylko gdy w bazie NIE ma już skrótu. Inaczej ten, kto zna sam
+      // zapisany skrót (zrzut bazy, kopia, widok tylko do odczytu), wysyłał go jako token i przechodził —
+      // a gałąź „upgrade” zapisywała sha256(skrótu), odcinając prawdziwy węzeł.
+      const zapisanoSkrot = /^[0-9a-f]{64}$/.test(server.identityToken);
+      const matchesLegacyPlaintext = !zapisanoSkrot && this.crypto.safeEqual(token, server.identityToken);
       if (!matchesLegacyPlaintext) {
         throw new UnauthorizedException('Invalid server identity');
       }
