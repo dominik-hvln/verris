@@ -1013,35 +1013,48 @@ run_wp_fixup() {
     return $?
   fi
 
-  command -v wp >/dev/null 2>&1 || {
+  local WP_BIN WP_PHP
+  WP_BIN=$(command -v wp 2>/dev/null) || {
     echo "wp-cli is not installed on this node" >>"$logfile"; return 2; }
+  WP_PHP=$(command -v php 2>/dev/null || echo /usr/local/bin/php)
+  [ -x "$WP_PHP" ] || { echo "brak PHP CLI na węźle (${WP_PHP})" >>"$logfile"; return 2; }
 
   local old_db
-  old_db=$(sudo -u "$user" -- wp config get DB_NAME --path="$dst" 2>>"$logfile" || echo "")
+  old_db=$(wp_jako "$user" config get DB_NAME --path="$dst" 2>>"$logfile" || echo "")
   echo "== WordPress detected, current DB_NAME=${old_db}" >>"$logfile"
 
-  # Mapowanie: source db name -> target {database,username,password}.
-  local mapping tdb tuser tpass
+  # Mapowanie: source db name -> target {database,username,password} — tylko baza, którą wskazuje
+  # wp-config.php. Wcześniej, gdy jej nie było wśród przenoszonych, brana była pierwsza lepsza i wpisywana
+  # do wp-config.php: strona po cichu łączyła się z cudzą bazą (e2e 14.10 — klient podał inną bazę niż WP).
+  local mapping tdb tuser tpass przenoszone
+  przenoszone=$(jq -r '[(.wp.databases // [])[] | select(.target != null) | .source] | join(", ")' <<<"$job")
   mapping=$(jq -c --arg old "$old_db" '
     (.wp.databases // [])
-    | (map(select(.source == $old)) + map(select(.source != $old)))
-    | map(select(.target != null))
+    | map(select(.target != null and (.source == $old or .target.database == $old)))  # == target: ponowiony krok
     | first // empty' <<<"$job")
+  if [ -z "$mapping" ] && [ -n "$przenoszone" ]; then
+    if [ -z "$old_db" ]; then
+      echo "nie udało się odczytać DB_NAME z wp-config.php — nie wiem, którą bazę wpisać" >>"$logfile"
+    else
+      echo "wp-config.php wskazuje bazę ${old_db}, a przeniesiona została inna (${przenoszone}) — dodaj do migracji bazę ${old_db} albo popraw wp-config.php na starym serwerze" >>"$logfile"
+    fi
+    return 3
+  fi
   if [ -n "$mapping" ]; then
     tdb=$(jq -r '.target.database' <<<"$mapping")
     tuser=$(jq -r '.target.username' <<<"$mapping")
     tpass=$(jq -r '.target.password' <<<"$mapping")
     echo "== wp config set DB_* -> ${tdb} / ${tuser}" >>"$logfile"
-    sudo -u "$user" -- wp config set DB_NAME "$tdb" --path="$dst" >>"$logfile" 2>&1
-    sudo -u "$user" -- wp config set DB_USER "$tuser" --path="$dst" >>"$logfile" 2>&1
-    sudo -u "$user" -- wp config set DB_PASSWORD "$tpass" --path="$dst" --quiet >>"$logfile" 2>&1
-    sudo -u "$user" -- wp config set DB_HOST "localhost" --path="$dst" >>"$logfile" 2>&1
+    wp_jako "$user" config set DB_NAME "$tdb" --path="$dst" >>"$logfile" 2>&1
+    wp_jako "$user" config set DB_USER "$tuser" --path="$dst" >>"$logfile" 2>&1
+    wp_jako "$user" config set DB_PASSWORD "$tpass" --path="$dst" --quiet >>"$logfile" 2>&1
+    wp_jako "$user" config set DB_HOST "localhost" --path="$dst" >>"$logfile" 2>&1
   else
     echo "== brak mapowania bazy docelowej (import poszedł po starych nazwach) — DB creds bez zmian" >>"$logfile"
   fi
 
   # Weryfikacja połączenia WP z bazą — twardy warunek sukcesu.
-  if ! sudo -u "$user" -- wp core is-installed --path="$dst" >>"$logfile" 2>&1; then
+  if ! wp_jako "$user" core is-installed --path="$dst" >>"$logfile" 2>&1; then
     echo "wp core is-installed failed — WordPress nie łączy się z bazą po imporcie" >>"$logfile"
     return 3
   fi
@@ -1054,14 +1067,23 @@ run_wp_fixup() {
     vg_require domain "$source_domain" wp.sourceDomain 2>>"$logfile" || return 2
     vg_require domain "$target_domain" wp.targetDomain 2>>"$logfile" || return 2
     echo "== wp search-replace //${source_domain} -> //${target_domain}" >>"$logfile"
-    sudo -u "$user" -- wp search-replace "//${source_domain}" "//${target_domain}" \
+    wp_jako "$user" search-replace "//${source_domain}" "//${target_domain}" \
       --all-tables --precise --skip-columns=guid --report-changed-only --path="$dst" >>"$logfile" 2>&1 || return 3
   fi
 
-  sudo -u "$user" -- wp rewrite flush --hard --path="$dst" >>"$logfile" 2>&1 || true
-  sudo -u "$user" -- wp cache flush --path="$dst" >>"$logfile" 2>&1 || true
+  wp_jako "$user" rewrite flush --hard --path="$dst" >>"$logfile" 2>&1 || true
+  wp_jako "$user" cache flush --path="$dst" >>"$logfile" 2>&1 || true
   # Bez `chown -R` jako root: pliki kopiował klient (są jego), a wp-cli działa jako klient.
   echo "1" # wp fixed
+}
+
+# wp-cli jako właściciel strony. `sudo` na CloudLinux/EL ma secure_path bez /usr/local/bin, więc
+# `sudo -u klient -- wp` kończyło się „sudo: wp: command not found” (e2e 14.10, migracja 1e4768ef),
+# a phar ma shebang `env php`, a PHP DirectAdmina też leży w /usr/local/bin. Oba po pełnej ścieżce
+# (WP_BIN, WP_PHP ustawia wp_fixup).
+wp_jako() {
+  local u="$1"; shift
+  sudo -u "$u" -- "$WP_PHP" "$WP_BIN" "$@"
 }
 
 # Strona innego CMS-a niż WordPress: po imporcie bazy wpisujemy do jej konfiguracji bazę docelową
