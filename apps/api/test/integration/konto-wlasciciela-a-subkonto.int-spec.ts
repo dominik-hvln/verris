@@ -124,9 +124,15 @@ describe('Przegląd 28.09 — subkonto nie działa na danych osobistych właści
     expect((await dwaFa(k.wlasciciel)).twoFactorSecret).toBeNull();
   });
 
-  it('zgody, DPA i preferencje marketingowe akceptuje tylko właściciel', async () => {
+  it('DPA i preferencje marketingowe akceptuje tylko właściciel; regulamin subkonto akceptuje za siebie', async () => {
     const k = await konta();
-    expect((await zadanie('POST', '/me/consent/accept-current', k.sub)).status).toBe(403);
+    // Audyt 13.10 (8769a208): subkonto akceptuje regulamin za SIEBIE (osoba z sesji), nigdy za właściciela —
+    // wcześniej 403 zostawiało je z modalem zgód, którego nie mogło zamknąć.
+    expect((await zadanie('POST', '/me/consent/accept-current', k.sub)).status).toBe(200);
+    expect(zgody.acceptCurrent).toHaveBeenCalledTimes(1);
+    expect(zgody.acceptCurrent).toHaveBeenCalledWith(k.sub, expect.anything());
+    expect(zgody.acceptCurrent).not.toHaveBeenCalledWith(k.wlasciciel, expect.anything());
+    zgody.acceptCurrent.mockClear();
     expect((await zadanie('POST', '/me/consent/accept-dpa', k.sub)).status).toBe(403);
     expect((await zadanie('PATCH', '/me/marketing-preferences', k.sub, { loginAlertsEmail: false })).status).toBe(403);
     expect(zgody.acceptCurrent).not.toHaveBeenCalled();
