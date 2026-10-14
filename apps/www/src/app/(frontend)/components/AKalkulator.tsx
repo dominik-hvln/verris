@@ -62,7 +62,7 @@ export function AKalkulator({ wariant }: { wariant: 'krotki' | 'pelny' }) {
   const baza = wariant === 'pelny' && rocznie ? 449 / 12 : 45;
 
   return (
-    <div className="a-kalk">
+    <div className={`a-kalk a-kalk-${wariant}`}>
       <div className="card kalk">
         {suwaki.map((s, i) => (
           <div className="kalk-row" key={s.id}>
