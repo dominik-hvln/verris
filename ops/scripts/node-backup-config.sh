@@ -78,9 +78,35 @@ KH="$RDIR/storagebox_known_hosts"
 ssh-keyscan -p "$VB_PORT" -t rsa,ecdsa,ed25519 "$VB_HOST" 2>/dev/null > "$KH.nowy" || true
 [ -s "$KH.nowy" ] || { rm -f "$KH.nowy"; log "Nie pobrano klucza hosta Storage Boxa ($VB_HOST:$VB_PORT) — sprawdź egress i host."; exit 1; }
 mv -f "$KH.nowy" "$KH"; chmod 600 "$KH"
-rclone config create verris-remote sftp host "$VB_HOST" port "$VB_PORT" user "$VB_USER" pass "$VB_PASS" known_hosts_file "$KH" --obscure >/dev/null
-rclone config create verris-crypt crypt remote "verris-remote:$VB_PATH" password "$VB_CRYPT_PASS" password2 "$VB_CRYPT_SALT" --obscure >/dev/null
-chmod 600 "$RDIR/rclone.conf" 2>/dev/null || true
+# Przegląd 15.10: `rclone config create … pass "$VB_PASS" …` dawał hasło subkonta i klucze crypt w argumentach procesu
+# (widoczne w /proc). Remote'y zapisujemy wprost w pliku konfiguracji rclone (format: https://rclone.org/docs/#config-file),
+# hasła zaciemnione przez `rclone obscure -` ze stdin (https://rclone.org/commands/rclone_obscure/), printf to builtin.
+RC="$RDIR/rclone.conf"
+export RCLONE_CONFIG="$RC"
+ob() { printf '%s' "$1" | rclone obscure -; }
+O_PASS="$(ob "$VB_PASS")"; O_C1="$(ob "$VB_CRYPT_PASS")"; O_C2="$(ob "$VB_CRYPT_SALT")"
+[ -n "$O_PASS" ] && [ -n "$O_C1" ] && [ -n "$O_C2" ] || { log "rclone obscure nie zwrócił wartości — przerywam bez zmian."; exit 1; }
+touch "$RC"
+# Pozostałe remote'y w pliku zostają; nasze dwie sekcje zastępujemy w całości.
+awk '/^\[/{pomin=($0=="[verris-remote]"||$0=="[verris-crypt]")} !pomin' "$RC" > "$RC.nowy"
+cat >> "$RC.nowy" <<RCONF
+[verris-remote]
+type = sftp
+host = $VB_HOST
+port = $VB_PORT
+user = $VB_USER
+pass = $O_PASS
+known_hosts_file = $KH
+
+[verris-crypt]
+type = crypt
+remote = verris-remote:$VB_PATH
+password = $O_C1
+password2 = $O_C2
+
+RCONF
+chmod 600 "$RC.nowy" && mv -f "$RC.nowy" "$RC"
+unset O_PASS O_C1 O_C2 VB_PASS VB_CRYPT_PASS VB_CRYPT_SALT
 
 # RETENTION_DAYS = domyślna retencja floty (konto bez własnego wyboru). Retencję wybraną przez klienta
 # (H-03) node-offsite-backup.sh pobiera co noc z /agent/tasks/backup-retention; obie przycina do 30–90 dni.
