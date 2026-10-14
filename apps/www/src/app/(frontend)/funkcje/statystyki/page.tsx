@@ -81,7 +81,7 @@ export default function Page() {
               śledzimy ludzi między stronami — więc nie dokładasz kolejnej pozycji do banera zgód.
             </p>
             <div className="hero2-cta">
-              <Button href={ZAMOW} cta="subhero" conv="checkout_intent" plan="hosting">
+              <Button href={ZAMOW} cta="subhero">
                 Zamów hosting
               </Button>
               <Button href="/funkcje" variant="ghost" cta="subhero-alt">
@@ -175,7 +175,6 @@ export default function Page() {
       <CTABand
         title="Poznaj swoich odwiedzających bez cookies"
         text="Statystyki są w cenie hostingu — 45 zł/mies albo 449 zł/rok brutto. Włączasz je w panelu."
-        primaryHref={ZAMOW}
         secondary={{ label: 'Wszystkie funkcje', href: '/funkcje' }}
       />
     </main>

@@ -119,7 +119,7 @@ export default function Page() {
         title="Wszystkie parametry. Bez gwiazdek i drobnego druku"
         lead="Jeden pakiet, jedna specyfikacja. Jeśli czegoś tu nie ma, napisz — odpowiemy wprost, czy to mamy."
         crumbs={[{ label: 'Specyfikacja' }]}
-        primary={{ label: 'Zamów hosting', href: ZAMOW, conv: 'checkout_intent', plan: 'hosting' }}
+        primary={{ label: 'Zamów hosting', href: ZAMOW }}
         secondary={{ label: 'Porównaj z cennikiem', href: '/cennik' }}
       />
       {sekcje.map((s, i) => (
@@ -150,7 +150,6 @@ export default function Page() {
       <CTABand
         title="Parametry się zgadzają? Zacznij od przeprowadzki"
         text="45 zł/mies albo 449 zł/rok brutto, ta sama cena przy odnowieniu. Przeniesienie strony robimy za Ciebie."
-        primaryHref={ZAMOW}
         secondary={{ label: 'Wszystkie funkcje', href: '/funkcje' }}
       />
     </main>

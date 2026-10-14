@@ -97,7 +97,7 @@ export default function Page() {
               panelu — bez zgłoszenia i bez czekania na kogokolwiek.
             </p>
             <div className="hero2-cta">
-              <Button href={ZAMOW} cta="subhero" conv="checkout_intent" plan="hosting">
+              <Button href={ZAMOW} cta="subhero">
                 Zamów hosting
               </Button>
               <Button href="/specyfikacja" variant="ghost" cta="subhero-alt">
@@ -190,7 +190,6 @@ export default function Page() {
       <CTABand
         title="Śpij spokojnie, nawet po aktualizacji"
         text="Kopie z 30 dni i przywracanie z panelu są w cenie hostingu — 45 zł/mies albo 449 zł/rok brutto."
-        primaryHref={ZAMOW}
         secondary={{ label: 'Wszystkie funkcje', href: '/funkcje' }}
       />
     </main>

@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Accordion, Card, CTABand, JsonLd, SectionHead, SubHero } from '../components/ui';
 import { faqSchema, SITE } from '@/lib/schema';
-import { ZAMOW } from '@/lib/site';
 import { SPEC_PO_WERYFIKACJI } from '@/lib/oferta';
 
 /*
@@ -243,7 +242,6 @@ export default function Page() {
       <CTABand
         title="Wszystkie te funkcje dostajesz w jednym pakiecie"
         text="45 zł miesięcznie albo 449 zł za rok brutto. Bez wersji Pro, Max i Ultra."
-        primaryHref={ZAMOW}
         secondary={{ label: 'Zobacz cennik', href: '/cennik' }}
       />
     </main>
