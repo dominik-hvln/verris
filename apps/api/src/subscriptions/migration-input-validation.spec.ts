@@ -281,8 +281,9 @@ describe('Z-09 — guard węzła odrzuca hosty prywatne i lokalne', () => {
     const z = readFileSync(WORKER, 'utf8');
     for (const fragment of [
       '"${suser}@$(w_nawiasach "$hip"):${spath%/}/"',
-      '"${proto}://$(w_nawiasach "$hip"):${port}"',
-      '"${proto}://$(w_nawiasach "$fip"):${port}"',
+      // e2e 14.10: adres lftp z lftp_url (FTPS explicit = ftp://) — nadal z przypiętym IP.
+      '"$(lftp_url "$proto" "$(w_nawiasach "$hip")" "$port")"',
+      '"$(lftp_url "$proto" "$(w_nawiasach "$fip")" "$port")"',
       '-h "$ship" -P "$sport" -u "$suser" "$sdb"',
       '"${sshuser}@${sship}"',
       '--host1 "$ship"',

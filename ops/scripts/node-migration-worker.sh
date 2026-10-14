@@ -279,6 +279,20 @@ mysql_sandbox_opt() {
   return 0
 }
 
+# Adres źródła dla lftp. „FTPS” w Verris to FTP z AUTH TLS na zwykłym porcie (explicit) — tak sprawdza
+# go preflight API i tak podaje go klient (port 21). Schemat `ftps://` w lftp oznacza FTPS NIEJAWNY
+# (TLS od pierwszego bajtu, zwykle port 990): na porcie 21 serwer wita się tekstem „220 …”, a lftp
+# kończy „gnutls_handshake: An unexpected TLS packet was received” (e2e 14.10, migracja 1e4768ef).
+# Explicit = `ftp://` + `set ftp:ssl-force true` (ustawiane przy wywołaniu).
+# https://lftp.yar.ru/lftp-man.html (ftp:ssl-force, ftps — „FTP over SSL”, port 990)
+lftp_url() {
+  local proto="$1" host="$2" port="$3"
+  case "$proto" in
+    sftp) printf 'sftp://%s:%s' "$host" "$port" ;;
+    *) printf 'ftp://%s:%s' "$host" "$port" ;;
+  esac
+}
+
 run_files() {
   # rsync-over-SSH (szybki, wznawialny, delta) z fallbackiem na lftp mirror
   # (działa też na kontach sftp-only/ftp/ftps). Delta = drugi przebieg tych
@@ -357,7 +371,7 @@ run_files() {
       -e "set sftp:auto-confirm yes; set net:max-retries 3; set net:timeout 30; \
           set ssl:verify-certificate no; ${lftp_bw} ${ssl_setting} \
           mirror --continue --parallel=4 --verbose '${spath}' '${stage}'; bye" \
-      "${proto}://$(w_nawiasach "$hip"):${port}" >>"$logfile" 2>&1 </dev/null; then
+      "$(lftp_url "$proto" "$(w_nawiasach "$hip")" "$port")" >>"$logfile" 2>&1 </dev/null; then
       transferred=true
     fi
   fi
@@ -736,7 +750,7 @@ PHP
   lftp_zrodlo() {
     jako_mig_env LFTP_PASSWORD "$fpf" lftp --env-password -u "$fuser" \
       -e "set sftp:auto-confirm yes; set net:max-retries 2; set net:timeout 30; set ssl:verify-certificate no; ${ssl_setting} $1; bye" \
-      "${proto}://$(w_nawiasach "$fip"):${port}" </dev/null
+      "$(lftp_url "$proto" "$(w_nawiasach "$fip")" "$port")" </dev/null
   }
   echo "== eksport bazy przez PHP: wgrywam jednorazowy skrypt do katalogu strony na źródle" >>"$logfile"
   lftp_zrodlo "put '$sek/$nazwa' -o '${cel}'" >>"$logfile" 2>&1 || { echo "== nie udało się wgrać skryptu eksportu" >>"$logfile"; return 1; }
