@@ -15,6 +15,7 @@ import { Checkbox } from '@/components/panel/checkbox';
 import { TrescUpowaznienia } from './upowaznienie';
 import { Stepper } from '@/components/panel/stepper';
 import { plForm } from '@/lib/pl';
+import { fetchHostingDomainsAction } from '../services/[id]/hosting-domains-action';
 
 interface Props {
   serviceId: string;
@@ -97,6 +98,20 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
   const preset = PROVIDER_PRESETS.find((p) => p.id === presetId) ?? PROVIDER_PRESETS[1];
 
   const [targetDomain, setTargetDomain] = useState('');
+  // 14.10 — domena docelowa z listy domen konta (API przyjmuje tylko domenę tej usługi); bez listy — pole tekstowe.
+  const [domenyKonta, setDomenyKonta] = useState<{ glowna: string | null; lista: string[] } | null>(null);
+  useEffect(() => {
+    let aktywny = true;
+    void fetchHostingDomainsAction(serviceId)
+      .then((r) => {
+        if (!aktywny || !r.ok || !r.dane.domains.length) return;
+        setDomenyKonta({ glowna: r.dane.primaryDomain?.toLowerCase() ?? null, lista: r.dane.domains.map((d) => d.name.toLowerCase()) });
+      })
+      .catch(() => undefined);
+    return () => {
+      aktywny = false;
+    };
+  }, [serviceId]);
   const [sourceDomain, setSourceDomain] = useState('');
   const [notes, setNotes] = useState('');
   // D11 — data końca obecnego hostingu (pole daty, RRRR-MM-DD); obsługa planuje przełączenie DNS przed nią.
@@ -351,6 +366,7 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
           }}
           targetDomain={targetDomain}
           setTargetDomain={setTargetDomain}
+          domenyKonta={domenyKonta}
           sourceDomain={sourceDomain}
           setSourceDomain={setSourceDomain}
           zakres={zakres}
@@ -599,6 +615,7 @@ function StepSources(props: {
   setPresetId: (id: string) => void;
   targetDomain: string;
   setTargetDomain: (v: string) => void;
+  domenyKonta: { glowna: string | null; lista: string[] } | null;
   sourceDomain: string;
   setSourceDomain: (v: string) => void;
   ftpProtocol: 'ftp' | 'ftps' | 'sftp';
@@ -672,7 +689,19 @@ function StepSources(props: {
       <div className="grid gap-3 md:grid-cols-2">
         <label className="space-y-1.5 block">
           <span className={labelText}>Domena docelowa (u nas)</span>
-          <input value={props.targetDomain} onChange={(e) => props.setTargetDomain(e.target.value)} className={input} placeholder="twojadomena.pl" />
+          {props.domenyKonta ? (
+            <Select
+              value={props.targetDomain}
+              onChange={props.setTargetDomain}
+              aria-label="Domena docelowa"
+              options={[
+                { value: '', label: `${props.domenyKonta.glowna ?? 'domena konta'} (domena konta)` },
+                ...props.domenyKonta.lista.filter((d) => d !== props.domenyKonta?.glowna).map((d) => ({ value: d, label: d })),
+              ]}
+            />
+          ) : (
+            <input value={props.targetDomain} onChange={(e) => props.setTargetDomain(e.target.value)} className={input} placeholder="twojadomena.pl" />
+          )}
         </label>
         {props.zakres === 'strona' || props.zakres === 'wszystko' ? (
           <label className="space-y-1.5 block">
