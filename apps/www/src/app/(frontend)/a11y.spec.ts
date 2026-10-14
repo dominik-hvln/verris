@@ -44,8 +44,11 @@ describe('verris.pl — dostępność', () => {
     for (const r of z_animacja) expect(CSS.slice(0, CSS.indexOf(r) + r.length)).toMatch(/@media\(prefers-reduced-motion:no-preference\)\{[^@]*$/);
   });
 
-  it('ogłoszenie i baner cookies są w landmarkach (region)', () => {
-    expect(readFileSync(join(DIR, 'layout.tsx'), 'utf8')).toMatch(/className="announce" role="region"/);
+  it('pasek pomocniczy jest w nagłówku (landmark banner), a baner cookies w landmarku (region)', () => {
+    // Makieta 14.10: pasek ogłoszenia nad nagłówkiem zastąpiony paskiem pomocniczym wewnątrz <header>.
+    const h = readFileSync(join(DIR, 'components/Header.tsx'), 'utf8');
+    expect(h).toMatch(/<header className="site-head">\s*<div className="topbar">/);
+    expect(h).toMatch(/<nav aria-label="Pomocnicze">/);
     expect(readFileSync(join(DIR, 'components/CookieConsent.tsx'), 'utf8')).toMatch(/className="cc-bar" role="region"/);
   });
 });

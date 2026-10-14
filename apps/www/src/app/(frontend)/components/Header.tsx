@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { Logo } from './ui';
-import { headerLinks, PANEL } from '@/lib/site';
+import { headerLinks, PANEL, topLinks, ZAMOW } from '@/lib/site';
 
 /**
- * Nagłówek całego verris.pl: logo, nawigacja, „Panel klienta”, „Zamów hosting”.
+ * Nagłówek całego verris.pl (makieta 14.10, plansza Naglowek): pasek pomocniczy (pomoc, status, kontakt, agencje),
+ * logo, nawigacja, „Zaloguj się”, „Zamów hosting” (/zamow — trzy kroki przed panelem).
  * Poniżej 1024 px menu chowa się pod przyciskiem (aria-expanded/aria-controls, Esc zamyka i oddaje fokus).
  */
 export function Header() {
@@ -40,21 +41,28 @@ export function Header() {
 
   return (
     <header className="site-head">
+      <div className="topbar">
+        <div className="wrap topbar-row">
+          <p>Polski hosting dla firm i sklepów · ceny brutto · przeniesienie strony w cenie</p>
+          <nav aria-label="Pomocnicze">
+            {topLinks.map((l) => (
+              <a key={l.href} href={l.href}>
+                {l.label}
+              </a>
+            ))}
+          </nav>
+        </div>
+      </div>
       <div className="wrap nav">
         <Logo />
         <nav className="nav-links" aria-label="Główne">
           {links}
         </nav>
         <a className="nav-login" href={PANEL}>
-          Panel klienta
+          Zaloguj się
         </a>
-        <a
-          className="btn btn-primary nav-cta"
-          href={PANEL}
-          data-event="cta_click"
-          data-cta="nav"
-          data-conv="checkout_intent"
-        >
+        {/* checkout_intent liczy przycisk na /zamow (przejście do panelu), nie wejście na tę stronę. */}
+        <a className="btn btn-primary nav-cta" href={ZAMOW} data-event="cta_click" data-cta="nav">
           Zamów<span className="nav-cta-long">hosting</span>
         </a>
         <button
@@ -72,8 +80,13 @@ export function Header() {
 
       <nav id="menu-mobilne" className="mobile-menu" aria-label="Menu" hidden={!open}>
         {links}
+        {topLinks.map((l) => (
+          <a key={`m-${l.href}`} href={l.href}>
+            {l.label}
+          </a>
+        ))}
         <a className="btn btn-ghost" href={PANEL}>
-          Panel klienta
+          Zaloguj się
         </a>
       </nav>
     </header>

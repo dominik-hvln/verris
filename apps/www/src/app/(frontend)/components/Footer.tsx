@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { Logo } from './ui';
 import { CookiePreferencesButton } from './CookieConsent';
-import { footerCols } from '@/lib/site';
+import { footerCols, legalLinks, ZAMOW } from '@/lib/site';
 import { getFooterGlobal } from '@/lib/globals';
 
 const DEFAULT_LEGAL =
-  '© 2026 Verris · Operator: HVLN Dominik Kowalski, Zielona Góra · NIP 9292069367';
+  '© 2026 Verris · Operator: HVLN Dominik Kowalski, Zielona Góra · NIP 9292069367 · Wszystkie ceny brutto (z VAT 23%)';
 const DEFAULT_PAY =
   'Płatności: karta · BLIK · Przelewy24 · Paynow · SLA 99,5% z rekompensatami na wniosek wg regulaminu';
 
@@ -37,7 +37,10 @@ export async function Footer() {
         <div className="foot-grid">
           <div className="foot-brand">
             <Logo />
-            <p>Hosting z autoskalowaniem. Polska firma, dane w EOG.</p>
+            <p>Polski hosting dla firm, sklepów i WordPressa. Dane w UE. Skaluj świadomie.</p>
+            <a className="btn btn-primary btn-sm foot-cta" href={ZAMOW} data-event="cta_click" data-cta="footer">
+              Zamów hosting od 45 zł/mies.
+            </a>
           </div>
           {cols.map((col) => (
             <div className="foot-col" key={col.heading}>
@@ -51,7 +54,15 @@ export async function Footer() {
           ))}
         </div>
         <div className="foot-bot">
-          <span>{legal} · <Link href="/zglos-naduzycie">Zgłoś nadużycie</Link></span>
+          <span>
+            {legal} ·{' '}
+            {legalLinks.map((l) => (
+              <span key={l.label}>
+                <a href={l.href}>{l.label}</a> ·{' '}
+              </span>
+            ))}
+            <Link href="/zglos-naduzycie">Zgłoś nadużycie</Link>
+          </span>
           <span className="pay">
             {pay} · <CookiePreferencesButton />
           </span>

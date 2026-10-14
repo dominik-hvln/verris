@@ -34,9 +34,15 @@ p a:not(.btn),.form-note a,.foot-bot a{text-decoration:underline;text-underline-
 .btn-block{display:flex;width:100%}
 @media(min-width:768px){.btn{font-size:17px;min-height:52px;padding:12px 26px}.btn-sm{font-size:14px;min-height:44px;padding:10px 18px}}
 
-/* Announcement bar */
-.announce{background:linear-gradient(90deg,rgba(15,122,82,.35),rgba(52,229,160,.12));border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12.5px;letter-spacing:.03em;color:var(--paper);text-align:center;padding:9px 16px}
-.announce strong{color:var(--mint);font-weight:700}
+
+/* Pasek pomocniczy nad nawigacją (makieta 14.10): od 768 px; na telefonie te linki są w menu */
+.topbar{display:none;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;color:var(--body)}
+.topbar-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;min-height:32px}
+.topbar nav{display:flex;flex-wrap:wrap;gap:16px}
+.topbar a{color:var(--body);display:inline-flex;align-items:center;min-height:32px}
+.topbar a:hover{color:var(--mint)}
+@media(min-width:768px){.topbar{display:block}}
+.foot-cta{margin-top:14px}
 
 /* Header (Header.tsx): telefon — logo, „Zamów”, przycisk menu; od 1024 px pełna nawigacja */
 .site-head{position:sticky;top:0;z-index:60;background:rgba(9,20,16,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}

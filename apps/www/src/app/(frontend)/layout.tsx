@@ -67,10 +67,6 @@ export default async function FrontendLayout({ children }: { children: ReactNode
             />
           </noscript>
         ) : null}
-        <div className="announce" role="region" aria-label="Ogłoszenie">
-          Nowość · <strong>Hosting z autoskalowaniem</strong> — płacisz tyle, ile widzisz. Migracja
-          strony i poczty za <strong>0 zł</strong>.
-        </div>
         <Header />
         {children}
         <Footer />
