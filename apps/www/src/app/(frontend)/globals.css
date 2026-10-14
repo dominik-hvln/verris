@@ -961,3 +961,18 @@ body:has(.stickybuy) .cc-trigger{bottom:84px}
 @media(min-width:900px){.a-params-4{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .a-screen-hero{background:var(--card);border-color:var(--line2);padding:20px}
 .a-screen .a-screen-title{background:none;padding:0 0 4px;font-weight:600}
+
+/* === Decyzje właściciela 14.10: nagłówki mniejsze (H1 główna 48 px, podstrony 44 px, H2 32 px),
+   wzór marki delikatny i mały (220×90 px, krycie 8–10%). Nadpisuje wcześniejsze rozmiary. === */
+.bg-pat,.hero2 .bg-pat,.pricing2 .bg-pat{background-size:220px 90px;opacity:.09}
+.bg-pat-full{background-size:220px 90px;opacity:.10}
+@media(min-width:768px){
+  .bg-pat,.hero2 .bg-pat,.pricing2 .bg-pat,.bg-pat-full{background-size:220px 90px}
+  .hero2 h1{font-size:44px}
+  .hero2-sub h1{font-size:40px}
+  .shead h2,.ctaband h2{font-size:32px}
+}
+@media(min-width:1024px){.hero2 h1{font-size:48px}.hero2-sub h1{font-size:44px}.hero2 .bg-pat{background-size:220px 90px}}
+@media(min-width:1200px){.hero2 h1{font-size:48px}.hero2-sub h1{font-size:44px}}
+h2{font-size:clamp(26px,3vw,32px)}
+.subhero h1{font-size:clamp(30px,4vw,44px)}
