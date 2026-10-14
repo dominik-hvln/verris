@@ -102,3 +102,23 @@ describe('grupa B — poradniki /przenies-strone/[zrodlo]', () => {
     await expect(mod.default({ params: Promise.resolve({ zrodlo: 'z-home-pl' }) })).rejects.toThrow('NEXT_NOT_FOUND');
   });
 });
+
+describe('grupa B — /jak-wybrac-hosting', () => {
+  it('metadane, jedno h1, Article + ItemList(10) + FAQPage + BreadcrumbList, data aktualizacji', async () => {
+    const mod = await import('./jak-wybrac-hosting/page');
+    const html = await render(mod.default());
+    sprawdzStrone({
+      html,
+      meta: mod.metadata,
+      fraza: /^Jak wybrać hosting/,
+      typy: ['Article', 'ItemList', 'FAQPage', 'BreadcrumbList'],
+      canonical: '/jak-wybrac-hosting',
+    });
+    const lista = JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)![1])['@graph'].find(
+      (w: { '@type': string }) => w['@type'] === 'ItemList',
+    );
+    expect(lista.itemListElement).toHaveLength(10);
+    expect(html).toMatch(/<time dateTime="2026-\d\d-\d\d"/i);
+    expect(html).toContain('id="lista"');
+  });
+});
