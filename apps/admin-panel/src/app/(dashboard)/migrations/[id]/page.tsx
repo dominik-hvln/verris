@@ -46,7 +46,7 @@ export default async function MigrationDetailPage({
       ) : (
         <>
           {obsluga ? (
-            <ObslugaMigracjiPanel initial={obsluga} />
+            <ObslugaMigracjiPanel initial={obsluga} subscriptionId={detail.subscriptionId} />
           ) : (
             <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
               Nie udało się wczytać obsługi migracji (etap, terminy, checklista). Odśwież stronę.

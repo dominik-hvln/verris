@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { PodgladPrzedDns } from '@/components/hosting/PodgladPrzedDns';
 import { Button } from '@verris/ui';
 import {
   cancelMigrationBundleAction,
@@ -197,6 +198,7 @@ export function MigrationProgress({ serviceId, initial }: Props) {
 
       {summary.status === 'COMPLETED' && cutover ? (
         <CutoverPanel
+          serviceId={serviceId}
           poczta={jobs.length > 0 && !ma('FILES') && !ma('MYSQL')}
           plan={cutover}
           busy={busy}
@@ -277,12 +279,14 @@ function IntegrityLine({ integrity }: { integrity: MigrationIntegrity }) {
 }
 
 function CutoverPanel({
+  serviceId,
   poczta,
   plan,
   busy,
   onDelta,
   onVerify,
 }: {
+  serviceId: string;
   /** Sama poczta — tytuł i opis dotyczą rekordów poczty, nie strony (t1 03.10). */
   poczta: boolean;
   plan: CutoverPlan;
@@ -294,6 +298,8 @@ function CutoverPanel({
     <div className="space-y-3 rounded-xl border border-cyan-500/20 bg-cyan-500/[0.05] p-3">
       <p className="text-sm font-semibold text-white">{poczta ? 'Ostatni krok: nowa poczta na ten serwer' : 'Ostatni krok: przełączenie DNS'}</p>
       <p className="text-xs text-neutral-300">{plan.message}</p>
+      {/* 15.10 — przed przełączeniem domeny klient sprawdza przeniesioną stronę pod tymczasowym adresem. */}
+      {!poczta && plan.status !== 'done' ? <PodgladPrzedDns serviceId={serviceId} /> : null}
 
       {plan.deltaSyncRecommended ? (
         <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-xs text-amber-100/90">

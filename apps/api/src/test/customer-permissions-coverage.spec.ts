@@ -113,6 +113,7 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   'GET /partners/me/commissions',
   'GET /partners/me/overview',
   'GET /partners/me/payouts',
+  'GET /podglad/tls-check',
   'GET /reseller/me/clients',
   'GET /reseller/me/overview',
   'GET /users/iam',

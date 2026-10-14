@@ -171,6 +171,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
       APP_KMS_KEY: ${APP_KMS_KEY:?APP_KMS_KEY is required}
+      # 15.10 — podgląd strony przed zmianą DNS; puste = funkcja wyłączona (apps/api/src/podglad).
+      PODGLAD_DOMENA: ${PODGLAD_DOMENA:-}
       # Optional: leave empty and api-entrypoint.sh builds a URL from POSTGRES_* (safe encoding).
       DATABASE_URL: ${DATABASE_URL:-}
       POSTGRES_USER: ${POSTGRES_USER:-verris}
@@ -680,6 +682,9 @@ services:
       CADDY_KB_DOMAIN: ${CADDY_KB_DOMAIN:-pomoc.verris.local}
       CADDY_WWW_DOMAIN: ${CADDY_WWW_DOMAIN:-verris.local}
       CADDY_WWW_REDIRECT_DOMAIN: ${CADDY_WWW_REDIRECT_DOMAIN:-www.verris.local}
+      # 15.10 — podgląd strony przed zmianą DNS (*.<domena>, on-demand TLS). OSOBNA domena, nie verris.pl.
+      # Ta sama wartość co PODGLAD_DOMENA w API.
+      CADDY_PODGLAD_DOMAIN: ${CADDY_PODGLAD_DOMAIN:-podglad.verris.local}
       # ETAP 8 (decyzja 09.10): podsieć VPN, np. "10.88.0.0/24". FAIL-CLOSED —
       # puste/niepoprawne = staff/admin odpowiadają 403 wszystkim (ops/caddy/Caddyfile → vpn_only).
       # Kolejność włączania (najpierw VPN, potem ta zmienna, potem deploy): DEPLOY.md.

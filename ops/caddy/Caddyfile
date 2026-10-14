@@ -2,6 +2,12 @@
     # Replace with your administrator email so Let's Encrypt can email
     # certificate-related warnings.
     email admin@verris.pl
+    # 15.10 — podgląd strony przed zmianą DNS: certyfikat dla <token>.<domena podglądu> wydajemy dopiero, gdy API
+    # potwierdzi ważny token (https://caddyserver.com/docs/automatic-https#on-demand-tls). Dotyczy wyłącznie bloków
+    # z `tls { on_demand }`.
+    on_demand_tls {
+        ask http://api:3000/podglad/tls-check
+    }
 }
 
 # -----------------------------------------------------------------------------
@@ -273,6 +279,32 @@ Policy: https://panel.verris.pl/legal/security
         lb_try_interval 500ms
     }
     header Cache-Control "public, max-age=300"
+}
+
+# -----------------------------------------------------------------------------
+# Podgląd strony klienta przed zmianą DNS (15.10, apps/api/src/podglad). <token>.<domena podglądu> → API, które
+# pobiera stronę z węzła konta (Host = domena klienta) i podmienia adresy na adres podglądu. White label: klient
+# nie widzi adresu węzła. DOMENA PODGLĄDU MUSI BYĆ OSOBNĄ DOMENĄ (nie poddomeną verris.pl) — treść klienta z jego
+# skryptami działa pod nią, więc nie może dzielić ciasteczek z panelami. Ta sama wartość w API: PODGLAD_DOMENA.
+# DNS: rekord wieloznaczny *.<domena podglądu> → adres control-plane. Bez block_scanners — to strony klientów
+# (WordPress, PHP), nie control-plane.
+# -----------------------------------------------------------------------------
+*.{$CADDY_PODGLAD_DOMAIN:podglad.verris.local} {
+    tls {
+        on_demand
+    }
+    header {
+        -Server
+        -X-Powered-By
+    }
+    rewrite * /podglad-proxy{uri}
+    reverse_proxy api:3000 {
+        health_uri /readyz
+        health_interval 3s
+        health_timeout 5s
+        lb_try_duration 30s
+        lb_try_interval 500ms
+    }
 }
 
 # -----------------------------------------------------------------------------

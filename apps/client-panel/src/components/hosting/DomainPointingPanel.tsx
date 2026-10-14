@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { HostingDnsPointingDto } from '@verris/contracts';
 import { Button } from '@verris/ui';
+import { PodgladPrzedDns } from '@/components/hosting/PodgladPrzedDns';
 import {
   fetchDomainPointingAction,
   verifyDomainPointingAction,
@@ -147,6 +148,11 @@ export default function DomainPointingPanel({
           <p className="text-[10px] text-muted-foreground mt-1">
             Ostatnia weryfikacja: {new Date(data.checkedAt).toLocaleString('pl-PL')}
           </p>
+          {data.status !== 'ok' ? (
+            <div className="mt-3">
+              <PodgladPrzedDns serviceId={serviceId} />
+            </div>
+          ) : null}
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
           <Button

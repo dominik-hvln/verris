@@ -52,3 +52,15 @@ export async function podgladRaportuAction(migrationId: string): Promise<Wynik<P
     return { ok: false, error: komunikat(err) };
   }
 }
+
+/**
+ * 15.10 — tymczasowy adres podglądu strony klienta przed zmianą DNS (GET /admin/subscriptions/:id/podglad,
+ * CUSTOMERS_VIEW). Do testu „Wynik testu strony na tymczasowym adresie”.
+ */
+export async function adresPodgladuAction(subscriptionId: string): Promise<Wynik<{ url: string; wygasa: string }>> {
+  try {
+    return { ok: true, wynik: await adminApi<{ url: string; wygasa: string }>(`/admin/subscriptions/${encodeURIComponent(subscriptionId)}/podglad`) };
+  } catch (e) {
+    return { ok: false, error: komunikat(e) };
+  }
+}

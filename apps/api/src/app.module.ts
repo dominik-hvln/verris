@@ -59,6 +59,7 @@ import { AbuseModule } from './abuse/abuse.module.js';
 import { FontsProxyModule } from './fonts-proxy/fonts-proxy.module.js';
 import { BrandModule } from './brand/brand.module.js';
 import { KbModule } from './kb/kb.module.js';
+import { PodgladModule } from './podglad/podglad.module.js';
 import { ControlPlaneMailModule } from './control-plane-mail/control-plane-mail.module.js';
 import { VpnModule } from './vpn/vpn.module.js';
 import { KsefModule } from './ksef/ksef.module.js';
@@ -130,6 +131,7 @@ import { ZadaniaWTleModule } from './zadania-w-tle/zadania-w-tle.module.js';
     FontsProxyModule,
     BrandModule,
     KbModule,
+    PodgladModule,
     // PB-48 — wnioski o operację wymagającą wyższego uprawnienia.
     WnioskiModule,
     // F2.8 — rejestr przebiegów zadań w tle (@Cron) i widok System → Zadania w tle.

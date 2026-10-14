@@ -6,7 +6,7 @@ import { PoleDaty } from "@/components/pole-daty";
 import { Pomoc } from "@/components/pomoc";
 import { potwierdz } from "@/components/potwierdz";
 import { Select } from "@/components/select";
-import { dzialanieTablicyAction, podgladRaportuAction, type DzialanieTablicy } from "../tablica-actions";
+import { adresPodgladuAction, dzialanieTablicyAction, podgladRaportuAction, type DzialanieTablicy } from "../tablica-actions";
 import { ETAPY, nazwaEtapu, opisZdarzenia, type ObslugaMigracji, type PodgladRaportu, type PoleChecklisty } from "../tablica-typy";
 
 const POLE = "rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-xs text-white";
@@ -40,7 +40,7 @@ const POLA_TEKSTOWE: { pole: Exclude<PoleChecklisty, "ttl300">; nazwa: string; e
  * D11 — obsługa migracji na karcie zlecenia: etap z warunkami przejścia, terminy, Przerywacz, prowadzący,
  * zgłoszenie, „Sprawdź DNS”, checklisty, raport do klienta jednym kliknięciem i log kontaktów na osi czasu.
  */
-export function ObslugaMigracjiPanel({ initial }: { initial: ObslugaMigracji }) {
+export function ObslugaMigracjiPanel({ initial, subscriptionId }: { initial: ObslugaMigracji; subscriptionId?: string }) {
   const [o, setO] = useState(initial);
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -73,7 +73,7 @@ export function ObslugaMigracjiPanel({ initial }: { initial: ObslugaMigracji }) 
 
       <Etapy o={o} pending={pending} wykonaj={wykonaj} />
       <Terminy o={o} pending={pending} wykonaj={wykonaj} />
-      <Checklista o={o} pending={pending} wykonaj={wykonaj} />
+      <Checklista o={o} pending={pending} wykonaj={wykonaj} subscriptionId={subscriptionId} />
       <Raport o={o} pending={pending} wykonaj={wykonaj} />
       <Kontakty o={o} pending={pending} wykonaj={wykonaj} />
 
@@ -268,7 +268,7 @@ function Terminy({ o, pending, wykonaj }: Props) {
   );
 }
 
-function Checklista({ o, pending, wykonaj }: Props) {
+function Checklista({ o, pending, wykonaj, subscriptionId }: Props & { subscriptionId?: string }) {
   const [teksty, setTeksty] = useState<Record<string, string>>(
     Object.fromEntries(POLA_TEKSTOWE.map((p) => [p.pole, o.checklista[p.pole]?.tekst ?? ""])),
   );
@@ -305,6 +305,7 @@ function Checklista({ o, pending, wykonaj }: Props) {
                 rows={p.pole === "podsumowanie" || p.pole === "optymalizacja" ? 3 : 1}
                 className={`${POLE} min-w-[16rem] flex-1`}
               />
+              {p.pole === "testTymczasowy" && subscriptionId ? <PodgladPrzycisk subscriptionId={subscriptionId} /> : null}
               <button
                 type="button"
                 disabled={pending || (teksty[p.pole] ?? "").trim() === (w?.tekst ?? "")}
@@ -441,3 +442,29 @@ function Kontakty({ o, pending, wykonaj }: Props) {
   );
 }
 
+
+/** 15.10 — „Otwórz podgląd”: adres <token>.<domena podglądu> (bez adresu węzła), ważny 7 dni. */
+function PodgladPrzycisk({ subscriptionId }: { subscriptionId: string }) {
+  const [pending, start] = useTransition();
+  const [blad, setBlad] = useState<string | null>(null);
+  return (
+    <span className="flex flex-col gap-1">
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() =>
+          start(async () => {
+            setBlad(null);
+            const r = await adresPodgladuAction(subscriptionId);
+            if (!r.ok) return setBlad(r.error);
+            window.open(r.wynik.url, "_blank", "noopener,noreferrer");
+          })
+        }
+        className={`${PRZYCISK} border-white/15 text-white hover:bg-white/5`}
+      >
+        Otwórz podgląd
+      </button>
+      {blad ? <span className="text-[11px] text-rose-300">{blad}</span> : null}
+    </span>
+  );
+}
