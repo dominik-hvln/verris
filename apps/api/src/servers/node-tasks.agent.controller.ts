@@ -59,6 +59,7 @@ import { BackupOffsiteService } from './backup-offsite.service.js';
 import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { stosJakoEnv } from './stos-wezla.js';
 import { loadStraznikScript, StraznikWezlaService, ZdarzenieStraznikaDto } from './straznik-wezla.service.js';
+import { wczytajSkryptMigracji } from './skrypty-migracji-wezla.js';
 import { StosWezlaService } from './stos-wezla.service.js';
 import { linijkaAuthorizedKeys, PodpisOdpowiedziInterceptor } from './podpis-skryptow.js';
 import { renderNodeTasksAgentInstallScript } from './node-tasks-agent.install.js';
@@ -122,6 +123,19 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   straznikScript() {
     return loadStraznikScript();
+  }
+
+  /** 14.10 — worker migracji i biblioteka walidacji: instalator agenta odświeża je na węźle (verris-fetch). */
+  @Get('migracja/worker')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  migracjaWorker() {
+    return wczytajSkryptMigracji('worker');
+  }
+
+  @Get('migracja/guard')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  migracjaGuard() {
+    return wczytajSkryptMigracji('guard');
   }
 
   @Get('straznik/config')

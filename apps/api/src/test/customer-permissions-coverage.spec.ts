@@ -84,6 +84,8 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   'GET /agent/tasks/pgsql/script',
   'GET /agent/tasks/image-optimize/script',
   'GET /agent/tasks/memcached/script',
+  'GET /agent/tasks/migracja/guard',
+  'GET /agent/tasks/migracja/worker',
   'GET /agent/tasks/site-stats/script',
   'GET /agent/tasks/deploy-ssh-pubkey',
   'GET /agent/tasks/hosting-profile/default-page/bundle',

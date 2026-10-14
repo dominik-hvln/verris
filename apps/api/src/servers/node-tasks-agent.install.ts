@@ -881,6 +881,35 @@ else
 fi`;
 }
 
+/**
+ * 14.10 — worker migracji odświeżany z agentem (wcześniej tylko przy wdrażaniu węzła: node-onboard-live.sh → --install).
+ * Pobiera oba pliki podpisane (verris-fetch), sprawdza składnię i podmienia atomowo, najpierw bibliotekę walidacji
+ * (nowy worker może wymagać jej nowych funkcji). Błąd = zostaje poprzednia para plików. Węzeł bez workera: pomijamy
+ * (instalacja z zależnościami i użytkownikiem verris-mig to nadal `node-migration-worker.sh --install`).
+ */
+function renderInstallMigrationWorkerFragment(): string {
+  return `
+# --- Verris worker migracji (odświeżenie z control-plane) ---
+MIG_WORKER_BIN="/usr/local/sbin/verris-migration-worker"
+MIG_GUARD_BIN="/usr/local/sbin/verris-migration-guard.sh"
+if [ -x "$MIG_WORKER_BIN" ]; then
+  if verris-fetch /agent/tasks/migracja/guard "$MIG_GUARD_BIN.new" 60 \\
+    && verris-fetch /agent/tasks/migracja/worker "$MIG_WORKER_BIN.new" 60 \\
+    && [ -s "$MIG_GUARD_BIN.new" ] && [ -s "$MIG_WORKER_BIN.new" ] \\
+    && bash -n "$MIG_GUARD_BIN.new" && bash -n "$MIG_WORKER_BIN.new"; then
+    chmod 755 "$MIG_GUARD_BIN.new" "$MIG_WORKER_BIN.new"
+    mv -f "$MIG_GUARD_BIN.new" "$MIG_GUARD_BIN"
+    mv -f "$MIG_WORKER_BIN.new" "$MIG_WORKER_BIN"
+    echo "[verris] Updated $MIG_WORKER_BIN"
+  else
+    rm -f "$MIG_GUARD_BIN.new" "$MIG_WORKER_BIN.new"
+    echo "[verris] WARN: nie pobrano workera migracji z API — zostaje poprzednia wersja" >&2
+  fi
+else
+  echo "[verris] Worker migracji nie jest zainstalowany — pomijam (node-migration-worker.sh --install)"
+fi`;
+}
+
 /** Bootstrap + legacy install: scripts, systemd units, weryfikacja. */
 export function renderBootstrapNodeTasksInstallFragment(): string {
   return `${renderInstallTasksScriptFile()}
@@ -903,6 +932,7 @@ ${renderInstallTasksScriptFile()}
 ${renderTaskSystemdTemplateInstall()}
 ${renderInstallLveAgentFragment()}
 ${renderInstallStraznikFragment()}
+${renderInstallMigrationWorkerFragment()}
 
 PROBES="/usr/local/bin/verris-probes.sh"
 if [ -f "$PROBES" ] && ! grep -q 'verris-tasks.sh' "$PROBES"; then
