@@ -7,7 +7,7 @@ import {
   NotFoundException,
   PayloadTooLargeException,
 } from '@nestjs/common';
-import type { DaFileEntry } from '@verris/directadmin-sdk';
+import { adresPlikuMenedzera, type DaFileEntry } from '@verris/directadmin-sdk';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
@@ -158,7 +158,7 @@ export class FilesService {
     if (size == null) throw new NotFoundException('Nie ma takiego pliku.');
     const surowy = (client as unknown as { client?: { get(p: string, c: Record<string, unknown>): Promise<{ data: unknown }> } }).client;
     if (!surowy) throw new BadRequestException('Serwer plików jest chwilowo niedostępny.');
-    const res = await surowy.get(`/CMD_FILE_MANAGER${safe}`, { responseType: 'stream', timeout: 0 });
+    const res = await surowy.get(adresPlikuMenedzera(safe), { responseType: 'stream', timeout: 0 });
     await this.audit.record({
       action: HostingResourceActions.HOSTING_FILE_DOWNLOADED,
       userId, actorUserId: userId, details: { subscriptionId, path: safe, size },

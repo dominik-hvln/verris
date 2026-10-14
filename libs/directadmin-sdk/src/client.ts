@@ -402,7 +402,7 @@ export class DirectAdminClient {
 
   /** Reads a (text) file's raw content. */
   async readFile(path: string): Promise<string> {
-    const response = await this.client.get(`/CMD_FILE_MANAGER${ensureLeadingSlash(path)}`, {
+    const response = await this.client.get(adresPlikuMenedzera(path), {
       responseType: 'text',
       transformResponse: [(d) => d],
     });
@@ -415,7 +415,7 @@ export class DirectAdminClient {
    * (audyt 13.10: limit sprawdzany dopiero po pełnym zbuforowaniu nie chronił procesu API).
    */
   async downloadFile(path: string, maxBytes?: number): Promise<Buffer> {
-    const response = await this.client.get(`/CMD_FILE_MANAGER${ensureLeadingSlash(path)}`, {
+    const response = await this.client.get(adresPlikuMenedzera(path), {
       responseType: 'arraybuffer',
       ...(maxBytes ? { maxContentLength: maxBytes } : {}),
     });
@@ -1994,6 +1994,22 @@ export function popQuotaMb(rekord: URLSearchParams): number | null {
 }
 
 /** Ensures a path begins with exactly one leading slash. */
+/**
+ * Adres GET pliku w menedżerze plików DA: `/CMD_FILE_MANAGER/<ścieżka>`. Każdy segment kodujemy
+ * (encodeURIComponent), bo ścieżka jest częścią adresu — niezakodowane „%2e%2e” zwijało się w URL do
+ * „..” i wychodziło poza CMD_FILE_MANAGER, a „?” zamieniało resztę w parametry innej komendy DA
+ * (audyt 13.10, do potwierdzenia #11: `/%2e%2e/CMD_API_SHOW_USER_CONFIG` → GET /CMD_API_SHOW_USER_CONFIG).
+ * Zwykłe nazwy (spacje, polskie znaki) wychodzą tak samo jak dotąd — URL i tak koduje je procentowo.
+ * Segmenty „.”/„..” odrzucamy: ścieżkę normalizuje wcześniej warstwa API.
+ */
+export function adresPlikuMenedzera(path: string): string {
+  const segmenty = path.split('/').filter((s) => s !== '');
+  if (segmenty.some((s) => s === '.' || s === '..')) {
+    throw new Error('Nieprawidłowa ścieżka pliku.');
+  }
+  return `/CMD_FILE_MANAGER/${segmenty.map(encodeURIComponent).join('/')}`;
+}
+
 function ensureLeadingSlash(path: string): string {
   return `/${path.replace(/^\/+/, '')}`;
 }
