@@ -36,7 +36,7 @@ function uslugi() {
     // Prawdziwa kontrola domeny głównej (czyta tylko bazę): duplikat i Z-10.
     sprawdzDomeneGlowna: (d: string, u: string) =>
       ProvisioningService.prototype.sprawdzDomeneGlowna.call(
-        { prisma: p, da: { assertDomenaNieJestCudza: (x: string, y: string) => DirectAdminService.prototype.assertDomenaNieJestCudza.call({ prisma: p }, x, y) } },
+        { prisma: p, da: { assertDomenaNieJestCudza: (x: string, y: string, o?: { glowna?: boolean }) => DirectAdminService.prototype.assertDomenaNieJestCudza.call({ prisma: p }, x, y, o) } },
         d, u,
       ),
     sprawdzMiejsce: async (plan: never) => (bezWezla ? new NodeSelectorService(p).sprawdzMiejsceDlaZakupu(plan) : undefined),
@@ -101,6 +101,19 @@ describe('X-04 zakup usługi z portfela', () => {
       .rejects.toThrow('innym koncie');
     expect(await saldo(b.id)).toBe(100);
     expect(await prisma().subscription.count({ where: { userId: b.id } })).toBe(0);
+  });
+
+  // Przegląd 15.10: dla domeny głównej świeża, niezweryfikowana rezerwacja innego klienta nie blokuje zakupu,
+  // a konto usunięte (np. przy wycofaniu węzła) nie blokuje domeny na zawsze.
+  it('cudza niezweryfikowana rezerwacja i usunięte konto innego klienta nie blokują zakupu hostingu', async () => {
+    const plan = await utworzPlan({ priceMonthly: 45 });
+    const intruz = await klient(0);
+    await prisma().domain.create({ data: { userId: intruz.id, name: 'firma-b.pl' } as never });
+    const usuniete = await utworzKonto({ serverId: (await utworzWezel()).id, planId: plan.id, status: 'DELETED' });
+    const b = await klient(200);
+    await uslugi().create(b.id, { ...(zamowienie(plan.id) as object), domain: 'firma-b.pl' } as never);
+    await uslugi().create(b.id, { ...(zamowienie(plan.id) as object), domain: `sklep.${usuniete.account.domain}` } as never);
+    expect(await prisma().subscription.count({ where: { userId: b.id } })).toBe(2);
   });
 
   // E2e 14.10 (PB-05): klient z kupionym już hostingiem znów dostał −15% przy drugim zamówieniu. Rabat na start

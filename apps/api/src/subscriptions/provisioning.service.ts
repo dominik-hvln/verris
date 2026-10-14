@@ -125,7 +125,7 @@ export class ProvisioningService {
     if (existingDomainAccount) {
       throw new ConflictException(`Domena ${domain} ma już konto hostingowe w Verris. Jeśli jest Twoja, napisz do pomocy — przeniesiemy ją.`);
     }
-    await this.da.assertDomenaNieJestCudza(domain, userId);
+    await this.da.assertDomenaNieJestCudza(domain, userId, { glowna: true });
   }
 
   /**

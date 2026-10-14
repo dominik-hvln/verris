@@ -2090,11 +2090,21 @@ export class DirectAdminService {
    * Audyt 13.10 (do potwierdzenia #8): ta sama kontrola obowiązuje domenę główną nowego konta (zamówienie i provisioning).
    */
   // ponytail: sprawdzamy domeny główne kont i domeny z rejestracji; domeny dodatkowe innych kont żyją tylko w DA węzłów.
-  async assertDomenaNieJestCudza(domena: string, userId: string): Promise<void> {
+  async assertDomenaNieJestCudza(domena: string, userId: string, opts: { glowna?: boolean } = {}): Promise<void> {
     const czesci = domena.split('.');
     const kandydaci = czesci.slice(0, -1).map((_, i) => czesci.slice(i).join('.'));
+    // Przegląd 15.10: konto usunięte (np. przy wycofaniu węzła, bez przyrostka „~usuniete-”) nie blokuje domeny na zawsze.
+    // Domena główna nowego konta (opts.glowna): świeża, niezweryfikowana rezerwacja innego klienta NIE blokuje zakupu —
+    // inaczej każdy mógł dodać w „Domenach” cudzą nazwę i odnawiać rezerwację, blokując właścicielowi hosting
+    // (albo wcisnąć ją między opłatę a zakładanie konta).
+    const swiezaRezerwacja = opts.glowna
+      ? []
+      : [{ name: domena, createdAt: { gte: new Date(Date.now() - UNVERIFIED_CLAIM_DAYS * 86400000) } }];
     const [konto, rejestracja] = await Promise.all([
-      this.prisma.account.findFirst({ where: { domain: { in: kandydaci }, userId: { not: userId } }, select: { id: true } }),
+      this.prisma.account.findFirst({
+        where: { domain: { in: kandydaci }, userId: { not: userId }, status: { not: AccountStatus.DELETED } },
+        select: { id: true },
+      }),
       // Audyt bezpieczeństwa 13.10: własność dowodzi tylko domena aktywna albo z rejestracji; świeża (≤ UNVERIFIED_CLAIM_DAYS)
       // niezweryfikowana rezerwacja blokuje wyłącznie dokładnie tę nazwę — inaczej rezerwacja „com.pl” albo cudzej
       // domeny-rodzica blokowała bez końca domeny dodatkowe i aliasy innych klientów.
@@ -2105,7 +2115,7 @@ export class DirectAdminService {
           OR: [
             { status: DomainStatus.ACTIVE },
             { registrarProvider: { not: null } },
-            { name: domena, createdAt: { gte: new Date(Date.now() - UNVERIFIED_CLAIM_DAYS * 86400000) } },
+            ...swiezaRezerwacja,
           ],
         },
         select: { id: true },

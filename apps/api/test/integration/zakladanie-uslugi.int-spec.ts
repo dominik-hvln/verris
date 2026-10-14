@@ -34,7 +34,7 @@ function usluga() {
     {
       getClientForServer: async () => klient, requestLetsEncryptDirect: async () => undefined, usunDelegacjeUsunietegoKonta: async () => undefined,
       // Prawdziwa kontrola Z-10 (czyta tylko bazę).
-      assertDomenaNieJestCudza: (d: string, u: string) => DirectAdminService.prototype.assertDomenaNieJestCudza.call({ prisma: p }, d, u),
+      assertDomenaNieJestCudza: (d: string, u: string, o?: { glowna?: boolean }) => DirectAdminService.prototype.assertDomenaNieJestCudza.call({ prisma: p }, d, u, o),
     } as never, { resolveNameservers: async () => ({ ns1: 'ns1.verris.pl', ns2: 'ns2.verris.pl' }) } as never,
     noop as never, noop as never, noop as never, noop as never,
   );
