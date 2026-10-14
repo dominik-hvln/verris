@@ -5,7 +5,7 @@ import {
   MigrationWorkerJobStatus,
 } from '@verris/database';
 import { BadRequestException } from '@nestjs/common';
-import { MigrationOrchestratorService } from './migration-orchestrator.service.js';
+import { MigrationOrchestratorService, normalizujZlecenie } from './migration-orchestrator.service.js';
 import { resolvePublicHost } from './migration-net.util.js';
 
 // Z-09 — hosty źródłowe są rozwiązywane w DNS; w testach atrapa (domyślnie „publiczny”).
@@ -213,6 +213,21 @@ describe('MigrationOrchestratorService', () => {
       }),
     ).rejects.toThrow('trwa już migracja');
     expect(prisma.migrationRequest.create).not.toHaveBeenCalled();
+  });
+
+  it('14.10: domena docelowa — tylko poprawna nazwa i tylko domena tej usługi (ścieżki na węźle, rsync --delete)', async () => {
+    prisma.subscription.findFirst.mockResolvedValue({ id: 'sub_1', userId: 'user_1', account: { domain: 'target.example' } });
+    const ftp = { protocol: 'sftp' as const, host: 'old.example', port: 22, username: 'u', password: 'p' };
+    for (const zla of ['../../home', 'target.example/../x', 'http://target.example', '-x.pl']) {
+      await expect(service().createBundle('sub_1', 'user_1', { consentAccepted: true, targetDomain: zla, ftp })).rejects.toThrow(/Domena docelowa/);
+    }
+    await expect(service().createBundle('sub_1', 'user_1', { consentAccepted: true, sourceDomain: '--all-tables', ftp })).rejects.toThrow(/Stara domena/);
+    directAdmin.assertDomainOwnedBySubscription.mockRejectedValueOnce(new BadRequestException('Domena nie należy do tej usługi.'));
+    await expect(service().createBundle('sub_1', 'user_1', { consentAccepted: true, targetDomain: 'cudza.pl', ftp })).rejects.toThrow(
+      'Domena cudza.pl nie należy do tej usługi',
+    );
+    expect(prisma.migrationRequest.create).not.toHaveBeenCalled();
+    expect(normalizujZlecenie({ targetDomain: ' Target.Example. ', sourceDomain: 'OLD.example' }).targetDomain).toBe('target.example');
   });
 
   it('Z-09: odrzuca zlecenie, gdy którykolwiek host źródła wskazuje na sieć prywatną', async () => {

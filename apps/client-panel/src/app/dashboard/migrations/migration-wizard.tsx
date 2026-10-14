@@ -544,7 +544,8 @@ function StepMethod(props: {
             </label>
           </div>
           <p className="text-xs text-neutral-500">
-            Łączymy się tylko po to, by odczytać listę domen i baz. Hasła nie są zapisywane.
+            Łączymy się, żeby odczytać listę domen i baz. To samo hasło posłuży do skopiowania plików: trzymamy je
+            zaszyfrowane tylko na czas przeniesienia i kasujemy automatycznie 7 dni po jego zakończeniu.
           </p>
           {props.msg ? <p className={props.msg.type === 'ok' ? 'text-sm text-emerald-300' : 'text-sm text-rose-300'}>{props.msg.text}</p> : null}
           <div className="flex flex-wrap gap-2">

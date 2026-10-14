@@ -96,6 +96,16 @@ vg_is_email() {
   [[ "$1" =~ $VG_RE_EMAIL ]]
 }
 
+# Domena docelowa (konto na węźle) i domeny do `wp search-replace`. 14.10 — domena docelowa
+# szła bez sprawdzenia do ścieżek `/home/<konto>/domains/<domena>/public_html` i katalogu
+# roboczego `${MIG_HOME}/stage/<konto>/<domena>` (root/verris-mig): „../../home” dawało zapis
+# poza katalogiem konta. Tylko małe litery, cyfry, myślnik i kropki między etykietami —
+# bez „..”, „/”, wiodącego myślnika; co najmniej jedna kropka.
+readonly VG_RE_DOMAIN='^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$'
+vg_is_domain() {
+  [ "${#1}" -le 253 ] && [[ "$1" =~ $VG_RE_DOMAIN ]]
+}
+
 # Login konta DirectAdmin na naszym węźle. Nie pochodzi od klienta, ale
 # wchodzi do GRANT-a i do nazwy bazy, więc sprawdzamy tak samo.
 readonly VG_RE_ACCOUNT='^[a-z0-9][a-z0-9_-]{0,31}$'
@@ -331,6 +341,7 @@ vg_require() {
     protocol) vg_is_protocol "$wartosc" && return 0 ;;
     email)    vg_is_email    "$wartosc" && return 0 ;;
     account)  vg_is_account  "$wartosc" && return 0 ;;
+    domain)   vg_is_domain   "$wartosc" && return 0 ;;
     *) echo "vg_require: nieznany typ walidacji '${typ}'" >&2; return 1 ;;
   esac
   if [ "$typ" = publichost ]; then

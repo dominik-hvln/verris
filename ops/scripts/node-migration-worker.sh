@@ -294,6 +294,8 @@ run_files() {
   spass=$(jq -r '.source.password' <<<"$job")
   spath=$(jq -r '.source.remotePath // "/"' <<<"$job")
   [ -n "$user" ] && [ -n "$domain" ] || { echo "missing target account/domain" >>"$logfile"; return 2; }
+  # 14.10 — domena docelowa wchodzi do ścieżek docroot i katalogu roboczego verris-mig.
+  vg_require domain "$domain" target.domain 2>>"$logfile" || return 2
 
   # Z-03: `spath` trafiał do `lftp -e "... mirror '\''${spath}'\'' ..."`. Apostrof
   # w ścieżce zamykał cytowanie, a lftp wykonuje polecenia powłoki po `!`.
@@ -660,7 +662,8 @@ run_mysql() {
   # Login/hasło z wp-config.php (klient zostawił puste) — tylko gdy wp-config wskazuje TĘ bazę.
   # DB_HOST stamtąd służy ścieżkom na serwerze źródłowym (SSH, PHP): localhost, host:port albo
   # osobny serwer baz (np. OVH *.mysql.db).
-  if [ -n "$user" ] && [ -n "$domain" ] && vg_require account "$user" target.accountUsername 2>>"$logfile"; then
+  if [ -n "$user" ] && [ -n "$domain" ] && vg_require account "$user" target.accountUsername 2>>"$logfile" \
+    && vg_require domain "$domain" target.domain 2>>"$logfile"; then
     local k v wp_name="" wp_user="" wp_pass="" wp_host=""
     while IFS=$'\t' read -r k v; do
       case "$k" in DB_NAME) wp_name="$v" ;; DB_USER) wp_user="$v" ;; DB_PASSWORD) wp_pass="$v" ;; DB_HOST) wp_host="$v" ;; esac
@@ -857,6 +860,8 @@ run_wp_fixup() {
   local user domain dst
   user=$(jq -r '.target.accountUsername // empty' <<<"$job")
   domain=$(jq -r '.target.domain // empty' <<<"$job")
+  vg_require account "$user" target.accountUsername 2>>"$logfile" || return 2
+  vg_require domain "$domain" target.domain 2>>"$logfile" || return 2
   dst=$(docroot_for "$user" "$domain")
 
   if [ ! -f "${dst}/wp-config.php" ]; then
@@ -911,6 +916,8 @@ run_wp_fixup() {
   source_domain=$(jq -r '.wp.sourceDomain // empty' <<<"$job")
   target_domain=$(jq -r '.wp.targetDomain // empty' <<<"$job")
   if [ -n "$source_domain" ] && [ -n "$target_domain" ] && [ "$source_domain" != "$target_domain" ]; then
+    vg_require domain "$source_domain" wp.sourceDomain 2>>"$logfile" || return 2
+    vg_require domain "$target_domain" wp.targetDomain 2>>"$logfile" || return 2
     echo "== wp search-replace //${source_domain} -> //${target_domain}" >>"$logfile"
     sudo -u "$user" -- wp search-replace "//${source_domain}" "//${target_domain}" \
       --all-tables --precise --skip-columns=guid --report-changed-only --path="$dst" >>"$logfile" 2>&1 || return 3

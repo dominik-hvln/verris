@@ -399,6 +399,24 @@ export class MigrationOrchestratorService {
       );
     }
 
+    // 14.10 — domena docelowa wchodzi na węźle do ścieżek /home/<konto>/domains/<domena>/public_html i katalogu
+    // roboczego workera: tylko poprawna nazwa domeny i tylko domena TEJ usługi (inna strona na koncie albo
+    // „../..” nadpisałyby cudze pliki — rsync --delete). Źródłowa idzie do `wp search-replace`.
+    if (dto.sourceDomain !== undefined && !DOMENA_MIGRACJI.test(dto.sourceDomain)) {
+      throw new BadRequestException('Stara domena: sama nazwa, np. firma.pl (bez http:// i ścieżki).');
+    }
+    if (dto.targetDomain !== undefined) {
+      if (!DOMENA_MIGRACJI.test(dto.targetDomain)) {
+        throw new BadRequestException('Domena docelowa: sama nazwa, np. firma.pl (bez http:// i ścieżki).');
+      }
+      await this.directAdmin.assertDomainOwnedBySubscription(subscriptionId, userId, dto.targetDomain).catch((e: unknown) => {
+        if (e instanceof BadRequestException && /nie należy/.test(e.message)) {
+          throw new BadRequestException(`Domena ${dto.targetDomain} nie należy do tej usługi — stronę przenosimy tylko na domenę tego konta.`);
+        }
+        throw e;
+      });
+    }
+
     // Z-09 — worker łączy się z tymi hostami jako root z węzła: 127.0.0.1 to MySQL/IMAP
     // samego węzła, 10.x/192.168.x sieć wewnętrzna. Tylko hosty publiczne (druga
     // warstwa: vg_is_public_host w migration-input-guard.sh na węźle).
@@ -1984,8 +2002,18 @@ function tylkoDlaKlienta(details: Record<string, unknown> | null): Record<string
 
 /** E-21 — skrzynka = adres + host + hasło (port domyślnie 993, login = adres); do bundla i workera idą uzupełnione wartości. */
 export function normalizujZlecenie(wejscie: CreateMigrationBundleDto): CreateMigrationBundleDto {
-  return wejscie.imap ? { ...wejscie, imap: wejscie.imap.map(uzupelnijSkrzynke) } : wejscie;
+  const domena = (d: string | undefined) => (d === undefined ? undefined : d.trim().toLowerCase().replace(/\.$/, '') || undefined);
+  const out: CreateMigrationBundleDto = { ...wejscie, targetDomain: domena(wejscie.targetDomain), sourceDomain: domena(wejscie.sourceDomain) };
+  if (out.targetDomain === undefined) delete out.targetDomain;
+  if (out.sourceDomain === undefined) delete out.sourceDomain;
+  return wejscie.imap ? { ...out, imap: wejscie.imap.map(uzupelnijSkrzynke) } : out;
 }
+
+/**
+ * 14.10 — nazwa domeny w zleceniu migracji (docelowa i źródłowa do `wp search-replace`). Te same reguły co
+ * VG_RE_DOMAIN w ops/scripts/lib/migration-input-guard.sh (druga warstwa na węźle).
+ */
+export const DOMENA_MIGRACJI = /^(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/;
 
 async function assertSourceHostsPublic(hosts: Array<string | undefined | null>): Promise<void> {
   for (const host of new Set(hosts.filter((h): h is string => !!h && !!h.trim()))) {

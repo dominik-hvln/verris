@@ -344,3 +344,37 @@ describe('Z-03 — worker migracji', () => {
     }
   });
 });
+
+/**
+ * 14.10 — domena docelowa szła bez sprawdzenia do `/home/<konto>/domains/<domena>/public_html` i do katalogu
+ * roboczego `${MIG_HOME}/stage/<konto>/<domena>` (worker jako root i verris-mig). „../../home” = zapis poza kontem.
+ */
+describe('14.10 — domena docelowa migracji: guard na węźle i każde użycie w workerze', () => {
+  const sprawdz = (wartosc: string) => {
+    try {
+      execFileSync('bash', [GUARD, 'check', 'domain', wartosc], { stdio: 'pipe' });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  it('guard: poprawne nazwy przechodzą, ścieżki i dziwne znaki nie', () => {
+    for (const d of ['firma.pl', 'sklep.firma.com.pl', 'xn--zak-6na.pl', 'a-b.pl']) expect(sprawdz(d)).toBe(true);
+    for (const d of ['../../home', 'firma.pl/../x', 'Firma.pl', '-x.pl', 'localhost', 'a..b.pl', 'firma.pl ', '$(id).pl', '']) expect(sprawdz(d)).toBe(false);
+  });
+
+  it('worker: pliki, baza (wp-config) i WP fixup sprawdzają domenę przed użyciem w ścieżce', () => {
+    const zrodlo = readFileSync(WORKER, 'utf8');
+    for (const sekcja of ['run_files', 'run_mysql', 'run_wp_fixup']) {
+      const start = zrodlo.indexOf(`${sekcja}() {`);
+      const koniec = zrodlo.indexOf('\n}\n', start);
+      const cialo = zrodlo.slice(start, koniec);
+      const walidacja = cialo.indexOf('vg_require domain "$domain"');
+      expect(walidacja).toBeGreaterThan(-1);
+      expect(walidacja).toBeLessThan(cialo.indexOf('docroot_for "$user" "$domain"'));
+    }
+    expect(zrodlo).toContain('vg_require domain "$source_domain" wp.sourceDomain');
+  });
+});
+
