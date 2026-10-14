@@ -402,3 +402,40 @@ describe('14.10 — podgląd logów: SSH, FTP, panel serwera, ruch domeny; filtr
     expect(r.err).toContain('tego logu nie ma na serwerze');
   });
 });
+
+describe('przegląd 14.10 — maska IP i kolejność filtrów (uwagi z niezależnego przeglądu)', () => {
+  it('IPv6 z portem, IPv4 przed kropką i pełne IPv6 bez liter — zamaskowane; godziny nietknięte; skrypt = API', () => {
+    const linie = [
+      '[Wed Oct 14 01:00:00.1 2026] [client 2a01:4f8:c0c:12::1:51234] AH01630: client denied',
+      '[2a01:4f8:c0c:12::1:51234-1#APVH_sklep] File not found',
+      'Oct 14 01:00:00 t1 sshd[1]: Connection closed by 203.0.113.7.',
+      'peer 2001:4860:4860:0:0:0:0:8888 version 1.2.3.4.5 at 12:34:56',
+    ];
+    const s = srodowisko();
+    s.plik('/var/log/messages', `${linie.join('\n')}\n`);
+    const r = s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'system' });
+    expect(r.log).toEqual(linie.map((l) => maskujDlaZespolu(l)));
+    expect(r.out).not.toMatch(/c0c:12::1|203\.0\.113\.7|4860:0:0/);
+    expect(r.log[3]).toContain('1.2.3.4.5');
+    expect(r.log[3]).toContain('12:34:56');
+  });
+
+  it('filtr użytkownika działa na linii PRZED maską (login FTP „konto@IP”), wynik nadal zamaskowany', () => {
+    const s = srodowisko();
+    s.plik('/var/log/pureftpd.log', 'Oct 14 01:00:00 t1 pure-ftpd: (rdeetgju@203.0.113.7) [INFO] Logout.\nOct 14 01:00:01 t1 pure-ftpd: (inny@198.51.100.2) [INFO] Logout.\n');
+    const r = s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'ftp-pureftpd', SVC_USER: 'rdeetgju' });
+    expect(r.rc).toBe(0);
+    expect(r.log).toHaveLength(1);
+    expect(r.log[0]).not.toContain('rdeetgju@');
+    expect(r.log[0]).not.toContain('203.0.113.7');
+  });
+
+  it('z maską filtr nie sprawdza ukrytych IP: domena „203.0.113.7” i użytkownik-IP odrzucone; ADMIN może szukać IP w tekście', () => {
+    const s = srodowisko();
+    s.plik('/var/log/secure', 'Oct 14 01:00:00 t1 sshd[1]: Failed password for root from 203.0.113.7 port 1 ssh2\n');
+    expect(s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'ssh', SVC_DOMAIN: '203.0.113.7' }).err).toContain('nieprawidłowa domena');
+    expect(s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'ssh', SVC_USER: '203.0.113.7' }).err).toContain('nie może być adresem IP');
+    expect(s.uruchom({ SVC_MODE: 'log', SVC_NAME: 'ssh', SVC_MASK: '0', SVC_FILTER: '203.0.113.7' }).log).toHaveLength(1);
+  });
+});
+

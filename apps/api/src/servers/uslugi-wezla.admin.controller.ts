@@ -72,7 +72,7 @@ export interface FiltryLogu {
 }
 
 /** Walidacja i normalizacja filtrów logu → pola zadania (since/until w sekundach epoki). */
-export function parametryFiltrow(l: { plik?: string }, f: FiltryLogu = {}): Record<string, string> {
+export function parametryFiltrow(l: { plik?: string }, f: FiltryLogu = {}, zespol = false): Record<string, string> {
   const out: Record<string, string> = {};
   const domena = (f.domena ?? '').trim().toLowerCase().replace(/\.$/, '');
   if (domena && !LOG_WEZLA_DOMENA.test(domena)) throw new BadRequestException('Domena: sama nazwa, np. firma.pl (bez http:// i ścieżki).');
@@ -80,6 +80,8 @@ export function parametryFiltrow(l: { plik?: string }, f: FiltryLogu = {}): Reco
   if (domena) out.domain = domena;
   const uz = (f.uzytkownik ?? '').trim();
   if (uz && !LOG_WEZLA_UZYTKOWNIK.test(uz)) throw new BadRequestException('Użytkownik: litery, cyfry, „_”, „.”, „-” (bez spacji).');
+  // Przegląd 14.10 — zespół widzi IP zamaskowane, więc filtr nie może sprawdzać, czy dany adres jest w logu.
+  if (uz && zespol && /^[0-9.:]+$/.test(uz)) throw new BadRequestException('Filtr użytkownika nie może być adresem IP.');
   if (uz) out.user = uz;
   const sek = (iso: string | undefined, pole: string) => {
     if (!iso) return null;
@@ -234,7 +236,7 @@ export class UslugiWezlaService {
     if (!l) throw new BadRequestException('Log spoza listy.');
     const f = (filtr ?? '').trim();
     if (/[\x00-\x1f\x7f]/.test(f)) throw new BadRequestException('Filtr: sam tekst, bez znaków sterujących.');
-    const dodatkowe = parametryFiltrow(l, filtry);
+    const dodatkowe = parametryFiltrow(l, filtry, op.role !== 'ADMIN');
     const n = linie ?? 200;
     // Maska adresów e-mail i IP dla STAFF (decyzja 14.10: we wszystkich logach) ustawiana tutaj, nie z formularza.
     const maska = op.role === 'ADMIN' ? '0' : '1';
@@ -249,7 +251,7 @@ export class UslugiWezlaService {
         // Dziennik audytu czyta też zespół — filtr ADMIN-a (np. pełny adres albo IP) zapisany z maską.
         filtr: f ? maskujDlaZespolu(f) : null,
         domena: dodatkowe.domain ?? null,
-        uzytkownik: dodatkowe.user ?? null,
+        uzytkownik: dodatkowe.user ? maskujDlaZespolu(dodatkowe.user) : null,
         od: dodatkowe.since ? new Date(Number(dodatkowe.since) * 1000).toISOString() : null,
         do: dodatkowe.until ? new Date(Number(dodatkowe.until) * 1000).toISOString() : null,
         maska: maska === '1',

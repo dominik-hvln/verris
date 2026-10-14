@@ -213,6 +213,8 @@ describe('F3.4 — UslugiWezlaService', () => {
   });
 
   it.each([
+    ['ssh', { uzytkownik: '203.0.113.7' }, /nie może być adresem IP/],
+    ['www-domena', { domena: '203.0.113.7' }, /Domena/],
     ['www-domena', {}, /podaj domenę/],
     ['www-domena', { domena: 'https://firma.pl/x' }, /Domena/],
     ['ssh', { uzytkownik: 'jan kowalski' }, /Użytkownik/],

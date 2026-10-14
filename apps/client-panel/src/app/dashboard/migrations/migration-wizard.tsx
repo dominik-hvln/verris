@@ -1050,11 +1050,14 @@ export function RozpoznajZDns({ serviceId, onHost }: { serviceId: string; onHost
       {blad ? <p className="text-sm text-rose-300">{blad}</p> : null}
       {wynik ? (
         <p className="text-xs text-neutral-400" data-wynik-dns>
-          {wynik.a.length ? `Strona: ${wynik.a.join(', ')}. ` : 'Domena nie wskazuje na żaden serwer. '}
+          {wynik.juzUNas ? 'Ta domena już wskazuje na hosting Verris — sprawdź, czy strona nie jest już przeniesiona. ' : null}
+          {wynik.juzUNas ? null : wynik.a.length ? `Strona: ${wynik.a.join(', ')}. ` : 'Domena nie wskazuje na żaden serwer. '}
           {wynik.mx.length ? `Poczta: ${wynik.mx.join(', ')}. ` : ''}
-          {wynik.podpowiedzHosta
-            ? `Wpisaliśmy adres panelu: ${wynik.podpowiedzHosta} — popraw, jeśli dostawca podał inny.`
-            : 'Nie znaleźliśmy nazwy serwera — adres panelu znajdziesz w mailu powitalnym od dostawcy.'}
+          {wynik.juzUNas
+            ? null
+            : wynik.podpowiedzHosta
+              ? `Wpisaliśmy adres panelu: ${wynik.podpowiedzHosta} — popraw, jeśli dostawca podał inny.`
+              : 'Nie znaleźliśmy nazwy serwera — adres panelu znajdziesz w mailu powitalnym od dostawcy.'}
         </p>
       ) : null}
     </div>

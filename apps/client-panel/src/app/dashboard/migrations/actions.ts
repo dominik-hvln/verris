@@ -77,6 +77,7 @@ export interface RozpoznanieZrodla {
   mx: string[];
   ns: string[];
   podpowiedzHosta: string | null;
+  juzUNas?: boolean;
 }
 export async function rozpoznajZrodloAction(serviceId: string, domena: string): Promise<ActionOk<{ result: RozpoznanieZrodla }>> {
   try {

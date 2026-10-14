@@ -125,8 +125,13 @@ export class SuspiciousActivityService {
   async wymagaCaptchyLogowania(email: string, ip: string | null): Promise<boolean> {
     const since = new Date(Date.now() - FAIL_WINDOW_MS);
     const nieudane = { succeeded: false, reason: { not: 'too_many_attempts' }, createdAt: { gte: since } };
+    // Przegląd 14.10 — panele operatora nie mają widgetu captchy: licznik per e-mail z DOWOLNEGO IP pozwalałby
+    // anonimowi odciąć adminowi/obsłudze logowanie hasłem (5 złych haseł co 15 min). Dla ADMIN/STAFF liczymy
+    // porażki tego e-maila tylko z tego samego IP (jak blokada z audytu 13.10).
+    const rola = (await this.prisma.user.findUnique({ where: { email: email.toLowerCase() }, select: { role: true } }).catch(() => null))?.role;
+    const operator = rola === 'ADMIN' || rola === 'STAFF';
     const [poEmailu, poIp] = await Promise.all([
-      this.prisma.loginAttempt.count({ where: { email: email.toLowerCase(), ...nieudane } }),
+      this.prisma.loginAttempt.count({ where: { email: email.toLowerCase(), ...(operator ? { ip: ip ?? null } : {}), ...nieudane } }),
       ip ? this.prisma.loginAttempt.count({ where: { ip, ...nieudane } }) : Promise.resolve(0),
     ]);
     return poEmailu >= LOGIN_CAPTCHA_PO_PROBACH || poIp >= LOGIN_CAPTCHA_PO_PROBACH;

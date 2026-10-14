@@ -29,7 +29,7 @@ VHOST_ROOT="${CONTROL_PLANE_MAIL_DATA_ROOT:-/var/mail/vhosts}"
 # Skrypt działa jako root, a ścieżki pochodzą z bazy (domena/lokalna z postfix-map-sync.service.ts).
 # Tworzymy wyłącznie katalogi „domena/lokalna” wewnątrz VHOST_ROOT — bez „..”, ścieżek bezwzględnych
 # i symlinków wyprowadzających poza korzeń; resztę pomijamy z wpisem w logu.
-_SEG='[A-Za-z0-9][A-Za-z0-9._+=-]*'
+_SEG='[A-Za-z0-9_][A-Za-z0-9._+=-]*'
 _ROOT_REAL="$(realpath -m -- "${VHOST_ROOT}")"
 if [[ -f "${MAP_DIR}/virtual_mailbox_maps" ]]; then
   while IFS=$'\t' read -r _email _path; do

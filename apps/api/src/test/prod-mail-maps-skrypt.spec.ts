@@ -40,9 +40,11 @@ function uruchom(mapa: string, przygotuj?: (vhosts: string, dir: string) => void
 
 describe('prod-mail-apply-maps.sh — katalogi skrzynek tylko wewnątrz VHOST_ROOT', () => {
   it('poprawny wpis tworzy domena/lokalna i przechodzi do reloadu', () => {
-    const { r, vhosts } = uruchom('jan.kowalski@verris.pl\tverris.pl/jan.kowalski/\n# komentarz\n');
+    const { r, vhosts } = uruchom('jan.kowalski@verris.pl\tverris.pl/jan.kowalski/\njan_nowak@verris.pl\tverris.pl/jan_nowak/\n# komentarz\n');
     expect(r.status).toBe(0);
     expect(existsSync(join(vhosts, 'verris.pl', 'jan.kowalski'))).toBe(true);
+    // przegląd 14.10: podkreślnik w części lokalnej (postfix-map-sync go dopuszcza)
+    expect(existsSync(join(vhosts, 'verris.pl', 'jan_nowak'))).toBe(true);
     expect(r.stdout).toContain('RELOAD');
   });
 

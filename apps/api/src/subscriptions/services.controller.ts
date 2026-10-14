@@ -1753,7 +1753,8 @@ export class UserServicesController {
   ) {
     const sub = await this.prisma.subscription.findFirst({ where: { id, userId: user.userId }, select: { id: true } });
     if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
-    return rozpoznajZrodlo(String(domena ?? ''));
+    const wezly = await this.prisma.server.findMany({ select: { ipAddress: true } });
+    return rozpoznajZrodlo(String(domena ?? ''), undefined, wezly.map((w) => w.ipAddress).filter((ip): ip is string => !!ip));
   }
 
   /**

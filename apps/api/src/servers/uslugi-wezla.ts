@@ -203,7 +203,7 @@ export function stanUslug(zadania: ZadanieUslug[], admin: boolean) {
             // Przegląd F3.4 — filtr ADMIN-a bywa pełnym adresem („jan@firma.pl”) albo IP; STAFF widzi go z tą samą maską co log.
             filtr: pl.filter ? (!admin ? maskujDlaZespolu(pl.filter) : pl.filter) : null,
             domena: pl.domain ?? null,
-            uzytkownik: pl.user ?? null,
+            uzytkownik: pl.user ? (!admin ? maskujDlaZespolu(pl.user) : pl.user) : null,
             od: pl.since ? zEpoki(pl.since) : null,
             do: pl.until ? zEpoki(pl.until) : null,
             linieZamowione: Number(pl.lines) || null,

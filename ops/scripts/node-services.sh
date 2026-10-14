@@ -102,9 +102,10 @@ STEROWANIE = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]|[\x00-\x08\x0b-\x1f\x7f]")
 ZLY_FILTR = re.compile(r"[\x00-\x1f\x7f]")
 # Te same reguły co maskujIp, LOG_WEZLA_DOMENA i LOG_WEZLA_UZYTKOWNIK w libs/contracts/src/uslugi-wezla.ts.
 OKTET = r"(?:25[0-5]|2[0-4]\d|1?\d?\d)"
-IPV4 = re.compile(r"(?<![\w.])(" + OKTET + r"\." + OKTET + r"\." + OKTET + r")\." + OKTET + r"(?![\w.])", re.A)
+IPV4 = re.compile(r"(?<![\w.])(" + OKTET + r"\." + OKTET + r"\." + OKTET + r")\." + OKTET + r"(?!\w|\.\d)", re.A)
 IPV6 = re.compile(r"(?<![\w:.])[0-9A-Fa-f:]{3,39}(?![\w:])", re.A)
-DOMENA = re.compile(r"(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+", re.A)
+# Ostatnia etykieta (TLD) zaczyna się literą — „203.0.113.7” to nie domena (filtr nie może sprawdzać ukrytych IP).
+DOMENA = re.compile(r"(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?", re.A)
 UZYTKOWNIK = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}", re.A)
 OKNO_BAJTOW = 4 * 1024 * 1024
 LIMIT_BAJTOW = 80000  # budżet w BAJTACH UTF-8: agent wysyła do API ostatnie 100 000 bajtów logu zadania (tail -c)
@@ -236,6 +237,9 @@ if domena and not DOMENA.fullmatch(domena):
 uzytkownik = (os.environ.get("SVC_USER") or "").strip()
 if uzytkownik and not UZYTKOWNIK.fullmatch(uzytkownik):
     fail("nieprawidłowy użytkownik")
+# Z maską (STAFF) filtr użytkownika nie może sprawdzać ukrytego adresu IP („czy 203.0.113.7 jest w logu?”).
+if uzytkownik and os.environ.get("SVC_MASK") != "0" and re.fullmatch(r"[0-9.:]+", uzytkownik):
+    fail("filtr użytkownika nie może być adresem IP")
 
 def epoka(nazwa):
     v = (os.environ.get(nazwa) or "").strip()
@@ -255,12 +259,11 @@ if plik and "{domena}" in plik:
 
 def maska_ip6(m):
     t = m.group(0)
-    if t.count(":") < 2 or ("::" not in t and not re.search(r"[A-Fa-f]", t)):
+    # Godziny („08:00:01”) zostają: IPv6 rozpoznajemy po „::”, literze a–f albo pełnych 8 grupach. Przegląd 14.10 —
+    # adres z portem („2a01:4f8::1:51234”) ma grupę dłuższą niż 4 znaki i wcześniej zostawał niezamaskowany.
+    if t.count(":") < 2 or ("::" not in t and not re.search(r"[A-Fa-f]", t) and t.count(":") < 7):
         return t
-    grupy = t.split(":")
-    if any(len(g) > 4 for g in grupy):
-        return t
-    return ":".join(grupy[:2]) + ":•••"
+    return ":".join(t.split(":")[:2]) + ":•••"
 
 def oczysc(l):
     l = STEROWANIE.sub("", l.rstrip("\r\n"))
@@ -367,29 +370,31 @@ for l in linie:
     t = znacznik(l)
     if t is not None:
         ostatni = t
-    z_czasem.append((ostatni, oczysc(l)))
-znane = [t for t, _ in z_czasem if t is not None]
+    # Przegląd 14.10 — filtry domeny i użytkownika działają na linii PRZED maską (login FTP „konto@203.0.113.7”
+    # po masce znikał), tekst — po masce; na wyjście idzie zawsze linia zamaskowana.
+    z_czasem.append((ostatni, STEROWANIE.sub("", l), oczysc(l)))
+znane = [t for t, _, _ in z_czasem if t is not None]
 zakres = (min(znane), max(znane)) if znane else (None, None)
 zastosowane = []
 log_domeny = "{domena}" in (LOGI[nazwa][0] or "")
 if domena and not log_domeny:
     # Domena i jej subdomeny („www.firma.pl”), ale nie „mojafirma.pl”.
     wzor_domeny = re.compile(r"(?<![a-z0-9-])" + re.escape(domena) + r"(?![a-z0-9-])")
-    z_czasem = [(t, l) for t, l in z_czasem if wzor_domeny.search(l.lower())]
+    z_czasem = [(t, s, l) for t, s, l in z_czasem if wzor_domeny.search(s.lower())]
 if domena:
     zastosowane.append("domena")
 if uzytkownik:
     wzor = re.compile(r"(?<![A-Za-z0-9_.-])" + re.escape(uzytkownik) + r"(?![A-Za-z0-9_-])")
-    z_czasem = [(t, l) for t, l in z_czasem if wzor.search(l)]
+    z_czasem = [(t, s, l) for t, s, l in z_czasem if wzor.search(s)]
     zastosowane.append("uzytkownik")
 if filtr:
     f_male = filtr.lower()
-    z_czasem = [(t, l) for t, l in z_czasem if f_male in l.lower()]
+    z_czasem = [(t, s, l) for t, s, l in z_czasem if f_male in l.lower()]
     zastosowane.insert(0, "tekst")
 if od is not None or do is not None:
-    z_czasem = [(t, l) for t, l in z_czasem if t is not None and (od is None or t >= od) and (do is None or t <= do)]
+    z_czasem = [(t, s, l) for t, s, l in z_czasem if t is not None and (od is None or t >= od) and (do is None or t <= do)]
     zastosowane.append("czas")
-linie = [l for _, l in z_czasem]
+linie = [l for _, _, l in z_czasem]
 wybrane = linie[-ile:]
 # Audyt Fali 3 — budżet w bajtach (maska „•••@” i U+FFFD z bajtów spoza UTF-8 to 3 bajty na znak), a nagłówek źródła
 # PO liniach: agent obcina log od początku (tail -c), więc ewentualne obcięcie zabiera najstarsze linie, nie nagłówek.

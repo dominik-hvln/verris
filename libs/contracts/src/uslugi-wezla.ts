@@ -98,7 +98,7 @@ export function logWymagaDomeny(l: Pick<LogWezla, 'plik'> | null | undefined): b
 }
 
 /** Nazwa domeny w filtrze logu — te same reguły co DOMENA w node-services.sh. */
-export const LOG_WEZLA_DOMENA = /^(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/;
+export const LOG_WEZLA_DOMENA = /^(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 /** Użytkownik w filtrze logu (konto panelu, użytkownik systemowy, login FTP/SSH) — jak UZYTKOWNIK w node-services.sh. */
 export const LOG_WEZLA_UZYTKOWNIK = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}$/;
 
@@ -134,13 +134,13 @@ export function maskujAdresy(linia: string): string {
  */
 export function maskujIp(linia: string): string {
   return linia
-    .replace(/(?<![\w.])((?:25[0-5]|2[0-4]\d|1?\d?\d)\.(?:25[0-5]|2[0-4]\d|1?\d?\d)\.(?:25[0-5]|2[0-4]\d|1?\d?\d))\.(?:25[0-5]|2[0-4]\d|1?\d?\d)(?![\w.])/g, '$1.•••')
+    .replace(/(?<![\w.])((?:25[0-5]|2[0-4]\d|1?\d?\d)\.(?:25[0-5]|2[0-4]\d|1?\d?\d)\.(?:25[0-5]|2[0-4]\d|1?\d?\d))\.(?:25[0-5]|2[0-4]\d|1?\d?\d)(?!\w|\.\d)/g, '$1.•••')
     .replace(/(?<![\w:.])[0-9A-Fa-f:]{3,39}(?![\w:])/g, (m) => {
-      if ((m.match(/:/g) ?? []).length < 2) return m;
-      if (!m.includes('::') && !/[A-Fa-f]/.test(m)) return m;
-      const grupy = m.split(':');
-      if (grupy.some((g) => g.length > 4)) return m;
-      return `${grupy.slice(0, 2).join(':')}:•••`;
+      const dwukropki = (m.match(/:/g) ?? []).length;
+      if (dwukropki < 2) return m;
+      // Przegląd 14.10: adres z portem (grupa > 4 znaki) też maskujemy; pełne 8 grup bez liter = IPv6.
+      if (!m.includes('::') && !/[A-Fa-f]/.test(m) && dwukropki < 7) return m;
+      return `${m.split(':').slice(0, 2).join(':')}:•••`;
     });
 }
 
