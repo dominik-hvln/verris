@@ -3,6 +3,7 @@ import { features } from '@/lib/features';
 import { getPayloadClient } from '@/lib/payload';
 import { EMAIL_MARKETING_W_SPRZEDAZY, SPECYFIKACJA_OPUBLIKOWANA, VPS_W_SPRZEDAZY } from '@/lib/oferta';
 import { OPUBLIKOWANE } from '@/collections/tylko-opublikowane';
+import { PORADNIKI } from '@/lib/poradniki';
 
 const BASE = 'https://verris.pl';
 
@@ -28,6 +29,12 @@ const STATIC = [
   '/kontakt',
   '/zglos-naduzycie',
   '/przenies-strone',
+  // Makieta 14.10 — nowe strony (/zamow ma noindex, więc go tu nie ma).
+  ...PORADNIKI.map((p) => `/przenies-strone/${p.slug}`),
+  '/jak-wybrac-hosting',
+  '/funkcje/statystyki',
+  '/polecaj',
+  '/dokumenty',
 ];
 
 async function blogEntries(): Promise<{ path: string; lastmod?: string }[]> {

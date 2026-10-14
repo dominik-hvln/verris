@@ -2,6 +2,7 @@ import { features } from '@/lib/features';
 import { EMAIL_MARKETING_W_SPRZEDAZY, OFERTA_KROTKO, VPS_W_SPRZEDAZY } from '@/lib/oferta';
 import { getPayloadClient } from '@/lib/payload';
 import { OPUBLIKOWANE } from '@/collections/tylko-opublikowane';
+import { PORADNIKI } from '@/lib/poradniki';
 
 /**
  * /llms.txt — plik kontekstowy dla agentów i wyszukiwarek AI (llmstxt.org).
@@ -38,12 +39,18 @@ const HEADER = `# Verris
 
 ## Kluczowe strony
 - [Hosting z autoskalowaniem](${BASE}/hosting)
+- [Hosting WordPress](${BASE}/hosting/wordpress) · [Hosting dla sklepu](${BASE}/hosting/sklep)
 - [Cennik](${BASE}/cennik)
-- [Przeniesienie strony — darmowa migracja](${BASE}/przenies-strone)
-- [Funkcje](${BASE}/funkcje)
-- ${VPS_W_SPRZEDAZY ? `[VPS](${BASE}/vps) · ` : ''}[Domeny](${BASE}/domeny) · [Reseller](${BASE}/reseller)
+- [Przeniesienie strony na nowy hosting za darmo](${BASE}/przenies-strone)
+- [Jak wybrać hosting — lista pytań](${BASE}/jak-wybrac-hosting)
+- [Funkcje](${BASE}/funkcje) · [Statystyki strony bez cookies](${BASE}/funkcje/statystyki)
+- ${VPS_W_SPRZEDAZY ? `[VPS](${BASE}/vps) · ` : ''}[Domeny](${BASE}/domeny) · [Poczta w domenie](${BASE}/poczta) · [Dla agencji](${BASE}/reseller)
+- [Program poleceń](${BASE}/polecaj) — 10% od płatności poleconych klientów
+- [Dokumenty i RODO](${BASE}/dokumenty) · [O nas](${BASE}/o-nas) · [Kontakt](${BASE}/kontakt)
 - [Blog](${BASE}/blog)
-- [Kontakt](${BASE}/kontakt)
+
+## Poradniki przeprowadzki
+${PORADNIKI.map((p) => `- [${p.h1}](${BASE}/przenies-strone/${p.slug})`).join('\n')}
 
 ## Pliki maszynowe
 - [Cennik strukturalny](${BASE}/pricing.md) — ceny, limity, stawki autoskalowania
@@ -62,14 +69,14 @@ const FACTS = `
 - Migracja strony i poczty oraz certyfikat SSL Let's Encrypt: 0 zł, w ramach zamówienia hostingu.
 - „Bez limitu" stron, skrzynek i transferu oznacza brak sztywnego licznika; realnym ogranicznikiem
   są zasoby konta i zasady uczciwego korzystania.
-- Płatności: karta, BLIK, przelew online (Przelewy24, Stripe). Faktury VAT z programu księgowego zintegrowanego z KSeF.
+- Płatności: karta, BLIK, przelew online. Faktura VAT do każdej płatności.
 - Kopie zapasowe z samodzielnym przywracaniem (pliki/bazy/poczta osobno), w tym kopia poza serwerem
   z każdego z ostatnich 30 dni (klient wybiera dzień w panelu); domyślnie przed
   przywróceniem system wykonuje kopię bezpieczeństwa stanu obecnego, więc operację da się cofnąć.
   Kopie Verris są pomocnicze i nie zwalniają klienta z utrzymywania własnych kopii danych krytycznych.
 - Domeny bez automatycznych odnowień: odnowienie wyłącznie po opłaceniu, przypomnienia 30/14/7 dni.
 - Komplet dokumentów RODO online: polityka prywatności, DPA do akceptacji w panelu, lista podprocesorów.
-- Infrastruktura: centra danych w Niemczech i Finlandii, dane w EOG.
+- Dane klientów przechowywane w Unii Europejskiej (EOG).
 `;
 
 export async function GET() {

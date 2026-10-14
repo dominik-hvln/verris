@@ -56,7 +56,7 @@ export const features: Feature[] = [
       title: 'Policz swój koszt autoskalowania',
       text: 'Ustaw suwaki zasobów i zobacz koszt godzinowy oraz maksymalny miesięczny.',
       primaryLabel: 'Otwórz kalkulator',
-      primaryHref: '/przenies-strone#kalkulator',
+      primaryHref: '/cennik#kalkulator',
       secondary: { label: 'Zobacz hosting', href: '/hosting' },
     },
   },

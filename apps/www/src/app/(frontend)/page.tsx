@@ -109,8 +109,8 @@ const TABS: Tab[] = [
     title: 'Odwiedziny bez plików cookies',
     text: 'Liczba odwiedzin, źródła ruchu i najczęściej czytane strony — w panelu, bez cookies na Twojej stronie.',
     points: ['odwiedziny, źródła i strony wejścia', 'bez plików cookies', 'w cenie hostingu'],
-    href: '/funkcje',
-    link: 'Wszystkie funkcje',
+    href: '/funkcje/statystyki',
+    link: 'Jak działają statystyki',
     rows: [
       ['Odwiedziny dziś', '1 284'],
       ['Źródło nr 1', 'Google'],
@@ -175,8 +175,8 @@ const FUNKCJE: { t: string; p: string; href: string; link: string }[] = [
   {
     t: 'Wiesz, kto Cię odwiedza. Bez cookies',
     p: 'Liczba odwiedzin, źródła ruchu i najczęściej czytane strony w panelu. Statystyki działają bez plików cookies.',
-    href: '/funkcje',
-    link: 'Wszystkie funkcje',
+    href: '/funkcje/statystyki',
+    link: 'Jak działają statystyki',
   },
 ];
 
