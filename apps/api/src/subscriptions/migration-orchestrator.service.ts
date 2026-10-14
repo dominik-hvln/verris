@@ -15,7 +15,6 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 import { DirectAdminService } from '../servers/directadmin.service.js';
 import {
   CreateMigrationBundleDto,
-  RequestExternalMigrationDto,
   RequestInternalMigrationDto,
   uzupelnijSkrzynke,
 } from './dto/migration.dto.js';
@@ -199,53 +198,6 @@ export class MigrationOrchestratorService {
     });
     if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     return sub;
-  }
-
-  async requestExternalMigration(subscriptionId: string, userId: string, dto: RequestExternalMigrationDto) {
-    const sub = await this.assertSubscriptionForUser(subscriptionId, userId);
-    await assertSourceHostsPublic([dto.sourceHost]);
-    const sourceSecretEnc = this.crypto.encrypt(
-      JSON.stringify({
-        host: dto.sourceHost,
-        port: dto.sourcePort,
-        username: dto.sourceUsername,
-        password: dto.sourcePassword,
-        path: dto.sourcePath ?? null,
-      }),
-    );
-
-    const event = await this.prisma.subscriptionEvent.create({
-      data: {
-        subscriptionId,
-        type: 'MIGRATION_EXTERNAL_REQUESTED',
-        details: {
-          sourceType: dto.sourceType,
-          sourceHost: dto.sourceHost,
-          sourcePort: dto.sourcePort,
-          sourceUsername: dto.sourceUsername,
-          sourcePath: dto.sourcePath ?? null,
-          notes: dto.notes ?? null,
-          sourceSecretEnc,
-          requestedAt: new Date().toISOString(),
-          accountDomain: sub.account?.domain ?? null,
-          accountUsername: sub.account?.daUsername ?? null,
-        },
-      },
-    });
-
-    await this.audit.record({
-      action: 'MIGRATION_EXTERNAL_REQUESTED',
-      userId,
-      actorUserId: userId,
-      details: {
-        subscriptionId,
-        migrationEventId: event.id,
-        sourceType: dto.sourceType,
-        sourceHost: dto.sourceHost,
-      },
-    });
-
-    return { ok: true as const, migrationId: event.id };
   }
 
   async requestInternalMigrationByAdmin(

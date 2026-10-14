@@ -15,7 +15,6 @@ import { HostingSslLetsencryptDto, HostingSslPasteDto } from './dto/hosting-ssl.
 import {
   CreateMigrationBundleDto,
   DiscoverMigrationSourceDto,
-  RequestExternalMigrationDto,
 } from './dto/migration.dto.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { MigrationDiscoveryService } from './migration-discovery.service.js';
@@ -1688,15 +1687,9 @@ export class UserServicesController {
     return this.directAdmin.getHostingAccountStats(id, user.userId);
   }
 
-  /** G‑6: zgłoszenie migracji zewnętrznej (FTP/MySQL/IMAP) przez formularz klienta. */
-  @Post(':id/migrations/external')
-  async requestExternalMigration(
-    @CurrentUser() user: { userId: string },
-    @Param('id') id: string,
-    @Body() body: RequestExternalMigrationDto,
-  ) {
-    return this.migrations.requestExternalMigration(id, user.userId, body);
-  }
+  // 14.10 — usunięte POST :id/migrations/external (stary formularz G‑6, bez użycia w panelach): bez limitu prób,
+  // a zaszyfrowane hasło źródła zostawało w SubscriptionEvent na zawsze (retencja czyści tylko MigrationRequest).
+  // Migracje idą wyłącznie przez :id/migrations/bundle (limit, zgoda, retencja sekretów).
 
   /** Timeline G‑6/G‑7 dla klienta (status zgłoszenia i postęp workerów). */
   @Get(':id/migrations')
