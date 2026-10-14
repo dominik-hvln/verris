@@ -102,7 +102,7 @@ export const PLATFORM_SETTING_KEYS = {
   // RESELL — program partnerski (afiliacja).
   /** Czy program partnerski jest aktywny (1/0). */
   PARTNER_ENABLED: 'partner.enabled',
-  /** Procent prowizji recurring od płatności poleconych klientów (np. 15). */
+  /** Procent prowizji recurring od płatności poleconych klientów (domyślnie 10 — decyzja 14.10.2026). */
   PARTNER_COMMISSION_PCT: 'partner.commissionPct',
   /** Dni karencji prowizji (PENDING → AVAILABLE), ochrona przed zwrotami. */
   PARTNER_HOLD_DAYS: 'partner.holdDays',
@@ -167,7 +167,7 @@ export const PLATFORM_SETTING_DEFAULTS: Record<PlatformSettingKey, string> = {
   [PLATFORM_SETTING_KEYS.KSEF_NIP]: '',
   [PLATFORM_SETTING_KEYS.KSEF_TOKEN_ENC]: '',
   [PLATFORM_SETTING_KEYS.PARTNER_ENABLED]: '1',
-  [PLATFORM_SETTING_KEYS.PARTNER_COMMISSION_PCT]: '15',
+  [PLATFORM_SETTING_KEYS.PARTNER_COMMISSION_PCT]: '10',
   [PLATFORM_SETTING_KEYS.PARTNER_HOLD_DAYS]: '30',
   [PLATFORM_SETTING_KEYS.PARTNER_MIN_PAYOUT]: '100',
   [PLATFORM_SETTING_KEYS.PARTNER_FREE_HOSTING_THRESHOLD]: '5',

@@ -450,7 +450,7 @@ export class PlatformSettingsService {
     const map = await this.loadMap();
     return {
       enabled: this.readStr(map, PLATFORM_SETTING_KEYS.PARTNER_ENABLED, '1') === '1',
-      commissionPct: this.readInt(map, PLATFORM_SETTING_KEYS.PARTNER_COMMISSION_PCT, 15, 0, 90),
+      commissionPct: this.readInt(map, PLATFORM_SETTING_KEYS.PARTNER_COMMISSION_PCT, 10, 0, 90),
       holdDays: this.readInt(map, PLATFORM_SETTING_KEYS.PARTNER_HOLD_DAYS, 30, 0, 365),
       minPayout: this.readInt(map, PLATFORM_SETTING_KEYS.PARTNER_MIN_PAYOUT, 100, 0, 100000),
       freeHostingThreshold: this.readInt(
