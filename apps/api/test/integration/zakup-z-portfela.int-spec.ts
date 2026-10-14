@@ -4,8 +4,10 @@ import { WalletLedgerService } from '../../src/billing/wallet-ledger.service.js'
 import { PromoService } from '../../src/billing/promo.service.js';
 import { SubscriptionsService } from '../../src/subscriptions/subscriptions.service.js';
 import { NodeSelectorService } from '../../src/subscriptions/node-selector.service.js';
+import { ProvisioningService } from '../../src/subscriptions/provisioning.service.js';
+import { DirectAdminService } from '../../src/servers/directadmin.service.js';
 import { PLANY_NEWSLETTER } from '../../src/plans/plany-newsletter.js';
-import { prisma, rozlacz, utworzPlan, wyczyscBaze } from './setup.js';
+import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } from './setup.js';
 
 /**
  * X-04 — zakup nowej usługi z portfela na prawdziwej bazie. Sedno: obciążenie dokładnie raz,
@@ -31,6 +33,12 @@ function uslugi() {
     },
   };
   const provisioning = {
+    // Prawdziwa kontrola domeny głównej (czyta tylko bazę): duplikat i Z-10.
+    sprawdzDomeneGlowna: (d: string, u: string) =>
+      ProvisioningService.prototype.sprawdzDomeneGlowna.call(
+        { prisma: p, da: { assertDomenaNieJestCudza: (x: string, y: string) => DirectAdminService.prototype.assertDomenaNieJestCudza.call({ prisma: p }, x, y) } },
+        d, u,
+      ),
     sprawdzMiejsce: async (plan: never) => (bezWezla ? new NodeSelectorService(p).sprawdzMiejsceDlaZakupu(plan) : undefined),
   };
   return new SubscriptionsService(
@@ -81,6 +89,18 @@ describe('X-04 zakup usługi z portfela', () => {
     expect(Number(s.listPriceAmount)).toBe(45);
     expect(s.introDiscountPct).toBe(20);
     expect(s.introDiscountPeriodsLeft).toBe(11);
+  });
+
+  // Audyt 13.10 (#8): domena główna nowego konta jak domena dodatkowa — nie może być subdomeną domeny innego
+  // klienta. Odmowa przy zamówieniu, zanim cokolwiek zejdzie z portfela.
+  it('subdomena domeny innego klienta: odmowa przed obciążeniem portfela', async () => {
+    const plan = await utworzPlan({ priceMonthly: 45 });
+    const kontoA = await utworzKonto({ serverId: (await utworzWezel()).id, planId: plan.id });
+    const b = await klient(100);
+    await expect(uslugi().create(b.id, { ...(zamowienie(plan.id) as object), domain: `promo.${kontoA.account.domain}` } as never))
+      .rejects.toThrow('innym koncie');
+    expect(await saldo(b.id)).toBe(100);
+    expect(await prisma().subscription.count({ where: { userId: b.id } })).toBe(0);
   });
 
   // E2e 14.10 (PB-05): klient z kupionym już hostingiem znów dostał −15% przy drugim zamówieniu. Rabat na start

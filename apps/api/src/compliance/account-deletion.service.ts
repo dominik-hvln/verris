@@ -46,7 +46,7 @@ const DA_PURGE_AFTER_DAYS = 30;
 
 /**
  * Account.domain jest unikalne — usunięte konto trzymało domenę na zawsze i klient wracający z tą
- * samą domeną nie mógł założyć hostingu (provisioning: „Domain is already taken”, Z-10: „cudza”).
+ * samą domeną nie mógł założyć hostingu (provisioning: „ma już konto hostingowe”, Z-10: „cudza”).
  * Przy DELETED domena dostaje przyrostek z `~` (znak spoza nazw DNS, więc nie koliduje z żadną
  * prawdziwą domeną ani nie przejdzie walidacji) i id konta (unikalność). Początek napisu to wciąż
  * domena — widać ją w panelach; pełna domena trafia też do audytu. Ten sam format w migracji

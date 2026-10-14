@@ -2087,9 +2087,10 @@ export class DirectAdminService {
    * Z-10 — domena dodatkowa albo alias nie może być domeną (ani subdomeną domeny) innego klienta Verris.
    * DA blokuje duplikat tylko na tym samym węźle; na innym węźle Exim uznałby cudzą domenę za lokalną
    * i poczta wysłana z tego węzła do jej skrzynek trafiałaby do obcego konta.
+   * Audyt 13.10 (do potwierdzenia #8): ta sama kontrola obowiązuje domenę główną nowego konta (zamówienie i provisioning).
    */
   // ponytail: sprawdzamy domeny główne kont i domeny z rejestracji; domeny dodatkowe innych kont żyją tylko w DA węzłów.
-  private async assertDomenaNieJestCudza(domena: string, userId: string): Promise<void> {
+  async assertDomenaNieJestCudza(domena: string, userId: string): Promise<void> {
     const czesci = domena.split('.');
     const kandydaci = czesci.slice(0, -1).map((_, i) => czesci.slice(i).join('.'));
     const [konto, rejestracja] = await Promise.all([

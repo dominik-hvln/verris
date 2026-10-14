@@ -110,6 +110,25 @@ export class ProvisioningService {
   }
 
   /**
+   * Domena główna nowego konta: wolna na platformie i nie jest domeną ani subdomeną domeny innego klienta (Z-10).
+   * Audyt 13.10 (do potwierdzenia #8): dotąd sprawdzaliśmy tylko dokładny duplikat — klient mógł założyć konto na
+   * `sklep.<domena innego klienta>` albo na domenie zarejestrowanej przez kogoś innego w Verris. Wołane przy zamówieniu
+   * (przed opłatą) i jeszcze raz przy zakładaniu konta.
+   */
+  async sprawdzDomeneGlowna(domainRaw: string, userId: string): Promise<void> {
+    const domain = normaliseDomain(domainRaw);
+    // Usunięte konto nie blokuje domeny (indeks unikalny jest częściowy: status <> DELETED).
+    const existingDomainAccount = await this.prisma.account.findFirst({
+      where: { domain, status: { not: AccountStatus.DELETED } },
+      select: { id: true },
+    });
+    if (existingDomainAccount) {
+      throw new ConflictException(`Domena ${domain} ma już konto hostingowe w Verris. Jeśli jest Twoja, napisz do pomocy — przeniesiemy ją.`);
+    }
+    await this.da.assertDomenaNieJestCudza(domain, userId);
+  }
+
+  /**
    * Provisions an account on a node for a subscription that's already paid for.
    * Returns the credentials so the panel can show them to the customer.
    */
@@ -137,15 +156,7 @@ export class ProvisioningService {
     }
 
     const domain = normaliseDomain(options.domain);
-
-    // Usunięte konto nie blokuje domeny (indeks unikalny jest częściowy: status <> DELETED).
-    const existingDomainAccount = await this.prisma.account.findFirst({
-      where: { domain, status: { not: AccountStatus.DELETED } },
-      select: { id: true },
-    });
-    if (existingDomainAccount) {
-      throw new ConflictException(`Domain "${domain}" is already taken on the platform`);
-    }
+    await this.sprawdzDomeneGlowna(domain, subscription.userId);
 
     const server = await this.nodeSelector.pickServerForPlan(subscription.plan, {
       preferredRegion: options.preferredRegion,

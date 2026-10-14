@@ -1,5 +1,6 @@
 import { SubscriptionStatus } from '@verris/database';
 import { AuditService } from '../../src/common/audit/audit.service.js';
+import { DirectAdminService } from '../../src/servers/directadmin.service.js';
 import { ProvisioningService } from '../../src/subscriptions/provisioning.service.js';
 import { NodeSelectorService } from '../../src/subscriptions/node-selector.service.js';
 import { prisma, rozlacz, utworzPlan, utworzWezel, wyczyscBaze } from './setup.js';
@@ -30,7 +31,11 @@ function usluga() {
   const noop = { send: async () => ({}), get: () => undefined, safeAward: () => undefined, awardOnce: async () => undefined, setModeForAccount: async () => undefined };
   return new ProvisioningService(
     p, { encrypt: (v: string) => `enc:${v}` } as never, new AuditService(p), new NodeSelectorService(p),
-    { getClientForServer: async () => klient, requestLetsEncryptDirect: async () => undefined, usunDelegacjeUsunietegoKonta: async () => undefined } as never, { resolveNameservers: async () => ({ ns1: 'ns1.verris.pl', ns2: 'ns2.verris.pl' }) } as never,
+    {
+      getClientForServer: async () => klient, requestLetsEncryptDirect: async () => undefined, usunDelegacjeUsunietegoKonta: async () => undefined,
+      // Prawdziwa kontrola Z-10 (czyta tylko bazę).
+      assertDomenaNieJestCudza: (d: string, u: string) => DirectAdminService.prototype.assertDomenaNieJestCudza.call({ prisma: p }, d, u),
+    } as never, { resolveNameservers: async () => ({ ns1: 'ns1.verris.pl', ns2: 'ns2.verris.pl' }) } as never,
     noop as never, noop as never, noop as never, noop as never,
   );
 }
@@ -85,8 +90,30 @@ describe('X-04 zakładanie usługi', () => {
     await usluga().provisionForSubscription(pierwsza.sub.id, { domain: 'zajeta.pl' });
     const druga = await oplacona();
     da.length = 0;
-    await expect(usluga().provisionForSubscription(druga.sub.id, { domain: 'ZAJETA.pl' })).rejects.toThrow('already taken');
+    await expect(usluga().provisionForSubscription(druga.sub.id, { domain: 'ZAJETA.pl' })).rejects.toThrow('ma już konto hostingowe');
     expect(da).toEqual([]);
+  });
+
+  it('Z-10: subdomena domeny innego klienta albo jego domena z rejestracji → odmowa przed DA (audyt 13.10, #8)', async () => {
+    const a = await oplacona();
+    await usluga().provisionForSubscription(a.sub.id, { domain: 'a-test.pl' });
+    const b = await oplacona();
+    await prisma().domain.create({ data: { userId: a.user.id, name: 'rejestr-a.pl', status: 'ACTIVE' } as never });
+    da.length = 0;
+    await expect(usluga().provisionForSubscription(b.sub.id, { domain: 'sklep.a-test.pl' })).rejects.toThrow('innym koncie');
+    await expect(usluga().provisionForSubscription(b.sub.id, { domain: 'rejestr-a.pl' })).rejects.toThrow('innym koncie');
+    expect(da).toEqual([]);
+    expect(await prisma().account.count({ where: { userId: b.user.id } })).toBe(0);
+  });
+
+  it('Z-10: subdomena WŁASNEJ domeny na osobnym koncie → wolno', async () => {
+    const a = await oplacona();
+    await usluga().provisionForSubscription(a.sub.id, { domain: 'moja.pl' });
+    const druga = await prisma().subscription.create({
+      data: { userId: a.user.id, planId: a.plan.id, interval: 'MONTH', priceAmount: 45, status: SubscriptionStatus.PROVISIONING, serviceTag: 'vrwlasn' },
+    });
+    await usluga().provisionForSubscription(druga.id, { domain: 'sklep.moja.pl' });
+    expect(await prisma().account.count({ where: { userId: a.user.id } })).toBe(2);
   });
 
   it('dwa zakładania na tę samą domenę naraz: jedno konto; przegrane wycofane z DA', async () => {

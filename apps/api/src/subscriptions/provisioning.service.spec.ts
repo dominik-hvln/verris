@@ -48,6 +48,7 @@ function stanowisko(o: { kontoZDomena?: boolean; limity?: Error; zapis?: Error; 
   const le = vi.fn(async () => undefined);
   const daSvc = {
     getClientForServer: vi.fn(async () => daClient),
+    assertDomenaNieJestCudza: vi.fn(async () => undefined),
     usunDelegacjeUsunietegoKonta: vi.fn(async () => undefined),
     applyEcoModeBackupCronPolicy: vi.fn(),
     requestLetsEncryptDirect: le,

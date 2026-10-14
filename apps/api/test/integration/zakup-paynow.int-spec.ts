@@ -30,7 +30,7 @@ function serwisy() {
   const promo = new PromoService(p, ledger, audit, mailer as never, { get: () => undefined } as never);
   const queue = { isAsync: () => true, enqueueWalletProvision: async (o: { subscriptionId: string }) => void kolejka.push(o.subscriptionId) };
   const subscriptions = new SubscriptionsService(
-    p, audit, ledger, null as never, { sprawdzMiejsce: async () => undefined } as never, queue as never, null as never,
+    p, audit, ledger, null as never, { sprawdzDomeneGlowna: async () => undefined, sprawdzMiejsce: async () => undefined } as never, queue as never, null as never,
     mailer as never, { get: () => undefined } as never, promo, { safeAward: () => undefined } as never,
     { getTrialOffer: async () => ({ cardEnabled: false, monthlyDiscountPct: 0, annualDiscountPct: 0 }) } as never, null as never,
   );

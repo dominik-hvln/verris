@@ -383,6 +383,8 @@ export class SubscriptionsService {
     if (!isAppLevel && !dto.domain) {
       throw new BadRequestException('Domena jest wymagana dla tego produktu.');
     }
+    // Domena zajęta albo cudza (Z-10) → odmowa przed opłatą, nie dopiero przy zakładaniu konta.
+    if (!isAppLevel && dto.domain) await this.provisioning.sprawdzDomeneGlowna(dto.domain, userId);
     // Brak węzła, który przyjmie konto → odmowa przed rezerwacją kodu i pobraniem opłaty.
     if (!isAppLevel) await this.provisioning.sprawdzMiejsce(plan, dto.preferredRegion);
 

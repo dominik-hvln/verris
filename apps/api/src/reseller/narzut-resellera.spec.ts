@@ -78,7 +78,7 @@ describe('O-07 — zakup usługi', () => {
     const settings = { getTrialOffer: vi.fn(async () => o.oferta ?? { cardEnabled: false, monthlyDiscountPct: 0, annualDiscountPct: 0, introDiscountPeriods: 0 }) };
     const vat = { ustal: vi.fn(async () => ({ traktowanie: { cenaNetto: false } })) };
     const n = {} as never;
-    const wezel = { sprawdzMiejsce: async () => undefined } as never;
+    const wezel = { sprawdzDomeneGlowna: async () => undefined, sprawdzMiejsce: async () => undefined } as never;
     const svc = new SubscriptionsService(prisma as never, n, n, n, wezel, n, n, n, config(o.flaga ?? true) as never, n, n, settings as never, vat as never);
     return { svc, create };
   };
