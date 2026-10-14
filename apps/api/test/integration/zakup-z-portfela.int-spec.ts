@@ -83,6 +83,31 @@ describe('X-04 zakup usługi z portfela', () => {
     expect(s.introDiscountPeriodsLeft).toBe(11);
   });
 
+  // E2e 14.10 (PB-05): klient z kupionym już hostingiem znów dostał −15% przy drugim zamówieniu. Rabat na start
+  // jest dla pierwszego zakupu klienta; zamówienie porzucone przed zapłatą go nie zużywa.
+  it('rabat na start tylko przy pierwszym zakupie klienta (porzucone zamówienie go nie zużywa)', async () => {
+    oferta = { cardEnabled: true, monthlyDiscountPct: 20, annualDiscountPct: 0, introDiscountPeriods: 1 } as typeof oferta;
+    const k = await klient(200);
+    const plan = await utworzPlan({ priceMonthly: 45 });
+    await prisma().subscription.create({
+      data: { userId: k.id, planId: plan.id, status: SubscriptionStatus.CANCELED, interval: 'MONTH', priceAmount: 36, paymentSource: 'WALLET' },
+    });
+    const usl = uslugi();
+    expect(await usl.rabatStartowy(k.id)).toEqual({ przysluguje: true });
+
+    const pierwsza = await usl.create(k.id, zamowienie(plan.id));
+    expect(await saldo(k.id)).toBe(164);
+    expect((await prisma().subscription.findUniqueOrThrow({ where: { id: pierwsza.subscription.id } })).introDiscountPct).toBe(20);
+
+    expect(await usl.rabatStartowy(k.id)).toEqual({ przysluguje: false });
+    const druga = await usl.create(k.id, { ...(zamowienie(plan.id) as object), domain: 'drugi-sklep.pl' } as never);
+    expect(await saldo(k.id)).toBe(119);
+    const s = await prisma().subscription.findUniqueOrThrow({ where: { id: druga.subscription.id } });
+    expect(Number(s.priceAmount)).toBe(45);
+    expect(s.introDiscountPct).toBe(0);
+    expect(s.introDiscountPeriodsLeft).toBe(0);
+  });
+
   // Decyzja 07.10: rabat na start i kody to promocja Verris, nie partnera — także gdy narzut jest wyłączony.
   it('klient aktywnego resellera: bez rabatu na start, kod rabatowy odrzucony', async () => {
     oferta = { cardEnabled: true, monthlyDiscountPct: 20, annualDiscountPct: 0, introDiscountPeriods: 12 } as typeof oferta;

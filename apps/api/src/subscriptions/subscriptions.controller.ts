@@ -49,6 +49,12 @@ export class SubscriptionsController {
 
   // O-1 — free trial -----------------------------------------------------------
 
+  /** Rabat na start przysługuje tylko przy pierwszym zakupie klienta (14.10). */
+  @Get('rabat-startowy')
+  rabatStartowy(@CurrentUser() user: { userId: string }) {
+    return this.subscriptions.rabatStartowy(user.userId);
+  }
+
   /** Czy to konto może jeszcze uruchomić darmowy okres próbny. */
   @Get('trial/eligibility')
   trialEligibility(@CurrentUser() user: { userId: string }) {

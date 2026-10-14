@@ -157,6 +157,24 @@ it('klient resellera: bez rabatu na start i bez pola kodu rabatowego', async () 
   expect(t).toMatch(/Do zapłaty teraz12,49\s?K/);
 });
 
+// E2e 14.10 (PB-05): drugi zakup tego samego klienta znów z −15%. Rabat na start tylko przy pierwszym zakupie —
+// panel nie obiecuje go klientowi, który już coś kupił (API go wtedy nie nalicza), ale kod rabatowy zostaje.
+it('klient po pierwszym zakupie: bez rabatu na start, pełna cena do zapłaty, pole kodu zostaje', async () => {
+  const poczta = plan({ id: 'e1', slug: 'poczta-standard', name: 'Poczta Standard', productKind: 'EMAIL', priceMonthly: '12.49', priceYearly: '124.99' });
+  mockParams.value = new URLSearchParams('type=email');
+  await act(async () =>
+    root.render(
+      <FeatureFlagsProvider>
+        <OrderFlow plans={[poczta]} offer={{ ...OFERTA, cardEnabled: true, monthlyDiscountPct: 10 }} bezRabatuStartowego />
+      </FeatureFlagsProvider>,
+    ),
+  );
+  const t = el.textContent ?? '';
+  expect(t).not.toContain('Rabat na start');
+  expect(t).toContain('Kod rabatowy');
+  expect(t).toMatch(/Do zapłaty teraz12,49\s?K/);
+});
+
 // 2026-10-12 (Dominik): zakup usługi BLIK-iem / przelewem — wpłata za tę usługę, nie doładowanie portfela.
 it('BLIK lub przelew (Paynow): opcja tylko przy włączonym Paynow; zamówienie z oplata=PAYNOW, bez przejścia do usługi (przekierowanie do płatności)', async () => {
   mockParams.value = new URLSearchParams('type=newsletter');

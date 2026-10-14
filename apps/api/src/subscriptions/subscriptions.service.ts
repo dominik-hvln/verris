@@ -44,6 +44,7 @@ import { accountSuspendedPaymentTemplate } from '../mail/templates/hosting-notif
 import { orderReceivedTemplate } from '../mail/templates/order-notifications.js';
 import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service.js';
 import { KOD_U_PARTNERA, klientAktywnegoResellera, narzutResellera, zNarzutem } from '../reseller/narzut-resellera.js';
+import { przyslugujeRabatStartowy } from './rabat-startowy.js';
 import { POWODY_ZDEJMOWANE_BEZ_OBSLUGI, zawieszenieObejmujeZaleglosc } from './powody-zawieszenia.js';
 import { limityIndywidualneDlaKlienta, planZNadpisaniami } from './limity-indywidualne.js';
 import { planResourceFields } from '../servers/da-package-spec.js';
@@ -146,6 +147,12 @@ export class SubscriptionsService {
     private readonly vatNabywcy: VatNabywcyService,
   ) {}
 
+  /** Czy klient dostanie rabat na start przy zamówieniu (panel pokazuje go tylko wtedy). */
+  async rabatStartowy(userId: string): Promise<{ przysluguje: boolean }> {
+    if (await klientAktywnegoResellera(this.prisma, userId)) return { przysluguje: false };
+    return { przysluguje: await przyslugujeRabatStartowy(this.prisma, userId) };
+  }
+
   async previewSubscriptionPromo(userId: string, dto: PreviewSubscriptionPromoDto) {
     const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
     if (!plan || !plan.isActive || !plan.isPublic) {
@@ -163,7 +170,7 @@ export class SubscriptionsService {
 
     // BILL-1 — reguła NIE-ŁĄCZENIA: porównaj kod z rabatem startowym z ustawień.
     const offer = await this.platformSettings.getTrialOffer();
-    const startPercent = offer.cardEnabled
+    const startPercent = offer.cardEnabled && (await przyslugujeRabatStartowy(this.prisma, userId))
       ? dto.interval === BillingInterval.MONTH
         ? offer.monthlyDiscountPct
         : offer.annualDiscountPct
@@ -1545,8 +1552,9 @@ export class SubscriptionsService {
 
     // Rabat startowy z ustawień — tylko portfel (jak istniejący silnik promo).
     const offer = await this.platformSettings.getTrialOffer();
+    // Tylko pierwszy zakup klienta (14.10) — patrz rabat-startowy.ts.
     const startPct =
-      isWallet && offer.cardEnabled && !uPartnera
+      isWallet && offer.cardEnabled && !uPartnera && (await przyslugujeRabatStartowy(this.prisma, userId))
         ? interval === BillingInterval.MONTH
           ? offer.monthlyDiscountPct
           : offer.annualDiscountPct

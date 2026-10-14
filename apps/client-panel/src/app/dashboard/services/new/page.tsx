@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ArrowLeft, ShieldAlert } from 'lucide-react';
 import type { PlanDto } from '@verris/contracts';
 import { ApiError } from '@/lib/api';
-import { listPublicPlans, getTrialOffer, type TrialOffer } from '../data';
+import { listPublicPlans, getTrialOffer, czyRabatStartowy, type TrialOffer } from '../data';
 import { Suspense } from 'react';
 import { OrderFlow } from './order-flow';
 import { pobierzPartnera } from '@/app/dashboard/settings/partner-actions';
@@ -13,6 +13,7 @@ export default async function NewServicePage() {
   let plans: PlanDto[] = [];
   let loadError: string | null = null;
   const offer: TrialOffer = await getTrialOffer();
+  const rabatStartowy = await czyRabatStartowy();
   // O-07 — klient resellera widzi ceny z narzutem (tak liczy je API) i płaci z portfela.
   const partner = await pobierzPartnera();
   const narzutPct = partner?.narzutPct ?? 0;
@@ -62,7 +63,7 @@ export default async function NewServicePage() {
         <EmptyPlans />
       ) : (
         <Suspense fallback={null}>
-          <OrderFlow plans={plans} offer={offer} bezKarty={narzutPct > 0} uPartnera={partner != null} paynowDostepny={paynowDostepny} />
+          <OrderFlow plans={plans} offer={offer} bezRabatuStartowego={!rabatStartowy} bezKarty={narzutPct > 0} uPartnera={partner != null} paynowDostepny={paynowDostepny} />
         </Suspense>
       )}
     </div>

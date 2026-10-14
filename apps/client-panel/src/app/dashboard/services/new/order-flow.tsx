@@ -24,6 +24,7 @@ export function OrderFlow({
   bezKarty,
   uPartnera,
   paynowDostepny,
+  bezRabatuStartowego,
 }: {
   plans: PlanDto[];
   offer: TrialOffer;
@@ -32,8 +33,10 @@ export function OrderFlow({
   paynowDostepny?: boolean;
   /** Klient aktywnego resellera — bez promocji Verris (rabat na start, kody), jak w API (07.10). */
   uPartnera?: boolean;
+  /** Klient ma już za sobą zakup — rabat na start jest tylko przy pierwszym (14.10, jak w API). */
+  bezRabatuStartowego?: boolean;
 }) {
-  const offer = uPartnera ? { ...ofertaVerris, cardEnabled: false } : ofertaVerris;
+  const offer = uPartnera || bezRabatuStartowego ? { ...ofertaVerris, cardEnabled: false } : ofertaVerris;
   // VPS ukryty do wejścia do sprzedaży (2026-09-23); włącza API per konto (FEATURE_VPS / FEATURE_VPS_TYLKO_KONTA).
   const vps = useFlagi().vps === true;
   // Q-05 — pakiety Newsletter tylko przy włączonej fladze (domyślnie wyłączona, 2026-09-28).
@@ -86,7 +89,7 @@ export function OrderFlow({
                 bezKarty={bezKarty}
                 bezKodu={uPartnera}
                 paynowDostepny={paynowDostepny}
-                // API nalicza rabat na start każdemu pakietowi z portfela — klient widzi go przed zapłatą.
+                // API nalicza rabat na start przy pierwszym zakupie klienta (z portfela) — klient widzi go przed zapłatą.
                 startOffer={{
                   cardEnabled: offer.cardEnabled,
                   monthlyDiscountPct: offer.monthlyDiscountPct,

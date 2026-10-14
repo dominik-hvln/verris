@@ -27,6 +27,15 @@ export interface TrialOffer {
 }
 
 /** UX-3 — oferta okresu próbnego (chooser zamawiania). Fallback bezpieczny. */
+/** Rabat na start tylko przy pierwszym zakupie klienta (14.10). Błąd API = bez rabatu (API i tak liczy sam). */
+export async function czyRabatStartowy(): Promise<boolean> {
+  try {
+    return (await apiFetch<{ przysluguje: boolean }>('/subscriptions/rabat-startowy')).przysluguje === true;
+  } catch {
+    return false;
+  }
+}
+
 export async function getTrialOffer(): Promise<TrialOffer> {
   try {
     return await apiFetch<TrialOffer>('/platform-settings/trial-offer');
