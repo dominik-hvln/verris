@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { adminApi } from '@/lib/api';
+import type { WynikKatalogow, WynikTestuPlikow } from '@verris/ui/zrodlo-plikow-migracji';
 
 /** Rozwiązanie eskalacji: wznów automat (requeue) albo zamknij (completed/failed). */
 export async function resolveMigrationAttentionAction(input: {
@@ -111,6 +112,34 @@ export async function testDostepowZaKlientaAction(
     return { ok: true, wynik };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Test dostępów nie powiódł się.' };
+  }
+}
+
+/**
+ * 14.10 — „Test połączenia” plików w formularzu (SFTP → FTPS → FTP, rsync?) i podgląd katalogów starego serwera
+ * (tylko odczyt; dane bazy z pliku konfiguracyjnego bez hasła). Typy wyników: @verris/ui/zrodlo-plikow-migracji.
+ */
+export async function testZrodlaPlikowZaKlientaAction(
+  subscriptionId: string,
+  d: { host: string; port?: number; username: string; password: string; protocol?: 'sftp' | 'ftps' | 'ftp' },
+): Promise<{ ok: true; wynik: WynikTestuPlikow } | { error: string }> {
+  try {
+    const wynik = await adminApi<WynikTestuPlikow>('/staff/migrations/za-klienta/zrodlo-plikow/test', { method: 'POST', body: { subscriptionId, ...d } });
+    return { ok: true, wynik };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Test połączenia nie powiódł się.' };
+  }
+}
+
+export async function katalogiZrodlaZaKlientaAction(
+  subscriptionId: string,
+  d: { host: string; port: number; username: string; password: string; protocol: 'sftp' | 'ftps' | 'ftp'; sciezka: string },
+): Promise<{ ok: true; wynik: WynikKatalogow } | { error: string }> {
+  try {
+    const wynik = await adminApi<WynikKatalogow>('/staff/migrations/za-klienta/zrodlo-plikow/katalogi', { method: 'POST', body: { subscriptionId, ...d } });
+    return { ok: true, wynik };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Nie udało się wczytać katalogów.' };
   }
 }
 

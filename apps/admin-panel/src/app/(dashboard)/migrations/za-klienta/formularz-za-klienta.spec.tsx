@@ -14,15 +14,31 @@ jest.mock("next/link", () => ({
   __esModule: true,
   default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a>,
 }));
-jest.mock("../actions", () => ({ testDostepowZaKlientaAction: jest.fn(), utworzMigracjeZaKlientaAction: jest.fn() }));
+jest.mock("../actions", () => ({
+  testDostepowZaKlientaAction: jest.fn(),
+  utworzMigracjeZaKlientaAction: jest.fn(),
+  testZrodlaPlikowZaKlientaAction: jest.fn(),
+  katalogiZrodlaZaKlientaAction: jest.fn(),
+}));
 
-import { testDostepowZaKlientaAction, utworzMigracjeZaKlientaAction } from "../actions";
+import {
+  katalogiZrodlaZaKlientaAction,
+  testDostepowZaKlientaAction,
+  testZrodlaPlikowZaKlientaAction,
+  utworzMigracjeZaKlientaAction,
+} from "../actions";
 import { FormularzZaKlienta, zbudujZlecenie } from "./formularz-za-klienta";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 const utworz = utworzMigracjeZaKlientaAction as jest.Mock;
 const testuj = testDostepowZaKlientaAction as jest.Mock;
+const testPlikow = testZrodlaPlikowZaKlientaAction as jest.Mock;
+const katalogi = katalogiZrodlaZaKlientaAction as jest.Mock;
+const wykrytoSftp = {
+  ok: true,
+  wynik: { ok: true, protocol: "sftp", port: 22, rsync: true, metoda: "SFTP + rsync — najszybciej, z dosyłaniem zmian", nieszyfrowane: false, proby: [] },
+};
 
 const baza = { host: "", port: "", database: "", username: "", password: "" };
 const wejscie = (z: Partial<Parameters<typeof zbudujZlecenie>[0]> = {}): Parameters<typeof zbudujZlecenie>[0] => ({
@@ -104,6 +120,8 @@ describe("formularz w przeglądarce", () => {
   beforeEach(() => {
     utworz.mockReset();
     testuj.mockReset();
+    testPlikow.mockReset();
+    katalogi.mockReset();
     k = document.createElement("div");
     document.body.appendChild(k);
     root = createRoot(k);
@@ -138,15 +156,63 @@ describe("formularz w przeglądarce", () => {
     wpisz(poleZEtykieta("Powód"), "abcd");
     expect(wyslij.disabled).toBe(true);
     wpisz(poleZEtykieta("Powód"), "Zgłoszenie #77");
-    expect(wyslij.disabled).toBe(false);
+    // 14.10 — protokół automatycznie: bez Testu połączenia nie wiemy, czym kopiować.
+    expect(wyslij.disabled).toBe(true);
+    expect(k.textContent).toContain("kliknij „Test połączenia”");
+  });
+
+  it("Test połączenia wykrywa protokół (SFTP + rsync) → wysyłka z wykrytym protokołem i portem", async () => {
+    testPlikow.mockResolvedValue(wykrytoSftp);
+    wpisz(poleZEtykieta("Host"), "ftp.stary.pl");
+    wpisz(poleZEtykieta("Użytkownik"), "sklep");
+    wpisz(poleZEtykieta("Hasło"), "tajne");
+    wpisz(poleZEtykieta("Powód"), "Zgłoszenie #77");
+    await act(async () => przycisk("Test połączenia").click());
+    expect(testPlikow).toHaveBeenCalledWith("sub-1", { host: "ftp.stary.pl", username: "sklep", password: "tajne" });
+    expect(k.textContent).toContain("Połączenie działa — kopiujemy: SFTP + rsync");
+    expect(przycisk("Wyślij klientowi prośbę o zgodę").disabled).toBe(false);
+    // Zmiana hasła unieważnia wynik testu.
+    wpisz(poleZEtykieta("Hasło"), "inne");
+    expect(przycisk("Wyślij klientowi prośbę o zgodę").disabled).toBe(true);
+  });
+
+  it("podgląd katalogów: wybór katalogu i podstawienie danych bazy bez hasła", async () => {
+    testPlikow.mockResolvedValue(wykrytoSftp);
+    katalogi.mockResolvedValue({
+      ok: true,
+      wynik: {
+        sciezka: "/public_html",
+        katalogi: ["wp-admin", "wp-content"],
+        uciete: false,
+        strona: true,
+        cms: { cms: "wordpress", nazwa: "WordPress", plik: "wp-config.php" },
+        baza: { host: "ftp.stary.pl", port: null, nazwa: "sklep_wp", uzytkownik: "sklepu", hasloZPliku: true },
+      },
+    });
+    wpisz(poleZEtykieta("Host"), "ftp.stary.pl");
+    wpisz(poleZEtykieta("Użytkownik"), "sklep");
+    wpisz(poleZEtykieta("Hasło"), "tajne");
+    wpisz(poleZEtykieta("Katalog strony"), "/public_html");
+    await act(async () => przycisk("Wybierz katalog z serwera…").click());
+    // Bez wcześniejszego testu podgląd najpierw wykrywa protokół, potem listuje wykrytym.
+    expect(katalogi).toHaveBeenCalledWith("sub-1", { host: "ftp.stary.pl", username: "sklep", password: "tajne", protocol: "sftp", port: 22, sciezka: "/public_html" });
+    expect(k.textContent).toContain("Wykryto: WordPress (wp-config.php)");
+    await act(async () => przycisk("Podstaw dane bazy").click());
+    expect((k.querySelector('input[aria-label="Nazwa bazy"]') as HTMLInputElement).value).toBe("sklep_wp");
+    expect((k.querySelector('input[aria-label="Użytkownik bazy"]') as HTMLInputElement).value).toBe("sklepu");
+    expect((k.querySelector('input[aria-label="Hasło bazy"]') as HTMLInputElement).value).toBe("");
+    await act(async () => przycisk("Wybierz ten katalog").click());
+    expect(poleZEtykieta("Katalog strony").value).toBe("/public_html");
   });
 
   it("wysyła pola zlecenia, po sukcesie mówi o prośbie o zgodę i linkuje szczegóły migracji", async () => {
     utworz.mockResolvedValue({ ok: true, id: "mig-9", wygasa: "2026-10-15T10:00:00.000Z", mailWyslany: true });
+    testPlikow.mockResolvedValue(wykrytoSftp);
     wpisz(poleZEtykieta("Host"), " ftp.stary.pl ");
     wpisz(poleZEtykieta("Użytkownik"), "sklep");
     wpisz(poleZEtykieta("Hasło"), "tajne");
     wpisz(poleZEtykieta("Powód"), "Zgłoszenie #77 — przeniesienie");
+    await act(async () => przycisk("Test połączenia").click());
     await act(async () => przycisk("Wyślij klientowi prośbę o zgodę").click());
     expect(utworz).toHaveBeenCalledWith({
       subscriptionId: "sub-1",
@@ -167,11 +233,15 @@ describe("formularz w przeglądarce", () => {
 
   it("błąd API → czytelny komunikat, formularz zostaje", async () => {
     utworz.mockResolvedValue({ error: "Ta usługa ma już migrację w toku." });
+    testPlikow.mockResolvedValue(wykrytoSftp);
     wpisz(poleZEtykieta("Host"), "ftp.stary.pl");
+    wpisz(poleZEtykieta("Użytkownik"), "sklep");
+    wpisz(poleZEtykieta("Hasło"), "tajne");
     wpisz(poleZEtykieta("Powód"), "Zgłoszenie #77");
+    await act(async () => przycisk("Test połączenia").click());
     await act(async () => przycisk("Wyślij klientowi prośbę o zgodę").click());
     expect(k.textContent).toContain("Ta usługa ma już migrację w toku.");
-    expect(przycisk("Test dostępów")).toBeTruthy();
+    expect(przycisk("Test wszystkich dostępów")).toBeTruthy();
   });
 
   it("test dostępów: wynik z odmianą liczebnika", async () => {
@@ -186,7 +256,7 @@ describe("formularz w przeglądarce", () => {
       },
     });
     wpisz(poleZEtykieta("Host"), "ftp.stary.pl");
-    await act(async () => przycisk("Test dostępów").click());
+    await act(async () => przycisk("Test wszystkich dostępów").click());
     expect(testuj).toHaveBeenCalledTimes(1);
     expect(k.textContent).toContain("2 źródła wymagają poprawy.");
     expect(k.textContent).toContain("ftp.stary.pl: Złe hasło");

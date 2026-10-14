@@ -6,7 +6,8 @@
     ".": "./src/index.ts",
     "./csp": "./src/csp.ts",
     "./globals.css": "./src/globals.css",
-    "./markdown-kb": "./src/markdown-kb.tsx"
+    "./markdown-kb": "./src/markdown-kb.tsx",
+    "./zrodlo-plikow-migracji": "./src/components/zrodlo-plikow-migracji.tsx"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.3.3",

@@ -5,8 +5,11 @@ import Link from "next/link";
 import { Checkbox } from "@/components/checkbox";
 import { Select } from "@/components/select";
 import { plForm } from "@/lib/pl";
+import { NarzedziaZrodlaPlikow, polaczenieDoPodgladu, type WynikTestuPlikow } from "@verris/ui/zrodlo-plikow-migracji";
 import {
+  katalogiZrodlaZaKlientaAction,
   testDostepowZaKlientaAction,
+  testZrodlaPlikowZaKlientaAction,
   utworzMigracjeZaKlientaAction,
   type MigracjaZaKlientaInput,
   type PreflightZaKlienta,
@@ -78,8 +81,21 @@ export function FormularzZaKlienta(props: { subscriptionId: string; klient: stri
   const [targetDomain, setTargetDomain] = useState("");
   const [sourceDomain, setSourceDomain] = useState("");
   const [notes, setNotes] = useState("");
-  const [protokol, setProtokol] = useState<"sftp" | "ftp" | "ftps">("sftp");
-  const [ftp, setFtp] = useState({ host: "", port: "", username: "", password: "", remotePath: "" });
+  // 14.10 — domyślnie „automatycznie”: Test połączenia wykrywa SFTP → FTPS → FTP; ręczny wybór w ustawieniach zaawansowanych.
+  const [protokol, setProtokolSurowy] = useState<"auto" | "sftp" | "ftp" | "ftps">("auto");
+  const [ftp, setFtpSurowy] = useState({ host: "", port: "", username: "", password: "", remotePath: "" });
+  const [wykryty, setWykryty] = useState<WynikTestuPlikow | null>(null);
+  // Zmiana danych dostępu unieważnia wynik testu (katalog strony — nie).
+  const setFtp = (f: typeof ftp) => {
+    if (f.host !== ftp.host || f.port !== ftp.port || f.username !== ftp.username || f.password !== ftp.password) setWykryty(null);
+    setFtpSurowy(f);
+  };
+  const setProtokol = (p: "auto" | "sftp" | "ftp" | "ftps") => {
+    setWykryty(null);
+    setProtokolSurowy(p);
+  };
+  const dostep = { host: ftp.host, port: Number(ftp.port) || null, username: ftp.username, password: ftp.password, protocol: protokol };
+  const polaczenie = polaczenieDoPodgladu(dostep, wykryty);
   const [bazy, setBazy] = useState<Baza[]>([]);
   const [skrzynki, setSkrzynki] = useState<Skrzynka[]>([]);
   const [zalozSkrzynki, setZalozSkrzynki] = useState(false);
@@ -89,7 +105,21 @@ export function FormularzZaKlienta(props: { subscriptionId: string; klient: stri
   const [wyslane, setWyslane] = useState<{ id: string; wygasa: string; mailWyslany: boolean } | null>(null);
 
   const zlecenie = () =>
-    zbudujZlecenie({ subscriptionId: props.subscriptionId, powod, ticketId, targetDomain, sourceDomain, notes, protokol, ftp, bazy, skrzynki, zalozSkrzynki });
+    zbudujZlecenie({
+      subscriptionId: props.subscriptionId,
+      powod,
+      ticketId,
+      targetDomain,
+      sourceDomain,
+      notes,
+      // Protokół i port do zlecenia: wykryte Testem połączenia albo wybrane ręcznie.
+      protokol: polaczenie?.protocol ?? "sftp",
+      ftp: { ...ftp, port: polaczenie ? String(polaczenie.port) : ftp.port },
+      bazy,
+      skrzynki,
+      zalozSkrzynki,
+    });
+  const brakWykrycia = !!ftp.host.trim() && !polaczenie;
   const maZrodlo = !!ftp.host.trim() || bazy.some((b) => b.database.trim()) || skrzynki.some((s) => s.email.trim());
 
   async function testuj() {
@@ -157,27 +187,13 @@ export function FormularzZaKlienta(props: { subscriptionId: string; klient: stri
       <section className="space-y-3 rounded-xl border border-white/10 bg-black/30 p-4">
         <h2 className="text-sm font-semibold text-white">Pliki strony (FTP/SFTP)</h2>
         <div className="grid gap-3 sm:grid-cols-3">
-          <div className={etykieta}>
-            <span>Protokół</span>
-            <Select
-              aria-label="Protokół"
-              value={protokol}
-              onChange={(v) => setProtokol(v as "sftp" | "ftp" | "ftps")}
-              className={pole}
-              options={[
-                { value: "sftp", label: "SFTP" },
-                { value: "ftp", label: "FTP" },
-                { value: "ftps", label: "FTPS" },
-              ]}
-            />
-          </div>
           <label className={etykieta}>
             <span>Host</span>
             <input value={ftp.host} onChange={(e) => setFtp({ ...ftp, host: e.target.value })} className={pole} placeholder="puste = bez plików" />
           </label>
           <label className={etykieta}>
             <span>Port</span>
-            <input value={ftp.port} onChange={(e) => setFtp({ ...ftp, port: e.target.value })} className={pole} placeholder={PORT_DOMYSLNY[protokol]} inputMode="numeric" />
+            <input value={ftp.port} onChange={(e) => setFtp({ ...ftp, port: e.target.value })} className={pole} placeholder={protokol === "auto" ? "automatycznie" : PORT_DOMYSLNY[protokol]} inputMode="numeric" />
           </label>
           <label className={etykieta}>
             <span>Użytkownik</span>
@@ -192,6 +208,40 @@ export function FormularzZaKlienta(props: { subscriptionId: string; klient: stri
             <input value={ftp.remotePath} onChange={(e) => setFtp({ ...ftp, remotePath: e.target.value })} className={pole} placeholder="/public_html" />
           </label>
         </div>
+        <NarzedziaZrodlaPlikow
+          dostep={dostep}
+          wykryty={wykryty}
+          onWykryty={setWykryty}
+          sciezka={ftp.remotePath}
+          onSciezka={(s) => setFtpSurowy({ ...ftp, remotePath: s })}
+          testuj={(d) => testZrodlaPlikowZaKlientaAction(props.subscriptionId, d)}
+          listuj={(d) => katalogiZrodlaZaKlientaAction(props.subscriptionId, d)}
+          onDaneBazy={(b) =>
+            // Hasła nie dostajemy (obsługa go nie widzi) — worker odczyta je z pliku konfiguracyjnego na węźle.
+            setBazy((stare) => [
+              { host: b.host, port: String(b.port ?? 3306), database: b.nazwa, username: b.uzytkownik, password: "" },
+              ...stare.filter((x) => x.database.trim() && x.database.trim() !== b.nazwa),
+            ])
+          }
+        />
+        <details className="text-xs text-muted-foreground">
+          <summary className="cursor-pointer">Ustawienia zaawansowane</summary>
+          <div className={`${etykieta} mt-2 max-w-xs`}>
+            <span>Protokół</span>
+            <Select
+              aria-label="Protokół"
+              value={protokol}
+              onChange={(v) => setProtokol(v as "auto" | "sftp" | "ftp" | "ftps")}
+              className={pole}
+              options={[
+                { value: "auto", label: "Automatycznie (SFTP → FTPS → FTP)" },
+                { value: "sftp", label: "SFTP" },
+                { value: "ftps", label: "FTPS" },
+                { value: "ftp", label: "FTP" },
+              ]}
+            />
+          </div>
+        </details>
       </section>
 
       <section className="space-y-3 rounded-xl border border-white/10 bg-black/30 p-4">
@@ -283,6 +333,9 @@ export function FormularzZaKlienta(props: { subscriptionId: string; klient: stri
         </section>
       ) : null}
       {blad ? <p className="text-sm text-rose-300">{blad}</p> : null}
+      {brakWykrycia ? (
+        <p className="text-xs text-amber-200">Przed wysłaniem kliknij „Test połączenia” przy plikach — ustalimy, czym kopiować (SFTP/FTPS/FTP).</p>
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         <button
@@ -291,12 +344,12 @@ export function FormularzZaKlienta(props: { subscriptionId: string; klient: stri
           disabled={busy !== null || !maZrodlo}
           className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-white hover:border-white/30 disabled:opacity-50"
         >
-          {busy === "test" ? "Sprawdzam…" : "Test dostępów"}
+          {busy === "test" ? "Sprawdzam…" : "Test wszystkich dostępów"}
         </button>
         <button
           type="button"
           onClick={wyslij}
-          disabled={busy !== null || !maZrodlo || powod.trim().length < 5}
+          disabled={busy !== null || !maZrodlo || powod.trim().length < 5 || brakWykrycia}
           className="rounded-lg bg-cyan-700 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
         >
           {busy === "wyslij" ? "Wysyłam…" : "Wyślij klientowi prośbę o zgodę"}

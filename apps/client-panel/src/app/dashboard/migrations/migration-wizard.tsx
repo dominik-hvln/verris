@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useId } from 'react';
 import { Button } from '@verris/ui';
+import { NarzedziaZrodlaPlikow, type DaneBazyZKatalogu, type WynikTestuPlikow } from '@verris/ui/zrodlo-plikow-migracji';
 import { Select } from '@/components/panel';
 import {
   createMigrationBundleAction,
@@ -10,6 +11,8 @@ import {
   rozpoznajZrodloAction,
   type MigrationMysqlInput,
   type RozpoznanieZrodla,
+  katalogiZrodlaAction,
+  testZrodlaPlikowAction,
 } from './actions';
 import { bezpiecznaAkcja } from '@/lib/akcja';
 import type { DiscoveredSite, DiscoveryResult, PreflightSummary } from './types';
@@ -127,10 +130,30 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
   const [zalozSkrzynki, setZalozSkrzynki] = useState(true);
   const [wybranaStrona, setWybranaStrona] = useState('');
   const [ftpProtocol, setFtpProtocol] = useState<'ftp' | 'ftps' | 'sftp'>('sftp');
-  const [ftpHost, setFtpHost] = useState('');
-  const [ftpPort, setFtpPort] = useState(22);
-  const [ftpUser, setFtpUser] = useState('');
-  const [ftpPass, setFtpPass] = useState('');
+  // 14.10 — protokół „automatycznie”: Test połączenia (albo krok testu) wykrywa SFTP → FTPS → FTP.
+  const [ftpAuto, setFtpAuto] = useState(true);
+  const [wykryty, setWykrytySurowy] = useState<WynikTestuPlikow | null>(null);
+  const [ftpHost, setFtpHostSurowy] = useState('');
+  const [ftpPort, setFtpPortSurowy] = useState(22);
+  const [ftpUser, setFtpUserSurowy] = useState('');
+  const [ftpPass, setFtpPassSurowy] = useState('');
+  // Zmiana danych dostępu unieważnia wynik testu połączenia.
+  const uniewaznij = <T,>(f: (v: T) => void) => (v: T) => {
+    setWykrytySurowy(null);
+    f(v);
+  };
+  const setFtpHost = uniewaznij(setFtpHostSurowy);
+  const setFtpPort = uniewaznij(setFtpPortSurowy);
+  const setFtpUser = uniewaznij(setFtpUserSurowy);
+  const setFtpPass = uniewaznij(setFtpPassSurowy);
+  /** Wynik testu połączenia: w trybie automatycznym przestawia protokół i port zlecenia na wykryte. */
+  function setWykryty(w: WynikTestuPlikow | null) {
+    setWykrytySurowy(w);
+    if (w?.ok && w.protocol && w.port) {
+      setFtpProtocol(w.protocol);
+      setFtpPortSurowy(w.port);
+    }
+  }
   // Puste = worker sam znajdzie katalog strony (public_html / domains/<d>/public_html / httpdocs).
   const [ftpPath, setFtpPath] = useState('');
 
@@ -157,7 +180,7 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
     [includeFiles, includeDbs, includeMail, ftpHost, dbs, skrzynki],
   );
 
-  function buildInput() {
+  function buildInput(wykrytePolaczenie?: { protocol: 'ftp' | 'ftps' | 'sftp'; port: number }) {
     return {
       serviceId,
       targetDomain: targetDomain.trim() || undefined,
@@ -167,10 +190,10 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
         includeFiles && ftpHost.trim()
           ? {
               host: ftpHost.trim(),
-              port: ftpPort,
+              port: wykrytePolaczenie?.port ?? ftpPort,
               username: ftpUser,
               password: ftpPass,
-              protocol: ftpProtocol,
+              protocol: wykrytePolaczenie?.protocol ?? ftpProtocol,
               remotePath: ftpPath.trim() || '/',
             }
           : undefined,
@@ -284,7 +307,18 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
   async function runPreflight() {
     setMsg(null);
     setPreflighting(true);
-    const res = await bezpiecznaAkcja(() => preflightMigrationAction(buildInput()));
+    // Tryb automatyczny bez wcześniejszego „Testu połączenia”: najpierw wykrywamy protokół plików.
+    let pol: { protocol: 'ftp' | 'ftps' | 'sftp'; port: number } | undefined;
+    if (includeFiles && ftpHost.trim() && ftpAuto && !wykryty?.ok) {
+      const w = await bezpiecznaAkcja(() =>
+        testZrodlaPlikowAction(serviceId, { host: ftpHost.trim(), port: ftpPort || undefined, username: ftpUser, password: ftpPass }),
+      );
+      if ('wynik' in w) {
+        setWykryty(w.wynik);
+        if (w.wynik.ok && w.wynik.protocol && w.wynik.port) pol = { protocol: w.wynik.protocol, port: w.wynik.port };
+      }
+    }
+    const res = await bezpiecznaAkcja(() => preflightMigrationAction(buildInput(pol)));
     setPreflighting(false);
     if ('error' in res) {
       setMsg({ type: 'err', text: res.error });
@@ -374,7 +408,18 @@ export function MigrationWizard({ serviceId, onQueued, zakres }: Props) {
           setSourceDomain={setSourceDomain}
           zakres={zakres}
           ftpProtocol={ftpProtocol}
-          setFtpProtocol={setFtpProtocol}
+          setFtpProtocol={(v) => {
+            setWykrytySurowy(null);
+            setFtpProtocol(v);
+          }}
+          ftpAuto={ftpAuto}
+          setFtpAuto={(v) => {
+            setWykrytySurowy(null);
+            setFtpAuto(v);
+          }}
+          wykryty={wykryty}
+          setWykryty={setWykryty}
+          serviceId={serviceId}
           ftpHost={ftpHost}
           setFtpHost={setFtpHost}
           ftpPort={ftpPort}
@@ -625,6 +670,11 @@ function StepSources(props: {
   setSourceDomain: (v: string) => void;
   ftpProtocol: 'ftp' | 'ftps' | 'sftp';
   setFtpProtocol: (v: 'ftp' | 'ftps' | 'sftp') => void;
+  ftpAuto: boolean;
+  setFtpAuto: (v: boolean) => void;
+  wykryty: WynikTestuPlikow | null;
+  setWykryty: (w: WynikTestuPlikow | null) => void;
+  serviceId: string;
   ftpHost: string;
   setFtpHost: (v: string) => void;
   ftpPort: number;
@@ -724,10 +774,15 @@ function StepSources(props: {
               <label htmlFor={protocolId} className={labelText}>Protokół</label>
               <Select
                 id={protocolId}
-                value={props.ftpProtocol}
-                onChange={(v) => props.setFtpProtocol(v as 'ftp' | 'ftps' | 'sftp')}
+                value={props.ftpAuto ? 'auto' : props.ftpProtocol}
+                onChange={(v) => {
+                  if (v === 'auto') return props.setFtpAuto(true);
+                  props.setFtpAuto(false);
+                  props.setFtpProtocol(v as 'ftp' | 'ftps' | 'sftp');
+                }}
                 aria-label="Protokół plików"
                 options={[
+                  { value: 'auto', label: 'Automatycznie (SFTP → FTPS → FTP)' },
                   { value: 'sftp', label: 'SFTP' },
                   { value: 'ftps', label: 'FTPS' },
                   { value: 'ftp', label: 'FTP' },
@@ -756,6 +811,25 @@ function StepSources(props: {
               <input value={props.ftpPath} onChange={(e) => props.setFtpPath(e.target.value)} className={input} placeholder="zostaw puste — sami znajdziemy katalog strony" />
             </label>
           </div>
+          <NarzedziaZrodlaPlikow
+            dostep={{
+              host: props.ftpHost,
+              port: props.ftpPort || null,
+              username: props.ftpUser,
+              password: props.ftpPass,
+              protocol: props.ftpAuto ? 'auto' : props.ftpProtocol,
+            }}
+            wykryty={props.wykryty}
+            onWykryty={props.setWykryty}
+            sciezka={props.ftpPath}
+            onSciezka={props.setFtpPath}
+            testuj={(d) => testZrodlaPlikowAction(props.serviceId, d)}
+            listuj={(d) => katalogiZrodlaAction(props.serviceId, d)}
+            onDaneBazy={props.zakres !== 'pliki' ? (b: DaneBazyZKatalogu) => props.setDbs((r) => [
+              { key: nextKey(), host: b.host, port: b.port ?? 3306, username: b.uzytkownik, password: b.haslo ?? '', database: b.nazwa, wlaczona: true },
+              ...r.filter((x) => x.database.trim() && x.database.trim() !== b.nazwa),
+            ]) : undefined}
+          />
       </section>
       ) : null}
 

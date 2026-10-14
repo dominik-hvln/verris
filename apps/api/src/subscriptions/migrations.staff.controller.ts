@@ -25,7 +25,8 @@ import { StaffPerm } from '../common/decorators/staff-permissions.decorator.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { MigrationOrchestratorService } from './migration-orchestrator.service.js';
 import { MigracjaZaKlientaService } from './migracja-za-klienta.service.js';
-import { MigracjaZaKlientaDto, PreflightZaKlientaDto } from './dto/migration.dto.js';
+import { KatalogiZrodlaZaKlientaDto, MigracjaZaKlientaDto, PreflightZaKlientaDto, ZrodloPlikowZaKlientaDto } from './dto/migration.dto.js';
+import { MigracjaZrodloPlikowService } from './migracja-zrodlo-plikow.service.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 
 class RevealSecretsDto {
@@ -75,6 +76,7 @@ export class MigrationsStaffController {
   constructor(
     private readonly migrations: MigrationOrchestratorService,
     private readonly zaKlienta: MigracjaZaKlientaService,
+    private readonly zrodloPlikow: MigracjaZrodloPlikowService,
   ) {}
 
   /**
@@ -99,6 +101,30 @@ export class MigrationsStaffController {
   @Get('za-klienta/usluga/:subscriptionId')
   uslugaZaKlienta(@Param('subscriptionId') subscriptionId: string) {
     return this.zaKlienta.uslugaDoFormularza(subscriptionId);
+  }
+
+  /** 14.10 — „Test połączenia” plików z formularza obsługi: SFTP (z rsync?) → FTPS → FTP, bez wybierania protokołu. */
+  @Post('za-klienta/zrodlo-plikow/test')
+  @HttpCode(200)
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'migration:preflight' })
+  async testZrodlaPlikowZaKlienta(@CurrentUser() user: AuthedUser, @Body() dto: ZrodloPlikowZaKlientaDto) {
+    const { subscriptionId, ...dostep } = dto;
+    const wlasciciel = await this.zaKlienta.wlascicielUslugi(subscriptionId);
+    return this.zrodloPlikow.testPolaczenia(dostep, { userId: wlasciciel, actorUserId: user.userId, subscriptionId });
+  }
+
+  /**
+   * 14.10 — podgląd katalogów na starym serwerze z formularza obsługi. Dane bazy z pliku konfiguracyjnego BEZ hasła:
+   * worker i tak czyta je z pliku na węźle, a hasło bazy klienta nie trafia do przeglądarki obsługi.
+   */
+  @Post('za-klienta/zrodlo-plikow/katalogi')
+  @HttpCode(200)
+  @RateLimit({ limit: 120, windowMs: 60 * 60 * 1000, scope: 'migration:katalogi' })
+  async katalogiZrodlaZaKlienta(@Body() dto: KatalogiZrodlaZaKlientaDto) {
+    const { subscriptionId, ...dostep } = dto;
+    await this.zaKlienta.wlascicielUslugi(subscriptionId);
+    if (!dostep.protocol) throw new BadRequestException('Najpierw sprawdź połączenie — podgląd katalogów używa wykrytego protokołu.');
+    return this.zrodloPlikow.katalogi({ ...dostep, protocol: dostep.protocol }, { zHaslemBazy: false });
   }
 
   /** PB-45 — test dostępów do starego hostingu z formularza obsługi (realne logowanie, bez zapisu danych). */

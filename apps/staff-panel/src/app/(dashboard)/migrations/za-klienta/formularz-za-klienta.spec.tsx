@@ -66,7 +66,11 @@ it("formularz pokazuje klienta, wymaga powodu i nie ma przycisku zgody (zgodę d
   const tekst = html.replace(/<[^>]+>/g, " ");
   expect(tekst).toContain("Anna Nowak");
   expect(tekst).toContain("Powód / numer zgłoszenia");
-  expect(tekst).toContain("Test dostępów");
+  expect(tekst).toContain("Test wszystkich dostępów");
+  // 14.10 — test połączenia plików i podgląd katalogów przy sekcji plików; protokół domyślnie automatycznie.
+  expect(tekst).toContain("Test połączenia");
+  expect(tekst).toContain("Wybierz katalog z serwera…");
+  expect(tekst).toContain("Automatycznie (SFTP → FTPS → FTP)");
   expect(tekst).toContain("Wyślij klientowi prośbę o zgodę");
   expect(tekst).not.toMatch(/upoważniam|zgoda RODO/i);
 });

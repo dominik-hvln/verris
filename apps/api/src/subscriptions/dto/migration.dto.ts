@@ -305,3 +305,44 @@ export class DiscoverMigrationSourceDto {
   panelType?: 'cpanel' | 'directadmin' | 'plesk';
 }
 
+
+/**
+ * 14.10 (uwagi Dominika po e2e) — źródło plików do „Testu połączenia” i podglądu katalogów. Klient i obsługa
+ * podają host, login i hasło; protokół i port są opcjonalne (bez nich próbujemy SFTP → FTPS → FTP).
+ */
+export class ZrodloPlikowDto {
+  @IsString() @MinLength(3) @MaxLength(253)
+  @Matches(MIGRACJA_WZORCE.host, { message: KOMUNIKAT.host })
+  host!: string;
+
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(65535)
+  port?: number;
+
+  @IsString() @MinLength(1) @MaxLength(128)
+  @Matches(MIGRACJA_WZORCE.username, { message: KOMUNIKAT.username })
+  username!: string;
+
+  @IsString() @MinLength(1) @MaxLength(2048)
+  password!: string;
+
+  @IsOptional() @IsIn(['sftp', 'ftps', 'ftp'])
+  protocol?: 'sftp' | 'ftps' | 'ftp';
+}
+
+/** Podgląd katalogu na starym serwerze — ścieżka jak `remotePath` zlecenia (te same znaki, bez `..`). */
+export class KatalogiZrodlaDto extends ZrodloPlikowDto {
+  @IsString() @MaxLength(1024)
+  @Matches(MIGRACJA_WZORCE.path, { message: KOMUNIKAT.path })
+  @Matches(/^(?!.*\.\.).*$/, { message: KOMUNIKAT.path })
+  sciezka!: string;
+}
+
+export class ZrodloPlikowZaKlientaDto extends ZrodloPlikowDto {
+  @IsString() @MinLength(1) @MaxLength(64)
+  subscriptionId!: string;
+}
+
+export class KatalogiZrodlaZaKlientaDto extends KatalogiZrodlaDto {
+  @IsString() @MinLength(1) @MaxLength(64)
+  subscriptionId!: string;
+}

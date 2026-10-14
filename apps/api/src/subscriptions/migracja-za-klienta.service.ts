@@ -97,6 +97,13 @@ export class MigracjaZaKlientaService {
   }
 
   /** Test dostępów z formularza obsługi — ten sam co „Test dostępów” w kreatorze klienta, w dzienniku operator. */
+  /** 14.10 — właściciel usługi (do dziennika testu połączenia z formularza obsługi); 404, gdy usługi nie ma. */
+  async wlascicielUslugi(subscriptionId: string): Promise<string> {
+    const sub = await this.prisma.subscription.findUnique({ where: { id: subscriptionId }, select: { userId: true } });
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
+    return sub.userId;
+  }
+
   async testDostepow(opts: { subscriptionId: string; actorUserId: string; zlecenie: CreateMigrationBundleDto }): Promise<PreflightSummary> {
     const sub = await this.prisma.subscription.findUnique({ where: { id: opts.subscriptionId }, select: { id: true, userId: true } });
     if (!sub) throw new NotFoundException('Nie znaleziono usługi.');

@@ -2,6 +2,7 @@
 
 import { apiFetch } from '@/lib/api';
 import { revalidatePath } from 'next/cache';
+import type { WynikKatalogow, WynikTestuPlikow } from '@verris/ui/zrodlo-plikow-migracji';
 
 export interface MigrationFtpInput {
   host: string;
@@ -127,6 +128,34 @@ export async function preflightMigrationAction(
     return { ok: true, result };
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Preflight nie powiódł się.' };
+  }
+}
+
+/**
+ * 14.10 — „Test połączenia” plików (SFTP → FTPS → FTP, rsync?) i podgląd katalogów starego serwera (tylko odczyt;
+ * dane bazy z pliku konfiguracyjnego CMS-a — klient widzi też hasło ze swojego pliku).
+ */
+export async function testZrodlaPlikowAction(
+  serviceId: string,
+  d: { host: string; port?: number; username: string; password: string; protocol?: 'sftp' | 'ftps' | 'ftp' },
+): Promise<{ ok: true; wynik: WynikTestuPlikow } | { error: string }> {
+  try {
+    const wynik = await apiFetch<WynikTestuPlikow>(`/services/${serviceId}/migrations/zrodlo-plikow/test`, { method: 'POST', body: JSON.stringify(d) });
+    return { ok: true, wynik };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Test połączenia nie powiódł się.' };
+  }
+}
+
+export async function katalogiZrodlaAction(
+  serviceId: string,
+  d: { host: string; port: number; username: string; password: string; protocol: 'sftp' | 'ftps' | 'ftp'; sciezka: string },
+): Promise<{ ok: true; wynik: WynikKatalogow } | { error: string }> {
+  try {
+    const wynik = await apiFetch<WynikKatalogow>(`/services/${serviceId}/migrations/zrodlo-plikow/katalogi`, { method: 'POST', body: JSON.stringify(d) });
+    return { ok: true, wynik };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Nie udało się wczytać katalogów.' };
   }
 }
 

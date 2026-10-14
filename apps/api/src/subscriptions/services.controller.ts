@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -15,10 +16,13 @@ import { HostingSslLetsencryptDto, HostingSslPasteDto } from './dto/hosting-ssl.
 import {
   CreateMigrationBundleDto,
   DiscoverMigrationSourceDto,
+  KatalogiZrodlaDto,
+  ZrodloPlikowDto,
 } from './dto/migration.dto.js';
 import { RateLimit } from '../common/guards/rate-limit.guard.js';
 import { MigrationDiscoveryService } from './migration-discovery.service.js';
 import { MigrationPreflightService } from './migration-preflight.service.js';
+import { MigracjaZrodloPlikowService } from './migracja-zrodlo-plikow.service.js';
 import { MigrationCutoverService } from './migration-cutover.service.js';
 import { zdarzeniaUslugiDlaKlienta } from './zdarzenia-klienta.js';
 import { Prisma, SubscriptionStatus } from '@verris/database';
@@ -180,6 +184,7 @@ export class UserServicesController {
     private readonly migrationPreflight: MigrationPreflightService,
     private readonly migrationCutover: MigrationCutoverService,
     private readonly promo: PromoService,
+    private readonly zrodloPlikow: MigracjaZrodloPlikowService,
   ) {}
 
   // PERF-1 — bardzo lekki endpoint zwracający tylko typ usługi (productKind).
@@ -1778,6 +1783,31 @@ export class UserServicesController {
     });
     if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
     return this.migrationPreflight.preflightBundle(body, user.userId, id);
+  }
+
+  /**
+   * 14.10 — „Test połączenia” źródła plików bez wybierania protokołu: SFTP (z rsync?) → FTPS → FTP.
+   * Ten sam wektor nadużycia co preflight (łączymy się z hostem klienta) — ten sam limit.
+   */
+  @Post(':id/migrations/zrodlo-plikow/test')
+  @HttpCode(200)
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'migration:preflight' })
+  async testZrodlaPlikow(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: ZrodloPlikowDto) {
+    const sub = await this.prisma.subscription.findFirst({ where: { id, userId: user.userId }, select: { id: true } });
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
+    return this.zrodloPlikow.testPolaczenia(body, { userId: user.userId, actorUserId: user.userId, subscriptionId: id });
+  }
+
+  /** 14.10 — podgląd katalogów na starym serwerze (tylko odczyt) i dane bazy z pliku konfiguracyjnego CMS-a. */
+  @Post(':id/migrations/zrodlo-plikow/katalogi')
+  @HttpCode(200)
+  @RateLimit({ limit: 120, windowMs: 60 * 60 * 1000, scope: 'migration:katalogi' })
+  async katalogiZrodlaPlikow(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: KatalogiZrodlaDto) {
+    const sub = await this.prisma.subscription.findFirst({ where: { id, userId: user.userId }, select: { id: true } });
+    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
+    if (!body.protocol) throw new BadRequestException('Najpierw sprawdź połączenie — podgląd katalogów używa wykrytego protokołu.');
+    // Klient widzi hasło bazy z własnego pliku konfiguracyjnego.
+    return this.zrodloPlikow.katalogi({ ...body, protocol: body.protocol }, { zHaslemBazy: true });
   }
 
   /** Migrator v2 — szczegóły zlecenia z krokami i postępem na żywo (polling z panelu). */

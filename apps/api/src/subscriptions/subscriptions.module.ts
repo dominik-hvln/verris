@@ -32,6 +32,7 @@ import { MigrationOrchestratorService } from './migration-orchestrator.service.j
 import { MigrationDiscoveryService } from './migration-discovery.service.js';
 import { AdresyWezlowRejestr } from './adresy-wezlow.rejestr.js';
 import { MigrationPreflightService } from './migration-preflight.service.js';
+import { MigracjaZrodloPlikowService } from './migracja-zrodlo-plikow.service.js';
 import { MigrationCutoverService } from './migration-cutover.service.js';
 import { MigrationsStaffController } from './migrations.staff.controller.js';
 import { MigrationWorkerScheduler } from './migration-worker.scheduler.js';
@@ -121,6 +122,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
     MigrationDiscoveryService,
     AdresyWezlowRejestr,
     MigrationPreflightService,
+    MigracjaZrodloPlikowService,
     MigrationCutoverService,
     MigrationWorkerScheduler,
     ServiceHealthService,
