@@ -105,3 +105,27 @@ export function articleSchema(args: {
     publisher: { '@id': ORG_ID },
   };
 }
+
+/**
+ * Grupa D (makieta 14.10) — strona informacyjna: WebPage, AboutPage, ContactPage albo CollectionPage.
+ * `extra` dokleja pola typu (np. mainEntity, hasPart). Wydawca zawsze przez @id organizacji.
+ */
+export function webPageSchema(args: {
+  type?: 'WebPage' | 'AboutPage' | 'ContactPage' | 'CollectionPage';
+  name: string;
+  description: string;
+  path: string;
+  extra?: Record<string, unknown>;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': args.type ?? 'WebPage',
+    name: args.name,
+    description: args.description,
+    url: `${SITE}${args.path}`,
+    inLanguage: 'pl-PL',
+    isPartOf: { '@type': 'WebSite', url: `${SITE}/`, name: 'Verris' },
+    publisher: { '@id': ORG_ID },
+    ...(args.extra ?? {}),
+  };
+}

@@ -210,12 +210,15 @@ export function CTABand({
   primaryLabel = 'Zamów hosting',
   primaryHref = PANEL,
   secondary,
+  conv = 'checkout_intent',
 }: {
   title: string;
   text?: string;
   primaryLabel?: string;
   primaryHref?: string;
   secondary?: { label: string; href: string };
+  /** Zdarzenie konwersji głównego przycisku; `null` — przycisk nie jest zamiarem zakupu (np. program poleceń). */
+  conv?: string | null;
 }) {
   return (
     <section className="ctaband-sec">
@@ -227,7 +230,7 @@ export function CTABand({
             {text && <p>{text}</p>}
           </div>
           <div className="ctaband-btns">
-            <Button href={primaryHref} cta="ctaband" conv="checkout_intent">
+            <Button href={primaryHref} cta="ctaband" conv={conv ?? undefined}>
               {primaryLabel}
             </Button>
             {secondary && (
