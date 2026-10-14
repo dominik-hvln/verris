@@ -108,6 +108,7 @@ const ZDARZENIA: Record<string, string> = {
   MIGRATION_WORKER_JOB_RETRIED: "Krok ponowiony",
   MIGRATION_DELTA_SYNC_QUEUED: "Dosynchronizowanie",
   MIGRATION_SECRETS_REVEALED: "Odsłonięto dane dostępowe",
+  MIGRATION_SECRETS_EXPIRING: "Hasła źródła wkrótce wygasną",
   MIGRATION_SECRETS_PURGED: "Dane dostępowe usunięte",
   MIGRATION_CANCELED: "Anulowano",
 };

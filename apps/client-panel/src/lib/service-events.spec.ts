@@ -27,7 +27,7 @@ describe('X-05 serviceEventLabel', () => {
       expect(EVENT_LABEL[t]).toBeTruthy();
       expect(serviceEventLabel(t)).not.toMatch(/migration|bundle|worker/i);
     }
-    for (const t of ['MIGRATION_WORKER_JOB_RETRYING', 'MIGRATION_WORKER_JOB_COMPLETED', 'MIGRATION_ATTENTION_NOTIFIED']) {
+    for (const t of ['MIGRATION_WORKER_JOB_RETRYING', 'MIGRATION_WORKER_JOB_COMPLETED', 'MIGRATION_ATTENTION_NOTIFIED', 'MIGRATION_SECRETS_EXPIRING']) {
       expect(widoczneDlaKlienta(t)).toBe(false);
     }
   });

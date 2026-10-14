@@ -150,6 +150,7 @@ export const SERVICE_EVENT_PL: Record<string, string> = {
   MIGRATION_WORKER_JOB_RETRYING: 'Migracja: ponowienie kroku (wewnętrzne)',
   MIGRATION_WORKER_JOB_COMPLETED: 'Migracja: krok zakończony (wewnętrzne)',
   MIGRATION_ATTENTION_NOTIFIED: 'Migracja: klient powiadomiony o zatrzymaniu',
+  MIGRATION_SECRETS_EXPIRING: 'Migracja: hasła źródła wkrótce wygasną (przypomnienie dla zespołu)',
 };
 
 /** Etykieta albo — gdy mapa nie zna wartości — sam kod, żeby nic nie zniknęło z ekranu. */

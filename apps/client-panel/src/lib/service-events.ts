@@ -7,7 +7,7 @@ export const EVENT_WARN = new Set(['PAYMENT_FAILED', 'SUSPENDED', 'PROVISIONING_
 
 
 /** Kroki wewnętrzne (worker, powiadomienia) — mają sens dla obsługi, nie dla klienta. */
-const TYLKO_DLA_OBSLUGI = new Set(['MIGRATION_WORKER_JOB_RETRYING', 'MIGRATION_WORKER_JOB_COMPLETED', 'MIGRATION_ATTENTION_NOTIFIED']);
+const TYLKO_DLA_OBSLUGI = new Set(['MIGRATION_WORKER_JOB_RETRYING', 'MIGRATION_WORKER_JOB_COMPLETED', 'MIGRATION_ATTENTION_NOTIFIED', 'MIGRATION_SECRETS_EXPIRING']);
 
 /** Czy zdarzenie pokazujemy klientowi na osi „Co się działo”. */
 export function widoczneDlaKlienta(type: string): boolean {

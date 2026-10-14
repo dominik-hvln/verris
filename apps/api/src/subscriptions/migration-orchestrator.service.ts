@@ -87,6 +87,13 @@ export const MIGRATION_STALL_MINUTES = 20;
  */
 export const MIGRATION_SECRET_TTL_COMPLETED_DAYS = 7;
 export const MIGRATION_SECRET_TTL_FAILED_DAYS = 3;
+/**
+ * 14.10 — zlecenie przekazane obsłudze (ATTENTION) trzymało hasła źródła bez limitu. Teraz najwyżej 14 dni od
+ * eskalacji; 3 dni wcześniej obsługa dostaje przypomnienie, a przy usunięciu — informację, że hasła trzeba
+ * będzie wziąć od klienta jeszcze raz.
+ */
+export const MIGRATION_SECRET_TTL_ATTENTION_DAYS = 14;
+export const MIGRATION_SECRET_PRZYPOMNIENIE_ATTENTION_DAYS = 11;
 
 /** Ile zleceń migracji „w toku" dopuszczamy jednocześnie na jedną subskrypcję. */
 export const MIGRATION_MAX_ACTIVE_PER_SUBSCRIPTION = 1;
@@ -1024,10 +1031,13 @@ export class MigrationOrchestratorService {
    * okna od zakończenia migracji. Ustawia `secretsPurgedAt` i zeruje
    * `sourceBundleEnc`. Idempotentne (pomija już wyczyszczone). Wywoływane z cron.
    */
-  async purgeExpiredSecrets(): Promise<{ purged: number }> {
+  async purgeExpiredSecrets(): Promise<{ purged: number; przypomniano: number }> {
     const now = Date.now();
-    const completedCutoff = new Date(now - MIGRATION_SECRET_TTL_COMPLETED_DAYS * 24 * 60 * 60 * 1000);
-    const failedCutoff = new Date(now - MIGRATION_SECRET_TTL_FAILED_DAYS * 24 * 60 * 60 * 1000);
+    const DZIEN = 24 * 60 * 60 * 1000;
+    const completedCutoff = new Date(now - MIGRATION_SECRET_TTL_COMPLETED_DAYS * DZIEN);
+    const failedCutoff = new Date(now - MIGRATION_SECRET_TTL_FAILED_DAYS * DZIEN);
+    const attentionCutoff = new Date(now - MIGRATION_SECRET_TTL_ATTENTION_DAYS * DZIEN);
+    const przypomnienieCutoff = new Date(now - MIGRATION_SECRET_PRZYPOMNIENIE_ATTENTION_DAYS * DZIEN);
 
     const expired = await this.prisma.migrationRequest.findMany({
       where: {
@@ -1038,9 +1048,10 @@ export class MigrationOrchestratorService {
             status: { in: [MigrationStatus.FAILED, MigrationStatus.CANCELED] },
             completedAt: { lt: failedCutoff },
           },
+          { status: MigrationStatus.ATTENTION, attentionAt: { lt: attentionCutoff } },
         ],
       },
-      select: { id: true, userId: true, subscriptionId: true, status: true },
+      select: { id: true, userId: true, subscriptionId: true, status: true, targetDomain: true },
       take: 100,
     });
 
@@ -1061,9 +1072,78 @@ export class MigrationOrchestratorService {
         details: { migrationRequestId: req.id, subscriptionId: req.subscriptionId, status: req.status },
       });
       purged += 1;
+      if (req.status === MigrationStatus.ATTENTION) {
+        await this.powiadomZespolOSekretach(req, 'usuniete');
+      }
     }
     if (purged > 0) this.logger.log(`migration secret retention: purged ${purged} bundle(s)`);
-    return { purged };
+
+    // Przypomnienie dla obsługi: hasła zlecenia w ATTENTION znikną za 3 dni. Raz na zlecenie (zdarzenie usługi).
+    const bliskoWygasniecia = await this.prisma.migrationRequest.findMany({
+      where: {
+        secretsPurgedAt: null,
+        status: MigrationStatus.ATTENTION,
+        attentionAt: { lt: przypomnienieCutoff, gte: attentionCutoff },
+      },
+      select: { id: true, userId: true, subscriptionId: true, status: true, targetDomain: true },
+      take: 100,
+    });
+    let przypomniano = 0;
+    for (const req of bliskoWygasniecia) {
+      const juz = await this.prisma.subscriptionEvent.findFirst({
+        where: {
+          subscriptionId: req.subscriptionId,
+          type: 'MIGRATION_SECRETS_EXPIRING',
+          details: { path: ['migrationRequestId'], equals: req.id },
+        },
+        select: { id: true },
+      });
+      if (juz) continue;
+      await this.prisma.subscriptionEvent.create({
+        data: {
+          subscriptionId: req.subscriptionId,
+          type: 'MIGRATION_SECRETS_EXPIRING',
+          details: { migrationRequestId: req.id, dni: MIGRATION_SECRET_TTL_ATTENTION_DAYS - MIGRATION_SECRET_PRZYPOMNIENIE_ATTENTION_DAYS },
+        },
+      });
+      await this.powiadomZespolOSekretach(req, 'wygasaja');
+      przypomniano += 1;
+    }
+    return { purged, przypomniano };
+  }
+
+  private async powiadomZespolOSekretach(
+    req: { id: string; targetDomain: string | null },
+    co: 'wygasaja' | 'usuniete',
+  ): Promise<void> {
+    const domena = req.targetDomain ?? '—';
+    const zostalo = MIGRATION_SECRET_TTL_ATTENTION_DAYS - MIGRATION_SECRET_PRZYPOMNIENIE_ATTENTION_DAYS;
+    const tresc =
+      co === 'wygasaja'
+        ? {
+            title: `Migracja ${domena}: hasła starego hostingu znikną za ${zostalo} dni`,
+            body: `Zlecenie czeka na zespół od ${MIGRATION_SECRET_PRZYPOMNIENIE_ATTENTION_DAYS} dni. Po ${MIGRATION_SECRET_TTL_ATTENTION_DAYS} dniach od przekazania usuwamy zapisane hasła źródła — dokończ migrację albo zamknij zlecenie.`,
+            severity: 'warning' as const,
+          }
+        : {
+            title: `Migracja ${domena}: hasła starego hostingu usunięte`,
+            body: `Minęło ${MIGRATION_SECRET_TTL_ATTENTION_DAYS} dni od przekazania zlecenia zespołowi. Do dokończenia potrzebne będą nowe dane dostępu od klienta.`,
+            severity: 'warning' as const,
+          };
+    const zespol = await this.prisma.user.findMany({
+      where: { role: { in: [Role.STAFF, Role.ADMIN] } },
+      select: { id: true },
+      take: 50,
+    });
+    for (const czlonek of zespol) {
+      await this.notifications.create({
+        userId: czlonek.id,
+        category: 'SYSTEM',
+        ...tresc,
+        link: '/migrations',
+        dedupeKey: `migration-secrets-${co}:${req.id}`,
+      });
+    }
   }
 
   /**
