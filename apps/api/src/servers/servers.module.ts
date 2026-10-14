@@ -83,6 +83,7 @@ import { StraznikWezlaAdminController, StraznikWezlaService } from './straznik-w
   ],
   exports: [
     ServersService,
+    BackupOffsiteService,
     BlokadyIpWezlaService,
     UslugiWezlaService,
     DirectAdminService,

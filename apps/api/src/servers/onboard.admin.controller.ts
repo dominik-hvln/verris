@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
 import { NodeTaskStatus, Role } from '@verris/database';
 import { KOPIE_OFFSITE_DNI, KOPIE_OFFSITE_MAX_DNI } from '@verris/contracts';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
@@ -40,6 +40,41 @@ export class BackupOffsiteDto {
   cryptSalt?: string;
 }
 
+/** Audyt 13.10 (#11) — dane kopii off-site jednego węzła: subkonto Storage Boxa ograniczone do jego katalogu + własny crypt. */
+export class BackupOffsiteWezlaDto {
+  @IsString() @MaxLength(253) @Matches(/^[a-z0-9.-]+$/i, { message: 'Host: sama nazwa, np. u123456.your-storagebox.de' })
+  host!: string;
+
+  @Type(() => Number) @IsInt() @Min(1) @Max(65535)
+  port!: number;
+
+  @IsString() @MinLength(1) @MaxLength(64) @Matches(/^[a-z0-9._-]+$/i)
+  user!: string;
+
+  @IsOptional() @IsString() @MaxLength(200) @Matches(/^[a-z0-9._/-]*$/i, { message: 'Ścieżka: litery, cyfry, . _ - /' })
+  sciezka?: string;
+
+  @IsOptional() @IsString() @MaxLength(256)
+  pass?: string;
+
+  @IsOptional() @IsString() @MinLength(16) @MaxLength(256)
+  cryptPass?: string;
+
+  @IsOptional() @IsString() @MinLength(16) @MaxLength(256)
+  cryptSalt?: string;
+
+  @IsOptional() @IsString() @MaxLength(64) @Matches(/^[a-z0-9._-]*$/i)
+  roUser?: string;
+
+  @IsOptional() @IsString() @MaxLength(256)
+  roPass?: string;
+}
+
+export class TylkoPerWezelDto {
+  @IsBoolean()
+  wlacz!: boolean;
+}
+
 /**
  * PB-31 — automatyzacja kreatora węzła z panelu:
  *  - kopie off-site floty (raz, dla wszystkich węzłów) — tylko admin, bo to klucze do kopii wszystkich klientów;
@@ -64,6 +99,24 @@ export class OnboardAdminController {
   @Roles(Role.ADMIN)
   backupZapisz(@CurrentUser() u: { userId: string; actorUserId?: string }, @Body() dto: BackupOffsiteDto) {
     return this.backup.zapisz(dto, u.actorUserId ?? u.userId);
+  }
+
+  @Get('server/:id/backup-offsite')
+  @Roles(Role.ADMIN)
+  backupWezlaPodglad(@Param('id') id: string) {
+    return this.backup.podgladWezla(id);
+  }
+
+  @Put('server/:id/backup-offsite')
+  @Roles(Role.ADMIN)
+  backupWezlaZapisz(@Param('id') id: string, @CurrentUser() u: { userId: string; actorUserId?: string }, @Body() dto: BackupOffsiteWezlaDto) {
+    return this.backup.zapiszWezla(id, { ...dto, sciezka: dto.sciezka ?? '' }, u.actorUserId ?? u.userId);
+  }
+
+  @Put('backup-offsite/tylko-per-wezel')
+  @Roles(Role.ADMIN)
+  tylkoPerWezel(@CurrentUser() u: { userId: string; actorUserId?: string }, @Body() dto: TylkoPerWezelDto) {
+    return this.backup.ustawTylkoPerWezel(dto.wlacz, u.actorUserId ?? u.userId);
   }
 
   @Post('server/:id/run')

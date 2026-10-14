@@ -1,15 +1,17 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { NodeTaskKind, NodeTaskStatus, ServerStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { HostingResourceActions } from '../common/audit/audit.actions.js';
 import { ARCHIVE_RE, SNAPSHOT_RE, archiwaZLogu } from './offsite-restore.service.js';
+import { BackupOffsiteService } from '../servers/backup-offsite.service.js';
 
 /**
  * H-16 — odtworzenie konta z kopii off-site na INNYM węźle (awaria/utrata węzła źródłowego).
  * Operator (tylko ADMIN) wybiera węzeł docelowy, zadanie OFFSITE_RESTORE idzie na ten węzeł i czyta
- * kopie spod prefiksu węzła źródłowego (`nodes/<hostname -s>` — ten sam układ co node-offsite-backup.sh;
- * cała flota używa tego samego remote crypt). DA odtwarza konto z IP węzła docelowego
+ * kopie spod prefiksu węzła źródłowego (`nodes/<hostname -s>` — ten sam układ co node-offsite-backup.sh).
+ * Źródło na wspólnych danych floty: węzeł docelowy czyta je swoim remote'em. Źródło z własnymi danymi (audyt 13.10,
+ * #11): węzeł docelowy dostaje na czas zadania subkonto tylko do odczytu i crypt źródła. DA odtwarza konto z IP węzła docelowego
  * (ip_choice=select, dokumentacja DA), a po sukcesie NodeTasksService przepina konto na nowy węzeł.
  * DNS domen klienta przełącza się razem z kontem tylko przy zewnętrznym DNS (klaster) — inaczej
  * operator zmienia serwery nazw według checklisty w panelu.
@@ -19,6 +21,7 @@ export class OdtworzenieNaWezleService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    @Optional() private readonly offsite?: BackupOffsiteService,
   ) {}
 
   async status(subscriptionId: string) {
@@ -80,6 +83,11 @@ export class OdtworzenieNaWezleService {
     });
     if (wToku) throw new ConflictException('Operacja na kopii off-site tego konta jest już w toku.');
     const payload: Record<string, string> = { mode: dane.mode, daUser: account.daUsername, sourcePrefix: src, przeniesienie: '1' };
+    // Audyt 13.10 (#11): źródło z własnymi danymi kopii — węzeł docelowy pobiera subkonto TYLKO DO ODCZYTU źródła
+    // i jego klucz crypt na czas zadania (GET /agent/tasks/offsite-restore/zrodlo/:id), sekrety nie trafiają do payloadu.
+    if (account.serverId && (await this.offsite?.daneOdczytuZrodla(account.serverId))) {
+      payload.zrodloServerId = account.serverId;
+    }
     if (dane.archive) payload.archive = dane.archive;
     if (dane.snapshot) payload.snapshot = dane.snapshot;
     if (dane.mode === 'restore') payload.ip = cel.ipAddress;

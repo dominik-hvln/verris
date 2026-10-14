@@ -1,5 +1,5 @@
-import { BadRequestException, Injectable, Logger, Optional } from '@nestjs/common';
-import { retencjaOffsiteDni } from '@verris/contracts';
+import { BadRequestException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
+import { KOPIE_OFFSITE_DNI, retencjaOffsiteDni } from '@verris/contracts';
 import { NodeTasksService } from './node-tasks.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CryptoService } from '../common/crypto/crypto.service.js';
@@ -15,6 +15,33 @@ import { AuditService } from '../common/audit/audit.service.js';
  * (password + password2 — dokumentacja rclone crypt: bez tej samej soli danych nie odczytasz).
  */
 const KLUCZ = 'backup.offsiteEnc';
+/**
+ * Audyt 13.10 (#11): wspólny zestaw dla floty oznaczał, że root JEDNEGO węzła czyta, odszyfrowuje i kasuje kopie
+ * WSZYSTKICH węzłów. Węzeł z własnym wpisem (subkonto Storage Boxa ograniczone do jego katalogu + własne hasła crypt)
+ * dostaje tylko ten wpis. Węzeł bez wpisu dostaje wspólny zestaw, dopóki admin nie włączy „tylko per węzeł” —
+ * okres przejściowy dla t1/t2, każdy taki odczyt w audycie jako BACKUP_OFFSITE_SHARED_READ_BY_NODE.
+ */
+const kluczWezla = (serverId: string) => `backup.offsiteEnc.wezel.${serverId}`;
+const KLUCZ_TYLKO_PER_WEZEL = 'backup.offsiteTylkoPerWezel';
+
+export interface OffsiteWezla {
+  host: string;
+  port: number;
+  /** Subkonto do zapisu kopii tego węzła (katalog bazowy = katalog węzła). */
+  user: string;
+  pass: string;
+  /** Ścieżka względem katalogu subkonta (zwykle pusta — subkonto widzi tylko swój katalog). */
+  sciezka: string;
+  cryptPass: string;
+  cryptSalt: string;
+  /** Subkonto TYLKO DO ODCZYTU tego samego katalogu — dla odtworzenia konta na innym węźle (H-16). */
+  roUser?: string;
+  roPass?: string;
+}
+
+export type PodgladOffsiteWezla =
+  | { wlasne: false; tylkoPerWezel: boolean }
+  | { wlasne: true; tylkoPerWezel: boolean; host: string; port: number; user: string; sciezka: string; roUser: string | null; zmienionoAt: string };
 
 export interface KonfiguracjaOffsite {
   host: string;
@@ -106,12 +133,147 @@ export class BackupOffsiteService {
     return this.podglad();
   }
 
-  /** Treść dla węzła (env, source-owalna). `null` = nieskonfigurowane. */
-  async dlaWezla(serverId: string): Promise<string | null> {
-    const w = await this.wczytaj();
+  private async wczytajWezla(serverId: string): Promise<{ k: OffsiteWezla; at: Date } | null> {
+    const w = await this.prisma.platformSetting.findUnique({ where: { key: kluczWezla(serverId) } });
+    if (!w?.value) return null;
+    try {
+      return { k: JSON.parse(this.crypto.decrypt(w.value)) as OffsiteWezla, at: w.updatedAt };
+    } catch {
+      return null;
+    }
+  }
+
+  private async tylkoPerWezel(): Promise<boolean> {
+    const w = await this.prisma.platformSetting.findUnique({ where: { key: KLUCZ_TYLKO_PER_WEZEL } });
+    return w?.value === '1';
+  }
+
+  async podgladWezla(serverId: string): Promise<PodgladOffsiteWezla> {
+    const tylko = await this.tylkoPerWezel();
+    const w = await this.wczytajWezla(serverId);
+    if (!w) return { wlasne: false, tylkoPerWezel: tylko };
+    const { host, port, user, sciezka, roUser } = w.k;
+    return { wlasne: true, tylkoPerWezel: tylko, host, port, user, sciezka, roUser: roUser ?? null, zmienionoAt: w.at.toISOString() };
+  }
+
+  /** Puste hasła = zostaw obecne (formularz nie odsyła sekretów). Hasła crypt przy pierwszym zapisie obowiązkowe. */
+  async zapiszWezla(
+    serverId: string,
+    dane: Omit<OffsiteWezla, 'pass' | 'cryptPass' | 'cryptSalt' | 'roPass'> & { pass?: string; cryptPass?: string; cryptSalt?: string; roPass?: string },
+    actorUserId: string,
+  ): Promise<PodgladOffsiteWezla> {
+    const wezel = await this.prisma.server.findUnique({ where: { id: serverId }, select: { id: true } });
+    if (!wezel) throw new NotFoundException('Nie znaleziono węzła.');
+    const stare = (await this.wczytajWezla(serverId))?.k;
+    const roUser = dane.roUser?.trim() || undefined;
+    const k: OffsiteWezla = {
+      host: dane.host.trim(),
+      port: dane.port,
+      user: dane.user.trim(),
+      sciezka: (dane.sciezka ?? '').trim().replace(/^\/+|\/+$/g, ''),
+      pass: dane.pass?.trim() || stare?.pass || '',
+      cryptPass: dane.cryptPass?.trim() || stare?.cryptPass || '',
+      cryptSalt: dane.cryptSalt?.trim() || stare?.cryptSalt || '',
+      roUser,
+      roPass: roUser ? dane.roPass?.trim() || (stare?.roUser === roUser ? stare?.roPass : undefined) || undefined : undefined,
+    };
+    if (!k.pass || !k.cryptPass || !k.cryptSalt) {
+      throw new BadRequestException('Podaj hasło subkonta oraz hasło i sól szyfrowania tego węzła (przy pierwszym zapisie wszystkie trzy).');
+    }
+    if (k.roUser && !k.roPass) throw new BadRequestException('Podaj hasło subkonta tylko do odczytu.');
+    const glob = (await this.wczytaj())?.k;
+    if (glob && glob.cryptPass === k.cryptPass) {
+      throw new BadRequestException('Hasło szyfrowania węzła musi być inne niż wspólne hasło floty — inaczej klucz jednego węzła nadal otwiera kopie innych.');
+    }
+    if (stare && (stare.cryptPass !== k.cryptPass || stare.cryptSalt !== k.cryptSalt)) {
+      await this.audit.record({ action: 'BACKUP_OFFSITE_CRYPT_CHANGED', actorUserId, details: { serverId, host: k.host } });
+    }
+    const value = this.crypto.encrypt(JSON.stringify(k));
+    await this.prisma.platformSetting.upsert({
+      where: { key: kluczWezla(serverId) },
+      create: { key: kluczWezla(serverId), value, updatedByUserId: actorUserId },
+      update: { value, updatedByUserId: actorUserId },
+    });
+    await this.audit.record({
+      action: 'BACKUP_OFFSITE_NODE_UPDATED',
+      actorUserId,
+      details: { serverId, host: k.host, port: k.port, user: k.user, sciezka: k.sciezka, roUser: k.roUser ?? null },
+    });
+    return this.podgladWezla(serverId);
+  }
+
+  /** Po przeniesieniu wszystkich węzłów na własne wpisy admin odcina wspólny zestaw (węzeł bez wpisu = 404). */
+  async ustawTylkoPerWezel(wlacz: boolean, actorUserId: string): Promise<{ tylkoPerWezel: boolean }> {
+    await this.prisma.platformSetting.upsert({
+      where: { key: KLUCZ_TYLKO_PER_WEZEL },
+      create: { key: KLUCZ_TYLKO_PER_WEZEL, value: wlacz ? '1' : '0', updatedByUserId: actorUserId },
+      update: { value: wlacz ? '1' : '0', updatedByUserId: actorUserId },
+    });
+    await this.audit.record({ action: 'BACKUP_OFFSITE_PER_NODE_ONLY', actorUserId, details: { wlacz } });
+    return { tylkoPerWezel: wlacz };
+  }
+
+  /**
+   * H-16 — dane TYLKO DO ODCZYTU kopii węzła źródłowego dla zadania odtworzenia na innym węźle. `null` = źródło
+   * na wspólnym zestawie (stary układ: węzeł docelowy czyta prefiks źródła swoim remote'em).
+   */
+  async daneOdczytuZrodla(sourceServerId: string): Promise<OffsiteWezla | null> {
+    const w = await this.wczytajWezla(sourceServerId);
     if (!w) return null;
-    await this.audit.record({ action: 'BACKUP_OFFSITE_READ_BY_NODE', details: { serverId } });
+    if (!w.k.roUser || !w.k.roPass) {
+      throw new BadRequestException('Węzeł źródłowy nie ma subkonta tylko do odczytu w danych kopii off-site — uzupełnij je na karcie węzła.');
+    }
+    return w.k;
+  }
+
+  /**
+   * Env dla zadania odtworzenia (H-16): subkonto RO źródła + jego crypt. Tylko dla węzła, który właśnie wykonuje
+   * to zadanie (OFFSITE_RESTORE w toku, zlecone z `zrodloServerId`) — inaczej 404. Odczyt w audycie.
+   */
+  async envDlaZadaniaOdtworzenia(taskId: string, celServerId: string): Promise<string> {
+    const t = await this.prisma.nodeTask.findUnique({ where: { id: taskId }, select: { serverId: true, kind: true, status: true, payload: true } });
+    const sourceServerId = (t?.payload as { zrodloServerId?: string } | null)?.zrodloServerId;
+    if (!t || t.serverId !== celServerId || t.kind !== 'OFFSITE_RESTORE' || t.status !== 'RUNNING' || !sourceServerId) {
+      throw new NotFoundException('Brak zadania odtworzenia w toku dla tego węzła.');
+    }
+    const k = await this.daneOdczytuZrodla(sourceServerId);
+    if (!k) throw new NotFoundException('Węzeł źródłowy korzysta ze wspólnych danych kopii.');
+    await this.audit.record({ action: 'BACKUP_OFFSITE_SOURCE_READ_FOR_RESTORE', details: { sourceServerId, serverId: celServerId, taskId } });
     const q = (v: string | number) => `'${String(v).replace(/'/g, `'\\''`)}'`;
+    return [
+      `SRC_HOST=${q(k.host)}`,
+      `SRC_PORT=${q(k.port)}`,
+      `SRC_USER=${q(k.roUser!)}`,
+      `SRC_PASS=${q(k.roPass!)}`,
+      `SRC_PATH=${q(k.sciezka)}`,
+      `SRC_CRYPT_PASS=${q(k.cryptPass)}`,
+      `SRC_CRYPT_SALT=${q(k.cryptSalt)}`,
+      '',
+    ].join('\n');
+  }
+
+  /** Treść dla węzła (env, source-owalna). `null` = nieskonfigurowane (albo „tylko per węzeł” i brak wpisu). */
+  async dlaWezla(serverId: string): Promise<string | null> {
+    const q = (v: string | number) => `'${String(v).replace(/'/g, `'\\''`)}'`;
+    const wlasne = await this.wczytajWezla(serverId);
+    const w = await this.wczytaj();
+    if (wlasne) {
+      await this.audit.record({ action: 'BACKUP_OFFSITE_READ_BY_NODE', details: { serverId, wlasne: true } });
+      const k = wlasne.k;
+      return [
+        `VB_HOST=${q(k.host)}`,
+        `VB_PORT=${q(k.port)}`,
+        `VB_USER=${q(k.user)}`,
+        `VB_PASS=${q(k.pass)}`,
+        `VB_PATH=${q(k.sciezka)}`,
+        `VB_CRYPT_PASS=${q(k.cryptPass)}`,
+        `VB_CRYPT_SALT=${q(k.cryptSalt)}`,
+        `VB_RETENTION_DAYS=${q(w?.k.retencjaDni ?? KOPIE_OFFSITE_DNI)}`,
+        '',
+      ].join('\n');
+    }
+    if (!w || (await this.tylkoPerWezel())) return null;
+    await this.audit.record({ action: 'BACKUP_OFFSITE_SHARED_READ_BY_NODE', details: { serverId } });
     const k = w.k;
     return [
       `VB_HOST=${q(k.host)}`,

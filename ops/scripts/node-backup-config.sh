@@ -9,24 +9,34 @@
 #
 #   verris-crypt: → crypt (password + password2) na verris-remote:<ścieżka> (SFTP, Storage Box port 23)
 #
-# Użycie: bash node-backup-config.sh [--force]   (bez --force nie rusza istniejącej konfiguracji)
+# Użycie: bash node-backup-config.sh [--force | --jesli-zmiana]
+#   bez opcji      — nie rusza istniejącej konfiguracji;
+#   --force        — nadpisuje zawsze;
+#   --jesli-zmiana — nadpisuje, gdy dane z panelu się zmieniły (audyt 13.10, #11: przejście węzła ze wspólnych
+#                    danych floty na własne subkonto i klucz crypt; Onboard LIVE woła to przy każdym przebiegu).
 # =============================================================================
 set -Eeuo pipefail
 
 FORCE=0
+ZMIANA=0
 [ "${1:-}" = "--force" ] && FORCE=1
-BCONF=/etc/verris-backup.conf
+[ "${1:-}" = "--jesli-zmiana" ] && ZMIANA=1
+# VERRIS_BACKUP_CONF podmieniany wyłącznie w testach.
+BCONF="${VERRIS_BACKUP_CONF:-/etc/verris-backup.conf}"
 
 log() { echo "[backup-config] $*"; }
 
-if [ -r "$BCONF" ] && [ "$FORCE" -ne 1 ]; then
+if [ -r "$BCONF" ] && [ "$FORCE" -ne 1 ] && [ "$ZMIANA" -ne 1 ]; then
   log "Konfiguracja $BCONF już jest — pomijam (--force nadpisze)."
   exit 0
 fi
 
-[ -r /etc/verris.conf ] || { log "Brak /etc/verris.conf — najpierw bootstrap/agent."; exit 1; }
-# shellcheck disable=SC1091
-. /etc/verris.conf
+# VERRIS_CONF / VERRIS_RCLONE_DIR podmieniane wyłącznie w testach.
+VCONF="${VERRIS_CONF:-/etc/verris.conf}"
+RDIR="${VERRIS_RCLONE_DIR:-/root/.config/rclone}"
+[ -r "$VCONF" ] || { log "Brak $VCONF — najpierw bootstrap/agent."; exit 1; }
+# shellcheck disable=SC1090
+. "$VCONF"
 
 if ! command -v rclone >/dev/null 2>&1; then
   log "Instaluję rclone…"
@@ -47,16 +57,21 @@ if [ "$rc" = "4" ]; then
   exit 2
 fi
 [ "$rc" = "0" ] || { log "Nie pobrano konfiguracji kopii z control-plane (verris-fetch kod $rc)."; exit 1; }
+ZRODLO_SHA="$(sha256sum "$TMP" | cut -d' ' -f1)"
+if [ "$ZMIANA" = "1" ] && [ -r "$BCONF" ] && grep -qx "VB_ZRODLO_SHA=$ZRODLO_SHA" "$BCONF"; then
+  log "Dane kopii z panelu bez zmian — konfiguracja zostaje."
+  exit 0
+fi
 # shellcheck disable=SC1090
 . "$TMP"
 
 umask 077
-mkdir -p /root/.config/rclone
+mkdir -p "$RDIR"
 # Klucz hosta Storage Boxa przypięty przy pierwszej konfiguracji: bez known_hosts_file rclone nie sprawdza
 # serwera („No host key validation is being performed”) — podszywający się host zebrałby hasło SFTP i mógłby
 # kasować kopie (treść chroni crypt). ponytail: TOFU przy onboardzie; porównanie z odciskami publikowanymi
 # przez Hetznera, gdyby trzeba było bronić też pierwszego połączenia.
-KH=/root/.config/rclone/storagebox_known_hosts
+KH="$RDIR/storagebox_known_hosts"
 # 13.10 (t2): przypięte były tylko ed25519 i rsa, a klient SSH rclone wynegocjował ecdsa → „knownhosts: key mismatch”
 # i kopie off-site węzła nie działały. Typy wg dokumentacji rclone (https://rclone.org/sftp/#host-key-validation:
 # „ssh-keyscan -t dsa,rsa,ecdsa,ed25519”) bez dsa — OpenSSH 9.8+ (EL10) usunęło DSA.
@@ -65,7 +80,7 @@ ssh-keyscan -p "$VB_PORT" -t rsa,ecdsa,ed25519 "$VB_HOST" 2>/dev/null > "$KH.now
 mv -f "$KH.nowy" "$KH"; chmod 600 "$KH"
 rclone config create verris-remote sftp host "$VB_HOST" port "$VB_PORT" user "$VB_USER" pass "$VB_PASS" known_hosts_file "$KH" --obscure >/dev/null
 rclone config create verris-crypt crypt remote "verris-remote:$VB_PATH" password "$VB_CRYPT_PASS" password2 "$VB_CRYPT_SALT" --obscure >/dev/null
-chmod 600 /root/.config/rclone/rclone.conf
+chmod 600 "$RDIR/rclone.conf" 2>/dev/null || true
 
 # RETENTION_DAYS = domyślna retencja floty (konto bez własnego wyboru). Retencję wybraną przez klienta
 # (H-03) node-offsite-backup.sh pobiera co noc z /agent/tasks/backup-retention; obie przycina do 30–90 dni.
@@ -74,6 +89,7 @@ RCLONE_REMOTE="verris-crypt:"
 BACKUP_PREFIX="nodes/$(hostname -s)"
 RETENTION_DAYS=$VB_RETENTION_DAYS
 DA_BACKUP=1
+VB_ZRODLO_SHA=$ZRODLO_SHA
 CONF
 chmod 600 "$BCONF"
 

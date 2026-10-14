@@ -38,6 +38,7 @@ import { PrzekroczeniaLimitow, type Przekroczenia } from "@/components/przekrocz
 import { ZgodnoscKontKarta, type ZgodnoscKont } from "./zgodnosc-kont";
 import { adminApi } from "@/lib/api";
 import { OnboardLivePanel } from "../wizard/onboard-panele";
+import { KopieOffsiteWezla } from "@/components/kopie-offsite-wezla";
 import { fetchPrognozaWezla, fetchPrzegladWezla } from "./przeglad-data";
 import { PrognozaWezlaKarta } from "./prognoza-wezla";
 import { listNodeTasks } from "../../provisioning-queue/data";
@@ -434,6 +435,7 @@ export default async function ServerDetailPage({
             <DefRow label="Ostatni handshake" value={server.lastHandshakeAt ? new Date(server.lastHandshakeAt).toLocaleString("pl-PL") : "brak"} />
             {server.notes && <DefRow label="Notatki" value={server.notes} />}
           </section>
+          {dostep.isAdmin ? <KopieOffsiteWezla serverId={server.id} /> : null}
           <div id="status" className="scroll-mt-4">
             <WymagaUprawnienia powod={wymaga("offline")}>
               <NodeStatusPanel serverId={server.id} status={server.status} />

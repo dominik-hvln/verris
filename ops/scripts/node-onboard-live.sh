@@ -292,6 +292,15 @@ run_security_hardening() {
       log_warn "Konfiguracja kopii z panelu nie powiodła się — szczegóły powyżej"
     fi
   fi
+  # Audyt 13.10 (#11): dane kopii zmienione w panelu (np. własne subkonto i klucz crypt węzła zamiast wspólnych
+  # danych floty) — węzeł przechodzi na nie przy najbliższym Onboard LIVE.
+  if [ "$DRY_RUN" != "1" ] && [ -f "$SCRIPT_DIR/node-backup-config.sh" ] && backup_offsite_skonfigurowany; then
+    if bash "$SCRIPT_DIR/node-backup-config.sh" --jesli-zmiana; then
+      log_ok "Backup offsite: dane z panelu aktualne"
+    else
+      log_warn "Aktualizacja danych kopii z panelu nie powiodła się — zostaje poprzednia konfiguracja (szczegóły powyżej)"
+    fi
+  fi
   if ! backup_offsite_skonfigurowany; then
     log_fail "Backup offsite nieskonfigurowany — utwórz /etc/verris-backup.conf (RCLONE_REMOTE, BACKUP_PREFIX) i remote w rclone.conf, potem uruchom onboard ponownie. Najprościej: kreator węzła → krok „Backup offsite” (zapis w panelu), potem uruchom onboard ponownie."
   elif [ "$DRY_RUN" != "1" ] && ! backup_offsite_osiagalny; then

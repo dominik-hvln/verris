@@ -416,6 +416,17 @@ export class NodeTasksAgentController {
     return tresc;
   }
 
+  /**
+   * Audyt 13.10 (#11) — H-16 ze źródłem na własnych danych kopii: subkonto tylko do odczytu i klucz crypt węzła
+   * źródłowego, wyłącznie dla węzła wykonującego to zadanie odtworzenia (sekrety poza payloadem i bazą zadań).
+   */
+  @Get('offsite-restore/zrodlo/:taskId')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  @Header('Cache-Control', 'no-store')
+  offsiteRestoreZrodlo(@Req() req: Request & { serverId?: string }, @Param('taskId') taskId: string) {
+    return this.backup.envDlaZadaniaOdtworzenia(taskId, req.serverId!);
+  }
+
   /** H-03 — retencja kopii off-site per konto węzła (`<login> <dni>`), pobierana przez node-offsite-backup.sh. */
   @Get('backup-retention')
   @Header('Content-Type', 'text/plain; charset=utf-8')

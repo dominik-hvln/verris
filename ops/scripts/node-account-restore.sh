@@ -187,6 +187,39 @@ cmd_archiwum() {
   printf 'VERRIS-ORPHAN-ARCHIVED %s %s\n' "$user" "$cel"
 }
 
+# Audyt 13.10 (#11) — źródło (H-16) z własnymi danymi kopii: subkonto Storage Boxa TYLKO DO ODCZYTU i klucz crypt
+# węzła źródłowego pobrane z control-plane na czas zadania (verris-fetch, podpis). Remote'y rclone z samych zmiennych
+# środowiska (https://rclone.org/docs/#config-file — RCLONE_CONFIG_<NAZWA>_<OPCJA>), hasła zaciemnione przez
+# `rclone obscure -` ze stdin (https://rclone.org/commands/rclone_obscure/) — bez sekretów w argv i bez zapisu do
+# /root/.config/rclone/rclone.conf węzła docelowego. Po zadaniu katalog tymczasowy znika.
+zrodlo_z_wlasnymi_danymi() {
+  [[ "${OFR_TASK_ID:-}" =~ ^[0-9a-f-]{36}$ ]] || fail "brak identyfikatora zadania — nie pobiorę danych kopii źródła"
+  ZR_DIR="$(mktemp -d)"
+  chmod 700 "$ZR_DIR"
+  trap 'rm -rf "$ZR_DIR"' EXIT
+  local rc=0
+  verris-fetch "/agent/tasks/offsite-restore/zrodlo/$OFR_TASK_ID" "$ZR_DIR/zrodlo.env" 20 || rc=$?
+  [ "$rc" = "0" ] || fail "nie pobrano danych kopii węzła źródłowego (verris-fetch kod $rc)"
+  # shellcheck disable=SC1091
+  . "$ZR_DIR/zrodlo.env"
+  ssh-keyscan -p "$SRC_PORT" -t rsa,ecdsa,ed25519 "$SRC_HOST" 2>/dev/null > "$ZR_DIR/kh" || true
+  [ -s "$ZR_DIR/kh" ] || fail "nie pobrano klucza hosta Storage Boxa źródła ($SRC_HOST:$SRC_PORT)"
+  ob() { printf '%s' "$1" | rclone obscure -; }
+  export RCLONE_CONFIG_ZRODLOSFTP_TYPE=sftp
+  export RCLONE_CONFIG_ZRODLOSFTP_HOST="$SRC_HOST"
+  export RCLONE_CONFIG_ZRODLOSFTP_PORT="$SRC_PORT"
+  export RCLONE_CONFIG_ZRODLOSFTP_USER="$SRC_USER"
+  RCLONE_CONFIG_ZRODLOSFTP_PASS="$(ob "$SRC_PASS")"; export RCLONE_CONFIG_ZRODLOSFTP_PASS
+  export RCLONE_CONFIG_ZRODLOSFTP_KNOWN_HOSTS_FILE="$ZR_DIR/kh"
+  export RCLONE_CONFIG_ZRODLO_TYPE=crypt
+  export RCLONE_CONFIG_ZRODLO_REMOTE="zrodlosftp:${SRC_PATH}"
+  RCLONE_CONFIG_ZRODLO_PASSWORD="$(ob "$SRC_CRYPT_PASS")"; export RCLONE_CONFIG_ZRODLO_PASSWORD
+  RCLONE_CONFIG_ZRODLO_PASSWORD2="$(ob "$SRC_CRYPT_SALT")"; export RCLONE_CONFIG_ZRODLO_PASSWORD2
+  unset SRC_PASS SRC_CRYPT_PASS SRC_CRYPT_SALT
+  RCLONE_REMOTE="zrodlo:"
+  log "kopie źródła: subkonto tylko do odczytu $SRC_USER@$SRC_HOST (dane na czas zadania)"
+}
+
 # Walidacja wejscia (obrona w glab — control-plane waliduje to samo).
 check_args() {
   local user="$1" archive="${2:-}" snap="${3:-}" prefix="${4:-}" ip="${5:-}"
@@ -207,6 +240,7 @@ check_args() {
 if [ $# -eq 0 ] && [ -n "${OFR_MODE:-}" ]; then
   check_args "${OFR_USER:-}" "${OFR_ARCHIVE:-}" "${OFR_SNAPSHOT:-}" "${OFR_SOURCE_PREFIX:-}" "${OFR_IP:-}"
   [ -z "${OFR_SOURCE_PREFIX:-}" ] || BACKUP_PREFIX="$OFR_SOURCE_PREFIX"
+  [ -z "${OFR_ZRODLO_SERWER:-}" ] || zrodlo_z_wlasnymi_danymi
   case "$OFR_MODE" in
     list)    cmd_list  "$OFR_USER" "${OFR_SNAPSHOT:-}" ;;
     fetch)   cmd_fetch "$OFR_USER" "${OFR_ARCHIVE:?OFR_ARCHIVE wymagane}" "${OFR_SNAPSHOT:-}" ;;

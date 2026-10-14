@@ -80,9 +80,10 @@ export function KopieOffsiteFormularz() {
         </strong>
       </p>
       <p className="text-xs text-zinc-400">
-        Hetzner Storage Box przez SFTP (port 23) + szyfrowanie rclone crypt. Te same hasła dla całej floty —
-        tylko wtedy konto z utraconego węzła odtworzysz na innym. Hasło i sól szyfrowania zapisz w sejfie poza
-        panelem: bez nich kopii nie odczytasz. Pola haseł zostaw puste, żeby nie zmieniać zapisanych.
+        Hetzner Storage Box przez SFTP (port 23) + szyfrowanie rclone crypt. Wspólne dane floty — węzeł bez
+        własnych danych kopii (karta węzła → Konfiguracja) korzysta z nich i może czytać kopie innych węzłów, więc
+        docelowo każdy węzeł ma własne subkonto. Retencja stąd obowiązuje wszystkie węzły. Hasło i sól szyfrowania
+        zapisz w sejfie poza panelem: bez nich kopii nie odczytasz. Pola haseł zostaw puste, żeby nie zmieniać zapisanych.
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block"><span className={etykieta}>Host Storage Boxa</span><input className={pole} value={f.host} onChange={ustaw("host")} placeholder="u123456.your-storagebox.de" /></label>

@@ -97,6 +97,7 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   'GET /agent/tasks/lve/script',
   'GET /agent/tasks/node-update/script',
   'GET /agent/tasks/offsite-restore/script',
+  'GET /agent/tasks/offsite-restore/zrodlo/:taskId',
   'GET /agent/tasks/php-apply/script',
   'GET /agent/tasks/staging-sync/script',
   'GET /agent/tasks/straznik/config',
