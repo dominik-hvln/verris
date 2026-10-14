@@ -90,7 +90,9 @@ export class BootstrapTokenService {
    */
   async markUsed(id: string, opts?: { ipAddress?: string }): Promise<boolean> {
     const { count } = await this.prisma.bootstrapToken.updateMany({
-      where: { id, usedAt: null },
+      // Przegląd 15.10: także nieunieważniony i ważny — `peek` jest wcześniej (w guardzie), a równoległy handshake
+      // innym tokenem tego węzła mógł go w międzyczasie unieważnić (revokeSiblings).
+      where: { id, usedAt: null, revokedAt: null, expiresAt: { gt: new Date() } },
       data: {
         usedAt: new Date(),
         usedFromIp: opts?.ipAddress ?? null,

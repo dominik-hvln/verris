@@ -51,6 +51,18 @@ describe('Handshake węzła — tokeny bootstrapu', () => {
     await expect(tokens.peek(drugi.plaintext)).rejects.toThrow('revoked');
   });
 
+  it('(D) token unieważniony po `peek` (równoległy handshake rodzeństwa) nie zostaje zużyty', async () => {
+    const w = await utworzWezel({ status: 'INIT', identityToken: null });
+    const { tokens, servers } = uslugi();
+    const t1 = await tokens.issue({ serverId: w.id });
+    const t2 = await tokens.issue({ serverId: w.id });
+    await tokens.peek(t2.plaintext); // T2 przeszedł guard…
+    await servers.handleHandshake(w.id, dto('198.51.100.30'), { bootstrapTokenId: t1.token.id }); // …a T1 wygrał
+    await expect(servers.handleHandshake(w.id, dto('198.51.100.31'), { bootstrapTokenId: t2.token.id }))
+      .rejects.toBeInstanceOf(UnauthorizedException);
+    expect((await prisma().server.findUniqueOrThrow({ where: { id: w.id } })).ipAddress).toBe('198.51.100.30');
+  });
+
   it('(C) dwa równoległe handshake jednym tokenem → tylko jeden dostaje tożsamość', async () => {
     const w = await utworzWezel({ status: 'INIT', identityToken: null });
     const { tokens, servers } = uslugi();
