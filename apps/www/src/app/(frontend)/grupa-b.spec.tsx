@@ -144,3 +144,33 @@ describe('grupa B — /poczta', () => {
     expect(html).not.toMatch(/kod(em)? QR|czarn\w+ list/i);
   });
 });
+
+describe('grupa B — /vps', () => {
+  const env = process.env.NEXT_PUBLIC_FEATURE_VPS;
+  afterEach(() => {
+    process.env.NEXT_PUBLIC_FEATURE_VPS = env;
+  });
+
+  /** Flaga VPS jest czytana przy imporcie lib/oferta — osobny rejestr modułów (razem z react-dom/server). */
+  async function vps(flaga: string | undefined) {
+    if (flaga === undefined) delete process.env.NEXT_PUBLIC_FEATURE_VPS;
+    else process.env.NEXT_PUBLIC_FEATURE_VPS = flaga;
+    let wynik!: { mod: typeof import('./vps/page'); serwer: typeof import('react-dom/server') };
+    await jest.isolateModulesAsync(async () => {
+      wynik = { mod: await import('./vps/page'), serwer: await import('react-dom/server') };
+    });
+    return wynik;
+  }
+
+  it('bez VPS_W_SPRZEDAZY → 404 (jak dotąd)', async () => {
+    const { mod } = await vps(undefined);
+    expect(() => mod.default()).toThrow('NEXT_NOT_FOUND');
+  });
+
+  it('w sprzedaży: metadane, h1, Service + FAQPage + BreadcrumbList, bez lokalizacji serwerów i [placeholderów]', async () => {
+    const { mod, serwer } = await vps('true');
+    const html = serwer.renderToStaticMarkup(mod.default());
+    sprawdzStrone({ html, meta: mod.metadata, fraza: /^VPS/, typy: ['Service', 'FAQPage', 'BreadcrumbList'], canonical: '/vps' });
+    expect(html).not.toMatch(/\[cena\]|\[x\]|\[lista/);
+  });
+});
