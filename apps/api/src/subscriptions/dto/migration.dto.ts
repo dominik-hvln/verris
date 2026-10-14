@@ -155,8 +155,8 @@ export class MigrationMysqlSourceDto {
   port!: number;
 
   /**
-   * Login i hasło bazy są opcjonalne, gdy przenosimy też pliki: worker odczyta je z wp-config.php
-   * skopiowanej strony (klient WordPressa zwykle ich nie zna). Bez plików — wymagane (createBundle).
+   * Login i hasło bazy są opcjonalne, gdy przenosimy też pliki: worker odczyta je z konfiguracji skopiowanej
+   * strony (wp-config.php albo plik Joomli, PrestaShopu, Magento, Drupala). Bez plików — wymagane (createBundle).
    */
   @IsOptional() @IsString() @MinLength(1) @MaxLength(128)
   @Matches(MIGRACJA_WZORCE.username, { message: KOMUNIKAT.username })

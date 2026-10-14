@@ -123,7 +123,7 @@ const JOB_LABELS: Record<string, string> = {
   FILES_SFTP_RSYNC: "Pliki strony",
   FILES_DELTA: "Pliki — dosync",
   MYSQL_IMPORT: "Baza danych",
-  WP_FIXUP: "Konfiguracja WordPress",
+  WP_FIXUP: "Konfiguracja strony (dane bazy)",
   IMAP_SYNC: "Poczta (skrzynki)",
   IMAP_DELTA: "Poczta — dosync",
   HTTP_POST_CHECK: "Test działania strony",

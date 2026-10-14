@@ -806,8 +806,8 @@ function StepSources(props: {
           <p className="text-xs text-neutral-500">Brak baz. Dodaj, jeśli Twoja strona ich używa (np. WordPress, sklep).</p>
         ) : includeFiles ? (
           <p className="text-xs text-neutral-500">
-            Nie znasz loginu i hasła bazy? Przy WordPressie zostaw je puste — odczytamy je z pliku wp-config.php po
-            skopiowaniu plików strony.
+            Nie znasz loginu i hasła bazy? Przy WordPressie, Joomli, PrestaShopie, Magento i Drupalu zostaw je puste —
+            odczytamy je z pliku konfiguracji strony po skopiowaniu plików, a po imporcie wpiszemy tam nową bazę.
           </p>
         ) : null}
       </section>

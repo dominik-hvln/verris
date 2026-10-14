@@ -14,7 +14,7 @@ export interface MigrationFtpInput {
 export interface MigrationMysqlInput {
   host: string;
   port: number;
-  /** Puste = worker odczyta z wp-config.php skopiowanej strony. */
+  /** Puste = worker odczyta z konfiguracji skopiowanej strony (WordPress, Joomla, PrestaShop, Magento, Drupal). */
   username?: string;
   password?: string;
   database: string;

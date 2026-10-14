@@ -168,7 +168,7 @@ export const JOB_LABELS: Record<MigrationJobKind, string> = {
   FILES_SFTP_RSYNC: 'Pliki strony',
   FILES_DELTA: 'Pliki — dosynchronizowanie',
   MYSQL_IMPORT: 'Baza danych',
-  WP_FIXUP: 'Konfiguracja WordPress',
+  WP_FIXUP: 'Konfiguracja strony (dane bazy)',
   IMAP_SYNC: 'Poczta (skrzynki)',
   IMAP_DELTA: 'Poczta — dosynchronizowanie',
   HTTP_POST_CHECK: 'Test działania strony',

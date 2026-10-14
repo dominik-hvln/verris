@@ -511,6 +511,126 @@ wp_config_db() {
   return 1
 }
 
+# 14.10 — inne CMS-y niż WordPress (plan uproszczenia migratora, pkt 3): dane bazy z pliku konfiguracji
+# Joomli (configuration.php), PrestaShopu 1.7+ (app/config/parameters.php) i 1.6 (config/settings.inc.php),
+# Magento 2 (app/etc/env.php) i Drupala (sites/default/settings.php). Czytanie i zapis zawsze JAKO KLIENT
+# (jak wp_config_db); wartości do zapisu idą przez stdin, nie przez argv.
+# >>> cms-konfiguracja.pl
+CMS_PL=$(cat <<'PERL'
+use strict; use warnings;
+# czytaj CMS < plik                         → linie KLUCZ<TAB>WARTOŚĆ (DB_NAME, DB_USER, DB_PASSWORD, DB_HOST)
+# zapisz CMS PLIK < „KLUCZ<TAB>WARTOŚĆ”      → podmienia dane bazy w pliku (zapis atomowy, prawa pliku bez zmian)
+my $KOTWICA_ARR = qr/(?:array\s*\(|\[)/;
+my %CMS = (
+  joomla       => { styl => 'prop',   k => { DB_NAME => 'db', DB_USER => 'user', DB_PASSWORD => 'password', DB_HOST => 'host' } },
+  prestashop   => { styl => 'arr',    k => { DB_NAME => 'database_name', DB_USER => 'database_user', DB_PASSWORD => 'database_password', DB_HOST => 'database_host' }, zeruj => ['database_port'] },
+  prestashop16 => { styl => 'define', k => { DB_NAME => '_DB_NAME_', DB_USER => '_DB_USER_', DB_PASSWORD => '_DB_PASSWD_', DB_HOST => '_DB_SERVER_' } },
+  magento      => { styl => 'arr',    k => { DB_NAME => 'dbname', DB_USER => 'username', DB_PASSWORD => 'password', DB_HOST => 'host' },
+                    kotwica => qr/(["'])connection\1\s*=>\s*$KOTWICA_ARR\s*(["'])default\2\s*=>\s*$KOTWICA_ARR/ },
+  drupal       => { styl => 'arr',    k => { DB_NAME => 'database', DB_USER => 'username', DB_PASSWORD => 'password', DB_HOST => 'host' },
+                    kotwica => qr/\$databases\s*\[\s*(["'])default\1\s*\]\s*\[\s*(["'])default\2\s*\]\s*=\s*$KOTWICA_ARR/ },
+);
+my ($tryb, $cms, $plik) = @ARGV;
+my $c = $CMS{$cms // ''} or die "nieznany CMS\n";
+
+sub wzor {
+  my ($nazwa) = @_;
+  my $n = quotemeta $nazwa;
+  my $przed = $c->{styl} eq 'prop' ? qr/public\s+\$$n\s*=\s*/
+            : $c->{styl} eq 'define' ? qr/define\s*\(\s*(?<kq>["'])$n\k<kq>\s*,\s*/
+            : qr/(?<kq>["'])$n\k<kq>\s*=>\s*/;
+  return qr/$przed(?<lit>(?<q>["'])(?<v>(?:\\.|(?!\k<q>).)*)\k<q>)/s;
+}
+# Zakres przeszukiwania: cały plik albo blok po kotwicy (Magento: db/connection/default, Drupal: $databases['default']['default']).
+sub zakres {
+  my ($t) = @_;
+  return (0, length $t) unless $c->{kotwica};
+  return () unless $t =~ $c->{kotwica};
+  return ($+[0], length($t) - $+[0] < 4000 ? length($t) - $+[0] : 4000);
+}
+# Pierwsze wystąpienie klucza w zakresie: (początek literału, długość literału, wartość).
+sub znajdz {
+  my ($t, $od, $dl, $nazwa) = @_;
+  my $kawalek = substr($t, $od, $dl);
+  return () unless $kawalek =~ wzor($nazwa);
+  my ($q, $v) = ($+{q}, $+{v});
+  return () if $q eq '"' && $v =~ /(?<!\\)\$/;   # interpolacja PHP — nie zgadujemy
+  my ($p, $k) = ($-[0] + index(substr($kawalek, $-[0]), $+{lit}), length $+{lit});
+  $v =~ s/\\([\\'"])/$1/g;
+  return ($od + $p, $k, $v);
+}
+
+local $/;
+if ($tryb eq 'czytaj') {
+  my $t = <STDIN> // '';
+  my ($od, $dl) = zakres($t) or exit 0;
+  for my $K (qw(DB_NAME DB_USER DB_PASSWORD DB_HOST)) {
+    my (undef, undef, $v) = znajdz($t, $od, $dl, $c->{k}{$K});
+    print "$K\t$v\n" if defined $v && $v !~ /[\x00-\x1f]/;
+  }
+  exit 0;
+}
+if ($tryb eq 'zapisz') {
+  my %nowe = map { chomp; split /\t/, $_, 2 } grep { /\t/ } split /\n/, (<STDIN> // '');
+  die "plik konfiguracji jest dowiązaniem — nie zapisuję\n" if -l $plik;
+  open my $fh, '<', $plik or die "nie mogę odczytać pliku\n";
+  my $t = <$fh>; close $fh;
+  my ($od, $dl) = zakres($t) or die "nie znaleziono bloku danych bazy\n";
+  my @zmiany;
+  for my $K (qw(DB_NAME DB_USER DB_PASSWORD DB_HOST)) {
+    die "brak wartości $K\n" unless defined $nowe{$K};
+    my ($p, $k) = znajdz($t, $od, $dl, $c->{k}{$K});
+    die "nie znaleziono $c->{k}{$K} w pliku\n" unless defined $p;
+    push @zmiany, [$p, $k, $nowe{$K}];
+  }
+  for my $z (@{ $c->{zeruj} // [] }) {
+    my ($p, $k) = znajdz($t, $od, $dl, $z);
+    push @zmiany, [$p, $k, ''] if defined $p;
+  }
+  # Od końca, żeby wcześniejsze pozycje się nie przesunęły.
+  for my $z (sort { $b->[0] <=> $a->[0] } @zmiany) {
+    (my $v = $z->[2]) =~ s/([\\'])/\\$1/g;
+    substr($t, $z->[0], $z->[1]) = "'$v'";
+  }
+  my $tryb_pliku = (stat $plik)[2] & 07777;
+  my $tmp = "$plik.verris-$$";
+  open my $out, '>', $tmp or die "nie mogę zapisać pliku tymczasowego\n";
+  print $out $t; close $out or die "błąd zapisu\n";
+  chmod $tryb_pliku, $tmp;
+  rename $tmp, $plik or do { unlink $tmp; die "nie mogę podmienić pliku\n" };
+  print "zapisano\n";
+  exit 0;
+}
+die "użycie: czytaj|zapisz CMS [PLIK]\n";
+PERL
+)
+# <<< cms-konfiguracja.pl
+
+# cms_wykryj UŻYTKOWNIK KATALOG → „cms<TAB>ścieżka” pierwszego rozpoznanego pliku konfiguracji.
+cms_wykryj() {
+  local user="$1" dst="$2" para cms rel znak f
+  for para in "joomla:configuration.php:JConfig" "prestashop:app/config/parameters.php:database_name" \
+    "prestashop16:config/settings.inc.php:_DB_NAME_" "magento:app/etc/env.php:dbname" "drupal:sites/default/settings.php:databases"; do
+    IFS=: read -r cms rel znak <<<"$para"
+    f="$dst/$rel"
+    runuser -u "$user" -- test -f "$f" 2>/dev/null || continue
+    runuser -u "$user" -- head -c 262144 "$f" 2>/dev/null | grep -qF -- "$znak" || continue
+    printf '%s\t%s\n' "$cms" "$f"
+    return 0
+  done
+  return 1
+}
+
+# Dane bazy strony: najpierw wp-config.php (jak dotąd), potem pliki innych CMS-ów. Linie KLUCZ<TAB>WARTOŚĆ + CMS<TAB>nazwa.
+cms_config_db() {
+  local user="$1" dst="$2" cms="" f=""
+  if wp_config_db "$user" "$dst"; then printf 'CMS\twordpress\n'; return 0; fi
+  IFS=$'\t' read -r cms f < <(cms_wykryj "$user" "$dst" || true) || true
+  [ -n "$cms" ] || return 1
+  printf 'CMS\t%s\n' "$cms"
+  runuser -u "$user" -- head -c 262144 "$f" 2>/dev/null | perl -e "$CMS_PL" czytaj "$cms"
+}
+
 # Literał PHP w apostrofach (hasło bazy w jednorazowym skrypcie eksportu).
 php_str() {
   local s="${1//\\/\\\\}"
@@ -664,14 +784,14 @@ run_mysql() {
   # osobny serwer baz (np. OVH *.mysql.db).
   if [ -n "$user" ] && [ -n "$domain" ] && vg_require account "$user" target.accountUsername 2>>"$logfile" \
     && vg_require domain "$domain" target.domain 2>>"$logfile"; then
-    local k v wp_name="" wp_user="" wp_pass="" wp_host=""
+    local k v wp_name="" wp_user="" wp_pass="" wp_host="" wp_cms=""
     while IFS=$'\t' read -r k v; do
-      case "$k" in DB_NAME) wp_name="$v" ;; DB_USER) wp_user="$v" ;; DB_PASSWORD) wp_pass="$v" ;; DB_HOST) wp_host="$v" ;; esac
-    done < <(wp_config_db "$user" "$(docroot_for "$user" "$domain")" 2>/dev/null || true)
+      case "$k" in DB_NAME) wp_name="$v" ;; DB_USER) wp_user="$v" ;; DB_PASSWORD) wp_pass="$v" ;; DB_HOST) wp_host="$v" ;; CMS) wp_cms="$v" ;; esac
+    done < <(cms_config_db "$user" "$(docroot_for "$user" "$domain")" 2>/dev/null || true)
     if [ -n "$wp_name" ] && [ "$wp_name" = "$sdb" ]; then
       if [ -z "$suser" ] || [ -z "$spass" ]; then
         suser="$wp_user"; spass="$wp_pass"
-        echo "== login i hasło bazy ${sdb} z wp-config.php skopiowanej strony" >>"$logfile"
+        echo "== login i hasło bazy ${sdb} z konfiguracji skopiowanej strony (${wp_cms:-wordpress})" >>"$logfile"
       fi
       if [ -n "$wp_host" ]; then
         dbhost="${wp_host%%:*}"; [[ "$wp_host" == *:* ]] && dbport="${wp_host##*:}"
@@ -679,7 +799,7 @@ run_mysql() {
         [[ "$dbhost" == "127.0.0.1" || -z "$dbhost" ]] && dbhost="localhost"
       fi
     elif [ -z "$suser" ] || [ -z "$spass" ]; then
-      echo "brak loginu/hasła bazy ${sdb}, a wp-config.php skopiowanej strony ${wp_name:+wskazuje inną bazę}${wp_name:-nie istnieje} — podaj dane bazy" >>"$logfile"
+      echo "brak loginu/hasła bazy ${sdb}, a konfiguracja skopiowanej strony ${wp_name:+wskazuje inną bazę}${wp_name:-nie istnieje (WordPress, Joomla, PrestaShop, Magento, Drupal)} — podaj dane bazy" >>"$logfile"
       return 2
     fi
   fi
@@ -873,9 +993,8 @@ run_wp_fixup() {
       echo "wp-config.php jest w podkatalogu (${zagniezdzony#"$dst"/}), a nie w katalogu strony — sprawdź ścieżkę źródłową" >>"$logfile"
       return 3
     fi
-    echo "wp-config.php not found in ${dst} — not a WordPress site, nothing to fix." >>"$logfile"
-    echo "0"
-    return 0
+    cms_fixup "$job" "$logfile" "$user" "$dst"
+    return $?
   fi
 
   command -v wp >/dev/null 2>&1 || {
@@ -927,6 +1046,68 @@ run_wp_fixup() {
   sudo -u "$user" -- wp cache flush --path="$dst" >>"$logfile" 2>&1 || true
   # Bez `chown -R` jako root: pliki kopiował klient (są jego), a wp-cli działa jako klient.
   echo "1" # wp fixed
+}
+
+# Strona innego CMS-a niż WordPress: po imporcie bazy wpisujemy do jej konfiguracji bazę docelową
+# (nazwa i użytkownik z prefiksem konta), jak `wp config set` dla WordPressa. Bez tego strona łączyłaby się
+# ze starą bazą (albo wcale) i klient dostawał błąd połączenia z bazą.
+cms_fixup() {
+  local job="$1" logfile="$2" user="$3" dst="$4" cms="" f="" k v old_db="" mapping tdb tuser tpass
+  IFS=$'\t' read -r cms f < <(cms_wykryj "$user" "$dst" || true) || true
+  if [ -z "$cms" ]; then
+    echo "brak wp-config.php i pliku konfiguracji znanego CMS (Joomla, PrestaShop, Magento, Drupal) w ${dst} — konfiguracja strony bez zmian" >>"$logfile"
+    echo "0"
+    return 0
+  fi
+  while IFS=$'\t' read -r k v; do [ "$k" = DB_NAME ] && old_db="$v"; done \
+    < <(runuser -u "$user" -- head -c 262144 "$f" 2>/dev/null | perl -e "$CMS_PL" czytaj "$cms" || true)
+  echo "== ${cms}: ${f#"$dst"/}, baza w konfiguracji: ${old_db:-nieznana}" >>"$logfile"
+
+  mapping=$(jq -c --arg old "$old_db" '
+    (.wp.databases // [])
+    | (map(select(.source == $old)) + map(select(.source != $old)))
+    | map(select(.target != null))
+    | first // empty' <<<"$job")
+  if [ -z "$mapping" ]; then
+    echo "== brak mapowania bazy docelowej (import poszedł po starych nazwach) — konfiguracja strony bez zmian" >>"$logfile"
+    echo "0"
+    return 0
+  fi
+  tdb=$(jq -r '.target.database' <<<"$mapping")
+  tuser=$(jq -r '.target.username' <<<"$mapping")
+  tpass=$(jq -r '.target.password' <<<"$mapping")
+  vg_require db "$tdb" "wp.databases.target.database" 2>>"$logfile" || return 2
+  vg_require username "$tuser" "wp.databases.target.username" 2>>"$logfile" || return 2
+
+  echo "== ${cms}: dane bazy -> ${tdb} / ${tuser} / localhost" >>"$logfile"
+  if ! printf 'DB_NAME\t%s\nDB_USER\t%s\nDB_PASSWORD\t%s\nDB_HOST\tlocalhost\n' "$tdb" "$tuser" "$tpass" \
+      | runuser -u "$user" -- perl -e "$CMS_PL" zapisz "$cms" "$f" >>"$logfile" 2>&1; then
+    echo "nie udało się zapisać danych bazy w ${f#"$dst"/} — wpisz ręcznie: baza ${tdb}, użytkownik ${tuser}, host localhost" >>"$logfile"
+    return 3
+  fi
+  # PrestaShop 1.7+ trzyma parametry w cache (var/cache/prod|dev) — bez czyszczenia dalej łączyłby się ze starą bazą.
+  if [ "$cms" = prestashop ]; then
+    runuser -u "$user" -- find "$dst/var/cache" -mindepth 1 -maxdepth 1 -type d \( -name prod -o -name dev \) \
+      -exec rm -rf {} + >>"$logfile" 2>&1 || true
+  fi
+
+  # Weryfikacja: nowe dane otwierają bazę (odpowiednik `wp core is-installed`).
+  ensure_mig_user
+  local sek pf; sek=$(katalog_sekretow); pf=$(plik_sekretu "$sek" cel "$tpass")
+  if ! jako_mig_env MYSQL_PWD "$pf" mysql --protocol=socket -u "$tuser" "$tdb" -e 'SELECT 1' >/dev/null 2>>"$logfile"; then
+    rm -rf "$sek"
+    echo "${cms}: baza ${tdb} nie otwiera się danymi wpisanymi do konfiguracji" >>"$logfile"
+    return 3
+  fi
+  rm -rf "$sek"
+
+  local source_domain target_domain
+  source_domain=$(jq -r '.wp.sourceDomain // empty' <<<"$job")
+  target_domain=$(jq -r '.wp.targetDomain // empty' <<<"$job")
+  if [ -n "$source_domain" ] && [ -n "$target_domain" ] && [ "$source_domain" != "$target_domain" ]; then
+    echo "== ${cms}: adres strony zmienia się z ${source_domain} na ${target_domain} — w tym CMS-ie zmień go w ustawieniach strony" >>"$logfile"
+  fi
+  echo "1"
 }
 
 run_http_check() {
