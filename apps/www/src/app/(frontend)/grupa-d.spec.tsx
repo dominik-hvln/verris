@@ -9,14 +9,23 @@ import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 // Next w testach: Link bez routera działa, ale notFound()/headers nie są potrzebne poza server action formularza.
+jest.mock('@/lib/submit-lead', () => ({ submitLead: jest.fn() }));
 
+import * as ONas from './o-nas/page';
+import * as Kontakt from './kontakt/page';
+import * as Reseller from './reseller/page';
 import * as Polecaj from './polecaj/page';
 import * as Dokumenty from './dokumenty/page';
+import * as NotFound from './not-found';
 import { POLECENIA } from '@/lib/polecenia';
+import { trescKontaktu } from '@/lib/kontakt';
 
 type Strona = { metadata: Metadata; default: () => ReactElement };
 
 const STRONY: { sciezka: string; mod: Strona; fraza: RegExp; typy: string[] }[] = [
+  { sciezka: '/o-nas', mod: ONas, fraza: /^O Verris/, typy: ['AboutPage', 'BreadcrumbList'] },
+  { sciezka: '/kontakt', mod: Kontakt, fraza: /^Kontakt/, typy: ['ContactPage', 'BreadcrumbList'] },
+  { sciezka: '/reseller', mod: Reseller, fraza: /^Hosting dla agencji/, typy: ['Service', 'FAQPage', 'BreadcrumbList'] },
   { sciezka: '/polecaj', mod: Polecaj, fraza: /^Program poleceń/, typy: ['WebPage', 'FAQPage', 'BreadcrumbList'] },
   { sciezka: '/dokumenty', mod: Dokumenty, fraza: /^Regulamin, RODO/, typy: ['CollectionPage', 'BreadcrumbList'] },
 ];
@@ -88,5 +97,21 @@ describe('/dokumenty — tylko dokumenty z panelu', () => {
   it('linki do panelu prowadzą do istniejących slugów /legal (terms, privacy, cookies, dpa)', () => {
     const slugi = [...html.matchAll(/href="https:\/\/panel\.verris\.pl\/legal\/([a-z]+)"/g)].map((m) => m[1]);
     expect(new Set(slugi)).toEqual(new Set(['terms', 'privacy', 'cookies', 'dpa']));
+  });
+});
+
+describe('404', () => {
+  it('noindex, jedno <h1>, link do strony głównej', () => {
+    expect(NotFound.metadata.robots).toEqual({ index: false });
+    const html = renderToStaticMarkup(NotFound.default());
+    expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
+    expect(html).toMatch(/href="\/"/);
+  });
+});
+
+describe('formularz kontaktu — temat i adres strony w treści', () => {
+  it('temat zawsze, adres tylko gdy podany', () => {
+    expect(trescKontaktu('Hosting', ' sklep.pl ', ' Pytanie ')).toBe('Temat: Hosting\nStrona: sklep.pl\n\nPytanie');
+    expect(trescKontaktu('Domeny', '', 'X')).toBe('Temat: Domeny\n\nX');
   });
 });

@@ -4,9 +4,11 @@ import { useState } from 'react';
 import { events } from '@/lib/analytics';
 import { submitLead } from '@/lib/submit-lead';
 import { captchaTokenFromForm } from '@/lib/captcha-token';
+import { TEMATY_KONTAKTU, trescKontaktu } from '@/lib/kontakt';
 import { Captcha } from './Captcha';
 
 export function ContactForm() {
+  const [temat, setTemat] = useState(0);
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,8 +19,9 @@ export function ContactForm() {
     const fd = new FormData(e.currentTarget);
     const email = fd.get('email')?.toString().trim() ?? '';
     const name = fd.get('name')?.toString().trim() ?? '';
-    const message = fd.get('message')?.toString().trim() ?? '';
-    if (!email || !message) return;
+    const tekst = fd.get('message')?.toString().trim() ?? '';
+    if (!email || !tekst) return;
+    const message = trescKontaktu(TEMATY_KONTAKTU[temat].nazwa, fd.get('website')?.toString() ?? '', tekst);
     setBusy(true);
     setError(null);
     const res = await submitLead({
@@ -52,6 +55,16 @@ export function ContactForm() {
 
   return (
     <form id="contact" className="form" onSubmit={onSubmit}>
+      <div className="d-tematy" role="group" aria-label="Temat wiadomości">
+        {TEMATY_KONTAKTU.map((t, i) => (
+          <button key={t.nazwa} type="button" aria-pressed={i === temat} onClick={() => setTemat(i)}>
+            {t.nazwa}
+          </button>
+        ))}
+      </div>
+      <p className="d-podpowiedz" aria-live="polite">
+        {TEMATY_KONTAKTU[temat].podpowiedz}
+      </p>
       <div className="field">
         <label htmlFor="name">Imię i nazwisko</label>
         <input id="name" name="name" type="text" required autoComplete="name" />
@@ -59,6 +72,10 @@ export function ContactForm() {
       <div className="field">
         <label htmlFor="email">E-mail</label>
         <input id="email" name="email" type="email" required autoComplete="email" />
+      </div>
+      <div className="field">
+        <label htmlFor="website">Adres strony (opcjonalnie)</label>
+        <input id="website" name="website" type="text" inputMode="url" autoComplete="url" placeholder="twojastrona.pl" />
       </div>
       <div className="field">
         <label htmlFor="message">Wiadomość</label>
