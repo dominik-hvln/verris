@@ -162,7 +162,7 @@ restart_dozwolony() {
   local plik="$STAN/config.json" wiek
   wiek=$(( $(teraz) - $(stat -c %Y "$plik" 2>/dev/null || echo 0) ))
   if [ "$wiek" -gt 600 ] && [ -n "${VERRIS_API_URL:-}" ]; then
-    curl -fsS --max-time 10 -H "X-Server-Id: ${VERRIS_SERVER_ID:-}" -H "X-Server-Token: ${VERRIS_IDENTITY_TOKEN:-}" \
+    curl -fsS --max-time 10 -H @<(printf 'X-Server-Id: %s\nX-Server-Token: %s\n' "${VERRIS_SERVER_ID:-}" "${VERRIS_IDENTITY_TOKEN:-}") \
       "$VERRIS_API_URL/agent/tasks/straznik/config" -o "$plik.tmp" 2>/dev/null && mv -f "$plik.tmp" "$plik"
   fi
   # Brak odpowiedzi panelu i brak kopii = bez restartu (bezpieczniej).
@@ -198,7 +198,7 @@ print(json.dumps({
 }))
 PYEOF
   curl -fsS --max-time 20 -X POST -H "Content-Type: application/json" \
-    -H "X-Server-Id: ${VERRIS_SERVER_ID:-}" -H "X-Server-Token: ${VERRIS_IDENTITY_TOKEN:-}" \
+    -H @<(printf 'X-Server-Id: %s\nX-Server-Token: %s\n' "${VERRIS_SERVER_ID:-}" "${VERRIS_IDENTITY_TOKEN:-}") \
     --data @"$kat/raport.json" "$VERRIS_API_URL/agent/tasks/straznik/zdarzenie" >/dev/null 2>&1 \
     || log "raport $id ($stan) nie dotarł do panelu — zostaje na dysku: $kat"
 }

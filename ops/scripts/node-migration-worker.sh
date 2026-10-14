@@ -102,14 +102,12 @@ api() {
     # Body przez stdin (printf to builtin): raport z logiem ma do 200 KB, a pojedynczy argument
     # programu nie może przekroczyć 128 KiB (MAX_ARG_STRLEN) — „Argument list too long” (t1, 08.10).
     printf '%s' "$body" | curl -fsS --max-time 60 -X "$method" \
-      -H "X-Server-Id: $VERRIS_SERVER_ID" \
-      -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \
+      -H @<(printf 'X-Server-Id: %s\nX-Server-Token: %s\n' "$VERRIS_SERVER_ID" "$VERRIS_IDENTITY_TOKEN") \
       -H "Content-Type: application/json" \
       --data-binary @- "${VERRIS_API_URL}${path}"
   else
     curl -fsS --max-time 60 -X "$method" \
-      -H "X-Server-Id: $VERRIS_SERVER_ID" \
-      -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \
+      -H @<(printf 'X-Server-Id: %s\nX-Server-Token: %s\n' "$VERRIS_SERVER_ID" "$VERRIS_IDENTITY_TOKEN") \
       "${VERRIS_API_URL}${path}"
   fi
 }

@@ -39,7 +39,8 @@ function wezel(o: { naprawa?: Naprawa; restartWezla?: boolean; uptime?: number; 
     'args="$*"',
     'case "$args" in',
     '  *straznik/config*) out=""; prev=""; for a in "$@"; do [ "$prev" = "-o" ] && out="$a"; prev="$a"; done; cp "$T/config" "$out";;',
-    '  *straznik/zdarzenie*) for a in "$@"; do case "$a" in @*) n=$(ls "$T/raporty" | wc -l); cp "${a#@}" "$T/raporty/$n.json";; esac; done;;',
+    // Raport = argument po --data (nagłówki z tokenem też idą jako @plik — audyt 13.10, #13).
+    '  *straznik/zdarzenie*) prev=""; for a in "$@"; do [ "$prev" = "--data" ] && { n=$(ls "$T/raporty" | wc -l); cp "${a#@}" "$T/raporty/$n.json"; }; prev="$a"; done;;',
     '  *) cat "$T/kody";;',
     'esac',
   ].join('\n'));

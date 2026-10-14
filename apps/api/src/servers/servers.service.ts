@@ -1353,8 +1353,7 @@ source "$CONFIG_FILE"
 : "\${VERRIS_IDENTITY_TOKEN:?missing VERRIS_IDENTITY_TOKEN}"
 
 LIST=$(curl -fsS --max-time 10 -X GET "$VERRIS_API_URL/agent/probes/list" \\
-  -H "X-Server-Id: $VERRIS_SERVER_ID" \\
-  -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" || true)
+  -H @<(printf 'X-Server-Id: %s\\nX-Server-Token: %s\\n' "$VERRIS_SERVER_ID" "$VERRIS_IDENTITY_TOKEN") || true)
 if [ -z "$LIST" ]; then
   exit 0
 fi
@@ -1437,8 +1436,7 @@ JSON
 
 curl -fsS --max-time 15 -X POST "$VERRIS_API_URL/agent/probes/local" \\
   -H "Content-Type: application/json" \\
-  -H "X-Server-Id: $VERRIS_SERVER_ID" \\
-  -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \\
+  -H @<(printf 'X-Server-Id: %s\\nX-Server-Token: %s\\n' "$VERRIS_SERVER_ID" "$VERRIS_IDENTITY_TOKEN") \\
   -d "$PAYLOAD" >/dev/null
 ${renderProbesTasksHook()}
 PROBES

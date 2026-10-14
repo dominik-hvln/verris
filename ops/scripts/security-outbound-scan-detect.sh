@@ -119,7 +119,7 @@ if [ -r /etc/verris.conf ]; then
   source /etc/verris.conf 2>/dev/null || true
   if [ -n "${VERRIS_API_URL:-}" ] && [ -n "${VERRIS_SERVER_ID:-}" ] && [ -n "${VERRIS_IDENTITY_TOKEN:-}" ]; then
     curl -fsS --max-time 10 -X POST \
-      -H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \
+      -H @<(printf 'X-Server-Id: %s\nX-Server-Token: %s\n' "$VERRIS_SERVER_ID" "$VERRIS_IDENTITY_TOKEN") \
       -H "Content-Type: application/json" \
       -d "{\"kind\":\"OUTBOUND_SCAN\",\"distinctDst\":${COUNT},\"sample\":\"${SAMPLE}\",\"processes\":\"${TOP_PROC:-}\"}" \
       "$VERRIS_API_URL/agent/security/alert" >/dev/null 2>&1 || true

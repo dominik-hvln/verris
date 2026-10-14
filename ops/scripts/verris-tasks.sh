@@ -54,7 +54,8 @@ flock -n 9 || exit 0
 # deskryptorów agenta. flock(1): https://man7.org/linux/man-pages/man1/flock.1.html
 # n>&- zamyka deskryptor n: https://www.gnu.org/software/bash/manual/html_node/Redirections.html
 
-auth_headers=(-H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN")
+# Audyt 13.10 (#13): token węzła nie w argv curl (widoczny w /proc) — nagłówki z deskryptora, printf to builtin.
+naglowki_wezla() { printf 'X-Server-Id: %s\nX-Server-Token: %s\n' "$VERRIS_SERVER_ID" "$VERRIS_IDENTITY_TOKEN"; }
 
 # PB-30 — manifest stosu floty: ten sam plik na każdym węźle, odświeżany co minutę.
 if verris-fetch /agent/tasks/stack-env /etc/verris-stack.env.tmp 15 2>>"$LOG" \
@@ -109,7 +110,7 @@ report_task_fail() {
   local err="$1"
   local detail="${2:-}"
   echo "[verris-tasks] Task $TASK_ID failed: $err" >> "$LOG"
-  curl -fsS --max-time 30 -X POST "${auth_headers[@]}" \
+  curl -fsS --max-time 30 -X POST -H @<(naglowki_wezla) \
     -H "Content-Type: application/json" \
     -d "$(python3 -c 'import json,sys; err,log=sys.argv[1],sys.argv[2]; print(json.dumps({"error": err, "outputLog": log or None}))' "$err" "$detail")" \
     "$VERRIS_API_URL/agent/tasks/$TASK_ID/fail" >/dev/null 2>&1 || true

@@ -13,7 +13,7 @@ err() { echo "[verris-fetch] $P: $*" >&2; }
 [ -r "$PUB" ] || { err "brak klucza podpisu $PUB — uruchom ponownie instalację agenta z panelu"; exit 2; }
 T="$(mktemp -d)"
 trap 'rm -rf "$T"' EXIT
-code=$(curl -sS --max-time "$TMO" -H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \
+code=$(curl -sS --max-time "$TMO" -H @<(printf 'X-Server-Id: %s\nX-Server-Token: %s\n' "$VERRIS_SERVER_ID" "$VERRIS_IDENTITY_TOKEN") \
   -D "$T/h" -o "$T/b" -w '%{http_code}' "$VERRIS_API_URL$P") || { err "błąd połączenia"; exit 1; }
 [ "$code" = "404" ] && exit 4
 [ "$code" = "200" ] || { err "HTTP $code"; exit 1; }

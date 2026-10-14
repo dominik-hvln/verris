@@ -82,12 +82,13 @@ __VERRIS_LOGROTATE__
 fi
 echo $$ > "$STATE_DIR/${INSTANCE}.pid"
 
-auth_headers=(-H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN")
+# Audyt 13.10 (#13): token węzła nie w argv curl (widoczny w /proc) — nagłówki z deskryptora, printf to builtin.
+naglowki_wezla() { printf 'X-Server-Id: %s\nX-Server-Token: %s\n' "$VERRIS_SERVER_ID" "$VERRIS_IDENTITY_TOKEN"; }
 
 send_progress() {
   local tail_log="${1:-}"
   [ -n "$TASK_ID" ] || return 0
-  curl -fsS --max-time 20 -X POST "${auth_headers[@]}" \
+  curl -fsS --max-time 20 -X POST -H @<(naglowki_wezla) \
     -H "Content-Type: application/json" \
     -d "$(python3 -c 'import json,sys; print(json.dumps({"outputLog": sys.stdin.read()}))' <<< "$tail_log")" \
     "$VERRIS_API_URL/agent/tasks/$TASK_ID/progress" >/dev/null 2>&1 || true
@@ -98,7 +99,7 @@ report_fail() {
   local out="${2:-}"
   REPORTED=1
   log "Task $TASK_ID FAILED: $err"
-  curl -fsS --max-time 30 -X POST "${auth_headers[@]}" \
+  curl -fsS --max-time 30 -X POST -H @<(naglowki_wezla) \
     -H "Content-Type: application/json" \
     -d "$(python3 -c 'import json,sys; err,log=sys.argv[1],sys.argv[2]; print(json.dumps({"error": err, "outputLog": log or None}))' "$err" "$out")" \
     "$VERRIS_API_URL/agent/tasks/$TASK_ID/fail" >/dev/null 2>&1 || true
@@ -107,7 +108,7 @@ report_fail() {
 report_complete() {
   local out="$1"
   REPORTED=1
-  if curl -fsS --max-time 30 -X POST "${auth_headers[@]}" \
+  if curl -fsS --max-time 30 -X POST -H @<(naglowki_wezla) \
     -H "Content-Type: application/json" \
     -d "$(python3 -c 'import json,sys; print(json.dumps({"outputLog": sys.stdin.read()}))' <<< "$out")" \
     "$VERRIS_API_URL/agent/tasks/$TASK_ID/complete" >/dev/null 2>>"$AGENT_LOG"; then

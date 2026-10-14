@@ -85,8 +85,7 @@ report() {
   rm -f "$konta"
   # --data-binary @plik: lista kont floty nie mieści się w jednym argumencie (limit 128 kB).
   curl -fsS --max-time 30 -X POST \
-    -H "X-Server-Id: $VERRIS_SERVER_ID" \
-    -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \
+    -H @<(printf 'X-Server-Id: %s\nX-Server-Token: %s\n' "$VERRIS_SERVER_ID" "$VERRIS_IDENTITY_TOKEN") \
     -H "Content-Type: application/json" \
     --data-binary "@$body" "${VERRIS_API_URL}/agent/backup/offsite-report" >/dev/null 2>&1 || \
     log "warn: report to control-plane failed"
