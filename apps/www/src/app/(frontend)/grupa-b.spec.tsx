@@ -122,3 +122,15 @@ describe('grupa B — /jak-wybrac-hosting', () => {
     expect(html).toContain('id="lista"');
   });
 });
+
+describe('grupa B — /domeny', () => {
+  it('metadane, h1, Service + FAQPage + BreadcrumbList; wyszukiwarka to formularz GET do panelu, bez udawanych wyników i [cena]', async () => {
+    const mod = await import('./domeny/page');
+    const html = await render(mod.default());
+    sprawdzStrone({ html, meta: mod.metadata, fraza: /^Domeny/, typy: ['Service', 'FAQPage', 'BreadcrumbList'], canonical: '/domeny' });
+    expect(html).toMatch(/<form action="https:\/\/panel\.verris\.pl\/dashboard\/domains\/buy" method="get">/);
+    expect(html).toContain('name="domain"');
+    expect(html).not.toMatch(/\[cena\]|\[do decyzji/);
+    expect(html).toContain('id="transfer"');
+  });
+});
