@@ -79,6 +79,15 @@ export type MetodaDoladowania = 'paynow' | 'stripe';
 /** Odpowiedź `POST /billing/paynow/:id/sprawdz` — status płatności Paynow (NEW, PENDING, CONFIRMED, …). */
 export interface StatusPlatnosciPaynowDto {
   status: string;
+  /** Opłacone zamówienie nowej usługi — dane do zdarzenia `purchase` (GA4/Meta) na stronie powrotu. */
+  zakup?: {
+    /** Id usługi — to samo co przy zakupie z portfela (deduplikacja w GA4 i event_id w Meta). */
+    transactionId: string;
+    wartosc: number;
+    waluta: string;
+    nazwa: string;
+    kategoria: 'hosting' | 'email' | 'email-marketing';
+  };
 }
 
 export interface CreateCheckoutSessionResponse {

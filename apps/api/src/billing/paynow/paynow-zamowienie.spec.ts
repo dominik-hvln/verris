@@ -292,3 +292,46 @@ describe('Paynow — zamówienie a skutki uboczne wpłaty', () => {
     expect(s.subscriptions.oplacZamowienieZPortfela).toHaveBeenCalledTimes(1);
   });
 });
+
+/**
+ * PB-08 (e2e 14.10): zakup usługi Paynow nie trafiał do GA4 — po powrocie z Paynow strona nie miała danych zakupu.
+ * Sprawdzenie statusu po powrocie zwraca je tylko dla opłaconej NOWEJ usługi.
+ */
+describe('Paynow — dane zakupu po powrocie (PB-08)', () => {
+  const poId = (s: ReturnType<typeof zbuduj>) =>
+    s.paynowPlatnosc.findFirst.mockImplementation((async ({ where }: { where: { id: string; userId: string } }) => {
+      const r = s.rekordy.get(where.id);
+      return r && r.userId === where.userId ? { ...r } : null;
+    }) as never);
+
+  it('opłacona nowa usługa → zakup z id usługi, kwotą wpłaty i nazwą planu', async () => {
+    const s = zbuduj();
+    poId(s);
+    utworzonaPaynow();
+    await s.svc.zaplacZamowieniePaynow('u1', { subscriptionId: 'sub-1', kwotaK: new Prisma.Decimal('381.65'), domena: 'sl.hvln.pl' });
+    const rek = [...s.rekordy.values()][0];
+    await potwierdz(s, rek.id);
+    await expect(s.svc.sprawdzPlatnoscPaynow('u1', rek.id)).resolves.toEqual({
+      status: 'CONFIRMED',
+      zakup: { transactionId: 'sub-1', wartosc: 381.65, waluta: 'PLN', nazwa: 'Hosting Start', kategoria: 'hosting' },
+    });
+  });
+
+  it('jeszcze nieopłacona → bez zakupu; zaległe odnowienie po wpłacie → bez zakupu', async () => {
+    const s = zbuduj();
+    poId(s);
+    utworzonaPaynow();
+    await s.svc.zaplacZamowieniePaynow('u1', { subscriptionId: 'sub-1', kwotaK: new Prisma.Decimal('45.00') });
+    const rek = [...s.rekordy.values()][0];
+    fetchMock.mockResolvedValueOnce(odp(200, { paymentId: PID, status: 'PENDING' }));
+    await expect(s.svc.sprawdzPlatnoscPaynow('u1', rek.id)).resolves.toEqual({ status: 'PENDING' });
+
+    const z = zbuduj({ sub: { status: 'PAST_DUE', interval: 'MONTH', currentPeriodEnd: new Date('2026-10-10T09:00:00Z') } });
+    poId(z);
+    utworzonaPaynow();
+    await z.svc.zaplacUslugePaynow('u1', 'sub-1');
+    const odn = [...z.rekordy.values()][0];
+    await potwierdz(z, odn.id);
+    await expect(z.svc.sprawdzPlatnoscPaynow('u1', odn.id)).resolves.toEqual({ status: 'CONFIRMED' });
+  });
+});

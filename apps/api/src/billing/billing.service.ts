@@ -44,6 +44,7 @@ import {
 import { rowsToCsv } from './csv.util.js';
 import { PromoService } from './promo.service.js';
 import { powodAutoDoladowania } from './wallet-auto-topup.service.js';
+import type { StatusPlatnosciPaynowDto } from '@verris/contracts';
 import { EcoPointsService } from '../eco/eco-points.service.js';
 
 /** Jak MIN_POWOD_ROZLICZEN w rozliczenia-operatora.service.ts (ten importuje BillingService — bez cyklu). */
@@ -1044,11 +1045,11 @@ export class BillingService {
    * jeszcze nie dotarło. Ta sama funkcja księgowania i ten sam klucz idempotencji co powiadomienie.
    * https://docs.paynow.pl/docs/reference/v3/get-payment-status
    */
-  async sprawdzPlatnoscPaynow(userId: string, id: string): Promise<{ status: string }> {
+  async sprawdzPlatnoscPaynow(userId: string, id: string): Promise<StatusPlatnosciPaynowDto> {
     const rek = await this.prisma.paynowPlatnosc.findFirst({ where: { id, userId } });
     if (!rek) throw new NotFoundException('Nie znaleziono tej płatności.');
     const paynow = this.paynowKlient();
-    if (rek.status === 'CONFIRMED' || !rek.paymentId || !paynow) return { status: rek.status };
+    if (rek.status === 'CONFIRMED' || !rek.paymentId || !paynow) return this.wynikSprawdzeniaPaynow(rek, rek.status);
     let status: StatusPlatnosciPaynow;
     try {
       const odp = await paynow.statusPlatnosci(rek.paymentId);
@@ -1059,7 +1060,35 @@ export class BillingService {
       return { status: rek.status };
     }
     await this.zastosujStatusPaynow(rek, status);
-    return { status };
+    return this.wynikSprawdzeniaPaynow(rek, status);
+  }
+
+  /**
+   * PB-08 (e2e 14.10): zakup usługi zapłacony Paynow nie trafiał do GA4 — formularz zamówienia wysyła `purchase`
+   * tylko przy płatności z portfela bez przekierowania, a po powrocie z Paynow nikt go nie wysyłał. Dla opłaconego
+   * zamówienia NOWEJ usługi zwracamy dane zakupu, a strona powrotu wysyła z nich `purchase` (transaction_id = id
+   * usługi, jak przy portfelu — GA4 i Meta deduplikują ponowne wejście). Doładowania i odnowienia to nie zakup.
+   */
+  private async wynikSprawdzeniaPaynow(rek: RekordPaynow, status: string): Promise<StatusPlatnosciPaynowDto> {
+    const meta = (rek.meta ?? {}) as Record<string, string>;
+    if (status !== 'CONFIRMED' || meta.kind !== 'zamowienie' || meta.zamowienieTyp !== 'nowa' || !meta.subscriptionId) {
+      return { status };
+    }
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: meta.subscriptionId, userId: rek.userId },
+      select: { plan: { select: { name: true, productKind: true } } },
+    });
+    if (!sub) return { status };
+    return {
+      status,
+      zakup: {
+        transactionId: meta.subscriptionId,
+        wartosc: rek.kwotaMinor / 100,
+        waluta: rek.waluta,
+        nazwa: sub.plan.name,
+        kategoria: sub.plan.productKind === 'EMAIL' ? 'email' : sub.plan.productKind === 'EMAIL_MARKETING' ? 'email-marketing' : 'hosting',
+      },
+    };
   }
 
   private async zastosujStatusPaynow(rek: RekordPaynow, status: StatusPlatnosciPaynow): Promise<void> {

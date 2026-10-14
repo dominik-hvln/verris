@@ -19,6 +19,7 @@ import { Proformy } from './proformy';
 import { TopupCard } from './topup-card';
 import { BillingExtrasForms } from './billing-extras-forms';
 import { BillingWalletRefresh } from './billing-wallet-refresh';
+import { ZakupPoPowrocie } from './zakup-po-powrocie';
 import { pobierzPartnera } from '@/app/dashboard/settings/partner-actions';
 
 
@@ -68,6 +69,7 @@ export default async function BillingPage({
   return (
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
       <BillingWalletRefresh status={paynowWynik === 'czeka' ? 'paynow-czeka' : params.status} />
+      <ZakupPoPowrocie zakup={paynowWynik === 'ok' ? paynow?.zakup : null} />
       <PanelPageHeader
         title="Płatności"
         description={`Doładuj portfel, śledź zużycie i zarządzaj rozliczeniami. ${CREDIT_RATE_INFO}.`}
