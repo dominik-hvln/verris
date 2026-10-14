@@ -75,6 +75,7 @@ export default function Page() {
     <main>
       <JsonLd
         data={howToSchema({
+          kotwice: false,
           name: 'Jak przywrócić stronę z kopii zapasowej w Verris',
           description: 'Przywracanie plików, baz danych i poczty z kopii na serwerze — samodzielnie w panelu Verris.',
           path: '/funkcje/kopie-zapasowe',

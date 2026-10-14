@@ -127,15 +127,6 @@ export function webPageSchema(args: {
     isPartOf: { '@type': 'WebSite', url: `${SITE}/`, name: 'Verris' },
     publisher: { '@id': ORG_ID },
     ...(args.extra ?? {}),
-/** HowTo (makieta 14.10: instrukcje krok po kroku, np. przywracanie kopii). */
-export function howToSchema(args: { name: string; description?: string; path: string; steps: { name: string; text: string }[] }) {
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'HowTo',
-    name: args.name,
-    ...(args.description ? { description: args.description } : {}),
-    url: `${SITE}${args.path}`,
-    step: args.steps.map((s, i) => ({ '@type': 'HowToStep', position: i + 1, name: s.name, text: s.text })),
   };
 }
 
@@ -156,5 +147,80 @@ export function productSpecSchema(args: {
     brand: { '@type': 'Brand', name: 'Verris' },
     additionalProperty: args.properties.map(([name, value]) => ({ '@type': 'PropertyValue', name, value })),
     ...(args.offers ? { offers: args.offers } : {}),
+  };
+}
+
+/**
+ * HowTo (makieta 14.10: /przenies-strone, poradniki przeprowadzki, przywracanie kopii). Kroki jako zwykły tekst.
+ * `kotwice` — strona ma sekcje `#krok-N` (domyślnie tak); bez nich kroki nie dostają adresu.
+ */
+export function howToSchema(args: {
+  name: string;
+  description?: string;
+  path: string;
+  steps: { name: string; text: string }[];
+  totalTime?: string;
+  kotwice?: boolean;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: args.name,
+    ...(args.description ? { description: args.description } : {}),
+    url: `${SITE}${args.path}`,
+    ...(args.totalTime ? { totalTime: args.totalTime } : {}),
+    estimatedCost: { '@type': 'MonetaryAmount', currency: 'PLN', value: '0' },
+    step: args.steps.map((s, i) => ({
+      '@type': 'HowToStep',
+      position: i + 1,
+      name: s.name,
+      text: s.text,
+      ...(args.kotwice === false ? {} : { url: `${SITE}${args.path}#krok-${i + 1}` }),
+    })),
+  };
+}
+
+/** Article dla przewodników poza blogiem (np. /jak-wybrac-hosting) — articleSchema zakłada adres /blog/…. */
+export function guideSchema(args: {
+  title: string;
+  description: string;
+  path: string;
+  datePublished: string;
+  dateModified: string;
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: args.title,
+    description: args.description,
+    image: `${SITE}/og-default.png`,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITE}${args.path}` },
+    datePublished: args.datePublished,
+    dateModified: args.dateModified,
+    author: { '@type': 'Organization', '@id': ORG_ID, name: 'Verris', url: `${SITE}/` },
+    publisher: { '@id': ORG_ID },
+    inLanguage: 'pl-PL',
+  };
+}
+
+/** ItemList — numerowana lista (np. lista kontrolna przewodnika). */
+export function itemListSchema(name: string, items: string[]) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name,
+    itemListElement: items.map((t, i) => ({ '@type': 'ListItem', position: i + 1, name: t })),
+  };
+}
+
+/** Kilka węzłów JSON-LD w jednym `@graph` (helpery wyżej zwracają węzły z własnym `@context`). */
+export function graph(...nodes: object[]) {
+  return {
+    '@context': 'https://schema.org',
+    '@graph': nodes.map((n) => {
+      const kopia: Record<string, unknown> = { ...n };
+      delete kopia['@context'];
+      return kopia;
+    }),
   };
 }

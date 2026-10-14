@@ -1,161 +1,145 @@
+import Link from 'next/link';
 import type { Metadata } from 'next';
-import { Accordion, Breadcrumbs, Button, Card, CTABand, JsonLd, SectionHead, StickyBuy, Steps } from '../components/ui';
-import { KalkulatorPiku } from '../components/KalkulatorPiku';
-import { Pricing } from '../components/Pricing';
+import { Accordion, Breadcrumbs, Button, Card, CTABand, JsonLd, SectionHead, StickyBuy } from '../components/ui';
 import { MigrationLeadForm } from '../components/MigrationLeadForm';
-import { KROKI_MIGRACJI } from '@/lib/migracja';
-import { PANEL } from '@/lib/site';
+import { PokazPrzeprowadzki } from '../components/PokazPrzeprowadzki';
+import { CMS_Z_ODCZYTEM_BAZY, HASLA_KASOWANE_PO_DNIACH, KROKI_PRZEPROWADZKI } from '@/lib/migracja';
+import { PORADNIKI } from '@/lib/poradniki';
+import { faqSchema, graph, howToSchema } from '@/lib/schema';
+import { ZAMOW } from '@/lib/site';
 
+// Makieta 14.10 (plansza Migracja + notatka „seo-migracja” w canvas.json).
 export const metadata: Metadata = {
-  title: 'Zmiana hostingu bez stresu — darmowa migracja strony | Verris',
+  title: 'Przeniesienie strony na nowy hosting za darmo | Verris',
   description:
-    'Przeniesiemy Twoją stronę i pocztę za darmo — albo zrobisz to sam migratorem w panelu. Odnowienie po cenie z cennika: 45 zł/mies lub 449 zł/rok brutto. Autoskalowanie zamiast pakietu na zapas, SLA 99,5% z rekompensatami.',
+    'Przeniesiemy stronę, bazę i pocztę z cPanel, DirectAdmin, Plesk albo przez FTP. Stara strona działa do przełączenia domeny. Bez opłat.',
   alternates: { canonical: '/przenies-strone' },
   openGraph: {
-    title: 'Zmiana hostingu bez stresu — przeniesiemy Twoją stronę za darmo',
+    title: 'Przeniesienie strony na nowy hosting za darmo',
     description:
-      'Darmowa migracja strony i poczty. Odnowienie po cenie z cennika: 45 zł/mies lub 449 zł/rok brutto, bez szoku po pierwszym roku. Autoskalowanie zamiast pakietu na zapas.',
+      'Przeniesiemy stronę, bazę i pocztę z cPanel, DirectAdmin, Plesk albo przez FTP. Stara strona działa do przełączenia domeny.',
     url: 'https://verris.pl/przenies-strone',
     locale: 'pl_PL',
     type: 'website',
     siteName: 'Verris',
-    images: [
-      { url: '/og-default.png', width: 1200, height: 630, alt: 'Verris — darmowa migracja hostingu' },
-    ],
+    images: [{ url: '/og-default.png', width: 1200, height: 630, alt: 'Verris — darmowe przeniesienie strony' }],
   },
 };
-
-const FAQ: [string, string][] = [
-  ['Czy strona przestanie działać w trakcie przenoszenia na inny hosting?', 'Nie powinna. Migracja odbywa się „obok" działającej strony — kopiujemy dane na nowy serwer, a Twoja obecna strona działa u dotychczasowego dostawcy do momentu przełączenia domeny. Samo przełączenie DNS wiąże się z propagacją, która zwykle trwa od kilkunastu minut do kilku godzin; w tym czasie część odwiedzających może jeszcze trafiać na starą wersję strony.'],
-  ['Czy przeniesienie strony wpłynie na pozycje w Google?', 'Sama zmiana hostingu nie zmienia adresów URL ani treści strony, więc poprawnie przeprowadzona migracja nie powoduje utraty pozycji. Krótkie wahania w trakcie propagacji DNS są możliwe, ale ustępują samoistnie. Szybszy i stabilniejszy serwer może wręcz pomóc — czas ładowania strony jest jednym z czynników rankingowych.'],
-  ['Jak przenieść stronę WordPress na inny hosting?', 'Przeniesienie WordPressa to skopiowanie plików, bazy danych i konfiguracji na nowy serwer. W Verris zrobi to za Ciebie zespół w ramach darmowej migracji — wystarczy przekazać dostępy do obecnego hostingu. Możesz też użyć migratora w panelu, który przeniesie pliki i bazę samodzielnie, krok po kroku.'],
-  ['Czy muszę przenosić domenę razem z hostingiem?', 'Nie. Domena może zostać u obecnego rejestratora — wystarczy zmienić rekordy DNS tak, aby wskazywały na serwery Verris. Transfer domeny do Verris jest opcjonalny i możesz go wykonać w dowolnym momencie później. U nas domeny odnawiają się wyłącznie po opłaceniu — nigdy automatycznie.'],
-  ['Jak działa autoskalowanie i ile kosztuje?', 'W cenie pakietu masz bazowe zasoby. Gdy strona potrzebuje więcej — np. w piku kampanii — zasoby rosną automatycznie, a dodatkowa moc rozliczana jest godzinowo, tylko za czas faktycznego użycia. Gdy ruch spada, autoskalowanie wraca do bazy i naliczanie się kończy. Orientacyjny koszt policzysz w kalkulatorze powyżej.'],
-  ['Co z pocztą e-mail przy zmianie hostingu?', 'Hosting Verris obejmuje pocztę (webmail Roundcube). W ramach migracji przenosimy również skrzynki — szczegóły zakresu ustalimy przy przekazaniu dostępów. Do czasu przełączenia DNS poczta działa u obecnego dostawcy, więc żadna wiadomość nie ginie w trakcie przeprowadzki.'],
-  ['Czy migracja jest naprawdę bezpłatna?', 'Tak. Zarówno migrator w panelu, jak i pomoc naszego zespołu są bezpłatne w ramach zamówienia hostingu. Nie ma limitu „do X plików" ani dopłat za bazy danych.'],
-  ['Czy cena wzrośnie przy odnowieniu?', 'Nie stosujemy modelu „tani pierwszy rok, kilkukrotnie droższe odnowienie". Rabat na start, jeśli trwa, widzisz przed zapłatą, a odnowienie następuje według cennika obowiązującego w dniu odnowienia (dziś 45 zł/mies lub 449 zł/rok), a przed każdym odnowieniem wyślemy przypomnienie e-mail (7, 3 i 1 dzień wcześniej). Z odnowienia zrezygnujesz w panelu w dwóch kliknięciach, bez opłat.'],
-  ['Czy mogę zrezygnować po zakupie?', 'Jako konsument masz prawo odstąpienia od umowy. Zasady odstąpienia i zwrotu opisuje regulamin, który zobaczysz przed zakupem — zwrot realizuje nasze wsparcie.'],
-];
-
-const COMPARE: [string, string, string][] = [
-  ['Cena', 'Niska w pierwszym okresie, znacznie wyższa przy odnowieniu', 'Odnowienie po cenie z cennika — 45 zł/mies lub 449 zł/rok brutto'],
-  ['Zasoby', 'Sztywne pakiety — płacisz za moc „na zapas" 24 h/dobę', 'Autoskalowanie godzinowe — dodatkowa moc tylko wtedy, gdy jest używana'],
-  ['Odnowienia domen', 'Automatyczne obciążenie, czasem bez wyraźnej zgody', 'Nie odnowi się bez Twojej decyzji — przypomnienia 30, 14 i 7 dni przed wygaśnięciem'],
-  ['Awarie', 'Rekompensata uznaniowa, jeśli w ogóle', 'SLA 99,5% i progi rekompensat zapisane w regulaminie — przyznajemy je na Twoje zgłoszenie'],
-  ['Przywrócenie kopii', 'Zgłoszenie do supportu, czasem płatne, bez możliwości cofnięcia', 'Samodzielnie w panelu — wybierasz pliki, bazę lub pocztę, a system domyślnie robi kopię bezpieczeństwa przed operacją'],
-  ['Rezygnacja', 'Ukryte kroki, konsultant „zatrzymujący"', 'Rezygnacja z odnowienia w panelu w dwóch kliknięciach, bez opłat'],
-];
-
-
-const PULAPKI: { tag: string; t: string; opis: string; fix: string }[] = [
-  {
-    tag: 'Pułapka nr 1',
-    t: 'Promocja-przynęta',
-    opis: 'Pierwszy rok za grosze, a przy odnowieniu pełna stawka — często kilkukrotnie wyższa. Rachunek przychodzi po roku, kiedy przenosiny wydają się trudniejsze niż dopłata.',
-    fix: 'odnowienie idzie po cenie z cennika — 45 zł/mies lub 449 zł/rok brutto. Rabat na start, jeśli trwa, widzisz przed zapłatą; po nim nie ma skoku do kilkuset złotych.',
-  },
-  {
-    tag: 'Pułapka nr 2',
-    t: 'Pakiet na zapas',
-    opis: 'Kupujesz większy pakiet „na wszelki wypadek” — i przez większość roku płacisz za moc, której strona nie używa. Nadpłacony zapas nie wraca.',
-    fix: 'jedna baza + autoskalowanie rozliczane godzinowo. Dodatkowe zasoby tylko wtedy, gdy strona ich naprawdę potrzebuje — a gdy ruch spada, wracają do bazy.',
-  },
-  {
-    tag: 'Pułapka nr 3',
-    t: 'Cicha dopłata',
-    opis: 'Automatyczne odnowienia domen i dodatków, o których dowiadujesz się z obciążenia karty. Rezygnacja? Przez konsultanta, który „ma dla Ciebie lepszą ofertę”.',
-    fix: 'domena nie odnowi się bez Twojej decyzji (przypomnienia 30/14/7 dni), a z odnowienia subskrypcji zrezygnujesz w panelu w dwóch kliknięciach.',
-  },
-];
 
 const PARAMETRY: [string, string][] = [
-  ['0 zł', 'migracja strony i poczty'],
-  ['Bez limitu', 'stron i skrzynek'],
-  ['SLA 99,5%', 'rekompensata na zgłoszenie'],
-  ['BLIK i karta', 'także przelew online'],
+  ['0 zł', 'przeniesienie strony i poczty'],
+  ['Bez przerwy', 'stara strona działa do przełączenia'],
+  [`${HASLA_KASOWANE_PO_DNIACH} dni`, 'potem kasujemy hasła do starego hostingu'],
+  ['Na żywo', 'postęp każdego etapu w panelu'],
 ];
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@graph': [
-    {
-      '@type': 'Product',
-      name: 'Hosting Verris z autoskalowaniem — darmowa migracja',
-      description:
-        'Hosting współdzielony z autoskalowaniem i darmową migracją strony oraz poczty. Baza: 50 GB NVMe, do 8 GB RAM, do 2 vCPU. SLA 99,5% z rekompensatami.',
-      brand: { '@type': 'Organization', name: 'Verris' },
-      offers: [
-        { '@type': 'Offer', price: '45.00', priceCurrency: 'PLN', availability: 'https://schema.org/InStock', url: 'https://verris.pl/przenies-strone', description: 'Rozliczenie miesięczne, cena brutto' },
-        { '@type': 'Offer', price: '449.00', priceCurrency: 'PLN', availability: 'https://schema.org/InStock', url: 'https://verris.pl/przenies-strone', description: 'Rozliczenie roczne, cena brutto' },
-      ],
-    },
-    {
-      '@type': 'HowTo',
-      name: 'Jak przenieść stronę na inny hosting bez przestoju',
-      description: 'Przeniesienie strony do Verris w trzech krokach, bez przerwy w działaniu.',
-      step: KROKI_MIGRACJI.map((s, i) => ({ '@type': 'HowToStep', position: i + 1, name: s.title, text: s.text })),
-    },
-    {
-      '@type': 'FAQPage',
-      mainEntity: FAQ.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
-    },
+const PODZIAL: [string, string, string][] = [
+  ['Pliki strony', 'login do panelu albo dane FTP / SFTP', 'wyszukanie katalogu strony, kopia i porównanie liczby plików ze źródłem'],
+  [
+    'Baza danych',
+    'zwykle nic — dane bazy odczytamy z plików strony; przy samym FTP podajesz nazwę bazy',
+    'nowa baza u nas, import, nowe dane bazy w konfiguracji strony i sprawdzenie połączenia',
   ],
-};
+  ['Poczta', 'hasło każdej skrzynki', 'założenie skrzynek u nas, kopia wiadomości i folderów'],
+  ['Domena', 'wybór z listy i zmiana DNS, kiedy jesteś gotowy', 'sprawdzenie DNS, plan przełączenia i synchronizacja różnic przed zmianą'],
+];
 
+const BEZPIECZENSTWO: [string, string][] = [
+  [
+    'Hasła zaszyfrowane i kasowane',
+    `Dostęp do starego hostingu trzymamy zaszyfrowany tylko na czas przeniesienia i kasujemy automatycznie ${HASLA_KASOWANE_PO_DNIACH} dni po zakończeniu.`,
+  ],
+  ['Stara strona zostaje', 'Dane kopiujemy obok — u starego dostawcy niczego nie kasujemy, więc strona działa tam dalej.'],
+  [
+    'Zgoda i dziennik',
+    'Gdy przeprowadzkę robi za Ciebie nasz zespół, rusza ona po Twojej zgodzie w panelu, a każdy wgląd w hasła trafia do dziennika.',
+  ],
+  ['Zatrzymasz w każdej chwili', 'Przeprowadzkę w toku anulujesz w panelu jednym przyciskiem.'],
+];
+
+const FAQ: [string, string][] = [
+  [
+    'Czy strona przestanie działać w trakcie przenoszenia na inny hosting?',
+    'Nie powinna. Migracja odbywa się „obok” działającej strony — kopiujemy dane na nowy serwer, a Twoja obecna strona działa u dotychczasowego dostawcy do momentu przełączenia domeny. Samo przełączenie DNS wiąże się z propagacją, która zwykle trwa od kilkunastu minut do kilku godzin; w tym czasie część odwiedzających może jeszcze trafiać na starą wersję strony.',
+  ],
+  [
+    'Czy przeniesienie strony wpłynie na pozycje w Google?',
+    'Sama zmiana hostingu nie zmienia adresów URL ani treści strony, więc poprawnie przeprowadzona migracja nie powoduje utraty pozycji. Krótkie wahania w trakcie propagacji DNS są możliwe, ale ustępują samoistnie.',
+  ],
+  [
+    'Jak przenieść stronę WordPress na inny hosting?',
+    'Przeniesienie WordPressa to skopiowanie plików, bazy danych i konfiguracji na nowy serwer. W Verris kreator w panelu kopiuje pliki i bazę, odczytuje dane bazy z wp-config.php i wpisuje do niego nowe dane. Możesz też przekazać dostępy, a przeprowadzkę zrobi za Ciebie nasz zespół.',
+  ],
+  [
+    'Czy muszę znać dane bazy danych?',
+    `Zwykle nie. Odczytamy je z panelu albo z plików konfiguracji ${CMS_Z_ODCZYTEM_BAZY}. Przy samym FTP podajesz tylko nazwę bazy.`,
+  ],
+  [
+    'Co z moimi hasłami do starego hostingu?',
+    `Trzymamy je zaszyfrowane tylko na czas przeniesienia i kasujemy automatycznie ${HASLA_KASOWANE_PO_DNIACH} dni po zakończeniu, a po błędzie albo anulowaniu — po 3 dniach.`,
+  ],
+  [
+    'Czy muszę przenosić domenę razem z hostingiem?',
+    'Nie. Domena może zostać u obecnego rejestratora — wystarczy zmienić rekordy DNS tak, aby wskazywały na serwery Verris. Transfer domeny do Verris jest opcjonalny i możesz go wykonać w dowolnym momencie później. U nas domeny odnawiają się wyłącznie po opłaceniu — nigdy automatycznie.',
+  ],
+  [
+    'Co z pocztą e-mail przy zmianie hostingu?',
+    'Hosting Verris obejmuje pocztę. W ramach przeprowadzki zakładamy skrzynki u nas i kopiujemy wiadomości z folderami — do każdej skrzynki podajesz jej hasło. Do czasu przełączenia DNS poczta działa u obecnego dostawcy, więc żadna wiadomość nie ginie.',
+  ],
+  [
+    'Czy migracja jest naprawdę bezpłatna?',
+    'Tak. Zarówno kreator w panelu, jak i pomoc naszego zespołu są bezpłatne w ramach zamówienia hostingu. Nie ma limitu „do X plików” ani dopłat za bazy danych.',
+  ],
+  [
+    'Czy cena wzrośnie przy odnowieniu?',
+    'Nie stosujemy modelu „tani pierwszy rok, kilkukrotnie droższe odnowienie”. Odnowienie następuje według cennika obowiązującego w dniu odnowienia (dziś 45 zł/mies lub 449 zł/rok brutto), a przed każdym odnowieniem wyślemy przypomnienie e-mail (7, 3 i 1 dzień wcześniej). Z odnowienia zrezygnujesz w panelu w dwóch kliknięciach, bez opłat.',
+  ],
+  [
+    'Czy mogę zrezygnować po zakupie?',
+    'Jako konsument masz prawo odstąpienia od umowy. Zasady odstąpienia i zwrotu opisuje regulamin, który zobaczysz przed zakupem — zwrot realizuje nasze wsparcie.',
+  ],
+];
+
+const jsonLd = graph(
+  howToSchema({
+    name: 'Jak przenieść stronę na nowy hosting bez przerwy w działaniu',
+    description: 'Przeniesienie strony, bazy i poczty do Verris w 6 krokach — stara strona działa do przełączenia domeny.',
+    path: '/przenies-strone',
+    steps: KROKI_PRZEPROWADZKI.map((k) => ({ name: k.tytul, text: `${k.tekst} Co robimy za Ciebie: ${k.zaCiebie}` })),
+  }),
+  faqSchema(FAQ),
+);
 
 export default function Page() {
   return (
     <main>
       <JsonLd data={jsonLd} />
 
-      <section className="hero2">
+      <section className="hero2 hero2-sub">
         <div className="bg-pat" aria-hidden="true" />
         <div className="wrap">
-          <div className="hero2-grid">
-            <div>
-              <Breadcrumbs items={[{ label: 'Przenieś stronę' }]} />
-              <h1>
-                Zmiana hostingu bez stresu <span className="mint">i bez przepłacania</span>
-              </h1>
-              <p className="lead">
-                Przeniesiemy Twoją stronę za darmo — albo zrobisz to sam migratorem w panelu. Uczciwe odnowienie po cenie
-                z cennika — bez szoku po pierwszym roku.
-              </p>
-              <div className="hero2-cta">
-                <Button href={PANEL} cta="hero" conv="checkout_intent" plan="hosting">
-                  Przenieś stronę za darmo
-                </Button>
-                <Button href="#kalkulator" variant="ghost" cta="hero-calc">
-                  Policz koszt autoskalowania
-                </Button>
-              </div>
-              <p className="hero2-fine">
-                Hosting z autoskalowaniem: <strong>45 zł/mies</strong> lub <strong>449 zł/rok</strong> brutto. Migracja jest
-                bezpłatna w ramach zamówienia — bez gwiazdek.
-              </p>
+          <div className="b-hero">
+            <Breadcrumbs items={[{ label: 'Przeniesienie strony' }]} />
+            <span className="eyebrow">Przeniesienie strony, bazy i poczty — w cenie hostingu</span>
+            <h1>
+              Przeniesiemy Twoją stronę na nowy hosting. <span className="mint">Ty w tym czasie spokojnie pracujesz</span>
+            </h1>
+            <p className="lead">
+              Podajesz dostęp do starego hostingu — login do panelu albo FTP — i hasła skrzynek pocztowych. Strony, bazy i
+              skrzynki wyszukamy sami, a każdy etap zobaczysz na żywo. Strona działa przez cały czas przeprowadzki.
+            </p>
+            <div className="hero2-cta">
+              <Button href={ZAMOW} cta="hero" conv="checkout_intent" plan="hosting">
+                Przenieś stronę za darmo
+              </Button>
+              <Button href="#poradniki" variant="ghost" cta="hero-poradniki">
+                Poradniki krok po kroku
+              </Button>
             </div>
-            <Card className="incl">
-              <h2 className="incl-h">Przykład: migracja twojafirma.pl</h2>
-              <dl>
-                <div>
-                  <dt>Pliki strony</dt>
-                  <dd>1,2 GB ✓</dd>
-                </div>
-                <div>
-                  <dt>Bazy danych</dt>
-                  <dd>2 bazy ✓</dd>
-                </div>
-                <div>
-                  <dt>Skrzynki e-mail</dt>
-                  <dd>5 kont ✓</dd>
-                </div>
-                <div>
-                  <dt>Przełączenie DNS</dt>
-                  <dd>gdy potwierdzisz</dd>
-                </div>
-              </dl>
-              <p className="incl-peak">Twoja obecna strona cały czas działa</p>
-            </Card>
+            <p className="hero2-fine">
+              Hosting z autoskalowaniem: <strong>45 zł/mies</strong> lub <strong>449 zł/rok</strong> brutto, ta sama cena
+              przy odnowieniu. Przeniesienie jest bezpłatne w ramach zamówienia.
+            </p>
           </div>
           <ul className="params">
             {PARAMETRY.map(([b, s]) => (
@@ -168,47 +152,98 @@ export default function Page() {
         </div>
       </section>
 
-      <section className="sec" id="przeplacasz">
+      <section className="sec" id="jak-to-dziala" aria-labelledby="b-jak">
         <div className="wrap">
           <SectionHead
-            eyebrow="Sprawdź swoją fakturę"
-            title="Za co dziś przepłacasz u swojego dostawcy hostingu?"
-            lead="Rynek hostingu ma trzy sprawdzone sposoby na Twoje pieniądze. Wszystkie są legalne. Żaden nie jest uczciwy. Zbudowaliśmy Verris tak, żeby nie dało się na nich zarabiać."
+            id="b-jak"
+            eyebrow="Jak to działa"
+            title="Tak wygląda przeprowadzka w panelu — 6 kroków"
+            lead="Kreator prowadzi Cię od wyboru domeny do przełączenia. Kliknij kroki pokazu, żeby zobaczyć, co widzisz na ekranie."
           />
-          <div className="grid3">
-            {PULAPKI.map((p) => (
-              <Card key={p.t}>
-                <p className="kicker kicker-stone">{p.tag}</p>
-                <h3>{p.t}</h3>
-                <p>{p.opis}</p>
-                <p className="pain-fix">
-                  <strong>W Verris:</strong> {p.fix}
-                </p>
-              </Card>
-            ))}
+          <div className="b-split">
+            <ol className="b-kroki">
+              {KROKI_PRZEPROWADZKI.map((k, i) => (
+                <li key={k.tytul} id={`krok-${i + 1}`}>
+                  <span className="b-kroki-n" aria-hidden="true">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <div>
+                    <h3>{k.tytul}</h3>
+                    <p>{k.tekst}</p>
+                    <p className="b-zaciebie">
+                      <strong>Co robimy za Ciebie:</strong> {k.zaCiebie}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <PokazPrzeprowadzki etykiety={KROKI_PRZEPROWADZKI.map((k) => k.etykieta)} />
           </div>
         </div>
       </section>
 
-      <section className="sec sec-alt" id="kalkulator">
-        <div className="wrap split">
-          <SectionHead
-            eyebrow="Kalkulator autoskalowania"
-            title="Nie kupuj mocy na zapas. Policz, ile kosztuje moc na godziny."
-            lead="Podstawa to cały hosting w ramach abonamentu. Gdy strona potrzebuje więcej — np. w piku kampanii reklamowej albo w Black Friday — zasoby rosną automatycznie, a Ty płacisz tylko za nadwyżkę, w blokach po 15 minut."
-          />
-          <KalkulatorPiku />
+      <section className="sec sec-alt" aria-labelledby="b-podzial">
+        <div className="wrap">
+          <SectionHead id="b-podzial" eyebrow="Podział pracy" title="Ty: kilka minut. My: cała reszta" />
+          <table className="cmp2">
+            <thead>
+              <tr>
+                <th scope="col">Co przenosimy</th>
+                <th scope="col">Twoja część</th>
+                <th scope="col">Nasza część</th>
+              </tr>
+            </thead>
+            <tbody>
+              {PODZIAL.map(([co, ty, my]) => (
+                <tr key={co}>
+                  <th scope="row">{co}</th>
+                  <td data-label="Twoja część">{ty}</td>
+                  <td data-label="Nasza część" className="vr">
+                    {my}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="b-przypis">
+            Dane bazy odczytujemy z plików {CMS_Z_ODCZYTEM_BAZY}. Przy samym FTP podajesz jeszcze nazwę bazy.
+          </p>
         </div>
       </section>
 
-      <section className="sec" id="jak-to-dziala">
+      <section className="sec" id="poradniki" aria-labelledby="b-skad">
         <div className="wrap">
           <SectionHead
-            eyebrow="Jak to działa"
-            title="Jak przenieść stronę na inny hosting — w 3 krokach, bez przestoju"
-            lead="Przeniesienie strony nie wymaga wiedzy technicznej ani przerwy w działaniu. Migracja odbywa się „obok” działającej strony, a Ty przełączasz się dopiero wtedy, gdy wszystko jest sprawdzone."
+            id="b-skad"
+            eyebrow="Poradniki przeprowadzki"
+            title="Skąd przeniesiemy Twoją stronę?"
+            lead="Prawie z każdego hostingu w Polsce. Jeśli Twój dostawca ma panel cPanel, DirectAdmin albo Plesk, wystarczy login do panelu. Jeśli nie, przeniesiemy stronę przez FTP. Wybierz poradnik krok po kroku."
           />
-          <Steps items={KROKI_MIGRACJI} />
+          <ul className="b-zrodla">
+            {PORADNIKI.map((p) => (
+              <li key={p.slug}>
+                <Link href={`/przenies-strone/${p.slug}`}>
+                  <h3>{p.kafelek.tytul}</h3>
+                  <p>{p.kafelek.tekst}</p>
+                  <span className="b-wiecej">Poradnik krok po kroku →</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className="sec sec-alt" aria-labelledby="b-bezp">
+        <div className="wrap">
+          <SectionHead id="b-bezp" eyebrow="Bezpieczeństwo" title="Twoje hasła i dane są bezpieczne" />
+          <div className="b-grid4">
+            {BEZPIECZENSTWO.map(([t, p]) => (
+              <Card key={t}>
+                <h3>{t}</h3>
+                <p>{p}</p>
+              </Card>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -219,53 +254,22 @@ export default function Page() {
         </div>
       </section>
 
-      <section className="sec sec-alt">
-        <div className="wrap">
-          <SectionHead
-            eyebrow="Uczciwe zasady"
-            title="Czym Verris różni się od typowego hostingu?"
-            lead="Konkrety zamiast deklaracji — każdy punkt po stronie Verris ma pokrycie w regulaminie albo w specyfikacji usługi."
-          />
-          <table className="cmp2">
-            <thead>
-              <tr>
-                <th scope="col">Obszar</th>
-                <th scope="col">Typowy model rynkowy</th>
-                <th scope="col">Verris</th>
-              </tr>
-            </thead>
-            <tbody>
-              {COMPARE.map(([k, inni, my]) => (
-                <tr key={k}>
-                  <th scope="row">{k}</th>
-                  <td data-label="Typowy model rynkowy">{inni}</td>
-                  <td data-label="Verris" className="vr">
-                    {my}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <Pricing />
-
-      <section className="sec" id="faq">
+      <section className="sec sec-alt" id="faq">
         <div className="wrap narrow">
           <SectionHead eyebrow="FAQ" title="Częste pytania o przeniesienie strony" />
           <Accordion items={FAQ.map(([q, a], i) => ({ title: q, body: <p>{a}</p>, open: i === 0 }))} />
-          <p className="updated">Ostatnia aktualizacja: 8 lipca 2026</p>
+          <p className="updated">Ostatnia aktualizacja: 14 października 2026</p>
         </div>
       </section>
 
       <CTABand
-        title="Twoja strona zasługuje na hosting bez pułapek."
-        text="Zamów hosting, przekaż dostępy — resztą przeprowadzki zajmiemy się my. Za 0 zł."
+        title="Przeprowadzka bez stresu i bez kosztów"
+        text="Podaj dostęp, a resztą zajmiemy się my. Stara strona działa do chwili przełączenia domeny."
         primaryLabel="Przenieś stronę za darmo"
-        secondary={{ label: 'Zobacz cennik', href: '/cennik' }}
+        primaryHref={ZAMOW}
+        secondary={{ label: 'Jak wybrać hosting', href: '/jak-wybrac-hosting' }}
       />
-      <StickyBuy />
+      <StickyBuy href={ZAMOW} label="Przenieś stronę" />
     </main>
   );
 }
