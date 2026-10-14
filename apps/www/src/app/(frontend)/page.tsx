@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/' },
 };
 
-// Przykład w zakładce „Autoskalowanie”: +2 vCPU i +4 GB RAM przez 1,5 h (liczone ze stawek, nie wpisane).
+// Przykład w zakładce „Autoskalowanie”: dwa dodatkowe procesory wirtualne i 4 GB pamięci przez 1,5 h (ze stawek, nie wpisane).
 const PRZYKLAD_ZAKLADKA = formatZl(kosztPiku(2, 4, 1.5));
 
 const PARAMETRY: [string, string][] = [

@@ -12,12 +12,12 @@ import { ZAMOW } from '@/lib/site';
 export const metadata: Metadata = {
   title: 'Przeniesienie strony na nowy hosting za darmo | Verris',
   description:
-    'Przeniesiemy stronę, bazę i pocztę z cPanel, DirectAdmin, Plesk albo przez FTP. Stara strona działa do przełączenia domeny. Bez opłat.',
+    'Przeniesiemy stronę, bazę i pocztę z cPanel, Plesk, innego panelu albo przez FTP. Stara strona działa do przełączenia domeny. Bez opłat.',
   alternates: { canonical: '/przenies-strone' },
   openGraph: {
     title: 'Przeniesienie strony na nowy hosting za darmo',
     description:
-      'Przeniesiemy stronę, bazę i pocztę z cPanel, DirectAdmin, Plesk albo przez FTP. Stara strona działa do przełączenia domeny.',
+      'Przeniesiemy stronę, bazę i pocztę z cPanel, Plesk, innego panelu albo przez FTP. Stara strona działa do przełączenia domeny.',
     url: 'https://verris.pl/przenies-strone',
     locale: 'pl_PL',
     type: 'website',
@@ -217,7 +217,7 @@ export default function Page() {
             id="b-skad"
             eyebrow="Poradniki przeprowadzki"
             title="Skąd przeniesiemy Twoją stronę?"
-            lead="Prawie z każdego hostingu w Polsce. Jeśli Twój dostawca ma panel cPanel, DirectAdmin albo Plesk, wystarczy login do panelu. Jeśli nie, przeniesiemy stronę przez FTP. Wybierz poradnik krok po kroku."
+            lead="Prawie z każdego hostingu w Polsce. Jeśli Twój dostawca ma panel cPanel, Plesk albo inny popularny panel, zwykle wystarczy login do panelu. Jeśli nie, przeniesiemy stronę przez FTP. Wybierz poradnik krok po kroku."
           />
           <ul className="b-zrodla">
             {PORADNIKI.map((p) => (

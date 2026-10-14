@@ -8,7 +8,9 @@ import { CMS_Z_ODCZYTEM_BAZY, HASLA_KASOWANE_PO_DNIACH } from './migracja';
  * (lib/migracja.ts, apps/api …/subscriptions/migra*). Kroki po stronie starego panelu opisane ogólnie: nazwy
  * sekcji różnią się między wersjami i językami paneli, więc zawsze z zastrzeżeniem „zwykle”.
  */
-export type ZrodloSlug = 'z-cpanel' | 'z-directadmin' | 'z-plesk' | 'z-ftp';
+// White label (bez-nazwy-directadmina.spec): na verris.pl nie pada nazwa panelu, na którym działa Verris, także jako panel starego
+// hostingu — klienci takich paneli trafiają do poradnika FTP albo ogólnej /przenies-strone.
+export type ZrodloSlug = 'z-cpanel' | 'z-plesk' | 'z-ftp';
 
 export type KrokPoradnika = { tytul: string; tekst: string };
 
@@ -121,52 +123,6 @@ export const PORADNIKI: Poradnik[] = [
     ],
   },
   {
-    slug: 'z-directadmin',
-    zrodlo: 'z panelu DirectAdmin',
-    krotko: 'DirectAdmin',
-    kafelek: { tytul: 'Z panelu DirectAdmin', tekst: 'Login do panelu i wybierasz, co przenosimy.' },
-    title: 'Jak przenieść stronę z DirectAdmin — krok po kroku | Verris',
-    description:
-      'Przeniesienie strony, bazy i poczty z hostingu z panelem DirectAdmin do Verris bez przerwy w działaniu. Co przygotować i jak przełączyć domenę. 0 zł.',
-    h1: 'Jak przenieść stronę z DirectAdmin do Verris',
-    lead: 'Podajesz login do starego panelu DirectAdmin, a my przenosimy stronę, bazy i pocztę. Stara strona działa do chwili, gdy sam przełączysz domenę.',
-    przygotuj: [
-      'Adres panelu DirectAdmin, login i hasło — zwykle są w mailu powitalnym od dostawcy albo w jego panelu klienta.',
-      'Hasła skrzynek pocztowych, które chcesz przenieść.',
-      'Dostęp do miejsca, w którym zarządzasz DNS domeny (u rejestratora albo u obecnego dostawcy).',
-    ],
-    wykrywamy:
-      'Po zalogowaniu do DirectAdmin sami wyszukamy strony, bazy danych i skrzynki pocztowe na koncie. Ty tylko zaznaczasz, co przenosimy.',
-    kroki: [
-      ZAMOW_KROK,
-      {
-        tytul: 'Sprawdź dostęp do DirectAdmin',
-        tekst:
-          'Zaloguj się do starego panelu i upewnij się, że strona działa. Skopiuj adres panelu, login i hasło.',
-      },
-      {
-        tytul: 'Uruchom przeprowadzkę w panelu Verris',
-        tekst:
-          'W panelu Verris wybierz „Przenieś stronę”, wskaż domenę z listy domen konta i wpisz dane do DirectAdmin. Przed startem sprawdzimy, czy dostęp działa.',
-      },
-      {
-        tytul: 'Zaznacz strony, bazy i skrzynki',
-        tekst:
-          'Z listy wyszukanej na starym koncie zaznacz, co przenosimy, i wpisz hasła skrzynek. Bazy i brakujące skrzynki zakładamy u nas sami.',
-      },
-      ...KONIEC_KROKI,
-    ],
-    wlasnaKopia:
-      'Chcesz mieć dodatkowo własną kopię? W DirectAdmin zwykle służy do tego sekcja kopii zapasowych konta (Create/Restore Backups). Nazwy sekcji zależą od wersji, skórki i języka panelu. Do przeprowadzki ta kopia nie jest potrzebna.',
-    faq: [
-      [
-        'Czy muszę znać dane bazy danych?',
-        'Zwykle nie. Bazy wyszukamy po zalogowaniu do DirectAdmin, a dane połączenia odczytamy z plików konfiguracji strony.',
-      ],
-      ...FAQ_WSPOLNE,
-    ],
-  },
-  {
     slug: 'z-plesk',
     zrodlo: 'z panelu Plesk',
     krotko: 'Plesk',
@@ -221,7 +177,7 @@ export const PORADNIKI: Poradnik[] = [
     description:
       'Przeniesienie strony przez FTP lub SFTP, gdy stary hosting ma własny panel. Dane bazy odczytamy z plików strony. Bez przerwy w działaniu, za 0 zł.',
     h1: 'Jak przenieść stronę przez FTP do Verris',
-    lead: 'Twój obecny hosting ma własny panel, a nie cPanel, DirectAdmin czy Plesk? Przeniesiemy stronę przez FTP albo SFTP. Stara strona działa do chwili, gdy sam przełączysz domenę.',
+    lead: 'Twój obecny hosting ma własny panel, a nie cPanel czy Plesk? Przeniesiemy stronę przez FTP albo SFTP. Stara strona działa do chwili, gdy sam przełączysz domenę.',
     przygotuj: [
       'Dane FTP lub SFTP: adres serwera, login i hasło — zwykle w panelu klienta starego dostawcy.',
       'Nazwę bazy danych strony — przy samym FTP podajesz ją w kreatorze.',

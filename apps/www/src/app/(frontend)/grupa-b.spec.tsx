@@ -69,7 +69,7 @@ describe('grupa B — /przenies-strone', () => {
     const howTo = JSON.parse(html.match(/"@graph":\[(\{"@type":"HowTo".*?\}\]\})/s)![1]);
     expect(howTo.step).toHaveLength(6);
     expect(html).toContain('id="poradniki"');
-    for (const s of ['z-cpanel', 'z-directadmin', 'z-plesk', 'z-ftp']) expect(html).toContain(`href="/przenies-strone/${s}"`);
+    for (const s of ['z-cpanel', 'z-plesk', 'z-ftp']) expect(html).toContain(`href="/przenies-strone/${s}"`);
     // Formularz leada zostaje (analityka generate_lead w MigrationLeadForm).
     expect(html).toContain('type="email"');
   });
@@ -78,11 +78,11 @@ describe('grupa B — /przenies-strone', () => {
 describe('grupa B — poradniki /przenies-strone/[zrodlo]', () => {
   it('generateStaticParams daje cztery źródła, bez marek hostingów', async () => {
     const mod = await import('./przenies-strone/[zrodlo]/page');
-    expect(mod.generateStaticParams().map((p) => p.zrodlo)).toEqual(['z-cpanel', 'z-directadmin', 'z-plesk', 'z-ftp']);
+    expect(mod.generateStaticParams().map((p) => p.zrodlo)).toEqual(['z-cpanel', 'z-plesk', 'z-ftp']);
     expect(mod.dynamicParams).toBe(false);
   });
 
-  it.each(['z-cpanel', 'z-directadmin', 'z-plesk', 'z-ftp'])('%s: metadane, h1, HowTo + FAQPage + BreadcrumbList, CTA', async (zrodlo) => {
+  it.each(['z-cpanel', 'z-plesk', 'z-ftp'])('%s: metadane, h1, HowTo + FAQPage + BreadcrumbList, CTA', async (zrodlo) => {
     const mod = await import('./przenies-strone/[zrodlo]/page');
     const params = Promise.resolve({ zrodlo });
     const meta = await mod.generateMetadata({ params });
@@ -90,7 +90,7 @@ describe('grupa B — poradniki /przenies-strone/[zrodlo]', () => {
     sprawdzStrone({ html, meta, fraza: /^Jak przenieść stronę/, typy: ['HowTo', 'FAQPage', 'BreadcrumbList'], canonical: `/przenies-strone/${zrodlo}` });
     expect(html).toContain('Przenieś za darmo');
     // Linki do pozostałych poradników.
-    for (const s of ['z-cpanel', 'z-directadmin', 'z-plesk', 'z-ftp'].filter((x) => x !== zrodlo)) {
+    for (const s of ['z-cpanel', 'z-plesk', 'z-ftp'].filter((x) => x !== zrodlo)) {
       expect(html).toContain(`href="/przenies-strone/${s}"`);
     }
     // Bez marek konkretnych hostingów (nie wiemy, jakiego panelu używają).

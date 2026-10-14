@@ -78,11 +78,12 @@ function Meta({ p }: { p: Post }) {
   );
 }
 
-const PORADNIKI: [string, string][] = [
-  ['Z panelu cPanel', 'Przekaż dostęp do obecnego hostingu, a przeniesiemy pliki, bazy i pocztę.'],
-  ['Z panelu DirectAdmin', 'Stara strona działa do chwili, w której przełączysz domenę.'],
-  ['Z panelu Plesk', 'Przeniesienie strony, baz i poczty jest w cenie hostingu.'],
-  ['Z innego hostingu', 'Masz u dostawcy własny panel? Napisz, ustalimy, jak przenieść stronę.'],
+// Poradniki przeprowadzki (lib/poradniki.ts) + ogólna strona dla pozostałych paneli.
+const PORADNIKI: [string, string, string][] = [
+  ['Z panelu cPanel', 'Przekaż dostęp do obecnego hostingu, a przeniesiemy pliki, bazy i pocztę.', '/przenies-strone/z-cpanel'],
+  ['Z panelu Plesk', 'Przeniesienie strony, baz i poczty jest w cenie hostingu.', '/przenies-strone/z-plesk'],
+  ['Przez FTP', 'Masz u dostawcy własny panel? Przeniesiemy stronę przez FTP albo SFTP.', '/przenies-strone/z-ftp'],
+  ['Z innego panelu', 'Stara strona działa do chwili, w której przełączysz domenę.', '/przenies-strone'],
 ];
 
 export default async function BlogPage({ searchParams }: { searchParams: SP }) {
@@ -211,8 +212,8 @@ export default async function BlogPage({ searchParams }: { searchParams: SP }) {
             lead="Przeniesienie strony, baz danych i poczty jest w cenie hostingu. Możesz też zrobić to sam migratorem w panelu."
           />
           <div className="c-guides">
-            {PORADNIKI.map(([t, p]) => (
-              <Link className="c-fcard" href="/przenies-strone" key={t}>
+            {PORADNIKI.map(([t, p, href]) => (
+              <Link className="c-fcard" href={href} key={t}>
                 <h3>{t}</h3>
                 <p>{p}</p>
                 <span className="c-more">Przeprowadzka →</span>

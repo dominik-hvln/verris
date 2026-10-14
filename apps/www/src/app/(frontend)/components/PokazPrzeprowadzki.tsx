@@ -27,7 +27,7 @@ const EKRANY: { podpis: string; wiersze: [string, string][] }[] = [
   {
     podpis: 'Dostęp do starego hostingu',
     wiersze: [
-      ['Rodzaj', 'cPanel · DirectAdmin · Plesk · FTP'],
+      ['Rodzaj', 'cPanel · Plesk · inny panel · FTP'],
       ['Login', 'sklepogr'],
       ['Hasło', '••••••••••'],
       ['Test dostępów', '✓ działa'],

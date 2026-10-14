@@ -43,7 +43,7 @@ export const KROKI_PRZEPROWADZKI: KrokPrzeprowadzki[] = [
   {
     etykieta: 'Dostęp',
     tytul: 'Podajesz dostęp do starego hostingu',
-    tekst: 'Login do starego panelu (cPanel, DirectAdmin albo Plesk), a jeśli go nie masz — dane FTP lub SFTP.',
+    tekst: 'Login do starego panelu (np. cPanel albo Plesk), a jeśli go nie masz — dane FTP lub SFTP.',
     zaCiebie: 'test dostępów przed startem, z czytelnym komunikatem, jeśli coś nie pasuje.',
   },
   {
