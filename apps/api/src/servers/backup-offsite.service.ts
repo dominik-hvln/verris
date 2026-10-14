@@ -37,6 +37,8 @@ export interface OffsiteWezla {
   /** Subkonto TYLKO DO ODCZYTU tego samego katalogu — dla odtworzenia konta na innym węźle (H-16). */
   roUser?: string;
   roPass?: string;
+  /** Kiedy węzeł pierwszy raz pobrał własne dane (od tej chwili jego nowe kopie są pod własnym kluczem). */
+  pobranoAt?: string;
 }
 
 export type PodgladOffsiteWezla =
@@ -177,6 +179,9 @@ export class BackupOffsiteService {
       roUser,
       roPass: roUser ? dane.roPass?.trim() || (stare?.roUser === roUser ? stare?.roPass : undefined) || undefined : undefined,
     };
+    // Węzeł przechodzi na nowe dane dopiero po ich pobraniu — do tego czasu kopie źródła czytamy jak dotąd.
+    const tenSamZapis = stare && stare.user === k.user && stare.pass === k.pass && stare.cryptPass === k.cryptPass && stare.cryptSalt === k.cryptSalt && stare.sciezka === k.sciezka && stare.host === k.host;
+    if (tenSamZapis && stare?.pobranoAt) k.pobranoAt = stare.pobranoAt;
     if (!k.pass || !k.cryptPass || !k.cryptSalt) {
       throw new BadRequestException('Podaj hasło subkonta oraz hasło i sól szyfrowania tego węzła (przy pierwszym zapisie wszystkie trzy).');
     }
@@ -214,21 +219,41 @@ export class BackupOffsiteService {
   }
 
   /**
-   * H-16 — dane TYLKO DO ODCZYTU kopii węzła źródłowego dla zadania odtworzenia na innym węźle. `null` = źródło
-   * na wspólnym zestawie (stary układ: węzeł docelowy czyta prefiks źródła swoim remote'em).
+   * H-16 — dane TYLKO DO ODCZYTU kopii węzła źródłowego dla zadania odtworzenia na innym węźle.
+   * - źródło na własnych danych, które węzeł już pobrał (`pobranoAt`): subkonto RO + crypt źródła;
+   * - źródło jeszcze na wspólnym zestawie (albo zapisane własne, ale węzeł ich nie pobrał — kopie leżą nadal pod
+   *   wspólnym kluczem; przegląd 15.10): wspólny zestaw floty, dopóki „tylko per węzeł” jest wyłączone;
+   * - `null`: nie ma czego wydać.
    */
-  async daneOdczytuZrodla(sourceServerId: string): Promise<OffsiteWezla | null> {
+  async daneOdczytuZrodla(sourceServerId: string): Promise<{ rodzaj: 'wlasne' | 'wspolne'; k: OffsiteWezla } | null> {
     const w = await this.wczytajWezla(sourceServerId);
-    if (!w) return null;
-    if (!w.k.roUser || !w.k.roPass) {
-      throw new BadRequestException('Węzeł źródłowy nie ma subkonta tylko do odczytu w danych kopii off-site — uzupełnij je na karcie węzła.');
+    if (w?.k.pobranoAt) {
+      if (!w.k.roUser || !w.k.roPass) {
+        throw new BadRequestException('Węzeł źródłowy nie ma subkonta tylko do odczytu w danych kopii off-site — uzupełnij je na karcie węzła.');
+      }
+      return { rodzaj: 'wlasne', k: { ...w.k, user: w.k.roUser, pass: w.k.roPass } };
     }
-    return w.k;
+    const g = (await this.wczytaj())?.k;
+    if (!g || (await this.tylkoPerWezel())) return null;
+    return { rodzaj: 'wspolne', k: { host: g.host, port: g.port, user: g.user, pass: g.pass, sciezka: g.sciezka, cryptPass: g.cryptPass, cryptSalt: g.cryptSalt } };
   }
 
   /**
-   * Env dla zadania odtworzenia (H-16): subkonto RO źródła + jego crypt. Tylko dla węzła, który właśnie wykonuje
-   * to zadanie (OFFSITE_RESTORE w toku, zlecone z `zrodloServerId`) — inaczej 404. Odczyt w audycie.
+   * Czy odtworzenie na węźle `celServerId` potrzebuje danych źródła z control-plane: tak, gdy źródło ma własne dane
+   * (cel ich nie zna) albo cel przeszedł na własne (jego remote nie widzi wspólnego klucza źródła).
+   */
+  async odtworzeniePotrzebujeDanychZrodla(sourceServerId: string, celServerId: string): Promise<boolean> {
+    const [zrodlo, cel] = await Promise.all([this.wczytajWezla(sourceServerId), this.wczytajWezla(celServerId)]);
+    if (zrodlo?.k.pobranoAt) {
+      await this.daneOdczytuZrodla(sourceServerId); // brak subkonta RO → błąd od razu, przy zleceniu
+      return true;
+    }
+    return Boolean(cel);
+  }
+
+  /**
+   * Env dla zadania odtworzenia (H-16): dane do odczytu kopii źródła (zob. daneOdczytuZrodla). Tylko dla węzła, który
+   * właśnie wykonuje to zadanie (OFFSITE_RESTORE w toku, zlecone z `zrodloServerId`) — inaczej 404. Odczyt w audycie.
    */
   async envDlaZadaniaOdtworzenia(taskId: string, celServerId: string): Promise<string> {
     const t = await this.prisma.nodeTask.findUnique({ where: { id: taskId }, select: { serverId: true, kind: true, status: true, payload: true } });
@@ -236,15 +261,16 @@ export class BackupOffsiteService {
     if (!t || t.serverId !== celServerId || t.kind !== 'OFFSITE_RESTORE' || t.status !== 'RUNNING' || !sourceServerId) {
       throw new NotFoundException('Brak zadania odtworzenia w toku dla tego węzła.');
     }
-    const k = await this.daneOdczytuZrodla(sourceServerId);
-    if (!k) throw new NotFoundException('Węzeł źródłowy korzysta ze wspólnych danych kopii.');
-    await this.audit.record({ action: 'BACKUP_OFFSITE_SOURCE_READ_FOR_RESTORE', details: { sourceServerId, serverId: celServerId, taskId } });
+    const d = await this.daneOdczytuZrodla(sourceServerId);
+    if (!d) throw new NotFoundException('Brak danych kopii off-site węzła źródłowego.');
+    await this.audit.record({ action: 'BACKUP_OFFSITE_SOURCE_READ_FOR_RESTORE', details: { sourceServerId, serverId: celServerId, taskId, rodzaj: d.rodzaj } });
     const q = (v: string | number) => `'${String(v).replace(/'/g, `'\\''`)}'`;
+    const k = d.k;
     return [
       `SRC_HOST=${q(k.host)}`,
       `SRC_PORT=${q(k.port)}`,
-      `SRC_USER=${q(k.roUser!)}`,
-      `SRC_PASS=${q(k.roPass!)}`,
+      `SRC_USER=${q(k.user)}`,
+      `SRC_PASS=${q(k.pass)}`,
       `SRC_PATH=${q(k.sciezka)}`,
       `SRC_CRYPT_PASS=${q(k.cryptPass)}`,
       `SRC_CRYPT_SALT=${q(k.cryptSalt)}`,
@@ -259,6 +285,10 @@ export class BackupOffsiteService {
     const w = await this.wczytaj();
     if (wlasne) {
       await this.audit.record({ action: 'BACKUP_OFFSITE_READ_BY_NODE', details: { serverId, wlasne: true } });
+      if (!wlasne.k.pobranoAt) {
+        const value = this.crypto.encrypt(JSON.stringify({ ...wlasne.k, pobranoAt: new Date().toISOString() }));
+        await this.prisma.platformSetting.update({ where: { key: kluczWezla(serverId) }, data: { value } });
+      }
       const k = wlasne.k;
       return [
         `VB_HOST=${q(k.host)}`,

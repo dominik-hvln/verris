@@ -85,7 +85,7 @@ export class OdtworzenieNaWezleService {
     const payload: Record<string, string> = { mode: dane.mode, daUser: account.daUsername, sourcePrefix: src, przeniesienie: '1' };
     // Audyt 13.10 (#11): źródło z własnymi danymi kopii — węzeł docelowy pobiera subkonto TYLKO DO ODCZYTU źródła
     // i jego klucz crypt na czas zadania (GET /agent/tasks/offsite-restore/zrodlo/:id), sekrety nie trafiają do payloadu.
-    if (account.serverId && (await this.offsite?.daneOdczytuZrodla(account.serverId))) {
+    if (account.serverId && (await this.offsite?.odtworzeniePotrzebujeDanychZrodla(account.serverId, cel.id))) {
       payload.zrodloServerId = account.serverId;
     }
     if (dane.archive) payload.archive = dane.archive;

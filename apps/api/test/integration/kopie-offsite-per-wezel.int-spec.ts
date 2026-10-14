@@ -61,6 +61,7 @@ describe('Kopie off-site per węzeł', () => {
       host: 'u1.your-storagebox.de', port: 23, user: 'u1-sub1', sciezka: '', pass: 'HASLO-A',
       cryptPass: 'CRYPT-A-0123456789ab', cryptSalt: 'SOL-A-0123456789abcd', roUser: 'u1-sub1-ro', roPass: 'HASLO-A-RO',
     }, admin.id);
+    await s.dlaWezla(a.id); // węzeł źródłowy pobrał własne dane — jego kopie są pod własnym kluczem
     const t = await prisma().nodeTask.create({
       data: { serverId: b.id, kind: NodeTaskKind.OFFSITE_RESTORE, status: NodeTaskStatus.RUNNING, payload: { mode: 'list', zrodloServerId: a.id } },
     });
@@ -76,6 +77,30 @@ describe('Kopie off-site per węzeł', () => {
   it('źródło z własnym wpisem bez subkonta RO → odtworzenie odmawia z jasnym powodem', async () => {
     const { s, admin, a } = await flota();
     await s.zapiszWezla(a.id, { host: 'u1.your-storagebox.de', port: 23, user: 'u1-sub1', sciezka: '', pass: 'HASLO-A', cryptPass: 'CRYPT-A-0123456789ab', cryptSalt: 'SOL-A-0123456789abcd' }, admin.id);
+    await s.dlaWezla(a.id);
     await expect(s.daneOdczytuZrodla(a.id)).rejects.toThrow('tylko do odczytu');
+  });
+
+  // Przegląd 15.10: okres przejściowy H-16.
+  it('źródło jeszcze na wspólnych danych, cel już na własnych → cel dostaje wspólne dane źródła na czas zadania', async () => {
+    const { s, admin, a, b } = await flota();
+    await s.zapiszWezla(b.id, { host: 'u1.your-storagebox.de', port: 23, user: 'u1-sub2', sciezka: '', pass: 'HASLO-B', cryptPass: 'CRYPT-B-0123456789ab', cryptSalt: 'SOL-B-0123456789abcd' }, admin.id);
+    expect(await s.odtworzeniePotrzebujeDanychZrodla(a.id, b.id)).toBe(true);
+    const t = await prisma().nodeTask.create({
+      data: { serverId: b.id, kind: NodeTaskKind.OFFSITE_RESTORE, status: NodeTaskStatus.RUNNING, payload: { mode: 'list', zrodloServerId: a.id } },
+    });
+    expect(env(await s.envDlaZadaniaOdtworzenia(t.id, b.id))).toMatchObject({ SRC_USER: `'u1'`, SRC_PATH: `'verris'`, SRC_CRYPT_PASS: `'CRYPT-FLOTY-0123456789'` });
+  });
+
+  it('źródło z zapisanymi, ale jeszcze niepobranymi własnymi danymi → kopie czytamy wspólnym kluczem', async () => {
+    const { s, admin, a, b } = await flota();
+    await s.zapiszWezla(a.id, {
+      host: 'u1.your-storagebox.de', port: 23, user: 'u1-sub1', sciezka: '', pass: 'HASLO-A',
+      cryptPass: 'CRYPT-A-0123456789ab', cryptSalt: 'SOL-A-0123456789abcd', roUser: 'u1-sub1-ro', roPass: 'HASLO-A-RO',
+    }, admin.id);
+    expect(await s.odtworzeniePotrzebujeDanychZrodla(a.id, b.id)).toBe(false); // obaj na wspólnym — stary układ
+    expect((await s.daneOdczytuZrodla(a.id))?.rodzaj).toBe('wspolne');
+    await s.dlaWezla(a.id);
+    expect((await s.daneOdczytuZrodla(a.id))?.rodzaj).toBe('wlasne');
   });
 });
