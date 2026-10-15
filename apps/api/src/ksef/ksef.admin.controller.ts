@@ -36,9 +36,9 @@ export class KsefAdminController {
   /** UPO faktury (XML XAdES podpisany przez MF) — do pobrania/archiwizacji. */
   @Get('invoices/:id/upo')
   @Header('Content-Type', 'application/xml; charset=utf-8')
-  async upo(@Param('id') id: string): Promise<string> {
+  async upo(@Param('id') id: string, @CurrentUser() user: { userId: string }): Promise<string> {
     try {
-      const { upoXml } = await this.ksef.downloadUpo(id);
+      const { upoXml } = await this.ksef.downloadUpo(id, user.userId);
       return upoXml;
     } catch (err) {
       throw new NotFoundException(err instanceof Error ? err.message : 'UPO niedostępne.');

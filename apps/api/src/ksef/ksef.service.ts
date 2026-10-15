@@ -624,7 +624,7 @@ export class KsefService {
    * Statusy sesji/faktur w KSeF 2.0 nie podlegają retencji, więc UPO jest
    * dostępne na żądanie — nie przechowujemy go lokalnie.
    */
-  async downloadUpo(invoiceId: string): Promise<{ number: string; upoXml: string }> {
+  async downloadUpo(invoiceId: string, actorUserId?: string): Promise<{ number: string; upoXml: string }> {
     const inv = await this.prisma.invoice.findUnique({ where: { id: invoiceId } });
     if (!inv || inv.ksefStatus !== KsefStatus.ACCEPTED || !inv.ksefElementRef) {
       throw new Error('UPO dostępne tylko dla faktur przyjętych przez KSeF.');
@@ -634,6 +634,10 @@ export class KsefService {
     await client.openSession();
     try {
       const upoXml = await client.downloadUpo(inv.ksefElementRef);
+      // M-15 — UPO to dokument podatkowy faktury klienta: każde pobranie przez operatora zostawia ślad w dzienniku.
+      if (actorUserId) {
+        await this.audit.record({ action: 'KSEF_UPO_DOWNLOADED', actorUserId, details: { invoiceId, number: inv.number } });
+      }
       return { number: inv.number, upoXml };
     } finally {
       await client.terminateSession();
