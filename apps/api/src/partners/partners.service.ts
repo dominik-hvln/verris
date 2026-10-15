@@ -137,13 +137,16 @@ export class PartnersService {
    */
   private async ustawieniaWyplaty(userId: string) {
     const cfg = await this.settings.getPartnerProgram();
-    if (await this.aktywnyReseller(userId)) return cfg;
     const status = await this.enrollmentStatus(userId);
+    const partner = status === 'APPROVED' && cfg.enabled;
+    // Przegląd 15.10: aktywny reseller wypłacał WSZYSTKIE prowizje (także polecenia i bonusy) mimo odrzuconego zapisu
+    // do programu (np. po nadużyciu) albo wyłączonego programu. Bez statusu partnera — tylko narzut resellera.
+    if (!partner && (await this.aktywnyReseller(userId))) return { cfg, rodzaje: { kind: 'RESELLER_MARKUP' } as const };
     if (status !== 'APPROVED') {
       throw new ForbiddenException('Konto nie jest aktywnym partnerem programu poleceń.');
     }
     if (!cfg.enabled) throw new BadRequestException('Program partnerski jest wyłączony.');
-    return cfg;
+    return { cfg, rodzaje: {} };
   }
 
   /**
@@ -247,10 +250,10 @@ export class PartnersService {
 
   /** Wypłata do portfela — natychmiastowa (kredyt COMMISSION_CREDIT). */
   async requestWalletPayout(userId: string): Promise<{ amount: number; payoutId: string }> {
-    await this.ustawieniaWyplaty(userId);
+    const { rodzaje } = await this.ustawieniaWyplaty(userId);
 
     const available = await this.commissions.findMany({
-      where: { partnerUserId: userId, status: 'AVAILABLE', payoutId: null },
+      where: { partnerUserId: userId, status: 'AVAILABLE', payoutId: null, ...rodzaje },
       select: { id: true, amount: true },
     });
     if (available.length === 0) throw new BadRequestException('Brak dostępnych prowizji do wypłaty.');
@@ -296,7 +299,7 @@ export class PartnersService {
 
   /** Zlecenie wypłaty na konto bankowe — wymaga zatwierdzenia przez admina. */
   async requestBankPayout(userId: string, bankAccount: string): Promise<{ amount: number; payoutId: string }> {
-    const cfg = await this.ustawieniaWyplaty(userId);
+    const { cfg, rodzaje } = await this.ustawieniaWyplaty(userId);
 
     const iban = (bankAccount ?? '').replace(/\s+/g, '').toUpperCase();
     if (!/^[A-Z0-9]{15,34}$/.test(iban)) {
@@ -304,7 +307,7 @@ export class PartnersService {
     }
 
     const available = await this.commissions.findMany({
-      where: { partnerUserId: userId, status: 'AVAILABLE', payoutId: null },
+      where: { partnerUserId: userId, status: 'AVAILABLE', payoutId: null, ...rodzaje },
       select: { id: true, amount: true },
     });
     const wstepnie = available.reduce((s, c) => s.plus(c.amount), new Prisma.Decimal(0));

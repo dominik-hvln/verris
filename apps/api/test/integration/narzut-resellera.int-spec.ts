@@ -52,6 +52,21 @@ describe('O-07 narzut resellera', () => {
   });
 
   // Na t1 07.10: poczta kupiona bez wolnego węzła → automatyczny zwrot; prowizja od zwróconej opłaty zostawała.
+  it('przegląd 15.10: reseller bez statusu partnera (program wyłączony / zapis odrzucony) wypłaca tylko narzut', async () => {
+    const p = prisma();
+    const t = Date.now();
+    const reseller = await p.user.create({ data: { email: `rsl2-${t}@test.verris.pl`, passwordHash: 'x' } });
+    await p.resellerProfile.create({ data: { userId: reseller.id, status: 'ACTIVE', markupPct: 20, code: `rsl2_${t}` } });
+    await p.referralProgramEnrollment.create({ data: { userId: reseller.id, status: 'REJECTED' } } as never);
+    const wspolne = { partnerUserId: reseller.id, currency: 'PLN', status: 'AVAILABLE', availableAt: new Date() };
+    await p.partnerCommission.create({ data: { ...wspolne, kind: 'RESELLER_MARKUP', dedupeKey: `rsl:x-${t}`, amount: 9, description: 'narzut' } as never });
+    await p.partnerCommission.create({ data: { ...wspolne, kind: 'RECURRING_PCT', dedupeKey: `tx:y-${t}`, amount: 15, description: 'polecenie' } as never });
+    const partners = new PartnersService(p as never, new AuditService(p as never), new WalletLedgerService(p as never), ustawienia as never);
+    await expect(partners.requestWalletPayout(reseller.id)).resolves.toMatchObject({ amount: 9 });
+    const polecenie = await p.partnerCommission.findFirstOrThrow({ where: { partnerUserId: reseller.id, kind: 'RECURRING_PCT' } });
+    expect(polecenie).toMatchObject({ status: 'AVAILABLE', payoutId: null });
+  });
+
   it('zwrot opłaty: przed naliczeniem bez prowizji, w karencji anuluje, częściowy zmniejsza', async () => {
     const p = prisma();
     const t = Date.now();
