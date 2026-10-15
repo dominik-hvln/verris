@@ -16,6 +16,13 @@ function stanowisko(payload: Record<string, unknown>, user: Record<string, unkno
 const admin = { id: 'a', email: 'a@v.pl', role: 'ADMIN', canAccessGrafana: true, loginBlocked: false, anonymizedAt: null, tokenVersion: 2 };
 
 describe('GrafanaAuthController', () => {
+  // Decyzja 15.10 (#13): zespół (STAFF z dostępem) ogląda, nie edytuje pulpitów i reguł alertów.
+  it('STAFF z dostępem do Grafany → rola Viewer', async () => {
+    const s = stanowisko({ sub: 'a', tv: 2 }, { ...admin, role: 'STAFF' });
+    await expect(s.run()).resolves.toMatchObject({ role: 'Viewer' });
+    expect(s.res.setHeader).toHaveBeenCalledWith('X-WEBAUTH-ROLE', 'Viewer');
+  });
+
   it('ważna sesja administratora → rola Admin i nagłówki dla proxy', async () => {
     const s = stanowisko({ sub: 'a', tv: 2 }, admin);
     await expect(s.run()).resolves.toEqual({ ok: true, role: 'Admin', email: 'a@v.pl' });

@@ -27,7 +27,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
  *
  * Authorisation:
  *   - ADMIN          → Grafana role "Admin"
- *   - STAFF + flag   → Grafana role "Editor"
+ *   - STAFF + flag   → Grafana role "Viewer" (decyzja 15.10 #13 — podgląd bez edycji pulpitów i alertów)
  *   - everybody else → 403, Caddy rejects
  *
  * The endpoint accepts the JWT in either:
@@ -36,7 +36,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
  *   2. `Cookie: auth_token=<jwt>` — same cookie used by client/staff/admin
  *      panels.
  */
-type WynikDostepu = { email: string; role: 'Admin' | 'Editor'; payload: { sub: string; tv?: number; sid?: string } };
+type WynikDostepu = { email: string; role: 'Admin' | 'Viewer'; payload: { sub: string; tv?: number; sid?: string } };
 
 const CIASTECZKO = 'grafana_session';
 const SESJA_S = 8 * 60 * 60;
@@ -144,8 +144,10 @@ function extractToken(req: Request): string | null {
   return null;
 }
 
-function mapToGrafanaRole(role: Role, canAccess: boolean): 'Admin' | 'Editor' | null {
+function mapToGrafanaRole(role: Role, canAccess: boolean): 'Admin' | 'Viewer' | null {
   if (role === Role.ADMIN) return 'Admin';
-  if (role === Role.STAFF && canAccess) return 'Editor';
+  // Rola idzie nagłówkiem X-WEBAUTH-ROLE i Grafana synchronizuje ją przy każdym logowaniu (grafana.ini:
+  // [auth.proxy] headers = Role:X-WEBAUTH-ROLE), więc dotychczasowi „Editor” spadną do Viewer przy następnym wejściu.
+  if (role === Role.STAFF && canAccess) return 'Viewer';
   return null;
 }
