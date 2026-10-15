@@ -317,7 +317,7 @@ function SiteCard({
   );
 }
 
-function StatsView({ stats }: { stats: AnalyticsStats }) {
+export function StatsView({ stats }: { stats: AnalyticsStats }) {
   const max = Math.max(1, ...stats.timeseries.map((d) => d.pageviews));
   return (
     <div className="space-y-5">
@@ -340,7 +340,11 @@ function StatsView({ stats }: { stats: AnalyticsStats }) {
       <div className="grid gap-4 md:grid-cols-2">
         <RankList title="Najczęstsze strony" rows={stats.topPages.map((p) => ({ label: p.path, count: p.count }))} />
         <RankList title="Źródła ruchu" rows={stats.topReferrers.map((r) => ({ label: r.refHost, count: r.count }))} empty="Ruch bezpośredni" />
-        <RankList title="Kraje" rows={stats.countries.map((c) => ({ label: c.country, count: c.count }))} />
+        {/* PRZEGLAD_LUK 3.9 — kraj zna tylko pośrednik z geolokalizacją (nagłówek cf-ipcountry); bez niego brak danych,
+            więc sekcja pokazuje się dopiero, gdy w okresie jest choć jeden kraj. */}
+        {stats.countries.length > 0 && (
+          <RankList title="Kraje" rows={stats.countries.map((c) => ({ label: c.country, count: c.count }))} />
+        )}
         <RankList title="Urządzenia" rows={stats.devices.map((d) => ({ label: deviceLabel(d.deviceType), count: d.count }))} />
       </div>
     </div>
