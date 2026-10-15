@@ -77,4 +77,40 @@ describe('runner zadania węzła — dane payloadu poza argv procesu', () => {
   it('runner nie przekazuje RUN_ENV przez `env` (statycznie, na wypadek innej ścieżki uruchomienia)', () => {
     expect(renderVerrisTaskRunScript()).not.toMatch(/env\s+"\$\{RUN_ENV\[@\]\}"/);
   });
+
+  // Noc 15.10 (przegląd node-auto-remediation): payload_env dzieli wynik na „NAZWA=wartość” po \n — wartość z nową linią
+  // dopisałaby własną zmienną (np. WP_DA_USER innego konta, późniejszy export wygrywa). Bariera w runnerze, niezależna
+  // od walidacji w API: zadanie odrzucone, skrypt zadania nie startuje.
+  it.each([['tytuł z \\n', 'Moja\nDA_USER=inne'], ['tytuł z \\r', 'Moja\rDA_USER=inne']])('%s → zadanie odrzucone bez uruchomienia skryptu', (_n, tytul) => {
+    const T = mkdtempSync(join(tmpdir(), 'verris-runner-nl-'));
+    try {
+      for (const d of ['bin', 'log', 'run/verris-tasks']) mkdirSync(join(T, d), { recursive: true });
+      const runner = renderVerrisTaskRunScript()
+        .replaceAll('/etc/verris.conf', join(T, 'verris.conf'))
+        .replaceAll('/var/log/verris-tasks', join(T, 'log/verris-tasks'))
+        .replaceAll('/var/run/verris-tasks', join(T, 'run/verris-tasks'))
+        .replaceAll('/etc/logrotate.d', join(T, 'brak-logrotate'))
+        .replaceAll('/usr/local/bin/', `${join(T, 'bin')}/`);
+      writeFileSync(join(T, 'runner.sh'), runner);
+      writeFileSync(join(T, 'verris.conf'), 'VERRIS_API_URL=http://127.0.0.1:9\nVERRIS_SERVER_ID=s1\nVERRIS_IDENTITY_TOKEN=t\n');
+      writeFileSync(join(T, 'zadanie.sh'), `echo "$WP_DA_USER" > "${join(T, 'uruchomiono')}"\n`);
+      const atrapy: Record<string, string> = {
+        curl: `#!/bin/bash\nfor a in "$@"; do case "$a" in http*) echo "$a" >> "${join(T, 'api.log')}" ;; esac; done\nexit 0\n`,
+        'verris-fetch': `#!/bin/bash\ncp "${join(T, 'zadanie.sh')}" "$2"\n`,
+      };
+      for (const [n, tresc] of Object.entries(atrapy)) {
+        writeFileSync(join(T, 'bin', n), tresc);
+        chmodSync(join(T, 'bin', n), 0o755);
+      }
+      writeFileSync(
+        join(T, 'run/verris-tasks', `${INST}.json`),
+        JSON.stringify({ id: TASK, kind: 'WP_INSTALL', payload: { daUser: 'kl1', domain: 'przyklad.pl', siteTitle: tytul, adminPass: 'x' } }),
+      );
+      spawnSync('bash', [join(T, 'runner.sh'), INST], { env: { PATH: `${join(T, 'bin')}:${process.env.PATH ?? ''}`, HOME: T }, encoding: 'utf8', timeout: 20_000 });
+      expect(existsSync(join(T, 'uruchomiono'))).toBe(false);
+      expect(readFileSync(join(T, 'api.log'), 'utf8')).toContain(`/agent/tasks/${TASK}/fail`);
+    } finally {
+      rmSync(T, { recursive: true, force: true });
+    }
+  }, 30_000);
 });

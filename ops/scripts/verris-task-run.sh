@@ -155,18 +155,25 @@ fetch_task_script() {
 
 # payload_env <prefix> <mapping-python-dict>
 payload_env() {
-  local prefix="${1}" mapping="${2}"
-  # cała linia „NAZWA=wartość” — read z IFS='=' ucina końcowe „=” (np. dopełnienie base64)
-  while IFS= read -r linia; do
-    [ -n "$linia" ] && RUN_ENV+=("${prefix}_${linia}")
-  done < <(python3 -c "
+  local prefix="${1}" mapping="${2}" wynik
+  # Noc 15.10 — wartość z nową linią dopisałaby własną „NAZWA=wartość” (np. <PREFIX>_DA_USER innego konta; późniejszy
+  # export wygrywa). Jedna bariera w runnerze, niezależna od walidacji w API: takie zadanie jest odrzucane.
+  wynik="$(python3 -c "
 import json, sys
 p = json.load(open(sys.argv[1])).get('payload', {})
 m = ${mapping}
 for src, dst in m.items():
     if p.get(src) is not None:
-        print(dst + '=' + str(p[src]))
-" "$JOB_JSON")
+        v = str(p[src])
+        if any(c in v for c in '\n\r\0'):
+            sys.exit(3)
+        print(dst + '=' + v)
+" "$JOB_JSON")" || { report_fail "Zadanie odrzucone: niedozwolony znak (nowa linia) w danych zadania."; exit 1; }
+  # cała linia „NAZWA=wartość” — read z IFS='=' ucina końcowe „=” (np. dopełnienie base64)
+  [ -n "$wynik" ] || return 0
+  while IFS= read -r linia; do
+    if [ -n "$linia" ]; then RUN_ENV+=("${prefix}_${linia}"); fi
+  done <<< "$wynik"
 }
 
 if [ "$TASK_KIND" = "WP_INSTALL" ]; then
