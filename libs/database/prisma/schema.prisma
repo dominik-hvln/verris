@@ -1690,6 +1690,10 @@ model WalletTransaction {
   description     String?
   metadata        Json?
 
+  /// Decyzja 15.10 (#2) — na wpłacie (TOPUP): ile z niej cofnięto po zwrocie/sporze (narastająco, w walucie portfela),
+  /// także część, której nie dało się zdjąć z portfela. Gotówka poleconego do prowizji = wpłaty − cofnięte.
+  kwotaCofnieta   Decimal?        @db.Decimal(12, 2)
+
   /// Z-01 — faktura pokrywająca to obciążenie. NULL na wpisie obciążeniowym
   /// znaczy „czeka na fakturę zbiorczą" (autoskalowanie, drobne zużycie) albo
   /// „nie podlega fakturowaniu" (doładowanie, korekta admina).

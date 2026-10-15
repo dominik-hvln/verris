@@ -4,6 +4,7 @@ import { Prisma, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
 import { czescNarzutu } from '../reseller/narzut-resellera.js';
+import { gotowkaPoleconego } from './prowizje-a-cofniecia.js';
 
 /**
  * RESELL — naliczanie prowizji partnerskich.
@@ -211,17 +212,15 @@ export class PartnerCommissionScheduler {
    */
   async podstawaGotowkowa(referredUserId: string, podstawa: Prisma.Decimal): Promise<Prisma.Decimal> {
     if (podstawa.lessThanOrEqualTo(0)) return new Prisma.Decimal(0);
-    const [wplaty, wykorzystane] = await Promise.all([
-      this.prisma.walletTransaction.aggregate({
-        where: { userId: referredUserId, type: WalletTxType.TOPUP, status: 'COMPLETED' },
-        _sum: { amount: true },
-      }),
+    const [gotowka, wykorzystane] = await Promise.all([
+      // Decyzja 15.10 (#2): wpłaty minus cofnięte po zwrocie/sporze.
+      gotowkaPoleconego(this.prisma, referredUserId),
       this.prisma.partnerCommission.aggregate({
         where: { referredUserId, kind: 'RECURRING_PCT', status: { not: 'CANCELED' } },
         _sum: { baseAmount: true },
       }),
     ]);
-    const wolne = new Prisma.Decimal(wplaty._sum.amount ?? 0).minus(new Prisma.Decimal(wykorzystane._sum.baseAmount ?? 0));
+    const wolne = gotowka.minus(new Prisma.Decimal(wykorzystane._sum.baseAmount ?? 0));
     if (wolne.lessThanOrEqualTo(0)) return new Prisma.Decimal(0);
     return wolne.lessThan(podstawa) ? wolne : podstawa;
   }

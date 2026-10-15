@@ -15,6 +15,7 @@ import { ConfigService } from '@nestjs/config';
 import { createHash } from 'crypto';
 import { Prisma, WalletTransaction, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { dopasujProwizjeDoGotowki } from '../partners/prowizje-a-cofniecia.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { SupportActions, ZamowieniePaynowActions } from '../common/audit/audit.actions.js';
 import { WalletLedgerService } from './wallet-ledger.service.js';
@@ -1652,6 +1653,12 @@ export class BillingService {
     const udzial = zaplaconoMinor > 0 ? Math.min(1, i.zwroconoMinorNarastajaco / zaplaconoMinor) : 1;
     const doCofniecia = new Prisma.Decimal(wplata.amount).mul(udzial).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
     const [u] = await tx.$queryRaw<Array<{ walletBalance: Prisma.Decimal }>>`SELECT "walletBalance" FROM "User" WHERE "id" = ${wplata.userId} FOR UPDATE`;
+    // Decyzja 15.10 (#2): znacznik na wpłacie — cała cofnięta część, także ta, której saldo nie pokryło (wtedy w księdze
+    // nie ma wpisu). Od niego prowizja partnera liczy gotówkę poleconego. Tylko w górę: zdarzenia są narastające.
+    await tx.walletTransaction.updateMany({
+      where: { id: wplata.id, OR: [{ kwotaCofnieta: null }, { kwotaCofnieta: { lt: doCofniecia } }] },
+      data: { kwotaCofnieta: doCofniecia },
+    });
     const juz = await tx.walletTransaction.findMany({
       where: { userId: wplata.userId, metadata: { path: ['zwrotZa'], equals: wplata.id } },
       select: { amount: true },
@@ -1691,13 +1698,30 @@ export class BillingService {
     dopisek: string;
   }): Promise<void> {
     const { wplata, reszta, pobierz } = i;
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: wplata.userId }, select: { email: true } });
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: wplata.userId }, select: { email: true, referredByUserId: true } });
     const brak = reszta.minus(pobierz);
+    // Decyzja 15.10 (#2): prowizje partnera od tego klienta do gotówki po cofnięciu. Wypłaconych nie ruszamy — do decyzji.
+    const prowizje = user.referredByUserId
+      ? await dopasujProwizjeDoGotowki(this.prisma, wplata.userId).catch((err: Error) => {
+          this.logger.error(`Prowizje po cofnięciu wpłaty ${wplata.id}: ${err.message}`);
+          return null;
+        })
+      : null;
     await this.audit.record({
       action: i.akcja,
       userId: wplata.userId,
-      details: { walletTxId: wplata.id, ...i.szczegoly, cofnieteK: pobierz.toFixed(2), brakK: brak.toFixed(2) },
+      details: {
+        walletTxId: wplata.id, ...i.szczegoly, cofnieteK: pobierz.toFixed(2), brakK: brak.toFixed(2),
+        ...(prowizje ? { prowizjeZmniejszone: prowizje.zmniejszono.toFixed(2), prowizjePodstawaWyplacona: prowizje.pozostalo.toFixed(2) } : {}),
+      },
     });
+    const oProwizjach = !user.referredByUserId
+      ? ''
+      : !prowizje
+        ? ' Prowizji partnera nie przeliczono (błąd) — sprawdź je ręcznie przed wypłatą.'
+        : `${prowizje.zmniejszono.greaterThan(0) ? ` Prowizje partnera zmniejszono o ${prowizje.zmniejszono.toFixed(2)} zł.` : ''}${
+            prowizje.pozostalo.greaterThan(0) ? ` Prowizje od ${prowizje.pozostalo.toFixed(2)} zł tej wpłaty są już wypłacone albo zarezerwowane do przelewu — zdecyduj o potrąceniu.` : ''
+          }`;
     const admini = await this.prisma.user.findMany({ where: { role: 'ADMIN', loginBlocked: false }, select: { id: true } });
     await this.prisma.notification.createMany({
       data: admini.map((a) => ({
@@ -1705,7 +1729,7 @@ export class BillingService {
         category: 'SYSTEM',
         severity: 'warning',
         title: i.tytul,
-        body: `${user.email}: cofnięto ${pobierz.toFixed(2)} K z portfela${brak.greaterThan(0) ? `, brakuje ${brak.toFixed(2)} K (saldo za niskie)` : ''}. Wystaw korektę dokumentu doładowania${i.dopisek}.`,
+        body: `${user.email}: cofnięto ${pobierz.toFixed(2)} K z portfela${brak.greaterThan(0) ? `, brakuje ${brak.toFixed(2)} K (saldo za niskie)` : ''}. Wystaw korektę dokumentu doładowania${i.dopisek}.${oProwizjach}`,
         link: `/customers/${wplata.userId}`,
       })),
     });

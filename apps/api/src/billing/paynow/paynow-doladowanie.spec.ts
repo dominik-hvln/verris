@@ -62,7 +62,7 @@ function zbuduj(opcje: { paynow?: boolean } = {}) {
   const wplata = { id: 'wtx-1', userId: 'u1', amount: new Prisma.Decimal('50.00'), metadata: { wplata: { kwota: '50.00' } } };
   const tx = {
     $queryRaw: vi.fn(),
-    walletTransaction: { findMany: vi.fn().mockResolvedValue([]) },
+    walletTransaction: { findMany: vi.fn().mockResolvedValue([]), updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
     paynowPlatnosc,
   };
   const prisma = {
