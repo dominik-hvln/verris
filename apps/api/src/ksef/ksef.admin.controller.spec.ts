@@ -29,7 +29,7 @@ describe('KsefAdminController — UPO', () => {
     const prisma = { invoice: { findUnique: vi.fn(async () => ({ id: 'f1', number: 'VFV/2026/10/0002', ksefStatus: 'ACCEPTED', ksefElementRef: 'ref-1' })) } };
     const svc = new KsefService(prisma as never, {} as never, audit as never, {} as never);
     const klient = { openSession: vi.fn(async () => undefined), downloadUpo: vi.fn(async () => '<UPO/>'), terminateSession: vi.fn(async () => undefined) };
-    vi.spyOn(svc as unknown as { buildClient: () => Promise<unknown> }, 'buildClient').mockResolvedValue(klient);
+    vi.spyOn(svc as unknown as { buildClient: () => Promise<unknown> }, 'buildClient').mockResolvedValue({ client: klient, env: 'test' });
     const c = new KsefAdminController(svc);
     expect(await c.upo('f1', { userId: 'admin-1' })).toBe('<UPO/>');
     expect(audit.record).toHaveBeenCalledWith({

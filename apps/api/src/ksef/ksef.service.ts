@@ -37,6 +37,16 @@ const DZIERZAWA_WYSYLKI_MS = 15 * 60 * 1000;
 const STATUSY_PRZEJSCIOWE_WYSYLKI: readonly number[] = [401, 403, 429];
 
 /**
+ * Czy błąd otwarcia sesji znaczy „KSeF niedostępny” (M-16: tryb offline, termin dosłania), a nie odrzucone
+ * uwierzytelnienie. Niedostępność: brak odpowiedzi (sieć, limit czasu — bez kodu HTTP), 5xx i 429 (limity).
+ * Odpowiedź 4xx albo status uwierzytelnienia ≥ 400 (HTTP 200) to błąd tokenu / uprawnień po naszej stronie.
+ */
+export function bladDostepnosciKsef(err: unknown): boolean {
+  const httpStatus = (err as { httpStatus?: number } | null)?.httpStatus;
+  return httpStatus === undefined || httpStatus >= 500 || httpStatus === 429;
+}
+
+/**
  * KSEF-05 — okno automatycznego dokwalifikowania zaległych faktur.
  *
  * Wcześniej `tick()` przestawiał na `PENDING` KAŻDĄ fakturę `NOT_APPLICABLE`,
@@ -151,14 +161,22 @@ export class KsefService {
     };
   }
 
-  private async buildClient(): Promise<InvoicingProvider | null> {
+  /**
+   * Klient KSeF i środowisko, do którego faktycznie wysyła. Przegląd 15.10: środowisko czytane ponownie przy
+   * każdej fakturze rozjeżdżało się z adresem klienta, gdy admin przełączył TEST → PROD w trakcie cyklu (plik
+   * szedł do TEST, a w bazie lądowało `prod`). Cykl używa jednego, zapamiętanego tutaj.
+   */
+  private async buildClient(): Promise<{ client: InvoicingProvider; env: SrodowiskoKsef } | null> {
     const rt = await this.settings.getKsefRuntimeConfig();
     if (!rt.nip || !rt.token) return null;
-    return new KsefV2Client({
-      baseUrl: this.baseUrlForEnv(rt.env),
-      nip: rt.nip.replace(/\D/g, ''),
-      token: rt.token,
-    });
+    return {
+      client: new KsefV2Client({
+        baseUrl: this.baseUrlForEnv(rt.env),
+        nip: rt.nip.replace(/\D/g, ''),
+        token: rt.token,
+      }),
+      env: normalizujSrodowiskoKsef(rt.env),
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -227,11 +245,12 @@ export class KsefService {
       data: { ksefStatus: KsefStatus.PENDING },
     });
 
-    const client = await this.buildClient();
-    if (!client) {
+    const zbudowany = await this.buildClient();
+    if (!zbudowany) {
       this.logger.warn('KSeF włączony, ale konfiguracja niepełna (NIP/token/klucz publiczny).');
       return;
     }
+    const { client, env: envCyklu } = zbudowany;
 
     const pending = await this.prisma.invoice.findMany({
       where: {
@@ -246,6 +265,14 @@ export class KsefService {
     try {
       await client.openSession();
     } catch (err) {
+      // Przegląd 15.10: odrzucony token / uprawnienia (4xx z KSeF, status uwierzytelnienia ≥ 400) to błąd
+      // konfiguracji po naszej stronie, nie niedostępność KSeF — bez wpisu o przerwie i bez trybu offline.
+      if (!bladDostepnosciKsef(err)) {
+        const powod = err instanceof Error ? err.message : String(err);
+        this.logger.error(`KSeF: uwierzytelnienie odrzucone — sprawdź token i uprawnienia (faktury czekają): ${powod}`);
+        await this.audit.record({ action: 'KSEF_UWIERZYTELNIENIE_ODRZUCONE', details: { powod: powod.slice(0, 500) } });
+        return;
+      }
       // M-16 — KSeF nie odpowiada. Do dziś w tym miejscu było tylko ostrzeżenie
       // w logu, a faktury zostawały w `PENDING` nieodróżnialne od tych, których
       // cykl po prostu nie zdążył wysłać. Teraz zapisujemy FAKT, który
@@ -279,7 +306,7 @@ export class KsefService {
             inv.ksefStatus === KsefStatus.PENDING ||
             inv.ksefStatus === KsefStatus.OFFLINE
           ) {
-            await this.submitOne(client, inv);
+            await this.submitOne(client, inv, envCyklu);
             sent += 1;
           } else if (inv.ksefStatus === KsefStatus.SUBMITTED && inv.ksefElementRef) {
             const result = await this.checkOne(client, inv);
@@ -308,9 +335,17 @@ export class KsefService {
    * ponowienia po niedostępności i PDF dla klienta muszą używać tego samego zapisu —
    * inaczej kod QR na PDF-ie pobranym przed wysyłką wskazywałby inny plik niż ten w KSeF.
    */
-  async zapewnijPlik(inv: Invoice): Promise<PlikFakturyKsef> {
+  async zapewnijPlik(inv: Invoice, envWysylki?: SrodowiskoKsef): Promise<PlikFakturyKsef> {
+    const env = envWysylki ?? normalizujSrodowiskoKsef((await this.settings.getKsefRuntimeConfig()).env);
     if (inv.ksefXml && inv.ksefXmlSha256) {
-      return { xml: inv.ksefXml, sha256: inv.ksefXmlSha256, srodowisko: normalizujSrodowiskoKsef(inv.ksefSrodowisko) };
+      const zamrozony = normalizujSrodowiskoKsef(inv.ksefSrodowisko);
+      // Przegląd 15.10: plik zamrożony w innym środowisku (np. TEST przed przełączeniem na PROD), którego KSeF
+      // jeszcze nie ma (PENDING/OFFLINE), budujemy od nowa — inaczej poszedłby do PROD z danymi z TEST (np. korekta
+      // z numerem KSeF faktury, której w PROD nie ma). Plik wysłany albo przyjęty zostaje taki, jaki jest w KSeF.
+      const wKsef = inv.ksefStatus === KsefStatus.SUBMITTED || inv.ksefStatus === KsefStatus.ACCEPTED;
+      if (zamrozony === env || wKsef) {
+        return { xml: inv.ksefXml, sha256: inv.ksefXmlSha256, srodowisko: zamrozony };
+      }
     }
 
     // M-06 — korekta musi nieść numer i datę faktury korygowanej (a w FA(3) także jej numer
@@ -324,8 +359,7 @@ export class KsefService {
       // Przegląd 13.10: numer KSeF faktury przyjętej w innym środowisku (np. TEST) nie istnieje w bieżącym (PROD) —
       // wpisany do NrKSeFFaKorygowanej dałby korektę faktury, której w tym KSeF nie ma.
       if (korygowana?.ksefNumber && korygowana.ksefSrodowisko) {
-        const { env } = await this.settings.getKsefRuntimeConfig();
-        if (normalizujSrodowiskoKsef(korygowana.ksefSrodowisko) !== normalizujSrodowiskoKsef(env)) {
+        if (normalizujSrodowiskoKsef(korygowana.ksefSrodowisko) !== env) {
           throw new FaXmlValidationError(
             `Faktura korygowana ${korygowana.number} jest w KSeF ${korygowana.ksefSrodowisko}, a wysyłka idzie do ${env} — korekty nie da się wysłać do innego środowiska.`,
           );
@@ -334,6 +368,13 @@ export class KsefService {
       if (korygowana && !korygowana.ksefNumber && STATUSY_Z_PLIKIEM_KSEF.includes(korygowana.ksefStatus)) {
         throw new KorygowanaBezNumeruKsef(
           `Faktura korygowana ${korygowana.number} czeka na numer KSeF — korekta pójdzie po nim.`,
+        );
+      }
+      // Przegląd 15.10: odrzucona pierwotna wraca do KSeF po poprawie danych („Ponów”) — korekta wysłana teraz
+      // z NrKSeFN („poza KSeF”) zostałaby w KSeF z nieprawdą na zawsze. Czeka na numer jak wyżej.
+      if (korygowana && !korygowana.ksefNumber && korygowana.ksefStatus === KsefStatus.REJECTED) {
+        throw new KorygowanaBezNumeruKsef(
+          `Faktura korygowana ${korygowana.number} została odrzucona przez KSeF — popraw ją i ponów; korekta pójdzie po nadaniu numeru.`,
         );
       }
     }
@@ -349,9 +390,9 @@ export class KsefService {
       platnosc: (await formaZaplatyFaktury(this.prisma, inv)).fa,
     });
     const sha256 = skrotFakturyBase64Url(xml);
-    const { env } = await this.settings.getKsefRuntimeConfig();
     const zapis = await this.prisma.invoice.updateMany({
-      where: { id: inv.id, ksefXml: null },
+      // Zastępujemy dokładnie ten plik, który widzieliśmy (null albo zamrożony w innym środowisku).
+      where: { id: inv.id, ksefXml: inv.ksefXml ?? null },
       data: { ksefXml: xml, ksefXmlSha256: sha256, ksefSrodowisko: env },
     });
     if (zapis.count === 0) {
@@ -365,10 +406,10 @@ export class KsefService {
     return { xml, sha256, srodowisko: env };
   }
 
-  private async submitOne(client: InvoicingProvider, inv: Invoice): Promise<void> {
+  private async submitOne(client: InvoicingProvider, inv: Invoice, env: SrodowiskoKsef): Promise<void> {
     let plik: PlikFakturyKsef;
     try {
-      plik = await this.zapewnijPlik(inv);
+      plik = await this.zapewnijPlik(inv, env);
     } catch (err) {
       if (err instanceof FaXmlValidationError) {
         // Dane faktury niekompletne — REJECTED lokalnie, wymaga poprawy danych.
@@ -382,9 +423,6 @@ export class KsefService {
       throw err;
     }
 
-    // Środowisko odczytane PRZED wysyłką (przegląd 13.10): błąd odczytu ustawień po przyjęciu pliku przez KSeF
-    // zostawiał fakturę PENDING bez numeru referencyjnego — następny cykl wysyłał ją drugi raz.
-    const { env } = await this.settings.getKsefRuntimeConfig();
     try {
       // Wysyłamy DOKŁADNIE zapisany plik — ten, którego skrót jest w kodzie QR.
       const { elementReferenceNumber } = await client.sendInvoice(plik.xml);
@@ -395,7 +433,7 @@ export class KsefService {
           ksefElementRef: elementReferenceNumber,
           ksefSubmittedAt: new Date(),
           ksefError: null,
-          // Środowisko, do którego plik faktycznie poszedł — od niego zależy adres QR.
+          // Środowisko, do którego plik faktycznie poszedł (adres klienta tego cyklu) — od niego zależy adres QR.
           ksefSrodowisko: env,
         },
       });
@@ -509,8 +547,15 @@ export class KsefService {
     for (const inv of faktury) {
       if (inv.ksefStatus === KsefStatus.SUBMITTED) continue; // już w KSeF, czeka na numer
       const wystawiono = inv.issuedAt ?? inv.createdAt;
-      await this.prisma.invoice.update({
-        where: { id: inv.id },
+      // Przegląd 15.10: lista `faktury` to migawka sprzed uwierzytelnienia. Równoległy cykl mógł w tym czasie
+      // wysłać fakturę (SUBMITTED) albo ją właśnie wysyła (dzierżawa) — bezwarunkowy zapis cofał ją do OFFLINE,
+      // a po dzierżawie szła do KSeF drugi raz. Zapis tylko dla faktur wciąż czekających i niewysyłanych.
+      const r = await this.prisma.invoice.updateMany({
+        where: {
+          id: inv.id,
+          ksefStatus: { in: [KsefStatus.PENDING, KsefStatus.OFFLINE] },
+          OR: [{ ksefSubmittedAt: null }, { ksefSubmittedAt: { lt: new Date(teraz.getTime() - DZIERZAWA_WYSYLKI_MS) } }],
+        },
         data: {
           ksefStatus: KsefStatus.OFFLINE,
           ksefTryb: tryb,
@@ -521,7 +566,7 @@ export class KsefService {
           ksefError: `Niedostępność KSeF: ${powod}`.slice(0, 2000),
         },
       });
-      oznaczone += 1;
+      oznaczone += r.count;
     }
 
     this.logger.warn(
@@ -629,8 +674,9 @@ export class KsefService {
     if (!inv || inv.ksefStatus !== KsefStatus.ACCEPTED || !inv.ksefElementRef) {
       throw new Error('UPO dostępne tylko dla faktur przyjętych przez KSeF.');
     }
-    const client = await this.buildClient();
-    if (!client) throw new Error('KSeF nieskonfigurowany (NIP/token).');
+    const zbudowany = await this.buildClient();
+    if (!zbudowany) throw new Error('KSeF nieskonfigurowany (NIP/token).');
+    const { client } = zbudowany;
     await client.openSession();
     try {
       const upoXml = await client.downloadUpo(inv.ksefElementRef);

@@ -231,6 +231,17 @@ describe('X-07 — KsefV2Client: pełny przepływ na atrapie KSeF z prawdziwą k
     expect(zapisy.map((z) => z.sciezka)).toEqual(['/security/public-key-certificates']);
   });
 
+  it('przegląd 15.10: 4xx przy otwieraniu sesji online to błąd przejściowy (nie odrzucenie dokumentu), bez wysyłki faktury', async () => {
+    const { zapisy } = atrapa({ '^/sessions/online$': () => new Response(JSON.stringify({ exception: { exceptionDetailList: [{ exceptionCode: 21405 }] } }), { status: 400 }) });
+    const c = klient();
+    await c.openSession();
+    const err = await c.sendInvoice('<Faktura/>').catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(KsefV2ApiError);
+    expect((err as KsefV2ApiError).httpStatus).toBe(400);
+    expect((err as KsefV2ApiError).przejsciowy).toBe(true);
+    expect(zapisy.some((z) => z.sciezka.endsWith('/invoices'))).toBe(false);
+  });
+
   it('KSeF nieosiągalny (sieć) — KsefV2ApiError bez httpStatus (serwis zostawia fakturę do ponowienia)', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => Promise.reject(new TypeError('fetch failed'))));
     const err = await klient().openSession().catch((e: unknown) => e);

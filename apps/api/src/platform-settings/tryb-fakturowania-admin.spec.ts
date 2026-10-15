@@ -4,11 +4,13 @@ import { PlatformSettingsService } from './platform-settings.service.js';
  * FAK-01 / KSeF 12.10 — przełącznik trybu fakturowania w panelu admina (do 12.10 tylko wiersz
  * w bazie). Powrót do `zewnetrzny` wyłącza też wysyłkę KSeF.
  */
-function usluga(wyslaneBezStatusu = 0) {
+function usluga(wyslaneBezStatusu = 0, wKolejce = 0) {
   const wiersze = new Map<string, string>();
   const audyt: unknown[] = [];
   const prisma = {
-    invoice: { count: async () => wyslaneBezStatusu },
+    invoice: {
+      count: async ({ where }: { where: { ksefStatus: unknown } }) => (where.ksefStatus === 'SUBMITTED' ? wyslaneBezStatusu : wKolejce),
+    },
     platformSetting: {
       findMany: async () => [...wiersze].map(([key, value]) => ({ key, value })),
       upsert: async ({ where, update }: { where: { key: string }; update: { value: string } }) => {
@@ -58,13 +60,22 @@ describe('KSeF — zmiana środowiska', () => {
     expect(wiersze.get('ksef.env')).toBe('test');
   });
 
+  // Przegląd 15.10 — faktury z kolejki (PENDING/OFFLINE) z czasu TEST poszłyby po zmianie do KSeF PROD.
+  it('faktury czekają na wysyłkę (PENDING/OFFLINE) → odmowa, środowisko bez zmian', async () => {
+    const { s, wiersze } = usluga(0, 4);
+    wiersze.set('faktury.tryb', 'panel');
+    wiersze.set('ksef.env', 'test');
+    await expect(ustaw(s, 'prod')).rejects.toThrow('4 faktur czeka na wysyłkę do środowiska test. Po zmianie poszłyby do prod');
+    expect(wiersze.get('ksef.env')).toBe('test');
+  });
+
   it('bez faktur w toku — zmiana przechodzi; to samo środowisko (np. nowy token) — bez sprawdzania', async () => {
     const pusta = usluga(0);
     pusta.wiersze.set('faktury.tryb', 'panel');
     pusta.wiersze.set('ksef.env', 'test');
     await ustaw(pusta.s, 'prod');
     expect(pusta.wiersze.get('ksef.env')).toBe('prod');
-    const wToku = usluga(3);
+    const wToku = usluga(3, 3);
     wToku.wiersze.set('faktury.tryb', 'panel');
     wToku.wiersze.set('ksef.env', 'prod');
     await ustaw(wToku.s, 'prod');

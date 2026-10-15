@@ -790,6 +790,16 @@ export class PlatformSettingsService {
             'Poczekaj, aż KSeF je przyjmie lub odrzuci (zwykle kilkanaście minut), i zmień środowisko ponownie.',
         );
       }
+      // Przegląd 15.10: faktury z kolejki (PENDING/OFFLINE) wystawione przy środowisku obecnym poszłyby po zmianie
+      // do nowego — np. dokumenty z czasu TEST do KSeF PROD, z którego nie da się ich usunąć. Najpierw niech je
+      // przyjmie obecne środowisko albo niech zostaną usunięte (czyszczenie panelu przed startem).
+      const wKolejce = await this.prisma.invoice.count({ where: { ksefStatus: { in: ['PENDING', 'OFFLINE'] } } });
+      if (wKolejce > 0) {
+        throw new BadRequestException(
+          `KSeF: ${wKolejce} ${wKolejce === 1 ? 'faktura czeka' : 'faktur czeka'} na wysyłkę do środowiska ${obecneEnv}. ` +
+            `Po zmianie poszłyby do ${noweEnv}. Poczekaj na ich wysyłkę albo usuń dokumenty testowe i zmień środowisko ponownie.`,
+        );
+      }
     }
     const entries: Array<[PlatformSettingKey, string]> = [
       [K.KSEF_ENABLED, input.enabled ? '1' : '0'],

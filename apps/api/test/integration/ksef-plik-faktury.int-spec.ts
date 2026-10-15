@@ -38,7 +38,7 @@ function ksef(env = 'test') {
   const p = prisma() as never;
   const ustawienia = { getKsefRuntimeConfig: async () => ({ enabled: true, nip: '9292069367', token: 't', env }) };
   const s = new KsefService(p, { get: () => undefined } as never, new AuditService(p), ustawienia as never);
-  (s as unknown as { buildClient: () => Promise<unknown> }).buildClient = async () => klient;
+  (s as unknown as { buildClient: () => Promise<unknown> }).buildClient = async () => ({ client: klient, env });
   return s;
 }
 

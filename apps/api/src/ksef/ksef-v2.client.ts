@@ -461,10 +461,14 @@ export class KsefV2Client implements InvoicingProvider {
     });
     const json = (await res.json().catch(() => null)) as { referenceNumber?: string } | null;
     if (!res.ok || !json?.referenceNumber) {
+      // Przegląd 15.10: sesja otwiera się leniwie, wewnątrz sendInvoice — 4xx tutaj (np. klucz po rotacji
+      // certyfikatu MF, kod formularza) nie mówi nic o dokumencie. Bez znacznika „przejściowy” serwis oznaczał
+      // każdą fakturę partii jako odrzuconą przez KSeF. Faktury zostają w kolejce.
       throw new KsefV2ApiError(
         `KSeF 2.0 otwarcie sesji online nie powiodło się (HTTP ${res.status})`,
         res.status,
         json,
+        true,
       );
     }
     this.sessionRef = json.referenceNumber;
