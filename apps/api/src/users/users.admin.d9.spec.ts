@@ -144,6 +144,8 @@ describe('audyt Fal 2 — zmiana e-maila klienta przez obsługę', () => {
         findUnique: vi.fn(async (a: { where: { id?: string; email?: string } }) => (a.where.email ? null : { ...KLIENT, stripeCustomerId: null })),
         update: vi.fn(async () => ({})),
       },
+      userAuthToken: { updateMany: vi.fn(async () => ({ count: 0 })) },
+      $transaction: vi.fn(async (ops: unknown[]) => Promise.all(ops)),
     };
     const stripe = { isConfigured: () => false };
     const config = { get: () => 'https://panel.test' };
@@ -154,7 +156,7 @@ describe('audyt Fal 2 — zmiana e-maila klienta przez obsługę', () => {
   it('alert na STARY adres („Obsługa Verris”, bez nazwiska) i wylogowanie sesji (tokenVersion)', async () => {
     const { svc, prisma, mailer } = zmiana();
     await expect(svc.changeCustomerEmail('u1', 'op1', 'Nowy@Example.com', 'zgłoszenie #7', {})).resolves.toEqual({ ok: true, email: 'nowy@example.com' });
-    expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: 'u1' }, data: { email: 'nowy@example.com', tokenVersion: { increment: 1 } } });
+    expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: 'u1' }, data: { email: 'nowy@example.com', tokenVersion: { increment: 1 }, pendingEmail: null } });
     await new Promise((r) => setImmediate(r));
     expect(mailer.send).toHaveBeenCalledTimes(1);
     const m = (mailer.send.mock.calls[0] as unknown as [{ to: string; text: string; userId: string; fromRole: string }])[0];

@@ -845,10 +845,19 @@ export class UsersAdminService {
     // Audyt Fal 2 — e-mail to klucz do konta (reset hasła, logowanie): otwarte sesje kończą się od razu
     // (tokenVersion jak przy resecie hasła), a dotychczasowy adres dostaje alert — klient dowiaduje się od razu,
     // a nie dopiero, gdy nie może się zalogować.
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { email: normalized, tokenVersion: { increment: 1 } },
-    });
+    // Noc 15.10 (rewalidacja audytu 13.10) — zmiana adresu przez obsługę to odzyskanie konta: oczekująca zmiana adresu
+    // zlecona z przejętej sesji i linki wysłane na poprzedni (przejęty) adres przestają działać — inaczej link napastnika
+    // nadpisałby adres ustawiony przez obsługę.
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { email: normalized, tokenVersion: { increment: 1 }, pendingEmail: null },
+      }),
+      this.prisma.userAuthToken.updateMany({
+        where: { userId, purpose: { in: ['EMAIL_CHANGE', 'PASSWORD_RESET', 'EMAIL_VERIFICATION'] }, usedAt: null },
+        data: { usedAt: new Date() },
+      }),
+    ]);
     const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
     void this.mailer
       .send({
@@ -936,7 +945,13 @@ export class UsersAdminService {
           isTwoFactorEnabled: false,
           twoFactorEnrolledAt: null,
           twoFactorRecoveryCodesEnc: null,
+          // Noc 15.10 — odzyskanie przez obsługę anuluje oczekującą zmianę adresu (jak reset z linku, audyt 13.10).
+          pendingEmail: null,
         },
+      }),
+      this.prisma.userAuthToken.updateMany({
+        where: { userId, purpose: 'EMAIL_CHANGE', usedAt: null },
+        data: { usedAt: new Date() },
       }),
       // W obiegu jest zawsze jeden link — wcześniejsze przestają działać.
       this.prisma.userAuthToken.updateMany({
