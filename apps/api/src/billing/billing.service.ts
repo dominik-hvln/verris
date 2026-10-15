@@ -1556,14 +1556,24 @@ export class BillingService {
    * i korektę dokumentu doładowania zgłaszamy administratorom.
    */
   private async handleZwrotPlatnosci(event: { id: string; type: string; data: { object: Record<string, unknown> } }) {
-    const o = event.data.object as { payment_intent?: string | null; amount?: number; amount_refunded?: number; reason?: string };
+    const o = event.data.object as {
+      payment_intent?: string | null;
+      amount?: number;
+      amount_refunded?: number;
+      reason?: string;
+      customer?: string | null;
+      invoice?: string | null;
+    };
     const spor = event.type === 'charge.dispute.created';
     if (!o.payment_intent) return;
     const wplata = await this.prisma.walletTransaction.findFirst({
       where: { paymentRef: o.payment_intent, type: WalletTxType.TOPUP },
     });
     if (!wplata) {
-      this.logger.warn(`${event.type} ${event.id}: brak doładowania dla ${o.payment_intent} — pomijam`);
+      // Przegląd 15.10: zwrot albo spór za płatność kartą, która NIE była doładowaniem (np. faktura subskrypcji kartą)
+      // kończył się cichym „pomijam” — usługa działała dalej, faktura zostawała opłacona, nikt nie wiedział.
+      this.logger.warn(`${event.type} ${event.id}: brak doładowania dla ${o.payment_intent} — zgłaszam do decyzji`);
+      await this.zglosZwrotBezDoladowania(event, o, spor);
       return;
     }
     const kwotaMinor = (spor ? o.amount : o.amount_refunded) ?? 0;
@@ -1585,6 +1595,37 @@ export class BillingService {
       tytul: spor ? 'Spór o płatność (chargeback)' : 'Zwrot płatności kartą',
       szczegoly: { stripeEvent: event.id, powod: o.reason ?? null },
       dopisek: spor ? ' i zdecyduj o usługach klienta' : '',
+    });
+  }
+
+  /** Zwrot/spór kartą za płatność inną niż doładowanie (np. faktura subskrypcji) — dziennik i alarm dla adminów. */
+  private async zglosZwrotBezDoladowania(
+    event: { id: string; type: string },
+    o: { payment_intent?: string | null; amount?: number; amount_refunded?: number; reason?: string; customer?: string | null; invoice?: string | null },
+    spor: boolean,
+  ): Promise<void> {
+    const klient = o.customer ? await this.prisma.user.findFirst({ where: { stripeCustomerId: o.customer }, select: { id: true, email: true } }) : null;
+    const faktura = o.invoice
+      ? await this.prisma.invoice.findFirst({ where: { provider: 'STRIPE', providerRef: o.invoice }, select: { id: true, number: true } })
+      : null;
+    const kwota = (((spor ? o.amount : o.amount_refunded) ?? 0) / 100).toFixed(2);
+    await this.audit.record({
+      action: spor ? 'STRIPE_PLATNOSC_SPOR' : 'STRIPE_PLATNOSC_ZWROT',
+      userId: klient?.id ?? null,
+      details: { stripeEvent: event.id, paymentIntent: o.payment_intent ?? null, faktura: faktura?.number ?? null, kwota, powod: o.reason ?? null },
+    });
+    const admini = await this.prisma.user.findMany({ where: { role: 'ADMIN', loginBlocked: false }, select: { id: true } });
+    await this.prisma.notification.createMany({
+      data: admini.map((a) => ({
+        userId: a.id,
+        category: 'SYSTEM',
+        severity: 'warning',
+        title: spor ? 'Spór o płatność kartą (chargeback) — nie doładowanie' : 'Zwrot płatności kartą — nie doładowanie',
+        body:
+          `${klient?.email ?? `klient Stripe ${o.customer ?? '?'}`}: ${kwota} zł (${o.payment_intent})` +
+          `${faktura ? `, faktura ${faktura.number}` : ''}. Usługa i faktura bez zmian — zdecyduj o usłudze i wystaw korektę.`,
+        link: klient ? `/customers/${klient.id}` : null,
+      })),
     });
   }
 

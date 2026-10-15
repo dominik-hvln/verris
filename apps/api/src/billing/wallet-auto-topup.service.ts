@@ -18,6 +18,9 @@ export type WynikProby =
  * F3.6 — czy operator może ponowić auto-doładowanie (null = może). Płatność „w przetwarzaniu” (`status=processing`)
  * jeszcze może wejść — ponowienie obciążyłoby kartę drugi raz.
  */
+/** Webhook bywa szybszy niż zapis wyniku próby (lastAttemptAt) — wpis w księdze może mieć czas sprzed niego. */
+const ZAKSIEGOWANIE_PRZED_ZAPISEM_PROBY_MS = 10 * 60_000;
+
 export function powodBlokadyPonowienia(r: { enabled: boolean; lastAttemptOk: boolean | null; lastAttemptError: string | null }): string | null {
   if (!r.enabled) return 'Auto-doładowanie jest wyłączone przez klienta.';
   if (r.lastAttemptOk === null) return 'Próba auto-doładowania właśnie trwa albo jeszcze się nie odbyła.';
@@ -184,6 +187,8 @@ export class WalletAutoTopupService {
       topupAmount: Prisma.Decimal;
       currency: string;
       paymentMethodId: string | null;
+      lastAttemptOk?: boolean | null;
+      lastAttemptAt?: Date | null;
       user: {
         email: string;
         firstName: string | null;
@@ -203,6 +208,23 @@ export class WalletAutoTopupService {
     }
     if (!rule.user.stripeCustomerId) {
       return { wynik: 'pominieto', powod: 'Klient nie ma konta płatności kartą.' };
+    }
+    // Przegląd 15.10: K z udanego obciążenia wchodzą do portfela dopiero z webhooka payment_intent.succeeded. Gdy webhook
+    // nie dochodził (zły sekret po deployu, błąd księgowania — Stripe ponawia do 3 dni), saldo dalej było poniżej progu
+    // i harmonogram obciążał kartę CO GODZINĘ. Następne obciążenie dopiero, gdy poprzednie udane jest w księdze.
+    if (!ponowienie && rule.lastAttemptOk === true && rule.lastAttemptAt) {
+      const zaksiegowane = await this.prisma.walletTransaction.findFirst({
+        where: {
+          userId: rule.userId,
+          idempotencyKey: { startsWith: 'stripe:pi:' },
+          createdAt: { gte: new Date(rule.lastAttemptAt.getTime() - ZAKSIEGOWANIE_PRZED_ZAPISEM_PROBY_MS) },
+        },
+        select: { id: true },
+      });
+      if (!zaksiegowane) {
+        this.logger.warn(`auto-topup user=${rule.userId}: poprzednie obciążenie udane, wpłata niezaksięgowana — bez kolejnego obciążenia (sprawdź webhook Stripe).`);
+        return { wynik: 'pominieto', powod: 'Poprzednie auto-doładowanie się udało, ale wpłata nie jest jeszcze zaksięgowana (czekamy na potwierdzenie Stripe).' };
+      }
     }
 
     let stripePm = rule.user.defaultPaymentMethodId ?? null;
