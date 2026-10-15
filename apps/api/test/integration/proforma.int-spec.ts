@@ -238,4 +238,31 @@ describe('K4 — proforma z linkiem do płatności', () => {
     expect(await prisma().invoice.count({ where: { userId: k.id } })).toBe(1);
     expect((await prisma().proforma.findUniqueOrThrow({ where: { id: w.id } })).status).toBe('OPLACONA');
   });
+
+  // Decyzja 15.10 (#7): płatność rozpoczęta przed zmianą usługi i zaksięgowana po niej nie opłaca proformy na stary okres.
+  it('wpłata do proformy „odnowienie” po odnowieniu okresu z salda: zwykłe doładowanie, proforma nieopłacona, alarm', async () => {
+    const k = await klient(0);
+    await prisma().user.create({ data: { email: `k4-admin-7-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'ADMIN' } });
+    const plan = await utworzPlan();
+    const koniec = new Date(Date.now() + 12 * 3600000);
+    const sub = await prisma().subscription.create({
+      data: {
+        userId: k.id, planId: plan.id, status: SubscriptionStatus.ACTIVE, interval: 'MONTH', priceAmount: 45, currency: 'PLN',
+        paymentSource: 'WALLET', currentPeriodStart: new Date(Date.now() - 29 * 86400000), currentPeriodEnd: koniec,
+      } as never,
+    });
+    const { billing, proforma } = serwisy();
+    const w = await proforma.wystaw({ userId: k.id, operator: OP, odnowienieSubscriptionId: sub.id });
+    expect((await prisma().proforma.findUniqueOrThrow({ where: { id: w.id } })).okresOd?.getTime()).toBe(koniec.getTime());
+    const rek = await zaplac(billing, fetchMock, k.id, w.id, pid(7));
+
+    // Zanim Paynow potwierdził wpłatę, okres odnowiono z salda (np. doładowanie kartą) — proforma opisuje stary okres.
+    await prisma().subscription.update({ where: { id: sub.id }, data: { currentPeriodStart: koniec, currentPeriodEnd: new Date(koniec.getTime() + 30 * 86400000) } });
+    const [raw, podpis] = powiadomienie(rek.id, pid(7));
+    await billing.handlePaynowNotification(raw, podpis);
+
+    expect(await saldo(k.id)).toBe('45.00');
+    expect(await prisma().proforma.findUniqueOrThrow({ where: { id: w.id } })).toMatchObject({ status: 'WYSTAWIONA', walletTxId: null });
+    expect(await prisma().auditLog.count({ where: { userId: k.id, action: 'PROFORMA_WPLATA_NIEPRZYPISANA' } })).toBe(1);
+  });
 });

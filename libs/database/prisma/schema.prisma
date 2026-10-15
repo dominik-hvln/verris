@@ -3464,6 +3464,9 @@ model Proforma {
   /// Pozycja „odnowienie usługi” — K trafiają do portfela, odnowienie robi istniejący harmonogram.
   subscriptionId String?
   subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  /// Decyzja 15.10 (#7) — kotwica: początek odnawianego okresu (currentPeriodEnd usługi przy wystawieniu). Wpłata
+  /// opłaca proformę tylko, gdy usługa nadal czeka na odnowienie od tej daty (sprawdzane przy księgowaniu).
+  okresOd        DateTime?
   number         String        @unique
   /// WYSTAWIONA, OPLACONA, ANULOWANA — TEXT + CHECK w bazie.
   status         String        @default("WYSTAWIONA")

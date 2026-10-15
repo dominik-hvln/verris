@@ -184,6 +184,7 @@ export class ProformaService {
     let traktowanie: TraktowanieVat;
     let vies: Awaited<ReturnType<VatNabywcyService['ustal']>>['vies'];
     let subscriptionId: string | null = null;
+    let okresOd: Date | null = null;
     if (z.odnowienieSubscriptionId) {
       const o = await this.pozycjaOdnowienia(z.userId, z.odnowienieSubscriptionId);
       // Wpłata do proformy trafia do portfela; odnowienie z portfela robi harmonogram (renewal.scheduler.ts).
@@ -195,6 +196,7 @@ export class ProformaService {
       traktowanie = o.traktowanie;
       vies = o.vies;
       subscriptionId = o.sub.id;
+      okresOd = o.od;
     } else {
       ({ traktowanie, vies } = await this.vatNabywcy.ustal(z.userId));
     }
@@ -216,6 +218,7 @@ export class ProformaService {
         data: {
           userId: z.userId,
           subscriptionId,
+          okresOd,
           number,
           amount: suma.brutto,
           netAmount: suma.netto,

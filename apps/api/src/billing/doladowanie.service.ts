@@ -118,12 +118,16 @@ export class DoladowanieService {
           kredytK,
         );
         // K4 — blokada wiersza proformy: anulowanie przez operatora czeka na koniec tej transakcji i widzi OPLACONA.
-        const [proforma] = i.proformaId
-          ? await tx.$queryRaw<Array<{ id: string; number: string; amount: Prisma.Decimal; currency: string; lineItems: unknown }>>`
-              SELECT "id", "number", "amount", "currency", "lineItems" FROM "Proforma"
+        const [zablokowana] = i.proformaId
+          ? await tx.$queryRaw<Array<{ id: string; number: string; amount: Prisma.Decimal; currency: string; lineItems: unknown; subscriptionId: string | null; okresOd: Date | null }>>`
+              SELECT "id", "number", "amount", "currency", "lineItems", "subscriptionId", "okresOd" FROM "Proforma"
               WHERE "id" = ${i.proformaId} AND "userId" = ${i.userId} AND "status" = 'WYSTAWIONA'
               FOR UPDATE`
           : [];
+        // Decyzja 15.10 (#7): proforma „odnowienie” opłaca tylko ten okres, na który ją wystawiono. Płatność rozpoczęta
+        // przed zmianą usługi (odnowienie z salda, zmiana okresu, anulacja) i zaksięgowana po niej to zwykłe doładowanie —
+        // proforma zostaje nieopłacona, a poWplacieDoProformy zgłasza to Finansom. Wcześniej sprawdzenie było tylko przy „Zapłać”.
+        const proforma = zablokowana && (await this.proformaAktualna(tx, zablokowana)) ? zablokowana : undefined;
         let dokument: { id: string } | null = null;
         if ((await odczytajModelFakturowania(tx)) === 'przy_doladowaniu') {
           dokument = await utworzDokumentDoladowania(tx, {
@@ -149,6 +153,17 @@ export class DoladowanieService {
       }
       throw err;
     }
+  }
+
+  private async proformaAktualna(tx: Prisma.TransactionClient, pf: { subscriptionId: string | null; okresOd: Date | null }): Promise<boolean> {
+    if (!pf.subscriptionId || !pf.okresOd) return true; // bez usługi albo sprzed kotwicy — jak dotąd
+    const sub = await tx.subscription.findUnique({ where: { id: pf.subscriptionId }, select: { currentPeriodEnd: true, cancelAt: true, status: true } });
+    return (
+      !!sub &&
+      sub.cancelAt == null &&
+      ['ACTIVE', 'PAST_DUE', 'SUSPENDED'].includes(sub.status) &&
+      sub.currentPeriodEnd?.getTime() === new Date(pf.okresOd).getTime()
+    );
   }
 
   /** Podgląd dla formularza doładowania: stawka i ile K wyjdzie (przy walucie — szacunek z bieżącego kursu). */
