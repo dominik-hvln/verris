@@ -1,5 +1,5 @@
 import { BadGatewayException, ConflictException, NotFoundException } from '@nestjs/common';
-import { HetznerClient } from './hetzner.client.js';
+import { HetznerClient, HetznerWynikNiepewny } from './hetzner.client.js';
 
 /**
  * Q-07/Q-08 — wywołania API chmury wg https://docs.hetzner.cloud/reference/cloud (cloud.spec.json):
@@ -88,5 +88,37 @@ describe('HetznerClient — snapshoty, rebuild, konsola', () => {
     await expect(a.c.createSnapshot('42', { description: 'x', labels: {} })).rejects.toBeInstanceOf(ConflictException);
     const b = klient({ status: 404, body: { error: { code: 'not_found', message: 'image not found' } } });
     await expect(b.c.deleteImage('9')).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  // VPS 15.10 — „nie wiem” (brak odpowiedzi, 5xx) musi się różnić od pewnej odmowy: od tego zależy zwrot pieniędzy.
+  it('brak odpowiedzi i 5xx → wynik niepewny; 4xx → pewna odmowa', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Promise.reject(new Error('The operation was aborted due to timeout'))));
+    const c = new HetznerClient({ get: () => 'tok' } as never);
+    await expect(c.powerOff('42')).rejects.toBeInstanceOf(HetznerWynikNiepewny);
+
+    const a = klient({ status: 503, body: { error: { code: 'unavailable', message: 'x' } } });
+    await expect(a.c.deleteServer('42')).rejects.toBeInstanceOf(HetznerWynikNiepewny);
+    const b = klient({ status: 422, body: { error: { code: 'invalid_input', message: 'x' } } });
+    const e = await b.c.deleteServer('42').catch((err: Error) => err);
+    expect(e).toBeInstanceOf(BadGatewayException);
+    expect(e).not.toBeInstanceOf(HetznerWynikNiepewny);
+  });
+
+  it('każde wywołanie ma limit czasu (AbortSignal)', async () => {
+    const { c, wywolanie } = klient({ body: { server: { id: 1 } } });
+    await c.getServer('1');
+    expect(wywolanie().init?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('createServer wysyła etykiety; listServersByLabel: GET /servers?label_selector=…', async () => {
+    const z = klient({ status: 201, body: { server: { id: 5 }, root_password: null } });
+    await z.c.createServer({ name: 'n', serverType: 'cx22', image: 'ubuntu-24.04', location: 'nbg1', labels: { 'verris-vps': 'v1' } });
+    expect(z.wywolanie().body.labels).toEqual({ 'verris-vps': 'v1' });
+
+    const l = klient({ body: { servers: [{ id: 5 }] } });
+    expect(await l.c.listServersByLabel('verris-vps=v1')).toEqual([{ id: 5 }]);
+    const u = new URL(l.wywolanie().url);
+    expect(u.pathname).toBe('/v1/servers');
+    expect(u.searchParams.get('label_selector')).toBe('verris-vps=v1');
   });
 });

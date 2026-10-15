@@ -3,6 +3,7 @@ import { AuditService } from '../../src/common/audit/audit.service.js';
 import { WalletLedgerService } from '../../src/billing/wallet-ledger.service.js';
 import { VpsService } from '../../src/vps/vps.service.js';
 import { VpsRenewalScheduler } from '../../src/vps/vps-renewal.scheduler.js';
+import { HetznerWynikNiepewny } from '../../src/vps/hetzner.client.js';
 import { prisma, rozlacz, wyczyscBaze } from './setup.js';
 
 /**
@@ -13,15 +14,30 @@ import { prisma, rozlacz, wyczyscBaze } from './setup.js';
 const DZIEN = 86_400_000;
 const hetznerLog: string[] = [];
 let hetznerPada = false;
+/** Wynik zakładania niepewny (timeout, 5xx): `powstal` — serwer jednak powstał, `brak` — nie powstał. */
+let niepewny: 'powstal' | 'brak' | null = null;
+let deletePada = false;
+let zalozone: Array<{ id: number; labels: Record<string, string>; public_net: { ipv4: { ip: string } } }> = [];
 const hetzner = {
   isConfigured: () => true,
-  createServer: async () => {
+  createServer: async (input: { labels?: Record<string, string> }) => {
     if (hetznerPada) throw new Error('Hetzner: brak zasobów w lokalizacji');
-    return { server: { id: 42, public_net: { ipv4: { ip: '1.2.3.4' } } }, rootPassword: 'x' };
+    if (niepewny === 'brak') throw new HetznerWynikNiepewny('timeout');
+    const server = { id: 42 + zalozone.length, labels: input.labels ?? {}, public_net: { ipv4: { ip: '1.2.3.4' } } };
+    zalozone.push(server);
+    if (niepewny === 'powstal') throw new HetznerWynikNiepewny('timeout');
+    return { server, rootPassword: 'x' };
+  },
+  listServersByLabel: async (selector: string) => {
+    const [k, v] = selector.split('=');
+    return zalozone.filter((s) => s.labels[k] === v);
   },
   powerOn: async (id: string) => void hetznerLog.push(`on:${id}`),
   powerOff: async (id: string) => void hetznerLog.push(`off:${id}`),
-  deleteServer: async (id: string) => void hetznerLog.push(`delete:${id}`),
+  deleteServer: async (id: string) => {
+    if (deletePada) throw new HetznerWynikNiepewny('timeout');
+    hetznerLog.push(`delete:${id}`);
+  },
   // Q-08 — rozmiary snapshotów u dostawcy (image_size, GB) po ID obrazu.
   listSnapshots: async () => Object.entries(rozmiary).map(([id, image_size]) => ({ id: Number(id), status: 'available', image_size })),
   deleteImage: async (id: string) => void hetznerLog.push(`delete-image:${id}`),
@@ -62,6 +78,9 @@ describe('X-04 VPS z portfela', () => {
     await prisma().$executeRawUnsafe('TRUNCATE TABLE "VpsPlan" CASCADE');
     hetznerLog.length = 0;
     hetznerPada = false;
+    niepewny = null;
+    deletePada = false;
+    zalozone = [];
     rozmiary = {};
   });
   afterAll(rozlacz);
@@ -178,6 +197,87 @@ describe('X-04 VPS z portfela', () => {
       await uslugi().vps.remove(u.id, v.id);
       expect(hetznerLog.filter((x) => x.startsWith('delete-image:')).sort()).toEqual(['delete-image:301', 'delete-image:302', 'delete-image:303']);
       expect(await prisma().vpsSnapshot.count({ where: { vpsInstanceId: v.id, deletedAt: null } })).toBe(0);
+    });
+  });
+
+  describe('VPS 15.10 — błędy dostawcy nie są połykane', () => {
+    const zamow = (userId: string, planId: string) =>
+      uslugi().vps.order(userId, { planId, immediatePerformanceConsent: true } as never);
+    const cofnijCzas = (id: string, minut: number) =>
+      prisma().vpsInstance.update({ where: { id }, data: { createdAt: new Date(Date.now() - minut * 60_000) } });
+
+    it('niepewny wynik, serwer powstał: bez zwrotu, w budowie; uzgodnienie znajduje go po etykiecie i włącza', async () => {
+      const u = await klient(100);
+      const p = await plan();
+      niepewny = 'powstal';
+      await expect(zamow(u.id, p.id)).rejects.toThrow('Nie mamy jeszcze potwierdzenia');
+      expect(await saldo(u.id)).toBe(70);
+      const v = await prisma().vpsInstance.findFirstOrThrow({ where: { userId: u.id } });
+      expect(v.status).toBe(VpsStatus.PROVISIONING);
+      expect(zalozone[0].labels).toEqual({ 'verris-vps': v.id });
+
+      // Przed upływem 10 minut nic się nie dzieje (żądanie mogło jeszcze trwać).
+      await uslugi().odnowienia.uzgodnijZakladane();
+      expect((await prisma().vpsInstance.findUniqueOrThrow({ where: { id: v.id } })).status).toBe(VpsStatus.PROVISIONING);
+
+      await cofnijCzas(v.id, 11);
+      await uslugi().odnowienia.uzgodnijZakladane();
+      const po = await prisma().vpsInstance.findUniqueOrThrow({ where: { id: v.id } });
+      expect(po).toMatchObject({ status: VpsStatus.RUNNING, hetznerServerId: '42', ipv4: '1.2.3.4' });
+      expect(await saldo(u.id)).toBe(70);
+    });
+
+    it('niepewny wynik, serwer nie powstał: po 30 minutach zwrot raz i stan błędu', async () => {
+      const u = await klient(100);
+      const p = await plan();
+      niepewny = 'brak';
+      await expect(zamow(u.id, p.id)).rejects.toThrow('Nie mamy jeszcze potwierdzenia');
+      const v = await prisma().vpsInstance.findFirstOrThrow({ where: { userId: u.id } });
+
+      await cofnijCzas(v.id, 15);
+      await uslugi().odnowienia.uzgodnijZakladane();
+      expect(await saldo(u.id)).toBe(70);
+
+      await cofnijCzas(v.id, 31);
+      await uslugi().odnowienia.uzgodnijZakladane();
+      await uslugi().odnowienia.uzgodnijZakladane();
+      expect(await saldo(u.id)).toBe(100);
+      expect((await prisma().vpsInstance.findUniqueOrThrow({ where: { id: v.id } })).status).toBe(VpsStatus.ERROR);
+    });
+
+    it('usuwanie: błąd dostawcy → VPS zostaje (status przywrócony), ponowienie kończy usunięcie', async () => {
+      const u = await klient(100);
+      const p = await plan();
+      const r = await zamow(u.id, p.id);
+      deletePada = true;
+      await expect(uslugi().vps.remove(u.id, r.id)).rejects.toThrow();
+      expect((await prisma().vpsInstance.findUniqueOrThrow({ where: { id: r.id } })).status).toBe(VpsStatus.RUNNING);
+
+      deletePada = false;
+      await uslugi().vps.remove(u.id, r.id);
+      expect((await prisma().vpsInstance.findUniqueOrThrow({ where: { id: r.id } })).status).toBe(VpsStatus.DELETED);
+    });
+
+    it('VPS w budowie nie da się usunąć (serwer mógłby zostać bez właściciela)', async () => {
+      const u = await klient(100);
+      const p = await plan();
+      niepewny = 'powstal';
+      await expect(zamow(u.id, p.id)).rejects.toThrow();
+      const v = await prisma().vpsInstance.findFirstOrThrow({ where: { userId: u.id } });
+      await expect(uslugi().vps.remove(u.id, v.id)).rejects.toThrow('w budowie');
+      expect((await prisma().vpsInstance.findUniqueOrThrow({ where: { id: v.id } })).status).toBe(VpsStatus.PROVISIONING);
+    });
+
+    it('po karencji błąd usuwania u dostawcy → VPS nie znika z ewidencji; następny przebieg go usuwa', async () => {
+      const u = await klient(0);
+      const p = await plan();
+      const v = await vpsPoOkresie(u.id, p.id, 8, VpsStatus.STOPPED);
+      deletePada = true;
+      await uslugi().odnowienia.tick();
+      expect((await prisma().vpsInstance.findUniqueOrThrow({ where: { id: v.id } })).status).toBe(VpsStatus.STOPPED);
+      deletePada = false;
+      await uslugi().odnowienia.tick();
+      expect((await prisma().vpsInstance.findUniqueOrThrow({ where: { id: v.id } })).status).toBe(VpsStatus.DELETED);
     });
   });
 });

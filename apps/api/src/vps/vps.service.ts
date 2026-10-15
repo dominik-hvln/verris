@@ -15,7 +15,7 @@ import { AuditService } from '../common/audit/audit.service.js';
 import { WalletLedgerService } from '../billing/wallet-ledger.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { vpsReadyTemplate } from '../mail/templates/vps-notifications.js';
-import { HetznerClient } from './hetzner.client.js';
+import { HetznerClient, HetznerWynikNiepewny } from './hetzner.client.js';
 import type { OrderVpsDto } from './dto/vps.dto.js';
 import { PLATFORM_SETTING_KEYS } from '../platform-settings/platform-settings.keys.js';
 import { ETYKIETA_VPS, odswiezRozmiary, politykaSnapshotow, usunSnapshotyVps } from './vps-snapshoty.js';
@@ -191,50 +191,37 @@ export class VpsService {
       throw err;
     }
 
-    // 3) Provision on Hetzner; refund + ERROR on failure.
+    // 3) Zakładanie u dostawcy. Pewna odmowa → zwrot + ERROR. Wynik niepewny (brak odpowiedzi, 5xx) → serwer mógł
+    //    powstać: zostaje PROVISIONING bez zwrotu, a `uzgodnijZakladane` w odnowieniach odnajdzie go po etykiecie
+    //    albo po 30 minutach zwróci pieniądze. Wcześniej każdy błąd dawał zwrot — także gdy serwer działał (darmowy VPS).
+    let created: Awaited<ReturnType<HetznerClient['createServer']>>;
+    let zakladanie = false;
     try {
       const sshKeyIds =
         dto.sshKeyIds && dto.sshKeyIds.length
           ? await this.ensureHetznerKeys(userId, dto.sshKeyIds)
           : [];
-      const created = await this.hetzner.createServer({
+      zakladanie = true;
+      created = await this.hetzner.createServer({
         name: sanitizeName(instance.name),
         serverType: plan.hetznerServerType,
         image: plan.hetznerImage,
         location: plan.location,
         sshKeyIds,
+        labels: { [ETYKIETA_VPS]: instance.id },
       });
-      const updated = await this.prisma.vpsInstance.update({
-        where: { id: instance.id },
-        data: {
-          status: VpsStatus.RUNNING,
-          hetznerServerId: String(created.server.id),
-          location: created.server.datacenter?.location?.name ?? plan.location,
-          ipv4: created.server.public_net?.ipv4?.ip ?? null,
-          ipv6: created.server.public_net?.ipv6?.ip ?? null,
-          rootPasswordEnc: created.rootPassword ? this.crypto.encrypt(created.rootPassword) : null,
-        },
-        include: { plan: true },
-      });
-      await this.audit.record({
-        action: 'VPS_PROVISIONED',
-        userId,
-        actorUserId: userId,
-        details: {
-          instanceId: instance.id,
-          plan: plan.slug,
-          hetznerServerId: String(created.server.id),
-          // Dowód oświadczenia konsumenckiego (art. 15 ust. 3 / 21 ust. 2 upk):
-          // żądanie rozpoczęcia świadczenia przed upływem terminu odstąpienia.
-          immediatePerformanceConsent: dto.immediatePerformanceConsent,
-          consentStatement:
-            'Żądam rozpoczęcia świadczenia usługi przed upływem 14-dniowego terminu odstąpienia i przyjmuję do wiadomości obowiązek zapłaty za świadczenia spełnione do chwili odstąpienia (Regulamin §4 ust. 4, §21).',
-        },
-      });
-      void this.sendReady(userId, updated.name, updated.ipv4).catch(() => undefined);
-      return { ...this.toDto(updated), rootPassword: created.rootPassword };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      if (zakladanie && err instanceof HetznerWynikNiepewny) {
+        await this.prisma.vpsInstance.update({
+          where: { id: instance.id },
+          data: { lastError: `Wynik zakładania niepewny: ${msg}`.slice(0, 2000) },
+        });
+        this.logger.warn(`VPS ${instance.id}: wynik zakładania niepewny — zostaje do uzgodnienia`);
+        throw new BadGatewayException(
+          'Nie mamy jeszcze potwierdzenia, że serwer powstał. Sprawdzimy to w ciągu kilkunastu minut — jeśli nie powstał, zwrócimy pieniądze do portfela.',
+        );
+      }
       await this.wallet.credit({
         userId,
         type: WalletTxType.REFUND,
@@ -249,6 +236,39 @@ export class VpsService {
       this.logger.error(`VPS provisioning failed (instance=${instance.id}): ${msg}`);
       throw err;
     }
+
+    // 4) Serwer istnieje u dostawcy — od tej chwili żadnego zwrotu. Błąd zapisu zostawia PROVISIONING do uzgodnienia.
+    const updated = await this.prisma.vpsInstance.update({
+      where: { id: instance.id },
+      data: {
+        status: VpsStatus.RUNNING,
+        hetznerServerId: String(created.server.id),
+        location: created.server.datacenter?.location?.name ?? plan.location,
+        ipv4: created.server.public_net?.ipv4?.ip ?? null,
+        ipv6: created.server.public_net?.ipv6?.ip ?? null,
+        rootPasswordEnc: created.rootPassword ? this.crypto.encrypt(created.rootPassword) : null,
+      },
+      include: { plan: true },
+    });
+    await this.audit
+      .record({
+        action: 'VPS_PROVISIONED',
+        userId,
+        actorUserId: userId,
+        details: {
+          instanceId: instance.id,
+          plan: plan.slug,
+          hetznerServerId: String(created.server.id),
+          // Dowód oświadczenia konsumenckiego (art. 15 ust. 3 / 21 ust. 2 upk):
+          // żądanie rozpoczęcia świadczenia przed upływem terminu odstąpienia.
+          immediatePerformanceConsent: dto.immediatePerformanceConsent,
+          consentStatement:
+            'Żądam rozpoczęcia świadczenia usługi przed upływem 14-dniowego terminu odstąpienia i przyjmuję do wiadomości obowiązek zapłaty za świadczenia spełnione do chwili odstąpienia (Regulamin §4 ust. 4, §21).',
+        },
+      })
+      .catch((err: Error) => this.logger.error(`VPS ${instance.id}: nie zapisano audytu zakupu: ${err.message}`));
+    void this.sendReady(userId, updated.name, updated.ipv4).catch(() => undefined);
+    return { ...this.toDto(updated), rootPassword: created.rootPassword };
   }
 
   async power(userId: string, id: string, action: 'on' | 'off' | 'reboot') {
@@ -288,13 +308,23 @@ export class VpsService {
 
   async remove(userId: string, id: string) {
     const v = await this.requireOwned(userId, id);
+    // W budowie serwer może właśnie powstawać u dostawcy (albo czekać na uzgodnienie) — usunięty wiersz zostawiłby go
+    // bez właściciela i bez zwrotu.
+    if (v.status === VpsStatus.PROVISIONING) {
+      throw new ConflictException('VPS jest jeszcze w budowie. Usuń go, gdy będzie gotowy.');
+    }
     await this.prisma.vpsInstance.update({ where: { id }, data: { status: VpsStatus.DELETING } });
     if (v.hetznerServerId) {
       try {
         await this.hetzner.deleteServer(v.hetznerServerId);
       } catch (err) {
-        this.logger.error(`VPS delete on Hetzner failed (instance=${id}): ${(err as Error).message}`);
-        // Continue to mark deleted locally; orphan cleanup is an ops concern.
+        // 404 = serwera już nie ma, cel osiągnięty. Każdy inny błąd: serwer może dalej działać (i kosztować),
+        // więc nie oznaczamy go jako usuniętego — wcześniej błąd szedł tylko do logu, a VPS znikał z panelu.
+        if (!(err instanceof NotFoundException)) {
+          this.logger.error(`VPS delete on Hetzner failed (instance=${id}): ${(err as Error).message}`);
+          await this.prisma.vpsInstance.update({ where: { id }, data: { status: v.status } });
+          throw err;
+        }
       }
     }
     // Q-08 — snapshoty przeżywają serwer u dostawcy i dalej kosztują.

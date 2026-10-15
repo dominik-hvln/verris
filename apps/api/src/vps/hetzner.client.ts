@@ -42,6 +42,16 @@ export interface HetznerAction {
 /** Komunikat dla klienta — bez nazwy dostawcy (white label). Szczegół idzie do logu. */
 const BLAD_DLA_KLIENTA = 'Operacja na serwerze VPS nie powiodła się. Spróbuj ponownie za chwilę.';
 
+/** Limit czasu jednego wywołania API dostawcy — bez niego zawieszone połączenie trzymało żądanie klienta bez końca. */
+const LIMIT_CZASU_MS = 30_000;
+
+/**
+ * Wynik operacji nieznany: brak odpowiedzi, przekroczony czas albo błąd 5xx. Dostawca mógł ją wykonać
+ * (np. założyć serwer), więc wołający nie może traktować tego jak pewnej odmowy (zwrot pieniędzy, „usunięty”).
+ * Kody: https://docs.hetzner.cloud/reference/cloud#description/errors
+ */
+export class HetznerWynikNiepewny extends BadGatewayException {}
+
 export interface HetznerCreateResult {
   server: HetznerServer;
   rootPassword: string | null;
@@ -70,21 +80,30 @@ export class HetznerClient {
     const token = this.token();
     if (!token) throw new BadGatewayException('Usługa VPS jest chwilowo niedostępna.');
     let res: Response;
+    let text: string;
     try {
       res = await fetch(`${API_BASE}${path}`, {
         ...init,
+        signal: init.signal ?? AbortSignal.timeout(LIMIT_CZASU_MS),
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
           ...(init.headers ?? {}),
         },
       });
+      text = await res.text();
     } catch (err) {
-      this.logger.warn(`Hetzner ${init.method ?? 'GET'} ${path} niedostępne: ${(err as Error).message}`);
-      throw new BadGatewayException(BLAD_DLA_KLIENTA);
+      this.logger.warn(`Hetzner ${init.method ?? 'GET'} ${path} bez odpowiedzi: ${(err as Error).message}`);
+      throw new HetznerWynikNiepewny(BLAD_DLA_KLIENTA);
     }
-    const text = await res.text();
-    const body = text ? (JSON.parse(text) as unknown) : null;
+    let body: unknown;
+    try {
+      body = text ? (JSON.parse(text) as unknown) : null;
+    } catch {
+      // Ucięta albo nie-JSON-owa odpowiedź — nie wiemy, co się stało.
+      this.logger.warn(`Hetzner ${init.method ?? 'GET'} ${path} -> ${res.status}: odpowiedź nieczytelna`);
+      throw new HetznerWynikNiepewny(BLAD_DLA_KLIENTA);
+    }
     if (!res.ok) {
       const error = (body as { error?: { code?: string; message?: string } } | null)?.error;
       this.logger.warn(`Hetzner ${init.method ?? 'GET'} ${path} -> ${res.status}: ${error?.code ?? ''} ${error?.message ?? ''}`);
@@ -94,6 +113,7 @@ export class HetznerClient {
       if (error?.code === 'locked' || error?.code === 'conflict') {
         throw new ConflictException('Na serwerze trwa inna operacja. Spróbuj ponownie za chwilę.');
       }
+      if (res.status >= 500) throw new HetznerWynikNiepewny(BLAD_DLA_KLIENTA);
       throw new BadGatewayException(BLAD_DLA_KLIENTA);
     }
     return body as T;
@@ -107,6 +127,8 @@ export class HetznerClient {
     location: string;
     userData?: string;
     sshKeyIds?: number[];
+    /** Etykiety serwera — po nich odnajdujemy serwer, gdy wynik zakładania był niepewny. */
+    labels?: Record<string, string>;
   }): Promise<HetznerCreateResult> {
     const payload: Record<string, unknown> = {
       name: input.name,
@@ -116,6 +138,7 @@ export class HetznerClient {
       start_after_create: true,
       ...(input.userData ? { user_data: input.userData } : {}),
       ...(input.sshKeyIds && input.sshKeyIds.length ? { ssh_keys: input.sshKeyIds } : {}),
+      ...(input.labels ? { labels: input.labels } : {}),
     };
     const res = await this.request<{
       server: HetznerServer;
@@ -123,6 +146,16 @@ export class HetznerClient {
       action?: { id: number };
     }>('/servers', { method: 'POST', body: JSON.stringify(payload) });
     return { server: res.server, rootPassword: res.root_password, actionId: res.action?.id ?? null };
+  }
+
+  /**
+   * GET /servers?label_selector=… (list_servers) — https://docs.hetzner.cloud/reference/cloud (Servers).
+   * Błąd rzuca dalej: „nie wiem” nie może wyglądać jak „nie ma serwera”.
+   */
+  async listServersByLabel(labelSelector: string): Promise<HetznerServer[]> {
+    const q = new URLSearchParams({ label_selector: labelSelector, per_page: '50' });
+    const res = await this.request<{ servers: HetznerServer[] }>(`/servers?${q.toString()}`);
+    return res.servers;
   }
 
   async getServer(id: string): Promise<HetznerServer | null> {

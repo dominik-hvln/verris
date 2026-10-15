@@ -37,8 +37,9 @@ describe('VPS — restart nie wyprowadza serwera z rozliczeń', () => {
       where.status.in.includes(t.vps.status) ? [{ ...t.vps, name: 'vps', priceMonthly: '50', user: { email: 'a@x', firstName: 'A' }, plan: { name: 'P' } }] : [],
     );
     const update = vi.fn(async () => ({}));
+    const updateMany = vi.fn(async () => ({ count: 1 }));
     const prisma = {
-      vpsInstance: { findMany, update },
+      vpsInstance: { findMany, update, updateMany },
       platformSetting: { findMany: vi.fn(async () => []) },
       vpsSnapshot: { findMany: vi.fn(async () => []), count: vi.fn(async () => 0) },
     };
@@ -51,7 +52,7 @@ describe('VPS — restart nie wyprowadza serwera z rozliczeń', () => {
     await sch.tick();
     expect(wallet.debit).toHaveBeenCalled();
     expect(hetzner.powerOff).toHaveBeenCalledWith('42');
-    expect(update).toHaveBeenCalledWith({ where: { id: 'v1' }, data: { status: 'STOPPED' } });
+    expect(updateMany).toHaveBeenCalledWith({ where: { id: 'v1', status: 'RUNNING' }, data: { status: 'STOPPED' } });
   });
 
   it('restart wyłączonego (np. wstrzymanego) VPS-a → odmowa, bez wywołania dostawcy', async () => {

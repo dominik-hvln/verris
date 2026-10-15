@@ -1,30 +1,36 @@
-import { ConflictException } from '@nestjs/common';
+import { BadGatewayException, ConflictException } from '@nestjs/common';
 import { VpsRenewalScheduler } from './vps-renewal.scheduler.js';
 
 /**
  * Odnowienie VPS: tylko brak środków (ConflictException z portfela) uruchamia karencję,
  * a po niej usunięcie serwera. Błąd bazy nie może skończyć się skasowaniem VPS-a klienta.
  */
-function stanowisko(blad: Error) {
+function stanowisko(blad: Error | null, opcje: { status?: string; dniPoTerminie?: number; hetzner?: Record<string, unknown>; poOdnowieniu?: string } = {}) {
   const vps = {
-    id: 'v1', userId: 'u1', name: 'app', status: 'RUNNING', hetznerServerId: 42, priceMonthly: 30,
-    currentPeriodEnd: new Date(Date.now() - 30 * 24 * 3600_000), user: { email: 'jan@firma.pl', firstName: null }, plan: { name: 'CX' },
+    id: 'v1', userId: 'u1', name: 'app', status: opcje.status ?? 'RUNNING', hetznerServerId: 42, priceMonthly: 30,
+    currentPeriodEnd: new Date(Date.now() - (opcje.dniPoTerminie ?? 30) * 24 * 3600_000), user: { email: 'jan@firma.pl', firstName: null }, plan: { name: 'CX' },
   };
   const prisma = {
-    vpsInstance: { findMany: vi.fn(async () => [vps]), update: vi.fn(async () => ({})) },
+    vpsInstance: {
+      findMany: vi.fn(async () => [vps]),
+      update: vi.fn(async () => ({})),
+      updateMany: vi.fn(async () => ({ count: opcje.poOdnowieniu ? 0 : 1 })),
+      findUnique: vi.fn(async () => ({ status: opcje.poOdnowieniu })),
+    },
     platformSetting: { findMany: vi.fn(async () => []) },
     vpsSnapshot: { findMany: vi.fn(async () => []), count: vi.fn(async () => 0) },
   };
-  const hetzner = { deleteServer: vi.fn(async () => undefined), powerOff: vi.fn(async () => undefined), powerOn: vi.fn() };
+  const hetzner = { deleteServer: vi.fn(async () => undefined), powerOff: vi.fn(async () => undefined), powerOn: vi.fn(async () => undefined), ...opcje.hetzner };
+  const wallet = { debit: vi.fn(async () => (blad ? Promise.reject(blad) : {})), credit: vi.fn(async () => ({})) };
   const svc = new VpsRenewalScheduler(
     prisma as never,
-    { debit: vi.fn(async () => Promise.reject(blad)) } as never,
+    wallet as never,
     hetzner as never,
     { send: vi.fn(async () => undefined) } as never,
     { record: vi.fn(async () => undefined) } as never,
     { get: () => undefined } as never,
   );
-  return { svc, hetzner, prisma };
+  return { svc, hetzner, prisma, wallet };
 }
 
 describe('VpsRenewalScheduler — karencja tylko przy braku środków', () => {
@@ -40,5 +46,37 @@ describe('VpsRenewalScheduler — karencja tylko przy braku środków', () => {
     expect(s.hetzner.deleteServer).not.toHaveBeenCalled();
     expect(s.hetzner.powerOff).not.toHaveBeenCalled();
     expect(s.prisma.vpsInstance.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('VpsRenewalScheduler — błędy dostawcy nie są połykane (15.10)', () => {
+  const pada = () => vi.fn(async () => Promise.reject(new BadGatewayException('x')));
+
+  it('nieudane wyłączenie przy braku środków → bez STOPPED (ponowimy jutro)', async () => {
+    const s = stanowisko(new ConflictException('brak'), { dniPoTerminie: 1, hetzner: { powerOff: pada() } });
+    await s.svc.tick();
+    expect(s.prisma.vpsInstance.update).not.toHaveBeenCalled();
+    expect(s.prisma.vpsInstance.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('nieudane usunięcie po karencji → VPS nie jest oznaczany jako usunięty', async () => {
+    const s = stanowisko(new ConflictException('brak'), { status: 'STOPPED', hetzner: { deleteServer: pada() } });
+    await s.svc.tick();
+    expect(s.prisma.vpsInstance.update).not.toHaveBeenCalled();
+  });
+
+  it('opłacony, ale włączenie się nie udało → okres przedłużony, status zostaje STOPPED', async () => {
+    const s = stanowisko(null, { status: 'STOPPED', dniPoTerminie: 1, hetzner: { powerOn: pada() } });
+    await s.svc.tick();
+    const wywolania = [...s.prisma.vpsInstance.update.mock.calls, ...s.prisma.vpsInstance.updateMany.mock.calls] as unknown as Array<[{ data: { status: string } }]>;
+    expect(wywolania).toHaveLength(1);
+    expect(wywolania[0][0].data.status).toBe('STOPPED');
+  });
+
+  it('klient usunął VPS w trakcie odnowienia → przedłużenie go nie wskrzesza, obciążenie wraca do portfela', async () => {
+    const s = stanowisko(null, { dniPoTerminie: 1, poOdnowieniu: 'DELETED' });
+    await s.svc.tick();
+    expect(s.prisma.vpsInstance.update).not.toHaveBeenCalled();
+    expect(s.wallet.credit).toHaveBeenCalledWith(expect.objectContaining({ idempotencyKey: expect.stringMatching(/^vps-v1-renew-.*:zwrot$/) }));
   });
 });
