@@ -108,42 +108,7 @@ export class ProformaService {
 
   /** Pozycja „odnowienie usługi” — wspólna dla PDF na żądanie (M-24) i proformy operatora (K4). */
   private async pozycjaOdnowienia(userId: string, subscriptionId: string) {
-    const sub = await this.prisma.subscription.findFirst({
-      where: { id: subscriptionId, userId },
-      include: { plan: true, account: true },
-    });
-    if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
-    if (
-      (sub.status !== SubscriptionStatus.ACTIVE && sub.status !== SubscriptionStatus.PAST_DUE) ||
-      sub.cancelAt ||
-      !sub.currentPeriodEnd
-    ) {
-      throw new ConflictException('Ta usługa nie ma zaplanowanego odnowienia — proforma nie jest potrzebna.');
-    }
-    if (sub.paymentSource === 'MANUAL') {
-      throw new ConflictException('Tę usługę rozliczasz bezpośrednio ze swoim opiekunem — proforma z panelu nie dotyczy.');
-    }
-
-    const brutto = await this.promo.resolveNextRenewalAmount({
-      priceAmount: sub.priceAmount,
-      listPriceAmount: sub.listPriceAmount,
-      appliedPromoCodeId: sub.appliedPromoCodeId,
-      introDiscountPct: sub.introDiscountPct,
-      introDiscountPeriodsLeft: sub.introDiscountPeriodsLeft,
-      individualPrice: sub.individualPrice,
-    });
-    // M-09: stawka nabywcy; klient rozliczany netto płaci K / 1,23 zaokrąglone w górę (vat.ts wplataZaK).
-    const { traktowanie, vies } = await this.vatNabywcy.ustal(userId);
-    const doZaplaty = wplataZaK(brutto, traktowanie);
-    const od = sub.currentPeriodEnd;
-    const nazwa = nazwaPozycjiUslugi({
-      plan: sub.plan?.name ?? 'Hosting',
-      interval: sub.interval,
-      domena: sub.account?.domain ?? null,
-      od,
-      rodzaj: 'odnowienie',
-    });
-    return { sub, od, nazwa, doZaplaty, traktowanie, vies };
+    return pozycjaOdnowieniaUslugi({ prisma: this.prisma, promo: this.promo, ustal: (u) => this.vatNabywcy.ustal(u) }, userId, subscriptionId);
   }
 
   async render(userId: string, subscriptionId: string): Promise<{ pdf: Uint8Array; filename: string }> {
@@ -406,4 +371,82 @@ export class ProformaService {
     });
     return { pdf, filename: `proforma-${p.number.replace(/\//g, '-')}.pdf` };
   }
+}
+
+type ZaleznosciOdnowienia = {
+  prisma: Pick<PrismaService, 'subscription'>;
+  promo: Pick<PromoService, 'resolveNextRenewalAmount'>;
+  ustal: (userId: string) => Promise<{ traktowanie: TraktowanieVat; vies: Awaited<ReturnType<VatNabywcyService['ustal']>>['vies'] }>;
+};
+
+/** Pozycja „odnowienie usługi” (nazwa z planem, domeną i okresem; kwota do zapłaty) — przy wystawieniu i przy wpłacie. */
+export async function pozycjaOdnowieniaUslugi(d: ZaleznosciOdnowienia, userId: string, subscriptionId: string, o: { zawieszona?: boolean } = {}) {
+  const sub = await d.prisma.subscription.findFirst({
+    where: { id: subscriptionId, userId },
+    include: { plan: true, account: true },
+  });
+  if (!sub) throw new NotFoundException('Nie znaleziono usługi.');
+  const odnawialna =
+    sub.status === SubscriptionStatus.ACTIVE ||
+    sub.status === SubscriptionStatus.PAST_DUE ||
+    (o.zawieszona === true && sub.status === SubscriptionStatus.SUSPENDED);
+  if (!odnawialna || sub.cancelAt || !sub.currentPeriodEnd) {
+    throw new ConflictException('Ta usługa nie ma zaplanowanego odnowienia — proforma nie jest potrzebna.');
+  }
+  if (sub.paymentSource === 'MANUAL') {
+    throw new ConflictException('Tę usługę rozliczasz bezpośrednio ze swoim opiekunem — proforma z panelu nie dotyczy.');
+  }
+
+  const brutto = await d.promo.resolveNextRenewalAmount({
+    priceAmount: sub.priceAmount,
+    listPriceAmount: sub.listPriceAmount,
+    appliedPromoCodeId: sub.appliedPromoCodeId,
+    introDiscountPct: sub.introDiscountPct,
+    introDiscountPeriodsLeft: sub.introDiscountPeriodsLeft,
+    individualPrice: sub.individualPrice,
+  });
+  // M-09: stawka nabywcy; klient rozliczany netto płaci K / 1,23 zaokrąglone w górę (vat.ts wplataZaK).
+  const { traktowanie, vies } = await d.ustal(userId);
+  const doZaplaty = wplataZaK(brutto, traktowanie);
+  const od = sub.currentPeriodEnd;
+  const nazwa = nazwaPozycjiUslugi({
+    plan: sub.plan?.name ?? 'Hosting',
+    interval: sub.interval,
+    domena: sub.account?.domain ?? null,
+    od,
+    rodzaj: 'odnowienie',
+  });
+  return { sub, od, nazwa, doZaplaty, traktowanie, vies };
+}
+
+/**
+ * Przegląd 15.10 — proforma „odnowienie” nie była związana z okresem: płatna przez 60 dni bez względu na to, co stało się
+ * z usługą. Klient płacił drugi raz za okres odnowiony z salda albo opłacony inną proformą, płacił starą kwotę po zmianie
+ * planu (i i tak tracił usługę), płacił za usługę anulowaną — a dokument VAT opisywał sprzedaż, której nie było.
+ * Kotwica bez migracji: pozycja odnowienia zapisana na proformie (nazwa z okresem, planem i domeną + kwota) musi być
+ * równa pozycji policzonej TERAZ. Zwraca powód nieaktualności albo null. Sprawdzane przed płatnością Paynow i przy
+ * księgowaniu przelewu do proformy.
+ */
+export async function powodNieaktualnejProformy(
+  d: ZaleznosciOdnowienia & { prisma: Pick<PrismaService, 'subscription' | 'proforma'> },
+  pf: { id: string; userId: string; subscriptionId: string | null; lineItems: unknown },
+): Promise<string | null> {
+  if (!pf.subscriptionId) return null;
+  let teraz: Awaited<ReturnType<typeof pozycjaOdnowieniaUslugi>>;
+  try {
+    teraz = await pozycjaOdnowieniaUslugi(d, pf.userId, pf.subscriptionId, { zawieszona: true });
+  } catch {
+    return 'usługa nie ma już zaplanowanego odnowienia (anulowana, wygasła albo przeniesiona)';
+  }
+  if (teraz.sub.paymentSource !== 'WALLET') return 'usługa odnawia się teraz z karty';
+  const pozycja = (Array.isArray(pf.lineItems) ? pf.lineItems[0] : null) as { name?: string; totalGross?: string | number } | null;
+  if (!pozycja || pozycja.name !== teraz.nazwa) return 'okres, plan albo domena usługi zmieniły się od wystawienia (np. okres odnowiono z salda)';
+  if (!new Prisma.Decimal(pozycja.totalGross ?? 0).eq(teraz.doZaplaty)) return 'cena odnowienia zmieniła się od wystawienia';
+  const inne = await d.prisma.proforma.findMany({
+    where: { subscriptionId: pf.subscriptionId, status: 'OPLACONA', id: { not: pf.id } },
+    select: { number: true, lineItems: true },
+  });
+  const oplacona = inne.find((x) => Array.isArray(x.lineItems) && (x.lineItems[0] as { name?: string } | undefined)?.name === teraz.nazwa);
+  if (oplacona) return `ten okres opłacono już proformą ${oplacona.number}`;
+  return null;
 }

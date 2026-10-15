@@ -18,7 +18,6 @@ import { prisma, rozlacz, utworzPlan, wyczyscBaze } from './setup.js';
  * odnowienie usługi przez istniejący harmonogram. Atrapy: Paynow (fetch), mailer, EKO.
  */
 const SIG = 'sig-key-k4';
-const pusty = new Proxy({}, { get: () => async () => undefined }) as never;
 const maile: Array<{ to: string; subject: string; text: string }> = [];
 const mailer = { send: async (m: { to: string; subject: string; text: string }) => void maile.push(m) };
 const OP = { userId: '00000000-0000-4000-8000-0000000000f1', role: 'STAFF' };
@@ -33,12 +32,13 @@ function serwisy() {
     paynowApiKey: 'api-key-k4', paynowSignatureKey: SIG, paynowApiUrl: 'https://api.sandbox.paynow.pl', clientPanelUrl: 'https://panel.test',
   };
   const config = { get: (k: string) => cfg[k] } as never;
+  // Przegląd 15.10: „Zapłać” przy proformie „odnowienie” liczy aktualną kwotę odnowienia — BillingService dostaje PromoService.
+  const promo = new PromoService(p, ledger, audit, mailer as never, { get: () => undefined } as never);
   const billing = new BillingService(
-    p, ledger, null as never, audit, config, null as never, null as never, mailer as never, pusty,
+    p, ledger, null as never, audit, config, null as never, null as never, mailer as never, promo,
     { safeAward: async () => undefined, awardWalletTopup: async () => 0 } as never,
     doladowanie,
   );
-  const promo = new PromoService(p, ledger, audit, mailer as never, { get: () => undefined } as never);
   const invoices = {
     buildSellerSnapshot: async () => ({ name: 'Verris', nip: '1234567890', address: 'ul. A 1', city: 'Poznań', postalCode: '60-001', country: 'PL', email: 'k@v.pl' }),
     buildBuyerSnapshot: async () => ({ name: 'Klient', email: 'k@x.pl' }),

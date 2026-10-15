@@ -7,6 +7,7 @@ import { zgloszenieKlienta } from '../tickets/zgloszenie-klienta.js';
 import { zawieszenieObejmujeZaleglosc } from '../subscriptions/powody-zawieszenia.js';
 import { WalletLedgerService } from './wallet-ledger.service.js';
 import { DoladowanieService } from './doladowanie.service.js';
+import { powodNieaktualnejProformy } from './proforma.service.js';
 import { BillingService } from './billing.service.js';
 import { PromoService } from './promo.service.js';
 import { powodAutoDoladowania, powodBlokadyPonowienia, WalletAutoTopupService } from './wallet-auto-topup.service.js';
@@ -339,12 +340,23 @@ export class RozliczeniaOperatoraService {
 
     // K4 — wpłata do proformy: tylko do proformy tego klienta, do zapłaty, na dokładnie jej kwotę (bez częściowych).
     const proforma = z.proformaId
-      ? await this.prisma.proforma.findFirst({ where: { id: z.proformaId, userId: z.userId }, select: { id: true, number: true, status: true, amount: true, vatMeta: true } })
+      ? await this.prisma.proforma.findFirst({
+          where: { id: z.proformaId, userId: z.userId },
+          select: { id: true, userId: true, subscriptionId: true, lineItems: true, number: true, status: true, amount: true, vatMeta: true },
+        })
       : null;
     if (z.proformaId && !proforma) throw new NotFoundException('Nie znaleziono proformy tego klienta.');
     if (proforma && proforma.status !== 'WYSTAWIONA') throw new ConflictException(`Proforma ${proforma.number} nie jest do zapłaty (${proforma.status === 'OPLACONA' ? 'opłacona' : 'anulowana'}) — zaksięguj przelew bez proformy.`);
     if (proforma && !new Prisma.Decimal(proforma.amount).eq(kwota)) {
       throw new ConflictException(`Kwota przelewu ${kwota.toFixed(2)} zł różni się od kwoty proformy ${proforma.number} (${new Prisma.Decimal(proforma.amount).toFixed(2)} zł) — zaksięguj bez proformy.`);
+    }
+    // Przegląd 15.10 — proforma „odnowienie” nieaktualna (okres odnowiony z salda albo inną proformą, zmiana planu/ceny,
+    // usługa anulowana): dokument VAT „odnowienie” opisywałby sprzedaż, której nie będzie.
+    const powod = proforma
+      ? await powodNieaktualnejProformy({ prisma: this.prisma, promo: this.promo, ustal: (u) => this.doladowanie.ustalTraktowanie(u) }, proforma)
+      : null;
+    if (proforma && powod) {
+      throw new ConflictException(`Proforma ${proforma.number} jest nieaktualna: ${powod} — zaksięguj przelew bez proformy (doładowanie) i wyjaśnij z klientem.`);
     }
 
     const { wpis, kredytK, nowy } = await this.doladowanie.zaksieguj({

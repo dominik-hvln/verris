@@ -19,6 +19,7 @@ import { AuditService } from '../common/audit/audit.service.js';
 import { SupportActions, ZamowieniePaynowActions } from '../common/audit/audit.actions.js';
 import { WalletLedgerService } from './wallet-ledger.service.js';
 import { DoladowanieService, type WalutaWplaty } from './doladowanie.service.js';
+import { powodNieaktualnejProformy } from './proforma.service.js';
 import { StripeService } from './stripe/stripe.service.js';
 import {
   getInvoiceSubscriptionId,
@@ -689,6 +690,9 @@ export class BillingService {
     if (pf.status !== 'WYSTAWIONA') {
       throw new ConflictException(pf.status === 'OPLACONA' ? 'Ta proforma jest już opłacona.' : 'Ta proforma została anulowana — nie trzeba jej płacić.');
     }
+    // Przegląd 15.10 — proforma „odnowienie” musi dalej opisywać to, co klient kupuje (okres, plan, cena).
+    const powod = await powodNieaktualnejProformy({ prisma: this.prisma, promo: this.promo, ustal: (u) => this.doladowanie.ustalTraktowanie(u) }, pf);
+    if (powod) throw new ConflictException(`Proforma ${pf.number} jest nieaktualna: ${powod}. Nie płać jej — napisz do nas po nową.`);
     const paynow = this.paynowKlient();
     if (!paynow || pf.currency !== 'PLN') {
       throw new BadRequestException('Płatność online jest chwilowo niedostępna — zapłać przelewem, w tytule wpisz numer proformy.');

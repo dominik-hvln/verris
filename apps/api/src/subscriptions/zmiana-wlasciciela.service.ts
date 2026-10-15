@@ -118,7 +118,9 @@ export function odmowyZmianyWlasciciela(s: StanZmianyWlasciciela, teraz = Date.n
   if (s.wToku.wnioski > 0) odmowy.push('Na tę usługę czeka wniosek operatora — najpierw go rozstrzygnij.');
   // Przegląd 12.10 — wpłata do proformy idzie do portfela tego, komu ją wystawiono (poprzedniego właściciela), a odnowienie
   // obciąża portfel nowego: poprzedni zapłaciłby za nic, nowy dostałby zaległość.
-  if (s.wToku.proformy > 0) odmowy.push('Usługa ma otwartą proformę na odnowienie — anuluj ją albo poczekaj na wpłatę.');
+  if (s.wToku.proformy > 0) {
+    odmowy.push('Usługa ma otwartą proformę na odnowienie albo opłaconą, jeszcze niewykorzystaną — anuluj ją, poczekaj na odnowienie albo rozlicz wpłatę z poprzednim właścicielem.');
+  }
   return odmowy;
 }
 
@@ -173,6 +175,7 @@ export class ZmianaWlascicielaService {
         paymentSource: true,
         stripeSubscriptionId: true,
         resellerMarkupPct: true,
+        currentPeriodStart: true,
         currentPeriodEnd: true,
         cancelAt: true,
         individualPrice: true,
@@ -205,7 +208,14 @@ export class ZmianaWlascicielaService {
     const odtworzenia = await db.hostingRestoreJob.count({ where: { subscriptionId, status: { in: ODTWORZENIE_W_TOKU } } });
     const ssl = await db.sslOrder.count({ where: { subscriptionId, status: { in: SSL_W_TOKU } } });
     const wnioski = await db.operatorRequest.count({ where: { subscriptionId, status: 'PENDING' } });
-    const proformy = await db.proforma.count({ where: { subscriptionId, status: 'WYSTAWIONA' } });
+    // Przegląd 15.10: także proforma OPŁACONA w bieżącym okresie — pieniądze czekają w portfelu poprzedniego właściciela
+    // na odnowienie, które po przeniesieniu obciążyłoby portfel nowego.
+    const proformy = await db.proforma.count({
+      where: {
+        subscriptionId,
+        OR: [{ status: 'WYSTAWIONA' }, { status: 'OPLACONA', paidAt: { gte: usluga.currentPeriodStart ?? new Date(0) } }],
+      },
+    });
     return { usluga, nowy, wToku: { migracje, przeniesieniaKonta, odtworzenia, ssl, wnioski, proformy } };
   }
 
