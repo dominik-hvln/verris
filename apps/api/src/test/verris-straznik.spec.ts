@@ -41,7 +41,8 @@ function wezel(o: { naprawa?: Naprawa; restartWezla?: boolean; uptime?: number; 
     '  *straznik/config*) out=""; prev=""; for a in "$@"; do [ "$prev" = "-o" ] && out="$a"; prev="$a"; done; cp "$T/config" "$out";;',
     // Raport = argument po --data (nagłówki z tokenem też idą jako @plik — audyt 13.10, #13).
     '  *straznik/zdarzenie*) prev=""; for a in "$@"; do [ "$prev" = "--data" ] && { n=$(ls "$T/raporty" | wc -l); cp "${a#@}" "$T/raporty/$n.json"; }; prev="$a"; done;;',
-    '  *) cat "$T/kody";;',
+    // Kod per domena (plik kod-<domena>), inaczej wspólny — noc 15.10: strona kontrolna innego konta.
+    '  *) h=""; for a in "$@"; do case "$a" in https://*) h="${a#https://}"; h="${h%%/*}";; esac; done; if [ -n "$h" ] && [ -r "$T/kod-$h" ]; then cat "$T/kod-$h"; else cat "$T/kody"; fi;;',
     'esac',
   ].join('\n'));
   stub('systemctl', [
@@ -233,6 +234,45 @@ describe('verris-straznik — strażnik węzła', () => {
     const r = w.raporty();
     expect(r.map((x) => [x.rodzaj, x.stan])).toEqual([['strony', 'naprawa'], ['strony', 'naprawiono']]);
     expect(r[0].objaw).toContain('d3.hvln.pl');
+  });
+
+  // Noc 15.10 (przegląd node-auto-remediation): klient łatwo wywoła serię 503 na WŁASNEJ stronie (np. limit konta), a strażnik
+  // szedł całą drabiną: restart LiteSpeed, potem odświeżenie i przemontowanie CageFS dla WSZYSTKICH kont, co 30 min.
+  // Awaria jednej strony, gdy strony kontrolne innych kont działają: tylko łagodny restart LiteSpeed, bez CageFS i bez
+  // restartu węzła; zdarzenie zostaje w panelu jako „nie_naprawiono” z opisem.
+  it('seria 503 jednej strony, inne konta działają: bez odświeżania CageFS dla całego węzła', () => {
+    const w = wezel({ naprawa: 'nigdy' });
+    writeFileSync(join(w.T, 'kod-d3.hvln.pl'), '200');
+    w.uruchom();
+    const linia = `2026-10-15 01:00:00.0 [NOTICE] [1] [T0] [1.2.3.4:5#APVH_www.jedna.pl:443] oops! 503 Service Unavailable\n`;
+    appendFileSync(join(w.lsws, 'logs', 'error.log'), linia.repeat(8));
+    w.uruchom();
+    expect(w.wywolania()).toContain('lswsctrl restart');
+    expect(w.wywolania()).not.toContain('cagefsctl --remount-all');
+    expect(w.wywolania()).not.toContain('cagefsctl --force-update');
+    expect(w.rebootow()).toBe(0);
+    const ost = w.raporty().pop()!;
+    expect([ost.rodzaj, ost.stan]).toEqual(['strony', 'nie_naprawiono']);
+    expect(JSON.stringify(ost.kroki)).toContain('jednej strony');
+  });
+
+  it('LVE: tekst „enter LVE … result: -N” spoza lscgid (np. wypisany przez stronę) nie uruchamia napraw', () => {
+    const w = wezel({ naprawa: 'nigdy' });
+    w.uruchom();
+    appendFileSync(join(w.lsws, 'logs', 'stderr.log'), `2026-10-15 01:00:00.0 [STDERR] PHP Notice: enter LVE (1003) : result: -22 !\n`.repeat(5));
+    w.uruchom();
+    expect(w.raporty()).toEqual([]);
+    expect(w.wywolania()).not.toContain('lswsctrl restart');
+  });
+
+  it('seria 503 jednej strony i strona kontrolna innego konta też leży: pełna drabina (CageFS)', () => {
+    const w = wezel({ naprawa: 'cagefs' });
+    w.uruchom();
+    const linia = `2026-10-15 01:00:00.0 [NOTICE] [1] [T0] [1.2.3.4:5#APVH_www.jedna.pl:443] oops! 503 Service Unavailable\n`;
+    appendFileSync(join(w.lsws, 'logs', 'error.log'), linia.repeat(8));
+    w.uruchom();
+    expect(w.wywolania()).toContain('cagefsctl --remount-all');
+    expect(w.raporty().pop()!.stan).toBe('naprawiono');
   });
 
   it('usługa włączona, a nie działa: start; nie wstała — „nie_naprawiono”', () => {

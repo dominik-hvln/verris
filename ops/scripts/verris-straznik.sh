@@ -236,7 +236,7 @@ oznacz() { teraz > "$STAN/ostatnio-$1"; }
 
 # --- drabina: strony PHP / LVE -------------------------------------------------------------------------
 napraw_strony() {
-  local rodzaj="$1" kat="$2" jadro="$3" id
+  local rodzaj="$1" kat="$2" jadro="$3" pelna="${4:-1}" id
   id=$(cat "$kat/id")
   zbierz_diagnoze > "$kat/diagnoza.txt" 2>&1
   krok "$kat" "diagnoza" "zapisana ($(wc -c < "$kat/diagnoza.txt") B)"
@@ -244,6 +244,13 @@ napraw_strony() {
 
   "$LSWS/bin/lswsctrl" restart >/dev/null 2>&1; krok "$kat" "1. restart LiteSpeed" "wykonany"
   if po_kroku_dziala "$kat"; then raportuj "$id" "$rodzaj" "naprawiono" "$kat"; return 0; fi
+  # Noc 15.10 — awaria jednej strony przy działających stronach innych kont to sprawa tej strony (limit konta, błąd
+  # aplikacji), a klient może ją wywołać sam. Bez odświeżania CageFS i bez restartu węzła dla wszystkich kont.
+  if [ "$pelna" != 1 ]; then
+    krok "$kat" "2. odświeżenie CageFS" "pominięte: awaria jednej strony, strony kontrolne innych kont działają"
+    raportuj "$id" "$rodzaj" "nie_naprawiono" "$kat"
+    return 1
+  fi
 
   { cagefsctl --force-update 2>&1 | tail -3; cagefsctl --remount-all 2>&1 | tail -2; } > "$kat/cagefs.txt"
   "$LSWS/bin/lswsctrl" restart >/dev/null 2>&1
@@ -318,8 +325,9 @@ fi
 
 # 1) LVE: błędy wejścia procesów kont (stderr LiteSpeed) + stan jądra.
 STDERR_NOWE=$(nowe_linie "$LSWS/logs/stderr.log" stderr)
-LVE_UIDS=$(printf '%s\n' "$STDERR_NOWE" | grep -oE 'enter LVE \(([0-9]+)\) : result: -[0-9]+' | grep -oE '\(([0-9]+)\)' | tr -d '()' | sort | uniq -c | sort -rn)
-LVE_ILE=$(printf '%s\n' "$STDERR_NOWE" | grep -cE 'enter LVE \([0-9]+\) : result: -' || true)
+# Noc 15.10 — tylko linie lscgid (t1 12.10: „lscgid (1156518): enter LVE (1003) : result: -22”), nie dowolny tekst.
+LVE_UIDS=$(printf '%s\n' "$STDERR_NOWE" | grep -oE 'lscgid \([0-9]+\): enter LVE \(([0-9]+)\) : result: -[0-9]+' | grep -oE 'LVE \(([0-9]+)\)' | grep -oE '[0-9]+' | sort | uniq -c | sort -rn)
+LVE_ILE=$(printf '%s\n' "$STDERR_NOWE" | grep -cE 'lscgid \([0-9]+\): enter LVE \([0-9]+\) : result: -' || true)
 JADRO=$(nowe_bledy_jadra_lve)
 
 # 2) 503 per strona (error.log LiteSpeed: [ip:port#APVH_domena:443] oops! 503).
@@ -346,7 +354,17 @@ elif [ -n "$STRONY_503" ]; then
     echo "Seria błędów 503 (≥ $PROG_503 w minutę) dla: $(echo "$STRONY_503" | tr '\n' ' ')" > "$KAT/objaw.txt"
     echo "$STRONY_503" | head -5 > "$KAT/strony.txt"
     log "OBJAW strony: $(cat "$KAT/objaw.txt")"
-    napraw_strony strony "$KAT" 0
+    # Pełna drabina (CageFS) tylko, gdy awaria dotyczy ≥ 2 stron albo strona kontrolna innego konta też nie działa.
+    PELNA=0
+    if [ "$(printf '%s\n' "$STRONY_503" | grep -c .)" -ge 2 ]; then
+      PELNA=1
+    else
+      while read -r d; do
+        [ -n "$d" ] && [ "$d" != "$STRONY_503" ] || continue
+        if kod_awarii "$(kod_strony "$d")"; then PELNA=1; break; fi
+      done < <(strony_kontrolne)
+    fi
+    napraw_strony strony "$KAT" 0 "$PELNA"
   fi
 fi
 
