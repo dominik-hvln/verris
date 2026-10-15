@@ -203,9 +203,11 @@ describe('O-07 — prowizja resellera (scheduler)', () => {
       { id: 'w2', userId: 'c1', amount: D('-47.99'), currency: 'PLN', createdAt: new Date('2026-10-05T10:00:00Z'), subscription: { resellerMarkupPct: 15 } },
     ]);
     const prisma = {
-      walletTransaction: { findMany: txFind },
+      // Gotówka klienta (doładowania) pokrywa obie opłaty — narzut od całej opłaty (decyzja 15.10 #17).
+      walletTransaction: { findMany: txFind, aggregate: vi.fn(async () => ({ _sum: { amount: D(1000), kwotaCofnieta: null } })) },
       user: { findUnique: vi.fn(async () => ({ resellerOwnerId: 'r1', referredByUserId: null })) },
       partnerCommission: {
+        aggregate: vi.fn(async () => ({ _sum: { baseAmount: null } })),
         updateMany: vi.fn(async () => ({ count: 0 })),
         findMany: vi.fn(async () => []),
         findFirst: vi.fn(async (a: { where: { dedupeKey: string } }) => (klucze.has(a.where.dedupeKey) ? { id: 'x' } : null)),

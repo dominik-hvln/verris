@@ -1698,10 +1698,11 @@ export class BillingService {
     dopisek: string;
   }): Promise<void> {
     const { wplata, reszta, pobierz } = i;
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: wplata.userId }, select: { email: true, referredByUserId: true } });
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: wplata.userId }, select: { email: true, referredByUserId: true, resellerOwnerId: true } });
+    const maProwizje = !!(user.referredByUserId || user.resellerOwnerId);
     const brak = reszta.minus(pobierz);
     // Decyzja 15.10 (#2): prowizje partnera od tego klienta do gotówki po cofnięciu. Wypłaconych nie ruszamy — do decyzji.
-    const prowizje = user.referredByUserId
+    const prowizje = maProwizje
       ? await dopasujProwizjeDoGotowki(this.prisma, wplata.userId).catch((err: Error) => {
           this.logger.error(`Prowizje po cofnięciu wpłaty ${wplata.id}: ${err.message}`);
           return null;
@@ -1715,7 +1716,7 @@ export class BillingService {
         ...(prowizje ? { prowizjeZmniejszone: prowizje.zmniejszono.toFixed(2), prowizjePodstawaWyplacona: prowizje.pozostalo.toFixed(2) } : {}),
       },
     });
-    const oProwizjach = !user.referredByUserId
+    const oProwizjach = !maProwizje
       ? ''
       : !prowizje
         ? ' Prowizji partnera nie przeliczono (błąd) — sprawdź je ręcznie przed wypłatą.'

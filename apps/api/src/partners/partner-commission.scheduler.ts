@@ -158,7 +158,9 @@ export class PartnerCommissionScheduler {
       if (exists) continue;
       const klient = await this.prisma.user.findUnique({ where: { id: tx.userId }, select: { resellerOwnerId: true } });
       if (!klient?.resellerOwnerId) continue;
-      const base = await this.podstawaPoZwrotach(tx);
+      // Jak prowizja z poleceń: tylko część opłaty pokryta gotówką klienta (wpłaty minus cofnięte), nie kredyt
+      // obsługi czy rekompensata SLA — narzut idzie resellerowi przelewem (decyzja 15.10 #17, wariant prosty).
+      const base = await this.podstawaGotowkowa(tx.userId, await this.podstawaPoZwrotach(tx), 'RESELLER_MARKUP');
       const amount = czescNarzutu(base, pct);
       if (amount.lessThanOrEqualTo(0)) continue;
       try {
@@ -210,13 +212,17 @@ export class PartnerCommissionScheduler {
    * kredytem niegotówkowym (promocja, uznanie obsługi, prowizja). Podstawa = część opłaty pokryta wpłatami
    * gotówkowymi poleconego: suma doładowań (TOPUP) minus podstawy prowizji już naliczonych od tego klienta.
    */
-  async podstawaGotowkowa(referredUserId: string, podstawa: Prisma.Decimal): Promise<Prisma.Decimal> {
+  async podstawaGotowkowa(
+    referredUserId: string,
+    podstawa: Prisma.Decimal,
+    rodzaj: 'RECURRING_PCT' | 'RESELLER_MARKUP' = 'RECURRING_PCT',
+  ): Promise<Prisma.Decimal> {
     if (podstawa.lessThanOrEqualTo(0)) return new Prisma.Decimal(0);
     const [gotowka, wykorzystane] = await Promise.all([
       // Decyzja 15.10 (#2): wpłaty minus cofnięte po zwrocie/sporze.
       gotowkaPoleconego(this.prisma, referredUserId),
       this.prisma.partnerCommission.aggregate({
-        where: { referredUserId, kind: 'RECURRING_PCT', status: { not: 'CANCELED' } },
+        where: { referredUserId, kind: rodzaj, status: { not: 'CANCELED' } },
         _sum: { baseAmount: true },
       }),
     ]);

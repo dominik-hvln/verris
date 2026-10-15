@@ -27,9 +27,24 @@ export async function dopasujProwizjeDoGotowki(
   db: Db,
   referredUserId: string,
 ): Promise<{ zmniejszono: Prisma.Decimal; pozostalo: Prisma.Decimal }> {
+  // Prowizja z poleceń i narzut resellera (O-07) liczą się od tej samej gotówki klienta, każda osobno.
+  const wynik = { zmniejszono: new Prisma.Decimal(0), pozostalo: new Prisma.Decimal(0) };
+  for (const rodzaj of ['RECURRING_PCT', 'RESELLER_MARKUP'] as const) {
+    const w = await dopasujRodzaj(db, referredUserId, rodzaj); // po kolei — `db` bywa klientem transakcji
+    wynik.zmniejszono = wynik.zmniejszono.plus(w.zmniejszono);
+    wynik.pozostalo = wynik.pozostalo.plus(w.pozostalo);
+  }
+  return wynik;
+}
+
+async function dopasujRodzaj(
+  db: Db,
+  referredUserId: string,
+  rodzaj: 'RECURRING_PCT' | 'RESELLER_MARKUP',
+): Promise<{ zmniejszono: Prisma.Decimal; pozostalo: Prisma.Decimal }> {
   const zero = new Prisma.Decimal(0);
   const prowizje = await db.partnerCommission.findMany({
-    where: { referredUserId, kind: 'RECURRING_PCT', status: { not: 'CANCELED' } },
+    where: { referredUserId, kind: rodzaj, status: { not: 'CANCELED' } },
     orderBy: { createdAt: 'desc' },
     select: { id: true, status: true, payoutId: true, baseAmount: true, amount: true },
   });
