@@ -19,7 +19,8 @@ function kontroler(o: { reconsent?: boolean } = {}) {
   };
   const consents = { checkReConsent: vi.fn(async () => ({ required: o.reconsent ?? false })) };
   const audit = { record: vi.fn(async () => undefined) };
-  return { c: new PublicApiOrdersController(subs as never, consents as never, audit as never), subs, audit };
+  const prisma = { auditLog: { findMany: vi.fn(async () => []) }, subscription: { findUnique: vi.fn(async () => null) } };
+  return { c: new PublicApiOrdersController(subs as never, consents as never, audit as never, prisma as never), subs, audit };
 }
 
 describe('PublicApiOrdersController', () => {
@@ -58,7 +59,7 @@ describe('PublicApiOrdersController', () => {
     const { c, subs, audit } = kontroler();
     const w = await c.zamow(req, { ...body, paymentSource: 'STRIPE_CARD', oplata: 'PAYNOW' } as never);
     expect(subs.create).toHaveBeenCalledWith('u1', expect.objectContaining({ planId: PLAN, interval: 'YEAR', domain: 'firma.pl', paymentSource: 'WALLET', oplata: 'PORTFEL', immediatePerformanceConsent: true }));
-    expect(audit.record).toHaveBeenCalledWith({ action: 'API_ORDER_CREATED', userId: 'u1', actorUserId: 'u1', details: { subscriptionId: 's1', tokenId: 't1' } });
+    expect(audit.record).toHaveBeenCalledWith({ action: 'API_ORDER_CREATED', userId: 'u1', actorUserId: 'u1', details: { subscriptionId: 's1', tokenId: 't1', domain: 'firma.pl' } });
     expect(w).toEqual({ id: 's1', serviceTag: 'abc123', status: 'ACTIVE', interval: 'YEAR', price: '449.00', currency: 'PLN', currentPeriodEnd: '2027-10-15T00:00:00.000Z' });
   });
 
