@@ -51,6 +51,9 @@ describe('analityka — tylko to, co naprawdę zbieramy', () => {
   it('z danymi o kraju sekcja „Kraje” jest', () => {
     act(() => root.render(<StatsView stats={stats([{ country: 'PL', count: 7 }])} />));
     expect(el.textContent).toContain('Kraje');
+    // Decyzja 15.10 (#16): licencja DB-IP Lite (CC BY 4.0) wymaga wzmianki o źródle przy danych.
+    expect(el.textContent).toContain('IP Geolocation by DB-IP');
+    expect(el.querySelector('a[href="https://db-ip.com"]')).not.toBeNull();
     expect(el.textContent).toContain('PL');
   });
 

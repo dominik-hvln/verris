@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Header, HttpCode, Ip, Post, Headers } from '@nestjs/common';
 import { AnalyticsSitesService } from './analytics-sites.service.js';
+import { GeoIpService } from './geoip.service.js';
 
 interface CollectBody {
   k?: string; // siteKey
@@ -16,7 +17,10 @@ interface CollectBody {
  */
 @Controller('analytics')
 export class AnalyticsPublicController {
-  constructor(private readonly analytics: AnalyticsSitesService) {}
+  constructor(
+    private readonly analytics: AnalyticsSitesService,
+    private readonly geo: GeoIpService,
+  ) {}
 
   @Get('a.js')
   @Header('Content-Type', 'application/javascript; charset=utf-8')
@@ -42,7 +46,8 @@ export class AnalyticsPublicController {
         referrer: body.r ? String(body.r).slice(0, 2048) : null,
         ip: ip || '0.0.0.0',
         userAgent: ua ?? '',
-        country: cfCountry || xCountry || null,
+        // Decyzja 15.10 (#16): bez nagłówka geo z proxy — DB-IP Lite w pamięci (adres nie jest zapisywany).
+        country: cfCountry || xCountry || this.geo.kraj(ip),
       })
       .catch(() => undefined);
   }

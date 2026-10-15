@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition, useId } from 'react';
+import { useEffect, useState, useTransition, useId, type ReactNode } from 'react';
 import {
   BarChart3,
   Plus,
@@ -340,10 +340,22 @@ export function StatsView({ stats }: { stats: AnalyticsStats }) {
       <div className="grid gap-4 md:grid-cols-2">
         <RankList title="Najczęstsze strony" rows={stats.topPages.map((p) => ({ label: p.path, count: p.count }))} />
         <RankList title="Źródła ruchu" rows={stats.topReferrers.map((r) => ({ label: r.refHost, count: r.count }))} empty="Ruch bezpośredni" />
-        {/* PRZEGLAD_LUK 3.9 — kraj zna tylko pośrednik z geolokalizacją (nagłówek cf-ipcountry); bez niego brak danych,
-            więc sekcja pokazuje się dopiero, gdy w okresie jest choć jeden kraj. */}
+        {/* PRZEGLAD_LUK 3.9 — sekcja pokazuje się dopiero, gdy w okresie jest choć jeden kraj. Decyzja 15.10 (#16): kraj
+            z bazy DB-IP Lite (CC BY 4.0) — licencja wymaga wzmianki o źródle przy danych. */}
         {stats.countries.length > 0 && (
-          <RankList title="Kraje" rows={stats.countries.map((c) => ({ label: c.country, count: c.count }))} />
+          <RankList
+            title="Kraje"
+            rows={stats.countries.map((c) => ({ label: c.country, count: c.count }))}
+            stopka={
+              <>
+                Kraj na podstawie adresu IP:{' '}
+                <a href="https://db-ip.com" target="_blank" rel="noopener noreferrer" className="underline">
+                  IP Geolocation by DB-IP
+                </a>{' '}
+                (CC BY 4.0). Adresów IP nie zapisujemy.
+              </>
+            }
+          />
         )}
         <RankList title="Urządzenia" rows={stats.devices.map((d) => ({ label: deviceLabel(d.deviceType), count: d.count }))} />
       </div>
@@ -367,7 +379,7 @@ function Metric({ icon, label, value }: { icon: React.ReactNode; label: string; 
   );
 }
 
-function RankList({ title, rows, empty }: { title: string; rows: Array<{ label: string; count: number }>; empty?: string }) {
+function RankList({ title, rows, empty, stopka }: { title: string; rows: Array<{ label: string; count: number }>; empty?: string; stopka?: ReactNode }) {
   const max = Math.max(1, ...rows.map((r) => r.count));
   return (
     <div className="rounded-xl border border-white/10 bg-black/20 p-4">
@@ -387,6 +399,7 @@ function RankList({ title, rows, empty }: { title: string; rows: Array<{ label: 
           ))}
         </div>
       )}
+      {stopka ? <p className="mt-3 text-[11px] text-neutral-500">{stopka}</p> : null}
     </div>
   );
 }

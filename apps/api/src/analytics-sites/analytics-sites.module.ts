@@ -4,6 +4,7 @@ import { AnalyticsSitesService } from './analytics-sites.service.js';
 import { AnalyticsSitesController } from './analytics-sites.controller.js';
 import { AnalyticsPublicController } from './analytics-public.controller.js';
 import { AnalyticsRetentionScheduler } from './analytics-retention.scheduler.js';
+import { GeoIpService } from './geoip.service.js';
 
 /**
  * AN — analityka stron klientów (privacy-first). Prisma/Config globalne;
@@ -13,7 +14,7 @@ import { AnalyticsRetentionScheduler } from './analytics-retention.scheduler.js'
 @Module({
   imports: [AuditModule],
   controllers: [AnalyticsSitesController, AnalyticsPublicController],
-  providers: [AnalyticsSitesService, AnalyticsRetentionScheduler],
+  providers: [AnalyticsSitesService, AnalyticsRetentionScheduler, GeoIpService],
   exports: [AnalyticsSitesService],
 })
 export class AnalyticsSitesModule {}

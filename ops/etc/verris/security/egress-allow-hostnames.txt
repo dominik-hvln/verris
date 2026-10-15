@@ -61,6 +61,8 @@ api.openai.com
 api.anthropic.com
 # --- I-07: baza podatności WordPressa (Wordfence Intelligence, WORDFENCE_API_KEY) ---
 www.wordfence.com
+# Decyzja 15.10 (#16) — baza krajów DB-IP Lite dla statystyk stron (GeoIpService, raz w miesiącu)
+download.db-ip.com
 # --- Rspamd SURBL updates (host) ---
 sa-update.surbl.org
 # Mapy reguł rspamd (host) — pomiar 2026-09-27: 157.180.118.77 = maps.rspamd.com (certyfikat).
