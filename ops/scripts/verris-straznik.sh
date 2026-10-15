@@ -128,10 +128,11 @@ kod_strony() {
 kod_awarii() { case "$1" in 000|502|503|504|508) return 0 ;; *) return 1 ;; esac; }
 
 # Kilka aktywnych stron do kontroli (konta niezawieszone) — używane przez --sprawdz i po restarcie węzła.
-strony_kontrolne() {
+strony_kontrolne() { # [konto do pominięcia]
   local n=0 d u
   for u in "$DA_USERS"/*/; do
     u=$(basename "$u")
+    [ "$u" = "${1:-}" ] && continue
     grep -qs '^suspended=yes' "$DA_USERS/$u/user.conf" && continue
     d=$(head -1 "$DA_USERS/$u/domains.list" 2>/dev/null)
     [ -n "$d" ] || continue
@@ -233,6 +234,19 @@ w_odstepie() { # czy drabina $1 była niedawno (bez pętli napraw)
   [ -r "$f" ] && [ $(( $(teraz) - $(cat "$f") )) -lt "$ODSTEP_NAPRAW_S" ]
 }
 oznacz() { teraz > "$STAN/ostatnio-$1"; }
+
+# Konto DA, do którego należy strona (domains.list; poddomena → domena nadrzędna). Pusty wynik = nieznane.
+wlasciciel_strony() {
+  local d="$1" f
+  while [ -n "$d" ] && [ "${d#*.}" != "$d" ]; do
+    for f in "$DA_USERS"/*/domains.list; do
+      [ -r "$f" ] || continue
+      if grep -qxF "$d" "$f"; then basename "$(dirname "$f")"; return 0; fi
+    done
+    d="${d#*.}"
+  done
+  return 0
+}
 
 # --- drabina: strony PHP / LVE -------------------------------------------------------------------------
 napraw_strony() {
@@ -354,15 +368,19 @@ elif [ -n "$STRONY_503" ]; then
     echo "Seria błędów 503 (≥ $PROG_503 w minutę) dla: $(echo "$STRONY_503" | tr '\n' ' ')" > "$KAT/objaw.txt"
     echo "$STRONY_503" | head -5 > "$KAT/strony.txt"
     log "OBJAW strony: $(cat "$KAT/objaw.txt")"
-    # Pełna drabina (CageFS) tylko, gdy awaria dotyczy ≥ 2 stron albo strona kontrolna innego konta też nie działa.
+    # Pełna drabina (CageFS) tylko, gdy awaria dotyczy stron ≥ 2 RÓŻNYCH kont albo strona kontrolna innego konta też nie
+    # działa (limit LVE jest na konto — dwie domeny jednego klienta to wciąż jeden klient).
     PELNA=0
-    if [ "$(printf '%s\n' "$STRONY_503" | grep -c .)" -ge 2 ]; then
+    WLASCICIELE=$(printf '%s\n' "$STRONY_503" | while read -r d; do [ -n "$d" ] || continue; w=$(wlasciciel_strony "$d"); echo "${w:-?$d}"; done | sort -u)
+    if [ "$(printf '%s\n' "$WLASCICIELE" | grep -c .)" -ge 2 ]; then
       PELNA=1
     else
+      JEDYNY=$(printf '%s\n' "$WLASCICIELE" | head -1)
       while read -r d; do
-        [ -n "$d" ] && [ "$d" != "$STRONY_503" ] || continue
+        [ -n "$d" ] || continue
+        printf '%s\n' "$STRONY_503" | grep -qxF "$d" && continue
         if kod_awarii "$(kod_strony "$d")"; then PELNA=1; break; fi
-      done < <(strony_kontrolne)
+      done < <(strony_kontrolne "$JEDYNY")
     fi
     napraw_strony strony "$KAT" 0 "$PELNA"
   fi

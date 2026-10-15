@@ -265,6 +265,32 @@ describe('verris-straznik — strażnik węzła', () => {
     expect(w.wywolania()).not.toContain('lswsctrl restart');
   });
 
+  // Drugi przegląd nocny: limit LVE jest na konto — dwie domeny jednego klienta liczyły się jak dwie awarie.
+  it('seria 503 dwóch domen JEDNEGO konta, inne konto działa: bez odświeżania CageFS', () => {
+    const w = wezel({ naprawa: 'nigdy' });
+    mkdirSync(join(w.T, 'da', 'klient2'), { recursive: true });
+    writeFileSync(join(w.T, 'da', 'klient2', 'domains.list'), 'jedna.pl\ndruga.pl\n');
+    writeFileSync(join(w.T, 'kod-d3.hvln.pl'), '200');
+    w.uruchom();
+    const linia = (d: string) => `2026-10-15 01:00:00.0 [NOTICE] [1] [T0] [1.2.3.4:5#APVH_${d}:443] oops! 503 Service Unavailable\n`;
+    appendFileSync(join(w.lsws, 'logs', 'error.log'), linia('jedna.pl').repeat(6) + linia('sklep.druga.pl').repeat(6));
+    w.uruchom();
+    expect(w.wywolania()).toContain('lswsctrl restart');
+    expect(w.wywolania()).not.toContain('cagefsctl --remount-all');
+    expect(w.raporty().pop()!.stan).toBe('nie_naprawiono');
+  });
+
+  it('seria 503 stron dwóch RÓŻNYCH kont: pełna drabina', () => {
+    const w = wezel({ naprawa: 'cagefs' });
+    mkdirSync(join(w.T, 'da', 'klient2'), { recursive: true });
+    writeFileSync(join(w.T, 'da', 'klient2', 'domains.list'), 'jedna.pl\n');
+    w.uruchom();
+    const linia = (d: string) => `2026-10-15 01:00:00.0 [NOTICE] [1] [T0] [1.2.3.4:5#APVH_${d}:443] oops! 503 Service Unavailable\n`;
+    appendFileSync(join(w.lsws, 'logs', 'error.log'), linia('jedna.pl').repeat(6) + linia('d3.hvln.pl').repeat(6));
+    w.uruchom();
+    expect(w.wywolania()).toContain('cagefsctl --remount-all');
+  });
+
   it('seria 503 jednej strony i strona kontrolna innego konta też leży: pełna drabina (CageFS)', () => {
     const w = wezel({ naprawa: 'cagefs' });
     w.uruchom();
