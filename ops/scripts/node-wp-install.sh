@@ -175,12 +175,16 @@ wp_as_user "post delete 1 2 --force --path='$DOCROOT'" 2>/dev/null || true
 # Domyślna strona Verris (index.html jest przed index.php w DirectoryIndex) zasłaniałaby WordPressa.
 if [ -f "$DOCROOT/index.html" ] && [ ! -L "$DOCROOT/index.html" ] \
   && grep -qiE 'hosting verris|Something amazing will be constructed' "$DOCROOT/index.html"; then
-  runuser -u "$WP_DA_USER" -- rm -f -- "$DOCROOT/index.html"
-  if [ -d "$DOCROOT/assets" ] && [ ! -L "$DOCROOT/assets" ] \
-    && [ -z "$(find "$DOCROOT/assets" -mindepth 1 ! -name 'verris-*.svg' -print -quit)" ]; then
-    runuser -u "$WP_DA_USER" -- rm -rf -- "$DOCROOT/assets"
+  # WordPress już stoi — nieudane usunięcie strony domyślnej to ostrzeżenie, nie błąd zadania.
+  if runuser -u "$WP_DA_USER" -- rm -f -- "$DOCROOT/index.html"; then
+    if [ -d "$DOCROOT/assets" ] && [ ! -L "$DOCROOT/assets" ] \
+      && [ -z "$(find "$DOCROOT/assets" -mindepth 1 ! -name 'verris-*.svg' -print -quit)" ]; then
+      runuser -u "$WP_DA_USER" -- rm -rf -- "$DOCROOT/assets" || log "WARN: nie udało się usunąć katalogu assets domyślnej strony"
+    fi
+    log "Usunięto domyślną stronę Verris z public_html."
+  else
+    log "WARN: nie udało się usunąć domyślnej strony index.html — zasłania WordPressa, usuń ją w menedżerze plików"
   fi
-  log "Usunięto domyślną stronę Verris z public_html."
 fi
 
 echo "[VERRIS_WP] status=installed domain=$WP_DOMAIN url=https://$WP_DOMAIN admin_user=$WP_ADMIN_USER"

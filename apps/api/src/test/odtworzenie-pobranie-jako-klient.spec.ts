@@ -39,6 +39,7 @@ function uruchom(opcje: { rcloneBlad?: boolean } = {}) {
       OFR_MODE: 'fetch',
       OFR_USER: 'rdeetgju',
       OFR_ARCHIVE: ARCH,
+      OFR_PONOW_S: '0',
     },
     encoding: 'utf8',
   });
@@ -72,11 +73,14 @@ describe('OFR fetch — archiwum w ~/backups zapisuje klient, nie root', () => {
     expect(r.wyjscie).toContain(`VERRIS-OFFSITE-FETCHED`);
   });
 
-  it('przerwane pobranie → błąd zadania, bez niepełnego archiwum w ~/backups', () => {
+  it('przerwane pobranie → 3 próby, błąd zadania bez fałszywego „nieoczekiwany błąd”, bez niepełnego archiwum', () => {
     const r = uruchom({ rcloneBlad: true });
     expect(r.kod).not.toBe(0);
     expect(r.tresc).toBeNull();
     expect(r.tmp).toBe(false);
     expect(r.wyjscie).not.toContain('VERRIS-OFFSITE-FETCHED');
+    expect(r.rclone.trim().split('\n')).toHaveLength(3);
+    expect(r.log).toContain('po 3 próbach');
+    expect(r.log).not.toContain('nieoczekiwany błąd');
   });
 });

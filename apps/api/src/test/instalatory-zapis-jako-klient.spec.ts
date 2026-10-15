@@ -59,7 +59,7 @@ describe('instalatory na węźle — zapis w katalogu klienta tylko jako klient'
   // Instalator aplikacji uruchomiony od kontroli katalogu do końca (wycofanie i usunięcie strony domyślnej)
   // z atrapą `su`, która zapisuje polecenia wykonane jako klient.
   const app = skrypt('node-app-install.sh');
-  function uruchom(poZmianach: string) {
+  function uruchom(poZmianach: string, rmZawodzi = false) {
     const root = mkdtempSync(join(tmpdir(), 'konta-klient-'));
     const d = join(root, 'u1', 'domains', 'x.pl', 'public_html');
     mkdirSync(d, { recursive: true });
@@ -70,7 +70,12 @@ describe('instalatory na węźle — zapis w katalogu klienta tylko jako klient'
     mkdirSync(bin);
     const suLog = join(root, 'su.log');
     // su -s /bin/bash -l <user> -c <polecenie>
-    writeFileSync(join(bin, 'su'), `#!/bin/bash\nwhile [ "$#" -gt 0 ] && [ "$1" != "-c" ]; do shift; done\nprintf '%s\\n' "$2" >> "${suLog}"\nexec bash -c "$2"\n`);
+    writeFileSync(
+      join(bin, 'su'),
+      `#!/bin/bash\nwhile [ "$#" -gt 0 ] && [ "$1" != "-c" ]; do shift; done\nprintf '%s\\n' "$2" >> "${suLog}"\n` +
+        (rmZawodzi ? 'case "$2" in rm\\ -f*) exit 1 ;; esac\n' : '') +
+        'exec bash -c "$2"\n',
+    );
     chmodSync(join(bin, 'su'), 0o755);
     const start = app.indexOf('DOMYSLNA=0');
     const koniec = app.indexOf('trap wycofaj EXIT') + 'trap wycofaj EXIT'.length;
@@ -105,5 +110,13 @@ describe('instalatory na węźle — zapis w katalogu klienta tylko jako klient'
     expect(su).toMatch(/rm -f -- .*public_html\/index\.html/);
     expect(su).toMatch(/rm -rf -- .*public_html\/assets/);
     expect(readdirSync(join(root, 'u1')).filter((n) => n.startsWith('.verris-app-kopia'))).toEqual([]);
+  });
+
+  it('udana instalacja, a usunięcie strony domyślnej się nie udało: ostrzeżenie, bez wycofania aplikacji', () => {
+    const { r, d } = uruchom('echo x > "$DOCROOT/index.php"; usun_strone_domyslna', true);
+    expect(r.status).toBe(0);
+    expect(readdirSync(d)).toContain('index.php');
+    expect(r.stdout).not.toContain('bez_zmian=1');
+    expect(r.stdout).toContain('UWAGA: nie udało się usunąć domyślnej strony');
   });
 });

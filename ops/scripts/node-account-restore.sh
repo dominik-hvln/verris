@@ -98,19 +98,25 @@ cmd_fetch() {
   # podmienić ~/backups na dowiązanie. Root tylko czyta z magazynu (rclone cat, https://rclone.org/commands/rclone_cat/),
   # a plik w katalogu konta zapisuje klient (runuser): dowiązanie do cudzego katalogu = odmowa uprawnień, liczy się
   # quota klienta, a chown nie jest potrzebny. Niepełny strumień nie zostawia archiwum (plik tymczasowy + mv).
-  local rc_cat rc_zapis
-  set +e
-  rclone cat "$src" --low-level-retries 10 \
-    | runuser -u "$user" -- sh -c 'umask 077; cat > "$1.verris-tmp"' verris "${dst}${archive}"
-  rc_cat=${PIPESTATUS[0]} rc_zapis=${PIPESTATUS[1]}
-  set -e
-  # Plik tymczasowy zostaje plikiem docelowym dopiero po udanym odczycie CAŁEGO strumienia (cat po stronie klienta
-  # kończy się sukcesem także na urwanym strumieniu).
-  if [ "$rc_cat" != 0 ] || [ "$rc_zapis" != 0 ] \
-    || ! runuser -u "$user" -- mv -f -- "${dst}${archive}.verris-tmp" "${dst}${archive}"; then
+  # Trzy próby (rclone cat nie ponawia całego pobrania jak copyto --retries). Potok w liście && / || — pułapka ERR nie
+  # wypisuje wtedy fałszywego „nieoczekiwany błąd” przy zwykłej nieudanej próbie.
+  local proba ps=() udane=0
+  for proba in 1 2 3; do
+    rclone cat "$src" --low-level-retries 10 \
+      | runuser -u "$user" -- sh -c 'umask 077; cat > "$1.verris-tmp"' verris "${dst}${archive}" \
+      && ps=("${PIPESTATUS[@]}") || ps=("${PIPESTATUS[@]}")
+    # Plik tymczasowy zostaje plikiem docelowym dopiero po udanym odczycie CAŁEGO strumienia (cat po stronie klienta
+    # kończy się sukcesem także na urwanym strumieniu).
+    if [ "${ps[0]:-1}" = 0 ] && [ "${ps[1]:-1}" = 0 ] \
+      && runuser -u "$user" -- mv -f -- "${dst}${archive}.verris-tmp" "${dst}${archive}"; then
+      udane=1
+      break
+    fi
+    log "próba ${proba}/3 pobrania nieudana (rclone kod ${ps[0]:-?}, zapis kod ${ps[1]:-?})"
     runuser -u "$user" -- rm -f -- "${dst}${archive}.verris-tmp" 2>/dev/null || true
-    fail "pobranie archiwum nieudane (rclone kod ${rc_cat}, zapis kod ${rc_zapis})"
-  fi
+    [ "$proba" = 3 ] || sleep "${OFR_PONOW_S:-5}"
+  done
+  [ "$udane" = 1 ] || fail "pobranie archiwum nieudane po 3 próbach (rclone kod ${ps[0]:-?}, zapis kod ${ps[1]:-?})"
   log "pobrano: ${dst}${archive}"
   printf 'VERRIS-OFFSITE-FETCHED %s\n' "${dst}${archive}"
 }

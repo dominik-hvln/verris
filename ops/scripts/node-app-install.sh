@@ -227,10 +227,11 @@ install_mediawiki() {
 # Po udanej instalacji: domyślna strona Verris nie może zasłaniać aplikacji (index.html przed index.php).
 usun_strone_domyslna() {
   [ "$DOMYSLNA" = 1 ] || return 0
-  jako_klient rm -f -- "$DOCROOT/index.html"
+  # Instalacja już się udała — nieudane usunięcie strony domyślnej to ostrzeżenie, nie wycofanie aplikacji.
+  jako_klient rm -f -- "$DOCROOT/index.html" || { log "UWAGA: nie udało się usunąć domyślnej strony index.html — usuń ją w menedżerze plików"; return 0; }
   if [ -d "$DOCROOT/assets" ] && [ ! -L "$DOCROOT/assets" ] \
     && [ -z "$(find "$DOCROOT/assets" -mindepth 1 ! -name 'verris-*.svg' -print -quit)" ]; then
-    jako_klient rm -rf -- "$DOCROOT/assets"
+    jako_klient rm -rf -- "$DOCROOT/assets" || log "UWAGA: nie udało się usunąć katalogu assets domyślnej strony"
   fi
   log "Usunięto domyślną stronę Verris z public_html."
 }
