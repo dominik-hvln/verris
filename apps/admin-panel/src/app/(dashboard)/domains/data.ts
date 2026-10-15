@@ -102,6 +102,7 @@ export const STAN_ZAMOWIENIA: Record<string, { t: string; ton: "ok" | "warn" | "
   COMPLETED: { t: "zakończone", ton: "ok" },
   FAILED: { t: "nieudane", ton: "crit" },
   CANCELED: { t: "anulowane", ton: "muted" },
+  UNCERTAIN: { t: "rejestr nie odpowiedział — sprawdzamy", ton: "warn" },
 };
 /** Stan domeny w Verris i u rejestratora (domain-registrar.service.ts: REGISTERED, TRANSFERRED, odejście). */
 export function stanDomeny(d: { status: string; registrarStatus: string | null; uNas: boolean; expiresAt: string | null }): { t: string; ton: "ok" | "warn" | "crit" | "muted" } {

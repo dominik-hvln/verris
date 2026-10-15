@@ -33,6 +33,7 @@ import {
   RegistrarOperation,
   RegistrarOrderResult,
   RegistrarProviderFactory,
+  RejestrWynikNiepewny,
 } from './registrar.provider.js';
 import { EcoPointsService } from '../eco/eco-points.service.js';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
@@ -43,6 +44,8 @@ export const lata = (n: number) =>
 
 /** Odnowienie tej samej domeny zakończone w tym oknie traktujemy jako dwuklik (jedno obciążenie). */
 export const ODNOWIENIE_DUPLIKAT_MS = 60_000;
+/** Po tylu ms bez śladu operacji u rejestratora zamówienie z niepewnym wynikiem kończy się zwrotem. */
+const NIEPEWNE_ZWROT_MS = 60 * 60_000;
 
 @Injectable()
 export class DomainRegistrarService {
@@ -268,6 +271,7 @@ export class DomainRegistrarService {
     try {
       result = await provider.register({ domain, years, nameservers, ownerHandle });
     } catch (err) {
+      if (err instanceof RejestrWynikNiepewny) throw await this.oznaczNiepewne(userId, order, err);
       await this.refundAndFail(userId, order, tx.id, err, price);
       throw err;
     }
@@ -381,6 +385,7 @@ export class DomainRegistrarService {
     try {
       result = await provider.transfer({ domain, years, nameservers, authCode, ownerHandle });
     } catch (err) {
+      if (err instanceof RejestrWynikNiepewny) throw await this.oznaczNiepewne(userId, order, err);
       await this.refundAndFail(userId, order, tx.id, err, price);
       throw err;
     }
@@ -581,8 +586,14 @@ export class DomainRegistrarService {
         where: {
           domainId: domain.id,
           type: DomainRegistrarOrderType.WHOIS_PRIVACY,
-          status: { in: [DomainRegistrarOrderStatus.QUEUED, DomainRegistrarOrderStatus.SUBMITTED] },
-          createdAt: { gte: new Date(Date.now() - 15 * 60_000) },
+          OR: [
+            {
+              status: { in: [DomainRegistrarOrderStatus.QUEUED, DomainRegistrarOrderStatus.SUBMITTED] },
+              createdAt: { gte: new Date(Date.now() - 15 * 60_000) },
+            },
+            // Wynik poprzedniego zlecenia niepewny — drugie mogłoby zapłacić drugi raz za to samo.
+            { status: DomainRegistrarOrderStatus.UNCERTAIN },
+          ],
         },
         select: { id: true },
       });
@@ -606,6 +617,7 @@ export class DomainRegistrarService {
     try {
       await provider.setWhoisPrivacy(externalId, true);
     } catch (err) {
+      if (err instanceof RejestrWynikNiepewny) throw await this.oznaczNiepewne(userId, order, err);
       // W zamówieniu i logu zostaje surowy błąd rejestratora; klient dostaje zrozumiały komunikat.
       await this.refundAndFail(userId, order, tx.id, err, price);
       throw bladWhois(err);
@@ -701,6 +713,8 @@ export class DomainRegistrarService {
               status: DomainRegistrarOrderStatus.COMPLETED,
               createdAt: { gte: new Date(Date.now() - ODNOWIENIE_DUPLIKAT_MS) },
             },
+            // Poprzednie odnowienie z niepewnym wynikiem — rejestr mógł je wykonać.
+            { status: DomainRegistrarOrderStatus.UNCERTAIN },
           ],
         },
         select: { id: true, status: true },
@@ -737,6 +751,7 @@ export class DomainRegistrarService {
         externalId: domain.registrarExternalId,
       });
     } catch (err) {
+      if (err instanceof RejestrWynikNiepewny) throw await this.oznaczNiepewne(userId, order, err);
       if (tx) await this.refundAndFail(userId, order, tx.id, err, price);
       else await this.zamowienieNieudane(userId, order, err);
       throw err;
@@ -853,7 +868,9 @@ export class DomainRegistrarService {
           domainName: stare.domainName,
           type: stare.type,
           createdAt: { gt: stare.createdAt },
-          status: { in: [DomainRegistrarOrderStatus.QUEUED, DomainRegistrarOrderStatus.SUBMITTED, DomainRegistrarOrderStatus.COMPLETED] },
+          status: {
+            in: [DomainRegistrarOrderStatus.QUEUED, DomainRegistrarOrderStatus.SUBMITTED, DomainRegistrarOrderStatus.UNCERTAIN, DomainRegistrarOrderStatus.COMPLETED],
+          },
         },
         select: { id: true },
       });
@@ -1254,6 +1271,168 @@ export class DomainRegistrarService {
       }
     }
     return { zakonczone, nieudane };
+  }
+
+  /**
+   * Decyzja 15.10 (#1) — rejestr nie odpowiedział (limit czasu, 5xx): operacja mogła się wykonać. Wcześniej był zwrot,
+   * a domena (albo rok odnowienia) zostawała u nas za darmo — przy rejestracji na koncie resellera, bez wiersza w panelu.
+   * Zamówienie zostaje UNCERTAIN bez zwrotu; rozstrzyga `domknijNiepewne`. Zwraca błąd dla klienta.
+   */
+  private async oznaczNiepewne(userId: string, order: DomainRegistrarOrder, err: RejestrWynikNiepewny): Promise<Error> {
+    this.logger.warn(`Registrar ${order.type} ${order.domainName}: wynik niepewny — do sprawdzenia (${err.message})`);
+    await this.prisma.domainRegistrarOrder.update({
+      where: { id: order.id },
+      data: { status: DomainRegistrarOrderStatus.UNCERTAIN, lastError: err.message.slice(0, 1000), submittedAt: new Date() },
+    });
+    await this.audit.record({
+      action: 'DOMAIN_REGISTRAR_UNCERTAIN',
+      userId,
+      details: { orderId: order.id, domain: order.domainName, type: order.type, error: err.message },
+    });
+    return new ServiceUnavailableException(
+      'Rejestr domen nie potwierdził operacji. Sprawdzimy jej wynik w ciągu godziny — jeśli się nie udała, opłata wróci do portfela.',
+    );
+  }
+
+  /**
+   * Domknięcie zamówień z niepewnym wynikiem (co 10 min, po 5 min od zlecenia): pytamy rejestr o stan.
+   * Wykonane → jak po udanej operacji; niewykonane po NIEPEWNE_ZWROT_MS → zwrot (albo FAILED bez obciążenia).
+   * Błąd zapytania = ponowimy; brak danych do rozstrzygnięcia = zostaje dla obsługi (widać w panelu admina).
+   */
+  @Cron('*/10 * * * *', { name: 'domains:uncertain-sync' })
+  async domknijNiepewne(): Promise<{ wykonane: number; zwrocone: number }> {
+    const teraz = Date.now();
+    const zamowienia = await this.prisma.domainRegistrarOrder.findMany({
+      where: { status: DomainRegistrarOrderStatus.UNCERTAIN, submittedAt: { lte: new Date(teraz - 5 * 60_000) } },
+      orderBy: { submittedAt: 'asc' },
+      take: 100,
+    });
+    let wykonane = 0;
+    let zwrocone = 0;
+    if (!zamowienia.length) return { wykonane, zwrocone };
+    let provider: ReturnType<RegistrarProviderFactory['get']>;
+    try {
+      provider = this.providerFactory.get();
+    } catch {
+      return { wykonane, zwrocone };
+    }
+    for (const z of zamowienia) {
+      try {
+        const wynik = await this.stanNiepewnego(provider, z);
+        if (wynik === 'nie-wiadomo') continue;
+        if (wynik === 'wykonane') {
+          wykonane += 1;
+          continue;
+        }
+        if (teraz - (z.submittedAt?.getTime() ?? teraz) < NIEPEWNE_ZWROT_MS) continue;
+        const walletTxId = z.walletTxId ?? (await this.wallet.findByIdempotencyKey(`domain-${z.type.toLowerCase()}:${z.id}`))?.id;
+        const blad = new Error('Rejestr nie wykonał operacji (sprawdzone po braku odpowiedzi).');
+        if (walletTxId && z.priceAmount) {
+          await this.refundAndFail(z.userId, z, walletTxId, blad, { amount: z.priceAmount.toString(), currency: z.currency });
+          zwrocone += 1;
+        } else {
+          await this.zamowienieNieudane(z.userId, z, blad);
+        }
+      } catch (e) {
+        this.logger.warn(`domknięcie niepewnego ${z.type} ${z.domainName}: ${(e as Error).message}`);
+      }
+    }
+    return { wykonane, zwrocone };
+  }
+
+  /** Stan u rejestratora zamówienia z niepewnym wynikiem; „wykonane” — już zapisane po naszej stronie. */
+  private async stanNiepewnego(
+    provider: ReturnType<RegistrarProviderFactory['get']>,
+    z: DomainRegistrarOrder,
+  ): Promise<'wykonane' | 'niewykonane' | 'nie-wiadomo'> {
+    const zamknij = (db: Prisma.TransactionClient, data: Prisma.DomainRegistrarOrderUpdateManyMutationInput & { domainId?: string }) =>
+      db.domainRegistrarOrder.updateMany({ where: { id: z.id, status: DomainRegistrarOrderStatus.UNCERTAIN }, data });
+
+    if (z.type === DomainRegistrarOrderType.REGISTER || z.type === DomainRegistrarOrderType.TRANSFER) {
+      if (!provider.findDomain) return 'nie-wiadomo';
+      const d = await provider.findDomain(z.domainName);
+      if (!d) return 'niewykonane';
+      if (z.type === DomainRegistrarOrderType.TRANSFER) {
+        // Transfer zlecony — dalej jak każdy wysłany: domknijTransfery po stanie u rejestratora.
+        await zamknij(this.prisma, { status: DomainRegistrarOrderStatus.SUBMITTED, provider: provider.id, providerOrderId: d.externalId });
+        await this.audit.record({
+          action: 'DOMAIN_REGISTRAR_TRANSFER_SUBMITTED',
+          userId: z.userId,
+          details: { orderId: z.id, domain: z.domainName, provider: provider.id, walletTxId: z.walletTxId, poNiepewnymWyniku: true },
+        });
+        return 'wykonane';
+      }
+      if (d.state !== 'active') return 'nie-wiadomo';
+      const wynik = await this.prisma.$transaction(async (db) => {
+        const przypisana = await this.przypiszDomene(db, {
+          domain: z.domainName,
+          userId: z.userId,
+          provider: provider.id,
+          externalId: d.externalId,
+          expiresAt: d.expiresAt,
+          nameservers: z.nameservers,
+          registrarStatus: 'REGISTERED',
+        });
+        const zm = await zamknij(db, {
+          status: DomainRegistrarOrderStatus.COMPLETED,
+          provider: provider.id,
+          providerOrderId: d.externalId,
+          domainId: przypisana.domainRow.id,
+          completedAt: new Date(),
+        });
+        return { ...przypisana, zmienione: zm.count };
+      });
+      if (wynik.zmienione) {
+        await this.audit.record({
+          action: 'DOMAIN_REGISTRAR_REGISTERED',
+          userId: z.userId,
+          details: {
+            orderId: z.id,
+            domain: z.domainName,
+            provider: provider.id,
+            years: z.years,
+            priceAmount: z.priceAmount?.toString() ?? null,
+            currency: z.currency,
+            walletTxId: z.walletTxId,
+            poNiepewnymWyniku: true,
+            ...(wynik.poprzedniUserId ? { replacedClaimOfUserId: wynik.poprzedniUserId } : {}),
+          },
+        });
+      }
+      return 'wykonane';
+    }
+
+    const domena = z.domainId ? await this.prisma.domain.findUnique({ where: { id: z.domainId } }) : null;
+    if (!domena?.registrarExternalId) return 'nie-wiadomo';
+    const info = await provider.domainInfo(domena.registrarExternalId);
+
+    if (z.type === DomainRegistrarOrderType.RENEW) {
+      if (!domena.expiresAt || !info.expiresAt) return 'nie-wiadomo';
+      const nowa = new Date(info.expiresAt);
+      // Odnowione = ważność przesunięta o (prawie) zamówione lata względem tej sprzed zlecenia.
+      if (nowa.getTime() - domena.expiresAt.getTime() < z.years * 360 * 86_400_000) return 'niewykonane';
+      await this.prisma.$transaction(async (db) => {
+        const zm = await zamknij(db, { status: DomainRegistrarOrderStatus.COMPLETED, provider: provider.id, providerOrderId: domena.registrarExternalId, completedAt: new Date() });
+        if (zm.count) await db.domain.update({ where: { id: domena.id }, data: { expiresAt: nowa, lastRegistrarSyncAt: new Date() } });
+      });
+      await this.audit.record({
+        action: 'DOMAIN_REGISTRAR_RENEWED',
+        userId: z.userId,
+        details: { orderId: z.id, domainId: domena.id, domain: z.domainName, years: z.years, priceAmount: z.priceAmount?.toString() ?? null, currency: z.currency, walletTxId: z.walletTxId, poNiepewnymWyniku: true },
+      });
+      return 'wykonane';
+    }
+
+    if (z.type === DomainRegistrarOrderType.WHOIS_PRIVACY) {
+      if (info.privateWhois == null) return 'nie-wiadomo';
+      if (!info.privateWhois) return 'niewykonane';
+      const { count } = await zamknij(this.prisma, { status: DomainRegistrarOrderStatus.COMPLETED, provider: provider.id, providerOrderId: domena.registrarExternalId, completedAt: new Date() });
+      if (count) {
+        await this.zapiszWhois(z.userId, z.userId, domena, true, { orderId: z.id, years: z.years, priceAmount: z.priceAmount?.toString() ?? null, walletTxId: z.walletTxId, poNiepewnymWyniku: true });
+      }
+      return 'wykonane';
+    }
+    return 'nie-wiadomo';
   }
 
   private async refundAndFail(

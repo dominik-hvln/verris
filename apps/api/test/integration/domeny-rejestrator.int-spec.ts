@@ -3,6 +3,7 @@ import { AuditService } from '../../src/common/audit/audit.service.js';
 import { WalletLedgerService } from '../../src/billing/wallet-ledger.service.js';
 import { DomainRegistrarService } from '../../src/domains/domain-registrar.service.js';
 import { DomainsService } from '../../src/domains/domains.service.js';
+import { RejestrWynikNiepewny } from '../../src/domains/registrar.provider.js';
 import { prisma, rozlacz, wyczyscBaze } from './setup.js';
 
 /**
@@ -21,6 +22,12 @@ let cenaRejestracji = '40.00';
 let whoisPada = false;
 let stanTransferu: 'active' | 'pending' | 'failed' = 'pending';
 const wywolania: string[] = [];
+/** Decyzja 15.10 (#1): rejestr nie odpowiada; `wykonaj` — czy mimo to wykonał operację. */
+let niepewny: { wykonaj: boolean } | null = null;
+const uRejestratora = new Map<string, { externalId: string; state: 'active' | 'pending'; expiresAt: string | null }>();
+let wygasaURejestratora = '2027-11-01T00:00:00.000Z';
+let whoisURejestratora: boolean | null = null;
+const brakOdpowiedzi = () => new RejestrWynikNiepewny('Rejestr domen nie odpowiada — spróbuj za chwilę.');
 const rejestrator = {
   id: 'atrapa',
   availability: async (domain: string) => ({ domain, available: true, priceAmount: cenaRejestracji, currency: 'PLN' }),
@@ -29,19 +36,36 @@ const rejestrator = {
   register: async (i: { domain: string }) => {
     wywolania.push(`register:${i.domain}`);
     if (rejestracjaPada) throw new Error('rejestr odrzucił');
+    if (niepewny) {
+      if (niepewny.wykonaj) uRejestratora.set(i.domain, { externalId: `ext-${i.domain}`, state: 'active', expiresAt: '2027-09-27T00:00:00.000Z' });
+      throw brakOdpowiedzi();
+    }
     return { provider: 'atrapa', providerOrderId: `ord-${i.domain}`, externalDomainId: `ext-${i.domain}`, expiresAt: '2027-09-27T00:00:00.000Z' };
   },
   transfer: async (i: { domain: string }) => {
     wywolania.push(`transfer:${i.domain}`);
+    if (niepewny) {
+      if (niepewny.wykonaj) uRejestratora.set(i.domain, { externalId: `ext-${i.domain}`, state: 'pending', expiresAt: null });
+      throw brakOdpowiedzi();
+    }
     return { provider: 'atrapa', providerOrderId: `ext-${i.domain}`, externalDomainId: `ext-${i.domain}` };
   },
-  domainInfo: async () => ({ ownerHandle: 'H-ABONENT', locked: true, state: stanTransferu, expiresAt: '2027-11-01T00:00:00.000Z' }),
+  domainInfo: async () => ({ ownerHandle: 'H-ABONENT', locked: true, state: stanTransferu, expiresAt: wygasaURejestratora, privateWhois: whoisURejestratora }),
+  findDomain: async (name: string) => uRejestratora.get(name) ?? null,
   setWhoisPrivacy: async (id: string, on: boolean) => {
     wywolania.push(`whois:${id}:${on}`);
+    if (niepewny) {
+      whoisURejestratora = niepewny.wykonaj ? on : !on;
+      throw brakOdpowiedzi();
+    }
     if (whoisPada) throw new Error('OpenProvider: Whois privacy is not supported for this extension');
   },
   renew: async (i: { domain: string }) => {
     wywolania.push(`renew:${i.domain}`);
+    if (niepewny) {
+      if (niepewny.wykonaj) wygasaURejestratora = '2028-09-27T00:00:00.000Z';
+      throw brakOdpowiedzi();
+    }
     return { provider: 'atrapa', providerOrderId: `rn-${i.domain}`, expiresAt: '2028-09-27T00:00:00.000Z' };
   },
 };
@@ -74,6 +98,10 @@ describe('X-04 domeny u rejestratora', () => {
     cenaRejestracji = '40.00';
     stanTransferu = 'pending';
     wywolania.length = 0;
+    niepewny = null;
+    uRejestratora.clear();
+    wygasaURejestratora = '2027-11-01T00:00:00.000Z';
+    whoisURejestratora = null;
   });
   afterAll(rozlacz);
 
@@ -266,5 +294,102 @@ describe('X-04 domeny u rejestratora', () => {
     const z = await prisma().domainRegistrarOrder.findFirstOrThrow({ where: { userId: u.id } });
     expect(z.status).toBe(DomainRegistrarOrderStatus.FAILED);
     expect(await prisma().domain.findUnique({ where: { name: 'nieprzeniesiona.pl' } })).toBeNull();
+  });
+
+  describe('decyzja 15.10 (#1) — rejestr nie odpowiada: wynik niepewny zamiast zwrotu', () => {
+    const cofnij = (orderId: string, minut: number) =>
+      prisma().domainRegistrarOrder.update({ where: { id: orderId }, data: { submittedAt: new Date(Date.now() - minut * 60_000) } });
+    const zamowienie = (userId: string, type: string) =>
+      prisma().domainRegistrarOrder.findFirstOrThrow({ where: { userId, type: type as never }, orderBy: { createdAt: 'desc' } });
+
+    it('rejestracja wykonana mimo braku odpowiedzi: bez zwrotu; domknięcie przypisuje domenę płacącemu', async () => {
+      const { rejestr } = uslugi();
+      const u = await klient(500);
+      niepewny = { wykonaj: true };
+      await expect(rejestr.register(u.id, u.id, { name: 'cisza.pl', registrant: abonent })).rejects.toThrow('nie potwierdził');
+      const po = await saldo(u.id);
+      expect(po).toBeLessThan(500);
+      const z = await zamowienie(u.id, 'REGISTER');
+      expect(z.status).toBe(DomainRegistrarOrderStatus.UNCERTAIN);
+
+      // Przed upływem 5 minut — bez sprawdzania (żądanie mogło jeszcze trwać).
+      await rejestr.domknijNiepewne();
+      expect((await zamowienie(u.id, 'REGISTER')).status).toBe(DomainRegistrarOrderStatus.UNCERTAIN);
+
+      await cofnij(z.id, 6);
+      expect(await rejestr.domknijNiepewne()).toEqual({ wykonane: 1, zwrocone: 0 });
+      expect((await zamowienie(u.id, 'REGISTER')).status).toBe(DomainRegistrarOrderStatus.COMPLETED);
+      expect(await prisma().domain.findUniqueOrThrow({ where: { name: 'cisza.pl' } })).toMatchObject({ userId: u.id, status: DomainStatus.ACTIVE, registrarExternalId: 'ext-cisza.pl' });
+      expect(await saldo(u.id)).toBe(po);
+    });
+
+    it('rejestracja niewykonana: czeka godzinę, potem jeden zwrot', async () => {
+      const { rejestr } = uslugi();
+      const u = await klient(500);
+      niepewny = { wykonaj: false };
+      await expect(rejestr.register(u.id, u.id, { name: 'nic.pl', registrant: abonent })).rejects.toThrow('nie potwierdził');
+      const z = await zamowienie(u.id, 'REGISTER');
+      await cofnij(z.id, 30);
+      await rejestr.domknijNiepewne();
+      expect(await saldo(u.id)).toBeLessThan(500);
+      expect((await zamowienie(u.id, 'REGISTER')).status).toBe(DomainRegistrarOrderStatus.UNCERTAIN);
+
+      await cofnij(z.id, 61);
+      await rejestr.domknijNiepewne();
+      await rejestr.domknijNiepewne();
+      expect(await saldo(u.id)).toBe(500);
+      expect((await zamowienie(u.id, 'REGISTER')).status).toBe(DomainRegistrarOrderStatus.FAILED);
+    });
+
+    it('odnowienie: niepewne blokuje kolejne „Odnów”; wykonane — nowa data ważności, bez zwrotu', async () => {
+      const { rejestr } = uslugi();
+      const u = await klient(500);
+      await rejestr.register(u.id, u.id, { name: 'odnowa.pl', registrant: abonent });
+      const d = await prisma().domain.findUniqueOrThrow({ where: { name: 'odnowa.pl' } });
+      niepewny = { wykonaj: true };
+      await expect(rejestr.renew(u.id, u.id, d.id, 1)).rejects.toThrow('nie potwierdził');
+      const po = await saldo(u.id);
+      niepewny = null;
+      const z = await zamowienie(u.id, 'RENEW');
+      await cofnij(z.id, 20); // poza 15-minutowym oknem „w toku” — niepewne blokuje i tak
+      await expect(rejestr.renew(u.id, u.id, d.id, 1)).rejects.toThrow('w toku');
+
+      await rejestr.domknijNiepewne();
+      expect((await zamowienie(u.id, 'RENEW')).status).toBe(DomainRegistrarOrderStatus.COMPLETED);
+      expect((await prisma().domain.findUniqueOrThrow({ where: { id: d.id } })).expiresAt?.toISOString()).toBe('2028-09-27T00:00:00.000Z');
+      expect(await saldo(u.id)).toBe(po);
+    });
+
+    it('odnowienie niewykonane: po godzinie zwrot', async () => {
+      const { rejestr } = uslugi();
+      const u = await klient(500);
+      await rejestr.register(u.id, u.id, { name: 'bez-odnowy.pl', registrant: abonent });
+      const d = await prisma().domain.findUniqueOrThrow({ where: { name: 'bez-odnowy.pl' } });
+      const przed = await saldo(u.id);
+      niepewny = { wykonaj: false };
+      await expect(rejestr.renew(u.id, u.id, d.id, 1)).rejects.toThrow('nie potwierdził');
+      await cofnij((await zamowienie(u.id, 'RENEW')).id, 61);
+      await rejestr.domknijNiepewne();
+      expect(await saldo(u.id)).toBe(przed);
+      expect((await zamowienie(u.id, 'RENEW')).status).toBe(DomainRegistrarOrderStatus.FAILED);
+    });
+
+    it('ukrycie WHOIS i transfer: stan u rejestratora rozstrzyga', async () => {
+      const { rejestr } = uslugi();
+      const u = await klient(500);
+      await rejestr.register(u.id, u.id, { name: 'ukryta.com', registrant: abonent });
+      const d = await prisma().domain.findUniqueOrThrow({ where: { name: 'ukryta.com' } });
+      niepewny = { wykonaj: true };
+      await expect(rejestr.setWhoisPrivacy(u.id, u.id, d.id, true)).rejects.toThrow('nie potwierdził');
+      await expect(rejestr.transfer(u.id, u.id, { name: 'wchodzi.pl', authCode: 'KOD', registrant: abonent })).rejects.toThrow('nie potwierdził');
+      const przed = await saldo(u.id);
+      await cofnij((await zamowienie(u.id, 'WHOIS_PRIVACY')).id, 6);
+      await cofnij((await zamowienie(u.id, 'TRANSFER')).id, 6);
+
+      expect(await rejestr.domknijNiepewne()).toEqual({ wykonane: 2, zwrocone: 0 });
+      expect((await prisma().domain.findUniqueOrThrow({ where: { id: d.id } })).whoisPrivacy).toBe(true);
+      expect(await zamowienie(u.id, 'TRANSFER')).toMatchObject({ status: DomainRegistrarOrderStatus.SUBMITTED, providerOrderId: 'ext-wchodzi.pl' });
+      expect(await saldo(u.id)).toBe(przed);
+    });
   });
 });

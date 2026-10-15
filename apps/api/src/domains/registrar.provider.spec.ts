@@ -1,4 +1,5 @@
-import { RegistrarProviderFactory, stanOpenProvider } from './registrar.provider.js';
+import { ServiceUnavailableException } from '@nestjs/common';
+import { RegistrarProviderFactory, RejestrWynikNiepewny, stanOpenProvider } from './registrar.provider.js';
 
 /** 27.09 — wyszukiwarka pokazywała same „zajęte”: OpenProvider zwraca wyniki w innej kolejności niż zapytanie. */
 describe('OpenProvider — sprawdzanie dostępności', () => {
@@ -153,5 +154,56 @@ describe('OpenProvider — zmiana serwerów nazw', () => {
     expect(url).toMatch(/\/v1\/domains\/42$/);
     expect(init.method).toBe('PUT');
     expect(JSON.parse(init.body)).toEqual({ name_servers: [{ name: 'ns3.verris.pl' }, { name: 'ns4.verris.pl' }] });
+  });
+});
+
+/** Decyzja 15.10 (#1) — „rejestr nie odpowiedział” to nie odmowa: od tego zależy zwrot za domenę. */
+describe('OpenProvider — wynik niepewny a odmowa', () => {
+  const cfg: Record<string, string> = {
+    REGISTRAR_PROVIDER: 'openprovider', OPENPROVIDER_USERNAME: 'u', OPENPROVIDER_PASSWORD: 'p', OPENPROVIDER_OWNER_HANDLE: 'H',
+  };
+  const provider = () => new RegistrarProviderFactory({ get: (k: string) => cfg[k] } as never).get();
+  const rejestr = (odp: (url: string) => Response | Promise<Response>) => {
+    const urls: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (url.endsWith('/auth/login')) return new Response(JSON.stringify({ code: 0, data: { token: 't' } }));
+      urls.push(url);
+      return odp(url);
+    }));
+    return urls;
+  };
+  const rejestracja = () => provider().register({ domain: 'a.pl', years: 1, nameservers: [], ownerHandle: 'H' });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('limit czasu, 504 bramki bez kodu API i 200 bez treści → wynik niepewny', async () => {
+    rejestr(() => Promise.reject(Object.assign(new Error('t'), { name: 'TimeoutError' })));
+    await expect(rejestracja()).rejects.toBeInstanceOf(RejestrWynikNiepewny);
+    rejestr(() => new Response('<html>504 Gateway Time-out</html>', { status: 504 }));
+    await expect(rejestracja()).rejects.toBeInstanceOf(RejestrWynikNiepewny);
+    rejestr(() => new Response('', { status: 200 }));
+    await expect(rejestracja()).rejects.toBeInstanceOf(RejestrWynikNiepewny);
+  });
+
+  it('odpowiedź API z kodem błędu (także 5xx) → pewna odmowa', async () => {
+    rejestr(() => new Response(JSON.stringify({ code: 346, desc: 'Domain already exists' }), { status: 400 }));
+    const e = await rejestracja().catch((x: Error) => x);
+    expect(e).toBeInstanceOf(ServiceUnavailableException);
+    expect(e).not.toBeInstanceOf(RejestrWynikNiepewny);
+    rejestr(() => new Response(JSON.stringify({ code: 399, desc: 'Internal error' }), { status: 500 }));
+    expect(await rejestracja().catch((x: Error) => x)).not.toBeInstanceOf(RejestrWynikNiepewny);
+  });
+
+  it('findDomain: GET /v1/domains?full_name=…; inne nazwy w wyniku (filtr nie działa) → błąd, nie „brak domeny”', async () => {
+    const urls = rejestr(() => new Response(JSON.stringify({ code: 0, data: { results: [{ id: 7, domain: { name: 'a', extension: 'pl' }, status: 'ACT', expiration_date: '2027-01-01' }] } })));
+    expect(await provider().findDomain!('a.pl')).toEqual({ externalId: '7', state: 'active', expiresAt: '2027-01-01' });
+    const u = new URL(urls[0]);
+    expect(u.pathname).toBe('/v1/domains');
+    expect(u.searchParams.get('full_name')).toBe('a.pl');
+
+    rejestr(() => new Response(JSON.stringify({ code: 0, data: { results: [] } })));
+    expect(await provider().findDomain!('a.pl')).toBeNull();
+
+    rejestr(() => new Response(JSON.stringify({ code: 0, data: { results: [{ id: 8, domain: { name: 'inna', extension: 'pl' } }] } })));
+    await expect(provider().findDomain!('a.pl')).rejects.toThrow('innej nazwie');
   });
 });

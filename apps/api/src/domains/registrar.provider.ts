@@ -18,6 +18,19 @@ export interface RegistrarPrice {
 
 export type RegistrarOperation = 'register' | 'renew' | 'transfer';
 
+/**
+ * Wynik operacji u rejestratora nieznany: brak odpowiedzi (limit czasu, sieć), 5xx bramki bez kodu API albo
+ * nieczytelna odpowiedź. Rejestrator mógł operację wykonać — wołający nie może jej traktować jak odmowy (zwrot).
+ */
+export class RejestrWynikNiepewny extends ServiceUnavailableException {}
+
+/** Domena na koncie resellera odnaleziona po nazwie. */
+export interface DomenaURejestratora {
+  externalId: string;
+  state: DomainInfo['state'];
+  expiresAt: string | null;
+}
+
 export interface RegistrarOrderResult {
   provider: string;
   providerOrderId: string;
@@ -42,6 +55,8 @@ export interface RegistrarProvider {
   updateRegistrant(handle: string, r: Registrant): Promise<void>;
   /** state: stan domeny u rejestratora — po nim domykamy transfer (aktywna = przeniesiona do nas). */
   domainInfo(externalId: string): Promise<DomainInfo>;
+  /** Domena o tej nazwie na naszym koncie u rejestratora (także w trakcie transferu); null — nie ma. */
+  findDomain?(domain: string): Promise<DomenaURejestratora | null>;
   /** A-15 */
   setTransferLock(externalId: string, locked: boolean): Promise<void>;
   /** A-14 — ukrycie danych abonenta w WHOIS (WPP). */
@@ -472,6 +487,26 @@ class OpenProviderRegistrarProvider implements RegistrarProvider, SslReseller {
       expiresAt: res.data?.expiration_date ?? null,
     };
   }
+  /**
+   * GET /v1/domains?full_name=… (ListDomains, https://docs.openprovider.com/doc/all) — domena na naszym koncie,
+   * także w trakcie transferu. Po niepewnym wyniku rejestracji/transferu (RejestrWynikNiepewny) rozstrzyga, czy
+   * operacja się wykonała. Ponytail: filtr `full_name` sprawdzamy na wyniku — jeśli rejestr zwróci inne nazwy
+   * (filtr nie zadziałał), rzucamy, zamiast uznać „nie ma” i zwrócić pieniądze za domenę, która jest.
+   */
+  async findDomain(domain: string): Promise<DomenaURejestratora | null> {
+    const q = new URLSearchParams({ full_name: domain, limit: '10' });
+    const res = await this.request<{
+      data?: { results?: Array<{ id?: number | string; domain?: { name?: string; extension?: string }; status?: string; expiration_date?: string }> };
+    }>(`/v1/domains?${q.toString()}`, null, 'GET');
+    const wyniki = res.data?.results ?? [];
+    const nazwa = (r: (typeof wyniki)[number]) => `${r.domain?.name ?? ''}.${r.domain?.extension ?? ''}`.toLowerCase();
+    if (wyniki.some((r) => nazwa(r) !== domain.toLowerCase())) {
+      throw new Error(`Rejestr zwrócił domeny o innej nazwie niż ${domain} — wyszukiwanie po nazwie nie działa.`);
+    }
+    const d = wyniki.find((r) => r.id != null);
+    return d ? { externalId: String(d.id), state: stanOpenProvider(d.status), expiresAt: d.expiration_date ?? null } : null;
+  }
+
 
   async setTransferLock(externalId: string, locked: boolean): Promise<void> {
     await this.request(`/v1/domains/${encodeURIComponent(externalId)}`, { is_locked: locked }, 'PUT');
@@ -622,11 +657,19 @@ class OpenProviderRegistrarProvider implements RegistrarProvider, SslReseller {
       signal: AbortSignal.timeout(timeoutMs),
     }).catch((e: unknown) => {
       this.logger.warn(`OpenProvider ${path} failed: ${(e as Error).name === 'TimeoutError' ? 'timeout' : (e as Error).message}`);
-      throw new ServiceUnavailableException('Rejestr domen nie odpowiada — spróbuj za chwilę.');
+      // Decyzja 15.10 (#1): brak odpowiedzi ≠ odmowa — rejestr mógł wykonać operację.
+      throw new RejestrWynikNiepewny('Rejestr domen nie odpowiada — spróbuj za chwilę.');
     });
     const body = (await res.json().catch(() => null)) as
       | { data?: T; code?: number; desc?: string }
       | null;
+    // 5xx bramki (502/504) bez kodu API albo odpowiedź bez treści: nie wiemy, czy operacja się wykonała.
+    // Odpowiedź API ma zawsze `code` (https://docs.openprovider.com/doc/all) — z nim błąd jest pewną odmową.
+    const bezKoduApi = !(body && typeof body.code === 'number');
+    if (bezKoduApi && (res.status >= 500 || res.ok)) {
+      this.logger.warn(`OpenProvider ${path}: ${res.status} bez odpowiedzi API`);
+      throw new RejestrWynikNiepewny('Rejestr domen nie odpowiada — spróbuj za chwilę.');
+    }
     if (!res.ok || (body && typeof body.code === 'number' && body.code !== 0)) {
       // Przy błędzie OpenProvider daje ogólne `desc` („…see the details below:”), a przyczynę w `data`
       // (odpowiedź API: code, desc, data — https://docs.openprovider.com/doc/all). Bez niej log i audyt były bezużyteczne (D3 06.10, SSL).

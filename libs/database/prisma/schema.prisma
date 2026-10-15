@@ -1522,6 +1522,8 @@ enum DomainRegistrarOrderStatus {
   COMPLETED
   FAILED
   CANCELED
+  /// Rejestr nie odpowiedział (limit czasu, 5xx) — operacja mogła się wykonać; domyka cron domknijNiepewne.
+  UNCERTAIN
 }
 
 model DomainRegistrarOrder {

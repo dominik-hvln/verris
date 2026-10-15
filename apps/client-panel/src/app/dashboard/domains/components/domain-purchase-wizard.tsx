@@ -63,6 +63,7 @@ const STAN_ZLECENIA: Record<string, string> = {
   COMPLETED: 'zakończone',
   FAILED: 'nieudane',
   CANCELED: 'anulowane',
+  UNCERTAIN: 'sprawdzamy wynik w rejestrze',
 };
 
 function formatPln(amount: string | null | undefined) {
