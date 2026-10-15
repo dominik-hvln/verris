@@ -81,3 +81,20 @@ describe('RenewalScheduler — Z-07', () => {
     expect(prisma.subscription.updateMany).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * Noc 15.10 — niestabilny test integracyjny odnowienia-wyscig („Opłać teraz” równo z cronem): cron obciążył, a „Opłać
+ * teraz” trafił w to obciążenie po kluczu i pierwszy przesunął okres — bez zużycia okresu rabatu startowego.
+ */
+describe('RenewalScheduler — rabat startowy przy trafieniu w cudze obciążenie', () => {
+  it('przesunięcie okresu po trafieniu idempotentnym zużywa okres rabatu (warunkowo — tylko ten, kto przesunął)', async () => {
+    const { s, prisma, walletLedger } = zbuduj({ saldoOk: true, subs: [{ ...pastDue, introDiscountPeriodsLeft: 3, introDiscountPct: 20 }] });
+    walletLedger.findByIdempotencyKey.mockImplementation((async (k: string) => (k === 'sub-s1-renew-2026-09-20' ? { id: 'tx-crona', amount: -36 } : null)) as never);
+    await expect(s.retryPastDueNow('u1', 's1')).resolves.toEqual({ status: 'ACTIVE' });
+    expect(walletLedger.debit).not.toHaveBeenCalled();
+    expect(prisma.subscription.updateMany).toHaveBeenCalledWith({
+      where: { id: 's1', currentPeriodEnd: new Date('2026-09-20T00:00:00Z'), cancelAt: null },
+      data: expect.objectContaining({ status: 'ACTIVE', introDiscountPeriodsLeft: { decrement: 1 } }),
+    });
+  });
+});

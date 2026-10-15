@@ -228,6 +228,9 @@ export class RenewalScheduler {
     const idempotencyKey = await this.kluczOdnowienia(sub.id, periodEnd);
     // Zawieszona zostaje SUSPENDED po obciążeniu — ACTIVE ustawia dopiero odwieszenie konta na serwerze.
     const aktywuj = sub.status !== SubscriptionStatus.SUSPENDED;
+    // Obciążenie tym kluczem (kto by go nie zrobił) liczy kwotę z rabatem, gdy zostały okresy — więc ten, kto przesuwa
+    // okres, zużywa jeden okres rabatu, także po trafieniu w cudze obciążenie.
+    const useIntro = sub.introDiscountPeriodsLeft > 0 && sub.introDiscountPct > 0;
 
     const existing = await this.walletLedger.findByIdempotencyKey(idempotencyKey);
     if (existing) {
@@ -235,7 +238,9 @@ export class RenewalScheduler {
         `Renewal idempotent hit for sub=${sub.id} key=${idempotencyKey}`,
       );
       // Treat as already-paid; just extend period if not extended yet.
-      if (!(await this.extendPeriod(sub.id, periodEnd, sub.interval, false, aktywuj))) {
+      // Noc 15.10 (niestabilny test odnowienia-wyscig): cron obciążył, „Opłać teraz” trafił w to obciążenie i PIERWSZY
+      // przesunął okres — z `false` żaden przebieg nie zużył okresu rabatu (klient dostawał dodatkowy okres z rabatem).
+      if (!(await this.extendPeriod(sub.id, periodEnd, sub.interval, useIntro, aktywuj))) {
         await this.zwrotGdyAnulowana(sub, periodEnd, idempotencyKey);
       }
       void this.ecoPoints.safeAward(`wallet_renewal:${idempotencyKey}`, async () => {
@@ -250,7 +255,6 @@ export class RenewalScheduler {
 
     // BILL-1/BILL-2 — kwota odnowienia (z rabatem startowym, jeśli zostały okresy)
     // liczona w jednym miejscu (PromoService), wspólnie z mailem przypominającym.
-    const useIntro = sub.introDiscountPeriodsLeft > 0 && sub.introDiscountPct > 0;
     const renewalAmount = await this.promo.resolveNextRenewalAmount({
       priceAmount: sub.priceAmount,
       listPriceAmount: sub.listPriceAmount,
