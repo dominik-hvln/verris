@@ -397,7 +397,9 @@ set +e
 # Audyt Fali 3 — bez tee: stdout runnera idzie do /var/log/verris-tasks.log (systemd StandardOutput=append), więc
 # tee kopiowało tam całe wyjście każdego zadania (log poczty bez maski, listy IP) bez terminu.
 if [ "\${#RUN_ENV[@]}" -gt 0 ]; then
-  env "\${RUN_ENV[@]}" bash "$RUN_BIN" >> "$TASK_LOG" 2>&1 8>&-
+  # Noc 15.10 — dane zadania (hasła WP, bazy) przez export w podpowłoce, nie jako argumenty „env NAZWA=wartość”
+  # (widoczne w /proc/<pid>/cmdline i ps dla innych użytkowników węzła).
+  ( for kv in "\${RUN_ENV[@]}"; do export "$kv"; done; exec bash "$RUN_BIN" ) >> "$TASK_LOG" 2>&1 8>&-
 else
   bash "$RUN_BIN" \${flags:-} >> "$TASK_LOG" 2>&1 8>&-
 fi

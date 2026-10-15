@@ -41,7 +41,9 @@ describe('Agent węzła — jedno źródło skryptów', () => {
   it('audyt Fali 3: wyjście zadania tylko do jego pliku (bez kopii w logu agenta), pliki zadań starsze niż 30 dni usuwane, log agenta rotowany', () => {
     const run = renderVerrisTaskRunScript();
     expect(run).not.toMatch(/tee -a "\$TASK_LOG"/);
-    expect(run).toContain('bash "$RUN_BIN" >> "$TASK_LOG" 2>&1');
+    // Obie ścieżki uruchomienia (z danymi zadania przez export w podpowłoce — noc 15.10 — i bez) piszą tylko do TASK_LOG.
+    expect(run).toContain('exec bash "$RUN_BIN" ) >> "$TASK_LOG" 2>&1');
+    expect(run).toContain('bash "$RUN_BIN" ${flags:-} >> "$TASK_LOG" 2>&1');
     expect(run).toMatch(/\nrc=\$\?\n/);
     expect(run).toMatch(/\/var\/log\/verris-tasks\.log \{[^}]*maxage 30[^}]*copytruncate[^}]*\}/);
 
