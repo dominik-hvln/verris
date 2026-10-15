@@ -1,5 +1,5 @@
 import { spawnSync } from 'child_process';
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'fs';
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { bladZadaniaDlaKlienta } from '../subscriptions/blad-zadania.js';
@@ -107,9 +107,16 @@ describe('I-01 — instalator aplikacji', () => {
   const instalacja = (d: string, root: string, poZmianach: string) => {
     const start = s.indexOf('DOMYSLNA=0');
     const koniec = s.indexOf('trap wycofaj EXIT') + 'trap wycofaj EXIT'.length;
-    const fragment = s.slice(start, koniec).replace('"/home/${APP_DA_USER}/"', JSON.stringify(`${root}/u1/`));
+    const fragment = s.slice(start, koniec).replace('"/home/${APP_DA_USER}/"', JSON.stringify(`${root}/u1/`)).replaceAll('/home/${APP_DA_USER}/', `${root}/u1/`);
     const bezZmian = s.split('\n').find((l) => l.startsWith('bez_zmian() {')) ?? '';
-    return spawnSync('bash', ['-c', `set -Eeuo pipefail\nlog() { echo "[app-install] $*"; }\n${bezZmian}\nAPP_DA_USER=u1\nDOCROOT=${JSON.stringify(d)}\n${fragment}\n${poZmianach}`], { encoding: 'utf8' });
+    // Noc 15.10: kopię i wycofanie robi klient (su) — atrapa su wykonuje polecenie bez zmiany użytkownika.
+    const bin = mkdtempSync(join(tmpdir(), 'su-'));
+    writeFileSync(join(bin, 'su'), '#!/bin/bash\nwhile [ "$#" -gt 0 ] && [ "$1" != "-c" ]; do shift; done\nexec bash -c "$2"\n');
+    chmodSync(join(bin, 'su'), 0o755);
+    return spawnSync('bash', ['-c', `set -Eeuo pipefail\nlog() { echo "[app-install] $*"; }\n${bezZmian}\nAPP_DA_USER=u1\nDOCROOT=${JSON.stringify(d)}\n${fragment}\n${poZmianach}`], {
+      encoding: 'utf8',
+      env: { PATH: `${bin}:${process.env.PATH ?? ''}`, HOME: root },
+    });
   };
   const konto = () => {
     const root = mkdtempSync(join(tmpdir(), 'konta-'));

@@ -18,6 +18,9 @@ WP_SITE_TITLE="${WP_SITE_TITLE:-Moja strona}"
 WP_LOCALE="${WP_LOCALE:-pl_PL}"
 
 [[ "$WP_DOMAIN" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$ ]] || { echo "[wp-install] ERROR: nieprawidłowa domena" >&2; exit 1; }
+# Noc 15.10 — skrypt nie ufa samemu payloadowi (jak node-wp-update.sh): login konta i locale też w ścisłym formacie.
+[[ "$WP_DA_USER" =~ ^[a-z][a-z0-9]{0,15}$ ]] || { echo "[wp-install] ERROR: nieprawidłowy login konta" >&2; exit 1; }
+[[ "$WP_LOCALE" =~ ^[a-z]{2,3}(_[A-Z]{2})?$ ]] || { echo "[wp-install] ERROR: nieprawidłowy język" >&2; exit 1; }
 # Katalog strony: domena → domains/<domena>/public_html; poddomena (sklep.firma.pl) → katalog, w którym
 # trzyma ją DirectAdmin: domains/<domena nadrzędna>/public_html/<etykieta>. API sprawdziło, że nazwa należy
 # do konta (DirectAdminService.witrynaKonta).
@@ -40,13 +43,9 @@ WP_PHP_ARGS="-d memory_limit=512M -d max_execution_time=900"
 log() { echo "[wp-install] $*"; }
 die() { log "ERROR: $*"; exit 1; }
 
-account_group() {
-  id -gn "$WP_DA_USER" 2>/dev/null || echo "$WP_DA_USER"
-}
-
-chown_user() {
-  chown -R "$WP_DA_USER:$(account_group)" "$1"
-}
+# Bez „chown -R” roota (noc 15.10, przegląd node-root-files): rdzeń rozpakowuje, a wp-cli zapisuje klient, więc pliki
+# mają już jego właściciela. Ścieżkę sprawdza bez_dowiazan raz, a potem przez minuty działa klient — chown roota na tej
+# ścieżce poszedłby za katalogiem pośrednim podmienionym na dowiązanie do cudzego konta.
 
 [ -d "$DOCROOT" ] || die "Brak katalogu strony ${DOCROOT_WZGL} — sprawdź, czy domena jest dodana do usługi."
 bez_dowiazan "/home/${WP_DA_USER}" "$DOCROOT_WZGL" || die "Katalog strony ${DOCROOT_WZGL} prowadzi przez dowiązanie — instalacja przerwana."
@@ -119,7 +118,6 @@ download_wordpress_core() {
   "; then
     die "Nie udało się pobrać lub rozpakować rdzenia WordPress (sieć / docroot)."
   fi
-  chown_user "$DOCROOT"
 }
 
 ensure_wp_cli
@@ -177,15 +175,13 @@ wp_as_user "post delete 1 2 --force --path='$DOCROOT'" 2>/dev/null || true
 # Domyślna strona Verris (index.html jest przed index.php w DirectoryIndex) zasłaniałaby WordPressa.
 if [ -f "$DOCROOT/index.html" ] && [ ! -L "$DOCROOT/index.html" ] \
   && grep -qiE 'hosting verris|Something amazing will be constructed' "$DOCROOT/index.html"; then
-  rm -f -- "$DOCROOT/index.html"
+  runuser -u "$WP_DA_USER" -- rm -f -- "$DOCROOT/index.html"
   if [ -d "$DOCROOT/assets" ] && [ ! -L "$DOCROOT/assets" ] \
     && [ -z "$(find "$DOCROOT/assets" -mindepth 1 ! -name 'verris-*.svg' -print -quit)" ]; then
-    rm -rf -- "$DOCROOT/assets"
+    runuser -u "$WP_DA_USER" -- rm -rf -- "$DOCROOT/assets"
   fi
   log "Usunięto domyślną stronę Verris z public_html."
 fi
-
-chown_user "$DOCROOT"
 
 echo "[VERRIS_WP] status=installed domain=$WP_DOMAIN url=https://$WP_DOMAIN admin_user=$WP_ADMIN_USER"
 log "Gotowe: https://$WP_DOMAIN/wp-admin"

@@ -67,15 +67,22 @@ fi
 REALNY="$(realpath -e -- "$DOCROOT")"
 [[ "$REALNY" == "/home/${APP_DA_USER}/"* ]] || bez_zmian "Katalog domeny poza katalogiem konta: $REALNY"
 DOCROOT="$REALNY"
-KOPIA="$(mktemp -d /var/tmp/verris-app-kopia.XXXXXX)"
-cp -a -- "$DOCROOT/." "$KOPIA/"
+# Noc 15.10 (przegląd node-root-files): katalog sprawdzamy raz, a potem przez minuty działa klient — zdążyłby podmienić
+# katalog pośredni (domains/<domena>) na dowiązanie do cudzego konta. Dlatego KAŻDY zapis w katalogu klienta (kopia,
+# wycofanie, sprzątanie, usunięcie strony domyślnej) robi klient: dowiązanie do cudzego katalogu = odmowa uprawnień.
+# Polecenie idzie jako lista argumentów (printf %q), bez sklejania napisów.
+jako_klient() { su -s /bin/bash -l "$APP_DA_USER" -c "$(printf '%q ' "$@")"; }
+# Kopia w katalogu domowym klienta (szkielet domeny — kilka plików); stała nazwa, bez czytania wyjścia powłoki klienta.
+KOPIA="/home/${APP_DA_USER}/.verris-app-kopia.$$.${RANDOM}"
+jako_klient mkdir -m 700 -- "$KOPIA" || bez_zmian "Nie udało się przygotować kopii katalogu domeny"
+jako_klient cp -a -- "$DOCROOT/." "$KOPIA/" || { jako_klient rm -rf -- "$KOPIA" || true; bez_zmian "Nie udało się przygotować kopii katalogu domeny"; }
 BLAD_DLA_KLIENTA=""
 blad() { BLAD_DLA_KLIENTA=1; log "BŁĄD: $*"; exit 1; }
 wycofaj() {
   local rc=$?
-  if [ "$rc" -eq 0 ]; then rm -rf -- "$KOPIA"; return 0; fi
-  if find "$DOCROOT" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} + && cp -a -- "$KOPIA/." "$DOCROOT/"; then
-    rm -rf -- "$KOPIA"
+  if [ "$rc" -eq 0 ]; then jako_klient rm -rf -- "$KOPIA" || true; return 0; fi
+  if jako_klient find "$DOCROOT" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} + && jako_klient cp -a -- "$KOPIA/." "$DOCROOT/"; then
+    jako_klient rm -rf -- "$KOPIA" || true
     log "Przywrócono katalog domeny sprzed instalacji."
     [ -n "$BLAD_DLA_KLIENTA" ] || log "BŁĄD: Instalacja nie powiodła się — katalog domeny jest taki jak przed instalacją. Spróbuj ponownie albo napisz do nas."
     echo "[VERRIS_APP] bez_zmian=1"
@@ -220,16 +227,16 @@ install_mediawiki() {
 # Po udanej instalacji: domyślna strona Verris nie może zasłaniać aplikacji (index.html przed index.php).
 usun_strone_domyslna() {
   [ "$DOMYSLNA" = 1 ] || return 0
-  rm -f -- "$DOCROOT/index.html"
+  jako_klient rm -f -- "$DOCROOT/index.html"
   if [ -d "$DOCROOT/assets" ] && [ ! -L "$DOCROOT/assets" ] \
     && [ -z "$(find "$DOCROOT/assets" -mindepth 1 ! -name 'verris-*.svg' -print -quit)" ]; then
-    rm -rf -- "$DOCROOT/assets"
+    jako_klient rm -rf -- "$DOCROOT/assets"
   fi
   log "Usunięto domyślną stronę Verris z public_html."
 }
 
-# Ustaw poprawne uprawnienia po instalacji.
-fixperms() { chown -R "${APP_DA_USER}:${APP_DA_USER}" "$DOCROOT" 2>/dev/null || true; }
+# Bez „chown -R” roota po instalacji (noc 15.10): wszystkie pliki aplikacji zapisuje klient (run_as), więc mają już
+# jego właściciela, a chown roota szedłby za podmienionym katalogiem pośrednim.
 
 case "$APP_APP" in
   nextcloud)  command -v "$PHP_BIN" >/dev/null || bez_zmian "Brak PHP CLI"; install_nextcloud ;;
@@ -240,5 +247,4 @@ case "$APP_APP" in
 esac
 
 usun_strone_domyslna
-fixperms
 log "Gotowe: $APP_APP na https://${APP_DOMAIN}"
