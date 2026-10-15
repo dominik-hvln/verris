@@ -10,6 +10,7 @@ import type {
   ServiceSummaryDto,
 } from "@verris/contracts";
 import { apiFetch } from "@/lib/api";
+import { idZasobu } from "@/lib/id-zasobu";
 
 export async function listUserServices(): Promise<ServiceSummaryDto[]> {
   return apiFetch<ServiceSummaryDto[]>("/services");
@@ -108,6 +109,8 @@ export async function getHostingMigrationBundles(serviceId: string) {
 
 /** PB-45 — prośba o zgodę na migrację przygotowaną przez obsługę (token z linku w mailu, gdy jest). */
 export async function getProsbaOZgodeMigracji(serviceId: string, migrationId: string, token?: string) {
+  // Noc 15.10 — serviceId i id pochodzą z linku (query); tylko UUID, zakodowane.
+  const sciezka = `/services/${idZasobu(serviceId)}/migrations/bundles/${idZasobu(migrationId)}/zgoda`;
   const q = token ? `?token=${encodeURIComponent(token)}` : '';
-  return apiFetch<ProsbaOZgode>(`/services/${serviceId}/migrations/bundles/${migrationId}/zgoda${q}`);
+  return apiFetch<ProsbaOZgode>(`${sciezka}${q}`);
 }

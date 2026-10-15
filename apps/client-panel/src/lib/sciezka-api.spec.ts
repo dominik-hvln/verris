@@ -6,7 +6,11 @@ describe('sprawdzSciezkeApi', () => {
     expect(sprawdzSciezkeApi(p)).toBe(p);
   });
 
-  it.each(['/domains/../admin/users', '/domains/%2e%2e/admin', '/domains/%2E./x', '/a/./b', '/a/..', 'domains', '//evil.example/x', '/a\\..\\b'])(
+  it.each(['/domains/../admin/users', '/domains/%2e%2e/admin', '/domains/%2E./x', '/a/./b', '/a/..', 'domains', '//evil.example/x', '/a\\..\\b',
+    // Noc 15.10 — parser URL (fetch) usuwa \t \n \r PRZED rozwiązaniem kropek: „.\t.” staje się „..”.
+    '/admin/users/.\t./.\t./admin/x/delete', '/a/.\n./b', '/a/%2e\r%2e/b', '/a/b\u0000c',
+    // „#” ucina resztę ścieżki (fragment nie idzie do serwera), a metoda zostaje — POST na krótszą trasę.
+    '/services/S/migrations/bundles/abc#/zgoda'])(
     '%s → odrzucone',
     (p) => {
       expect(() => sprawdzSciezkeApi(p)).toThrow('Niedozwolona ścieżka API.');

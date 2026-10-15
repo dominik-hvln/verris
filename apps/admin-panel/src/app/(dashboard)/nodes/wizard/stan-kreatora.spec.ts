@@ -2,30 +2,31 @@ import { krokDlaStatusu, stanStartowyKreatora, type PersistedWizard } from "./st
 import { WIZARD_STEPS } from "./wizard-content";
 
 const idx = (id: string) => WIZARD_STEPS.findIndex((s) => s.id === id);
-const zapisA: PersistedWizard = { stepIndex: idx("onboard-live"), name: "A", hostname: "a.verris.pl", region: "FSN1", notes: "", serverId: "A", checked: { bootstrap: true } };
+const A = "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa";
+const zapisA: PersistedWizard = { stepIndex: idx("onboard-live"), name: "A", hostname: "a.verris.pl", region: "FSN1", notes: "", serverId: "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa", checked: { bootstrap: true } };
 
 /** 10.10 — `?server=B` bez `step` brał krok i dane węzła A z sessionStorage. */
 describe("Kreator węzła — stan startowy", () => {
   it("?server innego węzła bez step: ignoruje zapis węzła A", () => {
-    const s = stanStartowyKreatora(zapisA, { server: "B", step: null });
+    const s = stanStartowyKreatora(zapisA, { server: "bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb", step: null });
     expect(s.zapisany).toBeNull();
-    expect(s.serverId).toBe("B");
+    expect(s.serverId).toBe("bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb");
     expect(s.stepIndex).toBeNull();
   });
 
   it("?server tego samego węzła: wznawia zapisany krok i dane", () => {
-    const s = stanStartowyKreatora(zapisA, { server: "A", step: null });
+    const s = stanStartowyKreatora(zapisA, { server: "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa", step: null });
     expect(s.zapisany?.name).toBe("A");
     expect(s.stepIndex).toBe(idx("onboard-live"));
   });
 
   it("bez parametrów: wznawia zapis", () => {
-    expect(stanStartowyKreatora(zapisA, { server: null, step: null })).toMatchObject({ serverId: "A", stepIndex: idx("onboard-live") });
+    expect(stanStartowyKreatora(zapisA, { server: null, step: null })).toMatchObject({ serverId: "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa", stepIndex: idx("onboard-live") });
   });
 
   it("?step wygrywa z zapisem; nieznany krok jest pomijany", () => {
-    expect(stanStartowyKreatora(zapisA, { server: "B", step: "approve-da" }).stepIndex).toBe(idx("approve-da"));
-    expect(stanStartowyKreatora(null, { server: "B", step: "nie-ma" }).stepIndex).toBeNull();
+    expect(stanStartowyKreatora(zapisA, { server: "bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb", step: "approve-da" }).stepIndex).toBe(idx("approve-da"));
+    expect(stanStartowyKreatora(null, { server: "bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb", step: "nie-ma" }).stepIndex).toBeNull();
   });
 
   it("krok wg statusu wczytanego węzła", () => {
@@ -33,5 +34,12 @@ describe("Kreator węzła — stan startowy", () => {
     expect(krokDlaStatusu("PENDING_APPROVAL")).toBe(idx("approve-da"));
     expect(krokDlaStatusu("ACTIVE")).toBe(0);
     expect(krokDlaStatusu(undefined)).toBe(0);
+  });
+
+  // Noc 15.10 (przegląd client-apifetch-path): `?server=` szło bez kodowania do adminApi(`/admin/servers/${id}`) z tokenem
+  // admina — `.\t./.\t./admin/users?` czytało inną trasę. Identyfikator węzła tylko jako UUID (także z sessionStorage).
+  it.each([".\t./.\t./admin/users?", "../admin/users", "x#", "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa/../users", ""])("?server=%j → brak węzła", (zly) => {
+    expect(stanStartowyKreatora(null, { server: zly, step: null }).serverId).toBeNull();
+    expect(stanStartowyKreatora({ ...zapisA, serverId: zly }, { server: null, step: null }).serverId).toBeNull();
   });
 });

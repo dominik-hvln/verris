@@ -1,6 +1,7 @@
 'use server';
 
 import { apiFetch } from '@/lib/api';
+import { idZasobu } from '@/lib/id-zasobu';
 import { revalidatePath } from 'next/cache';
 import type { WynikKatalogow, WynikTestuPlikow } from '@verris/ui/zrodlo-plikow-migracji';
 
@@ -264,7 +265,7 @@ export async function przyjmijZgodeMigracjiAction(input: {
 }): Promise<ActionOk<{ migration: unknown }>> {
   try {
     const migration = await apiFetch<unknown>(
-      `/services/${input.serviceId}/migrations/bundles/${input.migrationId}/zgoda`,
+      `/services/${idZasobu(input.serviceId)}/migrations/bundles/${idZasobu(input.migrationId)}/zgoda`,
       { method: 'POST', body: JSON.stringify({ token: input.token || undefined }) },
     );
     revalidatePath('/dashboard/migrations');
@@ -282,7 +283,7 @@ export async function odrzucZgodeMigracjiAction(input: {
 }): Promise<ActionOk<{ prosba: unknown }>> {
   try {
     const prosba = await apiFetch<unknown>(
-      `/services/${input.serviceId}/migrations/bundles/${input.migrationId}/zgoda/odrzuc`,
+      `/services/${idZasobu(input.serviceId)}/migrations/bundles/${idZasobu(input.migrationId)}/zgoda/odrzuc`,
       { method: 'POST', body: JSON.stringify({ token: input.token || undefined }) },
     );
     revalidatePath('/dashboard/migrations');

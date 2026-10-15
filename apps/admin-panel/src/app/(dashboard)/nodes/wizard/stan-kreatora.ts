@@ -1,5 +1,8 @@
 import { WIZARD_STEPS, krokKreatoraDla } from "./wizard-content";
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const jestUuid = (x: unknown): x is string => typeof x === "string" && UUID.test(x);
+
 /** Stan kreatora zapisany w sessionStorage (wznowienie po odświeżeniu). */
 export type PersistedWizard = {
   stepIndex: number;
@@ -20,11 +23,15 @@ export function stanStartowyKreatora(
   zapisany: Partial<PersistedWizard> | null,
   parametry: { server: string | null; step: string | null },
 ): { zapisany: Partial<PersistedWizard> | null; serverId: string | null; stepIndex: number | null } {
-  const swoj = zapisany && (!parametry.server || zapisany.serverId === parametry.server) ? zapisany : null;
+  // Noc 15.10 — identyfikator węzła z adresu (searchParams są w pełni zdekodowane) i z sessionStorage trafia do ścieżki
+  // adminApi z tokenem admina; przyjmujemy tylko UUID.
+  const server = jestUuid(parametry.server) ? parametry.server : null;
+  if (zapisany && !jestUuid(zapisany.serverId)) zapisany = { ...zapisany, serverId: null };
+  const swoj = zapisany && (!parametry.server || zapisany.serverId === server) ? zapisany : null;
   const zParametru = parametry.step ? WIZARD_STEPS.findIndex((s) => s.id === parametry.step) : -1;
   return {
     zapisany: swoj,
-    serverId: parametry.server ?? swoj?.serverId ?? null,
+    serverId: parametry.server ? server : (swoj?.serverId ?? null),
     stepIndex: zParametru >= 0 ? zParametru : (swoj?.stepIndex ?? null),
   };
 }

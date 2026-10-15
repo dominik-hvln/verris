@@ -30,7 +30,7 @@ export async function fetchServers() {
 
 export async function fetchServer(id: string) {
   try {
-    return { data: await adminApi<ServerSummaryDto>(`/admin/servers/${id}`) };
+    return { data: await adminApi<ServerSummaryDto>(`/admin/servers/${encodeURIComponent(id)}`) };
   } catch (err) {
     return { data: null, error: extractError(err) };
   }

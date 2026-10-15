@@ -4,6 +4,7 @@ import { getProsbaOZgodeMigracji } from '../../hosting-tools-data';
 import { PanelCard, PanelFetchError } from '@/components/panel';
 import type { ProsbaOZgode } from '../types';
 import { ZgodaMigracji } from './zgoda-migracji';
+import { jestIdZasobu } from '@/lib/id-zasobu';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +20,8 @@ export default async function ZgodaMigracjiPage({
   const { serviceId, id, token } = await searchParams;
   let prosba: ProsbaOZgode | null = null;
   let blad: string | null = null;
-  if (!serviceId || !id) {
+  // Noc 15.10 — identyfikatory z linku tylko jako UUID (inaczej żądanie z Twoim tokenem mogłoby trafić gdzie indziej).
+  if (!jestIdZasobu(serviceId) || !jestIdZasobu(id)) {
     blad = 'Link jest niekompletny — otwórz go jeszcze raz z maila albo przejdź do zakładki Migracje.';
   } else {
     try {
@@ -40,7 +42,7 @@ export default async function ZgodaMigracjiPage({
         <PanelCard className="space-y-3">
           <PanelFetchError message={blad ?? 'Nie udało się pobrać prośby o zgodę na migrację.'} />
           <Link
-            href={serviceId ? `/dashboard/migrations?serviceId=${encodeURIComponent(serviceId)}` : '/dashboard/migrations'}
+            href={jestIdZasobu(serviceId) ? `/dashboard/migrations?serviceId=${encodeURIComponent(serviceId)}` : '/dashboard/migrations'}
             className="text-sm text-cyan-300 underline"
           >
             Przejdź do Migracji
