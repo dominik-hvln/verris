@@ -18,6 +18,17 @@ const pusty = new Proxy({}, { get: () => async () => undefined }) as never;
 const kolejka: string[] = [];
 let kolejkaPada = false;
 let oferta: Record<string, unknown> = { cardEnabled: false, monthlyDiscountPct: 0, annualDiscountPct: 0 };
+/** Spotkanie przed kontrolą „pierwszy zakup”: każdy przebieg czeka na drugi (najwyżej 300 ms — pod blokadą drugi nie dojdzie). */
+let spotkanie: { czekaja: number; puscic?: () => void; p?: Promise<void> } | null = null;
+async function ofertaZeSpotkaniem() {
+  if (spotkanie) {
+    const sp = spotkanie;
+    sp.czekaja += 1;
+    if (sp.czekaja >= 2) sp.puscic?.();
+    else await Promise.race([sp.p, new Promise((r) => setTimeout(r, 300))]);
+  }
+  return oferta;
+}
 /** Bariera na obciążeniu za usługę: oba równoległe przebiegi przechodzą kontrole, zanim pierwszy obciąży. */
 let bariera: { czekaj: number; zwolnij?: () => void; p?: Promise<void>; pierwszyGotowy?: Promise<void>; pierwszyKoniec?: () => void } | null = null;
 
@@ -58,7 +69,7 @@ function serwisy() {
   const subscriptions = new SubscriptionsService(
     p, audit, ledger, null as never, { sprawdzDomeneGlowna: async () => undefined, sprawdzMiejsce: async () => undefined } as never, queue as never, null as never,
     mailer as never, { get: () => undefined } as never, promo, { safeAward: () => undefined } as never,
-    { getTrialOffer: async () => oferta } as never, null as never,
+    { getTrialOffer: ofertaZeSpotkaniem } as never, null as never,
   );
   const cfg: Record<string, string> = {
     paynowApiKey: 'api-key-przeglad', paynowSignatureKey: SIG, paynowApiUrl: 'https://api.sandbox.paynow.pl', clientPanelUrl: 'https://panel.test',
@@ -98,6 +109,7 @@ describe('przegląd 15.10 — zakup Paynow i rabat na start', () => {
     kolejka.length = 0;
     kolejkaPada = false;
     bariera = null;
+    spotkanie = null;
     oferta = { cardEnabled: false, monthlyDiscountPct: 0, annualDiscountPct: 0 };
     fetchMock.mockReset();
     vi.stubGlobal('fetch', fetchMock);
@@ -121,6 +133,23 @@ describe('przegląd 15.10 — zakup Paynow i rabat na start', () => {
       [36, 20, 11],
       [45, 0, 0],
     ]);
+  });
+
+  // Decyzja 15.10 (#6): dwa zamówienia złożone NARAZ (dwie karty przeglądarki) — oba widziały „brak zakupów”.
+  it('[1c] rabat na start: dwa równoległe zamówienia — rabat dostaje tylko jedno (blokada na klienta)', async () => {
+    oferta = { cardEnabled: true, monthlyDiscountPct: 20, annualDiscountPct: 0, introDiscountPeriods: 12 };
+    const s = serwisy();
+    const u = await prisma().user.create({ data: { email: `przg-1c-${Date.now()}@test.verris.pl`, passwordHash: 'x' } });
+    const plan = await utworzPlan({ priceMonthly: 45 });
+    let puscic: () => void = () => undefined;
+    spotkanie = { czekaja: 0, p: new Promise<void>((r) => { puscic = r; }) };
+    spotkanie.puscic = puscic;
+    const zamow = (domena: string) =>
+      s.subscriptions.create(u.id, { planId: plan.id, interval: 'MONTH', paymentSource: 'WALLET', oplata: 'PAYNOW', domain: domena, immediatePerformanceConsent: true } as never);
+    await Promise.all([zamow('rownolegle-a.pl'), zamow('rownolegle-b.pl')]);
+    const subs = await prisma().subscription.findMany({ where: { userId: u.id } });
+    expect(subs).toHaveLength(2);
+    expect(subs.map((x) => x.introDiscountPct).sort()).toEqual([0, 20]);
   });
 
   it('[2] rabat na start: nieudane zakładanie (zwrot) zużywa rabat — klient zamawia ponownie bez rabatu', async () => {

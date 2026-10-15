@@ -399,70 +399,81 @@ export class SubscriptionsService {
     // PB-27 — cena operatora zastępuje cennik, kody i rabat startowy (także przy odnowieniach).
     // Przeniesienie z opłaconym okresem (op.oplaconeDo): klient nie jest nowy — bez rabatu startowego, odnowienia
     // ceną z cennika albo ceną operatora.
-    const pricing =
-      op?.individualPrice != null || op?.oplaconeDo
-        ? {
-            chargeAmount: op.individualPrice ?? listPrice,
-            listPrice,
-            appliedPromoCodeId: null,
-            introDiscountPct: 0,
-            introDiscountPeriodsLeft: 0,
-          }
-        : await this.resolveSubscriptionPricing(
+    // Decyzja 15.10 (#6) — rabat na start i kod przy równoległych zamówieniach jednego klienta: kontrola „pierwszy
+    // zakup” (rabat-startowy.ts) i zapis zamówienia idą pod blokadą doradczą klienta (jak POST /api/v1/orders).
+    // Wcześniej dwa zamówienia naraz oba widziały „brak zakupów” i oba dostawały rabat. Klucz inny niż w API:
+    // zamówienie przez API woła tę metodę pod własną blokadą — ten sam klucz z innego połączenia zablokowałby się.
+    const { pricing, subscription, oddajKod, serviceTag } = await this.prisma.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`zamowienie-uslugi:${userId}`}))`;
+        const pricing =
+          op?.individualPrice != null || op?.oplaconeDo
+            ? {
+                chargeAmount: op.individualPrice ?? listPrice,
+                listPrice,
+                appliedPromoCodeId: null,
+                introDiscountPct: 0,
+                introDiscountPeriodsLeft: 0,
+              }
+            : await this.resolveSubscriptionPricing(
+                userId,
+                listPrice,
+                dto.paymentSource,
+                dto.interval,
+                op ? undefined : dto.promoCode,
+              );
+
+        // X-04 — kod rabatowy rezerwujemy przed utworzeniem usługi (atomowo, raz na klienta).
+        if (pricing.appliedPromoCodeId) {
+          await this.promo.zarezerwujKodUslugi({
             userId,
-            listPrice,
-            dto.paymentSource,
-            dto.interval,
-            op ? undefined : dto.promoCode,
-          );
+            promoCodeId: pricing.appliedPromoCodeId,
+            listPrice: pricing.listPrice,
+            chargedAmount: pricing.chargeAmount,
+          });
+        }
+        const oddajKod = () =>
+          pricing.appliedPromoCodeId
+            ? this.promo.zwolnijKodUslugi(userId, pricing.appliedPromoCodeId).catch(() => undefined)
+            : Promise.resolve();
 
-    // X-04 — kod rabatowy rezerwujemy przed utworzeniem usługi (atomowo, raz na klienta).
-    if (pricing.appliedPromoCodeId) {
-      await this.promo.zarezerwujKodUslugi({
-        userId,
-        promoCodeId: pricing.appliedPromoCodeId,
-        listPrice: pricing.listPrice,
-        chargedAmount: pricing.chargeAmount,
-      });
-    }
-    const oddajKod = () =>
-      pricing.appliedPromoCodeId
-        ? this.promo.zwolnijKodUslugi(userId, pricing.appliedPromoCodeId).catch(() => undefined)
-        : Promise.resolve();
-
-    // Create subscription row up-front in PENDING_PAYMENT so we can attach
-    // the wallet entry / provisioning to it (and recover from failures).
-    // SVC-TAG — unikalny handle nadawany od razu przy zakupie (widoczny obok
-    // pakietu); dla hostingu provisioning użyje go jako loginu DA (prefiks baz).
-    const serviceTag = await generateUniqueServiceTag(this.prisma);
-    const subscription = await this.prisma.subscription.create({
-      data: {
-        userId,
-        planId: plan.id,
-        serviceTag,
-        status: SubscriptionStatus.PENDING_PAYMENT,
-        interval: dto.interval,
-        priceAmount: pricing.chargeAmount,
-        listPriceAmount: pricing.listPrice,
-        appliedPromoCodeId: pricing.appliedPromoCodeId,
-        introDiscountPct: pricing.introDiscountPct,
-        introDiscountPeriodsLeft: pricing.introDiscountPeriodsLeft,
-        resellerMarkupPct: narzutPct > 0 ? narzutPct : null,
-        currency: plan.currency,
-        paymentSource: dto.paymentSource,
-        autoscalingEnabled: dto.autoscalingEnabled ?? false,
-        ecoModeEnabled: dto.ecoModeEnabled ?? false,
-        ...(op && (op.individualPrice != null || op.autoscalingDiscountPct)
-          ? {
-              individualPrice: op.individualPrice ?? null,
-              autoscalingDiscountPct: op.autoscalingDiscountPct ?? 0,
-              individualTermsNote: op.powod,
-              individualTermsById: op.actorUserId,
-              individualTermsAt: new Date(),
-            }
-          : {}),
+        // Create subscription row up-front in PENDING_PAYMENT so we can attach
+        // the wallet entry / provisioning to it (and recover from failures).
+        // SVC-TAG — unikalny handle nadawany od razu przy zakupie (widoczny obok
+        // pakietu); dla hostingu provisioning użyje go jako loginu DA (prefiks baz).
+        const serviceTag = await generateUniqueServiceTag(this.prisma);
+        const subscription = await this.prisma.subscription.create({
+          data: {
+            userId,
+            planId: plan.id,
+            serviceTag,
+            status: SubscriptionStatus.PENDING_PAYMENT,
+            interval: dto.interval,
+            priceAmount: pricing.chargeAmount,
+            listPriceAmount: pricing.listPrice,
+            appliedPromoCodeId: pricing.appliedPromoCodeId,
+            introDiscountPct: pricing.introDiscountPct,
+            introDiscountPeriodsLeft: pricing.introDiscountPeriodsLeft,
+            resellerMarkupPct: narzutPct > 0 ? narzutPct : null,
+            currency: plan.currency,
+            paymentSource: dto.paymentSource,
+            autoscalingEnabled: dto.autoscalingEnabled ?? false,
+            ecoModeEnabled: dto.ecoModeEnabled ?? false,
+            ...(op && (op.individualPrice != null || op.autoscalingDiscountPct)
+              ? {
+                  individualPrice: op.individualPrice ?? null,
+                  autoscalingDiscountPct: op.autoscalingDiscountPct ?? 0,
+                  individualTermsNote: op.powod,
+                  individualTermsById: op.actorUserId,
+                  individualTermsAt: new Date(),
+                }
+              : {}),
+          },
+        });
+        return { pricing, subscription, oddajKod, serviceTag };
       },
-    });
+      { maxWait: 30_000, timeout: 60_000 },
+    );
 
     await this.prisma.subscriptionEvent.create({
       data: {

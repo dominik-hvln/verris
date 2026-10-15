@@ -74,6 +74,9 @@ describe('O-07 — zakup usługi', () => {
       plan: { findUnique: vi.fn(async () => ({ id: 'p1', isActive: true, isPublic: true, productKind: 'HOSTING', priceMonthly: D(45), priceYearly: D(399), currency: 'PLN' })) },
       subscription: { findUnique: vi.fn(async () => null), create },
       account: { findUnique: vi.fn(async () => null) },
+      // Wycena i zapis zamówienia pod blokadą klienta (decyzja 15.10 #6).
+      $executeRaw: vi.fn(async () => 1),
+      $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(prisma)),
     };
     const settings = { getTrialOffer: vi.fn(async () => o.oferta ?? { cardEnabled: false, monthlyDiscountPct: 0, annualDiscountPct: 0, introDiscountPeriods: 0 }) };
     const vat = { ustal: vi.fn(async () => ({ traktowanie: { cenaNetto: false } })) };
