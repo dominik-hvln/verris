@@ -26,3 +26,24 @@ const TEKSTOWE = /^(text\/(html|css|javascript|plain|xml)|application\/(javascri
 export function czyTekstowy(contentType: string | undefined): boolean {
   return Boolean(contentType && TEKSTOWE.test(contentType));
 }
+
+/**
+ * Noc 15.10 — pasek na górze strony HTML w podglądzie: adres podglądu jest publiczny (HTTPS na domenie Verris), więc
+ * nie może udawać prawdziwej strony (phishing). Wstawiany za pierwszym `<body…>`; bez `<body>` treść bez zmian.
+ */
+/** Znaki spoza ASCII jako encje HTML — pasek wstawiamy w treść o dowolnym kodowaniu (UTF-8, windows-1250…). */
+function encje(t: string): string {
+  return t.replace(/[^\x20-\x7e]/g, (c) => `&#${c.codePointAt(0)};`);
+}
+
+export function wstawPasekPodgladu(html: string, domena: string): string {
+  const d = domena.replace(/[^a-z0-9.-]/gi, '');
+  const pasek =
+    `<div data-verris-podglad style="all:initial;display:block;box-sizing:border-box;width:100%;background:#0E3B2E;color:#F4F4EE;` +
+    `font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;padding:8px 12px;text-align:center">` +
+    `${encje(`Podgląd strony ${d} przed zmianą DNS (Verris). Nie podawaj tu haseł ani danych płatności.`)}</div>`;
+  return html.replace(/<body\b[^>]*>/i, (m) => m + pasek);
+}
+
+/** Nagłówki odpowiedzi węzła, które przechodzą do przeglądarki (lista dozwolonych — white label: bez Server, LiteSpeed, Link itd.). */
+export const NAGLOWKI_DOZWOLONE = new Set(['content-type', 'etag', 'last-modified', 'vary', 'content-language', 'content-disposition']);
