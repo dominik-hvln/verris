@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { potwierdz } from "@/components/potwierdz";
 import { PRZYCISK } from "@/components/v2";
 import { WyslijWniosek } from "@/components/wniosek-operacji";
-import { anulujDokument, dokonczFakture, ponowKsef } from "../actions";
+import { anulujDokument, dokonczFakture, ponowKsef, wyjasnijKsef } from "../actions";
 
 /**
  * Anulowanie nieopłaconego dokumentu (M-08) na stronie faktury. Bez BILLING_MANAGE — „Wyślij wniosek”
@@ -78,6 +78,56 @@ export function PonowKsef({ invoiceId, number }: { invoiceId: string; number: st
       >
         {pending ? "Wysyłam…" : "Ponów wysyłkę do KSeF"}
       </button>
+      {blad ? <p className="text-xs text-crit">{blad}</p> : null}
+    </div>
+  );
+}
+
+/**
+ * Decyzja 15.10 (#3) — wysyłka do KSeF bez odpowiedzi. Admin sprawdza fakturę w KSeF (Aplikacja Podatnika, środowisko
+ * z karty) i rozstrzyga: jest — wpisuje numer; nie ma — faktura wraca do kolejki z tym samym plikiem.
+ */
+export function WyjasnijKsef({ invoiceId, number }: { invoiceId: string; number: string }) {
+  const router = useRouter();
+  const [numer, setNumer] = useState("");
+  const [blad, setBlad] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const zapisz = (decyzja: { jestWKsef: boolean; numerKsef?: string }) => {
+    setBlad(null);
+    start(async () => {
+      const r = await wyjasnijKsef(invoiceId, decyzja);
+      if (r.ok) router.refresh();
+      else setBlad(r.error);
+    });
+  };
+  return (
+    <div className="flex flex-col gap-2">
+      <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+        Numer KSeF (jeśli faktura jest w KSeF)
+        <input
+          value={numer}
+          onChange={(e) => setNumer(e.target.value)}
+          maxLength={40}
+          placeholder="NIP-RRRRMMDD-XXXXXXXXXXXX-XX"
+          className="w-full max-w-md rounded-[9px] border border-line-strong bg-transparent px-3 py-2 font-mono text-sm text-foreground"
+        />
+      </label>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" disabled={pending || numer.trim().length < 20} className={PRZYCISK} onClick={() => zapisz({ jestWKsef: true, numerKsef: numer.trim() })}>
+          Jest w KSeF — zapisz numer
+        </button>
+        <button
+          type="button"
+          disabled={pending}
+          className={PRZYCISK}
+          onClick={async () => {
+            if (!(await potwierdz(`Na pewno ${number} nie ma w KSeF? Faktura pójdzie ponownie — jeśli jednak tam jest, powstanie duplikat.`, { akcja: "Wyślij ponownie" }))) return;
+            zapisz({ jestWKsef: false });
+          }}
+        >
+          Nie ma w KSeF — wyślij ponownie
+        </button>
+      </div>
       {blad ? <p className="text-xs text-crit">{blad}</p> : null}
     </div>
   );

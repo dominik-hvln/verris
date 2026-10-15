@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { Invoice, KsefStatus } from '@verris/database';
@@ -88,6 +88,8 @@ export const STATUSY_Z_PLIKIEM_KSEF: readonly KsefStatus[] = [
   KsefStatus.SUBMITTED,
   KsefStatus.OFFLINE,
   KsefStatus.ACCEPTED,
+  // Mogła już dojść do KSeF z tym plikiem (jego skrót jest w kodzie QR) — plik zostaje.
+  KsefStatus.UNCERTAIN,
 ];
 
 /**
@@ -352,7 +354,8 @@ export class KsefService {
       // Przegląd 15.10: plik zamrożony w innym środowisku (np. TEST przed przełączeniem na PROD), którego KSeF
       // jeszcze nie ma (PENDING/OFFLINE), budujemy od nowa — inaczej poszedłby do PROD z danymi z TEST (np. korekta
       // z numerem KSeF faktury, której w PROD nie ma). Plik wysłany albo przyjęty zostaje taki, jaki jest w KSeF.
-      const wKsef = inv.ksefStatus === KsefStatus.SUBMITTED || inv.ksefStatus === KsefStatus.ACCEPTED;
+      const wKsef =
+        inv.ksefStatus === KsefStatus.SUBMITTED || inv.ksefStatus === KsefStatus.ACCEPTED || inv.ksefStatus === KsefStatus.UNCERTAIN;
       if (zamrozony === env || wKsef) {
         return { xml: inv.ksefXml, sha256: inv.ksefXmlSha256, srodowisko: zamrozony };
       }
@@ -462,6 +465,10 @@ export class KsefService {
         details: { invoiceId: inv.id, number: inv.number, elementReferenceNumber, sha256: plik.sha256 },
       });
     } catch (err) {
+      if ((err as { niepewny?: boolean }).niepewny === true) {
+        await this.oznaczDoWyjasnienia(inv, env, err as Error);
+        return;
+      }
       const httpStatus = (err as { httpStatus?: number }).httpStatus;
       // Część 4xx nie dotyczy dokumentu: 401/403 (token, uprawnienia), 429 (limity API)
       // i 21184 (sesja wstrzymana, API 2.8.0). Faktura poprawna — zostaje w kolejce.
@@ -767,6 +774,64 @@ export class KsefService {
     } finally {
       await client.terminateSession();
     }
+  }
+
+  /**
+   * Decyzja 15.10 (#3) — wysyłka bez odpowiedzi: faktura mogła trafić do KSeF. Wcześniej zostawała w kolejce
+   * i szła ponownie (duplikat w KSeF, a odrzucenie duplikatu potrafiło nadpisać przyjętą fakturę). Teraz UNCERTAIN:
+   * automat jej nie wysyła, admin sprawdza w KSeF i rozstrzyga ({@link wyjasnijFakture}).
+   */
+  private async oznaczDoWyjasnienia(inv: Invoice, env: SrodowiskoKsef, err: Error): Promise<void> {
+    await this.prisma.invoice.updateMany({
+      where: { id: inv.id, ksefStatus: { in: [KsefStatus.PENDING, KsefStatus.OFFLINE] } },
+      data: {
+        ksefStatus: KsefStatus.UNCERTAIN,
+        ksefSubmittedAt: new Date(),
+        ksefSrodowisko: env,
+        ksefError: `Wysyłka bez potwierdzenia KSeF (${err.message.slice(0, 300)}). Sprawdź w KSeF, czy faktura jest — dopiero potem wyślij ponownie.`,
+      },
+    });
+    await this.audit.record({
+      action: 'KSEF_INVOICE_UNCERTAIN',
+      userId: inv.userId,
+      details: { invoiceId: inv.id, number: inv.number, srodowisko: env, blad: err.message.slice(0, 500) },
+    });
+    const admini = await this.prisma.user.findMany({ where: { role: 'ADMIN', loginBlocked: false }, select: { id: true } });
+    await this.prisma.notification.createMany({
+      data: admini.map((a) => ({
+        userId: a.id,
+        category: 'SYSTEM',
+        severity: 'warning',
+        title: `KSeF: ${inv.number} do wyjaśnienia`,
+        body: 'KSeF nie potwierdził wysyłki faktury — mogła dojść. Sprawdź ją w KSeF (środowisko ' + env + ') i rozstrzygnij na stronie faktury.',
+        link: `/invoices/${inv.id}#ksef`,
+      })),
+    });
+  }
+
+  /**
+   * Admin: rozstrzygnięcie faktury UNCERTAIN po sprawdzeniu w KSeF. „Nie ma” → z powrotem do kolejki z TYM SAMYM
+   * plikiem (skrót w kodzie QR klienta się nie zmienia). „Jest” → przyjęta z numerem KSeF podanym przez admina.
+   */
+  async wyjasnijFakture(invoiceId: string, actorUserId: string, decyzja: { jestWKsef: boolean; numerKsef?: string | null }) {
+    const numer = decyzja.numerKsef?.trim().toUpperCase() ?? '';
+    // Format numeru KSeF: NIP-RRRRMMDD-12 znaków hex-2 znaki hex (np. 5265877635-20250826-0100001AF629-AF).
+    if (decyzja.jestWKsef && !/^\d{10}-\d{8}-[0-9A-F]{12}-[0-9A-F]{2}$/.test(numer)) {
+      throw new BadRequestException('Podaj numer KSeF faktury w formacie NIP-RRRRMMDD-XXXXXXXXXXXX-XX.');
+    }
+    const r = await this.prisma.invoice.updateMany({
+      where: { id: invoiceId, ksefStatus: KsefStatus.UNCERTAIN },
+      data: decyzja.jestWKsef
+        ? { ksefStatus: KsefStatus.ACCEPTED, ksefNumber: numer, ksefAcceptedAt: new Date(), ksefError: null }
+        : { ksefStatus: KsefStatus.PENDING, ksefSubmittedAt: null, ksefError: null },
+    });
+    if (r.count === 0) throw new ConflictException('Wyjaśnić można tylko fakturę oznaczoną „do wyjaśnienia”.');
+    await this.audit.record({
+      action: 'KSEF_INVOICE_WYJASNIONA',
+      actorUserId,
+      details: { invoiceId, jestWKsef: decyzja.jestWKsef, ...(decyzja.jestWKsef ? { ksefNumber: numer } : {}) },
+    });
+    return { ok: true as const };
   }
 
   /** Admin: ponów odrzuconą fakturę po poprawie danych. */

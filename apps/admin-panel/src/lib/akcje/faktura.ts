@@ -92,6 +92,17 @@ export const AKCJE_FAKTURY: AkcjaObiektu<FakturaDlaAkcji>[] = [
     pomocId: "ksef-ponow",
   },
   {
+    id: "ksef-wyjasnij",
+    grupa: "KSeF",
+    nazwa: "Wyjaśnij wysyłkę do KSeF",
+    opis: "KSeF nie potwierdził wysyłki — sprawdź w KSeF i rozstrzygnij: jest (numer) albo nie ma (wyślij ponownie).",
+    // POST admin/ksef/invoices/:id/wyjasnij — tylko ADMIN; decyzja 15.10 (#3).
+    perm: "ADMIN",
+    kiedy: (f) => nieWiadomo(f.ksefStatus) || f.ksefStatus === "UNCERTAIN",
+    href: (f) => strona(f, "ksef"),
+    slowa: "ksef wyjaśnij niepewna wysyłka duplikat numer",
+  },
+  {
     id: "klient",
     grupa: "Powiązania",
     nazwa: "Karta klienta",

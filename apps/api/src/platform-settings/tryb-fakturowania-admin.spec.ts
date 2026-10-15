@@ -4,12 +4,16 @@ import { PlatformSettingsService } from './platform-settings.service.js';
  * FAK-01 / KSeF 12.10 — przełącznik trybu fakturowania w panelu admina (do 12.10 tylko wiersz
  * w bazie). Powrót do `zewnetrzny` wyłącza też wysyłkę KSeF.
  */
-function usluga(wyslaneBezStatusu = 0, wKolejce = 0) {
+function usluga(wyslaneBezStatusu = 0, wKolejce = 0, doWyjasnienia = 0) {
   const wiersze = new Map<string, string>();
   const audyt: unknown[] = [];
   const prisma = {
     invoice: {
-      count: async ({ where }: { where: { ksefStatus: unknown } }) => (where.ksefStatus === 'SUBMITTED' ? wyslaneBezStatusu : wKolejce),
+      count: async ({ where }: { where: { ksefStatus: unknown } }) => {
+        const st = JSON.stringify(where.ksefStatus);
+        if (st.includes('SUBMITTED')) return wyslaneBezStatusu + (st.includes('UNCERTAIN') ? doWyjasnienia : 0);
+        return wKolejce;
+      },
       findMany: async () => [{ number: 'VFV/2026/10/0001' }, { number: 'VFK/2026/10/0001' }],
     },
     platformSetting: {
@@ -52,6 +56,15 @@ describe('Tryb fakturowania — przełącznik admina', () => {
 describe('KSeF — zmiana środowiska', () => {
   const ustaw = (s: PlatformSettingsService, env: 'test' | 'prod') =>
     s.updateKsefSettings({ enabled: true, env, nip: '5260250274' }, 'admin-1');
+
+  // Decyzja 15.10 (#3): faktura „do wyjaśnienia” mogła dojść do KSeF obecnego środowiska — zmiana go odcina.
+  it('faktura „do wyjaśnienia” blokuje zmianę środowiska', async () => {
+    const { s, wiersze } = usluga(0, 0, 1);
+    wiersze.set('faktury.tryb', 'panel');
+    wiersze.set('ksef.env', 'test');
+    await expect(ustaw(s, 'prod')).rejects.toThrow('1 faktura czeka');
+    expect(wiersze.get('ksef.env')).toBe('test');
+  });
 
   it('faktury czekają na status w starym środowisku → odmowa, środowisko bez zmian', async () => {
     const { s, wiersze } = usluga(2);

@@ -1901,6 +1901,7 @@ enum KsefStatus {
   ACCEPTED       // numer KSeF nadany (UPO)
   REJECTED       // odrzucona przez KSeF (walidacja) — wymaga interwencji
   OFFLINE        // wystawiona w trybie offline (awaria KSeF) — do dosłania
+  UNCERTAIN      // wysyłka bez odpowiedzi — mogła dojść; do wyjaśnienia przez admina, bez ponownej wysyłki
 }
 
 /// Atomowa numeracja faktur per (rok, miesiąc). Każda nowa faktura wykonuje

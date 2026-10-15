@@ -6,6 +6,7 @@ export const KSEF: Record<string, { t: string; ton: "ok" | "warn" | "crit" | "mu
   ACCEPTED: { t: "przyjęta", ton: "ok" },
   REJECTED: { t: "odrzucona", ton: "crit" },
   OFFLINE: { t: "offline — do dosłania", ton: "warn" },
+  UNCERTAIN: { t: "do wyjaśnienia — KSeF nie potwierdził wysyłki", ton: "crit" },
 };
 
 export const stanKsef = (s: string) => KSEF[s] ?? { t: s, ton: "muted" as const };

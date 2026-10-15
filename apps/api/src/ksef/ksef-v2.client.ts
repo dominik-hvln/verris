@@ -80,6 +80,11 @@ export class KsefV2ApiError extends Error {
     public readonly body?: unknown,
     /** Błąd po stronie dostępności KSeF, nie dokumentu — faktura zostaje do ponowienia. */
     public readonly przejsciowy = false,
+    /**
+     * Decyzja 15.10 (#3): wysyłka faktury bez odpowiedzi (limit czasu, sieć, 5xx, 2xx bez numeru referencyjnego) —
+     * KSeF mógł ją przyjąć. Ponowna wysyłka dałaby duplikat; faktura idzie „do wyjaśnienia”.
+     */
+    public readonly niepewny = false,
   ) {
     super(message);
   }
@@ -197,17 +202,25 @@ export class KsefV2Client implements InvoicingProvider {
       encryptedInvoiceSize: ciphertext.length,
       encryptedInvoiceContent: ciphertext.toString('base64'),
     };
-    const res = await this.http(`/sessions/online/${this.sessionRef}/invoices`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...this.authHeader() },
-      body: JSON.stringify(body),
-    });
+    let res: Response;
+    try {
+      res = await this.http(`/sessions/online/${this.sessionRef}/invoices`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...this.authHeader() },
+        body: JSON.stringify(body),
+      });
+    } catch (err) {
+      // Żądanie z fakturą wyszło, odpowiedzi nie ma — nie wiemy, czy KSeF ją przyjął.
+      throw new KsefV2ApiError((err as Error).message, undefined, undefined, false, true);
+    }
     const json = (await res.json().catch(() => null)) as { referenceNumber?: string } | null;
     if (!res.ok || !json?.referenceNumber) {
       throw new KsefV2ApiError(
         `KSeF 2.0 wysyłka faktury nie powiodła się (HTTP ${res.status})`,
         res.status,
         json,
+        false,
+        res.status >= 500 || res.ok,
       );
     }
     // Kodujemy sessionRef|invoiceRef — status per faktura wymaga obu w kolejnym cyklu.

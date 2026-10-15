@@ -118,7 +118,7 @@ export async function planCzyszczenia(db: Db, zachowaj: string[]): Promise<PlanC
   // Przegląd 15.10: także PENDING (plik PROD już zamrożony — np. klient pobrał PDF z kodem QR) i OFFLINE (wystawiona
   // w trybie offline, czeka na dosłanie).
   const ksefProd = await db.invoice.findMany({
-    where: { userId: { in: ids }, ksefSrodowisko: 'prod', ksefStatus: { in: ['PENDING', 'OFFLINE', 'SUBMITTED', 'ACCEPTED'] } },
+    where: { userId: { in: ids }, ksefSrodowisko: 'prod', ksefStatus: { in: ['PENDING', 'OFFLINE', 'SUBMITTED', 'ACCEPTED', 'UNCERTAIN'] } },
     select: { userId: true, number: true },
   });
   for (const f of ksefProd) {

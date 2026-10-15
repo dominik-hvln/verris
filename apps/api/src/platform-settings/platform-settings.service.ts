@@ -783,11 +783,12 @@ export class PlatformSettingsService {
     const obecneEnv = this.normalizeKsefEnv(this.readStr(await this.loadMap(), K.KSEF_ENV, process.env.KSEF_ENV ?? 'test'));
     const noweEnv = this.normalizeKsefEnv(input.env);
     if (obecneEnv !== noweEnv) {
-      const wToku = await this.prisma.invoice.count({ where: { ksefStatus: 'SUBMITTED' } });
+      // UNCERTAIN (wysyłka bez odpowiedzi) też jest „w obecnym środowisku” — najpierw wyjaśnienie.
+      const wToku = await this.prisma.invoice.count({ where: { ksefStatus: { in: ['SUBMITTED', 'UNCERTAIN'] } } });
       if (wToku > 0) {
         throw new BadRequestException(
           `KSeF: ${wToku} ${wToku === 1 ? 'faktura czeka' : 'faktur czeka'} na status w środowisku ${obecneEnv}. ` +
-            'Poczekaj, aż KSeF je przyjmie lub odrzuci (zwykle kilkanaście minut), i zmień środowisko ponownie.',
+            'Poczekaj, aż KSeF je przyjmie lub odrzuci (zwykle kilkanaście minut), a faktury „do wyjaśnienia” rozstrzygnij na ich stronach — potem zmień środowisko ponownie.',
         );
       }
       // Przegląd 15.10: faktury z kolejki (PENDING/OFFLINE) wystawione przy środowisku obecnym poszłyby po zmianie

@@ -29,6 +29,20 @@ export async function ponowKsef(invoiceId: string): Promise<{ ok: true } | { ok:
   }
 }
 
+/** Decyzja 15.10 (#3): rozstrzygnięcie faktury „do wyjaśnienia” po sprawdzeniu w KSeF (tylko ADMIN). */
+export async function wyjasnijKsef(
+  invoiceId: string,
+  decyzja: { jestWKsef: boolean; numerKsef?: string },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await adminApi(`/admin/ksef/invoices/${encodeURIComponent(invoiceId)}/wyjasnij`, { method: "POST", body: decyzja });
+    revalidatePath(`/invoices/${invoiceId}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof AdminApiError ? err.message : "Nie udało się zapisać wyjaśnienia." };
+  }
+}
+
 /**
  * Fala 1B — „Dokończ wystawienie”: opłacona faktura bez PDF-u (finalizacja nie doszła do końca). API nadaje numer
  * i tworzy plik (to samo, co robi automat faktury.scheduler); BILLING_MANAGE.

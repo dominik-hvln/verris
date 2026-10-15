@@ -251,6 +251,28 @@ describe('X-07 — KsefV2Client: pełny przepływ na atrapie KSeF z prawdziwą k
   });
 });
 
+describe('KsefV2Client — decyzja 15.10 (#3): wynik wysyłki niepewny', () => {
+  const wyslij = async (odp: () => Response) => {
+    const a = atrapa({ '^/sessions/online/sesja-1/invoices$': odp });
+    const c = klient();
+    await c.openSession();
+    return { err: (await c.sendInvoice('<Faktura/>').catch((e: unknown) => e)) as KsefV2ApiError, ...a };
+  };
+
+  it('brak odpowiedzi na wysyłkę, 5xx i 2xx bez numeru referencyjnego → niepewny', async () => {
+    expect((await wyslij(() => { throw new TypeError('fetch failed'); })).err.niepewny).toBe(true);
+    expect((await wyslij(() => new Response('bramka', { status: 504 }))).err.niepewny).toBe(true);
+    expect((await wyslij(() => new Response(JSON.stringify({}), { status: 202 }))).err.niepewny).toBe(true);
+  });
+
+  it('4xx z odmową dokumentu i błąd przed wysłaniem pliku (otwarcie sesji) → nie niepewny', async () => {
+    const { err } = await wyslij(() => new Response(JSON.stringify({ exception: { exceptionDetailList: [{ exceptionCode: 21155 }] } }), { status: 400 }));
+    expect([err.httpStatus, err.niepewny]).toEqual([400, false]);
+    vi.stubGlobal('fetch', vi.fn(async () => Promise.reject(new TypeError('fetch failed'))));
+    expect(((await klient().openSession().catch((e: unknown) => e)) as KsefV2ApiError).niepewny).toBe(false);
+  });
+});
+
 describe('X-07 — KsefV2Client: status faktury i UPO', () => {
   async function zalogowany(nadpisz: Record<string, (z: Zapis) => Response>) {
     const a = atrapa(nadpisz);

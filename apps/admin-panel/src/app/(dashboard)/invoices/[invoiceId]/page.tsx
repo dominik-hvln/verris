@@ -15,7 +15,7 @@ import { LinkJesli } from "@/components/link-jesli";
 import { Eyebrow, KARTA, LinkKarty, NaglowekKarty, Pigulka, PRZYCISK, WIERSZ } from "@/components/v2";
 import type { AdminInvoiceRow } from "../data";
 import type { KorektaRow } from "./korekta/data";
-import { AnulujDokument, DokonczFakture, PonowKsef } from "./dzialania-faktury";
+import { AnulujDokument, DokonczFakture, PonowKsef, WyjasnijKsef } from "./dzialania-faktury";
 import { Pomoc } from "@/components/pomoc";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +62,7 @@ export default async function FakturaPage({ params }: { params: Promise<{ invoic
   const korekta = akcja("korekta");
   const anuluj = akcja("anuluj");
   const ksef = akcja("ksef");
+  const wyjasnij = akcja("ksef-wyjasnij");
   const upo = akcja("upo");
   const dokoncz = akcja("dokoncz");
   // Wniosek o anulowanie składa się z CUSTOMERS_VIEW (rejestr wniosków API: doZlozenia).
@@ -223,6 +224,9 @@ export default async function FakturaPage({ params }: { params: Promise<{ invoic
             {ksef.zablokowane ? <Zablokowane powod={ksef.zablokowane}>Ponów wysyłkę do KSeF</Zablokowane> : <PonowKsef invoiceId={f.id} number={f.number} />}
             <Pomoc id="ksef-ponow" />
           </span>
+        ) : null}
+        {wyjasnij ? (
+          wyjasnij.zablokowane ? <Zablokowane powod={wyjasnij.zablokowane}>Wyjaśnij wysyłkę do KSeF</Zablokowane> : <WyjasnijKsef invoiceId={f.id} number={f.number} />
         ) : null}
       </section>
 

@@ -18,6 +18,8 @@ vi.mock('../billing/forma-zaplaty.js', () => ({ formaZaplatyFaktury: async () =>
 const klienciV2: Array<{ baseUrl: string; wyslane: string[] }> = [];
 let poOtwarciuSesji: (() => void) | null = null;
 let bladOtwarcia: Error | null = null;
+/** Decyzja 15.10 (#3): błąd po wysłaniu pliku (np. limit czasu) — plik poszedł, odpowiedzi nie ma. */
+let bladWysylki: Error | null = null;
 vi.mock('./ksef-v2.client.js', () => ({
   KsefV2Client: class {
     wyslane: string[] = [];
@@ -28,7 +30,11 @@ vi.mock('./ksef-v2.client.js', () => ({
       poOtwarciuSesji?.();
       if (bladOtwarcia) throw bladOtwarcia;
     }
-    async sendInvoice(xml: string) { this.wyslane.push(xml); return { elementReferenceNumber: `sesja|f${this.wyslane.length}` }; }
+    async sendInvoice(xml: string) {
+      this.wyslane.push(xml);
+      if (bladWysylki) throw bladWysylki;
+      return { elementReferenceNumber: `sesja|f${this.wyslane.length}` };
+    }
     async invoiceStatus() { return { processed: false, ksefReferenceNumber: null, acquisitionTimestamp: null, statusCode: 150, statusDescription: null, rejected: false }; }
     async terminateSession() {}
   },
@@ -62,6 +68,8 @@ function baza(rows: Row[]) {
   const wybierz = (r: Row | undefined) => (r ? { ...r } : null);
   return {
     rows,
+    user: { findMany: async () => [{ id: 'admin' }] },
+    notification: { createMany: async () => ({ count: 1 }) },
     invoice: {
       findMany: async ({ where, take }: { where: Record<string, unknown>; take?: number }) =>
         rows.filter((r) => pasuje(r, where)).slice(0, take ?? 1e9).map((r) => ({ ...r })),
@@ -97,6 +105,7 @@ beforeEach(() => {
   klienciV2.length = 0;
   poOtwarciuSesji = null;
   bladOtwarcia = null;
+  bladWysylki = null;
   audyt.length = 0;
   ustawienia.env = 'test';
   vi.useRealTimers();
@@ -238,5 +247,39 @@ describe('KSeF — przegląd poprawek 15.10', () => {
     // Nie wzięta do partii: bez zajęcia (dzierżawy) i bez budowania pliku.
     expect(db.rows[1].ksefSubmittedAt).toBeNull();
     expect(zbudowane).toEqual([]);
+  });
+});
+
+describe('KSeF — decyzja 15.10 (#3): wysyłka bez odpowiedzi → „do wyjaśnienia”, bez drugiej wysyłki', () => {
+  const bezOdpowiedzi = () => Object.assign(new Error('KSeF 2.0 niedostępny (/sessions/online/s/invoices): timeout'), { niepewny: true });
+
+  it('faktura UNCERTAIN, kolejne cykle jej nie wysyłają; plik i środowisko zostają', async () => {
+    const db = baza([faktura({ id: 'u' })]);
+    bladWysylki = bezOdpowiedzi();
+    await serwis(db).tick();
+    expect(db.rows[0]).toMatchObject({ ksefStatus: KsefStatus.UNCERTAIN, ksefSrodowisko: 'test' });
+    expect(db.rows[0].ksefXml).toBeTruthy();
+    expect(String(db.rows[0].ksefError)).toContain('Sprawdź w KSeF');
+    expect(audyt.map((a) => a.action)).toContain('KSEF_INVOICE_UNCERTAIN');
+
+    bladWysylki = null;
+    vi.useFakeTimers({ now: Date.now() + 16 * 60_000, toFake: ['Date'] });
+    await serwis(db).tick();
+    expect(klienciV2.flatMap((k) => k.wyslane)).toHaveLength(1);
+  });
+
+  it('wyjaśnienie: „nie ma w KSeF” → kolejka z tym samym plikiem; „jest” → przyjęta z numerem; inny stan → 409', async () => {
+    const db = baza([
+      faktura({ id: 'a', ksefStatus: KsefStatus.UNCERTAIN, ksefXml: '<Faktura a/>', ksefXmlSha256: 'ha', ksefSrodowisko: 'test', ksefSubmittedAt: new Date() }),
+      faktura({ id: 'b', ksefStatus: KsefStatus.UNCERTAIN, ksefXml: '<Faktura b/>', ksefXmlSha256: 'hb', ksefSrodowisko: 'test' }),
+    ]);
+    const s = serwis(db);
+    await s.wyjasnijFakture('a', 'admin', { jestWKsef: false });
+    expect(db.rows[0]).toMatchObject({ ksefStatus: KsefStatus.PENDING, ksefXml: '<Faktura a/>', ksefXmlSha256: 'ha', ksefSubmittedAt: null });
+
+    await expect(s.wyjasnijFakture('b', 'admin', { jestWKsef: true, numerKsef: 'zly' })).rejects.toThrow('formacie');
+    await s.wyjasnijFakture('b', 'admin', { jestWKsef: true, numerKsef: '5265877635-20251015-0100001af629-af' });
+    expect(db.rows[1]).toMatchObject({ ksefStatus: KsefStatus.ACCEPTED, ksefNumber: '5265877635-20251015-0100001AF629-AF' });
+    await expect(s.wyjasnijFakture('b', 'admin', { jestWKsef: false })).rejects.toThrow('do wyjaśnienia');
   });
 });
