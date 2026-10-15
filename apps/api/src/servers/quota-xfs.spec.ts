@@ -158,7 +158,12 @@ describe('bootstrap węzła — faza QUOTA', () => {
   function fazaQuota(a: Atrapa): { out: string; faza: string } {
     const stan = join(a.dir, 'stan');
     spawnSync('mkdir', ['-p', stan]);
+    // Tylko pliki tymczasowe: domyślne /etc/fstab i /etc/default/grub to prawdziwe pliki maszyny z testami
+    // (runner CI ma /etc/default/grub — sed -i bez roota padał, a z rootem by go zmienił).
+    const domyslne = 'fstab=/etc/fstab grub=/etc/default/grub';
+    expect(skrypt).toContain(domyslne);
     const bezStartu = skrypt
+      .replace(domyslne, `fstab='${a.fstab}' grub='${a.grub}'`)
       .replace('STATE_DIR=/var/lib/verris', `STATE_DIR='${stan}'`)
       .replace(/\ncase "\$\{1:-install\}" in[\s\S]*$/, '\n');
     writeFileSync(join(stan, 'bootstrap.state'), 'QUOTA\n');
