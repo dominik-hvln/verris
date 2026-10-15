@@ -137,6 +137,8 @@ export interface StaffTicketDetail extends StaffTicketRow {
   openedByStaffId?: string | null;
   /** F3.7 — zgłoszenie scalone z innym (wątek jest tam; do tego nie da się już pisać). */
   scalonoDoId?: string | null;
+  /** Źródło zgłoszenia (EMAIL, PANEL, OBSLUGA…) — decyzja 15.10 (#14): EMAIL = nadawca niezweryfikowany. */
+  zrodlo?: string | null;
   /** PB-43 — usługa, której dotyczy zgłoszenie */
   subscriptionId?: string | null;
   subscription?: {
@@ -157,6 +159,8 @@ export interface StaffTicketDetail extends StaffTicketRow {
     internal?: boolean;
     authorId?: string | null;
     attachments?: TicketAttachmentRow[];
+    /** EMAIL — odpowiedź klienta z maila (nadawca niezweryfikowany). */
+    zrodlo?: string | null;
   }>;
 }
 

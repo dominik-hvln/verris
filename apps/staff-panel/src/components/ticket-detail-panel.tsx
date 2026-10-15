@@ -30,6 +30,7 @@ import { TicketDodatek } from "./ticket-dodatek";
 import type { MakroRow } from "@/lib/ticket-actions";
 import type { KandydatScalenia, ZlecenieDodatku } from "@/lib/tickets-data";
 import { plForm } from "@/lib/pl";
+import { OSTRZEZENIE_NADAWCY, wiadomoscZMaila, zgloszenieZMaila } from "@/lib/nadawca-niezweryfikowany";
 
 interface Props {
   ticket: StaffTicketDetail;
@@ -389,6 +390,11 @@ export function TicketDetailPanel({
 
         {/* ---------- wątek */}
         <section className="flex flex-col gap-2.5" aria-label="Wątek">
+          {zgloszenieZMaila(ticket) || ticket.replies.some(wiadomoscZMaila) ? (
+            <p role="note" data-ostrzezenie="nadawca-niezweryfikowany" className="rounded-[10px] border border-warn/50 bg-warn-soft px-4 py-2.5 text-[13.5px] leading-[1.5]">
+              <b>Niezweryfikowany nadawca.</b> {OSTRZEZENIE_NADAWCY.replace(/^Niezweryfikowany nadawca — /, "")}
+            </p>
+          ) : null}
           <div
             className={`flex flex-col gap-2 rounded-[10px] border px-4 py-3.5 text-[14.5px] leading-[1.55] ${ticket.openedByStaffId ? "border-data/25 bg-data-soft/60" : "border-line bg-card"}`}
           >
@@ -396,7 +402,7 @@ export function TicketDetailPanel({
               {/* F2.5 — zgłoszenie założone przez obsługę: pierwsza wiadomość jest nasza (klient widzi „Obsługa Verris”). */}
               <b>{ticket.openedByStaffId ? `Verris — ${agents.find((a) => a.id === ticket.openedByStaffId)?.firstName ?? "obsługa"}` : nazwaKlienta}</b>
               <span className="text-[12.5px] text-muted-foreground">
-                {ticket.openedByStaffId ? "obsługa · założone w imieniu klienta" : "klient"} · {kd(ticket.createdAt)}
+                {ticket.openedByStaffId ? "obsługa · założone w imieniu klienta" : zgloszenieZMaila(ticket) ? "klient · e-mail, nadawca niezweryfikowany" : "klient"} · {kd(ticket.createdAt)}
               </span>
             </div>
             <span className="whitespace-pre-wrap">{ticket.message}</span>
@@ -435,7 +441,7 @@ export function TicketDetailPanel({
                 <div className="flex items-baseline gap-2">
                   <b>{r.isStaff ? `Verris — ${agents.find((a) => a.id === r.authorId)?.firstName ?? "obsługa"}` : nazwaKlienta}</b>
                   <span className="text-[12.5px] text-muted-foreground">
-                    {r.isStaff ? "obsługa" : "klient"} · {kd(r.createdAt)}
+                    {r.isStaff ? "obsługa" : wiadomoscZMaila(r) ? "klient · e-mail, nadawca niezweryfikowany" : "klient"} · {kd(r.createdAt)}
                   </span>
                 </div>
                 <span className="whitespace-pre-wrap">{r.message}</span>
