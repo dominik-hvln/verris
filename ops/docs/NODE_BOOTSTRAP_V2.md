@@ -220,7 +220,7 @@ Naprawy idempotentne; każda zapisywana w `AuditLog` (`NODE_AUDIT_REPAIR`).
 ## 9. Decyzja: entrypoint (spec-unified-entrypoint) — stan 2026-09-26
 
 **Jedna ścieżka dodania węzła: kreator w panelu admin.** Krok „Instalacja” tworzy rekord i prowadzi
-przez wznawialny bootstrap v2 (`node-bootstrap.script.ts`: PREFLIGHT → CLOUDLINUX → DA → STACK →
+przez wznawialny bootstrap v2 (`node-bootstrap.script.ts`: PREFLIGHT → CLOUDLINUX → QUOTA → DA → STACK →
 AGENT → CANARY). Faza AGENT deleguje do skryptu handshake+agent (`renderBootstrapScript`) — ten sam
 skrypt jest też dostępny osobno jako „tylko agent” dla węzła zainstalowanego ręcznie.
 

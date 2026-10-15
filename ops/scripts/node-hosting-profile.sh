@@ -1164,11 +1164,55 @@ PY
 # Limity dyskowe kont: DA liczy i egzekwuje dysk przez systemowe quota partycji quota_partition
 # (https://docs.directadmin.com/operation-system-level/os-general/filesystems-and-quotas.html). Bez nich
 # klient przekracza dysk planu bez blokady. t2 (13.10): XFS z noquota na / — bootstrap przeszedł, DA tylko
-# zalogował „quota not enabled”. Na XFS: rootflags=uquota,pquota (grubby) + restart; na ext4: opcje w fstab.
+# zalogował „quota not enabled”. Od 15.10 bootstrap włącza quota XFS sam (faza QUOTA); tu — węzły sprzed tej zmiany:
+# profil ustawia opcje, ale nie restartuje (węzeł może mieć klientów) — restart w oknie serwisowym.
+# Funkcja wlacz_quota_xfs: kopia QUOTA_XFS_SH z apps/api/src/servers/quota-xfs.script.ts (pilnuje quota-xfs.spec.ts).
+# Limity dysku kont: DirectAdmin egzekwuje dysk przez quota systemu plików partycji kont
+# (https://docs.directadmin.com/operation-system-level/os-general/filesystems-and-quotas.html). XFS nie włącza
+# quota przy ponownym montowaniu: partycja główna — opcja jądra rootflags=uquota,pquota (grubby dla obecnych jąder,
+# GRUB_CMDLINE_LINUX dla kolejnych), inna partycja XFS — uquota,pquota w /etc/fstab. Działa po restarcie.
+# Użycie: wlacz_quota_xfs <katalog kont> [fstab] [plik grub]. Kod: 0 — quota aktywna; 2 — nie XFS (bez zmian); 10 — ustawione, potrzebny restart; 1 — błąd.
+wlacz_quota_xfs() {
+  local cel="$1" mnt typ opcje fstab=/etc/fstab grub=/etc/default/grub
+  [ "$#" -ge 2 ] && fstab="$2"
+  [ "$#" -ge 3 ] && grub="$3"
+  mnt="$(findmnt -no TARGET --target "$cel" 2>/dev/null | head -1)"
+  [ -n "$mnt" ] || mnt=/
+  typ="$(findmnt -no FSTYPE --target "$mnt" 2>/dev/null | head -1)"
+  [ "$typ" = xfs ] || return 2
+  opcje="$(findmnt -no OPTIONS --target "$mnt" 2>/dev/null | head -1)"
+  case ",$opcje," in *,usrquota,*|*,uquota,*) return 0 ;; esac
+  if [ "$mnt" = / ]; then
+    grubby --update-kernel=ALL --args="rootflags=uquota,pquota" || return 1
+    if [ -f "$grub" ] && ! grep -q 'rootflags=uquota,pquota' "$grub"; then
+      sed -i 's/^GRUB_CMDLINE_LINUX="\(.*\)"$/GRUB_CMDLINE_LINUX="\1 rootflags=uquota,pquota"/' "$grub" || return 1
+    fi
+  else
+    python3 - "$fstab" "$mnt" <<'PYFSTAB' || return 1
+import sys
+plik, mnt = sys.argv[1], sys.argv[2]
+linie = open(plik).read().split('\n')
+jest = False
+for i, l in enumerate(linie):
+    p = l.split()
+    if len(p) >= 4 and not p[0].startswith('#') and p[1] == mnt and p[2] == 'xfs':
+        o = [x for x in p[3].split(',') if x != 'noquota']
+        o += [x for x in ('uquota', 'pquota') if x not in o]
+        p[3] = ','.join(o)
+        linie[i] = '\t'.join(p)
+        jest = True
+if not jest:
+    sys.exit('brak wpisu xfs dla ' + mnt + ' w ' + plik)
+open(plik, 'w').write('\n'.join(linie))
+PYFSTAB
+  fi
+  return 10
+}
+
 check_disk_quota() {
   echo "--- Limity dyskowe (quota) ---"
   if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then return 0; fi
-  local qp mnt opcje
+  local qp mnt opcje kod=0
   qp="$(da config-get quota_partition 2>/dev/null | tr -d '[:space:]')"
   [ -n "$qp" ] || qp=/home
   mnt="$(findmnt -no TARGET --target "$qp" 2>/dev/null | head -1)"
@@ -1176,9 +1220,14 @@ check_disk_quota() {
   opcje="$(findmnt -no OPTIONS --target "$mnt" 2>/dev/null)"
   if command -v repquota >/dev/null 2>&1 && repquota "$mnt" 2>/dev/null | grep -q 'Report for user quotas'; then
     log_ok "Quota użytkowników działa na $mnt (quota_partition=$qp; $opcje)"
-  else
-    log_fail "Brak quota na $mnt (quota_partition=$qp; opcje: $opcje) — limity dysku kont nie działają; XFS: grubby --update-kernel=ALL --args=\"rootflags=uquota,pquota\" + reboot (docs.directadmin.com → Filesystem and quotas)"
+    return 0
   fi
+  wlacz_quota_xfs "$qp" || kod=$?
+  case "$kod" in
+    10) log_fail "Quota XFS na $mnt ustawiona (rootflags=uquota,pquota / fstab) — zadziała po restarcie węzła; restart w oknie serwisowym, potem ponów profil" ;;
+    1)  log_fail "Brak quota na $mnt i nie udało się jej ustawić (grubby / fstab; opcje: $opcje) — limity dysku kont nie działają" ;;
+    *)  log_fail "Brak quota na $mnt (quota_partition=$qp; opcje: $opcje) — limity dysku kont nie działają" ;;
+  esac
 }
 
 print_lve_info() {

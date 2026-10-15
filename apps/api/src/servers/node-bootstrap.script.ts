@@ -1,3 +1,5 @@
+import { QUOTA_XFS_SH } from './quota-xfs.script.js';
+
 /**
  * NODE-2/5 — Generator wznawialnego skryptu bootstrapu węzła (odpornego na
  * restarty). Instaluje na węźle usługę systemd `verris-bootstrap` typu oneshot,
@@ -13,7 +15,7 @@
  * (renderBootstrapScript) — bez duplikacji. OVH NS glue + pakiety DA odpala
  * control-plane po raporcie fazy CANARY.
  *
- * Fazy: PREFLIGHT → CLOUDLINUX(+reboot) → DA → STACK(LiteSpeed) → AGENT → CANARY → DONE
+ * Fazy: PREFLIGHT → CLOUDLINUX(+reboot) → QUOTA(+reboot, jeśli potrzebny) → DA → STACK(LiteSpeed) → AGENT → CANARY → DONE
  *
  * PB-29/PB-30:
  *  - klucze licencyjne NIE są w treści skryptu — skrypt pobiera je POST-em z nagłówkiem tokenu
@@ -94,6 +96,7 @@ da_installed() { [ -x /usr/local/directadmin/directadmin ] && [ -f /usr/local/di
 get_phase() { cat "$STATE_FILE" 2>/dev/null || echo PENDING; }
 fail() { report "$1" FAILED "\${2:-}"; exit 1; }
 
+${QUOTA_XFS_SH}
 install_self() {
   # Przy \`curl … | bash\` $0 to „bash” — wtedy pobieramy skrypt jeszcze raz.
   if [ -f "$0" ] && [ "$(basename "$0")" != "bash" ]; then cp -f "$0" "$RUNNER"; else
@@ -129,7 +132,7 @@ finish() {
   report DONE OK "bootstrap zakończony"
   systemctl disable verris-bootstrap.service >/dev/null 2>&1 || true
   # Skrypt zawiera token bootstrapu — po zakończeniu nie zostaje na dysku.
-  rm -f "$RUNNER" "$UNIT" "$STATE_DIR/agent-install.sh" "$STATE_DIR/cldeploy"
+  rm -f "$RUNNER" "$UNIT" "$STATE_DIR/agent-install.sh" "$STATE_DIR/cldeploy" "$STATE_DIR/.quota-restart"
   systemctl daemon-reload >/dev/null 2>&1 || true
 }
 
@@ -185,6 +188,8 @@ PYCC
     setenforce 0 || true
     sed -i 's/^SELINUX=enforcing/SELINUX=permissive/' /etc/selinux/config
   fi
+  # Quota XFS ustawiona już tu, żeby zadziałała po restarcie CloudLinux (faza QUOTA sprawdza i w razie potrzeby restartuje).
+  wlacz_quota_xfs /home >/dev/null 2>&1 || true
   report PREFLIGHT OK
   set_phase CLOUDLINUX
 }
@@ -193,27 +198,44 @@ phase_cloudlinux() {
   report CLOUDLINUX STARTED
   if lve_active; then
     touch "$STATE_DIR/.cloudlinux-done"
-    report CLOUDLINUX OK "CloudLinux aktywny (LVE działa)"; set_phase DA; return
+    report CLOUDLINUX OK "CloudLinux aktywny (LVE działa)"; set_phase QUOTA; return
   fi
   if cloudlinux_converted; then
     # Konwersja zrobiona, moduł LVE jeszcze nie załadowany — brakuje restartu.
-    set_phase DA
+    set_phase QUOTA
     report CLOUDLINUX REBOOT "CloudLinux zainstalowany, restart ładuje moduł LVE (wznowię automatycznie)"
     sync; systemctl reboot; exit 0
   fi
   load_secrets || fail CLOUDLINUX "nie udało się pobrać kluczy licencyjnych z control-plane"
   if [ -z "$CL_ACTIVATION_KEY" ]; then
     # Brak klucza — pomijamy (wizard poda instrukcję ręcznej konwersji).
-    report CLOUDLINUX OK "pominięto — brak klucza aktywacyjnego CloudLinux"; set_phase DA; return
+    report CLOUDLINUX OK "pominięto — brak klucza aktywacyjnego CloudLinux"; set_phase QUOTA; return
   fi
   # Oficjalna konwersja CloudLinux (repo.cloudlinux.com) — wymaga rebootu.
   cd "$STATE_DIR" || fail CLOUDLINUX "cd $STATE_DIR"
   # curl, nie wget — minimalne/chmurowe obrazy AlmaLinux nie muszą mieć wget (curl sprawdza PREFLIGHT).
   curl -fsSL -m 120 https://repo.cloudlinux.com/cloudlinux/sources/cln/cldeploy -o cldeploy || fail CLOUDLINUX "pobranie cldeploy nie powiodło się"
   sh cldeploy -k "$CL_ACTIVATION_KEY" || fail CLOUDLINUX "cldeploy zwrócił błąd"
-  set_phase DA
+  set_phase QUOTA
   report CLOUDLINUX REBOOT "restart po instalacji kernela CloudLinux (wznowię automatycznie)"
   sync; systemctl reboot; exit 0
+}
+
+# Bez quota DirectAdmin nie egzekwuje dysku kont (t2, 13.10: XFS z noquota na /). Jeden restart wznawiany przez
+# systemd; gdy po nim quota dalej nie działa — błąd fazy zamiast węzła bez limitów dysku.
+phase_quota() {
+  report QUOTA STARTED
+  local kod=0
+  wlacz_quota_xfs /home || kod=$?
+  case "$kod" in
+    0)  rm -f "$STATE_DIR/.quota-restart"; report QUOTA OK "quota XFS aktywna"; set_phase DA ;;
+    2)  report QUOTA OK "system plików inny niż XFS — quota sprawdza profil hostingowy"; set_phase DA ;;
+    10) [ -f "$STATE_DIR/.quota-restart" ] && fail QUOTA "quota XFS nieaktywna mimo restartu (rootflags=uquota,pquota / fstab)"
+        touch "$STATE_DIR/.quota-restart"
+        report QUOTA REBOOT "restart włącza quota XFS (wznowię automatycznie)"
+        sync; systemctl reboot; exit 0 ;;
+    *)  fail QUOTA "nie udało się ustawić quota XFS (grubby / fstab)" ;;
+  esac
 }
 
 phase_da() {
@@ -306,6 +328,7 @@ run() {
     case "$(get_phase)" in
       PENDING|PREFLIGHT) phase_preflight ;;
       CLOUDLINUX)        phase_cloudlinux ;;   # może zrobić reboot i exit 0
+      QUOTA)             phase_quota ;;        # jw.
       DA)                phase_da ;;
       STACK)             phase_stack ;;
       AGENT)             phase_agent ;;

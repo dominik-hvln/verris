@@ -59,7 +59,7 @@ flowchart TD
 1. Admin → **Węzły** → **Dodaj węzeł (kreator)** → krok **„Instalacja (bootstrap v2)”**: nazwa, region, hostname (FQDN) → **Utwórz węzeł**.
 2. W tym samym kroku wpisz licencje (zapisywane zaszyfrowane w bazie) i skopiuj **jednolinijkowiec**.
 3. Na węźle jako root uruchom jednolinijkowiec. Skrypt instaluje usługę `verris-bootstrap` (systemd oneshot), która
-   wykonuje fazy **PREFLIGHT → CLOUDLINUX (+reboot) → DA → STACK (LiteSpeed) → AGENT → CANARY → DONE**
+   wykonuje fazy **PREFLIGHT → CLOUDLINUX (+reboot) → QUOTA (quota XFS, +reboot jeśli potrzebny) → DA → STACK (LiteSpeed) → AGENT → CANARY → DONE**
    i wznawia się po każdym restarcie. Każda faza raportuje się na żywo w kreatorze.
    - CLOUDLINUX: `cldeploy -k <klucz>` + reboot (pomijana, gdy kernel LVE już działa);
    - DA: oficjalny `setup.sh` (pomijana, gdy `/usr/local/directadmin` istnieje);

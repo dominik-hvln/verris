@@ -24,6 +24,7 @@ import {
 const PHASES: Array<{ key: string; label: string; detail: string }> = [
   { key: "PREFLIGHT", label: "Preflight", detail: "root, czysty OS, czas (NTP), brak innego panelu" },
   { key: "CLOUDLINUX", label: "CloudLinux", detail: "cldeploy → konwersja + reboot (kernel LVE)" },
+  { key: "QUOTA", label: "Limity dysku", detail: "quota XFS (rootflags) — restart, jeśli potrzebny" },
   { key: "DA", label: "DirectAdmin", detail: "oficjalny instalator CLI (setup.sh)" },
   { key: "STACK", label: "LiteSpeed", detail: "CustomBuild: webserver litespeed + serial" },
   { key: "AGENT", label: "Agent + handshake", detail: "rejestracja w control-plane, agent LVE" },
@@ -31,7 +32,7 @@ const PHASES: Array<{ key: string; label: string; detail: string }> = [
   { key: "DONE", label: "Gotowe", detail: "węzeł w pełni skonfigurowany" },
 ];
 
-const ORDER = ["PENDING", "PREFLIGHT", "CLOUDLINUX", "DA", "STACK", "AGENT", "CANARY", "DONE"];
+const ORDER = ["PENDING", "PREFLIGHT", "CLOUDLINUX", "QUOTA", "DA", "STACK", "AGENT", "CANARY", "DONE"];
 
 export function NodeBootstrapProgress({ serverId }: { serverId: string }) {
   const [status, setStatus] = useState<BootstrapStatusDto | null>(null);
