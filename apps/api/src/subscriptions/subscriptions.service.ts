@@ -569,6 +569,13 @@ export class SubscriptionsService {
               where: { id: subscription.id, status: SubscriptionStatus.PENDING_PAYMENT, account: null },
               data: { status: SubscriptionStatus.CANCELED, canceledAt: new Date(), cancelAt: new Date() },
             });
+          } else {
+            // Przegląd poprawek 15.10: zamówienie z portfela bez środków zostaje (jak dotąd), ale nie da się go już
+            // opłacić — nie może trzymać rabatu na start (rabat-startowy.ts): po doładowaniu nowe zamówienie dostaje rabat.
+            await this.prisma.subscription.updateMany({
+              where: { id: subscription.id, status: SubscriptionStatus.PENDING_PAYMENT },
+              data: { introDiscountPct: 0, introDiscountPeriodsLeft: 0 },
+            });
           }
           throw err;
         }

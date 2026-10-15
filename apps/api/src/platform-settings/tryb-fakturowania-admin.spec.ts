@@ -10,6 +10,7 @@ function usluga(wyslaneBezStatusu = 0, wKolejce = 0) {
   const prisma = {
     invoice: {
       count: async ({ where }: { where: { ksefStatus: unknown } }) => (where.ksefStatus === 'SUBMITTED' ? wyslaneBezStatusu : wKolejce),
+      findMany: async () => [{ number: 'VFV/2026/10/0001' }, { number: 'VFK/2026/10/0001' }],
     },
     platformSetting: {
       findMany: async () => [...wiersze].map(([key, value]) => ({ key, value })),
@@ -65,7 +66,7 @@ describe('KSeF — zmiana środowiska', () => {
     const { s, wiersze } = usluga(0, 4);
     wiersze.set('faktury.tryb', 'panel');
     wiersze.set('ksef.env', 'test');
-    await expect(ustaw(s, 'prod')).rejects.toThrow('4 faktur czeka na wysyłkę do środowiska test. Po zmianie poszłyby do prod');
+    await expect(ustaw(s, 'prod')).rejects.toThrow('4 faktur czeka na wysyłkę do środowiska test (VFV/2026/10/0001, VFK/2026/10/0001, …). Po zmianie poszłyby do prod');
     expect(wiersze.get('ksef.env')).toBe('test');
   });
 

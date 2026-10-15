@@ -192,6 +192,24 @@ describe('przegląd 15.10 — zakup Paynow i rabat na start', () => {
       zakup: null,
     });
   });
+  it('[2b] zamówienie z pustego portfela (brak środków) nie trzyma rabatu: po doładowaniu nowe zamówienie z rabatem', async () => {
+    oferta = { cardEnabled: true, monthlyDiscountPct: 20, annualDiscountPct: 0, introDiscountPeriods: 12 };
+    const s = serwisy();
+    const u = await prisma().user.create({ data: { email: `przg-2b-${Date.now()}@test.verris.pl`, passwordHash: 'x' } });
+    const plan = await utworzPlan({ priceMonthly: 45 });
+    const zamow = (domena: string) =>
+      s.subscriptions.create(u.id, { planId: plan.id, interval: 'MONTH', paymentSource: 'WALLET', domain: domena, immediatePerformanceConsent: true } as never);
+    await expect(zamow('sklep-h.pl')).rejects.toThrow();
+    await prisma().user.update({ where: { id: u.id }, data: { walletBalance: 100 } });
+    await zamow('sklep-h.pl');
+    const subs = await prisma().subscription.findMany({ where: { userId: u.id }, orderBy: { createdAt: 'asc' } });
+    expect(subs.map((x) => [x.status, x.introDiscountPct])).toEqual([
+      [SubscriptionStatus.PENDING_PAYMENT, 0],
+      [SubscriptionStatus.PROVISIONING, 20],
+    ]);
+    expect(Number(subs[1].priceAmount)).toBe(36);
+  });
+
   it('[4b] zwrot po nieudanym zakładaniu: wpłata nie jest raportowana jako zakup (GA4/Meta)', async () => {
     const s = serwisy();
     const u = await prisma().user.create({ data: { email: `przg-4b-${Date.now()}@test.verris.pl`, passwordHash: 'x' } });

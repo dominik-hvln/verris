@@ -102,3 +102,19 @@ describe('KSeF — zaległe faktury spoza okna automatu', () => {
     }
   });
 });
+
+describe('KSeF — przegląd stanu: faktury czekające z powodem', () => {
+  it('overview zwraca faktury PENDING/OFFLINE z ksefError (np. odrzucony token) osobno od odrzuconych', async () => {
+    const findMany = vi.fn(async (a: { where: { ksefStatus: unknown } }) =>
+      JSON.stringify(a.where.ksefStatus) === JSON.stringify('REJECTED')
+        ? []
+        : [{ id: 'f1', number: 'VFV/2026/10/0001', ksefError: 'Uwierzytelnienie KSeF odrzucone — sprawdź token', updatedAt: new Date('2026-10-15T04:00:00Z') }],
+    );
+    const prisma = { invoice: { groupBy: vi.fn(async () => [{ ksefStatus: 'PENDING', _count: { _all: 1 } }]), findMany } };
+    const settings = { getKsefRuntimeConfig: async () => ({ enabled: true, env: 'prod', nip: '5250000000', token: 't' }) };
+    const svc = new KsefService(prisma as never, { get: () => undefined } as never, {} as never, settings as never);
+    const o = await svc.adminOverview();
+    expect(o.czekajaZBledem).toEqual([{ id: 'f1', number: 'VFV/2026/10/0001', error: 'Uwierzytelnienie KSeF odrzucone — sprawdź token', updatedAt: '2026-10-15T04:00:00.000Z' }]);
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { ksefStatus: { in: ['PENDING', 'OFFLINE'] }, ksefError: { not: null } } }));
+  });
+});

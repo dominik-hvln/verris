@@ -35,9 +35,15 @@ vi.mock('./ksef-v2.client.js', () => ({
 }));
 
 type Row = Record<string, unknown> & { id: string };
+let wszystkie: Row[] = [];
 function pasuje(row: Row, where: Record<string, unknown>): boolean {
   return Object.entries(where).every(([k, w]) => {
     if (k === 'OR') return (w as Record<string, unknown>[]).some((s) => pasuje(row, s));
+    if (k === 'NOT') return !pasuje(row, w as Record<string, unknown>);
+    if (k === 'corrected') {
+      const orig = wszystkie.find((r) => r.id === row.correctedId);
+      return orig ? pasuje(orig, w as Record<string, unknown>) : false;
+    }
     const v = row[k];
     if (w && typeof w === 'object' && !(w instanceof Date)) {
       const o = w as Record<string, unknown>;
@@ -52,6 +58,7 @@ function pasuje(row: Row, where: Record<string, unknown>): boolean {
   });
 }
 function baza(rows: Row[]) {
+  wszystkie = rows;
   const wybierz = (r: Row | undefined) => (r ? { ...r } : null);
   return {
     rows,
@@ -188,5 +195,48 @@ describe('KSeF — przegląd 15.10', () => {
     bladOtwarcia = new Error('KSeF 2.0 niedostępny (/auth/challenge): timeout');
     await serwis(db).tick();
     expect(db.rows[0].ksefStatus).toBe(KsefStatus.PENDING);
+  });
+});
+
+describe('KSeF — przegląd poprawek 15.10', () => {
+  it('[R1] korekta faktury zaległej (VAT panelu sprzed okna, poza kolejką) czeka z powodem — nie idzie z NrKSeFN', async () => {
+    const dziesiecDni = new Date(Date.now() - 10 * 24 * 3600_000);
+    const db = baza([
+      faktura({ id: 'o', ksefStatus: KsefStatus.NOT_APPLICABLE, issuedAt: dziesiecDni, createdAt: dziesiecDni }),
+      faktura({ id: 'k', number: 'VFK/2026/10/7', kind: 'KOREKTA', correctedId: 'o', ksefStatus: KsefStatus.NOT_APPLICABLE }),
+    ]);
+    await serwis(db).tick();
+    expect(db.rows[0].ksefStatus).toBe(KsefStatus.NOT_APPLICABLE);
+    expect(klienciV2.flatMap((k) => k.wyslane)).toEqual([]);
+    expect(db.rows[1]).toMatchObject({ ksefStatus: KsefStatus.PENDING, ksefError: expect.stringContaining('zaległa') });
+  });
+
+  it('[R1b] korekta faktury spoza KSeF z innej serii (np. dokument sprzed trybu panel) dalej idzie z NrKSeFN', async () => {
+    const db = baza([
+      faktura({ id: 'o', number: 'FV/2026/08/1', ksefStatus: KsefStatus.NOT_APPLICABLE, issuedAt: new Date(Date.now() - 60 * 24 * 3600_000) }),
+      faktura({ id: 'k', number: 'VFK/2026/10/8', kind: 'KOREKTA', correctedId: 'o' }),
+    ]);
+    await serwis(db).tick();
+    expect(klienciV2.flatMap((k) => k.wyslane)).toEqual(['<Faktura nr="VFK/2026/10/8" korygowana="NrKSeFN"/>']);
+  });
+
+  it('[R2] odrzucony token: faktury z kolejki mają powód (ksefError), status bez zmian', async () => {
+    const db = baza([faktura({ id: 't' }), faktura({ id: 'w', ksefStatus: KsefStatus.SUBMITTED, ksefElementRef: 's|f' })]);
+    bladOtwarcia = Object.assign(new Error('KSeF 2.0 uwierzytelnianie odrzucone: 450'), { httpStatus: 200 });
+    await serwis(db).tick();
+    expect(db.rows[0]).toMatchObject({ ksefStatus: KsefStatus.PENDING, ksefError: expect.stringContaining('Uwierzytelnienie KSeF odrzucone') });
+    expect(db.rows[1]).toMatchObject({ ksefStatus: KsefStatus.SUBMITTED, ksefError: null });
+  });
+
+  it('[R3] korekta odrzuconej faktury nie zajmuje miejsca w partii (czeka na „Ponów” pierwotnej)', async () => {
+    const db = baza([
+      faktura({ id: 'o', ksefStatus: KsefStatus.REJECTED, ksefError: 'KSeF 450', issuedAt: new Date(Date.now() - 1000) }),
+      faktura({ id: 'k', number: 'VFK/2026/10/2', kind: 'KOREKTA', correctedId: 'o' }),
+    ]);
+    await serwis(db).tick();
+    expect(db.rows[1].ksefStatus).toBe(KsefStatus.PENDING);
+    // Nie wzięta do partii: bez zajęcia (dzierżawy) i bez budowania pliku.
+    expect(db.rows[1].ksefSubmittedAt).toBeNull();
+    expect(zbudowane).toEqual([]);
   });
 });

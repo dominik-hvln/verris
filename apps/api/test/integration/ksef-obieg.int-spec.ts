@@ -102,7 +102,8 @@ describe('X-04 obieg faktur w KSeF', () => {
     await serwis().tick();
     const po = await stan(f.id);
     expect(po.ksefStatus).toBe(KsefStatus.PENDING);
-    expect(po.ksefError).toBeNull();
+    // Przegląd poprawek 15.10: powód czekania zostaje na fakturze (wcześniej pusto), status bez zmian.
+    expect(po.ksefError).toMatch(/^Wysyłka nieudana, ponowimy:/);
   });
 
   it('„Ponów” na fakturze przyjętej albo czekającej na numer: odmowa, bez drugiej wysyłki', async () => {

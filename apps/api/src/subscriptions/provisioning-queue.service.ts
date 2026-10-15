@@ -422,6 +422,14 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
     const d = job.data;
     const isLastAttempt = (job.attemptsMade ?? 0) + 1 >= MAX_ATTEMPTS;
 
+    // Przegląd poprawek 15.10: job „wallet” zamówienia, za które pieniądze już wróciły (twarda porażka), nie może
+    // założyć usługi przy „Ponów” z panelu — byłaby aktywna bez opłaty (a po cofnięciu bez końca okresu: bez odnowień).
+    if (d.type === 'wallet' && (await this.walletLedger.findByIdempotencyKey(`sub-${d.subscriptionId}-initial-refund`))) {
+      const msg = 'Opłata za to zamówienie została zwrócona do portfela — zakładanie wymaga nowego zamówienia.';
+      await this.markStage(d.subscriptionId, ProvisioningStage.FAILED, { error: msg, attempt: (job.attemptsMade ?? 0) + 1 });
+      throw new UnrecoverableError(msg);
+    }
+
     await this.markStage(d.subscriptionId, ProvisioningStage.RUNNING, {
       attempt: (job.attemptsMade ?? 0) + 1,
     });

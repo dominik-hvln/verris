@@ -260,6 +260,9 @@ export class KsefService {
       where: {
         ksefStatus: { in: [KsefStatus.PENDING, KsefStatus.SUBMITTED, KsefStatus.OFFLINE] },
         rodzajPrawny: RODZAJ_FAKTURA_VAT,
+        // Przegląd poprawek 15.10: korekta odrzuconej faktury czeka na jej „Ponów” — nie zajmuje miejsca w partii
+        // (25 najstarszych), bo kilka takich zatrzymałoby wysyłkę wszystkich nowszych.
+        NOT: { corrected: { ksefStatus: KsefStatus.REJECTED } },
       },
       orderBy: { issuedAt: 'asc' },
       take: BATCH_LIMIT,
@@ -275,6 +278,9 @@ export class KsefService {
         const powod = err instanceof Error ? err.message : String(err);
         this.logger.error(`KSeF: uwierzytelnienie odrzucone — sprawdź token i uprawnienia (faktury czekają): ${powod}`);
         await this.audit.record({ action: 'KSEF_UWIERZYTELNIENIE_ODRZUCONE', details: { powod: powod.slice(0, 500) } });
+        // Przegląd poprawek 15.10: bez śladu na fakturach kolejka stała po cichu (np. token PROD bez uprawnień
+        // w dniu przełączenia) — powód widać na fakturze i w Ustawienia → Firma → KSeF („czekają z błędem”).
+        await this.zapiszBladWKolejce(pending, `Uwierzytelnienie KSeF odrzucone — sprawdź token i uprawnienia: ${powod}`);
         return;
       }
       // M-16 — KSeF nie odpowiada. Do dziś w tym miejscu było tylko ostrzeżenie
@@ -354,11 +360,11 @@ export class KsefService {
 
     // M-06 — korekta musi nieść numer i datę faktury korygowanej (a w FA(3) także jej numer
     // KSeF albo znacznik „poza KSeF”). Te dane siedzą na dokumencie pierwotnym.
-    let korygowana: { number: string; issuedAt: Date | null; ksefNumber: string | null; ksefStatus: KsefStatus; ksefSrodowisko: string | null } | null = null;
+    let korygowana: (Pick<Invoice, 'number' | 'issuedAt' | 'netAmount' | 'rodzajPrawny' | 'storageKey'> & { ksefNumber: string | null; ksefStatus: KsefStatus; ksefSrodowisko: string | null }) | null = null;
     if (inv.kind === 'KOREKTA' && inv.correctedId) {
       korygowana = await this.prisma.invoice.findUnique({
         where: { id: inv.correctedId },
-        select: { number: true, issuedAt: true, ksefNumber: true, ksefStatus: true, ksefSrodowisko: true },
+        select: { number: true, issuedAt: true, netAmount: true, rodzajPrawny: true, storageKey: true, ksefNumber: true, ksefStatus: true, ksefSrodowisko: true },
       });
       // Przegląd 13.10: numer KSeF faktury przyjętej w innym środowisku (np. TEST) nie istnieje w bieżącym (PROD) —
       // wpisany do NrKSeFFaKorygowanej dałby korektę faktury, której w tym KSeF nie ma.
@@ -379,6 +385,13 @@ export class KsefService {
       if (korygowana && !korygowana.ksefNumber && korygowana.ksefStatus === KsefStatus.REJECTED) {
         throw new KorygowanaBezNumeruKsef(
           `Faktura korygowana ${korygowana.number} została odrzucona przez KSeF — popraw ją i ponów; korekta pójdzie po nadaniu numeru.`,
+        );
+      }
+      // Przegląd poprawek 15.10: pierwotna to faktura VAT panelu, która powinna być w KSeF, a nie trafiła do kolejki
+      // (zaległa spoza okna automatu) — ta sama nieprawda co wyżej. Czeka, aż operator zakolejkuje zaległe.
+      if (korygowana && korygowana.ksefStatus === KsefStatus.NOT_APPLICABLE && this.qualifies(korygowana)) {
+        throw new KorygowanaBezNumeruKsef(
+          `Faktura korygowana ${korygowana.number} nie została wysłana do KSeF (zaległa) — zakolejkuj zaległe faktury; korekta pójdzie po nadaniu numeru.`,
         );
       }
     }
@@ -422,6 +435,8 @@ export class KsefService {
       }
       if (err instanceof KorygowanaBezNumeruKsef) {
         this.logger.log(`KSeF: ${inv.number} — ${err.message}`);
+        // Przegląd poprawek 15.10: czekająca korekta ma widoczny powód (wcześniej tylko log).
+        await this.zapiszBladWKolejce([inv], err.message);
         return;
       }
       throw err;
@@ -458,6 +473,8 @@ export class KsefService {
         await this.markRejected(inv, (err as Error).message);
         return;
       }
+      // Przegląd poprawek 15.10: przyczyna zostaje na fakturze (np. stały 4xx przy otwieraniu sesji online).
+      await this.zapiszBladWKolejce([inv], `Wysyłka nieudana, ponowimy: ${err instanceof Error ? err.message : String(err)}`);
       throw err; // 5xx / sieć / przejściowe → zostaje PENDING, retry w kolejnym cyklu.
     }
   }
@@ -626,6 +643,15 @@ export class KsefService {
     return { poTerminie, nieznane };
   }
 
+  /** Powód czekania na fakturach z kolejki — bez zmiany statusu (tylko PENDING/OFFLINE). */
+  private async zapiszBladWKolejce(faktury: Pick<Invoice, 'id'>[], powod: string): Promise<void> {
+    if (faktury.length === 0) return;
+    await this.prisma.invoice.updateMany({
+      where: { id: { in: faktury.map((f) => f.id) }, ksefStatus: { in: [KsefStatus.PENDING, KsefStatus.OFFLINE] } },
+      data: { ksefError: powod.slice(0, 2000) },
+    });
+  }
+
   private async markRejected(inv: Invoice, reason: string): Promise<void> {
     await this.prisma.invoice.update({
       where: { id: inv.id },
@@ -680,7 +706,7 @@ export class KsefService {
   }
 
   async adminOverview() {
-    const [counts, recentRejected] = await Promise.all([
+    const [counts, recentRejected, czekajaZBledem] = await Promise.all([
       this.prisma.invoice.groupBy({
         by: ['ksefStatus'],
         _count: { _all: true },
@@ -691,11 +717,24 @@ export class KsefService {
         take: 10,
         select: { id: true, number: true, ksefError: true, updatedAt: true },
       }),
+      // Przegląd poprawek 15.10: faktury w kolejce z powodem czekania (token odrzucony, korekta czeka na pierwotną…).
+      this.prisma.invoice.findMany({
+        where: { ksefStatus: { in: [KsefStatus.PENDING, KsefStatus.OFFLINE] }, ksefError: { not: null } },
+        orderBy: { updatedAt: 'desc' },
+        take: 10,
+        select: { id: true, number: true, ksefError: true, updatedAt: true },
+      }),
     ]);
     return {
       config: await this.configStatus(),
       counts: Object.fromEntries(counts.map((c) => [c.ksefStatus, c._count._all])),
       recentRejected: recentRejected.map((r) => ({
+        id: r.id,
+        number: r.number,
+        error: r.ksefError,
+        updatedAt: r.updatedAt.toISOString(),
+      })),
+      czekajaZBledem: czekajaZBledem.map((r) => ({
         id: r.id,
         number: r.number,
         error: r.ksefError,

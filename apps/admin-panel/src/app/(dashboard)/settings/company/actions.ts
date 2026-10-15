@@ -32,6 +32,8 @@ export interface KsefOverview {
   };
   counts: Record<string, number>;
   recentRejected: Array<{ id: string; number: string; error: string | null; updatedAt: string }>;
+  /** Przegląd 15.10 — faktury w kolejce z powodem czekania (token odrzucony, korekta czeka na pierwotną…). */
+  czekajaZBledem?: Array<{ id: string; number: string; error: string | null; updatedAt: string }>;
 }
 
 function err(e: unknown): string {

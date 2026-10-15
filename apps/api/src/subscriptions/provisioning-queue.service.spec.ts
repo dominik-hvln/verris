@@ -46,7 +46,7 @@ describe('ProvisioningQueueService — twarda porażka kończy job', () => {
       user: { findMany: vi.fn(async () => [{ id: 'admin1' }]) },
       notification: { createMany: vi.fn(async () => ({ count: 1 })) },
     };
-    const walletLedger = { credit: vi.fn(async () => ({})) };
+    const walletLedger = { credit: vi.fn(async () => ({})), findByIdempotencyKey: vi.fn(async () => null) };
     const audit = { record: vi.fn(async () => undefined) };
     const provisioning = { provisionForSubscription: vi.fn(async () => Promise.reject(blad)) };
     const svc = new ProvisioningQueueService(prisma as never, provisioning as never, walletLedger as never, audit as never, {} as never);

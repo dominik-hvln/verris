@@ -169,6 +169,21 @@ export function KsefForm() {
               <span className="text-muted-foreground">Brak faktur w obiegu KSeF.</span>
             )}
           </div>
+          {(overview.czekajaZBledem?.length ?? 0) > 0 && (
+            <div className="mt-2 space-y-1">
+              <p className="text-xs font-medium text-amber-300">Czekają na wysyłkę — powód:</p>
+              {overview.czekajaZBledem!.map((r) => (
+                <div key={r.id} className="flex items-center justify-between gap-2 text-xs text-neutral-300">
+                  <span className="truncate">
+                    <code>{r.number}</code> — {r.error}
+                  </span>
+                  <Link href={`/invoices/${r.id}#ksef`} className="shrink-0 px-2 py-0.5 rounded border border-white/15 hover:bg-white/5">
+                    Otwórz fakturę
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
           {zalegle && <KsefZalegleSekcja zalegle={zalegle} env={overview.config.env} enabled={overview.config.enabled} onDone={load} />}
           {overview.recentRejected.length > 0 && (
             <div className="mt-2 space-y-1">

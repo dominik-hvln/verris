@@ -795,8 +795,15 @@ export class PlatformSettingsService {
       // przyjmie obecne środowisko albo niech zostaną usunięte (czyszczenie panelu przed startem).
       const wKolejce = await this.prisma.invoice.count({ where: { ksefStatus: { in: ['PENDING', 'OFFLINE'] } } });
       if (wKolejce > 0) {
+        const przyklady = await this.prisma.invoice.findMany({
+          where: { ksefStatus: { in: ['PENDING', 'OFFLINE'] } },
+          orderBy: { issuedAt: 'asc' },
+          take: 5,
+          select: { number: true },
+        });
         throw new BadRequestException(
-          `KSeF: ${wKolejce} ${wKolejce === 1 ? 'faktura czeka' : 'faktur czeka'} na wysyłkę do środowiska ${obecneEnv}. ` +
+          `KSeF: ${wKolejce} ${wKolejce === 1 ? 'faktura czeka' : 'faktur czeka'} na wysyłkę do środowiska ${obecneEnv} ` +
+            `(${przyklady.map((f) => f.number).join(', ')}${wKolejce > przyklady.length ? ', …' : ''}). ` +
             `Po zmianie poszłyby do ${noweEnv}. Poczekaj na ich wysyłkę albo usuń dokumenty testowe i zmień środowisko ponownie.`,
         );
       }
