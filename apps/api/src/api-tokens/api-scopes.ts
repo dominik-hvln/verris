@@ -7,6 +7,8 @@ export const API_SCOPES = {
   DNS_READ: 'dns:read',
   DNS_WRITE: 'dns:write',
   DEPLOY_WRITE: 'deploy:write',
+  MAIL_READ: 'mail:read',
+  MAIL_WRITE: 'mail:write',
 } as const;
 
 export type ApiScopeValue = (typeof API_SCOPES)[keyof typeof API_SCOPES];
@@ -20,6 +22,8 @@ export const API_SCOPE_LABELS: Record<ApiScopeValue, string> = {
   'dns:read': 'Odczyt rekordów DNS',
   'dns:write': 'Dodawanie i usuwanie rekordów DNS (np. Terraform, certyfikaty DNS-01)',
   'deploy:write': 'Wdrożenie: pobranie zmian z repozytorium Git (CI/CD)',
+  'mail:read': 'Odczyt skrzynek pocztowych (adresy i rozmiary)',
+  'mail:write': 'Zakładanie i usuwanie skrzynek, zmiana hasła i rozmiaru',
 };
 
 export function isValidScope(s: string): s is ApiScopeValue {
@@ -37,4 +41,6 @@ export const UPRAWNIENIE_ZAKRESU: Record<ApiScopeValue, CustomerPermission> = {
   'dns:read': CustomerPermission.DNS_MANAGE,
   'dns:write': CustomerPermission.DNS_MANAGE,
   'deploy:write': CustomerPermission.FILES_MANAGE,
+  'mail:read': CustomerPermission.EMAIL_MANAGE,
+  'mail:write': CustomerPermission.EMAIL_MANAGE,
 };

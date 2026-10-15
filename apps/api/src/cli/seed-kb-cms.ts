@@ -955,8 +955,10 @@ Adres bazowy: **https://api.verris.pl/api/v1**
 - **dns:read** — odczyt rekordów DNS
 - **dns:write** — dodawanie i usuwanie rekordów DNS
 - **deploy:write** — wdrożenie z repozytorium Git
+- **mail:read** — odczyt skrzynek pocztowych (adresy i rozmiary)
+- **mail:write** — zakładanie i usuwanie skrzynek, zmiana hasła i rozmiaru
 
-Subkonto nada tokenowi tylko te zakresy, na które pozwalają mu jego uprawnienia w panelu.
+Tokeny tworzy wyłącznie właściciel konta.
 
 ## Odczyt
 - **GET /me** (services:read) — id, e-mail, imię, nazwisko, data założenia konta
@@ -966,6 +968,7 @@ Subkonto nada tokenowi tylko te zakresy, na które pozwalają mu jego uprawnieni
 - **GET /invoices** (invoices:read) — id, number, status, amount, currency, issuedAt, createdAt (do 100 najnowszych)
 - **GET /services/:id/dns?domain=** (dns:read) — rekordy domeny: id, name, type, value, ttl; bez parametru — domena główna usługi
 - **GET /services/:id/deploy?domain=** (deploy:write) — stan wdrożenia z Gita dla domeny
+- **GET /services/:id/mailboxes** (mail:read) — skrzynki wszystkich domen usługi: email, quotaMb (rozmiar w MB; null, gdy serwer go nie podał)
 
 Daty są w formacie ISO 8601 (UTC), kwoty jako liczby.
 
@@ -973,6 +976,10 @@ Daty są w formacie ISO 8601 (UTC), kwoty jako liczby.
 - **POST /services/:id/dns** (dns:write) — pola: domain, name, type (A, AAAA, CNAME, MX, TXT, SRV, NS, CAA), value, opcjonalnie ttl (60–86400)
 - **POST /services/:id/dns/delete** (dns:write) — pola: domain, name, type, value
 - **POST /services/:id/deploy** (deploy:write) — pola: domain, opcjonalnie dir; pobiera zmiany z repozytorium Git
+- **POST /services/:id/mailboxes** (mail:write) — pola: email, password (8–128 znaków), opcjonalnie quotaMb (10–102400, domyślnie 1024)
+- **POST /services/:id/mailboxes/password** (mail:write) — pola: email, password
+- **POST /services/:id/mailboxes/quota** (mail:write) — pola: email, quotaMb
+- **POST /services/:id/mailboxes/delete** (mail:write) — pole: email; usuwa skrzynkę razem z wiadomościami
 
 Przykład — rekord TXT do weryfikacji DNS-01:
 

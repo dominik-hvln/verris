@@ -183,9 +183,11 @@ export function ApiTokensClient({ mozeTworzyc = true }: { mozeTworzyc?: boolean 
   https://api.verris.pl/api/v1/services`}</code></pre>
         <p className="mt-2 text-[11px] text-neutral-500">
           Odczyt: <code>GET /api/v1/me</code>, <code>/services</code>, <code>/services/:id</code>, <code>/billing/wallet</code>, <code>/invoices</code>,{' '}
-          <code>/services/:id/dns?domain=</code> (dns:read), <code>/services/:id/deploy?domain=</code> (deploy:write).
+          <code>/services/:id/dns?domain=</code> (dns:read), <code>/services/:id/deploy?domain=</code> (deploy:write), <code>/services/:id/mailboxes</code> (mail:read).
           Zapis: <code>POST /services/:id/dns</code> i <code>/services/:id/dns/delete</code> z polami domain, name, type, value (dns:write);{' '}
-          <code>POST /services/:id/deploy</code> z polem domain (i opcjonalnie dir) — pobiera zmiany z repozytorium Git (deploy:write). Webhooki (zdarzenia wysyłane na Twój adres) ustawisz niżej.
+          <code>POST /services/:id/deploy</code> z polem domain (i opcjonalnie dir) — pobiera zmiany z repozytorium Git (deploy:write);{' '}
+          <code>POST /services/:id/mailboxes</code> (email, password, opcjonalnie quotaMb), <code>/mailboxes/password</code>, <code>/mailboxes/quota</code> i{' '}
+          <code>/mailboxes/delete</code> (mail:write). Webhooki (zdarzenia wysyłane na Twój adres) ustawisz niżej.
         </p>
         <a
           href="https://pomoc.verris.pl/a/publiczne-api"

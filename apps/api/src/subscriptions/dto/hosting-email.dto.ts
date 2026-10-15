@@ -38,3 +38,6 @@ export class ZmienRozmiarSkrzynkiDto extends SkrzynkaBaza {
   @Max(QUOTA_MAX_MB)
   quotaMb!: number;
 }
+
+/** L-08 (noc 15.10) — usunięcie skrzynki przez publiczne API (POST …/mailboxes/delete, jak dns/delete). */
+export class UsunSkrzynkeApiDto extends SkrzynkaBaza {}
