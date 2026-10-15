@@ -237,27 +237,35 @@ hydrate_index_tokens() {
 
 deploy_public_html() {
   local pub_dir="$1"
-  local idx="${pub_dir}/index.html"
 
   if [ "$DRY_RUN" = "1" ]; then
     parse_public_html_context "$pub_dir"
-    log "DRY-RUN: rsync + tokeny -> ${pub_dir} (${PUBLIC_HTML_DOMAIN:-?})"
+    log "DRY-RUN: strona + tokeny -> ${pub_dir} (${PUBLIC_HTML_DOMAIN:-?})"
     return 0
   fi
 
-  rsync -a "${SRC_DIR}/" "${pub_dir}/"
-  cleanup_public_html_artifacts "${pub_dir}"
+  # Noc 15.10 (przegląd node-root-files): katalog znalazł `find`, ale między wyszukaniem a zapisem klient mógł podmienić
+  # public_html (albo assets, index.html) na dowiązanie — root nadawał 755/644 i zapisywał index.html gdziekolwiek.
+  # Teraz root składa stronę we własnym katalogu tymczasowym, a do public_html wpisuje ją KLIENT (runuser + tar), jak hak
+  # poddomen wyżej: dowiązanie do cudzego pliku albo katalogu kończy się odmową uprawnień. Bez chown -R roota.
   parse_public_html_context "$pub_dir"
-  if [ -n "${PUBLIC_HTML_USER:-}" ] && [ -n "${PUBLIC_HTML_DOMAIN:-}" ]; then
-    hydrate_index_tokens "$idx" "$PUBLIC_HTML_USER" "$PUBLIC_HTML_DOMAIN"
-    read_da_tokens "$PUBLIC_HTML_USER" "$PUBLIC_HTML_DOMAIN"
-    log "Tokeny: ${PUBLIC_HTML_DOMAIN} / ${PUBLIC_HTML_USER} / ${DA_TOKEN_DATE_CREATED} / ${DA_TOKEN_IP}"
-  else
-    log "WARN: nie udało się odczytać user/domeny z ${pub_dir} — tokeny bez zmian"
+  if [ -z "${PUBLIC_HTML_USER:-}" ] || [ -z "${PUBLIC_HTML_DOMAIN:-}" ] || ! id "$PUBLIC_HTML_USER" &>/dev/null; then
+    log "WARN: nie udało się odczytać konta/domeny z ${pub_dir} — pomijam"
+    return 0
   fi
-
-  fix_public_html_permissions "${pub_dir}" "${PUBLIC_HTML_USER:-}"
-  log "Podmieniono: ${pub_dir}"
+  local tmp
+  tmp="$(mktemp -d)"
+  rsync -a "${SRC_DIR}/" "${tmp}/"
+  cleanup_public_html_artifacts "$tmp"
+  hydrate_index_tokens "${tmp}/index.html" "$PUBLIC_HTML_USER" "$PUBLIC_HTML_DOMAIN"
+  fix_public_html_permissions "$tmp" ""
+  if tar -C "$tmp" -cf - . | runuser -u "$PUBLIC_HTML_USER" -- tar -C "$pub_dir" -xpf - --no-same-owner; then
+    log "Tokeny: ${PUBLIC_HTML_DOMAIN} / ${PUBLIC_HTML_USER} / ${DA_TOKEN_DATE_CREATED} / ${DA_TOKEN_IP}"
+    log "Podmieniono: ${pub_dir}"
+  else
+    log "WARN: zapis strony w ${pub_dir} jako ${PUBLIC_HTML_USER} nieudany — pominięto"
+  fi
+  rm -rf -- "$tmp"
 }
 
 replace_existing_public_html() {
