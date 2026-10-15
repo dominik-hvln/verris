@@ -173,6 +173,8 @@ services:
       APP_KMS_KEY: ${APP_KMS_KEY:?APP_KMS_KEY is required}
       # 15.10 — podgląd strony przed zmianą DNS; puste = funkcja wyłączona (apps/api/src/podglad).
       PODGLAD_DOMENA: ${PODGLAD_DOMENA:-}
+      # Noc 15.10 — zamówienia przez publiczne API (L-08 część 2): „1” włącza, puste = wyłączone (decyzja właściciela).
+      API_ZAMOWIENIA: ${API_ZAMOWIENIA:-}
       # Optional: leave empty and api-entrypoint.sh builds a URL from POSTGRES_* (safe encoding).
       DATABASE_URL: ${DATABASE_URL:-}
       POSTGRES_USER: ${POSTGRES_USER:-verris}

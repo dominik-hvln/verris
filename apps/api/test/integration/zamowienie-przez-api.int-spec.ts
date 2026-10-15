@@ -33,7 +33,7 @@ function kontroler() {
     mailer as never, { get: () => undefined } as never, promo, { safeAward: () => undefined } as never,
     { getTrialOffer: async () => ({ cardEnabled: false, monthlyDiscountPct: 0, annualDiscountPct: 0 }) } as never, null as never,
   );
-  return new PublicApiOrdersController(subs, { checkReConsent: async () => ({ required: false }) } as never, audit, p);
+  return new PublicApiOrdersController(subs, { checkReConsent: async () => ({ required: false }) } as never, p);
 }
 
 let n = 0;
@@ -59,45 +59,54 @@ describe('L-08 — zamówienie przez API (portfel)', () => {
   it('środki są: jedno obciążenie, usługa w zakładaniu, wpis API_ORDER_CREATED z tokenem', async () => {
     const k = await klient(100);
     const plan = await utworzPlan({ priceMonthly: 45 });
-    const w = await kontroler().zamow(req(k.id), body(plan.id));
+    const w = await kontroler().zamow(req(k.id), body(plan.id), 'klucz-pierwszy-1');
     expect(await saldo(k.id)).toBe(55);
     expect(await prisma().walletTransaction.count({ where: { userId: k.id, type: WalletTxType.CHARGE_SUBSCRIPTION } })).toBe(1);
-    expect((await prisma().subscription.findUniqueOrThrow({ where: { id: w.id } })).status).toBe(SubscriptionStatus.PROVISIONING);
-    expect(kolejka).toEqual([w.id]);
+    expect((await prisma().subscription.findUniqueOrThrow({ where: { id: (w as { id: string }).id } })).status).toBe(SubscriptionStatus.PROVISIONING);
+    expect(kolejka).toEqual([(w as { id: string }).id]);
     const wpis = await prisma().auditLog.findFirst({ where: { action: 'API_ORDER_CREATED', userId: k.id } });
-    expect(wpis?.details).toMatchObject({ subscriptionId: w.id, tokenId: 'tok-1', domain: 'api-sklep.pl' });
+    expect(wpis?.details).toMatchObject({ subscriptionId: (w as { id: string }).id, tokenId: 'tok-1', domain: 'api-sklep.pl', idempotencyKey: 'klucz-pierwszy-1' });
   });
 
   it('brak środków: błąd, saldo bez zmian, bez obciążenia', async () => {
     const k = await klient(10);
     const plan = await utworzPlan({ priceMonthly: 45 });
-    await expect(kontroler().zamow(req(k.id), body(plan.id))).rejects.toThrow();
+    await expect(kontroler().zamow(req(k.id), body(plan.id), 'klucz-brak-srodkow')).rejects.toThrow();
     expect(await saldo(k.id)).toBe(10);
     expect(await prisma().walletTransaction.count({ where: { userId: k.id, type: WalletTxType.CHARGE_SUBSCRIPTION } })).toBe(0);
     expect(kolejka).toEqual([]);
   });
 
-  it('powtórzone zamówienie tej samej domeny (np. ponowienie skryptu): drugie odrzucone przed opłatą', async () => {
+  it('druga usługa na domenę z założonym kontem (inny klucz): „ma już konto”, jedno obciążenie', async () => {
     const k = await klient(200);
     const plan = await utworzPlan({ priceMonthly: 45 });
     const c = kontroler();
-    await c.zamow(req(k.id), body(plan.id, 'raz.pl'));
-    // konto hostingowe powstaje w provisioningu (kolejka) — tu jak po założeniu
+    await c.zamow(req(k.id), body(plan.id, 'raz.pl'), 'klucz-raz-0001');
     const sub = await prisma().subscription.findFirstOrThrow({ where: { userId: k.id } });
     const wezel = await utworzWezel();
     await prisma().account.create({ data: { subscriptionId: sub.id, userId: k.id, serverId: wezel.id, domain: 'raz.pl', daUsername: `raz${n}x`, status: 'ACTIVE' } });
-    await expect(c.zamow(req(k.id), body(plan.id, 'raz.pl'))).rejects.toThrow();
+    await prisma().subscription.update({ where: { id: sub.id }, data: { status: 'CANCELED' } }); // poza kontrolą z dziennika API
+    await expect(c.zamow(req(k.id), body(plan.id, 'raz.pl'), 'klucz-raz-0002')).rejects.toThrow(/ma już konto/);
     expect(await prisma().walletTransaction.count({ where: { userId: k.id, type: WalletTxType.CHARGE_SUBSCRIPTION } })).toBe(1);
   });
 
-  it('ponowienie skryptu zaraz po zamówieniu (konto jeszcze w kolejce) i dwa równoległe: jedno obciążenie, 409', async () => {
+  it('ponowienia z tym samym kluczem z DWÓCH instancji API naraz i po czasie: jedno obciążenie, ten sam wynik', async () => {
+    const k = await klient(500);
+    const plan = await utworzPlan({ priceMonthly: 45 });
+    const [a, b] = [kontroler(), kontroler()];
+    const wyniki = await Promise.all([a.zamow(req(k.id), body(plan.id, 'dwa.pl'), 'klucz-dwa-0001'), b.zamow(req(k.id), body(plan.id, 'dwa.pl'), 'klucz-dwa-0001')]);
+    expect(wyniki[0]).toEqual(wyniki[1]);
+    expect(await a.zamow(req(k.id), body(plan.id, 'dwa.pl'), 'klucz-dwa-0001')).toEqual(wyniki[0]);
+    expect(await prisma().walletTransaction.count({ where: { userId: k.id, type: WalletTxType.CHARGE_SUBSCRIPTION } })).toBe(1);
+    expect(await saldo(k.id)).toBe(455);
+  });
+
+  it('skrypt z NOWYM kluczem dla tej samej domeny w zakładaniu (także www.) → 409, jedno obciążenie', async () => {
     const k = await klient(500);
     const plan = await utworzPlan({ priceMonthly: 45 });
     const c = kontroler();
-    const wyniki = await Promise.allSettled([c.zamow(req(k.id), body(plan.id, 'dwa.pl')), c.zamow(req(k.id), body(plan.id, 'dwa.pl'))]);
-    expect(wyniki.map((w) => w.status).sort()).toEqual(['fulfilled', 'rejected']);
-    await expect(c.zamow(req(k.id), body(plan.id, 'dwa.pl'))).rejects.toThrow(/już zamówiona/);
+    await c.zamow(req(k.id), body(plan.id, 'trzy.pl'), 'klucz-trzy-001');
+    await expect(c.zamow(req(k.id), body(plan.id, 'www.trzy.pl'), 'klucz-trzy-002')).rejects.toThrow(/już zamówiona/);
     expect(await prisma().walletTransaction.count({ where: { userId: k.id, type: WalletTxType.CHARGE_SUBSCRIPTION } })).toBe(1);
-    expect(await saldo(k.id)).toBe(455);
   });
 });
