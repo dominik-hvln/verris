@@ -94,8 +94,23 @@ cmd_fetch() {
   [ -d "$dst" ] && [ ! -L "${HOME_DIR}/${user}/backups" ] || fail "brak katalogu ${dst} (konto istnieje na tym węźle?)"
   [ ! -L "${dst}${archive}" ] || fail "${dst}${archive} jest dowiązaniem symbolicznym — odmowa"
   log "pobieram ${src} -> ${dst}"
-  rclone copyto "$src" "${dst}${archive}" --retries 3 --low-level-retries 10 || fail "rclone copy nieudany"
-  chown -h "${user}:${user}" "${dst}${archive}" 2>/dev/null || true
+  # Noc 15.10 (przegląd node-root-files): sprawdzenie wyżej i zapis roota to dwie chwile — klient mógł w międzyczasie
+  # podmienić ~/backups na dowiązanie. Root tylko czyta z magazynu (rclone cat, https://rclone.org/commands/rclone_cat/),
+  # a plik w katalogu konta zapisuje klient (runuser): dowiązanie do cudzego katalogu = odmowa uprawnień, liczy się
+  # quota klienta, a chown nie jest potrzebny. Niepełny strumień nie zostawia archiwum (plik tymczasowy + mv).
+  local rc_cat rc_zapis
+  set +e
+  rclone cat "$src" --low-level-retries 10 \
+    | runuser -u "$user" -- sh -c 'umask 077; cat > "$1.verris-tmp"' verris "${dst}${archive}"
+  rc_cat=${PIPESTATUS[0]} rc_zapis=${PIPESTATUS[1]}
+  set -e
+  # Plik tymczasowy zostaje plikiem docelowym dopiero po udanym odczycie CAŁEGO strumienia (cat po stronie klienta
+  # kończy się sukcesem także na urwanym strumieniu).
+  if [ "$rc_cat" != 0 ] || [ "$rc_zapis" != 0 ] \
+    || ! runuser -u "$user" -- mv -f -- "${dst}${archive}.verris-tmp" "${dst}${archive}"; then
+    runuser -u "$user" -- rm -f -- "${dst}${archive}.verris-tmp" 2>/dev/null || true
+    fail "pobranie archiwum nieudane (rclone kod ${rc_cat}, zapis kod ${rc_zapis})"
+  fi
   log "pobrano: ${dst}${archive}"
   printf 'VERRIS-OFFSITE-FETCHED %s\n' "${dst}${archive}"
 }
