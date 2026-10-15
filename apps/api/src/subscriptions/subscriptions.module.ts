@@ -74,6 +74,7 @@ import { ObrazyService } from './obrazy.service.js';
 import { SiteStatsService } from './site-stats.service.js';
 import { ZasobyKontaOperatoraService } from './zasoby-konta-operatora.service.js';
 import { PublicApiWriteController } from './public-api-write.controller.js';
+import { PublicApiOrdersController } from './public-api-orders.controller.js';
 import { GitWebhookController } from './git-webhook.controller.js';
 import { ApiTokensModule } from '../api-tokens/api-tokens.module.js';
 import { WpAutoUpdateScheduler } from './wp-auto-update.scheduler.js';
@@ -180,6 +181,7 @@ import { ComplianceModule } from '../compliance/compliance.module.js';
     WarunkiIndywidualneAdminController,
     UserServicesController,
     PublicApiWriteController,
+    PublicApiOrdersController,
     GitWebhookController,
     ProvisioningQueueAdminController,
     MigrationsAdminController,

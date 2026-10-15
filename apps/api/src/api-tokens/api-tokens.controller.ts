@@ -3,7 +3,7 @@ import { IsArray, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } 
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { ApiTokensService } from './api-tokens.service.js';
-import { API_SCOPE_LABELS, ALL_API_SCOPES } from './api-scopes.js';
+import { API_SCOPE_LABELS, zakresyDostepne } from './api-scopes.js';
 
 class CreateApiTokenDto {
   @IsString() @MinLength(2) @MaxLength(60)
@@ -24,7 +24,7 @@ export class ApiTokensController {
 
   @Get('scopes')
   scopes() {
-    return ALL_API_SCOPES.map((s) => ({ value: s, label: API_SCOPE_LABELS[s] }));
+    return zakresyDostepne().map((s) => ({ value: s, label: API_SCOPE_LABELS[s] }));
   }
 
   @Get()

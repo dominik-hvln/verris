@@ -129,6 +129,8 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   'POST /agent/tasks/:taskId/fail',
   'POST /agent/tasks/:taskId/progress',
   'POST /agent/tasks/onboard-report',
+  // Noc 15.10 — zamówienia przez publiczne API (token tworzy tylko właściciel; flaga API_ZAMOWIENIA, domyślnie wyłączone).
+  'POST /api/v1/orders',
   'POST /agent/tasks/straznik/zdarzenie',
   'POST /me/account-deletion',
   'POST /me/data-export',

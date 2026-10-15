@@ -9,6 +9,7 @@ export const API_SCOPES = {
   DEPLOY_WRITE: 'deploy:write',
   MAIL_READ: 'mail:read',
   MAIL_WRITE: 'mail:write',
+  ORDERS_WRITE: 'orders:write',
 } as const;
 
 export type ApiScopeValue = (typeof API_SCOPES)[keyof typeof API_SCOPES];
@@ -24,10 +25,19 @@ export const API_SCOPE_LABELS: Record<ApiScopeValue, string> = {
   'deploy:write': 'Wdrożenie: pobranie zmian z repozytorium Git (CI/CD)',
   'mail:read': 'Odczyt skrzynek pocztowych (adresy i rozmiary)',
   'mail:write': 'Zakładanie i usuwanie skrzynek, zmiana hasła i rozmiaru',
+  'orders:write': 'Zamawianie usług z salda portfela (obciąża konto)',
 };
 
 export function isValidScope(s: string): s is ApiScopeValue {
-  return (ALL_API_SCOPES as string[]).includes(s);
+  return (zakresyDostepne() as string[]).includes(s);
+}
+
+/**
+ * Zakresy, które klient może dziś nadać tokenowi. `orders:write` dopiero po włączeniu zamówień przez API
+ * (`API_ZAMOWIENIA=1`, decyzja właściciela) — inaczej panel pokazywałby uprawnienie do trasy, która odpowiada 404.
+ */
+export function zakresyDostepne(): ApiScopeValue[] {
+  return ALL_API_SCOPES.filter((z) => z !== API_SCOPES.ORDERS_WRITE || process.env.API_ZAMOWIENIA === '1');
 }
 
 /**
@@ -43,4 +53,5 @@ export const UPRAWNIENIE_ZAKRESU: Record<ApiScopeValue, CustomerPermission> = {
   'deploy:write': CustomerPermission.FILES_MANAGE,
   'mail:read': CustomerPermission.EMAIL_MANAGE,
   'mail:write': CustomerPermission.EMAIL_MANAGE,
+  'orders:write': CustomerPermission.BILLING_MANAGE,
 };

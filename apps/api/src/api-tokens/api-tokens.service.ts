@@ -3,7 +3,7 @@ import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
-import { ALL_API_SCOPES, isValidScope, type ApiScopeValue } from './api-scopes.js';
+import { isValidScope, zakresyDostepne, type ApiScopeValue } from './api-scopes.js';
 
 interface TokenRow {
   id: string;
@@ -143,6 +143,6 @@ export class ApiTokensService {
   }
 
   scopesCatalog(): ApiScopeValue[] {
-    return ALL_API_SCOPES;
+    return zakresyDostepne();
   }
 }
