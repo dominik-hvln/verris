@@ -7,6 +7,8 @@ import { wycofajMartwyWezelAction } from "../actions";
 /**
  * Węzeł skasowany u dostawcy: zwykłe wycofanie przenosi konta, a tu nie ma skąd. Konta → usunięte,
  * subskrypcje → anulowane, NS/hostname zwolnione w OVH (IP może dostać ktoś inny). Potwierdzenie nazwą.
+ * Decyzja 15.10: węzeł bez kont (np. przed reinstalacją u dostawcy) można wycofać od razu, bez tygodnia ciszy —
+ * nowy węzeł z kreatora przejmie potem jego IP.
  */
 export function WycofajMartwyPanel({ serverId, nazwa, konta, martwy }: { serverId: string; nazwa: string; konta: number; martwy: boolean }) {
   const [tekst, setTekst] = useState("");
@@ -16,14 +18,17 @@ export function WycofajMartwyPanel({ serverId, nazwa, konta, martwy }: { serverI
 
   return (
     <section className="space-y-3 rounded-2xl border border-rose-500/30 bg-rose-500/[0.04] p-5">
-      <h2 className="flex items-center gap-2 text-sm font-semibold text-rose-200"><Skull className="h-4 w-4" /> Serwera już nie ma — wycofaj węzeł z panelu</h2>
+      <h2 className="flex items-center gap-2 text-sm font-semibold text-rose-200"><Skull className="h-4 w-4" /> Serwera już nie ma albo idzie do reinstalacji — wycofaj węzeł z panelu</h2>
       <p className="text-xs text-muted-foreground">
         Dla węzła skasowanego u dostawcy. Konta na nim ({konta}) zostaną oznaczone jako usunięte, ich subskrypcje anulowane,
         węzeł zniknie z puli, a jego nazwy NS i hostname zostaną usunięte z DNS w OVH — IP może trafić do kogoś innego.
         Danych kont nie da się już odzyskać z tego serwera. Aktywne płatności w Stripe trzeba najpierw anulować.
+        Węzeł bez kont można wycofać od razu — np. przed reinstalacją u dostawcy; nowy węzeł z kreatora przejmie jego IP.
       </p>
-      {!martwy ? (
-        <p className="text-sm text-amber-200">Węzeł wysyłał sygnał w ostatnim tygodniu — żyje. Użyj wycofania z przeniesieniem kont.</p>
+      {!martwy && konta > 0 ? (
+        <p className="text-sm text-amber-200">
+          Węzeł wysyłał sygnał w ostatnim tygodniu i ma konta ({konta}) — najpierw przenieś je na inne węzły (albo usuń), potem wycofaj.
+        </p>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
           <input value={tekst} onChange={(e) => setTekst(e.target.value)} placeholder={`wpisz: ${nazwa}`} className="form-input max-w-xs" />

@@ -30,9 +30,12 @@ describe('Wycofanie martwego węzła', () => {
     expect(dns.zwolnione).toBe(1);
   });
 
-  it('żywy węzeł, zła nazwa albo aktywna płatność Stripe — odmowa bez zmian', async () => {
+  it('żywy węzeł z kontami, zła nazwa albo aktywna płatność Stripe — odmowa bez zmian', async () => {
     const zywy = await utworzWezel({ name: 'zywy' });
+    const planZ = await utworzPlan();
+    await utworzKonto({ serverId: zywy.id, planId: planZ.id });
     await expect(serwery().wycofajMartwyWezel(zywy.id, 'zywy', 'admin')).rejects.toBeInstanceOf(ConflictException);
+    expect((await prisma().server.findUniqueOrThrow({ where: { id: zywy.id } })).status).toBe('ACTIVE');
 
     const martwy = await utworzWezel({ name: 'martwy', lastHeartbeatAt: MIESIAC_TEMU });
     await expect(serwery().wycofajMartwyWezel(martwy.id, 'inna', 'admin')).rejects.toBeInstanceOf(BadRequestException);
@@ -44,5 +47,14 @@ describe('Wycofanie martwego węzła', () => {
     expect((await prisma().account.findUniqueOrThrow({ where: { id: k.account.id } })).status).toBe('ACTIVE');
     expect((await prisma().server.findUniqueOrThrow({ where: { id: martwy.id } })).status).not.toBe('DEPROVISIONING');
     expect(dns.zwolnione).toBe(0);
+  });
+
+  it('decyzja 15.10: żywy węzeł BEZ kont (przed reinstalacją) — wycofanie od razu, nazwy w DNS zwolnione', async () => {
+    const w = await utworzWezel({ name: 't2' }); // sygnał przed chwilą
+    const r = await serwery().wycofajMartwyWezel(w.id, 't2', 'admin');
+    expect(r.usunieteKonta).toEqual([]);
+    const po = await prisma().server.findUniqueOrThrow({ where: { id: w.id } });
+    expect(po).toMatchObject({ status: 'DEPROVISIONING', acceptsNewAccounts: false });
+    expect(dns.zwolnione).toBe(1);
   });
 });

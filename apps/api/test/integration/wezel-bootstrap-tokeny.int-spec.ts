@@ -3,7 +3,7 @@ import { AuditService } from '../../src/common/audit/audit.service.js';
 import { CryptoService } from '../../src/common/crypto/crypto.service.js';
 import { BootstrapTokenService } from '../../src/servers/bootstrap-token.service.js';
 import { ServersService } from '../../src/servers/servers.service.js';
-import { prisma, rozlacz, utworzWezel, wyczyscBaze } from './setup.js';
+import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } from './setup.js';
 
 /**
  * Audyt 13.10 (do potwierdzenia #7, servers.service.ts:handleHandshake:unrevoked-bootstrap-tokens-rebind-node-identity):
@@ -77,5 +77,37 @@ describe('Handshake węzła — tokeny bootstrapu', () => {
     expect(odrzucone[0]?.reason).toBeInstanceOf(UnauthorizedException);
     const po = await prisma().server.findUniqueOrThrow({ where: { id: w.id } });
     expect(po.identityToken).toBe(crypto.sha256Hex((udane[0] as PromiseFulfilledResult<{ identityToken: string }>).value.identityToken));
+  });
+
+  describe('Decyzja 15.10 — reinstalacja u dostawcy na tym samym IP', () => {
+    const IP = '198.51.100.50';
+
+    it('wycofany węzeł bez kont oddaje IP nowemu węzłowi z kreatora (i traci tożsamość); wpis w dzienniku', async () => {
+      const stary = await utworzWezel({ name: 't2', ipAddress: IP, ipv6Address: '2001:db8::50', status: 'DEPROVISIONING', identityToken: crypto.sha256Hex('stara') });
+      const nowy = await utworzWezel({ status: 'INIT', identityToken: null });
+      const { tokens, servers } = uslugi();
+      const t = await tokens.issue({ serverId: nowy.id });
+      const r = await servers.handleHandshake(nowy.id, dto(IP), { bootstrapTokenId: t.token.id });
+      expect(r.identityToken).toBeTruthy();
+      expect((await prisma().server.findUniqueOrThrow({ where: { id: nowy.id } })).ipAddress).toBe(IP);
+      const po = await prisma().server.findUniqueOrThrow({ where: { id: stary.id } });
+      expect(po).toMatchObject({ ipAddress: `wycofany-${stary.id}`, ipv6Address: null, identityToken: null, status: 'DEPROVISIONING' });
+      const wpis = await prisma().auditLog.findFirst({ where: { action: 'SERVER_IP_RELEASED' } });
+      expect(wpis?.details).toMatchObject({ ipAddress: IP, odWezla: stary.id, dlaWezla: nowy.id });
+    });
+
+    it('IP działającego węzła albo wycofywanego z kontami — odmowa, nic się nie zmienia, token niezużyty', async () => {
+      for (const [status, zKontem] of [['ACTIVE', false], ['OFFLINE', false], ['DEPROVISIONING', true]] as const) {
+        await wyczyscBaze();
+        const stary = await utworzWezel({ ipAddress: IP, status });
+        if (zKontem) await utworzKonto({ serverId: stary.id, planId: (await utworzPlan()).id });
+        const nowy = await utworzWezel({ status: 'INIT', identityToken: null });
+        const { tokens, servers } = uslugi();
+        const t = await tokens.issue({ serverId: nowy.id });
+        await expect(servers.handleHandshake(nowy.id, dto(IP), { bootstrapTokenId: t.token.id })).rejects.toBeInstanceOf(ConflictException);
+        expect((await prisma().server.findUniqueOrThrow({ where: { id: stary.id } })).ipAddress).toBe(IP);
+        expect((await prisma().bootstrapToken.findUniqueOrThrow({ where: { id: t.token.id } })).usedAt).toBeNull();
+      }
+    });
   });
 });

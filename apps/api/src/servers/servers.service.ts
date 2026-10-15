@@ -266,7 +266,15 @@ export class ServersService {
     const collision = await this.prisma.server.findFirst({
       where: { ipAddress: dto.ipAddress, NOT: { id: serverId } },
     });
-    if (collision) {
+    // Decyzja 15.10 (PB-31 na t2) — reinstalacja u dostawcy na tym samym IP: adres przejmujemy tylko od węzła
+    // wycofanego (DEPROVISIONING) i bez żadnego konta. Działający węzeł albo wycofywany z kontami — odmowa jak dotąd.
+    const zwolnijOd =
+      collision &&
+      collision.status === ServerStatus.DEPROVISIONING &&
+      (await this.prisma.account.count({ where: { serverId: collision.id, status: { not: AccountStatus.DELETED } } })) === 0
+        ? collision
+        : null;
+    if (collision && !zwolnijOd) {
       throw new ConflictException(
         `IP address ${dto.ipAddress} is already registered to another server (#${collision.id}).`,
       );
@@ -280,6 +288,20 @@ export class ServersService {
     }
 
     const identityToken = this.crypto.generateRandomToken(32);
+
+    if (zwolnijOd) {
+      // Stary rekord oddaje adres i traci tożsamość — nic już nie zaraportuje jako wycofany węzeł.
+      await this.prisma.server.update({
+        where: { id: zwolnijOd.id },
+        data: { ipAddress: `wycofany-${zwolnijOd.id}`, ipv6Address: null, identityToken: null },
+      });
+      await this.audit.record({
+        action: 'SERVER_IP_RELEASED',
+        details: { ipAddress: dto.ipAddress, odWezla: zwolnijOd.id, nazwa: zwolnijOd.name ?? zwolnijOd.hostname, dlaWezla: serverId },
+        ipAddress: ctx?.ip ?? null,
+        userAgent: ctx?.userAgent ?? null,
+      });
+    }
 
     const updated = await this.prisma.server.update({
       where: { id: serverId },
@@ -1040,7 +1062,8 @@ export class ServersService {
   }
 
   /**
-   * Wycofanie węzła, którego fizycznie już nie ma (serwer skasowany u dostawcy). Zwykłe wycofanie przenosi
+   * Wycofanie węzła, którego fizycznie już nie ma (serwer skasowany u dostawcy) albo który nie ma już kont
+   * (np. przed reinstalacją u dostawcy — jego IP przejmie potem nowy węzeł z kreatora, patrz handleHandshake). Zwykłe wycofanie przenosi
    * konta na inne węzły, a z martwego serwera nie ma czego przenosić. Tu: konta → DELETED (z księgi
    * pojemności), subskrypcje → CANCELED, węzeł poza pulą (DEPROVISIONING), nazwy NS/hostname zwolnione w OVH.
    * Bezpieczniki: potwierdzenie nazwą węzła, brak sygnału od ≥ 7 dni, żadnej aktywnej płatności w Stripe
@@ -1053,10 +1076,6 @@ export class ServersService {
     if ((potwierdzenie ?? '').trim() !== nazwa) {
       throw new BadRequestException(`Wpisz dokładnie nazwę węzła („${nazwa}”), żeby potwierdzić.`);
     }
-    const TYDZIEN = 7 * 24 * 3600_000;
-    if (server.lastHeartbeatAt && Date.now() - server.lastHeartbeatAt.getTime() < TYDZIEN) {
-      throw new ConflictException('Węzeł wysyłał sygnał w ostatnim tygodniu — żyje. Użyj wycofania z przeniesieniem kont.');
-    }
     const konta = await this.prisma.account.findMany({
       where: { serverId: id, status: { not: AccountStatus.DELETED } },
       select: {
@@ -1064,6 +1083,14 @@ export class ServersService {
         subscription: { select: { id: true, status: true, stripeSubscriptionId: true } },
       },
     });
+    // Tydzień bez sygnału chroni konta klientów przed wycofaniem żywego węzła. Węzeł bez kont (np. przed reinstalacją
+    // u dostawcy — decyzja 15.10) nie ma czego chronić: wycofanie od razu.
+    const TYDZIEN = 7 * 24 * 3600_000;
+    if (konta.length > 0 && server.lastHeartbeatAt && Date.now() - server.lastHeartbeatAt.getTime() < TYDZIEN) {
+      throw new ConflictException(
+        'Węzeł wysyłał sygnał w ostatnim tygodniu i ma konta — najpierw przenieś je na inne węzły (albo usuń), potem wycofaj.',
+      );
+    }
     const zStripe = konta.filter(
       (k) => k.subscription?.stripeSubscriptionId &&
         ([SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE, SubscriptionStatus.PROVISIONING, SubscriptionStatus.PENDING_PAYMENT] as string[]).includes(k.subscription.status),
