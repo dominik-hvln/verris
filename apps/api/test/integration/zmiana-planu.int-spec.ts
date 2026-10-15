@@ -90,6 +90,24 @@ describe('X-04 zmiana planu z portfela', () => {
     expect(await saldo(u.user.id)).toBeCloseTo(Number(r.amountCredit), 2);
   });
 
+  // Decyzja 15.10 (#5): rabat usługi (na start albo kod na odnowienia) liczy się w dopłacie, kredycie i cenie okresu.
+  // Wcześniej nowy plan liczył się z cennika: upgrade → odnowienie z rabatem → downgrade oddawał więcej, niż zapłacono.
+  it('rabat na start: upgrade dopłaca różnicę cen z rabatem, a downgrade oddaje nie więcej, niż zapłacono', async () => {
+    const u = await usluga45(500);
+    await prisma().subscription.update({
+      where: { id: u.subscription.id },
+      data: { priceAmount: 36, listPriceAmount: 45, introDiscountPct: 20, introDiscountPeriodsLeft: 5 },
+    });
+    const up = await usluga().changeForUser(u.user.id, u.subscription.id, u.duzy.id);
+    expect(Number(up.amountDue)).toBeCloseTo(18, 0); // (72 − 36) × ½, nie (90 − 36) × ½
+    const s = await prisma().subscription.findUniqueOrThrow({ where: { id: u.subscription.id } });
+    expect([Number(s.priceAmount), Number(s.listPriceAmount)]).toEqual([72, 90]);
+
+    const down = await usluga().changeForUser(u.user.id, u.subscription.id, u.maly.id);
+    expect(Number(down.amountCredit)).toBeCloseTo(18, 0); // (72 − 36) × ½ — tyle, ile dopłacił
+    expect(await saldo(u.user.id)).toBeCloseTo(500, 0);
+  });
+
   it('brak środków na dopłatę: odmowa, portfel, plan i DirectAdmin nietknięte', async () => {
     const u = await usluga45(5);
     await expect(usluga().changeForUser(u.user.id, u.subscription.id, u.duzy.id)).rejects.toThrow('Niewystarczające saldo');

@@ -240,7 +240,7 @@ export class RenewalScheduler {
       // Treat as already-paid; just extend period if not extended yet.
       // Noc 15.10 (niestabilny test odnowienia-wyscig): cron obciążył, „Opłać teraz” trafił w to obciążenie i PIERWSZY
       // przesunął okres — z `false` żaden przebieg nie zużył okresu rabatu (klient dostawał dodatkowy okres z rabatem).
-      if (!(await this.extendPeriod(sub.id, periodEnd, sub.interval, useIntro, aktywuj))) {
+      if (!(await this.extendPeriod(sub.id, periodEnd, sub.interval, useIntro, aktywuj, new Prisma.Decimal(existing.amount).abs()))) {
         await this.zwrotGdyAnulowana(sub, periodEnd, idempotencyKey);
       }
       void this.ecoPoints.safeAward(`wallet_renewal:${idempotencyKey}`, async () => {
@@ -293,7 +293,7 @@ export class RenewalScheduler {
     // Zużycie okresu rabatu startowego razem z przedłużeniem i tylko przez tego, kto przedłużył:
     // „Opłać teraz” w tej samej chwili co cron (to samo obciążenie przez klucz idempotencji)
     // zdejmował wcześniej dwa okresy rabatu.
-    if (!(await this.extendPeriod(sub.id, periodEnd, sub.interval, useIntro, aktywuj))) {
+    if (!(await this.extendPeriod(sub.id, periodEnd, sub.interval, useIntro, aktywuj, new Prisma.Decimal(renewalAmount)))) {
       await this.zwrotGdyAnulowana(sub, periodEnd, idempotencyKey);
     }
 
@@ -356,6 +356,11 @@ export class RenewalScheduler {
     interval: 'MONTH' | 'YEAR',
     zuzyjRabat = false,
     aktywuj = true,
+    /**
+     * Decyzja 15.10 (#5): kwota pobrana za nowy okres → `priceAmount` (od niej liczy się kredyt przy zmianie planu).
+     * Wcześniej zostawała cena sprzed odnowienia — po upgradzie katalogowa, choć odnowienie pobrało ją z rabatem.
+     */
+    oplaconaKwota?: Prisma.Decimal,
   ): Promise<boolean> {
     const newEnd = addInterval(periodEnd, interval);
     // Warunkowo na opłacany okres: drugi, równoległy przebieg dla tego samego okresu nic nie zmienia
@@ -367,6 +372,7 @@ export class RenewalScheduler {
         currentPeriodStart: periodEnd,
         currentPeriodEnd: newEnd,
         ...(zuzyjRabat ? { introDiscountPeriodsLeft: { decrement: 1 } } : {}),
+        ...(oplaconaKwota ? { priceAmount: oplaconaKwota } : {}),
       },
     });
     if (count === 0) return false;

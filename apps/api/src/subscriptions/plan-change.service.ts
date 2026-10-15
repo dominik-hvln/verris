@@ -38,6 +38,7 @@ import {
   limityEfektywne,
 } from './node-capacity.js';
 import { narzutResellera, zNarzutem } from '../reseller/narzut-resellera.js';
+import { procentKoduNaOdnowienia } from '../billing/promo.service.js';
 import { maNadpisania } from './limity-indywidualne.js';
 
 type LoadedSub = Subscription & {
@@ -229,7 +230,7 @@ export class PlanChangeService {
     const narzut = await this.narzut(sub);
     const proration = await this.prorationFor(sub, target, effectiveInterval, narzut);
     const intervalChange = effectiveInterval !== sub.interval;
-    const newPrice = zNarzutem(planPriceForInterval(target, effectiveInterval), narzut);
+    const { cennik: newPrice, zRabatem: newPriceZRabatem } = await this.cenaNowegoOkresu(sub, target, effectiveInterval, narzut);
     // Z-11 — klucz ma identyfikować TĘ zmianę, nie parę (usługa, plan docelowy).
     // Do 2026-09-23 klucz nie zawierał planu źródłowego ani stanu subskrypcji:
     // upgrade A→B, downgrade B→A (zwrot), ponowny upgrade A→B w tym samym okresie
@@ -306,7 +307,7 @@ export class PlanChangeService {
       const updated = await this.commitPlanChange(
         sub,
         target,
-        newPrice,
+        { cennik: newPrice, zRabatem: newPriceZRabatem },
         narzut,
         effectiveInterval,
         intervalChange,
@@ -518,10 +519,29 @@ export class PlanChangeService {
     return narzutResellera(this.prisma, this.config, sub.userId);
   }
 
+  /**
+   * Decyzja 15.10 (#5) — rabat, który klient ma na tej usłudze (rabat na start w trakcie albo kod działający na
+   * odnowienia): dopłata, kredyt i zapisana kwota okresu liczą się z nim. Wcześniej nowy plan liczył się z cennika,
+   * a odnowienie pobierało cenę z rabatem — downgrade oddawał więcej, niż klient zapłacił.
+   * Cena operatora (PB-27) zastępuje rabaty — bez zmian.
+   */
+  private async procentRabatu(sub: LoadedSub): Promise<number> {
+    if (sub.individualPrice != null) return 0;
+    if (sub.introDiscountPct > 0 && sub.introDiscountPeriodsLeft > 0) return sub.introDiscountPct;
+    return procentKoduNaOdnowienia(this.prisma, sub.appliedPromoCodeId);
+  }
+
+  private async cenaNowegoOkresu(sub: LoadedSub, target: Plan, targetInterval: BillingInterval, narzut: number) {
+    const cennik = zNarzutem(planPriceForInterval(target, targetInterval), narzut);
+    const pct = await this.procentRabatu(sub);
+    const zRabatem = pct > 0 ? cennik.mul(100 - Math.min(pct, 100)).div(100).toDecimalPlaces(2) : cennik;
+    return { cennik, zRabatem };
+  }
+
   private async prorationFor(sub: LoadedSub, target: Plan, targetInterval: BillingInterval, narzut: number) {
     return computePlanChangeProration({
       oldPeriodPrice: sub.priceAmount,
-      newPeriodPrice: zNarzutem(planPriceForInterval(target, targetInterval), narzut),
+      newPeriodPrice: (await this.cenaNowegoOkresu(sub, target, targetInterval, narzut)).zRabatem,
       periodStart: sub.currentPeriodStart!,
       periodEnd: sub.currentPeriodEnd!,
       currentInterval: sub.interval,
@@ -665,7 +685,7 @@ export class PlanChangeService {
   private async commitPlanChange(
     sub: LoadedSub,
     target: Plan,
-    newPrice: Prisma.Decimal,
+    { cennik: newPrice, zRabatem: newPriceZRabatem }: { cennik: Prisma.Decimal; zRabatem: Prisma.Decimal },
     narzut: number,
     targetInterval: BillingInterval,
     intervalChange: boolean,
@@ -727,7 +747,8 @@ export class PlanChangeService {
           // Przegląd 15.10: `priceAmount` = zapłacone za bieżący okres (od niego liczy się kredyt przy downgradzie).
           // Upgrade gratis od admina (skipBilling) zapisywał cenę nowego planu — klient robił downgrade i dostawał
           // kredyt za różnicę, której nie zapłacił. Odnowienia liczą się z `listPriceAmount` (cennik nowego planu).
-          priceAmount: ctx.skipBilling ? sub.priceAmount : newPrice,
+          // Decyzja 15.10 (#5): z rabatem usługi — tyle kosztuje ten okres (od tego kredyt przy kolejnym downgradzie).
+          priceAmount: ctx.skipBilling ? sub.priceAmount : newPriceZRabatem,
           listPriceAmount: newPrice,
           resellerMarkupPct: narzut > 0 ? narzut : null,
           ...(intervalChange

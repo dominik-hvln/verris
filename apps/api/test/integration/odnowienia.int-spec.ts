@@ -170,6 +170,15 @@ describe('X-04 — odnowienia z portfela (RenewalScheduler)', () => {
     expect((await sub(u.id)).introDiscountPeriodsLeft).toBe(0);
   });
 
+  // Decyzja 15.10 (#5): `priceAmount` = tyle, ile pobrano za bieżący okres — od tego kredyt przy zmianie planu.
+  it('odnowienie zapisuje pobraną kwotę jako cenę okresu (z rabatem, nie z cennika)', async () => {
+    const k = await klient(100);
+    const u = await usluga(k.id, { priceAmount: 45, listPriceAmount: 45, introDiscountPct: 20, introDiscountPeriodsLeft: 2 });
+    await scheduler().handleHourlyTick();
+    expect(await saldo(k.id)).toBe(64);
+    expect(Number((await sub(u.id)).priceAmount)).toBe(36);
+  });
+
   it('usługa z zaplanowaną rezygnacją nie jest obciążana', async () => {
     const k = await klient(100);
     await usluga(k.id, { cancelAt: new Date(Date.now() - 60000) });

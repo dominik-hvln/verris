@@ -394,23 +394,8 @@ export class PromoService {
     appliedPromoCodeId: string | null;
   }): Promise<Prisma.Decimal> {
     const listPrice = sub.listPriceAmount ?? sub.priceAmount;
-    if (!sub.appliedPromoCodeId) {
-      return listPrice;
-    }
-    const promo = await this.prisma.promoCode.findUnique({
-      where: { id: sub.appliedPromoCodeId },
-    });
-    if (
-      !promo?.active ||
-      promo.kind !== PromoKind.SERVICE_PERCENT_OFF ||
-      !promo.appliesToRenewals
-    ) {
-      return listPrice;
-    }
-    const now = new Date();
-    if (promo.validFrom && now < promo.validFrom) return listPrice;
-    if (promo.validTo && now > promo.validTo) return listPrice;
-    return this.applyPercentDiscount(listPrice, new Prisma.Decimal(promo.value));
+    const pct = await procentKoduNaOdnowienia(this.prisma, sub.appliedPromoCodeId);
+    return pct > 0 ? this.applyPercentDiscount(listPrice, new Prisma.Decimal(pct)) : listPrice;
   }
 
   /**
@@ -700,4 +685,17 @@ export class PromoService {
     }
     return promo;
   }
+}
+
+/**
+ * Procent kodu rabatowego obowiązujący przy odnowieniach (aktywny SERVICE_PERCENT_OFF z appliesToRenewals, w terminie);
+ * 0 — kod nie działa na odnowienia. Wspólne dla odnowień i zmiany planu (decyzja 15.10 #5).
+ */
+export async function procentKoduNaOdnowienia(prisma: Pick<PrismaService, 'promoCode'>, promoCodeId: string | null): Promise<number> {
+  if (!promoCodeId) return 0;
+  const promo = await prisma.promoCode.findUnique({ where: { id: promoCodeId } });
+  if (!promo?.active || promo.kind !== PromoKind.SERVICE_PERCENT_OFF || !promo.appliesToRenewals) return 0;
+  const now = new Date();
+  if ((promo.validFrom && now < promo.validFrom) || (promo.validTo && now > promo.validTo)) return 0;
+  return Number(promo.value);
 }
