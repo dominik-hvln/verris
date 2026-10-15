@@ -57,6 +57,7 @@ import { FeatureFlagsProvider, useFlagi, useModul } from "@/lib/feature-flags";
 import { trasaWidoczna } from "@/lib/feature-flags-core";
 import { plForm } from "@/lib/pl";
 import { ZglosUwage } from "@/components/panel/zglos-uwage";
+import { fetchBetaStatus } from "./support/actions";
 import {
   canAccessDashboardRoute,
   canCreateTicket,
@@ -406,6 +407,16 @@ function DashboardLayoutInner({
     setSidebarOpen(false);
   }
 
+  // Beta — tester (zrealizował kod z zaproszenia) widzi „Zgłoś uwagę” bez flagi dla wszystkich. Po realizacji kodu
+  // panel woła „wallet:refresh” — przycisk pojawia się bez przeładowania strony.
+  const [tester, setTester] = useState(false);
+  useEffect(() => {
+    const loadTester = () => void fetchBetaStatus().then(setTester).catch(() => undefined);
+    loadTester();
+    window.addEventListener("wallet:refresh", loadTester);
+    return () => window.removeEventListener("wallet:refresh", loadTester);
+  }, []);
+
   // Liczniki w menu i lista usług do wyszukiwarki — błąd = brak licznika (nie zero).
   const [rail, setRail] = useState<RailData | null>(null);
   useEffect(() => {
@@ -646,9 +657,10 @@ function DashboardLayoutInner({
       </div>
       </div>
       <HostingAssistant />
-      {/* Beta — „Zgłoś uwagę” (flaga beta.zglos-uwage, domyślnie wyłączona); nad przyciskiem asystenta. */}
+      {/* Beta — „Zgłoś uwagę” (tester albo flaga beta.zglos-uwage); nad przyciskiem asystenta. */}
       <ZglosUwage
         flagi={flagi}
+        tester={tester}
         mozeZglaszac={navCtx ? canAccess("/dashboard/support") && canCreateTicket(navCtx) : false}
         usluga={uslugaStrony}
       />

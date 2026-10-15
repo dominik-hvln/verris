@@ -129,6 +129,8 @@ function PromoRedeemBlock() {
           `Na portfel dopisaliśmy ${formatCredits(res.amountPln, { signed: true })} — kod „${res.code}” został zrealizowany.`,
         );
         router.refresh();
+        // Saldo w nagłówku i „Zgłoś uwagę” dla testera (kod z zaproszenia do testów) — bez przeładowania strony.
+        window.dispatchEvent(new Event('wallet:refresh'));
       } else {
         setError(res.error ?? 'Błąd.');
       }

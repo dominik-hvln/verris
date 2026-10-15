@@ -78,6 +78,11 @@ Wtedy runbook startu i decyzja GO (PB-12) — bez „warunkowego GO”.
       kod `BETA-XXXXXX` (150 K, 1 użycie, 14 dni) i od razu wysyła mail (`beta.invite`, szablon
       `renderEmailShell`) z kodem, krokami startu, listą rzeczy do sprawdzenia i linkiem do rejestracji.
       Gdy mail nie wyjdzie, kod i tak powstaje (lista pokazuje „mail niewysłany”). Kod można wyłączyć.
+- [x] Pływający przycisk **„Zgłoś uwagę”** w panelu klienta — widzi go każdy tester (kod z zaproszenia, `GET /me/beta`),
+      bez włączania flagi `beta.zglos-uwage` dla wszystkich. Formularz: opis, rodzaj (błąd / pomysł / niejasne),
+      „Wskaż miejsce na stronie” (opis elementu, sekcja, selektor i położenie w treści zgłoszenia), zrzut widocznej części
+      strony z ramką wskazanego elementu (podgląd przed wysłaniem, można odznaczyć), własne pliki. Zgłoszenie z tematem
+      Beta, zrzut jako załącznik. Przycisk da się schować do zakładki przy prawej krawędzi.
 - [x] Temat zgłoszeń „Testy (beta)” — widoczny w panelu klienta tylko dla testera (kto zrealizował kod
       z zaproszenia, `GET /me/beta`); w panelu obsługi znacznik **Beta** na liście zgłoszeń.
 - [x] Widok testerów w panelu admina: stan kodu (czeka / użyty / wygasł / wyłączony), konto, aktywne usługi,
