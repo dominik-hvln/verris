@@ -492,6 +492,9 @@ export class SubscriptionsService {
             plan: plan.slug,
             interval: dto.interval,
             source: dto.paymentSource,
+            // Noc 15.10 — domena zamówienia (bez „www.”): zamówienie przez API sprawdza, czy ta domena nie jest już
+            // w zakładaniu po zamówieniu z panelu (konto powstaje dopiero w kolejce).
+            domain: dto.domain ? dto.domain.trim().toLowerCase().replace(/\.+$/, '').replace(/^www\./, '') : null,
             // Dowód oświadczenia konsumenckiego (art. 15 ust. 3 / 21 ust. 2 upk):
             // klient zażądał rozpoczęcia świadczenia przed upływem terminu
             // odstąpienia. Walidacja `Equals(true)` w DTO gwarantuje obecność.

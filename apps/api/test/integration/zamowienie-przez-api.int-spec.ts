@@ -109,4 +109,16 @@ describe('L-08 — zamówienie przez API (portfel)', () => {
     await expect(c.zamow(req(k.id), body(plan.id, 'www.trzy.pl'), 'klucz-trzy-002')).rejects.toThrow(/już zamówiona/);
     expect(await prisma().walletTransaction.count({ where: { userId: k.id, type: WalletTxType.CHARGE_SUBSCRIPTION } })).toBe(1);
   });
+
+  it('zamówienie tej domeny z PANELU (konto jeszcze w kolejce), potem przez API → 409, jedno obciążenie', async () => {
+    const k = await klient(500);
+    const plan = await utworzPlan({ priceMonthly: 45 });
+    const c = kontroler();
+    // jak POST /subscriptions z panelu — ta sama usługa SubscriptionsService
+    await (c as unknown as { subscriptions: { create: (u: string, d: unknown) => Promise<unknown> } }).subscriptions.create(k.id, {
+      planId: plan.id, interval: 'MONTH', paymentSource: 'WALLET', domain: 'cztery.pl', immediatePerformanceConsent: true,
+    });
+    await expect(c.zamow(req(k.id), body(plan.id, 'cztery.pl'), 'klucz-cztery-01')).rejects.toThrow(/już zamówiona/);
+    expect(await prisma().walletTransaction.count({ where: { userId: k.id, type: WalletTxType.CHARGE_SUBSCRIPTION } })).toBe(1);
+  });
 });

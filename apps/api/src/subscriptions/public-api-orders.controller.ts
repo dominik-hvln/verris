@@ -85,7 +85,7 @@ const normalizujDomene = (d: string) => d.trim().toLowerCase().replace(/\.+$/, '
  *   a nie zamawia drugi raz. Znacznik „rozpoczęte” trafia do bazy PRZED obciążeniem, a całość idzie pod blokadą
  *   doradczą PostgreSQL na klienta — także przy kilku instancjach API. Przerwane zamówienie (znacznik bez wyniku)
  *   blokuje ten klucz (409) — bez ryzyka drugiego obciążenia;
- * - ta sama domena (bez „www.”) z usługą w zakładaniu albo aktywną, zamówiona wcześniej przez API → 409;
+ * - ta sama domena (bez „www.”) z usługą w zakładaniu albo aktywną, zamówiona wcześniej przez API albo w panelu → 409;
  * - najwyżej 10 zamówień na godzinę na KONTO (limit trasy liczy też adres IP).
  */
 @Controller('api/v1/orders')
@@ -142,7 +142,8 @@ export class PublicApiOrdersController {
     const domena = body.domain ? normalizujDomene(body.domain) : null;
     if (domena) {
       const wczesniej = await this.prisma.auditLog.findMany({
-        where: { userId, action: 'API_ORDER_CREATED', details: { path: ['domain'], equals: domena } },
+        // Z API i z panelu (SUBSCRIPTION_CREATED niesie domenę od nocy 15.10).
+        where: { userId, action: { in: ['API_ORDER_CREATED', 'SUBSCRIPTION_CREATED'] }, details: { path: ['domain'], equals: domena } },
         orderBy: { createdAt: 'desc' },
         take: 5,
         select: { details: true },
