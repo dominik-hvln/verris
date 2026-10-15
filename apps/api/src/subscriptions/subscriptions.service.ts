@@ -1708,15 +1708,23 @@ export class SubscriptionsService {
       },
     });
     if (przestawiono === 0) {
-      await this.walletLedger.credit({
-        userId,
-        type: WalletTxType.REFUND,
-        amount,
-        description: `Auto-refund: order no longer awaiting payment ${subscriptionId}`,
-        idempotencyKey: `sub-${subscriptionId}-initial-refund`,
-        subscriptionId,
-      });
-      throw new ConflictException('Zamówienie nie czeka już na płatność (anulowane) — środki wróciły do portfela.');
+      // Przegląd 15.10: dwie potwierdzone wpłaty Paynow za to samo zamówienie przetwarzane równolegle — drugi przebieg
+      // trafiał na ten sam klucz obciążenia (nic nie pobrał), nie przestawiał usługi i ZWRACAŁ kwotę: usługa za darmo,
+      // a klucz zwrotu zużyty. Zwrot tylko, gdy zamówienie naprawdę przepadło (anulowane / wygasłe); jeśli zrealizował
+      // je inny przebieg tym samym obciążeniem, ta wpłata po prostu zostaje w portfelu.
+      const teraz = await this.prisma.subscription.findUnique({ where: { id: subscriptionId }, select: { status: true } });
+      if (teraz?.status === SubscriptionStatus.CANCELED || teraz?.status === SubscriptionStatus.EXPIRED) {
+        await this.walletLedger.credit({
+          userId,
+          type: WalletTxType.REFUND,
+          amount,
+          description: `Auto-refund: order no longer awaiting payment ${subscriptionId}`,
+          idempotencyKey: `sub-${subscriptionId}-initial-refund`,
+          subscriptionId,
+        });
+        throw new ConflictException('Zamówienie nie czeka już na płatność (anulowane) — środki wróciły do portfela.');
+      }
+      throw new ConflictException(`Zamówienie jest już opłacone (stan: ${teraz?.status ?? 'brak'}) — ta wpłata zostaje w portfelu.`);
     }
     const subscription = await this.prisma.subscription.findUniqueOrThrow({ where: { id: subscriptionId } });
 
@@ -1755,7 +1763,9 @@ export class SubscriptionsService {
       });
       await this.prisma.subscription.update({
         where: { id: subscriptionId },
-        data: { status: SubscriptionStatus.PENDING_PAYMENT },
+        // Przegląd 15.10: bez okresu i bez rabatu startowego — usługa, która nie ruszyła (środki zwrócone, zamówienia nie
+        // da się już opłacić), nie liczy się jako „był zakup” ani nie trzyma rabatu na start (rabat-startowy.ts).
+        data: { status: SubscriptionStatus.PENDING_PAYMENT, currentPeriodStart: null, currentPeriodEnd: null, introDiscountPct: 0, introDiscountPeriodsLeft: 0 },
       });
       throw err;
     } finally {
@@ -1867,7 +1877,9 @@ export class SubscriptionsService {
       }
       await this.prisma.subscription.update({
         where: { id: subscriptionId },
-        data: { status: SubscriptionStatus.PENDING_PAYMENT },
+        // Przegląd 15.10: bez okresu i bez rabatu startowego — usługa, która nie ruszyła (środki zwrócone, zamówienia nie
+        // da się już opłacić), nie liczy się jako „był zakup” ani nie trzyma rabatu na start (rabat-startowy.ts).
+        data: { status: SubscriptionStatus.PENDING_PAYMENT, currentPeriodStart: null, currentPeriodEnd: null, introDiscountPct: 0, introDiscountPeriodsLeft: 0 },
       });
       throw err;
     }

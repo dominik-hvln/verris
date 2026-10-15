@@ -1076,9 +1076,13 @@ export class BillingService {
     }
     const sub = await this.prisma.subscription.findFirst({
       where: { id: meta.subscriptionId, userId: rek.userId },
-      select: { plan: { select: { name: true, productKind: true } } },
+      select: { status: true, plan: { select: { name: true, productKind: true } } },
     });
     if (!sub) return { status };
+    // Przegląd 15.10: wpłata za zamówienie anulowane albo zwrócona po nieudanym zakładaniu to nie zakup — do GA4/Meta
+    // szła konwersja za usługę, której nie ma.
+    if (sub.status === 'CANCELED' || sub.status === 'EXPIRED') return { status };
+    if (await this.ledger.findByIdempotencyKey(`sub-${meta.subscriptionId}-initial-refund`)) return { status };
     return {
       status,
       zakup: {
@@ -1108,11 +1112,11 @@ export class BillingService {
     const meta = (rek.meta ?? {}) as Record<string, string>;
     const teraz = new Date();
     // Wpłata za konkretną usługę klienta (zakup / odnowienie): dokument i wpis w portfelu mówią, za co jest
-    // (e2e 14.10: faktura „Usługa: —”, w portfelu „Doładowanie Paynow”).
-    const uslugaZamowienia =
-      meta.kind === 'zamowienie' && meta.subscriptionId
-        ? ((await this.prisma.subscription.findFirst({ where: { id: meta.subscriptionId, userId: rek.userId }, select: { id: true } }))?.id ?? null)
-        : null;
+    // (e2e 14.10: faktura „Usługa: —”, w portfelu „Doładowanie Paynow”). Przegląd 15.10: tylko gdy usługa naprawdę
+    // czekała na tę wpłatę (jest nazwa pozycji) — wpłata za zamówienie już anulowane to zwykłe doładowanie, a dokument
+    // z `subscriptionId` anulowanej usługi i pozycją „Doładowanie” był niespójny.
+    const nazwaPozycji = await this.nazwaPozycjiZamowienia(rek.userId, meta, teraz);
+    const uslugaZamowienia = nazwaPozycji && meta.subscriptionId ? meta.subscriptionId : null;
     // Idempotentne po kluczu: duplikat powiadomienia, wyścig powiadomienia ze sprawdzeniem po powrocie —
     // K wchodzą raz (unikalny idempotencyKey w księdze).
     const { wpis, kredytK } = await this.doladowanie.zaksieguj({
@@ -1126,7 +1130,7 @@ export class BillingService {
       opis: uslugaZamowienia ? `Wpłata Paynow za usługę (${rek.paymentId})` : `Doładowanie Paynow (${rek.paymentId})`,
       zaplaconoAt: teraz,
       proformaId: meta.kind === 'proforma' ? meta.proformaId : null,
-      nazwaPozycji: await this.nazwaPozycjiZamowienia(rek.userId, meta, teraz),
+      nazwaPozycji,
       subscriptionId: uslugaZamowienia,
     });
     // Skutki uboczne (bonus, e-mail, EKO) uruchamia tylko ten, kto przestawił rekord na CONFIRMED.
