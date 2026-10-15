@@ -9,19 +9,16 @@
  *   pnpm cli:czyszczenie-przed-beta -- --zachowaj=… --wykonaj --potwierdz=37 [--zeruj-numeracje]
  *
  * PRZED `--wykonaj`: kopia bazy (prod-db backup), usunięte w panelu usługi z kontami na węzłach (blokada to
- * wymusza), zwroty prawdziwych wpłat testowych, decyzja księgowej o numeracji (`--zeruj-numeracje` zeruje
- * liczniki wszystkich serii — nowe dokumenty zaczną od 0001).
+ * wymusza), zwroty prawdziwych wpłat testowych, decyzja księgowej o numeracji (`--zeruj-numeracje` ustawia
+ * liczniki na najwyższy numer, który po czyszczeniu zostaje; serie i miesiące bez dokumentów zaczną od 0001).
+ * Argumenty tylko w postaci `--nazwa=wartość`; nieznany albo powtórzony argument zatrzymuje skrypt.
  */
 import { PrismaClient } from '@verris/database';
-import { opisPlanu, planCzyszczenia, wykonajCzyszczenie } from './czyszczenie-przed-beta.plan.js';
-
-function argument(nazwa: string): string | undefined {
-  const a = process.argv.find((x) => x === `--${nazwa}` || x.startsWith(`--${nazwa}=`));
-  if (!a) return undefined;
-  return a.includes('=') ? a.slice(a.indexOf('=') + 1) : '';
-}
+import { opisPlanu, planCzyszczenia, sprawdzArgumenty, wykonajCzyszczenie } from './czyszczenie-przed-beta.plan.js';
 
 async function main() {
+  const ARGUMENTY = sprawdzArgumenty(process.argv.slice(2));
+  const argument = (nazwa: string): string | undefined => ARGUMENTY.get(nazwa);
   const zachowaj = (argument('zachowaj') ?? '').split(',').filter(Boolean);
   const wykonaj = argument('wykonaj') !== undefined;
   const prisma = new PrismaClient();
@@ -38,7 +35,7 @@ async function main() {
       potwierdzenie: potwierdz,
       zerujNumeracje: argument('zeruj-numeracje') !== undefined,
     });
-    console.log(`\nUsunięto klientów: ${wynik.usunieto}${wynik.wyzerowanoNumeracje ? '; numeracja wyzerowana' : ''}.`);
+    console.log(`\nUsunięto klientów: ${wynik.usunieto}${wynik.wyzerowanoNumeracje ? '; numeracja dopasowana do dokumentów, które zostały' : ''}.`);
   } finally {
     await prisma.$disconnect();
   }
