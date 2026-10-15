@@ -125,6 +125,21 @@ describe('KSeF 12.10 — plik faktury, kod QR, PDF/XML dla klienta', () => {
     expect((await stan(f.id)).ksefStatus).toBe(KsefStatus.SUBMITTED);
   });
 
+  it('przegląd 15.10: faktura sprzed okna automatu (8 dni) — cykl jej nie łapie, podgląd zaległych ją pokazuje, operator kolejkuje', async () => {
+    const u = await uzytkownik();
+    const stara = await fakturaPanelu(u.id, { issuedAt: new Date(Date.now() - 8 * 24 * 3600_000) });
+    const swieza = await fakturaPanelu(u.id);
+    const k = ksef();
+    await k.tick();
+    expect((await stan(swieza.id)).ksefStatus).toBe(KsefStatus.SUBMITTED);
+    expect((await stan(stara.id)).ksefStatus).toBe(KsefStatus.NOT_APPLICABLE);
+    await expect(k.zalegleDoKsef()).resolves.toEqual({ liczba: 1, przyklady: [{ id: stara.id, number: stara.number, issuedAt: stara.issuedAt!.toISOString() }] });
+    await expect(k.zakwalifikujZalegle(u.id, 2)).rejects.toThrow(/zmieniła się/);
+    await expect(k.zakwalifikujZalegle(u.id, 1)).resolves.toEqual({ zakolejkowane: 1, srodowisko: 'test' });
+    expect((await stan(stara.id)).ksefStatus).toBe(KsefStatus.PENDING);
+    await expect(k.zalegleDoKsef()).resolves.toMatchObject({ liczba: 0 });
+  });
+
   it('do KSeF idzie dokładnie plik zapisany przy pobraniu PDF-u (ten, którego skrót jest w QR)', async () => {
     const u = await uzytkownik();
     const f = await fakturaPanelu(u.id, { ksefStatus: KsefStatus.PENDING });

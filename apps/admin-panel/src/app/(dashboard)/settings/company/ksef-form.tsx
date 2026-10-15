@@ -6,10 +6,13 @@ import { AlertCircle, Check, FileText, Loader2, ShieldCheck } from "lucide-react
 import {
   fetchKsef,
   fetchKsefOverview,
+  fetchKsefZalegle,
   saveKsef,
   type KsefOverview,
   type KsefSettings,
+  type KsefZalegle,
 } from "./actions";
+import { KsefZalegleSekcja } from "./ksef-zalegle";
 import { Checkbox } from '@/components/checkbox';
 import Link from "next/link";
 
@@ -17,6 +20,7 @@ export function KsefForm() {
   const envId = useId();
   const [cfg, setCfg] = useState<KsefSettings | null>(null);
   const [overview, setOverview] = useState<KsefOverview | null>(null);
+  const [zalegle, setZalegle] = useState<KsefZalegle | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [env, setEnv] = useState<"test" | "demo" | "prod">("test");
   const [nip, setNip] = useState("");
@@ -36,6 +40,9 @@ export function KsefForm() {
     });
     void fetchKsefOverview().then((res) => {
       if ("data" in res && res.data) setOverview(res.data);
+    });
+    void fetchKsefZalegle().then((res) => {
+      if ("data" in res && res.data) setZalegle(res.data);
     });
   };
   useEffect(load, []);
@@ -162,6 +169,7 @@ export function KsefForm() {
               <span className="text-muted-foreground">Brak faktur w obiegu KSeF.</span>
             )}
           </div>
+          {zalegle && <KsefZalegleSekcja zalegle={zalegle} env={overview.config.env} enabled={overview.config.enabled} onDone={load} />}
           {overview.recentRejected.length > 0 && (
             <div className="mt-2 space-y-1">
               <p className="text-xs font-medium text-rose-300">Odrzucone (wymagają interwencji):</p>

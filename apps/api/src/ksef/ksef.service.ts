@@ -61,9 +61,22 @@ export function bladDostepnosciKsef(err: unknown): boolean {
  * dokumentów PRZED wysyłką.
  */
 const OKNO_AUTO_KATCHUPU_DNI = 7;
+const poczatekOknaAuto = () => new Date(Date.now() - OKNO_AUTO_KATCHUPU_DNI * 24 * 60 * 60 * 1000);
 
 /** Serie faktur VAT nadawane przez panel — tylko one idą do KSeF (VDR/VDK to dokumenty rozliczeniowe). */
 const SERIE_VAT_PANELU: readonly string[] = [SERIA_FAKTURY, SERIA_KOREKTY];
+
+/** Faktury VAT panelu, które powinny iść do KSeF, a nie są w kolejce — te same warunki co `qualifies()`. */
+function warunekNiezakolejkowanych(wystawiono: { gte?: Date; lt?: Date }) {
+  return {
+    ksefStatus: KsefStatus.NOT_APPLICABLE,
+    issuedAt: { not: null, ...wystawiono },
+    netAmount: { not: null },
+    storageKey: { not: null },
+    rodzajPrawny: RODZAJ_FAKTURA_VAT,
+    OR: SERIE_VAT_PANELU.map((seria) => ({ number: { startsWith: `${seria}/` } })),
+  };
+}
 
 /**
  * Statusy, w których faktura ma (albo za chwilę będzie miała) swój plik w KSeF — wtedy PDF dla
@@ -231,17 +244,8 @@ export class KsefService {
     // Catch-up OGRANICZONY OKNEM (KSEF-05) — łapie pominięte `enqueueInvoice`
     // z ostatnich dni, nie całą historię. Zaległości starsze niż okno
     // kolejkuje wyłącznie `zakwalifikujZalegle` wywołane przez operatora.
-    const odKiedyAuto = new Date(Date.now() - OKNO_AUTO_KATCHUPU_DNI * 24 * 60 * 60 * 1000);
     await this.prisma.invoice.updateMany({
-      where: {
-        // Te same warunki co `qualifies()`.
-        ksefStatus: KsefStatus.NOT_APPLICABLE,
-        issuedAt: { not: null, gte: odKiedyAuto },
-        netAmount: { not: null },
-        storageKey: { not: null },
-        rodzajPrawny: RODZAJ_FAKTURA_VAT,
-        OR: SERIE_VAT_PANELU.map((seria) => ({ number: { startsWith: `${seria}/` } })),
-      },
+      where: warunekNiezakolejkowanych({ gte: poczatekOknaAuto() }),
       data: { ksefStatus: KsefStatus.PENDING },
     });
 
@@ -638,6 +642,42 @@ export class KsefService {
   // ---------------------------------------------------------------------------
   // Admin
   // ---------------------------------------------------------------------------
+
+  /**
+   * Przegląd 15.10 — faktury VAT panelu sprzed okna automatu (KSEF-05), które nigdy nie trafiły do kolejki
+   * (np. KSeF był wyłączony przy trybie „panel” dłużej niż 7 dni). Do dziś komentarze odsyłały do
+   * `zakwalifikujZalegle`, którego nie było — takie faktury zostawały poza KSeF po cichu.
+   */
+  async zalegleDoKsef(): Promise<{ liczba: number; przyklady: Array<{ id: string; number: string; issuedAt: string | null }> }> {
+    const where = warunekNiezakolejkowanych({ lt: poczatekOknaAuto() });
+    const [liczba, przyklady] = await Promise.all([
+      this.prisma.invoice.count({ where }),
+      this.prisma.invoice.findMany({ where, orderBy: { issuedAt: 'asc' }, take: 10, select: { id: true, number: true, issuedAt: true } }),
+    ]);
+    return { liczba, przyklady: przyklady.map((f) => ({ id: f.id, number: f.number, issuedAt: f.issuedAt?.toISOString() ?? null })) };
+  }
+
+  /**
+   * Operator kolejkuje zaległe faktury do KSeF — świadomie, po zobaczeniu liczby (`oczekiwanaLiczba` musi się
+   * zgadzać z bieżącą, inaczej 409: lista zmieniła się od podglądu). Tylko przy włączonym KSeF — inaczej faktury
+   * czekałyby w kolejce na środowisko, którego operator nie widział.
+   */
+  async zakwalifikujZalegle(actorUserId: string, oczekiwanaLiczba: number): Promise<{ zakolejkowane: number; srodowisko: string }> {
+    const rt = await this.settings.getKsefRuntimeConfig();
+    if (!rt.enabled) throw new ConflictException('KSeF jest wyłączony — najpierw włącz wysyłkę i sprawdź środowisko.');
+    const where = warunekNiezakolejkowanych({ lt: poczatekOknaAuto() });
+    const teraz = await this.prisma.invoice.count({ where });
+    if (teraz !== oczekiwanaLiczba) {
+      throw new ConflictException(`Liczba zaległych faktur zmieniła się (${teraz}, a podgląd pokazywał ${oczekiwanaLiczba}) — odśwież i sprawdź ponownie.`);
+    }
+    const r = await this.prisma.invoice.updateMany({ where, data: { ksefStatus: KsefStatus.PENDING } });
+    await this.audit.record({
+      action: 'KSEF_ZALEGLE_ZAKOLEJKOWANE',
+      actorUserId,
+      details: { liczba: r.count, srodowisko: normalizujSrodowiskoKsef(rt.env) },
+    });
+    return { zakolejkowane: r.count, srodowisko: normalizujSrodowiskoKsef(rt.env) };
+  }
 
   async adminOverview() {
     const [counts, recentRejected] = await Promise.all([

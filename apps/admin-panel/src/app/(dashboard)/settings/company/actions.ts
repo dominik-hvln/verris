@@ -91,6 +91,34 @@ export async function fetchKsefOverview() {
   }
 }
 
+/** Przegląd 15.10 — faktury VAT panelu sprzed okna automatu (7 dni), których nie ma w kolejce KSeF. */
+export interface KsefZalegle {
+  liczba: number;
+  przyklady: Array<{ id: string; number: string; issuedAt: string | null }>;
+}
+
+export async function fetchKsefZalegle() {
+  try {
+    return { data: await adminApi<KsefZalegle>("/admin/ksef/zalegle") };
+  } catch (e) {
+    return { error: err(e) };
+  }
+}
+
+/** `oczekiwanaLiczba` z podglądu — API odmawia, gdy lista zmieniła się od jego wyświetlenia. */
+export async function zakolejkujKsefZalegle(oczekiwanaLiczba: number) {
+  try {
+    return {
+      data: await adminApi<{ zakolejkowane: number; srodowisko: string }>("/admin/ksef/zalegle", {
+        method: "POST",
+        body: { oczekiwanaLiczba },
+      }),
+    };
+  } catch (e) {
+    return { error: err(e) };
+  }
+}
+
 /** FAK-01 / KSeF 12.10 — kto wystawia faktury VAT: panel (VFV/VFK + KSeF) albo program księgowy (VDR/VDK). */
 export type TrybFakturowania = "panel" | "zewnetrzny";
 
