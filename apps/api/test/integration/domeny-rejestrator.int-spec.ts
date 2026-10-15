@@ -240,6 +240,18 @@ describe('X-04 domeny u rejestratora', () => {
     expect(z).toMatchObject({ status: DomainRegistrarOrderStatus.COMPLETED, domainId: d.id });
   });
 
+  it('przegląd 15.10: transfer odrzucony, a zlecenie bez zapisanego walletTxId — zwrot po kluczu obciążenia', async () => {
+    const { rejestr } = uslugi();
+    const u = await klient(500);
+    await rejestr.transfer(u.id, u.id, { name: 'bez-txid.pl', authCode: 'ZLY', registrant: abonent });
+    // charge() dopuszcza „obciążone, walletTxId niezapisany” (tylko log) — symulacja tego stanu.
+    await prisma().domainRegistrarOrder.updateMany({ where: { userId: u.id }, data: { walletTxId: null } });
+    stanTransferu = 'failed';
+    expect(await rejestr.domknijTransfery()).toEqual({ zakonczone: 0, nieudane: 1 });
+    expect(await saldo(u.id)).toBe(500);
+    expect((await prisma().domainRegistrarOrder.findFirstOrThrow({ where: { userId: u.id } })).status).toBe(DomainRegistrarOrderStatus.FAILED);
+  });
+
   it('transfer odrzucony przez rejestr: zwrot na portfel, zlecenie nieudane, domeny brak', async () => {
     const { rejestr } = uslugi();
     const u = await klient(500);

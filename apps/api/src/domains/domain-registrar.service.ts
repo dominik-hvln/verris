@@ -573,7 +573,10 @@ export class DomainRegistrarService {
 
     // Jak przy odnowieniu: dwuklik nie może dać dwóch obciążeń.
     const order = await this.prisma.$transaction(async (db) => {
-      await db.$queryRaw`SELECT id FROM "Domain" WHERE id = ${domain.id} FOR UPDATE`;
+      // Przegląd 15.10: `domain.whoisPrivacy` przeczytane przed blokadą — drugie kliknięcie, które dostało blokadę po
+      // zakończeniu pierwszego (zamówienie już COMPLETED, nie „w toku”), płaciło drugi raz. Stan czytany pod blokadą.
+      const teraz = (await db.$queryRaw<Array<{ whoisPrivacy: boolean }>>`SELECT "whoisPrivacy" FROM "Domain" WHERE id = ${domain.id} FOR UPDATE`)?.[0];
+      if (teraz?.whoisPrivacy) return null;
       const wToku = await db.domainRegistrarOrder.findFirst({
         where: {
           domainId: domain.id,
@@ -598,6 +601,7 @@ export class DomainRegistrarService {
       });
     });
 
+    if (!order) return { whoisPrivacy: true };
     const tx = await this.charge(userId, order, price, `Ukrycie danych w WHOIS — ${domain.name} (${lata(years)})`);
     try {
       await provider.setWhoisPrivacy(externalId, true);
@@ -1235,9 +1239,12 @@ export class DomainRegistrarService {
             },
           });
         } else if (info.state === 'failed') {
-          if (!z.walletTxId || !z.priceAmount) continue;
+          // Przegląd 15.10: obciążenie bez zapisanego walletTxId (charge() to dopuszcza i tylko loguje) — odrzucony transfer
+          // zostawał bez zwrotu i wracał co godzinę. Obciążenie szukane po kluczu idempotencji, jak w ponowZamowienie.
+          const walletTxId = z.walletTxId ?? (await this.wallet.findByIdempotencyKey(`domain-${z.type.toLowerCase()}:${z.id}`))?.id;
+          if (!walletTxId || !z.priceAmount) continue;
           nieudane += 1;
-          await this.refundAndFail(z.userId, z, z.walletTxId, new Error('Rejestr odrzucił transfer domeny.'), {
+          await this.refundAndFail(z.userId, z, walletTxId, new Error('Rejestr odrzucił transfer domeny.'), {
             amount: z.priceAmount.toString(),
             currency: z.currency,
           });

@@ -207,3 +207,15 @@ describe('A-14 — OpenProvider: is_private_whois_enabled', () => {
     await expect(op.domainInfo('777')).resolves.toMatchObject({ privateWhois: null });
   });
 });
+
+describe('A-14 — przegląd 15.10: drugie kliknięcie po zakończeniu pierwszego', () => {
+  it('stan czytany pod blokadą: ukrycie już włączone (pierwsze żądanie skończyło) → bez zamówienia i bez drugiej opłaty', async () => {
+    const { service, wallet, provider, db } = zbuduj({ cena: '19.99' });
+    // Żądanie B przeczytało domenę z whoisPrivacy=false, ale pod blokadą widzi już stan po żądaniu A.
+    db.$queryRaw.mockResolvedValue([{ whoisPrivacy: true }]);
+    await expect(service.setWhoisPrivacy('u1', 'u1', 'd1', true)).resolves.toEqual({ whoisPrivacy: true });
+    expect(db.domainRegistrarOrder.create).not.toHaveBeenCalled();
+    expect(wallet.debit).not.toHaveBeenCalled();
+    expect(provider.setWhoisPrivacy).not.toHaveBeenCalled();
+  });
+});
