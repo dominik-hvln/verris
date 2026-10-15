@@ -2,6 +2,7 @@
 
 import { apiFetch } from '@/lib/api';
 import { setAuthCookie } from '@/lib/auth';
+import { sesjaKlienta } from '@/lib/tylko-klient';
 
 /** Czy serwer ma skonfigurowane passkey (RP). Gdy false — nie pokazujemy przycisku. */
 export async function getPasskeyAvailability(): Promise<boolean> {
@@ -20,6 +21,8 @@ export async function setPasskeyAuthCookie(
   accessToken: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
+    const klient = await sesjaKlienta(accessToken);
+    if (!klient.ok) return klient;
     await setAuthCookie(accessToken);
     return { ok: true };
   } catch (err) {

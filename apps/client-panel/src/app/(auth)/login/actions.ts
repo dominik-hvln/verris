@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { captchaTokenFromForm } from "@/lib/captcha";
 import { sciezkaPowrotu } from "@/lib/sciezka-powrotu";
+import { sesjaKlienta } from "@/lib/tylko-klient";
 
 interface LoginState {
   error?: string;
@@ -58,6 +59,8 @@ export async function submitLogin(
       return { twoFactorRequired: true, challengeToken: data.challengeToken, email, next };
     }
     if (data.access_token) {
+      const klient = await sesjaKlienta(data.access_token);
+      if (!klient.ok) return { error: klient.error, email };
       await setAuthCookie(data.access_token);
       shouldRedirect = true;
     } else {
@@ -105,6 +108,8 @@ export async function submitTwoFactor(
       body: JSON.stringify({ challengeToken, code }),
     });
     if (!data.access_token) return { error: "Brak tokenu sesji w odpowiedzi" };
+    const klient = await sesjaKlienta(data.access_token);
+    if (!klient.ok) return { error: klient.error };
     await setAuthCookie(data.access_token);
     shouldRedirect = true;
   } catch {

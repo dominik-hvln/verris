@@ -5,6 +5,8 @@ jest.mock('next/navigation', () => ({
 }));
 jest.mock('@/lib/auth', () => ({ setAuthCookie: jest.fn(async () => undefined) }));
 jest.mock('@/lib/captcha', () => ({ captchaTokenFromForm: () => undefined }));
+const sesjaKlienta = jest.fn(async (_t: string): Promise<{ ok: true } | { ok: false; error: string }> => ({ ok: true }));
+jest.mock('@/lib/tylko-klient', () => ({ sesjaKlienta: (t: string) => sesjaKlienta(t) }));
 jest.mock('@/lib/api', () => ({
   apiFetch: jest.fn(),
   ApiError: class ApiError extends Error {
@@ -16,7 +18,32 @@ jest.mock('@/lib/api', () => ({
 
 import { redirect } from 'next/navigation';
 import { apiFetch, ApiError } from '@/lib/api';
+import { setAuthCookie } from '@/lib/auth';
 import { submitLogin, submitTwoFactor } from './actions';
+
+/** Decyzja 15.10 (#12) — konto zespołu nie dostaje sesji w panelu klienta (hasło i 2FA). */
+describe('logowanie — tylko konta klienckie', () => {
+  const f = (pola: Record<string, string>) => {
+    const d = new FormData();
+    for (const [k, v] of Object.entries(pola)) d.set(k, v);
+    return d;
+  };
+  beforeEach(() => jest.clearAllMocks());
+
+  it('konto zespołu: komunikat, bez ciasteczka sesji i bez przekierowania', async () => {
+    sesjaKlienta.mockResolvedValueOnce({ ok: false, error: 'To konto zespołu Verris' });
+    (apiFetch as jest.Mock).mockResolvedValueOnce({ access_token: 't-zespol' });
+    const stan = await submitLogin(undefined, f({ email: 'op@verris.pl', password: 'x' }));
+    expect(stan.error).toContain('konto zespołu');
+    expect(sesjaKlienta).toHaveBeenCalledWith('t-zespol');
+    expect(setAuthCookie).not.toHaveBeenCalled();
+
+    sesjaKlienta.mockResolvedValueOnce({ ok: false, error: 'To konto zespołu Verris' });
+    (apiFetch as jest.Mock).mockResolvedValueOnce({ access_token: 't-2fa' });
+    expect((await submitTwoFactor(undefined, f({ challengeToken: 'ch', code: '123456' }))).error).toContain('konto zespołu');
+    expect(setAuthCookie).not.toHaveBeenCalled();
+  });
+});
 
 /** PB-45 — po zalogowaniu (hasło i 2FA) wracamy na `next` z linku w mailu, ale tylko do ścieżek panelu. */
 describe('logowanie — powrót na next', () => {
