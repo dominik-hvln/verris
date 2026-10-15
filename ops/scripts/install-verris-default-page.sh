@@ -212,7 +212,8 @@ read_da_tokens() {
     DA_TOKEN_IP="$(grep -m1 '^ip=' "$user_conf" 2>/dev/null | cut -d= -f2- || true)"
   fi
   if [ -z "$DA_TOKEN_IP" ]; then
-    DA_TOKEN_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+    # `hostname -I` nie wszędzie jest (np. hostname z uutils): przy pipefail jego błąd kończył cały skrypt (set -e).
+    DA_TOKEN_IP="$({ hostname -I 2>/dev/null || true; } | awk '{print $1}')"
   fi
 }
 

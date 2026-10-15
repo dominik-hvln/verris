@@ -14,7 +14,7 @@ import { join } from 'path';
 const SKRYPT = join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'scripts', 'install-verris-default-page.sh');
 const SZABLON = join(import.meta.dirname, '..', '..', '..', '..', 'ops', 'hosting-default-page');
 
-function uruchom() {
+function uruchom(opcje: { hostnameBezI?: boolean } = {}) {
   const T = mkdtempSync(join(tmpdir(), 'strona-domyslna-'));
   const bin = join(T, 'bin');
   mkdirSync(bin);
@@ -22,8 +22,13 @@ function uruchom() {
   mkdirSync(pub, { recursive: true });
   writeFileSync(join(pub, 'index.html'), '<p>Something amazing will be constructed here (DirectAdmin)</p>');
   const atrapy: Record<string, string> = {
-    // rsync -a SRC/ DST/ (w kontenerze testów nie ma rsync)
-    rsync: '#!/bin/bash\nsrc="${@: -2:1}"; dst="${@: -1}"\nmkdir -p "$dst" && cp -a "$src." "$dst"\n',
+    // rsync -a SRC/ DST/ (w kontenerze testów nie ma rsync); tar zamiast `cp -a dir/.` — zachowanie cp zależy od
+    // implementacji coreutils hosta (CI 15.10 na ubuntu-26.04 był czerwony, lokalnie zielony).
+    rsync: '#!/bin/bash\nsrc="${@: -2:1}"; dst="${@: -1}"\nmkdir -p "$dst" && tar -C "$src" -cf - . | tar -C "$dst" -xf -\n',
+    // Atrapa zamiast hosta: wynik testu nie może zależeć od tego, czy `hostname` CI zna -I.
+    hostname: opcje.hostnameBezI
+      ? '#!/bin/bash\necho "hostname: invalid option -- I" >&2\nexit 1\n'
+      : '#!/bin/bash\n[ "$1" = -I ] && echo "198.51.100.7 "\n',
     runuser: `#!/bin/bash\n[ "$1" = -u ] || exit 7\necho "$2 :: \${*:4}" >> "${T}/runuser.log"\nshift 3\nexec "$@"\n`,
     chown: `#!/bin/bash\necho "$*" >> "${T}/chown.log"\n`,
     id: '#!/bin/bash\n[ "$1" = "-u" ] && { echo 0; exit 0; }\nexit 0\n',
@@ -54,6 +59,14 @@ describe('strona domyślna Verris — podmiana istniejącej strony zapisuje klie
     expect(w.index).toContain('x.pl');
     expect(w.index).not.toContain('|DOMAIN|');
     expect(w.assets).toBe(true);
+  });
+
+  // CI 15.10 (ubuntu-26.04): `hostname` bez opcji -I przy `set -o pipefail` kończył skrypt kodem 1 przed podmianą strony.
+  it('hostname bez -I (inna implementacja) nie przerywa podmiany — adres IP zostaje pusty', () => {
+    const w = uruchom({ hostnameBezI: true });
+    expect(w.r.status).toBe(0);
+    expect(w.runuser).toMatch(/^u1 :: tar -C .*\/public_html -xpf -/m);
+    expect(w.index).toContain('x.pl');
   });
 
   it('w deploy_public_html żadnego zapisu roota w katalogu klienta (rsync, chmod, chown, mv, sed)', () => {
