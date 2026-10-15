@@ -96,7 +96,8 @@ describe('PB-34 — pulpit admina', () => {
     });
     const bez = await serwis().overview({ ...PELNY, metryki: false });
     expect(bez).toMatchObject({ metryki: false, klienci: null, wplywy: null, billing: null, users: null });
-    expect(JSON.stringify(bez)).not.toContain('49.00');
+    // Bez znacznika czasu: „…:49.000Z” w generatedAt zawiera „49.00” (test padał raz na minutę, w 49. sekundzie).
+    expect(JSON.stringify({ ...bez, generatedAt: null })).not.toContain('49.00');
     expect(bez.zgloszenia).toEqual({ otwarte: 0, poTerminie: 0, dzis: 0 });
     const z = await serwis().overview(PELNY);
     expect(z.metryki).toBe(true);
