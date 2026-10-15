@@ -22,7 +22,7 @@ export function przepiszCookie(naglowek: string): string {
   return naglowek.replace(/;\s*domain=[^;]*/gi, '');
 }
 
-const TEKSTOWE = /^(text\/(html|css|javascript|plain|xml)|application\/(javascript|x-javascript|json|ld\+json|xml|rss\+xml|manifest\+json))\b/i;
+const TEKSTOWE = /^(text\/(html|css|javascript|plain|xml)|application\/(javascript|x-javascript|json|ld\+json|xml|rss\+xml|manifest\+json|xhtml\+xml))\b/i;
 export function czyTekstowy(contentType: string | undefined): boolean {
   return Boolean(contentType && TEKSTOWE.test(contentType));
 }
@@ -39,10 +39,13 @@ function encje(t: string): string {
 export function wstawPasekPodgladu(html: string, domena: string): string {
   const d = domena.replace(/[^a-z0-9.-]/gi, '');
   const pasek =
-    `<div data-verris-podglad style="all:initial;display:block;box-sizing:border-box;width:100%;background:#0E3B2E;color:#F4F4EE;` +
+    `<div data-verris-podglad="1" style="all:initial;display:block;box-sizing:border-box;width:100%;background:#0E3B2E;color:#F4F4EE;` +
     `font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;padding:8px 12px;text-align:center">` +
     `${encje(`Podgląd strony ${d} przed zmianą DNS (Verris). Nie podawaj tu haseł ani danych płatności.`)}</div>`;
-  return html.replace(/<body\b[^>]*>/i, (m) => m + pasek);
+  if (/<body\b[^>]*>/i.test(html)) return html.replace(/<body\b[^>]*>/i, (m) => m + pasek);
+  // Bez <body> (przeglądarka i tak wyrenderuje treść) — pasek na początku, po ewentualnym <!doctype>.
+  const doctype = /^\s*<!doctype[^>]*>/i.exec(html);
+  return doctype ? doctype[0] + pasek + html.slice(doctype[0].length) : pasek + html;
 }
 
 /** Nagłówki odpowiedzi węzła, które przechodzą do przeglądarki (lista dozwolonych — white label: bez Server, LiteSpeed, Link itd.). */

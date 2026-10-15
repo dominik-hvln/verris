@@ -78,7 +78,39 @@ describe('PodgladService — przez proxy do węzła konta', () => {
       }
       if (req.url === '/gzip') {
         res.writeHead(200, { 'content-type': 'text/html', 'content-encoding': 'gzip' });
-        return res.end(gzipSync('<a href="https://sklep.pl/">x</a>'));
+        return res.end(gzipSync('<body><a href="https://sklep.pl/">x</a></body>'));
+      }
+      if (req.url === '/gzip.css') {
+        res.writeHead(200, { 'content-type': 'text/css', 'content-encoding': 'gzip' });
+        return res.end(gzipSync('a{background:url(https://sklep.pl/t.png)}'));
+      }
+      if (req.url === '/bez-body') {
+        res.writeHead(200, { 'content-type': 'text/html' });
+        return res.end('<!DOCTYPE html><title>Bank</title><form>haslo</form>');
+      }
+      if (req.url === '/xhtml') {
+        res.writeHead(200, { 'content-type': 'application/xhtml+xml' });
+        return res.end('<html xmlns="http://www.w3.org/1999/xhtml"><body><p>x</p></body></html>');
+      }
+      if (req.url === '/bez-typu') {
+        res.writeHead(200, {});
+        return res.end('<html><body>bez typu</body></html>');
+      }
+      if (req.url === '/a/b') {
+        res.writeHead(302, { location: 'c.php?x=1' });
+        return res.end();
+      }
+      if (req.url === '/duzy') {
+        res.writeHead(200, { 'content-type': 'text/plain' }); // bez content-length (chunked)
+        const kaw = Buffer.alloc(512 * 1024, 'a');
+        for (let i = 0; i < 10; i++) res.write(kaw);
+        return res.end();
+      }
+      if (req.url === '/wolno-html') {
+        res.writeHead(200, { 'content-type': 'text/html', 'content-disposition': 'attachment; filename="x.html"', 'set-cookie': 'b=2' });
+        const t = setInterval(() => res.write('x'), 100);
+        setTimeout(() => { clearInterval(t); res.end(); }, 3000);
+        return;
       }
       if (req.url === '/wolno') {
         res.writeHead(200, { 'content-type': 'application/octet-stream' });
@@ -193,7 +225,7 @@ describe('PodgladService — przez proxy do węzła konta', () => {
     expect(ostatnieCiastka).toBe('wp_x=7'); // nasze ciasteczko dostępu nie idzie do węzła klienta
     const html = await r.text();
     expect(html).toContain(`<a href="https://${host}/o-nas">O nas</a>`);
-    expect(html).toMatch(/<body class="home"><div data-verris-podglad[^>]*>Podgl&#261;d strony sklep\.pl przed zmian&#261; DNS/);
+    expect(html).toMatch(/<body class="home"><div data-verris-podglad="1"[^>]*>Podgl&#261;d strony sklep\.pl przed zmian&#261; DNS/);
     expect(r.headers.get('set-cookie')).toBe('a=1; Path=/');
     for (const n of ['server', 'x-litespeed-cache', 'x-turbo-charged-by', 'link']) expect(r.headers.get(n)).toBeNull();
     expect(r.headers.get('x-robots-tag')).toBe('noindex, nofollow');
@@ -211,14 +243,65 @@ describe('PodgladService — przez proxy do węzła konta', () => {
     expect(await z.text()).not.toMatch(/wezly|2222/);
   });
 
-  it('kodowanie strony inne niż UTF-8 zostaje bajt w bajt; gzip z węzła przechodzi bez podmiany z nagłówkiem', async () => {
+  it('kodowanie strony inne niż UTF-8 zostaje bajt w bajt; skompresowany CSS przechodzi z nagłówkiem', async () => {
     const { host, cookie } = await wejdz();
     const c = await pobierz(host, '/cp1250', 'GET', cookie);
     expect(c.body.includes(Buffer.from([0xb9, 0x9c]))).toBe(true);
     expect(c.body.toString('latin1')).toContain(`href="https://${host}/"`);
-    const g = await pobierz(host, '/gzip', 'GET', cookie);
+    const g = await pobierz(host, '/gzip.css', 'GET', cookie);
     expect(g.headers.get('content-encoding')).toBe('gzip');
-    expect(gunzipSync(g.body).toString()).toBe('<a href="https://sklep.pl/">x</a>');
+    expect(gunzipSync(g.body).toString()).toBe('a{background:url(https://sklep.pl/t.png)}');
+  });
+
+  // Drugi przegląd nocny: pasek dało się ominąć gzipem, brakiem <body>, xhtml albo brakiem Content-Type.
+  it('HTML zawsze z paskiem „podgląd”: gzip, bez <body>, xhtml; bez typu → nie renderuje się jako strona', async () => {
+    const { host, cookie } = await wejdz();
+    const g = await pobierz(host, '/gzip', 'GET', cookie);
+    expect(g.headers.get('content-encoding')).toBeNull();
+    expect(await g.text()).toMatch(/^<body><div data-verris-podglad="1"[^>]*>Podgl&#261;d strony sklep\.pl[\s\S]*href="https:\/\/p/);
+    const b = await pobierz(host, '/bez-body', 'GET', cookie);
+    expect(await b.text()).toMatch(/^<!DOCTYPE html><div data-verris-podglad="1"[^>]*>Podgl&#261;d/);
+    const x = await pobierz(host, '/xhtml', 'GET', cookie);
+    expect(await x.text()).toContain('<body><div data-verris-podglad="1"');
+    const n = await pobierz(host, '/bez-typu', 'GET', cookie);
+    expect(n.headers.get('content-type')).toBe('application/octet-stream');
+    expect(n.headers.get('x-content-type-options')).toBe('nosniff');
+  });
+
+  it('przekierowanie względne liczone od ścieżki żądania (jak w przeglądarce)', async () => {
+    const { host, cookie } = await wejdz();
+    const r = await pobierz(host, '/a/b', 'GET', cookie);
+    expect(r.headers.get('location')).toBe('/a/c.php?x=1');
+  });
+
+  it('treść tekstowa > 2 MB bez Content-Length dochodzi w całości (strumieniem, bez podmiany)', async () => {
+    const { host, cookie } = await wejdz();
+    const r = await pobierz(host, '/duzy', 'GET', cookie);
+    expect(r.status).toBe(200);
+    expect(r.body.length).toBe(10 * 512 * 1024);
+  });
+
+  it('504 po czasie nie niesie nagłówków węzła (content-disposition, set-cookie); semafor wraca do zera', async () => {
+    const { host, cookie } = await wejdz();
+    const r = await pobierz(host, '/wolno-html', 'GET', cookie);
+    expect(r.status).toBe(504);
+    expect(r.headers.get('content-disposition')).toBeNull();
+    expect(r.headers.get('set-cookie')).toBeNull();
+    await new Promise((ok) => setTimeout(ok, 50));
+    expect(svc.trwajace).toBe(0);
+  });
+
+  it('przeglądarka zrywa połączenie w trakcie — semafor wraca do zera', async () => {
+    const { host, cookie } = await wejdz();
+    await new Promise<void>((ok) => {
+      const r = httpRequest({ host: '127.0.0.1', port: apiPort, path: '/podglad-proxy/wolno', headers: { host, cookie } }, (odp) => {
+        odp.once('data', () => { r.destroy(); ok(); });
+      });
+      r.on('error', () => ok());
+      r.end();
+    });
+    await new Promise((ok) => setTimeout(ok, 200));
+    expect(svc.trwajace).toBe(0);
   });
 
   it('węzeł wysyłający po bajcie nie trzyma procesu API dłużej niż limit całego żądania', async () => {

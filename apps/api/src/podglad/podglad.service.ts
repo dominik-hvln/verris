@@ -4,6 +4,7 @@ import { AccountStatus } from '@verris/database';
 import http from 'http';
 import https from 'https';
 import { pipeline } from 'stream';
+import { createBrotliDecompress, createGunzip, createInflate } from 'zlib';
 import type { Request, Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -21,6 +22,8 @@ import { NAGLOWKI_DOZWOLONE, czyTekstowy, przepiszAdresy, przepiszCookie, wstawP
 const MAKS_PRZEPISANIE = 2 * 1024 * 1024;
 /** Noc 15.10 — proxy działa w procesie API: limit równoległych żądań i całkowity czas jednego żądania. */
 const MAKS_ROWNOLEGLYCH = 24;
+/** Jedno konto (jeden link) nie zajmie wszystkich miejsc. */
+const MAKS_NA_KONTO = 6;
 const MAKS_CZAS_MS = 30_000;
 
 /**
@@ -43,6 +46,11 @@ export class PodgladService {
   /** Czas jednego żądania (podmieniany wyłącznie w testach). */
   maksCzasMs = MAKS_CZAS_MS;
   private aktywne = 0;
+  private aktywneKonta = new Map<string, number>();
+  /** Liczba trwających żądań podglądu (testy: semafor zawsze się zwalnia). */
+  get trwajace(): number {
+    return this.aktywne;
+  }
 
   constructor(
     private readonly prisma: PrismaService,
@@ -160,16 +168,21 @@ export class PodgladService {
       return this.strona(res, 403, 'Ten podgląd otwiera się z linku w panelu Verris (karta usługi albo przeprowadzka strony).');
     }
 
-    if (this.aktywne >= MAKS_ROWNOLEGLYCH) {
+    const naKonto = this.aktywneKonta.get(t.accountId) ?? 0;
+    if (this.aktywne >= MAKS_ROWNOLEGLYCH || naKonto >= MAKS_NA_KONTO) {
       res.setHeader('retry-after', '5');
       return this.strona(res, 503, 'Zbyt wiele podglądów naraz. Odśwież stronę za kilka sekund.');
     }
     this.aktywne += 1;
+    this.aktywneKonta.set(t.accountId, naKonto + 1);
     let zwolnione = false;
     const zwolnij = () => {
       if (zwolnione) return;
       zwolnione = true;
       this.aktywne -= 1;
+      const n = (this.aktywneKonta.get(t.accountId) ?? 1) - 1;
+      if (n > 0) this.aktywneKonta.set(t.accountId, n);
+      else this.aktywneKonta.delete(t.accountId);
     };
     res.once('close', zwolnij);
     res.once('finish', zwolnij);
@@ -201,7 +214,9 @@ export class PodgladService {
     // Całkowity czas żądania (timeout gniazda w http.request to tylko bezczynność — węzeł wysyłający po bajcie trzymałby
     // proces API bez końca).
     let wezelReq: http.ClientRequest | null = null;
+    let poCzasie = false;
     const czasomierz = setTimeout(() => {
+      poCzasie = true;
       wezelReq?.destroy(new Error('przekroczony czas'));
       if (res.headersSent) res.destroy();
       else this.strona(res, 504, 'Strona odpowiada zbyt długo. Spróbuj za chwilę.');
@@ -230,7 +245,11 @@ export class PodgladService {
 
     let odp: http.IncomingMessage;
     try {
-      odp = await zapytaj(true).catch(() => zapytaj(false));
+      // Po przekroczeniu czasu nie ma już drugiej próby (http) — odpowiedź 504 poszła.
+      odp = await zapytaj(true).catch((e: unknown) => {
+        if (poCzasie) throw e;
+        return zapytaj(false);
+      });
     } catch (e) {
       clearTimeout(czasomierz);
       if (res.headersSent || res.writableEnded) return;
@@ -249,7 +268,8 @@ export class PodgladService {
       const l = przepiszAdresy(String(odp.headers.location), konto.domain, podglad);
       let cel: URL | null;
       try {
-        cel = new URL(l, `https://${podglad}/`);
+        // Względne „login.php”, „?lang=en”, „../x” — względem ścieżki żądania, jak w przeglądarce.
+        cel = new URL(l, `https://${podglad}${sciezka.startsWith('/') ? sciezka : '/'}`);
       } catch {
         cel = null;
       }
@@ -273,6 +293,11 @@ export class PodgladService {
     res.setHeader('cache-control', 'private, no-store');
     res.setHeader('x-frame-options', 'SAMEORIGIN');
     res.setHeader('content-security-policy', "frame-ancestors 'self'");
+    // Bez zgadywania typu przez przeglądarkę: HTML zawsze przez pasek „podgląd” (niżej), reszta tylko jako to, czym jest.
+    res.setHeader('x-content-type-options', 'nosniff');
+    const typ = String(odp.headers['content-type'] ?? '');
+    if (!typ) res.setHeader('content-type', 'application/octet-stream');
+    const dokument = /^(text\/html|application\/xhtml\+xml)\b/i.test(typ);
 
     const strumien = (): void => {
       pipeline(odp, res, (err) => {
@@ -289,19 +314,34 @@ export class PodgladService {
     }
     const kodowanie = String(odp.headers['content-encoding'] ?? 'identity').toLowerCase();
     const rozmiar = Number(odp.headers['content-length'] ?? 0);
-    if (kodowanie !== 'identity') {
-      // Węzeł zignorował Accept-Encoding: identity — przekazujemy bez podmiany adresów, z nagłówkiem kodowania.
+    const rozpakuj = { gzip: createGunzip, 'x-gzip': createGunzip, deflate: createInflate, br: createBrotliDecompress }[kodowanie];
+    if (kodowanie !== 'identity' && !dokument) {
+      // Węzeł zignorował Accept-Encoding: identity — zasoby (CSS, JS, obrazy) przechodzą bez podmiany z nagłówkiem.
       res.setHeader('content-encoding', kodowanie);
       return strumien();
     }
-    if (!czyTekstowy(odp.headers['content-type']) || rozmiar > MAKS_PRZEPISANIE) return strumien();
+    if (kodowanie !== 'identity' && !rozpakuj) {
+      odp.resume();
+      clearTimeout(czasomierz);
+      return this.strona(res, 502, 'Strona wysłała treść w nieobsługiwanym kodowaniu — podgląd jej nie pokaże.');
+    }
+    if (!dokument && (!czyTekstowy(typ) || rozmiar > MAKS_PRZEPISANIE)) return strumien();
 
+    // HTML (także skompresowany) zawsze przechodzi przez podmianę adresów i pasek — inaczej strona klienta mogłaby udawać
+    // prawdziwą witrynę na HTTPS domeny podglądu (gzip, brak <body>, xhtml). Za duży HTML → komunikat, nie surowa treść.
+    const zrodlo = rozpakuj ? odp.pipe(rozpakuj()) : odp;
     const kawalki: Buffer[] = [];
     let razem = 0;
     try {
-      for await (const kaw of odp) {
+      // destroyOnReturn: false — po wyjściu z pętli (za duża treść tekstowa) strumień idzie dalej przez pipeline.
+      for await (const kaw of zrodlo.iterator({ destroyOnReturn: false })) {
         razem += (kaw as Buffer).length;
         if (razem > MAKS_PRZEPISANIE) {
+          if (dokument) {
+            odp.destroy();
+            clearTimeout(czasomierz);
+            return this.strona(res, 502, 'Ta strona jest zbyt duża na podgląd. Sprawdzisz ją po zmianie DNS.');
+          }
           // Bez nagłówka długości było więcej niż limit — dalej bez podmiany, strumieniem.
           res.write(Buffer.concat(kawalki));
           res.write(kaw as Buffer);
@@ -315,9 +355,10 @@ export class PodgladService {
       return;
     }
     clearTimeout(czasomierz);
+    if (res.headersSent || res.writableEnded) return;
     // latin1 zachowuje bajty 1:1 (strony w windows-1250 itd.); podmieniane są tylko nazwy hostów w ASCII.
     let tresc = przepiszAdresy(Buffer.concat(kawalki).toString('latin1'), konto.domain, podglad);
-    if (/^text\/html\b/i.test(String(odp.headers['content-type'] ?? ''))) tresc = wstawPasekPodgladu(tresc, konto.domain);
+    if (dokument) tresc = wstawPasekPodgladu(tresc, konto.domain);
     res.end(Buffer.from(tresc, 'latin1'));
   }
 
@@ -326,6 +367,8 @@ export class PodgladService {
       res.destroy();
       return;
     }
+    // Nagłówki ustawione już z odpowiedzi węzła (set-cookie, content-disposition, location…) nie idą z naszą stroną.
+    for (const n of res.getHeaderNames()) if (n !== 'retry-after') res.removeHeader(n);
     res.status(status);
     res.setHeader('content-type', 'text/html; charset=utf-8');
     res.setHeader('x-robots-tag', 'noindex, nofollow');
