@@ -8,7 +8,8 @@
 #   --replace-existing     podmień index.html w public_html, jeśli wygląda na stock DA / stary Verris
 set -Eeuo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# `:-$0`: bez pliku (bash -c, potok) BASH_SOURCE jest puste — bash 5.3 kończy wtedy `cd ""` błędem (set -e).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 
 resolve_src_dir() {
   if [ -n "${VERRIS_DEFAULT_PAGE_SRC:-}" ] && [ -f "${VERRIS_DEFAULT_PAGE_SRC}/index.html" ]; then

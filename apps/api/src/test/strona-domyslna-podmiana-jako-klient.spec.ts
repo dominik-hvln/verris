@@ -40,7 +40,11 @@ function uruchom(opcje: { hostnameBezI?: boolean } = {}) {
   const s = readFileSync(SKRYPT, 'utf8');
   // Funkcje skryptu bez części wykonawczej (od ostatniego „require_root”); /home → katalog testu.
   const funkcje = s.slice(0, s.lastIndexOf('\nrequire_root\n')).replaceAll('#^/home/', `#^${T}/home/`);
-  const r = spawnSync('bash', ['-c', `${funkcje}\nSRC_DIR=${JSON.stringify(SZABLON)}\nDRY_RUN=0\ndeploy_public_html ${JSON.stringify(pub)}`], {
+  // Z pliku, jak na węźle (nie `bash -c`): CI 15.10 na ubuntu-26.04 (bash 5.3) padał już na nagłówku skryptu —
+  // bez pliku BASH_SOURCE jest puste, a `cd ""` w bash 5.3 to błąd (w 5.2 nie).
+  const plik = join(T, 'skrypt-test.sh');
+  writeFileSync(plik, `${funkcje}\nSRC_DIR=${JSON.stringify(SZABLON)}\nDRY_RUN=0\ndeploy_public_html ${JSON.stringify(pub)}\n`);
+  const r = spawnSync('bash', [plik], {
     env: { PATH: `${bin}:${process.env.PATH ?? ''}` },
     encoding: 'utf8',
   });
@@ -53,7 +57,7 @@ function uruchom(opcje: { hostnameBezI?: boolean } = {}) {
 describe('strona domyślna Verris — podmiana istniejącej strony zapisuje klient', () => {
   it('index.html i assets trafiają do public_html przez runuser (tar), bez chown roota; tokeny uzupełnione', () => {
     const w = uruchom();
-    expect(w.r.status).toBe(0);
+    expect(w.r.status, w.r.stderr).toBe(0);
     expect(w.runuser).toMatch(/^u1 :: tar -C .*\/public_html -xpf - --no-same-owner/m);
     expect(w.chown).toBe('');
     expect(w.index).toContain('x.pl');
@@ -64,7 +68,7 @@ describe('strona domyślna Verris — podmiana istniejącej strony zapisuje klie
   // CI 15.10 (ubuntu-26.04): `hostname` bez opcji -I przy `set -o pipefail` kończył skrypt kodem 1 przed podmianą strony.
   it('hostname bez -I (inna implementacja) nie przerywa podmiany — adres IP zostaje pusty', () => {
     const w = uruchom({ hostnameBezI: true });
-    expect(w.r.status).toBe(0);
+    expect(w.r.status, w.r.stderr).toBe(0);
     expect(w.runuser).toMatch(/^u1 :: tar -C .*\/public_html -xpf -/m);
     expect(w.index).toContain('x.pl');
   });
