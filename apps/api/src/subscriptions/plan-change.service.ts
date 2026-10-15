@@ -472,6 +472,11 @@ export class PlanChangeService {
         'Usługa nie ma jeszcze konta hostingowego — poczekaj na provisioning.',
       );
     }
+    // Przegląd 15.10: zmiana planu w okresie próbnym liczyła dopłatę od okresu triala (prawie pełna cena), a trial
+    // i tak wygasał bez zwrotu. Najpierw przejście na płatny plan.
+    if (sub.isTrial && !sub.trialConvertedAt) {
+      throw new BadRequestException('W okresie próbnym nie zmienisz planu — najpierw przejdź na płatną usługę, potem zmień plan.');
+    }
     // Q-05 — zmiana tylko w obrębie tego samego produktu. Hosting przełączony na plan poczty
     // albo newslettera dostałby na węźle pakiet z cudzymi limitami (pushDaLimits).
     if (target.productKind !== sub.plan.productKind) {
@@ -719,7 +724,10 @@ export class PlanChangeService {
         where: { id: sub.id },
         data: {
           planId: target.id,
-          priceAmount: newPrice,
+          // Przegląd 15.10: `priceAmount` = zapłacone za bieżący okres (od niego liczy się kredyt przy downgradzie).
+          // Upgrade gratis od admina (skipBilling) zapisywał cenę nowego planu — klient robił downgrade i dostawał
+          // kredyt za różnicę, której nie zapłacił. Odnowienia liczą się z `listPriceAmount` (cennik nowego planu).
+          priceAmount: ctx.skipBilling ? sub.priceAmount : newPrice,
           listPriceAmount: newPrice,
           resellerMarkupPct: narzut > 0 ? narzut : null,
           ...(intervalChange
