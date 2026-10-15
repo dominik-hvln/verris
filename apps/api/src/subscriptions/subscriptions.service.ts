@@ -1704,6 +1704,12 @@ export class SubscriptionsService {
       subscriptionId,
     });
 
+    // Przegląd poprawek 15.10: równoległy przebieg obciążył tym samym kluczem, zakładanie mu padło i ZWRÓCIŁ pieniądze
+    // (usługa znów PENDING_PAYMENT). Ten przebieg trafił w tamto obciążenie (nic nie pobrał) — przestawienie poniżej by
+    // się udało i usługa ruszyłaby bez opłaty. Zwrócone obciążenie = zamówienie wymaga nowego.
+    if (await this.walletLedger.findByIdempotencyKey(`sub-${subscriptionId}-initial-refund`)) {
+      throw new ConflictException('Opłata za to zamówienie została już zwrócona do portfela — złóż nowe zamówienie.');
+    }
     // Warunkowo: zamówienie mogło zostać anulowane (klient, sprzątanie po 48 h) między sprawdzeniem a obciążeniem —
     // wtedy zwrot i odmowa zamiast przestawienia anulowanej usługi na zakładanie (przegląd 13.10, zakup przez Paynow).
     const { count: przestawiono } = await this.prisma.subscription.updateMany({
