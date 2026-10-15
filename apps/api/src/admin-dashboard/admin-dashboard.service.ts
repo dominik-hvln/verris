@@ -52,7 +52,8 @@ export class AdminDashboardService {
    * `metryki: false` — bez przychodów, sum portfela i liczby klientów (pola null): pulpit operatora z samym
    * DASHBOARD_VIEW (np. L1) pokazuje stan platformy, ale nie metryki biznesowe (decyzja 11.10).
    */
-  async overview({ metryki = true, klienci = true, zgloszenia = true }: { metryki?: boolean; klienci?: boolean; zgloszenia?: boolean } = {}) {
+  // Noc 15.10 (rewalidacja) — zakres bez wartości domyślnych: wywołanie bez niego nie może ujawnić wszystkiego.
+  async overview({ metryki, klienci, zgloszenia }: { metryki: boolean; klienci: boolean; zgloszenia: boolean }) {
     const since30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     const [

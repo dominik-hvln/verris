@@ -105,6 +105,16 @@ export class WebAuthnService {
     const { registrationInfo } = verification;
     const credentialId = registrationInfo.credential.id;
 
+    // Noc 15.10 (rewalidacja audytu 13.10, pkt 3) — wyzwanie zużywane atomowo PRZED zapisem klucza: N równoległych
+    // rejestracji na to samo wyzwanie widziało „0 kluczy” i każda przyznawała punkty EKO. Przechodzi jedna.
+    const zuzyte = await this.prisma.user.updateMany({
+      where: { id: userId, webauthnChallenge: user.webauthnChallenge, webauthnChallengeExpires: { gt: new Date() } },
+      data: { webauthnChallenge: null, webauthnChallengeExpires: null },
+    });
+    if (zuzyte.count !== 1) {
+      throw new BadRequestException('Wyzwanie rejestracji passkey wygasło albo zostało już użyte — spróbuj dodać klucz jeszcze raz.');
+    }
+
     const existingCount = await this.prisma.webAuthnCredential.count({ where: { userId } });
 
     await this.prisma.$transaction([

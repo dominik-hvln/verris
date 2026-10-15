@@ -59,4 +59,17 @@ describe('VPS — restart nie wyprowadza serwera z rozliczeń', () => {
     await expect(t.svc.power('u1', 'v1', 'reboot')).rejects.toBeInstanceOf(ConflictException);
     expect(t.hetzner.reboot).not.toHaveBeenCalled();
   });
+
+  // Noc 15.10 (rewalidacja): power() nadpisywał status bez względu na stan wyjściowy — VPS w błędzie albo w trakcie
+  // usuwania po „Włącz”/restarcie dostawał RUNNING i wracał do rozliczeń.
+  it.each(['ERROR', 'DELETING', 'PROVISIONING'])('VPS w stanie %s → odmowa, bez dostawcy i bez zmiany statusu', async (stan) => {
+    for (const akcja of ['on', 'off', 'reboot'] as const) {
+      const t = usluga(stan);
+      await expect(t.svc.power('u1', 'v1', akcja)).rejects.toBeInstanceOf(ConflictException);
+      expect(t.hetzner.reboot).not.toHaveBeenCalled();
+      expect(t.hetzner.powerOn).not.toHaveBeenCalled();
+      expect(t.hetzner.powerOff).not.toHaveBeenCalled();
+      expect(t.vps.status).toBe(stan);
+    }
+  });
 });

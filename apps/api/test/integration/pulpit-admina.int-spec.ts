@@ -9,6 +9,8 @@ import { prisma, rozlacz, utworzPlan, utworzWezel, wyczyscBaze } from './setup.j
  */
 const serwis = () => new AdminDashboardService(prisma() as never);
 const MIN = 60_000;
+/** Zakres pełny (ADMIN) — od nocy 15.10 overview() nie ma wartości domyślnych. */
+const PELNY = { metryki: true, klienci: true, zgloszenia: true };
 
 describe('PB-34 — pulpit admina', () => {
   beforeEach(wyczyscBaze);
@@ -38,7 +40,7 @@ describe('PB-34 — pulpit admina', () => {
       data: { userId: klient.id, number: 'VDR/2026/09/9001', status: 'PAID', rodzajPrawny: 'DOKUMENT_ROZLICZENIOWY', amount: new Prisma.Decimal('49.00'), issuedAt: new Date('2026-09-24T10:00:00Z') },
     });
 
-    const o = await serwis().overview();
+    const o = await serwis().overview(PELNY);
     const tytuly = o.naUwadze.map((u) => u.tytul);
     expect(tytuly).toContain('node-pl-02 nie przeszedł weryfikacji onboardu');
     expect(o.naUwadze.find((u) => u.href === `/nodes/${onboard.id}`)?.opis).toBe('2 × FAIL: kopie off-site, IP w DirectAdmin · węzeł nie dostaje nowych kont');
@@ -72,7 +74,7 @@ describe('PB-34 — pulpit admina', () => {
       }
     }
 
-    const o = await serwis().overview();
+    const o = await serwis().overview(PELNY);
     const de1 = o.flota.wezly.find((x) => x.nazwa === 'node-de-01')!;
     // (100 + 60)% rdzenia na próbkę / 4 rdzenie = 40%
     expect(de1).toMatchObject({ cpuProc: 40, konta: 2, poza: null, stan: 'ok', sygnal: 'na żywo' });
@@ -92,11 +94,11 @@ describe('PB-34 — pulpit admina', () => {
     await prisma().invoice.create({
       data: { userId: k.id, number: 'FV/2026/10/9101', status: 'PAID', amount: new Prisma.Decimal('49.00'), issuedAt: new Date(), paidAt: new Date() } as never,
     });
-    const bez = await serwis().overview({ metryki: false });
+    const bez = await serwis().overview({ ...PELNY, metryki: false });
     expect(bez).toMatchObject({ metryki: false, klienci: null, wplywy: null, billing: null, users: null });
     expect(JSON.stringify(bez)).not.toContain('49.00');
     expect(bez.zgloszenia).toEqual({ otwarte: 0, poTerminie: 0, dzis: 0 });
-    const z = await serwis().overview();
+    const z = await serwis().overview(PELNY);
     expect(z.metryki).toBe(true);
     expect(z.klienci!.razem).toBe(1);
     expect(z.billing).not.toBeNull();

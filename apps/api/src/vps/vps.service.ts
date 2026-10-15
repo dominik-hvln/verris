@@ -254,6 +254,12 @@ export class VpsService {
   async power(userId: string, id: string, action: 'on' | 'off' | 'reboot') {
     const v = await this.requireOwned(userId, id);
     if (!v.hetznerServerId) throw new ConflictException('VPS nie jest jeszcze gotowy.');
+    // Noc 15.10 — zasilanie tylko działającego albo wyłączonego serwera: VPS w błędzie, w budowie albo w trakcie usuwania
+    // po „Włącz”/restarcie dostawał RUNNING i wracał do rozliczeń.
+    const dozwolone: VpsStatus[] = [VpsStatus.RUNNING, VpsStatus.STOPPED, VpsStatus.REBOOTING];
+    if (!dozwolone.includes(v.status)) {
+      throw new ConflictException('Tym VPS-em nie da się teraz sterować — jest w budowie, w trakcie usuwania albo w stanie błędu. Napisz do nas, jeśli to trwa.');
+    }
     // Okres nieopłacony = VPS wstrzymany za brak płatności. Wcześniej klient mógł go po prostu
     // włączyć i korzystać przez całą karencję bez płacenia.
     if (action === 'on' && v.currentPeriodEnd && v.currentPeriodEnd.getTime() <= Date.now()) {

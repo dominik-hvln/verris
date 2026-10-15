@@ -69,4 +69,11 @@ describe('Pulpit operatora — zakres danych wg uprawnień', () => {
     const out = await pulpit({ metryki: true, klienci: true, zgloszenia: true });
     for (const jawne of ['jan@klient.pl', 'Firma Jana', 'jan-klient.pl', TEMAT, '/customers/k1']) expect(out).toContain(jawne);
   });
+
+  // Noc 15.10 (rewalidacja): domyślne „true” w overview() — wywołanie bez zakresu ujawniało wszystko.
+  it('wywołanie bez zakresu (np. nowa trasa) nie ujawnia danych klientów ani zgłoszeń', async () => {
+    const svc = new AdminDashboardService(prisma([]) as never);
+    const out = JSON.stringify(await svc.overview({} as never));
+    for (const tajne of ['jan@klient.pl', 'Firma Jana', TEMAT, 'tk-12345']) expect(out).not.toContain(tajne);
+  });
 });
