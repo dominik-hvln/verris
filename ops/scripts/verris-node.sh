@@ -67,6 +67,9 @@ resolve_node() {
   [ -n "$rows" ] || die "brak węzłów w bazie"
   # 1) dokładne IP, 2) dokładna nazwa (ci), 3) prefix id, 4) fragment nazwy (ci)
   match="$(awk -F'\t' -v s="$sel" 'tolower($3)==tolower(s){print; exit}' <<<"$rows")"
+  # Dokładna nazwa: najpierw węzeł niewycofany — po reinstalacji (17.10) ta sama nazwa jest przy wycofanym rekordzie
+  # (IP „wycofany-…”) i przy nowym węźle.
+  [ -z "$match" ] && match="$(awk -F'\t' -v s="$sel" 'tolower($1)==tolower(s) && $4!="DEPROVISIONING"{print; exit}' <<<"$rows")"
   [ -z "$match" ] && match="$(awk -F'\t' -v s="$sel" 'tolower($1)==tolower(s){print; exit}' <<<"$rows")"
   [ -z "$match" ] && match="$(awk -F'\t' -v s="$sel" 'index($2,s)==1{print; exit}' <<<"$rows")"
   if [ -z "$match" ]; then
