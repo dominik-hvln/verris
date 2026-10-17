@@ -1066,6 +1066,14 @@ export class ServersService {
       },
     });
 
+    // 17.10 (PB-31): NS z bootstrapu (CANARY) trafiają do DA dopiero, gdy control-plane ma klucz DA — wcześniej
+    // ten krok był pomijany i Admin Settings zostawały z domyślnymi NS instalatora. Nie blokuje zapisu.
+    if (updated.ns1 && updated.ns2 && updated.daHost && updated.daPasswordEnc) {
+      void this.nodeDns.zastosujNsWDirectAdmin(id).catch((err: unknown) => {
+        this.logger.warn(`NS w DA po zapisie konfiguracji (${id}): ${err instanceof Error ? err.message : String(err)}`);
+      });
+    }
+
     return this.toPublicServer(updated);
   }
 

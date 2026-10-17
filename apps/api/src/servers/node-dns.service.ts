@@ -164,7 +164,10 @@ export class NodeDnsService {
       await this.ensureZoneRecord(base, ns1Sub, 'AAAA', ipv6, steps);
       await this.ensureZoneRecord(base, ns2Sub, 'AAAA', ipv6, steps);
     } else {
-      steps.push({ step: 'AAAA records', status: 'skipped', detail: 'Brak IPv6 dla węzła.' });
+      // 17.10: węzeł bez IPv6 (np. reinstalacja na tym samym IP) — stary AAAA kierowałby klientów IPv6
+      // i walidację certyfikatu na poprzedni serwer. Usuwamy, zamiast pomijać.
+      await this.removeZoneRecord(base, ns1Sub, 'AAAA', steps);
+      await this.removeZoneRecord(base, ns2Sub, 'AAAA', steps);
     }
     // PB-31 — rekord nazwy hosta węzła (np. node-pl-02.verris.pl) bez ręcznej wizyty w OVH.
     const host = server.hostname?.trim().toLowerCase().replace(/\.$/, '');
@@ -172,6 +175,7 @@ export class NodeDnsService {
       const hostSub = host.slice(0, -(base.length + 1));
       await this.ensureZoneRecord(base, hostSub, 'A', ipv4, steps);
       if (ipv6) await this.ensureZoneRecord(base, hostSub, 'AAAA', ipv6, steps);
+      else await this.removeZoneRecord(base, hostSub, 'AAAA', steps);
     }
     await this.refreshZone(base, steps);
 
@@ -192,7 +196,9 @@ export class NodeDnsService {
       await this.refreshZone(base, steps);
     }
 
-    // 4) Persist NS hostnames + IPv6 on the node.
+    // 4) Persist NS hostnames + IPv6 on the node. nsProvisionedAt tylko, gdy DNS w OVH przeszedł bez błędu —
+    // inaczej tryAutoProvision przy akceptacji (i ponowienie przy fazie TLS) uznawały węzeł za gotowy (17.10).
+    const ovhOk = !steps.some((s) => s.status === 'error');
     await this.prisma.server.update({
       where: { id: server.id },
       data: {
@@ -200,7 +206,7 @@ export class NodeDnsService {
         ns2: ns2Host,
         ns3: null,
         ipv6Address: ipv6,
-        nsProvisionedAt: new Date(),
+        nsProvisionedAt: ovhOk ? new Date() : null,
       },
     });
     steps.push({ step: 'Przypisanie NS do węzła', status: 'updated', detail: `${ns1Host}, ${ns2Host}` });
@@ -266,6 +272,18 @@ export class NodeDnsService {
         detail: msg,
       });
     }
+  }
+
+  /**
+   * NS węzła w DirectAdminie (Admin Settings, domyślne NS kont) — gdy NS zakłada bootstrap przy CANARY, control-plane
+   * nie ma jeszcze klucza DA i ten krok jest pomijany. Wołane po zapisaniu konfiguracji DA węzła (17.10).
+   */
+  async zastosujNsWDirectAdmin(serverId: string): Promise<NsProvisionStep[]> {
+    const s = await this.prisma.server.findUnique({ where: { id: serverId }, select: { ns1: true, ns2: true } });
+    const steps: NsProvisionStep[] = [];
+    if (!s?.ns1 || !s.ns2) return steps;
+    await this.applyDirectAdminNameservers(serverId, s.ns1, s.ns2, steps);
+    return steps;
   }
 
   /** Auto-trigger used on node activation — never throws, logs instead. */
@@ -339,7 +357,10 @@ export class NodeDnsService {
       }
     }
     await this.refreshZone(base, steps);
-    await this.prisma.server.update({ where: { id: serverId }, data: { ns1: null, ns2: null } });
+    // Nazwy NS zostają przy węźle, gdy OVH czegoś nie usunął — inaczej nikt już nie wie, które glue/rekordy zostały.
+    if (!steps.some((s) => s.status === 'error')) {
+      await this.prisma.server.update({ where: { id: serverId }, data: { ns1: null, ns2: null } });
+    }
     return steps;
   }
 

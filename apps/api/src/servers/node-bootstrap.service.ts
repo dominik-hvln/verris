@@ -167,23 +167,48 @@ export class NodeBootstrapService {
 
     this.logger.log(`Bootstrap ${input.serverId}: ${phase}/${status}${message ? ` — ${message}` : ''}`);
 
-    // Konsolidacja: gdy węzeł dojdzie do CANARY (stack + agent gotowe), odpalamy
-    // po stronie control-plane realny OVH NS glue (best-effort, nie blokuje).
-    if (phase === 'CANARY' && status === 'STARTED') {
-      void this.provisionNsBestEffort(input.serverId);
+    // Konsolidacja: gdy węzeł dojdzie do CANARY (stack + agent gotowe), odpalamy po stronie control-plane
+    // NS glue i rekord A nazwy hosta w OVH (nie blokuje raportu). Faza TLS czeka na ten rekord — przy jej
+    // starcie (także ponowionej po błędzie) ponawiamy, gdy wcześniejsza próba się nie udała i już nie trwa.
+    if (status === 'STARTED' && (phase === 'CANARY' || phase === 'TLS')) {
+      const juzZrobione =
+        phase === 'TLS' &&
+        (this.nsWToku.has(input.serverId) ||
+          Boolean((await this.prisma.server.findUnique({ where: { id: input.serverId }, select: { nsProvisionedAt: true } }))?.nsProvisionedAt));
+      if (!juzZrobione) void this.provisionNsBestEffort(input.serverId, phase);
     }
     return { ok: true };
   }
 
-  private async provisionNsBestEffort(serverId: string): Promise<void> {
-    if (!this.nodeDns.isConfigured()) return;
+  /** Węzły z trwającym zakładaniem NS (raport TLS przychodzi sekundę po CANARY — bez drugiego, równoległego przebiegu). */
+  private readonly nsWToku = new Set<string>();
+
+  /** Zwraca obietnicę dla testów; w recordReport wołane bez czekania. */
+  async provisionNsBestEffort(serverId: string, phase: 'CANARY' | 'TLS'): Promise<void> {
+    // 17.10: dotąd brak OVH, wyjątek i kroki z błędem kończyły się ciszą albo zdarzeniem „OK” — faza TLS czekała
+    // potem 15 min na rekord A, którego nikt nie założył. Teraz wynik jest w historii bootstrapu.
+    const zapisz = (ok: boolean, message: string) =>
+      this.events.create({ data: { serverId, phase, status: ok ? 'OK' : 'FAILED', message: message.slice(0, 1000) } });
+    if (!this.nodeDns.isConfigured()) {
+      await zapisz(false, 'OVH nie jest skonfigurowane — rekord A nazwy hosta i NS trzeba założyć ręcznie');
+      return;
+    }
+    if (this.nsWToku.has(serverId)) return;
+    this.nsWToku.add(serverId);
     try {
-      await this.nodeDns.provisionNodeNameservers(serverId, { ipv6: null });
-      await this.events.create({
-        data: { serverId, phase: 'CANARY', status: 'OK', message: 'OVH NS glue zainicjowany (control-plane)' },
-      });
+      const res = await this.nodeDns.provisionNodeNameservers(serverId, { ipv6: null });
+      const bledy = res.steps.filter((s) => s.status === 'error').map((s) => `${s.step}${s.detail ? `: ${s.detail}` : ''}`);
+      await zapisz(
+        res.ok,
+        res.ok
+          ? `OVH: rekord A nazwy hosta i NS ${res.ns1}, ${res.ns2} (control-plane)`
+          : `OVH: błędy przy zakładaniu DNS — ${bledy.join('; ')}`,
+      );
     } catch (err) {
       this.logger.warn(`OVH NS glue (bootstrap) nie powiódł się dla ${serverId}: ${(err as Error).message}`);
+      await zapisz(false, `OVH: ${(err as Error).message}`).catch(() => undefined);
+    } finally {
+      this.nsWToku.delete(serverId);
     }
   }
 

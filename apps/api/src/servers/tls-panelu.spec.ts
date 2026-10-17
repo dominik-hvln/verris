@@ -162,6 +162,8 @@ describe('bootstrap węzła — faza TLS', () => {
     expect(canary).not.toContain('finish');
     expect(skrypt).toMatch(/TLS\)\s+phase_tls ;;/);
     expect(skrypt).toContain(TLS_PANELU_SH);
+    // raport CANARY STARTED uruchamia DNS w OVH — nie może zginąć po jednym nieudanym żądaniu
+    expect(/report\(\) \{[\s\S]*?\n\}/.exec(skrypt)![0]).toContain('--retry-all-errors');
   });
 
   it('API zna każdą fazę, którą raportuje skrypt (nieznana zapisywała się jako PENDING)', () => {

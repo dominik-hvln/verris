@@ -63,7 +63,9 @@ UNIT=/etc/systemd/system/verris-bootstrap.service
 mkdir -p "$STATE_DIR"
 
 report() { # phase status [message]
-  curl -fsS -m 15 -X POST "$API_BASE/agent/nodes/bootstrap/report" \\
+  # Ponowienia (17.10): raport CANARY STARTED uruchamia DNS w OVH, a zgubiony (np. restart API przy wdrożeniu) zostawiał
+  # fazę TLS bez rekordu A.
+  curl -fsS -m 15 --retry 4 --retry-delay 5 --retry-all-errors -X POST "$API_BASE/agent/nodes/bootstrap/report" \\
     -H 'Content-Type: application/json' -H "X-Bootstrap-Token: $BOOTSTRAP_TOKEN" \\
     --data "{\\"serverId\\":\\"$SERVER_ID\\",\\"phase\\":\\"$1\\",\\"status\\":\\"$2\\",\\"message\\":\\"\${3:-}\\"}" \\
     >/dev/null 2>&1 || true
