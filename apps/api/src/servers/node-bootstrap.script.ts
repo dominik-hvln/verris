@@ -315,10 +315,19 @@ phase_agent() {
   # Delegacja do ISTNIEJĄCEGO, sprawdzonego skryptu Verris: handshake z
   # control-plane (/servers/handshake), zapis identity do /etc/verris.conf,
   # instalacja agenta LVE + timer telemetrii. Bez duplikacji logiki.
+  # 17.10: po udanym handshake token jest zużyty (/secrets i /agent-script dają 401) — ponowienie fazy uruchamia
+  # zachowany skrypt agenta bez handshake, zamiast kończyć się błędem wymagającym nowego jednolinijkowca.
+  if grep -q '^VERRIS_IDENTITY_TOKEN=' /etc/verris.conf 2>/dev/null && [ -s "$STATE_DIR/agent-install.sh" ]; then
+    VERRIS_POMIN_HANDSHAKE=1 bash "$STATE_DIR/agent-install.sh" || fail AGENT "instalacja agenta (ponowienie po handshake) nie powiodła się"
+    report AGENT OK
+    set_phase CANARY
+    return
+  fi
   load_secrets || fail AGENT "nie udało się pobrać kluczy licencyjnych z control-plane"
   if ! curl -fsS -m 60 -H "X-Bootstrap-Token: $BOOTSTRAP_TOKEN" "$API_BASE/agent/nodes/bootstrap/agent-script" -o "$STATE_DIR/agent-install.sh"; then
     fail AGENT "pobranie skryptu agenta nie powiodło się"
   fi
+  chmod 0600 "$STATE_DIR/agent-install.sh"
   export LITESPEED_SERIAL_NO="$LS_SERIAL"
   bash "$STATE_DIR/agent-install.sh" || fail AGENT "instalacja agenta/handshake nie powiodła się"
   report AGENT OK

@@ -1258,6 +1258,11 @@ CPU_CORES=$(nproc)
 MEM_MB=$(free -m | awk '/^Mem:/{print $2}')
 DISK_MB=$(df -mP / | awk 'NR==2 {print $2}')
 
+# 17.10 (PB-31): ponowienie fazy AGENT po udanym handshake (token już zużyty — handshake dostałby 401, a set -e
+# kończył skrypt, zanim doinstalował agenta). Bootstrap v2 ustawia VERRIS_POMIN_HANDSHAKE=1, gdy tożsamość jest zapisana.
+if [ "\${VERRIS_POMIN_HANDSHAKE:-0}" = 1 ] && grep -q '^VERRIS_IDENTITY_TOKEN=' "$CONFIG_FILE" 2>/dev/null; then
+  echo "[verris] Handshake już wykonany ($CONFIG_FILE) — pomijam, doinstalowuję agenta."
+else
 PUB_KEY=""
 if [ -f /root/.ssh/id_ed25519.pub ]; then
   PUB_KEY=$(cat /root/.ssh/id_ed25519.pub)
@@ -1319,6 +1324,7 @@ elif [ ! -f "$CONFIG_FILE" ]; then
 else
   echo "[verris] Re-handshake (no new identity token issued) — keeping existing $CONFIG_FILE."
 fi
+fi # VERRIS_POMIN_HANDSHAKE
 
 ${renderNodeDeploySshKeyBootstrapCall(opts.deployPubKeyB64 ?? null)}
 

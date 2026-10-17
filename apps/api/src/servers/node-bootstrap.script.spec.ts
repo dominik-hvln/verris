@@ -4,6 +4,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { buildNodeBootstrapOneLiner, buildNodeBootstrapScript } from './node-bootstrap.script.js';
 import { STOS_WEZLA, stosJakoEnv, zgodnoscZManifestem } from './stos-wezla.js';
+import { renderBootstrapScript } from './servers.service.js';
 
 /** PB-29 / PB-30 — bootstrap węzła: bez sekretów w treści, manifest wersji, poprawne wykrywanie CloudLinux. */
 describe('Bootstrap węzła (PB-29 / PB-30)', () => {
@@ -104,5 +105,55 @@ describe('ponowny jednolinijkowiec w trakcie instalacji (17.10)', () => {
   it('usługa nie działa (failed / brak) → skrypt podmieniony', () => {
     expect(instaluj('failed').runner).toBe('NOWY SKRYPT\n');
     expect(existsSync(join(instaluj('').dir, 'runner.nowy'))).toBe(false);
+  });
+});
+
+describe('faza AGENT — ponowienie po udanym handshake (17.10)', () => {
+  function fazaAgent(maTozsamosc: boolean): { log: string; faza: string } {
+    const dir = mkdtempSync(join(tmpdir(), 'faza-agent-'));
+    const bin = join(dir, 'bin');
+    const stan = join(dir, 'stan');
+    mkdirSync(bin);
+    mkdirSync(stan);
+    const log = join(dir, 'log');
+    writeFileSync(log, '');
+    const conf = join(dir, 'verris.conf');
+    if (maTozsamosc) writeFileSync(conf, 'VERRIS_SERVER_ID="s"\nVERRIS_IDENTITY_TOKEN="x"\n');
+    writeFileSync(join(stan, 'agent-install.sh'), `echo "agent POMIN=\${VERRIS_POMIN_HANDSHAKE:-0}" >> '${log}'\n`);
+    writeFileSync(join(stan, 'bootstrap.state'), 'AGENT\n');
+    // token zużyty: /secrets i /agent-script → 401
+    writeFileSync(join(bin, 'curl'), `#!/usr/bin/env bash\necho "curl $*" >> '${log}'\nexit 22\n`);
+    chmodSync(join(bin, 'curl'), 0o755);
+    const s = buildNodeBootstrapScript({ apiBaseUrl: 'https://api.verris.pl', bootstrapToken: 't', serverId: 's', stackEnv: stosJakoEnv(), hostname: 't2.verris.pl' })
+      .replace('STATE_DIR=/var/lib/verris', `STATE_DIR='${stan}'`)
+      .replaceAll('/etc/verris.conf 2>/dev/null', `'${conf}' 2>/dev/null`)
+      .replace(/\ncase "\$\{1:-install\}" in[\s\S]*$/, '\n');
+    spawnSync('bash', ['-c', `${s}\nreport() { echo "report $*" >> '${log}'; }\nload_secrets() { echo "load_secrets" >> '${log}'; return 1; }\nphase_agent`], {
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+    });
+    return { log: readFileSync(log, 'utf8'), faza: readFileSync(join(stan, 'bootstrap.state'), 'utf8').trim() };
+  }
+
+  it('tożsamość zapisana → zachowany skrypt agenta bez handshake, bez kluczy, faza CANARY', () => {
+    const r = fazaAgent(true);
+    expect(r.log).toContain('agent POMIN=1');
+    expect(r.log).not.toContain('load_secrets');
+    expect(r.log).toContain('report AGENT OK');
+    expect(r.faza).toBe('CANARY');
+  });
+
+  it('bez tożsamości → zwykła ścieżka (klucze), błąd przy zużytym tokenie', () => {
+    const r = fazaAgent(false);
+    expect(r.log).toContain('load_secrets');
+    expect(r.log).toContain('report AGENT FAILED');
+  });
+
+  it('skrypt agenta pomija handshake przy VERRIS_POMIN_HANDSHAKE=1 i zapisanej tożsamości', () => {
+    const agent = renderBootstrapScript({ apiUrl: 'https://api.verris.pl', bootstrapToken: 't', serverName: 'n' });
+    const i = agent.indexOf('VERRIS_POMIN_HANDSHAKE:-0');
+    expect(i).toBeGreaterThan(0);
+    expect(agent.indexOf('"$API_URL/servers/handshake"')).toBeGreaterThan(i);
+    expect(agent.indexOf('fi # VERRIS_POMIN_HANDSHAKE')).toBeGreaterThan(agent.indexOf('"$API_URL/servers/handshake"'));
   });
 });
