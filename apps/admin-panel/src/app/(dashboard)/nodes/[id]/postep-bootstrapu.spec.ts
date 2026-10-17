@@ -17,3 +17,8 @@ it("błąd fazy skryptu → pasek błędu", () => {
 it("po DONE bez informacji o DNS", () => {
   expect(stanPostepu({ phase: "DONE", events: [z("DONE", "OK"), z("DNS", "FAILED", "x")] }).dns).toBeNull();
 });
+
+it("restart z fazy QUOTA rozpoznany (komunikat nie mówi o jądrze CloudLinux)", () => {
+  expect(stanPostepu({ phase: "QUOTA", events: [z("QUOTA", "REBOOT", "restart włącza quota XFS")] }).rebooting).toBe("QUOTA");
+  expect(stanPostepu({ phase: "CANARY", events: [z("CANARY", "OK")] }).rebooting).toBeNull();
+});

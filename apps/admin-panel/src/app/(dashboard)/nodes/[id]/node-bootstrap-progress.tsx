@@ -40,7 +40,8 @@ const ORDER = ["PENDING", "PREFLIGHT", "CLOUDLINUX", "QUOTA", "DA", "STACK", "AG
  * nie są raportem skryptu — błąd OVH pokazujemy osobno, nie jako przerwany bootstrap.
  */
 export function stanPostepu(status: Pick<BootstrapStatusDto, "phase" | "events"> | null): {
-  rebooting: boolean;
+  /** Faza, która restartuje węzeł (CLOUDLINUX / QUOTA), albo null. */
+  rebooting: string | null;
   failed: boolean;
   dns: string | null;
 } {
@@ -48,7 +49,7 @@ export function stanPostepu(status: Pick<BootstrapStatusDto, "phase" | "events">
   const skrypt = zdarzenia.find((e) => e.phase !== "DNS");
   const ostatniDns = zdarzenia.find((e) => e.phase === "DNS");
   return {
-    rebooting: skrypt?.status === "REBOOT",
+    rebooting: skrypt?.status === "REBOOT" ? skrypt.phase : null,
     failed: status?.phase === "FAILED" || skrypt?.status === "FAILED",
     dns: ostatniDns?.status === "FAILED" && status?.phase !== "DONE" ? (ostatniDns.message ?? "błąd") : null,
   };
@@ -101,7 +102,7 @@ export function NodeBootstrapProgress({ serverId }: { serverId: string }) {
 
         {rebooting ? (
           <div className="mb-4 flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-400/10 px-3 py-2 text-sm text-sky-100">
-            <RotateCw className="h-4 w-4 animate-spin" /> Węzeł się restartuje (instalacja kernela CloudLinux) — instalacja wznowi się automatycznie po powrocie.
+            <RotateCw className="h-4 w-4 animate-spin" /> Węzeł się restartuje ({rebooting === "QUOTA" ? "włączenie quota XFS" : "jądro CloudLinux"}) — instalacja wznowi się automatycznie po powrocie.
           </div>
         ) : null}
         {dns ? (
