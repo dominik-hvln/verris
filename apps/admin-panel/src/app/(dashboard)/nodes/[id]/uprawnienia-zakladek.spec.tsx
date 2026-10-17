@@ -56,10 +56,10 @@ const SERWER = {
   _count: { accounts: 3 },
 };
 
-function zDostepem(dostep: unknown) {
+function zDostepem(dostep: unknown, serwer: Record<string, unknown> = {}) {
   api.mockReset();
   api.mockImplementation(async (sciezka: string) => {
-    if (sciezka === "/admin/servers/w1") return SERWER;
+    if (sciezka === "/admin/servers/w1") return { ...SERWER, ...serwer };
     if (sciezka === "/staff/me/access") return dostep;
     throw new Error("ECONNREFUSED");
   });
@@ -133,4 +133,18 @@ it("F3.4: zakładka „Usługi i logi” — bez NODE_SERVICES panel się nie re
   expect(noc).toContain("Usługi i logi");
   zDostepem({ role: "ADMIN", isAdmin: true, permissions: [] });
   expect(await render("uslugi")).toContain('id="logi-wezla-naglowek"');
+});
+
+it("17.10 (PB-31): niedokończony węzeł (czeka na akceptację) da się wycofać — bez przenoszenia kont", async () => {
+  zDostepem({ role: "ADMIN", isAdmin: true, permissions: [] }, { status: "PENDING_APPROVAL", _count: { accounts: 0 }, lastHeartbeatAt: null });
+  const html = await render("wycofanie");
+  expect(html).toContain("Wycofaj węzeł na stałe");
+  expect(html).not.toContain("tylko dla węzła aktywnego");
+});
+
+it("17.10 (PB-31): przycisk akceptacji dopiero po DONE bootstrapu", async () => {
+  zDostepem({ role: "ADMIN", isAdmin: true, permissions: [] }, { status: "PENDING_APPROVAL", bootstrapPhase: "TLS" });
+  expect(await render("przeglad")).not.toContain("Zaakceptuj");
+  zDostepem({ role: "ADMIN", isAdmin: true, permissions: [] }, { status: "PENDING_APPROVAL", bootstrapPhase: "DONE" });
+  expect(await render("przeglad")).toContain("Zaakceptuj");
 });

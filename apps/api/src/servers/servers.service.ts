@@ -151,6 +151,22 @@ export class ServersService {
     // IP shape, so any non-IP sentinel is safe).
     const reservedIp = `pending-${this.crypto.generateRandomToken(8)}`;
 
+    // PB-31 (17.10): kreator zamknięty w trakcie i otwarty od nowa tworzył drugi węzeł z tą samą nazwą hosta — handshake
+    // drugiego dostawał potem 409 (IP zajęte przez pierwszy), a DNS i certyfikat dotyczą jednej nazwy. Nazwa wolna
+    // dopiero po wycofaniu węzła (DEPROVISIONING).
+    const host = dto.hostname?.trim().toLowerCase().replace(/\.$/, '');
+    if (host) {
+      const zajety = await this.prisma.server.findFirst({
+        where: { hostname: { equals: host, mode: 'insensitive' }, status: { not: ServerStatus.DEPROVISIONING } },
+        select: { id: true, status: true },
+      });
+      if (zajety) {
+        throw new ConflictException(
+          `Nazwa hosta ${host} jest już przypisana do węzła ${zajety.id} (${zajety.status}) — dokończ go w kreatorze (/nodes/wizard?server=${zajety.id}) albo najpierw wycofaj.`,
+        );
+      }
+    }
+
     const server = await this.prisma.server.create({
       data: {
         name: dto.name,

@@ -4,7 +4,7 @@ import { Select } from "@/components/select";
 import { REGIONY_DANYCH } from "@verris/contracts";
 import { useState, useTransition, useEffect, useId } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -46,7 +46,7 @@ import {
 } from "./wizard-content";
 import { Checkbox } from '@/components/checkbox';
 import { OnboardLivePanel } from "./onboard-panele";
-import { krokDlaStatusu, stanStartowyKreatora, type PersistedWizard } from "./stan-kreatora";
+import { adresKreatora, krokDlaStatusu, stanStartowyKreatora, type PersistedWizard } from "./stan-kreatora";
 import { KopieOffsiteFormularz } from "@/components/kopie-offsite-formularz";
 
 const WIZARD_STORAGE_KEY = "verris-node-wizard-v1";
@@ -178,6 +178,7 @@ function NodeConfigActions({ serverId }: { serverId: string }) {
 export function NodeWizard() {
   const regionId = useId();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [stepIndex, setStepIndex] = useState(0);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [hydrated, setHydrated] = useState(false);
@@ -281,6 +282,9 @@ export function NodeWizard() {
       }
       // NODE-01 — zostajemy w kroku instalacji: licencje i skrypt v2 pojawiają się pod formularzem.
       setCreated(result.data!);
+      // PB-31 (17.10): węzeł w adresie — kreator da się wznowić w innej karcie / po zamknięciu (stan był tylko
+      // w sessionStorage tej karty, a nowa karta pokazywała pusty formularz i powstawał drugi węzeł).
+      router.replace(adresKreatora(result.data!.server.id, "bootstrap"), { scroll: false });
     });
   };
 

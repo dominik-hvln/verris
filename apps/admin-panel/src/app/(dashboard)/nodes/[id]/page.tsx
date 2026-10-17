@@ -497,11 +497,15 @@ export default async function ServerDetailPage({
       ) : null}
 
       {sekcja === "wycofanie" ? (
-        dziala ? (
+        // 17.10 (PB-31): niedokończony węzeł (INIT / czeka na akceptację) też da się wycofać — np. przed ponowną
+        // instalacją od zera; dotąd został w bazie z IP i nazwą hosta, blokując nowy węzeł.
+        dziala || canBootstrap ? (
           <div className="space-y-6">
-            <WymagaUprawnienia powod={wymaga("wycofanie")}>
-              <DrainPanel serverId={server.id} acceptsNewAccounts={server.acceptsNewAccounts} />
-            </WymagaUprawnienia>
+            {dziala ? (
+              <WymagaUprawnienia powod={wymaga("wycofanie")}>
+                <DrainPanel serverId={server.id} acceptsNewAccounts={server.acceptsNewAccounts} />
+              </WymagaUprawnienia>
+            ) : null}
             {/* POST admin/servers/:id/wycofaj-martwy — tylko ADMIN. */}
             <WymagaUprawnienia powod={brakUprawnienia("ADMIN", dostep)}>
               <WycofajMartwyPanel
@@ -513,7 +517,7 @@ export default async function ServerDetailPage({
             </WymagaUprawnienia>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Wycofanie (przeniesienie kont na inne węzły) jest dostępne dla węzła aktywnego albo w serwisie.</p>
+          <p className="text-sm text-muted-foreground">Wycofanie jest dostępne dla węzła aktywnego, w serwisie albo niedokończonego (instalacja, czeka na akceptację).</p>
         )
       ) : null}
     </div>

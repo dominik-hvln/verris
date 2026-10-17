@@ -36,8 +36,16 @@ export function stanStartowyKreatora(
   };
 }
 
+/** Adres kreatora dla istniejącego węzła — do wznowienia w innej karcie. */
+export function adresKreatora(serverId: string, krok: string): string {
+  return `/nodes/wizard?server=${encodeURIComponent(serverId)}&step=${encodeURIComponent(krok)}`;
+}
+
 /** Krok dla wczytanego węzła, gdy ani adres, ani zapis go nie wskazały. */
 export function krokDlaStatusu(status: string | undefined): number {
+  // ACTIVE (17.10): zaakceptowany węzeł otwarty w kreatorze wraca na kopie off-site, nie na „Wymagania”.
+  // (krokKreatoraDla zostaje bez ACTIVE — na nim opiera się akcja „Dokończ w kreatorze” dla niedokończonych węzłów.)
+  if (status === "ACTIVE") return WIZARD_STEPS.findIndex((s) => s.id === "backup-offsite");
   const k = status ? krokKreatoraDla(status) : null;
   return k ? k.numer - 1 : 0;
 }

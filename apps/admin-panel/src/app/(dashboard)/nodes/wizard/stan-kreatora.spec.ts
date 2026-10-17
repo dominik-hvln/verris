@@ -1,4 +1,4 @@
-import { krokDlaStatusu, stanStartowyKreatora, type PersistedWizard } from "./stan-kreatora";
+import { adresKreatora, krokDlaStatusu, stanStartowyKreatora, type PersistedWizard } from "./stan-kreatora";
 import { WIZARD_STEPS } from "./wizard-content";
 
 const idx = (id: string) => WIZARD_STEPS.findIndex((s) => s.id === id);
@@ -32,7 +32,7 @@ describe("Kreator węzła — stan startowy", () => {
   it("krok wg statusu wczytanego węzła", () => {
     expect(krokDlaStatusu("INIT")).toBe(idx("bootstrap"));
     expect(krokDlaStatusu("PENDING_APPROVAL")).toBe(idx("approve-da"));
-    expect(krokDlaStatusu("ACTIVE")).toBe(0);
+    expect(krokDlaStatusu("ACTIVE")).toBe(idx("backup-offsite"));
     expect(krokDlaStatusu(undefined)).toBe(0);
   });
 
@@ -41,5 +41,15 @@ describe("Kreator węzła — stan startowy", () => {
   it.each([".\t./.\t./admin/users?", "../admin/users", "x#", "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa/../users", ""])("?server=%j → brak węzła", (zly) => {
     expect(stanStartowyKreatora(null, { server: zly, step: null }).serverId).toBeNull();
     expect(stanStartowyKreatora({ ...zapisA, serverId: zly }, { server: null, step: null }).serverId).toBeNull();
+  });
+});
+
+describe("wznowienie kreatora (17.10, PB-31)", () => {
+  it("węzeł ACTIVE bez ?step trafia na kopie off-site, nie na „Wymagania”", () => {
+    expect(WIZARD_STEPS[krokDlaStatusu("ACTIVE")]!.id).toBe("backup-offsite");
+  });
+  it("adres kreatora niesie węzeł i krok — da się go otworzyć w nowej karcie", () => {
+    expect(adresKreatora(A, "bootstrap")).toBe(`/nodes/wizard?server=${A}&step=bootstrap`);
+    expect(stanStartowyKreatora(null, { server: A, step: "bootstrap" })).toMatchObject({ serverId: A, stepIndex: idx("bootstrap") });
   });
 });
