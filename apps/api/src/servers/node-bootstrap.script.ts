@@ -210,6 +210,11 @@ PYCC
 # LVE dalej nie działa — błąd fazy zamiast pętli restartów.
 phase_cloudlinux() {
   report CLOUDLINUX STARTED
+  # Po restarcie usługa może wystartować przed załadowaniem modułu LVE (kolejność usług) — czekamy do 2 min.
+  if [ -f "$STATE_DIR/.cloudlinux-restart" ]; then
+    local i
+    for i in $(seq 1 24); do lve_active && break; sleep 5; done
+  fi
   if lve_active; then
     touch "$STATE_DIR/.cloudlinux-done"
     rm -f "$STATE_DIR/.cloudlinux-restart"

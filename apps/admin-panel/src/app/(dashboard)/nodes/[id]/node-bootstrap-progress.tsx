@@ -35,6 +35,25 @@ const PHASES: Array<{ key: string; label: string; detail: string }> = [
 
 const ORDER = ["PENDING", "PREFLIGHT", "CLOUDLINUX", "QUOTA", "DA", "STACK", "AGENT", "CANARY", "TLS", "DONE"];
 
+/**
+ * Stan paska z historii bootstrapu. Zdarzenia „DNS” (wynik zakładania rekordów w OVH przez control-plane, 18.10)
+ * nie są raportem skryptu — błąd OVH pokazujemy osobno, nie jako przerwany bootstrap.
+ */
+export function stanPostepu(status: Pick<BootstrapStatusDto, "phase" | "events"> | null): {
+  rebooting: boolean;
+  failed: boolean;
+  dns: string | null;
+} {
+  const zdarzenia = status?.events ?? [];
+  const skrypt = zdarzenia.find((e) => e.phase !== "DNS");
+  const ostatniDns = zdarzenia.find((e) => e.phase === "DNS");
+  return {
+    rebooting: skrypt?.status === "REBOOT",
+    failed: status?.phase === "FAILED" || skrypt?.status === "FAILED",
+    dns: ostatniDns?.status === "FAILED" && status?.phase !== "DONE" ? (ostatniDns.message ?? "błąd") : null,
+  };
+}
+
 export function NodeBootstrapProgress({ serverId }: { serverId: string }) {
   const [status, setStatus] = useState<BootstrapStatusDto | null>(null);
   const [checkedAt, setCheckedAt] = useState<Date | null>(null);
@@ -64,8 +83,7 @@ export function NodeBootstrapProgress({ serverId }: { serverId: string }) {
   }, [serverId]);
 
   const currentIdx = status?.phase ? ORDER.indexOf(status.phase) : -1;
-  const rebooting = status?.events?.[0]?.status === "REBOOT";
-  const failed = status?.phase === "FAILED" || status?.events?.[0]?.status === "FAILED";
+  const { rebooting, failed, dns } = stanPostepu(status);
 
   return (
     <div className="space-y-6">
@@ -84,6 +102,12 @@ export function NodeBootstrapProgress({ serverId }: { serverId: string }) {
         {rebooting ? (
           <div className="mb-4 flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-400/10 px-3 py-2 text-sm text-sky-100">
             <RotateCw className="h-4 w-4 animate-spin" /> Węzeł się restartuje (instalacja kernela CloudLinux) — instalacja wznowi się automatycznie po powrocie.
+          </div>
+        ) : null}
+        {dns ? (
+          <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> DNS w OVH (control-plane): {dns} — faza „Certyfikat panelu” czeka na rekord A
+            i ponowi się sama.
           </div>
         ) : null}
         {failed ? (

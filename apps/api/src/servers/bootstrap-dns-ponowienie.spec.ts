@@ -32,7 +32,7 @@ describe('bootstrap — DNS węzła w OVH przy CANARY i TLS', () => {
   it('błędy kroków OVH → zdarzenie FAILED z krokami, nie „OK”', async () => {
     const { s, zdarzenia } = serwis({ ok: false });
     await s.provisionNsBestEffort('s1', 'CANARY');
-    expect(zdarzenia).toEqual([expect.objectContaining({ phase: 'CANARY', status: 'FAILED', message: expect.stringContaining('Glue ns1.verris.pl') })]);
+    expect(zdarzenia).toEqual([expect.objectContaining({ phase: 'DNS', status: 'FAILED', message: expect.stringContaining('Glue ns1.verris.pl') })]);
   });
 
   it('wyjątek OVH i brak konfiguracji OVH → zdarzenie FAILED (dotąd tylko log)', async () => {

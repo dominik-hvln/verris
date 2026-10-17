@@ -187,8 +187,12 @@ export class NodeBootstrapService {
   async provisionNsBestEffort(serverId: string, phase: 'CANARY' | 'TLS'): Promise<void> {
     // 17.10: dotąd brak OVH, wyjątek i kroki z błędem kończyły się ciszą albo zdarzeniem „OK” — faza TLS czekała
     // potem 15 min na rekord A, którego nikt nie założył. Teraz wynik jest w historii bootstrapu.
+    // Osobna „faza” DNS w historii: błąd OVH nie może wyglądać jak błąd bootstrapu (pasek postępu liczy błąd
+    // z najnowszego zdarzenia), a faza TLS czeka na rekord A i ponawia się sama (przegląd 18.10).
     const zapisz = (ok: boolean, message: string) =>
-      this.events.create({ data: { serverId, phase, status: ok ? 'OK' : 'FAILED', message: message.slice(0, 1000) } });
+      this.events.create({
+        data: { serverId, phase: 'DNS', status: ok ? 'OK' : 'FAILED', message: `${message} (przy fazie ${phase})`.slice(0, 1000) },
+      });
     if (!this.nodeDns.isConfigured()) {
       await zapisz(false, 'OVH nie jest skonfigurowane — rekord A nazwy hosta i NS trzeba założyć ręcznie');
       return;

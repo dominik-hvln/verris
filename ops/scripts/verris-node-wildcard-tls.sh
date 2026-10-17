@@ -138,7 +138,7 @@ deploy_cert_to_node() {
   # (acme_server_cert_enabled=1, DA sam odnawia). Wildcard nadpisywałby go co tydzień, a klucz *.verris.pl
   # nie powinien leżeć na węzłach z kodem klientów — taki węzeł pomijamy, klucza nie wysyłamy.
   local acme
-  acme=$(ssh "${ssh_opts[@]}" "root@${ip}" "da config-get acme_server_cert_enabled 2>/dev/null || /usr/local/directadmin/directadmin config-get acme_server_cert_enabled 2>/dev/null" | tr -d '[:space:]') \
+  acme=$(ssh "${ssh_opts[@]}" "root@${ip}" "da config-get acme_server_cert_enabled 2>/dev/null || /usr/local/directadmin/directadmin config-get acme_server_cert_enabled 2>/dev/null || true" | tr -d '[:space:]') \
     || { log "FAIL ${hostname}: ssh (sprawdzenie ACME)"; return 1; }
   if [ "$acme" = "1" ]; then
     log "SKIP ${hostname}: certyfikat nazwy hosta z DirectAdmina (ACME) — bez wildcard"

@@ -187,7 +187,7 @@ describe('faza CLOUDLINUX — LVE po restarcie (17.10)', () => {
       .replace(/\ncase "\$\{1:-install\}" in[\s\S]*$/, '\n');
     spawnSync(
       'bash',
-      ['-c', `${s}\nreport() { echo "report $*" >> '${log}'; }\nsystemctl() { echo "systemctl $*" >> '${log}'; }\nsync() { :; }\nlve_active() { ${o.lve ? 'true' : 'false'}; }\ncloudlinux_converted() { ${o.przekonwertowany ? 'true' : 'false'}; }\nphase_cloudlinux`],
+      ['-c', `${s}\nreport() { echo "report $*" >> '${log}'; }\nsystemctl() { echo "systemctl $*" >> '${log}'; }\nsync() { :; }\nsleep() { echo "sleep $*" >> '${log}'; }\nlve_active() { ${o.lve ? 'true' : 'false'}; }\ncloudlinux_converted() { ${o.przekonwertowany ? 'true' : 'false'}; }\nphase_cloudlinux`],
       { encoding: 'utf8' },
     );
     return { log: readFileSync(log, 'utf8'), faza: readFileSync(join(stan, 'bootstrap.state'), 'utf8').trim() };
@@ -204,6 +204,8 @@ describe('faza CLOUDLINUX — LVE po restarcie (17.10)', () => {
     const r = fazaCl({ lve: false, przekonwertowany: true, poRestarcie: true });
     expect(r.log).toContain('report CLOUDLINUX FAILED CloudLinux zainstalowany, ale LVE nie działa po restarcie');
     expect(r.log).not.toContain('systemctl reboot');
+    // najpierw czeka na moduł LVE (kolejność usług po restarcie)
+    expect(r.log.match(/sleep 5/g)).toHaveLength(24);
   });
 
   it('po restarcie LVE działa → QUOTA', () => {

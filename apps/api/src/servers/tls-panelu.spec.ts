@@ -111,7 +111,9 @@ describe('wlacz_tls_panelu — certyfikat hostname i HTTPS panelu bez ręcznego 
     const a = atrapa({ rekordA: IP });
     const r = wlacz(a);
     expect(r.kod).toBe(0);
-    expect(r.log).toContain('da config-set acme_server_cert_enabled 1 --no-reload');
+    expect(r.log).toContain('da config-set acme_server_cert_enabled 1');
+    // bez --no-reload: przeładowanie DA tu nie szkodzi, a nieznana flaga zatrzymałaby fazę TLS (przegląd 18.10)
+    expect(r.log).not.toContain('--no-reload');
     expect(r.log).toContain(`letsencrypt.sh server_cert`);
     // rekord A pytany u serwera autorytatywnego strefy, nie w /etc/hosts
     expect(r.log).toContain('dig +short NS verris.pl');

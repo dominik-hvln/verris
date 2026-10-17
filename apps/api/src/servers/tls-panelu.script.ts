@@ -47,7 +47,7 @@ wlacz_tls_panelu() {
     [ "$proba" -lt "\${TLS_DNS_PROB:-30}" ] && sleep "\${TLS_DNS_ODSTEP:-30}"
   done
   [ -n "$a" ] || return 3
-  "$dabin" config-set acme_server_cert_enabled 1 --no-reload >/dev/null || return 1
+  "$dabin" config-set acme_server_cert_enabled 1 >/dev/null || return 1
   for proba in 1 2 3; do
     "$DA/scripts/letsencrypt.sh" server_cert && break
     [ "$proba" = 3 ] && return 1

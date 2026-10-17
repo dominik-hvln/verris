@@ -40,6 +40,13 @@ describe('wildcard TLS z control-plane na węzły', () => {
     expect(r.log).not.toContain('privkey.pem');
   });
 
+  it('węzeł bez klucza acme w DA (starszy, np. t1): sprawdzenie nie kończy się błędem ssh — wildcard wdrażany jak dotąd', () => {
+    expect(FUNKCJA).toMatch(/config-get acme_server_cert_enabled 2>\/dev\/null \|\| true"/);
+    const r = uruchom({ acme: '' });
+    expect(r.kod).toBe(0);
+    expect(r.log).toContain('privkey.pem');
+  });
+
   it('błąd ssh: węzeł liczony jako nieudany, nie „OK”', () => {
     const r = uruchom({ acme: '0', sshKod: 255 });
     expect(r.kod).toBe(1);
