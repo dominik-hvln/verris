@@ -1500,6 +1500,7 @@ fi
 ${renderBootstrapNodeTasksInstallFragment()}
 
 echo "[verris] Bootstrap complete. Server is awaiting admin approval in the panel."
-echo "$BODY"
+# \${BODY:-}: przy VERRIS_POMIN_HANDSHAKE=1 handshake (i BODY) jest pominięty — set -u kończył skrypt błędem (17.10).
+echo "\${BODY:-}"
 `;
 }

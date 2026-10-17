@@ -149,6 +149,21 @@ describe('faza AGENT — ponowienie po udanym handshake (17.10)', () => {
     expect(r.log).toContain('report AGENT FAILED');
   });
 
+  it('skrypt agenta przy pominiętym handshake dochodzi do końca (set -u: zmienne z handshake niezdefiniowane)', () => {
+    const agent = renderBootstrapScript({ apiUrl: 'https://api.verris.pl', bootstrapToken: 't', serverName: 'n' });
+    // od bloku handshake do końca, bez instalacji (sekcje po handshake podmieniamy na nic) — liczy się zakończenie
+    const start = agent.indexOf('# 17.10 (PB-31): ponowienie fazy AGENT');
+    const koniecHandshake = agent.indexOf('fi # VERRIS_POMIN_HANDSHAKE') + 'fi # VERRIS_POMIN_HANDSHAKE'.length;
+    const ogon = agent.slice(agent.indexOf('echo "[verris] Bootstrap complete.'));
+    const dir = mkdtempSync(join(tmpdir(), 'agent-ogon-'));
+    const conf = join(dir, 'verris.conf');
+    writeFileSync(conf, 'VERRIS_IDENTITY_TOKEN="x"\n');
+    const kod = `set -euo pipefail\nCONFIG_FILE='${conf}'\n${agent.slice(start, koniecHandshake)}\n${ogon}`;
+    const r = spawnSync('bash', ['-c', kod], { encoding: 'utf8', env: { ...process.env, VERRIS_POMIN_HANDSHAKE: '1' } });
+    expect(r.stderr).not.toContain('unbound variable');
+    expect(r.status).toBe(0);
+  });
+
   it('skrypt agenta pomija handshake przy VERRIS_POMIN_HANDSHAKE=1 i zapisanej tożsamości', () => {
     const agent = renderBootstrapScript({ apiUrl: 'https://api.verris.pl', bootstrapToken: 't', serverName: 'n' });
     const i = agent.indexOf('VERRIS_POMIN_HANDSHAKE:-0');
