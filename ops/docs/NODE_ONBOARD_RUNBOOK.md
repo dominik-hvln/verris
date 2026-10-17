@@ -59,13 +59,17 @@ flowchart TD
 1. Admin → **Węzły** → **Dodaj węzeł (kreator)** → krok **„Instalacja (bootstrap v2)”**: nazwa, region, hostname (FQDN) → **Utwórz węzeł**.
 2. W tym samym kroku wpisz licencje (zapisywane zaszyfrowane w bazie) i skopiuj **jednolinijkowiec**.
 3. Na węźle jako root uruchom jednolinijkowiec. Skrypt instaluje usługę `verris-bootstrap` (systemd oneshot), która
-   wykonuje fazy **PREFLIGHT → CLOUDLINUX (+reboot) → QUOTA (quota XFS, +reboot jeśli potrzebny) → DA → STACK (LiteSpeed) → AGENT → CANARY → DONE**
+   wykonuje fazy **PREFLIGHT → CLOUDLINUX (+reboot) → QUOTA (quota XFS, +reboot jeśli potrzebny) → DA → STACK (LiteSpeed) → AGENT → CANARY → TLS → DONE**
    i wznawia się po każdym restarcie. Każda faza raportuje się na żywo w kreatorze.
    - CLOUDLINUX: `cldeploy -k <klucz>` + reboot (pomijana, gdy kernel LVE już działa);
    - DA: oficjalny `setup.sh` (pomijana, gdy `/usr/local/directadmin` istnieje);
    - STACK: LiteSpeed przez DA CustomBuild (pomijana bez seriala);
    - AGENT: handshake `POST /servers/handshake`, `/etc/verris.conf`, verris-agent, verris-probes, verris-tasks;
    - CANARY: control-plane zakłada NS glue w OVH i pakiety DA.
+   - TLS: certyfikat nazwy hosta mechanizmem DA (`acme_server_cert_enabled=1`, `letsencrypt.sh server_cert`) po tym,
+     jak rekord A z fazy CANARY widać u serwerów autorytatywnych strefy; dopiero potem `ssl=1` (HTTPS panelu). Wymaga
+     otwartego portu 80. Błąd zostawia fazę TLS — ponowienie: `systemctl start verris-bootstrap`. Węzły sprzed tej
+     fazy: `bash ops/scripts/node-directadmin-tls-http01.sh <hostname>` (ta sama funkcja).
 4. **Instalacja ręczna** (licencja przypięta do IP, nietypowy OS) — sekcja awaryjna w tym samym kroku kreatora
    ma te same komendy; po niej i tak uruchom jednolinijkowiec v2 (pominie zrobione fazy).
 5. Kreator → **„Akceptacja i DA API”**: Approve (status ACTIVE) + login key DA (Faza 4) + test.

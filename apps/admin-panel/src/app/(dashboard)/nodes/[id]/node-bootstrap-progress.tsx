@@ -29,10 +29,11 @@ const PHASES: Array<{ key: string; label: string; detail: string }> = [
   { key: "STACK", label: "LiteSpeed", detail: "CustomBuild: webserver litespeed + serial" },
   { key: "AGENT", label: "Agent + handshake", detail: "rejestracja w control-plane, agent LVE" },
   { key: "CANARY", label: "Canary + NS", detail: "wejście do puli, OVH NS glue (auto)" },
+  { key: "TLS", label: "Certyfikat panelu", detail: "certyfikat nazwy hosta (ACME) i HTTPS panelu DA" },
   { key: "DONE", label: "Gotowe", detail: "węzeł w pełni skonfigurowany" },
 ];
 
-const ORDER = ["PENDING", "PREFLIGHT", "CLOUDLINUX", "QUOTA", "DA", "STACK", "AGENT", "CANARY", "DONE"];
+const ORDER = ["PENDING", "PREFLIGHT", "CLOUDLINUX", "QUOTA", "DA", "STACK", "AGENT", "CANARY", "TLS", "DONE"];
 
 export function NodeBootstrapProgress({ serverId }: { serverId: string }) {
   const [status, setStatus] = useState<BootstrapStatusDto | null>(null);

@@ -22,8 +22,8 @@ export interface NodeBootstrapStatus {
   events: NodeBootstrapEventView[];
 }
 
-const KNOWN_PHASES = new Set([
-  'PENDING', 'PREFLIGHT', 'DA', 'AGENT', 'HARDENING', 'CLOUDLINUX', 'QUOTA', 'STACK', 'REGISTER', 'CANARY', 'DONE', 'FAILED',
+export const KNOWN_PHASES = new Set([
+  'PENDING', 'PREFLIGHT', 'DA', 'AGENT', 'HARDENING', 'CLOUDLINUX', 'QUOTA', 'STACK', 'REGISTER', 'CANARY', 'TLS', 'DONE', 'FAILED',
 ]);
 const KNOWN_STATUSES = new Set(['STARTED', 'OK', 'FAILED', 'REBOOT']);
 

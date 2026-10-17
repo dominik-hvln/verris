@@ -1,4 +1,5 @@
 import { QUOTA_XFS_SH } from './quota-xfs.script.js';
+import { TLS_PANELU_SH } from './tls-panelu.script.js';
 
 /**
  * NODE-2/5 — Generator wznawialnego skryptu bootstrapu węzła (odpornego na
@@ -15,7 +16,7 @@ import { QUOTA_XFS_SH } from './quota-xfs.script.js';
  * (renderBootstrapScript) — bez duplikacji. OVH NS glue + pakiety DA odpala
  * control-plane po raporcie fazy CANARY.
  *
- * Fazy: PREFLIGHT → CLOUDLINUX(+reboot) → QUOTA(+reboot, jeśli potrzebny) → DA → STACK(LiteSpeed) → AGENT → CANARY → DONE
+ * Fazy: PREFLIGHT → CLOUDLINUX(+reboot) → QUOTA(+reboot, jeśli potrzebny) → DA → STACK(LiteSpeed) → AGENT → CANARY → TLS → DONE
  *
  * PB-29/PB-30:
  *  - klucze licencyjne NIE są w treści skryptu — skrypt pobiera je POST-em z nagłówkiem tokenu
@@ -97,6 +98,7 @@ get_phase() { cat "$STATE_FILE" 2>/dev/null || echo PENDING; }
 fail() { report "$1" FAILED "\${2:-}"; exit 1; }
 
 ${QUOTA_XFS_SH}
+${TLS_PANELU_SH}
 install_self() {
   # Przy \`curl … | bash\` $0 to „bash” — wtedy pobieramy skrypt jeszcze raz.
   if [ -f "$0" ] && [ "$(basename "$0")" != "bash" ]; then cp -f "$0" "$RUNNER"; else
@@ -320,7 +322,20 @@ phase_canary() {
   # zapewnienie pakietów DA (spójne z resztą platformy). Węzeł wchodzi do puli
   # w trybie canary — decyzja o pełnym ruchu należy do admina/panelu.
   report CANARY OK
-  finish
+  set_phase TLS
+}
+
+# PB-31: świeży DirectAdmin ma ssl=0 (panel po czystym HTTP). Rekord A nazwy węzła zakłada control-plane po raporcie
+# CANARY, więc certyfikat dopiero teraz. Błąd zostawia fazę TLS: ponowienie — systemctl start verris-bootstrap.
+phase_tls() {
+  report TLS STARTED
+  local host="\${NODE_HOSTNAME:-$(hostname -f 2>/dev/null)}" kod=0
+  wlacz_tls_panelu "$host" || kod=$?
+  case "$kod" in
+    0) report TLS OK "HTTPS panelu z certyfikatem dla $host"; finish ;;
+    3) fail TLS "rekord A $host nie wskazuje węzła — certyfikat panelu nie wydany; ponów: systemctl start verris-bootstrap" ;;
+    *) fail TLS "certyfikat panelu dla $host nie wydany (port 80, rekord A) — ponów: systemctl start verris-bootstrap" ;;
+  esac
 }
 
 run() {
@@ -333,6 +348,7 @@ run() {
       STACK)             phase_stack ;;
       AGENT)             phase_agent ;;
       CANARY)            phase_canary ;;
+      TLS)               phase_tls ;;
       DONE)              break ;;
       *)                 break ;;
     esac
