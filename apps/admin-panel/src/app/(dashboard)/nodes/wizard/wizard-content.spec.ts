@@ -1,21 +1,22 @@
-import { przygotowanieOs } from "./wizard-content";
+import { readFileSync } from "fs";
+import { join } from "path";
 
-const wykonywalne = (t: string) => t.split("\n").filter((l) => /^\s*hostnamectl\b/.test(l));
+const KREATOR = readFileSync(join(__dirname, "node-wizard.tsx"), "utf8");
 
-describe("kreator węzła — krok 0 (przygotowanie OS)", () => {
-  it("bez nazwy węzła nie ma gotowego polecenia zmiany hostname (13.10: skopiowany przykład ustawił złą nazwę)", () => {
-    expect(wykonywalne(przygotowanieOs(""))).toEqual([]);
-    expect(przygotowanieOs("")).not.toContain("example.com");
+/**
+ * PB-31 (17.10, czysta reinstalacja t2): od czystego systemu do zielonego raportu bez ręcznego SSH — na serwerze tylko
+ * jedna linijka bootstrapu. Krok „Wymagania” podsuwał ręczne `dnf update` / `hostnamectl`, a pole hostname kazało dodać
+ * rekord A w OVH, choć oba robi automat (PREFLIGHT bootstrapu; NodeDnsService przy Canary i zatwierdzeniu).
+ */
+describe("kreator węzła — bez kroków ręcznych na serwerze i w OVH", () => {
+  it("krok „Wymagania” nie podsuwa poleceń do wykonania na serwerze", () => {
+    expect(KREATOR).not.toContain("Krok 0 — przygotowanie OS");
+    expect(KREATOR).not.toContain("przygotowanieOs");
+    expect(KREATOR).toContain("bez ręcznych poleceń");
   });
 
-  it("po wpisaniu FQDN podstawia nazwę węzła", () => {
-    expect(wykonywalne(przygotowanieOs(" T2.verris.pl "))).toEqual(["hostnamectl set-hostname t2.verris.pl"]);
-  });
-
-  it("nazwa, która nie jest FQDN, nie trafia do polecenia powłoki", () => {
-    for (const zla of ["t2", "t2.verris.pl; reboot", "$(id).verris.pl", "-x.verris.pl", "a b.pl"]) {
-      expect(wykonywalne(przygotowanieOs(zla))).toEqual([]);
-      expect(przygotowanieOs(zla)).not.toContain(zla.trim());
-    }
+  it("pole hostname nie każe dodawać rekordu A w OVH ręcznie", () => {
+    expect(KREATOR).not.toContain("Dodaj rekord A w OVH");
+    expect(KREATOR).toContain("zakładają się w OVH same");
   });
 });

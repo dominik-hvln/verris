@@ -35,7 +35,6 @@ import {
   INSTALL_DIRECTADMIN,
   INSTALL_LITESPEED_STANDALONE,
   INSTALL_LITESPEED_VIA_DA,
-  przygotowanieOs,
   ONBOARD_LIVE_DOES,
   ONBOARD_LIVE_RUN,
   ONBOARD_LIVE_SCP,
@@ -377,8 +376,11 @@ export function NodeWizard() {
               <strong>10.2</strong> (test, najdłuższe wsparcie — full DA na AL10).
             </CheckItem>
             </ul>
-            <CopyBlock label="Krok 0 — przygotowanie OS (root)" text={przygotowanieOs(hostname)} />
             <ul className="space-y-2">
+            <CheckItem>
+              Czysty system z obrazu dostawcy — <strong>bez ręcznych poleceń</strong>. Nazwę hosta, czas (NTP), swap,
+              SELinux i limity dysku (quota) ustawia bootstrap; na serwerze wklejasz tylko jedną linijkę z kroku „Instalacja”.
+            </CheckItem>
             <CheckItem>
               Min. <strong>4 GB RAM</strong> (8+ GB zalecane), dysk SSD z zapasem na konta.
             </CheckItem>
@@ -467,7 +469,7 @@ export function NodeWizard() {
                   />
                   <span className="text-[11px] text-muted-foreground">
                     Wymagany — wildcard <code>*.verris.pl</code> i linki panelu działają po hostname.
-                    Dodaj rekord A w OVH zanim zaakceptujesz węzeł.
+                    Rekord A tej nazwy i para NS z glue zakładają się w OVH same (faza „Canary + NS” i zatwierdzenie węzła).
                   </span>
                 </label>
                 {error && <p className="text-sm text-rose-300">{error}</p>}

@@ -68,28 +68,6 @@ export function krokKreatoraDla(status: string): { id: WizardStepId; numer: numb
   return id && i >= 0 ? { id, numer: i + 1, tytul: WIZARD_STEPS[i]!.title } : null;
 }
 
-/** Nazwa hosta, którą wolno wstawić do polecenia powłoki: FQDN z kropką, same litery/cyfry/kropki/myślniki. */
-const FQDN = /^(?=.{4,253}$)(?!-)[a-z0-9-]{1,63}(?:\.(?!-)[a-z0-9-]{1,63})+$/i;
-
-/**
- * Krok 0 kreatora. 13.10 (t2): przykład `hostnamectl set-hostname node-pl-01.example.com` był gotowym poleceniem —
- * skopiowany przed wpisaniem nazwy węzła ustawił serwerowi przykładową nazwę. Bez poprawnego FQDN linia zostaje
- * komentarzem; z FQDN (z kroku „Instalacja” albo zapisanego węzła) podstawia się nazwa węzła.
- */
-export function przygotowanieOs(hostname: string): string {
-  const h = hostname.trim().toLowerCase();
-  const linia = FQDN.test(h)
-    ? `hostnamectl set-hostname ${h}`
-    : "# hostnamectl set-hostname <FQDN węzła>   # nazwa podstawi się po wpisaniu hostname w kroku „Instalacja”";
-  return `# 0) AlmaLinux 9.x lub 10.2 — minimal install, potem jako root:
-${linia}
-dnf -y update
-dnf -y install wget curl tar tmux
-timedatectl set-timezone Europe/Warsaw
-# Firewall (przykład): publiczne 80/443/2222 tylko jeśli potrzebne; SSH ogranicz do swojego IP
-# firewall-cmd --permanent --add-service=ssh && firewall-cmd --reload`;
-}
-
 export const INSTALL_CLOUDLINUX_AL10 = `# 1) CloudLinux 10 — konwersja z AlmaLinux 10.2 (trial / klucz aktywacji)
 #    Dokumentacja: https://docs.cloudlinux.com/cloudlinuxos/cloudlinux_installation/
 dnf -y install wget
