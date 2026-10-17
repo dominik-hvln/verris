@@ -4182,11 +4182,13 @@ export function linkSsoNaNazweHosta(url: string, ip: string | null, hostname: st
   try {
     u = new URL(url);
   } catch {
-    throw new BadRequestException('DirectAdmin zwrócił nieprawidłowy adres logowania.');
+    throw new BadRequestException('Panel serwera zwrócił nieprawidłowy adres logowania.');
   }
   if (u.protocol !== 'https:') {
     throw new BadRequestException(
-      'Panel DirectAdmina węzła działa bez HTTPS (ssl=0) — najpierw faza TLS bootstrapu albo ops/scripts/node-directadmin-tls-http01.sh.',
+      // bez nazwy panelu w treści (white label — ten serwis obsługuje też klientów); naprawa: faza TLS bootstrapu
+      // albo ops/scripts/node-directadmin-tls-http01.sh na węźle
+      'Panel serwera węzła działa bez HTTPS (ssl=0) — najpierw faza TLS bootstrapu węzła.',
     );
   }
   const host = hostname?.trim().toLowerCase().replace(/\.$/, '');
