@@ -197,8 +197,25 @@ governor_is_live() {
   return 0
 }
 
+# 17.10 (PB-31): raport był zielony, choć panel DA mówił czystym HTTP (ssl=0 po świeżej instalacji). Certyfikat nazwy
+# hosta wydaje DA w fazie TLS bootstrapu; sprawdzamy HTTPS z weryfikacją certyfikatu (bez -k), lokalnie (--resolve).
+sprawdz_tls_panelu() {
+  local host port ssl
+  host="$(da config-get servername 2>/dev/null | tr -d '[:space:]')"
+  port="$(da config-get port 2>/dev/null | tr -d '[:space:]')"
+  case "$port" in ''|*[!0-9]*) port=2222 ;; esac
+  ssl="$(da config-get ssl 2>/dev/null | tr -d '[:space:]')"
+  if [ "$ssl" = 1 ] && [ -n "$host" ] && curl -sS -o /dev/null -m 10 --resolve "$host:$port:127.0.0.1" "https://$host:$port/" >/dev/null 2>&1; then
+    log_ok "panel serwera po HTTPS z ważnym certyfikatem ($host)"
+  else
+    log_fail "panel serwera bez HTTPS albo bez ważnego certyfikatu nazwy hosta (ssl=${ssl:-?}, host=${host:-?}) — faza TLS bootstrapu albo node-directadmin-tls-http01.sh"
+  fi
+}
+
 verify_live_readiness() {
   log_step "5/5 Weryfikacja LIVE"
+
+  sprawdz_tls_panelu
 
   # MariaDB
   if getent passwd mysql >/dev/null 2>&1; then
