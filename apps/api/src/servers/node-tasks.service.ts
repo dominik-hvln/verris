@@ -39,8 +39,13 @@ export interface NodeDesiredLve {
 }
 
 const MAX_LOG_CHARS = 120_000;
-/** RUNNING without complete/fail — reclaim so panel is not stuck (Governor can run up to ~60 min). */
-const STALE_RUNNING_MS = 75 * 60 * 1000;
+/**
+ * RUNNING bez potwierdzenia — twardy limit jak TimeoutStartSec=7200 jednostki zadania na węźle (+5 min). Do 17.10 było
+ * 75 min: Onboard LIVE świeżego węzła (hardening, CageFS, Governor, alt-php) trwa dłużej, więc API oznaczało go FAILED,
+ * choć węzeł dalej pracował i wysyłał heartbeat, a „Ponów” uruchamiało drugi onboard równolegle. Żywotność pilnuje
+ * heartbeat (HEARTBEAT_STALE_MS).
+ */
+export const STALE_RUNNING_MS = 125 * 60 * 1000;
 /** No progress heartbeat from agent — orphan detection (verris-task-run sends every 60 s). */
 const HEARTBEAT_STALE_MS = 15 * 60 * 1000;
 
@@ -1264,7 +1269,7 @@ export class NodeTasksService {
           status: NodeTaskStatus.FAILED,
           errorMessage: noHeartbeat
             ? 'Brak heartbeat z węzła przez 15 min (agent mógł paść po starcie). Na węźle: journalctl -u verris-task@<instance>, tail /var/log/verris-tasks/<task-id>.log, potem uruchom install agenta (agent-3) i profil ponownie.'
-            : 'Zadanie przekroczyło 75 min bez potwierdzenia z węzła (np. restart agenta podczas Governor/CustomBuild). Sprawdź /var/log/verris-tasks/<task-id>.log na węźle i uruchom profil ponownie.',
+            : 'Zadanie przekroczyło 2 h bez potwierdzenia z węzła (limit jednostki zadania na węźle). Sprawdź /var/log/verris-tasks/<task-id>.log na węźle i uruchom profil ponownie.',
           completedAt: new Date(),
         },
       });
