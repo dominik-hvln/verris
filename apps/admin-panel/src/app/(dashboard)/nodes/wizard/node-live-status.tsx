@@ -33,6 +33,12 @@ const HEARTBEAT_FRESH_MS = 5 * 60 * 1000;
  * PB-31 (17.10): kreator zaznaczał „Bootstrap doszedł do fazy Gotowe” już po handshake (faza AGENT), a CANARY i TLS
  * trwały dalej. Bootstrap v2 ma fazę z raportów — gotowy tylko przy DONE; węzeł bez v2 (faza null) — po handshake.
  */
+/** Węzeł z kreatora z dociągniętym statusem ACTIVE z odczytu na żywo (ten sam obiekt, gdy nic się nie zmienia). */
+export function wezelPoSygnale<T extends { server: { status: string } }>(wezel: T | null, s: Pick<NodeLiveSignals, "active">): T | null {
+  if (!wezel || !s.active || wezel.server.status === "ACTIVE") return wezel;
+  return { ...wezel, server: { ...wezel.server, status: "ACTIVE" } };
+}
+
 export function bootstrapZakonczony(faza: string | null | undefined, handshake: boolean): boolean {
   return faza ? faza === "DONE" : handshake;
 }

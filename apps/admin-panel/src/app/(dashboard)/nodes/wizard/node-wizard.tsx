@@ -23,7 +23,7 @@ import { ApproveServerButton } from "../[id]/approve-button";
 import { HostingProfilePanel } from "../[id]/hosting-profile-panel";
 import { NameserversForm } from "../[id]/nameservers-form";
 import { NodeBootstrapProgress } from "../[id]/node-bootstrap-progress";
-import { NodeLiveStatus, type NodeLiveSignals } from "./node-live-status";
+import { NodeLiveStatus, wezelPoSygnale, type NodeLiveSignals } from "./node-live-status";
 import {
   BOOTSTRAP_DOES,
   BOOTSTRAP_DOES_NOT,
@@ -265,6 +265,9 @@ export function NodeWizard() {
       if (bootstrap === prev.bootstrap && approve === prev.approve) return prev;
       return { ...prev, bootstrap, approve };
     });
+    // 17.10: status węzła z odczytu na żywo — krok „Profil hostingowy” brał status z chwili utworzenia węzła
+    // i po akceptacji bez zapisanego klucza DA trzymał przycisk zablokowany.
+    setCreated((prev) => wezelPoSygnale(prev, s));
   };
 
   const createNodeAndScript = () => {

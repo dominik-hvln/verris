@@ -198,7 +198,8 @@ export const BOOTSTRAP_DOES = [
   "DirectAdmin: oficjalny instalator setup.sh — gdy DA jeszcze nie ma",
   "LiteSpeed przez DA CustomBuild — gdy podasz serial",
   "Handshake z api.verris.pl, /etc/verris.conf, verris-agent, verris-probes, verris-tasks (kolejka zadań z panelu)",
-  "Raportuje każdą fazę na żywo do panelu; po fazie Canary control-plane zakłada NS glue i pakiety DA",
+  "Raportuje każdą fazę na żywo do panelu; przy fazie Canary control-plane zakłada w OVH rekord A nazwy hosta i NS z glue",
+  "Faza „Certyfikat panelu”: certyfikat nazwy hosta wydaje DirectAdmin (Let's Encrypt), potem HTTPS panelu — przy błędzie ponawia się sama",
 ];
 
 export const BOOTSTRAP_DOES_NOT = [
