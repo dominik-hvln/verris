@@ -1092,7 +1092,9 @@ passdb verris-migracja {
 }
 DCONF
   fi
-  if doveconf -n >/dev/null 2>&1 && doveconf -n 2>/dev/null | grep -q 'verris-master-users'; then
+  # grep na zmiennej, nie w potoku: przy pipefail `doveconf -n | grep -q` (grep kończy przy pierwszym trafieniu,
+  # doveconf dostaje SIGPIPE) dawał fałszywe „nie przyjął” i usuwał poprawną konfigurację (przegląd 18.10).
+  if doveconf -n >/dev/null 2>&1 && grep -q 'verris-master-users' <<<"$(doveconf -n 2>/dev/null)"; then
     [ "$nowy" = "1" ] && { systemctl reload dovecot >/dev/null 2>&1 || doveadm reload >/dev/null 2>&1 || true; }
     log_ok "Dovecot: konto master migracji poczty ($uzytk, tylko localhost)"
   else
