@@ -58,3 +58,33 @@ describe('Kolejka zadań węzła — sprawiedliwe wydawanie', () => {
     expect(await s.wybrane()).toBe('a1');
   });
 });
+
+describe('Kolejka zadań węzła — jedno zadanie całego węzła naraz (17.10)', () => {
+  function stanowisko(kolejka: Array<{ id: string; kind: string; accountId: string | null }>, trwaCiezkie: number) {
+    const prisma = {
+      nodeTask: {
+        updateMany: vi.fn(async () => ({ count: 0 })),
+        findMany: vi.fn(async () => kolejka.map((t, i) => ({ ...t, createdAt: new Date(Date.UTC(2026, 9, 17, 20, i)), requestedBy: null }))),
+        count: vi.fn(async () => trwaCiezkie),
+        groupBy: vi.fn(async () => []),
+      },
+    };
+    const svc = Object.create(NodeTasksService.prototype) as NodeTasksService;
+    Object.assign(svc, { prisma, reclaimStaleRunningTasks: vi.fn(async () => undefined) });
+    return { svc, prisma };
+  }
+
+  it('profil hostingowy trwa → Onboard LIVE czeka, zadanie konta idzie', async () => {
+    const { svc, prisma } = stanowisko([{ id: 'onb', kind: 'ONBOARD_LIVE', accountId: null }, { id: 'k1', kind: 'DISK_USAGE', accountId: 'A' }], 1);
+    await svc.leaseTaskForNode('srv');
+    const claim = prisma.nodeTask.updateMany.mock.calls.at(-1) as unknown as [{ where: { id: string } }];
+    expect(claim[0].where.id).toBe('k1');
+  });
+
+  it('nic ciężkiego nie trwa → Onboard LIVE wydany', async () => {
+    const { svc, prisma } = stanowisko([{ id: 'onb', kind: 'ONBOARD_LIVE', accountId: null }], 0);
+    await svc.leaseTaskForNode('srv');
+    const claim = prisma.nodeTask.updateMany.mock.calls.at(-1) as unknown as [{ where: { id: string } }];
+    expect(claim[0].where.id).toBe('onb');
+  });
+});

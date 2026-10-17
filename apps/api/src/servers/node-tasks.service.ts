@@ -46,6 +46,14 @@ const MAX_LOG_CHARS = 120_000;
  * heartbeat (HEARTBEAT_STALE_MS).
  */
 export const STALE_RUNNING_MS = 125 * 60 * 1000;
+
+/** Zadania przebudowujące cały węzeł — najwyżej jedno naraz na węźle. */
+export const ZADANIA_CALEGO_WEZLA: ReadonlySet<NodeTaskKind> = new Set<NodeTaskKind>([
+  NodeTaskKind.ONBOARD_LIVE,
+  NodeTaskKind.HOSTING_PROFILE,
+  NodeTaskKind.FLEET_UPDATE,
+  NodeTaskKind.DB_UPGRADE,
+]);
 /** No progress heartbeat from agent — orphan detection (verris-task-run sends every 60 s). */
 const HEARTBEAT_STALE_MS = 15 * 60 * 1000;
 
@@ -681,12 +689,20 @@ export class NodeTasksService {
    *  3. wśród pozostałych — najstarsze zadanie konta obsłużonego najdawniej (round-robin po koncie).
    */
   private async wybierzSprawiedliwie(serverId: string) {
-    const kandydaci = await this.prisma.nodeTask.findMany({
+    let kandydaci = await this.prisma.nodeTask.findMany({
       where: { serverId, status: NodeTaskStatus.QUEUED },
       orderBy: { createdAt: 'asc' },
       take: 200,
       include: { requestedBy: { select: { role: true } } },
     });
+    // 17.10 (PB-31): zadania przebudowujące cały węzeł (onboard, profil, aktualizacja stosu, MariaDB) nie mogą iść
+    // równolegle — dwa profile walczą o blokadę dnf, firewalld i CageFS. Dotąd blokowany był tylko duplikat rodzaju.
+    if (kandydaci.some((t) => ZADANIA_CALEGO_WEZLA.has(t.kind))) {
+      const trwa = await this.prisma.nodeTask.count({
+        where: { serverId, status: NodeTaskStatus.RUNNING, kind: { in: [...ZADANIA_CALEGO_WEZLA] } },
+      });
+      if (trwa > 0) kandydaci = kandydaci.filter((t) => !ZADANIA_CALEGO_WEZLA.has(t.kind));
+    }
     if (!kandydaci.length) return null;
     // Zadania całego węzła (bez konta) — najpierw. Zadania kont, także zlecone przez obsługę, zostają w kolejności
     // swojego konta (przegląd paczki 42: kopia operatora nie może wyprzedzić starszej zmiany klienta tego konta).
