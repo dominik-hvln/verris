@@ -136,7 +136,7 @@ finish() {
   report DONE OK "bootstrap zakończony"
   systemctl disable verris-bootstrap.service >/dev/null 2>&1 || true
   # Skrypt zawiera token bootstrapu — po zakończeniu nie zostaje na dysku.
-  rm -f "$RUNNER" "$UNIT" "$STATE_DIR/agent-install.sh" "$STATE_DIR/cldeploy" "$STATE_DIR/.quota-restart"
+  rm -f "$RUNNER" "$UNIT" "$STATE_DIR/agent-install.sh" "$STATE_DIR/cldeploy" "$STATE_DIR/.quota-restart" "$STATE_DIR/.tls-proby"
   systemctl daemon-reload >/dev/null 2>&1 || true
 }
 
@@ -335,12 +335,22 @@ phase_tls() {
   local host="$NODE_HOSTNAME" kod=0
   [ -n "$host" ] || fail TLS "brak nazwy hosta z kreatora — certyfikatu panelu nie da się wydać"
   wlacz_tls_panelu "$host" || kod=$?
+  if [ "$kod" = 0 ]; then report TLS OK "HTTPS panelu z certyfikatem dla $host"; finish; return; fi
+  # 17.10: ponowienie bez SSH — systemd sam uruchomi bootstrap ponownie (stan zostaje TLS, raport TLS STARTED
+  # ponawia też DNS w OVH). Po błędzie Let's Encrypt dłuższa przerwa (limit nieudanych walidacji na godzinę).
+  local proba powod odstep=20min
+  proba=$(( $(cat "$STATE_DIR/.tls-proby" 2>/dev/null || echo 0) + 1 ))
+  echo "$proba" > "$STATE_DIR/.tls-proby"
   case "$kod" in
-    0) report TLS OK "HTTPS panelu z certyfikatem dla $host"; finish ;;
-    3) fail TLS "rekord A $host nie wskazuje węzła — certyfikat panelu nie wydany; ponów: systemctl start verris-bootstrap" ;;
-    4) fail TLS "brak dig (bind-utils) i nie udało się go zainstalować — certyfikat panelu nie wydany" ;;
-    *) fail TLS "certyfikat panelu dla $host nie wydany (port 80, rekord A) — ponów: systemctl start verris-bootstrap" ;;
+    3) powod="rekord A $host nie wskazuje węzła" ;;
+    4) powod="brak dig (bind-utils) i nie udało się go zainstalować" ;;
+    *) powod="certyfikat panelu dla $host nie wydany (port 80, rekord A)"; odstep=65min ;;
   esac
+  if [ "$proba" -lt "\${TLS_MAX_PROB:-4}" ] &&
+    systemd-run --quiet --unit="verris-bootstrap-ponow-$proba" --on-active="$odstep" systemctl start verris-bootstrap.service >/dev/null 2>&1; then
+    fail TLS "$powod — ponowię automatycznie za $odstep (próba $proba z \${TLS_MAX_PROB:-4})"
+  fi
+  fail TLS "$powod — po $proba próbach; ponów: systemctl start verris-bootstrap"
 }
 
 run() {

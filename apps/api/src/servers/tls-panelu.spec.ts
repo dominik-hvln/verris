@@ -228,6 +228,8 @@ describe('bootstrap węzła — faza TLS', () => {
     expect(kod).toContain(`DA='${a.da}' dabin`);
     writeFileSync(join(a.dir, 'bin', 'systemctl'), `#!/usr/bin/env bash\necho "systemctl $*" >> '${a.log}'\n`);
     chmodSync(join(a.dir, 'bin', 'systemctl'), 0o755);
+    writeFileSync(join(a.dir, 'bin', 'systemd-run'), `#!/usr/bin/env bash\necho "systemd-run $*" >> '${a.log}'\n`);
+    chmodSync(join(a.dir, 'bin', 'systemd-run'), 0o755);
     spawnSync(
       'bash',
       [
@@ -251,8 +253,21 @@ phase_tls`,
 
     const bezA = atrapa({ rekordA: '' });
     r = fazaTls(bezA);
-    expect(r.log).toMatch(/report TLS FAILED rekord A t2\.verris\.pl nie wskazuje węzła.*systemctl start verris-bootstrap/);
+    expect(r.log).toMatch(/report TLS FAILED rekord A t2\.verris\.pl nie wskazuje węzła/);
     expect(r.faza).toBe('TLS');
     expect(existsSync(join(bezA.dir, 'runner'))).toBe(true);
+  });
+
+  it('17.10: nieudana faza TLS ponawia się sama (systemd-run) — bez SSH; po błędzie LE dłuższa przerwa; limit prób', () => {
+    const bezA = atrapa({ rekordA: '' });
+    for (let i = 0; i < 4; i++) fazaTls(bezA);
+    const log = readFileSync(bezA.log, 'utf8');
+    expect(log.match(/systemd-run --quiet --unit=verris-bootstrap-ponow-\d --on-active=20min systemctl start verris-bootstrap.service/g)).toHaveLength(3);
+    expect(log).toContain('ponowię automatycznie za 20min (próba 1 z 4)');
+    expect(log).toMatch(/report TLS FAILED rekord A t2\.verris\.pl nie wskazuje węzła — po 4 próbach; ponów: systemctl start verris-bootstrap/);
+
+    const le = atrapa({ rekordA: IP, leKod: 1 });
+    fazaTls(le);
+    expect(readFileSync(le.log, 'utf8')).toContain('--on-active=65min');
   });
 });
