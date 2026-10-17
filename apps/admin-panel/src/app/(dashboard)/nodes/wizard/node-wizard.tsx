@@ -259,7 +259,7 @@ export function NodeWizard() {
   // Nie odznaczamy ręcznych zaznaczeń; tylko dostawiamy potwierdzone sygnały.
   const applyLiveSignals = (s: NodeLiveSignals) => {
     setChecked((prev) => {
-      const bootstrap = prev.bootstrap || s.handshake;
+      const bootstrap = prev.bootstrap || s.bootstrapDone;
       const approve = prev.approve || (s.active && s.daConfigured);
       if (bootstrap === prev.bootstrap && approve === prev.approve) return prev;
       return { ...prev, bootstrap, approve };

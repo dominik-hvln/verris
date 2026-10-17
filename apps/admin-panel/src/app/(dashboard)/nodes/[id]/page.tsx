@@ -115,6 +115,8 @@ export default async function ServerDetailPage({
 
   const isPending = server.status === "PENDING_APPROVAL";
   const canBootstrap = server.status === "INIT" || server.status === "PENDING_APPROVAL";
+  // PB-31: bootstrap v2 trwa (np. faza TLS po handshake) albo zatrzymał się — postęp widoczny, akceptacja dopiero po DONE.
+  const bootstrapTrwa = Boolean(server.bootstrapPhase) && server.bootstrapPhase !== "DONE";
   const teraz = chwila();
   const dziala = server.status === "ACTIVE" || server.status === "MAINTENANCE";
   const baza = `/nodes/${server.id}`;
@@ -166,7 +168,7 @@ export default async function ServerDetailPage({
           </div>
         </div>
         <div id="dostep" className="ml-auto flex scroll-mt-4 flex-wrap items-center gap-2.5">
-          {isPending && <ApproveServerButton serverId={server.id} />}
+          {isPending && !bootstrapTrwa && <ApproveServerButton serverId={server.id} />}
           <DaSsoButton
             serverId={server.id}
             // Weryfikacja 11.10 — IP: verris-node.sh na control-plane i tunel przez CP celują w węzeł po adresie.
@@ -241,9 +243,9 @@ export default async function ServerDetailPage({
 
       {sekcja === "przeglad" ? (
         <>
-          {canBootstrap && (
+          {(canBootstrap || bootstrapTrwa) && (
             <section id="bootstrap" className="flex flex-col gap-3">
-              <BootstrapScriptPanel serverId={server.id} />
+              {canBootstrap ? <BootstrapScriptPanel serverId={server.id} /> : null}
               <h2 className="font-display text-lg font-bold">Instalacja węzła (bootstrap v2)</h2>
               <p className="text-xs text-muted-foreground">
                 Ten sam krok co „Instalacja” w{" "}

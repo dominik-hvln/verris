@@ -41,6 +41,8 @@ export interface ServerSummaryDto {
   agentVersion: string | null;
   lastHandshakeAt: string | null;
   lastHeartbeatAt: string | null;
+  /** Faza bootstrapu v2 z raportów węzła (PREFLIGHT … TLS, DONE); null — węzeł bez bootstrapu v2 („tylko agent”). */
+  bootstrapPhase?: string | null;
 
   /**
    * OPS-01 — obserwowana żywotność węzła, WYLICZANA przy każdym odczycie z

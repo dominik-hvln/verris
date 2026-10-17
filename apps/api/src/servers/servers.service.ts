@@ -357,6 +357,14 @@ export class ServersService {
         `Only servers in PENDING_APPROVAL state can be approved (current: ${server.status}).`,
       );
     }
+    // PB-31: węzeł z bootstrapem v2 akceptujemy dopiero po DONE. Status PENDING_APPROVAL jest już od handshake
+    // (faza AGENT), a CANARY i TLS (certyfikat i ssl=1 w DA) trwają dalej — akceptacja w tym czasie puszczała
+    // Onboard LIVE / profil równolegle z bootstrapem. Węzeł bez bootstrapu v2 (ścieżka „tylko agent”) ma fazę null.
+    if (server.bootstrapPhase && server.bootstrapPhase !== 'DONE') {
+      throw new BadRequestException(
+        `Bootstrap węzła jeszcze trwa albo się zatrzymał (faza ${server.bootstrapPhase}) — akceptacja dopiero po fazie „Gotowe”.`,
+      );
+    }
     // Bootstrap v2 DoD: an ACTIVE node must always have an FQDN so the wildcard
     // TLS cert and client-panel links resolve by hostname (never raw IP).
     const hostname = server.hostname?.trim() ?? '';

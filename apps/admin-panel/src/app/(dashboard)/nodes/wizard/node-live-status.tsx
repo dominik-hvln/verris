@@ -6,6 +6,8 @@ import { fetchServer } from "../actions";
 
 export interface NodeLiveSignals {
   handshake: boolean;
+  /** Bootstrap v2 w fazie DONE (albo węzeł bez bootstrapu v2 po handshake). Faza TLS kończy się po CANARY. */
+  bootstrapDone: boolean;
   heartbeatFresh: boolean;
   active: boolean;
   daConfigured: boolean;
@@ -19,12 +21,21 @@ interface Signal {
 
 const SIGNALS: Signal[] = [
   { key: "handshake", label: "Agent połączony (bootstrap)", detail: "Węzeł wykonał handshake z control-plane." },
+  { key: "bootstrapDone", label: "Bootstrap zakończony", detail: "Faza „Gotowe” — po certyfikacie panelu (TLS)." },
   { key: "heartbeatFresh", label: "Agent raportuje na żywo", detail: "Telemetria z ostatnich 5 minut." },
   { key: "active", label: "Węzeł aktywny", detail: "Status ACTIVE — zaakceptowany do ruchu." },
   { key: "daConfigured", label: "DirectAdmin skonfigurowany", detail: "Zapisany login key DA (test API gotowy)." },
 ];
 
 const HEARTBEAT_FRESH_MS = 5 * 60 * 1000;
+
+/**
+ * PB-31 (17.10): kreator zaznaczał „Bootstrap doszedł do fazy Gotowe” już po handshake (faza AGENT), a CANARY i TLS
+ * trwały dalej. Bootstrap v2 ma fazę z raportów — gotowy tylko przy DONE; węzeł bez v2 (faza null) — po handshake.
+ */
+export function bootstrapZakonczony(faza: string | null | undefined, handshake: boolean): boolean {
+  return faza ? faza === "DONE" : handshake;
+}
 
 /**
  * ADM-1+ — żywa weryfikacja kroków wizarda. Zamiast ręcznego „odhaczania",
@@ -56,8 +67,10 @@ export function NodeLiveStatus({
       if (cancelled || !data) return;
       const now = Date.now();
       const hb = data.lastHeartbeatAt ? new Date(data.lastHeartbeatAt).getTime() : 0;
+      const handshake = Boolean(data.lastHandshakeAt) || hb > 0;
       const next: NodeLiveSignals = {
-        handshake: Boolean(data.lastHandshakeAt) || hb > 0,
+        handshake,
+        bootstrapDone: bootstrapZakonczony(data.bootstrapPhase, handshake),
         heartbeatFresh: hb > 0 && now - hb < HEARTBEAT_FRESH_MS,
         active: data.status === "ACTIVE",
         daConfigured: Boolean(data.daPasswordSet),
