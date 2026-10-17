@@ -622,8 +622,12 @@ export class AccountDeletionService {
       // gdy powiedział to SAM DirectAdmin. Wcześniej dopasowanie po prozie łapało też „Server not found”
       // (węzeł usunięty z bazy), „404 Not Found” z proxy i każde polskie „brak …” — konto szło na DELETED,
       // pojemność węzła była zwalniana, a dane anonimizowanego klienta zostawały na węźle (RODO).
-      // ponytail: dokładny tekst DA dla nieistniejącego użytkownika do potwierdzenia przy D3 (PB-21).
-      const benign = err instanceof DirectAdminApiError && /does\s*not\s*exist|not\s*found|no\s*such\s*user/i.test(err.daText);
+      // Tekst DA potwierdzony 17.10 (t2, D3): „Error while deleting Users — User <login> did not exist on the server.
+      // Removing it from your list.” — tak odpowiada DA 1.711 na usunięcie konta, którego już nie ma (np. gdy
+      // poprzednie żądanie przekroczyło limit czasu, a DA dokończył usuwanie).
+      const benign =
+        err instanceof DirectAdminApiError &&
+        /does\s*not\s*exist|did\s+not\s+exist\s+on\s+the\s+server|not\s*found|no\s*such\s*user/i.test(err.daText);
       if (!benign) {
         this.logger.error(
           `DA delete failed for accountId=${accountId} (daUsername=${acc.daUsername}): ${msg}`,

@@ -52,6 +52,14 @@ describe('AccountDeletionService.purgeAccountOnDa', () => {
     expect(s.tx.account.updateMany).toHaveBeenCalled();
   });
 
+  it('DA 1.711 (17.10, t2): „did not exist on the server” po usunięciu zakończonym po limicie czasu → DELETED', async () => {
+    const tekst = 'Error while deleting Users — User vinorgdw did not exist on the server. Removing it from your list.<br>';
+    const s = stanowisko(new DirectAdminApiError(`DirectAdmin API Error: ${tekst}`, tekst));
+    expect(await s.svc.purgeAccountOnDa('a1')).toEqual({ ok: true });
+    expect(s.tx.account.updateMany).toHaveBeenCalled();
+    expect(s.tx.server.update).toHaveBeenCalled();
+  });
+
   it.each([
     ['węzeł zniknął z bazy', new NotFoundException('Nie znaleziono węzła.')],
     ['404 z proxy przed DA', new Error('Request failed with status code 404 Not Found')],

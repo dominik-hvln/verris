@@ -3,6 +3,9 @@ import * as https from 'https';
 import { randomBytes } from 'crypto';
 import { nodeDownFor, recordNodeFailure, recordNodeSuccess } from './node-circuit.js';
 
+/** Usunięcie konta w DirectAdminie (katalog domowy, bazy, poczta, strefy) — patrz deleteAccount. */
+export const CZAS_USUWANIA_KONTA_MS = 180_000;
+
 export interface DirectAdminConfig {
   host: string;
   port: number;
@@ -773,6 +776,11 @@ export class DirectAdminClient {
     };
   }
 
+  /**
+   * Usunięcie użytkownika: DirectAdmin kasuje katalog domowy, bazy, pocztę i strefy w tym samym żądaniu, więc
+   * odpowiedź przychodzi po kilkudziesięciu sekundach (17.10, t2: domyślne 15 s → timeout, konto zostało w panelu).
+   * Limit jak dla operacji długich, a nie odczytów.
+   */
   async deleteAccount(username: string) {
     const response = await this.client.post(
       '/CMD_API_SELECT_USERS',
@@ -781,7 +789,7 @@ export class DirectAdminClient {
         delete: 'yes',
         select0: username,
       }).toString(),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: CZAS_USUWANIA_KONTA_MS },
     );
     return this.parseResponse(response.data);
   }
