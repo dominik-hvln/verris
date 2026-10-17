@@ -16,9 +16,7 @@ function serwis(bootstrapPhase: string | null) {
     prisma as never, null as never, audit as never, null as never, null as never, null as never, null as never,
     nodeDns as never, nodeTasks as never,
   );
-  // hook wildcard TLS nie jest tu przedmiotem testu
-  (s as unknown as { requestWildcardTlsDeploy: () => Promise<void> }).requestWildcardTlsDeploy = async () => undefined;
-  return { s, update, nodeTasks };
+  return { s, update, nodeTasks, audit };
 }
 
 describe('akceptacja węzła dopiero po DONE bootstrapu', () => {
@@ -30,8 +28,15 @@ describe('akceptacja węzła dopiero po DONE bootstrapu', () => {
   });
 
   it.each(['DONE', null])('faza %s (null = węzeł bez bootstrapu v2) — akceptacja przechodzi', async (faza) => {
-    const { s, update } = serwis(faza);
+    const { s, update, audit } = serwis(faza);
+    process.env.VERRIS_TLS_DEPLOY_WEBHOOK = 'https://cp.invalid/tls';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
     await expect(s.approveServer('s1', 'u1')).resolves.toMatchObject({ status: 'ACTIVE' });
     expect(update).toHaveBeenCalledTimes(1);
+    // decyzja 17.10: bez wysyłki wildcard *.verris.pl na węzeł (certyfikat nazwy hosta wydaje DA w fazie TLS)
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(audit.record.mock.calls.map((c: unknown[]) => (c[0] as { action: string }).action)).toEqual(['SERVER_APPROVED']);
+    fetchSpy.mockRestore();
+    delete process.env.VERRIS_TLS_DEPLOY_WEBHOOK;
   });
 });

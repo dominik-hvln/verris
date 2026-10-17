@@ -134,11 +134,24 @@ deploy_cert_to_node() {
   key=$(ssh_key_path)
   local ssh_opts=(-o BatchMode=yes -o StrictHostKeyChecking=accept-new -i "$key")
 
+  # Decyzja 17.10 (PB-31): węzeł z fazą TLS bootstrapu ma certyfikat nazwy hosta z DirectAdmina
+  # (acme_server_cert_enabled=1, DA sam odnawia). Wildcard nadpisywałby go co tydzień, a klucz *.verris.pl
+  # nie powinien leżeć na węzłach z kodem klientów — taki węzeł pomijamy, klucza nie wysyłamy.
+  local acme
+  acme=$(ssh "${ssh_opts[@]}" "root@${ip}" "da config-get acme_server_cert_enabled 2>/dev/null || /usr/local/directadmin/directadmin config-get acme_server_cert_enabled 2>/dev/null" | tr -d '[:space:]') \
+    || { log "FAIL ${hostname}: ssh (sprawdzenie ACME)"; return 1; }
+  if [ "$acme" = "1" ]; then
+    log "SKIP ${hostname}: certyfikat nazwy hosta z DirectAdmina (ACME) — bez wildcard"
+    return 0
+  fi
+
   log "Deploy TLS → ${hostname} (${ip})"
-  ssh "${ssh_opts[@]}" "root@${ip}" "mkdir -p /root/verris-tls"
-  scp "${ssh_opts[@]}" "${CERT_DIR}/fullchain.pem" "root@${ip}:/root/verris-tls/fullchain.pem"
-  scp "${ssh_opts[@]}" "${CERT_DIR}/privkey.pem" "root@${ip}:/root/verris-tls/privkey.pem"
-  ssh "${ssh_opts[@]}" "root@${ip}" bash -s <<'REMOTE'
+  # Każdy krok z jawnym błędem: wywołanie `deploy_cert_to_node … || failed++` wyłącza set -e w całej funkcji,
+  # więc nieudany ssh/scp kończył się dotąd „OK”.
+  ssh "${ssh_opts[@]}" "root@${ip}" "mkdir -p /root/verris-tls" || { log "FAIL ${hostname}: ssh"; return 1; }
+  scp "${ssh_opts[@]}" "${CERT_DIR}/fullchain.pem" "root@${ip}:/root/verris-tls/fullchain.pem" || { log "FAIL ${hostname}: scp"; return 1; }
+  scp "${ssh_opts[@]}" "${CERT_DIR}/privkey.pem" "root@${ip}:/root/verris-tls/privkey.pem" || { log "FAIL ${hostname}: scp"; return 1; }
+  ssh "${ssh_opts[@]}" "root@${ip}" bash -s <<'REMOTE' || { log "FAIL ${hostname}: wdrożenie na węźle"; return 1; }
 set -euo pipefail
 FC="/root/verris-tls/fullchain.pem"
 PK="/root/verris-tls/privkey.pem"

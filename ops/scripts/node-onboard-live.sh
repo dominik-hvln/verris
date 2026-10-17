@@ -426,20 +426,19 @@ print_admin_checklist() {
   echo " Log: $LOG"
   echo " Server ID: ${VERRIS_SERVER_ID:-?}"
   echo " Public IP: $PUBLIC_IP"
-  echo " Panel DA (klient): https://${PUBLIC_IP}:2222"
   echo "============================================"
 
   if [ "$FAIL" -eq 0 ]; then
     echo ""
     echo "[OK] Węzeł gotowy pod LIVE provisioning."
     echo ""
+    # 17.10 (PB-31): certyfikat panelu jest na nazwę hosta (faza TLS bootstrapu, ACME DA) — Host=IP nie przejdzie
+    # weryfikacji certyfikatu w API. Rekord A i wildcard nie są już krokami ręcznymi.
+    local da_host
+    da_host="$(da config-get servername 2>/dev/null || hostname -f)"
     echo "Panel admin — dokończ konfigurację:"
-    echo "  1. Węzeł → DirectAdmin: Host=$PUBLIC_IP, Port=2222, User=admin, Login Key, TLS=ON"
+    echo "  1. Węzeł → DirectAdmin: Host=${da_host}, Port=2222, User=admin, Login Key, TLS=ON"
     echo "  2. Test połączenia DA (zielony)"
-    echo "  3. Status węzła ACTIVE + hostname node-XX.verris.pl + rekord A w OVH"
-    echo "  4. Wildcard TLS — automatycznie z control-plane (bootstrap dodaje klucz SSH)"
-    echo "       bash /opt/verris/ops/scripts/verris-node-wildcard-tls.sh --deploy-only --node=HOSTNAME"
-    echo "     (patrz ops/docs/NODE_WILDCARD_TLS.md)"
     echo ""
     echo "Diagnostyka na węźle:"
     echo "  tail -f /var/log/verris-tasks.log"

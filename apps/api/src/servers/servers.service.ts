@@ -391,15 +391,9 @@ export class ServersService {
       userAgent: ctx?.userAgent ?? null,
     });
 
-    // Post-ACTIVE hook: request the wildcard TLS deploy for this node. The
-    // certificate is issued centrally on the control plane (DNS-01 via OVH) and
-    // pushed to the node's DA :2222; we record the request so the audit panel
-    // tracks it and the operator can trigger it from one place.
-    await this.requestWildcardTlsDeploy(updated, actorUserId).catch((err) => {
-      this.logger.warn(
-        `requestWildcardTlsDeploy failed for server=${serverId}: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    });
+    // Decyzja 17.10 (PB-31): bez wysyłki certyfikatu *.verris.pl na węzeł. Certyfikat panelu DA to certyfikat nazwy
+    // hosta wydawany i odnawiany przez sam DirectAdmin (faza TLS bootstrapu, acme_server_cert_enabled=1) — akceptacja
+    // jest możliwa dopiero po DONE, więc certyfikat już jest. Klucz wildcard nie trafia na węzły z kodem klientów.
 
     // Post-ACTIVE hook: auto-provision branded nameservers at OVH (glue + zone)
     // and assign them to the node. Best-effort and idempotent — if OVH isn't
@@ -428,57 +422,6 @@ export class ServersService {
       });
 
     return updated;
-  }
-
-  /**
-   * Requests the wildcard `*.verris.pl` TLS deploy for a freshly-approved node.
-   *
-   * The cert is issued centrally on the control plane (DNS-01 via OVH) and
-   * pushed to the node's DirectAdmin `:2222`. If `VERRIS_TLS_DEPLOY_WEBHOOK` is
-   * configured we POST the deploy request to the control-plane runner;
-   * otherwise we record a pending request with the exact command so the
-   * operator runs it from one place. Either way the audit log and node audit
-   * panel track TLS readiness — no silent gap.
-   */
-  private async requestWildcardTlsDeploy(
-    server: { id: string; hostname: string | null; name: string | null },
-    actorUserId: string,
-  ): Promise<void> {
-    const hostname = server.hostname?.trim() ?? '';
-    const webhook = (process.env.VERRIS_TLS_DEPLOY_WEBHOOK ?? '').trim();
-    const command = `ops/scripts/verris-node-wildcard-tls.sh --node=${hostname}`;
-
-    if (webhook) {
-      try {
-        const res = await fetch(webhook, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ serverId: server.id, hostname, command }),
-        });
-        if (!res.ok) {
-          throw new Error(`webhook HTTP ${res.status}`);
-        }
-        await this.audit.record({
-          action: 'SERVER_TLS_DEPLOY_REQUESTED',
-          actorUserId,
-          details: { serverId: server.id, hostname, via: 'webhook' },
-        });
-        return;
-      } catch (err) {
-        this.logger.warn(
-          `TLS deploy webhook failed for server=${server.id}: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
-    }
-
-    await this.audit.record({
-      action: 'SERVER_TLS_DEPLOY_PENDING',
-      actorUserId,
-      details: { serverId: server.id, hostname, command, via: 'manual' },
-    });
-    this.logger.log(
-      `[verris] Wildcard TLS deploy pending for ${hostname} — run on control plane: ${command}`,
-    );
   }
 
   // ---------------------------------------------------------------------------
