@@ -1,5 +1,5 @@
 import { spawnSync } from 'child_process';
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { buildNodeBootstrapScript } from './node-bootstrap.script.js';
@@ -57,7 +57,8 @@ esac`,
     join(bin, 'dig'),
     `echo "dig $*" >> '${a.log}'
 case "$*" in
-  *" NS "*) echo 'dns200.anycast.me.' ;;
+  "+short NS verris.pl") echo 'dns200.anycast.me.' ;;
+  *" NS "*) ;;
   *) cat '${join(dir, 'a')}' ;;
 esac`,
   );
@@ -69,6 +70,7 @@ esac`,
 exit 35`,
   );
   skrypt(join(bin, 'sleep'), `echo "sleep $*" >> '${a.log}'`);
+  skrypt(join(bin, 'dnf'), `echo "dnf $*" >> '${a.log}'; exit 1`);
   skrypt(
     join(da, 'scripts', 'letsencrypt.sh'),
     `echo "letsencrypt.sh $*" >> '${a.log}'
@@ -82,10 +84,22 @@ function sciezka(a: Atrapa): string {
   return `${join(a.dir, 'bin')}:${process.env.PATH}`;
 }
 
-function wlacz(a: Atrapa, host = 't2.verris.pl'): { kod: number; log: string; out: string } {
-  const r = spawnSync('bash', ['-c', `set -uo pipefail\n${TLS_PANELU_SH}\nwlacz_tls_panelu '${host}' '${a.da}'; echo "kod=$?"`], {
+/** PATH bez systemowego dig: atrapy + tylko potrzebne narzędzia (dowiązania). */
+function sciezkaBezDig(a: Atrapa): string {
+  const nb = join(a.dir, 'narzedzia');
+  mkdirSync(nb, { recursive: true });
+  for (const n of ['bash', 'seq', 'sed', 'grep', 'head', 'cat', 'touch']) {
+    const z = spawnSync('bash', ['-c', `command -v ${n}`], { encoding: 'utf8' }).stdout.trim();
+    if (z) symlinkSync(z, join(nb, n));
+  }
+  rmSync(join(a.dir, 'bin', 'dig'));
+  return `${join(a.dir, 'bin')}:${nb}`;
+}
+
+function wlacz(a: Atrapa, host = 't2.verris.pl', path = sciezka(a)): { kod: number; log: string; out: string } {
+  const r = spawnSync('/bin/bash', ['-c', `set -uo pipefail\n${TLS_PANELU_SH}\nwlacz_tls_panelu '${host}' '${a.da}'; echo "kod=$?"`], {
     encoding: 'utf8',
-    env: { ...process.env, PATH: sciezka(a), TLS_DNS_PROB: '3' },
+    env: { ...process.env, PATH: path, TLS_DNS_PROB: '3' },
   });
   const out = `${r.stdout}${r.stderr}`;
   const m = /kod=(\d+)/.exec(out);
@@ -126,9 +140,29 @@ describe('wlacz_tls_panelu — certyfikat hostname i HTTPS panelu bez ręcznego 
       expect(r.kod).toBe(3);
       expect(r.log).not.toContain('letsencrypt.sh');
       expect(r.log).not.toContain('config-set ssl');
+      // ACME DA włączone dopiero po zgodnym rekordzie — inaczej DA sam zużywałby limit nieudanych walidacji
+      expect(r.log).not.toContain('acme_server_cert_enabled');
       expect(r.log.match(/dig \+short A/g)).toHaveLength(3);
+      // bez czekania po ostatniej próbie
+      expect(r.log.match(/sleep 30/g)).toHaveLength(2);
       expect(readFileSync(a.ssl, 'utf8').trim()).toBe('0');
     }
+  });
+
+  it('brak dig i nieudana instalacja bind-utils: kod 4, bez prób Let’s Encrypt', () => {
+    const a = atrapa({ rekordA: IP });
+    const r = wlacz(a, 't2.verris.pl', sciezkaBezDig(a));
+    expect(r.kod).toBe(4);
+    expect(r.log).toContain('dnf -y -q install bind-utils');
+    expect(r.log).not.toContain('letsencrypt.sh');
+    expect(r.log).not.toContain('acme_server_cert_enabled');
+  });
+
+  it('nazwa głębsza niż strefa (x.t3.verris.pl): NS strefy verris.pl, nie pusty serwer', () => {
+    const a = atrapa({ rekordA: IP });
+    const r = wlacz(a, 'x.t3.verris.pl');
+    expect(r.kod).toBe(0);
+    expect(r.log).toContain('dig +short A x.t3.verris.pl @dns200.anycast.me.');
   });
 
   it('server_cert zawodzi: 3 próby z odstępem, kod 1, panel zostaje bez ssl=1 (bez samopodpisanego certyfikatu)', () => {
@@ -138,6 +172,12 @@ describe('wlacz_tls_panelu — certyfikat hostname i HTTPS panelu bez ręcznego 
     expect(r.log.match(/letsencrypt\.sh server_cert/g)).toHaveLength(3);
     expect(r.log.match(/sleep 120/g)).toHaveLength(2);
     expect(r.log).not.toContain('config-set ssl');
+  });
+
+  it('skrypt dla węzłów sprzed zmiany: --renew przed nazwą hosta nie staje się nazwą hosta', () => {
+    const parsowanie = /\nHOST=""\n[\s\S]*?\ndone\n/.exec(HTTP01)![0];
+    const r = spawnSync('bash', ['-c', `set -- --renew node.x.verris.pl\n${parsowanie}\necho "$HOST $RENEW"`], { encoding: 'utf8' });
+    expect(r.stdout.trim()).toBe('node.x.verris.pl 1');
   });
 
   it('skrypt dla węzłów sprzed zmiany ma tę samą funkcję co bootstrap', () => {

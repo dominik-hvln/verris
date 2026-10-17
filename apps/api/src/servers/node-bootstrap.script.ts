@@ -331,11 +331,14 @@ phase_canary() {
 # CANARY, więc certyfikat dopiero teraz. Błąd zostawia fazę TLS: ponowienie — systemctl start verris-bootstrap.
 phase_tls() {
   report TLS STARTED
-  local host="\${NODE_HOSTNAME:-$(hostname -f 2>/dev/null)}" kod=0
+  # Tylko nazwa z kreatora: hostname -f na obrazie dostawcy to np. vmi….contaboserver.net — certyfikat na nią nic nie da.
+  local host="$NODE_HOSTNAME" kod=0
+  [ -n "$host" ] || fail TLS "brak nazwy hosta z kreatora — certyfikatu panelu nie da się wydać"
   wlacz_tls_panelu "$host" || kod=$?
   case "$kod" in
     0) report TLS OK "HTTPS panelu z certyfikatem dla $host"; finish ;;
     3) fail TLS "rekord A $host nie wskazuje węzła — certyfikat panelu nie wydany; ponów: systemctl start verris-bootstrap" ;;
+    4) fail TLS "brak dig (bind-utils) i nie udało się go zainstalować — certyfikat panelu nie wydany" ;;
     *) fail TLS "certyfikat panelu dla $host nie wydany (port 80, rekord A) — ponów: systemctl start verris-bootstrap" ;;
   esac
 }
