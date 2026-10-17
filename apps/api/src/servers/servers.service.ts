@@ -419,8 +419,10 @@ export class ServersService {
 
     // PB-31 — gdy kopie off-site floty są już skonfigurowane w panelu, od razu cały Onboard LIVE
     // (hardening, egress, kopie, IP/pakiety DA, profil, raport gotowości) — bez SSH na węzeł.
-    const kopie = await this.backupOffsite?.podglad().catch(() => null);
-    if (kopie?.skonfigurowany) {
+    // 17.10: ten sam warunek co wydanie danych kopii węzłowi (dlaWezla) — dotąd tylko zestaw floty, więc przy
+    // „tylko per węzeł” bez wpisu węzła Onboard LIVE padał na kopiach, a z samym wpisem węzła nie startował.
+    const maKopie = await this.backupOffsite?.wezelMaKopie(serverId).catch(() => false);
+    if (maKopie) {
       await this.nodeTasks.queueOnboardLive(serverId, actorUserId).catch((err) => {
         this.logger.warn(`queueOnboardLive failed for server=${serverId}: ${err instanceof Error ? err.message : String(err)}`);
       });

@@ -278,6 +278,15 @@ export class BackupOffsiteService {
     ].join('\n');
   }
 
+  /**
+   * Czy węzeł dostanie dane kopii off-site (te same reguły co dlaWezla, bez odczytu sekretów i audytu): własny wpis
+   * węzła albo wspólny zestaw floty, gdy „tylko per węzeł” jest wyłączone. Używane przy akceptacji węzła (17.10).
+   */
+  async wezelMaKopie(serverId: string): Promise<boolean> {
+    if (await this.wczytajWezla(serverId)) return true;
+    return Boolean(await this.wczytaj()) && !(await this.tylkoPerWezel());
+  }
+
   /** Treść dla węzła (env, source-owalna). `null` = nieskonfigurowane (albo „tylko per węzeł” i brak wpisu). */
   async dlaWezla(serverId: string): Promise<string | null> {
     const q = (v: string | number) => `'${String(v).replace(/'/g, `'\\''`)}'`;
