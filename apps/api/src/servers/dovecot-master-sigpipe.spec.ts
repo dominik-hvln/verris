@@ -33,3 +33,8 @@ it('duże wyjście doveconf z trafieniem na początku → [OK], konfiguracja zos
   expect(`${r.stdout}${r.stderr}`).toContain('[OK] Dovecot: konto master migracji poczty');
   expect(existsSync(join(dir, 'dovecot', 'conf.d', '91-verris-migracja.conf'))).toBe(true);
 });
+
+it('żadne sprawdzenie w profilu nie robi `doveconf -n | grep` w potoku (sieve, konto master, radicale)', () => {
+  const kod = PROFIL.split('\n').filter((l) => !l.trim().startsWith('#'));
+  expect(kod.filter((l) => /doveconf -n[^|]*\| *grep/.test(l))).toEqual([]);
+});

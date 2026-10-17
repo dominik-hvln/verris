@@ -1395,11 +1395,11 @@ configure_hosting_capabilities() {
   # incoming spam” → Dovecot 2.4.x). Potem dovecot_conf i Roundcube (managesieve). Reguły klient ustawia
   # w webmailu (Roundcube → Ustawienia → Filtry). Budowa tylko, gdy Dovecot jeszcze nie ma sieve.
   if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && command -v da >/dev/null 2>&1; then
-    if ! doveconf -n 2>/dev/null | grep -qi 'sieve'; then
+    if ! grep -qi 'sieve' <<<"$(doveconf -n 2>/dev/null)"; then
       { da build set pigeonhole yes && da build dovecot && da build dovecot_conf && da build roundcube; } \
         >/var/log/verris-pigeonhole.log 2>&1 || true
     fi
-    if doveconf -n 2>/dev/null | grep -qi 'sieve'; then
+    if grep -qi 'sieve' <<<"$(doveconf -n 2>/dev/null)"; then
       log_ok "Dovecot Pigeonhole (Sieve) aktywny — filtry w webmailu (log budowy: /var/log/verris-pigeonhole.log)"
     else
       log_warn "Pigeonhole — Dovecot bez sieve po budowie (log: /var/log/verris-pigeonhole.log); filtry w webmailu niedostępne"
@@ -1804,7 +1804,7 @@ HBA
     # tylko uwierzytelnianie SASL (doc.dovecot.org → Services). Plik w /etc/dovecot/conf.d jak w dokumentacji
     # DirectAdmin „Customizing Dovecot”; zła składnia → plik usunięty, Dovecot bez zmian.
     local dav_conf=/etc/dovecot/conf.d/90-verris-radicale.conf
-    if command -v doveconf >/dev/null 2>&1 && ! doveconf -n 2>/dev/null | grep -q 'auth-verris-radicale'; then
+    if command -v doveconf >/dev/null 2>&1 && ! grep -q 'auth-verris-radicale' <<<"$(doveconf -n 2>/dev/null)"; then
       cat > "$dav_conf" <<'DCONF'
 # Zarządzane przez Verris (E-23) — gniazdo logowania dla kalendarza i kontaktów (Radicale).
 service auth {
@@ -1816,7 +1816,7 @@ service auth {
   }
 }
 DCONF
-      if doveconf -n >/dev/null 2>>/var/log/verris-dav.log && doveconf -n 2>/dev/null | grep -q 'auth-verris-radicale'; then
+      if doveconf -n >/dev/null 2>>/var/log/verris-dav.log && grep -q 'auth-verris-radicale' <<<"$(doveconf -n 2>/dev/null)"; then
         systemctl reload dovecot 2>>/var/log/verris-dav.log || doveadm reload 2>>/var/log/verris-dav.log || true
         for _ in 1 2 3 4 5 6 7 8 9 10; do [ -S "$dav_sock" ] && break; sleep 1; done
       else
