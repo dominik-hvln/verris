@@ -207,3 +207,47 @@ phase_quota; echo "koniec=$?"`,
     expect(readFileSync(a.log, 'utf8')).not.toContain('systemctl reboot');
   });
 });
+
+describe('profil hostingowy — sprawdzenie quota na świeżym węźle (17.10)', () => {
+  const funkcja = /\ncheck_disk_quota\(\) \{[\s\S]*?\n\}\n/.exec(PROFIL)![0];
+
+  /** quota aktywna z bootstrapu (usrquota w opcjach), repquota brak — instalowany przez dnf (atrapa). */
+  function profil(o: { dnfInstaluje: boolean }): string {
+    const a = atrapa({ cel: '/', typ: 'xfs', opcje: 'rw,attr2,usrquota,prjquota' });
+    const bin = join(a.dir, 'bin');
+    writeFileSync(join(bin, 'da'), '#!/usr/bin/env bash\nexit 1\n');
+    chmodSync(join(bin, 'da'), 0o755);
+    const wzor = join(a.dir, 'repquota.wzor');
+    writeFileSync(wzor, `#!/usr/bin/env bash\necho '*** Report for user quotas on device /dev/sda1'\n`);
+    writeFileSync(
+      join(bin, 'dnf'),
+      `#!/usr/bin/env bash\necho "dnf $*" >> '${a.log}'\n${o.dnfInstaluje ? `cat '${wzor}' > '${bin}/repquota'; chmod +x '${bin}/repquota'` : 'exit 1'}\n`,
+    );
+    chmodSync(join(bin, 'dnf'), 0o755);
+    // PATH bez systemowego repquota: atrapy + potrzebne narzędzia
+    const nb = join(a.dir, 'narzedzia');
+    spawnSync('mkdir', ['-p', nb]);
+    for (const n of ['bash', 'head', 'tr', 'grep', 'sed', 'chmod', 'cat', 'printf']) {
+      const z = spawnSync('bash', ['-c', `command -v ${n}`], { encoding: 'utf8' }).stdout.trim();
+      if (z.startsWith('/')) spawnSync('ln', ['-sf', z, join(nb, n)]);
+    }
+    const r = spawnSync(
+      '/bin/bash',
+      ['-c', `set -uo pipefail\nDRY_RUN=0; PREFLIGHT_ONLY=0\nlog_ok() { echo "[OK] $*"; }\nlog_fail() { echo "[FAIL] $*"; }\n${QUOTA_XFS_SH}\n${funkcja}\ncheck_disk_quota`],
+      { encoding: 'utf8', env: { ...process.env, PATH: `${bin}:${nb}` } },
+    );
+    return `${r.stdout}${r.stderr}`;
+  }
+
+  it('quota aktywna, brak repquota → instaluje pakiet quota i [OK]', () => {
+    const out = profil({ dnfInstaluje: true });
+    expect(out).toContain('[OK] Quota użytkowników działa na /');
+    expect(out).not.toContain('[FAIL]');
+  });
+
+  it('quota aktywna, pakietu nie da się zainstalować → [FAIL] o narzędziu, nie „Brak quota”', () => {
+    const out = profil({ dnfInstaluje: false });
+    expect(out).toContain('[FAIL] Brak narzędzia repquota');
+    expect(out).not.toContain('Brak quota na');
+  });
+});

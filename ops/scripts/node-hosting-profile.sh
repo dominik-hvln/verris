@@ -1218,12 +1218,21 @@ check_disk_quota() {
   mnt="$(findmnt -no TARGET --target "$qp" 2>/dev/null | head -1)"
   [ -n "$mnt" ] || mnt=/
   opcje="$(findmnt -no OPTIONS --target "$mnt" 2>/dev/null)"
-  if command -v repquota >/dev/null 2>&1 && repquota "$mnt" 2>/dev/null | grep -q 'Report for user quotas'; then
+  # repquota z pakietu quota (DA: https://docs.directadmin.com/operation-system-level/os-general/filesystems-and-quotas.html).
+  # Świeży AlmaLinux go nie ma — bez niego quota aktywna z bootstrapu kończyła się [FAIL] „Brak quota” (17.10).
+  command -v repquota >/dev/null 2>&1 || dnf -y -q install quota >/dev/null 2>&1 || true
+  # grep na zmiennej, nie w potoku: przy pipefail SIGPIPE repquota (długi raport) dawał fałszywy brak.
+  if command -v repquota >/dev/null 2>&1 && grep -q 'Report for user quotas' <<<"$(repquota "$mnt" 2>/dev/null)"; then
     log_ok "Quota użytkowników działa na $mnt (quota_partition=$qp; $opcje)"
     return 0
   fi
   wlacz_quota_xfs "$qp" || kod=$?
   case "$kod" in
+    0)  if command -v repquota >/dev/null 2>&1; then
+          log_fail "Quota włączona w opcjach montowania $mnt ($opcje), ale repquota jej nie raportuje — limity dysku kont niepewne"
+        else
+          log_fail "Brak narzędzia repquota (pakiet quota) i nie udało się go zainstalować — nie da się sprawdzić quota na $mnt"
+        fi ;;
     10) log_fail "Quota XFS na $mnt ustawiona (rootflags=uquota,pquota / fstab) — zadziała po restarcie węzła; restart w oknie serwisowym, potem ponów profil" ;;
     1)  log_fail "Brak quota na $mnt i nie udało się jej ustawić (grubby / fstab; opcje: $opcje) — limity dysku kont nie działają" ;;
     *)  log_fail "Brak quota na $mnt (quota_partition=$qp; opcje: $opcje) — limity dysku kont nie działają" ;;
