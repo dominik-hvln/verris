@@ -540,8 +540,8 @@ export async function wycofajMartwyWezelAction(id: string, potwierdzenie: string
       `/admin/servers/${id}/wycofaj-martwy`,
       { method: "POST", body: { potwierdzenie } },
     );
-    revalidatePath(`/nodes/${id}`);
-    revalidatePath("/nodes");
+    // Bez revalidatePath (17.10): przerysowanie karty po DEPROVISIONING odmontowywało panel wycofania razem
+    // z wynikiem (kroki DNS) tuż po kliknięciu. Strony węzłów są dynamiczne — lista pobierze świeży stan.
     return { data };
   } catch (err) {
     return { error: err instanceof AdminApiError ? err.message : (err as Error).message };

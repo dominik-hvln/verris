@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Loader2, Skull } from "lucide-react";
 import { wycofajMartwyWezelAction } from "../actions";
@@ -50,7 +51,14 @@ export function WycofajMartwyPanel({ serverId, nazwa, konta, martwy }: { serverI
           </button>
         </div>
       )}
-      {wynik ? <p className="text-sm text-emerald-300" role="status">{wynik}</p> : null}
+      {wynik ? (
+        <p className="text-sm text-emerald-300" role="status">
+          {wynik}{" "}
+          <Link href="/nodes" className="underline">
+            Lista węzłów
+          </Link>
+        </p>
+      ) : null}
       {blad ? <p className="text-sm text-rose-300" role="alert">{blad}</p> : null}
     </section>
   );
