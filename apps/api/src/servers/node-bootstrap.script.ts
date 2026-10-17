@@ -170,7 +170,7 @@ phase_preflight() {
     # a Exim nie znał verris-da-powiadomienia@t2. Moduły nazwy hosta wyłączone: lista cloud_init_modules
     # z cloud.cfg bez set_hostname, update_hostname, update_etc_hosts
     # (https://docs.cloud-init.io/en/latest/reference/modules.html).
-    python3 - "\${CLOUD_CFG:-/etc/cloud/cloud.cfg}" "\${CLOUD_CFG_D:-/etc/cloud/cloud.cfg.d}/99-verris-zz-bez-hostname.cfg" <<'PYCC' || true
+    python3 - "\${CLOUD_CFG:-/etc/cloud/cloud.cfg}" "\${CLOUD_CFG_D:-/etc/cloud/cloud.cfg.d}/99-verris-zz-bez-hostname.cfg" <<'PYCC' || report PREFLIGHT STARTED "nie udało się wyłączyć modułów nazwy hosta cloud-init — nazwa hosta może wrócić po restarcie"
 import sys, yaml
 c = yaml.safe_load(open(sys.argv[1])) or {}
 pomin = {'set_hostname', 'update_hostname', 'update_etc_hosts'}
@@ -393,7 +393,7 @@ run() {
       CANARY)            phase_canary ;;
       TLS)               phase_tls ;;
       DONE)              break ;;
-      *)                 break ;;
+      *)                 fail PREFLIGHT "nieznana faza w pliku stanu: $(get_phase)" ;;
     esac
   done
 }

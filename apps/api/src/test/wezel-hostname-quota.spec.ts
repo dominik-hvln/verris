@@ -14,7 +14,8 @@ const KORZEN = join(import.meta.dirname, '..', '..', '..', '..');
 const PROFIL = readFileSync(join(KORZEN, 'ops', 'scripts', 'node-hosting-profile.sh'), 'utf8');
 
 function blokPythonCloudInit(skrypt: string): string {
-  const m = /<<'PYCC' \|\| true\n([\s\S]*?)\nPYCC\n/.exec(skrypt);
+  // 18.10: błąd bloku nie jest już cichy (`|| report …` zamiast `|| true`)
+  const m = /<<'PYCC' \|\| report PREFLIGHT STARTED "[^"\n]*"\n([\s\S]*?)\nPYCC\n/.exec(skrypt);
   if (!m) throw new Error('brak bloku PYCC w bootstrapie');
   return m[1]!;
 }

@@ -214,3 +214,13 @@ describe('faza CLOUDLINUX — LVE po restarcie (17.10)', () => {
     expect(r.faza).toBe('QUOTA');
   });
 });
+
+describe('ciche błędy bootstrapu (18.10)', () => {
+  const s = buildNodeBootstrapScript({ apiBaseUrl: 'https://api.verris.pl', bootstrapToken: 't', serverId: 's', stackEnv: stosJakoEnv(), hostname: 't2.verris.pl' });
+  it('nieudane wyłączenie modułów nazwy hosta cloud-init jest raportowane, nie przemilczane', () => {
+    expect(s).toContain(`<<'PYCC' || report PREFLIGHT STARTED "nie udało się wyłączyć modułów nazwy hosta cloud-init`);
+  });
+  it('nieznana faza w pliku stanu kończy się błędem z raportem, nie cichym wyjściem', () => {
+    expect(/run\(\) \{[\s\S]*?\n\}/.exec(s)![0]).toMatch(/\*\)\s+fail PREFLIGHT "nieznana faza w pliku stanu/);
+  });
+});
