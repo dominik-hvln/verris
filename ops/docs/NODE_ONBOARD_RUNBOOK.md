@@ -130,11 +130,11 @@ Węzeł → **DirectAdmin**:
 
 | Pole | Wartość (Node-PL-01) |
 |------|----------------------|
-| Host | Publiczne IP węzła **lub** hostname węzła (`node-pl-01.verris.pl`) — rekord A musi wskazywać na IP |
+| Host | Hostname węzła (`node-pl-01.verris.pl`) — formularz podpowiada go sam; **nie IP**: certyfikat panelu jest na nazwę hosta (faza TLS bootstrapu), a API weryfikuje certyfikat |
 | Port | `2222` |
 | User | `admin` |
 | Password | **Login Key** (nie hasło admina) — scope: packages, accounts |
-| TLS | ON (`rejectUnauthorized: false` w SDK) |
+| TLS | ON, bez „akceptuj niepoprawny certyfikat” (certyfikat Let's Encrypt nazwy hosta wydaje i odnawia DA) |
 
 **Test połączenia** w panelu → lista domen admina.
 
@@ -202,7 +202,7 @@ Weryfikacja techniczna (prod, Node-PL-01):
 - [ ] Pakiety `starter`, `pro`, `business` w DA
 - [ ] Publiczne IP w `/usr/local/directadmin/data/admin/ips/`
 - [ ] Smoke provisioning → klient widzi dane w Magic Login
-- [ ] Port 2222 tylko z control-plane (decyzja 2026-09-29): profil z panelu → `[OK] CSF: panel DA :2222 tylko z: …` (wymaga `VERRIS_CONTROL_PLANE_IPS` w env API); operator — tunel przez control-plane `ssh -L 2222:<IP węzła>:2222 root@<control-plane>` (weryfikacja 11.10: na węzeł wchodzi tylko klucz deploy z CP, klucz osobisty dostaje „Permission denied (publickey)”; powłoka na węźle — na CP `/opt/verris/ops/scripts/verris-node.sh ssh <IP|nazwa>` albo `ssh -i /root/.ssh/verris_node_deploy root@<IP>`)
+- [ ] Port 2222 tylko z control-plane (decyzja 2026-09-29): profil z panelu → `[OK] CSF: panel DA :2222 tylko z: …` (wymaga `VERRIS_CONTROL_PLANE_IPS` w env API); operator — tunel SOCKS przez control-plane `ssh -N -D 1080 root@<control-plane>` i przeglądarka z proxy `socks5://127.0.0.1:1080` (link SSO bez zmian — certyfikat jest na nazwę węzła; decyzja 17.10) (weryfikacja 11.10: na węzeł wchodzi tylko klucz deploy z CP, klucz osobisty dostaje „Permission denied (publickey)”; powłoka na węźle — na CP `/opt/verris/ops/scripts/verris-node.sh ssh <IP|nazwa>` albo `ssh -i /root/.ssh/verris_node_deploy root@<IP>`)
 - [ ] Strona zawieszonego konta Verris (`templates/custom/suspended` + `admin/domains/suspended`) — `[OK] Strona zawieszenia Verris`
 - [ ] Strony błędów Verris (`Alias /verris-bledy/` w `/etc/httpd/conf/extra/httpd-includes.conf`, `ErrorDocument` w `data/templates/custom/cust_httpd.CUSTOM.4.pre` + `rewrite_confs`) — `[OK] Strony błędów Verris` (profil sam pyta serwer o nieistniejącą ścieżkę na domenie hostowanej); ręcznie: `curl -s https://<domena klienta>/nieistniejacy-plik` → kod 404, bez nazwy serwera WWW
 - [ ] Szablon strony domyślnej Verris w DA (`templates/custom/default` + `admin/domains/default`)

@@ -11,7 +11,8 @@ import { otworzLinkJednorazowy } from "@/lib/otworz-link-jednorazowy";
  * FALA-2c — szybkie wejście na węzeł jako admin:
  *  - „DirectAdmin (SSO)" otwiera panel DA węzła przez jednorazowy link (2 min, 1 użycie),
  *  - obok kopiowalna komenda powłoki na węźle (na control-plane, klucz deploy — weryfikacja 11.10),
- *  - pod spodem tunel do panelu (port 2222 tylko z control-plane'u, decyzja 2026-09-29) — przez control-plane.
+ *  - pod spodem tunel do panelu (port 2222 tylko z control-plane'u, decyzja 2026-09-29) — SOCKS przez control-plane
+ *    (decyzja 17.10: link SSO zostaje z nazwą węzła, certyfikat panelu jest na nią).
  * `sshHost` — adres węzła (najlepiej IP; verris-node.sh przyjmuje IP, nazwę albo początek ID).
  */
 export function DaSsoButton({ serverId, sshHost, srodek, daGotowe = true }: { serverId: string; sshHost: string | null; srodek?: ReactNode; daGotowe?: boolean }) {
@@ -75,7 +76,7 @@ export function DaSsoButton({ serverId, sshHost, srodek, daGotowe = true }: { se
         ) : null}
       </div>
       {error ? <p className="text-xs text-crit">{error}</p> : null}
-      {otwarty ? <PoOtwarciu url={otwarty} tunel={komendy?.tunelPanelu ?? null} /> : null}
+      {otwarty ? <PoOtwarciu url={otwarty} komendy={komendy} /> : null}
       {komendy ? (
         // Weryfikacja 11.10 — klucz osobisty na węźle: „Permission denied (publickey)”; węzeł przyjmuje klucz deploy z CP.
         <p className="max-w-md text-right text-xs text-muted-foreground" data-podpowiedz-ssh="">
@@ -83,8 +84,8 @@ export function DaSsoButton({ serverId, sshHost, srodek, daGotowe = true }: { se
           {daGotowe ? (
             // Decyzja 2026-09-29: port 2222 węzła przyjmuje tylko control-plane (zapora w profilu węzła) — tunel przez CP.
             <>
-              . Panel DA (:2222) też tylko z control-plane&apos;u — z przeglądarki tunel przez control-plane:{" "}
-              <code>{komendy.tunelPanelu}</code>, potem w otwartym linku zamień adres węzła na 127.0.0.1
+              . Panel DA (:2222) też tylko z control-plane&apos;u — z przeglądarki tunel SOCKS przez control-plane:{" "}
+              <code>{komendy.tunelPanelu}</code> i przeglądarka z proxy <code>{komendy.przegladarkaPrzezTunel}</code>
             </>
           ) : null}
           .
@@ -94,34 +95,19 @@ export function DaSsoButton({ serverId, sshHost, srodek, daGotowe = true }: { se
   );
 }
 
-/** Link SSO z adresem węzła podmienionym na 127.0.0.1 — do otwarcia przez tunel z control-plane'u. */
-export function linkPrzezTunel(url: string): string | null {
-  try {
-    const u = new URL(url);
-    u.hostname = "127.0.0.1";
-    return u.toString();
-  } catch {
-    return null;
-  }
-}
-
-function PoOtwarciu({ url, tunel }: { url: string; tunel: string | null }) {
-  const przezTunel = linkPrzezTunel(url);
+function PoOtwarciu({ url, komendy }: { url: string; komendy: ReturnType<typeof komendySshWezla> | null }) {
   return (
     <p className="max-w-md text-right text-xs text-muted-foreground" role="status" data-sso-otwarte="">
       Otworzyliśmy jednorazowy link (ważny 2 minuty) w nowej karcie. Jeśli karta się nie ładuje, panel węzła przyjmuje
       połączenia tylko z control-plane&apos;u
-      {tunel ? (
+      {komendy ? (
         <>
-          {" "}— uruchom tunel <code>{tunel}</code>
-        </>
-      ) : null}
-      {przezTunel ? (
-        <>
-          {" "}i otwórz{" "}
-          <a href={przezTunel} target="_blank" rel="noopener noreferrer" className="underline">
-            link przez tunel
-          </a>
+          {" "}— uruchom tunel <code>{komendy.tunelPanelu}</code>, otwórz przeglądarkę przez tunel{" "}
+          <code>{komendy.przegladarkaPrzezTunel}</code> i wklej w niej{" "}
+          <a href={url} target="_blank" rel="noopener noreferrer" className="underline">
+            ten sam link
+          </a>{" "}
+          (adres bez zmian — certyfikat jest na nazwę węzła)
         </>
       ) : null}
       .

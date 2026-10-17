@@ -3062,7 +3062,11 @@ export class DirectAdminService {
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });
     if (!server) throw new NotFoundException('Nie znaleziono węzła.');
     const client = await this.getClientForServer(serverId);
-    const url = await client.createOneTimeLoginUrl({ redirectUrl: '/', expiry: '2m' });
+    const url = linkSsoNaNazweHosta(
+      await client.createOneTimeLoginUrl({ redirectUrl: '/', expiry: '2m' }),
+      server.ipAddress,
+      server.hostname,
+    );
     const sshHost = server.hostname ?? server.ipAddress ?? null;
     await this.audit.record({
       action: 'NODE_ADMIN_SSO_URL_CREATED',
@@ -4166,4 +4170,26 @@ export function certObejmuje(nazwy: string[], domena: string): boolean {
     const rodzic = x.slice(1);
     return d.endsWith(rodzic) && d.length > rodzic.length && !d.slice(0, -rodzic.length).includes('.');
   });
+}
+
+/**
+ * PB-31 (17.10, TEST-02): panel bez HTTPS (ssl=0) dawał link http:// — przeglądarka nie logowała, a link z hasłem
+ * sesji szedł otwartym tekstem. Panel ma certyfikat na nazwę hosta (faza TLS bootstrapu), więc link z adresem IP
+ * (daHost = IP) kończył się błędem certyfikatu — IP zamieniamy na nazwę hosta węzła (ten sam serwer).
+ */
+export function linkSsoNaNazweHosta(url: string, ip: string | null, hostname: string | null): string {
+  let u: URL;
+  try {
+    u = new URL(url);
+  } catch {
+    throw new BadRequestException('DirectAdmin zwrócił nieprawidłowy adres logowania.');
+  }
+  if (u.protocol !== 'https:') {
+    throw new BadRequestException(
+      'Panel DirectAdmina węzła działa bez HTTPS (ssl=0) — najpierw faza TLS bootstrapu albo ops/scripts/node-directadmin-tls-http01.sh.',
+    );
+  }
+  const host = hostname?.trim().toLowerCase().replace(/\.$/, '');
+  if (host && ip && u.hostname === ip) u.hostname = host;
+  return u.toString();
 }

@@ -8,6 +8,7 @@ import { ApproveServerButton } from "./approve-button";
 import { BootstrapScriptPanel } from "./bootstrap-script-panel";
 import { NodeBootstrapProgress } from "./node-bootstrap-progress";
 import { DirectAdminConfigForm } from "./directadmin-form";
+import { poczatkowaKonfiguracjaDa } from "./konfiguracja-da";
 import { HostingProfilePanel } from "./hosting-profile-panel";
 import { SondaDaPanel } from "./sonda-da-panel";
 import { NodeStackReadinessPanel } from "./node-stack-readiness-panel";
@@ -473,14 +474,7 @@ export default async function ServerDetailPage({
             <WymagaUprawnienia powod={wymaga("directadmin")}>
               <DirectAdminConfigForm
                 serverId={server.id}
-                initial={{
-                  daHost: server.daHost ?? "",
-                  daPort: server.daPort ?? 2222,
-                  daUsername: server.daUsername ?? "",
-                  daUseTls: server.daUseTls,
-                  daAllowInvalidCert: server.daAllowInvalidCert ?? false,
-                  daPasswordSet: server.daPasswordSet,
-                }}
+                initial={poczatkowaKonfiguracjaDa(server)}
               />
             </WymagaUprawnienia>
           </div>

@@ -38,15 +38,15 @@ describe("DaSsoButton — jednorazowy link w jednej karcie", () => {
     act(() => root.unmount());
     el.remove();
   });
-  const kliknij = async () => {
-    await act(async () => root.render(<DaSsoButton serverId="n1" sshHost={null} />));
+  const kliknij = async (sshHost: string | null = null) => {
+    await act(async () => root.render(<DaSsoButton serverId="n1" sshHost={sshHost} />));
     const przycisk = [...el.querySelectorAll("button")].find((b) => b.textContent?.includes("Otwórz DirectAdmin"))!;
     await act(async () => przycisk.click());
   };
 
   it("sukces: jedna karta, opener zerwany, adres podmieniony", async () => {
     mockSso.mockResolvedValue({ data: { url: "https://t1.example:2222/api/login/url?key=k", sshHost: null, sshCommand: null } });
-    await kliknij();
+    await kliknij("203.0.113.10"); // z adresem węzła — wtedy jest podpowiedź tunelu
     expect(mockSso).toHaveBeenCalledWith("n1");
     expect(open).toHaveBeenCalledTimes(1);
     expect(okno.opener).toBeNull();
@@ -54,7 +54,9 @@ describe("DaSsoButton — jednorazowy link w jednej karcie", () => {
     // Obserwacja 13.10: po otwarciu jest komunikat, co zrobić, gdy karta się nie ładuje (2222 tylko z CP).
     const status = el.querySelector("[data-sso-otwarte]");
     expect(status?.textContent).toContain("tylko z control-plane");
-    expect(status?.querySelector("a")?.getAttribute("href")).toBe("https://127.0.0.1:2222/api/login/url?key=k");
+    // Decyzja 17.10: certyfikat panelu na nazwę hosta — link przez tunel zostaje bez zmian (SOCKS), nie 127.0.0.1.
+    expect(status?.querySelector("a")?.getAttribute("href")).toBe("https://t1.example:2222/api/login/url?key=k");
+    expect(el.innerHTML).not.toContain("127.0.0.1:2222");
   });
 
   it("błąd API: karta zamknięta, komunikat pod przyciskiem", async () => {
@@ -68,7 +70,8 @@ describe("DaSsoButton — jednorazowy link w jednej karcie", () => {
     await act(async () => root.render(<DaSsoButton serverId="n1" sshHost="203.0.113.10" />));
     const tekst = el.querySelector("[data-podpowiedz-ssh]")?.textContent ?? "";
     expect(tekst).toContain("/opt/verris/ops/scripts/verris-node.sh ssh 203.0.113.10");
-    expect(tekst).toContain("ssh -L 2222:203.0.113.10:2222 root@<control-plane>");
+    expect(tekst).toContain("ssh -N -D 1080 root@<control-plane>");
+    expect(tekst).toContain('--proxy-server="socks5://127.0.0.1:1080"');
     // Stara podpowiedź: tunel wprost na węzeł kluczem osobistym — „Permission denied (publickey)”.
     expect(el.innerHTML).not.toContain("root@203.0.113.10");
     expect(el.innerHTML).not.toContain("2222:127.0.0.1:2222");
