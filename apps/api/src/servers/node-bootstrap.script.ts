@@ -102,12 +102,19 @@ fail() { report "$1" FAILED "\${2:-}"; exit 1; }
 ${QUOTA_XFS_SH}
 ${TLS_PANELU_SH}
 install_self() {
-  # Przy \`curl … | bash\` $0 to „bash” — wtedy pobieramy skrypt jeszcze raz.
-  if [ -f "$0" ] && [ "$(basename "$0")" != "bash" ]; then cp -f "$0" "$RUNNER"; else
-    curl -fsS -m 60 -H "X-Bootstrap-Token: $BOOTSTRAP_TOKEN" "$API_BASE/agent/nodes/bootstrap/script" -o "$RUNNER" \\
+  # 17.10: jednolinijkowiec wklejony drugi raz w trakcie instalacji nadpisywał plik, który bash usługi właśnie czyta
+  # (bash czyta skrypt przyrostowo) — usługa wykonywała potem fragment od złego miejsca.
+  case "$(systemctl show -p ActiveState --value verris-bootstrap.service 2>/dev/null)" in
+    active|activating|reloading)
+      echo "[verris] bootstrap już działa w tle — nic nie zmieniam. Podgląd: journalctl -fu verris-bootstrap"
+      exit 0 ;;
+  esac
+  # Przy \`curl … | bash\` $0 to „bash” — wtedy pobieramy skrypt jeszcze raz. Zapis obok i mv (nowy i-węzeł).
+  if [ -f "$0" ] && [ "$(basename "$0")" != "bash" ]; then cp -f "$0" "$RUNNER.nowy"; else
+    curl -fsS -m 60 -H "X-Bootstrap-Token: $BOOTSTRAP_TOKEN" "$API_BASE/agent/nodes/bootstrap/script" -o "$RUNNER.nowy" \\
       || { echo "[verris] nie udało się pobrać skryptu bootstrapu" >&2; exit 1; }
   fi
-  chmod 0700 "$RUNNER"
+  chmod 0700 "$RUNNER.nowy" && mv -f "$RUNNER.nowy" "$RUNNER"
   # HOME: fazy po restarcie działają pod systemd (bez HOME) — instalatory DA/CustomBuild go oczekują.
   cat > "$UNIT" <<'EOUNIT'
 [Unit]

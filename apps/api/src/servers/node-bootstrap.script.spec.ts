@@ -1,4 +1,7 @@
-import { execFileSync } from 'child_process';
+import { execFileSync, spawnSync } from 'child_process';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { buildNodeBootstrapOneLiner, buildNodeBootstrapScript } from './node-bootstrap.script.js';
 import { STOS_WEZLA, stosJakoEnv, zgodnoscZManifestem } from './stos-wezla.js';
 
@@ -67,5 +70,39 @@ describe('Bootstrap węzła (PB-29 / PB-30)', () => {
   it('raport zgodności porównuje prefiks wersji i zna brak raportu', () => {
     const r = zgodnoscZManifestem({ stackVersion: STOS_WEZLA.wersja, dbVersion: '11.4.13', lsVersion: '6.2.1', phpVersion: null });
     expect(r.map((p) => p.zgodne)).toEqual([true, true, false, null]);
+  });
+});
+
+describe('ponowny jednolinijkowiec w trakcie instalacji (17.10)', () => {
+  function instaluj(stanUslugi: string): { runner: string; out: string; dir: string } {
+    const dir = mkdtempSync(join(tmpdir(), 'install-self-'));
+    const bin = join(dir, 'bin');
+    mkdirSync(bin);
+    const runner = join(dir, 'runner');
+    writeFileSync(runner, 'STARY SKRYPT W TRAKCIE\n');
+    const atrapa = (n: string, t: string) => {
+      writeFileSync(join(bin, n), `#!/usr/bin/env bash\n${t}\n`);
+      chmodSync(join(bin, n), 0o755);
+    };
+    atrapa('systemctl', `case "$*" in *ActiveState*) echo '${stanUslugi}' ;; esac`);
+    atrapa('curl', `for a in "$@"; do [ "$p" = "-o" ] && echo 'NOWY SKRYPT' > "$a"; p="$a"; done`);
+    const skrypt = buildNodeBootstrapScript({ apiBaseUrl: 'https://api.verris.pl', bootstrapToken: 't', serverId: 's', stackEnv: stosJakoEnv(), hostname: 't2.verris.pl' })
+      .replace('STATE_DIR=/var/lib/verris', `STATE_DIR='${join(dir, 'stan')}'`)
+      .replace('RUNNER=/usr/local/sbin/verris-bootstrap', `RUNNER='${runner}'`)
+      .replace('UNIT=/etc/systemd/system/verris-bootstrap.service', `UNIT='${join(dir, 'unit')}'`)
+      .replace(/write_stack_env\(\) \{/, `write_stack_env() { return 0;`);
+    const r = spawnSync('bash', ['-s'], { input: skrypt, encoding: 'utf8', env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } });
+    return { runner: readFileSync(runner, 'utf8'), out: `${r.stdout}${r.stderr}`, dir };
+  }
+
+  it('usługa działa (activating) → plik usługi nietknięty, komunikat', () => {
+    const r = instaluj('activating');
+    expect(r.runner).toBe('STARY SKRYPT W TRAKCIE\n');
+    expect(r.out).toContain('bootstrap już działa w tle');
+  });
+
+  it('usługa nie działa (failed / brak) → skrypt podmieniony', () => {
+    expect(instaluj('failed').runner).toBe('NOWY SKRYPT\n');
+    expect(existsSync(join(instaluj('').dir, 'runner.nowy'))).toBe(false);
   });
 });
