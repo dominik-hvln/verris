@@ -592,11 +592,14 @@ export function NodeWizard() {
               <li>
                 Zaakceptuj węzeł poniżej (status{" "}
                 <strong className="text-white">Czeka na akceptację</strong> →{" "}
-                <strong className="text-white">ACTIVE</strong>).
+                <strong className="text-white">ACTIVE</strong>) — przycisk działa dopiero po fazie{" "}
+                <strong className="text-white">Gotowe</strong> (po certyfikacie panelu).
               </li>
               <li>
                 Uzupełnij <strong>DirectAdmin login key</strong> i uruchom test API — w nowej karcie
-                (link poniżej), żeby nie wychodzić z wizarda.
+                (link poniżej), żeby nie wychodzić z wizarda. Host i login są podpowiedziane (nazwa hosta węzła, admin).
+                Klucz utworzysz w DirectAdminie: przed Onboard LIVE na węźle <code>da login-url</code> i otwórz link
+                (po Onboard LIVE panel przyjmuje tylko control-plane — tunel SOCKS z karty węzła).
               </li>
               <li>
                 Po teście DA zaznacz checkbox i kliknij <strong>Dalej</strong> — dalej backup offsite, Onboard LIVE,
