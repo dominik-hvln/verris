@@ -148,7 +148,8 @@ describe('bootstrap węzła — faza QUOTA', () => {
   it('po CloudLinux zawsze faza QUOTA, dopiero potem DA', () => {
     const cl = /phase_cloudlinux\(\) \{([\s\S]*?)\n\}/.exec(skrypt)![1]!;
     expect(cl).not.toContain('set_phase DA');
-    expect(cl.match(/set_phase QUOTA/g)).toHaveLength(4);
+    // QUOTA po LVE OK albo po pominięciu (brak klucza); restart wraca do CLOUDLINUX (sprawdzenie LVE po restarcie)
+    expect(cl.match(/set_phase QUOTA/g)).toHaveLength(2);
     expect(skrypt).toMatch(/QUOTA\)\s+phase_quota ;;/);
     // preflight ustawia opcję wcześniej — restart CloudLinux ją od razu włącza
     expect(/phase_preflight\(\) \{([\s\S]*?)\n\}/.exec(skrypt)![1]).toContain('wlacz_quota_xfs /home');

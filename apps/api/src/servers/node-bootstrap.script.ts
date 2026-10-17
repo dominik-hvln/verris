@@ -143,7 +143,7 @@ finish() {
   report DONE OK "bootstrap zakończony"
   systemctl disable verris-bootstrap.service >/dev/null 2>&1 || true
   # Skrypt zawiera token bootstrapu — po zakończeniu nie zostaje na dysku.
-  rm -f "$RUNNER" "$UNIT" "$STATE_DIR/agent-install.sh" "$STATE_DIR/cldeploy" "$STATE_DIR/.quota-restart" "$STATE_DIR/.tls-proby"
+  rm -f "$RUNNER" "$UNIT" "$STATE_DIR/agent-install.sh" "$STATE_DIR/cldeploy" "$STATE_DIR/.quota-restart" "$STATE_DIR/.tls-proby" "$STATE_DIR/.cloudlinux-restart"
   systemctl daemon-reload >/dev/null 2>&1 || true
 }
 
@@ -205,15 +205,21 @@ PYCC
   set_phase CLOUDLINUX
 }
 
+# 17.10: po restarcie wracamy do fazy CLOUDLINUX (nie od razu QUOTA) — dotąd nikt nie sprawdzał, czy LVE po restarcie
+# działa, a węzeł bez LVE przechodził dalej (faza AGENT sprawdza tylko obecność narzędzi). Jeden restart; gdy po nim
+# LVE dalej nie działa — błąd fazy zamiast pętli restartów.
 phase_cloudlinux() {
   report CLOUDLINUX STARTED
   if lve_active; then
     touch "$STATE_DIR/.cloudlinux-done"
+    rm -f "$STATE_DIR/.cloudlinux-restart"
     report CLOUDLINUX OK "CloudLinux aktywny (LVE działa)"; set_phase QUOTA; return
   fi
   if cloudlinux_converted; then
+    [ -f "$STATE_DIR/.cloudlinux-restart" ] && fail CLOUDLINUX "CloudLinux zainstalowany, ale LVE nie działa po restarcie (sprawdź jądro: uname -r, cldetect)"
     # Konwersja zrobiona, moduł LVE jeszcze nie załadowany — brakuje restartu.
-    set_phase QUOTA
+    touch "$STATE_DIR/.cloudlinux-restart"
+    set_phase CLOUDLINUX
     report CLOUDLINUX REBOOT "CloudLinux zainstalowany, restart ładuje moduł LVE (wznowię automatycznie)"
     sync; systemctl reboot; exit 0
   fi
@@ -227,7 +233,8 @@ phase_cloudlinux() {
   # curl, nie wget — minimalne/chmurowe obrazy AlmaLinux nie muszą mieć wget (curl sprawdza PREFLIGHT).
   curl -fsSL -m 120 https://repo.cloudlinux.com/cloudlinux/sources/cln/cldeploy -o cldeploy || fail CLOUDLINUX "pobranie cldeploy nie powiodło się"
   sh cldeploy -k "$CL_ACTIVATION_KEY" || fail CLOUDLINUX "cldeploy zwrócił błąd"
-  set_phase QUOTA
+  touch "$STATE_DIR/.cloudlinux-restart"
+  set_phase CLOUDLINUX
   report CLOUDLINUX REBOOT "restart po instalacji kernela CloudLinux (wznowię automatycznie)"
   sync; systemctl reboot; exit 0
 }

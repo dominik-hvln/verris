@@ -157,3 +157,43 @@ describe('faza AGENT — ponowienie po udanym handshake (17.10)', () => {
     expect(agent.indexOf('fi # VERRIS_POMIN_HANDSHAKE')).toBeGreaterThan(agent.indexOf('"$API_URL/servers/handshake"'));
   });
 });
+
+describe('faza CLOUDLINUX — LVE po restarcie (17.10)', () => {
+  function fazaCl(o: { lve: boolean; przekonwertowany: boolean; poRestarcie: boolean }): { log: string; faza: string } {
+    const dir = mkdtempSync(join(tmpdir(), 'faza-cl-'));
+    const stan = join(dir, 'stan');
+    mkdirSync(stan);
+    const log = join(dir, 'log');
+    writeFileSync(log, '');
+    writeFileSync(join(stan, 'bootstrap.state'), 'CLOUDLINUX\n');
+    if (o.poRestarcie) writeFileSync(join(stan, '.cloudlinux-restart'), '');
+    const s = buildNodeBootstrapScript({ apiBaseUrl: 'https://api.verris.pl', bootstrapToken: 't', serverId: 's', stackEnv: stosJakoEnv(), hostname: 't2.verris.pl' })
+      .replace('STATE_DIR=/var/lib/verris', `STATE_DIR='${stan}'`)
+      .replace(/\ncase "\$\{1:-install\}" in[\s\S]*$/, '\n');
+    spawnSync(
+      'bash',
+      ['-c', `${s}\nreport() { echo "report $*" >> '${log}'; }\nsystemctl() { echo "systemctl $*" >> '${log}'; }\nsync() { :; }\nlve_active() { ${o.lve ? 'true' : 'false'}; }\ncloudlinux_converted() { ${o.przekonwertowany ? 'true' : 'false'}; }\nphase_cloudlinux`],
+      { encoding: 'utf8' },
+    );
+    return { log: readFileSync(log, 'utf8'), faza: readFileSync(join(stan, 'bootstrap.state'), 'utf8').trim() };
+  }
+
+  it('przekonwertowany, LVE jeszcze nie działa → restart, faza zostaje CLOUDLINUX (sprawdzenie po restarcie)', () => {
+    const r = fazaCl({ lve: false, przekonwertowany: true, poRestarcie: false });
+    expect(r.log).toContain('report CLOUDLINUX REBOOT');
+    expect(r.log).toContain('systemctl reboot');
+    expect(r.faza).toBe('CLOUDLINUX');
+  });
+
+  it('po restarcie LVE dalej nie działa → błąd fazy, bez kolejnego restartu', () => {
+    const r = fazaCl({ lve: false, przekonwertowany: true, poRestarcie: true });
+    expect(r.log).toContain('report CLOUDLINUX FAILED CloudLinux zainstalowany, ale LVE nie działa po restarcie');
+    expect(r.log).not.toContain('systemctl reboot');
+  });
+
+  it('po restarcie LVE działa → QUOTA', () => {
+    const r = fazaCl({ lve: true, przekonwertowany: true, poRestarcie: true });
+    expect(r.log).toContain('report CLOUDLINUX OK');
+    expect(r.faza).toBe('QUOTA');
+  });
+});
