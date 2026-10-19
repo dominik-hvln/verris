@@ -293,7 +293,7 @@ def buduj_macierz_xlsx(D):
                                    color=(RED if v == "BLOKER STARTU" else "000000"))
 
     tyt("A31", "Pokrycie per kategoria")
-    for i, h in enumerate(["Kategoria", "Pozycji", "Parytet+Przewaga", "Luki", "Blokery", "Pokrycie"]):
+    for i, h in enumerate(["Kategoria", "Pozycji", "Parytet+Przewaga", "Luki", "Blokery otwarte", "Pokrycie"]):
         c = s.cell(row=32, column=1 + i, value=h)
         c.fill = PatternFill("solid", fgColor=NAVY)
         c.font = Font(name=F, bold=True, color="FFFFFF", size=10)
@@ -304,7 +304,9 @@ def buduj_macierz_xlsx(D):
         s.cell(row=r, column=3, value=f'=COUNTIFS(Macierz!$B$2:$B${N},"{k}",Macierz!$K$2:$K${N},"PARYTET")'
                                      f'+COUNTIFS(Macierz!$B$2:$B${N},"{k}",Macierz!$K$2:$K${N},"PRZEWAGA")')
         s.cell(row=r, column=4, value=f'=COUNTIFS(Macierz!$B$2:$B${N},"{k}",Macierz!$K$2:$K${N},"LUKA")')
-        s.cell(row=r, column=5, value=f'=COUNTIFS(Macierz!$B$2:$B${N},"{k}",Macierz!$L$2:$L${N},"BLOKER STARTU")')
+        # 19.10 — bloker zamknięty z dowodem (werdykt PARYTET/PRZEWAGA) nie blokuje; krytyczność zostaje jako historia.
+        s.cell(row=r, column=5, value=f'=COUNTIFS(Macierz!$B$2:$B${N},"{k}",Macierz!$L$2:$L${N},"BLOKER STARTU",'
+                                     f'Macierz!$K$2:$K${N},"<>PARYTET",Macierz!$K$2:$K${N},"<>PRZEWAGA")')
         cc = s.cell(row=r, column=6, value=f"=IFERROR(C{r}/B{r},0)")
         cc.number_format = "0%"
         for col in range(2, 7):
@@ -922,11 +924,11 @@ def status(D):
     from collections import Counter
     R, RH = reszta(D)
     total = sum(godziny(D, n) for n in D["sprinty"])
-    blk = [r for r in D["macierz"] if r[11] == "BLOKER STARTU"]
+    blk = [r for r in D["macierz"] if r[11] == "BLOKER STARTU" and r[10] not in ZROBIONE_WERDYKTY]
     print(f"Macierz: {len(D['macierz'])} pozycji")
     print("  werdykty:", dict(Counter(r[10] for r in D["macierz"])))
     print("  stany:   ", dict(Counter(r[8] for r in D["macierz"])))
-    print(f"  BLOKERY STARTU: {len(blk)}")
+    print(f"  BLOKERY STARTU (otwarte): {len(blk)}")
     for r in blk:
         n = [k for k in D["sprinty"] if r[0] in {x[0] for x in pozycje_sprintu(D, k)}]
         print(f"    {r[0]:6} sprint {n[0] if n else '?':>2}  {r[2][:60]}")

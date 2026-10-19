@@ -155,7 +155,13 @@ function tag(txt, cls){ return '<span class="tag '+cls+'"><span class="dot"></sp
 function mk(v){ const m = MK[v] || ["m-n","–"]; return '<span class="mkt '+m[0]+'" title="'+v+'">'+m[1]+'</span>'; }
 
 // ---- KPI ----
-const nBlk = rows.filter(r=>r.kr==="BLOKER STARTU").length;
+// 19.10 — krytyczność zostaje w macierzy jako zapis historyczny (jak poważna była luka). Bloker przestaje blokować,
+// gdy pozycja ma werdykt PARYTET/PRZEWAGA (zamknięta z dowodem) — tak samo liczy tablica planu (blokeryOtwarte).
+// Wcześniej kafelek liczył samą etykietę i pokazywał „2 blokery” po zamknięciu P-15 i Z-18.
+function zamknietaPozycja(r){ return r.w==="PARYTET"||r.w==="PRZEWAGA"; }
+function otwartyBloker(r){ return r.kr==="BLOKER STARTU" && !zamknietaPozycja(r); }
+const nBlk = rows.filter(otwartyBloker).length;
+const nBlkZamk = rows.filter(r=>r.kr==="BLOKER STARTU" && zamknietaPozycja(r)).length;
 const nLuk = rows.filter(r=>r.w==="LUKA").length;
 const nOk  = rows.filter(r=>r.w==="PARYTET"||r.w==="PRZEWAGA").length;
 const nPrz = rows.filter(r=>r.w==="PRZEWAGA").length;
@@ -169,7 +175,7 @@ const ruch = (teraz, bylo, lepiejWiecej=true) => {
   return ' · <span style="color:' + (dobrze ? 'var(--good)' : 'var(--critical)') + ';font-weight:600">' + (d > 0 ? '+' : '') + d + ' w ' + PB.dni + ' dni</span>';
 };
 document.getElementById('kpis').innerHTML = [
-  ['crit', nBlk, 'blokerów startu', 'każdy musi być zamknięty przed sprzedażą pierwszego konta'],
+  [nBlk?'crit':'', nBlk, 'otwartych blokerów startu', (nBlk?'każdy musi być zamknięty przed sprzedażą pierwszego konta':'żaden bloker z audytu nie jest otwarty')+(nBlkZamk?' · '+nBlkZamk+' zamkniętych z dowodem':'')],
   ['', nOk+' / '+rows.length, 'parytet lub przewaga', Math.round(nOk/rows.length*100)+'% pozycji'+ruch(nOk, PB&&PB.ok)],
   ['', nPrz, 'realnych przewag', 'po obaleniu 11 twierdzeń w passie adwersaryjnym'],
   ['', nLuk, 'luk wobec rynku', 'rynek to ma, my nie'+ruch(nLuk, PB&&PB.luk, false)],
@@ -183,7 +189,7 @@ const kOrder = Object.keys(KATS).sort();
 document.getElementById('chart').innerHTML = kOrder.map(k=>{
   const s = rows.filter(r=>r.kat===k);
   const ok = s.filter(r=>r.w==="PARYTET"||r.w==="PRZEWAGA").length;
-  const blk = s.filter(r=>r.kr==="BLOKER STARTU").length;
+  const blk = s.filter(otwartyBloker).length;
   const pct = s.length ? Math.round(ok/s.length*100) : 0;
   return '<div class="barrow"><div class="barlabel" title="'+KATS[k]+'">'+KATS[k]+'</div>'
     +'<div class="bartrack"><div class="barfill'+(blk?' blk':'')+'" style="width:'+pct+'%"></div></div>'
@@ -222,7 +228,7 @@ function render(){
     +'<td>'+tag(r.st, SCLS[r.st]||'t-mut')+'</td>'
     +'<td class="ev">'+(r.dow==='—'?'':r.dow)+'</td>'
     +'<td>'+tag(r.w, WCLS[r.w]||'t-mut')+'</td>'
-    +'<td>'+(r.kr==="BLOKER STARTU"?'<span class="crit-cell">BLOKER</span>':(r.kr==='—'?'':'<span style="color:var(--ink2);font-size:11.5px">'+r.kr+'</span>'))+'</td>'
+    +'<td>'+(otwartyBloker(r)?'<span class="crit-cell">BLOKER</span>':r.kr==="BLOKER STARTU"?'<span style="color:var(--ink2);font-size:11.5px">bloker · zamknięty</span>':(r.kr==='—'?'':'<span style="color:var(--ink2);font-size:11.5px">'+r.kr+'</span>'))+'</td>'
     +'<td class="note">'+r.u+'</td></tr>').join('');
 }
 ['fkat','fw','fst','fkr','fbw'].forEach(id=>document.getElementById(id).addEventListener('change',render));
