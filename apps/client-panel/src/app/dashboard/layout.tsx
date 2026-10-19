@@ -50,6 +50,7 @@ import {
   Shield,
   Bell,
   ChevronUp,
+  FlaskConical,
 } from "lucide-react";
 import { sidebarTilesFromLinks } from "@/lib/sidebar-tiles";
 import { clientFeatures } from "@/lib/client-features";
@@ -549,6 +550,11 @@ function DashboardLayoutInner({
             {showSupportLink && !mainGridHrefs.has("/dashboard/support") ? (
               <NavRow href="/dashboard/support" icon={VerrisSupportIcon} count={railCount("/dashboard/support")}>
                 Centrum pomocy
+              </NavRow>
+            ) : null}
+            {tester && canAccess("/dashboard/beta") ? (
+              <NavRow href="/dashboard/beta" icon={FlaskConical}>
+                Testy (beta)
               </NavRow>
             ) : null}
             <NotificationBell variant="row" />

@@ -26,3 +26,4 @@ export * from './uslugi-wezla.ts';
 export * from './komunikacja-operacyjna.ts';
 export * from './dostep-wezla.ts';
 export * from './limity-indywidualne.ts';
+export * from './beta-scenariusze.ts';

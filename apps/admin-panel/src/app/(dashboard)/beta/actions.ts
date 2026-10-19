@@ -16,6 +16,14 @@ export interface TesterRow {
   aktywneUslugi: number;
   zgloszenia: number;
   zgloszeniaOtwarte: number;
+  /** Strona „Testy (beta)” w panelu klienta: odhaczone kroki i uwagi (null, gdy kod jeszcze nieużyty). */
+  postep: {
+    zrobione: number;
+    wszystkie: number;
+    zaktualizowano: string | null;
+    kroki: Record<string, string>;
+    uwagi: Record<string, string>;
+  } | null;
 }
 
 export async function listTesters(): Promise<TesterRow[]> {

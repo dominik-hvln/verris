@@ -3,18 +3,9 @@ import { AlertCircle, UserPlus } from "lucide-react";
 import { listTesters, type TesterRow } from "./actions";
 import { InviteForm } from "./invite-form";
 import { RevokeButton } from "./revoke-button";
+import { OdswiezanieNaZywo, WierszTestera } from "./postep-testera";
 
 export const dynamic = "force-dynamic";
-
-const STAN: Record<TesterRow["stan"], { text: string; cls: string }> = {
-  CZEKA: { text: "czeka na użycie", cls: "border-white/15 text-neutral-300" },
-  UZYTY: { text: "kod użyty", cls: "border-emerald-400/30 text-emerald-200" },
-  WYCOFANY: { text: "wyłączony", cls: "border-rose-500/30 text-rose-200" },
-  WYGASL: { text: "wygasł", cls: "border-amber-500/30 text-amber-200" },
-};
-
-const data = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString("pl-PL", { day: "numeric", month: "short", timeZone: "Europe/Warsaw" }) : "—";
 
 /** PB-26 — otwarte testy przed startem: zaproszenia i postęp testerów (docs/ops/BETA_TESTY.md). */
 export default async function BetaPage() {
@@ -29,6 +20,8 @@ export default async function BetaPage() {
   }
   const uzyte = rows.filter((r) => r.stan === "UZYTY");
   const zUsluga = uzyte.filter((r) => r.aktywneUslugi > 0).length;
+  const kroki = uzyte.reduce((a, r) => a + (r.postep?.zrobione ?? 0), 0);
+  const krokiWszystkie = uzyte.reduce((a, r) => a + (r.postep?.wszystkie ?? 0), 0);
 
   return (
     <div className="space-y-8">
@@ -42,11 +35,14 @@ export default async function BetaPage() {
 
       <InviteForm />
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <OdswiezanieNaZywo />
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
           ["Zaproszenia", rows.length],
           ["Kody użyte", uzyte.length],
           ["Testerzy z aktywną usługą", uzyte.length ? `${zUsluga} (${Math.round((zUsluga / uzyte.length) * 100)}%)` : "0"],
+          ["Kroki scenariuszy odhaczone", krokiWszystkie ? `${kroki} z ${krokiWszystkie} (${Math.round((kroki / krokiWszystkie) * 100)}%)` : "—"],
         ].map(([l, n]) => (
           <div key={String(l)} className="rounded-2xl border border-white/10 bg-[#0a0a0a] px-5 py-4">
             <div className="text-2xl font-bold text-white">{n}</div>
@@ -74,6 +70,7 @@ export default async function BetaPage() {
                 <th className="px-4 py-3 font-medium">Kod</th>
                 <th className="px-4 py-3 font-medium">Stan</th>
                 <th className="px-4 py-3 font-medium">Konto</th>
+                <th className="px-4 py-3 font-medium">Postęp</th>
                 <th className="px-4 py-3 font-medium">Usługi</th>
                 <th className="px-4 py-3 font-medium">Zgłoszenia</th>
                 <th className="px-4 py-3 font-medium" />
@@ -81,27 +78,7 @@ export default async function BetaPage() {
             </thead>
             <tbody className="divide-y divide-white/5">
               {rows.map((r) => (
-                <tr key={r.id}>
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{r.name || r.email}</div>
-                    {r.name ? <div className="text-xs text-muted-foreground">{r.email}</div> : null}
-                    <div className="text-xs text-muted-foreground">{r.wyslane ? `mail ${data(r.wyslane)}` : "mail niewysłany"}</div>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-xs">
-                    {r.code}
-                    <div className="text-muted-foreground">do {data(r.waznyDo)}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${STAN[r.stan].cls}`}>{STAN[r.stan].text}</span>
-                  </td>
-                  <td className="px-4 py-3 text-xs">{r.konto ? `${r.konto.email} · od ${data(r.konto.od)}` : "—"}</td>
-                  <td className="px-4 py-3">{r.aktywneUslugi}</td>
-                  <td className="px-4 py-3">
-                    {r.zgloszenia}
-                    {r.zgloszeniaOtwarte ? <span className="text-xs text-amber-200"> ({r.zgloszeniaOtwarte} otwarte)</span> : null}
-                  </td>
-                  <td className="px-4 py-3 text-right">{r.stan === "CZEKA" ? <RevokeButton id={r.id} code={r.code} /> : null}</td>
-                </tr>
+                <WierszTestera key={r.id} r={r} akcja={r.stan === "CZEKA" ? <RevokeButton id={r.id} code={r.code} /> : null} />
               ))}
             </tbody>
           </table>

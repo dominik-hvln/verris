@@ -1,7 +1,14 @@
 import { randomInt } from 'node:crypto';
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, PromoKind } from '@verris/database';
+import {
+  KROKI_BETA_IDS,
+  MAKS_DLUGOSC_UWAGI_BETA,
+  SCENARIUSZE_BETA_IDS,
+  policzPostepBeta,
+  type PostepBetaDto,
+} from '@verris/contracts';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MailerService } from '../mail/mailer.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
@@ -118,13 +125,15 @@ export class BetaService {
       },
     });
     const userIds = zaproszenia.flatMap((z) => z.promoCode.redemptions.map((r) => r.user.id));
-    const [uslugi, zgloszenia] = userIds.length
+    const [uslugi, zgloszenia, postepy] = userIds.length
       ? await Promise.all([
           this.prisma.subscription.groupBy({ by: ['userId'], where: { userId: { in: userIds }, status: 'ACTIVE' }, _count: { _all: true } }),
           this.prisma.ticket.findMany({ where: { userId: { in: userIds }, topic: 'BETA' }, select: { userId: true, status: true } }),
+          this.prisma.betaPostep.findMany({ where: { userId: { in: userIds } } }),
         ])
-      : [[], []];
+      : [[], [], []];
     const ileUslug = new Map(uslugi.map((u) => [u.userId, u._count._all]));
+    const postepTestera = new Map(postepy.map((p) => [p.userId, p]));
     return zaproszenia.map((z) => {
       const r = z.promoCode.redemptions[0] ?? null;
       const uid = r?.user.id;
@@ -141,8 +150,61 @@ export class BetaService {
         aktywneUslugi: uid ? (ileUslug.get(uid) ?? 0) : 0,
         zgloszenia: moje.length,
         zgloszeniaOtwarte: moje.filter((t) => t.status !== 'CLOSED').length,
+        postep: uid ? podsumujPostep(postepTestera.get(uid) ?? null) : null,
       };
     });
+  }
+
+  /** Strona „Testy (beta)” w panelu klienta — odhaczone kroki i uwagi zalogowanego testera. */
+  async postep(userId: string): Promise<PostepBetaDto> {
+    if (!(await this.czyTester(userId))) return { tester: false, kroki: {}, uwagi: {}, zaktualizowano: null };
+    const wiersz = await this.prisma.betaPostep.findUnique({ where: { userId } });
+    return { tester: true, ...odczytajPostep(wiersz) };
+  }
+
+  /**
+   * Odhacza (albo odznacza) krok. Zapis atomowy w jednym zapytaniu (jsonb || / -), żeby dwie karty
+   * albo szybkie klikanie nie nadpisały sobie nawzajem kroków.
+   */
+  async ustawKrok(userId: string, krokId: string, zrobione: boolean, teraz = new Date()): Promise<PostepBetaDto> {
+    if (!KROKI_BETA_IDS.has(krokId)) throw new BadRequestException('Nie ma takiego kroku.');
+    await this.tylkoTester(userId);
+    if (zrobione) {
+      const wpis = JSON.stringify({ [krokId]: teraz.toISOString() });
+      await this.prisma.$executeRaw`
+        INSERT INTO "BetaPostep" ("userId", "kroki", "updatedAt") VALUES (${userId}, ${wpis}::jsonb, ${teraz})
+        ON CONFLICT ("userId") DO UPDATE SET "kroki" = "BetaPostep"."kroki" || ${wpis}::jsonb, "updatedAt" = ${teraz}`;
+    } else {
+      await this.prisma.$executeRaw`
+        UPDATE "BetaPostep" SET "kroki" = "kroki" - ${krokId}::text, "updatedAt" = ${teraz} WHERE "userId" = ${userId}`;
+    }
+    return this.postep(userId);
+  }
+
+  /** Uwaga do scenariusza; pusty tekst usuwa uwagę. */
+  async ustawUwage(userId: string, scenariuszId: string, tekst: string, teraz = new Date()): Promise<PostepBetaDto> {
+    if (!SCENARIUSZE_BETA_IDS.has(scenariuszId)) throw new BadRequestException('Nie ma takiego scenariusza.');
+    const czysty = (tekst ?? '').replace(/\r\n/g, '\n').trim();
+    if (czysty.length > MAKS_DLUGOSC_UWAGI_BETA) {
+      throw new BadRequestException(`Uwaga może mieć najwyżej ${MAKS_DLUGOSC_UWAGI_BETA} znaków.`);
+    }
+    await this.tylkoTester(userId);
+    if (czysty) {
+      const wpis = JSON.stringify({ [scenariuszId]: czysty });
+      await this.prisma.$executeRaw`
+        INSERT INTO "BetaPostep" ("userId", "uwagi", "updatedAt") VALUES (${userId}, ${wpis}::jsonb, ${teraz})
+        ON CONFLICT ("userId") DO UPDATE SET "uwagi" = "BetaPostep"."uwagi" || ${wpis}::jsonb, "updatedAt" = ${teraz}`;
+    } else {
+      await this.prisma.$executeRaw`
+        UPDATE "BetaPostep" SET "uwagi" = "uwagi" - ${scenariuszId}::text, "updatedAt" = ${teraz} WHERE "userId" = ${userId}`;
+    }
+    return this.postep(userId);
+  }
+
+  private async tylkoTester(userId: string) {
+    if (!(await this.czyTester(userId))) {
+      throw new ForbiddenException('Ta strona jest dla osób zaproszonych do testów.');
+    }
   }
 
   /** Czy zalogowany użytkownik jest testerem (zrealizował kod z zaproszenia). */
@@ -150,4 +212,25 @@ export class BetaService {
     const n = await this.prisma.promoRedemption.count({ where: { userId, promoCode: { betaInvite: { isNot: null } } } });
     return n > 0;
   }
+}
+
+type WierszPostepu = { kroki: Prisma.JsonValue; uwagi: Prisma.JsonValue; updatedAt: Date } | null;
+
+/** Tylko znane identyfikatory i tekstowe wartości — stare kroki usunięte z listy nie wracają do panelu. */
+function odczytajPostep(w: WierszPostepu): Omit<PostepBetaDto, 'tester'> {
+  const kroki: Record<string, string> = {};
+  const uwagi: Record<string, string> = {};
+  if (w?.kroki && typeof w.kroki === 'object' && !Array.isArray(w.kroki)) {
+    for (const [id, kiedy] of Object.entries(w.kroki)) if (KROKI_BETA_IDS.has(id) && typeof kiedy === 'string') kroki[id] = kiedy;
+  }
+  if (w?.uwagi && typeof w.uwagi === 'object' && !Array.isArray(w.uwagi)) {
+    for (const [id, tekst] of Object.entries(w.uwagi)) if (SCENARIUSZE_BETA_IDS.has(id) && typeof tekst === 'string') uwagi[id] = tekst;
+  }
+  return { kroki, uwagi, zaktualizowano: w?.updatedAt.toISOString() ?? null };
+}
+
+/** Postęp testera dla panelu admina: ile kroków, kiedy ostatnio, szczegóły do rozwinięcia. */
+function podsumujPostep(w: WierszPostepu) {
+  const p = odczytajPostep(w);
+  return { ...policzPostepBeta(p.kroki), zaktualizowano: p.zaktualizowano, kroki: p.kroki, uwagi: p.uwagi };
 }

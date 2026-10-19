@@ -1,6 +1,6 @@
-import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, UseGuards } from '@nestjs/common';
 import { Role } from '@verris/database';
-import { IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
@@ -13,6 +13,17 @@ import { BetaService } from './beta.service.js';
 export class ZaproszenieDoTestowDto {
   @IsEmail() @MaxLength(254) email!: string;
   @IsOptional() @IsString() @MaxLength(80) name?: string;
+}
+
+export class KrokBetaDto {
+  @IsString() @MaxLength(20) krokId!: string;
+  @IsBoolean() zrobione!: boolean;
+}
+
+export class UwagaBetaDto {
+  @IsString() @MaxLength(20) scenariuszId!: string;
+  // Limit treści (2000 znaków) pilnuje serwis — po przycięciu białych znaków, z czytelnym komunikatem.
+  @IsString() @MaxLength(4000) tekst!: string;
 }
 
 /** PB-26 — zaproszenia i lista testerów (panel admina). */
@@ -51,5 +62,23 @@ export class MeBetaController {
   @Get()
   async moj(@CurrentUser() user: { userId: string }) {
     return { tester: await this.beta.czyTester(user.userId) };
+  }
+
+  /** Strona „Testy (beta)” — odhaczone kroki scenariuszy i uwagi. */
+  @Get('postep')
+  postep(@CurrentUser() user: { userId: string }) {
+    return this.beta.postep(user.userId);
+  }
+
+  @Put('postep/krok')
+  @RateLimit({ limit: 600, windowMs: 60 * 60 * 1000, scope: 'beta:postep' })
+  krok(@Body() dto: KrokBetaDto, @CurrentUser() user: { userId: string }) {
+    return this.beta.ustawKrok(user.userId, dto.krokId, dto.zrobione);
+  }
+
+  @Put('postep/uwaga')
+  @RateLimit({ limit: 600, windowMs: 60 * 60 * 1000, scope: 'beta:postep' })
+  uwaga(@Body() dto: UwagaBetaDto, @CurrentUser() user: { userId: string }) {
+    return this.beta.ustawUwage(user.userId, dto.scenariuszId, dto.tekst);
   }
 }

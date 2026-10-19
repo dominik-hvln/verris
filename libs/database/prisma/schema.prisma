@@ -313,6 +313,9 @@ model User {
 
   // NTF-2 — powiadomienia in-app (dzwonek w panelu klienta)
   notifications             Notification[]
+
+  // PB-26 — postęp testera (strona „Testy (beta)”)
+  betaPostep                BetaPostep?
   @@index([role, createdAt])
   @@index([referredByUserId])
 }
@@ -2977,6 +2980,19 @@ model BetaInvite {
   createdAt   DateTime  @default(now())
 
   @@index([email])
+}
+
+/// PB-26 — postęp testera: odhaczone kroki scenariuszy (id kroku → ISO data) i uwagi (id scenariusza → tekst).
+/// Identyfikatory z libs/contracts/src/beta-scenariusze.ts; jeden wiersz na konto.
+model BetaPostep {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kroki     Json     @default("{}")
+  uwagi     Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([updatedAt])
 }
 
 model PromoRedemption {

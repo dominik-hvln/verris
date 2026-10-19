@@ -1,9 +1,10 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { LICZBA_KROKOW_BETA, MAKS_DLUGOSC_UWAGI_BETA } from '@verris/contracts';
 import { Prisma } from '@verris/database';
 import { BetaService, KREDYT_TESTOW, kodTestera } from './beta.service.js';
 
 /** PB-26 — zaproszenia do testów: imienny kod 150 K / 1 użycie / 14 dni, mail best-effort, lista testerów. */
-function stanowisko(opts: { aktywne?: boolean; mail?: 'ok' | 'suppressed' | 'throw'; kolizje?: number } = {}) {
+function stanowisko(opts: { aktywne?: boolean; mail?: 'ok' | 'suppressed' | 'throw'; kolizje?: number; tester?: boolean } = {}) {
   let kolizje = opts.kolizje ?? 0;
   const prisma = {
     betaInvite: {
@@ -17,7 +18,9 @@ function stanowisko(opts: { aktywne?: boolean; mail?: 'ok' | 'suppressed' | 'thr
       findUnique: vi.fn(async () => ({ id: 'i1', promoCodeId: 'p1' })),
     },
     promoCode: { update: vi.fn(async () => undefined) },
-    promoRedemption: { count: vi.fn(async () => 1) },
+    promoRedemption: { count: vi.fn(async () => (opts.tester === false ? 0 : 1)) },
+    betaPostep: { findMany: vi.fn(async () => []), findUnique: vi.fn(async () => null) },
+    $executeRaw: vi.fn(async () => 1),
     subscription: { groupBy: vi.fn(async () => []) },
     ticket: { findMany: vi.fn(async () => []) },
   };
@@ -90,6 +93,49 @@ describe('BetaService', () => {
     const l = await s.svc.lista(teraz);
     expect(l.map((x) => x.stan)).toEqual(['UZYTY', 'WYCOFANY', 'WYGASL', 'CZEKA']);
     expect(l[0]).toMatchObject({ aktywneUslugi: 1, zgloszenia: 2, zgloszeniaOtwarte: 1, konto: { email: 'a@b.pl' } });
+  });
+
+  it('lista: postęp testera ze strony „Testy (beta)” — tylko znane kroki; bez użytego kodu brak postępu', async () => {
+    const s = stanowisko();
+    s.prisma.betaInvite.findMany.mockResolvedValueOnce([
+      { id: '1', email: 'a@b.pl', name: null, sentAt: null, promoCode: { code: 'BETA-AAAAAA', active: true, validTo: null, redemptions: [{ redeemedAt: new Date(), user: { id: 'u1', email: 'a@b.pl' } }] } },
+      { id: '2', email: 'c@d.pl', name: null, sentAt: null, promoCode: { code: 'BETA-BBBBBB', active: true, validTo: null, redemptions: [] } },
+    ] as never);
+    s.prisma.betaPostep.findMany.mockResolvedValueOnce([
+      { userId: 'u1', kroki: { 's01.k1': '2026-10-20T10:00:00.000Z', 'stary.k9': '2026-10-20T10:00:00.000Z' }, uwagi: { s01: 'ok', zz: 'x' }, updatedAt: new Date('2026-10-20T10:05:00Z') },
+    ] as never);
+    const l = await s.svc.lista(teraz);
+    expect(l[0].postep).toEqual({
+      zrobione: 1,
+      wszystkie: LICZBA_KROKOW_BETA,
+      zaktualizowano: '2026-10-20T10:05:00.000Z',
+      kroki: { 's01.k1': '2026-10-20T10:00:00.000Z' },
+      uwagi: { s01: 'ok' },
+    });
+    expect(l[1].postep).toBeNull();
+  });
+
+  it('postęp: nieznany krok/scenariusz i za długa uwaga → 400 bez zapisu; osoba spoza testów → 403', async () => {
+    const s = stanowisko();
+    await expect(s.svc.ustawKrok('u1', 's99.k1', true)).rejects.toThrow(BadRequestException);
+    await expect(s.svc.ustawUwage('u1', 's99', 'x')).rejects.toThrow(BadRequestException);
+    await expect(s.svc.ustawUwage('u1', 's01', 'x'.repeat(MAKS_DLUGOSC_UWAGI_BETA + 1))).rejects.toThrow(BadRequestException);
+    expect(s.prisma.$executeRaw).not.toHaveBeenCalled();
+    const obcy = stanowisko({ tester: false });
+    await expect(obcy.svc.ustawKrok('u2', 's01.k1', true)).rejects.toThrow(ForbiddenException);
+    expect(obcy.prisma.$executeRaw).not.toHaveBeenCalled();
+    expect(await obcy.svc.postep('u2')).toEqual({ tester: false, kroki: {}, uwagi: {}, zaktualizowano: null });
+  });
+
+  it('postęp: odhaczenie i pusta uwaga idą jednym zapytaniem (bez odczytu i nadpisania całego JSON-a)', async () => {
+    const s = stanowisko();
+    await s.svc.ustawKrok('u1', 's01.k1', true, teraz);
+    await s.svc.ustawUwage('u1', 's01', '   ');
+    expect(s.prisma.$executeRaw).toHaveBeenCalledTimes(2);
+    const [sql1] = s.prisma.$executeRaw.mock.calls[0] as unknown as [TemplateStringsArray];
+    const [sql2] = s.prisma.$executeRaw.mock.calls[1] as unknown as [TemplateStringsArray];
+    expect(sql1.join('?')).toContain('ON CONFLICT ("userId") DO UPDATE SET "kroki" = "BetaPostep"."kroki" ||');
+    expect(sql2.join('?')).toContain('SET "uwagi" = "uwagi" -');
   });
 
   it('wycofanie wyłącza kod (bez kasowania historii)', async () => {
