@@ -224,3 +224,52 @@ describe('ciche błędy bootstrapu (18.10)', () => {
     expect(/run\(\) \{[\s\S]*?\n\}/.exec(s)![0]).toMatch(/\*\)\s+fail PREFLIGHT "nieznana faza w pliku stanu/);
   });
 });
+
+describe('faza CLOUDLINUX — cldeploy wymaga wget (19.10, AlmaLinux 10.2 u Contabo)', () => {
+  function konwersja(o: { dnfInstaluje: boolean }): { log: string } {
+    const dir = mkdtempSync(join(tmpdir(), 'cl-wget-'));
+    const stan = join(dir, 'stan');
+    const bin = join(dir, 'bin');
+    const narz = join(dir, 'narzedzia');
+    mkdirSync(stan);
+    mkdirSync(bin);
+    mkdirSync(narz);
+    const log = join(dir, 'log');
+    writeFileSync(log, '');
+    writeFileSync(join(stan, 'bootstrap.state'), 'CLOUDLINUX\n');
+    const atrapa = (n: string, t: string) => {
+      writeFileSync(join(bin, n), `#!/usr/bin/env bash\n${t}\n`);
+      chmodSync(join(bin, n), 0o755);
+    };
+    // cldeploy z repo: atrapa, która jak prawdziwy wymaga wget
+    atrapa('curl', `for a in "$@"; do [ "$p" = "-o" ] && printf '%s\\n' 'command -v wget >/dev/null || { echo "cldeploy: wget: No such file"; exit 1; }' 'echo "cldeploy OK $*" >> ${log}' > "$a"; p="$a"; done`);
+    atrapa('dnf', `echo "dnf $*" >> '${log}'; ${o.dnfInstaluje ? `printf '#!/usr/bin/env bash\\nexit 0\\n' > '${bin}/wget'; chmod +x '${bin}/wget'` : 'exit 1'}`);
+    // PATH bez systemowego wget
+    for (const n of ['bash', 'sh', 'cat', 'touch', 'printf', 'chmod', 'mkdir', 'rm']) {
+      const z = spawnSync('bash', ['-c', `command -v ${n}`], { encoding: 'utf8' }).stdout.trim();
+      if (z.startsWith('/')) spawnSync('ln', ['-sf', z, join(narz, n)]);
+    }
+    const s = buildNodeBootstrapScript({ apiBaseUrl: 'https://api.verris.pl', bootstrapToken: 't', serverId: 's', stackEnv: stosJakoEnv(), hostname: 't2.verris.pl' })
+      .replace('STATE_DIR=/var/lib/verris', `STATE_DIR='${stan}'`)
+      .replace(/\ncase "\$\{1:-install\}" in[\s\S]*$/, '\n');
+    spawnSync(
+      '/bin/bash',
+      ['-c', `${s}\nreport() { echo "report $*" >> '${log}'; }\nsystemctl() { echo "systemctl $*" >> '${log}'; }\nsync() { :; }\nlve_active() { false; }\ncloudlinux_converted() { false; }\nload_secrets() { CL_ACTIVATION_KEY=klucz; }\nphase_cloudlinux`],
+      { encoding: 'utf8', env: { ...process.env, PATH: `${bin}:${narz}` } },
+    );
+    return { log: readFileSync(log, 'utf8') };
+  }
+
+  it('brak wget → dnf install wget przed cldeploy, konwersja i restart', () => {
+    const r = konwersja({ dnfInstaluje: true });
+    expect(r.log).toContain('dnf -y -q install wget');
+    expect(r.log).toContain('cldeploy OK -k klucz');
+    expect(r.log).toContain('report CLOUDLINUX REBOOT');
+  });
+
+  it('wget nie da się zainstalować → czytelny błąd zamiast „cldeploy zwrócił błąd”', () => {
+    const r = konwersja({ dnfInstaluje: false });
+    expect(r.log).toContain('report CLOUDLINUX FAILED brak wget (wymaga go cldeploy)');
+    expect(r.log).not.toContain('cldeploy OK');
+  });
+});

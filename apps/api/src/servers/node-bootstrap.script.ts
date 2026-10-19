@@ -235,7 +235,11 @@ phase_cloudlinux() {
   fi
   # Oficjalna konwersja CloudLinux (repo.cloudlinux.com) — wymaga rebootu.
   cd "$STATE_DIR" || fail CLOUDLINUX "cd $STATE_DIR"
-  # curl, nie wget — minimalne/chmurowe obrazy AlmaLinux nie muszą mieć wget (curl sprawdza PREFLIGHT).
+  # cldeploy pobieramy curl-em, ale sam cldeploy używa wget (sprawdzenie aktualizacji, version.dat) — instrukcja
+  # CloudLinux zaczyna od wget (https://docs.cloudlinux.com/cloudlinuxos/cloudlinux_installation/). Obraz AlmaLinux 10.2
+  # u Contabo (19.10, TEST-02) nie ma wget: „cldeploy: /usr/bin/wget: No such file or directory”.
+  command -v wget >/dev/null 2>&1 || dnf -y -q install wget >/dev/null 2>&1 \\
+    || fail CLOUDLINUX "brak wget (wymaga go cldeploy) i nie udało się go zainstalować"
   curl -fsSL -m 120 https://repo.cloudlinux.com/cloudlinux/sources/cln/cldeploy -o cldeploy || fail CLOUDLINUX "pobranie cldeploy nie powiodło się"
   sh cldeploy -k "$CL_ACTIVATION_KEY" || fail CLOUDLINUX "cldeploy zwrócił błąd"
   touch "$STATE_DIR/.cloudlinux-restart"
