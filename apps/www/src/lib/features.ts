@@ -29,7 +29,7 @@ export const features: Feature[] = [
     lead: 'Baza jest w abonamencie, a nadwyżkę płacisz godzinowo — tylko za czas, w którym strona naprawdę potrzebuje więcej mocy.',
     metaTitle: 'Autoskalowanie hostingu — płać za realne użycie | Verris',
     metaDescription:
-      'Jak działa autoskalowanie w Verris: baza 50 GB dysku oraz do 8 GB RAM i do 2 vCPU, skalowanie do 1000 GB, 64 GB RAM i 24 vCPU i rozliczenie godzinowe. Płacisz za realne użycie, nie za pakiet na zapas.',
+      'Jak działa autoskalowanie w Verris: limity pakietu 50 GB dysku oraz limit 8 GB RAM i 2 vCPU, skalowanie do 1000 GB, 64 GB RAM i 24 vCPU i rozliczenie godzinowe. Płacisz za realne użycie, nie za pakiet na zapas.',
     sections: [
       {
         p: [
@@ -39,7 +39,7 @@ export const features: Feature[] = [
       {
         h: 'Zakres skalowania',
         ul: [
-          'Baza pakietu: 50 GB NVMe oraz do 8 GB RAM i do 2 vCPU (limity izolowanego konta).',
+          'Limity pakietu: 50 GB NVMe, 8 GB RAM i 2 vCPU (limity izolowanego konta, nie rezerwacja).',
           'Maksymalnie: 1000 GB dysku, 64 GB RAM, 24 vCPU — do 12× mocy CPU względem bazy.',
           'Krok skalowania dobierany automatycznie; po piku zasoby wracają do bazy.',
           'Rozliczenie godzinowe brutto — płacisz tylko za faktyczny czas nadwyżki.',

@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 };
 
 const W_CENIE: [string, string, string][] = [
-  ['W cenie', 'do 2 vCPU · do 8 GB', 'i 50 GB NVMe'],
+  ['Limity w cenie', '2 vCPU · 8 GB RAM', 'i 50 GB NVMe'],
   ['W piku do', '24 vCPU · 64 GB', 'i 1000 GB dysku'],
   ['Dostępność', 'SLA 99,5%', 'z rekompensatą'],
   ['Bez limitu', 'stron i skrzynek', 'w ramach zasobów konta'],
@@ -189,7 +189,7 @@ const WYBOR: [string, string, string][] = [
 const FAQ: [string, string][] = [
   [
     'Ile kosztuje hosting z autoskalowaniem?',
-    'Pakiet kosztuje 45 zł miesięcznie albo 449 zł za rok brutto. W cenie masz 50 GB NVMe, do 8 GB RAM i do 2 vCPU. Dodatkową moc w piku liczymy według jawnych stawek brutto w blokach po 15 minut, do limitu, który ustawiasz w panelu.',
+    'Pakiet kosztuje 45 zł miesięcznie albo 449 zł za rok brutto. W cenie masz 50 GB NVMe oraz limit 8 GB RAM i 2 vCPU. Z autoskalowaniem limity rosną do 1000 GB dysku, 64 GB RAM i 24 vCPU, a dodatkową moc liczymy według jawnych stawek brutto w blokach po 15 minut, do limitu, który ustawiasz w panelu.',
   ],
   [
     'Czy autoskalowanie może mnie zaskoczyć rachunkiem?',
@@ -212,7 +212,7 @@ export default function HostingPage() {
         data={productSchema({
           name: 'Hosting Verris z autoskalowaniem',
           description:
-            'Hosting WWW z autoskalowaniem dla stron i sklepów. W cenie 50 GB NVMe, do 8 GB RAM i do 2 vCPU; w piku do 24 vCPU, 64 GB RAM i 1000 GB dysku. Przeniesienie strony i SSL w cenie.',
+            'Hosting WWW z autoskalowaniem dla stron i sklepów. W cenie 50 GB NVMe oraz limit 8 GB RAM i 2 vCPU; z autoskalowaniem do 1000 GB dysku, 64 GB RAM i 24 vCPU. Przeniesienie strony i SSL w cenie.',
           path: '/hosting',
           offers: HOSTING_OFFERS,
         })}
@@ -285,7 +285,7 @@ export default function HostingPage() {
           <SectionHead
             eyebrow="Kalkulator"
             title="Policz swój pik"
-            lead="Przesuń suwaki — liczymy według stawek z cennika. Zasoby z pakietu (do 2 vCPU i do 8 GB RAM) są zawsze w abonamencie."
+            lead="Przesuń suwaki — liczymy według stawek z cennika. Limity z pakietu (2 vCPU i 8 GB RAM) są zawsze w abonamencie."
           />
           <KalkulatorPiku />
         </div>

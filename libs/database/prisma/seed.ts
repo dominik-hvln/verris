@@ -53,7 +53,7 @@ async function main() {
   // Plany prototypowe (Z-13)
   //
   // To są PRÓBKI z czasów prototypu, nie oferta. Pakiet, który Verris naprawdę
-  // sprzedaje — 45 zł/mies., baza 50 GB / do 8 GB RAM / do 2 vCPU — powstaje
+  // sprzedaje — 45 zł/mies., limity 50 GB / 8 GB RAM / 2 vCPU — powstaje
   // w migracji 20260822120000_plan_produkcyjny, żeby istniał na każdym
   // środowisku bez uruchamiania seeda. Definicja: apps/api/src/plans/plan-produkcyjny.ts
   //

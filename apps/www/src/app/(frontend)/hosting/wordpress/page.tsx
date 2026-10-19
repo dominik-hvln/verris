@@ -81,7 +81,7 @@ const FAQ: [string, string][] = [
   ],
   [
     'Ile stron WordPress zmieszczę na jednym koncie?',
-    'Nie liczymy stron. Granicą są zasoby konta: 50 GB NVMe, do 8 GB RAM i do 2 vCPU w cenie, a w szczycie autoskalowanie dokłada mocy.',
+    'Nie liczymy stron. Granicą są limity konta: 50 GB NVMe, 8 GB RAM i 2 vCPU w cenie, a z autoskalowaniem rosną do 1000 GB, 64 GB RAM i 24 vCPU.',
   ],
   [
     'Czy przeniesiecie mojego WordPressa z innego hostingu?',

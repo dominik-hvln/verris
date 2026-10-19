@@ -20,8 +20,8 @@ const PRZYKLAD_ZAKLADKA = formatZl(kosztPiku(2, 4, 1.5));
 
 const PARAMETRY: [string, string][] = [
   ['SLA 99,5%', 'z rekompensatą, warunki w regulaminie'],
-  ['50 GB NVMe', 'do 8 GB RAM i do 2 vCPU w cenie'],
-  ['do 24 vCPU', 'i 64 GB RAM w piku'],
+  ['50 GB NVMe', 'limit 8 GB RAM i 2 vCPU w cenie'],
+  ['do 24 vCPU', '64 GB RAM i 1000 GB z autoskalowaniem'],
   ['LiteSpeed', 'cache dla WordPressa i WooCommerce'],
   ['Po polsku', 'pomoc, panel, regulamin i umowy'],
 ];
@@ -232,7 +232,7 @@ const homeJsonLd = {
     { ...productSchema({
       name: 'Hosting Verris z autoskalowaniem',
       description:
-        'Hosting WWW i WordPress z autoskalowaniem. W cenie 50 GB NVMe, do 8 GB RAM i do 2 vCPU; w piku do 24 vCPU, 64 GB RAM i 1000 GB dysku. Przeniesienie strony i SSL w cenie, SLA 99,5% z rekompensatą.',
+        'Hosting WWW i WordPress z autoskalowaniem. W cenie 50 GB NVMe oraz limit 8 GB RAM i 2 vCPU; z autoskalowaniem limity rosną do 1000 GB dysku, 64 GB RAM i 24 vCPU. Przeniesienie strony i SSL w cenie, SLA 99,5% z rekompensatą.',
       path: '/',
       offers: HOSTING_OFFERS,
     }), '@context': undefined },
@@ -283,8 +283,8 @@ export default function HomePage() {
               </div>
               <div>
                 <small>RAM</small>
-                <b>do 8 GB</b>
-                <small>w pakiecie</small>
+                <b>8 GB</b>
+                <small>limit w pakiecie</small>
               </div>
               <div>
                 <small>Kopia</small>
@@ -380,7 +380,7 @@ export default function HomePage() {
             </p>
             <p>albo 449 zł / rok brutto — ta sama cena przy odnowieniu</p>
             <ul className="a-list">
-              <li>50 GB NVMe, do 8 GB RAM i do 2 vCPU w cenie</li>
+              <li>50 GB NVMe, limit 8 GB RAM i 2 vCPU w cenie</li>
               <li>bez limitu stron, skrzynek i transferu (w ramach zasobów konta i zasad uczciwego korzystania)</li>
               <li>certyfikaty SSL, kopie z 30 dni i przeniesienie strony w cenie</li>
             </ul>

@@ -32,8 +32,8 @@ const HEADER = `# Verris
 > z rekompensatami na wniosek, serwery w Unii Europejskiej (zgodność z RODO). Claim: „Hosting bez gwiazdek".
 
 ## Oferta
-- Hosting z autoskalowaniem: 45 zł/mies lub 449 zł/rok (brutto). Zasoby bazowe: 50 GB NVMe,
-  do 8 GB RAM, do 2 vCPU; autoskalowanie do 1000 GB, 64 GB RAM, 24 vCPU (do 12× mocy CPU względem bazy),
+- Hosting z autoskalowaniem: 45 zł/mies lub 449 zł/rok (brutto). Limity w pakiecie: 50 GB NVMe,
+  limit 8 GB RAM i 2 vCPU (limity konta, nie rezerwacja); autoskalowanie do 1000 GB, 64 GB RAM, 24 vCPU (do 12× mocy CPU względem bazy),
   rozliczane godzinowo; po piku zasoby wracają do bazy.
 - ${VPS_W_SPRZEDAZY ? 'VPS niezarządzany (pełny root), d' : 'D'}omeny bez auto-odnowień${EMAIL_MARKETING_W_SPRZEDAZY ? ', e-mail marketing' : ''}, program resellerski (wielu klientów w jednym panelu; własny narzut — wkrótce).
 

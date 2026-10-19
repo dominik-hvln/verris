@@ -47,7 +47,7 @@ export default function Page() {
         data={productSchema({
           name: 'Hosting Verris z autoskalowaniem',
           description:
-            'Jeden pakiet hostingu: 45 zł/mies. albo 449 zł/rok brutto. W cenie 50 GB NVMe, do 8 GB RAM i do 2 vCPU; dodatkowa moc w piku według jawnych stawek.',
+            'Jeden pakiet hostingu: 45 zł/mies. albo 449 zł/rok brutto. W cenie 50 GB NVMe oraz limit 8 GB RAM i 2 vCPU; z autoskalowaniem do 1000 GB, 64 GB RAM i 24 vCPU według jawnych stawek.',
           path: '/cennik',
           offers: HOSTING_OFFERS,
         })}

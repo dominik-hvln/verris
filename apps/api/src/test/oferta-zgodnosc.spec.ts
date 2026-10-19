@@ -20,7 +20,9 @@ import { join, relative, resolve } from 'path';
  * 51 × 8 GB = 408 GB pamięci „w cenie" na maszynie, która ma 128 GB.
  *
  * Zdanie „Baza w cenie: 8 GB RAM" jest więc prawdziwe dla jednego klienta i
- * nieprawdziwe dla wszystkich naraz. Poprawny zapis to „do 8 GB RAM".
+ * nieprawdziwe dla wszystkich naraz. Poprawny zapis to „do 8 GB RAM" albo — od decyzji
+ * właściciela z 19.10.2026 — „limit 8 GB RAM i 2 vCPU" / „Limity pakietu: 50 GB NVMe, 8 GB RAM
+ * i 2 vCPU": słowo „limit" w tym samym zdaniu, PRZED liczbą, mówi wprost, że to sufit.
  *
  * Ten test nie sprawdza jednego zdania — pilnuje całej klasy. Jeżeli ktoś
  * kiedykolwiek dopisze na stronie „8 GB RAM" bez „do", test zapali się na
@@ -92,6 +94,9 @@ function znajdzNaruszenia(tresc: string, plik: string): Naruszenie[] {
           return /^[\s'"`»]*$/.test(przed.slice(idx + k.length));
         });
         if (zakwalifikowane) continue;
+        // „limit"/„limity" wcześniej w tym samym zdaniu (bez . ; ! ? po drodze) — wyliczenie limitów pakietu.
+        const zdanie = linia.slice(0, m.index).split(/[.;!?]/).pop() ?? '';
+        if (/(?<!bez\s)\blimit(y|u|em|ami|ów)?\b/i.test(zdanie)) continue;
 
         out.push({
           plik: relative(KORZEN, plik),
@@ -124,7 +129,7 @@ describe('Z-14 — treść oferty nie obiecuje rezerwacji RAM ani CPU', () => {
         `Treść oferty obiecuje bazowy ${naruszenia[0].zasob} jako zasób przypisany na stałe.\n\n` +
           `W CloudLinux/LVE RAM i CPU są sufitami burst, nie rezerwacjami. Węzeł domyka się\n` +
           `finansowo dopiero przy ok. 51 kontach (PB-01), czyli 408 GB RAM „w cenie" na maszynie\n` +
-          `ze 128 GB. Napisz „do 8 GB RAM" i „do 2 vCPU".\n\n` +
+          `ze 128 GB. Napisz „do 8 GB RAM" i „do 2 vCPU" albo „limit 8 GB RAM i 2 vCPU".\n\n` +
           `Dysk (50 GB) zostaje bez kwalifikatora — quota dyskowa jest realnie egzekwowana.\n\n` +
           `Znalezione wystąpienia:\n${opis}`,
       );
@@ -142,6 +147,23 @@ describe('Z-14 — treść oferty nie obiecuje rezerwacji RAM ani CPU', () => {
   it('przepuszcza sformułowanie poprawne', () => {
     const dobre = 'Baza pakietu: 50 GB NVMe oraz do 8 GB RAM i do 2 vCPU (limity CloudLinux/LVE).';
     expect(znajdzNaruszenia(dobre, join(WWW_SRC, 'atrapa.tsx'))).toEqual([]);
+  });
+
+  it('przepuszcza wyliczenie limitów pakietu („limit" przed liczbą, w tym samym zdaniu)', () => {
+    for (const dobre of [
+      'W cenie 50 GB NVMe oraz limit 8 GB RAM i 2 vCPU; z autoskalowaniem do 64 GB RAM.',
+      'Limity pakietu: 50 GB NVMe, 8 GB RAM i 2 vCPU (limity izolowanego konta).',
+      "  { label: 'limit procesora', base: '2 vCPU', max: '→ 24 vCPU' },",
+    ]) {
+      expect(znajdzNaruszenia(dobre, join(WWW_SRC, 'atrapa.tsx'))).toEqual([]);
+    }
+  });
+
+  it('„limit" w innym zdaniu albo PO liczbie nie zwalnia z kwalifikatora', () => {
+    const zle = 'Limit dysku to 50 GB. W cenie 8 GB RAM i 2 vCPU, bez limitu stron.';
+    expect(znajdzNaruszenia(zle, join(WWW_SRC, 'atrapa.tsx')).map((n) => n.zasob).sort()).toEqual(['CPU', 'RAM']);
+    const bezLimitu = 'Bez limitu stron, w cenie 8 GB RAM.';
+    expect(znajdzNaruszenia(bezLimitu, join(WWW_SRC, 'atrapa.tsx')).map((n) => n.zasob)).toEqual(['RAM']);
   });
 
   it('nie czepia się wartości maksymalnych autoskalowania', () => {

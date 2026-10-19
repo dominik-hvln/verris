@@ -65,7 +65,7 @@ const VERRIS: [string, string][] = [
   ['Cena za 3 lata', '3 × 449 zł = 1347 zł brutto przy dzisiejszym cenniku — ta sama cena przy odnowieniu'],
   ['Kopie', 'codziennie: 7 ostatnich na serwerze i kopia z każdego z 30 ostatnich dni poza serwerem; przywracasz sam w panelu'],
   ['Przeprowadzka', 'w cenie — robi ją kreator w panelu albo nasz zespół'],
-  ['Limity', '50 GB NVMe, do 8 GB RAM, do 2 vCPU; w piku do 24 vCPU i 64 GB RAM'],
+  ['Limity', '50 GB NVMe, 8 GB RAM, 2 vCPU; z autoskalowaniem do 1000 GB, 64 GB RAM i 24 vCPU'],
   ['Duży ruch', 'autoskalowanie rozliczane w blokach po 15 minut, z limitem kosztu, który ustawiasz sam'],
   ['Dostępność', 'SLA 99,5% w miesiącu; rekompensata na wniosek od 5% do 100% opłaty, zapisana w regulaminie'],
   ['SSL', 'Let’s Encrypt w cenie, także wildcard, odnawiany automatycznie'],

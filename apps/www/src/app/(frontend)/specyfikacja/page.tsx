@@ -8,7 +8,7 @@ import { CTABand, JsonLd, SectionHead, SubHero } from '../components/ui';
 export const metadata: Metadata = {
   title: 'Parametry hostingu: zasoby, PHP, kopie, SLA | Verris',
   description:
-    'Specyfikacja hostingu Verris: 50 GB NVMe, do 8 GB RAM, autoskalowanie do 24 vCPU, LiteSpeed, PHP 7.4–8.3, kopie z 30 dni i SLA 99,5%. 45 zł/mies.',
+    'Specyfikacja hostingu Verris: 50 GB NVMe, limit 8 GB RAM, autoskalowanie do 24 vCPU, LiteSpeed, PHP 7.4–8.3, kopie z 30 dni i SLA 99,5%. 45 zł/mies.',
   alternates: { canonical: '/specyfikacja' },
 };
 
@@ -25,9 +25,9 @@ const SEKCJE: { tytul: string; id: string; wiersze: Wiersz[] }[] = [
     tytul: 'Zasoby',
     id: 'zasoby',
     wiersze: [
-      ['Dysk na start', '50 GB NVMe'],
-      ['Pamięć RAM na start', 'do 8 GB'],
-      ['Procesor na start', 'do 2 vCPU'],
+      ['Limit dysku w pakiecie', '50 GB NVMe'],
+      ['Limit pamięci RAM w pakiecie', '8 GB'],
+      ['Limit procesora w pakiecie', '2 vCPU'],
       ['Autoskalowanie', 'w szczycie do 24 vCPU, 64 GB RAM i 1000 GB dysku, potem powrót do pakietu'],
       ['Stawki autoskalowania (brutto)', '0,001323 zł za 1% CPU/h · 0,0882 zł za 1 GB RAM/h · 0,0008 zł za 1 GB dysku/h, naliczane w blokach 15 minut'],
       ['Limit kosztu autoskalowania', 'ustawiasz sam w panelu'],
@@ -108,7 +108,7 @@ export default function Page() {
         data={productSpecSchema({
           name: 'Hosting Verris z autoskalowaniem',
           description:
-            'Jeden pakiet hostingu: 50 GB NVMe, do 8 GB RAM i do 2 vCPU, autoskalowanie do 24 vCPU, 64 GB RAM i 1000 GB dysku.',
+            'Jeden pakiet hostingu: 50 GB NVMe, limit 8 GB RAM i 2 vCPU, autoskalowanie do 24 vCPU, 64 GB RAM i 1000 GB dysku.',
           path: '/specyfikacja',
           properties: sekcje.flatMap((s) => s.wiersze.map(([k, v]): [string, string] => [k, v])),
           offers: HOSTING_OFFERS,

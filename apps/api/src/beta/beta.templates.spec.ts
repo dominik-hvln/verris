@@ -25,4 +25,10 @@ describe('zaproszenieDoTestowTemplate', () => {
     expect(m.text).toContain('zrzut ekranu z zaznaczeniem');
     expect(m.text).toContain('Centrum pomocy → Nowe zgłoszenie → temat „Testy (beta)”');
   });
+
+  it('link do listy scenariuszy w panelu i uczciwa informacja o usłudze po testach', () => {
+    expect(m.text).toContain('https://panel.example.pl/dashboard/beta');
+    expect(m.text).toContain('Usługa zostaje po testach');
+    expect(m.text).toContain('Gdyby coś miało się zmienić, napiszemy z wyprzedzeniem.');
+  });
 });

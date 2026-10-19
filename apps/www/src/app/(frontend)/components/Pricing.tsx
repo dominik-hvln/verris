@@ -11,9 +11,10 @@ import { Button, SectionHead } from './ui';
  */
 
 const RESOURCES = [
-  { base: '50 GB', max: '→ 1000 GB', label: 'dysk NVMe' },
-  { base: 'do 8 GB', max: '→ 64 GB', label: 'RAM' },
-  { base: 'do 2 vCPU', max: '→ 24 vCPU', label: 'procesor' },
+  // Limit w pakiecie → sufit autoskalowania. RAM i CPU to limity (LVE), nie rezerwacja — strażnik Z-14.
+  { label: 'limit dysku NVMe', base: '50 GB', max: '→ 1000 GB' },
+  { label: 'limit RAM', base: '8 GB', max: '→ 64 GB' },
+  { label: 'limit procesora', base: '2 vCPU', max: '→ 24 vCPU' },
 ];
 
 const FEATURES = [

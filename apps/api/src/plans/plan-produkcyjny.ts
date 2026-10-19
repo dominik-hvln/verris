@@ -77,8 +77,8 @@ export const PLAN_PRODUKCYJNY: DefinicjaPlanu = {
   slug: 'verris-hosting',
   name: 'Hosting Verris z autoskalowaniem',
   description:
-    'Jeden pakiet hostingu współdzielonego z autoskalowaniem. Baza 50 GB NVMe, ' +
-    'do 8 GB RAM i do 2 vCPU; w piku zasoby rosną automatycznie i wracają po piku. ' +
+    'Jeden pakiet hostingu współdzielonego z autoskalowaniem. Limity w pakiecie: 50 GB NVMe, ' +
+    '8 GB RAM i 2 vCPU; z autoskalowaniem rosną do 1000 GB, 64 GB RAM i 24 vCPU i wracają po piku. ' +
     'Bez limitu stron, skrzynek i transferu w ramach zasobów konta.',
 
   // ── Limity bazowe (LVE) ────────────────────────────────────────────────────

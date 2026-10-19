@@ -109,6 +109,20 @@ describe('Z-13 — pakiet ze strony istnieje w bazie i zgadza się z ofertą', (
       expect(sql().length).toBeGreaterThan(500);
     });
 
+    it('opis planu w bazie poprawia migracja 20261019210000 — dokładnie na tekst z definicji (limity, nie rezerwacja)', () => {
+      const poprawka = readFileSync(
+        resolve(KORZEN, 'libs/database/prisma/migrations/20261019210000_opis_planu_limity/migration.sql'),
+        'utf-8',
+      );
+      expect(poprawka).toContain(`SET "description" = '${PLAN_PRODUKCYJNY.description}'`);
+      expect(poprawka).toContain(`"id" = '${PLAN_PRODUKCYJNY.id}'`);
+      // aktualizuje tylko opis z pierwszej migracji (nie nadpisuje zmian z panelu admina)
+      const pierwotny = /\n {4}'(Jeden pakiet hostingu[^']+)',\n/.exec(sql())?.[1];
+      expect(pierwotny).toBeTruthy();
+      expect(poprawka).toContain(`AND "description" = '${pierwotny}'`);
+      expect(PLAN_PRODUKCYJNY.description).not.toMatch(/do 8 GB|do 2 vCPU/);
+    });
+
     it('id, slug i cena w SQL zgadzają się z definicją', () => {
       const w = wartosciInsertu();
       expect(w).toContain(`'${PLAN_PRODUKCYJNY.id}'`);
