@@ -38,6 +38,7 @@ import { MobileTabStrip } from '@/components/panel';
 import { SectionHead } from '@/components/panel/v2';
 import { fetchServiceKindAction } from '@/app/dashboard/services/[id]/hosting-service-actions';
 import { SIMPLE_MODE_KEY, TABS, isTabId, visibleTabIds, type TabId } from './tabs';
+import { PlatnoscKartaBaner } from './platnosc-karta';
 
 export default function HostingManagerPage() {
   const params = useParams() as { id: string };
@@ -133,6 +134,19 @@ export default function HostingManagerPage() {
         <div className="lg:hidden">
           <MobileTabStrip tabs={visibleTabs} active={activeTab} onChange={setActiveTab} stickyBelowHeader />
         </div>
+
+        {searchParams.get('platnosc') === 'karta' ? (
+          <PlatnoscKartaBaner
+            serviceId={params.id}
+            onGotowe={() => {
+              // Usługa aktywna — bez parametru w adresie (odświeżenie nie pokaże banera ponownie) i z nowymi danymi.
+              const q = new URLSearchParams(searchParams.toString());
+              q.delete('platnosc');
+              router.replace(q.size ? `${pathname}?${q.toString()}` : pathname, { scroll: false });
+              router.refresh();
+            }}
+          />
+        ) : null}
 
         {showHostingChrome ? <AssistantHint serviceId={params.id} onNavigate={(t) => isTabId(t) && setActiveTab(t)} /> : null}
 

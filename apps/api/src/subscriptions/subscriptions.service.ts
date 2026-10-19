@@ -23,7 +23,6 @@ import { VatNabywcyService } from '../billing/vat-nabywcy.service.js';
 import { PromoService } from '../billing/promo.service.js';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service.js';
 import { StripeService } from '../billing/stripe/stripe.service.js';
-import { getInvoiceClientSecret, getSubscriptionPeriod } from '../billing/stripe/stripe.client.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
 import { ProvisioningService, ProvisionResult } from './provisioning.service.js';
 import { ProvisioningQueueService } from './provisioning-queue.service.js';
@@ -715,6 +714,25 @@ export class SubscriptionsService {
         );
         throw new ConflictException(
           'Nie udało się anulować subskrypcji w systemie płatności. Spróbuj ponownie za chwilę lub skontaktuj się z pomocą — Twoja karta nie została obciążona dodatkowo.',
+        );
+      }
+    }
+
+    // 19.10 — zamówienie kartą przez Checkout (subskrypcji Stripe jeszcze nie ma): otwarta sesja musi wygasnąć, zanim
+    // anulujemy, inaczej klient mógłby zapłacić za anulowane zamówienie. Sesja już opłacona (webhook jeszcze nie
+    // dotarł) — nie anulujemy, bo pieniądze są pobrane, a usługa zaraz się uruchomi.
+    if (
+      subscription.paymentSource === SubscriptionPaymentSource.STRIPE_CARD &&
+      subscription.status === SubscriptionStatus.PENDING_PAYMENT &&
+      !subscription.stripeSubscriptionId
+    ) {
+      const { zamkniete, oplacona } = await this.zamknijSesjeCheckoutUslugi(subscription.id);
+      if (oplacona) {
+        throw new ConflictException('Płatność za to zamówienie została już przyjęta — usługa uruchomi się za chwilę.');
+      }
+      if (!zamkniete) {
+        throw new ConflictException(
+          'Nie udało się zamknąć płatności w systemie płatności. Spróbuj ponownie za chwilę — karta nie została obciążona.',
         );
       }
     }
@@ -1914,11 +1932,9 @@ export class SubscriptionsService {
   // ---------------------------------------------------------------------------
 
   /**
-   * Creates a Stripe Customer (lazy) + Stripe Subscription with
-   * `payment_behavior=default_incomplete`. Returns the Hosted Invoice URL the
-   * panel should redirect to so the customer can finish the first payment.
-   * Once Stripe sends `invoice.paid`, our webhook calls
-   * `activateAfterStripePayment(...)` to provision DA.
+   * Creates a Stripe Customer (lazy) + Stripe Checkout Session (mode `subscription`). Returns the Checkout URL the
+   * panel redirects to; after payment Stripe sends the customer back to the service page. Once Stripe sends
+   * `invoice.paid`, our webhook calls `activateAfterStripePayment(...)` to provision DA.
    */
   private async startStripeRecurring(
     subscriptionId: string,
@@ -1972,60 +1988,101 @@ export class SubscriptionsService {
       },
     });
 
-    const stripeSub = await this.stripe.createSubscription({
+    // 19.10 (PB-31 smoke): pierwsza płatność przez Stripe Checkout zamiast Hosted Invoice Page — strona faktury Stripe
+    // nie ma powrotu do panelu, klient zostawał na „Faktura opłacona”. Checkout wraca na stronę usługi.
+    const session = await this.utworzSesjeCheckoutUslugi({
+      subscriptionId,
+      userId,
       customerId,
       priceId,
-      metadata: {
-        verrisSubscriptionId: subscriptionId,
-        verrisUserId: userId,
-        domain: dto.domain ?? '',
-        preferredRegion: dto.preferredRegion ?? '',
-        planSlug: plan.slug,
-        interval: dto.interval,
-      },
+      planSlug: plan.slug,
+      interval: dto.interval,
+      domain: dto.domain ?? '',
+      preferredRegion: dto.preferredRegion ?? '',
     });
-
-    // Basil+: billing periods come from `items.data[0]`. Helper handles
-    // pre-Basil fallback for transitional accounts.
-    const period = getSubscriptionPeriod(stripeSub);
-
-    const updated = await this.prisma.subscription.update({
-      where: { id: subscriptionId },
-      data: {
-        stripeSubscriptionId: stripeSub.id,
-        currentPeriodStart: new Date(period.start * 1000),
-        currentPeriodEnd: new Date(period.end * 1000),
-      },
-    });
-
-    let checkoutRedirectUrl: string | undefined;
-    let paymentIntentClientSecret: string | undefined;
-    const latest = stripeSub.latest_invoice;
-    if (latest && typeof latest !== 'string') {
-      checkoutRedirectUrl = latest.hosted_invoice_url ?? undefined;
-      // Basil+: prefer `latest_invoice.confirmation_secret.client_secret`,
-      // fall back to legacy `payment_intent.client_secret`. Helper picks the
-      // right path based on which fields the API returned.
-      paymentIntentClientSecret = getInvoiceClientSecret(latest) ?? undefined;
-    }
 
     await this.audit.record({
-      action: 'STRIPE_SUBSCRIPTION_CREATED',
+      action: 'STRIPE_CHECKOUT_CREATED',
       userId,
       actorUserId: userId,
-      details: {
-        subscriptionId,
-        stripeSubscriptionId: stripeSub.id,
-        stripeCustomerId: customerId,
-        priceId,
-      },
+      details: { subscriptionId, stripeCheckoutSessionId: session.id, stripeCustomerId: customerId, priceId },
     });
 
-    return {
-      subscription: updated,
-      checkoutRedirectUrl,
-      paymentIntentClientSecret,
-    };
+    const subscription = await this.prisma.subscription.findUniqueOrThrow({ where: { id: subscriptionId } });
+    return { subscription, checkoutRedirectUrl: session.url };
+  }
+
+  /**
+   * Sesja Stripe Checkout (tryb `subscription`) dla zamówienia czekającego na pierwszą płatność kartą. Subskrypcję
+   * Stripe tworzy dopiero opłacona sesja; metadane (`verrisSubscriptionId`) trafiają do subskrypcji i jej faktur, a webhook
+   * `checkout.session.completed` zapisuje `stripeSubscriptionId` (BillingService). Id sesji zostaje w zdarzeniu usługi
+   * `STRIPE_CHECKOUT` — z niego ponowienie płatności i anulowanie zamówienia (sesja musi wygasnąć, żeby nie dało się
+   * zapłacić za anulowane).
+   */
+  private async utworzSesjeCheckoutUslugi(opts: {
+    subscriptionId: string;
+    userId: string;
+    customerId: string;
+    priceId: string;
+    planSlug: string;
+    interval: string;
+    domain: string;
+    preferredRegion: string;
+  }): Promise<{ id: string; url: string }> {
+    const panel = (this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl').replace(/\/$/, '');
+    const session = await this.stripe.createSubscriptionCheckoutSession({
+      customerId: opts.customerId,
+      priceId: opts.priceId,
+      successUrl: `${panel}/dashboard/services/${opts.subscriptionId}?platnosc=karta`,
+      // Rezygnacja z płatności: zakładka subskrypcji ma baner „czeka na płatność” z przyciskiem do ponowienia.
+      cancelUrl: `${panel}/dashboard/services/${opts.subscriptionId}?tab=subscription`,
+      clientReferenceId: opts.userId,
+      metadata: { kind: 'subscription', verrisSubscriptionId: opts.subscriptionId, verrisUserId: opts.userId },
+      subscriptionMetadata: {
+        verrisSubscriptionId: opts.subscriptionId,
+        verrisUserId: opts.userId,
+        domain: opts.domain,
+        preferredRegion: opts.preferredRegion,
+        planSlug: opts.planSlug,
+        interval: opts.interval,
+      },
+    });
+    await this.prisma.subscriptionEvent.create({
+      data: { subscriptionId: opts.subscriptionId, type: 'STRIPE_CHECKOUT', details: { sessionId: session.id } },
+    });
+    return { id: session.id, url: session.url };
+  }
+
+  /** Id sesji Checkout zamówienia, od najnowszej. */
+  private async sesjeCheckoutUslugi(subscriptionId: string): Promise<string[]> {
+    const zdarzenia = await this.prisma.subscriptionEvent.findMany({
+      where: { subscriptionId, type: 'STRIPE_CHECKOUT' },
+      orderBy: { createdAt: 'desc' },
+      select: { details: true },
+    });
+    return zdarzenia
+      .map((z) => (z.details as { sessionId?: string } | null)?.sessionId)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0);
+  }
+
+  /**
+   * Zamyka otwarte sesje Checkout zamówienia (anulowanie, porzucenie). Sesja już opłacona albo wygasła — Stripe odmawia
+   * i to w porządku; opłaconą obsługuje webhook (aktywacja albo alarm, gdy zamówienie jest już anulowane).
+   */
+  private async zamknijSesjeCheckoutUslugi(subscriptionId: string): Promise<{ zamkniete: boolean; oplacona: boolean }> {
+    let zamkniete = true;
+    let oplacona = false;
+    for (const id of await this.sesjeCheckoutUslugi(subscriptionId)) {
+      try {
+        const sesja = await this.stripe.retrieveCheckoutSession(id);
+        if (sesja.status === 'complete') oplacona = true;
+        else if (sesja.status === 'open') await this.stripe.expireCheckoutSession(id);
+      } catch (err) {
+        zamkniete = false;
+        this.logger.warn(`Nie zamknięto sesji Checkout ${id} sub=${subscriptionId}: ${(err as Error).message}`);
+      }
+    }
+    return { zamkniete, oplacona };
   }
 
   /**
@@ -2042,13 +2099,50 @@ export class SubscriptionsService {
         'Link do płatności jest dostępny tylko dla nieopłaconych zamówień.',
       );
     }
-    if (
-      subscription.paymentSource !== SubscriptionPaymentSource.STRIPE_CARD ||
-      !subscription.stripeSubscriptionId
-    ) {
+    if (subscription.paymentSource !== SubscriptionPaymentSource.STRIPE_CARD) {
       throw new BadRequestException(
         'Ta usługa nie oczekuje na płatność kartą — doładuj portfel i zamów ponownie lub anuluj zamówienie.',
       );
+    }
+
+    // 19.10 — zamówienie z Checkout (bez subskrypcji Stripe przed płatnością): otwarta sesja albo nowa. Jedna otwarta
+    // sesja naraz — inaczej klient mógłby opłacić dwie i dostać dwie subskrypcje Stripe za jedną usługę.
+    if (!subscription.stripeSubscriptionId) {
+      const [ostatnia] = await this.sesjeCheckoutUslugi(subscription.id);
+      if (ostatnia) {
+        const sesja = await this.stripe.retrieveCheckoutSession(ostatnia);
+        if (sesja.status === 'open' && sesja.url) return { url: sesja.url };
+        if (sesja.status === 'complete') {
+          throw new BadRequestException('Płatność za to zamówienie została już przyjęta — usługa uruchomi się za chwilę.');
+        }
+      }
+      const plan = await this.prisma.plan.findUnique({ where: { id: subscription.planId } });
+      const priceId =
+        subscription.interval === BillingInterval.MONTH ? plan?.stripePriceMonthlyId : plan?.stripePriceYearlyId;
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, email: true, firstName: true, lastName: true, companyName: true, stripeCustomerId: true },
+      });
+      if (!plan || !priceId || !user) {
+        throw new BadRequestException('Nie można przygotować płatności — anuluj zamówienie i utwórz usługę ponownie.');
+      }
+      const intent = await this.prisma.subscriptionEvent.findFirst({
+        where: { subscriptionId: subscription.id, type: 'PROVISIONING_INTENT' },
+        orderBy: { createdAt: 'desc' },
+        select: { details: true },
+      });
+      const zamiar = (intent?.details ?? {}) as { domain?: string | null; preferredRegion?: string | null };
+      const session = await this.utworzSesjeCheckoutUslugi({
+        subscriptionId: subscription.id,
+        userId,
+        customerId: await this.ensureStripeCustomer(user),
+        priceId,
+        planSlug: plan.slug,
+        interval: subscription.interval,
+        domain: zamiar.domain ?? '',
+        preferredRegion: zamiar.preferredRegion ?? '',
+      });
+      return { url: session.url };
     }
 
     const stripeSub = await this.stripe.retrieveSubscription(subscription.stripeSubscriptionId);
@@ -2135,6 +2229,10 @@ export class SubscriptionsService {
             this.logger.warn(`abandonStalePendingPayments: Stripe cancel failed sub=${sub.id}: ${err.message}`),
           );
         }
+        // Sesja Checkout wygasa sama po 24 h (sprzątanie jest po 48 h) — zamknięcie na wszelki wypadek.
+        if (sub.paymentSource === SubscriptionPaymentSource.STRIPE_CARD && !sub.stripeSubscriptionId) {
+          await this.zamknijSesjeCheckoutUslugi(sub.id);
+        }
         await this.audit.record({
           action: 'SUBSCRIPTION_CANCELED',
           userId: sub.userId,
@@ -2203,6 +2301,55 @@ export class SubscriptionsService {
       return this.prisma.subscription.findUnique({ where: { id: metadataSubscriptionId } });
     }
     return null;
+  }
+
+  /**
+   * 19.10 — `checkout.session.completed` dla zamówienia kartą (tryb `subscription`): zapisuje subskrypcję Stripe, którą
+   * utworzyła sesja. Aktywację robi `invoice.paid` (metadane subskrypcji wiążą fakturę z zamówieniem także przed tym
+   * zapisem). Druga subskrypcja dla tej samej usługi albo płatność za zamówienie już anulowane: subskrypcja Stripe jest
+   * anulowana od razu (bez kolejnych obciążeń), a w audycie zostaje alarm do zwrotu przez obsługę.
+   */
+  async powiazSubskrypcjeZCheckout(opts: {
+    verrisSubscriptionId: string;
+    stripeSubscriptionId: string | null;
+    sessionId: string;
+  }): Promise<Subscription | null> {
+    if (!opts.stripeSubscriptionId) return null;
+    const sub = await this.prisma.subscription.findUnique({ where: { id: opts.verrisSubscriptionId } });
+    if (!sub) {
+      this.logger.warn(`checkout ${opts.sessionId}: brak zamówienia ${opts.verrisSubscriptionId}`);
+      return null;
+    }
+    const obca = !!sub.stripeSubscriptionId && sub.stripeSubscriptionId !== opts.stripeSubscriptionId;
+    const zamknieta = sub.status === SubscriptionStatus.CANCELED || sub.status === SubscriptionStatus.EXPIRED;
+    if (obca || zamknieta) {
+      this.logger.error(
+        `checkout ${opts.sessionId}: opłacona subskrypcja ${opts.stripeSubscriptionId} dla zamówienia ${sub.id} ` +
+          `(status=${sub.status}, zapisana=${sub.stripeSubscriptionId ?? '—'}) — anuluję w Stripe, zwrot przez obsługę`,
+      );
+      await this.stripe.cancelSubscription(opts.stripeSubscriptionId, { atPeriodEnd: false }).catch((err: Error) =>
+        this.logger.error(`Nie anulowano subskrypcji Stripe ${opts.stripeSubscriptionId}: ${err.message}`),
+      );
+      await this.audit.record({
+        action: 'STRIPE_CHECKOUT_DO_ZWROTU',
+        userId: sub.userId,
+        details: {
+          subscriptionId: sub.id,
+          status: sub.status,
+          stripeSubscriptionId: opts.stripeSubscriptionId,
+          zapisanaSubskrypcja: sub.stripeSubscriptionId,
+          stripeCheckoutSessionId: opts.sessionId,
+        },
+      });
+      return sub;
+    }
+    if (!sub.stripeSubscriptionId) {
+      await this.prisma.subscription.updateMany({
+        where: { id: sub.id, stripeSubscriptionId: null },
+        data: { stripeSubscriptionId: opts.stripeSubscriptionId },
+      });
+    }
+    return this.prisma.subscription.findUnique({ where: { id: sub.id } });
   }
 
   /**

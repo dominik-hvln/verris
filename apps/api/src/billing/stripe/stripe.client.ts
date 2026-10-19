@@ -23,6 +23,11 @@ export interface StripeCheckoutSession {
   customer_email: string | null;
   metadata: Record<string, string> | null;
   payment_intent: string | null;
+  /** `open` | `complete` | `expired` — https://docs.stripe.com/api/checkout/sessions/object#checkout_session_object-status */
+  status?: string | null;
+  /** Tryb `subscription`: id subskrypcji Stripe utworzonej przez sesję (po opłaceniu). */
+  subscription?: string | null;
+  mode?: string | null;
 }
 
 export interface StripeCustomer {
@@ -102,11 +107,11 @@ export interface StripeInvoice {
   parent?:
     | {
         type: 'subscription_details';
-        subscription_details: { subscription: string | null } | null;
+        subscription_details: { subscription: string | null; metadata?: Record<string, string> | null } | null;
       }
     | {
         type: string;
-        subscription_details?: { subscription: string | null } | null;
+        subscription_details?: { subscription: string | null; metadata?: Record<string, string> | null } | null;
       }
     | null;
 
@@ -253,6 +258,17 @@ export function getInvoiceSubscriptionId(invoice: StripeInvoice): string | null 
 }
 
 /**
+ * Metadane subskrypcji, z której powstała faktura (stan z chwili finalizacji faktury). Stripe nie kopiuje metadanych
+ * subskrypcji do `invoice.metadata` — leżą w `invoice.parent.subscription_details.metadata`
+ * (https://docs.stripe.com/api/invoices/object#invoice_object-parent-subscription_details-metadata).
+ * Dla subskrypcji z Checkout to jedyne powiązanie z naszym zamówieniem, zanim zapiszemy `stripeSubscriptionId`
+ * (kolejność zdarzeń webhooka nie jest gwarantowana).
+ */
+export function getInvoiceSubscriptionMetadata(invoice: StripeInvoice): Record<string, string> | null {
+  return invoice.parent?.subscription_details?.metadata ?? null;
+}
+
+/**
  * Returns the `client_secret` the customer needs to confirm the first payment
  * of a Payment Element subscription flow.
  *
@@ -355,6 +371,46 @@ export class StripeClient {
 
   async retrieveCheckoutSession(id: string): Promise<StripeCheckoutSession> {
     return this.request<StripeCheckoutSession>('GET', `/checkout/sessions/${encodeURIComponent(id)}`);
+  }
+
+  /**
+   * 19.10 — pierwsza płatność za usługę kartą przez Stripe Checkout w trybie `subscription`. Zastępuje Hosted Invoice
+   * Page, która nie ma powrotu do sklepu: Checkout po płatności wraca na `success_url`, po rezygnacji na `cancel_url`
+   * (https://docs.stripe.com/api/checkout/sessions/create, https://docs.stripe.com/payments/checkout/custom-success-page).
+   * Subskrypcję tworzy Stripe dopiero po płatności; `subscription_data[metadata]` trafia do niej i do jej faktur
+   * (`parent.subscription_details.metadata`), więc webhook wiąże ją z naszym zamówieniem.
+   */
+  async createSubscriptionCheckoutSession(input: {
+    customerId: string;
+    priceId: string;
+    successUrl: string;
+    cancelUrl: string;
+    clientReferenceId: string;
+    /** Metadane sesji (webhook `checkout.session.completed`). */
+    metadata: Record<string, string>;
+    /** Metadane tworzonej subskrypcji. */
+    subscriptionMetadata: Record<string, string>;
+  }): Promise<StripeCheckoutSession> {
+    const body = new URLSearchParams();
+    body.set('mode', 'subscription');
+    body.set('customer', input.customerId);
+    body.set('line_items[0][price]', input.priceId);
+    body.set('line_items[0][quantity]', '1');
+    body.set('success_url', input.successUrl);
+    body.set('cancel_url', input.cancelUrl);
+    body.set('client_reference_id', input.clientReferenceId);
+    body.set('locale', 'pl');
+    for (const [k, v] of Object.entries(input.metadata)) body.set(`metadata[${k}]`, v);
+    for (const [k, v] of Object.entries(input.subscriptionMetadata)) body.set(`subscription_data[metadata][${k}]`, v);
+    return this.request<StripeCheckoutSession>('POST', '/checkout/sessions', body);
+  }
+
+  /**
+   * Zamyka otwartą sesję Checkout, żeby nie dało się już zapłacić (anulowane zamówienie, nowa sesja przy ponowieniu).
+   * https://docs.stripe.com/api/checkout/sessions/expire — działa tylko dla sesji `open`.
+   */
+  async expireCheckoutSession(id: string): Promise<StripeCheckoutSession> {
+    return this.request<StripeCheckoutSession>('POST', `/checkout/sessions/${encodeURIComponent(id)}/expire`, new URLSearchParams());
   }
 
   // ---------------------------------------------------------------------------

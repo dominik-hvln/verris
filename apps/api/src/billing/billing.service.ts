@@ -24,6 +24,7 @@ import { powodNieaktualnejProformy } from './proforma.service.js';
 import { StripeService } from './stripe/stripe.service.js';
 import {
   getInvoiceSubscriptionId,
+  getInvoiceSubscriptionMetadata,
   getSubscriptionPeriod,
   StripeInvoice,
   StripeSubscription,
@@ -1801,7 +1802,22 @@ export class BillingService {
       client_reference_id?: string;
       metadata?: Record<string, string> | null;
       payment_intent?: string;
+      subscription?: string | null;
     };
+
+    // 19.10 — pierwsza płatność za usługę kartą (Checkout w trybie `subscription`): tylko powiązanie subskrypcji Stripe
+    // z zamówieniem. Aktywacja i faktura — przy `invoice.paid`; to nie jest doładowanie portfela.
+    if (session.metadata?.kind === 'subscription') {
+      const verrisSubscriptionId = session.metadata.verrisSubscriptionId;
+      if (verrisSubscriptionId && session.id) {
+        await this.subscriptions.powiazSubskrypcjeZCheckout({
+          verrisSubscriptionId,
+          stripeSubscriptionId: session.subscription ?? null,
+          sessionId: session.id,
+        });
+      }
+      return;
+    }
 
     if (session.payment_status !== 'paid') {
       this.logger.warn(`Ignoring session ${session.id} — payment_status=${session.payment_status}`);
@@ -2017,8 +2033,10 @@ export class BillingService {
     // it's set in `SubscriptionsService.startStripeRecurring`. Some invoice
     // events (`invoice.created` for the first cycle) don't echo subscription
     // metadata directly — rely on `subscription` field + on-file mapping.
-    const verrisSubscriptionId = invoice.metadata?.verrisSubscriptionId ?? null;
-    let verrisUserId = invoice.metadata?.verrisUserId ?? null;
+    // 19.10 — subskrypcja z Checkout: metadane są na subskrypcji, w fakturze w `parent.subscription_details.metadata`.
+    const metaSubskrypcji = getInvoiceSubscriptionMetadata(invoice);
+    const verrisSubscriptionId = invoice.metadata?.verrisSubscriptionId ?? metaSubskrypcji?.verrisSubscriptionId ?? null;
+    let verrisUserId = invoice.metadata?.verrisUserId ?? metaSubskrypcji?.verrisUserId ?? null;
     let localSubscription: { id: string; userId: string } | null = null;
 
     if (subscriptionId) {
@@ -2114,11 +2132,12 @@ export class BillingService {
       return;
     }
 
-    const verrisSubscriptionId = invoice.metadata?.verrisSubscriptionId ?? null;
+    const metaSubskrypcji = getInvoiceSubscriptionMetadata(invoice);
+    const verrisSubscriptionId = invoice.metadata?.verrisSubscriptionId ?? metaSubskrypcji?.verrisSubscriptionId ?? null;
 
     // Mirror the row even on failure so the customer sees the OPEN invoice in
     // the UI. We only need to look up the user — fall back to the customer.
-    let verrisUserId = invoice.metadata?.verrisUserId ?? null;
+    let verrisUserId = invoice.metadata?.verrisUserId ?? metaSubskrypcji?.verrisUserId ?? null;
     if (!verrisUserId && invoice.customer) {
       const userByCustomer = await this.prisma.user.findUnique({
         where: { stripeCustomerId: invoice.customer },

@@ -31,6 +31,16 @@ export async function convertTrialAction(
   }
 }
 
+/** 19.10 — stan usługi po powrocie z płatności kartą (baner na stronie usługi czeka na aktywację). */
+export async function stanUslugiPoPlatnosciAction(subscriptionId: string): Promise<ActionResult<{ status: string }>> {
+  try {
+    const data = await apiFetch<{ status: string }>(`/subscriptions/${subscriptionId}`);
+    return { ok: true, data: { status: data.status } };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Nie udało się sprawdzić stanu usługi' };
+  }
+}
+
 export async function retrySubscriptionPaymentAction(
   subscriptionId: string,
 ): Promise<ActionResult<{ url: string }>> {

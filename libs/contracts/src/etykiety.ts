@@ -94,6 +94,7 @@ export const TICKET_DEPARTMENT_PL: Record<string, string> = {
 export const SERVICE_EVENT_PL: Record<string, string> = {
   CREATED: 'Usługa zamówiona',
   PROVISIONING_INTENT: 'Zaczęliśmy zakładać konto',
+  STRIPE_CHECKOUT: 'Przygotowaliśmy płatność kartą',
   ACCOUNT_PROVISIONED: 'Konto hostingowe gotowe',
   ACTIVATED: 'Usługa aktywna',
   RENEWED: 'Usługa odnowiona',
