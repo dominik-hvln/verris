@@ -1,5 +1,5 @@
 import { bladDa } from './directadmin.service.js';
-import { opiszOdpowiedz } from './sonda-da.js';
+import { opiszOdpowiedz, odczytySondy } from './sonda-da.js';
 import { zCronowDa } from './directadmin.service.js';
 
 describe('sonda API DA — kształt bez wartości', () => {
@@ -39,5 +39,15 @@ describe('sonda i cron — formaty z żywego DA (t1, 28.09)', () => {
     ]);
     expect(zCronowDa('')).toEqual([]);
     expect(() => zCronowDa('<!DOCTYPE html>')).toThrow();
+  });
+});
+
+describe('sonda: odczyty tylko bez json=yes (19.10, TEST-02)', () => {
+  it('CMD_API_CUSTOM_HTTPD bez wariantu JSON (DA zwraca 502, panel czyta surowy plik), reszta w obu', () => {
+    const zJson = odczytySondy(true).map((o) => o.sciezka);
+    const bezJson = odczytySondy(false).map((o) => o.sciezka);
+    expect(zJson).not.toContain('/CMD_API_CUSTOM_HTTPD?domain={D}');
+    expect(bezJson).toContain('/CMD_API_CUSTOM_HTTPD?domain={D}');
+    expect(bezJson.length - zJson.length).toBe(1);
   });
 });

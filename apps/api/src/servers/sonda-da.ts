@@ -3,10 +3,20 @@
  * DA 1.710 nie zwraca (lista DNS, Custom HTTPD). Sonda robi te same odczyty co panel — z control-plane,
  * kluczami, które API już ma — i zwraca tylko kształt odpowiedzi: kod HTTP, format i NAZWY pól, bez wartości.
  */
+/** Odczyty sondy dla wariantu z `json=yes` albo bez — odczyty `bezJson` tylko bez. */
+export function odczytySondy(json: boolean) {
+  return ODCZYTY_DA.filter((o) => !(json && o.bezJson));
+}
+
 export type WynikSondy = { poziom: 'konto' | 'admin'; sciezka: string; json: boolean; kod: number; format: string; ksztalt: string };
 
 /** Odczyty panelu (tylko GET, nic nie zmieniają). `{D}` = domena konta. */
-export const ODCZYTY_DA: Array<{ poziom: 'konto' | 'admin'; sciezka: string }> = [
+/**
+ * `bezJson`: odczyt, który panel robi wyłącznie bez `json=yes`. 19.10 (TEST-02): `CMD_API_CUSTOM_HTTPD` z `json=yes`
+ * daje 502 z pustą treścią — GET wg dokumentacji DA (changelog 1.26.0) zrzuca surowy plik `domain.cust_httpd`
+ * (docroot.ts, trescCustomHttpd), a panel woła go z `api=yes` bez json. Wariant JSON to fałszywy alarm w sondzie.
+ */
+export const ODCZYTY_DA: Array<{ poziom: 'konto' | 'admin'; sciezka: string; bezJson?: boolean }> = [
   { poziom: 'konto', sciezka: '/CMD_API_SHOW_DOMAINS' },
   { poziom: 'konto', sciezka: '/CMD_API_SHOW_USER_CONFIG' },
   { poziom: 'konto', sciezka: '/CMD_API_SHOW_USER_USAGE' },
@@ -25,7 +35,7 @@ export const ODCZYTY_DA: Array<{ poziom: 'konto' | 'admin'; sciezka: string }> =
   { poziom: 'konto', sciezka: '/CMD_API_CRON_JOBS' },
   { poziom: 'konto', sciezka: '/CMD_API_SITE_BACKUP?domain={D}' },
   { poziom: 'konto', sciezka: '/CMD_API_FILE_MANAGER?path=/domains/{D}' },
-  { poziom: 'admin', sciezka: '/CMD_API_CUSTOM_HTTPD?domain={D}' },
+  { poziom: 'admin', sciezka: '/CMD_API_CUSTOM_HTTPD?domain={D}', bezJson: true },
   { poziom: 'admin', sciezka: '/CMD_API_DNS_ADMIN?domain={D}&action=dnssec&value=get_keys' },
   { poziom: 'admin', sciezka: '/CMD_API_SHOW_USERS' },
   { poziom: 'admin', sciezka: '/CMD_API_IP_CONFIG' },

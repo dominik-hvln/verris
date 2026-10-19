@@ -1,7 +1,7 @@
 import { blokHtaccessPhp, odczytajUserIni, sprawdzUstawieniaPhp, type UstawieniaPhp } from './php-ini.js';
 import * as dnsPubliczny from 'node:dns/promises';
 import { statusOffsite } from './offsite-status.js';
-import { ODCZYTY_DA, opiszOdpowiedz, type WynikSondy } from './sonda-da.js';
+import { odczytySondy, opiszOdpowiedz, type WynikSondy } from './sonda-da.js';
 import { normalizujKatalogDocroot, odczytajDocroot, trescCustomHttpd, zapiszDocroot } from './docroot.js';
 import {
   BadRequestException,
@@ -154,7 +154,7 @@ export class DirectAdminService {
     };
     const wyniki: WynikSondy[] = [];
     for (const json of [true, false]) {
-      for (const o of ODCZYTY_DA) {
+      for (const o of odczytySondy(json)) {
         const sciezka = o.sciezka.replace('{D}', konto.domain);
         const k = klienci[o.poziom];
         let kod = 0;
