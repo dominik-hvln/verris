@@ -475,7 +475,7 @@ export function NodeWizard() {
                     className="wizard-input"
                   />
                   <span className="text-[11px] text-muted-foreground">
-                    Wymagany — wildcard <code>*.verris.pl</code> i linki panelu działają po hostname.
+                    Wymagany — certyfikat panelu (Let&apos;s Encrypt) i linki panelu działają po hostname.
                     Rekord A tej nazwy i para NS z glue zakładają się w OVH same (faza „Canary + NS” i zatwierdzenie węzła).
                   </span>
                 </label>

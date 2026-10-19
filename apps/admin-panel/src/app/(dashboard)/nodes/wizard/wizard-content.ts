@@ -270,6 +270,7 @@ export const DOD_ACTIVE_CHECKLIST = [
   "Onboard LIVE wykonany: hardening + egress lockdown + publiczne IP w DA",
   "Pakiety DA starter/pro/business z realnymi limitami (NIE „Bez ograniczeń”), język PL",
   "Profil hostingowy (Governor/LiteSpeed) wykonany — task SUCCESS",
-  "Wildcard *.verris.pl na :2222 (CN/SAN, nie IP) + weryfikacja cert w API włączona",
+  // Decyzja 17.10 (PB-31): bez wildcardu na węzłach — certyfikat nazwy hosta z Let's Encrypt przez DA (faza TLS bootstrapu).
+  "Panel :2222 z certyfikatem Let's Encrypt dla nazwy hosta (faza TLS bootstrapu) + weryfikacja cert w API włączona",
   "Smoke: zakup planu → konto DA z limitami planu",
 ];

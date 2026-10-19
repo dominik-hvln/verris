@@ -212,10 +212,34 @@ sprawdz_tls_panelu() {
   fi
 }
 
+# 19.10 — domyślni użytkownicy obrazów chmurowych (cloud-init) nie mogą mieć sudo ani działającego logowania
+# (blokuje ich security-hardening-baseline.sh). Zostawiony `almalinux` z NOPASSWD: ALL = root bez hasła.
+sprawdz_uzytkownikow_obrazu() {
+  local u znalezione=""
+  for u in almalinux cloud-user ec2-user rocky centos; do
+    id "$u" >/dev/null 2>&1 || continue
+    if sudo -l -U "$u" 2>/dev/null | grep -q 'may run the following'; then
+      log_fail "użytkownik obrazu $u ma sudo — security-hardening-baseline.sh (zablokuj_uzytkownikow_obrazu)"
+      continue
+    fi
+    if ! passwd -S "$u" 2>/dev/null | grep -qE '^[^ ]+ (L|LK) '; then
+      log_fail "użytkownik obrazu $u ma aktywne hasło — security-hardening-baseline.sh"
+      continue
+    fi
+    znalezione="$znalezione $u"
+  done
+  if [ -n "$znalezione" ]; then
+    log_ok "domyślni użytkownicy obrazu zablokowani:$znalezione"
+  else
+    log_ok "brak domyślnych użytkowników obrazu z dostępem"
+  fi
+}
+
 verify_live_readiness() {
   log_step "5/5 Weryfikacja LIVE"
 
   sprawdz_tls_panelu
+  sprawdz_uzytkownikow_obrazu
 
   # MariaDB
   if getent passwd mysql >/dev/null 2>&1; then

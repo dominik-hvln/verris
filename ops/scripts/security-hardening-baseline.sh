@@ -194,6 +194,46 @@ EOF"
   fi
 }
 
+# 19.10 (TEST-02, Contabo): obraz chmurowy zostawia domyślnego użytkownika cloud-init (AlmaLinux „almalinux”,
+# RHEL „cloud-user”, Amazon „ec2-user”, Rocky „rocky”, CentOS „centos”) z `NOPASSWD: ALL` w sudoers.d
+# (90-cloud-init-users) i w grupie adm. Na węźle nikt się na niego nie loguje (SSH: root kluczem deploy z control-plane),
+# a CageFS liczył go jako konto. Blokujemy, nie usuwamy (bez kasowania danych): hasło zablokowane, konto wygasłe
+# (sshd z PAM odmawia też logowania kluczem), powłoka nologin, bez grup uprzywilejowanych, bez wpisu sudo.
+# Polecenia: usermod(8) -L/-e/-s, gpasswd(1) -d, visudo(8) -c.
+UZYTKOWNICY_OBRAZU="almalinux cloud-user ec2-user rocky centos"
+SUDOERS_D="${SUDOERS_D:-/etc/sudoers.d}"
+zablokuj_uzytkownikow_obrazu() {
+  [ "$ROLE" = "node" ] || return 0
+  local u g f
+  for u in $UZYTKOWNICY_OBRAZU; do
+    id "$u" >/dev/null 2>&1 || continue
+    run "usermod -L -e 1 -s /sbin/nologin '$u'"
+    for g in wheel sudo adm systemd-journal; do
+      if id -nG "$u" 2>/dev/null | tr ' ' '\n' | grep -qx "$g"; then
+        run "gpasswd -d '$u' '$g' >/dev/null"
+      fi
+    done
+    for f in "$SUDOERS_D"/*; do
+      [ -f "$f" ] || continue
+      if grep -qE "^[[:space:]]*${u}[[:space:]]" "$f"; then
+        run "sed -i -E '/^[[:space:]]*${u}[[:space:]]/d' '$f'"
+      fi
+    done
+    log "Zablokowano domyślnego użytkownika obrazu: $u"
+  done
+  run "visudo -c >/dev/null"
+  # Skutek, nie zapis: sudo nie może już nic pozwalać tym kontom.
+  if [ "$DRY_RUN" -eq 0 ]; then
+    for u in $UZYTKOWNICY_OBRAZU; do
+      id "$u" >/dev/null 2>&1 || continue
+      if sudo -l -U "$u" 2>/dev/null | grep -q 'may run the following'; then
+        echo "BŁĄD: użytkownik obrazu $u nadal ma uprawnienia sudo (sudo -l -U $u)." >&2
+        return 1
+      fi
+    done
+  fi
+}
+
 configure_auto_updates() {
   if command -v apt-get >/dev/null 2>&1; then
     run "cat > /etc/apt/apt.conf.d/52unattended-upgrades-verris <<'EOF'
@@ -352,6 +392,7 @@ log "Starting baseline hardening (role=${ROLE}, ssh_port=${SSH_PORT}, dry_run=${
 install_packages
 harden_sysctl
 harden_ssh
+zablokuj_uzytkownikow_obrazu
 configure_fail2ban
 configure_auto_updates
 configure_firewall_ingress
