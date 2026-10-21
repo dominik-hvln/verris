@@ -9,6 +9,7 @@ import { FalaTygodniowaScheduler } from './fala-tygodniowa.scheduler.js';
 import { SierotyScheduler } from './sieroty.scheduler.js';
 import { OnboardAdminController } from './onboard.admin.controller.js';
 import { KopieFlotyService } from './kopie-floty.js';
+import { AktualizacjeWezlowService } from './aktualizacje-wezlow.service.js';
 import { PocztaWezlaAdminController, PocztaWezlaService } from './poczta-wezla.admin.controller.js';
 import { BackupOffsiteService } from './backup-offsite.service.js';
 import { Module } from '@nestjs/common';
@@ -70,6 +71,7 @@ import { StraznikWezlaAdminController, StraznikWezlaService } from './straznik-w
     SierotyScheduler,
     BackupOffsiteService,
     KopieFlotyService,
+    AktualizacjeWezlowService,
     NodeTasksService,
     NodeAuditService,
     NodeStackReadinessService,

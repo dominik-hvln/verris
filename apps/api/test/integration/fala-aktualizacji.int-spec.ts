@@ -91,4 +91,33 @@ describe('PB-32 — aktualizacja floty falą', () => {
     await wykonaj(a.id, false);
     expect(await serwis().stanFali()).toMatchObject({ stan: 'zatrzymana', pozostale: 1, wezly: [{ nazwa: 'alfa', status: 'FAILED', blad: 'build all d' }] });
   });
+
+  // 21.10 — weryfikator aktualizacji: fala samych poprawek bezpieczeństwa niesie tryb, CVE i CustomBuild do każdego węzła.
+  it('fala poprawek bezpieczeństwa: tryb i CVE w payloadzie kanarka i następnych węzłów; „serwery” zawęża falę', async () => {
+    const plan = await utworzPlan();
+    const a = await wezel('bez-a');
+    const b = await wezel('bez-b');
+    const poza = await wezel('bez-poza');
+    await utworzKonto({ serverId: b.id, planId: plan.id });
+    await serwis().queueFleetUpdate(null, { tryb: 'bezpieczenstwo', cve: ['CVE-2026-109618'], custombuild: true, serwery: [a.id, b.id] });
+    const pierwsze = await prisma().nodeTask.findFirstOrThrow({ where: { serverId: a.id, kind: 'FLEET_UPDATE' } });
+    expect(pierwsze.payload).toMatchObject({ tryb: 'bezpieczenstwo', cve: 'CVE-2026-109618', custombuild: '1', fala: { razem: 2, kolejka: [b.id] } });
+    expect(pierwsze.payload).not.toHaveProperty('wyrownaj');
+    await wykonaj(a.id, true);
+    const drugie = await prisma().nodeTask.findFirstOrThrow({ where: { serverId: b.id, kind: 'FLEET_UPDATE' } });
+    expect(drugie.payload).toMatchObject({ tryb: 'bezpieczenstwo', cve: 'CVE-2026-109618', custombuild: '1' });
+    expect(await prisma().nodeTask.count({ where: { serverId: poza.id } })).toBe(0);
+    const audyt = await prisma().auditLog.findFirstOrThrow({ where: { action: 'FLEET_UPDATE_QUEUED' } });
+    expect(audyt.details).toMatchObject({ tryb: 'bezpieczenstwo', cve: ['CVE-2026-109618'], custombuild: true });
+    await wykonaj(b.id, true);
+    expect(await serwis().stanFali()).toMatchObject({ stan: 'zakonczona', tryb: 'bezpieczenstwo', cve: ['CVE-2026-109618'] });
+  });
+
+  it('zwykła fala bez zmian: brak trybu w payloadzie, tryb w stanie = null', async () => {
+    const w = await wezel('zwykly');
+    await serwis().queueFleetUpdate(null);
+    const t = await prisma().nodeTask.findFirstOrThrow({ where: { serverId: w.id, kind: 'FLEET_UPDATE' } });
+    expect(t.payload).not.toHaveProperty('tryb');
+    expect(await serwis().stanFali()).toMatchObject({ tryb: null, cve: [] });
+  });
 });

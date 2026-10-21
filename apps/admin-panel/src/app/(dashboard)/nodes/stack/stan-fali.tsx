@@ -66,7 +66,9 @@ export function StanFaliPanel() {
   return (
     <div className="flex flex-col gap-2" data-fala={stan.stan}>
       <p className="text-sm">
-        Ostatnia fala{stan.wyrownaj ? " (wyrównanie do manifestu)" : ""} z {czas(stan.rozpoczeta)}:{" "}
+        Ostatnia fala
+        {stan.wyrownaj ? " (wyrównanie do manifestu)" : ""}
+        {stan.tryb === "bezpieczenstwo" ? ` (poprawki bezpieczeństwa${stan.cve?.length ? `: ${stan.cve.join(", ")}` : ""})` : ""} z {czas(stan.rozpoczeta)}:{" "}
         <span className={`font-semibold ${s.klasa}`}>{s.tekst}</span>
         {stan.pozostale > 0 ? ` · pozostało węzłów: ${stan.pozostale} z ${stan.razem}` : ` · węzłów: ${stan.razem}`}
         <button type="button" onClick={() => void odswiez()} className="ml-3 text-xs underline text-muted-foreground hover:text-foreground">

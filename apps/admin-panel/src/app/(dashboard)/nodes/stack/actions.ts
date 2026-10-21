@@ -72,6 +72,9 @@ export async function wyslijPakietyNaFlote(): Promise<Wynik<WynikSyncuFloty>> {
 export interface StanFali {
   id: string;
   wyrownaj: boolean;
+  /** 21.10 — fala samych poprawek bezpieczeństwa (null = pełna aktualizacja). */
+  tryb?: "bezpieczenstwo" | null;
+  cve?: string[];
   razem: number;
   stan: "trwa" | "zakonczona" | "zatrzymana" | "przerwana";
   pozostale: number;

@@ -152,6 +152,12 @@ export function grupy(l: LicznikiMenu | null): Grupa[] {
               perm: "NODES_MANAGE",
               szukaj: "wersje stosu manifest php mariadb litespeed aktualizacje aktualizuj flotę wyrównaj flotę wyślij pakiety directadmin",
             },
+            {
+              name: "Aktualizacje bezpieczeństwa",
+              href: "/nodes/aktualizacje",
+              perm: "NODES_VIEW",
+              szukaj: "cve luki podatności poprawki bezpieczeństwa security advisory dnf alt-php custombuild",
+            },
           ],
         },
         {

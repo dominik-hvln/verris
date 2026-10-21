@@ -19,6 +19,12 @@
 #      Osobny POST /telemetry/lve z blokiem `faults`; błąd narzędzia idzie jako `faults.error`, nie jako zera.
 #   4. WATCHDOG USŁUG (F3.4) — w bloku `node` stan usług z białej listy panelu (systemctl show); API liczy z niego
 #      metrykę verris_node_services_down i alert VerrisUslugaWezlaNieDziala.
+#   5. AKTUALIZACJE (21.10, co ~6 h albo od razu po /var/run/verris-aktualizacje.wymus) — oczekujące poprawki
+#      bezpieczeństwa z dnf (advisory, waga, pakiet, CVE), składniki CustomBuild z nowszą wersją (`./build versions`,
+#      https://docs.directadmin.com/custombuild/upgrading-services.html) i pełne wersje alt-php. Osobny POST
+#      /telemetry/lve z blokiem `aktualizacje` (kształt: libs/contracts/src/aktualizacje-wezla.ts); błąd narzędzia idzie
+#      jako `blad`, nie jako pusta lista („brak poprawek”). Krok jest ostatni w cyklu: dnf trwa do kilku minut, a blokada
+#      pliku (flock) w tym czasie wstrzymuje tylko kolejne cykle tego agenta.
 #
 # WHY lvectl and not DirectAdmin: verified on DA 1.697 + CloudLinux 10 that
 # CMD_API_MODIFY_USER / CMD_API_MANAGE_USER_PACKAGES return error=0 but do NOT
@@ -82,11 +88,22 @@ SID   = os.environ["VERRIS_SERVER_ID"]
 TOK   = os.environ["VERRIS_IDENTITY_TOKEN"]
 STATE = os.environ.get("STATE", "/var/run/verris-lve.state.json")
 LOG   = os.environ.get("LOG", "/var/log/verris-lve.log")
-AGENT_VERSION = "lve-agent/1.3"
+AGENT_VERSION = "lve-agent/1.4"
 FAULTS_STATE = "/var/run/verris-lve.faults.json"
 FAULTS_EVERY_S = 600
 FAULTS_LIMIT = 200
 FAULTS_STAT_BIN = "cloudlinux-statistics"
+AKT_STATE = "/var/run/verris-aktualizacje.json"
+AKT_WYMUS = "/var/run/verris-aktualizacje.wymus"
+AKT_EVERY_S = 6 * 3600
+# Po nieudanym wysłaniu przy pliku wymuszenia — następna próba najwcześniej po 5 min (nie dnf co minutę).
+AKT_RETRY_S = 300
+AKT_DNF_BIN = "dnf"
+AKT_RPM_BIN = "rpm"
+AKT_CB_DIR = "/usr/local/directadmin/custombuild"
+AKT_TIMEOUT_S = 180
+AKT_MAKS_POPRAWEK = 500
+AKT_MAKS_CVE = 50
 HDR = {"X-Server-Id": SID, "X-Server-Token": TOK}
 
 def log(msg):
@@ -592,6 +609,142 @@ def report_faults(desired, desired_ok):
         log("faults: %s" % ", ".join("%dh=%d" % (w["hours"], len(w["accounts"])) for w in report["windows"]))
 
 # --------------------------------------------------------------------------
+# 5) AKTUALIZACJE — oczekujące poprawki bezpieczeństwa (weryfikator aktualizacji, 21.10)
+# --------------------------------------------------------------------------
+# dnf 4 (AlmaLinux / CloudLinux 10), polecenie `updateinfo list` — jedna linia na parę (poprawka, pakiet):
+#   `dnf -q updateinfo list --security --available`             → „ALSA-2026:1234 Important/Sec. php-cli-8.3.12-1.el10.x86_64”
+#   `dnf -q updateinfo list --security --available --with-cve`  → „CVE-2026-1234 Important/Sec. php-cli-8.3.12-1.el10.x86_64”
+# (dnf(8), sekcja „Updateinfo Command”: --security, --available, --with-cve). Waga przed „/Sec.” jest opcjonalna
+# (advisory bez Severity → „Sec.”) — wtedy 'Unknown'. CVE łączymy z poprawką po pełnej nazwie pakietu (NEVRA): każda
+# poprawka podnosi pakiet do własnej wersji, więc para (advisory, NEVRA) jest jednoznaczna. Linie nieczytelne pomijamy;
+# kod wyjścia ≠ 0 albo przekroczony czas = `blad` (nigdy pusta lista, która wyglądałaby jak „wszystko załatane”).
+AKT_WAGI = ("Critical", "Important", "Moderate", "Low")
+AKT_LINIA_RE = re.compile(r"^\s*(?:i\s+)?(\S+)\s+(?:(Critical|Important|Moderate|Low)/)?Sec\.\s+(\S+)\s*$")
+AKT_CVE_RE = re.compile(r"^CVE-\d{4}-\d{4,7}$")
+# `./build versions` (DirectAdmin CustomBuild) — dla nieaktualnego składnika linia „<nazwa> <ma> to <nowa> update is available.”
+AKT_CB_RE = re.compile(r"^(.+?)\s+(\S+)\s+to\s+(\S+)\s+update is available\.?\s*$")
+
+class AktualizacjeError(Exception):
+    pass
+
+def akt_uruchom(cmd, cwd=None):
+    nazwa = os.path.basename(cmd[0])
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=AKT_TIMEOUT_S, cwd=cwd)
+    except FileNotFoundError:
+        raise AktualizacjeError("brak %s" % nazwa)
+    except subprocess.TimeoutExpired:
+        raise AktualizacjeError("%s: przekroczony czas (%d s)" % (nazwa, AKT_TIMEOUT_S))
+    if r.returncode != 0:
+        opis = ((r.stderr or r.stdout or "").strip().splitlines() or ["brak odpowiedzi"])[-1]
+        raise AktualizacjeError(("%s: exit %d, %s" % (nazwa, r.returncode, opis))[:300])
+    return r.stdout or ""
+
+def akt_linie_dnf(tekst):
+    for linia in tekst.splitlines():
+        m = AKT_LINIA_RE.match(linia)
+        if m:
+            yield m.group(1), m.group(2) or "Unknown", m.group(3)
+
+def akt_dnf():
+    try:
+        poprawki = akt_uruchom([AKT_DNF_BIN, "-q", "updateinfo", "list", "--security", "--available"])
+        cve = akt_uruchom([AKT_DNF_BIN, "-q", "updateinfo", "list", "--security", "--available", "--with-cve"])
+    except AktualizacjeError as e:
+        return {"poprawki": [], "blad": str(e)[:300]}
+    cve_pakietu = {}
+    for nr, _waga, pakiet in akt_linie_dnf(cve):
+        if AKT_CVE_RE.match(nr):
+            cve_pakietu.setdefault(pakiet, [])
+            if nr not in cve_pakietu[pakiet]:
+                cve_pakietu[pakiet].append(nr)
+    wynik, widziane = [], set()
+    for advisory, waga, pakiet in akt_linie_dnf(poprawki):
+        if AKT_CVE_RE.match(advisory) or (advisory, pakiet) in widziane:
+            continue
+        widziane.add((advisory, pakiet))
+        wynik.append({"advisory": advisory[:64], "waga": waga, "pakiet": pakiet[:200],
+                      "cve": sorted(cve_pakietu.get(pakiet, []))[:AKT_MAKS_CVE]})
+    # Najważniejsze pierwsze — przy obcięciu do limitu odpadają poprawki o najniższej wadze.
+    kolejnosc = {w: i for i, w in enumerate(AKT_WAGI + ("Unknown",))}
+    wynik.sort(key=lambda p: (kolejnosc.get(p["waga"], 9), p["advisory"], p["pakiet"]))
+    return {"poprawki": wynik[:AKT_MAKS_POPRAWEK]}
+
+def akt_custombuild():
+    if not os.path.isdir(AKT_CB_DIR):
+        return None
+    try:
+        tekst = akt_uruchom(["./build", "versions"], cwd=AKT_CB_DIR)
+    except AktualizacjeError as e:
+        return {"aktualizacje": [], "blad": str(e)[:300]}
+    wynik = []
+    for linia in tekst.splitlines():
+        m = AKT_CB_RE.match(linia.strip())
+        if m:
+            wynik.append({"nazwa": m.group(1)[:80], "z": m.group(2)[:40], "na": m.group(3)[:40]})
+    return {"aktualizacje": wynik[:AKT_MAKS_POPRAWEK]}
+
+def akt_alt_php():
+    # Pakiety alt-phpXY-cli (CloudLinux PHP Selector): wersja główna z nazwy, pełna z pola VERSION.
+    try:
+        r = subprocess.run([AKT_RPM_BIN, "-qa", "--qf", "%{NAME} %{VERSION}\n", "alt-php*-cli"],
+                           capture_output=True, text=True, timeout=30)
+    except Exception:
+        return {}
+    wersje = {}
+    for linia in (r.stdout or "").splitlines():
+        m = re.match(r"^alt-php(\d)(\d+)-cli ([0-9][0-9A-Za-z.]{0,39})$", linia.strip())
+        if m:
+            wersje["%s.%s" % (m.group(1), m.group(2))] = m.group(3)
+    return wersje
+
+def aktualizacje_raport():
+    return {
+        "sprawdzono": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "dnf": akt_dnf(),
+        "custombuild": akt_custombuild(),
+        "altPhp": akt_alt_php(),
+    }
+
+def aktualizacje_due(now):
+    wymus = os.path.exists(AKT_WYMUS)
+    try:
+        with open(AKT_STATE) as f:
+            ts = float(json.load(f).get("ts", 0))
+    except Exception:
+        return True
+    return now - ts >= (AKT_RETRY_S if wymus else AKT_EVERY_S)
+
+def report_aktualizacje():
+    now = time.time()
+    if not aktualizacje_due(now):
+        return
+    # Stan przed odczytem (jak faulty): błąd API nie powoduje dnf co minutę.
+    try:
+        with open(AKT_STATE, "w") as f:
+            json.dump({"ts": now}, f)
+    except Exception as e:
+        log("aktualizacje state save failed: %s" % e)
+    wymus = os.path.exists(AKT_WYMUS)
+    raport = aktualizacje_raport()
+    try:
+        # Osobny POST: API bez obsługi `aktualizacje` odrzuci tylko ten raport, nie telemetrię zużycia.
+        api_post("/telemetry/lve", {"agentVersion": AGENT_VERSION, "accounts": [], "aktualizacje": raport})
+    except Exception as e:
+        log("aktualizacje POST failed: %s" % e)
+        return
+    if wymus:
+        try:
+            os.remove(AKT_WYMUS)
+        except Exception:
+            pass
+    d = raport["dnf"]
+    log("aktualizacje: dnf=%s custombuild=%s alt-php=%s" % (
+        d.get("blad") or len(d["poprawki"]),
+        "brak" if raport["custombuild"] is None else (raport["custombuild"].get("blad") or len(raport["custombuild"]["aktualizacje"])),
+        ",".join("%s:%s" % kv for kv in sorted(raport["altPhp"].items())) or "-"))
+
+# --------------------------------------------------------------------------
 def main():
     desired_ok = False
     try:
@@ -619,6 +772,10 @@ def main():
         report_faults(desired, desired_ok)
     except Exception as e:
         log("faults error: %s" % e)
+    try:
+        report_aktualizacje()
+    except Exception as e:
+        log("aktualizacje error: %s" % e)
 
 main()
 PYEOF

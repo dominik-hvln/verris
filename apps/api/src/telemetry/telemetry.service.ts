@@ -1,8 +1,19 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Account, Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CloudLinuxTelemetryDto } from './telemetry.dto.js';
 import { raportDoZapisu } from './faulty-lve.js';
+import { AlarmyService } from '../alarmy/alarmy.service.js';
+import {
+  noweDoAlarmu,
+  oczyscRaportAktualizacji,
+  stanAktualizacjiZBazy,
+  trescAlarmuCustomBuild,
+  trescAlarmuPoprawek,
+} from './aktualizacje-wezla.js';
+
+/** Alarm o tej samej poprawce na tym samym węźle najwyżej raz na 7 dni. */
+const COOLDOWN_ALARMU_AKTUALIZACJI_MIN = 7 * 24 * 60;
 
 const DEFAULT_BUCKET_S = 60;
 const MIN_BUCKET_S = 15;
@@ -33,7 +44,11 @@ interface ProcessResult {
 export class TelemetryService {
   private readonly logger = new Logger(TelemetryService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    // 21.10 — alarmy o nowych poprawkach bezpieczeństwa (moduł globalny; w testach bez niego — bez alarmów).
+    @Optional() private readonly alarmy?: AlarmyService,
+  ) {}
 
   async processLveMetrics(
     data: CloudLinuxTelemetryDto & { serverId: string },
@@ -46,10 +61,23 @@ export class TelemetryService {
         `bucket=${bucketStart.toISOString()} duration=${bucketDurationS}s`,
     );
 
+    // 21.10 — raport aktualizacji: poprzedni stan potrzebny do wykrycia NOWYCH poprawek (alarm tylko o nich).
+    const aktualizacje = data.aktualizacje !== undefined ? oczyscRaportAktualizacji(data.aktualizacje) : null;
+    const poprzednieAktualizacje = aktualizacje
+      ? await this.prisma.server.findUnique({ where: { id: data.serverId }, select: { aktualizacje: true, name: true, hostname: true } })
+      : null;
+    if (data.aktualizacje !== undefined && !aktualizacje) {
+      this.logger.warn(`Nieczytelny raport aktualizacji z server=${data.serverId} — pominięty`);
+    }
+
     await this.prisma.server.update({
       where: { id: data.serverId },
       data: {
         lastHeartbeatAt: new Date(),
+        // 21.10 — raport aktualizacji nadpisuje poprzedni (także z błędem dnf); bez bloku zostaje ostatni.
+        ...(aktualizacje
+          ? { aktualizacje: aktualizacje as unknown as Prisma.InputJsonValue, aktualizacjeAt: new Date() }
+          : {}),
         agentVersion: data.agentVersion ?? undefined,
         // F2.6 — raport faultów nadpisuje poprzedni (także błędem narzędzia); bez bloku — zostaje ostatni raport.
         ...(data.faults
@@ -98,6 +126,15 @@ export class TelemetryService {
           : {}),
       },
     });
+
+    if (aktualizacje && poprzednieAktualizacje) {
+      await this.alarmujONowychAktualizacjach(
+        data.serverId,
+        poprzednieAktualizacje.name ?? poprzednieAktualizacje.hostname ?? data.serverId,
+        stanAktualizacjiZBazy(poprzednieAktualizacje.aktualizacje),
+        aktualizacje,
+      );
+    }
 
     if (data.accounts.length === 0) {
       return {
@@ -190,6 +227,49 @@ export class TelemetryService {
       bucketStart: bucketStart.toISOString(),
       bucketDurationS,
     };
+  }
+
+  /**
+   * 21.10 — alarm (panel + e-mail + push) o NOWYCH poprawkach o wadze Critical/Important i o nowych wersjach składników
+   * CustomBuild. Klucz z posortowanych advisory: ten sam zestaw drugi raz w ciągu 7 dni nie alarmuje. Błąd kanału alarmu
+   * nie psuje zapisu telemetrii.
+   */
+  private async alarmujONowychAktualizacjach(
+    serverId: string,
+    wezel: string,
+    poprzedni: ReturnType<typeof stanAktualizacjiZBazy>,
+    obecny: NonNullable<ReturnType<typeof oczyscRaportAktualizacji>>,
+  ) {
+    if (!this.alarmy) return;
+    const nowe = noweDoAlarmu(poprzedni, obecny);
+    try {
+      if (nowe.poprawki.length) {
+        const advisory = Array.from(new Set(nowe.poprawki.map((p) => p.advisory))).sort();
+        const { tytul, tresc } = trescAlarmuPoprawek(wezel, nowe.poprawki);
+        await this.alarmy.wyslij({
+          klucz: `aktualizacje:${serverId}:${advisory.join(',')}`.slice(0, 500),
+          tytul,
+          tresc,
+          link: '/nodes/aktualizacje',
+          waga: nowe.poprawki.some((p) => p.waga === 'Critical') ? 'krytyczny' : 'ostrzezenie',
+          cooldownMin: COOLDOWN_ALARMU_AKTUALIZACJI_MIN,
+        });
+      }
+      if (nowe.custombuild.length) {
+        const sklad = nowe.custombuild.map((c) => `${c.nazwa}@${c.na}`).sort();
+        const { tytul, tresc } = trescAlarmuCustomBuild(wezel, nowe.custombuild);
+        await this.alarmy.wyslij({
+          klucz: `aktualizacje:${serverId}:custombuild:${sklad.join(',')}`.slice(0, 500),
+          tytul,
+          tresc,
+          link: '/nodes/aktualizacje',
+          waga: 'info',
+          cooldownMin: COOLDOWN_ALARMU_AKTUALIZACJI_MIN,
+        });
+      }
+    } catch (err) {
+      this.logger.error(`Alarm o aktualizacjach server=${serverId}: ${(err as Error).message}`);
+    }
   }
 
   /**

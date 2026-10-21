@@ -34,7 +34,9 @@ import { UpdateServerDto } from './dto/update-server.dto.js';
 import { UpdateDirectAdminConfigDto } from './dto/directadmin-config.dto.js';
 import { UpdateNameserversDto } from './dto/nameservers.dto.js';
 import { QueueHostingProfileTaskDto } from './dto/queue-hosting-profile.dto.js';
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator';
+import { CVE_RE } from '@verris/contracts';
+import { AktualizacjeWezlowService } from './aktualizacje-wezlow.service.js';
 import { NodeTasksService } from './node-tasks.service.js';
 import { NodeAuditService } from './node-audit.service.js';
 import { DirectAdminService } from './directadmin.service.js';
@@ -80,6 +82,14 @@ class QueueDbUpgradeDto {
   version!: string;
 }
 
+/** 21.10 — „Zainstaluj poprawki bezpieczeństwa”: puste cve = wszystkie poprawki bezpieczeństwa z repozytoriów. */
+export class InstalacjaPoprawekDto {
+  @IsOptional() @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) @Matches(CVE_RE, { each: true, message: 'Numer CVE w postaci CVE-2026-12345.' })
+  cve?: string[];
+  @IsOptional() @IsBoolean() custombuild?: boolean;
+  @IsOptional() @IsArray() @ArrayMaxSize(200) @IsUUID('all', { each: true }) serwery?: string[];
+}
+
 @Controller('admin/servers')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
@@ -97,6 +107,7 @@ export class ServersAdminController {
     private readonly prisma: PrismaService,
     private readonly kopieFloty: KopieFlotyService,
     private readonly dziennik: AuditService,
+    private readonly aktualizacje?: AktualizacjeWezlowService,
   ) {}
 
   /**
@@ -269,6 +280,32 @@ export class ServersAdminController {
   @StaffPerm('NODES_VIEW')
   stanFali() {
     return this.nodeTasks.stanFali();
+  }
+
+  /**
+   * 21.10 — weryfikator aktualizacji bezpieczeństwa: oczekujące poprawki floty z raportów agenta (dnf z CVE, CustomBuild,
+   * alt-php), węzły bez świeżych danych, stan fali; `?cve=` — które węzły mają oczekującą poprawkę na ten CVE. Trasa przed :id.
+   */
+  @Get('aktualizacje')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_VIEW')
+  aktualizacjeFloty(@Query('cve') cve?: string) {
+    return this.wymagajAktualizacji().podsumowanie(cve || undefined);
+  }
+
+  /** 21.10 — fala samych poprawek bezpieczeństwa (kanarek → reszta); opcjonalnie tylko CVE, CustomBuild, wybrane węzły. */
+  @Post('aktualizacje/zainstaluj')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_MANAGE')
+  zainstalujPoprawki(@Body() body: InstalacjaPoprawekDto, @CurrentUser() actor: { userId: string }) {
+    return this.wymagajAktualizacji().zainstaluj(actor.userId, body);
+  }
+
+  private wymagajAktualizacji(): AktualizacjeWezlowService {
+    if (!this.aktualizacje) throw new Error('AktualizacjeWezlowService nie jest zarejestrowany w ServersModule.');
+    return this.aktualizacje;
   }
 
   /** NODE-6 — aktualizacja CAŁEJ floty (rolling). Trasa przed :id, by nie kolidować. */

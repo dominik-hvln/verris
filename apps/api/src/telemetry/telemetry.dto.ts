@@ -8,6 +8,7 @@ import {
   IsISO8601,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Matches,
@@ -213,6 +214,15 @@ export class CloudLinuxTelemetryDto {
   @ValidateNested()
   @Type(() => LveFaultsReportDto)
   faults?: LveFaultsReportDto;
+
+  /**
+   * 21.10 — oczekujące aktualizacje bezpieczeństwa (agent lve-agent/1.4+, co ~6 h). Kształt StanAktualizacjiWezla
+   * (libs/contracts/src/aktualizacje-wezla.ts) sprawdza wpis po wpisie `oczyscRaportAktualizacji` — zły wiersz odpada,
+   * nie cały raport; tu tylko „to jest obiekt”.
+   */
+  @IsOptional()
+  @IsObject()
+  aktualizacje?: Record<string, unknown>;
 
   /** Optional version of the agent — useful for compatibility checks. */
   @IsOptional()

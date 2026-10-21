@@ -609,6 +609,10 @@ model Server {
   // F3.4 — watchdog usług: stan usług z białej listy z agenta verris-lve ([{k, s, e}]) i czas raportu
   uslugiStan         Json?
   uslugiStanAt       DateTime?
+  // 21.10 — oczekujące aktualizacje bezpieczeństwa z agenta verris-lve (co ~6 h): StanAktualizacjiWezla
+  // z libs/contracts/src/aktualizacje-wezla.ts (dnf --security z CVE, CustomBuild ./build versions, wersje alt-php).
+  aktualizacje       Json?
+  aktualizacjeAt     DateTime?
 
   // VER-UPG — docelowa wersja silnika DB wybrana przez admina w edycji węzła
   // (np. "11.4"). Ustawiana przy zleceniu DB_UPGRADE; faktyczna wersja po

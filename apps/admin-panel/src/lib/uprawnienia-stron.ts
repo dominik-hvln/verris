@@ -54,6 +54,8 @@ export const STRONY = {
   "/nodes": { perm: "NODES_VIEW", tytul: "Węzły", api: ["admin/servers"] },
   "/nodes/[id]": { perm: "NODES_VIEW", tytul: "Węzeł", api: ["admin/servers/:id", "admin/servers/:id/przeglad"] },
   "/nodes/capacity": { perm: "NODES_VIEW", tytul: "Pojemność", api: ["admin/servers/wykresy"] },
+  // 21.10 — weryfikator aktualizacji: podgląd NODES_VIEW, instalacja poprawek (POST) NODES_MANAGE — przycisk wyszarzony.
+  "/nodes/aktualizacje": { perm: "NODES_VIEW", tytul: "Aktualizacje bezpieczeństwa", api: ["admin/servers/aktualizacje"] },
   // Przekierowanie na kreator.
   "/nodes/init": { perm: "ADMIN", tytul: "Dodaj węzeł" },
   // F3.3 — admin/servers/kopie — NODES_VIEW (admin, NOC); historia prób odtworzenia na stronie tylko dla ADMIN.

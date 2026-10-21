@@ -79,6 +79,9 @@ export function wynikAktualizacji(log: string | null | undefined): 'ok' | 'needs
 export interface StanFali {
   id: string;
   wyrownaj: boolean;
+  /** 21.10 — fala samych poprawek bezpieczeństwa (null = pełna aktualizacja). */
+  tryb: 'bezpieczenstwo' | null;
+  cve: string[];
   razem: number;
   /** trwa · zakonczona · zatrzymana (błąd węzła) · przerwana (węzeł OK, a następnego nie dało się zlecić). */
   stan: 'trwa' | 'zakonczona' | 'zatrzymana' | 'przerwana';
@@ -108,6 +111,22 @@ export interface FalaAktualizacji {
   kolejka: string[];
   /** PB-33 — fala „Wyrównaj flotę”: węzeł przyjmuje wersje z manifestu (PHP/LiteSpeed, MariaDB krok po kroku). */
   wyrownaj?: boolean;
+  /** 21.10 — tylko poprawki bezpieczeństwa (dnf --security / --cve), bez pełnej aktualizacji stosu. */
+  tryb?: 'bezpieczenstwo';
+  /** Tryb bezpieczeństwa: tylko poprawki na te CVE (puste/brak = wszystkie poprawki bezpieczeństwa). */
+  cve?: string[];
+  /** Tryb bezpieczeństwa: także nieaktualne składniki CustomBuild (update_versions). */
+  custombuild?: boolean;
+}
+
+/** Opcje payloadu zadania FLEET_UPDATE dla agenta (env UPD_*) — z fali albo z pojedynczego zlecenia. */
+function payloadAktualizacji(fala: FalaAktualizacji): Record<string, string> {
+  return {
+    ...(fala.wyrownaj ? { wyrownaj: '1' } : {}),
+    ...(fala.tryb === 'bezpieczenstwo' ? { tryb: 'bezpieczenstwo' } : {}),
+    ...(fala.tryb === 'bezpieczenstwo' && fala.cve?.length ? { cve: fala.cve.join(',') } : {}),
+    ...(fala.tryb === 'bezpieczenstwo' && fala.custombuild ? { custombuild: '1' } : {}),
+  };
 }
 
 /**
@@ -366,7 +385,7 @@ export class NodeTasksService {
         serverId,
         kind: 'FLEET_UPDATE' as NodeTaskKind,
         status: NodeTaskStatus.QUEUED,
-        payload: (fala ? { fala, ...(fala.wyrownaj ? { wyrownaj: '1' } : {}) } : {}) as unknown as Prisma.InputJsonValue,
+        payload: (fala ? { fala, ...payloadAktualizacji(fala) } : {}) as unknown as Prisma.InputJsonValue,
         requestedById: actorUserId,
       },
     });
@@ -385,7 +404,7 @@ export class NodeTasksService {
    */
   async queueFleetUpdate(
     actorUserId: string | null,
-    opts: { wyrownaj?: boolean } = {},
+    opts: { wyrownaj?: boolean; tryb?: 'bezpieczenstwo'; cve?: string[]; custombuild?: boolean; serwery?: string[] } = {},
   ): Promise<{ queued: number; skipped: number; kanarek: string | null }> {
     // PB-32 — fala: najpierw węzeł kanarkowy (najmniej kont = najmniejsze ryzyko), potem reszta
     // po jednym; każdy następny rusza dopiero po udanej aktualizacji poprzedniego, błąd zatrzymuje falę.
@@ -396,7 +415,8 @@ export class NodeTasksService {
     if (trwa) throw new BadRequestException('Aktualizacja floty już trwa — poczekaj na jej koniec.');
 
     const servers = await this.prisma.server.findMany({
-      where: { status: ServerStatus.ACTIVE },
+      // 21.10 — fala poprawek może objąć tylko wskazane węzły (np. te z oczekującą poprawką na dany CVE)
+      where: { status: ServerStatus.ACTIVE, ...(opts.serwery?.length ? { id: { in: opts.serwery } } : {}) },
       select: { id: true, identityToken: true, _count: { select: { accounts: { where: { status: { not: AccountStatus.DELETED } } } } } },
     });
     const zAgentem = servers.filter((s) => s.identityToken).sort((a, b) => a._count.accounts - b._count.accounts);
@@ -404,12 +424,25 @@ export class NodeTasksService {
     if (zAgentem.length === 0) return { queued: 0, skipped, kanarek: null };
 
     const [kanarek, ...reszta] = zAgentem.map((s) => s.id);
-    const fala: FalaAktualizacji = { id: randomUUID(), nr: 1, razem: zAgentem.length, kolejka: reszta, ...(opts.wyrownaj ? { wyrownaj: true } : {}) };
+    const bezp = opts.tryb === 'bezpieczenstwo';
+    const fala: FalaAktualizacji = {
+      id: randomUUID(),
+      nr: 1,
+      razem: zAgentem.length,
+      kolejka: reszta,
+      ...(opts.wyrownaj && !bezp ? { wyrownaj: true } : {}),
+      ...(bezp ? { tryb: 'bezpieczenstwo' as const } : {}),
+      ...(bezp && opts.cve?.length ? { cve: [...new Set(opts.cve)] } : {}),
+      ...(bezp && opts.custombuild ? { custombuild: true } : {}),
+    };
     await this.queueNodeUpdate(kanarek, actorUserId, fala);
     await this.audit.record({
       action: 'FLEET_UPDATE_QUEUED',
       actorUserId: actorUserId ?? undefined,
-      details: { fala: fala.id, kanarek, kolejnosc: [kanarek, ...reszta], skipped, wyrownaj: !!opts.wyrownaj },
+      details: {
+        fala: fala.id, kanarek, kolejnosc: [kanarek, ...reszta], skipped, wyrownaj: !!fala.wyrownaj,
+        ...(bezp ? { tryb: 'bezpieczenstwo', cve: fala.cve ?? [], custombuild: !!fala.custombuild } : {}),
+      },
     });
     return { queued: 1, skipped, kanarek };
   }
@@ -488,6 +521,8 @@ export class NodeTasksService {
     return {
       id,
       wyrownaj: !!fala.wyrownaj,
+      tryb: fala.tryb === 'bezpieczenstwo' ? 'bezpieczenstwo' : null,
+      cve: fala.cve ?? [],
       razem: fala.razem,
       stan,
       pozostale: stan === 'zakonczona' ? 0 : fala.kolejka.length + (stan === 'trwa' ? 1 : 0),
