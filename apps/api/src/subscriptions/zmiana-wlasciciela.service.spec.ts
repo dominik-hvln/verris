@@ -125,6 +125,11 @@ describe('K2 — odmowy zmiany właściciela usługi', () => {
 });
 
 describe('K2 — przenies(): walidacje przed transakcją', () => {
+  // przenies() liczy okno odnowienia od zegara (Date.now()), a dane testu są ustawione względem TERAZ (12.10) —
+  // bez stałego zegara test zaczął padać 21.10 wieczorem, gdy do „odnowienia” z danych została mniej niż doba.
+  beforeEach(() => vi.useFakeTimers({ now: TERAZ, toFake: ['Date'] }));
+  afterEach(() => vi.useRealTimers());
+
   function serwis() {
     const prisma = { $transaction: vi.fn() };
     return { s: new ZmianaWlascicielaService(prisma as never, { send: vi.fn() } as never, { get: () => undefined } as never), prisma };
