@@ -329,7 +329,7 @@ elif [ "$TASK_KIND" = "NODE_SERVICES" ]; then
 elif [ "$TASK_KIND" = "GIT_DEPLOY" ]; then
   RUN_BIN="/usr/local/bin/verris-git-deploy.sh"
   fetch_task_script "/agent/tasks/git-deploy/script" "$RUN_BIN"
-  payload_env "GD" "{'mode':'MODE','daUser':'DA_USER','domain':'DOMAIN','dir':'DIR','url':'URL','branch':'BRANCH'}"
+  payload_env "GD" "{'mode':'MODE','daUser':'DA_USER','domain':'DOMAIN','dir':'DIR','url':'URL','branch':'BRANCH','build':'BUILD','envSecret':'ENV_B64','envMode':'ENV_MODE'}"
 elif [ "$TASK_KIND" = "SITE_CLONE" ]; then
   RUN_BIN="/usr/local/bin/verris-site-clone.sh"
   fetch_task_script "/agent/tasks/site-clone/script" "$RUN_BIN"

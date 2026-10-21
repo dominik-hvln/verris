@@ -141,6 +141,20 @@ export class RepozytoriumGitDto {
   @IsOptional() @Linia(100) branch?: string;
 }
 
+/** 21.10 — zmienne środowiskowe wdrożenia: ustaw (nazwa → wartość) i usuń (nazwy). Treść sprawdza serwis. */
+export class ZmienneWdrozeniaDto {
+  @IsOptional() @IsObject() ustaw?: Record<string, string>;
+  @IsOptional() @IsArray() @ArrayMaxSize(50) @IsString({ each: true }) @MaxLength(64, { each: true }) usun?: string[];
+}
+
+/** 21.10 — budowanie po pobraniu kodu i zmienne środowiskowe dla domeny (+ katalogu). */
+export class KonfiguracjaGitDto {
+  @Linia(253) domain!: string;
+  @IsOptional() @Linia(200) dir?: string;
+  @IsIn(['', 'npm-build', 'npm-ci', 'composer']) budowanie!: string;
+  @IsOptional() @ValidateNested() @Type(() => ZmienneWdrozeniaDto) zmienne?: ZmienneWdrozeniaDto;
+}
+
 /** I-13 — kopia strony na inną domenę konta. */
 export class KlonStronyDto {
   @Linia(253) source!: string;

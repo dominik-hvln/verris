@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { HostingResourceActions } from '../common/audit/audit.actions.js';
 import { DirectAdminService } from '../servers/directadmin.service.js';
+import { CryptoService } from '../common/crypto/crypto.service.js';
 
 /**
  * C-25 / C-26 — repozytorium Git strony: klucz wdrożeniowy konta, klonowanie do katalogu strony,
@@ -16,6 +17,14 @@ const URL_RE = /^(https:\/\/[A-Za-z0-9.-]+(:[0-9]{2,5})?\/[A-Za-z0-9._/~-]+|git@
 const GALAZ_RE = /^[A-Za-z0-9._][A-Za-z0-9._/-]{0,99}$/;
 const KATALOG_RE = /^[A-Za-z0-9._-]+(\/[A-Za-z0-9._-]+)*$/;
 
+/** 21.10 — budowanie po pobraniu kodu (ops/scripts/node-git-deploy.sh: zbuduj) i zmienne środowiskowe (.env). */
+export const PRESETY_BUDOWANIA = ['', 'npm-build', 'npm-ci', 'composer'] as const;
+export type PresetBudowania = (typeof PRESETY_BUDOWANIA)[number];
+const NAZWA_ZMIENNEJ_RE = /^[A-Z_][A-Z0-9_]{0,63}$/;
+export const MAKS_ZMIENNYCH = 50;
+export const MAKS_DLUGOSC_WARTOSCI = 4096;
+const LOG_OGON = 4000;
+
 @Injectable()
 export class GitDeployService {
   constructor(
@@ -23,7 +32,62 @@ export class GitDeployService {
     private readonly audit: AuditService,
     private readonly directAdmin: DirectAdminService,
     private readonly config: ConfigService,
+    private readonly crypto: CryptoService,
   ) {}
+
+  /** Budowanie i zmienne dla domeny (+ katalogu). Wartości zmiennych nigdy nie wracają z API — tylko nazwy. */
+  async ustawKonfiguracje(
+    subscriptionId: string,
+    userId: string,
+    input: { domain: string; dir?: string; budowanie?: string; zmienne?: { ustaw?: Record<string, string>; usun?: string[] } },
+  ) {
+    const { sub, account, domena } = await this.wymagajDomeny(subscriptionId, userId, input.domain);
+    const dir = sprawdzKatalog(input.dir);
+    const budowanie = (input.budowanie ?? '') as PresetBudowania;
+    if (!PRESETY_BUDOWANIA.includes(budowanie)) throw new BadRequestException('Nieznany sposób budowania.');
+    const obecna = await this.prisma.gitKonfiguracja.findUnique({ where: { accountId_domain_dir: { accountId: account.id, domain: domena, dir } } });
+    const zmienne = obecna?.zmienneEnc ? this.odszyfruj(obecna.zmienneEnc) : {};
+    for (const nazwa of input.zmienne?.usun ?? []) delete zmienne[nazwa];
+    for (const [nazwa, wartosc] of Object.entries(input.zmienne?.ustaw ?? {})) {
+      if (!NAZWA_ZMIENNEJ_RE.test(nazwa)) throw new BadRequestException(`Nazwa zmiennej „${nazwa.slice(0, 64)}”: wielkie litery, cyfry i _ (np. API_KEY).`);
+      if (typeof wartosc !== 'string' || wartosc.length > MAKS_DLUGOSC_WARTOSCI) throw new BadRequestException(`Wartość ${nazwa}: najwyżej ${MAKS_DLUGOSC_WARTOSCI} znaków.`);
+      if (/[\r\n\0]/.test(wartosc)) throw new BadRequestException(`Wartość ${nazwa} nie może mieć znaku nowej linii.`);
+      zmienne[nazwa] = wartosc;
+    }
+    if (Object.keys(zmienne).length > MAKS_ZMIENNYCH) throw new BadRequestException(`Najwyżej ${MAKS_ZMIENNYCH} zmiennych.`);
+    const zmienneEnc = Object.keys(zmienne).length ? this.crypto.encrypt(JSON.stringify(zmienne)) : null;
+    await this.prisma.gitKonfiguracja.upsert({
+      where: { accountId_domain_dir: { accountId: account.id, domain: domena, dir } },
+      create: { accountId: account.id, domain: domena, dir, budowanie, zmienneEnc },
+      update: { budowanie, zmienneEnc },
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_GIT_CONFIG_UPDATED,
+      userId: sub.userId, actorUserId: userId,
+      // same nazwy — wartości (klucze API, hasła) nie trafiają do dziennika
+      details: { subscriptionId, domain: domena, dir, budowanie, zmienne: Object.keys(zmienne).sort() },
+    });
+    return this.opis(account.id, domena);
+  }
+
+  /** Dla zadania clone/pull: sposób budowania i zmienne jako base64 linii .env (payload.envSecret znika po zadaniu). */
+  private async dodatkiWdrozenia(
+    accountId: string,
+    domain: string,
+    dir: string,
+  ): Promise<{ build: string; envMode?: 'panel'; envSecret?: string }> {
+    const k = await this.prisma.gitKonfiguracja.findUnique({ where: { accountId_domain_dir: { accountId, domain, dir } } });
+    if (!k) return { build: '' };
+    const zmienne = k.zmienneEnc ? this.odszyfruj(k.zmienneEnc) : {};
+    const plik = plikEnv(zmienne);
+    // envMode=panel: .env tej konfiguracji należy do panelu — pusta lista usuwa plik z nagłówkiem panelu (nie własny .env klienta)
+    return { build: k.budowanie, envMode: 'panel', ...(plik ? { envSecret: Buffer.from(plik, 'utf8').toString('base64') } : {}) };
+  }
+
+  private odszyfruj(enc: string): Record<string, string> {
+    const j = JSON.parse(this.crypto.decrypt(enc)) as unknown;
+    return j && typeof j === 'object' && !Array.isArray(j) ? (j as Record<string, string>) : {};
+  }
 
   /** C-27 — tajny adres webhooka dla domeny (+ podkatalogu). Poprzedni dla tej pary przestaje działać. */
   async utworzWebhook(subscriptionId: string, userId: string, input: { domain: string; dir?: string }) {
@@ -68,7 +132,10 @@ export class GitDeployService {
         kind: NodeTaskKind.GIT_DEPLOY,
         status: NodeTaskStatus.QUEUED,
         requestedById: null,
-        payload: { mode: 'pull', daUser: hook.account.daUsername, domain: hook.domain, dir: hook.dir, url: '', branch: '', webhook: true },
+        payload: {
+          mode: 'pull', daUser: hook.account.daUsername, domain: hook.domain, dir: hook.dir, url: '', branch: '', webhook: true,
+          ...(await this.dodatkiWdrozenia(hook.accountId, hook.domain, hook.dir)),
+        },
       },
     });
     return true;
@@ -103,7 +170,10 @@ export class GitDeployService {
         kind: NodeTaskKind.GIT_DEPLOY,
         status: NodeTaskStatus.QUEUED,
         requestedById: userId,
-        payload: { mode: tryb, daUser: account.daUsername, domain: domena, dir, url: tryb === 'clone' ? url : '', branch: tryb === 'clone' ? branch : '' },
+        payload: {
+          mode: tryb, daUser: account.daUsername, domain: domena, dir, url: tryb === 'clone' ? url : '', branch: tryb === 'clone' ? branch : '',
+          ...(tryb === 'key' ? {} : await this.dodatkiWdrozenia(account.id, domena, dir)),
+        },
       },
     });
     if (tryb !== 'key') {
@@ -122,7 +192,7 @@ export class GitDeployService {
       orderBy: { createdAt: 'desc' },
       take: 15,
     });
-    const p = (z: (typeof zadania)[number]) => (z.payload ?? {}) as { mode?: string; domain?: string; dir?: string; url?: string };
+    const p = (z: (typeof zadania)[number]) => (z.payload ?? {}) as { mode?: string; domain?: string; dir?: string; url?: string; build?: string };
     const klucz = zadania
       .filter((z) => z.status === NodeTaskStatus.COMPLETED && p(z).mode === 'key')
       .map((z) => /^VERRIS_GIT_KLUCZ=(ssh-ed25519 [A-Za-z0-9+/=]+ [^\s|]{1,300})\s*$/m.exec(z.outputLog ?? '')?.[1] ?? null)
@@ -130,7 +200,8 @@ export class GitDeployService {
     const operacje = zadania
       .filter((z) => p(z).mode !== 'key' && p(z).domain === domena)
       .slice(0, 5)
-      .map((z) => ({
+      .map((z) => ({ z, w: wynikWdrozenia(z.status, p(z).build ?? '', z.outputLog) }))
+      .map(({ z, w }) => ({
         id: z.id,
         tryb: p(z).mode ?? null,
         katalog: p(z).dir ?? '',
@@ -140,14 +211,25 @@ export class GitDeployService {
         webhook: (z.payload as { webhook?: boolean } | null)?.webhook === true,
         head: /^VERRIS_GIT_HEAD=(.{1,200})$/m.exec(z.outputLog ?? '')?.[1]?.trim() ?? null,
         kopia: /^VERRIS_GIT_KOPIA=(domains\/[^\s|]{1,300})\s*$/m.exec(z.outputLog ?? '')?.[1] ?? null,
-        blad: z.status === NodeTaskStatus.FAILED ? bladZLogu(z.outputLog) : null,
+        blad: z.status === NodeTaskStatus.FAILED ? bladZLogu(z.outputLog) : w.uwaga,
+        budowanie: w.budowanie,
+        zmienne: w.zmienne,
+        trwaloS: z.startedAt && z.completedAt ? Math.max(0, Math.round((z.completedAt.getTime() - z.startedAt.getTime()) / 1000)) : null,
+        log: z.outputLog ? z.outputLog.slice(-LOG_OGON) : null,
       }));
+    const konfiguracje = await this.prisma.gitKonfiguracja.findMany({ where: { accountId, domain: domena }, orderBy: { dir: 'asc' } });
     const webhooki = await this.prisma.gitWebhook.findMany({ where: { accountId, domain: domena }, orderBy: { createdAt: 'asc' } });
     return {
       domena,
       wToku: zadania.some((z) => z.status === NodeTaskStatus.QUEUED || z.status === NodeTaskStatus.RUNNING),
       klucz,
       webhooki: webhooki.map((w) => ({ katalog: w.dir, utworzony: w.createdAt.toISOString(), ostatnio: w.lastUsedAt?.toISOString() ?? null })),
+      konfiguracje: konfiguracje.map((k) => ({
+        katalog: k.dir,
+        budowanie: k.budowanie as PresetBudowania,
+        zmienne: k.zmienneEnc ? Object.keys(this.odszyfruj(k.zmienneEnc)).sort() : [],
+        zmieniono: k.updatedAt.toISOString(),
+      })),
       operacje,
     };
   }
@@ -172,4 +254,33 @@ function sprawdzKatalog(raw?: string): string {
 function bladZLogu(log: string | null): string {
   const l = (log ?? '').split('\n').reverse().find((x) => x.startsWith('[git-deploy] BŁĄD: '));
   return l ? l.slice('[git-deploy] BŁĄD: '.length).slice(0, 300) : 'Operacja nie powiodła się. Spróbuj ponownie albo napisz do nas.';
+}
+
+/**
+ * Linie .env. Wartość bez znaków specjalnych — wprost; inaczej w apostrofach (dosłownie, bez rozwijania ${…} w
+ * dotenv dla PHP i Node); z apostrofem w środku — w cudzysłowie z escapowaniem \ i ".
+ */
+export function plikEnv(zmienne: Record<string, string>): string {
+  return Object.keys(zmienne)
+    .sort()
+    .map((k) => {
+      const v = zmienne[k];
+      if (/^[A-Za-z0-9_./:@+,-]*$/.test(v)) return `${k}=${v}`;
+      if (!v.includes("'")) return `${k}='${v}'`;
+      return `${k}="${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+    })
+    .join('\n');
+}
+
+/** Wynik budowania i liczba zmiennych z logu skryptu (VERRIS_GIT_BUILD / VERRIS_GIT_ENV). */
+export function wynikWdrozenia(status: NodeTaskStatus, build: string, log: string | null) {
+  const l = log ?? '';
+  const znacznik = /^VERRIS_GIT_BUILD=(ok|blad|brak)\s*$/m.exec(l)?.[1] as 'ok' | 'blad' | 'brak' | undefined;
+  const env = /^VERRIS_GIT_ENV=(\d+|brak)\s*$/m.exec(l)?.[1];
+  const zmienne = env && env !== 'brak' ? Number(env) : null;
+  // Zlecone budowanie, a skrypt sprzed 21.10 go nie zna: zadanie „udane”, ale nic się nie zbudowało — mówimy to wprost.
+  if (build && status === NodeTaskStatus.COMPLETED && !znacznik) {
+    return { budowanie: 'blad' as const, zmienne, uwaga: 'Serwer nie obsługuje jeszcze budowania ani zmiennych — napisz do nas, zaktualizujemy go.' };
+  }
+  return { budowanie: znacznik ?? (status === NodeTaskStatus.COMPLETED ? ('brak' as const) : null), zmienne, uwaga: null };
 }

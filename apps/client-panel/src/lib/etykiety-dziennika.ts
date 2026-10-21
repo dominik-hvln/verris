@@ -51,6 +51,7 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   HOSTING_GIT_CLONE_QUEUED: 'Zlecono sklonowanie repozytorium',
   HOSTING_GIT_PULL_QUEUED: 'Zlecono pobranie zmian z repozytorium',
   HOSTING_GIT_WEBHOOK_CREATED: 'Utworzono webhook wdrożenia z Gita',
+  HOSTING_GIT_CONFIG_UPDATED: 'Zmieniono budowanie lub zmienne wdrożeń z Gita',
   HOSTING_HTACCESS_QUEUED: 'Zmieniono ustawienia serwera WWW strony',
   HOSTING_APP_SELECTOR_QUEUED: 'Zmieniono aplikację Node.js / Python',
   HOSTING_HTACCESS_RULES_SET: 'Zmieniono reguły .htaccess',

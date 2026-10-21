@@ -116,6 +116,7 @@ import {
   ZabezpieczeniaWordpressaDto,
   DziennikPocztyDto,
   RepozytoriumGitDto,
+  KonfiguracjaGitDto,
   KlonStronyDto,
   DomenaStronyDto,
   UstawieniaHtaccessDto,
@@ -1393,6 +1394,14 @@ export class UserServicesController {
   @Post(':id/hosting-git-webhook')
   async hostingGitWebhook(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: RepozytoriumGitDto) {
     return this.gitDeploy.utworzWebhook(id, user.userId, body);
+  }
+
+  // 21.10 — budowanie po pobraniu kodu i zmienne środowiskowe (.env) dla domeny/katalogu repozytorium.
+  @RateLimit({ limit: 60, windowMs: 60 * 60 * 1000, scope: 'hosting:git-config' })
+  @BezSesjiWsparcia()
+  @Post(':id/hosting-git-konfiguracja')
+  async hostingGitKonfiguracja(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: KonfiguracjaGitDto) {
+    return this.gitDeploy.ustawKonfiguracje(id, user.userId, body);
   }
 
   @Post(':id/hosting-git-webhook/delete')

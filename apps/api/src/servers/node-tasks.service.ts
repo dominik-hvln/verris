@@ -1001,6 +1001,7 @@ export class NodeTasksService {
         errorMessage: opts.error.slice(0, 4000),
         outputLog: this.trimLog(opts.outputLog),
         completedAt: new Date(),
+        ...zmienneWdrozeniaUsuniete(task.payload),
       },
     });
 
@@ -1287,6 +1288,7 @@ export class NodeTasksService {
             ? 'Brak heartbeat z węzła przez 15 min (agent mógł paść po starcie). Na węźle: journalctl -u verris-task@<instance>, tail /var/log/verris-tasks/<task-id>.log, potem uruchom install agenta (agent-3) i profil ponownie.'
             : 'Zadanie przekroczyło 2 h bez potwierdzenia z węzła (limit jednostki zadania na węźle). Sprawdź /var/log/verris-tasks/<task-id>.log na węźle i uruchom profil ponownie.',
           completedAt: new Date(),
+          ...zmienneWdrozeniaUsuniete(task.payload),
         },
       });
       await this.audit.record({
@@ -1328,6 +1330,17 @@ export class NodeTasksService {
 }
 
 const KLUCZ_SEKRETU = /pass|secret|token/i;
+
+/**
+ * 21.10 — zmienne środowiskowe wdrożenia z Gita (GIT_DEPLOY.envSecret) nie zostają w bazie także po porażce.
+ * Tylko ten klucz: reszta payloadu zostaje, bo „Ponów” w panelu admina wykonuje zadanie z tym samym payloadem
+ * (np. hasło bazy przy instalacji WordPressa). Ponowione wdrożenie bez zmiennych zostawia dotychczasowy .env.
+ */
+export function zmienneWdrozeniaUsuniete(payload: unknown): { payload?: Prisma.InputJsonValue } {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload) || !('envSecret' in payload)) return {};
+  const { envSecret: _usuniete, ...reszta } = payload as Record<string, unknown>;
+  return { payload: reszta as Prisma.InputJsonValue };
+}
 
 /** Payload bez haseł/tokenów — do zapisu po wykonaniu zadania i do pokazania w panelu administratora. */
 export function bezSekretow(payload: unknown): unknown {

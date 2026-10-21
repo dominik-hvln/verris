@@ -1423,6 +1423,7 @@ model Account {
 
   wpAutoUpdates   WpAutoUpdate[]
   gitWebhooks     GitWebhook[]
+  gitKonfiguracje GitKonfiguracja[]
 
   userId          String
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1453,6 +1454,24 @@ model GitWebhook {
   tokenHash String    @unique
   lastUsedAt DateTime?
   createdAt DateTime  @default(now())
+
+  @@unique([accountId, domain, dir])
+}
+
+/// 21.10 — ustawienia wdrożeń z Gita dla domeny (+ podkatalogu): budowanie po pobraniu kodu i zmienne
+/// środowiskowe (.env). Wartości zmiennych tylko zaszyfrowane (APP_KMS_KEY, rotacja: cli/rotate-kms.ts).
+model GitKonfiguracja {
+  id          String   @id @default(uuid())
+  accountId   String
+  account     Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  domain      String
+  dir         String   @default("")
+  /// '' | npm-build | npm-ci | composer
+  budowanie   String   @default("")
+  /// JSON { NAZWA: wartość } zaszyfrowany CryptoService; null = brak zmiennych
+  zmienneEnc  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@unique([accountId, domain, dir])
 }

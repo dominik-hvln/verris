@@ -152,6 +152,28 @@ const COLUMNS: ColumnSpec[] = [
       });
     },
   },
+  {
+    table: 'GitKonfiguracja',
+    column: 'GitKonfiguracja.zmienneEnc',
+    async fetchBatch(prisma, cursorId) {
+      const rows = await prisma.gitKonfiguracja.findMany({
+        where: { zmienneEnc: { not: null } },
+        orderBy: { id: 'asc' },
+        take: CHUNK_SIZE,
+        ...(cursorId
+          ? { skip: 1, cursor: { id: cursorId } }
+          : {}),
+        select: { id: true, zmienneEnc: true },
+      });
+      return rows.map((r) => ({ id: r.id, value: r.zmienneEnc }));
+    },
+    async applyUpdate(tx, id, nextValue) {
+      await tx.gitKonfiguracja.update({
+        where: { id },
+        data: { zmienneEnc: nextValue },
+      });
+    },
+  },
 ];
 
 // ---------------------------------------------------------------------------
