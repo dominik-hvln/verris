@@ -43,7 +43,7 @@ export function Header() {
     <header className="site-head">
       <div className="topbar">
         <div className="wrap topbar-row">
-          <p>Polski hosting dla firm i sklepów · ceny brutto · przeniesienie strony w cenie</p>
+          <p>Polski hosting dla firm i sklepów · przeniesienie strony w cenie</p>
           <nav aria-label="Pomocnicze">
             {topLinks.map((l) => (
               <a key={l.href} href={l.href}>
