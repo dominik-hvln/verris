@@ -22,7 +22,7 @@ const WORDMARK_PATH =
 
 export function VerrisWordmark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 273.11 80.81" className={cx("w-auto", className)} role="img" aria-label="Verris">
+    <svg viewBox="0 0 273.11 80.81" overflow="visible" className={cx("w-auto", className)} role="img" aria-label="Verris">
       <path d={WORDMARK_PATH} fill="currentColor" />
     </svg>
   );
